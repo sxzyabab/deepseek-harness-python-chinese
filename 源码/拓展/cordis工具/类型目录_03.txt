@@ -1,0 +1,121 @@
+# TYPE_API 片段 03：LlmResolvedModelInfo .. SessionEventType
+# 格式：名称|声明
+LlmResolvedModelInfo|export interface LlmResolvedModelInfo extends LlmModelInfo {\n    context?: LlmModelContext;\n    defaultMaxTokens?: number;\n    reasoning?: LlmModelReasoningInfo;\n}
+LlmRuntime|export class LlmRuntime extends Service {\n    constructor(ctx: Context);\n    registerAdapter(providers: string[], adapter: LlmAdapter): AdapterRegistrationHandle;\n    listProviders(): LlmProviderInfo[];\n    registerConfigurableProviders(entries: readonly LlmConfigurableProvider[]): DirectoryRegistrationHandle;\n    listConfigurableProviders(): LlmConfigurableProvider[];\n    registerModelDiscovery(settingsNs: string, discover: (request: LlmModelDiscoveryRequest) => Promise<readonly LlmDiscoveredModel[]>): () => void;\n    async discoverModels(settingsNs: string, request: LlmModelDiscoveryRequest): Promise<LlmDiscoveredModel[]>;\n    providerRetryPolicy(provider: string): ResolvedRetryPolicy;\n    async listModels(provider: string): Promise<LlmModelInfo[]>;\n    async resolveModelInfo(provider: string, model: string, signal?: AbortSignal): Promise<LlmResolvedModelInfo>;\n    async resolveCallConfig(config: LlmCallConfig, signal?: AbortSignal): Promise<LlmCallConfig>;\n    async prepareCall(config: LlmCallConfig, signal?: AbortSignal): Promise<PreparedLlmCall>;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}
+LspHover|export interface LspHover {\n    readonly contents: string;\n    readonly range?: LspRange;\n}
+LspLocation|export interface LspLocation {\n    readonly uri: string;\n    readonly range: LspRange;\n}
+LspOperation|export type LspOperation = \'goToDefinition\' | \'findReferences\' | \'goToImplementation\' | \'hover\';
+LspPosition|export interface LspPosition {\n    readonly line: number;\n    readonly character: number;\n}
+LspProvider|export interface LspProvider {\n    readonly id: LspProviderId;\n    readonly extensionToLanguage: Readonly<Record<string, string>>;\n    query(request: LspProviderQuery, signal?: AbortSignal): Promise<LspQueryResult>;\n}
+LspProviderId|export type LspProviderId = Branded<\'LspProviderId\'>;
+LspProviderQuery|export interface LspProviderQuery extends LspQueryRequest {\n    readonly languageId: string;\n}
+LspQueryRequest|export interface LspQueryRequest {\n    readonly operation: LspOperation;\n    readonly filePath: string;\n    readonly position: LspPosition;\n    readonly workspaceRoot: string;\n}
+LspQueryResult|export type LspQueryResult = {\n    readonly kind: \'locations\';\n    readonly locations: readonly LspLocation[];\n    readonly resolvedWorkspaceUri: string;\n} | {\n    readonly kind: \'hover\';\n    readonly hover: LspHover | null;\n};
+LspRange|export interface LspRange {\n    readonly start: LspPosition;\n    readonly end: LspPosition;\n}
+ManualCompactAgentContext|export interface ManualCompactAgentContext extends CompactionAgentContext {\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n}
+Message|export interface Message {\n    readonly id: MessageId;\n    readonly role: \'system\' | \'user\' | \'assistant\';\n    readonly content: ContentBlock[];\n    readonly source: MessageSource;\n}
+MessageFeedbackDeleteRequest|export interface MessageFeedbackDeleteRequest {\n    readonly sessionId: SessionId;\n    readonly messageId: MessageId;\n    readonly ifVersion: MessageFeedbackVersion;\n}
+MessageFeedbackDeleteResult|export type MessageFeedbackDeleteResult = MessageFeedbackSuccess<MessageFeedbackDeleteValue> | MessageFeedbackRejected<MessageFeedbackSessionNotFound | MessageFeedbackVersionConflict>;
+MessageFeedbackDeleteValue|export interface MessageFeedbackDeleteValue {\n    readonly absent: true;\n}
+MessageFeedbackFailure|export type MessageFeedbackFailure = MessageFeedbackSessionNotFound | MessageFeedbackTargetNotFound | MessageFeedbackVersionConflict | MessageFeedbackNoteBlank | MessageFeedbackNoteTooLarge;
+MessageFeedbackItem|export interface MessageFeedbackItem {\n    readonly messageId: MessageId;\n    readonly rating: MessageFeedbackRating;\n    readonly note?: string;\n    readonly version: MessageFeedbackVersion;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n}
+MessageFeedbackListRequest|export interface MessageFeedbackListRequest {\n    readonly sessionId: SessionId;\n}
+MessageFeedbackListResult|export type MessageFeedbackListResult = MessageFeedbackSuccess<MessageFeedbackListValue> | MessageFeedbackRejected<MessageFeedbackSessionNotFound>;
+MessageFeedbackListValue|export interface MessageFeedbackListValue {\n    readonly items: readonly MessageFeedbackItem[];\n}
+MessageFeedbackNoteBlank|export interface MessageFeedbackNoteBlank {\n    readonly code: \'note-blank\';\n}
+MessageFeedbackNoteTooLarge|export interface MessageFeedbackNoteTooLarge {\n    readonly code: \'note-too-large\';\n    readonly maxBytes: number;\n    readonly actualBytes: number;\n}
+MessageFeedbackPutRequest|export interface MessageFeedbackPutRequest {\n    readonly sessionId: SessionId;\n    readonly messageId: MessageId;\n    readonly rating: MessageFeedbackRating;\n    readonly note?: string;\n    readonly ifVersion: MessageFeedbackVersion | null;\n}
+MessageFeedbackPutResult|export type MessageFeedbackPutResult = MessageFeedbackSuccess<MessageFeedbackItem> | MessageFeedbackRejected<MessageFeedbackSessionNotFound | MessageFeedbackTargetNotFound | MessageFeedbackVersionConflict | MessageFeedbackNoteBlank | MessageFeedbackNoteTooLarge>;
+MessageFeedbackRating|export type MessageFeedbackRating = \'positive\' | \'negative\';
+MessageFeedbackRejected|export interface MessageFeedbackRejected<E extends MessageFeedbackFailure> {\n    readonly ok: false;\n    readonly error: E;\n}
+MessageFeedbackSessionNotFound|export interface MessageFeedbackSessionNotFound {\n    readonly code: \'session-not-found\';\n    readonly sessionId: SessionId;\n}
+MessageFeedbackSuccess|export interface MessageFeedbackSuccess<T> {\n    readonly ok: true;\n    readonly value: T;\n}
+MessageFeedbackTargetNotFound|export interface MessageFeedbackTargetNotFound {\n    readonly code: \'target-not-found\';\n    readonly sessionId: SessionId;\n    readonly messageId: MessageId;\n}
+MessageFeedbackVersion|export type MessageFeedbackVersion = Branded<\'MessageFeedbackVersion\'>;
+MessageFeedbackVersionConflict|export interface MessageFeedbackVersionConflict {\n    readonly code: \'version-conflict\';\n    readonly current: MessageFeedbackItem | null;\n}
+MessageId|export type MessageId = Branded<\'MessageId\'>;
+MessageSource|export type MessageSource = MessageSourceMap[keyof MessageSourceMap];
+MessageSourceMap|export interface MessageSourceMap {\n    user: {\n        kind: \'user\';\n    };\n    plugin: {\n        kind: \'plugin\';\n        plugin: string;\n    } & ContextFormed;\n    model: ModelMessageSource;\n    tool: ToolMessageSource;\n}
+ModelMessageSource|export interface ModelMessageSource extends AssistantProvenance {\n    kind: \'model\';\n}
+ModelModality|export type ModelModality = ModelModalityMap[keyof ModelModalityMap];
+ModelModalityMap|export interface ModelModalityMap {\n    text: \'text\';\n    image: \'image\';\n}
+ObjectJsonSchema|export type ObjectJsonSchema = JsonSchemaNode & {\n    type: \'object\';\n};
+OneShotSubagentDescriptorData|export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}
+PermissionSelect|export interface PermissionSelect {\n    options: PresetOption[];\n    currentValue: string;\n}
+PostToolDecision|export type PostToolDecision = {\n    kind: \'accept\';\n    content?: ContentBlock[];\n    value?: never;\n    additionalContexts?: UserMessage[];\n} | {\n    kind: \'accept\';\n    value: JsonValue;\n    content?: never;\n    additionalContexts?: UserMessage[];\n} | {\n    kind: \'block\';\n    feedback: ContentBlock[];\n    additionalContexts?: UserMessage[];\n};
+PreparedLlmCall|export interface PreparedLlmCall {\n    readonly config: LlmCallConfig;\n    readonly retryPolicy: ResolvedRetryPolicy;\n    readonly context?: LlmModelContext;\n    readonly adapterDefaults: LlmCallConfigAdapterDefaults;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}
+PreparedReferencedMessage|export interface PreparedReferencedMessage {\n    content: ContentBlock[];\n    additionalContext?: UserMessage;\n}
+PrepareSessionOptions|export type PrepareSessionOptions = (CreateSessionOptions & {\n    readonly seedSource?: undefined;\n}) | RestoredSessionOptions;
+PresetOption|export interface PresetOption {\n    value: string;\n    name: string;\n    description?: string;\n}
+PresetSpec|export interface PresetSpec {\n    sandbox: SandboxMode;\n    approval: ApprovalPolicy;\n    name?: string;\n    description?: string;\n}
+PresetTrust|export type PresetTrust = \'system\' | \'user\';
+PreStepDecision|export type PreStepDecision = {\n    kind: \'reject\';\n} | {\n    kind: \'enter\';\n    messages: UserMessage[];\n};
+PreToolDecision|export type PreToolDecision = {\n    kind: \'allow\';\n} | {\n    kind: \'deny\';\n    reason: string;\n} | {\n    kind: \'ask\';\n    reason?: string;\n};
+ProjectionChangeListener|export type ProjectionChangeListener = (session: Session, key: Extract<keyof SessionProjectionMap, string>, value: unknown, seq: number) => void;
+ProjectionCheckpoint|export type ProjectionCheckpoint = Record<string, ProjectionCheckpointRow>;
+ProjectionCheckpointRow|export interface ProjectionCheckpointRow {\n    ver: number;\n    seq: number;\n    val: unknown;\n}
+ProjectionDefinition|export interface ProjectionDefinition<K extends keyof SessionProjectionMap, S> {\n    key: K;\n    schema: ZodType<SessionProjectionMap[K]>;\n    init(): S;\n    apply(state: S, event: SessionEvent): S;\n    view(state: S): SessionProjectionMap[K];\n    stateVersion: number;\n}
+ProjectionSnapshot|export interface ProjectionSnapshot {\n    asOfSeq: number;\n    values: Partial<SessionProjectionMap>;\n}
+PromptAssembly|export interface PromptAssembly {\n    sections: AssembledSection[];\n    contexts: AssembledContext[];\n    tools: ToolSchema[];\n    variables: Record<string, string | undefined>;\n}
+PromptContext|export interface PromptContext {\n    readonly name: string;\n    readonly order: number;\n    readonly text: string | ((context: AssembleContext) => string);\n}
+PromptSection|export interface PromptSection {\n    readonly name: string;\n    readonly order: number;\n    readonly text: string | ((context: AssembleContext) => string);\n    readonly complete?: boolean;\n}
+ProviderRequestId|export type ProviderRequestId = Branded<\'ProviderRequestId\'>;
+PrunedEntry|export interface PrunedEntry {\n    readonly originalSeq: number;\n    readonly replacementSeq: number;\n    readonly callId: CallId;\n    readonly charsBefore: number;\n    readonly charsAfter: number;\n}
+PruneResult|export interface PruneResult {\n    readonly pruned: readonly PrunedEntry[];\n    readonly charsRemoved: number;\n}
+ReadFileLine|export interface ReadFileLine {\n    number: number;\n    text: string;\n}
+ReadResultView|export interface ReadResultView {\n    card: \'read\';\n    title?: string;\n    path: string;\n    offset: number;\n    lines: ReadFileLine[];\n    totalLines: number;\n    lang?: string;\n    content?: ContentBlock[];\n}
+ReasoningBlock|export interface ReasoningBlock {\n    type: \'reasoning\';\n    text: string;\n}
+ReasoningEffortId|export type ReasoningEffortId = Branded<\'ReasoningEffortId\'>;
+RedactedSecret|export interface RedactedSecret {\n    path: string[];\n    set: boolean;\n}
+RequestContext|export interface RequestContext {\n    provider: string;\n    model: string;\n    contextWindow?: number;\n}
+RequestErrorAction|export type RequestErrorAction = {\n    kind: \'retry\';\n} | undefined;
+RequestHeaderReason|export type RequestHeaderReason = \'initial\' | \'resume\' | \'change\';
+RequestRunOutcome|export type RequestRunOutcome = \'approved\' | \'completed\' | \'rejected\' | \'cancelled\' | \'failed\';
+ResolvedAlwaysRetryPolicy|export interface ResolvedAlwaysRetryPolicy extends ResolvedRetryBackoff {\n    readonly mode: \'always\';\n}
+ResolvedCredential|export interface ResolvedCredential {\n    value: string;\n    source: string;\n}
+ResolvedNormalRetryPolicy|export interface ResolvedNormalRetryPolicy extends ResolvedRetryBackoff {\n    readonly mode: \'normal\';\n    readonly maxRetries: number;\n    readonly retryableCodes: readonly string[];\n}
+ResolvedRetryBackoff|export interface ResolvedRetryBackoff {\n    readonly initialDelayMs: number;\n    readonly maxDelayMs: number;\n    readonly jitterRatio: number;\n}
+ResolvedRetryPolicy|export type ResolvedRetryPolicy = ResolvedNormalRetryPolicy | ResolvedAlwaysRetryPolicy;
+ResolvedSubagentStartRequest|export interface ResolvedSubagentStartRequest extends SubagentStartRequest {\n    readonly descriptor: SubagentDescriptorData;\n}
+RestoredSessionOptions|export interface RestoredSessionOptions {\n    readonly seed: SessionEvent[];\n    readonly meta: SessionHeader;\n    readonly seedSource: \'persistence\';\n}
+ResumeAgentOptions|export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}
+RpcError|export type RpcError = {\n    [C in RpcErrorCode]: {\n        code: C;\n        message: string;\n        details: RpcErrorDetailsMap[C];\n    };\n}[RpcErrorCode];
+RpcErrorCode|export type RpcErrorCode = keyof RpcErrorDetailsMap;
+RpcErrorDetailsMap|export interface RpcErrorDetailsMap {\n    \'bad-request\': {\n        issues: ZodIssue[];\n    };\n    \'cancelled\': {};\n    \'session-not-found\': {\n        sessionId: SessionId;\n    };\n    \'model-unavailable\': {\n        provider: string;\n        model: string;\n    };\n    \'session-conflict\': {\n        sessionId: SessionId;\n        requestedCwd: string;\n        existingCwd?: string;\n    };\n    \'invalid-time-zone\': {\n        value: string;\n    };\n    \'workspace-attach-failed\': {\n        sessionId: SessionId;\n        workspaceId: string;\n    };\n    \'workspace-not-found\': {\n        workspaceId: string;\n    };\n    \'workspace-invalid-path\': {\n        path: string;\n    };\n    \'workspace-name-conflict\': {\n        name: string;\n    };\n    \'workspace-move-invalid\': {\n        workspaceId: string;\n        sessionId: SessionId;\n        beforeSessionId?: SessionId;\n    };\n    \'directory-unreadable\': {\n        path: string;\n    };\n    \'directory-exists\': {\n        path: string;\n    };\n    \'directory-create-failed\': {\n        path: string;\n    };\n    \'directory-picker-unavailable\': {\n        capability: string;\n    };\n    \'agent-preset-read-only\': {\n        agentPreset: string;\n        reason: string;\n    };\n    \'agent-preset-locked\': {\n        sessionId: SessionId;\n        agentPreset: string;\n    };\n    \'agent-preset-conflict\': {\n        sessionId: SessionId;\n        requestedPreset: string;\n        existingPreset?: string;\n    };\n    \'agent-preset-not-found\': {\n        agentPreset: string;\n        available: string[];\n    };\n    \'agent-preset-invalid\': {\n        agentPreset: string;\n        reason: string;\n    };\n    \'agent-busy\': {\n        reason: string;\n    };\n    \'attachment-error\': {\n        reason: string;\n    };\n    \'queue-item-not-found\': {\n        itemId: MessageId;\n    };\n    \'steer-unavailable\': {\n        itemId: MessageId;\n    };\n    \'command-error\': {};\n    \'unknown-command\': {};\n    \'settings-rejected\': {\n        ns: string;\n    };\n    \'settings-not-exposed\': {\n        ns: string;\n    };\n    \'settings-conflict\': {\n        ns: string;\n        expected: number;\n        actual: number;\n    };\n    \'credential-rejected\': {\n        ref: string;\n    };\n    \'model-discovery-failed\': {\n        settingsNs: string;\n        baseURL?: string;\n    };\n    \'title-invalid\': {\n        sessionId: SessionId;\n    };\n    \'fork-unavailable\': {\n        sessionId: SessionId;\n    };\n    \'subagent-parent-unavailable\': {\n        parentSessionId: SessionId;\n    };\n    \'subagent-not-found\': {\n        parentSessionId: SessionId;\n        childSessionId: SessionId;\n    };\n    \'subagent-catalog-diagnostic\': {\n        parentSessionId: SessionId;\n        childSessionId: SessionId;\n        reason: \'corrupt\' | \'unsupported\' | \'unavailable\';\n    };\n    \'subagent-not-resumable\': {\n        childSessionId: SessionId;\n    };\n    \'subagent-unauthorized\': {\n        childSessionId: SessionId;\n    };\n    \'subagent-delivery-unavailable\': {\n        childSessionId: SessionId;\n    };\n    \'internal\': {};\n}
+RpcId|export type RpcId = Branded<\'rpc-id\'>;
+RpcReceipt|export type RpcReceipt = {\n    accepted: true;\n} | {\n    accepted: false;\n    reason: \'not-pending\' | \'bad-response\';\n};
+RpcResult|export type RpcResult<T> = {\n    ok: true;\n    value: T;\n} | {\n    ok: false;\n    error: RpcError;\n};
+RunnerFailureRule|export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}
+SandboxEnforcement|export type SandboxEnforcement = \'full\' | \'partial\';
+SandboxExecutionPolicy|export interface SandboxExecutionPolicy {\n    mode: SandboxMode;\n    workspaceRoot: string;\n    sessionId?: SessionId;\n}
+SandboxMode|export type SandboxMode = \'read-only\' | \'workspace-write\' | \'danger-full-access\';
+SandboxPolicy|export interface SandboxPolicy extends SandboxExecutionPolicy {\n    mode: ConfinedSandboxMode;\n}
+SandboxPolicyRequest|export interface SandboxPolicyRequest {\n    session?: Session;\n    mode?: SandboxMode;\n}
+SaveImageAttachment|export interface SaveImageAttachment {\n    data: Uint8Array;\n    mediaType: ImageMediaType;\n    name?: string;\n}
+SaveTextSpill|export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}
+ScheduledToolDispatch|export type ScheduledToolDispatch = {\n    kind: \'post-result\';\n    result: ToolExecutionResult;\n} | {\n    kind: \'final-result\';\n    result: ToolExecutionResult;\n};
+ScheduledToolPreparation|export type ScheduledToolPreparation = {\n    kind: \'dispatch\';\n    exec: ToolRunContext;\n} | {\n    kind: \'post-result\';\n    exec: ToolRunContext;\n    result: ToolExecutionResult;\n} | {\n    kind: \'final-result\';\n    exec: ToolRunContext;\n    result: ToolExecutionResult;\n};
+Scoped|export type Scoped<T extends object> = object & {\n    readonly [ScopedBrand]: T;\n};
+ScopeKey|export type ScopeKey = object;
+SearchFileMatches|export interface SearchFileMatches {\n    path: string;\n    matches: SearchLineMatch[];\n}
+SearchLineMatch|export interface SearchLineMatch {\n    lineNumber: number;\n    line: string;\n}
+SearchMatchesResultView|export interface SearchMatchesResultView {\n    card: \'search\';\n    shape: \'matches\';\n    title?: string;\n    files: SearchFileMatches[];\n    truncated: boolean;\n    total: number;\n}
+SearchPathsResultView|export interface SearchPathsResultView {\n    card: \'search\';\n    shape: \'paths\';\n    title?: string;\n    paths: string[];\n    truncated: boolean;\n    total: number;\n}
+SearchResultView|export type SearchResultView = SearchMatchesResultView | SearchPathsResultView;
+ServerResponse|export interface ServerResponse {\n    type: \'server-response\';\n    rpcId: RpcId;\n    result: RpcResult<unknown>;\n}
+SessionAvailability|export type SessionAvailability = \'live\' | \'persisted\';
+SessionEvent|export type SessionEvent<T extends SessionEventType = SessionEventType> = {\n    [K in SessionEventType]: {\n        type: K;\n        seq: number;\n        time: number;\n        data: SessionEventMap[K];\n        ignorable?: true;\n    } & (K extends SurfaceEventType ? {\n        sourceEventSeqs?: number[];\n        surfaceOp?: SurfaceOp;\n    } : object);\n}[T];
+SessionEventMap|export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n}
+SessionEventMetadataFilter|export type SessionEventMetadataFilter = Exclude<SessionEventResultFilter, {\n    kind: \'text\';\n}>;
+SessionEventReadRequest|export interface SessionEventReadRequest {\n    sessionId: SessionId;\n    seq: number;\n    before?: number;\n    after?: number;\n}
+SessionEventRecord|export interface SessionEventRecord {\n    sessionId: SessionId;\n    seq: number;\n    type: SessionEventType;\n    time: number;\n    surface: SessionEventSurface;\n}
+SessionEventResultFilter|export type SessionEventResultFilter = ({\n    kind: \'seq\';\n} & SessionResultRange) | ({\n    kind: \'time\';\n} & SessionResultRange) | {\n    kind: \'type\';\n    values: readonly SessionEventType[];\n} | {\n    kind: \'surface\';\n    values: readonly SessionEventSurface[];\n} | {\n    kind: \'text\';\n    text: string;\n};
+SessionEventSearchDocument|export interface SessionEventSearchDocument extends SessionEventRecord {\n    text: string;\n}
+SessionEventSearchHit|export interface SessionEventSearchHit extends SessionEventRecord {\n    snippet: string;\n}
+SessionEventSearchPage|export interface SessionEventSearchPage extends SessionSearchPage<SessionEventSearchHit> {\n    session: SessionHeader;\n}
+SessionEventSearchRequest|export interface SessionEventSearchRequest {\n    sessionId: SessionId;\n    query: string;\n    filters?: readonly SessionEventMetadataFilter[];\n    limit?: number;\n    cursor?: SessionSearchCursor;\n}
+SessionEventSurface|export type SessionEventSurface = \'current\' | \'shadowed\' | \'log-only\';
+SessionEventTrace|export interface SessionEventTrace {\n    target: SessionEventRecord;\n    replacedBy?: number;\n    replacementChain: number[];\n    replacedEventSeqs: number[];\n    sourceEventSeqs: number[];\n    derivedEventSeqs: number[];\n}
+SessionEventTraceObservation|export interface SessionEventTraceObservation extends SessionEventTrace {\n    session: SessionHeader;\n}
+SessionEventTraceRequest|export interface SessionEventTraceRequest {\n    sessionId: SessionId;\n    seq: number;\n}
+SessionEventType|export type SessionEventType = keyof SessionEventMap;

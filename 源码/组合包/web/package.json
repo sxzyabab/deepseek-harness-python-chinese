@@ -1,0 +1,10 @@
+{
+  "name": "@deepseek-ai/dsh-web-app",
+  "description": "The dsh browser-surface bundle",
+  "version": "0.1.0-rc.5",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

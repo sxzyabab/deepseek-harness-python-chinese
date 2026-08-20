@@ -1,0 +1,105 @@
+# TYPE_API 片段 01：AdapterRegistrationHandle .. DynamicCordisRunRequest
+# 格式：名称|声明（声明体与上游 declaration 单引号串内容一致，含 \n \')
+AdapterRegistrationHandle|export interface AdapterRegistrationHandle {\n    (): void;\n    replace(providers: string[]): void;\n}
+Agent|export interface Agent {\n    readonly id: SessionId;\n    readonly options: AgentOptions;\n    readonly session: Session;\n    readonly inbox: Inbox;\n    readonly status: AgentStatus;\n    readonly ctx: Context;\n    cancel(cause: AgentCancelCause, options?: CancelOptions): void;\n    whenIdle(): Promise<void>;\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n    send(message: UserMessage, target: InboxTarget, wakeup: boolean): void;\n    followup(message: UserMessage): void;\n    steer(message: UserMessage): void;\n    inject(message: UserMessage): void;\n}
+AgentCancelCause|export type AgentCancelCause = {\n    readonly kind: \'user\';\n} | {\n    readonly kind: \'parent\';\n} | {\n    readonly kind: \'hook\';\n    readonly reason: string;\n} | {\n    readonly kind: \'disposed\';\n};
+AgentFactory|export interface AgentFactory {\n    createAgent(ownerCtx: Context, options: CreateAgentOptions): Promise<AgentHandle>;\n    resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandle>;\n}
+AgentHandle|export interface AgentHandle {\n    agent: Agent;\n    dispose(): Promise<void>;\n}
+AgentOptions|export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    maxTokens?: number;\n}
+AgentPreset|export interface AgentPreset {\n    readonly id: string;\n    readonly trust: PresetTrust;\n    readonly path: string;\n    readonly name?: string;\n    readonly description?: string;\n    readonly order?: number;\n    readonly broken?: string;\n}
+AgentSetup|export type AgentSetup = (agentCtx: Context) => AgentSetupCommit | Promise<AgentSetupCommit | void> | void;
+AgentSetupCommit|export interface AgentSetupCommit {\n    commit(): void;\n}
+AgentStatus|export type AgentStatus = \'idle\' | \'running\';
+ApprovalOutcome|export type ApprovalOutcome = \'allowed-once\' | \'rejected\' | \'cancelled\' | \'unavailable\';
+ApprovalPolicy|export type ApprovalPolicy = \'ask\' | \'never\';
+ApprovalRequest|export interface ApprovalRequest {\n    readonly agent: Agent;\n    readonly toolName: string;\n    readonly callId?: CallId;\n    readonly reason?: string;\n    readonly signal?: AbortSignal;\n}
+ApprovalService|export class ApprovalService extends Service {\n    static Config: z<Config>;\n    constructor(ctx: Context, public config: Config);\n    setPolicy(agent: Agent, policy: ApprovalPolicy): void;\n    async request(req: ApprovalRequest): Promise<ApprovalOutcome>;\n    overrideOf(session: Session): ApprovalPolicy | undefined;\n}
+AskUserQuestionAnswer|export interface AskUserQuestionAnswer {\n    answers: AskUserQuestionAnswerItem[];\n}
+AskUserQuestionAnswerItem|export interface AskUserQuestionAnswerItem {\n    id: string;\n    selected: string[];\n    custom?: string;\n}
+AskUserQuestionIntent|export type AskUserQuestionIntent = {\n    kind: \'plan-review\';\n    approve: string;\n};
+AskUserQuestionItem|export interface AskUserQuestionItem {\n    id: string;\n    question: string;\n    detail?: string;\n    header?: string;\n    options?: AskUserQuestionOption[];\n    multiSelect?: boolean;\n    intent?: AskUserQuestionIntent;\n}
+AskUserQuestionOption|export interface AskUserQuestionOption {\n    label: string;\n    description?: string;\n}
+AskUserQuestionRequest|export interface AskUserQuestionRequest {\n    questions: AskUserQuestionItem[];\n    agent?: Agent;\n    signal?: AbortSignal;\n}
+AssembleContext|export interface AssembleContext {\n    scope?: ScopeKey;\n    signal?: AbortSignal;\n}
+AssembledContext|export interface AssembledContext {\n    name: string;\n    text: string;\n}
+AssembledSection|export interface AssembledSection {\n    name: string;\n    text: string;\n}
+AssistantMessage|export interface AssistantMessage extends Message {\n    readonly role: \'assistant\';\n    readonly source: ModelMessageSource;\n}
+AssistantProvenance|export interface AssistantProvenance {\n    provider: string;\n    model: string;\n    replayState?: unknown;\n}
+AttachmentId|export type AttachmentId = Branded<\'AttachmentId\'>;
+BackendRegistry|export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}
+BashEnvContributor|export interface BashEnvContributor {\n    name: string;\n    variables: Readonly<Record<DshEnvironmentKey, BashEnvVariable>>;\n    resolve(execution: ToolExecution): Readonly<Partial<Record<DshEnvironmentKey, string>>>;\n}
+BashEnvVariable|export interface BashEnvVariable {\n    description: string;\n}
+BashEnvVariableInfo|export interface BashEnvVariableInfo extends BashEnvVariable {\n    contributor: string;\n    key: DshEnvironmentKey;\n}
+Branded|export type Branded<B extends string> = string & {\n    readonly [BRAND]: B;\n};
+CancelOptions|export interface CancelOptions {\n    keepInbox?: boolean | undefined;\n}
+ClientResponse|export interface ClientResponse {\n    type: \'client-response\';\n    rpcId: RpcId;\n    result: RpcResult<unknown>;\n}
+CodeBindingErrorClass|export interface CodeBindingErrorClass {\n    name: string;\n    memberNameProperty: string;\n}
+CodeBindingFunction|export type CodeBindingFunction = (args: unknown) => Promise<CodeJsonValue>;
+CodeBindingNamespace|export interface CodeBindingNamespace {\n    global: string;\n    functions: Record<string, CodeBindingFunction>;\n    errorClass?: CodeBindingErrorClass;\n}
+CodeDispatchLog|export interface CodeDispatchLog {\n    readonly exec: ToolExecution;\n    readonly agent?: Agent;\n    readonly subCallId: CallId;\n    readonly name: string;\n    readonly isError: boolean;\n    readonly content: ContentBlock[];\n}
+CodeJsonValue|export type CodeJsonValue = null | boolean | number | string | CodeJsonValue[] | {\n    [key: string]: CodeJsonValue;\n};
+CodeRunFailure|export interface CodeRunFailure {\n    kind: \'exception\' | \'timeout\' | \'abort\' | \'worker-exit\' | \'invalid-output\' | \'output-limit\';\n    message: string;\n}
+CodeRunRequest|export interface CodeRunRequest {\n    program: string;\n    bindings: CodeBindingNamespace[];\n    signal?: AbortSignal;\n}
+CodeRunResult|export interface CodeRunResult {\n    value?: CodeJsonValue;\n    logs: string[];\n    error?: CodeRunFailure;\n}
+CollectedOutput|export interface CollectedOutput {\n    text: string;\n    truncated: boolean;\n    spillPath?: string;\n}
+CommandDefinition|export interface CommandDefinition {\n    readonly name: string;\n    readonly description: string;\n    readonly input?: CommandInputDescriptor;\n    readonly recordInput?: boolean;\n    readonly handler: (invocation: CommandInvocation) => CommandResult | Promise<CommandResult>;\n}
+CommandDescriptor|export interface CommandDescriptor {\n    readonly name: string;\n    readonly description: string;\n    readonly input?: CommandInputDescriptor;\n}
+CommandExecution|export interface CommandExecution {\n    readonly commandId: CommandId;\n    readonly result: CommandResult;\n}
+CommandId|export type CommandId = Branded<\'CommandId\'>;
+CommandInputDescriptor|export interface CommandInputDescriptor {\n    readonly hint: string;\n}
+CommandInvocation|export interface CommandInvocation {\n    readonly commandId: CommandId;\n    readonly agent: Agent;\n    readonly rawInput: string;\n    readonly signal: AbortSignal;\n}
+CommandResult|export type CommandResult = {\n    readonly kind: \'success\';\n    readonly text?: string;\n    readonly sourceEventSeq?: number;\n} | {\n    readonly kind: \'error\';\n    readonly text: string;\n};
+CompactionAgentContext|export interface CompactionAgentContext {\n    session: Session;\n    options: {\n        provider?: string;\n        model?: string;\n    };\n}
+CompactionId|export type CompactionId = Branded<\'CompactionId\'>;
+CompactionResult|export interface CompactionResult {\n    compactionId: CompactionId;\n    sourceCommandId?: CommandId;\n    startSeq: number;\n    summarySeq: number;\n    endSeq: number;\n    summary: ContentBlock[];\n    shadowedRange: {\n        start: number;\n        end: number;\n    };\n    shadowedSeqs: number[];\n    shadowedTokenCount: number;\n}
+CompactionTrigger|export type CompactionTrigger = \'pressure\' | \'context-overflow\';
+ConfinedArgv|export interface ConfinedArgv {\n    argv: string[];\n    enforcement: SandboxEnforcement;\n    denialSignatures: readonly string[];\n    runnerFailureRules: readonly RunnerFailureRule[];\n}
+ConfinedSandboxMode|export type ConfinedSandboxMode = Exclude<SandboxMode, \'danger-full-access\'>;
+ContentBlockMap|export interface ContentBlockMap {\n    \'text\': TextBlock;\n    \'reasoning\': ReasoningBlock;\n    \'image\': ImageBlock;\n    \'tool-call\': ToolCallBlock;\n    \'tool-result\': ToolResultBlock;\n}
+ContentBlockType|export type ContentBlockType = keyof ContentBlockMap;
+ContextFormed|export type ContextFormed = {\n    readonly form?: never;\n} | {\n    readonly form: \'instructions\';\n} | {\n    readonly form: \'catalog\';\n} | {\n    readonly form: \'snapshot\';\n    readonly sections: readonly ContextSnapshotSection[];\n} | {\n    readonly form: \'notice\';\n    readonly summary: string;\n} | {\n    readonly form: \'relay\';\n} | {\n    readonly form: \'recall\';\n};
+ContextSnapshotSection|export interface ContextSnapshotSection {\n    readonly name: string;\n    readonly text: string;\n}
+ContinuableCreateRequest|export interface ContinuableCreateRequest {\n    readonly sessionId: SessionId;\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n}
+ContinuableCreateSpec|export interface ContinuableCreateSpec {\n    readonly seed?: readonly SessionEvent[];\n}
+ContinuableSetupContribution|export type ContinuableSetupContribution = (childCtx: Context) => () => void;
+ContinuableStart|export interface ContinuableStart {\n    readonly childId: SessionId;\n    readonly messageId: MessageId;\n}
+ContinuableStartSpec|export interface ContinuableStartSpec {\n    readonly provider: string;\n    readonly label: string;\n    readonly request: Omit<SubagentStartRequest, \'label\' | \'signal\' | \'outputSchema\'>;\n    readonly signal: AbortSignal;\n}
+ContinuableSubagentDescriptorData|export interface ContinuableSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'continuable\';\n    readonly label: string;\n    readonly agentProvider?: string;\n    readonly agentModel?: string;\n    readonly persona?: string;\n    readonly toolFilter?: ToolRestriction;\n}
+CordisDynamicPackageId|export type CordisDynamicPackageId = Branded<\'CordisDynamicPackageId\'>;
+CordisDynamicPluginId|export type CordisDynamicPluginId = Branded<\'CordisDynamicPluginId\'>;
+CordisDynamicPluginRunId|export type CordisDynamicPluginRunId = Branded<\'CordisDynamicPluginRunId\'>;
+CordisDynamicRunMode|export type CordisDynamicRunMode = \'run\' | \'update\';
+CordisInspectQueryRequest|export interface CordisInspectQueryRequest {\n    requestId: CordisInspectRequestId;\n    agentId: SessionId;\n    provider: string;\n    method: string;\n    input?: JsonValue;\n}
+CordisInspectQueryResolved|export interface CordisInspectQueryResolved {\n    requestId: CordisInspectRequestId;\n}
+CordisInspectRequestId|export type CordisInspectRequestId = Branded<\'CordisInspectRequestId\'>;
+CreateAgentOptions|export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}
+CreateGoalRequest|export interface CreateGoalRequest {\n    readonly objective: string;\n    readonly maxGoalRounds?: number;\n}
+CreateGoalResult|export interface CreateGoalResult {\n    readonly ref: GoalRef;\n}
+CreateSessionOptions|export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n}
+CredentialInfo|export interface CredentialInfo {\n    configured: boolean;\n    source?: string;\n    writable: boolean;\n}
+CredentialRef|export type CredentialRef = Branded<\'CredentialRef\'>;
+DiffCallView|export interface DiffCallView {\n    card: \'diff\';\n    title: string;\n    diffs: FileDiff[];\n    locations?: FileLocation[];\n}
+DiffResultView|export interface DiffResultView {\n    card: \'diff\';\n    title?: string;\n    diffs: FileDiff[];\n}
+DirectoryPickerBrowseCapability|export interface DirectoryPickerBrowseCapability {\n    kind: \'browse\';\n    list(path?: string, signal?: AbortSignal): Promise<DirectoryListing>;\n    createDirectory(path: string, name: string): Promise<string>;\n}
+DirectoryPickerCapabilities|export interface DirectoryPickerCapabilities {\n    native: DirectoryPickerNativeCapability;\n    browse: DirectoryPickerBrowseCapability;\n}
+DirectoryPickerCapability|export type DirectoryPickerCapability = DirectoryPickerCapabilities[keyof DirectoryPickerCapabilities];
+DirectoryPickerNativeCapability|export interface DirectoryPickerNativeCapability {\n    kind: \'native\';\n    pick(signal: AbortSignal): Promise<string | null>;\n}
+DirectoryRegistrationHandle|export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}
+Domain|export interface Domain<S extends DomainSpec> {\n    readonly name: string;\n    readonly global: DomainGlobalHandleOf<S>;\n    table<N extends keyof S[\'tables\'] & string>(name: N): KvTable<TableKeyOf<S, N>, TableValueOf<S, N>>;\n    close(): Promise<void>;\n}
+DomainChanged|export type DomainChanged = DomainChangedPut | DomainChangedDeleted;
+DomainChangedBase|export interface DomainChangedBase {\n    readonly domain: string;\n    readonly table: string;\n    readonly key: string;\n}
+DomainChangedDeleted|export interface DomainChangedDeleted extends DomainChangedBase {\n    readonly operation: \'deleted\';\n    readonly value?: never;\n}
+DomainChangedPut|export interface DomainChangedPut extends DomainChangedBase {\n    readonly operation: \'put\';\n    readonly value: unknown;\n}
+DomainGlobal|export interface DomainGlobal<G> {\n    get(): G;\n    set(value: G): Promise<void>;\n}
+DomainGlobalHandleOf|export type DomainGlobalHandleOf<S extends DomainSpec> = S extends {\n    readonly global: DomainGlobalSpec<infer G>;\n} ? DomainGlobal<G> : never;
+DomainGlobalSpec|export interface DomainGlobalSpec<G> {\n    readonly schema: ZodType<G>;\n    readonly initial: G;\n}
+DomainImpl|export class DomainImpl {\n    readonly name: string;\n    constructor(private readonly ctx: Context, spec: DomainSpec, private readonly unit: KvUnit, records: Map<string, Map<string, unknown>>, globalValue: unknown, private readonly onClosed: () => void);\n    get global(): DomainGlobal<unknown>;\n    table(name: string): KvTable<string, unknown>;\n    close(): Promise<void>;\n}
+DomainSpec|export interface DomainSpec {\n    readonly name: string;\n    readonly version: number;\n    readonly global?: DomainGlobalSpec<unknown>;\n    readonly tables: Record<string, DomainTableSpec>;\n}
+DomainTableSpec|export interface DomainTableSpec<K extends string = string, V = unknown> {\n    readonly valueSchema: ZodType<V>;\n    readonly __key?: K;\n}
+DownloadsApi|export interface DownloadsApi {\n    sessionLog(request: {\n        sessionId: SessionId;\n        includeDescendants?: boolean;\n    }, signal: AbortSignal): Promise<Response>;\n}
+DshEnvironment|export type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>;
+DshEnvironmentKey|export type DshEnvironmentKey = `${typeof DSH_ENV_PREFIX}${string}`;
+DynamicCordisPackage|export interface DynamicCordisPackage {\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    pluginRunId: CordisDynamicPluginRunId;\n    name: string;\n}
+DynamicCordisRequestResolved|export interface DynamicCordisRequestResolved {\n    requestId: ApprovalRequestId;\n    outcome: RequestRunOutcome;\n}
+DynamicCordisRetracted|export interface DynamicCordisRetracted {\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    pluginRunId: CordisDynamicPluginRunId;\n}
+DynamicCordisRunRequest|export interface DynamicCordisRunRequest {\n    requestId: ApprovalRequestId;\n    agentId: SessionId;\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    mode: CordisDynamicRunMode;\n    name: string;\n    purpose: string;\n    requiresApproval: boolean;\n}

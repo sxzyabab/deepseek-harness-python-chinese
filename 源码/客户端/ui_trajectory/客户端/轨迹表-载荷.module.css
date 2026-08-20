@@ -1,0 +1,406 @@
+/* 对齐上游 TrajectoryTable.module.css：Markdown/思考/Schema/载荷/源码块/工具目录/结果块 */
+
+.markdownPreview,
+.markdownPayload {
+  color: var(--dsw-alias-label-primary);
+}
+
+.markdownPreview > div,
+.markdownPayload > div {
+  gap: 8px;
+  font: var(--dsw-font-xs-13);
+}
+
+.markdownPreview > div h1,
+.markdownPayload > div h1 {
+  font: 600 16px/22px var(--dsw-font-family);
+}
+
+.markdownPreview > div h2,
+.markdownPayload > div h2 {
+  font: 600 15px/22px var(--dsw-font-family);
+}
+
+.markdownPreview > div :where(h3, h4, h5, h6),
+.markdownPayload > div :where(h3, h4, h5, h6) {
+  font: 600 14px/20px var(--dsw-font-family);
+}
+
+.markdownPreview > div :not(pre) > code,
+.markdownPayload > div :not(pre) > code {
+  font: 12px/18px var(--ds-font-family-code);
+}
+
+.markdownPreview > div table,
+.markdownPayload > div table {
+  font: var(--dsw-font-xs-13);
+}
+
+.markdownPreview > div > :first-child {
+  margin-top: 0;
+}
+
+.markdownPreview > div > :last-child {
+  margin-bottom: 0;
+}
+
+.markdownPreview > div :where(h1, h2, h3) {
+  margin: 12px 0 6px;
+}
+
+.markdownPreview > div :where(h4, h5, h6) {
+  margin: 10px 0 5px;
+}
+
+.markdownPreview > div :where(p, ul, ol) {
+  margin: 8px 0;
+}
+
+.markdownPreview > div li:not(:first-child) {
+  margin-top: 3px;
+}
+
+.markdownPreview > div blockquote {
+  margin-top: 8px;
+}
+
+.markdownPreview > div hr {
+  margin: 14px 0;
+}
+
+.markdownPreview > div > :global(.md-code-block) {
+  margin: 10px 0;
+}
+
+.assistantContent .markdownPayload,
+.assistantContent .payload {
+  min-height: 0;
+}
+
+.thinkingQuote {
+  margin: 6px 14px 0 12px;
+  padding-left: 6px;
+  border-left: 2px solid var(--dsw-alias-markdown-citation);
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+}
+
+.thinkingQuoteOnlyPreview {
+  margin-bottom: 8px;
+}
+
+.detailBody > .assistantContentRendered .thinkingQuote {
+  margin-top: 14px;
+}
+
+.thinkingToggle {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+  font: 600 12px/18px var(--dsw-font-family);
+  gap: 2px;
+  user-select: none;
+}
+
+.thinkingChevron {
+  flex: none;
+  transition: transform 120ms var(--ds-ease-in-out);
+}
+
+.thinkingToggle[aria-expanded='true'] .thinkingChevron {
+  transform: rotate(90deg);
+}
+
+.thinkingToggle:hover {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.thinkingToggle:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.thinkingQuote .markdownPreview,
+.thinkingQuote .markdownPayload,
+.thinkingQuote .payload {
+  min-height: 0;
+  padding: 2px 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+}
+
+.assistantOutput {
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.markdownPreview {
+  padding: 6px 14px 8px;
+}
+
+.markdownPayload {
+  min-height: 100%;
+  padding: 14px;
+}
+
+.jsonPayload {
+  min-height: 100%;
+}
+
+.jsonPreview {
+  min-height: 0;
+}
+
+.schema {
+  min-height: 100%;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.schemaPreview {
+  min-height: 0;
+}
+
+.schemaIntro {
+  padding: 12px 14px 6px;
+}
+
+.schemaPreview .schemaIntro {
+  padding-top: 6px;
+}
+
+.schemaName {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font: 600 12px/18px var(--ds-font-family-code);
+}
+
+.schemaDescription {
+  margin: 2px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+  white-space: pre-wrap;
+}
+
+.schemaParameters {
+  min-width: 0;
+}
+
+.schemaParametersTitle {
+  margin: 0;
+  padding: 4px 14px 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: 600 11px/16px var(--dsw-font-family);
+  user-select: none;
+}
+
+.schemaTree {
+  margin: 0 6px 8px 0;
+}
+
+.payload {
+  box-sizing: border-box;
+  min-height: 100%;
+  margin: 0;
+  padding: 14px;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-markdown-code-block);
+  font: 12px/19px var(--ds-font-family-code);
+  tab-size: 2;
+  white-space: pre-wrap;
+}
+
+.payloadPreview {
+  min-height: 0;
+  padding: 6px 14px 8px;
+}
+
+.sourceBlocks {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 12px 14px;
+}
+
+.sourceBlock + .sourceBlock {
+  margin-top: 14px;
+}
+
+.sourceBlockHeader,
+.sourceBlockJumpTarget {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  margin-bottom: 3px;
+  gap: 3px;
+  user-select: none;
+}
+
+.sourceBlockJumpTarget {
+  all: unset;
+  display: flex;
+  align-items: center;
+  width: max-content;
+  margin-bottom: 3px;
+  gap: 3px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sourceBlockLabel {
+  color: var(--dsw-alias-label-tertiary);
+  font: 11px/16px var(--ds-font-family-code);
+}
+
+.sourceBlockJumpIcon {
+  flex: none;
+  color: var(--dsw-alias-label-caption);
+}
+
+.sourceBlockJumpTarget:hover .sourceBlockJumpIcon {
+  color: var(--dsw-alias-label-primary);
+}
+
+.sourceBlockJumpTarget:focus-visible {
+  outline: none;
+}
+
+.sourceBlockJumpTarget:focus-visible .sourceBlockJumpIcon {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.sourceBlockContent {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  font: 12px/19px var(--ds-font-family-code);
+  tab-size: 2;
+  white-space: pre-wrap;
+}
+
+.panelImageLink {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  cursor: zoom-in;
+}
+
+.panelImageLinkPreview {
+  max-height: 140px;
+}
+
+.panelImage {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 320px;
+  margin: 0;
+  border-radius: inherit;
+  background: var(--dsw-alias-bg-base);
+  object-fit: contain;
+}
+
+.panelImageLinkPreview .panelImage {
+  max-height: 140px;
+}
+
+.messageImages {
+  display: flex;
+  flex-direction: column;
+  margin: 8px 14px 14px;
+  gap: 8px;
+}
+
+.messageImagesPreview {
+  margin: 6px 14px 8px;
+  gap: 6px;
+}
+
+.assistantToolCalls {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 2px 14px 12px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: 11px/17px var(--ds-font-family-code);
+  list-style: none;
+}
+
+.assistantToolCallsPreview {
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.assistantToolCalls li {
+  min-width: 0;
+}
+
+.assistantToolCallButton {
+  all: unset;
+  display: flex;
+  box-sizing: border-box;
+  width: calc(100% + 4px);
+  min-width: 0;
+  height: 19px;
+  align-items: center;
+  margin-left: -4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.assistantToolCallButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.assistantToolCallButton:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+.assistantToolCallIcon {
+  flex: none;
+  margin-right: 5px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.assistantToolCallButton:hover .assistantToolCallIcon,
+.assistantToolCallButton:focus-visible .assistantToolCallIcon {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.assistantToolCallText {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.assistantToolCallName {
+  flex: none;
+  margin-right: 5px;
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 500;
+}
+
+.assistantToolCallArgs {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.systemPrompt {
+  box-sizing: border-box;
+}

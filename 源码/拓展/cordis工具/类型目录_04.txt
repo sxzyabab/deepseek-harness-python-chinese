@@ -1,0 +1,145 @@
+# TYPE_API 片段 04：SessionEventWindow .. ToolDispatchExecution
+# 格式：名称|声明
+SessionEventWindow|export interface SessionEventWindow {\n    session: SessionHeader;\n    target: SessionEvent;\n    events: SessionEvent[];\n    startSeq: number;\n    endSeq: number;\n}
+SessionForkSource|export type SessionForkSource = Session | SessionId;
+SessionHeader|export interface SessionHeader {\n    readonly version: number;\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly seedLength?: number;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n    readonly agentPreset?: string;\n}
+SessionId|export type SessionId = Branded<\'SessionId\'>;
+SessionInspection|export interface SessionInspection {\n    readonly meta: SessionHeader;\n    readonly events: readonly SessionEvent[];\n}
+SessionLineageNode|export interface SessionLineageNode {\n    session: SessionRecord;\n    descendants: SessionLineageNode[];\n}
+SessionLineageTrace|export type SessionLineageTrace = {\n    target: SessionRecord;\n    ancestors: SessionRecord[];\n    descendants: SessionLineageNode[];\n} & ({\n    complete: true;\n    root: SessionRecord;\n} | {\n    complete: false;\n    unresolvedParentId: SessionId;\n});
+SessionLocation|export interface SessionLocation {\n    readonly kind: string;\n    readonly path: string;\n}
+SessionLogSnapshot|export interface SessionLogSnapshot {\n    session: SessionHeader;\n    events: SessionEvent[];\n}
+SessionPersistenceRevision|export type SessionPersistenceRevision = Branded<\'SessionPersistenceRevision\'>;
+SessionPersistenceSnapshot|export interface SessionPersistenceSnapshot {\n    header: SessionHeader;\n    revision: SessionPersistenceRevision;\n}
+SessionPreparation|export class SessionPreparation implements Disposable {\n    readonly session: Session;\n    static create(session: Session, options?: SessionPreparationOptions): SessionPreparation;\n    [Symbol.dispose](): void;\n}
+SessionPreparationOptions|export interface SessionPreparationOptions {\n    readonly release?: () => void;\n}
+SessionProjectionMap|export interface SessionProjectionMap {\n}
+SessionRawArtifact|export interface SessionRawArtifact {\n    readonly meta: SessionHeader;\n    readonly filename: string;\n    readonly content: string;\n}
+SessionRecord|export interface SessionRecord {\n    header: SessionHeader;\n    live: boolean;\n    persisted: boolean;\n}
+SessionReferenceCandidate|export interface SessionReferenceCandidate {\n    sessionId: SessionId;\n    label: string;\n    cwd?: string;\n    createdAt: number;\n}
+SessionReferenceInput|export interface SessionReferenceInput {\n    sessionId: SessionId;\n    label?: string;\n}
+SessionResultFilter|export type SessionResultFilter = {\n    kind: \'id\';\n    values: readonly SessionId[];\n} | {\n    kind: \'cwd\';\n    values: readonly (string | null)[];\n} | ({\n    kind: \'created-at\';\n} & SessionResultRange) | {\n    kind: \'parent\';\n    values: readonly (SessionId | null)[];\n} | {\n    kind: \'availability\';\n    values: readonly SessionAvailability[];\n};
+SessionResultRange|export interface SessionResultRange {\n    from?: number;\n    to?: number;\n}
+SessionSearchCursor|export type SessionSearchCursor = Branded<\'SessionSearchCursor\'>;
+SessionSearchExecContext|export interface SessionSearchExecContext {\n    signal?: AbortSignal;\n}
+SessionSearchHit|export interface SessionSearchHit extends SessionRecord {\n    bestMatch: SessionEventSearchHit;\n}
+SessionSearchPage|export interface SessionSearchPage<T> {\n    items: readonly T[];\n    nextCursor?: SessionSearchCursor;\n}
+SessionSearchRequest|export interface SessionSearchRequest {\n    query: string;\n    sessionFilters?: readonly SessionResultFilter[];\n    eventFilters?: readonly SessionEventMetadataFilter[];\n    limit?: number;\n    cursor?: SessionSearchCursor;\n}
+SessionStartSource|export type SessionStartSource = \'startup\' | \'resume\' | \'clear\' | \'compact\';
+SessionSurfaceSnapshot|export interface SessionSurfaceSnapshot {\n    session: SessionHeader;\n    capturedThroughSeq: number | null;\n    events: SurfaceEvent[];\n}
+SessionTelemetryRecord|export interface SessionTelemetryRecord {\n    channel: \'ledger\' | \'ops\';\n    time: number;\n    severity: SessionTelemetrySeverity;\n    attributes: Record<string, string | number>;\n    body: unknown;\n}
+SessionTelemetrySeverity|export type SessionTelemetrySeverity = \'info\' | \'warn\' | \'error\';
+SessionTelemetrySharingStatus|export type SessionTelemetrySharingStatus = \'full\' | \'feedback-only\' | \'disabled\';
+SessionTitleAutomaticMode|export type SessionTitleAutomaticMode = \'first-prompt\' | \'all-prompts\';
+SessionTitleEventData|export interface SessionTitleEventData {\n    readonly title: string;\n    readonly messageSeqs: number[];\n    readonly source: SessionTitleSource;\n}
+SessionTitleModelProvenance|export interface SessionTitleModelProvenance {\n    readonly provider: string;\n    readonly model: string;\n}
+SessionTitleObservation|export interface SessionTitleObservation {\n    session: SessionHeader;\n    title?: SessionTitleSnapshot;\n}
+SessionTitleObservationResult|export type SessionTitleObservationResult = {\n    sessionId: SessionId;\n    status: \'fulfilled\';\n    value: SessionTitleObservation;\n} | {\n    sessionId: SessionId;\n    status: \'rejected\';\n    reason: unknown;\n};
+SessionTitleProvider|export interface SessionTitleProvider {\n    readonly id: SessionTitleProviderId;\n    readonly automatic: SessionTitleAutomaticMode;\n    generate(request: SessionTitleProviderRequest): Promise<SessionTitleProviderResult>;\n}
+SessionTitleProviderId|export type SessionTitleProviderId = Branded<\'SessionTitleProviderId\'>;
+SessionTitleProviderRequest|export interface SessionTitleProviderRequest {\n    readonly session: Session;\n    readonly messages: readonly SessionTitleUserMessage[];\n    readonly route?: SessionTitleModelProvenance;\n    readonly signal: AbortSignal;\n}
+SessionTitleProviderResult|export interface SessionTitleProviderResult {\n    readonly title: string;\n    readonly messageSeqs: readonly number[];\n    readonly model?: SessionTitleModelProvenance;\n}
+SessionTitleSnapshot|export interface SessionTitleSnapshot extends SessionTitleEventData {\n    readonly eventSeq: number;\n    readonly updatedAt: number;\n}
+SessionTitleSource|export type SessionTitleSource = {\n    readonly kind: \'fallback\';\n} | {\n    readonly kind: \'provider\';\n    readonly provider: SessionTitleProviderId;\n    readonly model?: SessionTitleModelProvenance;\n} | {\n    readonly kind: \'user\';\n};
+SessionTitleUserMessage|export interface SessionTitleUserMessage {\n    readonly seq: number;\n    readonly text: string;\n}
+SettingsApplies|export type SettingsApplies = \'live\' | \'restart\';
+SettingsDescribeOptions|export interface SettingsDescribeOptions {\n    redactSecrets?: boolean;\n}
+SettingsDescriptor|export interface SettingsDescriptor {\n    ns: SettingsNamespace;\n    schema: unknown;\n    value: unknown;\n    revision: number;\n    base?: unknown;\n    user?: unknown;\n    applies: SettingsApplies;\n    secrets?: RedactedSecret[];\n}
+SettingsNamespace|export type SettingsNamespace = Branded<\'SettingsNamespace\'>;
+SettingsPathOp|export type SettingsPathOp = {\n    op: \'set\';\n    path: readonly string[];\n    value: unknown;\n} | {\n    op: \'unset\';\n    path: readonly string[];\n};
+SettingsRegisterOptions|export interface SettingsRegisterOptions<T> {\n    base?: Partial<T>;\n    applies?: SettingsApplies;\n    validate?: (value: T) => void;\n}
+SettingsUpdateSource|export type SettingsUpdateSource = \'update\' | \'provider\';
+ShellExecRequest|export interface ShellExecRequest {\n    command: string;\n    workdir?: string | undefined;\n    timeoutMs?: number | undefined;\n    stdoutMaxBytes?: number | undefined;\n    signal?: AbortSignal | undefined;\n    stdin?: string | undefined;\n    env?: Record<string, string> | undefined;\n    dshEnv?: DshEnvironment | undefined;\n    sandboxPolicy?: SandboxExecutionPolicy | undefined;\n}
+ShellExecSpec|export interface ShellExecSpec {\n    command: string;\n    workdir: string;\n    timeoutMs: number;\n    stdoutMaxBytes: number;\n    signal?: AbortSignal | undefined;\n    stdin?: string | undefined;\n    env?: Record<string, string> | undefined;\n    dshEnv?: DshEnvironment | undefined;\n    sandboxPolicy: SandboxExecutionPolicy | undefined;\n}
+ShellProcess|export interface ShellProcess {\n    status: ShellProcessStatus;\n    exitCode: number | null;\n    signal: NodeJS.Signals | null;\n    readonly done: Promise<void>;\n    sandbox?: ShellSandboxInfo;\n    readOutput(): ShellProcessRead;\n    kill(): boolean;\n}
+ShellProcessRead|export interface ShellProcessRead {\n    delta: string;\n    lossy: boolean;\n    stdoutSpillPath?: string;\n    stderrSpillPath?: string;\n}
+ShellProcessStatus|export type ShellProcessStatus = \'running\' | \'completed\' | \'killed\';
+ShellRunResult|export interface ShellRunResult {\n    exitCode: number | null;\n    signal: NodeJS.Signals | null;\n    timedOut: boolean;\n    aborted: boolean;\n    timeoutMs: number;\n    stdout: CollectedOutput;\n    stderr: CollectedOutput;\n    sandbox?: ShellSandboxInfo;\n}
+ShellSandboxInfo|export interface ShellSandboxInfo {\n    mode: SandboxMode;\n    denied: boolean;\n    enforcement?: SandboxEnforcement;\n    runnerFailed?: boolean;\n}
+SkillCandidate|export interface SkillCandidate extends SkillSummary {\n    readonly rank: number;\n    readonly locator: unknown;\n    readonly path?: string;\n    readonly metadata?: Readonly<Record<string, unknown>>;\n}
+SkillCatalogSnapshot|export interface SkillCatalogSnapshot {\n    readonly skills: SkillSummary[];\n    readonly complete: boolean;\n}
+SkillDefinition|export interface SkillDefinition extends SkillSummary {\n    readonly content: string;\n    readonly path?: string;\n    readonly metadata?: Readonly<Record<string, unknown>>;\n}
+SkillInvocationPolicy|export interface SkillInvocationPolicy {\n    readonly modelInvocable: boolean;\n    readonly userInvocable: boolean;\n}
+SkillLookupOptions|export interface SkillLookupOptions {\n    readonly cwd?: string | undefined;\n    readonly signal?: AbortSignal | undefined;\n}
+SkillProvider|export interface SkillProvider {\n    readonly name: string;\n    readonly list: (options: SkillLookupOptions) => Promise<readonly SkillCandidate[] | SkillProviderObservation>;\n    readonly get: (candidate: SkillCandidate, options: SkillLookupOptions) => Promise<SkillDefinition | undefined>;\n}
+SkillProviderControl|export interface SkillProviderControl {\n    readonly signal: AbortSignal;\n    readonly invalidate: () => void;\n}
+SkillProviderObservation|export interface SkillProviderObservation {\n    readonly candidates: readonly SkillCandidate[];\n    readonly complete: boolean;\n}
+SkillRegistration|export type SkillRegistration = Omit<SkillDefinition, \'invocation\' | \'provider\'> & {\n    readonly invocation?: SkillInvocationPolicy;\n    readonly provider?: string;\n};
+SkillResourceBase|export type SkillResourceBase = {\n    readonly kind: \'directory\';\n    readonly path: string;\n} | {\n    readonly kind: \'url\';\n    readonly url: string;\n} | {\n    readonly kind: \'opaque\';\n    readonly description: string;\n};
+SkillSource|export type SkillSource = \'project-dsh\' | \'project-agents\' | \'runtime\' | \'user-dsh\' | \'user-agents\' | \'custom\' | \'bundled\' | (string & {});
+SkillSummary|export interface SkillSummary {\n    readonly name: string;\n    readonly description: string;\n    readonly whenToUse?: string;\n    readonly invocation: SkillInvocationPolicy;\n    readonly source: SkillSource;\n    readonly provider: string;\n    readonly resourceBase?: SkillResourceBase;\n}
+SkillViewOptions|export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}
+SpillLocator|export type SpillLocator = Branded<\'SpillLocator\'>;
+SpillOwner|export interface SpillOwner {\n    sessionId: SessionId;\n}
+SpillRef|export interface SpillRef {\n    locator: SpillLocator;\n    bytes: number;\n    retrievalHint: string;\n}
+SpillSource|export interface SpillSource {\n    toolName: string;\n    callId: CallId;\n    label: string;\n}
+StorageBackend|export interface StorageBackend {\n    readonly kv?: KvFacet;\n    close(): Promise<void>;\n}
+StorageForms|export interface StorageForms {\n}
+StoredImageAttachment|export interface StoredImageAttachment {\n    ref: ImageAttachmentRef;\n    data: Uint8Array;\n}
+StreamChunk|export type StreamChunk = {\n    type: \'block-start\';\n    index: number;\n    blockType: ContentBlockType;\n} | {\n    type: \'text-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'reasoning-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'tool-call-delta\';\n    index: number;\n    id: CallId;\n    name?: string;\n    argumentsDelta: string;\n} | {\n    type: \'block-end\';\n    index: number;\n    block: ContentBlock;\n} | {\n    type: \'usage\';\n    usage: TokenUsage;\n} | {\n    type: \'finish\';\n    reason: FinishReason;\n    replayState?: unknown;\n};
+SubagentCapabilities|export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}
+SubagentDescendantListEntry|export type SubagentDescendantListEntry = SubagentListEntry & {\n    readonly parentId: SessionId;\n    readonly depth: number;\n};
+SubagentDescriptorData|export type SubagentDescriptorData = OneShotSubagentDescriptorData | ContinuableSubagentDescriptorData;
+SubagentFollowupOptions|export interface SubagentFollowupOptions {\n    readonly source: MessageSource;\n    readonly signal: AbortSignal;\n}
+SubagentInterruptAuthority|export type SubagentInterruptAuthority = {\n    readonly kind: \'user\';\n    readonly parentSessionId: SessionId;\n} | {\n    readonly kind: \'ancestor\';\n    readonly agent: Agent;\n};
+SubagentProvider|export interface SubagentProvider {\n    readonly name: string;\n    readonly capabilities: SubagentCapabilities;\n    readonly inheritsParentContext: boolean;\n    start(request: ResolvedSubagentStartRequest): Promise<SubagentRun>;\n    prepareContinuable?(request: ContinuableCreateRequest): Promise<ContinuableCreateSpec>;\n}
+SubagentReportDelivery|export type SubagentReportDelivery = \'quiet\' | \'wakeup\';
+SubagentReportOptions|export interface SubagentReportOptions {\n    readonly delivery: SubagentReportDelivery;\n    readonly signal: AbortSignal;\n}
+SubagentResult|export interface SubagentResult {\n    readonly output: ContentBlock[];\n    readonly structured?: unknown;\n    readonly stopReason: SubagentStopReason;\n}
+SubagentRun|export interface SubagentRun {\n    readonly id: SessionId;\n    readonly localAgent: Agent | undefined;\n    readonly result: Promise<SubagentResult>;\n    dispose(): Promise<void>;\n}
+SubagentRunEndInfo|export interface SubagentRunEndInfo {\n    readonly runId: SubagentRunId;\n    readonly provider: string;\n    readonly id: SessionId;\n    readonly local: boolean;\n    readonly stopReason: SubagentResult[\'stopReason\'];\n    readonly lastAssistantMessage?: ContentBlock[];\n}
+SubagentRunId|export type SubagentRunId = Branded<\'SubagentRunId\'>;
+SubagentRunInfo|export interface SubagentRunInfo {\n    readonly runId: SubagentRunId;\n    readonly provider: string;\n    readonly id: SessionId;\n    readonly local: boolean;\n}
+SubagentRuntime|export class SubagentRuntime extends Service {\n    constructor(ctx: Context);\n    async startContinuable(spec: ContinuableStartSpec): Promise<ContinuableStart>;\n    async followup(parent: Agent, childId: SessionId, content: ContentBlock[], options: SubagentFollowupOptions): Promise<MessageId>;\n    interrupt(targetSessionId: SessionId, authority: SubagentInterruptAuthority): void;\n    async reportFrom(child: Agent, content: ContentBlock[], options: SubagentReportOptions): Promise<MessageId>;\n    registerContinuableSetup(contribution: ContinuableSetupContribution): () => void;\n    async drainContinuableDescendants(parents: readonly Agent[]): Promise<void>;\n    listChildren(parentSessionId: SessionId, signal?: AbortSignal): Promise<SubagentListEntry[]>;\n    listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>;\n    registerProvider(provider: SubagentProvider): () => void;\n    getProvider(name: string): SubagentProvider | undefined;\n    list(): string[];\n    async start(name: string, request: SubagentStartRequest): Promise<SubagentRun>;\n}
+SubagentStartRequest|export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n}
+SubagentStopReason|export type SubagentStopReason = SubagentStopReasonMap[keyof SubagentStopReasonMap];
+SubagentStopReasonMap|export interface SubagentStopReasonMap {\n    completed: \'completed\';\n    aborted: \'aborted\';\n    error: \'error\';\n    \'max-tokens\': \'max-tokens\';\n    refusal: \'refusal\';\n}
+SubprocessCollect|export interface SubprocessCollect {\n    maxBytes: number;\n    spill?: {\n        maxBytes: number;\n    };\n}
+SubprocessCollectedOutputs|export interface SubprocessCollectedOutputs {\n    readonly stdout?: SubprocessOutputReader;\n    readonly stderr?: SubprocessOutputReader;\n}
+SubprocessHandle|export interface SubprocessHandle {\n    readonly pid: number;\n    readonly stdin: Writable | undefined;\n    readonly stdout: Readable | undefined;\n    readonly stderr: Readable | undefined;\n    readonly collected: SubprocessCollectedOutputs;\n    readonly done: Promise<SubprocessOutcome>;\n    terminate(): void;\n    waitForExit(signal?: AbortSignal): Promise<boolean>;\n}
+SubprocessOutcome|export interface SubprocessOutcome {\n    exitCode: number | null;\n    signal: NodeJS.Signals | null;\n}
+SubprocessOutputMode|export type SubprocessOutputMode = \'pipe\' | \'inherit\' | SubprocessCollect;
+SubprocessOutputRead|export interface SubprocessOutputRead {\n    text: string;\n    nextOffset: number;\n    lossy: boolean;\n    spillPath?: string;\n}
+SubprocessOutputReader|export interface SubprocessOutputReader {\n    readFrom(fromByte: number): SubprocessOutputRead;\n}
+SubprocessSpawnSpec|export interface SubprocessSpawnSpec {\n    argv: readonly string[];\n    cwd: string;\n    stdio: SubprocessStdio;\n    graceMs: number;\n    signal?: AbortSignal | undefined;\n    env?: NodeJS.ProcessEnv | undefined;\n}
+SubprocessStdinMode|export type SubprocessStdinMode = \'ignore\' | \'pipe\' | {\n    readonly data: string;\n};
+SubprocessStdio|export interface SubprocessStdio {\n    stdin: SubprocessStdinMode;\n    stdout: SubprocessOutputMode;\n    stderr: SubprocessOutputMode;\n}
+SubprocessTerminalForeground|export interface SubprocessTerminalForeground {\n    processGroupId: number;\n    inputWaiting: boolean;\n}
+SubprocessTerminalHandle|export interface SubprocessTerminalHandle {\n    readonly pid: number;\n    readonly output: Readable;\n    readonly done: Promise<SubprocessOutcome>;\n    write(data: string): Promise<void>;\n    inspectForeground(): Promise<SubprocessTerminalForeground | undefined>;\n    signalForeground(signal: SubprocessTerminalSignal): Promise<number>;\n    terminate(): Promise<void>;\n}
+SubprocessTerminalSignal|export type SubprocessTerminalSignal = \'SIGINT\' | \'SIGTERM\' | \'SIGKILL\' | \'SIGTSTP\' | \'SIGHUP\';
+SubprocessTerminalSpawnSpec|export interface SubprocessTerminalSpawnSpec {\n    argv: readonly string[];\n    cwd: string;\n    env?: Record<string, string> | undefined;\n    rows: number;\n    cols: number;\n    graceMs: number;\n    signal?: AbortSignal | undefined;\n}
+SurfaceEvent|export type SurfaceEvent = SessionEvent<SurfaceEventType> & {\n    surfaceOp: SurfaceOp;\n};
+SurfaceEventType|export type SurfaceEventType = \'user/message\' | \'assistant/message\' | \'tool/result\';
+SurfaceOp|export type SurfaceOp = \'append\' | {\n    op: \'replace\';\n    start: number;\n    end: number;\n};
+SystemPrompt|export class SystemPrompt extends Service {\n    static Config: z<Config>;\n    constructor(ctx: Context, config: Config);\n    section(section: PromptSection): () => void;\n    context(context: PromptContext): () => void;\n    suppressRuntimeContext(): () => void;\n    tools(provider: (context: AssembleContext) => ToolProviderResult): () => void;\n    variable(name: string, provider: (context: AssembleContext) => string | undefined): () => void;\n    async assemble(context: AssembleContext = {}): Promise<PromptAssembly>;\n}
+TableKeyOf|export type TableKeyOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<infer K> ? K : never;
+TableValueOf|export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;
+TerminalBackend|export interface TerminalBackend {\n    readonly type: string;\n    spawn(spec: TerminalBackendSpawnSpec): Promise<TerminalBackendSession>;\n}
+TerminalBackendSession|export interface TerminalBackendSession {\n    readonly motd: string;\n    readonly pid?: number;\n    startSend(request: TerminalSendRequest): TerminalSendOperation;\n    read(request: TerminalReadRequest): TerminalReadResult;\n    signal(signal: TerminalSignal): Promise<TerminalSignalResult>;\n    status(): TerminalSessionStatus;\n    close(reason: string): Promise<void>;\n}
+TerminalBackendSpawnSpec|export interface TerminalBackendSpawnSpec extends TerminalSpawnRequest {\n    sessionId: TerminalSessionIdValue;\n    owner: Agent;\n    signal?: AbortSignal;\n}
+TerminalCallView|export interface TerminalCallView {\n    card: \'terminal\';\n    title: string;\n    description?: string;\n    cwd?: string;\n}
+TerminalReadRequest|export interface TerminalReadRequest {\n    offset?: number;\n    count?: number;\n}
+TerminalReadResult|export interface TerminalReadResult {\n    text: string;\n    totalLines: number;\n    lineBegin: number;\n    lineEnd: number;\n    truncated: boolean;\n}
+TerminalResultView|export interface TerminalResultView {\n    card: \'terminal\';\n    title?: string;\n    output?: string;\n    exitCode?: number;\n    signal?: string;\n}
+TerminalSendOperation|export interface TerminalSendOperation {\n    done: Promise<TerminalSendResult>;\n    readOutput(): TerminalSendRead;\n    cancel(): boolean;\n}
+TerminalSendRead|export interface TerminalSendRead {\n    delta: string;\n    truncated: boolean;\n}
+TerminalSendRequest|export interface TerminalSendRequest {\n    text: string;\n    submit: boolean;\n    signal?: AbortSignal;\n}
+TerminalSendResult|export interface TerminalSendResult {\n    viewport: string;\n    waitReason: TerminalWaitReason;\n    sessionStatus: TerminalSessionStatus;\n    truncated: boolean;\n}
+TerminalSessionId|export type TerminalSessionId = TerminalSessionIdValue;
+TerminalSessionIdValue|export type TerminalSessionIdValue = Branded<\'TerminalSessionId\'>;
+TerminalSessionSnapshot|export interface TerminalSessionSnapshot {\n    sessionId: TerminalSessionIdValue;\n    name?: string;\n    type: string;\n    pid?: number;\n    status: TerminalSessionStatus;\n}
+TerminalSessionStatus|export type TerminalSessionStatus = {\n    kind: \'running\';\n} | {\n    kind: \'exited\';\n    exitCode: number | null;\n    signal: NodeJS.Signals | null;\n};
+TerminalSignal|export type TerminalSignal = \'SIGINT\' | \'SIGTERM\' | \'SIGKILL\' | \'SIGTSTP\' | \'SIGHUP\';
+TerminalSignalResult|export interface TerminalSignalResult {\n    delivered: true;\n    targetPgid: number;\n}
+TerminalSpawnRequest|export interface TerminalSpawnRequest {\n    type: string;\n    name?: string;\n    cwd?: string;\n}
+TerminalSpawnResult|export interface TerminalSpawnResult extends TerminalSessionSnapshot {\n    motd: string;\n}
+TerminalWaitReason|export type TerminalWaitReason = \'stdin_read\' | \'inferred_idle\' | \'timeout\' | \'session_exit\';
+TodoItem|export interface TodoItem {\n    content: string;\n    status: \'pending\' | \'in_progress\' | \'completed\';\n}
+TokenMeasurement|export interface TokenMeasurement {\n    readonly logRevision: number;\n    readonly baseline: TokenMeasurementBaseline;\n    readonly surfaceDeltaTokens: number;\n    readonly totalTokens: number;\n    readonly surfaceTokens: number;\n    readonly nodes: readonly TokenSurfaceNode[];\n}
+TokenMeasurementBaseline|export type TokenMeasurementBaseline = {\n    readonly kind: \'none\';\n    readonly tokens: 0;\n} | {\n    readonly kind: \'estimated\';\n    readonly tokens: number;\n} | {\n    readonly kind: \'usage\';\n    readonly tokens: number;\n    readonly usage: Readonly<TokenUsage>;\n};
+TokenSurfaceNode|export interface TokenSurfaceNode {\n    readonly seq: number;\n    readonly tokens: number;\n}
+TokenUsage|export interface TokenUsage {\n    inputTokens: number;\n    outputTokens: number;\n    cacheReadTokens?: number;\n    cacheWriteTokens?: number;\n    reasoningTokens?: number;\n}
+ToolCallKind|export type ToolCallKind = \'read\' | \'edit\' | \'delete\' | \'move\' | \'search\' | \'execute\' | \'fetch\' | \'other\';
+ToolCallView|export type ToolCallView = GenericCallView | TerminalCallView | DiffCallView;
+ToolDefinition|export interface ToolDefinition extends ToolSchema {\n    readonly output: ToolOutputDefinition;\n    execute(args: unknown, exec: ToolRunContext): Promise<unknown>;\n    finalizeContent?(exec: Readonly<ToolExecution>, result: Readonly<ToolExecutionResult>): ContentBlock[] | undefined;\n    timeoutMs?: number;\n    isConcurrencySafe?(args: unknown): boolean;\n    presentCall?(args: unknown): ToolCallView | undefined;\n    presentResult?(args: unknown, result: ToolResult): ToolResultView | undefined;\n}
+ToolDispatchExecution|export interface ToolDispatchExecution extends Omit<ToolExecution, \'signal\'> {\n    signal: AbortSignal;\n}

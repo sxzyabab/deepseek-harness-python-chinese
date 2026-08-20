@@ -1,0 +1,8 @@
+/* 对齐上游 TrajectoryTable.module.css（约 1800 行）。
+ * 按块拆分维护；本文件为统一入口，顺序与上游一致。 */
+
+@import './轨迹表-壳.module.css';
+@import './轨迹表-行.module.css';
+@import './轨迹表-详情.module.css';
+@import './轨迹表-载荷.module.css';
+@import './轨迹表-目录.module.css';

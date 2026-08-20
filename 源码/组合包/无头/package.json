@@ -1,0 +1,10 @@
+{
+  "name": "@deepseek-ai/dsh-headless",
+  "description": "The dsh one-shot bundle",
+  "version": "0.1.0-rc.5",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

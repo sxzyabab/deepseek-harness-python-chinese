@@ -1,0 +1,74 @@
+# TYPE_API 片段 05：ToolErrorInfo .. WorkflowStopReason
+# 格式：名称|声明（与 04 无重叠：04 止于 ToolDispatchExecution）
+ToolErrorInfo|export interface ToolErrorInfo {\n    name: string;\n    code: string;\n}
+ToolExecution|export interface ToolExecution extends ToolExecutionInput {\n    readonly rootCallId: CallId;\n    readonly token: ToolExecutionToken;\n}
+ToolExecutionFailure|export interface ToolExecutionFailure {\n    readonly isError: true;\n    readonly error: ToolFailure;\n    readonly value?: never;\n    readonly content: ContentBlock[];\n    readonly meta?: JsonValue;\n    readonly additionalContexts?: UserMessage[];\n    readonly concludesTurn?: never;\n}
+ToolExecutionInput|export interface ToolExecutionInput {\n    readonly callId: CallId;\n    readonly rootCallId?: CallId;\n    readonly name: string;\n    readonly arguments: unknown;\n    readonly agent?: Agent;\n    readonly parent?: ToolExecutionToken;\n    readonly signal: AbortSignal;\n}
+ToolExecutionMode|export type ToolExecutionMode = {\n    kind: \'parallel\';\n} | {\n    kind: \'exclusive\';\n};
+ToolExecutionResult|export type ToolExecutionResult = ToolExecutionSuccess | ToolExecutionFailure;
+ToolExecutionSuccess|export interface ToolExecutionSuccess {\n    readonly isError: false;\n    readonly value: JsonValue;\n    readonly content: ContentBlock[];\n    readonly error?: never;\n    readonly meta?: JsonValue;\n    readonly additionalContexts?: UserMessage[];\n    readonly concludesTurn?: true;\n}
+ToolExecutionToken|export type ToolExecutionToken = symbol & {\n    readonly [toolExecutionTokenBrand]: true;\n};
+ToolFailure|export interface ToolFailure {\n    message: string;\n    info?: ToolErrorInfo;\n}
+ToolGuard|export type ToolGuard = (execution: Readonly<ToolExecution>) => string | undefined;
+ToolMessageSource|export interface ToolMessageSource {\n    kind: \'tool\';\n    callId: CallId;\n}
+ToolOutputDefinition|export interface ToolOutputDefinition {\n    readonly schema: JsonSchemaNode;\n    render(args: unknown, value: JsonValue): ContentBlock[];\n    presentationMeta?(args: unknown, value: JsonValue): JsonValue;\n}
+ToolPresentationMode|export type ToolPresentationMode = \'native\' | \'code\' | \'both\';
+ToolProviderResult|export interface ToolProviderResult {\n    readonly schemas: readonly ToolSchema[];\n    readonly knownNames?: readonly string[];\n}
+ToolRestriction|export interface ToolRestriction {\n    readonly allow?: readonly string[];\n    readonly deny?: readonly string[];\n}
+ToolResult|export interface ToolResult {\n    content: ContentBlock[];\n    isError: boolean;\n    meta?: JsonValue;\n}
+ToolResultBlock|export interface ToolResultBlock {\n    type: \'tool-result\';\n    toolCallId: CallId;\n    content: ContentBlock[];\n    isError?: boolean;\n}
+ToolResultMessage|export interface ToolResultMessage extends Message {\n    readonly role: \'user\';\n    readonly content: [\n        ToolResultBlock\n    ];\n    readonly source: ToolMessageSource;\n}
+ToolResultView|export type ToolResultView = GenericResultView | TerminalResultView | DiffResultView | SearchResultView | ReadResultView | WebResultView;
+ToolRunContext|export interface ToolRunContext extends ToolExecution {\n    deferContext(context: UserMessage): void;\n    concludeTurn(): void;\n}
+ToolRuntime|export class ToolRuntime extends Service {\n    static inject;\n    static Config: z<Config>;\n    readonly [TOOL_RUNTIME_SCHEDULER]: ToolRuntimeScheduler;\n    constructor(ctx: Context, config: Config = {});\n    presentAs(mode: ToolPresentationMode): () => void;\n    register(definition: ToolDefinition): () => void;\n    restrict(filter: ToolRestriction): () => void;\n    guard(guard: ToolGuard): () => void;\n    get(name: string, scope?: ScopeKey): ToolDefinition | undefined;\n    schemas(scope?: ScopeKey): ToolSchema[];\n    executionMode(exec: ToolExecutionInput): ToolExecutionMode;\n    async execute(exec: ToolExecutionInput): Promise<ToolExecutionResult>;\n}
+ToolRuntimeScheduler|export interface ToolRuntimeScheduler {\n    prepare(exec: ToolExecutionInput): Promise<ScheduledToolPreparation>;\n    dispatch(exec: ToolRunContext): Promise<ScheduledToolDispatch>;\n    finalize(exec: ToolRunContext, result: ToolExecutionResult): Promise<ToolExecutionResult>;\n    finish(exec: ToolRunContext, result: ToolExecutionResult): ToolExecutionResult;\n}
+ToolSchema|export interface ToolSchema {\n    name: string;\n    description: string;\n    parameters: Record<string, unknown>;\n}
+TurnEndCancelCause|export type TurnEndCancelCause = AgentCancelCause | {\n    readonly kind: \'legacy\';\n};
+TurnEndReason|export type TurnEndReason = TurnEndReasonMap[keyof TurnEndReasonMap];
+TurnEndReasonMap|export interface TurnEndReasonMap {\n    completed: {\n        kind: \'completed\';\n    };\n    aborted: {\n        kind: \'aborted\';\n        reason: TurnEndCancelCause;\n    };\n    blocked: {\n        kind: \'blocked\';\n    };\n    error: {\n        kind: \'error\';\n        error: LlmFailure;\n    };\n    \'max-tokens\': {\n        kind: \'max-tokens\';\n    };\n    interrupted: {\n        kind: \'interrupted\';\n    };\n}
+TypertCodec|export type TypertCodec = {\n    readonly mode: \'strict\';\n    readonly typeSymbol: string;\n    readonly schema: TypertSchema;\n} | {\n    readonly mode: \'src-json\';\n};
+TypertContribution|export interface TypertContribution {\n    readonly package: string;\n    readonly face: TypertFace;\n    readonly schemas: readonly TypertSchema[];\n    readonly model: TypertPackageModel;\n    readonly invocations: readonly InvocationDescriptor[];\n}
+TypertDisposer|export type TypertDisposer = () => Promise<void>;
+TypertDocTag|export interface TypertDocTag {\n    readonly name: string;\n    readonly argument?: string;\n    readonly comment?: string;\n    readonly text: string;\n}
+TypertDocumentation|export interface TypertDocumentation {\n    readonly description?: string;\n    readonly summary?: string;\n    readonly tags: readonly TypertDocTag[];\n    readonly jsDoc?: string;\n}
+TypertEventModel|export interface TypertEventModel extends TypertDocumentation {\n    readonly name: string;\n    readonly mode?: string;\n    readonly signature: string;\n}
+TypertMemberModel|export interface TypertMemberModel {\n    readonly kind: \'property\' | \'method\' | \'getter\' | \'setter\' | \'call\' | \'construct\' | \'index\';\n    readonly name: string;\n    readonly signature: string;\n    readonly summary?: string;\n    readonly jsDoc?: string;\n}
+TypertObjectModel|export interface TypertObjectModel extends TypertDocumentation {\n    readonly name: string;\n    readonly exportName: string;\n    readonly members: readonly TypertMemberModel[];\n    readonly types: readonly TypertTypeModel[];\n}
+TypertPackageFilter|export interface TypertPackageFilter {\n    readonly package?: string;\n    readonly face?: TypertFace;\n}
+TypertPackageModel|export interface TypertPackageModel {\n    readonly services: readonly TypertServiceModel[];\n    readonly events: readonly TypertEventModel[];\n    readonly objects: readonly TypertObjectModel[];\n}
+TypertPackageRecord|export interface TypertPackageRecord {\n    readonly package: string;\n    readonly face: TypertFace;\n    readonly key: string;\n    readonly model: TypertPackageModel;\n}
+TypertSchemaFilter|export interface TypertSchemaFilter {\n    readonly package?: string;\n    readonly face?: TypertFace;\n}
+TypertSchemaRecord|export interface TypertSchemaRecord extends TypertSchema {\n    readonly package: string;\n    readonly face: TypertFace;\n    readonly key: string;\n}
+TypertServiceModel|export interface TypertServiceModel extends TypertDocumentation {\n    readonly key: string;\n    readonly exportName: string;\n    readonly members: readonly TypertMemberModel[];\n    readonly types: readonly TypertTypeModel[];\n}
+TypertTypeModel|export interface TypertTypeModel {\n    readonly name: string;\n    readonly declaration: string;\n}
+UserMessage|export interface UserMessage extends Message {\n    readonly role: \'user\';\n}
+UserQuestionProvider|export interface UserQuestionProvider {\n    ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>;\n}
+WebBootEntry|export interface WebBootEntry {\n    id: string;\n    url: string;\n    rev: string;\n    inject?: string[];\n    immediately?: boolean;\n}
+WebBootGraph|export interface WebBootGraph {\n    rev: string;\n    entries: WebBootEntry[];\n}
+WebFetchBody|export type WebFetchBody = {\n    readonly kind: \'html\';\n    readonly content: string;\n} | {\n    readonly kind: \'text\';\n    readonly content: string;\n};
+WebFetchProvider|export interface WebFetchProvider {\n    readonly id: string;\n    available(): boolean;\n    fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult>;\n}
+WebFetchRequest|export interface WebFetchRequest {\n    readonly url: string;\n}
+WebFetchResult|export interface WebFetchResult {\n    readonly url: string;\n    readonly statusCode: number;\n    readonly body: WebFetchBody;\n    readonly truncated: boolean;\n}
+WebFetchResultView|export interface WebFetchResultView {\n    card: \'web\';\n    kind: \'fetch\';\n    title?: string;\n    url: string;\n    statusCode: number;\n    truncated: boolean;\n}
+WebResultView|export type WebResultView = WebSearchResultView | WebFetchResultView;
+WebRoute|export interface WebRoute {\n    kind: WebRouteKind;\n    path: string;\n    handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;\n}
+WebRouteKind|export type WebRouteKind = \'exact\' | \'prefix\';
+WebSearchProvider|export interface WebSearchProvider {\n    readonly id: string;\n    available(): boolean;\n    search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult>;\n}
+WebSearchRequest|export interface WebSearchRequest {\n    readonly query: string;\n    readonly maxResults?: number;\n}
+WebSearchResult|export interface WebSearchResult {\n    readonly content?: string;\n    readonly sources: readonly WebSearchSource[];\n    readonly truncated: boolean;\n}
+WebSearchResultView|export interface WebSearchResultView {\n    card: \'web\';\n    kind: \'search\';\n    title?: string;\n    sources: WebSource[];\n    answer?: string;\n    truncated: boolean;\n}
+WebSearchSource|export interface WebSearchSource {\n    readonly url: string;\n    readonly title?: string;\n    readonly snippet?: string;\n    readonly publishedAt?: string;\n}
+WebSource|export interface WebSource {\n    url: string;\n    title?: string;\n    snippet?: string;\n    publishedAt?: string;\n}
+WebUpgradeRoute|export interface WebUpgradeRoute {\n    path: string;\n    handler: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>;\n}
+WorkflowAgentEndInfo|export interface WorkflowAgentEndInfo extends WorkflowAgentInfo {\n    outcome: WorkflowAgentOutcome;\n}
+WorkflowAgentInfo|export interface WorkflowAgentInfo {\n    seq: number;\n    label: string;\n    phase?: string;\n    childId: SessionId;\n}
+WorkflowAgentOutcome|export type WorkflowAgentOutcome = \'completed\' | \'failed\' | \'cancelled\';
+WorkflowMeta|export interface WorkflowMeta {\n    name: string;\n    description: string;\n    whenToUse?: string;\n    phases?: WorkflowPhase[];\n}
+WorkflowPhase|export interface WorkflowPhase {\n    title: string;\n    detail?: string;\n    provider?: string;\n    model?: string;\n}
+WorkflowResult|export interface WorkflowResult {\n    value: unknown;\n    stopReason: WorkflowStopReason;\n    error?: string;\n    agentsStarted: number;\n}
+WorkflowResultInfo|export interface WorkflowResultInfo {\n    stopReason: WorkflowStopReason;\n    error?: string;\n    agentsStarted: number;\n}
+WorkflowRun|export interface WorkflowRun {\n    readonly id: WorkflowRunId;\n    readonly meta: WorkflowMeta;\n    readonly result: Promise<WorkflowResult>;\n    cancel(reason?: string): void;\n    dispose(): Promise<void>;\n}
+WorkflowRunId|export type WorkflowRunId = Branded<\'WorkflowRunId\'>;
+WorkflowRunInfo|export interface WorkflowRunInfo {\n    id: WorkflowRunId;\n    meta: WorkflowMeta;\n}
+WorkflowStartRequest|export interface WorkflowStartRequest {\n    script: string;\n    meta: WorkflowMeta;\n    args?: unknown;\n    subagentProvider?: string;\n    maxTotalAgents?: number;\n    parent: Agent;\n    signal?: AbortSignal;\n}
+WorkflowStopReason|export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';
