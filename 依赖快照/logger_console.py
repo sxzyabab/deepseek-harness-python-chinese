@@ -154,8 +154,3 @@ class 控制台导出器:
         自身.timestamp=消息['ts']#记住时刻
         return 输出#整行
 
-    getDefaults=取默认#英文别名
-    export=导出#英文别名
-    render=渲染#英文别名
-
-ConsoleExporter=控制台导出器#英文别名

@@ -325,37 +325,10 @@ class 时间:#时间命名空间
         文本=文本.replace('SSS',时间.补位(时刻.microsecond//1000,3),1)#毫秒
         return 文本#格式化结果
 
-时间.millisecond=时间.毫秒#英文别名
-时间.second=时间.秒#英文别名
-时间.minute=时间.分#英文别名
-时间.hour=时间.时#英文别名
-时间.day=时间.日#英文别名
-时间.week=时间.周#英文别名
-时间.toDigits=时间.补位#英文别名
-时间.format=时间.格式化#英文别名
-时间.template=时间.模板#英文别名
-Time=时间#英文别名
-
-#============================== 英文别名 ==============================
-defineProperty=定义属性#英文别名
-isNullable=是否可空#英文别名
-isNonNullable=是否非空#英文别名
-isPlainObject=是否普通对象#英文别名
-filterKeys=过滤键#英文别名
-mapValues=映射值#英文别名
-valueMap=值映射#英文别名
-pick=挑选#英文别名
-hyphenate=连字符化#英文别名
-paramCase=短横#英文别名
-Binary=二进制#英文别名
-clone=克隆#英文别名
-deepEqual=深度相等#英文别名
-
 __all__=[
-    '是否可空','是否非空','是否普通对象','过滤键','映射值','值映射','挑选','定义属性',#杂项
-    '短横','连字符化',#字符串
-    '是','二进制','克隆','深度相等',#类型
-    '时间','Time',#时间
-    'isNullable','isNonNullable','isPlainObject','filterKeys','mapValues','valueMap','pick','defineProperty',#杂项英文
-    'paramCase','hyphenate','Binary','clone','deepEqual',#类型英文
+    '是否可空','是否非空','是否普通对象','过滤键',
+    '映射值','值映射','挑选','定义属性',
+    '短横','连字符化',
+    '是','二进制','克隆','深度相等',
+    '时间',
 ]#公开导出
