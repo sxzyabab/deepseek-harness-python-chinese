@@ -83,7 +83,7 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
         引用=配置项.get('apiKeyEnv')#本配置的引用
         if 引用 is None:#不点名 apiKeyEnv 则交还 pi-ai 自己的环境发现
             return None#回落
-        凭证=上下文.取('credentials')#可选凭证服务
+        凭证=上下文.获取服务('credentials')#可选凭证服务
         if 凭证 is not None:#有凭证缝则只走凭证服务，不再读启动环境
             命中=凭证.解析(引用)#解析引用
             if 命中 is None:#引用未写入凭证平面
@@ -110,7 +110,7 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
         )#缺失凭证
     def 解析附件():#可选附件服务
         """可选附件服务。"""
-        return 上下文.取('attachments')#附件
+        return 上下文.获取服务('attachments')#附件
     适配器=派爱适配器({
         'profiles':配置表,#按请求解析配置
         'resolveApiKey':解析密钥,#按配置解析密钥

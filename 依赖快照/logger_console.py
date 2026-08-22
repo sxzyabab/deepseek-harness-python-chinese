@@ -1,30 +1,21 @@
-"""Node 控制台日志导出器，用检查器格式化对象。"""
+"""把日志渲染成带颜色的控制台文本的导出器。"""
 import os,sys,time
-from cosmokit import 时间#时间模板与差值
+from cosmokit import 时间#时间模板与差值格式化
 from schemastery import 模式#配置模式
-from cordis import 日志器#日志着色与格式化
+from cordis import 日志器#着色与 printf 渲染
 
-def 取标准出色深():
-    """按 supports-color 规则检测 stdout 色深。"""
+def 探测终端色深():
+    """按环境变量与终端类型探测标准输出支持的色深。"""
     环境=os.environ#进程环境
-    强制=环境.get('FORCE_COLOR')#强制色深
-    if 强制 in ('0','false'):
-        return 0#关闭
-    if 环境.get('NO_COLOR') or 环境.get('NODE_DISABLE_COLORS') or 环境.get('TERM')=='dumb':
-        if 强制 is None:
-            return 0#禁用
+    强制=环境.get('FORCE_COLOR')#强制指定的色深
     if 强制 is not None:
-        if 强制 in ('','true','1'):
-            return 1#基本色
-        if 强制=='2':
-            return 2#256 色
-        if 强制=='3':
-            return 3#真彩
-        return 1#其它强制值当基本色
-    if 环境.get('CI') and (环境.get('GITHUB_ACTIONS') or 环境.get('GITLAB_CI') or 环境.get('TRAVIS') or 环境.get('CIRCLECI')):
-        return 1#CI 基本色
+        return {'0':0,'false':0,'':1,'true':1,'1':1,'2':2,'3':3}.get(强制,1)#强制值优先
+    if 环境.get('NO_COLOR') or 环境.get('NODE_DISABLE_COLORS') or 环境.get('TERM')=='dumb':
+        return 0#显式禁用
     if not sys.stdout.isatty():
-        return 0#非 TTY
+        return 0#重定向到文件就不着色
+    if 环境.get('CI') and any(环境.get(键) for 键 in ('GITHUB_ACTIONS','GITLAB_CI','TRAVIS','CIRCLECI')):
+        return 1#这些 CI 的日志面板认基本色
     if 环境.get('COLORTERM') in ('truecolor','24bit'):
         return 3#真彩
     终端=环境.get('TERM') or ''#终端类型
@@ -32,125 +23,109 @@ def 取标准出色深():
         return 2#256 色
     return 1#基本色
 
-def 检查格式化(值,目标,消息=None):
-    """按 Node util.inspect 的紧凑无限深度选项格式化对象。"""
-    色深=目标.get('colors') if isinstance(目标,dict) else getattr(目标,'colors',None)#色深
-    启用=bool(色深)#是否着色
-    已见=set()#循环检测
+_检查样式={'数字':('33','39'),'布尔':('33','39'),'空':('1','22'),'字符串':('32','39'),'循环':('36','39')}#检查器着色
+
+def 展开对象(值,导出器,消息=None):
+    """把对象展开成一行带颜色的可读文本，循环引用就地标出。"""
+    着色=bool(getattr(导出器,'色深',None))#是否着色
+    路径上的容器=set()#当前递归路径上的容器身份
     def 上色(样式,文本):
-        """按 Node inspect 样式包裹 ANSI。"""
-        if not 启用:
-            return 文本#无色
-        表={'数字':('33','39'),'布尔':('33','39'),'空':('1','22'),'字符串':('32','39'),'无':('90','39'),'特殊':('36','39')}#样式码
-        起,止=表[样式]#起止码
-        return '\x1b['+起+'m'+文本+'\x1b['+止+'m'#着色文本
-    def 走(项):
-        """递归检查一项。"""
-        标识=id(项)#对象身份
-        if isinstance(项,(dict,list,tuple,set)):
-            if 标识 in 已见:
-                return 上色('特殊','[Circular]')#循环引用
-            已见.add(标识)#进入
+        """按检查器样式包一层 ANSI。"""
+        if not 着色:
+            return 文本#不着色
+        起,止=_检查样式[样式]#起止码
+        return f'\x1b[{起}m{文本}\x1b[{止}m'#着色文本
+    def 展开(项):
+        """递归展开一项。"""
         if isinstance(项,bool):
-            结果=上色('布尔',str(项))#布尔
-        elif 项 is None:
-            结果=上色('空','None')#空值
-        elif isinstance(项,(int,float)):
-            结果=上色('数字',repr(项))#数字
-        elif isinstance(项,str):
-            结果=上色('字符串',repr(项))#字符串
-        elif isinstance(项,dict):
-            片段=[]#字段
-            for 键,子 in 项.items():
-                片段.append(走(键)+': '+走(子))#键值
-            结果='{'+', '.join(片段)+'}'#对象
-        elif isinstance(项,list):
-            结果='['+', '.join(走(子) for 子 in 项)+']'#数组
-        elif isinstance(项,tuple):
-            if len(项)==1:
-                结果='('+走(项[0])+',)'#单元素元组
-            else:
-                结果='('+', '.join(走(子) for 子 in 项)+')'#元组
-        elif isinstance(项,set):
-            if not 项:
-                结果='set()'#空集合
-            else:
-                结果='{'+', '.join(走(子) for 子 in 项)+'}'#集合
-        else:
-            结果=repr(项)#其它
-        if isinstance(项,(dict,list,tuple,set)):
-            已见.discard(标识)#离开
-        return 结果#片段
-    return 走(值)#根对象
+            return 上色('布尔',str(项))#布尔要排在数字前面
+        if 项 is None:
+            return 上色('空','None')#空值
+        if isinstance(项,(int,float)):
+            return 上色('数字',repr(项))#数字
+        if isinstance(项,str):
+            return 上色('字符串',repr(项))#字符串
+        if not isinstance(项,(dict,list,tuple,set)):
+            return repr(项)#其它对象交给它自己的展示
+        身份=id(项)#容器身份
+        if 身份 in 路径上的容器:
+            return 上色('循环','[循环引用]')#回到了路径上的容器
+        路径上的容器.add(身份)#进入
+        try:
+            return _展开容器(项,展开)#展开容器
+        finally:
+            路径上的容器.discard(身份)#离开
+    return 展开(值)#根对象
+
+def _展开容器(项,展开):
+    """按容器种类拼出它的字面量文本。"""
+    if isinstance(项,dict):
+        return '{'+', '.join(f'{展开(键)}: {展开(子)}' for 键,子 in 项.items())+'}'#映射
+    if isinstance(项,list):
+        return '['+', '.join(展开(子) for 子 in 项)+']'#列表
+    if isinstance(项,tuple):
+        if len(项)==1:
+            return '('+展开(项[0])+',)'#单元素元组要带逗号
+        return '('+', '.join(展开(子) for 子 in 项)+')'#元组
+    if not 项:
+        return 'set()'#空集合没有字面量写法
+    return '{'+', '.join(展开(子) for 子 in 项)+'}'#集合
 
 class 控制台导出器:
-    """带检查器对象格式化的 Node 控制台导出器。"""
-    name='logger-console'#插件名
-    Config=模式.对象({
-        'colors':模式.联合([模式.常量(False),模式.数字()]),#色深
-        'maxLength':模式.数字(),#行长
-        'levels':模式.字典(模式.数字()),#阈值表
-        'showDiff':模式.布尔().默认(False),#显示间隔
-        'showTime':模式.字符串().默认('yyyy-MM-dd hh:mm:ss '),#时间模板
+    """把日志渲染成一行控制台文本的导出器。"""
+    插件名='logger-console'#插件显示名
+    配置模式=模式.对象({
+        'colors':模式.联合([模式.常量(False),模式.数字()]),#色深，False 表示不着色
+        'maxLength':模式.数字(),#单行长度上限
+        'levels':模式.字典(模式.数字()),#按日志器名指定的阈值
+        'showDiff':模式.布尔().默认(False),#是否显示与上一条的间隔
+        'showTime':模式.字符串().默认('yyyy-MM-dd hh:mm:ss '),#时间模板，空串表示不显示
         'label':模式.对象({
-            'width':模式.数字(),#列宽
-            'margin':模式.数字(),#边距
-            'align':模式.联合(['left','right']),#对齐
-        }),#名称标签
+            'width':模式.数字(),#名称列宽
+            'margin':模式.数字(),#名称两侧的空格数
+            'align':模式.联合(['left','right']),#名称对齐方向
+        }),#名称标签样式
     })#配置模式
 
-    def __init__(自身,ctx,配置=None):
-        """把默认项与配置写到实例上，登记检查器并挂到日志服务。"""
-        自身.formatters={'o':检查格式化,'O':检查格式化}#对象占位符
-        if 配置 is None:
-            配置={}#空配置
-        合并=dict(自身.取默认())#默认项
-        合并.update(配置)#配置覆盖
-        for 键,值 in 合并.items():
-            setattr(自身,键,值)#写入字段
-        自身.timestamp=int(time.time()*1000)#当前毫秒
-        ctx.logger.exporter(自身)#登记导出器
-
-    def 取默认(自身):
-        """带终端色深的默认配置。"""
-        return {
-            'colors':取标准出色深(),#stdout 色深
-            'showTime':'yyyy-MM-dd hh:mm:ss ',#时间模板
-            'showDiff':False,#不显示间隔
-        }#默认配置
+    def __init__(自身,上下文,配置=None):
+        """按配置装配渲染参数并把自己登记成日志导出器。"""
+        配置=配置 or {}#空配置
+        色深=配置.get('colors')#配置里指定的色深
+        自身.色深=探测终端色深() if 色深 is None else (色深 or 0)#False 与 0 都表示不着色
+        自身.行长上限=配置.get('maxLength')#单行长度上限
+        自身.阈值表=配置.get('levels') or {}#按日志器名指定的阈值
+        自身.显示间隔=bool(配置.get('showDiff'))#是否显示与上一条的间隔
+        自身.时间模板=配置.get('showTime','yyyy-MM-dd hh:mm:ss ')#时间模板
+        自身.标签样式=配置.get('label') or {}#名称标签样式
+        自身.格式化器表={'o':展开对象,'O':展开对象}#对象占位符改用检查器展开
+        自身.上次时刻=int(time.time()*1000)#上一条消息的时刻
+        上下文.日志.登记导出器(自身)#登记导出器
 
     def 导出(自身,消息):
         """把渲染结果打印到控制台。"""
         print(自身.渲染(消息))#打印一行
 
     def 渲染(自身,消息):
-        """把记录收成控制台文本。"""
-        前缀='['+消息['type'][0].upper()+']'#级别前缀
-        标签=getattr(自身,'label',None) or {}#标签样式
-        边距=标签.get('margin')#标签边距
-        if 边距 is None:
-            边距=1#默认边距
-        空格=' '*边距#间隔空格
-        缩进=3+len(空格)#续行缩进
+        """把一条记录收成整行控制台文本。"""
+        间隔空格=' '*自身.标签样式.get('margin',1)#名称两侧的空格
+        缩进=3+len(间隔空格)#续行缩进，先算上级别前缀
         输出=''#行缓冲
-        if 自身.showTime:
-            缩进+=len(自身.showTime)#加上时间宽度
-            输出+=日志器.着色(自身,8,时间.模板(自身.showTime))#着色时间
-        色号=日志器.色号(消息['name'],自身.colors)#名称色号
-        名称标签=日志器.着色(自身,色号,消息['name'],'1')#加粗名称
-        宽度=标签.get('width')#标签列宽
-        if 宽度 is None:
-            宽度=0#缺省列宽
-        填充=宽度+len(名称标签)-len(消息['name'])#含转义的填充
-        if 标签.get('align')=='right':
-            输出+=名称标签.rjust(填充)+空格+前缀+空格#右对齐名称
-            缩进+=宽度+len(空格)#加上标签列
+        if 自身.时间模板:
+            缩进+=len(自身.时间模板)#加上时间列
+            输出+=日志器.着色(自身,8,时间.格式化时间(自身.时间模板))#灰色时间
+        色号=日志器.色号(消息.名称,自身.色深)#该日志器名的颜色
+        名称标签=日志器.着色(自身,色号,消息.名称,'1')#加粗名称
+        列宽=自身.标签样式.get('width',0)+len(名称标签)-len(消息.名称)#含 ANSI 转义的列宽
+        前缀=f'[{消息.标记}]'#级别前缀
+        if 自身.标签样式.get('align')=='right':
+            输出+=名称标签.rjust(列宽)+间隔空格+前缀+间隔空格#名称在前且右对齐
+            缩进+=自身.标签样式.get('width',0)+len(间隔空格)#加上名称列
         else:
-            输出+=前缀+空格+名称标签.ljust(填充)+空格#左对齐名称
-        输出+=日志器.格式化(自身,消息).replace('\n','\n'+' '*缩进)#续行缩进
-        if 自身.showDiff and 自身.timestamp:
-            间隔=消息['ts']-自身.timestamp#间隔毫秒
-            输出+=日志器.着色(自身,色号,' +'+时间.格式化(间隔))#着色间隔
-        自身.timestamp=消息['ts']#记住时刻
+            输出+=前缀+间隔空格+名称标签.ljust(列宽)+间隔空格#级别在前，名称左对齐
+        输出+=日志器.格式化(自身,消息).replace('\n','\n'+' '*缩进)#续行对齐到正文列
+        if 自身.显示间隔:
+            输出+=日志器.着色(自身,色号,' +'+时间.格式化(消息.时刻-自身.上次时刻))#与上一条的间隔
+        自身.上次时刻=消息.时刻#记住本条时刻
         return 输出#整行
 
+默认=控制台导出器#模块的默认插件导出

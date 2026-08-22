@@ -1,561 +1,313 @@
-"""上下文、服务与插件光纤共用的内部辅助。"""
-import threading,traceback,weakref
+"""上下文、服务与插件纤程共用的内部辅助。"""
+import traceback,types
+from collections import ChainMap as 链映射#本层差分叠父映射
 
-_符号表={}#全局符号登记表
+################################ 自由使用.号 ################################
+from weakref import WeakKeyDictionary as 弱引用键字典#按对象身份存双下数据，对象回收后自动清
+_对象内部数据表=弱引用键字典()#对象到它的双下数据面，不占用对象自身的属性槽
+未传参=object()
+未命中=object()#沿属性链查找时表示链上没有该键
 
-def 全局符号(名称):
-    """按名取出或创建一份进程内唯一标记。"""
-    if 名称 not in _符号表:
-        _符号表[名称]=object()#新建标记
-    return _符号表[名称]#返回标记
+def 是双下划线字符串(名称)->bool:
+    return isinstance(名称,str) and 名称.startswith('__') and 名称.endswith('__')
 
-class 原型映射:
-    """以父表为原型的映射，模拟 Object.create。"""
-    def __init__(自身,原型=None):
-        """空表或挂到父表上。"""
-        自身._自有={}#本层自有键
-        自身._原型=原型#父表
+class 自由点访问空间:
+    '用户可以自由通过.读写而不触发内部机制'
+    def __getattribute__(自身,键):
+        """双下名只认数据面；未写入则拦截，不暴露解释器槽。"""
+        if 是双下划线字符串(键):
+            内部数据=_对象内部数据表.setdefault(自身,{})#该对象的数据面
+            if 键 not in 内部数据:
+                raise AttributeError(键)
+            return 内部数据[键]#用户数据
+        #普通属性
+        return object.__getattribute__(自身,键)
 
-    def __getitem__(自身,键):
-        """沿原型链取值，没有则为 None。"""
-        if 键 in 自身._自有:
-            return 自身._自有[键]#自有
-        if 自身._原型 is not None:
-            return 自身._原型[键]#上溯
-        return None#相当于 undefined
+    def __setattr__(自身,键,值):
+        """双下名落数据面，其余照常落实例。"""
+        if 是双下划线字符串(键):
+            内部数据=_对象内部数据表.setdefault(自身,{})#该对象的数据面
+            内部数据[键]=值#写入
+            return
+        #普通属性
+        object.__setattr__(自身,键,值)
 
-    def __setitem__(自身,键,值):
-        """写入本层自有键。"""
-        自身._自有[键]=值#自有写入
+#symbol
+私有键清单=(
+    '阴影','接收者','原目标','元数据','初始化钩子',
+    '检查原型','副作用','过滤器','隔离','拦截',
+    '初始化','检查','配置','调用','扩展',
+    '追踪器','解析配置','是上下文','组','条目',
+    ...
+)
 
-    def __contains__(自身,键):
-        """沿原型链询问键是否存在。"""
-        if 键 in 自身._自有:
-            return True#自有
-        if 自身._原型 is not None:
-            return 键 in 自身._原型#上溯
-        return False#没有
+def 获取内部数据存储(对象)->dict:
+    return _对象内部数据表.setdefault(对象,{})
 
-    def get(自身,键,默认=None):
-        """取值，没有则默认。"""
-        值=自身[键]#沿链
-        if 值 is None and 键 not in 自身:
-            return 默认#缺失
-        return 值#命中或显式空
+def 获取内部数据(对象,键,默认值=未传参):
+    "dict.get等级"
+    存储=获取内部数据存储(对象)
+    if 默认值 is 未传参:
+        return 存储[键]
+    else:
+        return 存储.get(键,默认值)
 
-    def keys(自身):
-        """只交出本层自有键。"""
-        return 自身._自有.keys()#自有键
+def 设置内部数据默认值(对象,键,默认值):
+    "dict.setdefault等价"
+    存储=获取内部数据存储(对象)
+    return 存储.setdefault(键,默认值)
 
-    def 有自有(自身,键):
-        """本层是否有该键。"""
-        return 键 in 自身._自有#自有
+def 设置内部数据(对象,键,值):
+    "dict[]=?等价"
+    获取内部数据存储(对象)[键]=值
 
-    def 取原型(自身):
-        """返回父表。"""
-        return 自身._原型#父表
+################################ 差分映射 ################################
+class 差分映射(链映射):
+    def __init__(自身,*父映射):
+        父=[]
+        for 映射 in 父映射:
+            if isinstance(映射,差分映射):
+                父.extend(映射.maps)
+            elif isinstance(映射,dict):
+                父.append(映射)
+            else:
+                raise TypeError(f'未知映射类型: {type(映射).__name__}')
+        super().__init__({},*父)
 
-    def __iter__(自身):
-        """按自有键迭代。"""
-        return iter(自身._自有)#自有
+    def 本层键(自身)->list:
+        "本层存储的键"
+        return list(自身.maps[0])#自有键快照
 
-class 可释放列表:
-    """可按值 O(1) 删除的有序可释放值集合。"""
+    def 本层存在键(自身,键)->bool:
+        "本层是否有该键，不上溯"
+        return 键 in 自身.maps[0]#只看本层
+
+    def 清点全链值(自身,键)->list:
+        "从根到本层，依次交出该键在每一层的自有值"
+        结果=[]#由根到叶
+        if len(自身.maps)>1:
+            父=自身.maps[1]#父表
+            if isinstance(父,差分映射):
+                结果=父.清点全链值(键)#先收祖先
+            elif 键 in 父:
+                结果=[父[键]]#普通映射只取一层
+        if 键 in 自身.maps[0]:
+            结果.append(自身.maps[0][键])#本层最后，优先级最高
+        return 结果#由根到叶
+
+    def 更换父映射(自身,父表):
+        "换掉父表"
+        if 父表 is None:
+            自身.maps[:]=[自身.maps[0]]#只留本层
+        else:
+            自身.maps[:]=[自身.maps[0],父表]#重挂父表
+
+    def 清空本层(自身,源=None):
+        "清空本层自有键，再拷入源的自有键"
+        自身.maps[0]={}
+        if 源 is None:
+            return#换成空表
+        for 键 in 源:
+            自身.maps[0][键]=源[键]#逐个拷入
+
+################################ 有序槽位表 ################################
+class 有序槽位表:
+    "按插入序登记，可单条摘掉，清空时逆序交出"
     def __init__(自身):
-        """初始化空表。"""
-        自身._序号=0#单调递增序号
-        自身._映射={}#序号到值
-        自身._弱表=weakref.WeakKeyDictionary()#值到序号
+        "初始化空表"
+        自身.序号=0#单调递增序号
+        自身.映射={}#序号:值
+
+    def 压入(自身,值):
+        "追加到表尾，返回只删本条的释放器"
+        自身.序号+=1#分配序号
+        序号=自身.序号#本条序号
+        自身.映射[序号]=值#按序号存入
+        def 摘掉本条():
+            "只删本序号，重复调用返回假"
+            return 自身.映射.pop(序号,None) is not None#是否真的删掉
+        return 摘掉本条#释放器
+
+    def 前插(自身,值):
+        "插到表头，返回只删本条的释放器"
+        自身.序号+=1#分配序号
+        序号=自身.序号#本条序号
+        重排={序号:值}#新项排在最前
+        重排.update(自身.映射)#其余按原顺序接上
+        自身.映射=重排#换表
+        def 摘掉本条():
+            "只删本序号，重复调用返回假"
+            return 自身.映射.pop(序号,None) is not None#是否真的删掉
+        return 摘掉本条#释放器
+
+    def 删除(自身,值):
+        "按对象身份删掉一条"
+        for 序号 in list(自身.映射):
+            if 自身.映射[序号] is 值:
+                del 自身.映射[序号]#按身份删除
+                return True#确实删掉
+        return False#表里没有
+
+    def 清空(自身):
+        "清空并按逆序交出剩余值，供卸载时反向释放"
+        值=list(自身.映射.values())#当前全部值
+        自身.映射={}#清空
+        值.reverse()#后登记的先释放
+        return 值#逆序值列表
 
     @property
     def 长度(自身):
-        """当前仍登记的条目数。"""
-        return len(自身._映射)#条目数
-
-    @property
-    def length(自身):
-        """当前仍登记的条目数。"""
-        return 自身.长度#英文别名
-
-    def 压入(自身,值):
-        """按插入顺序登记，并返回按序号删除的释放器。"""
-        自身._序号+=1#下一个序号
-        序号=自身._序号#本条序号
-        自身._映射[序号]=值#按序号存入
-        自身._弱表[值]=序号#记录弱映射
-        def 删除本条():
-            """只删本序号。"""
-            return 自身._映射.pop(序号,None) is not None#是否删掉
-        return 删除本条#释放器
-
-    def push(自身,值):
-        """按插入顺序登记。"""
-        return 自身.压入(值)#英文别名
-
-    def 前插(自身,值):
-        """插到表头并返回按序号删除的释放器。"""
-        自身._序号+=1#下一个序号
-        序号=自身._序号#本条序号
-        新表={}#重建以改顺序
-        新表[序号]=值#新项在前
-        新表.update(自身._映射)#其余后附
-        自身._映射=新表#换表
-        自身._弱表[值]=序号#记录弱映射
-        def 删除本条():
-            """只删本序号。"""
-            return 自身._映射.pop(序号,None) is not None#是否删掉
-        return 删除本条#释放器
-
-    unshift=前插#英文别名
-
-    def 删除(自身,值):
-        """按值删除。"""
-        序号=自身._弱表.get(值)#查出序号
-        if not 序号:
-            return False#从未登记
-        return 自身._映射.pop(序号,None) is not None#按序号删除
-
-    def delete(自身,值):
-        """按值删除。"""
-        return 自身.删除(值)#英文别名
-
-    def 清空(自身):
-        """清空并按逆序交出剩余值。"""
-        值列表=list(自身._映射.values())#当前全部值
-        自身._映射.clear()#清空序号表
-        值列表.reverse()#逆序
-        return 值列表#供卸载反向释放
-
-    def clear(自身):
-        """清空并按逆序交出剩余值。"""
-        return 自身.清空()#英文别名
+        "当前仍登记的条目数"
+        return len(自身.映射)#条目数
 
     def __iter__(自身):
-        """按插入顺序迭代当前值。"""
-        return iter(自身._映射.values())#插入顺序
+        return iter(list(自身.映射.values()))#迭代期间允许改表
 
     def __repr__(自身):
-        """检查器展示为列表快照。"""
-        return repr(list(自身))#数组快照
+        return repr(list(自身))#列表快照
 
-class 符号表:
-    """避免与公开属性名冲突的共享符号。"""
-    阴影=全局符号('cordis.shadow')#阴影上下文
-    接收者=全局符号('cordis.receiver')#代理接收者
-    原始=全局符号('cordis.original')#可追踪代理背后的原始目标
-    元数据=全局符号('cordis.metadata')#装饰器元数据
-    初始化钩子=全局符号('cordis.initHooks')#类插件延迟钩子
-    检查原型=全局符号('cordis.checkProto')#inject 沿原型链
-    副作用=全局符号('cordis.effect')#副作用诊断树
-    过滤=全局符号('cordis.filter')#事件派发过滤器
-    隔离=全局符号('cordis.isolate')#服务隔离表
-    拦截=全局符号('cordis.intercept')#服务拦截配置表
-    初始化=全局符号('cordis.init')#类插件初始化方法
-    检查=全局符号('cordis.check')#服务可用性谓词
-    配置=全局符号('cordis.config')#拦截配置幽灵类型
-    调用=全局符号('cordis.invoke')#可调用服务的调用体
-    扩展=全局符号('cordis.extend')#扩展服务实例
-    追踪器=全局符号('cordis.tracker')#追踪器元数据
-    解析配置=全局符号('cordis.resolveConfig')#合并拦截配置
-    是=全局符号('cordis.is')#上下文品牌
+################################ 类型判断 ################################
 
-符号=符号表#模块级别名
-symbols=符号#英文别名
-
-def 设符号(对象,键,值):
-    """把符号键写到对象字典上。"""
-    if isinstance(对象,dict):
-        对象[键]=值#字典写入
-        return 对象#原对象
-    对象.__dict__[键]=值#实例字典
-    return 对象#原对象
-
-def 取符号(对象,键,默认=None):
-    """从对象字典读符号键。"""
-    if 对象 is None:
-        return 默认#空
-    if isinstance(对象,dict):
-        return 对象.get(键,默认)#字典
-    字典=getattr(对象,'__dict__',None)#实例字典
-    if 字典 is None:
-        return 默认#没有字典
-    return 字典.get(键,默认)#符号值
-
-def 是否构造器(函数):
-    """判断插件回调是否应以类方式构造。"""
-    return isinstance(函数,type)#类插件
-
-def 拼接原型(原型一,原型二):
-    """合并两条原型链，同时保留原型一上的描述符。"""
-    if 原型一 is object:
-        return 原型二#接到原型二
-    父=拼接原型(原型一.__bases__[0],原型二) if 原型一.__bases__ else 原型二#递归合并
-    结果=type('拼接原型',(父,),{})#新类型
-    for 键,值 in 原型一.__dict__.items():
-        if 键.startswith('__') and 键.endswith('__'):
-            continue#跳过槽
-        setattr(结果,键,值)#拷贝本层
-    return 结果#拼接结果
-
-def 是否对象(值):
-    """判断是否为非空对象或函数。"""
+def 是对象(值):
+    "对应js的对象或函数"
     if 值 is None:
-        return False#空
-    if isinstance(值,bool):
-        return False#布尔
-    if isinstance(值,(str,bytes,int,float)):
+        return False#空值
+    if isinstance(值,(bool,str,bytes,int,float)):
         return False#原始值
     return True#对象或函数
 
-def 取属性描述(目标,属性):
-    """沿类型链查找属性。找不到则得到 None。"""
-    if isinstance(目标,dict) and 属性 in 目标:
-        return 目标[属性]#字典项
-    字典=getattr(目标,'__dict__',None)#实例字典
-    if 字典 is not None and 属性 in 字典:
-        return 字典[属性]#实例自有
-    类型=type(目标)#类型
-    while 类型 is not None:
-        if 属性 in 类型.__dict__:
-            return 类型.__dict__[属性]#类型自有
-        类型=类型.__base__ if 类型 is not object else None#上溯
-    return None#未找到
-
-class 属性覆盖:
-    """把覆盖表叠到目标上的读取包装。"""
-    def __init__(自身,目标,覆盖表):
-        """保存目标与覆盖表。"""
-        object.__setattr__(自身,'_目标',目标)#原目标
-        object.__setattr__(自身,'_覆盖表',覆盖表)#覆盖表
-
-    def __getattr__(自身,属性):
-        """覆盖属性优先从覆盖表读。"""
-        覆盖表=object.__getattribute__(自身,'_覆盖表')#覆盖表
-        目标=object.__getattribute__(自身,'_目标')#原目标
-        if 属性 in 覆盖表 and 属性!='constructor':
-            return 覆盖表[属性]#覆盖值
-        return getattr(目标,属性)#原目标
-
-    def __setattr__(自身,属性,写入值):
-        """覆盖属性写回覆盖表。"""
-        if 属性 in ('_目标','_覆盖表'):
-            object.__setattr__(自身,属性,写入值)#内部字段
-            return
-        覆盖表=object.__getattribute__(自身,'_覆盖表')#覆盖表
-        目标=object.__getattribute__(自身,'_目标')#原目标
-        if 属性 in 覆盖表 and 属性!='constructor':
-            覆盖表[属性]=写入值#写覆盖表
-            return
-        setattr(目标,属性,写入值)#写原目标
-
-    def __call__(自身,*位置参数,**关键字参数):
-        """转发给目标。"""
-        目标=object.__getattribute__(自身,'_目标')#原目标
-        return 目标(*位置参数,**关键字参数)#调用
-
-def 叠属性(目标,覆盖表=None):
-    """返回把属性叠到目标上的包装。覆盖表为空则返回原目标。"""
-    if not 覆盖表:
-        return 目标#不建包装
-    return 属性覆盖(目标,覆盖表)#包装
-
-def 叠单属性(目标,属性,值):
-    """叠上一条只读覆盖属性。"""
-    return 叠属性(目标,{属性:值})#单属性覆盖
-
-def 取可追踪(上下文,值):
-    """包装服务或函数，使方法调用看到调用方当前激活的上下文。"""
-    if not 是否对象(值):
-        return 值#原始值无需包装
-    if 取符号(值,符号.阴影) is not None and 符号.阴影 in getattr(值,'__dict__',{}):
-        return object.__getattribute__(值,'__dict__').get('_原型上下文',值)#揭开阴影
-    追踪器=取符号(值,符号.追踪器)#符号追踪器
-    if 追踪器 is None:
-        追踪器=getattr(值,'_追踪器',None)#字段追踪器
+################################ 调用方上下文壳 ################################
+def 套上调用方上下文(上下文,值):
+    "值声明了追踪器就套壳，方法里读到的上下文变成调用方的"
+    if not 是对象(值):
+        return 值#原始值不用套壳
+    追踪器=_对象内部数据表.get(值,{}).get('追踪器')#值上声明的追踪器
     if not 追踪器:
-        return 值#未声明追踪器
-    return 创建可追踪(上下文,值,追踪器)#生成可追踪包装
+        return 值#没有追踪器，或已经是壳
+    return 调用方上下文壳(上下文,值,追踪器)#套壳
 
-def 创建阴影(上下文,目标,属性,接收者):
-    """把属性重绑到带阴影的子上下文。"""
-    if not 属性:
-        return 接收者#没有要重绑的属性
-    原始=getattr(目标,属性,None)#取出原始值
-    if not 原始:
-        return 接收者#目标没有该属性
-    扩展=上下文.extend({符号.阴影:原始})#带阴影的子上下文
-    return 叠单属性(接收者,属性,扩展)#重绑属性
-
-class 阴影方法:
-    """以外部包装为 this 时改绑到阴影接收者。"""
-    def __init__(自身,上下文,值,外部,阴影):
-        """保存调用改绑所需对象。"""
-        自身._上下文=上下文#调用方上下文
-        自身._值=值#原方法
-        自身._外部=外部#外部包装
-        自身._阴影=阴影#阴影接收者
+class 返回值套壳方法:
+    "先调原方法，返回值再套上调用方上下文"
+    def __init__(自身,上下文,方法):
+        自身._调用方=上下文#调用方上下文
+        自身._方法=方法#原方法
 
     def __call__(自身,*位置参数,**关键字参数):
-        """改绑 this 后再把返回值做成可追踪。"""
-        return 取可追踪(自身._上下文,自身._值(*位置参数,**关键字参数))#调用并包装
+        return 套上调用方上下文(自身._调用方,自身._方法(*位置参数,**关键字参数))#调完再套壳
 
-class 可追踪包装:
-    """按追踪器重绑 ctx 与关联服务。"""
+class 以壳为自身的方法:
+    "用壳当自身去调，方法里读上下文就是调用方的"
+    def __init__(自身,壳,函数):
+        自身._壳=壳#充当自身
+        自身._函数=函数#未绑定函数
+
+    def __call__(自身,*位置参数,**关键字参数):
+        调用方=object.__getattribute__(自身._壳,'_调用方')#调用方上下文
+        return 套上调用方上下文(调用方,自身._函数(自身._壳,*位置参数,**关键字参数))#以壳为自身
+
+class 调用方上下文壳:
+    "读追踪属性换成调用方上下文；关联服务成员转发到上下文"
+    __slots__=('_调用方','_原目标','_追踪器')#无实例字典，其余读取走 __getattr__
+
     def __init__(自身,上下文,值,追踪器):
-        """保存追踪状态。"""
-        object.__setattr__(自身,'_上下文',上下文)#调用方上下文
-        object.__setattr__(自身,'_值',值)#原始目标
+        object.__setattr__(自身,'_调用方',上下文)#调用方上下文
+        object.__setattr__(自身,'_原目标',值)#被代理的原对象
         object.__setattr__(自身,'_追踪器',追踪器)#追踪器
 
     def __getattr__(自身,属性):
-        """读取时重绑 ctx 或转发关联属性。"""
-        上下文=object.__getattribute__(自身,'_上下文')#调用方
-        值=object.__getattribute__(自身,'_值')#目标
+        if 属性.startswith('__') and 属性.endswith('__'):
+            raise AttributeError(属性)#协议名不转发，避免 __dict__ 读到原目标
+        调用方=object.__getattribute__(自身,'_调用方')#调用方上下文
+        原目标=object.__getattribute__(自身,'_原目标')#原对象
         追踪器=object.__getattribute__(自身,'_追踪器')#追踪器
-        if 属性==符号.原始:
-            return 值#原始目标
-        属性名=追踪器.get('property') if isinstance(追踪器,dict) else None#追踪属性名
-        if 属性==属性名:
-            return 上下文#返回调用方上下文
-        关联=追踪器.get('associate') if isinstance(追踪器,dict) else None#关联服务名
-        if 关联 and hasattr(上下文,'reflect'):
-            键=f'{关联}.{属性}'#关联键
-            属性表=getattr(上下文.reflect,'属性表',{})#已声明属性
-            if 键 in 属性表:
-                return getattr(上下文,键)#转发到上下文
-        内层=getattr(值,属性)#从目标读
-        内层追踪=取符号(内层,符号.追踪器) if 是否对象(内层) else None#嵌套追踪器
-        if 内层追踪:
-            return 创建可追踪(上下文,内层,内层追踪)#递归包装
-        无阴影=追踪器.get('noShadow') if isinstance(追踪器,dict) else False#是否保留来源
-        if not 无阴影 and callable(内层) and not isinstance(内层,type):
-            阴影=创建阴影(上下文,值,属性名,自身)#建阴影
-            return 阴影方法(上下文,内层,自身,阴影)#阴影方法
-        return 内层#原样返回
+        if 属性==追踪器.get('追踪属性'):
+            return 调用方#换成调用方上下文
+        关联=追踪器.get('关联服务')#关联服务名
+        if 关联 and f'{关联}.{属性}' in getattr(调用方.反射,'属性表',{}):
+            return getattr(调用方,f'{关联}.{属性}')#转发到上下文
+        内层=getattr(原目标,属性)#从原目标读
+        内层追踪器=_对象内部数据表.get(内层,{}).get('追踪器') if 是对象(内层) else None#嵌套追踪器
+        if 内层追踪器:
+            return 调用方上下文壳(调用方,内层,内层追踪器)#递归套壳
+        if callable(内层) and not isinstance(内层,type):
+            if getattr(内层,'__self__',None) is 原目标:
+                return 以壳为自身的方法(自身,内层.__func__)#绑定方法：自身换成壳
+            return 返回值套壳方法(调用方,内层)#其余可调用：只套返回值
+        return 内层#其余原样
 
     def __setattr__(自身,属性,写入值):
-        """写入时同样走关联或阴影。"""
-        if 属性 in ('_上下文','_值','_追踪器'):
-            object.__setattr__(自身,属性,写入值)#内部字段
-            return
-        上下文=object.__getattribute__(自身,'_上下文')#调用方
-        值=object.__getattribute__(自身,'_值')#目标
+        调用方=object.__getattribute__(自身,'_调用方')#调用方上下文
+        原目标=object.__getattribute__(自身,'_原目标')#原对象
         追踪器=object.__getattribute__(自身,'_追踪器')#追踪器
-        if 属性==符号.原始:
-            raise AttributeError('禁止改写原始目标指针')#拒绝
-        属性名=追踪器.get('property') if isinstance(追踪器,dict) else None#追踪属性
-        if 属性==属性名:
-            raise AttributeError('禁止改写追踪属性')#拒绝
-        关联=追踪器.get('associate') if isinstance(追踪器,dict) else None#关联服务名
-        if 关联 and hasattr(上下文,'reflect'):
-            键=f'{关联}.{属性}'#关联键
-            属性表=getattr(上下文.reflect,'属性表',{})#已声明属性
-            if 键 in 属性表:
-                setattr(上下文,键,写入值)#转发写
-                return
-        创建阴影(上下文,值,属性名,自身)#用阴影接收者写入
-        setattr(值,属性,写入值)#写到目标
+        if 属性==追踪器.get('追踪属性'):
+            raise AttributeError('不能改写调用方上下文壳的追踪属性')#拒绝改写
+        关联=追踪器.get('关联服务')#关联服务名
+        if 关联 and f'{关联}.{属性}' in getattr(调用方.反射,'属性表',{}):
+            setattr(调用方,f'{关联}.{属性}',写入值)#转发到上下文
+            return
+        setattr(原目标,属性,写入值)#写回原目标
 
     def __call__(自身,*位置参数,**关键字参数):
-        """作为函数调用时走调用体分发。"""
-        值=object.__getattribute__(自身,'_值')#目标
-        return 应用可追踪(自身,值,None,位置参数)#分发
+        return 用壳当自身去调(自身,object.__getattribute__(自身,'_原目标'),位置参数,关键字参数)#分发
 
     def __repr__(自身):
-        """委托原始目标的展示。"""
-        值=object.__getattribute__(自身,'_值')#目标
-        return repr(值)#原展示
+        return repr(object.__getattribute__(自身,'_原目标'))#展示原目标
 
-def 创建可追踪(上下文,值,追踪器):
-    """按追踪器生成可追踪包装。"""
-    无阴影=追踪器.get('noShadow') if isinstance(追踪器,dict) else False#是否保留来源
-    字典=getattr(上下文,'__dict__',None)#上下文字典
-    if 字典 is not None and 符号.阴影 in 字典 and not 无阴影:
-        上下文=字典.get('_原型上下文',上下文)#剥掉阴影
-    return 可追踪包装(上下文,值,追踪器)#包装
-
-def 应用可追踪(代理,值,绑定this,参数列表):
-    """经调用体或普通调用执行。"""
-    调用体=取符号(值,符号.调用)#符号调用体
+def 用壳当自身去调(壳,值,位置参数,关键字参数=None):
+    "以壳为自身调用值，调用体里读到的是调用方上下文"
+    关键字参数=关键字参数 or {}#默认无关键字参数
+    调用体=_对象内部数据表.get(值,{}).get('调用')#值上声明的调用体
     if 调用体 is None:
-        调用体=getattr(值,'_调用',None)#字段调用体
-    if not 调用体:
-        return 值(*参数列表)#普通调用
-    未绑定=getattr(调用体,'__func__',调用体)#未绑定
-    return 未绑定(代理,*参数列表)#绑到可追踪代理
+        类调用=getattr(type(值),'__call__',None)#类上的调用协议
+        调用体=类调用 if isinstance(类调用,types.FunctionType) else None#只有自定义的才换自身
+    if 调用体 is None:
+        return 值(*位置参数,**关键字参数)#函数与内建可调用值没有可换的自身
+    未绑定=getattr(调用体,'__func__',调用体)#取出未绑定函数
+    return 未绑定(壳,*位置参数,**关键字参数)#自身换成壳
 
-class 可调用服务:
-    """通过调用体分发的可调用服务对象。"""
+class 可点可调服务:
+    "既是对象又能直接 () 的服务"
     def __init__(自身,名称,原型,追踪器):
-        """保存名称、原型与追踪器。"""
-        object.__setattr__(自身,'_名称',名称)#服务名
-        object.__setattr__(自身,'_原型',原型)#原型对象
-        object.__setattr__(自身,'_追踪器',追踪器)#追踪器
-        object.__setattr__(自身,'name',名称)#函数名
-        自身.__dict__[符号.追踪器]=追踪器#符号追踪器
+        自身.名称=名称#服务名
+        自身._原型=原型#方法来源
+        设置内部数据(自身,'追踪器',追踪器)#值上声明的追踪器
 
-    def __call__(自身,*位置参数,**关键字参数):
-        """每次调用按当前 ctx 生成可追踪代理。"""
-        上下文=getattr(自身,'ctx',None)#当前上下文
-        代理=创建可追踪(上下文,自身,object.__getattribute__(自身,'_追踪器'))#可追踪
-        return 应用可追踪(代理,自身,None,位置参数)#分发
+    def __call__(自身,*位置参数):
+        壳=调用方上下文壳(getattr(自身,'上下文',None),自身,_对象内部数据表.get(自身,{}).get('追踪器'))#套壳
+        return 用壳当自身去调(壳,自身,位置参数)#分发
 
     def __getattr__(自身,属性):
-        """方法查找落到原型。"""
-        原型=object.__getattribute__(自身,'_原型')#原型
-        return getattr(原型,属性)#委托
+        return getattr(object.__getattribute__(自身,'_原型'),属性)#落到方法原型
 
-    def __setattr__(自身,属性,写入值):
-        """字段写到自身字典。"""
-        object.__setattr__(自身,属性,写入值)#直接写
-
-def 创建可调用(名称,原型,追踪器):
-    """创建通过调用体分发的可调用服务对象。"""
-    return 可调用服务(名称,原型,追踪器)#可调用包装
-
-class 栈信息:
-    """内层调用位置锚点。"""
-    def __init__(自身):
-        """记录本层偏移与错误对象。"""
-        自身.偏移=1#需要剥掉的内层栈帧偏移
-        自身.错误=Exception()#捕获内层位置
-        自身.offset=自身.偏移#英文别名
-        自身.error=自身.错误#英文别名
-
-def 处理错误(栈信息对象,原因,获取外层栈):
-    """把外层调用点栈帧拼进错误。"""
-    if not isinstance(原因,BaseException):
-        外层=Exception(原因)#包一层
-        外层._外层栈=获取外层栈()#外层帧
-        raise 外层#抛出
-    原因._外层栈=获取外层栈()#挂上外层栈
-    raise 原因#抛出改写后的原因
-
-def 拼接错误(回调,获取外层栈=None):
-    """运行回调，并把外层调用点栈帧拼进抛出的错误。"""
-    if 获取外层栈 is None:
-        获取外层栈=构建外层栈()#默认捕获当前栈
-    信息=栈信息()#本层锚点
-    try:
-        结果=回调(信息)#执行被包装的回调
-        if 是否对象(结果) and callable(getattr(结果,'then',None)):
-            def 拒绝(原因):
-                """拒绝时拼接外层栈。"""
-                处理错误(信息,原因,获取外层栈)#改栈再抛
-            结果.then(None,拒绝)#挂拒绝处理
-            return 结果#thenable
-        return 结果#同步返回
-    except BaseException as 原因:
-        处理错误(信息,原因,获取外层栈)#同步抛错改栈
-
-def 构建外层栈(偏移=0):
-    """捕获一份惰性栈帧供应器，供稍后拼接错误栈。"""
-    外层=traceback.format_stack()#立刻抓当前栈
-    def 取出():
-        """延迟切出外层帧。"""
-        return 外层[0:max(0,len(外层)-(3+偏移))]#跳过本辅助
-    return 取出#供应器
-
-class 承诺:
-    """可等待的一次性结果，用来代替 Promise。"""
-    def __init__(自身):
-        """初始化未完成状态。"""
-        自身._事件=threading.Event()#完成事件
-        自身._结果=None#兑现值
-        自身._错误=None#拒绝原因
-        自身._已定=False#是否已结算
-
-    def 兑现(自身,值=None):
-        """成功结算。"""
-        if 自身._已定:
-            return#忽略二次结算
-        自身._已定=True#标记已定
-        自身._结果=值#保存结果
-        自身._事件.set()#放行等待方
-
-    def 拒绝(自身,错误):
-        """失败结算。"""
-        if 自身._已定:
-            return#忽略二次结算
-        自身._已定=True#标记已定
-        自身._错误=错误#保存原因
-        自身._事件.set()#放行等待方
-
-    def 等待(自身):
-        """阻塞直到结算，失败则抛出。"""
-        自身._事件.wait()#等待
-        if 自身._错误 is not None:
-            raise 自身._错误#失败
-        return 自身._结果#成功值
-
-    def then(自身,兑现=None,拒绝=None):
-        """结算后调用兑现或拒绝。"""
-        try:
-            值=自身.等待()#阻塞取结果
-            if 兑现:
-                return 兑现(值)#转发成功
-            return 值#原值
-        except BaseException as 错误:
-            if 拒绝:
-                return 拒绝(错误)#转发失败
-            raise#继续抛
-
-    def catch(自身,拒绝):
-        """只处理失败。"""
-        return 自身.then(None,拒绝)#委托 then
-
-def 已兑现(值=None):
-    """立刻兑现的承诺。"""
-    结果=承诺()#新承诺
-    结果.兑现(值)#立刻成功
-    return 结果#已完成
-
-def 是否thenable(值):
-    """值为带 then 的对象时为真。"""
-    return 是否对象(值) and callable(getattr(值,'then',None))#thenable
-
+################################ 异常 ################################
 class 聚合错误(Exception):
-    """多份失败聚合成一条错误。"""
-    def __init__(自身,错误列表,消息=''):
+    """把多份失败收成一条错误。"""
+    def __init__(自身,错误列表:list,消息:str=''):
         """保存子错误列表。"""
-        super().__init__(消息 or str(错误列表))#消息
-        自身.errors=list(错误列表)#子错误
-        自身.错误列表=自身.errors#中文别名
+        super().__init__(消息 or str(错误列表))#聚合消息
+        自身.错误列表=list(错误列表)#子错误
 
-def 绑到(回调,thisArg):
-    """把派发 this 绑成回调的第一个参数。"""
-    if thisArg is None:
-        return 回调#无 this
-    未绑定=getattr(回调,'__func__',回调)#揭开绑定方法
-    def 包装(*位置参数,**关键字参数):
-        """以 thisArg 为第一个参数调用。"""
-        return 未绑定(thisArg,*位置参数,**关键字参数)#传入 this
+def 构建外层栈():
+    """抓一份调用点之上的调用栈，供登记时保存。"""
+    return traceback.format_stack()[:-1]#丢掉本辅助自身的帧
+
+def 运行_自带错误栈(回调:callable,调用栈:list=None):
+    "运行回调，把登记点的外层调用栈挂到它抛出的错误上"
+    #没有给栈,直接用当前的
+    if 调用栈 is None:
+        调用栈=traceback.format_stack()[:-1]#丢弃这行的调用信息
+    try:
+        return 回调()#执行被包装的回调
+    except Exception as e:
+        e.调用栈=调用栈#挂上登记点，日志展开错误时一并输出
+        raise#原样抛给调用方
+
+def 绑定对象(回调:callable,对象:object):
+    """把派发对象绑成回调的第一个参数，对应 JavaScript 的 this。"""
+    if 对象 is None:
+        return 回调#没有派发对象
+    未绑定=getattr(回调,'__func__',回调)#取出未绑定函数
+    def 包装(*位置参数):
+        """把派发对象放到参数最前面。"""
+        return 未绑定(对象,*位置参数)#补上接收者
     return 包装#绑定后的回调
-
-def 有自有(对象,键):
-    """本层是否有该键。"""
-    if isinstance(对象,原型映射):
-        return 对象.有自有(键)#原型映射
-    if isinstance(对象,dict):
-        return 键 in 对象#字典
-    字典=getattr(对象,'__dict__',None)#实例
-    if 字典 is None:
-        return False#没有
-    return 键 in 字典#自有
-
-def 取对象原型(对象):
-    """取出原型映射的父表。"""
-    if isinstance(对象,原型映射):
-        return 对象.取原型()#父表
-    return None#无原型
-
-DisposableList=可释放列表#英文别名
-composeError=拼接错误#英文别名
-buildOuterStack=构建外层栈#英文别名
-getTraceable=取可追踪#英文别名
-isConstructor=是否构造器#英文别名
-isObject=是否对象#英文别名
-createCallable=创建可调用#英文别名
-joinPrototype=拼接原型#英文别名
-getPropertyDescriptor=取属性描述#英文别名
-withProps=叠属性#英文别名

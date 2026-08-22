@@ -140,10 +140,10 @@ def 变更工具名(行动者):#第一方变更工具名
 def 可选文件系统(上下文):#上下文上可选的 fs 服务
     """上下文上可选的 fs 服务。"""
     反射=getattr(上下文,'reflect',None)#反射层
-    if 反射 is not None and hasattr(反射,'取'):#有取
-        return 反射.取('fs',False)#宽松读取，没有则 None
-    if hasattr(上下文,'取'):#上下文取
-        return 上下文.取('fs',False)#宽松读取
+    if 反射 is not None and hasattr(反射,'获取服务'):#有获取服务
+        return 反射.获取服务('fs',False)#宽松读取，没有则 None
+    if hasattr(上下文,'获取服务'):#上下文获取服务
+        return 上下文.获取服务('fs',False)#宽松读取
     if hasattr(上下文,'get'):#英文 get
         return 上下文.get('fs',False)#宽松读取
     return None#没有反射

@@ -1,43 +1,40 @@
-"""加载器配置表达式求值与插值。"""
-import cosmokit
+"""加载器配置里的表达式求值与插值。"""
+from cosmokit import 字典值转换#批量变换映射的值
+
+表达式键='__jsExpr'#序列化后的表达式节点上存放源码的键
+
+def 是否表达式节点(值):
+    """值是序列化过的加载器表达式节点时为真。"""
+    if isinstance(值,dict):
+        return 表达式键 in 值#映射形态
+    if 值 is None or isinstance(值,(str,bytes,bool,int,float)):
+        return False#原始值不是节点
+    return hasattr(值,表达式键)#对象形态
+
+def 取表达式(节点):
+    """从表达式节点里取出源码。"""
+    return 节点[表达式键] if isinstance(节点,dict) else getattr(节点,表达式键)#源码
 
 def 求值(上下文,表达式):
-    """对照加载器上下文作用域求值一段表达式。"""
-    class 作用域(dict):
-        """把上下文属性暴露成求值局部名。"""
-        def __getitem__(自身,键):
-            if 键=='ctx':
-                return 上下文#函数形参 ctx
+    """把上下文的属性当作局部名，求值一段表达式。"""
+    class 上下文作用域(dict):
+        """把上下文属性暴露成求值时的局部名。"""
+        def __missing__(自身,键):
+            """局部名没命中就去上下文上找同名属性。"""
             try:
-                return getattr(上下文,键)#with (ctx) 属性查找
+                return getattr(上下文,键)#上下文属性
             except AttributeError:
-                raise KeyError(键)#对应未定义名
-    return eval(表达式,{'ctx':上下文},作用域())#new Function + with + eval
+                raise KeyError(键)#当成未定义名
+    return eval(表达式,{'ctx':上下文,'上下文':上下文},上下文作用域())#求值
 
 def 插值(上下文,值):
-    """递归把 YAML `!js` 表达式节点替换成求值结果。"""
-    if 是否js表达式(值):
-        表达式=值['__jsExpr'] if isinstance(值,dict) else 值.__jsExpr#取出表达式
-        return 求值(上下文,表达式)#求值替换
-    if 值 is None or isinstance(值,(str,bytes,int,float,bool)):
+    """递归把配置里的表达式节点替换成求值结果。"""
+    if 是否表达式节点(值):
+        return 求值(上下文,取表达式(值))#换成求值结果
+    if 值 is None or isinstance(值,(str,bytes,bool,int,float)):
         return 值#原始值原样返回
     if isinstance(值,list):
-        return [插值(上下文,项) for 项 in 值]#数组逐项插值
+        return [插值(上下文,项) for 项 in 值]#逐项插值
     if isinstance(值,dict):
-        def 变换(项,键):
-            """对象值插值。"""
-            return 插值(上下文,项)#递归
-        return cosmokit.映射值(值,变换)#对象逐值插值
+        return 字典值转换(值,lambda 项,键:插值(上下文,项))#逐值插值
     return 值#其它对象原样返回
-
-def 是否js表达式(值):
-    """值为序列化后的加载器 JavaScript 表达式时为真。"""
-    if 值 is None or isinstance(值,(str,bytes,int,float,bool)):
-        return False#原始值不是对象
-    if isinstance(值,dict):
-        return '__jsExpr' in 值#映射带表达式键
-    return hasattr(值,'__jsExpr')#对象带表达式字段
-
-evaluate=求值#英文别名
-interpolate=插值#英文别名
-isJsExpr=是否js表达式#英文别名

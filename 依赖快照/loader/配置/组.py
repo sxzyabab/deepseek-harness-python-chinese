@@ -1,145 +1,141 @@
-"""子条目列表的运行时拥有者与组插件。"""
+"""子条目列表的运行时拥有者，以及把它挂成嵌套组的插件。"""
 import cordis
-from cordis.工具 import 全局符号#全局符号
-from .条目 import 条目#条目类
+from weakref import WeakSet as 弱引用集合#热替换换掉的插件对象自行掉出
+from .条目 import 条目#条目节点
+
+_组插件们=弱引用集合()#登记为组载体的插件对象
+
+def 标记为组插件(插件):
+    """把插件登记成组载体：它的配置是条目列表，不做表达式插值。"""
+    _组插件们.add(插件)#按对象身份登记
+    return 插件#原对象
+
+def 是否组插件(插件):
+    """询问插件是不是组载体。"""
+    return 插件 in _组插件们#按对象身份判断
 
 class 条目组:
-    """子加载器条目列表的运行时拥有者。"""
-    键=全局符号('cordis.group')#cordis.group
-
-    def __init__(自身,ctx,tree):
-        """保存上下文与树，并把自身挂到拥有方条目。"""
-        自身.ctx=ctx#所属上下文
-        自身.tree=tree#所属条目树
-        自身.data=[]#子条目选项列表
-        自身.context=ctx#派发框架事件的上下文
-        条目对象=getattr(ctx.fiber,'entry',None)#拥有方条目
-        if 条目对象:
-            条目对象.subgroup=自身#挂上子组
+    """一列子加载器条目的运行时拥有者。"""
+    def __init__(自身,上下文,所属树):
+        """保存上下文与树，并把自己挂到拥有方条目上。"""
+        自身.上下文=上下文#所属上下文
+        自身.事件上下文=上下文#派发框架事件的上下文
+        自身.所属树=所属树#所属条目树
+        自身.子条目选项=[]#按顺序排列的子条目选项
+        条目对象=上下文.纤程.条目#拥有本组的条目
+        if 条目对象 is not None:
+            条目对象.子组=自身#挂上子组
 
     def 创建(自身,选项):
-        """确保编号、移动父引用并强制更新条目。"""
-        编号=自身.tree.确保编号(选项)#写入或生成 id
-        已有=自身.tree.store.get(编号)#已有条目
-        if 已有:
-            条目对象=已有#复用
-        else:
-            条目对象=条目(自身.ctx.loader)#新建
-            自身.tree.store[编号]=条目对象#登记
-        先前父=条目对象.parent#可能来自另一组
-        条目对象.parent=自身#更新父引用
+        """确保编号、把条目移到本组名下并强制更新一次。"""
+        编号=自身.所属树.确保编号(选项)#写入或生成编号
+        已有=自身.所属树.条目表.get(编号)#同编号的已有条目
+        条目对象=已有 if 已有 is not None else 条目(自身.上下文.加载器)#复用或新建
+        if 已有 is None:
+            自身.所属树.条目表[编号]=条目对象#登记新条目
+        原父组=条目对象.父组#可能来自另一个组
+        条目对象.父组=自身#改挂到本组
         try:
-            条目对象.更新(选项,True,True)#create+force 替换 options
+            条目对象.更新(选项,True,True)#创建路径直接换掉选项对象
         except BaseException:
-            if 已有:
-                条目对象.parent=先前父#复用条目则还父
+            if 已有 is not None:
+                条目对象.父组=原父组#复用的条目还回原组
             else:
-                自身.tree.store.pop(编号,None)#新建失败则从表里摘掉
-            raise#继续抛
-        return 条目对象.id#完整编号
+                自身.所属树.条目表.pop(编号,None)#新建失败就从表里摘掉
+            raise
+        return 条目对象.编号#完整编号
 
     def 取消链接(自身,选项):
-        """从 data 里按对象身份摘掉一条选项。"""
-        下标=0#扫描
-        while 下标<len(自身.data):
-            if 自身.data[下标] is 选项:
-                自身.data.pop(下标)#按身份删除
-                return#只删一次
-            下标+=1#前进
+        """按对象身份从子条目选项里摘掉一条。"""
+        for 下标 in range(len(自身.子条目选项)):
+            if 自身.子条目选项[下标] is 选项:
+                自身.子条目选项.pop(下标)#按身份删除
+                return
 
     def 移除(自身,编号,是拆除=False):
-        """停止条目，可选地从 data 摘掉，并从 store 删除。"""
-        条目对象=自身.tree.store.get(编号)#查出条目
-        if not 条目对象:
-            return#没有该编号
-        条目对象._拆除()#停止光纤
+        """停掉该条目，从条目表删掉，拆除路径不动配置列表。"""
+        条目对象=自身.所属树.条目表.get(编号)#查出条目
+        if 条目对象 is None:
+            return#没有这个编号
+        条目对象._拆除()#停掉纤程
         if not 是拆除:
-            自身.取消链接(条目对象.options)#从配置列表摘掉
-        自身.tree.store.pop(编号,None)#从 store 删除
-        自身.context.emit('loader/partial-dispose',条目对象,条目对象.options,False)#完整拆除
+            自身.取消链接(条目对象.选项)#从配置列表摘掉
+        自身.所属树.条目表.pop(编号,None)#从条目表删掉
+        自身.事件上下文.广播('loader/partial-dispose',条目对象,条目对象.选项,False)#通知隔离钩子回收
 
-    def 更新(自身,配置):
-        """按新配置列表创建、删除并在失败时回滚。"""
-        旧配置=自身.data#回滚用旧列表
-        见过=set()#查重
-        for 选项 in 配置:
-            编号=自身.tree.确保编号(选项)#先分配 id
-            if 编号 in 见过:
-                raise TypeError('duplicate loader entry id: '+str(编号))#重复编号
-            见过.add(编号)#记下
-        旧表={}#旧 id → 选项
-        for 选项 in 旧配置:
-            旧表[选项.get('id')]=选项#按 id 索引
-        新表={}#新 id → 选项
-        for 选项 in 配置:
-            新表[选项.get('id')]=选项#按 id 索引
+    def 更新(自身,新配置):
+        """按新的子条目列表创建与删除，失败时整体回滚。"""
+        旧配置=自身.子条目选项#回滚用的旧列表
+        编号们=set()#查重
+        for 选项 in 新配置:
+            编号=自身.所属树.确保编号(选项)#先分配编号
+            if 编号 in 编号们:
+                raise TypeError('同一组里出现了重复的条目编号：'+str(编号))#重复编号
+            编号们.add(编号)#记下
+        旧编号们=[选项.get('id') for 选项 in 旧配置]#旧列表里的编号，保持配置顺序
+        新编号们=[选项.get('id') for 选项 in 新配置]#新列表里的编号
         try:
-            失败=[]#创建失败
-            for 选项 in 配置:
+            失败=[]#创建阶段的失败
+            for 选项 in 新配置:
                 try:
                     自身.创建(选项)#逐条创建
                 except BaseException as 错误:
-                    失败.append(错误)#收集
-            if 自身.ctx.fiber.uid is None:
-                return#树已拆除则不再回滚
+                    失败.append(错误)#收集失败
+            if 自身.上下文.纤程.编号 is None:
+                return#整棵树已经拆了，不必回滚
             if len(失败)==1:
-                raise 失败[0]#单失败原样抛
+                raise 失败[0]#单条失败原样抛
             if len(失败)>1:
-                raise cordis.聚合错误(失败,'loader entries failed to apply')#多失败聚合
-            for 编号 in list(旧表.keys()):
-                if 编号 not in 新表:
-                    自身.移除(编号,True)#去掉新配置没有的旧条目
-            自身.data=配置#提交新列表
+                raise cordis.聚合错误(失败,'部分条目应用失败')#多条失败聚合
+            for 编号 in 旧编号们:
+                if 编号 not in 新编号们:
+                    自身.移除(编号,True)#删掉新配置里没有的旧条目
+            自身.子条目选项=新配置#提交新列表
         except BaseException as 错误:
-            回滚错误列表=[]#回滚阶段失败
-            for 编号 in list(新表.keys())[::-1]:
-                if 编号 in 旧表:
-                    continue#旧配置已有则不拆
-                try:
-                    自身.移除(编号,True)#拆掉新加上的
-                except BaseException as 回滚错误:
-                    回滚错误列表.append(回滚错误)#记下
-            for 选项 in 旧配置:
-                try:
-                    自身.创建(选项)#重建旧条目
-                except BaseException as 回滚错误:
-                    回滚错误列表.append(回滚错误)#记下
-            自身.data=旧配置#恢复旧列表
-            if 回滚错误列表:
-                raise cordis.聚合错误([错误]+回滚错误列表,'loader entry rollback failed')#回滚也失败
-            raise 错误#只抛原错误
+            自身._回滚(错误,旧配置,旧编号们,新编号们)#整体回滚
+
+    def _回滚(自身,错误,旧配置,旧编号们,新编号们):
+        """拆掉本轮新加的条目并把旧条目建回来。"""
+        回滚失败=[]#回滚阶段的失败
+        for 编号 in reversed(新编号们):
+            if 编号 in 旧编号们:
+                continue#旧配置本来就有，不拆
+            try:
+                自身.移除(编号,True)#拆掉新加的
+            except BaseException as 回滚错误:
+                回滚失败.append(回滚错误)#收集失败
+        for 选项 in 旧配置:
+            try:
+                自身.创建(选项)#重建旧条目
+            except BaseException as 回滚错误:
+                回滚失败.append(回滚错误)#收集失败
+        自身.子条目选项=旧配置#恢复旧列表
+        if 回滚失败:
+            raise cordis.聚合错误([错误]+回滚失败,'条目回滚失败')#回滚也失败
+        raise 错误#只抛原错误
 
     def 停止(自身):
-        """拆除当前 data 里的全部条目。"""
-        for 选项 in list(自身.data):
+        """拆掉当前列表里的全部条目。"""
+        for 选项 in list(自身.子条目选项):
             自身.移除(选项.get('id'),True)#按拆除路径移除
 
-条目组.key=条目组.键#英文别名
-条目组.create=条目组.创建#英文别名
-条目组.unlink=条目组.取消链接#英文别名
-条目组.remove=条目组.移除#英文别名
-条目组.update=条目组.更新#英文别名
-条目组.stop=条目组.停止#英文别名
-
 class 组(条目组):
-    """挂载嵌套加载器条目组的插件。"""
-    初始=[]#默认空配置
+    """把一列嵌套条目挂到当前条目下的插件。"""
+    初始配置=[]#默认是空列表
 
-    def __init__(自身,ctx,config):
-        """挂到拥有方条目所在树，并监听本光纤更新。"""
-        条目组.__init__(自身,ctx,ctx.fiber.entry.parent.tree)#父树
-        自身.config=config#子条目配置
-        def 更新监听(配置,不保存=None,下一步=None):
-            """组配置更新改走子条目 diff，不重启组插件。"""
-            return 自身.更新(配置)#不调用 next
-        ctx.on('internal/update',更新监听)#光纤本地钩子
+    def __init__(自身,上下文,配置):
+        """挂到拥有方条目所在的树上，并接管本纤程的配置更新。"""
+        条目组.__init__(自身,上下文,上下文.纤程.条目.父组.所属树)#与拥有方条目同一棵树
+        自身.配置=配置#子条目配置
+        自身.__dict__[cordis.服务.初始化]=自身._初始化#依赖就绪后再应用子条目
+        def 更新监听(纤程,新配置,不保存,续体):
+            """组的配置更新走子条目对比，不重启组插件本身。"""
+            return 自身.更新(新配置)#不调用续体，就此接管
+        上下文.监听('internal/update',更新监听)#纤程本地钩子
 
     def _初始化(自身):
-        """登记停止释放器并应用子条目配置。"""
-        yield 自身.停止#yield () => this.stop()
-        自身.更新(自身.config)#await this.update(this.config)
+        """先登记停止释放器，再应用子条目配置。"""
+        yield 自身.停止#卸载时停掉全部子条目
+        自身.更新(自身.配置)#应用子条目配置
 
-Group=组#英文别名
-EntryGroup=条目组#英文别名
-组.initial=组.初始#英文别名
-setattr(组,条目组.键,True)#Group[EntryGroup.key] = true
+标记为组插件(组)#配置里的条目保持字面量

@@ -1,184 +1,126 @@
 """拥有条目树并导入已配置插件的加载器服务。"""
 import json,os,time
 import cordis
-import cosmokit
-from .内部 import 模块加载器,模块阶段#内部加载器
+from .内部 import 模块加载器#Node 内部模块加载器
 from .配置.条目 import 条目#条目节点
-from .配置.组 import 条目组,组#条目组与组插件
-from .配置.隔离 import (
-    隔离,#隔离钩子
-    领域,#隔离域
-    本地领域,#本地域
-    全局领域,#全局域
-)
+from .配置.组 import 组,标记为组插件,是否组插件#组插件与组载体登记
+from .配置.隔离 import 隔离#隔离钩子
 from .配置.树 import 条目树#条目树
-from .配置.工具 import 求值,插值,是否js表达式#表达式辅助
+from .配置.工具 import 插值,是否表达式节点,表达式键#配置表达式
 
 class 加载器(条目树):
     """拥有加载器条目树并导入已配置插件的服务。"""
-    def __init__(自身,ctx,config=None):
-        """登记 loader 服务并挂上配置插值、更新与自拆除钩子。"""
-        if config is None:
-            config={}#默认空配置
-        条目树.__init__(自身,ctx)#创建根组
-        自身.config=config#根配置
-        if config.get('baseUrl'):
-            自身.ctx.baseUrl=config.get('baseUrl')#解析基准
-        共享=os.environ.get('CORDIS_SHARED')#CORDIS_SHARED
-        if 共享:
-            自身.envData=json.loads(共享)#共享环境
-        else:
-            自身.envData={'startTime':int(time.time()*1000)}#启动时刻
-        自身.name='loader'#服务名
-        自身.internal=模块加载器.从内部()#Node 内部加载器
-        自身.builtins={}#cordis: 内建表
-        cosmokit.定义属性(自身,cordis.服务.追踪器,{'associate':'loader','property':'ctx','noShadow':True})#追踪器
-        自身._追踪器={'associate':'loader','property':'ctx','noShadow':True}#字段追踪器
-        ctx.reflect.提供('loader',自身,自身._检查)#按光纤生命周期注册
-        def 配置插值(_配置,下一步):
-            """非组、非条目子插件的配置做 !!js 插值。"""
-            配置=下一步()#先取内建配置
-            光纤=自身.ctx.events.ctx.fiber#派发 this（插件光纤）
-            条目对象=getattr(光纤,'entry',None)#光纤条目
-            if not 条目对象 or getattr(光纤.parent.fiber,'entry',None) is 条目对象:
-                return 配置#无条目或条目子插件保持字面量
-            运行时=光纤.runtime#插件运行时
-            回调=None#插件回调
-            if 运行时:
-                回调=运行时['callback'] if isinstance(运行时,dict) else getattr(运行时,'callback',None)#入口
-            if 回调 is not None and getattr(回调,条目组.键,None):
-                return 配置#组插件保持字面量
-            return 插值(光纤.ctx,配置)#对照光纤上下文插值
-        ctx.on('internal/config',配置插值,{'global':True})#全局配置钩子
-        def 保存更新(配置,不保存,下一步):
-            """把生效配置写回条目并持久化。"""
-            光纤=自身.ctx.events.ctx.fiber#插件光纤
-            条目对象=getattr(光纤,'entry',None)#光纤条目
-            if not 条目对象 or 不保存 or getattr(光纤.parent.fiber,'entry',None) is 条目对象:
-                return 下一步()#不写回
-            下一步()#先应用
-            运行时=光纤.runtime#插件运行时
-            配置模式=None#schema
-            if 运行时:
-                配置模式=运行时['Config'] if isinstance(运行时,dict) else getattr(运行时,'Config',None)#Config
-            反解析=None#simplify
-            if 配置模式 is not None:
-                if isinstance(配置模式,dict):
-                    反解析=配置模式.get('simplify')#字典
-                else:
-                    反解析=getattr(配置模式,'simplify',None)#对象
-            条目对象.options['config']=反解析(配置) if 反解析 else 配置#写回
-            条目对象.parent.tree.写入()#持久化
-        ctx.on('internal/update',保存更新,{'global':True,'prepend':True})#前置写回
-        def 重载日志(配置,_,下一步):
-            """条目重载时打日志。"""
-            光纤=自身.ctx.events.ctx.fiber#插件光纤
-            条目对象=getattr(光纤,'entry',None)#光纤条目
-            if not 条目对象 or getattr(光纤.parent.fiber,'entry',None) is 条目对象:
-                return 下一步()#不打
-            自身.显示日志(条目对象,'reload')#reload 日志
-            return 下一步()#继续链
-        ctx.on('internal/update',重载日志,{'global':True})#重载日志
-        def 插件钩子(光纤):
-            """绑定 fiber.entry，并处理条目根光纤的自拆除。"""
-            父条目=光纤.parent.__dict__.get(条目.键) if hasattr(光纤.parent,'__dict__') else None#父上下文上的条目
-            if 父条目 and not getattr(光纤,'entry',None):
-                光纤.entry=父条目#1. set fiber.entry
-                cordis.注入.解析(光纤.entry.options.get('inject'),光纤.inject)#合并 inject
-            if 光纤.uid:
-                return#1. 光纤刚创建
-            if not getattr(光纤,'entry',None):
-                return#2. 不被加载器跟踪
-            if getattr(光纤.parent.fiber,'entry',None) is 光纤.entry:
-                return#3. 条目下的子插件光纤
-            运行时=光纤.runtime#插件运行时
-            回调=运行时['callback'] if isinstance(运行时,dict) else 运行时.callback#身份回调
-            if not ctx.registry.has(回调):
-                return#4. 插件删除导致的拆除
-            树拥有者=光纤.entry.parent.tree.ctx.fiber#树拥有方光纤
-            if not 树拥有者.uid or 树拥有者.state==cordis.光纤状态.卸载中:
-                return#5. 整棵树正在拆除
-            if 光纤.entry._拆除中:
-                return#6. 加载器正在替换或移除该光纤
-            自身.显示日志(光纤.entry,'unload')#unload 日志
-            if 光纤.entry.disabled:
-                return#7. 加载器行为导致的拆除
-            光纤.entry.options['disabled']=True#记为禁用
-            光纤.entry.parent.tree.写入()#持久化
-        ctx.on('internal/plugin',插件钩子)#自拆除
-        ctx.plugin(隔离)#安装隔离钩子
+    def __init__(自身,上下文,配置=None):
+        """登记加载器服务，并挂上配置插值、写回与自拆除钩子。"""
+        条目树.__init__(自身,上下文)#建立根组
+        自身.配置=配置 or {}#根配置
+        if 自身.配置.get('baseUrl'):
+            自身.上下文.__dict__['基准网址']=自身.配置['baseUrl']#相对说明符的解析基准
+        共享=os.environ.get('CORDIS_SHARED')#宿主传进来的共享环境
+        自身.环境数据=json.loads(共享) if 共享 else {'startTime':int(time.time()*1000)}#共享环境
+        自身.名称='加载器'#服务名，拦截配置按它查找
+        自身.内部加载器=模块加载器.从内部()#Node 内部加载器
+        自身.内建表={}#cordis: 说明符到内建插件
+        cordis.设标记(自身,cordis.符号.追踪器,{'关联服务':'加载器','追踪属性':'上下文'})#调用方上下文重绑
+        上下文.反射.提供服务('加载器',自身)#按纤程生命周期登记
+        上下文.监听('internal/config',_配置插值,{'全局':True})#配置插值
+        上下文.监听('internal/update',_保存更新(自身),{'全局':True,'前置':True})#写回配置文件
+        上下文.监听('internal/update',_重载日志(自身),{'全局':True})#重载日志
+        上下文.监听('internal/plugin',_插件钩子(自身,上下文))#绑定条目并处理自拆除
+        上下文.启动插件(隔离)#安装隔离钩子
 
     def 写入(自身):
-        """根树在内存中，写入为空操作。"""
-        return#no-op
-
-    def _检查(自身):
-        """await 拦截开启且仍有任务时保持依赖方挂起。"""
-        配置=cordis.服务._解析配置(自身)#合并拦截配置
-        if 配置.get('await') and 自身.取任务():
-            return False#仍在加载
-        return True#可用
+        """根树只在内存里，不需要持久化。"""
+        return#空操作
 
     def 显示日志(自身,条目对象,类型):
-        """组条目或未开启日志时不输出。"""
-        if 条目对象.options.get('group') or not 条目对象.parent.tree.enableLogs:
-            return#跳过
-        日志=getattr(自身.ctx.root,'logger',None)#根日志服务
-        if 日志:
-            日志('loader').info('%s plugin %C',类型,条目对象.options.get('name'))#插件日志
+        """打一条插件生命周期日志。组条目与关了日志的树不输出。"""
+        if 条目对象.选项.get('group') or not 条目对象.父组.所属树.启用日志:
+            return#不输出
+        自身.上下文.根.日志('加载器').信息('%s 插件 %C',类型,条目对象.选项.get('name'))#生命周期日志
 
-    def 定位(自身,光纤=None):
-        """返回拥有该光纤的加载器条目编号。"""
-        if 光纤 is None:
-            光纤=自身.ctx.fiber#默认当前光纤
+    def 定位(自身,纤程=None):
+        """交出拥有该纤程的条目编号，一路到根都没有则为空。"""
+        纤程=纤程 if 纤程 is not None else 自身.上下文.纤程#默认当前纤程
         while True:
-            条目对象=getattr(光纤,'entry',None)#光纤条目
-            if 条目对象:
-                return 条目对象.id#命中
-            下一个=光纤.parent.fiber#父光纤
-            if 光纤 is 下一个:
-                return None#根光纤
-            光纤=下一个#继续上溯
+            if 纤程.条目 is not None:
+                return 纤程.条目.编号#命中
+            父纤程=纤程.父上下文.纤程#父纤程
+            if 纤程 is 父纤程:
+                return None#到根纤程仍没有条目
+            纤程=父纤程#继续上溯
 
     def 退出(自身):
-        """完整重载时由宿主重启进程的钩子。"""
-        return#空实现
+        """完整重载时由宿主重启进程。默认什么都不做。"""
+        return#由宿主覆盖
 
     def 解开导出(自身,导出):
-        """在应用插件前摊平 ESM/CJS/default 导出。"""
-        if cosmokit.是否可空(导出):
-            return 导出#空值
-        def 取字段(对象,键):
-            """读取 default / __esModule。"""
-            if isinstance(对象,dict):
-                return 对象[键] if 键 in 对象 else None#映射
-            return getattr(对象,键,None)#对象
-        默认=取字段(导出,'default')#default ??
-        if 默认 is not None:
-            导出=默认#换到 default
-        if not 取字段(导出,'__esModule'):
-            return 导出#非 esModule
-        默认=取字段(导出,'default')#再取一层
-        return 默认 if 默认 is not None else 导出#default ?? exports
+        """从模块导出里摊出真正的插件对象。"""
+        if 导出 is None:
+            return None#空导出
+        for 名称 in ('默认','default'):
+            if hasattr(导出,名称):
+                return getattr(导出,名称)#默认导出，取到 False 或 0 也算数
+        return 导出#没有默认导出就用模块本身
 
-Loader=加载器#英文别名
-加载器.write=加载器.写入#英文别名
-加载器.showLog=加载器.显示日志#英文别名
-加载器.locate=加载器.定位#英文别名
-加载器.exit=加载器.退出#英文别名
-加载器.unwrapExports=加载器.解开导出#英文别名
-加载器.check=加载器._检查#英文别名
+def _配置插值(纤程,配置,续体):
+    """对插件配置做表达式插值。组插件与条目子插件保持字面量。"""
+    配置=续体()#先让内层链走完
+    条目对象=纤程.条目#该纤程所属条目
+    if 条目对象 is None or 纤程.父上下文.纤程.条目 is 条目对象:
+        return 配置#不受条目管，或者是条目下的子插件
+    if 是否组插件(纤程.运行时.回调):
+        return 配置#组插件的配置就是条目列表
+    return 插值(纤程.上下文,配置)#对照纤程上下文插值
 
-Entry=条目#再导出
-EntryGroup=条目组#再导出
-Group=组#再导出
-EntryTree=条目树#再导出
-Realm=领域#再导出
-LocalRealm=本地领域#再导出
-GlobalRealm=全局领域#再导出
-isolate=隔离#再导出
-evaluate=求值#再导出
-interpolate=插值#再导出
-isJsExpr=是否js表达式#再导出
-ModuleLoader=模块加载器#再导出
-ModulePhase=模块阶段#再导出
+def _保存更新(加载器对象):
+    """生成把生效配置写回条目并持久化的更新钩子。"""
+    def 保存更新(纤程,配置,不保存,续体):
+        """先应用配置，再写回配置文件。"""
+        条目对象=纤程.条目#该纤程所属条目
+        if 条目对象 is None or 不保存 or 纤程.父上下文.纤程.条目 is 条目对象:
+            return 续体()#不写回
+        结果=续体()#先应用
+        简化=getattr(getattr(纤程.运行时,'配置模式',None),'简化',None)#模式自带的反解析
+        条目对象.选项['config']=简化(配置) if 简化 else 配置#写回条目
+        条目对象.父组.所属树.写入()#持久化
+        return 结果#原样交回
+    return 保存更新#更新钩子
+
+def _重载日志(加载器对象):
+    """生成条目重载时打日志的更新钩子。"""
+    def 重载日志(纤程,配置,不保存,续体):
+        """条目自身重载时打一条日志。"""
+        条目对象=纤程.条目#该纤程所属条目
+        if 条目对象 is not None and 纤程.父上下文.纤程.条目 is not 条目对象:
+            加载器对象.显示日志(条目对象,'reload')#重载日志
+        return 续体()#继续链
+    return 重载日志#更新钩子
+
+def _插件钩子(加载器对象,加载器上下文):
+    """生成绑定纤程条目、并处理条目根纤程自拆除的插件钩子。"""
+    def 插件钩子(纤程):
+        """纤程创建时绑定条目；纤程自行拆除时把条目记为禁用。"""
+        父条目=cordis.获取内部数据(纤程.父上下文,'属性链').get(条目.键)#沿上下文链找拥有方条目
+        if 父条目 is not None and 纤程.条目 is None:
+            纤程.条目=父条目#该纤程由这个条目拥有
+            cordis.解析依赖(父条目.选项.get('inject'),纤程.依赖表)#把条目声明的依赖并进来
+        if 纤程.编号 is not None:
+            return#纤程刚创建，不是拆除
+        if 纤程.条目 is None:
+            return#不受加载器跟踪
+        if 纤程.父上下文.纤程.条目 is 纤程.条目:
+            return#条目下的子插件纤程，跟着条目走
+        if not 加载器上下文.注册表.有(纤程.运行时.回调):
+            return#整个插件被删掉导致的拆除
+        树拥有者=纤程.条目.父组.所属树.上下文.纤程#拥有这棵树的纤程
+        if 树拥有者.编号 is None or 树拥有者.状态==cordis.纤程状态.卸载中:
+            return#整棵树正在拆除
+        if 纤程.条目._拆除中:
+            return#加载器正在替换或移除该条目
+        加载器对象.显示日志(纤程.条目,'unload')#卸载日志
+        if 纤程.条目.已禁用:
+            return#本来就是加载器按禁用态拆的
+        纤程.条目.选项['disabled']=True#插件自己拆了自己，记为禁用
+        纤程.条目.父组.所属树.写入()#持久化
+    return 插件钩子#插件钩子

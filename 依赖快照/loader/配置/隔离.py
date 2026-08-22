@@ -1,223 +1,166 @@
 """按条目或标签隔离服务实现。"""
-import cordis
+from cordis.工具 import 符号,原型映射,获取内部数据#共享标记、以父表为原型的映射与内部数据读取
 
-class 原型字典(dict):
-    """用 `_原型` 模拟 Object.create 的自有键与原型链查找。"""
-    def __init__(自身,原型=None):
-        """空自有键，缺失时落到原型。"""
-        dict.__init__(自身)#空表
-        自身._原型=原型#原型对象
-
-    def __getitem__(自身,键):
-        """先自有键，再原型链。"""
-        if dict.__contains__(自身,键):
-            return dict.__getitem__(自身,键)#自有
-        if 自身._原型 is not None:
-            return 自身._原型[键]#原型
-        raise KeyError(键)#没有
-
-    def __contains__(自身,键):
-        """自有键或原型链上有该键。"""
-        if dict.__contains__(自身,键):
-            return True#自有
-        return 自身._原型 is not None and 键 in 自身._原型#原型
-
-def 交换(目标,源=None):
-    """清空目标自有键，再把源的自有键拷进去。"""
-    for 键 in list(dict.keys(目标)):
-        dict.__delitem__(目标,键)#删自有键
-    if 源 is None:
-        源={}#source || {}
-    for 键 in dict.keys(源):
-        目标[键]=源[键]#拷自有键
-
-class 隔离符号:
-    """隔离表里使用的唯一标签。"""
+class 隔离标签:
+    """隔离表里用作键的唯一标签，只带一个便于诊断的名字。"""
     def __init__(自身,名称):
-        """保存调试名。"""
-        自身.名称=名称#Symbol description
+        """保存诊断名。"""
+        自身.名称=名称#诊断名
 
     def __repr__(自身):
-        """检查器显示为 Symbol(名称)。"""
-        return 'Symbol('+自身.名称+')'#展示
+        """展示成带名字的标签。"""
+        return f'隔离标签({自身.名称})'#展示文本
 
 class 领域:
-    """按条目或标签隔离服务实现的符号域。"""
+    """一组隔离标签的作用域，按服务名分配标签。"""
     def __init__(自身):
         """空存储。"""
-        自身.store={}#键到符号
-
-    def 访问(自身,键,创建=False):
-        """取出或按需创建该键的隔离符号。"""
-        if 创建:
-            if 键 not in 自身.store:
-                自身.store[键]=隔离符号(键+自身.后缀)#create 则写入
-            return 自身.store[键]#已有或新建
-        if 键 in 自身.store:
-            return 自身.store[键]#已有
-        return 隔离符号(键+自身.后缀)#不写入的临时符号
-
-    def 删除(自身,键):
-        """删掉该键的隔离符号。"""
-        自身.store.pop(键,None)#删除
-
-    @property
-    def size(自身):
-        """存储中的键数量。"""
-        return len(自身.store)#Object.keys length
+        自身.存储={}#服务名到隔离标签
 
     @property
     def 后缀(自身):
-        """符号名后缀，由子类提供。"""
-        raise NotImplementedError#abstract
+        """标签名后缀，由子类给出。"""
+        raise NotImplementedError('领域的后缀由子类给出')#抽象属性
+
+    @property
+    def 数量(自身):
+        """已分配标签的服务数。"""
+        return len(自身.存储)#条目数
+
+    def 访问(自身,服务名,创建=False):
+        """取出该服务名的隔离标签。创建时写入存储，否则只给一份临时标签。"""
+        if 服务名 in 自身.存储:
+            return 自身.存储[服务名]#已有标签
+        标签=隔离标签(服务名+自身.后缀)#新标签
+        if 创建:
+            自身.存储[服务名]=标签#写入存储
+        return 标签#已有或新建
+
+    def 删除(自身,服务名):
+        """删掉该服务名的隔离标签。"""
+        自身.存储.pop(服务名,None)#删除
 
 class 本地领域(领域):
-    """条目本地隔离域。"""
+    """只属于一个条目的隔离域。"""
     def __init__(自身,条目对象):
         """绑到条目。"""
         领域.__init__(自身)#空存储
-        自身.entry=条目对象#所属条目
+        自身.条目=条目对象#所属条目
 
     @property
     def 后缀(自身):
-        """#id。"""
-        return '#'+str(自身.entry.options.get('id'))##id
+        """按条目编号区分。"""
+        return '#'+str(自身.条目.选项.get('id'))#条目编号
 
 class 全局领域(领域):
-    """同标签条目共享的隔离域。"""
-    def __init__(自身,label):
-        """保存标签。"""
+    """写了同一个标签的条目共享的隔离域。"""
+    def __init__(自身,标签名):
+        """保存共享标签名。"""
         领域.__init__(自身)#空存储
-        自身.label=label#共享标签
+        自身.标签名=标签名#共享标签名
 
     @property
     def 后缀(自身):
-        """@label。"""
-        return '@'+str(自身.label)#@label
+        """按共享标签名区分。"""
+        return '@'+str(自身.标签名)#标签名
 
-def 隔离(ctx):
-    """安装应用 intercept / isolate 条目选项的加载器钩子。"""
-    领域表={}#标签到全局域
-    分隔符表={}#服务名到分隔符
+def 隔离(上下文,配置=None):
+    """安装把条目的 isolate 与 intercept 选项落到上下文上的加载器钩子。"""
+    全局域表={}#标签名到全局域
+    旗标键表={}#服务名到旗标键
 
-    def 访问(条目对象,名称,创建=False):
-        """按 isolate 选项解析该服务名的隔离符号。"""
-        标签=(条目对象.options.get('isolate') or {}).get(名称)#true 或标签
-        if not 标签:
-            return None#未隔离
-        if 标签 is True:
-            领域对象=getattr(条目对象,'realm',None)#本地域
-            if 领域对象 is None:
-                领域对象=本地领域(条目对象)#新建
-                条目对象.realm=领域对象#挂上
-        elif 创建:
-            领域对象=领域表.get(标签)#全局域
-            if 领域对象 is None:
-                领域对象=全局领域(标签)#新建
-                领域表[标签]=领域对象#登记
+    def 访问标签(条目对象,服务名,创建=False):
+        """按条目的 isolate 选项解析该服务名的隔离标签。"""
+        标签名=(条目对象.选项.get('isolate') or {}).get(服务名)#True 表示本条目独占
+        if not 标签名:
+            return None#该服务没有隔离
+        if 标签名 is True:
+            if 条目对象.本地域 is None:
+                条目对象.本地域=本地领域(条目对象)#按需建立本地域
+            领域对象=条目对象.本地域#本地域
         else:
-            领域对象=领域表.get(标签)#已有全局域
-        if 领域对象:
-            return 领域对象.访问(名称,创建)#取符号
-        return None#没有域
+            领域对象=全局域表.get(标签名)#已有全局域
+            if 领域对象 is None and 创建:
+                领域对象=全局领域(标签名)#新建全局域
+                全局域表[标签名]=领域对象#登记
+        if 领域对象 is None:
+            return None#还没有对应的域
+        return 领域对象.访问(服务名,创建)#取标签
 
     def 条目初始化(条目对象):
-        """为条目上下文建立带原型的隔离表与拦截表。"""
-        旧拦截=条目对象.ctx.__dict__.get(cordis.上下文.拦截) or {}#当前拦截表
-        旧隔离=条目对象.ctx.__dict__.get(cordis.上下文.隔离) or {}#当前隔离表
-        条目对象.ctx.__dict__[cordis.上下文.拦截]=原型字典(旧拦截)#Object.create
-        条目对象.ctx.__dict__[cordis.上下文.隔离]=原型字典(旧隔离)#Object.create
-    ctx.on('loader/entry-init',条目初始化)
+        """把条目上下文的隔离表与拦截表换成以父表为原型的独立层。"""
+        字典=条目对象.上下文.__dict__#条目上下文自有字典
+        字典[符号.隔离]=原型映射(获取内部数据(条目对象.上下文,'属性链')[符号.隔离])#以祖先那张表为原型
+        字典[符号.拦截]=原型映射(获取内部数据(条目对象.上下文,'属性链')[符号.拦截])#以祖先那张表为原型
+    上下文.监听('loader/entry-init',条目初始化)
 
-    def 补丁上下文(条目对象,下一步):
-        """按 isolate/intercept 生成新表、重载光纤并迁移实现。"""
-        父隔离=条目对象.parent.ctx.__dict__.get(cordis.上下文.隔离) or {}#父隔离表
-        新表=原型字典(父隔离)#Object.create(parent.isolate)
-        for 名称 in dict.keys(条目对象.options.get('isolate') or {}):
-            新表[名称]=访问(条目对象,名称,True)#本层隔离符号
-        差异={}#服务名到符号四元组
-        旧表=条目对象.ctx.__dict__.get(cordis.上下文.隔离) or {}#旧隔离表
-        合并名称={}#newMap 与 delims 的键
-        for 名称 in dict.keys(新表):
-            合并名称[名称]=True#新表自有键
-        for 名称 in 分隔符表:
-            合并名称[名称]=True#分隔符键
-        for 名称 in 合并名称:
-            新符号=新表[名称] if 名称 in 新表 else None#含原型
-            旧符号=旧表[名称] if 名称 in 旧表 else None#含原型
-            if 新符号 is 旧符号:
-                continue#没变
-            分隔符=分隔符表.get(名称)#已有分隔符
-            if 分隔符 is None:
-                分隔符=隔离符号('delim:'+名称)#新建
-                分隔符表[名称]=分隔符#登记
-            条目对象.ctx.__dict__[分隔符]=隔离符号(名称+'#'+str(条目对象.id))#本条目旗标
-            for 符号 in (旧符号,新符号):
-                if not 符号:
-                    continue#没有符号
-                实现=条目对象.ctx.reflect.存储.get(符号)#按标签取实现
-                if not 实现:
-                    continue#尚未提供
-                光纤=实现['fiber'] if isinstance(实现,dict) else 实现.fiber#提供方
-                if not 光纤:
-                    条目对象.ctx.logger.warn(Exception('expected service '+名称+' to be implemented'))#缺少实现
-                    continue#下一项
-                旗一=条目对象.ctx.__dict__.get(分隔符)#本条目旗标
-                旗二=光纤.ctx.__dict__.get(分隔符)#实现方旗标
-                差异[名称]=(旧符号,新符号,旗一,旗二)#记下四元组
-                if 旗一 is not 旗二:
-                    break#旗标不同则不再看第二个符号
-        隔离表=条目对象.ctx.__dict__[cordis.上下文.隔离]#当前隔离表
-        拦截表=条目对象.ctx.__dict__[cordis.上下文.拦截]#当前拦截表
-        if isinstance(隔离表,原型字典):
-            隔离表._原型=条目对象.parent.ctx.__dict__.get(cordis.上下文.隔离)#setPrototypeOf isolate
-        if isinstance(拦截表,原型字典):
-            拦截表._原型=条目对象.parent.ctx.__dict__.get(cordis.上下文.拦截)#setPrototypeOf intercept
-        交换(隔离表,新表)#换上新隔离自有键
-        交换(拦截表,条目对象.options.get('intercept'))#换上拦截配置
-        下一步()#reload fiber
-        存储=条目对象.ctx.reflect.存储#实现存储
-        for 符号1,符号2,旗1,旗2 in 差异.values():
-            if 旗1 is 旗2 and 存储.get(符号1) and not 存储.get(符号2):
-                存储[符号2]=存储[符号1]#迁到新标签
-                存储.pop(符号1,None)#删旧标签
-        def 过滤器(上下文对象,名称):
-            """同一隔离符号且旗标相对实现方发生变化。"""
-            符号1,符号2,旗1,旗2=差异[名称]#四元组
-            隔离映射=上下文对象.__dict__.get(cordis.上下文.隔离) or {}#对方隔离表
-            符号3=隔离映射[名称] if 名称 in 隔离映射 else None#对方符号
-            旗3=上下文对象.__dict__.get(分隔符表[名称])#对方旗标
-            return (符号1 is 符号3 or 符号2 is 符号3) and (旗1 is 旗3)!=(旗1 is 旗2)#命中条件
-        ctx.reflect.通知(list(差异.keys()),过滤器)#刷新依赖方
-        for 名称 in 分隔符表:
-            if 名称 not in dict.keys(新表):
-                条目对象.ctx.__dict__.pop(分隔符表[名称],None)#清掉多余旗标
-    ctx.on('loader/patch-context',补丁上下文)
+    def 补丁上下文(条目对象,续体):
+        """按 isolate 与 intercept 重建隔离表，重载纤程后把实现迁到新标签。"""
+        新表=原型映射(获取内部数据(条目对象.父组.上下文,'属性链')[符号.隔离])#以父隔离表为原型
+        for 服务名 in (条目对象.选项.get('isolate') or {}):
+            新表[服务名]=访问标签(条目对象,服务名,True)#本层隔离标签
+        旧表=获取内部数据(条目对象.上下文,'属性链')[符号.隔离]#换表前的隔离表
+        变动={}#服务名到 旧标签、新标签、本条目旗标、实现方旗标
+        for 服务名 in dict.fromkeys(新表.键们()+list(旗标键表)):
+            新标签=新表.get(服务名)#含原型链，两张表都可能没有该服务
+            旧标签=旧表.get(服务名)#含原型链，两张表都可能没有该服务
+            if 新标签 is 旧标签:
+                continue#该服务的隔离没变
+            旗标键=旗标键表.get(服务名)#该服务的旗标键
+            if 旗标键 is None:
+                旗标键=隔离标签('旗标:'+服务名)#新建旗标键
+                旗标键表[服务名]=旗标键#登记
+            条目对象.上下文.__dict__[旗标键]=隔离标签(服务名+'#'+str(条目对象.选项.get('id')))#本条目旗标
+            for 标签 in (旧标签,新标签):
+                if 标签 is None:
+                    continue#这一侧没有标签
+                实现=条目对象.上下文.反射.存储.get(标签)#按标签取实现
+                if 实现 is None or 实现.纤程 is None:
+                    continue#该标签下还没有提供方
+                本方旗标=获取内部数据(条目对象.上下文,'属性链').get(旗标键)#本条目旗标
+                实现方旗标=获取内部数据(实现.纤程.上下文,'属性链').get(旗标键)#提供方看到的旗标
+                变动[服务名]=(旧标签,新标签,本方旗标,实现方旗标)#记下四元组
+                if 本方旗标 is not 实现方旗标:
+                    break#提供方在隔离边界外，不再看另一侧
+        隔离表=条目对象.上下文.__dict__[符号.隔离]#当前隔离表
+        拦截表=条目对象.上下文.__dict__[符号.拦截]#当前拦截表
+        隔离表.设原型(获取内部数据(条目对象.父组.上下文,'属性链')[符号.隔离])#重挂到当前父组
+        拦截表.设原型(获取内部数据(条目对象.父组.上下文,'属性链')[符号.拦截])#重挂到当前父组
+        隔离表.替换自有(新表)#换上新隔离标签
+        拦截表.替换自有(条目对象.选项.get('intercept'))#换上新拦截配置
+        续体()#按新表重载纤程
+        存储=条目对象.上下文.反射.存储#实现存储
+        for 旧标签,新标签,本方旗标,实现方旗标 in 变动.values():
+            if 本方旗标 is 实现方旗标 and 存储.get(旧标签) and not 存储.get(新标签):
+                存储[新标签]=存储.pop(旧标签)#实现跟着条目迁到新标签
+        def 过滤器(上下文对象,服务名):
+            """只通知隔离标签命中、且旗标关系相对提供方发生了变化的依赖方。"""
+            旧标签,新标签,本方旗标,实现方旗标=变动[服务名]#四元组
+            对方标签=获取内部数据(上下文对象,'属性链')[符号.隔离].get(服务名)#对方标签
+            对方旗标=获取内部数据(上下文对象,'属性链').get(旗标键表[服务名])#对方旗标
+            命中=对方标签 is 旧标签 or 对方标签 is 新标签#标签命中
+            return 命中 and (本方旗标 is 对方旗标)!=(本方旗标 is 实现方旗标)#旗标关系变了
+        条目对象.上下文.反射.通知(list(变动),过滤器)#刷新受影响的依赖方
+        自有名们=新表.键们()#本层仍在用的服务名
+        for 服务名 in list(旗标键表):
+            if 服务名 not in 自有名们:
+                条目对象.上下文.__dict__.pop(旗标键表[服务名],None)#清掉多余旗标
+    上下文.监听('loader/patch-context',补丁上下文)
 
-    def 部分拆除(条目对象,遗留,活动):
-        """全局域失去引用时回收符号。"""
-        for 名称,标签 in (遗留.get('isolate') or {}).items():
-            if 标签 is True:
-                continue#本地域不走全局回收
-            if 活动 and (条目对象.options.get('isolate') or {}).get(名称) is 标签:
-                continue#仍在用同一标签
-            领域对象=领域表.get(标签)#全局域
-            if not 领域对象:
-                continue#没有该域
-            for 条目 in ctx.loader.条目们():
-                if (条目.options.get('isolate') or {}).get(名称)==领域对象.label:
-                    return#仍有引用则整段返回
-            领域对象.删除(名称)#去掉该服务键
-            if not 领域对象.size:
-                领域表.pop(领域对象.label,None)#空域删除
-    ctx.on('loader/partial-dispose',部分拆除)
-
-Realm=领域#英文别名
-LocalRealm=本地领域#英文别名
-GlobalRealm=全局领域#英文别名
-isolate=隔离#英文别名
-领域.access=领域.访问#英文别名
-领域.delete=领域.删除#英文别名
-领域.suffix=领域.后缀#英文别名
-本地领域.suffix=本地领域.后缀#英文别名
-全局领域.suffix=全局领域.后缀#英文别名
+    def 部分拆除(条目对象,遗留选项,仍活动):
+        """条目不再引用某个全局域时回收它的标签。"""
+        for 服务名,标签名 in (遗留选项.get('isolate') or {}).items():
+            if 标签名 is True:
+                continue#本地域跟着条目走，不必回收
+            if 仍活动 and (条目对象.选项.get('isolate') or {}).get(服务名)==标签名:
+                continue#还在用同一个标签
+            领域对象=全局域表.get(标签名)#全局域
+            if 领域对象 is None:
+                continue#没有这个域
+            for 其它条目 in 上下文.加载器.条目们():
+                if (其它条目.选项.get('isolate') or {}).get(服务名)==领域对象.标签名:
+                    return#还有条目在引用，整段放弃回收
+            领域对象.删除(服务名)#去掉该服务的标签
+            if not 领域对象.数量:
+                全局域表.pop(领域对象.标签名,None)#空域一并删掉
+    上下文.监听('loader/partial-dispose',部分拆除)

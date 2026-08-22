@@ -1,326 +1,267 @@
-"""反射与服务解析层。"""
-from cosmokit import 定义属性,是否可空,映射值#导入属性定义与空值判断
-from .工具 import 符号,取可追踪,叠属性,可释放列表#导入追踪与可释放列表
-from .光纤 import 光纤状态#导入生命周期状态
-
-保留字=['prototype','then']#不能当服务名走代理解析的保留字
+"""反射与服务解析层。上下文上的每一次属性读写都经过这里。"""
+from .工具 import (
+    设置内部数据,获取内部数据,#共享标记读写
+    套上调用方上下文,#调用方上下文壳
+    未命中,#沿属性链查找的未命中哨兵
+)
+from .纤程 import 纤程状态,_核对实现,_刷新#生命周期状态与纤程内部的依赖重算
 
 def 是否特殊属性(属性):
-    """符号、保留字、数字下标、下划线私有名走目标自身。"""
+    """标记键、下划线私有名与纯数字下标不走服务解析。"""
     if not isinstance(属性,str):
-        return True#非字符串
-    if 属性 in 保留字:
-        return True#保留字
+        return True#标记键
     if 属性.startswith('_'):
-        return True#私有
-    if 属性.isdigit():
-        return True#纯数字
-    return False#普通名
+        return True#私有名
+    return 属性.isdigit()#纯数字下标
 
-def 增强错误(错误):
-    """去掉代理陷阱帧。"""
-    return 错误#Python 无代理帧可剥
+class 服务实现:
+    """一条服务实现记录。"""
+    def __init__(自身,名称,值,纤程,检查):
+        """保存服务名、实现值、提供方纤程与可用性谓词。"""
+        自身.名称=名称#服务名
+        自身.值=值#实现值
+        自身.纤程=纤程#提供方纤程
+        自身.检查=检查#提供方自报可用性的谓词
 
 class 反射服务:
-    """安装为 ctx.reflect 的反射与服务解析层。"""
-    def __init__(自身,ctx):
-        """混入自身与 fiber/registry/events 的方法。"""
-        自身.ctx=ctx#所属上下文
-        自身._追踪器={'property':'ctx','noShadow':True}#追踪器
-        自身.存储={}#标签到实现记录
+    """安装为 上下文.反射 的反射与服务解析层。"""
+    def __init__(自身,上下文):
+        """建立存储与属性表，并把常用服务方法混入上下文。"""
+        自身.上下文=上下文#所属上下文
+        设置内部数据(自身,'追踪器',{'追踪属性':'上下文'})#调用方上下文重绑
+        自身.存储={}#隔离标签到服务实现
         自身.属性表={}#属性名到定义
-        自身.混入('reflect',['get','set','provide','accessor','mixin','取','设','提供','访问器','混入'])#反射方法
-        自身.混入('fiber',['runtime','effect'])#光纤方法
-        自身.混入('registry',['inject','plugin'])#注册表方法
-        自身.混入('events',['on','once','parallel','emit','serial','bail','waterfall'])#事件方法
+        自身.混入成员('反射',['获取服务','设置服务','提供服务','定义访问器','混入成员'])#反射方法
+        自身.混入成员('纤程',['运行时','副作用'])#纤程方法
+        自身.混入成员('注册表',['依赖启动','启动插件'])#注册表方法
+        自身.混入成员('事件',['监听','监听一次','并发广播','广播','首个结果','链式拦截'])#事件方法
 
+    #============================== 上下文属性协议 ==============================
     @staticmethod
     def 取属性(目标,属性):
-        """为每个上下文对象实现服务解析。"""
-        字典=object.__getattribute__(目标,'__dict__')#实例字典
-        if 属性 in ('__dict__','__class__'):
-            return object.__getattribute__(目标,属性)#内部
+        """上下文上的属性读取：自有属性直接给，其余按服务解析。"""
         if 是否特殊属性(属性):
+            字典=object.__getattribute__(目标,'__dict__')#本层自有字典
             if 属性 in 字典:
-                return 字典[属性]#实例自有
-            return object.__getattribute__(目标,属性)#类型自有
-        if 属性 in 字典:
-            return 取可追踪(目标,字典[属性])#读出后再做成可追踪
-        错误=Exception(f'cannot get property "{属性}" without inject')#未 inject
-        反射=字典.get('reflect')#反射服务
+                return 字典[属性]#本层自有
+            return object.__getattribute__(目标,属性)#类上的属性
+        值=获取内部数据(目标,'属性链').get(属性,未命中)#沿上下文原型链找自有属性
+        if 值 is not 未命中:
+            return 套上调用方上下文(目标,值)#读出来的服务套上调用方上下文
+        错误=AttributeError(f'没有声明依赖就不能读取服务 "{属性}"')#缺依赖诊断
+        反射=获取内部数据(目标,'属性链').get('反射')#服务解析层
         if 反射 is None:
-            raise 错误#尚未安装反射
-        定义=反射.属性表.get(属性)#已声明定义
-        if 定义 and 定义.get('type')=='accessor':
-            接收者=字典.get(符号.接收者)#接收者
-            return 定义['get'](目标,接收者,错误)#访问器读取
-        光纤=字典.get('fiber')#当前光纤
-        if 光纤 is None or 光纤.runtime is None:
-            return 反射.取(属性,False)#根光纤宽松读取
-        def 下一步():
-            """沿父光纤链找实现。"""
-            隔离表=字典.get(符号.隔离) or {}#隔离表
-            键=隔离表.get(属性)#当前标签
-            光纤对象=光纤#从当前光纤上溯
-            阴影=字典.get(符号.阴影)#阴影来源
-            if 阴影 is not None and hasattr(阴影,'fiber'):
-                光纤对象=阴影.fiber#用来源光纤
+            raise 错误#根上下文还没装好反射
+        定义=反射.属性表.get(属性)#已声明的属性定义
+        if 定义 is not None and 定义['类型']=='访问器':
+            return 定义['读取'](目标,错误)#走访问器
+        纤程=获取内部数据(目标,'属性链').get('纤程')#所属纤程
+        if 纤程 is None or 纤程.运行时 is None:
+            return 套上调用方上下文(目标,反射).获取服务(属性,False)#根纤程上宽松读取，仍按本上下文的隔离作用域
+        def 沿父纤程链找(目标,属性,错误,续体):
+            """从当前纤程上溯，在加载快照里找该服务的实现。"""
+            标签=获取内部数据(目标,'属性链')['隔离'].get(属性)#本上下文看到的隔离标签
+            当前=纤程#从当前纤程开始
             while True:
-                快照=getattr(光纤对象,'store',None)#加载快照
+                快照=当前.快照#加载时冻结的依赖实现
                 if 快照 and 属性 in 快照:
-                    return 取可追踪(目标,快照[属性].get('value') if isinstance(快照[属性],dict) else 快照[属性].value)#找到实现
-                if 属性 in getattr(光纤对象,'inject',{}):
-                    错误.args=(f'cannot get required service "{属性}" in inactive context',)#未激活
-                    raise 错误#依赖未就绪
-                if not 光纤对象.runtime:
-                    raise 错误#上溯到根仍没有
-                父隔离=(光纤对象.parent.__dict__.get(符号.隔离) or {}) if hasattr(光纤对象.parent,'__dict__') else {}#父隔离
-                if 父隔离.get(属性)!=键:
-                    raise 错误#不能越界
-                光纤对象=光纤对象.parent.fiber#向父光纤查找
-        try:
-            return 目标.events.waterfall('internal/get',目标,属性,错误,下一步)#瀑布
-        except Exception as 捕获:
-            if 捕获 is 错误:
-                raise 增强错误(捕获)#去掉代理帧
-            raise 捕获#其它错误原样抛出
+                    return 套上调用方上下文(目标,快照[属性].值)#找到实现
+                if 属性 in 当前.依赖表:
+                    raise AttributeError(f'依赖服务 "{属性}" 所在的上下文尚未激活')#依赖还没就绪
+                if 当前.运行时 is None:
+                    raise 错误#上溯到根仍然没有
+                if 获取内部数据(当前.父上下文,'属性链')['隔离'].get(属性) is not 标签:
+                    raise 错误#跨过了隔离边界，不能再往上找
+                当前=当前.父上下文.纤程#继续上溯
+        事件=获取内部数据(目标,'属性链').get('事件')#事件总线
+        return 事件.链式拦截('internal/get',目标,属性,错误,沿父纤程链找)#允许监听器接管解析
 
     @staticmethod
     def 写属性(目标,属性,值):
-        """通过上下文代理写入服务。"""
-        字典=object.__getattribute__(目标,'__dict__')#实例字典
-        if 是否特殊属性(属性) or 属性 in ('__dict__','__class__'):
-            字典[属性]=值#直接写
+        """上下文上的属性写入：只有提供方或访问器能写服务名。"""
+        字典=object.__getattribute__(目标,'__dict__')#本层自有字典
+        if 是否特殊属性(属性):
+            字典[属性]=值#私有名与标记键直接写本层
             return
-        错误=Exception(f'cannot set property "{属性}" without provide')#未 provide
-        反射=字典.get('reflect')#反射服务
+        反射=获取内部数据(目标,'属性链').get('反射')#服务解析层
         if 反射 is None:
-            字典[属性]=值#构造期直接写
+            获取内部数据(目标,'属性链')[属性]=值#根上下文构造期，反射还没装好
             return
-        定义=反射.属性表.get(属性)#已声明定义
-        if not 定义:
-            光纤=字典.get('fiber')#当前光纤
-            if 光纤 is None or 光纤.runtime is None:
-                字典[属性]=值#根光纤允许挂自有属性
+        错误=AttributeError(f'没有 提供服务() 过就不能写入服务 "{属性}"')#未提供诊断
+        定义=反射.属性表.get(属性)#已声明的属性定义
+        if 定义 is None:
+            纤程=获取内部数据(目标,'属性链').get('纤程')#所属纤程
+            if 纤程 is None or 纤程.运行时 is None:
+                获取内部数据(目标,'属性链')[属性]=值#根纤程上允许挂自有属性
                 return
-            raise 增强错误(错误)#插件光纤禁止未提供就写
-        if 定义.get('type')=='accessor':
-            写入=定义.get('set')#可选 setter
-            if not 写入:
-                raise AttributeError(属性)#只读
-            接收者=字典.get(符号.接收者)#接收者
-            写入(目标,值,接收者,错误)#调用 setter
+            raise 错误#插件纤程不能凭空写服务名
+        if 定义['类型']=='访问器':
+            写入=定义.get('写入')#访问器的写钩子
+            if 写入 is None:
+                raise AttributeError(f'访问器 "{属性}" 只读')#没有写钩子
+            写入(目标,值,错误)#走访问器
             return
-        def 下一步():
-            """默认写到提供方记录。"""
-            return 反射.设(属性,值,错误)#写入实现
-        try:
-            目标.events.waterfall('internal/set',目标,属性,值,错误,下一步)#瀑布
-        except Exception as 捕获:
-            if 捕获 is 错误:
-                raise 增强错误(捕获)#框架诊断
-            raise 捕获#其它错误
+        def 写到提供方(目标,属性,值,错误,续体):
+            """瀑布链走完后落到提供方的实现记录上。"""
+            return 套上调用方上下文(目标,反射).设置服务(属性,值,错误)#按写入方上下文覆盖实现值
+        事件=获取内部数据(目标,'属性链').get('事件')#事件总线
+        事件.链式拦截('internal/set',目标,属性,值,错误,写到提供方)#允许监听器接管写入
 
     @staticmethod
     def 有属性(目标,属性):
-        """询问属性是否存在。"""
-        字典=object.__getattribute__(目标,'__dict__')#实例字典
+        """询问该属性在上下文上是否可读。"""
         if 是否特殊属性(属性):
-            return 属性 in 字典 or hasattr(type(目标),属性)#目标自身
-        if 属性 in 字典:
-            return True#实例已有
-        反射=字典.get('reflect')#反射服务
-        if 反射 and 属性 in 反射.属性表:
-            return True#已声明
-        return hasattr(type(目标),属性)#类型方法
+            字典=object.__getattribute__(目标,'__dict__')#本层自有字典
+            return 属性 in 字典 or hasattr(type(目标),属性)#本层或类上
+        if 属性 in 获取内部数据(目标,'属性链'):
+            return True#原型链上已有
+        反射=获取内部数据(目标,'属性链').get('反射')#服务解析层
+        if 反射 is not None and 属性 in 反射.属性表:
+            return True#已声明为服务或访问器
+        return hasattr(type(目标),属性)#类上的方法
 
-    def 取(自身,名称,严格=True):
-        """从存储读取服务，不要求事先 inject。"""
-        实现=自身._取实现(名称,严格)#实现记录
+    #============================== 服务存取 ==============================
+    def 获取服务(自身,服务名,严格=True):
+        """直接从存储读服务，不要求事先声明依赖。"""
+        实现=自身.获取服务实现(服务名,严格)#实现记录
         if 实现 is None:
-            return None#尚未提供
-        值=实现['value'] if isinstance(实现,dict) else 实现.value#服务值
-        return 取可追踪(自身.ctx,值)#可追踪
+            return None#还没有提供方
+        return 套上调用方上下文(自身.上下文,实现.值)#套上本上下文
 
-    def _取实现(自身,名称,严格=True):
-        """按隔离标签取实现记录。"""
-        隔离表=自身.ctx.__dict__.get(符号.隔离) or {}#隔离表
-        键=隔离表.get(名称)#当前标签
-        实现=自身.存储.get(键) if 键 else None#按标签取
-        if not 实现:
-            return None#尚未提供
-        光纤=实现['fiber'] if isinstance(实现,dict) else 实现.fiber#提供方
-        if 严格 and 光纤.state!=光纤状态.已激活:
-            return None#未激活视为没有
+    def 获取服务实现(自身,服务名,严格=True):
+        """按当前隔离标签取该服务的实现记录。"""
+        标签=获取内部数据(自身.上下文,'属性链')['隔离'].get(服务名)#隔离标签
+        实现=自身.存储.get(标签) if 标签 is not None else None#按标签取
+        if 实现 is None:
+            return None#还没有提供方
+        if 严格 and 实现.纤程.状态!=纤程状态.已激活:
+            return None#提供方没在运行，视为没有
         return 实现#实现记录
 
-    def 设(自身,名称,值,错误=None):
-        """覆盖已提供服务的值。"""
-        隔离表=自身.ctx.__dict__.get(符号.隔离) or {}#隔离表
-        键=隔离表.get(名称)#当前标签
-        实现=自身.存储.get(键)#按标签取
-        if not 实现:
-            raise Exception(f'cannot set property "{名称}" without provide')#未 provide
-        光纤=实现['fiber'] if isinstance(实现,dict) else 实现.fiber#提供方
-        if 光纤 is not 自身.ctx.fiber:
-            raise Exception(f'cannot set property "{名称}" in multiple fibers')#禁止跨光纤
-        if isinstance(实现,dict):
-            实现['value']=值#覆盖
-        else:
-            实现.value=值#覆盖
+    def 设置服务(自身,服务名,值,错误=None):
+        """覆盖已提供服务的实现值，只有提供方纤程能改。"""
+        实现=自身.存储.get(获取内部数据(自身.上下文,'属性链')['隔离'].get(服务名))#按标签取
+        if 实现 is None:
+            raise 错误 or AttributeError(f'没有 提供服务() 过就不能写入服务 "{服务名}"')#未提供
+        if 实现.纤程 is not 自身.上下文.纤程:
+            raise AttributeError(f'服务 "{服务名}" 只能由提供它的那条纤程写入')#跨纤程写入
+        实现.值=值#覆盖实现值
         return True#写入成功
 
-    def 提供(自身,名称,值=None,检查=None):
-        """登记由当前光纤持有的服务实现。"""
-        def 执行体():
-            """登记实现并在卸载时注销。"""
-            if 名称 not in 自身.属性表:
-                自身.属性表[名称]={'type':'service'}#占位为服务
-            elif 自身.属性表[名称].get('type')!='service':
-                raise Exception(f'property "{名称}" is already declared as {自身.属性表[名称].get("type")}')#类型冲突
-            自身.属性表[名称]={'type':'service'}#确保为服务
-            根隔离=自身.ctx.root.__dict__.setdefault(符号.隔离,{})#根隔离表
-            if 名称 not in 根隔离:
-                根隔离[名称]=object()#新建标签
-            键=自身.ctx.__dict__.get(符号.隔离,{}).get(名称)#当前标签
-            实现={'name':名称,'value':值,'fiber':自身.ctx.fiber,'check':检查}#组装记录
-            if 自身.存储.get(键):
-                已有=自身.存储[键]#已有实现
-                已有光纤=已有['fiber'] if isinstance(已有,dict) else 已有.fiber#提供方
-                raise Exception(f'service "{名称}" has been registered at <{已有光纤.名称}>')#重复提供
-            自身.存储[键]=实现#写入存储
-            if 自身.ctx.fiber.store is not None:
-                自身.ctx.fiber.store[名称]=_实现记录(实现)#写入快照
-            if 自身.ctx.fiber.state==光纤状态.已激活:
-                自身.通知([名称])#立刻唤醒依赖方
-            def 释放():
-                """注销该服务。"""
-                自身.存储.pop(键,None)#从存储摘掉
-                光纤列表=自身.通知([名称])#通知依赖方
-                for 光纤 in 光纤列表:
-                    光纤.等待()#等依赖方结算
-                if 自身.ctx.fiber.store is not None:
-                    自身.ctx.fiber.store.pop(名称,None)#删光纤快照
-            return 释放#释放器
-        return 自身.ctx.fiber.effect(执行体,f'ctx.provide({名称!r})')#作为副作用
+    def 提供服务(自身,服务名,值=None,检查=None):
+        """登记一份由当前纤程持有的服务实现，纤程卸载时自动注销。"""
+        def 登记服务():
+            """写入实现记录，返回注销它的释放器。"""
+            已有定义=自身.属性表.get(服务名)#该名字上已有的定义
+            if 已有定义 is not None and 已有定义['类型']!='服务':
+                raise TypeError(f'属性 "{服务名}" 已经声明为{已有定义["类型"]}')#类型冲突
+            自身.属性表[服务名]={'类型':'服务'}#声明为服务
+            根隔离=获取内部数据(自身.上下文.根,'属性链')['隔离']#根隔离表
+            if 服务名 not in 根隔离:
+                根隔离[服务名]=object()#该服务的默认隔离标签
+            标签=获取内部数据(自身.上下文,'属性链')['隔离'].get(服务名)#当前隔离标签
+            已有实现=自身.存储.get(标签)#同标签上的实现
+            if 已有实现 is not None:
+                raise TypeError(f'服务 "{服务名}" 已经由 <{已有实现.纤程.名称}> 提供')#重复提供
+            实现=服务实现(服务名,值,自身.上下文.纤程,检查)#实现记录
+            自身.存储[标签]=实现#写入存储
+            if 自身.上下文.纤程.快照 is not None:
+                自身.上下文.纤程.快照[服务名]=实现#提供方自己也能读到
+            if 自身.上下文.纤程.状态==纤程状态.已激活:
+                自身.通知([服务名])#立刻唤醒依赖方
+            def 注销服务():
+                """注销该服务，并把依赖方卸载时的失败记下来。"""
+                自身.存储.pop(标签,None)#从存储摘掉
+                for 纤程 in 自身.通知([服务名]):
+                    try:
+                        纤程.等待()#通知时依赖方已同步卸载完，这里只取出它的启动错误
+                    except BaseException as 原因:
+                        纤程.上下文.日志.错误(原因)#依赖方自身的失败不该打断本次注销
+                if 自身.上下文.纤程.快照 is not None:
+                    自身.上下文.纤程.快照.pop(服务名,None)#从加载快照摘掉
+            return 注销服务#释放器
+        return 自身.上下文.纤程.副作用(登记服务,f'上下文.提供服务({服务名!r})')#作为纤程副作用
 
-    def 通知(自身,名称列表,过滤器=None):
-        """重新求值所有需要给定服务之一的光纤。"""
+    def 通知(自身,服务名们,过滤器=None):
+        """重新核对依赖这些服务的纤程，返回被刷新的纤程。"""
         if 过滤器 is None:
-            def 过滤器(ctx,名称):
-                """同一隔离作用域。"""
-                甲=(ctx.__dict__.get(符号.隔离) or {}).get(名称)#对方标签
-                乙=(自身.ctx.__dict__.get(符号.隔离) or {}).get(名称)#本方标签
-                return 甲 is 乙#同一标签
-        光纤列表=[]#被刷新的光纤
-        for 运行时 in 自身.ctx.registry.values():
-            for 光纤 in 运行时['fibers'] if isinstance(运行时,dict) else 运行时.fibers:
-                有更新=False#是否命中
-                for 名称 in 名称列表:
-                    if 名称 not in 光纤.inject:
-                        continue#不依赖
-                    if not 过滤器(光纤.ctx,名称):
-                        continue#作用域不匹配
-                    有更新=True#需要刷新
-                    光纤._核对实现(名称)#重新核对
-                if not 有更新:
-                    continue#不刷新
-                光纤._刷新()#重算世代
-                光纤列表.append(光纤)#记入返回
-        for 名称 in 名称列表:
-            自身.ctx.events.emit(自身.ctx,'internal/service',名称,自身._取实现(名称,False) and (自身._取实现(名称,False).get('value') if isinstance(自身._取实现(名称,False),dict) else None))#广播
-        return 光纤列表#被刷新光纤
+            def 过滤器(上下文对象,服务名):
+                """默认只通知隔离标签与本上下文一致的依赖方。"""
+                对方=获取内部数据(上下文对象,'属性链')['隔离'].get(服务名)#对方标签
+                本方=获取内部数据(自身.上下文,'属性链')['隔离'].get(服务名)#本方标签
+                return 对方 is 本方#同一隔离作用域
+        被刷新=[]#受影响的纤程
+        for 运行时 in list(自身.上下文.注册表.运行时们()):
+            for 纤程 in list(运行时.纤程表):
+                命中=False#本纤程是否受影响
+                for 服务名 in 服务名们:
+                    if 服务名 not in 纤程.依赖表:
+                        continue#不依赖该服务
+                    if not 过滤器(纤程.上下文,服务名):
+                        continue#隔离作用域不匹配
+                    命中=True#需要重算
+                    _核对实现(纤程,服务名)#重新核对该依赖
+                if not 命中:
+                    continue#跳过
+                _刷新(纤程)#重算世代，必要时加载或卸载
+                被刷新.append(纤程)#记入返回
+        for 服务名 in 服务名们:
+            实现=自身.获取服务实现(服务名,False)#当前实现，可以是未激活的
+            def 派发过滤(派发对象,监听上下文,服务名=服务名):
+                """广播也走同一套隔离判定，事件不越过隔离边界。"""
+                return 过滤器(监听上下文,服务名)#复用本次的过滤器
+            派发上下文=自身.上下文.扩展()#派发接收者
+            设置内部数据(派发上下文,'过滤器',派发过滤)#按隔离判定过滤监听
+            自身.上下文.事件.广播(派发上下文,'internal/service',服务名,实现.值 if 实现 else None)#广播
+        return 被刷新#被刷新的纤程
 
-    def 访问器(自身,名称,选项):
-        """用 get/set 钩子定义计算型上下文属性。"""
-        def 执行体():
-            """登记访问器。"""
-            if 名称 in 自身.属性表:
-                raise Exception(f'property "{名称}" is already declared as {自身.属性表[名称].get("type")}')#重复声明
-            定义={'type':'accessor'}#访问器
-            定义.update(选项)#钩子
-            自身.属性表[名称]=定义#登记
-            def 释放():
+    def 定义访问器(自身,属性名,读取,写入=None):
+        """用读写钩子定义一个计算型上下文属性。"""
+        def 登记访问器():
+            """登记访问器定义，返回移除它的释放器。"""
+            已有定义=自身.属性表.get(属性名)#该名字上已有的定义
+            if 已有定义 is not None:
+                raise TypeError(f'属性 "{属性名}" 已经声明为{已有定义["类型"]}')#重复声明
+            自身.属性表[属性名]={'类型':'访问器','读取':读取,'写入':写入}#登记定义
+            def 移除访问器():
                 """移除该访问器。"""
-                自身.属性表.pop(名称,None)#删除定义
-            return 释放#释放器
-        return 自身.ctx.fiber.effect(执行体,f'ctx.accessor({名称!r})')#副作用
+                自身.属性表.pop(属性名,None)#删掉定义
+            return 移除访问器#释放器
+        return 自身.上下文.纤程.副作用(登记访问器,f'上下文.定义访问器({属性名!r})')#作为纤程副作用
 
-    def 混入(自身,源,混入项):
-        """把服务的选定成员直接暴露到 ctx 上。"""
-        def 生成():
+    def 混入成员(自身,源服务名,成员们):
+        """把源服务的选定成员直接暴露到上下文上。"""
+        def 逐个登记():
             """逐个成员登记访问器。"""
-            if isinstance(混入项,list):
-                条目=[(键,键) for 键 in 混入项]#同名映射
-            else:
-                条目=list(混入项.items())#显式映射
-            def 取源(ctx,错误):
-                """按属性名从上下文取源服务。"""
-                return getattr(ctx,源)#源服务
-            for 键,挂名 in 条目:
-                def 读取(接收者,错误,源键=键):
-                    """混入 get。"""
-                    服务=取源(自身.ctx if not hasattr(读取,'ctx') else 自身.ctx,错误)#源服务
-                    #读取时 this 是上下文，由访问器调用传入
-                    return None#占位，下面用闭包重写
-                def 制作读取(源键):
-                    """生成读取钩子。"""
-                    def 读取钩子(ctx,接收者,错误):
-                        """从源服务读成员。"""
-                        服务=ctx.__dict__.get(源)#源服务
-                        if 是否可空(服务):
-                            return 服务#源还不存在
-                        值=getattr(服务,源键,None)#读成员
-                        if not callable(值) or isinstance(值,type):
-                            return 值#非方法
-                        def 调用(*位置参数,**关键字参数):
-                            """调用期把服务 ctx 重绑到调用方。"""
-                            旧=getattr(服务,'ctx',None)#原上下文
-                            服务.ctx=ctx#重绑
-                            try:
-                                return 值(*位置参数,**关键字参数)#调用
-                            finally:
-                                服务.ctx=旧#恢复
-                        return 调用#绑方法
-                    return 读取钩子#钩子
-                def 制作写入(源键):
-                    """生成写入钩子。"""
-                    def 写入钩子(ctx,值,接收者,错误):
-                        """把赋值落到源成员。"""
-                        服务=getattr(ctx,源)#源服务
-                        setattr(服务,源键,值)#写入
-                        return True#成功
-                    return 写入钩子#钩子
-                yield 自身.访问器(挂名,{'get':制作读取(键),'set':制作写入(键)})#登记
-        return 自身.ctx.fiber.effect(生成,f'ctx.mixin({源!r})')#生成器副作用
+            条目们=[(键,键) for 键 in 成员们] if isinstance(成员们,list) else list(成员们.items())#成员到挂名
+            for 源成员名,挂名 in 条目们:
+                yield 自身.定义访问器(挂名,_生成混入读钩子(源服务名,源成员名),_生成混入写钩子(源服务名,源成员名))#登记访问器
+        return 自身.上下文.纤程.副作用(逐个登记,f'上下文.混入成员({源服务名!r})')#作为纤程副作用
 
-    def 追踪(自身,值):
-        """把本上下文的追踪包装附到值上。"""
-        return 取可追踪(自身.ctx,值)#可追踪值
+    def 套上本上下文(自身,值):
+        "把本上下文套到值上"
+        return 套上调用方上下文(自身.上下文,值)#套壳
 
-    def 绑定(自身,回调):
-        """包装回调，使调用时把参数追踪到本上下文。"""
-        def 包装(*位置参数,**关键字参数):
-            """参数做成可追踪再调用。"""
-            新参=[自身.追踪(项) for 项 in 位置参数]#追踪位置参
-            return 回调(*新参,**关键字参数)#调用
-        return 包装#代理
+    def 绑定上下文(自身,回调):
+        "包装回调，参数都套上本上下文"
+        def 包装(*位置参数):
+            return 回调(*[自身.套上本上下文(项) for 项 in 位置参数])#参数先套壳
+        return 包装#包装后的回调
 
-    get=取#英文别名
-    set=设#英文别名
-    provide=提供#英文别名
-    accessor=访问器#英文别名
-    mixin=混入#英文别名
-    trace=追踪#英文别名
-    bind=绑定#英文别名
+def _生成混入读钩子(源服务名,源成员名):
+    """生成混入成员的读钩子。"""
+    def 读取(上下文,错误):
+        """从源服务读成员。带追踪器的服务会把成员绑到调用方上下文上。"""
+        服务=获取内部数据(上下文,'属性链').get(源服务名)#源服务实例
+        if 服务 is None:
+            return None#源服务还没装上
+        return getattr(套上调用方上下文(上下文,服务),源成员名,None)#成员值
+    return 读取#读钩子
 
-class _实现记录:
-    """服务实现记录的属性访问包装。"""
-    def __init__(自身,数据):
-        """保存字段。"""
-        自身.name=数据['name']#服务名
-        自身.fiber=数据['fiber']#提供方光纤
-        自身.value=数据['value']#服务值
-        自身.check=数据.get('check')#可用性谓词
-
-ReflectService=反射服务#英文别名
+def _生成混入写钩子(源服务名,源成员名):
+    """生成混入成员的写钩子。"""
+    def 写入(上下文,值,错误):
+        """把赋值落到源服务的成员上。"""
+        setattr(获取内部数据(上下文,'属性链').get(源服务名),源成员名,值)#写入源服务
+        return True#写入成功
+    return 写入#写钩子
