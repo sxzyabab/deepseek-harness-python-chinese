@@ -4,7 +4,7 @@
 SERVICE/EVENT/TYPE/INHERITED_CTX_API 从原版相对路径整表加载。公开面仅中文名。
 """
 import os,re#路径与类型名
-from tool_cordis.字面量解析 import 提取导出常量数组,解析数组字面量#复用解析器
+from ..cordis工具.字面量解析 import 提取导出常量数组,解析数组字面量#复用解析器
 
 __all__=[#公开面
     '服务目录','事件目录','类型目录','继承上下文目录',

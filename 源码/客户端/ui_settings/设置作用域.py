@@ -3,8 +3,9 @@
 对齐上游 `ui-settings/src/client/settings-scope.ts`。公开面仅中文名。
 约定类型住在 runtime；本文件拥有线上行为与失效订阅。
 """
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 from 客户端.schema_form import 再水合模式,校验草稿#再水合与校验
 
 __all__=['快照仓库','设置作用域控制器','设置作用域绑定器']#仅中文公开名

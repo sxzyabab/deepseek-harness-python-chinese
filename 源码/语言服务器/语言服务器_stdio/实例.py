@@ -1,8 +1,11 @@
 """一条语言服务器实例：一条连接，加上 initialize 握手、可中止的串行查询队列、瞬时 didOpen→请求→didClose 生命周期，以及有界拆除。一个实例拥有一个 (提供方 id, 规范工作区) 进程。查询经单一队列串行，以便一次未能拦住服务器的取消可以终止该实例而不杀掉无关工作；不同实例并行运行。"""
 import threading#队列与拆除互斥
-from lsp import 语言服务器错误#带稳定code的语言服务器错误
-from timeout import 截止,取已中止#有界截止期与已中止判定
-from cordis.工具 import 承诺,是否thenable,已兑现#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+已兑现=cordis.工具.已兑现#立刻兑现
+from ..lsp import 语言服务器错误#带稳定code的语言服务器错误
+from ..超时 import 截止,取已中止#有界截止期与已中止判定
 from .取消 import 可中止等待,中止错误#可中止等待与中止错误
 from .连接 import 语言服务器连接#JSON-RPC连接
 from .翻译 import (

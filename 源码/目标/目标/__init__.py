@@ -1,9 +1,10 @@
 """同会话目标域：事件源状态、比较交换变更，以及进程内续跑武装。"""
 import math,re,time,uuid,weakref#安全整数、阻塞码、纪元毫秒、目标 id 与会话弱表
-from cordis import 服务#Cordis 服务基类
-from schemastery import 模式#插件 Config 模式
-from agent import 智能体事件#按智能体作用域派发
-from typert.protocol import 远程服务,远程#Remote 服务基类与装饰器
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+模式=schemastery.模式#插件 Config 模式
+from ..智能体 import 智能体事件#按智能体作用域派发
+from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
 from .类型 import *#纯类型出口再导出到包根
 from .域 import *#宿主侧域词汇再导出到包根
 from .折叠 import (
@@ -493,3 +494,5 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 
 默认=目标服务#中文默认导出
 default=目标服务#Cordis 默认导出
+
+__all__=['目标服务','默认','default']#公开面

@@ -5,7 +5,8 @@
 对齐上游 `@deepseek-ai/dsh-client-modules`。公开面仅中文名。本包默认导出注册表类。
 """
 import hashlib,json,os,threading#哈希、JSON、路径与微任务近似
-from cordis import 服务#Cordis 服务基类
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 from .清单 import (#再导出启动清单类型
     网页启动入口,#入口
     网页启动图,#图

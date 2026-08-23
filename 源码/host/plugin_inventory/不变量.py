@@ -3,7 +3,8 @@
 对齐上游 `plugin-inventory/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：每份快照都直接从 Loader 拥有的状态投影。
 """
-from cordis.工具 import 已兑现#立刻兑现
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
 
 包名='@deepseek-ai/dsh-host-plugin-inventory'#本包所有权名
 名称='host-plugin-inventory-invariant'#配套插件名

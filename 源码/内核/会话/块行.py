@@ -1,6 +1,6 @@
 """assistant/chunk delta 游程的无损存储打包。对齐上游 `session/src/chunk-rows.ts`。公开面仅中文名。"""
-from llm.品牌 import 调用标识#导入调用 id
-from llm.永不 import 断言永不#导入穷尽检查
+from ..llm.品牌 import 调用标识#导入调用 id
+from ..llm.永不 import 断言永不#导入穷尽检查
 from .类型 import 是否安全整数#导入安全整数判定
 
 __all__=['打包块游程','解码存储记录']#仅中文公开名

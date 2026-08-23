@@ -1,6 +1,6 @@
 """规范会话 URI 与行内提及编码。"""
 import base64,json,re#base64url、JSON与提及正则
-from session import 会话标识#导入会话id品牌
+from ..会话 import 会话标识#导入会话id品牌
 from .配置 import 会话引用错误#导入会话引用错误
 
 会话引用方案='dsh-session:'#会话引用URI方案前缀

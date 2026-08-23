@@ -3,8 +3,9 @@
 对齐上游 `agent/src/dispatch.ts`。公开面仅中文名；派发器字典键为 `发出`／`串行`／`瀑布`。
 """
 import threading#后台观察承诺
-from cordis.工具 import 是否thenable#thenable 判断
-from scope import 作用域目标#作用域载体构造
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#thenable 判断
+from ..作用域 import 作用域目标#作用域载体构造
 
 __all__=('智能体事件派发','智能体载体','智能体事件','发出智能体事件','为组装构建上下文')#仅中文公开名
 

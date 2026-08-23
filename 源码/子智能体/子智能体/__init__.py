@@ -1,7 +1,8 @@
 """子智能体能力缝（ctx.subagents）的 Service Definition：具名提供方注册表，外加按能力校验的异步 start API。提供方在返回跑之前建立子体，因此兑现是唯一的发布与所有权转移边界。"""
-from cordis import 服务#导入服务基类
-from scope import 作用域目标#导入作用域载体解析
-from tools import 断言对象json模式#导入对象JSON模式断言
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#导入服务基类
+from ...内核.作用域 import 作用域目标#导入作用域载体解析
+from ...内核.工具 import 断言对象json模式#导入对象JSON模式断言
 from .类型 import (
     子智能体跑标识,#跑 id 品牌构造
     子智能体跑信息,#subagent/start 载荷
@@ -70,7 +71,7 @@ from .客户端 import (
     子智能体身份投影,#模式/标签投影
     子智能体计时投影,#活动回合计时投影
 )
-from cordis.工具 import 是否thenable#可等待判定
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=(
     '子智能体运行时',

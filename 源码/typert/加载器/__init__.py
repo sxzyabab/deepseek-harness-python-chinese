@@ -7,7 +7,9 @@
 扫描按条目名增量进行：internal/plugin 标脏，微任务 flush 再调和。
 """
 import json,os,importlib.util#读清单、拼路径、动态导入
-from cordis.工具 import 已兑现,是否thenable#承诺与可等待
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待
 
 __all__=[#仅中文公开名
     '宿主导出键','名称','注入','配置','校验Typert清单','应用',

@@ -1,8 +1,14 @@
 """面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值。它拥有面向模型的模式与运行生命周期；脚本解析、执行、上限与取消放在 `ctx.workflowEngine`（`@deepseek-ai/dsh-workflow`）后面，因此换上加固引擎不必改动模型所见。执行会等待 `run.result` 并始终销毁运行；非 completed 原因变成工具错误，后台收集仍推迟。展示是仅依赖 args 的通用卡片，标题来自 `meta.name`。显式询问的用法指引登记为工具自己的提示词段落，而不是部署人设散文。"""
 import json#结果 JSON 渲染
-from schemastery import 模式#导入配置模式库
-from tools import 定义工具#导入工具定义辅助
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置模式库
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#导入工具定义辅助
+__all__=[#仅中文公开名；Cordis 英文槽不入表
+    '名称','注入','配置','描述','取字段','解开','渲染记录错误',
+    '创建工作流记录器','呈现工作流调用','呈现工作流结果','停止原因错误',
+    '渲染结果','落实配置','应用',
+]#公开面结束
 
 名称='tool-workflow'#Cordis 插件名
 注入=['tools','workflowEngine','systemPrompt']#依赖工具、工作流引擎与系统提示词

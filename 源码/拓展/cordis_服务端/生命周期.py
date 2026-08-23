@@ -2,7 +2,8 @@
 
 对齐上游 `拓展/cordis-host-runner/src/lifecycle.ts`。公开面仅中文名。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .守卫 import 守卫插件#带守卫的插件包装
 
 __all__=['启动宿主半','缺失服务']#仅中文公开名

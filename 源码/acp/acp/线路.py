@@ -4,7 +4,9 @@
 公开面仅中文名。方法名与错误码字面量保持 ACP 线约定。
 """
 import json,sys,threading#JSON、stdio 与读写线程
-from cordis.工具 import 承诺,是否thenable#承诺与可等待
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待
 
 __all__=[#仅中文公开名
     '协议版本','请求错误','NDJSON流','智能体侧连接',

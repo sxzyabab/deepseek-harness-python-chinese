@@ -3,8 +3,10 @@
 对齐上游 `remotes/src/agent-lookup.ts`。公开面仅中文名。诊断英文字面量保持上游。
 """
 from typing import NotRequired,TypedDict#结构类型
-from cordis.工具 import 是否thenable,承诺#可等待判定与共享承诺
-from typert.protocol import Typert查找失败#查找失败错误
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+承诺=cordis.工具.承诺#共享承诺
+from ..协议 import Typert查找失败#查找失败错误
 
 __all__=(#仅中文公开名
     '远程会话未找到','远程子智能体会话所有权',

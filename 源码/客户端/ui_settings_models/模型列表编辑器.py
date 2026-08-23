@@ -4,7 +4,8 @@
 空列表表示沿用内置目录；任一条目即整体替换。探询问的是表单当前值（含未存密钥）。
 """
 import re#正则
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .DeepSeek模型编辑器 import 解析容量,格式化容量#容量拼写
 from .仓库 import 错误文案#拒绝文案
 

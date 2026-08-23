@@ -1,5 +1,6 @@
 """日程对共享会话耐久屏障的本包用法。"""
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 class 日程持久错误(Exception):#日程持久失败
     """未能证明当前在线前缀到达了持久监听器。"""

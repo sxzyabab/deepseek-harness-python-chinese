@@ -1,5 +1,5 @@
 """把 Claude Code 的事件到匹配组钩子格式解析成共用的 MatcherGroup。只跑命令钩子；其他钩子类型作为已跳过返回，方便桥接层警告。插件根与项目目录替换在解析时应用到命令上。"""
-from hook_protocol import 匹配诊断 as 匹配器诊断#按方言校验匹配器
+from ..钩子协议 import 匹配诊断 as 匹配器诊断#按方言校验匹配器
 
 克劳德事件们=(#Claude Code 支持的钩子事件
     'SessionStart',#会话开始

@@ -2,7 +2,7 @@
 import json,threading#JSON编解码与中止监视线程
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接#HTTP客户端
 from urllib.parse import urlparse as 解析网址#拆基址
-from web.类型 import 网络错误#web能力错误
+from ..web.类型 import 网络错误#web能力错误
 编码=json.dumps#JSON编码
 解码=json.loads#JSON解码
 线程=threading.Thread#工作线程

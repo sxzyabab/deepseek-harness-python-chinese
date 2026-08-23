@@ -8,7 +8,8 @@
 
 """
 
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 
 

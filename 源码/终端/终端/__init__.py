@@ -1,8 +1,11 @@
 """按所有者作用域的持久 PTY 注册表。后端负责终端机制，本服务负责 id、发布、授权与等待清理。"""
 import threading,weakref#后台清槽与已拆除所有者弱集
-from cordis import 服务,聚合错误#服务基类与多失败聚合
-from cordis.工具 import 承诺,是否thenable#结算承诺与可等待判定
-from timeout import 中止控制器,合成信号,取已中止,取原因值#取消控制器、合成信号与旗标读取
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#服务基类
+聚合错误=cordis.工具.聚合错误#多失败聚合
+承诺=cordis.工具.承诺#结算承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..超时 import 中止控制器,合成信号,取已中止,取原因值#取消控制器、合成信号与旗标读取
 from .类型 import (
     终端后端清理错误,#搭建清理双失败
     终端会话标识值,#会话id品牌基底
@@ -512,3 +515,5 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
 
 默认=终端会话服务#默认导出会话服务
 default=终端会话服务#Cordis默认导出
+
+__all__=['终端会话服务','终端错误','终端错误码','默认','default']#公开面

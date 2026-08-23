@@ -1,7 +1,9 @@
 """面向模型的 `glob` 工具：发现路径匹配 glob 的文件，按修改时间排序。执行通过子进程 seam 以普通 argv 向量直接拉起打包的 ripgrep 二进制——本模块拥有面向模型的模式、参数校验、argv 构造、结果解析、内联抽样与格式化；进程相关问题留在 `ctx.subprocess` 后面。"""
 import os#平台路径分隔符
-from tools import 定义工具#导入工具定义器
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
+from ...内核.工具 import 定义工具#导入工具定义器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .搜索核心 import 跑ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与溢出保存
 from .展示 import glob搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择

@@ -3,7 +3,8 @@
 对齐上游 `acp/acp/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：本传输层不拥有持久的包内事件序列；协议与生命周期测试覆盖其映射。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-acp'#本包的不变量所有权名
 名称='acp-invariant'#配套不变量插件名（字面量）

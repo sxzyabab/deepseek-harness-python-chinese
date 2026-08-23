@@ -2,17 +2,22 @@
 import hashlib#目录条目摘要用 SHA-256
 import json#目录条目规范 JSON 编码
 import re#技能手势正则与空白压缩
-from schemastery import 模式#导入配置模式
-from tools import 定义工具#定义面向模型的工具
-from llm import 创建用户消息#构造用户消息
-from skill import (#技能 seam 公开符号
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置模式
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#定义面向模型的工具
+from ...模型后端.llm import 创建用户消息#构造用户消息
+from ..技能 import (#技能 seam 公开符号
     转义文本,#转义目录描述
     是否模型可调用,#模型面是否可调用
     是否技能名,#公开技能名文法
     是否用户可调用,#用户面是否可调用
     渲染技能内容,#规范技能块
 )#技能 seam 导入结束
-from cordis.工具 import 是否thenable#可等待判定
+__all__=[#仅中文公开名；Cordis 英文槽不入表
+    '名称','注入','目录描述默认最大长度','摘要算法','编码','编译正则','替换正则',
+    '查找全部','技能手势','配置','取字段','应用','默认',
+]#公开面结束
 
 名称='tool-skill'#Cordis插件名
 注入=['agents','tools','skills']#依赖智能体、工具与技能服务

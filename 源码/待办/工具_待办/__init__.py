@@ -5,9 +5,11 @@
 对齐上游 `@deepseek-ai/dsh-tool-todo`。公开面仅中文名。配置键、事件名与诊断英文字面量保持上游。本包不提供默认导出（Loader 的 unwrapExports 会折叠掉 inject）。
 """
 import json#重复内容报错片段
-from schemastery import 模式#导入配置模式
-from tools import 定义工具#定义面向模型的工具
-from cordis.工具 import 已兑现,是否thenable#操作链承诺与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置模式
+已兑现=cordis.工具.已兑现#操作链承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#定义面向模型的工具
 from .类型 import 待办条目,待办状态#再导出类型面
 
 __all__=['名称','注入','配置','应用','待办条目','待办状态']#仅中文公开名

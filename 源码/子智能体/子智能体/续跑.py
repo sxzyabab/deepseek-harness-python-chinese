@@ -1,9 +1,13 @@
 """内部可续跑子智能体管理器：稳定子 id、描述符持久化、Activation 准入、活所有权图、冷恢复、子优先拆除，以及向父投递结算，藏在 ctx.subagents 后面。"""
 import uuid,weakref,threading#随机uuid、弱谱系与后台结算线程
 from typing import Literal,TypedDict#字面量与结构类型
-from cordis.工具 import 承诺,已兑现,是否thenable,聚合错误#承诺链与聚合错误
-from llm import 创建用户消息,截上下文摘要,错误链#用户消息、摘要与错误链
-from session import 会话标识#会话id品牌
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺链
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+聚合错误=cordis.工具.聚合错误#聚合错误
+from ...模型后端.llm import 创建用户消息,截上下文摘要,错误链#用户消息、摘要与错误链
+from ...内核.会话 import 会话标识#会话id品牌
 from .描述符 import 折叠子智能体描述符,快照子智能体描述符#描述符折叠与快照
 from .子体 import (#子体组合零件
     追加委托策略覆盖,#追加委托策略覆盖

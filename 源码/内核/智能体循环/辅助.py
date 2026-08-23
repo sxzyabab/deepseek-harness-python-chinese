@@ -1,7 +1,9 @@
 """循环用的中止、承诺赛跑与字段读取。"""
 import threading#后台线程
-from llm.类型 import 中止信号 as 基中止信号#基类取消通道
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ..llm.类型 import 中止信号 as 基中止信号#基类取消通道
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 def 取(对象,名,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""

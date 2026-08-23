@@ -2,7 +2,8 @@
 
 对齐上游 `ui-conversation/src/submission-settings.ts`。公开面仅中文名。配置键英文字面量保持上游。
 """
-from schemastery import 模式#配置模式
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
 
 __all__=[#仅中文公开名
     '会话设置命名空间',

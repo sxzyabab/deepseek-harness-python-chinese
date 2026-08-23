@@ -1,5 +1,7 @@
 """有界共享与独占预留未发布 Session。"""
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""

@@ -4,7 +4,8 @@
 浏览器 File/Blob/URL API 在非浏览器宿主半退化为 data URL 或拒绝。
 """
 import base64,uuid#图片编码与草稿 id
-from cordis import 服务#Cordis 服务基类
+from ....依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 
 __all__=['不支持图片媒体类型','会话控制器','图片媒体类型','字节转base64']#仅中文公开名
 

@@ -3,7 +3,7 @@
 对齐上游 `llm-pi-ai/src/replay.ts`。公开面仅中文名；无英文别名。
 """
 import json#JSON 解析
-import llm#语言模型服务
+from .. import llm#语言模型服务
 
 __all__=('转派回放状态','读回放状态','转派助手','空派用量','解析参数')#仅中文公开名
 

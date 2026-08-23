@@ -2,7 +2,8 @@
 
 对齐上游 bash/agent-loop/web-search-card-controller.ts。公开面仅中文名。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .卡片表单 import 卡片表单,数字字段,文本字段#表单
 
 __all__=[#仅中文公开名

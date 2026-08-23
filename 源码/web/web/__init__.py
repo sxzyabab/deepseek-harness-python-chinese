@@ -1,8 +1,9 @@
 """web 访问能力缝（`ctx.web`）的 Service Definition：搜索与抓取的注册表以及按提供方选择的执行。重复 id 会被拒绝。执行时必须有已配置且可用的提供方；没有配置时恰好需要一个可用提供方，选择从不依赖注册顺序。"""
 import os#读取运行覆盖环境变量
-from cordis import 服务#导入Cordis服务基类
-from cordis.工具 import 是否thenable#可等待判定
-from schemastery import 模式#导入配置校验库
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#导入Cordis服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
+模式=schemastery.模式#导入配置校验库
 from .类型 import (
     网络错误,#结构化web错误
     网络搜索请求字段,#搜索请求词汇
@@ -14,6 +15,14 @@ from .类型 import (
     网络搜索提供方字段,#搜索提供方词汇
     网络抓取提供方字段,#抓取提供方词汇
 )#再导出公开类型
+
+__all__=[#公开面
+    '网络','默认','网络错误',
+    '网络搜索请求字段','网络搜索结果字段','网络搜索来源字段',
+    '网络抓取请求字段','网络抓取结果字段','网络抓取正文种类',
+    '网络搜索提供方字段','网络抓取提供方字段',
+    '搜索提供方环境键','抓取提供方环境键','网络运行时配置字段',
+]#结束
 
 搜索提供方环境键='DSH_WEB_SEARCH_PROVIDER'#搜索提供方运行覆盖环境变量
 抓取提供方环境键='DSH_WEB_FETCH_PROVIDER'#抓取提供方运行覆盖环境变量

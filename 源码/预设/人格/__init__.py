@@ -5,8 +5,9 @@
 
 对齐上游 `@deepseek-ai/dsh-persona`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
-from schemastery import 模式#导入配置模式
-from system_prompt import 人设段落名,人设顺序#人设槽常量，与注册表同一出处
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+from ..系统提示词 import 人设段落名,人设顺序#人设槽常量，与注册表同一出处
 
 __all__=['名称','注入','配置','应用','人设段落名','人设顺序']#仅中文公开名
 

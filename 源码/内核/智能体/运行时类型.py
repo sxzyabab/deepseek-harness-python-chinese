@@ -5,7 +5,7 @@
 模型选择类型属 `模型选择.py`；已消费工作账本属 `已消费工作.py`。
 """
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from session import 智能体取消原因#再导出取消原因，对齐上游 runtime-types 对 session 的再导出
+from ..会话 import 智能体取消原因#再导出取消原因，对齐上游 runtime-types 对 session 的再导出
 
 __all__=(#仅中文公开名
     '智能体取消原因',

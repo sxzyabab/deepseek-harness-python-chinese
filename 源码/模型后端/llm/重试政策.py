@@ -4,7 +4,8 @@
 无英文别名。
 """
 import math#有限数判定
-from schemastery import 模式#导入配置校验库
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
 from .错误 import 空响应码#导入空响应失败码
 from .调用配置 import 深冻结#导入深冻结
 

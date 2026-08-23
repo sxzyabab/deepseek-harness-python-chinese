@@ -2,7 +2,8 @@
 
 对齐上游 `@deepseek-ai/dsh-host-directory-picker`。公开面仅中文名。各后端的差异在交互形态，不只是实现机制，因此服务暴露带判别标签的能力，而不是一套方法：`native` 后端在宿主显示器上打开一次操作系统选择器，`browse` 后端则为应用内浏览器提供列举/创建原语。消费方按 `capability().kind` 分支；对未知 kind 的文档化默认是隐藏选择入口而不是失败。本包默认导出服务类。
 """
-from cordis import 服务#Cordis 服务基类
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 from .类型 import (
     目录选择原生能力,#原生能力
     目录条目,#目录条目

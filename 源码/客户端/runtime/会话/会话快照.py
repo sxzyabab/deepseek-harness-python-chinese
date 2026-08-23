@@ -6,7 +6,7 @@
 callId/approvalId 此处保持裸 str（方便时再收窄到真正的品牌类型）。
 """
 from typing import TypedDict,NotRequired,Literal,Any#结构类型
-from session.类型 import 待办条目#再导出 TodoItem（session 权威）
+from ....内核.会话.类型 import 待办条目#再导出 TodoItem（内核会话权威）
 
 __all__=[#仅中文公开名
     '待办条目',#TodoItem 再导出

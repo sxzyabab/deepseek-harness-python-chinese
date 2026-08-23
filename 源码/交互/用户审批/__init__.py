@@ -1,11 +1,20 @@
 """审批能力缝的服务定义，覆盖请求、取消、审计与按会话策略。缺少回答者则失败闭合；授予只作用于所请求的动作。"""
 import uuid,threading#配对 id 与中止竞赛线程
-from schemastery import 模式#配置校验
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 承诺,是否thenable,已兑现#操作链承诺、可等待判定与立刻兑现
-from llm import 创建用户消息#把策略切换通知注入下一步
-from scope import 作用域目标#按智能体过滤的瀑布载体
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验
+服务=cordis.服务#Cordis 服务基类
+承诺=cordis.工具.承诺#操作链承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+已兑现=cordis.工具.已兑现#立刻兑现
+from ..llm import 创建用户消息#把策略切换通知注入下一步
+from ..作用域 import 作用域目标#按智能体过滤的瀑布载体
 from .类型 import 审批请求标识,审批结果#再导出线路安全标识与结果
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '名称','结果表','审批策略','审批策略表','永不句','询问句','配置模式',
+    '取字段','解开','信号已中止','生效审批策略','有打开回合','设审批策略',
+    '审批请求','审批服务','审批请求标识','审批结果','默认',
+]#公开面结束
 
 名称='user-approval'#Cordis 插件名（包目录用下划线，插件名保留上游连字符）
 name=名称#Cordis 插件名

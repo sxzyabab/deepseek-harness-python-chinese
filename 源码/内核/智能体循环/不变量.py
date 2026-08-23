@@ -1,8 +1,9 @@
 """循环构建的 LLM 调用的包内请求重建不变量。"""
 import json#JSON
-from llm import 是否循环请求,是否冻结#循环请求判定与冻结判定
-from session import 折叠请求头#请求头折叠
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ..llm import 是否循环请求,是否冻结#循环请求判定与冻结判定
+from ..会话 import 折叠请求头#请求头折叠
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from .辅助 import 取#读字段
 
 包名='@deepseek-ai/dsh-agent-loop'#本包名

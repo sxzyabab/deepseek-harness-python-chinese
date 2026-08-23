@@ -1,7 +1,7 @@
 """可变的加载器条目树。持久化由子类提供。"""
 import random
 from urllib.parse import urljoin as 拼接网址#按基准网址解析相对说明符
-import cordis
+from ... import cordis
 from .组 import 条目组#根组
 
 未传=object()#区分"没传父组"与"传了空表示根组"

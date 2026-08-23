@@ -1,5 +1,6 @@
 """本包拥有的持久目标流不变量。"""
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from .折叠 import 应用目标事件,空目标折叠状态#严格折叠步进与空累加器
 
 包名='@deepseek-ai/dsh-goal'#本包的不变量所有权名

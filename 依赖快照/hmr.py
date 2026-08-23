@@ -1,8 +1,8 @@
 """监视源文件并热替换受影响的插件。"""
 import errno,os,sys,threading,weakref
 from urllib.parse import urlparse as 解析网址,unquote as 解百分号,urljoin as 拼接网址
-from cordis import 服务
-from schemastery import 模式
+from .cordis import 服务
+from .schemastery import 模式
 
 轮询间隔秒=0.1#文件监视的轮询间隔
 

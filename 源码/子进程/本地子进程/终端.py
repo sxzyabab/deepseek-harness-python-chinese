@@ -4,7 +4,8 @@
 本文件不规范路径、不调用 realpath：对照 TS terminal.ts，无 realpathSync.native；cwd/路径拼写由启动方规格原样持有，禁止在此加 TS 没有的路径回落。
 """
 import signal,threading,time#信号名反查、拆除线程与宽限短睡
-from cordis.工具 import 承诺#done 与 terminate 清理承诺
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#done 与 terminate 清理承诺
 
 __all__=('贯通流','本地终端句柄')#仅中文公开名
 

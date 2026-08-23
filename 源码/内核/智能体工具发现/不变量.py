@@ -4,7 +4,8 @@
 
 无运行时不变量：本包只对 `ctx.tools` 做一次作用域调用，自身不拥有事件或快照；它建立的关系——某个 Agent 组装使用哪种展示——由工具注册表持有，并由 `dsh-tools` 在那里观察。
 """
-from cordis.工具 import 已兑现#导入立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-agent-tool-presentation'#本包名（登记到 invariants 的所有权键）
 名称='tool-presentation-invariant'#配套插件名（字面量对齐上游）

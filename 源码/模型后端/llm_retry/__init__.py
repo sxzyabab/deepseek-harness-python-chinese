@@ -3,9 +3,12 @@
 对齐上游 `llm-retry/src/index.ts`。公开面仅中文名。每次调度的重试在其可取消等待之前持久化。
 """
 import json,math,random,threading,uuid#标准库
-import llm#语言模型失败事实与中止信号
-from schemastery import 模式#导入配置校验库
-from cordis.工具 import 承诺,已兑现,是否thenable#导入可等待结果
+from .. import llm#语言模型失败事实与中止信号
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+承诺=cordis.工具.承诺#承诺
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .品牌 import 重试身份#导入重试链身份
 from .类型 import 取,试取#读取字段
 

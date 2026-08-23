@@ -1,11 +1,14 @@
 """建议性的按智能体重复调用检测器。它用已记录的模型上下文丰富后执行决策，既不否决也不改写调用。配置与链语义见包 README；理由见 repeat-tool-reminder Agent Note。"""
 import json,re,weakref#JSON规范串、通配正则与按智能体弱表
-from schemastery import 模式#导入schemastery配置校验
-from llm import 创建用户消息#构造提醒用户消息
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入schemastery配置校验
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...模型后端.llm import 创建用户消息#构造提醒用户消息
 
 名称='repeat-tool-reminder'#loader诊断所用的Cordis插件名
 name=名称#Cordis插件名
+
+__all__=['名称','配置模式','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
 配置模式=模式.对象({#插件配置：同名 schema 加 apply 里的加载时检查（错误配置大声失败）
     'thresholds':模式.数组(模式.数字()).默认([3,5,8]),#触发提醒的连续重复次数

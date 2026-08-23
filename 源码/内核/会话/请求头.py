@@ -1,6 +1,6 @@
 """针对完整 request/header 会话事件的请求头重建工具。对齐上游 `session/src/request-header.ts`。公开面仅中文名。"""
 import json#JSON
-from llm.调用配置 import 调用配置相等#导入调用配置相等比较
+from ..llm.调用配置 import 调用配置相等#导入调用配置相等比较
 
 __all__=['归一请求头','请求头是否相等','折叠请求头']#仅中文公开名
 

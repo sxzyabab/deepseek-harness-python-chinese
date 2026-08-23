@@ -3,9 +3,10 @@
 对齐上游 `mcp-client/src/index.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。本包不提供默认导出。
 """
 import re,weakref#服务器名模式与根上下文到已占用名
-from schemastery import 模式#配置模式
-from timeout import 定时器延迟上限毫秒#定时器延迟上限
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .连接 import 重连默认值,解析重连策略,启动连接#重连与监督
 from .工具 import 公开工具名,同步工具,MCP结果#工具桥接再导出
 

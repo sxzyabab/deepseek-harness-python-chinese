@@ -4,7 +4,7 @@
 """
 import json,re#JSON 与形态校验
 from urllib.parse import urljoin#拼基址
-from apiproxy.接口 import Rpc标识,服务端响应模式#RPC id 与响应模式
+from ....host.apiproxy.接口 import Rpc标识,服务端响应模式#RPC id 与响应模式
 from .随机uuid import 随机uuid#浏览器 UUID
 
 __all__=['创建网页连接rpc']#仅中文公开名

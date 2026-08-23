@@ -3,14 +3,14 @@ import errno,json,os,re,threading,time
 from urllib.parse import urljoin as 拼接网址,urlparse as 解析网址,unquote as 解百分号
 from urllib.request import pathname2url as 路径转网址片段,url2pathname as 网址片段转路径
 import yaml
-from loader import (
+from .loader import (
     条目树,#嵌套配置文件的树基类
     标记为组插件,#把本插件登记成组载体
     是否表达式节点,#配置表达式节点判定
     表达式键,#配置表达式的键名
 )
-from cordis import 服务#服务标记
-from cosmokit import 克隆#深克隆条目列表
+from .cordis import 服务#服务标记
+from .cosmokit import 克隆#深克隆条目列表
 
 js标签='tag:yaml.org,2002:js'#YAML !!js 的完整标签
 扩展名到媒体类型={'.json':'application/json','.yaml':'application/yaml','.yml':'application/yaml'}#可写扩展名

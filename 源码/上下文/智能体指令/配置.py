@@ -1,7 +1,10 @@
 """工作区指令发现与渲染的配置归一化。"""
 import json,os#序列化身份与相对路径
-from schemastery import 模式#导入配置校验
-from home_paths import 解析主目录#导入harness家目录解析
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置校验
+from ..工作区路径 import 解析主目录#导入harness家目录解析
+
+__all__=['配置','解析配置','工作区基线身份','默认项目根标记','默认指令文件候选','默认本地指令文件候选','默认单源字节']#公开面
 
 默认项目根标记=('.git',)#默认项目根标记
 默认指令文件候选=('AGENTS.md','CLAUDE.md')#默认同目录基线候选

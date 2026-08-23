@@ -10,7 +10,9 @@ RPC 走登记时捕获的插件根上下文连接。目录拉取按会话缓存�
 对齐上游 `ui-skill/src/client/index.ts`。公开面仅中文名。
 SkillRow 像素半硬缺口跳过；逻辑行从父包 `技能行` 接线。
 """
-from cordis.工具 import 已兑现,是否thenable#承诺与可等待判定
+from ....依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ..技能行 import 技能行#技能工具行（跳过 SkillRow.tsx；用父包厚叶）
 

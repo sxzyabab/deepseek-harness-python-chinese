@@ -4,12 +4,12 @@
 类型与运行时协议辅助来自 apiproxy 的 api 层（零 Node 依赖，浏览器安全）；
 抽象接口客户端是客户端边界。绝不要导入包根：那会把 bootHost/cordis 拖进浏览器打包。
 """
-from apiproxy.接口 import (#网关 api 层再导出
+from ....host.apiproxy.接口 import (#网关 api 层再导出
     Rpc标识 as RpcId,#品牌化 RPC id
     会话搜索结果上限 as SESSION_SEARCH_RESULT_LIMIT,#会话搜索结果上限
     传输错误 as transportError,#传输错误工厂
 )#结束网关导入
-from apiproxy.客户端 import (#客户端边界
+from ....host.apiproxy.客户端 import (#客户端边界
     抽象接口客户端 as AbstractApiClient,#抽象 API 客户端
     接口客户端协议 as IApiClient,#客户端接口
 )#结束客户端导入

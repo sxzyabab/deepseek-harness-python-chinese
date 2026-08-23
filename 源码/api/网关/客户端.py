@@ -3,8 +3,9 @@
 对齐上游 `api/gateway/src/client/index.ts`。公开面仅中文名。
 贡献安装带追踪的 remote.<namespace> 服务；方法查找、调用与类型暴露都不走 Proxy。
 """
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=[#仅中文公开名
     '注入','应用','客户端远程服务','远程命名空间服务',
@@ -454,7 +455,7 @@ class 客户端远程服务(服务):#客户端远程服务
 
 def 已兑现空():#空已兑现承诺锚点
     """用于串行队列初值。"""
-    from cordis.工具 import 已兑现#延迟导入
+    已兑现=cordis.工具.已兑现#延迟导入
     return 已兑现(None)#空值
 
 def 中止控制器():#简易中止控制器

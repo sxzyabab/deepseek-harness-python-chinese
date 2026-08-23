@@ -2,7 +2,7 @@
 
 对齐上游 `web-app/src/startup.ts`。公开面仅中文名。
 """
-from cmdline import 命令,解析命令行#命令行解析
+from ...启动.cmdline import 命令,解析命令行#命令行解析
 from . import 网页启动服务键#启动服务键
 
 __all__=['名称','注入','网页启动服务键','应用']#仅中文公开名

@@ -1,5 +1,5 @@
 """面向模型的整文件写入。它从单策略槽取得可选意图，不经 stat 调用 ctx.fs.writeText，然后记录结果版本；没有策略表示无条件原子创建或覆盖。对齐上游 tool-fs/src/write.ts。"""
-from tools import 定义工具#导入工具定义
+from ...内核.工具 import 定义工具#导入工具定义
 from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
 from .错误 import 补救文件系统错误#导入模型边界错误补救
 from .会话工作目录 import 会话解析选项#导入会话cwd解析选项

@@ -5,7 +5,8 @@
 无运行时不变量：工具组合仅在浏览器中运行，不贡献事件或跨插件可变状态；
 槽位所有权由 ui-slots 检查。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-tool'#本包的不变量所有权名
 名称='client-ui-tool-invariant'#配套不变量插件名（字面量）

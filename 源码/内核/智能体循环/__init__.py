@@ -1,12 +1,15 @@
 """具体 agent-loop 插件：铸造带作用域的循环智能体，经 agent/session 注册表发表它们，并拥有其有序拆除。"""
 import uuid,threading#随机身份与工作线程
-from cordis import 服务,光纤状态#服务基类与光纤状态
-from cordis.工具 import 是否thenable,承诺#可等待判定与承诺
-from schemastery import 模式#配置模式库
-from agent import 发出智能体事件#按作用域发出 Agent 事件
-from llm import 错误链#把未知错误链成日志串
-from settings import 安装设置段落,设置命名空间#设置段安装与命名空间
-from session import 会话标识,会话准备#会话 id 与准备句柄
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#服务基类
+光纤状态=cordis.纤程状态#光纤/纤程状态
+是否thenable=cordis.工具.是否thenable#可等待判定
+承诺=cordis.工具.承诺#承诺
+模式=schemastery.模式#配置模式库
+from ..智能体 import 发出智能体事件#按作用域发出 Agent 事件
+from ..llm import 错误链#把未知错误链成日志串
+from ..配置 import 安装设置段落,设置命名空间#设置段安装与命名空间
+from ..会话 import 会话标识,会话准备#会话 id 与准备句柄
 from .智能体 import 循环智能体#具体循环驱动
 from .常量 import 默认最大并行工具调用,安全整数上限#默认并行上限与安全整数
 from .辅助 import (

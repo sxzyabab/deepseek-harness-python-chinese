@@ -3,7 +3,7 @@
 对齐上游 `agent-presets/src/metadata.ts`。公开面仅中文名。
 """
 import os#路径拼接
-import yaml#YAML 解析与转储
+from ...依赖 import yaml#外部依赖胶水（PyYAML）
 
 __all__=['元数据文件','读预设元数据','渲染预设元数据']#仅中文公开名
 

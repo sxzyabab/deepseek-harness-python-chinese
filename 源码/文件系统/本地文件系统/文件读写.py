@@ -5,7 +5,7 @@ import uuid#暂存目录唯一名
 import stat#文件类型位判定
 import shutil#递归删除暂存
 import codecs#增量 UTF-8 解码
-import fs#文件系统错误与品牌
+from .. import 文件系统 as fs#文件系统错误与品牌
 from .win32 import 复制文件Dacl,替换文件#Windows DACL 复制与替换
 
 二进制采样字节=8192#二进制探测采样字节数

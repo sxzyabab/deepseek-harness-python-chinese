@@ -2,7 +2,7 @@
 
 对齐上游 `headless/src/startup.ts`。公开面仅中文名。
 """
-from cmdline import 命令,解析命令行#命令行解析
+from ...启动.cmdline import 命令,解析命令行#命令行解析
 
 __all__=['名称','注入','无头启动服务键','应用']#仅中文公开名
 

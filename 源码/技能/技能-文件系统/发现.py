@@ -1,13 +1,13 @@
 """本地技能根发现与技能文件解析。"""
 import os,re,stat#路径、正则与文件状态
-import yaml#解析YAML frontmatter
-from home_paths import (#共用家目录与监视路径，禁止本包内联假实现
+from ...依赖 import yaml#外部依赖胶水（PyYAML）
+from ...工具.工作区路径 import (#共用家目录与监视路径，禁止本包内联假实现
     规范化监视路径,#监视路径规范化
     解析主目录,#解析 dsh 家目录
     有错误码,#ENOENT/ENOTDIR 判定
     主目录名,#默认 .dsh 名
     主目录环境键,#DSH_HOME
-)#home_paths 权威实现
+)#工作区路径权威实现
 
 技能名正则=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')#公开技能名：kebab-case
 捆绑技能排名=600#打包技能提供方与本地捆绑根的标准优先排名

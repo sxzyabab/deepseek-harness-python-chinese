@@ -4,9 +4,9 @@
 中止信号公开面为已中止/原因；中止控制器公开面为信号/中止。对接上游 AbortSignal 时只在读取函数内认英文键。
 """
 import threading#工作线程
-import llm#语言模型服务
-import pi_ai#pi-ai SDK
-from timeout import 空闲看门狗,取超时#空闲看门狗与超时判定
+from .. import llm#语言模型服务
+from ...依赖 import pi_ai#外部依赖胶水（pi-ai SDK）
+from ..超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .上下文 import 转派上下文#上下文转换
 from .流 import 转流块#事件翻译
 

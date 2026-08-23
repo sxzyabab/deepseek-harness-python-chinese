@@ -1,8 +1,12 @@
 """第一方后端共用的缓冲、序列化、收养、修复与拆除编排。第三方后端可直接实现公开持久化接缝。"""
 import json,math,threading#JSON相等、安全整数、后台串行链
-from cordis import 聚合错误#拆除多失败聚合
-from cordis.工具 import 承诺,已兑现,是否thenable,有自有#承诺链与自有键
-from session import (#会话包运行时原语
+from ...依赖 import cordis#外部依赖胶水
+聚合错误=cordis.工具.聚合错误#拆除多失败聚合
+承诺=cordis.工具.承诺#承诺
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+有自有=cordis.工具.有自有#自有键
+from ..会话 import (#会话包运行时原语
     收养会话事件,#收养会话事件
     中断轮次关闭器,#被打断回合的合成关闭事件
     已知会话事件类型,#本构建认识的事件类型
@@ -11,8 +15,8 @@ from session import (#会话包运行时原语
     快照json值,#JSON无损快照
     快照会话事件,#事件快照
 )#从会话包导入
-from timeout import 定时器延迟上限毫秒#导入定时器上限
-from llm import 结构化克隆#深拷贝
+from ..超时 import 定时器延迟上限毫秒#导入定时器上限
+from ..llm import 结构化克隆#深拷贝
 from .预备 import 会话预备池,观察排队取消#取消观察与预备池
 from .写后 import 会话写后#写后控制器
 

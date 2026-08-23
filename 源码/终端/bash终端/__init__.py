@@ -1,8 +1,10 @@
 """持久 shell PTY 后端，叠在子进程终端原语、共享沙盒策略、有界输出与提供方拥有的会话清理之上。"""
 import threading,weakref#中止竞态与按所有者栅栏
-from cordis.工具 import 承诺,是否thenable#结算承诺与可等待判定
-from terminal import 终端后端清理错误#搭建清理双失败
-from sandbox_policy import 生效沙盒模式#有效沙盒模式
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#结算承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..终端 import 终端后端清理错误#搭建清理双失败
+from ..沙盒策略 import 生效沙盒模式#有效沙盒模式
 from .配置 import 配置,校验配置#配置模式与校验
 from .会话 import 本地PTY会话#本地PTY会话
 from .清洗 import 受控提示符#受控提示符
@@ -212,3 +214,5 @@ def 应用(上下文对象,配置值):#注册本地PTY后端
 
 apply=应用#Cordis插件入口
 default=应用#默认导出
+
+__all__=['名称','注入','应用','配置','Config','name','inject','apply','default']#公开面

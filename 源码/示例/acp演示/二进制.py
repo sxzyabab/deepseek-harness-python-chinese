@@ -5,8 +5,9 @@
 EOF 拆除并 flush 快照运行；调用方自动化拥有进程寿命。stdout 留给 JSON-RPC，诊断只走 stderr。
 """
 import os,sys,argparse,threading#环境、进程、参数与 EOF 监视
-from app_boot import 启动,安装大声失败,加载环境,解析配置路径#启动粘合层
-from cordis.工具 import 是否thenable#可等待
+from ...启动.app启动 import 启动,安装大声失败,加载环境,解析配置路径#启动粘合层
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待
 
 名称='dsh-acp-demo'#二进制诊断名前缀
 

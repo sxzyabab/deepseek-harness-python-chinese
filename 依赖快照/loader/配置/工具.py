@@ -1,5 +1,5 @@
 """加载器配置里的表达式求值与插值。"""
-from cosmokit import 字典值转换#批量变换映射的值
+from ...cosmokit import 字典值转换#批量变换映射的值
 
 表达式键='__jsExpr'#序列化后的表达式节点上存放源码的键
 

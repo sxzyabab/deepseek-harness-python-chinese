@@ -5,8 +5,8 @@
 import os#路径
 import shutil#复制与删除
 import stat as 状态模组#权限位
-from atomic_write import 原子写文件#原子写文件
-from home_paths import 展开家目录路径#展开 ~
+from ..原子写入 import 原子写文件#原子写文件
+from ..工作区路径 import 展开家目录路径#展开 ~
 from .元数据 import 元数据文件,渲染预设元数据#元数据
 from .预设 import 预设标识规则#id 文法
 

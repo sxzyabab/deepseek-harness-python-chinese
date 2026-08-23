@@ -1,7 +1,8 @@
 """两种子智能体形态的生命周期边发布：带隔离的发射器、一次性跑观察者、可续跑 Activation 观察者。公开载荷约定与缝的其余面向消费方类型一起放在类型模块；本模块只拥有实现，以及续跑管理器消费的包私有 ActivationObserver。"""
 import uuid#随机uuid
-from cordis.工具 import 是否thenable#可等待判定
-from agent import 折叠已消费工作#导入已消费工作折叠
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.智能体 import 折叠已消费工作#导入已消费工作折叠
 from .助手输出 import 最终助手输出#导入最终助手输出选取
 from .类型 import 子智能体跑标识#导入跑id品牌构造
 

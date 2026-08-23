@@ -1,10 +1,12 @@
 """设置编辑器背后的 schema 内省与草稿编辑辅助。
 
-序列化的 schemastery 信封（`schema.toJSON()`）再水合成活动校验器，编辑器探测其节点关系（`dict`/`inner`）以判断字段存在与角色；草稿按路径不可变编辑。
+`转JSON` 的纯数据模式树再水合成活动校验器，编辑器沿它的节点关系（`字段表`/`内层`）判断字段存在与角色；草稿按路径不可变编辑。
 
 对齐上游 `schema-form/src/model.ts`。公开面仅中文名。
 """
-from schemastery import 模式#导入 schemastery 校验器
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#校验器
+路径上节点=schemastery.路径上节点#模式树下降
 
 __all__=[#仅中文公开名
     '模式节点',
@@ -20,8 +22,8 @@ __all__=[#仅中文公开名
 模式节点=模式#活动 schemastery 节点；渲染器只读其结构关系
 
 def 再水合模式(序列化):#再水合序列化 schema
-    """把序列化的 schema 信封再水合成活动校验器/节点树。"""
-    return 模式(序列化)#用信封构造活动节点树
+    """把序列化的纯数据模式树再水合成活动校验器/节点树。"""
+    return 模式.从JSON(序列化)#从纯数据重建活动节点树
 
 def 校验草稿(模式节点值,草稿):#校验草稿
     """用再水合后的 schema 校验一份草稿；通过返回 None，失败返回消息。"""
@@ -30,22 +32,6 @@ def 校验草稿(模式节点值,草稿):#校验草稿
         return None#通过则无失败消息
     except Exception as 错误:#校验抛错
         return str(错误)#取出失败消息
-
-def 路径上节点(根,路径):#按路径解析节点
-    """按设置路径解析 schema 节点；无法解析的段返回 None。"""
-    节点=根#从根开始走
-    for 键 in 路径:#逐段下降
-        if 节点 is None:#中间断了就停
-            return None#无法继续
-        类型=getattr(节点,'type',None)#节点类型
-        if 类型=='object':#对象按属性名取
-            字典=getattr(节点,'dict',None)#属性表
-            节点=None if 字典 is None else 字典.get(键)#取属性
-        elif 类型=='dict' or 类型=='array':#dict/array 走 inner
-            节点=getattr(节点,'inner',None)#内层节点
-        else:#其它类型无法继续
-            return None#停
-    return 节点#返回落到的节点
 
 def 取路径(值,路径):#按路径取值
     """按路径读取嵌套值；缺失分支为 None。"""

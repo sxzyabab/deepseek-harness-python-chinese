@@ -3,9 +3,9 @@
 对齐上游 `llm-pi-ai/src/index.ts`。公开面仅中文名；无英文别名。
 一个插件实例拥有一份提供方路由字典；点名已安装 pi-ai 提供方的路由继承该提供方的端点、协议与模型目录作为默认，pi-ai 没有运来的路由则直接声明。
 """
-import llm#语言模型服务
-from launch_environment import 取启动环境#启动环境快照
-from settings import json深度相等,安装设置段,设置命名空间#JSON 相等、设置段安装与命名空间
+from .. import llm#语言模型服务
+from ..启动环境 import 取启动环境#启动环境快照
+from ..配置 import json深度相等,安装设置段,设置命名空间#JSON 相等、设置段安装与命名空间
 from .适配器 import 派爱适配器#适配器类
 from .目录 import 目录提供方标识列表,目录提供方接受密钥#目录路由与密钥方法判定
 from .配置 import 配置模式,断言可服务,解析配置表#配置模式、可服务断言与解析

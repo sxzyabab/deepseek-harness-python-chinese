@@ -4,7 +4,8 @@
 
 无运行时不变量：装饰器保留私有不可变声明，绑定是冻结值，没有可交叉核对的独立事件流。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-typert-protocol'#本包的不变量所有权名
 名称='typert-protocol-invariant'#配套不变量插件名（字面量）

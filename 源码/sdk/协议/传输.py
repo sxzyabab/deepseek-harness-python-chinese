@@ -3,7 +3,9 @@
 对齐上游 `sdk/protocol/src/transport.ts`。公开面仅中文名。带 id 与 method 的帧是请求，只有 id 的是响应，只有 method 的是通知。畸形行忽略；处理失败变成错误帧。
 """
 import json,threading,uuid#JSON、互斥与请求 id
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['JSONRPC响应错误','JSONRPC传输对等端','换行JSONRPC传输']#仅中文公开名
 

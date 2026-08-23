@@ -3,7 +3,6 @@
 本模块拥有启动器 CLI 约定，使消费方不必自行拼写标志或解析启动器输出。政策（沙箱模式）仍属消费方：本包只知道哪些路径被授予读或写。本树尚未迁入 native/landlock-run，因此入口缝落在 sandbox_local 内；日后独立包迁入后可由该包替换。
 """
 import os,re,subprocess,sys#路径、探测报告正则、同步探测与平台/架构
-from pathlib import Path#入口模块目录
 
 启动器二进制名='landlock-run'#平台包 bin/ 下的启动器文件名
 启动器失败退出=125#每次启动器级失败的退出码（约定的一部分）
@@ -53,7 +52,7 @@ def 启动器路径(解析包清单=None):#本宿主启动器绝对路径
         except Exception:#不可解析；只有解析失败能到这里
             pass#落入固定回落路径
     #固定回落：落在本入口包边界内，永不相对 cwd
-    return str(Path(__file__).resolve().parent/'node_modules'/平台包/'bin'/启动器二进制名)#可能不存在
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),'node_modules',平台包,'bin',启动器二进制名)#可能不存在
 
 def 授权参数(授权):#构建 --ro/--rw argv
     """为一组文件系统授权构建启动器参数（`--` 分隔符之前）。调用方 spawn `[启动器路径(), ...授权参数(授权), '--', ...命令]`。"""

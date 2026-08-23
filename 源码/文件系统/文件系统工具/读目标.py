@@ -1,5 +1,5 @@
 """面向模型的读工具共享的路径解析与普通文件校验。对齐上游 tool-fs/src/read-target.ts。"""
-import fs#文件系统服务定义
+from .. import 文件系统 as fs#文件系统服务定义
 from .会话工作目录 import 会话解析选项#导入会话cwd解析选项
 from .辅助 import 取字段,试取,解开#字段读取与承诺展开
 

@@ -1,7 +1,8 @@
 """一个精确根智能体的可拆除在线计时器投影。"""
 import threading,time#计时器与墙钟
-from cordis.工具 import 是否thenable#可等待判定
-from llm import 创建用户消息#用户消息构造
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..llm import 创建用户消息#用户消息构造
 from .领域 import (
     折叠日程事件,#折叠事件流
     渲染固定频率提醒批次成帧,#渲染固定频率批次

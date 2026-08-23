@@ -1,6 +1,8 @@
 """跟踪发出型、没有扩展点等待的钩子运行的静止。桥接层跟踪运行及其后续，把跟踪器信号传入执行，并在拆除时排空，使进程或迟到回调不会活过该 fiber。"""
 import threading#后台盯落地
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 分离运行=dict#一座桥的分离钩子运行登记（运行时为跟踪器对象）
 

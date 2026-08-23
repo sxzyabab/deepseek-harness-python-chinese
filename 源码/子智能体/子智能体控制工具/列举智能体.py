@@ -3,9 +3,11 @@
 对齐上游 `tool-subagent-control/src/list-agents.ts`。公开面仅中文名。
 """
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from tools import 定义工具#导入工具定义
-from llm import 断言永不#导入穷尽检查
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#导入工具定义
+from ...模型后端.llm import 断言永不#导入穷尽检查
 
 名称='tool-subagent-list-agents'#Cordis插件名
 注入=['tools','subagents','agents']#依赖工具、子智能体与智能体注册表

@@ -1,12 +1,19 @@
 """面向人类的 /compact 命令，走与后端无关的压缩 seam。"""
-from cordis.工具 import 承诺,是否thenable#操作链承诺与可等待判定
-from compaction import 手动压缩错误#手动压缩预期失败
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#操作链承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..压缩 import 手动压缩错误#手动压缩预期失败
 
 名称='command-compact'#Cordis插件名
 注入=['commands','compaction']#依赖commands与compaction服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 用法='Usage: /compact (no arguments)'#用法提示文案
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '名称','注入','用法','取字段','解开','信号已中止','应用','默认',
+]#公开面结束
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
     if 对象 is None:#空对象

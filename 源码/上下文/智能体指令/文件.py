@@ -1,6 +1,6 @@
 """指令文件发现，以及带上限、可中止的提供方读取。"""
 import errno,os,stat#路径、错误码与文件类型
-from home_paths import 主目录展示#导入家目录展示路径
+from ..工作区路径 import 主目录展示#导入家目录展示路径
 from .配置 import 解析配置,解析发现配置#导入配置解析
 from .摘要 import 去空白指令摘要#导入去空白摘要
 from .渲染 import (

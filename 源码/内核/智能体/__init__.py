@@ -5,9 +5,16 @@
 """
 import threading#线程本地存储与后台观察
 from typing import NotRequired,TypedDict#结构类型
-from cordis import 服务,光纤状态#服务基类与光纤状态
-from cordis.工具 import 取可追踪,符号,是否thenable,承诺,取符号,可追踪包装#可追踪、符号与承诺
-from scope import 作用域目标#作用域载体构造
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#服务基类
+光纤状态=cordis.纤程状态#光纤/纤程状态
+取可追踪=cordis.工具.取可追踪#可追踪
+符号=cordis.工具.符号#符号
+是否thenable=cordis.工具.是否thenable#可等待
+承诺=cordis.工具.承诺#承诺
+取符号=cordis.工具.取符号#取符号
+可追踪包装=cordis.工具.可追踪包装#可追踪包装
+from ..作用域 import 作用域目标#作用域载体构造
 from .运行时类型 import *#再导出运行时类型（含智能体取消原因）
 from .类型 import *#再导出可持久化类型
 from .收件箱 import 收件箱,收件箱通知口#再导出收件箱

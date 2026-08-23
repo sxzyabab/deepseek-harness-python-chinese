@@ -2,7 +2,8 @@
 
 对齐上游 `runtime/src/client/conversation/definition-registry.ts`。公开面仅中文名。
 """
-from cordis.服务 import 服务#Cordis 服务基类
+from ....依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 
 __all__=['会话定义注册表']#仅中文公开名
 

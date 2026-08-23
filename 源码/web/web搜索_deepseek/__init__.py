@@ -1,9 +1,10 @@
 """在 ctx.web 注册 DeepSeek 后端提供方。它调用带原生 web_search_20250305 的 Anthropic 兼容 Messages API。提供方复用 DEEPSEEK_API_KEY 但不复用 DEEPSEEK_BASE_URL，因为搜索与 chat-completions 使用不同基址。"""
-from schemastery import 模式#配置校验
-from credentials import 凭证引用#凭证引用工厂
-from settings import 安装设置段,设置命名空间#设置段安装与命名空间
-from launch_environment import 取启动环境#启动环境快照
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..凭据 import 凭证引用#凭证引用工厂
+from ..配置 import 安装设置段,设置命名空间#设置段安装与命名空间
+from ..启动环境 import 取启动环境#启动环境快照
 from .提供方 import (
     DeepSeek搜索提供方,#DeepSeek 搜索提供方类
     默认接口版本,#默认 anthropic-version
@@ -15,6 +16,8 @@ from .提供方 import (
     引用摘要映射,#从 citation 抽摘要
     映射人机响应,#响应映射
 )#提供方实现
+
+__all__=['名称','注入','应用','配置模式','Config','name','inject']#公开面
 
 默认密钥环境='DEEPSEEK_API_KEY'#默认密钥环境变量名
 搜索基址环境='DEEPSEEK_SEARCH_BASE_URL'#命名本提供方端点的环境变量；有意区别于 chat-completions 的 DEEPSEEK_BASE_URL

@@ -1,7 +1,7 @@
 """面向模型的 read_image 工具：读取 PNG/JPEG/WebP/GIF 文件，经附件服务持久提交其字节（与用户上传图像同一生命周期），并返回图像块，使图像从下一请求起进入模型上下文。路由门控有意比宿主上传预检更严：工具结果进入持久会话历史，因此在无法承载图像的路由上发出图像会破坏该路由的续写；能力未知时因此拒绝，而不是依赖适配器守卫。对齐上游 tool-fs/src/read-image.ts。"""
-from attachment import 附件错误,附件标识#导入附件错误与附件id品牌
-from llm import 创建用户消息#导入用户消息构造
-from tools import 定义工具#导入工具定义
+from ...附件.附件 import 附件错误,附件标识#导入附件错误与附件id品牌
+from ...模型后端.llm import 创建用户消息#导入用户消息构造
+from ...内核.工具 import 定义工具#导入工具定义
 from .读目标 import 解析普通读目标#导入普通文件目标解析
 from .辅助 import 取字段,试取,解开#字段读取与承诺展开
 

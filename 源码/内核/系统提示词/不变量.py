@@ -1,6 +1,8 @@
 """系统提示词组装的包内不变量。对齐上游 `@deepseek-ai/dsh-system-prompt/invariant`。公开面仅中文名；Cordis 加载槽 `name` / `inject` / `apply` 为协议兼容别名。"""
 import json,re#json 与正则
-from cordis.工具 import 是否thenable,已兑现#可等待判定与立刻兑现
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+已兑现=cordis.工具.已兑现#立刻兑现
 
 包名='@deepseek-ai/dsh-system-prompt'#本包名（登记到 invariants 的所有权键）
 变量名规则=re.compile(r'^[a-z][a-z0-9_]*$')#与根模块相同的合法变量名

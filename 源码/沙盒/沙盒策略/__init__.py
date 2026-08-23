@@ -4,9 +4,10 @@
 """
 import json#工作区根写入模型可见字面量
 import os#进程 cwd 回落
-from cordis import 服务#导入 Cordis 服务基类
-from schemastery import 模式#导入配置校验库
-from sandbox import 规范路径#导入规范路径
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+模式=schemastery.模式#配置校验库
+from ..沙盒 import 规范路径#导入规范路径
 from .会话模式 import (#覆盖套件
     沙盒模式表,#合法模式表
     生效沙盒模式,#折叠
@@ -113,3 +114,9 @@ class 沙箱政策服务(服务):#沙箱政策服务（ctx.sandboxPolicy）
 
 default=沙箱政策服务#Cordis 默认导出
 默认=沙箱政策服务#中文默认导出
+
+__all__=[#公开面
+    '名称','name','配置模式','Config','沙箱政策服务','沙箱政策请求字段',
+    '生效沙盒模式','设沙盒模式','沙盒模式表','解析工作区根','渲染政策上下文',
+    '默认','default',
+]#结束

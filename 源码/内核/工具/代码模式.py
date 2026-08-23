@@ -1,8 +1,10 @@
 """Code Mode 的 run_code 传输。程序经嵌套执行调用注册表里该智能体可见的工具。对齐上游 `tools/src/code-mode.ts`。公开面仅中文名。"""
 import json,threading
-from llm import 调用标识,装备错误 as 框架错误#导入调用 id 与框架错误
-from session import 快照json值#导入无损 JSON 快照
-from cordis.工具 import 承诺,是否thenable#可等待结果
+from ..llm import 调用标识,装备错误 as 框架错误#导入调用 id 与框架错误
+from ..会话 import 快照json值#导入无损 JSON 快照
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待结果
 from .模式 import 定义工具,参数模式规格转json模式#导入工具定义器与参数编译
 
 __all__=(

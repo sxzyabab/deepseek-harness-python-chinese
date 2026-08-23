@@ -2,7 +2,8 @@
 
 对齐上游 `ui-workspace/src/client/index.ts`。公开面仅中文名。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ....依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
 from .树 import (#再导出树派生

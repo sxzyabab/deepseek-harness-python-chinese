@@ -1,6 +1,6 @@
 """动态运行时上下文的可持久化投影状态。"""
-from llm import 创建用户消息
-from session import 是否替换表面事件
+from ..llm import 创建用户消息
+from ..会话 import 是否替换表面事件
 from .辅助 import 取
 
 源='@deepseek-ai/dsh-system-prompt'#本投影归属的插件源

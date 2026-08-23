@@ -3,8 +3,9 @@
 对齐上游 `connection/src/rpc-host.ts`。公开面仅中文名。
 """
 import json,re#JSON 与通道名校验
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .http桥 import 桥接#HTTP 桥
 from .接口请求信任 import 是否受信任接口请求#请求信任闸
 from .接口路径 import 接口路径#/api 路径常量

@@ -3,7 +3,8 @@
 对齐上游 `拓展/cordis-client-runner/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：所拥有的关系是浏览器侧状态，Node 面配套看不到。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-cordis-client-runner'#本包的不变量所有权名
 名称='cordis-client-runner-invariant'#配套不变量插件名（字面量）

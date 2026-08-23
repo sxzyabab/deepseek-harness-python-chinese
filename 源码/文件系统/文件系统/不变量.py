@@ -1,11 +1,14 @@
 """本包拥有的文件系统事件数据不变量。"""
-from cordis.工具 import 已兑现#立刻兑现的拆除器承诺
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器承诺
 
 包名='@deepseek-ai/dsh-fs'#本包的不变量所有权名
 名称='fs-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
+
+__all__=['包名','名称','注入','安装','应用']#仅中文公开名
 
 def 取字段(对象,键):#读取映射或对象上的字段
     """读取映射或对象上的字段。"""

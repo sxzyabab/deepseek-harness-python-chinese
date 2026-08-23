@@ -1,9 +1,11 @@
 """一次工作流运行的宿主侧。第一份 worker 结果、意外死亡、或取消宽限到期拥有结算权并关闭消息准入。待启动项共享一条中止信号；已发布的子运行共享幂等清理，静止等待两者，并对缺失的结束事件做合成。"""
 import os,queue,tempfile,threading,time#平台、队列、临时目录、线程与宽限睡眠
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
-from llm import 断言永不#穷尽检查
-from session import 快照json值#JSON 无损快照
-from workflow.运行时类型 import 工作流运行#存活运行协议
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...模型后端.llm import 断言永不#穷尽检查
+from ...内核.会话 import 快照json值#JSON 无损快照
+from ..工作流.运行时类型 import 工作流运行#存活运行协议
 from .领域 import 渲染抛出#抛出值渲染
 from .协议 import 宿主到工人类型,工人到宿主类型#双向消息标签
 from .会话 import 跑工人会话#worker 侧会话

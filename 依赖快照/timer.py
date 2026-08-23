@@ -1,6 +1,6 @@
 """随纤程生命周期一起拆除的定时器服务。"""
 import threading
-import cordis
+from . import cordis
 
 class 定时器服务(cordis.服务):
     """混入上下文的定时辅助，登记的定时器随纤程拆除一并取消。"""

@@ -1,11 +1,12 @@
 """面向模型的 `str_replace_editor`，建立在 Harness 文件系统 seam 上。"""
 import os#绝对路径判断
 from functools import cmp_to_key#目录列举排序对齐上游比较器
-from schemastery import 模式#导入配置校验库
-from tools import 定义工具#导入工具定义器
-from fs import 文件系统错误#导入文件系统错误
-from sandbox import 沙箱拒绝标记#导入沙箱拒绝标记文案
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置校验库
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#导入工具定义器
+from ..文件系统 import 文件系统错误#导入文件系统错误
+from ...沙盒.沙盒 import 沙箱拒绝标记#导入沙箱拒绝标记文案
 
 __all__=(#仅中文公开名
     '名称','注入','截断消息','默认描述','配置','安全整数上限',

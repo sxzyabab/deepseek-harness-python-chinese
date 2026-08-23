@@ -4,10 +4,11 @@
 内置 shell 事实由注册表自身拥有，插件可以注册额外的、可枚举事实，并随 effect 拆除。
 """
 import re#环境键后缀校验
-from cordis import 服务#Cordis服务基类
-from schemastery import 模式#配置校验库
-from shell import 托管环境前缀#DSH_前缀
-from home_paths import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#Cordis服务基类
+模式=schemastery.模式#配置校验库
+from ..命令 import 托管环境前缀#DSH_前缀
+from ..工作区路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
 
 __all__=(
     '名称','注入','配置',

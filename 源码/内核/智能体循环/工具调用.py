@@ -1,8 +1,9 @@
 """调度一步助手工具调用。独占调用形成屏障；并行调用用有界滚动池。"""
 import json,threading
-from llm import 断言永不,创建工具结果消息
-from tools import 工具体前中止,调度器符号
-from cordis.工具 import 承诺
+from ..llm import 断言永不,创建工具结果消息
+from ..工具 import 工具体前中止,调度器符号
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
 from .辅助 import 取,解开,已中止,赛跑,全部结算
 
 def 解析参数(原始):

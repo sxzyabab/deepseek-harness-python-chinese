@@ -4,8 +4,8 @@
 """
 import json#JSON 帧
 from urllib.parse import urljoin,urlparse,urlunparse#拼基址与改协议
-from apiproxy.接口.事件模式 import 宿主帧模式,复用帧模式#宿主/复用帧模式
-from apiproxy.接口.rpc模式 import 服务端请求模式#服务端请求模式
+from ....host.apiproxy.接口.事件模式 import 宿主帧模式,复用帧模式#宿主/复用帧模式
+from ....host.apiproxy.接口.rpc模式 import 服务端请求模式#服务端请求模式
 from ..接口路径 import 宿主事件路径,复用事件路径#两条事件路径
 from .接口 import 抽象接口客户端#抽象 API 客户端
 

@@ -2,8 +2,9 @@
 
 对齐上游 `ui-settings-models/src/client/store.ts`。公开面仅中文名。
 """
-from cordis.工具 import 是否thenable#可等待判定
-from 客户端.schema_form import 再水合模式,路径上节点,取路径,有路径#schema 路径
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..schema_form import 再水合模式,路径上节点,取路径,有路径#schema 路径
 
 __all__=[#仅中文公开名
     '快照仓库','错误文案','推导密钥引用','协议选项','提供方可用','引导就绪度','模型设置仓库','已加载则刷新',

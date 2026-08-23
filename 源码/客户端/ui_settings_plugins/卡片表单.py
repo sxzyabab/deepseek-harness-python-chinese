@@ -3,7 +3,8 @@
 对齐上游 `ui-settings-plugins/src/client/card-form.ts`。公开面仅中文名。
 卡片暂存用户键入，仅在保存时写入。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['快照仓库','数字字段','文本字段','卡片表单']#仅中文公开名
 

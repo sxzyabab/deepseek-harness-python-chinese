@@ -1,5 +1,6 @@
 """`@deepseek-ai/dsh-hooks-codex` 的本包不变量配套。"""
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-hooks-codex'#本包名，用于登记所有权
 名称='hooks-codex-invariant'#配套插件名

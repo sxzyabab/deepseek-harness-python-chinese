@@ -3,7 +3,7 @@
 对齐上游 `native-picker.ts`。公开面仅中文名。Windows 侧用 ctypes 调同一套 COM API（上游在派生子进程里用 koffi；Python 可在调用线程直接 COM）。
 """
 import os,re,sys#平台与文本
-from native_command import 运行原生命令#无 shell 原生命令
+from ..原生命令 import 运行原生命令#无 shell 原生命令
 from .win32对话框 import 选Win32目录#Windows COM 对话框
 
 __all__=['选原生目录']#仅中文公开名

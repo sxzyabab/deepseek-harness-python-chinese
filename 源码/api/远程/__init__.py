@@ -4,12 +4,12 @@
 各归属包 `类型` 侧效拉入，使转发事件键面与宿主声明同源（对齐上游 satisfies 前置导入）。
 无 satisfies 关键字：用显式成员断言代替形态门禁。
 """
-from commands import 类型 as _命令类型#侧效：命令事件声明
-from cordis_host_runner import 类型 as _动态类型#侧效：动态包转发事件
-from credentials import 类型 as _凭据类型#侧效：凭证事件声明
-from llm import 类型 as _大模型类型#侧效：大模型事件声明
-from agent_presets import 类型 as _预设类型#侧效：智能体预设事件
-from settings import 类型 as _设置类型#侧效：设置事件声明
+from ..指令 import 类型 as _命令类型#侧效：命令事件声明
+from ...拓展.cordis_服务端 import 类型 as _动态类型#侧效：动态包转发事件
+from ..凭据 import 类型 as _凭据类型#侧效：凭证事件声明
+from ..llm import 类型 as _大模型类型#侧效：大模型事件声明
+from ..智能体预设 import 类型 as _预设类型#侧效：智能体预设事件
+from ..配置 import 类型 as _设置类型#侧效：设置事件声明
 from .智能体查找 import (#智能体查找（含 agent-lookup 类型面）
     远程会话未找到,远程子智能体会话所有权,
     有远程子智能体所有者,远程子智能体所有权错误,

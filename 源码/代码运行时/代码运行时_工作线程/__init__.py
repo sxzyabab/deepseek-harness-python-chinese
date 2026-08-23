@@ -1,15 +1,16 @@
 """工人线程代码运行时：每次用全新工人线程跑一份程序，并经消息端口桥接绑定。这是隔离，不是安全边界：尽管有堆/忙时/墙钟预算以及终止，模型代码仍有与 bash 相当的信任。"""
 import queue,re,threading,time#队列、标识符、线程与墙钟
-from schemastery import 模式#配置模式库
-from timeout import 定时器延迟上限毫秒#setTimeout最大延迟
-from code_runtime import (#运行时基类与保留名
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式库
+from ..超时 import 定时器延迟上限毫秒#setTimeout最大延迟
+from ..代码运行时 import (#运行时基类与保留名
     代码运行时,#基类
     保留绑定全局,#后端自有槽
     可移植保留字,#跨语言保留字
     保留错误成员,#保留错误成员
     双下划线成员,#dunder成员
 )#来自code_runtime
-from session import 快照json值#会话侧无损JSON快照
+from ..会话 import 快照json值#会话侧无损JSON快照
 from .输出json import (#JSON字节账本
     json字符串字节上限,#字符串计量
     json值字节上限,#值计量
@@ -55,6 +56,11 @@ from .不变量 import (#本包不变量配套
     'maxOldGenerationSizeMb':模式.数字().默认(512),#默认512MiB老生代（Python侧作信息上限）
 })#结束配置模式
 Config=配置模式#Cordis配置模式
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '标识符','事件循环采样间隔毫秒','最小输出字节','配置模式',
+    '消息于','取字段','解析工人消息','输出账本','队列端口','工人线程代码运行时','默认',
+]#公开面结束
 
 def 消息于(错误):#抛出值转说明
     """把未知抛出值渲成消息。"""

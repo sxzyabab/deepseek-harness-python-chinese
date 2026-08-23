@@ -1,6 +1,7 @@
 """`@deepseek-ai/dsh-web-search-perplexity`：向 `ctx.web` 注册 Perplexity 后端的 `WebSearchProvider`。这是函数/命名空间插件（不是默认导出服务）：它注册进 seam 的提供方注册表，正如 `@deepseek-ai/dsh-llm-deepseek` 把适配器注册进 `ctx.llm`。"""
-from schemastery import 模式#导入配置校验
-from launch_environment import 取启动环境#导入启动环境快照
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置校验
+from ..启动环境 import 取启动环境#导入启动环境快照
 from .提供方 import (
     Perplexity搜索提供方,#Perplexity搜索提供方类
     默认基址,#默认端点基址
@@ -11,6 +12,8 @@ from .提供方 import (
     映射Perplexity结果,#结果映射
     映射Perplexity响应,#响应映射
 )#从提供方模块导入实现与默认值
+
+__all__=['名称','注入','应用','Config','name','inject']#公开面
 
 名称='web-search-perplexity'#loader 诊断所用的 Cordis 插件名
 注入=['web']#本提供方注册进去的 web seam

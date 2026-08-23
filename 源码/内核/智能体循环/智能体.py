@@ -1,7 +1,7 @@
 """默认 Agent 驱动器：处理排队轮次与步骤边界输入。每次请求都从会话日志派生。"""
 import threading
-from agent import 收件箱,智能体事件,为组装构建上下文,下一轮,下一步
-from llm import (
+from ..智能体 import 收件箱,智能体事件,为组装构建上下文,下一轮,下一步
+from ..llm import (
     块组装器,
     语言模型错误,
     创建助手消息,
@@ -10,13 +10,14 @@ from llm import (
     标记循环请求,
     结构化克隆,
 )
-from scope import 创建作用域
-from session import 归一请求头,请求头是否相等
-from system_prompt import 拼接上下文章节,渲染上下文章节,渲染提示词
+from ..作用域 import 创建作用域
+from ..会话 import 归一请求头,请求头是否相等
+from ..系统提示词 import 拼接上下文章节,渲染上下文章节,渲染提示词
 from .运行时上下文 import 运行时上下文投影
 from .工具调用 import 执行工具调用
 from .辅助 import 取,解开,已中止,中止原因,中止控制器,已兑现,抛若中止
-from cordis.工具 import 承诺
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
 
 def 请求提议(头):
     """在插件提议下一次请求配置前去掉适配器派生值。"""

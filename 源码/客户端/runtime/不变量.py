@@ -4,7 +4,8 @@
 
 拥有关系：每一次 'slots/changed'(key) 发出时必须已经观察到变更已应用——SlotCore 在服务再发出之前同步抬该键的版本，因此派发时版本为零意味着事件在变更之前（或没有变更）就发出了。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-runtime'#本包的不变量所有权名
 名称='client-runtime-invariant'#配套不变量插件名（字面量）

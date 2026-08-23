@@ -3,7 +3,8 @@
 对齐上游 `ui-input-trigger/src/client/service.ts`。公开面仅中文名。
 无状态源登记表加上每会话控制器映射；可变交互状态住在控制器上。
 """
-from cordis import 服务#Cordis 服务基类
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 from .控制器 import 触发控制器#每会话控制器
 
 __all__=['触发服务']#仅中文公开名

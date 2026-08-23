@@ -3,9 +3,11 @@
 对齐上游 `@deepseek-ai/dsh-sdk-jsonrpc-server`。公开面仅中文名。是否加载由外部 cordis.yml 决定；标准输出留给协议帧。保持具名插件导出且无默认导出，以便 Loader 保留 name、inject、Config 和 apply。
 """
 import sys,threading#生产 stdio、退出与异步退出拍
-from schemastery import 模式#配置模式
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
-from sdk_protocol import 换行JSONRPC传输#换行 JSON-RPC 传输
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输
 from .服务端 import 装备SDKJSONRPC服务端#SDK 运行时服务器
 
 __all__=['名称','注入','配置','应用','装备SDKJSONRPC服务端']#仅中文公开名

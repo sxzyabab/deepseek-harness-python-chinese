@@ -5,8 +5,9 @@
 依赖 `host_frontend_static`、`webServer` 等宿主包；若尚未迁入则本包激活时会失败——见未迁移插件说明。
 """
 import os,socket#路径与网卡
-from schemastery import 模式#配置模式
-from app_boot import 添加源码段落#harness 源码提示词段
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+from ..app启动 import 添加源码段落#harness 源码提示词段
 
 __all__=['名称','注入','配置','应用','解析局域网信任','内部','网页启动服务键']#仅中文公开名
 

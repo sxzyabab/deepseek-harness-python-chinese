@@ -3,7 +3,8 @@
 对齐上游 `directory-picker-auto/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：唯一效果是插件 fiber 拥有的一次启动时 Loader 条目挂载。
 """
-from cordis.工具 import 已兑现#立刻兑现
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
 
 包名='@deepseek-ai/dsh-host-directory-picker-auto'#本包所有权名
 名称='host-directory-picker-auto-invariant'#配套插件名

@@ -2,7 +2,7 @@
 
 对齐上游 `llm-pi-ai/src/catalog.ts`。公开面仅中文名；无英文别名。
 """
-import pi_ai#pi-ai SDK
+from ...依赖 import pi_ai#外部依赖胶水（pi-ai SDK）
 
 __all__=(#仅中文公开名
     '无费用','模态列表','思考档位列表','受支持思考格式',

@@ -2,8 +2,9 @@
 import os#工作目录与路径判定
 import threading#每目标键互斥
 from urllib.request import pathname2url#路径转 file URL
-from schemastery import 模式#配置校验
-import fs#文件系统服务定义与错误
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验
+from .. import 文件系统 as fs#文件系统服务定义与错误
 from . import 文件读写#本地 IO 实现
 
 默认diff基准最大字节=10*1024*1024#diff 基准默认 10MiB
@@ -14,6 +15,8 @@ from . import 文件读写#本地 IO 实现
     'cwd':模式.字符串().默认(os.getcwd()),#相对路径基准目录，默认进程 cwd
     'diffBasisMaxBytes':模式.数字().默认(默认diff基准最大字节),#diff 基准每侧字节上限
 })#Config 模式结束
+
+__all__=['本地文件系统','配置模式','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
 class 已解析配置:#缺省已填满的配置
     """已校验配置（构造前 schemastery 已套用默认值）。"""

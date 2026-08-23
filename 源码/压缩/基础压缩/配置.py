@@ -1,6 +1,6 @@
 """compaction-basic 的加载时校验与路由模型政策解析。"""
 import math#有限数判定
-from llm import 深冻结,结构化克隆#导入深冻结与拆离克隆
+from ..llm import 深冻结,结构化克隆#导入深冻结与拆离克隆
 from .类型 import (#仅作词汇对照；运行时用字典
     基础压缩配置字段,#顶层允许键参照
 )#本包类型词汇

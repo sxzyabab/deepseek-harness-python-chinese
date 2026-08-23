@@ -2,33 +2,34 @@
 
 对齐上游 `@deepseek-ai/dsh-agent-spine-demo`。公开面仅中文名。捆绑公共服务、后台作业、可选持久化目标、具体循环、本地技能与 agent-instructions，以及面向模型的 shell/技能消费方。本包不提供默认导出（Loader 解包会丢掉 Config）。
 """
-from schemastery import 模式#配置模式
-from cordis_plugin_timer import 定时器 as Timer#定时器插件
-from llm import LlmRuntime#LLM 运行时——若导出名不同则由装配侧别名
-from session import SessionStore#会话存储
-from session_title import SessionTitleService#会话标题
-from system_prompt import SystemPrompt#系统提示词
-from tools import ToolRuntime#工具运行时
-from skill import SkillRegistry#技能注册表
-import skill_filesystem as SkillFileSystem#本地技能提供方
-from agent import AgentRegistry#智能体注册表
-from goal import GoalService#目标服务
-import goal_round_driver as goalSession#同会话目标驱动器
-import tool_goal as toolGoal#面向模型的目标工具
-from jobs_local import LocalJobRegistry#进程内作业
-from invariants import InvariantRegistry#不变量注册表
-import session.不变量 as sessionInvariant#会话不变量
-import agent.不变量 as agentInvariant#智能体不变量
-import scope.不变量 as scopeInvariant#作用域不变量
-import agent_loop.不变量 as agentLoopInvariant#循环不变量
-import tool_bash as toolBash#bash 工具
-import shell_env as bashEnv#bash 环境
-import agent_instructions as workspaceContext#工作区上下文
-import tool_skill as toolSkill#技能工具
-import tool_jobs as toolJobs#作业工具
-from agent_loop import AgentLoop#智能体循环
-import llm_retry as llmRetry#LLM 重试
-from home_paths import 解析Dsh主目录#主目录解析
+from ...依赖 import cordis,schemastery,timer#外部依赖胶水
+模式=schemastery.模式#配置模式
+Timer=timer.默认#定时器插件
+from ..llm import LlmRuntime#LLM 运行时——若导出名不同则由装配侧别名
+from ..会话 import SessionStore#会话存储
+from ..会话标题 import SessionTitleService#会话标题
+from ..系统提示词 import SystemPrompt#系统提示词
+from ..工具 import ToolRuntime#工具运行时
+from ..技能 import SkillRegistry#技能注册表
+from .. import 技能_文件系统 as SkillFileSystem#本地技能提供方
+from ..智能体 import AgentRegistry#智能体注册表
+from ..目标 import GoalService#目标服务
+from .. import goal_round_driver as goalSession#同会话目标驱动器
+from .. import 工具_目标 as toolGoal#面向模型的目标工具
+from ..本地任务 import LocalJobRegistry#进程内作业
+from ..不变量 import InvariantRegistry#不变量注册表
+from ..会话 import 不变量 as sessionInvariant#会话不变量
+from ..智能体 import 不变量 as agentInvariant#智能体不变量
+from ..作用域 import 不变量 as scopeInvariant#作用域不变量
+from ..智能体循环 import 不变量 as agentLoopInvariant#循环不变量
+from .. import bash工具 as toolBash#bash 工具
+from .. import 命令_环境 as bashEnv#bash 环境
+from .. import 智能体指令 as workspaceContext#工作区上下文
+from .. import 工具_技能 as toolSkill#技能工具
+from .. import 工具_任务 as toolJobs#作业工具
+from ..智能体循环 import AgentLoop#智能体循环
+from .. import llm_retry as llmRetry#LLM 重试
+from ..工作区路径 import 解析Dsh主目录#主目录解析
 
 __all__=[#仅中文公开名
     '名称','配置','应用',

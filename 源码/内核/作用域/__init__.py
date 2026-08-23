@@ -3,8 +3,9 @@
 对齐上游 `@deepseek-ai/dsh-scope`（`index.ts`）。公开面仅中文名；无英文公开别名。
 """
 import weakref#弱引用，对齐上游 WeakMap
-from cordis.上下文 import 上下文#导入上下文类（过滤符号挂在类上）
-from cordis.工具 import 承诺#可等待拆除边界
+from ...依赖 import cordis#外部依赖胶水
+上下文=cordis.上下文#上下文类（过滤符号挂在类上）
+承诺=cordis.工具.承诺#可等待拆除边界
 from .存储 import 具名条目,匿名条目,作用域层集#再导出作用域感知登记表
 
 __all__=(#仅中文公开名

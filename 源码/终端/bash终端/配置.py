@@ -1,5 +1,6 @@
 """本地 PTY 后端经过校验的配置。"""
-from schemastery import 模式#配置校验库
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
 

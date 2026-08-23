@@ -1,6 +1,6 @@
 """面向人的 /goal 命令，叠在同会话持久目标域之上。"""
 import re#解析 edit 后跟替换陈述
-from goal import 目标错误#目标域边界错误
+from ..目标 import 目标错误#目标域边界错误
 
 名称='command-goal'#Cordis插件名
 注入=['commands','goals']#依赖命令注册表与目标服务
@@ -157,3 +157,5 @@ def 应用(上下文):#注册 /goal
 apply=应用#Cordis插件入口
 default=应用#默认导出
 默认=应用#中文默认导出
+
+__all__=['名称','注入','应用','name','inject','apply','默认','default']#公开面

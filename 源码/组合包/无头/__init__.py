@@ -5,11 +5,12 @@
 对齐上游 `@deepseek-ai/dsh-headless`。公开面仅中文名。
 """
 import os,uuid,sys#路径、uuid、标准流
-from schemastery import 模式#配置模式
-from cordis.工具 import 是否thenable#可等待判定
-from agent import 安装模型选择#模型选择安装
-from llm import 创建用户消息#用户消息构造
-from session import 会话标识#会话 id 品牌
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..智能体 import 安装模型选择#模型选择安装
+from ..llm import 创建用户消息#用户消息构造
+from ..会话 import 会话标识#会话 id 品牌
 
 __all__=['名称','注入','配置','应用','内部流']#仅中文公开名
 

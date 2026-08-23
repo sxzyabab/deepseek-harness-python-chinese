@@ -4,7 +4,8 @@
 
 无运行时不变量：零依赖的纯注册表核心——自身不发射 cordis 事件（运行时 SlotRegistry 包装器拥有事件桥接及其不变量）；define/register/dispose 时序由本包的行为规格直接断言。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-slots'#本包的不变量所有权名
 名称='client-ui-slots-invariant'#配套不变量插件名（字面量）

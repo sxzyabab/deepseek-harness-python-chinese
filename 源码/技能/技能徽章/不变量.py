@@ -1,11 +1,14 @@
 """@deepseek-ai/dsh-skill-badge 的本包拥有不变量配套。对齐上游 skill-badge/src/invariant.ts。"""
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-skill-badge'#本包的不变量所有权名
 名称='skill-badge-invariant'#配套不变量插件名（字面量不译）
 注入=['invariants']#依赖 invariants 服务
 name=名称#Cordis插件名槽
 inject=注入#Cordis依赖声明槽
+
+__all__=['包名','名称','注入','安装','应用']#仅中文公开名
 
 def 安装(子上下文=None,失败=None):#空安装器
     """无运行时不变量：本包只拥有一次不可变提供方登记，唯一性与生命周期由技能注册表拥有。"""

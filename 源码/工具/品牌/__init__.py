@@ -5,6 +5,7 @@
 政策：包为自己拥有的 id 打品牌——dsh-llm 的 `CallId`（工具调用关联）、dsh-session 的共享智能体/会话 `SessionId`、dsh-jobs 的 `JobId`。品牌用于跨包边界且可能被混淆的 id；并非每个字符串都需要品牌。
 本包只拥有原语——没有具体 id，除（会被擦除的）类型外没有运行时代码——因此品牌词汇保持无依赖，包可以给自己的 id 打品牌而不依赖无关能力包。
 """
+__all__=['带品牌']#仅中文公开名
 
 # 上游 TypeScript 用 declare const BRAND: unique symbol 做编译期唯一品牌符号，运行时擦除；Python 无等价符号，仅保留名义约定。
 

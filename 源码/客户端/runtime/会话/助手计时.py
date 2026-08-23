@@ -3,7 +3,7 @@
 对齐上游 `runtime/src/client/sessions/assistant-timing.ts`。公开面仅中文名。
 聊天定义与轨迹历史折叠从同一条 step/start → 首个 token 增量 → assistant/message 序列派生计时。
 """
-from llm import 是否词增量#导入 token 增量谓词
+from ....模型后端.llm import 是否词增量#导入 token 增量谓词
 
 __all__=['是否词增量','助手步骤键','索引助手步骤计时','落定助手计时']#仅中文公开名
 

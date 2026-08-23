@@ -1,7 +1,8 @@
 """智能体作用域的日程管理工具，建立在持久会话折叠上。"""
 import json,time#JSON 文本与墙钟
-from cordis.工具 import 是否thenable#可等待判定
-from tools import 定义工具#定义面向模型的工具
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..工具 import 定义工具#定义面向模型的工具
 from .领域 import (
     分配日程标识,#分配 id
     创建延迟日程记录,#创建延迟记录

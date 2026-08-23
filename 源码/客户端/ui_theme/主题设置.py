@@ -2,7 +2,8 @@
 
 对齐上游 `ui-theme/src/theme-settings.ts`。公开面仅中文名；偏好字面量与设置键保持上游。
 """
-from schemastery import 模式#schemastery 模式库
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#schemastery 模式库
 
 __all__=[#仅中文公开名
     '主题偏好们',

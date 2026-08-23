@@ -5,16 +5,18 @@
 Cordis 槽 `inject` / `Config` / `default` 可保留。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
-from schemastery import 模式#配置校验库
-from shell import 外壳设置命名空间,外壳执行器#shell 设置命名空间与执行器基类
-from settings import 安装设置段#设置段安装
-from timeout import (
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..命令 import 外壳设置命名空间,外壳执行器#shell 设置命名空间与执行器基类
+from ..配置 import 安装设置段#设置段安装
+from ..超时 import (
     夹取超时,#夹取超时
     截止,#融合截止
     定时器延迟上限毫秒,#定时器延迟上限
     取超时,#取出超时原因
 )#超时库
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
 
 __all__=[#仅中文公开名
     '环境覆盖','断言可用Bash配置','本地Bash执行器','配置模式','默认',

@@ -2,12 +2,13 @@
 
 命名空间插件（具名导出，无默认导出）。
 """
-from schemastery import 模式#导入配置校验
-from tools import 定义工具#导入工具定义
-from llm import 断言永不#导入封闭联合穷尽断言
-from lsp import 语言服务器错误#导入LSP结构化错误
-from timeout import 定时器延迟上限毫秒#导入定时器上限
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置校验
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..工具 import 定义工具#导入工具定义
+from ..llm import 断言永不#导入封闭联合穷尽断言
+from ..lsp import 语言服务器错误#导入LSP结构化错误
+from ..超时 import 定时器延迟上限毫秒#导入定时器上限
 from .渲染 import (#导入渲染、校验与默认上限
     默认最大位置数,#位置条数默认上限
     默认最大结果字符,#完整结果默认字符上限
@@ -19,6 +20,8 @@ from .渲染 import (#导入渲染、校验与默认上限
     渲染网址,#URI 显示路径
 )#渲染面导入结束
 from .会话工作区 import 会话工作区#导入会话工作区推导
+
+__all__=['名称','注入','应用','配置','Config','name','inject','会话工作区']#公开面
 
 名称='tool-lsp'#供加载器诊断用的 Cordis 插件名
 注入=['tools','lsp','systemPrompt']#依赖工具、lsp 与系统提示词

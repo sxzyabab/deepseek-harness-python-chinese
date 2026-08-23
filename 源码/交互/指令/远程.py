@@ -3,7 +3,7 @@
 对照 `@Remote`：`list`、`execute`。无 TS 编译器时手写描述符；编解码用严格透传模式。
 服务键与命名空间均为 `commands`。
 """
-from typert.protocol import 严格编解码,调用描述符,远程贡献#制品辅助
+from ..协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
 

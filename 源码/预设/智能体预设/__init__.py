@@ -3,11 +3,12 @@
 对齐上游 `@deepseek-ai/dsh-agent-presets`。公开面仅中文名。服务键 `agentPresets`、配置键与诊断字面量保持上游。
 """
 import os#文件戳
-from cordis import 服务#Cordis 服务基类
-from schemastery import 模式#配置模式
-from scope import 绑定作用域父,创建作用域,获取作用域,弱身份表#作用域
-from settings import 设置命名空间#设置命名空间
-from home_paths import 主目录路径#harness 主目录路径
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+模式=schemastery.模式#配置模式
+from ..作用域 import 绑定作用域父,创建作用域,获取作用域,弱身份表#作用域
+from ..配置 import 设置命名空间#设置命名空间
+from ..工作区路径 import 主目录路径#harness 主目录路径
 from .发现 import 组合文件,用户预设目录,发现预设,扫描根#发现
 from .编写 import (#编写
     复制组合,删除组合,读组合,可写根,

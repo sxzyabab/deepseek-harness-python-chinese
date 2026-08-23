@@ -1,7 +1,9 @@
 """面向模型的 `grep` 工具：用 ripgrep 正则搜索文件内容。执行通过子进程 seam 以普通 argv 向量直接拉起打包的 ripgrep 二进制，使用固定的面向行的 `rg --json` 命令，因此文件路径、行号与行文本无需按冒号拆分即可解析——本模块拥有面向模型的模式、参数校验、argv 构造、`--json` 记录解析、逐行预览保留、命中保留、分组与格式化；进程相关问题留在 `ctx.subprocess` 后面。"""
 import json#按行解析rg --json NDJSON
-from tools import 定义工具#导入工具定义器
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
+from ...内核.工具 import 定义工具#导入工具定义器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .搜索核心 import 搜索错误,预览行,保留grep命中,跑ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与保留
 from .展示 import grep搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择

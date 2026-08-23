@@ -3,7 +3,7 @@
 对齐上游 `llm-pi-ai/src/context.ts`。公开面仅中文名；无英文别名。
 """
 import base64#字节转 base64
-import llm#语言模型服务
+from .. import llm#语言模型服务
 from .回放 import 转派助手#助手历史重建
 
 __all__=('转派上下文','压平文本','工具结果文本','用户内容','工具列表')#仅中文公开名

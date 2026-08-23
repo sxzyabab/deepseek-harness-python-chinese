@@ -1,8 +1,11 @@
 """用户设置能力 seam（`ctx.settings`）的服务定义。提供方存储一份按命名空间分节的原始文档；插件登记命名空间模式并读取解析值，解析按模式缺省、登记方组合 `base`、用户文档节这一顺序叠层。"""
 import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
-from cordis import 服务#Cordis 服务基类
-from cordis.光纤 import 光纤状态#拆除态镜像
-from cordis.工具 import 承诺,已兑现,是否thenable#写链与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+光纤状态=cordis.纤程状态#拆除态镜像
+承诺=cordis.工具.承诺#写链承诺
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .类型 import 设置命名空间品牌,设置更新来源#再导出类型面
 from .脱敏 import 脱敏密钥#再导出脱敏
 
@@ -596,3 +599,5 @@ def 安装设置段(上下文对象,命名空间,模式对象,入口,钩子):#�
 
 默认=设置提供方#中文默认导出
 default=设置提供方#默认导出服务类
+
+__all__=['设置提供方','设置命名空间','json深度相等','安装设置段','脱敏密钥','默认','default']#公开面

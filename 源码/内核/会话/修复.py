@@ -1,6 +1,6 @@
 """中断会话日志的崩溃恢复修补。对齐上游 `session/src/repair.ts`。公开面仅中文名。"""
-from llm.品牌 import 消息标识,调用标识#导入消息 id 与调用 id
-from llm.消息 import 冻结消息#导入冻结消息
+from ..llm.品牌 import 消息标识,调用标识#导入消息 id 与调用 id
+from ..llm.消息 import 冻结消息#导入冻结消息
 
 __all__=['工具未启动','工具结局未知','中断轮次关闭器']#仅中文公开名
 

@@ -3,11 +3,14 @@
 注册比生产者和控制器 fiber 活得更久。智能体或服务拆除会取消在线工作并等待合规生产者；抛错的拆除取消只强制失败记录，并报告可能的孤儿。
 """
 import json,math,time,threading#JSON片段、有限数、纪元毫秒与后台线程
-from schemastery import 模式#导入配置模式库
-from scope import 匿名条目,作用域层集,获取作用域#匿名条目、作用域分层与取作用域
-from timeout import 截止,取超时#截止与超时码判定
-from jobs import 任务注册表,任务标识#任务注册表与任务 id
-from cordis.工具 import 承诺,是否thenable,已兑现#承诺与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式库
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+已兑现=cordis.工具.已兑现#立刻兑现
+from ..作用域 import 匿名条目,作用域层集,获取作用域#匿名条目、作用域分层与取作用域
+from ..超时 import 截止,取超时#截止与超时码判定
+from ..任务 import 任务注册表,任务标识#任务注册表与任务 id
 
 任务等待超时='TASK_WAIT_TIMEOUT'#等待超时码
 默认每所有者并发=10#每所有者默认并发
@@ -16,6 +19,11 @@ from cordis.工具 import 承诺,是否thenable,已兑现#承诺与可等待判�
     'maxConcurrentJobsPerOwner':模式.数字().步进(1).最小(1).最大(安全整数上限).默认(默认每所有者并发),#每所有者并发上限
 })#结束 Config 模式
 Config=配置#Cordis配置模式
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '任务等待超时','默认每所有者并发','安全整数上限','配置',
+    '取字段','解开','是否安全整数','本地任务注册表','默认',
+]#公开面结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""

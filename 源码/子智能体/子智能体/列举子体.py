@@ -1,6 +1,7 @@
 """只读枚举耐久子智能体子体与后代树，直接来自活会话存储与可选会话持久化——无查询服务。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .错误 import 子智能体错误#导入子智能体错误
 
 冷读并发上限=4#冷读并发上限

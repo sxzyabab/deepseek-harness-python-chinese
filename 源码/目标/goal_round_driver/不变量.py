@@ -1,6 +1,7 @@
 """本包拥有的目标轮次提示词不变量。"""
-from cordis.工具 import 已兑现#立刻兑现的拆除器
-from goal import 折叠目标#按前缀重建目标
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
+from ..目标 import 折叠目标#按前缀重建目标
 from .提示 import 渲染目标轮次提示#本包拥有的续跑提示渲染器
 
 包名='@deepseek-ai/dsh-goal-round-driver'#本包的不变量所有权名

@@ -3,7 +3,9 @@
 对齐上游 `sdk/client/src/api.ts`。公开面仅中文名。DeepSeekHarness 跨多个会话拥有一个运行时子进程；HarnessSession.run 发送一条提示，并在整个智能体下次进入空闲时落定。
 """
 import os,uuid#工作目录与会话 id
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待
 from .客户端 import 装备客户端,是否普通对象,SDK协议错误#底层客户端与协议错误
 
 __all__=['深求装备','装备会话','运行选项','归一化输入','最终回复']#仅中文公开名

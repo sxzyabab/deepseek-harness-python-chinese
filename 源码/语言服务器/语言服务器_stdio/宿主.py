@@ -1,6 +1,7 @@
 """通用 stdio LSP 提供方所用的文件系统 seam 源访问。"""
 from .取消 import 若已中止则抛#已中止即抛错
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""

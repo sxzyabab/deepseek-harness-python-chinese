@@ -1,9 +1,9 @@
 """经 Remote 组装再导出的、客户端安全的动态 Cordis 词汇。
 
 对齐上游 `ui-cordis/src/client/events.ts`。公开面仅中文名。
-上游从 `@deepseek-ai/dsh-api-remotes/client` 再导出；本面从同源叶包 `cordis_host_runner.类型` 再导出（与 remotes `载荷词汇` 同源）。
+上游从 `@deepseek-ai/dsh-api-remotes/client` 再导出；本面从同源叶包 `cordis_服务端.类型` 再导出（与 remotes `载荷词汇` 同源）。
 """
-from cordis_host_runner.类型 import (#与 remotes 载荷词汇同源
+from ...cordis_服务端.类型 import (#与 remotes 载荷词汇同源
     审批请求标识,动态包标识,动态插件标识,动态运行标识,动态运行模式,
     清单行字段,动态包公告字段,请求已落定字段,撤回公告字段,运行请求字段,
 )#词汇

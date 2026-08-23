@@ -12,14 +12,14 @@ def 取节点类型(节点):#读模式节点类型标签
 
 def 取节点元(节点):#读模式节点元数据
     """读活模式节点的元数据表。"""
-    元=getattr(节点,'元',None)#中文 schemastery 字段
+    元=getattr(节点,'元数据',None)#中文 schemastery 字段
     if 元 is None:#缺席
         return {}#空表
     return 元#元数据
 
 def 取节点字典(节点):#读对象属性表
     """读 object 节点的属性表。"""
-    return getattr(节点,'字典',None)#中文 schemastery 字段
+    return getattr(节点,'字段表',None)#中文 schemastery 字段
 
 def 取节点内层(节点):#读容器元素模式
     """读 dict/array 节点的元素模式。"""

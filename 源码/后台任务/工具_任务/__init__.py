@@ -1,11 +1,13 @@
 """面向模型的 job_output、job_list、job_kill 工具，架在 ctx.jobs 上。加载本插件会挂接生产者所需的控制器。它还把未报告的完成投递给所属智能体：忙着的所有者注入其下一步，空闲的在默认 wakeup 投递下开一个回合，并按所有者设上限。"""
 import json,weakref#JSON片段与弱键字典
-from schemastery import 模式#导入配置模式
-from tools import 定义工具#定义面向模型的工具
-from llm import 截上下文摘要,创建用户消息#摘要与用户消息
-from output_retention import 文本保留器#头尾文本保留器
-from jobs import 任务标识#任务id品牌化
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置模式
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..工具 import 定义工具#定义面向模型的工具
+from ..llm import 截上下文摘要,创建用户消息#摘要与用户消息
+from ..输出保留 import 文本保留器#头尾文本保留器
+from ..任务 import 任务标识#任务id品牌化
 
 名称='tool-jobs'#Cordis插件名
 注入=['tools','jobs','systemPrompt']#依赖工具、任务、系统提示
@@ -35,6 +37,11 @@ Config=配置#Cordis配置模式
         'finishedAt':{'type':'integer'},#可选结束时间
     },#properties结束
 }#公开任务模式结束
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '名称','注入','配置','公开任务模式','取字段','解开','应用','默认',
+]#公开面结束
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
     if 对象 is None:#空对象

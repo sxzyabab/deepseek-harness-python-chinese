@@ -1,6 +1,7 @@
 """本包共享的字段读取、承诺展开与数字判定。"""
 import math#有限数判定
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从 dict 自有键或对象属性读取字段；对象为 None 或键缺席时返回缺省。工具参数、规范结果与 Cordis 服务都走这条路径。"""

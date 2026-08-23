@@ -3,7 +3,7 @@
 对齐上游 `llm-deepseek/src/translate.ts`。公开面仅中文名；无英文别名。
 """
 import json#JSON解码
-from llm import 调用标识,空响应码,大模型错误#调用id、空响应码与大模型错误
+from ..llm import 调用标识,空响应码,大模型错误#调用id、空响应码与大模型错误
 from .事件流 import 结束哨兵#服务推送结束哨兵
 
 __all__=('映射结束原因','映射用量','关闭块','翻译')#仅中文公开名

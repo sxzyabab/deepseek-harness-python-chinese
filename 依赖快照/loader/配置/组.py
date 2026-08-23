@@ -1,5 +1,5 @@
 """子条目列表的运行时拥有者，以及把它挂成嵌套组的插件。"""
-import cordis
+from ... import cordis
 from weakref import WeakSet as 弱引用集合#热替换换掉的插件对象自行掉出
 from .条目 import 条目#条目节点
 

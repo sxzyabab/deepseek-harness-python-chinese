@@ -4,8 +4,11 @@
 """
 import os,subprocess,threading,time#环境、子进程、线程与超时
 from collections import deque#有界 stderr 尾
-from cordis.工具 import 承诺,已兑现,是否thenable#承诺、立刻兑现与可等待
-from sdk_protocol import 换行JSONRPC传输,JSONRPC响应错误#传输与对端错误
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待
+from ..协议 import 换行JSONRPC传输,JSONRPC响应错误#传输与对端错误
 from .拆除 import 拆除运行时进程#运行时进程拆除阶梯
 
 __all__=[#仅中文公开名

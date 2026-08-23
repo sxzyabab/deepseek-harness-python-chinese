@@ -1,5 +1,6 @@
 """本包拥有的子智能体注册表与生命周期不变量。公开面仅中文名；Cordis 协议槽不进入 `__all__`。"""
-from cordis.工具 import 承诺#导入可等待结果
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#导入可等待结果
 
 包名='@deepseek-ai/dsh-subagent'#本包的不变量所有权名
 名称='subagent-invariant'#配套不变量插件名

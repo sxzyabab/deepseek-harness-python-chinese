@@ -3,7 +3,9 @@
 对齐上游 `directory-picker-browse/src/index.ts` 中的辅助函数。公开面仅中文名。
 """
 import os,re,sys#路径、正则、平台
-from cordis.工具 import 承诺,是否thenable#承诺与可等待
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待
 
 __all__=['完全限定','有界插入','竞速中止','祖先面包屑','目录行','列举候选']#仅中文公开名
 

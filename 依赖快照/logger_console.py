@@ -1,8 +1,8 @@
 """把日志渲染成带颜色的控制台文本的导出器。"""
 import os,sys,time
-from cosmokit import 时间#时间模板与差值格式化
-from schemastery import 模式#配置模式
-from cordis import 日志器#着色与 printf 渲染
+from .cosmokit import 时间#时间模板与差值格式化
+from .schemastery import 模式#配置模式
+from .cordis import 日志器#着色与 printf 渲染
 
 def 探测终端色深():
     """按环境变量与终端类型探测标准输出支持的色深。"""

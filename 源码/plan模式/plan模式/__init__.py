@@ -5,12 +5,20 @@
 退出工具在计划模式未激活时仍保持注册，因此进入或离开计划模式只改提示词段落，不改请求的工具目录。
 """
 import re,weakref#标题匹配与会话弱表
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
-from llm import 创建用户消息#铸造用户消息
-from tools import 定义工具#定义工具
-from user_questions import 用户提问错误#用户提问通道错误
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..llm import 创建用户消息#铸造用户消息
+from ..工具 import 定义工具#定义工具
+from ..用户提问 import 用户提问错误#用户提问通道错误
 from .类型 import 计划投影字段,计划投影#再导出计划域纯类型
+
+__all__=[#公开面
+    '计划模式控制器','默认','default',
+    '计划投影字段','计划投影',
+    '退出计划模式','折叠计划模式','有打开回合','上次请求头处计划模式',
+]#结束
 
 退出计划模式='exit_plan_mode'#退出计划模式的工具名
 审阅标识='plan-review'#审阅问题的 id

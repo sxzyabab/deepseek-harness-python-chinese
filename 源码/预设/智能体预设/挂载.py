@@ -3,9 +3,11 @@
 对齐上游 `agent-presets/src/mount.ts`。公开面仅中文名。
 """
 import os#绝对路径判定
-from include import 包含,路径转文件url#组合 Include 与路径转 file URL
-from cordis import 上下文 as 上下文类#隔离符号
-from scope import 获取作用域,获取作用域父#作用域键与父链
+from ...依赖 import include,cordis#外部依赖胶水
+包含=include.包含#Include 组载体
+路径转文件url=include.路径转文件网址#路径转 file URL
+上下文类=cordis.上下文#隔离符号
+from ...内核.作用域 import 获取作用域,获取作用域父#作用域键与父链
 from .预设 import 预设挂载错误#挂载失败
 
 __all__=[#仅中文公开名

@@ -3,7 +3,7 @@
 对齐上游 `llm-deepseek/src/sse.ts`。公开面仅中文名；无英文别名。
 """
 import codecs#UTF-8增量解码
-from llm import 大模型错误#LLM错误
+from ..llm import 大模型错误#LLM错误
 
 __all__=('结束哨兵','解析服务推送')#仅中文公开名
 

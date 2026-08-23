@@ -16,15 +16,20 @@
 它与其他执行后监听器组合：其前置监听器经 `next()` 委托并约束得到的内容投影，因此工具拥有的异步投影先于通用约束跑，替换了内容的钩子其替换仍会被约束，值替换和 `block` 决策原样透传。
 """
 import math#ceil与floor拆分头尾预算
-from schemastery import 模式#导入schemastery校验器
-from cordis.工具 import 是否thenable#可等待判定
-from output_retention import 文本保留器,描述省略#文本保留与省略描述
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#导入schemastery校验器
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...工具.输出保留 import 文本保留器,描述省略#文本保留与省略描述
 from .类型 import (#再导出执行视图词汇
     溢出策略执行字段,#策略所见执行
     溢出策略智能体字段,#可选智能体
     溢出策略会话字段,#会话
     溢出策略会话头字段,#会话头
 )#类型导出结束
+__all__=[#仅中文公开名；Cordis 英文槽不入表
+    '名称','注入','配置模式','取字段','应用','默认',
+    '溢出策略执行字段','溢出策略智能体字段','溢出策略会话字段','溢出策略会话头字段',
+]#公开面结束
 
 名称='spill-policy'#loader诊断所用的Cordis插件名
 注入=['tools']#需要工具注册表（其tools/post-execute瀑布是我们变换的扩展点）

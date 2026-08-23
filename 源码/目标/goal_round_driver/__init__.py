@@ -1,8 +1,9 @@
 """叠在公开智能体、会话与目标服务上的同会话目标轮次驱动器。"""
 import threading#串行驱动循环后台线程
-from cordis import 光纤状态#纤程状态，拆除时不再驱动
-from cordis.工具 import 是否thenable#可等待判定
-from llm import 创建用户消息#铸造续跑用户消息
+from ...依赖 import cordis#外部依赖胶水
+光纤状态=cordis.纤程状态#纤程状态，拆除时不再驱动
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..llm import 创建用户消息#铸造续跑用户消息
 from .提示 import 渲染目标轮次提示#本包拥有的续跑提示渲染器
 
 名称='goal-round-driver'#Cordis 插件名
@@ -449,3 +450,5 @@ def 应用(上下文):#安装同会话自动续跑及其竞态栅栏
 apply=应用#Cordis插件入口
 default=应用#默认导出
 默认=应用#中文默认导出
+
+__all__=['名称','注入','应用','name','inject','apply','默认','default']#公开面

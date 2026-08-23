@@ -4,8 +4,9 @@
 无英文别名。中文消费方别名（大模型／超出）保留供下游包导入。
 """
 import math,threading#有限数与后台观察
-from cordis import 服务#导入服务基类
-from cordis.工具 import 是否thenable#导入可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .归属 import 应用身份,用户代理,归属头#再导出归属
 from .品牌 import (
     消息标识,#消息身份品牌

@@ -4,7 +4,8 @@
 
 无运行时不变量：会话服务不发 cordis 事件，本包拥有的两环（'conversation.view' 页签环与 'conversation.chat.node' 业务渲染器席位）都走槽位系统，其账本不变量由运行时槽位包持有。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-conversation'#本包的不变量所有权名
 名称='client-ui-conversation-invariant'#配套不变量插件名（字面量）

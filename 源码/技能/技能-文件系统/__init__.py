@@ -5,8 +5,11 @@
 经 ctx.fs 加载正文。对应上游 @deepseek-ai/dsh-skill-filesystem。
 """
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
-from schemastery import 模式#配置模式库
-from cordis.工具 import 承诺,已兑现,是否thenable#承诺与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式库
+承诺=cordis.工具.承诺#承诺
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .发现 import (
     项目dsh排名,#项目 .dsh/skills 排名
     项目agents排名,#项目 .agents/skills 排名
@@ -31,6 +34,10 @@ from .发现 import (
     已中止,#信号是否已中止
     中止原因,#取出中止原因
 )#发现层已有符号，禁止在此重写
+__all__=[#仅中文公开名；Cordis 英文槽不入表
+    '默认监视稳定阈值毫秒','默认监视轮询间隔毫秒','默认监视项目上限',
+    '名称','注入','配置','解开','等待全部','应用','默认',
+]#公开面结束
 
 默认监视稳定阈值毫秒=200#写入稳定阈值默认毫秒
 默认监视轮询间隔毫秒=100#轮询/稳定探测默认间隔
@@ -39,6 +46,7 @@ from .发现 import (
 注入=['skills']#依赖 skills 服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
+
 配置模式=模式.对象({
     'providerName':模式.字符串().最小(1).默认('filesystem'),#默认提供方名 filesystem
     'includeDefaultRoots':模式.布尔().默认(True),#默认包含项目/用户根

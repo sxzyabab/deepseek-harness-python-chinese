@@ -1,7 +1,10 @@
 """随包 dsh-badge 技能提供方。对齐上游 `@deepseek-ai/dsh-skill-badge`（packages/skill/skill-badge）。"""
 import os#资源路径解析
-from cordis.工具 import 已兑现#立刻兑现的承诺
-from skill import 捆绑技能排名#打包技能标准排名（与 dsh-skill 同源常量）
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的承诺
+from ..技能 import 捆绑技能排名#打包技能标准排名（与 dsh-skill 同源常量）
+
+__all__=['名称','注入','提供方名','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
 名称='skill-badge'#Cordis插件名（字面量不译）
 注入=['skills']#依赖技能注册表

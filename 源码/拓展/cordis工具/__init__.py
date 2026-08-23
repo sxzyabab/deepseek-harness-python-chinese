@@ -3,10 +3,12 @@
 对齐上游 `@deepseek-ai/dsh-tool-cordis`。公开面仅中文名；工具名与模型可见英文描述保持上游。
 """
 import json,re#JSON 与 @pluginId 正则
-from tools import 定义工具#工具定义工厂
-from cordis.工具 import 已兑现,是否thenable#承诺
-from llm import 创建用户消息#用户消息工厂
-from cordis_host_runner import 动态插件标识,动态包标识#品牌构造
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#工具定义工厂
+from ...模型后端.llm import 创建用户消息#用户消息工厂
+from ..cordis_服务端 import 动态插件标识,动态包标识#品牌构造
 from .提示 import cordis系统提示#系统提示词
 from .呈现 import (#展示函数
     呈现定义调用,呈现巡检列表调用,呈现巡检查询调用,呈现自检调用,

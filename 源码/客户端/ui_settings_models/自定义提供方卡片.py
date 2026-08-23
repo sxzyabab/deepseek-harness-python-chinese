@@ -4,7 +4,8 @@
 一次 settings.mutate 写入整档；密钥经 credentials.set 另走。端点、协议、至少一个模型在此必填。
 """
 import re#正则
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .DeepSeek模型编辑器 import 校验DeepSeek模型#模型门闩
 from .密钥判定 import 密钥失败#密钥门闩
 from .编辑器页脚 import 编辑器页脚#页脚

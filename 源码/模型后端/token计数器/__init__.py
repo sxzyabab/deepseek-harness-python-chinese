@@ -3,11 +3,12 @@
 Cordis 槽 `Config` / `default` 可保留。配置键与诊断英文字面量保持上游。
 """
 from weakref import WeakKeyDictionary as 弱键字典#会话到回放状态
-from cordis import 服务#服务基类
-from schemastery import 模式#配置校验
-from llm.组装器 import 块组装器#块组装器
-from llm.调用配置 import 深冻结,结构化克隆#深冻结与拆离克隆
-from session import 归一请求头,请求头是否相等,是否表面事件#规范头、头相等与表面判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#服务基类
+模式=schemastery.模式#配置校验
+from ..llm.组装器 import 块组装器#块组装器
+from ..llm.调用配置 import 深冻结,结构化克隆#深冻结与拆离克隆
+from ..会话 import 归一请求头,请求头是否相等,是否表面事件#规范头、头相等与表面判定
 from .类型 import 取,试取#读取字段
 from .分解投影 import 分解投影定义#分解投影
 from .用量投影 import 用量投影定义,压力投影定义#压力与用量投影

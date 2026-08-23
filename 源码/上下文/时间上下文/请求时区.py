@@ -1,7 +1,7 @@
 """单次打开的请求回合所用的浏览器时区推导与面向模型的策略文本。"""
 import json,re#JSON诊断片段与IANA形态校验
 from zoneinfo import ZoneInfo as 区时#Intl等价的规范时区解析
-from llm import 断言永不#导入穷尽检查
+from ..llm import 断言永不#导入穷尽检查
 
 IANA时区形态=re.compile(r'^[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)+$')#IANA Area/Location形态
 编码=json.dumps#JSON编码别名

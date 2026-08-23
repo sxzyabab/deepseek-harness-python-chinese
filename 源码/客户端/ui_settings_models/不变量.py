@@ -4,7 +4,8 @@
 
 无运行时不变量：仅导航条目的分区插件，渲染固定的空内容列——不发射 cordis 事件，也不拥有跨插件可变关系。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-settings-models'#本包的不变量所有权名
 名称='client-ui-settings-models-invariant'#配套不变量插件名（字面量）

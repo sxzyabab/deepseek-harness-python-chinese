@@ -4,7 +4,9 @@
 无英文别名。
 """
 import math#有限数判定
-from cordis.工具 import 是否thenable,已兑现#导入可等待判定与已兑现承诺
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+已兑现=cordis.工具.已兑现#立刻兑现
 
 __all__=('包名','名称','注入','校验下标','校验增量','校验流','安装','应用')#仅中文公开名
 

@@ -1,7 +1,8 @@
 """共享持久化协调器的有界每会话写批处理。"""
 import threading#批处理定时器
-from llm import 结构化克隆#深拷贝事件
-from cordis.工具 import 承诺#屏障与活动写承诺
+from ..llm import 结构化克隆#深拷贝事件
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#屏障与活动写承诺
 
 会话写后选项字段=('maxDelayMs','write','reportBackgroundFailure')#活会话写控制器的依赖与调度策略：最长批等待、耐久写一批、报告后台失败
 

@@ -5,9 +5,10 @@
 对齐上游 `@deepseek-ai/dsh-lsp`。公开面仅中文名。服务槽键、错误 code 与诊断英文字面量保持上游。
 """
 import re#扩展名形态校验
-from cordis import 服务#导入 Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
-from llm import 装备错误#导入带稳定 code 的 HarnessError
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#导入 Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..llm import 装备错误#导入带稳定 code 的 HarnessError
 from .品牌 import 语言服务器提供方标识#再导出提供方 id 工厂
 from .类型 import (#再导出缝公开词汇
     语言服务器操作,#四种语义操作

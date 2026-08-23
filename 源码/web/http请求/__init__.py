@@ -1,11 +1,14 @@
 """`@deepseek-ai/dsh-web-fetch-http`：向 `ctx.web` 注册匿名公开 HTTP(S) `WebFetchProvider`。这是函数/命名空间插件（不是默认导出服务）：它注册进 seam 的抓取注册表，正如搜索提供方注册进搜索注册表。"""
 import math#有限数判定
-from schemastery import 模式#导入配置校验
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置校验
 from .提供方 import (
     HTTP抓取提供方,#提供方类
     本地抓取提供方标识,#本地抓取提供方 id
     HTTP抓取上限字段,#传输上限字段
 )#提供方模块
+
+__all__=['名称','注入','配置模式','应用','Config','name','inject']#公开面
 
 定时器延迟上限毫秒=2147483647#Node 定时器延迟上限毫秒
 默认用户代理='deepseek-harness/0.0.1 (+https://github.com/deepseek-ai)'#默认 UA：明确的产品代理，绝不是浏览器伪装

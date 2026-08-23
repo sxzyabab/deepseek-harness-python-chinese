@@ -3,7 +3,9 @@
 对齐上游 `tool-pwsh/src/background.ts`。公开面仅中文名；无英文别名。
 """
 import threading#后台转发结算线程
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=('进程结果','做成任务完成')#仅中文公开名
 

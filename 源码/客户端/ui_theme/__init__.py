@@ -2,7 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-client-ui-theme`。公开面仅中文名。在可选宿主服务被组合进来时，登记持久化主题分区与初始主题的 index 变换。浏览器半（ThemeRuntime、外观行、React/CSS）未迁入本 Python 树。
 """
-from settings import 设置命名空间#设置命名空间品牌构造
+from ...配置.配置 import 设置命名空间#设置命名空间品牌构造
 from .启动主题 import 注入启动主题#主题启动脚本注入
 from .主题设置 import (#主题设置常量与判定
     默认偏好,#默认偏好

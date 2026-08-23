@@ -3,10 +3,12 @@
 对齐上游 `拓展/cordis-host-runner/src/index.ts`。公开面仅中文名；Remote 导出名与事件名保持上游字面量。
 """
 import re#前缀校验
-from schemastery import 模式#配置模式
-from cordis.工具 import 已兑现,是否thenable#承诺
-from llm import 创建用户消息#用户消息构造
-from typert.protocol import 远程服务,远程#Remote 服务基类与装饰器
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+已兑现=cordis.工具.已兑现#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...模型后端.llm import 创建用户消息#用户消息构造
+from ...typert.协议 import 远程服务,远程#Remote 服务基类与装饰器
 from .类型 import 动态插件标识,动态包标识,动态运行标识,审批请求标识#品牌构造
 from .守卫 import 是否插件,归一处理器#插件判定与处理器归一
 from .巡检注册表 import 巡检注册表服务#巡检注册表

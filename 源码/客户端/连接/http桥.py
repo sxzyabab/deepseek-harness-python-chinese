@@ -2,7 +2,8 @@
 
 对齐上游 `connection/src/http-bridge.ts`。公开面仅中文名。fetch 形态的处理函数本身与传输无关。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['默认最大请求正文字节','桥接']#仅中文公开名
 

@@ -8,7 +8,8 @@
 
 """
 
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 from .展示 import 显示权限预设#显示名
 

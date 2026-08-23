@@ -1,5 +1,6 @@
 """本包拥有的子智能体控制工具不变量配套。对齐上游 `tool-subagent-control/src/invariant.ts`。公开面仅中文名。"""
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-tool-subagent-control'#本包的不变量所有权名
 名称='tool-subagent-control-invariant'#配套不变量插件名

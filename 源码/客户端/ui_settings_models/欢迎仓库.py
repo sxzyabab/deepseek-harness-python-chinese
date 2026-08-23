@@ -2,7 +2,8 @@
 
 对齐上游 `ui-settings-models/src/client/welcome-store.ts`。公开面仅中文名。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .引导文案 import 欢迎通知设置命名空间,欢迎通知确认字段,欢迎通知版本#引导常量
 from .仓库 import 快照仓库,错误文案#共用快照与文案
 

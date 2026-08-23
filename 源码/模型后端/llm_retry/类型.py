@@ -9,7 +9,7 @@ policyKey,retry,delayMs,failure
 llm/retry-started：retryId,turn,step,retry
 failure 为 llm 的提供方中立失败事实。
 """
-import llm#失败事实词表所属包
+from .. import llm#失败事实词表所属包
 from .品牌 import 重试身份#再导出重试链身份
 
 __all__=('重试身份','取','有键','试取')#仅中文公开名

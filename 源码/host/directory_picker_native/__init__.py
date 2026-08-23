@@ -2,7 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-host-directory-picker-native`。公开面仅中文名。每次 pick 在宿主显示器上打开一次操作系统原生选择器。本包默认导出服务类。
 """
-from directory_picker import 目录选择器#缝定义
+from ..directory_picker import 目录选择器#缝定义
 from .原生选择 import 选原生目录#按平台打开原生选择器
 
 __all__=['原生目录选择器','选原生目录']#仅中文公开名

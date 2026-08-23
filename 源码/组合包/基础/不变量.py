@@ -4,7 +4,8 @@
 
 无运行时不变量：本包是静态补丁列表载体。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-base'#本包的不变量所有权名
 名称='base-bundle-invariant'#配套不变量插件名

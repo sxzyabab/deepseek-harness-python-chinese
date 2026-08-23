@@ -1,10 +1,11 @@
 """面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上。"""
 import json,math#紧凑 JSON 渲染与安全整数判定
-from schemastery import 模式#插件配置模式
-from goal import 目标标识#目标 id 品牌
-from llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
-from tools import 定义工具#定义面向模型的工具
-from cordis.工具 import 已兑现#立刻兑现的承诺
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#插件配置模式
+已兑现=cordis.工具.已兑现#立刻兑现的承诺
+from ..目标 import 目标标识#目标 id 品牌
+from ..llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
+from ..工具 import 定义工具#定义面向模型的工具
 from .权限 import 目标工具执行,要求直接人类,完成权限#执行时权限
 from .收尾 import 渲染收尾上下文#终态收尾指令
 
@@ -351,3 +352,5 @@ def 应用(上下文,配置值):#注册三个 Codex 形目标工具及其共用�
 apply=应用#Cordis插件入口
 default=应用#默认导出
 默认=应用#中文默认导出
+
+__all__=['名称','注入','应用','name','inject','apply','默认','default']#公开面

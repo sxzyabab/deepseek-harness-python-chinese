@@ -1,7 +1,9 @@
 """用户提问能力缝（ctx.userQuestions）的服务定义：在人类回答问题之前暂停一次智能体工具调用的 UI 后端服务。面向模型的工具住在 @deepseek-ai/dsh-tool-ask-user；UI 包提供那个唯一活动的提供方。"""
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
-from llm import 装备错误#Harness 错误基类
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..llm import 装备错误#Harness 错误基类
 from .类型 import (#再导出线路安全问答类型
     询问用户问题选项,#可选答案
     询问用户问题意图,#展示意图
@@ -9,6 +11,12 @@ from .类型 import (#再导出线路安全问答类型
     询问用户问题答案项,#一条答案
     询问用户问题答案,#整份回答
 )#类型再导出结束
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '取字段','解开','询问用户问题请求','用户提问提供方','用户提问错误','用户提问服务',
+    '询问用户问题选项','询问用户问题意图','询问用户问题项','询问用户问题答案项','询问用户问题答案',
+    '默认',
+]#公开面结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""

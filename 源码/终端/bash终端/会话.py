@@ -1,7 +1,9 @@
 """叠在子进程 seam 终端原语上的持久 PTY 会话。"""
 import codecs,threading,time#流式解码、定时器与毫秒时钟
-from cordis.工具 import 承诺,是否thenable#结算承诺与可等待判定
-from terminal import 终端错误#带稳定错误码的终端错误
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#结算承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..终端 import 终端错误#带稳定错误码的终端错误
 from .清洗 import 受控提示符,终端清洗器#受控提示符与清洗器
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER

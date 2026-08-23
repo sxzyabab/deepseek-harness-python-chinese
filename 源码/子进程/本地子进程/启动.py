@@ -6,9 +6,10 @@
 import os,signal,tempfile,threading,time#路径、信号、溢出目录、收集线程与轮询
 from secrets import token_hex#溢出文件名随机后缀
 from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#子进程与同步taskkill
-from cordis.工具 import 承诺#句柄done承诺
-from subprocess import 擦洗父环境#清洗后的父环境
-from timeout import 定时器延迟上限毫秒#单次定时器可表示的最大延迟
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#句柄done承诺
+from ..子进程 import 擦洗父环境#清洗后的父环境
+from ...工具.超时 import 定时器延迟上限毫秒#单次定时器可表示的最大延迟
 from .进程检查 import 组内有活成员#Linux组内存活探针
 
 __all__=('子环境','输出收集器','启动子进程','杀组','taskkill进程树','信号树')#仅中文公开名

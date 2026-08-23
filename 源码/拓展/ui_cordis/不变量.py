@@ -3,7 +3,8 @@
 对齐上游 `拓展/ui-cordis/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：可变关系活在浏览器进程里，宿主不变量服务够不到。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-cordis'#本包的不变量所有权名
 名称='client-ui-cordis-invariant'#配套不变量插件名（字面量）

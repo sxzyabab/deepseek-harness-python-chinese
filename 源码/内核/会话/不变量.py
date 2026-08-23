@@ -1,8 +1,9 @@
 """会话事件日志的包内关系不变量。对齐上游 `session/src/invariant.ts`。公开面仅中文名。"""
-from cordis.工具 import 已兑现#导入立刻兑现的承诺
-from llm.永不 import 断言永不#导入穷尽检查
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#导入立刻兑现的承诺
+from ..llm.永不 import 断言永不#导入穷尽检查
 from .修复 import 工具未启动#导入工具未启动错误码
-from scope import 弱身份表#导入按身份存取的弱表
+from ..作用域 import 弱身份表#导入按身份存取的弱表
 
 包名='@deepseek-ai/dsh-session'#本包名
 名称='session-invariant'#配套插件名

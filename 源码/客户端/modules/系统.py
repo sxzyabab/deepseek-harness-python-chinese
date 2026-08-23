@@ -2,6 +2,7 @@
 
 对齐上游 `modules/src/client/system.ts`。公开面仅中文名。
 """
+from ...依赖 import cordis#外部依赖胶水
 from .清单 import 客户端模块记录#模块记录形状
 
 __all__=['客户端模块系统','剥客户端后缀','认领样式']#仅中文公开名
@@ -97,9 +98,10 @@ class 客户端模块系统:#模块系统
         if 进行中 is not None:#共享进行中
             return 进行中#共享
         if 标识 in 自身.工厂表:#已登记
-            from cordis.工具 import 已兑现#承诺
+            已兑现=cordis.工具.已兑现#承诺
             return 已兑现(None)#跳过
-        from cordis.工具 import 已兑现,是否thenable#承诺
+        已兑现=cordis.工具.已兑现#承诺
+        是否thenable=cordis.工具.是否thenable#可等待
         任务=自身.加载包(网址)#加载脚本
         def 检查登记(_值=None):#脚本加载后检查登记
             """脚本必须经 __ModuleLoader__.load 登记。"""
@@ -171,7 +173,8 @@ class 客户端模块系统:#模块系统
 
     def import_(自身,说明符,父网址=None,属性=None):#异步导入
         """按文档化分支顺序解析 specifier。"""
-        from cordis.工具 import 已兑现,是否thenable#承诺
+        已兑现=cordis.工具.已兑现#承诺
+        是否thenable=cordis.工具.是否thenable#可等待
         if 说明符 in 自身.种子:#平台种子
             return 已兑现(自身.种子[说明符])#种子
         已有=自身.loadCache.get(说明符)#已物化
@@ -204,7 +207,7 @@ class 客户端模块系统:#模块系统
 
     def prefetch(自身,标识):#预取一行
         """第一阶段到达：加载条目脚本以登记其工厂。"""
-        from cordis.工具 import 已兑现#承诺
+        已兑现=cordis.工具.已兑现#承诺
         if 标识 in 自身.静态表:#壳自有无需拉
             return 已兑现(None)#跳过
         行=自身.图行.get(标识)#启动行

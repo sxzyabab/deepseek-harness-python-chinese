@@ -2,9 +2,16 @@
 import html#解码实体
 import re#标签扫描
 from html.parser import HTMLParser#构建转换用的简易 DOM
-from tools import 定义工具#定义面向模型的工具
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
-from llm import 断言永不#封闭联合穷尽检查
+from ..tools import 定义工具#定义面向模型的工具
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..llm import 断言永不#封闭联合穷尽检查
+
+__all__=[#公开面
+    '应用网络抓取工具','格式化抓取输出','解析抓取参数',
+    '呈现抓取调用','呈现抓取结果','抓取元自值','抓取元自结果',
+]#结束
 
 最大转换深度=512#超过该嵌套深度的 HTML 跳过转换、原样通过
 空元素名=frozenset([#永不写闭合标签的元素，因此不会增高词法栈

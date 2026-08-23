@@ -1,6 +1,6 @@
 """面向模型的工作流工具写入其调用方父 Session 的、浏览器安全的持久工作流记录事件。"""
 from typing import NotRequired,TypedDict#可选字段与结构类型
-from workflow.类型 import (#导入工作流持久词汇
+from ..工作流.类型 import (#导入工作流持久词汇
     工作流智能体结局,#智能体结局
     工作流停止原因,#停止原因
 )#来自工作流类型包

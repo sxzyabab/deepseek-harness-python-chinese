@@ -1,7 +1,9 @@
 """本地 LSP 提供方在宿主 I/O、队列与协议阶段共用的取消辅助。"""
 import threading#中止竞态线程
-from timeout import 取超时,取已中止,取原因值,等待中止#超时分类与信号读写
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..超时 import 取超时,取已中止,取原因值,等待中止#超时分类与信号读写
 
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""

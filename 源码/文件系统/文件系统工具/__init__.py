@@ -2,7 +2,8 @@
 
 对齐上游 `tool-fs/src/index.ts`。公开业务面仅中文名；Cordis 协议槽（name/inject/Config/apply/default）保留英文别名供加载器识别，不入 `__all__`。空不变量配套见 `.不变量`。
 """
-from schemastery import 模式#导入配置校验
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#导入配置校验
 from .读 import 应用读工具,读行数上限,流最小大小,解析读参数,解析正整数#导入读工具与读窗口默认值
 from .写 import 应用写工具,解析写参数,格式化写输出#导入写工具
 from .编辑 import 应用编辑工具,解析编辑参数,格式化编辑输出#导入编辑工具

@@ -7,7 +7,7 @@ from email.utils import parsedate_tz as 解析邮件日期,mktime_tz as 邮件�
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接#HTTP客户端
 from math import isfinite as 是否有限#有限数判断
 from urllib.parse import urlparse as 解析网址#拆URL
-from llm import (
+from ..llm import (
     归属头,#产品归属头
     上下文窗口超出码,#溢出码
     是否上下文窗口超出错误,#溢出分类
@@ -18,7 +18,7 @@ from llm import (
     配额超出码,#配额码
     推理力度标识,#力度id品牌
 )#导入 llm 词表
-from timeout import 空闲看门狗,取超时#空闲看门狗与超时判定
+from ..超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .序列化 import 序列化请求#线路序列化
 from .事件流 import 解析服务推送#服务推送事件解析
 from .翻译 import 翻译#线路翻译

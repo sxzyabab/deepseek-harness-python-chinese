@@ -5,9 +5,10 @@
 import socket,threading#监听套接字与请求线程
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer#HTTP 处理
 from urllib.parse import urlsplit#取路径
-from schemastery import 模式#配置模式
-from cordis import 服务#服务基类
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+服务=cordis.服务#服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['网页服务器','网页路由种类','配置']#仅中文公开名
 

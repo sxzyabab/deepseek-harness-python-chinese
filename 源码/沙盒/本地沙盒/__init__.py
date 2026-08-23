@@ -10,10 +10,11 @@ import shutil#递归删除临时目录
 import subprocess#功能探测 spawn
 import sys#解释器路径与平台
 import tempfile#平台临时根与私有临时目录
-from schemastery import 模式#导入配置校验库
-from llm import 断言永不#导入封闭联合穷尽辅助
-from sandbox import 沙箱提供方,沙箱不可用错误#导入沙箱提供方与不可用错误
-from sandbox_windows_acl import (#导入 ACL 授权、临时根断言与 SID 推导
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+from ..llm import 断言永不#导入封闭联合穷尽辅助
+from ..沙盒 import 沙箱提供方,沙箱不可用错误#导入沙箱提供方与不可用错误
+from ..沙盒_windows访问控制 import (#导入 ACL 授权、临时根断言与 SID 推导
     ACL写入授权,#写入授权物化
     断言临时根在工作区外,#临时根边界
     临时写入SID,#临时 SID
@@ -376,12 +377,14 @@ class 本地沙箱提供方(沙箱提供方):#本地进程沙箱提供方
                 return [sys.executable,入口覆盖]#解释器 + 入口
             return [sys.executable,入口覆盖]#仍返回（探测会失败）
         try:#定位已安装的 windows-acl 运行器模块
-            import sandbox_windows_acl as acl包#导入包以取目录
+            from .. import 沙盒_windows访问控制 as acl包#导入包以取目录
             入口=os.path.join(os.path.dirname(acl包.__file__),'运行器.py')#运行器入口
         except Exception:#导入失败
-            入口=os.path.join(os.path.dirname(__file__),'..','sandbox_windows_acl','运行器.py')#相对回落
+            入口=os.path.join(os.path.dirname(__file__),'..','沙盒_windows访问控制','运行器.py')#相对回落
             入口=os.path.normpath(入口)#规范化
         return [sys.executable,入口]#解释器 + 运行器.py
 
 default=本地沙箱提供方#默认导出本地提供方
 默认=本地沙箱提供方#中文默认导出
+
+__all__=['名称','name','配置模式','Config','本地沙箱提供方','默认','default']#公开面

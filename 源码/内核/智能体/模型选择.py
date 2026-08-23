@@ -3,7 +3,8 @@
 对齐上游 `agent/src/model-selection.ts`。公开面仅中文名；选择／组装／请求字段键保持上游 wire 名。
 """
 from typing import NotRequired,TypedDict#可选字段与结构类型
-from cordis.工具 import 是否thenable#thenable 判断
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#thenable 判断
 
 __all__=('模型选择','模型选择引用','安装模型选择')#仅中文公开名
 

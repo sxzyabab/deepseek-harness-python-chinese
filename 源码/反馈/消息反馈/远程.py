@@ -3,7 +3,7 @@
 对照 `@Remote`：`list` / `put` / `delete`。服务键与命名空间均为 `messageFeedback`。
 宿主存储域依赖另面；本文件落盘可挂载的贡献描述符。
 """
-from typert.protocol import 严格编解码,调用描述符,远程贡献#制品辅助
+from ..协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
 

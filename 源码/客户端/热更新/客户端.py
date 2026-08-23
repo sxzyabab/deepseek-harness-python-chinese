@@ -2,7 +2,9 @@
 
 对齐上游 `hmr/src/client/index.ts`。公开面仅中文名。监听宿主的系统 SSE 通道；收到 `rebuilt` 帧时重载该条目的打包产物，并原地替换 cordis 光纤。
 """
-from cordis.工具 import 已兑现,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .事件 import 插件事件帧,事件端点#再导出 SSE 帧与路径
 
 __all__=['名称','注入','应用','插件事件帧','事件端点']#仅中文公开名

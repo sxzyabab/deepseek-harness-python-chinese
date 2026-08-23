@@ -209,3 +209,8 @@ class ACL沙箱:#ACL沙箱实例
         自身._grantedPaths=[]#清已授予路径
         if len(失败们)>0:#有清理失败
             raise 聚合错误(失败们,'AclSandbox dispose completed with '+str(len(失败们))+' cleanup failure(s)')#报告清理失败
+
+__all__=[#公开面
+    'ACL沙箱','ACL写入授权','聚合错误','临时写入SID','工作区写入SID',
+    '断言临时根在工作区外','断言私有临时不相交',
+]#结束

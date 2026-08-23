@@ -3,14 +3,17 @@
 FIXME: 首次打标签发布前敲定拟议的 `@deepseek-ai/dsh-timeout-guard` 重命名——仅建议，使名称与其所在的 `guard/` 对齐；在决议时再定
 （重新分组 Agent Note：architecture/2026-07-29-package-regrouping）。
 """
-from cordis.工具 import 是否thenable#可等待判定
-from timeout import 截止,取超时#截止武装与按码判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...工具.超时 import 截止,取超时#截止武装与按码判定
 
 工具超时码='TOOL_TIMEOUT'#本插件拥有的超时错误码；同时用作内部截止分类码和替换结果上的结构化错误 code
 名称='timeout-policy'#loader 诊断所用的 Cordis 插件名
 注入=['tools']#本插件包装（tools/execute）并读取（get）的工具注册表服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
+
+__all__=['工具超时码','名称','注入','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""

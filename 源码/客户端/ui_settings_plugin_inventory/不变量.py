@@ -4,7 +4,8 @@
 
 无运行时不变量：本包拥有只读的 Settings 贡献。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-settings-plugin-inventory'#本包的不变量所有权名
 名称='client-ui-settings-plugin-inventory-invariant'#配套不变量插件名（字面量）

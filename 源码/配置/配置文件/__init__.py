@@ -1,12 +1,14 @@
 """文件后端的设置提供方。用户 harness 主目录下的一份 YAML 或 JSON 文档承载每个命名空间段落；外部编辑经 seam 热发布，每次写入都在跨进程写锁下重读文档，再以保留注释的叶级 diff 打补丁。"""
 import os,json,errno,threading,time,io#路径、JSON、错误码、线程、时间与内存流
-from schemastery import 模式#配置校验
-from ruamel.yaml import YAML#保留注释的YAML
-from ruamel.yaml.comments import CommentedMap#带注释映射
-from cordis.工具 import 承诺,是否thenable#操作链承诺与可等待判定
-from atomic_write import 带文件锁,原子写文件#跨进程写锁与原子替换
-from home_paths import 规范化监视路径,解析主目录#监视路径与harness主目录
-from settings import 设置提供方,json深度相等#设置服务基类与JSON深等
+from ...依赖 import cordis,schemastery,ruamel_yaml#外部依赖胶水
+模式=schemastery.模式#配置校验
+承诺=cordis.工具.承诺#操作链承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+YAML=ruamel_yaml.YAML#保留注释的YAML
+CommentedMap=ruamel_yaml.comments.CommentedMap#带注释映射
+from ...工具.原子写入 import 带文件锁,原子写文件#跨进程写锁与原子替换
+from ...工具.工作区路径 import 规范化监视路径,解析主目录#监视路径与harness主目录
+from ..配置 import 设置提供方,json深度相等#设置服务基类与JSON深等
 
 格式表={#扩展名到格式
     '.yaml':'yaml',#YAML
@@ -510,3 +512,5 @@ class 文件设置提供方(设置提供方):#文件设置提供方
 Config=配置模式#Cordis配置模式
 默认=文件设置提供方#中文默认导出
 default=文件设置提供方#Cordis默认导出
+
+__all__=['文件设置提供方','配置模式','Config','默认','default']#公开面

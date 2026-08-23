@@ -3,10 +3,13 @@
 对齐上游 `@deepseek-ai/dsh-tool-bash-persistent`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import re,time,uuid,threading,weakref#正则、轮询休眠、随机标记、中止锁与弱表
-from schemastery import 模式#配置校验库
-from tools import 定义工具#定义面向模型的工具
-from timeout import 截止,取超时#命令截止与超时原因
-from cordis.工具 import 已兑现,承诺,是否thenable#立刻兑现、承诺与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+已兑现=cordis.工具.已兑现#立刻兑现
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..工具 import 定义工具#定义面向模型的工具
+from ..超时 import 截止,取超时#命令截止与超时原因
 
 __all__=['名称','注入','配置','应用','默认']#仅中文公开名
 

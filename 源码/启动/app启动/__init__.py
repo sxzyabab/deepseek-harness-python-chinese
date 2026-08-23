@@ -3,13 +3,17 @@
 对齐上游 `@deepseek-ai/dsh-app-boot`。公开面仅中文名。配置键与诊断字面量保持上游。
 """
 import os,re,sys,copy,json,threading#路径、环境、流、克隆、JSON、定时
-import yaml#YAML
-from cordis import 上下文,光纤状态#上下文与光纤状态
-from cordis.工具 import 是否thenable#可等待
-from include import 包含,应用条目补丁,条目列表加载器,路径转文件url#Include 与补丁
-from loader import 组#Group 内建
-from home_paths import 主目录路径,解析主目录#主目录
-from launch_environment import 创建启动环境快照#启动环境快照
+from ...依赖 import cordis,include,loader,yaml#外部依赖胶水（含 PyYAML）
+上下文=cordis.上下文#上下文
+光纤状态=cordis.纤程状态#光纤/纤程状态
+是否thenable=cordis.工具.是否thenable#可等待
+包含=include.包含#Include
+应用条目补丁=include.应用条目补丁#补丁应用
+条目列表加载器=include.条目列表读取器#YAML 条目列表方言
+路径转文件url=include.路径转文件网址#路径转 file URL
+组=loader.组#Group 内建
+from ..工作区路径 import 主目录路径,解析主目录#主目录
+from ..启动环境 import 创建启动环境快照#启动环境快照
 from .配置档 import (#配置档再导出
     组合条目,默认组合包,愈合模块回退,初始化配置档,加载配置档,
     配置补丁文件名,配置模板,配置目录名,读配置清单,解析组合包目录,
@@ -379,7 +383,7 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
         上下文对象.baseUrl=路径转文件url(os.path.dirname(绝对配置路径))#配置目录基址
         if not 上下文对象.baseUrl.endswith('/'):#尾斜杠
             上下文对象.baseUrl=上下文对象.baseUrl+'/'#补上
-        from loader import 加载器 as 加载器类#Loader
+        加载器类=loader.加载器#Loader
         上下文对象.provide('dshHomePath',主目录路径)#提供主目录解析
         解开(上下文对象.plugin(加载器类))#安装 Loader
         if 准备 is not None:#可选宿主准备

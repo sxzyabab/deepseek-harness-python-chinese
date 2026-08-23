@@ -1,12 +1,12 @@
 """write 与 edit 工具共享的沙箱升级 API：每调用策略解析、广告的升级字段、拒绝标记映射。词汇与失败关闭的审批序列都委托给 sandbox（与 tool-bash 使用的相同零件），因此 bash 与 fs 以同一方式升级。插件应用时按 ctx.fs.sandboxMode 构造一次，由两个变更工具共享。对齐上游 tool-fs/src/sandbox.ts。"""
-from sandbox import (#从 sandbox 导入升级 API（公开符号已是中文名）
+from ...沙盒.沙盒 import (#从 sandbox 导入升级 API（公开符号已是中文名）
     升级目标,#可广告的升级目标
     批准升级,#批准升级
     升级提示标记,#升级提示标记
     沙箱拒绝标记,#沙箱拒绝标记
     校验升级参数,#校验升级参数配对
 )#sandbox 导入结束
-import fs#文件系统错误类
+from .. import 文件系统 as fs#文件系统错误类
 from .辅助 import 取字段,试取,解开#字段读取与承诺展开
 
 class 文件系统沙箱控制器:#文件系统沙箱升级控制器

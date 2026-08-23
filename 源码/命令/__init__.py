@@ -1,0 +1,12 @@
+"""组：命令。"""
+__all__=[
+    'bash工具',
+    'bash工具持久化',
+    'powershell工具',
+    '命令',
+    '命令_环境',
+    '本地bash',
+    '本地powershell',
+    '沙盒bash',
+    '沙盒powershell',
+]

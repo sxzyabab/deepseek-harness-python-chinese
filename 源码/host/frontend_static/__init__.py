@@ -4,7 +4,8 @@
 """
 import os#路径
 from urllib.parse import unquote#解码路径
-from schemastery import 模式#配置模式
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
 
 __all__=['名称','注入','配置','应用','服务静态']#仅中文公开名
 

@@ -1,8 +1,10 @@
 """子体作用域内的 report 工具及其用法指引，安装进每个可续跑进程内子体的未发布上下文。根、一次性子体、远程提供方、以及无智能体执行永远看不见这次登记。对齐上游 `@deepseek-ai/dsh-tool-subagent-report`（packages/subagent/tool-subagent-report）。"""
-from schemastery import 模式#导入配置模式
-from tools import 定义工具#定义面向模型的工具
-from cordis import 聚合错误#多失败聚合（登记失败回滚与成对拆除）
-from cordis.工具 import 已兑现,是否thenable#立刻兑现与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+聚合错误=cordis.聚合错误#多失败聚合（登记失败回滚与成对拆除）
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#定义面向模型的工具
 
 名称='tool-subagent-report'#Cordis插件名（字面量不译）
 # 贡献只通过 childCtx.tools 与 childCtx.systemPrompt 登记，但声明这两个服务让 Loader 排序在加载时失败，而不是等到下一次子体物化。
@@ -30,6 +32,11 @@ Config=配置#Cordis配置模式槽
     +'arrived, so do not blindly repeat it.'
 )#工具描述结束
 参数说明='Actionable content for your parent; summarize conclusions and reference relevant shared paths.'#output 参数说明（字面量不译）
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '名称','注入','报告段落顺序','配置','段落文案','工具描述','参数说明',
+    '取字段','解开','应用','默认',
+]#公开面结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段；缺席时返回缺省。"""

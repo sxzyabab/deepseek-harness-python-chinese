@@ -3,10 +3,14 @@
 对齐上游 `@deepseek-ai/dsh-acp`。公开面仅中文名。本桥接向受信任的程序化客户端暴露新铸造的 harness 会话。保持具名插件导出且无默认导出。
 """
 import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
-from schemastery import 模式#插件配置模式
-from cordis.工具 import 承诺,已兑现,是否thenable,聚合错误#承诺、可等待与聚合错误
-from llm import 创建用户消息,错误链#铸造用户消息与错误链文本
-from session import 会话标识#会话 id 品牌
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#插件配置模式
+承诺=cordis.工具.承诺#承诺
+已兑现=cordis.工具.已兑现#立刻兑现
+是否thenable=cordis.工具.是否thenable#可等待
+聚合错误=cordis.工具.聚合错误#聚合错误
+from ..llm import 创建用户消息,错误链#铸造用户消息与错误链文本
+from ..会话 import 会话标识#会话 id 品牌
 from .编解码 import ACP提示转文本,提示含不受支持内容,回合结束到停止原因#提示展平与停止原因映射
 from .线路 import 协议版本,请求错误,创建NDJSON流,智能体侧连接#ACP 线路面
 

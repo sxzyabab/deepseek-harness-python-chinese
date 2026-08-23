@@ -3,8 +3,9 @@
 对齐上游 `@deepseek-ai/dsh-host-directory-picker-browse`。公开面仅中文名。经标准库在宿主文件系统上做一层目录列举与子目录创建。宿主显示器上不渲染任何内容。本包默认导出服务类。
 """
 import os,re,sys#路径、正则、平台
-from schemastery import 模式#配置模式
-from directory_picker import 目录选择器,目录选择错误#缝定义与业务失败
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+from ..directory_picker import 目录选择器,目录选择错误#缝定义与业务失败
 from .列举 import (
     完全限定,#路径围栏
     有界插入,#有界窗口

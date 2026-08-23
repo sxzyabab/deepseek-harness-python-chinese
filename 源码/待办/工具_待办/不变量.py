@@ -5,7 +5,8 @@
 故意不约束有多少条是 `in_progress`。那是工具的按部署政策（`allowParallelInProgress`），不是耐久形状规则：在允许并行工作时写出的日志，在部署收紧策略后仍必须能回放。
 """
 import json#JSON 片段
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-tool-todo'#本包的不变量所有权名
 名称='tool-todo-invariant'#配套不变量插件名（字面量）

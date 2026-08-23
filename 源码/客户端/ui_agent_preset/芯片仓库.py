@@ -3,7 +3,8 @@
 对齐上游 `ui-agent-preset/src/client/seat-store.ts`。公开面仅中文名。
 新建会话屏当时还没有会话，所以挑选先暂存、不立刻套用。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .设置仓库 import 错误文,预设选项#错误文案与预设选项投影
 
 __all__=['芯片控制器','芯片初始']#仅中文公开名

@@ -3,9 +3,10 @@
 对齐上游 `typert/registry/src/service.ts`。公开面仅中文名。不做 TypeScript 分析，也不生成模式。
 """
 import re#端点段校验
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
-from typert.protocol import 是否合法远程段#Remote 段校验
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..协议 import 是否合法远程段#Remote 段校验
 
 __all__=[#仅中文公开名
     '拼模式键','拼包面键','拼端点','Typert注册表','TypertRegistry',

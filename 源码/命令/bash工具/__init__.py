@@ -4,17 +4,19 @@
 Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 """
 import json,math,os,threading#JSON 片段、有限数、路径与后台结算线程
-from schemastery import 模式#导入配置模式
-from tools import 定义工具,工具体后中止,已中止#定义工具、体后中止码与中止判定
-from llm import 装备错误#Harness 错误
-from shell import 托管环境前缀#DSH 环境前缀
-from sandbox import (
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..工具 import 定义工具,工具体后中止,已中止#定义工具、体后中止码与中止判定
+from ..llm import 装备错误#Harness 错误
+from ..命令 import 托管环境前缀#DSH 环境前缀
+from ..沙盒 import (
     升级目标,#可广告的升级目标
     批准升级,#批准升级
     规范路径,#规范路径
     校验升级参数,#校验升级参数配对
 )#导入沙箱升级与路径辅助
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
 from .后台 import 进程结果#后台结果映射
 from .呈现 import 解析退出状态,渲染结果,渲染进程读取#退出解析与渲染
 

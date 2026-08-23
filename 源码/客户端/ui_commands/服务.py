@@ -8,10 +8,9 @@
 
 """
 
-from cordis import 服务#Cordis 服务基类
-
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 from .弹出 import 弹出选择控制器#弹出控制器
-
 from .目录 import 命令目录#按会话目录缓存
 
 

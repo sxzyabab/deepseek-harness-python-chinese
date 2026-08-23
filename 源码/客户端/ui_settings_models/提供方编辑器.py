@@ -4,8 +4,9 @@
 主键是只写 API 密钥；折叠自定义区承载各适配器族扩展字段。推理力度故意不在提供方级。
 """
 import copy#深拷草稿
-from cordis.工具 import 是否thenable#可等待判定
-from 客户端.schema_form import 再水合模式,路径上节点,取路径,有路径,设路径,删路径,校验草稿#路径编辑
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..schema_form import 再水合模式,路径上节点,取路径,有路径,设路径,删路径,校验草稿#路径编辑
 from .DeepSeek模型编辑器 import DeepSeek模型编辑器,模型草稿表,校验DeepSeek模型#DeepSeek 目录
 from .密钥判定 import 密钥失败#密钥门闩
 from .编辑器页脚 import 编辑器页脚#页脚

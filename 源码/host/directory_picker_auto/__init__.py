@@ -3,7 +3,8 @@
 对齐上游 `@deepseek-ai/dsh-host-directory-picker-auto`。公开面仅中文名。本包不提供默认导出（Loader 的 unwrapExports 会折叠掉 inject）。
 """
 import os,sys#环境与平台
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .解析 import (
     目录选择后端种类,#后端 kind
     解析目录选择后端,#纯决策

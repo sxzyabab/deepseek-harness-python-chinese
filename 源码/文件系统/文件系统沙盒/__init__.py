@@ -3,12 +3,14 @@
 围栏是受信任代码里对模型控制路径的策略检查，不是内核边界——操作为 seam 自有（open、rename），只有目标路径不受信任，因此先规范化再做包含判定就是此面上的完整答案。不受信任代码的内核级隔离仍是 ctx.shell 的工作（bash-sandbox）。这与 code-runtime 立场一致：包含，不是安全边界。残余 TOCTOU（包含复查与系统调用之间祖先符号链接被替换）通过委托前立即再规范化收窄，并被此威胁模型接受。
 
 每调用策略：read-only 拒绝一切变更；workspace-write 仅当目标规范化后落在策略的 workspace 根或平台临时区之下才允许变更（与 Seatbelt 授予的同一可写根集合，由同一个 writableRoots 函数导出，避免 bash 与 fs 漂移）；danger-full-access 无围栏委托。拒绝抛出结构化的 FS_SANDBOX_DENIED——不需要文本推断（不像 bash 的内核 stderr），因为进程内围栏确切知道自己拒绝了什么。升级重试在工具层（tool-fs），与 bash 相同。"""
-from fs_local import 本地文件系统,Config#本地文件系统后端与配置
-from fs import 文件系统错误#文件系统错误类
-from sandbox import 可写根#可写根计算
+from ..本地文件系统 import 本地文件系统,Config#本地文件系统后端与配置
+from ..文件系统 import 文件系统错误#文件系统错误类
+from ...沙盒.沙盒 import 可写根#可写根计算
 from .包含 import 是否路径位于下#路径包含判定
 
 配置=Config#沙箱后端配置与本地后端配置相同（cwd、diffBasisMaxBytes）
+
+__all__=['配置','沙箱文件系统','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""

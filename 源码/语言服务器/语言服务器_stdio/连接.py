@@ -1,6 +1,8 @@
 """一条架在通过子进程能力拉起的语言服务器上的 JSON-RPC 端点。拥有 id 关联、出站请求/通知，以及入站的服务器→客户端请求：用静态配置回答 workspace/configuration，并拒绝 workspace/applyEdit（本宿主从不应用编辑或运行命令）。封顶 stderr，把成帧/解码失败浮成致命关闭，并通过句柄暴露树范围终止，好让实例拥有拆除；组/树机制住在子进程 Service Provider 里。"""
 import threading#stdout读线程与写入互斥
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .成帧 import 编码消息,消息解码器#成帧编码与流式解码
 
 连接规格字段=('command','args','cwd','env','maxMessageBytes','maxStderrBytes','killGraceMs','configuration')#如何启动服务器并回答其配置请求

@@ -1,9 +1,12 @@
 """六种面向模型的持久终端工具。所有者身份来自精确的工具执行智能体；通用 `ctx.jobs` 负责后台 id 与收集。"""
 import threading#后台结算线程
-from schemastery import 模式#导入配置校验库
-from terminal import 终端会话标识#导入会话id品牌化
-from tools import 定义工具#导入工具定义
-from cordis.工具 import 承诺,是否thenable,已兑现#承诺、可等待与立刻兑现
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待
+已兑现=cordis.工具.已兑现#立刻兑现
+from ..终端 import 终端会话标识#导入会话id品牌化
+from ..工具 import 定义工具#导入工具定义
 from .渲染 import (#导入渲染与截断
     封顶终端文本,#封顶完整确认
     渲染列表,#渲染会话列表
@@ -509,3 +512,5 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     }))#terminal_list结束
 
 apply=应用#Cordis插件入口
+
+__all__=['名称','注入','应用','配置','Config','name','inject','apply']#公开面

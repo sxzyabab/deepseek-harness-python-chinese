@@ -3,7 +3,8 @@
 对齐上游 `sdk/client/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：本客户端库运行在任何 harness 上下文之外；事件序列关系由运行时自身的包拥有。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-sdk-client'#本包的不变量所有权名
 名称='sdk-client-invariant'#配套不变量插件名（字面量）

@@ -4,7 +4,8 @@
 
 无运行时不变量：模式与包反射记录在 register/dispose 内一起变更，没有可交叉核对的独立事件或第二数据源；重复身份在拥有该操作的边界失败。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-typert-registry'#本包的不变量所有权名
 名称='typert-registry-invariant'#配套不变量插件名（字面量）

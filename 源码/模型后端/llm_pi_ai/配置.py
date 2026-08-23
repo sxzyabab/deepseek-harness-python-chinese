@@ -3,10 +3,11 @@
 对齐上游 `llm-pi-ai/src/config.ts`。公开面仅中文名；无英文别名。
 """
 import math#有限数判断
-import llm#语言模型服务
-from schemastery import 模式#配置校验库
-from credentials import 凭证引用#凭证引用工厂
-from timeout import 定时器延迟上限毫秒#定时器延迟上限
+from .. import llm#语言模型服务
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+from ..凭据 import 凭证引用#凭证引用工厂
+from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .目录 import 模态列表,解析路由模型,受支持思考格式,思考档位列表#目录词表
 from .提供方 import 构建提供方,受支持协议#提供方构建与受支持协议
 

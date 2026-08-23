@@ -4,7 +4,8 @@
 TypeScript 声明合并的 SlotMap / SessionStandardProps 在此以子槽表与注释面保留；
 可执行域面仅 `待决审批`。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from .....依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=[#仅中文公开名
     '取字段','解开','撰写附件','英雄智能体预设属主','会话主体属主','页眉动作属主',

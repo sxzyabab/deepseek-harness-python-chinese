@@ -3,7 +3,8 @@
 对齐上游 `webserver/src/invariant.ts`。公开面仅中文名。
 HTTP 与 upgrade 路由登记及其 disposer 必须对称。
 """
-from cordis.工具 import 已兑现#立刻兑现
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现
 
 包名='@deepseek-ai/dsh-host-webserver'#本包所有权名
 名称='host-webserver-invariant'#配套插件名

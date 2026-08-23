@@ -1,5 +1,5 @@
 """启发式上下文构成投影的纯折叠。对齐上游 `token-meter/src/breakdown-projection.ts`。公开面仅中文名。"""
-from session import 归一请求头#规范请求头
+from ..会话 import 归一请求头#规范请求头
 from .类型 import 取#读取字段
 from .计价 import 计价系统令牌,计价工具令牌#系统与工具计价
 from .表面投影 import 折叠表面投影#O(1)表面折叠

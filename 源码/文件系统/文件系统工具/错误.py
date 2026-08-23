@@ -1,5 +1,5 @@
 """受守卫变更失败的面向模型补救。提供方的 FS_STALE_VERSION 与 FS_NOT_OBSERVED 消息只陈述条件，不给出唯一正确的恢复（重新读 / 先读文件），因此本包在模型边界追加补救；提供方消息保持面向机器且不变。对齐上游 tool-fs/src/error.ts。"""
-import fs#文件系统服务定义
+from .. import 文件系统 as fs#文件系统服务定义
 
 补救表={#错误码到补救文本
     'FS_STALE_VERSION':'re-read the file, then retry',#过期：重新读再试

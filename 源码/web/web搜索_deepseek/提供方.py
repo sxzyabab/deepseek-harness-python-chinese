@@ -7,8 +7,9 @@ from urllib.request import (
     HTTPRedirectHandler as HTTP重定向处理器,#重定向处理
     HTTPErrorProcessor as HTTP错误处理器,#非 2xx 处理
 )#原生 HTTP
-from web import 网络错误#web 能力错误
-from cordis.工具 import 是否thenable#可等待判定
+from ..web import 网络错误#web 能力错误
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 编码=json.dumps#JSON 编码
 解码=json.loads#JSON 解码

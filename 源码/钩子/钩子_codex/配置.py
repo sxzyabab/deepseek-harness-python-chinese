@@ -1,5 +1,5 @@
 """把 Codex 的五个事件钩子子集解析成共用的 MatcherGroup。只跑同步命令钩子；其他类型和 async: true 的命令记为已跳过。Codex 不做命令替换。"""
-from hook_protocol import 匹配诊断 as 匹配器诊断#按方言校验匹配器
+from ..钩子协议 import 匹配诊断 as 匹配器诊断#按方言校验匹配器
 
 科德克斯事件们=(#本桥支持的五个 Codex 钩子点
     'PreToolUse',#工具使用前

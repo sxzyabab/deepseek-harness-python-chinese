@@ -3,7 +3,8 @@
 对齐上游 `hmr/src/invariant.ts`。公开面仅中文名。
 拥有关系：节点半边启动的每个打包 stat 监视器必须随光纤一起消亡。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-hmr'#本包的不变量所有权名
 名称='client-hmr-invariant'#配套不变量插件名（字面量）

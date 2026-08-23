@@ -1,10 +1,11 @@
 """有序系统段落、动态上下文、工具模式与提示词变量的注册表。对齐上游 `@deepseek-ai/dsh-system-prompt`。公开面仅中文名；Cordis 服务键与事件名、配置键、诊断字面量保持上游字面量。"""
 import json,math,re#json、有限数与正则
-from cosmokit import 克隆#深克隆工具参数，脱离提供方返回的 parameters
-from cordis import 服务#服务基类
-from cordis.工具 import 是否thenable#可等待判定
-from schemastery import 模式#配置模式
-from scope import (
+from ...依赖 import cosmokit,cordis,schemastery#外部依赖胶水
+克隆=cosmokit.克隆#深克隆工具参数
+服务=cordis.服务#服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
+模式=schemastery.模式#配置模式
+from ..作用域 import (
     具名条目,#具名登记表
     匿名条目,#匿名登记表
     作用域层集,#全局+作用域层

@@ -2,8 +2,8 @@
 import threading#中止监视线程
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接#HTTP 客户端
 from urllib.parse import urlunparse as 拼回网址#把解析结果拼回绝对串
-from web import 网络错误#web 错误类型
-from timeout import 截止,取超时#截止期与超时原因
+from ..web import 网络错误#web 错误类型
+from ..超时 import 截止,取超时#截止期与超时原因
 from .策略 import (
     校验抓取网址,#URL 卫生
     是否同源,#同源判定

@@ -5,7 +5,8 @@
 命令默认值、shell 语义、截止、协议分帧、终端就绪和展示属于消费方。本地实现在 subprocess_local。
 """
 import os,re#父环境与敏感名模式
-from cordis import 服务#从 Cordis 导入服务基类
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#从 Cordis 导入服务基类
 from .类型 import (
     托管环境前缀,#托管环境变量前缀
     托管环境键,#托管键品牌

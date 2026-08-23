@@ -4,7 +4,8 @@
 
 无运行时不变量：这是浏览器侧线上命令目录的源码面——不发出 cordis 事件，也不拥有跨插件可变状态；分发与缓存行为由本包 specs 断言。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-commands'#本包的不变量所有权名
 名称='client-ui-commands-invariant'#配套不变量插件名（字面量）

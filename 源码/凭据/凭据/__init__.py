@@ -1,8 +1,14 @@
 """凭证引用能力缝（ctx.credentials）的服务定义。设置与组合文件携带的是密钥的引用——环境变量名——而提供方拥有实际值及其存储。消费方每次操作解析一次引用，因此变更后的凭证会在无需重启插件的情况下到达下一次操作；配置面描述引用，却从不看见其值。"""
 import re,threading#正则与后台观察拒绝
-from cordis import 服务#Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .类型 import 凭证引用品牌#再导出凭证引用品牌
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '引用形态','引用模式','凭证引用','已解析凭证字段','已解析凭证',
+    '凭证信息字段','凭证信息','凭证提供方','凭证引用品牌','默认',
+]#公开面结束
 
 引用形态='^[A-Za-z_][A-Za-z0-9_]*$'#POSIX 标识符形态源
 引用模式=re.compile(引用形态)#POSIX 标识符形态的引用

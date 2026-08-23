@@ -2,8 +2,9 @@
 
 对齐上游 `拓展/cordis-host-runner/src/inspect-registry.ts`。公开面仅中文名。
 """
-from cordis.服务 import 服务#Cordis 服务基类
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['巡检注册表服务','宿主巡检提供方登记']#仅中文公开名
 

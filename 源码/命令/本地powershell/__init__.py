@@ -6,16 +6,18 @@
 命令字符串作为 `-Command` 的一个 argv 元素传入：由 PowerShell 自己解析文本，中间没有 shell。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
-from schemastery import 模式#配置校验库
-from shell import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
-from settings import 安装设置段#设置段安装
-from timeout import (
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..命令 import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
+from ..配置 import 安装设置段#设置段安装
+from ..超时 import (
     夹取超时,#夹取超时
     截止,#融合截止
     定时器延迟上限毫秒,#定时器延迟上限
     取超时,#取出超时原因
 )#超时库
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
 from .解析 import 解析Pwsh路径,候选Pwsh路径#再导出 pwsh 路径解析
 
 __all__=(#仅中文公开名；无英文别名

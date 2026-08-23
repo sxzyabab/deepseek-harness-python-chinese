@@ -5,7 +5,8 @@
 无运行时不变量：浏览器插件贡献一份 effect 拥有的会话定义、按键渲染器和词典；
 持久事件不变量由 Host 工具包拥有。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-ui-workflow-run'#本包的不变量所有权名
 名称='client-ui-workflow-run-invariant'#配套不变量插件名（字面量）

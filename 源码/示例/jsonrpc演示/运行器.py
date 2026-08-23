@@ -3,7 +3,7 @@
 对齐上游 `示例/jsonrpc-demo/src/runner.ts`。公开面仅中文名。
 """
 import os,sys,signal#路径存在、进程与信号
-from app_boot import 启动,安装大声失败,加载环境,解析配置路径#启动粘合层
+from ...启动.app启动 import 启动,安装大声失败,加载环境,解析配置路径#启动粘合层
 
 __all__=['运行JSONRPC智能体']#仅中文公开名
 

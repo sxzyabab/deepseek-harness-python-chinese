@@ -1,14 +1,15 @@
 """表面保留选择，以及自动未结束回合与手动空闲会话压缩共用的已记入日志压缩事务。"""
 import uuid#铸造压缩事务 id
-from cordis.工具 import 是否thenable#可等待判定
-from compaction import (#导入压缩 seam
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..压缩 import (#导入压缩 seam
     压缩标识,#事务品牌 id
     手动压缩错误,#手动预期失败
     压缩检查点来源,#检查点出处构造
     工具配对后平衡,#seq 之后是否平衡
     工具配对前平衡,#seq 之前是否平衡
 )#压缩包
-from llm import 创建用户消息,错误链#导入用户消息与错误链
+from ..llm import 创建用户消息,错误链#导入用户消息与错误链
 from .摘要器 import 装帧摘要#导入检查点装帧
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

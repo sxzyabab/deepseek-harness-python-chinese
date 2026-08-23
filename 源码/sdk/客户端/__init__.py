@@ -2,7 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-sdk-client`。公开面仅中文名。深求装备是高层运行 API；装备客户端是更底层的协议客户端。纯库——不在 Cordis 上下文上注册任何东西。
 """
-from sdk_protocol import JSONRPC响应错误#再导出线协议响应错误
+from ..协议 import JSONRPC响应错误#再导出线协议响应错误
 from .客户端 import (#底层客户端面
     装备客户端,#JSON-RPC 运行时客户端
     请求超时错误,#请求超时错误

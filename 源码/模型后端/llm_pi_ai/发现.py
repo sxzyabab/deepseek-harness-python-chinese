@@ -5,7 +5,7 @@
 import json,math#JSON 与有限数
 from urllib.error import HTTPError,URLError#HTTP 错误
 from urllib.request import Request,urlopen#发出请求
-import llm#语言模型服务
+from .. import llm#语言模型服务
 from .目录 import 目录模型#已安装目录模型
 
 __all__=('发现模型','可询问协议','回复字节上限')#仅中文公开名

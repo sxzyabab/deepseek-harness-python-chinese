@@ -3,8 +3,10 @@
 对齐上游 `mcp-client/src/connection.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import math,threading,time#有限判定、定时器与时间戳
-from timeout import 定时器延迟上限毫秒#定时器延迟上限
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .传输 import 创建传输#传输工厂
 from .工具 import 同步工具#工具同步
 
@@ -295,5 +297,5 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
 
 def 已兑现链():#立刻兑现的链起点
     """同步串行链起点。"""
-    from cordis.工具 import 已兑现#立刻兑现
+    已兑现=cordis.工具.已兑现#立刻兑现
     return 已兑现(None)#已完成

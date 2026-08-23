@@ -1,9 +1,11 @@
 """在 harness 拦截点上桥接未经修改的 Codex 命令钩子。支持五个点（SessionStart、提示/工具前后、Stop）、仅正则匹配器、snake_case 载荷且不加末尾换行、没有钩子环境或命令替换、也没有工具前批准或改写路径；只兑现阻断判定。共用的执行与解析在 `dsh-hook-protocol`。"""
 import json,os,time#读配置、进程 cwd 与墙钟
-from schemastery import 模式#导入配置校验
-from llm import 创建用户消息#导入用户消息工厂
-from cordis.工具 import 承诺,是否thenable#可等待与后台任务
-from hook_protocol import (
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验
+承诺=cordis.工具.承诺#可等待
+是否thenable=cordis.工具.是否thenable#后台任务
+from ..llm import 创建用户消息#导入用户消息工厂
+from ..钩子协议 import (
     追加钩子调用,#追加调用事件
     追加钩子结果,#追加结果事件
     创建分离运行,#创建分离运行跟踪器
@@ -345,3 +347,5 @@ def 应用(上下文,配置值=None):#安装 Codex 钩子桥
 apply=应用#Cordis插件入口
 default=应用#默认导出
 默认=应用#中文默认导出
+
+__all__=['名称','注入','应用','配置','Config','name','inject','apply','默认','default']#公开面

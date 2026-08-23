@@ -4,7 +4,8 @@
 
 无运行时不变量：vite 入口外壳 — 启动粘合与模块表播种，不发 cordis 事件，也没有跨插件可变状态；启动链（加载页 → 落定 → 一次翻转到 UI）由 web 冒烟 e2e 对照真实载体断言。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-client-web'#本包的不变量所有权名
 名称='client-web-invariant'#配套不变量插件名（字面量）

@@ -3,10 +3,14 @@
 命名空间插件（具名导出，无默认导出）。生命周期按 effect 作用域：拆除时从 ctx.lsp 注销并拆掉每一个活着的服务器。
 """
 import threading#提供方队列与生命周期
-from schemastery import 模式#配置校验
-from lsp import 语言服务器错误,语言服务器提供方标识#LSP错误与提供方id工厂
-from timeout import 定时器延迟上限毫秒,中止控制器,合成信号,取已中止#定时器上限与取消
-from cordis.工具 import 承诺,是否thenable,已兑现,聚合错误#承诺与聚合错误
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待
+已兑现=cordis.工具.已兑现#立刻兑现
+聚合错误=cordis.工具.聚合错误#聚合错误
+from ..lsp import 语言服务器错误,语言服务器提供方标识#LSP错误与提供方id工厂
+from ..超时 import 定时器延迟上限毫秒,中止控制器,合成信号,取已中止#定时器上限与取消
 from .取消 import 可中止等待,中止错误#可中止等待
 from .宿主 import 规范化工作区,读宿主源#宿主I/O
 from .实例 import 语言服务器实例#语言服务器实例
@@ -357,3 +361,5 @@ def 应用(上下文,配置):#注册已配置的stdio LSP提供方
     上下文.effect(挂注册,'lsp-stdio.registerProviders')#结束 注册effect
 
 apply=应用#Cordis插件入口
+
+__all__=['名称','注入','应用','配置模式','Config','name','inject','apply']#公开面

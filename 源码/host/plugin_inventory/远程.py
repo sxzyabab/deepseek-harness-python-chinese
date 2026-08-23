@@ -2,7 +2,7 @@
 
 对照 `@Remote('list')`：无参快照。服务键与命名空间均为 `pluginInventory`。
 """
-from typert.protocol import 严格编解码,调用描述符,远程贡献#制品辅助
+from ..协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
 

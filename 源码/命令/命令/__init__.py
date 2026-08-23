@@ -3,8 +3,9 @@
 对齐上游 `shell/src/index.ts`。公开面仅中文名；Cordis 默认导出槽可保留。
 作业 id、所有权、轮询与通知属于 jobs，使执行器与会话无关。
 """
-from cordis import 服务#导入 Cordis 服务基类
-from settings import 设置命名空间#导入设置命名空间工厂
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+from ..配置 import 设置命名空间#导入设置命名空间工厂
 from .类型 import (
     托管环境前缀,#托管环境前缀
     托管环境键,#托管键品牌

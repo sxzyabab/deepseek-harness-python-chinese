@@ -5,15 +5,16 @@
 必须用具名导出，Loader 才能保留本插件的 Config schema。
 """
 import os#路径拼接
-from schemastery import 模式#配置模式
-import acp#ACP 桥
-import agent_spine_demo as agentCore#默认智能体主干
-import agent_instructions as workspaceContext#工作区上下文加载器
-from tools import ToolRuntime#工具运行时
-import session_persistence_jsonl as JsonlSessionPersistence#JSONL 会话持久化
-import session_checkpoint_policy as sessionCheckpointPolicy#检查点策略
-from session_query_sqlite import SqliteSessionQueryEngine#SQLite 会话检索引擎
-from cordis.工具 import 是否thenable#可等待
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式
+是否thenable=cordis.工具.是否thenable#可等待
+from .. import acp#ACP 桥
+from .. import 智能体主干演示 as agentCore#默认智能体主干
+from .. import 智能体指令 as workspaceContext#工作区上下文加载器
+from ..工具 import ToolRuntime#工具运行时
+from .. import 会话持久化 as JsonlSessionPersistence#JSONL 会话持久化
+from .. import 会话检查点策略 as sessionCheckpointPolicy#检查点策略
+from ..会话检索sqlite import SqliteSessionQueryEngine#SQLite 会话检索引擎（内置相对导入）
 
 __all__=['名称','配置','应用']#仅中文公开名
 

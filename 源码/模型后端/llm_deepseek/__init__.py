@@ -4,18 +4,19 @@
 连接事实按请求解析而不是在加载时冻结：插件把它的 cordis.yml 条目配置叠在可选的 llm-deepseek 用户设置段下，并经可选凭证 seam 解析 API 密钥。唯一在注册时捕获的事实——重试政策——在变更时就地重新注册该路由。
 """
 from math import isfinite as 是否有限#有限数判断
-from schemastery import 模式#配置校验库
-from llm import (
+from ...依赖 import schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误
     解析重试政策,#政策解析
     重试政策模式,#政策模式
 )#导入 llm 词表
-from credentials import 凭证引用#凭证引用工厂
-from launch_environment import 取启动环境#启动环境快照
-from settings import json深度相等,安装设置段,设置命名空间#JSON相等、设置段安装与命名空间
-from timeout import 定时器延迟上限毫秒#定时器延迟上限
-from anonymous_user_id import 获取或创建匿名用户标识#匿名用户id
+from ..凭据 import 凭证引用#凭证引用工厂
+from ..启动环境 import 取启动环境#启动环境快照
+from ..配置 import json深度相等,安装设置段,设置命名空间#JSON相等、设置段安装与命名空间
+from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
+from ..匿名用户标识 import 获取或创建匿名用户标识#匿名用户id（内置相对导入）
 from .适配器 import (
     默认上下文窗口,#默认窗口
     默认最大令牌,#默认输出上限

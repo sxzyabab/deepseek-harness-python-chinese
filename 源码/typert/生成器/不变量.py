@@ -4,7 +4,8 @@
 
 无运行时不变量：本源码项目分析器与构建期发射器在任何 cordis 运行时之外执行；模型快照、可执行制品、以及消费包的类型检查强制其输出约定。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-typert-generator'#本包的不变量所有权名
 名称='typert-generator-invariant'#配套不变量插件名（字面量）

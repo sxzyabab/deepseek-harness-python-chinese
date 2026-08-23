@@ -5,6 +5,12 @@ import posixpath#POSIX 路径相对规则
 import re#盘符路径探测
 from urllib.parse import urlparse#解析 file URI
 
+__all__=[#公开面
+    '语言服务器操作','默认最大位置数','默认最大结果字符',
+    '格式化悬停','格式化位置','解析语言服务器参数',
+    '呈现语言服务器调用','渲染网址',
+]#结束
+
 语言服务器操作=('goToDefinition','findReferences','goToImplementation','hover')#四种操作的运行时元组
 默认最大位置数=100#渲染位置在追加省略标记前的默认上限
 默认最大结果字符=16000#完整渲染工具结果（含截断元数据）的默认字符上限

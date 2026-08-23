@@ -2,11 +2,12 @@
 
 对齐上游 `agent-default-model/src/index.ts`。公开面仅中文名；设置文档键与 Cordis 服务槽名（`agentDefaultModel`）保持上游字面量。
 """
-from cordis import 服务#导入 Cordis 服务基类
-from cordis.工具 import 是否thenable#导入 thenable 判断
-from schemastery import 模式#导入配置模式库
-from llm import 推理力度标识#导入推理力度品牌
-from settings import 安装设置段,设置命名空间#导入设置段安装与命名空间
+from ...依赖 import cordis,schemastery#外部依赖胶水
+服务=cordis.服务#导入 Cordis 服务基类
+是否thenable=cordis.工具.是否thenable#导入 thenable 判断
+模式=schemastery.模式#导入配置模式库
+from ..llm import 推理力度标识#导入推理力度品牌
+from ..配置 import 安装设置段,设置命名空间#导入设置段安装与命名空间
 from .类型 import 智能体默认模型设置,插件配置#再导出设置与插件配置结构类型
 
 智能体默认模型设置命名空间=设置命名空间('agent-default-model')#默认模型设置命名空间（kebab 字面量不译）

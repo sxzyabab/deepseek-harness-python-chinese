@@ -2,7 +2,8 @@
 
 无运行时不变量：本无状态 Service Definition 拥有请求/结果类型，执行器与策略拥有观察。
 """
-from cordis.工具 import 已兑现#导入立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#导入立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-shell'#本包的不变量所有权名
 名称='shell-invariant'#配套不变量插件名

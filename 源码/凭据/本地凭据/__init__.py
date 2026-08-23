@@ -16,17 +16,23 @@ inherited process environment      (read-only, wins)
 文档只装凭证，所以它是严格的 CredentialRef 到字符串映射，而不是 dotenv 文件：Harness 拥有、且从不物化进环境的存储，不能同时充当用户的环境层；若它兼作环境层，会把非密钥条目挡在自己的优先级后面，让它们静默不可达。
 """
 import os,threading#路径与操作链线程
-from schemastery import 模式#配置校验
-from cordis import 服务#服务初始化符号
-from cordis.工具 import 已兑现,承诺#操作链承诺
-import credentials#凭证提供方基类与引用品牌化
-from atomic_write import 原子写文件,带文件锁#文件锁与原子写
-from home_paths import 规范化监视路径,解析主目录#监视路径规范化与主目录解析
-from launch_environment import 取启动环境#启动环境读取
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验
+服务=cordis.服务#服务初始化符号
+已兑现=cordis.工具.已兑现#操作链已兑现
+承诺=cordis.工具.承诺#操作链承诺
+from ..凭据 import 凭证提供方,凭证引用#凭证提供方基类与引用品牌化
+from ..原子写入 import 原子写文件,带文件锁#文件锁与原子写
+from ..工作区路径 import 规范化监视路径,解析主目录#监视路径规范化与主目录解析
+from ..启动环境 import 取启动环境#启动环境读取
 from .文档 import 凭证文件名,解析凭证文档,渲染文档,断言仅所有者,是否缺席,读文档文本#文档解析与权限
 from .监视 import 监视#文档热重载监视
 互斥锁=threading.Lock#链尾互斥
 工作线程=threading.Thread#操作线程
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '配置模式','取字段','试取','解析规格','本地凭证提供方','默认',
+]#公开面结束
 
 配置模式=模式.对象({#插件配置字段
     'path':模式.字符串(),#可选文档路径
@@ -63,7 +69,7 @@ def 解析规格(配置):#把配置收成运行时规格
         文件名=os.path.abspath(路径)#显式路径胜出
     return {'filename':文件名,'watch':监视开关,'debounceMs':防抖毫秒}#运行时规格
 
-class 本地凭证提供方(credentials.凭证提供方):#本地文件凭证提供方
+class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
     """以文件为后端的凭证提供方（`$DSH_HOME/.credentials.yaml`）。"""
     Config=配置模式#插件配置模式
     def __init__(自身,ctx,配置):#构造本地提供方
@@ -312,7 +318,7 @@ class 本地凭证提供方(credentials.凭证提供方):#本地文件凭证提�
         for 键 in 键列表:#并集遍历
             if 先前.get(键)==下一.get(键):#值未变则跳过
                 continue#跳过
-            变更.append(credentials.凭证引用(键))#键已证明可品牌化
+            变更.append(凭证引用(键))#键已证明可品牌化
         return 变更#返回变更列表
 
 Config=配置模式#Cordis 配置模式

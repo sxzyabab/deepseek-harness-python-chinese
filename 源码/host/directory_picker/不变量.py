@@ -3,7 +3,8 @@
 对齐上游 `directory-picker/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：本无状态 Service Definition 拥有能力词表，观察由后端与 RPC 消费方拥有。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-host-directory-picker'#本包的不变量所有权名
 名称='host-directory-picker-invariant'#配套不变量插件名（字面量）

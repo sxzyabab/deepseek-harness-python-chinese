@@ -8,7 +8,8 @@ React 像素半以结构树 `轨迹视图` 接线；完整 DOM/CSS 仍以上游�
 
 """
 
-from cordis.工具 import 是否thenable#可等待判定
+from ....依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 from .文案 import 命名空间,中文,英文#词典
 

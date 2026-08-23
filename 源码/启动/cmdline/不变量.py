@@ -4,7 +4,8 @@
 
 无运行时不变量：`cmdlineArgs` 是任意数量普通插件可读的不可变启动器事实。
 """
-from cordis.工具 import 已兑现#立刻兑现的拆除器
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 
 包名='@deepseek-ai/dsh-cmdline'#本包的不变量所有权名
 名称='cmdline-invariant'#配套不变量插件名（字面量）

@@ -7,8 +7,9 @@ ui-slots 拥有登记语义、声明账本、加载时校验与卸载级联。
 """
 import json#序列化注入诊断名
 import threading#微任务近似
-from cordis import 服务#Cordis 服务基类
-from ui_slots import 槽位核心#纯槽位核心
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+from ..ui_slots import 槽位核心#纯槽位核心
 
 __all__=['槽位注册表','根所有者属性','根实例键']#仅中文公开名
 

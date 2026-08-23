@@ -3,15 +3,14 @@
 对齐上游 `e2b/src/index.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import math,os,threading,uuid#有限判定、环境密钥、后台创建与控制面 HOME 随机段
-from cordis import 服务#Cordis 服务基类
-from schemastery import 模式#配置校验
-from e2b import (#E2B SDK
-    Sandbox as 沙箱,#沙箱句柄
-    SandboxNotFoundError as 沙箱未找到错误,#沙箱已消失
-    FileType as 文件类型,#目录项类型
-    CommandExitError as 命令退出错误,#命令非零退出
-    FileNotFoundError as 文件未找到错误,#远端文件不存在
-)#SDK 再导出面
+from ...依赖 import cordis,schemastery,e2b#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
+模式=schemastery.模式#配置校验
+沙箱=e2b.Sandbox#沙箱句柄
+沙箱未找到错误=e2b.SandboxNotFoundError#沙箱已消失
+文件类型=e2b.FileType#目录项类型
+命令退出错误=e2b.CommandExitError#命令非零退出
+文件未找到错误=e2b.FileNotFoundError#远端文件不存在
 
 __all__=(#仅中文公开名
     '引用E2B壳参数','e2b控制环境','E2B运行时','默认',

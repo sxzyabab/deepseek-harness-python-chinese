@@ -2,7 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-host-plugin-inventory`。公开面仅中文名。每次 list 直接读 Loader，跳过 group 行。本包默认导出网关服务类。
 """
-from typert.protocol import 远程服务,远程#Remote 服务基类与装饰器
+from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
 from .类型 import (
     插件条目标识,#条目 id
     插件光纤阶段,#光纤阶段

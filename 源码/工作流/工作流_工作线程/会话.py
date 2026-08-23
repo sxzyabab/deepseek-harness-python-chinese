@@ -3,8 +3,9 @@
 会话先宣告就绪再等 go，因此与启动竞速的取消连脚本的同步前缀都能挡住。用取消代替 go 会放开闸门进入已取消的 drive，且不执行正文。
 """
 import threading#消息泵线程
-from cordis.工具 import 承诺#飞行中 RPC 承诺
-from llm import 断言永不#穷尽检查
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#飞行中 RPC 承诺
+from ...模型后端.llm import 断言永不#穷尽检查
 from .协议 import 宿主到工人类型,工人到宿主类型#双向消息标签
 from .领域 import 渲染抛出#抛出值渲染
 from .运行时 import 工作流执行#worker 侧执行

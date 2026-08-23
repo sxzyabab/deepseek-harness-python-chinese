@@ -1,8 +1,11 @@
 """插件拥有的人类命令注册表，由交互 UI 适配器共享。"""
 import re,uuid,threading#命令名形态、实例令牌与后台观察
-from cordis.工具 import 承诺,是否thenable,已兑现#操作链承诺、可等待判定与立刻兑现
-from scope import 具名条目,作用域层集#具名登记与作用域层
-from typert.protocol import 远程服务,远程#Remote 服务基类与装饰器
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#操作链承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+已兑现=cordis.工具.已兑现#立刻兑现
+from ..作用域 import 具名条目,作用域层集#具名登记与作用域层
+from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
 from .品牌 import 命令标识#命令生命周期配对品牌
 from .类型 import (#再导出类型面字段约定
     命令输入描述字段,#输入提示
@@ -17,6 +20,15 @@ from .类型 import (#再导出类型面字段约定
     命令完成载荷字段,#done 载荷
 )#类型再导出结束
 from .远程 import TYPERT_REMOTE,远程贡献对象#Host-for-Client Remote 贡献
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '名称','命令名形态','斜杠命令形态','缺席',
+    '取字段','有自有','解开','解析命令','中止错误','渲染抛出','信号已中止','接中止',
+    '归一化定义','归一化结果','命令层','命令运行时','命令标识',
+    '命令输入描述字段','命令结果种类','命令成功结果字段','命令失败结果字段',
+    '命令执行字段','命令描述字段','命令来源映射','命令来源','命令运行载荷字段','命令完成载荷字段',
+    'TYPERT_REMOTE','远程贡献对象','默认',
+]#公开面结束
 
 名称='commands'#Cordis 插件名
 命令名形态=re.compile(r'^[a-z][a-z0-9_-]*$')#合法命令名形态

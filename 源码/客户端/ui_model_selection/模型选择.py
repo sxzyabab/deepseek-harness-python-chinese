@@ -2,7 +2,8 @@
 
 对齐上游 `ui-model-selection/src/client/ModelSelect.tsx`。公开面仅中文名。
 """
-from cordis.工具 import 是否thenable#可等待判定
+from ...依赖 import cordis#外部依赖胶水
+是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['模型选择','样式表']#仅中文公开名
 

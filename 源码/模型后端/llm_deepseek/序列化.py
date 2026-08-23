@@ -2,7 +2,7 @@
 
 对齐上游 `llm-deepseek/src/serialize.ts`。公开面仅中文名；无英文别名。
 """
-from llm import 内容含图片,大模型错误#图片检测与LLM错误
+from ..llm import 内容含图片,大模型错误#图片检测与LLM错误
 
 __all__=('校验推理力度','解析思考','序列化助手','序列化消息','序列化请求')#仅中文公开名
 

@@ -2,7 +2,7 @@
 
 对应上游 `@deepseek-ai/dsh-sandbox-local/profiles`。
 """
-from sandbox import 可写根#共用可写根推导，避免与 fs 围栏漂移
+from ..沙盒 import 可写根#共用可写根推导，避免与 fs 围栏漂移
 from .landlock入口 import 授权参数 as landlock授权参数#Landlock --ro/--rw 构建
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

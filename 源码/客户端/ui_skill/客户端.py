@@ -4,7 +4,9 @@
 
 对齐上游 `ui-skill/src/client/index.ts`。公开面仅中文名。
 """
-from cordis.工具 import 已兑现,是否thenable#承诺与可等待判定
+from ...依赖 import cordis#外部依赖胶水
+已兑现=cordis.工具.已兑现#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
 from .文案 import 命名空间,中文,英文#词典
 from .技能行 import 技能行#技能工具行
 

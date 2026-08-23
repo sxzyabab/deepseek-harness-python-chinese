@@ -5,16 +5,17 @@
 Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 """
 import json,math,os#JSON片段、有限数与路径
-from schemastery import 模式#配置校验库
-from tools import 定义工具,工具体后中止,已中止#工具定义、体后中止码与中止判定
-from llm import 装备错误#Harness错误
-from shell import 解析退出状态#共用退出状态解析
-from sandbox import (
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置校验库
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ..工具 import 定义工具,工具体后中止,已中止#工具定义、体后中止码与中止判定
+from ..llm import 装备错误#Harness错误
+from ..命令 import 解析退出状态#共用退出状态解析
+from ..沙盒 import (
     升级目标,#可广告的升级目标
     批准升级,#批准升级
     校验升级参数,#校验升级参数配对
 )#沙箱升级面
-from cordis.工具 import 是否thenable#可等待判定
 from .后台 import 做成任务完成#后台done映射为任务结果
 from .呈现 import 渲染Pwsh结果,渲染Pwsh进程读取#pwsh渲染
 

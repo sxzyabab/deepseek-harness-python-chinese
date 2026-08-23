@@ -1,5 +1,5 @@
 """目标域的运行时构造函数与协议常量。"""
-from llm import 装备错误#导入 harness 错误基类
+from ..llm import 装备错误#导入 harness 错误基类
 
 目标变更版本=1#嵌入轮次零消息来源中的目标变更版本
 

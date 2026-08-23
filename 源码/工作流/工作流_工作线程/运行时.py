@@ -3,10 +3,12 @@
 致命工作流错误——坏的钩子参数、不受支持的模式/选项、上限、启动失败、取消——经组合子传播。只有子失败和普通阶段错误变成按条 null。每个返回的承诺都有拒绝消费方，因此被丢掉的脚本承诺杀不死 worker。从未结算的已取消脚本什么都不发；宿主在宽限内强制结算运行并终止线程。
 """
 import copy,threading#克隆 args 与后台收容线程
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
-from session import 会话标识,SessionId#会话标识铸造
-from tools import 断言对象json模式,JsonSchemaError,assertObjectJsonSchema#对象 JSON Schema 断言与其错误
-from workflow import 是否致命工作流错误,工作流错误#致命错误判定与工作流错误
+from ...依赖 import cordis#外部依赖胶水
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.会话 import 会话标识#会话标识铸造
+from ...内核.工具 import 断言对象json模式,JsonSchemaError,assertObjectJsonSchema#对象 JSON Schema 断言与其错误
+from ..工作流 import 是否致命工作流错误,工作流错误#致命错误判定与工作流错误
 from .领域 import 从领域物化,物化错误,渲染抛出#领域物化
 
 受支持智能体选项=set(['label','phase','schema','provider','model'])#受支持的 agent 选项名

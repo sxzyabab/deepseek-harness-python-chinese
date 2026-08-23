@@ -1,10 +1,12 @@
 """经一个已配置的 `ctx.subagents` 提供方做面向模型的委托。提供方生命周期控制工具登记和随上下文变化的模式措辞。前台调用在收集后总是释放该次运行。后台策略由本插件配置选择：一次性调用拥有普通 Task，可续接调用走 `ctx.subagents.startContinuable()`。"""
 import threading#后台结算线程
-from schemastery import 模式#导入配置模式库
-from tools import 定义工具#导入工具定义
-from subagent import 断言子智能体最大深度,结算运行#深度断言与运行结算
-from cordis import 聚合错误#多失败聚合
-from cordis.工具 import 承诺,是否thenable#承诺与可等待判定
+from ...依赖 import cordis,schemastery#外部依赖胶水
+模式=schemastery.模式#配置模式库
+聚合错误=cordis.聚合错误#多失败聚合
+承诺=cordis.工具.承诺#承诺
+是否thenable=cordis.工具.是否thenable#可等待判定
+from ...内核.工具 import 定义工具#导入工具定义
+from ..子智能体 import 断言子智能体最大深度,结算运行#深度断言与运行结算
 
 名称='tool-subagent'#Cordis插件名
 注入=['tools','subagents','systemPrompt']#依赖工具、子智能体与系统提示词
@@ -32,6 +34,12 @@ inject=注入#Cordis依赖声明
     'maxDepth':模式.联合([模式.自然数().最大(安全整数上限),模式.常量('provider-managed')]).默认(3),#默认深度3
 })#配置模式结束
 Config=配置#Cordis配置模式
+
+__all__=[#仅中文公开名；Cordis 槽英文别名不入表
+    '名称','注入','配置','子智能体段落顺序','安全整数上限',
+    '中止控制器','取字段','解开','应用','默认',
+]#公开面结束
+
 class 中止控制器:#发出中止的控制器
     """对应 AbortController：一对控制器与信号。"""
     def __init__(自身):#创建配套信号

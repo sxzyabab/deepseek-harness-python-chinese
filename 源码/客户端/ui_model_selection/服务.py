@@ -2,7 +2,8 @@
 
 对齐上游 `ui-model-selection/src/client/service.ts`。公开面仅中文名。
 """
-from cordis import 服务#Cordis 服务基类
+from ...依赖 import cordis#外部依赖胶水
+服务=cordis.服务#Cordis 服务基类
 from .目录 import 模型目录#每会话目录
 
 __all__=['模型目录解析器']#仅中文公开名

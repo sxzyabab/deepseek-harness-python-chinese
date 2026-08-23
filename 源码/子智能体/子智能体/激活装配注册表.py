@@ -1,5 +1,5 @@
 """组进每个可续跑子体未发布创建上下文的部署能力的内部注册表。一项贡献授予子作用域能力，而不教续跑管理器存在哪些能力。"""
-from llm import 错误链#errorChain 渲染
+from ...模型后端.llm import 错误链#errorChain 渲染
 from .错误 import 子智能体错误#导入子智能体错误
 
 def 是否已移除(登记):#是否已撤销

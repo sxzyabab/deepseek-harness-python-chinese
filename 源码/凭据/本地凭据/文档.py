@@ -1,10 +1,11 @@
 """凭证 YAML 文档的解析、渲染与仅所有者权限检查。"""
 import os,errno,io#路径、错误码与文本流
-from ruamel.yaml import YAML as YAML解析器#可保留注释的 YAML 往返
-from ruamel.yaml.comments import CommentedMap as 带注释映射#带注释的映射根
-from ruamel.yaml.error import YAMLError as YAML错误#解析失败
-import credentials#凭证引用校验
-from home_paths import 规范化监视路径#监视路径规范化
+from ...依赖 import ruamel_yaml#外部依赖胶水（ruamel.yaml）
+YAML解析器=ruamel_yaml.YAML#可保留注释的 YAML 往返
+带注释映射=ruamel_yaml.comments.CommentedMap#带注释的映射根
+YAML错误=ruamel_yaml.error.YAMLError#解析失败
+from ..凭据 import 凭证引用#凭证引用校验
+from ...工具.工作区路径 import 规范化监视路径#监视路径规范化
 
 凭证文件名='.credentials.yaml'#harness 主目录内凭证文档的基名
 组其他人位=0o077#所有者以外的权限位；凭证文档不得带其中任何一位（0600 创建/替换后仍须拒绝 umask 放宽）
@@ -76,7 +77,7 @@ def 解析凭证文档(文本,文件名):#把凭证文档解析成条目
     for 键,值 in 根.items():#逐条检查
         文字键=键 if isinstance(键,str) else str(键)#Object.entries 会把键收成字符串
         # credentialRef 对非 POSIX 标识符抛错，而这正是已存引用要能经能力缝寻址所必须满足的约束。
-        credentials.凭证引用(文字键)#校验键为合法引用
+        凭证引用(文字键)#校验键为合法引用
         # 引用的是键名，从不引用值：类型错误的条目仍是用户想存的密钥。
         if not isinstance(值,str):#值必须是字符串
             raise TypeError('credentials-local: the value for "'+文字键+'" in '+文件名+' must be a string')#拒绝非字符串值

@@ -1,7 +1,7 @@
 """条目树里的一个已配置插件节点。"""
-import cordis
-import cosmokit
-from cordis.工具 import 全局标记#进程内唯一标记
+from ... import cordis
+from ...cosmokit import cosmokit
+from ...cordis.工具 import 全局标记#进程内唯一标记
 from .工具 import 求值,是否表达式节点,取表达式#配置表达式
 
 def 更新错误(阶段,选项,原因):
