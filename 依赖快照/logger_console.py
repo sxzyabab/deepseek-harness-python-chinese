@@ -1,42 +1,65 @@
-"""把日志渲染成带颜色的控制台文本的导出器。"""
 import os,sys,time
-from .cosmokit import 时间#时间模板与差值格式化
-from .schemastery import 模式#配置模式
-from .cordis import 日志器#着色与 printf 渲染
+from .cosmokit import 时间
+from .schemastery import 模式
+from .cordis import 日志器
 
 def 探测终端色深():
     """按环境变量与终端类型探测标准输出支持的色深。"""
-    环境=os.environ#进程环境
-    强制=环境.get('FORCE_COLOR')#强制指定的色深
+    环境变量=os.environ#进程环境
+    #启用配置优先于禁用配置
+    强制=环境变量.get('FORCE_COLOR') or 环境变量.get('使用色深')#强制指定的色深
     if 强制 is not None:
-        return {'0':0,'false':0,'':1,'true':1,'1':1,'2':2,'3':3}.get(强制,1)#强制值优先
-    if 环境.get('NO_COLOR') or 环境.get('NODE_DISABLE_COLORS') or 环境.get('TERM')=='dumb':
+        return {
+            '0':0,
+            'false':0,
+            '':1,
+            'true':1,
+            '1':1,
+            '2':2,
+            '3':3
+            }.get(强制.lower(),1)
+    if 环境变量.get('禁用色彩') or 环境变量.get('NO_COLOR') or \
+        环境变量.get('NODE_禁用色彩') or 环境变量.get('NODE_DISABLE_COLORS') or \
+        环境变量.get('终端')=='dumb' or 环境变量.get('TERM')=='dumb':#dumb是非智能终端
         return 0#显式禁用
+    #重定向到文件就不着色,但环境配置优先
     if not sys.stdout.isatty():
-        return 0#重定向到文件就不着色
-    if 环境.get('CI') and any(环境.get(键) for 键 in ('GITHUB_ACTIONS','GITLAB_CI','TRAVIS','CIRCLECI')):
-        return 1#这些 CI 的日志面板认基本色
-    if 环境.get('COLORTERM') in ('truecolor','24bit'):
-        return 3#真彩
-    终端=环境.get('TERM') or ''#终端类型
+        return 0
+    #CI环境
+    if 环境变量.get('CI') and any(
+        环境变量.get(键)
+        for 键 in (#这些 CI 的日志面板认基本色
+            'GITHUB_ACTIONS','GITLAB_CI','TRAVIS','CIRCLECI'
+            )):
+        return 1
+    #真彩终端
+    if 环境变量.get('COLORTERM') in ('truecolor','24bit'):
+        return 3
+    终端=环境变量.get('终端') or 环境变量.get('TERM') or ''#终端类型
     if '256' in 终端 or 终端=='xterm-kitty':
-        return 2#256 色
+        return 2#256色
     return 1#基本色
 
-_检查样式={'数字':('33','39'),'布尔':('33','39'),'空':('1','22'),'字符串':('32','39'),'循环':('36','39')}#检查器着色
+_检查样式={
+    '数字':('33','39'),
+    '布尔':('33','39'),
+    '空':('1','22'),
+    '字符串':('32','39'),
+    '循环':('36','39')
+    }#检查器着色
 
 def 展开对象(值,导出器,消息=None):
-    """把对象展开成一行带颜色的可读文本，循环引用就地标出。"""
+    "把对象展开成一行带颜色的可读文本，循环引用就地标出"
     着色=bool(getattr(导出器,'色深',None))#是否着色
     路径上的容器=set()#当前递归路径上的容器身份
     def 上色(样式,文本):
-        """按检查器样式包一层 ANSI。"""
+        "按检查器样式包一层 ANSI"
         if not 着色:
             return 文本#不着色
         起,止=_检查样式[样式]#起止码
         return f'\x1b[{起}m{文本}\x1b[{止}m'#着色文本
     def 展开(项):
-        """递归展开一项。"""
+        "递归展开一项"
         if isinstance(项,bool):
             return 上色('布尔',str(项))#布尔要排在数字前面
         if 项 is None:
@@ -58,7 +81,7 @@ def 展开对象(值,导出器,消息=None):
     return 展开(值)#根对象
 
 def _展开容器(项,展开):
-    """按容器种类拼出它的字面量文本。"""
+    "按容器种类拼出它的字面量文本"
     if isinstance(项,dict):
         return '{'+', '.join(f'{展开(键)}: {展开(子)}' for 键,子 in 项.items())+'}'#映射
     if isinstance(项,list):
@@ -72,7 +95,7 @@ def _展开容器(项,展开):
     return '{'+', '.join(展开(子) for 子 in 项)+'}'#集合
 
 class 控制台导出器:
-    """把日志渲染成一行控制台文本的导出器。"""
+    "把日志渲染成一行控制台文本的导出器"
     插件名='logger-console'#插件显示名
     配置模式=模式.对象({
         'colors':模式.联合([模式.常量(False),模式.数字()]),#色深，False 表示不着色
@@ -88,7 +111,7 @@ class 控制台导出器:
     })#配置模式
 
     def __init__(自身,上下文,配置=None):
-        """按配置装配渲染参数并把自己登记成日志导出器。"""
+        "按配置装配渲染参数并把自己登记成日志导出器"
         配置=配置 or {}#空配置
         色深=配置.get('colors')#配置里指定的色深
         自身.色深=探测终端色深() if 色深 is None else (色深 or 0)#False 与 0 都表示不着色
@@ -102,11 +125,11 @@ class 控制台导出器:
         上下文.日志.登记导出器(自身)#登记导出器
 
     def 导出(自身,消息):
-        """把渲染结果打印到控制台。"""
+        "把渲染结果打印到控制台"
         print(自身.渲染(消息))#打印一行
 
     def 渲染(自身,消息):
-        """把一条记录收成整行控制台文本。"""
+        "把一条记录收成整行控制台文本"
         间隔空格=' '*自身.标签样式.get('margin',1)#名称两侧的空格
         缩进=3+len(间隔空格)#续行缩进，先算上级别前缀
         输出=''#行缓冲

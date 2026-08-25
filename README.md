@@ -8,6 +8,18 @@
 
 该仓库目前无法直接运行，在之后的版本会修复
 
+## 使用
+
+安装为python库：
+```shell
+git clone https://github.com/sxzyabab/deepseek-harness-python-chinese.git
+cd deepseek-harness-python-chinese
+pip install .
+```
+>注：目前只是能安装还不能正常导入
+
+或下载源码后直接导入(使用`importlib`或改名为不含`-`的名称后导入)
+
 ## 文件导览
 
 [文档](文档/)/
@@ -35,17 +47,19 @@
 
 ## 较大修改
 
-- 删除 vendor/group
-- schemastery包改用pydantic
+* 删除 vendor/group
+* schemastery包改用pydantic
 
 ## 更新日志
 
 进行中:
-    4.初步重构：目前部分完成`packages/`的整理
+* 初步重构：目前部分完成`packages/`的整理
+* 彻底重构外部依赖(Cordis相关)
+* 优化原生体验：可安装为包，完成部分基础文件
 
-计划中:
-    6.完成web端并成功启动
-    5.彻底重构外部依赖
+计划中(TODO):
+* 完成web端并成功启动
+* 跟上版本(进入0.1.1)
 
 已完成:
 3.初步重构外部依赖(Cordis相关)

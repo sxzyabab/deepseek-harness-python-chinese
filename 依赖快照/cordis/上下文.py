@@ -1,4 +1,5 @@
 """插件的根容器与子作用域容器。"""
+from types import MethodType as 绑定方法#把内部数据面上的函数绑到实例
 from .工具 import (
     差分映射,#本层叠父层的属性字典
     未命中,#沿链查找的未命中哨兵
@@ -8,7 +9,7 @@ from .工具 import (
 )
 
 def 是上下文(值):
-    "值带上下文品牌时为真"
+    "传入对象带上下文标记时为真"
     if 值 is None:
         return False#空值
     return 获取内部数据(值,'是上下文',None) is True#品牌
@@ -44,8 +45,9 @@ class 上下文(自由点访问空间):
     def __getattribute__(自身,属性):
         if 是双下划线字符串(属性):
             return 自由点访问空间.__getattribute__(自身,属性)#双下名走自由点访问
-        if 属性 in _直通属性:
-            return object.__getattribute__(自身,属性)#类自身成员直通
+        值=上下文.__dict__.get(属性,未命中)#类上的公开方法
+        if 值 is not 未命中:
+            return 绑定方法(值,自身)#绑到当前实例再交出
         from .反射 import 反射服务#服务读写
         return 反射服务.取属性(自身,属性)#走服务解析
 
@@ -99,5 +101,3 @@ class 上下文(自由点访问空间):
         子=自身.扩展()#叠一层
         获取内部数据(子,'属性链')['拦截'][服务名]=配置#写入本层拦截键
         return 子#拦截子上下文
-
-_直通属性=set(vars(上下文))|{'__class__'}#类自身成员读取时不走服务解析

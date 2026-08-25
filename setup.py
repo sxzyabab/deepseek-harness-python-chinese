@@ -4,22 +4,18 @@ import shutil
 from setuptools import setup as 安装
 from setuptools.command.build_py import build_py
 
+根包名='pydsh'
+
 根目录=Path(__file__).resolve().parent
 源码目录=根目录/"源码"
 依赖目录=根目录/"依赖快照"
-根包名='pydsh'
+
 if not 源码目录.is_dir():
     raise RuntimeError("源码目录不存在")
 if not 依赖目录.is_dir():
     raise RuntimeError("依赖快照目录不存在")
 
-def 规范包名(名称:str)->str:
-    "连字符换下划线"
-    return 名称.replace("-","_")
-
 def 复制文件树(源:Path,目标:Path)->None:
-    if '-' in 目标.name:
-        目标=目标.with_name(目标.name.replace('-','_'))
     if 目标.exists():
         shutil.rmtree(目标)
     if 源.is_dir():
@@ -35,7 +31,14 @@ def 复制文件树(源:Path,目标:Path)->None:
 
 class 安装指令(build_py):
     def run(self):
-        复制文件树(源码目录,Path(self.build_lib)/根包名)
+        shutil.copytree(
+            根目录,
+            Path(self.build_lib)/根包名,
+            ignore=shutil.ignore_patterns(
+                'build','*.egg-info','__pycache__','.git'
+                ),dirs_exist_ok=True
+            )
+        复制文件树(根目录/'.git',Path(self.build_lib)/根包名/".git")
 
 安装(
     name=根包名,

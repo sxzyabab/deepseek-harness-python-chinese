@@ -16,3 +16,5 @@ dependencies=[
 pydsh="pydsh.__main__:main" #pydsh命令
 [tool.setuptools]
 include-package-data=true
+[tool.setuptools.package-dir]
+pydsh="."

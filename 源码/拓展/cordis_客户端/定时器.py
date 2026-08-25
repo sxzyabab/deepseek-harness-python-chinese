@@ -46,13 +46,13 @@ class 客户端定时器服务:#ClientTimerService 算法面
     """timeout/interval/throttle/debounce；经 effect 挂接时由上下文提供拆除。"""
     def __init__(自身,上下文=None,时钟=None):#构造
         """可选 ctx.effect 与可注入时钟。"""
-        自身.上下文=上下文#ctx
+        自身.所属上下文=上下文#ctx
         自身.时钟=时钟 or 默认时钟()#时钟
 
     def _挂effect(自身,标签,拆除体):#Fiber 挂接
         """有 effect 则登记；否则返回拆除体本身。"""
-        if 自身.上下文 is not None and hasattr(自身.上下文,'effect'):#有
-            return 自身.上下文.effect(lambda:拆除体,标签)#挂
+        if 自身.所属上下文 is not None and hasattr(自身.所属上下文,'effect'):#有
+            return 自身.所属上下文.effect(lambda:拆除体,标签)#挂
         return 拆除体#裸
 
     def setTimeout(自身,回调,延迟):#兼容别名

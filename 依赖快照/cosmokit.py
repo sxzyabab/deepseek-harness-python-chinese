@@ -103,17 +103,17 @@ def 类型是(类型名:str,值=未传参):#构造名检测
         return True#实例命中
     return type(值).__name__==类型名#按类名回退
 
-def _是否类数组缓冲(值)->bool:
+def 是类数组缓冲(值)->bool:
     "值为类数组缓冲时为真"
     return 类型是('ArrayBuffer',值) or 类型是('SharedArrayBuffer',值)#两类缓冲
 
-def _是否数组缓冲源(值)->bool:
+def 是数组缓冲源(值)->bool:
     "值为缓冲或缓冲视图时为真"
-    return _是否类数组缓冲(值) or isinstance(值,memoryview)#源检测
+    return 是类数组缓冲(值) or isinstance(值,memoryview)#源检测
 
 class 二进制:
-    是=staticmethod(_是否类数组缓冲)#类数组缓冲检测
-    是源=staticmethod(_是否数组缓冲源)#源检测
+    是=staticmethod(是类数组缓冲)#类数组缓冲检测
+    是源=staticmethod(是数组缓冲源)#源检测
 
     @staticmethod
     def 从字节源(字节源:bytes|bytearray|memoryview)->bytes|bytearray:
@@ -163,7 +163,7 @@ def 克隆(源,引用表=None):
         return 源.replace()#克隆日期
     if 类型是('RegExp',源):#正则
         return re.compile(源.pattern,源.flags)#克隆正则
-    if _是否类数组缓冲(源):#缓冲
+    if 是类数组缓冲(源):#缓冲
         return bytes(memoryview(源))#拷贝缓冲
     if isinstance(源,memoryview):#视图
         return 源.tobytes()#视图收成字节
@@ -200,7 +200,7 @@ def 克隆(源,引用表=None):
             setattr(结果,键,克隆(字段[键],引用表))
     return 结果#克隆对象
 
-def _是否数值(值)->bool:
+def 是数值(值)->bool:
     "值为数字时为真,布尔按JS的惯例不算数字"
     return isinstance(值,(int,float)) and not isinstance(值,bool)#布尔单独比较
 
@@ -208,7 +208,7 @@ def 深入比较(甲,乙,*,严格比较=False):
     """深度比较列表(数组)、日期、正则、缓冲与普通对象字段
     严格模式是js下的null/undefined比较,python弃用,仅保留参数进行兼容"""
     #数字只看数值,1与1.0相等,NaN与自己不相等
-    if _是否数值(甲) and _是否数值(乙):
+    if 是数值(甲) and 是数值(乙):
         return 甲==乙
     #同一引用
     if 甲 is 乙:
