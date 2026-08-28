@@ -4,8 +4,7 @@
 连接事实按请求解析而不是在加载时冻结：插件把它的 cordis.yml 条目配置叠在可选的 llm-deepseek 用户设置段下，并经可选凭证 seam 解析 API 密钥。唯一在注册时捕获的事实——重试政策——在变更时就地重新注册该路由。
 """
 from math import isfinite as 是否有限#有限数判断
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段#配置字段
 from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误
@@ -61,22 +60,22 @@ __all__=(#仅中文公开名；无英文别名
     {'id':'deepseek-v4-flash','name':'DeepSeek-V4-Flash','contextWindow':默认上下文窗口},#Flash
     {'id':'deepseek-v4-pro','name':'DeepSeek-V4-Pro','contextWindow':默认上下文窗口},#Pro
 ]#默认建议目录
-目录模型=模式.对象({
-    'id':模式.字符串().必填(),#必需id
-    'name':模式.字符串(),#可选名
-    'description':模式.字符串(),#可选描述
-    'contextWindow':模式.数字().步进(1).最小(1),#正整数窗口
-    'maxTokens':模式.数字().步进(1).最小(1),#正整数上限
+目录模型=路径上节点({
+    'id':字符串字段(可空=False),#必需id
+    'name':字符串字段(),#可选名
+    'description':字符串字段(),#可选描述
+    'contextWindow':整数字段(步进=1,最小=1),#正整数窗口
+    'maxTokens':整数字段(步进=1,最小=1),#正整数上限
 })#目录条目模式
-配置=模式.对象({
-    'apiKeyEnv':模式.字符串().角色('credential-ref').默认(默认接口密钥环境),#密钥引用
-    'baseURL':模式.字符串(),#基址
-    'thinking':模式.联合([模式.常量('enabled'),模式.常量('disabled')]),#思考开关
-    'reasoningEffort':模式.联合([模式.常量('off'),模式.常量('high'),模式.常量('max')]),#力度
-    'maxTokens':模式.数字().步进(1).最小(1).最大(最大安全整数).默认(默认最大令牌),#输出上限
-    'defaultContextWindow':模式.数字().步进(1).最小(1).默认(默认上下文窗口),#默认窗口
-    'models':模式.数组(目录模型).默认(默认模型列表),#目录
-    'streamIdleTimeoutMs':模式.数字().最小(最小正数).最大(定时器延迟上限毫秒).默认(默认流空闲超时毫秒),#空闲超时
+配置=路径上节点({
+    'apiKeyEnv':字符串字段(默认值=默认接口密钥环境),#密钥引用
+    'baseURL':字符串字段(),#基址
+    'thinking':枚举字段(常量字段('enabled'),常量字段('disabled')),#思考开关
+    'reasoningEffort':枚举字段(常量字段('off'),常量字段('high'),常量字段('max')),#力度
+    'maxTokens':整数字段(步进=1,最小=1,最大=最大安全整数,默认值=默认最大令牌),#输出上限
+    'defaultContextWindow':整数字段(步进=1,最小=1,默认值=默认上下文窗口),#默认窗口
+    'models':列表字段(目录模型,默认值=默认模型列表),#目录
+    'streamIdleTimeoutMs':数字字段(最小=最小正数,最大=定时器延迟上限毫秒,默认值=默认流空闲超时毫秒),#空闲超时
     'retryPolicy':重试政策模式,#重试政策
 })#配置运行时模式
 公开基址='https://api.deepseek.com'#公开API默认

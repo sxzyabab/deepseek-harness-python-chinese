@@ -1,7 +1,7 @@
 """建议性的按智能体重复调用检测器。它用已记录的模型上下文丰富后执行决策，既不否决也不改写调用。配置与链语义见包 README；理由见 repeat-tool-reminder Agent Note。"""
 import json,re,weakref#JSON规范串、通配正则与按智能体弱表
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入schemastery配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,列表字段,数字字段,字符串字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ...模型后端.llm import 创建用户消息#构造提醒用户消息
 
@@ -10,11 +10,11 @@ name=名称#Cordis插件名
 
 __all__=['名称','配置模式','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
-配置模式=模式.对象({#插件配置：同名 schema 加 apply 里的加载时检查（错误配置大声失败）
-    'thresholds':模式.数组(模式.数字()).默认([3,5,8]),#触发提醒的连续重复次数
-    'include':模式.数组(模式.字符串()).默认([]),#要跟踪的工具名模式；空表示跟踪每个工具
-    'exclude':模式.数组(模式.字符串()).默认([]),#对链透明的工具名模式（既不计数也不重置）
-    'argumentsPreviewChars':模式.数字().默认(500),#DETAILED提醒里引用的规范参数最大字符数
+配置模式=路径上节点({#插件配置：同名 schema 加 apply 里的加载时检查（错误配置大声失败）
+    'thresholds':列表字段(数字字段(),默认值=[3,5,8]),#触发提醒的连续重复次数
+    'include':列表字段(字符串字段(),默认值=[]),#要跟踪的工具名模式；空表示跟踪每个工具
+    'exclude':列表字段(字符串字段(),默认值=[]),#对链透明的工具名模式（既不计数也不重置）
+    'argumentsPreviewChars':数字字段(默认值=500),#DETAILED提醒里引用的规范参数最大字符数
 })#配置模式结束
 Config=配置模式#Cordis配置模式
 
@@ -111,7 +111,7 @@ def 前置上下文(本提醒,下游们):#叠提醒到下游上下文
 
 def 应用(上下文对象,配置):#安装重复提醒守卫
     """安装守卫的监听器。`thresholds` 在此再按大声失败检查一遍。"""
-    # schemastery 的 .默认() 保证校验后字段已设。
+    # schemastery 的默认= 保证校验后字段已设。
     阈值们=校验阈值(list(取字段(配置,'thresholds') or []))#校验并排序阈值
     阈值集合=set(阈值们)#阈值集合
     包含模式们=[通配转正则(项) for 项 in list(取字段(配置,'include') or [])]#包含正则

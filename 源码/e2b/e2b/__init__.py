@@ -3,9 +3,9 @@
 对齐上游 `e2b/src/index.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import math,os,threading,uuid#有限判定、环境密钥、后台创建与控制面 HOME 随机段
-from ...依赖 import cordis,schemastery,e2b#外部依赖胶水
+from ...依赖 import cordis,e2b#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-模式=schemastery.模式#配置校验
 沙箱=e2b.Sandbox#沙箱句柄
 沙箱未找到错误=e2b.SandboxNotFoundError#沙箱已消失
 文件类型=e2b.FileType#目录项类型
@@ -27,10 +27,10 @@ def e2b控制环境(覆盖=None):#控制面命令的隔离环境
     环境['HOME']='/.dsh-e2b-control-'+str(uuid.uuid4())#每次新 HOME，避免登录壳读用户配置
     return 环境#SDK 可再扩展的可变映射
 
-配置模式=模式.对象({#schemastery 配置模式
-    'apiKey':模式.字符串(),#可选字符串密钥
-    'cwd':模式.字符串().默认('/home/user/workspace'),#默认远端工作目录
-    'timeoutMs':模式.数字().默认(300000),#默认 5 分钟寿命
+配置模式=路径上节点({#schemastery 配置模式
+    'apiKey':字符串字段(),#可选字符串密钥
+    'cwd':字符串字段(默认值='/home/user/workspace'),#默认远端工作目录
+    'timeoutMs':数字字段(默认值=300000),#默认 5 分钟寿命
 })#配置模式结束
 
 class E2B运行时(服务):#共享沙箱所有者服务

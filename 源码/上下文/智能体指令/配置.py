@@ -1,7 +1,6 @@
 """工作区指令发现与渲染的配置归一化。"""
 import json,os#序列化身份与相对路径
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段,列表字段#配置字段
 from ..工作区路径 import 解析主目录#导入harness家目录解析
 
 __all__=['配置','解析配置','工作区基线身份','默认项目根标记','默认指令文件候选','默认本地指令文件候选','默认单源字节']#公开面
@@ -12,13 +11,13 @@ __all__=['配置','解析配置','工作区基线身份','默认项目根标记'
 默认单源字节=1048576#单文件默认UTF-8字节上限
 保留路径段=set(('','.','..'))#禁止作为候选文件名的路径段
 
-配置=模式.对象({#Config的Schemastery校验
-    'dshHome':模式.字符串(),#家目录字符串
-    'projectRootMarkers':模式.数组(模式.字符串()).默认(list(默认项目根标记)),#根标记默认.git
-    'maxBytes':模式.数字().必填(),#渲染预算必填
-    'maxSourceBytes':模式.数字().默认(默认单源字节),#单源默认上限
-    'instructionFileCandidates':模式.数组(模式.字符串()).默认(list(默认指令文件候选)),#基线候选默认
-    'localInstructionFileCandidates':模式.数组(模式.字符串()).默认(list(默认本地指令文件候选)),#本地覆盖默认
+配置=路径上节点({#Config的Schemastery校验
+    'dshHome':字符串字段(),#家目录字符串
+    'projectRootMarkers':列表字段(字符串字段(),默认值=list(默认项目根标记)),#根标记默认.git
+    'maxBytes':数字字段(可空=False),#渲染预算必填
+    'maxSourceBytes':数字字段(默认值=默认单源字节),#单源默认上限
+    'instructionFileCandidates':列表字段(字符串字段(),默认值=list(默认指令文件候选)),#基线候选默认
+    'localInstructionFileCandidates':列表字段(字符串字段(),默认值=list(默认本地指令文件候选)),#本地覆盖默认
 })#Config校验结束
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""

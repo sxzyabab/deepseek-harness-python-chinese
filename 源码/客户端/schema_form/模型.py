@@ -1,12 +1,10 @@
 """设置编辑器背后的 schema 内省与草稿编辑辅助。
 
-`转JSON` 的纯数据模式树再水合成活动校验器，编辑器沿它的节点关系（`字段表`/`内层`）判断字段存在与角色；草稿按路径不可变编辑。
+`转JSON模式` 的 JSON Schema 供界面渲染；活动字段沿路径下降；草稿按路径不可变编辑。
 
 对齐上游 `schema-form/src/model.ts`。公开面仅中文名。
 """
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#校验器
-路径上节点=schemastery.路径上节点#模式树下降
+from ...依赖.schemastery import 字段,路径上节点#配置字段
 
 __all__=[#仅中文公开名
     '模式节点',
@@ -19,16 +17,16 @@ __all__=[#仅中文公开名
     '删路径',
 ]#公开面结束
 
-模式节点=模式#活动 schemastery 节点；渲染器只读其结构关系
+模式节点=字段#活动 schemastery 字段；渲染器只读其结构关系
 
 def 再水合模式(序列化):#再水合序列化 schema
-    """把序列化的纯数据模式树再水合成活动校验器/节点树。"""
-    return 模式.从JSON(序列化)#从纯数据重建活动节点树
+    """把 describe 里的 schema 原样交回（JSON Schema 或字段树）。"""
+    return 序列化#原样
 
 def 校验草稿(模式节点值,草稿):#校验草稿
-    """用再水合后的 schema 校验一份草稿；通过返回 None，失败返回消息。"""
+    """用字段校验一份草稿；通过返回 None，失败返回消息。"""
     try:#尝试把草稿喂给校验器
-        模式节点值(草稿)#调用 schema 函数形态
+        模式节点值.校验数据(草稿)#按字段校验
         return None#通过则无失败消息
     except Exception as 错误:#校验抛错
         return str(错误)#取出失败消息

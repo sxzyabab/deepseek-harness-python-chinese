@@ -10,7 +10,7 @@ __all__=[#仅中文公开名
 # 一条从线上收到的服务端到客户端通知：method + params。
 装备通知=('method','params')#线通知字段
 
-# 决定订阅是否接收某条通知的谓词：callable(通知) -> bool。
+# 决定订阅是否接收某条通知的判断：callable(通知) -> bool。
 通知过滤=None#类型占位，运行时为可调用
 
 # HarnessClient 的启动与超时选项字段。

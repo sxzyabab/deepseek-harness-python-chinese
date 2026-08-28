@@ -40,11 +40,12 @@ def 协议选项(命名空间):#从所属命名空间 schema 读出协议选项
     if 命名空间 is None:#无
         return []#空
     节点=路径上节点(再水合模式(取字段(命名空间,'schema')),['providers',探测路由,'api'])#api 节点
-    if 取字段(节点,'type')!='union':#非 union
+    支=取字段(节点,'anyOf') or 取字段(节点,'oneOf') or []#联合成员
+    if not 支:#非 union
         return []#空
     结果=[]#协议标识
-    for 项 in 取字段(节点,'list') or []:#成员
-        值=取字段(项,'value')#值
+    for 项 in 支:#成员
+        值=取字段(项,'const')#常量
         if isinstance(值,str):#字符串
             结果.append(值)#记入
     return 结果#选项

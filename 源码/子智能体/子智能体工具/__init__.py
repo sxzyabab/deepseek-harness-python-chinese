@@ -1,7 +1,7 @@
 """经一个已配置的 `ctx.subagents` 提供方做面向模型的委托。提供方生命周期控制工具登记和随上下文变化的模式措辞。前台调用在收集后总是释放该次运行。后台策略由本插件配置选择：一次性调用拥有普通 Task，可续接调用走 `ctx.subagents.startContinuable()`。"""
 import threading#后台结算线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段,数字字段,整数字段,列表字段,复合类型字段,常量字段,枚举字段,自然数字段#配置字段
 聚合错误=cordis.聚合错误#多失败聚合
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
@@ -14,24 +14,24 @@ name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 子智能体段落顺序=116.5#可续接委托指引段落顺序
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
-配置=模式.对象({#部署配置：委托到哪个提供方以及子体默认值
-    'provider':模式.字符串().必填(),#必填提供方名
-    'toolName':模式.字符串().默认('subagent'),#默认工具名
-    'enableRunInBackground':模式.布尔().默认(True),#默认允许后台
-    'backgroundMode':模式.联合([模式.常量('one-shot'),模式.常量('continuable')]).默认('one-shot'),#默认一次性
+配置=路径上节点({#部署配置：委托到哪个提供方以及子体默认值
+    'provider':字符串字段(可空=False),#必填提供方名
+    'toolName':字符串字段(默认值='subagent'),#默认工具名
+    'enableRunInBackground':布尔字段(默认值=True),#默认允许后台
+    'backgroundMode':枚举字段('one-shot','continuable',默认值='one-shot'),#默认一次性
     # 阻止 Schemastery 把省略的 agentOptions 物化成 `{}`。
-    'agentOptions':模式.对象({#智能体选项模式
-        'provider':模式.字符串(),#模型提供方
-        'model':模式.字符串(),#模型名
-        'maxTokens':模式.数字().步进(1).最小(1).最大(安全整数上限),#正整数token上限
-    }).默认(None),#省略时保持未定义
-    'persona':模式.字符串(),#可选人格字符串
+    'agentOptions':路径上节点({#智能体选项模式
+        'provider':字符串字段(),#模型提供方
+        'model':字符串字段(),#模型名
+        'maxTokens':整数字段(步进=1,最小=1,最大=安全整数上限),#正整数token上限
+    },默认值=None),#省略时保持未定义
+    'persona':字符串字段(),#可选人格字符串
     # 保留省略；Schemastery 的 `{ allow: [] }` 默认会拒绝全部工具。
-    'toolFilter':模式.对象({#工具过滤模式
-        'allow':模式.数组(模式.字符串()).默认(None),#省略allow时不物化空数组
-        'deny':模式.数组(模式.字符串()).默认(None),#省略deny时不物化空数组
-    }).默认(None),#省略整个过滤
-    'maxDepth':模式.联合([模式.自然数().最大(安全整数上限),模式.常量('provider-managed')]).默认(3),#默认深度3
+    'toolFilter':路径上节点({#工具过滤模式
+        'allow':列表字段(字符串字段(),默认值=None),#省略allow时不物化空数组
+        'deny':列表字段(字符串字段(),默认值=None),#省略deny时不物化空数组
+    },默认值=None),#省略整个过滤
+    'maxDepth':复合类型字段(自然数字段(最大=安全整数上限),常量字段('provider-managed'),默认值=3),#默认深度3
 })#配置模式结束
 Config=配置#Cordis配置模式
 

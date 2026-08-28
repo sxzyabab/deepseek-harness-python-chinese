@@ -48,14 +48,14 @@ pip install .
 ## 较大修改
 
 * 删除 vendor/group
-* schemastery包改用pydantic
+* schemastery包改为手搓校验包
 
 ## 更新日志
 
 进行中:
 * 初步重构：目前部分完成`packages/`的整理
-* 彻底重构外部依赖(Cordis相关)
-* 优化原生体验：可安装为包，完成部分基础文件
+* 彻底重构外部依赖(Cordis相关)：将`timer`合并进`cordis`；多个工具文件及`cosmokit`合并为一个工具文件；重写`schemastery`
+* 优化原生体验：可安装为包，完成部分基础文件，下一步为正常导入
 
 计划中(TODO):
 * 完成web端并成功启动

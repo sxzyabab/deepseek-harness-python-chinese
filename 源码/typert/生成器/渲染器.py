@@ -168,7 +168,7 @@ class 类型图渲染器:#类型图渲染器
             实参文='' if len(实参)==0 else '<'+', '.join(自身.renderType(项,引用) for 项 in 实参)+'>'#列表
             前='typeof ' if 取字段(节点,'typeof') else ''#typeof
             return 前+导入+实参文#import
-        if 种类=='predicate':#谓词
+        if 种类=='predicate':#判断
             断言='asserts ' if 取字段(节点,'asserts') else ''#asserts
             if 取字段(节点,'type') is None:#无目标
                 return 断言+取字段(节点,'parameter')#仅参数

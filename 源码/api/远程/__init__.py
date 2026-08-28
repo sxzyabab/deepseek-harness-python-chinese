@@ -36,7 +36,7 @@ def _断言可转发白名单(白名单):#无 satisfies：显式列表成员门�
     """断言白名单每条均为选择席位键，且与席位键集合一致。
 
     对齐上游 `API_REMOTE_FORWARDED_EVENTS satisfies readonly TypertForwardableEvent[]`：
-    Python 无 satisfies，也无 Events 图上的 Forwardable 谓词；本组装以席位键为可运行成员集合做双向校验。
+    Python 无 satisfies，也无 Events 图上的 Forwardable 判断；本组装以席位键为可运行成员集合做双向校验。
     """
     席位键=frozenset(远程事件选择席位.__annotations__)#TypedDict 席位键
     名单=tuple(白名单)#固化顺序

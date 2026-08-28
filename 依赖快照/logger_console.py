@@ -1,6 +1,6 @@
 import os,sys,time
-from .cosmokit import 时间
-from .schemastery import 模式
+from .工具 import 时间
+from .schemastery import 复合类型字段,常量字段,数字字段,字典字段,布尔字段,字符串字段,枚举字段#配置字段
 from .cordis import 日志器
 
 def 探测终端色深():
@@ -97,17 +97,17 @@ def _展开容器(项,展开):
 class 控制台导出器:
     "把日志渲染成一行控制台文本的导出器"
     插件名='logger-console'#插件显示名
-    配置模式=模式.对象({
-        'colors':模式.联合([模式.常量(False),模式.数字()]),#色深，False 表示不着色
-        'maxLength':模式.数字(),#单行长度上限
-        'levels':模式.字典(模式.数字()),#按日志器名指定的阈值
-        'showDiff':模式.布尔().默认(False),#是否显示与上一条的间隔
-        'showTime':模式.字符串().默认('yyyy-MM-dd hh:mm:ss '),#时间模板，空串表示不显示
-        'label':模式.对象({
-            'width':模式.数字(),#名称列宽
-            'margin':模式.数字(),#名称两侧的空格数
-            'align':模式.联合(['left','right']),#名称对齐方向
-        }),#名称标签样式
+    配置模式=路径上节点({
+        'colors':复合类型字段(常量字段(False),数字字段()),#色深，False 表示不着色
+        'maxLength':数字字段(),#单行长度上限
+        'levels':字典字段(值字段=数字字段()),#按日志器名指定的阈值
+        'showDiff':布尔字段(默认值=False),#是否显示与上一条的间隔
+        'showTime':字符串字段(默认值='yyyy-MM-dd hh:mm:ss '),#时间模板，空串表示不显示
+        'label':路径上节点({
+            'width':数字字段(),#名称列宽
+            'margin':数字字段(),#名称两侧的空格数
+            'align':枚举字段('left','right'),#名称对齐方向
+        },默认值=None),#名称标签样式
     })#配置模式
 
     def __init__(自身,上下文,配置=None):

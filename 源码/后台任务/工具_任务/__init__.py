@@ -1,7 +1,7 @@
 """面向模型的 job_output、job_list、job_kill 工具，架在 ctx.jobs 上。加载本插件会挂接生产者所需的控制器。它还把未报告的完成投递给所属智能体：忙着的所有者注入其下一步，空闲的在默认 wakeup 投递下开一个回合，并按所有者设上限。"""
 import json,weakref#JSON片段与弱键字典
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,数字字段,枚举字段#配置字段
 已兑现=cordis.工具.已兑现#立刻兑现
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..工具 import 定义工具#定义面向模型的工具
@@ -13,11 +13,11 @@ from ..任务 import 任务标识#任务id品牌化
 注入=['tools','jobs','systemPrompt']#依赖工具、任务、系统提示
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置=模式.对象({#有界等待与完成投递配置
-    'waitTimeoutMs':模式.数字().最小(1).默认(30000),#默认等待30秒
-    'maxWaitTimeoutMs':模式.数字().最小(1).默认(600000),#硬上限10分钟
-    'completionDelivery':模式.联合([模式.常量('quiet'),模式.常量('wakeup')]).默认('wakeup'),#默认唤醒
-    'maxConsecutiveWakes':模式.数字().最小(1).默认(3),#默认连续3次
+配置=路径上节点({#有界等待与完成投递配置
+    'waitTimeoutMs':数字字段(最小=1,默认值=30000),#默认等待30秒
+    'maxWaitTimeoutMs':数字字段(最小=1,默认值=600000),#硬上限10分钟
+    'completionDelivery':枚举字段('quiet','wakeup',默认值='wakeup'),#默认唤醒
+    'maxConsecutiveWakes':数字字段(最小=1,默认值=3),#默认连续3次
 })#配置模式结束
 Config=配置#Cordis配置模式
 公开任务模式={#公开快照JSON Schema

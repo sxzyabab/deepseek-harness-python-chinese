@@ -1,7 +1,7 @@
 """在 harness 拦截扩展点上桥接未经修改的 Claude Code 命令钩子。支持 SessionStart、提示/工具前后、Stop、以及子智能体起停。它拥有 Claude 载荷、环境、替换和判定映射；共用的执行与解析在 `dsh-hook-protocol`。`updatedInput` 会记日志并警告但不兑现。定制行为应在同一扩展点上用带类型的原生插件。"""
 import json,os,time#读配置、进程 cwd 与墙钟
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 承诺=cordis.工具.承诺#可等待
 是否thenable=cordis.工具.是否thenable#后台任务
 from ..llm import 创建用户消息#导入用户消息工厂
@@ -21,12 +21,12 @@ from .配置 import 解析克劳德代码配置#导入配置解析
 注入=['shell']#跑钩子必须有 bash；其余经 ctx.get 机会性读取
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置=模式.对象({#插件配置：CC 钩子配置所在位置以及替换根目录
-    'configPath':模式.字符串(),#hooks.json 路径，或 hooks 键里放配置的设置文件；必填
-    'pluginRoot':模式.字符串(),#替换命令字符串里的 ${CLAUDE_PLUGIN_ROOT}
-    'projectDir':模式.字符串(),#替换 ${CLAUDE_PROJECT_DIR} 并导出为钩子环境变量
-    'defaultTimeoutMs':模式.数字().默认(默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒
-    'stderrSummaryMaxChars':模式.数字().默认(默认stderr摘要最大字符),#hook/result 里持久 stderr 摘要的字符上限
+配置=路径上节点({#插件配置：CC 钩子配置所在位置以及替换根目录
+    'configPath':字符串字段(),#hooks.json 路径，或 hooks 键里放配置的设置文件；必填
+    'pluginRoot':字符串字段(),#替换命令字符串里的 ${CLAUDE_PLUGIN_ROOT}
+    'projectDir':字符串字段(),#替换 ${CLAUDE_PROJECT_DIR} 并导出为钩子环境变量
+    'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒
+    'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字符),#hook/result 里持久 stderr 摘要的字符上限
 })#配置模式结束
 Config=配置#Cordis配置模式
 插件来源={'kind':'plugin','plugin':'hooks-claude-code'}#本桥注入的每条上下文都盖上的来源

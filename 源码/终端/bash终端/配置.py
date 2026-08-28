@@ -1,24 +1,23 @@
 """本地 PTY 后端经过校验的配置。"""
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段,列表字段#配置字段
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
 
-配置=模式.对象({#对外插件配置模式
-    'backendType':模式.字符串().默认('shell'),#默认后端类型
-    'shellPath':模式.字符串().默认('/bin/bash'),#默认shell路径
-    'shellArgs':模式.数组(模式.字符串()).默认(['--noprofile','--norc','-i']),#默认shell参数
-    'rows':模式.数字().默认(40),#默认行数
-    'cols':模式.数字().默认(160),#默认列数
-    'scrollbackLines':模式.数字().默认(10000),#默认回滚行数
-    'scrollbackMaxBytes':模式.数字().默认(4*1024*1024),#默认回滚字节
-    'maxReadBytes':模式.数字().默认(256*1024),#默认单次读取字节
-    'pollIntervalMs':模式.数字().默认(50),#默认轮询间隔
-    'exactProbeAfterMs':模式.数字().默认(150),#默认精确探测延迟
-    'idleSilenceMs':模式.数字().默认(3000),#默认空闲静默
-    'handoffGraceMs':模式.数字().默认(500),#默认交接宽限
-    'timeoutMs':模式.数字().默认(30000),#默认超时
-    'disposeGraceMs':模式.数字().默认(3000),#默认拆除宽限
+配置=路径上节点({#对外插件配置模式
+    'backendType':字符串字段(默认值='shell'),#默认后端类型
+    'shellPath':字符串字段(默认值='/bin/bash'),#默认shell路径
+    'shellArgs':列表字段(字符串字段(),默认值=['--noprofile','--norc','-i']),#默认shell参数
+    'rows':数字字段(默认值=40),#默认行数
+    'cols':数字字段(默认值=160),#默认列数
+    'scrollbackLines':数字字段(默认值=10000),#默认回滚行数
+    'scrollbackMaxBytes':数字字段(默认值=4*1024*1024),#默认回滚字节
+    'maxReadBytes':数字字段(默认值=256*1024),#默认单次读取字节
+    'pollIntervalMs':数字字段(默认值=50),#默认轮询间隔
+    'exactProbeAfterMs':数字字段(默认值=150),#默认精确探测延迟
+    'idleSilenceMs':数字字段(默认值=3000),#默认空闲静默
+    'handoffGraceMs':数字字段(默认值=500),#默认交接宽限
+    'timeoutMs':数字字段(默认值=30000),#默认超时
+    'disposeGraceMs':数字字段(默认值=3000),#默认拆除宽限
 })#配置模式结束
 Config=配置#Cordis配置模式
 

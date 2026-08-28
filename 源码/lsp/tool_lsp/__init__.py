@@ -2,8 +2,8 @@
 
 命名空间插件（具名导出，无默认导出）。
 """
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,数字字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..工具 import 定义工具#导入工具定义
 from ..llm import 断言永不#导入封闭联合穷尽断言
@@ -31,10 +31,10 @@ inject=注入#Cordis依赖声明
 语言服务器提示文本=(#把 LSP 定位为精确辅助的稳定系统提示词指引（字面量不翻译）
     'Use search/read for ordinary navigation. Use lsp when textual matches are ambiguous or before a change requires precise definitions, implementations, or references. Positions are one-based line and character (UTF-16) at the cursor; an off-symbol position may return no results. findReferences always includes the declaration.'#面向模型的 LSP 使用指引正文
 )#语言服务器提示文本结束
-配置=模式.对象({#插件配置：结果上限与超时预算
-    'maxLocations':模式.数字().默认(默认最大位置数),#追加省略标记前可渲染的最大位置数（默认 100）
-    'maxResultChars':模式.数字().默认(默认最大结果字符),#完整渲染结果的最大字符数，含截断元数据（默认 16000）
-    'timeoutMs':模式.数字().最大(定时器延迟上限毫秒).默认(默认语言服务器工具超时毫秒),#工具调用超时预算，毫秒（默认 60000）
+配置=路径上节点({#插件配置：结果上限与超时预算
+    'maxLocations':数字字段(默认值=默认最大位置数),#追加省略标记前可渲染的最大位置数（默认 100）
+    'maxResultChars':数字字段(默认值=默认最大结果字符),#完整渲染结果的最大字符数，含截断元数据（默认 16000）
+    'timeoutMs':数字字段(最大=定时器延迟上限毫秒,默认值=默认语言服务器工具超时毫秒),#工具调用超时预算，毫秒（默认 60000）
 })#Config schema 结束
 Config=配置#Cordis配置模式
 位置输出模式={#位置输出 schema

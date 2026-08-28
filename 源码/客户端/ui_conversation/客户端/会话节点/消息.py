@@ -3,7 +3,7 @@
 对齐上游 `ui-conversation/src/client/conversation-nodes/message.ts`。公开面仅中文名。
 """
 from .公共 import 聊天节点#聊天节点工厂
-from .面辅助 import 取字段,是追加面事件,是替换面事件,上下文出处,上下文形态#面谓词
+from .面辅助 import 取字段,是追加面事件,是替换面事件,上下文出处,上下文形态#面判断
 
 __all__=['消息定义','登记消息会话节点']#仅中文公开名
 

@@ -1,6 +1,6 @@
 """子体作用域内的 report 工具及其用法指引，安装进每个可续跑进程内子体的未发布上下文。根、一次性子体、远程提供方、以及无智能体执行永远看不见这次登记。对齐上游 `@deepseek-ai/dsh-tool-subagent-report`（packages/subagent/tool-subagent-report）。"""
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,枚举字段#配置字段
 聚合错误=cordis.聚合错误#多失败聚合（登记失败回滚与成对拆除）
 已兑现=cordis.工具.已兑现#立刻兑现
 是否thenable=cordis.工具.是否thenable#可等待判定
@@ -12,8 +12,8 @@ from ...内核.工具 import 定义工具#定义面向模型的工具
 name=名称#Cordis插件名槽
 inject=注入#Cordis依赖声明槽
 报告段落顺序=117#指引顺序：排在可续跑子体可携带的每个按工具段落之后
-配置=模式.对象({#已接受的报告如何在父上调度；Loader 与直接 apply 都经此落实默认值
-    'reportDelivery':模式.联合([模式.常量('quiet'),模式.常量('wakeup')]).默认('wakeup'),#默认唤醒父；quiet 只注入上下文
+配置=路径上节点({#已接受的报告如何在父上调度；Loader 与直接 apply 都经此落实默认值
+    'reportDelivery':枚举字段('quiet','wakeup',默认值='wakeup'),#默认唤醒父；quiet 只注入上下文
 })#配置模式结束
 Config=配置#Cordis配置模式槽
 段落文案=(#模型可见用法（字面量不译）

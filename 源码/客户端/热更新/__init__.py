@@ -5,16 +5,15 @@
 对齐上游 `@deepseek-ai/dsh-client-hmr`。公开面仅中文名。配置键英文字面量保持上游。
 """
 import json,os,threading#JSON、路径与定时器
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置模式
+from ...依赖.schemastery import 路径上节点,自然数字段#配置字段
 from .事件 import 插件事件帧,事件端点#再导出 SSE 帧与路径
 
 __all__=['名称','注入','配置','应用','插件事件帧','事件端点']#仅中文公开名
 
 名称='client-hmr'#Cordis 插件名（字面量）
 注入=['clientModules','webServer']#依赖客户端模块与 web 服务器
-配置=模式.对象({#HMR 可校验配置
-    'pollIntervalMs':模式.自然数().最小(1).默认(500),#至少 1 毫秒，默认 500
+配置=路径上节点({#HMR 可校验配置
+    'pollIntervalMs':自然数字段(最小=1,默认值=500),#至少 1 毫秒，默认 500
 })#配置模式结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

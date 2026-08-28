@@ -16,8 +16,8 @@ inherited process environment      (read-only, wins)
 文档只装凭证，所以它是严格的 CredentialRef 到字符串映射，而不是 dotenv 文件：Harness 拥有、且从不物化进环境的存储，不能同时充当用户的环境层；若它兼作环境层，会把非密钥条目挡在自己的优先级后面，让它们静默不可达。
 """
 import os,threading#路径与操作链线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段,数字字段#配置字段
 服务=cordis.服务#服务初始化符号
 已兑现=cordis.工具.已兑现#操作链已兑现
 承诺=cordis.工具.承诺#操作链承诺
@@ -34,11 +34,11 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '配置模式','取字段','试取','解析规格','本地凭证提供方','默认',
 ]#公开面结束
 
-配置模式=模式.对象({#插件配置字段
-    'path':模式.字符串(),#可选文档路径
-    'dshHome':模式.字符串(),#可选 harness 主目录
-    'watch':模式.布尔().默认(True),#默认监视
-    'debounceMs':模式.数字().最小(0).默认(100),#默认稳定窗口
+配置模式=路径上节点({#插件配置字段
+    'path':字符串字段(),#可选文档路径
+    'dshHome':字符串字段(),#可选 harness 主目录
+    'watch':布尔字段(默认值=True),#默认监视
+    'debounceMs':数字字段(最小=0,默认值=100),#默认稳定窗口
 })#插件配置模式
 
 def 取字段(对象,键):#读取映射或对象上的字段

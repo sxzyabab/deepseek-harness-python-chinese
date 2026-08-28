@@ -3,8 +3,8 @@
 对齐上游 `@deepseek-ai/dsh-tool-bash-persistent`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import re,time,uuid,threading,weakref#正则、轮询休眠、随机标记、中止锁与弱表
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 已兑现=cordis.工具.已兑现#立刻兑现
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
@@ -29,11 +29,11 @@ __all__=['名称','注入','配置','应用','默认']#仅中文公开名
 末尾换行模式=re.compile(r'\r?\n$')#末尾换行
 名称='tool-bash-persistent'#Cordis插件名（字面量）
 注入=['tools','terminals']#依赖工具与终端
-配置=模式.对象({#持久Bash工具配置
-    'backendType':模式.字符串().默认('shell'),#默认shell后端
-    'timeoutMs':模式.数字().默认(300000),#默认300秒
-    'maxOutputChars':模式.数字().默认(16000),#默认16000字符
-    'description':模式.字符串().默认(默认描述),#默认工具描述
+配置=路径上节点({#持久Bash工具配置
+    'backendType':字符串字段(默认值='shell'),#默认shell后端
+    'timeoutMs':数字字段(默认值=300000),#默认300秒
+    'maxOutputChars':数字字段(默认值=16000),#默认16000字符
+    'description':字符串字段(默认值=默认描述),#默认工具描述
 })#配置模式结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

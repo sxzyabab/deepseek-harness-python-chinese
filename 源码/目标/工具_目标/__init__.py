@@ -1,7 +1,7 @@
 """面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上。"""
 import json,math#紧凑 JSON 渲染与安全整数判定
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#插件配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,整数字段#配置字段
 已兑现=cordis.工具.已兑现#立刻兑现的承诺
 from ..目标 import 目标标识#目标 id 品牌
 from ..llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
@@ -70,8 +70,8 @@ inject=注入#Cordis依赖声明
         },#结束有目标分支
     ],#结束 oneOf
 }#结束目标值模式
-配置=模式.对象({#目标工具策略配置
-    'blockedAfterConsecutiveRounds':模式.数字().步进(1).最小(1).默认(3),#默认 3 轮
+配置=路径上节点({#目标工具策略配置
+    'blockedAfterConsecutiveRounds':整数字段(步进=1,最小=1,默认值=3),#默认 3 轮
 })#配置模式结束
 Config=配置#Cordis配置模式
 

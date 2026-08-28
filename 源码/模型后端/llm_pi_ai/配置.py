@@ -4,8 +4,7 @@
 """
 import math#有限数判断
 from .. import llm#语言模型服务
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,列表字段,复合类型字段,常量字段,字典字段,布尔字段,枚举字段,自然数字段,数字字段#配置字段
 from ..凭据 import 凭证引用#凭证引用工厂
 from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .目录 import 模态列表,解析路由模型,受支持思考格式,思考档位列表#目录词表
@@ -22,60 +21,60 @@ __all__=(#仅中文公开名
 默认最大输出=32768#默认输出上限
 默认输入=('text',)#默认仅文本
 
-思考预算模式=模式.对象({
-    'minimal':模式.数字(),#最小
-    'low':模式.数字(),#低
-    'medium':模式.数字(),#中
-    'high':模式.数字(),#高
+思考预算模式=路径上节点({
+    'minimal':数字字段(),#最小
+    'low':数字字段(),#低
+    'medium':数字字段(),#中
+    'high':数字字段(),#高
 })#思考预算模式
 
-兼容配置模式=模式.对象({
-    'thinkingFormat':模式.联合(list(受支持思考格式)),#思考格式
-    'supportsReasoningEffort':模式.布尔(),#是否支持力度
+兼容配置模式=路径上节点({
+    'thinkingFormat':枚举字段(*list(受支持思考格式)),#思考格式
+    'supportsReasoningEffort':布尔字段(),#是否支持力度
 })#兼容配置模式
 
-推理力度模式=模式.字典(模式.联合([模式.字符串(),模式.常量(None)]),模式.联合(list(思考档位列表)))#档位到线路拼写
+推理力度模式=字典字段(键字段=复合类型字段(字符串字段(),常量字段(None)),值字段=枚举字段(*list(思考档位列表)))#档位到线路拼写
 
 模型字段={
-    'name':模式.字符串(),#展示名
-    'contextWindow':模式.数字().步进(1).最小(1),#正整数窗口
-    'maxTokens':模式.数字().步进(1).最小(1),#正整数上限
-    'input':模式.数组(模式.联合(list(模态列表))),#模态列表
-    'reasoningEfforts':模式.联合([模式.常量(False),推理力度模式]),#力度映射或关掉
+    'name':字符串字段(),#展示名
+    'contextWindow':整数字段(步进=1,最小=1),#正整数窗口
+    'maxTokens':整数字段(步进=1,最小=1),#正整数上限
+    'input':列表字段(枚举字段(*list(模态列表))),#模态列表
+    'reasoningEfforts':复合类型字段(常量字段(False),推理力度模式),#力度映射或关掉
     'compat':兼容配置模式,#兼容配置
 }#模型字段模式
 
-模型配置模式=模式.对象({
-    'id':模式.字符串().必填(),#必需id
+模型配置模式=路径上节点({
+    'id':字符串字段(可空=False),#必需id
     **模型字段,#共用字段
 })#模型配置模式
 
-模型覆盖模式=模式.对象(模型字段)#覆盖模式，无id字段
+模型覆盖模式=路径上节点(模型字段)#覆盖模式，无id字段
 
-路由配置模式=模式.对象({
-    'apiKeyEnv':模式.字符串().角色('credential-ref'),#密钥引用
-    'displayName':模式.字符串(),#展示名
-    'api':模式.联合(list(受支持协议())),#协议
-    'baseURL':模式.字符串(),#基址
-    'models':模式.数组(模型配置模式),#模型列表
-    'modelOverrides':模式.字典(模型覆盖模式),#按id覆盖
+路由配置模式=路径上节点({
+    'apiKeyEnv':字符串字段(),#密钥引用
+    'displayName':字符串字段(),#展示名
+    'api':枚举字段(*list(受支持协议())),#协议
+    'baseURL':字符串字段(),#基址
+    'models':列表字段(模型配置模式),#模型列表
+    'modelOverrides':字典字段(值字段=模型覆盖模式),#按id覆盖
     'compat':兼容配置模式,#兼容配置
-    'defaultContextWindow':模式.数字().步进(1).最小(1).默认(默认上下文窗口),#默认窗口
-    'defaultMaxTokens':模式.数字().步进(1).最小(1).默认(默认最大输出),#默认上限
-    'defaultInput':模式.数组(模式.联合(list(模态列表))).默认(list(默认输入)),#默认模态
-    'headers':模式.字典(模式.字符串()),#头
-    'reasoning':模式.联合(list(思考档位列表)),#思考档位
+    'defaultContextWindow':整数字段(步进=1,最小=1,默认值=默认上下文窗口),#默认窗口
+    'defaultMaxTokens':整数字段(步进=1,最小=1,默认值=默认最大输出),#默认上限
+    'defaultInput':列表字段(枚举字段(*list(模态列表)),默认值=list(默认输入)),#默认模态
+    'headers':字典字段(值字段=字符串字段()),#头
+    'reasoning':枚举字段(*list(思考档位列表)),#思考档位
     'thinkingBudgets':思考预算模式,#思考预算
-    'cacheRetention':模式.联合(['none','short','long']),#缓存保留
-    'transport':模式.联合(['sse','websocket','websocket-cached','auto']),#传输
-    'timeoutMs':模式.自然数(),#超时
-    'websocketConnectTimeoutMs':模式.自然数(),#WebSocket超时
-    'streamIdleTimeoutMs':模式.数字().最小(5e-324).最大(定时器延迟上限毫秒).默认(默认流空闲超时毫秒),#空闲超时
+    'cacheRetention':枚举字段('none','short','long'),#缓存保留
+    'transport':枚举字段('sse','websocket','websocket-cached','auto'),#传输
+    'timeoutMs':自然数字段(),#超时
+    'websocketConnectTimeoutMs':自然数字段(),#WebSocket超时
+    'streamIdleTimeoutMs':数字字段(最小=5e-324,最大=定时器延迟上限毫秒,默认值=默认流空闲超时毫秒),#空闲超时
     'retryPolicy':llm.重试政策模式,#重试政策
 })#路由配置模式
 
-配置模式=模式.对象({
-    'providers':模式.字典(路由配置模式).默认({}),#路由字典，默认空
+配置模式=路径上节点({
+    'providers':字典字段(值字段=路由配置模式,默认值={}),#路由字典，默认空
 })#插件配置模式；中文名，无英文 Config 别名
 
 def 断言可服务(配置):#拒绝本适配器无法服务的设置段

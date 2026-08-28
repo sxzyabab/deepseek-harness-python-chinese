@@ -5,18 +5,17 @@
 
 对齐上游 `@deepseek-ai/dsh-persona`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式
+from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段#配置字段
 from ..系统提示词 import 人设段落名,人设顺序#人设槽常量，与注册表同一出处
 
 __all__=['名称','注入','配置','应用','人设段落名','人设顺序']#仅中文公开名
 
 名称='persona'#Cordis插件名（字面量）
 注入=['systemPrompt']#依赖系统提示词服务
-配置=模式.对象({#人设行配置
-    'text':模式.字符串().必填(),#必填人设正文
-    'complete':模式.布尔().默认(False),#默认不独占
-    'includeRuntimeContext':模式.布尔().默认(True),#默认纳入运行时上下文
+配置=路径上节点({#人设行配置
+    'text':字符串字段(可空=False),#必填人设正文
+    'complete':布尔字段(默认值=False),#默认不独占
+    'includeRuntimeContext':布尔字段(默认值=True),#默认纳入运行时上下文
 })#配置模式结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

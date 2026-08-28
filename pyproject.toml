@@ -6,7 +6,7 @@ name="pydsh" #发行名
 version="0.0.0.dev0"
 description="Deepseek Harness 中文学习版（非官方包）" #pip show
 readme="README.md"
-requires-python=">=3.11"
+requires-python=">=3.13"
 license="MIT"
 dependencies=[
 "pydantic>=2.12,<3", #schemastery会用到

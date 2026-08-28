@@ -5,7 +5,7 @@
 """
 import json#解析 command
 from .约定.槽 import 待决审批#审批域面
-from .约定.聊天节点 import 已结算工具#工具根谓词
+from .约定.聊天节点 import 已结算工具#工具根判断
 from .工具节点读取 import 根工具调用#配对命令
 
 __all__=['审批面板','取命令','待决审批']#仅中文公开名

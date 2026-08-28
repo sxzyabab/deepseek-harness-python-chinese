@@ -3,8 +3,8 @@
 对齐上游 `拓展/cordis-host-runner/src/index.ts`。公开面仅中文名；Remote 导出名与事件名保持上游字面量。
 """
 import re#前缀校验
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,整数字段#配置字段
 已兑现=cordis.工具.已兑现#承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ...模型后端.llm import 创建用户消息#用户消息构造
@@ -21,8 +21,8 @@ __all__=[#仅中文公开名
     '动态插件标识','动态包标识','动态运行标识','审批请求标识',
 ]#公开面结束
 
-配置=模式.对象({#运行器配置
-    'vmTimeoutMs':模式.数字().最小(1).默认(5000),#虚拟机超时，默认 5000ms
+配置=路径上节点({#运行器配置
+    'vmTimeoutMs':整数字段(最小=1,默认值=5000),#虚拟机超时，默认 5000ms
 })#配置结束
 
 前缀模式=re.compile(r'^[a-z]{3,6}$')#插件前缀 3–6 小写字母

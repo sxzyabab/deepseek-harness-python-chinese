@@ -4,8 +4,8 @@
 """
 import json,math,random,threading,uuid#标准库
 from .. import llm#语言模型失败事实与中止信号
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点#配置字段
 承诺=cordis.工具.承诺#承诺
 已兑现=cordis.工具.已兑现#立刻兑现
 是否thenable=cordis.工具.是否thenable#可等待判定
@@ -23,7 +23,7 @@ __all__=('名称','注入','配置','应用','默认','重试身份')#仅中文�
 完成事件=threading.Event#完成事件
 名称='llm-retry'#插件名（字面量不译）
 注入=['agents']#依赖 agents 服务
-配置=模式.对象({})#空对象模式；本执行器无自有策略配置
+配置=路径上节点({})#空对象模式；本执行器无自有策略配置
 
 def 已中止(信号):#信号是否已中止
     """英文 aborted 或中文 已中止 任一为真则视为已中止。"""
@@ -217,12 +217,12 @@ def 可取消等待(延迟毫秒,信号):#可取消等待
         return False#未等到
     return True#等到了
 
-def 从后找(事件们,谓词):#对齐 Array.prototype.findLast
+def 从后找(事件们,判断):#对齐 Array.prototype.findLast
     """从后往前找出第一条命中的事件。"""
     下标=len(事件们)-1#最后一个下标
     while 下标>=0:#尚未到头
         事件=事件们[下标]#当前事件
-        if 谓词(事件):#命中
+        if 判断(事件):#命中
             return 事件#命中
         下标-=1#继续往前
     return None#没有命中

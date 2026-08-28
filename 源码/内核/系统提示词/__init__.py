@@ -1,10 +1,10 @@
 """有序系统段落、动态上下文、工具模式与提示词变量的注册表。对齐上游 `@deepseek-ai/dsh-system-prompt`。公开面仅中文名；Cordis 服务键与事件名、配置键、诊断字面量保持上游字面量。"""
 import json,math,re#json、有限数与正则
-from ...依赖 import cosmokit,cordis,schemastery#外部依赖胶水
+from ...依赖 import cosmokit,cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,布尔字段,字符串字段,列表字段#配置字段
 克隆=cosmokit.克隆#深克隆工具参数
 服务=cordis.服务#服务基类
 是否thenable=cordis.工具.是否thenable#可等待判定
-模式=schemastery.模式#配置模式
 from ..作用域 import (
     具名条目,#具名登记表
     匿名条目,#匿名登记表
@@ -205,11 +205,11 @@ class 提示词层:#一个全局或作用域层
 
 class 系统提示词(服务):#系统提示词服务
     """每次模型步骤前组装的提示词输入的注册表服务（ctx 键：`systemPrompt`）。"""
-    Config=模式.对象({#Cordis 运行时配置模式（协议槽）
-        'includeHarnessIdentity':模式.布尔().默认(True),#默认含身份
-        'includeRuntimeContext':模式.布尔().默认(True),#默认含运行时上下文
-        'persona':模式.字符串().默认(''),#人设默认空
-        'toolOrder':模式.数组(模式.字符串()).默认(None),#省略与空数组不同：空数组缺 rest 标记须在加载时失败
+    Config=路径上节点({#Cordis 运行时配置模式（协议槽）
+        'includeHarnessIdentity':布尔字段(默认值=True),#默认含身份
+        'includeRuntimeContext':布尔字段(默认值=True),#默认含运行时上下文
+        'persona':字符串字段(默认值=''),#人设默认空
+        'toolOrder':列表字段(字符串字段(),默认值=None),#省略与空数组不同：空数组缺 rest 标记须在加载时失败
     })#配置模式
 
     def __init__(自身,ctx,配置):#构造服务

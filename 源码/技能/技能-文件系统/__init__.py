@@ -5,8 +5,8 @@
 经 ctx.fs 加载正文。对应上游 @deepseek-ai/dsh-skill-filesystem。
 """
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段,列表字段,数字字段#配置字段
 承诺=cordis.工具.承诺#承诺
 已兑现=cordis.工具.已兑现#立刻兑现
 是否thenable=cordis.工具.是否thenable#可等待判定
@@ -47,19 +47,19 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 
-配置模式=模式.对象({
-    'providerName':模式.字符串().最小(1).默认('filesystem'),#默认提供方名 filesystem
-    'includeDefaultRoots':模式.布尔().默认(True),#默认包含项目/用户根
-    'dshHome':模式.字符串(),#dsh 家目录
-    'agentsHome':模式.字符串(),#agents 家目录
-    'customSkillDirs':模式.数组(模式.字符串()).默认([]),#默认可选自定义根为空
-    'watch':模式.布尔().默认(True),#默认开监视
-    'watchUsePolling':模式.布尔().默认(False),#默认原生事件；对齐 TS chokidar.watch 的 usePolling，打开根监视器时真正切换后端
-    'watchStabilityThresholdMs':模式.数字().默认(默认监视稳定阈值毫秒),#稳定阈值
-    'watchPollIntervalMs':模式.数字().默认(默认监视轮询间隔毫秒),#探测间隔
-    'watchMaxProjects':模式.数字().默认(默认监视项目上限),#项目上限
-    'watchFollowSymlinks':模式.布尔().默认(True),#默认跟随符号链接
-    'bundledSkillDir':模式.字符串(),#捆绑根
+配置模式=路径上节点({
+    'providerName':字符串字段(最小=1,默认值='filesystem'),#默认提供方名 filesystem
+    'includeDefaultRoots':布尔字段(默认值=True),#默认包含项目/用户根
+    'dshHome':字符串字段(),#dsh 家目录
+    'agentsHome':字符串字段(),#agents 家目录
+    'customSkillDirs':列表字段(字符串字段(),默认值=[]),#默认可选自定义根为空
+    'watch':布尔字段(默认值=True),#默认开监视
+    'watchUsePolling':布尔字段(默认值=False),#默认原生事件；对齐 TS chokidar.watch 的 usePolling，打开根监视器时真正切换后端
+    'watchStabilityThresholdMs':数字字段(默认值=默认监视稳定阈值毫秒),#稳定阈值
+    'watchPollIntervalMs':数字字段(默认值=默认监视轮询间隔毫秒),#探测间隔
+    'watchMaxProjects':数字字段(默认值=默认监视项目上限),#项目上限
+    'watchFollowSymlinks':布尔字段(默认值=True),#默认跟随符号链接
+    'bundledSkillDir':字符串字段(),#捆绑根
 })#配置模式，缺省在此显式给出
 配置=配置模式#中文配置模式
 Config=配置模式#Cordis配置模式

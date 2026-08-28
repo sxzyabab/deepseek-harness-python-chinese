@@ -1,8 +1,7 @@
 """日志门面、日志服务、日志消息与格式化。"""
 import json,math,time,traceback,re
 from weakref import ref as 弱引用,ReferenceType as 弱引用类型
-from ..cosmokit import 统一为短横分隔#纤程名收成短横形式
-from .工具 import 设置内部数据,获取内部数据,调用方上下文壳#内部数据面读写，方法里的自身可能是壳
+from ..工具 import 设置内部数据,获取内部数据,调用方上下文壳#内部数据面读写，方法里的自身可能是壳
 
 ################################ 日志级别 ################################
 class 日志级别:

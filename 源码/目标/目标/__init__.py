@@ -1,8 +1,8 @@
 """同会话目标域：事件源状态、比较交换变更，以及进程内续跑武装。"""
 import math,re,time,uuid,weakref#安全整数、阻塞码、纪元毫秒、目标 id 与会话弱表
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,数字字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-模式=schemastery.模式#插件 Config 模式
 from ..智能体 import 智能体事件#按智能体作用域派发
 from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
 from .类型 import *#纯类型出口再导出到包根
@@ -21,8 +21,8 @@ from .运行时 import (
 )#运行时构造（须在类型星号导入之后，保住 GoalId 值出口）
 from .远程 import TYPERT_REMOTE,远程贡献对象#Host-for-Client Remote 贡献
 
-配置=模式.对象({#插件配置模式
-    'defaultMaxGoalRounds':模式.数字().默认(256),#默认 256 轮
+配置=路径上节点({#插件配置模式
+    'defaultMaxGoalRounds':数字字段(默认值=256),#默认 256 轮
 })#结束 Config 模式
 Config=配置#Cordis 配置模式
 阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')#小写短横线分类码

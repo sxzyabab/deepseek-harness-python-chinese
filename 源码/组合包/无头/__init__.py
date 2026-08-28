@@ -5,8 +5,8 @@
 对齐上游 `@deepseek-ai/dsh-headless`。公开面仅中文名。
 """
 import os,uuid,sys#路径、uuid、标准流
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..智能体 import 安装模型选择#模型选择安装
 from ..llm import 创建用户消息#用户消息构造
@@ -16,8 +16,8 @@ __all__=['名称','注入','配置','应用','内部流']#仅中文公开名
 
 名称='headless-runner'#插件名
 注入=['agentDefaultModel','agents','sessions']#依赖
-配置=模式.对象({#无头运行器配置
-    'task':模式.字符串().必填(),#任务必填
+配置=路径上节点({#无头运行器配置
+    'task':字符串字段(可空=False),#任务必填
 })#配置结束
 
 内部流={#可替换输出流

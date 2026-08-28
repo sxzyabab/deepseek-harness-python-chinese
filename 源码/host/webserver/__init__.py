@@ -5,17 +5,17 @@
 import socket,threading#监听套接字与请求线程
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer#HTTP 处理
 from urllib.parse import urlsplit#取路径
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,枚举字段,自然数字段#配置字段
 服务=cordis.服务#服务基类
 是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=['网页服务器','网页路由种类','配置']#仅中文公开名
 
 网页路由种类=('exact','prefix')#精确或前缀
-配置=模式.对象({#listen 用的主机与端口
-    'host':模式.联合([模式.常量('127.0.0.1'),模式.常量('0.0.0.0')]).必填(),#仅环回或全部接口
-    'port':模式.自然数().最大(65535).必填(),#含 0 的自然数
+配置=路径上节点({#listen 用的主机与端口
+    'host':枚举字段('127.0.0.1','0.0.0.0',可空=False),#仅环回或全部接口
+    'port':自然数字段(最大=65535,可空=False),#含 0 的自然数
 })#配置结束
 
 def 解开(值):#承诺则等待否则原样

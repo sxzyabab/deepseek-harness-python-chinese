@@ -41,8 +41,8 @@ def 可执行(候选):#路径是否对本进程可执行
 
 def 有Linux选择器二进制(路径值,是否可执行=None):#PATH 上是否有选择器
     """在一段 PATH 值里扫描 zenity/kdialog。"""
-    if 是否可执行 is None:#缺省谓词
-        是否可执行=可执行#生产谓词
+    if 是否可执行 is None:#缺省判断
+        是否可执行=可执行#生产判断
     分隔=os.pathsep#平台 PATH 分隔符
     for 目录 in (路径值 or '').split(分隔):#拆 PATH
         if 目录=='':#空段

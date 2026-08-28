@@ -2,8 +2,8 @@
 
 对齐上游 `@deepseek-ai/dsh-agent-spine-demo`。公开面仅中文名。捆绑公共服务、后台作业、可选持久化目标、具体循环、本地技能与 agent-instructions，以及面向模型的 shell/技能消费方。本包不提供默认导出（Loader 解包会丢掉 Config）。
 """
-from ...依赖 import cordis,schemastery,timer#外部依赖胶水
-模式=schemastery.模式#配置模式
+from ...依赖 import cordis,timer#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,布尔字段,字符串字段,整数字段,列表字段,复合类型字段,常量字段,字典字段#配置字段
 Timer=timer.默认#定时器插件
 from ..llm import LlmRuntime#LLM 运行时——若导出名不同则由装配侧别名
 from ..会话 import SessionStore#会话存储
@@ -45,39 +45,39 @@ __all__=[#仅中文公开名
     'maxTitleBytes':80,#接受标题最大字节
 }#示例策略结束
 
-技能配置模式=模式.对象({#技能 schema
-    'enabled':模式.布尔().默认(True),#默认启用
-    'registry':SkillRegistry.Config if hasattr(SkillRegistry,'Config') else 模式.对象({}),#注册表
-    'filesystem':SkillFileSystem.Config if hasattr(SkillFileSystem,'Config') else 模式.对象({}),#本地提供方
-    'tool':toolSkill.Config if hasattr(toolSkill,'Config') else 模式.对象({}),#技能工具
+技能配置模式=路径上节点({#技能 schema
+    'enabled':布尔字段(默认值=True),#默认启用
+    'registry':SkillRegistry.Config if hasattr(SkillRegistry,'Config') else 路径上节点({},默认值=None),#注册表
+    'filesystem':SkillFileSystem.Config if hasattr(SkillFileSystem,'Config') else 路径上节点({},默认值=None),#本地提供方
+    'tool':toolSkill.Config if hasattr(toolSkill,'Config') else 路径上节点({},默认值=None),#技能工具
 })#技能 schema 结束
 
-会话标题配置模式=SessionTitleService.Config if hasattr(SessionTitleService,'Config') else 模式.对象({})#会话标题
-Bash工具配置模式=模式.联合([模式.常量(False),toolBash.Config if hasattr(toolBash,'Config') else 模式.对象({})])#bash 或 false
-作业配置模式=LocalJobRegistry.Config if hasattr(LocalJobRegistry,'Config') else 模式.对象({})#作业
-作业工具配置模式=toolJobs.Config if hasattr(toolJobs,'Config') else 模式.对象({})#作业工具
-目标配置模式=模式.对象({#目标 schema
-    'domain':GoalService.Config if hasattr(GoalService,'Config') else 模式.对象({}),#域
-    'tool':toolGoal.Config if hasattr(toolGoal,'Config') else 模式.对象({}),#工具
+会话标题配置模式=SessionTitleService.Config if hasattr(SessionTitleService,'Config') else 路径上节点({})#会话标题
+Bash工具配置模式=复合类型字段(常量字段(False),toolBash.Config if hasattr(toolBash,'Config') else 路径上节点({}))#bash 或 false
+作业配置模式=LocalJobRegistry.Config if hasattr(LocalJobRegistry,'Config') else 路径上节点({})#作业
+作业工具配置模式=toolJobs.Config if hasattr(toolJobs,'Config') else 路径上节点({})#作业工具
+目标配置模式=路径上节点({#目标 schema
+    'domain':GoalService.Config if hasattr(GoalService,'Config') else 路径上节点({},默认值=None),#域
+    'tool':toolGoal.Config if hasattr(toolGoal,'Config') else 路径上节点({},默认值=None),#工具
 })#目标结束
 
-配置=模式.对象({#主干组合包配置——字段原样转发给拥有方
-    'agents':模式.数组(模式.对象({})),#预创建智能体列表
-    'maxParallelToolCalls':模式.数().步长(1).最小(1),#并行上限
-    'includeHarnessIdentity':模式.布尔(),#是否含身份
-    'includeRuntimeContext':模式.布尔(),#是否含运行时上下文
-    'persona':模式.字符串(),#人设
-    'toolOrder':模式.数组(模式.字符串()),#工具顺序
-    'tools':ToolRuntime.Config if hasattr(ToolRuntime,'Config') else 模式.对象({}),#工具配置
-    'dshHome':模式.字符串(),#主目录
+配置=路径上节点({#主干组合包配置——字段原样转发给拥有方
+    'agents':列表字段(路径上节点({})),#预创建智能体列表
+    'maxParallelToolCalls':整数字段(步进=1,最小=1),#并行上限
+    'includeHarnessIdentity':布尔字段(),#是否含身份
+    'includeRuntimeContext':布尔字段(),#是否含运行时上下文
+    'persona':字符串字段(),#人设
+    'toolOrder':列表字段(字符串字段()),#工具顺序
+    'tools':ToolRuntime.Config if hasattr(ToolRuntime,'Config') else 路径上节点({},默认值=None),#工具配置
+    'dshHome':字符串字段(),#主目录
     'sessionTitle':会话标题配置模式,#会话标题
-    'workspaceContext':模式.联合([模式.常量(False),workspaceContext.Config if hasattr(workspaceContext,'Config') else 模式.对象({})]).必填(),#必须显式
+    'workspaceContext':复合类型字段(常量字段(False),workspaceContext.Config if hasattr(workspaceContext,'Config') else 路径上节点({}),可空=False),#必须显式
     'skills':技能配置模式,#技能
     'toolBash':Bash工具配置模式,#bash
     'jobs':作业配置模式,#作业
-    'toolJobs':模式.联合([模式.常量(False),作业工具配置模式]),#作业工具或 false
-    'invariants':InvariantRegistry.Config if hasattr(InvariantRegistry,'Config') else 模式.对象({}),#不变量
-    'goals':模式.联合([模式.常量(False),目标配置模式]),#目标或 false
+    'toolJobs':复合类型字段(常量字段(False),作业工具配置模式),#作业工具或 false
+    'invariants':InvariantRegistry.Config if hasattr(InvariantRegistry,'Config') else 路径上节点({},默认值=None),#不变量
+    'goals':复合类型字段(常量字段(False),目标配置模式),#目标或 false
 })#配置结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

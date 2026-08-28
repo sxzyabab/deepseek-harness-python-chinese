@@ -1,6 +1,6 @@
 """插件的根容器与子作用域容器。"""
 from types import MethodType as 绑定方法#把内部数据面上的函数绑到实例
-from .工具 import (
+from ..工具 import (
     差分映射,#本层叠父层的属性字典
     未命中,#沿链查找的未命中哨兵
     私有键清单,#内部槽名

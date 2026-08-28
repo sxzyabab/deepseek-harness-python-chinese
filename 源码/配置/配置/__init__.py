@@ -1,6 +1,7 @@
 """用户设置能力 seam（`ctx.settings`）的服务定义。提供方存储一份按命名空间分节的原始文档；插件登记命名空间模式并读取解析值，解析按模式缺省、登记方组合 `base`、用户文档节这一顺序叠层。"""
 import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖 import schemastery#配置字段
 服务=cordis.服务#Cordis 服务基类
 光纤状态=cordis.纤程状态#拆除态镜像
 承诺=cordis.工具.承诺#写链承诺
@@ -33,7 +34,7 @@ def 设置命名空间(值):#品牌化
     return 值#通过则品牌化
 
 def json深度相等(甲,乙):#结构相等
-    """JSON 兼容数据（对象、数组、原语）上的深等——服务定义唯一的变更检测谓词。"""
+    """JSON 兼容数据（对象、数组、原语）上的深等——服务定义唯一的变更检测判断。"""
     if 甲 is 乙:#同一引用
         return True#相等
     if 甲==乙 and type(甲) is type(乙) and not isinstance(甲,(dict,list)):#同一原语
@@ -303,7 +304,7 @@ class 设置提供方(服务):#ctx.settings
             # TODO(settings-namespace-vocabulary): 把公开 API、提供方约定、实现、测试和消费方里的 `ns` 改名为 `namespace`。
             描述符={#原样描述符
                 'ns':登记['ns'],#短名
-                'schema':登记['schema'].转JSON(),#序列化模式
+                'schema':登记['schema'].转JSON模式(),#JSON Schema
                 'value':登记['resolved'],#解析值
                 'revision':登记['revision'],#修订
                 'applies':登记['applies'],#生效时机
@@ -455,7 +456,7 @@ class 设置提供方(服务):#ctx.settings
         叠=合并层(下层,上层)#叠层
         if 叠 is 缺席:#两侧都缺席
             叠=None#交给模式填缺省
-        值=模式对象(叠)#缺省 ← base ← 用户
+        值=模式对象.校验数据(叠)#缺省 ← base ← 用户
         if 校验 is not None:#额外约束
             校验(值)#所有者检查
         return 值#已校验

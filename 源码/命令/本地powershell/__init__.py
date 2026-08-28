@@ -6,8 +6,8 @@
 命令字符串作为 `-Command` 的一个 argv 元素传入：由 PowerShell 自己解析文本，中间没有 shell。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..命令 import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
@@ -30,14 +30,14 @@ __all__=(#仅中文公开名；无英文别名
 编码前导='[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); $OutputEncoding = [System.Text.UTF8Encoding]::new($false); '#每条命令前钉住无 BOM 的 UTF-8 输出（5.1 兜底需要）
 默认宽限毫秒=3000#默认 SIGTERM→SIGKILL 宽限（graceMs）
 默认溢出字节=64*1024*1024#默认每路溢出文件上限 64MiB
-配置模式=模式.对象({#插件配置模式；cwd/pwshPath 无默认值
-    'cwd':模式.字符串(),#可选默认工作目录
-    'timeoutMs':模式.数字().默认(120000),#默认前台超时 120 秒
-    'maxTimeoutMs':模式.数字().默认(600000),#每次调用超时覆盖上限 600 秒
-    'maxOutputBytes':模式.数字().默认(64000),#每路内存输出上限；超出溢到临时文件
-    'maxSpillBytes':模式.数字().默认(默认溢出字节),#每路溢出文件上限
-    'graceMs':模式.数字().默认(默认宽限毫秒),#杀进程升级与继承管道宽限
-    'pwshPath':模式.字符串(),#显式 pwsh 可执行路径；省略则探测
+配置模式=路径上节点({#插件配置模式；cwd/pwshPath 无默认值
+    'cwd':字符串字段(),#可选默认工作目录
+    'timeoutMs':数字字段(默认值=120000),#默认前台超时 120 秒
+    'maxTimeoutMs':数字字段(默认值=600000),#每次调用超时覆盖上限 600 秒
+    'maxOutputBytes':数字字段(默认值=64000),#每路内存输出上限；超出溢到临时文件
+    'maxSpillBytes':数字字段(默认值=默认溢出字节),#每路溢出文件上限
+    'graceMs':数字字段(默认值=默认宽限毫秒),#杀进程升级与继承管道宽限
+    'pwshPath':字符串字段(),#显式 pwsh 可执行路径；省略则探测
 })#插件配置模式结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

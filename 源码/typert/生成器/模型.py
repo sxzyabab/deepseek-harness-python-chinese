@@ -58,8 +58,8 @@ def 子类型节点标识们(节点):#收集直接子类型节点 id
         return [取字段(跨,'type') for 跨 in (取字段(节点,'spans') or [])]#插值类型
     if 种类 in ('type-query','import-type'):#typeof / import()
         return list(取字段(节点,'arguments') or [])#类型实参
-    if 种类=='predicate':#类型谓词
-        类型=取字段(节点,'type')#谓词目标
+    if 种类=='predicate':#类型判断
+        类型=取字段(节点,'type')#判断目标
         return [] if 类型 is None else [类型]#有则一条
     if 种类=='infer':#infer
         参数=取字段(节点,'parameter') or {}#infer 参数

@@ -1,8 +1,8 @@
 """面向模型的 `str_replace_editor`，建立在 Harness 文件系统 seam 上。"""
 import os#绝对路径判断
 from functools import cmp_to_key#目录列举排序对齐上游比较器
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,数字字段,字符串字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ...内核.工具 import 定义工具#导入工具定义器
 from ..文件系统 import 文件系统错误#导入文件系统错误
@@ -37,9 +37,9 @@ inject=注入#Cordis依赖声明
     '* The `new_str` parameter should contain the edited lines that should replace the `old_str`'#new_str为替换文
 )#去掉首尾空白由上游 trim；此处字面量已无首尾空白
 
-配置=模式.对象({#插件配置校验模式
-    'maxOutputChars':模式.数字().默认(16_000),#视图字符上限
-    'description':模式.字符串().默认(默认描述),#工具描述
+配置=路径上节点({#插件配置校验模式
+    'maxOutputChars':数字字段(默认值=16_000),#视图字符上限
+    'description':字符串字段(默认值=默认描述),#工具描述
 })#配置模式结束
 Config=配置#Cordis配置模式
 

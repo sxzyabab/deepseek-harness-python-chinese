@@ -1,7 +1,7 @@
 """`@deepseek-ai/dsh-settings` 的本包拥有不变量配套。"""
 from ...依赖 import cordis#外部依赖胶水
 已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-from . import json深度相等#导入接缝自身的相等谓词
+from . import json深度相等#导入接缝自身的相等判断
 
 包名='@deepseek-ai/dsh-settings'#本包的不变量所有权名
 名称='settings-invariant'#配套不变量插件名
@@ -10,7 +10,7 @@ name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 
 def 安装(上下文对象,失败):#安装提交事件检查
-    """安装提交事件约定：settings/updated 只对当前已注册命名空间发出，只在解析值变化时发出，且载荷必须是服务的权威解析值——一律用接缝自身的相等谓词判定。"""
+    """安装提交事件约定：settings/updated 只对当前已注册命名空间发出，只在解析值变化时发出，且载荷必须是服务的权威解析值——一律用接缝自身的相等判断判定。"""
     def 监听更新(命名空间,下一值,上一值,*其余):#监听设置更新事件
         """监听已提交的设置解析值变更。"""
         设置=上下文对象.get('settings')#取当前设置服务

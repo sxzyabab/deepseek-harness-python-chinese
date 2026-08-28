@@ -1,6 +1,5 @@
 """`@deepseek-ai/dsh-web-search-exa`：向 `ctx.web` 注册 Exa 后端的 `WebSearchProvider`。这是函数/命名空间插件（不是默认导出服务）：搜索提供方不拥有 `ctx.web` 键——它注册进 seam 的提供方注册表，正如 `@deepseek-ai/dsh-llm-deepseek` 把适配器注册进 `ctx.llm`。该键由 `@deepseek-ai/dsh-web` 拥有。"""
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验
+from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,枚举字段#配置字段
 from ..启动环境 import 取启动环境#导入启动环境快照
 from .提供方 import (
     Exa搜索提供方,#Exa搜索提供方类
@@ -18,12 +17,12 @@ __all__=['名称','注入','应用','Config','name','inject']#公开面
 注入=['web']#本提供方注册进去的 web seam
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置=模式.对象({#插件配置（全部可选——应用 填环境变量与常量默认值）
-    'apiKey':模式.字符串(),#Exa API 密钥；回退到 $EXA_API_KEY；空 → 提供方不可用
-    'baseURL':模式.字符串(),#端点基址；会接上 /search；默认是公开 API
-    'searchType':模式.联合([模式.常量('auto'),模式.常量('keyword'),模式.常量('neural')]),#作为 Exa type 发送的检索模式；默认 auto
-    'numResults':模式.数字().步进(1).最小(1),#请求未带 maxResults 时的默认结果数；省略 = 无
-    'highlightsPerResult':模式.数字().步进(1).最小(1),#每条结果请求的高亮句子数；默认 1
+配置=路径上节点({#插件配置（全部可选——应用 填环境变量与常量默认值）
+    'apiKey':字符串字段(),#Exa API 密钥；回退到 $EXA_API_KEY；空 → 提供方不可用
+    'baseURL':字符串字段(),#端点基址；会接上 /search；默认是公开 API
+    'searchType':枚举字段('auto','keyword','neural'),#作为 Exa type 发送的检索模式；默认 auto
+    'numResults':整数字段(步进=1,最小=1),#请求未带 maxResults 时的默认结果数；省略 = 无
+    'highlightsPerResult':整数字段(步进=1,最小=1),#每条结果请求的高亮句子数；默认 1
 })#配置模式结束
 Config=配置#Cordis配置模式
 

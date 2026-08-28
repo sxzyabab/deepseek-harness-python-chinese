@@ -1,7 +1,7 @@
 """审批能力缝的服务定义，覆盖请求、取消、审计与按会话策略。缺少回答者则失败闭合；授予只作用于所请求的动作。"""
 import uuid,threading#配对 id 与中止竞赛线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,枚举字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 承诺=cordis.工具.承诺#操作链承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
@@ -25,8 +25,8 @@ name=名称#Cordis 插件名
     +'— do not request sandbox escalation (do not set `sandbox_permissions`).')#never 策略模型可见句后段
 询问句=('Approval policy: ask. Operations that require approval may ask through the configured answerers; '#ask 策略模型可见句前段
     +'without an available answerer, the request fails closed.')#ask 策略模型可见句后段
-配置模式=模式.对象({#插件配置：全部可选——static Config 给出默认值
-    'policy':模式.联合(['ask','never']).默认('ask'),#没有覆盖时的部署默认策略
+配置模式=路径上节点({#插件配置：全部可选——static Config 给出默认值
+    'policy':枚举字段('ask','never',默认值='ask'),#没有覆盖时的部署默认策略
 })#配置模式结束
 Config=配置模式#Cordis 配置模式
 

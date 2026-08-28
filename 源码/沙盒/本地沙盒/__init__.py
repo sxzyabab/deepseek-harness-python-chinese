@@ -10,8 +10,7 @@ import shutil#递归删除临时目录
 import subprocess#功能探测 spawn
 import sys#解释器路径与平台
 import tempfile#平台临时根与私有临时目录
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖.schemastery import 路径上节点,字符串字段,自然数字段,列表字段#配置字段
 from ..llm import 断言永不#导入封闭联合穷尽辅助
 from ..沙盒 import 沙箱提供方,沙箱不可用错误#导入沙箱提供方与不可用错误
 from ..沙盒_windows访问控制 import (#导入 ACL 授权、临时根断言与 SID 推导
@@ -42,10 +41,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-配置模式=模式.对象({#插件配置：全部可选——Config 供给默认
-    'runnerCommand':模式.数组(模式.字符串()).默认([]),#运行器覆盖，默认空
-    'runnerFailureSignatures':模式.数组(模式.字符串()).默认([]),#失败签名，默认空
-    'probeTimeoutMs':模式.自然数().默认(5000),#探测超时默认 5 秒
+配置模式=路径上节点({#插件配置：全部可选——Config 供给默认
+    'runnerCommand':列表字段(字符串字段(),默认值=[]),#运行器覆盖，默认空
+    'runnerFailureSignatures':列表字段(字符串字段(),默认值=[]),#失败签名，默认空
+    'probeTimeoutMs':自然数字段(默认值=5000),#探测超时默认 5 秒
 })#Config 模式结束
 Config=配置模式#Cordis 配置模式
 

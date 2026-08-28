@@ -1,9 +1,9 @@
 """web 访问能力缝（`ctx.web`）的 Service Definition：搜索与抓取的注册表以及按提供方选择的执行。重复 id 会被拒绝。执行时必须有已配置且可用的提供方；没有配置时恰好需要一个可用提供方，选择从不依赖注册顺序。"""
 import os#读取运行覆盖环境变量
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,枚举字段#配置字段
+from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#导入Cordis服务基类
 是否thenable=cordis.工具.是否thenable#可等待判定
-模式=schemastery.模式#导入配置校验库
 from .类型 import (
     网络错误,#结构化web错误
     网络搜索请求字段,#搜索请求词汇
@@ -90,9 +90,9 @@ class 网络运行时(服务):#web访问服务，注册为ctx.web
 - 未配置 id，多个可用提供方 → WEB_PROVIDER_AMBIGUOUS
 - 未配置 id，没有可用提供方 → WEB_PROVIDER_UNAVAILABLE
 """
-    Config=模式.对象({#提供方选择配置schema，无默认值
-        'searchProvider':模式.字符串(),#可选搜索提供方id
-        'fetchProvider':模式.字符串(),#可选抓取提供方id
+    Config=路径上节点({#提供方选择配置schema，无默认值
+        'searchProvider':字符串字段(),#可选搜索提供方id
+        'fetchProvider':字符串字段(),#可选抓取提供方id
     })#schema结束
 
     def __init__(自身,ctx,配置=None):#构造运行时

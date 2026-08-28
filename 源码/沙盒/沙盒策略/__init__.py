@@ -4,9 +4,9 @@
 """
 import json#工作区根写入模型可见字面量
 import os#进程 cwd 回落
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,枚举字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-模式=schemastery.模式#配置校验库
 from ..沙盒 import 规范路径#导入规范路径
 from .会话模式 import (#覆盖套件
     沙盒模式表,#合法模式表
@@ -48,9 +48,9 @@ def 渲染政策上下文(政策):#渲染面向模型的政策上下文
             +'modifications by available operations.')#完全放开说明
     raise Exception('unreachable sandbox mode: '+str(模式值))#封闭联合穷尽守卫
 
-配置模式=模式.对象({#插件配置：部署的沙箱默认；全部可选——Config 提供默认
-    'mode':模式.联合(['read-only','workspace-write','danger-full-access']).默认('read-only'),#会话起步的文件沙箱模式（失败即安全默认）
-    'workspaceRoot':模式.字符串(),#无智能体调用与没有 cwd 的会话的回落根；模式无默认，构造里回落进程 cwd
+配置模式=路径上节点({#插件配置：部署的沙箱默认；全部可选——Config 提供默认
+    'mode':枚举字段('read-only','workspace-write','danger-full-access',默认值='read-only'),#会话起步的文件沙箱模式（失败即安全默认）
+    'workspaceRoot':字符串字段(),#无智能体调用与没有 cwd 的会话的回落根；模式无默认，构造里回落进程 cwd
 })#配置模式结束
 Config=配置模式#Cordis 配置模式
 

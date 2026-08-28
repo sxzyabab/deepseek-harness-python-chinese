@@ -15,33 +15,33 @@ class DeepSeekHarness配置:#启动本地DeepSeek Harness SDK运行时的配置
     """启动本地DeepSeek Harness SDK运行时的配置。
 
     运行时默认继承调用方环境，因此已有的DEEPSEEK_API_KEY与DEEPSEEK_BASE_URL会继续生效。
-    使用env可有意覆盖或注入子进程环境变量。
-    """#说明环境继承与env覆盖约定
+    使用环境变量可有意覆盖或注入子进程环境变量。
+    """#说明环境继承与环境变量覆盖约定
 
-    provider:str="deepseek-official"#默认模型提供方名称
-    model:str="deepseek-v4-flash"#默认模型标识
-    max_tokens:int|None=None#可选的最大生成token数
-    cwd:str|None=None#会话工作目录，空则用当前目录
-    runtime_cwd:str|None=None#运行时进程工作目录，空则与cwd相同
-    session_root:str|None=None#会话持久化根目录，会写入环境变量
+    提供方:str="deepseek-official"#默认模型提供方名称
+    模型:str="deepseek-v4-flash"#默认模型标识
+    最大令牌数:int|None=None#可选的最大生成token数
+    工作目录:str|None=None#会话工作目录，空则用当前目录
+    运行时工作目录:str|None=None#运行时进程工作目录，空则与工作目录相同
+    会话根目录:str|None=None#会话持久化根目录，会写入环境变量
     cordis:str|None=None#cordis配置路径，会写入环境变量
-    env:dict[str,str]=field(default_factory=dict)#额外注入的环境变量字典
-    runtime_bin:str|None=None#显式指定的运行时可执行文件路径
-    launch_args_override:tuple[str,...]|None=None#覆盖默认启动参数的元组
-    request_timeout_seconds:float|None=None#请求超时秒数，空表示不超时
-    shutdown_timeout_seconds:float|None=1.0#关闭子进程等待秒数
-    base_url:str|None=None#可选的DeepSeek API基址，注入环境变量
-    api_key:str|None=None#可选的API密钥，注入环境变量
+    环境变量:dict[str,str]=field(default_factory=dict)#额外注入的环境变量字典
+    运行时二进制:str|None=None#显式指定的运行时可执行文件路径
+    启动参数覆盖:tuple[str,...]|None=None#覆盖默认启动参数的元组
+    请求超时秒数:float|None=None#请求超时秒数，空表示不超时
+    关闭超时秒数:float|None=1.0#关闭子进程等待秒数
+    基址:str|None=None#可选的DeepSeek API基址，注入环境变量
+    密钥:str|None=None#可选的API密钥，注入环境变量
 
 
 @dataclass(slots=True)#用slots数据类降低内存占用
 class 运行结果:#单次agent轮次运行结果
-    session_id:str#本次使用的会话标识
-    final_response:str#从事件中提取的最终助手文本
-    finish_reason:str|None#最后一轮结束原因种类，可能为空
-    events:list[JSON对象]#本会话树内收集到的会话事件列表
-    notifications:list[通知消息]#本轮收到的全部通知列表
-    session_root:str|None=None#配置中的会话根目录，便于调用方定位产物
+    会话ID:str#本次使用的会话标识
+    最终响应:str#从事件中提取的最终助手文本
+    结束原因:str|None#最后一轮结束原因种类，可能为空
+    事件列表:list[JSON对象]#本会话树内收集到的会话事件列表
+    通知列表:list[通知消息]#本轮收到的全部通知列表
+    会话根目录:str|None=None#配置中的会话根目录，便于调用方定位产物
 
 
 class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能体轮次
@@ -55,28 +55,28 @@ class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能�
         if config is not None and kwargs:#禁止同时传配置对象与关键字
             raise TypeError("pass either DeepSeekHarness配置 or keyword options, not both")#明确二选一错误
         self.config=config or DeepSeekHarness配置(**kwargs)#保存最终配置实例
-        工作目录=str(Path(self.config.cwd or Path.cwd()).resolve())#解析绝对会话工作目录
-        运行时工作目录=str(Path(self.config.runtime_cwd).resolve()) if self.config.runtime_cwd is not None else 工作目录#解析运行时工作目录
+        工作目录=str(Path(self.config.工作目录 or Path.cwd()).resolve())#解析绝对会话工作目录
+        运行时工作目录=str(Path(self.config.运行时工作目录).resolve()) if self.config.运行时工作目录 is not None else 工作目录#解析运行时工作目录
         self._cwd=工作目录#保存会话cwd供initialize使用
-        环境变量=dict(self.config.env)#复制额外环境变量，避免改动调用方字典
-        if self.config.session_root is not None:#若配置了会话根目录
-            环境变量["DSH_SESSION_ROOT"]=self.config.session_root#注入会话根目录环境变量
+        进程环境变量=dict(self.config.环境变量)#复制额外环境变量，避免改动调用方字典
+        if self.config.会话根目录 is not None:#若配置了会话根目录
+            进程环境变量["DSH_SESSION_ROOT"]=self.config.会话根目录#注入会话根目录环境变量
         if self.config.cordis is not None:#若配置了cordis路径
-            环境变量["DSH_CORDIS_CONFIG"]=self.config.cordis#注入cordis配置环境变量
-        环境变量["DSH_CWD"]=工作目录#始终注入会话工作目录
-        if self.config.base_url is not None:#若配置了API基址
-            环境变量["DEEPSEEK_BASE_URL"]=self.config.base_url#注入基址环境变量
-        if self.config.api_key is not None:#若配置了API密钥
-            环境变量["DEEPSEEK_API_KEY"]=self.config.api_key#注入密钥环境变量
+            进程环境变量["DSH_CORDIS_CONFIG"]=self.config.cordis#注入cordis配置环境变量
+        进程环境变量["DSH_CWD"]=工作目录#始终注入会话工作目录
+        if self.config.基址 is not None:#若配置了API基址
+            进程环境变量["DEEPSEEK_BASE_URL"]=self.config.基址#注入基址环境变量
+        if self.config.密钥 is not None:#若配置了API密钥
+            进程环境变量["DEEPSEEK_API_KEY"]=self.config.密钥#注入密钥环境变量
 
         self._client=Harness客户端(#创建并持有底层JSON-RPC客户端
             Harness配置(#把高层配置映射为客户端启动配置
-                runtime_bin=self.config.runtime_bin,#透传运行时二进制
-                launch_args_override=self.config.launch_args_override,#透传启动参数覆盖
-                cwd=运行时工作目录,#使用运行时工作目录
-                env=环境变量,#传入组装好的环境变量
-                request_timeout_seconds=self.config.request_timeout_seconds,#透传请求超时
-                shutdown_timeout_seconds=self.config.shutdown_timeout_seconds,#透传关闭超时
+                运行时二进制=self.config.运行时二进制,#透传运行时二进制
+                启动参数覆盖=self.config.启动参数覆盖,#透传启动参数覆盖
+                工作目录=运行时工作目录,#使用运行时工作目录
+                环境变量=进程环境变量,#传入组装好的环境变量
+                请求超时秒数=self.config.请求超时秒数,#透传请求超时
+                关闭超时秒数=self.config.关闭超时秒数,#透传关闭超时
             )#Harness配置构造结束
         )#Harness客户端构造结束
         self._initialized=False#标记尚未完成initialize
@@ -98,9 +98,9 @@ class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能�
         self._client.启动()#启动底层子进程与读写线程
         self._client.初始化(#向运行时发送initialize
             cwd=self._cwd,#传入会话工作目录
-            provider=self.config.provider,#传入提供方
-            model=self.config.model,#传入模型名
-            max_tokens=self.config.max_tokens,#传入可选max_tokens
+            provider=self.config.提供方,#传入提供方
+            model=self.config.模型,#传入模型名
+            max_tokens=self.config.最大令牌数,#传入可选max_tokens
         )#initialize调用结束
         self._initialized=True#标记已完成初始化
 
@@ -142,10 +142,10 @@ class Session:#绑定到某个Harness与会话id的运行句柄
             if on_notification is not None:#若调用方提供了回调
                 on_notification(通知项)#转发给调用方
             if (#仅当通知是本会话的session.event时抽取事件
-                通知项.method=="session.event"#方法为会话事件
-                and 通知项.payload.get("sessionId")==self.id#且会话id匹配
+                通知项.方法=="session.event"#方法为会话事件
+                and 通知项.载荷.get("sessionId")==self.id#且会话id匹配
             ):#条件成立则尝试抽取event字段
-                事件=通知项.payload.get("event")#取出事件对象
+                事件=通知项.载荷.get("event")#取出事件对象
                 if isinstance(事件,dict):#事件必须是对象才记录
                     事件列表.append(事件)#追加到事件列表
 
@@ -165,26 +165,26 @@ class Session:#绑定到某个Harness与会话id的运行句柄
                     已接收=True#标记已收到回执，之后开始正式收集
                 收集(通知项)#归档并抽取事件
                 if (#会话状态变为idle表示本轮结束
-                    通知项.method=="session.status"#状态通知
-                    and 通知项.payload.get("sessionId")==self.id#会话匹配
-                    and 通知项.payload.get("status")=="idle"#状态为空闲
+                    通知项.方法=="session.status"#状态通知
+                    and 通知项.载荷.get("sessionId")==self.id#会话匹配
+                    and 通知项.载荷.get("status")=="idle"#状态为空闲
                 ):#满足则退出循环
                     break#结束等待
 
         return 运行结果(#组装并返回运行结果
-            session_id=self.id,#本会话id
-            final_response=最终响应(事件列表),#从事件提取最终文本
-            finish_reason=结束原因(事件列表),#从事件提取结束原因
-            events=事件列表,#收集到的事件列表
-            notifications=通知列表,#收集到的通知列表
-            session_root=self.harness.config.session_root,#透传会话根目录配置
+            会话ID=self.id,#本会话id
+            最终响应=最终响应(事件列表),#从事件提取最终文本
+            结束原因=结束原因(事件列表),#从事件提取结束原因
+            事件列表=事件列表,#收集到的事件列表
+            通知列表=通知列表,#收集到的通知列表
+            会话根目录=self.harness.config.会话根目录,#透传会话根目录配置
         )#运行结果构造结束
 
 
 def 是否收件箱回执(notification:通知消息,session_id:str,message_id:str)->bool:#判断通知是否为本消息的收件箱回执
-    if notification.method!="session.event" or notification.payload.get("sessionId")!=session_id:#方法或会话不匹配则否
+    if notification.方法!="session.event" or notification.载荷.get("sessionId")!=session_id:#方法或会话不匹配则否
         return False#不是回执
-    事件=notification.payload.get("event")#取出事件体
+    事件=notification.载荷.get("event")#取出事件体
     if not isinstance(事件,dict) or 事件.get("type")!="agent/inbox/spliced":#必须是收件箱拼接事件
         return False#不是回执
     数据=事件.get("data")#取出事件数据

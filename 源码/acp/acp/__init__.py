@@ -3,8 +3,8 @@
 对齐上游 `@deepseek-ai/dsh-acp`。公开面仅中文名。本桥接向受信任的程序化客户端暴露新铸造的 harness 会话。保持具名插件导出且无默认导出。
 """
 import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#插件配置模式
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
 承诺=cordis.工具.承诺#承诺
 已兑现=cordis.工具.已兑现#立刻兑现
 是否thenable=cordis.工具.是否thenable#可等待
@@ -19,9 +19,9 @@ __all__=['名称','注入','配置','应用']#仅中文公开名
 名称='acp'#Cordis插件名（字面量）
 注入=['agents']#依赖 agents 服务
 
-配置=模式.对象({#插件配置模式
-    'provider':模式.字符串(),#可选提供方
-    'model':模式.字符串(),#可选模型
+配置=路径上节点({#插件配置模式
+    'provider':字符串字段(),#可选提供方
+    'model':字符串字段(),#可选模型
 })#配置结束
 
 def 解开(值):#承诺则等待否则原样

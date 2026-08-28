@@ -5,8 +5,8 @@
 Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 """
 import json,math,os#JSON片段、有限数与路径
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,布尔字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..工具 import 定义工具,工具体后中止,已中止#工具定义、体后中止码与中止判定
 from ..llm import 装备错误#Harness错误
@@ -25,8 +25,8 @@ __all__=('名称','注入','配置','应用','默认')#仅中文公开名（Cord
 注入=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
 name=名称#Cordis 插件名（协议槽）
 inject=注入#Cordis 依赖声明（协议槽）
-配置=模式.对象({#pwsh工具配置模式
-    'enableRunInBackground':模式.布尔().默认(True),#默认启用后台
+配置=路径上节点({#pwsh工具配置模式
+    'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
 })#配置模式结束
 Config=配置#Cordis 配置模式（协议槽）
 后台输出字段={#后台输出字段

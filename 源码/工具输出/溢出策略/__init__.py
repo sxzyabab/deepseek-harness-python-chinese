@@ -16,8 +16,8 @@
 它与其他执行后监听器组合：其前置监听器经 `next()` 委托并约束得到的内容投影，因此工具拥有的异步投影先于通用约束跑，替换了内容的钩子其替换仍会被约束，值替换和 `block` 决策原样透传。
 """
 import math#ceil与floor拆分头尾预算
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入schemastery校验器
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,数字字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ...工具.输出保留 import 文本保留器,描述省略#文本保留与省略描述
 from .类型 import (#再导出执行视图词汇
@@ -35,8 +35,8 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 注入=['tools']#需要工具注册表（其tools/post-execute瀑布是我们变换的扩展点）
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置模式=模式.对象({#插件配置
-    'maxInlineBytes':模式.数字(),#纯文本工具结果的面向模型上下文上限，UTF-8字节；省略则完全禁用
+配置模式=路径上节点({#插件配置
+    'maxInlineBytes':数字字段(),#纯文本工具结果的面向模型上下文上限，UTF-8字节；省略则完全禁用
 })#配置模式结束
 Config=配置模式#Cordis配置模式
 

@@ -5,8 +5,8 @@
 Cordis 槽 `inject` / `Config` / `default` 可保留。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..命令 import 外壳设置命名空间,外壳执行器#shell 设置命名空间与执行器基类
@@ -25,13 +25,13 @@ __all__=[#仅中文公开名
 环境覆盖={'NO_COLOR':'1','TERM':'dumb','PAGER':'cat','GIT_PAGER':'cat'}#面向模型的环境覆盖：关掉颜色、哑终端和分页器
 默认宽限毫秒=3000#默认 SIGTERM 到 SIGKILL 宽限
 默认溢出字节=64*1024*1024#默认每路溢出 64MiB
-配置模式=模式.对象({
-    'cwd':模式.字符串(),#工作目录字符串
-    'timeoutMs':模式.数字().默认(120000),#默认超时 120 秒
-    'maxTimeoutMs':模式.数字().默认(600000),#超时上限 600 秒
-    'maxOutputBytes':模式.数字().默认(64000),#默认内存输出 64000 字节
-    'maxSpillBytes':模式.数字().默认(默认溢出字节),#默认溢出文件上限
-    'graceMs':模式.数字().默认(默认宽限毫秒),#默认杀进程宽限
+配置模式=路径上节点({
+    'cwd':字符串字段(),#工作目录字符串
+    'timeoutMs':数字字段(默认值=120000),#默认超时 120 秒
+    'maxTimeoutMs':数字字段(默认值=600000),#超时上限 600 秒
+    'maxOutputBytes':数字字段(默认值=64000),#默认内存输出 64000 字节
+    'maxSpillBytes':数字字段(默认值=默认溢出字节),#默认溢出文件上限
+    'graceMs':数字字段(默认值=默认宽限毫秒),#默认杀进程宽限
 })#插件配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

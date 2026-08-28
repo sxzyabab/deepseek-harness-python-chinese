@@ -3,9 +3,9 @@
 对齐上游 `@deepseek-ai/dsh-agent-presets`。公开面仅中文名。服务键 `agentPresets`、配置键与诊断字面量保持上游。
 """
 import os#文件戳
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,枚举字段,布尔字段,列表字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-模式=schemastery.模式#配置模式
 from ..作用域 import 绑定作用域父,创建作用域,获取作用域,弱身份表#作用域
 from ..配置 import 设置命名空间#设置命名空间
 from ..工作区路径 import 主目录路径#harness 主目录路径
@@ -32,8 +32,8 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 设置空间名='agent-presets'#设置命名空间
-智能体预设设置模式=模式.对象({#用户可写设置
-    'default':模式.字符串(),#默认预设 id
+智能体预设设置模式=路径上节点({#用户可写设置
+    'default':字符串字段(),#默认预设 id
 })#设置模式结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
@@ -60,13 +60,13 @@ class 智能体预设名册(服务):#智能体预设名册服务
     """部署的智能体预设上的注册表。发现不做记忆化。"""
     inject=['loader']#依赖加载器
     注入=inject#中文别名
-    Config=模式.对象({#插件配置模式
-        'default':模式.字符串().必填(),#必填默认预设 id
-        'roots':模式.数组(模式.对象({#扫描根
-            'path':模式.字符串().必填(),#根路径
-            'trust':模式.联合(['system','user']).默认('user'),#默认用户信任
-        })).默认([]),#默认无已配置根
-        'includeUserRoot':模式.布尔().默认(True),#默认追加用户根
+    Config=路径上节点({#插件配置模式
+        'default':字符串字段(可空=False),#必填默认预设 id
+        'roots':列表字段(路径上节点({#扫描根
+            'path':字符串字段(可空=False),#根路径
+            'trust':枚举字段('system','user',默认值='user'),#默认用户信任
+        }),默认值=[]),#默认无已配置根
+        'includeUserRoot':布尔字段(默认值=True),#默认追加用户根
     })#配置模式结束
 
     def __init__(自身,ctx,配置=None):#构造名册服务

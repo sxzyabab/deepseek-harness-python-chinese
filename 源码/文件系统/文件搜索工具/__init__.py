@@ -6,8 +6,8 @@
 
 返回路径相对已解析工作目录展示，且仅在工作目录与文件系统 `read` 根是同一工作区的共置部署中可跟进读取——这是已文档化的 v1 部署要求，不是运行时校验。
 """
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,布尔字段,数字字段#配置字段
 已兑现=cordis.工具.已兑现#立刻兑现
 from ...工具.超时 import 定时器延迟上限毫秒#导入定时器延迟上限
 from .通配 import (#再导出glob公开面
@@ -63,16 +63,16 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 
-配置=模式.对象({#插件配置；超额glob抽样是显式部署选择，其余字段有默认值
-    'sampleOverCapGlobResults':模式.布尔().必填(),#超额glob是否跨顶层抽样，必填
-    'globMaxResults':模式.数字().默认(通配最大结果数),#glob内联路径上限
-    'grepMaxMatches':模式.数字().默认(检索最大命中数),#grep内联命中上限
-    'grepMaxLineBytes':模式.数字().默认(检索最大行字节),#单行预览字节上限
-    'searchMetaMaxBytes':模式.数字().默认(搜索元最大字节),#presentationMeta字节上限
-    'rawOutputMaxBytes':模式.数字().默认(原始输出最大字节),#原始stdout字节上限
-    'graceMs':模式.数字().默认(搜索宽限毫秒),#终止宽限期
-    'stderrMaxBytes':模式.数字().默认(搜索标准错误最大字节),#stderr诊断尾上限
-    'timeoutMs':模式.数字().默认(搜索超时毫秒),#协作超时预算
+配置=路径上节点({#插件配置；超额glob抽样是显式部署选择，其余字段有默认值
+    'sampleOverCapGlobResults':布尔字段(可空=False),#超额glob是否跨顶层抽样，必填
+    'globMaxResults':数字字段(默认值=通配最大结果数),#glob内联路径上限
+    'grepMaxMatches':数字字段(默认值=检索最大命中数),#grep内联命中上限
+    'grepMaxLineBytes':数字字段(默认值=检索最大行字节),#单行预览字节上限
+    'searchMetaMaxBytes':数字字段(默认值=搜索元最大字节),#presentationMeta字节上限
+    'rawOutputMaxBytes':数字字段(默认值=原始输出最大字节),#原始stdout字节上限
+    'graceMs':数字字段(默认值=搜索宽限毫秒),#终止宽限期
+    'stderrMaxBytes':数字字段(默认值=搜索标准错误最大字节),#stderr诊断尾上限
+    'timeoutMs':数字字段(默认值=搜索超时毫秒),#协作超时预算
 })#配置模式结束
 Config=配置#Cordis配置模式
 

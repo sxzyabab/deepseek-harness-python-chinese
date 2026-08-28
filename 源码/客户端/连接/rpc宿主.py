@@ -164,7 +164,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
         if 通道!=接口路径:#只允许保留的共享通道
             raise Exception('connection: invalid shared RPC channel '+json.dumps(通道,ensure_ascii=False))#其它通道名失败
         拦截器={#组装拦截器
-            'matches':匹配,#所有权谓词
+            'matches':匹配,#所有权判断
             'fetchHandler':rpcFetch处理(通道,处理函数),#解码并调 handler
             'options':选项,#信任政策
         }#结束拦截器

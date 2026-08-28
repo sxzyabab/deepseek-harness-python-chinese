@@ -1,7 +1,7 @@
 """文件后端的设置提供方。用户 harness 主目录下的一份 YAML 或 JSON 文档承载每个命名空间段落；外部编辑经 seam 热发布，每次写入都在跨进程写锁下重读文档，再以保留注释的叶级 diff 打补丁。"""
 import os,json,errno,threading,time,io#路径、JSON、错误码、线程、时间与内存流
-from ...依赖 import cordis,schemastery,ruamel_yaml#外部依赖胶水
-模式=schemastery.模式#配置校验
+from ...依赖 import cordis,ruamel_yaml#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段,数字字段#配置字段
 承诺=cordis.工具.承诺#操作链承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
 YAML=ruamel_yaml.YAML#保留注释的YAML
@@ -16,11 +16,11 @@ from ..配置 import 设置提供方,json深度相等#设置服务基类与JSON�
     '.json':'json',#JSON
 }#扩展名到格式
 
-配置模式=模式.对象({#插件配置字段
-    'path':模式.字符串(),#文档路径
-    'dshHome':模式.字符串(),#主目录
-    'watch':模式.布尔().默认(True),#默认监视
-    'debounceMs':模式.数字().最小(0).默认(100),#默认防抖
+配置模式=路径上节点({#插件配置字段
+    'path':字符串字段(),#文档路径
+    'dshHome':字符串字段(),#主目录
+    'watch':布尔字段(默认值=True),#默认监视
+    'debounceMs':数字字段(最小=0,默认值=100),#默认防抖
 })#插件配置模式
 
 def 解开(值):#承诺则等待

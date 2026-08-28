@@ -1,7 +1,7 @@
 """在 harness 拦截点上桥接未经修改的 Codex 命令钩子。支持五个点（SessionStart、提示/工具前后、Stop）、仅正则匹配器、snake_case 载荷且不加末尾换行、没有钩子环境或命令替换、也没有工具前批准或改写路径；只兑现阻断判定。共用的执行与解析在 `dsh-hook-protocol`。"""
 import json,os,time#读配置、进程 cwd 与墙钟
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 承诺=cordis.工具.承诺#可等待
 是否thenable=cordis.工具.是否thenable#后台任务
 from ..llm import 创建用户消息#导入用户消息工厂
@@ -21,11 +21,11 @@ from .配置 import 解析科德克斯配置#导入配置解析
 注入=['shell']#依赖 shell 服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置=模式.对象({#插件配置：Codex hooks.json 所在位置，以及载荷上的模型名
-    'configPath':模式.字符串(),#Codex hooks.json 路径；必填；进程级，加载时读一次
-    'model':模式.字符串().默认(''),#盖在每份载荷上的模型名（Codex 每个事件都带 model）
-    'defaultTimeoutMs':模式.数字().默认(默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒（Codex 默认：600000）
-    'stderrSummaryMaxChars':模式.数字().默认(默认stderr摘要最大字符),#hook/result 事件里持久 stderr 摘要的字符上限
+配置=路径上节点({#插件配置：Codex hooks.json 所在位置，以及载荷上的模型名
+    'configPath':字符串字段(),#Codex hooks.json 路径；必填；进程级，加载时读一次
+    'model':字符串字段(默认值=''),#盖在每份载荷上的模型名（Codex 每个事件都带 model）
+    'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒（Codex 默认：600000）
+    'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字符),#hook/result 事件里持久 stderr 摘要的字符上限
 })#配置模式结束
 Config=配置#Cordis配置模式
 插件来源={'kind':'plugin','plugin':'hooks-codex'}#本桥注入的每条上下文都盖上的来源

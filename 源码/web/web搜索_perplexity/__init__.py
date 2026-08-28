@@ -1,6 +1,5 @@
 """`@deepseek-ai/dsh-web-search-perplexity`：向 `ctx.web` 注册 Perplexity 后端的 `WebSearchProvider`。这是函数/命名空间插件（不是默认导出服务）：它注册进 seam 的提供方注册表，正如 `@deepseek-ai/dsh-llm-deepseek` 把适配器注册进 `ctx.llm`。"""
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段,整数字段,列表字段,布尔字段,复合类型字段,常量字段,枚举字段#配置字段
 from ..启动环境 import 取启动环境#导入启动环境快照
 from .提供方 import (
     Perplexity搜索提供方,#Perplexity搜索提供方类
@@ -19,12 +18,12 @@ __all__=['名称','注入','应用','Config','name','inject']#公开面
 注入=['web']#本提供方注册进去的 web seam
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置=模式.对象({#插件配置（全部可选——应用 填环境变量与常量默认值）
-    'apiKey':模式.字符串(),#Perplexity API 密钥；回退到 $PERPLEXITY_API_KEY；空 → 不可用
-    'baseURL':模式.字符串(),#端点基址；会接上 /chat/completions；默认是公开 API
-    'model':模式.字符串(),#搜索模型名；默认 sonar
-    'maxTokens':模式.数字().步进(1).最小(1),#生成回答 token 上限；默认 1024
-    'searchRecency':模式.联合([模式.常量('day'),模式.常量('week'),模式.常量('month'),模式.常量('year')]),#作为 search_recency_filter 发送的新旧窗口；省略 = 无过滤
+配置=路径上节点({#插件配置（全部可选——应用 填环境变量与常量默认值）
+    'apiKey':字符串字段(),#Perplexity API 密钥；回退到 $PERPLEXITY_API_KEY；空 → 不可用
+    'baseURL':字符串字段(),#端点基址；会接上 /chat/completions；默认是公开 API
+    'model':字符串字段(),#搜索模型名；默认 sonar
+    'maxTokens':整数字段(步进=1,最小=1),#生成回答 token 上限；默认 1024
+    'searchRecency':枚举字段('day','week','month','year'),#作为 search_recency_filter 发送的新旧窗口；省略 = 无过滤
 })#配置模式结束
 Config=配置#Cordis配置模式
 

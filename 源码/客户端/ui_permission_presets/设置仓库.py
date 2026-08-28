@@ -81,25 +81,19 @@ def 权限默认于(视图):#从描述符抽出当前默认
 
         raise Exception('permission settings schema has no defaultPreset field')#拒绝
 
-    if 取字段(节点,'type')=='union':#联合
-
-        原始=取字段(节点,'list') or []#成员
-
-    else:#单节点
-
-        原始=[节点]#单
+    原始=取字段(节点,'anyOf') or 取字段(节点,'oneOf') or [节点]#联合或单节点
 
     选项=[]#选项
 
     for 候选 in 原始:#逐成员
 
-        if 取字段(候选,'type')!='const' or not isinstance(取字段(候选,'value'),str):#非字符串常量
+        常量值=取字段(候选,'const')#JSON Schema 常量
+
+        if not isinstance(常量值,str):#非字符串常量
 
             continue#丢掉
 
-        常量值=取字段(候选,'value')#预设键
-
-        描述=取字段(取字段(候选,'meta'),'description')#可选描述
+        描述=取字段(候选,'description')#可选描述
 
         if isinstance(描述,str) and 描述:#有描述
 

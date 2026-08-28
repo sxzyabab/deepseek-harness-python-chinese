@@ -2,8 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-client-connection`。公开面仅中文名。配置键英文字面量保持上游。
 """
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置模式
+from ...依赖.schemastery import 路径上节点,列表字段,字符串字段,自然数字段#配置字段
 from .接口路径 import 接口路径,复用事件路径,宿主事件路径#API 与事件路径常量
 from .http桥 import 桥接,默认最大请求正文字节#HTTP 桥与默认正文上限
 from .接口请求信任 import 断言受信任权威,是否受信任接口请求#权威校验与请求信任闸
@@ -27,9 +26,9 @@ __all__=[#仅中文公开名
 名称='client-connection'#插件名
 注入=['webServer']#只硬依赖 web 服务器
 请求信封余量字节=1024*1024#信封余量 1MiB
-配置=模式.对象({#连接插件配置
-    'trustedHosts':模式.数组(模式.字符串()).默认([]),#默认无额外受信任 Host
-    'maxRequestBodyBytes':模式.自然数().最小(1).默认(默认最大请求正文字节),#至少 1 字节，默认桥常量
+配置=路径上节点({#连接插件配置
+    'trustedHosts':列表字段(字符串字段(),默认值=[]),#默认无额外受信任 Host
+    'maxRequestBodyBytes':自然数字段(最小=1,默认值=默认最大请求正文字节),#至少 1 字节，默认桥常量
 })#配置模式结束
 
 特权方法=set([#回环闸方法名

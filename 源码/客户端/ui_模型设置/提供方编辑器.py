@@ -134,8 +134,7 @@ class 提供方编辑器:#提供方编辑卡片
         模型节点=路径上节点(根,list(路径)+['models'])#schema 节点
         if 模型节点 is None:#无
             return None#无
-        元=取字段(模型节点,'meta') or {}#meta
-        return 取字段(元,'default')#默认
+        return 取字段(模型节点,'default')#JSON Schema 默认
 
     def 应用一次(自身):#写线一次
         """返回失败文案或 None。"""

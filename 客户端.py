@@ -3,7 +3,7 @@ from __future__ import annotations#启用延迟注解求值，便于前向引用
 
 from dataclasses import dataclass
 from typing import TypeAlias as 类型别名
-from pydantic import BaseModel
+from pydantic import BaseModel,ConfigDict,Field
 
 基本JSON值:类型别名=str|int|float|bool|None
 JSON数据:类型别名=基本JSON值|dict[str,"JSON数据"]|list["JSON数据"]
@@ -11,21 +11,21 @@ JSON对象:类型别名=dict[str,JSON数据]
 
 @dataclass(slots=True)
 class 通知消息:
-    method:str
-    payload:JSON对象
+    方法:str
+    载荷:JSON对象
 
 @dataclass(slots=True)
 class 入站请求:#JSON_RPC
-    id:str|int
-    method:str
-    payload:JSON对象
+    标识:str|int
+    方法:str
+    载荷:JSON对象
 
 class 服务器信息(BaseModel):
-    name:str|None=None
-    version:str|None=None
+    名称:str|None=Field(default=None,alias='name')
+    版本:str|None=Field(default=None,alias='version')
 
 class 初始化响应(BaseModel):
-    serverInfo:服务器信息|None=None
+    服务器信息:服务器信息|None=Field(default=None,alias='serverInfo')
 
 
 #client.py
@@ -45,13 +45,13 @@ NotificationFilter:类型别名=Callable[[通知消息],bool]
 @dataclass(slots=True)#用slots数据类降低内存占用
 class Harness配置:#启动本地DeepSeek Harness SDK运行时的配置
     "启动本地DeepSeek Harness SDK运行时的配置"#类文档说明用途
-    runtime_bin:str|None=None#显式运行时可执行文件路径
-    bridge_bin:str|None=None#兼容用的桥接可执行文件路径
-    launch_args_override:tuple[str,...]|None=None#覆盖默认启动参数
-    cwd:str|None=None#子进程工作目录
-    env:dict[str,str]|None=None#额外合并进子进程的环境变量
-    request_timeout_seconds:float|None=None#请求默认超时秒数
-    shutdown_timeout_seconds:float|None=1.0#关闭时等待秒数
+    运行时二进制:str|None=None#显式运行时可执行文件路径
+    桥接二进制:str|None=None#兼容用的桥接可执行文件路径
+    启动参数覆盖:tuple[str,...]|None=None#覆盖默认启动参数
+    工作目录:str|None=None#子进程工作目录
+    环境变量:dict[str,str]|None=None#额外合并进子进程的环境变量
+    请求超时秒数:float|None=None#请求默认超时秒数
+    关闭超时秒数:float|None=1.0#关闭时等待秒数
 
 
 class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时通信的同步JSON-RPC客户端
@@ -85,10 +85,10 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             return#避免重复拉起
         with self._lock:#加锁清会话亲子表
             self._session_parents.clear()#新进程从空会话树开始
-        启动参数=list(self.config.launch_args_override or self.默认启动参数())#解析最终启动参数
+        启动参数=list(self.config.启动参数覆盖 or self.默认启动参数())#解析最终启动参数
         环境变量=os.environ.copy()#继承当前进程环境
-        if self.config.env:#若配置了额外环境变量
-            环境变量.update(self.config.env)#合并覆盖到子进程环境
+        if self.config.环境变量:#若配置了额外环境变量
+            环境变量.update(self.config.环境变量)#合并覆盖到子进程环境
         self.注入捆绑默认配置(环境变量)#捆绑启动且无配置时注入默认cordis
         self._proc=subprocess.Popen(#拉起运行时子进程
             启动参数,#启动参数列表
@@ -97,19 +97,19 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             stderr=subprocess.PIPE,#管道标准错误供诊断缓冲
             text=True,#文本模式读写
             encoding="utf-8",#统一UTF-8编码
-            cwd=None if self.config.cwd is None else str(Path(self.config.cwd).resolve()),#解析工作目录
+            cwd=None if self.config.工作目录 is None else str(Path(self.config.工作目录).resolve()),#解析工作目录
             env=环境变量,#传入组装环境
             bufsize=1,#行缓冲，便于按行NDJSON
         )#Popen结束
         self.启动读取线程()#启动stdout读取线程
         self.启动错误读取线程()#启动stderr读取线程
-
+.
     def 关闭(self)->None:#关闭运行时并清理等待者
         进程=self._proc#取出当前子进程引用
         if 进程 is None:#未启动则无需关闭
             return#直接返回
         try:#尝试发送协议层shutdown
-            self.请求("shutdown",None,response_model=关闭响应,timeout_seconds=self.config.shutdown_timeout_seconds)#请求优雅关闭
+            self.请求("shutdown",None,response_model=关闭响应,timeout_seconds=self.config.关闭超时秒数)#请求优雅关闭
         except Exception as 错误:#shutdown失败只记诊断，不中断关闭流程
             self._stderr_lines.append(f"shutdown request failed: {错误}")#记录shutdown失败信息
         if 进程.stdin:#若stdin仍可用
@@ -123,7 +123,7 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             except ProcessLookupError:#进程已消失则忽略
                 pass#吞掉查找失败
         try:#等待进程在超时内退出
-            进程.wait(timeout=self.config.shutdown_timeout_seconds)#带超时等待
+            进程.wait(timeout=self.config.关闭超时秒数)#带超时等待
         except subprocess.TimeoutExpired:#超时则强杀
             进程.kill()#强制杀死
             进程.wait()#再等到真正退出
@@ -275,7 +275,7 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             if 临时订阅 is not None:#若建了临时订阅
                 临时订阅.关闭()#立刻退订
             raise#原样抛出
-        超时=self.config.request_timeout_seconds if timeout_seconds is None else timeout_seconds#解析有效超时
+        超时=self.config.请求超时秒数 if timeout_seconds is None else timeout_seconds#解析有效超时
         截止=None if 超时 is None else time.monotonic()+超时#计算截止时间
         try:#循环等待响应，期间可选排空通知
             while True:#直到拿到waiter中的项
@@ -367,7 +367,7 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
         方法=message.get("method")#取可选method
         if isinstance(消息标识,(str,int)) and isinstance(方法,str):#有id且有method：入站请求
             参数=message.get("params")#取参数
-            self._requests.put(入站请求(id=消息标识,method=方法,payload=参数 if isinstance(参数,dict) else {}))#入队入站请求
+            self._requests.put(入站请求(标识=消息标识,方法=方法,载荷=参数 if isinstance(参数,dict) else {}))#入队入站请求
             return#处理完毕
         if isinstance(消息标识,(str,int)):#仅有id：响应
             with self._lock:#加锁取出waiter
@@ -382,14 +382,14 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             return#处理完毕
         if isinstance(方法,str):#仅有method：通知
             参数=message.get("params")#取参数
-            通知项=通知消息(method=方法,payload=参数 if isinstance(参数,dict) else {})#构造通知
+            通知项=通知消息(方法=方法,载荷=参数 if isinstance(参数,dict) else {})#构造通知
             with self._lock:#加锁记录会话关系并快照订阅者
                 self.记录会话关系(通知项)#从subagent通知更新亲子表
                 订阅者们=list(self._notification_subscribers.items())#快照订阅列表
             已投递=False#是否至少投递给一个订阅
-            for 订阅标识,(订阅者,谓词) in 订阅者们:#遍历每个订阅
+            for 订阅标识,(订阅者,判断) in 订阅者们:#遍历每个订阅
                 try:#评估过滤器
-                    匹配=谓词 is None or 谓词(通知项)#无过滤器或谓词为真
+                    匹配=判断 is None or 判断(通知项)#无过滤器或判断为真
                 except BaseException as 错误:#过滤器抛错则移除该订阅并投递异常
                     with self._lock:#加锁确认并移除
                         当前=self._notification_subscribers.get(订阅标识)#再取当前登记
@@ -411,7 +411,7 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             self._notification_subscribers.clear()#清空订阅表
         for 等待者 in 等待者们:#唤醒每个响应等待者
             等待者.put(exc)#放入异常
-        for 订阅者,_谓词 in 订阅者们:#唤醒每个订阅队列
+        for 订阅者,_判断 in 订阅者们:#唤醒每个订阅队列
             订阅者.put(exc)#放入异常
         self._notifications.put(exc)#全局通知队列也放入异常
         self._requests.put(exc)#入站请求队列也放入异常
@@ -442,16 +442,16 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
         return "\n".join(部分)#合并为单字符串
 
     def 默认启动参数(self)->tuple[str,...]:#解析默认启动参数元组
-        if self.config.runtime_bin is not None:#显式runtime优先
-            return (self.config.runtime_bin,)#单元素可执行路径
-        if self.config.bridge_bin is not None:#其次兼容bridge
-            return (self.config.bridge_bin,)#单元素桥接路径
+        if self.config.运行时二进制 is not None:#显式runtime优先
+            return (self.config.运行时二进制,)#单元素可执行路径
+        if self.config.桥接二进制 is not None:#其次兼容bridge
+            return (self.config.桥接二进制,)#单元素桥接路径
         try:#尝试从捆绑运行时包解析
             from .runtime import resolve_bundled_launch_args#导入捆绑启动解析
         except ImportError as 错误:#未安装运行时包
             raise FileNotFoundError(#提示安装或显式配置
                 "Unable to locate the bundled DeepSeek Harness SDK runtime. "
-                "Install deepseek-harness-runtime-bin or set Harness配置.runtime_bin."
+                "Install deepseek-harness-runtime-bin or set Harness配置.运行时二进制."
             ) from 错误#保留导入错误链
         return resolve_bundled_launch_args()#返回捆绑启动argv
 
@@ -461,9 +461,9 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
         两种捆绑载体都要求显式配置。显式runtime、启动参数与配置通道保持不动。
         """#说明何时注入、何时不动
         使用捆绑运行时=(#判定是否走捆绑默认启动路径
-            self.config.launch_args_override is None#未覆盖启动参数
-            and self.config.runtime_bin is None#未指定runtime
-            and self.config.bridge_bin is None#未指定bridge
+            self.config.启动参数覆盖 is None#未覆盖启动参数
+            and self.config.运行时二进制 is None#未指定runtime
+            and self.config.桥接二进制 is None#未指定bridge
         )#捆绑判定结束
         if not 使用捆绑运行时 or env.get("DSH_CORDIS_CONFIG"):#非捆绑或已有配置则跳过
             return#不注入
@@ -477,10 +477,10 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             self._notification_subscribers.pop(subscription_id,None)#移除订阅项
 
     def 记录会话关系(self,notification:通知消息)->None:#在已持锁前提下记录子智能体会话亲子关系
-        if notification.method!="subagent.started":#只关心子智能体启动通知
+        if notification.方法!="subagent.started":#只关心子智能体启动通知
             return#其他通知忽略
-        父标识=notification.payload.get("parentSessionId")#取父会话id
-        子标识=notification.payload.get("childSessionId")#取子会话id
+        父标识=notification.载荷.get("parentSessionId")#取父会话id
+        子标识=notification.载荷.get("childSessionId")#取子会话id
         if (#两边都是非空字符串且不相同
             isinstance(父标识,str)#父id是字符串
             and 父标识#父id非空
@@ -492,8 +492,8 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
 
     def _notification_belongs_to_session_tree(self,session_id:str)->NotificationFilter:#构造“属于该会话树”的过滤器
         def 属于(通知项:通知消息)->bool:#闭包：判断单条通知是否属于根会话树
-            载荷=通知项.payload#取载荷
-            if 通知项.method in {"subagent.started","subagent.finished"}:#子智能体生命周期通知
+            载荷=通知项.载荷#取载荷
+            if 通知项.方法 in {"subagent.started","subagent.finished"}:#子智能体生命周期通知
                 父标识=载荷.get("parentSessionId")#取父会话
                 if (#父会话是根或其后代则匹配
                     isinstance(父标识,str)#父id是字符串

@@ -3,7 +3,7 @@
 对齐上游 `ui-conversation/src/client/conversation-nodes/tool.ts`。公开面仅中文名。
 """
 import json#子调用参数序列化
-from ..约定.聊天节点 import 已结算工具#已结算谓词
+from ..约定.聊天节点 import 已结算工具#已结算判断
 from .公共 import 聊天合成序号偏移,聊天节点#公共
 from .面辅助 import 取字段,是追加面事件#面辅助
 

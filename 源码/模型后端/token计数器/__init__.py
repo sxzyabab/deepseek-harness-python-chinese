@@ -3,9 +3,9 @@
 Cordis 槽 `Config` / `default` 可保留。配置键与诊断英文字面量保持上游。
 """
 from weakref import WeakKeyDictionary as 弱键字典#会话到回放状态
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点#配置字段
 服务=cordis.服务#服务基类
-模式=schemastery.模式#配置校验
 from ..llm.组装器 import 块组装器#块组装器
 from ..llm.调用配置 import 深冻结,结构化克隆#深冻结与拆离克隆
 from ..会话 import 归一请求头,请求头是否相等,是否表面事件#规范头、头相等与表面判定
@@ -36,7 +36,7 @@ def 校验配置键(配置):#拒绝未知配置键
 
 class 令牌计量(服务):#token 计量服务
     """一份服务级估算器与按会话隔离折叠的回放所有者。"""
-    Config=模式.对象({})#空配置模式（Cordis 协议槽；无设置项）
+    Config=路径上节点({})#空配置模式（Cordis 协议槽；无设置项）
 
     def __init__(自身,ctx,配置=None):#构造计量服务
         """构造计量服务并以 tokenMeter 名登记。"""

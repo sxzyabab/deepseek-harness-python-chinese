@@ -1,7 +1,7 @@
 """六种面向模型的持久终端工具。所有者身份来自精确的工具执行智能体；通用 `ctx.jobs` 负责后台 id 与收集。"""
 import threading#后台结算线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,布尔字段,整数字段#配置字段
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待
 已兑现=cordis.工具.已兑现#立刻兑现
@@ -23,9 +23,9 @@ inject=注入#Cordis依赖声明
 默认结果字节=256*1024#一次完整面向模型的终端结果的默认上限
 最小结果字节=64#能在截断回执里保住全部计数器签发的 PTY 与任务 id 的最小上限
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
-配置=模式.对象({#终端工具消费方配置
-    'enableRunInBackground':模式.布尔().默认(True),#是否暴露 run_in_background 并接受后台发送
-    'maxResultBytes':模式.数字().步进(1).最小(最小结果字节).最大(安全整数上限).默认(默认结果字节),#结果字节上限
+配置=路径上节点({#终端工具消费方配置
+    'enableRunInBackground':布尔字段(默认值=True),#是否暴露 run_in_background 并接受后台发送
+    'maxResultBytes':整数字段(步进=1,最小=最小结果字节,最大=安全整数上限,默认值=默认结果字节),#结果字节上限
 })#配置模式结束
 Config=配置#Cordis配置模式
 

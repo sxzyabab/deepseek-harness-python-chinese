@@ -1,7 +1,7 @@
 """可选的请求时钟上下文。符合条件的步骤把带源归属的持久时间读数加进请求历史。"""
 import json,math,time#JSON诊断、安全整数与纪元毫秒
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
 是否thenable=cordis.工具.是否thenable#可等待判定
 from ..llm import 创建用户消息#导入用户消息构造
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
@@ -15,9 +15,9 @@ name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
 编码=json.dumps#JSON编码
-配置=模式.对象({#请求准备阶段的时钟格式化与追加调度；非法值在插件加载时失败
-    'timeZone':模式.字符串(),#打开的回合没有唯一浏览器时区时的回退展示时区；省略则用进程时区
-    'refreshIntervalMs':模式.数字(),#同一会话两次持久注入之间的最小毫秒；省略或0则每个符合条件的步骤都注入
+配置=路径上节点({#请求准备阶段的时钟格式化与追加调度；非法值在插件加载时失败
+    'timeZone':字符串字段(),#打开的回合没有唯一浏览器时区时的回退展示时区；省略则用进程时区
+    'refreshIntervalMs':数字字段(),#同一会话两次持久注入之间的最小毫秒；省略或0则每个符合条件的步骤都注入
 })#配置模式结束
 Config=配置#Cordis配置模式
 

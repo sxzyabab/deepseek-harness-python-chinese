@@ -3,8 +3,8 @@
 命名空间插件（具名导出，无默认导出）。生命周期按 effect 作用域：拆除时从 ctx.lsp 注销并拆掉每一个活着的服务器。
 """
 import threading#提供方队列与生命周期
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置校验
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,列表字段,字典字段,任意字段,数字字段#配置字段
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待
 已兑现=cordis.工具.已兑现#立刻兑现
@@ -36,22 +36,22 @@ inject=注入#Cordis依赖声明
 默认关闭超时毫秒=5000#默认优雅关闭预算（毫秒）
 默认杀进程宽限毫秒=2000#默认SIGTERM到SIGKILL宽限（毫秒）
 
-本地服务器配置模式=模式.对象({#单条服务器配置模式
-    'command':模式.字符串().必填(),#可执行文件必填
-    'args':模式.数组(模式.字符串()).默认([]),#参数默认空数组
-    'env':模式.字典(模式.字符串()).默认({}),#环境默认空对象
-    'extensionToLanguage':模式.字典(模式.字符串()).必填(),#扩展映射必填
-    'initializationOptions':模式.任意().默认(None),#初始化选项默认null
-    'configuration':模式.任意().默认(None),#配置回答默认null
-    'maxMessageBytes':模式.数字().默认(默认最大消息字节),#消息上限默认值
-    'maxStderrBytes':模式.数字().默认(默认最大标准误字节),#stderr尾默认值
-    'maxDocumentBytes':模式.数字().默认(默认最大文档字节),#源文件上限默认值
-    'shutdownTimeoutMs':模式.数字().最大(定时器延迟上限毫秒).默认(默认关闭超时毫秒),#关闭预算默认值
-    'killGraceMs':模式.数字().最大(定时器延迟上限毫秒).默认(默认杀进程宽限毫秒),#杀进程宽限默认值
+本地服务器配置模式=路径上节点({#单条服务器配置模式
+    'command':字符串字段(可空=False),#可执行文件必填
+    'args':列表字段(字符串字段(),默认值=[]),#参数默认空数组
+    'env':字典字段(值字段=字符串字段(),默认值={}),#环境默认空对象
+    'extensionToLanguage':字典字段(值字段=字符串字段(),可空=False),#扩展映射必填
+    'initializationOptions':任意字段(默认值=None),#初始化选项默认null
+    'configuration':任意字段(默认值=None),#配置回答默认null
+    'maxMessageBytes':数字字段(默认值=默认最大消息字节),#消息上限默认值
+    'maxStderrBytes':数字字段(默认值=默认最大标准误字节),#stderr尾默认值
+    'maxDocumentBytes':数字字段(默认值=默认最大文档字节),#源文件上限默认值
+    'shutdownTimeoutMs':数字字段(最大=定时器延迟上限毫秒,默认值=默认关闭超时毫秒),#关闭预算默认值
+    'killGraceMs':数字字段(最大=定时器延迟上限毫秒,默认值=默认杀进程宽限毫秒),#杀进程宽限默认值
 })#结束本地服务器配置模式
 
-配置模式=模式.对象({#插件配置模式
-    'servers':模式.字典(本地服务器配置模式).必填(),#服务器表必填
+配置模式=路径上节点({#插件配置模式
+    'servers':字典字段(值字段=本地服务器配置模式,可空=False),#服务器表必填
 })#结束 Config schema
 Config=配置模式#Cordis配置模式
 

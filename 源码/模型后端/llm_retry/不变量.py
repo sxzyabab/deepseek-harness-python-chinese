@@ -49,12 +49,12 @@ def 校验失败载荷(值,失败):#校验提供方中立失败载荷
         if not isinstance(请求号,str) or len(请求号)==0:#不是非空字符串
             失败('llm/retry failure.requestId must be a non-empty string when present')#请求id非法
 
-def 从后找(事件们,谓词):#对齐 Array.prototype.findLast
+def 从后找(事件们,判断):#对齐 Array.prototype.findLast
     """从后往前找出第一条命中的事件。"""
     下标=len(事件们)-1#最后一个下标
     while 下标>=0:#尚未到头
         事件=事件们[下标]#当前事件
-        if 谓词(事件):#命中
+        if 判断(事件):#命中
             return 事件#命中
         下标-=1#继续往前
     return None#没有命中

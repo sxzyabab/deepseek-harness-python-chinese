@@ -1,11 +1,11 @@
 """具体 agent-loop 插件：铸造带作用域的循环智能体，经 agent/session 注册表发表它们，并拥有其有序拆除。"""
 import uuid,threading#随机身份与工作线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,列表字段#配置字段
 服务=cordis.服务#服务基类
 光纤状态=cordis.纤程状态#光纤/纤程状态
 是否thenable=cordis.工具.是否thenable#可等待判定
 承诺=cordis.工具.承诺#承诺
-模式=schemastery.模式#配置模式库
 from ..智能体 import 发出智能体事件#按作用域发出 Agent 事件
 from ..llm import 错误链#把未知错误链成日志串
 from ..配置 import 安装设置段落,设置命名空间#设置段安装与命名空间
@@ -42,8 +42,8 @@ __all__=(#仅中文公开名；Cordis 槽英文别名不入表
 不活动状态=frozenset((光纤状态.卸载中,光纤状态.已释放,光纤状态.失败))#不能拥有或服务新生命周期的光纤状态
 配置智能体身份键='configuredAgentIdentities'#启动器身份表键
 智能体循环设置命名空间=设置命名空间('agent-loop')#agent-loop 设置命名空间
-智能体循环设置模式=模式.对象({
-    'maxParallelToolCalls':模式.数字().步进(1).最小(1).默认(默认最大并行工具调用),#正整数，默认常量
+智能体循环设置模式=路径上节点({
+    'maxParallelToolCalls':整数字段(步进=1,最小=1,默认值=默认最大并行工具调用),#正整数，默认常量
 })#用户设置模式
 
 class 工厂所有权:
@@ -223,17 +223,17 @@ class 智能体循环(服务):
     """具体 Agent 工厂与驱动服务。"""
     注入=['agents','sessions','llm','tools','systemPrompt']#依赖注册表、会话、LLM、工具、提示词
     inject=注入#Cordis 依赖声明槽
-    配置=模式.对象({
-        'maxParallelToolCalls':模式.数字().步进(1).最小(1).默认(默认最大并行工具调用),#并行上限
-        'agents':模式.数组(模式.对象({
-            'id':模式.字符串().必填(),#配置标签
-            'sessionId':模式.字符串().最小(1),#可选精确会话 id
-            'provider':模式.字符串(),#模型提供方
-            'model':模式.字符串(),#模型名
-            'maxTokens':模式.数字().步进(1).最小(1).最大(安全整数上限),#输出 token 上限
-            'cwd':模式.字符串(),#工作目录
-            'resumeSessionId':模式.字符串(),#可选恢复会话 id
-        })).默认([]),#默认无条目
+    配置=路径上节点({
+        'maxParallelToolCalls':整数字段(步进=1,最小=1,默认值=默认最大并行工具调用),#并行上限
+        'agents':列表字段(路径上节点({
+            'id':字符串字段(可空=False),#配置标签
+            'sessionId':字符串字段(最小=1),#可选精确会话 id
+            'provider':字符串字段(),#模型提供方
+            'model':字符串字段(),#模型名
+            'maxTokens':整数字段(步进=1,最小=1,最大=安全整数上限),#输出 token 上限
+            'cwd':字符串字段(),#工作目录
+            'resumeSessionId':字符串字段(),#可选恢复会话 id
+        }),默认值=[]),#默认无条目
     })#插件配置模式
     Config=配置#Cordis Config 槽
 

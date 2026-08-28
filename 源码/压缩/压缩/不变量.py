@@ -2,8 +2,8 @@
 import weakref#会话与事件弱表
 from ...依赖 import cordis#外部依赖胶水
 已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-from ..会话 import 是否替换表面事件#替换表面事件谓词
-from .检查点 import 是否压缩检查点来源#压缩检查点来源谓词
+from ..会话 import 是否替换表面事件#替换表面事件判断
+from .检查点 import 是否压缩检查点来源#压缩检查点来源判断
 
 包名='@deepseek-ai/dsh-compaction'#本包的不变量所有权名
 名称='compaction-invariant'#配套不变量插件名

@@ -1,7 +1,6 @@
 """工人线程代码运行时：每次用全新工人线程跑一份程序，并经消息端口桥接绑定。这是隔离，不是安全边界：尽管有堆/忙时/墙钟预算以及终止，模型代码仍有与 bash 相当的信任。"""
 import queue,re,threading,time#队列、标识符、线程与墙钟
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式库
+from ...依赖.schemastery import 路径上节点,数字字段#配置字段
 from ..超时 import 定时器延迟上限毫秒#setTimeout最大延迟
 from ..代码运行时 import (#运行时基类与保留名
     代码运行时,#基类
@@ -49,11 +48,11 @@ from .不变量 import (#本包不变量配套
 事件循环采样间隔毫秒=25#ELU采样间隔毫秒（内部节拍，不是配置）
 最小输出字节=4#能表示已计数载荷的最小上限：空日志数组加空JSON失败消息
 
-配置模式=模式.对象({#schemastery配置模式
-    'computeMs':模式.数字().默认(60000),#默认忙时60s
-    'maxWallMs':模式.数字().默认(600000),#默认墙钟600s
-    'maxOutputBytes':模式.数字().默认(67108864),#默认64MiB外层输出
-    'maxOldGenerationSizeMb':模式.数字().默认(512),#默认512MiB老生代（Python侧作信息上限）
+配置模式=路径上节点({#schemastery配置模式
+    'computeMs':数字字段(默认值=60000),#默认忙时60s
+    'maxWallMs':数字字段(默认值=600000),#默认墙钟600s
+    'maxOutputBytes':数字字段(默认值=67108864),#默认64MiB外层输出
+    'maxOldGenerationSizeMb':数字字段(默认值=512),#默认512MiB老生代（Python侧作信息上限）
 })#结束配置模式
 Config=配置模式#Cordis配置模式
 

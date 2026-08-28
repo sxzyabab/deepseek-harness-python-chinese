@@ -4,9 +4,9 @@
 内置 shell 事实由注册表自身拥有，插件可以注册额外的、可枚举事实，并随 effect 拆除。
 """
 import re#环境键后缀校验
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
 服务=cordis.服务#Cordis服务基类
-模式=schemastery.模式#配置校验库
 from ..命令 import 托管环境前缀#DSH_前缀
 from ..工作区路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
 
@@ -20,8 +20,8 @@ __all__=(
 注入=[]#无硬依赖
 name=名称#Cordis插件名（协议槽）
 inject=注入#Cordis依赖声明（协议槽）
-配置=模式.对象({#插件配置模式
-    'dshHome':模式.字符串(),#作为DSH_HOME暴露的家目录；默认$DSH_HOME或~/.dsh
+配置=路径上节点({#插件配置模式
+    'dshHome':字符串字段(),#作为DSH_HOME暴露的家目录；默认$DSH_HOME或~/.dsh
 })#配置模式结束
 Config=配置#Cordis配置模式（协议槽）
 外壳键=托管环境前缀+'SHELL'#DSH_SHELL键

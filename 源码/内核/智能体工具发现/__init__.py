@@ -7,8 +7,7 @@ Code Mode 需要代码运行时（宿主平面服务）。因此本行等待该�
 
 对齐上游 `@deepseek-ai/dsh-agent-tool-presentation`。公开面仅中文名。配置键与模式字面量保持上游字面量。
 """
-from ...依赖 import schemastery#外部依赖胶水
-模式=schemastery.模式#导入配置模式库
+from ...依赖.schemastery import 路径上节点,枚举字段#配置字段
 from .类型 import 工具展示模式,插件配置#再导出结构类型
 
 名称='tool-presentation'#Cordis 插件名（字面量）
@@ -16,8 +15,8 @@ from .类型 import 工具展示模式,插件配置#再导出结构类型
 name=名称#Cordis 插件名槽
 inject=注入#Cordis 依赖声明槽
 
-配置模式=模式.对象({#运行时配置模式：mode 必填而非给默认——部署默认就是没有本行的预设已经得到的东西，省略取值等于白组合这一行
-    'mode':模式.联合(['native','code','both']).必填(),#native 发全部可见模式；code 只发 run_code 外加生成 SDK；both 两者都发
+配置模式=路径上节点({#运行时配置模式：mode 必填而非给默认——部署默认就是没有本行的预设已经得到的东西，省略取值等于白组合这一行
+    'mode':枚举字段('native','code','both',可空=False),#native 发全部可见模式；code 只发 run_code 外加生成 SDK；both 两者都发
 })#配置模式
 Config=配置模式#Cordis Config 槽
 

@@ -3,8 +3,8 @@
 注册比生产者和控制器 fiber 活得更久。智能体或服务拆除会取消在线工作并等待合规生产者；抛错的拆除取消只强制失败记录，并报告可能的孤儿。
 """
 import json,math,time,threading#JSON片段、有限数、纪元毫秒与后台线程
-from ...依赖 import cordis,schemastery#外部依赖胶水
-模式=schemastery.模式#配置模式库
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,整数字段#配置字段
 承诺=cordis.工具.承诺#承诺
 是否thenable=cordis.工具.是否thenable#可等待判定
 已兑现=cordis.工具.已兑现#立刻兑现
@@ -15,8 +15,8 @@ from ..任务 import 任务注册表,任务标识#任务注册表与任务 id
 任务等待超时='TASK_WAIT_TIMEOUT'#等待超时码
 默认每所有者并发=10#每所有者默认并发
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
-配置=模式.对象({#进程内注册表配置
-    'maxConcurrentJobsPerOwner':模式.数字().步进(1).最小(1).最大(安全整数上限).默认(默认每所有者并发),#每所有者并发上限
+配置=路径上节点({#进程内注册表配置
+    'maxConcurrentJobsPerOwner':整数字段(步进=1,最小=1,最大=安全整数上限,默认值=默认每所有者并发),#每所有者并发上限
 })#结束 Config 模式
 Config=配置#Cordis配置模式
 

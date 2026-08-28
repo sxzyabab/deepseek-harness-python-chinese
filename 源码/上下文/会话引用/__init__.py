@@ -1,9 +1,9 @@
 """跨会话快照准备。宿主把提及时记号适配成结构化引用；本服务负责精确读取、投影、预算与持久上下文。"""
 import json#自引用诊断片段
-from ...依赖 import cordis,schemastery#外部依赖胶水
+from ...依赖 import cordis#外部依赖胶水
+from ...依赖.schemastery import 路径上节点,整数字段#配置字段
 服务=cordis.服务#导入Cordis服务基类
 是否thenable=cordis.工具.是否thenable#可等待判定
-模式=schemastery.模式#导入配置校验
 from ..llm import 创建用户消息,结构化克隆#导入用户消息构造与拆离克隆
 from ..llm.类型 import 是否安全整数#安全整数判定
 from .配置 import (
@@ -104,10 +104,10 @@ def 摘中止(信号,回调):#去掉abort回调
 class 会话引用解析器(服务):#精确读取消费方：准备不可变的跨会话消息上下文
     """精确读取消费方：准备不可变的跨会话消息上下文。注册为 `ctx.sessionReferenceResolver`。"""
     inject=['sessionQuery']#依赖会话查询
-    Config=模式.对象({#配置校验
-        'maxReferences':模式.数字().步进(1).最小(1).最大(最大引用数).默认(最大引用数),#引用上限1到硬上限
-        'candidateLimit':模式.数字().步进(1).最小(1).默认(默认候选上限),#候选列表下限1
-        'maxReferenceBytes':模式.数字().步进(1).最小(1).默认(默认最大引用字节),#单源字节下限1
+    Config=路径上节点({#配置校验
+        'maxReferences':整数字段(步进=1,最小=1,最大=最大引用数,默认值=最大引用数),#引用上限1到硬上限
+        'candidateLimit':整数字段(步进=1,最小=1,默认值=默认候选上限),#候选列表下限1
+        'maxReferenceBytes':整数字段(步进=1,最小=1,默认值=默认最大引用字节),#单源字节下限1
     })#Config校验结束
 
     def __init__(自身,上下文,配置=None):#构造服务
