@@ -1,6 +1,5 @@
 """本包拥有的子智能体注册表与生命周期不变量。公开面仅中文名；Cordis 协议槽不进入 `__all__`。"""
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#导入可等待结果
+from concurrent.futures import Future as _原生Future#单次操作结果
 
 包名='@deepseek-ai/dsh-subagent'#本包的不变量所有权名
 名称='subagent-invariant'#配套不变量插件名
@@ -114,10 +113,22 @@ def 安装(上下文对象,失败):#安装提供方注册表与 start/end 配对
 安装.inject=安装.注入#invariants 登记约定读 inject 槽
 
 def 应用(上下文对象):#应用不变量配套插件
-    """注册子智能体不变量配套，返回已安装注册的 disposer（包装为已兑现承诺）。"""
+    """注册子智能体不变量配套，返回已安装注册的 disposer（包装为已兑现任务）。"""
+    class 操作任务:#单次异步结果
+        def __init__(自身):#构造已决任务
+            自身._future=_原生Future()#底层 Future
+            自身._future.set_result(None)#占位
+        def 兑现(自身,值=None):#成功结算
+            if not 自身._future.done():#尚未结算
+                自身._future.set_result(值)#写入结果
+            return 值#返回兑现值
+        def wait(自身,超时=None):#阻塞等待
+            return 自身._future.result(timeout=超时)#取结果或抛错
+        def 等待(自身,超时=None):#兼容外来调用
+            return 自身.wait(超时)#转发
     拆除器=上下文对象.invariants.register(包名,安装)#注册本包不变量
-    任务=承诺()#新承诺
+    任务=操作任务()#新任务
     任务.兑现(拆除器)#立刻兑现拆除器
-    return 任务#已决议承诺
+    return 任务#已决议任务
 
 apply=应用#Cordis 插件入口槽

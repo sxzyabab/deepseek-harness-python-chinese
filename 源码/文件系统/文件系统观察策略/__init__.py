@@ -1,7 +1,6 @@
 """仅事件的文件系统观察策略；不注册服务。弱引用的所有者/目标映射记录每一次权威存在/缺失观察，单槽意图监听器从该状态推导守卫，提供方执行原子新鲜度/不覆盖检查。没有此插件时，工具保留裸提供方的无条件变更行为。组合规则见包 README。"""
 from weakref import WeakKeyDictionary as 弱键字典#所有者到目标观察的弱映射
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#可拒绝承诺
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ..文件系统 import 文件系统错误#文件系统带类型错误
 from .类型 import (#再导出观察行动者词汇
     观察行动者,#中文名
@@ -14,6 +13,24 @@ name=名称#Cordis 插件名
 
 __all__=['名称','观察态门','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
     if 对象 is None:#空对象
@@ -24,14 +41,14 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 推迟决策(决策):#对齐 Promise.resolve().then：同步抛错变成承诺拒绝
-    """把同步决策包成已结算承诺；抛错会拒绝，绝不会同步穿过瀑布逃逸。"""
-    任务=承诺()#新承诺
+def 推迟决策(决策):#同步决策包成已结算任务
+    """把同步决策包成已结算任务；抛错会拒绝，绝不会同步穿过瀑布逃逸。"""
+    任务=操作任务()#新任务
     try:#跑决策
         任务.兑现(决策())#成功则兑现
     except BaseException as 错误:#决策抛错
-        任务.拒绝(错误)#变成承诺拒绝
-    return 任务#已结算承诺
+        任务.拒绝(错误)#变成拒绝
+    return 任务#已结算任务
 
 class 观察态门:#按所有者记录观察并推导写/编辑意图
     """每上下文的已观察文件状态，以及其上的三个 fs/* 决策。每次应用创建一个实例，以便拆除时丢掉全部状态供 HMR。"""

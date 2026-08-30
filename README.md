@@ -14,9 +14,11 @@
 ```shell
 git clone https://github.com/sxzyabab/deepseek-harness-python-chinese.git
 cd deepseek-harness-python-chinese
+#直接安装到python的包文件夹
 pip install .
+#或者使用开发安装，对代码修改后能立即生效
+pip install -e .
 ```
->注：目前只是能安装还不能正常导入
 
 或下载源码后直接导入(使用`importlib`或改名为不含`-`的名称后导入)
 
@@ -55,11 +57,12 @@ pip install .
 进行中:
 * 初步重构：目前部分完成`packages/`的整理
 * 彻底重构外部依赖(Cordis相关)：将`timer`合并进`cordis`；多个工具文件及`cosmokit`合并为一个工具文件；重写`schemastery`
-* 优化原生体验：可安装为包，完成部分基础文件，下一步为正常导入
+* 优化原生体验：可安装为包，完成部分基础文件，可正常导入顶层包（AI造新轮子真是拉完了）
 
 计划中(TODO):
 * 完成web端并成功启动
-* 跟上版本(进入0.1.1)
+* 跟上版本(进入0.1.2)
+* 兼容用ts写的插件
 
 已完成:
 3.初步重构外部依赖(Cordis相关)

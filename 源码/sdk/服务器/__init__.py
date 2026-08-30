@@ -4,9 +4,8 @@
 """
 import sys,threading#生产 stdio、退出与异步退出拍
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,布尔字段#配置字段
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
 from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输
 from .服务端 import 装备SDKJSONRPC服务端#SDK 运行时服务器
 
@@ -15,9 +14,9 @@ __all__=['名称','注入','配置','应用','装备SDKJSONRPC服务端']#仅中
 名称='sdk-jsonrpc-server'#Cordis插件名（字面量）
 注入=['agents']#只需智能体工厂；initialize 用 ctx.get() 读取可选 LLM seam
 
-配置=路径上节点({#可校验的插件配置模式
+配置={#可校验的插件配置模式
     'maxTokensAsSuccess':布尔字段(默认值=False),#默认不把 max-tokens 当成功
-})#Config 模式结束
+}#Config 模式结束
 
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""

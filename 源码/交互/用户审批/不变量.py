@@ -1,8 +1,7 @@
 """包内审批审计流不变量。"""
 import json#诊断里序列化未知词表值
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-from ..作用域 import 弱身份表#按身份存取的弱表
+from ...内核.作用域 import 弱身份表#按身份存取的弱表
 
 包名='@deepseek-ai/dsh-user-approval'#本包名，用于登记所有权
 名称='user-approval-invariant'#配套插件名

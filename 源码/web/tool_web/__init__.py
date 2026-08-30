@@ -1,5 +1,7 @@
 """面向模型的 `web_search` 与 `web_fetch` 工具，建立在 `ctx.web` 上。本包负责 schema、校验、提示词指引、上限与展示，从不实现具体提供方。启用控制工具注册；已启用的工具在提供方不可用时仍可见，执行时以结构化错误失败。"""
-from ...依赖.schemastery import 路径上节点,布尔字段,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+数字字段=schemastery.数字字段#配置字段
 from .搜索 import (#再导出搜索工具 API
     网络搜索最大结果数,#搜索返回来源的默认上限
     应用网络搜索工具,#注册搜索工具
@@ -35,14 +37,14 @@ inject=注入#Cordis依赖声明
 默认网络工具超时毫秒=30000#web 工具的默认协作式工具调用超时预算（毫秒）
 默认抓取最大输出字符=200000#一次 web_fetch 输出以及同步转换源字符的默认上限
 
-配置模式=路径上节点({#插件配置：注册哪些 web 工具、来源上限、各工具预算、抓取输出上限
+配置模式={#插件配置：注册哪些 web 工具、来源上限、各工具预算、抓取输出上限
     'search':布尔字段(默认值=True),#是否注册 web_search
     'fetch':布尔字段(默认值=True),#是否注册 web_fetch
     'searchMaxResults':数字字段(默认值=网络搜索最大结果数),#一次 web_search 返回的来源上限
     'fetchTimeoutMs':数字字段(默认值=默认网络工具超时毫秒),#web_fetch 的协作超时预算
     'searchTimeoutMs':数字字段(默认值=默认网络工具超时毫秒),#web_search 的协作超时预算
     'fetchMaxOutputChars':数字字段(默认值=默认抓取最大输出字符),#同步转换源字符与完整输出上限
-})#配置模式结束
+}#配置模式结束
 Config=配置模式#Cordis 配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

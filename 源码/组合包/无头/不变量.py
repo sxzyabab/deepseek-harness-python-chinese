@@ -3,8 +3,6 @@
 对齐上游 `headless/src/invariant.ts`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-headless'#本包的不变量所有权名
 名称='headless-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

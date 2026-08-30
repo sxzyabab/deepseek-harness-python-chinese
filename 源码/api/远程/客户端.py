@@ -8,19 +8,18 @@
 侧效拉入各归属包 `类型` 模块，使转发事件键面与宿主声明同源。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..指令.远程 import TYPERT_REMOTE as 命令远程#commands ./remote
-from ..目标.远程 import TYPERT_REMOTE as 目标远程#goals ./remote
+from ...交互.指令.远程 import TYPERT_REMOTE as 命令远程#commands ./remote
+from ...目标.目标.远程 import TYPERT_REMOTE as 目标远程#goals ./remote
 from ...拓展.cordis_服务端.远程 import TYPERT_REMOTE as 动态远程#dynamic ./remote
-from ..plugin_inventory.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory ./remote
-from ..消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback ./remote
-from ..指令 import 类型 as _命令类型#侧效：commands 事件声明
-from ..目标 import 类型 as _目标类型#侧效：goals 事件声明
+from ...host.plugin_inventory.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory ./remote
+from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback ./remote
+from ...交互.指令 import 类型 as _命令类型#侧效：commands 事件声明
+from ...目标.目标 import 类型 as _目标类型#侧效：goals 事件声明
 from ...拓展.cordis_服务端 import 类型 as _动态类型#侧效：动态包转发事件
-from ..凭据 import 类型 as _凭据类型#侧效：凭证事件声明
-from ..llm import 类型 as _大模型类型#侧效：大模型事件声明
-from ..智能体预设 import 类型 as _预设类型#侧效：agent-preset/selected
-from ..配置 import 类型 as _设置类型#侧效：设置事件声明
+from ...凭据.凭据 import 类型 as _凭据类型#侧效：凭证事件声明
+from ...模型后端.llm import 类型 as _大模型类型#侧效：大模型事件声明
+from ...预设.智能体预设 import 类型 as _预设类型#侧效：agent-preset/selected
+from ...配置.配置 import 类型 as _设置类型#侧效：设置事件声明
 from .类型 import 远程转发事件名#转发事件名类型出处
 from .远程事件 import 远程转发事件,API_REMOTE_FORWARDED_EVENTS#白名单
 from .远程方法目录 import 所选远程目录,包名们,导出名们,所选远程贡献#五包目录与贡献
@@ -59,7 +58,7 @@ def 应用(上下文):#应用客户端 Remote 组装
     拆除们=[]#已挂载贡献的拆除函数
     try:#依次挂载
         for 贡献 in 所选贡献():#本组装选中的列表
-            拆除们.append(解开(上下文.remote.$mount(贡献)))#挂载并记下
+            拆除们.append(解开(上下文.remote.mount(贡献)))#挂载并记下
     except Exception:#任一失败则按相反顺序拆掉已成功的
         for 拆除 in reversed(拆除们):#反向
             解开(拆除())#拆除

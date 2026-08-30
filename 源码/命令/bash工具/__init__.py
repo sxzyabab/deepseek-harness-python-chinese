@@ -4,14 +4,14 @@
 Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 """
 import json,math,os,threading#JSON 片段、有限数、路径与后台结算线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,布尔字段#配置字段
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..工具 import 定义工具,工具体后中止,已中止#定义工具、体后中止码与中止判定
-from ..llm import 装备错误#Harness 错误
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+from ...内核.工具 import 定义工具,工具体后中止,已中止#定义工具、体后中止码与中止判定
+from ...模型后端.llm import 装备错误#Harness 错误
 from ..命令 import 托管环境前缀#DSH 环境前缀
-from ..沙盒 import (
+from ...沙盒.沙盒 import (
     升级目标,#可广告的升级目标
     批准升级,#批准升级
     规范路径,#规范路径
@@ -22,13 +22,43 @@ from .呈现 import 解析退出状态,渲染结果,渲染进程读取#退出解
 
 __all__=['名称','注入','配置','应用','默认']#仅中文公开名（Cordis 槽另挂）
 
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 名称='tool-bash'#Cordis 插件名
 注入=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
 name=名称#Cordis插件名（协议槽）
 inject=注入#Cordis依赖声明（协议槽）
-配置=路径上节点({#bash 工具部署配置
+配置={#bash 工具部署配置
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式（协议槽）
 后台输出字段={#后台输出字段
     'kind':{'type':'string','required':True,'const':'background'},#种类为 background
@@ -45,10 +75,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否有限数(值):#对齐JS Number.isFinite
@@ -277,7 +307,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             def 任务体():#任务体
                 """在 ctx.jobs 下拉起后台 bash 进程。"""
                 进程=上下文.shell.启动(上下文.shell.解析(请求))#解析并后台启动
-                结算=承诺()#任务done
+                结算=操作任务()#任务done
                 def 盯结算():#等到进程关闭再映射结果
                     """把进程 done 映射成任务结果。"""
                     try:#正常结算

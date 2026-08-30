@@ -3,7 +3,6 @@
 对齐上游 `agent/src/invariant.ts`。公开面仅中文名；Cordis 加载槽 `name`/`inject`/`apply` 为协议兼容别名，不入 `__all__`。配套插件名字面量 `agent-invariant` 不译。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from ..作用域 import 弱身份表#按身份存取的弱表
 
 __all__=('包名','名称','注入','安装','应用')#仅中文公开名

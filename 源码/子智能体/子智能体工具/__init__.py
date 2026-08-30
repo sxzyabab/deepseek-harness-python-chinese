@@ -1,12 +1,51 @@
 """经一个已配置的 `ctx.subagents` 提供方做面向模型的委托。提供方生命周期控制工具登记和随上下文变化的模式措辞。前台调用在收集后总是释放该次运行。后台策略由本插件配置选择：一次性调用拥有普通 Task，可续接调用走 `ctx.subagents.startContinuable()`。"""
 import threading#后台结算线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段,数字字段,整数字段,列表字段,复合类型字段,常量字段,枚举字段,自然数字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+整数字段=schemastery.整数字段#配置字段
+列表字段=schemastery.列表字段#配置字段
+复合类型字段=schemastery.复合类型字段#配置字段
+常量字段=schemastery.常量字段#配置字段
+枚举字段=schemastery.枚举字段#配置字段
 聚合错误=cordis.聚合错误#多失败聚合
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+字典字段=schemastery.字典字段#配置字段
+自然数字段=schemastery.自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义
 from ..子智能体 import 断言子智能体最大深度,结算运行#深度断言与运行结算
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
 
 名称='tool-subagent'#Cordis插件名
 注入=['tools','subagents','systemPrompt']#依赖工具、子智能体与系统提示词
@@ -14,25 +53,25 @@ name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 子智能体段落顺序=116.5#可续接委托指引段落顺序
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
-配置=路径上节点({#部署配置：委托到哪个提供方以及子体默认值
+配置={#部署配置：委托到哪个提供方以及子体默认值
     'provider':字符串字段(可空=False),#必填提供方名
     'toolName':字符串字段(默认值='subagent'),#默认工具名
     'enableRunInBackground':布尔字段(默认值=True),#默认允许后台
     'backgroundMode':枚举字段('one-shot','continuable',默认值='one-shot'),#默认一次性
     # 阻止 Schemastery 把省略的 agentOptions 物化成 `{}`。
-    'agentOptions':路径上节点({#智能体选项模式
+    'agentOptions':字典字段({#智能体选项模式
         'provider':字符串字段(),#模型提供方
         'model':字符串字段(),#模型名
-        'maxTokens':整数字段(步进=1,最小=1,最大=安全整数上限),#正整数token上限
+        'maxTokens':整数字段(默认值=1),#正整数token上限
     },默认值=None),#省略时保持未定义
     'persona':字符串字段(),#可选人格字符串
     # 保留省略；Schemastery 的 `{ allow: [] }` 默认会拒绝全部工具。
-    'toolFilter':路径上节点({#工具过滤模式
+    'toolFilter':字典字段({#工具过滤模式
         'allow':列表字段(字符串字段(),默认值=None),#省略allow时不物化空数组
         'deny':列表字段(字符串字段(),默认值=None),#省略deny时不物化空数组
     },默认值=None),#省略整个过滤
     'maxDepth':复合类型字段(自然数字段(最大=安全整数上限),常量字段('provider-managed'),默认值=3),#默认深度3
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
@@ -80,10 +119,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否已中止(信号):#读中止旗标
@@ -116,20 +155,20 @@ def 输出值文本(值们):#抽出文本块并拼接
 
 def 结算启动(启动,信号):#把启动承诺收成任务结局
     """结算尚未完成的启动，且不破坏任务生产者约定。"""
-    结局承诺=承诺()#任务done
+    结局任务=操作任务()#任务done
     def 盯结算():#等待启动再结算运行
         """把启动收成任务结局。"""
         try:#正常结算
-            结局承诺.兑现(解开(结算运行(解开(启动))))#先得到运行再结算
+            结局任务.兑现(解开(结算运行(解开(启动))))#先得到运行再结算
         except BaseException as 错误:#启动失败
             if 是否已中止(信号):#若已中止则记为killed
-                结局承诺.兑现({'status':'killed'})#中止结局
+                结局任务.兑现({'status':'killed'})#中止结局
             else:#否则失败并带细节
-                结局承诺.兑现({'status':'failed','detail':str(错误)})#失败结局
+                结局任务.兑现({'status':'failed','detail':str(错误)})#失败结局
     工作=threading.Thread(target=盯结算)#后台结算线程
     工作.daemon=True#不挡住退出
     工作.start()#启动
-    return 结局承诺#交给任务收集器
+    return 结局任务#交给任务收集器
 
 def 停止原因错误(结果):#把停止原因映射成错误文案
     """非 `completed` 的停止原因表示子体没有干净结束。"""

@@ -3,7 +3,7 @@
 对齐上游 `ui-workspace/src/client/index.ts`。公开面仅中文名。
 """
 from ....依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
+import threading#后台观察
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
 from .树 import (#再导出树派生
@@ -103,8 +103,14 @@ def 应用(上下文):#注册浏览区与选择器
                 """保持当前选中。"""
                 return None#不抛
             承诺=上下文.sessions.fork({'sessionId':会话标识,'increaseTitle':True})#分叉
-            if hasattr(承诺,'then'):#承诺
-                承诺.then(成功,失败)#挂臂
+            if 是否thenable(承诺):#可等待
+                def 观察():#观察分叉结果
+                    """成功打开；失败保持选中。"""
+                    try:#成功臂
+                        成功(解开(承诺))#打开子会话
+                    except BaseException:#失败臂
+                        失败(None)#保持选中
+                threading.Thread(target=观察,daemon=True).start()#挂观察
             else:#同步
                 成功(承诺)#打开
         return {#注入面

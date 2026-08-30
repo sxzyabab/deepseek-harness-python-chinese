@@ -1,7 +1,6 @@
 """通过 ctx.shell 执行命令钩子，复用它的凭证擦除、进程组取消和超时机制。桥接层提供受信任的 stdin 载荷和方言环境，本模块再解码捕获到的结果。"""
 import json#序列化 stdin 载荷
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .编解码 import 解析钩子输出#钩子输出解码
 
 默认钩子超时毫秒=600000#单条钩子的参考默认超时（10 分钟）

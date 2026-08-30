@@ -1,5 +1,6 @@
 """设置值的结构密钥擦除。`角色=secret` 字段在值越过线路边界之前被移除。"""
-from ...依赖.schemastery import 字段#配置字段
+from ...依赖 import schemastery
+字段=schemastery.字段#配置字段
 
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
 
@@ -62,7 +63,7 @@ def 行走(根,节点,值,路径,密钥们):
 
 def 脱敏密钥(模式对象,值):
     "从值中移除 schema 声明的每个 secret 字段"
-    根=模式对象.转JSON模式() if isinstance(模式对象,字段) else 模式对象#活字段收成 JSON Schema
+    根=模式对象.toJsonSchema() if isinstance(模式对象,字段) else 模式对象#活字段收成 JSON Schema
     密钥们=[]#密钥位置累积
     剥掉=行走(根,根,值,[],密钥们)#从根走一遍
     return {'value':剥掉,'secrets':密钥们}#缺席可出现在 value

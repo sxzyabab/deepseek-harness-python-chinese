@@ -3,8 +3,6 @@
 对齐上游 `tool-subagent-control/src/index.ts`。可单独加载的发现工具见 `.列举智能体`；本包空不变量配套见 `.不变量`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...内核.工具 import 定义工具#导入工具定义
 from ...内核.会话 import 会话标识#导入会话id品牌
 

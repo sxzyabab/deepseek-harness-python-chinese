@@ -1,6 +1,6 @@
 """统一 JSON 值模式 DSL、类型推断、编译，以及带类型的工具定义辅助。对齐上游 `tools/src/schema.ts`。公开面仅中文名。"""
 import math
-from ..llm import 装备错误 as 框架错误#导入框架错误基类
+from ...模型后端.llm import 装备错误 as 框架错误#导入框架错误基类
 from .json模式 import (
     断言受支持json模式,#统一子集断言
     是否json模式记录,#模式记录检测

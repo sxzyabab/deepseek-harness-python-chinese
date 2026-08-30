@@ -5,7 +5,6 @@
 """
 import re#正则
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .DeepSeek模型编辑器 import 解析容量,格式化容量#容量拼写
 from .仓库 import 错误文案#拒绝文案
 

@@ -3,20 +3,20 @@
 对齐上游 `agent-default-model/src/index.ts`。公开面仅中文名；设置文档键与 Cordis 服务槽名（`agentDefaultModel`）保持上游字面量。
 """
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
 服务=cordis.服务#导入 Cordis 服务基类
-是否thenable=cordis.工具.是否thenable#导入 thenable 判断
-from ..llm import 推理力度标识#导入推理力度品牌
-from ..配置 import 安装设置段,设置命名空间#导入设置段安装与命名空间
+from ...模型后端.llm import 推理力度标识#导入推理力度品牌
+from ...配置.配置 import 安装设置段,设置命名空间#导入设置段安装与命名空间
 from .类型 import 智能体默认模型设置,插件配置#再导出设置与插件配置结构类型
 
 智能体默认模型设置命名空间=设置命名空间('agent-default-model')#默认模型设置命名空间（kebab 字面量不译）
 
-智能体默认模型设置模式=路径上节点({#Settings 分节模式；含可选推理力度，与智能体默认模型设置字段对齐
+智能体默认模型设置模式={#Settings 分节模式；含可选推理力度，与智能体默认模型设置字段对齐
     'provider':字符串字段(可空=False),#提供方路由必填（Settings 文档键字面量）
     'model':字符串字段(可空=False),#模型 id 必填（Settings 文档键字面量）
     'reasoningEffort':字符串字段(),#推理力度可选；故意不进插件配置，便于整节替换时清除
-})#设置模式结束
+}#设置模式结束
 
 __all__=(#仅中文公开名；无英文别名
     '智能体默认模型设置命名空间','智能体默认模型设置模式',
@@ -46,10 +46,10 @@ def 投影选择(设置):#把已存储设置投影为 Agent 侧选择
 
 class 智能体默认模型配置(服务):#独立于 Host 或传输拥有默认模型选择
     """独立于任何 Host 或传输拥有默认模型选择。没有设置提供方时组合入口仍可用；挂上提供方后实时读取其用户层。"""
-    配置=路径上节点({#运行时插件配置；字段与插件配置对齐，不含 reasoningEffort
+    配置={#运行时插件配置；字段与插件配置对齐，不含 reasoningEffort
         'provider':字符串字段(可空=False),#提供方路由必填（组合配置键字面量）
         'model':字符串字段(可空=False),#模型 id 必填（组合配置键字面量）
-    })#运行时配置模式
+    }#运行时配置模式
 
     def __init__(自身,上下文对象,配置):#构造默认模型配置服务
         """构造默认模型配置服务，登记为 ctx.agentDefaultModel，并安装可选 Settings 分节。"""

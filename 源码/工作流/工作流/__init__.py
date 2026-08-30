@@ -2,7 +2,6 @@
 import threading#异步监听拒绝的后台观察
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...模型后端.llm import 装备错误#智能体错误基类
 from .类型 import (#再导出工作流公开类型
     工作流运行标识,#运行标识品牌工厂

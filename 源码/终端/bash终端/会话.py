@@ -1,14 +1,42 @@
 """叠在子进程 seam 终端原语上的持久 PTY 会话。"""
 import codecs,threading,time#流式解码、定时器与毫秒时钟
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#结算承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ..终端 import 终端错误#带稳定错误码的终端错误
 from .清洗 import 受控提示符,终端清洗器#受控提示符与清洗器
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
 工作线程=threading.Thread#后台工作线程
 定时器=threading.Timer#延迟定时器
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -20,10 +48,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否安全整数(值):#对齐JS Number.isSafeInteger
@@ -112,7 +140,7 @@ class 本地发送操作:#一次本地发送
     def __init__(自身,最大字节,开始时刻,取消时):#字节上限、起始时刻与取消回调
         """字节上限、起始时刻与取消回调。"""
         自身.输出=有界文本缓冲(最大字节)#输出缓冲
-        自身.结算器=承诺()#结算器
+        自身.结算器=操作任务()#结算器
         自身.已结算=False#是否已结算
         自身.已请求取消=False#是否已请求取消
         自身.初始前台已离开等待=True#默认当作已离开等待
@@ -196,7 +224,7 @@ class 本地PTY会话:#本地PTY会话
         自身.解码器=codecs.getincrementaldecoder('utf-8')()#流式解码器
         自身.清洗器=终端清洗器(取字段(配置,'maxReadBytes'))#清洗器
         自身.回滚=有界文本缓冲(取字段(配置,'scrollbackMaxBytes'),取字段(配置,'scrollbackLines'))#回滚
-        自身.输出已结束=承诺()#输出结束
+        自身.输出已结束=操作任务()#输出结束
         自身.状态值={'kind':'running'}#当前状态
         #TODO(pty-send-state-consolidation):把下面的每发送字段收进一个发送生命周期所有者
         自身.活动=None#活动发送
@@ -220,7 +248,7 @@ class 本地PTY会话:#本地PTY会话
         输出.on('data',自身.终端数据时)#收数据
         输出.once('end',自身.终端结束时)#结束
         输出.once('error',自身.终端出错时)#出错
-        自身.完成=承诺()#进程完成后续
+        自身.完成=操作任务()#进程完成后续
         def 挂钩完成():#进程结束后
             """进程结束后走退出或传输失败。"""
             try:#等进程结局
@@ -328,7 +356,7 @@ class 本地PTY会话:#本地PTY会话
             if len(输入)>0 and not 操作.cancelRequested:#有内容且未取消
                 自身.清就绪证据()#写前再清就绪证据
                 写入=自身.终端.write(输入)#提供方写入
-                写入承诺=承诺()#记下写入成败
+                写入承诺=操作任务()#记下写入成败
                 自身.活动写入=写入承诺#在飞写入
                 try:#等待写入
                     解开(写入)#等提供方写完
@@ -406,7 +434,7 @@ class 本地PTY会话:#本地PTY会话
         自身.关闭中=True#标记关闭中
         if 自身.关闭承诺 is not None:#复用在飞关闭
             return 自身.关闭承诺#复用
-        关闭中=承诺()#单次关闭承诺
+        关闭中=操作任务()#单次关闭承诺
         def 跑关闭():#真正关一次
             """真正关一次，失败则清掉承诺并失败活动发送。"""
             try:#单次关闭

@@ -6,8 +6,6 @@
 其拆除由 HMR 安全规格证明。它们不发射 cordis 事件，也不拥有跨插件可变状态。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-client-ui-skill'#本包的不变量所有权名
 名称='client-ui-skill-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

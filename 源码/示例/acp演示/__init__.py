@@ -6,13 +6,19 @@
 """
 import os#路径拼接
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,列表字段,布尔字段,复合类型字段,常量字段,枚举字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待
-from .. import acp#ACP 桥
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+整数字段=schemastery.整数字段#配置字段
+列表字段=schemastery.列表字段#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+复合类型字段=schemastery.复合类型字段#配置字段
+常量字段=schemastery.常量字段#配置字段
+枚举字段=schemastery.枚举字段#配置字段
+from ...acp import acp#ACP 桥
 from .. import 智能体主干演示 as agentCore#默认智能体主干
-from .. import 智能体指令 as workspaceContext#工作区上下文加载器
-from ..工具 import ToolRuntime#工具运行时
-from .. import 会话持久化 as JsonlSessionPersistence#JSONL 会话持久化
+from ...上下文 import 智能体指令 as workspaceContext#工作区上下文加载器
+from ...内核.工具 import ToolRuntime#工具运行时
+from ...会话 import 会话持久化 as JsonlSessionPersistence#JSONL 会话持久化
 from .. import 会话检查点策略 as sessionCheckpointPolicy#检查点策略
 from ..会话检索sqlite import SqliteSessionQueryEngine#SQLite 会话检索引擎（内置相对导入）
 
@@ -22,25 +28,25 @@ __all__=['名称','配置','应用']#仅中文公开名
 默认持久化根='./.sessions'#默认 JSONL 根目录
 持久化压缩模式=枚举字段('zstd','none')#JSONL 产物编码
 
-配置=路径上节点({#ACP demo 应用配置 schema
+配置={#ACP demo 应用配置 schema
     'provider':字符串字段(可空=False),#提供方必填
     'model':字符串字段(可空=False),#模型必填
-    'maxParallelToolCalls':整数字段(步进=1,最小=1),#并行上限为正整数
+    'maxParallelToolCalls':整数字段(默认值=1),#并行上限为正整数
     'persona':字符串字段(),#可选人设
     'toolOrder':列表字段(字符串字段(),默认值=None),#缺席即字典序
-    'tools':ToolRuntime.Config if hasattr(ToolRuntime,'Config') else 路径上节点({},默认值=None),#工具注册表
+    'tools':ToolRuntime.Config if hasattr(ToolRuntime,'Config') else {},#工具注册表
     'dshHome':字符串字段(),#可选主目录
     'sessionTitle':agentCore.会话标题配置模式,#会话标题
     'persistenceRoot':字符串字段(默认值=默认持久化根),#默认 .sessions
     'packChunks':布尔字段(默认值=True),#默认打包块
     'persistenceCompression':持久化压缩模式,#压缩取值
-    'workspaceContext':复合类型字段(常量字段(False),workspaceContext.Config if hasattr(workspaceContext,'Config') else 路径上节点({}),可空=False),#必须显式
+    'workspaceContext':复合类型字段(常量字段(False),workspaceContext.Config if hasattr(workspaceContext,'Config') else {},可空=False),#必须显式
     'skills':agentCore.技能配置模式,#技能
     'toolBash':agentCore.Bash工具配置模式,#bash 工具
     'jobs':agentCore.作业配置模式,#作业
     'toolJobs':复合类型字段(常量字段(False),agentCore.作业工具配置模式),#作业工具或 false
     'goals':复合类型字段(常量字段(False),agentCore.目标配置模式),#目标或 false
-})#配置结束
+}#配置结束
 
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""

@@ -2,15 +2,15 @@
 
 对齐上游 `llm-pi-ai/src/provider.ts`。公开面仅中文名；无英文别名。
 """
-from ...依赖 import pi_ai#外部依赖胶水（pi-ai SDK）
+import pi_ai#外部依赖胶水（pi-ai SDK）
 from .目录 import 目录提供方#已安装目录提供方查找
 
 __all__=('受支持协议','线束密钥认证','路由认证','复用目录提供方','构建提供方')#仅中文公开名
 
 协议表={
-    'openai-completions':pi_ai.openAICompletionsApi,#OpenAI Completions
-    'openai-responses':pi_ai.openAIResponsesApi,#OpenAI Responses
-    'anthropic-messages':pi_ai.anthropicMessagesApi,#Anthropic Messages
+    #'openai-completions':pi_ai.openAICompletionsApi,#OpenAI Completions
+    #'openai-responses':pi_ai.openAIResponsesApi,#OpenAI Responses
+    #'anthropic-messages':pi_ai.anthropicMessagesApi,#Anthropic Messages
 }#可手声明的协议表
 
 def 受支持协议():

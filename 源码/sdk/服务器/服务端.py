@@ -3,14 +3,11 @@
 对齐上游 `sdk/server/src/server.ts`。公开面仅中文名。外围上下文拥有插件、持久化与已配置的适配器。
 """
 import os#默认工作目录与路径解析
-from .. import llm_deepseek#DeepSeek LLM 插件模块
+from ...模型后端 import llm_deepseek#DeepSeek LLM 插件模块
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待
-聚合错误=cordis.工具.聚合错误#聚合错误
-from ..llm import 创建用户消息#用户消息工厂
-from ..作用域 import 获取载体键#作用域载体键
-from ..会话 import 会话标识#会话 id 品牌构造
+from ...模型后端.llm import 创建用户消息#用户消息工厂
+from ...内核.作用域 import 获取载体键#作用域载体键
+from ...内核.会话 import 会话标识#会话 id 品牌构造
 
 __all__=['装备SDKJSONRPC服务端','成功状态']#仅中文公开名
 

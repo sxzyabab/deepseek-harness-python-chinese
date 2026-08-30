@@ -1,6 +1,8 @@
 """`@deepseek-ai/dsh-web-fetch-http`：向 `ctx.web` 注册匿名公开 HTTP(S) `WebFetchProvider`。这是函数/命名空间插件（不是默认导出服务）：它注册进 seam 的抓取注册表，正如搜索提供方注册进搜索注册表。"""
 import math#有限数判定
-from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+数字字段=schemastery.数字字段#配置字段
 from .提供方 import (
     HTTP抓取提供方,#提供方类
     本地抓取提供方标识,#本地抓取提供方 id
@@ -17,14 +19,14 @@ __all__=['名称','注入','配置模式','应用','Config','name','inject']#公
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 
-配置模式=路径上节点({#插件配置：提供方的传输与大小上限以及 User-Agent（全部有默认值）
+配置模式={#插件配置：提供方的传输与大小上限以及 User-Agent（全部有默认值）
     'maxUrlLength':数字字段(默认值=2048),#接受的请求 URL 最大长度
     'maxResponseBytes':数字字段(默认值=5000000),#响应正文最大字节数
     'maxBodyChars':数字字段(默认值=100000),#解码正文最大字符数
     'timeoutMs':数字字段(默认值=30000),#默认抓取超时毫秒，须在 Node 定时器范围内
     'maxRedirects':数字字段(默认值=5),#跟随的同源重定向跳数上限
     'userAgent':字符串字段(默认值=默认用户代理),#每次请求发送的 User-Agent 头
-})#配置模式结束
+}#配置模式结束
 Config=配置模式#Cordis 配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

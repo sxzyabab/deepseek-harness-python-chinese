@@ -1,7 +1,7 @@
 """默认 Agent 驱动器：处理排队轮次与步骤边界输入。每次请求都从会话日志派生。"""
 import threading
 from ..智能体 import 收件箱,智能体事件,为组装构建上下文,下一轮,下一步
-from ..llm import (
+from ...模型后端.llm import (
     块组装器,
     语言模型错误,
     创建助手消息,
@@ -15,9 +15,7 @@ from ..会话 import 归一请求头,请求头是否相等
 from ..系统提示词 import 拼接上下文章节,渲染上下文章节,渲染提示词
 from .运行时上下文 import 运行时上下文投影
 from .工具调用 import 执行工具调用
-from .辅助 import 取,解开,已中止,中止原因,中止控制器,已兑现,抛若中止
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
+from .辅助 import 取,解开,已中止,中止原因,中止控制器,已兑现,抛若中止,操作任务
 
 def 请求提议(头):
     """在插件提议下一次请求配置前去掉适配器派生值。"""
@@ -117,7 +115,7 @@ class 循环智能体:
         """跑维护。"""
         if 自身.阶段['kind']!='idle':
             raise Exception('agent "'+str(自身.id)+'" already has active work')#已有活动
-        落定=承诺()#维护落定
+        落定=操作任务()#维护落定
         维护={
             'kind':'maintenance',#种类
             'abort':中止控制器(),#取消控制器
@@ -126,7 +124,7 @@ class 循环智能体:
         }#维护阶段
         自身.设阶段(维护)#进入维护
         自身.活动落定=落定#跟踪活动
-        结果=承诺()#任务结果
+        结果=操作任务()#任务结果
         def 跑():
             """执行维护并收尾。"""
             try:
@@ -141,7 +139,7 @@ class 循环智能体:
         工作=threading.Thread(target=跑)#工作线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
-        return 结果#任务承诺
+        return 结果#任务操作任务
 
     def 叫醒驱动器(自身,中止后唤醒=False):
         """启动一个驱动器，或把它的唤醒闩在维护或已中止活动后面。"""
@@ -151,7 +149,7 @@ class 循环智能体:
             if 原因种!='disposed' and (自身.阶段['kind']=='maintenance' or 中止后唤醒):
                 自身.阶段['wakeRequested']=True#闩住
             return#不新开驱动器
-        驱动器=承诺()#驱动器落定
+        驱动器=操作任务()#驱动器落定
         自身.活动落定=驱动器#跟踪活动
         自身.设阶段({
             'kind':'running',#种类

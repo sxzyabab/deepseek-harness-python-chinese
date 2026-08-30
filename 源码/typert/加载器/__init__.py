@@ -6,10 +6,37 @@
 显式 packages 覆盖嵌在另一条 Loader 条目后面的插件。
 扫描按条目名增量进行：internal/plugin 标脏，微任务 flush 再调和。
 """
-import json,os,importlib.util#读清单、拼路径、动态导入
+import json,os,importlib.util,threading#读清单、拼路径、动态导入与后台链
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#本库或外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 __all__=[#仅中文公开名
     '宿主导出键','名称','注入','配置','校验Typert清单','应用',
@@ -337,13 +364,18 @@ def 应用(上下文,配置=None):#插件入口
             if not 存活 or not 够格(条目名) or 条目名 in 已登记:#过期则放弃
                 return#放弃
             已登记[条目名]=上下文.typert.register(清单)#登记并记下 disposer
-        锚=已兑现(None)#飞行中任务锚点
-        承诺=锚.then(lambda _=None:任务())#then 臂执行注册
+        承诺=操作任务()#飞行中任务
+        def 跑注册():#后台跑注册
+            """成功失败都从 pending 删掉。"""
+            try:#跑任务体
+                任务()#导入并登记
+                承诺.兑现(None)#成功
+            except BaseException as 错误:#失败
+                承诺.拒绝(错误)#上抛
+            finally:#无论成败
+                进行中.pop(条目名,None)#删掉
+        threading.Thread(target=跑注册,daemon=True).start()#启动
         进行中[条目名]=承诺#记下飞行中任务
-        def 结算(_=None):#从 pending 删掉
-            """成功失败都结算。"""
-            进行中.pop(条目名,None)#删掉
-        承诺.then(结算,结算)#两臂结算
         return 承诺#交给 flush 等待
 
     def 刷新(遇错):#调和当前脏集合
@@ -357,7 +389,14 @@ def 应用(上下文,配置=None):#插件入口
                     def 捕(错误,遇=遇错):#异步失败交给 onError
                         """转成 Error 再报告。"""
                         遇(收成错误(错误))#报告
-                    任务们.append(任务.then(lambda _=None:None,捕) if hasattr(任务,'then') else 任务)#挂臂
+                    if 是否thenable(任务):#可等待
+                        def 观察(当次=任务,遇=遇错):#观察失败
+                            try:#等待
+                                _等待(当次)#落定
+                            except BaseException as 错误:#异步失败
+                                捕(错误,遇)#报告
+                        threading.Thread(target=观察,daemon=True).start()#挂观察
+                    任务们.append(任务)#挂臂
             except Exception as 错误:#同步失败
                 遇错(收成错误(错误))#同步失败交给 onError
         return 任务们#本轮异步任务
@@ -382,8 +421,7 @@ def 应用(上下文,配置=None):#插件入口
                 return#停
             刷新(lambda 错:上下文.logger.error(错))#稳态：失败记日志
 
-        微=已兑现(None)#微任务锚点
-        微.then(微任务)#对齐 queueMicrotask：本轮事件后 flush
+        threading.Thread(target=微任务,daemon=True).start()#对齐 queueMicrotask：本轮事件后 flush
 
     上下文.on('internal/plugin',标脏)#条目挂载/卸载
 

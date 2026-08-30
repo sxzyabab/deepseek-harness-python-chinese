@@ -5,9 +5,6 @@
 对齐上游 `ui-user-questions/src/client/contract/slots.ts`。公开面仅中文名。
 """
 from .....依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#操作链承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 __all__=[#仅中文公开名
     '取字段',
     '解开',

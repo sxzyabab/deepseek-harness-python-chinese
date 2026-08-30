@@ -6,7 +6,6 @@ import importlib#惰性解析打包rg路径
 import os#绝对路径、相对路径与分隔符
 import re#非法模式stderr匹配
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...模型后端.llm import 装备错误#带类型的Harness错误基类
 from ...工具.输出保留 import 条目保留器,文本保留器#条数与文本保留器
 

@@ -7,11 +7,9 @@
 import re,weakref#标题匹配与会话弱表
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..llm import 创建用户消息#铸造用户消息
-from ..工具 import 定义工具#定义工具
-from ..用户提问 import 用户提问错误#用户提问通道错误
+from ...模型后端.llm import 创建用户消息#铸造用户消息
+from ...内核.工具 import 定义工具#定义工具
+from ...交互.用户提问 import 用户提问错误#用户提问通道错误
 from .类型 import 计划投影字段,计划投影#再导出计划域纯类型
 
 __all__=[#公开面
@@ -413,5 +411,4 @@ class 计划模式控制器(服务):#计划模式控制器服务
             'source':{'kind':'plugin','plugin':'plan-mode','form':'notice','summary':文本},#插件通知来源
         })#结束创建用户消息
 
-default=计划模式控制器#默认导出控制器
-默认=计划模式控制器#中文默认导出
+default=默认=计划模式控制器#中文默认导出

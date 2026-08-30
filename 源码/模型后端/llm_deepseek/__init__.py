@@ -4,18 +4,23 @@
 连接事实按请求解析而不是在加载时冻结：插件把它的 cordis.yml 条目配置叠在可选的 llm-deepseek 用户设置段下，并经可选凭证 seam 解析 API 密钥。唯一在注册时捕获的事实——重试政策——在变更时就地重新注册该路由。
 """
 from math import isfinite as 是否有限#有限数判断
-from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段#配置字段
+from ...依赖 import schemastery
+字符串字段=schemastery.字符串字段
+整数字段=schemastery.整数字段
+列表字段=schemastery.列表字段
+枚举字段=schemastery.枚举字段
+常量字段=schemastery.常量字段
+数字字段=schemastery.数字字段#配置字段
+字典字段=schemastery.字典字段
 from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误
     解析重试政策,#政策解析
-    重试政策模式,#政策模式
 )#导入 llm 词表
-from ..凭据 import 凭证引用#凭证引用工厂
-from ..启动环境 import 取启动环境#启动环境快照
-from ..配置 import json深度相等,安装设置段,设置命名空间#JSON相等、设置段安装与命名空间
-from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
-from ..匿名用户标识 import 获取或创建匿名用户标识#匿名用户id（内置相对导入）
+from ...凭据.凭据 import 凭证引用#凭证引用工厂
+from ...工具.启动环境 import 取启动环境#启动环境快照
+from ...配置.配置 import json深度相等,安装设置段,设置命名空间#JSON相等、设置段安装与命名空间
+from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .适配器 import (
     默认上下文窗口,#默认窗口
     默认最大令牌,#默认输出上限
@@ -55,29 +60,29 @@ __all__=(#仅中文公开名；无英文别名
 默认接口密钥环境='DEEPSEEK_API_KEY'#默认密钥环境变量
 提供方='deepseek-official'#官方路由名
 最大安全整数=9007199254740991#Number.MAX_SAFE_INTEGER
-最小正数=5e-324#Number.MIN_VALUE
+最小正数=5e-324#Number.MIN_VALUE#5e-324
 默认模型列表=[
     {'id':'deepseek-v4-flash','name':'DeepSeek-V4-Flash','contextWindow':默认上下文窗口},#Flash
     {'id':'deepseek-v4-pro','name':'DeepSeek-V4-Pro','contextWindow':默认上下文窗口},#Pro
 ]#默认建议目录
-目录模型=路径上节点({
+目录模型={
     'id':字符串字段(可空=False),#必需id
     'name':字符串字段(),#可选名
     'description':字符串字段(),#可选描述
-    'contextWindow':整数字段(步进=1,最小=1),#正整数窗口
-    'maxTokens':整数字段(步进=1,最小=1),#正整数上限
-})#目录条目模式
-配置=路径上节点({
+    'contextWindow':整数字段(最小=1),#正整数窗口
+    'maxTokens':整数字段(最小=1),#正整数上限
+}#目录条目模式
+配置={
     'apiKeyEnv':字符串字段(默认值=默认接口密钥环境),#密钥引用
     'baseURL':字符串字段(),#基址
     'thinking':枚举字段(常量字段('enabled'),常量字段('disabled')),#思考开关
     'reasoningEffort':枚举字段(常量字段('off'),常量字段('high'),常量字段('max')),#力度
-    'maxTokens':整数字段(步进=1,最小=1,最大=最大安全整数,默认值=默认最大令牌),#输出上限
-    'defaultContextWindow':整数字段(步进=1,最小=1,默认值=默认上下文窗口),#默认窗口
-    'models':列表字段(目录模型,默认值=默认模型列表),#目录
+    'maxTokens':整数字段(最小=1,最大=最大安全整数,默认值=默认最大令牌),#输出上限
+    'defaultContextWindow':整数字段(最小=1,默认值=默认上下文窗口),#默认窗口
+    #'models':字典字段(目录模型,默认值=默认模型列表),#目录
     'streamIdleTimeoutMs':数字字段(最小=最小正数,最大=定时器延迟上限毫秒,默认值=默认流空闲超时毫秒),#空闲超时
-    'retryPolicy':重试政策模式,#重试政策
-})#配置运行时模式
+    'retryPolicy':'重试政策模式',#重试政策
+}#配置运行时模式
 公开基址='https://api.deepseek.com'#公开API默认
 基址环境='DEEPSEEK_BASE_URL'#基址环境变量
 

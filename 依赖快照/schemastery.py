@@ -1,20 +1,28 @@
 from __future__ import annotations
-from abc import ABC as 抽象基类#字段基类不能直接用
-from re import compile as 编译正则#字符串字段的格式约束
+from abc import ABC as 抽象基类,abstractmethod as 抽象方法#字段基类不能直接用
+from re import compile as 编译正则,Pattern as 正则模式#字符串字段的格式约束
 from urllib.parse import urlsplit as 拆分URL#URL字段拆协议与主机
-from .工具 import 克隆,深入比较#可变默认每次新副本、常量与默认值的深等于
+from .工具 import 深入比较,未传参#可变默认每次新副本、常量与默认值的深等于
+from typing import Any
 
-未定义=object()#和显式默认 None 区分
-################################ 字段 ################################
-class 校验错误(TypeError):
-    """数据没通过字段校验。"""
+class 数据校验错误(TypeError):
+    "数据没通过字段校验"
 
-def 检查区间(数值,最小,最大,描述):
-    """按包含式上下限检查一个数，数值与长度都走这里。"""
+无数据=object() #此处没有数据(不包括传None)
+
+宽松整数=宽松浮点=int|float|bool
+
+def 在区间内(数值,最小,最大):
     if 最小 is not None and 数值<最小:
-        raise 校验错误(f'期望{描述}不小于 {最小}，实际是 {数值}')#低于下限
+        return False
     if 最大 is not None and 数值>最大:
-        raise 校验错误(f'期望{描述}不大于 {最大}，实际是 {数值}')#超过上限
+        return False
+    return True
+
+def 是自然数(数:int):
+    if not isinstance(数,int):
+        return False
+    return 数>=0
 
 def 十进制移位(数据,位数):
     文本=str(数据)#数字的十进制文本
@@ -34,295 +42,298 @@ def 是否倍数(数据,起点,步长):
     位数=len(文本.split('.')[1])#小数位数
     return abs(十进制移位(数据,位数)-十进制移位(起点,位数))%十进制移位(步长,位数)==0#整数化后取模
 
+################################ 字段 ################################
+
 class 字段(抽象基类):
-    json类型=None#JSON Schema 的 type，任意与复合不写
-
-    def __init__(自身,严格模式=True,可空=False,默认值=未定义,描述=None):#约束条件
-        """收下共有约束，缺席默认值与显式给 None 不是一回事。"""
-        自身.严格模式=bool(严格模式)#关掉就按各类型的宽松规则转换
-        自身.可空=bool(可空)#空输入是否合法
-        自身.默认值=默认值#缺席时是未定义
-        自身.描述=描述#给人看的说明
-
-    def __class_getitem__(类,内层):
-        """容器写法：容器字段[内层字段]，多个内层用逗号分开。"""
-        return 类(*内层) if isinstance(内层,tuple) else 类(内层)#内层照原样交给构造
+    json类型=None
+    def __init__(自身,*,
+        严格模式:bool=True,可空:bool=False,
+        默认值:Any=未传参,描述:str=None
+        ):
+        if not isinstance(严格模式,bool):
+            raise TypeError('严格模式必须是布尔值')
+        if not isinstance(可空,bool):
+            raise TypeError('可空必须是布尔值')
+        if 描述 is not None and not isinstance(描述,str):
+            raise TypeError('描述必须是未传参或None')
+        自身.严格模式=bool(严格模式)#非严格模式下部分字段会对接收的数据尝试转换
+        自身.可空=bool(可空)
+        自身.默认值=默认值
+        自身.描述=描述
 
     def __repr__(自身):
-        """类型名加全部属性。"""
-        属性={'json类型':自身.json类型,**自身.__dict__}#共有与本实例
+        属性=dict(自身.__dict__)#实例上的约束
         片段=','.join(f'"{键}":{值!r}' for 键,值 in 属性.items())#逐项
-        return f'{自身.__class__.__name__.removesuffix("字段")}:{{{片段},}}'#类型:属性
+        return f'<{自身.__class__.__name__}:{{{片段},}}>'#<类名:{属性}>
 
-    def 校验数据(自身,数据=None):
-        """空输入按默认值与可空收尾，非空原样交出由子类收窄。"""
-        if 数据 is None:
-            if 自身.默认值 is None:
-                return None#默认就是空
-            if 自身.默认值 is not 未定义:
-                数据=克隆(自身.默认值)#默认值每次都给一份新的
-            elif 自身.可空:
-                return None#允许空
-            else:
-                raise 校验错误(f'期望{自身!r}，实际什么都没给')#不可空又没有默认值
-        return 数据#非空交给子类继续收窄
-
-    def 转JSON模式(自身):
-        """收成 JSON Schema，界面照着它渲染。"""
-        节点={} if 自身.json类型 is None else {'type':[自身.json类型,'null'] if 自身.可空 else 自身.json类型}#类型；可空就多一个 null
+    def toJsonSchema(自身):
+        节点={} if 自身.json类型 is None else {
+            'type':[自身.json类型,'null'] if 自身.可空 else 自身.json类型
+            }#类型；可空就多一个 null
         if 自身.描述 is not None:
             节点['description']=自身.描述#说明
-        if 自身.默认值 is not 未定义:
+        if 自身.默认值 is not 未传参:
             节点['default']=自身.默认值#空输入的回落值
         return 节点#JSON Schema
 
+    def 校验数据(自身,数据=未传参):
+        '字段只有可空这一个性质需要判断'
+        if 数据 is 未传参:
+            raise ValueError('未传入需要检查的数据')
+        if 数据 is 无数据 and not 自身.可空:
+            raise 数据校验错误(f'期望 {自身!r} 实际不存在该数据')
+
 class 任意字段(字段):
-    """任意值：不收窄类型，原样直通。"""
+    '不限制数据类型'
 
 class 常量字段(字段):
-    """常量：只收一个字面量，深等于才算。"""
+    '需要完全匹配(包括内部值)'
     def __init__(自身,常量值,**约束条件):#约束条件
-        """收下唯一合法取值。"""
         super().__init__(**约束条件)#共有约束
         自身.常量值=常量值#唯一合法取值
 
-    def 校验数据(自身,数据=None):
-        """深等于才通过。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
         if not 深入比较(数据,自身.常量值):
-            raise 校验错误(f'期望 {自身!r}，实际是 {数据!r}')#不是那个值
-        return 自身.常量值#通过
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')#不是那个值
 
-    def 转JSON模式(自身):
-        """收成 const。"""
-        节点=super().转JSON模式()#共有项
-        节点['const']=自身.常量值#唯一取值
-        return 节点#JSON Schema
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()#共有项
+        节点['const']=自身.常量值
+        return 节点
 
 class 枚举字段(字段):
-    """枚举：收一串常量，命中一个就算通过。"""
-    def __init__(自身,*取值表,**约束条件):#约束条件
-        """收下各个常量，写成字面量的先包成常量字段。"""
-        super().__init__(**约束条件)#共有约束
-        自身.取值表=[项 if isinstance(项,常量字段) else 常量字段(项) for 项 in 取值表]#各个常量
-        if not 自身.取值表:
-            raise TypeError('枚举字段至少要有一个取值')#空枚举没有能命中的取值
+    '一组常量'
+    def __init__(自身,*常量表,**约束条件):#约束条件
+        super().__init__(**约束条件)
+        自身.常量表=[项 if isinstance(项,常量字段) else 常量字段(项) for 项 in 常量表]
+        if not 自身.常量表:
+            raise ValueError('枚举字段至少要有一个常量')
 
-    def 校验数据(自身,数据=None):
-        """命中任何一个常量就通过。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
-        for 常量 in 自身.取值表:
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if 数据 is 未传参:
+            raise ValueError('未传入需要检查的数据')
+        for 常量 in 自身.常量表:
             try:
-                return 常量.校验数据(数据)#命中就交出
-            except 校验错误:
+                常量.校验数据(数据)
+            except 数据校验错误:
                 continue#这个常量不是，试下一个
-        raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#都不命中
+        raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
 
-    def 转JSON模式(自身):
-        """收成 enum。"""
-        节点=super().转JSON模式()#共有项
-        节点['enum']=[常量.常量值 for 常量 in 自身.取值表]#各个取值
-        return 节点#JSON Schema
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        节点['enum']=[常量.常量值 for 常量 in 自身.常量表]
+        return 节点
 
 class 复合类型字段(字段):
-    """复合类型：按顺序试各支，命中一支就算通过。"""
-    def __init__(自身,*成员表,**约束条件):#约束条件
-        """收下各支字段。"""
-        super().__init__(**约束条件)#共有约束
-        自身.成员表=[推断字段(成员) for 成员 in 成员表]#各支字段
-        if not 自身.成员表:
-            raise TypeError('复合类型字段至少要有一个成员')#空复合没有可命中的支
+    '多种字段类型'
+    def __class_getitem__(类,内层):
+        "复合写法：复合类型字段[支A,支B]"
+        return 类(*内层) if isinstance(内层,tuple) else 类(内层)#内层照原样交给构造
 
-    def 校验数据(自身,数据=None):
-        """一支支试，各支自己的默认值不参与。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
-        for 成员 in 自身.成员表:
+    def __init__(自身,*字段表,**约束条件):
+        super().__init__(**约束条件)
+        自身.字段表=[推断字段(字段) for 字段 in 字段表]
+        if not 自身.字段表:
+            raise ValueError('复合类型字段至少要有一个字段')
+
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if 数据 is 未传参:
+            raise ValueError('未传入需要检查的数据')
+        for 字段 in 自身.字段表:
             try:
-                return 成员.校验数据(数据)#命中就交出
-            except 校验错误:
+                字段.校验数据(数据)
+            except 数据校验错误:
                 continue#这一支不匹配，试下一支
-        raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#全都不匹配
+        raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
 
-    def 转JSON模式(自身):
-        """各支收成 anyOf。"""
-        节点=super().转JSON模式()#共有项
-        节点['anyOf']=[成员.转JSON模式() for 成员 in 自身.成员表]#各支
-        return 节点#JSON Schema
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        节点['anyOf']=[字段.toJsonSchema() for 字段 in 自身.字段表]
+        return 节点
 
 class 数字字段(字段):
-    """数字：取值区间；严格模式只收整数与浮点，宽松还收布尔。"""
-    json类型='number'#JSON Schema 类型
+    '非严格模式时,允许 字符串形式的数字 布尔'
+    json类型='number'
 
-    def __init__(自身,最小=None,最大=None,**约束条件):#约束条件
-        """收下取值区间。"""
-        super().__init__(**约束条件)#共有约束
-        自身.最小=最小#包含式下限
-        自身.最大=最大#包含式上限
+    def __init__(自身,*,最小=None,最大=None,**约束条件):
+        super().__init__(**约束条件)
+        if 最小 is not None and 最大 is not None and 最小>最大:
+            raise ValueError('最小不能大于最大')
+        自身.最小=最小
+        自身.最大=最大
 
-    def 校验数据(自身,数据=None):
-        """先看类型再看区间。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
         if isinstance(数据,bool):
             if 自身.严格模式:
-                raise 校验错误(f'期望{自身!r}，实际是布尔 {数据!r}')#布尔不是数字
-            数据=int(数据)#宽松就当 0 与 1
-        if not isinstance(数据,(int,float)):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        检查区间(数据,自身.最小,自身.最大,'数值')#取值区间
-        return 数据#通过
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+            数据=int(数据)
+        elif isinstance(数据,str):
+            if not 数据:
+                raise 数据校验错误(f'期望 {自身!r} 实际是空字符串')
+            if not 数据.replace('.','').isdigit():
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+            if '.' in 数据:
+                数据=float(数据)
+            else:
+                数据=int(数据)
 
-    def 转JSON模式(自身):
-        """区间收成 minimum 与 maximum。"""
-        节点=super().转JSON模式()#共有项
+        if isinstance(数据,(int,float)):
+            if not 在区间内(数据,自身.最小,自身.最大):
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        else:
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')            
+
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
         if 自身.最小 is not None:
-            节点['minimum']=自身.最小#包含式下限
+            节点['minimum']=自身.最小
         if 自身.最大 is not None:
-            节点['maximum']=自身.最大#包含式上限
-        return 节点#JSON Schema
+            节点['maximum']=自身.最大
+        return 节点
 
 class 步进数字字段(数字字段):
-    """带步进的数字，步进从区间下限起算，没有下限就从 0 起算。"""
-    def __init__(自身,步进=None,**约束条件):#约束条件
-        """收下步进。"""
-        super().__init__(**约束条件)#区间与共有约束
-        自身.步进=步进#步进
+    '固定间隔的数列'
+    def __init__(自身,基准值,步长,**约束条件):
+        super().__init__(**约束条件)
+        自身.基准值=基准值
+        自身.步长=步长
 
-    def 校验数据(自身,数据=None):
-        """区间之外还要落在步进的格子上。"""
-        数据=super().校验数据(数据)#类型与区间
-        if 数据 is None:
-            return None#可空
-        if 自身.步进 is not None and not 是否倍数(数据,自身.最小 or 0,自身.步进):
-            raise 校验错误(f'期望是 {自身.步进} 的整数倍，实际是 {数据}')#不在格子上
-        return 数据#通过
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if not 是否倍数(数据,自身.基准值,自身.步长):
+            raise 数据校验错误(f'期望是 {自身.步长} 的整数倍，实际是 {数据}')
+        return 数据
 
-    def 转JSON模式(自身):
-        """步进收成 multipleOf。"""
-        节点=super().转JSON模式()#区间与共有项
-        if 自身.步进 is not None:
-            节点['multipleOf']=自身.步进#步进
-        return 节点#JSON Schema
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        if 自身.步长 is not None:
+            节点['multipleOf']=自身.步长
+        return 节点
 
 class 整数字段(步进数字字段):
-    """整数：严格模式只收整数，宽松还收浮点与布尔，但不许丢小数。"""
-    json类型='integer'#JSON Schema 类型
+    '非严格模式接收: 浮点 布尔 字符串形式的整数'
+    json类型='integer'
 
-    def __init__(自身,步进=1,**约束条件):#约束条件
-        """整数天然按 1 步进。"""
-        super().__init__(步进,**约束条件)#步进
+    def __init__(自身,**约束条件):
+        super().__init__(基准值=0,步长=1,**约束条件)
 
-    def 校验数据(自身,数据=None):
-        """先收拢成整数，再交给数字看区间与步进。"""
-        数据=字段.校验数据(自身,数据)#空输入
-        if 数据 is None:
-            return None#可空
-        if not 自身.严格模式 and isinstance(数据,(bool,float)):
-            if isinstance(数据,float) and int(数据)!=数据:
-                raise 校验错误(f'期望{自身!r}，{数据} 转整数会丢小数')#不许悄悄丢小数
-            数据=int(数据)#宽松就转过来
-        if isinstance(数据,bool) or not isinstance(数据,int):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        return super().校验数据(数据)#区间与步进
+    def 校验数据(自身,数据=未传参):
+        if 自身.严格模式 and not isinstance(数据,int):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        super().校验数据(数据)
 
 class 自然数字段(整数字段):
-    """自然数：不小于 0 的整数。"""
-    下限=0#默认的包含式下限
-
-    def __init__(自身,**约束条件):#约束条件
-        """下限压到本类的下限，调用方给的最小优先。"""
-        super().__init__(**({'最小':自身.下限}|约束条件))#下限
+    '非0整数'
+    def __init__(自身,**约束条件):
+        最小=约束条件.pop('最小',0)
+        if 最小<0:
+            最小=0
+        super().__init__(**约束条件,最小=最小)
 
 class 正整数字段(自然数字段):
-    """正整数：不小于 1 的整数。"""
-    下限=1#默认的包含式下限
+    '大于0的整数'
+    def __init__(自身,**约束条件):
+        最小=约束条件.pop('最小',1)
+        if not isinstance(最小,int):
+            raise TypeError('最小必须是整数')
+        if 最小<1:
+            最小=1
+        super().__init__(**约束条件,最小=最小)
 
-class 浮点数字段(步进数字字段):
-    """浮点数：严格模式只收浮点，宽松还收整数与布尔。"""
-    def 校验数据(自身,数据=None):
-        """先收拢成浮点，再交给数字看区间与步进。"""
-        数据=字段.校验数据(自身,数据)#空输入
-        if 数据 is None:
-            return None#可空
-        if not 自身.严格模式 and isinstance(数据,(bool,int)):
-            数据=float(数据)#宽松就转过来
-        if not isinstance(数据,float):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        return super().校验数据(数据)#区间与步进
+    def 校验数据(自身,数据=未传参):
+        if isinstance(数据,int) and 数据>0:
+            return
+        super().校验数据(数据)
 
-class 布尔字段(字段):
-    """布尔：严格模式不接受 0 与 1 冒充。"""
+class 浮点数字段(数字字段):
+    '非严格模式接收: 整数 布尔 字符串形式的浮点数'
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if 自身.严格模式 and not isinstance(数据,float):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+
+class 布尔字段(整数字段):
+    '非严格模式允许 0与1 "0"与"1" "True"与"False" None'
     json类型='boolean'#JSON Schema 类型
 
-    def 校验数据(自身,数据=None):
-        """只认真布尔，宽松时 0 与 1 也算。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
-        if not 自身.严格模式 and 数据 in (0,1):
-            数据=bool(数据)#宽松就转过来
-        if not isinstance(数据,bool):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        return 数据#通过
+    def 校验数据(自身,数据=未传参):
+        if not 自身.严格模式:
+            if 数据 in ('True','False','0','1'):
+                return
+            elif 数据 is None:
+                return
+        else:
+            if not isinstance(数据,bool):
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        super().校验数据(数据)
 
 class 字节字段(字段):
-    """字节：严格模式只收 bytes，宽松还收 bytearray 与按 UTF-8 编码的字符串。"""
-    json类型='string'#JSON Schema 里字节走字符串
+    '非严格模式允许 bytearray memoryview hex'
+    json类型='string'#?
 
-    def 校验数据(自身,数据=None):
-        """先收拢成 bytes。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
-        if not 自身.严格模式 and isinstance(数据,bytearray):
-            数据=bytes(数据)#宽松就转过来
-        if not 自身.严格模式 and isinstance(数据,str):
-            数据=数据.encode('utf-8')#宽松就按 UTF-8 编码
-        if not isinstance(数据,bytes):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        return 数据#通过
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if 自身.严格模式 and not isinstance(数据,bytes):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        elif isinstance(数据,bytearray):
+            return
+        elif isinstance(数据,memoryview):
+            return
+        elif isinstance(数据,str):
+            try:
+                bytes.fromhex(数据)
+            except:
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+            return
+        else:
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
 
-    def 转JSON模式(自身):
-        """收成 base64 编码的字符串。"""
-        节点=super().转JSON模式()#共有项
+    def toJsonSchema(自身):
+        "收成 base64 编码的字符串"
+        节点=super().toJsonSchema()#共有项
         节点['contentEncoding']='base64'#字节按 base64 写进 JSON
         return 节点#JSON Schema
 
 class 字符串字段(字段):
-    """字符串：长度区间与格式正则；严格模式只收 str，宽松拿 str() 转。"""
-    json类型='string'#JSON Schema 类型
+    '字符串暂不支持非严格模式'
+    json类型='string'
 
-    def __init__(自身,最小=None,最大=None,格式=None,**约束条件):#约束条件
-        """收下长度区间与格式，格式给字符串就先编译。"""
-        super().__init__(**约束条件)#共有约束
-        自身.最小=最小#长度下限
-        自身.最大=最大#长度上限
-        自身.格式=编译正则(格式) if isinstance(格式,str) else 格式#整串要匹配的正则
+    def __init__(自身,最小长度=None,最大长度=None,格式=None,**约束条件):#约束条件
+        super().__init__(**约束条件)
+        if 最小长度 is not None and not 是自然数(最小长度):
+            raise TypeError('最小长度必须是自然数')
+        if 最大长度 is not None and not 是自然数(最大长度):
+            raise TypeError('最大长度必须是自然数')    
+        if 最小长度 is not None and 最大长度 is not None and 最小长度>最大长度:
+            raise ValueError('最小长度不能大于最大长度')
+        自身.最小长度=最小长度
+        自身.最大长度=最大长度
+        if isinstance(格式,str):
+            格式=编译正则(格式)
+        elif 格式 is None or isinstance(格式,正则模式):
+            pass
+        else:
+            raise TypeError('格式必须是字符串或正则模式')
+        自身.格式=格式
 
-    def 校验数据(自身,数据=None):
-        """类型、长度与格式。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
-        if not 自身.严格模式 and not isinstance(数据,str):
-            数据=str(数据)#宽松就转过来
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
         if not isinstance(数据,str):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        检查区间(len(数据),自身.最小,自身.最大,'字符串长度')#长度区间
-        if 自身.格式 is not None and not 自身.格式.search(数据):
-            raise 校验错误(f'期望匹配 {自身.格式.pattern}，实际是 {数据!r}')#格式不匹配
-        return 数据#通过
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        #长度区间
+        if not 在区间内(len(数据),自身.最小长度,自身.最大长度):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        #格式
+        if 自身.格式 is not None and not 自身.格式.fullmatch(数据):
+            raise 数据校验错误(f'期望匹配 {自身.格式.pattern}，实际是 {数据!r}')#格式不匹配
 
-    def 转JSON模式(自身):
-        """长度收成 minLength 与 maxLength，格式收成 pattern。"""
-        节点=super().转JSON模式()#共有项
+    def toJsonSchema(自身):
+        "长度收成 minLength 与 maxLength，格式收成 pattern"
+        节点=super().toJsonSchema()#共有项
         if 自身.最小 is not None:
             节点['minLength']=自身.最小#长度下限
         if 自身.最大 is not None:
@@ -332,76 +343,52 @@ class 字符串字段(字段):
         return 节点#JSON Schema
 
 class URL字段(字符串字段):
-    """URL：得是带协议与主机的绝对地址。"""
+    "URL：得是带协议与主机的绝对地址"
     def 校验数据(自身,数据=None):
-        """先按字符串收拢，再看协议与主机。"""
+        "先按字符串收拢，再看协议与主机"
         数据=super().校验数据(数据)#字符串、长度与格式
         if 数据 is None:
             return None#可空
         拆开=拆分URL(数据)#协议、主机与其余部分
         if not 拆开.scheme or not 拆开.netloc:
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#不是绝对地址
+            raise 数据校验错误(f'期望{自身!r}，实际是 {数据!r}')#不是绝对地址
         return 数据#通过
 
-    def 转JSON模式(自身):
-        """收成 format: uri。"""
-        节点=super().转JSON模式()#字符串约束
+    def toJsonSchema(自身):
+        "收成 format: uri"
+        节点=super().toJsonSchema()#字符串约束
         节点['format']='uri'#URI 格式
         return 节点#JSON Schema
 
-class 元组字段(字段):
-    """元组：定长，每一位各有自己的字段；严格模式只收 tuple，宽松还收 list。"""
-    json类型='array'#JSON Schema 类型
-
-    def __init__(自身,*各位字段,**约束条件):#约束条件
-        """收下每一位的字段。"""
-        super().__init__(**约束条件)#共有约束
-        自身.各位字段=[推断字段(每位) for 每位 in 各位字段]#每一位一个字段
-        if not 自身.各位字段:
-            raise TypeError('元组字段至少要有一位')#空元组只能是空的，没必要
-
-    def 校验数据(自身,数据=None):
-        """位数要对上，再逐位校验。"""
-        数据=super().校验数据(数据)#空输入
-        if 数据 is None:
-            return None#可空
-        if not 自身.严格模式 and isinstance(数据,list):
-            数据=tuple(数据)#宽松就转过来
-        if not isinstance(数据,tuple):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        if len(数据)!=len(自身.各位字段):
-            raise 校验错误(f'期望{自身!r} 的 {len(自身.各位字段)} 位，实际是 {len(数据)} 位')#位数不符
-        return tuple(每位.校验数据(数据[下标]) for 下标,每位 in enumerate(自身.各位字段))#逐位校验
-
-    def 转JSON模式(自身):
-        """逐位收成 prefixItems，位数收成定长。"""
-        节点=super().转JSON模式()#共有项
-        节点['prefixItems']=[每位.转JSON模式() for 每位 in 自身.各位字段]#逐位
-        节点['minItems']=len(自身.各位字段)#定长
-        节点['maxItems']=len(自身.各位字段)#定长
-        return 节点#JSON Schema
-
 class 容器字段(字段):
-    """装别的字段的字段：数量有上下限，具体类型由子类收拢。"""
+    "装别的字段的字段：数量有上下限，具体类型由子类收拢"
     数量键=('minItems','maxItems')#JSON Schema 的数量约束键
 
+    def __class_getitem__(类,内层):
+        "容器写法：列表字段[内层字段]，内层只能有一个"
+        if isinstance(内层,tuple):
+            if len(内层)!=1:
+                raise TypeError(f'{类.__name__} 的内层只能有一个字段')#列表字典集合不能写多个
+            内层=内层[0]#方括号里单个也会包成 tuple
+        return 类(内层)#交给构造
+
     def __init__(自身,最小数量=None,最大数量=None,**约束条件):#约束条件
-        """收下数量区间。"""
+        "收下数量区间"
         super().__init__(**约束条件)#共有约束
         自身.最小数量=最小数量#数量下限
         自身.最大数量=最大数量#数量上限
 
     def 校验数据(自身,数据=None):
-        """子类先把类型收拢，这里管空输入与数量。"""
-        数据=super().校验数据(数据)#空输入
+        super().校验数据(数据)
         if 数据 is None:
-            return None#可空
-        检查区间(len(数据),自身.最小数量,自身.最大数量,'数量')#数量区间
-        return 数据#数量没问题
+            return None
+        if not 在区间内(len(数据),自身.最小数量,自身.最大数量):
+            raise 数据校验错误(f'期望 {自身!r} 的 {自身.最小数量} 到 {自身.最大数量} 个，实际是 {len(数据)} 个')
+        return 数据
 
-    def 转JSON模式(自身):
-        """数量收成各自的上下限键。"""
-        节点=super().转JSON模式()#共有项
+    def toJsonSchema(自身):
+        "数量收成各自的上下限键"
+        节点=super().toJsonSchema()#共有项
         下限键,上限键=自身.数量键#该容器用哪对键
         if 自身.最小数量 is not None:
             节点[下限键]=自身.最小数量#数量下限
@@ -410,107 +397,147 @@ class 容器字段(字段):
         return 节点#JSON Schema
 
 class 列表字段(容器字段):
-    """列表：元素同一个字段；严格模式只收 list，宽松还收元组与集合。"""
+    "列表：元素同一个字段；严格模式只收 list，宽松还收元组与集合"
     json类型='array'#JSON Schema 类型
 
     def __init__(自身,元素字段=None,**约束条件):#约束条件
-        """收下元素字段。"""
+        "收下元素字段"
         super().__init__(**约束条件)#数量与共有约束
         自身.元素字段=推断字段(元素字段)#元素字段
 
+    def 校验数据(自身,数据=未传参):
+        "类型、数量与逐项"
+        if not 自身.严格模式 and not isinstance(数据,list):
+            数据=list(数据)
+        super().校验数据(数据)
+        return [自身.元素字段.校验数据(项) for 项 in 数据]
+
+    def toJsonSchema(自身):
+        "元素收成 items"
+        节点=super().toJsonSchema()#类型与数量
+        节点['items']=自身.元素字段.toJsonSchema()#元素
+        return 节点#JSON Schema
+
+class 元组字段(字段):
+    "元组：定长，每一位各有自己的字段；严格模式只收 tuple，宽松还收 list"
+    json类型='array'#JSON Schema 类型
+
+    def __class_getitem__(类,内层):
+        "元组写法：元组字段[字段A,字段B]"
+        return 类(*内层) if isinstance(内层,tuple) else 类(内层)#内层照原样交给构造
+
+    def __init__(自身,*各位字段,**约束条件):#约束条件
+        "收下每一位的字段"
+        super().__init__(**约束条件)#共有约束
+        自身.各位字段=[推断字段(每位) for 每位 in 各位字段]#每一位一个字段
+        if not 自身.各位字段:
+            raise TypeError('元组字段至少要有一位')#空元组只能是空的，没必要
+
     def 校验数据(自身,数据=None):
-        """类型、数量与逐项。"""
-        if 数据 is not None:
-            if not 自身.严格模式 and isinstance(数据,(tuple,set)):
-                数据=list(数据)#宽松就转过来
-            if not isinstance(数据,list):
-                raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
-        数据=super().校验数据(数据)#空输入与数量
+        "位数要对上，再逐位校验"
+        数据=super().校验数据(数据)#空输入
         if 数据 is None:
             return None#可空
-        return [自身.元素字段.校验数据(项) for 项 in 数据]#逐项校验
+        if not 自身.严格模式 and isinstance(数据,list):
+            数据=tuple(数据)#宽松就转过来
+        if not isinstance(数据,tuple):
+            raise 数据校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
+        if len(数据)!=len(自身.各位字段):
+            raise 数据校验错误(f'期望{自身!r} 的 {len(自身.各位字段)} 位，实际是 {len(数据)} 位')#位数不符
+        return tuple(每位.校验数据(数据[下标]) for 下标,每位 in enumerate(自身.各位字段))#逐位校验
 
-    def 转JSON模式(自身):
-        """元素收成 items。"""
-        节点=super().转JSON模式()#类型与数量
-        节点['items']=自身.元素字段.转JSON模式()#元素
+    def toJsonSchema(自身):
+        "逐位收成 prefixItems，位数收成定长"
+        节点=super().toJsonSchema()#共有项
+        节点['prefixItems']=[每位.toJsonSchema() for 每位 in 自身.各位字段]#逐位
+        节点['minItems']=len(自身.各位字段)#定长
+        节点['maxItems']=len(自身.各位字段)#定长
         return 节点#JSON Schema
 
 class 集合字段(容器字段):
-    """集合：元素同一个字段且不重复；严格模式只收 set，宽松还收列表与元组。"""
+    "集合：元素同一个字段且不重复；严格模式只收 set，宽松还收列表与元组"
     json类型='array'#JSON Schema 里集合走数组
 
     def __init__(自身,元素字段=None,**约束条件):#约束条件
-        """收下元素字段。"""
+        "收下元素字段"
         super().__init__(**约束条件)#数量与共有约束
         自身.元素字段=推断字段(元素字段)#元素字段
 
     def 校验数据(自身,数据=None):
-        """类型、数量与逐项。"""
+        "类型、数量与逐项"
         if 数据 is not None:
             if not 自身.严格模式 and isinstance(数据,(list,tuple)):
                 数据=set(数据)#宽松就转过来
             if not isinstance(数据,set):
-                raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
+                raise 数据校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
         数据=super().校验数据(数据)#空输入与数量
         if 数据 is None:
             return None#可空
         return {自身.元素字段.校验数据(项) for 项 in 数据}#逐项校验
 
-    def 转JSON模式(自身):
-        """元素收成 items，去重收成 uniqueItems。"""
-        节点=super().转JSON模式()#类型与数量
-        节点['items']=自身.元素字段.转JSON模式()#元素
+    def toJsonSchema(自身):
+        "元素收成 items，去重收成 uniqueItems"
+        节点=super().toJsonSchema()#类型与数量
+        节点['items']=自身.元素字段.toJsonSchema()#元素
         节点['uniqueItems']=True#不重复
         return 节点#JSON Schema
 
-class 字典字段(容器字段):
-    """字典：键与值各一个字段；只收 dict。"""
-    json类型='object'#JSON Schema 类型
+class 字典字段(容器字段):#映射,与普通容器不同
+    '对应js的object'
+    json类型='object'
     数量键=('minProperties','maxProperties')#对象的数量约束键
 
-    def __init__(自身,键字段=None,值字段=None,**约束条件):#约束条件
-        """收下键字段与值字段，键缺席就是字符串。"""
+    def __init__(自身,字典结构=None,**约束条件):#约束条件
         super().__init__(**约束条件)#数量与共有约束
-        自身.键字段=推断字段(键字段) if 键字段 is not None else 字符串字段()#键字段
-        自身.值字段=推断字段(值字段)#值字段
+        自身.字典结构=推断字段(字典结构)#值字段
 
     def 校验数据(自身,数据=None):
-        """类型、数量、每个键与每个值。"""
+        "类型、数量、键是字符串与逐项"
         if 数据 is not None and not isinstance(数据,dict):
-            raise 校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
+            raise 数据校验错误(f'期望{自身!r}，实际是 {数据!r}')#类型不符
         数据=super().校验数据(数据)#空输入与数量
         if 数据 is None:
             return None#可空
-        结果={}#归一化输出
+        结果={}#逐项校验的输出
         for 键,值 in 数据.items():
-            规范键=自身.键字段.校验数据(键)#键也要过校验
-            结果[规范键]=自身.值字段.校验数据(值)#值校验
+            if not isinstance(键,str):
+                raise 数据校验错误(f'期望{自身!r} 的键是字符串，实际是 {键!r}')#键不是字符串
+            结果[键]=自身.值字段.校验数据(值)#值校验
         return 结果#通过
 
-    def 转JSON模式(自身):
-        """键收成 propertyNames，值收成 additionalProperties。"""
-        节点=super().转JSON模式()#类型与数量
-        节点['propertyNames']=自身.键字段.转JSON模式()#键
-        节点['additionalProperties']=自身.值字段.转JSON模式()#值
+    def toJsonSchema(自身):
+        "值收成 additionalProperties"
+        节点=super().toJsonSchema()#类型与数量
+        节点['additionalProperties']=自身.值字段.toJsonSchema()#值
         return 节点#JSON Schema
 
 def 推断字段(源=None):
-    "从字段、内建类型或字面量推出字段，容器的内层就靠它收下简写"
+    '传递的内容非字段实例时,自动判断是哪个字段'
     if 源 is None:
-        return 任意字段()#没给就当任意
-    if isinstance(源,字段):
+        return 任意字段()#没给就当任意字段
+    elif isinstance(源,字段):
         return 源#已经是字段
-    if 源 is str:
-        return 字符串字段()#字符串
-    if 源 is bool:
-        return 布尔字段()#布尔
-    if 源 is int:
-        return 整数字段()#整数
-    if 源 is float:
-        return 浮点数字段()#浮点数
-    if 源 is bytes:
-        return 字节字段()#字节
-    if isinstance(源,(bool,str,int,float,bytes)):
+    elif isinstance(源,(bool,str,int,float,bytes)):
         return 常量字段(源)#字面量当常量
-    raise TypeError(f'无法从 {源} 推断出字段')#不认识的形态
+    #
+    elif 源 is str:
+        return 字符串字段()#字符串
+    elif 源 is bool:
+        return 布尔字段()#布尔
+    elif 源 is int:
+        return 整数字段()#整数
+    elif 源 is float:
+        return 浮点数字段()#浮点数
+    elif 源 is bytes:
+        return 字节字段()#字节
+    elif isinstance(源,list):
+        return 列表字段()#列表
+    elif isinstance(源,tuple):
+        return 元组字段()#元组
+    elif isinstance(源,set):
+        return 集合字段()#集合
+    elif isinstance(源,dict):
+        return 字典字段()#字典
+    #
+    else:
+        raise TypeError(f'无法从 {源} 推断出字段')#不认识的形态

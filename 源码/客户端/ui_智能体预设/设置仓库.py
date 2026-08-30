@@ -3,8 +3,6 @@
 对齐上游 `ui-agent-preset/src/client/settings-store.ts`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 __all__=['设置命名空间','错误文','写默认预设','读名册','预设选项','预设设置控制器']#仅中文公开名
 
 设置命名空间='agent-presets'#宿主设置 ns

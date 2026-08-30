@@ -2,7 +2,13 @@
 import re,threading#正则与后台观察拒绝
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
+
+def _是否thenable(值):#判定可等待返回值
+    """监听器返回值是否可 wait。"""
+    if 值 is None:#空不是
+        return False#不是
+    等待=getattr(值,'wait',None)#取 wait
+    return callable(等待)#可调用才算
 from .类型 import 凭证引用品牌#再导出凭证引用品牌
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
@@ -61,7 +67,7 @@ class 凭证提供方(服务):#凭证提供方服务定义
         for 监听器 in 自身.ctx.events.dispatch('emit',参数):#逐个取出监听器
             try:#同步执行单个监听器
                 返回=监听器(引用)#调用监听器并拿到可能的承诺
-                if 是否thenable(返回):#返回值像承诺则接管拒绝
+                if _是否thenable(返回):#返回值可等待则接管拒绝
                     def 盯住(任务=返回,当前引用=引用):#把异步拒绝接到诊断
                         """把异步拒绝接到诊断。"""
                         try:#等待承诺

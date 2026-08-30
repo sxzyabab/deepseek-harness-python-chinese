@@ -4,9 +4,16 @@
 """
 import re,weakref#服务器名模式与根上下文到已占用名
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,数字字段,布尔字段,列表字段,字典字段,常量字段,复合类型字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+整数字段=schemastery.整数字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+列表字段=schemastery.列表字段#配置字段
+字典字段=schemastery.字典字段#配置字段
+常量字段=schemastery.常量字段#配置字段
+复合类型字段=schemastery.复合类型字段#配置字段
+from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .连接 import 重连默认值,解析重连策略,启动连接#重连与监督
 from .工具 import 公开工具名,同步工具,MCP结果#工具桥接再导出
 
@@ -18,34 +25,34 @@ __all__=['名称','注入','配置','应用','公开工具名','同步工具','M
 服务器名模式=re.compile(r'^[A-Za-z0-9_-]{1,32}$')#服务器名模式
 已占用服务器名=weakref.WeakKeyDictionary()#根上下文到已占用服务器名
 
-重连模式=路径上节点({#重连配置模式
+重连模式={#重连配置模式
     'enabled':布尔字段(默认值=重连默认值['enabled']),#是否启用重连
     'initialDelayMs':数字字段(最小=1,最大=定时器延迟上限毫秒,默认值=重连默认值['initialDelayMs']),#初始延迟
     'maxDelayMs':数字字段(最小=1,最大=定时器延迟上限毫秒,默认值=重连默认值['maxDelayMs']),#延迟上限
-    'maxAttempts':整数字段(步进=1,最小=1,默认值=重连默认值['maxAttempts']),#最大尝试次数
-})#重连模式结束
+    'maxAttempts':整数字段(最小=1,默认值=重连默认值['maxAttempts']),#最大尝试次数
+}#重连模式结束
 
 配置=复合类型字段(#插件配置模式
-    路径上节点({#stdio 分支
+    {#stdio 分支
         'transport':常量字段('stdio'),#固定为 stdio
         'serverName':字符串字段(可空=False,格式=服务器名模式),#必填服务器名
         'command':字符串字段(可空=False),#必填命令
         'args':列表字段(字符串字段(),默认值=[]),#默认空参数
-        'env':字典字段(值字段=字符串字段(),默认值={}),#默认空环境
+        'env':字典字段(字符串字段(),默认值={}),#默认空环境
         'cwd':字符串字段(默认值=''),#默认空工作目录
         'toolCallTimeoutMs':数字字段(默认值=默认工具调用超时毫秒),#默认调用超时
         'failOnStartupError':布尔字段(默认值=False),#默认启动失败不致命
         'reconnect':重连模式,#重连子模式
-    }),#stdio 对象结束
-    路径上节点({#streamable-http 分支
+    },#stdio 对象结束
+    {#streamable-http 分支
         'transport':常量字段('streamable-http'),#固定为 HTTP
         'serverName':字符串字段(可空=False,格式=服务器名模式),#必填服务器名
         'url':字符串字段(可空=False),#必填 URL
-        'headers':字典字段(值字段=字符串字段(),默认值={}),#默认空头
+        'headers':字典字段(字符串字段(),默认值={}),#默认空头
         'toolCallTimeoutMs':数字字段(默认值=默认工具调用超时毫秒),#默认调用超时
         'failOnStartupError':布尔字段(默认值=False),#默认启动失败不致命
         'reconnect':重连模式,#重连子模式
-    }),#HTTP 对象结束
+    },#HTTP 对象结束
 )#配置结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

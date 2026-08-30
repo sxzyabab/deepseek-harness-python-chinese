@@ -1,8 +1,9 @@
 """可安全重放、无模型的工具结果修剪服务。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
 服务=cordis.服务#导入Cordis服务基类
-from ..llm import 冻结消息#导入冻结消息
+from ...模型后端.llm import 冻结消息#导入冻结消息
 from .配置 import 码点长度,默认预算,修剪标记,解析配置#导入码点长度、默认值、标记与解析
 from .类型 import (
     修剪记账字段,#单条替换记账词汇
@@ -35,11 +36,11 @@ class 工具结果修剪器(服务):#工具结果修剪服务
     """对当前工具结果表面节点做确定性头/中/尾修剪。token-meter 为每条被遮蔽节点的已记录影子价格事件计价，因此修剪确实需要计价能力。"""
     inject=['tokenMeter']#依赖tokenMeter
     注入=inject#中文别名
-    Config=路径上节点({#插件配置模式
+    Config={#插件配置模式
         'thresholdChars':数字字段(默认值=默认预算['thresholdChars']),#触发阈值
         'headChars':数字字段(默认值=默认预算['headChars']),#开头保留
         'tailChars':数字字段(默认值=默认预算['tailChars']),#结尾保留
-    })#Config结束
+    }#Config结束
 
     def __init__(自身,上下文,配置=None):#构造修剪器
         """注册为 ctx.toolResultPruner，并解析冻结的字符预算。"""

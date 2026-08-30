@@ -3,11 +3,26 @@
 对齐上游 `directory-picker-browse/src/index.ts` 中的辅助函数。公开面仅中文名。
 """
 import os,re,sys#路径、正则、平台
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待
 
 __all__=['完全限定','有界插入','竞速中止','祖先面包屑','目录行','列举候选']#仅中文公开名
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
+    return 值#同步值
 
 列举候选=dict#流式候选映射形状
 

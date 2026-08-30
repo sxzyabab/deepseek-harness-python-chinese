@@ -3,12 +3,9 @@
 对齐上游 `llm-retry/src/index.ts`。公开面仅中文名。每次调度的重试在其可取消等待之前持久化。
 """
 import json,math,random,threading,uuid#标准库
+from concurrent.futures import Future as _原生Future#单次操作结果
 from .. import llm#语言模型失败事实与中止信号
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点#配置字段
-承诺=cordis.工具.承诺#承诺
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .品牌 import 重试身份#导入重试链身份
 from .类型 import 取,试取#读取字段
 
@@ -23,7 +20,42 @@ __all__=('名称','注入','配置','应用','默认','重试身份')#仅中文�
 完成事件=threading.Event#完成事件
 名称='llm-retry'#插件名（字面量不译）
 注入=['agents']#依赖 agents 服务
-配置=路径上节点({})#空对象模式；本执行器无自有策略配置
+配置={}#空对象模式；本执行器无自有策略配置
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 def 已中止(信号):#信号是否已中止
     """英文 aborted 或中文 已中止 任一为真则视为已中止。"""
@@ -157,10 +189,10 @@ def 校验配置(配置):#拒绝未知键
         raise Exception('llm-retry: retryPolicy belongs under each provider configuration')#政策属于各提供方配置
     raise Exception('llm-retry: unknown key "'+键名+'"')#未知键
 
-def 解开(结果):#若为承诺则等待，否则原样返回
-    """若为承诺则等待，否则原样返回。"""
-    if 是否thenable(结果):#对齐 async 函数 return promise 的展平
-        return 结果.等待()#等待承诺
+def 解开(结果):#可等待则等待，否则原样返回
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(结果):#对齐 async 函数 return promise 的展平
+        return _等待(结果)#等待
     return 结果#同步值
 
 def 全部结算(任务列表):#对齐 Promise.allSettled
@@ -251,7 +283,7 @@ def 应用(上下文,配置=None,内部=None):#安装提供方路由的普通或
 
     def 跟踪(操作):#跟踪活动恢复
         """跟踪活动恢复。在调用方线程跑到等待点，对齐 async 直到 await。"""
-        已跟踪=承诺()#本次数承诺
+        已跟踪=操作任务()#本次跟踪任务
         with 活动锁:#记入活动集
             活动.add(已跟踪)#记入活动集
         try:#兑现决策

@@ -1,10 +1,41 @@
 """共享持久化协调器的有界每会话写批处理。"""
 import threading#批处理定时器
-from ..llm import 结构化克隆#深拷贝事件
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#屏障与活动写承诺
+from concurrent.futures import Future as _原生Future#单次操作结果
+from ...模型后端.llm import 结构化克隆#深拷贝事件
 
 会话写后选项字段=('maxDelayMs','write','reportBackgroundFailure')#活会话写控制器的依赖与调度策略：最长批等待、耐久写一批、报告后台失败
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    if callable(getattr(值,'等待',None)):#外来 thenable
+        return 值.等待()#等待
+    return 值#同步值
 
 class 会话写后:#每会话写后控制器
     """拥有一个活会话的挂起事件、固定批处理截止、活动写入、失败保留与显式静止屏障。"""
@@ -13,8 +44,8 @@ class 会话写后:#每会话写后控制器
         自身.选项=选项#调度与写汇
         自身.挂起=[]#挂起事件
         自身.定时器=None#批处理定时器
-        自身.活动=None#活动写入承诺
-        自身.屏障=None#flush屏障承诺
+        自身.活动=None#活动写入任务
+        自身.屏障=None#flush屏障任务
         自身.截止已过=False#截止是否已过且写仍在途
         自身.自动已暂停=False#自动路径是否因失败暂停
 
@@ -43,7 +74,7 @@ class 会话写后:#每会话写后控制器
         自身.取消定时器()#取消自动等待
         自身.截止已过=False#清过期
         自身.自动已暂停=False#清暂停
-        屏障=承诺()#新建屏障
+        屏障=操作任务()#新建屏障
         自身.屏障=屏障#记下屏障
         def 后台排空():#启动排空
             """后台跑屏障排空。"""
@@ -87,13 +118,14 @@ class 会话写后:#每会话写后控制器
     def 启动后台(自身):#启动后台写
         """启动一次脱离的写入，失败被报告并保留。"""
         活动=自身.启动写入(True)#后台模式
-        def 成功后续(_=None):#成功则继续自动
-            """成功则继续自动。"""
-            自身.继续自动()#继续
-        def 失败后续(_=None):#失败已报告
-            """失败已报告。"""
-            return None#吞掉
-        活动.then(成功后续,失败后续)#观察
+        def 盯活动():#观察活动写
+            """成功则继续自动；失败已报告。"""
+            try:#等活动写
+                _等待(活动)#等完成
+                自身.继续自动()#成功则继续
+            except BaseException:#失败已报告
+                pass#吞掉
+        threading.Thread(target=盯活动,daemon=True).start()#后台观察
 
     def 继续自动(自身):#继续自动路径
         """超预算的活动写结束后立刻继续，否则保留其定时器。"""
@@ -109,12 +141,12 @@ class 会话写后:#每会话写后控制器
             重叠=自身.活动#重叠的活动写
             if 重叠 is not None:#有重叠
                 try:#等它结束
-                    重叠.等待()#失败也继续
+                    重叠.wait()#失败也继续
                 except BaseException:#失败也继续
                     pass#allSettled语义
                 自身.自动已暂停=False#清暂停
             while len(自身.挂起)>0:#前台重试直到空
-                自身.启动写入(False).等待()#前台重试
+                自身.启动写入(False).wait()#前台重试
         except BaseException as 错误:#耐久重试失败
             自身.屏障=None#拆屏障
             拒绝(错误)#拒绝调用方
@@ -128,14 +160,13 @@ class 会话写后:#每会话写后控制器
         自身.挂起.clear()#清空队列
         自身.取消定时器()#取消自动窗
         自身.截止已过=False#清过期
-        活动=承诺()#活动写承诺
+        活动=操作任务()#活动写任务
         def 跑写():#执行耐久写
             """执行耐久写并处理失败保留。"""
             try:#耐久写
                 写=自身.选项['write']#写汇
                 结果=写(批次)#启动耐久写
-                if hasattr(结果,'等待'):#可等待
-                    结果.等待()#等耐久
+                _等待(结果)#等耐久
                 自身.活动=None#清活动写
                 活动.兑现(None)#成功
             except BaseException as 错误:#耐久失败
@@ -151,4 +182,4 @@ class 会话写后:#每会话写后控制器
         线程.daemon=True#不挡退出
         自身.活动=活动#记下活动写
         线程.start()#启动
-        return 活动#返回承诺
+        return 活动#返回任务

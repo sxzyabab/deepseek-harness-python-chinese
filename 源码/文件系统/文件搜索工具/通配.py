@@ -2,8 +2,6 @@
 import os#平台路径分隔符
 from ...内核.工具 import 定义工具#导入工具定义器
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .搜索核心 import 跑ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与溢出保存
 from .展示 import glob搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择

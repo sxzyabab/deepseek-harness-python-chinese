@@ -5,8 +5,6 @@
 无运行时不变量：MCP 世代经工具注册表贡献，但桥接在异步再同步后不暴露独立的服务器到工具快照。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-mcp-client'#本包的不变量所有权名
 名称='mcp-client-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

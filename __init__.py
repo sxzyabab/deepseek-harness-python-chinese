@@ -5,3 +5,9 @@ from . import (
     api,
     )
 cordis=vendor.cordis
+
+from . import 源码
+
+def 注入内置():
+    import builtins
+    builtins.cordis=cordis

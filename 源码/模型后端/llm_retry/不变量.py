@@ -4,9 +4,8 @@
 """
 import json#JSON序列化
 from .. import llm#失败事实词表
-from ..超时 import 定时器延迟上限毫秒#导入定时器延迟上限
+from ...工具.超时 import 定时器延迟上限毫秒#导入定时器延迟上限
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#已决议承诺
 from .历史 import 打开步提供方#导入打开步提供方
 from .类型 import 取,试取,有键#读取字段
 

@@ -3,7 +3,6 @@
 对齐上游 `agent-presets/src/invariant.ts`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from .挂载 import 泄漏服务,活预设挂载#泄漏服务与活挂载
 
 包名='@deepseek-ai/dsh-agent-presets'#本包的不变量所有权名

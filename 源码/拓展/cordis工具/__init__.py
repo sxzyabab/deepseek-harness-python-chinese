@@ -4,8 +4,6 @@
 """
 import json,re#JSON 与 @pluginId 正则
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...内核.工具 import 定义工具#工具定义工厂
 from ...模型后端.llm import 创建用户消息#用户消息工厂
 from ..cordis_服务端 import 动态插件标识,动态包标识#品牌构造

@@ -1,7 +1,6 @@
 """本包拥有的工作流生命周期不变量。"""
 import json#元数据快照序列化
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from ...内核.会话 import 是否安全整数#对齐 JS Number.isSafeInteger
 
 包名='@deepseek-ai/dsh-workflow'#本包在不变量注册表中的名字

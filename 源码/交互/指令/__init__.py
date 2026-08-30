@@ -1,11 +1,9 @@
 """插件拥有的人类命令注册表，由交互 UI 适配器共享。"""
 import re,uuid,threading#命令名形态、实例令牌与后台观察
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#操作链承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-已兑现=cordis.工具.已兑现#立刻兑现
-from ..作用域 import 具名条目,作用域层集#具名登记与作用域层
-from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
+from ...内核.作用域 import 具名条目,作用域层集#具名登记与作用域层
+from ...typert.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器
 from .品牌 import 命令标识#命令生命周期配对品牌
 from .类型 import (#再导出类型面字段约定
     命令输入描述字段,#输入提示
@@ -35,6 +33,40 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 斜杠命令形态=re.compile(r'^/([a-z][a-z0-9_-]*)(?=$|[\t\n\r ])')#斜杠命令行拆分
 缺席=object()#对齐 JS undefined，与显式 None 区分
 
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait。"""
+    if 值 is None:#空不是
+        return False#不是
+    等待=getattr(值,'wait',None)#取 wait
+    return callable(等待)#可调用才算
+
+class _操作任务:#本文件内单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+
+def _已结算(值=None):#立刻结算的任务
+    """立刻兑现的操作任务。"""
+    任务=_操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
     if 对象 is None:#空对象
@@ -53,10 +85,10 @@ def 有自有(对象,键):#对象是否自有该键
         return 键 in 对象#自有键
     return hasattr(对象,键)#属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return 值.wait()#等待
     return 值#同步值
 
 def 解析命令(行):#解析斜杠命令行
@@ -95,13 +127,13 @@ def 信号已中止(信号):#对齐 AbortSignal.aborted
         return True#已中止
     return False#未中止
 
-def 接中止(承诺值,信号):#把承诺接到取消信号
+def 接中止(源,信号):#把可等待结果接到取消信号
     """拥有它的 UI 请求一旦中止，就停止等待不合作的处理函数。"""
     if 信号已中止(信号):#已经中止则立刻拒绝
-        拒绝=承诺()#拒绝承诺
+        拒绝=_操作任务()#拒绝任务
         拒绝.拒绝(中止错误(信号))#按信号拒绝
         return 拒绝#立刻拒绝
-    结果=承诺()#竞赛完成与中止
+    结果=_操作任务()#竞赛完成与中止
     已结算=[False]#只结算一次
     def 结算(回调):#幂等结算
         """只结算一次。"""
@@ -112,10 +144,10 @@ def 接中止(承诺值,信号):#把承诺接到取消信号
     def 在中止(*位置参数):#中止回调
         """按信号拒绝。"""
         结算(lambda:结果.拒绝(中止错误(信号)))#按信号拒绝
-    def 等完成():#跟随原承诺
-        """跟随原承诺兑现或拒绝。"""
-        try:#等原承诺
-            值=解开(承诺值)#等待
+    def 等完成():#跟随原结果
+        """跟随原可等待对象兑现或拒绝。"""
+        try:#等原结果
+            值=解开(源)#等待
             结算(lambda:结果.兑现(值))#兑现结果
         except BaseException as 错误:#失败
             if isinstance(错误,BaseException) and not isinstance(错误,Exception):#BaseException 原样
@@ -140,7 +172,7 @@ def 接中止(承诺值,信号):#把承诺接到取消信号
             加监听('abort',在中止,{'once':True})#只听一次中止
         else:#无 DOM 监听则靠处理函数自行检查
             pass#调用方用 aborted 旗标
-    return 结果#竞赛承诺
+    return 结果#竞赛任务
 
 def 归一化定义(定义):#校验并冻结定义
     """在无效命令元数据到达 UI 协议之前拒绝它。返回内部已登记项。"""
@@ -245,7 +277,7 @@ class 命令运行时(远程服务):#人类命令注册表
         列表.sort(key=lambda 项:取字段(项,'name'))#按名排序；有效视图里名字唯一
         return 列表#不可变视图按约定交出去
 
-    @远程('list')
+    @_远程('list')
     def list(自身,智能体):#远程导出名 list → 列出
         """Remote 导出名 list。"""
         return 自身.列出(智能体)#转中文实现
@@ -278,7 +310,7 @@ class 命令运行时(远程服务):#人类命令注册表
         调用={'commandId':配对标识,'agent':智能体,'rawInput':已解析['rawInput'],'signal':信号}#冻结调用
         try:#调用处理函数
             输出=命令['definition']['handler'](调用)#可能同步或异步
-            可等待=输出 if 是否thenable(输出) else 已兑现(输出)#统一成可等待
+            可等待=输出 if _是否thenable(输出) else _已结算(输出)#统一成可等待
             结果=归一化结果(已解析['name'],解开(接中止(可等待,信号)))#接到取消并校验结果
         except BaseException as 错误:#处理失败或中止
             if isinstance(错误,Exception) and len(错误.args)>0 and isinstance(错误.args[0],str):#对齐 Error.message
@@ -302,7 +334,7 @@ class 命令运行时(远程服务):#人类命令注册表
         自身.追加生命周期(智能体.session,'command/done',完成载荷)#done 事件
         return {'commandId':配对标识,'result':结果}#冻结已结算执行
 
-    @远程('execute')
+    @_远程('execute')
     def execute(自身,智能体,行,信号):#远程导出名 execute → 执行
         """Remote 导出名 execute。"""
         return 自身.执行(智能体,行,信号)#转中文实现
@@ -325,12 +357,12 @@ class 命令运行时(远程服务):#人类命令注册表
         参数=['commands/change']#dispatch 参数
         for 回调 in 自身.ctx.events.dispatch('emit',参数):#取出全部监听器
             try:#独立执行
-                返回=回调()#可能返回 Promise
-                if 是否thenable(返回):#异步拒绝也记日志
+                返回=回调()#可能返回可等待对象
+                if _是否thenable(返回):#异步拒绝也记日志
                     def 盯住(任务=返回):#收住拒绝
                         """把异步拒绝接到诊断。"""
                         try:#等待
-                            任务.等待()#等待
+                            任务.wait()#等待
                         except BaseException as 错误:#拒绝
                             自身.ctx.logger.warn('commands/change listener rejected: '+渲染抛出(错误))#警告异步失败
                     线=threading.Thread(target=盯住)#后台

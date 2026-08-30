@@ -4,8 +4,6 @@
 """
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...内核.工具 import 定义工具#导入工具定义
 from ...模型后端.llm import 断言永不#导入穷尽检查
 

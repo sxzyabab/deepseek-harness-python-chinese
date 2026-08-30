@@ -1,6 +1,6 @@
 """插件树里的一份已配置插件。"""
 from .. import cordis
-from .. import cosmokit
+from .. import 工具
 from ..工具 import 求值,是否表达式节点,取表达式#配置表达式
 
 def 更新错误(阶段,选项,原因):
@@ -170,7 +170,7 @@ class 插件配置:
         原选项=自身.选项#提交前的选项对象
         旧快照=dict(原选项)#变化对比用的快照
         候选=排序键(选项 if 创建 else _合并选项(原选项,选项))#新选项
-        变化键们=[键 for 键 in dict.fromkeys(list(候选)+list(旧快照)) if not cosmokit.深入比较(候选.get(键),旧快照.get(键))]#变化的键
+        变化键们=[键 for 键 in dict.fromkeys(list(候选)+list(旧快照)) if not 工具.深入比较(候选.get(键),旧快照.get(键))]#变化的键
         if not 变化键们 and not 强制:
             return#什么都没变
         def 提交():

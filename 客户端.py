@@ -24,13 +24,12 @@ class 服务器信息(BaseModel):
     名称:str|None=Field(default=None,alias='name')
     版本:str|None=Field(default=None,alias='version')
 
+_服务器信息=服务器信息
 class 初始化响应(BaseModel):
-    服务器信息:服务器信息|None=Field(default=None,alias='serverInfo')
+    服务器信息:_服务器信息=Field(default=None,alias='serverInfo')
 
 
 #client.py
-from __future__ import annotations
-
 import json,os,queue,subprocess,threading,time,uuid
 from collections import deque
 from dataclasses import dataclass
@@ -103,7 +102,7 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
         )#Popen结束
         self.启动读取线程()#启动stdout读取线程
         self.启动错误读取线程()#启动stderr读取线程
-.
+
     def 关闭(self)->None:#关闭运行时并清理等待者
         进程=self._proc#取出当前子进程引用
         if 进程 is None:#未启动则无需关闭
@@ -573,3 +572,19 @@ class 关闭响应(BaseModel):#shutdown响应模型，无字段
 
 def _int_or_none(value:object)->int|None:#把值收窄为int或None
     return value if isinstance(value,int) else None#非int一律当None
+
+
+
+
+#简化
+class Harness服务:
+    '统一管理rpc/嵌入式等Agent服务'
+    def __init__():
+        ...
+
+    def 创建Agent():
+        ...
+
+    
+class Agent:
+    '统一Agent操作入口'

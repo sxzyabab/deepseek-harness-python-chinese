@@ -1,7 +1,5 @@
 """`@deepseek-ai/dsh-workflow-worker-thread` 的本包不变量配套。"""
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-workflow-worker-thread'#本包在不变量注册表中的名字
 名称='workflow-worker-thread-invariant'#配套插件名
 注入=['invariants']#依赖不变量服务

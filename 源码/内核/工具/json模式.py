@@ -1,6 +1,6 @@
 """受强制 JSON Schema 子集：断言、对象根约束与按值校验。对齐上游 `tools/src/json-schema.ts`。公开面仅中文名。"""
 import json,math
-from ..llm import 装备错误 as 框架错误,断言永不#框架错误与穷尽检查
+from ...模型后端.llm import 装备错误 as 框架错误,断言永不#框架错误与穷尽检查
 from ..会话 import 是否json值#无损JSON判定
 from ..会话.json值 import 是否普通对象,是否普通数组#普通记录与数组
 

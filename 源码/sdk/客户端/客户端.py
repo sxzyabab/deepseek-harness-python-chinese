@@ -3,11 +3,8 @@
 对齐上游 `sdk/client/src/client.ts`。公开面仅中文名。经子进程标准输入输出讲 sdk_protocol 线协议；设计对偶是仓库 python/sdk 的 HarnessClient。本客户端运行在任何 harness 上下文之外，因此直接 spawn，不走 subprocess 服务。
 """
 import os,subprocess,threading,time#环境、子进程、线程与超时
+from concurrent.futures import Future as _原生Future#单次操作结果
 from collections import deque#有界 stderr 尾
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待
 from ..协议 import 换行JSONRPC传输,JSONRPC响应错误#传输与对端错误
 from .拆除 import 拆除运行时进程#运行时进程拆除阶梯
 
@@ -19,10 +16,45 @@ __all__=[#仅中文公开名
 标准错误尾上限=400#stderr 尾部最多保留行数
 流落定毫秒=100#流落定等待毫秒
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
@@ -79,7 +111,7 @@ class 通知订阅:#公开通知订阅句柄
             return 自身.状态['queue'].pop(0)#立刻兑现
         if 自身.状态['failure'] is not None:#已失败
             raise 自身.状态['failure']#拒绝
-        等待=承诺()#挂起
+        等待=操作任务()#挂起
         自身.状态['waiters'].append(等待)#等后续 push
         return 解开(等待)#阻塞取
 
@@ -134,7 +166,7 @@ class 装备客户端:#SDK 运行时客户端
         自身.退出码=None#子进程退出码；未退出则为特殊哨兵
         自身._已退出=False#是否已见 exit
         自身.拉起错误=None#spawn 失败错误
-        自身.流落定=承诺()#stderr 关闭与 exit 都发生后兑现
+        自身.流落定=操作任务()#stderr 关闭与 exit 都发生后兑现
         自身.流落定.兑现(None)#初始已落定（尚未 start）
         自身.关闭任务=None#close 去重任务
         自身.锁=threading.Lock()#订阅表互斥
@@ -162,7 +194,7 @@ class 装备客户端:#SDK 运行时客户端
         )#spawn 结束
         自身.子进程=子#记下子进程
         落定旗={'stderr':False,'exited':False}#两旗
-        自身.流落定=承诺()#新的落定承诺
+        自身.流落定=操作任务()#新的落定任务
         def 或许落定():#两旗都立起才兑现
             """通知等待流落定的人。"""
             if 落定旗['stderr'] and 落定旗['exited']:#都齐
@@ -232,7 +264,7 @@ class 装备客户端:#SDK 运行时客户端
         try:#向传输发请求
             if 超时 is None:#无超时则一直等
                 return 解开(传输.请求(方法,参数 if 参数 is not None else {}))#一直等
-            放弃=承诺()#超时用的放弃标记（用线程模拟 AbortSignal）
+            放弃=操作任务()#超时用的放弃标记（用线程模拟 AbortSignal）
             class 信号:#简易中止信号
                 """对齐 AbortSignal 的最小面。"""
                 def __init__(自身信号):#初始未中止

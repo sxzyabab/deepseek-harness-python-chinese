@@ -5,9 +5,6 @@
 """
 import math#有限数判定
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-已兑现=cordis.工具.已兑现#立刻兑现
-
 __all__=('包名','名称','注入','校验下标','校验增量','校验流','安装','应用')#仅中文公开名
 
 包名='@deepseek-ai/dsh-llm'#本包的不变量所有权名

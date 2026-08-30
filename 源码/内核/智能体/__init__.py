@@ -4,16 +4,11 @@
 具体创建与驱动归循环。
 """
 import threading#线程本地存储与后台观察
+from concurrent.futures import Future as _原生Future#单次操作结果
 from typing import NotRequired,TypedDict#结构类型
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
 光纤状态=cordis.纤程状态#光纤/纤程状态
-取可追踪=cordis.工具.取可追踪#可追踪
-符号=cordis.工具.符号#符号
-是否thenable=cordis.工具.是否thenable#可等待
-承诺=cordis.工具.承诺#承诺
-取符号=cordis.工具.取符号#取符号
-可追踪包装=cordis.工具.可追踪包装#可追踪包装
 from ..作用域 import 作用域目标#作用域载体构造
 from .运行时类型 import *#再导出运行时类型（含智能体取消原因）
 from .类型 import *#再导出可持久化类型
@@ -27,6 +22,36 @@ from .派发 import (
     为组装构建上下文,#组装上下文
     发出智能体事件,#一次性发出
 )
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
 
 __all__=(#仅中文公开名；无英文别名
     '无工厂诊断','无发起方诊断','发起方已拆除诊断',
@@ -139,10 +164,10 @@ def 后台观察拒绝(值,记拒绝):#在后台等到 thenable 落定
     def 观察():#收住拒绝
         """收住拒绝。"""
         try:#等待结算
-            if hasattr(值,'等待'):#本库承诺
+            if callable(getattr(值,'wait',None)):#本库操作任务
+                值.wait()#等待结算
+            elif callable(getattr(值,'等待',None)):#外来 thenable
                 值.等待()#等待结算
-            else:#普通 thenable
-                值.then(None,None)#等待结算
         except Exception as 错误:#拒绝
             记拒绝(错误)#记拒绝
     线程=threading.Thread(target=观察)#后台观察
@@ -355,14 +380,14 @@ class 智能体注册表(服务):#Agent 注册表
     def 拆除发起方(自身):#拆除发起方
         """等待返回承诺边界，然后使保留引用失效。"""
         if 自身.发起拆除 is None:#首次拆除
-            任务=承诺()#共享一次拆除
+            任务=操作任务()#共享一次拆除
             自身.发起拆除=任务#先挂上
             自身.关闭发起方()#先关闭
             自身.释放重入发起运行()#排除启动本拆除的链
             if 自身.活动发起运行!=0:#还有活动运行
                 if 自身.发起排空 is None:#尚无排空闩
-                    自身.发起排空=承诺()#建排空闩
-                自身.发起排空.等待()#等到归零
+                    自身.发起排空=操作任务()#建排空闩
+                自身.发起排空.wait()#等到归零
             自身.发起状态='disposed'#标为已拆除
             自身.发起方存储.停用()#停用发起存储
             自身.发起运行存储.停用()#停用运行存储
@@ -384,15 +409,15 @@ class 智能体注册表(服务):#Agent 注册表
         except Exception:#同步抛错
             自身.释放发起运行(运行)#释放运行
             raise#原样抛出
-        if isinstance(结果,承诺):#返回承诺
+        if 是否thenable(结果):#返回可等待
             def 完成后释放():#落定后释放
                 """落定后释放。"""
                 自身.释放发起运行(运行)#释放
             try:#挂观察者
                 def 观察():#落定后释放
                     """落定后释放。"""
-                    try:#原语 then
-                        结果.then(None,None)#原语 then
+                    try:#等待结算
+                        _等待(结果)#阻塞到落定
                     except Exception:#挂观察者失败
                         完成后释放()#挂观察者失败则立即释放
                         return#结束

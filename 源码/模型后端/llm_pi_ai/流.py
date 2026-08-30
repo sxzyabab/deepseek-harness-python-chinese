@@ -5,7 +5,7 @@
 import json#JSON 序列化
 import re#正则
 from .. import llm#语言模型服务
-from ...依赖 import pi_ai#外部依赖胶水（pi-ai SDK）
+import pi_ai#外部依赖胶水（pi-ai SDK）
 from .回放 import 转派回放状态#回放状态投影
 
 __all__=('映射用量','分类派爱错误','映射停止原因','转流块')#仅中文公开名

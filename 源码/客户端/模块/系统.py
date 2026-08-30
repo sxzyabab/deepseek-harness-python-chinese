@@ -2,8 +2,45 @@
 
 对齐上游 `modules/src/client/system.ts`。公开面仅中文名。
 """
+import threading#脚本加载与到达链
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 from .清单 import 客户端模块记录#模块记录形状
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#本库或外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 __all__=['客户端模块系统','剥客户端后缀','认领样式']#仅中文公开名
 
@@ -33,32 +70,19 @@ def 默认加载包(网址):#默认包加载钩
     元素=文档.createElement('script')#经典脚本元素
     元素.async=True#异步加载
     元素.src=网址#包 URL
-    承诺盒={'resolve':None,'reject':None}#完成回调
+    任务=操作任务()#脚本加载任务
     def 成功(_事件=None):#加载成功
         """卸掉元素并兑现。"""
         元素.remove()#卸掉
-        if 承诺盒['resolve'] is not None:#有成功臂
-            承诺盒['resolve'](None)#兑现
+        任务.兑现(None)#兑现
     def 失败(_事件=None):#加载失败
         """卸掉元素并拒绝。"""
         元素.remove()#卸掉
-        错误=Exception('client-modules: bundle script '+网址+' failed to load')#失败
-        if 承诺盒['reject'] is not None:#有失败臂
-            承诺盒['reject'](错误)#拒绝
-        else:#无失败臂
-            raise 错误#直接抛
-    class 脚本承诺:#简单承诺壳
-        """脚本加载承诺。"""
-        def then(自身,成功臂,失败臂=None):#then
-            """挂成功/失败臂。"""
-            承诺盒['resolve']=成功臂#成功
-            承诺盒['reject']=失败臂#失败
-            return 自身#链式
-    实例=脚本承诺()#实例
+        任务.拒绝(Exception('client-modules: bundle script '+网址+' failed to load'))#失败
     元素.addEventListener('load',成功,{'once':True})#只听一次
     元素.addEventListener('error',失败,{'once':True})#只听一次
     文档.head.append(元素)#挂到 head
-    return 实例#返回承诺
+    return 任务#返回任务
 
 class 客户端模块系统:#模块系统
     """状态表加上到达/物化机械，实现客户端模块加载器。"""
@@ -98,10 +122,7 @@ class 客户端模块系统:#模块系统
         if 进行中 is not None:#共享进行中
             return 进行中#共享
         if 标识 in 自身.工厂表:#已登记
-            已兑现=cordis.工具.已兑现#承诺
             return 已兑现(None)#跳过
-        已兑现=cordis.工具.已兑现#承诺
-        是否thenable=cordis.工具.是否thenable#可等待
         任务=自身.加载包(网址)#加载脚本
         def 检查登记(_值=None):#脚本加载后检查登记
             """脚本必须经 __ModuleLoader__.load 登记。"""
@@ -110,22 +131,20 @@ class 客户端模块系统:#模块系统
         def 清理(_值=None):#结束则清进行中
             """清进行中到达。"""
             自身.进行中到达.pop(标识,None)#删除
-        if 是否thenable(任务):#异步
-            链=任务.then(检查登记)#检查
-            if hasattr(链,'finally_'):#有 finally
-                链=链.finally_(清理)#清理
-            else:#无 finally
-                def 成功后清理(值):#成功清理
-                    """清理后透传。"""
+        if _是否thenable(任务):#异步
+            链=操作任务()#共享到达任务
+            def 跑():#加载后检查并清理
+                try:#等脚本
+                    _等待(任务)#等加载
+                    检查登记()#检查登记
                     清理()#清理
-                    return 值#透传
-                def 失败后清理(错误):#失败清理
-                    """清理后抛回。"""
+                    链.兑现(None)#成功
+                except BaseException as 错误:#失败
                     清理()#清理
-                    raise 错误#抛回
-                链=链.then(成功后清理,失败后清理)#挂臂
+                    链.拒绝(错误)#上抛
+            threading.Thread(target=跑,daemon=True).start()#后台链
             自身.进行中到达[标识]=链#记下进行中
-            return 链#共享承诺
+            return 链#共享任务
         检查登记()#同步路径
         清理()#清理
         return 已兑现(None)#兑现
@@ -173,8 +192,6 @@ class 客户端模块系统:#模块系统
 
     def import_(自身,说明符,父网址=None,属性=None):#异步导入
         """按文档化分支顺序解析 specifier。"""
-        已兑现=cordis.工具.已兑现#承诺
-        是否thenable=cordis.工具.是否thenable#可等待
         if 说明符 in 自身.种子:#平台种子
             return 已兑现(自身.种子[说明符])#种子
         已有=自身.loadCache.get(说明符)#已物化
@@ -191,12 +208,17 @@ class 客户端模块系统:#模块系统
                     'client-modules: cannot resolve "'+说明符+'" — not a seed word, not a shell-own module, '
                     +'and not a row in the boot graph (the runtime mirror of the bundle purity gate)',
                 )#结束错误
-            到达承诺=自身.到达(行)#先拉包
-            if 是否thenable(到达承诺):#异步到达
-                def 到达后(_值=None):#到达后再物化
-                    """物化并返回导出。"""
-                    return 自身.物化(说明符)['exports']#导出
-                return 到达承诺.then(到达后)#链式
+            到达任务=自身.到达(行)#先拉包
+            if _是否thenable(到达任务):#异步到达
+                结果=操作任务()#物化链
+                def 跑():#到达后物化
+                    try:#等到达
+                        _等待(到达任务)#等到达
+                        结果.兑现(自身.物化(说明符)['exports'])#物化导出
+                    except BaseException as 错误:#失败
+                        结果.拒绝(错误)#上抛
+                threading.Thread(target=跑,daemon=True).start()#后台链
+                return 结果#链式
         return 已兑现(自身.物化(说明符)['exports'])#物化并返回
 
     def registerStatic(自身,标识,模块):#登记壳自有模块
@@ -207,7 +229,6 @@ class 客户端模块系统:#模块系统
 
     def prefetch(自身,标识):#预取一行
         """第一阶段到达：加载条目脚本以登记其工厂。"""
-        已兑现=cordis.工具.已兑现#承诺
         if 标识 in 自身.静态表:#壳自有无需拉
             return 已兑现(None)#跳过
         行=自身.图行.get(标识)#启动行

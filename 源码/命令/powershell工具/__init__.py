@@ -6,12 +6,12 @@ Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 """
 import json,math,os#JSON片段、有限数与路径
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,布尔字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..工具 import 定义工具,工具体后中止,已中止#工具定义、体后中止码与中止判定
-from ..llm import 装备错误#Harness错误
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+from ...内核.工具 import 定义工具,工具体后中止,已中止#工具定义、体后中止码与中止判定
+from ...模型后端.llm import 装备错误#Harness错误
 from ..命令 import 解析退出状态#共用退出状态解析
-from ..沙盒 import (
+from ...沙盒.沙盒 import (
     升级目标,#可广告的升级目标
     批准升级,#批准升级
     校验升级参数,#校验升级参数配对
@@ -25,9 +25,9 @@ __all__=('名称','注入','配置','应用','默认')#仅中文公开名（Cord
 注入=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
 name=名称#Cordis 插件名（协议槽）
 inject=注入#Cordis 依赖声明（协议槽）
-配置=路径上节点({#pwsh工具配置模式
+配置={#pwsh工具配置模式
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis 配置模式（协议槽）
 后台输出字段={#后台输出字段
     'kind':{'type':'string','required':True,'const':'background'},#种类为background

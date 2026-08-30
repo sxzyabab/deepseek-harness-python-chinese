@@ -3,8 +3,6 @@
 无运行时不变量：环境注册表在每次变更/读取时校验所有权与收集值；它不发布配套可以交叉核对的独立快照。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-tool-bash'#本包的不变量所有权名
 名称='tool-bash-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

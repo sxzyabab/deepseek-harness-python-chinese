@@ -7,8 +7,6 @@
 """
 
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 
 
 __all__=['插件清单页签','阶段文案键','模块短名','条目匹配']#仅中文公开名

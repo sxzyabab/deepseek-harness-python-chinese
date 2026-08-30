@@ -2,7 +2,6 @@
 import json,math,re#JSON片段、安全整数与读数格式
 from datetime import datetime as 日期时间#解析渲染时间戳
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
 from .时间戳 import 创建时间戳格式化器,格式化时间戳#时间戳格式化
 

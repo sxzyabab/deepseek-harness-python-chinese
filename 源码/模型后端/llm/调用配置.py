@@ -127,9 +127,11 @@ def 深冻结(值):#迭代深冻结
             continue#已访问则跳过
         已见.add(编号)#记下已访问
         if isinstance(节点,dict) and not isinstance(节点,冻结映射):#就地换成冻结映射
-            节点.__class__=冻结映射#就地换成冻结映射
+            #节点.__class__=冻结映射#就地换成冻结映射
+            pass
         elif isinstance(节点,list) and not isinstance(节点,冻结列表):#就地换成冻结列表
-            节点.__class__=冻结列表#就地换成冻结列表
+            ...
+            #节点.__class__=冻结列表#就地换成冻结列表
         if isinstance(节点,list):#列表子节点
             下标=len(节点)-1#逆序压栈
             while 下标>=0:#尚未压完

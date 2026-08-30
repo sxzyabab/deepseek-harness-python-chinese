@@ -3,11 +3,9 @@
 致命工作流错误——坏的钩子参数、不受支持的模式/选项、上限、启动失败、取消——经组合子传播。只有子失败和普通阶段错误变成按条 null。每个返回的承诺都有拒绝消费方，因此被丢掉的脚本承诺杀不死 worker。从未结算的已取消脚本什么都不发；宿主在宽限内强制结算运行并终止线程。
 """
 import copy,threading#克隆 args 与后台收容线程
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...内核.会话 import 会话标识#会话标识铸造
-from ...内核.工具 import 断言对象json模式,JsonSchemaError,assertObjectJsonSchema#对象 JSON Schema 断言与其错误
+from ...内核.工具 import 断言对象json模式,json模式错误
 from ..工作流 import 是否致命工作流错误,工作流错误#致命错误判定与工作流错误
 from .领域 import 从领域物化,物化错误,渲染抛出#领域物化
 
@@ -45,20 +43,50 @@ def 默认标签(提示词):#从提示词取默认标签
     行=提示词 if 换行==-1 else 提示词[0:换行]#取第一行
     return 行 if len(行)<=48 else 行[0:47]+'…'#超长则截断
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 收容承诺(承诺值):#挂上空操作拒绝消费方
     """挂上空操作拒绝消费方，但不改变调用方收到的东西。"""
-    if not 是否thenable(承诺值):#非承诺
+    if not _是否thenable(承诺值):#非可等待
         return 承诺值#原样
     def 盯():#吞掉未处理拒绝
-        """已消费：被丢掉的钩子承诺不得浮成未处理拒绝。"""
+        """已消费：被丢掉的钩子任务不得浮成未处理拒绝。"""
         try:#等待
-            承诺值.等待()#等待结算
+            _等待(承诺值)#等待结算
         except BaseException:#拒绝也算消费
             pass#吞掉
     线程=threading.Thread(target=盯)#后台观察
@@ -181,10 +209,10 @@ class 工作流执行:#worker 侧一次脚本执行
             if 自身.activeSlots<自身.limits['maxConcurrentAgents']:#还有空槽
                 自身.activeSlots+=1#立即占用
                 自身.占用槽=自身.activeSlots#同步中文
-                完成=承诺()#立刻兑现
+                完成=操作任务()#立刻兑现
                 完成.兑现(None)#无需排队
                 return 完成#返回
-            等待=承诺()#排队等释放
+            等待=操作任务()#排队等释放
             自身.slotWaiters.append({#登记等待者
                 'resolve':lambda: 自身._唤醒取槽(等待),#轮到时占用槽
                 'reject':等待.拒绝,#取消时拒绝
@@ -210,7 +238,7 @@ class 工作流执行:#worker 侧一次脚本执行
 
     def _智能体(自身,原始提示,原始选项):#跑一个子智能体直到完成
         """agent(prompt, opts) 钩子。返回承诺。"""
-        结果=承诺()#钩子结果承诺
+        结果=操作任务()#钩子结果任务
         def 跑():#在后台跑，避免嵌套死锁
             """跑 agent 钩子主体。"""
             try:#主体
@@ -337,7 +365,7 @@ class 工作流执行:#worker 侧一次脚本执行
 
     def _并行(自身,原始形参):#并发跑零参函数
         """parallel(thunks) 钩子：每个 thunk 被捕获则变成 null；致命错误传播。"""
-        结果=承诺()#钩子结果
+        结果=操作任务()#钩子结果
         def 跑():#主体
             """跑 parallel 主体。"""
             try:#主体
@@ -368,7 +396,7 @@ class 工作流执行:#worker 侧一次脚本执行
 
     def _管道(自身,原始条目,原始阶段):#按条跑多阶段
         """pipeline(items, ...stages) 钩子：按条的阶段链，没有跨阶段屏障。"""
-        结果=承诺()#钩子结果
+        结果=操作任务()#钩子结果
         def 跑():#主体
             """跑 pipeline 主体。"""
             try:#主体
@@ -436,11 +464,11 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 已兑现值(值):#把任意值包成已兑现承诺
-    """把任意值包成已兑现承诺。"""
-    if 是否thenable(值):#已是承诺
+def 已兑现值(值):#把任意值包成已兑现任务
+    """把任意值包成已兑现任务。"""
+    if _是否thenable(值):#已是可等待
         return 值#原样
-    完成=承诺()#新承诺
+    完成=操作任务()#新任务
     完成.兑现(值)#立刻成功
     return 完成#已完成
 

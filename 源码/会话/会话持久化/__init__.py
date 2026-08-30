@@ -1,9 +1,8 @@
 """耐久会话持久化 Service Definition（`ctx.sessionPersistence`）。后端把会话事件存成事件源日志，并把不可回放的会话头元数据单独携带。"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#导入Cordis服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..会话 import 会话准备,会话头字段#导入会话预备与会话头（本包只再导出，不拥有）
-from ..llm import 结构化克隆#深拷贝
+from ...内核.会话 import 会话准备,会话头字段#导入会话预备与会话头（本包只再导出，不拥有）
+from ...模型后端.llm import 结构化克隆#深拷贝
 from .修订 import 会话持久化修订#修订品牌
 from .协调器 import (#写路径编排再导出
     默认预备会话缓存大小,#默认预备缓存大小

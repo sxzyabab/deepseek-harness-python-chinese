@@ -1,10 +1,8 @@
 """Code Mode 的 run_code 传输。程序经嵌套执行调用注册表里该智能体可见的工具。对齐上游 `tools/src/code-mode.ts`。公开面仅中文名。"""
 import json,threading
-from ..llm import 调用标识,装备错误 as 框架错误#导入调用 id 与框架错误
+from concurrent.futures import Future as _原生Future#单次操作结果
+from ...模型后端.llm import 调用标识,装备错误 as 框架错误#导入调用 id 与框架错误
 from ..会话 import 快照json值#导入无损 JSON 快照
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待结果
 from .模式 import 定义工具,参数模式规格转json模式#导入工具定义器与参数编译
 
 __all__=(
@@ -48,10 +46,48 @@ python风味={
     +'"Read failing test and its fixture"; "Rename config key in every cordis.yml".'
 )#description 参数文案
 
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 def 解开(值):
-    """承诺则等待，否则原样。"""
-    if 是否thenable(值):
-        return 值.等待()#等待承诺
+    """可等待则等待，否则原样。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 已中止(信号):
@@ -164,8 +200,8 @@ class 中止控制器:
         自身.信号.触发(原因)#触发一次
 
 def 在线程跑(函数):
-    """在工作线程执行并返回承诺。"""
-    任务=承诺()#本次数
+    """在工作线程执行并返回操作任务。"""
+    任务=操作任务()#本次数
     def 跑():
         """执行函数并结算。"""
         try:
@@ -175,11 +211,11 @@ def 在线程跑(函数):
     工作=threading.Thread(target=跑)#工作线程
     工作.daemon=True#不挡住退出
     工作.start()#启动
-    return 任务#承诺
+    return 任务#操作任务
 
 def 已兑现承诺():
-    """立刻兑现的空承诺。"""
-    任务=承诺()#空任务
+    """立刻兑现的空操作任务。"""
+    任务=操作任务()#空任务
     任务.兑现(None)#立刻兑现
     return 任务#已决议
 
@@ -550,7 +586,7 @@ def 跑运行代码(注册表,要求运行时,窥探运行时,并行上限,整�
             if 取字段(执行,'agent') is not None:
                 输入['agent']=执行['agent']#有智能体则带上
             调度器=注册表[调度器符号]#分阶段调度器
-            结局任务=承诺()#程序可见结局
+            结局任务=操作任务()#程序可见结局
             停住盒=[None]#停住的结局
             def 落定(结果):
                 """把结局交给程序并记日志。"""
@@ -651,7 +687,7 @@ def 跑运行代码(注册表,要求运行时,窥探运行时,并行上限,整�
             未开始队列.append(条目)#入未开始队
             唤醒()#唤醒车道
             驱动()#确保车道在跑
-            结局=结局任务.等待()#等到提交
+            结局=结局任务.wait()#等到提交
             if 本轮已结束():
                 raise Exception('run_code run is over ('+str(中止原因(本轮.信号))+'); '+名称+' result discarded')#丢弃结果
             if 结局['isError']:

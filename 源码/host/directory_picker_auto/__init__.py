@@ -4,7 +4,6 @@
 """
 import os,sys#环境与平台
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .解析 import (
     目录选择后端种类,#后端 kind
     解析目录选择后端,#纯决策

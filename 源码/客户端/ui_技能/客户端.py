@@ -4,15 +4,56 @@
 
 对齐上游 `ui-skill/src/client/index.ts`。公开面仅中文名。
 """
+import threading#单飞拉取与预热盯住
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .文案 import 命名空间,中文,英文#词典
 from .技能行 import 技能行#技能工具行
 
 __all__=['注入','应用']#仅中文公开名
 
 注入=['inputTriggers','connection','sessions','slots','locale','remote']#触发源、连接、会话、槽位、文案、远程
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#RPC 等
+
+class _操作任务:#本文件内单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+
+def _已结算(值=None):#立刻结算的任务
+    """立刻兑现的操作任务。"""
+    任务=_操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#RPC 等
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -24,10 +65,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 应用(上下文):#安装技能引用浏览器半边
@@ -59,10 +100,10 @@ def 应用(上下文):#安装技能引用浏览器半边
     def 拉目录(会话标识):#按会话单飞拉取技能目录
         """按会话单飞拉取技能目录。"""
         if 会话服务.subagentAddress(会话标识) is not None:#子智能体会话
-            return 已兑现([])#没有用户技能目录
+            return _已结算([])#没有用户技能目录
         已有=拉取表.get(会话标识)#已有拉取
         if 已有 is not None:#同键复用
-            return 已有['promise']#共享 promise
+            return 已有['promise']#共享任务
         中止器={'aborted':False}#自有中止旗
         def 中止拉取():#中止在飞拉取
             """仅失效/拆除时触发。"""
@@ -74,29 +115,25 @@ def 应用(上下文):#安装技能引用浏览器半边
                 错误=取字段(结果,'error')#错误
                 raise Exception('skill.list failed: '+str(取字段(错误,'code'))+': '+str(取字段(错误,'message')))#转抛
             return 取字段(取字段(结果,'value'),'skills')#目录条目
-        原始=技能接口.list({'sessionId':会话标识},中止器)#只调一次 skill.list（对齐上游单次 await）
-        if 是否thenable(原始):#异步
-            承诺=原始.then(解包目录)#链式解包
-        else:#同步
-            承诺=已兑现(解包目录(原始))#复用同一次结果，禁止二次 list
-        条目={'promise':承诺,'abort':中止拉取}#本键共享条目
+        任务=_操作任务()#本键共享拉取
+        条目={'promise':任务,'abort':中止拉取}#本键共享条目
         拉取表[会话标识]=条目#写入缓存
-        def 落定成功(技能们):#成功：写入 settled
-            """写入 settled 并通知。"""
-            条目['settled']=技能们#同步词表快照
-            通知词表(会话标识)#通知
-        def 落定失败(_错误=None):#失败：摘键
-            """失败拉取不得毒化该键。"""
-            if 拉取表.get(会话标识) is 条目:#仍是本条目
-                del 拉取表[会话标识]#摘掉
-        if 是否thenable(承诺):#承诺
-            承诺.then(落定成功,落定失败)#挂臂
-        else:#已兑现值
-            try:#写入
-                落定成功(解开(承诺))#快照
-            except Exception:#失败
-                落定失败()#摘键
-        return 承诺#共享 promise
+        def 跑():#单飞拉取体
+            """只调一次 skill.list，成败结算共享任务。"""
+            try:#拉取并解包
+                包装=解开(技能接口.list({'sessionId':会话标识},中止器))#唯一一次 list
+                技能们=解包目录(包装)#业务解包
+                条目['settled']=技能们#同步词表快照
+                任务.兑现(技能们)#交给等待方
+                通知词表(会话标识)#通知词表监听者
+            except BaseException as 错误:#失败不得毒化该键
+                if 拉取表.get(会话标识) is 条目:#仍是本条目
+                    del 拉取表[会话标识]#摘掉
+                任务.拒绝(错误)#共享失败
+        线=threading.Thread(target=跑)#后台拉取
+        线.daemon=True#不挡退出
+        线.start()#启动
+        return 任务#共享任务
 
     def 失效(键):#丢掉一键缓存
         """丢掉一键缓存并中止在飞拉取。"""
@@ -136,15 +173,17 @@ def 应用(上下文):#安装技能引用浏览器半边
 
     def 预热(会话):#作用域诞生预热
         """点火即忘的作用域诞生预热。"""
-        承诺=拉目录(取字段(会话,'sessionId'))#预热
-        if 是否thenable(承诺):#承诺
-            def 忽略成功(_值=None):#吞掉成功
+        任务=拉目录(取字段(会话,'sessionId'))#预热
+        if _是否thenable(任务):#可等待
+            def 忽略():#吞掉成败
                 """预热失败由 candidates 再报。"""
-                return None#忽略
-            def 忽略失败(_错误=None):#吞掉失败
-                """预热失败由 candidates 再报。"""
-                return None#忽略
-            承诺.then(忽略成功,忽略失败)#吞掉失败
+                try:#等待
+                    任务.wait()#等待
+                except BaseException:#失败
+                    pass#忽略
+            线=threading.Thread(target=忽略)#后台
+            线.daemon=True#不挡退出
+            线.start()#启动
 
     def 词表(会话):#同步词表
         """已落定目录的技能名。"""

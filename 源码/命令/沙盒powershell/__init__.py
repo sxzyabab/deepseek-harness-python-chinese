@@ -4,7 +4,7 @@
 它把本地 pwsh 的精确 argv 包进 ctx.sandbox（Windows 上解析为 ACL 受限令牌启动器链），沿用本地进程机制，并报告所选模式、强制执行与拒绝事实。正向的启动器拉起证据表示命令从未运行：前台调用抛出 SANDBOX_UNAVAILABLE，后台进程带 runnerFailed；其他 spawn 拒绝仍保留本地执行器语义。工具层经 ctx.approval 负责升级审批流；本执行器报告工具要渲染的沙箱事实。
 """
 from ..本地powershell import 本地PowerShell执行器#本地PowerShell执行器
-from ..沙盒 import 沙箱不可用错误#沙箱不可用错误
+from ...沙盒.沙盒 import 沙箱不可用错误#沙箱不可用错误
 from .辅助 import (
     分类拒绝,#拒绝分类
     分类启动器失败,#启动器失败分类

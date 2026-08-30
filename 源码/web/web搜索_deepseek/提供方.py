@@ -9,8 +9,6 @@ from urllib.request import (
 )#原生 HTTP
 from ..web import 网络错误#web 能力错误
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 编码=json.dumps#JSON 编码
 解码=json.loads#JSON 解码
 线程=threading.Thread#工作线程

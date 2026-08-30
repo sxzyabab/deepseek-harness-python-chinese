@@ -1,8 +1,6 @@
 """本包拥有的后台任务快照不变量。"""
 import json,math#JSON片段与安全整数判定
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-jobs'#本包的不变量所有权名
 名称='jobs-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

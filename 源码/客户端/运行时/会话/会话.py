@@ -14,7 +14,6 @@ from .通知器 import 通知器#脏标记通知器
 from .投影仓库 import 投影值仓库#投影值存储
 from .队列镜像 import 会话队列镜像#队列镜像
 from .会话快照 import 空聊天快照#空聊天切片
-from .会话组装器 import 会话节点组装器#节点组装器（依赖未迁）
 from ..时区 import 解析客户端时区#客户端时区
 
 __all__=['页消息数','会话']#仅中文公开名

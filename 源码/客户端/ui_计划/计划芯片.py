@@ -9,8 +9,6 @@
 """
 
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 
 
 __all__=['计划芯片']#仅中文公开名

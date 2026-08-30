@@ -3,14 +3,13 @@
 对齐上游 `@deepseek-ai/dsh-acp`。公开面仅中文名。本桥接向受信任的程序化客户端暴露新铸造的 harness 会话。保持具名插件导出且无默认导出。
 """
 import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
-承诺=cordis.工具.承诺#承诺
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待
-聚合错误=cordis.工具.聚合错误#聚合错误
-from ..llm import 创建用户消息,错误链#铸造用户消息与错误链文本
-from ..会话 import 会话标识#会话 id 品牌
+聚合错误=cordis.聚合错误#多失败聚合
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+from ...模型后端.llm import 创建用户消息,错误链#铸造用户消息与错误链文本
+from ...内核.会话 import 会话标识#会话 id 品牌
 from .编解码 import ACP提示转文本,提示含不受支持内容,回合结束到停止原因#提示展平与停止原因映射
 from .线路 import 协议版本,请求错误,创建NDJSON流,智能体侧连接#ACP 线路面
 
@@ -19,15 +18,50 @@ __all__=['名称','注入','配置','应用']#仅中文公开名
 名称='acp'#Cordis插件名（字面量）
 注入=['agents']#依赖 agents 服务
 
-配置=路径上节点({#插件配置模式
+配置={#插件配置模式
     'provider':字符串字段(),#可选提供方
     'model':字符串字段(),#可选模型
-})#配置结束
+}#配置结束
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
@@ -263,7 +297,7 @@ def 应用(上下文,配置值):#安装 ACP 桥接插件
             if 上下文.agents.获取(记录['agent'].id) is not 记录['agent']:#注册表里已不是同一实例
                 raise 内部错误('prompt was not queued: the agent was disposed outside the bridge')#桥接外拆除
             消息=创建用户消息({'content':[{'type':'text','text':文本}],'source':{'kind':'user'}})#铸造用户消息
-            等待=承诺()#等到结算才决议
+            等待=操作任务()#等到结算才决议
             飞行={#新的进行中槽
                 'resolve':等待.兑现,#决议器
                 'reject':等待.拒绝,#拒绝器

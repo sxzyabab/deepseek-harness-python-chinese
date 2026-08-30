@@ -9,8 +9,6 @@
 """
 
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 from .文案 import 命名空间,中文,英文#词表
 
 from .清单页签 import 插件清单页签#页签组件

@@ -1,12 +1,10 @@
 """用户设置能力 seam（`ctx.settings`）的服务定义。提供方存储一份按命名空间分节的原始文档；插件登记命名空间模式并读取解析值，解析按模式缺省、登记方组合 `base`、用户文档节这一顺序叠层。"""
 import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖 import schemastery#配置字段
 服务=cordis.服务#Cordis 服务基类
 光纤状态=cordis.纤程状态#拆除态镜像
-承诺=cordis.工具.承诺#写链承诺
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .类型 import 设置命名空间品牌,设置更新来源#再导出类型面
 from .脱敏 import 脱敏密钥#再导出脱敏
 
@@ -16,6 +14,40 @@ from .脱敏 import 脱敏密钥#再导出脱敏
 光纤卸载中=光纤状态.卸载中#正在拆除
 工作线程=threading.Thread#后台结算线程
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait。"""
+    if 值 is None:#空不是
+        return False#不是
+    等待=getattr(值,'wait',None)#取 wait
+    return callable(等待)#可调用才算
+
+class _操作任务:#本文件内单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+
+def _已结算(值=None):#立刻结算的任务
+    """立刻兑现的操作任务。"""
+    任务=_操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -186,7 +218,7 @@ class 设置作用域:#面向所有者的已登记命名空间句柄
 
     def watch(自身,回调):#订阅
         """观察本命名空间已提交解析值的变更。"""
-        观察者={'callback':回调,'tail':已兑现(None),'active':True}#新观察者
+        观察者={'callback':回调,'tail':_已结算(None),'active':True}#新观察者
         自身._登记['watchers'].add(id(观察者))#用 id 挂集合不便取回
         自身._登记['watcher_list'].append(观察者)#有序列表
         def 拆除():#拆除器
@@ -229,8 +261,8 @@ class 设置提供方(服务):#ctx.settings
             等待们=list(自身._写队列.values())+list(自身._待排干)#写链与观察者
             for 任务 in 等待们:#逐个排干
                 try:#一次失败不挡其余
-                    if 是否thenable(任务):#可等待
-                        任务.等待()#等待
+                    if _是否thenable(任务):#可等待
+                        任务.wait()#等待
                 except Exception:#吞结算失败
                     pass#拆除只要求静止
         yield 拆除#拆除器
@@ -304,7 +336,7 @@ class 设置提供方(服务):#ctx.settings
             # TODO(settings-namespace-vocabulary): 把公开 API、提供方约定、实现、测试和消费方里的 `ns` 改名为 `namespace`。
             描述符={#原样描述符
                 'ns':登记['ns'],#短名
-                'schema':登记['schema'].转JSON模式(),#JSON Schema
+                'schema':登记['schema'].toJsonSchema(),#JSON Schema
                 'value':登记['resolved'],#解析值
                 'revision':登记['revision'],#修订
                 'applies':登记['applies'],#生效时机
@@ -379,13 +411,13 @@ class 设置提供方(服务):#ctx.settings
             """从值标签及其路径构造校验错误。"""
             return TypeError('settings '+动词+' for "'+str(命名空间)+'" must contain only JSON-compatible data (found '+标签+' at '+路径+')')#按路径拒
         快照=克隆JSON形(载荷,拒绝)#分离并校验
-        前=自身._写队列.get(命名空间) or 已兑现(None)#前一次写
-        任务=承诺()#本次写
+        前=自身._写队列.get(命名空间) or _已结算(None)#前一次写
+        任务=_操作任务()#本次写
         def 跑():#串到前任之后
             """绕过失败的前任后执行本次写入。"""
             try:#前任失败不得毒化
                 try:#等前任
-                    前.等待()#等
+                    前.wait()#等
                 except Exception:#吞前任失败
                     pass#绕过
                 if 自身.是否已停():#排队期间被拆除
@@ -474,12 +506,12 @@ class 设置提供方(服务):#ctx.settings
         参数=['settings/document-updated',命名空间,修订]#dispatch 参数
         for 监听器 in 自身.ctx.events.dispatch('emit',参数):#逐个监听器
             try:#一个失败不饿死其余
-                返回=监听器(命名空间,修订)#可能返回 Promise
-                if 是否thenable(返回):#异步监听器
+                返回=监听器(命名空间,修订)#可能返回可等待对象
+                if _是否thenable(返回):#异步监听器
                     def 盯住(任务=返回,当前命名空间=命名空间):#收住拒绝
                         """把异步拒绝接到诊断。"""
                         try:#等待
-                            任务.等待()#等待
+                            任务.wait()#等待
                         except Exception as 错误:#拒绝
                             自身.警告监听失败(当前命名空间,错误)#记日志
                     线=工作线程(target=盯住)#后台
@@ -502,12 +534,12 @@ class 设置提供方(服务):#ctx.settings
         登记['resolved']=下一#换上新值
         for 观察者 in list(登记['watcher_list']):#快照观察者
             前尾=观察者['tail']#接到当前尾巴
-            段=承诺()#本段
+            段=_操作任务()#本段
             def 跑(当前观察者=观察者,当前段=段,当前前尾=前尾,当前下一=下一,当前上一=上一):#闭包钉值
                 """按观察者串行调用。"""
                 try:#等前尾
                     try:#前任
-                        当前前尾.等待()#等
+                        当前前尾.wait()#等
                     except Exception:#吞
                         pass#继续
                     if (not 当前观察者['active']) or 自身.是否已停():#已拆或服务停则跳过
@@ -515,8 +547,8 @@ class 设置提供方(服务):#ctx.settings
                         return#跳过
                     try:#调用观察者
                         返回=当前观察者['callback'](当前下一,当前上一)#调用
-                        if 是否thenable(返回):#异步
-                            返回.等待()#等
+                        if _是否thenable(返回):#异步
+                            返回.wait()#等
                     except Exception as 错误:#失败
                         自身.警告观察失败(登记['ns'],错误)#收住失败
                     当前段.兑现()#结算
@@ -534,12 +566,12 @@ class 设置提供方(服务):#ctx.settings
         参数=['settings/updated',登记['ns'],下一,上一,来源]#dispatch 参数
         for 监听器 in 自身.ctx.events.dispatch('emit',参数):#逐个
             try:#一个失败不饿死其余
-                返回=监听器(登记['ns'],下一,上一,来源)#可能返回 Promise
-                if 是否thenable(返回):#异步
+                返回=监听器(登记['ns'],下一,上一,来源)#可能返回可等待对象
+                if _是否thenable(返回):#异步
                     def 盯住(任务=返回,当前命名空间=登记['ns']):#收住拒绝
                         """把异步拒绝接到诊断。"""
                         try:#等待
-                            任务.等待()#等待
+                            任务.wait()#等待
                         except Exception as 错误:#拒绝
                             自身.警告监听失败(当前命名空间,错误)#记日志
                     线=工作线程(target=盯住)#后台

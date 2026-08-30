@@ -1,6 +1,8 @@
 """worker-thread 工作流引擎。每次运行在全新 worker 上的可逃离领域上下文中执行模型写的脚本，并把 agent() 调用桥到宿主子智能体。该线程防止同步脚本工作阻塞宿主，并允许强制终止，但这是收容而不是安全边界。"""
 import os,re,threading,uuid#并行度、meta 语句检测、后台观察与 UUID
-from ...依赖.schemastery import 路径上节点,字符串字段,自然数字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+自然数字段=schemastery.自然数字段#配置字段
 from ..工作流 import (#导入工作流引擎、错误与运行标识
     工作流引擎,#引擎服务定义
     工作流错误,#工作流错误
@@ -26,14 +28,14 @@ __all__=(#仅中文公开名；Cordis 英文槽不入表
 
 元数据语句=re.compile(r'^\s*export\s+const\s+meta\b')#检测 export const meta 语句
 
-配置模式=路径上节点({#静态配置模式
+配置模式={#静态配置模式
     'provider':字符串字段(默认值='spawn'),#默认 spawn 提供方
     'maxConcurrentAgents':自然数字段(默认值=0),#0 表示自动解析并发
     'maxTotalAgents':自然数字段(最小=1,默认值=1000),#默认总数上限 1000
     'maxItemsPerCall':自然数字段(最小=1,默认值=4096),#默认组合子条目上限
     'syncTimeoutMs':自然数字段(最小=1,默认值=5000),#默认同步超时 5000ms
     'disposeGraceMs':自然数字段(默认值=5000),#默认销毁宽限 5000ms
-})#结束配置模式
+}#结束配置模式
 Config=配置模式#Cordis 配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

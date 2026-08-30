@@ -1,9 +1,6 @@
 """凭证 YAML 文档的解析、渲染与仅所有者权限检查。"""
 import os,errno,io#路径、错误码与文本流
-from ...依赖 import ruamel_yaml#外部依赖胶水（ruamel.yaml）
-YAML解析器=ruamel_yaml.YAML#可保留注释的 YAML 往返
-带注释映射=ruamel_yaml.comments.CommentedMap#带注释的映射根
-YAML错误=ruamel_yaml.error.YAMLError#解析失败
+import yaml#外部依赖胶水（PyYAML）
 from ..凭据 import 凭证引用#凭证引用校验
 from ...工具.工作区路径 import 规范化监视路径#监视路径规范化
 

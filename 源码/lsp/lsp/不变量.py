@@ -5,8 +5,6 @@
 无运行时不变量：提供方 id 与扩展路由是私有、原子更新的状态；本缝既不暴露可枚举快照，也不暴露可供独立比较的生命周期事件。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-lsp'#本包的不变量所有权名
 名称='lsp-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

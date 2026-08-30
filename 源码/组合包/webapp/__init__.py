@@ -5,8 +5,11 @@
 依赖 `host_frontend_static`、`webServer` 等宿主包；若尚未迁入则本包激活时会失败——见未迁移插件说明。
 """
 import os,socket#路径与网卡
-from ...依赖.schemastery import 路径上节点,布尔字段,列表字段,字符串字段#配置字段
-from ..app启动 import 添加源码段落#harness 源码提示词段
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+列表字段=schemastery.列表字段#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+from ...启动.app启动 import 添加源码段落#harness 源码提示词段
 
 __all__=['名称','注入','配置','应用','解析局域网信任','内部','网页启动服务键']#仅中文公开名
 
@@ -18,11 +21,11 @@ __all__=['名称','注入','配置','应用','解析局域网信任','内部','�
 回环主机='127.0.0.1'#回环展示主机
 全接口主机='0.0.0.0'#全接口绑定字面量
 
-配置=路径上节点({#Web 应用配置
+配置={#Web 应用配置
     'printUrl':布尔字段(默认值=True),#默认打印 URL
     'surfaceContext':布尔字段(默认值=True),#默认注册表面上下文
     'trustedHosts':列表字段(字符串字段(),默认值=[]),#默认无额外权威
-})#配置结束
+}#配置结束
 
 网页启动服务键='webStartup'#启动服务名（供补丁与启动模块共用）
 

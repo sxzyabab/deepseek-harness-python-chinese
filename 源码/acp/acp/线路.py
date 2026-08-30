@@ -4,9 +4,7 @@
 公开面仅中文名。方法名与错误码字面量保持 ACP 线约定。
 """
 import json,sys,threading#JSON、stdio 与读写线程
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待
+from concurrent.futures import Future as _原生Future#单次操作结果
 
 __all__=[#仅中文公开名
     '协议版本','请求错误','NDJSON流','智能体侧连接',
@@ -14,10 +12,40 @@ __all__=[#仅中文公开名
 
 协议版本=1#ACP 协议版本常量（与 SDK PROTOCOL_VERSION 对齐的本桥接钉值）
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 class 请求错误(Exception):#线路请求错误
@@ -59,7 +87,7 @@ class 智能体侧连接:#ACP 智能体侧连接
         自身.写锁=threading.Lock()#写出互斥
         自身.未决={}#出站请求 id → 承诺
         自身.下一标识=1#下一个出站 id
-        自身.已关闭=承诺()#连接关闭承诺
+        自身.已关闭=操作任务()#连接关闭任务
         自身._关闭落定=False#是否已兑现关闭
         自身.智能体=铸造智能体(自身)#记下连接后铸造 ACP Agent
         自身._读线程=threading.Thread(target=自身._读循环,daemon=True)#后台读
@@ -80,7 +108,7 @@ class 智能体侧连接:#ACP 智能体侧连接
 
     def _通知(自身,方法,参数):#发送出站通知
         """省略响应。返回已兑现承诺。"""
-        等待=承诺()#结果
+        等待=操作任务()#结果
         try:#写出
             自身._写出({'jsonrpc':'2.0','method':方法,'params':参数})#通知帧
             等待.兑现(None)#成功
@@ -90,7 +118,7 @@ class 智能体侧连接:#ACP 智能体侧连接
 
     def _请求(自身,方法,参数):#发送出站请求
         """等待响应。返回承诺。"""
-        等待=承诺()#结果
+        等待=操作任务()#结果
         with 自身.写锁:#互斥取 id
             标识=自身.下一标识#分配
             自身.下一标识+=1#递增

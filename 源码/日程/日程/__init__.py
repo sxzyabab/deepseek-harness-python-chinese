@@ -1,6 +1,5 @@
 """智能体作用域的持久一次性与固定频率提醒，建立在会话事件日志上。"""
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .运行时 import 日程运行时#导入日程运行时
 from .工具 import 登记日程工具#导入工具注册
 from .领域 import (

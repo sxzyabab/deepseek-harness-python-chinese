@@ -5,13 +5,14 @@
 Cordis 槽 `inject` / `Config` / `default` 可保留。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+数字字段=schemastery.数字字段#配置字段
 from ..命令 import 外壳设置命名空间,外壳执行器#shell 设置命名空间与执行器基类
-from ..配置 import 安装设置段#设置段安装
-from ..超时 import (
+from ...配置.配置 import 安装设置段#设置段安装
+from ...工具.超时 import (
     夹取超时,#夹取超时
     截止,#融合截止
     定时器延迟上限毫秒,#定时器延迟上限
@@ -25,14 +26,14 @@ __all__=[#仅中文公开名
 环境覆盖={'NO_COLOR':'1','TERM':'dumb','PAGER':'cat','GIT_PAGER':'cat'}#面向模型的环境覆盖：关掉颜色、哑终端和分页器
 默认宽限毫秒=3000#默认 SIGTERM 到 SIGKILL 宽限
 默认溢出字节=64*1024*1024#默认每路溢出 64MiB
-配置模式=路径上节点({
+配置模式={
     'cwd':字符串字段(),#工作目录字符串
     'timeoutMs':数字字段(默认值=120000),#默认超时 120 秒
     'maxTimeoutMs':数字字段(默认值=600000),#超时上限 600 秒
     'maxOutputBytes':数字字段(默认值=64000),#默认内存输出 64000 字节
     'maxSpillBytes':数字字段(默认值=默认溢出字节),#默认溢出文件上限
     'graceMs':数字字段(默认值=默认宽限毫秒),#默认杀进程宽限
-})#插件配置模式
+}#插件配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -44,10 +45,40 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 最终输出(读取器):#把已结算的收集模式读取器投影成最终收集输出
@@ -257,7 +288,7 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
             进程['status']='killed'#先标成已杀
             运行中.terminate()#请子进程服务终止进程树
             return True#发出了终止
-        完成=承诺()#后台句柄的done
+        完成=操作任务()#后台句柄的done
         进程={
             'status':'running',#刚拉起，算在跑
             'exitCode':None,#尚未退出

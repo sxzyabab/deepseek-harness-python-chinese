@@ -42,10 +42,7 @@ def _解析配置(服务,底配置=None,顶配置=None):
     配置们.extend(获取内部数据(服务.所属上下文,'属性链')['拦截'].清点全链值(服务.名称))#祖先到本层的每一层拦截配置
     if 顶配置:
         配置们.append(顶配置)#覆盖其余
-    合并器=getattr(getattr(服务,'配置模式',None),'合并',None)#配置模式自带的合并器
-    if 合并器 is not None:
-        return 合并器(*配置们)#按模式合并
-    结果={}#浅合并结果
+    结果={}#浅合并结果（新版 schemastery 无合并）
     for 项 in 配置们:
         if isinstance(项,dict):
             结果.update(项)#后来的覆盖先前的

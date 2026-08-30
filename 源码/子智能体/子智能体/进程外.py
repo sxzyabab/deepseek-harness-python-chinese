@@ -2,8 +2,6 @@
 import os#路径存在与权限
 from typing import NotRequired,TypedDict#可选字段与结构类型
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 无启动能力={#冻结的无能力广告
     'outputSchema':False,#不支持输出模式
     'depthLimit':False,#不支持深度上限

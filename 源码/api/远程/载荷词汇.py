@@ -12,7 +12,7 @@
 公开面仅中文名；线上字面量与上游英文字段键保持原样。
 """
 from typing import TypeAlias,TypedDict#递归 JsonValue 别名与结构类型
-from ..会话.json值 import 是否json值,快照json值#会话无损 JSON 判定与脱离快照（权威运行时）
+from ...内核.会话.json值 import 是否json值,快照json值#会话无损 JSON 判定与脱离快照（权威运行时）
 from ...拓展.cordis_服务端.类型 import (#动态包运行器线协议词汇
     动态运行模式,请求运行结局,运行状态,巡检平面,#枚举联合
     动态插件标识,动态包标识,动态运行标识,审批请求标识,巡检查询标识,#品牌 id
@@ -24,12 +24,12 @@ from ...拓展.cordis_服务端.类型 import (#动态包运行器线协议词�
     运行响应形,停止响应形,宿主半结果形,客户端源字段,#响应形
     运行决议形,调用结果形,#决议与 invoke
 )#动态载荷结束
-from ..plugin_inventory.类型 import (#插件清单 Remote 投影
+from ...host.plugin_inventory.类型 import (#插件清单 Remote 投影
     插件清单快照,插件清单条目,插件条目标识,插件光纤阶段,#清单词表
 )#清单结束
-from ..连接.客户端 import (#邻叶厚类型：仅真再导出（对齐 connection/client）
+from ...客户端.连接.客户端 import (#邻叶厚类型：仅真再导出（对齐 connection/client）
     连接句柄,#浏览器连接句柄
-    接口客户端协议,#IApiClient
+    #接口客户端协议,#IApiClient
 )#连接厚类型结束
 from ..网关 import 客户端面 as _网关客户端#侧效：拉入网关客户端类型面（对齐 export type {} from gateway/client）
 from ...拓展.cordis_服务端 import 远程 as _动态远程#侧效：拉入动态包 Remote 类型面（对齐 export type {} from cordis-host-runner/remote）

@@ -6,7 +6,6 @@
 import math,threading#有限数与后台观察
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .归属 import 应用身份,用户代理,归属头#再导出归属
 from .品牌 import (
     消息标识,#消息身份品牌
@@ -43,7 +42,7 @@ from .消息 import (
     创建工具结果消息,#创建工具结果消息
     是否词增量,#是否可见增量
 )
-from .重试政策 import 解析重试政策,重试政策模式#再导出重试政策
+from .重试政策 import 解析重试政策#再导出重试政策
 from .组装器 import 块组装器#再导出块组装器
 from .调用配置 import (
     调用配置相等,#配置相等
@@ -206,10 +205,12 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                     def 收住(任务=返回):#吞掉异步失败
                         """吞掉异步失败，避免未处理拒绝。"""
                         try:#等待结算
-                            if hasattr(任务,'等待'):#本库承诺
+                            if hasattr(任务,'wait'):#Future 风格
+                                任务.wait()#等待
+                            elif hasattr(任务,'等待'):#本库承诺
                                 任务.等待()#等待承诺
-                            else:#普通 thenable
-                                任务.then(None,None)#走 then
+                            else:#外来 thenable
+                                任务.等待()#尽力等待
                         except Exception as 错误:#拒绝
                             自身.警告适配器监听失败(错误)#记诊断
                     threading.Thread(target=收住,daemon=True).start()#线程收住

@@ -11,6 +11,8 @@
 3. Proxy/Reflect.apply（守卫门面执行体）
 4. document 真插入样式、Loader/ModuleLoader
 """
+
+'''
 from .槽目录 import 客户端说明,客户端槽目录,查询槽目录#槽约定
 from .接口目录 import (#客户端 API 目录
     服务目录,事件目录,类型目录,继承上下文目录,
@@ -68,3 +70,4 @@ __all__=[#公开面（对齐 client/index 再导出 + Node 空 apply）
 def 应用():#宿主插件体——本包在宿主侧无贡献
     """空 apply，仅占 Loader 行。浏览器半见装配客户端运行面 / 客户端应用。"""
     return#无贡献
+'''

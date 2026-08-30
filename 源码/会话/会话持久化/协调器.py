@@ -1,12 +1,8 @@
 """第一方后端共用的缓冲、序列化、收养、修复与拆除编排。第三方后端可直接实现公开持久化接缝。"""
 import json,math,threading#JSON相等、安全整数、后台串行链
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-聚合错误=cordis.工具.聚合错误#拆除多失败聚合
-承诺=cordis.工具.承诺#承诺
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
-有自有=cordis.工具.有自有#自有键
-from ..会话 import (#会话包运行时原语
+from ...内核.会话 import (#会话包运行时原语
     收养会话事件,#收养会话事件
     中断轮次关闭器,#被打断回合的合成关闭事件
     已知会话事件类型,#本构建认识的事件类型
@@ -15,8 +11,8 @@ from ..会话 import (#会话包运行时原语
     快照json值,#JSON无损快照
     快照会话事件,#事件快照
 )#从会话包导入
-from ..超时 import 定时器延迟上限毫秒#导入定时器上限
-from ..llm import 结构化克隆#深拷贝
+from ...工具.超时 import 定时器延迟上限毫秒#导入定时器上限
+from ...模型后端.llm import 结构化克隆#深拷贝
 from .预备 import 会话预备池,观察排队取消#取消观察与预备池
 from .写后 import 会话写后#写后控制器
 
@@ -33,10 +29,54 @@ from .写后 import 会话写后#写后控制器
 活会话状态字段=('init','writes')#一个活会话的初始化与有界写后控制器
 预备会话源字段=('inspection','session','revision','sessionLength','tornMarker','closers')#已校验冷源以及从它建成的精确未发布 Session
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    """立刻兑现的操作任务。"""
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 若已中止则抛出(信号):#取消优先抛出
@@ -668,7 +708,7 @@ class 持久化协调器:#持久化协调器
         if 先前 is None:#无前一操作
             先前=已兑现(None)#已决议
         已开始=[False]#本操作是否已开始
-        下一=承诺()#本操作承诺
+        下一=操作任务()#本操作任务
         def 跑():#真正启动
             """前一成败都跑本操作。"""
             try:#等前一
@@ -682,7 +722,7 @@ class 持久化协调器:#持久化协调器
                 下一.兑现(结果)#成功
             except BaseException as 错误:#本操作失败
                 下一.拒绝(错误)#拒绝
-        尾巴=承诺()#吞掉拒绝的尾巴
+        尾巴=操作任务()#吞掉拒绝的尾巴
         def 收尾():#尾巴结算
             """让链条活着，但为本操作的拒绝给下一等待者吞掉。"""
             try:#等本操作
@@ -789,26 +829,32 @@ class 持久化协调器:#持久化协调器
         """启动并观察一个已拆除会话的最终排空。"""
         if 会话对象 not in 自身.活表:#从未初始化则忽略
             return#忽略
-        退役承诺=承诺()#退役承诺
+        退役任务=操作任务()#退役任务
         def 跑退役():#后台退役
             """跑退役核心。"""
             try:#退役
                 解开(自身.退役核心(会话对象))#退役核心
-                退役承诺.兑现(None)#成功
+                退役任务.兑现(None)#成功
             except BaseException as 错误:#退役失败
-                退役承诺.拒绝(错误)#拒绝
-        自身.退役表[会话对象.id]=退役承诺#记下退役承诺
-        def 忘掉(_=None):#结算后忘掉
-            """结算后忘掉退役承诺。"""
-            if 自身.退役表.get(会话对象.id) is 退役承诺:#仍是本承诺才删
+                退役任务.拒绝(错误)#拒绝
+        自身.退役表[会话对象.id]=退役任务#记下退役任务
+        def 忘掉():#结算后忘掉
+            """结算后忘掉退役任务。"""
+            if 自身.退役表.get(会话对象.id) is 退役任务:#仍是本任务才删
                 del 自身.退役表[会话对象.id]#删除
         def 警告失败(错误):#退役失败警告
             """退役失败警告。"""
             忘掉()#忘掉
             自身.上下文.logger.warn(自身.后端名()+': session "'+str(会话对象.id)+'" retirement failed: '+str(错误))#警告
-            return None#吞掉
+        def 盯退役():#成败都忘掉
+            """成败都忘掉；失败警告。"""
+            try:#等退役
+                退役任务.wait()#成功
+                忘掉()#忘掉
+            except BaseException as 错误:#失败
+                警告失败(错误)#警告并忘掉
         threading.Thread(target=跑退役,daemon=True).start()#后台退役
-        退役承诺.then(忘掉,警告失败)#成败都忘掉；失败警告
+        threading.Thread(target=盯退役,daemon=True).start()#观察结算
 
     def 退役核心(自身,会话对象):#退役核心
         """排空并释放一个精确已拆除 Session 生命周期拥有的状态。"""

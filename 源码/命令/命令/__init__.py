@@ -5,7 +5,7 @@
 """
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-from ..配置 import 设置命名空间#导入设置命名空间工厂
+from ...配置.配置 import 设置命名空间#导入设置命名空间工厂
 from .类型 import (
     托管环境前缀,#托管环境前缀
     托管环境键,#托管键品牌

@@ -4,8 +4,8 @@
 """
 import os,json,copy#路径、JSON、克隆
 from ...依赖 import include#外部依赖胶水
-应用条目补丁=include.应用条目补丁#补丁应用
-from ..工作区路径 import 解析主目录#主目录解析
+应用条目补丁=include.应用插件补丁#补丁应用
+from ...工具.工作区路径 import 解析主目录#主目录解析
 
 __all__=[#仅中文公开名
     '配置目录名','配置补丁文件名','配置模板','默认组合包',

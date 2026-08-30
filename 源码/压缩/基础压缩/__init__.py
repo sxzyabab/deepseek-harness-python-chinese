@@ -1,11 +1,16 @@
 """可感知重放的基础压缩后端。"""
 import weakref#每智能体溢出计数与会话→智能体弱映射
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,整数字段,数字字段,布尔字段,列表字段,常量字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+整数字段=schemastery.整数字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+列表字段=schemastery.列表字段#配置字段
+常量字段=schemastery.常量字段#配置字段
 from ..压缩 import 压缩引擎,手动压缩错误#导入压缩引擎与手动失败
-from ..llm import 上下文窗口溢出码,断言永不#导入上下文溢出码与穷尽断言
-from ..超时 import 合成信号#对应 AbortSignal.any
+from ...模型后端.llm import 上下文窗口溢出码,断言永不#导入上下文溢出码与穷尽断言
+from ...工具.超时 import 合成信号#对应 AbortSignal.any
 from .配置 import (#导入配置解析
     解析压缩规格,#缩放到 token 预算
     解析配置,#解析服务配置
@@ -40,14 +45,14 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 
 阈值比例模式=数字字段()#阈值比例模式
 保留比例模式=数字字段()#保留比例模式
-保留令牌模式=整数字段(步进=1,最小=0)#绝对保留模式
+保留令牌模式=整数字段(默认值=0)#绝对保留模式
 摘要提供方模式=字符串字段()#摘要提供方模式
 摘要模型模式=字符串字段()#摘要模型模式
-最大令牌模式=整数字段(步进=1,最小=1)#生成上限模式
-压缩重试模式=整数字段(步进=1,最小=0)#压缩重试模式
-溢出重试模式=整数字段(步进=1,最小=0)#溢出重试模式
+最大令牌模式=整数字段(默认值=1)#生成上限模式
+压缩重试模式=整数字段(默认值=0)#压缩重试模式
+溢出重试模式=整数字段(默认值=0)#溢出重试模式
 
-模型政策模式=路径上节点({#精确目标覆盖模式
+模型政策模式={#精确目标覆盖模式
     'provider':字符串字段(可空=False),#提供方必填
     'model':字符串字段(可空=False),#模型必填
     'thresholdRatio':阈值比例模式,#阈值比例
@@ -58,7 +63,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     'maxTokens':最大令牌模式,#生成上限
     'compactionRetries':压缩重试模式,#压缩重试
     'maxOverflowRetries':溢出重试模式,#溢出重试
-})#modelPolicy 结束
+}#modelPolicy 结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -141,7 +146,7 @@ class 基础压缩引擎(压缩引擎):#基础压缩引擎
     """依赖很轻的压缩后端，用 ctx.tokenMeter 做压力、保留、被引用源事件与摘要收敛计价。summarize() 是唯一的子类定制钩子。"""
     inject=['llm','tokenMeter','sessions']#依赖 llm、计量与会话协调器
     注入=inject#中文别名
-    Config=路径上节点({#插件配置模式
+    Config={#插件配置模式
         'thresholdRatio':阈值比例模式,#阈值比例
         'retainRatio':保留比例模式,#保留比例
         'retainTokens':保留令牌模式,#绝对保留
@@ -152,7 +157,7 @@ class 基础压缩引擎(压缩引擎):#基础压缩引擎
         'maxOverflowRetries':溢出重试模式,#溢出重试
         'modelPolicies':列表字段(模型政策模式),#精确目标表
         'auto':布尔字段(),#是否自动
-    })#Config 结束
+    }#Config 结束
 
     def __init__(自身,上下文,配置=None):#构造引擎
         """绑定 compaction 服务，解析并冻结配置；auto 时挂自动监听。"""

@@ -4,7 +4,6 @@
 """
 from typing import NotRequired,TypedDict#可选字段与结构类型
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#thenable 判断
 
 __all__=('模型选择','模型选择引用','安装模型选择')#仅中文公开名
 

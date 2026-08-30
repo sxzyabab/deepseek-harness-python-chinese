@@ -3,22 +3,39 @@
 会话先宣告就绪再等 go，因此与启动竞速的取消连脚本的同步前缀都能挡住。用取消代替 go 会放开闸门进入已取消的 drive，且不执行正文。
 """
 import threading#消息泵线程
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#飞行中 RPC 承诺
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...模型后端.llm import 断言永不#穷尽检查
 from .协议 import 宿主到工人类型,工人到宿主类型#双向消息标签
 from .领域 import 渲染抛出#抛出值渲染
 from .运行时 import 工作流执行#worker 侧执行
 
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
 class 待处理子:#飞行中的子 RPC 条目
     """一次飞行中的子 RPC 簿记（按 callId 索引）。"""
     def __init__(自身):#建三份承诺
         """建启动/结算/销毁三份承诺。"""
-        自身.started=承诺()#启动兑现子标识
+        自身.started=操作任务()#启动兑现子标识
         自身.启动=自身.started#中文别名
-        自身.settled=承诺()#结算兑现子结果
+        自身.settled=操作任务()#结算兑现子结果
         自身.结算=自身.settled#中文别名
-        自身.disposed=承诺()#销毁确认
+        自身.disposed=操作任务()#销毁确认
         自身.销毁确认=自身.disposed#中文别名
 
 class 远程过程调用子句柄:#worker 侧子句柄
@@ -149,7 +166,7 @@ def 跑工人会话(端口,初始化):#驱动一次 worker 会话
         投递(工人到宿主类型.结果,{'result':{'value':None,'stopReason':'error','error':渲染抛出(错误),'agentsStarted':0}})#直接报错误结果
         return#不再等待 go
 
-    闸门=承诺()#等待 go 或取消的闸门
+    闸门=操作任务()#等待 go 或取消的闸门
 
     def 处理消息(消息):#分发宿主消息
         """按宿主消息类型分发。"""

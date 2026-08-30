@@ -1,7 +1,6 @@
 """沙箱政策的本包拥有会话事件不变量。"""
 import json#诊断里序列化未知模式
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from .会话模式 import 沙盒模式表#导入合法沙箱模式表
 
 包名='@deepseek-ai/dsh-sandbox-policy'#本包的不变量所有权名

@@ -5,8 +5,7 @@
 import time,threading,weakref#时间、线程与弱表
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
-是否thenable=cordis.工具.是否thenable#thenable 判定
-from ..llm.调用配置 import 结构化克隆,冻结映射,可弱引用映射#导入拆离与冻结类型
+from ...模型后端.llm.调用配置 import 结构化克隆,冻结映射,可弱引用映射#导入拆离与冻结类型
 from ..作用域 import 获取作用域,作用域目标#导入作用域键与载体
 from .类型 import (#导入格式版本、会话 id、头字段、事件与待办词表
     会话标识,会话格式版本,是否安全整数,待办状态,待办条目,会话头字段,会话头,

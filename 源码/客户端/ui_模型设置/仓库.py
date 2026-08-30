@@ -3,8 +3,7 @@
 对齐上游 `ui-settings-models/src/client/store.ts`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..schema_form import 再水合模式,路径上节点,取路径,有路径#schema 路径
+from ..模式表单 import 再水合模式,取路径,有路径#schema 路径
 
 __all__=[#仅中文公开名
     '快照仓库','错误文案','推导密钥引用','协议选项','提供方可用','引导就绪度','模型设置仓库','已加载则刷新',
@@ -39,7 +38,7 @@ def 协议选项(命名空间):#从所属命名空间 schema 读出协议选项
     """schema 没有则空列表。"""
     if 命名空间 is None:#无
         return []#空
-    节点=路径上节点(再水合模式(取字段(命名空间,'schema')),['providers',探测路由,'api'])#api 节点
+    节点=取路径(再水合模式(取字段(命名空间,'schema')),['providers',探测路由,'api'])#api 节点
     支=取字段(节点,'anyOf') or 取字段(节点,'oneOf') or []#联合成员
     if not 支:#非 union
         return []#空

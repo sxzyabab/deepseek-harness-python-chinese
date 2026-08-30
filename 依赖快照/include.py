@@ -11,7 +11,11 @@ from .工具 import 克隆#深克隆插件配置列表
 from pathlib import Path
 
 js标签='tag:yaml.org,2002:js'#YAML !!js 的完整标签
-扩展名到媒体类型={'.json':'application/json','.yaml':'application/yaml','.yml':'application/yaml'}#可写扩展名
+扩展名到媒体类型={
+    '.json':'application/json',
+    '.yaml':'application/yaml',
+    '.yml':'application/yaml'
+    }#可写扩展名
 写入重试上限=10#改名失败的重试次数
 写入重试间隔毫秒=50#重试退避的基础间隔
 
@@ -41,10 +45,18 @@ class 插件列表写出器(yaml.SafeDumper):
 def _限定为json方言(解析类):
     "只按 JSON 认得的形态解析裸标量：yes、on、12:30 与 2020-01-01 都是字符串"
     解析类.yaml_implicit_resolvers={}#丢掉 YAML 1.1 的布尔别名、六十进制与时间戳
-    解析类.add_implicit_resolver('tag:yaml.org,2002:null',re.compile(r'^(?:~|null|Null|NULL|)$'),['~','n','N',''])#空值
-    解析类.add_implicit_resolver('tag:yaml.org,2002:bool',re.compile(r'^(?:true|True|TRUE|false|False|FALSE)$'),list('tTfF'))#布尔
-    解析类.add_implicit_resolver('tag:yaml.org,2002:int',re.compile(r'^-?(?:0|[1-9][0-9]*)$'),list('-0123456789'))#整数
-    解析类.add_implicit_resolver('tag:yaml.org,2002:float',re.compile(r'^-?(?:0|[1-9][0-9]*)(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?$'),list('-0123456789'))#浮点
+    解析类.add_implicit_resolver(
+        'tag:yaml.org,2002:null',re.compile(r'^(?:~|null|Null|NULL|)$')
+        ,['~','n','N',''])#空值
+    解析类.add_implicit_resolver(
+        'tag:yaml.org,2002:bool',re.compile(r'^(?:true|True|TRUE|false|False|FALSE)$')
+        ,list('tTfF'))#布尔
+    解析类.add_implicit_resolver(
+        'tag:yaml.org,2002:int',re.compile(r'^-?(?:0|[1-9][0-9]*)$')
+        ,list('-0123456789'))#整数
+    解析类.add_implicit_resolver(
+        'tag:yaml.org,2002:float',re.compile(r'^-?(?:0|[1-9][0-9]*)(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?$')
+        ,list('-0123456789'))#浮点
 
 _限定为json方言(插件列表读取器)#读取按 JSON 方言
 _限定为json方言(插件列表写出器)#写出用同一套方言，裸标量才能原样读回

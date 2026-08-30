@@ -1,11 +1,11 @@
 """面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上。"""
 import json,math#紧凑 JSON 渲染与安全整数判定
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,整数字段#配置字段
-已兑现=cordis.工具.已兑现#立刻兑现的承诺
+from ...依赖 import schemastery#配置字段
+整数字段=schemastery.整数字段#配置字段
 from ..目标 import 目标标识#目标 id 品牌
-from ..llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
-from ..工具 import 定义工具#定义面向模型的工具
+from ...模型后端.llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
+from ...内核.工具 import 定义工具#定义面向模型的工具
 from .权限 import 目标工具执行,要求直接人类,完成权限#执行时权限
 from .收尾 import 渲染收尾上下文#终态收尾指令
 
@@ -70,9 +70,9 @@ inject=注入#Cordis依赖声明
         },#结束有目标分支
     ],#结束 oneOf
 }#结束目标值模式
-配置=路径上节点({#目标工具策略配置
-    'blockedAfterConsecutiveRounds':整数字段(步进=1,最小=1,默认值=3),#默认 3 轮
-})#配置模式结束
+配置={#目标工具策略配置
+    'blockedAfterConsecutiveRounds':整数字段(最小=1,默认值=3),#默认 3 轮
+}#配置模式结束
 Config=配置#Cordis配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

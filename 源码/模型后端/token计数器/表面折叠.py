@@ -1,5 +1,5 @@
 """测量服务的按位置表面折叠。对齐上游 `token-meter/src/surface-fold.ts`。公开面仅中文名。"""
-from ..会话 import 事件派生消息#从事件导出消息
+from ...内核.会话 import 事件派生消息#从事件导出消息
 from .类型 import 取#读取字段
 from .计价 import 计价消息#消息计价
 

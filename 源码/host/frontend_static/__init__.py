@@ -4,15 +4,16 @@
 """
 import os#路径
 from urllib.parse import unquote#解码路径
-from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
 
 __all__=['名称','注入','配置','应用','服务静态']#仅中文公开名
 
 名称='frontend-static'#本插件名
 注入=['webServer']#依赖 webServer
-配置=路径上节点({#前端静态服务配置
+配置={#前端静态服务配置
     'distIndex':字符串字段(可空=False),#index.html 绝对路径
-})#配置结束
+}#配置结束
 
 MIME={#按扩展名的 Content-Type
     '.html':'text/html; charset=utf-8',#HTML

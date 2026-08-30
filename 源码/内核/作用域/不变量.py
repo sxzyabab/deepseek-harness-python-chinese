@@ -3,7 +3,6 @@
 对齐上游 `@deepseek-ai/dsh-scope/invariant`。公开面仅中文名；Cordis 加载槽 `name`/`inject`/`apply` 为协议兼容别名，不入 `__all__`。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
 from .作用域事件 import 按事件取主体解析器,未登记#导入主体解析
 from . import 是否作用域载体,获取载体键#导入载体判定与键读取
 

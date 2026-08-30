@@ -1,7 +1,5 @@
 """`@deepseek-ai/dsh-tool-fs` 的本包拥有不变量配套。对齐上游 `tool-fs/src/invariant.ts`。公开面仅中文名；Cordis 协议槽保留英文别名，不入 `__all__`。"""
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-tool-fs'#本包的不变量所有权名
 名称='tool-fs-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

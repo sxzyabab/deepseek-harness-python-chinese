@@ -3,14 +3,56 @@
 对齐上游 `mcp-client/src/connection.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import math,threading,time#有限判定、定时器与时间戳
-from ..超时 import 定时器延迟上限毫秒#定时器延迟上限
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
+from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .传输 import 创建传输#传输工厂
 from .工具 import 同步工具#工具同步
 
 __all__=['重连默认值','解析重连策略','启动连接']#仅中文公开名
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    """立刻兑现的操作任务。"""
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 重连默认值={#冻结语义的重连默认值
     'enabled':True,#默认启用重连
@@ -31,10 +73,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 解析重连策略(配置,路径):#解析并校验重连策略
@@ -90,10 +132,10 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
         'failedAttempts':0,#连续失败计数
         'connectedAt':None,#连接成功时间戳
         'firstAttemptError':None,#初次失败原因
-        'syncChain':已兑现链(),#同步串行链
+        'syncChain':已兑现(None),#同步串行链
         'settling':None,#进行中的连接尝试
     }#状态结束
-    就绪=承诺()#初次尝试结算承诺
+    就绪=操作任务()#初次尝试结算
 
     def 仍是当前(世代):#是否仍是当前世代
         """一个世代仅在它仍是存活插件上的当前世代时才可行动。"""
@@ -104,30 +146,27 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
         if 同步选项 is None:#缺省用普通选项
             同步选项=选项#普通选项
         链尾=状态['syncChain']#当前链尾
-        本次=承诺()#本次运行
-        def 接到链尾(_值=None):#接到链尾
-            """世代仍当前才交换工具。"""
-            try:#同步
-                if not 仍是当前(世代):#世代已过时则跳过
-                    本次.兑现(None)#跳过
-                    return#结束
-                状态['disposers']=同步工具(世代,上下文,同步选项,状态['disposers'])#交换工具世代
-                本次.兑现(None)#成功
-            except BaseException as 错误:#失败
-                本次.拒绝(错误)#交给调用方
-        def 吞掉(_错误=None):#吞掉失败以免断链
-            """链尾必须挺过失败的同步。"""
-            接到链尾()#继续跑本次
-        新链=承诺()#新链尾
-        def 结算链(_=None):#结算新链
-            """无论成败都放行链。"""
-            新链.兑现(None)#放行
-        状态['syncChain']=新链#挂上新链尾
-        try:#接旧链
-            链尾.then(接到链尾,吞掉)#接到链尾
-        except BaseException:#同步链 then 失败
-            接到链尾()#直接跑
-        本次.then(结算链,结算链)#结算链尾
+        本次=操作任务()#本次运行
+        新链=操作任务()#新链尾
+        状态['syncChain']=新链#先挂上新链尾
+        def 跑链():#接到链尾后跑本次
+            """先前成败都继续；本次落定后放行新链。"""
+            try:#等先前
+                try:#先前失败也继续
+                    _等待(链尾)#等链尾
+                except BaseException:#吞掉失败
+                    pass#链尾必须挺过失败
+                try:#同步
+                    if not 仍是当前(世代):#世代已过时则跳过
+                        本次.兑现(None)#跳过
+                    else:#仍当前
+                        状态['disposers']=同步工具(世代,上下文,同步选项,状态['disposers'])#交换工具世代
+                        本次.兑现(None)#成功
+                except BaseException as 错误:#失败
+                    本次.拒绝(错误)#交给调用方
+            finally:#无论成败都放行链
+                新链.兑现(None)#放行
+        threading.Thread(target=跑链,daemon=True).start()#串行链
         return 本次#把本次运行交给调用方
 
     def 世代断开(世代):#当前世代断开
@@ -138,23 +177,31 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
         状态['clientClosed']=None#清除关闭承诺
         安排重连()#安排重连
 
-    def 等待关闭(关闭承诺):#限时等待关闭
+    def 等待关闭(关闭任务):#限时等待关闭
         """等待传输拥有的关闭信号，不让损坏的传输永远卡住拆除。"""
-        结果=承诺()#超时或关闭二者先到
+        结果=操作任务()#超时或关闭二者先到
+        锁=threading.Lock()#只结算一次
+        def 结算(值):#写入结果
+            """只结算一次。"""
+            with 锁:#互斥
+                if 结果._future.done():#已结算
+                    return#忽略
+                结果.兑现(值)#写入
         def 超时():#超时则失败关闭
             """超时则失败关闭。"""
-            结果.兑现(False)#失败关闭
+            结算(False)#失败关闭
         定时=threading.Timer(世代关闭超时毫秒/1000,超时)#超时定时器
         定时.daemon=True#不独自撑住进程
         定时.start()#启动
-        def 已关闭(_=None):#关闭信号到达
-            """取消超时并报告正常关闭。"""
+        def 盯关闭():#等关闭任务
+            """关闭到达则取消超时并报告正常关闭。"""
+            try:#等待
+                _等待(关闭任务)#等关闭
+            except BaseException:#关闭失败也算观察到
+                pass#仍算观察到
             定时.cancel()#取消超时
-            结果.兑现(True)#正常关闭
-        try:#等待关闭承诺
-            关闭承诺.then(已关闭,已关闭)#关闭或失败都算观察到
-        except BaseException:#then 失败
-            已关闭()#按已关闭处理
+            结算(True)#正常关闭
+        threading.Thread(target=盯关闭,daemon=True).start()#盯关闭
         return 解开(结果)#阻塞等到结果
 
     def 安排重连():#按策略安排下一次连接尝试
@@ -172,12 +219,19 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
         状态['connectedAt']=None#离开连通状态
         状态['failedAttempts']+=1#计入本次失败
         if 状态['failedAttempts']>策略['maxAttempts']:#预算耗尽
-            def 放弃拆除(_=None):#接到同步链尾再拆除
+            def 放弃拆除():#接到同步链尾再拆除
                 """注销全部工具。"""
                 for 注销 in 状态['disposers'].values():#注销全部工具
                     注销()#注销
                 状态['disposers']={}#清空 disposer
-            状态['syncChain'].then(放弃拆除,放弃拆除)#接到同步链尾
+            def 跑放弃():#等链尾后拆除
+                """等链尾后拆除。"""
+                try:#等链
+                    _等待(状态['syncChain'])#等链尾
+                except BaseException:#链失败也拆
+                    pass#仍拆
+                放弃拆除()#注销工具
+            threading.Thread(target=跑放弃,daemon=True).start()#接到同步链尾
             上下文.logger.error(标签+': giving up after '+str(策略['maxAttempts'])+' consecutive failed reconnect attempts — tools unregistered; reload the plugin or restart the Host to reconnect')#记录放弃
             return#停止重连
         延迟=min(策略['maxDelayMs'],策略['initialDelayMs']*(2**(状态['failedAttempts']-1)))#指数退避并封顶
@@ -196,7 +250,7 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
         """一次连接尝试：全新传输 + 客户端，连接，然后排队初次工具同步。"""
         from mcp import ClientSession#MCP 客户端会话
         传输=创建传输(配置)#按配置创建传输
-        关闭=承诺()#本代关闭栅栏
+        关闭=操作任务()#本代关闭栅栏
         尝试已结算=False#本次尝试是否已结算
         已观察关闭=False#是否已观察到关闭
         世代容器={'session':None,'cm':None}#会话与上下文管理器
@@ -294,8 +348,3 @@ def 启动连接(上下文,配置,策略):#启动受监督连接
         状态['disposers']={}#清空 disposer
 
     return {'ready':就绪,'dispose':拆除}#句柄
-
-def 已兑现链():#立刻兑现的链起点
-    """同步串行链起点。"""
-    已兑现=cordis.工具.已兑现#立刻兑现
-    return 已兑现(None)#已完成

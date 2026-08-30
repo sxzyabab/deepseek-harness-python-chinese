@@ -3,17 +3,17 @@
 对齐上游 `@deepseek-ai/dsh-app-boot`。公开面仅中文名。配置键与诊断字面量保持上游。
 """
 import os,re,sys,copy,json,threading#路径、环境、流、克隆、JSON、定时
-from ...依赖 import cordis,include,loader,yaml#外部依赖胶水（含 PyYAML）
+from ...依赖 import cordis,include,loader
+import yaml#外部依赖胶水（含 PyYAML）
 上下文=cordis.上下文#上下文
 光纤状态=cordis.纤程状态#光纤/纤程状态
-是否thenable=cordis.工具.是否thenable#可等待
 包含=include.包含#Include
-应用条目补丁=include.应用条目补丁#补丁应用
-条目列表加载器=include.条目列表读取器#YAML 条目列表方言
-路径转文件url=include.路径转文件网址#路径转 file URL
+应用条目补丁=include.应用插件补丁#补丁应用
+条目列表加载器=include.插件列表读取器#YAML 条目列表方言
+路径转文件url=include.路径转文件url#路径转 url
 组=loader.组#Group 内建
-from ..工作区路径 import 主目录路径,解析主目录#主目录
-from ..启动环境 import 创建启动环境快照#启动环境快照
+from ...工具.工作区路径 import 主目录路径,解析主目录#主目录
+from ...工具.启动环境 import 创建启动环境快照#启动环境快照
 from .配置档 import (#配置档再导出
     组合条目,默认组合包,愈合模块回退,初始化配置档,加载配置档,
     配置补丁文件名,配置模板,配置目录名,读配置清单,解析组合包目录,
@@ -230,7 +230,7 @@ def 挂载根包含(上下文对象,绝对配置路径,补丁=None,裸模块基�
                 内部=getattr(自身.ctx.loader,'internal',None)#内部
                 if 内部 is None:#没有
                     return super().导入(说明符,获取外层栈)#回退
-                return 内部.import(说明符,裸模块基址,{})#宿主基址
+                return 内部.导入(说明符,裸模块基址,{})#宿主基址
         上下文对象.loader.builtins['include']=宿主根包含#注册
     上下文对象.loader.builtins['group']=组#注册 group 内建
     包含配置={'path':路径转文件url(绝对配置路径)}#根 include 配置

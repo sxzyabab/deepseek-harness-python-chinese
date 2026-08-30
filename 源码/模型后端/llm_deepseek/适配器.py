@@ -18,7 +18,7 @@ from ..llm import (
     配额超出码,#配额码
     推理力度标识,#力度id品牌
 )#导入 llm 词表
-from ..超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
+from ...工具.超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .序列化 import 序列化请求#线路序列化
 from .事件流 import 解析服务推送#服务推送事件解析
 from .翻译 import 翻译#线路翻译

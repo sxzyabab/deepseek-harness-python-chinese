@@ -1,11 +1,12 @@
 """工具注册表、模型呈现模式，以及预执行/守卫/环绕/后执行/结果管线。对齐上游 `@deepseek-ai/dsh-tools`。公开面仅中文名；Cordis 槽 `inject`/`Config`/`default` 为协议兼容，不入 `__all__`。"""
 import json,math,threading,weakref
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,枚举字段,自然数字段#配置字段
+from ...依赖 import schemastery#配置字段
+枚举字段=schemastery.枚举字段#配置字段
+自然数字段=schemastery.自然数字段#配置字段
 服务=cordis.服务#导入服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,作用域目标#导入作用域层与载体
-from ..llm import 装备错误 as 框架错误,断言永不,深冻结#导入框架错误、穷尽检查与深冻结
+from ...模型后端.llm import 装备错误 as 框架错误,断言永不,深冻结#导入框架错误、穷尽检查与深冻结
 from ..会话 import 快照json值#导入无损 JSON 快照
 from .json模式 import 断言受支持json模式,断言对象json模式,校验json模式值,json模式错误#导入统一 JSON Schema 校验
 from .模式 import (
@@ -348,10 +349,10 @@ class 工具运行时(服务):
     """工具注册表与执行管线。"""
     注入=['systemPrompt']#依赖系统提示词
     inject=注入#Cordis 依赖声明槽
-    配置=路径上节点({
+    配置={
         'mode':枚举字段('native','code','both',默认值='native'),#呈现默认 native
         'maxParallelSubCalls':自然数字段(最小=1,默认值=10),#并行上限默认 10
-    })#Loader 配置模式
+    }#Loader 配置模式
     Config=配置#Cordis Config 槽
 
     def __init__(自身,ctx,配置=None):

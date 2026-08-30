@@ -3,8 +3,8 @@ import hashlib#目录条目摘要用 SHA-256
 import json#目录条目规范 JSON 编码
 import re#技能手势正则与空白压缩
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,数字字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...模型后端.llm import 创建用户消息#构造用户消息
 from ..技能 import (#技能 seam 公开符号
@@ -30,9 +30,9 @@ inject=注入#Cordis依赖声明
 替换正则=re.sub#正则替换
 查找全部=re.finditer#全局正则匹配
 技能手势=编译正则(r'(^|\s)/([a-z0-9]+(?:-[a-z0-9]+)*)(?=\s|$)')#用户显式/name手势
-配置=路径上节点({#面向模型的技能目录配置
+配置={#面向模型的技能目录配置
     'catalogDescriptionMaxLength':数字字段(默认值=目录描述默认最大长度),#默认500
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

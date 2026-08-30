@@ -3,8 +3,6 @@
 对齐上游 `invariant.ts`。公开面仅中文名；Cordis 加载槽 `name`/`inject`/`apply` 为协议兼容别名，不入 `__all__`。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-bash-sandbox'#本包的不变量所有权名
 名称='bash-sandbox-invariant'#配套不变量插件名（字面量对齐上游）
 注入=['invariants']#依赖 invariants 服务

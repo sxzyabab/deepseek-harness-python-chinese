@@ -4,7 +4,6 @@ FIXME: 首次打标签发布前敲定拟议的 `@deepseek-ai/dsh-timeout-guard` 
 （重新分组 Agent Note：architecture/2026-07-29-package-regrouping）。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...工具.超时 import 截止,取超时#截止武装与按码判定
 
 工具超时码='TOOL_TIMEOUT'#本插件拥有的超时错误码；同时用作内部截止分类码和替换结果上的结构化错误 code

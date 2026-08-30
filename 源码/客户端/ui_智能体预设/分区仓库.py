@@ -5,7 +5,6 @@
 """
 import re#正则
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .设置仓库 import 错误文,写默认预设,读名册#读名册、错误文案、写默认
 
 __all__=['分区控制器','草稿阻挡','分区初始','预设标识形']#仅中文公开名

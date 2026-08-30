@@ -4,15 +4,32 @@
 本层只对 abort 信号作出反应；截止、拆除阶梯和原因分类归调用方。
 """
 import os,signal,tempfile,threading,time#路径、信号、溢出目录、收集线程与轮询
+from concurrent.futures import Future as _原生Future#单次操作结果
 from secrets import token_hex#溢出文件名随机后缀
 from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#子进程与同步taskkill
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#句柄done承诺
 from ..子进程 import 擦洗父环境#清洗后的父环境
 from ...工具.超时 import 定时器延迟上限毫秒#单次定时器可表示的最大延迟
 from .进程检查 import 组内有活成员#Linux组内存活探针
 
 __all__=('子环境','输出收集器','启动子进程','杀组','taskkill进程树','信号树')#仅中文公开名
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
 
 溢出计数=0#本进程溢出文件序号
 默认溢出目录=None#惰性私有溢出目录
@@ -303,7 +320,7 @@ def 启动子进程(规格,内部=None):#本地spawn
     try:#spawn可能失败
         孩子=Popen(**启动参数)#启动
     except Exception as 错误:#spawn失败
-        完成=承诺()#拒绝done
+        完成=操作任务()#拒绝done
         完成.拒绝(错误)#spawn级失败
         raise 错误#调用方立即看见；与Node同步抛错不同处：Node把失败放进done——此处对齐同步失败+句柄路径由上层捕获
     #注：Node的spawn失败走child.on('error')拒绝done且仍返回句柄；Python Popen构造失败同步抛。下面成功路径对齐。
@@ -324,7 +341,7 @@ def 启动子进程(规格,内部=None):#本地spawn
         'pipeDrainTimer':None,#close等待上限
     }#可变状态
     pid=孩子.pid if 孩子.pid is not None else -1#同步可读pid
-    完成=承诺()#直接孩子结局
+    完成=操作任务()#直接孩子结局
 
     def 树仍活():#存活探针
         """分离树的根（或 POSIX 组）是否仍活着。"""
@@ -351,7 +368,7 @@ def 启动子进程(规格,内部=None):#本地spawn
         """启动或复用句柄上唯一的整树退出观察者。"""
         if 状态['treeExitObservation'] is not None:#已建
             return 状态['treeExitObservation']#复用
-        观察=承诺()#观察承诺
+        观察=操作任务()#观察任务
         def 轮询():#后台轮询
             """活着就继续轮询，缺席后取消升级定时器。"""
             while 树仍活():#活着
@@ -508,7 +525,7 @@ def 启动子进程(规格,内部=None):#本地spawn
         if 等待信号 is None:#无取消则死等
             观察.等待()#等到缺席
             return True#静止
-        取消=承诺()#取消通道
+        取消=操作任务()#取消通道
         def 在取消时():#abort→False
             """取消回调。"""
             取消.兑现(False)#取消
@@ -516,7 +533,7 @@ def 启动子进程(规格,内部=None):#本地spawn
         if 已中止(等待信号):#登记时已取消
             在取消时()#立刻兑现
         try:#两路赛跑
-            静止=承诺()#静止通道
+            静止=操作任务()#静止通道
             def 在静止时():#观察完成
                 """静止回调。"""
                 静止.兑现(True)#静止

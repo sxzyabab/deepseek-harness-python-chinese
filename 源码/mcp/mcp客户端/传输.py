@@ -2,7 +2,7 @@
 
 对齐上游 `mcp-client/src/transport.ts`。公开面仅中文名。
 """
-from subprocess import 擦洗父环境#已擦洗的父进程环境
+#from subprocess import 擦洗父环境#已擦洗的父进程环境
 
 __all__=['创建传输','合并子环境']#仅中文公开名
 

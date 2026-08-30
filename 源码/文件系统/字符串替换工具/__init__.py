@@ -2,8 +2,9 @@
 import os#绝对路径判断
 from functools import cmp_to_key#目录列举排序对齐上游比较器
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,数字字段,字符串字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
+字符串字段=schemastery.字符串字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义器
 from ..文件系统 import 文件系统错误#导入文件系统错误
 from ...沙盒.沙盒 import 沙箱拒绝标记#导入沙箱拒绝标记文案
@@ -37,10 +38,10 @@ inject=注入#Cordis依赖声明
     '* The `new_str` parameter should contain the edited lines that should replace the `old_str`'#new_str为替换文
 )#去掉首尾空白由上游 trim；此处字面量已无首尾空白
 
-配置=路径上节点({#插件配置校验模式
+配置={#插件配置校验模式
     'maxOutputChars':数字字段(默认值=16_000),#视图字符上限
     'description':字符串字段(默认值=默认描述),#工具描述
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式
 
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
@@ -55,10 +56,22 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否整数(值):#对齐JS Number.isInteger

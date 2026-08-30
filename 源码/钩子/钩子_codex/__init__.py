@@ -1,10 +1,11 @@
 """在 harness 拦截点上桥接未经修改的 Codex 命令钩子。支持五个点（SessionStart、提示/工具前后、Stop）、仅正则匹配器、snake_case 载荷且不加末尾换行、没有钩子环境或命令替换、也没有工具前批准或改写路径；只兑现阻断判定。共用的执行与解析在 `dsh-hook-protocol`。"""
-import json,os,time#读配置、进程 cwd 与墙钟
+import json,os,time,threading#读配置、进程 cwd、墙钟与后台链
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
-承诺=cordis.工具.承诺#可等待
-是否thenable=cordis.工具.是否thenable#后台任务
-from ..llm import 创建用户消息#导入用户消息工厂
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+from ...模型后端.llm import 创建用户消息#导入用户消息工厂
 from ..钩子协议 import (
     追加钩子调用,#追加调用事件
     追加钩子结果,#追加结果事件
@@ -21,15 +22,45 @@ from .配置 import 解析科德克斯配置#导入配置解析
 注入=['shell']#依赖 shell 服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置=路径上节点({#插件配置：Codex hooks.json 所在位置，以及载荷上的模型名
+配置={#插件配置：Codex hooks.json 所在位置，以及载荷上的模型名
     'configPath':字符串字段(),#Codex hooks.json 路径；必填；进程级，加载时读一次
     'model':字符串字段(默认值=''),#盖在每份载荷上的模型名（Codex 每个事件都带 model）
     'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒（Codex 默认：600000）
     'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字符),#hook/result 事件里持久 stderr 摘要的字符上限
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式
 插件来源={'kind':'plugin','plugin':'hooks-codex'}#本桥注入的每条上下文都盖上的来源
 处理器计数=0#处理器计数，用于稳定 id
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -41,10 +72,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺席#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 取墙钟毫秒():#对齐 performance.now
@@ -256,7 +287,15 @@ def 应用(上下文,配置值=None):#安装 Codex 钩子桥
                     解开(智能体.inject(上下文消息))#注入
             except Exception as 错误:#分离失败只警告
                 上下文.logger.warn('hooks-codex: SessionStart hook failed: '+str(错误))#记录失败
-        分离.track(承诺(任务))#登记分离链
+        后台=操作任务()#分离链任务
+        def 跑():#后台跑分离链
+            try:#跑任务
+                任务()#跑分离链
+                后台.兑现(None)#成功
+            except BaseException as 错误:#失败
+                后台.拒绝(错误)#拒绝
+        threading.Thread(target=跑,daemon=True).start()#启动
+        分离.track(后台)#登记分离链
     上下文.on('agent/session-start',会话开始监听)#结束 session-start 监听
 
     def 预步骤监听(载荷,下一步,*剩余):#步进前跑 UserPromptSubmit

@@ -4,7 +4,6 @@
 """
 import threading#后台观察承诺
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#thenable 判断
 from ..作用域 import 作用域目标#作用域载体构造
 
 __all__=('智能体事件派发','智能体载体','智能体事件','发出智能体事件','为组装构建上下文')#仅中文公开名
@@ -45,10 +44,12 @@ def 智能体事件(上下文对象,智能体,载体=None):#构建融合派发�
                     def 观察(返回值=返回,事件名=名称):#收住拒绝
                         """收住返回承诺的拒绝。"""
                         try:#收住拒绝
-                            if hasattr(返回值,'等待'):#本库承诺
+                            if hasattr(返回值,'wait'):#Future 风格
+                                返回值.wait()#等待结算
+                            elif hasattr(返回值,'等待'):#本库承诺
                                 返回值.等待()#等待结算
-                            else:#普通 thenable
-                                返回值.then(lambda 值:None,lambda 错误:None)#thenable 结算
+                            else:#外来 thenable
+                                返回值.等待()#尽力等待
                         except Exception as 错误:#拒绝
                             上下文对象.logger.warn('agent event "'+事件名+'" listener rejected: '+str(错误))#记拒绝
                     线程=threading.Thread(target=观察)#后台观察

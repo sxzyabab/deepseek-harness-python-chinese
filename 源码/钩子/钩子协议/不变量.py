@@ -1,8 +1,7 @@
 """本包拥有的钩子调用与结果流不变量。"""
 import json,math#方言诊断与有限数校验
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-from ..作用域 import 弱身份表#按身份存取的弱表
+from ...内核.作用域 import 弱身份表#按身份存取的弱表
 
 包名='@deepseek-ai/dsh-hook-protocol'#本包名
 名称='hook-protocol-invariant'#配套插件名

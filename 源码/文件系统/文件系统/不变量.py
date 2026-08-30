@@ -1,7 +1,5 @@
 """本包拥有的文件系统事件数据不变量。"""
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器承诺
-
 包名='@deepseek-ai/dsh-fs'#本包的不变量所有权名
 名称='fs-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

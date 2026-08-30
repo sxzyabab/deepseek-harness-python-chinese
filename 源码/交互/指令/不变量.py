@@ -1,7 +1,5 @@
 """`@deepseek-ai/dsh-commands` 的包内不变量配套：命令生命周期事件在同一会话日志内按 commandId 配对。"""
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-commands'#本包名，用于登记所有权
 名称='commands-invariant'#配套插件名
 注入=['invariants']#依赖不变量服务

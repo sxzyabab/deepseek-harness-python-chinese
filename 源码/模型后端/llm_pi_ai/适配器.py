@@ -5,8 +5,8 @@
 """
 import threading#工作线程
 from .. import llm#语言模型服务
-from ...依赖 import pi_ai#外部依赖胶水（pi-ai SDK）
-from ..超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
+import pi_ai#外部依赖胶水（pi-ai SDK）
+from ...工具.超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .上下文 import 转派上下文#上下文转换
 from .流 import 转流块#事件翻译
 

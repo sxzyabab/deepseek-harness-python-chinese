@@ -1,4 +1,10 @@
 """组：目标。"""
+from . import (
+    goal_round_driver,
+    工具_目标,
+    指令_目标,
+    目标,
+)
 __all__=[
     'goal_round_driver',
     '工具_目标',

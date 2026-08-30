@@ -3,8 +3,6 @@
 对齐上游 `ui-model-selection/src/client/directory.ts`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 __all__=['模型目录','空目录状态']#仅中文公开名
 
 def 空目录状态():#冷启动快照

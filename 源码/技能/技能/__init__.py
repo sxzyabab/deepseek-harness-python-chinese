@@ -1,10 +1,10 @@
 """智能体技能提供方注册表。本包拥有技能能力缝的 Service Definition 角色。具体提供方决定技能从何处来；本服务只合并提供方目录、解析某名称的胜出技能，并把胜出摘要与定义暴露给消费方。"""
 import json,math,re,threading#正则、缓存键、有限数与后台观察
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
 服务=cordis.服务#Cordis服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
-承诺=cordis.工具.承诺#承诺
 from ...内核.作用域 import 具名条目,作用域层集,获取作用域,获取作用域链,弱身份表#分层命名条目与作用域链
 from ...模型后端.llm import 断言永不#封闭联合收尾断言
 from .类型 import (#再导出类型面
@@ -48,6 +48,36 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 运行时排名=250#运行时条目在一层内的默认排名
 捆绑技能排名=600#打包技能提供方与本地捆绑根的标准优先排名
 
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
     if 对象 is None:#空对象
@@ -76,10 +106,10 @@ def 是否有限数(值):#对齐JS Number.isFinite
         return math.isfinite(值)#有限
     return False#其它类型
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 已中止(信号):#信号是否已中止
@@ -259,9 +289,9 @@ class 技能层:#一层的提供方与运行时表
 
 class 技能注册表(服务):#技能注册表服务
     """技能提供方的分层注册表，沿用工具注册表确立的宿主+每作用域形态。一次注册落入调用上下文作用域的那一层：宿主行与仓库插件落入全局层，由智能体预设常驻组合挂载的插件落入该预设的层。读取时把全局层与观察作用域的链合并——最近一层的同名条目直接胜出，排名只在同一层内决定重复项。对外暴露已排序的、与调用面无关的摘要，并按需加载完整技能正文。"""
-    配置=路径上节点({#配置模式
+    配置={#配置模式
         'collectCacheMaxEntries':数字字段(默认值=默认收集缓存条目),#缓存上限，默认128
-    })#结束配置模式
+    }#结束配置模式
     Config=配置#Cordis 配置模式槽
 
     def __init__(自身,ctx,配置=None):#安装skills服务
@@ -542,7 +572,7 @@ class 技能注册表(服务):#技能注册表服务
         for 回调 in list(自身.ctx.events.dispatch('emit',参数)):#取出emit监听器
             try:#监听器失败不得否决变更
                 返回=回调()#可能返回thenable
-                if 是否thenable(返回):#异步拒绝也收容
+                if _是否thenable(返回):#异步拒绝也收容
                     def 盯住(任务=返回):#收住拒绝
                         """收住异步拒绝。"""
                         try:#等待
@@ -585,7 +615,7 @@ def 运行时获取(候选,选项=None):#定位器就是定义本身
 
 def 运行时列出(选项=None):#运行时不经list发现
     """运行时提供方 list：空目录。"""
-    任务=承诺()#立刻兑现
+    任务=操作任务()#立刻兑现
     任务.兑现([])#空目录
     return 任务#已兑现
 
@@ -729,7 +759,7 @@ def 与取消竞速(任务,信号):#与取消竞速
     if 信号 is None:#无信号则原样返回
         return 解开(任务)#解开
     抛若中止(信号)#已取消则立刻抛
-    结果=承诺()#包装竞速
+    结果=操作任务()#包装竞速
     锁=threading.Lock()#只结算一次
     已结算=[False]#可变旗标
     def 清理():#去掉abort监听

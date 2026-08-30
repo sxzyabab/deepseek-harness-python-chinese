@@ -2,7 +2,8 @@
 
 对齐上游 `tool-fs/src/index.ts`。公开业务面仅中文名；Cordis 协议槽（name/inject/Config/apply/default）保留英文别名供加载器识别，不入 `__all__`。空不变量配套见 `.不变量`。
 """
-from ...依赖.schemastery import 路径上节点,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
 from .读 import 应用读工具,读行数上限,流最小大小,解析读参数,解析正整数#导入读工具与读窗口默认值
 from .写 import 应用写工具,解析写参数,格式化写输出#导入写工具
 from .编辑 import 应用编辑工具,解析编辑参数,格式化编辑输出#导入编辑工具
@@ -44,12 +45,12 @@ from .类型 import (#再导出内部字段名约定
 name=名称#Cordis插件名（协议槽）
 inject=注入#Cordis依赖声明（协议槽）
 
-配置=路径上节点({#schemastery配置模式；全部可选，缺省由模式填入产品默认值
+配置={#schemastery配置模式；全部可选，缺省由模式填入产品默认值
     'readLimit':数字字段(默认值=读行数上限),#读行数默认值
     'readMaxLineLength':数字字段(默认值=读最大行长),#单行长度默认值
     'readMaxBytes':数字字段(默认值=读最大字节),#字节上限默认值
     'readStreamMinSize':数字字段(默认值=流最小大小),#流式阈值默认值
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式（协议槽）
 
 __all__=(#仅中文公开名；Cordis 英文协议槽不入表

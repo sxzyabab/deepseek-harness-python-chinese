@@ -1,7 +1,5 @@
 """把一次一次性子智能体跑结算成后台任务结局。只有一次性后台路径使用 Jobs；可续跑子体没有 Task、没有每消息结果、也没有 Task 取消。"""
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
     if 对象 is None:#空对象

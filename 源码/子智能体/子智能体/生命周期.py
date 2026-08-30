@@ -1,7 +1,6 @@
 """两种子智能体形态的生命周期边发布：带隔离的发射器、一次性跑观察者、可续跑 Activation 观察者。公开载荷约定与缝的其余面向消费方类型一起放在类型模块；本模块只拥有实现，以及续跑管理器消费的包私有 ActivationObserver。"""
-import uuid#随机uuid
+import uuid,threading#随机uuid与后台观察
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ...内核.智能体 import 折叠已消费工作#导入已消费工作折叠
 from .助手输出 import 最终助手输出#导入最终助手输出选取
 from .类型 import 子智能体跑标识#导入跑id品牌构造
@@ -43,13 +42,13 @@ def 创建生命周期发射器(上下文对象,载体):#建造带隔离发射�
             try:#隔离同步抛出
                 返回=回调(信息)#调用监听器
                 if 是否thenable(返回):#返回承诺
-                    def 记拒绝(错误,_名=名称):#隔离返回的拒绝
-                        """记录拒绝。"""
-                        上下文对象.logger.warn('subagent: '+_名+' listener rejected: '+渲染抛值(错误))#记录拒绝
-                    try:#挂 catch
-                        返回.catch(记拒绝)#隔离拒绝
-                    except Exception:#无catch则旁路
-                        pass#忽略
+                    def 观察(任务=返回,_名=名称):#隔离返回的结算
+                        """观察但不阻塞；拒绝只记日志。"""
+                        try:#等待结算
+                            解开(任务)#等待
+                        except BaseException as 错误:#拒绝
+                            上下文对象.logger.warn('subagent: '+_名+' listener rejected: '+渲染抛值(错误))#记录拒绝
+                    threading.Thread(target=观察,daemon=True).start()#后台观察
             except Exception as 错误:#同步抛出
                 上下文对象.logger.warn('subagent: '+名称+' listener threw: '+渲染抛值(错误))#记录抛出
     return 发射#生命周期发射器
@@ -78,7 +77,13 @@ def 观察跑(发射,提供方,父,跑):#观察一次性跑
         载荷['stopReason']='error'#错误终态
         发射('subagent/end',载荷,父)#终态边
     if 是否thenable(结果):#承诺
-        结果.then(成功,失败)#挂观察
+        def 观察():#终态观察
+            """Promise 反应在同步 start 发射之后跑，保持 start → end。"""
+            try:#成功臂
+                成功(解开(结果))#等待后成功
+            except BaseException:#失败臂
+                失败()#基础设施拒绝
+        threading.Thread(target=观察,daemon=True).start()#挂观察
     else:#已决议值
         try:#同步结果
             成功(结果)#当成功

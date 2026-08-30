@@ -1,10 +1,11 @@
 """在 ctx.web 注册 DeepSeek 后端提供方。它调用带原生 web_search_20250305 的 Anthropic 兼容 Messages API。提供方复用 DEEPSEEK_API_KEY 但不复用 DEEPSEEK_BASE_URL，因为搜索与 chat-completions 使用不同基址。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,整数字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..凭据 import 凭证引用#凭证引用工厂
-from ..配置 import 安装设置段,设置命名空间#设置段安装与命名空间
-from ..启动环境 import 取启动环境#启动环境快照
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+整数字段=schemastery.整数字段#配置字段
+from ...凭据.凭据 import 凭证引用#凭证引用工厂
+from ...配置.配置 import 安装设置段,设置命名空间#设置段安装与命名空间
+from ...工具.启动环境 import 取启动环境#启动环境快照
 from .提供方 import (
     DeepSeek搜索提供方,#DeepSeek 搜索提供方类
     默认接口版本,#默认 anthropic-version
@@ -28,16 +29,16 @@ __all__=['名称','注入','应用','配置模式','Config','name','inject']#公
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 
-配置模式=路径上节点({
-    'apiKey':字符串字段(角色='secret'),#字面量密钥；优先用 apiKeyEnv，以免密钥进入配置文件
-    'apiKeyEnv':字符串字段(角色='credential-ref',默认值=默认密钥环境),#每次搜索解析的凭证引用
+配置模式={
+    'apiKey':字符串字段(),#字面量密钥；优先用 apiKeyEnv，以免密钥进入配置文件
+    'apiKeyEnv':字符串字段(默认值=默认密钥环境),#每次搜索解析的凭证引用
     #写在模式里而不只在使用点：配置面渲染已解析段，模式未携带的默认值在那里会读成完全没有值。
     'baseURL':字符串字段(),#Anthropic 兼容端点基址；会接上 /messages；无模式默认
     'model':字符串字段(默认值=默认模型),#Anthropic 格式模型名
     'apiVersion':字符串字段(默认值=默认接口版本),#anthropic-version 头
-    'maxTokens':整数字段(步进=1,最小=1,默认值=默认最大令牌),#Messages 请求生成 token 上限
-    'maxUses':整数字段(步进=1,最小=1,默认值=默认最大使用次数),#每次请求最多使用 web_search 的次数
-})#插件配置（全部可选——应用 填环境变量与常量默认值）
+    'maxTokens':整数字段(默认值=默认最大令牌),#Messages 请求生成 token 上限
+    'maxUses':整数字段(默认值=默认最大使用次数),#每次请求最多使用 web_search 的次数
+}#插件配置（全部可选——应用 填环境变量与常量默认值）
 Config=配置模式#Cordis 配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

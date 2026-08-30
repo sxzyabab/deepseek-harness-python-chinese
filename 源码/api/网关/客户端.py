@@ -3,9 +3,10 @@
 对齐上游 `api/gateway/src/client/index.ts`。公开面仅中文名。
 贡献安装带追踪的 remote.<namespace> 服务；方法查找、调用与类型暴露都不走 Proxy。
 """
+import threading#后台串行与监听器盯住
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-是否thenable=cordis.工具.是否thenable#可等待判定
 
 __all__=[#仅中文公开名
     '注入','应用','客户端远程服务','远程命名空间服务',
@@ -18,6 +19,47 @@ inject=注入#上游名
 
 命名空间保留字段=frozenset(['ctx','empty','invokeRemote','methods','name','namespace'])#方法名不得占用
 
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#纤程等
+
+class _操作任务:#本文件内单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+
+def _已结算(值=None):#立刻结算的任务
+    """立刻兑现的操作任务。"""
+    任务=_操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#纤程等
+
 def 取字段(对象,键,缺省=None):#读字段
     """从映射或对象读字段。"""
     if 对象 is None:#空
@@ -26,10 +68,10 @@ def 取字段(对象,键,缺省=None):#读字段
         return 对象[键] if 键 in 对象 else 缺省#键
     return getattr(对象,键,缺省)#属性
 
-def 解开(值):#承诺则等待
-    """承诺则等待，否则原样。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待
+def 解开(值):#可等待则等待
+    """可等待则等待，否则原样。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步
 
 def 拼端点(描述符):#从描述符拼规范端点
@@ -183,13 +225,13 @@ class 客户端远程服务(服务):#客户端远程服务
         自身.ownerCtx=上下文#拥有方上下文
         自身.namespaces={}#已安装命名空间
         自身.subscriptions={}#按事件名分组的订阅
-        自身.mutations=已兑现空()#挂载拆除串行队列
+        自身.mutations=_已结算(None)#挂载拆除串行队列尾
         def 清订阅():#拆除时清空订阅表
             """清空。"""
             自身.subscriptions.clear()#清空
         上下文.effect(lambda:清订阅,'api-gateway.client.subscriptions')#生命周期
 
-    def $mount(自身,贡献):#挂载一份远程贡献
+    def mount(自身,贡献):#挂载一份远程贡献
         """把挂载纳入调用方效果。"""
         调用方=自身.ctx#调用方上下文
         def 执行挂载():#串行执行挂载
@@ -202,7 +244,7 @@ class 客户端远程服务(服务):#客户端远程服务
             return 自身.入队(拆除)#拆除
         return 卸#拆除函数
 
-    def $on(自身,事件,监听器):#按事件名订阅远程事件
+    def on(自身,事件,监听器):#按事件名订阅远程事件
         """按登记本身识别而不是按监听器函数。"""
         订阅={'listener':监听器}#本次登记
         监听们=自身.listeners(事件)#取或创建
@@ -215,8 +257,8 @@ class 客户端远程服务(服务):#客户端远程服务
                 pass#忽略
         return 退订#拆除器
 
-    def $dispatch(自身,事件,参数):#向已订阅监听器投递一帧
-        """隔离同步抛错或返回 Promise 拒绝的监听器。"""
+    def dispatch(自身,事件,参数):#向已订阅监听器投递一帧
+        """隔离同步抛错或可等待对象拒绝的监听器。"""
         监听们=自身.subscriptions.get(事件)#取该事件
         if 监听们 is None:#没有订阅
             return#直接返回
@@ -226,9 +268,17 @@ class 客户端远程服务(服务):#客户端远程服务
                 """报告监听器抛错。"""
                 print('client api: Remote event',repr(事件),'listener threw:',错误)#报告
             try:#调用
-                落定=监听(*参数)#可能返回承诺
-                if 是否thenable(落定):#异步
-                    落定.then(lambda _=None:None,报告) if hasattr(落定,'then') else None#隔离拒绝
+                落定=监听(*参数)#可能返回可等待对象
+                if _是否thenable(落定):#异步
+                    def 盯住(任务=落定):#收住拒绝
+                        """把异步拒绝接到诊断。"""
+                        try:#等待
+                            _等待(任务)#等待
+                        except Exception as 错误:#拒绝
+                            报告(错误)#报告
+                    线=threading.Thread(target=盯住)#后台
+                    线.daemon=True#不挡退出
+                    线.start()#启动
             except Exception as 错误:#同步抛错
                 报告(错误)#报告
 
@@ -243,16 +293,27 @@ class 客户端远程服务(服务):#客户端远程服务
     def 入队(自身,操作):#把挂载拆除操作串到队列尾
         """前一步无论成败都跑本次。"""
         前=自身.mutations#当前队列尾
-        def 跑(_=None):#执行操作
-            """调用操作。"""
-            return 操作() if callable(操作) else 操作#执行
-        if hasattr(前,'then'):#有 then
-            结果=前.then(跑,跑)#串上
-            自身.mutations=结果.then(lambda _=None:None,lambda _=None:None)#队列吞掉成败
-            return 结果#本次结果
-        结果=跑()#同步
-        自身.mutations=已兑现空()#重置
-        return 结果#结果
+        任务=_操作任务()#本次结果
+        锚=_操作任务()#队列尾锚，吞掉成败
+        def 跑():#串到前任之后
+            """前任失败不挡本次；锚始终成功。"""
+            try:#前任失败不得毒化
+                try:#等前任
+                    解开(前)#等
+                except Exception:#吞前任失败
+                    pass#绕过
+                值=操作() if callable(操作) else 操作#执行
+                值=解开(值)#展平可等待
+                任务.兑现(值)#交给调用方
+            except BaseException as 错误:#失败
+                任务.拒绝(错误)#调用方看见拒绝
+            finally:#锚始终成功
+                锚.兑现(None)#队列继续
+        线=threading.Thread(target=跑)#工作线程
+        线.daemon=True#不挡住退出
+        线.start()#启动
+        自身.mutations=锚#钉成新尾巴
+        return 任务#本次结果
 
     def 挂载贡献(自身,调用方,贡献):#安装一份贡献的描述符并登记到 Typert
         """先校验，再逐个安装；中途失败回滚。"""
@@ -452,11 +513,6 @@ class 客户端远程服务(服务):#客户端远程服务
             return {'ok':True,'value':解析(描述符['result'],结果['value'],端点,'result')}#成功
         except Exception as 错误:#载体抛错
             return 载体失败(端点,错误)#折成内部失败
-
-def 已兑现空():#空已兑现承诺锚点
-    """用于串行队列初值。"""
-    已兑现=cordis.工具.已兑现#延迟导入
-    return 已兑现(None)#空值
 
 def 中止控制器():#简易中止控制器
     """提供 signal.aborted 与 abort()。"""

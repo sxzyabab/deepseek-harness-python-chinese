@@ -3,21 +3,64 @@
 注册比生产者和控制器 fiber 活得更久。智能体或服务拆除会取消在线工作并等待合规生产者；抛错的拆除取消只强制失败记录，并报告可能的孤儿。
 """
 import json,math,time,threading#JSON片段、有限数、纪元毫秒与后台线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,整数字段#配置字段
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-已兑现=cordis.工具.已兑现#立刻兑现
-from ..作用域 import 匿名条目,作用域层集,获取作用域#匿名条目、作用域分层与取作用域
-from ..超时 import 截止,取超时#截止与超时码判定
+from ...依赖 import schemastery#配置字段
+整数字段=schemastery.整数字段#配置字段
+from ...内核.作用域 import 匿名条目,作用域层集,获取作用域#匿名条目、作用域分层与取作用域
+from ...工具.超时 import 截止,取超时#截止与超时码判定
 from ..任务 import 任务注册表,任务标识#任务注册表与任务 id
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    """立刻兑现的操作任务。"""
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 任务等待超时='TASK_WAIT_TIMEOUT'#等待超时码
 默认每所有者并发=10#每所有者默认并发
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
-配置=路径上节点({#进程内注册表配置
-    'maxConcurrentJobsPerOwner':整数字段(步进=1,最小=1,最大=安全整数上限,默认值=默认每所有者并发),#每所有者并发上限
-})#结束 Config 模式
+配置={#进程内注册表配置
+    'maxConcurrentJobsPerOwner':整数字段(默认值=默认每所有者并发),#每所有者并发上限
+}#结束 Config 模式
 Config=配置#Cordis配置模式
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
@@ -35,10 +78,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否安全整数(值):#对齐 JS Number.isSafeInteger
@@ -72,10 +115,10 @@ def 后台观察拒绝(值,记拒绝):#在后台等到 thenable 落定
     def 观察():#收住拒绝
         """收住拒绝。"""
         try:#等待结算
-            if hasattr(值,'等待'):#本库承诺
+            if callable(getattr(值,'wait',None)):#本库操作任务
+                值.wait()#等待结算
+            elif callable(getattr(值,'等待',None)):#外来 thenable
                 值.等待()#等待结算
-            else:#普通 thenable
-                值.then(None,None)#等待结算
         except BaseException as 错误:#拒绝
             记拒绝(错误)#记拒绝
     线程=threading.Thread(target=观察)#后台观察
@@ -152,7 +195,7 @@ class 本地任务注册表(任务注册表):#进程内任务注册表
         序号=自身.计数器.get(种类,0)+1#该种类下一个序号
         自身.计数器[种类]=序号#记下序号
         标识=任务标识(种类+'-'+str(序号))#签发 <kind>-N
-        已结算=承诺()#结算完成承诺
+        已结算=操作任务()#结算完成操作任务
         def 标记已结算():#结算决议器
             """兑现结算承诺。"""
             已结算.兑现(None)#兑现
@@ -253,23 +296,23 @@ class 本地任务注册表(任务注册表):#进程内任务注册表
                 任务['waiters']-=1#减等待者
             截止对象=截止(信号,超时毫秒,任务等待超时)#作用域截止
             try:#有界等待
-                等待承诺=承诺()#等到结算或中止
+                等待任务=操作任务()#等到结算或中止
                 停止监视=threading.Event()#停掉中止监视
                 def 已结算时():#任务结算
                     """任务结算唤醒。"""
                     任务['waitResolvers'].discard(已结算时)#注销决议器
                     停止监视.set()#停中止监视
-                    等待承诺.兑现(None)#等待成功
+                    等待任务.兑现(None)#等待成功
                 def 监视中止():#截止或调用方中止
                     """监视截止信号。"""
                     while not 停止监视.is_set():#尚未停
                         if 信号已中止(截止对象.信号):#已中止
                             任务['waitResolvers'].discard(已结算时)#注销决议器
                             if 取超时(截止对象.信号,任务等待超时) is not None:#是有界超时
-                                等待承诺.兑现(None)#超时仍返回当前快照
+                                等待任务.兑现(None)#超时仍返回当前快照
                             else:#调用方取消
                                 减计数()#立刻摘掉等待者
-                                等待承诺.拒绝(Exception('wait aborted'))#拒绝本次等待
+                                等待任务.拒绝(Exception('wait aborted'))#拒绝本次等待
                             停止监视.set()#停监视
                             return#结束
                         停止监视.wait(0.01)#短暂让出
@@ -278,7 +321,7 @@ class 本地任务注册表(任务注册表):#进程内任务注册表
                 监视线程.daemon=True#不挡住退出
                 监视线程.start()#启动监视
                 try:#等到决议
-                    等待承诺.等待()#阻塞到结算或中止
+                    等待任务.wait()#阻塞到结算或中止
                 finally:#无论成败都停监视
                     停止监视.set()#停中止监视
             finally:#无论成败都摘计数并释放截止
@@ -410,7 +453,7 @@ class 本地任务注册表(任务注册表):#进程内任务注册表
         for 监听器 in 自身.完成监听器们(任务['owner']):#该所有者的完成监听器
             try:#包含一次回调
                 返回=监听器(快照,任务['owner'])#投递快照与精确所有者
-                if 是否thenable(返回):#观察返回的 Promise 但不等待
+                if _是否thenable(返回):#观察返回的 Promise 但不等待
                     def 记拒绝(错误,标识=任务['id']):#记下拒绝
                         """记下拒绝。"""
                         自身.自用上下文.logger.warn('jobs: onJobDone listener rejected for '+str(标识)+': '+str(错误))#记下拒绝

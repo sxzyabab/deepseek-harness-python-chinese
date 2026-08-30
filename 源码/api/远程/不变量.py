@@ -5,8 +5,6 @@
 无运行时不变量：被观察的关系由 Typert 以及 Agent/Session 注册表拥有。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-api-remotes'#本包的不变量所有权名
 名称='api-remotes-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

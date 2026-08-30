@@ -1,7 +1,6 @@
 """默认一次性摘要与耐久检查点装帧。"""
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..llm import (#导入 LLM 词汇
+from ...模型后端.llm import (#导入 LLM 词汇
     内容含图片,#图像判断
     创建用户消息,#用户消息工厂
     块组装器,#流式块组装

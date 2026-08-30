@@ -1,20 +1,2 @@
 '依赖胶水模块,自行修改cordis框架相关内容别忘了来看看要不要修改这里'
-from ..依赖快照 import (
-    工具,
-    cordis,
-    hmr,
-    include,
-    schemastery,
-    logger_console,
-    loader,
-)
-
-__all__=[
-    '工具',
-    'cordis',
-    'hmr',
-    'include',
-    'schemastery',
-    'logger_console',
-    'loader',
-]
+from ..依赖快照 import *

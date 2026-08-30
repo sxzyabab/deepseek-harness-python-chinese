@@ -1,8 +1,6 @@
 """一次工作流运行的宿主侧。第一份 worker 结果、意外死亡、或取消宽限到期拥有结算权并关闭消息准入。待启动项共享一条中止信号；已发布的子运行共享幂等清理，静止等待两者，并对缺失的结束事件做合成。"""
 import os,queue,tempfile,threading,time#平台、队列、临时目录、线程与宽限睡眠
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...模型后端.llm import 断言永不#穷尽检查
 from ...内核.会话 import 快照json值#JSON 无损快照
 from ..工作流.运行时类型 import 工作流运行#存活运行协议
@@ -20,10 +18,40 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 class 中止信号:#可监听的取消通道
@@ -185,7 +213,7 @@ class 线程工人:#对齐 node:worker_threads.Worker 的最小宿主面
         自身._到工人.put(消息)#入队
     def terminate(自身):#终止工人
         """终止工人线程（协作：关闭旗 + 毒丸）。"""
-        完成=承诺()#终止承诺
+        完成=操作任务()#终止任务
         def 收尾():#后台等待
             """置关闭并等待线程结束。"""
             自身._关闭.set()#关闭
@@ -237,7 +265,7 @@ class 工人运行(工作流运行):#宿主侧一次工作流运行
         自身.销毁宽限毫秒=销毁宽限毫秒#中文别名
         自身.observer=观察者#执行观察者
         自身.观察者=观察者#中文别名
-        自身.result=承诺()#运行结果承诺
+        自身.result=操作任务()#运行结果任务
         自身.结果=自身.result#中文别名
         自身._settled=False#是否已经结算
         自身._terminalClaimed=False#终态是否已被占用
@@ -302,7 +330,7 @@ class 工人运行(工作流运行):#宿主侧一次工作流运行
         """取消 + 有界结算 + 终止。幂等；每条路径都安全。"""
         if 自身._disposed is not None:#已有销毁事务则加入
             return 自身._disposed#返回同一份
-        公开=承诺()#公开销毁的结算器
+        公开=操作任务()#公开销毁的结算器
         自身._disposed=公开#对外暴露同一份事务
         def 主体():#销毁事务主体
             """销毁事务主体。"""
@@ -388,7 +416,7 @@ class 工人运行(工作流运行):#宿主侧一次工作流运行
             自身._投递(宿主到工人类型.子启动错误,{'callId':调用号,'rendered':初始失败['rendered']})#回报启动失败
             return#不再启动
         自身._hostStarted+=1#计入已接受的启动子
-        任务=承诺()#启动提供方事务
+        任务=操作任务()#启动提供方事务
         自身._pendingStarts.add(任务)#登记进行中的启动
         def 跑():#后台启动
             """启动并发布一个子运行。"""
@@ -480,7 +508,7 @@ class 工人运行(工作流运行):#宿主侧一次工作流运行
         """启动（或加入）一个已登记子运行的销毁；登记条目在结算时离开。"""
         if 记录.disposal is not None:#已有事务则加入
             return 记录.disposal#返回同一份
-        事务=承诺()#新销毁事务
+        事务=操作任务()#新销毁事务
         记录.disposal=事务#记住
         def 跑():#后台销毁
             """调用子运行销毁并离表。"""

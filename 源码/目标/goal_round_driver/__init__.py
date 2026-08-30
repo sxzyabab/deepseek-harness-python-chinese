@@ -2,8 +2,7 @@
 import threading#串行驱动循环后台线程
 from ...依赖 import cordis#外部依赖胶水
 光纤状态=cordis.纤程状态#纤程状态，拆除时不再驱动
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..llm import 创建用户消息#铸造续跑用户消息
+from ...模型后端.llm import 创建用户消息#铸造续跑用户消息
 from .提示 import 渲染目标轮次提示#本包拥有的续跑提示渲染器
 
 名称='goal-round-driver'#Cordis 插件名

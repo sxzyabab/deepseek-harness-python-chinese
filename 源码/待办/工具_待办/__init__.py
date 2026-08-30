@@ -6,9 +6,8 @@
 """
 import json#重复内容报错片段
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,布尔字段#配置字段
-已兑现=cordis.工具.已兑现#操作链承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .类型 import 待办条目,待办状态#再导出类型面
 
@@ -20,9 +19,9 @@ __all__=['名称','注入','配置','应用','待办条目','待办状态']#仅�
 描述并行='Mark every todo being actively worked on `in_progress` — several at once when work genuinely runs in parallel (e.g. concurrent subagents or background commands), one for sequential work; while work remains, at least one task should be `in_progress`. '#并行政策句
 描述单活='Keep AT MOST ONE todo `in_progress` at a time; while work remains, exactly one active task should be `in_progress`. '#单活政策句
 描述尾='Mark a todo `completed` the moment it is done (do not batch completions), and allow no `in_progress` item only once all work is complete. Skip the list for trivial single-step tasks. Statuses: `pending` (not started), `in_progress` (being worked on now), `completed` (finished).'#描述后段
-配置=路径上节点({#待办工具部署配置
+配置={#待办工具部署配置
     'allowParallelInProgress':布尔字段(可空=False),#是否允许多条 in_progress
-})#配置模式结束
+}#配置模式结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""

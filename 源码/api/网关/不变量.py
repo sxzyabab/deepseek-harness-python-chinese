@@ -5,8 +5,6 @@
 无运行时不变量：Host 调用会重新读取权威的 Cordis 与 Typert 状态，而 Client 方法、描述符与 `$on` 订阅在一个所拥有的 effect 内变更。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-api-gateway'#本包的不变量所有权名
 名称='api-gateway-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

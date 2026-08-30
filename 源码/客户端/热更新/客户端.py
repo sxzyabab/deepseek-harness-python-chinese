@@ -3,9 +3,37 @@
 对齐上游 `hmr/src/client/index.ts`。公开面仅中文名。监听宿主的系统 SSE 通道；收到 `rebuilt` 帧时重载该条目的打包产物，并原地替换 cordis 光纤。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+import threading#重载串行链
+from concurrent.futures import Future as _原生Future#单次操作结果
 from .事件 import 插件事件帧,事件端点#再导出 SSE 帧与路径
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#本库或外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 __all__=['名称','注入','应用','插件事件帧','事件端点']#仅中文公开名
 
@@ -91,7 +119,39 @@ def 应用(上下文):#安装浏览器半边 HMR
                 except Exception as 错误:#失败只记日志
                     上下文.logger.error('client-hmr: reload of "'+标识+'" failed')#重载失败标题
                     上下文.logger.error(错误)#失败详情
-            队列=队列.then(下一步) if hasattr(队列,'then') else 已兑现(下一步())#串行
+            链尾=队列#当前队列尾
+
+            本次=操作任务()#本次重载
+
+            新尾=操作任务()#新队列尾
+
+            队列=新尾#先挂新尾
+
+            def 跑链():#接到链尾后跑下一步
+
+                try:#等前一重载
+
+                    try:#前一失败也继续
+
+                        _等待(链尾)#等链尾
+
+                    except BaseException:#吞掉
+
+                        pass#链尾必须挺过失败
+
+                    下一步()#执行重载
+
+                    本次.兑现(None)#成功
+
+                except BaseException as 错误:#重载失败
+
+                    本次.拒绝(错误)#记失败
+
+                finally:#无论成败都放行链
+
+                    新尾.兑现(None)#放行
+
+            threading.Thread(target=跑链,daemon=True).start()#串行
             return#rebuilt 处理完
         if 种类=='graph':#连接时快照，未使用
             return#忽略

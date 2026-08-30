@@ -5,8 +5,6 @@
 无运行时不变量：这是浏览器侧表面插件，其 node 半边不拥有事件流或可变运行时数据；名册与设置写入是宿主约定，由那边覆盖。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-client-ui-agent-preset'#本包的不变量所有权名
 名称='client-ui-agent-preset-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

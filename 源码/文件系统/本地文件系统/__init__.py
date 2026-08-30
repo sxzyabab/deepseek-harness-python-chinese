@@ -2,7 +2,9 @@
 import os#工作目录与路径判定
 import threading#每目标键互斥
 from urllib.request import pathname2url#路径转 file URL
-from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+数字字段=schemastery.数字字段#配置字段
 from .. import 文件系统 as fs#文件系统服务定义与错误
 from . import 文件读写#本地 IO 实现
 
@@ -10,10 +12,10 @@ from . import 文件读写#本地 IO 实现
 缓冲区最大长度=4294967295#Node 64 位 buffer.constants.MAX_LENGTH
 字符串最大长度=536870888#Node 64 位 buffer.constants.MAX_STRING_LENGTH
 最大diff基准字节=min(缓冲区最大长度,字符串最大长度)#diff 基准不可超过的运行时上限
-配置模式=路径上节点({#schemastery 配置模式
+配置模式={#schemastery 配置模式
     'cwd':字符串字段(默认值=os.getcwd()),#相对路径基准目录，默认进程 cwd
     'diffBasisMaxBytes':数字字段(默认值=默认diff基准最大字节),#diff 基准每侧字节上限
-})#Config 模式结束
+}#Config 模式结束
 
 __all__=['本地文件系统','配置模式','默认']#仅中文公开名；Cordis 槽英文别名不入表
 

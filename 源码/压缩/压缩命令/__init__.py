@@ -1,7 +1,5 @@
 """面向人类的 /compact 命令，走与后端无关的压缩 seam。"""
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#操作链承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ..压缩 import 手动压缩错误#手动压缩预期失败
 
 名称='command-compact'#Cordis插件名
@@ -14,6 +12,36 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '名称','注入','用法','取字段','解开','信号已中止','应用','默认',
 ]#公开面结束
 
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
     if 对象 is None:#空对象
@@ -24,10 +52,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 信号已中止(信号):#对齐 AbortSignal.aborted
@@ -106,31 +134,22 @@ def 执行压缩(上下文,调用):#执行一次无参数的手动压缩请求
 
 def 应用(上下文):#为每个已组合的人类命令适配器注册 /compact
     """为每个已组合的人类命令适配器注册 /compact。"""
-    进行中=set()#进行中的处理承诺集合
+    进行中=set()#进行中的处理任务集合
 
     def 处理(调用):#命令处理函数
-        """启动一次压缩并把原承诺交给命令派发。"""
-        操作=承诺()#本轮处理承诺
-        def 跑():#同步跑完后结算承诺
-            """执行压缩并兑现或拒绝本轮承诺。"""
-            try:#执行压缩
-                操作.兑现(执行压缩(上下文,调用))#兑现人类结果
-            except BaseException as 错误:#非预期失败
-                操作.拒绝(错误)#拒绝本轮
+        """启动一次压缩并把原任务交给命令派发。"""
+        操作=操作任务()#本轮处理任务
         进行中.add(操作)#记入进行中集合
-        def 退役(_=None):#完成后从集合移除
-            """完成后从集合移除。"""
-            进行中.discard(操作)#退役
-        跑()#启动一次压缩
-        # 成败两支都不重新抛出，因此派生观察不会成为预期处理拒绝的未处理镜像。
-        try:#无论成败都退役
-            操作.then(退役,退役)#观察结算
-        except BaseException:#观察路径吸收
-            退役()#仍退役
-        return 操作#把原承诺交给命令派发
+        try:#执行压缩
+            操作.兑现(执行压缩(上下文,调用))#兑现人类结果
+        except BaseException as 错误:#非预期失败
+            操作.拒绝(错误)#拒绝本轮
+        finally:#无论成败都退役
+            进行中.discard(操作)#从集合移除
+        return 操作#把原任务交给命令派发
 
     def 装寿命():#注册生命周期effect
-        """先排空再注册：组合拆除是 LIFO，已启动的处理承诺安静下来之前不会有新调用进入。"""
+        """先排空再注册：组合拆除是 LIFO，已启动的处理任务安静下来之前不会有新调用进入。"""
         def 排空():#拆除时等全部处理结束
             """拆除时等全部处理结束。"""
             for 项 in list(进行中):#拷贝进行中集合
@@ -148,5 +167,5 @@ def 应用(上下文):#为每个已组合的人类命令适配器注册 /compact
     上下文.effect(装寿命,'command-compact lifecycle')#effect标签
 
 apply=应用#Cordis插件入口
-default=应用#默认导出
-默认=应用#中文默认导出
+默认=应用#默认导出
+default=应用#Cordis默认导出

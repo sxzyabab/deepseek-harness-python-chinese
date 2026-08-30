@@ -3,8 +3,6 @@
 无运行时不变量：除所属 seam 已强制的约定外，本包不暴露独立事件序列或可变数据关系。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-bash-local'#本包的不变量所有权名
 名称='bash-local-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

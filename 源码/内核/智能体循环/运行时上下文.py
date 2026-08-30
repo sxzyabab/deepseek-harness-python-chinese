@@ -1,5 +1,5 @@
 """动态运行时上下文的可持久化投影状态。"""
-from ..llm import 创建用户消息
+from ...模型后端.llm import 创建用户消息
 from ..会话 import 是否替换表面事件
 from .辅助 import 取
 

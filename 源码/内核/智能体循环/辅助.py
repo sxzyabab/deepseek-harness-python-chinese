@@ -1,9 +1,45 @@
-"""循环用的中止、承诺赛跑与字段读取。"""
+"""循环用的中止、异步任务赛跑与字段读取。"""
 import threading#后台线程
-from ..llm.类型 import 中止信号 as 基中止信号#基类取消通道
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
+from ...模型后端.llm.类型 import 中止信号 as 基中止信号#基类取消通道
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
 
 def 取(对象,名,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
@@ -26,10 +62,10 @@ def 有自有(对象,名):#对齐 Object.hasOwn
         return False#没有字典
     return 名 in 字典#自有
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否整数(值):#对齐 JS Number.isInteger
@@ -205,9 +241,9 @@ class 中止控制器:#发出中止的控制器
         """中止配套信号。"""
         自身.信号.触发(原因)#触发一次
 
-def 在线程跑(函数):#在工作线程执行并返回承诺
-    """在工作线程执行并返回承诺。"""
-    任务=承诺()#本次数
+def 在线程跑(函数):#在工作线程执行并返回任务
+    """在工作线程执行并返回操作任务。"""
+    任务=操作任务()#本次任务
     def 跑():#执行函数并结算
         """执行函数并结算。"""
         try:#执行
@@ -217,11 +253,11 @@ def 在线程跑(函数):#在工作线程执行并返回承诺
     工作=threading.Thread(target=跑)#工作线程
     工作.daemon=True#不挡住退出
     工作.start()#启动
-    return 任务#承诺
+    return 任务#操作任务
 
 def 赛跑(任务列表):#最先结算的那路胜出
     """最先结算的那路胜出。"""
-    胜出=承诺()#赛跑结果
+    胜出=操作任务()#赛跑结果
     锁=threading.Lock()#只结算一次
     def 盯(任务):#等待一路并尝试胜出
         """等待一路并尝试胜出。"""
@@ -236,11 +272,11 @@ def 赛跑(任务列表):#最先结算的那路胜出
         工作=threading.Thread(target=盯,args=(任务,))#盯梢线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
-    return 胜出.等待()#阻塞取胜者
+    return 胜出.wait()#阻塞取胜者
 
 def 全部并发(任务列表):#并发等待全部，一路失败则抛
     """并发等待全部，一路失败则抛。"""
-    槽们=[承诺() for _ in 任务列表]#每路一槽
+    槽们=[操作任务() for _ in 任务列表]#每路一槽
     def 盯(任务,槽):#等待一路写入槽
         """等待一路写入槽。"""
         try:#等待
@@ -251,7 +287,7 @@ def 全部并发(任务列表):#并发等待全部，一路失败则抛
         工作=threading.Thread(target=盯,args=(任务,槽))#工作线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
-    return [槽.等待() for 槽 in 槽们]#按原序取出
+    return [槽.wait() for 槽 in 槽们]#按原序取出
 
 def 全部结算(任务列表):#并发等全部落定，吞掉失败
     """并发等全部落定，吞掉失败。"""
@@ -274,7 +310,7 @@ def 与中止赛跑(操作,信号,标识):#等待操作，或在信号中止时�
     """等待操作，或在信号中止时立刻抛出其原因。"""
     if 已中止(信号):#已中止
         raise 包中止错误(标识,中止原因(信号))#立刻抛
-    中止侧=承诺()#中止时拒绝
+    中止侧=操作任务()#中止时拒绝
     def 监听():#abort 时拒绝赛跑
         """abort 时拒绝赛跑。"""
         中止侧.拒绝(包中止错误(标识,中止原因(信号)))#中止原因
@@ -296,7 +332,7 @@ def 与中止赛跑调用(操作,信号,标识,释放被弃=None):#启动可中�
             def 收被弃():#兑现则释放，拒绝则忽略
                 """兑现则释放，拒绝则忽略。"""
                 try:#等待被弃值
-                    释放被弃(未决.等待())#兑现则释放
+                    释放被弃(未决.wait())#兑现则释放
                 except BaseException:#拒绝
                     pass#拒绝则忽略
             收线程=threading.Thread(target=收被弃)#后台收
@@ -304,8 +340,8 @@ def 与中止赛跑调用(操作,信号,标识,释放被弃=None):#启动可中�
             收线程.start()#启动
         raise 错误#原错上抛
 
-def 已兑现(值=None):#立刻兑现的承诺
-    """立刻兑现的承诺。"""
-    任务=承诺()#新承诺
+def 已兑现(值=None):#立刻兑现的任务
+    """立刻兑现的操作任务。"""
+    任务=操作任务()#新任务
     任务.兑现(值)#立刻成功
     return 任务#已完成

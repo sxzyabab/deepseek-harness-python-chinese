@@ -3,13 +3,13 @@
 对齐上游 `@deepseek-ai/dsh-tool-bash-persistent`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import re,time,uuid,threading,weakref#正则、轮询休眠、随机标记、中止锁与弱表
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,数字字段#配置字段
-已兑现=cordis.工具.已兑现#立刻兑现
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..工具 import 定义工具#定义面向模型的工具
-from ..超时 import 截止,取超时#命令截止与超时原因
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+from ...内核.工具 import 定义工具#定义面向模型的工具
+from ...工具.超时 import 截止,取超时#命令截止与超时原因
 
 __all__=['名称','注入','配置','应用','默认']#仅中文公开名
 
@@ -29,12 +29,47 @@ __all__=['名称','注入','配置','应用','默认']#仅中文公开名
 末尾换行模式=re.compile(r'\r?\n$')#末尾换行
 名称='tool-bash-persistent'#Cordis插件名（字面量）
 注入=['tools','terminals']#依赖工具与终端
-配置=路径上节点({#持久Bash工具配置
+配置={#持久Bash工具配置
     'backendType':字符串字段(默认值='shell'),#默认shell后端
     'timeoutMs':数字字段(默认值=300000),#默认300秒
     'maxOutputChars':数字字段(默认值=16000),#默认16000字符
     'description':字符串字段(默认值=默认描述),#默认工具描述
-})#配置模式结束
+}#配置模式结束
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -46,10 +81,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 是否安全整数(值):#对齐JS Number.isSafeInteger
@@ -89,7 +124,7 @@ def 听中止(信号,回调):#登记一次性abort回调
         信号.addEventListener('abort',回调,{'once':True})#听一次
         return#已登记
     if hasattr(信号,'加入监听'):#中文API
-        信号.加入监听('abort',回调,{'once':True})#听一次
+        信号.加入监听('abort',回调)#听一次
 
 def 抛若中止(信号):#已中止则抛出原因
     """已中止则抛出原因。"""
@@ -391,7 +426,7 @@ def 持久壳们(上下文,配置值):#按所有者缓存持久壳
         if 已有 is not None:#复用同一承诺
             return 已有#复用
         组合信号=中止信号.任一([信号,生命周期.信号])#调用取消或插件拆除都算
-        创建=承诺()#真正创建承诺
+        创建=操作任务()#真正创建任务
         创建中.add(创建)#拆除时要等它
         进行中[所有者]=创建#给后续调用复用
         def 拉起并初始化():#拉起并初始化
@@ -514,8 +549,8 @@ def 登记持久Bash(上下文,配置值):#注册持久bash工具
         先前=队列.get(所有者)#上一条
         if 先前 is None:#没有上一条
             先前=已兑现(None)#立刻
-        运行=承诺()#本条结果
-        尾巴=承诺()#吞掉结果，只当队列尾巴
+        运行=操作任务()#本条结果
+        尾巴=操作任务()#吞掉结果，只当队列尾巴
         def 接龙():#无论上一条成败都跑本条
             """无论上一条成败都跑本条。"""
             try:#等上一条

@@ -1,8 +1,9 @@
 """面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值。它拥有面向模型的模式与运行生命周期；脚本解析、执行、上限与取消放在 `ctx.workflowEngine`（`@deepseek-ai/dsh-workflow`）后面，因此换上加固引擎不必改动模型所见。执行会等待 `run.result` 并始终销毁运行；非 completed 原因变成工具错误，后台收集仍推迟。展示是仅依赖 args 的通用卡片，标题来自 `meta.name`。显式询问的用法指引登记为工具自己的提示词段落，而不是部署人设散文。"""
 import json#结果 JSON 渲染
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,自然数字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+自然数字段=schemastery.自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
 __all__=[#仅中文公开名；Cordis 英文槽不入表
     '名称','注入','配置','描述','取字段','解开','渲染记录错误',
@@ -14,10 +15,10 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 注入=['tools','workflowEngine','systemPrompt']#依赖工具、工作流引擎与系统提示词
 name=名称#Cordis 插件名
 inject=注入#Cordis 依赖声明
-配置=路径上节点({#插件配置：面向模型的工具名以及结果渲染上限
+配置={#插件配置：面向模型的工具名以及结果渲染上限
     'toolName':字符串字段(默认值='workflow'),#要登记的面向模型的工具名（默认 workflow）
     'maxResultChars':自然数字段(最小=1,默认值=50_000),#渲染结果的字符上限（默认 50000）
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis 配置模式
 
 # 脚本编写约定，嵌在工具描述里。这就是面向模型的规格：meta 块、钩子及其精确语义、以及受支持的模式子集。字面量保持原文。

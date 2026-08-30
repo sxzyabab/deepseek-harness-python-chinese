@@ -1,9 +1,12 @@
 """本地 PTY 后端经过校验的配置。"""
-from ...依赖.schemastery import 路径上节点,字符串字段,数字字段,列表字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+列表字段=schemastery.列表字段#配置字段
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
 
-配置=路径上节点({#对外插件配置模式
+配置={#对外插件配置模式
     'backendType':字符串字段(默认值='shell'),#默认后端类型
     'shellPath':字符串字段(默认值='/bin/bash'),#默认shell路径
     'shellArgs':列表字段(字符串字段(),默认值=['--noprofile','--norc','-i']),#默认shell参数
@@ -18,7 +21,7 @@ from ...依赖.schemastery import 路径上节点,字符串字段,数字字段,�
     'handoffGraceMs':数字字段(默认值=500),#默认交接宽限
     'timeoutMs':数字字段(默认值=30000),#默认超时
     'disposeGraceMs':数字字段(默认值=3000),#默认拆除宽限
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式
 
 def 是否安全整数(值):#对齐JS Number.isSafeInteger

@@ -2,11 +2,35 @@
 
 对齐上游 `@deepseek-ai/dsh-scope`（`index.ts`）。公开面仅中文名；无英文公开别名。
 """
-import weakref#弱引用，对齐上游 WeakMap
+import weakref,threading#弱引用与并发
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 上下文=cordis.上下文#上下文类（过滤符号挂在类上）
-承诺=cordis.工具.承诺#可等待拆除边界
 from .存储 import 具名条目,匿名条目,作用域层集#再导出作用域感知登记表
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
 
 __all__=(#仅中文公开名
     '弱身份表',#按对象身份存取的弱键表（多包复用）
@@ -140,7 +164,7 @@ def 创建作用域(上下文对象,键,选项=None):#铸造作用域
         """竞态共用一次静止拆除。"""
         nonlocal 拆除中#修改外层
         if 拆除中 is None:#首次拆除
-            任务=承诺()#本轮拆除
+            任务=操作任务()#本轮拆除
             拆除中=任务#先挂上供竞态等待
             try:#走完静止
                 等到光纤静止(光纤对象)#走完静止
@@ -148,7 +172,7 @@ def 创建作用域(上下文对象,键,选项=None):#铸造作用域
             except Exception as 错误:#拆除失败
                 任务.拒绝(错误)#失败
                 raise#原样抛出
-        拆除中.等待()#竞态等待同一次完成
+        拆除中.wait()#竞态等待同一次完成
     return 作用域(带标签,光纤对象.dispose,拆除)#作用域对象
 
 def 获取作用域(上下文对象):#读最近作用域标签

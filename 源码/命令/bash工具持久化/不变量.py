@@ -5,8 +5,6 @@
 无运行时不变量：适配器私有的所有者到 shell 缓存没有可观察事件或数据关系。生命周期测试证明其清理，而不仅为不变量增加公开 API。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-tool-bash-persistent'#本包的不变量所有权名
 名称='tool-bash-persistent-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

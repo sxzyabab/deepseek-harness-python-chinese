@@ -1,8 +1,10 @@
 """建议性的按智能体重复调用检测器。它用已记录的模型上下文丰富后执行决策，既不否决也不改写调用。配置与链语义见包 README；理由见 repeat-tool-reminder Agent Note。"""
 import json,re,weakref#JSON规范串、通配正则与按智能体弱表
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,列表字段,数字字段,字符串字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+列表字段=schemastery.列表字段#配置字段
+数字字段=schemastery.数字字段#配置字段
+字符串字段=schemastery.字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息#构造提醒用户消息
 
 名称='repeat-tool-reminder'#loader诊断所用的Cordis插件名
@@ -10,12 +12,12 @@ name=名称#Cordis插件名
 
 __all__=['名称','配置模式','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
-配置模式=路径上节点({#插件配置：同名 schema 加 apply 里的加载时检查（错误配置大声失败）
+配置模式={#插件配置：同名 schema 加 apply 里的加载时检查（错误配置大声失败）
     'thresholds':列表字段(数字字段(),默认值=[3,5,8]),#触发提醒的连续重复次数
     'include':列表字段(字符串字段(),默认值=[]),#要跟踪的工具名模式；空表示跟踪每个工具
     'exclude':列表字段(字符串字段(),默认值=[]),#对链透明的工具名模式（既不计数也不重置）
     'argumentsPreviewChars':数字字段(默认值=500),#DETAILED提醒里引用的规范参数最大字符数
-})#配置模式结束
+}#配置模式结束
 Config=配置模式#Cordis配置模式
 
 # 本守卫注入的每条提醒上盖的 `{kind:'plugin'}` 来源——标签是承重的（未标记的上下文在派生历史里会渲成用户提示词）。

@@ -3,10 +3,8 @@
 对齐上游 `tool-ask-user/src/index.ts`。公开面仅中文名；本包空不变量配套见 `.不变量`。
 """
 import json#把结果收成紧凑 JSON 文本
-from ..工具 import 定义工具#定义面向模型的工具
+from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
 
 名称='tool-ask-user'#Cordis插件名
 注入=['tools','userQuestions']#依赖工具注册表与提问服务

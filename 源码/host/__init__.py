@@ -1,5 +1,16 @@
 """组：host。"""
+from . import (
+    apiproxy,
+    directory_picker,
+    directory_picker_auto,
+    directory_picker_browse,
+    directory_picker_native,
+    frontend_static,
+    plugin_inventory,
+    webserver,
+)
 __all__=[
+    'apiproxy',
     'directory_picker',
     'directory_picker_auto',
     'directory_picker_browse',

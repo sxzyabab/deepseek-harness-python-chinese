@@ -3,16 +3,44 @@
 对齐上游 `sdk/protocol/src/transport.ts`。公开面仅中文名。带 id 与 method 的帧是请求，只有 id 的是响应，只有 method 的是通知。畸形行忽略；处理失败变成错误帧。
 """
 import json,threading,uuid#JSON、互斥与请求 id
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
 
 __all__=['JSONRPC响应错误','JSONRPC传输对等端','换行JSONRPC传输']#仅中文公开名
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 对象参数(参数):#把 JSON-RPC params 归一成普通对象
@@ -113,7 +141,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):#换行分隔 JSON-RPC 传输
         """发送请求并等待响应；可选中止信号。返回承诺。"""
         标识='req_'+uuid.uuid4().hex#无连字符请求 id
         消息={'jsonrpc':'2.0','id':标识,'method':方法,'params':参数}#组装请求帧
-        等待=承诺()#为本 id 挂起
+        等待=操作任务()#为本 id 挂起
         卸中止=lambda:None#默认无 AbortSignal 可卸
         if 信号 is not None:#调用方给了放弃信号
             if getattr(信号,'aborted',False) or getattr(信号,'已中止',False):#已经中止
@@ -167,7 +195,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):#换行分隔 JSON-RPC 传输
 
     def 刷出(自身):#排空已排队写出
         """等待此前帧写出落定。空屏障不发出字节。返回承诺。"""
-        等待=承诺()#屏障承诺
+        等待=操作任务()#屏障任务
         try:#写空或 flush
             if hasattr(自身.输出,'flush'):#可刷新
                 自身.输出.flush()#刷新

@@ -2,7 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-host-plugin-inventory`。公开面仅中文名。每次 list 直接读 Loader，跳过 group 行。本包默认导出网关服务类。
 """
-from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
+from ...typert.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器
 from .类型 import (
     插件条目标识,#条目 id
     插件光纤阶段,#光纤阶段
@@ -33,7 +33,7 @@ class 插件清单网关(远程服务):#插件清单网关
         """登记为 ctx.pluginInventory。"""
         super().__init__(上下文,'pluginInventory')#服务名
 
-    @远程('list')
+    @_远程('list')
     def list(自身):#投影当前非 group 条目
         """每次调用都直接读 Loader。按 Loader 顺序返回。"""
         条目们=[]#按遍历顺序收集

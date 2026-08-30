@@ -1,8 +1,6 @@
 """@deepseek-ai/dsh-plan-mode 的本包拥有不变量配套：校验持久计划模式状态。"""
 import json#JSON 片段
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-plan-mode'#本包的不变量所有权名
 名称='plan-mode-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

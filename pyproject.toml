@@ -9,7 +9,6 @@ readme="README.md"
 requires-python=">=3.13"
 license="MIT"
 dependencies=[
-"pydantic>=2.12,<3", #schemastery会用到
 "pyyaml>=6",  #读cordis.yml
 ]
 [project.scripts]

@@ -4,10 +4,27 @@
 本文件不规范路径、不调用 realpath：对照 TS terminal.ts，无 realpathSync.native；cwd/路径拼写由启动方规格原样持有，禁止在此加 TS 没有的路径回落。
 """
 import signal,threading,time#信号名反查、拆除线程与宽限短睡
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#done 与 terminate 清理承诺
+from concurrent.futures import Future as _原生Future#单次操作结果
 
 __all__=('贯通流','本地终端句柄')#仅中文公开名
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
 
 def 延迟(毫秒):#宽限内轮询用的短睡
     """阻塞睡指定毫秒。"""
@@ -58,7 +75,7 @@ class 本地终端句柄:#本地 PTY 会话
         自身.宽限毫秒=宽限毫秒#宽限毫秒
         自身.pid=终端.pid#顶层 shell pid
         自身.输出=贯通流()#用户可见输出
-        自身.结局=承诺()#内部结局通知
+        自身.结局=操作任务()#内部结局通知
         自身.done=自身.结局#对外暴露承诺
         自身.清理=None#进行中的 terminate；失败则清空以允许重试
         自身.已退出=False#exit 回调是否已到
@@ -125,7 +142,7 @@ class 本地终端句柄:#本地 PTY 会话
         """启动一次拆除并返回清理承诺；失败则允许重试。"""
         if 自身.清理 is not None:#已有进行中的清理
             return 自身.清理#复用
-        清理=承诺()#本次清理
+        清理=操作任务()#本次清理
         自身.清理=清理#记下
         def 跑一次():#后台跑 closeOnce
             """一次完整拆除；失败清空 cleanup 以允许重试。"""

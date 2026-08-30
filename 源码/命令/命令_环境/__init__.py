@@ -5,10 +5,11 @@
 """
 import re#环境键后缀校验
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段#配置字段
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
 服务=cordis.服务#Cordis服务基类
 from ..命令 import 托管环境前缀#DSH_前缀
-from ..工作区路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
+from ...工具.工作区路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
 
 __all__=(
     '名称','注入','配置',
@@ -20,9 +21,9 @@ __all__=(
 注入=[]#无硬依赖
 name=名称#Cordis插件名（协议槽）
 inject=注入#Cordis依赖声明（协议槽）
-配置=路径上节点({#插件配置模式
+配置={#插件配置模式
     'dshHome':字符串字段(),#作为DSH_HOME暴露的家目录；默认$DSH_HOME或~/.dsh
-})#配置模式结束
+}#配置模式结束
 Config=配置#Cordis配置模式（协议槽）
 外壳键=托管环境前缀+'SHELL'#DSH_SHELL键
 会话ID键=托管环境前缀+'SESSION_ID'#DSH_SESSION_ID键

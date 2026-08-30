@@ -3,10 +3,9 @@
 对齐上游 `remotes/src/agent-lookup.ts`。公开面仅中文名。诊断英文字面量保持上游。
 """
 from typing import NotRequired,TypedDict#结构类型
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-承诺=cordis.工具.承诺#共享承诺
-from ..协议 import Typert查找失败#查找失败错误
+from ...typert.协议 import Typert查找失败#查找失败错误
 
 __all__=(#仅中文公开名
     '远程会话未找到','远程子智能体会话所有权',
@@ -43,6 +42,41 @@ class 远程智能体选项(TypedDict):#冷身份恢复选项
     agentOptions:NotRequired[object]#可选的智能体默认选项工厂
     setup:NotRequired[object]#发布前宿主专用智能体作用域装配工厂
 
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#纤程等
+
+class _操作任务:#本文件内单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#纤程等
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
     if 对象 is None:#空对象
@@ -53,10 +87,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 class 远程会话未找到(Exception):#会话未找到
@@ -108,7 +142,7 @@ def 查看远程会话(上下文,会话标识):#只读查看持久会话
 
 def 创建远程智能体解析器(上下文,选项):#创建共享智能体解析器并挂查找
     """在线智能体复用，普通冷会话按身份恢复一次，子智能体占用的身份保留旧的 agent-busy 围栏。"""
-    恢复中={}#进行中的按身份去重恢复：会话标识 → 共享承诺（对齐 Map<SessionId, Promise<Agent>>）
+    恢复中={}#进行中的按身份去重恢复：会话标识 → 共享 Future
 
     def 围栏在线(会话标识):#看在线智能体是否可直接复用
         """在线智能体复用或 agent-busy。"""
@@ -127,12 +161,12 @@ def 创建远程智能体解析器(上下文,选项):#创建共享智能体解�
         已附着=上下文.sessions.get(会话标识)#取已附着但可能尚未发布智能体的会话
         if 已附着 is not None and 有远程子智能体所有者(上下文,已附着,None):#已附着且由子智能体占用
             return {'error':远程子智能体所有权错误(会话标识)}#返回 agent-busy
-        恢复=恢复中.get(会话标识)#该身份是否已有进行中的恢复承诺
-        if 恢复 is None:#没有则启动一次并写入共享承诺，避免并发双恢复
-            恢复=承诺()#共享 Future/Promise 等价
-            恢复中[会话标识]=恢复#先入表，后跑体，使并发调用方挂上同一承诺
+        恢复=恢复中.get(会话标识)#该身份是否已有进行中的恢复
+        if 恢复 is None:#没有则启动一次并写入共享 Future，避免并发双恢复
+            恢复=_操作任务()#共享恢复任务
+            恢复中[会话标识]=恢复#先入表，后跑体，使并发调用方挂上同一任务
             def 跑恢复():#按身份去重的恢复任务
-                """查看、装配、再恢复；成败都结算共享承诺。"""
+                """查看、装配、再恢复；成败都结算共享任务。"""
                 try:#查看、装配、再恢复
                     查看=查看远程会话(上下文,会话标识)#只读查看持久会话
                     if 有远程子智能体所有者(上下文,{'header':取字段(查看,'meta')},None):#冷会话也由子智能体占用
@@ -150,14 +184,14 @@ def 创建远程智能体解析器(上下文,选项):#创建共享智能体解�
                     if 装配 is not None:#有装配则带上
                         恢复参数['setup']=装配#带上
                     句柄=解开(上下文.agents.resume(恢复参数))#按该身份恢复智能体
-                    恢复.兑现(取字段(句柄,'agent'))#结算共享承诺
-                except BaseException as 错误:#含 SystemExit：先拒绝承诺以免等待方挂死，再由外层 Exception 门区分信封
-                    恢复.拒绝(错误)#所有调用方经等待收到同一失败
+                    恢复.兑现(取字段(句柄,'agent'))#结算共享任务
+                except BaseException as 错误:#含 SystemExit：先拒绝以免等待方挂死，再由外层 Exception 门区分信封
+                    恢复.拒绝(错误)#所有调用方经 wait 收到同一失败
                 finally:#无论成败都清掉去重槽
                     恢复中.pop(会话标识,None)#允许同一身份再次恢复
-            跑恢复()#立即启动（对齐 IIFE Promise）
+            跑恢复()#立即启动
         try:#等待共享恢复结果
-            return {'agent':恢复.等待()}#恢复成功则返回智能体
+            return {'agent':恢复.wait()}#恢复成功则返回智能体
         except 远程会话未找到 as 错误:#持久库没有该会话
             return {'error':{'code':'session-not-found','message':str(错误),'details':{'sessionId':会话标识}}}#会话未找到信封
         except 远程子智能体会话所有权 as 错误:#子智能体所有权围栏

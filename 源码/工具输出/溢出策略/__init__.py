@@ -17,8 +17,8 @@
 """
 import math#ceil与floor拆分头尾预算
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,数字字段#配置字段
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
 from ...工具.输出保留 import 文本保留器,描述省略#文本保留与省略描述
 from .类型 import (#再导出执行视图词汇
     溢出策略执行字段,#策略所见执行
@@ -35,9 +35,9 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 注入=['tools']#需要工具注册表（其tools/post-execute瀑布是我们变换的扩展点）
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
-配置模式=路径上节点({#插件配置
+配置模式={#插件配置
     'maxInlineBytes':数字字段(),#纯文本工具结果的面向模型上下文上限，UTF-8字节；省略则完全禁用
-})#配置模式结束
+}#配置模式结束
 Config=配置模式#Cordis配置模式
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
@@ -67,10 +67,22 @@ def 有自有(对象,键):#对齐Object.hasOwn
         return False#没有字典
     return 键 in 字典#自有
 
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 def 解开(值):#承诺则等待否则原样
     """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 字节长(文本):#UTF-8字节长度
@@ -195,8 +207,7 @@ def 应用(上下文,配置):#安装溢出策略
         总字节=字节长(文本)#UTF-8字节
         if 总字节<=上限:#未超上限
             return 内容#原样
-        替换文本=溢出替换(#尝试溢出日志副本
-            文本,总字节,所有者会话标识(取字段(派发,'exec')),取字段(派发,'name'),取字段(派发,'subCallId'),'dispatch')#dispatch标签
+        替换文本=溢出替换(文本,总字节,所有者会话标识(取字段(派发,'exec')),取字段(派发,'name'),取字段(派发,'subCallId'),'dispatch')#尝试溢出日志副本
         if 替换文本 is None:#放弃则原样
             return 内容#原样
         return [{'type':'text','text':替换文本}]#替换日志副本

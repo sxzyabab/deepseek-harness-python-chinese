@@ -1,7 +1,7 @@
 """同机进程隔离能力 seam 的 Service Definition：在宿主路径文件政策下包装精确子进程 argv。容器、微虚拟机与远程执行替换的是周围的能力 seam；本服务共享宿主内核与文件系统。"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis服务基类
-from ..llm import 装备错误#导入Harness错误基类
+from ...模型后端.llm import 装备错误#导入Harness错误基类
 from .升级 import (
     更宽模式,#更宽模式表
     升级目标,#可广告升级目标

@@ -2,6 +2,7 @@
 
 对齐上游 `ui-cordis/src/client/inventory.ts`。公开面仅中文名。
 """
+import threading#后台观察清单读取
 
 __all__=['创建清单源']#仅中文公开名
 
@@ -57,9 +58,15 @@ def 创建清单源(端口,报错):#创建清单源
                 飞行=None#清槽
 
         原始=端口.inventory() if hasattr(端口,'inventory') else 端口['inventory']()#拉清单
-        if hasattr(原始,'then'):#承诺
+        if hasattr(原始,'wait') or hasattr(原始,'等待'):#可等待
             飞行=原始#记下
-            原始.then(成功,失败)#挂臂
+            def 观察():#观察读取
+                """成败分别更新快照。"""
+                try:#成功臂
+                    成功(原始.wait() if hasattr(原始,'wait') else 原始.等待())#等待
+                except BaseException as 错:#失败臂
+                    失败(错)#失败
+            threading.Thread(target=观察,daemon=True).start()#挂观察
         else:#同步
             try:#成功
                 飞行=True#占槽

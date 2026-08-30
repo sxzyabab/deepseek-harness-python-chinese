@@ -1,12 +1,12 @@
 """六种面向模型的持久终端工具。所有者身份来自精确的工具执行智能体；通用 `ctx.jobs` 负责后台 id 与收集。"""
 import threading#后台结算线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,布尔字段,整数字段#配置字段
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待
-已兑现=cordis.工具.已兑现#立刻兑现
+from ...依赖 import schemastery#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+整数字段=schemastery.整数字段#配置字段
 from ..终端 import 终端会话标识#导入会话id品牌化
-from ..工具 import 定义工具#导入工具定义
+from ...内核.工具 import 定义工具#导入工具定义
 from .渲染 import (#导入渲染与截断
     封顶终端文本,#封顶完整确认
     渲染列表,#渲染会话列表
@@ -23,11 +23,52 @@ inject=注入#Cordis依赖声明
 默认结果字节=256*1024#一次完整面向模型的终端结果的默认上限
 最小结果字节=64#能在截断回执里保住全部计数器签发的 PTY 与任务 id 的最小上限
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
-配置=路径上节点({#终端工具消费方配置
+配置={#终端工具消费方配置
     'enableRunInBackground':布尔字段(默认值=True),#是否暴露 run_in_background 并接受后台发送
-    'maxResultBytes':整数字段(步进=1,最小=最小结果字节,最大=安全整数上限,默认值=默认结果字节),#结果字节上限
-})#配置模式结束
+    'maxResultBytes':整数字段(默认值=默认结果字节),#结果字节上限
+}#配置模式结束
 Config=配置#Cordis配置模式
+
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
+    return 值#同步值
 
 会话状态模式={#会话状态模式
     'oneOf':[#运行中或已退出
@@ -82,12 +123,6 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
             return 对象[键]#映射键
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
-    return 值#同步值
 
 def 是否安全整数(值):#对齐 JS Number.isSafeInteger
     """对齐 JS Number.isSafeInteger，排除布尔。"""
@@ -234,7 +269,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             def 任务体():#任务体
                 """在 ctx.jobs 下拉起后台终端发送。"""
                 操作=上下文.terminals.startSend(所有者,标识,请求)#开始发送
-                结算=承诺()#任务done
+                结算=操作任务()#任务done
                 def 盯结算():#把发送结算映射成任务结局
                     """把操作 done 映射成任务结果。"""
                     try:#正常结算

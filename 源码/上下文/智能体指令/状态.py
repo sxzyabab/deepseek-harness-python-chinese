@@ -1,6 +1,6 @@
 """会话可见的工作区指令状态与动态调和。"""
 import os,weakref#路径与按会话弱引用缓存
-from ..llm import 创建用户消息#导入用户消息构造
+from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .摘要 import 指令内容摘要,去空白指令摘要#导入内容摘要
 from .文件 import (
     祖先链,#根到cwd目录链

@@ -4,8 +4,6 @@
 无运行时不变量：每次 list/create 都是一次无状态文件系统往返。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-
 包名='@deepseek-ai/dsh-host-directory-picker-browse'#本包所有权名
 名称='host-directory-picker-browse-invariant'#配套插件名
 注入=['invariants']#依赖 invariants

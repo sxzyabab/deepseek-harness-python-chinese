@@ -5,7 +5,7 @@
 import os#绝对路径判定
 from ...依赖 import include,cordis#外部依赖胶水
 包含=include.包含#Include 组载体
-路径转文件url=include.路径转文件网址#路径转 file URL
+路径转文件url=include.路径转文件url#路径转 file URL
 上下文类=cordis.上下文#隔离符号
 from ...内核.作用域 import 获取作用域,获取作用域父#作用域键与父链
 from .预设 import 预设挂载错误#挂载失败
@@ -37,7 +37,7 @@ class 预设树(包含):#预设用的 Include
         内部=getattr(自身.ctx.loader,'internal',None)#内部加载器
         if 内部 is None:#无内部加载器
             return super().导入(说明符,获取外层栈)#回退
-        return 内部.import(说明符,基址,{})#相对 harness 基址导入裸名
+        return 内部.导入(说明符,基址,{})#相对 harness 基址导入裸名
 
     def 写入(自身):#丢弃写回
         """预设是输入，从来不是持久化目标。"""

@@ -1,6 +1,6 @@
 """本地技能根发现与技能文件解析。"""
 import os,re,stat#路径、正则与文件状态
-from ...依赖 import yaml#外部依赖胶水（PyYAML）
+import yaml#外部依赖胶水（PyYAML）
 from ...工具.工作区路径 import (#共用家目录与监视路径，禁止本包内联假实现
     规范化监视路径,#监视路径规范化
     解析主目录,#解析 dsh 家目录

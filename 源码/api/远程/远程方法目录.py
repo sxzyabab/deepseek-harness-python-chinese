@@ -5,11 +5,11 @@ plugin-inventory → message-feedback。公开面仅中文名。
 完整 InvocationDescriptor（strict schema/codec）见各叶包 `远程.py`；
 本目录承载包名/服务键/导出名，并再导出叶包 TYPERT_REMOTE 供组装面核对。
 """
-from ..指令.远程 import TYPERT_REMOTE as 命令远程#commands 贡献
-from ..目标.远程 import TYPERT_REMOTE as 目标远程#goals 贡献
+from ...交互.指令.远程 import TYPERT_REMOTE as 命令远程#commands 贡献
+from ...目标.目标.远程 import TYPERT_REMOTE as 目标远程#goals 贡献
 from ...拓展.cordis_服务端.远程 import TYPERT_REMOTE as 动态远程#dynamic 贡献
-from ..plugin_inventory.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory 贡献
-from ..消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback 贡献
+from ...host.plugin_inventory.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory 贡献
+from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback 贡献
 
 __all__=['所选远程目录','包名们','导出名们','所选远程贡献','核对目录与贡献']#仅中文公开名
 

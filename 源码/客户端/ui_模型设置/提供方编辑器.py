@@ -5,8 +5,7 @@
 """
 import copy#深拷草稿
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..schema_form import 再水合模式,路径上节点,取路径,有路径,设路径,删路径,校验草稿#路径编辑
+from ..模式表单 import 再水合模式,取路径,有路径,设路径,删路径,校验草稿#路径编辑
 from .DeepSeek模型编辑器 import DeepSeek模型编辑器,模型草稿表,校验DeepSeek模型#DeepSeek 目录
 from .密钥判定 import 密钥失败#密钥门闩
 from .编辑器页脚 import 编辑器页脚#页脚
@@ -131,7 +130,7 @@ class 提供方编辑器:#提供方编辑卡片
         钉住=取路径(取字段(命名空间,'base'),list(路径)+['models'])#base 层
         if 钉住 is not None:#有钉
             return 钉住#钉住
-        模型节点=路径上节点(根,list(路径)+['models'])#schema 节点
+        模型节点=取路径(根,list(路径)+['models'])#schema 节点
         if 模型节点 is None:#无
             return None#无
         return 取字段(模型节点,'default')#JSON Schema 默认
@@ -155,7 +154,7 @@ class 提供方编辑器:#提供方编辑卡片
             if 失败 is not None:#坏行
                 return f"{翻译('model')} {失败['index']+1}: {翻译(失败['key'])}"#行文案
             根=再水合模式(取字段(命名空间,'schema'))#schema
-            节点=路径上节点(根,路径)#节点
+            节点=取路径(根,路径)#节点
             if 节点 is not None and len(路径)==0:#整段校验
                 段错=校验草稿(节点,下一)#校验
                 if 段错 is not None:#失败
@@ -211,7 +210,7 @@ class 提供方编辑器:#提供方编辑卡片
         自定义模型=取路径(自身.草稿,['models'])#用户 models
         模型覆盖=有路径(自身.草稿,['models'])#是否覆盖
         根=再水合模式(取字段(命名空间,'schema'))#schema
-        节点=路径上节点(根,路径)#节点
+        节点=取路径(根,路径)#节点
         模型们=模型草稿表(自定义模型 if 模型覆盖 else 自身.继承模型(根,节点,路径))#草稿表
         默认上下文=取路径(回退,['defaultContextWindow'])#默认上下文
         默认上限=取路径(回退,['maxTokens'])#默认上限
@@ -293,7 +292,7 @@ class 提供方编辑器:#提供方编辑卡片
         命名空间=取字段(自身.属性,'namespace')#ns
         路径=list(取字段(自身.属性,'settingsPath') or [])#路径
         根=再水合模式(取字段(命名空间,'schema'))#schema
-        节点=路径上节点(根,路径)#节点
+        节点=取路径(根,路径)#节点
         if 节点 is None:#不可解析
             return {'type':'provider-editor','error':f"{取字段(自身.属性,'provider')}: unresolvable settings path",'cssModule':'模型分区.module.css'}#错误卡
         布局=布局自(取字段(命名空间,'ns'))#布局

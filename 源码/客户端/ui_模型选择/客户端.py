@@ -4,7 +4,6 @@
 /model 弹出与撰写器座位共用每会话目录。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .文案 import 命名空间,中文,英文#词典
 from .服务 import 模型目录解析器#目录解析器
 from .模型选择 import 模型选择#座位组件

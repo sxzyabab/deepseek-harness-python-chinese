@@ -5,11 +5,13 @@
 经 ctx.fs 加载正文。对应上游 @deepseek-ai/dsh-skill-filesystem。
 """
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,字符串字段,布尔字段,列表字段,数字字段#配置字段
-承诺=cordis.工具.承诺#承诺
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
+from ...依赖 import schemastery#配置字段
+字符串字段=schemastery.字符串字段#配置字段
+布尔字段=schemastery.布尔字段#配置字段
+列表字段=schemastery.列表字段#配置字段
+数字字段=schemastery.数字字段#配置字段
 from .发现 import (
     项目dsh排名,#项目 .dsh/skills 排名
     项目agents排名,#项目 .agents/skills 排名
@@ -47,8 +49,8 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 
-配置模式=路径上节点({
-    'providerName':字符串字段(最小=1,默认值='filesystem'),#默认提供方名 filesystem
+配置模式={
+    'providerName':字符串字段(默认值='filesystem'),#默认提供方名 filesystem
     'includeDefaultRoots':布尔字段(默认值=True),#默认包含项目/用户根
     'dshHome':字符串字段(),#dsh 家目录
     'agentsHome':字符串字段(),#agents 家目录
@@ -60,17 +62,52 @@ inject=注入#Cordis依赖声明
     'watchMaxProjects':数字字段(默认值=默认监视项目上限),#项目上限
     'watchFollowSymlinks':布尔字段(默认值=True),#默认跟随符号链接
     'bundledSkillDir':字符串字段(),#捆绑根
-})#配置模式，缺省在此显式给出
+}#配置模式，缺省在此显式给出
 配置=配置模式#中文配置模式
 Config=配置模式#Cordis配置模式
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
-def 等待全部(任务们):#等全部承诺
+def 等待全部(任务们):#等全部任务
     """等全部承诺；先拒绝的错误在全部落定后上抛。"""
     错误=None#先拒绝的错误
     for 任务 in 任务们:#逐个结算
@@ -654,7 +691,7 @@ class 技能监视管理器:#技能根监视管理器
         自身.锁=threading.Lock()#状态锁
     def 观察根(自身,根们):#按当前发现根保留监视
         """按当前发现根保留监视。"""
-        任务=承诺()#本次观察
+        任务=操作任务()#本次观察
         def 跑():#工作线程
             """分类共享根与项目根并保留/释放。"""
             try:#观察失败上抛
@@ -722,7 +759,7 @@ class 技能监视管理器:#技能根监视管理器
                 return#结束
     def 拆除(自身):#关闭全部监视
         """关闭每一个宿主监视器并收容迟到的文件系统回调。"""
-        任务=承诺()#拆除承诺
+        任务=操作任务()#拆除任务
         def 跑():#工作线程
             """关闭全部监视。"""
             try:#拆除失败上抛
@@ -752,7 +789,7 @@ class 技能监视管理器:#技能根监视管理器
         等待全部(关闭们)#等全部关闭
     def 保留根(自身,根,所有者):#增加一个所有者
         """增加一个所有者。"""
-        任务=承诺()#本次保留
+        任务=操作任务()#本次保留
         def 跑():#工作线程
             """增加所有者并确保句柄。"""
             try:#保留失败上抛
@@ -773,7 +810,7 @@ class 技能监视管理器:#技能根监视管理器
         return 任务#承诺
     def 释放根(自身,路径,所有者):#去掉一个所有者
         """去掉一个所有者。"""
-        任务=承诺()#本次释放
+        任务=操作任务()#本次释放
         def 跑():#工作线程
             """去掉所有者，无人则关闭。"""
             try:#释放失败上抛
@@ -806,7 +843,7 @@ class 技能监视管理器:#技能根监视管理器
         已有=状态.get('opening')#已有进行中的打开
         if 已有 is not None:#已有进行中的打开
             return 已有#交给调用方
-        打开=承诺()#启动打开
+        打开=操作任务()#启动打开
         状态['opening']=打开#记下进行中
         def 跑():#无论成败都清 opening
             """核对现有句柄或替换。"""
@@ -899,7 +936,7 @@ class 技能监视管理器:#技能根监视管理器
             监视器.close()#关掉
         句柄={'mode':模式,'close':关闭,'options':监视器.options,'watcher':监视器}#包装 close，并暴露 chokidar 对齐选项
         已就绪=False#ready 之前的 error 拒绝 readiness
-        就绪=承诺()#等待 ready
+        就绪=操作任务()#等待 ready
         信号=自身.生命周期.signal#管理器生命周期
         if 已中止(信号):#已拆除
             解开(自身.关闭监视器(句柄))#关掉刚打开的
@@ -990,7 +1027,7 @@ class 技能监视管理器:#技能根监视管理器
         工作.start()#启动
     def 关闭监视器(自身,监视器):#关闭句柄并收容错误
         """关闭句柄并收容错误。"""
-        任务=承诺()#关闭承诺
+        任务=操作任务()#关闭承诺
         def 跑():#关闭可能抛
             """关掉目录监视或 unwatchFile。"""
             try:#close 可能抛

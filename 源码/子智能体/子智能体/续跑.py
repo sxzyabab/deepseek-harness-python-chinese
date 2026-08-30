@@ -1,11 +1,8 @@
 """内部可续跑子智能体管理器：稳定子 id、描述符持久化、Activation 准入、活所有权图、冷恢复、子优先拆除，以及向父投递结算，藏在 ctx.subagents 后面。"""
 import uuid,weakref,threading#随机uuid、弱谱系与后台结算线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from typing import Literal,TypedDict#字面量与结构类型
 from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺链
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
-聚合错误=cordis.工具.聚合错误#聚合错误
 from ...模型后端.llm import 创建用户消息,截上下文摘要,错误链#用户消息、摘要与错误链
 from ...内核.会话 import 会话标识#会话id品牌
 from .描述符 import 折叠子智能体描述符,快照子智能体描述符#描述符折叠与快照
@@ -22,6 +19,50 @@ from .描述符播种 import 播种描述符回合#导入描述符播种
 from .错误 import 子智能体错误#导入子智能体错误
 
 缺席=object()#对齐 JS undefined
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 已兑现(值=None):#立刻兑现的操作任务
+    """立刻兑现的操作任务。"""
+    任务=操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 class 协调者消息来源(TypedDict):#模型协调者对其某个子体跟进的归属
     kind:Literal['coordinator']#协调者种类
@@ -79,10 +120,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 信号已中止(信号):#对齐 AbortSignal.aborted
@@ -102,8 +143,8 @@ def 信号若中止则抛(信号):#对齐 throwIfAborted
         raise 原因 if isinstance(原因,BaseException) else Exception('AbortError')#抛出
 
 def 带解析器():#对齐 Promise.withResolvers
-    """建造可外部兑现/拒绝的承诺对。"""
-    任务=承诺()#新承诺
+    """建造可外部兑现/拒绝的操作任务对。"""
+    任务=操作任务()#新任务
     return {'promise':任务,'resolve':任务.兑现,'reject':任务.拒绝}#解析器
 
 def 拆除于(激活):#读拆除事务
@@ -388,7 +429,7 @@ class 子智能体续跑管理器:#可续跑管理器
         for 激活 in 目标们:#打开拆除
             拆除=自身._拆除(激活)#记忆化事务
             try:#隔离拒绝以免未处理拒绝
-                if 是否thenable(拆除):#承诺
+                if _是否thenable(拆除):#承诺
                     拆除.catch(lambda _e: None)#吸收
             except Exception:#无catch
                 pass#忽略
@@ -700,7 +741,7 @@ class 子智能体续跑管理器:#可续跑管理器
         """释放尚未发布 start 边的 Activation。"""
         if 激活.get('disposal') is not None:#已有事务
             return 激活['disposal']#复用
-        任务=承诺()#拆除承诺
+        任务=操作任务()#拆除操作任务
         激活['disposal']=任务#记忆化
         def 跑():#拆除句柄
             """拆除句柄并回滚所有权。"""

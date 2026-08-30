@@ -1,10 +1,7 @@
 """面向模型的 `web_search` 工具：在网上发现当前信息。执行走 `ctx.web`——本模块只负责面向模型的 schema、参数校验、结果条数上限和结果格式化，从不做提供方选择或网络访问。"""
 from urllib.parse import urlparse#从URL取主机名
-from ..工具 import 定义工具#定义面向模型的工具
+from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 __all__=[#公开面
     '网络搜索最大结果数','应用网络搜索工具','格式化搜索输出',
     '解析搜索参数','呈现搜索调用','呈现搜索结果','搜索元自值','搜索元自结果',

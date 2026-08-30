@@ -1,10 +1,9 @@
 """持久 shell PTY 后端，叠在子进程终端原语、共享沙盒策略、有界输出与提供方拥有的会话清理之上。"""
 import threading,weakref#中止竞态与按所有者栅栏
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#结算承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
 from ..终端 import 终端后端清理错误#搭建清理双失败
-from ..沙盒策略 import 生效沙盒模式#有效沙盒模式
+from ...沙盒.沙盒策略 import 生效沙盒模式#有效沙盒模式
 from .配置 import 配置,校验配置#配置模式与校验
 from .会话 import 本地PTY会话#本地PTY会话
 from .清洗 import 受控提示符#受控提示符
@@ -17,6 +16,36 @@ Config=配置#Cordis配置模式
 工作线程=threading.Thread#后台工作线程
 沙盒模式栅栏=weakref.WeakKeyDictionary()#按所有者记住栅栏
 
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
     if 对象 is None:#空对象
@@ -27,10 +56,10 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 确保沙盒模式栅栏(上下文对象,所有者):#确保所有者已挂沙盒模式栅栏
@@ -97,7 +126,7 @@ def 初始化会话(会话,信号=None):#初始化会话并与取消竞态
     if 信号 is None:#没有取消信号
         会话.初始化(信号)#直接初始化
         return#结束
-    取消=承诺()#取消拒绝器
+    取消=操作任务()#取消拒绝器
     def 中止时(*位置参数):#取消时拒绝
         """取消时拒绝。"""
         原因=getattr(信号,'reason',None)#英文原因
@@ -113,7 +142,7 @@ def 初始化会话(会话,信号=None):#初始化会话并与取消竞态
             信号.throwIfAborted()#已经取消则立刻失败
         elif hasattr(信号,'抛若中止'):#中文API
             信号.抛若中止()#已经取消则立刻失败
-        完成=承诺()#初始化完成
+        完成=操作任务()#初始化完成
         def 跑初始化():#跑初始化
             """跑初始化。"""
             try:#初始化
@@ -124,7 +153,7 @@ def 初始化会话(会话,信号=None):#初始化会话并与取消竞态
         工作=工作线程(target=跑初始化)#初始化线程
         工作.daemon=True#不挡住退出
         工作.start()#立刻开跑
-        胜出=承诺()#竞态胜出
+        胜出=操作任务()#竞态胜出
         def 等完成():#等初始化
             """等初始化完成。"""
             try:#等待

@@ -1,8 +1,8 @@
 """当前表面投影与按字节封顶的渲染。"""
 import math#ceil与floor
-from ..压缩 import 是否压缩检查点来源#导入压缩检查点来源判定
-from ..llm import 断言永不#导入穷尽检查
-from ..输出保留 import 文本保留器#导入头尾文本保留器
+from ...压缩.压缩 import 是否压缩检查点来源#导入压缩检查点来源判定
+from ...模型后端.llm import 断言永不#导入穷尽检查
+from ...工具.输出保留 import 文本保留器#导入头尾文本保留器
 from .序列化 import 序列化标签安全JSON#导入标签安全JSON序列化
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

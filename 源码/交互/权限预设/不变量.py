@@ -1,8 +1,6 @@
 """包内权限预设事件不变量。"""
 import json#诊断里序列化未知预设名
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现的拆除器
-
 包名='@deepseek-ai/dsh-permission-presets'#本包名，用于登记所有权
 名称='permission-presets-invariant'#配套插件名
 注入=['invariants']#依赖不变量服务

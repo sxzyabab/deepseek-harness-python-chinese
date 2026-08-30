@@ -5,9 +5,7 @@
 import inspect,re#参数名与标识符
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-符号=cordis.工具.符号#原始对象符号
-是否thenable=cordis.工具.是否thenable#可等待
-from ..协议 import 远程方法们,查找策略失败#Remote 标记与查找失败
+from ...typert.协议 import 远程方法们,查找策略失败#Remote 标记与查找失败
 
 __all__=[#仅中文公开名
     '网关错误','Typert网关服务','TypertGatewayService','TypertGatewayError',

@@ -3,7 +3,6 @@
 对齐上游 `ui-settings-models/src/client/ModelsSection.tsx`。公开面仅中文名。
 """
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
 from .仓库 import 推导密钥引用,错误文案,取字段,提供方可用,协议选项#仓库辅助
 from .提供方编辑器 import 提供方编辑器#编辑卡片
 from .自定义提供方卡片 import 自定义提供方卡片#创建卡片

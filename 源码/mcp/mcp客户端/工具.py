@@ -3,10 +3,8 @@
 对齐上游 `mcp-client/src/tools.ts`。公开面仅中文名。配置键、工具名与诊断英文字面量保持上游。
 """
 import hashlib,json,re#身份哈希、旧结果序列化与非法名字符
-from ..工具 import 断言受支持json模式#受支持 JSON 模式断言
+from ...内核.工具 import 断言受支持json模式#受支持 JSON 模式断言
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-
 __all__=['公开工具名','同步工具','MCP结果']#仅中文公开名
 
 公开名最大长度=64#DeepSeek 函数名最大长度

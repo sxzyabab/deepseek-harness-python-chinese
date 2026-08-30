@@ -1,10 +1,11 @@
 """同会话目标域：事件源状态、比较交换变更，以及进程内续跑武装。"""
 import math,re,time,uuid,weakref#安全整数、阻塞码、纪元毫秒、目标 id 与会话弱表
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,数字字段#配置字段
+from ...依赖 import schemastery#配置字段
+数字字段=schemastery.数字字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-from ..智能体 import 智能体事件#按智能体作用域派发
-from ..协议 import 远程服务,远程#Remote 服务基类与装饰器
+from ...内核.智能体 import 智能体事件#按智能体作用域派发
+from ...typert.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器
 from .类型 import *#纯类型出口再导出到包根
 from .域 import *#宿主侧域词汇再导出到包根
 from .折叠 import (
@@ -21,9 +22,9 @@ from .运行时 import (
 )#运行时构造（须在类型星号导入之后，保住 GoalId 值出口）
 from .远程 import TYPERT_REMOTE,远程贡献对象#Host-for-Client Remote 贡献
 
-配置=路径上节点({#插件配置模式
+配置={#插件配置模式
     'defaultMaxGoalRounds':数字字段(默认值=256),#默认 256 轮
-})#结束 Config 模式
+}#结束 Config 模式
 Config=配置#Cordis 配置模式
 阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')#小写短横线分类码
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
@@ -233,7 +234,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             快照['maxGoalRounds']=落实轮次上限(取字段(请求,'maxGoalRounds'))#已校验上限
         return 自身.提交当前(智能体,缓存,'edit',快照,缓存['activation'])#武装保持不变
 
-    @远程('edit')
+    @_远程('edit')
     def edit(自身,智能体,引用,请求):#Remote 导出名 edit
         """Remote 导出名 edit。"""
         return 自身.编辑(智能体,引用,请求)#转中文
@@ -242,7 +243,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         """暂停一个活跃目标并解除自动续跑。"""
         return 自身.迁移(智能体,引用,'pause',['active'],'paused','disarmed')#active→paused 并解除武装
 
-    @远程('pause')
+    @_远程('pause')
     def pause(自身,智能体,引用):#Remote 导出名 pause
         """Remote 导出名 pause。"""
         return 自身.暂停(智能体,引用)#转中文
@@ -263,7 +264,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             )#结束抛错
         return 自身.提交当前(智能体,缓存,'resume',自身.带阶段(当前,'active'),'armed')#回到活跃并武装
 
-    @远程('resume')
+    @_远程('resume')
     def resume(自身,智能体,引用):#Remote 导出名 resume
         """Remote 导出名 resume。"""
         return 自身.恢复(智能体,引用)#转中文
@@ -279,7 +280,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             'disarmed',#完成后不再续跑
         )#结束迁移
 
-    @远程('complete')
+    @_远程('complete')
     def complete(自身,智能体,引用):#Remote 导出名 complete
         """Remote 导出名 complete。"""
         return 自身.完成(智能体,引用)#转中文
@@ -315,7 +316,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         自身.提交(智能体,缓存,变更,'disarmed')#提交并解除武装
         return dict(墓碑)#脱离副本
 
-    @远程('clear')
+    @_远程('clear')
     def clear(自身,智能体,引用):#Remote 导出名 clear
         """Remote 导出名 clear。"""
         return 自身.清除(智能体,引用)#转中文
@@ -487,7 +488,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         视图=自身.创建(智能体,请求)#走本地域创建
         return {'ref':{'id':视图['id'],'revision':视图['revision']}}#只回引用
 
-    @远程('create')
+    @_远程('create')
     def create(自身,智能体,请求):#Remote 导出名 create
         """Remote 导出名 create。"""
         return 自身.远程创建(智能体,请求)#转中文

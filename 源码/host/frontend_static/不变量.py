@@ -4,8 +4,6 @@
 无运行时不变量：唯一拥有的关系是那一个兜底席位，无法从拆除流可靠探测。
 """
 from ...依赖 import cordis#外部依赖胶水
-已兑现=cordis.工具.已兑现#立刻兑现
-
 包名='@deepseek-ai/dsh-host-frontend-static'#本包所有权名
 名称='host-frontend-static-invariant'#配套插件名
 注入=['invariants']#依赖 invariants

@@ -1,8 +1,7 @@
 """兼容 AGENTS.md 的工作区指令加载器。基线指令在第一次请求之前进入持久上下文；成功的 fs 工具触及会把项目里嵌套、已改和已删的指令送进收件箱。插件生命周期读取使用可选的 ctx.fs 提供方，因此无提供方的产品把它挂成空操作。"""
 import os,weakref#工作目录与按会话弱引用
 from ...依赖 import cordis#外部依赖胶水
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..llm import 创建用户消息#导入用户消息构造
+from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .配置 import 配置,解析配置,工作区基线身份#导入配置解析与基线身份
 from .文件 import 寻找项目根,加载基线指令集,发现基线指令文件,加载基线指令#导入项目根与基线加载
 from .状态 import (

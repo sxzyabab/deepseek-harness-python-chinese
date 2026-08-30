@@ -1,11 +1,9 @@
 """按所有者作用域的持久 PTY 注册表。后端负责终端机制，本服务负责 id、发布、授权与等待清理。"""
 import threading,weakref#后台清槽与已拆除所有者弱集
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
-聚合错误=cordis.工具.聚合错误#多失败聚合
-承诺=cordis.工具.承诺#结算承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-from ..超时 import 中止控制器,合成信号,取已中止,取原因值#取消控制器、合成信号与旗标读取
+from ...工具.超时 import 中止控制器,合成信号,取已中止,取原因值#取消控制器、合成信号与旗标读取
 from .类型 import (
     终端后端清理错误,#搭建清理双失败
     终端会话标识值,#会话id品牌基底
@@ -60,10 +58,40 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+class 操作任务:#单次异步结果
+    def __init__(自身):#构造未决任务
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        return 自身.wait(超时)#转发
+
+def _是否thenable(值):#判定可等待对象
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+def _等待(值):#统一阻塞到结算
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 若已中止则抛出(信号):#已取消则抛出精确原因
@@ -362,7 +390,7 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
     def 预留搭建(自身,所有者):#预留一次未发布搭建
         """预留一次未发布搭建，返回取消信号与释放句柄。"""
         控制器=中止控制器()#预留取消器
-        结算=承诺()#结算器
+        结算=操作任务()#结算器
         未发布={#未发布记录
             'owner':所有者,#所有者
             'controller':控制器,#取消控制器

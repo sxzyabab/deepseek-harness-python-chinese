@@ -1,13 +1,12 @@
 """审批能力缝的服务定义，覆盖请求、取消、审计与按会话策略。缺少回答者则失败闭合；授予只作用于所请求的动作。"""
 import uuid,threading#配对 id 与中止竞赛线程
+from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 路径上节点,枚举字段#配置字段
+from ...依赖 import schemastery#配置字段
+枚举字段=schemastery.枚举字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-承诺=cordis.工具.承诺#操作链承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
-已兑现=cordis.工具.已兑现#立刻兑现
-from ..llm import 创建用户消息#把策略切换通知注入下一步
-from ..作用域 import 作用域目标#按智能体过滤的瀑布载体
+from ...模型后端.llm import 创建用户消息#把策略切换通知注入下一步
+from ...内核.作用域 import 作用域目标#按智能体过滤的瀑布载体
 from .类型 import 审批请求标识,审批结果#再导出线路安全标识与结果
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
@@ -25,10 +24,44 @@ name=名称#Cordis 插件名
     +'— do not request sandbox escalation (do not set `sandbox_permissions`).')#never 策略模型可见句后段
 询问句=('Approval policy: ask. Operations that require approval may ask through the configured answerers; '#ask 策略模型可见句前段
     +'without an available answerer, the request fails closed.')#ask 策略模型可见句后段
-配置模式=路径上节点({#插件配置：全部可选——static Config 给出默认值
+配置模式={#插件配置：全部可选——static Config 给出默认值
     'policy':枚举字段('ask','never',默认值='ask'),#没有覆盖时的部署默认策略
-})#配置模式结束
+}#配置模式结束
 Config=配置模式#Cordis 配置模式
+
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait。"""
+    if 值 is None:#空不是
+        return False#不是
+    等待=getattr(值,'wait',None)#取 wait
+    return callable(等待)#可调用才算
+
+class _操作任务:#本文件内单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+
+def _已结算(值=None):#立刻结算的任务
+    """立刻兑现的操作任务。"""
+    任务=_操作任务()#新任务
+    任务.兑现(值)#立刻成功
+    return 任务#已完成
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段，缺席为缺省。"""
@@ -40,10 +73,12 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return 值.wait()#等待
+    if callable(getattr(值,'等待',None)):#纤程等
+        return 值.等待()#等待
     return 值#同步值
 
 def 信号已中止(信号):#对齐 AbortSignal.aborted
@@ -179,7 +214,7 @@ class 审批服务(服务):#审批服务：在回答者之前套用会话策略�
             return 'rejected'#确定拒绝
         def 默认不可用():#无人认领则失败闭合
             """瀑布末端：无人认领则 unavailable。"""
-            return 已兑现('unavailable')#失败闭合
+            return _已结算('unavailable')#失败闭合
         def 问回答者():#先入微任务再派发：同步抛出必须落到与异步相同的拒绝路径
             """派发作用域过滤的 approval/request 瀑布并归一结果。"""
             try:#内含抛出
@@ -197,7 +232,7 @@ class 审批服务(服务):#审批服务：在回答者之前套用会话策略�
             return 'unavailable'#流氓返回值当 unavailable
         if 信号 is None:#无信号则只等回答
             return 问回答者()#只等回答
-        结果承诺=承诺()#与中止竞赛
+        结果任务=_操作任务()#与中止竞赛
         已结算=[False]#只结算一次
         def 结算(回调):#幂等结算
             """只结算一次。"""
@@ -207,11 +242,11 @@ class 审批服务(服务):#审批服务：在回答者之前套用会话策略�
             回调()#执行结算
         def 在中止(*位置参数):#中止胜出
             """中止则撤回。"""
-            结算(lambda:结果承诺.兑现('cancelled'))#撤回
+            结算(lambda:结果任务.兑现('cancelled'))#撤回
         def 等回答():#跟随回答者
             """跟随回答者兑现。"""
             结果=问回答者()#问回答者
-            结算(lambda:结果承诺.兑现(结果))#兑现回答；中止已赢后是空操作
+            结算(lambda:结果任务.兑现(结果))#兑现回答；中止已赢后是空操作
         工作=threading.Thread(target=等回答)#后台等回答
         工作.daemon=True#不挡住退出
         工作.start()#启动
@@ -223,7 +258,7 @@ class 审批服务(服务):#审批服务：在回答者之前套用会话策略�
                 加监听('abort',在中止,{'once':True})#只听一次中止
             else:#无 DOM 监听则靠处理函数自行检查
                 pass#调用方用 aborted 旗标
-        return 解开(结果承诺)#竞赛结果
+        return 解开(结果任务)#竞赛结果
 
 default=审批服务#Cordis 默认导出
 默认=审批服务#中文默认导出

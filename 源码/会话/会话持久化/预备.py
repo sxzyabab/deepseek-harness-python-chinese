@@ -1,12 +1,48 @@
 """有界共享与独占预留未发布 Session。"""
-from ...依赖 import cordis#外部依赖胶水
-承诺=cordis.工具.承诺#承诺
-是否thenable=cordis.工具.是否thenable#可等待判定
+from concurrent.futures import Future as _原生Future#单次操作结果
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待
+def _是否thenable(值):#判定可等待对象
+    """对象是否可 wait 或 等待。"""
+    if 值 is None:#空不是
+        return False#不是
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return True#可等待
+    return callable(getattr(值,'等待',None))#外来 thenable
+
+class 操作任务:#单次异步结果
+    """单次操作的 Future 包装。"""
+    def __init__(自身):#构造未决任务
+        """构造未决任务。"""
+        自身._future=_原生Future()#底层 Future
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if not 自身._future.done():#尚未结算
+            自身._future.set_result(值)#写入结果
+        return 值#返回兑现值
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if not 自身._future.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身._future.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身._future.set_exception(Exception(错误))#包装拒绝
+    def wait(自身,超时=None):#阻塞等待
+        """阻塞等到结算。"""
+        return 自身._future.result(timeout=超时)#取结果或抛错
+    def 等待(自身,超时=None):#兼容外来调用
+        """wait 别名。"""
+        return 自身.wait(超时)#转发
+
+def _等待(值):#统一阻塞到结算
+    """wait 或 等待。"""
+    if callable(getattr(值,'wait',None)):#Future 风格
+        return 值.wait()#等待
+    return 值.等待()#外来 thenable
+
+def 解开(值):#可等待则等待否则原样
+    """可等待则等待，否则原样返回。"""
+    if _是否thenable(值):#可等待
+        return _等待(值)#等待
     return 值#同步值
 
 def 若已中止则抛出(信号):#取消优先抛出
@@ -32,7 +68,7 @@ def 观察排队取消(操作,信号,已开始=None):#排队取消观察
         已开始=lambda:False#未越过截止
     if 信号 is None:#无取消
         return 操作#直接返回共享操作
-    包装=承诺()#观察包装
+    包装=操作任务()#观察包装
     已结算=[False]#是否已结算
     def 完成(回调):#只结算一次
         """只结算一次。"""
@@ -128,10 +164,10 @@ class 会话预备池:#预备池
         if 自身.条目.get(标识) is not 条目:#条目已失效
             return None#无预留
         源=条目['source']#就绪源
-        结算承诺=承诺()#新的结算
+        结算任务=操作任务()#新的结算
         条目['phase']='committing'#进入提交
-        条目['reservationSettled']=结算承诺#挂上等待
-        条目['settleReservation']=结算承诺.兑现#挂上结算
+        条目['reservationSettled']=结算任务#挂上等待
+        条目['settleReservation']=结算任务.兑现#挂上结算
         已提交=None#提交结果
         try:#跑提交
             已提交=解开(提交(源))#耐久修复
@@ -228,7 +264,7 @@ class 会话预备池:#预备池
         已有=自身.条目.get(标识)#已有条目
         if 已有 is not None:#复用
             return 已有#复用
-        延迟=承诺()#延迟结果
+        延迟=操作任务()#延迟结果
         条目={'id':标识,'result':延迟,'phase':'loading'}#新条目
         自身.条目[标识]=条目#入表
         try:#立刻启动加载
