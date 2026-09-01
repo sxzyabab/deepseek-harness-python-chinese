@@ -1,5 +1,7 @@
 """源码根：各组批量导出。"""
 from . import (
+    依赖,
+
     acp,
     api,
     e2b,
@@ -45,6 +47,8 @@ from . import (
     预设,
 )
 __all__=[
+    '依赖',
+    
     'acp',
     'api',
     'e2b',

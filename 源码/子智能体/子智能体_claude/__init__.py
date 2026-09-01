@@ -1,0 +1,27 @@
+"""Claude Code 子智能体后端（对齐 upstream subagent-claude-code）。"""
+from ...依赖 import schemastery#配置
+from .运行 import 启动claude跑,默认处置宽限毫秒#运行
+名称='subagent-claude-code'#Cordis 插件名
+注入=['subagents','subprocess']#依赖
+配置=schemastery.对象字段({
+    'providerName':schemastery.字符串字段(默认值='claude'),
+    'permissionMode':schemastery.字符串字段(默认值='dontAsk'),
+    'disposeGraceMs':schemastery.数字字段(默认值=默认处置宽限毫秒),
+})#配置
+__all__=['名称','注入','配置','应用','默认']#公开面
+
+class claude提供方:#ClaudeProvider
+    def __init__(自身,名,规格):#构造
+        自身.名称=名;自身.name=名#名
+        自身.能力={};自身.capabilities=自身.能力#无启动能力
+        自身.继承父上下文=False;自身.inheritsParentContext=False#契约
+        自身._规格=规格#规格
+    def 启动(自身,请求):return 启动claude跑(请求,自身._规格)#跑
+    start=启动#槽
+
+def 应用(上下文,配置值):#加载
+    名=配置值.get('providerName','claude')#名
+    规格={'permissionMode':配置值.get('permissionMode','dontAsk'),'disposeGraceMs':配置值.get('disposeGraceMs',默认处置宽限毫秒),'subprocess':上下文.subprocess}#规格
+    上下文.subagents.登记提供方(claude提供方(名,规格))#登记
+
+apply=应用;default=应用;默认=应用#导出
