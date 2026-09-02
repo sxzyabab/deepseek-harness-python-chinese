@@ -1,8 +1,7 @@
 """跨会话快照准备。宿主把提及时记号适配成结构化引用；本服务负责精确读取、投影、预算与持久上下文。"""
 import json#自引用诊断片段
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 整数字段#配置字段
 服务=cordis.服务#导入Cordis服务基类
 from ...模型后端.llm import 创建用户消息,结构化克隆#导入用户消息构造与拆离克隆
 from ...模型后端.llm.类型 import 是否安全整数#安全整数判定

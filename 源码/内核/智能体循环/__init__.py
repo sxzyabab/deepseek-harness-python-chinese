@@ -1,10 +1,7 @@
 """具体 agent-loop 插件：铸造带作用域的循环智能体，经 agent/session 注册表发表它们，并拥有其有序拆除。"""
 import uuid,threading#随机身份与工作线程
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-列表字段=schemastery.列表字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段,列表字段#配置字段
 服务=cordis.服务#服务基类
 光纤状态=cordis.纤程状态#光纤/纤程状态
 from ..智能体 import 发出智能体事件#按作用域发出 Agent 事件

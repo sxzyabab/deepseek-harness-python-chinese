@@ -1,9 +1,9 @@
 """进程内 fork 子智能体后端（对齐 upstream subagent-fork-in-process）。"""
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,字符串字段#配置
 from ..子智能体_in_process_driver import 启动进程内跑#共享驱动
 名称='subagent-fork-in-process'#Cordis 插件名
 注入=['subagents']#依赖
-配置=schemastery.对象字段({'providerName':schemastery.字符串字段(默认值='fork')})#配置
+配置=字典字段({'providerName':字符串字段(默认值='fork')})#配置
 __all__=['名称','注入','配置','应用','默认']#公开面
 
 def 取字段(对象,键,缺省=None):#读字段

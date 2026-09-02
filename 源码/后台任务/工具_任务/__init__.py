@@ -1,13 +1,11 @@
 """面向模型的 job_output、job_list、job_kill 工具，架在 ctx.jobs 上。加载本插件会挂接生产者所需的控制器。它还把未报告的完成投递给所属智能体：忙着的所有者注入其下一步，空闲的在默认 wakeup 投递下开一个回合，并按所有者设上限。"""
 import json,weakref#JSON片段与弱键字典
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 数字字段,枚举字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...模型后端.llm import 截上下文摘要,创建用户消息#摘要与用户消息
 from ...工具.输出保留 import 文本保留器#头尾文本保留器
-from ..任务 import 任务标识#任务id品牌化
+from ..后台任务 import 任务标识#任务id品牌化
 
 名称='tool-jobs'#Cordis插件名
 注入=['tools','jobs','systemPrompt']#依赖工具、任务、系统提示

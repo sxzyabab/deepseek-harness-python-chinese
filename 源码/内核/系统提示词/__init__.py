@@ -1,9 +1,7 @@
 """有序系统段落、动态上下文、工具模式与提示词变量的注册表。对齐上游 `@deepseek-ai/dsh-system-prompt`。公开面仅中文名；Cordis 服务键与事件名、配置键、诊断字面量保持上游字面量。"""
 import json,math,re#json、有限数与正则
-from ...依赖 import 工具,cordis,schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-列表字段=schemastery.列表字段#配置字段
+from ...依赖 import 工具,cordis#外部依赖胶水
+from ...依赖.schemastery import 布尔字段,字符串字段,列表字段#配置字段
 克隆=工具.克隆#深克隆工具参数
 服务=cordis.服务#服务基类
 from ..作用域 import (

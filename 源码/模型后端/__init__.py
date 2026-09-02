@@ -1,15 +1,19 @@
 """组：模型后端。"""
 from . import (
+    deepseek_llm_api_扩展,
     llm,
     llm_deepseek,
     llm_pi_ai,
     llm_retry,
     token计数器,
+    插件包清单_deepseek,
 )
 __all__=[
+    'deepseek_llm_api_扩展',
     'llm',
     'llm_deepseek',
     'llm_pi_ai',
     'llm_retry',
     'token计数器',
+    '插件包清单_deepseek',
 ]

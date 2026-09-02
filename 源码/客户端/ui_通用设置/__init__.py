@@ -2,8 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-client-ui-settings-general`。公开面仅中文名。在存在设置提供方时登记持久化 GUI 引导分区。
 """
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
 
 __all__=['应用','引导设置命名空间','引导设置模式']#仅中文公开名
 

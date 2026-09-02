@@ -5,11 +5,10 @@
 import json,math,time,threading#JSON片段、有限数、纪元毫秒与后台线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 整数字段#配置字段
 from ...内核.作用域 import 匿名条目,作用域层集,获取作用域#匿名条目、作用域分层与取作用域
 from ...工具.超时 import 截止,取超时#截止与超时码判定
-from ..任务 import 任务注册表,任务标识#任务注册表与任务 id
+from ..后台任务 import 任务注册表,任务标识#任务注册表与任务 id
 
 def _是否thenable(值):#判定可等待对象
     """对象是否可 wait 或 等待。"""

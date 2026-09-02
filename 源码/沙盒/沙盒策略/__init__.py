@@ -5,9 +5,7 @@
 import json#工作区根写入模型可见字面量
 import os#进程 cwd 回落
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 字符串字段,枚举字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 from ..沙盒 import 规范路径#导入规范路径
 from .会话模式 import (#覆盖套件

@@ -6,7 +6,7 @@ import json,re#JSON 与 @pluginId 正则
 from ...依赖 import cordis#外部依赖胶水
 from ...内核.工具 import 定义工具#工具定义工厂
 from ...模型后端.llm import 创建用户消息#用户消息工厂
-from ..cordis_服务端 import 动态插件标识,动态包标识#品牌构造
+from ..cordis服务端 import 动态插件标识,动态包标识#品牌构造
 from .提示 import cordis系统提示#系统提示词
 from .呈现 import (#展示函数
     呈现定义调用,呈现巡检列表调用,呈现巡检查询调用,呈现自检调用,

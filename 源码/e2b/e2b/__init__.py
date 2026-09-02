@@ -5,9 +5,7 @@
 import math,os,threading,uuid#有限判定、环境密钥、后台创建与控制面 HOME 随机段
 from ...依赖 import cordis#外部依赖胶水
 import e2b#E2B 官方 Python SDK
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 沙箱=e2b.Sandbox#沙箱句柄
 沙箱未找到错误=e2b.exceptions.SandboxNotFoundError#沙箱已消失

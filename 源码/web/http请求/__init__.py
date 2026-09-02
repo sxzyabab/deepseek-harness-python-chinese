@@ -1,8 +1,6 @@
 """`@deepseek-ai/dsh-web-fetch-http`：向 `ctx.web` 注册匿名公开 HTTP(S) `WebFetchProvider`。这是函数/命名空间插件（不是默认导出服务）：它注册进 seam 的抓取注册表，正如搜索提供方注册进搜索注册表。"""
 import math#有限数判定
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from .提供方 import (
     HTTP抓取提供方,#提供方类
     本地抓取提供方标识,#本地抓取提供方 id

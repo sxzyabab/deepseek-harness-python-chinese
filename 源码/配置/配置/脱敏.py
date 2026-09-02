@@ -1,6 +1,5 @@
 """设置值的结构密钥擦除。`角色=secret` 字段在值越过线路边界之前被移除。"""
-from ...依赖 import schemastery
-字段=schemastery.字段#配置字段
+from ...依赖.schemastery import 字段#配置字段
 
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
 

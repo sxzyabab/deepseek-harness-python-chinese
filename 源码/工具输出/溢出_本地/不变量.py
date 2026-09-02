@@ -1,5 +1,6 @@
 """`@deepseek-ai/dsh-spill-local` 的本包拥有不变量配套。"""
 from ...依赖 import cordis#外部依赖胶水
+from ...内核.智能体循环.辅助 import 已兑现#立刻兑现的操作任务
 包名='@deepseek-ai/dsh-spill-local'#本包的不变量所有权名
 名称='spill-local-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

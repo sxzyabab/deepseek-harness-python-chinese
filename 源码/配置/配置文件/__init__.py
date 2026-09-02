@@ -2,10 +2,7 @@
 import os,json,errno,threading,time,io,yaml,queue#路径、JSON、错误码、线程、时间与内存流
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery
-字符串字段=schemastery.字符串字段
-布尔字段=schemastery.布尔字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,布尔字段,数字字段#配置字段
 from ...工具.原子写入 import 带文件锁,原子写文件#跨进程写锁与原子替换
 from ...工具.工作区路径 import 规范化监视路径,解析主目录#监视路径与harness主目录
 from ..配置 import 设置提供方,json深度相等#设置服务基类与JSON深等

@@ -1,13 +1,7 @@
 """可感知重放的基础压缩后端。"""
 import weakref#每智能体溢出计数与会话→智能体弱映射
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-数字字段=schemastery.数字字段#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-常量字段=schemastery.常量字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布尔字段,列表字段,常量字段#配置字段
 from ..压缩 import 压缩引擎,手动压缩错误#导入压缩引擎与手动失败
 from ...模型后端.llm import 上下文窗口溢出码,断言永不#导入上下文溢出码与穷尽断言
 from ...工具.超时 import 合成信号#对应 AbortSignal.any

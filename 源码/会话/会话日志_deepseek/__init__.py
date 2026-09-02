@@ -1,21 +1,14 @@
 """增量会话日志贡献（对齐 upstream session-log-deepseek）。"""
 import weakref#按会话折叠接受水位
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,布尔字段#配置
 from ...模型后端.llm import 品牌字符串#会话 id 品牌
+from ...内核.智能体循环.辅助 import 取 as 取字段#字段读取
 名称='session-log-deepseek'#Cordis 插件名
 注入=['deepseekLlmApiExtensions','sessions']#依赖
-配置=schemastery.对象字段({'enabled':schemastery.布尔字段(默认值=False)})#配置模式
+配置=字典字段({'enabled':布尔字段(默认值=False)})#配置模式
 __all__=['名称','注入','配置','已接受至','应用','默认']#公开面
 
 接受折叠表=weakref.WeakKeyDictionary()#Session→{scannedEvents,throughSeq}
-
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键,缺省)#键
-    return getattr(对象,键,缺省)#属性
 
 def 已接受至(会话):#最高已确认 seq
     """折叠 session-log-deepseek/delivery-accepted 事件。"""

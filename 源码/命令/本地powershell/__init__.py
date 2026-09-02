@@ -8,9 +8,7 @@
 import os,math,threading#工作目录、有限数与后台结算线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ..命令 import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
 from ...配置.配置 import 安装设置段#设置段安装
 from ...工具.超时 import (

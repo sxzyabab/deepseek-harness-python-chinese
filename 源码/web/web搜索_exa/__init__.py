@@ -1,8 +1,5 @@
 """`@deepseek-ai/dsh-web-search-exa`：向 `ctx.web` 注册 Exa 后端的 `WebSearchProvider`。这是函数/命名空间插件（不是默认导出服务）：搜索提供方不拥有 `ctx.web` 键——它注册进 seam 的提供方注册表，正如 `@deepseek-ai/dsh-llm-deepseek` 把适配器注册进 `ctx.llm`。该键由 `@deepseek-ai/dsh-web` 拥有。"""
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段,枚举字段#配置字段
 from ...工具.启动环境 import 取启动环境#导入启动环境快照
 from .提供方 import (
     Exa搜索提供方,#Exa搜索提供方类

@@ -2,7 +2,7 @@
 
 域层的唯一实现——消费方依赖本包，从不直接碰后端。公开面仅中文名。
 """
-from ...依赖 import schemastery#配置校验
+from ...依赖.schemastery import 字典字段,字符串字段#配置校验
 from ..存储 import 存储后端服务键#后端服务键
 from .错误 import 域错误#域错误
 from .规范 import 定义域,域表,描述符投影#spec 工厂
@@ -15,9 +15,9 @@ __all__=[#仅中文公开名
 名称='storage-domain'#Cordis 插件名
 注入=['storage']#依赖 storage 枢纽
 
-配置模式=schemastery.对象字段({
-    'backend':schemastery.字符串字段(),#默认后端必填
-    'routes':schemastery.字典字段(schemastery.字符串字段()).default({}),#按域路由
+配置模式=字典字段({
+    'backend':字符串字段(),#默认后端必填
+    'routes':字典字段[字符串字段(),字符串字段()](默认值={}),#按域路由
 })#配置模式结束
 
 def _解析记录(域名,表,键,解析):#跑一次 schema 解析

@@ -2,9 +2,7 @@
 import json,os,time,threading#读配置、进程 cwd、墙钟与后台链
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 数字字段,字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息#导入用户消息工厂
 from ..钩子协议 import (
     追加钩子调用,#追加调用事件

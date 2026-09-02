@@ -1,9 +1,7 @@
 """面向模型的前台 Ralph 循环，叠在工作流与子智能体缝上。一份固定脚本每轮启动一个全新的结构化输出子运行，只在它们之间携带不可变目标与有界交接。"""
 import json#结果与交接 JSON 序列化
 import math#安全整数判定
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
 __all__=[#仅中文公开名；Cordis 英文槽不入表
     '名称','注入','配置','拉尔夫元数据','拉尔夫脚本','取字段','是否安全整数',

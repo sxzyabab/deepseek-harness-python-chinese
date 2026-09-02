@@ -6,8 +6,7 @@ Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 import json,math,os,threading#JSON 片段、有限数、路径与后台结算线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
+from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止,已中止#定义工具、体后中止码与中止判定
 from ...模型后端.llm import 装备错误#Harness 错误
 from ..命令 import 托管环境前缀#DSH 环境前缀

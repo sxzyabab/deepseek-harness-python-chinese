@@ -2,18 +2,8 @@
 import threading#后台结算线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-数字字段=schemastery.数字字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-复合类型字段=schemastery.复合类型字段#配置字段
-常量字段=schemastery.常量字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 字符串字段,布尔字段,数字字段,整数字段,列表字段,复合类型字段,常量字段,枚举字段,字典字段,自然数字段#配置字段
 聚合错误=cordis.聚合错误#多失败聚合
-字典字段=schemastery.字典字段#配置字段
-自然数字段=schemastery.自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义
 from ..子智能体 import 断言子智能体最大深度,结算运行#深度断言与运行结算
 

@@ -3,56 +3,12 @@
 对齐上游 `mcp-client/src/connection.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。
 """
 import math,threading,time#有限判定、定时器与时间戳
-from concurrent.futures import Future as _原生Future#单次操作结果
+from ...内核.智能体循环.辅助 import 取 as 取字段,解开,已兑现,操作任务,_等待#字段读取、承诺等待与操作任务
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .传输 import 创建传输#传输工厂
 from .工具 import 同步工具#工具同步
 
 __all__=['重连默认值','解析重连策略','启动连接']#仅中文公开名
-
-def _是否thenable(值):#判定可等待对象
-    """对象是否可 wait 或 等待。"""
-    if 值 is None:#空不是
-        return False#不是
-    if callable(getattr(值,'wait',None)):#Future 风格
-        return True#可等待
-    return callable(getattr(值,'等待',None))#外来 thenable
-
-class 操作任务:#单次异步结果
-    """单次操作的 Future 包装。"""
-    def __init__(自身):#构造未决任务
-        """构造未决任务。"""
-        自身._future=_原生Future()#底层 Future
-    def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
-        if not 自身._future.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._future.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._future.set_exception(Exception(错误))#包装拒绝
-    def wait(自身,超时=None):#阻塞等待
-        """阻塞等到结算。"""
-        return 自身._future.result(timeout=超时)#取结果或抛错
-    def 等待(自身,超时=None):#兼容外来调用
-        """wait 别名。"""
-        return 自身.wait(超时)#转发
-
-def _等待(值):#统一阻塞到结算
-    """wait 或 等待。"""
-    if callable(getattr(值,'wait',None)):#Future 风格
-        return 值.wait()#等待
-    return 值.等待()#外来 thenable
-
-def 已兑现(值=None):#立刻兑现的操作任务
-    """立刻兑现的操作任务。"""
-    任务=操作任务()#新任务
-    任务.兑现(值)#立刻成功
-    return 任务#已完成
 
 重连默认值={#冻结语义的重连默认值
     'enabled':True,#默认启用重连
@@ -62,22 +18,6 @@ def 已兑现(值=None):#立刻兑现的操作任务
 }#重连默认值结束
 
 世代关闭超时毫秒=5000#世代关闭等待上限
-
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 解开(值):#可等待则等待否则原样
-    """可等待则等待，否则原样返回。"""
-    if _是否thenable(值):#可等待
-        return _等待(值)#等待
-    return 值#同步值
 
 def 解析重连策略(配置,路径):#解析并校验重连策略
     """从原始重连配置到监督器实际运行策略的唯一切确解析步骤。"""

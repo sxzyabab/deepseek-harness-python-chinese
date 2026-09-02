@@ -5,9 +5,7 @@
 智能体激活、命令、控制流与历史分页分别见子模块；客户端半边在 `客户端/运行时`。
 """
 import os#进程 cwd
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
-布尔字段=schemastery.布尔字段#配置字段
+from ...依赖.schemastery import 数字字段,布尔字段#配置字段
 from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
 from .常量 import 默认冷空白探测最大字节#默认策略
 from .目录 import 构建模型目录#模型目录

@@ -4,11 +4,7 @@
 """
 import os#文件戳
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-列表字段=schemastery.列表字段#配置字段
+from ...依赖.schemastery import 字符串字段,枚举字段,布尔字段,列表字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 from ...内核.作用域 import 绑定作用域父,创建作用域,获取作用域,弱身份表#作用域
 from ...配置.配置 import 设置命名空间#设置命名空间

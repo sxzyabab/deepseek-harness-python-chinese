@@ -4,7 +4,7 @@
 """
 import os,math,yaml
 from ...依赖 import include#外部依赖胶水（PyYAML 与 include）
-#条目列表读取器=include.条目列表读取器#加载器 YAML 方言（含 !!js）
+条目列表读取器=include.插件列表读取器#加载器 YAML 方言（含 !!js）
 from ...工具.工作区路径 import 展开家目录路径#展开 ~
 from .元数据 import 读预设元数据#读展示元数据
 from .预设 import 预设标识规则#id 文法

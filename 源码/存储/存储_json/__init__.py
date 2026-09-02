@@ -3,9 +3,7 @@
 对齐上游 `@deepseek-ai/dsh-storage-json`。在存储枢纽上注册为后端 `json`。
 """
 import asyncio,os#异步与路径
-from ...依赖 import schemastery#配置
-字符串字段=schemastery.字符串字段#字符串配置
-对象字段=schemastery.对象字段#对象配置
+from ...依赖.schemastery import 字符串字段,字典字段#配置
 from ..存储.错误 import 存储错误#存储错误
 from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
 from ..存储 import 存储后端服务键#生命周期键
@@ -16,7 +14,7 @@ __all__=['Json存储后端','名称','注入','配置','配置模式','应用','
 名称='storage-json'#Cordis 插件名
 注入=['storage']#依赖 storage 枢纽
 
-配置模式=对象字段({'root':字符串字段().required()})#必填根目录
+配置模式=字典字段({'root':字符串字段()})#必填根目录
 配置=配置模式#中文别名
 Config=配置模式#上游名
 

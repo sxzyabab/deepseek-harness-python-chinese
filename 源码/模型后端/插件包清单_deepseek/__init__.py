@@ -4,8 +4,7 @@
 """
 import json,os#读 manifest 与路径
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#布尔字段
+from ...依赖.schemastery import 布尔字段#配置字段
 光纤状态=cordis.纤程状态#纤程状态
 
 名称='plugin-package-inventory-deepseek'#Cordis 插件名

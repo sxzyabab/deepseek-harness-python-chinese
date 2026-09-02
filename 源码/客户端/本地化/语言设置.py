@@ -5,8 +5,7 @@
 对齐上游 `locale/src/locale-settings.ts`。公开面仅中文名。配置键英文字面量保持上游。
 
 """
-from ...依赖 import schemastery#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 枚举字段#配置字段
 
 __all__=['语言设置命名空间','语言偏好字段','语言标识表','语言设置模式']#仅中文公开名
 

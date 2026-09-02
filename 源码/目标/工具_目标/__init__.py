@@ -1,8 +1,7 @@
 """面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上。"""
 import json,math#紧凑 JSON 渲染与安全整数判定
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 整数字段#配置字段
 from ..目标 import 目标标识#目标 id 品牌
 from ...模型后端.llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
 from ...内核.工具 import 定义工具#定义面向模型的工具

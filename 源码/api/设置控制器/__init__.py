@@ -3,8 +3,7 @@
 对齐上游 `@deepseek-ai/dsh-api-settings-controller`。公开面仅中文名。
 """
 import os#路径
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
+from ...依赖.schemastery import 布尔字段#配置字段
 from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
 from .凭据 import 凭据控制器#凭据命名空间
 from .工具 import 取字段,解开,远程错误,远程错误消息,信号已中止#辅助

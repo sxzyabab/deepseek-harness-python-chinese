@@ -6,8 +6,7 @@
 """
 import os,uuid,sys#路径、uuid、标准流
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
 from ...内核.智能体 import 安装模型选择#模型选择安装
 from ...模型后端.llm import 创建用户消息#用户消息构造
 from ...内核.会话 import 会话标识#会话 id 品牌

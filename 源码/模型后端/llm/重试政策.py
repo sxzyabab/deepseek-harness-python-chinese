@@ -4,13 +4,7 @@
 无英文别名。
 """
 import math#有限数判定
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-复合类型字段=schemastery.复合类型字段#配置字段
-常量字段=schemastery.常量字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段,整数字段,列表字段,复合类型字段,常量字段#配置字段
 from .错误 import 空响应码#导入空响应失败码
 from .调用配置 import 深冻结#导入深冻结
 

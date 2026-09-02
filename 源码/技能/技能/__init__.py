@@ -2,8 +2,7 @@
 import json,math,re,threading#正则、缓存键、有限数与后台观察
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 数字字段#配置字段
 服务=cordis.服务#Cordis服务基类
 from ...内核.作用域 import 具名条目,作用域层集,获取作用域,获取作用域链,弱身份表#分层命名条目与作用域链
 from ...模型后端.llm import 断言永不#封闭联合收尾断言

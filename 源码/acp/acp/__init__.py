@@ -6,8 +6,7 @@ import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#多失败聚合
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息,错误链#铸造用户消息与错误链文本
 from ...内核.会话 import 会话标识#会话 id 品牌
 from .编解码 import ACP提示转文本,提示含不受支持内容,回合结束到停止原因#提示展平与停止原因映射

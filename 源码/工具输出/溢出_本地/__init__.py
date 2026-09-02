@@ -1,7 +1,7 @@
 """`LocalSpillStore`：dsh-spill 存储 seam 的宿主文件系统实现。把工具过大的文本持久到私有、会话作用域的文件（遍历安全命名与独占仅所有者写入见 存储），并返回路径定位器加本地 read/grep 检索指引。"""
 import os#路径解析
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
+from ...内核.智能体循环.辅助 import 取 as 取字段#字段读取
 from ..溢出 import 溢出存储,溢出定位器#抽象存储与定位器品牌化
 from .存储 import (#再导出存储辅助与词汇
     编码段,#安全路径段
@@ -21,16 +21,6 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 }#配置模式结束
 Config=配置模式#Cordis配置模式
 检索提示='Use read with offset/limit, or grep this path to search within it.'#本地检索提示，面向模型字面量不翻译
-
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
 
 class 本地溢出存储(溢出存储):#本地文件系统溢出后端
     """本地文件系统溢出后端。文件落在 <root>/session-<hash>/…，名字不可预测，独占仅所有者（0600）写入，私有（0700）根——溢出的工具结果不得被其他本地用户读取，也不得经植入的符号链接重定向。"""

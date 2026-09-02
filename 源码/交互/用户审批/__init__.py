@@ -2,8 +2,7 @@
 import uuid,threading#配对 id 与中止竞赛线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 枚举字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 from ...模型后端.llm import 创建用户消息#把策略切换通知注入下一步
 from ...内核.作用域 import 作用域目标#按智能体过滤的瀑布载体

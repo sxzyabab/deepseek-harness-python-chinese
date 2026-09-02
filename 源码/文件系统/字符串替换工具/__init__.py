@@ -2,9 +2,7 @@
 import os#绝对路径判断
 from functools import cmp_to_key#目录列举排序对齐上游比较器
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 数字字段,字符串字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义器
 from ..文件系统 import 文件系统错误#导入文件系统错误
 from ...沙盒.沙盒 import 沙箱拒绝标记#导入沙箱拒绝标记文案

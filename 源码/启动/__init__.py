@@ -1,6 +1,6 @@
 """组：启动。"""
-from . import cmdline
+from . import app启动,命令行
 __all__=[
     'app启动',
-    'cmdline',
+    '命令行',
 ]

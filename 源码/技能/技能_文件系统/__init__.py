@@ -7,11 +7,7 @@
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,布尔字段,列表字段,数字字段#配置字段
 from .发现 import (
     项目dsh排名,#项目 .dsh/skills 排名
     项目agents排名,#项目 .agents/skills 排名

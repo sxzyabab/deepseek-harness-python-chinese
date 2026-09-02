@@ -18,10 +18,7 @@ inherited process environment      (read-only, wins)
 import os,queue,threading#路径、队列与线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery
-字符串字段=schemastery.字符串字段
-布尔字段=schemastery.布尔字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,布尔字段,数字字段#配置字段
 服务=cordis.服务#服务初始化符号
 from ..凭据 import 凭证提供方,凭证引用#凭证提供方基类与引用品牌化
 from ...工具.原子写入 import 原子写文件,带文件锁#文件锁与原子写

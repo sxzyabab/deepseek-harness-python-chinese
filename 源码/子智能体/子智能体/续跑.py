@@ -3,6 +3,7 @@ import uuid,weakref,threading#随机uuid、弱谱系与后台结算线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from typing import Literal,TypedDict#字面量与结构类型
 from ...依赖 import cordis#外部依赖胶水
+聚合错误=cordis.聚合错误#多失败聚合
 from ...模型后端.llm import 创建用户消息,截上下文摘要,错误链#用户消息、摘要与错误链
 from ...内核.会话 import 会话标识#会话id品牌
 from .描述符 import 折叠子智能体描述符,快照子智能体描述符#描述符折叠与快照

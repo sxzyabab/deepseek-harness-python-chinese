@@ -1,185 +1,703 @@
-'''dulwich单文件中文封装：把pypi包dulwich的常用git操作包装成中文接口'''
-from io import BytesIO as 字节流#承接dulwich流式输出的内存缓冲区
-from time import localtime as 本地时间,strftime as 格式化时间#提交时间戳转本地可读文本
-from dulwich.client import get_transport_and_path as 建立远程传输#按地址创建远程客户端
-from dulwich.repo import Repo as 仓库类#仓库对象，构造参数为工作区路径
-from dulwich.porcelain import (
-    init as 底层初始化,
-    clone as 底层克隆,
-    add as 底层添加,
-    remove as 底层移除,
-    commit as 底层提交,
-    status as 底层状态,
-    reset as 底层重置,
-    branch_create as 底层创建分支,
-    branch_delete as 底层删除分支,
-    branch_list as 底层分支列表,
-    active_branch as 底层当前分支,
-    checkout_branch as 底层切换分支,
-    tag_create as 底层创建标签,
-    tag_delete as 底层删除标签,
-    tag_list as 底层标签列表,
-    remote_add as 底层添加远程,
-    push as 底层推送,
-    pull as 底层拉取,
-    fetch as 底层抓取,
-    ls_files as 底层跟踪文件,
-    check_ignore as 底层检查忽略,
-    diff_tree as 底层树差异,
+from __future__ import annotations
+from abc import (
+    ABC as 抽象基类,
+    abstractmethod as 抽象方法
+    )
+from re import (
+    compile as 编译正则,
+    Pattern as 正则模式
+    )
+from urllib.parse import urlsplit as 拆分URL
+from .工具 import 深入比较,未传参
+from typing import Any
+
+class 数据校验错误(TypeError):
+    "数据没通过字段校验"
+
+无数据=object() #此处没有数据(不包括传None)
+
+__all__=[
+    '数据校验错误',
+    '无数据',
+    #
+    '字段',
+    '任意字段',
+    '常量字段',
+    '枚举字段',
+    '复合类型字段',
+    #
+    '数字字段',
+    '步进数字字段',
+    '整数字段',
+    '自然数字段',
+    '正整数字段',
+    '浮点数字段',
+    #
+    '布尔字段',
+    '字节字段',
+    '字符串字段',
+    'URL字段',
+    #容器
+    '容器字段',
+    '列表字段',
+    '元组字段',
+    '集合字段',
+    '字典字段',
+    #'自定义容器字段',
+    ]
+
+################################ 字段 ################################
+
+class 字段(抽象基类):
+    json类型=None
+    def __init__(自身,*,
+        严格模式:bool=True,可空:bool=False,
+        默认值:Any=未传参,描述:str=None
+        ):
+        if not isinstance(严格模式,bool):
+            raise TypeError('严格模式必须是布尔值')
+        if not isinstance(可空,bool):
+            raise TypeError('可空必须是布尔值')
+        if 描述 is not None and not isinstance(描述,str):
+            raise TypeError('描述必须是未传参或None')
+        自身.严格模式=bool(严格模式)#非严格模式下部分字段会对接收的数据尝试转换
+        自身.可空=bool(可空)
+        自身.默认值=默认值
+        自身.描述=描述
+
+    def __repr__(自身):
+        属性=dict(自身.__dict__)#实例上的约束
+        片段=','.join(f'"{键}":{值!r}' for 键,值 in 属性.items())#逐项
+        return f'<{自身.__class__.__name__}:{{{片段},}}>'#<类名:{属性}>
+
+    def toJsonSchema(自身):
+        节点={} if 自身.json类型 is None else {
+            'type':[自身.json类型,'null'] if 自身.可空 else 自身.json类型
+            }#类型；可空就多一个 null
+        if 自身.描述 is not None:
+            节点['description']=自身.描述#说明
+        if 自身.默认值 is not 未传参:
+            节点['default']=自身.默认值#空输入的回落值
+        return 节点#JSON Schema
+
+    def 校验数据(自身,数据=未传参):
+        '普通字段只有可空这一个性质需要判断'
+        if 数据 is 未传参:
+            raise ValueError('未传入需要检查的数据')
+        if 数据 is 无数据 and not 自身.可空:
+            raise 数据校验错误(f'期望 {自身!r} 实际不存在该数据')
+
+任意字段=字段#不限制数据类型
+
+class 常量字段(字段):
+    '需要完全匹配(包括内部值)'
+    def __init__(自身,常量值,**约束条件):#约束条件
+        super().__init__(**约束条件)#共有约束
+        自身.常量值=常量值#唯一合法取值
+
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if not 深入比较(数据,自身.常量值):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')#不是那个值
+
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()#共有项
+        节点['const']=自身.常量值
+        return 节点
+
+class 枚举字段(字段):
+    '一组常量'
+    def __init__(自身,*常量表,**约束条件):#约束条件
+        super().__init__(**约束条件)
+        自身.常量表=[项 if isinstance(项,常量字段) else 常量字段(项) for 项 in 常量表]
+        if not 自身.常量表:
+            raise ValueError('枚举字段至少要有一个常量')
+
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        for 常量 in 自身.常量表:
+            try:
+                常量.校验数据(数据)
+                return
+            except 数据校验错误:
+                continue#这个常量不是，试下一个
+        raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        节点['enum']=[常量.常量值 for 常量 in 自身.常量表]
+        return 节点
+
+class 复合类型字段(字段):
+    '多种字段类型'
+    def __class_getitem__(类,内层):
+        "复合写法：复合类型字段[支A,支B]"
+        return 类(*内层) if isinstance(内层,tuple) else 类(内层)#内层照原样交给构造
+
+    def __init__(自身,*字段表,**约束条件):
+        super().__init__(**约束条件)
+        自身.字段表=[推断字段(字段) for 字段 in 字段表]
+        if not 自身.字段表:
+            raise ValueError('复合类型字段至少要有一个字段')
+
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if 数据 is 未传参:
+            raise ValueError('未传入需要检查的数据')
+        for 字段 in 自身.字段表:
+            try:
+                字段.校验数据(数据)
+                return
+            except 数据校验错误:
+                continue#这一支不匹配，试下一支
+        raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        节点['anyOf']=[字段.toJsonSchema() for 字段 in 自身.字段表]
+        return 节点
+#
+class 数字字段(字段):
+    '非严格模式时,允许 字符串形式的数字 布尔'
+    json类型='number'
+
+    def __init__(自身,*,最小=None,最大=None,**约束条件):
+        super().__init__(**约束条件)
+        if 最小 is not None and 最大 is not None and 最小>最大:
+            raise ValueError('最小不能大于最大')
+        自身.最小=最小
+        自身.最大=最大
+
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if isinstance(数据,bool):
+            if 自身.严格模式:
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+            数据=int(数据)
+        elif isinstance(数据,str):
+            if not 数据:
+                raise 数据校验错误(f'期望 {自身!r} 实际是空字符串')
+            if not 数据.replace('.','').isdigit():
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+            if '.' in 数据:
+                数据=float(数据)
+            else:
+                数据=int(数据)
+
+        if isinstance(数据,(int,float)):
+            if not 在区间内(数据,自身.最小,自身.最大):
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        else:
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')            
+
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        if 自身.最小 is not None:
+            节点['minimum']=自身.最小
+        if 自身.最大 is not None:
+            节点['maximum']=自身.最大
+        return 节点
+
+class 步进数字字段(数字字段):
+    '固定间隔的数列'
+    def __init__(自身,基准值,步长,**约束条件):
+        super().__init__(**约束条件)
+        自身.基准值=基准值
+        自身.步长=步长
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if not 是否倍数(数据,自身.基准值,自身.步长):
+            raise 数据校验错误(f'期望是 {自身.步长} 的整数倍，实际是 {数据}')
+
+    def toJsonSchema(自身):
+        节点=super().toJsonSchema()
+        if 自身.步长 is not None:
+            节点['multipleOf']=自身.步长
+        return 节点
+
+class 整数字段(步进数字字段):
+    '非严格模式接收: 浮点 布尔 字符串形式的整数'
+    json类型='integer'
+
+    def __init__(自身,**约束条件):
+        super().__init__(基准值=0,步长=1,**约束条件)
+
+    def 校验数据(自身,数据=未传参):
+        if 自身.严格模式 and not isinstance(数据,int):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        super().校验数据(数据)
+
+class 自然数字段(整数字段):
+    '非0整数'
+    def __init__(自身,**约束条件):
+        最小=约束条件.pop('最小',0)
+        if 最小<0:
+            最小=0
+        super().__init__(**约束条件,最小=最小)
+
+class 正整数字段(自然数字段):
+    '大于0的整数'
+    def __init__(自身,**约束条件):
+        最小=约束条件.pop('最小',1)
+        if not isinstance(最小,int):
+            raise TypeError('最小必须是整数')
+        if 最小<1:
+            最小=1
+        super().__init__(**约束条件,最小=最小)
+
+    def 校验数据(自身,数据=未传参):
+        if isinstance(数据,int) and 数据>0:
+            return
+        super().校验数据(数据)
+
+class 浮点数字段(数字字段):
+    '非严格模式接收: 整数 布尔 字符串形式的浮点数'
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if 自身.严格模式 and not isinstance(数据,float):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+#
+class 布尔字段(字段):#继承待定
+    '非严格模式允许 0与1 "0"与"1" "True"与"False" None'
+    json类型='boolean'#JSON Schema 类型
+
+    def 校验数据(自身,数据=未传参):
+        if 自身.严格模式:
+            if isinstance(数据,bool):
+                return
+        else:
+            if 数据 in ('True','False','0','1',0,1,None):
+                return
+        raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+
+class 字节字段(字段):
+    '非严格模式允许 bytearray memoryview hex'
+    json类型='string'#?
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if 自身.严格模式:
+            if not isinstance(数据,bytes):
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        else:
+            if isinstance(数据,bytes):
+                return
+            elif isinstance(数据,bytearray):
+                return
+            elif isinstance(数据,memoryview):
+                return
+            elif isinstance(数据,str):
+                try:
+                    bytes.fromhex(数据)
+                except:
+                    raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+                return
+            else:
+                raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+
+    def toJsonSchema(自身):
+        "收成 base64 编码的字符串"
+        节点=super().toJsonSchema()#共有项
+        节点['contentEncoding']='base64'#字节按 base64 写进 JSON
+        return 节点#JSON Schema
+
+class 字符串字段(字段):
+    '字符串暂不支持非严格模式'
+    json类型='string'
+
+    def __init__(自身,最小长度=None,最大长度=None,格式=None,**约束条件):#约束条件
+        #先检查参数
+        super().__init__(**约束条件)
+        if 最小长度 is not None and not 是自然数(最小长度):
+            raise TypeError('最小长度必须是自然数')
+        if 最大长度 is not None and not 是自然数(最大长度):
+            raise TypeError('最大长度必须是自然数')    
+        if 最小长度 is not None and 最大长度 is not None and 最小长度>最大长度:
+            raise ValueError('最小长度不能大于最大长度')
+
+        if isinstance(格式,str):
+            格式=编译正则(格式)
+        elif 格式 is None or isinstance(格式,正则模式):
+            pass
+        else:
+            raise TypeError('格式必须是字符串或正则模式')
+        #再赋值
+        自身.最小长度=最小长度
+        自身.最大长度=最大长度
+
+        自身.格式=格式
+
+    def 校验数据(自身,数据=未传参):
+        数据=super().校验数据(数据)
+        if not isinstance(数据,str):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        #长度区间
+        if not 在区间内(len(数据),自身.最小长度,自身.最大长度):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        #格式
+        if 自身.格式 is not None and not 自身.格式.fullmatch(数据):
+            raise 数据校验错误(f'期望匹配 {自身.格式.pattern}，实际是 {数据!r}')#格式不匹配
+
+    def toJsonSchema(自身):
+        "长度收成 minLength 与 maxLength，格式收成 pattern"
+        节点=super().toJsonSchema()#共有项
+        if 自身.最小 is not None:
+            节点['minLength']=自身.最小#长度下限
+        if 自身.最大 is not None:
+            节点['maxLength']=自身.最大#长度上限
+        if 自身.格式 is not None:
+            节点['pattern']=自身.格式.pattern#正则原文
+        return 节点#JSON Schema
+
+class URL字段(字符串字段):
+    "URL：得是带协议与主机的绝对地址"
+    def 校验数据(自身,数据=未传参):
+        "先按字符串收拢，再看协议与主机"
+        super().校验数据(数据)#字符串、长度与格式
+        拆开=拆分URL(数据)#协议、主机与其余部分
+        if not 拆开.scheme or not 拆开.netloc:
+            raise 数据校验错误(f'期望{自身!r}，实际是 {数据!r}')#不是绝对地址
+        return 数据#通过
+
+    def toJsonSchema(自身):
+        "收成 format: uri"
+        节点=super().toJsonSchema()#字符串约束
+        节点['format']='uri'#URI 格式
+        return 节点#JSON Schema
+#
+class 容器字段(字段):
+    数量键=('minItems','maxItems')#JSON Schema 的数量约束键
+
+    def __class_getitem__(类,内层):
+        "容器写法：列表字段[内层字段]，内层只能有一个"
+        if isinstance(内层,tuple):
+            if len(内层)!=1:
+                raise TypeError(f'{类.__name__} 的内层只能有一个字段')#列表字典集合不能写多个
+            内层=内层[0]#方括号里单个也会包成 tuple
+        return 类(内层)#交给构造
+
+    def __init__(自身,*,内容字段=None,
+        最小数量:int=None,最大数量:int=None,定长:int=None,
+        **约束条件):#约束条件
+        '无最大数量表示非定长'
+        #先检查参数
+        if 最小数量 is not None and not 是自然数(最小数量):
+            raise ValueError('最小数量必须是自然数')
+        if 最大数量 is not None and not 是自然数(最大数量):
+            raise ValueError('最大数量必须是自然数')
+        if 定长 is not None and not 是自然数(定长):
+            raise ValueError('定长必须是自然数')
+        if (最小数量 or 最大数量) and 定长:
+            if not 最小数量==最大数量==定长:
+                raise ValueError('数量范围与定长不能同时存在不同值')
+        if isinstance(内容字段,list|tuple|set):
+            内容字段=[推断字段(i) if i !=... else ... for i in 内容字段]
+            if ... in 内容字段[:-1]:
+                raise ValueError(f'容器内容注释错误:{内容字段!r}')
+        super().__init__(**约束条件)#共有约束
+        #再赋值
+        if 定长:
+            最小数量=定长
+            最大数量=定长
+        自身.最小数量=最小数量#数量下限
+        自身.最大数量=最大数量#数量上限
+        自身.内容字段=tuple(内容字段)#内容字段
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if not 在区间内(len(数据),自身.最小数量,自身.最大数量):
+            raise 数据校验错误(f'期望 {自身!r} 的 {自身.最小数量} 到 {自身.最大数量} 个，实际是 {len(数据)} 个')
+
+    def toJsonSchema(自身):
+        "数量收成各自的上下限键"
+        节点=super().toJsonSchema()#共有项
+        下限键,上限键=自身.数量键#该容器用哪对键
+        if 自身.最小数量 is not None:
+            节点[下限键]=自身.最小数量#数量下限
+        if 自身.最大数量 is not None:
+            节点[上限键]=自身.最大数量#数量上限
+        return 节点#JSON Schema
+
+class 列表字段(容器字段):
+    json类型='array'#JSON Schema 类型
+
+    def __class_getitem__(类,内容字段):
+        return 类(*内容字段) if isinstance(内容字段,tuple) else 类(内容字段)#内层照原样交给构造
+
+    def __init__(自身,*内容字段,**约束条件):#约束条件
+        '与平时的list[str]等用法一样'
+        super().__init__(内容字段=内容字段,**约束条件)#数量与共有约束
+        注释长=len(自身.内容字段)
+        if 注释长==1:
+            if 自身.内容字段[0]==...:
+                自身.内容字段=()
+            return
+        elif 注释长>2:
+            raise ValueError(f'列表内容注释错误:{自身.内容字段!r}')
+        else:#长2
+            if ... not in 自身.内容字段:#多个类型
+                raise ValueError(f'列表内容注释错误:{自身.内容字段!r}')
+            自身.内容字段=(自身.内容字段[0],)
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if not isinstance(数据,list):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        列表字段:字段=自身.内容字段[0]
+        for 项 in 数据:
+            列表字段.校验数据(项)
+
+    def toJsonSchema(自身):
+        "元素收成 items"
+        节点=super().toJsonSchema()#类型与数量
+        节点['items']=自身.元素字段.toJsonSchema()#元素
+        return 节点#JSON Schema
+
+class 集合字段(容器字段):
+    json类型='array'#JSON Schema 里集合走数组
+
+    def __class_getitem__(类,内容字段):
+        return 类(*内容字段) if isinstance(内容字段,tuple) else 类(内容字段)#内层照原样交给构造
+
+    def __init__(自身,*内容字段,**约束条件):
+        '与平时的set[str]等用法一样'
+        super().__init__(内容字段=内容字段,**约束条件)#数量与共有约束
+        注释长=len(自身.内容字段)
+        if 注释长==1:
+            if 自身.内容字段[0]==...:
+                自身.内容字段=()
+            return
+        elif 注释长>2:
+            raise ValueError(f'集合内容注释错误:{自身.内容字段!r}')
+        else:#长2
+            if ... not in 自身.内容字段:#多个类型
+                raise ValueError(f'集合内容注释错误:{自身.内容字段!r}')
+            自身.内容字段=(自身.内容字段[0],)
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if not isinstance(数据,set):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        集合字段:字段=自身.内容字段[0]
+        for 项 in 数据:
+            集合字段.校验数据(项)
+
+    def toJsonSchema(自身):
+        "元素收成 items，去重收成 uniqueItems"
+        节点=super().toJsonSchema()#类型与数量
+        节点['items']=自身.元素字段.toJsonSchema()#元素
+        节点['uniqueItems']=True#不重复
+        return 节点#JSON Schema
+
+class 元组字段(容器字段):
+    json类型='array'#JSON Schema 类型
+
+    def __class_getitem__(类,内容字段):
+        return 类(*内容字段) if isinstance(内容字段,tuple) else 类(内容字段)#内层照原样交给构造
+
+    def __init__(自身,*内容字段,**约束条件):
+        super().__init__(内容字段=内容字段,**约束条件)
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if not isinstance(数据,tuple):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        if ... not in 自身.内容字段:
+            if len(数据)!=len(自身.内容字段):
+                raise 数据校验错误(f'期望 {自身!r} 长 {len(自身.内容字段)} ，实际长 {len(数据)} ')
+            for 字段,单个数据 in zip(自身.内容字段,数据):
+                字段.校验数据(单个数据)
+        else:
+            if len(自身.内容字段)==1:#只有...
+                return#Any,不用查
+            else:#多个类型
+                固定字段=自身.内容字段[:-1]
+                if len(数据)<len(固定字段):
+                    raise 数据校验错误(f'期望 {自身!r} 长 {len(固定字段)} ，实际长 {len(数据)} ')
+                for 字段,单个数据 in zip(固定字段,数据[:len(固定字段)]):
+                    字段.校验数据(单个数据)
+                for 单个数据 in 数据[len(固定字段):]:
+                    固定字段[-1].校验数据(单个数据)
+
+    def toJsonSchema(自身):
+        "逐位收成 prefixItems，位数收成定长"
+        节点=super().toJsonSchema()#共有项
+        节点['prefixItems']=[每位.toJsonSchema() for 每位 in 自身.内容字段]#逐位
+        节点['minItems']=len(自身.内容字段)#定长
+        节点['maxItems']=len(自身.内容字段)#定长
+        return 节点#JSON Schema
+
+class 字典字段(容器字段):#映射,与普通容器不同
+    '对应js的object'
+    json类型='object'
+    数量键=('minProperties','maxProperties')#对象的数量约束键
+
+    def __class_getitem__(类,内容字段):
+        return 类(键值结构=内容字段)
+
+    def __init__(自身,*,
+        字典结构:dict=None,键值结构=None,
+        **约束条件):#约束条件
+        if 字典结构 is not None and 键值结构 is not None:
+            raise ValueError('字典字段不能同时指定字典结构和键值结构')
+
+        内容字段=None
+        if 键值结构 is not None:
+            if len(键值结构)!=2:
+                raise ValueError(f'字典字段的内容字段只能是两个字段')
+            if ... in 键值结构:
+                raise ValueError(f'字典字段的内容字段不能有...')
+            内容字段=(推断字段(键值结构[0]), 推断字段(键值结构[1]))
+        super().__init__(内容字段=内容字段,**约束条件)#数量与共有约束
+
+        自身.字典结构=None
+        if 字典结构 is not None:
+            if not isinstance(字典结构,dict):
+                raise TypeError(f'字典结构必须是字典')
+            结构={}
+            for k,v in 字典结构.items():
+                if 内容字段 is not None:
+                    结构[k]=推断字段(v)
+            自身.字典结构:dict[str,字段]=结构
+
+    def 校验数据(自身,数据=未传参):
+        super().校验数据(数据)
+        if not isinstance(数据,dict):
+            raise 数据校验错误(f'期望 {自身!r} 实际是 {数据!r}')
+        if 自身.字典结构 is not None:
+            for k,v in 数据:
+                if k in 自身.字典结构:
+                    自身.字典结构[k].校验数据(v)
+                else:
+                    raise 数据校验错误(f'期望之外的键:{k}')
+            return
+        if 自身.内容字段 is not None:
+            键字段,值字段=自身.内容字段
+            for 键,值 in 数据.items():
+                键字段.校验数据(键)
+                值字段.校验数据(值)
+
+    def toJsonSchema(自身):
+        "值收成 additionalProperties"
+        节点=super().toJsonSchema()#类型与数量
+        节点['additionalProperties']=自身.值字段.toJsonSchema()#值
+        return 节点#JSON Schema
+
+class 自定义容器字段(容器字段):
+    '自定义类容器对象'
+################################ 工具 ################################
+
+宽松整数=宽松浮点=int|float|bool
+成员容器=list|tuple|set
+
+def 在区间内(数值,最小,最大):
+    if 最小 is not None and 数值<最小:
+        return False
+    if 最大 is not None and 数值>最大:
+        return False
+    return True
+
+def 是自然数(数:int):
+    if not isinstance(数,int):
+        return False
+    return 数>=0
+
+def 十进制移位(数据,位数):
+    文本=str(数据)#数字的十进制文本
+    if '.' not in 文本 or 'e' in 文本 or 'E' in 文本:
+        return 数据*10**位数#整数与科学计数法拆不出小数部分
+    整数,小数=文本.split('.')#拆成两段
+    if len(小数)<=位数:
+        return float(整数+小数.ljust(位数,'0'))#右边补零
+    return float(整数+小数[:位数]+'.'+小数[位数:])#在新位置插回小数点
+
+def 是否倍数(数据,起点,步长):
+    "通过字符串解决浮点数精度问题"
+    步长=abs(步长)#只看大小
+    文本=str(步长)#步长的十进制文本
+    if '.' not in 文本:
+        return (数据-起点)%步长==0#整数步长直接取模
+    位数=len(文本.split('.')[1])#小数位数
+    return abs(十进制移位(数据,位数)-十进制移位(起点,位数))%十进制移位(步长,位数)==0#整数化后取模
+
+from typing import (
+    Any,
+    Union,
+    TypedDict,
+    Mapping,
 )
+from types import GenericAlias as 泛型
 
-#==============================仓库生命周期==============================
-
-def 打开仓库(仓库路径:str):
-    '''打开已存在的git仓库，返回仓库对象，后续函数的第一个参数都用它'''
-    return 仓库类(仓库路径)#dulwich仓库对象
-
-def 初始化仓库(仓库路径:str,裸仓库:bool=False):
-    '''在指定路径新建git仓库，裸仓库为真时不生成工作区，返回仓库对象'''
-    return 底层初始化(仓库路径,bare=裸仓库)#新建后的仓库对象
-
-def 克隆仓库(远程地址:str,目标路径:str,分支:str=None,深度:int=None,用户名:str=None,密码:str=None):
-    '''克隆远程仓库到目标路径，分支为空取远程默认分支，深度为空取完整历史，返回仓库对象'''
-    认证参数={'username':用户名,'password':密码} if 用户名 else {}#http基本认证参数
-    return 底层克隆(远程地址,目标路径,branch=分支.encode('utf-8') if 分支 else None,
-        depth=深度,**认证参数)#克隆完成后的仓库对象
-
-def 关闭仓库(仓库):
-    '''释放仓库占用的文件句柄，长时间运行的程序用完必须调用'''
-    仓库.close()#关闭对象存储与索引文件
-
-#==============================暂存与提交==============================
-
-def 添加文件(仓库,路径列表:list)->dict:
-    '''把文件加入暂存区，路径须为绝对路径或相对当前工作目录，返回加入与被忽略两份清单'''
-    已加入,被忽略=底层添加(仓库,路径列表)#dulwich同时返回被.gitignore拦下的路径
-    return {'已加入':list(已加入),'被忽略':list(被忽略)}#两份相对路径清单
-
-def 移除文件(仓库,路径列表:list):
-    '''从暂存区与工作区删除文件，路径规则同添加文件'''
-    底层移除(仓库,路径列表)#删除工作区文件并更新索引
-
-def 提交(仓库,提交信息:str,作者:str=None,提交者:str=None)->str:
-    '''把暂存区内容写成一次提交，作者与提交者格式为“姓名 <邮箱>”，为空时读取git配置，返回提交号'''
-    提交号=底层提交(仓库,message=提交信息.encode('utf-8'),#提交说明按utf8编码写入
-        author=作者.encode('utf-8') if 作者 else None,#作者身份
-        committer=提交者.encode('utf-8') if 提交者 else None)#提交者身份
-    return 提交号.decode('utf-8')#40位十六进制提交号
-
-def 仓库状态(仓库)->dict:
-    '''读取工作区状态，分为已暂存三类、未暂存、未跟踪'''
-    状态=底层状态(仓库)#dulwich状态三元组
-    return {'已暂存新增':[路径.decode('utf-8') for 路径 in 状态.staged['add']],#新纳入暂存区的文件
-        '已暂存删除':[路径.decode('utf-8') for 路径 in 状态.staged['delete']],#暂存区标记删除的文件
-        '已暂存修改':[路径.decode('utf-8') for 路径 in 状态.staged['modify']],#暂存区内容变更的文件
-        '未暂存':[路径.decode('utf-8') for 路径 in 状态.unstaged],#工作区已改但未暂存的文件
-        '未跟踪':list(状态.untracked)}#从未纳入版本控制的文件
-
-def 重置(仓库,目标提交:str='HEAD',模式:str='hard'):
-    '''把索引与工作区回退到目标提交，模式取hard时连工作区文件一起覆盖'''
-    底层重置(仓库,模式,目标提交.encode('utf-8'))#按模式重置到指定提交
-
-def 跟踪文件列表(仓库)->list:
-    '''列出索引中已被版本控制的全部文件路径'''
-    return [路径.decode('utf-8') for 路径 in 底层跟踪文件(仓库)]#索引内的相对路径
-
-def 检查忽略(仓库,路径列表:list)->list:
-    '''筛出会被.gitignore规则忽略的路径'''
-    return list(底层检查忽略(仓库,路径列表))#命中忽略规则的路径
-
-#==============================历史与差异==============================
-
-def 当前提交(仓库)->str:
-    '''读取HEAD指向的提交号'''
-    return 仓库.head().decode('utf-8')#当前提交号
-
-def 提交历史(仓库,最大数量:int=20)->list:
-    '''按时间倒序读取提交记录，返回含提交号、作者、时间、信息的字典列表'''
-    记录列表=[]#提交记录结果
-    for 游走项 in 仓库.get_walker(max_entries=最大数量):#游走器按日期倒序产出提交
-        提交对象=游走项.commit#本条记录对应的提交对象
-        记录列表.append({'提交号':提交对象.id.decode('utf-8'),#40位十六进制提交号
-            '作者':提交对象.author.decode('utf-8'),#作者姓名与邮箱
-            '时间':格式化时间('%Y-%m-%d %H:%M:%S',本地时间(提交对象.commit_time)),#提交时间本地文本
-            '信息':提交对象.message.decode('utf-8')})#提交说明原文
-    return 记录列表#完整提交记录
-
-def 提交差异(仓库,旧提交号:str,新提交号:str)->str:
-    '''输出两个提交之间的统一格式差异文本'''
-    旧树=仓库[旧提交号.encode('utf-8')].tree#旧提交指向的目录树编号
-    新树=仓库[新提交号.encode('utf-8')].tree#新提交指向的目录树编号
-    差异缓冲=字节流()#承接差异输出
-    底层树差异(仓库,旧树,新树,差异缓冲)#把差异写入缓冲
-    return 差异缓冲.getvalue().decode('utf-8')#差异文本
-
-#==============================分支与标签==============================
-
-def 当前分支(仓库)->str:
-    '''读取HEAD所在的本地分支名，处于游离头指针状态时报错'''
-    return 底层当前分支(仓库).decode('utf-8')#不含refs/heads/前缀的分支名
-
-def 分支列表(仓库)->list:
-    '''列出全部本地分支名'''
-    return [分支.decode('utf-8') for 分支 in 底层分支列表(仓库)]#本地分支名清单
-
-def 创建分支(仓库,分支名:str,起点:str=None,强制:bool=False):
-    '''新建本地分支，起点为空时以当前HEAD为起点，强制为真时覆盖同名分支'''
-    底层创建分支(仓库,分支名.encode('utf-8'),objectish=起点,force=强制)#写入refs/heads下的引用
-
-def 删除分支(仓库,分支名:str):
-    '''删除本地分支引用'''
-    底层删除分支(仓库,分支名.encode('utf-8'))#移除refs/heads下的引用
-
-def 切换分支(仓库,分支名:str,强制:bool=False):
-    '''切换工作区到指定本地分支，强制为真时丢弃未提交改动'''
-    底层切换分支(仓库,分支名.encode('utf-8'),force=强制)#更新HEAD并刷新工作区
-
-def 标签列表(仓库)->list:
-    '''列出全部标签名'''
-    return [标签.decode('utf-8') for 标签 in 底层标签列表(仓库)]#标签名清单
-
-def 创建标签(仓库,标签名:str,目标:str='HEAD',附注信息:str=None,作者:str=None):
-    '''给指定提交打标签，附注信息非空时创建带说明的附注标签'''
-    底层创建标签(仓库,标签名.encode('utf-8'),objectish=目标,#标签指向的提交
-        message=附注信息.encode('utf-8') if 附注信息 else None,#附注标签的说明文本
-        author=作者.encode('utf-8') if 作者 else None,#附注标签的作者身份
-        annotated=附注信息 is not None)#有说明才建附注标签，否则建轻量标签
-
-def 删除标签(仓库,标签名:str):
-    '''删除标签引用'''
-    底层删除标签(仓库,标签名.encode('utf-8'))#移除refs/tags下的引用
-
-#==============================远程交互==============================
-
-def 添加远程(仓库,远程名:str,远程地址:str):
-    '''在仓库配置里登记一个远程地址'''
-    底层添加远程(仓库,远程名,远程地址)#写入config中的remote段
-
-def 远程引用(远程地址:str,用户名:str=None,密码:str=None)->dict:
-    '''不下载对象，直接读取远程仓库的引用表，键为引用全名值为提交号'''
-    认证参数={'username':用户名,'password':密码} if 用户名 else {}#http基本认证参数
-    远程客户端,远程路径=建立远程传输(远程地址,**认证参数)#按地址协议选择客户端
-    引用表=远程客户端.get_refs(远程路径)#远程引用字典
-    return {引用名.decode('utf-8'):提交号.decode('utf-8') for 引用名,提交号 in 引用表.items()}
-
-def 抓取(仓库,远程地址:str='origin',深度:int=None,用户名:str=None,密码:str=None)->dict:
-    '''只下载远程对象不合并，返回远程引用表'''
-    认证参数={'username':用户名,'password':密码} if 用户名 else {}#http基本认证参数
-    抓取结果=底层抓取(仓库,远程地址,depth=深度,**认证参数)#执行抓取
-    return {引用名.decode('utf-8'):提交号.decode('utf-8') for 引用名,提交号 in 抓取结果.refs.items()}
-
-def 拉取(仓库,远程地址:str='origin',引用规格:str=None,快进:bool=True,用户名:str=None,密码:str=None)->str:
-    '''抓取远程并更新本地引用与工作区，引用规格为空时取当前分支，返回过程文本'''
-    认证参数={'username':用户名,'password':密码} if 用户名 else {}#http基本认证参数
-    过程缓冲=字节流()#承接拉取过程提示
-    底层拉取(仓库,远程地址,引用规格.encode('utf-8') if 引用规格 else None,#待拉取的引用规格
-        outstream=字节流(),errstream=过程缓冲,fast_forward=快进,**认证参数)#执行拉取
-    return 过程缓冲.getvalue().decode('utf-8')#拉取过程文本
-
-def 推送(仓库,远程地址:str='origin',引用规格:str=None,强制:bool=False,用户名:str=None,密码:str=None)->str:
-    '''把本地提交推送到远程，引用规格为空时推送当前分支，返回过程文本'''
-    认证参数={'username':用户名,'password':密码} if 用户名 else {}#http基本认证参数
-    过程缓冲=字节流()#承接推送过程提示
-    底层推送(仓库,远程地址,引用规格.encode('utf-8') if 引用规格 else None,#待推送的引用规格
-        outstream=字节流(),errstream=过程缓冲,force=强制,**认证参数)#执行推送
-    return 过程缓冲.getvalue().decode('utf-8')#推送过程文本
+def 推断字段(源=None):
+    '传递的内容非字段实例时,自动判断是哪个字段'
+    if 源 is None or 源 is Any:
+        return 任意字段()#没给就当任意字段
+    elif isinstance(源,字段):
+        return 源#已经是字段
+    #普通数值
+    elif isinstance(源,(bool,str,int,float,bytes)):
+        #直接写字符串来注释
+        if isinstance(源,str):
+            match 源.lower():
+                case 'str'|'string':
+                    return 字符串字段()
+                case 'bool'|'boolean':
+                    return 布尔字段()
+                case 'int'|'integer':
+                    return 整数字段()
+                case 'float'|'number':
+                    return 浮点数字段()
+                case 'bytes'|'bytearray':
+                    return 字节字段()
+                case 'list'|'array':
+                    return 列表字段()
+                case 'tuple':
+                    return 元组字段()
+                case 'set':
+                    return 集合字段()
+                case 'dict'|'object':
+                    return 字典字段()
+                case 'any'|'anything'|'*':
+                    return 任意字段()
+        #其他的都算常量
+        return 常量字段(源)#字面量当常量
+    #用类型对象注释
+    elif 源 is str:
+        return 字符串字段()#字符串
+    elif 源 is bool:
+        return 布尔字段()#布尔
+    elif 源 is int:
+        return 整数字段()#整数
+    elif 源 is float:
+        return 浮点数字段()#浮点数
+    elif 源 is bytes:
+        return 字节字段()#字节
+    #py类型注释系统
+    elif isinstance(源,泛型):#list[ ]
+        类型=源.__origin__
+        参数=源.__args__
+        if 类型 is list:
+            return 列表字段(*参数)
+        elif 类型 is tuple:
+            return 元组字段(*参数)
+        elif 类型 is set:
+            return 集合字段(*参数)
+        elif 类型 is dict:
+            return 字典字段(*参数)
+        elif 类型 is Union:
+            return 复合类型字段(*参数)
+        else:
+            raise TypeError(f'无法从 {源} 推断出字段')#不认识的形态
+    #?
+    elif isinstance(源,list):
+        return 列表字段(*源)#列表
+    elif isinstance(源,tuple):
+        return 元组字段(*源)#元组
+    elif isinstance(源,set):
+        return 集合字段(*源)#集合
+    elif isinstance(源,dict):
+        return 字典字段(源)#字典
+    #
+    else:
+        raise TypeError(f'无法从 {源} 推断出字段')#不认识的形态

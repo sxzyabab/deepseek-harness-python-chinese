@@ -1,23 +1,25 @@
 """组：命令。"""
 from . import (
     bash工具,
-    bash工具持久化,
+    bash沙盒,
     powershell工具,
+    powershell沙盒,
     命令,
     命令_环境,
+    工具_bash持久化,
+    工具_powershell持久化,
     本地bash,
     本地powershell,
-    沙盒bash,
-    沙盒powershell,
 )
 __all__=[
     'bash工具',
-    'bash工具持久化',
+    'bash沙盒',
     'powershell工具',
+    'powershell沙盒',
     '命令',
     '命令_环境',
+    '工具_bash持久化',
+    '工具_powershell持久化',
     '本地bash',
     '本地powershell',
-    '沙盒bash',
-    '沙盒powershell',
 ]

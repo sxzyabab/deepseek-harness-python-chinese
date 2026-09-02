@@ -10,10 +10,7 @@ import shutil#递归删除临时目录
 import subprocess#功能探测 spawn
 import sys#解释器路径与平台
 import tempfile#平台临时根与私有临时目录
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-自然数字段=schemastery.自然数字段#配置字段
-列表字段=schemastery.列表字段#配置字段
+from ...依赖.schemastery import 字符串字段,自然数字段,列表字段#配置字段
 from ...模型后端.llm import 断言永不#导入封闭联合穷尽辅助
 from ..沙盒 import 沙箱提供方,沙箱不可用错误#导入沙箱提供方与不可用错误
 from ..沙盒_windows访问控制 import (#导入 ACL 授权、临时根断言与 SID 推导

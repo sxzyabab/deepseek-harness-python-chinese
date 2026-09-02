@@ -1,35 +1,23 @@
 """JSONL 耐久会话持久化后端（对齐 upstream session-persistence-jsonl）。"""
 import os#路径
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,字符串字段,布尔字段,数字字段#配置
 from ..会话持久化 import (
     会话持久化,默认预备会话缓存大小,默认写批最大延迟毫秒,写批延迟上限毫秒,
     持久化协调器,会话格式不支持错误,
 )#基座与协调器
 from .格式 import 日志路径,扫描日志,编码段,默认压缩#格式工具
 from .zstd编解码 import 压缩zstd帧,解压zstd帧#zstd
+from ...内核.智能体循环.辅助 import 取 as 取字段,解开#字段读取与承诺等待
 名称='session-persistence-jsonl'#Cordis 插件名
 注入=['sessions']#依赖
-配置=schemastery.对象字段({
-    'root':schemastery.字符串字段(),#根目录必填
-    'packChunks':schemastery.布尔字段(默认值=True),#打包块
-    'compression':schemastery.字符串字段(默认值='zstd'),#压缩
-    'preparedSessionCacheSize':schemastery.数字字段(默认值=默认预备会话缓存大小),#预备缓存
-    'writeBatchMaxDelayMs':schemastery.数字字段(默认值=默认写批最大延迟毫秒),#写批延迟
+配置=字典字段({
+    'root':字符串字段(),#根目录必填
+    'packChunks':布尔字段(默认值=True),#打包块
+    'compression':字符串字段(默认值='zstd'),#压缩
+    'preparedSessionCacheSize':数字字段(默认值=默认预备会话缓存大小),#预备缓存
+    'writeBatchMaxDelayMs':数字字段(默认值=默认写批最大延迟毫秒),#写批延迟
 })#配置模式
 __all__=['名称','注入','配置','jsonl会话持久化','默认']#公开面
-
-def 取字段(对象,键,缺省=None):#读字段
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键,缺省)#键
-    return getattr(对象,键,缺省)#属性
-
-def 解开(值):#可等待则等待
-    等待=getattr(值,'wait',None) or getattr(值,'等待',None)#方法
-    if callable(等待):#可等待
-        return 等待()#等待
-    return 值#同步
 
 class jsonl会话持久化(会话持久化):#JSONL 后端
     """每会话一个追加 JSONL 文件；协调器拥有写路径。"""

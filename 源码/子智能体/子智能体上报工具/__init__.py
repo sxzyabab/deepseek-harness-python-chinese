@@ -1,7 +1,6 @@
 """子体作用域内的 report 工具及其用法指引，安装进每个可续跑进程内子体的未发布上下文。根、一次性子体、远程提供方、以及无智能体执行永远看不见这次登记。对齐上游 `@deepseek-ai/dsh-tool-subagent-report`（packages/subagent/tool-subagent-report）。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 枚举字段#配置字段
 聚合错误=cordis.聚合错误#多失败聚合（登记失败回滚与成对拆除）
 from ...内核.工具 import 定义工具#定义面向模型的工具
 

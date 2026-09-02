@@ -1,11 +1,6 @@
 """盖在独立沙盒模式与审批策略旋钮上的面向用户权限预设。一次切换先记下所选预设，再经各自权威 setter 写入已变旋钮。执行、提示词叙述和回放继续读各自的旋钮折叠。当两个预设共享同一捆旋钮时，预设事件保住用户意图。读侧作为 `permissions` 会话投影交付；写侧作为 `/permission` 命令交付——两者都是同一服务上的可选子件。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
-字典字段=schemastery.字典字段#配置字段
-常量字段=schemastery.常量字段#配置字段
-复合类型字段=schemastery.复合类型字段#配置字段
+from ...依赖.schemastery import 字符串字段,枚举字段,字典字段,常量字段,复合类型字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 from ...配置.配置 import 安装设置段,设置命名空间#设置段安装与命名空间
 from ...沙盒.沙盒策略 import 沙盒模式表,生效沙盒模式,设沙盒模式#沙盒模式表、折叠与写入

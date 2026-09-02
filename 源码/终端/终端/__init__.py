@@ -3,6 +3,7 @@ import threading,weakref#后台清槽与已拆除所有者弱集
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
+聚合错误=cordis.聚合错误#搭建与清理双失败聚合
 from ...工具.超时 import 中止控制器,合成信号,取已中止,取原因值#取消控制器、合成信号与旗标读取
 from .类型 import (
     终端后端清理错误,#搭建清理双失败

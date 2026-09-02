@@ -1,8 +1,6 @@
 """web 访问能力缝（`ctx.web`）的 Service Definition：搜索与抓取的注册表以及按提供方选择的执行。重复 id 会被拒绝。执行时必须有已配置且可用的提供方；没有配置时恰好需要一个可用提供方，选择从不依赖注册顺序。"""
 import os#读取运行覆盖环境变量
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#导入Cordis服务基类
 from .类型 import (

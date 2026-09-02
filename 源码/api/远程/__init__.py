@@ -5,7 +5,7 @@
 无 satisfies 关键字：用显式成员断言代替形态门禁。
 """
 from ...交互.指令 import 类型 as _命令类型#侧效：命令事件声明
-from ...拓展.cordis_服务端 import 类型 as _动态类型#侧效：动态包转发事件
+from ...拓展.cordis服务端 import 类型 as _动态类型#侧效：动态包转发事件
 from ...凭据.凭据 import 类型 as _凭据类型#侧效：凭证事件声明
 from ...模型后端.llm import 类型 as _大模型类型#侧效：大模型事件声明
 from ...预设.智能体预设 import 类型 as _预设类型#侧效：智能体预设事件

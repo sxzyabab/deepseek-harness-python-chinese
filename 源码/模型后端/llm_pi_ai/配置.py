@@ -4,17 +4,7 @@
 """
 import math#有限数判断
 from .. import llm#语言模型服务
-from ...依赖 import schemastery
-字符串字段=schemastery.字符串字段
-整数字段=schemastery.整数字段
-列表字段=schemastery.列表字段
-复合类型字段=schemastery.复合类型字段
-常量字段=schemastery.常量字段
-字典字段=schemastery.字典字段
-布尔字段=schemastery.布尔字段
-枚举字段=schemastery.枚举字段
-自然数字段=schemastery.自然数字段
-数字字段=schemastery.数字字段
+from ...依赖.schemastery import 字符串字段,整数字段,列表字段,复合类型字段,常量字段,字典字段,布尔字段,枚举字段,自然数字段,数字字段#配置字段
 from ...凭据.凭据 import 凭证引用#凭证引用工厂
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .目录 import 模态列表,解析路由模型,受支持思考格式,思考档位列表#目录词表

@@ -5,9 +5,7 @@
 import re,time,uuid,threading,weakref#正则、轮询休眠、随机标记、中止锁与弱表
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 截止,取超时#命令截止与超时原因
 

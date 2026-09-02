@@ -1,17 +1,17 @@
 """进程外 ACP 子智能体后端（对齐 upstream subagent-acp）。"""
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,字符串字段,列表字段,数字字段#配置
 from .运行 import 启动acp跑,默认处置eof宽限毫秒,默认处置宽限毫秒#运行
 名称='subagent-acp'#Cordis 插件名
 注入=['subagents','subprocess']#依赖
-配置=schemastery.对象字段({
-    'providerName':schemastery.字符串字段(默认值='acp'),
-    'command':schemastery.字符串字段(),#可执行文件必填
-    'args':schemastery.列表字段(schemastery.字符串字段(),默认值=[]),
-    'cwd':schemastery.字符串字段(),
-    'permission':schemastery.字符串字段(默认值='reject'),
-    'env':schemastery.字典字段(schemastery.字符串字段(),默认值={}),
-    'disposeEofGraceMs':schemastery.数字字段(默认值=默认处置eof宽限毫秒),
-    'disposeGraceMs':schemastery.数字字段(默认值=默认处置宽限毫秒),
+配置=字典字段({
+    'providerName':字符串字段(默认值='acp'),
+    'command':字符串字段(),#可执行文件必填
+    'args':列表字段(字符串字段(),默认值=[]),
+    'cwd':字符串字段(),
+    'permission':字符串字段(默认值='reject'),
+    'env':字典字段[字符串字段(),字符串字段()](默认值={}),
+    'disposeEofGraceMs':数字字段(默认值=默认处置eof宽限毫秒),
+    'disposeGraceMs':数字字段(默认值=默认处置宽限毫秒),
 })#配置
 __all__=['名称','注入','配置','应用','默认']#公开面
 

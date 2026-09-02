@@ -2,7 +2,7 @@
 
 对齐上游 `llm-pi-ai/src/context.ts`。公开面仅中文名；无英文别名。
 """
-import base64#字节转 base64
+from ...依赖.工具 import 二进制#base64 编解码
 from .. import llm#语言模型服务
 from .回放 import 转派助手#助手历史重建
 
@@ -49,7 +49,7 @@ def 用户内容(块列,附件):
             媒体=引用元['mediaType'] if isinstance(引用元,dict) else 引用元.mediaType#媒体类型
             内容.append({
                 'type':'image',#图片
-                'data':base64.b64encode(bytes(数据)).decode('ascii'),#字节转base64
+                'data':二进制.转base64(数据),#字节转base64
                 'mimeType':媒体,#媒体类型
             })#图片块
         elif 类型=='tool-result':#嵌套工具结果再走同一转换，文本则折成 text 块

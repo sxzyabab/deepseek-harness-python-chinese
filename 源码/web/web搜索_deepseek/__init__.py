@@ -1,8 +1,6 @@
 """在 ctx.web 注册 DeepSeek 后端提供方。它调用带原生 web_search_20250305 的 Anthropic 兼容 Messages API。提供方复用 DEEPSEEK_API_KEY 但不复用 DEEPSEEK_BASE_URL，因为搜索与 chat-completions 使用不同基址。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...凭据.凭据 import 凭证引用#凭证引用工厂
 from ...配置.配置 import 安装设置段,设置命名空间#设置段安装与命名空间
 from ...工具.启动环境 import 取启动环境#启动环境快照

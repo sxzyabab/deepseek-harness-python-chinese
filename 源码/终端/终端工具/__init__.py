@@ -2,9 +2,7 @@
 import threading#后台结算线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 布尔字段,整数字段#配置字段
 from ..终端 import 终端会话标识#导入会话id品牌化
 from ...内核.工具 import 定义工具#导入工具定义
 from .渲染 import (#导入渲染与截断

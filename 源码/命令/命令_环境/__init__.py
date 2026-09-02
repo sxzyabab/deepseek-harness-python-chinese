@@ -5,8 +5,7 @@
 """
 import re#环境键后缀校验
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
 服务=cordis.服务#Cordis服务基类
 from ..命令 import 托管环境前缀#DSH_前缀
 from ...工具.工作区路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键

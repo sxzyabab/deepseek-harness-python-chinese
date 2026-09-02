@@ -4,8 +4,7 @@
 """
 import re#前缀校验
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 整数字段#配置字段
 from ...模型后端.llm import 创建用户消息#用户消息构造
 from ...typert.协议 import 远程服务,远程#Remote 服务基类与装饰器
 from .类型 import 动态插件标识,动态包标识,动态运行标识,审批请求标识#品牌构造

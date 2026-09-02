@@ -1,8 +1,7 @@
 """面向模型、且经工作区授权的会话历史检索与读取工具。对齐上游 `@deepseek-ai/dsh-tool-session-query`。"""
-from ...依赖 import schemastery#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 整数字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
-from ...模型后端.超时 import 最大定时器延迟毫秒#定时器延迟上限
+from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .入参 import 工具入参#工具入参面
 from .操作 import 操作#工具执行
 from .展示 import 展示#工具展示
@@ -44,8 +43,8 @@ def 解析配置(配置值):#把配置收成运行时规格
     超时毫秒=取字段(配置值,'searchTimeoutMs',默认搜索超时毫秒)#超时
     if (not isinstance(最大结果数,int)) or 最大结果数<1:#非法命中
         raise TypeError('tool-session-query: maxSearchResults must be a positive safe integer')#拒绝
-    if (not isinstance(超时毫秒,int)) or 超时毫秒<1 or 超时毫秒>最大定时器延迟毫秒:#非法超时
-        raise TypeError(f'tool-session-query: searchTimeoutMs must be a positive integer no greater than {最大定时器延迟毫秒}')#拒绝
+    if (not isinstance(超时毫秒,int)) or 超时毫秒<1 or 超时毫秒>定时器延迟上限毫秒:#非法超时
+        raise TypeError(f'tool-session-query: searchTimeoutMs must be a positive integer no greater than {定时器延迟上限毫秒}')#拒绝
     return {'maxSearchResults':最大结果数,'searchTimeoutMs':超时毫秒}#解析结果
 
 def 应用(上下文,配置值):#安装工具消费方

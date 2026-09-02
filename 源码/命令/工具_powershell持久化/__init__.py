@@ -3,12 +3,12 @@
 与 bash 持久化工具共享 PTY 轮询与重置契约；仅包装命令、提示符与工具名不同。
 """
 import re,uuid,threading,weakref#正则、标记、线程与弱表
-from ..bash工具持久化 import (
+from ..工具_bash持久化 import (
     注入,取字段,解开,是否安全整数,或许截断,下一滚回偏移,保留滚回,
     追加状态标记,渲染已抽,渲染壳退出状态,中止信号,中止控制器,已中止,抛若中止,暂停,
     操作任务,已兑现,全部结算,
 )
-from ...依赖 import schemastery#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#工具定义
 from ...工具.超时 import 截止,取超时#超时
 
@@ -22,10 +22,10 @@ __all__=['名称','注入','配置','应用','默认']#公开面
 pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '"+壳提示符+"' }"#初始化
 名称='tool-pwsh-persistent'#Cordis 插件名
 配置={#配置模式
-    'backendType':schemastery.字符串字段(默认值='shell'),
-    'timeoutMs':schemastery.数字字段(默认值=300000),
-    'maxOutputChars':schemastery.数字字段(默认值=16000),
-    'description':schemastery.字符串字段(默认值=默认描述),
+    'backendType':字符串字段(默认值='shell'),
+    'timeoutMs':数字字段(默认值=300000),
+    'maxOutputChars':数字字段(默认值=16000),
+    'description':字符串字段(默认值=默认描述),
 }#结束
 
 def 收成pwsh引号(值):#quoteForPwsh

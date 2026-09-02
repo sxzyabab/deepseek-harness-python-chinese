@@ -3,9 +3,7 @@
 对齐上游 `@deepseek-ai/dsh-storage-sqlite`。注册为后端 `sqlite`。
 """
 import asyncio#异步打开与关闭
-from ...依赖 import schemastery#配置
-字符串字段=schemastery.字符串字段#字符串配置
-对象字段=schemastery.对象字段#对象配置
+from ...依赖.schemastery import 字符串字段,字典字段#配置
 from ..存储.错误 import 存储错误#存储错误
 from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
 from ..存储 import 存储后端服务键#生命周期键
@@ -23,9 +21,9 @@ JournalMode=日志模式#上游类型锚
 名称='storage-sqlite'#Cordis 插件名
 注入=['storage']#依赖 storage 枢纽
 
-配置模式=对象字段({
-    'path':字符串字段().required(),#数据库路径
-    'journalMode':字符串字段().default('wal'),#journal 模式；打开时校验
+配置模式=字典字段({
+    'path':字符串字段(),#数据库路径
+    'journalMode':字符串字段(默认值='wal'),#journal 模式；打开时校验
 })#配置模式结束
 配置=配置模式#中文别名
 Config=配置模式#上游名

@@ -1,8 +1,6 @@
 """worker-thread 工作流引擎。每次运行在全新 worker 上的可逃离领域上下文中执行模型写的脚本，并把 agent() 调用桥到宿主子智能体。该线程防止同步脚本工作阻塞宿主，并允许强制终止，但这是收容而不是安全边界。"""
 import os,re,threading,uuid#并行度、meta 语句检测、后台观察与 UUID
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-自然数字段=schemastery.自然数字段#配置字段
+from ...依赖.schemastery import 字符串字段,自然数字段#配置字段
 from ..工作流 import (#导入工作流引擎、错误与运行标识
     工作流引擎,#引擎服务定义
     工作流错误,#工作流错误

@@ -5,6 +5,7 @@
 import os#默认工作目录与路径解析
 from ...模型后端 import llm_deepseek#DeepSeek LLM 插件模块
 from ...依赖 import cordis#外部依赖胶水
+聚合错误=cordis.聚合错误#拆除失败聚合
 from ...模型后端.llm import 创建用户消息#用户消息工厂
 from ...内核.作用域 import 获取载体键#作用域载体键
 from ...内核.会话 import 会话标识#会话 id 品牌构造

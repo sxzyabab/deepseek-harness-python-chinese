@@ -17,8 +17,8 @@
 """
 import math#ceil与floor拆分头尾预算
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 数字字段#配置字段
+from ...内核.智能体循环.辅助 import 取 as 取字段,解开,有自有#字段读取、承诺等待与自有键判定
 from ...工具.输出保留 import 文本保留器,描述省略#文本保留与省略描述
 from .类型 import (#再导出执行视图词汇
     溢出策略执行字段,#策略所见执行
@@ -40,16 +40,6 @@ inject=注入#Cordis依赖声明
 }#配置模式结束
 Config=配置模式#Cordis配置模式
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
 def 缺席(对象,键):#字段是否缺席
     """对齐字段 === undefined。"""
     if 对象 is None:#空对象
@@ -57,33 +47,6 @@ def 缺席(对象,键):#字段是否缺席
     if isinstance(对象,dict):#映射
         return 键 not in 对象#无键则缺席
     return not hasattr(对象,键)#无属性则缺席
-
-def 有自有(对象,键):#对齐Object.hasOwn
-    """对齐 Object.hasOwn。"""
-    if isinstance(对象,dict):#映射
-        return 键 in 对象#映射键
-    字典=getattr(对象,'__dict__',None)#实例字典
-    if 字典 is None:#没有字典
-        return False#没有字典
-    return 键 in 字典#自有
-
-def _是否thenable(值):#判定可等待对象
-    if 值 is None:#空不是
-        return False#不是
-    if callable(getattr(值,'wait',None)):#Future 风格
-        return True#可等待
-    return callable(getattr(值,'等待',None))#外来 thenable
-
-def _等待(值):#统一阻塞到结算
-    if callable(getattr(值,'wait',None)):#Future 风格
-        return 值.wait()#等待
-    return 值.等待()#外来 thenable
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if _是否thenable(值):#可等待
-        return _等待(值)#等待
-    return 值#同步值
 
 def 字节长(文本):#UTF-8字节长度
     """对齐 Buffer.byteLength(text, 'utf8')。"""

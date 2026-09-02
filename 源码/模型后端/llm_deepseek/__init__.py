@@ -4,14 +4,7 @@
 连接事实按请求解析而不是在加载时冻结：插件把它的 cordis.yml 条目配置叠在可选的 llm-deepseek 用户设置段下，并经可选凭证 seam 解析 API 密钥。唯一在注册时捕获的事实——重试政策——在变更时就地重新注册该路由。
 """
 from math import isfinite as 是否有限#有限数判断
-from ...依赖 import schemastery
-字符串字段=schemastery.字符串字段
-整数字段=schemastery.整数字段
-列表字段=schemastery.列表字段
-枚举字段=schemastery.枚举字段
-常量字段=schemastery.常量字段
-数字字段=schemastery.数字字段#配置字段
-字典字段=schemastery.字典字段
+from ...依赖.schemastery import 字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段,字典字段#配置字段
 from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误

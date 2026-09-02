@@ -6,8 +6,7 @@
 """
 import json#重复内容报错片段
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
+from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .类型 import 待办条目,待办状态#再导出类型面
 

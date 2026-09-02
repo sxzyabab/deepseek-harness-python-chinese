@@ -1,9 +1,6 @@
 """工作区指令发现与渲染的配置归一化。"""
 import json,os#序列化身份与相对路径
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
-列表字段=schemastery.列表字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段,列表字段#配置字段
 from ...工具.工作区路径 import 解析主目录#导入harness家目录解析
 
 __all__=['配置','解析配置','工作区基线身份','默认项目根标记','默认指令文件候选','默认本地指令文件候选','默认单源字节']#公开面

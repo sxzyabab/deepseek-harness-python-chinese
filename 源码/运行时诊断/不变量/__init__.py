@@ -3,12 +3,9 @@
 工作区每个包从 `./invariant` 配套注册检查；普通包入口点与诊断解耦。
 """
 import re#编译包名过滤正则
-from ...依赖 import cordis,schemastery#Cordis 与配置校验
+from ...依赖 import cordis#Cordis
+from ...依赖.schemastery import 字典字段,布尔字段,列表字段,字符串字段#配置校验
 服务=cordis.服务#Cordis 服务基类
-对象字段=schemastery.对象字段#对象配置
-布尔字段=schemastery.布尔字段#布尔配置
-数组字段=schemastery.数组字段#数组配置
-字符串字段=schemastery.字符串字段#字符串配置
 __all__=[#仅中文公开名
     '配置','不变量错误','不变量注册表',
     '名称','注入','配置模式','应用','apply','默认',
@@ -111,10 +108,10 @@ class 不变量注册表(服务):#包拥有不变量注册表
                 注册表.discard(包名)#释放预留
         return 拆除#返回拆除器
 
-配置模式=对象字段({#运行时不变量选择配置
-    'enabled':布尔字段().default(True),#全局开关
-    'package_allowlist':数组字段(字符串字段()).default([]),#允许包名正则
-    'package_blocklist':数组字段(字符串字段()).default([]),#阻止包名正则
+配置模式=字典字段({#运行时不变量选择配置
+    'enabled':布尔字段(默认值=True),#全局开关
+    'package_allowlist':列表字段(字符串字段(),默认值=[]),#允许包名正则
+    'package_blocklist':列表字段(字符串字段(),默认值=[]),#阻止包名正则
 })#配置模式结束
 
 def 应用(上下文对象,配置=None):#安装不变量注册表

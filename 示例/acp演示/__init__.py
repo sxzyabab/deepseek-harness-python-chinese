@@ -6,14 +6,7 @@
 """
 import os#路径拼接
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-复合类型字段=schemastery.复合类型字段#配置字段
-常量字段=schemastery.常量字段#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段,列表字段,布尔字段,复合类型字段,常量字段,枚举字段#配置字段
 from ...acp import acp#ACP 桥
 from .. import 智能体主干演示 as agentCore#默认智能体主干
 from ...上下文 import 智能体指令 as workspaceContext#工作区上下文加载器

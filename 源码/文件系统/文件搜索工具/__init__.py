@@ -7,9 +7,7 @@
 返回路径相对已解析工作目录展示，且仅在工作目录与文件系统 `read` 根是同一工作区的共置部署中可跟进读取——这是已文档化的 v1 部署要求，不是运行时校验。
 """
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 布尔字段,数字字段#配置字段
 from ...工具.超时 import 定时器延迟上限毫秒#导入定时器延迟上限
 from .通配 import (#再导出glob公开面
     通配最大结果数,#内联路径默认上限

@@ -3,14 +3,7 @@
 对齐上游 `@deepseek-ai/dsh-agent-spine-demo`。公开面仅中文名。捆绑公共服务、后台作业、可选持久化目标、具体循环、本地技能与 agent-instructions，以及面向模型的 shell/技能消费方。本包不提供默认导出（Loader 解包会丢掉 Config）。
 """
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-复合类型字段=schemastery.复合类型字段#配置字段
-常量字段=schemastery.常量字段#配置字段
-字典字段=schemastery.字典字段#配置字段
+from ...依赖.schemastery import 布尔字段,字符串字段,整数字段,列表字段,复合类型字段,常量字段,字典字段#配置字段
 #from ...模型后端.llm import LlmRuntime#LLM 运行时——若导出名不同则由装配侧别名
 from ...内核.会话 import SessionStore#会话存储
 from ..会话标题 import SessionTitleService#会话标题

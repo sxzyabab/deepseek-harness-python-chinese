@@ -1,32 +1,18 @@
 """持久化投影缓存（对齐 upstream session-projection-cache）。"""
 import copy,threading,time#克隆、脏状态、定时写
-from ...依赖 import cordis,schemastery#Cordis 与配置
+from ...依赖 import cordis#Cordis
+from ...依赖.schemastery import 字典字段,数字字段#配置
 服务=cordis.服务#服务基类
 from ...模型后端.llm import 结构化克隆#JSON 快照
 from .规格 import 投影缓存域规格#域 spec
+from ...内核.智能体循环.辅助 import 取 as 取字段,解开#字段读取与承诺等待
 名称='session-projection-cache'#Cordis 插件名
 注入=['storageDomain','sessionProjections','sessions']#依赖
-配置=schemastery.对象字段({
-    'writeEveryEvents':schemastery.数字字段(默认值=50),#事件阈值
-    'writeIntervalMs':schemastery.数字字段(默认值=5000),#时间阈值
+配置=字典字段({
+    'writeEveryEvents':数字字段(默认值=50),#事件阈值
+    'writeIntervalMs':数字字段(默认值=5000),#时间阈值
 })#配置模式
 __all__=['名称','注入','配置','会话投影缓存','默认']#公开面
-
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键,缺省)#键
-    return getattr(对象,键,缺省)#属性
-
-def 解开(值):#可等待则等待
-    """可等待则等待。"""
-    if callable(getattr(值,'wait',None)):#Future
-        return 值.wait()#等待
-    if callable(getattr(值,'等待',None)):#中文
-        return 值.等待()#等待
-    return 值#同步
 
 def 身份于(头):#头→身份
     """投影检查点记录绑定的生命周期身份。"""

@@ -1,6 +1,6 @@
 """模型会话标题共享策略（对齐上游 session-title-llm）。"""
 import json#消息 JSON 帧
-from ...依赖 import schemastery#配置字段
+from ...依赖.schemastery import 字典字段,数字字段,字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息,深冻结#LLM 辅助
 from ...工具.超时 import 截止#截止
 from ..会话标题.归一 import 归一化会话标题#标题归一
@@ -8,15 +8,15 @@ from ..会话标题.归一 import 归一化会话标题#标题归一
 会话标题超时码='SESSION_TITLE_TIMEOUT'#超时原因码
 最大定时器延迟毫秒=2147483647#对齐 MAX_TIMER_DELAY_MS
 配置字段={
-    'targetWords':schemastery.数字字段(默认值=None),#非 CJK 目标词数（必填由加载器校验）
-    'targetCjkCharacters':schemastery.数字字段(默认值=None),#CJK 目标字符
-    'maxInputBytes':schemastery.数字字段(默认值=None),#输入字节上限
-    'maxOutputTokens':schemastery.数字字段(默认值=None),#输出 token 上限
-    'timeoutMs':schemastery.数字字段(默认值=None),#超时
-    'provider':schemastery.字符串字段(),#可选路由
-    'model':schemastery.字符串字段(),#可选模型
+    'targetWords':数字字段(默认值=None),#非 CJK 目标词数（必填由加载器校验）
+    'targetCjkCharacters':数字字段(默认值=None),#CJK 目标字符
+    'maxInputBytes':数字字段(默认值=None),#输入字节上限
+    'maxOutputTokens':数字字段(默认值=None),#输出 token 上限
+    'timeoutMs':数字字段(默认值=None),#超时
+    'provider':字符串字段(),#可选路由
+    'model':字符串字段(),#可选模型
 }#字段表
-会话标题llm配置模式=schemastery.对象字段(配置字段)#配置模式
+会话标题llm配置模式=字典字段(配置字段)#配置模式
 
 def 解析会话标题llm配置(配置):#解析配置
     """校验并冻结模型标题策略。"""

@@ -5,8 +5,7 @@
 对齐上游 `@deepseek-ai/dsh-client-hmr`。公开面仅中文名。配置键英文字面量保持上游。
 """
 import json,os,threading#JSON、路径与定时器
-from ...依赖 import schemastery#配置字段
-自然数字段=schemastery.自然数字段#配置字段
+from ...依赖.schemastery import 自然数字段#配置字段
 from .事件 import 插件事件帧,事件端点#再导出 SSE 帧与路径
 
 __all__=['名称','注入','配置','应用','插件事件帧','事件端点']#仅中文公开名

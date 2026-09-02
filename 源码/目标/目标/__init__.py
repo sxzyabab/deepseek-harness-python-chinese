@@ -1,8 +1,7 @@
 """同会话目标域：事件源状态、比较交换变更，以及进程内续跑武装。"""
 import math,re,time,uuid,weakref#安全整数、阻塞码、纪元毫秒、目标 id 与会话弱表
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 数字字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 from ...内核.智能体 import 智能体事件#按智能体作用域派发
 from ...typert.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器

@@ -1,22 +1,15 @@
 """日志驱动会话标题服务、确定性回退与提供方契约（对齐上游 session-title）。"""
 import threading,weakref#并发与弱表
-from ...依赖 import cordis,schemastery#Cordis 与配置
+from ...依赖 import cordis#Cordis
+from ...依赖.schemastery import 字典字段,数字字段#配置
 服务=cordis.服务#服务基类
-数字字段=schemastery.数字字段#数字字段
 from ...模型后端.llm import 深冻结,是否智能体循环请求#LLM 辅助
 from .归一 import 归一化会话标题,回退会话标题#标题归一
+from ...内核.智能体循环.辅助 import 取 as 取字段#字段读取
 
 class 会话标题无效错误(Exception):#显式重命名失败
     """用户标题归一化后为空。"""
     name='SessionTitleInvalidError'#错误名
-
-def 取字段(对象,键,缺省=None):#读字段
-    """读映射或对象字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键,缺省)#键
-    return getattr(对象,键,缺省)#属性
 
 def _用户消息(事件):#从事件提取人类消息
     """提取一条合格的人类文本消息。"""
@@ -64,11 +57,11 @@ def _标题输入应用(状态,事件):#titleInput 折叠
 
 名称='session-title'#Cordis 插件名
 注入=['sessions','sessionProjections']#依赖
-配置={#配置模式
+配置=字典字段({#配置模式
     'fallbackMaxWords':数字字段(默认值=8),#回退词数
     'fallbackMaxBytes':数字字段(默认值=80),#回退字节
     'maxTitleBytes':数字字段(默认值=200),#标题字节上限
-}#配置结束
+})#配置结束
 __all__=['会话标题服务','会话标题无效错误','折叠会话标题','标题投影定义','名称','注入','配置','应用','默认']#公开面
 
 class 会话标题服务(服务):#会话标题服务

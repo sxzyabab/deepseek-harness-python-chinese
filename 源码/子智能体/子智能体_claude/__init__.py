@@ -1,12 +1,12 @@
 """Claude Code 子智能体后端（对齐 upstream subagent-claude-code）。"""
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,字符串字段,数字字段#配置
 from .运行 import 启动claude跑,默认处置宽限毫秒#运行
 名称='subagent-claude-code'#Cordis 插件名
 注入=['subagents','subprocess']#依赖
-配置=schemastery.对象字段({
-    'providerName':schemastery.字符串字段(默认值='claude'),
-    'permissionMode':schemastery.字符串字段(默认值='dontAsk'),
-    'disposeGraceMs':schemastery.数字字段(默认值=默认处置宽限毫秒),
+配置=字典字段({
+    'providerName':字符串字段(默认值='claude'),
+    'permissionMode':字符串字段(默认值='dontAsk'),
+    'disposeGraceMs':数字字段(默认值=默认处置宽限毫秒),
 })#配置
 __all__=['名称','注入','配置','应用','默认']#公开面
 

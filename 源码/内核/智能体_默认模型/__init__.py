@@ -3,8 +3,7 @@
 对齐上游 `agent-default-model/src/index.ts`。公开面仅中文名；设置文档键与 Cordis 服务槽名（`agentDefaultModel`）保持上游字面量。
 """
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段#配置字段
 服务=cordis.服务#导入 Cordis 服务基类
 from ...模型后端.llm import 推理力度标识#导入推理力度品牌
 from ...配置.配置 import 安装设置段,设置命名空间#导入设置段安装与命名空间

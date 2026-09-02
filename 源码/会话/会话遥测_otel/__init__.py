@@ -1,21 +1,22 @@
 """OpenTelemetry 会话遥测后端（对齐 upstream session-telemetry-otel）。"""
 import threading,time#定时与并发
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,字符串字段,任意字段,数字字段#配置
 from ...身份.匿名用户id import 获取或创建匿名用户id#用户 id
 from ...模型后端.llm import 应用身份#产品身份
 from ..会话遥测 import 会话遥测后端#基类
 from ..会话遥测.协调器 import 会话遥测协调器#协调器
+from ...内核.智能体循环.辅助 import 取 as 取字段#字段读取
 名称='session-telemetry-otel'#Cordis 插件名
 注入=['sessions']#依赖
 默认关闭超时毫秒=3000#默认 shutdown 上限
 最大定时器延迟毫秒=2147483647#Node 定时器上限
 禁用反馈警告='session telemetry is DISABLED; nothing will be shared and this feedback remains local'#禁用提示
 非规范反馈警告='session telemetry ignored a feedback event absent from the canonical session log'#非规范反馈
-配置=schemastery.对象字段({
-    'mode':schemastery.字符串字段(默认值='DISABLED'),#FULL/FEEDBACK_ONLY/DISABLED
-    'exporter':schemastery.任意字段(),#OTLP 导出器选项
-    'processor':schemastery.任意字段(),#批处理器选项
-    'shutdownTimeoutMillis':schemastery.数字字段(默认值=默认关闭超时毫秒),#关闭上限
+配置=字典字段({
+    'mode':字符串字段(默认值='DISABLED'),#FULL/FEEDBACK_ONLY/DISABLED
+    'exporter':任意字段(),#OTLP 导出器选项
+    'processor':任意字段(),#批处理器选项
+    'shutdownTimeoutMillis':数字字段(默认值=默认关闭超时毫秒),#关闭上限
 })#配置模式
 __all__=['名称','注入','配置','会话遥测模式','开放遥测会话后端','默认']#公开面
 

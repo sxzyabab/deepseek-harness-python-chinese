@@ -2,9 +2,7 @@
 import os#工作目录与路径判定
 import threading#每目标键互斥
 from urllib.request import pathname2url#路径转 file URL
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from .. import 文件系统 as fs#文件系统服务定义与错误
 from . import 文件读写#本地 IO 实现
 

@@ -1,5 +1,4 @@
 """全提示词模型标题提供方（对齐 upstream session-title-all-prompts-llm）。"""
-from ...依赖 import schemastery#配置字段
 from ..会话标题_llm import 登记会话标题llm提供方,会话标题llm配置模式#共享策略
 名称='session-title-all-prompts-llm'#Cordis 插件名
 注入=['sessionTitle','llm','sessions']#依赖

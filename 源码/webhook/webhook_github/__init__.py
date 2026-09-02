@@ -1,8 +1,6 @@
 """Signed GitHub HTTP adapter for the provider-neutral webhook runtime. 对齐上游 `webhook-github/src/index.ts`。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-整数字段=schemastery.整数字段#配置字段
+from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...凭据.凭据 import 凭据引用#凭据引用品牌
 from ..webhook.品牌 import Webhook来源标识,Webhook投递标识#webhook品牌
 from .处理器 import 创建GitHubWebhook处理器#HTTP处理器

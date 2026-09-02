@@ -7,8 +7,7 @@ Code Mode 需要代码运行时（宿主平面服务）。因此本行等待该�
 
 对齐上游 `@deepseek-ai/dsh-agent-tool-presentation`。公开面仅中文名。配置键与模式字面量保持上游字面量。
 """
-from ...依赖 import schemastery#配置字段
-枚举字段=schemastery.枚举字段#配置字段
+from ...依赖.schemastery import 枚举字段#配置字段
 from .类型 import 工具展示模式,插件配置#再导出结构类型
 
 名称='tool-presentation'#Cordis 插件名（字面量）

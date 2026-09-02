@@ -4,8 +4,7 @@
 """
 import json#结果 JSON 文本
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-自然数字段=schemastery.自然数字段#自然数字段
+from ...依赖.schemastery import 自然数字段#配置字段
 from ...内核.工具 import 定义工具#工具定义
 from ..语言服务器 import 语言服务器错误#LSP 错误
 from .呈现 import (#呈现与解析

@@ -3,7 +3,7 @@
 对齐上游 `拓展/cordis-host-runner/src/sandbox.ts` 的公开语义。
 Node vm 在 Python 树用 compile/exec 近似；宿主内置巡检符号表保持上游字面量。
 """
-import base64#base64 编解码
+from ...依赖.工具 import 二进制#base64 编解码
 from .守卫 import 沙箱定义工具,沙箱登记工具#沙箱工具登记
 
 __all__=[#仅中文公开名
@@ -71,10 +71,10 @@ def 创建沙箱(标识,harness额外=None):#创建沙箱
         harness额外={}#空
     def btoa(串):#UTF-8 → base64
         """编码。"""
-        return base64.b64encode(串.encode('utf-8')).decode('ascii')#编码
+        return 二进制.转base64(串.encode('utf-8'))#依赖版编码
     def atob(串):#base64 → UTF-8
         """解码。"""
-        return base64.b64decode(串.encode('ascii')).decode('utf-8')#解码
+        return 二进制.从base64(串).decode('utf-8')#依赖版解码
     沙箱={#沙箱全局
         **节点API陷阱(),#Node API 陷阱
         'console':带标记控制台(标识),#带标记控制台

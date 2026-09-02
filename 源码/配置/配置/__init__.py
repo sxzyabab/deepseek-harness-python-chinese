@@ -2,7 +2,6 @@
 import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
 服务=cordis.服务#Cordis 服务基类
 光纤状态=cordis.纤程状态#拆除态镜像
 from .类型 import 设置命名空间品牌,设置更新来源#再导出类型面

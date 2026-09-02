@@ -2,6 +2,7 @@
 import json,math,threading#JSON相等、安全整数、后台串行链
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
+聚合错误=cordis.聚合错误#后端拆除失败聚合
 from ...内核.会话 import (#会话包运行时原语
     收养会话事件,#收养会话事件
     中断轮次关闭器,#被打断回合的合成关闭事件

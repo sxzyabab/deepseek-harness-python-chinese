@@ -4,9 +4,7 @@
 """
 import os#路径
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-自然数字段=schemastery.自然数字段#自然数字段
-字符串列表字段=schemastery.字符串列表字段#字符串列表字段
+from ...依赖.schemastery import 自然数字段,列表字段,字符串字段#配置字段
 光纤状态=cordis.纤程状态#纤程状态
 from ..文件引用 import 文件引用服务,文件引用提示#基类与提示
 from ..文件引用.词法 import 光标处活动令牌,格式化文件提及#再导出词法
@@ -23,7 +21,7 @@ __all__=[#仅中文公开名
 配置模式={#插件配置
     'maxResults':自然数字段(最小=1,默认值=默认最大结果数),#单次最多候选
     'maxEntries':自然数字段(最小=1,默认值=默认最大条目数),#索引上限
-    'excludedDirectories':字符串列表字段(默认值=list(默认排除目录)),#排除目录
+    'excludedDirectories':列表字段(字符串字段(),默认值=list(默认排除目录)),#排除目录
 }#配置结束
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段

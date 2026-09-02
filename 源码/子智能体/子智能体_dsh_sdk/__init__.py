@@ -1,22 +1,22 @@
 """DSH SDK 子智能体后端（对齐 upstream subagent-dsh-sdk）。"""
 import os#路径
-from ...依赖 import schemastery#配置
+from ...依赖.schemastery import 字典字段,字符串字段,列表字段,数字字段#配置
 from .运行 import 启动sdk跑,默认关闭超时毫秒,默认处置eof宽限毫秒,默认处置宽限毫秒#运行
 名称='subagent-dsh-sdk'#Cordis 插件名
 注入=['subagents']#依赖
-配置=schemastery.对象字段({
-    'providerName':schemastery.字符串字段(默认值='dsh-sdk'),
-    'profile':schemastery.字符串字段(默认值='sdk'),
-    'patches':schemastery.列表字段(schemastery.字符串字段(),默认值=[]),
-    'dshHome':schemastery.字符串字段(),#必填
-    'cwd':schemastery.字符串字段(),
-    'provider':schemastery.字符串字段(默认值='deepseek-official'),
-    'model':schemastery.字符串字段(默认值='deepseek-v4-flash'),
-    'maxTokens':schemastery.数字字段(),
-    'env':schemastery.字典字段(schemastery.字符串字段(),默认值={}),
-    'shutdownTimeoutMs':schemastery.数字字段(默认值=默认关闭超时毫秒),
-    'disposeEofGraceMs':schemastery.数字字段(默认值=默认处置eof宽限毫秒),
-    'disposeGraceMs':schemastery.数字字段(默认值=默认处置宽限毫秒),
+配置=字典字段({
+    'providerName':字符串字段(默认值='dsh-sdk'),
+    'profile':字符串字段(默认值='sdk'),
+    'patches':列表字段(字符串字段(),默认值=[]),
+    'dshHome':字符串字段(),#必填
+    'cwd':字符串字段(),
+    'provider':字符串字段(默认值='deepseek-official'),
+    'model':字符串字段(默认值='deepseek-v4-flash'),
+    'maxTokens':数字字段(),
+    'env':字典字段[字符串字段(),字符串字段()](默认值={}),
+    'shutdownTimeoutMs':数字字段(默认值=默认关闭超时毫秒),
+    'disposeEofGraceMs':数字字段(默认值=默认处置eof宽限毫秒),
+    'disposeGraceMs':数字字段(默认值=默认处置宽限毫秒),
 })#配置
 __all__=['名称','注入','配置','应用','默认']#公开面
 

@@ -3,8 +3,9 @@
 对齐上游 `ui-conversation/src/client/service.ts`。公开面仅中文名。
 浏览器 File/Blob/URL API 在非浏览器宿主半退化为 data URL 或拒绝。
 """
-import base64,uuid#图片编码与草稿 id
+import uuid#草稿 id
 from ....依赖 import cordis#外部依赖胶水
+from ....依赖.工具 import 二进制#base64 编解码
 服务=cordis.服务#Cordis 服务基类
 
 __all__=['不支持图片媒体类型','会话控制器','图片媒体类型','字节转base64']#仅中文公开名
@@ -25,13 +26,7 @@ def 图片媒体类型(值):#收窄浏览器声明的图片 MIME
         return 值#原样
     raise 不支持图片媒体类型(值)#UI 边界本地化
 
-def 字节转base64(数据):#字节转 base64
-    """接受 bytes / bytearray / memoryview。"""
-    if isinstance(数据,memoryview):#视图
-        数据=数据.tobytes()#拷贝
-    elif not isinstance(数据,(bytes,bytearray)):#其它
-        数据=bytes(数据)#强制
-    return base64.b64encode(bytes(数据)).decode('ascii')#base64 文本
+字节转base64=二进制.转base64#依赖版 base64 编码
 
 def 收回预览(网址):#收回预览 URL
     """只收回 blob: 对象 URL；宿主注入的 revokeObjectURL 若存在则调用。"""

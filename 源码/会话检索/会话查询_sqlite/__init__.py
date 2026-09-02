@@ -1,6 +1,7 @@
 """在优先活会话语料上用 SQLite FTS5 做全文检索的具体会话检索服务。对齐上游 `@deepseek-ai/dsh-session-query-sqlite`。"""
 import base64,hashlib,json,threading,uuid#编码、哈希、JSON、并发与实例 id
-from ...依赖 import cordis,schemastery#Cordis 与配置
+from ...依赖 import cordis#Cordis
+from ...依赖.schemastery import 字典字段,字符串字段,枚举字段,整数字段#配置
 服务=cordis.服务#Cordis服务基类
 from ...模型后端.llm import 结构化克隆#拆离克隆
 from ..会话查询 import (
@@ -33,15 +34,15 @@ SESSION_QUERY_SQLITE_MAX_LIMIT=会话查询sqlite最大页大小#上游名
 SESSION_QUERY_SQLITE_SNIPPET_CHARS=会话查询sqlite摘要码点#上游名
 稳定观察尝试次数=2#稳定观察最多尝试次数
 
-配置模式=schemastery.对象字段({
-    'path':schemastery.字符串字段(),
-    'openAt':schemastery.联合字段(['startup','first-search','never']).default('startup'),
-    'journalMode':schemastery.联合字段(list(日志模式)).default('wal'),
-    'defaultLimit':schemastery.整数字段(默认值=会话查询sqlite默认页大小),
-    'maxLimit':schemastery.整数字段(默认值=会话查询sqlite最大页大小),
-    'snippetChars':schemastery.整数字段(默认值=会话查询sqlite摘要码点),
-    'readWindowMax':schemastery.整数字段(默认值=会话查询读取窗口上限),
-    'persistedInspectConcurrency':schemastery.整数字段(默认值=会话查询默认持久检查并发),
+配置模式=字典字段({
+    'path':字符串字段(),
+    'openAt':枚举字段('startup','first-search','never',默认值='startup'),
+    'journalMode':枚举字段(*日志模式,默认值='wal'),
+    'defaultLimit':整数字段(默认值=会话查询sqlite默认页大小),
+    'maxLimit':整数字段(默认值=会话查询sqlite最大页大小),
+    'snippetChars':整数字段(默认值=会话查询sqlite摘要码点),
+    'readWindowMax':整数字段(默认值=会话查询读取窗口上限),
+    'persistedInspectConcurrency':整数字段(默认值=会话查询默认持久检查并发),
 })#配置模式
 
 __all__=[

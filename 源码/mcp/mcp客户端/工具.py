@@ -4,28 +4,13 @@
 """
 import hashlib,json,re#身份哈希、旧结果序列化与非法名字符
 from ...内核.工具 import 断言受支持json模式#受支持 JSON 模式断言
+from ...内核.智能体循环.辅助 import 取 as 取字段,解开#字段读取与承诺等待
 from ...依赖 import cordis#外部依赖胶水
 __all__=['公开工具名','同步工具','MCP结果']#仅中文公开名
 
 公开名最大长度=64#DeepSeek 函数名最大长度
 非法名字符=re.compile(r'[^A-Za-z0-9_-]+')#非法公开名字符
 哈希长度=12#有损归一化时追加的 SHA-256 十六进制字符数
-
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
-    return 值#同步值
 
 def 公开工具名(服务器名,原始名):#推导公开工具名
     """`(serverName, rawName)` 的确定性纯函数：干净情形是原文 `mcp__<serverName>__<rawName>`。"""

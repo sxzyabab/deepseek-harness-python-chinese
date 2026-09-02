@@ -2,10 +2,7 @@
 
 对齐上游 `@deepseek-ai/dsh-client-connection`。公开面仅中文名。配置键英文字面量保持上游。
 """
-from ...依赖 import schemastery#配置字段
-列表字段=schemastery.列表字段#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-自然数字段=schemastery.自然数字段#配置字段
+from ...依赖.schemastery import 列表字段,字符串字段,自然数字段#配置字段
 from .接口路径 import 接口路径,复用事件路径,宿主事件路径#API 与事件路径常量
 from .http桥 import 桥接,默认最大请求正文字节#HTTP 桥与默认正文上限
 from .接口请求信任 import 断言受信任权威,是否受信任接口请求#权威校验与请求信任闸
@@ -74,7 +71,7 @@ def 断言图像正文容量(上下文,最大请求正文字节):#正文上限�
 
 def 经网关fetch(网关,请求):#对齐上游 toFetchHandler(apiProxy).fetch
     """把请求交给网关的 fetch 面。"""
-    from ...host.apiproxy import 转fetch处理#宿主网关 → fetch 面（对齐上游 toFetchHandler）
+    from ...宿主.apiproxy import 转fetch处理#宿主网关 → fetch 面（对齐上游 toFetchHandler）
     return 转fetch处理(网关).fetch(请求)#派发
 
 def 应用(上下文,配置值=None):#安装连接插件

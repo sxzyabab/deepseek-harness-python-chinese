@@ -1,6 +1,7 @@
 """`DSH_HOME` 下根目录的本地耐久附件后端。对齐上游 attachment-local/src/index.ts。"""
 import os,threading#路径与并发去重
-from ...依赖 import cordis,schemastery#Cordis 与配置
+from ...依赖 import cordis#Cordis
+from ...依赖.schemastery import 字符串字段,数字字段#配置
 from ...工具.工作区路径 import 解析主目录#harness 主目录
 from ..附件 import 附件存储,附件错误,若已中止则抛出#附件缝
 from .压缩限流 import 压缩限流器#并发限流
@@ -10,8 +11,6 @@ from .存储 import (#存储原语
 )#存储导入
 from .规范化 import 能否直通规范化,规范化图像,规范化策略字段#规范化
 from .请求图像 import 读取请求图像文件,请求图像变体标识#请求图像
-字符串字段=schemastery.字符串字段#字符串配置
-数字字段=schemastery.数字字段#数字配置
 服务=cordis.服务#服务初始化符号
 __all__=[#仅中文公开名
     '默认最大图像字节','默认每消息最大图像数','默认每消息最大图像总字节',

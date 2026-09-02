@@ -1,7 +1,6 @@
 """可安全重放、无模型的工具结果修剪服务。"""
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 数字字段#配置字段
 服务=cordis.服务#导入Cordis服务基类
 from ...模型后端.llm import 冻结消息#导入冻结消息
 from .配置 import 码点长度,默认预算,修剪标记,解析配置#导入码点长度、默认值、标记与解析

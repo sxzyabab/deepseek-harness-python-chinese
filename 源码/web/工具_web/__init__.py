@@ -1,7 +1,5 @@
 """面向模型的 `web_search` 与 `web_fetch` 工具，建立在 `ctx.web` 上。本包负责 schema、校验、提示词指引、上限与展示，从不实现具体提供方。启用控制工具注册；已启用的工具在提供方不可用时仍可见，执行时以结构化错误失败。"""
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 布尔字段,数字字段#配置字段
 from .搜索 import (#再导出搜索工具 API
     网络搜索最大结果数,#搜索返回来源的默认上限
     应用网络搜索工具,#注册搜索工具

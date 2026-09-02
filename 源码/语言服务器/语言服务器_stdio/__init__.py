@@ -4,14 +4,9 @@
 """
 import threading#提供方队列与生命周期
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-列表字段=schemastery.列表字段#配置字段
-字典字段=schemastery.字典字段#配置字段
-任意字段=schemastery.任意字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,列表字段,字典字段,任意字段,数字字段#配置字段
 聚合错误=cordis.聚合错误#聚合错误
-from ...lsp.lsp import 语言服务器错误,语言服务器提供方标识#LSP错误与提供方id工厂
+from ...语言服务器.语言服务器 import 语言服务器错误,语言服务器提供方标识#LSP错误与提供方id工厂
 from ...工具.超时 import 定时器延迟上限毫秒,中止控制器,合成信号,取已中止#定时器上限与取消
 from .取消 import 可中止等待,中止错误,操作任务,已兑现,_是否thenable,_等待#取消与操作任务
 from .宿主 import 规范化工作区,读宿主源#宿主I/O

@@ -6,8 +6,7 @@ Cordis 槽 `name` / `inject` / `Config` / `apply` / `default` 可保留。
 """
 import json,math,os#JSON片段、有限数与路径
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
+from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止,已中止#工具定义、体后中止码与中止判定
 from ...模型后端.llm import 装备错误#Harness错误
 from ..命令 import 解析退出状态#共用退出状态解析

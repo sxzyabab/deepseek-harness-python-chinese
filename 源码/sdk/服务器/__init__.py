@@ -4,8 +4,7 @@
 """
 import sys,threading#生产 stdio、退出与异步退出拍
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-布尔字段=schemastery.布尔字段#配置字段
+from ...依赖.schemastery import 布尔字段#配置字段
 from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输
 from .服务端 import 装备SDKJSONRPC服务端#SDK 运行时服务器
 

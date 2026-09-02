@@ -2,16 +2,11 @@
 
 失败即关闭：`add` 在任何授权失败时抛出，调用方拆除实例（撤销迄今已授权的每条路径）；`dispose` 撤销每份可撤销授权并报告每次清理失败。
 """
+from ...依赖 import cordis#外部依赖胶水
 from .acl import 授予写入,撤销写入#授予与撤销写入ACE
 from .ffi import 分配指针槽,解码指针,是否空指针,抛上次错误,同步解析绑定#指针槽、解码、空指针、错误抛出与同步绑定
 
-class 聚合错误(Exception):#汇总多次清理失败
-    """对应 AggregateError：携带 errors 列表。"""
-    def __init__(自身,错误们,消息):#记下错误与消息
-        """按错误列表与汇总消息构造。"""
-        super().__init__(消息)#交给Exception
-        自身.errors=list(错误们)#错误列表
-        自身.name='AggregateError'#固定类名
+聚合错误=cordis.聚合错误#汇总多次清理失败
 
 class ACL写入授权:#一份写入SID的授权物化
     """一个写入 SID 在提供方生命周期内的授权物化：已解析 SID 指针，外加当前 DACL 携带其 ACE 的每个目录。工作区路径以常驻方式加入（其 ACE 是跨会话复用缓存，比本授权活得更久——dispose() 跳过撤销它们）；临时路径可撤销（dispose() 撤销它们）。用 create / 创建 创建；dispose 撤销可撤销路径并释放 SID。"""

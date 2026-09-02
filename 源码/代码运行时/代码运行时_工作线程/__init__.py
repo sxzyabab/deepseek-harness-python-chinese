@@ -1,7 +1,6 @@
 """工人线程代码运行时：每次用全新工人线程跑一份程序，并经消息端口桥接绑定。这是隔离，不是安全边界：尽管有堆/忙时/墙钟预算以及终止，模型代码仍有与 bash 相当的信任。"""
 import queue,re,threading,time#队列、标识符、线程与墙钟
-from ...依赖 import schemastery#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 数字字段#配置字段
 from ...工具.超时 import 定时器延迟上限毫秒#setTimeout最大延迟
 from ..代码运行时 import (#运行时基类与保留名
     代码运行时,#基类

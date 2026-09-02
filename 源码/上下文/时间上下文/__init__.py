@@ -1,9 +1,7 @@
 """可选的请求时钟上下文。符合条件的步骤把带源归属的持久时间读数加进请求历史。"""
 import json,math,time#JSON诊断、安全整数与纪元毫秒
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
 from .时间戳 import 创建时间戳格式化器,格式化时间戳#时间戳格式化

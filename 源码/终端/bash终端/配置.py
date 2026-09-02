@@ -1,8 +1,5 @@
 """本地 PTY 后端经过校验的配置。"""
-from ...依赖 import schemastery#配置字段
-字符串字段=schemastery.字符串字段#配置字段
-数字字段=schemastery.数字字段#配置字段
-列表字段=schemastery.列表字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段,列表字段#配置字段
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
 
