@@ -16,7 +16,7 @@ def 应用(上下文):#安装网关
 apply=应用#上游名
 
 __all__=[#公开面
-    'Typert网关服务','网关错误','TypertGatewayService','TypertGatewayError',
+    'Typert网关服务','网关错误',
     '调用远程请求','网关错误码','Typert网关',
-    '名称','注入','应用','apply','客户端面',
+    '名称','注入','应用','客户端面',
 ]#结束

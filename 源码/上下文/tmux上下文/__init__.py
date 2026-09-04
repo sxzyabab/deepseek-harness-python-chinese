@@ -4,7 +4,7 @@ from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 数字字段#配置字段
 from ...模型后端.llm import 创建用户消息#构造插件来源的用户消息
 
-__all__=['名称','注入','应用','配置','Config','name','inject']#公开面
+__all__=['名称','注入','应用','配置']#仅中文公开名
 
 名称='tmux-context'#与事件来源 plugin 字段一致
 注入=['agents']#依赖 agents 服务

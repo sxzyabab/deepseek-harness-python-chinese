@@ -1,6 +1,7 @@
 """浏览器 UI 渲染器的宿主 loader 入口。
 
 对齐上游 `@deepseek-ai/dsh-client-ui-renderer`。公开面仅中文名。
+不提供任何宿主侧行为；浏览器入口在客户端/。
 """
 __all__=['应用']#仅中文公开名
 

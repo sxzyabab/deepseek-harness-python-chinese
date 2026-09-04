@@ -1,6 +1,7 @@
 """官方浏览器品牌插件，节点半边。
 
 对齐上游 `@deepseek-ai/dsh-client-ui-brand-official`。公开面仅中文名。
+空 apply 给 Loader 一个宿主侧行；浏览器半部经客户端/交付。
 """
 __all__=['应用']#仅中文公开名
 

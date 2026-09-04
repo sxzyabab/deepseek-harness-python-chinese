@@ -1,14 +1,19 @@
-"""Bounded raw HTTP body intake for GitHub signature verification. 对齐上游 `webhook-github/src/body.ts`。"""
+"""GitHub 签名校验用的有界 HTTP 正文读取。
+
+对齐上游 `webhook-github/src/body.ts`。公开面仅中文名。
+"""
+
+__all__=['WebhookHttp错误','内容长度','读取有界utf8正文']#仅中文公开名
 
 class WebhookHttp错误(Exception):#HTTP拒绝错误
-    """HTTP refusal whose message is safe to return without request data."""
+    """消息可原样回写、不含请求数据的 HTTP 拒绝。"""
     name='WebhookHttpError'#错误名
     def __init__(自身,状态码,消息):#构造
         super().__init__(消息)#消息
         自身.status=状态码#HTTP状态码
 
 def 内容长度(请求):#解析Content-Length
-    """Parse a decimal Content-Length or reject an ambiguous header."""
+    """解析十进制 Content-Length；歧义头直接拒绝。"""
     值=取字段(请求,'content_length') or 取字段(请求,'headers',{}).get('content-length')#头值
     if 值 is None:#缺席
         return None#无长度
@@ -31,8 +36,8 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
         return 缺省#缺席
     return getattr(对象,键,缺省)#对象属性
 
-async def 读取有界utf8正文(请求,最大字节):#读取有界UTF-8正文
-    """Read one request body as exact, bounded UTF-8 text."""
+def 读取有界utf8正文(请求,最大字节):#读取有界UTF-8正文
+    """读取一次请求正文为精确、有界的 UTF-8 文本。"""
     声明长度=内容长度(请求)#声明长度
     if 声明长度 is not None and 声明长度>最大字节:#超长
         if hasattr(请求,'resume'):#可排空
@@ -40,7 +45,7 @@ async def 读取有界utf8正文(请求,最大字节):#读取有界UTF-8正文
         raise WebhookHttp错误(413,'request body is too large')#拒绝
     块们=[]#收集块
     大小=0#当前大小
-  读取器=取字段(请求,'body')#正文迭代器
+    读取器=取字段(请求,'body')#正文迭代器
     if 读取器 is None and callable(getattr(请求,'read',None)):#流式读取
         while True:#读至EOF
             块=请求.read(65536)#读一块
@@ -55,7 +60,7 @@ async def 读取有界utf8正文(请求,最大字节):#读取有界UTF-8正文
                 raise WebhookHttp错误(413,'request body is too large')#拒绝
             块们.append(块)#收下
     else:#已有正文
-        正文=读取器 if isinstance(读取器,(bytes,bytearray)) else str(读取器).encode('utf-8')#转字节
+        正文=读取器 if isinstance(读取器,(bytes,bytearray)) else str(读取器 or '').encode('utf-8')#转字节
         if len(正文)>最大字节:#超限
             raise WebhookHttp错误(413,'request body is too large')#拒绝
         块们=[正文]#单块

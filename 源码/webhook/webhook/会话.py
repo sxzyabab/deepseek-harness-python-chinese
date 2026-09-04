@@ -35,7 +35,7 @@ def 必填字符串(记录,字段):#读取必填非空字符串
     return 值#合法值
 
 def 解析请求(上下文,输入):#快照并校验规则结果
-    """快照并校验同进程规则结果，再跨 await 使用。"""
+    """快照并校验同进程规则结果，再跨调用边界使用。"""
     if 输入 is None or not isinstance(输入,dict):#必须是对象
         raise TypeError('webhook rule result must be null or a Session request object')#拒绝
     工作区路径=必填字符串(输入,'workspacePath')#工作区路径

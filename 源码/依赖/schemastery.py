@@ -402,7 +402,7 @@ class 容器字段(字段):
             最大数量=定长
         自身.最小数量=最小数量#数量下限
         自身.最大数量=最大数量#数量上限
-        自身.内容字段=tuple(内容字段)#内容字段
+        自身.内容字段=tuple(内容字段) if isinstance(内容字段,list) else (内容字段,)#内容字段
 
     def 校验数据(自身,数据=未传参):
         super().校验数据(数据)
@@ -697,7 +697,7 @@ def 推断字段(源=None):
     elif isinstance(源,set):
         return 集合字段(*源)#集合
     elif isinstance(源,dict):
-        return 字典字段(源)#字典
+        return 字典字段(字典结构=源)#字典
     #
     else:
         raise TypeError(f'无法从 {源} 推断出字段')#不认识的形态

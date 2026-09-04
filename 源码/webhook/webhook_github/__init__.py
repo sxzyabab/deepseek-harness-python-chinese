@@ -1,4 +1,7 @@
-"""Signed GitHub HTTP adapter for the provider-neutral webhook runtime. 对齐上游 `webhook-github/src/index.ts`。"""
+"""面向 provider 中立 webhook 运行时的已签名 GitHub HTTP 适配器。
+
+对齐上游 `webhook-github/src/index.ts`。公开面仅中文名。
+"""
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...凭据.凭据 import 凭据引用#凭据引用品牌
@@ -15,7 +18,7 @@ from .处理器 import 创建GitHubWebhook处理器#HTTP处理器
     'maxBodyBytes':整数字段(),#正文上限字节
 }#配置结束
 
-__all__=['名称','注入','配置','应用','apply']#仅中文公开名
+__all__=['名称','注入','配置','应用']#仅中文公开名
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
@@ -28,7 +31,7 @@ def 取字段(对象,键,缺省=None):#从映射或对象读字段
     return getattr(对象,键,缺省)#对象属性
 
 def 断言配置(配置值):#校验路由与来源
-    """Validate route and source facts that Schemastery cannot express."""
+    """校验 Schemastery 表达不了的路由与来源事实。"""
     来源=取字段(配置值,'source')#来源
     if (not isinstance(来源,str)) or 来源.strip()!=来源 or 来源=='':#必须非空且已修剪
         raise Exception('webhook-github source must be a non-empty trimmed string')#拒绝
@@ -37,17 +40,17 @@ def 断言配置(配置值):#校验路由与来源
         raise Exception('webhook-github path must be an absolute non-root pathname without a trailing slash, query, or fragment')#拒绝
 
 def 应用(上下文,配置值):#注册GitHub端点
-    """Register one signed GitHub endpoint on the injected WebServer."""
+    """在注入的 WebServer 上登记一条已签名 GitHub 端点。"""
     断言配置(配置值)#校验配置
-    路由={
-        'kind':'exact',
-        'path':取字段(配置值,'path'),
-        'handler':创建GitHubWebhook处理器(上下文,{
-            'source':取字段(配置值,'source'),
-            'secretEnv':凭据引用(取字段(配置值,'secretEnv')),
-            'maxBodyBytes':取字段(配置值,'maxBodyBytes'),
-        }),
-    }#路由对象
+    路由={#路由对象
+        'kind':'exact',#精确匹配
+        'path':取字段(配置值,'path'),#路径
+        'handler':创建GitHubWebhook处理器(上下文,{#处理器
+            'source':取字段(配置值,'source'),#来源
+            'secretEnv':凭据引用(取字段(配置值,'secretEnv')),#密钥引用
+            'maxBodyBytes':取字段(配置值,'maxBodyBytes'),#正文上限
+        }),#处理器结束
+    }#路由结束
     上下文.effect(lambda:上下文.webServer.register(路由),f"webhook-github: {取字段(配置值,'path')}")#登记路由
 
-apply=应用#Cordis插件入口
+apply=应用#Cordis插件入口别名

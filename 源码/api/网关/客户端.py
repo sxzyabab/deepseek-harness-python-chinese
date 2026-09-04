@@ -11,7 +11,6 @@ from ...依赖 import cordis#外部依赖胶水
 __all__=[#仅中文公开名
     '注入','应用','客户端远程服务','远程命名空间服务',
     '拼端点','远程服务键','作用域投影','要求严格描述符',
-    'inject','apply','ClientRemoteService',
 ]#公开面结束
 
 注入=['typert','connection']#依赖 typert 与 connection

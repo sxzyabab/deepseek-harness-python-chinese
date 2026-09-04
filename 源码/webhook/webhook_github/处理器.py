@@ -1,8 +1,13 @@
-"""GitHub HTTP authentication, parsing, and fire-and-forget dispatch. 对齐上游 `webhook-github/src/handler.ts`。"""
-import hashlib,hmac,json#签名与JSON
+"""GitHub HTTP 鉴权、解析与 fire-and-forget 分发。
+
+对齐上游 `webhook-github/src/handler.ts`。公开面仅中文名。
+"""
+import hashlib,hmac,json,time#签名、JSON与时间
 from ...工具.值 import 快照json值#无损JSON快照
 from ..webhook.品牌 import Webhook来源标识,Webhook投递标识#webhook品牌
 from .正文 import WebhookHttp错误,读取有界utf8正文#正文读取
+
+__all__=['创建GitHubWebhook处理器']#仅中文公开名
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
@@ -29,7 +34,7 @@ def 解开(值):#承诺则等待否则原样
     return 值#同步值
 
 def 必填头(请求,名):#读取唯一非空头
-    """Require one unambiguous non-empty request header."""
+    """要求唯一、非空的请求头。"""
     头们=取字段(取字段(请求,'headers',{}),名) or 取字段(请求,'headers',{}).get(名.lower())#头值
     if isinstance(头们,list):#多值
         if len(头们)!=1:#不唯一
@@ -42,7 +47,7 @@ def 必填头(请求,名):#读取唯一非空头
     return str(值)#返回
 
 def 是否json内容类型(值):#是否application/json
-    """Whether Content-Type names JSON with at most one UTF-8 charset parameter."""
+    """Content-Type 是否为 JSON，且最多带一个 UTF-8 charset。"""
     if 值 is None:#缺席
         return False#不是
     if isinstance(值,list):#多值
@@ -58,8 +63,8 @@ def 是否json内容类型(值):#是否application/json
         return False#不是
     return 部分[1].lower() in ('charset=utf-8','charset="utf-8"')#UTF-8
 
-def 响应(响应对象,状态码,消息=None):#发送响应
-    """Send one empty or plain-text response exactly once."""
+def 发送响应(响应对象,状态码,消息=None):#发送响应
+    """恰好发送一次空响应或纯文本响应。"""
     if 消息 is None:#空响应
         if hasattr(响应对象,'writeHead'):#Node风格
             响应对象.writeHead(状态码)#写头
@@ -70,7 +75,7 @@ def 响应(响应对象,状态码,消息=None):#发送响应
         响应对象.end(消息)#写正文
 
 def 解析载荷(正文):#解析JSON对象
-    """Convert a parsed value into the adapter's generic signed-object guarantee."""
+    """把解析值转成适配器通用的已签名对象保证。"""
     try:#解析JSON
         已解析=json.loads(正文)#JSON.parse
     except json.JSONDecodeError:#非法JSON
@@ -83,7 +88,7 @@ def 解析载荷(正文):#解析JSON对象
     return 快照#返回对象
 
 def 校验签名(密钥,正文,签名头):#校验Hub签名
-    """Verify GitHub HMAC SHA256 signature."""
+    """校验 GitHub HMAC SHA256 签名。"""
     if not 签名头.startswith('sha256='):#前缀
         return False#失败
     期望=签名头[7:]#十六进制摘要
@@ -91,19 +96,19 @@ def 校验签名(密钥,正文,签名头):#校验Hub签名
     return hmac.compare_digest(期望,实际)#常量时间比较
 
 def 创建GitHubWebhook处理器(上下文,配置):#创建处理器
-    """Create one exact-route GitHub handler."""
-    async def 处理器(请求,响应):#HTTP入口
-        """Authenticate, parse, and fire-and-forget dispatch."""
+    """创建一条精确路由的 GitHub 处理器。"""
+    def 处理器(请求,响应对象):#HTTP入口
+        """鉴权、解析，再 fire-and-forget 分发。"""
         try:#处理请求
             方法=取字段(请求,'method','GET')#HTTP方法
             if 方法!='POST':#非POST
-                if hasattr(响应,'setHeader'):#Node风格
-                    响应.setHeader('allow','POST')#Allow
+                if hasattr(响应对象,'setHeader'):#Node风格
+                    响应对象.setHeader('allow','POST')#Allow
                 raise WebhookHttp错误(405,'method not allowed')#拒绝
             内容类型=取字段(取字段(请求,'headers',{}),'content-type')#Content-Type
             if not 是否json内容类型(内容类型):#非JSON
                 raise WebhookHttp错误(415,'content type must be application/json')#拒绝
-            正文=await 读取有界utf8正文(请求,取字段(配置,'maxBodyBytes'))#读正文
+            正文=读取有界utf8正文(请求,取字段(配置,'maxBodyBytes'))#读正文
             签名=必填头(请求,'x-hub-signature-256')#签名
             投递号=必填头(请求,'x-github-delivery')#投递id
             事件名=必填头(请求,'x-github-event')#事件名
@@ -113,22 +118,22 @@ def 创建GitHubWebhook处理器(上下文,配置):#创建处理器
             if not 校验签名(取字段(凭据,'value'),正文,签名):#签名校验
                 raise WebhookHttp错误(401,'invalid webhook signature')#拒绝
             载荷=解析载荷(正文)#解析载荷
-            投递={
-                'kind':'github',
-                'source':Webhook来源标识(取字段(配置,'source')),
-                'deliveryId':Webhook投递标识(投递号),
-                'event':{'name':事件名,'payload':载荷},
-                'receivedAt':int(__import__('time').time()*1000),
-            }#组装投递
+            投递={#组装投递
+                'kind':'github',#提供方
+                'source':Webhook来源标识(取字段(配置,'source')),#来源
+                'deliveryId':Webhook投递标识(投递号),#投递号
+                'event':{'name':事件名,'payload':载荷},#事件
+                'receivedAt':int(time.time()*1000),#收到时刻
+            }#投递结束
             try:#分发
                 上下文.webhookRuntime.dispatch(投递)#fire-and-forget
             except Exception:#运行时不可用
                 上下文.logger.warn('webhook-github: dispatch unavailable')#记警告
                 raise WebhookHttp错误(503,'webhook runtime is unavailable')#拒绝
-            响应(响应,202)#接受
+            发送响应(响应对象,202)#接受
         except WebhookHttp错误 as 错误:#已知HTTP错误
-            响应(响应,错误.status,错误.args[0] if len(错误.args)>0 else None)#安全消息
+            发送响应(响应对象,错误.status,错误.args[0] if len(错误.args)>0 else None)#安全消息
         except Exception:#未知错误
             上下文.logger.warn('webhook-github: request failed')#记警告
-            响应(响应,503,'webhook ingress is unavailable')#拒绝
+            发送响应(响应对象,503,'webhook ingress is unavailable')#拒绝
     return 处理器#返回处理器

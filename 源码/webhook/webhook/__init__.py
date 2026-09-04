@@ -1,4 +1,7 @@
-"""Fire-and-forget webhook rule registry and Workspace-backed Session runtime. 对齐上游 `@deepseek-ai/dsh-webhook`。"""
+"""Fire-and-forget webhook 规则注册表与 Workspace 支撑的 Session 运行时。
+
+对齐上游 `@deepseek-ai/dsh-webhook`。公开面仅中文名。
+"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis服务基类
 from ...模型后端.llm import 错误链#错误链渲染
@@ -6,7 +9,7 @@ from ...工具.值 import 快照json值,深冻结#JSON快照与冻结
 from .品牌 import Webhook规则标识#规则品牌
 from .会话 import 创建Webhook会话#会话创建
 
-__all__=['Webhook运行时','默认','default','Webhook规则标识']#公开面
+__all__=['Webhook运行时','默认','Webhook规则标识']#仅中文公开名
 
 def 取字段(对象,键,缺省=None):#从映射或对象读字段
     """从映射或对象读字段。"""
@@ -68,22 +71,13 @@ class Webhook运行时(服务):#fire-and-forget 规则运行时
         def 生命周期拆除():#运行时生命周期
             """关闭时中止并排空全部规则。"""
             自身._正在关闭=True#拒绝新注册
-            import asyncio#并发拆除
-            try:#排空
-                loop=asyncio.get_event_loop()#事件循环
-            except RuntimeError:#无循环
-                loop=asyncio.new_event_loop()#新循环
-            loop.run_until_complete(自身._等待全部规则拆除())#等待拆除
+            自身._等待全部规则拆除()#同步拆除
         上下文.effect(生命周期拆除,'webhookRuntime.lifecycle()')#effect名
 
-    async def _等待全部规则拆除(自身):#等待全部规则拆除
-        """并行拆除全部规则登记。"""
-        任务们=[]#拆除任务
+    def _等待全部规则拆除(自身):#等待全部规则拆除
+        """同步拆除全部规则登记。"""
         for 登记 in list(自身._规则.values()):#全部规则
-            任务们.append(自身._拆除登记(登记))#排队拆除
-        if len(任务们)>0:#有任务
-            import asyncio#并发
-            await asyncio.gather(*任务们)#等待
+            解开(自身._拆除登记(登记))#排队拆除
 
     def 登记(自身,规则):#注册一条规则
         """注册一条受信任的程序化规则。"""
@@ -105,12 +99,15 @@ class Webhook运行时(服务):#fire-and-forget 规则运行时
             if 规则号 in 自身._规则:#重复
                 raise Exception(f'webhook rule "{规则号}" is already registered')#拒绝
             自身._规则[规则号]=登记对象#写入
-            return lambda:自身._拆除登记(登记对象)#拆除器
-        释放=自身.ctx.effect(挂上,f'webhookRuntime.register({规则号})')#effect
-        async def 异步拆除():#异步拆除包装
-            """等待 effect 拆除完成。"""
-            释放()#同步拆除
-        return 异步拆除#对外 disposer
+            def 拆除():#同步拆除器
+                """等待登记拆除完成。"""
+                解开(自身._拆除登记(登记对象))#拆除
+            return 拆除#拆除器
+        自身.ctx.effect(挂上,f'webhookRuntime.register({规则号})')#effect
+        def 对外拆除():#对外 disposer
+            """拆除本条登记。"""
+            解开(自身._拆除登记(登记对象))#拆除
+        return 对外拆除#对外 disposer
 
     def 分发(自身,投递):#分发投递
         """启动每条当前匹配规则，并在任何回调结算前返回。"""
@@ -124,6 +121,8 @@ class Webhook运行时(服务):#fire-and-forget 规则运行时
 
     def _启动调用(自身,登记,投递):#启动一次调用
         """启动一次受控调用并挂到登记拆除。"""
+        跟踪=已兑现()#占位跟踪
+        登记['active'].add(跟踪)#挂上跟踪
         def 跑():#调用体
             """执行规则并在需要时创建会话。"""
             登记['controller'].throwIfAborted()#已拆除则停
@@ -132,46 +131,36 @@ class Webhook运行时(服务):#fire-and-forget 规则运行时
             if 请求 is not None:#要创建会话
                 return 解开(创建Webhook会话(自身._自身上下文,投递,取字段(取字段(登记,'rule'),'id'),请求,登记['controller'].signal))#创建
             return None#无动作
-        def 完成(结果=None):#成功
-            """从活跃集合摘掉。"""
-            登记['active'].discard(跟踪)#摘掉
-            return 结果#原样
-        def 失败(错误):#失败
-            """记录失败并从活跃集合摘掉。"""
-            登记['active'].discard(跟踪)#摘掉
+        try:#执行
+            跑()#同步跑
+        except Exception as 错误:#失败
             调用=f"webhook: provider={repr(取字段(投递,'kind'))} source={repr(取字段(投递,'source'))} delivery={repr(取字段(投递,'deliveryId'))} rule={repr(取字段(取字段(登记,'rule'),'id'))}"#诊断
             if 登记['controller'].signal.aborted:#已拆除
                 自身._自身上下文.logger.debug(f'{调用} stopped after disposal: {错误链(错误)}')#调试
             else:#真失败
                 自身._自身上下文.logger.warn(f'{调用} failed: {错误链(错误)}')#警告
-            return None#吞掉
-        跟踪=已兑现()#占位跟踪
-        try:#执行
-            完成(跑())#同步跑
-        except Exception as 错误:#失败
-            失败(错误)#记录
-        登记['active'].add(跟踪)#挂上跟踪
+        finally:#无论成败
+            登记['active'].discard(跟踪)#摘掉
 
-    async def _拆除登记(自身,登记):#拆除一条登记
+    def _拆除登记(自身,登记):#拆除一条登记
         """隐藏、中止，再排空活跃调用。"""
         if 登记['disposal'] is not None:#已拆
             return 登记['disposal']#复用
-        async def 拆():#真正拆除
-            """中止并等待活跃调用。"""
+        def 拆():#真正拆除
+            """中止并清空活跃集合。"""
             登记['closing']=True#标记关闭
             自身._规则.pop(取字段(取字段(登记,'rule'),'id'),None)#从表删除
             登记['controller'].abort(Exception(f'webhook rule "{取字段(取字段(登记,"rule"),"id")}" was disposed'))#中止
-            while len(登记['active'])>0:#等活跃调用
-                import asyncio#等待
-                await asyncio.sleep(0)#让出
-        登记['disposal']=拆()#记下承诺
-        return await 登记['disposal']#等待
+            登记['active'].clear()#同步路径直接清空
+        登记['disposal']=已兑现(拆())#记下
+        return 登记['disposal']#返回
 
 class _中止控制器:#简易 AbortController
     """登记生命周期用的简易中止控制器。"""
     def __init__(自身):#构造
         自身.aborted=False#未中止
         自身.signal=自身#自引用
+        自身.reason=None#原因
     def abort(自身,原因=None):#中止
         """标记已中止。"""
         自身.aborted=True#已中止
@@ -182,4 +171,4 @@ class _中止控制器:#简易 AbortController
             raise 自身.reason if isinstance(自身.reason,BaseException) else Exception(str(自身.reason))#抛出
 
 默认=Webhook运行时#默认导出
-default=Webhook运行时#Cordis默认导出
+default=默认#Cordis英文入口别名
