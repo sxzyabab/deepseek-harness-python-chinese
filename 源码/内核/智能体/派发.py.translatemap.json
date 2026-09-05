@@ -1,0 +1,22 @@
+{
+    "agent":"智能体",
+    "arg":"参数",
+    "assemble":"组装",
+    "build":"构建",
+    "callback":"回调",
+    "carrier":"载体",
+    "context":"上下文",
+    "dispatch":"派发",
+    "emit":"发出",
+    "error":"错误",
+    "event":"事件",
+    "for":"为",
+    "name":"名称",
+    "observe":"观察",
+    "payload":"载荷",
+    "return":"返回",
+    "scope":"作用域",
+    "serial":"串行",
+    "thread":"线程",
+    "waterfall":"瀑布"
+}

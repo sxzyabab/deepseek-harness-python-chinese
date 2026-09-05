@@ -1,0 +1,15 @@
+{
+    "agent":"智能体",
+    "assert":"断言",
+    "delegation":"委托",
+    "depth":"深度",
+    "field":"字段",
+    "integer":"整数",
+    "key":"键",
+    "max":"最大",
+    "object":"对象",
+    "safe":"安全",
+    "sub":"子",
+    "subagent":"子智能体",
+    "take":"取"
+}

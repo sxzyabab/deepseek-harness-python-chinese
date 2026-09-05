@@ -1,0 +1,13 @@
+{
+    "apply":"应用",
+    "context":"上下文",
+    "default":"默认",
+    "definition":"定义",
+    "inject":"注入",
+    "name":"名称",
+    "projection":"投影",
+    "register":"注册",
+    "session":"会话",
+    "stats":"统计",
+    "unit":"单元"
+}

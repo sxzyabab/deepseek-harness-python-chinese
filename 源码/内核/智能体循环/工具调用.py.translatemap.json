@@ -1,0 +1,21 @@
+{
+    "abort":"中止",
+    "accept":"接受",
+    "append":"追加",
+    "argument":"参数",
+    "call":"调用",
+    "context":"上下文",
+    "execute":"执行",
+    "group":"组",
+    "mode":"模式",
+    "parse":"解析",
+    "read":"读取",
+    "result":"结果",
+    "run":"运行",
+    "session":"会话",
+    "signal":"信号",
+    "skip":"跳过",
+    "step":"步骤",
+    "tool":"工具",
+    "turn":"轮次"
+}

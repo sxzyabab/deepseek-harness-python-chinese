@@ -1,0 +1,15 @@
+{
+    "abort":"中止",
+    "call":"调用",
+    "clone":"克隆",
+    "config":"配置",
+    "cycle":"循环",
+    "equal":"相等",
+    "freeze":"冻结",
+    "list":"列表",
+    "map":"映射",
+    "mark":"标记",
+    "request":"请求",
+    "structure":"结构",
+    "weak":"弱"
+}

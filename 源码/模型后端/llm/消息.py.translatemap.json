@@ -1,0 +1,15 @@
+{
+    "abstract":"摘要",
+    "assistant":"助手",
+    "block":"块",
+    "call":"调用",
+    "create":"创建",
+    "freeze":"冻结",
+    "increment":"增量",
+    "max":"最大",
+    "message":"消息",
+    "result":"结果",
+    "tool":"工具",
+    "user":"用户",
+    "word":"词"
+}

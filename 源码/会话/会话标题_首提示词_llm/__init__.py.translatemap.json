@@ -1,0 +1,21 @@
+{
+    "apply":"应用",
+    "config":"配置",
+    "context":"上下文",
+    "default":"默认",
+    "empty":"空",
+    "first":"第一",
+    "human":"人类",
+    "inject":"注入",
+    "llm":"模型后端",
+    "message":"消息",
+    "mode":"模式",
+    "name":"名称",
+    "prompt":"提示词",
+    "provider":"提供方",
+    "register":"注册",
+    "reject":"拒绝",
+    "session":"会话",
+    "title":"标题",
+    "value":"值"
+}

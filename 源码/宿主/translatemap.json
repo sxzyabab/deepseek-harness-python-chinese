@@ -1,0 +1,9 @@
+{
+    "directory-picker":"目录选择器",
+    "directory-picker-auto":"目录选择器_自适应",
+    "directory-picker-browse":"目录选择器_浏览器",
+    "directory-picker-native":"目录选择器_原生",
+    "frontend-static":"前端静态",
+    "plugin-inventory":"插件清单",
+    "webserver":"web服务器"
+}

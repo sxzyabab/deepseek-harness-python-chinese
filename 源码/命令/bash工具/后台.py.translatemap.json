@@ -1,0 +1,15 @@
+{
+    "absent":"缺席",
+    "completed":"已完成",
+    "default":"默认",
+    "field":"字段",
+    "key":"键",
+    "object":"对象",
+    "process":"进程",
+    "result":"结果",
+    "self":"自身",
+    "signal":"信号",
+    "status":"状态",
+    "take":"取",
+    "value":"值"
+}

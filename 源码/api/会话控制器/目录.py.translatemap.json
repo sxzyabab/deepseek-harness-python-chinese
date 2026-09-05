@@ -1,0 +1,17 @@
+{
+    "build":"构建",
+    "catalog":"目录",
+    "context":"上下文",
+    "default":"默认",
+    "effort":"努力",
+    "entry":"条目",
+    "field":"字段",
+    "id":"标识",
+    "model":"模型",
+    "name":"名称",
+    "provider":"提供方",
+    "reasoning":"推理",
+    "resolve":"解析",
+    "take":"取",
+    "wait":"等待"
+}

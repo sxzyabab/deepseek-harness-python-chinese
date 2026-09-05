@@ -1,0 +1,23 @@
+{
+    "byte":"字节",
+    "cap":"限制",
+    "display":"展示",
+    "field":"字段",
+    "file":"文件",
+    "glob":"glob",
+    "grep":"grep",
+    "group":"分组",
+    "hit":"命中",
+    "length":"长",
+    "line":"行",
+    "match":"匹配",
+    "max":"最大",
+    "meta":"元",
+    "number":"号",
+    "order":"顺序",
+    "path":"路径",
+    "retain":"保留",
+    "search":"搜索",
+    "shape":"形态",
+    "view":"视图"
+}

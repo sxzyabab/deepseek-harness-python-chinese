@@ -1,0 +1,10 @@
+{
+    "api":"接口",
+    "controller":"控制器",
+    "gateway":"网关",
+    "group":"组",
+    "remote":"远程",
+    "session":"会话",
+    "settings":"设置",
+    "workspace":"工作区"
+}

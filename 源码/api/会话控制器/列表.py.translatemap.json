@@ -1,0 +1,19 @@
+{
+    "apply":"应用",
+    "blank":"空白",
+    "cold":"冷",
+    "error":"错误",
+    "field":"字段",
+    "list":"列表",
+    "max":"最大",
+    "message":"消息",
+    "metadata":"元数据",
+    "prompt":"提示词",
+    "remote":"远程",
+    "search":"搜索",
+    "session":"会话",
+    "take":"取",
+    "text":"文本",
+    "truncate":"截断",
+    "wait":"等待"
+}

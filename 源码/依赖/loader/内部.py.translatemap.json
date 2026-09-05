@@ -1,0 +1,21 @@
+{
+    "abs":"绝对",
+    "dir":"目录",
+    "eval":"求值",
+    "file":"文件",
+    "from":"从",
+    "import":"导入",
+    "internal":"内部",
+    "loader":"加载器",
+    "module":"模块",
+    "name":"名称",
+    "norm":"规范",
+    "parent":"父",
+    "path":"路径",
+    "search":"搜索",
+    "self":"自身",
+    "source":"源",
+    "specifier":"说明符",
+    "stage":"阶段",
+    "url":"网址"
+}

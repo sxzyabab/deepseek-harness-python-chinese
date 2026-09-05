@@ -1,0 +1,23 @@
+{
+    "assert":"断言",
+    "error":"错误",
+    "event":"事件",
+    "format":"格式",
+    "header":"头",
+    "legacy":"遗留",
+    "malformed":"畸形",
+    "message":"消息",
+    "migrate":"迁移",
+    "migration":"迁移",
+    "normalize":"规范化",
+    "record":"记录",
+    "released":"已发布",
+    "replacement":"替换",
+    "session":"会话",
+    "source":"源",
+    "steering":"转向",
+    "supported":"受支持",
+    "target":"目标",
+    "turn":"回合",
+    "unsupported":"不支持"
+}

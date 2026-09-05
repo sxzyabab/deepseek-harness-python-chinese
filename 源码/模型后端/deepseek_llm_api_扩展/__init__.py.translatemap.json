@@ -1,0 +1,12 @@
+{
+    "context":"上下文",
+    "default":"默认",
+    "field":"字段",
+    "fulfilled":"已兑现",
+    "prepare":"准备",
+    "provider":"提供方",
+    "register":"注册",
+    "request":"请求",
+    "service":"服务",
+    "wait":"等待"
+}

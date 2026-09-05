@@ -1,0 +1,21 @@
+{
+    "artifact":"产物",
+    "assert":"断言",
+    "catalog":"目录",
+    "codec":"编解码器",
+    "create":"创建",
+    "current":"当代",
+    "encode":"编码",
+    "event":"事件",
+    "format":"格式",
+    "generate":"生成",
+    "header":"头",
+    "known":"已知",
+    "migration":"迁移",
+    "released":"已发布",
+    "restore":"恢复",
+    "session":"会话",
+    "type":"类型",
+    "validate":"校验",
+    "version":"版本"
+}

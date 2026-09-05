@@ -1,0 +1,11 @@
+{
+    "action":"动作",
+    "check":"检查",
+    "id":"标识",
+    "member":"成员",
+    "message":"消息",
+    "pending":"待定",
+    "stage":"阶段",
+    "status":"状态",
+    "task":"任务"
+}

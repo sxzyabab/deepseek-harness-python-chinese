@@ -1,0 +1,13 @@
+{
+    "assembler":"组装器",
+    "block":"块",
+    "call":"调用",
+    "create":"创建",
+    "finish":"结束",
+    "message":"消息",
+    "order":"顺序",
+    "partial":"部分",
+    "push":"推入",
+    "reason":"原因",
+    "replay":"回放"
+}

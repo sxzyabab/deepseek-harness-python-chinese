@@ -1,0 +1,12 @@
+{
+    "agent":"智能体",
+    "command":"命令",
+    "context":"上下文",
+    "file":"文件",
+    "group":"组",
+    "instructions":"指令",
+    "local":"本地",
+    "reference":"引用",
+    "session":"会话",
+    "time":"时间"
+}

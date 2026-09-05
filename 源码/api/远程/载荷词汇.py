@@ -13,7 +13,7 @@
 """
 from typing import TypeAlias,TypedDict#递归 JsonValue 别名与结构类型
 from ...内核.会话.json值 import 是否json值,快照json值#会话无损 JSON 判定与脱离快照（权威运行时）
-from ...拓展.cordis_服务端.类型 import (#动态包运行器线协议词汇
+from ...拓展.cordis服务端.类型 import (#动态包运行器线协议词汇
     动态运行模式,请求运行结局,运行状态,巡检平面,#枚举联合
     动态插件标识,动态包标识,动态运行标识,审批请求标识,巡检查询标识,#品牌 id
     巡检方法清单字段,巡检提供方清单字段,巡检提供方视图字段,#巡检清单
@@ -32,7 +32,7 @@ from ...客户端.连接.客户端 import (#邻叶厚类型：仅真再导出（
     #接口客户端协议,#IApiClient
 )#连接厚类型结束
 from ..网关 import 客户端面 as _网关客户端#侧效：拉入网关客户端类型面（对齐 export type {} from gateway/client）
-from ...拓展.cordis_服务端 import 远程 as _动态远程#侧效：拉入动态包 Remote 类型面（对齐 export type {} from cordis-host-runner/remote）
+from ...拓展.cordis服务端 import 远程 as _动态远程#侧效：拉入动态包 Remote 类型面（对齐 export type {} from cordis-host-runner/remote）
 from .远程事件 import 远程转发事件,API_REMOTE_FORWARDED_EVENTS#转发白名单常量
 from .类型 import 远程转发事件名#白名单元素联合投影
 

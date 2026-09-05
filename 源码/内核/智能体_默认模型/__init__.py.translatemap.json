@@ -1,0 +1,15 @@
+{
+    "agent":"智能体",
+    "default":"默认",
+    "model":"模型",
+    "plugin":"插件",
+    "projection":"投影",
+    "provider":"提供方",
+    "read":"读取",
+    "reasoning":"推理",
+    "save":"保存",
+    "selection":"选择",
+    "service":"服务",
+    "settings":"设置",
+    "source":"源"
+}

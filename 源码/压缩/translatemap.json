@@ -1,0 +1,6 @@
+{
+    "command-compact":"命令_压缩",
+    "compaction":"压缩",
+    "compaction-basic":"基础压缩",
+    "compaction-tool-result-pruner":"工具结果裁剪"
+}

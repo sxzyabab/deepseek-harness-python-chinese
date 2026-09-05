@@ -1,0 +1,16 @@
+{
+    "session-checkpoint-policy":"会话检查点策略",
+    "session-log-deepseek":"会话日志_deepseek",
+    "session-persistence":"会话持久化",
+    "session-persistence-jsonl":"会话持久化_jsonl",
+    "session-projection":"会话投影",
+    "session-projection-cache":"会话投影缓存",
+    "session-stats":"会话统计",
+    "session-telemetry":"会话遥测",
+    "session-telemetry-otel":"会话遥测_otel",
+    "session-title":"会话标题",
+    "session-title-all-prompts-llm":"会话标题_全提示词_llm",
+    "session-title-first-prompt-llm":"会话标题_首提示词_llm",
+    "session-title-llm":"会话标题_llm",
+    "session-turn-outline":"会话回合大纲"
+}

@@ -1,0 +1,12 @@
+{
+    "bash":"bash",
+    "command":"命令",
+    "environment":"环境",
+    "group":"组",
+    "local":"本地",
+    "persist":"持久化",
+    "powershell":"powershell",
+    "sandbox":"沙盒",
+    "shell":"命令",
+    "tool":"工具"
+}

@@ -1,0 +1,16 @@
+{
+    "artifact":"产物",
+    "assert":"断言",
+    "codec":"编解码器",
+    "disposition":"处置",
+    "event":"事件",
+    "format":"格式",
+    "header":"头",
+    "migration":"迁移",
+    "physical":"物理",
+    "released":"已发布",
+    "restore":"恢复",
+    "session":"会话",
+    "type":"类型",
+    "version":"版本"
+}

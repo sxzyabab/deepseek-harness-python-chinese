@@ -1,0 +1,18 @@
+{
+    "action":"动作",
+    "apply":"应用",
+    "catalog":"目录",
+    "en":"英文",
+    "header":"页眉",
+    "id":"标识",
+    "inject":"注入",
+    "locale":"本地化",
+    "name":"名称",
+    "namespace":"命名空间",
+    "order":"顺序",
+    "register":"登记",
+    "schedule":"日程",
+    "session":"会话",
+    "slot":"槽",
+    "zh":"中文"
+}

@@ -1,0 +1,12 @@
+{
+    "bash-local":"本地bash",
+    "bash-sandbox":"bash沙盒",
+    "pwsh-local":"本地powershell",
+    "pwsh-sandbox":"powershell沙盒",
+    "shell":"命令",
+    "shell-env":"命令_环境",
+    "tool-bash":"bash工具",
+    "tool-bash-persistent":"工具_bash持久化",
+    "tool-pwsh":"powershell工具",
+    "tool-pwsh-persistent":"工具_powershell持久化"
+}

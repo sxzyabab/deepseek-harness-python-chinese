@@ -1,0 +1,14 @@
+{
+    "body":"正文",
+    "chunk":"分片",
+    "error":"错误",
+    "file":"文件",
+    "handle":"处理",
+    "http":"http",
+    "remote":"远程",
+    "request":"请求",
+    "route":"路由",
+    "self":"自身",
+    "session":"会话",
+    "upload":"上传"
+}

@@ -1,0 +1,8 @@
+{
+    "acp-app":"acp_app",
+    "base":"基础",
+    "headless":"无头",
+    "sdk-app":"sdk_app",
+    "sdk-minimal":"sdk_minimal",
+    "web-app":"webapp"
+}

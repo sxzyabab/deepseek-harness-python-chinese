@@ -1,0 +1,17 @@
+{
+    "apply":"应用",
+    "client":"客户端",
+    "context":"上下文",
+    "contribute":"贡献",
+    "directory":"目录",
+    "event":"事件",
+    "export":"导出",
+    "inject":"注入",
+    "name":"名称",
+    "package":"包",
+    "remote":"远程",
+    "selected":"已选",
+    "slot":"槽",
+    "teardown":"拆除",
+    "wait":"等待"
+}

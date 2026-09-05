@@ -1,0 +1,10 @@
+{
+    "agent":"智能体",
+    "child":"子",
+    "error":"错误",
+    "message":"消息",
+    "option":"选项",
+    "self":"自身",
+    "sub":"子",
+    "subagent":"子智能体"
+}

@@ -1,0 +1,19 @@
+{
+    "agent":"智能体",
+    "apply":"应用",
+    "bind":"绑定",
+    "commit":"提交",
+    "file":"文件",
+    "guard":"守卫",
+    "inject":"注入",
+    "prompt":"提示",
+    "receipt":"凭证",
+    "remote":"远程",
+    "resolve":"解析",
+    "retire":"退休",
+    "self":"自身",
+    "service":"服务",
+    "session":"会话",
+    "stream":"流式",
+    "upload":"上传"
+}

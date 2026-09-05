@@ -1,0 +1,17 @@
+{
+    "accepted":"已接受",
+    "attempt":"尝试",
+    "chunk":"块",
+    "define":"定义",
+    "delivery":"投递",
+    "disposition":"处置",
+    "end":"结束",
+    "event":"事件",
+    "message":"消息",
+    "payload":"载荷",
+    "released":"已发布",
+    "retained":"保留",
+    "seed":"种子",
+    "session":"会话",
+    "type":"类型"
+}

@@ -1,0 +1,12 @@
+{
+    "assert":"断言",
+    "helper":"辅助",
+    "key":"键",
+    "label":"标签",
+    "optional":"可选",
+    "record":"记录",
+    "released":"已发布",
+    "required":"必填",
+    "unexpected":"意外",
+    "validation":"校验"
+}

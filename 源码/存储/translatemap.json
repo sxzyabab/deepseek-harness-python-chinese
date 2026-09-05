@@ -1,0 +1,6 @@
+{
+    "storage":"存储",
+    "storage-domain":"存储域",
+    "storage-json":"存储_json",
+    "storage-sqlite":"存储_sqlite"
+}

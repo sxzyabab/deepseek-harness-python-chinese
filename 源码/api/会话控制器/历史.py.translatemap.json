@@ -1,0 +1,18 @@
+{
+    "abort":"中止",
+    "close":"关闭",
+    "context":"上下文",
+    "controller":"控制器",
+    "default":"默认",
+    "error":"错误",
+    "follow":"跟随",
+    "history":"历史",
+    "max":"最大",
+    "message":"消息",
+    "page":"页",
+    "remote":"远程",
+    "self":"自身",
+    "session":"会话",
+    "signal":"信号",
+    "teardown":"拆除"
+}

@@ -1,0 +1,16 @@
+{
+    "analyzer":"分析器",
+    "bridge":"桥",
+    "capability":"能力",
+    "console":"控制台",
+    "const":"常量",
+    "debugger":"调试器",
+    "filter":"过滤",
+    "heap":"堆",
+    "host":"宿主",
+    "item":"项",
+    "none":"空",
+    "profiler":"分析器",
+    "runtime":"运行时",
+    "source":"源"
+}

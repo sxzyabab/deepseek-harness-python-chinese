@@ -2,7 +2,7 @@
 
 对齐上游 `拓展/tool-cordis/src/providers.ts`。公开面仅中文名。
 """
-from ..cordis_服务端 import 宿主内置巡检#宿主内置巡检数据
+from ..cordis服务端 import 宿主内置巡检#宿主内置巡检数据
 from .接口目录 import 事件目录,查询服务目录,查询事件目录#目录与查询
 
 __all__=['宿主巡检提供方们','宿主巡检提供方','hostInspectProviders']#仅中文公开名

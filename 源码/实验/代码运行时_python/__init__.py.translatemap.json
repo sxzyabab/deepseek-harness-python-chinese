@@ -1,0 +1,23 @@
+{
+    "check":"检查",
+    "complete":"完成",
+    "encode":"编码",
+    "field":"字段",
+    "file":"文件",
+    "frame":"帧",
+    "id":"标识",
+    "int":"整数",
+    "json":"json",
+    "literal":"字面量",
+    "log":"日志",
+    "lossy":"有损",
+    "mark":"标记",
+    "number":"数字",
+    "process":"进程",
+    "protocol":"协议",
+    "pure":"纯",
+    "safe":"安全",
+    "sub":"子",
+    "trunc":"截断",
+    "value":"值"
+}

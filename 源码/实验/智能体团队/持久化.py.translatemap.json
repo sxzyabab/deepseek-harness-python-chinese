@@ -1,0 +1,14 @@
+{
+    "close":"关闭",
+    "count":"计数",
+    "event":"事件",
+    "header":"头",
+    "id":"标识",
+    "inherit":"继承",
+    "open":"打开",
+    "persist":"持久",
+    "read":"读取",
+    "session":"会话",
+    "signal":"信号",
+    "view":"视图"
+}

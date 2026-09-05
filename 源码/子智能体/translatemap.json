@@ -1,0 +1,12 @@
+{
+    "subagent":"子智能体",
+    "subagent-acp":"子智能体_acp",
+    "subagent-claude-code":"子智能体_claude",
+    "subagent-codex":"子智能体_codex",
+    "subagent-dsh-sdk":"子智能体_dsh_sdk",
+    "subagent-fork-in-process":"子智能体_fork",
+    "subagent-in-process-driver":"子智能体_in_process_driver",
+    "subagent-spawn-in-process":"子智能体_spawn_in_process",
+    "tool-subagent":"子智能体工具",
+    "tool-subagent-control":"子智能体控制工具"
+}

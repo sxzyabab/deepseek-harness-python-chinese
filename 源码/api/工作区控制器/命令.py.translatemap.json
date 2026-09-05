@@ -1,0 +1,18 @@
+{
+    "command":"命令",
+    "context":"上下文",
+    "create":"创建",
+    "error":"错误",
+    "field":"字段",
+    "id":"标识",
+    "lock":"锁",
+    "message":"消息",
+    "path":"路径",
+    "remote":"远程",
+    "resolve":"解析",
+    "self":"自身",
+    "take":"取",
+    "view":"视图",
+    "wait":"等待",
+    "workspace":"工作区"
+}

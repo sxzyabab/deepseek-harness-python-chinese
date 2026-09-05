@@ -1,0 +1,14 @@
+{
+    "block":"块",
+    "call":"调用",
+    "decode":"解码",
+    "index":"索引",
+    "line":"行",
+    "malformed":"格式错误",
+    "pack":"打包",
+    "read":"读取",
+    "record":"记录",
+    "run":"运行",
+    "storage":"存储",
+    "tool":"工具"
+}

@@ -1,0 +1,10 @@
+{
+    "error":"错误",
+    "fail":"失败",
+    "reference":"引用",
+    "safe":"安全",
+    "serialize":"序列化",
+    "session":"会话",
+    "tag":"标签",
+    "value":"值"
+}

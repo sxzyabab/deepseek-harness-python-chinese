@@ -1,0 +1,17 @@
+{
+    "array":"数组",
+    "assert":"断言",
+    "check":"检查",
+    "diagnostic":"诊断",
+    "error":"错误",
+    "json":"json",
+    "object":"对象",
+    "own":"拥有",
+    "path":"路径",
+    "record":"记录",
+    "schema":"模式",
+    "scalar":"标量",
+    "supported":"受支持",
+    "validate":"校验",
+    "value":"值"
+}

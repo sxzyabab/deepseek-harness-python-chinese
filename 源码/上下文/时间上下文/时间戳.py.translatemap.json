@@ -1,0 +1,23 @@
+{
+    "create":"创建",
+    "datetime":"日期时间",
+    "environment":"环境",
+    "explicit":"显式",
+    "fallback":"回退",
+    "fail":"失败",
+    "formatter":"格式化器",
+    "format":"格式",
+    "key":"键",
+    "local":"本地",
+    "namespace":"命名空间",
+    "parse":"解析",
+    "process":"进程",
+    "resolve":"解析",
+    "segment":"段",
+    "simple":"简单",
+    "stable":"稳定",
+    "system":"系统",
+    "time":"时间",
+    "timestamp":"时间戳",
+    "timezone":"时区"
+}

@@ -1,0 +1,12 @@
+{
+    "assemble":"组装",
+    "context":"上下文",
+    "prompt":"提示词",
+    "provide":"提供",
+    "render":"渲染",
+    "result":"结果",
+    "section":"节",
+    "system":"系统",
+    "tool":"工具",
+    "variable":"变量"
+}

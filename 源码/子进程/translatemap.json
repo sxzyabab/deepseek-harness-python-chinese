@@ -1,0 +1,5 @@
+{
+    "subprocess":"子进程",
+    "subprocess-local":"本地子进程",
+    "win32-process":"win32_进程"
+}

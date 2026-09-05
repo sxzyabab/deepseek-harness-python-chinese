@@ -1,0 +1,22 @@
+{
+    "artifact":"产物",
+    "count":"计数",
+    "deep":"深",
+    "event":"事件",
+    "format":"格式",
+    "freeze":"冻结",
+    "header":"头",
+    "inspect":"检查",
+    "integer":"整数",
+    "json":"json",
+    "label":"标签",
+    "negative":"负",
+    "object":"对象",
+    "safe":"安全",
+    "session":"会话",
+    "snapshot":"快照",
+    "value":"值",
+    "version":"版本",
+    "whether":"是否",
+    "zero":"零"
+}

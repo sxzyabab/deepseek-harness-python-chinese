@@ -1,0 +1,11 @@
+{
+    "conflict":"冲突",
+    "field":"字段",
+    "message":"消息",
+    "namespace":"命名空间",
+    "reject":"拒绝",
+    "remote":"远程",
+    "settings":"设置",
+    "take":"取",
+    "view":"视图"
+}

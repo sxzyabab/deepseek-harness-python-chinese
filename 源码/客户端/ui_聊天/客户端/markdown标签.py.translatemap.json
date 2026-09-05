@@ -1,0 +1,17 @@
+{
+    "code":"代码",
+    "construct":"构造",
+    "copy":"复制",
+    "depend":"依赖",
+    "footnote":"脚注",
+    "label":"标签",
+    "locale":"区域",
+    "markdown":"标记文本",
+    "primitive":"原语",
+    "public":"公开",
+    "table":"表",
+    "title":"标题",
+    "translate":"翻译",
+    "upstream":"上游",
+    "version":"版本"
+}

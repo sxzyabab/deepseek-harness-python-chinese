@@ -1,0 +1,22 @@
+{
+    "access":"访问",
+    "bind":"绑定",
+    "code":"代码",
+    "copy":"复制",
+    "dacl":"dacl",
+    "deny":"拒绝",
+    "error":"错误",
+    "file":"文件",
+    "find":"找到",
+    "get":"获取",
+    "info":"信息",
+    "namespace":"命名空间",
+    "path":"路径",
+    "protect":"保护",
+    "replace":"替换",
+    "security":"安全",
+    "self":"自身",
+    "syscall":"系统调用",
+    "system":"系统",
+    "win32":"win32"
+}

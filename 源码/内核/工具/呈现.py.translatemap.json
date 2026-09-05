@@ -1,0 +1,17 @@
+{
+    "call":"调用",
+    "card":"卡片",
+    "diff":"差异",
+    "field":"字段",
+    "file":"文件",
+    "kind":"种类",
+    "line":"行",
+    "location":"位置",
+    "match":"匹配",
+    "origin":"来源",
+    "path":"路径",
+    "read":"读取",
+    "result":"结果",
+    "search":"搜索",
+    "terminal":"终端"
+}

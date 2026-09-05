@@ -1,0 +1,17 @@
+{
+    "abort":"中止",
+    "buffer":"缓冲",
+    "control":"控制",
+    "controller":"控制器",
+    "end":"结束",
+    "event":"事件",
+    "field":"字段",
+    "frame":"帧",
+    "push":"推送",
+    "queue":"队列",
+    "self":"自身",
+    "session":"会话",
+    "signal":"信号",
+    "take":"取",
+    "wait":"等待"
+}

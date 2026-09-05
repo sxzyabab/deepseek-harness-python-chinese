@@ -1,0 +1,11 @@
+{
+    "cause":"原因",
+    "error":"错误",
+    "format":"格式",
+    "message":"消息",
+    "migration":"迁移",
+    "name":"名称",
+    "self":"自身",
+    "session":"会话",
+    "unsupported":"不支持"
+}

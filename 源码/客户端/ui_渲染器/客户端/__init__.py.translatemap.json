@@ -1,0 +1,20 @@
+{
+    "app":"应用",
+    "assemble":"组装",
+    "boot":"启动",
+    "build":"构建",
+    "container":"容器",
+    "create":"创建",
+    "factory":"工厂",
+    "handoff":"交接",
+    "inject":"注入",
+    "mount":"挂载",
+    "query":"查询",
+    "register":"登记",
+    "renderer":"渲染器",
+    "scope":"作用域",
+    "slot":"槽",
+    "snapshot":"快照",
+    "table":"表",
+    "type":"类型"
+}

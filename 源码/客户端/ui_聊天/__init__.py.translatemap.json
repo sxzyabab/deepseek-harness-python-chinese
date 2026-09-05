@@ -1,0 +1,12 @@
+{
+    "apply":"应用",
+    "context":"上下文",
+    "default":"默认",
+    "field":"字段",
+    "inject":"注入",
+    "mode":"模式",
+    "namespace":"命名空间",
+    "setting":"设置",
+    "table":"表",
+    "view":"视图"
+}

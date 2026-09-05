@@ -1,0 +1,14 @@
+{
+    "buffer":"缓冲",
+    "capacity":"容量",
+    "count":"计数",
+    "ensure":"确保",
+    "head":"头",
+    "min":"最小",
+    "pop":"弹出",
+    "push":"推送",
+    "self":"自身",
+    "size":"大小",
+    "tail":"尾",
+    "value":"值"
+}

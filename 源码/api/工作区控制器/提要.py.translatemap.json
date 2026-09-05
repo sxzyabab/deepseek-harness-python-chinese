@@ -1,0 +1,23 @@
+{
+    "abort":"中止",
+    "buffer":"缓冲",
+    "change":"变更",
+    "create":"创建",
+    "field":"字段",
+    "frame":"帧",
+    "id":"标识",
+    "list":"列表",
+    "parse":"解析",
+    "path":"路径",
+    "queue":"队列",
+    "record":"记录",
+    "self":"自身",
+    "session":"会话",
+    "signal":"信号",
+    "take":"取",
+    "title":"标题",
+    "update":"更新",
+    "view":"视图",
+    "wait":"等待",
+    "workspace":"工作区"
+}

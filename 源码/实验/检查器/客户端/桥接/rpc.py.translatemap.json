@@ -1,0 +1,13 @@
+{
+    "bridge":"桥接",
+    "client":"客户端",
+    "connect":"连接",
+    "generation":"生成",
+    "own":"拥有",
+    "public":"公开",
+    "query":"查询",
+    "send":"发送",
+    "source":"源",
+    "upstream":"上游",
+    "write":"写入"
+}

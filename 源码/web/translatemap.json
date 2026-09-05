@@ -1,0 +1,7 @@
+{
+    "tool-web":"工具_web",
+    "web-fetch-http":"http请求",
+    "web-search-deepseek":"web搜索_deepseek",
+    "web-search-exa":"web搜索_exa",
+    "web-search-perplexity":"web搜索_perplexity"
+}

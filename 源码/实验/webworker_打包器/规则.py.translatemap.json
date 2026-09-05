@@ -1,0 +1,21 @@
+{
+    "declaration":"声明",
+    "decide":"决定",
+    "exclude":"排除",
+    "glob":"通配",
+    "include":"包含",
+    "match":"匹配",
+    "mirror":"镜像",
+    "pack":"打包",
+    "page":"页",
+    "path":"路径",
+    "public":"公开",
+    "resource":"资源",
+    "rule":"规则",
+    "seed":"种子",
+    "source":"源",
+    "table":"表",
+    "unique":"唯一",
+    "upstream":"上游",
+    "workspace":"工作区"
+}

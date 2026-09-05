@@ -1,0 +1,19 @@
+{
+    "controller":"控制器",
+    "credential":"凭据",
+    "describe":"描述",
+    "error":"错误",
+    "field":"字段",
+    "max":"最大",
+    "parse":"解析",
+    "projection":"投影",
+    "reference":"引用",
+    "remote":"远程",
+    "request":"请求",
+    "self":"自身",
+    "shape":"形态",
+    "take":"取",
+    "value":"值",
+    "view":"视图",
+    "wait":"等待"
+}

@@ -1,0 +1,18 @@
+{
+    "callback":"回调",
+    "close":"关闭",
+    "emit":"发出",
+    "error":"错误",
+    "event":"事件",
+    "lock":"锁",
+    "option":"选项",
+    "path":"路径",
+    "poll":"轮询",
+    "ready":"就绪",
+    "run":"运行",
+    "self":"自身",
+    "snapshot":"快照",
+    "stop":"停止",
+    "thread":"线程",
+    "watch":"监视"
+}

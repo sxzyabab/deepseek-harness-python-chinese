@@ -1,0 +1,18 @@
+{
+    "brand":"品牌",
+    "canonical":"规范",
+    "decode":"解码",
+    "encode":"编码",
+    "error":"错误",
+    "format":"格式",
+    "id":"标识",
+    "parse":"解析",
+    "parsed":"已解析",
+    "payload":"载荷",
+    "reference":"引用",
+    "schemes":"方案",
+    "session":"会话",
+    "sid":"会话标识",
+    "text":"文本",
+    "uri":"统一资源标识"
+}

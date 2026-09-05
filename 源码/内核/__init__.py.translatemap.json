@@ -1,0 +1,12 @@
+{
+    "agent":"智能体",
+    "default":"默认",
+    "discover":"发现",
+    "loop":"循环",
+    "model":"模型",
+    "prompt":"提示词",
+    "scope":"作用域",
+    "session":"会话",
+    "system":"系统",
+    "tool":"工具"
+}

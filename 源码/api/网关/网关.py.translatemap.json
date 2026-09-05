@@ -1,0 +1,21 @@
+{
+    "abort":"中止",
+    "code":"代码",
+    "endpoint":"端点",
+    "error":"错误",
+    "gateway":"网关",
+    "lookup":"查找",
+    "message":"消息",
+    "method":"方法",
+    "namespace":"命名空间",
+    "object":"对象",
+    "option":"选项",
+    "pattern":"模式",
+    "raw":"原始",
+    "remote":"远程",
+    "self":"自身",
+    "service":"服务",
+    "signal":"信号",
+    "symbol":"符号",
+    "wait":"等待"
+}

@@ -1,0 +1,11 @@
+{
+    "define":"定义",
+    "disposition":"处置",
+    "event":"事件",
+    "opaque":"不透明",
+    "optional":"可选",
+    "payload":"载荷",
+    "released":"已发布",
+    "required":"必填",
+    "type":"类型"
+}

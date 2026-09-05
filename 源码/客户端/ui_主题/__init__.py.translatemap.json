@@ -1,0 +1,15 @@
+{
+    "apply":"应用",
+    "boot":"启动",
+    "context":"上下文",
+    "default":"默认",
+    "field":"字段",
+    "inject":"注入",
+    "mode":"模式",
+    "namespace":"命名空间",
+    "object":"对象",
+    "self":"自身",
+    "service":"服务",
+    "setting":"设置",
+    "theme":"主题"
+}

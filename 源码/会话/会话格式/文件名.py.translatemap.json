@@ -1,0 +1,11 @@
+{
+    "canonical":"规范",
+    "filename":"文件名",
+    "format":"格式",
+    "generation":"代",
+    "log":"日志",
+    "match":"匹配",
+    "parse":"解析",
+    "session":"会话",
+    "version":"版本"
+}

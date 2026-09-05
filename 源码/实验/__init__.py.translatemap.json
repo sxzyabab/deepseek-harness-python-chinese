@@ -1,0 +1,9 @@
+{
+    "agent":"智能体",
+    "checker":"检查器",
+    "client":"客户端",
+    "config":"配置",
+    "pack":"打包",
+    "runtime":"运行时",
+    "util":"工具"
+}

@@ -1,0 +1,6 @@
+{
+    "cordis-client-runner":"cordis客户端",
+    "cordis-host-runner":"cordis服务端",
+    "tool-cordis":"cordis工具",
+    "ui-cordis":"ui_cordis"
+}

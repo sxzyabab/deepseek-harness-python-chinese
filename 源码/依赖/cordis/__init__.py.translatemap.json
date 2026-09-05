@@ -1,0 +1,10 @@
+{
+    "context":"上下文",
+    "event":"事件",
+    "fiber":"纤程",
+    "log":"日志",
+    "reflect":"反射",
+    "registry":"注册表",
+    "service":"服务",
+    "timer":"定时器"
+}

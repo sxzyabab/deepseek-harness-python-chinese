@@ -1,0 +1,18 @@
+{
+    "agent":"智能体",
+    "apply":"应用",
+    "assert":"断言",
+    "client":"客户端",
+    "create":"创建",
+    "error":"错误",
+    "event":"事件",
+    "inject":"注入",
+    "lookup":"查找",
+    "name":"名称",
+    "ownership":"所有权",
+    "remote":"远程",
+    "result":"结果",
+    "session":"会话",
+    "subagent":"子智能体",
+    "view":"视图"
+}

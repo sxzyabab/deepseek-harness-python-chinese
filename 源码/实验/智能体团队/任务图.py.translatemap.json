@@ -1,0 +1,23 @@
+{
+    "alias":"别名",
+    "assert":"断言",
+    "block":"阻塞",
+    "candidate":"候选",
+    "current":"当前",
+    "cycle":"循环",
+    "delete":"删除",
+    "duplicate":"重复",
+    "error":"错误",
+    "field":"字段",
+    "get":"获取",
+    "graph":"图",
+    "id":"标识",
+    "message":"消息",
+    "missing":"缺失",
+    "name":"名称",
+    "self":"自身",
+    "status":"状态",
+    "table":"表",
+    "task":"任务",
+    "violation":"违规"
+}

@@ -1,0 +1,9 @@
+{
+    "fs":"文件系统",
+    "fs-local":"本地文件系统",
+    "fs-observation-policy":"文件系统观察策略",
+    "fs-sandbox":"文件系统沙盒",
+    "tool-fs":"文件系统工具",
+    "tool-fs-search":"文件搜索工具",
+    "tool-str-replace-editor":"字符串替换工具"
+}

@@ -1,0 +1,21 @@
+{
+    "agent":"智能体",
+    "config":"配置",
+    "context":"上下文",
+    "error":"错误",
+    "field":"字段",
+    "get":"获取",
+    "import":"导入",
+    "list":"列表",
+    "mount":"挂载",
+    "name":"名称",
+    "object":"对象",
+    "path":"路径",
+    "preset":"预设",
+    "row":"行",
+    "self":"自身",
+    "service":"服务",
+    "take":"取",
+    "tree":"树",
+    "write":"写入"
+}

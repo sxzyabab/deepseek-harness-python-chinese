@@ -1,0 +1,13 @@
+{
+    "apply":"应用",
+    "default":"默认",
+    "error":"错误",
+    "group":"组",
+    "inject":"注入",
+    "invariant":"不变量",
+    "name":"名称",
+    "package":"包",
+    "registry":"注册表",
+    "runtime":"运行时",
+    "schema":"模式"
+}

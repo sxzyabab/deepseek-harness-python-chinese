@@ -1,0 +1,9 @@
+{
+    "default":"默认",
+    "map":"映射",
+    "projection":"投影",
+    "registry":"注册表",
+    "session":"会话",
+    "state":"状态",
+    "type":"类型"
+}

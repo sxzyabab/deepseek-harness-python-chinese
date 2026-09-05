@@ -1,0 +1,12 @@
+{
+    "brand":"品牌",
+    "identity":"身份",
+    "lightweight":"轻量",
+    "opaque":"不透明",
+    "persist":"持久化",
+    "provider":"提供方",
+    "revision":"修订",
+    "session":"会话",
+    "token":"令牌",
+    "value":"值"
+}

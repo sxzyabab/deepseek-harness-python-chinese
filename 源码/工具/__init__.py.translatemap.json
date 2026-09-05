@@ -1,0 +1,19 @@
+{
+    "atomic":"原子",
+    "brand":"品牌",
+    "command":"命令",
+    "crypto":"加密",
+    "env":"环境变量",
+    "group":"组",
+    "home":"主目录",
+    "launch":"启动",
+    "native":"原生",
+    "output":"输出",
+    "path":"路径",
+    "retain":"保留",
+    "time":"时间",
+    "timeout":"超时",
+    "util":"工具",
+    "value":"值",
+    "workspace":"工作区"
+}

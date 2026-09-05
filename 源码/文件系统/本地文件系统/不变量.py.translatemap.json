@@ -1,0 +1,19 @@
+{
+    "apply":"应用",
+    "context":"上下文",
+    "error":"错误",
+    "fail":"失败",
+    "inject":"注入",
+    "install":"安装",
+    "invariant":"不变量",
+    "name":"名称",
+    "operation":"操作",
+    "package":"包",
+    "reject":"拒绝",
+    "self":"自身",
+    "task":"任务",
+    "teardown":"拆除",
+    "timeout":"超时",
+    "value":"值",
+    "wait":"等待"
+}

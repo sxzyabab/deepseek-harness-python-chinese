@@ -1,0 +1,22 @@
+{
+    "abort":"中止",
+    "assert":"断言",
+    "cap":"上限",
+    "code":"代码",
+    "controller":"控制器",
+    "deadline":"截止",
+    "delay":"延迟",
+    "event":"事件",
+    "idle":"空闲",
+    "ms":"毫秒",
+    "name":"名称",
+    "reason":"原因",
+    "self":"自身",
+    "signal":"信号",
+    "take":"取",
+    "timeout":"超时",
+    "timer":"定时器",
+    "value":"值",
+    "wait":"等待",
+    "whether":"是否"
+}

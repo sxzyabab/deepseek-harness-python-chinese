@@ -1,0 +1,21 @@
+{
+    "assert":"断言",
+    "byte":"字节",
+    "character":"字符",
+    "control":"控制",
+    "direction":"方向",
+    "fallback":"回退",
+    "input":"输入",
+    "integer":"整数",
+    "max":"最大",
+    "name":"名称",
+    "normalize":"归一化",
+    "output":"输出",
+    "positive":"正",
+    "session":"会话",
+    "text":"文本",
+    "title":"标题",
+    "trunc":"截断",
+    "value":"值",
+    "word":"词"
+}

@@ -1,0 +1,13 @@
+{
+    "backoff":"退避",
+    "default":"默认",
+    "delay":"延迟",
+    "jitter":"抖动",
+    "max":"最大",
+    "mode":"模式",
+    "normal":"普通",
+    "parse":"解析",
+    "policy":"策略",
+    "retry":"重试",
+    "timer":"定时器"
+}

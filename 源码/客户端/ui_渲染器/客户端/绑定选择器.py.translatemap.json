@@ -1,0 +1,13 @@
+{
+    "bind":"绑定",
+    "client":"客户端",
+    "equal":"相等",
+    "public":"公开",
+    "select":"选择",
+    "server":"服务器",
+    "snapshot":"快照",
+    "source":"源",
+    "sync":"同步",
+    "type":"类型",
+    "upstream":"上游"
+}

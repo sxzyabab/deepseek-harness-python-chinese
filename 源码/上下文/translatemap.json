@@ -1,0 +1,8 @@
+{
+    "agent-instructions":"智能体命令",
+    "file-reference":"文件引用",
+    "file-reference-local":"文件引用_本地",
+    "session-reference":"会话引用",
+    "time-context":"时间上下文",
+    "tmux-context":"tmux上下文"
+}

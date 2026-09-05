@@ -1,0 +1,13 @@
+{
+    "client":"客户端",
+    "equal":"相等",
+    "external":"外部",
+    "public":"公开",
+    "select":"选择",
+    "server":"服务器",
+    "snapshot":"快照",
+    "storage":"存储",
+    "sync":"同步",
+    "type":"类型",
+    "upstream":"上游"
+}

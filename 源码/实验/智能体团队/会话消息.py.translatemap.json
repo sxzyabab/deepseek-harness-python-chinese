@@ -1,0 +1,19 @@
+{
+    "accept":"接受",
+    "claim":"认领",
+    "data":"数据",
+    "default":"默认",
+    "event":"事件",
+    "field":"字段",
+    "get":"获取",
+    "inbox":"收件箱",
+    "insert":"插入",
+    "message":"消息",
+    "object":"对象",
+    "pending":"待",
+    "predicate":"谓词",
+    "remove":"移除",
+    "start":"起点",
+    "target":"目标",
+    "type":"类型"
+}

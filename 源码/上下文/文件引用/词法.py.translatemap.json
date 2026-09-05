@@ -1,0 +1,18 @@
+{
+    "active":"活动",
+    "candidate":"候选",
+    "cursor":"光标",
+    "dir":"目录",
+    "field":"字段",
+    "file":"文件",
+    "format":"格式",
+    "kind":"种类",
+    "match":"匹配",
+    "path":"路径",
+    "prefix":"前缀",
+    "query":"查询",
+    "reference":"引用",
+    "space":"空格",
+    "token":"令牌",
+    "type":"类型"
+}

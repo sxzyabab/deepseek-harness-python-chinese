@@ -1,0 +1,18 @@
+{
+    "character":"字符",
+    "empty":"空",
+    "error":"错误",
+    "field":"字段",
+    "invalid":"非法",
+    "length":"长度",
+    "max":"最大",
+    "prefix":"前缀",
+    "relative":"相对",
+    "scope":"范围",
+    "segment":"段",
+    "strip":"修剪",
+    "text":"文本",
+    "value":"值",
+    "workspace":"工作区",
+    "write":"写"
+}

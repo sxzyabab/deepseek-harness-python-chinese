@@ -1,0 +1,17 @@
+{
+    "cache":"缓存",
+    "checkpoint":"检查点",
+    "group":"组",
+    "jsonl":"jsonl",
+    "llm":"模型后端",
+    "log":"日志",
+    "persist":"持久化",
+    "policy":"策略",
+    "projection":"投影",
+    "prompt":"提示词",
+    "session":"会话",
+    "stats":"统计",
+    "telemetry":"遥测",
+    "title":"标题",
+    "turn":"轮次"
+}

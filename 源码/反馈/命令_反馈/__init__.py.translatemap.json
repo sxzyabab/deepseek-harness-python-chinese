@@ -1,0 +1,21 @@
+{
+    "anonymous":"匿名",
+    "apply":"应用",
+    "assert":"断言",
+    "command":"命令",
+    "context":"上下文",
+    "create":"创建",
+    "default":"默认",
+    "execute":"执行",
+    "feedback":"反馈",
+    "field":"字段",
+    "get":"获取",
+    "inject":"注入",
+    "name":"名称",
+    "object":"对象",
+    "record":"记录",
+    "session":"会话",
+    "take":"取",
+    "usage":"用法",
+    "user":"用户"
+}

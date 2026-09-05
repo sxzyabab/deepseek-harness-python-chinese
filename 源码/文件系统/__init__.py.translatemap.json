@@ -1,0 +1,12 @@
+{
+    "file":"文件",
+    "filesystem":"文件系统",
+    "local":"本地",
+    "observation":"观察",
+    "policy":"策略",
+    "replace":"替换",
+    "sandbox":"沙盒",
+    "search":"搜索",
+    "string":"字符串",
+    "tool":"工具"
+}

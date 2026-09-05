@@ -1,0 +1,8 @@
+{
+    "deepseek-llm-api-extensions":"deepseek_llm_api_扩展",
+    "llm-deepseek":"llm_deepseek",
+    "llm-pi-ai":"llm_pi_ai",
+    "llm-retry":"llm_retry",
+    "plugin-package-inventory-deepseek":"插件包清单_deepseek",
+    "token-meter":"token计数器"
+}

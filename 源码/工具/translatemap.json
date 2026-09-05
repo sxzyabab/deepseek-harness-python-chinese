@@ -1,0 +1,14 @@
+{
+    "atomic-write":"原子写入",
+    "brand":"品牌",
+    "crypto":"加密",
+    "deque":"双端队列",
+    "home-paths":"主目录路径",
+    "launch-environment":"启动环境",
+    "native-command":"原生命令",
+    "output-retention":"输出保留",
+    "time":"时间",
+    "timeout":"超时",
+    "values":"值",
+    "workspace-path":"工作区路径"
+}

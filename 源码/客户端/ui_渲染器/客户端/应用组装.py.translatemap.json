@@ -1,0 +1,15 @@
+{
+    "app":"应用",
+    "assemble":"组装",
+    "build":"构建",
+    "context":"上下文",
+    "depend":"依赖",
+    "factory":"工厂",
+    "layout":"布局",
+    "public":"公开",
+    "render":"渲染",
+    "root":"根",
+    "slot":"槽",
+    "tree":"树",
+    "upstream":"上游"
+}

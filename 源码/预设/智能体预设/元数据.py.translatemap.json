@@ -1,0 +1,17 @@
+{
+    "describe":"描述",
+    "dir":"目录",
+    "field":"字段",
+    "file":"文件",
+    "metadata":"元数据",
+    "name":"名称",
+    "order":"顺序",
+    "parse":"解析",
+    "path":"路径",
+    "preset":"预设",
+    "read":"读取",
+    "render":"渲染",
+    "result":"结果",
+    "take":"取",
+    "text":"文本"
+}

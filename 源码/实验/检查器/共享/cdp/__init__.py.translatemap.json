@@ -1,0 +1,20 @@
+{
+    "attr":"属性",
+    "backend":"后端",
+    "capability":"能力",
+    "console":"控制台",
+    "debugger":"调试器",
+    "domain":"领域",
+    "error":"错误",
+    "export":"导出",
+    "id":"标识",
+    "meta":"元",
+    "module":"模块",
+    "object":"对象",
+    "op":"操作",
+    "protocol":"协议",
+    "public":"公开",
+    "remote":"远程",
+    "source":"源",
+    "type":"类型"
+}

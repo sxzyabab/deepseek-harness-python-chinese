@@ -1,0 +1,21 @@
+{
+    "alias":"别名",
+    "cancel":"取消",
+    "cause":"原因",
+    "close":"关闭",
+    "code":"码",
+    "controller":"控制器",
+    "dispose":"处置",
+    "error":"错误",
+    "lifecycle":"生命周期",
+    "millisecond":"毫秒",
+    "property":"属性",
+    "reason":"原因",
+    "runtime":"运行时",
+    "self":"自身",
+    "settle":"结算",
+    "signal":"信号",
+    "task":"任务",
+    "timeout":"超时",
+    "timer":"定时器"
+}

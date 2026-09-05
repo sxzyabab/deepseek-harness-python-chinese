@@ -1,0 +1,22 @@
+{
+    "agent":"智能体",
+    "busy":"忙",
+    "code":"代码",
+    "create":"创建",
+    "error":"错误",
+    "fail":"失败",
+    "fulfilled":"已兑现",
+    "lookup":"查找",
+    "message":"消息",
+    "option":"选项",
+    "ownership":"所有权",
+    "owner":"所有者",
+    "remote":"远程",
+    "result":"结果",
+    "session":"会话",
+    "subagent":"子智能体",
+    "success":"成功",
+    "task":"任务",
+    "view":"视图",
+    "wait":"等待"
+}

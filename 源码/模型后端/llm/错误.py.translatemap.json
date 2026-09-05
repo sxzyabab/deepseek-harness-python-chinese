@@ -1,0 +1,14 @@
+{
+    "chain":"链",
+    "code":"码",
+    "context":"上下文",
+    "credential":"凭证",
+    "empty":"空",
+    "error":"错误",
+    "exceed":"超出",
+    "invalid":"非法",
+    "message":"消息",
+    "overflow":"溢出",
+    "quota":"配额",
+    "window":"窗口"
+}

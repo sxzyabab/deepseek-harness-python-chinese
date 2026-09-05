@@ -1,0 +1,19 @@
+{
+    "cwd":"当前工作目录",
+    "execute":"执行",
+    "field":"字段",
+    "get":"获取",
+    "option":"选项",
+    "parent":"父",
+    "parse":"解析",
+    "path":"路径",
+    "policy":"政策",
+    "request":"请求",
+    "resolve":"解析",
+    "segment":"段",
+    "session":"会话",
+    "signal":"信号",
+    "try":"试",
+    "work":"工作",
+    "workspace":"工作区"
+}

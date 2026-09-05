@@ -1,0 +1,21 @@
+{
+    "agent":"智能体",
+    "conflict":"冲突",
+    "context":"上下文",
+    "controller":"控制器",
+    "cwd":"当前工作目录",
+    "error":"错误",
+    "field":"字段",
+    "id":"标识",
+    "inspect":"检视",
+    "message":"消息",
+    "ownership":"所有权",
+    "owner":"所有者",
+    "preset":"预设",
+    "remote":"远程",
+    "self":"自身",
+    "session":"会话",
+    "subagent":"子智能体",
+    "take":"取",
+    "wait":"等待"
+}

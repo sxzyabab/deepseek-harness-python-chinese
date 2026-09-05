@@ -1,0 +1,10 @@
+{
+    "client":"客户端",
+    "extend":"扩展",
+    "map":"映射",
+    "merge":"合并",
+    "projection":"投影",
+    "session":"会话",
+    "state":"状态",
+    "visible":"可见"
+}

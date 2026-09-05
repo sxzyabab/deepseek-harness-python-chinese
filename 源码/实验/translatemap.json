@@ -1,0 +1,11 @@
+{
+    "agent-team":"智能体团队",
+    "agent-team-profile":"智能体团队_配置",
+    "agent-team-web-profile":"智能体团队_web配置",
+    "client-ui-agent-team":"客户端ui_智能体团队",
+    "code-runtime-python":"代码运行时_python",
+    "inspector":"检查器",
+    "tool-agent-team":"工具_智能体团队",
+    "webworker-packer":"webworker_打包器",
+    "webworker-runtime":"webworker_运行时"
+}

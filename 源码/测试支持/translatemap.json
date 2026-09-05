@@ -1,0 +1,8 @@
+{
+    "agent-loop-testkit":"智能体循环_测试工具包",
+    "client-runtime":"客户端_运行时",
+    "llm-mock-server":"llm_模拟服务器",
+    "llm-replay":"llm_回放",
+    "loader-smoke":"加载器_冒烟",
+    "session-snapshot":"会话_快照"
+}

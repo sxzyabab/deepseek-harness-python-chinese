@@ -1,0 +1,19 @@
+{
+    "apply":"应用",
+    "config":"配置",
+    "default":"默认",
+    "extend":"扩展",
+    "field":"字段",
+    "identity":"身份",
+    "inject":"注入",
+    "inventory":"清单",
+    "loader":"加载器",
+    "name":"名称",
+    "package":"包",
+    "plugin":"插件",
+    "provider":"提供方",
+    "resolve":"解析",
+    "session":"会话",
+    "value":"值",
+    "wait":"等待"
+}

@@ -1,0 +1,22 @@
+{
+    "commit":"提交",
+    "context":"上下文",
+    "event":"事件",
+    "fail":"失败",
+    "field":"字段",
+    "get":"获取",
+    "id":"标识",
+    "journal":"日志",
+    "lock":"锁",
+    "object":"对象",
+    "operation":"操作",
+    "prev":"先前",
+    "projection":"投影",
+    "root":"根",
+    "self":"自身",
+    "serial":"串行",
+    "state":"状态",
+    "tail":"尾",
+    "transaction":"事务",
+    "wait":"等待"
+}

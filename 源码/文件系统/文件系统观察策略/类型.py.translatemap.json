@@ -1,0 +1,7 @@
+{
+    "actor":"行动者",
+    "agent":"智能体",
+    "field":"字段",
+    "observation":"观察",
+    "session":"会话"
+}

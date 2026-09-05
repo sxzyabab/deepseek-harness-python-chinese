@@ -1,0 +1,23 @@
+{
+    "abort":"中止",
+    "activity":"活动",
+    "cancel":"取消",
+    "close":"关闭",
+    "error":"错误",
+    "event":"事件",
+    "id":"标识",
+    "int":"整数",
+    "lock":"锁",
+    "millisecond":"毫秒",
+    "notify":"通知",
+    "reason":"原因",
+    "result":"结果",
+    "safe":"安全",
+    "self":"自身",
+    "set":"设置",
+    "signal":"信号",
+    "settle":"结算",
+    "timeout":"超时",
+    "timer":"定时器",
+    "wait":"等待"
+}

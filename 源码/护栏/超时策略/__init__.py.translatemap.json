@@ -1,0 +1,23 @@
+{
+    "apply":"应用",
+    "code":"代码",
+    "context":"上下文",
+    "deadline":"截止",
+    "default":"默认",
+    "dispose":"释放",
+    "execute":"执行",
+    "field":"字段",
+    "get":"获取",
+    "inject":"注入",
+    "name":"名称",
+    "object":"对象",
+    "policy":"策略",
+    "read":"读取",
+    "result":"结果",
+    "signal":"信号",
+    "take":"取",
+    "timeout":"超时",
+    "tool":"工具",
+    "wait":"等待",
+    "write":"写入"
+}

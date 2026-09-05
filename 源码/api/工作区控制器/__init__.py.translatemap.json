@@ -1,0 +1,18 @@
+{
+    "apply":"应用",
+    "command":"命令",
+    "controller":"控制器",
+    "directory":"目录",
+    "id":"标识",
+    "inject":"注入",
+    "name":"名称",
+    "parse":"解析",
+    "picker":"挑选器",
+    "record":"记录",
+    "remote":"远程",
+    "self":"自身",
+    "service":"服务",
+    "state":"状态",
+    "view":"视图",
+    "workspace":"工作区"
+}

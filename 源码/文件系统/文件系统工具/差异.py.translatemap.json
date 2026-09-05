@@ -1,0 +1,18 @@
+{
+    "after":"之后",
+    "before":"之前",
+    "context":"上下文",
+    "diff":"差异",
+    "field":"字段",
+    "file":"文件",
+    "group":"组",
+    "list":"列表",
+    "mark":"标记",
+    "meta":"元",
+    "new":"新",
+    "old":"旧",
+    "path":"路径",
+    "side":"侧",
+    "text":"文本",
+    "try":"试"
+}

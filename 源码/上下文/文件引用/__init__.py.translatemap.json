@@ -1,0 +1,19 @@
+{
+    "candidate":"候选",
+    "context":"上下文",
+    "default":"默认",
+    "dir":"目录",
+    "field":"字段",
+    "file":"文件",
+    "format":"格式",
+    "hint":"提示",
+    "list":"列表",
+    "path":"路径",
+    "query":"查询",
+    "reference":"引用",
+    "self":"自身",
+    "service":"服务",
+    "signal":"信号",
+    "token":"令牌",
+    "workspace":"工作区"
+}

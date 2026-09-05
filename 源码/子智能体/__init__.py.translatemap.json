@@ -1,0 +1,8 @@
+{
+    "agent":"智能体",
+    "child":"子",
+    "control":"控制",
+    "sub":"子",
+    "subagent":"子智能体",
+    "tool":"工具"
+}

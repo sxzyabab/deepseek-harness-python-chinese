@@ -1,0 +1,16 @@
+{
+    "assistant":"助手",
+    "content":"内容",
+    "effort":"力度",
+    "error":"错误",
+    "image":"图片",
+    "message":"消息",
+    "parse":"解析",
+    "reasoning":"推理",
+    "request":"请求",
+    "serialize":"序列化",
+    "text":"文本",
+    "think":"思考",
+    "tool":"工具",
+    "validate":"校验"
+}

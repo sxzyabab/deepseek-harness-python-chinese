@@ -1,0 +1,12 @@
+{
+    "assistant":"助手",
+    "choice":"选择",
+    "delta":"增量",
+    "error":"错误",
+    "message":"消息",
+    "request":"请求",
+    "system":"系统",
+    "tool":"工具",
+    "usage":"用量",
+    "user":"用户"
+}

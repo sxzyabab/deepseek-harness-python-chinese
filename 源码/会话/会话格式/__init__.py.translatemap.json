@@ -1,0 +1,22 @@
+{
+    "artifact":"产物",
+    "catalog":"目录",
+    "chain":"链",
+    "codec":"编解码器",
+    "create":"创建",
+    "define":"定义",
+    "error":"错误",
+    "event":"事件",
+    "field":"字段",
+    "filename":"文件名",
+    "format":"格式",
+    "header":"头",
+    "json":"json",
+    "migration":"迁移",
+    "option":"选项",
+    "parse":"解析",
+    "session":"会话",
+    "snapshot":"快照",
+    "type":"类型",
+    "version":"版本"
+}

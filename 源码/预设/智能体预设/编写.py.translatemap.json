@@ -1,0 +1,19 @@
+{
+    "compose":"组合",
+    "copy":"复制",
+    "delete":"删除",
+    "error":"错误",
+    "field":"字段",
+    "id":"标识",
+    "metadata":"元数据",
+    "object":"对象",
+    "preset":"预设",
+    "read":"读取",
+    "reason":"原因",
+    "render":"渲染",
+    "root":"根",
+    "rule":"规则",
+    "self":"自身",
+    "take":"取",
+    "write":"写入"
+}

@@ -1,0 +1,21 @@
+{
+    "compression":"压缩",
+    "default":"默认",
+    "dir":"目录",
+    "empty":"空",
+    "encode":"编码",
+    "event":"事件",
+    "header":"头",
+    "id":"标识",
+    "log":"日志",
+    "meta":"元",
+    "parse":"解析",
+    "path":"路径",
+    "project":"项目",
+    "reject":"拒绝",
+    "root":"根",
+    "scan":"扫描",
+    "segment":"段",
+    "session":"会话",
+    "text":"文本"
+}

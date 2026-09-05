@@ -1,0 +1,23 @@
+{
+    "bridge":"桥接",
+    "buffer":"缓冲",
+    "checker":"检查器",
+    "close":"关闭",
+    "create":"创建",
+    "host":"宿主",
+    "ignore":"忽略",
+    "merge":"合并",
+    "observe":"观察",
+    "option":"选项",
+    "port":"端口",
+    "public":"公开",
+    "publish":"发布",
+    "record":"记录",
+    "self":"自身",
+    "sequence":"序列",
+    "source":"源",
+    "subject":"主题",
+    "task":"任务",
+    "upstream":"上游",
+    "write":"写入"
+}
