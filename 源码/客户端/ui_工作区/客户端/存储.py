@@ -30,9 +30,9 @@ def 设分组展开(草稿,键,展开):#写入某分组展开
     """写入 groupExpansion[key]。"""
     草稿['groupExpansion'][键]=展开#写入
 
-def 保留账本键(草稿,工作区键们):#丢掉已不存在的工作区账本键
+def 保留账本键(草稿,工作区键集合):#丢掉已不存在的工作区账本键
     """只保留仍存在的账本键。"""
-    保留=set(工作区键们)#仍应保留的工作区键集合
+    保留=set(工作区键集合)#仍应保留的工作区键集合
     草稿['groupExpansion']={键:值 for 键,值 in 草稿['groupExpansion'].items() if 键 in 保留}#重写分组展开表
     草稿['sessionOrderByAccount']={键:值 for 键,值 in 草稿['sessionOrderByAccount'].items() if 键 in 保留}#重写会话顺序账本
     草稿['sessionUpdatedAtByAccount']={键:值 for 键,值 in 草稿['sessionUpdatedAtByAccount'].items() if 键 in 保留}#重写更新时间账本

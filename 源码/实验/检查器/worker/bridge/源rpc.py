@@ -2,7 +2,7 @@
 #对齐上游 worker/bridge/source-rpc.ts
 
 import uuid,threading#请求id与超时
-from .....内核.智能体循环.辅助 import 操作任务#单次结果
+from ...共享.json import 操作任务#单次结果
 from .会话 import 发送Client会话关闭#会话关闭
 from .枢纽 import 检查器协议版本#协议版本
 
@@ -17,15 +17,15 @@ class Client源远程错误(Exception):#Client源远程错误
 
 class Client源路由:#Client源路由
     """将有界源请求与一个活动 Client 源代数关联。"""
-    def __init__(自身,源们,超时毫秒,最大内容字节,最大帧字节):#构造
+    def __init__(自身,源注册表,超时毫秒,最大内容字节,最大帧字节):#构造
         """计算分块并订阅源事件。"""
-        自身.源们=源们#源注册表
+        自身.源注册表=源注册表#源注册表
         自身._超时毫秒=超时毫秒#超时
         自身.最大内容字节=最大内容字节#内容字节上限
         自身.分块字节=max(1,int((最大帧字节-4096)*3/4))#分块大小
         自身._待决={}#待决表
         自身._已关闭=False#是否已关闭
-        自身._取消订阅=源们.订阅事件(自身._接收源事件)#订阅源事件
+        自身._取消订阅=源注册表.订阅事件(自身._接收源事件)#订阅源事件
 
     def 请求(自身,源,会话id,命令):#发起请求
         """对活动 Client 源代数执行一次操作。"""
@@ -45,14 +45,14 @@ class Client源路由:#Client源路由
         定时.start()#启动
         自身._待决[请求id]={'source':源,'sessionId':会话id,'command':命令,'future':任务,'timer':定时}#登记
         try:#投递
-            已发=自身.源们.发送(源,{#发送请求帧
+            已发=自身.源注册表.发送(源,{#发送请求帧
                 'v':检查器协议版本,'t':'client-sources/request',#类型
                 'sourceId':源['sourceId'],'generation':源['generation'],#代数
                 'sessionId':会话id,'requestId':请求id,'command':命令,#命令
             })#send结束
             if not 已发:#未发送
                 自身._拒绝待决(请求id,RuntimeError('Client source disconnected before dispatch'))#拒绝
-        except Exception as 错误:#投递失败
+        except Exception as 错误:#源注册表.发送请求帧可能抛 OSError/连接断开，契约未定所以收不窄
             自身._拒绝待决(请求id,错误 if isinstance(错误,Exception) else RuntimeError(str(错误)))#拒绝
         return 任务#结果任务
 
@@ -62,7 +62,7 @@ class Client源路由:#Client源路由
             if 待决['source']['sourceId']!=源['sourceId'] or 待决['source']['generation']!=源['generation'] or 待决['sessionId']!=会话id:#不符
                 continue#跳过
             自身._拒绝待决(请求id,RuntimeError('DevTools source session closed'))#拒绝
-        发送Client会话关闭(自身.源们,源,{#通知关闭
+        发送Client会话关闭(自身.源注册表,源,{#通知关闭
             'v':检查器协议版本,'t':'client-sources/session-closed',#类型
             'sourceId':源['sourceId'],'generation':源['generation'],'sessionId':会话id,#会话
         })#通知结束

@@ -2,7 +2,7 @@
 #对齐上游 worker/realms/client/sources.ts
 
 import base64#分块解码
-from ......内核.智能体循环.辅助 import 解开#可等待则等待
+from ....共享.json import 检查器错误#包内错误
 
 __all__=['Client源后端']#仅中文公开名
 
@@ -41,7 +41,10 @@ class Client源后端:#Client源后端
 
     def 订阅(自身,_监听):#订阅
         """无动态发现。"""
-        return lambda:None#无动态发现
+        def 空拆除():#无动态发现
+            """无动态发现，拆除为空操作。"""
+            return#空
+        return 空拆除#拆除器
 
     def 关闭(自身):#关闭
         """拒绝本 DevTools 连接拥有的待决读取。"""
@@ -53,7 +56,7 @@ class Client源后端:#Client源后端
 
     def _加载目录(自身):#加载目录
         """请求 list-scripts。"""
-        结果=自身._期望(解开(自身.路由.请求(自身.目标['source'],自身.会话id,{'op':'list-scripts'})),'list-scripts')#请求列表
+        结果=自身._期望(自身.路由.请求(自身.目标['source'],自身.会话id,{'op':'list-scripts'}).等待(),'list-scripts')#请求列表
         return [自身._登记(脚本) for 脚本 in 结果['scripts']]#登记映射
 
     def _登记(自身,脚本):#登记脚本
@@ -73,27 +76,26 @@ class Client源后端:#Client源后端
 
     def _读(自身,脚本键,内容):#读内容分块
         """循环分块直至 eof。"""
-        块们=[]#块
+        块列表=[]#块
         偏移=0#偏移
         while True:#循环分块
-            结果=自身._期望(解开(自身.路由.请求(自身.目标['source'],自身.会话id,{#请求块
+            结果=自身._期望(自身.路由.请求(自身.目标['source'],自身.会话id,{#请求块
                 'op':'get-content-chunk','scriptKey':脚本键,'content':内容,#种类
                 'offset':偏移,'maxBytes':自身.路由.分块字节,#上限
-            })),'get-content-chunk')#expect结束
+            }).等待(),'get-content-chunk')#expect结束
             if not 结果.get('available'):#不可用
                 return None#无
             字节=base64.b64decode(结果['data'])#解码
             if len(字节)>自身.路由.分块字节 or 结果['nextOffset']!=偏移+len(字节) or (not 结果.get('eof') and 结果['nextOffset']==偏移) or 结果['nextOffset']>自身.路由.最大内容字节:#无效块
                 raise RuntimeError('Client source returned an invalid content chunk')#无效块
-            块们.append(字节)#收集
+            块列表.append(字节)#收集
             偏移=结果['nextOffset']#推进
             if 结果.get('eof'):#结束
                 break#停止
-        return b''.join(块们).decode('utf-8')#解码文本
+        return b''.join(块列表).decode('utf-8')#解码文本
 
     def _期望(自身,结果,操作):#期望结果
         """窄化结果操作。"""
-        结果=解开(结果)#可等待则等待
         if 结果.get('op')!=操作:#不符
             raise RuntimeError(f"Client source returned {结果.get('op')} for {操作}")#抛错
         return 结果#返回

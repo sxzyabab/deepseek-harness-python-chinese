@@ -1,4 +1,7 @@
 {
+    "listener":"监听器",
+    "effort":"力度",
+    "list":"列表",
     "abort":"中止",
     "adapter":"适配器",
     "block":"块",

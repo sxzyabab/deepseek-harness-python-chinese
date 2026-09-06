@@ -1,6 +1,6 @@
 """ctx.web 的安全 HTTP(S) 检索：校验 URL、只跟随同源重定向、强制时间与体积上限、分类并解码文本，展示交给 tool-web。请求不携带浏览器 cookie 或环境凭证。未实现私有网络与 SSRF 防护；能碰到敏感内部目标的环境不要启用本提供方。"""
 import threading#中止监视线程
-from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接#HTTP 客户端
+from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as HTTP异常#HTTP 客户端与传输异常
 from urllib.parse import urlunparse as 拼回网址#把解析结果拼回绝对串
 from ..web import 网络错误#web 错误类型
 from ...工具.超时 import 截止,取超时#截止期与超时原因
@@ -16,38 +16,15 @@ from .策略 import (
 线程=threading.Thread#工作线程
 本地抓取提供方标识='http'#本提供方注册所用的稳定 id
 HTTP抓取上限字段=('maxUrlLength','maxResponseBytes','maxBodyChars','timeoutMs','maxRedirects','userAgent')#已解析的提供方上限字段
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 信号已中止(信号):#英文 aborted 或中文 已中止
-    """调用方信号是否已中止。"""
+def 已中止(信号):#调用方 Event 是否已置位
+    """调用方中止信号是否已置位。信号是 threading.Event，缺席视为未中止。"""
     if 信号 is None:#没有信号
         return False#未中止
-    if getattr(信号,'aborted',False) is True:#英文旗标
-        return True#已中止
-    if getattr(信号,'已中止',False) is True:#中文旗标
-        return True#已中止
-    return False#未中止
+    return 信号.is_set()#Event 置位即中止
 
 def 等待信号(信号):#阻塞到信号中止
-    """阻塞到信号中止；优先走等待方法。"""
-    等待=getattr(信号,'等待',None)#中文等待
-    if 等待 is not None:#有中文
-        等待()#阻塞
-        return#完成
-    等待英=getattr(信号,'wait',None)#英文等待
-    if 等待英 is not None:#有英文
-        等待英()#阻塞
-        return#完成
-    while not 信号已中止(信号):#无等待则轮询
-        pass#忙等
+    """阻塞到 threading.Event 置位。"""
+    信号.wait()#标准库 Event.wait
 
 def 网址绝对串(网址):#解析结果拼回绝对 URL 串
     """把 urlparse 结果拼回绝对 URL 字符串。"""
@@ -61,7 +38,7 @@ def 解析重定向(位置,基址):#解析下一跳
     """把（可能相对的）Location 相对当前 URL 解析。"""
     try:#相对或绝对 Location
         return 解析重定向目标(位置,基址)#相对 base 解析
-    except Exception as 错误:#Location 非法
+    except (ValueError,TypeError) as 错误:#Location 非法；urllib 相对解析抛这两类
         raise 网络错误('invalid redirect Location "'+位置+'"','WEB_PROVIDER_ERROR',{'cause':错误})#包装成提供方错误
 
 def 翻译中止或网络(错误,信号):#把原始错误收成网络错误
@@ -69,7 +46,7 @@ def 翻译中止或网络(错误,信号):#把原始错误收成网络错误
     超时=取超时(信号,'WEB_FETCH_TIMEOUT')#是否本提供方超时
     if 超时 is not None:#本超时
         return 网络错误('web fetch timed out','WEB_FETCH_TIMEOUT',{'cause':超时})#本超时
-    if 信号已中止(信号):#其它中止
+    if 已中止(信号):#其它中止
         return 网络错误('web fetch aborted','WEB_ABORTED',{'cause':错误})#其它中止
     return 网络错误('web fetch failed: '+str(错误),'WEB_PROVIDER_ERROR',{'cause':错误})#网络失败
 
@@ -78,13 +55,13 @@ def 取消响应正文(响应包装):#丢掉正文以免漏套接字
     if 响应包装 is None:#无响应
         return#空操作
     try:#关掉响应与连接
-        原始=取字段(响应包装,'原始')#http 响应
-        连接=取字段(响应包装,'连接')#底层连接
+        原始=响应包装['原始'] if '原始' in 响应包装 else None#http 响应
+        连接=响应包装['连接'] if '连接' in 响应包装 else None#底层连接
         if 原始 is not None:#有响应
             原始.close()#关响应
         if 连接 is not None:#有连接
             连接.close()#关连接
-    except Exception:#清理失败
+    except OSError:#清理失败；close 只预期套接字错误
         pass#尽力清理
 
 class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
@@ -92,8 +69,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
     def __init__(自身,上限):#保存已解析上限
         """收下已解析上限（插件的 schemastery Config 提供默认值）。"""
         自身.上限=上限#已解析上限
-        自身.id=本地抓取提供方标识#注册 id
-        自身.标识=本地抓取提供方标识#中文别名
+        自身.id=本地抓取提供方标识#协议槽 id
 
     def 可用(自身):#是否可用
         """无需检查凭证——匿名公开抓取器始终可用。"""
@@ -103,11 +79,11 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
 
     def 抓取(自身,请求,信号=None):#执行一次抓取
         """执行一次抓取；用信号接受取消。"""
-        if 信号已中止(信号):#调用方已取消
+        if 已中止(信号):#调用方已取消
             raise 网络错误('web fetch aborted','WEB_ABORTED')#已取消
         句柄=截止(信号,自身.上限['timeoutMs'],'WEB_FETCH_TIMEOUT')#一个信号同时停请求和读正文
         try:#跟随重定向并读最终响应
-            return 自身.跟随并读取(取字段(请求,'url'),句柄.信号)#跟随并读取
+            return 自身.跟随并读取(请求['url'],句柄.信号)#跟随并读取
         finally:#无论成败都清定时器
             句柄.释放()#清除截止定时器
 
@@ -123,10 +99,10 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
                 if 已跟随>=自身.上限['maxRedirects']:#先执行重定向预算，再解析或校验下一跳
                     取消响应正文(响应)#丢掉正文以免漏套接字
                     raise 网络错误('exceeded the maximum of '+str(自身.上限['maxRedirects'])+' redirects','WEB_REDIRECT_BLOCKED')#超过跳数上限
-                位置=响应['headers'].get('location')#读 Location
-                if 位置 is None:#重定向状态却没有 Location，不是可用资源
+                if 'location' not in 响应['headers']:#重定向状态却没有 Location，不是可用资源
                     取消响应正文(响应)#抛错前取消可能仍在流的正文，以免漏套接字
                     raise 网络错误('redirect response (HTTP '+str(响应['status'])+') without a Location header','WEB_PROVIDER_ERROR')#缺少 Location
+                位置=响应['headers']['location']#读 Location
                 目标串=解析重定向(位置,当前)#相对 Location 相对当前 URL 解析
                 try:#校验下一跳
                     已校验=校验抓取网址(目标串,自身.上限['maxUrlLength'])#长度与协议校验
@@ -135,7 +111,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
                             'cross-origin redirect to '+已校验.scheme+'://'+已校验.netloc+' is not followed automatically; retry against that URL directly',#跨源提示，字面量不改
                             'WEB_REDIRECT_BLOCKED',#重定向被拦
                         )#网络错误结束
-                except Exception as 错误:#校验失败
+                except 网络错误 as 错误:#校验失败，只预期本包网络错误
                     取消响应正文(响应)#取消正文
                     raise 错误#原样抛出
                 取消响应正文(响应)#不读重定向正文
@@ -159,11 +135,11 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
                     等待信号(信号)#阻塞到中止
                     客户端.close()#拆传输
                 线程(target=监视中止,daemon=True).start()#监视中止
-                if 信号已中止(信号):#已经中止则立刻关掉
+                if 已中止(信号):#已经中止则立刻关掉
                     客户端.close()#关掉
-                    raise 翻译中止或网络(Exception('aborted'),信号)#分类成网络错误
-            路径=网址.path if 网址.path else '/'#路径
-            if 网址.query:#有查询串
+                    raise 网络错误('web fetch aborted','WEB_ABORTED')#已经中止
+            路径=网址.path if len(网址.path)>0 else '/'#路径；判 length：空路径用 /
+            if len(网址.query)>0:#判 length：有查询串
                 路径=路径+'?'+网址.query#拼上
             头={#UA 与可接受类型
                 'user-agent':自身.上限['userAgent'],#UA
@@ -177,12 +153,12 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
             return {'status':原始.status,'headers':头映射,'原始':原始,'连接':客户端}#响应包装
         except 网络错误:#已是网络错误
             raise#原样抛
-        except Exception as 错误:#网络或中止
+        except (OSError,HTTP异常) as 错误:#网络或中止拆套接字
             raise 翻译中止或网络(错误,信号)#分类成网络错误
 
     def 读正文(自身,响应,最终网址,信号):#处理最终响应
         """读取、按字节封顶、分类并解码最终响应正文。"""
-        内容类型=响应['headers'].get('content-type')#读 Content-Type
+        内容类型=响应['headers']['content-type'] if 'content-type' in 响应['headers'] else None#读 Content-Type
         种类=分类内容类型(内容类型)#html / text / 不支持
         if 种类 is None:#不支持的类型
             取消响应正文(响应)#丢掉流
@@ -190,7 +166,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
             raise 网络错误('unsupported content type "'+文案+'"','WEB_UNSUPPORTED_CONTENT_TYPE')#类型错误
         try:#按 charset 建解码标签
             编码标签=字符集解码器(解析字符集(内容类型))#未知 charset 会抛
-        except Exception as 错误:#charset 不支持
+        except 网络错误 as 错误:#charset 不支持，策略已包成网络错误
             取消响应正文(响应)#取消正文
             raise 错误#原样抛出
         有界=自身.有界读取(响应,信号)#按字节上限读
@@ -209,11 +185,11 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
 
     def 有界读取(自身,响应,信号):#有界读取
         """把响应流读到 maxResponseBytes。Content-Length 超过上限立即以 WEB_FETCH_TOO_LARGE 拒绝；流增长超过上限则截短（truncatedByBytes）而不是拒绝，这样少报长度的服务器仍能给出有界可用正文。"""
-        声明=响应['headers'].get('content-length')#声明长度
+        声明=响应['headers']['content-length'] if 'content-length' in 响应['headers'] else None#声明长度
         if 声明 is not None:#有 Content-Length
             try:#转成数字
                 长度=float(声明)#数字
-            except Exception:#非数字
+            except ValueError:#非数字 Content-Length
                 长度=None#忽略声明
             if 长度 is not None and 长度==长度 and 长度>自身.上限['maxResponseBytes']:#有限且声明就已超上限
                 取消响应正文(响应)#不读正文
@@ -221,7 +197,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
         原始=响应['原始']#http 响应
         if 原始 is None:#无流则空正文
             return {'bytes':b'','truncatedByBytes':False}#空正文
-        块们=[]#已收块
+        块列表=[]#已收块
         合计=0#已收字节
         按字节截断=False#是否因上限截过
         try:#读到结束或上限
@@ -232,17 +208,17 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
                     break#停止读取
                 try:#下一块
                     块=原始.read(65536 if 剩余>65536 else 剩余)#按剩余容量读
-                except Exception as 错误:#读中途故障
+                except (OSError,HTTP异常) as 错误:#读中途故障
                     raise 翻译中止或网络(错误,信号)#分类成网络错误
                 if 块 is None or len(块)==0:#流结束
                     break#结束
                 if len(块)>剩余:#只有被丢掉的字节才算截断
-                    块们.append(块[:剩余])#只留剩余容量
+                    块列表.append(块[:剩余])#只留剩余容量
                     合计=合计+剩余#记满上限
                     按字节截断=True#丢掉了后续字节
                     break#停止读取
-                块们.append(块)#整块收下
+                块列表.append(块)#整块收下
                 合计=合计+len(块)#累加
         finally:#无论成败都关掉
             取消响应正文(响应)#尽力清理
-        return {'bytes':b''.join(块们),'truncatedByBytes':按字节截断}#有界字节与截断标记
+        return {'bytes':b''.join(块列表),'truncatedByBytes':按字节截断}#有界字节与截断标记

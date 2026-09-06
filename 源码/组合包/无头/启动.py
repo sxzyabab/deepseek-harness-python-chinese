@@ -31,6 +31,6 @@ def 应用(上下文):#安装无头启动解析
         任务=' '.join(程序.args)#用空格拼接词
         if 任务.strip()=='':#空任务
             程序.error('error: a task is required, for example: dsh --profile headless "run the tests"')#空任务失败
-        上下文.provide(无头启动服务键,{'task':任务})#发布启动服务
+        上下文.提供服务(无头启动服务键,{'task':任务})#发布启动服务
     程序.action(动作)#登记 action
     解析命令行(上下文,程序)#解析命令行

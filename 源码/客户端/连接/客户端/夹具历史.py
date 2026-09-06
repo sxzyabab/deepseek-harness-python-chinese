@@ -31,19 +31,19 @@ def 造工具结果消息(调用标识,内容,是否错误):#造工具结果
 
 def 构造甲日志():#手写 fx-alpha 历史
     """75 轮（约 150+ 条消息，PAGE_MESSAGES=50 时 4 页），混有 reasoning / 工具调用+结果 / 上下文。"""
-    事件们=[]#尚未编号的事件
+    事件列表=[]#尚未编号的事件
     时刻=[time.time()*1000-3_600_000]#从一小时前起（可变盒）
 
     def 推(条目):#追加一条并回 seq
         """助手消息补 usage。"""
-        序号=len(事件们)#下标即 seq
+        序号=len(事件列表)#下标即 seq
         数据=条目.get('data')#可选 data
         if 条目.get('type')=='assistant/message' and isinstance(数据,dict):#助手消息要挂用量
             数据=dict(数据)#拷
             数据['usage']=夹具用量(数据.get('turn',0),数据.get('step',0))#确定性账单
             条目=dict(条目,data=数据)#覆盖
         时刻[0]+=800#每条间隔 800ms
-        事件们.append({'seq':序号,'time':时刻[0],**条目})#写入
+        事件列表.append({'seq':序号,'time':时刻[0],**条目})#写入
         return 序号#给标题等引用
 
     def 工具轮(轮次,名,参数,结果正文):#一轮用户+单次工具调用+结果
@@ -70,14 +70,14 @@ def 构造甲日志():#手写 fx-alpha 历史
         推({'type':'step/start','data':{'turn':轮次,'step':0}})#开步
         带工具=轮次%5==2#每五轮一次工具
         带思考=轮次%3==1#每三轮一次思考
-        块们=[]#本步助手块
+        块列表=[]#本步助手块
         if 带思考:#可折叠思考
-            块们.append({'type':'reasoning','text':f'思考过程 {轮次}：这是一段可折叠的 reasoning 内容。'})#思考
-        块们.append({'type':'text','text':markdown样本 if 轮次==59 else f'回答 {轮次}：这是 fixture 生成的历史回复正文。'})#正文
+            块列表.append({'type':'reasoning','text':f'思考过程 {轮次}：这是一段可折叠的 reasoning 内容。'})#思考
+        块列表.append({'type':'text','text':markdown样本 if 轮次==59 else f'回答 {轮次}：这是 fixture 生成的历史回复正文。'})#正文
         if 带工具:#工具轮：调用 + 结果 + 第二步消化
             调用标识=f'fx-call-{轮次}'#稳定调用 id
-            块们.append({'type':'tool-call','id':调用标识,'name':'echo','arguments':f'{{"text":"turn {轮次}"}}'})#echo 无展示器
-            推({'type':'assistant/message','surfaceOp':'append','data':{'turn':轮次,'step':0,'message':造助手消息(块们)}})#带工具
+            块列表.append({'type':'tool-call','id':调用标识,'name':'echo','arguments':f'{{"text":"turn {轮次}"}}'})#echo 无展示器
+            推({'type':'assistant/message','surfaceOp':'append','data':{'turn':轮次,'step':0,'message':造助手消息(块列表)}})#带工具
             推({'type':'tool/call','data':{'turn':轮次,'step':0,'callId':调用标识,'name':'echo','arguments':f'{{"text":"turn {轮次}"}}'}})#调用事件
             推({'type':'tool/result','surfaceOp':'append','data':{'turn':轮次,'step':0,'message':造工具结果消息(调用标识,造文本块(f'ECHO: TURN {轮次}'),轮次%25==12)}})#偶发错误
             推({'type':'step/end','data':{'turn':轮次,'step':0}})#第一步结束
@@ -85,7 +85,7 @@ def 构造甲日志():#手写 fx-alpha 历史
             推({'type':'assistant/message','surfaceOp':'append','data':{'turn':轮次,'step':1,'message':造助手消息(造文本块(f'工具结果已消化（turn {轮次}）。'))}})#消化
             推({'type':'step/end','data':{'turn':轮次,'step':1}})#第二步结束
         else:#纯文本轮
-            推({'type':'assistant/message','surfaceOp':'append','data':{'turn':轮次,'step':0,'message':造助手消息(块们)}})#助手
+            推({'type':'assistant/message','surfaceOp':'append','data':{'turn':轮次,'step':0,'message':造助手消息(块列表)}})#助手
             推({'type':'step/end','data':{'turn':轮次,'step':0}})#一步结束
         推({'type':'turn/end','data':{'turn':轮次,'reason':{'kind':'completed'}}})#正常完成
 
@@ -143,9 +143,9 @@ def 构造甲日志():#手写 fx-alpha 历史
     待办参数=json.dumps({'todos':夹具待办},ensure_ascii=False)#todo_write 参数
     工具轮(74,'todo_write',待办参数,'Updated todo list: 1 pending, 2 in progress, 1 completed.')#最后一轮：站立计划
     #真工具在执行中途追加快照——夹在 tool/call 与 tool/result 之间。
-    调用下标=len(事件们)-4#tool/call 下标
-    调用时刻=事件们[调用下标].get('time',时刻[0])#调用时刻
-    事件们.insert(调用下标+1,{'type':'todo/write','time':调用时刻+400,'data':{'todos':夹具待办}})#插到 call 与 result 之间
-    for 下标,条目 in enumerate(事件们):#splice 后重编号
+    调用下标=len(事件列表)-4#tool/call 下标
+    调用时刻=事件列表[调用下标].get('time',时刻[0])#调用时刻
+    事件列表.insert(调用下标+1,{'type':'todo/write','time':调用时刻+400,'data':{'todos':夹具待办}})#插到 call 与 result 之间
+    for 下标,条目 in enumerate(事件列表):#splice 后重编号
         条目['seq']=下标#重编号
-    return 事件们#交给会话事件
+    return 事件列表#交给会话事件

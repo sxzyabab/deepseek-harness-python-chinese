@@ -29,15 +29,15 @@ def _加载():#读四表
 
 服务目录,事件目录,类型目录,继承上下文目录=_加载()#导入时物化
 
-def 引用类型闭包(种子们,类型们=None):#签名引用闭包
+def 引用类型闭包(种子列表,类型列表=None):#签名引用闭包
     """传递闭包。"""
-    if 类型们 is None:#缺省
-        类型们=类型目录#模块
+    if 类型列表 is None:#缺省
+        类型列表=类型目录#模块
     已收=set()#已收
-    前沿=list(种子们)#本轮
+    前沿=list(种子列表)#本轮
     while len(前沿)>0:#还有
         下一轮=[]#下一轮
-        for 条目 in 类型们:#每个
+        for 条目 in 类型列表:#每个
             if 条目['name'] in 已收:#已收
                 continue#跳过
             模式=re.compile(r'\b'+re.escape(条目['name'])+r'\b')#词边界
@@ -46,7 +46,7 @@ def 引用类型闭包(种子们,类型们=None):#签名引用闭包
             已收.add(条目['name'])#收入
             下一轮.append(条目['declaration'])#声明
         前沿=下一轮#换轮
-    return [条目 for 条目 in 类型们 if 条目['name'] in 已收]#过滤
+    return [条目 for 条目 in 类型列表 if 条目['name'] in 已收]#过滤
 
 def 上下文属性(键):#ctx 访问
     """点或下标。"""
@@ -55,29 +55,29 @@ def 上下文属性(键):#ctx 访问
     import json#下标
     return 'ctx['+json.dumps(键)+']'#下标
 
-def 查询服务目录(键=None,服务们=None):#查询服务
+def 查询服务目录(键=None,服务列表=None):#查询服务
     """紧凑目录或精确约定。"""
-    if 服务们 is None:#缺省
-        服务们=服务目录#模块
+    if 服务列表 is None:#缺省
+        服务列表=服务目录#模块
     if 键 is None:#列
-        return {'mode':'catalog','services':[{'key':服务['key'],'description':服务['summary'],'methods':[{'signature':方法['signature']} for 方法 in 服务['methods']]} for 服务 in 服务们]}#目录
+        return {'mode':'catalog','services':[{'key':服务['key'],'description':服务['summary'],'methods':[{'signature':方法['signature']} for 方法 in 服务['methods']]} for 服务 in 服务列表]}#目录
     服务=None#找
-    for 候选 in 服务们:#查
+    for 候选 in 服务列表:#查
         if 候选['key']==键:#命中
             服务=候选#记下
             break#结束
     if 服务 is None:#未知
         raise Exception('no catalogued Service named "'+键+'"')#失败
-    return {'mode':'service','service':{'key':服务['key'],'description':服务['description'],'access':{'optional':{'expression':'ctx.get('+__import__('json').dumps(服务['key'])+')','requiresUndefinedCheck':True},'hardDependency':{'inject':[服务['key']],'expression':上下文属性(服务['key'])}},'methods':服务['methods']},'referencedTypes':引用类型闭包([方法['signature'] for 方法 in 服务['methods']])}#详细
+    return {'mode':'service','service':{'key':服务['key'],'description':服务['description'],'access':{'optional':{'expression':'ctx.获取服务('+__import__('json').dumps(服务['key'])+')','requiresUndefinedCheck':True},'hardDependency':{'inject':[服务['key']],'expression':上下文属性(服务['key'])}},'methods':服务['methods']},'referencedTypes':引用类型闭包([方法['signature'] for 方法 in 服务['methods']])}#详细
 
-def 查询事件目录(名=None,事件们=None):#查询事件
+def 查询事件目录(名=None,事件列表=None):#查询事件
     """紧凑目录或精确约定。"""
-    if 事件们 is None:#缺省
-        事件们=事件目录#模块
+    if 事件列表 is None:#缺省
+        事件列表=事件目录#模块
     if 名 is None:#列
-        return {'mode':'catalog','events':[{'name':事件['name'],'description':事件['summary'],'mode':事件['mode'],'signature':事件['signature']} for 事件 in 事件们]}#目录
+        return {'mode':'catalog','events':[{'name':事件['name'],'description':事件['summary'],'mode':事件['mode'],'signature':事件['signature']} for 事件 in 事件列表]}#目录
     事件=None#找
-    for 候选 in 事件们:#查
+    for 候选 in 事件列表:#查
         if 候选['name']==名:#命中
             事件=候选#记下
             break#结束

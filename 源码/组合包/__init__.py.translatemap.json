@@ -1,0 +1,12 @@
+{
+    "app":"应用",
+    "base":"基础",
+    "bundle":"组合包",
+    "group":"组",
+    "headless":"无头",
+    "minimal":"最小",
+    "package":"包",
+    "profile":"配置档",
+    "sdk":"sdk",
+    "web":"web"
+}

@@ -1,0 +1,22 @@
+{
+    "answer":"答案",
+    "approve":"批准",
+    "ask":"询问",
+    "custom":"自定义",
+    "description":"描述",
+    "detail":"细节",
+    "header":"标题",
+    "id":"标识",
+    "intent":"意图",
+    "kind":"种类",
+    "label":"标签",
+    "multi":"多",
+    "option":"选项",
+    "plan":"计划",
+    "question":"问题",
+    "review":"评审",
+    "select":"选择",
+    "selected":"已选",
+    "self":"自身",
+    "user":"用户"
+}

@@ -1,0 +1,20 @@
+{
+    "assert":"断言",
+    "clear":"清除",
+    "command":"命令",
+    "edit":"编辑",
+    "error":"错误",
+    "goal":"目标",
+    "inject":"注入",
+    "kind":"种类",
+    "name":"名称",
+    "objective":"目标陈述",
+    "parse":"解析",
+    "pause":"暂停",
+    "persistent":"持久",
+    "resume":"恢复",
+    "self":"自身",
+    "show":"展示",
+    "unreachable":"不可达",
+    "usage":"用法"
+}

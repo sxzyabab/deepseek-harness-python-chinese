@@ -1,0 +1,21 @@
+{
+    "abort":"中止",
+    "buffer":"缓冲",
+    "command":"命令",
+    "exit":"退出",
+    "expand":"展开",
+    "filesystem":"文件系统",
+    "glob":"通配",
+    "host":"宿主",
+    "interpret":"解释",
+    "nest":"嵌套",
+    "parse":"解析",
+    "pipe":"管道",
+    "program":"程序",
+    "redirect":"重定向",
+    "run":"运行",
+    "shell":"壳",
+    "sink":"汇",
+    "status":"状态",
+    "substitution":"替换"
+}

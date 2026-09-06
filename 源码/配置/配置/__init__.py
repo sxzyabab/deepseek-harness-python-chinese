@@ -1,7 +1,8 @@
 """用户设置能力 seam（`ctx.settings`）的服务定义。提供方存储一份按命名空间分节的原始文档；插件登记命名空间模式并读取解析值，解析按模式缺省、登记方组合 `base`、用户文档节这一顺序叠层。"""
 import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
-from concurrent.futures import Future as _原生Future#单次操作结果
+from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 服务=cordis.服务#Cordis 服务基类
 光纤状态=cordis.纤程状态#拆除态镜像
 from .类型 import 设置命名空间品牌,设置更新来源#再导出类型面
@@ -14,49 +15,39 @@ from .脱敏 import 脱敏密钥#再导出脱敏
 工作线程=threading.Thread#后台结算线程
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
 
-def _是否thenable(值):#判定可等待对象
-    """对象是否可 wait。"""
-    if 值 is None:#空不是
-        return False#不是
-    等待=getattr(值,'wait',None)#取 wait
-    return callable(等待)#可调用才算
+class 设置错误(Exception):
+    """设置服务失败。"""
+    pass#消息在构造时传入
 
-class _操作任务:#本文件内单次异步结果
-    """单次操作的 Future 包装。"""
-    def __init__(自身):#构造未决任务
+class 操作任务:
+    """单次操作的 Future 包装。只留 等待。"""
+    def __init__(自身):
         """构造未决任务。"""
-        自身._future=_原生Future()#底层 Future
-    def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
-        if not 自身._future.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._future.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._future.set_exception(Exception(错误))#包装拒绝
-    def wait(自身,超时=None):#阻塞等待
-        """阻塞等到结算。"""
-        return 自身._future.result(timeout=超时)#取结果或抛错
+        自身.底层=原生结果()#底层 Future
 
-def _已结算(值=None):#立刻结算的任务
+    def 兑现(自身,值=None):
+        """成功结算。"""
+        if not 自身.底层.done():#尚未结算
+            自身.底层.set_result(值)#写入结果
+        return 值#返回兑现值
+
+    def 拒绝(自身,错误):
+        """失败结算。"""
+        if not 自身.底层.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身.底层.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身.底层.set_exception(设置错误(错误))#包装拒绝
+
+    def 等待(自身,超时=None):
+        """阻塞等到结算。"""
+        return 自身.底层.result(timeout=超时)#取结果或抛错
+
+def 已结算任务(值=None):
     """立刻兑现的操作任务。"""
-    任务=_操作任务()#新任务
+    任务=操作任务()#新任务
     任务.兑现(值)#立刻成功
     return 任务#已完成
-
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
 
 def 设置命名空间(值):#品牌化
     """把原始字符串打成设置命名空间。候选命名空间须为小写 kebab-case，与插件短名相同。"""
@@ -106,12 +97,12 @@ def 是否普通对象(值):#普通对象守卫
 
 def 应用路径操作(段落,操作):#不可变路径编辑
     """对一份已分离的节应用一次路径操作，返回下一节。"""
-    路径=取字段(操作,'path')#路径
-    动词=取字段(操作,'op')#set 或 unset
+    路径=操作['path'] if 'path' in 操作 else None#路径
+    动词=操作['op']#set 或 unset
     if 路径 is None or len(路径)==0:#空路径寻址节本身
         if 动词=='unset':#清空整节
             return {}#空节
-        根值=取字段(操作,'value')#新根
+        根值=操作['value'] if 'value' in 操作 else None#新根
         if not 是否普通对象(根值):#根必须是普通对象
             raise TypeError('settings mutate: setting the section root requires a plain object')#拒绝非对象根
         return dict(根值)#换成新根
@@ -120,7 +111,7 @@ def 应用路径操作(段落,操作):#不可变路径编辑
     if len(其余)==0:#最后一段
         if 动词=='set':#写这个键
             下一=dict(段落)#拷贝
-            下一[头]=取字段(操作,'value')#写入
+            下一[头]=操作['value'] if 'value' in 操作 else None#写入
             return 下一#新节
         下一={}#拆掉该键
         for 键,条目 in 段落.items():#其余留下
@@ -128,15 +119,15 @@ def 应用路径操作(段落,操作):#不可变路径编辑
                 continue#跳过
             下一[键]=条目#留下
         return 下一#其余留下
-    孩子=段落.get(头)#中间段
+    孩子=段落[头] if 头 in 段落 else None#中间段
     if not 是否普通对象(孩子):#中间不是对象
         if 动词=='unset':#沿缺席路径 unset 已经满足
             return 段落#无此路径，unset 成功
         下一=dict(段落)#造中间对象再走
-        下一[头]=应用路径操作({},{'op':动词,'path':其余,'value':取字段(操作,'value')})#递归
+        下一[头]=应用路径操作({},{'op':动词,'path':其余,'value':操作['value'] if 'value' in 操作 else None})#递归
         return 下一#新节
     下一=dict(段落)#递归写孩子
-    下一[头]=应用路径操作(孩子,{'op':动词,'path':其余,'value':取字段(操作,'value')})#递归
+    下一[头]=应用路径操作(孩子,{'op':动词,'path':其余,'value':操作['value'] if 'value' in 操作 else None})#递归
     return 下一#新节
 
 def 描述拒绝(值):#错误标签
@@ -164,13 +155,13 @@ def 克隆JSON形(根,拒绝):#写入前快照
             if 标识 in 访问中:#环
                 raise 拒绝('a circular reference',路径)#拒
             访问中.add(标识)#进入
-            条目们=[]#新数组
+            条目表=[]#新数组
             下标=0#下标
             for 条目 in 值:#逐项
-                条目们.append(克隆(条目,路径+'['+str(下标)+']'))#逐项
+                条目表.append(克隆(条目,路径+'['+str(下标)+']'))#逐项
                 下标+=1#前进
             访问中.discard(标识)#离开
-            return 条目们#新数组
+            return 条目表#新数组
         if 是否普通对象(值):#普通对象
             标识=id(值)#环键
             if 标识 in 访问中:#环
@@ -217,7 +208,7 @@ class 设置作用域:#面向所有者的已登记命名空间句柄
 
     def watch(自身,回调):#订阅
         """观察本命名空间已提交解析值的变更。"""
-        观察者={'callback':回调,'tail':_已结算(None),'active':True}#新观察者
+        观察者={'callback':回调,'tail':已结算任务(None),'active':True}#新观察者
         自身._登记['watchers'].add(id(观察者))#用 id 挂集合不便取回
         自身._登记['watcher_list'].append(观察者)#有序列表
         def 拆除():#拆除器
@@ -257,12 +248,11 @@ class 设置提供方(服务):#ctx.settings
         def 拆除():#拆除：先拒新写，再等队列
             """拒绝新写入和新的观察者启动，然后等到每条已排队写链和每个已开始的观察者调用都结算。"""
             自身._已停=True#挡后续写入与观察者启动
-            等待们=list(自身._写队列.values())+list(自身._待排干)#写链与观察者
-            for 任务 in 等待们:#逐个排干
+            等待列表=list(自身._写队列.values())+list(自身._待排干)#写链与观察者
+            for 任务 in 等待列表:#逐个排干
                 try:#一次失败不挡其余
-                    if _是否thenable(任务):#可等待
-                        任务.wait()#等待
-                except Exception:#吞结算失败
+                    任务.等待()#写链与观察段都是操作任务
+                except Exception:#操作任务.等待 重抛任务体内任意失败，类型由写入方与观察者决定，无法再收窄
                     pass#拆除只要求静止
         yield 拆除#拆除器
         自身.发布(自身.加载())#先加载再发布，然后服务可注入
@@ -292,12 +282,14 @@ class 设置提供方(服务):#ctx.settings
     def 登记(自身,命名空间,模式对象,选项=None):#登记命名空间
         """登记一个命名空间模式并收到其所有者作用域。登记是调用插件光纤上的 effect：拆除该光纤即去掉命名空间及其观察者。"""
         if 命名空间 in 自身._登记表:#重复
-            raise Exception('settings namespace "'+str(命名空间)+'" is already registered')#大声失败
-        基线=取字段(选项,'base')#组合基线
-        生效=取字段(选项,'applies')#生效时机
+            raise 设置错误('settings namespace "'+str(命名空间)+'" is already registered')#大声失败
+        if 选项 is None:#缺选项
+            选项={}#空
+        基线=选项['base'] if 'base' in 选项 else None#组合基线
+        生效=选项['applies'] if 'applies' in 选项 else None#生效时机
         if 生效 is None:#默认立即生效
             生效='live'#默认
-        校验=取字段(选项,'validate')#额外校验
+        校验=选项['validate'] if 'validate' in 选项 else None#额外校验
         登记={#内部记录
             'ns':命名空间,#短名
             'schema':模式对象,#模式
@@ -318,7 +310,7 @@ class 设置提供方(服务):#ctx.settings
                 """摘掉命名空间登记。"""
                 自身._登记表.pop(命名空间,None)#摘掉
             return 摘掉#拆除器
-        自身.ctx.effect(挂上,'settings.register('+repr(str(命名空间))+')')#effect 标签
+        自身.ctx.副作用(挂上,'settings.register('+repr(str(命名空间))+')')#副作用标签
         return 设置作用域(自身,命名空间,登记)#所有者作用域
 
     def 描述(自身,选项=None):#配置面快照
@@ -344,7 +336,7 @@ class 设置提供方(服务):#ctx.settings
                 描述符['base']=基线#组合基线快照
             if 分离用户 is not None:#有用户节才带
                 描述符['user']=分离用户#用户覆盖快照
-            if 取字段(选项,'redactSecrets') is not True:#同进程 UI 可原样
+            if 'redactSecrets' not in 选项 or 选项['redactSecrets'] is not True:#同进程 UI 可原样
                 结果.append(描述符)#原样
                 continue#下一项
             模式对象=登记['schema']#脱敏要的模式
@@ -360,7 +352,7 @@ class 设置提供方(服务):#ctx.settings
 
     def get(自身,命名空间):#同步读
         """读取一个已登记命名空间的解析值；尚未登记则为 None。"""
-        登记=自身._登记表.get(命名空间)#查表
+        登记=自身._登记表[命名空间] if 命名空间 in 自身._登记表 else None#查表
         if 登记 is None:#未登记
             return None#缺席
         return 登记['resolved']#解析值
@@ -373,17 +365,17 @@ class 设置提供方(服务):#ctx.settings
         """整节替换一个已登记命名空间的用户节，校验、持久化，然后提交并发出。"""
         return 自身.写入(命名空间,段落,'replace',期望修订)#进串行队列
 
-    def 改写(自身,命名空间,操作们,期望修订=None):#路径编辑
+    def 改写(自身,命名空间,操作列表,期望修订=None):#路径编辑
         """对一个已登记命名空间的用户节应用按路径编辑，校验、持久化，然后提交并发出。"""
-        if not isinstance(操作们,list):#必须是数组
+        if not isinstance(操作列表,list):#必须是数组
             raise TypeError('settings mutate for "'+str(命名空间)+'" must be an array of path ops')#必须是数组
-        for 操作 in 操作们:#逐项预检
-            if (not 是否普通对象(操作)) or (取字段(操作,'op')!='set' and 取字段(操作,'op')!='unset'):#判别标签
+        for 操作 in 操作列表:#逐项预检
+            if (not 是否普通对象(操作)) or (操作['op']!='set' and 操作['op']!='unset'):#判别标签
                 raise TypeError('settings mutate for "'+str(命名空间)+'" ops must be {op:\'set\'|\'unset\', path}')#形态
-            路径=取字段(操作,'path')#路径
+            路径=操作['path'] if 'path' in 操作 else None#路径
             if (not isinstance(路径,list)) or any(not isinstance(段,str) for 段 in 路径):#路径必须是字符串数组
                 raise TypeError('settings mutate for "'+str(命名空间)+'" op paths must be arrays of strings')#路径
-        return 自身.写入(命名空间,操作们,'mutate',期望修订)#进串行队列
+        return 自身.写入(命名空间,操作列表,'mutate',期望修订)#进串行队列
 
     def 写入(自身,命名空间,输入,模式,期望修订=None):#三种模式的共用队列
         """校验一次写入，然后把它排到该命名空间的串行写链上。"""
@@ -393,13 +385,13 @@ class 设置提供方(服务):#ctx.settings
             动词='replace'#替换
         else:#路径
             动词='mutate'#改写
-        登记=自身._登记表.get(命名空间)#当前登记
+        登记=自身._登记表[命名空间] if 命名空间 in 自身._登记表 else None#当前登记
         if 登记 is None:#未登记
-            raise Exception('settings namespace "'+str(命名空间)+'" is not registered')#大声失败
+            raise 设置错误('settings namespace "'+str(命名空间)+'" is not registered')#大声失败
         if 自身.是否已停():#服务已拆除
-            raise Exception('settings service is disposed: "'+str(命名空间)+'" cannot be written')#拒新写
+            raise 设置错误('settings service is disposed: "'+str(命名空间)+'" cannot be written')#拒新写
         if not 自身.可写:#只读提供方
-            raise Exception('settings provider is read-only: "'+str(命名空间)+'" cannot be updated in-process')#拒写
+            raise 设置错误('settings provider is read-only: "'+str(命名空间)+'" cannot be updated in-process')#拒写
         if 模式=='mutate':#路径编辑
             载荷={'ops':输入}#包成对象以便克隆
         else:#merge/replace
@@ -410,19 +402,19 @@ class 设置提供方(服务):#ctx.settings
             """从值标签及其路径构造校验错误。"""
             return TypeError('settings '+动词+' for "'+str(命名空间)+'" must contain only JSON-compatible data (found '+标签+' at '+路径+')')#按路径拒
         快照=克隆JSON形(载荷,拒绝)#分离并校验
-        前=自身._写队列.get(命名空间) or _已结算(None)#前一次写
-        任务=_操作任务()#本次写
+        前=自身._写队列[命名空间] if 命名空间 in 自身._写队列 else 已结算任务(None)#前一次写
+        任务=操作任务()#本次写
         def 跑():#串到前任之后
             """绕过失败的前任后执行本次写入。"""
             try:#前任失败不得毒化
                 try:#等前任
-                    前.wait()#等
-                except Exception:#吞前任失败
+                    前.等待()#等
+                except Exception:#前任任务体可抛任意类型，排队只要求绕过
                     pass#绕过
                 if 自身.是否已停():#排队期间被拆除
-                    raise Exception('settings service was disposed before the queued "'+str(命名空间)+'" '+动词+' ran')#不再跑
-                if 自身._登记表.get(命名空间) is not 登记:#登记方光纤已拆
-                    raise Exception('settings namespace "'+str(命名空间)+'" registration was disposed before the queued '+动词+' ran')#不再跑
+                    raise 设置错误('settings service was disposed before the queued "'+str(命名空间)+'" '+动词+' ran')#不再跑
+                if 命名空间 not in 自身._登记表 or 自身._登记表[命名空间] is not 登记:#登记方光纤已拆
+                    raise 设置错误('settings namespace "'+str(命名空间)+'" registration was disposed before the queued '+动词+' ran')#不再跑
                 当前=自身.节(命名空间)#当前用户节
                 if 当前 is None:#缺席
                     当前={}#空节
@@ -440,11 +432,11 @@ class 设置提供方(服务):#ctx.settings
                 自身.持久化(命名空间,段落)#先落到存储
                 自身._文档[命名空间]=段落#更新内存文档
                 # TODO(settings-replacement-resync): 从这份已持久化的节重新解析任何替换登记，使旧的进行中写入不能让它过期。
-                if 自身._登记表.get(命名空间) is 登记 and not 自身.是否已停():#仍是所有者且服务仍活
+                if 命名空间 in 自身._登记表 and 自身._登记表[命名空间] is 登记 and not 自身.是否已停():#仍是所有者且服务仍活
                     自身.推进修订(登记,当前,段落)#原始节变了才加修订
                     自身.提交(登记,下一,'update')#解析值变了才通知
                 任务.兑现()#成功
-            except Exception as 错误:#失败
+            except Exception as 错误:#写入体可抛设置错误、冲突、模式校验与提供方持久化错误，无法再收窄
                 任务.拒绝(错误)#调用方看见拒绝
         工作=工作线程(target=跑)#工作线程
         工作.daemon=True#不挡住退出
@@ -465,8 +457,8 @@ class 设置提供方(服务):#ctx.settings
             try:#模式或 validate 可能拒
                 下一=深冻结(自身.解析(登记['schema'],登记['base'],自身.节(登记['ns']),登记['validate']))#重新解析
             except Exception as 错误:#非法存档节
-                自身.ctx.logger.warn('settings: keeping last good "%s" after invalid stored section',登记['ns'])#保住上次好值
-                自身.ctx.logger.warn(错误)#附带原因
+                自身.ctx.日志.警告('settings: keeping last good "%s" after invalid stored section',登记['ns'])#保住上次好值
+                自身.ctx.日志.警告(错误)#附带原因
                 continue#其他命名空间继续
             自身.推进修订(登记,之前.get(登记['ns']),自身.节(登记['ns']))#原始节变了才加修订
             自身.提交(登记,下一,来源)#解析值变了才通知
@@ -502,21 +494,12 @@ class 设置提供方(服务):#ctx.settings
     def 发出文档已更新(自身,命名空间,修订):#文档事件
         """收住的 settings/document-updated 扇出。"""
         不变量失败=None#harness 致命错误延后抛
-        参数=['settings/document-updated',命名空间,修订]#dispatch 参数
-        for 监听器 in 自身.ctx.events.dispatch('emit',参数):#逐个监听器
+        参数=['settings/document-updated',命名空间,修订]#派发参数
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        for 监听器 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个监听器
             try:#一个失败不饿死其余
-                返回=监听器(命名空间,修订)#可能返回可等待对象
-                if _是否thenable(返回):#异步监听器
-                    def 盯住(任务=返回,当前命名空间=命名空间):#收住拒绝
-                        """把异步拒绝接到诊断。"""
-                        try:#等待
-                            任务.wait()#等待
-                        except Exception as 错误:#拒绝
-                            自身.警告监听失败(当前命名空间,错误)#记日志
-                    线=工作线程(target=盯住)#后台
-                    线.daemon=True#不挡退出
-                    线.start()#启动
-            except Exception as 错误:#同步抛出
+                监听器(命名空间,修订)#监听器已同步
+            except Exception as 错误:#监听器可抛任意类型，扇出契约未钉死，无法再收窄
                 if getattr(错误,'code',None)=='INVARIANT':#harness 致命
                     if 不变量失败 is None:#先记下
                         不变量失败=错误#先跑完其余
@@ -533,22 +516,20 @@ class 设置提供方(服务):#ctx.settings
         登记['resolved']=下一#换上新值
         for 观察者 in list(登记['watcher_list']):#快照观察者
             前尾=观察者['tail']#接到当前尾巴
-            段=_操作任务()#本段
+            段=操作任务()#本段
             def 跑(当前观察者=观察者,当前段=段,当前前尾=前尾,当前下一=下一,当前上一=上一):#闭包钉值
                 """按观察者串行调用。"""
                 try:#等前尾
                     try:#前任
-                        当前前尾.wait()#等
-                    except Exception:#吞
+                        当前前尾.等待()#等
+                    except Exception:#前任观察段可抛任意类型，排队只要求绕过
                         pass#继续
                     if (not 当前观察者['active']) or 自身.是否已停():#已拆或服务停则跳过
                         当前段.兑现()#空结算
                         return#跳过
                     try:#调用观察者
-                        返回=当前观察者['callback'](当前下一,当前上一)#调用
-                        if _是否thenable(返回):#异步
-                            返回.wait()#等
-                    except Exception as 错误:#失败
+                        当前观察者['callback'](当前下一,当前上一)#同步回调
+                    except Exception as 错误:#观察者可抛任意类型，扇出契约未钉死，无法再收窄
                         自身.警告观察失败(登记['ns'],错误)#收住失败
                     当前段.兑现()#结算
                 except Exception as 错误:#外层
@@ -562,21 +543,12 @@ class 设置提供方(服务):#ctx.settings
             线.daemon=True#不挡退出
             线.start()#启动
         不变量失败=None#延后的 INVARIANT
-        参数=['settings/updated',登记['ns'],下一,上一,来源]#dispatch 参数
-        for 监听器 in 自身.ctx.events.dispatch('emit',参数):#逐个
+        参数=['settings/updated',登记['ns'],下一,上一,来源]#派发参数
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        for 监听器 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个
             try:#一个失败不饿死其余
-                返回=监听器(登记['ns'],下一,上一,来源)#可能返回可等待对象
-                if _是否thenable(返回):#异步
-                    def 盯住(任务=返回,当前命名空间=登记['ns']):#收住拒绝
-                        """把异步拒绝接到诊断。"""
-                        try:#等待
-                            任务.wait()#等待
-                        except Exception as 错误:#拒绝
-                            自身.警告监听失败(当前命名空间,错误)#记日志
-                    线=工作线程(target=盯住)#后台
-                    线.daemon=True#不挡退出
-                    线.start()#启动
-            except Exception as 错误:#同步抛出
+                监听器(登记['ns'],下一,上一,来源)#监听器已同步
+            except Exception as 错误:#监听器可抛任意类型，扇出契约未钉死，无法再收窄
                 if getattr(错误,'code',None)=='INVARIANT':#harness 致命
                     if 不变量失败 is None:#先记下
                         不变量失败=错误#先跑完其余
@@ -587,17 +559,17 @@ class 设置提供方(服务):#ctx.settings
 
     def 警告观察失败(自身,命名空间,错误):#观察者失败
         """同步和异步失败路径共用的、已收住观察者诊断。"""
-        自身.ctx.logger.warn('settings: watcher for "%s" failed',命名空间)#命名空间
-        自身.ctx.logger.warn(错误)#原因
+        自身.ctx.日志.警告('settings: watcher for "%s" failed',命名空间)#命名空间
+        自身.ctx.日志.警告(错误)#原因
 
     def 警告监听失败(自身,命名空间,错误):#事件监听器失败
         """同步和异步失败路径共用的、已收住监听器诊断。"""
-        自身.ctx.logger.warn('settings: a settings/updated listener for "%s" failed',命名空间)#命名空间
-        自身.ctx.logger.warn(错误)#原因
+        自身.ctx.日志.警告('settings: a settings/updated listener for "%s" failed',命名空间)#命名空间
+        自身.ctx.日志.警告(错误)#原因
 
 def 是否卸载中(上下文对象):#消费方卸载
     """消费方自己的光纤是否正在拆除（不只是丢掉设置服务）。"""
-    状态=上下文对象.fiber.state#光纤状态
+    状态=上下文对象.纤程.状态#光纤状态
     return 状态==光纤卸载中 or 状态==光纤已释放#卸载或已拆
 
 def 安装设置段(上下文对象,命名空间,模式对象,入口,钩子):#可选设置接线
@@ -605,31 +577,37 @@ def 安装设置段(上下文对象,命名空间,模式对象,入口,钩子):#�
     def 接线(子上下文):#有 settings 才跑
         """在 settings 可用时登记并接线。"""
         选项={'base':入口}#组合入口作基线
-        校验=取字段(钩子,'validate')#可选所有者检查
+        校验=钩子['validate'] if 'validate' in 钩子 else None#可选所有者检查
         if 校验 is not None:#有校验
             选项['validate']=校验#带上
         作用域=子上下文.settings.登记(命名空间,模式对象,选项)#登记
-        取字段(钩子,'setSource')(lambda:作用域.get())#权威源切到作用域
+        def 读作用域值():
+            """读已登记作用域当前值。"""
+            return 作用域.get()#当前解析值
+        钩子['setSource'](读作用域值)#权威源切到作用域
         def 挂拆():#settings 作用域拆除
             """设置提供方卸下时回退到组合入口；消费方自己卸载则什么也不做。"""
             def 拆除():#拆除器
                 """回退或跳过。"""
                 if 是否卸载中(上下文对象):#消费方自己卸载则什么也不做
                     return#跳过
-                取字段(钩子,'setSource')(lambda:入口)#回退到组合入口
-                取字段(钩子,'onChange')()#重新判断
+                def 读入口():
+                    """回退到组合入口。"""
+                    return 入口#入口
+                钩子['setSource'](读入口)#回退到组合入口
+                钩子['onChange']()#重新判断
             return 拆除#拆除器
-        子上下文.effect(挂拆)#effect
-        取字段(钩子,'onChange')()#初次挂上
+        子上下文.副作用(挂拆)#副作用
+        钩子['onChange']()#初次挂上
         def 已变更(下一=None,上一=None):#已提交变更
             """存档变更时重新判断；卸载中跳过。"""
             if 是否卸载中(上下文对象):#卸载中跳过
                 return#跳过
-            取字段(钩子,'onChange')()#重新判断
+            钩子['onChange']()#重新判断
         作用域.watch(已变更)#订阅
-    上下文对象.inject(['settings'],接线)#有 settings 才跑
+    上下文对象.依赖启动(['settings'],接线)#有 settings 才跑
 
 默认=设置提供方#中文默认导出
 default=设置提供方#默认导出服务类
 
-__all__=['设置提供方','设置命名空间','json深度相等','安装设置段','脱敏密钥','默认','default']#公开面
+__all__=['设置提供方','设置命名空间','json深度相等','安装设置段','脱敏密钥','默认','设置错误','设置冲突错误']#公开面

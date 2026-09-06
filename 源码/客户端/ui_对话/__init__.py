@@ -25,4 +25,6 @@ def 应用(上下文):#安装宿主会话插件
     def 登记(设置上下文):#等 settings 出现再登记
         """登记会话设置分区。"""
         设置上下文.settings.register(会话设置命名空间,会话设置模式)#登记分区
-    上下文.inject(['settings'],登记)#等 settings 出现再登记
+    上下文.依赖启动(['settings'],登记)#等 settings 出现再登记
+
+apply=应用#框架槽

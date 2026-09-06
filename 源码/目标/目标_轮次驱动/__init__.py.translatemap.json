@@ -1,0 +1,9 @@
+{
+    "driver":"驱动器",
+    "goal":"目标",
+    "init":"初始化",
+    "module":"模块",
+    "package":"包",
+    "round":"轮次",
+    "self":"自身"
+}

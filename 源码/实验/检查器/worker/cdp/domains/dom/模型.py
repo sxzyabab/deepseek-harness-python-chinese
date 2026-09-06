@@ -10,7 +10,7 @@ class Cordis_Dom后端:#Cordis DOM后端
     """分配持久后端 id，并投影最新的源快照。"""
     def __init__(自身,trees):#构造
         """订阅树存储并初建文档。"""
-        自身._树们=trees#树存储
+        自身._树表=trees#树存储
         自身._键到后端id={}#键到后端id
         自身._监听=set()#监听
         自身._下一后端节点id=1#下一后端id
@@ -26,10 +26,13 @@ class Cordis_Dom后端:#Cordis DOM后端
     def 订阅(自身,监听):#订阅
         """订阅完整文档替换与就地 realm 状态变化。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#拆除本监听
+            """取消本监听。"""
+            自身._监听.discard(监听)#摘掉
+        return 拆除#拆除器
 
     def 关闭(自身):#关闭
-        """在 Worker 关闭时释放仓库订阅。"""
+        """在 Worker 关闭时拆除仓库订阅。"""
         自身._取消订阅()#取消
         自身._监听.clear()#清监听
 
@@ -39,14 +42,14 @@ class Cordis_Dom后端:#Cordis DOM后端
 
     def 按种类取节点(自身,kind,引用):#按种类
         """当 Runtime 路由仅标识 Host 或 Client 所有权时解析引用。"""
-        路由=自身._树们.按种类解析对象(kind,引用)#路由
+        路由=自身._树表.按种类解析对象(kind,引用)#路由
         return None if 路由 is None else 自身.按对象取节点(路由['source'],引用)#节点
 
     def 按realm取节点(自身,realm,引用):#按realm
         """将一个与 realm 无关的 Runtime 引用解析为其当前投影节点。"""
         if realm.kind=='host':#Host
             return 自身.按种类取节点('host',引用)#Host
-        路由=自身._树们.解析对象身份(realm.sourceId,realm.generation,引用)#按身份
+        路由=自身._树表.解析对象身份(realm.sourceId,realm.generation,引用)#按身份
         return None if 路由 is None else 自身.按对象取节点(路由['source'],引用)#节点
 
     def _收树(自身,事件):#收树事件
@@ -64,7 +67,7 @@ class Cordis_Dom后端:#Cordis DOM后端
         按后端id={}#按id
         父按后端id={}#父
         自身._对象到节点.clear()#清对象索引
-        树=自身._树们.树()#检查树
+        树=自身._树表.树()#检查树
         根=自身._节点('document','#document',[],'#document')#文档根
         Host槽=自身._节点('host','host',[],'<host>')#Host槽
         if 树['host'] is not None:#有Host
@@ -124,12 +127,12 @@ class Cordis_Dom后端:#Cordis DOM后端
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(变更)#回调
-            except Exception:#故障
+            except Exception:#观察者回调什么都可能抛，收不窄
                 pass#一个已关闭的 CDP 连接不能阻止兄弟会话接收文档变更
 
 def _源字段(源,名):#取源字段
-    """支持映射或属性源。"""
-    return 源[名] if isinstance(源,dict) else getattr(源,名)#字段
+    """源是线上 dict。"""
+    return 源[名]#字段
 
 def 元素描述(名,属性):#元素描述
     """标签形描述。"""
@@ -138,8 +141,8 @@ def 元素描述(名,属性):#元素描述
 
 def 对象键(源,引用):#对象键
     """复合键。"""
-    注册表=引用['registryId'] if isinstance(引用,dict) else 引用.registryId#注册表
-    句柄=引用['handle'] if isinstance(引用,dict) else 引用.handle#句柄
+    注册表=引用['registryId']#注册表
+    句柄=引用['handle']#句柄
     return f"{_源字段(源,'sourceId')}\0{_源字段(源,'generation')}\0{注册表}\0{句柄}"#复合键
 
 def 文档差分(先前,当前):#文档差分

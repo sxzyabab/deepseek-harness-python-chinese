@@ -1,0 +1,12 @@
+{
+    "base":"基础",
+    "bundle":"组合包",
+    "core":"核心",
+    "entry":"入口",
+    "module":"模块",
+    "package":"包",
+    "patch":"补丁",
+    "profile":"配置档",
+    "self":"自身",
+    "shared":"共享"
+}

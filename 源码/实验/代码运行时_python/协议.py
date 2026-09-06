@@ -38,7 +38,7 @@ def 标量json(当前):#编码单个 JSON 标量
     """超出安全整数范围时用 BigInt 风格十进制。"""
     if isinstance(当前,float) and 当前.is_integer() and not _是安全整数(当前):#超大整数 double
         return str(int(当前))#精确十进制
-    return json.dumps(当前,separators=(',',':'))#普通标量
+    return json.dumps(当前,ensure_ascii=False,separators=(',',':'),allow_nan=False)#普通标量
 
 def 编码json纯(值):#非递归 JSON 编码
     """与紧凑 JSON.stringify 对齐，除超大整数用精确十进制。"""
@@ -59,12 +59,12 @@ def 编码json纯(值):#非递归 JSON 编码
         if isinstance(当前,dict):#对象
             片段.append('{')#开花括号
             任务.append('}')#闭括号任务
-            键们=list(当前.keys())#键列表
-            for 索引 in range(len(键们)-1,-1,-1):#逆序
-                键=键们[索引]#当前键
-                if 索引<len(键们)-1:任务.append(',')#逗号
+            键列表=list(当前.keys())#键列表
+            for 索引 in range(len(键列表)-1,-1,-1):#逆序
+                键=键列表[索引]#当前键
+                if 索引<len(键列表)-1:任务.append(',')#逗号
                 任务.append(当前[键])#值
-                任务.append(json.dumps(键,separators=(',',':'))+':')#键前缀
+                任务.append(json.dumps(键,ensure_ascii=False,separators=(',',':'),allow_nan=False)+':')#键前缀
             continue#下一个
         片段.append(标量json(当前))#标量
     return ''.join(片段)#合并
@@ -172,7 +172,7 @@ def 含不安全整数字面量(行):#扫描原始 JSON 行
             while 结束<len(行) and (行[结束].isdigit() or 行[结束] in '.eE+-'):#延续
                 结束+=1#扩展
             令牌=行[索引:结束]#切片
-            if re.fullmatch(r'-?\d+',令牌):#纯整数
+            if re.fullmatch(r'-?[0-9]+',令牌):#纯整数
                 解析=float(令牌)#double 解析
                 if not math.isfinite(解析):#Infinity
                     return True#不安全
@@ -192,25 +192,26 @@ def _自有值(记录,键):#遍历自有键值
         for 键名 in 记录:#尽力遍历
             try:
                 if 键名 in 记录:yield 记录[键名]#值
-            except Exception:
+            except Exception:#任意对象当键遍历什么都可能抛，收不窄
                 break#停止
 
 def 含非无损数字(值):#检查是否含非有限或负零
     """迭代遍历，避免宽对象复制。"""
-    游标们=[[值]]#每层一个游标列表
-    while 游标们:#层栈
-        层=游标们[-1]#当前层
-        if not 层:#层耗尽
-            游标们.pop()#弹出
+    游标栈=[iter([值])]#层栈是 list；层是迭代器。生产点：初值 iter([值])、数组 iter(当前)、对象 _自有值
+    while len(游标栈)>0:#层栈是 list，判的是 length
+        层=游标栈[-1]#当前层，形态是迭代器
+        try:#取下一值
+            当前=next(层)#迭代器 next
+        except StopIteration:#层耗尽
+            游标栈.pop()#弹出
             continue#上一层
-        当前=层.pop()#当前值
         if isinstance(当前,(int,float)) and not isinstance(当前,bool):#数字
             if not math.isfinite(当前) or 当前==0.0 and str(当前).startswith('-'):#非有限或负零
                 return True#命中
         elif isinstance(当前,list):#数组
-            游标们.append(iter(当前))#子层
+            游标栈.append(iter(当前))#子层迭代器，与初值同一形态
         elif isinstance(当前,dict):#对象
-            游标们.append(iter(_自有值(当前)))#子层
+            游标栈.append(_自有值(当前,None))#子层迭代器，_自有值 是生成器
     return False#干净
 
 def 校验子进程帧(原始):#重建入站子进程帧

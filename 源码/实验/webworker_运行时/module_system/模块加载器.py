@@ -3,17 +3,18 @@
 
 对齐上游 `webworker-runtime/src/module-system/module-loader.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 import json as _json#清单解析
 from ..polyfill.async_context.als运行时 import 创建als运行时#ALS运行时
 from .posix路径 import 目录名,文件url转路径,是否绝对,拼接,路径转文件url,解析 as 解析路径#路径工具
-from ..镜像布局 import 包装参数们#包装参数列表
+from ..镜像布局 import 包装参数列表#包装参数列表
 
 __all__=[#仅中文公开名
-    '默认条件们','工作线程模块加载器','设活动模块加载器','要求活动模块加载器',
+    '默认条件列表','工作线程模块加载器','设活动模块加载器','要求活动模块加载器',
 ]#公开面结束
 
-默认条件们=('browser','require','import','default')#exports条件顺序
-扩展名们=('.js','.json','.mjs','.cjs')#探测扩展名列表
+默认条件列表=('browser','require','import','default')#exports条件顺序
+扩展名列表=('.js','.json','.mjs','.cjs')#探测扩展名列表
 _活动=None#当前活动加载器
 
 def 是否记录(值):#判断是否为普通对象
@@ -26,18 +27,22 @@ class 工作线程模块加载器:#Worker模块加载器
     def __init__(自身,选项):#构造加载器
         """绑定 VFS、静态表与 ALS。"""
         自身._vfs=选项['vfs']#绑定VFS
-        自身._根=选项.get('root') or '/dsh'#默认虚拟根
+        自身._根=选项['root'] if 选项.get('root') is not None else '/dsh'#??默认虚拟根，空串合法
         自身._静态模块=dict(选项['staticModules'])#静态模块转表
-        前缀条目=list((选项.get('staticModulePrefixes') or {}).items())#静态前缀条目
+        前缀表=选项.get('staticModulePrefixes')#静态前缀表
+        if 前缀表 is None: 前缀表={}#??空表，空字典合法
+        前缀条目=list(前缀表.items())#静态前缀条目
         def 前缀长度(项):#前缀长度键
             """按前缀字符串长度排序。"""
             return len(项[0])#长度
         前缀条目.sort(key=前缀长度,reverse=True)#按前缀长度降序
         自身._静态前缀=前缀条目#前缀列表
-        自身._条件=set(选项.get('conditions') or 默认条件们)#条件集合
+        条件源=选项.get('conditions')#exports 条件
+        if 条件源 is None: 条件源=默认条件列表#??默认条件，空列表合法
+        自身._条件=set(条件源)#条件集合
         自身._als=创建als运行时(选项.get('alsCausality'))#创建ALS运行时
-        自身._模块们={}#已加载模块缓存
-        自身._清单们={}#包清单缓存
+        自身._模块表={}#已加载模块缓存
+        自身._清单表={}#包清单缓存
         自身._栈=[]#导入链栈
         def 内部解析(说明符,父网址=None):#内部解析闭包
             """解析为内部接缝结果。"""
@@ -66,7 +71,7 @@ class 工作线程模块加载器:#Worker模块加载器
     def _失败(自身,细节):#抛出带导入链的错误
         """抛出加载错误。"""
         链='' if len(自身._栈)==0 else f" (importer chain: {' -> '.join(自身._栈)})"#导入链文本
-        raise Exception(f'webworker modules: {细节}{链}')#抛出加载错误
+        raise 运行时错误(f'webworker modules: {细节}{链}')#抛出加载错误
 
     def _基目录(自身,基):#计算基目录
         """基路径或 URL 据以解析说明符的目录。"""
@@ -74,24 +79,24 @@ class 工作线程模块加载器:#Worker模块加载器
         路径=文件url转路径(文本) if 文本.startswith('file://') else 文本#文件URL转路径
         if 路径.endswith('/'):#尾斜杠即目录
             return 解析路径(路径)#目录
-        if 自身._vfs.existsSync(路径) and 自身._vfs.statSync(路径).isDirectory():#是目录
+        if 自身._vfs.存在同步(路径) and 自身._vfs.统计同步(路径)['isDirectory']():#是目录
             return 解析路径(路径)#目录
         return 目录名(路径)#父目录
 
     def _清单(自身,目录):#读取包清单
         """读取并缓存 package.json。"""
-        缓存=自身._清单们.get(目录)#查清单缓存
+        缓存=自身._清单表.get(目录)#查清单缓存
         if 缓存 is not None:#命中则返回
             return 缓存#返回
         路径=拼接(目录,'package.json')#清单路径
-        文本=自身._vfs.readFileSync(路径,'utf8')#读取清单文本
+        文本=自身._vfs.读取文件同步(路径,'utf8')#读取清单文本
         try:#尝试解析JSON
             解析值=_json.loads(文本)#解析package.json
-        except Exception as 原因:#JSON无效
+        except _json.JSONDecodeError as 原因:#JSON无效
             自身._失败(f'{路径} is not valid JSON: {原因}')#报告JSON错误
         if not 是否记录(解析值):#必须为对象
             自身._失败(f'{路径} does not hold an object')#拒绝
-        自身._清单们[目录]=解析值#写入缓存
+        自身._清单表[目录]=解析值#写入缓存
         return 解析值#返回清单
 
     def _选择导出(自身,字段,子路径,包名):#选择exports目标
@@ -106,16 +111,16 @@ class 工作线程模块加载器:#Worker模块加载器
                 if 选中 is not None:#命中即返回
                     return 选中#返回
             return None#无一命中
-        条目们=list(字段.items())#对象条目
-        是子路径图=any(键=='.' or 键.startswith('./') for 键,_ in 条目们)#是否子路径映射
+        条目列表=list(字段.items())#对象条目
+        是子路径图=any(键=='.' or 键.startswith('./') for 键,_ in 条目列表)#是否子路径映射
         if not 是子路径图:#条件映射而非子路径
             if 子路径!='.':#非根路径拒绝
                 return None#无
             return 自身._选择条件(字段,包名)#按条件选择
-        for 键,值 in 条目们:#精确子路径匹配
+        for 键,值 in 条目列表:#精确子路径匹配
             if 键==子路径:#键等于子路径
                 return 值 if isinstance(值,str) else 自身._选择条件(值,包名,子路径)#字符串或条件
-        for 键,值 in 条目们:#通配符子路径匹配
+        for 键,值 in 条目列表:#通配符子路径匹配
             星=键.find('*')#星号位置
             if 星<0:#无星号跳过
                 continue#下一项
@@ -151,17 +156,17 @@ class 工作线程模块加载器:#Worker模块加载器
 
     def _探测(自身,路径,说明符):#探测实际文件
         """对具体路径做扩展名与目录探测。"""
-        候选们=[路径]+[路径+扩 for 扩 in 扩展名们]#候选路径列表
-        for 候选 in 候选们:#遍历候选
-            if 自身._vfs.existsSync(候选) and 自身._vfs.statSync(候选).isFile():#命中文件
+        候选列表=[路径]+[路径+扩 for 扩 in 扩展名列表]#候选路径列表
+        for 候选 in 候选列表:#遍历候选
+            if 自身._vfs.存在同步(候选) and 自身._vfs.统计同步(候选)['isFile']():#命中文件
                 return 候选#返回
-        if 自身._vfs.existsSync(路径) and 自身._vfs.statSync(路径).isDirectory():#路径为目录
-            if 自身._vfs.existsSync(拼接(路径,'package.json')):#目录含package.json
+        if 自身._vfs.存在同步(路径) and 自身._vfs.统计同步(路径)['isDirectory']():#路径为目录
+            if 自身._vfs.存在同步(拼接(路径,'package.json')):#目录含package.json
                 主=自身._清单(路径).get('main')#读取main字段
                 if 主 is not None:#有main
                     return 自身._探测(拼接(路径,主),说明符)#探测main
             return 自身._探测(拼接(路径,'index'),说明符)#回退index
-        return 自身._失败(f'cannot resolve "{说明符}": no file at {", ".join(候选们)}')#探测失败
+        return 自身._失败(f'cannot resolve "{说明符}": no file at {", ".join(候选列表)}')#探测失败
 
     def _静态模块(自身,说明符):#查找静态模块
         """返回静态说明符的 Worker 提供实现。"""
@@ -186,11 +191,11 @@ class 工作线程模块加载器:#Worker模块加载器
             return {'kind':'file','path':自身._探测(拼接(来自目录,说明符),说明符)}#相对基目录探测
         if 是否绝对(说明符):#绝对路径
             return {'kind':'file','path':自身._探测(说明符,说明符)}#直接探测
-        段们=说明符.split('/')#按斜杠分段
-        包名='/'.join(段们[:2]) if 说明符.startswith('@') else (段们[0] if 段们 else 说明符)#作用域或包名
+        段列表=说明符.split('/')#按斜杠分段
+        包名='/'.join(段列表[:2]) if 说明符.startswith('@') else (段列表[0] if 段列表 else 说明符)#作用域或包名
         剩余=说明符[len(包名):].lstrip('/')#包内剩余子路径
         包目录=拼接(自身._根,'node_modules',包名)#包目录
-        if not 自身._vfs.existsSync(拼接(包目录,'package.json')):#镜像无清单
+        if not 自身._vfs.存在同步(拼接(包目录,'package.json')):#镜像无清单
             return 自身._失败(f'cannot resolve "{说明符}": {包目录}/package.json is not in the image')#清单缺失
         清单=自身._清单(包目录)#读取包清单
         子路径='.' if 剩余=='' else f'./{剩余}'#exports子路径
@@ -199,9 +204,10 @@ class 工作线程模块加载器:#Worker模块加载器
             if 目标 is None:#子路径未导出
                 return 自身._失败(f'"{包名}" does not export "{子路径}" under conditions [{", ".join(自身._条件)}]')#导出失败
             return {'kind':'file','path':自身._探测(拼接(包目录,目标),说明符)}#探测导出目标
-        旧式=清单.get('main') or 'index.js' if 子路径=='.' else 剩余#旧式main或子路径
         if 子路径=='.':#根
-            旧式=清单.get('main') or 'index.js'#main
+            主=清单.get('main')#main 字段
+            if 主 is None: 主='index.js'#??index.js，空串合法
+            旧式=主#main
         else:#子路径
             旧式=剩余#剩余
         return {'kind':'file','path':自身._探测(拼接(包目录,旧式),说明符)}#探测旧式入口
@@ -211,19 +217,19 @@ class 工作线程模块加载器:#Worker模块加载器
         if 解析结果['kind']=='static':#静态直接工厂
             return 解析结果['factory']()#工厂
         路径=解析结果['path']#文件路径
-        缓存=自身._模块们.get(路径)#查模块缓存
+        缓存=自身._模块表.get(路径)#查模块缓存
         if 缓存 is not None:#命中返回导出
             return 缓存['module']['exports']#导出
         if 路径.endswith('.json'):#JSON模块
-            解析值=_json.loads(自身._vfs.readFileSync(路径,'utf8'))#解析JSON
-            自身._模块们[路径]={'module':{'exports':解析值}}#写入缓存
+            解析值=_json.loads(自身._vfs.读取文件同步(路径,'utf8'))#解析JSON
+            自身._模块表[路径]={'module':{'exports':解析值}}#写入缓存
             return 解析值#返回解析值
         导出={}#初始导出对象
         记录={'module':{'exports':导出}}#模块记录
-        自身._模块们[路径]=记录#先入缓存以支持循环
+        自身._模块表[路径]=记录#先入缓存以支持循环
         自身._栈.append(路径)#压入导入栈
         try:#执行模块体
-            源=自身._vfs.readFileSync(路径,'utf8')#读取源码
+            源=自身._vfs.读取文件同步(路径,'utf8')#读取源码
             工厂=自身._编译(源,路径)#编译为工厂
             目录=目录名(路径)#模块目录
             def 元解析(说明符):#import.meta.resolve
@@ -233,17 +239,19 @@ class 工作线程模块加载器:#Worker模块加载器
             元={'url':路径转文件url(路径),'resolve':元解析}#import.meta面
             工厂(记录['module']['exports'],自身.从目录创建require(目录),记录['module'],路径,目录,元,自身._als)#调用包装工厂
             return 记录['module']['exports']#返回最终导出
-        except Exception:#加载失败
-            自身._模块们.pop(路径,None)#清除坏缓存
+        except Exception:#模块工厂 exec 时模块体什么都可能抛，契约未定所以收不窄
+            自身._模块表.pop(路径,None)#清除坏缓存
             raise#原样抛出
         finally:#无论成败
             自身._栈.pop()#弹出导入栈
 
     def _编译(自身,代码,路径):#编译模块体
         """编译镜像已降级的模块体。上游用 new Function(...WRAPPER_PARAMS, code)。"""
-        形参=','.join(包装参数们)#形参表
+        形参=','.join(包装参数列表)#形参表
         源=f'def __dsh_factory({形参}):\n'#工厂头
-        for 行 in 代码.splitlines() or ['pass']:#逐行缩进
+        行列表=代码.splitlines()#源码行
+        if len(行列表)==0: 行列表=['pass']#空源 length 为 0，工厂体需要 pass
+        for 行 in 行列表:#逐行缩进
             源+=f'    {行}\n'#缩进体
         try:#尝试编译
             环境={}#执行环境
@@ -268,7 +276,7 @@ class 工作线程模块加载器:#Worker模块加载器
             if 解析结果['kind']=='static':#静态无VFS路径
                 return 自身._失败(f'"{说明符}" is a worker-provided module and has no VFS path')#拒绝静态路径
             return 解析结果['path']#返回文件路径
-        def 路径们(说明符):#paths实现
+        def 列出解析路径(说明符):#paths实现
             """返回搜索根。"""
             if 自身._静态模块(说明符) is not None or 说明符.startswith('node:'):#静态或node无根
                 return None#无根
@@ -276,7 +284,7 @@ class 工作线程模块加载器:#Worker模块加载器
                 return [解析路径(来自目录,'.')]#当前目录
             return [拼接(自身._根,'node_modules')]#裸名用node_modules
         要求.resolve=解析说明符#挂resolve
-        要求.resolve.paths=路径们#挂paths
+        要求.resolve.paths=列出解析路径#挂paths
         return 要求#装配require对象
 
     def 创建require(自身,基):#创建require
@@ -285,7 +293,7 @@ class 工作线程模块加载器:#Worker模块加载器
 
     def 用量(自身):#用量统计
         """报告本加载器已做之事，供主机启动诊断。"""
-        return {'modules':len(自身._模块们)}#已加载模块数
+        return {'modules':len(自身._模块表)}#已加载模块数
 
 def 设活动模块加载器(加载器):#设置活动加载器
     """发布 node:module 代理所经由解析的加载器。"""
@@ -295,5 +303,5 @@ def 设活动模块加载器(加载器):#设置活动加载器
 def 要求活动模块加载器():#获取活动加载器
     """读取已发布的加载器。"""
     if _活动 is None:#尚未挂载
-        raise Exception('webworker modules: no loader is mounted; the worker entry must call setActiveModuleLoader before any createRequire use')#未挂载错误
+        raise 运行时错误('webworker modules: no loader is mounted; the worker entry must call setActiveModuleLoader before any createRequire use')#未挂载错误
     return _活动#返回活动加载器

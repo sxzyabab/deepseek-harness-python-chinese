@@ -46,49 +46,43 @@ __all__=['侧栏根','折叠落定毫秒','滚动条滞留毫秒','样式表']#�
 @media (prefers-reduced-motion:reduce){.wide,.fading>*,.railIn .iconButton,.railIn .newSession,.railIn .footArea,.railIn .regionArea{transition:none;animation:none}}
 '''#样式表结束
 
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
-
 class 侧栏根:#侧栏列外壳
     """渲染侧栏列外壳；折叠落定后卸宽态，轨态四枚上控件同源进入。"""
 
     def __init__(自身,属性):#记下合成 props
         """记下折叠、宽度、注入动作与槽渲染。"""
         自身.属性=属性#合成 props
-        自身.已落定=取字段(属性,'collapsed') is True#初始与 collapsed 对齐
-        自身.上次宽宽=取字段(属性,'width') or 0#冻结宽态宽度
-        自身.曾宽=取字段(属性,'collapsed') is not True#冷启轨态不播 railIn
+        自身.已落定=属性['collapsed'] is True if 'collapsed' in 属性 else False#初始与 collapsed 对齐
+        自身.上次宽宽=属性['width'] if 'width' in 属性 and 属性['width'] is not None else 0#冻结宽态宽度
+        自身.曾宽=not (属性['collapsed'] is True if 'collapsed' in 属性 else False)#冷启轨态不播 railIn
         自身.指针内=False#指针是否在列内
         自身.滞留句柄=None#滞留定时器句柄（宿主注入）
 
     def 更新(自身,属性):#props 变更
         """折叠变化时调度落定；展开时立刻取消落定。"""
-        旧折=取字段(自身.属性,'collapsed') is True#旧折叠
+        旧折=自身.属性['collapsed'] is True if 'collapsed' in 自身.属性 else False#旧折叠
         自身.属性=属性#最新
-        新折=取字段(属性,'collapsed') is True#新折叠
+        新折=属性['collapsed'] is True if 'collapsed' in 属性 else False#新折叠
         if not 新折:#展开
             自身.已落定=False#立刻宽态
             自身.曾宽=True#活折叠才 railIn
-            自身.上次宽宽=取字段(属性,'width') or 自身.上次宽宽#记下宽宽
+            if 'width' in 属性 and 属性['width'] is not None:#有宽
+                自身.上次宽宽=属性['width']#记下宽宽
             return#已处理
         if not 旧折 and 新折:#刚折叠
-            自身.上次宽宽=取字段(属性,'width') or 自身.上次宽宽#冻结
+            if 'width' in 属性 and 属性['width'] is not None:#有宽
+                自身.上次宽宽=属性['width']#冻结
             自身.已落定=False#先淡出
             return#落定由宿主在折叠落定毫秒后调 落定
 
     def 落定(自身):#折叠动画落定
         """宽内容卸载，轨布局生效。"""
-        if 取字段(自身.属性,'collapsed') is True:#仍折叠
+        if 'collapsed' in 自身.属性 and 自身.属性['collapsed'] is True:#仍折叠
             自身.已落定=True#落定
 
     def 宽态(自身):#是否仍挂宽内容
         """未折叠或未落定则为宽。"""
-        return 取字段(自身.属性,'collapsed') is not True or not 自身.已落定#宽态
+        return not ('collapsed' in 自身.属性 and 自身.属性['collapsed'] is True) or not 自身.已落定#宽态
 
     def 进入指针(自身):#指针进入列
         """取消滞留并标内。"""
@@ -128,31 +122,31 @@ class 侧栏根:#侧栏列外壳
 
     def 渲染(自身):#产出结构化视图
         """与上游 JSX 同构的结构树。"""
-        折=取字段(自身.属性,'collapsed') is True#折叠
+        折='collapsed' in 自身.属性 and 自身.属性['collapsed'] is True#折叠
         宽=自身.宽态()#宽态
-        翻译=取字段(自身.属性,'t')#文案
-        渲染槽=取字段(自身.属性,'renderSlot')#子槽
-        开会话=取字段(自身.属性,'startSession')#新建会话
-        切换=取字段(自身.属性,'toggleSidebar')#折叠开关
-        类们=['root']#根类
+        翻译=自身.属性['t'] if 't' in 自身.属性 else None#文案
+        渲染槽=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None#子槽
+        开会话=自身.属性['startSession'] if 'startSession' in 自身.属性 else None#新建会话
+        切换=自身.属性['toggleSidebar'] if 'toggleSidebar' in 自身.属性 else None#折叠开关
+        类名列表=['root']#根类
         if not 宽:#轨布局
-            类们.append('collapsed')#collapsed
+            类名列表.append('collapsed')#collapsed
             if 自身.曾宽:#活折叠
-                类们.append('railIn')#railIn
+                类名列表.append('railIn')#railIn
         if 折 and 宽:#淡出中
-            类们.append('fading')#fading
+            类名列表.append('fading')#fading
         if not 自身.指针内:#安静滚动条
-            类们.append('quietBars')#quietBars
+            类名列表.append('quietBars')#quietBars
         样式=None#内联宽
         if 宽:#冻结或当前宽
-            样式={'width':自身.上次宽宽 if 折 else 取字段(自身.属性,'width')}#宽度
+            样式={'width':自身.上次宽宽 if 折 else (自身.属性['width'] if 'width' in 自身.属性 else None)}#宽度
         def 展开侧栏():#浏览区请求展开
             """折叠时切换。"""
-            if 折 and callable(切换):#折叠
+            if 折 and 切换 is not None:#折叠
                 切换()#展开
         return {#结构树
             'type':'sidebar-root',#根类型
-            'class':' '.join(类们),#类名
+            'class':' '.join(类名列表),#类名
             'style':样式,#内联
             'wide':宽,#宽态旗
             'ariaToggle':翻译('toggle.open') if 折 else 翻译('toggle.collapse'),#折叠无障碍
@@ -160,7 +154,7 @@ class 侧栏根:#侧栏列外壳
             'newLabel':翻译('session.new') if 宽 else None,#宽态标签
             'startSession':开会话,#新建
             'toggleSidebar':切换,#折叠
-            'workspaces':渲染槽('sidebar.workspaces',{'wide':宽,'expandSidebar':展开侧栏}) if callable(渲染槽) else None,#浏览区
-            'footerAction':渲染槽('sidebar.footer.action',{'wide':宽}) if callable(渲染槽) else None,#页脚
-            'settings':渲染槽('sidebar.settings',{'wide':宽}) if callable(渲染槽) else None,#设置
+            'workspaces':渲染槽('sidebar.workspaces',{'wide':宽,'expandSidebar':展开侧栏}) if 渲染槽 is not None else None,#浏览区
+            'footerAction':渲染槽('sidebar.footer.action',{'wide':宽}) if 渲染槽 is not None else None,#页脚
+            'settings':渲染槽('sidebar.settings',{'wide':宽}) if 渲染槽 is not None else None,#设置
         }#结束

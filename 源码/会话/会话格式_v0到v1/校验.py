@@ -11,7 +11,7 @@ from ..会话格式 import (#从会话格式导入
 from .处置 import 已发布v0事件处置表#从处置导入
 from .载荷校验 import 断言已发布载荷语义#从载荷校验导入
 from .关系 import 断言已发布产物关系#从关系导入
-from .校验辅助 import 断言已发布v0键,已发布v0记录#从辅助导入
+from .记录与精确键 import 校验已发布v0键,已发布v0记录#记录与精确键
 
 头必填=('version','id','createdAt','isSeeded','delegationDepth')#头必填
 头可选=('cwd','parentSession','origin','agentPreset')#头可选
@@ -25,7 +25,7 @@ from .校验辅助 import 断言已发布v0键,已发布v0记录#从辅助导入
 def 断言已发布会话格式头(头,版本):#断言会话格式头
     """校验已发布 v0 与 v1 共享的逻辑头。"""
     记录=已发布v0记录(头,f'format v{版本} header')#记录
-    断言已发布v0键(记录,头必填,头可选,f'format v{版本} header')#精确键
+    校验已发布v0键(记录,头必填,头可选,f'format v{版本} header')#精确键
     if 记录['version']!=版本:#版本
         raise 会话格式错误(f'expected format v{版本} header')#版本
     if not isinstance(记录['id'],str):#id
@@ -95,8 +95,8 @@ def 断言产物坐标(产物,允许遗留steering,已知事件类型=None,词�
         处置=已发布v0事件处置表.get(类型)#处置
         遗留=允许遗留steering and 类型 in 遗留源类型#是否遗留
         当前已知=已知事件类型 is not None and 类型 in 已知事件类型#是否已知
-        可忽略当代=(not 允许遗留steering) and (not 当前已知) and 记录.get('ignorable') is True#可忽略当代
-        if (not 当前已知) and (not 遗留) and (not 可忽略当代) and (not 词表中立):#未知必填
+        可忽略当前版本=(not 允许遗留steering) and (not 当前已知) and 记录.get('ignorable') is True#可忽略当前版本
+        if (not 当前已知) and (not 遗留) and (not 可忽略当前版本) and (not 词表中立):#未知必填
             if 允许遗留steering:#历史源
                 raise 会话格式不支持迁移错误(#拒绝
                     f'format v0 contains unknown historical event type {json.dumps(类型,ensure_ascii=False)} at seq {下标}; migration refuses unknown historical events even when ignorable',#消息
@@ -110,7 +110,7 @@ def 断言产物坐标(产物,允许遗留steering,已知事件类型=None,词�
             可选=表面可选 if 表面 else 日志可选#可选键
         else:#非冻结用表面可选
             可选=表面可选#表面可选
-        断言已发布v0键(记录,事件必填,可选,f'Session event {下标}')#精确键
+        校验已发布v0键(记录,事件必填,可选,f'Session event {下标}')#精确键
         if 记录['seq']!=下标:#非稠密
             raise 会话格式错误(f'Session event {下标} has non-dense seq {json.dumps(记录["seq"],ensure_ascii=False)}')#错误
         会话格式安全整数(记录['time'],f'Session event {下标} time')#时间
@@ -121,25 +121,25 @@ def 断言产物坐标(产物,允许遗留steering,已知事件类型=None,词�
 
 def 断言已发布表面元数据(记录,序号,类型,助手出处):#断言表面元数据
     """校验一个已发布代际的共享布局表面引用。"""
-    出处们=记录.get('sourceEventSeqs')#出处列表
-    if 类型=='assistant/message' and 出处们 is not None and 助手出处=='forbid-assistant':#禁止出处
+    出处列表=记录.get('sourceEventSeqs')#出处列表
+    if 类型=='assistant/message' and 出处列表 is not None and 助手出处=='forbid-assistant':#禁止出处
         raise 会话格式错误(f'assistant/message {序号} retains obsolete chunk provenance')#错误
-    if 出处们 is not None:#有出处
-        if not isinstance(出处们,list):#须数组
+    if 出处列表 is not None:#有出处
+        if not isinstance(出处列表,list):#须数组
             raise 会话格式错误(f'{类型} {序号} sourceEventSeqs must be an array')#须数组
         已见=set()#已见
-        for 出处 in 出处们:#遍历出处
+        for 出处 in 出处列表:#遍历出处
             当前=会话格式计数(出处,f'{类型} {序号} sourceEventSeqs member')#成员
             if 当前>=序号 or 当前 in 已见:#非法
                 raise 会话格式错误(f'{类型} {序号} sourceEventSeqs must be unique earlier seqs')#错误
             已见.add(当前)#记入
-        if len(出处们)==0 and (类型!='assistant/message' or 助手出处=='forbid-assistant'):#空且不允许
+        if len(出处列表)==0 and (类型!='assistant/message' or 助手出处=='forbid-assistant'):#空且不允许
             raise 会话格式错误(f'{类型} {序号} sourceEventSeqs must be non-empty')#错误
     操作=记录.get('surfaceOp')#表面操作
     if 操作 is None or 操作=='append':#无或追加
         return#结束
     替换=已发布v0记录(操作,f'{类型} {序号} surfaceOp')#替换记录
-    断言已发布v0键(替换,['op','start','end'],[],f'{类型} {序号} surfaceOp')#精确键
+    校验已发布v0键(替换,['op','start','end'],[],f'{类型} {序号} surfaceOp')#精确键
     if 替换['op']!='replace':#须替换
         raise 会话格式错误(f'{类型} {序号} surfaceOp must replace')#须替换
     起点=会话格式计数(替换['start'],f'{类型} {序号} surface start')#起点
@@ -166,7 +166,7 @@ def 断言已发布事件载荷(事件,版本):#断言事件载荷
         版本可选=list(处置['optional'])+['sessionFormatVersion']#补版本字段
     else:#原可选
         版本可选=处置['optional']#原可选
-    断言已发布v0键(数据,处置['required'],版本可选,f'{事件["type"]} {事件["seq"]} data')#精确键
+    校验已发布v0键(数据,处置['required'],版本可选,f'{事件["type"]} {事件["seq"]} data')#精确键
     for 键 in 处置['opaque']:#不透明键
         if 键 in 数据:#有该键
             快照会话格式json(数据[键],f'{事件["type"]} {事件["seq"]} opaque {键}')#快照

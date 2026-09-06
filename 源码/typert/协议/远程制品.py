@@ -19,7 +19,7 @@ def 严格编解码(类型符号,模式=None):#构造严格编解码
     return {'mode':'strict','typeSymbol':类型符号,'schema':模式}#编解码
 
 def 调用描述符(#组装一条 InvocationDescriptor
-    标识,服务,命名空间,方法,参数们,结果编解码,源码位置,
+    标识,服务,命名空间,方法,参数列表,结果编解码,源码位置,
     实现=None,调用=None,作用域=None,取消=None,
 ):#结束签名
     """拼一条可挂载的调用描述符。"""
@@ -31,7 +31,7 @@ def 调用描述符(#组装一条 InvocationDescriptor
         'namespace':命名空间,#命名空间
         'method':方法,#方法名
         'invocation':调用,#调用约定
-        'parameters':list(参数们),#参数表
+        'parameters':list(参数列表),#参数表
         'result':结果编解码,#结果编解码
         'sourceLocation':源码位置,#源码位置
     }#主体结束
@@ -43,6 +43,6 @@ def 调用描述符(#组装一条 InvocationDescriptor
         描述符['cancellation']=取消#取消
     return 描述符#描述符
 
-def 远程贡献(包名,描述符们):#组装 TYPERT_REMOTE
+def 远程贡献(包名,描述符列表):#组装 TYPERT_REMOTE
     """package + descriptors。"""
-    return {'package':包名,'descriptors':list(描述符们)}#贡献
+    return {'package':包名,'descriptors':list(描述符列表)}#贡献

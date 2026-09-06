@@ -28,9 +28,8 @@ class 附件错误(Exception):#稳定协议路由失败
         super().__init__(消息)#人类可读描述
         if 选项 is not None and 'cause' in 选项:#链式原因
             自身.__cause__=选项['cause']#挂上原因
-        自身.name='AttachmentError'#错误名
         自身.code=码#稳定机器路由码
 
-def 是否图像准入错误(错误):#是否图像准入可纠正失败
+def 是否图像准入错误(错误):
     """区分图像准入可纠正失败与存储故障。"""
-    return isinstance(错误,Exception) and hasattr(错误,'code') and isinstance(错误.code,str) and 错误.code in 图像准入错误码集合#成员检测
+    return isinstance(错误,附件错误) and 错误.code in 图像准入错误码集合#按本包错误码路由

@@ -1,6 +1,7 @@
 """工具注册表、模型呈现模式，以及预执行/守卫/环绕/后执行/结果管线。对齐上游 `@deepseek-ai/dsh-tools`。公开面仅中文名；Cordis 槽 `inject`/`Config`/`default` 为协议兼容，不入 `__all__`。"""
 import json,math,threading,weakref
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...依赖.schemastery import 枚举字段,自然数字段#配置字段
 服务=cordis.服务#导入服务基类
 from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,作用域目标#导入作用域层与载体
@@ -44,7 +45,7 @@ from .呈现 import (
 )#导入呈现词汇
 
 __all__=(
-    '工具运行时','默认',
+    '工具运行时',
     '定义工具','值模式规格转json模式','参数模式规格转json模式','校验参数','工具参数错误',
     '断言受支持json模式','断言对象json模式','校验json模式值','json模式错误',
     '代码派发开始','代码派发落定','派发开始字段','派发落定字段',
@@ -71,11 +72,7 @@ from .代码模式 import (
     创建运行代码工具,#构建传输
     代码运行失败错误,#运行失败
     代码sdk语言,#随附 SDK 语言
-    解开,#等待承诺
     已中止,#是否中止
-    中止原因,#中止原因
-    听中止,#登记监听
-    摘中止,#去掉监听
     中止控制器,#熔合控制器
 )
 
@@ -89,22 +86,12 @@ class 可弱引用表(dict):
     """可被弱引用的工具执行或结果表。"""
     pass#字典子类可弱引用
 
-def 取字段(对象,键,缺省=None):
-    """从映射或对象读字段。"""
-    if 对象 is None:
-        return 缺省#空
-    if isinstance(对象,dict):
-        return 对象[键] if 键 in 对象 else 缺省#映射键
-    return getattr(对象,键,缺省)#对象属性
-
-def 有自有(对象,键):
-    """对齐 Object.hasOwn。"""
-    if isinstance(对象,dict):
-        return 键 in 对象#映射键
-    字典=getattr(对象,'__dict__',None)#实例字典
-    if 字典 is None:
-        return False#没有字典
-    return 键 in 字典#自有
+class 工具错误(框架错误):
+    """内核工具包的异常基类。"""
+    def __init__(自身,消息,码='TOOL_ERROR'):
+        """用英文消息构造。"""
+        super().__init__(消息,码)#框架错误
+        自身.name='ToolError'#类名
 
 def 是否正有限(值):
     """超时预算必须为正有限数。"""
@@ -142,10 +129,10 @@ def 从内容取失败消息(内容):
     """从策略反馈导出一条失败消息，不改其已渲染块。"""
     文本列表=[]#拼文本
     for 块 in 内容:
-        if 取字段(块,'type')=='text':
-            文本列表.append(取字段(块,'text',''))#文本
+        if 块['type']=='text':
+            文本列表.append(块['text'] if 'text' in 块 else '')#文本
         else:
-            文本列表.append('['+str(取字段(块,'type'))+' content]')#类型占位
+            文本列表.append('['+str(块['type'])+' content]')#类型占位
     文本='\n'.join(文本列表)#换行连接
     return 文本 if len(文本)>0 else 'tool result blocked by post-execute policy'#空则用默认句
 
@@ -177,7 +164,7 @@ def 解析并行上限(值):
     else:
         是整数=False#其余非法
     if (not 是整数) or 上限<1:
-        raise Exception('maxParallelSubCalls must be a positive integer')#必须正整数
+        raise 工具错误('maxParallelSubCalls must be a positive integer')#必须正整数
     return 上限#已校验上限
 
 class 工具未找到错误(框架错误):
@@ -246,7 +233,7 @@ def 工具错误结果(错误):
 
 def 工具体后中止结果(先前=None):
     """函数体已调用后取消取代成功时的规范结果。"""
-    推迟=取字段(先前,'additionalContexts') or []#保留已推迟上下文
+    推迟=先前['additionalContexts'] if 先前 is not None and 'additionalContexts' in 先前 and 先前['additionalContexts'] is not None else []#保留已推迟上下文
     结果={
         'content':[{'type':'text','text':'Error: tool call aborted'}],#模型可见
         'isError':True,#失败
@@ -261,7 +248,7 @@ def 工具体后中止结果(先前=None):
 
 def 工具体前中止结果(先前=None):
     """取消阻止工具函数体调用时的规范结果。"""
-    推迟=取字段(先前,'additionalContexts') or []#保留已推迟上下文
+    推迟=先前['additionalContexts'] if 先前 is not None and 'additionalContexts' in 先前 and 先前['additionalContexts'] is not None else []#保留已推迟上下文
     结果={
         'content':[{'type':'text','text':'Error: tool call aborted before dispatch'}],#模型可见
         'isError':True,#失败
@@ -275,40 +262,36 @@ def 工具体前中止结果(先前=None):
     return 结果#返回
 
 def 熔合工具信号(调用方,包装器):
-    """熔合调用方与包装器取消，不嵌套 AbortSignal.any。"""
+    """熔合调用方与包装器取消。盯梢线程等 Event 置位，拆除后不再转发。"""
     if 调用方 is 包装器:
         def 空拆除():
             """同一信号无需熔合。"""
             return#无事
         return {'signal':调用方,'dispose':空拆除}#同一信号
     控制器=中止控制器()#熔合控制器
-    监听中=False#是否已挂监听
+    停止=threading.Event()#拆除旗
     def 拆除():
-        """拆除监听。"""
-        nonlocal 监听中#修改外层
-        if not 监听中:
-            return#未挂则无事
-        监听中=False#标记已拆
-        摘中止(调用方,从调用方中止)#拆调用方
-        摘中止(包装器,从包装器中止)#拆包装器
-    def 从源中止(来源):
-        """从某源中止。"""
-        控制器.中止(中止原因(来源))#中止熔合
-        拆除()#拆监听
-    def 从调用方中止(*位置参数):
-        """调用方中止。"""
-        从源中止(调用方)#转发
-    def 从包装器中止(*位置参数):
-        """包装器中止。"""
-        从源中止(包装器)#转发
+        """停止盯梢转发。"""
+        停止.set()#不再转发
+    def 盯(来源):
+        """等来源中止再转发。"""
+        if 来源 is None:
+            return#无信号
+        来源._事件.wait()#阻塞到置位
+        if 停止.is_set():
+            return#已拆除
+        控制器.中止(来源._异常)#转发异常对象
     if 已中止(包装器):
-        从包装器中止()#包装器已中止
+        控制器.中止(包装器._异常)#包装器已中止
     elif 已中止(调用方):
-        从调用方中止()#调用方已中止
+        控制器.中止(调用方._异常)#调用方已中止
     else:
-        监听中=True#已挂
-        听中止(调用方,从调用方中止)#听调用方一次
-        听中止(包装器,从包装器中止)#听包装器一次
+        for 来源 in (调用方,包装器):
+            if 来源 is None:
+                continue#无信号
+            工作=threading.Thread(target=盯,args=(来源,))#盯梢线程
+            工作.daemon=True#不挡住退出
+            工作.start()#启动
     return {'signal':控制器.信号,'dispose':拆除}#熔合信号与拆除
 
 class 工具层:
@@ -346,21 +329,19 @@ class 工具层:
 class 工具运行时(服务):
     """工具注册表与执行管线。"""
     注入=['systemPrompt']#依赖系统提示词
-    inject=注入#Cordis 依赖声明槽
     配置={
         'mode':枚举字段('native','code','both',默认值='native'),#呈现默认 native
         'maxParallelSubCalls':自然数字段(最小=1,默认值=10),#并行上限默认 10
     }#Loader 配置模式
-    Config=配置#Cordis Config 槽
 
     def __init__(自身,ctx,配置=None):
         """构造运行时。"""
         super().__init__(ctx,'tools')#登记 tools 服务
         if 配置 is None:
             配置={}#缺省空配置
-        呈现=取字段(配置,'mode')#配置呈现
+        呈现=配置['mode'] if 'mode' in 配置 else None#配置呈现
         自身.默认模式='native' if 呈现 is None else 呈现#部署默认
-        自身.最大并行子调用=解析并行上限(取字段(配置,'maxParallelSubCalls'))#校验上限
+        自身.最大并行子调用=解析并行上限(配置['maxParallelSubCalls'] if 'maxParallelSubCalls' in 配置 else None)#校验上限
         自身.推迟上下文=weakref.WeakKeyDictionary()#推迟上下文
         自身.终止执行=weakref.WeakSet()#终止本轮集合
         自身.取消状态=weakref.WeakKeyDictionary()#取消状态
@@ -371,7 +352,7 @@ class 工具运行时(服务):
             return 工具层(作用域)#建层
         def 层变():
             """层变则通知。"""
-            自身.ctx.emit('tools/change')#通知
+            自身.ctx.广播('tools/change')#通知
         自身.层集=作用域层集(建层,层变)#作用域层
         自身.代码传输=None#run_code 传输
         自身._调度器={
@@ -382,7 +363,7 @@ class 工具运行时(服务):
         }#调度器入口
         def 提供线模式(上下文):
             """按作用域提供线模式。"""
-            return 自身.接线模式(取字段(上下文,'scope'))#按作用域
+            return 自身.接线模式(上下文['scope'] if 'scope' in 上下文 else None)#按作用域
         自身.ctx.systemPrompt.tools(提供线模式)#按作用域提供线模式
         if 自身.默认模式!='native':
             自身.ctx.systemPrompt.section(自身.折叠段())#折叠段
@@ -398,22 +379,22 @@ class 工具运行时(服务):
         """code 执行器折叠的提示词陈述。"""
         def 文本(上下文):
             """仅 code 才有文案。"""
-            return 仅代码指令 if 自身.解析呈现(取字段(上下文,'scope'))=='code' else ''#仅 code
+            return 仅代码指令 if 自身.解析呈现(上下文['scope'] if 'scope' in 上下文 else None)=='code' else ''#仅 code
         return {'name':'tools:code-only','order':折叠段顺序,'text':文本}#段登记
 
     def sdk段(自身):
         """生成 SDK 提示词段。"""
         def 文本(上下文):
             """按作用域渲染。"""
-            呈现=自身.解析呈现(取字段(上下文,'scope'))#有效呈现
+            呈现=自身.解析呈现(上下文['scope'] if 'scope' in 上下文 else None)#有效呈现
             if 呈现=='native':
                 return ''#原生则空
             运行时=自身.要求代码运行时(呈现)#必需运行时
-            语言=取字段(运行时,'language')#语言
+            语言=运行时.language#语言
             渲染=sdk渲染器.get(语言)#查渲染器
             if 渲染 is None:
-                raise Exception('dsh-tools: no SDK renderer for '+str(语言))#无渲染器
-            return 渲染(自身.sdk模式(取字段(上下文,'scope')))#渲染 SDK
+                raise 工具错误('dsh-tools: no SDK renderer for '+str(语言))#无渲染器
+            return 渲染(自身.sdk模式(上下文['scope'] if 'scope' in 上下文 else None))#渲染 SDK
         return {'name':'tools:sdk','order':sdk段顺序,'text':文本}#段登记
 
     def 解析呈现(自身,作用域=None):
@@ -435,7 +416,7 @@ class 工具运行时(服务):
                 return 自身.要求代码运行时(自身.默认模式)#必需
             def 窥探运行时():
                 """窥探运行时。"""
-                return 自身.ctx.get('codeRuntime')#可选服务
+                return 自身.ctx.获取服务('codeRuntime')#可选服务
             def 整形日志(派发):
                 """整形日志。"""
                 return 自身.整形派发日志(派发)#委托
@@ -451,13 +432,13 @@ class 工具运行时(服务):
         """用 mode 而不是部署默认来呈现调用作用域的工具。"""
         上下文=自身.ctx#当前上下文
         if 获取作用域(上下文) is None:
-            raise Exception('tools.presentAs() requires a scoped context (agent.ctx): a context-global presentation is the `mode` config field on the tools row')#必须作用域上下文
+            raise 工具错误('tools.presentAs() requires a scoped context (agent.ctx): a context-global presentation is the `mode` config field on the tools row')#必须作用域上下文
         def 执行体():
             """组合 effect。"""
             def 写入层(层):
                 """装入层。"""
                 if 层.模式 is not None:
-                    raise Exception('tools.presentAs("'+模式值+'") conflicts with "'+层.模式+'" already declared for this scope; one composition selects one presentation')#一作用域一种呈现
+                    raise 工具错误('tools.presentAs("'+模式值+'") conflicts with "'+层.模式+'" already declared for this scope; one composition selects one presentation')#一作用域一种呈现
                 层.模式=模式值#写入
                 def 清掉():
                     """拆除时清掉。"""
@@ -467,7 +448,7 @@ class 工具运行时(服务):
             if 模式值!='native':
                 yield 上下文.systemPrompt.section(自身.折叠段())#折叠段
                 yield 上下文.systemPrompt.section(自身.sdk段())#SDK 段
-        return 上下文.effect(执行体,'tools.presentAs()')#拆除器
+        return 上下文.副作用(执行体,'tools.presentAs()')#拆除器
 
     def 接线模式(自身,作用域=None):
         """为一个作用域构建线模式与提示词顺序校验用的名字。"""
@@ -487,27 +468,27 @@ class 工具运行时(服务):
 
     def 要求代码运行时(自身,呈现):
         """解析代码运行时，否则抛出可操作的错误配置。"""
-        运行时=自身.ctx.get('codeRuntime')#可选服务
+        运行时=自身.ctx.获取服务('codeRuntime')#可选服务
         if 运行时 is None:
-            raise Exception('dsh-tools: mode "'+呈现+'" requires a code runtime — load a ctx.codeRuntime implementation (e.g. @deepseek-ai/dsh-code-runtime-worker-thread) or set tools mode to "native"')#可操作错误
-        语言=取字段(运行时,'language')#语言
+            raise 工具错误('dsh-tools: mode "'+呈现+'" requires a code runtime — load a ctx.codeRuntime implementation (e.g. @deepseek-ai/dsh-code-runtime-worker-thread) or set tools mode to "native"')#可操作错误
+        语言=运行时.language#语言
         if 语言 not in sdk渲染器:
-            已知=', '.join(json.dumps(名) for 名 in sdk渲染器.keys())#已知语言
-            raise Exception('dsh-tools: no SDK renderer registered for runtime language '+json.dumps(语言)+' (known: '+已知+')')#未知语言
+            已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in sdk渲染器.keys())#已知语言
+            raise 工具错误('dsh-tools: no SDK renderer registered for runtime language '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' (known: '+已知+')')#未知语言
         return 运行时#已校验运行时
 
     def 登记(自身,定义):
         """全局或在调用智能体作用域注册。"""
         名=定义['name']#工具名
-        输出=取字段(定义,'output')#输出约定
-        if 输出 is None or (not isinstance(输出,dict)) or (not 是否可调用(取字段(输出,'render'))) or (取字段(输出,'presentationMeta') is not None and not 是否可调用(输出['presentationMeta'])):
+        输出=定义['output'] if 'output' in 定义 else None#输出约定
+        if 输出 is None or (not isinstance(输出,dict)) or (not 是否可调用(输出['render'] if 'render' in 输出 else None)) or ('presentationMeta' in 输出 and 输出['presentationMeta'] is not None and not 是否可调用(输出['presentationMeta'])):
             raise TypeError('tool "'+名+'" must declare output { schema, render, presentationMeta? }')#必须声明输出
         断言受支持json模式(输出['schema'])#输出模式必须是子集
-        超时=取字段(定义,'timeoutMs')#超时
+        超时=定义['timeoutMs'] if 'timeoutMs' in 定义 else None#超时
         if 超时 is not None and not 是否正有限(超时):
             raise TypeError('tool "'+名+'" timeoutMs must be a positive finite number')#必须正有限
         if 名==运行代码名:
-            raise Exception('tool name "'+运行代码名+'" is reserved for the Code Mode presentation transport and cannot be registered or shadowed')#不得注册或遮蔽
+            raise 工具错误('tool name "'+运行代码名+'" is reserved for the Code Mode presentation transport and cannot be registered or shadowed')#不得注册或遮蔽
         def 插入(层):
             """插入定义。"""
             return 层.工具.插入(名,定义)#插入
@@ -517,11 +498,11 @@ class 工具运行时(服务):
         """为调用智能体作用域限制全局工具。"""
         作用域=获取作用域(自身.ctx)#当前作用域
         if 作用域 is None:
-            raise Exception('tools.restrict() requires a scoped context (agent.ctx): a context-global restriction would mask every agent — deny the tool for the intended agent instead')#必须作用域上下文
-        白名单=取字段(过滤器,'allow')#白名单
-        黑名单=取字段(过滤器,'deny')#黑名单
+            raise 工具错误('tools.restrict() requires a scoped context (agent.ctx): a context-global restriction would mask every agent — deny the tool for the intended agent instead')#必须作用域上下文
+        白名单=过滤器['allow'] if 'allow' in 过滤器 else None#白名单
+        黑名单=过滤器['deny'] if 'deny' in 过滤器 else None#黑名单
         if 白名单 is None and 黑名单 is None:
-            raise Exception('tools.restrict({}) is a no-op: pass `allow` and/or `deny` (an empty filter is almost always a materialized-empty-config bug)')#空过滤器几乎总是物化空配置缺陷
+            raise 工具错误('tools.restrict({}) is a no-op: pass `allow` and/or `deny` (an empty filter is almost always a materialized-empty-config bug)')#空过滤器几乎总是物化空配置缺陷
         已编译={}#编译成集
         if 白名单 is not None:
             已编译['allow']=set(白名单)#白名单集
@@ -529,13 +510,13 @@ class 工具运行时(服务):
             已编译['deny']=set(黑名单)#黑名单集
         点名=list(白名单 or [])+list(黑名单 or [])#全部点名
         if 运行代码名 in 点名:
-            raise Exception('tools.restrict() cannot name reserved Code Mode presentation transport "'+运行代码名+'"; restrict end-capability tools instead')#不得限制传输
+            raise 工具错误('tools.restrict() cannot name reserved Code Mode presentation transport "'+运行代码名+'"; restrict end-capability tools instead')#不得限制传输
         已知=自身.视图(作用域)['restrictableNames']#可限制的全局名
         未知=[名 for 名 in 点名 if 名 not in 已知]#未知名
         if len(未知)>0:
             词='s' if len(未知)>1 else ''#复数
             已知文本=', '.join(sorted(已知)) or '(none)'#已知或空
-            raise Exception('tools.restrict() names unknown global tool'+词+' '+', '.join('"'+名+'"' for 名 in 未知)+'; known global tools: '+已知文本)#列出未知与已知
+            raise 工具错误('tools.restrict() names unknown global tool'+词+' '+', '.join('"'+名+'"' for 名 in 未知)+'; known global tools: '+已知文本)#列出未知与已知
         def 追加(层):
             """追加限制。"""
             return 层.限制.追加(已编译)#追加
@@ -553,7 +534,7 @@ class 工具运行时(服务):
         全局原因=自身.层集.全局.守卫原因(执行)#先全局
         if 全局原因 is not None:
             return 全局原因#全局拒绝
-        if 取字段(执行,'agent') is None:
+        if 'agent' not in 执行 or 执行['agent'] is None:
             return None#无智能体则无作用域链
         for 层 in 自身.层集.链上层(执行['agent']):
             原因=层.守卫原因(执行)#本层守卫
@@ -614,7 +595,7 @@ class 工具运行时(服务):
                 continue#排除传输自身
             输出=快照json值(定义['output']['schema'])#输出模式快照
             if 输出 is None:
-                raise Exception('tool "'+定义['name']+'" output schema must be lossless JSON before SDK projection')#必须无损
+                raise 工具错误('tool "'+定义['name']+'" output schema must be lossless JSON before SDK projection')#必须无损
             项=自身.投影模式(定义,True)#模型字段
             项['output']=输出#规范输出模式
             结果.append(项)#收下
@@ -627,13 +608,13 @@ class 工具运行时(服务):
         参数=定义['parameters']#参数
         脱离=快照json值(参数) if 脱离参数 else 参数#可选脱离
         if 脱离 is None:
-            raise Exception('tool "'+名+'" parameters must be lossless JSON before schema projection')#必须无损
+            raise 工具错误('tool "'+名+'" parameters must be lossless JSON before schema projection')#必须无损
         return {'name':名,'description':描述,'parameters':脱离}#模型模式
 
     def 执行模式(自身,执行输入):
         """经调用方可见工具定义给待处理调用分类。"""
-        工具=自身.解析可执行(执行输入['name'],取字段(执行输入,'agent'),取字段(执行输入,'parent') is not None)#可执行定义
-        if 工具 is None or not 取字段(工具,'isConcurrencySafe'):
+        工具=自身.解析可执行(执行输入['name'],执行输入['agent'] if 'agent' in 执行输入 else None,'parent' in 执行输入 and 执行输入['parent'] is not None)#可执行定义
+        if 工具 is None or 'isConcurrencySafe' not in 工具 or not 工具['isConcurrencySafe']:
             return {'kind':'exclusive'}#无分类器则独占
         try:
             并发安全=工具['isConcurrencySafe'](执行输入['arguments'])#求值
@@ -647,9 +628,9 @@ class 工具运行时(服务):
             """默认原样内容。"""
             return 派发['content']#原样
         try:
-            return 解开(自身.ctx.waterfall(作用域目标(自身,取字段(派发,'agent')),'tools/code-dispatch-log',派发,默认内容))#按智能体过滤
+            return 自身.ctx.链式拦截(作用域目标(自身,派发['agent'] if 'agent' in 派发 else None),'tools/code-dispatch-log',派发,默认内容)#按智能体过滤
         except Exception as 错误:
-            自身.ctx.logger.warn('tools: code-dispatch-log listener failed for '+派发['name']+': '+错误消息(错误)+'; logging the original settled content')#记警告
+            自身.ctx.日志.警告('tools: code-dispatch-log listener failed for '+派发['name']+': '+错误消息(错误)+'; logging the original settled content')#记警告
             return 派发['content']#回落原始内容
 
     def 是否折叠(自身,名,作用域,嵌套):
@@ -682,12 +663,12 @@ class 工具运行时(服务):
         推迟列表=[]#本执行推迟的上下文
         令牌=铸造执行令牌()#关联令牌
         调用号=执行输入['callId']#本次调用 id
-        根调用号=取字段(执行输入,'rootCallId')#根调用
+        根调用号=执行输入['rootCallId'] if 'rootCallId' in 执行输入 else None#根调用
         if 根调用号 is None:
             根调用号=调用号#根即自身
         名=执行输入['name']#工具名
-        智能体=取字段(执行输入,'agent')#智能体
-        父=取字段(执行输入,'parent')#父令牌
+        智能体=执行输入['agent'] if 'agent' in 执行输入 else None#智能体
+        父=执行输入['parent'] if 'parent' in 执行输入 else None#父令牌
         信号=执行输入['signal']#调用方信号
         可见=自身.获取(名,智能体)#可见定义
         已折叠=可见 is not None and 自身.是否折叠(名,智能体,父 is not None)#可见但被折叠
@@ -713,7 +694,7 @@ class 工具运行时(服务):
         if 父 is not None:
             基础['parent']=父#有父才带
         捕获最终器=None#开始时快照
-        if 可见 is not None and 取字段(可见,'finalizeContent') is not None:
+        if 可见 is not None and 'finalizeContent' in 可见 and 可见['finalizeContent'] is not None:
             捕获最终器=可见['finalizeContent']#快照回调
         def 最终器():
             """按折叠/中止决定是否保留。"""
@@ -763,11 +744,11 @@ class 工具运行时(服务):
         if 自身.调用方已取消(执行):
             return 下一步({'kind':'final-result','exec':执行,'result':工具体前中止结果()})#体前中止
         try:
-            载体=作用域目标(自身,取字段(执行,'agent'))#作用域载体
+            载体=作用域目标(自身,执行['agent'] if 'agent' in 执行 else None)#作用域载体
             def 默认允许():
                 """默认允许。"""
                 return {'kind':'allow'}#允许
-            门=解开(自身.ctx.waterfall(载体,'tools/pre-execute',执行,默认允许))#预执行瀑布
+            门=自身.ctx.链式拦截(载体,'tools/pre-execute',执行,默认允许)#预执行瀑布
             if 门['kind']=='ask':
                 询问决议=自身.服务询问(执行,门)#走审批接缝
             else:
@@ -799,14 +780,14 @@ class 工具运行时(服务):
         """原始调用方信号当前是否已中止。"""
         状态=自身.取消状态.get(执行)#取消状态
         if 状态 is None:
-            raise Exception('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
+            raise 工具错误('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
         return 已中止(状态['callerSignal'])#原始信号
 
     def 取消结果(自身,执行,先前=None):
         """按工具函数体是否已开始选出的规范取消结局。"""
         状态=自身.取消状态.get(执行)#取消状态
         if 状态 is None:
-            raise Exception('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
+            raise 工具错误('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
         if 状态['bodyInvoked']:
             return 工具体后中止结果(先前)#体后中止
         return 工具体前中止结果(先前)#体前中止
@@ -815,7 +796,7 @@ class 工具运行时(服务):
         """用熔回任何环绕包装器替换的原始调用方信号派发已注册函数体。"""
         状态=自身.取消状态.get(执行)#取消状态
         if 状态 is None:
-            raise Exception('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
+            raise 工具错误('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
         包装器信号=执行['signal']#包装器信号
         熔合=熔合工具信号(状态['callerSignal'],包装器信号)#熔合调用方与包装器
         信号=熔合['signal']#熔合后信号
@@ -824,11 +805,11 @@ class 工具运行时(服务):
             return 工具体前中止结果()#体前中止
         执行['signal']=信号#函数体看见熔合信号
         try:
-            工具=自身.解析可执行(执行['name'],取字段(执行,'agent'),取字段(执行,'parent') is not None)#可执行定义
+            工具=自身.解析可执行(执行['name'],执行['agent'] if 'agent' in 执行 else None,'parent' in 执行 and 执行['parent'] is not None)#可执行定义
             if not 工具:
                 raise 工具未找到错误(执行['name'])#不可见或被折叠
             状态['bodyInvoked']=True#此后取消走 ABORTED
-            返回值=解开(工具['execute'](执行['arguments'],执行))#跑函数体
+            返回值=工具['execute'](执行['arguments'],执行)#跑函数体
             结果=自身.创建成功结果(执行,工具,返回值)#校验并渲染
             return 工具体后中止结果(结果) if 已中止(信号) else 结果#成功被中止取代
         except Exception as 错误:
@@ -840,15 +821,15 @@ class 工具运行时(服务):
     def 派发调度执行(自身,执行):
         """跑环绕派发与工具函数体。"""
         try:
-            载体=作用域目标(自身,取字段(执行,'agent'))#作用域载体
+            载体=作用域目标(自身,执行['agent'] if 'agent' in 执行 else None)#作用域载体
             def 最内层():
                 """最内层跑体。"""
                 return 自身.派发函数体(执行)#跑体
-            结果=解开(自身.ctx.waterfall(载体,'tools/execute',执行,最内层))#环绕执行瀑布
+            结果=自身.ctx.链式拦截(载体,'tools/execute',执行,最内层)#环绕执行瀑布
             已归一=自身.归一派发结果(执行,结果)#经输出约定归一
             推迟=自身.推迟上下文.get(执行)#体推迟的上下文
             if 推迟 is None:
-                raise Exception('tool registry scheduler invariant violated: unprepared execution')#未准备
+                raise 工具错误('tool registry scheduler invariant violated: unprepared execution')#未准备
             if len(推迟)==0:
                 带推迟=已归一#原样
             else:
@@ -907,34 +888,25 @@ class 工具运行时(服务):
         调用号=执行['callId']#调用 id
         def 报告失败(错误):
             """收住观察者失败。"""
-            自身.ctx.logger.warn('tool "'+工具名+'" ('+str(调用号)+'): tools/result observer failed: '+错误消息(错误))#记警告
-        参数=[作用域目标(自身,取字段(执行,'agent')),'tools/result',执行,结果]#载体、事件、载荷
-        回调们=list(自身.ctx.events.dispatch('emit',参数))#取出 emit 回调
-        for 回调 in 回调们:
+            自身.ctx.日志.警告('tool "'+工具名+'" ('+str(调用号)+'): tools/result observer failed: '+错误消息(错误))#记警告
+        参数=[作用域目标(自身,执行['agent'] if 'agent' in 执行 else None),'tools/result',执行,结果]#载体、事件、载荷
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        回调列表=list(获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数))#逐个监听器
+        for 回调 in 回调列表:
             try:
-                返回=回调(执行,结果)#调用观察者
-                if 是否thenable(返回):
-                    def 盯住(任务=返回):
-                        """收住返回 Promise 拒绝。"""
-                        try:
-                            任务.等待()#等待
-                        except Exception as 错误:
-                            报告失败(错误)#记警告
-                    线程=threading.Thread(target=盯住)#后台观察
-                    线程.daemon=True#不挡住退出
-                    线程.start()#启动
+                回调(执行,结果)#观察者已是同步回调
             except Exception as 错误:
-                报告失败(错误)#记警告
+                报告失败(错误)#观察者可抛任意异常，收住后记警告
 
     def 服务询问(自身,执行,询问):
         """经审批接缝把 ask 决策解析成允许/拒绝。"""
-        审批=自身.ctx.get('approval')#可选审批服务
+        审批=自身.ctx.获取服务('approval')#可选审批服务
         if 审批 is None:
             return {
-                'decision':{'kind':'deny','reason':取字段(询问,'reason') or ('tool "'+执行['name']+'" requires approval (not yet supported)')},#缺审批通道
+                'decision':{'kind':'deny','reason':询问['reason'] if 'reason' in 询问 and 询问['reason'] is not None else ('tool "'+执行['name']+'" requires approval (not yet supported)')},#缺审批通道
                 'approvalCancelled':False,#不是取消
             }#降级拒绝
-        if 取字段(执行,'agent') is None:
+        if 'agent' not in 执行 or 执行['agent'] is None:
             return {
                 'decision':{'kind':'deny','reason':'tool "'+执行['name']+'" requires approval, but the call has no agent to route it through'},#无处路由
                 'approvalCancelled':False,#不是取消
@@ -945,9 +917,9 @@ class 工具运行时(服务):
             'callId':执行['callId'],#调用 id
             'signal':执行['signal'],#取消信号
         }#审批请求
-        if 取字段(询问,'reason') is not None:
+        if 'reason' in 询问 and 询问['reason'] is not None:
             请求['reason']=询问['reason']#可选原因
-        结局=解开(审批.request(请求))#请求一次审批
+        结局=审批.request(请求)#请求一次审批
         if 结局=='allowed-once':
             return {'decision':{'kind':'allow'},'approvalCancelled':False}#允许一次
         if 结局=='rejected':
@@ -963,7 +935,7 @@ class 工具运行时(服务):
         def 默认接受():
             """默认接受。"""
             return {'kind':'accept'}#接受
-        决策=解开(自身.ctx.waterfall(作用域目标(自身,取字段(执行,'agent')),'tools/post-execute',执行,结果,默认接受))#后执行瀑布
+        决策=自身.ctx.链式拦截(作用域目标(自身,执行['agent'] if 'agent' in 执行 else None),'tools/post-execute',执行,结果,默认接受)#后执行瀑布
         决策上下文=决策.get('additionalContexts') or []#决策附带上下文
         if 决策['kind']=='block':
             消息=从内容取失败消息(决策['feedback'])#从反馈取消息
@@ -975,13 +947,13 @@ class 工具运行时(服务):
             if len(决策上下文)>0:
                 失败['additionalContexts']=决策上下文#只带挡住决策的上下文
             return 自身.标记规范(执行,失败)#挡住
-        if 有自有(决策,'content') and 有自有(决策,'value'):
+        if 'content' in 决策 and 'value' in 决策:
             raise TypeError('tools/post-execute accept decision cannot replace both value and content')#不得同时替换
         附加=list(结果.get('additionalContexts') or [])+list(决策上下文)#体的加决策的
-        if 有自有(决策,'value'):
+        if 'value' in 决策:
             if 结果['isError']:
                 raise TypeError('tools/post-execute cannot replace the value of a failed result')#失败不能换值
-            工具=自身.解析可执行(执行['name'],取字段(执行,'agent'),取字段(执行,'parent') is not None)#可执行定义
+            工具=自身.解析可执行(执行['name'],执行['agent'] if 'agent' in 执行 else None,'parent' in 执行 and 执行['parent'] is not None)#可执行定义
             if 工具 is None:
                 raise 工具未找到错误(执行['name'])#不可见
             替换=自身.创建成功结果(执行,工具,决策['value'])#按输出约定重投影
@@ -1016,7 +988,7 @@ class 工具运行时(服务):
             raise 投影失败(工具['name'],'render',错误)#转输出错误
         内容=快照投影(工具['name'],'render',已渲染)#快照内容
         元数据=None#呈现元数据
-        if 取字段(执行,'parent') is None and 取字段(工具['output'],'presentationMeta') is not None:
+        if ('parent' not in 执行 or 执行['parent'] is None) and 'presentationMeta' in 工具['output'] and 工具['output']['presentationMeta'] is not None:
             try:
                 已投影=工具['output']['presentationMeta'](执行['arguments'],值)#纯投影
             except Exception as 错误:
@@ -1044,26 +1016,26 @@ class 工具运行时(服务):
                 'error':结果['error'],#失败细节
                 'content':结果['content'],#内容
             }#拷贝字段
-            if 有自有(结果,'meta'):
+            if 'meta' in 结果:
                 失败['meta']=结果['meta']#可选元数据
-            if 有自有(结果,'additionalContexts'):
+            if 'additionalContexts' in 结果:
                 失败['additionalContexts']=结果['additionalContexts']#可选上下文
             return 自身.标记规范(执行,失败)#标记为本派发
-        工具=自身.解析可执行(执行['name'],取字段(执行,'agent'),取字段(执行,'parent') is not None)#可执行定义
+        工具=自身.解析可执行(执行['name'],执行['agent'] if 'agent' in 执行 else None,'parent' in 执行 and 执行['parent'] is not None)#可执行定义
         if 工具 is None:
             raise 工具未找到错误(执行['name'])#不可见
         已归一=自身.创建成功结果(执行,工具,结果['value'])#按输出约定重投影
         合并=dict(已归一)#新成功
-        if 有自有(结果,'additionalContexts'):
+        if 'additionalContexts' in 结果:
             合并['additionalContexts']=结果['additionalContexts']#保留包装器上下文
         return 自身.标记规范(执行,合并)#标记
 
     def 物化最终结果(自身,结果):
         """在 tools/result 之前把权威提交结局物化一次。"""
         呈现={'content':结果['content']}#耐久呈现字段
-        if 有自有(结果,'meta'):
+        if 'meta' in 结果:
             呈现['meta']=结果['meta']#可选元数据
-        if 有自有(结果,'additionalContexts'):
+        if 'additionalContexts' in 结果:
             呈现['additionalContexts']=结果['additionalContexts']#可选上下文
         if 结果['isError']:
             失败={'isError':True,'error':结果['error']}#失败不含 value
@@ -1078,5 +1050,6 @@ class 工具运行时(服务):
         合并['value']=结果['value']#再并入执行局部 value
         return 深冻结(合并)#冻结
 
-默认=工具运行时#默认导出运行时
-default=工具运行时#Cordis 默认导出槽（不入 __all__）
+工具运行时.inject=工具运行时.注入#Cordis 依赖声明槽
+工具运行时.Config=工具运行时.配置#Cordis Config 槽
+default=工具运行时#Cordis 默认导出槽

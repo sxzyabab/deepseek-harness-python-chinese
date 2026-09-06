@@ -1,0 +1,13 @@
+{
+    "close":"关闭",
+    "downlink":"下行",
+    "event":"事件",
+    "frame":"帧",
+    "host":"宿主",
+    "mux":"复用",
+    "pump":"泵",
+    "reject":"拒绝",
+    "socket":"套接字",
+    "upgrade":"升级",
+    "websocket":"网页套接字"
+}

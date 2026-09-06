@@ -1,5 +1,5 @@
 """持久提供方报告 token 用量与上下文占用的纯折叠。对齐上游 `token-meter/src/usage-projection.ts`。公开面仅中文名。"""
-from .类型 import 取,试取#读取字段
+from .类型 import 计量错误#计量异常
 from .表面投影 import 折叠表面投影#O(1)表面折叠
 
 __all__=['用量投影定义','压力投影定义']#仅中文公开名
@@ -9,12 +9,12 @@ def 空用量桶():#空用量桶
     return {'uncachedInputTokens':0,'outputTokens':0,'cacheReadTokens':0,'cacheWriteTokens':0}#四个桶为零
 
 def 拆用量桶(用量):
-    """从提供方用量拆桶。"""
-    缓存读=试取(用量,'cacheReadTokens')#缓存读
-    缓存写=试取(用量,'cacheWriteTokens')#缓存写
+    """从提供方用量拆桶。用量为 dict。"""
+    缓存读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 else None#缓存读
+    缓存写=用量['cacheWriteTokens'] if 'cacheWriteTokens' in 用量 else None#缓存写
     return {
-        'uncachedInputTokens':取(用量,'inputTokens'),#未缓存输入
-        'outputTokens':取(用量,'outputTokens'),#输出含推理
+        'uncachedInputTokens':用量['inputTokens'],#未缓存输入
+        'outputTokens':用量['outputTokens'],#输出含推理
         'cacheReadTokens':0 if 缓存读 is None else 缓存读,#缺省0
         'cacheWriteTokens':0 if 缓存写 is None else 缓存写,#缺省0
     }#拆桶结束
@@ -41,36 +41,24 @@ def 替换累加(累计,旧桶,新桶):
         'cacheWriteTokens':累计['cacheWriteTokens']-旧写+新桶['cacheWriteTokens'],#替换缓存写
     }#新累计
 
-def 是否非负整数(值):
-    """值为非负整数（含 1.0）时为真。"""
-    if isinstance(值,bool) or not isinstance(值,(int,float)):#不是数字
-        return False#拒绝
-    return 值==int(值) and 值>=0#整数且非负
-
-def 是否正整数(值):
-    """值为正整数（含 1.0）时为真。"""
-    if isinstance(值,bool) or not isinstance(值,(int,float)):#不是数字
-        return False#拒绝
-    return 值==int(值) and 值>0#整数且为正
-
 class 用量视图模式:
     """用量投影线路载荷模式。"""
     @staticmethod
     def parse(值):
-        """校验四个非负整数桶。"""
+        """校验四个非负整数桶。值必须是 dict。"""
         if not isinstance(值,dict):#必须是对象
-            raise Exception('tokenUsage view must be an object')#拒绝
+            raise 计量错误('tokenUsage view must be an object')#拒绝
         需要=('uncachedInputTokens','outputTokens','cacheReadTokens','cacheWriteTokens')#四个桶
         for 键 in 值:#自有键
             if 键 not in 需要:#未知键
-                raise Exception(f'tokenUsage view unknown key "{键}"')#严格
+                raise 计量错误('tokenUsage view unknown key "'+键+'"')#严格
         结果={}#输出
         for 键 in 需要:#逐桶
             if 键 not in 值:#缺键
-                raise Exception(f'tokenUsage view missing key "{键}"')#必填
+                raise 计量错误('tokenUsage view missing key "'+键+'"')#必填
             数字=值[键]#桶值
-            if not 是否非负整数(数字):#非法
-                raise Exception(f'tokenUsage view {键} must be a nonnegative integer')#非负整数
+            if isinstance(数字,bool) or not isinstance(数字,(int,float)) or 数字!=int(数字) or 数字<0:#入口校验非负整数，先排除 bool
+                raise 计量错误('tokenUsage view '+键+' must be a nonnegative integer')#非负整数
             结果[键]=int(数字)#收成int
         return 结果#校验后的视图
 
@@ -78,38 +66,37 @@ class 压力视图模式:
     """压力投影线路载荷模式。"""
     @staticmethod
     def parse(值):
-        """校验可选压力字段。"""
+        """校验可选压力字段。值必须是 dict。"""
         if not isinstance(值,dict):#必须是对象
-            raise Exception('contextPressure view must be an object')#拒绝
-        允许={
-            'pressureTokens':是否非负整数,#最近请求压力
-            'projectedTokens':是否非负整数,#投影下一次
-            'contextWindow':是否正整数,#窗口
-        }#允许键
+            raise 计量错误('contextPressure view must be an object')#拒绝
         结果={}#输出
         for 键 in 值:#自有键
-            if 键 not in 允许:#未知键
-                raise Exception(f'contextPressure view unknown key "{键}"')#严格
+            if 键 not in ('pressureTokens','projectedTokens','contextWindow'):#未知键
+                raise 计量错误('contextPressure view unknown key "'+键+'"')#严格
             数字=值[键]#字段值
-            if not 允许[键](数字):#非法
-                raise Exception(f'contextPressure view {键} invalid')#类型或范围
+            if 键=='contextWindow':#窗口必须为正整数
+                if isinstance(数字,bool) or not isinstance(数字,(int,float)) or 数字!=int(数字) or 数字<=0:#入口校验正整数，先排除 bool
+                    raise 计量错误('contextPressure view '+键+' invalid')#类型或范围
+            else:#压力与投影必须为非负整数
+                if isinstance(数字,bool) or not isinstance(数字,(int,float)) or 数字!=int(数字) or 数字<0:#入口校验非负整数，先排除 bool
+                    raise 计量错误('contextPressure view '+键+' invalid')#类型或范围
             结果[键]=int(数字)#收成int
         return 结果#校验后的视图
 
 def 提示词压力(用量):
-    """一次请求的提示词侧压力：输入加缓存流量，不含输出。"""
-    缓存读=试取(用量,'cacheReadTokens')#缓存读
-    缓存写=试取(用量,'cacheWriteTokens')#缓存写
-    return 取(用量,'inputTokens')+(0 if 缓存读 is None else 缓存读)+(0 if 缓存写 is None else 缓存写)#输入加缓存读写
+    """一次请求的提示词侧压力：输入加缓存流量，不含输出。用量为 dict。"""
+    缓存读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 else None#缓存读
+    缓存写=用量['cacheWriteTokens'] if 'cacheWriteTokens' in 用量 else None#缓存写
+    return 用量['inputTokens']+(0 if 缓存读 is None else 缓存读)+(0 if 缓存写 is None else 缓存写)#输入加缓存读写
 
 def 事件用量(事件):
-    """一块或一条定稿消息为其步报告的用量（若有）。"""
-    种类=取(事件,'type')#事件类型
-    数据=取(事件,'data')#载荷
-    if 种类=='assistant/chunk' and 取(取(数据,'chunk'),'type')=='usage':#用量块
-        return 取(取(数据,'chunk'),'usage')#块上的用量
+    """一块或一条定稿消息为其步报告的用量（若有）。事件为 dict。"""
+    种类=事件['type']#事件类型
+    数据=事件['data']#载荷
+    if 种类=='assistant/chunk' and 数据['chunk']['type']=='usage':#用量块
+        return 数据['chunk']['usage']#块上的用量
     if 种类=='assistant/message':#助手消息
-        return 试取(数据,'usage')#消息上的用量
+        return 数据['usage'] if 'usage' in 数据 else None#消息上的用量
     return None#其余没有
 
 def 用量初态():
@@ -117,17 +104,17 @@ def 用量初态():
     return {'totals':空用量桶(),'last':None}#初态
 
 def 用量转移(状态,事件):
-    """折一条用量事件。"""
-    种类=取(事件,'type')#事件类型
-    数据=取(事件,'data')#载荷
-    if 种类=='assistant/chunk' and 取(取(数据,'chunk'),'type')=='usage':#用量块
-        回合=取(数据,'turn')#回合
-        步=取(数据,'step')#步
-        用量=取(取(数据,'chunk'),'usage')#块上用量
-    elif 种类=='assistant/message' and 试取(数据,'usage') is not None:#定稿消息带用量
-        回合=取(数据,'turn')#回合
-        步=取(数据,'step')#步
-        用量=取(数据,'usage')#消息上用量
+    """折一条用量事件。事件为 dict。"""
+    种类=事件['type']#事件类型
+    数据=事件['data']#载荷
+    if 种类=='assistant/chunk' and 数据['chunk']['type']=='usage':#用量块
+        回合=数据['turn']#回合
+        步=数据['step']#步
+        用量=数据['chunk']['usage']#块上用量
+    elif 种类=='assistant/message' and 'usage' in 数据:#定稿消息带用量
+        回合=数据['turn']#回合
+        步=数据['step']#步
+        用量=数据['usage']#消息上用量
     else:#其余事件
         return 状态#原状态
     桶=拆用量桶(用量)#拆成四个桶
@@ -157,12 +144,14 @@ def 压力初态():
     return {'surfaceTokens':0}#初态
 
 def 压力转移(状态,事件):
-    """折一条压力事件。"""
-    折叠=折叠表面投影(状态.get('claim'),事件)#折叠表面
+    """折一条压力事件。事件为 dict。"""
+    折叠=折叠表面投影(状态['claim'] if 'claim' in 状态 else None,事件)#折叠表面
     下一=状态#从当前状态出发
-    if 取(事件,'type')=='request/context':#窗口记录
-        窗口=试取(取(事件,'data'),'contextWindow')#新窗口
-        if 窗口!=状态.get('contextWindow'):#窗口变了
+    if 事件['type']=='request/context':#窗口记录
+        数据=事件['data']#载荷
+        窗口=数据['contextWindow'] if 'contextWindow' in 数据 else None#新窗口
+        旧窗口=状态['contextWindow'] if 'contextWindow' in 状态 else None#旧窗口
+        if 窗口!=旧窗口:#窗口变了
             if 窗口 is not None:#有新窗口
                 下一={**下一,'contextWindow':窗口}#写入窗口
             else:#明确去掉窗口
@@ -170,11 +159,13 @@ def 压力转移(状态,事件):
     用量=事件用量(事件)#本事件用量
     if 用量 is not None:#有用量样本
         压力=提示词压力(用量)#提示词侧压力
-        if 压力!=下一.get('pressureTokens') or 下一.get('sampledSurfaceTokens')!=下一['surfaceTokens']:#压力或采样表面变了
+        旧压力=下一['pressureTokens'] if 'pressureTokens' in 下一 else None#旧压力
+        采样表面=下一['sampledSurfaceTokens'] if 'sampledSurfaceTokens' in 下一 else None#采样表面
+        if 压力!=旧压力 or 采样表面!=下一['surfaceTokens']:#压力或采样表面变了
             下一={**下一,'pressureTokens':压力,'sampledSurfaceTokens':下一['surfaceTokens']}#在加入表面之前盖戳
     if 折叠['deltaTokens']!=0:#表面动了
         下一={**下一,'surfaceTokens':下一['surfaceTokens']+折叠['deltaTokens']}#更新表面合计
-    if 状态.get('claim') is None and 折叠['claim'] is None:#声明未变
+    if ('claim' not in 状态 or 状态['claim'] is None) and 折叠['claim'] is None:#声明未变
         return 下一#保持next
     无声明={键:值 for 键,值 in 下一.items() if 键!='claim'}#剥掉旧声明
     if 折叠['claim'] is None:#无则去掉

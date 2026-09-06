@@ -1,8 +1,11 @@
 """Code Mode 代码生成——Python 风味。把已注册工具模式纯投影成模型编程所用的 Python SDK 文本。对齐上游 `tools/src/py-types.ts`。公开面仅中文名。"""
 import json,re,unicodedata
-from .json模式 import 断言受支持json模式,转json,自有#导入统一 JSON Schema 断言
+from .json模式 import 断言受支持json模式,转json#导入统一 JSON Schema 断言
 
 __all__=('json模式转py','渲染工具sdkpy')#仅中文公开名
+
+class 类型渲染错误(Exception):
+    """内核工具类型渲染包的异常基类。"""
 
 保留字={
     'False','None','True','and','as','assert','async','await','break','class',
@@ -35,10 +38,10 @@ def 转义代理(字符):
 
 def 折叠描述(模式节点):
     """模式节点折叠成单行的 description。"""
-    描述=模式节点.get('description') if isinstance(模式节点,dict) else getattr(模式节点,'description',None)#取出描述
+    描述=模式节点['description'] if 'description' in 模式节点 else None#取出描述
     if not isinstance(描述,str):
         return None#非字符串则无
-    折叠=re.sub(r'\s+',' ',描述)#空白压成单空格
+    折叠=re.sub(r'\s+',' ',描述,count=0,flags=re.ASCII)#空白压成单空格
     折叠=不可打印.sub(转义不可打印,折叠)#Cc → \xNN
     折叠=未配对代理.sub(转义代理,折叠)#代理 → \uNNNN
     折叠=折叠.strip()#去首尾空白
@@ -125,10 +128,10 @@ def python标量(值):
 
 def 渲染受约束标量(节点,宽类型,状态):
     """把已校验标量 const/enum 渲染成 Literal，否则回落宽类型。"""
-    if 自有(节点,'const'):
+    if 'const' in 节点:
         状态['typing'].add('Literal')#需要 Literal
         return 'Literal['+python标量(节点['const'])+']'#Literal 常量
-    if 自有(节点,'enum'):
+    if 'enum' in 节点:
         状态['typing'].add('Literal')#需要 Literal
         return 'Literal['+', '.join(python标量(项) for 项 in 节点['enum'])+']'#Literal 列表
     return 宽类型#宽类型
@@ -161,137 +164,133 @@ def 是否可作typeddict字段(名称):
 
 def 渲染类型(模式节点,类名,状态):
     """把一个 JSON Schema 节点映射成 Python 类型表达式。"""
-    try:
-        断言受支持json模式(模式节点)#断言子集
-        帧列表=[建渲染帧(模式节点,类名,0)]#根帧
-        根结果=None#根类型文本
-        def 结束(类型文本):
-            """结束当前帧。"""
-            nonlocal 根结果#写根
-            帧列表.pop()#弹出
-            if len(帧列表)==0:
-                根结果=类型文本#根结果
-            else:
-                帧列表[-1]['childTypes'].append(类型文本)#交给父
-        while len(帧列表)>0:
-            帧=帧列表[-1]#当前帧
-            if 帧['phase']=='children':
-                if 帧['childIndex']<len(帧['children']):
-                    子=帧['children'][帧['childIndex']]#下一子
-                    if 子 is None:
-                        raise Exception('missing python render child')#子缺失
-                    帧['childIndex']=帧['childIndex']+1#前进
-                    帧列表.append(建渲染帧(子['schema'],子['className'],子['listDepth']))#压入子
-                    continue
-                if 帧.get('kind')=='oneOf':
-                    联合=''#累积联合
-                    下标=0#逐支
-                    for 子类型 in 帧['childTypes']:
-                        联合=子类型 if 下标==0 else 联合+' | '+子类型#惰性拼接
-                        下标+=1#前进
-                    结束(联合)#联合类型
-                    continue
-                if 帧.get('kind')=='array':
-                    元素=帧['childTypes'][0] if 帧['childTypes'] else 'Any'#元素类型
-                    结束('list['+元素+']')#list[元素]
-                    continue
-                节点=帧['node']#对象节点
-                名称=帧['allocated']#已分配名
-                if 节点 is None or 名称 is None:
-                    raise Exception('missing typeddict frame state')#状态缺失
-                必填=set(节点.get('required') or [])#必填键
-                行列表=['class '+名称+'(TypedDict):']#类头
-                下标=0#逐字段
-                while 下标<len(帧['entries']):
-                    条目=帧['entries'][下标]#字段条目
-                    字段类型=帧['childTypes'][下标] if 下标<len(帧['childTypes']) else None#已渲染类型
-                    if 条目 is None or 字段类型 is None:
-                        raise Exception('missing typeddict field type')#对齐失败
-                    字段,字段模式=条目#名与模式
-                    描述=折叠描述(字段模式)#字段描述
-                    if 描述 is not None:
-                        行列表.append(缩进前缀(1)+'# '+描述)#注释行
-                    if 字段 in 必填:
-                        行列表.append(缩进前缀(1)+字段+': '+字段类型)#裸注解
-                    else:
-                        状态['typing'].add('NotRequired')#需要 NotRequired
-                        行列表.append(缩进前缀(1)+字段+': NotRequired['+字段类型+']')#可选包装
+    断言受支持json模式(模式节点)#断言子集
+    帧列表=[建渲染帧(模式节点,类名,0)]#根帧
+    根结果=None#根类型文本
+    def 结束(类型文本):
+        """结束当前帧。"""
+        nonlocal 根结果#写根
+        帧列表.pop()#弹出
+        if len(帧列表)==0:
+            根结果=类型文本#根结果
+        else:
+            帧列表[-1]['childTypes'].append(类型文本)#交给父
+    while len(帧列表)>0:
+        帧=帧列表[-1]#当前帧
+        if 帧['phase']=='children':
+            if 帧['childIndex']<len(帧['children']):
+                子=帧['children'][帧['childIndex']]#下一子
+                if 子 is None:
+                    raise 类型渲染错误('missing python render child')#子缺失
+                帧['childIndex']=帧['childIndex']+1#前进
+                帧列表.append(建渲染帧(子['schema'],子['className'],子['listDepth']))#压入子
+                continue
+            if 帧['kind']=='oneOf':
+                联合=''#累积联合
+                下标=0#逐支
+                for 子类型 in 帧['childTypes']:
+                    联合=子类型 if 下标==0 else 联合+' | '+子类型#惰性拼接
                     下标+=1#前进
-                if 节点.get('additionalProperties') is not False:
-                    行列表.append(缩进前缀(1)+'# Additional keys beyond those declared are allowed.')#开放说明
-                if len(行列表)==1:
-                    行列表.append(缩进前缀(1)+'pass')#空体
-                状态['classes'].append('\n'.join(行列表))#收下类声明
-                结束(名称)#类型就是类名
+                结束(联合)#联合类型
                 continue
-            帧['phase']='children'#转为处理子
-            节点=帧['schema']#本节点
-            if 节点.get('oneOf') is not None:
-                帧['kind']='oneOf'#联合帧
-                子列表=[]#各支
-                支下标=0#下标从 0
-                for 支 in 节点['oneOf']:
-                    子列表.append({'schema':支,'className':子类名基(帧['className'],str(支下标+1)),'listDepth':帧['listDepth']})#各支
-                    支下标+=1#前进
-                帧['children']=子列表#各支
+            if 帧['kind']=='array':
+                元素=帧['childTypes'][0] if len(帧['childTypes'])>0 else 'Any'#元素类型
+                结束('list['+元素+']')#list[元素]
                 continue
-            if not 自有(节点,'type'):
+            节点=帧['node']#对象节点
+            名称=帧['allocated']#已分配名
+            if 节点 is None or 名称 is None:
+                raise 类型渲染错误('missing typeddict frame state')#状态缺失
+            必填=set(节点['required'] if 'required' in 节点 else [])#必填键
+            行列表=['class '+名称+'(TypedDict):']#类头
+            下标=0#逐字段
+            while 下标<len(帧['entries']):
+                条目=帧['entries'][下标]#字段条目
+                字段类型=帧['childTypes'][下标] if 下标<len(帧['childTypes']) else None#已渲染类型
+                if 条目 is None or 字段类型 is None:
+                    raise 类型渲染错误('missing typeddict field type')#对齐失败
+                字段,字段模式=条目#名与模式
+                描述=折叠描述(字段模式)#字段描述
+                if 描述 is not None:
+                    行列表.append(缩进前缀(1)+'# '+描述)#注释行
+                if 字段 in 必填:
+                    行列表.append(缩进前缀(1)+字段+': '+字段类型)#裸注解
+                else:
+                    状态['typing'].add('NotRequired')#需要 NotRequired
+                    行列表.append(缩进前缀(1)+字段+': NotRequired['+字段类型+']')#可选包装
+                下标+=1#前进
+            if 'additionalProperties' not in 节点 or 节点['additionalProperties'] is not False:
+                行列表.append(缩进前缀(1)+'# Additional keys beyond those declared are allowed.')#开放说明
+            if len(行列表)==1:
+                行列表.append(缩进前缀(1)+'pass')#空体
+            状态['classes'].append('\n'.join(行列表))#收下类声明
+            结束(名称)#类型就是类名
+            continue
+        帧['phase']='children'#转为处理子
+        节点=帧['schema']#本节点
+        if 'oneOf' in 节点:
+            帧['kind']='oneOf'#联合帧
+            子列表=[]#各支
+            支下标=0#下标从 0
+            for 支 in 节点['oneOf']:
+                子列表.append({'schema':支,'className':子类名基(帧['className'],str(支下标+1)),'listDepth':帧['listDepth']})#各支
+                支下标+=1#前进
+            帧['children']=子列表#各支
+            continue
+        if 'type' not in 节点:
+            状态['typing'].add('Any')#需要 Any
+            结束('Any')#任意
+            continue
+        类型名=节点['type']#按类型
+        if 类型名=='string':
+            结束(渲染受约束标量(节点,'str',状态))#字符串
+        elif 类型名=='number':
+            结束(渲染受约束标量(节点,'float',状态))#浮点
+        elif 类型名=='integer':
+            结束(渲染受约束标量(节点,'int',状态))#整数
+        elif 类型名=='boolean':
+            结束(渲染受约束标量(节点,'bool',状态))#布尔
+        elif 类型名=='null':
+            结束('None')#None
+        elif 类型名=='array':
+            if 'items' not in 节点:
                 状态['typing'].add('Any')#需要 Any
-                结束('Any')#任意
-                continue
-            类型名=节点['type']#按类型
-            if 类型名=='string':
-                结束(渲染受约束标量(节点,'str',状态))#字符串
-            elif 类型名=='number':
-                结束(渲染受约束标量(节点,'float',状态))#浮点
-            elif 类型名=='integer':
-                结束(渲染受约束标量(节点,'int',状态))#整数
-            elif 类型名=='boolean':
-                结束(渲染受约束标量(节点,'bool',状态))#布尔
-            elif 类型名=='null':
-                结束('None')#None
-            elif 类型名=='array':
-                if not 自有(节点,'items'):
-                    状态['typing'].add('Any')#需要 Any
-                    结束('list[Any]')#任意元素列表
-                elif 帧['listDepth']>=列表嵌套上限:
-                    状态['typing'].add('Any')#需要 Any
-                    结束('Any')#降级
-                else:
-                    帧['kind']='array'#数组帧
-                    帧['children']=[{'schema':节点['items'],'className':帧['className'],'listDepth':帧['listDepth']+1}]#一个子
-            elif 类型名=='object':
-                条目列表=list((节点.get('properties') or {}).items())#属性条目
-                全部可字段=True#能否具名 TypedDict
-                for 字段名,子模式 in 条目列表:
-                    if not 是否可作typeddict字段(字段名):
-                        全部可字段=False#无法具名
-                        break
-                if 类名=='' or not 全部可字段:
-                    状态['typing'].add('Any')#需要 Any
-                    结束('dict[str, Any]')#降级字典
-                elif len(条目列表)==0 and 节点.get('additionalProperties') is not False:
-                    状态['typing'].add('Any')#需要 Any
-                    结束('dict[str, Any]')#任意字典
-                else:
-                    帧['kind']='typeddict'#具名 TypedDict
-                    帧['node']=节点#对象节点
-                    帧['allocated']=分配类名(帧['className'],状态)#分配类名
-                    状态['typing'].add('TypedDict')#需要 TypedDict
-                    帧['entries']=条目列表#字段表
-                    子列表=[]#字段子
-                    for 字段,子模式 in 条目列表:
-                        子列表.append({'schema':子模式,'className':子类名基(帧['allocated'] or '',驼峰(字段)),'listDepth':1})#字段子
-                    帧['children']=子列表#字段子
+                结束('list[Any]')#任意元素列表
+            elif 帧['listDepth']>=列表嵌套上限:
+                状态['typing'].add('Any')#需要 Any
+                结束('Any')#降级
             else:
+                帧['kind']='array'#数组帧
+                帧['children']=[{'schema':节点['items'],'className':帧['className'],'listDepth':帧['listDepth']+1}]#一个子
+        elif 类型名=='object':
+            条目列表=list((节点['properties'] if 'properties' in 节点 else {}).items())#属性条目
+            全部可字段=True#能否具名 TypedDict
+            for 字段名,子模式 in 条目列表:
+                if not 是否可作typeddict字段(字段名):
+                    全部可字段=False#无法具名
+                    break
+            if 类名=='' or not 全部可字段:
                 状态['typing'].add('Any')#需要 Any
-                结束('Any')#未知类型
-        if 根结果 is None:
-            return 'Any'#根类型或回落
-        return 根结果#根类型
-    except Exception:
-        状态['typing'].add('Any')#需要 Any
-        return 'Any'#降级
+                结束('dict[str, Any]')#降级字典
+            elif len(条目列表)==0 and ('additionalProperties' not in 节点 or 节点['additionalProperties'] is not False):
+                状态['typing'].add('Any')#需要 Any
+                结束('dict[str, Any]')#任意字典
+            else:
+                帧['kind']='typeddict'#具名 TypedDict
+                帧['node']=节点#对象节点
+                帧['allocated']=分配类名(帧['className'],状态)#分配类名
+                状态['typing'].add('TypedDict')#需要 TypedDict
+                帧['entries']=条目列表#字段表
+                子列表=[]#字段子
+                for 字段,子模式 in 条目列表:
+                    子列表.append({'schema':子模式,'className':子类名基(帧['allocated'] or '',驼峰(字段)),'listDepth':1})#字段子
+                帧['children']=子列表#字段子
+        else:
+            状态['typing'].add('Any')#需要 Any
+            结束('Any')#未知类型
+    if 根结果 is None:
+        return 'Any'#根类型或回落
+    return 根结果#根类型
 
 def json模式转py(模式节点):
     """把一个 JSON Schema 节点映射成来自 typing 模块的无上下文 Python 类型表达式。"""
@@ -322,11 +321,11 @@ def 渲染工具sdkpy(模式列表):
         输出类型=渲染类型(模式项['output'],驼峰(模式项['name'])+'Output',状态)#输出类型
         名称=模式项['name']#工具名
         if 是否裸标识符(名称) and 名称 not in 保留字 and not 名称.startswith('_'):
-            文档=文档行(模式项.get('description'),2)#方法文档
+            文档=文档行(模式项['description'] if 'description' in 模式项 else None,2)#方法文档
             if len(文档)>0:
-                成员.append(缩进前缀(1)+'async def '+名称+'(self, args: '+参数类型+') -> '+输出类型+':')#有文档则文档即方法体
+                成员.append(缩进前缀(1)+'def '+名称+'(self, args: '+参数类型+') -> '+输出类型+':')#有文档则文档即方法体
             else:
-                成员.append(缩进前缀(1)+'async def '+名称+'(self, args: '+参数类型+') -> '+输出类型+': ...')#无文档用 ...
+                成员.append(缩进前缀(1)+'def '+名称+'(self, args: '+参数类型+') -> '+输出类型+': ...')#无文档用 ...
             成员.extend(文档)#文档行（若有）
             语句数+=1#计一条方法
         else:

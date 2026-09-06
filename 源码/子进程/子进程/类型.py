@@ -74,7 +74,7 @@ class 一次读取(TypedDict):#一次增量读取结果
     lossy:bool#请求的偏移已滑出内存尾窗口时为真
     spillPath:NotRequired[str]#完整流溢出文件路径（若已创建且仍完整）
 
-输出读取器字段=('readFrom',)#一路已收集输出流的无游标增量访问（载荷键字面量）
+输出读取器字段=('自偏移读取',)#一路已收集输出流的无游标增量访问
 class 输出读取器:#一路已收集输出流的无游标增量访问
     """偏移是调用方拥有的整路流字节坐标，独立读取器不会互相消费输出。"""
     def 自偏移读取(自身,起始字节):#从指定整路流偏移读取
@@ -86,12 +86,11 @@ class 收集输出集合(TypedDict):#收集模式输出集合
     stdout:NotRequired[object]#当且仅当 stdout 是收集模式时存在
     stderr:NotRequired[object]#当且仅当 stderr 是收集模式时存在
 
-句柄字段=('pid','stdin','stdout','stderr','collected','done','terminate','waitForExit')#一棵自己的进程树里的存活子进程
+句柄字段=('pid','stdin','stdout','stderr','collected','done','终止','等待退出')#一棵自己的进程树里的存活子进程
 class 句柄:#存活子进程句柄协议
     """收集输出在退出后仍可读；管道流属于调用方。终止处处按树范围。
 
     数据字段名对齐上游 SubprocessHandle；方法仅中文：终止、等待退出。
-    dict 形态句柄若仍带 terminate/waitForExit/readFrom 键，属提供方迁移债。
     """
     pid=None#进程 id（树根）；spawn 本身失败时为 -1
     stdin=None#子的 stdin，当且仅当以 stdin:pipe 启动时存在
@@ -125,7 +124,7 @@ class 前台组(TypedDict):#终端当前前台进程组事实
     processGroupId:int#终端驱动发布的前台进程组 id
     inputWaiting:bool#提供方当前能否证明该组正在等待终端输入
 
-终端句柄字段=('pid','output','done','write','inspectForeground','signalForeground','terminate')#一个存活终端进程及其拥有的操作系统会话
+终端句柄字段=('pid','output','done','写入','检查前台','发信号前台','终止')#一个存活终端进程及其拥有的操作系统会话
 class 终端句柄:#存活终端句柄协议
     """终端分配、前台组检查/发信号、会话树清理是同一深层子进程原语。
 

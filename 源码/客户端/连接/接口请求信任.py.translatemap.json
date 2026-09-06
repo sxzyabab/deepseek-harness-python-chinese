@@ -1,0 +1,14 @@
+{
+    "api":"接口",
+    "assert":"断言",
+    "authority":"权威",
+    "cross":"跨",
+    "error":"错误",
+    "header":"头",
+    "host":"宿主",
+    "loopback":"回环",
+    "origin":"源",
+    "request":"请求",
+    "site":"站",
+    "trust":"信任"
+}

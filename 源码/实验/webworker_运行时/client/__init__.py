@@ -54,12 +54,14 @@ def 选择工作线程宿主源(选项=None):#选择来源
     if 选项 is None:#缺省
         选项={}#空
     扣住工作线程宿主boot()#先扣住
-    镜像=选项.get('image') or 镜像文件名#镜像位置
-    清单=选项.get('fixtureManifest') or 预览fixture清单文件#目录位置
+    镜像=选项.get('image')#镜像位置
+    if 镜像 is None: 镜像=镜像文件名#??默认镜像，空串合法
+    清单=选项.get('fixtureManifest')#fixture 清单
+    if 清单 is None: 清单=预览fixture清单文件#??默认清单，空串合法
     try:#选择
         覆盖层=选择预览源(清单)#用户选择
         return {'overlays':覆盖层}#返回
-    except Exception as 原因:#失败
+    except Exception as 原因:#选择预览源可能抛 IO/解析/UI 错误，契约未定所以收不窄
         boot就绪屏障()['reject'](原因)#结算失败
         raise#继续抛出
 
@@ -77,8 +79,10 @@ def 连接工作线程宿主(工作线程,选项=None):#连接宿主
     就绪=boot就绪屏障()#取屏障
     try:#握手
         隧道=工作线程隧道(工作线程)#建隧道
-        镜像=选项.get('image') or 镜像文件名#镜像
-        覆盖层=选项.get('overlays') or []#overlays
+        镜像=选项.get('image')#镜像
+        if 镜像 is None: 镜像=镜像文件名#??默认镜像，空串合法
+        覆盖层=选项.get('overlays')#overlays
+        if 覆盖层 is None: 覆盖层=[]#??空列表，空 overlays 合法
         隧道.初始化(镜像,[str(层) for 层 in 覆盖层])#开局init
         载荷=隧道.boot载荷()#等boot载荷
         全局=globals()#全局
@@ -91,6 +95,6 @@ def 连接工作线程宿主(工作线程,选项=None):#连接宿主
         应用索引注入(载荷['injections'],隧道.加载束)#执行注入表
         就绪['resolve']()#结算就绪
         return {'worker':工作线程,'tunnel':隧道,'loadBundle':隧道.加载束}#返回连接
-    except Exception as 原因:#握手失败
+    except Exception as 原因:#隧道握手可能抛连接/解码/注入错误，契约未定所以收不窄
         就绪['reject'](原因)#结算失败
         raise#继续抛出

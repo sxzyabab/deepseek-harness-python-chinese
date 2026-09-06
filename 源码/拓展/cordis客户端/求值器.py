@@ -89,32 +89,32 @@ def 标记控制台(插件标识,记下错误=None):#带标记的直通控制台
     }#结束
 
 class 动态样式:#按包 style 标签记账（语义面，无 DOM）
-    """insert/dispose；真实 DOM 挂载需浏览器 `document.createElement('style')`。"""
+    """插入/拆除；真实 DOM 挂载需浏览器 `document.createElement('style')`。"""
     def __init__(自身,插件标识):#构造
         """记下所有者。"""
         自身.插件标识=插件标识#id
-        自身.标签们=[]#本包仍拥有的 CSS 文本记账（Python 半用字符串代替 HTMLStyleElement）
+        自身.标签列表=[]#本包仍拥有的 CSS 文本记账（Python 半用字符串代替 HTMLStyleElement）
 
     def 插入(自身,样式文本):#插入样式
         """需要 CSS 字符串；返回拆除器。"""
         if not isinstance(样式文本,str):#非串
             raise Exception('styles.insert(css) needs a CSS string')#错
-        自身.标签们.append(样式文本)#记账
-        下标=len(自身.标签们)-1#位置
+        自身.标签列表.append(样式文本)#记账
+        下标=len(自身.标签列表)-1#位置
         def 拆除():#拆除器
             """从记账拿掉。"""
-            if 0<=下标<len(自身.标签们):#仍在
-                自身.标签们[下标]=None#置空
+            if 0<=下标<len(自身.标签列表):#仍在
+                自身.标签列表[下标]=None#置空
         return 拆除#拆除器
 
     @property
     def 数量(自身):#标签数
         """仍拥有的条数。"""
-        return sum(1 for t in 自身.标签们 if t is not None)#计数
+        return sum(1 for 样式文本 in 自身.标签列表 if 样式文本 is not None)#计数
 
     def 拆除全部(自身):#卸载路径
         """清空记账。"""
-        自身.标签们.clear()#清
+        自身.标签列表.clear()#清
 
 def 是否动态插件(值):#是否可挂载
     """函数，或带 apply 的对象。"""

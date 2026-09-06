@@ -4,6 +4,7 @@ worker 用平台自带解压器 inflate，再让 tar 读取器见到字节——
 
 对齐上游 `webworker-runtime/src/storage/image-gzip.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 import gzip#gzip解压
 
 __all__=['流式解压镜像','解压镜像']#仅中文公开名
@@ -11,9 +12,9 @@ __all__=['流式解压镜像','解压镜像']#仅中文公开名
 gzip魔术=(0x1f,0x8b)#gzip成员识别字节（RFC 1952 §2.3.1）
 引用字节数=8#拒绝正文时引用的字节数
 
-def 十六进制预览(字节们):#十六进制预览
+def 十六进制预览(字节序列):#十六进制预览
     """前若干字节的十六进制预览。"""
-    return ' '.join(f'{字节:02x}' for 字节 in 字节们[:引用字节数])#空格分隔
+    return ' '.join(f'{字节:02x}' for 字节 in 字节序列[:引用字节数])#空格分隔
 
 def 拒绝正文(来源,已读):#构造拒绝错误
     """构造非 gzip 成员正文的拒绝错误。"""
@@ -63,17 +64,17 @@ def 流式解压镜像(正文流,来源):#流式解压
     已校验=b''.join(要求gzip成员(来源,正文流))#先校验魔术并收齐
     return gzip.decompress(已校验)#gzip解压
 
-def 解压镜像(字节们,来源):#缓冲解压入口
+def 解压镜像(字节序列,来源):#缓冲解压入口
     """inflate 驻于内存的打包 VFS 镜像。
 
     字节变成正文，使两个入口跑同一条流：一条解压路径、一次拒绝，
     不论镜像来自网络还是调用方缓冲。
 
     参数:
-        字节们: 镜像字节。
+        字节序列: 镜像字节。
     返回:
         镜像携带的 ustar 归档。
     """
-    if 字节们 is None or len(字节们)==0:#无正文
-        raise Exception(f'webworker image: {来源} produced no readable body')#无正文
-    return 流式解压镜像([bytes(字节们)],来源)#走同一路径
+    if 字节序列 is None or len(字节序列)==0:#无正文
+        raise 运行时错误(f'webworker image: {来源} produced no readable body')#无正文
+    return 流式解压镜像([bytes(字节序列)],来源)#走同一路径

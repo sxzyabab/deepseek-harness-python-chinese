@@ -14,7 +14,7 @@ from .校验 import (#从校验导入
     断言已发布v1产物,#断言v1产物
     断言已发布v1头,#断言v1头
 )#从校验导入
-from .校验辅助 import 断言已发布v0键,已发布v0记录#从辅助导入
+from .记录与精确键 import 校验已发布v0键,已发布v0记录#记录与精确键
 
 def 断言头版本(头,版本):#断言头版本
     """断言逻辑头精确版本。"""
@@ -29,12 +29,12 @@ def 迁移头(头):#迁移头
 def 迁移产物(源):#迁移产物
     """规范化 v0 事件并产出已发布 v1 产物。"""
     断言已发布v0源产物(源)#断言源
-    事件们=规范化已发布v0事件(源['events'],源['header']['id'])#规范化事件
-    断言规范化已发布v0产物({**源,'events':事件们})#断言规范化
+    事件列表=规范化已发布v0事件(源['events'],源['header']['id'])#规范化事件
+    断言规范化已发布v0产物({**源,'events':事件列表})#断言规范化
     目标=快照会话格式产物({#快照目标
         'header':{**源['header'],'version':1},#v1头
         'inheritedEventCount':源['inheritedEventCount'],#继承数
-        'events':事件们,#事件
+        'events':事件列表,#事件
     },'released v0-to-v1 target')#标签
     断言已发布v1产物(目标)#断言v1
     return 目标#返回目标
@@ -50,11 +50,11 @@ def 迁移产物(源):#迁移产物
     'validateTargetHeader':断言已发布v1头,#校验目标头
 })#会话格式v0到v1结束
 
-def 规范化已发布v0事件(事件们,会话id):#规范化已发布v0事件
+def 规范化已发布v0事件(事件列表,会话id):#规范化已发布v0事件
     """规范化已发布 v0 事件列表。"""
     消息id映射={}#消息id映射
     输出=[]#输出
-    for 事件 in 事件们:#遍历事件
+    for 事件 in 事件列表:#遍历事件
         断言受支持遗留类型(事件,会话id)#断言受支持遗留类型
         起始=规范化遗留回合开始(事件,会话id)#规范化turn/start
         结束=规范化遗留回合结束(起始,会话id)#规范化turn/end
@@ -102,10 +102,10 @@ def 规范化遗留转向(事件,会话id):#规范化遗留steering
         return 事件#原样
     数据=已发布v0记录(事件['data'],f'steering/message {事件["seq"]} data')#data
     if 'message' in 数据:#已包装
-        断言已发布v0键(数据,['turn','message'],[],f'steering/message {事件["seq"]} data')#断言键
+        校验已发布v0键(数据,['turn','message'],[],f'steering/message {事件["seq"]} data')#断言键
         会话格式计数(数据['turn'],f'steering/message {事件["seq"]} turn')#校验turn
         return {**事件,'type':'user/message','data':数据['message']}#转为user/message
-    断言已发布v0键(数据,['turn','content','source'],[],f'steering/message {事件["seq"]} data')#断言键
+    校验已发布v0键(数据,['turn','content','source'],[],f'steering/message {事件["seq"]} data')#断言键
     会话格式计数(数据['turn'],f'steering/message {事件["seq"]} turn')#校验turn
     消息={键:值 for 键,值 in 数据.items() if 键!='turn'}#去掉turn
     return {#返回用户消息
@@ -125,7 +125,7 @@ def 规范化遗留回合开始(事件,会话id):#规范化遗留turn/start
     数据=已发布v0记录(事件['data'],f'turn/start {事件["seq"]} data')#data
     if 'trigger' not in 数据:#无trigger原样
         return 事件#原样
-    断言已发布v0键(数据,['turn','trigger'],[],f'turn/start {事件["seq"]} data')#断言键
+    校验已发布v0键(数据,['turn','trigger'],[],f'turn/start {事件["seq"]} data')#断言键
     回合=会话格式计数(数据['turn'],f'turn/start {事件["seq"]} turn')#turn
     触发=已发布v0记录(数据['trigger'],f'turn/start {事件["seq"]} trigger')#trigger
     if 回合<1 or not isinstance(触发.get('kind'),str) or len(触发['kind'])==0:#畸形
@@ -137,7 +137,7 @@ def 规范化遗留回合结束(事件,会话id):#规范化遗留turn/end
     if 事件['type']!='turn/end':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f'turn/end {事件["seq"]} data')#data
-    断言已发布v0键(数据,['turn','reason'],[],f'turn/end {事件["seq"]} data')#断言键
+    校验已发布v0键(数据,['turn','reason'],[],f'turn/end {事件["seq"]} data')#断言键
     回合=会话格式计数(数据['turn'],f'turn/end {事件["seq"]} turn')#turn
     if 回合<1:#畸形
         raise 畸形遗留(会话id,'turn/end',事件['seq'])#畸形
@@ -146,16 +146,16 @@ def 规范化遗留回合结束(事件,会话id):#规范化遗留turn/end
         raise 畸形遗留(会话id,'turn/end',事件['seq'])#畸形kind
     种类=原因['kind']#kind
     if 种类 in ('completed','blocked','max-tokens','interrupted'):#简单种
-        断言已发布v0键(原因,['kind'],[],f'turn/end {事件["seq"]} reason')#仅kind
+        校验已发布v0键(原因,['kind'],[],f'turn/end {事件["seq"]} reason')#仅kind
         return 事件#原样
     if 种类=='aborted':#中止
         if 'reason' in 原因:#已有嵌套reason
             return 事件#原样
-        断言已发布v0键(原因,['kind'],[],f'turn/end {事件["seq"]} reason')#仅kind
+        校验已发布v0键(原因,['kind'],[],f'turn/end {事件["seq"]} reason')#仅kind
         当前={'kind':'aborted','reason':{'kind':'legacy'}}#补legacy
         return {**事件,'data':{**数据,'reason':当前}}#替换reason
     if 种类=='disposed':#已处置
-        断言已发布v0键(原因,['kind'],[],f'turn/end {事件["seq"]} reason')#仅kind
+        校验已发布v0键(原因,['kind'],[],f'turn/end {事件["seq"]} reason')#仅kind
         当前={'kind':'aborted','reason':{'kind':'disposed'}}#映射为aborted
         return {**事件,'data':{**数据,'reason':当前}}#替换reason
     if 种类=='error':#错误
@@ -170,9 +170,9 @@ def 规范化遗留错误原因(原因,序号,会话id):#规范化遗留错误re
     会话格式计数(原因['step'],f'turn/end {序号} error step')#校验step
     失败=原因.get('failure') if 'failure' in 原因 else None#failure字段
     if 'failure' in 原因:#有failure
-        断言已发布v0键(原因,['kind','step','failure'],[],f'turn/end {序号} reason')#断言键
+        校验已发布v0键(原因,['kind','step','failure'],[],f'turn/end {序号} reason')#断言键
         记录=已发布v0记录(失败,f'turn/end {序号} failure')#failure记录
-        断言已发布v0键(#断言failure键
+        校验已发布v0键(#断言failure键
             记录,#记录
             ['message','code'],#必填
             ['status','providerRetryAfterMs','requestId'],#可选
@@ -181,7 +181,7 @@ def 规范化遗留错误原因(原因,序号,会话id):#规范化遗留错误re
         if not isinstance(记录.get('message'),str) or not isinstance(记录.get('code'),str):#畸形
             raise 畸形遗留(会话id,'turn/end',序号)#抛出
         return {'kind':'error','error':记录}#包装为error
-    断言已发布v0键(原因,['kind','step','message'],['code'],f'turn/end {序号} reason')#断言键
+    校验已发布v0键(原因,['kind','step','message'],['code'],f'turn/end {序号} reason')#断言键
     if not isinstance(原因.get('message'),str) or ('code' in 原因 and not isinstance(原因.get('code'),str)):#畸形
         raise 畸形遗留(会话id,'turn/end',序号)#抛出
     return {#返回error包装

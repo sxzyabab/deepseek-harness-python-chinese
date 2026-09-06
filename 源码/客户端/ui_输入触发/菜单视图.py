@@ -20,13 +20,9 @@ def 选项标识(来源,下标):#DOM id
     """aria-activedescendant 目标。"""
     return 'dsh-slash-option-'+来源+'-'+str(下标)#拼 id
 
-def 读(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
+def 缺省翻译(键,_插值=None):#无文案函数
+    """原样返回键。"""
+    return 键#键
 
 class 菜单视图:#候选菜单叠层组件
     """打开时渲染分组；关闭返回 None。"""
@@ -40,45 +36,53 @@ class 菜单视图:#候选菜单叠层组件
 
     def 渲染(自身):#结构化视图
         """产出与上游 JSX 同构的结构化视图。"""
-        菜单=读(自身.属性,'menu')#菜单仓
-        翻译=读(自身.属性,'t')#翻译
-        点选=读(自身.属性,'onPick')#点选
-        关闭=读(自身.属性,'onDismiss')#关闭
+        菜单=自身.属性['menu'] if 'menu' in 自身.属性 else None#菜单仓
+        翻译=自身.属性['t'] if 't' in 自身.属性 else 缺省翻译#翻译
+        点选=自身.属性['onPick'] if 'onPick' in 自身.属性 else None#点选
+        关闭=自身.属性['onDismiss'] if 'onDismiss' in 自身.属性 else None#关闭
         if 菜单 is None:#无
             return None#空
-        态=菜单.getSnapshot() if hasattr(菜单,'getSnapshot') else 菜单#快照
-        if not 读(态,'open'):#关闭
+        态=菜单.getSnapshot()#快照
+        if not 态['open']:#关闭
             return None#不渲染
-        高亮=读(态,'highlight')#高亮
+        高亮=态['highlight']#高亮
         组视图=[]#分组
-        for 组 in 读(态,'groups') or []:#各组
-            if 读(组,'status')=='ready' and len(读(组,'items') or [])==0:#空就绪
+        for 组 in 态['groups']:#各组
+            if 组['status']=='ready' and len(组['items'])==0:#空就绪；length 语义
                 continue#跳过
             项视图=[]#项
-            if 读(组,'status')=='pending':#待加载
+            if 组['status']=='pending':#待加载
                 项视图=None#用 loading 行
             else:#就绪
-                for 号,项 in enumerate(读(组,'items') or []):#逐项
-                    活=高亮 is not None and 读(高亮,'source')==读(组,'source') and 读(高亮,'index')==号#是否高亮
+                for 号,项 in enumerate(组['items']):#逐项
+                    活=高亮 is not None and 高亮['source']==组['source'] and 高亮['index']==号#是否高亮
+                    def 造点选(来源,下标):#闭包点选
+                        """点该项。"""
+                        def 点该项():#点击
+                            """转发 onPick。"""
+                            if 点选 is not None:#有
+                                点选(来源,下标)#点选
+                        return 点该项#回调
                     项视图.append({#一项
-                        'id':选项标识(读(组,'source'),号),#id
+                        'id':选项标识(组['source'],号),#id
                         'active':活,#高亮
-                        'name':读(项,'name'),#名
-                        'description':读(项,'description'),#说明
-                        'icon':读(项,'icon'),#图标
-                        'pick':(lambda 来源=读(组,'source'),下标=号:点选 and 点选(来源,下标)),#点选
+                        'name':项['name'] if 'name' in 项 else None,#名
+                        'description':项['description'] if 'description' in 项 else None,#说明
+                        'icon':项['icon'] if 'icon' in 项 else None,#图标
+                        'pick':造点选(组['source'],号),#点选
                     })#项结束
             组视图.append({#一组
-                'source':读(组,'source'),#来源
-                'title':翻译(读(组,'source')) if 翻译 else 读(组,'source'),#标题
-                'status':读(组,'status'),#状态
-                'loading':翻译('loading') if 翻译 else 'loading',#加载文
+                'source':组['source'],#来源
+                'title':翻译(组['source']),#标题
+                'status':组['status'],#状态
+                'loading':翻译('loading'),#加载文
                 'items':项视图,#项或 None
             })#组结束
+        活动标识=选项标识(高亮['source'],高亮['index']) if 高亮 is not None else None#activedescendant
         return {#结构化视图
             'type':'slash-menu-view',#类型
-            'aria':翻译('suggestions.aria') if 翻译 else '',#aria
-            'activeId':选项标识(读(高亮,'source'),读(高亮,'index')) if 高亮 is not None else None,#activedescendant
+            'aria':翻译('suggestions.aria'),#aria
+            'activeId':活动标识,#activedescendant
             'groups':组视图,#分组
             'dismiss':关闭,#关闭
             'css':样式表,#样式

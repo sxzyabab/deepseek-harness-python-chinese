@@ -18,4 +18,6 @@ def 应用():#宿主插件体
 
     return#空 apply
 
+apply=应用#框架槽
+
 

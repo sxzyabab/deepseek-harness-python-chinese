@@ -19,8 +19,8 @@ def 是否记录(值):#是否字典
 
 def 解析日志(日志):#解析日志
     """按行解析 JSONL。"""
-    记录们=[json.loads(行) for 行 in 日志.splitlines() if 行.strip()!='']#解析每行
-    return {'records':记录们,'trailingNewline':日志.endswith('\n')}#解析结果
+    记录列表=[json.loads(行) for 行 in 日志.splitlines() if 行.strip()!='']#解析每行
+    return {'records':记录列表,'trailingNewline':日志.endswith('\n')}#解析结果
 
 def 消息标识(值):#提取消息 id
     """识别消息对象形态的 id。"""
@@ -40,9 +40,9 @@ def 是脱敏候选(值):#是否候选脱敏
     """字符串是否为脱敏候选。"""
     return bool(UUID片段模式.search(值) or 旧式令牌模式.match(值) or 规范令牌模式.match(值))#是否候选
 
-def 脱敏会话快照标识(日志们):#脱敏会话快照 id
+def 脱敏会话快照标识(日志列表):#脱敏会话快照 id
     """替换易变不透明 id，同时跨父与其子日志保持相等关系。"""
-    已解析=[解析日志(日志) for 日志 in 日志们]#解析全部日志
+    已解析=[解析日志(日志) for 日志 in 日志列表]#解析全部日志
     令牌表={}#值到令牌
     种类计数={}#种类计数
     def 认领(值,种类,始终=False):#认领身份
@@ -120,5 +120,3 @@ def 脱敏会话快照标识(日志们):#脱敏会话快照 id
         内容='\n'.join(json.dumps(替换(记录),ensure_ascii=False,separators=(',',':')) for 记录 in 日志['records'])#重序列化
         结果.append(内容+'\n' if 日志['trailingNewline'] else 内容)#恢复尾换行
     return 结果#返回
-
-redactSessionSnapshotIds=脱敏会话快照标识#上游名

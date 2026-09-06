@@ -6,6 +6,7 @@ shell 文件系统面，外加每个程序共享的路径与诊断辅助。
 
 对齐上游 `webworker-runtime/src/shell/fs-access.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#VFS 错误
 from ..module_system.posix路径 import 解析 as 解析路径#路径解析
 from ..storage.活动 import 要求活动vfs#活动VFS
 
@@ -17,7 +18,7 @@ def 在目录解析(工作目录,路径):#解析绝对路径
 
 def 描述失败(程序,路径,错误):#重述FS失败
     """按 shell 工具的报告方式重述文件系统失败。"""
-    码=getattr(错误,'code',None) if not isinstance(错误,dict) else 错误.get('code')#取出错误码
+    码=错误.code#取出错误码
     if 码=='ENOENT':#不存在
         原因='No such file or directory'#文案
     elif 码=='ENOTDIR':#非目录
@@ -54,36 +55,36 @@ def 宿主文件系统():#宿主内文件系统
     def 统计(路径):#stat实现
         """stat。"""
         try:#尝试读取
-            return 投影统计(取vfs().statSync(路径))#同步stat
-        except Exception:#失败当作无内容
+            return 投影统计(取vfs().统计同步(路径))#同步stat
+        except 运行时错误:#失败当作无内容
             return None#无内容
     def 列出(路径):#列目录
         """列目录。"""
-        名们=sorted(list(取vfs().readdirSync(路径)))#同步读名并排序
-        条目们=[]#结果缓冲
-        for 名 in 名们:#逐名
+        名称列表=sorted(list(取vfs().读目录同步(路径)))#同步读名并排序
+        条目列表=[]#结果缓冲
+        for 名 in 名称列表:#逐名
             子统计=统计(解析路径(路径,名))#查是否目录
-            条目们.append({'name':名,'directory':False if 子统计 is None else 子统计['directory']})#条目
-        return 条目们#返回条目
+            条目列表.append({'name':名,'directory':False if 子统计 is None else 子统计['directory']})#条目
+        return 条目列表#返回条目
     def 读文本(路径):#读文本
         """读文本。"""
         子统计=统计(路径)#查询
         if 子统计 is not None and 子统计['directory'] is True:#拒读目录
             raise 文件系统错误('EISDIR','read',路径)#抛错
-        return 取vfs().readFileSync(路径,'utf8')#同步读UTF-8
+        return 取vfs().读取文件同步(路径,'utf8')#同步读UTF-8
     def 写文本(路径,文本,追加=False):#写文本
         """写文本。"""
         if 追加:#追加
-            取vfs().appendFileSync(路径,文本)#追加
+            取vfs().追加文件同步(路径,文本)#追加
         else:#覆盖写
-            取vfs().writeFileSync(路径,文本)#覆盖写
+            取vfs().写入文件同步(路径,文本)#覆盖写
     def 建目录(路径,递归):#建目录
         """建目录。"""
-        取vfs().mkdirSync(路径,{'recursive':递归})#同步建
+        取vfs().建目录同步(路径,{'recursive':递归})#同步建
     def 移除(路径,选项):#移除
         """移除。"""
-        取vfs().rmSync(路径,选项)#同步移除
+        取vfs().移除同步(路径,选项)#同步移除
     def 重命名(源,目标):#重命名
         """重命名。"""
-        取vfs().renameSync(源,目标)#同步重命名
+        取vfs().重命名同步(源,目标)#同步重命名
     return {'stat':统计,'list':列出,'readText':读文本,'writeText':写文本,'mkdir':建目录,'remove':移除,'rename':重命名}#组装面

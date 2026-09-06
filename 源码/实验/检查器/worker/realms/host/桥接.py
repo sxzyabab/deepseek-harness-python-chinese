@@ -2,13 +2,9 @@
 #对齐上游 worker/realms/host/bridge.ts
 
 import threading#串行投递
-from ......内核.智能体循环.辅助 import 解开#可等待则等待
+from ....共享.json import 检查器错误#包内错误
 
 __all__=['Host检查器会话','Host通知通道']#仅中文公开名
-
-def _渲染错误(错误):#渲染错误
-    """错误信息。"""
-    return str(错误)#信息
 
 class Host检查器会话:#Host inspector会话
     """Host V8 inspector 请求与通知的连接本地载体。"""
@@ -23,16 +19,19 @@ class Host检查器会话:#Host inspector会话
     def 订阅(自身,监听):#订阅
         """订阅原生 inspector 通知。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#取消订阅
+            """从监听集摘掉。"""
+            自身._监听.discard(监听)#拆除
+        return 拆除#拆除器
 
     def 请求(自身,方法,参数):#请求
         """为 Worker 拥有的复合 Runtime 操作执行一次 Host V8 请求。"""
         失败=自身._连接()#确保连接
         if 失败 is not None:#连接失败
-            raise RuntimeError(失败)#拒绝
+            raise 检查器错误(失败)#拒绝
         if 自身._会话 is None:#无会话实现
-            raise RuntimeError('Host V8 inspector session is not bound')#未绑定
-        return 解开(自身._会话.post(方法,参数))#投递
+            raise 检查器错误('Host V8 inspector session is not bound')#未绑定
+        return 自身._会话.post(方法,参数)#投递
 
     def 关闭(自身):#关闭
         """断开此 DevTools 客户端的 V8 会话。"""
@@ -43,7 +42,7 @@ class Host检查器会话:#Host inspector会话
         try:#断开
             if 自身._会话 is not None:#有会话
                 自身._会话.disconnect()#断开
-        except Exception:#已断
+        except Exception:#会话.disconnect 底层已断时可能抛 OSError/RuntimeError，契约未定所以收不窄
             pass#底层 inspector 会话已断开
 
     def _连接(自身):#连接
@@ -54,19 +53,21 @@ class Host检查器会话:#Host inspector会话
         try:#连主线程
             if 自身._会话 is not None:#有会话
                 自身._会话.connectToMainThread()#连接
-        except Exception as 错误:#失败
-            自身._失败=f'Host V8 inspector is unavailable: {_渲染错误(错误)}'#记录
+        except Exception as 错误:#connectToMainThread 可能抛连接/协议错误，契约未定所以收不窄
+            自身._失败=f'Host V8 inspector is unavailable: {错误}'#记录
         return 自身._失败#返回失败或None
 
     def _改写上下文名(自身,消息):#改写上下文名
         """默认上下文改名。"""
         if 消息.get('method')!='Runtime.executionContextCreated':#非创建
             return 消息#原样
-        参数=消息.get('params') or {}#参数
-        上下文=参数.get('context')#上下文
+        参数=消息['params'] if 'params' in 消息 else None#参数
+        if not isinstance(参数,dict):#无效
+            return 消息#原样
+        上下文=参数['context'] if 'context' in 参数 else None#上下文
         if not isinstance(上下文,dict):#无效
             return 消息#原样
-        辅助=上下文.get('auxData')#辅助数据
+        辅助=上下文['auxData'] if 'auxData' in 上下文 else None#辅助数据
         if not isinstance(辅助,dict) or 辅助.get('isDefault') is not True:#非默认
             return 消息#原样
         return {'method':消息['method'],'params':{**参数,'context':{**上下文,'name':自身.上下文名}}}#改写
@@ -77,7 +78,7 @@ class Host检查器会话:#Host inspector会话
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(改写)#回调
-            except Exception:#故障
+            except Exception:#桥接观察者回调什么都可能抛，收不窄
                 pass#一个域订阅者不能饿死兄弟域的通知
 
 class Host通知通道:#Host通知通道
@@ -93,10 +94,13 @@ class Host通知通道:#Host通知通道
     def 订阅(自身,监听):#订阅
         """订阅投影后的原生通知。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#取消订阅
+            """从监听集摘掉。"""
+            自身._监听.discard(监听)#拆除
+        return 拆除#拆除器
 
     def 关闭(自身):#关闭
-        """释放原生通知订阅与全部消费者。"""
+        """拆除原生通知订阅与全部消费者。"""
         自身._取消订阅()#取消
         自身._监听.clear()#清空
 
@@ -106,13 +110,13 @@ class Host通知通道:#Host通知通道
             return#返回
         with 自身._投递锁:#串行
             try:#投影
-                事件=解开(自身._投影(消息))#投影
+                事件=自身._投影(消息)#投影
                 if 事件 is None:#无事件
                     return#返回
                 for 监听 in list(自身._监听):#扫监听
                     try:#隔离
                         监听(事件)#回调
-                    except Exception:#故障
+                    except Exception:#桥接观察者回调什么都可能抛，收不窄
                         pass#一个通知消费者不能阻止对其兄弟的投递
-            except Exception:#投影失败
+            except Exception:#原生通知投影可能抛 KeyError/TypeError/检查器错误，契约未定所以收不窄
                 pass#畸形的可选原生通知不中断请求处理

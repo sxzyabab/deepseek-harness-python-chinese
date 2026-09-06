@@ -7,8 +7,7 @@ from .loader import (
     表达式键,#配置表达式的键名
 )
 from .cordis import 服务#服务标记
-from .工具 import 克隆#深克隆插件配置列表
-from pathlib import Path
+from .工具 import 克隆,路径转文件url,文件url转路径#深克隆与路径网址互转
 
 js标签='tag:yaml.org,2002:js'#YAML !!js 的完整标签
 扩展名到媒体类型={
@@ -19,22 +18,14 @@ js标签='tag:yaml.org,2002:js'#YAML !!js 的完整标签
 写入重试上限=10#改名失败的重试次数
 写入重试间隔毫秒=50#重试退避的基础间隔
 
-def 路径转文件url(路径):
-    "本地路径转file://"
-    return Path(路径).absolute().as_uri()
-
-def 文件url转路径(网址):
-    "file://转本地路径"
-    return str(Path.from_uri(网址))
-
 def 解析配置文件路径(相对路径,基准网址):
-    "按基准网址把配置文件说明符解析成本地路径"
+    """按基准网址把配置文件说明符解析成本地路径。"""
     if 基准网址:
-        文本=str(基准网址)
-        基准=Path.from_uri(文本) if 文本.startswith('file:') else Path(文本).absolute()
+        文本=str(基准网址)#统一成字符串
+        基准=文件url转路径(文本) if 文本.startswith('file:') else os.path.abspath(文本)#基准目录
     else:
-        基准=Path.cwd()
-    return os.path.normpath(基准/(相对路径 or '.'))
+        基准=os.getcwd()#当前工作目录
+    return os.path.normpath(os.path.join(基准,相对路径 or '.'))#拼成本地路径
 
 class 插件列表读取器(yaml.SafeLoader):
     "认得 !!js 标量的 YAML 读取器"
@@ -46,16 +37,16 @@ def _限定为json方言(解析类):
     "只按 JSON 认得的形态解析裸标量：yes、on、12:30 与 2020-01-01 都是字符串"
     解析类.yaml_implicit_resolvers={}#丢掉 YAML 1.1 的布尔别名、六十进制与时间戳
     解析类.add_implicit_resolver(
-        'tag:yaml.org,2002:null',re.compile(r'^(?:~|null|Null|NULL|)$')
+        'tag:yaml.org,2002:null',re.compile(r'^(?:~|null|Null|NULL|)\Z',re.ASCII)
         ,['~','n','N',''])#空值
     解析类.add_implicit_resolver(
-        'tag:yaml.org,2002:bool',re.compile(r'^(?:true|True|TRUE|false|False|FALSE)$')
+        'tag:yaml.org,2002:bool',re.compile(r'^(?:true|True|TRUE|false|False|FALSE)\Z',re.ASCII)
         ,list('tTfF'))#布尔
     解析类.add_implicit_resolver(
-        'tag:yaml.org,2002:int',re.compile(r'^-?(?:0|[1-9][0-9]*)$')
+        'tag:yaml.org,2002:int',re.compile(r'^-?(?:0|[1-9][0-9]*)\Z',re.ASCII)
         ,list('-0123456789'))#整数
     解析类.add_implicit_resolver(
-        'tag:yaml.org,2002:float',re.compile(r'^-?(?:0|[1-9][0-9]*)(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?$')
+        'tag:yaml.org,2002:float',re.compile(r'^-?(?:0|[1-9][0-9]*)(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?\Z',re.ASCII)
         ,list('-0123456789'))#浮点
 
 _限定为json方言(插件列表读取器)#读取按 JSON 方言
@@ -89,9 +80,9 @@ def 应用插件补丁(数据,补丁列表,警告):
     if not 补丁列表:
         return 数据#没有补丁
     插件配置表={}#编号到插件配置
-    def 建表(插件配置们):
+    def 建表(插件配置列表):
         "按编号索引本层以及组内的插件配置。"
-        for 插件配置 in 插件配置们:
+        for 插件配置 in 插件配置列表:
             编号=插件配置.get('id')#插件配置编号
             if 编号:
                 插件配置表[编号]=插件配置#登记
@@ -141,8 +132,6 @@ def _插入插件配置(数据,插件配置表,编号,插入列表,警告):
 
 class 包含(插件树):
     """由 YAML 或 JSON 文件支撑的加载器插件树。"""
-    依赖声明=['加载器']#需要加载器服务
-
     def __init__(自身,上下文,配置):
         "解析配置文件路径，并把子树的基准网址切到该文件所在目录"
         插件树.__init__(自身,上下文)#先建根组
@@ -154,7 +143,7 @@ class 包含(插件树):
             raise ValueError(f'不支持的配置文件扩展名 "{扩展名}"')#只认 json 与 yaml
         自身.媒体类型=扩展名到媒体类型[扩展名]#媒体类型
         自身.只读=False#文件不可写时置真
-        目录网址=路径转文件网址(os.path.dirname(自身.文件名))#文件所在目录
+        目录网址=路径转文件url(os.path.dirname(自身.文件名))#文件所在目录
         if not 目录网址.endswith('/'):
             目录网址+='/'#目录网址必须带尾斜杠
         自身.所属上下文.__dict__['基准网址']=目录网址#子树的相对路径以该目录为基准
@@ -201,7 +190,7 @@ class 包含(插件树):
                 数据=yaml.load(内容,Loader=插件列表读取器)#YAML 方言
             else:
                 数据=json.loads(内容)#JSON
-        except Exception as 错误:
+        except (json.JSONDecodeError,yaml.YAMLError) as 错误:
             raise 配置文件错误('解析',自身.文件名,错误)#解析失败
         if not isinstance(数据,list):
             raise 配置文件错误('校验',自身.文件名,TypeError('配置文件的顶层必须是数组'))#形态非法
@@ -269,7 +258,7 @@ class 包含(插件树):
         if 自身.媒体类型=='application/yaml':
             自身.内容=yaml.dump(配置,Dumper=插件列表写出器,allow_unicode=True,sort_keys=False,default_flow_style=False)#YAML
         else:
-            自身.内容=json.dumps(配置,indent=2,ensure_ascii=False)#JSON
+            自身.内容=json.dumps(配置,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#JSON
         临时文件名=自身.文件名+'.tmp'#临时文件
         with open(临时文件名,'w',encoding='utf-8') as 文件:
             文件.write(自身.内容)#写入文本
@@ -301,7 +290,7 @@ class 包含(插件树):
         "定时器线程里的写出。这里抛错没人接得住，只记日志"
         try:
             自身.冲刷写出()#实际写出
-        except Exception as 错误:
+        except (OSError,PermissionError,配置文件错误) as 错误:
             日志=自身.所属上下文.根.日志('加载器')#加载器日志门面
             日志.警告('写出配置文件失败 %C',自身.文件名)#写出失败
             日志.警告(错误)#失败详情
@@ -335,5 +324,5 @@ def _解析日志开关(配置,上下文):
     return False#默认关闭
 
 标记为组插件(包含)#树载体：它的配置是插件配置列表，保持字面量
-
-默认=包含#模块的默认插件导出
+包含.inject=['加载器']#Cordis inject 槽
+default=包含#Cordis 默认导出槽

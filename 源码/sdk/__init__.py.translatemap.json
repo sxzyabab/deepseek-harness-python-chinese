@@ -1,0 +1,12 @@
+{
+    "apply":"应用",
+    "client":"客户端",
+    "inject":"注入",
+    "install":"安装",
+    "name":"名称",
+    "package":"包",
+    "protocol":"协议",
+    "sdk":"sdk",
+    "self":"自身",
+    "server":"服务器"
+}

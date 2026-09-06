@@ -69,12 +69,12 @@ def 追加章节文本(文件):#动态追加章节文本
 
 基线渲染风格={'intro':工作区上下文开场,'section':章节文本}#普通基线风格
 
-def 基线风格(文件们,替换先前基线):#按是否替换选择基线开场
+def 基线风格(文件列表,替换先前基线):#按是否替换选择基线开场
     """按是否替换选择基线开场。"""
     if 替换先前基线 is not True:#非替换用普通开场
         return 基线渲染风格#普通
     风格=dict(基线渲染风格)#沿用章节函数
-    风格['intro']=空替换工作区上下文开场 if len(文件们)==0 else 替换工作区上下文开场#有无文件决定开场
+    风格['intro']=空替换工作区上下文开场 if len(文件列表)==0 else 替换工作区上下文开场#有无文件决定开场
     return 风格#替换风格
 
 def 变更章节文本(项):#按变更动作渲染章节
@@ -93,22 +93,22 @@ def 变更章节文本(项):#按变更动作渲染章节
         文件['content'],#新正文
     ])#用换行拼起来
 
-def 预算标记文本(最大字节,省略们,截断们):#预算诊断标记
+def 预算标记文本(最大字节,省略列表,截断列表):#预算诊断标记
     """拼预算裁剪诊断标记。"""
-    if len(省略们)==0 and len(截断们)==0:#没有裁剪则无标记
+    if len(省略列表)==0 and len(截断列表)==0:#没有裁剪则无标记
         return ''#空
     片段=[]#诊断片段
-    if len(省略们)>0:#有整份省略
-        片段.append('omitted '+', '.join([文件['displayPath'] for 文件 in 省略们]))#列出省略路径
-    if len(截断们)>0:#有截断
-        片段.append('truncated '+', '.join([项['displayPath']+' from '+str(项['originalBytes'])+' to '+str(项['includedBytes'])+' bytes' for 项 in 截断们]))#列出截断记账
+    if len(省略列表)>0:#有整份省略
+        片段.append('omitted '+', '.join([文件['displayPath'] for 文件 in 省略列表]))#列出省略路径
+    if len(截断列表)>0:#有截断
+        片段.append('truncated '+', '.join([项['displayPath']+' from '+str(项['originalBytes'])+' to '+str(项['includedBytes'])+' bytes' for 项 in 截断列表]))#列出截断记账
     return 'Workspace instruction budget '+str(最大字节)+' bytes: '+'; '.join(片段)#拼预算诊断
 
-def 组装指令文本(文件们,最大字节,省略们,截断们,风格):#组装系统提醒帧内的指令正文
+def 组装指令文本(文件列表,最大字节,省略列表,截断列表,风格):#组装系统提醒帧内的指令正文
     """返回带帧的完整文本。"""
-    标记=预算标记文本(最大字节,省略们,截断们)#预算标记
-    块们=[块 for 块 in [标记,风格['intro']]+[风格['section'](文件) for 文件 in 文件们] if len(块)>0]#去掉空块
-    return '\n'.join([系统提醒开,转义指令帧正文('\n\n'.join(块们)),系统提醒闭])#开标签、转义正文、闭标签
+    标记=预算标记文本(最大字节,省略列表,截断列表)#预算标记
+    块列表=[块 for 块 in [标记,风格['intro']]+[风格['section'](文件) for 文件 in 文件列表] if len(块)>0]#去掉空块
+    return '\n'.join([系统提醒开,转义指令帧正文('\n\n'.join(块列表)),系统提醒闭])#开标签、转义正文、闭标签
 
 def 带截断内容(文件,纳入字节):#拷贝文件并截断正文
     """只改 content。"""
@@ -116,7 +116,7 @@ def 带截断内容(文件,纳入字节):#拷贝文件并截断正文
     拷贝['content']=截断Utf8(文件['content'],纳入字节)#截断正文
     return 拷贝#截断后文件
 
-def 截断到装下(文件,已纳入,最大字节,省略们,风格):#二分截断单个文件直到整份文本装进预算
+def 截断到装下(文件,已纳入,最大字节,省略列表,风格):#二分截断单个文件直到整份文本装进预算
     """装得下的最长截断。"""
     原文字节=字节长度(文件['content'])#原文字节
     低=0#二分下界
@@ -126,7 +126,7 @@ def 截断到装下(文件,已纳入,最大字节,省略们,风格):#二分截�
         中=(低+高)//2#本轮尝试的纳入字节
         候选=带截断内容(文件,中)#按mid截断
         截断=[{'displayPath':文件['displayPath'],'originalBytes':原文字节,'includedBytes':字节长度(候选['content'])}]#本候选的截断记账
-        文本=组装指令文本(已纳入+[候选],最大字节,省略们,截断,风格)#试渲染
+        文本=组装指令文本(已纳入+[候选],最大字节,省略列表,截断,风格)#试渲染
         if 字节长度(文本)<=最大字节:#装得下
             最佳=候选#记下更长的可行截断
             低=中+1#尝试纳入更多
@@ -134,23 +134,23 @@ def 截断到装下(文件,已纳入,最大字节,省略们,风格):#二分截�
             高=中-1#减少纳入
     return 最佳#返回最佳截断
 
-def 渲染指令上下文(文件们,最大字节,风格):#按预算渲染指令上下文
+def 渲染指令上下文(文件列表,最大字节,风格):#按预算渲染指令上下文
     """正文、省略、截断与代表文件。"""
     if 最大字节<=0 or not math.isfinite(最大字节):#非法预算
-        return {'text':'','omitted':list(文件们),'truncated':[],'represented':[]}#全部当作省略
-    完整=组装指令文本(文件们,最大字节,[],[],风格)#先试完整渲染
+        return {'text':'','omitted':list(文件列表),'truncated':[],'represented':[]}#全部当作省略
+    完整=组装指令文本(文件列表,最大字节,[],[],风格)#先试完整渲染
     if 字节长度(完整)<=最大字节:#完整装得下
-        return {'text':完整,'omitted':[],'truncated':[],'represented':list(文件们)}#全部代表
-    for 起点 in range(1,len(文件们)):#从最宽开始整份丢掉，保留更具体后缀
-        纳入=文件们[起点:]#保留的后缀
-        省略=[{'absolutePath':文件['absolutePath'],'displayPath':文件['displayPath']} for 文件 in 文件们[:起点]]#丢掉的前缀
+        return {'text':完整,'omitted':[],'truncated':[],'represented':list(文件列表)}#全部代表
+    for 起点 in range(1,len(文件列表)):#从最宽开始整份丢掉，保留更具体后缀
+        纳入=文件列表[起点:]#保留的后缀
+        省略=[{'absolutePath':文件['absolutePath'],'displayPath':文件['displayPath']} for 文件 in 文件列表[:起点]]#丢掉的前缀
         后缀文本=组装指令文本(纳入,最大字节,省略,[],风格)#试渲染后缀
         if 字节长度(后缀文本)<=最大字节:#后缀装得下则采用
             return {'text':后缀文本,'omitted':省略,'truncated':[],'represented':list(纳入)}#采用后缀
-    最具体=文件们[-1] if len(文件们)>0 else None#最具体的一份
+    最具体=文件列表[-1] if len(文件列表)>0 else None#最具体的一份
     if 最具体 is None:#空列表保护
         return {'text':'','omitted':[],'truncated':[],'represented':[]}#空
-    省略=[{'absolutePath':文件['absolutePath'],'displayPath':文件['displayPath']} for 文件 in 文件们[:-1]]#其余全部省略
+    省略=[{'absolutePath':文件['absolutePath'],'displayPath':文件['displayPath']} for 文件 in 文件列表[:-1]]#其余全部省略
     原文字节=字节长度(最具体['content'])#最具体文件原文字节
     for 候选风格 in [风格,{**风格,'intro':压缩工作区上下文开场}]:#先原开场，再压缩开场
         截断文件=截断到装下(最具体,[],最大字节,省略,候选风格)#截断到能装下
@@ -169,28 +169,28 @@ def 渲染指令上下文(文件们,最大字节,风格):#按预算渲染指令�
     文本=压缩通知 if 字节长度(压缩通知)<=最大字节 else 截断Utf8(压缩通知,最大字节)#标记本身再截
     return {'text':文本,'omitted':省略,'truncated':截断,'represented':[]}#仅通知，无代表文件
 
-def 渲染指令变更(项们,最大字节):#渲染调和批次
+def 渲染指令变更(项列表,最大字节):#渲染调和批次
     """渲染一批调和变更，只保留装得下的转移。返回受预算约束的提示词文本，以及实际被其代表的转移。"""
-    按绝对={项['file']['absolutePath']:项 for 项 in 项们}#按绝对路径索引变更项
+    按绝对={项['file']['absolutePath']:项 for 项 in 项列表}#按绝对路径索引变更项
     def 章节(文件):#按文件找对应变更
         """按文件找对应变更章节。"""
         项=按绝对.get(文件['absolutePath'])#查找变更项
         return '' if 项 is None else 变更章节文本({**项,'file':文件})#找不到则空章节
     风格={'intro':'','section':章节}#变更批次风格：无开场，章节自带说明
-    渲染=渲染指令上下文([项['file'] for 项 in 项们],最大字节,风格)#按预算渲染这些文件
+    渲染=渲染指令上下文([项['file'] for 项 in 项列表],最大字节,风格)#按预算渲染这些文件
     代表=set(文件['absolutePath'] for 文件 in 渲染['represented'])#被代表文件的绝对路径
     return {#只返回装进正文的变更
         'text':渲染['text'],#已渲染文本
-        'changes':[项['change'] for 项 in 项们 if 项['file']['absolutePath'] in 代表],#原顺序过滤
+        'changes':[项['change'] for 项 in 项列表 if 项['file']['absolutePath'] in 代表],#原顺序过滤
     }#返回对象结束
 
-def 渲染工作区指令集(文件们,选项):#渲染基线并返回纳入文件
+def 渲染工作区指令集(文件列表,选项):#渲染基线并返回纳入文件
     """渲染一份基线，以及在语义上被其代表的精确源文件。"""
-    风格=基线风格(文件们,选项.get('replacePreviousBaseline'))#选择开场
-    结果=渲染指令上下文(文件们,选项['maxBytes'],风格)#渲染
+    风格=基线风格(文件列表,选项.get('replacePreviousBaseline'))#选择开场
+    结果=渲染指令上下文(文件列表,选项['maxBytes'],风格)#渲染
     公开={'text':结果['text'],'omitted':结果['omitted'],'truncated':结果['truncated']}#公开渲染
     return {'rendered':公开,'included':结果['represented']}#代表文件即纳入集
 
-def 渲染工作区上下文(文件们,选项):#只返回公开渲染
+def 渲染工作区上下文(文件列表,选项):#只返回公开渲染
     """按确定性优先级预算渲染基线指令链。"""
-    return 渲染工作区指令集(文件们,选项)['rendered']#丢掉纳入集
+    return 渲染工作区指令集(文件列表,选项)['rendered']#丢掉纳入集

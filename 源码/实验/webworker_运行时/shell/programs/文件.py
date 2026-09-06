@@ -37,8 +37,8 @@ def ls程序(argv,io,state,fs):#ls程序
             示=长格式条目(统计,操作数名) if 'l' in 选项['flags'] else 操作数名#显示
             io['out'](f'{示}\n')#打印文件
             continue#下一操作数
-        条目们=[条目 for 条目 in fs['list'](路径) if 'a' in 选项['flags'] or not 条目['name'].startswith('.')]#过滤隐藏
-        for 条目 in 条目们:#逐条目
+        条目列表=[条目 for 条目 in fs['list'](路径) if 'a' in 选项['flags'] or not 条目['name'].startswith('.')]#过滤隐藏
+        for 条目 in 条目列表:#逐条目
             if 'l' in 选项['flags']:#长格式
                 示=长格式条目(fs['stat'](解析路径(路径,条目['name'])),条目['name'])#长格式
             else:#短名
@@ -49,28 +49,28 @@ def ls程序(argv,io,state,fs):#ls程序
 def find程序(argv,io,state,fs):#find程序
     """查找路径。"""
     # `find` 用单短横拼写多字母谓词，共享选项解析器会将其读为捆绑短标志；本遍历自行读取。
-    根们=[]#搜索根
+    根列表=[]#搜索根
     名称模式=None#名称模式
     种类=None#类型谓词
     最大深度=float('inf')#最大深度
-    词们=argv[1:]#去掉程序名
+    词列表=argv[1:]#去掉程序名
     索引=0#游标
-    while 索引<len(词们):#逐词
-        词=词们[索引]#当前词
+    while 索引<len(词列表):#逐词
+        词=词列表[索引]#当前词
         if 词=='-name':#名称谓词
             索引+=1#取下一
-            名称模式=词们[索引] if 索引<len(词们) else None#模式
+            名称模式=词列表[索引] if 索引<len(词列表) else None#模式
             索引+=1#推进
             continue#下一
         if 词=='-type':#类型谓词
             索引+=1#取下一
-            种类=词们[索引] if 索引<len(词们) else None#种类
+            种类=词列表[索引] if 索引<len(词列表) else None#种类
             索引+=1#推进
             continue#下一
         if 词=='-maxdepth':#深度
             索引+=1#取下一
             try:#解析
-                最大深度=int(词们[索引] if 索引<len(词们) else '',10)#深度
+                最大深度=int(词列表[索引] if 索引<len(词列表) else '',10)#深度
             except ValueError:#非法
                 最大深度=float('nan')#非法
             索引+=1#推进
@@ -78,7 +78,7 @@ def find程序(argv,io,state,fs):#find程序
         if 词.startswith('-'):#未知谓词
             io['err'](f'find: unsupported predicate {词}\n')#诊断
             return 2#用法错
-        根们.append(词)#搜索根
+        根列表.append(词)#搜索根
         索引+=1#推进
     def 名称匹配(显示):#名称匹配
         """对齐 picomatch(namePattern, { dot: true })。"""
@@ -101,7 +101,7 @@ def find程序(argv,io,state,fs):#find程序
         for 条目 in fs['list'](路径):#子项
             子显示=f"{'' if 显示=='/' else 显示}/{条目['name']}"#显示
             访问(解析路径(路径,条目['name']),子显示,深度+1)#递归
-    for 根 in (根们 if len(根们)>0 else ['.']):#遍历根
+    for 根 in (根列表 if len(根列表)>0 else ['.']):#遍历根
         访问(在目录解析(state['cwd'],根),根,0)#访问
     return 状态[0]#返回状态
 
@@ -112,7 +112,7 @@ def mkdir程序(argv,io,state,fs):#mkdir程序
     for 操作数 in 选项['operands']:#逐路径
         try:#尝试创建
             fs['mkdir'](在目录解析(state['cwd'],操作数),'p' in 选项['flags'])#建目录
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs 操作可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("mkdir",操作数,错误)}\n')#诊断
             状态=1#失败
     return 状态#返回状态
@@ -129,7 +129,7 @@ def rmdir程序(argv,io,state,fs):#rmdir程序
             continue#下一路径
         try:#尝试移除
             fs['remove'](路径,{'recursive':True,'force':False})#移除空目录
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs 操作可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("rmdir",操作数,错误)}\n')#诊断
             状态=1#失败
     return 状态#返回状态
@@ -155,7 +155,7 @@ def rm程序(argv,io,state,fs):#rm程序
             continue#下一路径
         try:#尝试移除
             fs['remove'](路径,{'recursive':递归,'force':强制})#移除
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs 操作可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("rm",操作数,错误)}\n')#诊断
             状态=1#失败
     return 状态#返回状态
@@ -178,14 +178,14 @@ def 解析目标(目标,源,fs):#解析目标
 def cp程序(argv,io,state,fs):#cp程序
     """复制。"""
     选项=解析选项(argv)#解析选项
-    源们=选项['operands'][:-1]#源列表
+    源列表=选项['operands'][:-1]#源列表
     目标=选项['operands'][-1] if len(选项['operands'])>0 else None#目标
-    if 目标 is None or len(源们)==0:#参数不足
+    if 目标 is None or len(源列表)==0:#参数不足
         io['err']('cp: expected a source and a destination\n')#诊断
         return 2#用法错
     目标路径=在目录解析(state['cwd'],目标)#目标绝对路径
     状态=0#累积状态
-    for 源 in 源们:#逐源
+    for 源 in 源列表:#逐源
         源路径=在目录解析(state['cwd'],源)#源绝对路径
         统计=fs['stat'](源路径)#查询源
         if 统计 is None:#不存在
@@ -198,7 +198,7 @@ def cp程序(argv,io,state,fs):#cp程序
             continue#下一源
         try:#尝试复制
             复制树(源路径,解析目标(目标路径,源,fs),fs)#复制
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs 操作可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("cp",源,错误)}\n')#诊断
             状态=1#失败
     return 状态#返回状态
@@ -206,17 +206,17 @@ def cp程序(argv,io,state,fs):#cp程序
 def mv程序(argv,io,state,fs):#mv程序
     """移动。"""
     选项=解析选项(argv)#解析选项
-    源们=选项['operands'][:-1]#源列表
+    源列表=选项['operands'][:-1]#源列表
     目标=选项['operands'][-1] if len(选项['operands'])>0 else None#目标
-    if 目标 is None or len(源们)==0:#参数不足
+    if 目标 is None or len(源列表)==0:#参数不足
         io['err']('mv: expected a source and a destination\n')#诊断
         return 2#用法错
     目标路径=在目录解析(state['cwd'],目标)#目标绝对路径
     状态=0#累积状态
-    for 源 in 源们:#逐源
+    for 源 in 源列表:#逐源
         try:#尝试移动
             fs['rename'](在目录解析(state['cwd'],源),解析目标(目标路径,源,fs))#重命名
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs 操作可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("mv",源,错误)}\n')#诊断
             状态=1#失败
     return 状态#返回状态
@@ -231,7 +231,7 @@ def touch程序(argv,io,state,fs):#touch程序
             # 重写已有字节是推进 VFS 时间戳的方式。
             内容='' if fs['stat'](路径) is None else fs['readText'](路径)#空或读回
             fs['writeText'](路径,内容)#写回或建空
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs 操作可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("touch",操作数,错误)}\n')#诊断
             状态=1#失败
     return 状态#返回状态

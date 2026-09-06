@@ -52,7 +52,7 @@ def 基本错误模式(码):#构造恰好两字段的错误模式，并保留其
         },#结束 properties
     }#只读模式
 
-基本错误模式们=[#不含持久不确定的错误模式
+基本错误模式列表=[#不含持久不确定的错误模式
     基本错误模式('invalid_prompt'),#非法正文
     基本错误模式('invalid_selector'),#非法选择器
     基本错误模式('invalid_rule'),#非法规则
@@ -73,13 +73,13 @@ def 基本错误模式(码):#构造恰好两字段的错误模式，并保留其
         'id':{'type':'string'},#可选相关 id
     },#结束 properties
 }#结束持久
-错误模式们=基本错误模式们+[持久错误模式]#全部错误模式
-创建输出模式={'oneOf':[视图模式]+错误模式们}#创建输出
-列出输出模式={'oneOf':[{'type':'array','items':视图模式}]+错误模式们}#列出输出
+错误模式列表=基本错误模式列表+[持久错误模式]#全部错误模式
+创建输出模式={'oneOf':[视图模式]+错误模式列表}#创建输出
+列出输出模式={'oneOf':[{'type':'array','items':视图模式}]+错误模式列表}#列出输出
 删除输出模式={'oneOf':[#成功、未找到或错误
     {'type':'object','additionalProperties':False,'properties':{'id':{'type':'string','required':True},'deleted':{'type':'boolean','required':True,'const':True}}},#已删除
     {'type':'object','additionalProperties':False,'properties':{'id':{'type':'string','required':True},'deleted':{'type':'boolean','required':True,'const':False},'code':{'type':'string','required':True,'const':'schedule_not_found'}}},#未找到
-]+错误模式们}#结束删除
+]+错误模式列表}#结束删除
 创建说明=('Create one reminder in the current session. Supply a non-empty prompt and exactly one selector: '#选择器总述
     +'a positive safe-integer after_seconds delay, at as a strict offset date-time or local '#延迟或绝对
     +'date/time object, or safe-integer every_seconds of at least '+str(最短固定间隔秒)+'. '#固定频率下限
@@ -92,45 +92,15 @@ def 基本错误模式(码):#构造恰好两字段的错误模式，并保留其
 删除说明=('Delete one active reminder in the current session by the exact id returned by schedule_create '#按精确 id 删除
     +'or schedule_list. Unknown or already-finished ids return deleted false.')#未知则 deleted false
 
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
-    return 值#同步值
-
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 已中止(信号):#信号是否已中止
-    """英文 aborted 或中文 已中止 任一为真则视为已中止。"""
+def 已中止(信号):
+    """信号是 threading.Event；已置位则视为已中止。"""
     if 信号 is None:#无信号
         return False#无信号
-    if getattr(信号,'aborted',False):#英文旗标
-        return True#英文旗标
-    if getattr(信号,'已中止',False):#中文旗标
-        return True#中文旗标
-    return False#未中止
-
-def 是否安全整数(值):#对齐 Number.isSafeInteger
-    """对齐 JS Number.isSafeInteger，排除布尔。"""
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是整数
-    if isinstance(值,int):#整数
-        return abs(值)<=9007199254740991#在安全范围内
-    if isinstance(值,float) and 值.is_integer():#整浮点
-        return abs(值)<=9007199254740991#在安全范围内
-    return False#其它
+    return 信号.is_set()#已中止
 
 def 渲染取值(_参数,值):#每个规范日程取值的确定性模型正文
     """每个规范日程取值的确定性模型正文。"""
-    文本=json.dumps(值,ensure_ascii=False)#规范 JSON 文本
+    文本=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#规范 JSON 文本
     return [{'type':'text','text':文本}]#单文本块
 
 def 呈现(标题,种类,原始输入=None):#纯 generic 待处理卡片
@@ -178,10 +148,13 @@ def 输入错误译(错误):#把一条被包含的输入失败译成封闭工具
 def 工具折叠(智能体):#仅在预检成功后折叠，损坏映射为稳定取值
     """仅在预检成功后折叠，损坏映射为稳定取值。"""
     try:#折叠当前后缀
-        会话=取字段(智能体,'session')#所属会话
-        头=取字段(会话,'header')#会话头
-        种子=取字段(头,'seedLength',0) or 0#fork 后缀起点
-        return 折叠日程事件(取字段(会话,'events'),种子)#按 fork 后缀折叠
+        会话=智能体.session#所属会话
+        头=会话.header#会话头
+        if 'seedLength' in 头 and 头['seedLength'] is not None:#fork 后缀
+            种子=头['seedLength']#起点
+        else:#缺席当 0
+            种子=0#整份
+        return 折叠日程事件(会话.events,种子)#按 fork 后缀折叠
     except 日程日志错误:#折叠拒绝为日志损坏
         return 日志损坏错误()#稳定损坏
     except Exception:#其它
@@ -194,58 +167,56 @@ def 是工具错误(值):#折叠尝试是否产出错误而非回放态
 def 预检(根上下文,智能体,操作,标识=None):#要求一次持久检查点，不泄漏后端失败
     """要求一次持久检查点，不泄漏后端失败。"""
     try:#调用共享屏障
-        冲洗日程持久(根上下文,取字段(智能体,'session'))#flush 当前前缀
+        冲洗日程持久(根上下文,智能体.session)#flush 当前前缀
         return None#已确认
     except Exception:#屏障失败不泄漏后端
         return 持久不确定(操作,标识)#稳定的持久不确定
 
 def 校验创建参数(参数):#校验开放参数根无法表达的 v1 选择器约束
     """校验开放参数根无法表达的 v1 选择器约束。"""
-    if isinstance(参数,dict):#映射
-        键们=list(参数.keys())#实际键
-    else:#对象
-        键们=[键 for 键 in getattr(参数,'__dict__',{}) if not str(键).startswith('_')]#自有键
-    for 键 in 键们:#只允许这些键
+    键列表=list(参数.keys())#实际键
+    for 键 in 键列表:#只允许这些键
         if 键 not in ('prompt','after_seconds','at','every_seconds'):#非法键
             return {'code':'invalid_selector','message':'schedule_create accepts exactly one of after_seconds, at, or every_seconds.'}#非法选择器
-    延迟=取字段(参数,'after_seconds')#延迟
-    绝对=取字段(参数,'at')#绝对
-    间隔=取字段(参数,'every_seconds')#固定频率
+    延迟=参数['after_seconds'] if 'after_seconds' in 参数 else None#延迟
+    绝对=参数['at'] if 'at' in 参数 else None#绝对
+    间隔=参数['every_seconds'] if 'every_seconds' in 参数 else None#固定频率
     选择数=(0 if 延迟 is None else 1)+(0 if 绝对 is None else 1)+(0 if 间隔 is None else 1)#恰好一个选择器
     if 选择数!=1:#三者择一
         return {'code':'invalid_selector','message':'schedule_create accepts exactly one of after_seconds, at, or every_seconds.'}#非法选择器
-    正文=取字段(参数,'prompt')#提醒正文
+    正文=参数['prompt'] if 'prompt' in 参数 else None#提醒正文
     if 正文 is None or str(正文).strip()=='':#裁切后须非空
         return {'code':'invalid_prompt','message':'prompt must be non-empty after trimming.'}#非法正文
-    if 延迟 is not None and ((not 是否安全整数(延迟)) or 延迟<=0):#有延迟则须正安全整数
-        return {'code':'invalid_rule','message':'after_seconds must be a positive safe integer.'}#非法延迟
-    if 间隔 is not None and (not 是否安全整数(间隔)):#有间隔则须安全整数
-        return {'code':'invalid_rule','message':'every_seconds must be a safe integer.'}#非法间隔
+    if 延迟 is not None:#有延迟
+        延迟是整数=(not isinstance(延迟,bool)) and (isinstance(延迟,int) or (isinstance(延迟,float) and 延迟.is_integer()))#先排除布尔再认整数
+        if (not 延迟是整数) or abs(延迟)>9007199254740991 or 延迟<=0:#外来JSON须正安全整数
+            return {'code':'invalid_rule','message':'after_seconds must be a positive safe integer.'}#非法延迟
+    if 间隔 is not None:#有间隔
+        间隔是整数=(not isinstance(间隔,bool)) and (isinstance(间隔,int) or (isinstance(间隔,float) and 间隔.is_integer()))#先排除布尔再认整数
+        if (not 间隔是整数) or abs(间隔)>9007199254740991:#外来JSON须安全整数
+            return {'code':'invalid_rule','message':'every_seconds must be a safe integer.'}#非法间隔
     if 间隔 is not None and 间隔<最短固定间隔秒:#不低于五分钟
         return {'code':'frequency_too_high','message':'every_seconds must be at least '+str(最短固定间隔秒)+'.'}#频率过高
     return None#选择器合法
 
 def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#在一个精确智能体作用域注册全部三个日程工具
     """在一个精确智能体作用域注册全部三个日程工具。返回三次注册的幂等聚合 disposer。"""
-    拆除们=[]#三次注册的拆除
+    拆除器列表=[]#三次注册的拆除
     def 通知耐久变更():#投影观察者无法撤销已完成的耐久屏障
         """投影观察者无法撤销已完成的耐久屏障。"""
         try:#观察者不得使工具失败
             耐久变更时()#驱使运行时
         except Exception as 错误:#观察者抛错
-            消息=错误.message if isinstance(错误,Exception) and hasattr(错误,'message') else str(错误)#诊断
-            if hasattr(错误,'args') and len(错误.args)>0 and not hasattr(错误,'message'):#标准异常
-                消息=str(错误)#消息
-            根上下文.logger.warn('schedule: durable-change observer failed: '+str(错误))#记警告
+            根上下文.日志.警告('schedule: durable-change observer failed: '+str(错误))#记警告
     try:#注册三个工具
         def 执行创建(参数,执行上下文):#执行创建
             """执行 schedule_create。"""
-            if 取字段(执行上下文,'agent') is not 智能体:#必须是本拥有方
+            if 执行上下文['agent'] is not 智能体:#必须是本拥有方
                 return 内部错误()#内部
             非法=校验创建参数(参数)#选择器约束
             if 非法 is not None:#非法
                 return 非法#稳定错误
-            信号=取字段(执行上下文,'signal')#取消信号
+            信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
             def 任务():#串行创建
                 """串行创建正文。"""
                 不确定=预检(根上下文,智能体,'create')#预检持久
@@ -257,12 +228,12 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
                     return 折叠#错误
                 标识=分配日程标识(折叠)#分配新鲜 id
                 try:#按选择器铸造记录
-                    if 取字段(参数,'at') is not None:#绝对
-                        记录=创建绝对日程记录(标识,取字段(参数,'prompt'),取字段(参数,'at'),int(time.time()*1000))#绝对记录
-                    elif 取字段(参数,'after_seconds') is not None:#延迟
-                        记录=创建延迟日程记录(标识,取字段(参数,'prompt'),取字段(参数,'after_seconds'),int(time.time()*1000))#延迟记录
+                    if 'at' in 参数 and 参数['at'] is not None:#绝对
+                        记录=创建绝对日程记录(标识,参数['prompt'],参数['at'],int(time.time()*1000))#绝对记录
+                    elif 'after_seconds' in 参数 and 参数['after_seconds'] is not None:#延迟
+                        记录=创建延迟日程记录(标识,参数['prompt'],参数['after_seconds'],int(time.time()*1000))#延迟记录
                     else:#固定频率
-                        记录=创建固定频率日程记录(标识,取字段(参数,'prompt'),取字段(参数,'every_seconds'),int(time.time()*1000))#固定频率记录
+                        记录=创建固定频率日程记录(标识,参数['prompt'],参数['every_seconds'],int(time.time()*1000))#固定频率记录
                 except 日程输入错误 as 错误:#铸造失败为输入
                     return 输入错误译(错误)#输入
                 except Exception:#其它
@@ -271,7 +242,7 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
                 if 追加前取消 is not None:#已取消
                     return 追加前取消#不追加
                 try:#追加创建变更
-                    解开(取字段(智能体,'session').append('schedule/change',{'version':1,'operation':'create','schedule':记录}))#持久创建
+                    智能体.session.追加('schedule/change',{'version':1,'operation':'create','schedule':记录})#持久创建
                 except Exception:#append 抛错不泄漏会话实现
                     return 内部错误()#稳定内部错误
                 屏障=预检(根上下文,智能体,'create',标识)#创建后屏障
@@ -282,8 +253,8 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
             return 可取消日程事务(智能体,信号,任务)#串行
         def 呈现创建(参数):#待处理卡片
             """创建待处理卡片。"""
-            return 呈现('Create reminder','other',取字段(参数,'prompt'))#卡片
-        拆除们.append(工具上下文.tools.register(定义工具({#注册 schedule_create
+            return 呈现('Create reminder','other',参数['prompt'] if 'prompt' in 参数 else None)#卡片
+        拆除器列表.append(工具上下文.tools.register(定义工具({#注册 schedule_create
             'name':'schedule_create',#创建工具名
             'description':创建说明,#创建说明
             'parameters':{#开放参数根
@@ -304,9 +275,9 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
         })))#结束 schedule_create
         def 执行列出(_参数,执行上下文):#执行列出
             """执行 schedule_list。"""
-            if 取字段(执行上下文,'agent') is not 智能体:#必须是本拥有方
+            if 执行上下文['agent'] is not 智能体:#必须是本拥有方
                 return 内部错误()#内部
-            信号=取字段(执行上下文,'signal')#取消信号
+            信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
             def 任务():#串行列出
                 """串行列出正文。"""
                 不确定=预检(根上下文,智能体,'list')#预检持久
@@ -322,7 +293,7 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
         def 呈现列出(_参数=None):#只读卡片
             """列出只读卡片。"""
             return 呈现('List reminders','read')#卡片
-        拆除们.append(工具上下文.tools.register(定义工具({#注册 schedule_list
+        拆除器列表.append(工具上下文.tools.register(定义工具({#注册 schedule_list
             'name':'schedule_list',#列出工具名
             'description':列出说明,#列出说明
             'parameters':{},#无参数
@@ -332,13 +303,13 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
         })))#结束 schedule_list
         def 执行删除(参数,执行上下文):#执行删除
             """执行 schedule_delete。"""
-            原始标识=取字段(参数,'id')#原始 id
+            原始标识=参数['id'] if 'id' in 参数 else None#原始 id
             if (not isinstance(原始标识,str)) or len(原始标识)==0 or 原始标识.strip()!=原始标识:#须非空且无两侧空白
                 return {'code':'invalid_rule','message':'schedule_delete id must be non-empty without surrounding whitespace.'}#非法 id
             标识=日程标识(原始标识)#打品牌
-            if 取字段(执行上下文,'agent') is not 智能体:#必须是本拥有方
+            if 执行上下文['agent'] is not 智能体:#必须是本拥有方
                 return 内部错误()#内部
-            信号=取字段(执行上下文,'signal')#取消信号
+            信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
             def 任务():#串行删除
                 """串行删除正文。"""
                 不确定=预检(根上下文,智能体,'delete',标识)#预检持久
@@ -354,7 +325,7 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
                 if 追加前取消 is not None:#已取消
                     return 追加前取消#不追加
                 try:#追加删除变更
-                    解开(取字段(智能体,'session').append('schedule/change',{'version':1,'operation':'delete','id':标识}))#持久删除
+                    智能体.session.追加('schedule/change',{'version':1,'operation':'delete','id':标识})#持久删除
                 except Exception:#append 抛错不泄漏会话实现
                     return 内部错误()#稳定内部错误
                 屏障=预检(根上下文,智能体,'delete',标识)#删除后屏障
@@ -365,8 +336,8 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
             return 可取消日程事务(智能体,信号,任务)#串行
         def 呈现删除(参数):#待处理卡片
             """删除待处理卡片。"""
-            return 呈现('Delete reminder','other',取字段(参数,'id'))#卡片
-        拆除们.append(工具上下文.tools.register(定义工具({#注册 schedule_delete
+            return 呈现('Delete reminder','other',参数['id'] if 'id' in 参数 else None)#卡片
+        拆除器列表.append(工具上下文.tools.register(定义工具({#注册 schedule_delete
             'name':'schedule_delete',#删除工具名
             'description':删除说明,#删除说明
             'parameters':{'id':{'type':'string','required':True,'description':'Exact session-local schedule id.'}},#删除参数
@@ -375,7 +346,7 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
             'presentCall':呈现删除,#卡片
         })))#结束 schedule_delete
     except Exception as 错误:#任一注册失败则回滚已注册
-        for 拆除 in reversed(拆除们):#逆序拆除
+        for 拆除 in reversed(拆除器列表):#逆序拆除
             拆除()#拆
         raise 错误#再抛原错
     活跃=[True]#聚合 disposer 只跑一次
@@ -384,6 +355,6 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
         if not 活跃[0]:#已拆过
             return#停
         活跃[0]=False#标记已拆
-        for 拆除 in reversed(拆除们):#逆序卸三个工具
+        for 拆除 in reversed(拆除器列表):#逆序卸三个工具
             拆除()#拆
     return 聚合拆除#聚合 disposer

@@ -16,10 +16,9 @@ class 团队错误(装备错误):#Team 域稳定失败
 
 def 错误文案(错误):#渲染任意抛出值
     """渲染任意抛出值，不替换原拒绝。"""
-    if isinstance(错误,BaseException):#异常取消息
-        文案=getattr(错误,'message',None)#可选 message 字段
-        if 文案 is not None:#有字段
-            return str(文案)#字段文案
+    if isinstance(错误,装备错误):#装备错误取消息字段
+        return str(错误.message)#字段文案
+    if isinstance(错误,BaseException):#其它异常
         return str(错误)#异常字符串
     if isinstance(错误,str):#字符串原样
         return 错误#原样

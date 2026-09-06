@@ -41,12 +41,12 @@ def 解码物理头(值):#解码物理头
     断言已发布v2头(头)#断言头
     return 头#返回头
 
-def 解码产物实现(头值,行值们,可恢复):#解码产物
+def 解码产物实现(头值,行值列表,可恢复):#解码产物
     """解码物理头与行；可恢复时跳过畸形前缀直至 turn/end。"""
     头=解码物理头(头值)#解码头
-    事件们=[]#事件
+    事件列表=[]#事件
     问题=None#问题
-    for 行下标,值 in enumerate(行值们):#遍历行
+    for 行下标,值 in enumerate(行值列表):#遍历行
         try:#尝试解码
             事件=解码事件(值,行下标)#解码事件
         except BaseException as 错误:#捕获
@@ -60,9 +60,9 @@ def 解码产物实现(头值,行值们,可恢复):#解码产物
             if 事件['type']=='turn/end':#遇turn/end抛出
                 raise 问题#抛出
             continue#否则跳过
-        if 事件['seq']!=len(事件们):#seq间隙
+        if 事件['seq']!=len(事件列表):#seq间隙
             间隙=会话格式错误(#间隙错误
-                f'released v2 row {行下标} has seq gap (expected {len(事件们)}, got {事件["seq"]})',#消息
+                f'released v2 row {行下标} has seq gap (expected {len(事件列表)}, got {事件["seq"]})',#消息
             )#Error结束
             if not 可恢复:#不可恢复则抛
                 raise 间隙#抛出
@@ -70,9 +70,9 @@ def 解码产物实现(头值,行值们,可恢复):#解码产物
             if 事件['type']=='turn/end':#遇turn/end抛出
                 raise 问题#抛出
             continue#跳过
-        事件们.append(事件)#推入事件
-    继承事件数=推导继承事件数(头,事件们)#推导继承数
-    产物=快照会话格式产物({'header':头,'inheritedEventCount':继承事件数,'events':事件们},'released v2 artifact')#快照
+        事件列表.append(事件)#推入事件
+    继承事件数=推导继承事件数(头,事件列表)#推导继承数
+    产物=快照会话格式产物({'header':头,'inheritedEventCount':继承事件数,'events':事件列表},'released v2 artifact')#快照
     断言已发布v2物理产物(产物)#断言物理产物
     return 产物#返回
 
@@ -87,10 +87,10 @@ def 解码事件(值,行下标):#解码事件
     带出处['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'],序号)#解码范围
     return 快照会话格式json(带出处,f'released v2 row {行下标} provenance')#断言事件
 
-def 推导继承事件数(头,事件们):#推导继承数
+def 推导继承事件数(头,事件列表):#推导继承数
     """从 inherited end-seed 标记推导继承切割。"""
     切割=None#切割点
-    for 事件 in 事件们:#遍历
+    for 事件 in 事件列表:#遍历
         if 事件['type']!='session/end-seed':#非end-seed跳过
             continue#跳过
         数据=json记录(事件['data'],f"session/end-seed {事件['seq']} data")#data
@@ -116,8 +116,8 @@ def 编码产物实现(产物):#编码产物
     if 'agentPreset' in 头:#有预设
         物理头基['agentPreset']=头['agentPreset']#预设
     物理头=快照会话格式json(物理头基,'released v2 encoded header')#断言对象
-    行们=tuple(编码出处(事件) for 事件 in 产物['events'])#编码行
-    return {'header':物理头,'rows':行们}#返回
+    行列表=tuple(编码出处(事件) for 事件 in 产物['events'])#编码行
+    return {'header':物理头,'rows':行列表}#返回
 
 def 编码出处(事件):#编码出处
     """把 sourceEventSeqs 压缩为范围表示。"""
@@ -157,17 +157,17 @@ def 解码序号范围(值,最大条目):#解码序号范围
                 raise 会话格式错误('sourceEventSeqs ranges must be strictly increasing')#错误
     return 输出#返回
 
-def 编码序号范围(值们):#编码序号范围
+def 编码序号范围(值列表):#编码序号范围
     """把严格递增序号压缩为单点与长度≥3 的范围。"""
-    for 下标 in range(1,len(值们)):#非递增原样
-        if 值们[下标]<=值们[下标-1]:#非递增
-            return list(值们)#原样
+    for 下标 in range(1,len(值列表)):#非递增原样
+        if 值列表[下标]<=值列表[下标-1]:#非递增
+            return list(值列表)#原样
     输出=[]#输出
     下标=0#压缩下标
-    while 下标<len(值们):#压缩循环
-        起点=值们[下标]#起点
+    while 下标<len(值列表):#压缩循环
+        起点=值列表[下标]#起点
         终点=起点#终点
-        while 下标+1<len(值们) and 值们[下标+1]==终点+1:#连续
+        while 下标+1<len(值列表) and 值列表[下标+1]==终点+1:#连续
             下标+=1#前进
             终点+=1#扩展终点
         if 终点-起点>=2:#范围
@@ -203,13 +203,13 @@ class 已发布v2会话格式编解码器类型:#v2编解码器
         """把物理头解码为逻辑元数据。"""
         return 解码物理头(值)#解码物理头
 
-    def decodeArtifact(自身,头值,行值们):#解码产物
+    def decodeArtifact(自身,头值,行值列表):#解码产物
         """严格解码完整物理产物。"""
-        return 解码产物实现(头值,行值们,False)#严格解码
+        return 解码产物实现(头值,行值列表,False)#严格解码
 
-    def decodeRecoverableArtifact(自身,头值,行值们):#可恢复解码
+    def decodeRecoverableArtifact(自身,头值,行值列表):#可恢复解码
         """解码行原子可恢复前缀。"""
-        return 解码产物实现(头值,行值们,True)#可恢复
+        return 解码产物实现(头值,行值列表,True)#可恢复
 
     def 编码产物(自身,产物):#编码产物
         """编码逻辑产物为物理头与行。"""

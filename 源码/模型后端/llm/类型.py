@@ -2,12 +2,11 @@
 
 对齐上游 `llm/src/types.ts`。公开面仅中文名；块 type／字段键保持上游 wire 名。
 """
-import math#有限数判定
+import threading#取消通道
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 __all__=(#仅中文公开名；无英文别名
-    '安全整数上限','是否整数','是否安全整数','是否有限','缺席',
-    '中止信号','是否中止信号',
+    '中止信号',
     '语言模型失败',
     '文本块','推理块','图片块','工具调用块','工具结果块',
     '文本模态','图片模态','模型模态',
@@ -18,56 +17,22 @@ __all__=(#仅中文公开名；无英文别名
     '工具模式','生成选项',
 )#公开面结束
 
-安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
-
-def 是否整数(值):#对齐 JS Number.isInteger
-    """对齐 JS Number.isInteger，排除布尔。"""
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是数字
-    if isinstance(值,int):#整数
-        return True#整数
-    if isinstance(值,float):#浮点
-        return 值.is_integer()#整值浮点
-    return False#其它类型
-
-def 是否安全整数(值):#对齐 JS Number.isSafeInteger
-    """对齐 JS Number.isSafeInteger。"""
-    if not 是否整数(值):#不是整数
-        return False#不是整数
-    return abs(值)<=安全整数上限#落在安全范围
-
-def 是否有限(值):#对齐 JS Number.isFinite
-    """对齐 JS Number.isFinite，排除布尔。"""
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是数字
-    if isinstance(值,(int,float)):#数字
-        return math.isfinite(值)#非 NaN 非无穷
-    return False#其它类型
-
-def 缺席(对象,键):#对齐字段 === undefined
-    """对齐 JS 字段 === undefined：缺键或值为 None。"""
-    if 对象 is None:#无对象
-        return True#无对象
-    if isinstance(对象,dict):#映射
-        return 对象.get(键) is None#缺键或空
-    return getattr(对象,键,None) is None#缺属性或空
-
-class 中止信号:#调用方取消通道
+class 中止信号:
     """调用方取消通道；深冻结必须跳过，以免破坏中止。"""
-    def __init__(自身,已中止=False):#创建一条取消通道
+    def __init__(自身,已中止标志=False):
         """创建一条取消通道。"""
-        自身.aborted=已中止#英文旗标（上游 AbortSignal wire）
-        自身.已中止=已中止#中文旗标
-        自身.reason=None#英文中止原因
-        自身.原因=None#中文中止原因
+        自身._事件=threading.Event()#中止旗标
+        自身._异常=None#中止时抛出的异常
+        if 已中止标志:#创建时已中止
+            自身._事件.set()#置位
 
-def 是否中止信号(值):#是否为活动取消通道
-    """是否为请求的活动取消通道。"""
-    if 值 is None:#空
-        return False#空
-    if isinstance(值,(str,bytes,int,float,bool,dict,list)):#原语与容器不是信号
-        return False#原语与容器不是信号
-    return hasattr(值,'aborted') or hasattr(值,'已中止')#有中止旗标
+    def 触发(自身,原因=None):
+        """标记中止。"""
+        if 自身._事件.is_set():#只触发一次
+            return#已触发
+        if isinstance(原因,BaseException):#已是异常
+            自身._异常=原因#承载
+        自身._事件.set()#置位
 
 class 语言模型失败(TypedDict):#可序列化提供方或传输失败事实
     """可序列化的提供方或传输失败事实；政策决定它们是否可重试。"""

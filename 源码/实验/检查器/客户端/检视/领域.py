@@ -25,7 +25,7 @@ def 客户端来源():#Client origin
         定位=getattr(builtins,'location',None)#location
         来源=getattr(定位,'origin',None) if 定位 is not None else None#origin
         return 来源 if isinstance(来源,str) else ''#字符串或空
-    except Exception:#无
+    except Exception:#无对应领域或 CDP 求值失败，契约未定所以收不窄
         return ''#空
 
 class 客户端领域源:#Client realm源

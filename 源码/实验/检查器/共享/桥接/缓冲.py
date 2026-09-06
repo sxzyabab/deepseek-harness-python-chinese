@@ -3,7 +3,7 @@
 对齐上游 `shared/bridge/buffer.ts`。公开面仅中文名。
 """
 from .版本 import 检查器协议版本#协议版本
-from ..json import 是否json值,json字节长度#JSON工具
+from ..json import 是否json值,json字节长度,检查器错误#JSON工具|本包错误
 
 __all__=['检查器源缓冲选项','检查器源缓冲']#仅中文公开名
 
@@ -49,7 +49,7 @@ class 检查器源缓冲:#源缓冲
                 自身._状态.pop(topic,None)#删除
             else:#回滚旧值
                 自身._状态[topic]=先前#旧值
-            raise Exception('inspector: source state exceeds the source-frame byte limit')#英文诊断
+            raise 检查器错误('inspector: source state exceeds the source-frame byte limit')#英文诊断
         自身._入队(记录)#入队实时投递
 
     def 替换帧(自身,sourceId,generation):#构造替换帧
@@ -103,13 +103,13 @@ class 检查器源缓冲:#源缓冲
     def _记录(自身,topic,payload,monotonicMs):#构造记录
         """校验并构造观测记录。"""
         if len(topic)==0 or len(topic)>128:#主题长度非法
-            raise Exception('inspector: topic must contain 1 to 128 characters')#英文诊断
+            raise 检查器错误('inspector: topic must contain 1 to 128 characters')#英文诊断
         if '*' not in 自身.选项.topics and topic not in 自身.选项.topics:#未声明主题
-            raise Exception(f'inspector: source does not declare topic {topic!r}')#英文诊断
+            raise 检查器错误(f'inspector: source does not declare topic {topic!r}')#英文诊断
         if not 是否json值(payload):#载荷须JSON
-            raise Exception('inspector: source payload must be lossless JSON data')#英文诊断
+            raise 检查器错误('inspector: source payload must be lossless JSON data')#英文诊断
         if not isinstance(monotonicMs,(int,float)) or isinstance(monotonicMs,bool) or not (monotonicMs==monotonicMs):#时间戳须有限
-            raise Exception('inspector: monotonicMs must be finite')#英文诊断
+            raise 检查器错误('inspector: monotonicMs must be finite')#英文诊断
         return {'monotonicMs':monotonicMs,'topic':topic,'payload':payload}#记录
 
     def _入队(自身,记录):#入队并约束上限

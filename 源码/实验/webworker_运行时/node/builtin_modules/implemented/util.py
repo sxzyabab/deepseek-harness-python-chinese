@@ -5,6 +5,7 @@
 对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/util.ts`。
 公开面中文名；Node 面经别名与 default 暴露英文名。
 """
+from ...未实现失败 import 运行时错误#本包错误
 import json#诊断序列化
 import math#Object.is 的 NaN/+0/-0
 import re#占位符替换
@@ -68,9 +69,9 @@ def 检视(值):#诊断渲染
         消息=getattr(值,'message',str(值))#消息
         return f'{名}: {消息}'#名与消息
     try:#尝试JSON
-        渲染=json.dumps(值)#序列化
+        渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#序列化
         return 渲染 if 渲染 is not None else str(值)#空则String
-    except Exception:#不可序列化
+    except (TypeError,ValueError):#json.dumps 对非法类型或 NaN 失败
         return str(值)#兜底String
 
 def 格式化(模板,*实参):#printf格式化
@@ -90,7 +91,7 @@ def 格式化(模板,*实参):#printf格式化
         if 记号=='%s': return 值 if isinstance(值,str) else 检视(值)#字符串
         return 检视(值)#其余用检视
 
-    已替换=re.sub(r'%[sdifjoO%]',替换,模板)#替换占位符
+    已替换=re.sub(r'%[sdifjoO%]',替换,模板,count=0)#替换占位符
     剩余=实参[下标[0]:]#剩余实参
     if len(剩余)==0: return 已替换#无剩余
     return f"{已替换} {' '.join(检视(项) for 项 in 剩余)}"#拼剩余
@@ -108,11 +109,12 @@ def 深严格相等(左,右):#深相等
     if len(左键)!=len(右键): return False#键数不同
     return all(键 in 右 and 深严格相等(左[键],右[键]) for 键 in 左键)#逐键
 
-def 是承诺(值):#Promise实例或thenable
-    """是否 Promise 或 thenable。"""
+def 是承诺(值):#Promise实例
+    """是否为本宿主注入的 Promise 实例；翻译后无 thenable 嗅探。"""
     承诺类=globals().get('Promise')#Promise类
-    if 承诺类 is not None and isinstance(值,承诺类): return True#Promise实例
-    return 值 is not None and (isinstance(值,dict) or hasattr(值,'then')) and callable(getattr(值,'then',None))#或thenable
+    if 承诺类 is None:#宿主未注入
+        return False#不是
+    return isinstance(值,承诺类)#仅构造器实例
 
 def 是日期(值):#Date
     """是否 Date。"""
@@ -144,7 +146,7 @@ types={#类型谓词集
 
 def 解析参数(*位置参数,**关键字参数):#不可用
     """CLI 参数解析在 worker 主机内无调用方。"""
-    raise Exception('web-preview: node:util.parseArgs is not available in the worker host')#抛错
+    raise 运行时错误('web-preview: node:util.parseArgs is not available in the worker host')#抛错
 
 def 弃用(函数):#弃用包装透传
     """弃用包装器原样传过函数。"""

@@ -1,0 +1,16 @@
+{
+    "codec":"编解码",
+    "envelope":"信封",
+    "error":"错误",
+    "frame":"帧",
+    "generation":"生成",
+    "id":"标识",
+    "identity":"身份",
+    "inspector":"检查器",
+    "protocol":"协议",
+    "query":"查询",
+    "request":"请求",
+    "response":"响应",
+    "source":"源",
+    "version":"版本"
+}

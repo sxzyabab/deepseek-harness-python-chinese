@@ -1,0 +1,13 @@
+{
+    "builtin":"内置",
+    "client":"客户端",
+    "compress":"压缩",
+    "inspect":"巡检",
+    "list":"列出",
+    "live":"现场",
+    "nail":"钉死",
+    "note":"说明",
+    "provider":"提供方",
+    "slot":"槽",
+    "tree":"树"
+}

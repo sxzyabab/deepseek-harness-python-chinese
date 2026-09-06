@@ -96,5 +96,3 @@ class 测试工作区:#工作区测试替身
             草稿['archivedSessionIds']=[*草稿['archivedSessionIds'],会话标识]#加入
         自身.update(写入)#默认更新
         return None#完成
-
-TestWorkspaces=测试工作区#上游名

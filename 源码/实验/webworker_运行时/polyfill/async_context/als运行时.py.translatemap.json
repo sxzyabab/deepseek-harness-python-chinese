@@ -1,0 +1,17 @@
+{
+    "als":"异步本地",
+    "causality":"因果",
+    "close":"关闭",
+    "create":"创建",
+    "error":"错误",
+    "iterator":"迭代器",
+    "ok":"成功",
+    "pause":"挂起",
+    "restore":"恢复",
+    "resume":"恢复",
+    "runtime":"运行时",
+    "snapshot":"快照",
+    "token":"令牌",
+    "value":"值",
+    "yield":"产出"
+}

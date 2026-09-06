@@ -1,0 +1,11 @@
+{
+    "acl":"ACL",
+    "add":"添加",
+    "aggregate":"聚合",
+    "create":"创建",
+    "dispose":"拆除",
+    "error":"错误",
+    "grant":"授权",
+    "self":"自身",
+    "write":"写入"
+}

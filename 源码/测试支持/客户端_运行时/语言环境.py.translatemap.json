@@ -1,0 +1,16 @@
+{
+    "after":"之后",
+    "before":"之前",
+    "browser":"浏览器",
+    "hook":"钩子",
+    "language":"语言",
+    "languages":"语言列表",
+    "locale":"语言环境",
+    "navigator":"导航器",
+    "pin":"钉住",
+    "restore":"恢复",
+    "self":"自身",
+    "spec":"规格",
+    "suite":"套件",
+    "test":"测试"
+}

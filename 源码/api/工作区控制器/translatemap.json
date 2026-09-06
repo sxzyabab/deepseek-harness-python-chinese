@@ -1,0 +1,8 @@
+{
+    "commands.ts":"命令.py",
+    "directory-picker.ts":"目录选择器.py",
+    "feed.ts":"提要.py",
+    "index.ts":"__init__.py",
+    "types.ts":"类型.py",
+    "工具.py":"远程错误与中止.py"
+}

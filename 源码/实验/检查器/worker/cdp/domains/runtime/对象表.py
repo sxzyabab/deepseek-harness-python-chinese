@@ -31,7 +31,7 @@ class Runtime对象表:#Runtime对象表
             结果['exceptionDetails']=自身._异常(realm,值['exceptionDetails'],group)#异常
         return 结果#返回
 
-    def 属性们(自身,realm,值,group):#属性投影
+    def 投影属性(自身,realm,值,group):#属性投影
         """将 realm 属性描述符转换为 CDP 字段。"""
         结果={'result':[自身._属性(realm,项,group) for 项 in 值['properties']]}#属性
         if 值.get('internalProperties') is not None:#有内部
@@ -66,7 +66,7 @@ class Runtime对象表:#Runtime对象表
 
     def 组内realms(自身,group):#组内realm
         """列出在某对象组中至少保留一个对象的 realm 会话。"""
-        realms=set()#集合
+        realms=set()#领域集合
         for 路由 in 自身._路由.values():#扫路由
             if 路由['group']==group:#同组
                 realms.add(路由['realm'])#加入
@@ -95,7 +95,7 @@ class Runtime对象表:#Runtime对象表
     def 远程(自身,realm,值,group):#远程对象投影
         """投影一个公共 Runtime 值，并为本连接保留其后端句柄。"""
         对象=值.get('object')#对象包装
-        对象id=None if 对象 is None else 自身._暴露(realm,对象['handle'] if isinstance(对象,dict) else 对象.handle,group)#暴露
+        对象id=None if 对象 is None else 自身._暴露(realm,对象['handle'],group)#暴露
         呈现=None#呈现
         if 对象id is not None and 值.get('semanticReference') is not None and 自身._观察者 is not None:#有呈现输入
             呈现=自身._观察者(对象id,realm.descriptor,值['semanticReference'],group)#观察
@@ -167,7 +167,7 @@ def cdp栈跟踪(栈):#栈投影
     """栈跟踪投影。"""
     结果={'callFrames':[{#调用帧
         'functionName':帧['functionName'],#函数名
-        'scriptId':帧.get('scriptKey') or '0',#脚本id
+        'scriptId':'0' if 帧.get('scriptKey') is None else 帧['scriptKey'],#??0，空串合法
         'url':帧['url'],#URL
         'lineNumber':帧['lineNumber'],#行
         'columnNumber':帧['columnNumber'],#列

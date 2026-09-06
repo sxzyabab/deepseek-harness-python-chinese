@@ -1,6 +1,5 @@
-"""组：客户端。"""
 from . import (
-    store,
+    存储,
     ui_主题,
     ui_任务,
     ui_会话,
@@ -46,7 +45,7 @@ from . import (
     连接,
 )
 __all__=[
-    'store',
+    '存储',
     'ui_主题',
     'ui_任务',
     'ui_会话',

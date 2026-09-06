@@ -1,0 +1,10 @@
+{
+    "assert":"断言",
+    "contains":"包含",
+    "directory":"目录",
+    "disjoint":"不相交",
+    "private":"私有",
+    "root":"根",
+    "temp":"临时",
+    "workspace":"工作区"
+}

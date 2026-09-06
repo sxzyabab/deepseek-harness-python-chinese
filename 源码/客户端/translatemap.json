@@ -1,4 +1,5 @@
 {
+    "store":"存储",
     "connection":"连接",
     "hmr":"热更新",
     "locale":"本地化",

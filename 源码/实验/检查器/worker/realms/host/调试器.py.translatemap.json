@@ -1,0 +1,12 @@
+{
+    "breakpoint":"断点",
+    "debugger":"调试器",
+    "host":"宿主",
+    "method":"方法",
+    "params":"参数",
+    "paused":"已暂停",
+    "resolved":"已解析",
+    "resumed":"已恢复",
+    "runtime":"运行时",
+    "type":"类型"
+}

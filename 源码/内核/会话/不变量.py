@@ -7,24 +7,8 @@ from ..作用域 import 弱身份表#导入按身份存取的弱表
 包名='@deepseek-ai/dsh-session'#本包名
 名称='session-invariant'#配套插件名
 注入=['invariants']#依赖 invariants 服务
-name=名称#Cordis插件名（协议槽）
-inject=注入#Cordis依赖声明（协议槽）
 
 __all__=['包名','名称','注入','安装','应用','空踪迹','校验事件','应用变迁']#仅中文公开名
-
-def 取字段(对象,键):#读取字段
-    """读取映射或对象上的字段。"""
-    if isinstance(对象,dict):#映射
-        return 对象[键]#映射键
-    return getattr(对象,键)#对象属性
-
-def 试取(对象,键):#读取可选字段
-    """读取可选字段，缺席为 None。"""
-    if 对象 is None:#无对象
-        return None#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键)#映射键
-    return getattr(对象,键,None)#对象属性
 
 def 要求打开步骤(踪迹,种类,轮次,步骤,失败):#要求步骤打开
     """断言步骤作用域事件点名的是当前打开的轮次与步骤。"""
@@ -33,7 +17,7 @@ def 要求打开步骤(踪迹,种类,轮次,步骤,失败):#要求步骤打开
 
 def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
     """校验一条候选事件，不改已提交踪迹。"""
-    序号=取字段(事件,'seq')#事件序号
+    序号=事件['seq']#事件序号
     if 序号<=踪迹['lastSeq']:#序号未严格递增
         失败('seq must strictly increase: saw '+str(序号)+' after '+str(踪迹['lastSeq']))#序号必须递增
     打开轮次=踪迹['openTurn']#下一打开轮次
@@ -41,10 +25,10 @@ def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
     下一轮次=踪迹['nextTurn']#下一轮次号
     下一步骤=踪迹['nextStep']#下一步骤号
     待完成={'kind':'none'}#默认不改调用集
-    种类=取字段(事件,'type')#事件类型
-    数据=取字段(事件,'data')#载荷
+    种类=事件['type']#事件类型
+    数据=事件['data']#载荷
     if 种类=='turn/start':#轮次开始
-        轮次=取字段(数据,'turn')#事件轮次
+        轮次=数据['turn']#事件轮次
         if 踪迹['openTurn'] is not None:#已有打开轮次
             失败('turn/start '+str(轮次)+' while turn '+str(踪迹['openTurn'])+' is still open')#不得嵌套打开
         if 轮次!=踪迹['nextTurn']:#轮次号不连续
@@ -52,7 +36,7 @@ def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
         打开轮次=轮次#打开该轮次
         下一步骤=1#步骤从 1 起
     elif 种类=='turn/end':#轮次结束
-        轮次=取字段(数据,'turn')#事件轮次
+        轮次=数据['turn']#事件轮次
         if 踪迹['openTurn']!=轮次:#结束的不是打开轮次
             失败('turn/end '+str(轮次)+' does not match open turn '+str(踪迹['openTurn']))#必须匹配打开轮次
         if 踪迹['openStep'] is not None:#步骤仍打开
@@ -60,8 +44,8 @@ def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
         打开轮次=None#关闭轮次
         下一轮次=下一轮次+1#下一轮次号加一
     elif 种类=='step/start':#步骤开始
-        轮次=取字段(数据,'turn')#事件轮次
-        步骤=取字段(数据,'step')#事件步骤
+        轮次=数据['turn']#事件轮次
+        步骤=数据['step']#事件步骤
         if 踪迹['openTurn']!=轮次:#不在打开轮次里
             失败('step/start in turn '+str(轮次)+' but open turn is '+str(踪迹['openTurn']))#必须在打开轮次
         if 踪迹['openStep'] is not None:#已有打开步骤
@@ -70,30 +54,30 @@ def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
             失败('step/start expected step '+str(踪迹['nextStep'])+' in turn '+str(轮次)+', got '+str(步骤))#必须是下一号
         打开步骤=步骤#打开该步骤
     elif 种类=='step/end':#步骤结束
-        要求打开步骤(踪迹,'step/end',取字段(数据,'turn'),取字段(数据,'step'),失败)#必须点名打开步骤
+        要求打开步骤(踪迹,'step/end',数据['turn'],数据['step'],失败)#必须点名打开步骤
         待完成={'kind':'clear'}#清空未完成调用
         打开步骤=None#关闭步骤
         下一步骤=下一步骤+1#下一步骤号加一
     elif 种类=='assistant/chunk':#助手块
-        要求打开步骤(踪迹,'assistant/chunk',取字段(数据,'turn'),取字段(数据,'step'),失败)#必须在打开步骤
+        要求打开步骤(踪迹,'assistant/chunk',数据['turn'],数据['step'],失败)#必须在打开步骤
     elif 种类=='assistant/message':#助手消息
-        要求打开步骤(踪迹,'assistant/message',取字段(数据,'turn'),取字段(数据,'step'),失败)#必须在打开步骤
+        要求打开步骤(踪迹,'assistant/message',数据['turn'],数据['step'],失败)#必须在打开步骤
     elif 种类=='tool/call':#工具调用
-        要求打开步骤(踪迹,'tool/call',取字段(数据,'turn'),取字段(数据,'step'),失败)#必须在打开步骤
-        待完成={'kind':'add','callId':取字段(数据,'callId')}#记下未完成调用
+        要求打开步骤(踪迹,'tool/call',数据['turn'],数据['step'],失败)#必须在打开步骤
+        待完成={'kind':'add','callId':数据['callId']}#记下未完成调用
     elif 种类=='tool/result':#工具结果
-        if 试取(事件,'surfaceOp')!='append':#表面替换而非追加
+        if 'surfaceOp' not in 事件 or 事件['surfaceOp']!='append':#表面替换而非追加
             if 踪迹['openTurn'] is None:#没有打开轮次
                 失败('tool/result surface replacement appended outside any open turn')#替换必须在轮次内
         else:#追加
-            要求打开步骤(踪迹,'tool/result',取字段(数据,'turn'),取字段(数据,'step'),失败)#追加必须在打开步骤
-            消息=取字段(数据,'message')#结果消息
-            来源=取字段(消息,'source')#工具来源
-            调用号=取字段(来源,'callId')#结果对应的调用
-            内容=取字段(消息,'content')#内容块
+            要求打开步骤(踪迹,'tool/result',数据['turn'],数据['step'],失败)#追加必须在打开步骤
+            消息=数据['message']#结果消息
+            来源=消息['source']#工具来源
+            调用号=来源['callId']#结果对应的调用
+            内容=消息['content']#内容块
             块=内容[0]#第一块
-            错误=试取(数据,'error')#可选错误身份
-            合成未启动=试取(块,'isError') is True and 试取(错误,'code')==工具未启动#合成的未启动错误
+            错误=数据['error'] if 'error' in 数据 else None#可选错误身份
+            合成未启动=('isError' in 块 and 块['isError'] is True) and (错误 is not None and 'code' in 错误 and 错误['code']==工具未启动)#合成的未启动错误
             if (调用号 not in 踪迹['pendingCalls']) and (not 合成未启动):#既无先前调用也不是合成未启动
                 失败('tool/result for '+str(调用号)+' with no prior tool/call in this step')#本步必须先有 tool/call
             待完成={'kind':'delete','callId':调用号}#从待完成集删掉
@@ -171,7 +155,7 @@ def 安装(上下文对象,失败):#安装会话不变量
     def 新会话(载体,会话,*位置参数):#新会话播种
         """新会话播种。派发 this 是载体。"""
         播种会话(会话)#播种
-    上下文对象.on('session/created',新会话,{'global':True})#新会话播种
+    上下文对象.监听('session/created',新会话,{'全局':True})#新会话播种
     def 提交事件(载体,会话,事件,*位置参数):#事件发表后提交变迁
         """事件发表后提交变迁。派发 this 是载体。"""
         暂存=暂存表.取(事件)#取出暂存
@@ -179,7 +163,7 @@ def 安装(上下文对象,失败):#安装会话不变量
             return 失败('session/event reached publication without matching pre-commit validation')#发表前必须已校验
         暂存表.设(事件,None)#清掉暂存
         应用变迁(暂存['trace'],暂存['transition'])#应用到踪迹
-    上下文对象.on('session/event',提交事件,{'global':True})#全局监听
+    上下文对象.监听('session/event',提交事件,{'全局':True})#全局监听
     def 派发钩子(_模式,事件名,参数,*其余):#派发时先纯校验
         """派发时先纯校验。"""
         if 事件名!='session/event':#只看会话事件
@@ -189,12 +173,14 @@ def 安装(上下文对象,失败):#安装会话不变量
         踪迹=取踪迹(会话)#取踪迹
         变迁=校验事件(踪迹,事件,失败)#纯校验
         暂存表.设(事件,{'session':会话,'trace':踪迹,'transition':变迁})#暂存待提交
-    上下文对象.on('internal/dispatch',派发钩子,{'global':True})#全局监听
+    上下文对象.监听('internal/dispatch',派发钩子,{'全局':True})#全局监听
 
 安装.inject=['sessions']#安装时还要 sessions（Cordis 安装器协议槽）
 
 def 应用(上下文对象):#注册会话不变量配套
     """注册会话不变量配套。"""
-    return 已兑现(上下文对象.invariants.register(包名,安装))#登记贡献并返回已兑现拆除器
+    return 上下文对象.invariants.register(包名,安装)#登记贡献并返回拆除器
 
-apply=应用#Cordis插件入口（协议槽）
+name=名称#Cordis 插件名槽
+inject=注入#Cordis 依赖声明槽
+apply=应用#Cordis 插件入口槽

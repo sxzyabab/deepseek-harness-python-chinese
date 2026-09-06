@@ -1,0 +1,16 @@
+{
+    "action":"动作",
+    "baked":"已烤",
+    "create":"创建",
+    "decl":"声明",
+    "factory":"工厂",
+    "handle":"句柄",
+    "hook":"钩",
+    "instance":"实例",
+    "persist":"持久化",
+    "scope":"作用域",
+    "selector":"选择器",
+    "snapshot":"快照",
+    "spec":"规格",
+    "store":"存储"
+}

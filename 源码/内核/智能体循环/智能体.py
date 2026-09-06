@@ -15,17 +15,17 @@ from ..会话 import 归一请求头,请求头是否相等
 from ..系统提示词 import 拼接上下文章节,渲染上下文章节,渲染提示词
 from .运行时上下文 import 运行时上下文投影
 from .工具调用 import 执行工具调用
-from .辅助 import 取,解开,已中止,中止原因,中止控制器,已兑现,抛若中止,操作任务
+from .中止与并发 import 已中止,中止控制器,若已中止则抛出,操作任务,循环错误,中止错误
 
 def 请求提议(头):
     """在插件提议下一次请求配置前去掉适配器派生值。"""
-    if 取(头,'adapterDefaults') is None:
-        return 取(头,'config')#无适配器默认则原样
-    提议=dict(取(头,'config'))#拷贝配置
-    默认=取(头,'adapterDefaults')#适配器默认
-    if 取(默认,'reasoningEffort') is True:
+    if 'adapterDefaults' not in 头 or 头['adapterDefaults'] is None:
+        return 头['config']#无适配器默认则原样
+    提议=dict(头['config'])#拷贝配置
+    默认=头['adapterDefaults']#适配器默认
+    if 'reasoningEffort' in 默认 and 默认['reasoningEffort'] is True:
         提议.pop('reasoningEffort',None)#去掉适配器力度
-    if 取(默认,'maxTokens') is True:
+    if 'maxTokens' in 默认 and 默认['maxTokens'] is True:
         提议.pop('maxTokens',None)#去掉适配器 token 上限
     return 提议#返回提议
 
@@ -55,13 +55,16 @@ class 循环智能体:
         自身.inbox=收件箱(会话,通知口)#从日志建收件箱
         上次轮次=0#日志里最近轮次
         for 事件 in reversed(会话.events):
-            if 取(事件,'type')=='turn/start':
-                上次轮次=取(取(事件,'data'),'turn') or 0#最近轮次
+            if 事件['type']=='turn/start':
+                数据=事件['data']#载荷
+                上次轮次=数据['turn'] if 'turn' in 数据 and 数据['turn'] is not None else 0#最近轮次
                 break#已找到
         自身.阶段={'kind':'idle','lastTurn':上次轮次}#从空闲开始
-        自身.活动落定=已兑现()#当前活动落定
+        空闲落定=操作任务()#当前活动落定
+        空闲落定.兑现()#空闲已兑现
+        自身.活动落定=空闲落定#跟踪活动
         自身.作用域=创建作用域(循环上下文,自身)#铸造作用域
-        自身.ctx=自身.作用域.上下文.extend({'agent':自身})#挂上 Agent 关联
+        自身.ctx=自身.作用域.上下文.扩展({'agent':自身})#挂上 Agent 关联
         自身.请求头已记=False#是否已记请求头
         自身.运行时上下文=运行时上下文投影(自身.ctx,会话)#恢复运行时上下文
 
@@ -104,7 +107,7 @@ class 循环智能体:
         """取消。"""
         if 选项 is None:
             选项={}#默认选项
-        if not 取(选项,'keepInbox'):
+        if 'keepInbox' not in 选项 or 选项['keepInbox'] is not True:
             自身.inbox.清空()#清空
             if 自身.阶段['kind']!='idle':
                 自身.阶段['wakeRequested']=False#清掉唤醒闩
@@ -114,7 +117,7 @@ class 循环智能体:
     def 跑维护(自身,任务):
         """跑维护。"""
         if 自身.阶段['kind']!='idle':
-            raise Exception('agent "'+str(自身.id)+'" already has active work')#已有活动
+            raise 循环错误('agent "'+str(自身.id)+'" already has active work')#已有活动
         落定=操作任务()#维护落定
         维护={
             'kind':'maintenance',#种类
@@ -125,10 +128,10 @@ class 循环智能体:
         自身.设阶段(维护)#进入维护
         自身.活动落定=落定#跟踪活动
         结果=操作任务()#任务结果
-        def 跑():
+        def 执行维护并收尾():
             """执行维护并收尾。"""
             try:
-                结果.兑现(解开(任务(维护['abort'].信号)))#交给任务
+                结果.兑现(任务(维护['abort'].信号))#交给任务
             except BaseException as 错误:
                 结果.拒绝(错误)#拒绝
             finally:
@@ -136,7 +139,7 @@ class 循环智能体:
                 if 维护['wakeRequested'] and 自身.inbox.有待处理:
                     自身.叫醒驱动器()#有闩且有工作则叫醒
                 落定.兑现()#活动落定
-        工作=threading.Thread(target=跑)#工作线程
+        工作=threading.Thread(target=执行维护并收尾)#工作线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
         return 结果#任务操作任务
@@ -144,9 +147,15 @@ class 循环智能体:
     def 叫醒驱动器(自身,中止后唤醒=False):
         """启动一个驱动器，或把它的唤醒闩在维护或已中止活动后面。"""
         if 自身.阶段['kind']!='idle':
-            原因=中止原因(自身.阶段['abort'].信号)#取消原因
-            原因种=取(原因,'kind') if 原因 is not None else None#取消种类
-            if 原因种!='disposed' and (自身.阶段['kind']=='maintenance' or 中止后唤醒):
+            已拆除=False#是否拆除取消
+            if 已中止(自身.阶段['abort'].信号):
+                try:
+                    若已中止则抛出(自身.阶段['abort'].信号)#取出承载异常
+                except 中止错误 as 错误:
+                    已拆除=错误.kind=='disposed'#拆除种类
+                except 循环错误:
+                    已拆除=False#其它循环错误
+            if (not 已拆除) and (自身.阶段['kind']=='maintenance' or 中止后唤醒):
                 自身.阶段['wakeRequested']=True#闩住
             return#不新开驱动器
         驱动器=操作任务()#驱动器落定
@@ -159,14 +168,14 @@ class 循环智能体:
             'wakeRequested':False,#新控制器无闩
         })#进入运行
         循环上下文=自身.循环上下文#循环上下文
-        def 跑驱动():
-            """带发起者跑驱动器。"""
+        def 执行驱动():
+            """带发起者执行驱动器。"""
             try:
-                解开(循环上下文.agents.带发起方(自身,自身.踢))#带发起者跑
+                循环上下文.agents.带发起方(自身,自身.踢)#带发起者跑
                 驱动器.兑现()#落定
             except BaseException as 错误:
                 驱动器.拒绝(错误)#拒绝
-        工作=threading.Thread(target=跑驱动)#驱动线程
+        工作=threading.Thread(target=执行驱动)#驱动线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
 
@@ -174,7 +183,7 @@ class 循环智能体:
         """等到空闲。"""
         while True:
             活动=自身.活动落定#当前活动
-            解开(活动)#等待当前
+            活动.等待()#等待当前
             if 活动 is 自身.活动落定:
                 return#没有被替换
 
@@ -204,25 +213,25 @@ class 循环智能体:
     def 预步骤(自身,目标,位置):
         """预步骤。"""
         if 自身.阶段['kind']!='running':
-            raise Exception('agent "'+str(自身.id)+'": pre-step outside running phase')#必须在运行
+            raise 循环错误('agent "'+str(自身.id)+'": pre-step outside running phase')#必须在运行
         信号=自身.阶段['abort'].信号#轮次信号
         已领=自身.inbox.领取(目标,位置['turn'])#领取批次
-        组装=解开(自身.循环上下文.systemPrompt.组装(为组装构建上下文(自身,信号)))#组装提示词
-        抛若中止(信号)#组装后检查取消
-        段落们=渲染上下文章节(组装)#渲染上下文段落
-        快照=自身.运行时上下文.投影(拼接上下文章节(段落们),段落们)#投影快照
+        组装=自身.循环上下文.systemPrompt.组装(为组装构建上下文(自身,信号))#组装提示词
+        若已中止则抛出(信号)#组装后检查取消
+        段落列表=渲染上下文章节(组装)#渲染上下文段落
+        快照=自身.运行时上下文.投影(拼接上下文章节(段落列表),段落列表)#投影快照
         def 默认进入(*位置参数):
             """瀑布内建进入。"""
-            消息们=已领 if 快照 is None else list(已领)+[快照]#带上快照
-            return {'kind':'enter','messages':消息们}#进入决定
-        决定=解开(自身.派发['瀑布']('agent/pre-step',{
+            消息列表=已领 if 快照 is None else list(已领)+[快照]#带上快照
+            return {'kind':'enter','messages':消息列表}#进入决定
+        决定=自身.派发['瀑布']('agent/pre-step',{
             'messages':已领,#已领消息
             'turn':位置['turn'],#轮次
             'step':位置['step'],#步骤
             'signal':信号,#信号
-        },默认进入))#瀑布决定进入或拒绝
-        抛若中止(信号)#瀑布后检查取消
-        if 取(决定,'kind')=='reject':
+        },默认进入)#瀑布决定进入或拒绝
+        若已中止则抛出(信号)#瀑布后检查取消
+        if 决定['kind']=='reject':
             return 决定#拒绝
         带组装=dict(决定)#拷贝决定
         带组装['assembly']=组装#带上组装
@@ -231,10 +240,10 @@ class 循环智能体:
     def 轮次(自身):
         """跑一轮。"""
         if 自身.阶段['kind']!='running':
-            自身.抛错误(Exception('agent "'+str(自身.id)+'": turn without driver reservation'))#没有驱动器预留
+            自身.抛错误(循环错误('agent "'+str(自身.id)+'": turn without driver reservation'))#没有驱动器预留
         阶段=自身.阶段#运行阶段
         信号=阶段['abort'].信号#取消信号
-        抛若中止(信号)#进入前检查
+        若已中止则抛出(信号)#进入前检查
         轮次号=阶段['turn']+1#下一轮次号
         try:
             自身.session.追加('turn/start',{'turn':轮次号})#打开轮次
@@ -245,39 +254,42 @@ class 循环智能体:
         目标=下一轮#首步吃下一轮
         try:
             while True:
-                抛若中止(信号)#每步前检查
+                若已中止则抛出(信号)#每步前检查
                 步骤号=阶段['step']+1#下一步号
                 决定=自身.预步骤(目标,{'turn':轮次号,'step':步骤号})#预步骤
-                if 取(决定,'kind')=='reject':
+                if 决定['kind']=='reject':
                     轮次结束={'kind':'blocked'}#预步骤拒绝
                     return False#关闭且不再续
-                消息们=取(决定,'messages') or []#进入消息
-                if 轮次结束 is not None and len(消息们)==0:
+                消息列表=决定['messages'] if 'messages' in 决定 and 决定['messages'] is not None else []#进入消息
+                if 轮次结束 is not None and len(消息列表)==0:
                     break#已有结束且无消息则停
-                if 阶段['step']==0 and len(消息们)==0:
+                if 阶段['step']==0 and len(消息列表)==0:
                     轮次结束={'kind':'completed'}#当作完成
                     return False#关闭且不再续
-                抛若中止(信号)#步骤开始前检查
+                若已中止则抛出(信号)#步骤开始前检查
                 自身.session.追加('step/start',{'turn':轮次号,'step':步骤号})#打开步骤
                 阶段['step']=步骤号#记下打开步骤
                 try:
-                    for 消息 in 消息们:
+                    for 消息 in 消息列表:
                         自身.session.追加('user/message',消息,{'surfaceOp':'append'})#追加到表面
-                    步骤结束=自身.一步(取(决定,'assembly'))#跑一步
-                    if 轮次结束 is None or 取(轮次结束,'kind')!='max-tokens':
+                    步骤结束=自身.一步(决定['assembly'])#跑一步
+                    if 轮次结束 is None or 轮次结束['kind']!='max-tokens':
                         轮次结束=步骤结束#更新结束原因
                 finally:
                     自身.session.追加('step/end',{'turn':轮次号,'step':步骤号})#关闭步骤
-                抛若中止(信号)#步骤后检查
+                若已中止则抛出(信号)#步骤后检查
                 if 轮次结束 is not None and len(自身.inbox.下一步队列)==0:
-                    解开(自身.派发['串行']('agent/turn-stopping',{'turn':轮次号,'signal':信号}))#征求停止边界
-                    抛若中止(信号)#征求后检查
+                    自身.派发['串行']('agent/turn-stopping',{'turn':轮次号,'signal':信号})#征求停止边界
+                    若已中止则抛出(信号)#征求后检查
                 if 轮次结束 is not None and len(自身.inbox.下一步队列)==0:
                     break#仍无下一步则关轮
                 目标=下一步#后续步骤吃下一步
         except BaseException as 错误:
             if 已中止(信号):
-                轮次结束={'kind':'aborted','reason':中止原因(信号)}#中止原因
+                try:
+                    若已中止则抛出(信号)#取出承载异常
+                except BaseException as 中止:
+                    轮次结束={'kind':'aborted','reason':中止}#中止原因
                 raise 错误#再抛出
             if isinstance(错误,语言模型错误):
                 失败=错误.failure#保留其事实
@@ -300,50 +312,49 @@ class 循环智能体:
     def 一步(自身,组装):
         """跑一步。"""
         if 自身.阶段['kind']!='running':
-            raise Exception('agent "'+str(自身.id)+'": step outside running phase')#必须在运行
+            raise 循环错误('agent "'+str(自身.id)+'": step outside running phase')#必须在运行
         阶段=自身.阶段#运行阶段
         轮次号=阶段['turn']#轮次
         步骤号=阶段['step']#步骤
         信号=阶段['abort'].信号#信号
-        抛若中止(信号)#进入前检查
+        若已中止则抛出(信号)#进入前检查
         系统=渲染提示词(组装)#渲染系统提示
         while True:
-            构建=自身.构建请求(轮次号,步骤号,取(组装,'tools'),系统,自身.session.派生消息(),信号)#构建冻结请求
+            构建=自身.构建请求(轮次号,步骤号,组装['tools'] if 'tools' in 组装 else None,系统,自身.session.派生消息(),信号)#构建冻结请求
             请求=构建['request']#冻结请求
-            已准备调用=取(构建,'preparedCall')#已准备调用
+            已准备调用=构建['preparedCall'] if 'preparedCall' in 构建 else None#已准备调用
             组装器=块组装器()#块组装器
-            块序号们=[]#块序号
+            块序号列表=[]#块序号
             if 已准备调用 is not None:
                 流=已准备调用['stream'](请求)#绑定流
             else:
                 流=自身.循环上下文.llm.流式(请求)#注册表流
-            流=解开(流)#瀑布可能返回承诺
-            抛若中止(信号)#流前检查
+            若已中止则抛出(信号)#流前检查
             for 块 in 流:
-                抛若中止(信号)#每块检查
-                块序号们.append(取(自身.session.追加('assistant/chunk',{'turn':轮次号,'step':步骤号,'chunk':块}),'seq'))#记下块
+                若已中止则抛出(信号)#每块检查
+                块序号列表.append(自身.session.追加('assistant/chunk',{'turn':轮次号,'step':步骤号,'chunk':块})['seq'])#记下块
                 组装器.push(块)#组装块
-            抛若中止(信号)#流后检查
+            若已中止则抛出(信号)#流后检查
             结束=组装器.finish#结束原因
-            结束种=取(结束,'kind')#结束种类
+            结束种=结束['kind']#结束种类
             if 结束种=='error' or 结束种=='aborted':
                 def 默认动作(*位置参数):
                     """默认不恢复。"""
                     return None#终态
-                动作=解开(自身.派发['瀑布']('agent/request-error',{
+                动作=自身.派发['瀑布']('agent/request-error',{
                     'turn':轮次号,#轮次
                     'step':步骤号,#步骤
-                    'provider':取(请求,'provider'),#提供方
-                    'failure':取(结束,'failure'),#失败事实
-                    'retryPolicy':取(已准备调用,'retryPolicy') if 已准备调用 is not None else None,#重试策略
+                    'provider':请求['provider'],#提供方
+                    'failure':结束['failure'],#失败事实
+                    'retryPolicy':已准备调用['retryPolicy'] if 已准备调用 is not None and 'retryPolicy' in 已准备调用 else None,#重试策略
                     'signal':信号,#信号
-                },默认动作))#征求恢复
-                抛若中止(信号)#瀑布后检查
-                if 取(动作,'kind')!='retry':
-                    失败=取(结束,'failure')#失败事实
-                    raise 语言模型错误(取(失败,'message'),取(失败,'code'),失败)#抛出失败
+                },默认动作)#征求恢复
+                若已中止则抛出(信号)#瀑布后检查
+                if 动作 is None or 'kind' not in 动作 or 动作['kind']!='retry':
+                    失败=结束['failure']#失败事实
+                    raise 语言模型错误(失败['message'],失败['code'],失败)#抛出失败
                 continue#再请求
-            来源={'provider':取(请求,'provider'),'model':取(请求,'model')}#来源
+            来源={'provider':请求['provider'],'model':请求['model']}#来源
             if 组装器.replayState is not None:
                 来源['replayState']=组装器.replayState#有回放状态则带
             消息=创建助手消息({
@@ -357,32 +368,36 @@ class 循环智能体:
             }#助手载荷
             if 组装器.usage is not None:
                 载荷['usage']=组装器.usage#有用量则带
-            自身.session.追加('assistant/message',载荷,{'surfaceOp':'append','sourceEventSeqs':块序号们})#追加助手消息
+            自身.session.追加('assistant/message',载荷,{'surfaceOp':'append','sourceEventSeqs':块序号列表})#追加助手消息
             if 结束种=='max-tokens':
                 return {'kind':'max-tokens'}#碰到上限
-            工具调用们=[块 for 块 in 取(消息,'content') if 取(块,'type')=='tool-call']#取出工具调用
-            if len(工具调用们)==0:
+            工具调用列表=[块 for 块 in 消息['content'] if 块['type']=='tool-call']#取出工具调用
+            if len(工具调用列表)==0:
                 return {'kind':'completed'}#无调用则完成
             def 接受上下文(上下文块):
                 """把结果上下文接到下一步收件箱。"""
                 自身.inbox.拼接(下一步,len(自身.inbox.下一步队列),0,[上下文块])#追加上下文
-            调度=解开(执行工具调用(自身.循环上下文,轮次号,步骤号,工具调用们,信号,接受上下文))#调度工具调用
-            return {'kind':'completed'} if 取(调度,'concluded') else None#结束轮次或继续
+            调度=执行工具调用(自身.循环上下文,轮次号,步骤号,工具调用列表,信号,接受上下文)#调度工具调用
+            return {'kind':'completed'} if 调度['concluded'] else None#结束轮次或继续
 
-    def 构建请求(自身,轮次号,步骤号,工具们,系统,边界消息,信号):
+    def 构建请求(自身,轮次号,步骤号,工具列表,系统,边界消息,信号):
         """组装一次冻结请求，并把它绑到解析了其精确模型默认的适配器注册。"""
         会话=自身.session#取出会话
         已存头=会话.请求头()#已折叠请求头
-        已存配置=取(已存头,'config') if 已存头 is not None else None#已存配置
-        路由={'provider':取(自身.options,'provider') or '','model':取(自身.options,'model') or ''}#声明路由
-        适配器默认=取(已存头,'adapterDefaults') if 已存头 is not None else None#适配器默认
-        if (取(已存配置,'provider')==路由['provider']
-            and 取(已存配置,'model')==路由['model']
-            and 取(适配器默认,'reasoningEffort') is not True):
-            推理力度=取(已存配置,'reasoningEffort')#同路由且非适配器默认才恢复力度
+        已存配置=已存头['config'] if 已存头 is not None else None#已存配置
+        提供方=自身.options['provider'] if 'provider' in 自身.options and 自身.options['provider'] is not None else ''#声明提供方
+        模型=自身.options['model'] if 'model' in 自身.options and 自身.options['model'] is not None else ''#声明模型
+        路由={'provider':提供方,'model':模型}#声明路由
+        适配器默认=已存头['adapterDefaults'] if 已存头 is not None and 'adapterDefaults' in 已存头 else None#适配器默认
+        适配器力度=适配器默认['reasoningEffort'] if 适配器默认 is not None and 'reasoningEffort' in 适配器默认 else None#适配器力度旗
+        if (已存配置 is not None
+            and 已存配置['provider']==路由['provider']
+            and 已存配置['model']==路由['model']
+            and 适配器力度 is not True):
+            推理力度=已存配置['reasoningEffort'] if 'reasoningEffort' in 已存配置 else None#同路由且非适配器默认才恢复力度
         else:
             推理力度=None#不恢复
-        最大令牌=取(自身.options,'maxTokens')#选项里的 token 上限
+        最大令牌=自身.options['maxTokens'] if 'maxTokens' in 自身.options else None#选项里的 token 上限
         if 自身.请求头已记:
             种子=请求提议(已存头)#已记下则用提议
         else:
@@ -395,30 +410,32 @@ class 循环智能体:
         def 默认配置(*位置参数):
             """瀑布内建配置。"""
             return 种子配置#种子
-        提议配置=解开(自身.派发['瀑布']('agent/request',{
+        提议配置=自身.派发['瀑布']('agent/request',{
             'turn':轮次号,#轮次
             'step':步骤号,#步骤
             'signal':信号,#信号
-        },默认配置))#插件可替换配置
-        抛若中止(信号)#瀑布后检查
-        if (not 取(提议配置,'provider')) or (not 取(提议配置,'model')):
-            raise Exception('agent "'+str(自身.id)+'" has no provider/model: set AgentOptions.provider and AgentOptions.model or supply both via the agent/request waterfall')#必须有提供方与模型
+        },默认配置)#插件可替换配置
+        若已中止则抛出(信号)#瀑布后检查
+        提议提供方=提议配置['provider'] if 'provider' in 提议配置 else None#提议提供方
+        提议模型=提议配置['model'] if 'model' in 提议配置 else None#提议模型
+        if 提议提供方 is None or 提议提供方=='' or 提议模型 is None or 提议模型=='':
+            raise 循环错误('agent "'+str(自身.id)+'" has no provider/model: set AgentOptions.provider and AgentOptions.model or supply both via the agent/request waterfall')#必须有提供方与模型
         已准备调用=None#已准备调用
         try:
-            已准备调用=解开(自身.循环上下文.llm.准备调用(提议配置,信号))#准备调用
+            已准备调用=自身.循环上下文.llm.准备调用(提议配置,信号)#准备调用
             配置=已准备调用['config']#取出配置
         except BaseException as 错误:
             if (not isinstance(错误,语言模型错误)) or 错误.code!='NO_ADAPTER':
                 raise 错误#非缺适配器则抛
             配置=提议配置#缺适配器则用提议
-        抛若中止(信号)#准备后检查
+        若已中止则抛出(信号)#准备后检查
         头输入={'config':配置}#规范请求头输入
         if 已准备调用 is not None:
             头输入['adapterDefaults']=已准备调用['adapterDefaults']#有适配器默认则带
-        if 系统:
+        if 系统 is not None and len(系统)>0:
             头输入['system']=系统#有系统提示则带
-        if 工具们 is not None and len(工具们)>0:
-            头输入['tools']=工具们#有工具则带
+        if 工具列表 is not None and len(工具列表)>0:
+            头输入['tools']=工具列表#有工具则带
         头=归一请求头(头输入)#规范请求头
         基线=自身.session.请求头()#先前折叠头
         if not 自身.请求头已记:
@@ -429,23 +446,25 @@ class 循环智能体:
             自身.session.追加('request/header',{'header':头,'reason':'change'})#记下变更
         上下文窗口=None#上下文窗口
         if 已准备调用 is not None:
-            上下文=取(已准备调用,'context')#已准备上下文
-            上下文窗口=取(上下文,'contextWindow') if 上下文 is not None else None#窗口
-        请求上下文={'provider':取(配置,'provider'),'model':取(配置,'model')}#路由元数据
+            上下文=已准备调用['context'] if 'context' in 已准备调用 else None#已准备上下文
+            上下文窗口=上下文['contextWindow'] if 上下文 is not None and 'contextWindow' in 上下文 else None#窗口
+        请求上下文={'provider':配置['provider'],'model':配置['model']}#路由元数据
         if 上下文窗口 is not None:
             请求上下文['contextWindow']=上下文窗口#有窗口则带
         先前上下文=会话.请求上下文()#先前路由元数据
-        if (取(先前上下文,'provider')!=请求上下文['provider']
-            or 取(先前上下文,'model')!=请求上下文['model']
-            or 取(先前上下文,'contextWindow')!=取(请求上下文,'contextWindow')):
+        先前提供方=先前上下文['provider'] if 先前上下文 is not None and 'provider' in 先前上下文 else None#先前提供方
+        先前模型=先前上下文['model'] if 先前上下文 is not None and 'model' in 先前上下文 else None#先前模型
+        先前窗口=先前上下文['contextWindow'] if 先前上下文 is not None and 'contextWindow' in 先前上下文 else None#先前窗口
+        现窗口=请求上下文['contextWindow'] if 'contextWindow' in 请求上下文 else None#现窗口
+        if 先前提供方!=请求上下文['provider'] or 先前模型!=请求上下文['model'] or 先前窗口!=现窗口:
             会话.追加('request/context',请求上下文)#记下变更
-        抛若中止(信号)#记下后检查
-        请求=dict(取(头,'config'))#调用配置
+        若已中止则抛出(信号)#记下后检查
+        请求=dict(头['config'])#调用配置
         请求['messages']=边界消息#派生消息
-        if 取(头,'system') is not None:
-            请求['system']=取(头,'system')#有系统提示则带
-        if 取(头,'tools') is not None:
-            请求['tools']=取(头,'tools')#有工具则带
+        if 'system' in 头 and 头['system'] is not None:
+            请求['system']=头['system']#有系统提示则带
+        if 'tools' in 头 and 头['tools'] is not None:
+            请求['tools']=头['tools']#有工具则带
         请求['sessionId']=自身.session.id#会话 id
         请求['signal']=信号#信号
         请求=标记循环请求(深冻结(请求))#冻结并标记循环请求

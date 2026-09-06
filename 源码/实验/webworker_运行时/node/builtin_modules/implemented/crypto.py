@@ -4,6 +4,7 @@
 对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/crypto.ts`。
 公开面中文名；Node 面经别名与 default 暴露英文名。
 """
+from ...未实现失败 import 运行时错误#本包错误
 import hashlib#对齐 @noble/hashes 同步摘要
 from ......工具.加密 import 随机uuid as 铸造uuid#导入UUID铸造
 from buffer import Buffer#导入Buffer
@@ -26,11 +27,11 @@ def 摘要sha512(输入):#SHA-512
     """SHA-512 摘要。"""
     return hashlib.sha512(输入).digest()#摘要
 
-哈希器们={#算法名到摘要函数
+哈希器表={#算法名到摘要函数
     'sha1':摘要sha1,#SHA-1
     'sha256':摘要sha256,#SHA-256
     'sha512':摘要sha512,#SHA-512
-}#哈希器们结束
+}#哈希器表结束
 
 编码器=globals().get('TextEncoder')#文本编码器类
 
@@ -45,23 +46,23 @@ def 归一字节(数据):#归一为字节
 def 创建哈希(算法):#创建同步哈希
     """创建同步哈希对象。"""
     键=算法.lower().replace('-','')#查算法名
-    哈希器=哈希器们.get(键)#查算法
+    哈希器=哈希器表.get(键)#查算法
     if 哈希器 is None:#未知算法
-        raise Exception(f'web-preview: node:crypto.createHash("{算法}") is not available in the worker host')#拒绝
-    分块们=[]#分块缓冲
+        raise 运行时错误(f'web-preview: node:crypto.createHash("{算法}") is not available in the worker host')#拒绝
+    分块列表=[]#分块缓冲
     哈希={}#构造哈希对象
 
     def 追加(数据,编码=None):#追加数据
         """追加数据并链式返回。"""
-        分块们.append(归一字节(数据))#收字节
+        分块列表.append(归一字节(数据))#收字节
         return 哈希#链式
 
     def 摘要(编码=None):#结算摘要
         """返回 Buffer 或编码字符串。"""
-        合计=sum(len(块) for 块 in 分块们)#总长度
+        合计=sum(len(块) for 块 in 分块列表)#总长度
         合并=bytearray(合计)#合并缓冲
         偏移=0#写入偏移
-        for 块 in 分块们:#逐块拷贝
+        for 块 in 分块列表:#逐块拷贝
             合并[偏移:偏移+len(块)]=块#写入
             偏移+=len(块)#推进
         摘要缓冲=Buffer.from(哈希器(bytes(合并)))#摘要为Buffer

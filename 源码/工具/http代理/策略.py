@@ -26,7 +26,7 @@ __all__=[#仅中文公开名
 
 #承载代理配置的全部环境名，含本包会解析但从不写回的 ALL_PROXY 兜底。
 代理环境名=tuple(#全部代理相关环境名
-    [名称 for 名称们 in 策略环境名.values() for 名称 in 名称们]+#策略字段对应的大小写名
+    [名称 for 名称列表 in 策略环境名.values() for 名称 in 名称列表]+#策略字段对应的大小写名
     ['all_proxy','ALL_PROXY']#全协议兜底
 )#代理环境名结束
 
@@ -61,28 +61,28 @@ def 读环境(环境,小写名):#按 undici 优先序读环境名
             return {'value':值,'name':名称}#胜出值与名字
     return None#皆未设置
 
-def 接受代理网址(候选,诊断们):#校验并分类一个候选网址
+def 接受代理网址(候选,诊断列表):#校验并分类一个候选网址
     """校验一个候选代理网址。返回已接受 / 已拒绝 / 缺席。"""
     if 候选 is None:#无人提供
         return 缺席候选#缺席
     解析结果=解析网址(候选['value'])#对应 URL.parse
     协议=(解析结果.scheme+':') if 解析结果.scheme else ''#带冒号的协议
     if 协议=='':#无法解析出协议
-        诊断们.append({#追加无效诊断
+        诊断列表.append({#追加无效诊断
             '种类':'invalid',#种类为无效
             '来源':候选['name'],#来源变量名
             '消息':候选['name']+' is not a valid URL; connecting directly',#英文诊断字面量不翻译
         })#诊断结束
         return {'种类':'已拒绝'}#记为被拒
     if 协议 in 袜子协议:#SOCKS 族
-        诊断们.append({#追加 SOCKS 诊断
+        诊断列表.append({#追加 SOCKS 诊断
             '种类':'socks',#种类为 socks
             '来源':候选['name'],#来源变量名
             '消息':候选['name']+' names a SOCKS proxy, which is not supported; connecting directly for that scheme — set an http:// or https:// proxy URL instead',#英文诊断字面量不翻译
         })#诊断结束
         return {'种类':'已拒绝'}#记为被拒
     if 协议 not in 支持协议:#不受支持的协议
-        诊断们.append({#追加无效协议诊断
+        诊断列表.append({#追加无效协议诊断
             '种类':'invalid',#种类为无效
             '来源':候选['name'],#来源变量名
             '消息':候选['name']+' uses the unsupported '+协议+'// scheme; connecting directly for that scheme — set an http:// or https:// proxy URL instead',#英文诊断字面量不翻译
@@ -96,25 +96,25 @@ def 是否受支持代理网址(值):#是否为本包可接受的代理网址
     协议=(解析结果.scheme+':') if 解析结果.scheme else ''#带冒号的协议
     return 协议 in 支持协议#可解析且协议受支持
 
-def 解析协议槽(本槽,*兜底们):#解析单协议代理
+def 解析协议槽(本槽,*兜底列表):#解析单协议代理
     """从一个协议自己的槽位解析代理，再走兜底——但仅当该协议自己的槽位为空。被拒槽位让该协议保持直连。"""
     if 本槽['种类']=='已接受':#本槽已接受
         return 本槽['值']#本槽值
     if 本槽['种类']=='已拒绝':#本槽被拒则直连
         return None#直连
-    for 值 in 兜底们:#缺席则按兜底取首个有值项
+    for 值 in 兜底列表:#缺席则按兜底取首个有值项
         if 值 is not None:#有值
             return 值#采用兜底
     return None#皆无
 
 def 合并环回(绕过代理):#合并 loopback 绕过
     """把环回绕过代理合并进绕过列表，保留调用方条目与顺序。已含 * 的列表会绕过一切，原样返回。"""
-    条目们=[条目.strip() for 条目 in re.split(r'[,\s]+',绕过代理 or '') if 条目.strip()!='']#拆成非空条目
-    if '*' in 条目们:#* 已绕过全部
+    条目列表=[条目.strip() for 条目 in re.split(r'[,\s]+',绕过代理 or '') if 条目.strip()!='']#拆成非空条目
+    if '*' in 条目列表:#* 已绕过全部
         return '*'#原样
-    已有=set(条目.lower() for 条目 in 条目们)#已有条目小写集合
+    已有=set(条目.lower() for 条目 in 条目列表)#已有条目小写集合
     追加=[条目 for 条目 in 环回绕过代理 if 条目.lower() not in 已有]#缺失的 loopback
-    return ','.join(条目们+追加)#追加缺失的 loopback
+    return ','.join(条目列表+追加)#追加缺失的 loopback
 
 def 拆主机端口(条目):#拆主机与端口
     """把一个绕过条目拆成主机与可选端口。
@@ -188,23 +188,23 @@ def 解析代理策略(环境):#从环境解析策略
 
     协议自己的变量胜出，然后是 ALL_PROXY，再然后——仅对 HTTPS——是 HTTP 代理，与 undici 对齐。
     """
-    诊断们=[]#诊断收集器
-    全协议=接受代理网址(读环境(环境,'all_proxy'),诊断们)#全协议兜底候选
+    诊断列表=[]#诊断收集器
+    全协议=接受代理网址(读环境(环境,'all_proxy'),诊断列表)#全协议兜底候选
     全协议值=全协议['值'] if 全协议['种类']=='已接受' else None#可用的 ALL_PROXY 值
-    环境Http=接受代理网址(读环境(环境,'http_proxy'),诊断们)#http 槽候选
-    环境Https=接受代理网址(读环境(环境,'https_proxy'),诊断们)#https 槽候选
+    环境Http=接受代理网址(读环境(环境,'http_proxy'),诊断列表)#http 槽候选
+    环境Https=接受代理网址(读环境(环境,'https_proxy'),诊断列表)#https 槽候选
     http代理=解析协议槽(环境Http,全协议值)#解析 http 代理
     #HTTPS 最后回退到 HTTP 代理，与 undici 对齐——但绝不越过用户为 HTTPS 点名却被本包拒绝的值。
     https代理=解析协议槽(环境Https,全协议值,http代理)#解析 https 代理
     if http代理 is None and https代理 is None:#两边皆无则直连
-        return {'策略':dict(直连策略),'诊断':诊断们}#直连
+        return {'策略':dict(直连策略),'诊断':诊断列表}#直连
     绕过条目=读环境(环境,'no_proxy')#绕过列表原始值
     策略={'绕过代理':合并环回(绕过条目['value'] if 绕过条目 is not None else None),'来源':'env'}#环境策略
     if http代理 is not None:#有 http 才写入
         策略['http代理']=http代理#写入 http
     if https代理 is not None:#有 https 才写入
         策略['https代理']=https代理#写入 https
-    return {'策略':策略,'诊断':诊断们}#解析结果
+    return {'策略':策略,'诊断':诊断列表}#解析结果
 
 def 按网址取代理(策略,网址):#按策略解析单网址代理
     """在一份策略下解析某个网址走哪个代理。

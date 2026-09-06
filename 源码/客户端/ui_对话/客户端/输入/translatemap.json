@@ -1,0 +1,8 @@
+{
+    "contract.ts":"约定.py",
+    "decorations.ts":"装饰.py",
+    "machine.ts":"输入机.py",
+    "facade.ts":"外壳.py",
+    "hub.ts":"枢纽.py",
+    "index.ts":"__init__.py"
+}

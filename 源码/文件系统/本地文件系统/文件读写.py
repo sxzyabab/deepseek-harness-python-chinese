@@ -6,7 +6,7 @@ import stat#文件类型位判定
 import shutil#递归删除暂存
 import codecs#增量 UTF-8 解码
 from .. import 文件系统 as fs#文件系统错误与品牌
-from .win32 import 复制文件Dacl,替换文件#Windows DACL 复制与替换
+from .win32 import 复制文件Dacl,替换文件,Win32系统错误#Windows DACL 复制、替换与 Win32 错误
 
 二进制采样字节=8192#二进制探测采样字节数
 diff基准读取块字节=64*1024#diff 基准每次读取块大小
@@ -14,32 +14,16 @@ diff基准读取块字节=64*1024#diff 基准每次读取块大小
 是目录模式=stat.S_ISDIR#POSIX 目录
 是符号链接模式=stat.S_ISLNK#POSIX 符号链接
 
-def 取字段(对象,键):#读取映射或对象上的字段
-    """读取映射或对象上的字段。"""
-    if isinstance(对象,dict):#映射
-        return 对象[键]#映射键
-    return getattr(对象,键)#对象属性
-
-def 试取(对象,键,缺省=None):#读取可选字段
-    """读取可选字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键,缺省)#映射可选键
-    return getattr(对象,键,缺省)#对象可选属性
-
-def 是否已中止(信号):#信号是否已中止
-    """信号是否已中止。"""
+def 已中止(信号):#信号是否已中止
+    """信号已置位则为已中止。无信号视为未中止。"""
     if 信号 is None:#无信号
         return False#未中止
-    if isinstance(信号,dict):#映射信号
-        return bool(信号.get('aborted') or 信号.get('已中止'))#中英文字段
-    return bool(getattr(信号,'aborted',False) or getattr(信号,'已中止',False))#对象属性
+    return 信号.is_set()#Event置位
 
-def 若已中止则抛(信号,动词):#已中止则抛出结构化错误
+def 若已中止则抛出(信号,动词):#已中止则抛出结构化错误
     """已中止则抛出结构化 `FS_ABORTED`。"""
-    if 是否已中止(信号):#已中止
-        raise fs.文件系统错误(f'{动词} aborted','FS_ABORTED')#按动词报告已中止
+    if 已中止(信号):#已中止
+        raise fs.文件系统错误(动词+' aborted','FS_ABORTED')#按动词报告已中止
 
 def 补节点错误码(错误):#给 OSError 补上 Node 风格 code
     """给逃出的 OSError 补上 Node 风格 `code`。"""
@@ -78,9 +62,9 @@ def 是否非目录错误(错误):#ENOTDIR
         return True#是
     return isinstance(错误,OSError) and 错误.errno==errno.ENOTDIR#POSIX errno
 
-def 是否中止错误(错误):#AbortError
-    """判断是否为中止错误。"""
-    return isinstance(错误,BaseException) and getattr(错误,'name',None)=='AbortError'#名为 AbortError
+def 是否中止错误(错误):#结构化中止
+    """判断是否为 `FS_ABORTED` 文件系统错误。"""
+    return isinstance(错误,fs.文件系统错误) and 错误.code=='FS_ABORTED'#结构化中止
 
 def 是否权限错误(错误):#EACCES 或 EPERM
     """判断是否为权限错误。"""
@@ -101,12 +85,10 @@ def 错误消息(错误):#把未知错误收成消息字符串
     return str(错误)#非异常直接 String
 
 def 取内部(内部,名):#读取测试钩子字段
-    """读取测试钩子字段。"""
+    """读取测试钩子对象上的可选字段。内部是本包钩子对象。"""
     if 内部 is None:#无钩子
         return None#缺席
-    if isinstance(内部,dict):#映射钩子
-        return 内部.get(名)#可选键
-    return getattr(内部,名,None)#对象属性
+    return getattr(内部,名,None)#可选属性
 
 def 版本令牌自状态(信息):#从 stat 推导版本
     """由高分辨率身份与新鲜度元数据构成的不透明版本令牌。"""
@@ -206,25 +188,25 @@ def 列举读写错误(展示路径,错误):#把列举 I/O 失败收成结构化
 
 def 列目录(目标,信号=None):#列举目录直接子项
     """以稳定名称顺序列举目录的直接子项。每个子项包含已解析目标，以及仍可用时的 stat 元数据。"""
-    若已中止则抛(信号,'list')#开始前检查中止
-    展示路径=取字段(目标,'displayPath')#展示路径
-    目标键=取字段(目标,'targetKey')#目标键
+    若已中止则抛出(信号,'list')#开始前检查中止
+    展示路径=目标['displayPath']#展示路径
+    目标键=目标['targetKey']#目标键
     try:#探测目录
         信息=探测(目标键)#跟随链接 stat
-    except Exception as 错误:#探测失败
+    except OSError as 错误:#探测失败
         raise 列举读写错误(展示路径,错误)#收成列举错误
     if 信息 is None:#目录不存在
         raise fs.文件系统错误(f'cannot list "{展示路径}": not found','FS_NOT_FOUND')#未找到
     if 信息['type']!='directory':#不是目录
         raise fs.文件系统错误(f'cannot list "{展示路径}": not a directory','FS_NOT_DIRECTORY')#非目录
     try:#读取目录项
-        名称们=os.listdir(目标键)#子项基名列表
+        名称列表=os.listdir(目标键)#子项基名列表
     except OSError as 错误:#readdir 失败
         raise 列举读写错误(展示路径,错误)#收成列举错误
-    若已中止则抛(信号,'list')#读取后再查中止
+    若已中止则抛出(信号,'list')#读取后再查中止
     结果=[]#收集子项
-    for 名称 in sorted(名称们):#按名称稳定排序后逐项
-        若已中止则抛(信号,'list')#每项前检查中止
+    for 名称 in sorted(名称列表):#按名称稳定排序后逐项
+        若已中止则抛出(信号,'list')#每项前检查中止
         try:#解析子目标并探测元数据
             身份=解析本地目标(目标键,名称)#相对父目标键解析身份
             子目标={'displayPath':os.path.join(展示路径,名称),'targetKey':身份['targetKey']}#展示路径用父展示路径拼接基名
@@ -235,9 +217,9 @@ def 列目录(目标,信号=None):#列举目录直接子项
             if 子信息 is not None and 子信息['type']=='file':#普通文件带大小
                 条目['size']=子信息['size']#字节大小
             结果.append(条目)#收入子项
-        except Exception as 错误:#子项解析失败
+        except (OSError,fs.文件系统错误) as 错误:#子项解析失败
             raise 列举读写错误(os.path.join(展示路径,名称),错误)#按子路径报告
-        若已中止则抛(信号,'list')#每项后再查中止
+        若已中止则抛出(信号,'list')#每项后再查中止
     return 结果#按名称顺序返回
 
 def 非文本错误(动词,展示路径):#非法 UTF-8
@@ -266,9 +248,9 @@ def 解码utf8流(解码器,块,动词,展示路径):#流式解码一块或冲�
 
 def 确认普通文件(目标,动词,信号=None):#stat 并要求普通文件
     """确认目标是普通文件；缺失或不规则则抛结构化错误。"""
-    若已中止则抛(信号,动词)#开始前检查中止
-    展示路径=取字段(目标,'displayPath')#展示路径
-    目标键=取字段(目标,'targetKey')#目标键
+    若已中止则抛出(信号,动词)#开始前检查中止
+    展示路径=目标['displayPath']#展示路径
+    目标键=目标['targetKey']#目标键
     try:#跟随链接 stat
         信息=os.stat(目标键)#读取元数据
     except OSError as 错误:#stat 失败
@@ -281,7 +263,7 @@ def 确认普通文件(目标,动词,信号=None):#stat 并要求普通文件
 
 def 可中止读文件(绝对路径,动词,信号=None):#可中止地读取整个文件
     """带所供信号的整文件读取，把中止翻译成 `FS_ABORTED`。"""
-    若已中止则抛(信号,动词)#开始前检查中止
+    若已中止则抛出(信号,动词)#开始前检查中止
     try:#调用整文件读
         with open(绝对路径,'rb') as 文件:#二进制打开
             数据=文件.read()#读全部字节
@@ -289,37 +271,35 @@ def 可中止读文件(绝对路径,动词,信号=None):#可中止地读取整�
         if 是否中止错误(错误):#中止
             raise fs.文件系统错误(f'{动词} aborted','FS_ABORTED')#结构化错误
         raise 补节点错误码(错误)#其他错误原样抛出
-    若已中止则抛(信号,动词)#读完后再查中止
+    若已中止则抛出(信号,动词)#读完后再查中止
     return 数据#完整缓冲
 
 def 读整文件文本(目标,信号=None):#整文件解码为字符串
     """把整个普通 UTF-8 文本文件读成单个已解码字符串。拒绝非普通文件、非法 UTF-8，以及含 NUL 字节的二进制采样。"""
     确认普通文件(目标,'read',信号)#先确认是普通文件
-    原始=可中止读文件(取字段(目标,'targetKey'),'read',信号)#可中止地读全部字节
-    若已中止则抛(信号,'read')#读完后再查中止
+    原始=可中止读文件(目标['targetKey'],'read',信号)#可中止地读全部字节
+    若已中止则抛出(信号,'read')#读完后再查中止
     if 0 in 原始[:二进制采样字节]:#前采样含 NUL 则视为二进制
-        raise fs.文件系统错误(f'cannot read "{取字段(目标,"displayPath")}": binary file','FS_NOT_TEXT')#拒绝二进制
-    return 解码utf8(原始,'read',取字段(目标,'displayPath'))#fatal 解码为 UTF-8
+        raise fs.文件系统错误(f'cannot read "{目标["displayPath"]}": binary file','FS_NOT_TEXT')#拒绝二进制
+    return 解码utf8(原始,'read',目标['displayPath'])#fatal 解码为 UTF-8
 
 def 读整文件字节(目标,信号,最大字节,内部=None):#按字节上限读取原始内容
-    """以原始字节读取整个普通文件。`maxBytes` 约束完整内容：stat 大小在内容 I/O 之前短路；随后最多再多读一字节。"""
-    if 内部 is None:#无钩子
-        内部={}#空钩子
+    """以原始字节读取整个普通文件。`maxBytes` 约束完整内容：stat 大小在内容 I/O 之前短路；随后最多再多读一字节。内部是本包钩子对象。"""
     信息=确认普通文件(目标,'read',信号)#先确认是普通文件
     if 信息.st_size>最大字节:#stat 大小已超过上限
-        raise fs.文件系统错误(f'cannot read "{取字段(目标,"displayPath")}": {信息.st_size} bytes exceeds the {最大字节}-byte limit','FS_TOO_LARGE')#短路过大文件
+        raise fs.文件系统错误(f'cannot read "{目标["displayPath"]}": {信息.st_size} bytes exceeds the {最大字节}-byte limit','FS_TOO_LARGE')#短路过大文件
     观察=取内部(内部,'inspectReadBytesAfterStat')#测试钩子：stat 后注入增长竞态
     if 观察 is not None:#有钩子
         观察(目标)#调用钩子
-    展示路径=取字段(目标,'displayPath')#展示路径
+    展示路径=目标['displayPath']#展示路径
     try:#有界读取
-        with open(取字段(目标,'targetKey'),'rb') as 文件:#二进制打开
+        with open(目标['targetKey'],'rb') as 文件:#二进制打开
             数据=文件.read(最大字节+1)#最多再多读一字节以检测增长
     except OSError as 错误:#读失败
-        if 是否中止错误(错误) or 是否已中止(信号):#中止
+        if 是否中止错误(错误) or 已中止(信号):#中止
             raise fs.文件系统错误('read aborted','FS_ABORTED')#结构化错误
         raise 补节点错误码(错误)#其他错误原样抛出
-    if 是否已中止(信号):#读后再查中止
+    if 已中止(信号):#读后再查中止
         raise fs.文件系统错误('read aborted','FS_ABORTED')#结构化错误
     if len(数据)>最大字节:#stat 后文件增长越过上限
         raise fs.文件系统错误(f'cannot read "{展示路径}": content exceeds the {最大字节}-byte limit','FS_TOO_LARGE')#拒绝无界缓冲
@@ -328,15 +308,15 @@ def 读整文件字节(目标,信号,最大字节,内部=None):#按字节上限�
 def 流整文件文本(目标,信号=None):#流式解码整文件
     """以已解码文本块读取整个普通 UTF-8 文本文件。文本语义与读整文件文本相同，但从不把整文件放进内存。"""
     确认普通文件(目标,'read',信号)#先确认是普通文件
-    展示路径=取字段(目标,'displayPath')#展示路径
+    展示路径=目标['displayPath']#展示路径
     解码器=codecs.getincrementaldecoder('utf-8')('strict')#跨块 fatal 解码器
     已采样=0#已用于二进制探测的字节
-    文件=open(取字段(目标,'targetKey'),'rb')#可读流
+    文件=open(目标['targetKey'],'rb')#可读流
     try:#流式解码
         while True:#逐块
-            若已中止则抛(信号,'read')#每块前检查中止
+            若已中止则抛出(信号,'read')#每块前检查中止
             块=文件.read(64*1024)#读一块
-            if not 块:#EOF
+            if len(块)==0:#读到文件尾
                 break#结束循环
             if 已采样<二进制采样字节:#采样未满
                 采样=块[:min(len(块),二进制采样字节-已采样)]#本块还能采多少
@@ -347,10 +327,10 @@ def 流整文件文本(目标,信号=None):#流式解码整文件
         yield 解码utf8流(解码器,None,'read',展示路径)#冲刷解码器尾部
     except fs.文件系统错误:#已结构化
         raise#上抛
-    except Exception as 错误:#流或解码失败
+    except OSError as 错误:#流读失败
         if 是否中止错误(错误):#中止
             raise fs.文件系统错误('read aborted','FS_ABORTED')#结构化错误
-        raise#其他错误原样抛出
+        raise 补节点错误码(错误)#其他错误原样抛出
     finally:#无论成败都关文件
         文件.close()#释放描述符
 
@@ -372,7 +352,7 @@ def 抛受守卫创建失败(错误,绝对路径,展示路径,检查发布目标
     已有=None#失败后看到的目标
     try:#检查目标条目
         已有=检查发布目标(绝对路径)#lstat 目标
-    except Exception as 元数据错误:#目标元数据失败
+    except OSError as 元数据错误:#目标元数据失败
         if not 是否不存在错误(元数据错误) and not 是否非目录错误(元数据错误):#不是缺失
             raise fs.文件系统错误(f'cannot write "{展示路径}": {错误消息(元数据错误)}','FS_IO_ERROR',{'cause':元数据错误})#权限/IO 故障
     if 已有 is not None:#目标条目存在
@@ -384,13 +364,11 @@ def 抛受守卫创建失败(错误,绝对路径,展示路径,检查发布目标
     raise fs.文件系统错误(f'cannot write "{展示路径}": {错误消息(错误)}','FS_IO_ERROR',{'cause':错误})#其余为 IO 错误
 
 def 原子写文件(绝对路径,内容,模式,信号,内部=None,若缺则创建=None):#原子发布文件
-    """经同目录里私有、已同步的暂存文件原子替换目标。POSIX 用 `0o700` 与 `0o600` 保护暂存；Windows 替换复制已有 DACL 并在发布时保留目标描述符。"""
-    if 内部 is None:#无钩子
-        内部={}#空钩子
-    若已中止则抛(信号,'write')#开始前检查中止
+    """经同目录里私有、已同步的暂存文件原子替换目标。POSIX 用 `0o700` 与 `0o600` 保护暂存；Windows 替换复制已有 DACL 并在发布时保留目标描述符。内部是本包钩子对象。"""
+    若已中止则抛出(信号,'write')#开始前检查中止
     目录=os.path.dirname(绝对路径)#目标所在目录
     os.makedirs(目录,exist_ok=True)#确保父目录存在
-    若已中止则抛(信号,'write')#mkdir 后再查中止
+    若已中止则抛出(信号,'write')#mkdir 后再查中止
     暂存名生成=取内部(内部,'tempDirName')#覆盖生成的私有暂存目录名
     暂存目录名=暂存名生成(绝对路径) if 暂存名生成 is not None else f'.{os.path.basename(绝对路径)}.{os.getpid()}.{uuid.uuid4()}.tmpdir'#私有暂存目录名
     暂存目录=os.path.join(目录,暂存目录名)#暂存目录路径
@@ -430,16 +408,16 @@ def 原子写文件(绝对路径,内容,模式,信号,内部=None,若缺则创�
             os.chmod(临时路径,模式)#chmod 临时文件
         os.close(描述符)#关闭后再发布
         描述符=None#关闭成功，失败路径不必再关
-        若已中止则抛(信号,'write')#发布前最后一次中止检查
+        若已中止则抛出(信号,'write')#发布前最后一次中止检查
         if 若缺则创建 is not None:#受守卫创建：硬链接不替换
             try:#link 到最终路径
                 链接文件(临时路径,绝对路径)#已存在则失败
-            except Exception as 错误:#link 失败
-                抛受守卫创建失败(错误,绝对路径,取字段(若缺则创建,'displayPath'),检查发布目标)#收成结构化错误
+            except OSError as 错误:#link 失败
+                抛受守卫创建失败(错误,绝对路径,若缺则创建['displayPath'],检查发布目标)#收成结构化错误
         elif 平台=='win32' and 模式 is not None:#Windows 替换：保留目标 ACL
             try:#ReplaceFileW
                 替换(绝对路径,临时路径)#保留被替换文件的描述符
-            except Exception as 错误:#替换失败
+            except (OSError,Win32系统错误) as 错误:#替换失败
                 if not 是否不存在错误(错误):#非缺失则原样抛出
                     raise#上抛
                 os.rename(临时路径,绝对路径)#目标已消失则 rename 重建
@@ -447,9 +425,9 @@ def 原子写文件(绝对路径,内容,模式,信号,内部=None,若缺则创�
             os.rename(临时路径,绝对路径)#原子改名发布
         try:#发布成功后清暂存目录
             删除暂存(暂存目录)#删掉私有暂存
-        except Exception:#目标已提交
+        except OSError:#目标已提交
             pass#仅所有者的暂存残留不能把这次写入变成失败
-    except Exception as 错误:#暂存/写入/发布失败
+    except (OSError,Win32系统错误,fs.文件系统错误,UnicodeEncodeError) as 错误:#暂存/写入/发布失败
         失败=fs.文件系统错误('write aborted','FS_ABORTED') if 是否中止错误(错误) else 错误#中止则结构化，否则原错误
         if 描述符 is not None:#句柄仍开着
             try:#关闭临时文件
@@ -460,7 +438,7 @@ def 原子写文件(绝对路径,内容,模式,信号,内部=None,若缺则创�
             raise 补节点错误码(失败)#上抛主失败
         try:#清暂存再抛主失败
             删除暂存(暂存目录)#尽力清掉暂存
-        except Exception as 清理错误:#二次清理也失败
+        except OSError as 清理错误:#二次清理也失败
             raise fs.文件系统错误(f'write failed ({错误消息(失败)}) and temp cleanup failed ({错误消息(清理错误)})','FS_NOT_FOUND',{'cause':失败})#合并两条失败
         raise 补节点错误码(失败)#清理成功则抛出主失败
 
@@ -476,9 +454,9 @@ def 恢复行尾(内容,行尾):#恢复读时行尾
 
 def 为编辑读取(绝对路径,展示路径,信号=None):#为编辑读取并做 LF 规范化
     """为编辑读取并解码文件：拒绝二进制，返回 LF 规范化内容以及写回用的原行尾风格。"""
-    若已中止则抛(信号,'edit')#开始前检查中止
+    若已中止则抛出(信号,'edit')#开始前检查中止
     缓冲=可中止读文件(绝对路径,'edit',信号)#可中止地读全部字节
-    若已中止则抛(信号,'edit')#读完后再查中止
+    若已中止则抛出(信号,'edit')#读完后再查中止
     if 0 in 缓冲:#含 NUL 则拒绝
         raise fs.文件系统错误(f'cannot edit "{展示路径}": binary file','FS_NOT_TEXT')#拒绝二进制
     原始=解码utf8(缓冲,'edit',展示路径)#fatal 解码
@@ -490,7 +468,7 @@ def 为编辑读取(绝对路径,展示路径,信号=None):#为编辑读取并�
 
 def 为diff读文本(绝对路径,最大字节,信号=None):#尽力读取覆盖 diff 基准
     """尽力而为的覆盖 diff 基准。二进制、非法 UTF-8、达到或超过字节上限、或不可读时返回 None。"""
-    若已中止则抛(信号,'read')#开始前检查中止
+    若已中止则抛出(信号,'read')#开始前检查中止
     描述符=None#只读打开的描述符
     try:#打开描述符读取
         打开标志=os.O_RDONLY#只读
@@ -498,9 +476,9 @@ def 为diff读文本(绝对路径,最大字节,信号=None):#尽力读取覆盖 
             打开标志|=os.O_BINARY#二进制模式
         描述符=os.open(绝对路径,打开标志)#只读打开
         try:#在已打开描述符上 stat 并读
-            若已中止则抛(信号,'read')#stat 前检查中止
+            若已中止则抛出(信号,'read')#stat 前检查中止
             信息=os.fstat(描述符)#描述符上的 stat，不是路径 stat
-            若已中止则抛(信号,'read')#stat 后再查中止
+            若已中止则抛出(信号,'read')#stat 后再查中止
             if not 是普通文件模式(信息.st_mode):#非普通文件则放弃基准
                 return None#放弃
             if 信息.st_size>=最大字节:#达到/超过上限则放弃
@@ -509,7 +487,7 @@ def 为diff读文本(绝对路径,最大字节,信号=None):#尽力读取覆盖 
             缓冲=bytearray(打开大小+1)#按打开大小加一分配
             合计=0#已读字节
             while 合计<len(缓冲):#直到填满或 EOF
-                若已中止则抛(信号,'read')#每块前检查中止
+                若已中止则抛出(信号,'read')#每块前检查中止
                 长度=min(len(缓冲)-合计,diff基准读取块字节)#本块可读长度
                 已读=os.read(描述符,长度)#从当前偏移读
                 if len(已读)==0:#读到 EOF
@@ -519,7 +497,7 @@ def 为diff读文本(绝对路径,最大字节,信号=None):#尽力读取覆盖 
         finally:#无论成败都关句柄
             os.close(描述符)#释放描述符
             描述符=None#已关闭
-        若已中止则抛(信号,'read')#关闭后再查中止
+        若已中止则抛出(信号,'read')#关闭后再查中止
         if 合计!=打开大小:#大小变了（增长或截断）则放弃基准
             return None#放弃
         基准=bytes(缓冲[:合计])#实际读到的字节
@@ -533,10 +511,8 @@ def 为diff读文本(绝对路径,最大字节,信号=None):#尽力读取覆盖 
             raise#原样抛出
     except fs.文件系统错误:#已结构化的中止/错误上抛
         raise#上抛
-    except Exception as 错误:#打开或描述符阶段失败
-        if isinstance(错误,OSError) or getattr(错误,'code',None) is not None:#有 errno 则放弃基准
-            return None#丢掉可选基准
-        raise#其余未知失败仍上抛
+    except OSError:#打开或描述符阶段失败则放弃基准
+        return None#丢掉可选基准
 
 def 应用字面量编辑(内容,旧串,新串,全部替换,展示路径):#对 LF 文本做字面量替换
     """对 LF 规范化内容做字面量替换。空查找抛 `FS_EDIT_NOT_FOUND`；多处匹配抛 `FS_AMBIGUOUS_EDIT`，除非全部替换为真。"""

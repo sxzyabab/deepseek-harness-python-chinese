@@ -3,6 +3,7 @@
 对齐上游 `host/bridge/lifecycle.ts`。公开面仅中文名。
 """
 import threading#超时与事件
+from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.控制编解码 import 解析检查器工作者控制#控制帧解析
 
 __all__=['检查器工作者生命周期']#仅中文公开名
@@ -47,7 +48,7 @@ class 检查器工作者生命周期:#Worker生命周期
             """处理消息。"""
             try:#解析
                 控制=解析检查器工作者控制(值)#校验解码
-            except Exception as 错误:#解析失败
+            except Exception as 错误:#json.loads 控制帧可能抛 JSONDecodeError/TypeError，契约未定所以收不窄
                 结果['error']=错误 if isinstance(错误,Exception) else Exception(str(错误))#拒绝
                 完成.set()#结束
                 return#结束
@@ -58,7 +59,11 @@ class 检查器工作者生命周期:#Worker生命周期
                 结果['error']=Exception(f'inspector Worker failed: {控制["message"]}')#失败
                 完成.set()#结束
         自身.工作者.on('message',收消息)#挂监听
-        定时器=threading.Timer(超时毫秒/1000,lambda:(结果.__setitem__('error',Exception(f'inspector Worker did not become ready within {超时毫秒}ms')),完成.set()))#超时
+        def 超时():#就绪超时
+            """Worker 未在时限内就绪。"""
+            结果['error']=Exception(f'inspector Worker did not become ready within {超时毫秒}ms')#超时错误
+            完成.set()#结束
+        定时器=threading.Timer(超时毫秒/1000,超时)#超时
         定时器.daemon=True#守护
         定时器.start()#启动
         while not 完成.is_set():#竞速
@@ -71,7 +76,7 @@ class 检查器工作者生命周期:#Worker生命周期
         定时器.cancel()#清定时器
         try:#卸监听
             自身.工作者.off('message',收消息)#卸监听
-        except Exception:#忽略
+        except Exception:#Worker.terminate 可能抛，契约未定所以收不窄
             pass#忽略
         if 结果['error'] is not None:#失败
             raise 结果['error']#抛出
@@ -103,7 +108,7 @@ class 检查器工作者生命周期:#Worker生命周期
         if 自身.退出事件.wait(超时毫秒/1000):#已退出
             return#优雅完成
         自身.工作者.terminate()#强制终止
-        raise Exception(f'inspector Worker did not stop within {超时毫秒}ms and was terminated')#报告
+        raise 检查器错误(f'inspector Worker did not stop within {超时毫秒}ms and was terminated')#报告
 
     def 通知意外退出(自身):#通知意外退出
         """通知意外退出。"""

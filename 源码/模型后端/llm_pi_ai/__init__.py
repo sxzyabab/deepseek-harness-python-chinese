@@ -7,7 +7,7 @@ from .. import llm#语言模型服务
 from ...工具.启动环境 import 取启动环境#启动环境快照
 from ...配置.配置 import json深度相等,安装设置段,设置命名空间#JSON 相等、设置段安装与命名空间
 from .适配器 import 派爱适配器#适配器类
-from .目录 import 目录提供方标识列表,目录提供方接受密钥#目录路由与密钥方法判定
+from .目录 import 目录提供方标识列表,目录提供方接受密钥,配置错误#目录路由、密钥方法判定与本包异常
 from .配置 import 配置模式,断言可服务,解析配置表#配置模式、可服务断言与解析
 from .发现 import 发现模型#模型发现
 from .提供方 import 受支持协议#受支持协议
@@ -72,34 +72,30 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
         原始=当前()#当前原始配置
         if 原始 is 上次原始 and 已记住 is not None:#同一份原始快照则复用已解析结果，避免每请求重解析
             return 已记住#复用
-        提供方们=原始.get('providers') if isinstance(原始,dict) else None#原始路由字典
-        下一份=解析配置表(提供方们)#显式解析
+        提供方表=原始['providers'] if 'providers' in 原始 else None#原始路由字典；配置为 dict
+        下一份=解析配置表(提供方表)#显式解析
         上次原始=原始#记下原始
         已记住=下一份#记下成功
         return 下一份#新配置
     配置表()#加载时先解析一次
     def 解析密钥(提供方,配置项):#按配置解析密钥
         """按配置解析密钥。"""
-        引用=配置项.get('apiKeyEnv')#本配置的引用
+        引用=配置项['apiKeyEnv'] if 'apiKeyEnv' in 配置项 else None#本配置的引用
         if 引用 is None:#不点名 apiKeyEnv 则交还 pi-ai 自己的环境发现
             return None#回落
         凭证=上下文.获取服务('credentials')#可选凭证服务
         if 凭证 is not None:#有凭证缝则只走凭证服务，不再读启动环境
-            命中=凭证.解析(引用)#解析引用
+            命中=凭证.解析(引用)#解析引用；形态为 {'value','source'} 或 None
             if 命中 is None:#引用未写入凭证平面
                 值=None#没有值
-            elif isinstance(命中,dict):#命中是映射，读 value 键
-                值=命中.get('value')#引用值
-            else:#命中是对象，读 value 属性
-                值=getattr(命中,'value',None)#引用值
+            else:#命中是已解析凭证 dict
+                值=命中['value']#引用值
         else:#没有凭证缝，启动环境就是整块凭证平面
-            环境项=取启动环境(上下文).取(引用)#环境层
+            环境项=取启动环境(上下文).取(引用)#环境层条目 dict 或 None
             if 环境项 is None:#环境里没有这个引用
                 值=None#没有值
-            elif isinstance(环境项,dict):#环境项是映射
-                值=环境项.get('value')#环境值
-            else:#环境项是对象
-                值=getattr(环境项,'value',None)#环境值
+            else:#环境项是 dict，含 value
+                值=环境项['value']#环境值
         if 值 is not None and len(值)>0:#拿到非空值才判定可用；空串当缺失
             return llm.断言可用接口密钥(值,'llm-pi-ai',引用)#判定
         raise llm.大模型错误(
@@ -134,16 +130,13 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
         """已点名路由已经解析到的凭证。"""
         if 提供方 is None:#发现请求没点名路由，没有已存密钥可回落
             return None#没有
-        配置项=配置表().get(提供方)#当前配置
-        if 配置项 is None:#当前配置没有这条路由
+        表=配置表()#当前配置
+        if 提供方 not in 表:#当前配置没有这条路由
             return None#没有
-        return 解析密钥(提供方,配置项)#按配置解析
+        return 解析密钥(提供方,表[提供方])#按配置解析
     def 发现回调(请求):#询问端点是针对草稿的配置时动作
         """询问端点是针对草稿的配置时动作。"""
-        if isinstance(请求,dict):#发现请求是映射，读 provider 键
-            提供方=请求.get('provider')#草稿路由
-        else:#发现请求是对象，读 provider 属性
-            提供方=getattr(请求,'provider',None)#草稿路由
+        提供方=请求['provider'] if 'provider' in 请求 else None#草稿路由；发现请求为 dict
         def 取已存():#已存密钥闭包
             """已存密钥闭包。"""
             return 已存密钥(提供方)#按路由
@@ -175,14 +168,14 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
         """变更时刷新注册。"""
         try:#刷新已注册路由；失败则保住先前路由，不把半截替换留给调用方
             确保登记事实()#就地替换
-        except Exception as 错误:#交换被拒绝
-            上下文.logger.error('llm-pi-ai: keeping the previously registered routes after a refused update')#保住先前路由
-            上下文.logger.error(错误)#附带错误
+        except 配置错误 as 错误:#交换被配置校验拒绝
+            上下文.日志.错误('llm-pi-ai: keeping the previously registered routes after a refused update')#保住先前路由
+            上下文.日志.错误(错误)#附带错误
         try:#刷新可配置提供方目录；失败同样保住先前目录
             确保目录()#就地替换
-        except Exception as 错误:#交换被拒绝
-            上下文.logger.error('llm-pi-ai: keeping the previous configurable-provider directory after a refused update')#保住先前目录
-            上下文.logger.error(错误)#附带错误
+        except 配置错误 as 错误:#交换被配置校验拒绝
+            上下文.日志.错误('llm-pi-ai: keeping the previous configurable-provider directory after a refused update')#保住先前目录
+            上下文.日志.错误(错误)#附带错误
     安装设置段(上下文,设置空间,配置模式,配置,{
         'validate':断言可服务,#设置缝钩子字段字面量；写入时校验可服务
         'setSource':设源,#设置缝钩子字段字面量

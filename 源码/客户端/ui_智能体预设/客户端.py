@@ -18,11 +18,11 @@ from .预设标签 import 预设标签#页眉只读标签
 
 from .预设分区 import 预设分区#管理分区组件
 
-from .设置仓库 import 设置命名空间,预设设置控制器#设置仓
+from .设置存储 import 设置命名空间,预设设置控制器#设置存储
 
-from .芯片仓库 import 芯片控制器#主界面芯片
+from .芯片存储 import 芯片控制器#主界面芯片
 
-from .分区仓库 import 分区控制器,草稿阻挡#管理分区
+from .分区存储 import 分区控制器,草稿阻挡#管理分区
 
 
 
@@ -46,7 +46,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
     """登记词典与四面：通用行、芯片、页眉标签、管理分区。"""
 
-    连接=上下文.get('connection')#连接
+    连接=上下文.获取服务('connection')#连接
 
     接口=连接.api#API
 
@@ -66,7 +66,11 @@ def 应用(上下文):#安装浏览器半边预设界面
 
     分区=分区控制器(接口,名册变动)#分区控制器
 
-    上下文.effect(lambda:上下文.locale.register(命名空间,{'zh':中文,'en':英文}),'ui-agent-preset: settings row dictionaries')#词典
+    def 登记词典():
+        """登记预设词表。"""
+        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
+
+    上下文.副作用(登记词典,'ui-agent-preset: settings row dictionaries')#词典
 
     编写入口=[None]#可变格：会话作用域绑定
 
@@ -82,7 +86,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             控制器.load()#加载
 
-            if 分区.store.getSnapshot().get('status')!='idle':#分区已用
+            if 分区.存储.getSnapshot()['status']!='idle':#分区已用
 
                 分区.load()#刷新分区
 
@@ -96,11 +100,11 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             刷新()#刷新
 
-        拆们=[#两路
+        拆列表=[#两路
 
             上下文.remote.$on('settings/document-updated',文档更新),#设置
 
-            上下文.on('connection/reset',刷新),#重连
+            上下文.监听('connection/reset',刷新),#重连
 
         ]#结束
 
@@ -108,13 +112,13 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             """逐个取消。"""
 
-            for 拆 in 拆们:#逐个
+            for 拆 in 拆列表:#逐个
 
                 拆()#取消
 
         return 拆除#拆除器
 
-    上下文.effect(刷新监听,'ui-agent-preset: settings refresh')#刷新
+    上下文.副作用(刷新监听,'ui-agent-preset: settings refresh')#刷新
 
 
 
@@ -124,7 +128,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
         return {#注入面
 
-            'hooks':{'agentPreset':控制器.store},#store
+            'hooks':{'agentPreset':控制器.存储},#store
 
             'load':控制器.load,#加载
 
@@ -138,34 +142,23 @@ def 应用(上下文):#安装浏览器半边预设界面
 
         """暂存选择属于流而不是某一会话。"""
 
-        本接口=(作用域.get('connection')).api#本作用域 API
+        本接口=(作用域.获取服务('connection')).api#本作用域 API
 
         def 读摘要():#当前会话摘要
 
             """芯片所需字段。"""
 
-            态=作用域.sessions.list.getSnapshot()#列表
-
-            当前=读字段(态,'current')#当前 id
-
+            态=作用域.sessions.list.getSnapshot()#列表对象
+            当前=态.current#当前 id
             if 当前 is None:#无
-
                 return None#空
-
-            摘要=(读字段(态,'byId') or {}).get(当前)#摘要
-
-            if 摘要 is None:#无
-
+            表=态.byId#会话表 dict
+            if 表 is None or 当前 not in 表:#无
                 return None#空
-
-            出={'id':读字段(摘要,'id'),'blank':读字段(摘要,'blank')}#基础
-
-            预设=读字段(摘要,'agentPreset')#预设
-
-            if 预设 is not None:#有
-
-                出['agentPreset']=预设#带上
-
+            摘要=表[当前]#摘要 dict
+            出={'id':摘要['id'],'blank':摘要['blank']}#基础
+            if 'agentPreset' in 摘要 and 摘要['agentPreset'] is not None:#有预设
+                出['agentPreset']=摘要['agentPreset']#带上
             return 出#摘要
 
         def 记下预设(会话标识,预设):#RPC 回声
@@ -182,7 +175,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             return {#注入
 
-                'hooks':{'agentPresetSeat':芯片控.store},#store
+                'hooks':{'agentPresetSeat':芯片控.存储},#存储
 
                 'load':芯片控.load,#加载
 
@@ -198,7 +191,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             return {#注入
 
-                'hooks':{'agentPresets':控制器.store},#名册
+                'hooks':{'agentPresets':控制器.存储},#名册
 
                 'load':控制器.load,#加载
 
@@ -208,7 +201,11 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             """会话列表变动则应用暂存。"""
 
-            停=作用域.sessions.list.subscribe(lambda:芯片控.apply())#应用暂存
+            def 应用暂存():
+                """把暂存预设落到当前会话。"""
+                芯片控.apply()#应用暂存
+
+            停=作用域.sessions.list.subscribe(应用暂存)#应用暂存
 
             def 设置动(ns):#设置文档更新
 
@@ -292,11 +289,11 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             return 拆除#拆除器
 
-        作用域.effect(生命周期,'ui-agent-preset: new-session chip and header label')#生命周期
+        作用域.副作用(生命周期,'ui-agent-preset: new-session chip and header label')#生命周期
 
 
 
-    上下文.inject(['slots','conversation','sessions','workspaces'],挂会话面)#会话作用域
+    上下文.依赖启动(['slots','conversation','sessions','workspaces'],挂会话面)#会话作用域
 
 
 
@@ -306,7 +303,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
         面={#注入
 
-            'hooks':{'agentPresetSection':分区.store},#store
+            'hooks':{'agentPresetSection':分区.存储},#store
 
             'load':分区.load,#加载
 
@@ -368,6 +365,10 @@ def 应用(上下文):#安装浏览器半边预设界面
 
         """settings.section；排在 Models 之后。"""
 
+        def 分区导航标签():
+            """分区导航标签。"""
+            return 上下文.locale.bind(命名空间)('nav')#导航
+
         分区组件=预设分区#分区组件
 
         return 上下文.slots.register({#登记
@@ -378,7 +379,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
             'order':20,#顺序
 
-            'label':lambda:上下文.locale.bind(命名空间)('nav'),#导航
+            'label':分区导航标签,#导航
 
             'locale':命名空间,#词表
 
@@ -388,20 +389,7 @@ def 应用(上下文):#安装浏览器半边预设界面
 
     上下文.slots.inject('settings.section',登记分区)#等槽
 
-
-
-def 读字段(对象,键,缺省=None):#读字段
-
-    """映射或对象。"""
-
-    if 对象 is None:#空
-
-        return 缺省#缺
-
-    if isinstance(对象,dict):#映射
-
-        return 对象[键] if 键 in 对象 else 缺省#键
-
-    return getattr(对象,键,缺省)#属性
+inject=注入#框架槽
+apply=应用#框架槽
 
 

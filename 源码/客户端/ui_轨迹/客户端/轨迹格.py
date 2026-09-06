@@ -4,7 +4,7 @@
 样式正文落在同目录 轨迹格.module.css，本模块读成 样式表。
 """
 import os#同目录样式路径
-from .轨迹记录 import 格式化已用秒数,取字段#记录面
+from .轨迹记录 import 格式化已用秒数#时长格式化
 
 __all__=['轨迹格','种类标签','样式表','样式文件']#仅中文公开名
 
@@ -31,35 +31,36 @@ def _读样式(文件名):#读真实 CSS
 
 class 轨迹格:#一步格
     """渲染一步轨迹格。"""
-
     def __init__(自身,属性=None):#可选 props
         """记下 props。"""
-        自身.属性=属性 or {}#合成
+        自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):#刷新
         """刷新 props。"""
-        自身.属性=属性 or {}#新
+        自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):#结构树
         """产出格结构树。"""
         p=自身.属性#props
-        种类=取字段(p,'kind','message')#种类
-        选中=bool(取字段(p,'selected',False))#选中
+        种类=p['kind'] if 'kind' in p else 'message'#种类
+        选中=bool(p['selected']) if 'selected' in p else False#选中
         显示指标=种类=='message'#消息才有指标
+        标签=种类标签[种类] if 种类 in 种类标签 else 种类#标签
+        类名=标签类[种类] if 种类 in 标签类 else None#类
         return {#结构树
             'type':'trajectory-cell',#类型
             'kind':种类,#种类
             'selected':选中,#选中
-            'index':取字段(p,'index'),#下标
-            'tag':种类标签.get(种类,种类),#标签
-            'tagClass':标签类.get(种类),#类
-            'text':取字段(p,'text',''),#文本
+            'index':p['index'] if 'index' in p else None,#下标
+            'tag':标签,#标签
+            'tagClass':类名,#类
+            'text':p['text'] if 'text' in p else '',#文本
             'metrics':{#指标
-                'input':取字段(p,'input','') if 显示指标 else None,#入
-                'output':取字段(p,'output','') if 显示指标 else None,#出
-                'think':取字段(p,'think','') if 显示指标 else None,#思
+                'input':p['input'] if 'input' in p else '',#入
+                'output':p['output'] if 'output' in p else '',#出
+                'think':p['think'] if 'think' in p else '',#思
             } if 显示指标 else None,#指标结束
-            'time':格式化已用秒数(取字段(p,'timeSeconds')),#时间
+            'time':格式化已用秒数(p['timeSeconds'] if 'timeSeconds' in p else None),#时间
             'css':样式表,#样式
             'cssModule':样式文件,#样式文件名
         }#结束

@@ -12,6 +12,6 @@ def 安装(子上下文=None,失败=None):#空安装器
 
 def 应用(上下文对象):#注册本包不变量配套
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 已兑现(上下文对象.invariants.register(包名,安装))#登记并包成立即兑现的承诺
+    return 上下文对象.invariants.register(包名,安装)#登记并返回拆除器
 
 apply=应用#Cordis插件入口

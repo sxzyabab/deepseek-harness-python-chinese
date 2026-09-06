@@ -6,11 +6,9 @@ def 数据描述符(值):#空原型数据描述符
     return {'value':值,'enumerable':False,'configurable':False,'writable':False}#仅数据值
 
 def 定义可枚举数据属性(目标,键,值):#定义可枚举数据属性
-    """定义普通可枚举数据槽。"""
-    if isinstance(目标,dict):#映射
-        目标[键]=值#写入
-        return#结束
-    setattr(目标,键,值)#对象属性
+    """定义普通可枚举数据槽。目标是 dict。"""
+    目标[键]=值#写入
+    return None#结束
 
 def 字节长度(文本):#UTF-8字节数
     """经内建计算UTF-8字节长度。"""
@@ -61,9 +59,9 @@ def json值字节上限(值,最大字节):#值JSON字节上限计量
         nonlocal 字节#闭合字节
         字节+=成本#累加
         return 字节<=最大字节#是否仍在上限内
-    任务们=[{'kind':'value','value':值}]#从根值开始
-    while len(任务们)>0:#栈式迭代
-        任务=弹出末项(任务们)#弹出
+    任务列表=[{'kind':'value','value':值}]#从根值开始
+    while len(任务列表)>0:#栈式迭代
+        任务=弹出末项(任务列表)#弹出
         if 任务['kind']=='value':#处理一个值
             当前=任务['value']#当前值
             if 当前 is None:#null固定4字节
@@ -86,13 +84,13 @@ def json值字节上限(值,最大字节):#值JSON字节上限计量
                 if not 加(2):#先计入[]
                     return None#越界
                 if len(当前)>0:#有元素
-                    追加(任务们,{'kind':'array','value':当前,'index':0})#入栈数组帧
+                    追加(任务列表,{'kind':'array','value':当前,'index':0})#入栈数组帧
             elif isinstance(当前,dict):#对象
                 if not 加(2):#先计入{}
                     return None#越界
-                键们=list(当前.keys())#可枚举键
-                if len(键们)>0:#有键
-                    追加(任务们,{'kind':'object','value':当前,'keys':键们,'index':0})#入栈对象帧
+                键列表=list(当前.keys())#可枚举键
+                if len(键列表)>0:#有键
+                    追加(任务列表,{'kind':'object','value':当前,'keys':键列表,'index':0})#入栈对象帧
             else:#未知
                 return None#非法
             continue#下一任务
@@ -101,8 +99,8 @@ def json值字节上限(值,最大字节):#值JSON字节上限计量
         if 任务['kind']=='array':#数组元素
             项=任务['value'][任务['index']]#当前元素
             if 任务['index']+1<len(任务['value']):#还有后续
-                追加(任务们,{**任务,'index':任务['index']+1})#推进
-            追加(任务们,{'kind':'value','value':项})#计量本元素
+                追加(任务列表,{**任务,'index':任务['index']+1})#推进
+            追加(任务列表,{'kind':'value','value':项})#计量本元素
             continue#下一任务
         键=任务['keys'][任务['index']]#对象当前键
         键字节=json字符串字节上限(键,最大字节-字节)#计量键
@@ -112,8 +110,8 @@ def json值字节上限(值,最大字节):#值JSON字节上限计量
             return None#越界
         项=任务['value'][键]#属性值
         if 任务['index']+1<len(任务['keys']):#还有后续键
-            追加(任务们,{**任务,'index':任务['index']+1})#推进
-        追加(任务们,{'kind':'value','value':项})#计量本属性值
+            追加(任务列表,{**任务,'index':任务['index']+1})#推进
+        追加(任务列表,{'kind':'value','value':项})#计量本属性值
     return 字节#精确字节
 
 def 截断json字符串字节(文本,最大字节):#按JSON字节截断字符串

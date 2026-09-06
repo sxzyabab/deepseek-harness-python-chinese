@@ -23,24 +23,24 @@ def 捕获工作区快照(根,选项=None):#捕获工作区快照
     if 选项 is None:#缺省
         选项={}#空
     忽略=set(选项.get('ignoredRootEntries') or [])#忽略集
-    def 访问(目录,段们):#递归访问
+    def 访问(目录,段列表):#递归访问
         """递归收集条目。"""
-        名称们=sorted(os.listdir(目录),key=lambda 名:名.encode('utf-8'))#按字节名排序
+        名称列表=sorted(os.listdir(目录),key=lambda 名:名.encode('utf-8'))#按字节名排序
         捕获=[]#收集结果
-        for 名 in 名称们:#逐项
-            if len(段们)==0 and 名 in 忽略:#根层过滤
+        for 名 in 名称列表:#逐项
+            if len(段列表)==0 and 名 in 忽略:#根层过滤
                 continue#跳过
-            子段=[*段们,名]#相对段
+            子段=[*段列表,名]#相对段
             路径='/'.join(子段)#POSIX 相对路径
             绝对=os.path.join(目录,名)#绝对路径
             if os.path.islink(绝对):#符号链接
                 捕获.append({'path':路径,'kind':'symlink','target':os.readlink(绝对)})#符号链接
             elif os.path.isdir(绝对):#目录
-                子们=访问(绝对,子段)#递归
-                if len(子们)==0:#空目录
+                子列表=访问(绝对,子段)#递归
+                if len(子列表)==0:#空目录
                     捕获.append({'path':路径,'kind':'empty-directory'})#空目录
                 else:#有子
-                    捕获.extend(子们)#展开
+                    捕获.extend(子列表)#展开
             elif os.path.isfile(绝对):#文件
                 with open(绝对,'rb') as 句柄:#读字节
                     字节=句柄.read()#读
@@ -56,7 +56,3 @@ def 捕获工作区快照(根,选项=None):#捕获工作区快照
 def 捕获期望工作区快照(根):#捕获期望工作区
     """捕获已提交的 workspace.expected/ 树，排除仅 Git 用的空标记。"""
     return 捕获工作区快照(根,{'ignoredRootEntries':[空工作区标记]})#忽略空标记
-
-EMPTY_WORKSPACE_MARKER=空工作区标记#上游名
-captureWorkspaceSnapshot=捕获工作区快照#上游名
-captureExpectedWorkspaceSnapshot=捕获期望工作区快照#上游名

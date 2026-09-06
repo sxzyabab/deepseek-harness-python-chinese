@@ -1,0 +1,12 @@
+{
+    "arithmetic":"算术",
+    "environment":"环境",
+    "expand":"展开",
+    "glob":"通配",
+    "match":"匹配",
+    "parameter":"参数",
+    "pattern":"模式",
+    "read":"读",
+    "status":"状态",
+    "variable":"变量"
+}

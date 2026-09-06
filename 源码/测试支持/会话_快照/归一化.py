@@ -8,7 +8,7 @@ from .身份 import 脱敏会话快照标识#身份脱敏
 
 __all__=[#仅中文公开名
     '提取快照溢出路径','令牌化会话夹具工作目录','归一化标准输出','归一化会话日志',
-    '归一化会话快照','归一化会话快照们','擦除系统提示词','擦除工具模式','擦除请求头','擦除会话快照',
+    '归一化会话快照','归一化会话快照列表','擦除系统提示词','擦除工具模式','擦除请求头','擦除会话快照',
 ]#公开面结束
 
 会话标识令牌='{{sessionId}}'#会话 id 令牌
@@ -39,8 +39,6 @@ UUID模式=re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
     r'(?:[A-Za-z]:)?[\\/](?:tmp|t)[\\/](?:dsh-acp-snap-[0-9a-f]{9}|dsh-acp-snapshot-spill)[\\/]session-[0-9a-f]{12}[\\/][0-9a-f]{12}-([A-Za-z0-9._~-]+?)'
     +r'(?=\. Use read with offset/limit|[\s)]|$)',
 )#快照结束
-Error=Exception#错误别名
-
 def 是否打包行(记录):#是否打包行
     """是否打包 fixture 行。"""
     return isinstance(记录.get('type'),str) and 记录['type'] in 打包块行类型#是否打包行
@@ -166,17 +164,17 @@ def 令牌化夹具值(值,上下文,基名):#递归令牌化
 
 def 令牌化会话夹具工作目录(原始日志):#令牌化 fixture cwd
     """把生成工作区存为 {{cwd}} 同时保留每一个其他会话值。"""
-    行们=原始日志.split('\n')#行
-    首行=next((行 for 行 in 行们 if 行.strip()!=''),None)#首非空
+    行列表=原始日志.split('\n')#行
+    首行=next((行 for 行 in 行列表 if 行.strip()!=''),None)#首非空
     头=json.loads(首行) if 首行 is not None else {}#头
     工作目录=头['cwd'] if isinstance(头.get('cwd'),str) else ''#cwd
     基名=工作目录.replace('\\','/').rstrip('/').split('/')[-1] if 工作目录 else ''#basename
     if 基名=='':#无 basename
-        raise Error('acp-snapshot: cannot tokenize a cwd without a basename')#无 basename
+        raise Exception('acp-snapshot: cannot tokenize a cwd without a basename')#无 basename
     上下文={'sessionIds':[],'cwd':工作目录}#上下文
     return '\n'.join(#重写
         行 if 行.strip()=='' else json.dumps(令牌化夹具值(json.loads(行),上下文,基名),ensure_ascii=False,separators=(',',':'))
-        for 行 in 行们
+        for 行 in 行列表
     )#接合
 
 def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdout
@@ -185,7 +183,7 @@ def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdo
         选项={}#空
     路径模式=选项.get('cwdPathMode') or 'canonical'#路径模式
     身份模式=选项.get('identityMode') or 'legacy'#身份模式
-    行们=[行 for 行 in 原始标准出.split('\n') if 行.strip()!='']#非空行
+    行列表=[行 for 行 in 原始标准出.split('\n') if 行.strip()!='']#非空行
     标识序={}#id 序号
     def 稳定标识(标识):#稳定 JSON-RPC id
         """按首次出现映射到序号。"""
@@ -193,13 +191,13 @@ def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdo
         if 键 not in 标识序:#新
             标识序[键]=len(标识序)+1#分配
         return 标识序[键]#返回
-    帧们=[]#帧
-    for 行 in 行们:#逐行
+    帧列表=[]#帧
+    for 行 in 行列表:#逐行
         帧=json.loads(行)#解析
         if 'id' in 帧 and 帧['id'] is not None:#有 id
             帧['id']=稳定标识(帧['id'])#稳定
-        帧们.append(擦除值(帧,上下文,路径模式,身份模式))#擦除
-    return '\n'.join(json.dumps(帧,ensure_ascii=False,separators=(',',':')) for 帧 in 帧们)+'\n'#NDJSON
+        帧列表.append(擦除值(帧,上下文,路径模式,身份模式))#擦除
+    return '\n'.join(json.dumps(帧,ensure_ascii=False,separators=(',',':')) for 帧 in 帧列表)+'\n'#NDJSON
 
 def 解码序号范围(值):#解码序号范围内联
     """展开 sourceEventSeqs（内核尚未导出时内联）。"""
@@ -221,9 +219,9 @@ def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话�
         选项={}#空
     路径模式=选项.get('cwdPathMode') or 'canonical'#路径模式
     身份模式=选项.get('identityMode') or 'legacy'#身份模式
-    行们=[行 for 行 in 原始日志.split('\n') if 行.strip()!='']#非空行
-    记录们=[]#记录
-    for 行 in 行们:#逐行
+    行列表=[行 for 行 in 原始日志.split('\n') if 行.strip()!='']#非空行
+    记录列表=[]#记录
+    for 行 in 行列表:#逐行
         记录=json.loads(行)#解析
         if 记录.get('type')=='session':#会话头
             if 'createdAt' in 记录:#创建时间
@@ -246,29 +244,29 @@ def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话�
                 记录['data']['updatedAt']=0#归零
         if 'sourceEventSeqs' in 记录:#溯源
             记录['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'])#解码
-        记录们.append(擦除值(记录,上下文,路径模式,身份模式))#擦除
-    return '\n'.join(json.dumps(记录,ensure_ascii=False,separators=(',',':')) for 记录 in 记录们)+'\n'#JSONL
+        记录列表.append(擦除值(记录,上下文,路径模式,身份模式))#擦除
+    return '\n'.join(json.dumps(记录,ensure_ascii=False,separators=(',',':')) for 记录 in 记录列表)+'\n'#JSONL
 
 def 重打包会话快照(原始日志):#重打包投影正文
     """重打包投影正文记录，使持久化冲刷边界不影响已提交快照。"""
-    行们=[行 for 行 in 原始日志.split('\n') if 行.strip()!='']#非空行
-    头=行们.pop(0)#头行
+    行列表=[行 for 行 in 原始日志.split('\n') if 行.strip()!='']#非空行
+    头=行列表.pop(0)#头行
     下一序号=0#下一序号
-    事件们=[]#事件
-    for 行 in 行们:#逐行
+    事件列表=[]#事件
+    for 行 in 行列表:#逐行
         记录=json.loads(行)#解析
         if 是否打包行(记录):#打包行
             解码=解码存储记录({**记录,'seq0':下一序号,'time0':0})#解码
             if not isinstance(解码,list):#单
                 解码=[解码]#包
             下一序号+=len(解码)#推进
-            事件们.extend(解码)#收集
+            事件列表.extend(解码)#收集
         else:#普通事件
             事件={**记录,'seq':下一序号,'time':0}#合成信封
             下一序号+=1#推进
-            事件们.append(事件)#收集
+            事件列表.append(事件)#收集
     正文=[]#正文行
-    for 存储 in 打包块游程(事件们):#打包
+    for 存储 in 打包块游程(事件列表):#打包
         投影=dict(存储)#拷贝
         省略信封(投影)#省略信封
         正文.append(json.dumps(投影,ensure_ascii=False,separators=(',',':')))#序列化
@@ -276,9 +274,9 @@ def 重打包会话快照(原始日志):#重打包投影正文
 
 def 擦除头内容(原始日志,选项):#擦除所选请求头载荷
     """变换所选请求头载荷。"""
-    行们=原始日志.split('\n')#行
+    行列表=原始日志.split('\n')#行
     输出=[]#输出
-    for 行 in 行们:#逐行
+    for 行 in 行列表:#逐行
         if 行.strip()=='':#空行
             输出.append(行)#保留
             continue#下一项
@@ -320,28 +318,28 @@ def 擦除会话快照(原始日志):#擦除会话快照
     """投影持久化会话日志同时标记化全部请求头主体。"""
     已擦=擦除请求头(原始日志)#先擦头
     记录索引=0#索引
-    行们=[]#行
+    行列表=[]#行
     for 行 in 已擦.split('\n'):#逐行
         if 行.strip()=='':#空
-            行们.append(行)#保留
+            行列表.append(行)#保留
             continue#下一项
         记录=json.loads(行)#解析
         if 记录索引==0:#头
             记录索引+=1#推进
             if 记录.get('type')!='session':#必须会话头
-                raise Error('session snapshot must start with a session header')#非法
-            行们.append(行)#原样
+                raise Exception('session snapshot must start with a session header')#非法
+            行列表.append(行)#原样
             continue#下一项
         记录索引+=1#推进
         省略信封(记录)#省略信封
-        行们.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')))#写回
-    return '\n'.join(行们)#接合
+        行列表.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')))#写回
+    return '\n'.join(行列表)#接合
 
 def 归一化会话快照(原始日志,上下文,选项=None):#归一化会话快照
     """为已提交 fixture 归一化并投影持久化会话 JSONL。"""
     return 重打包会话快照(擦除会话快照(归一化会话日志(原始日志,上下文,选项)))#组合
 
-def 归一化会话快照们(原始日志们,上下文,选项=None):#归一化多份快照
+def 归一化会话快照列表(原始日志列表,上下文,选项=None):#归一化多份快照
     """用共享类型化身份脱敏归一化一个场景的主与子日志。"""
     if 选项 is None:#缺省
         选项={}#空
@@ -350,16 +348,5 @@ def 归一化会话快照们(原始日志们,上下文,选项=None):#归一化�
             日志,{'sessionIds':[],'cwd':上下文['cwd'],**({'cwdAliases':上下文['cwdAliases']} if 'cwdAliases' in 上下文 else {})},
             {**选项,'identityMode':'preserve'},
         )))
-        for 日志 in 脱敏会话快照标识(原始日志们)
+        for 日志 in 脱敏会话快照标识(原始日志列表)
     ]#返回
-
-extractSnapshotSpillPaths=提取快照溢出路径#上游名
-tokenizeSessionFixtureCwd=令牌化会话夹具工作目录#上游名
-normalizeStdout=归一化标准输出#上游名
-normalizeSessionLog=归一化会话日志#上游名
-normalizeSessionSnapshot=归一化会话快照#上游名
-normalizeSessionSnapshots=归一化会话快照们#上游名
-scrubSystemPrompts=擦除系统提示词#上游名
-scrubToolSchemas=擦除工具模式#上游名
-scrubRequestHeaders=擦除请求头#上游名
-scrubSessionSnapshot=擦除会话快照#上游名

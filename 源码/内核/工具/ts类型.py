@@ -1,10 +1,13 @@
 """Code Mode 代码生成：把已注册工具模式纯投影成模型编程所用的 TypeScript SDK 文本。对齐上游 `tools/src/ts-types.ts`。公开面仅中文名。"""
 import re
-from .json模式 import 断言受支持json模式,转json,自有#导入统一 JSON Schema 校验
+from .json模式 import 断言受支持json模式,转json#导入统一 JSON Schema 校验
 
 __all__=('json模式转ts','渲染工具sdk')#仅中文公开名
 
-裸标识符规则=re.compile(r'^[A-Za-z_$][A-Za-z0-9_$]*$')#裸标识符规则
+class 类型渲染错误(Exception):
+    """内核工具 TypeScript 类型渲染包的异常基类。"""
+
+裸标识符规则=re.compile(r'^[A-Za-z_$][A-Za-z0-9_$]*\Z',re.ASCII)#裸标识符规则
 
 def 渲染键(名称):
     """渲染对象键：合法标识符则裸写，否则加引号。"""
@@ -29,9 +32,9 @@ def 渲染标量(值):
 def 渲染受约束标量(节点,类型名):
     """渲染已校验标量的 const/enum，否则回落到宽类型。"""
     宽类型='number' if 类型名=='integer' else 类型名#integer 在 TS 里是 number
-    if 自有(节点,'const'):
+    if 'const' in 节点:
         return 渲染标量(节点['const'])#有 const 则字面量
-    if 自有(节点,'enum'):
+    if 'enum' in 节点:
         return ' | '.join(渲染标量(项) for 项 in 节点['enum'])#联合字面量
     return 宽类型#宽类型
 
@@ -101,7 +104,7 @@ def 渲染已校验模式(模式节点,层数):
             if 帧['childIndex']<len(帧['children']):
                 子=帧['children'][帧['childIndex']]#下一个子
                 if 子 is None:
-                    raise Exception('missing schema render child')#子缺失
+                    raise 类型渲染错误('missing schema render child')#子缺失
                 帧['childIndex']=帧['childIndex']+1#前进
                 帧列表.append(建渲染帧(子['node'],子['indent']))#压入子帧
                 continue
@@ -120,7 +123,7 @@ def 渲染已校验模式(模式节点,层数):
             if 帧.get('kind')=='array':
                 子=帧['childDocuments'][0] if 帧['childDocuments'] else None#元素类型
                 if 子 is None:
-                    raise Exception('missing array item type')#缺元素类型
+                    raise 类型渲染错误('missing array item type')#缺元素类型
                 if 子.get('containsUnionOrIntersection'):
                     结束(类型文档('(',子,')[]'))#联合/交叉要加括号再 []
                 else:
@@ -133,7 +136,7 @@ def 渲染已校验模式(模式节点,层数):
                 条目=帧['entries'][下标]#属性项
                 子=帧['childDocuments'][下标]#属性类型
                 if 条目 is None or 子 is None:
-                    raise Exception('missing object property type')#缺属性类型
+                    raise 类型渲染错误('missing object property type')#缺属性类型
                 名称,属性节点=条目#键与属性节点
                 for 行 in 文档行(属性节点.get('description'),帧['indent']+1):
                     片段.append('\n')#换行
@@ -160,14 +163,14 @@ def 渲染已校验模式(模式节点,层数):
             帧['childDocuments']=[]#清空
             帧['phase']='children'#进入收子
             continue
-        if not 自有(节点,'type'):
+        if 'type' not in 节点:
             结束(类型文档('JsonValue'))#任意 JSON 值
             continue
         类型名=节点['type']#JSON 类型
         if 类型名 in ('string','number','integer','boolean','null'):
             结束(类型文档(渲染受约束标量(节点,类型名)))#受约束标量
         elif 类型名=='array':
-            if not 自有(节点,'items'):
+            if 'items' not in 节点:
                 结束(类型文档('JsonValue[]'))#任意 JSON 数组
             else:
                 帧['kind']='array'#记种类
@@ -195,11 +198,8 @@ def 渲染已校验模式(模式节点,层数):
 
 def json模式转ts(模式节点,层数=0):
     """把一个已强制的 JSON-Schema 节点映射成 TypeScript 类型字面量。"""
-    try:
-        断言受支持json模式(模式节点)#先统一校验
-        return 展平类型文档(渲染已校验模式(模式节点,层数))#展平文档
-    except Exception:
-        return 'unknown'#降级
+    断言受支持json模式(模式节点)#先统一校验
+    return 展平类型文档(渲染已校验模式(模式节点,层数))#展平文档
 
 sdk说明='''## Writing code for run_code
 

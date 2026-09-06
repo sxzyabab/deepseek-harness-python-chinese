@@ -1,0 +1,19 @@
+{
+    "acl":"ACL",
+    "aggregate":"聚合",
+    "best":"尽力",
+    "child":"子",
+    "dispose":"拆除",
+    "effort":"尽力",
+    "error":"错误",
+    "free":"释放",
+    "init":"初始化",
+    "result":"结果",
+    "sandbox":"沙箱",
+    "self":"自身",
+    "sid":"SID",
+    "spawn":"生成",
+    "temp":"临时",
+    "workspace":"工作区",
+    "write":"写入"
+}

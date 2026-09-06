@@ -7,7 +7,6 @@ from ...内核.作用域 import 创建作用域,获取作用域#作用域铸造�
 from .夹具 import 会话快照#会话快照工厂
 
 __all__=['夹具会话','测试会话']#仅中文公开名
-Error=Exception#错误别名
 
 class 可变会话事件源:#可变事件源
     """会话拥有的事件馈送；对齐 MutableSessionEventSource 公开面。"""
@@ -113,7 +112,7 @@ class 夹具会话:#fixture 会话面
 
     def prompt(自身,*_参数,**_关键字):#未桩 prompt
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": prompt is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": prompt is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def beginSubmission(自身):#开始提交
         """最小本地回声登记。"""
@@ -122,31 +121,31 @@ class 夹具会话:#fixture 会话面
 
     def readAttachment(自身,_附件标识):#未桩读附件
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": readAttachment is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": readAttachment is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def updateQueue(自身,*_参数,**_关键字):#未桩更新队列
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": updateQueue is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": updateQueue is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def cancel(自身,*_参数,**_关键字):#未桩取消
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": cancel is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": cancel is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def command(自身,*_参数,**_关键字):#未桩命令
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": command is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": command is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def loadOlder(自身,*_参数,**_关键字):#未桩加载更旧
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": loadOlder is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": loadOlder is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def loadThrough(自身,*_参数,**_关键字):#未桩加载至
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": loadThrough is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": loadThrough is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def rename(自身,*_参数,**_关键字):#未桩重命名
         """响亮失败桩。"""
-        raise Error(f'test session "{自身.sessionId}": rename is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise Exception(f'test session "{自身.sessionId}": rename is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
 class 测试会话:#会话测试替身
     """Sessions 测试替身。"""
@@ -171,7 +170,7 @@ class 测试会话:#会话测试替身
             选项={}#空
         标识=夹具['id']#会话 id
         if 标识 in 自身._records:#重复
-            raise Error(f'test session "{标识}" already added')#重复
+            raise Exception(f'test session "{标识}" already added')#重复
         摘要={#列表行
             'id':标识,'displayTitle':夹具['id'],'running':False,'blank':False,
             'updatedAt':len(自身._records)+1,**(夹具.get('summary') or {}),
@@ -283,7 +282,7 @@ class 测试会话:#会话测试替身
         """经已安装测试行为创建。"""
         自身.calls.append({'method':'create','args':[选项]})#记录
         if 自身._createStub is None:#未桩
-            raise Error('test sessions: create is not stubbed — call stubCreate() first')#英文诊断
+            raise Exception('test sessions: create is not stubbed — call stubCreate() first')#英文诊断
         标识=自身._createStub(选项)#走桩
         自身._要求(标识)#要求可寻址
         return 标识#返回
@@ -371,15 +370,12 @@ class 测试会话:#会话测试替身
         """铸造绑定。"""
         上下文=自身.scope(标识)#取作用域
         if 上下文 is None:#无作用域
-            raise Error(f'test session "{标识}" resolved no scope')#英文诊断
+            raise Exception(f'test session "{标识}" resolved no scope')#英文诊断
         return {'sessionId':标识,'session':记录['session'],'eventSource':记录['session'].eventSource,'ctx':上下文}#绑定
 
     def _要求(自身,标识):#要求已添加
         """要求记录存在。"""
         记录=自身._records.get(标识)#取记录
         if 记录 is None:#缺失
-            raise Error(f'test session "{标识}" is not added')#英文诊断
+            raise Exception(f'test session "{标识}" is not added')#英文诊断
         return 记录#返回
-
-FixtureSession=夹具会话#上游名
-TestSessions=测试会话#上游名

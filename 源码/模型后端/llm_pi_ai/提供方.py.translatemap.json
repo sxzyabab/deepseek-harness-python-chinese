@@ -1,0 +1,15 @@
+{
+    "auth":"认证",
+    "build":"构建",
+    "catalog":"目录",
+    "credential":"凭证",
+    "display":"展示",
+    "key":"密钥",
+    "protocol":"协议",
+    "provider":"提供方",
+    "reuse":"复用",
+    "route":"路由",
+    "spec":"规格",
+    "stream":"流",
+    "support":"支持"
+}

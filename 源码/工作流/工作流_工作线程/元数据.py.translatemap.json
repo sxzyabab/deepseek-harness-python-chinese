@@ -1,0 +1,12 @@
+{
+    "description":"描述",
+    "error":"错误",
+    "field":"字段",
+    "meta":"元数据",
+    "name":"名称",
+    "phase":"阶段",
+    "shape":"形态",
+    "validate":"校验",
+    "violation":"违规",
+    "workflow":"工作流"
+}

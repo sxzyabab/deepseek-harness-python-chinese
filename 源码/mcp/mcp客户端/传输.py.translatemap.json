@@ -1,0 +1,21 @@
+{
+    "client":"客户端",
+    "command":"命令",
+    "config":"配置",
+    "create":"创建",
+    "cwd":"工作目录",
+    "environment":"环境",
+    "error":"错误",
+    "factory":"工厂",
+    "header":"头",
+    "kind":"种类",
+    "merge":"合并",
+    "param":"参数",
+    "parent":"父",
+    "scrub":"擦洗",
+    "self":"自身",
+    "stdio":"标准输入输出",
+    "streamable":"可流式",
+    "transport":"传输",
+    "url":"地址"
+}

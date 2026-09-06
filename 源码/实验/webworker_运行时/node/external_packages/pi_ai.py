@@ -18,7 +18,7 @@ createModels=未实现失败(模块,'createModels')#createModels桩
 getSupportedThinkingLevels=未实现失败(模块,'getSupportedThinkingLevels')#思考级别桩
 isContextOverflow=未实现失败(模块,'isContextOverflow')#溢出谓词桩
 
-内置提供方标识们=(#内置提供方id，按目录顺序
+内置提供方标识列表=(#内置提供方id，按目录顺序
     'amazon-bedrock','ant-ling','anthropic','azure-openai-responses','baseten','cerebras',#批次1
     'cloudflare-ai-gateway','cloudflare-workers-ai','deepseek','fireworks','github-copilot',#批次2
     'google','google-vertex','groq','huggingface','kimi-coding','minimax','minimax-cn',#批次3
@@ -27,15 +27,15 @@ isContextOverflow=未实现失败(模块,'isContextOverflow')#溢出谓词桩
     'qwen-token-plan-individual','together',#批次6
     'vercel-ai-gateway','xai','xiaomi','xiaomi-token-plan-ams','xiaomi-token-plan-cn',#批次7
     'xiaomi-token-plan-sgp','zai','zai-coding-cn',#批次8
-)#内置提供方标识们结束
+)#内置提供方标识列表结束
 
 def builtinProviders():#目录提供方列表
     """已安装目录提供方，在 `llm-pi-ai` 激活时读取。"""
-    return [{'id':标识,'name':标识,'auth':{'apiKey':{'type':'api-key'}},'models':[]} for 标识 in 内置提供方标识们]#映射条目
+    return [{'id':标识,'name':标识,'auth':{'apiKey':{'type':'api-key'}},'models':[]} for 标识 in 内置提供方标识列表]#映射条目
 
 def getBuiltinProviders():#提供方id列表
     """已安装目录的提供方路由 id。"""
-    return list(内置提供方标识们)#拷贝数组
+    return list(内置提供方标识列表)#拷贝数组
 
 def getBuiltinModels():#模型列表
     """某个已安装目录提供方的模型。"""

@@ -1,16 +1,16 @@
 """已发布 v2 冻结的精确顶层事件与载荷成员清单。"""
-from ..会话格式_v0到v1 import (#从v0到v1导入
-    已发布v0事件处置,#v0处置表
-    定义已发布载荷处置,#定义处置
-)#从v0到v1导入
+from ..会话格式_v0到v1.处置 import (#从v0载荷清单导入
+    已发布v0事件处置表,#v0载荷清单
+    定义已发布载荷处置,#定义清单条目
+)#从v0载荷清单导入
 
 保留条目={}#保留条目
-for 类型,处置 in 已发布v0事件处置.items():#过滤
+for 类型,条目 in 已发布v0事件处置表.items():#过滤
     if (类型!='assistant/chunk'#去掉助手块
         and 类型!='assistant/message'#去掉助手消息
         and 类型!='session-log-deepseek/delivery-accepted'#去掉投递已接受
         and 类型!='session/end-seed'):#去掉结束种子
-        保留条目[类型]=处置#保留
+        保留条目[类型]=条目#保留
 
 已发布v2事件处置={**保留条目,#保留的v0条目
     'assistant/attempt':定义已发布载荷处置(['turn','step','stream']),#助手尝试

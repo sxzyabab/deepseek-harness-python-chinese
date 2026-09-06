@@ -1,6 +1,24 @@
-import base64,datetime,math,re,threading
+import base64,datetime,math,os,re,threading
 import traceback,types
 from collections import ChainMap as 链映射
+from urllib.parse import unquote,urlparse
+
+def 路径转文件url(路径):
+    """本地路径转 file URL。"""
+    绝对=os.path.abspath(路径)#绝对路径
+    正斜杠=绝对.replace('\\','/')#统一正斜杠
+    if not 正斜杠.startswith('/'):
+        正斜杠='/'+正斜杠#Windows 盘符前补斜杠
+    return 'file://'+正斜杠#file URL
+
+def 文件url转路径(网址):
+    """file URL 转本地路径。"""
+    解析=urlparse(网址)#拆 URL
+    路径=unquote(解析.path)#解码路径
+    if os.name=='nt' and 路径.startswith('/') and len(路径)>2 and 路径[2]==':':
+        路径=路径[1:]#去掉 /C: 前的斜杠
+    return os.path.normpath(路径)#本地路径
+
 
 def 字典键过滤(字典:dict,过滤器):#过滤键值
     "字典版过滤器"
@@ -113,8 +131,8 @@ def 是数组缓冲源(值)->bool:
     return 是类数组缓冲(值) or isinstance(值,memoryview)#源检测
 
 class 二进制:
-    是=staticmethod(是类数组缓冲)#类数组缓冲检测
-    是源=staticmethod(是数组缓冲源)#源检测
+    是类数组缓冲=staticmethod(是类数组缓冲)#类数组缓冲检测
+    是数组缓冲源=staticmethod(是数组缓冲源)#源检测
 
     @staticmethod
     def 从字节源(字节源:bytes|bytearray|memoryview)->bytes|bytearray:
@@ -205,73 +223,73 @@ def 是数值(值)->bool:
     "值为数字时为真,布尔按JS的惯例不算数字"
     return isinstance(值,(int,float)) and not isinstance(值,bool)#布尔单独比较
 
-def 深入比较(甲,乙,*,严格比较=False):
+def 深入比较(左值,右值,*,严格比较=False):
     """深度比较列表(数组)、日期、正则、缓冲与普通对象字段
     严格模式是js下的null/undefined比较,python弃用,仅保留参数进行兼容"""
     #数字只看数值,1与1.0相等,NaN与自己不相等
-    if 是数值(甲) and 是数值(乙):
-        return 甲==乙
+    if 是数值(左值) and 是数值(右值):
+        return 左值==右值
     #同一引用
-    if 甲 is 乙:
+    if 左值 is 右值:
         return True
     #一侧为空
-    if (甲 is None) or (乙 is None):
+    if (左值 is None) or (右值 is None):
         return False
     #不同类型
-    if type(甲) is not type(乙):
+    if type(左值) is not type(右值):
         #字节留后面比较
-        if isinstance(甲,(bytes,bytearray,memoryview)) and isinstance(乙,(bytes,bytearray,memoryview)):#缓冲可交叉
+        if isinstance(左值,(bytes,bytearray,memoryview)) and isinstance(右值,(bytes,bytearray,memoryview)):#缓冲可交叉
             pass
         else:#其它类型不同
             return False
     #相等
-    if 甲==乙:
+    if 左值==右值:
         #非容器类型时,==为True说明值相等
-        if not isinstance(甲,(dict,list)) and not isinstance(乙,(dict,list)):
+        if not isinstance(左值,(dict,list)) and not isinstance(右值,(dict,list)):
             return True
     #特定对象的自定义检查(到此处同类还不==)
     #常见值
-    if isinstance(甲,(str,bool,int,float,complex)):
+    if isinstance(左值,(str,bool,int,float,complex)):
         return False
     #列表与元组
-    elif isinstance(甲,(list,tuple)):
-        return len(甲)==len(乙) and all(
-            深入比较(甲[下标],乙[下标])
-            for 下标 in range(len(甲))
+    elif isinstance(左值,(list,tuple)):
+        return len(左值)==len(右值) and all(
+            深入比较(左值[下标],右值[下标])
+            for 下标 in range(len(左值))
             )#逐项
     #!不支持集合!
-    elif isinstance(甲,(set,frozenset)):
+    elif isinstance(左值,(set,frozenset)):
         return False
     #时间
-    elif isinstance(甲,datetime.datetime):
-        return 甲.timestamp()==乙.timestamp()
+    elif isinstance(左值,datetime.datetime):
+        return 左值.timestamp()==右值.timestamp()
     #re
-    elif isinstance(甲,re.Pattern):
-        return 甲.pattern==乙.pattern and 甲.flags==乙.flags
+    elif isinstance(左值,re.Pattern):
+        return 左值.pattern==右值.pattern and 左值.flags==右值.flags
     #字节
-    elif isinstance(甲,(bytes,bytearray,memoryview)):
-        return bytes(甲)==bytes(乙)
+    elif isinstance(左值,(bytes,bytearray,memoryview)):
+        return bytes(左值)==bytes(右值)
 
     else:
         #其他对象比实例字典
-        if not isinstance(甲,dict):
-            甲字段=getattr(甲,'__dict__',None)
-            乙字段=getattr(乙,'__dict__',None)
+        if not isinstance(左值,dict):
+            左字段=getattr(左值,'__dict__',None)
+            右字段=getattr(右值,'__dict__',None)
             #没有实例字典就没有可比的字段,前面的==已经判过值相等
-            if 甲字段 is None or 乙字段 is None:
+            if 左字段 is None or 右字段 is None:
                 return False
-            甲=甲字段
-            乙=乙字段
-        键集=set(list(甲)+list(乙))#合并两侧键
+            左值=左字段
+            右值=右字段
+        键集=set(list(左值)+list(右值))#合并两侧键
         #逐键比较字典
         return all(深入比较(
-            甲[键] if 键 in 甲 else None,
-            乙[键] if 键 in 乙 else None,
+            左值[键] if 键 in 左值 else None,
+            右值[键] if 键 in 右值 else None,
             ) for 键 in 键集)
 
 #============================== 时间 ==============================
-class 时间:#时间命名空间
-    """被使用的时间常量与格式化。"""
+class 时长单位:#时长常量与毫秒格式化
+    """被使用的时长常量与毫秒格式化。"""
     毫秒=1#一毫秒
     秒=1000#一千毫秒
     分=秒*60#一分钟
@@ -280,39 +298,39 @@ class 时间:#时间命名空间
     周=日*7#一周
 
     @staticmethod
-    def 左补零(原时间,目标长度=2):
+    def 左补零(原数值,目标长度=2):
         "左边补零,把数字补成固定宽度"
-        return str(原时间).rjust(目标长度,'0')
+        return str(原数值).rjust(目标长度,'0')
 
     @staticmethod
     def 格式化(毫秒数:int)->str:#最短单位
         "把毫秒转换成简短的时间描述(n 天/时/...)"
         绝对=abs(毫秒数)#绝对值
-        if 绝对>=时间.日-时间.时/2:#按天
-            return str(int(math.floor(毫秒数/时间.日+0.5)))+'d'
-        elif 绝对>=时间.时-时间.分/2:#按时
-            return str(int(math.floor(毫秒数/时间.时+0.5)))+'h'
-        elif 绝对>=时间.分-时间.秒/2:#按分
-            return str(int(math.floor(毫秒数/时间.分+0.5)))+'m'
-        elif 绝对>=时间.秒:#按秒
-            return str(int(math.floor(毫秒数/时间.秒+0.5)))+'s'
+        if 绝对>=时长单位.日-时长单位.时/2:#按天
+            return str(int(math.floor(毫秒数/时长单位.日+0.5)))+'d'
+        elif 绝对>=时长单位.时-时长单位.分/2:#按时
+            return str(int(math.floor(毫秒数/时长单位.时+0.5)))+'h'
+        elif 绝对>=时长单位.分-时长单位.秒/2:#按分
+            return str(int(math.floor(毫秒数/时长单位.分+0.5)))+'m'
+        elif 绝对>=时长单位.秒:#按秒
+            return str(int(math.floor(毫秒数/时长单位.秒+0.5)))+'s'
         return str(毫秒数)+'ms'
 
     @staticmethod
     def 格式化时间(模板:str,时刻:datetime.datetime=None)->str:#模板格式化
         "按模板格式化日期"
         if 时刻 is None:#默认现在
-            时刻=datetime.datetime.now()#当前时间
+            时刻=datetime.datetime.now(datetime.timezone.utc).astimezone()#当地时间带时区
         年=str(时刻.year)#年份
         文本=模板#待替换模板
         文本=文本.replace('yyyy',年,1)#四位年
         文本=文本.replace('yy',年[2:],1)#两位年
-        文本=文本.replace('MM',时间.左补零(时刻.month),1)#月
-        文本=文本.replace('dd',时间.左补零(时刻.day),1)#日
-        文本=文本.replace('hh',时间.左补零(时刻.hour),1)#时
-        文本=文本.replace('mm',时间.左补零(时刻.minute),1)#分
-        文本=文本.replace('ss',时间.左补零(时刻.second),1)#秒
-        文本=文本.replace('SSS',时间.左补零(时刻.microsecond//1000,3),1)#毫秒
+        文本=文本.replace('MM',时长单位.左补零(时刻.month),1)#月
+        文本=文本.replace('dd',时长单位.左补零(时刻.day),1)#日
+        文本=文本.replace('hh',时长单位.左补零(时刻.hour),1)#时
+        文本=文本.replace('mm',时长单位.左补零(时刻.minute),1)#分
+        文本=文本.replace('ss',时长单位.左补零(时刻.second),1)#秒
+        文本=文本.replace('SSS',时长单位.左补零(时刻.microsecond//1000,3),1)#毫秒
         return 文本#格式化结果
 
 
@@ -326,6 +344,7 @@ _对象内部数据表=弱引用键字典()#对象到它的双下数据面，不
 未命中=object()#沿属性链查找时表示链上没有该键
 
 def 是双下划线字符串(名称)->bool:
+    """名称是双下划线包裹的字符串时为真。"""
     return isinstance(名称,str) and 名称.startswith('__') and 名称.endswith('__')
 
 class 自由点访问空间:
@@ -436,17 +455,17 @@ class 有序槽位表:
         自身.映射={}#序号:值
 
     def 压入(自身,值):
-        "追加到表尾，返回只删本条的释放器"
+        "追加到表尾，返回只删本条的拆除器"
         自身.序号+=1#分配序号
         序号=自身.序号#本条序号
         自身.映射[序号]=值#按序号存入
         def 摘掉本条():
             "只删本序号，重复调用返回假"
             return 自身.映射.pop(序号,None) is not None#是否真的删掉
-        return 摘掉本条#释放器
+        return 摘掉本条#拆除器
 
     def 前插(自身,值):
-        "插到表头，返回只删本条的释放器"
+        "插到表头，返回只删本条的拆除器"
         自身.序号+=1#分配序号
         序号=自身.序号#本条序号
         重排={序号:值}#新项排在最前
@@ -455,7 +474,7 @@ class 有序槽位表:
         def 摘掉本条():
             "只删本序号，重复调用返回假"
             return 自身.映射.pop(序号,None) is not None#是否真的删掉
-        return 摘掉本条#释放器
+        return 摘掉本条#拆除器
 
     def 删除(自身,值):
         "按对象身份删掉一条"
@@ -466,10 +485,10 @@ class 有序槽位表:
         return False#表里没有
 
     def 清空(自身):
-        "清空并按逆序交出剩余值，供卸载时反向释放"
+        "清空并按逆序交出剩余值，供卸载时反向拆除"
         值=list(自身.映射.values())#当前全部值
         自身.映射={}#清空
-        值.reverse()#后登记的先释放
+        值.reverse()#后登记的先拆除
         return 值#逆序值列表
 
     @property
@@ -494,7 +513,7 @@ def 是对象(值):
     return True#对象或函数
 
 ################################ 调用方上下文壳 ################################
-class Proxy:
+class 代理:
     '对应js的Proxy'
     __slots__=('__weakref__',)#无实例字典，目标与处理器都放数据面，弱引用槽供数据表按身份存
 
@@ -546,7 +565,7 @@ def 套上调用方上下文(上下文,值):
         return 值#没有追踪器，或已经是壳
     return 调用方上下文壳(上下文,值,追踪器)#套壳
 
-class 调用方上下文壳(Proxy):
+class 调用方上下文壳(代理):
     "读追踪属性换成调用方上下文；关联服务成员转发到上下文"
     def __init__(自身,上下文,值,追踪器):
         def 取属性(目标,属性):
@@ -565,10 +584,10 @@ class 调用方上下文壳(Proxy):
                 if getattr(内层,'__self__',None) is 目标:
                     def 以壳调用(函数,位置参数,关键字参数):
                         return 套上调用方上下文(上下文,函数(自身,*位置参数,**关键字参数))#自身换成壳
-                    return Proxy(内层.__func__,{'调用':以壳调用})#绑定方法
+                    return 代理(内层.__func__,{'调用':以壳调用})#绑定方法
                 def 套返回值(函数,位置参数,关键字参数):
                     return 套上调用方上下文(上下文,函数(*位置参数,**关键字参数))#调完再套壳
-                return Proxy(内层,{'调用':套返回值})#其余可调用：只套返回值
+                return 代理(内层,{'调用':套返回值})#其余可调用：只套返回值
             return 内层#其余原样
 
         def 写属性(目标,属性,写入值):
@@ -590,7 +609,7 @@ class 调用方上下文壳(Proxy):
             未绑定=getattr(调用体,'__func__',调用体)#取出未绑定函数
             return 未绑定(自身,*位置参数,**关键字参数)#自身换成壳
 
-        Proxy.__init__(自身,值,{'取属性':取属性,'写属性':写属性,'调用':调用})#挂拦截
+        代理.__init__(自身,值,{'取属性':取属性,'写属性':写属性,'调用':调用})#挂拦截
 
 ################################ 异常 ################################
 class 聚合错误(Exception):
@@ -602,17 +621,17 @@ class 聚合错误(Exception):
 
 def 构建外层栈():
     """抓一份调用点之上的调用栈，供登记时保存。"""
-    return traceback.format_stack()[:-1]#丢掉本辅助自身的帧
+    return traceback.format_stack()[:-1]#丢掉本函数自身的帧
 
-def 运行_自带错误栈(回调:callable,调用栈:list=None):
+def 运行并挂错误栈(回调:callable,调用栈:list=None):
     "运行回调，把登记点的外层调用栈挂到它抛出的错误上"
     #没有给栈,直接用当前的
     if 调用栈 is None:
         调用栈=traceback.format_stack()[:-1]#丢弃这行的调用信息
     try:
         return 回调()#执行被包装的回调
-    except Exception as e:
-        e.调用栈=调用栈#挂上登记点，日志展开错误时一并输出
+    except BaseException as 错误:
+        错误.调用栈=调用栈#挂上登记点，日志展开错误时一并输出
         raise#原样抛给调用方
 
 def 绑定对象(回调:callable,对象:object):
@@ -662,5 +681,8 @@ def 插值(上下文,值):
     if isinstance(值,list):
         return [插值(上下文,项) for 项 in 值]#逐项插值
     if isinstance(值,dict):
-        return 字典值转换(值,lambda 项,键:插值(上下文,项))#逐值插值
+        def 插值一项(项,键):
+            """对字典一项做表达式插值。"""
+            return 插值(上下文,项)#逐值插值
+        return 字典值转换(值,插值一项)#逐值插值
     return 值#其它对象原样返回

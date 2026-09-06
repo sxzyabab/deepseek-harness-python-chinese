@@ -2,6 +2,7 @@
 
 对齐上游 `webworker-runtime/src/client/source-chooser.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 from ..fixture清单 import 解析预览fixture清单#解析函数
 
 __all__=['选择预览源']#仅中文公开名
@@ -181,10 +182,10 @@ def 选项标记(选项,已选):#生成单个选项的HTML
         f'  </label>'
     )#选项标签标记结束
 
-def 夹具选项们(条目们,清单网址):#清单条目转选项
+def 列出夹具选项(条目列表,清单网址):#清单条目转选项
     """清单条目映射为选择器选项。"""
     结果=[]#选项列表
-    for 条目 in 条目们:#映射每个夹具条目
+    for 条目 in 条目列表:#映射每个夹具条目
         覆盖=[条目层 for 条目层 in (#相对清单解析叠加层
             #上游：new URL(overlay, manifestUrl)；此处保留字符串解析约定
             条目['overlays']
@@ -218,23 +219,20 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     if 请求源==空源标识:#空源则直接无叠加层
         return []#空叠加层
     if not callable(拉取):#无fetch
-        raise Exception('preview source chooser: fetch is unavailable')#拒绝
+        raise 运行时错误('preview source chooser: fetch is unavailable')#拒绝
     响应=拉取(清单网址)#请求夹具清单
-    成功=响应.get('ok') if isinstance(响应,dict) else getattr(响应,'ok',False)#是否成功
-    if not 成功:#清单响应失败
-        状态=响应.get('status') if isinstance(响应,dict) else getattr(响应,'status',None)#状态
-        raise Exception(f'preview source chooser: fixture manifest returned {状态}')#抛出状态错误
-    取json=响应.get('json') if isinstance(响应,dict) else getattr(响应,'json',None)#json面
-    原始=取json() if callable(取json) else 响应#解析清单JSON
+    if not 响应.ok:#清单响应失败
+        raise 运行时错误(f'preview source chooser: fixture manifest returned {响应.status}')#抛出状态错误
+    原始=响应.json()#解析清单JSON
     清单=解析预览fixture清单(原始)#校验清单
-    选项们=[#组装可选源列表
+    选项列表=[#组装可选源列表
         {#空环境选项
             'id':空源标识,#空源标识
             'label':'Empty environment',#空环境标题
             'description':'Load only the base runtime to verify first launch and workspace creation.',#空环境说明
             'overlays':[],#无叠加层
         },#空环境选项结束
-        *夹具选项们(清单['fixtures'],清单网址),#展开夹具选项
+        *列出夹具选项(清单['fixtures'],清单网址),#展开夹具选项
         {#WebFS选项
             'id':webfs源标识,#WebFS标识
             'label':'WebFS directory',#WebFS标题
@@ -245,18 +243,18 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     ]#选项列表结束
     if 请求源 is not None:#URL已指定源
         指定=None#查找可用指定项
-        for 选项 in 选项们:#查找
+        for 选项 in 选项列表:#查找
             if 选项['id']==请求源 and 选项.get('disabled') is not True:#命中可用
                 指定=选项#记下
                 break#停止
         if 指定 is None:#未找到或不可用
-            raise Exception(f'preview source chooser: unknown or interactive source "{请求源}"')#抛出未知源错误
+            raise 运行时错误(f'preview source chooser: unknown or interactive source "{请求源}"')#抛出未知源错误
         return 指定['overlays']#返回指定项叠加层
     if 文档 is None:#无document
-        raise Exception('preview source chooser: missing #root')#缺少环境
+        raise 运行时错误('preview source chooser: missing #root')#缺少环境
     根=文档.getElementById('root')#获取页面根节点
     if 根 is None:#缺少根节点
-        raise Exception('preview source chooser: missing #root')#失败
+        raise 运行时错误('preview source chooser: missing #root')#失败
     已选=清单['defaultFixture'] if 清单['defaultFixture'] is not None else 空源标识#默认选中项
     样式=文档.createElement('style')#创建样式元素
     样式.dataset.previewSourceStyle=''#标记选择器样式
@@ -264,7 +262,7 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     文档.head.append(样式)#挂到文档头
     选择器=文档.createElement('main')#创建选择器主容器
     选择器.dataset.previewSourceChooser=''#标记选择器根
-    选项html=''.join(选项标记(选项,已选) for 选项 in 选项们)#选项HTML
+    选项html=''.join(选项标记(选项,已选) for 选项 in 选项列表)#选项HTML
     选择器.innerHTML=(#写入选择器表单HTML
         f'<form data-preview-source-card aria-labelledby="preview-source-title">\n'
         f'      <h1 id="preview-source-title">Choose Preview data</h1>\n'
@@ -279,17 +277,17 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     根.prepend(选择器)#插入选择器到根前部
     表单=选择器.querySelector('[data-preview-source-card]')#定位表单元素
     if 表单 is None:#表单未渲染
-        raise Exception('preview source chooser: form was not rendered')#失败
+        raise 运行时错误('preview source chooser: form was not rendered')#失败
     #上游用Promise等待submit；Python侧由调用方在浏览器宿主接线提交回调。
     #此处同步路径要求表单已带所选值（测试/宿主注入）。
     源标识=已选#默认所选
     所选=None#查找可用所选
-    for 候选 in 选项们:#查找
+    for 候选 in 选项列表:#查找
         if 候选['id']==源标识 and 候选.get('disabled') is not True:#命中
             所选=候选#记下
             break#停止
     if 所选 is None:#不可用
-        raise Exception(f'preview source chooser: unavailable source "{源标识}"')#失败
+        raise 运行时错误(f'preview source chooser: unavailable source "{源标识}"')#失败
     选择器.remove()#移除选择器DOM
     样式.remove()#移除样式元素
     return 所选['overlays']#返回所选叠加层

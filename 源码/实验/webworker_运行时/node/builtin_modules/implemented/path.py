@@ -6,6 +6,7 @@
 对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/path.ts`。
 公开面中文名；Node 面经别名与 default 暴露英文名。
 """
+from ...未实现失败 import 运行时错误#本包错误
 import json#诊断序列化
 from ....storage.路径 import dsh根#VFS根
 
@@ -23,14 +24,14 @@ def 当前目录():#当前工作目录
     """有 process.cwd 则用，否则 VFS 根。"""
     进程=globals().get('process')#全局process
     if 进程 is None: return dsh根#无process
-    取目录=进程.get('cwd') if isinstance(进程,dict) else getattr(进程,'cwd',None)#cwd面
+    取目录=进程['cwd'] if 'cwd' in 进程 else None#cwd面
     if callable(取目录): return 取目录()#有则用
     return dsh根#否则VFS根
 
 def 断言路径(路径):#断言路径为串
     """非串则抛 TypeError。"""
     if not isinstance(路径,str):#非串
-        raise TypeError(f'Path must be a string. Received {json.dumps(路径)}')#类型错误
+        raise TypeError("Path must be a string. Received "+json.dumps(路径,ensure_ascii=False,separators=(',',':'),allow_nan=False))#类型错误
 
 def 规范化段串(路径,允许越过根):#规范化段串
     """解析 `.` 与 `..` 段；`允许越过根` 为相对输入保留前导 `..`。"""
@@ -86,13 +87,13 @@ def 规范化段串(路径,允许越过根):#规范化段串
         下标+=1#推进
     return 结果#交回
 
-def 解析(*路径们):#解析绝对路径
+def 解析(*路径列表):#解析绝对路径
     """将路径序列解析为绝对路径。"""
     累积=''#累积
     绝对=False#是否已绝对
-    下标=len(路径们)-1#自右向左
+    下标=len(路径列表)-1#自右向左
     while 下标>=0 and not 绝对:#自右向左
-        路径=路径们[下标]#当前段
+        路径=路径列表[下标]#当前段
         断言路径(路径)#断言串
         if len(路径)==0:#空段跳过
             下标-=1#推进
@@ -126,11 +127,11 @@ def 是否绝对(路径):#是否绝对
     断言路径(路径)#断言串
     return len(路径)>0 and ord(路径[0])==字符斜杠#以斜杠起
 
-def 连接(*路径们):#连接路径
+def 连接(*路径列表):#连接路径
     """用分隔符连接路径段，再规范化。"""
-    if len(路径们)==0: return '.'#无段为点
+    if len(路径列表)==0: return '.'#无段为点
     累积=None#累积
-    for 路径 in 路径们:#遍历段
+    for 路径 in 路径列表:#遍历段
         断言路径(路径)#断言串
         if len(路径)==0: continue#空跳过
         累积=路径 if 累积 is None else f'{累积}/{路径}'#拼接
@@ -240,9 +241,14 @@ def 扩展名(路径):#扩展名
 def 格式化(路径对象):#组装路径
     """由解析后的各部分构建路径。"""
     目录=路径对象.get('dir')#目录
-    if 目录 is None: 目录=路径对象.get('root') or ''#根或空
+    if 目录 is None:#缺 dir
+        根=路径对象.get('root')#root
+        目录='' if 根 is None else 根#??空串，空 root 合法
     基=路径对象.get('base')#基名
-    if 基 is None: 基=f"{路径对象.get('name') or ''}{路径对象.get('ext') or ''}"#拼
+    if 基 is None:#缺 base
+        名=路径对象.get('name')#name
+        扩展=路径对象.get('ext')#ext
+        基=f"{'' if 名 is None else 名}{'' if 扩展 is None else 扩展}"#??空串拼接
     if 目录=='': return 基#无目录
     return f'{目录}{基}' if 目录==路径对象.get('root') else f'{目录}/{基}'#根或斜杠
 
@@ -274,7 +280,7 @@ def win32成员(名称):#win32成员工厂
     """触达表示平台分支走错。"""
     def 拒绝(*位置参数,**关键字参数):#不可达
         """抛不可达。"""
-        raise Exception(f'web-preview: node:path.win32.{名称} is unreachable — the worker host reports platform "linux"')#不可达
+        raise 运行时错误(f'web-preview: node:path.win32.{名称} is unreachable — the worker host reports platform "linux"')#不可达
     return 拒绝#交回
 
 #Node面英文别名

@@ -1,0 +1,15 @@
+{
+    "call":"调用",
+    "channel":"通道",
+    "client":"客户端",
+    "connection":"连接",
+    "create":"创建",
+    "endpoint":"端点",
+    "error":"错误",
+    "method":"方法",
+    "payload":"载荷",
+    "rpc":"远程过程调用",
+    "target":"目标",
+    "transport":"传输",
+    "uuid":"唯一标识"
+}

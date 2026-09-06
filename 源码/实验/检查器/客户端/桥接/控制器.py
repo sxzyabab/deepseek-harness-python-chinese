@@ -15,11 +15,11 @@ def 启动检查器客户端(引导):#启动Client检查器
         文档=getattr(builtins,'document',None)#document
         if 文档 is not None and getattr(文档,'title',None):#有标题
             标签=文档.title or 'Client'#标签
-    except Exception:#忽略
+    except Exception:#忽略清理回调可能抛，契约未定所以收不窄
         pass#忽略
     领域源=客户端领域源.声明(标签)#声明realm身份
     try:#构造传输
         return 客户端检查器源(引导,标签,None,领域源)#创建源
-    except Exception:#失败
-        领域源.关闭()#释放身份
+    except Exception:#客户端检查器源构造可能抛传输/引导错误，契约未定所以收不窄
+        领域源.关闭()#拆除身份
         raise#继续抛出

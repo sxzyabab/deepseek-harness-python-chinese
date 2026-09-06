@@ -1,0 +1,22 @@
+{
+    "attempt":"尝试",
+    "backoff":"退避",
+    "config":"配置",
+    "connect":"连接",
+    "controller":"控制器",
+    "default":"缺省",
+    "envelope":"信封",
+    "error":"错误",
+    "generation":"世代",
+    "host":"宿主",
+    "mux":"复用",
+    "open":"打开",
+    "pump":"泵",
+    "reconnect":"重连",
+    "sink":"汇",
+    "start":"启动",
+    "state":"状态",
+    "stop":"停止",
+    "stream":"流",
+    "timeout":"超时"
+}

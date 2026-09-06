@@ -1,0 +1,21 @@
+{
+    "bytes":"字节",
+    "content":"内容",
+    "encode":"编码",
+    "file":"文件",
+    "hex":"十六进制",
+    "id":"标识",
+    "name":"名称",
+    "path":"路径",
+    "private":"私有",
+    "root":"根",
+    "save":"保存",
+    "segment":"段",
+    "session":"会话",
+    "spill":"溢出",
+    "storage":"存储",
+    "suggested":"建议",
+    "temp":"临时",
+    "text":"文本",
+    "token":"令牌"
+}

@@ -1,0 +1,14 @@
+{
+    "asynchronous":"异步",
+    "basename":"基名",
+    "delegate":"委托",
+    "executable":"可执行",
+    "exit":"退出",
+    "kind":"种类",
+    "landlock":"地锁",
+    "name":"名",
+    "parse":"解析",
+    "path":"路径",
+    "registry":"注册表",
+    "virtual":"虚拟"
+}

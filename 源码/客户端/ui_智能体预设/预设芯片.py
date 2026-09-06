@@ -12,120 +12,121 @@ __all__=['预设芯片','介绍文字延迟毫秒','介绍字符错开毫秒','�
 介绍文字揭开毫秒=200#整段揭开窗
 介绍字符淡入毫秒=400#单字淡入时长
 
-def 读(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
-
-def 介绍错开毫秒(字数):#每字起步间隔
+def 介绍错开毫秒(字数):
     """短名按上限；长名压进同一揭开窗。"""
     if 字数<=1:#单字
         return 0#无错开
     return min(介绍字符错开毫秒,介绍文字揭开毫秒/(字数-1))#夹取
 
-class 预设芯片:#新会话芯片
-    """部署无名册时返回 None。"""
-    def __init__(自身,属性=None,**关键字参数):#构造
+class 预设芯片:
+    """部署无名册时返回 None。属性与快照都是 dict。"""
+    def __init__(自身,属性=None,**关键字参数):
         """合并 props 并拉名册。"""
-        自身.属性=dict(属性 or {})#基础
+        自身.属性=dict(属性) if 属性 is not None else {}#基础
         自身.属性.update(关键字参数)#覆盖
         自身.打开=False#菜单
         自身.介绍中=False#介绍动画
-        加载=读(自身.属性,'load')#加载
-        if 加载 is not None:#有
-            加载()#拉
+        自身.属性['load']()#拉
 
-    def 更新(自身,属性):#刷新
+    def 更新(自身,属性):
         """刷新 props。"""
         自身.属性=dict(属性)#最新
 
-    def 状态(自身):#芯片快照
+    def 状态(自身):
         """经 useAgentPresetSeat。"""
-        用=读(自身.属性,'useAgentPresetSeat')#钩
-        if 用 is None:#无
-            return {'options':[],'current':'','busy':False,'error':None,'introduce':False}#空
-        return 用(lambda 快照:快照) or {}#快照
+        def 恒等(快照):
+            """整表。"""
+            return 快照#快照
+        return 自身.属性['useAgentPresetSeat'](恒等)#快照
 
-    def 选定(自身,标识):#暂存预设
+    def 选定(自身,标识):
         """关菜单并 select。"""
         自身.打开=False#关
-        选=读(自身.属性,'select')#选定
-        if 选 is not None:#有
-            选(标识)#提交
+        自身.属性['select'](标识)#提交
 
-    def 开始介绍(自身,标签):#武装介绍动画
+    def 切换菜单(自身):
+        """翻转菜单开闭。"""
+        自身.打开=not 自身.打开#翻转
+
+    def 关闭菜单(自身):
+        """关菜单。"""
+        自身.打开=False#关
+
+    def 开始介绍(自身,标签):
         """减动效则立刻 acknowledge。"""
         态=自身.状态()#态
-        if not 读(态,'introduce'):#无提示
+        if not 态['introduce']:#无提示
             return#跳过
-        就绪=len(读(态,'options') or [])>0 and 读(态,'current')!=''#就绪
+        就绪=len(态['options'])>0 and 态['current']!=''#就绪；判 length 与空串
         if not 就绪:#未就绪
             return#跳过
-        介绍完=读(自身.属性,'introduced')#完结
-        字们=list(标签)#字符
-        if len(字们)==0:#空
-            if 介绍完 is not None:#有
-                介绍完()#完
+        介绍完=自身.属性['introduced']#完结
+        字列表=list(标签)#字符
+        if len(字列表)==0:#空
+            介绍完()#完
             return#结束
         自身.介绍中=True#开动画
-        错开=介绍错开毫秒(len(字们))#错开
-        自身.介绍时长=介绍文字延迟毫秒+(len(字们)-1)*错开+介绍字符淡入毫秒#总时长
+        错开=介绍错开毫秒(len(字列表))#错开
+        自身.介绍时长=介绍文字延迟毫秒+(len(字列表)-1)*错开+介绍字符淡入毫秒#总时长
         自身.介绍完结=介绍完#回调
 
-    def 渲染(自身):#结构化视图
+    def 渲染(自身):
         """产出芯片+菜单；无名册则 None。"""
         属性=自身.属性#props
         态=自身.状态()#态
-        翻译=读(属性,'t')#翻译
-        选项们=读(态,'options') or []#选项
-        当前=读(态,'current') or ''#当前
-        就绪=len(选项们)>0 and 当前!=''#就绪
+        翻译=属性['t']#翻译
+        选项列表=态['options']#选项
+        当前=态['current']#当前
+        就绪=len(选项列表)>0 and 当前!=''#就绪；判 length 与空串
         if not 就绪:#无
             return None#不画
         选中=None#项
-        for 项 in 选项们:#找
-            if 读(项,'id')==当前:#命中
+        for 项 in 选项列表:#找
+            if 项['id']==当前:#命中
                 选中=项#记下
                 break#停
-        展示=预设展示文案(选中,翻译) if 选中 is not None and 翻译 is not None else None#展示
+        展示=预设展示文案(选中,翻译) if 选中 is not None else None#展示
         标签=展示['name'] if 展示 is not None else 当前#标签
-        if 读(态,'introduce') and not 自身.介绍中:#武装介绍
+        if 态['introduce'] and not 自身.介绍中:#武装介绍
             自身.开始介绍(标签)#武装
-        字们=list(标签)#字符
-        错开=介绍错开毫秒(len(字们))#错开
+        字列表=list(标签)#字符
+        错开=介绍错开毫秒(len(字列表))#错开
         条目=[]#菜单项
-        for 项 in 选项们:#逐项
-            文=预设展示文案(项,翻译) if 翻译 is not None else None#文
+        for 项 in 选项列表:#逐项
+            文=预设展示文案(项,翻译)#文
+            述=文['description'] if 'description' in 文 else None#述
+            if 述 is None:#无述
+                述=翻译('noDescription')#回退
             条目.append({#项
-                'id':读(项,'id'),#id
-                'name':文['name'] if 文 is not None else 读(项,'id'),#名
-                'description':(文['description'] if 文 is not None else None) or (翻译('noDescription') if 翻译 else ''),#述
+                'id':项['id'],#id
+                'name':文['name'],#名
+                'description':述,#述
             })#结束
+        标题=态['error']#错误
+        if 标题 is None:#无错
+            标题=翻译('seatHint')#提示
         return {#视图
             'type':'agent-preset-seat',#类型
             'open':自身.打开,#菜单
-            'busy':bool(读(态,'busy')),#忙
-            'title':读(态,'error') or (翻译('seatHint') if 翻译 else ''),#提示
+            'busy':态['busy'],#忙
+            'title':标题,#提示
             'label':标签,#当前名
             'introducing':自身.介绍中,#介绍中
-            'characters':字们,#字符
+            'characters':字列表,#字符
             'staggerMs':错开,#错开
             'introTextDelayMs':介绍文字延迟毫秒,#延迟
             'items':条目,#菜单项
             'selectedId':当前,#选中
-            'toggle':lambda:setattr(自身,'打开',not 自身.打开),#切换
-            'close':lambda:setattr(自身,'打开',False),#关
+            'toggle':自身.切换菜单,#切换
+            'close':自身.关闭菜单,#关
             'select':自身.选定,#选定
             'cssModule':'预设芯片.module.css',#样式
         }#视图结束
 
-    def __call__(自身,属性=None,**关键字参数):#调用形
+    def __call__(自身,属性=None,**关键字参数):
         """对齐 React。"""
-        if 属性 is not None or 关键字参数:#有
-            合并=dict(属性 or {})#基
+        if 属性 is not None or len(关键字参数)>0:#有
+            合并=dict(属性) if 属性 is not None else {}#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
         return 自身.渲染()#渲

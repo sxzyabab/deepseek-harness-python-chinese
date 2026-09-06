@@ -10,8 +10,6 @@ from ...acp.acp import 协议版本#ACP 协议版本
 __all__=['启动ACP测试智能体','物化配置档补丁']#仅中文公开名
 
 退出标记宽限毫秒=250#退出标记宽限
-Error=Exception#错误别名
-
 def 仍在运行(子进程):#是否仍运行
     """子进程是否仍缺少任一 OS 终止标记。"""
     return 子进程.poll() is None#无退出码
@@ -47,7 +45,7 @@ def 物化配置档补丁(源,工作目录,目标目录,索引):#物化配置补
     with open(源,'r',encoding='utf-8') as 句柄:#读补丁
         解析=yaml.safe_load(句柄.read())#解析 YAML
     if not isinstance(解析,list):#必须数组
-        raise Error(f'snapshot profile patch must be a top-level array: {源}')#必须数组
+        raise Exception(f'snapshot profile patch must be a top-level array: {源}')#必须数组
     基目录=os.path.dirname(源)#基础目录
     def 解析名(值):#解析模块名
         """相对路径转 file URL；裸包保留。"""
@@ -76,11 +74,11 @@ def 配置档参数(配置档,基础补丁,选定补丁,快照模式,工作目�
     """从基础与可选场景补丁构建一次 dsh 配置档调用。"""
     基础=os.path.abspath(os.path.join(工作目录,基础补丁))#基础补丁
     选定=os.path.abspath(os.path.join(工作目录,选定补丁))#选定补丁
-    补丁们=[基础,回放补丁路径(选定)] if 快照模式=='replay' else list(dict.fromkeys([基础,选定]))#补丁列表
+    补丁列表=[基础,回放补丁路径(选定)] if 快照模式=='replay' else list(dict.fromkeys([基础,选定]))#补丁列表
     物化根=os.path.join(工作目录,'.dsh-profile-patches')#物化根
     os.makedirs(物化根,exist_ok=True)#确保根存在
     物化目录=tempfile.mkdtemp(prefix='launch-',dir=物化根)#物化目录
-    物化=[物化配置档补丁(文件,工作目录,物化目录,索引) for 索引,文件 in enumerate(补丁们)]#物化各补丁
+    物化=[物化配置档补丁(文件,工作目录,物化目录,索引) for 索引,文件 in enumerate(补丁列表)]#物化各补丁
     参数=['--profile',配置档]#参数起点
     for 文件 in 物化:#逐补丁
         参数.extend(['--patch',文件])#追加
@@ -120,7 +118,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
     )#spawn 结束
     标准错块=[]#stderr 块
     原始缓冲=[]#stdout 缓冲
-    更新们=[]#更新列表
+    更新列表=[]#更新列表
     更新等待者=[]#更新等待者
     更新流失败=[None]#更新流失败
     锁=threading.Lock()#共享锁
@@ -157,7 +155,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
                         事件.set()#放行
                     elif 帧.get('method')=='session/update':#会话更新
                         更新=帧.get('params',{}).get('update')#更新
-                        更新们.append(更新)#记账
+                        更新列表.append(更新)#记账
                         for 索引 in range(len(更新等待者)-1,-1,-1):#逆序匹配
                             等待=更新等待者[索引]#等待者
                             try:#匹配
@@ -177,7 +175,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
                         子进程.stdin.flush()#冲刷
         with 锁:#流关闭
             if 更新流失败[0] is None:#首次
-                更新流失败[0]=Error('ACP test agent update stream closed before a matching session update arrived')#失败
+                更新流失败[0]=Exception('ACP test agent update stream closed before a matching session update arrived')#失败
                 for 等待 in 更新等待者[:]:#拒绝等待者
                     等待['reject'](更新流失败[0])#拒绝
                 更新等待者.clear()#清空
@@ -197,7 +195,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
         事件.wait()#等待
         响应=盒.get('frame') or {}#响应
         if 'error' in 响应:#错误
-            raise Error(json.dumps(响应['error'],ensure_ascii=False))#拒绝
+            raise Exception(json.dumps(响应['error'],ensure_ascii=False))#拒绝
         return 响应.get('result')#结果
     def 通知(方法,参数):#JSON-RPC 通知
         """发通知。"""
@@ -229,7 +227,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
             盒['error']=原因#写入
             事件.set()#放行
         with 锁:#登记
-            for 已有 in 更新们:#先扫历史
+            for 已有 in 更新列表:#先扫历史
                 try:#匹配
                     if 匹配(已有):#命中
                         return 已有#返回
@@ -257,13 +255,10 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
         'child':子进程,#子进程
         'spawned':True,#spawn 完成
         'client':客户端,#客户端
-        'updates':更新们,#更新列表
+        'updates':更新列表,#更新列表
         'rawStdout':lambda:b''.join(原始缓冲).decode('utf-8',errors='replace'),#原始 stdout
         'stderr':lambda:''.join(标准错块),#stderr
         'waitForUpdate':等更新,#等更新
         'close':关闭,#关闭
         'protocolVersion':协议版本,#协议版本供步骤用
     }#句柄结束
-
-launchAcpTestAgent=启动ACP测试智能体#上游名
-materializeProfilePatch=物化配置档补丁#上游名

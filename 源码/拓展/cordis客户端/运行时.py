@@ -109,7 +109,7 @@ class 现场包投影:#DynamicCordisLivePackage
             槽名.append(槽)#加入
         样式数=getattr(样式,'数量',None)#中文
         if 样式数 is None:#英文
-            样式数=getattr(样式,'count',len(getattr(样式,'标签们',[]) or []) if 样式 else 0)#回退
+            样式数=getattr(样式,'count',len(getattr(样式,'标签列表',[]) or []) if 样式 else 0)#回退
         return {#行
             'pluginId':包.get('pluginId'),#插件
             'packageId':包.get('packageId'),#包
@@ -170,8 +170,8 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
                     pass#不堵
             try:#本操作
                 态['value']=操作()#跑
-            except Exception as 错:#失败
-                态['error']=错#记下
+            except Exception as 错误:#失败
+                态['error']=错误#记下
                 态['done']=True#落定
                 raise#交给调用方
             态['done']=True#落定

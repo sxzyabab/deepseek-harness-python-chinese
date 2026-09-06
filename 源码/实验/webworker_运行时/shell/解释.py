@@ -7,6 +7,7 @@
 
 对齐上游 `webworker-runtime/src/shell/interpret.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 import re as 正则#剥尾换行
 from .展开 import 展开参数,是否glob模式#展开
 from .文件系统访问 import 描述失败,宿主文件系统,在目录解析#FS辅助
@@ -24,13 +25,13 @@ def 解析shell(源,选项):#对齐上游 @yarnpkg/parsers.parseShell
 
 def 缓冲汇():#创建字符串缓冲汇
     """覆盖字符串缓冲的汇，供管道与命令替换使用。"""
-    块们=[]#块收集
+    块列表=[]#块收集
     def 写入(文本):#追加块
         """追加文本。"""
-        块们.append(文本)#追加
+        块列表.append(文本)#追加
     def 文本():#拼接全文
         """取全文。"""
-        return ''.join(块们)#拼接
+        return ''.join(块列表)#拼接
     return {'write':写入,'text':文本}#汇对象
 
 def 启动运行(选项):#构建运行上下文
@@ -61,7 +62,7 @@ def 启动运行(选项):#构建运行上下文
             'signal':选项.get('signal'),#取消信号
         },#state结束
         'io':{#字节面
-            'stdin':选项.get('stdin') or '',#标准输入
+            'stdin':'' if 选项.get('stdin') is None else 选项['stdin'],#??空串，空 stdin 合法
             'out':写stdout,#写stdout
             'err':写stderr,#写stderr
         },#io结束
@@ -80,11 +81,13 @@ def 运行shell命令(源,选项):#运行命令行
     运行=启动运行(选项)#启动运行上下文
     try:#解析源
         行=解析shell(源,{'isGlobPattern':是否glob模式})#解析为AST
-    except Exception as 错误:#语法错误
+    except Exception as 错误:#解析shell 可能抛语法/类型错误，契约未定所以收不窄
         消息=str(错误).split('\n')[0]#首行
         运行['io']['err'](f'bash: syntax error: {消息}\n')#报告首行
         return 运行['settle'](2)#语法失败码
-    机=解释器(标准程序(),选项.get('fs') or 宿主文件系统(),选项.get('signal'))#建解释器
+    文件系统=选项.get('fs')#可选 fs
+    if 文件系统 is None: 文件系统=宿主文件系统()#??宿主 fs
+    机=解释器(标准程序(),文件系统,选项.get('signal'))#建解释器
     return 运行['settle'](机.行(行,运行['state'],运行['io']))#解释并落定
 
 def 运行shell程序(argv,选项):#直接运行程序
@@ -99,8 +102,10 @@ def 运行shell程序(argv,选项):#直接运行程序
     if 信号 is not None and 信号.get('aborted') is True:#已中止
         return 运行['settle'](中止退出码)#130
     try:#执行
-        return 运行['settle'](程序(argv,运行['io'],运行['state'],选项.get('fs') or 宿主文件系统()))#落定结果
-    except Exception as 错误:#程序缺陷
+        文件系统=选项.get('fs')#可选 fs
+        if 文件系统 is None: 文件系统=宿主文件系统()#??宿主 fs
+        return 运行['settle'](程序(argv,运行['io'],运行['state'],文件系统))#落定结果
+    except Exception as 错误:#被模拟程序体什么都可能抛，契约未定所以收不窄
         运行['io']['err'](f'bash: {名}: {错误}\n')#诊断
         return 运行['settle'](1)#失败码
 
@@ -128,14 +133,14 @@ class 解释器:#解释器
 
     def 命令行(自身,命令行节点,状态,io):#求值&&/||链
         """运行一条 `&&` / `||` 链。"""
-        链接们=[]#展平链接
+        链接列表=[]#展平链接
         当前=命令行节点.get('then')#首then
         while 当前 is not None:#沿then走
-            链接们.append({'type':当前['type'],'chain':当前['line']['chain']})#收集链接
+            链接列表.append({'type':当前['type'],'chain':当前['line']['chain']})#收集链接
             当前=当前['line'].get('then')#推进
         状态码=自身.管道(命令行节点['chain'],状态,io)#首段管道
         状态['lastStatus']=状态码#更新状态
-        for 链接 in 链接们:#逐链接
+        for 链接 in 链接列表:#逐链接
             if 状态['exitRequested'] is not None:#exit中断
                 return 状态码#中断
             if (状态码!=0 if 链接['type']=='&&' else 状态码==0):#短路跳过
@@ -146,18 +151,18 @@ class 解释器:#解释器
 
     def 管道(自身,链,状态,io):#求值管道
         """运行一条 `|` / `|&` 管道；其状态是最后一阶段的。"""
-        阶段们=[]#阶段列表
+        阶段列表=[]#阶段列表
         当前=链#起点
         while 当前 is not None:#展平管道
             链接=当前.get('then')#下一链接
-            阶段们.append({'command':当前,'mergesStderr':链接 is not None and 链接.get('type')=='|&'})#记阶段
+            阶段列表.append({'command':当前,'mergesStderr':链接 is not None and 链接.get('type')=='|&'})#记阶段
             当前=None if 链接 is None else 链接.get('chain')#推进
         输入=io['stdin']#管道输入
         状态码=0#阶段状态
-        for 索引,阶段 in enumerate(阶段们):#逐阶段
+        for 索引,阶段 in enumerate(阶段列表):#逐阶段
             if 自身.信号 is not None and 自身.信号.get('aborted') is True:#已中止
                 return 中止退出码#130
-            末段=索引==len(阶段们)-1#是否末段
+            末段=索引==len(阶段列表)-1#是否末段
             中间=缓冲汇()#中间缓冲
             if 末段:#末段用外层汇
                 阶段io={'stdin':输入,'out':io['out'],'err':io['err']}#直通
@@ -175,7 +180,8 @@ class 解释器:#解释器
         类型=命令['type']#节点类型
         if 类型=='envs':#裸赋值
             for 环境 in 命令['envs']:#逐项赋值
-                右=环境['args'][0] if 环境.get('args') and len(环境['args'])>0 else None#右值
+                右值列表=环境.get('args')#赋值右值列表
+                右=环境['args'][0] if 右值列表 is not None and len(右值列表)>0 else None#右值，判的是 length
                 记录赋值(状态,环境['name'],自身.赋值右值(右,状态))#赋值
             return 0#赋值成功
         if 类型=='subshell':#子shell
@@ -183,28 +189,37 @@ class 解释器:#解释器
             def 主体(内层):#带重定向跑
                 """跑子shell行。"""
                 return 自身.行(命令['subshell'],嵌套,内层)#嵌套行
-            return 自身.带重定向(命令.get('args') or [],状态,io,主体)#重定向
+            参数列表=命令.get('args')#重定向参数
+            if 参数列表 is None: 参数列表=[]#缺席才空列表，空 args 合法
+            return 自身.带重定向(参数列表,状态,io,主体)#重定向
         if 类型=='group':#分组
             def 主体(内层):#共享状态
                 """跑分组行。"""
                 return 自身.行(命令['group'],状态,内层)#共享
-            return 自身.带重定向(命令.get('args') or [],状态,io,主体)#重定向
+            参数列表=命令.get('args')#重定向参数
+            if 参数列表 is None: 参数列表=[]#缺席才空列表，空 args 合法
+            return 自身.带重定向(参数列表,状态,io,主体)#重定向
         if 类型=='command':#程序调用
             return 自身.程序调用(命令,状态,io)#跑程序
-        raise Exception(f'webworker shell: unknown command type {类型}')#未知
+        raise 运行时错误(f'webworker shell: unknown command type {类型}')#未知
 
     def 程序调用(自身,命令,状态,io):#跑程序调用
         """展开命令的词并运行它们所指名的程序。"""
         argv=[]#参数向量
-        重定向们=[]#重定向列表
-        for 参数 in 命令.get('args') or []:#拆参数
+        重定向列表=[]#重定向列表
+        参数列表=命令.get('args')#命令参数
+        if 参数列表 is None: 参数列表=[]#缺席才空列表，空 args 合法
+        for 参数 in 参数列表:#拆参数
             if 参数.get('type')=='redirection':#重定向
-                重定向们.append(参数)#收集
+                重定向列表.append(参数)#收集
                 continue#下一参数
             argv.extend(展开参数(参数,自身.上下文(状态)))#展开入argv
         前缀={}#前缀环境
-        for 环境 in 命令.get('envs') or []:#收集前缀赋值
-            右=环境['args'][0] if 环境.get('args') and len(环境['args'])>0 else None#右值
+        环境列表=命令.get('envs')#前缀环境赋值
+        if 环境列表 is None: 环境列表=[]#缺席才空列表，空 envs 合法
+        for 环境 in 环境列表:#收集前缀赋值
+            右值列表=环境.get('args')#赋值右值列表
+            右=环境['args'][0] if 右值列表 is not None and len(右值列表)>0 else None#右值，判的是 length
             前缀[环境['name']]=自身.赋值右值(右,状态)#赋值
         if len(argv)==0:#仅赋值
             for 名,值 in 前缀.items():#写入状态
@@ -223,22 +238,24 @@ class 解释器:#解释器
             """执行程序。"""
             try:#执行程序
                 return 程序(argv,内层,作用域,自身.文件系统)#返回退出码
-            except Exception as 错误:#程序缺陷
+            except Exception as 错误:#被模拟程序体什么都可能抛，契约未定所以收不窄
                 内层['err'](f'bash: {名}: {错误}\n')#诊断
                 return 1#失败
-        return 自身.带重定向(重定向们,状态,io,主体)#redirected
+        return 自身.带重定向(重定向列表,状态,io,主体)#redirected
 
-    def 带重定向(自身,重定向们,状态,io,主体):#应用重定向
+    def 带重定向(自身,重定向列表,状态,io,主体):#应用重定向
         """在一个主体周围应用重定向，然后什么也不恢复。"""
         stdin=io['stdin']#当前stdin
         out=io['out']#当前stdout
         err=io['err']#当前stderr
-        for 重定向 in 重定向们:#逐重定向
-            目标们=[]#展开目标
-            for 参数 in 重定向.get('args') or []:#展开
-                目标们.extend(展开参数(参数,自身.上下文(状态)))#展开
-            目标=目标们[0] if len(目标们)>0 else None#首目标
-            if 目标 is None or len(目标们)>1:#歧义
+        for 重定向 in 重定向列表:#逐重定向
+            目标列表=[]#展开目标
+            目标源=重定向.get('args')#重定向目标
+            if 目标源 is None: 目标源=[]#缺席才空列表
+            for 参数 in 目标源:#展开
+                目标列表.extend(展开参数(参数,自身.上下文(状态)))#展开
+            目标=目标列表[0] if len(目标列表)>0 else None#首目标
+            if 目标 is None or len(目标列表)>1:#歧义
                 io['err']('bash: ambiguous redirect\n')#诊断
                 return 1#失败
             try:#应用一种重定向
@@ -270,7 +287,7 @@ class 解释器:#解释器
                 elif 子类型=='<&':#不支持
                     io['err'](f'bash: <&{目标}: unsupported descriptor redirection\n')#诊断
                     return 1#失败
-            except Exception as 错误:#文件系统失败
+            except Exception as 错误:#重定向路径上的 VFS 读写可能抛运行时错误，契约未定所以收不窄
                 io['err'](f"{描述失败('bash',在目录解析(状态['cwd'],目标),错误)}\n")#诊断
                 return 1#失败
         return 主体({'stdin':stdin,'out':out,'err':err})#跑主体
@@ -280,7 +297,7 @@ class 解释器:#解释器
         def 命令替换(shell行):#命令替换
             """跑嵌套并剥尾换行。"""
             if 自身.深度>=替换嵌套上限:#过深
-                raise Exception(f'command substitution nested deeper than {替换嵌套上限} levels')#拒绝
+                raise 运行时错误(f'command substitution nested deeper than {替换嵌套上限} levels')#拒绝
             捕获=缓冲汇()#捕获输出
             嵌套={**状态,'environment':dict(状态['environment']),'variables':dict(状态['variables'])}#副本
             内层=解释器(自身.程序表,自身.文件系统,自身.信号,自身.深度+1)#嵌套解释器

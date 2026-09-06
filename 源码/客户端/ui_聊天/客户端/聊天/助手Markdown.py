@@ -1,63 +1,69 @@
 """助手块有序渲染：正文、Think 行、图组。
 
 对齐上游 `ui-chat/src/client/chat/AssistantMarkdown.tsx`。公开面仅中文名。
+属性与块为 dict。
 """
 from .推理行 import 推理行#Think 披露
 
 __all__=['助手Markdown']#仅中文公开名
 
-def 取字段(对象,键,缺省=None):#读字段
-    """映射或对象。"""
-    if 对象 is None:#空
-        return 缺省#缺
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
+def 恒等翻译(键,参数=None):
+    """无文案表时返回键本身。"""
+    return 键#键即文案
 
-class 助手Markdown:#助手块体
+class 助手Markdown:
     """流式/定稿/中断共用；仅 tool-call 时不画壳。"""
-
-    def __init__(自身,属性=None):#记下
+    def __init__(自身,属性=None):
         """记下合成 props。"""
-        自身.属性=属性 or {}#合成
+        自身.属性=属性 if 属性 is not None else {}#合成
         自身.推理缓存={}#按块索引
 
-    def 更新(自身,属性):#刷新
-        """刷新。"""
-        自身.属性=属性 or {}#新
+    def 更新(自身,属性):
+        """刷新 props。"""
+        自身.属性=属性 if 属性 is not None else {}#新
 
-    def 取推理行(自身,索引):#缓存实例
+    def 取推理行(自身,索引):
         """同索引复用。"""
         if 索引 not in 自身.推理缓存:#新
             自身.推理缓存[索引]=推理行()#建
         return 自身.推理缓存[索引]#行
 
-    def 渲染(自身):#结构
+    def 渲染(自身):
         """按块 kind 分发。"""
         属性=自身.属性#props
-        块们=取字段(属性,'blocks') or []#块
-        流式=取字段(属性,'streaming',False)#流式
-        中断=取字段(属性,'interrupted',False)#中断
-        翻译=取字段(属性,'t',lambda 键,_=None:键)#文案
-        有可见=流式 or 中断 is True or any(取字段(块,'kind')!='tool-call' for 块 in 块们)#可见
-        if not 有可见:#仅工具
+        块列表=属性['blocks'] if 'blocks' in 属性 and 属性['blocks'] is not None else []#块
+        流式=属性['streaming'] if 'streaming' in 属性 else False#流式
+        中断=属性['interrupted'] if 'interrupted' in 属性 else False#中断
+        翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
+        有可见=流式 is True or 中断 is True#流式或中断必画
+        if 有可见 is False:#尚无
+            for 块 in 块列表:#扫块
+                种=块['kind'] if 'kind' in 块 else None#种
+                if 种!='tool-call':#非工具
+                    有可见=True#可见
+                    break#停
+        if 有可见 is False:#仅工具
             return None#空
-        渲染们=[]#段
-        for 索引,块 in enumerate(块们):#遍历
-            种=取字段(块,'kind')#种
+        渲染列表=[]#段
+        末=len(块列表)-1#末索引
+        for 索引,块 in enumerate(块列表):#遍历
+            种=块['kind'] if 'kind' in 块 else None#种
             if 种=='text':#正文
-                渲染们.append({'type':'text','text':取字段(块,'text') or '','streaming':流式 and 索引==len(块们)-1})#文
+                文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文
+                渲染列表.append({'type':'text','text':文,'streaming':流式 is True and 索引==末})#文
             elif 种=='reasoning':#推理
-                渲染们.append(自身.取推理行(索引)({'text':取字段(块,'text') or '','running':流式 and 索引==len(块们)-1,'t':翻译}))#Think
+                文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文
+                渲染列表.append(自身.取推理行(索引)({'text':文,'running':流式 is True and 索引==末,'t':翻译}))#Think
             elif 种=='image':#图
-                渲染们.append({'type':'image','attachment':取字段(块,'attachment')})#图
+                附=块['attachment'] if 'attachment' in 块 else None#附
+                渲染列表.append({'type':'image','attachment':附})#图
             elif 种=='tool-call':#工具头由流分组
                 continue#跳
             else:#未知
-                渲染们.append({'type':'unknown','label':翻译('message.unknownBlock')})#未知
-        return {'type':'assistant-markdown','interrupted':中断,'streaming':流式,'children':渲染们,'cssModule':'助手Markdown.module.css'}#壳
+                渲染列表.append({'type':'unknown','label':翻译('message.unknownBlock')})#未知
+        return {'type':'assistant-markdown','interrupted':中断,'streaming':流式,'children':渲染列表,'cssModule':'助手Markdown.module.css'}#壳
 
-    def __call__(自身,属性=None):#调用形
+    def __call__(自身,属性=None):
         """对齐。"""
         if 属性 is not None:#有
             自身.更新(属性)#刷

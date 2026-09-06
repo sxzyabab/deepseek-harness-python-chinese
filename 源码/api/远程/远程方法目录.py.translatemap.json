@@ -6,5 +6,6 @@
     "name":"名称",
     "package":"包",
     "remote":"远程",
-    "selected":"已选"
+    "selected":"已选",
+    "tuple":"元组"
 }

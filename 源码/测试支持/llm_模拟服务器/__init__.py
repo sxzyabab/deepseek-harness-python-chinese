@@ -29,12 +29,10 @@ __all__=[#仅中文公开名
 默认部分文本='discarded partial response'#默认部分文本
 默认推理文本='mock reasoning'#默认推理文本
 具体行为集=frozenset(名 for 名 in 模拟LLM行为名表 if 名!='random')#具体行为集
-Error=Exception#错误别名
-
 def 有界整数(名称,值,最小,最大):#校验有界整数
     """校验有界整数。"""
     if not isinstance(值,int) or isinstance(值,bool) or 值<最小 or 值>最大:#越界
-        raise Error(f'llm-mock-server: {名称} must be an integer between {最小} and {最大}')#越界
+        raise Exception(f'llm-mock-server: {名称} must be an integer between {最小} and {最大}')#越界
     return 值#返回有界整数
 
 def 解析选项(选项):#解析服务器选项
@@ -56,31 +54,31 @@ def 解析选项(选项):#解析服务器选项
     工具参数=选项.get('toolArguments') or '{"value":"mock"}'#工具参数
     序列=选项.get('sequence')#行为序列
     if 主机=='':#空主机
-        raise Error('llm-mock-server: host must not be empty')#空主机
+        raise Exception('llm-mock-server: host must not be empty')#空主机
     if not 序列:#空序列
-        raise Error('llm-mock-server: sequence must not be empty')#空序列
+        raise Exception('llm-mock-server: sequence must not be empty')#空序列
     末项=序列[-1]#末项行为
     if 选项.get('apiKey')=='':#空密钥
-        raise Error('llm-mock-server: apiKey must not be empty')#空密钥
+        raise Exception('llm-mock-server: apiKey must not be empty')#空密钥
     if 成功文本=='' or 部分文本=='' or 推理文本=='' or 工具名=='':#空文本
-        raise Error('llm-mock-server: successText/partialText/reasoningText/toolName must not be empty')#空文本
+        raise Exception('llm-mock-server: successText/partialText/reasoningText/toolName must not be empty')#空文本
     if 选项.get('requestId')=='':#空请求 id
-        raise Error('llm-mock-server: requestId must not be empty')#空请求 id
+        raise Exception('llm-mock-server: requestId must not be empty')#空请求 id
     try:#校验 JSON
         json.loads(工具参数)#校验工具参数 JSON
     except Exception:#解析失败
-        raise Error('llm-mock-server: toolArguments must be valid JSON')#JSON 非法
+        raise Exception('llm-mock-server: toolArguments must be valid JSON')#JSON 非法
     配置权重=选项.get('randomWeights') or 默认模拟LLM随机权重#配置权重
     随机权重=[]#正权重列表
     for 行为,权重 in 配置权重.items():#逐项权重
         if 行为 not in 具体行为集:#未知行为
-            raise Error(f'llm-mock-server: randomWeights contains unknown concrete behavior {行为!r}')#未知行为
+            raise Exception(f'llm-mock-server: randomWeights contains unknown concrete behavior {行为!r}')#未知行为
         if not isinstance(权重,(int,float)) or isinstance(权重,bool) or 权重<0:#权重非法
-            raise Error(f'llm-mock-server: random weight for {行为} must be a non-negative finite number')#权重非法
+            raise Exception(f'llm-mock-server: random weight for {行为} must be a non-negative finite number')#权重非法
         if 权重>0:#正权重
             随机权重.append((行为,权重))#收集
     if len(随机权重)==0:#无正权重
-        raise Error('llm-mock-server: randomWeights must contain at least one positive weight')#无正权重
+        raise Exception('llm-mock-server: randomWeights must contain at least one positive weight')#无正权重
     已解析={#返回已解析选项
         'host':主机,'port':端口,'sequence':list(序列),'lastBehavior':末项,
         'repeatLast':选项.get('repeatLast') or False,'randomSeed':随机种子,
@@ -107,10 +105,10 @@ def 发出(选项,事件):#发出遥测
     except Exception:#观察者失败
         return#忽略
 
-def 切分文本(文本,大小):#按码点切分
+def 切分文本(文本,码点数):#按码点切分
     """按 Unicode 码点切分文本。"""
-    点们=list(文本)#按码点拆
-    return [''.join(点们[索引:索引+大小]) for 索引 in range(0,len(点们),大小)]#按大小切
+    码点列表=list(文本)#按码点拆
+    return [''.join(码点列表[索引:索引+码点数]) for 索引 in range(0,len(码点列表),码点数)]#按码点数切
 
 def 结束记录(选项,记录,结局):#结束请求记录
     """写入结局并发出 result 事件。"""
@@ -124,7 +122,7 @@ def 结束记录(选项,记录,结局):#结束请求记录
 
 def 写SSE(记录,写出,载荷):#写 SSE 事件
     """写一条 data 事件。"""
-    正文=载荷 if isinstance(载荷,str) else json.dumps(载荷,ensure_ascii=False)#载荷文本
+    正文=载荷 if isinstance(载荷,str) else json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False)#载荷文本
     写出(f'data: {正文}\n\n'.encode('utf-8'))#写 data 事件
     记录['chunksSent']+=1#计数
 
@@ -188,7 +186,7 @@ def 工具调用分片(选项):#工具调用分片
 def 启动模拟LLM服务器(选项):#启动服务器
     """启动本地 chat-completions 服务器，每个已接受请求消费一个配置行为。"""
     已解析=解析选项(选项)#解析选项
-    请求们=[]#捕获记录
+    请求列表=[]#捕获记录
     随机=带种子随机(已解析['randomSeed'])#带种子 PRNG
     游标=[0]#脚本游标
     关闭门闩=threading.Event()#关闭门闩
@@ -251,7 +249,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 头表['Retry-After']=str((已解析['retryAfterMs']+999)//1000)#限流 Retry-After
             if 'requestId' in 已解析:#可选请求 id
                 头表['X-Request-Id']=已解析['requestId']#写请求 id
-            正文=json.dumps({'error':{'message':消息,'type':类型名,'code':码}},ensure_ascii=False)#错误体
+            正文=json.dumps({'error':{'message':消息,'type':类型名,'code':码}},ensure_ascii=False,separators=(',',':'),allow_nan=False)#错误体
             自身._写头(状态,头表)#写状态
             自身._写出(正文.encode('utf-8'))#写错误体
             结束记录(已解析,记录,'completed')#记为完成
@@ -384,7 +382,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             授权=自身.headers.get('Authorization')#授权头
             if 'apiKey' in 已解析 and 授权!=f"Bearer {已解析['apiKey']}":#鉴权失败
                 自身._写头(401,内容类型='application/json')#写 401 头
-                自身._写出(json.dumps({'error':{'message':'invalid mock bearer token','code':'invalid_api_key'}},ensure_ascii=False).encode('utf-8'))#鉴权失败
+                自身._写出(json.dumps({'error':{'message':'invalid mock bearer token','code':'invalid_api_key'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#鉴权失败
                 return#结束
             长度=int(自身.headers.get('Content-Length') or 0)#正文长度
             原始=自身.rfile.read(长度) if 长度>0 else b''#读正文
@@ -392,15 +390,15 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 体=json.loads(原始.decode('utf-8')) if 原始 else None#解析
             except Exception:#JSON 非法
                 自身._写头(400,内容类型='application/json')#写 400 头
-                自身._写出(json.dumps({'error':{'message':'request body must be valid JSON','code':'invalid_json'}},ensure_ascii=False).encode('utf-8'))#JSON 非法
+                自身._写出(json.dumps({'error':{'message':'request body must be valid JSON','code':'invalid_json'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#JSON 非法
                 return#结束
             选中=选行为()#消费脚本
             记录={#新建记录
-                'attempt':len(请求们)+1,'scriptBehavior':选中['scriptBehavior'],
+                'attempt':len(请求列表)+1,'scriptBehavior':选中['scriptBehavior'],
                 'behavior':选中['behavior'],'path':路径,
                 'headers':dict(自身.headers.items()),'body':体,'chunksSent':0,
             }#新建记录
-            请求们.append(记录)#入列
+            请求列表.append(记录)#入列
             发出(已解析,{#发出请求事件
                 'type':'request','attempt':记录['attempt'],
                 'scriptBehavior':记录['scriptBehavior'],'behavior':记录['behavior'],'path':路径,
@@ -416,7 +414,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                         return#忽略
                     return#结束
                 自身._写头(500,内容类型='application/json')#写 500 头
-                自身._写出(json.dumps({'error':{'message':'mock server handler failed','code':'MOCK_HANDLER_FAILED'}},ensure_ascii=False).encode('utf-8'))#处理器失败
+                自身._写出(json.dumps({'error':{'message':'mock server handler failed','code':'MOCK_HANDLER_FAILED'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#处理器失败
                 raise 错误#再抛
 
     服务器=线程HTTP服务器((已解析['host'],已解析['port']),处理器)#创建服务器
@@ -448,7 +446,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
         'baseURL':f'http://{广告主机}:{端口号}',#基 URL
         'port':端口号,#端口
         'randomSeed':已解析['randomSeed'],#种子
-        'requests':请求们,#请求记录
+        'requests':请求列表,#请求记录
         'close':关闭,#关闭
     }#句柄结束
 
@@ -457,7 +455,3 @@ def 应用(上下文对象):#测试支持入口
     return#空 apply
 
 apply=应用#入口
-startMockLlmServer=启动模拟LLM服务器#上游名
-MOCK_LLM_BEHAVIORS=模拟LLM行为名表#上游名
-DEFAULT_MOCK_LLM_RANDOM_WEIGHTS=默认模拟LLM随机权重#上游名
-MAX_MOCK_LLM_TIMER_DELAY_MS=模拟LLM定时器延迟上限毫秒#上游名

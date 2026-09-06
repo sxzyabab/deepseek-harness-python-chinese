@@ -1,0 +1,16 @@
+{
+    "client":"客户端",
+    "closure":"闭包",
+    "console":"控制台",
+    "dynamic":"动态",
+    "error":"错误",
+    "evaluate":"求值",
+    "note":"说明",
+    "param":"参数",
+    "plugin":"插件",
+    "redirect":"重定向",
+    "style":"样式",
+    "timer":"定时器",
+    "trap":"陷阱",
+    "validate":"校验"
+}

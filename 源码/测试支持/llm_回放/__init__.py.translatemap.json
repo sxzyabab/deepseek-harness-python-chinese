@@ -1,0 +1,22 @@
+{
+    "apply":"应用",
+    "chunk":"分片",
+    "dispose":"拆除",
+    "entry":"条目",
+    "event":"事件",
+    "image":"图像",
+    "inject":"注入",
+    "install":"安装",
+    "key":"键",
+    "list":"列表",
+    "message":"消息",
+    "model":"模型",
+    "name":"名称",
+    "package":"包",
+    "patch":"补丁",
+    "provider":"提供方",
+    "script":"脚本",
+    "self":"自身",
+    "session":"会话",
+    "snapshot":"快照"
+}

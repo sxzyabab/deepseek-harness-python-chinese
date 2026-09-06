@@ -1,0 +1,20 @@
+{
+    "build":"构建",
+    "column":"列",
+    "context":"上下文",
+    "end":"结束",
+    "execution":"执行",
+    "hash":"哈希",
+    "id":"标识",
+    "is":"是",
+    "key":"键",
+    "length":"长度",
+    "line":"行",
+    "map":"映射",
+    "module":"模块",
+    "runtime":"运行时",
+    "script":"脚本",
+    "source":"源",
+    "start":"起始",
+    "url":"网址"
+}

@@ -1,0 +1,15 @@
+{
+    "connection":"连接",
+    "details":"详情",
+    "exception":"异常",
+    "group":"组",
+    "id":"标识",
+    "internal":"内部",
+    "object":"对象",
+    "observer":"观察者",
+    "private":"私有",
+    "properties":"属性",
+    "realm":"领域",
+    "result":"结果",
+    "route":"路由"
+}

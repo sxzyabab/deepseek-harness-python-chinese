@@ -7,9 +7,9 @@ __all__=['会话上下文起源种','会话上下文']#仅中文公开名
 
 会话上下文起源种=('compaction','rewind','rewrite')#压缩|回退|改写
 
-def 会话上下文(标识,节点们,父标识=None,起源=None,起源序号=None,创建于=None,提示=None):#会话上下文工厂
+def 会话上下文(标识,节点列表,父标识=None,起源=None,起源序号=None,创建于=None,提示=None):#会话上下文工厂
     """一代不可变模型上下文。"""
-    出={'id':标识,'nodes':节点们}#基
+    出={'id':标识,'nodes':节点列表}#基
     if 父标识 is not None:#有父
         出['parentId']=父标识#挂
     if 起源 is not None:#有起源

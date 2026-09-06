@@ -3,6 +3,7 @@
 对齐上游 `client/bridge/publisher.ts`。公开面仅中文名。
 """
 import json,time#序列化与时钟
+from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.缓冲 import 检查器源缓冲#源缓冲
 from ...共享.桥接.发布器 import 检查器状态发布器#状态发布器面
 
@@ -29,7 +30,7 @@ class 客户端桥发布器(检查器状态发布器):#Client桥发布器
     def 设置状态(自身,主题,载荷,单调毫秒=None):#设置状态
         """设置状态。"""
         if 自身.已关闭:#已关闭拒绝
-            raise Exception('inspector: Client source is closed')#英文诊断
+            raise 检查器错误('inspector: Client source is closed')#英文诊断
         if 单调毫秒 is None:#默认
             单调毫秒=time.perf_counter()*1000#近似
         自身.记录.设置状态(主题,载荷,单调毫秒)#写入状态
@@ -53,10 +54,10 @@ class 客户端桥发布器(检查器状态发布器):#Client桥发布器
         活动=自身.活动#活动
         if 活动 is None or 活动['socket'] is not 套接字:#不可发
             return#返回
-        就绪=getattr(套接字,'readyState',1)#就绪态
+        就绪=套接字.readyState#就绪态
         if 就绪!=1:#未开
             return#返回
-        套接字.send(json.dumps(自身.记录.替换帧(活动['source']['sourceId'],活动['source']['generation']),ensure_ascii=False))#发送替换
+        套接字.send(json.dumps(自身.记录.替换帧(活动['source']['sourceId'],活动['source']['generation']),ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送替换
 
     def 断开(自身,套接字):#断开
         """忘记一个已关闭传输，同时为重连保留缓冲状态。"""
@@ -76,10 +77,10 @@ class 客户端桥发布器(检查器状态发布器):#Client桥发布器
         if 自身.已关闭 or 活动 is None or not 活动['accepted']:#不可发
             return#返回
         套接字=活动['socket']#套接字
-        if getattr(套接字,'readyState',1)!=1:#未开
+        if 套接字.readyState!=1:#未开
             return#返回
         while 自身.记录.有待发:#有待发
             帧=自身.记录.取一批(活动['source']['sourceId'],活动['source']['generation'])#取批次
             if 帧 is None:#无
                 break#结束
-            套接字.send(json.dumps(帧,ensure_ascii=False))#发送
+            套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送

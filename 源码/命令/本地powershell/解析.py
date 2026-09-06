@@ -7,18 +7,11 @@ import os,stat#路径拼接与不跟随链接的文件状态
 
 __all__=('候选Pwsh路径','解析Pwsh路径')#仅中文公开名
 
-def 取环境值(环境,键,缺省=None):#从环境映射或对象读键
-    """从环境映射或对象读键，缺席则缺省。"""
-    取值=getattr(环境,'get',None)#映射 get
-    if callable(取值):#有 get（如 os.environ / dict）
-        值=取值(键)#读取
-        if 值 is None:#缺席
-            return 缺省#用缺省
-        return 值#命中
-    值=getattr(环境,键,None)#对象属性
-    if 值 is None:#缺席
+def 取环境值(环境,键,缺省=None):#从环境映射读键
+    """从环境映射读键，缺席则缺省。"""
+    if 键 not in 环境:#缺席
         return 缺省#用缺省
-    return 值#命中
+    return 环境[键]#命中
 
 def 候选Pwsh路径(环境=None):#列出候选路径
     """众所周知的 Windows PowerShell 安装位置加上 PATH 条目，新的在前。
@@ -29,7 +22,7 @@ def 候选Pwsh路径(环境=None):#列出候选路径
         环境=os.environ#进程环境
     程序目录=取环境值(环境,'ProgramFiles','C:\\Program Files')#Program Files；缺省经典路径
     系统根=取环境值(环境,'SystemRoot','C:\\Windows')#系统根；缺省经典路径
-    候选们=[os.path.join(程序目录,'PowerShell','7','pwsh.exe')]#先放 PowerShell 7 安装
+    候选列表=[os.path.join(程序目录,'PowerShell','7','pwsh.exe')]#先放 PowerShell 7 安装
     路径值=取环境值(环境,'PATH','')#PATH；Microsoft Store 等安装活在这里
     for 条目 in 路径值.split(';'):#拆 PATH（Windows 分号）
         整理=条目.strip()#去掉空白
@@ -39,9 +32,9 @@ def 候选Pwsh路径(环境=None):#列出候选路径
             整理=整理[:-1]#去掉尾随引号
         if len(整理)==0:#空条目
             continue#跳过
-        候选们.append(os.path.join(整理,'pwsh.exe'))#PATH 上的 pwsh.exe
-    候选们.append(os.path.join(系统根,'System32','WindowsPowerShell','v1.0','powershell.exe'))#5.1 遗留回退
-    return 候选们#按解析顺序
+        候选列表.append(os.path.join(整理,'pwsh.exe'))#PATH 上的 pwsh.exe
+    候选列表.append(os.path.join(系统根,'System32','WindowsPowerShell','v1.0','powershell.exe'))#5.1 遗留回退
+    return 候选列表#按解析顺序
 
 def 候选存在(候选):#候选是否可 spawn
     """候选是否能被 spawn。
@@ -50,7 +43,7 @@ def 候选存在(候选):#候选是否可 spawn
     """
     try:#探测条目本身
         信息=os.lstat(候选)#不跟随重解析点
-    except Exception:#吞掉 ENOENT 及任何使该路径不可 spawn 的探测错误
+    except OSError:#路径不存在或不可探测
         return False#不可用
     模式=信息.st_mode#模式位
     return stat.S_ISREG(模式) or stat.S_ISLNK(模式)#文件或符号链接（含别名形态）

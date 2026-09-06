@@ -27,32 +27,22 @@ inject=注入#Cordis依赖声明
 }#配置模式结束
 Config=配置#Cordis配置模式
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
 def 应用(上下文,配置值):#向 ctx.web 注册 Perplexity 搜索提供方
-    """向 `ctx.web` 注册 Perplexity 搜索提供方。"""
-    密钥=取字段(配置值,'apiKey')#配置层密钥
+    """向 `ctx.web` 注册 Perplexity 搜索提供方。配置值为 dict；启动环境条目为 dict。"""
+    密钥=配置值['apiKey'] if 'apiKey' in 配置值 else None#配置层密钥
     if 密钥 is None:#配置未给
         环境项=取启动环境(上下文).取('PERPLEXITY_API_KEY')#启动环境
         if 环境项 is not None:#有环境项
-            密钥=取字段(环境项,'value')#取值
+            密钥=环境项['value']#取值
         else:#无环境
             密钥=''#空 → 不可用
-    基址=取字段(配置值,'baseURL')#配置基址
+    基址=配置值['baseURL'] if 'baseURL' in 配置值 else None#配置基址
     if 基址 is None:#未给
         基址=默认基址#公开 API
-    模型=取字段(配置值,'model')#配置模型
+    模型=配置值['model'] if 'model' in 配置值 else None#配置模型
     if 模型 is None:#未给
         模型=默认模型#默认 sonar
-    最大令牌=取字段(配置值,'maxTokens')#配置生成上限
+    最大令牌=配置值['maxTokens'] if 'maxTokens' in 配置值 else None#配置生成上限
     if 最大令牌 is None:#未给
         最大令牌=默认最大令牌#默认 1024
     选项={#已解析提供方选项
@@ -61,9 +51,8 @@ def 应用(上下文,配置值):#向 ctx.web 注册 Perplexity 搜索提供方
         'model':模型,#模型
         'maxTokens':最大令牌,#生成上限
     }#选项骨架
-    新近=取字段(配置值,'searchRecency')#可选新旧窗口
-    if 新近 is not None:#有新旧窗口才传入
-        选项['searchRecency']=新近#带上
+    if 'searchRecency' in 配置值 and 配置值['searchRecency'] is not None:#有新旧窗口才传入
+        选项['searchRecency']=配置值['searchRecency']#带上
     上下文.web.注册搜索提供方(Perplexity搜索提供方(选项))#注册进搜索注册表
 
 apply=应用#Cordis插件入口

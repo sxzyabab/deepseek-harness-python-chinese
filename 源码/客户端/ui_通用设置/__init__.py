@@ -16,4 +16,6 @@ def 应用(上下文):#安装宿主引导设置
     def 登记(设置上下文):#等 settings 出现再登记
         """登记引导设置分区。"""
         设置上下文.settings.register(引导设置命名空间,引导设置模式)#登记分区
-    上下文.inject(['settings'],登记)#等 settings 出现再登记
+    上下文.依赖启动(['settings'],登记)#等 settings 出现再登记
+
+apply=应用#框架槽

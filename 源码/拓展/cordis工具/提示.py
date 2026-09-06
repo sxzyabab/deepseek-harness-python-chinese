@@ -61,9 +61,9 @@ Never silently create another Plugin for @pluginId. If the reference is unavaila
 
 ## High-frequency errors that must be avoided
 
-### Services: ctx.get and inject
+### Services: ctx.获取服务 and inject
 
-- Read an optional Service with ctx.get('serviceName') by default and handle undefined.
+- Read an optional Service with ctx.获取服务('serviceName') by default and handle undefined.
 - Declare inject: ['serviceName'] on the returned Plugin object only when the Service is a hard dependency and the Plugin must enter waiting until Cordis reactivates it after the Service appears.
 - Read ctx.serviceName only after declaring that Service in inject. Never access an undeclared Service as a ctx property.
 
@@ -72,7 +72,7 @@ return {
   'inject': ['requiredService'],
   'apply': lambda ctx: (
     ctx.requiredService.someMethod(),
-    (lambda optional: optional.someMethod() if optional is not None else None)(ctx.get('optionalService')),
+    (lambda optional: optional.someMethod() if optional is not None else None)(ctx.获取服务('optionalService')),
   ),
 }
 ```
@@ -93,7 +93,7 @@ return {
 ### Lifecycle: every side effect must be reversible
 
 - Services, Events, Tools, handlers, timers, Slots, styles, and theme overrides must all belong to the current Fiber.
-- Use ctx.effect(), ctx.on(), or official APIs that return a disposer so stop, update, or undefine removes every side effect.
+- Use ctx.副作用(), ctx.监听(), or official APIs that return a disposer so stop, update, or undefine removes every side effect.
 - The cordis-plugin-development Skill contains complete timer, Waterfall, Slot, theme, Tool, RPC, and React examples and troubleshooting guidance.
 
 ## Host and Client

@@ -42,7 +42,7 @@ def 格式化会话引用提及(引用):#格式化Markdown提及
 
 def 解析会话引用文本(文本):#解析文本中的会话引用
     """从一段文本抽出 Markdown 提及与裸规范 URI。显式 Markdown 提及在 URI 畸形时失败。裸文本仅当载荷非空且呈 base64url 形态才当作引用，若该候选不是规范形仍失败。"""
-    引用们=[]#按出现顺序收集引用
+    引用列表=[]#按出现顺序收集引用
     def 替换(匹配):#把匹配替换为@标签
         """替换回调：解码 URI、记下引用、返回可读 @标签。"""
         原始标签=匹配.group(1)#Markdown标签原文
@@ -53,10 +53,10 @@ def 解析会话引用文本(文本):#解析文本中的会话引用
             raise 会话引用错误('session reference URI is missing','SESSION_REFERENCE_INVALID_REFERENCE')#缺失URI
         会话号=解码会话引用URI(统一资源)#解码并校验规范URI
         标签=会话号 if 原始标签 is None else 还原标签(原始标签)#裸URI用会话id，否则还原标签
-        引用们.append({'sessionId':会话号,'label':标签})#按出现顺序记下引用
+        引用列表.append({'sessionId':会话号,'label':标签})#按出现顺序记下引用
         return '@'+标签#正文里改成可读@标签
     渲染=提及模式.sub(替换,文本)#替换全部匹配
-    return {'text':渲染,'references':引用们}#返回替换文本与引用列表
+    return {'text':渲染,'references':引用列表}#返回替换文本与引用列表
 
 def 转义标签(标签):#转义提及标签里的反斜杠与右方括号
     """转义提及标签里的反斜杠与右方括号。"""

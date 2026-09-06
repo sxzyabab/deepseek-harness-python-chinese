@@ -4,6 +4,9 @@ Server，并保留捕获的请求监听器，以便隧道服务器可将合成�
 对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/http.ts`。
 公开面中文名；Node 面经别名与 default 暴露英文名。
 """
+import threading#监听器就绪门
+from ...未实现失败 import 运行时错误#本包错误
+
 __all__=[#中文与Node面
     '请求监听器','当请求监听器','服务器响应','创建服务器','请求','获取','状态码表','假服务器',
     'requestListener','whenRequestListener','ServerResponse','createServer','request','get',
@@ -12,35 +15,31 @@ __all__=[#中文与Node面
 
 虚拟端口=3080#虚拟端口；成为 webServer.port
 _已捕获=None#已捕获监听器
-_等待们=set()#等待兑现集合
+_就绪=threading.Event()#监听器就绪门
 
 def 请求监听器():#取已捕获监听器
     """webserver 的请求监听器，一旦 `[Service.init]` 安装完毕。"""
     return _已捕获#可能仍空
 
 def 当请求监听器():#等待监听器
-    """等待请求监听器；已有则立即，否则登记 Promise。"""
-    承诺类=globals().get('Promise')#Promise
+    """阻塞到请求监听器已捕获。"""
     if _已捕获 is not None:#已有
-        if callable(承诺类) and hasattr(承诺类,'resolve'): return 承诺类.resolve(_已捕获)#立即
-        return _已捕获#同步交回
-    def 执行(resolve,reject):#登记等待
-        """一旦捕获即以监听器兑现。"""
-        _等待们.add(resolve)#登记
-    return 承诺类(执行)#返回Promise
+        return _已捕获#立即
+    _就绪.wait()#等捕获
+    return _已捕获#交回
 
 class 假服务器:#假HTTP服务器
     """假 Server：事件注册被存储且从不发射。"""
 
     def __init__(自身):#构造
         """空监听表。"""
-        自身._监听们={}#事件监听表
+        自身._监听表={}#事件监听表
 
     def 监听(自身,事件,监听器):#注册监听器
         """注册事件监听器（`upgrade`、`error`）；从不发射。"""
-        集合=自身._监听们.get(事件) or set()#取或新建
+        集合=自身._监听表.get(事件) or set()#取或新建
         集合.add(监听器)#加入
-        自身._监听们[事件]=集合#写回
+        自身._监听表[事件]=集合#写回
         return 自身#链式
 
     def 一次(自身,事件,监听器):#一次性注册
@@ -49,13 +48,13 @@ class 假服务器:#假HTTP服务器
 
     def 取消监听(自身,事件,监听器):#移除监听器
         """移除监听器。"""
-        集合=自身._监听们.get(事件)#取集合
+        集合=自身._监听表.get(事件)#取集合
         if 集合 is not None: 集合.discard(监听器)#删一项
         return 自身#链式
 
     def 听端口(自身,*参数):#假绑定
         """绑定：立即成功。回调必须运行。"""
-        回调=参数[-1] if 参数 else None#尾部回调
+        回调=参数[-1] if len(参数)>0 else None#尾部回调，判的是 length
         if callable(回调):#有回调
             微任务=globals().get('queueMicrotask')#微任务
             if callable(微任务): 微任务(回调)#异步成功
@@ -100,17 +99,16 @@ def 创建服务器(监听器=None):#创建假服务器
     global _已捕获#_已捕获
     if 监听器 is not None:#有监听器
         _已捕获=监听器#捕获
-        for resolve in list(_等待们): resolve(监听器)#唤醒等待者
-        _等待们.clear()#清空等待集
+        _就绪.set()#放行等待者
     return 假服务器()#返回假服务器
 
 def 请求(*位置参数,**关键字参数):#出站request不可用
     """出站 HTTP 在 worker 中只有一个载体：`fetch`。"""
-    raise Exception('web-preview: node:http.request is not available in the worker host — use fetch')#引导用fetch
+    raise 运行时错误('web-preview: node:http.request is not available in the worker host — use fetch')#引导用fetch
 
 def 获取(*位置参数,**关键字参数):#出站get不可用
     """同 request。"""
-    raise Exception('web-preview: node:http.get is not available in the worker host — use fetch')#引导用fetch
+    raise 运行时错误('web-preview: node:http.get is not available in the worker host — use fetch')#引导用fetch
 
 状态码表={#状态文本表
     200:'OK',204:'No Content',304:'Not Modified',400:'Bad Request',#一批

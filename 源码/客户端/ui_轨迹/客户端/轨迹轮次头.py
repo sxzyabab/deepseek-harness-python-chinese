@@ -7,29 +7,20 @@ __all__=['轨迹轮次头','列标签']#仅中文公开名
 
 列标签=('Input','Output','Think','Time')#度量列字面
 
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
-
 class 轨迹轮次头:#粘性轮次栏
     """Turn N + 四列度量标签。"""
-
     def __init__(自身,属性=None):#构造
         """记下 props。"""
-        自身.属性=属性 or {}#合成
+        自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):#刷新
         """刷新。"""
-        自身.属性=属性 or {}#新
+        自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):#结构树
         """与上游 JSX 同构。"""
         属性=自身.属性#props
-        轮次=取字段(属性,'turn')#轮次
+        轮次=属性['turn'] if 'turn' in 属性 else None#轮次
         return {#结构树
             'type':'trajectory-turn-header',#类型
             'turn':轮次,#轮次

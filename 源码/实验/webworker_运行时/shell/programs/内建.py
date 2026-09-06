@@ -76,7 +76,7 @@ def exit程序(argv,io,state,fs=None):#exit程序
         状态=state['lastStatus']#上一
     else:#解析
         try:#整数
-            状态=int(argv[1],10) or 0#目标状态
+            状态=int(argv[1],10) or 0#|| 语义，0 与空串当假，parseInt 失败亦 0
         except ValueError:#非法
             状态=0#零
     state['exitRequested']=状态#请求退出
@@ -85,20 +85,20 @@ def exit程序(argv,io,state,fs=None):#exit程序
 def test程序(argv,io,state,fs):#test程序
     """`test` / `[`：生成命令行使用的文件与字符串谓词。"""
     if argv[0]=='[':#方括号形式
-        词们=list(argv[1:-1] if len(argv)>1 and argv[-1]==']' else argv[1:])#剥]
+        词列表=list(argv[1:-1] if len(argv)>1 and argv[-1]==']' else argv[1:])#剥]
     else:#test形式
-        词们=list(argv[1:])#谓词词
+        词列表=list(argv[1:])#谓词词
     def 状态码(值):#布尔转退出码
         """真0假1。"""
         return 0 if 值 else 1#转换
     def 路径统计(操作数):#路径stat
         """相对cwd查询。"""
         return fs['stat'](在目录解析(state['cwd'],操作数))#stat
-    if len(词们)==1:#单操作数非空
-        return 状态码(词们[0]!='')#非空
-    if len(词们)==2:#一元
-        运算符=词们[0]#运算符
-        操作数=词们[1] if len(词们)>1 else ''#操作数
+    if len(词列表)==1:#单操作数非空
+        return 状态码(词列表[0]!='')#非空
+    if len(词列表)==2:#一元
+        运算符=词列表[0]#运算符
+        操作数=词列表[1] if len(词列表)>1 else ''#操作数
         if 运算符=='-e':#存在
             return 状态码(路径统计(操作数) is not None)#存在
         if 运算符=='-f':#普通文件
@@ -120,8 +120,8 @@ def test程序(argv,io,state,fs):#test程序
             return 状态码(操作数=='')#非
         io['err'](f'test: {运算符}: unsupported unary operator\n')#诊断
         return 2#用法错
-    if len(词们)==3:#二元
-        左,运算符,右=词们[0],词们[1],词们[2]#拆三词
+    if len(词列表)==3:#二元
+        左,运算符,右=词列表[0],词列表[1],词列表[2]#拆三词
         if 运算符 in ('=','=='):#相等
             return 状态码(左==右)#等
         if 运算符=='!=':#不等
@@ -164,8 +164,8 @@ def sleep程序(argv,io,state,fs=None):#sleep程序
         return 信号退出码#信号码
     def 监听(事件名,回调,一次=False):#挂监听
         """对齐 addEventListener。"""
-        监听们=信号.setdefault('_listeners',{})#监听表
-        监听们.setdefault(事件名,[]).append((回调,一次))#登记
+        监听表=信号.setdefault('_listeners',{})#监听表
+        监听表.setdefault(事件名,[]).append((回调,一次))#登记
     if 信号 is not None and hasattr(信号,'get'):#有信号面
         if 'addEventListener' in 信号:#可调用面
             信号['addEventListener']('abort',中止,{'once':True})#挂一次
@@ -186,20 +186,20 @@ def date程序(argv,io,state=None,fs=None):#date程序
 
 def seq程序(argv,io,state=None,fs=None):#seq程序
     """打印数字序列。"""
-    数字们=[]#解析缓冲
+    数字列表=[]#解析缓冲
     for 值 in argv[1:]:#逐参
         try:#整数
-            数字们.append(int(值,10))#收录
+            数字列表.append(int(值,10))#收录
         except ValueError:#非法
-            数字们.append(float('nan'))#占位
-    第一=数字们[0] if len(数字们)>0 else None#第一
-    第二=数字们[1] if len(数字们)>1 else None#第二
-    第三=数字们[2] if len(数字们)>2 else None#第三
-    起点=第一 if len(数字们)>1 else 1#起点
-    步长=第二 if len(数字们)>2 else 1#步长
-    if len(数字们)>2:#三参
+            数字列表.append(float('nan'))#占位
+    第一=数字列表[0] if len(数字列表)>0 else None#第一
+    第二=数字列表[1] if len(数字列表)>1 else None#第二
+    第三=数字列表[2] if len(数字列表)>2 else None#第三
+    起点=第一 if len(数字列表)>1 else 1#起点
+    步长=第二 if len(数字列表)>2 else 1#步长
+    if len(数字列表)>2:#三参
         终点=第三#终点
-    elif len(数字们)>1:#两参
+    elif len(数字列表)>1:#两参
         终点=第二#终点
     else:#一参
         终点=第一#终点

@@ -1,0 +1,15 @@
+{
+    "action":"动作",
+    "active":"当前",
+    "create":"创建",
+    "init":"初始",
+    "option":"选项",
+    "revision":"修订",
+    "row":"行",
+    "self":"自身",
+    "snapshot":"快照",
+    "spec":"规格",
+    "store":"存储",
+    "subscribe":"订阅",
+    "sync":"同步"
+}

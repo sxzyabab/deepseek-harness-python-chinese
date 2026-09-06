@@ -14,7 +14,7 @@ class 检查器realm注册表:#realm注册表
         自身._客户端源路由=客户端源路由#Client源路由
         自身._按源Client={}#按源Client
         自身._监听=set()#监听
-        for 目标 in 客户端路由.目标们():#现有目标
+        for 目标 in 客户端路由.列出目标():#现有目标
             自身._打开Client(目标)#打开
         自身._取消订阅=客户端路由.订阅(自身._接收Client)#订阅
 
@@ -48,7 +48,10 @@ class 检查器realm注册表:#realm注册表
     def 订阅(自身,监听):#订阅
         """订阅 Client realm 准入与移除。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#拆除本监听
+            """取消本监听。"""
+            自身._监听.discard(监听)#摘掉
+        return 拆除#拆除器
 
     def 关闭(自身):#关闭
         """停止观察 Client 目标并清空注册表监听。"""
@@ -79,5 +82,5 @@ class 检查器realm注册表:#realm注册表
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调
-            except Exception:#故障
+            except Exception:#观察者回调什么都可能抛，收不窄
                 pass#一个 DevTools 连接不能扰乱对兄弟连接的 realm 投递

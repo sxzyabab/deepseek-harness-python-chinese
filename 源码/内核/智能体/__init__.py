@@ -7,6 +7,7 @@ import threading#线程本地存储与后台观察
 from concurrent.futures import Future as _原生Future#单次操作结果
 from typing import NotRequired,TypedDict#结构类型
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 服务=cordis.服务#服务基类
 光纤状态=cordis.纤程状态#光纤/纤程状态
 from ..作用域 import 作用域目标#作用域载体构造
@@ -23,40 +24,36 @@ from .派发 import (
     发出智能体事件,#一次性发出
 )
 
-class 操作任务:#单次异步结果
-    """单次操作的 Future 包装。"""
-    def __init__(自身):#构造未决任务
+class 操作任务:
+    """单次操作的 Future 包装，只留 等待。"""
+    def __init__(自身):
         """构造未决任务。"""
-        自身._future=_原生Future()#底层 Future
-    def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
-        if not 自身._future.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._future.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._future.set_exception(Exception(错误))#包装拒绝
-    def wait(自身,超时=None):#阻塞等待
-        """阻塞等到结算。"""
-        return 自身._future.result(timeout=超时)#取结果或抛错
-    def 等待(自身,超时=None):#兼容外来调用
-        """wait 别名。"""
-        return 自身.wait(超时)#转发
+        自身._未来=_原生Future()#底层 Future
 
-def _等待(值):#统一阻塞到结算
-    """wait 或 等待。"""
-    if callable(getattr(值,'wait',None)):#Future 风格
-        return 值.wait()#等待
-    return 值.等待()#外来 thenable
+    def 兑现(自身,值=None):
+        """成功结算。"""
+        if not 自身._未来.done():
+            自身._未来.set_result(值)#写入结果
+        return 值#返回兑现值
+
+    def 拒绝(自身,错误):
+        """失败结算。"""
+        if not 自身._未来.done():
+            if isinstance(错误,BaseException):
+                自身._未来.set_exception(错误)#原样拒绝
+            else:
+                包装=智能体错误('task rejected')#包装拒绝
+                包装.原因=错误#附加信息
+                自身._未来.set_exception(包装)#包装拒绝
+
+    def 等待(自身,超时=None):
+        """阻塞等到结算。"""
+        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 __all__=(#仅中文公开名；无英文别名
     '无工厂诊断','无发起方诊断','发起方已拆除诊断',
     '智能体设置提交','创建智能体选项','恢复智能体选项','已发表句柄','智能体工厂',
-    '调用栈存储','智能体条目','发起运行','后台观察拒绝','智能体注册表','默认',
+    '调用栈存储','智能体条目','发起运行','智能体注册表',
     '收件箱','收件箱通知口','折叠已消费工作','交代领取','已消费工作账本',
     '安装模型选择','模型选择','模型选择引用',
     '智能体事件派发','智能体载体','智能体事件','为组装构建上下文','发出智能体事件',
@@ -70,6 +67,9 @@ __all__=(#仅中文公开名；无英文别名
 无工厂诊断='no agent factory registered (load an agent-loop plugin)'#无工厂诊断
 无发起方诊断='no initiating agent is active'#无发起方诊断
 发起方已拆除诊断='agent initiator scope is disposed'#发起方已拆除诊断
+
+class 智能体错误(Exception):
+    """内核智能体包的异常基类。"""
 
 class 智能体设置提交:#尚未发表的设置在发表直前的同步收尾
     """设置在发表直前校验并提交已准备贡献。抛错则工厂回滚。"""
@@ -95,7 +95,7 @@ class 已发表句柄:#被拥有的 Agent 外加其拆除器
     """create／resume 返回的被拥有句柄：主体 + 拆除能力。"""
     智能体=None#在线 Agent
     def 拆除(自身):#拆除本句柄
-        """停止循环、注销、移除会话并解开作用域。"""
+        """停止循环、注销、移除会话并拆除作用域。"""
         raise NotImplementedError('已发表句柄.拆除')#由工厂实现
 
 class 智能体工厂:#循环经设工厂提供的创建工厂
@@ -159,21 +159,6 @@ class 发起运行:#一个被跟踪的边界
         自身.活动=True#是否仍活动
         自身.父=父#父运行
 
-def 后台观察拒绝(值,记拒绝):#在后台等到 thenable 落定
-    """在后台等到 thenable 落定，拒绝时记日志。"""
-    def 观察():#收住拒绝
-        """收住拒绝。"""
-        try:#等待结算
-            if callable(getattr(值,'wait',None)):#本库操作任务
-                值.wait()#等待结算
-            elif callable(getattr(值,'等待',None)):#外来 thenable
-                值.等待()#等待结算
-        except Exception as 错误:#拒绝
-            记拒绝(错误)#记拒绝
-    线程=threading.Thread(target=观察)#后台观察
-    线程.daemon=True#不挡住退出
-    线程.start()#启动
-
 class 智能体注册表(服务):#Agent 注册表
     """跟踪在线 Agent，并经一条进程本地驱动器链携带发起 Agent。"""
     def __init__(自身,ctx):#登记 agents 服务
@@ -211,16 +196,16 @@ class 智能体注册表(服务):#Agent 注册表
                 'wireTypeSymbol':'@deepseek-ai/dsh-session/types#SessionId',#线路类型
                 'resolve':解析上下文,#解析 Agent 上下文
             })#宿主结束
-        ctx.inject(['typert'],登记类型)#等到 typert
-        def 取智能体(目标,接收者,错误):#普通上下文默认没有当前 Agent
+        ctx.依赖启动(['typert'],登记类型)#等到 typert
+        def 取智能体(目标,错误):#普通上下文默认没有当前 Agent
             """普通上下文默认没有当前 Agent。"""
             return None#默认 undefined
-        ctx.accessor('agent',{'get':取智能体})#默认 None
+        ctx.定义访问器('agent',取智能体)#默认 None
         def 状态监听(光纤对象,*剩余):#本服务生命周期祖先正在卸载则关闭
             """本服务生命周期祖先正在卸载则关闭新发起边界。"""
             if 光纤对象.state==光纤状态.卸载中 and 自身.有生命周期祖先(光纤对象):#正在卸载
                 自身.关闭发起方()#关闭新发起边界
-        ctx.on('internal/status',状态监听)#监听光纤状态
+        ctx.监听('internal/status',状态监听)#监听光纤状态
         def 发起方生命周期():#先排空再失效
             """先排空再失效，再拒绝新边界。"""
             yield 自身.拆除发起方#先排空再失效
@@ -228,7 +213,7 @@ class 智能体注册表(服务):#Agent 注册表
                 """再拒绝新边界。"""
                 自身.关闭发起方()#关闭
             yield 关闭#再拒绝新边界
-        ctx.effect(发起方生命周期,'agents.initiatorLifecycle()')#绑定生命周期
+        ctx.副作用(发起方生命周期,'agents.initiatorLifecycle()')#绑定生命周期
     def 当前发起方(自身):#读当前发起方
         """读继承的异步驱动器链所发起的 Agent。"""
         自身.断言发起方可读()#已拆除则抛
@@ -237,7 +222,7 @@ class 智能体注册表(服务):#Agent 注册表
         """读发起 Agent，没有活动发起边界时失败。"""
         智能体=自身.当前发起方()#读取
         if 智能体 is None:#没有
-            raise Exception(无发起方诊断)#没有则抛
+            raise 智能体错误(无发起方诊断)#没有则抛
         return 智能体#返回
     def 带发起方(自身,智能体,操作):#带发起方运行
         """以一个精确 Agent 作为其进程本地发起方运行一项操作。"""
@@ -250,7 +235,7 @@ class 智能体注册表(服务):#Agent 注册表
         def 设工厂体():#挂上 effect 并在拆除时清空槽
             """挂上 effect 并在拆除时清空槽。"""
             if 自身.工厂 is not None:#已有工厂
-                raise Exception('an agent factory is already registered')#不得重复
+                raise 智能体错误('an agent factory is already registered')#不得重复
             原始=取符号(工厂,符号.原始)#剥到具体目标
             if 原始 is None and isinstance(工厂,可追踪包装):#可追踪包装
                 原始=object.__getattribute__(工厂,'_值')#包装内目标
@@ -260,11 +245,11 @@ class 智能体注册表(服务):#Agent 注册表
                 """拆除时清空。"""
                 自身.工厂=None#清空
             return 清空#拆除器
-        return 自身.ctx.effect(设工厂体,'agents.setFactory()')#精确拆除器
+        return 自身.ctx.副作用(设工厂体,'agents.setFactory()')#精确拆除器
     def 要求工厂(自身):#返回活动创建工厂
         """返回活动创建工厂。"""
         if 自身.工厂 is None:#未登记
-            raise Exception(无工厂诊断)#未登记则抛
+            raise 智能体错误(无工厂诊断)#未登记则抛
         return 自身.工厂#返回槽
     def 创建(自身,选项):#创建
         """经已登记工厂创建并发表新 Agent。"""
@@ -288,15 +273,15 @@ class 智能体注册表(服务):#Agent 注册表
             """先进入再宣布。"""
             yield 自身.进入(智能体,自身.ctx.agent)#先进入
             自身.宣布(智能体)#再宣布
-        return 自身.ctx.effect(登记体,'agents.register()')#精确拆除器
+        return 自身.ctx.副作用(登记体,'agents.register()')#精确拆除器
     def 进入(自身,智能体,所有者):#进入注册表
         """插入已构造 Agent 但不宣布它。"""
         身份=智能体.id#Agent id
         if 身份!=智能体.session.id:#与会话 id 不一致
-            raise Exception('agent id "'+str(身份)+'" does not match session id "'+str(智能体.session.id)+'"')#必须同一身份
+            raise 智能体错误('agent id "'+str(身份)+'" does not match session id "'+str(智能体.session.id)+'"')#必须同一身份
         载体=作用域目标(智能体,智能体)#以自身为键的载体
         if 身份 in 自身.存储:#已登记
-            raise Exception('agent "'+str(身份)+'" is already registered')#不得覆盖
+            raise 智能体错误('agent "'+str(身份)+'" is already registered')#不得覆盖
         条目=智能体条目(身份,智能体,所有者,载体)#新条目
         自身.存储[身份]=条目#写入存储
         仍有效=True#脱离是否仍有效
@@ -323,34 +308,26 @@ class 智能体注册表(服务):#Agent 注册表
     def 发出已拆除(自身,条目):#发出 agent/disposed
         """经条目的稳定载体发出配对拆除边。"""
         参数=[条目.载体,'agent/disposed',{'agent':条目.智能体}]#载体、事件名、载荷
-        for 回调 in 自身.ctx.events.dispatch('emit',参数):#逐个监听器
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        for 回调 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个监听器
             try:#收住同步抛错
-                返回=回调(*参数)#调用
-                if 是否thenable(返回):#返回承诺
-                    def 记拒绝(错误,身份=条目.身份):#收住 Promise 拒绝
-                        """收住 Promise 拒绝。"""
-                        自身.ctx.logger.warn('agent "'+str(身份)+'": agent/disposed listener rejected: '+str(错误))#记拒绝
-                    后台观察拒绝(返回,记拒绝)#后台观察
+                回调(*参数)#监听器已是同步回调
             except Exception as 错误:#同步抛错
-                自身.ctx.logger.warn('agent "'+str(条目.身份)+'": agent/disposed listener threw: '+str(错误))#记抛错
+                自身.ctx.日志.警告('agent "'+str(条目.身份)+'": agent/disposed listener threw: '+str(错误))#记抛错
     def 宣布(自身,智能体):#宣布
         """宣布先前用进入插入的 Agent。"""
         条目=自身.存储.get(智能体.id)#取条目
         if 条目 is None or 条目.智能体 is not 智能体:#不是在线条目
-            raise Exception('agent "'+str(智能体.id)+'" is not live in this registry')#必须是本注册表在线实例
+            raise 智能体错误('agent "'+str(智能体.id)+'" is not live in this registry')#必须是本注册表在线实例
         if 条目.已宣布 or 条目.正在宣布:#已经或正在宣布
-            raise Exception('agent "'+str(条目.身份)+'" was already announced')#不得重复宣布
+            raise 智能体错误('agent "'+str(条目.身份)+'" was already announced')#不得重复宣布
         条目.正在宣布=True#正在宣布
         条目.已宣布=True#已宣布
         参数=[条目.载体,'agent/created',{'agent':条目.智能体}]#载体、事件名、载荷
         try:#派发创建
-            for 回调 in 自身.ctx.events.dispatch('emit',参数):#逐个监听器
-                返回=回调(*参数)#调用
-                if 是否thenable(返回):#返回承诺
-                    def 记拒绝(错误,身份=条目.身份):#收住拒绝
-                        """收住拒绝。"""
-                        自身.ctx.logger.warn('agent "'+str(身份)+'": agent/created listener rejected: '+str(错误))#记拒绝
-                    后台观察拒绝(返回,记拒绝)#后台观察
+            事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+            for 回调 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个监听器
+                回调(*参数)#监听器已是同步回调
         finally:#无论成败
             条目.正在宣布=False#宣布结束
             if 条目.请求脱离:#有推迟脱离
@@ -387,7 +364,7 @@ class 智能体注册表(服务):#Agent 注册表
             if 自身.活动发起运行!=0:#还有活动运行
                 if 自身.发起排空 is None:#尚无排空闩
                     自身.发起排空=操作任务()#建排空闩
-                自身.发起排空.wait()#等到归零
+                自身.发起排空.等待()#等到归零
             自身.发起状态='disposed'#标为已拆除
             自身.发起方存储.停用()#停用发起存储
             自身.发起运行存储.停用()#停用运行存储
@@ -396,7 +373,7 @@ class 智能体注册表(服务):#Agent 注册表
     def 带着发起方跑(自身,智能体,操作):#建立一个被跟踪的发起或清除边界
         """建立一个被跟踪的发起或清除边界。"""
         if 自身.发起状态!='active':#非活动
-            raise Exception(发起方已拆除诊断)#非活动则拒
+            raise 智能体错误(发起方已拆除诊断)#非活动则拒
         运行=发起运行(自身.发起运行存储.取())#新运行
         自身._计数锁.acquire()#加锁
         自身.活动发起运行+=1#计数加一
@@ -409,41 +386,22 @@ class 智能体注册表(服务):#Agent 注册表
         except Exception:#同步抛错
             自身.释放发起运行(运行)#释放运行
             raise#原样抛出
-        if 是否thenable(结果):#返回可等待
-            def 完成后释放():#落定后释放
-                """落定后释放。"""
-                自身.释放发起运行(运行)#释放
-            try:#挂观察者
-                def 观察():#落定后释放
-                    """落定后释放。"""
-                    try:#等待结算
-                        _等待(结果)#阻塞到落定
-                    except Exception:#挂观察者失败
-                        完成后释放()#挂观察者失败则立即释放
-                        return#结束
-                    完成后释放()#落定后释放
-                线程=threading.Thread(target=观察)#后台观察
-                线程.daemon=True#不挡住退出
-                线程.start()#启动
-            except Exception:#观察者设置未接上
-                自身.释放发起运行(运行)#观察者设置未接上则立即释放
-        else:#同步值
-            自身.释放发起运行(运行)#立即释放
+        自身.释放发起运行(运行)#同步完成后立即释放
         return 结果#原样返回
     def 有生命周期祖先(自身,候选):#是否生命周期祖先
         """一个正在卸载的光纤是否拥有本服务的生命周期。"""
-        光纤对象=自身.ctx.fiber#从本服务光纤起
+        光纤对象=自身.ctx.纤程#从本服务光纤起
         while True:#上溯
             if 光纤对象 is 候选:#命中
                 return True#命中
-            父=光纤对象.parent.fiber#父光纤
+            父=光纤对象.父上下文.纤程#父光纤
             if 父 is 光纤对象:#已到根
                 return False#已到根
             光纤对象=父#继续上溯
     def 断言发起方可读(自身):#断言仍可读
         """已拆除则抛。"""
         if 自身.发起状态=='disposed':#已拆除
-            raise Exception(发起方已拆除诊断)#已拆除则抛
+            raise 智能体错误(发起方已拆除诊断)#已拆除则抛
     def 释放重入发起运行(自身):#释放重入运行
         """把启动本拆除的边界链从其自身排空中排除。"""
         运行=自身.发起运行存储.取()#当前链
@@ -466,4 +424,4 @@ class 智能体注册表(服务):#Agent 注册表
         finally:#解锁
             自身._计数锁.release()#解锁
 
-默认=智能体注册表#默认导出注册表类
+default=智能体注册表#Cordis 默认导出槽

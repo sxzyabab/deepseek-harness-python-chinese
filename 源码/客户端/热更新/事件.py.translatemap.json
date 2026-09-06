@@ -1,0 +1,12 @@
+{
+    "endpoint":"端点",
+    "error":"错误",
+    "event":"事件",
+    "frame":"帧",
+    "graph":"图",
+    "id":"标识",
+    "plugin":"插件",
+    "rebuild":"重建",
+    "rev":"修订",
+    "type":"类型"
+}

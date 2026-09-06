@@ -1,0 +1,9 @@
+{
+    "agent.ts":"智能体.py",
+    "constants.ts":"常量.py",
+    "index.ts":"__init__.py",
+    "invariant.ts":"不变量.py",
+    "runtime-context.ts":"运行时上下文.py",
+    "tool-calls.ts":"工具调用.py",
+    "辅助.py":"中止与并发.py"
+}

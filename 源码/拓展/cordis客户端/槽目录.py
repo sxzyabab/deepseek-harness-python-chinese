@@ -24,10 +24,10 @@ def _加载():#读文件并解析
 
 #客户端说明,客户端槽目录=_加载()#导入时物化
 
-def 查询槽目录(键=None,槽们=None):#查询槽
+def 查询槽目录(键=None,槽列表=None):#查询槽
     """紧凑目录，或一条精确槽约定。"""
-    if 槽们 is None:#缺省
-        槽们=客户端槽目录#模块
+    if 槽列表 is None:#缺省
+        槽列表=客户端槽目录#模块
     if 键 is None:#列目录
         return {#压缩
             'mode':'catalog',#模式
@@ -38,10 +38,10 @@ def 查询槽目录(键=None,槽们=None):#查询槽
                 'scope':槽['scope'],#作用域
                 'summary':槽['summary'],#摘要
                 'replaceRisk':槽['replaceRisk'],#替换风险
-            } for 槽 in 槽们],#map
+            } for 槽 in 槽列表],#map
         }#目录
     槽=None#按键找
-    for 候选 in 槽们:#查找
+    for 候选 in 槽列表:#查找
         if 候选['key']==键:#命中
             槽=候选#记下
             break#结束

@@ -5,7 +5,7 @@ implementation 指向中文树宿主方法名；服务键与命名空间均为 `
 """
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
+__all__=['默认','远程贡献对象']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
 智能体参数={#agent lookup
     'name':'agent','wire':'agent','source':'lookup','lookup':'agent',

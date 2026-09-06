@@ -11,17 +11,17 @@ def 校验元数据形态(元数据):#校验 meta 形态并收集违规
     for 键 in 记录.keys():#检查未知字段
         if 键 not in 已知:#未知字段
             违规.append('meta.'+键+' is not a recognized field (name/description/whenToUse/phases)')#未知字段记一条
-    名称值=记录.get('name')#取出名称
+    名称值=记录['name'] if 'name' in 记录 else None#取出名称
     if not isinstance(名称值,str) or len(名称值)==0:#名称必须非空字符串
         违规.append('meta.name must be a non-empty string')#名称违规
-    描述值=记录.get('description')#取出描述
+    描述值=记录['description'] if 'description' in 记录 else None#取出描述
     if not isinstance(描述值,str) or len(描述值)==0:#描述必须非空字符串
         违规.append('meta.description must be a non-empty string')#描述违规
-    if 'whenToUse' in 记录 and not isinstance(记录.get('whenToUse'),str):#适用场景若出现必须是字符串
+    if 'whenToUse' in 记录 and not isinstance(记录['whenToUse'],str):#适用场景若出现必须是字符串
         违规.append('meta.whenToUse must be a string')#适用场景违规
     阶段列表=[]#规范化后的阶段列表
     if 'phases' in 记录:#出现了 phases
-        原始阶段=记录.get('phases')#取出阶段
+        原始阶段=记录['phases']#取出阶段
         if not isinstance(原始阶段,list):#不是数组
             违规.append('meta.phases must be an array')#阶段必须是数组
         else:#逐项检查阶段
@@ -33,14 +33,14 @@ def 校验元数据形态(元数据):#校验 meta 形态并收集违规
                 for 键 in 项.keys():#检查未知阶段字段
                     if 键 not in ('title','detail','provider','model'):#未知字段
                         违规.append('meta.phases['+str(索引)+'].'+键+' is not a recognized field')#未知字段
-                标题=项.get('title')#取出标题
+                标题=项['title'] if 'title' in 项 else None#取出标题
                 if not isinstance(标题,str) or len(标题)==0:#标题必须非空
                     违规.append('meta.phases['+str(索引)+'].title must be a non-empty string')#标题违规
-                if 'detail' in 项 and not isinstance(项.get('detail'),str):#细节若出现必须是字符串
+                if 'detail' in 项 and not isinstance(项['detail'],str):#细节若出现必须是字符串
                     违规.append('meta.phases['+str(索引)+'].detail must be a string')#细节违规
-                if 'provider' in 项 and not isinstance(项.get('provider'),str):#提供方若出现必须是字符串
+                if 'provider' in 项 and not isinstance(项['provider'],str):#提供方若出现必须是字符串
                     违规.append('meta.phases['+str(索引)+'].provider must be a string')#提供方违规
-                if 'model' in 项 and not isinstance(项.get('model'),str):#模型若出现必须是字符串
+                if 'model' in 项 and not isinstance(项['model'],str):#模型若出现必须是字符串
                     违规.append('meta.phases['+str(索引)+'].model must be a string')#模型违规
                 if len(违规)==0:#至此该项无违规才收入规范化副本
                     规范化={'title':标题}#组装规范化阶段
@@ -63,6 +63,6 @@ def 校验元数据形态(元数据):#校验 meta 形态并收集违规
 def 校验元数据(值):#校验并规范化 meta
     """按工作流元数据约定校验调用方提供的 meta 值。抛出 META_INVALID 并点名每一条违规（未知字段、缺失/类型错误的 name/description、畸形 phases）；返回的 meta 是由已校验字段建成的规范化副本，因此引擎从不与调用方对象共享别名。"""
     形态=校验元数据形态(值)#先收集形态结果
-    if 形态.get('meta') is None:#有违规
+    if 'meta' not in 形态:#有违规
         raise 工作流错误('invalid meta: '+'; '.join(形态['violations']),'META_INVALID')#点名全部违规
     return 形态['meta']#返回规范化副本

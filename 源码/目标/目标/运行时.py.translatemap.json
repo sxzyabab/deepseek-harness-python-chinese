@@ -1,0 +1,15 @@
+{
+    "brand":"品牌",
+    "code":"码",
+    "constant":"常量",
+    "construct":"构造",
+    "error":"错误",
+    "goal":"目标",
+    "id":"标识",
+    "message":"消息",
+    "name":"名称",
+    "protocol":"协议",
+    "runtime":"运行时",
+    "self":"自身",
+    "version":"版本"
+}

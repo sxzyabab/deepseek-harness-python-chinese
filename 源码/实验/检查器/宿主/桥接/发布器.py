@@ -3,6 +3,7 @@
 对齐上游 `host/bridge/publisher.ts`。公开面仅中文名。
 """
 import threading,time#微任务与时钟
+from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.缓冲 import 检查器源缓冲#源缓冲
 from ...共享.桥接.发布器 import 检查器状态发布器#状态发布器面
 
@@ -31,7 +32,7 @@ class 宿主桥发布器(检查器状态发布器):#Host桥发布器
     def 设置状态(自身,主题,载荷,单调毫秒=None):#设置状态
         """设置状态。"""
         if 自身.已关闭:#已关闭拒绝
-            raise Exception('inspector: Host source is closed')#英文诊断
+            raise 检查器错误('inspector: Host source is closed')#英文诊断
         if 单调毫秒 is None:#默认时钟
             单调毫秒=time.perf_counter()*1000#近似
         自身.记录.设置状态(主题,载荷,单调毫秒)#写入状态
@@ -58,7 +59,7 @@ class 宿主桥发布器(检查器状态发布器):#Host桥发布器
         if 自身.已关闭 or 自身.在途下一序号 is None:#无可确认
             return#返回
         if 下一序号!=自身.在途下一序号:#序列不匹配
-            raise Exception('inspector: Host source acknowledgement does not match the in-flight batch')#英文诊断
+            raise 检查器错误('inspector: Host source acknowledgement does not match the in-flight batch')#英文诊断
         自身.在途下一序号=None#清空在途
         自身.调度冲刷()#继续冲刷
 

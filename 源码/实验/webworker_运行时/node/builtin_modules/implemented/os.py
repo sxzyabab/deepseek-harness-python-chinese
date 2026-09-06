@@ -8,7 +8,7 @@
 from ....storage.路径 import dsh主目录,dsh临时#VFS路径常量
 
 __all__=[#中文公开名与Node英文挂名
-    '临时目录','主目录','平台','类型','架构','发行','主机名','可用并行度','处理器们','网络接口',
+    '临时目录','主目录','平台','类型','架构','发行','主机名','可用并行度','列出处理器','网络接口',
     'EOL','tmpdir','homedir','platform','type','arch','release','hostname',
     'availableParallelism','cpus','networkInterfaces','constants','__esModule','default',
 ]#公开结束
@@ -49,7 +49,7 @@ def 可用并行度():#并行度
     并发=getattr(导航,'hardwareConcurrency',1) if 导航 is not None else 1#并发度
     return max(1,并发)#至少1
 
-def 处理器们():#CPU列表
+def 列出处理器():#CPU列表
     """空列表（worker 内无逐核事实）。"""
     return []#无逐核信息
 
@@ -65,7 +65,7 @@ arch=架构#Node面
 release=发行#Node面
 hostname=主机名#Node面
 availableParallelism=可用并行度#Node面
-cpus=处理器们#Node面
+cpus=列出处理器#Node面
 networkInterfaces=网络接口#Node面
 
 constants={#OS常量
@@ -81,5 +81,5 @@ __esModule=True#CJS互操作
 default={#默认导出
     'EOL':EOL,'tmpdir':临时目录,'homedir':主目录,'platform':平台,'type':类型,#身份
     'arch':架构,'release':发行,'hostname':主机名,'availableParallelism':可用并行度,#续
-    'cpus':处理器们,'networkInterfaces':网络接口,'constants':constants,#网络与常量
+    'cpus':列出处理器,'networkInterfaces':网络接口,'constants':constants,#网络与常量
 }#默认导出结束

@@ -30,3 +30,6 @@ def 应用(上下文):#安装原生选目录浏览器半边
         """嵌套 inject 内层。"""
         return 上下文.slots.inject('sidebar.workspaces.directoryFlow',两侧登记)#内层
     上下文.slots.inject('conversation.hero.workspace.directoryFlow',等侧栏)#外层
+
+inject=注入#框架槽
+apply=应用#框架槽

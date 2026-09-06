@@ -1,0 +1,10 @@
+{
+    "config":"配置",
+    "home":"主目录",
+    "module":"模块",
+    "node":"节点",
+    "path":"路径",
+    "root":"根",
+    "temp":"临时",
+    "workspace":"工作区"
+}

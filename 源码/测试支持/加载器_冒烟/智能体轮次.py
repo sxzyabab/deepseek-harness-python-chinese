@@ -25,29 +25,29 @@ def 助手文本(事件):#提取助手文本
     内容=消息.get('content') if isinstance(消息,dict) else getattr(消息,'content',None)#内容
     if not isinstance(内容,list):#无内容
         return None#无文本
-    块们=[块 for 块 in 内容 if (块.get('type') if isinstance(块,dict) else getattr(块,'type',None))=='text']#筛文本块
-    if len(块们)==0:#无文本块
+    块列表=[块 for 块 in 内容 if (块.get('type') if isinstance(块,dict) else getattr(块,'type',None))=='text']#筛文本块
+    if len(块列表)==0:#无文本块
         return None#无文本
-    return ''.join((块.get('text') if isinstance(块,dict) else 块.text) for 块 in 块们)#拼接文本
+    return ''.join((块.get('text') if isinstance(块,dict) else 块.text) for 块 in 块列表)#拼接文本
 
 def 唯一根智能体(上下文):#取得唯一根智能体
     """要求恰好一个已配置根智能体。"""
-    注册表=上下文.get('agents')#智能体注册表
+    注册表=上下文.获取服务('agents')#智能体注册表
     if 注册表 is None:#无注册表
-        raise Error('fixture turn requires exactly one top-level agent, found 0')#无注册表
-    根们=注册表.roots()#根智能体列表
-    if len(根们)==0:#尚无根
+        raise Exception('fixture turn requires exactly one top-level agent, found 0')#无注册表
+    根列表=注册表.roots()#根智能体列表
+    if len(根列表)==0:#尚无根
         已发布=事件()#首次发布门闩
         def 已创建(_智能体):#创建回调
             """首次发布时放行。"""
             解除()#解除监听
             已发布.set()#放行
-        解除=上下文.on('agent/created',已创建)#监听创建
+        解除=上下文.监听('agent/created',已创建)#监听创建
         已发布.wait()#等待首次发布
-        根们=注册表.roots()#再取根
-    if len(根们)!=1:#数量不符
-        raise Error(f'fixture turn requires exactly one top-level agent, found {len(根们)}')#数量不符
-    return 根们[0]#返回唯一根智能体
+        根列表=注册表.roots()#再取根
+    if len(根列表)!=1:#数量不符
+        raise Exception(f'fixture turn requires exactly one top-level agent, found {len(根列表)}')#数量不符
+    return 根列表[0]#返回唯一根智能体
 
 def 驱动夹具轮次(上下文,选项):#驱动一轮
     """从持久收件箱回执驱动一次任务直至整智能体空闲。"""
@@ -94,7 +94,7 @@ def 驱动夹具轮次(上下文,选项):#驱动一轮
                 回合=数据.get('turn') if isinstance(数据,dict) else getattr(数据,'turn',None)#回合
                 步进=数据.get('step') if isinstance(数据,dict) else getattr(数据,'step',None)#步进
                 用量按步[f'{回合}/{步进}']=用量#记录消息用量
-    解除监听=上下文.on('session/event',监听会话事件)#监听会话事件
+    解除监听=上下文.监听('session/event',监听会话事件)#监听会话事件
     try:#驱动轮次
         智能体.followup(消息)#投递任务
         智能体.whenIdle()#等待完成
@@ -112,6 +112,3 @@ def 驱动夹具轮次(上下文,选项):#驱动一轮
     if 用量 is not None:#可选用量
         结果['usage']=用量#写入用量
     return 结果#返回结果信封
-
-Error=Exception#错误别名
-runFixtureTurn=驱动夹具轮次#上游名

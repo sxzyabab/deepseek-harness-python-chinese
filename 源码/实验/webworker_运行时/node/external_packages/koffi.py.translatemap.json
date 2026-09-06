@@ -1,0 +1,17 @@
+{
+    "align":"对齐",
+    "anonymous":"匿名",
+    "array":"数组",
+    "describe":"描述",
+    "fail":"失败",
+    "module":"模块",
+    "opaque":"不透明",
+    "pointer":"指针",
+    "preview":"预览",
+    "size":"大小",
+    "struct":"结构",
+    "stub":"桩",
+    "token":"令牌",
+    "type":"类型",
+    "unknown":"未知"
+}

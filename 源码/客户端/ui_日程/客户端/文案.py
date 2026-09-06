@@ -2,10 +2,9 @@
 
 对齐上游 `ui-schedule/src/client/locales.ts`。公开面仅中文名。
 """
-__all__=['命名空间','中文','英文','NS','zh','en']#仅中文公开名
+__all__=['命名空间','中文','英文']#仅中文公开名
 
 命名空间='schedule.catalog'#locale 命名空间
-NS=命名空间#上游名
 
 中文={#简体中文词典（键集合真源）
     'trigger.one':'{count} 个提醒',#单数触发标签
@@ -48,6 +47,3 @@ NS=命名空间#上游名
     'relative.future':'in {value} {unit}',#未来相对
     'relative.overdue':'{value} {unit} overdue',#逾期相对
 }#英文结束
-
-zh=中文#上游名
-en=英文#上游名

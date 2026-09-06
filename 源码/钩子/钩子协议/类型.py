@@ -12,3 +12,6 @@
 命令钩子=dict#命令钩子：command, timeoutSec?
 匹配组=dict#匹配组：matcher?, hooks
 钩子输出=dict#方言无关钩子结果
+
+class 钩子协议错误(Exception):
+    """钩子协议包的异常基类。"""

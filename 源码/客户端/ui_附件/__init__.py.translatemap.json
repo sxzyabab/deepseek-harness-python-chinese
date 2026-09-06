@@ -1,6 +1,11 @@
 {
     "attachment":"附件",
-    "cover":"覆盖",
+    "drop":"拖放",
+    "gallery":"图库",
+    "image":"图",
     "lightbox":"灯箱",
-    "message":"消息"
+    "message":"消息",
+    "overlay":"覆盖",
+    "rail":"轨",
+    "wheel":"滚轮"
 }

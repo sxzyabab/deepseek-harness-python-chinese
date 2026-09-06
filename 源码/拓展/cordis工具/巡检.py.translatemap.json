@@ -1,0 +1,19 @@
+{
+    "builtin":"内置",
+    "catalog":"目录",
+    "describe":"描述",
+    "error":"错误",
+    "event":"事件",
+    "fiber":"光纤",
+    "inspect":"巡检",
+    "interface":"接口",
+    "missing":"缺失",
+    "plugin":"插件",
+    "provide":"提供",
+    "service":"服务",
+    "subtree":"子树",
+    "temp":"临时",
+    "tool":"工具",
+    "list":"列表",
+    "table":"表"
+}

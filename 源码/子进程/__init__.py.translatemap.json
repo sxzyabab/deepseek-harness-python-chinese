@@ -1,0 +1,7 @@
+{
+    "local":"本地",
+    "process":"进程",
+    "self":"自身",
+    "subprocess":"子进程",
+    "win32":"win32"
+}

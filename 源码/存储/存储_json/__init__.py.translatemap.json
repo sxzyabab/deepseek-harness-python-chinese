@@ -1,0 +1,14 @@
+{
+    "backend":"后端",
+    "delete":"删除",
+    "dispose":"拆除",
+    "exists":"存在",
+    "get":"获取",
+    "json":"杰桑",
+    "key":"键",
+    "list":"列出",
+    "put":"放入",
+    "self":"自身",
+    "storage":"存储",
+    "unit":"单元"
+}

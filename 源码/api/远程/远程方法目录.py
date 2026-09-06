@@ -7,11 +7,11 @@ plugin-inventory → message-feedback。公开面仅中文名。
 """
 from ...交互.指令.远程 import TYPERT_REMOTE as 命令远程#commands 贡献
 from ...目标.目标.远程 import TYPERT_REMOTE as 目标远程#goals 贡献
-from ...拓展.cordis服务端.远程 import TYPERT_REMOTE as 动态远程#dynamic 贡献
+from ...拓展.cordis服务端.远程 import 远程贡献对象 as 动态远程#dynamic 贡献
 from ...host.plugin_inventory.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory 贡献
 from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback 贡献
 
-__all__=['所选远程目录','包名们','导出名们','所选远程贡献','核对目录与贡献']#仅中文公开名
+__all__=['所选远程目录','包名元组','导出名元组','所选远程贡献','核对目录与贡献']#仅中文公开名
 
 所选远程目录=(#上游 client 挂载顺序
     {#commands
@@ -80,9 +80,9 @@ __all__=['所选远程目录','包名们','导出名们','所选远程贡献','�
     },
 )#目录结束
 
-包名们=tuple(项['package'] for 项 in 所选远程目录)#五包名
+包名元组=tuple(项['package'] for 项 in 所选远程目录)#五包名
 
-导出名们=tuple(#扁平导出名，按挂载序
+导出名元组=tuple(#扁平导出名，按挂载序
     方法['export'] for 项 in 所选远程目录 for 方法 in 项['methods']
 )#结束
 
@@ -95,9 +95,9 @@ def 核对目录与贡献():#目录方法数与贡献描述符数对齐
     出=[]#结果
     for 项 in 所选远程目录:#逐包
         贡献=项['contribution']#贡献
-        描述符们=贡献.get('descriptors') if isinstance(贡献,dict) else getattr(贡献,'descriptors',None)#描述符
-        if 描述符们 is None and isinstance(贡献,dict):#可能嵌套
-            描述符们=贡献.get('descriptors') or []#缺省空
-        数=len(描述符们) if 描述符们 is not None else 0#描述符数
+        描述符列表=贡献.get('descriptors') if isinstance(贡献,dict) else getattr(贡献,'descriptors',None)#描述符
+        if 描述符列表 is None and isinstance(贡献,dict):#可能嵌套
+            描述符列表=贡献.get('descriptors') or []#缺省空
+        数=len(描述符列表) if 描述符列表 is not None else 0#描述符数
         出.append((项['package'],len(项['methods']),数))#一行
     return 出#事实表

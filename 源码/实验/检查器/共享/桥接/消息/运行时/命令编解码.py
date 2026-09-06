@@ -2,7 +2,7 @@
 
 对齐上游 `shared/bridge/messages/runtime/command-codec.ts`。公开面仅中文名。
 """
-from ....json import 是否json值,是否普通对象#JSON校验
+from ....json import 是否json值,是否普通对象,检查器错误#JSON校验|本包错误
 from ....校验 import 精确键,可选布尔,可选非负数,可选字符串,线上标识#校验
 
 __all__=['解析客户端运行时命令']#仅中文公开名
@@ -10,17 +10,17 @@ __all__=['解析客户端运行时命令']#仅中文公开名
 def 解析调用参数(值):#解析调用参数
     """解析调用参数。"""
     if not 是否普通对象(值) or not isinstance(值.get('kind'),str):#须有kind
-        raise Exception('inspector protocol: invalid Client Runtime call argument')#英文诊断
+        raise 检查器错误('inspector protocol: invalid Client Runtime call argument')#英文诊断
     种类=值['kind']#种类
     if 种类=='value':#JSON值
         精确键(值,['kind','value'],'value call argument')#精确字段
         if not 是否json值(值['value']):#须JSON
-            raise Exception('inspector protocol: call argument value must be JSON')#英文诊断
+            raise 检查器错误('inspector protocol: call argument value must be JSON')#英文诊断
         return {'kind':'value','value':值['value']}#值参数
     if 种类=='unserializable':#不可序列化
         精确键(值,['kind','value'],'unserializable call argument')#精确字段
         if not isinstance(值['value'],str):#须字符串
-            raise Exception('inspector protocol: unserializable argument must be a string')#英文诊断
+            raise 检查器错误('inspector protocol: unserializable argument must be a string')#英文诊断
         return {'kind':'unserializable','value':值['value']}#不可序列化参数
     if 种类=='object':#对象句柄
         精确键(值,['kind','handle'],'object call argument')#精确字段
@@ -28,17 +28,17 @@ def 解析调用参数(值):#解析调用参数
     if 种类=='undefined':#undefined
         精确键(值,['kind'],'undefined call argument')#精确字段
         return {'kind':'undefined'}#undefined参数
-    raise Exception(f'inspector protocol: unknown call argument {种类!r}')#英文诊断
+    raise 检查器错误(f'inspector protocol: unknown call argument {种类!r}')#英文诊断
 
 def 解析调用函数(值):#解析调用函数
     """解析调用函数。"""
     精确键(值,['op','functionDeclaration','receiver','arguments','objectGroup','silent','returnByValue','generatePreview','userGesture','awaitPromise'],'call-function command')#精确字段
     if not isinstance(值.get('functionDeclaration'),str):#函数声明非法
-        raise Exception('inspector protocol: functionDeclaration must be a string')#英文诊断
+        raise 检查器错误('inspector protocol: functionDeclaration must be a string')#英文诊断
     参数=None#可选参数列表
     if 值.get('arguments') is not None:#有参数
         if not isinstance(值['arguments'],list):#须数组
-            raise Exception('inspector protocol: call arguments must be an array')#英文诊断
+            raise 检查器错误('inspector protocol: call arguments must be an array')#英文诊断
         参数=[解析调用参数(项) for 项 in 值['arguments']]#逐项解析
     结果={'op':'call-function','functionDeclaration':值['functionDeclaration']}#调用命令
     if 值.get('receiver') is not None:#可选接收者
@@ -56,12 +56,12 @@ def 解析调用函数(值):#解析调用函数
 def 解析客户端运行时命令(值):#解析Runtime命令
     """在命令进入 Client 界域之前解析并重建一条 Runtime 命令。"""
     if not 是否普通对象(值) or not isinstance(值.get('op'),str):#须有op
-        raise Exception('inspector protocol: Client Runtime command must have an op')#英文诊断
+        raise 检查器错误('inspector protocol: Client Runtime command must have an op')#英文诊断
     操作=值['op']#操作
     if 操作=='evaluate':#求值
         精确键(值,['op','expression','objectGroup','includeCommandLineAPI','silent','returnByValue','generatePreview','userGesture','awaitPromise','disableBreaks','replMode','allowUnsafeEvalBlockedByCSP','timeoutMs'],'evaluate command')#精确字段
         if not isinstance(值.get('expression'),str):#须字符串
-            raise Exception('inspector protocol: evaluate expression must be a string')#英文诊断
+            raise 检查器错误('inspector protocol: evaluate expression must be a string')#英文诊断
         结果={'op':'evaluate','expression':值['expression']}#求值命令
         结果.update(可选字符串(值,'objectGroup'))#对象组
         for 键 in ('includeCommandLineAPI','silent','returnByValue','generatePreview','userGesture','awaitPromise','disableBreaks','replMode','allowUnsafeEvalBlockedByCSP'):#可选布尔
@@ -88,9 +88,9 @@ def 解析客户端运行时命令(值):#解析Runtime命令
     if 操作=='release-object-group':#释放对象组
         精确键(值,['op','objectGroup'],'release-object-group command')#精确字段
         if not isinstance(值.get('objectGroup'),str):#须字符串
-            raise Exception('inspector protocol: objectGroup must be a string')#英文诊断
+            raise 检查器错误('inspector protocol: objectGroup must be a string')#英文诊断
         return {'op':'release-object-group','objectGroup':值['objectGroup']}#释放组命令
     if 操作=='global-lexical-scope-names':#全局词法名
         精确键(值,['op'],'global-lexical-scope-names command')#精确字段
         return {'op':'global-lexical-scope-names'}#词法名命令
-    raise Exception(f'inspector protocol: unknown Client Runtime command {操作!r}')#英文诊断
+    raise 检查器错误(f'inspector protocol: unknown Client Runtime command {操作!r}')#英文诊断

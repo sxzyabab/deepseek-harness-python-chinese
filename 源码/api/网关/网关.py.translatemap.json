@@ -17,5 +17,7 @@
     "service":"服务",
     "signal":"信号",
     "symbol":"符号",
-    "wait":"等待"
+    "wait":"等待",
+    "list":"列表",
+    "set":"集合"
 }

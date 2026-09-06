@@ -1,0 +1,16 @@
+{
+    "client":"客户端",
+    "console":"控制台",
+    "description":"描述",
+    "descriptor":"描述符",
+    "details":"详情",
+    "event":"事件",
+    "exception":"异常",
+    "handle":"句柄",
+    "internal":"内部",
+    "object":"对象",
+    "properties":"属性",
+    "reference":"引用",
+    "semantic":"语义",
+    "stack":"栈"
+}

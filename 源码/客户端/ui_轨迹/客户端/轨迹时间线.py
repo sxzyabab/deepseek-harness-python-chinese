@@ -6,8 +6,8 @@
 import math#有限数判定
 import os#同目录样式路径
 from datetime import datetime#记录时刻格式化
+from zoneinfo import ZoneInfo#时区
 from .时间线 import 派生轨迹时间线,格式化时间线偏移#模型派生
-from .轨迹记录 import 取字段#字段读取
 
 __all__=[#仅中文公开名
     '样式表',
@@ -40,10 +40,13 @@ def _读样式(文件名):#读真实 CSS
 
 def 助手计时明细(指标):#从助手指标拆 TTFT/解码
     """有完整计时则返回 ttftMs/decodingMs，否则空映射。"""
-    起点=取字段(指标,'stepStartTime')#步进起点
-    首词=取字段(指标,'firstTokenTime')#首 token
-    完成=取字段(指标,'completedTime')#完成
-    if (取字段(指标,'timingRecorded') is not True#未记录
+    if 指标 is None:#无指标
+        return {}#无明细
+    起点=指标['stepStartTime'] if 'stepStartTime' in 指标 else None#步进起点
+    首词=指标['firstTokenTime'] if 'firstTokenTime' in 指标 else None#首 token
+    完成=指标['completedTime'] if 'completedTime' in 指标 else None#完成
+    已记=指标['timingRecorded'] if 'timingRecorded' in 指标 else None#是否记录
+    if (已记 is not True#未记录
             or not isinstance(起点,(int,float)) or not math.isfinite(起点)#起点无效
             or not isinstance(首词,(int,float)) or not math.isfinite(首词)#首词无效
             or not isinstance(完成,(int,float)) or not math.isfinite(完成)#完成无效
@@ -53,16 +56,16 @@ def 助手计时明细(指标):#从助手指标拆 TTFT/解码
 
 def 时间线记录明细(单元格):#格子的时长/起点/助手计时
     """从格子合成 Tooltip 用明细。"""
-    秒=取字段(单元格,'timeSeconds')#秒时长
+    秒=单元格['timeSeconds'] if 'timeSeconds' in 单元格 else None#秒时长
     时长毫秒=None if 秒 is None or not isinstance(秒,(int,float)) or not math.isfinite(秒) else max(0,秒*1000)#毫秒
-    起点=取字段(单元格,'startedAt')#起点
+    起点=单元格['startedAt'] if 'startedAt' in 单元格 else None#起点
     起点值=None if 起点 is None or not isinstance(起点,(int,float)) or not math.isfinite(起点) else 起点#有限起点
     明细={}#累加
     if 时长毫秒 is not None:#有时长
         明细['durationMs']=时长毫秒#总时长
     if 起点值 is not None:#有起点
         明细['startedAt']=起点值#起点
-    明细.update(助手计时明细(取字段(单元格,'assistantMetrics')))#助手计时
+    明细.update(助手计时明细(单元格['assistantMetrics'] if 'assistantMetrics' in 单元格 else None))#助手计时
     return 明细#明细
 
 def 时间线种类标签(种类):#种类 → Tooltip 标题
@@ -71,11 +74,11 @@ def 时间线种类标签(种类):#种类 → Tooltip 标题
         'system':'SYSTEM','user':'USER','context':'CONTEXT','compacted':'COMPACTED',
         'message':'ASSISTANT','tool':'TOOL','subtool':'SUBTOOL',
     }#表结束
-    return 表.get(种类,种类)#缺省原样
+    return 表[种类] if 种类 in 表 else 种类#缺省原样
 
 def 格式化记录时刻(时间戳):#本地时分秒.毫秒
     """把毫秒时间戳格式成本地时刻串。"""
-    时刻=datetime.fromtimestamp(时间戳/1000.0)#秒级 datetime
+    时刻=datetime.fromtimestamp(时间戳/1000.0,tz=ZoneInfo('UTC')).astimezone()#纪元毫秒转当地
     return 时刻.strftime('%H:%M:%S.')+f'{int(时刻.microsecond/1000):03d}'#含毫秒
 
 def 时间线提示文案(种类,明细=None):#跨度 Tooltip
@@ -83,17 +86,17 @@ def 时间线提示文案(种类,明细=None):#跨度 Tooltip
     标题=时间线种类标签(种类)#标题行
     if 明细 is None:#无明细
         return 标题#仅标题
-    时长=None if 取字段(明细,'durationMs') is None else f"Total {格式化时间线偏移(明细['durationMs'])}"#总时长行
-    起点=取字段(明细,'startedAt')#起点
-    时长毫秒=取字段(明细,'durationMs')#时长
+    时长毫秒=明细['durationMs'] if 'durationMs' in 明细 else None#时长
+    时长=None if 时长毫秒 is None else f"Total {格式化时间线偏移(明细['durationMs'])}"#总时长行
+    起点=明细['startedAt'] if 'startedAt' in 明细 else None#起点
     if 起点 is None:#无起点
         区间=None#无区间行
     elif 时长毫秒 is None:#仅起点
         区间=f'Started {格式化记录时刻(起点)}'#起点行
     else:#起止
         区间=f'{格式化记录时刻(起点)} → {格式化记录时刻(起点+时长毫秒)}'#区间行
-    ttft=取字段(明细,'ttftMs')#TTFT
-    解码=取字段(明细,'decodingMs')#解码
+    ttft=明细['ttftMs'] if 'ttftMs' in 明细 else None#TTFT
+    解码=明细['decodingMs'] if 'decodingMs' in 明细 else None#解码
     分段=None if ttft is None or 解码 is None else f'TTFT {格式化时间线偏移(ttft)} · Decoding {格式化时间线偏移(解码)}'#分段行
     计时=' · '.join(段 for 段 in (时长,分段) if 段)#计时行
     return '\n'.join(段 for 段 in (标题,区间,计时) if 段)#多行提示
@@ -115,8 +118,8 @@ def 居中区间(中心,宽度,最小,最大):#在域内居中一段宽度
 def 区间比例(区间,起点,时长,最小,最大):#选区 → 轨道比例
     """把投影选区换成相对当前域的比例区间。"""
     有界=有序区间(#先钳进域
-        min(最大,max(最小,取字段(区间,'start'))),#起点
-        min(最大,max(最小,取字段(区间,'end'))),#终点
+        min(最大,max(最小,区间['start'])),#起点
+        min(最大,max(最小,区间['end'])),#终点
     )#有界结束
     return {#比例
         'start':(有界['start']-起点)/时长,#左
@@ -146,7 +149,7 @@ class 轨迹时间线:#全域总览时间线
     """拖选区间、点击聚焦、滚轮缩放、右键平移、Escape 清空。"""
     def __init__(自身,属性=None):#可选 props
         """记下 props 与手势/视口状态。"""
-        自身.属性=属性 or {}#合成
+        自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身.草稿=None#拖选草稿区间
         自身.悬停=None#悬停比例点
         自身.加载更早中=False#更早历史加载中
@@ -158,21 +161,22 @@ class 轨迹时间线:#全域总览时间线
 
     def 更新(自身,属性):#刷新 props
         """刷新 props，并校正越界选区/视口。"""
-        自身.属性=属性 or {}#新
+        自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身._校正选区()#越界则清空
         自身._校正视口()#越界则清空视口
 
     def _轮次(自身):#当前轮次布局
         """从 props 取未过滤轮次。"""
-        return 取字段(自身.属性,'turns') or []#轮次
+        表=自身.属性['turns'] if 'turns' in 自身.属性 else None#必填数组
+        return [] if 表 is None else 表#?? []；TS 必填，缺席当空表，空表保留
 
     def _模式(自身):#投影模式
         """sequence / duration / time / actual。"""
-        return 取字段(自身.属性,'mode','sequence')#默认序列
+        return 自身.属性['mode'] if 'mode' in 自身.属性 else 'sequence'#默认序列
 
     def _选区(自身):#已提交选区
         """当前焦点闭区间。"""
-        return 取字段(自身.属性,'range')#可空
+        return 自身.属性['range'] if 'range' in 自身.属性 else None#可空
 
     def _模型(自身):#派生全域模型
         """没有可见记录时为 None。"""
@@ -182,9 +186,9 @@ class 轨迹时间线:#全域总览时间线
         """摊平全部格子的 Tooltip 明细。"""
         表={}#下标映射
         for 轮 in 自身._轮次():#逐回合
-            for 组 in 取字段(轮,'groups') or []:#各组
-                for 单元格 in 取字段(组,'cells') or []:#各格
-                    表[取字段(单元格,'index')]=时间线记录明细(单元格)#记下
+            for 组 in (轮['groups'] if 'groups' in 轮 and 轮['groups'] is not None else []):#各组
+                for 单元格 in (组['cells'] if 'cells' in 组 and 组['cells'] is not None else []):#各格
+                    表[单元格['index']]=时间线记录明细(单元格)#记下
         return 表#明细表
 
     def _校正选区(自身):#选区越界则清空
@@ -193,8 +197,8 @@ class 轨迹时间线:#全域总览时间线
         区间=自身._选区()#选区
         if 模型 is None or 区间 is None:#无模型或无选区
             return#无需
-        if 取字段(区间,'end')<模型['start'] or 取字段(区间,'start')>模型['end']:#不相交
-            回调=取字段(自身.属性,'onRangeChange')#清空回调
+        if 区间['end']<模型['start'] or 区间['start']>模型['end']:#不相交
+            回调=自身.属性['onRangeChange'] if 'onRangeChange' in 自身.属性 else None#清空回调
             if callable(回调):#有
                 回调(None)#清空
 
@@ -211,7 +215,7 @@ class 轨迹时间线:#全域总览时间线
     def _跟随选中(自身):#选中跨度滚进视口
         """选中记录不在当前视口时平移视口。"""
         模型=自身._模型()#模型
-        选中下标=取字段(自身.属性,'selectedIndex')#选中
+        选中下标=自身.属性['selectedIndex'] if 'selectedIndex' in 自身.属性 else None#选中
         if 模型 is None or 选中下标 is None:#无
             return#无需
         选中跨=next((跨 for 跨 in 模型['spans'] if 跨['index']==选中下标),None)#找跨度
@@ -263,7 +267,7 @@ class 轨迹时间线:#全域总览时间线
 
     def _改选区(自身,区间):#提交选区
         """回调宿主写入 range。"""
-        回调=取字段(自身.属性,'onRangeChange')#回调
+        回调=自身.属性['onRangeChange'] if 'onRangeChange' in 自身.属性 else None#回调
         if callable(回调):#有
             回调(区间)#写入
 
@@ -273,7 +277,7 @@ class 轨迹时间线:#全域总览时间线
 
     def 处理动作(自身,动作,载荷=None):#分发手势与键盘
         """pointer/wheel/key/load-earlier 等动作。"""
-        载荷=载荷 or {}#载荷
+        载荷={} if 载荷 is None else 载荷#?? {}；缺席才空表，空 dict 保留
         模型=自身._模型()#模型
         几何=自身._域几何(模型)#几何
         域起=几何['domainStart']#域起
@@ -283,7 +287,7 @@ class 轨迹时间线:#全域总览时间线
             自身._跟随选中()#跟视口
             return 自身.渲染()#重渲
         if 动作=='load-earlier':#加载更早
-            加载=取字段(自身.属性,'onLoadEarlier')#注入
+            加载=自身.属性['onLoadEarlier'] if 'onLoadEarlier' in 自身.属性 else None#注入
             if 自身.加载更早中 or not callable(加载):#不可
                 return False#失败
             自身.加载更早中=True#标记
@@ -292,7 +296,7 @@ class 轨迹时间线:#全域总览时间线
             finally:#收尾
                 自身.加载更早中=False#清除
         if 动作=='keydown':#键盘
-            if 取字段(载荷,'key')=='Escape' and 自身._选区() is not None:#Escape
+            if ('key' in 载荷 and 载荷['key']=='Escape') and 自身._选区() is not None:#Escape
                 自身._改选区(None)#清空
             return 自身.渲染()#重渲
         if 动作=='dblclick':#双击清空
@@ -313,8 +317,8 @@ class 轨迹时间线:#全域总览时间线
             if 模型 is None:#无模型
                 return 自身.渲染()#重渲
             自身.动画视口=False#关动画
-            锚比例=钳制比例(取字段(载荷,'fraction',0.5))#锚点比例
-            增量=取字段(载荷,'deltaY',0)#滚轮增量
+            锚比例=钳制比例(载荷['fraction'] if 'fraction' in 载荷 else 0.5)#锚点比例
+            增量=载荷['deltaY'] if 'deltaY' in 载荷 else 0#滚轮增量
             最小宽=min(最小缩放操作数 if 自身._模式()=='sequence' else 20,全宽)#最小可见
             下一宽=min(全宽,max(最小宽,域宽*math.exp(增量*0.0015)))#指数缩放
             if 下一宽>=全宽*0.999:#接近全域
@@ -325,11 +329,11 @@ class 轨迹时间线:#全域总览时间线
             自身.视口={'start':下一起,'end':下一起+下一宽}#视口
             return 自身.渲染()#重渲
         if 动作=='pointer-down':#按下
-            按钮=取字段(载荷,'button',0)#键
-            客户X=取字段(载荷,'clientX',0)#X
-            指针标识=取字段(载荷,'pointerId',0)#指针
-            记录下标=取字段(载荷,'recordIndex')#记录
-            比例=自身._比例于(客户X,取字段(载荷,'trackLeft',0),取字段(载荷,'trackWidth',1))#比例
+            按钮=载荷['button'] if 'button' in 载荷 else 0#键
+            客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
+            指针标识=载荷['pointerId'] if 'pointerId' in 载荷 else 0#指针
+            记录下标=载荷['recordIndex'] if 'recordIndex' in 载荷 else None#记录
+            比例=自身._比例于(客户X,载荷['trackLeft'] if 'trackLeft' in 载荷 else 0,载荷['trackWidth'] if 'trackWidth' in 载荷 else 1)#比例
             if 按钮==2:#右键平移
                 自身._平移手势={#记下
                     'anchorClientX':客户X,#锚 X
@@ -355,14 +359,14 @@ class 轨迹时间线:#全域总览时间线
             自身.草稿={'start':锚时刻,'end':锚时刻}#点选草稿
             return 自身.渲染()#重渲
         if 动作=='pointer-move':#移动
-            客户X=取字段(载荷,'clientX',0)#X
-            轨道左=取字段(载荷,'trackLeft',0)#左
-            轨道宽=取字段(载荷,'trackWidth',1)#宽
+            客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
+            轨道左=载荷['trackLeft'] if 'trackLeft' in 载荷 else 0#左
+            轨道宽=载荷['trackWidth'] if 'trackWidth' in 载荷 else 1#宽
             比例=自身._比例于(客户X,轨道左,轨道宽)#比例
-            记录下标=取字段(载荷,'recordIndex')#记录
+            记录下标=载荷['recordIndex'] if 'recordIndex' in 载荷 else None#记录
             自身.悬停={'fraction':比例,'recordIndex':记录下标}#悬停
             平移=自身._平移手势#平移手势
-            指针标识=取字段(载荷,'pointerId',0)#指针
+            指针标识=载荷['pointerId'] if 'pointerId' in 载荷 else 0#指针
             if 平移 is not None and 平移['pointerId']==指针标识:#右键平移中
                 if abs(客户X-平移['anchorClientX'])>=最小拖动像素:#过阈值
                     平移['moved']=True#记移动
@@ -392,12 +396,12 @@ class 轨迹时间线:#全域总览时间线
             自身.草稿=有序区间(拖动['anchorTime'],点时刻)#草稿选区
             return 自身.渲染()#重渲
         if 动作=='pointer-up':#抬起
-            客户X=取字段(载荷,'clientX',0)#X
-            轨道左=取字段(载荷,'trackLeft',0)#左
-            轨道宽=取字段(载荷,'trackWidth',1)#宽
+            客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
+            轨道左=载荷['trackLeft'] if 'trackLeft' in 载荷 else 0#左
+            轨道宽=载荷['trackWidth'] if 'trackWidth' in 载荷 else 1#宽
             比例=自身._比例于(客户X,轨道左,轨道宽)#比例
-            记录下标=取字段(载荷,'recordIndex')#记录
-            指针标识=取字段(载荷,'pointerId',0)#指针
+            记录下标=载荷['recordIndex'] if 'recordIndex' in 载荷 else None#记录
+            指针标识=载荷['pointerId'] if 'pointerId' in 载荷 else 0#指针
             平移=自身._平移手势#平移
             if 平移 is not None and 平移['pointerId']==指针标识:#结束平移
                 已移=平移['moved'] or abs(客户X-平移['anchorClientX'])>=最小拖动像素#是否移动
@@ -420,7 +424,7 @@ class 轨迹时间线:#全域总览时间线
                 点中跨=next((跨 for 跨 in 模型['spans'] if 跨['index']==拖动['recordIndex']),None)#找
             if 点中跨 is not None:#点中块
                 自身._改选区(None)#清选区
-                选记录=取字段(自身.属性,'onRecordSelect')#选记录
+                选记录=自身.属性['onRecordSelect'] if 'onRecordSelect' in 自身.属性 else None#选记录
                 if callable(选记录):#有
                     选记录(点中跨['index'])#选中
                 return 自身.渲染()#重渲
@@ -440,7 +444,7 @@ class 轨迹时间线:#全域总览时间线
                         return 时间点-跨['end']#距
                     return 0#落在内
                 最近=min(模型['spans'],key=距离)#最近跨度
-                聚焦=取字段(自身.属性,'onRecordFocus')#聚焦回调
+                聚焦=自身.属性['onRecordFocus'] if 'onRecordFocus' in 自身.属性 else None#聚焦回调
                 if callable(聚焦):#有
                     聚焦(最近['index'])#聚焦
             return 自身.渲染()#重渲
@@ -452,8 +456,8 @@ class 轨迹时间线:#全域总览时间线
         自身._校正视口()#再校正视口
         模型=自身._模型()#模型
         几何=自身._域几何(模型)#几何
-        有更早=bool(取字段(自身.属性,'hasEarlierRecords',False))#截断前缀
-        可加载=callable(取字段(自身.属性,'onLoadEarlier'))#有加载
+        有更早=bool(自身.属性['hasEarlierRecords'] if 'hasEarlierRecords' in 自身.属性 else False)#截断前缀
+        可加载=callable(自身.属性['onLoadEarlier'] if 'onLoadEarlier' in 自身.属性 else None)#有加载
         显示更早边界=有更早 and 模型 is not None and 几何['domainStart']==模型['start']#贴左才显示
         if 模型 is None:#无计时数据
             return {#空态
@@ -479,19 +483,19 @@ class 轨迹时间线:#全域总览时间线
         可见比例=草稿比例 if 草稿比例 is not None else 已提交比例#可见选区
         活动区间=自身.草稿 if 自身.草稿 is not None else 选区#活动区间
         明细表=自身._明细表()#明细
-        搜索命中=取字段(自身.属性,'searchMatchIndexes')#搜索
-        选中下标=取字段(自身.属性,'selectedIndex')#选中
+        搜索命中=自身.属性['searchMatchIndexes'] if 'searchMatchIndexes' in 自身.属性 else None#搜索
+        选中下标=自身.属性['selectedIndex'] if 'selectedIndex' in 自身.属性 else None#选中
         模式=自身._模式()#模式
-        跨度们=[]#可见跨度结构
+        跨度列表=[]#可见跨度结构
         for 跨 in 模型['spans']:#逐跨度
             if not (跨['index']==选中下标 or (跨['end']>=域起 and 跨['start']<=域起+域宽)):#不可见
                 continue#跳过
             左=(跨['start']-模型['start'])/全宽#左比例
             宽=(跨['end']-跨['start'])/全宽#宽比例
             宽百分=宽*100#宽%
-            明细=明细表.get(跨['index'])#明细
-            ttft=取字段(明细,'ttftMs') if 明细 else None#TTFT
-            解码=取字段(明细,'decodingMs') if 明细 else None#解码
+            明细=明细表[跨['index']] if 跨['index'] in 明细表 else None#明细
+            ttft=明细['ttftMs'] if 明细 is not None and 'ttftMs' in 明细 else None#TTFT
+            解码=明细['decodingMs'] if 明细 is not None and 'decodingMs' in 明细 else None#解码
             ttft比例=None#助手分段
             if ttft is not None and 解码 is not None and ttft+解码>0:#可分段
                 ttft比例=ttft/(ttft+解码)#TTFT 占比
@@ -505,11 +509,11 @@ class 轨迹时间线:#全域总览时间线
                 样式变量['--trajectory-assistant-ttft']=f'{ttft比例*100}%'#TTFT 宽
             是否选中=None#选区态
             if 活动区间 is not None:#有活动选区
-                是否选中=跨['start']<=取字段(活动区间,'end') and 跨['end']>=取字段(活动区间,'start')#相交
+                是否选中=跨['start']<=活动区间['end'] and 跨['end']>=活动区间['start']#相交
             搜索态=None#搜索态
             if 搜索命中 is not None:#有查询
                 搜索态='true' if 跨['index'] in 搜索命中 else 'false'#命中
-            跨度们.append({#跨度节点
+            跨度列表.append({#跨度节点
                 'type':'timeline-span',#类型
                 'index':跨['index'],#下标
                 'kind':跨['kind'],#种类
@@ -520,23 +524,23 @@ class 轨迹时间线:#全域总览时间线
                 'assistantTiming':ttft比例 is not None,#助手计时
                 'equalDuration':模式=='time',#等时长点
                 'current':跨['index']==选中下标,#当前选中记录
-                'hovered':自身.悬停 is not None and 自身.悬停.get('recordIndex')==跨['index'],#悬停
+                'hovered':自身.悬停 is not None and ('recordIndex' in 自身.悬停) and 自身.悬停['recordIndex']==跨['index'],#悬停
                 'searchMatch':搜索态,#搜索
                 'selected':是否选中,#选区相交
                 'style':样式变量,#变量
             })#跨度结束
-        边界们=[]#回合边界
+        边界列表=[]#回合边界
         for 边界 in 模型['turnBoundaries']:#逐边界
             时刻=边界['time']#时刻
             if not (时刻>模型['start'] and 时刻>=域起 and 时刻<=域起+域宽):#不可见
                 continue#跳过
-            边界们.append({#边界节点
+            边界列表.append({#边界节点
                 'type':'turn-boundary',#类型
                 'turn':边界['turn'],#回合号
                 'style':{'--trajectory-turn-left':f'{(时刻-模型["start"])/全宽*100}%'},#位置
             })#边界结束
         悬停线=None#悬停竖线
-        if 自身.悬停 is not None and 自身.悬停.get('recordIndex') is None and 自身.草稿 is None:#空白悬停
+        if 自身.悬停 is not None and (('recordIndex' not in 自身.悬停) or 自身.悬停['recordIndex'] is None) and 自身.草稿 is None:#空白悬停
             悬停线={#竖线
                 'type':'hover-line',#类型
                 'style':{'--trajectory-hover-left':f'{自身.悬停["fraction"]*100}%'},#位置
@@ -566,8 +570,8 @@ class 轨迹时间线:#全域总览时间线
                     'hoverLine':悬停线,#悬停线
                     'selection':选区层['selection'] if 选区层 else None,#选区
                     'selectionEdges':选区层['selectionEdges'] if 选区层 else None,#边
-                    'turnBoundaries':边界们,#边界
-                    'spans':跨度们,#跨度
+                    'turnBoundaries':边界列表,#边界
+                    'spans':跨度列表,#跨度
                 },#轨道结束
             },#绘图结束
             'css':样式表,#样式

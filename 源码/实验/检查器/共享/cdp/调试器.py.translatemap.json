@@ -1,0 +1,17 @@
+{
+    "call":"调用",
+    "column":"列",
+    "debugger":"调试器",
+    "enable":"启用",
+    "evaluate":"求值",
+    "event":"事件",
+    "frame":"帧",
+    "key":"键",
+    "line":"行",
+    "number":"号",
+    "request":"请求",
+    "resume":"恢复",
+    "runtime":"运行时",
+    "scope":"作用域",
+    "script":"脚本"
+}

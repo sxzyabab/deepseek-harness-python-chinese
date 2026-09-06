@@ -1,0 +1,7 @@
+{
+    "settings-store.ts":"设置存储.py",
+    "section-store.ts":"分区存储.py",
+    "seat-store.ts":"芯片存储.py",
+    "index.ts":"__init__.py",
+    "locales.ts":"文案.py"
+}

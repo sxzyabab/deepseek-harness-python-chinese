@@ -1,45 +1,39 @@
-"""`node:timers/promises`：基于 Worker 定时器全局的真实实现。
+"""`node:timers/promises`：基于线程事件的阻塞延迟。
 
 对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/timers/promises.ts`。
 公开面中文名；Node 面经别名与 default 暴露英文名。
+await 已在翻译时去掉，本面直接阻塞到时限或中止。
 """
+import threading#事件等待
+from ..abort_error import 中止错误,已中止,若已中止则抛出#本包中止原语
+
 __all__=[#中文公开名与Node英文挂名
     '设超时','设立即',
     'setTimeout','setImmediate','scheduler','__esModule','default',
 ]#公开结束
 
-def 中止异常():#被中止的等待所报告的拒绝
-    """按 Node 与 DOM 的拼写构造 AbortError。"""
-    错误=Exception('The operation was aborted.')#基错误
-    错误.name='AbortError'#DOM名
-    return 错误#交回
+def 取信号(选项):#从选项取 Event
+    """选项是 dict；缺席键表示无信号。"""
+    if 选项 is None:#无选项
+        return None#无信号
+    if 'signal' not in 选项:#未给信号
+        return None#无信号
+    return 选项['signal']#Event
 
-def 设超时(延迟毫秒=None,值=None,选项=None):#延迟兑现
-    """延迟后兑现；信号中止时拒绝。"""
-    全局=globals()#宿主全局
-    承诺类=全局.get('Promise')#Promise构造器
+def 设超时(延迟毫秒=None,值=None,选项=None):#延迟后返回
+    """阻塞到延迟结束；信号中止时抛 AbortError。"""
+    信号=取信号(选项)#中止事件
+    若已中止则抛出(信号)#入口已中止
+    秒=0.0 if 延迟毫秒 is None else 延迟毫秒/1000.0#毫秒转秒
+    if 信号 is None:#无中止
+        threading.Event().wait(秒)#纯延迟
+        return 值#到期值
+    if 信号.wait(秒):#等待期间置位
+        raise 中止错误()#取消
+    return 值#到期值
 
-    def 执行(兑现,拒绝):#构造Promise体
-        """武装定时器并监听中止。"""
-        信号=None if 选项 is None else 选项.get('signal') if isinstance(选项,dict) else getattr(选项,'signal',None)#信号
-        if 信号 is not None and getattr(信号,'aborted',False) is True:#已中止
-            拒绝(中止异常())#立即拒绝
-            return#结束
-        定时器=全局['setTimeout'](lambda:兑现(值),延迟毫秒)#武装定时器
-
-        def 中止时(*位置参数):#监听中止
-            """清定时器并拒绝。"""
-            全局['clearTimeout'](定时器)#清定时器
-            拒绝(中止异常())#拒绝
-
-        if 信号 is not None and hasattr(信号,'addEventListener'):#可监听
-            信号.addEventListener('abort',中止时,{'once':True})#只听一次
-
-    if callable(承诺类): return 承诺类(执行)#返回Promise
-    raise Exception('web-preview: Promise is required for node:timers/promises')#无Promise
-
-def 设立即(值=None):#下一宏任务兑现
-    """在下一个宏任务兑现。"""
+def 设立即(值=None):#下一拍返回
+    """零延迟后返回。"""
     return 设超时(0,值)#零延迟
 
 def 等待(延迟毫秒=None,选项=None):#scheduler.wait

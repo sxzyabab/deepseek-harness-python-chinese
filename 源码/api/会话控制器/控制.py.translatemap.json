@@ -13,5 +13,8 @@
     "session":"会话",
     "signal":"信号",
     "take":"取",
-    "wait":"等待"
+    "wait":"等待",
+    "list":"列表",
+    "table":"表",
+    "set":"集合"
 }

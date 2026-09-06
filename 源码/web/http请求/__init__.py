@@ -27,54 +27,48 @@ inject=注入#Cordis依赖声明
 }#配置模式结束
 Config=配置模式#Cordis 配置模式
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
+class 抓取配置错误(Exception):#本包加载时配置错误
+    """web-fetch-http 配置校验失败。"""
+    pass#消息在构造时传入
 
-def 断言正有限(名称字,值):#校验正有限数
+def 断言正有限(名称字,值):#校验正有限数；入口校验
     """资源上限（字节/字符/长度/超时封顶）必须是正有限数。"""
     if isinstance(值,bool) or not isinstance(值,(int,float)) or not math.isfinite(值) or 值<=0:#非正或非有限
-        raise Exception('web-fetch-http: '+名称字+' must be a positive finite number')#字段名进入错误文案
+        raise 抓取配置错误('web-fetch-http: '+名称字+' must be a positive finite number')#字段名进入错误文案
 
 def 断言超时毫秒(值):#校验超时在 Node 定时器范围内
     """Node 会把更大的定时器延迟钳成 1 ms，因此在配置时拒绝它们。"""
     断言正有限('timeoutMs',值)#先要求正有限
     if 值>定时器延迟上限毫秒:#超过 Node 定时器上限
-        raise Exception('web-fetch-http: timeoutMs must be no greater than '+str(定时器延迟上限毫秒))#拒绝过大延迟
+        raise 抓取配置错误('web-fetch-http: timeoutMs must be no greater than '+str(定时器延迟上限毫秒))#拒绝过大延迟
 
-def 断言非负整数(名称字,值):#校验非负整数
+def 断言非负整数(名称字,值):#校验非负整数；先排除 bool
     """重定向跳数上限必须是非负整数（0 表示不跟随重定向）。"""
     if isinstance(值,bool):#布尔不是整数
-        raise Exception('web-fetch-http: '+名称字+' must be a non-negative integer')#字段名进入错误文案
+        raise 抓取配置错误('web-fetch-http: '+名称字+' must be a non-negative integer')#字段名进入错误文案
     if isinstance(值,int):#整型
         if 值<0:#为负
-            raise Exception('web-fetch-http: '+名称字+' must be a non-negative integer')#字段名进入错误文案
+            raise 抓取配置错误('web-fetch-http: '+名称字+' must be a non-negative integer')#字段名进入错误文案
         return#合格
     if isinstance(值,float) and 值.is_integer() and 值>=0:#整值非负浮点
         return#合格
-    raise Exception('web-fetch-http: '+名称字+' must be a non-negative integer')#字段名进入错误文案
+    raise 抓取配置错误('web-fetch-http: '+名称字+' must be a non-negative integer')#字段名进入错误文案
 
 def 应用(上下文对象,配置):#向 ctx.web 注册本地 HTTP(S) 抓取提供方
-    """向 `ctx.web` 注册本地 HTTP(S) 抓取提供方。"""
+    """向 `ctx.web` 注册本地 HTTP(S) 抓取提供方。配置为 dict。"""
     已解析=配置#schemastery（Config）已经填完每个有默认值的字段
-    断言正有限('maxUrlLength',取字段(已解析,'maxUrlLength'))#校验 URL 长度
-    断言正有限('maxResponseBytes',取字段(已解析,'maxResponseBytes'))#校验正文字节
-    断言正有限('maxBodyChars',取字段(已解析,'maxBodyChars'))#校验解码字符
-    断言超时毫秒(取字段(已解析,'timeoutMs'))#校验超时
-    断言非负整数('maxRedirects',取字段(已解析,'maxRedirects'))#校验重定向跳数
+    断言正有限('maxUrlLength',已解析['maxUrlLength'])#校验 URL 长度
+    断言正有限('maxResponseBytes',已解析['maxResponseBytes'])#校验正文字节
+    断言正有限('maxBodyChars',已解析['maxBodyChars'])#校验解码字符
+    断言超时毫秒(已解析['timeoutMs'])#校验超时
+    断言非负整数('maxRedirects',已解析['maxRedirects'])#校验重定向跳数
     上限={#组装传输上限
-        'maxUrlLength':取字段(已解析,'maxUrlLength'),#URL 长度
-        'maxResponseBytes':取字段(已解析,'maxResponseBytes'),#正文字节
-        'maxBodyChars':取字段(已解析,'maxBodyChars'),#解码字符
-        'timeoutMs':取字段(已解析,'timeoutMs'),#超时
-        'maxRedirects':取字段(已解析,'maxRedirects'),#重定向跳数
-        'userAgent':取字段(已解析,'userAgent'),#UA
+        'maxUrlLength':已解析['maxUrlLength'],#URL 长度
+        'maxResponseBytes':已解析['maxResponseBytes'],#正文字节
+        'maxBodyChars':已解析['maxBodyChars'],#解码字符
+        'timeoutMs':已解析['timeoutMs'],#超时
+        'maxRedirects':已解析['maxRedirects'],#重定向跳数
+        'userAgent':已解析['userAgent'],#UA
     }#上限结束
     上下文对象.web.注册抓取提供方(HTTP抓取提供方(上限))#注册进抓取注册表
 

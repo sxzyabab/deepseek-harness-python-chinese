@@ -1,0 +1,18 @@
+{
+    "abort":"中止",
+    "event":"事件",
+    "list":"列表",
+    "block":"块",
+    "classify":"分类",
+    "delta":"增量",
+    "error":"错误",
+    "finish":"结束",
+    "map":"映射",
+    "overflow":"溢出",
+    "reason":"原因",
+    "replay":"回放",
+    "stop":"停止",
+    "stream":"流",
+    "tool":"工具",
+    "usage":"用量"
+}

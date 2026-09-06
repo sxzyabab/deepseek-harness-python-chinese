@@ -41,7 +41,7 @@ def 若存在则状态(路径):#路径存在则stat，缺失则空
     """路径存在则返回 os.stat 结果，缺失则 None。"""
     try:#尝试stat该路径
         return os.stat(路径)#用宿主stat取身份字段
-    except Exception as 错误:#捕获stat失败
+    except OSError as 错误:#捕获stat失败
         if 是否缺失(错误):#缺失则当作不存在
             return None#不存在
         raise 错误#其他错误原样抛出

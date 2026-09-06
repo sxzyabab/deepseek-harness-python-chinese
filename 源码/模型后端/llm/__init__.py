@@ -5,9 +5,10 @@
 """
 import math,threading#有限数与后台观察
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 服务=cordis.服务#服务基类
 from .归属 import 应用身份,用户代理,归属头#再导出归属
-from .品牌 import (
+from .标识构造 import (
     消息标识,#消息身份品牌
     调用标识,#工具调用品牌
     提供方请求标识,#提供方请求品牌
@@ -42,7 +43,7 @@ from .消息 import (
     创建工具结果消息,#创建工具结果消息
     是否词增量,#是否可见增量
 )
-from .重试政策 import 解析重试政策#再导出重试政策
+from .重试政策 import 解析重试政策,重试政策错误#再导出重试政策
 from .组装器 import 块组装器#再导出块组装器
 from .调用配置 import (
     调用配置相等,#配置相等
@@ -63,8 +64,7 @@ __all__=(#仅中文公开名；无英文别名
     '是否上下文窗口溢出','是否配额耗尽','错误链','是否装备错误',
     '上下文窗口超出码','配额超出码','是否上下文窗口超出错误','是否配额超出错误',
     '规范化密钥','断言可用密钥','断言可用接口密钥',
-    '安全整数上限','是否整数','是否安全整数','是否有限','缺席',
-    '中止信号','是否中止信号','内容含图片',
+    '中止信号','内容含图片',
     '语言模型失败','文本块','推理块','图片块','工具调用块','工具结果块',
     '文本模态','图片模态','模型模态','正常停止','工具调用停止','达到令牌上限',
     '令牌用量','提供方信息','可配置提供方','模型发现请求','发现到的模型',
@@ -72,52 +72,43 @@ __all__=(#仅中文公开名；无英文别名
     '工具模式','生成选项',
     '上下文摘要最大字符','截上下文摘要','冻结消息',
     '创建消息','创建用户消息','创建助手消息','创建工具结果消息','是否词增量',
-    '解析重试政策','重试政策模式','块组装器',
+    '解析重试政策','重试政策错误','重试政策模式','块组装器',
     '调用配置相等','深冻结','标记循环请求','是否循环请求','是否冻结','结构化克隆',
     '可弱引用映射','冻结映射','归一化语言模型失败',
-    '语言模型错误','语言模型适配器','适配器注册句柄','目录注册句柄','语言模型运行时','默认',
+    '语言模型错误','语言模型适配器','适配器注册句柄','目录注册句柄','语言模型运行时',
+    '已中止','若已中止则抛出',
     '大模型错误','大模型适配器','大模型运行时',
 )#公开面结束
 
-def 解开(值):#承诺则等待
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#是承诺
-        return 值.等待()#等待承诺
-    return 值#同步值
-
-def 信号已中止(信号):#中止旗标判定
-    """英文 aborted 或中文 已中止 任一为真则视为已中止。"""
+def 已中止(信号):
+    """信号是否已中止。无信号视为未中止。"""
     if 信号 is None:#无信号
-        return False#无信号
-    if getattr(信号,'aborted',False):#英文旗标
-        return True#英文旗标
-    if getattr(信号,'已中止',False):#中文旗标
-        return True#中文旗标
-    return False#未中止
+        return False#未中止
+    return 信号._事件.is_set()#Event 置位
 
 class 语言模型错误(装备错误):#LLM 相关失败的有类型错误
     """LLM 相关失败的有类型错误。"""
     def __init__(自身,消息,码,选项=None):#校验可序列化事实并冻结 failure
         """校验可序列化事实并冻结 failure。"""
         if not isinstance(消息,str) or len(消息)==0:#消息非法
-            raise Exception('LlmError message must be a non-empty string')#消息必须非空
+            raise 装备错误('LlmError message must be a non-empty string','INVALID_ERROR')#消息必须非空
         if not isinstance(码,str) or len(码)==0:#code 非法
-            raise Exception('LlmError code must be a non-empty string')#code 必须非空
+            raise 装备错误('LlmError code must be a non-empty string','INVALID_ERROR')#code 必须非空
         if 选项 is None:#无选项
             选项={}#无选项
         if 'status' in 选项:#有 HTTP 状态
             状态=选项['status']#HTTP 状态
             是整数=isinstance(状态,(int,float)) and not isinstance(状态,bool) and math.isfinite(状态) and 状态==int(状态)#合法整数
             if not 是整数 or 状态<100 or 状态>599:#状态越界
-                raise Exception('LlmError status must be an integer from 100 through 599')#状态越界
+                raise 装备错误('LlmError status must be an integer from 100 through 599','INVALID_ERROR')#状态越界
         if 'providerRetryAfterMs' in 选项:#有建议等待
             等待=选项['providerRetryAfterMs']#建议等待
             if not (isinstance(等待,(int,float)) and not isinstance(等待,bool) and math.isfinite(等待) and 等待>0):#等待非法
-                raise Exception('LlmError providerRetryAfterMs must be a positive finite number')#等待非法
+                raise 装备错误('LlmError providerRetryAfterMs must be a positive finite number','INVALID_ERROR')#等待非法
         if 'requestId' in 选项:#有请求 id
             请求=选项['requestId']#请求 id
             if not isinstance(请求,str) or len(请求)==0:#请求 id 非法
-                raise Exception('LlmError requestId must be a non-empty string')#请求 id 非法
+                raise 装备错误('LlmError requestId must be a non-empty string','INVALID_ERROR')#请求 id 非法
         装备错误.__init__(自身,消息,码,选项)#交给装备错误
         自身.name='LlmError'#固定类名
         事实={'message':消息,'code':码}#可序列化事实
@@ -129,12 +120,21 @@ class 语言模型错误(装备错误):#LLM 相关失败的有类型错误
             事实['requestId']=选项['requestId']#有请求 id 才带上
         自身.failure=深冻结(事实)#冻结可序列化事实
 
+def 若已中止则抛出(信号):
+    """已中止则抛出信号上承载的异常。"""
+    if not 已中止(信号):#未中止
+        return#继续
+    原因=信号._异常#异常对象承载原因
+    if 原因 is None:#无原因
+        raise 语言模型错误('aborted','ABORTED')#默认中止
+    raise 原因#原样抛出
+
 def 断言可用密钥(原始,包名,引用):#接受已提供凭证或拒绝
     """接受一条已提供凭证，或因其无法使用而拒绝。"""
     判定=规范化密钥(原始)#判定已提供密钥
-    if 判定.get('ok'):#通过
+    if 'ok' in 判定 and 判定['ok']:#通过
         return 判定['value']#通过则返回修剪后的密钥
-    if 判定.get('reason')=='empty':#空密钥
+    if 'reason' in 判定 and 判定['reason']=='empty':#空密钥
         文案=包名+': the API key resolved from '+引用+' is blank; set '+引用+' to the raw key (the web Models page writes it) or export it in the launching environment'#空密钥诊断
     else:#非法字符
         文案=包名+': the API key resolved from '+引用+' contains characters no HTTP header can carry; set '+引用+' to the raw key alone (the web Models page writes it)'#非法字符诊断
@@ -196,25 +196,13 @@ class 语言模型运行时(服务):#抽象的 llm 服务
     def 发出适配器已更新(自身):#通知拓扑观察者
         """通知拓扑观察者，不让一个坏监听器否决提交。"""
         参数=['llm/adapters-updated']#派发参数
-        监听器们=自身.ctx.events.dispatch('emit',参数)#逐个监听器
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        监听器列表=获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数)#逐个监听器
         不变量失败=None#记下第一个不变量失败
-        for 监听器 in 监听器们:#逐个监听器
+        for 监听器 in 监听器列表:#逐个监听器
             try:#独立收住
-                返回=监听器()#调用监听器
-                if 返回 is not None and callable(getattr(返回,'then',None)):#返回了 thenable
-                    def 收住(任务=返回):#吞掉异步失败
-                        """吞掉异步失败，避免未处理拒绝。"""
-                        try:#等待结算
-                            if hasattr(任务,'wait'):#Future 风格
-                                任务.wait()#等待
-                            elif hasattr(任务,'等待'):#本库承诺
-                                任务.等待()#等待承诺
-                            else:#外来 thenable
-                                任务.等待()#尽力等待
-                        except Exception as 错误:#拒绝
-                            自身.警告适配器监听失败(错误)#记诊断
-                    threading.Thread(target=收住,daemon=True).start()#线程收住
-            except Exception as 错误:#同步抛出
+                监听器()#同步调用
+            except Exception as 错误:#监听器契约未收窄抛出类型，按 code 字段识别不变量
                 if getattr(错误,'code',None)=='INVARIANT':#不变量失败
                     if 不变量失败 is None:#只保留第一个
                         不变量失败=错误#只保留第一个
@@ -225,8 +213,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
 
     def 警告适配器监听失败(自身,错误):#记下监听器失败
         """同步与异步失败路径共用的、已收住监听器诊断。"""
-        自身.ctx.logger.warn('llm: an llm/adapters-updated listener failed')#警告文案
-        自身.ctx.logger.warn(错误)#附带错误
+        自身.ctx.日志.警告('llm: an llm/adapters-updated listener failed')#警告文案
+        自身.ctx.日志.警告(错误)#附带错误
 
     def 注册适配器(自身,提供方列表,适配器):#为给定提供方路由注册适配器
         """为给定提供方路由注册适配器。全有或全无，随光纤拆除。"""
@@ -246,7 +234,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 持有.clear()#清空持有
                 自身.发出适配器已更新()#通知观察者
             yield 拆除#登记拆除
-        释放=自身.ctx.effect(执行体,'llm.registerAdapter()')#绑到本运行时
+        释放=自身.ctx.副作用(执行体,'llm.registerAdapter()')#绑到本运行时
         def 同步拆除():#丢掉 effect 返回值的同步拆除
             """丢掉 effect 返回值的同步拆除。"""
             释放()#拆除
@@ -267,7 +255,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             if 提供方 in 已见 or (提供方 in 自身.适配器表 and 提供方 not in 持有):#冲突
                 raise 语言模型错误('an adapter for provider "'+提供方+'" is already registered','DUPLICATE_ADAPTER')#冲突
             信息=适配器.提供方信息(提供方)#适配器给出的元数据
-            if not isinstance(信息.get('id'),str) or 信息.get('id')!=提供方 or not isinstance(信息.get('name'),str) or len(信息.get('name') or '')==0:#元数据非法
+            if 'id' not in 信息 or not isinstance(信息['id'],str) or 信息['id']!=提供方 or 'name' not in 信息 or not isinstance(信息['name'],str) or len(信息['name'])==0:#元数据非法
                 raise 语言模型错误('adapter metadata for provider "'+提供方+'" must preserve its id and have a non-empty name','INVALID_ADAPTER')#元数据非法
             已见.add(提供方)#记下本批已见
             政策=适配器.提供方重试政策(提供方)#适配器给出的政策
@@ -347,7 +335,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 持有=[]#清空持有
                 自身.发出适配器已更新()#通知观察者
             yield 拆除#登记拆除
-        释放=自身.ctx.effect(执行体,'llm.registerConfigurableProviders()')#绑到本运行时
+        释放=自身.ctx.副作用(执行体,'llm.registerConfigurableProviders()')#绑到本运行时
         def 同步拆除():#同步拆除
             """同步拆除。"""
             释放()#拆除
@@ -380,7 +368,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 """撤回要约。"""
                 自身.发现表.pop(设置命名空间,None)#撤回要约
             yield 拆除#登记拆除
-        释放=自身.ctx.effect(执行体,'llm.registerModelDiscovery()')#绑到本运行时
+        释放=自身.ctx.副作用(执行体,'llm.registerModelDiscovery()')#绑到本运行时
         def 同步拆除():#同步拆除
             """同步拆除。"""
             释放()#拆除
@@ -399,9 +387,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         端点=请求.get('baseURL') or ''#可选端点
         if len(路由)==0 and len(端点)==0:#路由与端点都空
             raise 语言模型错误('model discovery needs a provider route or a baseURL','INVALID_DISCOVERY')#缺少目标
-        通告=解开(发现(请求))#询问端点并展平承诺
+        通告=发现(请求)#发现回调已是同步，直取通告
         已见=set()#已见 id
-        模型们=[]#去重结果
+        模型列表=[]#去重结果
         for 模型 in 通告:#逐个通告
             标识=模型.get('id')#模型 id
             if not isinstance(标识,str) or len(标识)==0 or 标识 in 已见:#非法或重复
@@ -414,8 +402,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 候选['contextWindow']=模型['contextWindow']#有窗口才带上
             if 'maxTokens' in 模型:#有上限
                 候选['maxTokens']=模型['maxTokens']#有上限才带上
-            模型们.append(候选)#记下
-        return 模型们#去重后的候选
+            模型列表.append(候选)#记下
+        return 模型列表#去重后的候选
 
     def 提供方重试政策(自身,提供方):#取出提供方政策
         """解析一条提供方路由注册时捕获的重试政策。"""
@@ -430,10 +418,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
     def 列出模型(自身,提供方):#发现一条已注册提供方通告的模型
         """发现一条已注册提供方通告的模型。"""
         适配器=自身.取注册(提供方)['adapter']#取出适配器
-        模型们=解开(适配器.列出模型(提供方))#询问目录并展平承诺
+        模型列表=适配器.列出模型(提供方)#列出模型已是同步，直取目录
         已见=set()#已见 id
         结果=[]#拆离结果
-        for 模型 in 模型们:#逐个模型
+        for 模型 in 模型列表:#逐个模型
             描述非法='description' in 模型 and not isinstance(模型['description'],str)#描述类型错
             非法=not isinstance(模型.get('provider'),str) or 模型.get('provider')!=提供方 or not isinstance(模型.get('id'),str) or len(模型.get('id') or '')==0 or not isinstance(模型.get('name'),str) or len(模型.get('name') or '')==0 or 描述非法 or 模型.get('id') in 已见#元数据非法或重复
             if 非法:#目录非法
@@ -455,7 +443,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
     def 按注册解析模型信息(自身,注册,模型,信号=None):#按已捕获注册解析模型信息
         """按已捕获注册解析模型信息。"""
         提供方=注册['provider']['id']#注册的提供方 id
-        已解析=解开(注册['adapter'].解析模型(提供方,模型,信号))#询问适配器并展平承诺
+        已解析=注册['adapter'].解析模型(提供方,模型,信号)#解析模型已是同步，直取元数据
         描述非法='description' in 已解析 and not isinstance(已解析['description'],str)#描述类型错
         if not isinstance(已解析.get('provider'),str) or 已解析.get('provider')!=提供方 or not isinstance(已解析.get('id'),str) or 已解析.get('id')!=模型 or not isinstance(已解析.get('name'),str) or len(已解析.get('name') or '')==0 or 描述非法:#身份非法
             raise 语言模型错误('adapter returned invalid exact model metadata for provider "'+提供方+'" model "'+模型+'"','INVALID_MODEL_INFO')#精确模型元数据非法
@@ -486,7 +474,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         if len(推理['efforts'])==0:#力度列表空
             raise 语言模型错误('adapter returned invalid reasoning metadata for provider "'+提供方+'" model "'+模型+'"','INVALID_MODEL_REASONING')#推理元数据非法
         已见=set()#已见力度 id
-        力度们=[]#拆离力度
+        力度列表=[]#拆离力度
         for 力度 in 推理['efforts']:#逐档力度
             力度描述非法='description' in 力度 and not isinstance(力度['description'],str)#描述类型错
             非法=not isinstance(力度.get('id'),str) or len(力度.get('id') or '')==0 or not isinstance(力度.get('name'),str) or len(力度.get('name') or '')==0 or 力度描述非法 or 力度.get('id') in 已见#力度元数据非法或重复
@@ -496,10 +484,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             条目={'id':力度['id'],'name':力度['name']}#拆离力度
             if 'description' in 力度:#有描述
                 条目['description']=力度['description']#有描述才带上
-            力度们.append(条目)#记下
+            力度列表.append(条目)#记下
         if 'defaultEffort' in 推理 and 推理['defaultEffort'] not in 已见:#未知默认力度
             raise 语言模型错误('adapter returned an unknown default reasoning effort for provider "'+提供方+'" model "'+模型+'"','INVALID_MODEL_REASONING')#未知默认力度
-        信息['reasoning']={'efforts':力度们}#推理元数据
+        信息['reasoning']={'efforts':力度列表}#推理元数据
         if 'defaultEffort' in 推理:#有默认
             信息['reasoning']['defaultEffort']=推理['defaultEffort']#有默认才带上
         return 信息#带上推理
@@ -579,30 +567,30 @@ class 语言模型运行时(服务):#抽象的 llm 服务
 
     def 按适配器过滤(自身,选项,适配器):#去掉他适配器拥有的回放状态
         """去掉其历史路由由另一适配器拥有的回放状态。"""
-        消息们=[]#过滤后的消息
+        消息列表=[]#过滤后的消息
         原消息=选项['messages']#原列表
         for 消息 in 原消息:#逐条消息
             来源=消息['source']#来源
             if 消息.get('role')!='assistant' or 来源.get('kind')!='model' or 'replayState' not in 来源:#无需过滤
-                消息们.append(消息)#无需过滤
+                消息列表.append(消息)#无需过滤
             elif 自身.适配器表.get(来源.get('provider'),{}).get('adapter') is 适配器:#同一适配器
-                消息们.append(消息)#同一适配器实例则保留
+                消息列表.append(消息)#同一适配器实例则保留
             else:#剥掉回放状态
                 新来源={'kind':'model','provider':来源['provider'],'model':来源['model']}#不含 replayState
                 新消息=dict(消息)#其余字段
                 新消息['source']=新来源#写回来源
-                消息们.append(冻结消息(新消息))#剥掉回放状态
+                消息列表.append(冻结消息(新消息))#剥掉回放状态
         下标=0#核对身份
         全同=True#默认无改动
-        while 下标<len(消息们):#尚未比完
-            if 消息们[下标] is not 原消息[下标]:#身份变了
+        while 下标<len(消息列表):#尚未比完
+            if 消息列表[下标] is not 原消息[下标]:#身份变了
                 全同=False#身份变了
                 break#找到即停
             下标+=1#下一条
         if 全同:#没有任何改动
             return 选项#没有任何改动
         过滤后=dict(选项)#带过滤后的消息
-        过滤后['messages']=消息们#写入消息
+        过滤后['messages']=消息列表#写入消息
         if 是否冻结(选项):#原请求冻结
             return 深冻结(过滤后)#原请求冻结则结果也冻结
         return 过滤后#可变请求
@@ -631,9 +619,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 已解析选项=dict(选项)#合并可变请求
                 已解析选项.update(已解析配置)#写入配置字段
             适配器=注册['adapter']#目标适配器
-            流=解开(适配器.流式(自身.按适配器过滤(已解析选项,适配器)))#打开过滤后的流并展平承诺
+            流=适配器.流式(自身.按适配器过滤(已解析选项,适配器))#流式已是同步生成器，直取
             迭代器=iter(流)#取出迭代器
-        except Exception as 错误:#选择或打开失败
+        except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块
             yield 适配器失败块(错误,选项.get('signal'))#变成终止失败块
             return#结束生成器
         已完成=False#迭代是否已正常结束
@@ -644,7 +632,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                     项={'done':False,'value':值}#还有值
                 except StopIteration:#适配器结束
                     项={'done':True}#终止
-                except Exception as 错误:#迭代失败
+                except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块
                     已完成=True#不再交还迭代器
                     yield 适配器失败块(错误,选项.get('signal'))#变成终止失败块
                     return#结束生成器
@@ -655,9 +643,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         finally:#生成器被提前关掉
             if not 已完成 and 迭代器 is not None:#迭代尚未完成
                 关闭=getattr(迭代器,'close',None)#可选的 close
-                if 关闭 is None:#没有 close
-                    关闭=getattr(迭代器,'return',None)#可选的 return
-                if 关闭:#有关闭方法
+                if 关闭 is not None:#有 close
                     关闭()#通知适配器取消
 
     def 流式(自身,选项):#公开流式调用
@@ -669,13 +655,13 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         def 内层(*位置参数):#最终适配器边界
             """最终适配器边界；忽略瀑布多余参数，对齐 JS 函数。"""
             return 自身.适配器流(选项,已准备)#适配器流
-        return 自身.ctx.waterfall(自身,'llm/stream',选项,内层)#走 llm/stream 瀑布
+        return 自身.ctx.链式拦截(自身,'llm/stream',选项,内层)#走 llm/stream 瀑布
 
 def 适配器失败块(错误,信号=None):#把适配器抛出转换成终止结果
     """把一次适配器抛出转换成流协议的终止结果。"""
     失败=归一化语言模型失败(错误)#归一化为失败事实
-    已中止=信号已中止(信号)#调用方中止
-    if 已中止 or 失败.get('code')=='ABORTED':#中止
+    调用方中止=已中止(信号)#调用方中止
+    if 调用方中止 or ('code' in 失败 and 失败['code']=='ABORTED'):#中止
         原因={'kind':'aborted','failure':失败}#中止
     else:#错误
         原因={'kind':'error','failure':失败}#错误

@@ -5,7 +5,7 @@
 from ..cordis服务端 import 宿主内置巡检#宿主内置巡检数据
 from .接口目录 import 事件目录,查询服务目录,查询事件目录#目录与查询
 
-__all__=['宿主巡检提供方们','宿主巡检提供方','hostInspectProviders']#仅中文公开名
+__all__=['列出宿主巡检提供方']#仅中文公开名
 
 空输入={'type':'object','properties':{},'additionalProperties':False}#空对象输入模式
 任意输出={'description':'JSON data owned by this inspect provider.'}#任意 JSON 输出说明
@@ -59,7 +59,7 @@ def 登记(标识,说明,方法,查询,输入模式=None,输出模式=None):#组
         'query':执行,#查询
     }#登记
 
-def 宿主巡检提供方们(上下文):#构造宿主巡检提供方
+def 列出宿主巡检提供方(上下文):#构造宿主巡检提供方
     """基于生成目录、求值器声明与现场工具作用域构造宿主提供方。"""
     def 查服务(输入):#服务查询
         return 查询服务目录(读精确(输入,'service'))#按键
@@ -91,6 +91,3 @@ def 宿主巡检提供方们(上下文):#构造宿主巡检提供方
             'query':工具查询,#查询
         },#工具
     ]#列表
-
-宿主巡检提供方=宿主巡检提供方们#别名
-hostInspectProviders=宿主巡检提供方们#上游名

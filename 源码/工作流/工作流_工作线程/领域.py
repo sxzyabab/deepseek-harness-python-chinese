@@ -6,26 +6,17 @@ class 物化错误(Exception):#领域物化失败
     def __init__(自身,路径,原因):#记下路径与原因
         """记下路径与原因。"""
         Exception.__init__(自身,路径+': '+原因)#拼成错误消息
-        自身.path=路径#英文路径
-        自身.路径=路径#中文路径
-        自身.reason=原因#英文原因
-        自身.原因=原因#中文原因
+        自身.路径=路径#出事路径
+        自身.原因=原因#出事原因
         自身.name='MaterializeError'#固定错误名
 
 def 渲染抛出(错误):#把抛出值收成可记录字符串
     """把抛出值渲染成失败文本且永不抛错：优先 stack（宿主或领域——领域错误的 stack 是普通字符串读取），再回退到 message，然后 str()。读取这些属性可能跑脚本代码（getter、toString）——在本模块的信任前提下可接受；若那段代码自己抛错，则返回固定标签。"""
-    try:#尝试读取 stack/message 或强制转字符串
-        堆栈=getattr(错误,'stack',None) if 错误 is not None else None#尝试读堆栈
-        if isinstance(堆栈,str) and len(堆栈)>0:#有非空堆栈则用它
-            return 堆栈#返回堆栈
-        消息=getattr(错误,'message',None) if 错误 is not None else None#尝试读消息
-        if isinstance(消息,str) and len(消息)>0:#有非空消息则用它
-            return 消息#返回消息
-        if isinstance(错误,BaseException) and str(错误):#异常的字符串形式
+    try:#尝试把抛出值收成字符串
+        if isinstance(错误,BaseException) and len(str(错误))>0:#异常的字符串形式非空；判 length
             return str(错误)#返回字符串
         return str(错误)#最后强制转字符串
-    except Exception:#访问器或 toString 自己抛错
-        # 抛出值上的访问器/toString 抛错——渲染必须完备（drive() 永不拒绝约定），因此回退到固定标签。
+    except Exception:#str() 对任意抛出值没有收窄契约
         return '[unrenderable thrown value]'#转换失败时返回固定标签
 
 def 是否普通原型(值):#判断是否为普通对象原型链

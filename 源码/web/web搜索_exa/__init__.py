@@ -26,32 +26,22 @@ inject=注入#Cordis依赖声明
 }#配置模式结束
 Config=配置#Cordis配置模式
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
 def 应用(上下文,配置值):#向 ctx.web 注册 Exa 搜索提供方
-    """向 `ctx.web` 注册 Exa 搜索提供方。"""
-    密钥=取字段(配置值,'apiKey')#配置层密钥
+    """向 `ctx.web` 注册 Exa 搜索提供方。配置值为 dict；启动环境条目为 dict。"""
+    密钥=配置值['apiKey'] if 'apiKey' in 配置值 else None#配置层密钥
     if 密钥 is None:#配置未给
         环境项=取启动环境(上下文).取('EXA_API_KEY')#启动环境
         if 环境项 is not None:#有环境项
-            密钥=取字段(环境项,'value')#取值
+            密钥=环境项['value']#取值
         else:#无环境
             密钥=''#空 → 不可用
-    基址=取字段(配置值,'baseURL')#配置基址
+    基址=配置值['baseURL'] if 'baseURL' in 配置值 else None#配置基址
     if 基址 is None:#未给
         基址=默认基址#公开 API
-    检索=取字段(配置值,'searchType')#配置检索模式
+    检索=配置值['searchType'] if 'searchType' in 配置值 else None#配置检索模式
     if 检索 is None:#未给
         检索=默认检索模式#默认 auto
-    高亮数=取字段(配置值,'highlightsPerResult')#配置高亮句数
+    高亮数=配置值['highlightsPerResult'] if 'highlightsPerResult' in 配置值 else None#配置高亮句数
     if 高亮数 is None:#未给
         高亮数=默认每条高亮数#默认 1
     选项={#已解析提供方选项
@@ -60,9 +50,8 @@ def 应用(上下文,配置值):#向 ctx.web 注册 Exa 搜索提供方
         'searchType':检索,#检索模式
         'highlightsPerResult':高亮数,#高亮句数
     }#选项骨架
-    条数=取字段(配置值,'numResults')#可选默认结果数
-    if 条数 is not None:#有默认结果数才传入
-        选项['numResults']=条数#带上
+    if 'numResults' in 配置值 and 配置值['numResults'] is not None:#有默认结果数才传入
+        选项['numResults']=配置值['numResults']#带上
     上下文.web.注册搜索提供方(Exa搜索提供方(选项))#注册进搜索注册表
 
 apply=应用#Cordis插件入口

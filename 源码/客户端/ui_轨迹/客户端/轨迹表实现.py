@@ -7,7 +7,7 @@
 """
 import json#系统提示词工具目录差分
 import os#同目录样式路径
-from .轨迹记录 import 轨迹记录身份,格式化已用秒数,取字段#记录面
+from .轨迹记录 import 轨迹记录身份,格式化已用秒数#记录面
 from .虚拟行 import 编组轨迹虚拟行,轨迹虚拟记录键#虚拟行
 from .轨迹表投影 import (#投影纯函数
     底部跟随阈值像素,
@@ -88,7 +88,7 @@ class 轨迹表:#账本 + 详情检查器
 
     def __init__(自身,属性=None):#可选 props
         """记下 props 与检查器局部状态。"""
-        自身.属性=属性 or {}#合成
+        自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身.选中记录身份=None#检查器记录 id
         自身.选中请求=None#检查器请求
         自身.活动标签='overview'#详情标签
@@ -105,69 +105,71 @@ class 轨迹表:#账本 + 详情检查器
 
     def 更新(自身,属性):#刷新 props
         """刷新 props 并消化外部选择/焦点/巡检。"""
-        自身.属性=属性 or {}#新
+        自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身._消化外部选择()#选择
         自身._消化外部焦点()#焦点
         自身._消化巡检调用()#巡检
 
     def _消化外部选择(自身):#外部 recordSelection
         """一次性外部选中。"""
-        选择=取字段(自身.属性,'recordSelection')#选择
+        选择=(自身.属性['recordSelection'] if 'recordSelection' in 自身.属性 else None)#选择
         if 选择 is None or 选择 is 自身.已应用记录选择:#无/已用
             return#停
         自身.已应用记录选择=选择#记
-        自身.选中记录(取字段(选择,'index'))#选
+        自身.选中记录(选择['index'])#选
         全部=自身._全部记录()#全部
-        记录=next((候 for 候 in 全部 if 取字段(取字段(候,'cell'),'index')==取字段(选择,'index')),None)#找
-        自身.待滚记录身份=None if 记录 is None else 轨迹记录身份(取字段(记录,'cell'))#待滚
+        记录=next((候 for 候 in 全部 if 候['cell']['index']==选择['index']),None)#找
+        自身.待滚记录身份=None if 记录 is None else 轨迹记录身份(记录['cell'])#待滚
 
     def _消化外部焦点(自身):#外部 recordFocus
         """一次性外部焦点（不改检查器选中）。"""
-        焦点=取字段(自身.属性,'recordFocus')#焦点
+        焦点=(自身.属性['recordFocus'] if 'recordFocus' in 自身.属性 else None)#焦点
         if 焦点 is None or 焦点 is 自身.已应用记录焦点:#无/已用
             return#停
         自身.已应用记录焦点=焦点#记
         全部=自身._全部记录()#全部
-        记录=next((候 for 候 in 全部 if 取字段(取字段(候,'cell'),'index')==取字段(焦点,'index')),None)#找
-        自身.待滚记录身份=None if 记录 is None else 轨迹记录身份(取字段(记录,'cell'))#待滚
+        记录=next((候 for 候 in 全部 if 候['cell']['index']==焦点['index']),None)#找
+        自身.待滚记录身份=None if 记录 is None else 轨迹记录身份(记录['cell'])#待滚
 
     def _消化巡检调用(自身):#inspectCallId
         """跨视图巡检：打开调用摘要。"""
-        调用=取字段(自身.属性,'inspectCallId')#调用
+        调用=(自身.属性['inspectCallId'] if 'inspectCallId' in 自身.属性 else None)#调用
         if 调用 is None:#无
             return#停
-        全部=展平记录(取字段(自身.属性,'turns') or [])#展平
-        目标=next((候 for 候 in 全部 if 取字段(取字段(候,'cell'),'callId')==调用),None)#找
+        全部=展平记录(自身.属性['turns'] if 'turns' in 自身.属性 else None)#展平；缺席由 展平记录 按 ?? [] 收
+        目标=next((候 for 候 in 全部 if (候['cell']['callId'] if 'callId' in 候['cell'] else None)==调用),None)#找
         if 目标 is None:#未解析
             return#等历史
         自身.打开记录摘要(目标)#开
-        自身.待滚记录身份=轨迹记录身份(取字段(目标,'cell'))#待滚
-        应答=取字段(自身.属性,'onInspectApplied')#应答
+        自身.待滚记录身份=轨迹记录身份(目标['cell'])#待滚
+        应答=(自身.属性['onInspectApplied'] if 'onInspectApplied' in 自身.属性 else None)#应答
         if callable(应答):#有
             应答()#应答
 
     def _全部记录(自身):#当前展平
         """当前 turns 展平。"""
-        return 展平记录(取字段(自身.属性,'turns') or [])#展平
+        return 展平记录(自身.属性['turns'] if 'turns' in 自身.属性 else None)#展平；缺席由 展平记录 按 ?? [] 收
 
     def _流式格表(自身):#流式格按 index
         """streamingCells → index 映射。"""
-        return {取字段(格,'index'):格 for 格 in (取字段(自身.属性,'streamingCells') or [])}#表
+        格列表=自身.属性['streamingCells'] if 'streamingCells' in 自身.属性 else None#可选；TS 默认 []
+        return {格['index']:格 for 格 in ([] if 格列表 is None else 格列表)}#?? []；空表保留
 
     def _当前记录(自身,记录):#叠流式格
         """用流式格替换结构格。"""
-        流式=自身._流式格表().get(取字段(取字段(记录,'cell'),'index'))#流式
+        流式表=自身._流式格表()#流式表
+        流式=流式表[记录['cell']['index']] if 记录['cell']['index'] in 流式表 else None#流式
         return 记录 if 流式 is None else dict(记录,cell=流式)#叠
 
     def _可见记录(自身):#搜索/折叠后
         """过滤或折叠后的账本记录。"""
         全部=自身._全部记录()#全部
-        匹配=取字段(自身.属性,'searchMatchIndexes')#搜索
+        匹配=(自身.属性['searchMatchIndexes'] if 'searchMatchIndexes' in 自身.属性 else None)#搜索
         if 匹配 is not None:#搜索态
             return 过滤记录(全部,匹配)#过滤
-        折叠轮=取字段(自身.属性,'collapsedTurns') or set()#折轮
+        折叠轮=(自身.属性['collapsedTurns'] if 'collapsedTurns' in 自身.属性 else None) or set()#折轮
         轮记录=全部 if len(折叠轮)==0 else 折叠轮次记录(全部,折叠轮)#折轮
-        折叠助=取字段(自身.属性,'collapsedAssistants') or set()#折助
+        折叠助=(自身.属性['collapsedAssistants'] if 'collapsedAssistants' in 自身.属性 else None) or set()#折助
         return 轮记录 if len(折叠助)==0 else 折叠助手记录(轮记录,折叠助)#折助
 
     def 激活标签(自身,标签):#切换详情标签
@@ -185,26 +187,26 @@ class 轨迹表:#账本 + 详情检查器
     def 清空全部选中(自身):#清宿主+检查器
         """清检查器并通知宿主。"""
         自身.清空检查器()#检查器
-        回调=取字段(自身.属性,'onClearSelection')#宿主
+        回调=(自身.属性['onClearSelection'] if 'onClearSelection' in 自身.属性 else None)#宿主
         if callable(回调):#有
             回调()#回调
 
     def 选中记录(自身,下标):#按 index 选记录
         """选中账本记录并挑可用标签。"""
         全部=自身._全部记录()#全部
-        记录=next((候 for 候 in 全部 if 取字段(取字段(候,'cell'),'index')==下标),None)#找
-        回调=取字段(自身.属性,'onRecordSelect')#回调
+        记录=next((候 for 候 in 全部 if 候['cell']['index']==下标),None)#找
+        回调=(自身.属性['onRecordSelect'] if 'onRecordSelect' in 自身.属性 else None)#回调
         if callable(回调):#有
             回调(下标)#通知
         自身.选中请求=None#清请求
-        自身.选中记录身份=None if 记录 is None else 轨迹记录身份(取字段(记录,'cell'))#身份
+        自身.选中记录身份=None if 记录 is None else 轨迹记录身份(记录['cell'])#身份
         if 记录 is None:#无
             return#停
-        页们=详情标签页(记录)#页
-        可用={页['id'] for 页 in 页们}#可用
+        页列表=详情标签页(记录)#页
+        可用={页['id'] for 页 in 页列表}#可用
         近用=next((标签 for 标签 in reversed(自身.标签历史) if 标签 in 可用),None)#近用
-        自身.活动标签=近用 or (页们[0]['id'] if 页们 else 'overview')#活动
-        变=取字段(自身.属性,'onSelectedIndexChange')#变
+        自身.活动标签=近用 or (页列表[0]['id'] if 页列表 else 'overview')#活动
+        变=(自身.属性['onSelectedIndexChange'] if 'onSelectedIndexChange' in 自身.属性 else None)#变
         if callable(变):#有
             变(下标)#通知
 
@@ -217,42 +219,42 @@ class 轨迹表:#账本 + 详情检查器
     def 打开记录摘要(自身,目标):#打开摘要并展开折叠
         """必要时展开轮次/助手后打开 overview。"""
         全部=自身._全部记录()#全部
-        位=next((下标 for 下标,候 in enumerate(全部) if 取字段(取字段(候,'cell'),'index')==取字段(取字段(目标,'cell'),'index')),-1)#位
-        折轮=取字段(自身.属性,'collapsedTurns') or set()#折轮
-        切轮=取字段(自身.属性,'onToggleTurn')#切轮
-        if 取字段(目标,'turn') is not None and 取字段(目标,'turn') in 折轮 and callable(切轮):#需展轮
-            切轮(取字段(目标,'turn'))#展
-        种类=取字段(取字段(目标,'cell'),'kind')#种类
+        位=next((下标 for 下标,候 in enumerate(全部) if 候['cell']['index']==目标['cell']['index']),-1)#位
+        折轮=(自身.属性['collapsedTurns'] if 'collapsedTurns' in 自身.属性 else None) or set()#折轮
+        切轮=(自身.属性['onToggleTurn'] if 'onToggleTurn' in 自身.属性 else None)#切轮
+        if 目标['turn'] is not None and 目标['turn'] in 折轮 and callable(切轮):#需展轮
+            切轮(目标['turn'])#展
+        种类=目标['cell']['kind']#种类
         if 种类 in ('tool','subtool') and 位>0:#工具需展助手
-            折助=取字段(自身.属性,'collapsedAssistants') or set()#折助
-            切助=取字段(自身.属性,'onToggleAssistant')#切助
+            折助=(自身.属性['collapsedAssistants'] if 'collapsedAssistants' in 自身.属性 else None) or set()#折助
+            切助=(自身.属性['onToggleAssistant'] if 'onToggleAssistant' in 自身.属性 else None)#切助
             for 候 in reversed(全部[:位]):#向前
-                if 取字段(候,'turn')!=取字段(目标,'turn'):#出轮
+                if 候['turn']!=目标['turn']:#出轮
                     break#停
-                if 取字段(取字段(候,'cell'),'kind')!='message':#非助手
+                if 候['cell']['kind']!='message':#非助手
                     continue#跳
-                助身份=轨迹记录身份(取字段(候,'cell'))#身份
+                助身份=轨迹记录身份(候['cell'])#身份
                 if 助身份 in 折助 and callable(切助):#需展
                     切助(助身份)#展
                 break#停
         自身.选中请求=None#清请求
-        自身.选中记录身份=轨迹记录身份(取字段(目标,'cell'))#身份
+        自身.选中记录身份=轨迹记录身份(目标['cell'])#身份
         自身.激活标签('overview')#概览
 
     def 打开调用摘要(自身,调用标识):#按 callId
         """解析 callId 后打开摘要。"""
-        目标=next((候 for 候 in 自身._全部记录() if 取字段(取字段(候,'cell'),'callId')==调用标识),None)#找
+        目标=next((候 for 候 in 自身._全部记录() if (候['cell']['callId'] if 'callId' in 候['cell'] else None)==调用标识),None)#找
         if 目标 is not None:#有
             自身.打开记录摘要(目标)#开
 
     def 处理动作(自身,动作,载荷=None):#动作分发
         """结构树交互：选中、折叠、加载更早、标签、拖拽宽。"""
-        载荷=载荷 or {}#载荷
+        载荷={} if 载荷 is None else 载荷#?? {}；缺席才空表，空 dict 保留
         if 动作=='select-record':#选记录
-            自身.选中记录(取字段(载荷,'index'))#选
+            自身.选中记录((载荷['index'] if 'index' in 载荷 else None))#选
             return#已
         if 动作=='select-request':#选请求
-            自身.选择请求({'turn':取字段(载荷,'turn'),'group':取字段(载荷,'group'),**({'seq':取字段(载荷,'seq')} if 取字段(载荷,'seq') is not None else {})},取字段(载荷,'tab','overview'))#选
+            自身.选择请求({'turn':(载荷['turn'] if 'turn' in 载荷 else None),'group':(载荷['group'] if 'group' in 载荷 else None),**({'seq':(载荷['seq'] if 'seq' in 载荷 else None)} if (载荷['seq'] if 'seq' in 载荷 else None) is not None else {})},(载荷['tab'] if 'tab' in 载荷 else 'overview'))#选
             return#已
         if 动作=='clear-inspector':#清检查器
             自身.清空检查器()#清
@@ -261,46 +263,46 @@ class 轨迹表:#账本 + 详情检查器
             自身.清空全部选中()#清
             return#已
         if 动作=='activate-tab':#标签
-            自身.激活标签(取字段(载荷,'tab','overview'))#切
+            自身.激活标签((载荷['tab'] if 'tab' in 载荷 else 'overview'))#切
             return#已
         if 动作=='toggle-thinking':#思考
             自身.思考展开=not 自身.思考展开#翻
             return#已
         if 动作=='set-thinking':#写思考
-            自身.思考展开=bool(取字段(载荷,'expanded',False))#写
+            自身.思考展开=bool((载荷['expanded'] if 'expanded' in 载荷 else False))#写
             return#已
         if 动作=='open-call':#开调用
-            自身.打开调用摘要(取字段(载荷,'callId'))#开
+            自身.打开调用摘要((载荷['callId'] if 'callId' in 载荷 else None))#开
             return#已
         if 动作=='open-record':#开记录
-            目标=next((候 for 候 in 自身._全部记录() if 取字段(取字段(候,'cell'),'index')==取字段(载荷,'index')),None)#找
+            目标=next((候 for 候 in 自身._全部记录() if 候['cell']['index']==(载荷['index'] if 'index' in 载荷 else None)),None)#找
             if 目标 is not None:#有
                 自身.打开记录摘要(目标)#开
             return#已
         if 动作=='toggle-collapsed-summary':#折叠摘要点击
-            种类=取字段(载荷,'kind')#种类
+            种类=(载荷['kind'] if 'kind' in 载荷 else None)#种类
             if 种类=='turn':#轮
-                切=取字段(自身.属性,'onToggleTurn')#切
-                if callable(切) and 取字段(载荷,'turn') is not None:#有
-                    切(取字段(载荷,'turn'))#切
+                切=(自身.属性['onToggleTurn'] if 'onToggleTurn' in 自身.属性 else None)#切
+                if callable(切) and (载荷['turn'] if 'turn' in 载荷 else None) is not None:#有
+                    切((载荷['turn'] if 'turn' in 载荷 else None))#切
             else:#助手
-                切=取字段(自身.属性,'onToggleAssistant')#切
-                if callable(切) and 取字段(载荷,'id') is not None:#有
-                    切(取字段(载荷,'id'))#切
+                切=(自身.属性['onToggleAssistant'] if 'onToggleAssistant' in 自身.属性 else None)#切
+                if callable(切) and (载荷['id'] if 'id' in 载荷 else None) is not None:#有
+                    切((载荷['id'] if 'id' in 载荷 else None))#切
             return#已
         if 动作=='double-toggle-turn':#双击轮
-            切=取字段(自身.属性,'onToggleTurn')#切
-            if callable(切) and 取字段(载荷,'turn') is not None:#有
-                切(取字段(载荷,'turn'))#切
+            切=(自身.属性['onToggleTurn'] if 'onToggleTurn' in 自身.属性 else None)#切
+            if callable(切) and (载荷['turn'] if 'turn' in 载荷 else None) is not None:#有
+                切((载荷['turn'] if 'turn' in 载荷 else None))#切
             return#已
         if 动作=='double-toggle-assistant':#双击助手
-            切=取字段(自身.属性,'onToggleAssistant')#切
-            if callable(切) and 取字段(载荷,'id') is not None:#有
-                切(取字段(载荷,'id'))#切
+            切=(自身.属性['onToggleAssistant'] if 'onToggleAssistant' in 自身.属性 else None)#切
+            if callable(切) and (载荷['id'] if 'id' in 载荷 else None) is not None:#有
+                切((载荷['id'] if 'id' in 载荷 else None))#切
             return#已
         if 动作=='load-older':#加载更早
-            加载=取字段(自身.属性,'onLoadOlder')#加载
-            if not callable(加载) or 自身.更早加载中 or 取字段(自身.属性,'olderHistoryLoading'):#忙
+            加载=(自身.属性['onLoadOlder'] if 'onLoadOlder' in 自身.属性 else None)#加载
+            if not callable(加载) or 自身.更早加载中 or (自身.属性['olderHistoryLoading'] if 'olderHistoryLoading' in 自身.属性 else None):#忙
                 return False#拒
             自身.更早加载中=True#忙
             try:#执行
@@ -308,17 +310,17 @@ class 轨迹表:#账本 + 详情检查器
             finally:#收尾
                 自身.更早加载中=False#闲
         if 动作=='resize-details':#详情宽
-            分栏宽=取字段(载荷,'splitWidth',0) or 0#分栏
-            下一=钳制详情宽(取字段(载荷,'width',详情最小宽),分栏宽)#钳
-            旧=自身.详情宽 if 自身.详情宽 is not None else 取字段(载荷,'startWidth',下一)#旧
+            分栏宽=(载荷['splitWidth'] if 'splitWidth' in 载荷 else 0) or 0#分栏
+            下一=钳制详情宽((载荷['width'] if 'width' in 载荷 else 详情最小宽),分栏宽)#钳
+            旧=自身.详情宽 if 自身.详情宽 is not None else (载荷['startWidth'] if 'startWidth' in 载荷 else 下一)#旧
             自身.详情宽=下一#写
             基偏=自身.工具请求偏移 if 自身.工具请求偏移 is not None else (分栏宽*工具请求占比-默认工具请求宽(分栏宽))#基偏
             自身.工具请求偏移=基偏+(下一-旧)*工具请求占比#偏
             return#已
         if 动作=='nudge-details':#键盘缩放
-            方向=1 if 取字段(载荷,'direction')=='left' else -1#向
-            分栏宽=取字段(载荷,'splitWidth',0) or 0#分栏
-            当前=自身.详情宽 if 自身.详情宽 is not None else 取字段(载荷,'currentWidth',详情最小宽)#当前
+            方向=1 if (载荷['direction'] if 'direction' in 载荷 else None)=='left' else -1#向
+            分栏宽=(载荷['splitWidth'] if 'splitWidth' in 载荷 else 0) or 0#分栏
+            当前=自身.详情宽 if 自身.详情宽 is not None else (载荷['currentWidth'] if 'currentWidth' in 载荷 else 详情最小宽)#当前
             下一=钳制详情宽(当前+方向*详情缩放步长,分栏宽)#下一
             基偏=自身.工具请求偏移 if 自身.工具请求偏移 is not None else (分栏宽*工具请求占比-默认工具请求宽(分栏宽))#基偏
             自身.工具请求偏移=基偏+(下一-当前)*工具请求占比#偏
@@ -329,14 +331,14 @@ class 轨迹表:#账本 + 详情检查器
             自身.工具请求偏移=None#清
             return#已
         if 动作=='set-follow-tail':#贴底
-            自身.跟随表尾=bool(取字段(载荷,'follow',False))#写
+            自身.跟随表尾=bool((载荷['follow'] if 'follow' in 载荷 else False))#写
             return#已
         if 动作=='mark-scroll-ready':#首屏就绪
             自身.表滚动就绪=True#就绪
             自身.跟随表尾=True#跟随
             return#已
         if 动作=='toggle-unix-time':#时间戳切换（结构树消费方自持亦可）
-            return 取字段(载荷,'showUnix',False)#透传
+            return (载荷['showUnix'] if 'showUnix' in 载荷 else False)#透传
         return None#未识别
 
     def _助手计时面板(自身,指标):#助手计时
@@ -344,7 +346,7 @@ class 轨迹表:#账本 + 详情检查器
         return {#面板
             'type':'assistant-timing','class':'overview',#类型
             'rows':[#行
-                {'dt':'Started','dd':格式化开始时刻(取字段(指标,'stepStartTime')),'toggleUnix':True,'timestamp':取字段(指标,'stepStartTime')},
+                {'dt':'Started','dd':格式化开始时刻((指标['stepStartTime'] if 'stepStartTime' in 指标 else None)),'toggleUnix':True,'timestamp':(指标['stepStartTime'] if 'stepStartTime' in 指标 else None)},
                 {'dt':'Total duration','dd':总耗时文案(指标)},
                 {'dt':'TTFT','dd':首字耗时文案(指标)},
                 {'dt':'Generation','dd':生成耗时文案(指标)},
@@ -358,21 +360,21 @@ class 轨迹表:#账本 + 详情检查器
             return {'type':'no-payload','text':'Usage not reported'}#无
         总入=输入合计(用量)#入合计
         其它出=None#内容
-        if 取字段(用量,'output') is not None and 取字段(用量,'reasoning') is not None:#可拆
-            其它出=取字段(用量,'output')-取字段(用量,'reasoning')#内容
+        if (用量['output'] if 'output' in 用量 else None) is not None and (用量['reasoning'] if 'reasoning' in 用量 else None) is not None:#可拆
+            其它出=(用量['output'] if 'output' in 用量 else None)-(用量['reasoning'] if 'reasoning' in 用量 else None)#内容
         行=[]#行
         if 总入 is not None:#入
             行.append({'dt':'Input','dd':f'{总入} tok'})#入
-        if 取字段(用量,'cacheRead') is not None:#缓存读
-            行.append({'dt':'Cached','dd':f'{取字段(用量,"cacheRead")} tok','detail':True})#缓存
-        if 取字段(用量,'cacheWrite') is not None:#缓存写
-            行.append({'dt':'Cache created','dd':f'{取字段(用量,"cacheWrite")} tok','detail':True})#写
-        if 取字段(用量,'input') is not None:#其它入
-            行.append({'dt':'Other','dd':f'{取字段(用量,"input")} tok','detail':True})#其它
-        if 取字段(用量,'output') is not None:#出
-            行.append({'dt':'Output','dd':f'{取字段(用量,"output")} tok'})#出
-        if 取字段(用量,'reasoning') is not None:#思
-            行.append({'dt':'Reasoning','dd':f'{取字段(用量,"reasoning")} tok','detail':True})#思
+        if (用量['cacheRead'] if 'cacheRead' in 用量 else None) is not None:#缓存读
+            行.append({'dt':'Cached','dd':f'{(用量["cacheRead"] if "cacheRead" in 用量 else None)} tok','detail':True})#缓存
+        if (用量['cacheWrite'] if 'cacheWrite' in 用量 else None) is not None:#缓存写
+            行.append({'dt':'Cache created','dd':f'{(用量["cacheWrite"] if "cacheWrite" in 用量 else None)} tok','detail':True})#写
+        if (用量['input'] if 'input' in 用量 else None) is not None:#其它入
+            行.append({'dt':'Other','dd':f'{(用量["input"] if "input" in 用量 else None)} tok','detail':True})#其它
+        if (用量['output'] if 'output' in 用量 else None) is not None:#出
+            行.append({'dt':'Output','dd':f'{(用量["output"] if "output" in 用量 else None)} tok'})#出
+        if (用量['reasoning'] if 'reasoning' in 用量 else None) is not None:#思
+            行.append({'dt':'Reasoning','dd':f'{(用量["reasoning"] if "reasoning" in 用量 else None)} tok','detail':True})#思
         if 其它出 is not None:#内容
             行.append({'dt':'Content','dd':f'{其它出} tok','detail':True})#内容
         return {'type':'usage-rows','class':'overview','rows':行}#行
@@ -385,20 +387,20 @@ class 轨迹表:#账本 + 详情检查器
 
     def _记录载荷(自身,记录,方向,预览=False):#入/出载荷
         """RecordPayload 结构。"""
-        格=取字段(记录,'cell')#格
-        值=取字段(格,'inputDetail') if 方向=='input' else 取字段(格,'outputDetail')#值
+        格=记录['cell']#格
+        值=(格['inputDetail'] if 'inputDetail' in 格 else None) if 方向=='input' else (格['outputDetail'] if 'outputDetail' in 格 else None)#值
         缺='No payload captured' if 方向=='input' else 'No result captured'#缺
         if not 值:#无
             return {'type':'no-payload','text':缺}#缺
-        错=方向=='output' and 取字段(格,'isError') is True#错
-        块们=取字段(格,'outputBlocks') or []#块
-        单文=方向=='output' and len(块们)==1 and 取字段(块们[0],'type')=='text'#单文
+        错=方向=='output' and (格['isError'] if 'isError' in 格 else None) is True#错
+        块列表=(格['outputBlocks'] if 'outputBlocks' in 格 and 格['outputBlocks'] is not None else [])#块
+        单文=方向=='output' and len(块列表)==1 and (块列表[0]['type'] if 'type' in 块列表[0] else None)=='text'#单文
         容器=解析JSON容器(值)#JSON
         if 单文 and 容器 is not None:#单文 JSON
             return {'type':'json-tree','data':容器,'label':'Result JSON','preview':预览,'error':错}#树
-        if 方向=='output' and any(取字段(块,'imageSrc') is not None or 取字段(块,'content')!='' for 块 in 块们):#结果块
-            return {'type':'tool-output-blocks','blocks':块们,'error':错,'preview':预览}#块
-        Markdown=(方向=='input' and 取字段(格,'kind') in ('user','context')) or (方向=='output' and 取字段(格,'kind')=='message')#MD
+        if 方向=='output' and any((块['imageSrc'] if 'imageSrc' in 块 else None) is not None or (块['content'] if 'content' in 块 else None)!='' for 块 in 块列表):#结果块
+            return {'type':'tool-output-blocks','blocks':块列表,'error':错,'preview':预览}#块
+        Markdown=(方向=='input' and 格['kind'] in ('user','context')) or (方向=='output' and 格['kind']=='message')#MD
         if Markdown:#Markdown
             return {'type':'markdown','text':值,'preview':预览,'error':错}#MD
         if 容器 is not None:#JSON
@@ -407,7 +409,7 @@ class 轨迹表:#账本 + 详情检查器
 
     def _记录Schema(自身,记录,预览=False):#Schema
         """RecordSchema 结构。"""
-        详=取字段(取字段(记录,'cell'),'schemaDetail')#详
+        详=(记录['cell']['schemaDetail'] if 'schemaDetail' in 记录['cell'] else None)#详
         if not 详:#无
             return {'type':'no-payload','text':'Schema unavailable'}#无
         Schema=解析工具Schema(详)#解析
@@ -417,14 +419,14 @@ class 轨迹表:#账本 + 详情检查器
 
     def _记录计时(自身,记录):#记录计时
         """RecordTiming 结构。"""
-        格=取字段(记录,'cell')#格
-        if 取字段(格,'kind')=='message' and 取字段(格,'assistantMetrics') is not None:#助手
-            return 自身._助手计时面板(取字段(格,'assistantMetrics'))#助手
-        秒=取字段(格,'timeSeconds')#秒
+        格=记录['cell']#格
+        if 格['kind']=='message' and (格['assistantMetrics'] if 'assistantMetrics' in 格 else None) is not None:#助手
+            return 自身._助手计时面板((格['assistantMetrics'] if 'assistantMetrics' in 格 else None))#助手
+        秒=(格['timeSeconds'] if 'timeSeconds' in 格 else None)#秒
         return {#普通
             'type':'record-timing','class':'overview',#类型
             'rows':[#行
-                {'dt':'Started','dd':格式化开始时刻(取字段(格,'startedAt')),'toggleUnix':True,'timestamp':取字段(格,'startedAt')},
+                {'dt':'Started','dd':格式化开始时刻((格['startedAt'] if 'startedAt' in 格 else None)),'toggleUnix':True,'timestamp':(格['startedAt'] if 'startedAt' in 格 else None)},
                 {'dt':'Duration','dd':格式化已用秒数(秒)},
                 {'dt':'Timing source','dd':'Not available' if 秒 is None else 'Event timestamps'},
             ],#行结束
@@ -434,13 +436,13 @@ class 轨迹表:#账本 + 详情检查器
         """RequestTiming 结构。"""
         if 助手 is not None:#有助手
             return 自身._记录计时(助手)#助手
-        if 请求 is not None and 取字段(请求,'startedAt') is not None:#请求时戳
-            完成=取字段(请求,'completedAt')#完成
-            时长=None if 完成 is None else max(0,(完成-取字段(请求,'startedAt'))/1000)#秒
+        if 请求 is not None and (请求['startedAt'] if 'startedAt' in 请求 else None) is not None:#请求时戳
+            完成=(请求['completedAt'] if 'completedAt' in 请求 else None)#完成
+            时长=None if 完成 is None else max(0,(完成-(请求['startedAt'] if 'startedAt' in 请求 else None))/1000)#秒
             return {#请求
                 'type':'request-timing','class':'overview',#类型
                 'rows':[#行
-                    {'dt':'Started','dd':格式化开始时刻(取字段(请求,'startedAt')),'toggleUnix':True,'timestamp':取字段(请求,'startedAt')},
+                    {'dt':'Started','dd':格式化开始时刻((请求['startedAt'] if 'startedAt' in 请求 else None)),'toggleUnix':True,'timestamp':(请求['startedAt'] if 'startedAt' in 请求 else None)},
                     {'dt':'Duration','dd':格式化已用秒数(时长)},
                     {'dt':'Timing source','dd':'Event timestamps (running)' if 时长 is None else 'Event timestamps'},
                 ],#行结束
@@ -448,107 +450,107 @@ class 轨迹表:#账本 + 详情检查器
         return {#回退锚点
             'type':'request-timing','class':'overview',#类型
             'rows':[#行
-                {'dt':'Started','dd':格式化开始时刻(取字段(取字段(锚点,'cell'),'startedAt') if 锚点 else None),'toggleUnix':True,'timestamp':取字段(取字段(锚点,'cell'),'startedAt') if 锚点 else None},
+                {'dt':'Started','dd':格式化开始时刻((锚点['cell']['startedAt'] if 'startedAt' in 锚点['cell'] else None) if 锚点 else None),'toggleUnix':True,'timestamp':(锚点['cell']['startedAt'] if 'startedAt' in 锚点['cell'] else None) if 锚点 else None},
                 {'dt':'Duration','dd':格式化已用秒数(None)},
             ],#行结束
         }#结束
 
     def _Markdown记录内容(自身,记录,已渲染,预览=False):#Markdown 内容
         """MarkdownRecordContent 结构。"""
-        格=取字段(记录,'cell')#格
-        块们=取字段(格,'sourceBlocks') or []#块
-        if not 已渲染 and 块们:#源块
-            return {'type':'source-blocks','blocks':块们}#源块
-        if 取字段(格,'thinkingDetail'):#有思考
+        格=记录['cell']#格
+        块列表=(格['sourceBlocks'] if 'sourceBlocks' in 格 and 格['sourceBlocks'] is not None else [])#块
+        if not 已渲染 and 块列表:#源块
+            return {'type':'source-blocks','blocks':块列表}#源块
+        if (格['thinkingDetail'] if 'thinkingDetail' in 格 else None):#有思考
             if not 已渲染:#原文
-                源='\n\n'.join(x for x in (取字段(格,'thinkingDetail'),取字段(格,'outputDetail')) if x)#拼
+                源='\n\n'.join(x for x in ((格['thinkingDetail'] if 'thinkingDetail' in 格 else None),(格['outputDetail'] if 'outputDetail' in 格 else None)) if x)#拼
                 return {'type':'markdown-fragment','text':源,'rendered':False,'preview':预览}#片段
             return {#渲染思考+输出
                 'type':'assistant-content','rendered':True,'preview':预览,#类型
                 'thinking':{#思考
                     'expanded':自身.思考展开,#展开
-                    'text':取字段(格,'thinkingDetail'),#文
-                    'onlyPreview':预览 and not 取字段(格,'outputDetail'),#仅预览
+                    'text':(格['thinkingDetail'] if 'thinkingDetail' in 格 else None),#文
+                    'onlyPreview':预览 and not (格['outputDetail'] if 'outputDetail' in 格 else None),#仅预览
                 },#思考结束
-                'output':取字段(格,'outputDetail'),#输出
-                'toolCalls':[块 for 块 in 块们 if 取字段(块,'type')=='tool-call'],#工具
-                'images':[块 for 块 in 块们 if 取字段(块,'imageSrc') is not None],#图
+                'output':(格['outputDetail'] if 'outputDetail' in 格 else None),#输出
+                'toolCalls':[块 for 块 in 块列表 if (块['type'] if 'type' in 块 else None)=='tool-call'],#工具
+                'images':[块 for 块 in 块列表 if (块['imageSrc'] if 'imageSrc' in 块 else None) is not None],#图
             }#结束
         源=Markdown源(记录)#源
-        有图=any(取字段(块,'imageSrc') is not None for 块 in 块们)#图
-        有工具=取字段(格,'kind')=='message' and any(取字段(块,'type')=='tool-call' for 块 in 块们)#工具
+        有图=any((块['imageSrc'] if 'imageSrc' in 块 else None) is not None for 块 in 块列表)#图
+        有工具=格['kind']=='message' and any((块['type'] if 'type' in 块 else None)=='tool-call' for 块 in 块列表)#工具
         if not 源 and not 有图 and not 有工具:#空
-            空='Tool call only' if 是否仅工具调用(格) else (取字段(格,'text') or 'No content')#空标
+            空='Tool call only' if 是否仅工具调用(格) else ((格['text'] if 'text' in 格 else None) or 'No content')#空标
             return {'type':'no-payload','text':空}#空
         if not 已渲染 or (not 有图 and not 有工具):#单片段
             return {'type':'markdown-fragment','text':源 or '','rendered':已渲染,'preview':预览}#片段
         return {#组合
             'type':'markdown-combo',#类型
             'source':源,#源
-            'toolCalls':[块 for 块 in 块们 if 取字段(块,'type')=='tool-call'] if 取字段(格,'kind')=='message' else [],#工具
-            'images':[块 for 块 in 块们 if 取字段(块,'imageSrc') is not None],#图
+            'toolCalls':[块 for 块 in 块列表 if (块['type'] if 'type' in 块 else None)=='tool-call'] if 格['kind']=='message' else [],#工具
+            'images':[块 for 块 in 块列表 if (块['imageSrc'] if 'imageSrc' in 块 else None) is not None],#图
             'preview':预览,#预览
         }#结束
 
     def _系统提示差分(自身,之前,之后):#系统差分
         """SystemPromptDiff 结构。"""
         段=[]#段
-        if 取字段(之前,'system')!=取字段(之后,'system'):#系统变
-            段.append({'title':'System Prompt','lines':提示词差分行(取字段(之前,'system') or '',取字段(之后,'system') or '')})#系统
-        工具前=json.dumps(取字段(之前,'tools') or [],indent=2,ensure_ascii=False)#工具前
-        工具后=json.dumps(取字段(之后,'tools') or [],indent=2,ensure_ascii=False)#工具后
+        if (之前['system'] if 'system' in 之前 else None)!=(之后['system'] if 'system' in 之后 else None):#系统变
+            段.append({'title':'System Prompt','lines':提示词差分行((之前['system'] if 'system' in 之前 and 之前['system'] is not None else ''),(之后['system'] if 'system' in 之后 and 之后['system'] is not None else ''))})#系统
+        工具前=json.dumps((之前['tools'] if 'tools' in 之前 and 之前['tools'] is not None else []),ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#工具前
+        工具后=json.dumps((之后['tools'] if 'tools' in 之后 and 之后['tools'] is not None else []),ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#工具后
         if 工具前!=工具后:#工具变
             段.append({'title':'Tools','lines':提示词差分行(工具前,工具后)})#工具
         return {'type':'prompt-diff','sections':段}#差分
 
-    def _工具目录(自身,工具们):#工具目录
+    def _工具目录(自身,工具列表):#工具目录
         """ToolCatalog 结构。"""
-        if not 工具们:#空
+        if not 工具列表:#空
             return {'type':'no-payload','text':'No tools in this request'}#空
-        return {'type':'tool-catalog','tools':[{'name':取字段(工,'name'),'description':取字段(工,'description'),'parameters':取字段(工,'parameters')} for 工 in 工具们]}#目录
+        return {'type':'tool-catalog','tools':[{'name':(工['name'] if 'name' in 工 else None),'description':(工['description'] if 'description' in 工 else None),'parameters':(工['parameters'] if 'parameters' in 工 else None)} for 工 in 工具列表]}#目录
 
     def _渲染行(自身,记录,位置,末端边界,全部,边界,编号,游程,会话编号,活动轮,活动段,选中下标,折轮):#单行
         """一条账本行结构。"""
-        格=取字段(记录,'cell')#格
+        格=记录['cell']#格
         呈现=记录呈现(格)#呈现
-        折叠摘要=取字段(记录,'collapsedSummary')#摘要
-        仅请求=取字段(格,'requestOnly') is True#仅请求
-        初系统=取字段(格,'kind')=='system' and 取字段(格,'index')==取字段(取字段(全部[0],'cell'),'index') if 全部 else False#初系统
-        键=请求键(取字段(记录,'turn'),取字段(记录,'group'))#键
+        折叠摘要=(记录['collapsedSummary'] if 'collapsedSummary' in 记录 else None)#摘要
+        仅请求=(格['requestOnly'] if 'requestOnly' in 格 else None) is True#仅请求
+        初系统=格['kind']=='system' and 格['index']==全部[0]['cell']['index'] if 全部 else False#初系统
+        键=请求键(记录['turn'],记录['group'])#键
         请求号=None#号
-        if 边界.get(键)==取字段(格,'index') and 折叠摘要 is None and (取字段(记录,'turn') is None or 取字段(记录,'turn') not in 折轮):#边界
-            请求号=编号.get(键)#号
-        请求信息=None if 请求号 is None else next((候 for 候 in (会话编号 or []) if 取字段(候,'number')==请求号),None)#信息
-        请求状态=取字段(请求信息,'status') if 请求信息 is not None else ('error' if 取字段(格,'isError') is True else None)#状态
-        游=游程.get(取字段(格,'index'),0)#游程
-        请求标=None if 请求号 is None else f'Request #{请求号}'+(' · Compaction' if 取字段(请求信息,'purpose')=='compaction' else '')#标
-        请求选中=请求号 is not None and 自身.选中请求 is not None and 取字段(自身.选中请求,'turn')==取字段(记录,'turn') and 取字段(自身.选中请求,'group')==取字段(记录,'group')#选中
-        段活=活动段==取字段(记录,'section') if 取字段(记录,'turn') is None else 活动轮==取字段(记录,'turn')#段活
-        时间线焦点=取字段(自身.属性,'timelineFocusIndexes')#焦点
+        if (边界[键] if 键 in 边界 else None)==格['index'] and 折叠摘要 is None and (记录['turn'] is None or 记录['turn'] not in 折轮):#边界
+            请求号=编号[键] if 键 in 编号 else None#号
+        请求信息=None if 请求号 is None else next((候 for 候 in 会话编号 if 候['number']==请求号),None)#信息
+        请求状态=(请求信息['status'] if 'status' in 请求信息 else None) if 请求信息 is not None else ('error' if (格['isError'] if 'isError' in 格 else None) is True else None)#状态
+        游=游程[格['index']] if 格['index'] in 游程 else 0#游程
+        请求标=None if 请求号 is None else f'Request #{请求号}'+(' · Compaction' if (请求信息['purpose'] if 'purpose' in 请求信息 else None)=='compaction' else '')#标
+        请求选中=请求号 is not None and 自身.选中请求 is not None and 自身.选中请求['turn']==记录['turn'] and 自身.选中请求['group']==记录['group']#选中
+        段活=活动段==记录['section'] if 记录['turn'] is None else 活动轮==记录['turn']#段活
+        时间线焦点=(自身.属性['timelineFocusIndexes'] if 'timelineFocusIndexes' in 自身.属性 else None)#焦点
         焦点态=None#焦点
         if 折叠摘要 is None and 时间线焦点 is not None:#有焦点集
-            焦点态='inside' if 取字段(格,'index') in 时间线焦点 else 'outside'#内/外
+            焦点态='inside' if 格['index'] in 时间线焦点 else 'outside'#内/外
         return {#行
             'type':'trajectory-table-row',#类型
             'key':轨迹虚拟记录键(记录),#键
             'position':位置,#位
             'terminalRequestBoundary':末端边界,#末端
-            'kind':取字段(格,'kind'),#种类
-            'kindLabel':种类标签.get(取字段(格,'kind'),取字段(格,'kind')),#标签
-            'kindClass':种类样式类.get(取字段(格,'kind')),#类
-            'index':取字段(格,'index'),#下标
-            'turn':取字段(记录,'turn'),#轮
-            'section':取字段(记录,'section'),#段
-            'group':取字段(记录,'group'),#组
-            'groupStart':取字段(记录,'groupStart'),#组起
-            'turnStart':取字段(记录,'turnStart'),#轮起
-            'turnEnd':取字段(记录,'turnEnd'),#轮尾
-            'isError':取字段(格,'isError'),#错
+            'kind':格['kind'],#种类
+            'kindLabel':种类标签[格['kind']] if 格['kind'] in 种类标签 else 格['kind'],#标签
+            'kindClass':种类样式类[格['kind']] if 格['kind'] in 种类样式类 else None,#类
+            'index':格['index'],#下标
+            'turn':记录['turn'],#轮
+            'section':记录['section'],#段
+            'group':记录['group'],#组
+            'groupStart':记录['groupStart'],#组起
+            'turnStart':记录['turnStart'],#轮起
+            'turnEnd':记录['turnEnd'],#轮尾
+            'isError':(格['isError'] if 'isError' in 格 else None),#错
             'running':记录状态(记录)=='running',#跑
             'requestOnly':仅请求,#仅请求
             'collapsedSummary':折叠摘要,#摘要
-            'collapsedSummaryKind':取字段(记录,'collapsedSummaryKind'),#摘要种
-            'selected':折叠摘要 is None and 选中下标==取字段(格,'index'),#选中
+            'collapsedSummaryKind':(记录['collapsedSummaryKind'] if 'collapsedSummaryKind' in 记录 else None),#摘要种
+            'selected':折叠摘要 is None and 选中下标==格['index'],#选中
             'timelineFocus':焦点态,#焦点
             'sectionActive':段活,#段活
             'isInitialSystem':初系统,#初系统
@@ -557,7 +559,7 @@ class 轨迹表:#账本 + 详情检查器
             'requestSelected':请求选中,#请求选
             'requestStatus':请求状态,#请求态
             'requestRunIndex':游,#游程
-            'requestSeq':取字段(请求信息,'seq') if 请求信息 is not None else None,#序号
+            'requestSeq':(请求信息['seq'] if 'seq' in 请求信息 else None) if 请求信息 is not None else None,#序号
             'presentation':呈现,#呈现
             'recordId':轨迹记录身份(格),#身份
         }#结束
@@ -569,30 +571,30 @@ class 轨迹表:#账本 + 详情检查器
             行=[#概览行
                 {'dt':'Status','dd':状态标签(选中请求状态),'error':选中请求状态=='error'},
             ]#基
-            if 取字段(选中请求信息,'purpose')=='compaction':#压缩
+            if (选中请求信息['purpose'] if 选中请求信息 is not None and 'purpose' in 选中请求信息 else None)=='compaction':#压缩
                 行.append({'dt':'Purpose','dd':'Compaction'})#目的
-            提供方=取字段(选中请求信息,'provider') if 选中请求信息 else None#提供方
+            提供方=(选中请求信息['provider'] if 'provider' in 选中请求信息 else None) if 选中请求信息 else None#提供方
             if 提供方 is None and 选中请求选项 is not None:#回退配置
-                提供方=取字段(选中请求选项,'provider')#提供方
+                提供方=选中请求选项['provider'] if 'provider' in 选中请求选项 else None#提供方
             if 提供方 is not None:#有
                 行.append({'dt':'Provider','dd':提供方})#提供方
-            模型=取字段(选中请求信息,'model') if 选中请求信息 else None#模型
+            模型=(选中请求信息['model'] if 'model' in 选中请求信息 else None) if 选中请求信息 else None#模型
             if 模型 is None and 选中请求选项 is not None:#回退
-                模型=取字段(选中请求选项,'model')#模型
+                模型=选中请求选项['model'] if 'model' in 选中请求选项 else None#模型
             if 模型 is not None:#有
                 行.append({'dt':'Model','dd':模型})#模型
             行.append({'dt':'Tool calls','dd':选中请求工具数})#工具数
             if 选中请求子工具数>0:#子工具
                 行.append({'dt':'Subtool calls','dd':选中请求子工具数})#子
-            if 选中请求信息 is not None and 取字段(选中请求信息,'error') is not None:#错
-                行.append({'dt':'Error','dd':取字段(选中请求信息,'error'),'error':True})#错
-            if 选中请求信息 is not None and 取字段(选中请求信息,'retry') is not None:#重试
-                最大=取字段(选中请求信息,'maxRetries')#最大
-                行.append({'dt':'Retry','dd':f'Scheduled {取字段(选中请求信息,"retry")}'+(f' of {最大}' if 最大 is not None else '')})#重试
-            if 选中请求信息 is not None and 取字段(选中请求信息,'retryDelayMs') is not None:#延迟
-                行.append({'dt':'Retry delay','dd':格式化时长毫秒(取字段(选中请求信息,'retryDelayMs'))})#延迟
+            if 选中请求信息 is not None and (选中请求信息['error'] if 'error' in 选中请求信息 else None) is not None:#错
+                行.append({'dt':'Error','dd':(选中请求信息['error'] if 'error' in 选中请求信息 else None),'error':True})#错
+            if 选中请求信息 is not None and (选中请求信息['retry'] if 'retry' in 选中请求信息 else None) is not None:#重试
+                最大=(选中请求信息['maxRetries'] if 'maxRetries' in 选中请求信息 else None)#最大
+                行.append({'dt':'Retry','dd':f'Scheduled {(选中请求信息["retry"] if "retry" in 选中请求信息 else None)}'+(f' of {最大}' if 最大 is not None else '')})#重试
+            if 选中请求信息 is not None and ('retryDelayMs' in 选中请求信息) and 选中请求信息['retryDelayMs'] is not None:#延迟
+                行.append({'dt':'Retry delay','dd':格式化时长毫秒(选中请求信息['retryDelayMs'])})#延迟
             if 选中请求结果 is not None:#结果链
-                行.append({'dt':'Result','dd':{'type':'hierarchy-link','label':'Compacted' if 取字段(选中请求信息,'purpose')=='compaction' else 'Assistant Message','index':取字段(取字段(选中请求结果,'cell'),'index')}})#结果
+                行.append({'dt':'Result','dd':{'type':'hierarchy-link','label':'Compacted' if (选中请求信息['purpose'] if 选中请求信息 is not None and 'purpose' in 选中请求信息 else None)=='compaction' else 'Assistant Message','index':选中请求结果['cell']['index']}})#结果
             段=[]#概览段
             if 选中请求选项 is not None:#选项
                 段.append({'label':'Options','tab':'options','body':自身._请求选项(选中请求选项,True)})#选项
@@ -608,57 +610,57 @@ class 轨迹表:#账本 + 详情检查器
         if 提示选中 and 选中前提示 is not None and 标签=='diff':#差分
             return {'mode':'prompt-diff','body':自身._系统提示差分(选中前提示,选中提示)}#差分
         if 提示选中 and 标签=='system-prompt':#系统提示
-            文=取字段(选中提示,'system') or ''#文
+            文=(选中提示['system'] if 'system' in 选中提示 and 选中提示['system'] is not None else '')#文
             return {'mode':'system-prompt','body':{'type':'no-payload','text':'No system prompt in this request'} if 文=='' else {'type':'markdown','text':文,'systemPrompt':True}}#提示
         if 提示选中 and 标签=='tools':#工具目录
-            return {'mode':'tools','body':自身._工具目录(取字段(选中提示,'tools') or [])}#目录
-        if not 提示选中 and 选中 is not None and 取字段(取字段(选中,'cell'),'kind')=='compacted' and 选中状态 is not None and 标签=='overview':#压缩概览
+            return {'mode':'tools','body':自身._工具目录(选中提示['tools'] if 'tools' in 选中提示 and 选中提示['tools'] is not None else [])}#目录
+        if not 提示选中 and 选中 is not None and 选中['cell']['kind']=='compacted' and 选中状态 is not None and 标签=='overview':#压缩概览
             行=[#行
                 {'dt':'Status','dd':状态标签(选中状态),'error':选中状态=='error'},
-                {'dt':'Duration','dd':格式化已用秒数(取字段(取字段(选中,'cell'),'timeSeconds'))},
+                {'dt':'Duration','dd':格式化已用秒数((选中['cell']['timeSeconds'] if 'timeSeconds' in 选中['cell'] else None))},
                 {'dt':'Tokens','dd':'—'},
             ]#行结束
             体=None#摘要体
-            if 取字段(取字段(选中,'cell'),'outputDetail') is not None:#有输出
+            if (选中['cell']['outputDetail'] if 'outputDetail' in 选中['cell'] else None) is not None:#有输出
                 体=自身._Markdown记录内容(选中,True)#渲染
             return {'mode':'compacted-overview','rows':行,'summary':体}#压缩
-        if not 提示选中 and 选中 is not None and 取字段(取字段(选中,'cell'),'kind')!='compacted' and 选中状态 is not None and 标签=='overview':#记录概览
-            格=取字段(选中,'cell')#格
+        if not 提示选中 and 选中 is not None and 选中['cell']['kind']!='compacted' and 选中状态 is not None and 标签=='overview':#记录概览
+            格=选中['cell']#格
             行=[]#行
-            if 取字段(格,'messageSource') is not None:#来源
-                行.append({'dt':'Source','dd':{'type':'tab-link','label':消息来源标签(取字段(格,'messageSource')),'tab':'source'}})#来源
+            if (格['messageSource'] if 'messageSource' in 格 else None) is not None:#来源
+                行.append({'dt':'Source','dd':{'type':'tab-link','label':消息来源标签((格['messageSource'] if 'messageSource' in 格 else None)),'tab':'source'}})#来源
             if 有层级:#层级
                 链=[]#链
                 if 助手请求目标 is not None:#请求
                     链.append({'type':'select-request','label':f'Request #{助手请求号 if 助手请求号 is not None else "—"}','request':助手请求目标})#请求
                 if 父消息 is not None:#父消息
-                    链.append({'type':'open-record','label':'Assistant Message','index':取字段(取字段(父消息,'cell'),'index')})#消息
+                    链.append({'type':'open-record','label':'Assistant Message','index':父消息['cell']['index']})#消息
                 if 父工具 is not None:#父工具
-                    链.append({'type':'open-record','label':'Tool Call','index':取字段(取字段(父工具,'cell'),'index')})#工具
+                    链.append({'type':'open-record','label':'Tool Call','index':父工具['cell']['index']})#工具
                 行.append({'dt':'Source' if 助手请求目标 is not None else 'Hierarchy','dd':{'type':'hierarchy-links','links':链}})#层级
             行.append({'dt':'Status','dd':状态标签(选中状态),'error':选中状态=='error'})#状态
-            if 取字段(格,'kind')=='message':#助手 token
-                出=取字段(格,'output')#出
-                思=取字段(格,'think')#思
+            if 格['kind']=='message':#助手 token
+                出=(格['output'] if 'output' in 格 else None)#出
+                思=(格['think'] if 'think' in 格 else None)#思
                 行.append({'dt':'Tokens','dd':'—' if 出 is None else f'{出} tok'})# token
                 if 思 is not None:#思
                     行.append({'dt':'Reasoning','dd':f'{思} tok','detail':True})#思
                 if 出 is not None and 思 is not None:#内容
                     行.append({'dt':'Content','dd':f'{max(0,出-思)} tok','detail':True})#内容
-            if 取字段(格,'kind') in ('user','context'):#用户时长
-                行.append({'dt':'Duration','dd':格式化已用秒数(取字段(格,'timeSeconds'))})#时长
+            if 格['kind'] in ('user','context'):#用户时长
+                行.append({'dt':'Duration','dd':格式化已用秒数((格['timeSeconds'] if 'timeSeconds' in 格 else None))})#时长
             段=[]#段
             if 是否Markdown记录(选中):#Markdown
                 段.append({'label':'Preview','tab':'rendered','body':自身._Markdown记录内容(选中,True,True)})#预览
             else:#工具类
-                if 取字段(格,'inputDetail'):#载荷
+                if (格['inputDetail'] if 'inputDetail' in 格 else None):#载荷
                     段.append({'label':'Payload','tab':'input','body':自身._记录载荷(选中,'input',True)})#载荷
-                if 取字段(格,'outputDetail'):#结果
+                if (格['outputDetail'] if 'outputDetail' in 格 else None):#结果
                     段.append({'label':'Result','tab':'output','body':自身._记录载荷(选中,'output',True)})#结果
                 段.append({'label':'Schema','tab':'schema','body':自身._记录Schema(选中,True)})#Schema
             if 助手请求目标 is not None:#请求计时入口
                 段.append({'label':'Request Timing','selectRequest':助手请求目标,'tab':'timing','body':自身._记录计时(选中)})#请求计时
-            if 取字段(格,'kind') in ('tool','subtool'):#工具计时
+            if 格['kind'] in ('tool','subtool'):#工具计时
                 段.append({'label':'Timing','tab':'timing','body':自身._记录计时(选中)})#计时
             return {'mode':'record-overview','rows':行,'sections':段}#记录概览
         if not 提示选中 and 选中 is not None and 标签=='rendered':#渲染
@@ -666,7 +668,7 @@ class 轨迹表:#账本 + 详情检查器
         if not 提示选中 and 选中 is not None and 标签=='raw':#原文
             return {'mode':'raw','body':自身._Markdown记录内容(选中,False)}#原文
         if not 提示选中 and 选中 is not None and 标签=='source':#来源
-            源=取字段(取字段(选中,'cell'),'messageSource')#源
+            源=(选中['cell']['messageSource'] if 'messageSource' in 选中['cell'] else None)#源
             if 源 is None:#无
                 return {'mode':'source','body':{'type':'no-payload','text':'Source not recorded'}}#无
             数据=源 if isinstance(源,dict) else {'value':源}#数据
@@ -686,61 +688,66 @@ class 轨迹表:#账本 + 详情检查器
         属性=自身.属性#props
         全部=自身._全部记录()#全部
         边界=索引请求边界(全部)#边界
-        会话编号=取字段(属性,'requestNumbers')#会话号
+        会话编号=属性['requestNumbers'] if 'requestNumbers' in 属性 else None#可选；TS sessionNumbers ?? []
+        if 会话编号 is None:#缺席
+            会话编号=[]#?? []；空表保留
         编号=索引请求编号(全部,会话编号,边界)#编号
-        记录们=自身._可见记录()#可见
-        游程=索引请求边界游程(记录们)#游程
-        虚拟行=编组轨迹虚拟行(记录们)#虚拟
-        有更早=bool(取字段(属性,'hasOlderRecords',False))#更早
-        虚拟化=有更早 or len(记录们)>虚拟化阈值#虚拟化
-        历史加载=bool(取字段(属性,'historyLoading',False))#历史加载
-        更早忙=bool(取字段(属性,'olderHistoryLoading',False)) or 自身.更早加载中#更早忙
+        记录列表=自身._可见记录()#可见
+        游程=索引请求边界游程(记录列表)#游程
+        虚拟行=编组轨迹虚拟行(记录列表)#虚拟
+        有更早=bool(属性['hasOlderRecords'] if 'hasOlderRecords' in 属性 else False)#更早
+        虚拟化=有更早 or len(记录列表)>虚拟化阈值#虚拟化
+        历史加载=bool(属性['historyLoading'] if 'historyLoading' in 属性 else False)#历史加载
+        更早忙=bool(属性['olderHistoryLoading'] if 'olderHistoryLoading' in 属性 else False) or 自身.更早加载中#更早忙
         显示初载=历史加载 or not 自身.表滚动就绪#初载
-        折轮=取字段(属性,'collapsedTurns') or set()#折轮
-        模板=None if 自身.选中记录身份 is None else next((候 for 候 in 全部 if 轨迹记录身份(取字段(候,'cell'))==自身.选中记录身份),None)#模板
+        折轮=(属性['collapsedTurns'] if 'collapsedTurns' in 属性 else None) or set()#折轮
+        模板=None if 自身.选中记录身份 is None else next((候 for 候 in 全部 if 轨迹记录身份(候['cell'])==自身.选中记录身份),None)#模板
         选中=None if 模板 is None else 自身._当前记录(模板)#选中
-        选中下标=取字段(取字段(选中,'cell'),'index') if 选中 is not None else None#下标
+        选中下标=选中['cell']['index'] if 选中 is not None else None#下标
         选中状态=None if 选中 is None else 记录状态(选中)#状态
-        选中提示=取字段(取字段(选中,'cell'),'promptDetail') if 选中 is not None and 取字段(取字段(选中,'cell'),'kind')=='system' else None#提示
-        选中前提示=取字段(取字段(选中,'cell'),'previousPromptDetail') if 选中 is not None and 取字段(取字段(选中,'cell'),'kind')=='system' else None#前
+        选中提示=(选中['cell']['promptDetail'] if 'promptDetail' in 选中['cell'] else None) if 选中 is not None and 选中['cell']['kind']=='system' else None#提示
+        选中前提示=(选中['cell']['previousPromptDetail'] if 'previousPromptDetail' in 选中['cell'] else None) if 选中 is not None and 选中['cell']['kind']=='system' else None#前
         提示选中=选中提示 is not None#提示选中
-        选中请求模板=[] if 自身.选中请求 is None else [候 for 候 in 全部 if 取字段(候,'turn')==取字段(自身.选中请求,'turn') and 取字段(候,'group')==取字段(自身.选中请求,'group')]#请求模板
+        选中请求模板=[] if 自身.选中请求 is None else [候 for 候 in 全部 if 候['turn']==自身.选中请求['turn'] and 候['group']==自身.选中请求['group']]#请求模板
         选中请求记录=[自身._当前记录(候) for 候 in 选中请求模板]#请求记录
-        选中请求助手=next((候 for 候 in 选中请求记录 if 取字段(取字段(候,'cell'),'kind')=='message'),None)#助手
+        选中请求助手=next((候 for 候 in 选中请求记录 if 候['cell']['kind']=='message'),None)#助手
         选中请求锚=选中请求助手 or (选中请求记录[0] if 选中请求记录 else None)#锚
-        选中请求号=None if 自身.选中请求 is None else 编号.get(请求键(取字段(自身.选中请求,'turn'),取字段(自身.选中请求,'group')))#号
+        选中请求号=None#号
+        if 自身.选中请求 is not None:#有请求
+            选中请求键=请求键(自身.选中请求['turn'],自身.选中请求['group'])#键
+            选中请求号=编号[选中请求键] if 选中请求键 in 编号 else None#号
         选中请求信息=None#信息
         if 自身.选中请求 is not None:#有请求
-            if 取字段(自身.选中请求,'seq') is None:#无序号
-                选中请求信息=next((候 for 候 in (会话编号 or []) if 取字段(候,'turn')==取字段(自身.选中请求,'turn') and 取字段(候,'group')==取字段(自身.选中请求,'group')),None)#按组
+            if (自身.选中请求['seq'] if 'seq' in 自身.选中请求 else None) is None:#无序号
+                选中请求信息=next((候 for 候 in 会话编号 if 候['turn']==自身.选中请求['turn'] and 候['group']==自身.选中请求['group']),None)#按组
             else:#有序号
-                选中请求信息=next((候 for 候 in (会话编号 or []) if 取字段(候,'seq')==取字段(自身.选中请求,'seq')),None)#按序
+                选中请求信息=next((候 for 候 in 会话编号 if 候['seq']==(自身.选中请求['seq'] if 'seq' in 自身.选中请求 else None)),None)#按序
         选中请求状态=None#状态
         if 自身.选中请求 is not None:#有请求
-            if 选中请求信息 is not None and 取字段(选中请求信息,'status') is not None:#显式
-                选中请求状态=取字段(选中请求信息,'status')#态
-            elif 选中请求助手 is not None and 取字段(取字段(选中请求助手,'cell'),'assistantMetrics') is not None and 取字段(取字段(取字段(选中请求助手,'cell'),'assistantMetrics'),'completedTime') is None:#跑
+            if 选中请求信息 is not None and ('status' in 选中请求信息) and 选中请求信息['status'] is not None:#显式
+                选中请求状态=选中请求信息['status']#态
+            elif 选中请求助手 is not None and ('assistantMetrics' in 选中请求助手['cell']) and 选中请求助手['cell']['assistantMetrics'] is not None and (('completedTime' not in 选中请求助手['cell']['assistantMetrics']) or 选中请求助手['cell']['assistantMetrics']['completedTime'] is None):#跑
                 选中请求状态='running'#跑
             elif 选中请求助手 is None and any(记录状态(候)=='running' for 候 in 选中请求记录):#子跑
                 选中请求状态='running'#跑
             else:#完
                 选中请求状态='complete'#完
-        选中请求工具数=sum(1 for 候 in 选中请求记录 if 取字段(取字段(候,'cell'),'kind')=='tool')#工具
-        选中请求子工具数=sum(1 for 候 in 选中请求记录 if 取字段(取字段(候,'cell'),'kind')=='subtool')#子工具
-        结果序号=取字段(选中请求信息,'resultSeq') if 选中请求信息 is not None else None#结果序
+        选中请求工具数=sum(1 for 候 in 选中请求记录 if 候['cell']['kind']=='tool')#工具
+        选中请求子工具数=sum(1 for 候 in 选中请求记录 if 候['cell']['kind']=='subtool')#子工具
+        结果序号=选中请求信息['resultSeq'] if 选中请求信息 is not None and 'resultSeq' in 选中请求信息 else None#结果序
         if 结果序号 is None:#回退助手
             选中请求结果模板=选中请求助手#助手
         else:#按序
-            选中请求结果模板=next((候 for 候 in 全部 if 取字段(取字段(候,'cell'),'sourceSeq')==结果序号),None)#找
+            选中请求结果模板=next((候 for 候 in 全部 if ('sourceSeq' in 候['cell'] and 候['cell']['sourceSeq']==结果序号)),None)#找
         选中请求结果=None if 选中请求结果模板 is None else 自身._当前记录(选中请求结果模板)#结果
-        选中请求用量=取字段(选中请求信息,'usage') if 选中请求信息 is not None else None#用量
+        选中请求用量=选中请求信息['usage'] if 选中请求信息 is not None and 'usage' in 选中请求信息 else None#用量
         if 选中请求用量 is None and 选中请求助手 is not None:#从助手推
-            助格=取字段(选中请求助手,'cell')#格
-            选中请求用量={键:取字段(助格,源) for 键,源 in (('input','input'),('cacheRead','cacheRead'),('cacheWrite','cacheWrite'),('output','output'),('reasoning','think')) if 取字段(助格,源) is not None} or None#推
-        选中请求累计=取字段(选中请求信息,'cumulativeUsage') if 选中请求信息 is not None else 选中请求用量#累计
-        选中请求选项=取字段(选中请求信息,'requestConfig') if 选中请求信息 is not None else None#选项
-        活动轮=取字段(自身.选中请求,'turn') if 自身.选中请求 is not None else (取字段(选中,'turn') if 选中 is not None else None)#活动轮
-        活动段=取字段(选中请求记录[0],'section') if 自身.选中请求 is not None and 选中请求记录 else (取字段(选中,'section') if 选中 is not None else None)#活动段
+            助格=选中请求助手['cell']#格
+            选中请求用量={键:助格[源] for 键,源 in (('input','input'),('cacheRead','cacheRead'),('cacheWrite','cacheWrite'),('output','output'),('reasoning','think')) if 源 in 助格 and 助格[源] is not None} or None#推
+        选中请求累计=选中请求信息['cumulativeUsage'] if 选中请求信息 is not None and 'cumulativeUsage' in 选中请求信息 else 选中请求用量#累计
+        选中请求选项=选中请求信息['requestConfig'] if 选中请求信息 is not None and 'requestConfig' in 选中请求信息 else None#选项
+        活动轮=自身.选中请求['turn'] if 自身.选中请求 is not None else (选中['turn'] if 选中 is not None else None)#活动轮
+        活动段=选中请求记录[0]['section'] if 自身.选中请求 is not None and 选中请求记录 else (选中['section'] if 选中 is not None else None)#活动段
         if 自身.选中请求 is not None:#请求标签
             选中标签页=[页 for 页 in 请求标签页 if 页['id']!='options' or 选中请求选项 is not None]#过滤
         elif 选中 is None:#无选
@@ -748,37 +755,38 @@ class 轨迹表:#账本 + 详情检查器
         else:#记录标签
             选中标签页=详情标签页(选中)#页
         父级=父级记录(全部,选中) if 选中 is not None else {}#父级
-        父消息=父级.get('message')#父消息
-        父工具=父级.get('tool')#父工具
-        助手请求号=编号.get(请求键(取字段(选中,'turn'),取字段(选中,'group'))) if 选中 is not None and 取字段(取字段(选中,'cell'),'kind')=='message' else None#助手请求号
-        助手请求信息=None if 助手请求号 is None else next((候 for 候 in (会话编号 or []) if 取字段(候,'number')==助手请求号),None)#信息
+        父消息=父级['message'] if 'message' in 父级 else None#父消息
+        父工具=父级['tool'] if 'tool' in 父级 else None#父工具
+        助手请求键=None if 选中 is None else 请求键(选中['turn'],选中['group'])#助手键
+        助手请求号=(编号[助手请求键] if 助手请求键 in 编号 else None) if 选中 is not None and 选中['cell']['kind']=='message' else None#助手请求号
+        助手请求信息=None if 助手请求号 is None else next((候 for 候 in 会话编号 if 候['number']==助手请求号),None)#信息
         助手请求目标=None#目标
         if 选中 is not None and 助手请求号 is not None:#可跳请求
-            助手请求目标={'turn':取字段(选中,'turn'),'group':取字段(选中,'group'),**({'seq':取字段(助手请求信息,'seq')} if 助手请求信息 is not None and 取字段(助手请求信息,'seq') is not None else {})}#目标
+            助手请求目标={'turn':选中['turn'],'group':选中['group'],**({'seq':助手请求信息['seq']} if 助手请求信息 is not None and 'seq' in 助手请求信息 and 助手请求信息['seq'] is not None else {})}#目标
         有层级=助手请求目标 is not None or 父消息 is not None or 父工具 is not None#层级
-        行们=[]#渲染行
-        for 位置,记录 in enumerate(记录们):#逐条
+        行列表=[]#渲染行
+        for 位置,记录 in enumerate(记录列表):#逐条
             当前=自身._当前记录(记录)#当前
-            末端=取字段(取字段(当前,'cell'),'requestOnly') is True and 位置==len(记录们)-1#末端
-            行们.append(自身._渲染行(当前,位置,末端,全部,边界,编号,游程,会话编号,活动轮,活动段,选中下标,折轮))#行
+            末端=('requestOnly' in 当前['cell'] and 当前['cell']['requestOnly'] is True) and 位置==len(记录列表)-1#末端
+            行列表.append(自身._渲染行(当前,位置,末端,全部,边界,编号,游程,会话编号,活动轮,活动段,选中下标,折轮))#行
         显示详情=自身.选中请求 is not None or 提示选中 or (选中 is not None and 选中状态 is not None)#显示详情
         详情标题=None#标题
         if 自身.选中请求 is not None:#请求头
             详情标题={#请求
                 'mode':'request',#模式
                 'number':选中请求号,#号
-                'location':f'Compaction · {段落标签(取字段(自身.选中请求,"turn"))}' if 取字段(选中请求信息,'purpose')=='compaction' else 段落标签(取字段(自身.选中请求,'turn')),#位置
+                'location':f'Compaction · {段落标签(自身.选中请求["turn"])}' if (选中请求信息['purpose'] if 选中请求信息 is not None and 'purpose' in 选中请求信息 else None)=='compaction' else 段落标签(自身.选中请求['turn']),#位置
             }#结束
         elif 提示选中:#系统
-            详情标题={'mode':'system','kindLabel':'SYSTEM','location':取字段(取字段(选中,'cell'),'text')}#系统
+            详情标题={'mode':'system','kindLabel':'SYSTEM','location':(选中['cell']['text'] if 'text' in 选中['cell'] else None)}#系统
         elif 选中 is not None:#记录
-            种类=取字段(取字段(选中,'cell'),'kind')#种类
+            种类=选中['cell']['kind']#种类
             详情标题={#记录
                 'mode':'record',#模式
                 'kind':种类,#种类
-                'kindLabel':种类标签.get(种类,种类),#标签
-                'kindClass':种类样式类.get(种类),#类
-                'location':段落标签(取字段(选中,'turn')) if 种类=='compacted' else f'{段落标签(取字段(选中,"turn"))} · {取字段(选中,"group")}',#位置
+                'kindLabel':种类标签[种类] if 种类 in 种类标签 else 种类,#标签
+                'kindClass':种类样式类[种类] if 种类 in 种类样式类 else None,#类
+                'location':段落标签(选中['turn']) if 种类=='compacted' else f'{段落标签(选中["turn"])} · {选中["group"]}',#位置
             }#结束
         分栏样式=None if 自身.工具请求偏移 is None else {'--trajectory-tool-request-width':f'calc(58cqw - {自身.工具请求偏移}px)'}#分栏
         return {#根
@@ -799,8 +807,8 @@ class 轨迹表:#账本 + 详情检查器
                 'historyLoading':显示初载,#初载
                 'hasOlderRecords':有更早,#更早
                 'olderBusy':更早忙,#忙
-                'ariaRowCount':len(记录们)+(1 if 有更早 else 0),#行数
-                'rows':行们,#行
+                'ariaRowCount':len(记录列表)+(1 if 有更早 else 0),#行数
+                'rows':行列表,#行
             },#左栏结束
             'details':None if not 显示详情 else {#右栏
                 'width':自身.详情宽,#宽

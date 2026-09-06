@@ -4,7 +4,7 @@
 无英文别名。
 """
 import uuid#新消息身份
-from .品牌 import 消息标识#导入消息 id 品牌
+from .标识构造 import 消息标识#导入消息标识构造
 from .调用配置 import 深冻结,结构化克隆#导入深冻结与拆离
 
 __all__=(#仅中文公开名

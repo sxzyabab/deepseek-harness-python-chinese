@@ -4,6 +4,7 @@ worker 内也不跑 inflate。
 
 对齐上游 `webworker-runtime/src/storage/tar.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 import math#块对齐ceil
 
 __all__=['打包tar','解析tar']#仅中文公开名
@@ -33,21 +34,21 @@ def 拆名字(名称):#拆name/prefix
         剩余=名称[索引+1:]#name段
         if len(剩余.encode('utf-8'))<=100 and len(前缀.encode('utf-8'))<=155:#两端皆合
             return {'name':剩余,'prefix':前缀}#返回拆分
-    raise Exception(f'vfs tar: entry name does not fit the ustar name+prefix split: {名称}')#无法拆分
+    raise 运行时错误(f'vfs tar: entry name does not fit the ustar name+prefix split: {名称}')#无法拆分
 
-def 打包tar(文件们):#打包ustar
+def 打包tar(文件表):#打包ustar
     """把条目打成一份未压缩 ustar 归档。
 
     条目保持给定顺序；以斜杠结尾的名字成为目录项。
     内容原样写入——压缩属于 HTTP 传输，不属于归档。
 
     参数:
-        文件们: 条目名到内容字节。
+        文件表: 条目名到内容字节。
     返回:
         归档字节。
     """
-    块们=[]#块收集
-    for 条目名,内容 in 文件们.items():#逐条目
+    块列表=[]#块收集
+    for 条目名,内容 in 文件表.items():#逐条目
         是目录=条目名.endswith('/')#是否目录名
         大小=0 if 是目录 else len(内容)#内容大小
         拆分=拆名字(条目名)#拆字段
@@ -70,15 +71,15 @@ def 打包tar(文件们):#打包ustar
         头[148:148+len(校验文本)]=校验文本#校验字段
         头[154]=0#NUL
         头[155]=0x20#空格
-        块们.append(bytes(头))#推头
+        块列表.append(bytes(头))#推头
         if 大小>0:#有内容
             数据=内容 if isinstance(内容,(bytes,bytearray)) else bytes(内容)#规范字节
-            块们.append(数据)#推数据
+            块列表.append(数据)#推数据
             填充=大小%块大小#块对齐剩余
             if 填充!=0:#需填零
-                块们.append(bytes(块大小-填充))#填零
-    块们.append(bytes(块大小*2))#双空块收尾
-    return b''.join(块们)#返回归档
+                块列表.append(bytes(块大小-填充))#填零
+    块列表.append(bytes(块大小*2))#双空块收尾
+    return b''.join(块列表)#返回归档
 
 def 读字段(头,偏移,长度):#读NUL字段
     """返回一个头字段中的 NUL 终止字符串。"""
@@ -98,7 +99,7 @@ def 解析tar(归档):#解析ustar
     返回:
         按归档顺序的条目。
     """
-    条目们=[]#条目列表
+    条目列表=[]#条目列表
     偏移=0#游标
     总长=len(归档)#归档长度
     while 偏移+块大小<=总长:#还有整块
@@ -115,8 +116,8 @@ def 解析tar(归档):#解析ustar
         类型标志=头[156]#类型标志
         是目录=类型标志==0x35 or 名称.endswith('/')#是否目录
         if 类型标志 not in (0x30,0,0x35):#不支持类型
-            raise Exception(f'vfs tar: unsupported entry type {chr(类型标志 or 0)} for "{名称}"')#拒绝
+            raise 运行时错误(f'vfs tar: unsupported entry type {chr(0 if 类型标志 is None else 类型标志)} for "{名称}"')#??0，类型标志 0 合法
         数据起点=偏移+块大小#数据起点
-        条目们.append({'name':名称,'bytes':归档[数据起点:数据起点+大小],'directory':是目录,'mode':权限})#推条目
+        条目列表.append({'name':名称,'bytes':归档[数据起点:数据起点+大小],'directory':是目录,'mode':权限})#推条目
         偏移=数据起点+math.ceil(大小/块大小)*块大小#跳到下一块对齐
-    return 条目们#返回条目
+    return 条目列表#返回条目

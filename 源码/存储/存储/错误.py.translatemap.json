@@ -1,0 +1,19 @@
+{
+    "backend":"后端",
+    "cause":"原因",
+    "closed":"已关闭",
+    "code":"码",
+    "duplicate":"重复",
+    "error":"错误",
+    "form":"形态",
+    "found":"找到",
+    "malformed":"畸形",
+    "medium":"介质",
+    "message":"消息",
+    "mismatch":"不匹配",
+    "mount":"挂载",
+    "name":"名称",
+    "self":"自身",
+    "storage":"存储",
+    "version":"版本"
+}

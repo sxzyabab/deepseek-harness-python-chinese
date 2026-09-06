@@ -10,10 +10,9 @@ from .类型 import *#协议类型锚点
 from .远程制品 import 透传模式,严格编解码,调用描述符,远程贡献#手写 Remote 制品辅助
 
 __all__=[#仅中文公开名
-    '是否合法远程段','查找策略失败','Typert查找失败','TypertLookupFailure',
-    '绑定远程网关','远程服务','远程','远程作用域','远程方法们',
+    '是否合法远程段','查找策略失败',
+    '绑定远程网关','远程服务','远程','远程作用域','远程方法列表',
     '透传模式','严格编解码','调用描述符','远程贡献',
-    'isTypertRemoteSegment','bindTypertRemote','TypertRemoteService','Remote','RemoteScope','remoteMethods',
 ]#公开面结束
 
 远程段模式=re.compile(r'^[A-Za-z0-9_$.-]+$')#RPC 端点段合法字符
@@ -30,9 +29,6 @@ class 查找策略失败(Exception):#lookup 策略拒绝错误
         super().__init__('Typert lookup policy rejected the requested identity')#固定英文消息
         自身.name='TypertLookupFailure'#错误名
         自身.failure=失败载荷#适配器失败载荷
-
-Typert查找失败=查找策略失败#中文别名（remotes 消费）
-TypertLookupFailure=查找策略失败#上游名
 
 def 校验段名(主语,值):#校验 Remote 段名
     """非法端点段则抛。"""
@@ -108,7 +104,7 @@ def 远程作用域(键,导出名=None):#作用域 Remote 装饰器工厂
         return 方法#原样
     return 装饰器#工厂
 
-def 远程方法们(服务实例):#读取实例上的 Remote 标记
+def 远程方法列表(服务实例):#读取实例上的 Remote 标记
     """读取装饰器附着在活 Service 上的 Remote 标记。"""
     结果=[]#标记列表
     for 类 in type(服务实例).__mro__:#沿 MRO
@@ -123,11 +119,3 @@ def 远程方法们(服务实例):#读取实例上的 Remote 标记
                 项['exportName']=标记['exportName']#带上
             结果.append(项)#收入
     return 结果#按声明顺序近似
-
-# 上游英文名对照
-isTypertRemoteSegment=是否合法远程段#上游名
-bindTypertRemote=绑定远程网关#上游名
-TypertRemoteService=远程服务#上游名
-Remote=远程#上游名
-RemoteScope=远程作用域#上游名
-remoteMethods=远程方法们#上游名

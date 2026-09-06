@@ -1,0 +1,21 @@
+{
+    "as":"为",
+    "channel":"通道",
+    "data":"数据",
+    "default":"默认",
+    "id":"标识",
+    "is":"是",
+    "main":"主",
+    "mark":"标记",
+    "message":"消息",
+    "module":"模块",
+    "node":"节点",
+    "on":"于",
+    "parent":"父",
+    "port":"端口",
+    "receive":"接收",
+    "thread":"线程",
+    "threads":"线程",
+    "untransferable":"不可转移",
+    "worker":"工作者"
+}

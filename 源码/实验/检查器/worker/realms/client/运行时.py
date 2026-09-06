@@ -1,7 +1,7 @@
 """类型化 Worker→Client 传输上的 RuntimeBackend。"""
 #对齐上游 worker/realms/client/runtime.ts
 
-from ......内核.智能体循环.辅助 import 解开,操作任务#可等待则等待|单次结果
+from ....共享.json import 操作任务,检查器错误#单次结果|包内错误
 from .值 import Client完成,Client异常,Client句柄,Client属性,Client内部属性#值转换
 
 __all__=['Client运行时后端']#仅中文公开名
@@ -28,11 +28,11 @@ class Client运行时后端:#Client Runtime后端
         """执行 evaluate。"""
         _断言求值选项(请求)#断言选项
         支持={键:值 for 键,值 in 请求.items() if 键 not in ('context','throwOnSideEffect','serializationOptions')}#支持的
-        return Client完成(自身._期望(解开(自身._请求({'op':'evaluate',**支持})),'evaluate'),自身.脚本身份.转Runtime)#转换
+        return Client完成(自身._期望(自身._请求({'op':'evaluate',**支持}).等待(),'evaluate'),自身.脚本身份.转Runtime)#转换
 
     def 取属性(自身,请求):#取属性
         """执行 get-properties。"""
-        结果=自身._期望(解开(自身._请求({'op':'get-properties',**请求,'handle':Client句柄(请求['handle'])})),'get-properties')#请求
+        结果=自身._期望(自身._请求({'op':'get-properties',**请求,'handle':Client句柄(请求['handle'])}).等待(),'get-properties')#请求
         输出={'properties':[Client属性(项) for 项 in 结果['properties']]}#属性
         if 'internalProperties' in 结果:#内部属性
             输出['internalProperties']=[Client内部属性(项) for 项 in 结果['internalProperties']]#映射
@@ -51,25 +51,25 @@ class Client运行时后端:#Client Runtime后端
             命令['receiver']=Client句柄(接收者)#接收者
         if 参数列表 is not None:#有参数
             命令['arguments']=[_参数转Client(项) for 项 in 参数列表]#参数
-        return Client完成(自身._期望(解开(自身._请求(命令)),'call-function'),自身.脚本身份.转Runtime)#转换
+        return Client完成(自身._期望(自身._请求(命令).等待(),'call-function'),自身.脚本身份.转Runtime)#转换
 
     def 等Promise(自身,请求):#等Promise
         """执行 await-promise。"""
-        return Client完成(自身._期望(解开(自身._请求({'op':'await-promise',**请求,'promise':Client句柄(请求['promise'])})),'await-promise'),自身.脚本身份.转Runtime)#转换
+        return Client完成(自身._期望(自身._请求({'op':'await-promise',**请求,'promise':Client句柄(请求['promise'])}).等待(),'await-promise'),自身.脚本身份.转Runtime)#转换
 
     def 全局词法名(自身,上下文=None):#全局词法名
         """执行 global-lexical-scope-names。"""
         if 上下文 is not None:#不支持上下文
             raise RuntimeError('Client Runtime does not support native execution contexts')#抛错
-        return 自身._期望(解开(自身._请求({'op':'global-lexical-scope-names'})),'global-lexical-scope-names')['names']#名字
+        return 自身._期望(自身._请求({'op':'global-lexical-scope-names'}).等待(),'global-lexical-scope-names')['names']#名字
 
     def 释放对象(自身,句柄):#释放对象
         """执行 release-object。"""
-        自身._期望(解开(自身._请求({'op':'release-object','handle':Client句柄(句柄)})),'release-object')#请求
+        自身._期望(自身._请求({'op':'release-object','handle':Client句柄(句柄)}).等待(),'release-object')#请求
 
     def 释放对象组(自身,组):#释放对象组
         """执行 release-object-group。"""
-        自身._期望(解开(自身._请求({'op':'release-object-group','objectGroup':组})),'release-object-group')#请求
+        自身._期望(自身._请求({'op':'release-object-group','objectGroup':组}).等待(),'release-object-group')#请求
 
     def 关闭(自身):#关闭
         """关闭本连接的会话并拒绝后续请求。"""
@@ -88,7 +88,6 @@ class Client运行时后端:#Client Runtime后端
 
     def _期望(自身,结果,操作):#期望结果
         """窄化结果操作。"""
-        结果=解开(结果)#可等待则等待
         if 结果.get('op')!=操作:#不符
             raise RuntimeError(f"Client Runtime returned {结果.get('op')} for {操作}")#抛错
         return 结果#返回

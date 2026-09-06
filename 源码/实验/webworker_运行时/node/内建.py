@@ -15,6 +15,7 @@ Worker 宿主自行安装该全局，并在装配时填入本表。
 
 对齐上游 `webworker-runtime/src/node/builtins.ts`。公开面仅中文名。
 """
+from .未实现失败 import 运行时错误#本包错误
 from .builtin_modules.implemented import async_hooks as 节点异步钩子#async_hooks实现
 from .builtin_modules.implemented import buffer as 节点缓冲#buffer实现
 from .builtin_modules.implemented import crypto as 节点密码学#crypto实现
@@ -47,7 +48,7 @@ from .external_packages import sharp as sharp包#sharp桩
 from .external_packages import ws as ws包#ws桩
 from .external_packages.已替换外部 import 替换外部包清单#替换包清单
 
-__all__=['替换前缀们','创建节点内建']#仅中文公开名
+__all__=['替换前缀表','创建节点内建']#仅中文公开名
 
 def _工厂(模块):#静态模块工厂
     """返回命名空间对象的工厂。"""
@@ -56,7 +57,7 @@ def _工厂(模块):#静态模块工厂
         return 模块#命名空间
     return 取模块#工厂
 
-内建们={#内置说明符表
+内建表={#内置说明符表
     'async_hooks':_工厂(节点异步钩子),#异步钩子
     'buffer':_工厂(节点缓冲),#缓冲区
     'child_process':_工厂(节点子进程),#子进程
@@ -82,27 +83,27 @@ def _工厂(模块):#静态模块工厂
     'vm':_工厂(节点vm),#vm
     'worker_threads':_工厂(节点工作线程),#工作线程
     'zlib':_工厂(节点zlib),#压缩
-}#内建们结束
+}#内建表结束
 
-外部们={#外部替换表
+外部表={#外部替换表
     'koffi':_工厂(koffi包),#FFI桥
     'sharp':_工厂(sharp包),#图像
     'node-pty':_工厂(node_pty包),#伪终端
     'ws':_工厂(ws包),#WebSocket
     '@vscode/ripgrep':_工厂(ripgrep包),#ripgrep路径
     '@earendil-works/pi-ai':_工厂(pi_ai包),#pi-ai
-}#外部们结束
+}#外部表结束
 
-替换前缀们={#前缀替换表
+替换前缀表={#前缀替换表
     '@earendil-works/pi-ai/':_工厂(pi_ai包),#pi-ai子路径
-}#替换前缀们结束
+}#替换前缀表结束
 
 #一份清单，两个消费者：此处替换的包也必须排除在 VFS 镜像之外，
 #任何分歧在 Worker 启动时失败，而不是在首次 require 时。
 _已声明=','.join(sorted(替换外部包清单))#清单排序串
-_已接线=','.join(sorted(外部们.keys()))#接线键排序串
+_已接线=','.join(sorted(外部表.keys()))#接线键排序串
 if _已声明!=_已接线:#清单与接线不一致
-    raise Exception(f'web-preview: replaced-external lists diverge — declared [{_已声明}] vs wired [{_已接线}]')#启动即失败
+    raise 运行时错误(f'web-preview: replaced-external lists diverge — declared [{_已声明}] vs wired [{_已接线}]')#启动即失败
 
 def 创建节点内建():#构建内置表
     """构建 Worker 模块加载器优先查阅的说明符 → 工厂表。
@@ -110,8 +111,8 @@ def 创建节点内建():#构建内置表
     返回:
         每个被替换说明符，含其 `node:` 前缀别名。
     """
-    表=dict(外部们)#从外部表起步
-    for 名,工厂 in 内建们.items():#遍历内置
+    表=dict(外部表)#从外部表起步
+    for 名,工厂 in 内建表.items():#遍历内置
         表[名]=工厂#裸名
         表[f'node:{名}']=工厂#node:前缀别名
     return 表#返回完整表

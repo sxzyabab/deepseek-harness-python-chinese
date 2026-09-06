@@ -1,0 +1,18 @@
+{
+    "child":"子",
+    "command":"命令",
+    "destroy":"销毁",
+    "filesystem":"文件系统",
+    "host":"宿主",
+    "inline":"内联",
+    "interpret":"解释",
+    "process":"进程",
+    "run":"运行",
+    "serve":"服务",
+    "shell":"壳",
+    "spawn":"派发",
+    "start":"启动",
+    "supervise":"监督",
+    "terminate":"终止",
+    "worker":"工作者"
+}

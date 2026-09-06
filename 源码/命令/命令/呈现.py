@@ -8,7 +8,8 @@ from typing import NotRequired,TypedDict#可选字段与结构类型
 
 __all__=['解析退出状态字段','解析退出状态结果','解析退出状态']#仅中文公开名
 
-搜索=re.search#正则搜索
+被杀标记=re.compile(r'\n\[killed by signal: ([^\]\n]+)\]\Z',re.ASCII)#末尾被信号杀死标记
+退出标记=re.compile(r'\n\[exit code: ([0-9]+)\]\Z',re.ASCII)#末尾退出码标记
 
 解析退出状态字段=('body','exitCode','signal')#去掉标记后的正文，外加退出码或信号（载荷键字面量）
 
@@ -24,10 +25,10 @@ def 解析退出状态(文本):#从渲染文本恢复退出状态
     消费掉的标记从 body 去掉，因为终端展示把退出状态显示为自己的药丸。
     要求前导换行且位于字符串末尾，使普通输出不会误匹配。
     """
-    信号匹配=搜索(r'\n\[killed by signal: ([^\]\n]+)\]\Z',文本)#末尾的被信号杀死标记
+    信号匹配=被杀标记.search(文本)#末尾的被信号杀死标记
     if 信号匹配 is not None:#命中被信号杀死标记
         return {'body':文本[:信号匹配.start()],'signal':信号匹配.group(1)}#拆出信号
-    退出匹配=搜索(r'\n\[exit code: ([0-9]+)\]\Z',文本)#末尾的退出码标记
+    退出匹配=退出标记.search(文本)#末尾的退出码标记
     if 退出匹配 is not None:#命中退出码标记
         return {'body':文本[:退出匹配.start()],'exitCode':int(退出匹配.group(1))}#拆出退出码
     return {'body':文本,'exitCode':0}#无标记则当作干净退出 0

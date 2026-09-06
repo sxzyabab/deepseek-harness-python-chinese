@@ -6,9 +6,14 @@
 
 对齐上游 `webworker-runtime/src/compile/transform.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 import re#已降低检测与静态请求扫描
 
 __all__=['降低模块源']#仅中文公开名
+
+静态导入=re.compile(r'''(?:import|export)\s+(?:[\s\S]*?\sfrom\s+)?['"]([^'"]+)['"]''',re.ASCII)#静态请求
+require字面=re.compile(r'''require\s*\(\s*['"]([^'"]+)['"]\s*\)''',re.ASCII)#require字面量
+元解析字面=re.compile(r'''import\.meta\.resolve\s*\(\s*['"]([^'"]+)['"]\s*\)''',re.ASCII)#meta.resolve
 
 辅助源={#运行时辅助代码表
     'def':'const __dsh$def=(t,k,get)=>Object.defineProperty(t,k,{enumerable:true,configurable:true,get});',#定义导出属性getter
@@ -35,11 +40,11 @@ class 变换器:#模块变换器
 
     def __init__(自身,源,路径):#构造变换器
         """去掉 shebang 或原样。"""
-        自身._编辑们=[]#编辑列表
+        自身._编辑列表=[]#编辑列表
         自身._源=f'//{源[2:]}' if 源.startswith('#!') else 源#去掉shebang或原样
         自身._路径=路径#诊断路径
         自身._辅助=set()#已用辅助名
-        自身._绑定们=[]#待发布绑定
+        自身._绑定列表=[]#待发布绑定
         自身._模块序号=0#模块临时变量序号
         自身._临时序号=0#ALS临时变量序号
         自身._模块语法=False#是否见过模块语法
@@ -50,7 +55,7 @@ class 变换器:#模块变换器
     def _失败(自身,细节,索引):#抛变换错误
         """带路径行号抛错。"""
         行=自身._源[:索引].count('\n')+1#算出行号
-        raise Exception(f'webworker transform: {细节} ({自身._路径}:{行})')#带路径行号抛错
+        raise 运行时错误(f'webworker transform: {细节} ({自身._路径}:{行})')#带路径行号抛错
 
     def _辅助名(自身,名):#确保辅助入序言
         """登记辅助及其依赖。"""
@@ -76,7 +81,7 @@ class 变换器:#模块变换器
             """生成替换文本并补换行。"""
             文本=构建(内层)#生成替换文本
             return 文本+'\n'*max(0,原换行-计换行(文本))#末尾补换行保行数
-        自身._编辑们.append({'start':起始,'end':结束,'render':渲染})#压入编辑
+        自身._编辑列表.append({'start':起始,'end':结束,'render':渲染})#压入编辑
 
     def _替换(自身,起始,结束,文本):#直接替换区间
         """直接替换区间。"""
@@ -90,13 +95,13 @@ class 变换器:#模块变换器
         def 渲染(内层):#渲染
             """返回插入文本。"""
             return 文本#文本
-        自身._编辑们.append({'start':位置,'end':位置,'render':渲染})#零宽编辑
+        自身._编辑列表.append({'start':位置,'end':位置,'render':渲染})#零宽编辑
 
-    def 请求们(自身):#获取模块请求
+    def 列出请求(自身):#获取模块请求
         """正文发出的静态模块请求，按首次出现顺序。"""
         return list(自身._模块请求)#展开为数组
 
-    def 元请求们(自身):#获取meta.resolve请求
+    def 列出元请求(自身):#获取meta.resolve请求
         """字面量 import.meta.resolve() 请求。"""
         return list(自身._元解析请求)#展开为数组
 
@@ -111,11 +116,11 @@ class 变换器:#模块变换器
             return 源#原样
         自身._模块语法=True#标记见过模块语法
         #收集静态 import/export 字符串字面量作为模块请求（对齐扫描面）
-        for 匹配 in re.finditer(r'''(?:import|export)\s+(?:[\s\S]*?\sfrom\s+)?['"]([^'"]+)['"]''',源):#静态请求
+        for 匹配 in 静态导入.finditer(源):#静态请求
             自身._模块请求.add(匹配.group(1))#登记
-        for 匹配 in re.finditer(r'''require\s*\(\s*['"]([^'"]+)['"]\s*\)''',源):#require字面量
+        for 匹配 in require字面.finditer(源):#require字面量
             自身._模块请求.add(匹配.group(1))#登记
-        for 匹配 in re.finditer(r'''import\.meta\.resolve\s*\(\s*['"]([^'"]+)['"]\s*\)''',源):#meta.resolve
+        for 匹配 in 元解析字面.finditer(源):#meta.resolve
             自身._元解析请求.add(匹配.group(1))#登记
         序言=[]#序言片段
         序言.append('"use strict";Object.defineProperty(exports,"__esModule",{value:true});')#CJS模块标记
@@ -130,6 +135,7 @@ class 变换器:#模块变换器
             r'\bawait\b',#await关键字
             f'{als标识}.resume(await {als标识}.pause(',#前缀
             源,#源
+            count=0,#替换全部 await
         )#sub结束——注意：完整括号闭合需 AST；此处保留源结构供打包器接线完整变换
         #上述简化会破坏括号平衡；恢复为源并仅加序言标记，完整降级由上游 TS 打包器承担。
         代码=源#恢复
@@ -147,7 +153,7 @@ def 详细变换(源,路径):#详细变换
     if 缓存 is not None:#命中则直接返回
         return 缓存#返回
     变换=变换器(源,路径)#新建变换器
-    结果={'code':变换.运行(),'moduleRequests':变换.请求们(),'metaResolveRequests':变换.元请求们()}#跑变换
+    结果={'code':变换.运行(),'moduleRequests':变换.列出请求(),'metaResolveRequests':变换.列出元请求()}#跑变换
     _缓存[源]=结果#写入缓存
     return 结果#返回结果
 

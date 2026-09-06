@@ -1,0 +1,15 @@
+{
+    "available":"可用",
+    "error":"错误",
+    "fail":"失败",
+    "host":"宿主",
+    "message":"消息",
+    "module":"模块",
+    "not":"未",
+    "preview":"预览",
+    "runtime":"运行时",
+    "self":"自身",
+    "symbol":"符号",
+    "unavailable":"不可用",
+    "worker":"工作者"
+}

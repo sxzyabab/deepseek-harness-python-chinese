@@ -1,6 +1,5 @@
 """纯读展示：把提供方已解码文本变成有界、带行号的窗口和面向模型的信封。块扫描会封顶当前行，因此即使一行没有换行的巨型行也不能无界增长内存。对齐上游 tool-fs/src/read-render.ts。"""
 from .. import 文件系统 as fs#文件系统错误类
-from .辅助 import 试取,是否整数#字段读取与整数判定
 
 读最大行长=2000#默认单行字符上限
 读最大字节=50*1024#默认窗口50KiB
@@ -23,11 +22,22 @@ def 新建累加器():#新建空窗口累加器
     """新建空窗口累加器。"""
     return {'lines':[],'totalLines':0,'outputBytes':0,'truncatedByBytes':False}#全部从零开始
 
-def 截断行(行,最大行长):#按字符上限截断一行
-    """按字符上限截断一行。"""
-    if len(行)>最大行长:#超长
-        return 行[0:最大行长]+'... (line truncated to '+str(最大行长)+' chars)'#截断并加后缀
-    return 行#原样
+def 按字节截到边界(文本,最大字节):#按UTF-8字节截断
+    """按 UTF-8 字节截断，切点落在字符边界。"""
+    数据=文本.encode('utf-8')#编码
+    if len(数据)<=最大字节:#未超
+        return 文本#原样
+    切=最大字节#拟定切点
+    while 切>0 and (数据[切]&0xC0)==0x80:#落在续字节上则回退
+        切-=1#退到字符起点
+    return 数据[0:切].decode('utf-8')#边界上解码
+
+def 截断行(行,最大行长):#按字节上限截断一行
+    """按 UTF-8 字节上限截断一行。"""
+    已截=按字节截到边界(行,最大行长)#按字节切
+    if 已截==行:#未超
+        return 行#原样
+    return 已截+'... (line truncated to '+str(最大行长)+' chars)'#截断并加后缀
 
 def 行字节大小(行,当前行数):#计算该行计入窗口时的UTF-8字节
     """计算该行计入窗口时的 UTF-8 字节。非首行再加一个换行字节。"""
@@ -58,25 +68,21 @@ def 收尾(累加器,请求,展示路径):#扫描结束后校验offset并打包�
         raise fs.文件系统错误('offset '+str(请求['offset'])+' is out of range for "'+展示路径+'" ('+str(累加器['totalLines'])+' lines)','FS_NOT_FOUND')#按未找到报告越界
     return {'lines':累加器['lines'],'totalLines':累加器['totalLines'],'truncatedByBytes':累加器['truncatedByBytes']}#打包窗口结果
 
-def 构建窗口(块们,请求,展示路径):#从文本块构建有界行窗口
+def 构建窗口(块列表,请求,展示路径):#从文本块构建有界行窗口
     """从流式或整文件块构建一个窗口，强制行与字节上限，同时仍扫描到精确总行数。"""
     累加器=新建累加器()#空累加器
-    行缓冲上限=请求['maxLineLength']+1#行缓冲上限
+    行缓冲上限=请求['maxLineLength']+1#行缓冲字节上限
     行缓冲=''#当前尚未遇到换行的行缓冲
     def 追加到行缓冲(片段):#把片段追加到行缓冲并封顶
-        """把片段追加到行缓冲并封顶。"""
+        """把片段追加到行缓冲并按 UTF-8 字节封顶。"""
         nonlocal 行缓冲#修改外层缓冲
-        if len(行缓冲)>=行缓冲上限:#已满则丢弃后续
-            return#丢弃
-        行缓冲=行缓冲+片段#追加
-        if len(行缓冲)>行缓冲上限:#超出则裁到上限
-            行缓冲=行缓冲[0:行缓冲上限]#裁到上限
+        行缓冲=按字节截到边界(行缓冲+片段,行缓冲上限)#追加后按字节封顶
     def 刷新行():#把当前行缓冲交给累加器
         """把当前行缓冲交给累加器。"""
         nonlocal 行缓冲#修改外层缓冲
         消费行(累加器,去掉回车(行缓冲),请求)#去掉CR后计入
         行缓冲=''#清空缓冲
-    for 块 in 块们:#按块扫描
+    for 块 in 块列表:#按块扫描
         起点=0#本块尚未消费的起点
         while True:#本块内还有换行
             换行位置=块.find('\n',起点)#下一个换行位置
@@ -97,7 +103,7 @@ def 格式化读输出(展示路径,结果):#格式化read信封
         末行=窗口行[-1]['number']#窗口末行
     else:#空窗口
         末行=max(0,结果['offset']-1)#offset前一行
-    if 试取(结果,'truncatedByBytes'):#因字节上限截断
+    if 'truncatedByBytes' in 结果 and 结果['truncatedByBytes']:#因字节上限截断
         页脚='(Output capped. Showing lines '+str(结果['offset'])+'-'+str(末行)+'. Use offset='+str(末行+1)+' to continue.)'#提示用下一offset继续
     elif 末行<结果['totalLines']:#行窗口未到EOF
         页脚='(Showing lines '+str(结果['offset'])+'-'+str(末行)+' of '+str(结果['totalLines'])+'. Use offset='+str(末行+1)+' to continue.)'#提示继续
@@ -126,20 +132,26 @@ def 是否文本行(值):#收窄为带行号文本行
     """value 是否为合法带行号文本行。number 必须是 1 基整数行号。"""
     if not isinstance(值,dict):#必须是普通对象
         return False#不是对象
-    行号=试取(值,'number')#行号
-    文本=试取(值,'text')#文本
-    return 是否整数(行号) and 行号>=1 and isinstance(文本,str)#1基整数行号加字符串文本
+    if 'number' not in 值 or 'text' not in 值:#缺字段
+        return False#畸形
+    行号=值['number']#行号
+    文本=值['text']#文本
+    if isinstance(行号,bool) or type(行号) is not int or 行号<1:#行号必须是1基int
+        return False#畸形
+    return isinstance(文本,str)#字符串文本
 
 def 从元数据取读窗口(元数据):#从结果meta收窄出read窗口
-    """把不透明的现场或回放结果元数据收窄为结构化读窗口。畸形或语义非法时为 None。"""
+    """把不透明的现场或回放结果元数据收窄为结构化读窗口。畸形或语义非法时为 None。元数据是 dict。"""
     if not isinstance(元数据,dict):#必须是普通对象
         return None#畸形
-    路径=试取(元数据,'path')#路径
-    偏移=试取(元数据,'offset')#起始行
-    窗口行=试取(元数据,'lines')#窗口行
-    总行数=试取(元数据,'totalLines')#总行数
-    语言=试取(元数据,'lang')#可选语言
-    if (not isinstance(路径,str)) or (not 是否整数(总行数)) or (not 是否整数(偏移)):#基础类型
+    if 'path' not in 元数据 or 'offset' not in 元数据 or 'lines' not in 元数据 or 'totalLines' not in 元数据:#缺必填
+        return None#畸形
+    路径=元数据['path']#路径
+    偏移=元数据['offset']#起始行
+    窗口行=元数据['lines']#窗口行
+    总行数=元数据['totalLines']#总行数
+    语言=元数据['lang'] if 'lang' in 元数据 else None#可选语言
+    if (not isinstance(路径,str)) or isinstance(总行数,bool) or type(总行数) is not int or isinstance(偏移,bool) or type(偏移) is not int:#基础类型
         return None#畸形
     if 偏移<1:#offset必须是1基
         return None#畸形

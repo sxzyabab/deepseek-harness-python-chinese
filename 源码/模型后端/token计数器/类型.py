@@ -3,21 +3,12 @@ from typing import Literal,TypedDict#字面量与结构类型
 from .投影 import 用量投影,压力投影,分解投影#再导出投影词表
 
 __all__=[#仅中文公开名
-    '取','试取','计量配置','测量基线','表面节点','令牌测量',
+    '计量错误','计量配置','测量基线','表面节点','令牌测量',
     '用量投影','压力投影','分解投影',
 ]#公开面结束
 
-def 取(对象,键):#读取必填字段
-    """读取映射或对象上的字段；缺席则抛错。"""
-    if isinstance(对象,dict):#映射
-        return 对象[键]#按下标
-    return getattr(对象,键)#按属性
-
-def 试取(对象,键):#读取可选字段
-    """读取可选字段，缺席为 None。"""
-    if isinstance(对象,dict):#映射
-        return 对象.get(键)#缺席为None
-    return getattr(对象,键,None)#缺席为None
+class 计量错误(Exception):
+    """token 计量包的异常基类。"""
 
 计量配置=dict#空配置；固定估算器没有设置项（对齐 TokenMeterConfig=Record<string,never>）
 

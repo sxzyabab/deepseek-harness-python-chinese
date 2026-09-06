@@ -52,20 +52,20 @@ CSI=re.compile(r'\x1b\[([\x30-\x3f]*)[\x20-\x2f]*([\x40-\x7e])')#CSI
 
 def 折SGR(状态,参数):#叠 SGR
     """返回新 {fg,bg,attrs}。"""
-    码们=['0'] if 参数=='' else 参数.split(';')#空=复位
+    码列表=['0'] if 参数=='' else 参数.split(';')#空=复位
     下=dict(状态)#拷
     下['attrs']=list(状态.get('attrs') or [])#属性可改
     索引=0#游标
-    while 索引<len(码们):#逐码
-        码=str(码们[索引])#当前
+    while 索引<len(码列表):#逐码
+        码=str(码列表[索引])#当前
         if 码=='' or 码=='0':#复位
             下={'fg':'','bg':'','attrs':[]}#默认
             索引+=1#下
             continue#续
         if 码 in ('38','48'):#扩展色
-            种=码们[索引+1] if 索引+1<len(码们) else ''#2/5
+            种=码列表[索引+1] if 索引+1<len(码列表) else ''#2/5
             跨=4 if 种=='2' else (2 if 种=='5' else 0)#跨度
-            值=';'.join(码们[索引:索引+跨+1])#整段
+            值=';'.join(码列表[索引:索引+跨+1])#整段
             if 码=='38':#前景
                 下['fg']=值#写
             else:#背景
@@ -274,7 +274,7 @@ def 解析ansi行(文本):#→ [[span...], ...]
     """至少一行；span={text,style}。"""
     净=净文本(文本)#净
     当前=[]#当前行 spans
-    行们=[当前]#至少一行
+    行列表=[当前]#至少一行
     态=dict(默认态)#当前态
     位=0#下标
     for 匹配 in CSI.finditer(净):#逐 CSI
@@ -283,18 +283,18 @@ def 解析ansi行(文本):#→ [[span...], ...]
             for 片索引,片 in enumerate(段.split('\n')):#按行
                 if 片索引>0:#换行
                     当前=[]#新行
-                    行们.append(当前)#挂
+                    行列表.append(当前)#挂
                 if 片!='':#非空
                     当前.append({'text':片,'style':解析样式(态)})#span
         位=匹配.end()#跳
         if 匹配.group(2)=='m':#SGR
             态=折SGR(态,匹配.group(1) or '')#折
     尾=净[位:]#尾巴
-    if 尾 or not 行们[0]:#有尾或保底
+    if 尾 or not 行列表[0]:#有尾或保底
         for 片索引,片 in enumerate(尾.split('\n')):#切
             if 片索引>0:#换行
                 当前=[]#新
-                行们.append(当前)#挂
+                行列表.append(当前)#挂
             if 片!='':#非空
                 当前.append({'text':片,'style':解析样式(态)})#span
-    return 行们#按行
+    return 行列表#按行

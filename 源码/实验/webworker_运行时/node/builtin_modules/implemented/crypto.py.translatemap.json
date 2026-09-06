@@ -1,0 +1,23 @@
+{
+    "available":"可用",
+    "bytes":"字节",
+    "create":"创建",
+    "crypto":"密码学",
+    "default":"默认",
+    "digest":"摘要",
+    "get":"获取",
+    "hash":"哈希",
+    "host":"宿主",
+    "int":"整数",
+    "module":"模块",
+    "node":"节点",
+    "not":"未",
+    "preview":"预览",
+    "random":"随机",
+    "update":"更新",
+    "uuid":"唯一标识",
+    "values":"值",
+    "web":"网页",
+    "webcrypto":"网页密码学",
+    "worker":"工作者"
+}

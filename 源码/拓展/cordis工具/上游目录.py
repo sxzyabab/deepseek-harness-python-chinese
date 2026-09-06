@@ -36,14 +36,14 @@ def _列本包源(导出名):#本包优先：单文件或有序分片
     前缀=本包分片前缀.get(导出名)#分片前缀
     if not 前缀:#无配置
         return []#空
-    片们=[]#收集
+    片列表=[]#收集
     for 名 in sorted(os.listdir(_本目录)):#字典序=编号序
         if not (名.startswith(前缀) and 名.endswith('.上游.ts')):#非本导出分片
             continue#跳过
         路径=os.path.join(_本目录,名)#绝对
         if os.path.isfile(路径) and os.path.getsize(路径)>64:#有效
-            片们.append(路径)#收入
-    return 片们#可能空
+            片列表.append(路径)#收入
+    return 片列表#可能空
 
 def _解析一源(路径,导出名):#读并解析一个源文件
     """从一个含 export const 的源抽出条目列表。"""
@@ -63,10 +63,10 @@ def 加载导出数组(导出名):#抽出并解析
     """返回 SERVICE_API / EVENT_API 之一（真实条目列表）。"""
     if 导出名 in _缓存:#已解析
         return _缓存[导出名]#复用
-    源们=_列本包源(导出名)#本包
+    源列表=_列本包源(导出名)#本包
     表=[]#合并
     已见=set()#去重
-    for 路径 in 源们:#逐本包源
+    for 路径 in 源列表:#逐本包源
         for 条目 in _解析一源(路径,导出名):#逐条
             键=_条目键(导出名,条目)#去重键
             if 键 in 已见:#已有

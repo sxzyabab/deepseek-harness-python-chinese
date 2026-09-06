@@ -20,7 +20,7 @@ from .类型 import (
 )
 from .错误 import 子智能体错误#缝内带码失败
 from .深度 import 断言子智能体最大深度,委托深度于#共享深度词汇
-from .生命周期 import 创建生命周期发射器,观察跑,创建激活观察者#start/end 发布与 Activation 观察
+from .生命周期 import 创建生命周期发出,观察跑,创建激活观察者#start/end 发布与 Activation 观察
 from .续跑 import (
     子智能体续跑管理器,#可续跑编排（agents 注入后挂上）
     协调者消息来源,#父跟进归属
@@ -90,39 +90,31 @@ __all__=(
     '无启动能力','断言正有限','断言可用工作目录','校验已配置工作目录','解析子工作目录',
     '结算跑结果','子进程跑句柄','跑结果结算','子进程跑句柄零件',
     '子智能体身份投影','子智能体计时投影',
-    '默认',
 )
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
-    return 值#同步值
-
-class 子智能体运行时(服务):#子智能体运行时服务
+class 子智能体运行时(服务):
     """具名提供方注册表，含一次性跑、耐久发现与可续跑子体操作。"""
-    def __init__(自身,ctx):#安装服务
+    def __init__(自身,ctx):
         """用 Cordis 上下文安装子智能体服务。"""
         super().__init__(ctx,'subagents')#登记服务名
-        自身._提供方们={}#提供方注册表（插入顺序用 dict 保序）
+        自身._提供方表={}#提供方注册表（插入顺序用 dict 保序）
         自身._续跑=None#可选续跑管理器；agents 注入前为空
         自身._装配注册表=子智能体激活装配注册表()#可续跑未发布窗口贡献
-        自身._发射生命周期=创建生命周期发射器(自身.ctx,lambda 父: 作用域目标(自身,父))#按委托父载体隔离派发
-        def 挂续跑(子上下文):#agents 可用时挂续跑管理器
+        def 取委托父载体(父):
+            """按委托父解析作用域载体。"""
+            return 作用域目标(自身,父)#载体
+        自身._发出生命周期=创建生命周期发出(自身.ctx,取委托父载体)#按委托父载体隔离派发
+        def 挂续跑(子上下文):
             """agents 可用时挂续跑管理器；纤维拆除只解绑本实例。"""
+            def 准备可续跑宿主(名,请求):
+                """提供方分离创建。"""
+                return 自身._准备可续跑(名,请求)#委托
+            def 观察激活宿主(提供方,子标识,父):
+                """驻留纪元观察。"""
+                return 自身._观察激活(提供方,子标识,父)#委托
             管理器=子智能体续跑管理器(子上下文,{
-                'prepareContinuable':lambda 名,请求: 自身._准备可续跑(名,请求),#提供方分离创建
-                'observeActivation':lambda 提供方,子标识,父: 自身._观察激活(提供方,子标识,父),#驻留纪元观察
+                '准备可续跑':准备可续跑宿主,#提供方分离创建
+                '观察激活':观察激活宿主,#驻留纪元观察
             },自身._装配注册表)
             自身._续跑=管理器#挂上
             def 解绑工厂():#纤维拆除时解绑
@@ -132,13 +124,13 @@ class 子智能体运行时(服务):#子智能体运行时服务
                     if 自身._续跑 is 管理器:#仍是本实例
                         自身._续跑=None#解绑
                 return 解绑#拆除器
-            子上下文.effect(解绑工厂,'subagents.continuationBinding()')#命名 effect
-        ctx.inject(['agents'],挂续跑)#agents 注入门
+            子上下文.副作用(解绑工厂,'subagents.continuationBinding()')#命名副作用
+        ctx.依赖启动(['agents'],挂续跑)#agents 注入门
         def 挂投影(投影上下文):#投影可用时登记单元
             """登记计时与身份两个投影单元；缺席时列举会大声失败。"""
             投影上下文.sessionProjections.register(子智能体计时投影定义)#活动回合计时
             投影上下文.sessionProjections.register(子智能体身份投影定义)#模式/标签身份
-        ctx.inject(['sessionProjections'],挂投影)#投影注入门
+        ctx.依赖启动(['sessionProjections'],挂投影)#投影注入门
 
     def 启动可续跑(自身,规格):#启动可续跑子体
         """建立一次耐久可续跑子体并投递其初始提示；收件箱接受即决议。"""
@@ -160,97 +152,86 @@ class 子智能体运行时(服务):#子智能体运行时服务
 
     def 登记可续跑装配(自身,贡献):#登记可续跑装配
         """把一项部署能力组进每个可续跑子体在全新创建与冷恢复时的未发布创建上下文。"""
-        return 自身.ctx.effect(
-            lambda: 自身._装配注册表.登记(贡献),#效果作用域登记
-            'subagents.registerContinuableSetup()',#effect 名
+        def 登记效果():
+            """效果作用域登记。"""
+            return 自身._装配注册表.登记(贡献)#登记
+        return 自身.ctx.副作用(
+            登记效果,#效果作用域登记
+            'subagents.registerContinuableSetup()',#副作用名
         )
 
-    def 排空可续跑后代(自身,父们):#排空作用域后代
+    def 排空可续跑后代(自身,父列表):#排空作用域后代
         """关闭精确活父智能体之下的可续跑准入，同步只停它们可见的后代 Activation。"""
         管理器=自身._续跑#可选管理器
         # 缺少续跑服务表示从未物化过任何东西。
         if 管理器 is None:#无管理器则空操作
             return#空操作
-        return 管理器.排空后代(父们)#交给管理器
+        return 管理器.排空后代(父列表)#交给管理器
 
-    def 列举子体们(自身,父会话标识,信号=None):#枚举直接子体
+    def 列出子体(自身,父会话标识,信号=None):#枚举直接子体
         """枚举父的直接有会话子智能体，不加载或恢复 Agent。"""
         return 列举子体(自身.ctx,父会话标识,信号)#委托列举实现
 
-    def 列举后代们(自身,根会话标识,信号=None):#枚举后代树
+    def 列出后代(自身,根会话标识,信号=None):#枚举后代树
         """从一份活优先语料以稳定前序枚举根的完整有会话子智能体树。"""
         return 列举后代(自身.ctx,根会话标识,信号)#委托列举实现
 
     def 登记提供方(自身,提供方):#登记提供方
         """按名登记一个提供方。登记是效果作用域且 HMR 安全。"""
-        名=取字段(提供方,'name') or 取字段(提供方,'名称')#提供方名（协议字段优先）
+        名=提供方.名称#提供方名
         def 效果():#效果作用域登记
             """登记并返回拆除器；重复名大声失败。"""
-            if 名 in 自身._提供方们:#名已占用
+            if 名 in 自身._提供方表:#名已占用
                 raise 子智能体错误('a subagent provider named "'+名+'" is already registered','DUPLICATE_PROVIDER')#拒绝重复
-            自身._提供方们[名]=提供方#写入注册表
+            自身._提供方表[名]=提供方#写入注册表
             def 回滚():#回滚：移除并通知
                 """移出注册表并发布 provider-removed。"""
-                自身._提供方们.pop(名,None)#移出注册表
-                自身._发射生命周期('subagent/provider-removed',名)#发布移除边
+                自身._提供方表.pop(名,None)#移出注册表
+                自身._发出生命周期('subagent/provider-removed',名)#发布移除边
             # 抛出的 added 监听器会解开已 yield 的回滚，匹配仓库大声失败的登记语义。
-            自身.ctx.emit('subagent/provider-added',提供方)#发布新增
+            自身.ctx.广播('subagent/provider-added',提供方)#发布新增
             return 回滚#拆除器
-        return 自身.ctx.effect(效果,'subagents.registerProvider()')#命名 effect
+        return 自身.ctx.副作用(效果,'subagents.registerProvider()')#命名副作用
 
     def 取提供方(自身,名):#按名查找
         """按名查找提供方。缺席时为 None。"""
-        return 自身._提供方们.get(名)#注册表读取
+        return 自身._提供方表.get(名)#注册表读取
 
     def 列出(自身):#列出提供方名
         """按插入顺序列出已登记提供方名。"""
-        return list(自身._提供方们.keys())#插入顺序
+        return list(自身._提供方表.keys())#插入顺序
 
     def 启动(自身,名,请求):#启动一次性跑
         """在具名提供方上建立已发布子体。能力与语义检查在委托之前跑。"""
         提供方=自身._期望提供方(名)#解析提供方
         自身._断言能力(提供方,请求)#校验能力
-        断言子智能体最大深度(取字段(请求,'maxDepth'))#校验深度上限形态
-        if 取字段(请求,'outputSchema') is not None:#有输出模式
-            断言对象json模式(取字段(请求,'outputSchema'))#校验输出模式
+        断言子智能体最大深度(请求['maxDepth'] if 'maxDepth' in 请求 else None)#校验深度上限形态
+        if 'outputSchema' in 请求 and 请求['outputSchema'] is not None:#有输出模式
+            断言对象json模式(请求['outputSchema'])#校验输出模式
         描述符输入={'mode':'one-shot','provider':名}#快照一次性描述符
-        if 取字段(请求,'label') is not None:#有标签才展开
-            描述符输入['label']=取字段(请求,'label')#展开
+        if 'label' in 请求 and 请求['label'] is not None:#有标签才展开
+            描述符输入['label']=请求['label']#展开
         描述符=快照子智能体描述符(描述符输入)#快照
-        if isinstance(请求,dict):#映射请求
-            已解析=dict(请求)#浅拷贝
-        else:#对象请求
-            已解析={
-                'label':取字段(请求,'label'),#标签
-                'prompt':取字段(请求,'prompt'),#提示
-                'parent':取字段(请求,'parent'),#父
-                'signal':取字段(请求,'signal'),#信号
-                'agentOptions':取字段(请求,'agentOptions'),#选项
-                'outputSchema':取字段(请求,'outputSchema'),#输出模式
-                'maxDepth':取字段(请求,'maxDepth'),#深度
-                'toolFilter':取字段(请求,'toolFilter'),#过滤
-                'persona':取字段(请求,'persona'),#人设
-            }
+        已解析=dict(请求) if isinstance(请求,dict) else {}#浅拷贝
         已解析['descriptor']=描述符#挂上描述符
-        启动方法=getattr(提供方,'启动',None) or getattr(提供方,'start',None)#中文方法优先
-        跑=解开(启动方法(已解析))#等待提供方发布
-        return 观察跑(自身._发射生命周期,名,取字段(请求,'parent'),跑)#观察并返回跑
+        跑=提供方.启动(已解析)#等待提供方发布
+        return 观察跑(自身._发出生命周期,名,请求['parent'] if isinstance(请求,dict) and 'parent' in 请求 else None,跑)#观察并返回跑
 
-    def _准备可续跑(自身,名,请求):#准备可续跑创建
+    def _准备可续跑(自身,名,请求):
         """解析一个提供方的分离可续跑创建贡献。"""
         提供方=自身._期望提供方(名)#解析提供方
-        准备=getattr(提供方,'准备可续跑',None) or getattr(提供方,'prepareContinuable',None)#中文方法优先
+        准备=getattr(提供方,'准备可续跑',None)#中文能力
         if 准备 is None:#缺少能力
             raise 子智能体错误(
-                'subagent provider "'+取字段(提供方,'name')+'" does not support continuable children '
+                'subagent provider "'+提供方.名称+'" does not support continuable children '
                 +'(no prepareContinuable capability)',
                 'UNSUPPORTED_CAPABILITY',
             )
-        return 解开(准备(请求))#委托提供方
+        return 准备(请求)#委托提供方
 
     def _期望提供方(自身,名):#必须存在的提供方
         """查找供派发用的提供方，否则大声失败。"""
-        提供方=自身._提供方们.get(名)#按名查找
+        提供方=自身._提供方表.get(名)#按名查找
         if 提供方 is None:#缺席
             raise 子智能体错误('no subagent provider registered for "'+名+'"','NO_PROVIDER')#拒绝
         return 提供方#已登记提供方
@@ -266,23 +247,22 @@ class 子智能体运行时(服务):#子智能体运行时服务
 
     def _观察激活(自身,提供方,子标识,父):#建造 Activation 观察者
         """为一次可续跑 Activation 的驻留纪元建造生命周期观察者。"""
-        return 创建激活观察者(自身._发射生命周期,提供方,子标识,父)#经本服务发射器
+        return 创建激活观察者(自身._发出生命周期,提供方,子标识,父)#经本服务发射器
 
     def _断言能力(自身,提供方,请求):#校验启动能力
         """拒绝提供方缺少的第一个被请求能力。"""
-        能力=取字段(提供方,'capabilities') or 取字段(提供方,'能力') or {}#能力广告
+        能力=提供方.能力 if hasattr(提供方,'能力') else {}#能力广告
         需要=[
-            (取字段(请求,'outputSchema') is not None,'outputSchema'),#输出模式
-            (取字段(请求,'maxDepth') is not None,'depthLimit'),#深度上限
-            (取字段(请求,'toolFilter') is not None,'toolFilter'),#工具过滤
-            (取字段(请求,'persona') is not None,'persona'),#人设
+            ('outputSchema' in 请求 and 请求['outputSchema'] is not None,'outputSchema'),#输出模式
+            ('maxDepth' in 请求 and 请求['maxDepth'] is not None,'depthLimit'),#深度上限
+            ('toolFilter' in 请求 and 请求['toolFilter'] is not None,'toolFilter'),#工具过滤
+            ('persona' in 请求 and 请求['persona'] is not None,'persona'),#人设
         ]
         for 当,帽 in 需要:#逐项检查
-            if 当 and not 取字段(能力,帽):#请求了但提供方没有
+            if 当 and (帽 not in 能力 or not 能力[帽]):#请求了但提供方没有
                 raise 子智能体错误(
-                    'subagent provider "'+(取字段(提供方,'name') or 取字段(提供方,'名称') or '')+'" does not support the "'+帽+'" capability',
+                    'subagent provider "'+提供方.名称+'" does not support the "'+帽+'" capability',
                     'UNSUPPORTED_CAPABILITY',
                 )
 
-默认=子智能体运行时#默认导出
-default=子智能体运行时#Cordis 默认导出槽（不入 __all__）
+default=子智能体运行时#框架槽

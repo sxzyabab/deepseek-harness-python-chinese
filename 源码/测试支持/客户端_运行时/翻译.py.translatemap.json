@@ -1,0 +1,17 @@
+{
+    "dict":"字典",
+    "fallback":"回退",
+    "group":"分组",
+    "interpolate":"插值",
+    "key":"键",
+    "locale":"语言环境",
+    "lookup":"查找",
+    "param":"参数",
+    "placeholder":"占位",
+    "regex":"正则",
+    "self":"自身",
+    "stub":"桩",
+    "template":"模板",
+    "test":"测试",
+    "translate":"翻译"
+}

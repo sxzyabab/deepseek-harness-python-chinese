@@ -1,0 +1,21 @@
+{
+    "apply":"应用",
+    "define":"定义",
+    "error":"错误",
+    "execute":"执行",
+    "inject":"注入",
+    "inspect":"巡检",
+    "name":"名称",
+    "package":"包",
+    "plugin":"插件",
+    "present":"呈现",
+    "provider":"提供方",
+    "query":"查询",
+    "render":"渲染",
+    "require":"要求",
+    "run":"运行",
+    "self":"自检",
+    "stop":"停止",
+    "tool":"工具",
+    "undefine":"移除"
+}

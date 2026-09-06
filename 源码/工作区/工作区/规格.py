@@ -31,9 +31,9 @@ def _校验工作区域状态(状态):#校验域全局状态
         状态={**状态,'archivedSessionIds':[]}#补默认
     if not isinstance(状态['workspaceIds'],list):#顺序必须是列表
         raise TypeError('workspaceIds must be a list')#拒绝
-    if 状态.get('pendingMutation') is not None:#挂起变更
+    if 'pendingMutation' in 状态 and 状态['pendingMutation'] is not None:#挂起变更
         挂起=状态['pendingMutation']#取出
-        if 挂起.get('operation') not in ('create','delete') or 'workspaceId' not in 挂起:#非法
+        if ('operation' not in 挂起) or 挂起['operation'] not in ('create','delete') or 'workspaceId' not in 挂起:#非法
             raise ValueError('invalid pendingMutation')#拒绝
     return 状态#通过
 

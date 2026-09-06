@@ -3,9 +3,9 @@
 对齐上游 `ui-conversation/src/client/input/blocks.ts`。公开面仅中文名。
 """
 
-__all__=['快照仓库','阻断登记表']#仅中文公开名
+__all__=['快照存储','阻断登记表']#仅中文公开名
 
-class 快照仓库:#简易阻断快照
+class 快照存储:#简易阻断快照
     """值 + 订阅；对齐 createSnapshotStore。"""
     def __init__(自身,初值):#播种
         """记下初值。"""
@@ -34,27 +34,27 @@ class 阻断登记表:#按会话的 composer 阻断注册表
     """每个插件 fiber 一份实例；经 ctx.conversation.blocks 触达。"""
     def __init__(自身):#空表
         """会话 id → 阻断 store。"""
-        自身.仓库们={}#表
+        自身.存储表={}#表
 
     def set(自身,会话标识,阻断):#提出或清除阻断
         """幂等：原因相同则不通知。"""
         仓库=自身.storeFor(会话标识)#取或创建
         当前=仓库.getSnapshot()#当前
-        当前原因=当前.get('reason') if isinstance(当前,dict) else None#原因
-        新原因=阻断.get('reason') if isinstance(阻断,dict) else None#新原因
+        当前原因=当前['reason'] if 当前 is not None and 'reason' in 当前 else None#原因
+        新原因=阻断['reason'] if 阻断 is not None and 'reason' in 阻断 else None#新原因
         if 当前原因==新原因:#相同
             return#跳过
         仓库.set(阻断)#写入或清除
 
     def storeFor(自身,会话标识):#取本会话阻断 store
         """首次读取时创建；初值为未阻断。"""
-        已有=自身.仓库们.get(会话标识)#已有
+        已有=自身.存储表[会话标识] if 会话标识 in 自身.存储表 else None#已有
         if 已有 is not None:#复用
             return 已有#已有
-        新建=快照仓库(None)#未阻断
-        自身.仓库们[会话标识]=新建#登记
+        新建=快照存储(None)#未阻断
+        自身.存储表[会话标识]=新建#登记
         return 新建#交给调用方
 
     def forget(自身,会话标识):#丢掉该会话 store
         """由会话作用域 disposer 调用。"""
-        自身.仓库们.pop(会话标识,None)#删除
+        自身.存储表.pop(会话标识,None)#删除

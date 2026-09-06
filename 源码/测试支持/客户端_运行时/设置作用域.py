@@ -65,5 +65,3 @@ def 桩设置作用域():#构建桩作用域
         'listenerCount':lambda:len(监听者),#计数
         'publish':发布,#发布
     }#返回结束
-
-stubSettingsScope=桩设置作用域#上游名

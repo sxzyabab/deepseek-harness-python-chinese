@@ -43,7 +43,7 @@ def 解析配置目录(名,主目录=None):#解析配置目录
         raise Exception('dsh: invalid profile name '+json.dumps(名))#拒绝
     return os.path.join(主目录,配置目录名,名)#拼目录
 
-def 初始化配置档(目录,组合包们):#初始化配置
+def 初始化配置档(目录,组合包列表):#初始化配置
     """初始化一个配置目录。"""
     os.makedirs(目录,exist_ok=True)#确保目录
     清单路径=os.path.join(目录,'package.json')#清单
@@ -52,7 +52,7 @@ def 初始化配置档(目录,组合包们):#初始化配置
             'name':'dsh-profile-'+os.path.basename(目录),#包名
             'private':True,#私有
             'dependencies':{},#空依赖
-            'dsh':{'profile':{'bundles':list(组合包们)}},#组合包列表
+            'dsh':{'profile':{'bundles':list(组合包列表)}},#组合包列表
         }#清单结束
         文件=open(清单路径,'w',encoding='utf-8')#打开
         try:#写
@@ -156,20 +156,20 @@ def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#�
             raise Exception(二进制名+': profile '+json.dumps(名)+" does not exist; create it with 'dsh plugin --profile "+名+" add <package>'")#未知
         初始化配置档(目录,模板)#首次初始化
     清单=规范化随附配置(名,目录,读配置清单(二进制名,目录))#读并规范化
-    组合包们=((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or []#组合包列表
-    层们=[]#层
-    for 包名 in 组合包们:#每层
+    组合包列表=((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or []#组合包列表
+    层列表=[]#层
+    for 包名 in 组合包列表:#每层
         包目录=解析组合包目录(二进制名,包名,安装锚点,目录)#解析包目录
         包清单=json.loads(open(os.path.join(包目录,'package.json'),encoding='utf-8').read())#读组合包清单
         声明=((包清单.get('dsh') or {}).get('bundle') or {}).get('patch')#声明的补丁
         if 声明 is None:#没有
             raise Exception(二进制名+': profile bundle '+json.dumps(包名)+' declares no dsh.bundle in its package.json')#错误配置
         补丁路径=os.path.join(包目录,声明)#绝对补丁
-        层们.append({'packageName':包名,'packageDir':包目录,'patchPath':补丁路径,'patches':加载覆盖(二进制名,补丁路径)})#已解析层
+        层列表.append({'packageName':包名,'packageDir':包目录,'patchPath':补丁路径,'patches':加载覆盖(二进制名,补丁路径)})#已解析层
     补丁路径=os.path.join(目录,配置补丁文件名)#用户补丁
     用户层=选项.get('userLayer',True)#是否读用户层
     补丁=加载覆盖(二进制名,补丁路径) if 用户层 and os.path.exists(补丁路径) else []#用户补丁
-    return {'name':名,'dir':目录,'layers':层们,'patchPath':补丁路径,'patches':补丁}#已加载配置
+    return {'name':名,'dir':目录,'layers':层列表,'patchPath':补丁路径,'patches':补丁}#已加载配置
 
 def 组合条目(各层,警告=None):#组合条目
     """在空根上把补丁层组合成有效条目列表。"""

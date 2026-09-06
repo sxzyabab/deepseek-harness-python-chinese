@@ -6,7 +6,7 @@
 from .文案 import 命名空间,中文,英文#词典
 from .菜单视图 import 菜单视图#菜单组件
 from .服务 import 触发服务#根服务
-from .控制器 import 触发控制器#每会话控制器
+from .控制器 import 触发控制器,触发错误#每会话控制器与本包异常
 from .探测 import 检测触发#纯核心探测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约,精确匹配#纯核心归约
 
@@ -16,24 +16,33 @@ __all__=['注入','应用','菜单视图','触发服务','触发控制器','检�
 
 def 应用(上下文):#安装斜杠触发浏览器半边
     """登记词典与触发服务，并把菜单视图挂进 input.overlay。"""
-    上下文.effect(lambda:上下文.locale.register(命名空间,{'zh':中文,'en':英文}),'ui-input-trigger: menu dictionaries')#词典
-    上下文.plugin(触发服务)#挂 ctx.inputTriggers
+    def 登记词表():#登记本包词典
+        """把中英文词表交给 locale。"""
+        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
+    上下文.副作用(登记词表,'ui-input-trigger: menu dictionaries')#词典
+    上下文.启动插件(触发服务)#挂 ctx.inputTriggers
     def 挂菜单(作用域):#等槽位、inputTriggers、会话
         """登记 slash-menu 叠层条目。"""
         触发=作用域.inputTriggers#触发服务
-        会话们=作用域.sessions#会话
+        会话面=作用域.sessions#会话
         def 登记():#登记菜单
             """候选菜单视图。"""
             def 注入面(会话标识):#按会话解析
                 """菜单状态与点选/关闭。"""
-                作用域会话=会话们.scope(会话标识)#作用域
+                作用域会话=会话面.scope(会话标识)#作用域
                 if 作用域会话 is None:#无
-                    raise Exception('ui-input-trigger: session "'+str(会话标识)+'" resolved no scope')#失败
+                    raise 触发错误('ui-input-trigger: session "'+str(会话标识)+'" resolved no scope')#失败
                 控制器=触发.sessionOf(作用域会话)#该会话控制器
+                def 点选项(来源,下标):#点选
+                    """转调 pick。"""
+                    return 控制器.pick(来源,下标)#点选
+                def 关闭菜单():#关闭
+                    """转调 dismiss。"""
+                    return 控制器.dismiss()#关闭
                 return {#注入面
                     'menu':控制器.menu,#菜单仓
-                    'onPick':lambda 来源,下标:控制器.pick(来源,下标),#点选
-                    'onDismiss':lambda:控制器.dismiss(),#关闭
+                    'onPick':点选项,#点选
+                    'onDismiss':关闭菜单,#关闭
                 }#结束
             return 作用域.slots.register({#登记
                 'name':'conversation.input.overlay',#叠层槽
@@ -43,4 +52,7 @@ def 应用(上下文):#安装斜杠触发浏览器半边
                 'inject':注入面,#注入
             },菜单视图)#组件
         作用域.slots.inject('conversation.input.overlay',登记)#等槽
-    上下文.inject(['slots','inputTriggers','sessions'],挂菜单)#注入
+    上下文.依赖启动(['slots','inputTriggers','sessions'],挂菜单)#注入
+
+inject=注入#框架槽
+apply=应用#框架槽

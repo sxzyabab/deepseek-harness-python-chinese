@@ -1,0 +1,13 @@
+{
+    "client":"客户端",
+    "generation":"生成",
+    "handle":"句柄",
+    "id":"标识",
+    "inspector":"检查器",
+    "object":"对象",
+    "remote":"远程",
+    "request":"请求",
+    "runtime":"运行时",
+    "session":"会话",
+    "source":"源"
+}

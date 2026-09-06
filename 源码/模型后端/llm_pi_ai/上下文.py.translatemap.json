@@ -1,0 +1,17 @@
+{
+    "assistant":"助手",
+    "attachment":"附件",
+    "content":"内容",
+    "context":"上下文",
+    "envelope":"信封",
+    "flatten":"压平",
+    "image":"图片",
+    "list":"列表",
+    "message":"消息",
+    "option":"选项",
+    "result":"结果",
+    "system":"系统",
+    "text":"文本",
+    "tool":"工具",
+    "user":"用户"
+}

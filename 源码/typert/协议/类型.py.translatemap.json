@@ -1,0 +1,23 @@
+{
+    "binder":"绑定器",
+    "change":"变更",
+    "client":"客户端",
+    "codec":"编解码",
+    "context":"上下文",
+    "contribution":"贡献",
+    "convention":"约定",
+    "declaration":"声明",
+    "descriptor":"描述符",
+    "failure":"失败",
+    "host":"宿主",
+    "invocation":"调用",
+    "location":"位置",
+    "lookup":"查找",
+    "param":"参数",
+    "provider":"提供方",
+    "registry":"注册表",
+    "remote":"远程",
+    "result":"结果",
+    "schema":"模式",
+    "source":"源码"
+}

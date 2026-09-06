@@ -4,6 +4,8 @@
 KaTeX 串行与 DOM 映射由宿主注入；未装载则抛错，从不静默降级。
 """
 
+from .解析 import 基础界面错误#本包异常
+
 __all__=['渲染TeX到树','装载TeX渲染','样式对象']#仅中文公开名
 
 _成串=None#宿主：TeX→HTML 字符串；(源文,展示模式,选项dict)→str
@@ -41,15 +43,15 @@ def 样式对象(css文本):#内联 style 字符串→字典
 def 渲染TeX到树(源文,展示模式):#TeX→视图节点列表
     """三臂：严格→strict ignore→错误 span。"""
     if _成串 is None or _HTML到树 is None:#未装
-        raise Exception('ui-primitives: katex backend not loaded')#失败
+        raise 基础界面错误('ui-primitives: katex backend not loaded')#失败
     首错=None#第一臂错误
     try:#严格
         html=_成串(源文,展示模式,{'throwOnError':True})#严格渲染
-    except Exception as 错:#失败
+    except Exception as 错:#KaTeX 后端错误类型未定，收不窄
         首错=错#记下
         try:#宽容
             html=_成串(源文,展示模式,{'strict':'ignore','throwOnError':False})#忽略严格
-        except Exception:#内部错
+        except Exception:#KaTeX 后端错误类型未定，收不窄
             return [{#错误 span
                 'type':'element','tag':'span',#元素
                 'props':{#属性

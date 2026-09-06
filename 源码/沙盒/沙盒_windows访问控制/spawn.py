@@ -14,13 +14,16 @@ from .ffi import (
     抛上次错误,#BOOL失败
     抛Win32,#ERROR_*失败
 )#导入FFI辅助
+from .错误 import 访问控制错误#校验错误
 from . import win32_abi as abi#ABI常量
 
-def 引用参数(参数):#按CommandLineToArgvW引用
+空白或引号=re.compile(r'[\s"]',re.ASCII)#CommandLineToArgvW 的 ASCII 空白与引号
+
+def 引用参数(参数):
     """按 CommandLineToArgvW 解析规则引用一个参数。"""
     if 参数=='':#空串
         return '""'#必须成对引号
-    if re.search(r'[\s"]',参数) is None:#无空白无引号
+    if 空白或引号.search(参数) is None:#无空白无引号
         return 参数#原样
     已引='"'#开口引号
     下标=0#字符下标
@@ -39,9 +42,9 @@ def 引用参数(参数):#按CommandLineToArgvW引用
             下标+=1#前进
     return 已引+'"'#收尾引号
 
-def 构建命令行(程序,参数们):#拼命令行
+def 构建命令行(程序,参数列表):#拼命令行
     """从程序加 argv 建成 CreateProcess 解析的那一条命令行。"""
-    return ' '.join(引用参数(项) for 项 in [程序,*参数们])#逐条引用再空格拼接
+    return ' '.join(引用参数(项) for 项 in [程序,*参数列表])#逐条引用再空格拼接
 
 def 创建管道(接口):#创建匿名管道
     """创建一对匿名管道端。"""
@@ -81,12 +84,12 @@ def 隔离生成(接口,令牌,选项):#管道stdio隔离spawn
         接口.closeHandle(标准出['write'])#关stdout写
         接口.closeHandle(标准误['read'])#关stderr读
         接口.closeHandle(标准误['write'])#关stderr写
-        抛Win32(接口,'CreateProcessAsUserW',win32码,'command: '+选项['command']+', cwd: '+选项['cwd'])#带码抛出
+        抛Win32(接口,'CreateProcessAsUserW',win32码)#带码抛出
     信息=解码进程信息(进程信息)#解码进程信息
     进程句柄=信息.hProcess#进程句柄
     线程句柄=信息.hThread#线程句柄
     if 进程句柄 is None or 线程句柄 is None:#空句柄
-        raise Exception('CreateProcessAsUserW succeeded but returned null process/thread handles (pid '+str(信息.dwProcessId)+')')#成功却空句柄
+        raise 访问控制错误('CreateProcessAsUserW succeeded but returned null process/thread handles (pid '+str(信息.dwProcessId)+')')#成功却空句柄
     接口.closeHandle(标准入['read'])#关宿主stdin读
     接口.closeHandle(标准出['write'])#关宿主stdout写
     接口.closeHandle(标准误['write'])#关宿主stderr写
@@ -96,7 +99,7 @@ def 隔离生成(接口,令牌,选项):#管道stdio隔离spawn
 
 def 排空管道(接口,句柄):#排空管道
     """经非阻塞 PeekNamedPipe 轮询把一个管道读端排空成 bytes。"""
-    块们=[]#已读块
+    块列表=[]#已读块
     while True:#直到EOF
         已读槽=分配无符号32()#已读字节槽
         可用槽=分配无符号32()#可用总量槽
@@ -106,18 +109,18 @@ def 排空管道(接口,句柄):#排空管道
             win32码=接口.getLastError()#错误码
             if win32码==abi.错误管道断开 or win32码==abi.错误无数据:#子进程关了端
                 break#干净EOF
-            抛上次错误(接口,'PeekNamedPipe','drain failure after '+str(len(块们))+' chunk(s)')#其余失败
+            抛上次错误(接口,'PeekNamedPipe','drain failure after '+str(len(块列表))+' chunk(s)')#其余失败
         可用=解码无符号32(可用槽)#可用字节
         if 可用>0:#有数据
             块=bytearray(可用)#读取缓冲
             块视图=(ctypes.c_ubyte*可用).from_buffer(块)#可写视图
             读槽=分配无符号32()#实际读出槽
             if 接口.readFile(句柄,块视图,可用,读槽,None)==0:#读取失败
-                抛上次错误(接口,'ReadFile','drain failure after '+str(len(块们))+' chunk(s)')#带块数抛出
-            块们.append(bytes(块[0:解码无符号32(读槽)]))#记下已读
+                抛上次错误(接口,'ReadFile','drain failure after '+str(len(块列表))+' chunk(s)')#带块数抛出
+            块列表.append(bytes(块[0:解码无符号32(读槽)]))#记下已读
         time.sleep(0.001)#让出1ms，避免忙轮询
     接口.closeHandle(句柄)#关掉读端
-    return b''.join(块们)#拼接内容
+    return b''.join(块列表)#拼接内容
 
 def 等待退出(接口,进程):#等待退出
     """等待进程退出并返回其退出码。"""
@@ -172,13 +175,13 @@ def 隔离继承生成(接口,令牌,选项):#继承stdio隔离spawn
     if 已创建==0:#创建失败
         win32码=接口.getLastError()#先记下码
         接口.closeHandle(作业)#关掉作业
-        抛Win32(接口,'CreateProcessAsUserW',win32码,'command: '+选项['command']+', cwd: '+选项['cwd'])#带码抛出
+        抛Win32(接口,'CreateProcessAsUserW',win32码)#带码抛出
     信息=解码进程信息(进程信息)#解码进程信息
     进程句柄=信息.hProcess#进程句柄
     线程句柄=信息.hThread#线程句柄
     if 进程句柄 is None or 线程句柄 is None:#空句柄
         接口.closeHandle(作业)#关掉作业
-        raise Exception('CreateProcessAsUserW succeeded but returned null process/thread handles (pid '+str(信息.dwProcessId)+')')#成功却空句柄
+        raise 访问控制错误('CreateProcessAsUserW succeeded but returned null process/thread handles (pid '+str(信息.dwProcessId)+')')#成功却空句柄
     if 接口.assignProcessToJobObject(作业,进程句柄)==0:#指派作业失败
         win32码=接口.getLastError()#先记下码
         接口.terminateProcess(进程句柄,1)#终止挂起子进程

@@ -1,0 +1,22 @@
+{
+    "client":"客户端",
+    "command":"命令",
+    "content":"内容",
+    "descriptor":"描述符",
+    "error":"错误",
+    "failed":"失败",
+    "found":"找到",
+    "internal":"内部",
+    "invalid":"非法",
+    "kind":"种类",
+    "large":"过大",
+    "load":"加载",
+    "map":"映射",
+    "not":"未",
+    "op":"操作",
+    "request":"请求",
+    "result":"结果",
+    "script":"脚本",
+    "source":"源",
+    "too":"过"
+}

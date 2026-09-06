@@ -19,7 +19,10 @@ class 检查器服务:#检查器服务门面
 
 def 创建检查器服务(连接):#创建服务门面
     """创建共享服务门面，不暴露载体实现。"""
+    def 转发发布(topic,payload,monotonicMs=None):#转发观测
+        """把观测交给源连接。"""
+        连接.发布(topic,payload,monotonicMs)#转发发布
     return 检查器服务(#门面对象
-        lambda topic,payload,monotonicMs=None:连接.发布(topic,payload,monotonicMs),#转发发布
+        转发发布,#转发发布
         创建查询cordis运行时树读取器(连接),#查询只读Cordis
     )#返回结束

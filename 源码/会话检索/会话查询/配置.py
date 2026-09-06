@@ -8,3 +8,14 @@ class 会话查询错误(装备错误):#会话检索错误
     """带类型的会话检索失败，其 code 是封闭分类中的一员。"""
     def __init__(自身,消息,码,选项=None):#构造检索错误
         装备错误.__init__(自身,消息,码,选项)#交给Harness错误基类
+
+def 已中止(信号):
+    """信号是否已中止。无信号视为未中止。"""
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号._事件.is_set()#Event 置位即中止
+
+def 若已中止则抛出(信号):
+    """已取消则抛出 SESSION_QUERY_ABORTED。"""
+    if 已中止(信号):#已中止
+        raise 会话查询错误('session-search aborted','SESSION_QUERY_ABORTED')#取消

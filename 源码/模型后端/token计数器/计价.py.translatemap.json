@@ -1,0 +1,12 @@
+{
+    "block":"块",
+    "content":"内容",
+    "header":"请求头",
+    "message":"消息",
+    "overhead":"开销",
+    "price":"计价",
+    "role":"角色",
+    "system":"系统",
+    "token":"令牌",
+    "tool":"工具"
+}

@@ -1,0 +1,19 @@
+{
+    "builtin":"内建",
+    "create":"创建",
+    "declare":"声明",
+    "diverge":"分歧",
+    "external":"外部",
+    "factory":"工厂",
+    "implemented":"已实现",
+    "list":"清单",
+    "mock":"模拟",
+    "module":"模块",
+    "node":"节点",
+    "prefix":"前缀",
+    "replaced":"已替换",
+    "specifier":"说明符",
+    "static":"静态",
+    "table":"表",
+    "wire":"接线"
+}

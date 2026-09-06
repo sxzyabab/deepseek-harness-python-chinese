@@ -4,7 +4,7 @@
 Node vm 在 Python 树用 compile/exec 近似；宿主内置巡检符号表保持上游字面量。
 """
 from ...依赖.工具 import 二进制#base64 编解码
-from .守卫 import 沙箱定义工具,沙箱登记工具#沙箱工具登记
+from .沙箱边界 import 沙箱定义工具,沙箱登记工具#沙箱工具登记
 
 __all__=[#仅中文公开名
     '宿主内置巡检',
@@ -16,7 +16,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 宿主内置巡检=[#内建巡检条目
-    {'name':'ctx','description':'Restricted Cordis Context. Prefer ctx.get(name) with an undefined check; use inject for hard dependencies.','signatures':['ctx.get(name: string): unknown | undefined','ctx.on(name: string, listener: Function): () => void','ctx.provide(name: string, value: unknown): () => void','ctx.effect(callback: Function, label?: string): () => void']},#ctx
+    {'name':'ctx','description':'Restricted Cordis Context. Prefer ctx.获取服务(name) with an undefined check; use inject for hard dependencies.','signatures':['ctx.获取服务(name: string): unknown | undefined','ctx.监听(name: string, listener: Function): () => void','ctx.提供服务(name: string, value: unknown): () => void','ctx.副作用(callback: Function, label?: string): () => void']},#ctx
     {'name':'harness','description':'Host helpers for Package-private Client RPC and model-visible dynamic Tools.','signatures':['harness.handle(method: string, handler: (args: JsonValue) => JsonValue | Promise<JsonValue>): () => void','harness.defineTool(definition: ToolDefinition): ToolDefinition','harness.registerTool(ctx: Context, tool: ToolDefinition): () => void']},#harness
     {'name':'console','description':'Package-tagged Host logging.','signatures':['console.log(...values): void','console.error(...values): void']},#带标记日志
     {'name':'btoa','description':'Encode UTF-8 text as base64.','signatures':['btoa(value: string): string']},#base64 编码
@@ -24,8 +24,6 @@ __all__=[#仅中文公开名
     {'name':'TextEncoder','description':'Standard UTF-8 encoder constructor.','signatures':['new TextEncoder()']},#UTF-8 编码器
     {'name':'TextDecoder','description':'Standard text decoder constructor.','signatures':['new TextDecoder(label?: string)']},#文本解码器
 ]#只读内建表
-
-HOST_BUILTIN_INSPECTION=宿主内置巡检#英文别名，供 tool_cordis 对齐上游导入名
 
 定时器重定向=('Node timers are unavailable. Use the cordis timer service instead: declare inject: [\'timer\'] on your plugin '
     + 'and call ctx.timeout / ctx.interval after querying Host Service.listService for the exact overloads. '
@@ -93,11 +91,11 @@ def 语法错误上下文(错误):#语法错误上下文
     栈=getattr(错误,'stack',None) or ''#栈
     if not 栈 and isinstance(错误,SyntaxError):#Python SyntaxError
         return f'SyntaxError: {错误.msg}\n{(错误.text or "").rstrip()}'#消息与出错行
-    行们=栈.split('\n')#按行拆栈
-    消息下标=next((序号 for 序号,行 in enumerate(行们) if 行.startswith('SyntaxError')),-1)#消息行
+    行列表=栈.split('\n')#按行拆栈
+    消息下标=next((序号 for 序号,行 in enumerate(行列表) if 行.startswith('SyntaxError')),-1)#消息行
     if 消息下标==-1:#没有前奏
         return str(错误)#没有前奏
-    return '\n'.join(行们[:消息下标+1])#含消息行的前缀
+    return '\n'.join(行列表[:消息下标+1])#含消息行的前缀
 
 def 解析错误消息(半边,上下文):#解析失败教学
     """面向模型的错误消息。"""

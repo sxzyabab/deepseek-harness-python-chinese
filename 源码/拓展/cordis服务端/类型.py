@@ -1,11 +1,12 @@
 """动态 Cordis 插件运行器的客户端安全线协议词汇。
 
 对齐上游 `拓展/cordis-host-runner/src/types.ts`。公开面仅中文名。
-品牌 id 在 Python 侧用普通字符串承载；构造函数作身份入口。
+标识构造在 Python 侧用普通字符串承载；构造函数作身份入口。
 字段元组描述线协议形状（非 vm：与沙箱求值无关的传输词表）。
 """
 
 __all__=[#仅中文公开名
+    '动态插件错误',
     '动态运行模式','请求运行结局','运行状态','巡检平面',
     '动态插件标识','动态包标识','动态运行标识','审批请求标识','巡检查询标识',
     '巡检方法清单字段','巡检提供方清单字段','巡检提供方视图字段',
@@ -15,9 +16,11 @@ __all__=[#仅中文公开名
     '清单包字段','清单行字段','取消定义回执形','渲染失败字段',
     '运行响应形','停止响应形','宿主半结果形','客户端源字段',
     '运行决议形','调用结果形',
-    'CordisDynamicPluginId','CordisDynamicPackageId','CordisDynamicPluginRunId',
-    'ApprovalRequestId','CordisInspectRequestId',
 ]#公开面结束
+
+class 动态插件错误(Exception):
+    """动态 Cordis 宿主运行、巡检或生命周期失败。"""
+    pass#消息在构造时传入
 
 动态运行模式=('run','update')#运行或更新
 请求运行结局=('approved','completed','rejected','cancelled','failed')#请求落定结果
@@ -61,29 +64,22 @@ __all__=[#仅中文公开名
 运行决议形=('ok-true+pluginRunId','ok-false+reason…')#运行决议
 调用结果形=('ok-true+value','ok-false+code+错误细节')#invoke 结果
 
-def 动态插件标识(标识):#品牌化插件 id
-    """给宿主铸造的插件 ID 打品牌（Python 侧原样字符串）。"""
+def 动态插件标识(标识):#标识构造插件 id
+    """给宿主铸造的插件 ID 做标识构造（Python 侧原样字符串）。"""
     return 标识#原样
 
-def 动态包标识(标识):#品牌化包 id
-    """给宿主铸造的包 ID 打品牌。"""
+def 动态包标识(标识):#标识构造包 id
+    """给宿主铸造的包 ID 做标识构造。"""
     return 标识#原样
 
-def 动态运行标识(标识):#品牌化运行 id
-    """给宿主铸造的插件运行 ID 打品牌。"""
+def 动态运行标识(标识):#标识构造运行 id
+    """给宿主铸造的插件运行 ID 做标识构造。"""
     return 标识#原样
 
-def 审批请求标识(标识):#品牌化审批请求 id
-    """给宿主铸造的审批请求 ID 打品牌。"""
+def 审批请求标识(标识):#标识构造审批请求 id
+    """给宿主铸造的审批请求 ID 做标识构造。"""
     return 标识#原样
 
-def 巡检查询标识(标识):#品牌化巡检查询 id
-    """给宿主铸造的巡检查询 ID 打品牌。"""
+def 巡检查询标识(标识):#标识构造巡检查询 id
+    """给宿主铸造的巡检查询 ID 做标识构造。"""
     return 标识#原样
-
-#上游导出名对照
-CordisDynamicPluginId=动态插件标识#上游名
-CordisDynamicPackageId=动态包标识#上游名
-CordisDynamicPluginRunId=动态运行标识#上游名
-ApprovalRequestId=审批请求标识#上游名
-CordisInspectRequestId=巡检查询标识#上游名

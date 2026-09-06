@@ -1,0 +1,20 @@
+{
+    "book":"记账",
+    "browser":"浏览器",
+    "error":"错误",
+    "fail":"失败",
+    "field":"字段",
+    "half":"半",
+    "id":"标识",
+    "live":"现场",
+    "load":"加载",
+    "module":"模块",
+    "note":"说明",
+    "observable":"可观察",
+    "package":"包",
+    "phase":"阶段",
+    "project":"投影",
+    "render":"渲染",
+    "runner":"运行器",
+    "success":"成功"
+}

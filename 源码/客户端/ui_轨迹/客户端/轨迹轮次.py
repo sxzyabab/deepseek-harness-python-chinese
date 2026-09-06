@@ -22,17 +22,8 @@ def _读样式(文件名):#读真实 CSS
 
 列标签=('Input','Output','Think','Time')#列标签
 
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
-
 class 轨迹轮次头:#粘性轮次头
     """Turn N + Input/Output/Think/Time。"""
-
     def __init__(自身,轮次=1):#1 基轮次
         """记下轮次。"""
         自身.轮次=轮次#轮次
@@ -49,23 +40,22 @@ class 轨迹轮次头:#粘性轮次头
 
 class 轨迹轮次:#一轮
     """粘性头 + 正文子节点。"""
-
     def __init__(自身,属性=None):#可选 props
         """记下 props。"""
-        自身.属性=属性 or {}#合成
+        自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):#刷新
         """刷新 props。"""
-        自身.属性=属性 or {}#新
+        自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):#结构树
         """产出轮次段。"""
-        轮=取字段(自身.属性,'turn',1)#轮次
+        轮=自身.属性['turn'] if 'turn' in 自身.属性 else 1#轮次
         return {#结构树
             'type':'trajectory-turn',#类型
             'turn':轮,#轮
             'header':轨迹轮次头(轮).渲染(),#头
-            'children':取字段(自身.属性,'children'),#子
+            'children':自身.属性['children'] if 'children' in 自身.属性 else None,#子
             'css':轮次样式表,#样式
             'cssModule':轮次样式文件,#样式文件名
         }#结束

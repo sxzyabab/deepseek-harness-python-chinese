@@ -1,0 +1,11 @@
+{
+    "event":"事件",
+    "id":"标识",
+    "inspector":"检查器",
+    "message":"消息",
+    "name":"名",
+    "parser":"解析器",
+    "sent":"已发送",
+    "server":"服务器",
+    "source":"源"
+}

@@ -24,5 +24,3 @@ def 用钉住浏览器语言(主语言,*其余):#钉住浏览器语言
         浏览器主语言='en-US'#恢复
     套件前钩子.append(钉前)#登记前钩
     套件后钩子.append(钉后)#登记后钩
-
-usePinnedBrowserLanguages=用钉住浏览器语言#上游名

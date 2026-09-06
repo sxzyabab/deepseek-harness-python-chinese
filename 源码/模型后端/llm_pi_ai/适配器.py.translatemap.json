@@ -1,0 +1,28 @@
+{
+    "source":"源",
+    "level":"档位",
+    "abort":"中止",
+    "adapter":"适配器",
+    "attach":"附件",
+    "config":"配置",
+    "controller":"控制器",
+    "effort":"力度",
+    "header":"请求头",
+    "idle":"空闲",
+    "info":"信息",
+    "list":"列出",
+    "model":"模型",
+    "option":"选项",
+    "parse":"解析",
+    "policy":"政策",
+    "provider":"提供方",
+    "reason":"推理",
+    "resolve":"解析",
+    "signal":"信号",
+    "snapshot":"快照",
+    "stream":"流式",
+    "synthesize":"合成",
+    "timeout":"超时",
+    "watchdog":"看门狗"
+}
+

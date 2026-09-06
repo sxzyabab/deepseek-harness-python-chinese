@@ -1,12 +1,14 @@
 """已发布事件嵌套载荷语义校验。"""
 import json,math,re#诊断、有限数、瞬时正则
-from datetime import datetime,timezone#UTC瞬时
+from datetime import datetime#UTC瞬时字段
+from zoneinfo import ZoneInfo as 区时#时区一律 zoneinfo
 from ..会话格式 import 会话格式错误,会话格式计数,会话格式安全整数#格式错误与计数
 from ..会话格式.json import 是否负零#负零判定
-from .校验辅助 import 断言已发布v0键,已发布v0记录#记录与精确键
+from .记录与精确键 import 校验已发布v0键,已发布v0记录#记录与精确键
 
-UTC瞬时正则=re.compile(#规范UTC瞬时
-    r'^(?!0000)\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z$'
+UTC瞬时正则=re.compile(#规范UTC瞬时 YYYY-MM-DDTHH:MM:SS.sssZ
+    r'\A(?!0000)\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z\Z',
+    re.ASCII,
 )#正则结束
 
 def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
@@ -23,6 +25,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         if 'removedCount' in 数据:#有移除数
             计数值(数据['removedCount'],f'{标签} removedCount')#移除数
         def 校验插入(值,项标签):#校验插入消息
+            """校验插入消息。"""
             消息值(值,f'{标签} inserted message',版本,'user')#用户消息
         数组值(数据['inserted'],f'{标签} inserted',校验插入)#插入
         if 'outcome' in 数据:#有结果
@@ -85,12 +88,12 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         遮蔽值(数据,事件['seq'],标签)#遮蔽
         return#结束
     if 类型=='compaction/summary':#压缩摘要
-        if 数据.get('llmStreamCall') is True and 'rawOutput' not in 数据:#缺rawOutput
+        if 'llmStreamCall' in 数据 and 数据['llmStreamCall'] is True and 'rawOutput' not in 数据:#缺rawOutput
             raise 会话格式错误(f'{标签} llmStreamCall requires rawOutput')#错误
         非空串(数据['compactionId'],f'{标签} compactionId')#压缩id
         if 'sourceCommandId' in 数据:#有源命令
             非空串(数据['sourceCommandId'],f'{标签} sourceCommandId')#源命令
-        内容块们值(数据['summary'],f'{标签} summary',版本)#摘要
+        校验内容块列表(数据['summary'],f'{标签} summary',版本)#摘要
         遮蔽值(数据,事件['seq'],标签)#遮蔽
         非空串(数据['provider'],f'{标签} provider')#提供方
         非空串(数据['model'],f'{标签} model')#模型
@@ -99,7 +102,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         if 'usage' in 数据:#有用量
             令牌用量值(数据['usage'],f'{标签} usage')#用量
         if 'rawOutput' in 数据:#有原始输出
-            内容块们值(数据['rawOutput'],f'{标签} rawOutput',版本)#原始输出
+            校验内容块列表(数据['rawOutput'],f'{标签} rawOutput',版本)#原始输出
         if 'llmStreamCall' in 数据:#有流调用
             字面值(数据['llmStreamCall'],[True],f'{标签} llmStreamCall')#流调用
         return#结束
@@ -206,6 +209,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         模型路由值(数据['route'],f'{标签} route')#路由
         字符串值(数据['system'],f'{标签} system')#系统
         def 校验标题消息(值,项标签):#校验标题请求消息
+            """校验标题请求消息。"""
             消息值(值,f'{标签} message',版本)#消息
         数组值(数据['messages'],f'{标签} messages',校验标题消息)#消息
         正整数值(数据['maxTokens'],f'{标签} maxTokens')#上限
@@ -217,7 +221,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         子智能体描述符值(数据,标签)#描述符
         return#结束
     if 类型=='subagent/model-selection-policy':#子智能体模型策略
-        允许模型们值(数据['allowedModels'],f'{标签} allowedModels')#允许模型
+        校验允许模型列表(数据['allowedModels'],f'{标签} allowedModels')#允许模型
         return#结束
     if 类型=='team/member':#团队成员
         团队选择器(数据,标签)#选择器
@@ -238,6 +242,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         return#结束
     if 类型=='todo/write':#待办写入
         def 校验待办(值,项标签):#校验待办项
+            """校验待办项。"""
             项=精确记录(值,项标签,['content','status'])#项
             字符串值(项['content'],f'{项标签} content')#内容
             字面值(项['status'],['pending','in_progress','completed'],f'{项标签} status')#状态
@@ -275,7 +280,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         非空串(数据['name'],f'{标签} name')#名
         if 类型=='tool/code-dispatch':#完整分发
             布尔值(数据['isError'],f'{标签} isError')#是否错误
-            内容块们值(数据['content'],f'{标签} content',版本)#内容
+            校验内容块列表(数据['content'],f'{标签} content',版本)#内容
         return#结束
     if 类型=='tool/result':#工具结果
         坐标对(数据,标签)#坐标
@@ -300,14 +305,14 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         非空串(数据['apiVersion'],f'{标签} apiVersion')#api版本
         深搜请求体值(数据['body'],f'{标签} body')#体
         return#结束
-    raise 会话格式错误(f'released payload validator is missing event {json.dumps(类型,ensure_ascii=False)}')#未知类型
+    raise 会话格式错误(f'released payload validator is missing event {json.dumps(类型,ensure_ascii=False,separators=(",",":"),allow_nan=False)}')#未知类型
 
 def 精确记录(值,标签,必填,可选=None):#精确记录
     """要求普通对象且键精确。"""
     if 可选 is None:#默认无可选
         可选=[]#空
     记录=已发布v0记录(值,标签)#记录
-    断言已发布v0键(记录,必填,可选,标签)#精确键
+    校验已发布v0键(记录,必填,可选,标签)#精确键
     return 记录#返回
 
 def 字符串值(值,标签):#字符串值
@@ -380,15 +385,16 @@ def 更早序号(值,事件序号,标签):#更早序号
 def 序号数组(值,事件序号,标签,要求非空):#序号数组
     """要求互异的更早序号数组。"""
     已见=set()#已见
-    def 校验成员(成员,成员标签):#校验成员
+    def 校验成员(成员,成员标签):#校验序号成员
+        """校验序号成员。"""
         序号=更早序号(成员,事件序号,成员标签)#更早
         if 序号 in 已见:#重复
             raise 会话格式错误(f'{标签} repeats seq {序号}')#错误
         已见.add(序号)#记入
-    值们=数组值(值,标签,校验成员)#数组
-    if 要求非空 and len(值们)==0:#须非空
+    值列表=数组值(值,标签,校验成员)#数组
+    if 要求非空 and len(值列表)==0:#须非空
         raise 会话格式错误(f'{标签} must be non-empty')#错误
-    return 值们#返回
+    return 值列表#返回
 
 def llm失败值(值,标签):#llm失败值
     """校验 LLM 失败对象。"""
@@ -415,38 +421,39 @@ def 令牌用量值(值,标签):#令牌用量值
     for 键 in 用量.keys():#各字段
         计数值(用量[键],f'{标签} {键}')#计数
 
-def 内容块们值(值,标签,版本):#内容块们值
+def 校验内容块列表(值,标签,版本):#校验内容块列表
     """校验内容块数组。"""
     def 校验块(成员,成员标签):#校验内容块
+        """校验内容块。"""
         内容块值(成员,成员标签,版本)#内容块
     数组值(值,标签,校验块)#逐块
 
 def 内容块值(值,标签,版本):#内容块值
     """校验单个内容块。"""
     块=已发布v0记录(值,标签)#块
-    块类型=块.get('type')#块类型
+    块类型=块['type'] if 'type' in 块 else None#块类型
     if 块类型 in ('text','reasoning'):#文本或推理
-        断言已发布v0键(块,['type','text'],[],标签)#键
+        校验已发布v0键(块,['type','text'],[],标签)#键
         字符串值(块['text'],f'{标签} text')#文本
         return#结束
     if 块类型=='image':#图像
-        断言已发布v0键(块,['type','attachment'],[],标签)#键
+        校验已发布v0键(块,['type','attachment'],[],标签)#键
         图像附件值(块['attachment'],f'{标签} attachment')#附件
         return#结束
     if 块类型=='tool-call':#工具调用
-        断言已发布v0键(块,['type','id','name','arguments'],[],标签)#键
+        校验已发布v0键(块,['type','id','name','arguments'],[],标签)#键
         非空串(块['id'],f'{标签} id')#id
         非空串(块['name'],f'{标签} name')#名
         字符串值(块['arguments'],f'{标签} arguments')#参数
         return#结束
     if 块类型=='tool-result':#工具结果
-        断言已发布v0键(块,['type','toolCallId','content'],['isError'],标签)#键
+        校验已发布v0键(块,['type','toolCallId','content'],['isError'],标签)#键
         非空串(块['toolCallId'],f'{标签} toolCallId')#调用id
-        内容块们值(块['content'],f'{标签} content',版本)#内容
+        校验内容块列表(块['content'],f'{标签} content',版本)#内容
         if 'isError' in 块:#有错误旗标
             布尔值(块['isError'],f'{标签} isError')#旗标
         return#结束
-    非空串(块.get('type'),f'{标签} type')#未知类型仅要求非空type
+    非空串(块['type'] if 'type' in 块 else None,f'{标签} type')#未知类型仅要求非空type
 
 def 图像附件值(值,标签):#图像附件值
     """校验图像附件引用。"""
@@ -482,25 +489,28 @@ def 消息值(值,标签,版本,期望=None):#消息值
         字面值(消息['role'],['system','user','assistant'],f'{标签} role')#角色
     else:#固定角色
         字面值(消息['role'],[角色],f'{标签} role')#角色
-    内容块们值(消息['content'],f'{标签} content',版本)#内容
+    校验内容块列表(消息['content'],f'{标签} content',版本)#内容
     消息源值(消息['source'],f'{标签} source',版本,期望)#源
     if 期望=='tool':#工具消息
         内容=消息['content']#内容
         块=已发布v0记录(内容[0],f'{标签} tool result') if isinstance(内容,list) and len(内容)==1 else None#单块
         源=已发布v0记录(消息['source'],f'{标签} source')#源
-        if 块 is None or 块.get('type')!='tool-result' or 块.get('toolCallId')!=源.get('callId'):#形态不符
+        块类型=块['type'] if 块 is not None and 'type' in 块 else None#块类型
+        块调用=块['toolCallId'] if 块 is not None and 'toolCallId' in 块 else None#块调用
+        源调用=源['callId'] if 'callId' in 源 else None#源调用
+        if 块 is None or 块类型!='tool-result' or 块调用!=源调用:#形态不符
             raise 会话格式错误(f'{标签} must contain exactly one tool-result block')#错误
 
 def 消息源值(值,标签,版本,期望=None):#消息源值
     """校验消息出处。"""
     源=已发布v0记录(值,标签)#源
-    if 期望=='assistant' and 源.get('kind')!='model':#须模型源
+    种=源['kind'] if 'kind' in 源 else None#种
+    if 期望=='assistant' and 种!='model':#须模型源
         raise 会话格式错误(f'{标签} must be model source')#错误
-    if 期望=='tool' and 源.get('kind')!='tool':#须工具源
+    if 期望=='tool' and 种!='tool':#须工具源
         raise 会话格式错误(f'{标签} must be tool source')#错误
-    种=源.get('kind')#种
     if 种=='user':#用户
-        断言已发布v0键(源,['kind'],['rpcId','clientTimeZone'],标签)#键
+        校验已发布v0键(源,['kind'],['rpcId','clientTimeZone'],标签)#键
         if 'rpcId' in 源:#有rpc
             非空串(源['rpcId'],f'{标签} rpcId')#rpc
         if 'clientTimeZone' in 源:#有时区
@@ -510,22 +520,23 @@ def 消息源值(值,标签,版本,期望=None):#消息源值
         插件源值(源,标签)#插件
         return#结束
     if 种=='model':#模型
-        断言已发布v0键(源,['kind','provider','model'],['replayState'],标签)#键
+        校验已发布v0键(源,['kind','provider','model'],['replayState'],标签)#键
         非空串(源['provider'],f'{标签} provider')#提供方
         非空串(源['model'],f'{标签} model')#模型
         return#结束
     if 种=='tool':#工具
-        断言已发布v0键(源,['kind','callId'],[],标签)#键
+        校验已发布v0键(源,['kind','callId'],[],标签)#键
         非空串(源['callId'],f'{标签} callId')#调用id
         return#结束
     if 种=='agent-instructions':#智能体指令
-        断言已发布v0键(源,['kind','form','changes'],['baseline','baselineIdentity'],标签)#键
+        校验已发布v0键(源,['kind','form','changes'],['baseline','baselineIdentity'],标签)#键
         字面值(源['form'],['instructions'],f'{标签} form')#形态
         if 'baseline' in 源:#有基线
             字面值(源['baseline'],[True],f'{标签} baseline')#基线
         if 'baselineIdentity' in 源:#有基线身份
             非空串(源['baselineIdentity'],f'{标签} baselineIdentity')#基线身份
-        def 校验变更(成员,成员标签):#校验变更
+        def 校验变更(成员,成员标签):#校验指令变更
+            """校验指令变更。"""
             变更=精确记录(成员,成员标签,['action','scope','path'],['digest'])#变更
             字面值(变更['action'],['set','replace','remove'],f'{成员标签} action')#动作
             字符串值(变更['scope'],f'{成员标签} scope')#作用域
@@ -538,61 +549,62 @@ def 消息源值(值,标签,版本,期望=None):#消息源值
         会话引用源值(源,标签,版本)#引用
         return#结束
     if 种=='team-message':#团队消息
-        断言已发布v0键(源,['kind','teamId','messageId','senderId','senderName'],[],标签)#键
+        校验已发布v0键(源,['kind','teamId','messageId','senderId','senderName'],[],标签)#键
         for 键 in ('teamId','messageId','senderId'):#必填串
             非空串(源[键],f'{标签} {键}')#串
         字符串值(源['senderName'],f'{标签} senderName')#发送者名
         return#结束
     if 种=='goal':#目标
-        断言已发布v0键(源,['kind','goalId','revision','round'],[],标签)#键
+        校验已发布v0键(源,['kind','goalId','revision','round'],[],标签)#键
         非空串(源['goalId'],f'{标签} goalId')#目标id
         正整数值(源['revision'],f'{标签} revision')#修订
         正整数值(源['round'],f'{标签} round')#轮次
         return#结束
     if 种=='skill-invocation':#技能调用
-        断言已发布v0键(源,['kind','name','form'],[],标签)#键
+        校验已发布v0键(源,['kind','name','form'],[],标签)#键
         非空串(源['name'],f'{标签} name')#名
         字面值(源['form'],['instructions'],f'{标签} form')#形态
         return#结束
     if 种=='skill-catalog':#技能目录
-        断言已发布v0键(源,['kind','form','entries'],['update'],标签)#键
+        校验已发布v0键(源,['kind','form','entries'],['update'],标签)#键
         字面值(源['form'],['catalog'],f'{标签} form')#形态
         if 'update' in 源:#有更新
             字面值(源['update'],[True],f'{标签} update')#更新
-        def 校验条目(成员,成员标签):#校验条目
+        def 校验条目(成员,成员标签):#校验目录条目
+            """校验目录条目。"""
             条目=精确记录(成员,成员标签,['name','description'])#条目
             非空串(条目['name'],f'{成员标签} name')#名
             字符串值(条目['description'],f'{成员标签} description')#描述
         数组值(源['entries'],f'{标签} entries',校验条目)#条目
         return#结束
     if 种 in ('coordinator','subagent-report'):#协调器或子智能体报告
-        断言已发布v0键(源,['kind','form','senderSessionId'],[],标签)#键
+        校验已发布v0键(源,['kind','form','senderSessionId'],[],标签)#键
         字面值(源['form'],['relay'],f'{标签} form')#形态
         非空串(源['senderSessionId'],f'{标签} senderSessionId')#发送会话
         return#结束
     if 种=='subagent-settled':#子智能体已结算
-        断言已发布v0键(源,['kind','form','summary','senderSessionId'],[],标签)#键
+        校验已发布v0键(源,['kind','form','summary','senderSessionId'],[],标签)#键
         字面值(源['form'],['notice'],f'{标签} form')#形态
         字符串值(源['summary'],f'{标签} summary')#摘要
         非空串(源['senderSessionId'],f'{标签} senderSessionId')#发送会话
         return#结束
     if 种=='webhook':#webhook
-        断言已发布v0键(源,['kind','provider','source','deliveryId','ruleId','form','summary'],[],标签)#键
+        校验已发布v0键(源,['kind','provider','source','deliveryId','ruleId','form','summary'],[],标签)#键
         for 键 in ('provider','source','deliveryId','ruleId'):#必填串
             非空串(源[键],f'{标签} {键}')#串
         字面值(源['form'],['notice'],f'{标签} form')#形态
         字符串值(源['summary'],f'{标签} summary')#摘要
         return#结束
-    非空串(源.get('kind'),f'{标签} kind')#未知种仅要求非空
+    非空串(种,f'{标签} kind')#未知种仅要求非空
 
 def 插件源值(源,标签):#插件源值
     """校验插件出处。"""
     可选=['form','sections','summary']#可选
-    if 源.get('plugin')=='compact':#压缩插件
+    if 'plugin' in 源 and 源['plugin']=='compact':#压缩插件
         可选=可选+['compactionId','sourceCommandId']#追加
-    断言已发布v0键(源,['kind','plugin'],可选,标签)#键
+    校验已发布v0键(源,['kind','plugin'],可选,标签)#键
     非空串(源['plugin'],f'{标签} plugin')#插件
-    if 源.get('plugin')=='compact':#压缩
+    if 'plugin' in 源 and 源['plugin']=='compact':#压缩
         非空串(源['compactionId'],f'{标签} compactionId')#压缩id
         if 'sourceCommandId' in 源:#有源命令
             非空串(源['sourceCommandId'],f'{标签} sourceCommandId')#源命令
@@ -601,7 +613,8 @@ def 插件源值(源,标签):#插件源值
     形态=源['form']#形态
     字面值(形态,['instructions','catalog','snapshot','notice','relay','recall'],f'{标签} form')#形态
     if 形态=='snapshot':#快照
-        def 校验节(成员,成员标签):#校验节
+        def 校验节(成员,成员标签):#校验快照节
+            """校验快照节。"""
             节=精确记录(成员,成员标签,['name','text'])#节
             非空串(节['name'],f'{成员标签} name')#名
             字符串值(节['text'],f'{成员标签} text')#文本
@@ -615,12 +628,13 @@ def 插件源值(源,标签):#插件源值
 
 def 会话引用源值(源,标签,版本):#会话引用源值
     """校验会话引用出处。"""
-    断言已发布v0键(源,['kind','form','version','references'],[],标签)#键
+    校验已发布v0键(源,['kind','form','version','references'],[],标签)#键
     字面值(源['form'],['recall'],f'{标签} form')#形态
     字面值(源['version'],[1],f'{标签} version')#版本
     期望输入下标=0#期望下标
     会话ids=set()#会话id集
-    def 校验引用(成员,成员标签):#校验引用
+    def 校验引用(成员,成员标签):#校验会话引用成员
+        """校验会话引用成员。"""
         nonlocal 期望输入下标#可变
         引用=精确记录(#引用
             成员,#成员
@@ -656,26 +670,26 @@ def 会话引用源值(源,标签,版本):#会话引用源值
         if 会话id in 会话ids:#重复
             raise 会话格式错误(f'{标签} repeats sessionId {会话id}')#错误
         会话ids.add(会话id)#记入
-    引用们=数组值(源['references'],f'{标签} references',校验引用)#引用
-    if len(引用们)==0:#须非空
+    引用列表=数组值(源['references'],f'{标签} references',校验引用)#引用
+    if len(引用列表)==0:#须非空
         raise 会话格式错误(f'{标签} references must be non-empty')#错误
 
 def 流块值(值,标签):#流块值
     """校验助手流块。"""
     块=已发布v0记录(值,标签)#块
-    块类型=块.get('type')#类型
+    块类型=块['type'] if 'type' in 块 else None#类型
     if 块类型=='block-start':#块开始
-        断言已发布v0键(块,['type','index','blockType'],[],标签)#键
+        校验已发布v0键(块,['type','index','blockType'],[],标签)#键
         计数值(块['index'],f'{标签} index')#索引
         非空串(块['blockType'],f'{标签} blockType')#块类型
         return#结束
     if 块类型 in ('text-delta','reasoning-delta'):#文本或推理增量
-        断言已发布v0键(块,['type','index','text'],[],标签)#键
+        校验已发布v0键(块,['type','index','text'],[],标签)#键
         计数值(块['index'],f'{标签} index')#索引
         字符串值(块['text'],f'{标签} text')#文本
         return#结束
     if 块类型=='tool-call-delta':#工具调用增量
-        断言已发布v0键(块,['type','index','id','argumentsDelta'],['name'],标签)#键
+        校验已发布v0键(块,['type','index','id','argumentsDelta'],['name'],标签)#键
         计数值(块['index'],f'{标签} index')#索引
         非空串(块['id'],f'{标签} id')#id
         if 'name' in 块:#有名
@@ -683,32 +697,33 @@ def 流块值(值,标签):#流块值
         字符串值(块['argumentsDelta'],f'{标签} argumentsDelta')#参数增量
         return#结束
     if 块类型=='block-end':#块结束
-        断言已发布v0键(块,['type','index','block'],[],标签)#键
+        校验已发布v0键(块,['type','index','block'],[],标签)#键
         计数值(块['index'],f'{标签} index')#索引
         内容块值(块['block'],f'{标签} block',1)#块
         return#结束
     if 块类型=='usage':#用量
-        断言已发布v0键(块,['type','usage'],[],标签)#键
+        校验已发布v0键(块,['type','usage'],[],标签)#键
         令牌用量值(块['usage'],f'{标签} usage')#用量
         return#结束
     if 块类型=='finish':#结束
-        断言已发布v0键(块,['type','reason'],['replayState'],标签)#键
+        校验已发布v0键(块,['type','reason'],['replayState'],标签)#键
         结束原因值(块['reason'],f'{标签} reason')#原因
         if 'replayState' in 块:#有重放状态
             重放信封值(块['replayState'],f'{标签} replayState')#重放
         return#结束
-    raise 会话格式错误(f'{标签} has unknown stream chunk type {json.dumps(块.get("type"),ensure_ascii=False)}')#未知
+    raise 会话格式错误(f'{标签} has unknown stream chunk type {json.dumps(块["type"] if "type" in 块 else None,ensure_ascii=False,separators=(",",":"),allow_nan=False)}')#未知
 
 def 结束原因值(值,标签):#结束原因值
     """校验流结束原因。"""
     原因=已发布v0记录(值,标签)#原因
-    if 原因.get('kind') in ('aborted','error'):#中止或错误
-        断言已发布v0键(原因,['kind','failure'],[],标签)#键
+    种=原因['kind'] if 'kind' in 原因 else None#种
+    if 种 in ('aborted','error'):#中止或错误
+        校验已发布v0键(原因,['kind','failure'],[],标签)#键
         llm失败值(原因['failure'],f'{标签} failure')#失败
         return#结束
-    if 原因.get('kind') in ('stop','tool-calls','max-tokens'):#简单种
-        断言已发布v0键(原因,['kind'],[],标签)#仅kind
-    非空串(原因.get('kind'),f'{标签} kind')#种
+    if 种 in ('stop','tool-calls','max-tokens'):#简单种
+        校验已发布v0键(原因,['kind'],[],标签)#仅kind
+    非空串(种,f'{标签} kind')#种
 
 def 重放信封值(值,标签):#重放信封值
     """校验重放状态信封。"""
@@ -719,25 +734,26 @@ def 重放信封值(值,标签):#重放信封值
 def 回合结束原因值(值,标签):#回合结束原因值
     """校验 turn/end 原因。"""
     原因=已发布v0记录(值,标签)#原因
-    种=原因.get('kind')#种
+    种=原因['kind'] if 'kind' in 原因 else None#种
     if 种 in ('completed','blocked','max-tokens','interrupted'):#简单种
-        断言已发布v0键(原因,['kind'],[],标签)#仅kind
+        校验已发布v0键(原因,['kind'],[],标签)#仅kind
         return#结束
     if 种=='aborted':#中止
-        断言已发布v0键(原因,['kind','reason'],[],标签)#键
+        校验已发布v0键(原因,['kind','reason'],[],标签)#键
         起因=已发布v0记录(原因['reason'],f'{标签} abort cause')#起因
-        if 起因.get('kind')=='hook':#钩子
-            断言已发布v0键(起因,['kind','reason'],[],f'{标签} abort cause')#键
+        起因种=起因['kind'] if 'kind' in 起因 else None#起因种
+        if 起因种=='hook':#钩子
+            校验已发布v0键(起因,['kind','reason'],[],f'{标签} abort cause')#键
             字符串值(起因['reason'],f'{标签} abort reason')#原因
         else:#其它
-            断言已发布v0键(起因,['kind'],[],f'{标签} abort cause')#键
+            校验已发布v0键(起因,['kind'],[],f'{标签} abort cause')#键
             字面值(起因['kind'],['user','parent','disposed','legacy'],f'{标签} abort kind')#种
         return#结束
     if 种=='error':#错误
-        断言已发布v0键(原因,['kind','error'],[],标签)#键
+        校验已发布v0键(原因,['kind','error'],[],标签)#键
         llm失败值(原因['error'],f'{标签} error')#错误
         return#结束
-    非空串(原因.get('kind'),f'{标签} kind')#未知种
+    非空串(种,f'{标签} kind')#未知种
 
 def 请求头值(值,标签):#请求头值
     """校验 request/header 内层头。"""
@@ -759,8 +775,8 @@ def 请求头值(值,标签):#请求头值
     if 'stop' in 配置:#有停止
         数组值(配置['stop'],f'{标签} stop',字符串值)#停止
     if 'adapterDefaults' in 头:#有适配器默认
-        默认=精确记录(头['adapterDefaults'],f'{标签} adapterDefaults',[],['reasoningEffort','maxTokens'])#默认
-        for 键,标记 in 默认.items():#逐项
+        适配器默认=精确记录(头['adapterDefaults'],f'{标签} adapterDefaults',[],['reasoningEffort','maxTokens'])#适配器默认
+        for 键,标记 in 适配器默认.items():#逐项
             字面值(标记,[True],f'{标签} adapterDefaults {键}')#标记
             if 键 not in 配置:#缺配置值
                 raise 会话格式错误(f'{标签} adapter default {键} lacks config value')#错误
@@ -781,8 +797,8 @@ def 遮蔽值(数据,事件序号,标签):#遮蔽值
     范围=精确记录(数据['shadowedRange'],f'{标签} shadowedRange',['start','end'])#范围
     起点=更早序号(范围['start'],事件序号,f'{标签} shadowedRange start')#起点
     终点=更早序号(范围['end'],事件序号,f'{标签} shadowedRange end')#终点
-    序号们=序号数组(数据['shadowedSeqs'],事件序号,f'{标签} shadowedSeqs',True)#序号
-    if 序号们[0]!=起点 or 序号们[-1]!=终点:#端点不符
+    序号列表=序号数组(数据['shadowedSeqs'],事件序号,f'{标签} shadowedSeqs',True)#序号
+    if 序号列表[0]!=起点 or 序号列表[-1]!=终点:#端点不符
         raise 会话格式错误(f'{标签} shadowedRange must match shadowedSeqs endpoints')#错误
     计数值(数据['shadowedTokenCount'],f'{标签} shadowedTokenCount')#令牌数
 
@@ -790,12 +806,12 @@ def 目标变更值(数据,标签):#目标变更值
     """校验 goal/change 载荷。"""
     字面值(数据['kind'],['goal/change'],f'{标签} kind')#种
     字面值(数据['version'],[1],f'{标签} version')#版本
-    if 数据.get('operation')=='clear':#清除
-        断言已发布v0键(数据,['kind','version','operation','cleared','clearedAt'],[],f'{标签} data')#键
+    if 'operation' in 数据 and 数据['operation']=='clear':#清除
+        校验已发布v0键(数据,['kind','version','operation','cleared','clearedAt'],[],f'{标签} data')#键
         目标引用值(数据['cleared'],f'{标签} cleared')#已清
         计数值(数据['clearedAt'],f'{标签} clearedAt')#清除时
         return#结束
-    断言已发布v0键(#键
+    校验已发布v0键(#键
         数据,#数据
         ['kind','version','operation','goal','roundsStarted','createdAt','updatedAt'],#必填
         [],#可选空
@@ -821,7 +837,7 @@ def 目标快照值(值,标签):#目标快照值
     非空串(目标['objective'],f'{标签} objective')#目标文本
     字面值(目标['phase'],['active','paused','blocked','complete'],f'{标签} phase')#阶段
     正整数值(目标['maxGoalRounds'],f'{标签} maxGoalRounds')#最大轮
-    if 目标.get('phase')=='blocked':#阻塞
+    if 'phase' in 目标 and 目标['phase']=='blocked':#阻塞
         原因=精确记录(目标['blockedReason'],f'{标签} blockedReason',['code','message'])#原因
         非空串(原因['code'],f'{标签} blocked code')#码
         非空串(原因['message'],f'{标签} blocked message')#消息
@@ -831,14 +847,14 @@ def 目标快照值(值,标签):#目标快照值
 def 日程变更值(数据,标签):#日程变更值
     """校验 schedule/change 载荷。"""
     字面值(数据['version'],[1],f'{标签} version')#版本
-    if 数据.get('operation')=='create':#创建
-        断言已发布v0键(数据,['version','operation','schedule'],[],f'{标签} data')#键
+    if 'operation' in 数据 and 数据['operation']=='create':#创建
+        校验已发布v0键(数据,['version','operation','schedule'],[],f'{标签} data')#键
         日程记录值(数据['schedule'],f'{标签} schedule')#日程
         return#结束
-    断言已发布v0键(#键
+    校验已发布v0键(#键
         数据,#数据
         ['version','operation','id'],#必填
-        ['acceptedAt'] if 数据.get('operation')=='dispatch' else [],#可选
+        ['acceptedAt'] if ('operation' in 数据 and 数据['operation']=='dispatch') else [],#可选
         f'{标签} data',#标签
     )#断言结束
     字面值(数据['operation'],['delete','dispatch'],f'{标签} operation')#操作
@@ -849,13 +865,14 @@ def 日程变更值(数据,标签):#日程变更值
 def 日程记录值(值,标签):#日程记录值
     """校验日程记录。"""
     记录=已发布v0记录(值,标签)#记录
-    if 记录.get('kind')=='after':#延后
-        断言已发布v0键(记录,['id','kind','prompt','afterSeconds','scheduledAt'],[],标签)#键
+    种=记录['kind'] if 'kind' in 记录 else None#种
+    if 种=='after':#延后
+        校验已发布v0键(记录,['id','kind','prompt','afterSeconds','scheduledAt'],[],标签)#键
         正整数值(记录['afterSeconds'],f'{标签} afterSeconds')#秒
-    elif 记录.get('kind')=='at':#定点
-        断言已发布v0键(记录,['id','kind','prompt','scheduledAt'],[],标签)#键
-    elif 记录.get('kind')=='every':#周期
-        断言已发布v0键(记录,['id','kind','prompt','everySeconds','scheduledAt'],[],标签)#键
+    elif 种=='at':#定点
+        校验已发布v0键(记录,['id','kind','prompt','scheduledAt'],[],标签)#键
+    elif 种=='every':#周期
+        校验已发布v0键(记录,['id','kind','prompt','everySeconds','scheduledAt'],[],标签)#键
         秒=正整数值(记录['everySeconds'],f'{标签} everySeconds')#秒
         if 秒<300:#过短
             raise 会话格式错误(f'{标签} everySeconds must be at least 300')#错误
@@ -872,32 +889,36 @@ def 日程id值(值,标签):#日程id值
         raise 会话格式错误(f'{标签} must not have surrounding whitespace')#错误
 
 def 瞬时值(值,标签):#瞬时值
-    """要求规范 UTC 瞬时字符串。"""
+    """要求规范 UTC 瞬时字符串 YYYY-MM-DDTHH:MM:SS.sssZ。"""
     if not isinstance(值,str) or UTC瞬时正则.fullmatch(值) is None:#形态不符
         raise 会话格式错误(f'{标签} must be a canonical UTC instant')#错误
-    try:#解析
-        解析=datetime.fromisoformat(值.replace('Z','+00:00'))#解析
-    except ValueError:#解析失败
+    年=int(值[0:4])#年
+    月=int(值[5:7])#月
+    日=int(值[8:10])#日
+    时=int(值[11:13])#时
+    分=int(值[14:16])#分
+    秒=int(值[17:19])#秒
+    毫秒=int(值[20:23])#毫秒
+    try:#日历合法性
+        解析=datetime(年,月,日,时,分,秒,毫秒*1000,tzinfo=区时('UTC'))#UTC 瞬时
+    except ValueError:#非法日历
         raise 会话格式错误(f'{标签} must be a canonical UTC instant')#错误
-    try:#时间戳
-        if not math.isfinite(解析.timestamp()):#非有限
-            raise 会话格式错误(f'{标签} must be a canonical UTC instant')#错误
-    except (OverflowError,OSError,ValueError):#平台溢出
-        raise 会话格式错误(f'{标签} must be a canonical UTC instant')#错误
-    规范=解析.astimezone(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00','Z')#规范
+    规范=str(解析.year).zfill(4)+'-'+str(解析.month).zfill(2)+'-'+str(解析.day).zfill(2)#日期
+    规范=规范+'T'+str(解析.hour).zfill(2)+':'+str(解析.minute).zfill(2)+':'+str(解析.second).zfill(2)#时刻
+    规范=规范+'.'+str(解析.microsecond//1000).zfill(3)+'Z'#毫秒与 Z
     if 规范!=值:#非规范
         raise 会话格式错误(f'{标签} must be a canonical UTC instant')#错误
 
 def 标题源值(值,标签):#标题源值
     """校验标题出处。"""
     源=已发布v0记录(值,标签)#源
-    if 源.get('kind')=='provider':#提供方
-        断言已发布v0键(源,['kind','provider'],['model'],标签)#键
+    if 'kind' in 源 and 源['kind']=='provider':#提供方
+        校验已发布v0键(源,['kind','provider'],['model'],标签)#键
         非空串(源['provider'],f'{标签} provider')#提供方
         if 'model' in 源:#有模型
             模型路由值(源['model'],f'{标签} model')#模型
         return#结束
-    断言已发布v0键(源,['kind'],[],标签)#仅kind
+    校验已发布v0键(源,['kind'],[],标签)#仅kind
     字面值(源['kind'],['fallback','user'],f'{标签} kind')#种
 
 def 模型路由值(值,标签):#模型路由值
@@ -910,8 +931,8 @@ def 子智能体描述符值(数据,标签):#子智能体描述符值
     """校验子智能体描述符。"""
     字面值(数据['version'],[3],f'{标签} version')#版本
     非空串(数据['provider'],f'{标签} provider')#提供方
-    if 数据.get('mode')=='one-shot':#一次性
-        断言已发布v0键(数据,['mode','version','provider'],['label'],f'{标签} data')#键
+    if 'mode' in 数据 and 数据['mode']=='one-shot':#一次性
+        校验已发布v0键(数据,['mode','version','provider'],['label'],f'{标签} data')#键
         if 'label' in 数据:#有标签
             字符串值(数据['label'],f'{标签} label')#标签
         return#结束
@@ -931,10 +952,11 @@ def 子智能体描述符值(数据,标签):#子智能体描述符值
         if 'deny' in 过滤:#有拒绝
             数组值(过滤['deny'],f'{标签} deny',非空串)#拒绝
 
-def 允许模型们值(值,标签):#允许模型们值
+def 校验允许模型列表(值,标签):#校验允许模型列表
     """校验允许模型路由表。"""
     已见=set()#已见
-    def 校验路由(成员,成员标签):#校验路由
+    def 校验路由(成员,成员标签):#校验允许模型路由
+        """校验允许模型路由。"""
         路由=精确记录(成员,成员标签,['provider','model'])#路由
         非空串(路由['provider'],f'{成员标签} provider')#提供方
         非空串(路由['model'],f'{成员标签} model')#模型
@@ -942,8 +964,8 @@ def 允许模型们值(值,标签):#允许模型们值
         if 键 in 已见:#重复
             raise 会话格式错误(f'{标签} repeats route {键}')#错误
         已见.add(键)#记入
-    路由们=数组值(值,标签,校验路由)#路由
-    if len(路由们)==0:#须非空
+    路由列表=数组值(值,标签,校验路由)#路由
+    if len(路由列表)==0:#须非空
         raise 会话格式错误(f'{标签} must be non-empty')#错误
 
 def 团队选择器(数据,标签):#团队选择器
@@ -988,7 +1010,7 @@ def 团队消息值(值,标签,版本):#团队消息值
         非空串(消息[键],f'{标签} {键}')#串
     字符串值(消息['senderName'],f'{标签} senderName')#发送者名
     字面值(消息['delivery'],['quiet','wakeup'],f'{标签} delivery')#投递
-    内容块们值(消息['content'],f'{标签} content',版本)#内容
+    校验内容块列表(消息['content'],f'{标签} content',版本)#内容
 
 def 工作流身份(数据,标签):#工作流身份
     """校验工具工作流身份字段。"""
@@ -1000,24 +1022,27 @@ def 深搜请求体值(值,标签):#深搜请求体值
     体=精确记录(值,标签,['model','max_tokens','messages','tools'])#体
     非空串(体['model'],f'{标签} model')#模型
     正整数值(体['max_tokens'],f'{标签} max_tokens')#上限
-    def 校验消息(成员,成员标签):#校验消息
+    def 校验消息(成员,成员标签):#校验深搜用户消息
+        """校验深搜用户消息。"""
         消息=精确记录(成员,成员标签,['role','content'])#消息
         字面值(消息['role'],['user'],f'{成员标签} role')#角色
-        def 校验块(块,块标签):#校验块
+        def 校验块(块,块标签):#校验深搜文本块
+            """校验深搜文本块。"""
             文本=精确记录(块,块标签,['type','text'])#文本
             字面值(文本['type'],['text'],f'{块标签} type')#类型
             字符串值(文本['text'],f'{块标签} text')#文本
         内容=数组值(消息['content'],f'{成员标签} content',校验块)#内容
         if len(内容)!=1:#须单块
             raise 会话格式错误(f'{成员标签} content must contain one text block')#错误
-    消息们=数组值(体['messages'],f'{标签} messages',校验消息)#消息
-    if len(消息们)!=1:#须单消息
+    消息列表=数组值(体['messages'],f'{标签} messages',校验消息)#消息
+    if len(消息列表)!=1:#须单消息
         raise 会话格式错误(f'{标签} messages must contain one user message')#错误
-    def 校验工具(成员,成员标签):#校验工具
+    def 校验工具(成员,成员标签):#校验深搜 web_search 工具
+        """校验深搜 web_search 工具。"""
         工具=精确记录(成员,成员标签,['type','name','max_uses'])#工具
         字面值(工具['type'],['web_search_20250305'],f'{成员标签} type')#类型
         字面值(工具['name'],['web_search'],f'{成员标签} name')#名
         正整数值(工具['max_uses'],f'{成员标签} max_uses')#最大使用
-    工具们=数组值(体['tools'],f'{标签} tools',校验工具)#工具
-    if len(工具们)!=1:#须单工具
+    工具列表=数组值(体['tools'],f'{标签} tools',校验工具)#工具
+    if len(工具列表)!=1:#须单工具
         raise 会话格式错误(f'{标签} tools must contain one web search tool')#错误

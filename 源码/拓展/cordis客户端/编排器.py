@@ -109,10 +109,10 @@ class 运行编排器:#CordisRunOrchestrator
             自身.活动.pop(请求['pluginId'],None)#清
         自身.commit()#通知
 
-    def reconcileApprovals(自身,行们):#对账审批
+    def reconcileApprovals(自身,行列表):#对账审批
         """从权威库存重建挂起审批。"""
         期望={}#应有
-        for 行 in 行们 or []:#每行
+        for 行 in 行列表 or []:#每行
             尝试=行.get('latestRun')#最近
             if 尝试 is None:#无
                 continue#跳

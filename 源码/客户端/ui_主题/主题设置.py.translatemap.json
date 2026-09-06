@@ -1,0 +1,15 @@
+{
+    "dark":"深色",
+    "default":"默认",
+    "enum":"枚举",
+    "error":"错误",
+    "field":"字段",
+    "light":"浅色",
+    "mode":"模式",
+    "namespace":"命名空间",
+    "preference":"偏好",
+    "setting":"设置",
+    "system":"系统",
+    "table":"表",
+    "theme":"主题"
+}

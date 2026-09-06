@@ -1,4 +1,3 @@
-"""组：typert。"""
 from . import (
     加载器,
     生成器,

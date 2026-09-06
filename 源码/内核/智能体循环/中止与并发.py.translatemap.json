@@ -1,0 +1,21 @@
+{
+    "abort": "中止",
+    "all": "全部",
+    "concurrent": "并发",
+    "controller": "控制器",
+    "dispose": "拆除",
+    "error": "错误",
+    "flag": "标志",
+    "future": "原生结果",
+    "listen": "监听",
+    "race": "赛跑",
+    "reason": "原因",
+    "recover": "回收",
+    "settle": "结算",
+    "signal": "信号",
+    "slot": "槽",
+    "thread": "线程",
+    "throw": "抛出",
+    "wait": "等待",
+    "wrap": "包装"
+}

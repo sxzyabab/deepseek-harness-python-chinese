@@ -1,0 +1,21 @@
+{
+    "app":"应用",
+    "apply":"应用",
+    "command":"命令",
+    "config":"配置",
+    "exit":"退出",
+    "help":"帮助",
+    "inject":"注入",
+    "lifecycle":"生命周期",
+    "name":"名称",
+    "parse":"解析",
+    "profile":"配置档",
+    "provider":"提供方",
+    "publish":"发布",
+    "self":"自身",
+    "service":"服务",
+    "startup":"启动",
+    "stdin":"标准输入",
+    "transport":"传输",
+    "wait":"等待"
+}

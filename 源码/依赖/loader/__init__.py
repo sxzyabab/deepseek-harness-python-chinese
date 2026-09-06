@@ -13,7 +13,7 @@ class 加载器(插件树):
     def __init__(自身,上下文,配置=None):
         """登记加载器服务，并挂上配置插值、写回与自拆除钩子。"""
         插件树.__init__(自身,上下文)#建立根组
-        自身.配置=配置 or {}#根配置
+        自身.配置=配置 if 配置 is not None else {}#根配置
         if 自身.配置.get('baseUrl'):
             自身.所属上下文.__dict__['基准网址']=自身.配置['baseUrl']#相对说明符的解析基准
         共享=os.environ.get('CORDIS_SHARED')#宿主传进来的共享环境
@@ -58,9 +58,8 @@ class 加载器(插件树):
         """从模块导出里摊出真正的插件对象。"""
         if 导出 is None:
             return None#空导出
-        for 名称 in ('默认','default'):
-            if hasattr(导出,名称):
-                return getattr(导出,名称)#默认导出，取到 False 或 0 也算数
+        if hasattr(导出,'default'):
+            return getattr(导出,'default')#只读 default 槽
         return 导出#没有默认导出就用模块本身
 
 def _配置插值(纤程,配置,续体):

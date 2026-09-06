@@ -1,6 +1,12 @@
 """受守卫变更失败的面向模型补救。提供方的 FS_STALE_VERSION 与 FS_NOT_OBSERVED 消息只陈述条件，不给出唯一正确的恢复（重新读 / 先读文件），因此本包在模型边界追加补救；提供方消息保持面向机器且不变。对齐上游 tool-fs/src/error.ts。"""
 from .. import 文件系统 as fs#文件系统服务定义
 
+class 工具文件系统错误(Exception):
+    """面向模型的文件系统工具入参或组合非法。"""
+    def __init__(自身,消息):
+        """用原样英文消息构造。"""
+        super().__init__(消息)#英文消息
+
 补救表={#错误码到补救文本
     'FS_STALE_VERSION':'re-read the file, then retry',#过期：重新读再试
     'FS_NOT_OBSERVED':'read the file, then retry',#未经观察：先读再试

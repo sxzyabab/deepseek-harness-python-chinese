@@ -1,0 +1,9 @@
+{
+    "direct-call.ts":"直接调用.py",
+    "glob.ts":"通配.py",
+    "grep.ts":"检索.py",
+    "index.ts":"__init__.py",
+    "invariant.ts":"不变量.py",
+    "presentation.ts":"展示.py",
+    "search-core.ts":"搜索管道.py"
+}

@@ -1,0 +1,11 @@
+{
+    "backend":"后端",
+    "handle":"句柄",
+    "id":"标识",
+    "inspector":"检查器",
+    "key":"键",
+    "object":"对象",
+    "realm":"领域",
+    "runtime":"运行时",
+    "script":"脚本"
+}

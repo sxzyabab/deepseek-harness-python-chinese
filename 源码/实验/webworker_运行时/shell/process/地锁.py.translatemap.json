@@ -1,0 +1,16 @@
+{
+    "access":"访问",
+    "device":"设备",
+    "deny":"拒绝",
+    "error":"错误",
+    "executable":"可执行",
+    "filesystem":"文件系统",
+    "landlock":"地锁",
+    "map":"映射",
+    "null":"空",
+    "parse":"解析",
+    "path":"路径",
+    "root":"根",
+    "sandbox":"沙箱",
+    "temp":"临时"
+}

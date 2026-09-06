@@ -81,7 +81,7 @@ class E2B运行时(服务):#共享沙箱所有者服务
                 except 沙箱未找到错误:#已消失可忽略
                     return#完全停稳
             return 拆除#拆除器
-        上下文对象.effect(装拆除,'e2b sandbox teardown')#effect 标签
+        上下文对象.副作用(装拆除,'e2b sandbox teardown')#副作用标签
 
     def 校验(自身):#加载时校验配置
         """密钥非空、cwd 绝对、超时正有限。"""

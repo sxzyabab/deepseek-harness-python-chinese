@@ -1,0 +1,21 @@
+{
+    "after":"后",
+    "before":"前",
+    "call":"调用",
+    "char":"字符",
+    "config":"配置",
+    "field":"字段",
+    "head":"头",
+    "id":"标识",
+    "original":"原文",
+    "prune":"修剪",
+    "remove":"去掉",
+    "replace":"替换",
+    "result":"结果",
+    "self":"自身",
+    "seq":"序号",
+    "tail":"尾",
+    "threshold":"阈值",
+    "tool":"工具",
+    "type":"类型"
+}

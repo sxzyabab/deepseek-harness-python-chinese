@@ -42,10 +42,13 @@ class 宿主检查器源(检查器源连接):#Host检查器源
                 if 自身.查询实例.接收(值):#RPC已消费
                     return#结束
                 自身.接收帧(解析工作者源帧(值))#源帧
-            except Exception:#畸形则关闭
+            except Exception:#json.loads 畸形控制帧可能抛 JSONDecodeError，契约未定所以收不窄
                 自身.关闭()#关闭源
+        def 端口关闭():#端口关闭
+            """查询面随 Host 源断开。"""
+            自身.查询实例.断开('Inspector Host source disconnected')#断开
         端口.on('message',入站)#入站消息
-        端口.on('close',lambda:自身.查询实例.断开('Inspector Host source disconnected'))#端口关闭
+        端口.on('close',端口关闭)#端口关闭
         端口.start()#启动端口
         打开={'v':检查器协议版本,'t':'source/open','source':源,'topics':list(选项.topics)}#打开帧
         端口.postMessage(打开)#发送打开

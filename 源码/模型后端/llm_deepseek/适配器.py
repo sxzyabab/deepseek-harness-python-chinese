@@ -4,7 +4,7 @@
 """
 import json,re,time,threading#JSON、正则、时间与工作线程
 from email.utils import parsedate_tz as 解析邮件日期,mktime_tz as 邮件时区戳#HTTP日期
-from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接#HTTP客户端
+from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as 超文本异常#HTTP客户端
 from math import isfinite as 是否有限#有限数判断
 from urllib.parse import urlparse as 解析网址#拆URL
 from ..llm import (
@@ -32,7 +32,7 @@ __all__=(#仅中文公开名
 解码=json.loads#JSON解码
 线程=threading.Thread#工作线程
 事件=threading.Event#中止事件
-完整匹配=re.fullmatch#整串数字匹配
+完整匹配=re.compile(r'[0-9]+\Z',re.ASCII).fullmatch#整串 ASCII 数字匹配
 取时间=time.time#纪元秒
 
 默认流空闲超时毫秒=300000#默认空闲超时毫秒
@@ -55,36 +55,38 @@ class 中止信号:
     """对应中止信号协议，只通知不自己停工作。"""
     def __init__(自身,事件对象,取原因):
         """绑到共享事件与原因读取。"""
-        自身._事件=事件对象#中止事件
-        自身._取原因=取原因#读取原因
+        自身.事件对象=事件对象#中止事件
+        自身.取原因=取原因#读取原因
     @property
     def 已中止(自身):
         """是否已经中止。"""
-        return 自身._事件.is_set()#事件已置位
+        return 自身.事件对象.is_set()#事件已置位
     @property
     def 原因(自身):
         """中止原因。"""
-        return 自身._取原因()#当前原因
+        return 自身.取原因()#当前原因
     def 等待(自身):
         """阻塞直到中止。"""
-        自身._事件.wait()#等待事件
+        自身.事件对象.wait()#等待事件
 
 class 中止控制器:
     """对应中止控制器。"""
     def __init__(自身):
         """创建一对控制器与信号。"""
-        自身._事件=事件()#中止事件
-        自身._原因=None#中止原因
-        自身.信号=中止信号(自身._事件,自身._读原因)#对外信号
-    def _读原因(自身):
+        自身.事件对象=事件()#中止事件
+        自身.中止原因值=None#中止原因
+        自身.信号=中止信号(自身.事件对象,自身.读原因)#对外信号
+
+    def 读原因(自身):
         """读取当前中止原因。"""
-        return 自身._原因#原因
+        return 自身.中止原因值#原因
+
     def 中止(自身,原因=None):
         """发出中止；重复调用忽略。"""
-        if 自身._事件.is_set():#已中止
+        if 自身.事件对象.is_set():#已中止
             return#已中止
-        自身._原因=原因#记下原因
-        自身._事件.set()#置位
+        自身.中止原因值=原因#记下原因
+        自身.事件对象.set()#置位
 
 def 合成信号(甲,乙):
     """先中止的一路获胜。"""
@@ -101,14 +103,18 @@ def 合成信号(甲,乙):
     return 控制器.信号#融合信号
 
 def 模型信息(提供方,模型):
-    """目录条目转模型信息。"""
+    """目录条目转模型信息。模型为目录 dict。"""
+    if 'name' in 模型 and 模型['name'] is not None:#??：显式空串仍用空串，缺席才落到 id
+        名称=模型['name']#展示名
+    else:#缺席
+        名称=模型['id']#展示名或id
     信息={
         'provider':提供方,#提供方
         'id':模型['id'],#模型id
-        'name':模型['name'] if 模型.get('name') is not None else 模型['id'],#展示名或id
+        'name':名称,#展示名或id
         'inputModalities':['text'],#本线路纯文本
     }#拆离信息
-    if 模型.get('description') is not None:#有描述
+    if 'description' in 模型 and 模型['description'] is not None:#有描述
         信息['description']=模型['description']#有描述才带上
     return 信息#模型信息
 
@@ -116,7 +122,7 @@ def 解析提供方重试等待(值):
     """解析 Retry-After 头为毫秒。"""
     if 值 is None:#没有头
         return None#没有头
-    if 完整匹配(r'\d+',值):#纯秒数
+    if 完整匹配(值):#纯秒数
         延迟=int(值)*1000#秒换毫秒
         return 延迟 if 是否有限(延迟) and 延迟>0 else None#正有限才用
     解析=解析邮件日期(值)#HTTP日期
@@ -139,9 +145,12 @@ def 映射超文本错误码(状态,错误=None):
     if 状态==401 or 状态==403:#认证失败
         return 'AUTH'#认证失败
     片段=[]#诊断文本
-    if 错误 is not None:#有提供方错误体
-        for 项 in (错误.get('code'),错误.get('type'),错误.get('message')):#逐字段
-            if 项:#非空
+    if 错误 is not None:#有提供方错误体 dict
+        码=错误['code'] if 'code' in 错误 else None#错误码
+        类型=错误['type'] if 'type' in 错误 else None#错误类型
+        消息=错误['message'] if 'message' in 错误 else None#错误消息
+        for 项 in (码,类型,消息):#逐字段
+            if 项 is not None and len(str(项))>0:#非空才收
                 片段.append(项)#非空才收
     详情=' '.join(片段)#拼诊断
     if 是否配额超出错误(详情):#配额措辞
@@ -185,7 +194,7 @@ class 深求适配器(大模型适配器):
             if 项['id']==模型:#命中
                 条目=项#命中目录
                 break#找到即停
-        if 条目 is not None and 条目.get('contextWindow') is not None:#条目有窗口
+        if 条目 is not None and 'contextWindow' in 条目 and 条目['contextWindow'] is not None:#条目有窗口
             窗口=条目['contextWindow']#条目窗口
         else:#回落默认
             窗口=连接['defaultContextWindow']#默认窗口
@@ -194,17 +203,18 @@ class 深求适配器(大模型适配器):
         else:#有目录
             信息=模型信息(提供方,条目)#目录条目
         信息['context']={'contextWindow':窗口}#窗口
-        if 条目 is not None and 条目.get('maxTokens') is not None:#条目上限
+        if 条目 is not None and 'maxTokens' in 条目 and 条目['maxTokens'] is not None:#条目上限；?? 显式 0 仍记下
             信息['defaultMaxTokens']=条目['maxTokens']#条目上限
         else:#配置上限
             信息['defaultMaxTokens']=连接['maxTokens']#配置上限
-        if 连接['defaults'].get('thinking')=='disabled':#部署关掉思考
+        默认表=连接['defaults']#部署默认 dict
+        if 'thinking' in 默认表 and 默认表['thinking']=='disabled':#部署关掉思考
             信息['reasoning']={
                 'efforts':仅关闭力度列表,#只有off
                 'defaultEffort':关闭力度,#默认关闭
             }#仅关闭力度
         else:#完整力度
-            默认力度配置=连接['defaults'].get('reasoningEffort')#配置力度
+            默认力度配置=默认表['reasoningEffort'] if 'reasoningEffort' in 默认表 else None#配置力度
             if 默认力度配置=='off':#关闭
                 默认力度=关闭力度#关闭
             elif 默认力度配置=='max':#最大
@@ -223,7 +233,7 @@ class 深求适配器(大模型适配器):
         接口密钥=自身.配置['解析接口密钥'](连接)#从本快照解析密钥
         用户标识=自身.配置['解析用户标识']()#匿名用户id
         消费方=中止控制器()#消费方中止
-        if 选项.get('signal') is None:#调用方未给信号
+        if 'signal' not in 选项 or 选项['signal'] is None:#调用方未给信号
             上游=消费方.信号#只用消费方
         else:#融合
             上游=合成信号(选项['signal'],消费方.信号)#融合调用方与消费方
@@ -240,11 +250,11 @@ class 深求适配器(大模型适配器):
                     已耗尽=True#正常耗尽
                     return#结束生成器
                 yield 结果['value']#让出一块
-        except Exception as 错误:#读取或打开失败
+        except (大模型错误,OSError,超文本异常,UnicodeDecodeError,json.JSONDecodeError,ValueError,TypeError) as 错误:#读取或打开失败
             if 取超时(看门狗.信号,流空闲超时码) is not None:#空闲超时
                 超时文案=f'DeepSeek stream idle timeout after {连接["streamIdleTimeoutMs"]}ms'#超时文案（诊断字面量）
                 raise 大模型错误(超时文案,'TIMEOUT') from 错误#空闲超时
-            调用方信号=选项.get('signal')#调用方信号
+            调用方信号=选项['signal'] if 'signal' in 选项 else None#调用方信号
             if 调用方信号 is not None and 调用方信号.已中止:#调用方中止
                 raise 大模型错误('DeepSeek request aborted by caller','ABORTED') from 错误#中止
             if isinstance(错误,大模型错误):#已是大模型错误
@@ -256,14 +266,14 @@ class 深求适配器(大模型适配器):
             if not 已耗尽:#尚未耗尽
                 try:#通知上游取消
                     迭代器.close()#关闭迭代器
-                except Exception:#吞掉拆除期中止
-                    pass#吞掉拆除期中止；消费方控制器已拥有终止
+                except (大模型错误,RuntimeError,OSError,StopIteration):#吞掉拆除期中止
+                    pass#吞掉拆除期中止；消费方控制器已拥有终止；GeneratorExit 是 BaseException 不进这里
             看门狗.释放()#释放看门狗定时器
 
     def 请求(自身,选项,信号,连接,接口密钥,用户标识,注释回调):
         """一次上游超文本加服务推送。"""
         体=序列化请求(选项,连接['defaults'])#序列化请求体
-        载荷=编码(体,ensure_ascii=False,separators=(',',':'))#JSON正文
+        载荷=编码(体,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON正文
         正文=载荷.encode('utf-8')#UTF-8字节
         头={
             'authorization':'Bearer '+接口密钥,#bearer
@@ -272,9 +282,9 @@ class 深求适配器(大模型适配器):
         }#请求头
         头.update(归属头())#产品归属
         头['x-deepseek-harness-user-id']=str(用户标识)#匿名用户
-        if 选项.get('sessionId') is not None:#有会话
+        if 'sessionId' in 选项 and 选项['sessionId'] is not None:#有会话
             头['x-deepseek-harness-session-id']=str(选项['sessionId'])#会话id
-        if 选项.get('purpose')=='compaction':#压缩用途
+        if 'purpose' in 选项 and 选项['purpose']=='compaction':#压缩用途
             头['x-deepseek-harness-compact']='1'#压缩标记
         网址=连接['baseURL']+'/chat/completions'#对话补全
         解析=解析网址(网址)#拆主机路径
@@ -293,13 +303,13 @@ class 深求适配器(大模型适配器):
                 原因=信号.原因#中止原因
                 if isinstance(原因,BaseException):#原样异常
                     raise 原因#原样抛出
-                raise RuntimeError(原因 or 'aborted')#包装中止
-            路径=解析.path or '/'#路径
+                raise 大模型错误(str(原因) if 原因 is not None else 'aborted','ABORTED')#包装中止
+            路径=解析.path if len(解析.path)>0 else '/'#路径；空 path 用根
             if 解析.query:#有查询串
                 路径=路径+'?'+解析.query#查询串
             客户端.request('POST',路径,body=正文,headers=头)#发出POST
             响应=客户端.getresponse()#上游响应
-        except Exception as 错误:#连接失败
+        except (OSError,超文本异常,大模型错误,RuntimeError) as 错误:#连接失败
             if 信号.已中止:#已中止
                 raise 错误#已中止则原样抛，让外层分类
             传输文案=f'DeepSeek API request to {连接["baseURL"]} failed'#传输文案（诊断字面量）
@@ -309,10 +319,12 @@ class 深求适配器(大模型适配器):
             提供方错误=None#可选提供方错误
             try:#读错误体
                 解析错误=解码(响应.read())#按线路错误查看
-                提供方错误=解析错误.get('error')#错误对象
-                if 提供方错误 and 提供方错误.get('message'):#有消息
-                    消息=提供方错误['message']#有消息则用
-            except Exception:#只吞错误体解析
+                提供方错误=解析错误['error'] if 'error' in 解析错误 else None#错误对象
+                if 提供方错误 is not None and 'message' in 提供方错误:#有消息字段
+                    消息体=提供方错误['message']#线路消息
+                    if 消息体 is not None and len(str(消息体))>0:#空串不覆盖默认；|| 语义
+                        消息=消息体#有消息则用
+            except (json.JSONDecodeError,UnicodeDecodeError,TypeError,ValueError,OSError):#只吞错误体解析
                 pass#只吞错误体解析：HTTP状态仍标识失败，畸形网关JSON不得盖住它
             等待=解析提供方重试等待(响应.getheader('retry-after'))#可选等待
             标识=取请求标识(响应)#可选请求id

@@ -9,6 +9,7 @@ __all__=['网络存储']#仅中文公开名
     'fetch/start','fetch/request-body-chunk','fetch/request-body-end',#请求
     'fetch/response','fetch/response-body-chunk','fetch/end','fetch/error',#响应
 ])#主题结束
+规范base64=re.compile(r'(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z')#规范 base64
 
 class 网络存储:#网络存储
     """与 CDP 连接状态无关的已校验 Network 观测存储。"""
@@ -22,19 +23,19 @@ class 网络存储:#网络存储
         自身._监听=set()#监听
         自身._日志字节=0#日志字节
 
-    def 替换(自身,源,记录们):#替换
+    def 替换(自身,源,记录列表):#替换
         """先关旧再追加。"""
         自身.关闭(源,'source state replaced')#先关旧
-        自身.追加(源,记录们)#再追加
+        自身.追加(源,记录列表)#再追加
 
-    def 追加(自身,源,记录们):#追加
+    def 追加(自身,源,记录列表):#追加
         """摄入主题匹配记录。"""
-        for 记录 in 记录们:#扫记录
+        for 记录 in 记录列表:#扫记录
             if 记录.get('topic') not in 自身.topics:#非主题
                 continue#跳过
             try:#摄入
                 自身._摄入(源,记录)#摄入一条
-            except Exception:#畸形载荷
+            except Exception:#域载荷校验与解码可能抛 KeyError/TypeError/ValueError，契约未定所以收不窄
                 pass#畸形域载荷仅丢失该次观测
 
     def 关闭(自身,源,原因):#关闭源
@@ -57,7 +58,10 @@ class 网络存储:#网络存储
     def 订阅(自身,监听):#订阅
         """订阅实时请求变更与逐出。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#拆除本监听
+            """取消本监听。"""
+            自身._监听.discard(监听)#摘掉
+        return 拆除#拆除器
 
     def 请求体(自身,请求id):#请求体
         """读取一个保留的请求体。"""
@@ -71,8 +75,8 @@ class 网络存储:#网络存储
             raise RuntimeError('response headers have not arrived')#未见响应
         return _组装正文(请求['responseBody'],请求['responseBodyTruncated'],请求.get('responseCaptureError'),请求['completed'])#组装
 
-    def 释放(自身):#释放
-        """释放订阅者与全部保留请求数据。"""
+    def 拆除(自身):#拆除
+        """拆除订阅者与全部保留请求数据。"""
         自身._监听.clear()#清监听
         自身._请求.clear()#清请求
         自身._日志.clear()#清日志
@@ -197,7 +201,7 @@ class 网络存储:#网络存储
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调
-            except Exception:#故障
+            except Exception:#网络观察者回调什么都可能抛，收不窄
                 pass#一个展示适配器不能中断仓库摄入
 
     def _强制保留(自身):#强制保留上限
@@ -238,16 +242,16 @@ class 网络存储:#网络存储
                 return 请求#返回
         raise RuntimeError(f'No resource with given identifier: {值}')#未找到
 
-def _组装正文(块们,截断,捕获错,完整):#组装捕获正文
+def _组装正文(块列表,截断,捕获错,完整):#组装捕获正文
     """合并块。"""
-    结果={'bytes':b''.join(块们),'truncated':截断,'complete':完整}#对象
+    结果={'bytes':b''.join(块列表),'truncated':截断,'complete':完整}#对象
     if 捕获错 is not None:#可选错误
         结果['captureError']=捕获错#写入
     return 结果#返回
 
 def _解码base64(值):#解码base64
     """规范 base64。"""
-    if 值=='' or len(值)%4!=0 or not re.fullmatch(r'(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?',值):#非规范
+    if 值=='' or len(值)%4!=0 or 规范base64.fullmatch(值) is None:#非规范
         raise ValueError('fetch payload body chunk must be canonical base64')#抛错
     字节=base64.b64decode(值)#解码
     if base64.b64encode(字节).decode('ascii')!=值:#再校验

@@ -52,7 +52,10 @@ class 检查器realm会话集:#realm会话集
     def 订阅(自身,监听):#订阅
         """订阅连接本地 realm 会话生命周期。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#拆除本监听
+            """取消本监听。"""
+            自身._监听.discard(监听)#摘掉
+        return 拆除#拆除器
 
     def 关闭(自身):#关闭
         """关闭全部 realm 会话并停止跟踪注册表。"""
@@ -90,5 +93,5 @@ class 检查器realm会话集:#realm会话集
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调
-            except Exception:#故障
+            except Exception:#观察者回调什么都可能抛，收不窄
                 pass#一个 CDP 域不能阻止兄弟域观察 realm 生命周期

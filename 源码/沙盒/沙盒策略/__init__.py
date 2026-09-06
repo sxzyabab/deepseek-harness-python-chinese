@@ -15,25 +15,17 @@ from .会话模式 import (#覆盖套件
 )#会话模式导出结束
 
 名称='sandbox-policy'#Cordis 插件名（包目录用下划线，插件名保留上游连字符）
-name=名称#Cordis 插件名
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
+class 沙箱政策错误(Exception):
+    """沙箱政策包的异常基类。"""
 
-def 解析工作区根(路径):#解析工作区根
+def 解析工作区根(路径):
     """在词法归一化抹掉对符号链接敏感的分量之前解析文件系统身份。"""
     return os.path.abspath(规范路径(路径))#先规范再词法绝对化
 
-def 渲染政策上下文(政策):#渲染面向模型的政策上下文
-    """渲染政策，不声称挂载了哪些能力。模型可见字面量不翻译。"""
-    模式值=取字段(政策,'mode')#取出模式
+def 渲染政策上下文(政策):
+    """渲染政策，不声称挂载了哪些能力。政策是 dict。模型可见字面量不翻译。"""
+    模式值=政策['mode']#取出模式
     if 模式值=='read-only':#只读
         return ('Current DSH file policy: read-only. Any available operation enforced by the DSH file sandbox '#只读政策前半
             +'cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: '#站立模式不可改；勿仅凭政策拒改
@@ -41,40 +33,42 @@ def 渲染政策上下文(政策):#渲染面向模型的政策上下文
     if 模式值=='workspace-write':#工作区可写
         return ('Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox '#工作区可写政策前半
             +'may modify files under the session workspace: '#可改会话工作区下文件
-            +json.dumps(取字段(政策,'workspaceRoot'),ensure_ascii=False)#工作区根 JSON 字面量
+            +json.dumps(政策['workspaceRoot'],ensure_ascii=False,separators=(',',':'),allow_nan=False)#工作区根 JSON 字面量
             +'. Some platform temporary areas may also be writable.')#工作区可写说明
     if 模式值=='danger-full-access':#完全放开
         return ('Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file '#完全放开政策前半
             +'modifications by available operations.')#完全放开说明
-    raise Exception('unreachable sandbox mode: '+str(模式值))#封闭联合穷尽守卫
+    raise 沙箱政策错误('unreachable sandbox mode: '+str(模式值))#封闭联合穷尽守卫
 
 配置模式={#插件配置：部署的沙箱默认；全部可选——Config 提供默认
     'mode':枚举字段('read-only','workspace-write','danger-full-access',默认值='read-only'),#会话起步的文件沙箱模式（失败即安全默认）
     'workspaceRoot':字符串字段(),#无智能体调用与没有 cwd 的会话的回落根；模式无默认，构造里回落进程 cwd
 }#配置模式结束
-Config=配置模式#Cordis 配置模式
 
 沙箱政策请求字段=('session','mode')#为一次能力调用选择沙箱政策的输入字段
 
-class 沙箱政策服务(服务):#沙箱政策服务（ctx.sandboxPolicy）
-    """拥有部署默认模式、回落工作区根，以及当前请求时政策段。工具层为每次执行调用 resolve，使会话的模式日志与不可变 cwd 一起到达每个强制能力。"""
+class 沙箱政策服务(服务):
+    """拥有部署默认模式、回落工作区根，以及当前请求时政策段。"""
     Config=配置模式#静态配置模式
-    def __init__(自身,ctx,配置):#安装 sandboxPolicy 服务
-        """记下部署默认，并把已解析政策贡献进系统提示词运行时上下文。"""
+    def __init__(自身,ctx,配置):
+        """记下部署默认，并把已解析政策贡献进系统提示词运行时上下文。配置是 dict。"""
         super().__init__(ctx,'sandboxPolicy')#服务名 sandboxPolicy
-        自身.config=配置#插件配置
-        自身.配置=配置#中文别名
-        #schemastery（Config）已经填了 mode；workspaceRoot 没有模式默认，因此回落到进程 cwd 是真分支，两种情况都解析成绝对路径
-        自身.defaultMode=取字段(配置,'mode') or 'read-only'#记下默认模式
-        自身.默认模式=自身.defaultMode#中文别名
-        自身.workspaceRoot=解析工作区根(取字段(配置,'workspaceRoot') if 取字段(配置,'workspaceRoot') is not None else os.getcwd())#解析回落根
-        自身.工作区根=自身.workspaceRoot#中文别名
-        def 挂提示(提示上下文,*其余):#有系统提示词时贡献上下文
+        自身.配置=配置#插件配置
+        if 'mode' in 配置 and 配置['mode'] is not None and 配置['mode']!='':#配置给了模式；空串回落只读（原 ||）
+            自身.defaultMode=配置['mode']#记下默认模式
+        else:
+            自身.defaultMode='read-only'#失败即安全默认
+        if 'workspaceRoot' in 配置 and 配置['workspaceRoot'] is not None:#配置给了根
+            自身.workspaceRoot=解析工作区根(配置['workspaceRoot'])#解析回落根
+        else:
+            自身.workspaceRoot=解析工作区根(os.getcwd())#回落进程 cwd
+        def 挂提示(提示上下文,*位置参数):
             """登记政策上下文段。"""
-            def 文本(组装上下文):#按请求渲染
-                """按调用会话渲染政策；没有会话则不贡献。"""
-                智能体=取字段(组装上下文,'agent')#组装时的智能体
-                会话=取字段(智能体,'session')#调用会话
+            def 文本(组装上下文):
+                """按调用会话渲染政策；没有会话则不贡献。组装上下文是 dict。"""
+                if 'agent' not in 组装上下文 or 组装上下文['agent'] is None:#没有智能体
+                    return ''#不贡献
+                会话=组装上下文['agent'].session#调用会话
                 if 会话 is None:#没有会话
                     return ''#不贡献
                 return 渲染政策上下文(自身.解析({'session':会话}))#渲染该会话政策
@@ -83,40 +77,42 @@ class 沙箱政策服务(服务):#沙箱政策服务（ctx.sandboxPolicy）
                 'order':110,#排序
                 'text':文本,#按请求渲染
             })#context 结束
-        自身.ctx.inject(['systemPrompt'],挂提示)#有系统提示词时贡献
+        自身.ctx.依赖启动(['systemPrompt'],挂提示)#有系统提示词时贡献
 
-    def 解析(自身,请求=None):#解析按次政策
-        """为一次能力调用解析完整政策。已批准的显式模式优先于会话最后一条 `sandbox/mode` 事件，后者优先于部署默认。会话 cwd 是其 workspace-write 边界；配置根是无智能体调用与没有 cwd 的会话的回落。"""
+    def 解析(自身,请求=None):
+        """为一次能力调用解析完整政策。请求是 dict。"""
         if 请求 is None:#缺省空请求
             请求={}#空映射
-        会话=取字段(请求,'session')#调用会话
-        批准模式=取字段(请求,'mode')#显式已批准模式
+        会话=请求['session'] if 'session' in 请求 else None#调用会话
+        批准模式=请求['mode'] if 'mode' in 请求 else None#显式已批准模式
         if 批准模式 is not None:#批准优先
             模式值=批准模式#用批准
         elif 会话 is None:#无会话则无覆盖
             模式值=自身.defaultMode#部署默认
-        else:#有会话
+        else:
             覆盖=自身.覆盖于(会话)#读日志覆盖
             模式值=覆盖 if 覆盖 is not None else 自身.defaultMode#覆盖或默认
-        头=取字段(会话,'header') if 会话 is not None else None#会话头
-        cwd=取字段(头,'cwd')#不可变 cwd
+        if 会话 is not None:#有会话
+            头=会话.header#会话头 dict
+            cwd=头['cwd'] if 'cwd' in 头 else None#不可变 cwd
+        else:
+            cwd=None#无会话
         政策={#拼政策
             'mode':模式值,#按次模式
             'workspaceRoot':解析工作区根(cwd if cwd is not None else 自身.workspaceRoot),#会话 cwd 或回落根
         }#政策字段结束
         if 会话 is not None:#有会话才带会话 id
-            政策['sessionId']=取字段(会话,'id')#会话 id
+            政策['sessionId']=会话.id#会话 id
         return 政策#完全解析的按次模式与绝对工作区根
 
-    def 覆盖于(自身,会话):#读会话覆盖
-        """读会话覆盖，不应用部署默认。返回最后一次记下的模式；没有则为 None。"""
-        return 生效沙盒模式(取字段(会话,'events'))#折叠日志
+    def 覆盖于(自身,会话):
+        """读会话覆盖，不应用部署默认。会话是对象。"""
+        return 生效沙盒模式(会话.events)#折叠日志
 
-default=沙箱政策服务#Cordis 默认导出
-默认=沙箱政策服务#中文默认导出
-
-__all__=[#公开面
-    '名称','name','配置模式','Config','沙箱政策服务','沙箱政策请求字段',
+__all__=[#仅中文公开名
+    '名称','配置模式','沙箱政策服务','沙箱政策请求字段','沙箱政策错误',
     '生效沙盒模式','设沙盒模式','沙盒模式表','解析工作区根','渲染政策上下文',
-    '默认','default',
 ]#结束
+name=名称#Cordis 插件名
+Config=配置模式#Cordis 配置模式
+default=沙箱政策服务#Cordis 默认导出

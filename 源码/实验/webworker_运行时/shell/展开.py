@@ -4,6 +4,7 @@
 
 对齐上游 `webworker-runtime/src/shell/expand.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 import fnmatch as 文件名匹配#glob段匹配（对齐 picomatch 用法）
 import math as 数学#整除
 import re as 正则#glob特征
@@ -41,7 +42,7 @@ def 算术(表达式,状态):#求算术
     if 类型=='variable':#变量转整数
         原始=读变量(状态,表达式['name'])#读值
         try:#解析
-            return int(原始 if 原始 is not None else '0',10) or 0#转整数
+            return int(原始 if 原始 is not None else '0',10) or 0#|| 语义，0 与空串当假，parseInt 失败亦 0
         except ValueError:#非法
             return 0#零
     if 类型=='addition':#加
@@ -52,7 +53,7 @@ def 算术(表达式,状态):#求算术
         return 算术(表达式['left'],状态)*算术(表达式['right'],状态)#乘
     if 类型=='division':#整除
         return int(数学.trunc(算术(表达式['left'],状态)/算术(表达式['right'],状态)))#整除
-    raise Exception(f'webworker shell: unknown arithmetic type {类型}')#未知
+    raise 运行时错误(f'webworker shell: unknown arithmetic type {类型}')#未知
 
 def 段匹配器(段):#编译段匹配器
     """对齐 picomatch(segment, { dot: segment.startsWith('.') })。"""
@@ -67,16 +68,16 @@ def 段匹配器(段):#编译段匹配器
 def 展开glob(模式,工作目录,文件系统):#展开glob
     """一次一个路径段地对照文件系统展开一个 glob。"""
     绝对=模式.startswith('/')#是否绝对模式
-    段们=[段 for 段 in 模式.split('/') if 段!='']#路径段
+    段列表=[段 for 段 in 模式.split('/') if 段!='']#路径段
     def 安全列出(路径):#安全列目录
         """列表失败在此吸收。"""
         try:#尝试
             return 文件系统['list'](路径)#列出
-        except Exception:#失败
+        except Exception:#glob/stat 可能抛运行时错误/OSError，契约未定所以收不窄
             return []#无匹配贡献
     前沿=[{'path':'/' if 绝对 else 工作目录,'display':'/' if 绝对 else ''}]#起始前沿
-    for 索引,段 in enumerate(段们):#逐段
-        末段=索引==len(段们)-1#是否末段
+    for 索引,段 in enumerate(段列表):#逐段
+        末段=索引==len(段列表)-1#是否末段
         下一代=[]#下一代前沿
         for 条目 in 前沿:#逐前沿
             if 段=='**':#递归段
@@ -125,7 +126,7 @@ def 拼接参数(操作数,上下文):#拼接操作数
 
 def 展开参数(参数,上下文):#展开参数
     """将一个参数展开为字段。"""
-    字段们=[]#字段缓冲
+    字段列表=[]#字段缓冲
     # `None` 表示「尚未开始字段」：未设置的未加引号变量必须贡献无，而非空参数。
     当前=None#当前字段
     def 追加(文本):#追加到当前字段
@@ -135,11 +136,11 @@ def 展开参数(参数,上下文):#展开参数
     def 追加拆分(文本):#空白拆分追加
         """未加引号按空白拆。"""
         nonlocal 当前#字段
-        片们=正则.split(r'\s+',文本)#按空白切
-        for 索引,片 in enumerate(片们):#逐片
+        片列表=正则.split(r'\s+',文本)#按空白切
+        for 索引,片 in enumerate(片列表):#逐片
             if 索引>0:#非首片开启新字段
                 if 当前 is not None:#落定当前
-                    字段们.append(当前)#落入
+                    字段列表.append(当前)#落入
                 当前=None#清空
             if 片!='':#非空则追加
                 追加(片)#追加
@@ -162,16 +163,16 @@ def 展开参数(参数,上下文):#展开参数
             else:#未加引号拆分
                 追加拆分(输出)#拆分
         elif 类型=='glob':#glob
-            匹配们=展开glob(片段['pattern'],上下文['state']['cwd'],上下文['fs'])#匹配
-            if len(匹配们)==0:#无匹配
+            匹配列表=展开glob(片段['pattern'],上下文['state']['cwd'],上下文['fs'])#匹配
+            if len(匹配列表)==0:#无匹配
                 # 无匹配：POSIX shell 原样传递模式。
                 追加(片段['pattern'])#原样传递
             else:#有匹配
-                for 索引,匹配 in enumerate(匹配们):#逐匹配
+                for 索引,匹配 in enumerate(匹配列表):#逐匹配
                     if 索引>0:#非首匹配新字段
-                        字段们.append(当前)#落定
+                        字段列表.append(当前)#落定
                         当前=None#清空
                     追加(匹配)#追加匹配
     if 当前 is not None:#落定末字段
-        字段们.append(当前)#落入
-    return 字段们#返回字段
+        字段列表.append(当前)#落入
+    return 字段列表#返回字段

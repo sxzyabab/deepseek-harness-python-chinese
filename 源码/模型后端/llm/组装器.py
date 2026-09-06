@@ -2,8 +2,8 @@
 
 对齐上游 `llm/src/assembler.ts`。公开面仅中文名；无英文别名。
 """
-from .品牌 import 调用标识#导入调用 id 品牌
-from .永不 import 断言永不#导入封闭联合穷尽辅助
+from .标识构造 import 调用标识#导入调用标识构造
+from .永不 import 断言永不,永不错误#导入封闭联合穷尽辅助与组装违约
 from .消息 import 创建消息#导入消息工厂
 
 __all__=('块组装器',)#仅中文公开名
@@ -33,22 +33,22 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
             return#已存在则忽略重复 start
         if 类型=='text-delta' or 类型=='reasoning-delta':#文本或推理增量
             部分=自身.确保(块['index'],'text' if 类型=='text-delta' else 'reasoning')#取出或创建部分块
-            if 部分.get('block') is not None:#已被 block-end 关闭
+            if 'block' in 部分:#已被 block-end 关闭
                 return#忽略掉队增量
             部分['text']=部分['text']+块['text']#累积文本
             return#增量处理结束
         if 类型=='tool-call-delta':#工具调用增量
             部分=自身.确保(块['index'],'tool-call')#取出或创建部分块
-            if 部分.get('block') is not None:#已被 block-end 关闭
+            if 'block' in 部分:#已被 block-end 关闭
                 return#忽略掉队增量
             部分['toolCallId']=块['id']#记下调用 id
-            if 块.get('name'):#有名字
+            if 'name' in 块 and len(块['name'])>0:#有名字
                 部分['toolCallName']=块['name']#有名字则记下
             部分['toolCallArguments']=部分['toolCallArguments']+块['argumentsDelta']#累积参数
             return#增量处理结束
         if 类型=='block-end':#块结束
             部分=自身.确保(块['index'],块['block']['type'])#取出或创建部分块
-            if 部分.get('block') is not None:#已关闭
+            if 'block' in 部分:#已关闭
                 return#已关闭则忽略
             部分['block']=块['block']#权威块冻结该部分
             return#block-end 处理结束
@@ -57,13 +57,13 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
             return#usage 处理结束
         if 类型=='finish':#终止
             自身._结束=块['reason']#记下结束原因
-            自身._回放状态=块.get('replayState')#记下回放状态
+            自身._回放状态=块['replayState'] if 'replayState' in 块 else None#记下回放状态
             return#finish 处理结束
         断言永不(块,'BlockAssembler.push')#封闭联合穷尽
 
     def 确保(自身,下标,块类型):#取出或创建部分块
         """取出或创建部分块。"""
-        部分=自身.部分表.get(下标)#已有则用
+        部分=自身.部分表[下标] if 下标 in 自身.部分表 else None#已有则用
         if 部分 is None:#尚未见过
             部分={'blockType':块类型,'text':'','toolCallArguments':''}#按该类型新建
             自身.部分表[下标]=部分#记入表
@@ -72,7 +72,7 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
 
     def 组装一块(自身,部分,下标):#把部分块组装成内容块
         """把部分块组装成内容块。"""
-        if 部分.get('block') is not None:#已有权威块
+        if 'block' in 部分:#已有权威块
             return 部分['block']#已有权威块则用
         块类型=部分['blockType']#按类型从增量组装
         if 块类型=='text':#文本
@@ -80,35 +80,35 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
         if 块类型=='reasoning':#推理
             return {'type':'reasoning','text':部分['text']}#推理
         if 块类型=='tool-call':#工具调用
-            调用=部分.get('toolCallId')#调用 id
+            调用=部分['toolCallId'] if 'toolCallId' in 部分 else None#调用 id
             if 调用 is None:#缺 id
                 调用=调用标识('call-'+str(下标))#缺 id 则按线下标合成
-            名字=部分.get('toolCallName')#工具名
+            名字=部分['toolCallName'] if 'toolCallName' in 部分 else None#工具名
             if 名字 is None:#缺名字
                 名字=''#缺名字则空串
             return {'type':'tool-call','id':调用,'name':名字,'arguments':部分['toolCallArguments']}#工具调用
-        raise Exception('cannot assemble incomplete block of type "'+块类型+'"')#未知类型且未被 block-end 关闭
+            raise 永不错误('cannot assemble incomplete block of type "'+块类型+'"')#未知类型且未被 block-end 关闭
 
     def 必须取(自身,下标):#按下标取部分块
         """按下标取部分块；order 有而下表无则违约。"""
-        部分=自身.部分表.get(下标)#查表
+        部分=自身.部分表[下标] if 下标 in 自身.部分表 else None#查表
         if 部分 is None:#违约
-            raise Exception('BlockAssembler invariant violated: no partial for index '+str(下标))#违约
+            raise 永不错误('BlockAssembler invariant violated: no partial for index '+str(下标))#违约
         return 部分#部分块
 
     def 块列表(自身):#按流顺序组装迄今见到的所有块
         """按流顺序组装迄今见到的所有块。"""
-        块们=[]#组装结果
+        块列表=[]#组装结果
         for 下标 in 自身.顺序:#按出现顺序
-            块们.append(自身.组装一块(自身.必须取(下标),下标))#按出现顺序组装
+            块列表.append(自身.组装一块(自身.必须取(下标),下标))#按出现顺序组装
         结束=自身.结束#结束原因
-        if 结束.get('kind')=='max-tokens':#达到 token 上限
+        if 结束['kind']=='max-tokens':#达到 token 上限
             留下=[]#丢掉不完整工具调用
-            for 块 in 块们:#筛选
+            for 块 in 块列表:#筛选
                 if 块['type']!='tool-call':#非工具调用
                     留下.append(块)#保留非工具调用
             return 留下#截断后的块
-        return 块们#原样
+        return 块列表#原样
 
     @property#用量
     def 用量(自身):#来自 usage 块的用量

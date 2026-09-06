@@ -1,8 +1,4 @@
 """压缩词汇：结果类型与 `compaction/*` 会话事件载荷字段。这些事件记录锁与摘要输入但不进入表面，因此不是表面事件；摘要由随后的替换 `user/message` 承载。后端包拥有配置与保留策略。Python 侧以字段元组记录词汇；上游 TypeScript 用 declaration merging 扩展 SessionEventMap。"""
-from .品牌 import 压缩标识#再导出压缩事务 id
-
-压缩标识=压缩标识#再导出品牌函数
-
 压缩结果字段=(#一次成功压缩操作的结果
     'compactionId',#本压缩完整耐久生命周期共用的稳定身份
     'sourceCommandId',#发起本次压缩的人类命令（若为手动）

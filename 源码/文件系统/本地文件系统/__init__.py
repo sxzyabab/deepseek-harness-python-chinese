@@ -15,7 +15,7 @@ from . import 文件读写#本地 IO 实现
     'diffBasisMaxBytes':数字字段(默认值=默认diff基准最大字节),#diff 基准每侧字节上限
 }#Config 模式结束
 
-__all__=['本地文件系统','配置模式','默认']#仅中文公开名；Cordis 槽英文别名不入表
+__all__=['本地文件系统','配置模式','应用','本地文件系统错误']#仅中文公开名；Cordis 槽英文别名不入表
 
 class 已解析配置:#缺省已填满的配置
     """已校验配置（构造前 schemastery 已套用默认值）。"""
@@ -26,6 +26,12 @@ class 已解析配置:#缺省已填满的配置
 
 class 内部钩子:#本地 IO 测试钩子
     """转发给文件读写的测试钩子，用于原子发布边界。"""
+
+class 本地文件系统错误(Exception):#本包配置非法
+    """本地文件系统配置非法；错误信息保持上游英文原文。"""
+    def __init__(自身,消息):#记下英文消息
+        """用原样英文消息构造。"""
+        super().__init__(消息)#英文消息
 
 def 路径转文件网址(路径):#对齐 Node pathToFileURL().href
     """把进程路径编成 file URL。"""
@@ -41,30 +47,26 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
     def __init__(自身,ctx,配置):#用上下文与配置构造本地文件系统
         """用上下文与配置构造本地文件系统。"""
         super().__init__(ctx)#注册为 ctx.fs
-        if isinstance(配置,dict):#映射配置
-            工作目录=配置['cwd']#基准目录
-            上限=配置['diffBasisMaxBytes']#diff 上限
-        else:#已解析配置对象
-            工作目录=配置.cwd#基准目录
-            上限=配置.diffBasisMaxBytes#diff 上限
-        是整数=type(上限) is int or (isinstance(上限,float) and 上限.is_integer() and not isinstance(上限,bool))#对齐 Number.isInteger
-        if isinstance(上限,bool) or not 是整数 or abs(上限)>9007199254740991 or 上限<=0 or 上限>最大diff基准字节:#非法上限
-            raise Exception(f'fs-local: diffBasisMaxBytes must be a positive safe integer no greater than {最大diff基准字节}')#配置非法则加载失败
-        自身.config=已解析配置(工作目录,int(上限))#保存已解析配置
-        自身.配置=自身.config#中文别名
-        自身.internals=内部钩子()#测试用 IO 钩子
-        自身.内部=自身.internals#中文别名
-        自身.locks={}#每目标键的互斥条目
-        自身.锁表=自身.locks#中文别名
+        工作目录=配置['cwd']#基准目录
+        上限=配置['diffBasisMaxBytes']#diff 上限
+        if isinstance(上限,bool):#布尔不是整数
+            raise 本地文件系统错误('fs-local: diffBasisMaxBytes must be a positive safe integer no greater than '+str(最大diff基准字节))#配置非法则加载失败
+        if isinstance(上限,float) and 上限.is_integer():#配置入口整值浮点
+            上限=int(上限)#收成int
+        if not isinstance(上限,int) or 上限<=0 or 上限>9007199254740991 or 上限>最大diff基准字节:#非法上限
+            raise 本地文件系统错误('fs-local: diffBasisMaxBytes must be a positive safe integer no greater than '+str(最大diff基准字节))#配置非法则加载失败
+        自身.配置=已解析配置(工作目录,上限)#保存已解析配置
+        自身.内部=内部钩子()#测试用 IO 钩子
+        自身.锁表={}#每目标键的互斥条目
         自身.锁表锁=threading.Lock()#保护锁表本身
 
     def 带锁(自身,目标键,操作):#按目标键串行执行
         """对 `targetKey` 独占运行操作（每键 FIFO）。"""
         with 自身.锁表锁:#拿锁表互斥
-            条目=自身.locks.get(目标键)#取出该键条目
+            条目=自身.锁表[目标键] if 目标键 in 自身.锁表 else None#取出该键条目
             if 条目 is None:#尚无条目
                 条目={'锁':threading.Lock(),'等待':0}#新建互斥与等待计数
-                自身.locks[目标键]=条目#挂进锁表
+                自身.锁表[目标键]=条目#挂进锁表
             条目['等待']+=1#登记一位等待者
             互斥=条目['锁']#取出该键互斥
         互斥.acquire()#进入该键临界区
@@ -74,24 +76,24 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
             互斥.release()#离开临界区
             with 自身.锁表锁:#再拿锁表互斥
                 条目['等待']-=1#少一位等待者
-                if 条目['等待']==0 and 自身.locks.get(目标键) is 条目:#没有后来者且仍是自己的条目
-                    del 自身.locks[目标键]#删除锁条目
+                if 条目['等待']==0 and 目标键 in 自身.锁表 and 自身.锁表[目标键] is 条目:#没有后来者且仍是自己的条目
+                    del 自身.锁表[目标键]#删除锁条目
 
     def 解析(自身,路径,选项=None):#解析路径为稳定目标
         """解析路径为稳定目标。"""
-        if 文件读写.是否已中止(文件读写.试取(选项,'signal')):#已中止则拒绝
+        if 文件读写.已中止(选项['signal'] if 选项 is not None and 'signal' in 选项 else None):#已中止则拒绝
             raise fs.文件系统错误('resolve aborted','FS_ABORTED')#结构化中止
-        工作目录=文件读写.试取(选项,'cwd')#可选覆盖 cwd
+        工作目录=选项['cwd'] if 选项 is not None and 'cwd' in 选项 else None#可选覆盖 cwd
         if 工作目录 is None:#未覆盖
-            工作目录=自身.config.cwd#用配置 cwd
+            工作目录=自身.配置.cwd#用配置 cwd
         本地=文件读写.解析本地目标(工作目录,路径)#相对 cwd 解析本地目标
-        if 文件读写.是否已中止(文件读写.试取(选项,'signal')):#解析后再查中止
+        if 文件读写.已中止(选项['signal'] if 选项 is not None and 'signal' in 选项 else None):#解析后再查中止
             raise fs.文件系统错误('resolve aborted','FS_ABORTED')#结构化中止
         return {'targetKey':本地['targetKey'],'displayPath':本地['displayPath']}#返回稳定目标
 
     def 进程路径(自身,目标):#返回执行世界进程路径
         """返回执行世界进程路径。"""
-        return str(文件读写.取字段(目标,'targetKey'))#本地后端目标键就是 realpath
+        return str(目标['targetKey'])#本地后端目标键就是 realpath
 
     def 文件网址(自身,目标):#返回规范 file URI
         """返回规范 file URI。"""
@@ -111,10 +113,10 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
 
     def 状态(自身,目标,信号=None):#读取目标元数据
         """读取目标元数据；不存在时为 None。"""
-        if 文件读写.是否已中止(信号):#已中止则拒绝
+        if 文件读写.已中止(信号):#已中止则拒绝
             raise fs.文件系统错误('stat aborted','FS_ABORTED')#结构化中止
-        信息=文件读写.探测(文件读写.取字段(目标,'targetKey'))#跟随链接探测
-        if 文件读写.是否已中止(信号):#探测后再查中止
+        信息=文件读写.探测(目标['targetKey'])#跟随链接探测
+        if 文件读写.已中止(信号):#探测后再查中止
             raise fs.文件系统错误('stat aborted','FS_ABORTED')#结构化中止
         if 信息 is None:#不存在
             return None#缺失
@@ -122,15 +124,15 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
 
     def 链接状态(自身,路径,选项=None,信号=None):#不跟随末段链接的路径元数据
         """不跟随末段链接的路径元数据。"""
-        if 文件读写.是否已中止(信号):#已中止则拒绝
+        if 文件读写.已中止(信号):#已中止则拒绝
             raise fs.文件系统错误('lstat aborted','FS_ABORTED')#结构化中止
         if len(路径.strip())==0:#空路径视为未找到
             raise fs.文件系统错误('file_path must be a non-empty string','FS_NOT_FOUND')#空路径
-        工作目录=文件读写.试取(选项,'cwd')#可选覆盖 cwd
+        工作目录=选项['cwd'] if 选项 is not None and 'cwd' in 选项 else None#可选覆盖 cwd
         if 工作目录 is None:#未覆盖
-            工作目录=自身.config.cwd#用配置 cwd
+            工作目录=自身.配置.cwd#用配置 cwd
         信息=文件读写.不跟随探测(os.path.abspath(os.path.join(工作目录,路径)))#相对 cwd 解析后 lstat
-        if 文件读写.是否已中止(信号):#探测后再查中止
+        if 文件读写.已中止(信号):#探测后再查中止
             raise fs.文件系统错误('lstat aborted','FS_ABORTED')#结构化中止
         if 信息 is None:#不存在
             return None#缺失
@@ -138,21 +140,21 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
 
     def 读文本(自身,目标,信号=None):#读取整个文本文件
         """读取整个文本文件。"""
-        return 文件读写.读整文件文本({'displayPath':文件读写.取字段(目标,'displayPath'),'targetKey':文件读写.取字段(目标,'targetKey')},信号)#委托文件读写
+        return 文件读写.读整文件文本({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写
 
     def 流文本(自身,目标,信号=None):#流式读取文本
         """流式读取文本。"""
-        return 文件读写.流整文件文本({'displayPath':文件读写.取字段(目标,'displayPath'),'targetKey':文件读写.取字段(目标,'targetKey')},信号)#委托文件读写
+        return 文件读写.流整文件文本({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写
 
     def 读字节(自身,目标,信号,最大字节):#按字节上限读取原始内容
         """按字节上限读取原始内容。"""
-        return 文件读写.读整文件字节({'displayPath':文件读写.取字段(目标,'displayPath'),'targetKey':文件读写.取字段(目标,'targetKey')},信号,最大字节,自身.internals)#委托并传入测试钩子
+        return 文件读写.读整文件字节({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号,最大字节,自身.内部)#委托并传入测试钩子
 
     def 列目录(自身,目标,信号=None):#列举目录直接子项
         """列举目录直接子项。"""
-        条目们=文件读写.列目录({'displayPath':文件读写.取字段(目标,'displayPath'),'targetKey':文件读写.取字段(目标,'targetKey')},信号)#委托文件读写列举
+        条目列表=文件读写.列目录({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写列举
         结果=[]#收集 seam 目录条目
-        for 条目 in 条目们:#逐项映射
+        for 条目 in 条目列表:#逐项映射
             映射={'name':条目['name'],'type':条目['type'],'target':{'targetKey':条目['target']['targetKey'],'displayPath':条目['target']['displayPath']}}#基础字段
             if 'version' in 条目:#有版本则带上
                 映射['version']=条目['version']#版本令牌
@@ -163,24 +165,24 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
 
     def 写文本(自身,目标,内容,期望=None,信号=None,沙箱政策=None):#原子写入整文件
         """原子写入整文件。裸后端忽略沙箱政策。"""
-        目标键=文件读写.取字段(目标,'targetKey')#稳定目标键
-        展示路径=文件读写.取字段(目标,'displayPath')#面向调用方的路径
+        目标键=目标['targetKey']#稳定目标键
+        展示路径=目标['displayPath']#面向调用方的路径
         def 操作():#在该目标锁内执行写入
             """在该目标锁内执行写入。"""
             已有=文件读写.探测(目标键)#探测当前是否存在
             if 已有 is not None and 已有['type']!='file':#存在但不是普通文件
                 raise fs.文件系统错误(f'cannot write "{展示路径}": not a regular file','FS_NOT_REGULAR_FILE')#拒绝写入非普通文件
-            种类=文件读写.试取(期望,'kind')#写意图种类
+            种类=期望['kind'] if 期望 is not None and 'kind' in 期望 else None#写意图种类
             if 种类=='replaceIfVersion':#按版本替换
                 if 已有 is None:#已消失视为过期
                     raise fs.文件系统错误(f'cannot write "{展示路径}": file no longer exists','FS_STALE_VERSION')#过期
-                if 已有['version']!=文件读写.取字段(期望,'version'):#版本不匹配
+                if 已有['version']!=期望['version']:#版本不匹配
                     raise fs.文件系统错误(f'cannot write "{展示路径}": file changed since it was read','FS_STALE_VERSION')#内容已变视为过期
             elif 种类=='createIfAbsent' and 已有 is not None:#要创建但已经存在
                 raise fs.文件系统错误(f'cannot overwrite existing "{展示路径}" without reading it first','FS_NOT_OBSERVED')#未经观察不得覆盖
-            可diff=已有 is not None and len(内容.encode('utf-8'))<自身.config.diffBasisMaxBytes#值得抓 diff 基准
-            之前=文件读写.为diff读文本(目标键,自身.config.diffBasisMaxBytes,信号) if 可diff else None#尽力读取旧文本或 None
-            文件读写.原子写文件(目标键,内容,已有['mode'] if 已有 is not None else None,信号,自身.internals,{'displayPath':展示路径} if 种类=='createIfAbsent' else None)#原子发布
+            可diff=已有 is not None and len(内容.encode('utf-8'))<自身.配置.diffBasisMaxBytes#值得抓 diff 基准
+            之前=文件读写.为diff读文本(目标键,自身.配置.diffBasisMaxBytes,信号) if 可diff else None#尽力读取旧文本或 None
+            文件读写.原子写文件(目标键,内容,已有['mode'] if 已有 is not None else None,信号,自身.内部,{'displayPath':展示路径} if 种类=='createIfAbsent' else None)#原子发布
             之后=文件读写.探测(目标键)#写入后再探测版本
             return {#组装写入结果
                 'operation':'update' if 已有 is not None else 'create',#已存在则更新否则创建
@@ -192,8 +194,8 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
 
     def 编辑文本(自身,目标,编辑,期望=None,信号=None,沙箱政策=None):#原子字面量编辑
         """原子字面量编辑。裸后端忽略沙箱政策。"""
-        目标键=文件读写.取字段(目标,'targetKey')#稳定目标键
-        展示路径=文件读写.取字段(目标,'displayPath')#面向调用方的路径
+        目标键=目标['targetKey']#稳定目标键
+        展示路径=目标['displayPath']#面向调用方的路径
         def 操作():#在该目标锁内执行编辑
             """在该目标锁内执行编辑。"""
             已有=文件读写.探测(目标键)#探测当前文件
@@ -201,12 +203,15 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
                 raise fs.文件系统错误(f'cannot edit "{展示路径}": file changed since it was read','FS_STALE_VERSION')#过期
             if 已有['type']!='file':#非普通文件不可编辑
                 raise fs.文件系统错误(f'cannot edit "{展示路径}": not a regular file','FS_NOT_REGULAR_FILE')#非普通文件
-            if 期望 is not None and 已有['version']!=文件读写.取字段(期望,'version'):#提供了版本但已不匹配
+            if 期望 is not None and 已有['version']!=期望['version']:#提供了版本但已不匹配
                 raise fs.文件系统错误(f'cannot edit "{展示路径}": file changed since it was read','FS_STALE_VERSION')#视为过期
             原始=文件读写.为编辑读取(目标键,展示路径,信号)#读取并做 LF 规范化
-            已编=文件读写.应用字面量编辑(原始['content'],文件读写.取字段(编辑,'oldString'),文件读写.取字段(编辑,'newString'),bool(文件读写.试取(编辑,'replaceAll')),展示路径)#应用字面量替换
+            全替换=False#默认只换一处
+            if 'replaceAll' in 编辑 and 编辑['replaceAll']:#请求全量替换
+                全替换=True#全量
+            已编=文件读写.应用字面量编辑(原始['content'],编辑['oldString'],编辑['newString'],全替换,展示路径)#应用字面量替换
             内容=文件读写.恢复行尾(已编['content'],原始['lineEndings'])#写回前恢复原行尾
-            文件读写.原子写文件(目标键,内容,已有['mode'],信号,自身.internals)#原子发布编辑后内容
+            文件读写.原子写文件(目标键,内容,已有['mode'],信号,自身.内部)#原子发布编辑后内容
             之后=文件读写.探测(目标键)#编辑后再探测版本
             return {#组装编辑结果
                 'version':自身.写后版本(之后,目标),#编辑后版本
@@ -219,8 +224,7 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
         """写入后取版本，缺失则哨兵。"""
         if 之后 is not None:#探测成功
             return 之后['version']#用真实版本
-        return fs.版本令牌('missing:'+文件读写.取字段(目标,'targetKey'))#否则用缺失哨兵版本
+        return fs.版本令牌('missing:'+目标['targetKey'])#否则用缺失哨兵版本
 
 Config=配置模式#Cordis 配置模式
-默认=本地文件系统#默认导出
 default=本地文件系统#Cordis 默认导出

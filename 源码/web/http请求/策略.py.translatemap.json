@@ -1,0 +1,20 @@
+{
+    "charset":"字符集",
+    "classify":"分类",
+    "content":"内容",
+    "decode":"解码",
+    "error":"错误",
+    "fetch":"抓取",
+    "kind":"种类",
+    "media":"媒体",
+    "origin":"源",
+    "parameter":"参数",
+    "parse":"解析",
+    "redirect":"重定向",
+    "same":"同",
+    "target":"目标",
+    "type":"类型",
+    "url":"网址",
+    "validate":"校验",
+    "web":"网络"
+}

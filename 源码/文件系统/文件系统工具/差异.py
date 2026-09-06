@@ -1,6 +1,5 @@
 """写与编辑的结果时上下文 diff 展示。存储返回 before/after 文本；此面向模型的层为每个已应用 hunk 推导一张三行上下文卡片。对齐上游 tool-fs/src/diff.ts。"""
 import difflib#标准库行差异（对齐上游 structuredPatch 的 hunk 分组）
-from .辅助 import 试取#可选字段
 
 差异上下文=3#每个已应用 hunk 两侧展示的上下文行数
 
@@ -35,16 +34,16 @@ def 是否文件差异(值):#收窄为文件差异
     """value 是否为合法文件差异（从不透明 meta 做防御性收窄）。"""
     if not isinstance(值,dict):#必须是普通对象
         return False#不是对象
-    路径=试取(值,'path')#路径
-    旧文本=试取(值,'oldText')#旧文本
-    新文本=试取(值,'newText')#新文本
+    路径=值['path'] if 'path' in 值 else None#路径
+    旧文本=值['oldText'] if 'oldText' in 值 else None#旧文本
+    新文本=值['newText'] if 'newText' in 值 else None#新文本
     return isinstance(路径,str) and (旧文本 is None or isinstance(旧文本,str)) and isinstance(新文本,str)#字段类型
 
 def 从元数据取差异(元数据):#从结果meta收窄出diff列表
     """把不透明的现场或回放结果元数据收窄为非空文件 diff。畸形元数据返回 None，以便展示回退，而不是在回放时抛错。"""
     if not isinstance(元数据,dict):#必须是普通对象
         return None#畸形
-    差异列表=试取(元数据,'diffs')#取出diffs字段
+    差异列表=元数据['diffs'] if 'diffs' in 元数据 else None#取出diffs字段
     if (not isinstance(差异列表,list)) or len(差异列表)==0:#必须是非空数组
         return None#畸形
     for 项 in 差异列表:#逐项

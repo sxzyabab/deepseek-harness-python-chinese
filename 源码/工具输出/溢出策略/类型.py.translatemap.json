@@ -1,0 +1,10 @@
+{
+    "agent":"智能体",
+    "execution":"执行",
+    "header":"头",
+    "id":"标识",
+    "policy":"策略",
+    "session":"会话",
+    "spill":"溢出",
+    "type":"类型"
+}

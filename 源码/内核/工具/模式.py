@@ -7,7 +7,6 @@ from .json模式 import (
     是否普通json数组,#普通数组检测
     json模式错误,#模式错误
     校验json模式值,#值校验
-    自有,#自有键
 )#导入统一 JSON Schema 校验
 
 __all__=(
@@ -23,13 +22,13 @@ def 作者错误(消息):
 
 def 拷贝注解(源,目标):
     """拷贝自有注解字段，交给原始模式边界校验。"""
-    if 自有(源,'description'):
+    if 'description' in 源:
         目标['description']=源['description']#描述
-    if 自有(源,'title'):
+    if 'title' in 源:
         目标['title']=源['title']#标题
-    if 自有(源,'default'):
+    if 'default' in 源:
         目标['default']=源['default']#默认
-    if 自有(源,'examples'):
+    if 'examples' in 源:
         目标['examples']=源['examples']#示例
 
 def 核对作者键(源,路径,允许):
@@ -77,9 +76,9 @@ def 跑模式编译器(起始):
         if 任务['kind']=='property':
             if not 是否json模式记录(任务['property']):
                 作者错误(任务['path']+' must be a value schema object')#必须是模式对象
-            if 自有(任务['property'],'required') and 任务['property'].get('required') is not True:
+            if 'required' in 任务['property'] and 任务['property']['required'] is not True:
                 作者错误(任务['path']+'.required must be true when present')#只允许 true
-            if 自有(任务['property'],'required') and 任务['property'].get('required') is True:
+            if 'required' in 任务['property'] and 任务['property']['required'] is True:
                 任务['required'].append(任务['key'])#收集必填键
             任务列表.append({
                 'kind':'value',#值任务
@@ -130,11 +129,11 @@ def 跑模式编译器(起始):
         节点={}#空节点
         安装编译节点(任务['destination'],节点)#先装空节点
         任务列表.append({'kind':'leave','input':输入})#离开时解除标记
-        if 自有(输入,'oneOf'):
+        if 'oneOf' in 输入:
             核对作者键(输入,路径,作者键+['oneOf','type'])#词表
-            if 自有(输入,'type'):
+            if 'type' in 输入:
                 作者错误(路径+' cannot declare both type and oneOf')#不得并存
-            if not 是否普通json数组(输入.get('oneOf')):
+            if not 是否普通json数组(输入['oneOf'] if 'oneOf' in 输入 else None):
                 作者错误(路径+'.oneOf must be an array of at least two value schemas')#至少两支数组
             各支=[None]*len(输入['oneOf'])#各支槽
             节点['oneOf']=各支#挂上
@@ -151,21 +150,21 @@ def 跑模式编译器(起始):
                 下标-=1#前进
             任务=任务列表.pop() if 任务列表 else None#下一任务
             continue
-        输入类型=输入.get('type') if 自有(输入,'type') else None#声明类型
+        输入类型=输入['type'] if 'type' in 输入 else None#声明类型
         if 输入类型=='json':
             核对作者键(输入,路径,作者键+['type'])#词表
             拷贝注解(输入,节点)#仅注解，无 type
         elif 输入类型=='object':
             核对作者键(输入,路径,作者键+['type','properties','additionalProperties'])#词表
-            if (not 自有(输入,'additionalProperties')) or (not isinstance(输入.get('additionalProperties'),bool)):
+            if ('additionalProperties' not in 输入) or (not isinstance(输入['additionalProperties'],bool)):
                 作者错误(路径+'.additionalProperties must be explicitly true or false')#必须显式布尔
             节点['type']='object'#对象类型
             拷贝注解(输入,节点)#注解
             节点['additionalProperties']=输入['additionalProperties']#开放性
-            if 自有(输入,'properties'):
+            if 'properties' in 输入:
                 任务列表.append({
                     'kind':'property-map',#属性表任务
-                    'input':输入.get('properties'),#属性表
+                    'input':输入['properties'],#属性表
                     'path':路径+'.properties',#路径
                     'destination':{'kind':'object','target':节点},#写入本对象
                 })#调度属性表
@@ -173,10 +172,10 @@ def 跑模式编译器(起始):
             核对作者键(输入,路径,作者键+['type','items'])#词表
             节点['type']='array'#数组类型
             拷贝注解(输入,节点)#注解
-            if 自有(输入,'items'):
+            if 'items' in 输入:
                 任务列表.append({
                     'kind':'value',#值任务
-                    'input':输入.get('items'),#元素规格
+                    'input':输入['items'],#元素规格
                     'path':路径+'.items',#路径
                     'allowRequired':False,#元素不许 required
                     'destination':{'kind':'item','target':节点},#写入 items
@@ -185,12 +184,12 @@ def 跑模式编译器(起始):
             核对作者键(输入,路径,作者键+['type','enum','const'])#词表
             节点['type']=输入类型#标量类型
             拷贝注解(输入,节点)#注解
-            if 自有(输入,'enum'):
-                if not 是否普通json数组(输入.get('enum')):
+            if 'enum' in 输入:
+                if not 是否普通json数组(输入['enum']):
                     作者错误(路径+'.enum must be a non-empty array of scalar values')#必须是稠密数组
                 节点['enum']=list(输入['enum'])#拷贝枚举
-            if 自有(输入,'const'):
-                节点['const']=输入.get('const')#单一允许值
+            if 'const' in 输入:
+                节点['const']=输入['const']#单一允许值
         else:
             作者错误(路径+'.type must be string/number/integer/boolean/null/array/object/json, or use oneOf')#必须声明类型或 oneOf
         任务=任务列表.pop() if 任务列表 else None#下一任务
@@ -259,7 +258,7 @@ def 定义工具(选项):
     用户并发安全=选项.get('isConcurrencySafe')#抽出并发分类器
     超时毫秒=选项.get('timeoutMs')#超时
     if 超时毫秒 is not None and not 是否正有限(超时毫秒):
-        raise Exception('defineTool('+选项['name']+'): timeoutMs must be a positive finite number')#必须是正有限数
+        raise 作者错误('defineTool('+选项['name']+'): timeoutMs must be a positive finite number')#必须是正有限数
     参数模式=参数模式规格转json模式(选项['parameters'])#编译参数模式
     输出模式=值模式规格转json模式(选项['output']['schema'])#编译输出模式
     def 校验(参数):

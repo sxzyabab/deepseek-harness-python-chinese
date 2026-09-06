@@ -1,0 +1,10 @@
+{
+    "client":"客户端",
+    "export":"导出",
+    "host":"宿主",
+    "inject":"注入",
+    "public":"公开",
+    "runtime":"运行时",
+    "source":"源",
+    "worker":"工作者"
+}

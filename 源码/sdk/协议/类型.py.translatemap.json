@@ -1,0 +1,18 @@
+{
+    "end":"结束",
+    "equip":"装备",
+    "event":"事件",
+    "finish":"结束",
+    "initialize":"初始化",
+    "map":"映射",
+    "notification":"通知",
+    "param":"参数",
+    "prompt":"提示",
+    "request":"请求",
+    "result":"结果",
+    "run":"运行",
+    "session":"会话",
+    "start":"启动",
+    "status":"状态",
+    "subagent":"子智能体"
+}

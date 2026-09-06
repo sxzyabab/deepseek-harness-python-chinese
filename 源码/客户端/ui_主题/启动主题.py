@@ -10,13 +10,13 @@ from .主题设置 import 默认偏好#默认跟随系统
 
 __all__=['注入启动主题']#仅中文公开名
 
-开体标签=re.compile(r'<body(?:\s[^>]*)?>',re.I)#定位开 body 标签
+开体标签=re.compile(r'<body(?:\s[^>]*)?>',re.I|re.ASCII)#定位开 body 标签；空白只吃 ASCII
 
 def 启动主题脚本(偏好):#按偏好拼立即执行脚本
     """为一条已经过模式校验的内置偏好生成内联脚本。"""
     return (#立即执行，避免污染全局
         '<script>(() => {'#开脚本
-        +'const preference = '+json.dumps(偏好,ensure_ascii=False)+';'#嵌入当前内置偏好
+        +'const preference = '+json.dumps(偏好,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';'#嵌入当前内置偏好
         +'const systemDark = preference === \'system\''#偏好为跟随系统
         +' && typeof matchMedia !== \'undefined\''#且存在 matchMedia
         +' && matchMedia(\'(prefers-color-scheme: dark)\').matches;'#且系统为暗色

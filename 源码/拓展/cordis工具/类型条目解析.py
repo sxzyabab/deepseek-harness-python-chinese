@@ -33,7 +33,7 @@ def 解码声明转义(原文):#TS 单引号串体 → Python str
 
 def 解析类型紧凑文本(文本):#多行 name|declaration
     """跳过空行与 # 注释行；每行一条类型。"""
-    条目们=[]#结果
+    条目表=[]#结果
     for 行 in 文本.splitlines():#逐行
         条=行.strip()#去空白
         if 条=='' or 条.startswith('#'):#空或注释
@@ -43,5 +43,5 @@ def 解析类型紧凑文本(文本):#多行 name|declaration
             raise Exception('TYPE 紧凑行缺少名称：'+条[:80])#失败
         名=条[:竖]#类型名
         声明原文=条[竖+1:]#声明转义体
-        条目们.append({'name':名,'declaration':解码声明转义(声明原文)})#收入
-    return 条目们#列表
+        条目表.append({'name':名,'declaration':解码声明转义(声明原文)})#收入
+    return 条目表#列表

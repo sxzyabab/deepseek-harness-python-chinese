@@ -5,6 +5,7 @@
 
 对齐上游 `webworker-runtime/src/module-system/posix-path.ts`。公开面仅中文名。
 """
+from ..node.未实现失败 import 运行时错误#本包错误
 from urllib.parse import quote as 百分号编码,unquote as 百分号解码#URL编解码
 
 __all__=[#仅中文公开名
@@ -41,15 +42,15 @@ def 规范化(路径):#规范化路径
         return './' if 保留尾 else '.'#点路径
     return 主体+(分隔符 if 保留尾 else '')#相对路径结果
 
-def 拼接(*段们):#拼接路径段
+def 拼接(*段列表):#拼接路径段
     """拼接各段并规范化结果。"""
-    已拼=分隔符.join(段 for 段 in 段们 if 段!='')#过滤空段后拼接
+    已拼=分隔符.join(段 for 段 in 段列表 if 段!='')#过滤空段后拼接
     return '.' if 已拼=='' else 规范化(已拼)#空则点，否则规范化
 
-def 解析(*段们):#解析为绝对路径
+def 解析(*段列表):#解析为绝对路径
     """自右向左相对基目录解析各段。"""
     路径=''#累积路径
-    for 段 in reversed(段们):#自右向左扫描
+    for 段 in reversed(段列表):#自右向左扫描
         if 段=='':#跳过空段
             continue#下一段
         路径=段 if 路径=='' else f'{段}{分隔符}{路径}'#前置拼接
@@ -115,6 +116,6 @@ def 文件url转路径(网址):#file URL转路径
     """将 `file:` URL 转回 VFS 路径。"""
     文本=网址 if isinstance(网址,str) else getattr(网址,'href',str(网址))#统一为文本
     if not 文本.startswith('file://'):#非file协议则抛错
-        raise Exception(f'webworker vfs: not a file URL: {文本}')#拒绝
+        raise 运行时错误(f'webworker vfs: not a file URL: {文本}')#拒绝
     去查询=文本[len('file://'):].split('?',1)[0].split('#',1)[0]#去查询/片段
     return 百分号解码(去查询) or 分隔符#解码

@@ -9,6 +9,7 @@ from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误
     解析重试政策,#政策解析
+    重试政策错误,#政策校验失败
 )#导入 llm 词表
 from ...凭据.凭据 import 凭证引用#凭证引用工厂
 from ...工具.启动环境 import 取启动环境#启动环境快照
@@ -39,7 +40,7 @@ from .类型 import (#再导出线路类型
 
 __all__=(#仅中文公开名；无英文别名
     '名称','注入','配置','应用','默认',
-    '设置空间','公开基址','解析适配器选项','解析模型目录',
+    '设置空间','公开基址','解析适配器选项','解析模型目录','深求配置错误',
     '默认上下文窗口','默认最大令牌','默认流空闲超时毫秒','深求适配器',
     '线路请求','线路系统消息','线路用户消息','线路工具消息',
     '线路助手消息','线路消息','线路工具调用','线路工具',
@@ -79,72 +80,63 @@ __all__=(#仅中文公开名；无英文别名
 公开基址='https://api.deepseek.com'#公开API默认
 基址环境='DEEPSEEK_BASE_URL'#基址环境变量
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 是整数(值):#对应 Number.isInteger
-    """对应 Number.isInteger。"""
-    if type(值) is int:#整数
-        return True#整数
-    if isinstance(值,float) and 值.is_integer():#整值浮点
-        return True#整值浮点
-    return False#非整数
-
-def 是正整数(值):#正整数
-    """正整数（含整值浮点）。"""
-    return 是整数(值) and 值>0#正
-
-def 是正安全整数(值):#正安全整数
-    """对应 Number.isSafeInteger 且为正。"""
-    return 是正整数(值) and int(值)<=最大安全整数#正安全整数
+class 深求配置错误(Exception):
+    """llm-deepseek 配置校验失败。"""
 
 def 解析模型目录(模型列表):#解析建议目录
-    """解析、校验并拆离建议模型目录。"""
+    """解析、校验并拆离建议模型目录。条目为 dict。"""
     已见=set()#已见id
     结果=[]#拆离后的目录
     for 模型 in (模型列表 if 模型列表 is not None else 默认模型列表):#逐条
         if len(模型['id'])==0:#id空
-            raise Exception('llm-deepseek: catalog model ids must be non-empty')#id不得空
-        if 取字段(模型,'name') is not None and len(模型['name'])==0:#名给了但是空
-            raise Exception('llm-deepseek: catalog model "'+模型['id']+'" has an empty name')#名非法
-        if 取字段(模型,'contextWindow') is not None and not 是正整数(模型['contextWindow']):#窗口非法
-            raise Exception('llm-deepseek: catalog model "'+模型['id']+'" contextWindow must be a positive integer')#窗口非法
-        if 取字段(模型,'maxTokens') is not None and not 是正整数(模型['maxTokens']):#上限非法
-            raise Exception('llm-deepseek: catalog model "'+模型['id']+'" maxTokens must be a positive integer')#上限非法
+            raise 深求配置错误('llm-deepseek: catalog model ids must be non-empty')#id不得空
+        if 'name' in 模型 and 模型['name'] is not None and len(模型['name'])==0:#名给了但是空
+            raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" has an empty name')#名非法
+        if 'contextWindow' in 模型:#有窗口
+            窗口=模型['contextWindow']#窗口
+            是正整数=not isinstance(窗口,bool) and isinstance(窗口,(int,float)) and 窗口==int(窗口) and 窗口>0#入口校验正整数，先排除 bool
+            if not 是正整数:#窗口非法
+                raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" contextWindow must be a positive integer')#窗口非法
+        if 'maxTokens' in 模型:#有上限
+            上限=模型['maxTokens']#上限
+            是正整数=not isinstance(上限,bool) and isinstance(上限,(int,float)) and 上限==int(上限) and 上限>0#入口校验正整数，先排除 bool
+            if not 是正整数:#上限非法
+                raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" maxTokens must be a positive integer')#上限非法
         if 模型['id'] in 已见:#id重复
-            raise Exception('llm-deepseek: duplicate catalog model "'+模型['id']+'"')#id重复
+            raise 深求配置错误('llm-deepseek: duplicate catalog model "'+模型['id']+'"')#id重复
         已见.add(模型['id'])#记下已见
         条目={'id':模型['id']}#拆离条目
-        if 取字段(模型,'name') is not None:#有名
+        if 'name' in 模型:#有名
             条目['name']=模型['name']#有名才带上
-        if 取字段(模型,'description') is not None:#有描述
+        if 'description' in 模型:#有描述
             条目['description']=模型['description']#有描述才带上
-        if 取字段(模型,'contextWindow') is not None:#有窗口
+        if 'contextWindow' in 模型:#有窗口
             条目['contextWindow']=模型['contextWindow']#有窗口才带上
-        if 取字段(模型,'maxTokens') is not None:#有上限
+        if 'maxTokens' in 模型:#有上限
             条目['maxTokens']=模型['maxTokens']#有上限才带上
         结果.append(条目)#收下
     return 结果#已校验目录
 
 def 解析适配器选项(原始配置,环境=None):#解析连接事实
-    """从原始配置到已校验连接事实的那一次显式解析步骤。"""
-    if 取字段(原始配置,'thinking')=='disabled' and 取字段(原始配置,'reasoningEffort') is not None and 取字段(原始配置,'reasoningEffort')!='off':#禁用思考却给了非off力度
-        raise Exception('llm-deepseek: only reasoningEffort "off" can be configured when thinking is disabled')#禁用思考时只能off
-    if 取字段(原始配置,'defaultContextWindow') is not None and not 是正整数(原始配置['defaultContextWindow']):#窗口非法
-        raise Exception('llm-deepseek: defaultContextWindow must be a positive integer')#窗口非法
-    if 取字段(原始配置,'maxTokens') is not None and not 是正安全整数(原始配置['maxTokens']):#上限非法
-        raise Exception('llm-deepseek: maxTokens must be a positive safe integer')#上限非法
-    空闲超时=原始配置['streamIdleTimeoutMs'] if 取字段(原始配置,'streamIdleTimeoutMs') is not None else 默认流空闲超时毫秒#空闲超时或默认
+    """从原始配置到已校验连接事实的那一次显式解析步骤。配置为 dict。"""
+    思考=原始配置['thinking'] if 'thinking' in 原始配置 else None#思考开关
+    力度=原始配置['reasoningEffort'] if 'reasoningEffort' in 原始配置 else None#力度
+    if 思考=='disabled' and 力度 is not None and 力度!='off':#禁用思考却给了非off力度
+        raise 深求配置错误('llm-deepseek: only reasoningEffort "off" can be configured when thinking is disabled')#禁用思考时只能off
+    if 'defaultContextWindow' in 原始配置:#有窗口
+        窗口=原始配置['defaultContextWindow']#窗口
+        是正整数=not isinstance(窗口,bool) and isinstance(窗口,(int,float)) and 窗口==int(窗口) and 窗口>0#入口校验正整数，先排除 bool
+        if not 是正整数:#窗口非法
+            raise 深求配置错误('llm-deepseek: defaultContextWindow must be a positive integer')#窗口非法
+    if 'maxTokens' in 原始配置:#有上限
+        上限=原始配置['maxTokens']#上限
+        是正安全=not isinstance(上限,bool) and isinstance(上限,(int,float)) and 上限==int(上限) and 上限>0 and abs(上限)<=最大安全整数#入口校验正安全整数
+        if not 是正安全:#上限非法
+            raise 深求配置错误('llm-deepseek: maxTokens must be a positive safe integer')#上限非法
+    空闲超时=原始配置['streamIdleTimeoutMs'] if 'streamIdleTimeoutMs' in 原始配置 else 默认流空闲超时毫秒#空闲超时或默认
     if not 是否有限(空闲超时) or 空闲超时<=0 or 空闲超时>定时器延迟上限毫秒:#空闲超时非法
-        raise Exception('llm-deepseek: streamIdleTimeoutMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#空闲超时非法
-    if 取字段(原始配置,'baseURL') is not None:#配置基址
+        raise 深求配置错误('llm-deepseek: streamIdleTimeoutMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#空闲超时非法
+    if 'baseURL' in 原始配置:#配置基址
         基址=原始配置['baseURL']#配置基址
     else:#回落环境或公开
         环境项=环境.取(基址环境) if 环境 is not None else None#受信环境
@@ -153,17 +145,17 @@ def 解析适配器选项(原始配置,环境=None):#解析连接事实
         else:#公开默认
             基址=公开基址#公开默认
     return {
-        'apiKeyEnv':凭证引用(原始配置['apiKeyEnv'] if 取字段(原始配置,'apiKeyEnv') is not None else 默认接口密钥环境),#凭证引用
+        'apiKeyEnv':凭证引用(原始配置['apiKeyEnv'] if 'apiKeyEnv' in 原始配置 else 默认接口密钥环境),#凭证引用
         'baseURL':基址,#基址
         'defaults':{
-            'thinking':取字段(原始配置,'thinking'),#开关
-            'reasoningEffort':取字段(原始配置,'reasoningEffort'),#力度
+            'thinking':思考,#开关
+            'reasoningEffort':力度,#力度
         },#思考默认
-        'maxTokens':原始配置['maxTokens'] if 取字段(原始配置,'maxTokens') is not None else 默认最大令牌,#输出上限
-        'defaultContextWindow':原始配置['defaultContextWindow'] if 取字段(原始配置,'defaultContextWindow') is not None else 默认上下文窗口,#默认窗口
-        'models':解析模型目录(取字段(原始配置,'models')),#目录
+        'maxTokens':原始配置['maxTokens'] if 'maxTokens' in 原始配置 else 默认最大令牌,#输出上限
+        'defaultContextWindow':原始配置['defaultContextWindow'] if 'defaultContextWindow' in 原始配置 else 默认上下文窗口,#默认窗口
+        'models':解析模型目录(原始配置['models'] if 'models' in 原始配置 else None),#目录
         'streamIdleTimeoutMs':空闲超时,#空闲超时
-        'retryPolicy':解析重试政策(取字段(原始配置,'retryPolicy'),'llm-deepseek: retryPolicy'),#解析政策
+        'retryPolicy':解析重试政策(原始配置['retryPolicy'] if 'retryPolicy' in 原始配置 else None,'llm-deepseek: retryPolicy'),#解析政策
     }#已校验事实
 
 def 应用(上下文对象,原始配置=None):#加载插件
@@ -187,12 +179,12 @@ def 应用(上下文对象,原始配置=None):#加载插件
             上次原始=原始#记下原始
             上次成功=下一份#记下成功
             return 下一份#新事实
-        except Exception as 错误:#解析失败
+        except (深求配置错误,重试政策错误) as 错误:#解析失败
             if 上次成功 is None:#加载时没有上次成功则失败
                 raise 错误#失败
             上次原始=原始#记下坏快照以免每请求都报
-            上下文对象.logger.error('llm-deepseek: keeping the last good configuration after an invalid settings section')#保留上次成功
-            上下文对象.logger.error(错误)#附带错误
+            上下文对象.日志.错误('llm-deepseek: keeping the last good configuration after an invalid settings section')#保留上次成功
+            上下文对象.日志.错误(错误)#附带错误
             return 上次成功#继续用上次成功
     选项()#加载时先解析一次，失败则大声
     def 解析接口密钥(连接):#按快照解析密钥
@@ -239,4 +231,9 @@ def 应用(上下文对象,原始配置=None):#加载插件
         'onChange':确保登记事实,#变更时刷新注册捕获的政策
     })#安装设置段
 
-默认=应用#默认导出该插件入口（中文名；无英文 default 别名）
+默认=应用#默认导出该插件入口（中文名）
+name=名称#框架槽
+inject=注入#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=应用#框架槽

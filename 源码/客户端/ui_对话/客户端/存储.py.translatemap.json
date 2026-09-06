@@ -1,0 +1,21 @@
+{
+    "action":"动作",
+    "chat":"聊天",
+    "create":"创建",
+    "define":"定义",
+    "draft":"草稿",
+    "fiber":"光纤",
+    "handle":"句柄",
+    "inspect":"检视",
+    "listen":"监听",
+    "notify":"通知",
+    "persist":"持久化",
+    "select":"选定",
+    "selection":"选择",
+    "snapshot":"快照",
+    "state":"状态",
+    "store":"存储",
+    "subscribe":"订阅",
+    "unsubscribe":"退订",
+    "view":"视图"
+}

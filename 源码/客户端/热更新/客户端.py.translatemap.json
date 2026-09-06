@@ -1,0 +1,21 @@
+{
+    "apply":"应用",
+    "endpoint":"端点",
+    "error":"错误",
+    "event":"事件",
+    "frame":"帧",
+    "graph":"图",
+    "inject":"注入",
+    "invalidate":"作废",
+    "loader":"加载器",
+    "module":"模块",
+    "name":"名称",
+    "plugin":"插件",
+    "prefetch":"预取",
+    "rebuild":"重建",
+    "reload":"重载",
+    "self":"自身",
+    "source":"源",
+    "style":"样式",
+    "task":"任务"
+}

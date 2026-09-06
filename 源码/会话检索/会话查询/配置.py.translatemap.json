@@ -1,0 +1,22 @@
+{
+    "abort":"中止",
+    "after":"之后",
+    "before":"之前",
+    "code":"码",
+    "concurrency":"并发",
+    "config":"配置",
+    "default":"默认",
+    "error":"错误",
+    "inspect":"检查",
+    "max":"最大",
+    "message":"消息",
+    "option":"选项",
+    "persist":"持久",
+    "query":"查询",
+    "read":"读取",
+    "search":"搜索",
+    "self":"自身",
+    "session":"会话",
+    "signal":"信号",
+    "window":"窗口"
+}

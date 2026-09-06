@@ -18,12 +18,21 @@ __all__=[#仅中文公开名
 
 def 应用(上下文):#安装侧栏壳
     """登记词典与侧栏壳槽位。"""
-    上下文.effect(lambda:上下文.locale.register(命名空间,{'zh':中文,'en':英文}),'ui-sidebar: dictionaries')#登记中英文案
+    def 登记词表():#登记本包词典
+        """把中英文词表交给 locale。"""
+        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
+    上下文.副作用(登记词表,'ui-sidebar: dictionaries')#登记中英文案
+    def 开新会话(工作区标识=None):#开新会话
+        """转调 workspaces.startSession。"""
+        return 上下文.workspaces.startSession(工作区标识)#开新会话
+    def 切换侧栏():#切换侧栏
+        """转调 layout.toggleSidebar。"""
+        return 上下文.layout.toggleSidebar()#切换
     def 注入面():#根注入
         """开新会话与切换侧栏。"""
         return {#注入
-            'startSession':lambda 工作区标识=None:上下文.workspaces.startSession(工作区标识),#开新会话
-            'toggleSidebar':lambda:上下文.layout.toggleSidebar(),#切换侧栏
+            'startSession':开新会话,#开新会话
+            'toggleSidebar':切换侧栏,#切换侧栏
         }#注入结束
     def 挂槽():#登记侧栏槽
         """登记侧栏壳。"""
@@ -33,4 +42,7 @@ def 应用(上下文):#安装侧栏壳
             'children':侧栏子槽,#子槽
             'inject':注入面,#注入
         },侧栏根)#根组件
-    上下文.effect(挂槽,'ui-sidebar: slot registration')#槽位登记
+    上下文.副作用(挂槽,'ui-sidebar: slot registration')#槽位登记
+
+inject=注入#框架槽
+apply=应用#框架槽

@@ -1,0 +1,21 @@
+{
+    "active":"活动",
+    "builtin":"内置",
+    "dark":"深色",
+    "error":"错误",
+    "inspect":"检视",
+    "layer":"层",
+    "light":"浅色",
+    "merge":"合并",
+    "overlay":"覆盖",
+    "preference":"偏好",
+    "resolve":"解析",
+    "runtime":"运行时",
+    "scheme":"配色方案",
+    "snapshot":"快照",
+    "system":"系统",
+    "theme":"主题",
+    "token":"令牌",
+    "validate":"校验",
+    "list":"列表"
+}

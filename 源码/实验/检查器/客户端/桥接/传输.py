@@ -3,7 +3,7 @@
 对齐上游 `client/bridge/transport.ts`。公开面仅中文名。
 """
 import json,threading#序列化与中止
-from ...共享.json import 是否json值,json字节长度#JSON工具
+from ...共享.json import 是否json值,json字节长度,检查器错误#JSON工具|本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from ...共享.桥接.消息.观察 import 解析工作者源帧#Worker源帧
 from ...共享.桥接.发布器 import 检查器源连接#源连接基类
@@ -21,13 +21,9 @@ from .分发器 import 分发桥帧#帧分发
 
 __all__=['打开客户端套接字','客户端检查器源']#仅中文公开名
 
-def 取引导(引导,键):#取引导字段
-    """兼容对象与字典引导。"""
-    return getattr(引导,键) if hasattr(引导,键) else 引导[键]#取值
-
 def 打开客户端套接字(端点,协议):#打开WebSocket
     """打开 Client ingest 套接字；需运行时绑定。"""
-    raise Exception('inspector: Client WebSocket requires a runtime binding')#需绑定
+    raise 检查器错误('inspector: Client WebSocket requires a runtime binding')#需绑定
 
 def 渲染错误(错误):#渲染错误
     """渲染错误消息。"""
@@ -59,21 +55,21 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.已接受=False#是否已接受
         自身.已关闭=False#是否已永久关闭
         自身.运行时请求={}#进行中Runtime请求
-        自身.生命周期=客户端桥生命周期(取引导(引导,'reconnectBaseMs'),取引导(引导,'reconnectMaxMs'))#生命周期
+        自身.生命周期=客户端桥生命周期(引导['reconnectBaseMs'],引导['reconnectMaxMs'])#生命周期
         自身.发布器实例=客户端桥发布器(检查器源缓冲选项(#发布器
-            ['*'],取引导(引导,'maxQueuedRecords'),取引导(引导,'maxQueuedBytes'),#队列
-            取引导(引导,'maxRecordsPerFrame'),取引导(引导,'maxFrameBytes'),#帧
-        ),取引导(引导,'maxQueuedBytes'))#缓冲上限
+            ['*'],引导['maxQueuedRecords'],引导['maxQueuedBytes'],#队列
+            引导['maxRecordsPerFrame'],引导['maxFrameBytes'],#帧
+        ),引导['maxQueuedBytes'])#缓冲上限
         def 脚本键(网址):#脚本键查找
             """脚本键查找。"""
             return None if 自身.源目录 is None else 自身.源目录.按网址取脚本键(网址)#委托
         自身.运行时=客户端运行时执行器(客户端运行时上限(#Runtime
-            取引导(引导,'maxRuntimeObjectsPerSession'),#对象上限
-            取引导(引导,'maxRuntimePropertiesPerResult'),#属性上限
-            取引导(引导,'maxFrameBytes'),#响应字节
+            引导['maxRuntimeObjectsPerSession'],#对象上限
+            引导['maxRuntimePropertiesPerResult'],#属性上限
+            引导['maxFrameBytes'],#响应字节
         ),脚本键)#执行器
         自身.控制台=客户端控制台观察器(自身.运行时,自身._投递控制台,脚本键)#Console
-        自身.查询实例=客户端桥rpc(检查器查询连接选项(取引导(引导,'queryTimeoutMs'),取引导(引导,'maxFrameBytes')))#查询
+        自身.查询实例=客户端桥rpc(检查器查询连接选项(引导['queryTimeoutMs'],引导['maxFrameBytes']))#查询
         自身.连接()#首次连接
 
     def _发布器(自身):#状态发布器
@@ -90,14 +86,14 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         代数=自身.代数#代数
         if 自身.已关闭 or not 自身.已接受 or 套接字 is None or 代数 is None:#不可发
             return#返回
-        if getattr(套接字,'readyState',1)!=1:#未开
+        if 套接字.readyState!=1:#未开
             return#返回
         帧={'v':检查器协议版本,'t':'client-console/event','sourceId':自身.领域源.sourceId,'generation':代数,'sessionId':会话标识,'event':事件}#事件帧
-        if not 是否json值(帧) or json字节长度(帧)>取引导(自身.引导,'maxFrameBytes'):#超限
+        if not 是否json值(帧) or json字节长度(帧)>自身.引导['maxFrameBytes']:#超限
             return#丢弃
         try:#发送
-            套接字.send(json.dumps(帧,ensure_ascii=False))#发送
-        except Exception:#发送失败
+            套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+        except Exception:#WebSocket.send 可能抛 OSError/连接断开，契约未定所以收不窄
             pass#套接字关闭路径会重置
 
     def 关闭(自身):#永久关闭
@@ -114,15 +110,15 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         套接字=自身.套接字#套接字
         代数=自身.代数#代数
         try:#发送关闭
-            if 套接字 is not None and getattr(套接字,'readyState',1)==1 and 代数 is not None:#可发
+            if 套接字 is not None and 套接字.readyState==1 and 代数 is not None:#可发
                 帧={'v':检查器协议版本,'t':'source/close','sourceId':自身.领域源.sourceId,'generation':代数}#关闭帧
-                套接字.send(json.dumps(帧,ensure_ascii=False))#发送
+                套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
                 套接字.close(1000,'Client source closed')#正常关闭
             elif 套接字 is not None:#不可发
                 套接字.close()#尽力关
         finally:#清理
             自身.套接字=None#清空套接字
-            自身.领域源.关闭()#释放realm
+            自身.领域源.关闭()#拆除realm
 
     def 连接(自身):#连接或重连
         """打开下一传输代数。"""
@@ -134,7 +130,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.查询实例.断开('Inspector Client source reconnecting')#断开查询
         源=自身.领域源.连接(自身.源目录 is not None)#新代数
         代数=源['generation']#代数
-        套接字=打开客户端套接字(取引导(自身.引导,'endpoint'),取引导(自身.引导,'protocol'))#打开WS
+        套接字=打开客户端套接字(自身.引导['endpoint'],自身.引导['protocol'])#打开WS
         自身.套接字=套接字#保存
         自身.代数=代数#保存代数
         自身.已接受=False#未接受
@@ -144,15 +140,15 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             if 自身.套接字 is not 套接字 or 自身.已关闭:#过期
                 return#返回
             帧={'v':检查器协议版本,'t':'source/open','source':源,'topics':['*',*网络主题]}#打开帧
-            套接字.send(json.dumps(帧,ensure_ascii=False))#发送
+            套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
         def 消息(事件):#消息
             """解析并分发入站帧。"""
-            数据=事件 if isinstance(事件,str) else getattr(事件,'data',None)#文本
+            数据=事件.data#MessageEvent 对象文本
             if 自身.套接字 is not 套接字 or not isinstance(数据,str):#过期或非文本
                 return#返回
             try:#解析分发
-                if len(数据.encode('utf-8'))>取引导(自身.引导,'maxFrameBytes'):#超限
-                    raise Exception(f'inspector protocol: Worker frame exceeds {取引导(自身.引导,"maxFrameBytes")} bytes')#拒绝
+                if len(数据.encode('utf-8'))>自身.引导['maxFrameBytes']:#超限
+                    raise 检查器错误(f'inspector protocol: Worker frame exceeds {自身.引导["maxFrameBytes"]} bytes')#拒绝
                 值=json.loads(数据)#解析JSON
                 if 自身.查询实例.接收(值):#RPC已消费
                     return#结束
@@ -160,7 +156,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
                 if 帧['t']!='source/rejected' and (帧.get('sourceId')!=自身.领域源.sourceId or 帧.get('generation')!=代数):#身份
                     return#不匹配
                 自身._分发(套接字,源,代数,帧)#分发
-            except Exception as 错误:#畸形帧
+            except Exception as 错误:#json.loads/解析工作者源帧可能抛 JSONDecodeError/检查器错误，契约未定所以收不窄
                 print(f'[inspector] invalid Worker control frame: {错误}')#记录
                 套接字.close(1008,'invalid Worker control frame')#关闭
         def 关闭(_事件=None):#关闭
@@ -175,18 +171,13 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             自身.运行时.重置()#重置Runtime
             自身.查询实例.断开('Inspector Client source disconnected')#断开查询
             自身.生命周期.重连(自身.连接)#调度重连
-        if hasattr(套接字,'addEventListener'):#浏览器风格
-            def 忽略错误(_事件=None):#错误
-                """close 拥有重连。"""
-                return#空
-            套接字.addEventListener('open',打开)#打开
-            套接字.addEventListener('message',消息)#消息
-            套接字.addEventListener('close',关闭)#关闭
-            套接字.addEventListener('error',忽略错误)#错误由close处理
-        else:#可调用钩子
-            套接字.on('open',打开)#打开
-            套接字.on('message',消息)#消息
-            套接字.on('close',关闭)#关闭
+        def 忽略错误(_事件=None):#错误
+            """close 拥有重连。"""
+            return#空
+        套接字.addEventListener('open',打开)#打开
+        套接字.addEventListener('message',消息)#消息
+        套接字.addEventListener('close',关闭)#关闭
+        套接字.addEventListener('error',忽略错误)#错误由close处理
 
     def _分发(自身,套接字,源,代数,帧):#分发处理器表
         """绑定帧族处理器。"""
@@ -211,7 +202,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
                 """Runtime请求。"""
                 try:#执行
                     自身.执行运行时(套接字,代数,请求)#执行
-                except Exception as 错误:#失败
+                except Exception as 错误:#执行运行时可能抛检查器错误/传输错误，契约未定所以收不窄
                     print(f'[inspector] Client Runtime transport failed: {错误}')#记录
                     套接字.close(1011,'Client Runtime transport failed')#关闭
             def 运行时取消(内,取消):#取消
@@ -235,7 +226,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
                 """Sources。"""
                 try:#执行
                     自身.执行源请求(套接字,代数,请求)#执行
-                except Exception as 错误:#失败
+                except Exception as 错误:#执行源请求可能抛检查器错误/传输错误，契约未定所以收不窄
                     print(f'[inspector] Client Sources transport failed: {错误}')#记录
                     套接字.close(1011,'Client Sources transport failed')#关闭
             def 源关闭(内,_帧):#Sources会话关闭空操作
@@ -251,10 +242,10 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         响应=自身.运行时.执行(帧,控制器.signal,True)#执行
         if 自身.运行时请求.get(帧['requestId']) is not 操作:#已取消
             return#结束
-        if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or getattr(套接字,'readyState',1)!=1:#过期
+        if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or 套接字.readyState!=1:#过期
             自身.取消运行时(帧['sessionId'],帧['requestId'])#清理
             return#结束
-        套接字.send(json.dumps(响应,ensure_ascii=False))#发送响应
+        套接字.send(json.dumps(响应,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送响应
 
     def 确认运行时(自身,会话标识,请求标识):#确认Runtime
         """确认 Runtime 响应。"""
@@ -294,13 +285,13 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         try:#执行目录
             if 自身.源目录 is None:#无目录
                 raise 客户端源目录错误('invalid-request','Client source catalog is unavailable')#拒绝
-            结果封装={'ok':True,'result':自身.源目录.执行(帧['command'],取引导(自身.引导,'maxClientSourceBytes'))}#成功
-        except Exception as 错误:#失败
+            结果封装={'ok':True,'result':自身.源目录.执行(帧['command'],自身.引导['maxClientSourceBytes'])}#成功
+        except Exception as 错误:#源目录.执行可能抛客户端源目录错误/内部错误，契约未定所以收不窄
             码=错误.code if isinstance(错误,客户端源目录错误) else 'internal-error'#码
             结果封装={'ok':False,'error':{'code':码,'message':渲染错误(错误)[:2048]}}#错误结果
         响应={'v':检查器协议版本,'t':'client-sources/response','sourceId':自身.领域源.sourceId,'generation':代数,'sessionId':帧['sessionId'],'requestId':帧['requestId'],'outcome':结果封装}#响应帧
-        if not 是否json值(响应) or json字节长度(响应)>取引导(自身.引导,'maxFrameBytes'):#超限
+        if not 是否json值(响应) or json字节长度(响应)>自身.引导['maxFrameBytes']:#超限
             响应={**响应,'outcome':{'ok':False,'error':{'code':'result-too-large','message':'Client source result exceeds the source-frame byte limit'}}}#改写
-        if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or getattr(套接字,'readyState',1)!=1:#过期
+        if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or 套接字.readyState!=1:#过期
             return#返回
-        套接字.send(json.dumps(响应,ensure_ascii=False))#发送
+        套接字.send(json.dumps(响应,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送

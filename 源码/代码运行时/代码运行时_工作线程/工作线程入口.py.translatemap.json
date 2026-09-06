@@ -1,0 +1,7 @@
+{
+    "bootstrap": "引导",
+    "entry": "入口",
+    "payload": "载荷",
+    "stream": "流",
+    "worker": "工作线程"
+}

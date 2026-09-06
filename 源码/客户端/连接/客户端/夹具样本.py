@@ -388,12 +388,12 @@ def 会话统计于(日志):#会话统计
             未决调用.clear()#丢未结算调用
     return 值#统计
 
-def 估算夹具内容(块们):#启发式计价
+def 估算夹具内容(块列表):#启发式计价
     """用 token-meter 的固定密度启发式给 fixture 内容标价。"""
     def 密度价(文本):#按字符密度
         return (len(文本)+字符每令牌-1)//字符每令牌 if 文本 else 0#向上取整
     令牌=0#累加
-    for 块 in 块们 or []:#逐块
+    for 块 in 块列表 or []:#逐块
         if not isinstance(块,dict):#非映射
             continue#跳过
         类型=块.get('type')#类型
@@ -552,23 +552,23 @@ def 投影帧于(会话标识,日志,事件):#事件 → 投影帧
     """宿主推帧平行：给定事件推进了哪些键，就为每个键发一帧 session/projection。"""
     类型=事件.get('type') if isinstance(事件,dict) else None#事件类型
     序号=事件.get('seq') if isinstance(事件,dict) else 0#seq
-    帧们=[]#收集
+    帧列表=[]#收集
     if 用量样本于(事件) is not None:#有用量
-        帧们.append({'type':'session/projection','sessionId':会话标识,'key':'tokenUsage','value':令牌用量于(日志),'seq':序号})#用量帧
-        帧们.append({'type':'session/projection','sessionId':会话标识,'key':'contextPressure','value':上下文压力于(日志),'seq':序号})#压力帧
+        帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'tokenUsage','value':令牌用量于(日志),'seq':序号})#用量帧
+        帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'contextPressure','value':上下文压力于(日志),'seq':序号})#压力帧
     if 类型=='request/context':#容量变化
-        帧们.append({'type':'session/projection','sessionId':会话标识,'key':'contextPressure','value':上下文压力于(日志),'seq':序号})#压力
+        帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'contextPressure','value':上下文压力于(日志),'seq':序号})#压力
     if 类型 in ('request/header','user/message','assistant/message','tool/result'):#推进组成
-        帧们.append({'type':'session/projection','sessionId':会话标识,'key':'contextBreakdown','value':上下文组成于(日志),'seq':序号})#组成
+        帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'contextBreakdown','value':上下文组成于(日志),'seq':序号})#组成
     if 类型 in ('assistant/message','tool/result','step/end'):#统计触发
-        帧们.append({'type':'session/projection','sessionId':会话标识,'key':'sessionStats','value':会话统计于(日志),'seq':序号})#统计
-    if 帧们:#已有批量帧则不再走单键路径
-        return 帧们#批量
+        帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'sessionStats','value':会话统计于(日志),'seq':序号})#统计
+    if 帧列表:#已有批量帧则不再走单键路径
+        return 帧列表#批量
     if 类型=='session/title':#标题
-        值们=投影值于(日志)#现算
-        if 'title' not in 值们:#防守
+        投影表=投影值于(日志)#现算
+        if 'title' not in 投影表:#防守
             return []#空
-        return [{'type':'session/projection','sessionId':会话标识,'key':'title','value':值们['title'],'seq':序号}]#标题帧
+        return [{'type':'session/projection','sessionId':会话标识,'key':'title','value':投影表['title'],'seq':序号}]#标题帧
     if 类型=='goal/change':#目标
         return [{'type':'session/projection','sessionId':会话标识,'key':'goal','value':回扫目标(日志),'seq':序号}]#目标帧
     if 类型 in ('todo/write','turn/start'):#待办
@@ -593,11 +593,11 @@ def 分页于(日志,之前序号,最多消息):#一页历史
         if 类型=='turn/start' and 消息数>=最多消息:#够数且在轮边界
             起=下标#切在此
             break#停
-    条目们=[]#本页
+    条目表=[]#本页
     for 事件 in 日志[起:末]:#窗口内
         视图=视图为(事件,日志)#分页时视图
-        条目们.append({'event':事件} if 视图 is None else {'event':事件,'view':视图})#可无视图
-    return {'events':条目们,'hasMore':起>0}#start>0 表示还有更早
+        条目表.append({'event':事件} if 视图 is None else {'event':事件,'view':视图})#可无视图
+    return {'events':条目表,'hasMore':起>0}#start>0 表示还有更早
 
 def 日志引用附件(日志,附件标识):#深搜引用
     """宿主会话范围附件授权的 fixture 镜像。"""
@@ -660,8 +660,8 @@ def 检索令牌跨度(值):#切 token
     """SQLite FTS5 unicode61 token 边界的浏览器安全近似。"""
     import re as 正则#空白归一
     文本=正则.sub(r'\s+',' ',值 or '').strip()#空白归一
-    字符们=list(文本)#按 code point（BMP 内等同）
-    令牌们=[]#收集
+    字符列表=list(文本)#按 code point（BMP 内等同）
+    令牌列表=[]#收集
     起点=None#当前 token 起点
     原文=''#当前 token 原文
     def 收尾(终点):#收一个 token
@@ -670,10 +670,10 @@ def 检索令牌跨度(值):#切 token
             折叠=unicodedata.normalize('NFD',原文)#去标记前
             折叠=''.join(字 for 字 in 折叠 if unicodedata.category(字)!='Mn').lower()#去 Mn、小写
             if 折叠!='':#非空才收
-                令牌们.append({'value':折叠,'start':起点,'end':终点})#收下
+                令牌列表.append({'value':折叠,'start':起点,'end':终点})#收下
         起点=None#清空
         原文=''#清空
-    for 下标,字符 in enumerate(字符们):#逐码点
+    for 下标,字符 in enumerate(字符列表):#逐码点
         基=unicodedata.normalize('NFD',字符)#去标记前
         基=''.join(字 for 字 in 基 if unicodedata.category(字)!='Mn')#去 Mn
         if 基=='':#纯标记
@@ -686,8 +686,8 @@ def 检索令牌跨度(值):#切 token
             原文+=字符#追加
         else:#分隔符
             收尾(下标)#在此切开
-    收尾(len(字符们))#收尾
-    return {'text':文本,'tokens':令牌们}#规范化文本 + token
+    收尾(len(字符列表))#收尾
+    return {'text':文本,'tokens':令牌列表}#规范化文本 + token
 
 def 短语匹配(文档令牌,短语):#短语匹配
     """数精确相邻 token 短语出现次数，并保留首次展示跨度。"""
@@ -707,19 +707,19 @@ def 短语匹配(文档令牌,短语):#短语匹配
 
 def 检索摘录(值,命中起,命中止):#侧栏摘录
     """以命中为中心的 fixture 摘录，按 Unicode code point 限界。"""
-    字符们=list(值 or '')#按码点
-    if len(字符们)<=120:#短则全文
+    字符列表=list(值 or '')#按码点
+    if len(字符列表)<=120:#短则全文
         return 值 or ''#全文
-    界起=min(max(0,命中起),len(字符们)-1)#夹起点
-    界止=min(len(字符们),max(界起+1,命中止))#夹终点
+    界起=min(max(0,命中起),len(字符列表)-1)#夹起点
+    界止=min(len(字符列表),max(界起+1,命中止))#夹终点
     中心=(界起+界止)//2#命中中心
-    起=min(len(字符们)-118,max(0,中心-118//2))#窗口起
+    起=min(len(字符列表)-118,max(0,中心-118//2))#窗口起
     止=起+118#默认窗长
     if 起==0:#贴头
         止=119#头窗稍长
-    elif 止==len(字符们):#贴尾
-        起=len(字符们)-119#尾窗稍长
-    return f"{'…' if 起>0 else ''}{''.join(字符们[起:止])}{'…' if 止<len(字符们) else ''}"#省略号
+    elif 止==len(字符列表):#贴尾
+        起=len(字符列表)-119#尾窗稍长
+    return f"{'…' if 起>0 else ''}{''.join(字符列表[起:止])}{'…' if 止<len(字符列表) else ''}"#省略号
 
 def 比较检索候选(甲,乙):#检索排序
     """镜像 session-query-sqlite：命中多、文档长、时间新、会话 id、seq 倒序。"""

@@ -42,26 +42,26 @@ def 启动器失败(错误):#启动器失败
     细节=错误.args[0] if isinstance(错误,地锁启动器错误) and 错误.args else str(错误)#细节文案
     return 启动器退出(125,'',f'landlock-run: {细节}\n')#退出125
 
-def 解析地锁参数(参数们):#解析启动器argv
+def 解析地锁参数(参数列表):#解析启动器argv
     """解析原生启动器的 argv 文法。"""
     只读=[]#只读根缓冲
     读写=[]#读写根缓冲
     索引=0#游标
-    while 索引<len(参数们):#逐参扫描
-        参数=参数们[索引]#当前参数
+    while 索引<len(参数列表):#逐参扫描
+        参数=参数列表[索引]#当前参数
         if 参数=='--probe':#探测标志
-            if len(参数们)!=1:#禁止夹带
+            if len(参数列表)!=1:#禁止夹带
                 raise 地锁启动器错误('usage error: --probe takes no other arguments')#拒绝
             return {'kind':'probe'}#探测结果
         if 参数 in ('--ro','--rw'):#授权标志
-            if 索引+1>=len(参数们):#缺路径
+            if 索引+1>=len(参数列表):#缺路径
                 raise 地锁启动器错误(f'usage error: {参数} requires a path')#缺路径
-            路径=参数们[索引+1]#紧随路径
+            路径=参数列表[索引+1]#紧随路径
             (只读 if 参数=='--ro' else 读写).append(路径)#记入对应列表
             索引+=2#消费两参
             continue#下一参数
         if 参数=='--':#命令分隔
-            argv=list(参数们[索引+1:])#其后即命令
+            argv=list(参数列表[索引+1:])#其后即命令
             if len(argv)==0:#缺命令
                 raise 地锁启动器错误('usage error: missing `-- <argv>...` command')#缺命令
             return {'kind':'run','readOnly':只读,'readWrite':读写,'argv':argv}#受限运行
@@ -145,10 +145,10 @@ def 地锁文件系统(底层,调用,工作目录):#构建受限FS
         底层['rename'](源目标,目的)#委托底层
     return {'stat':统计,'list':列出,'readText':读文本,'writeText':写文本,'mkdir':建目录,'remove':移除,'rename':重命名}#受限面
 
-def 地锁准备(参数们,上下文):#异步准备
+def 地锁准备(参数列表,上下文):#异步准备
     """准备 landlock 调用。"""
     try:#解析并准备
-        调用=解析地锁参数(参数们)#解析argv
+        调用=解析地锁参数(参数列表)#解析argv
         if 调用['kind']=='probe':#探测成功
             return 启动器退出(0,'landlock: fully enforced\n')#探测
         return {#委托运行
@@ -157,17 +157,17 @@ def 地锁准备(参数们,上下文):#异步准备
             'filesystem':地锁文件系统(上下文['filesystem'],调用,上下文['cwd']),#受限FS
             'missingExecutable':启动器退出(125,'','landlock-run: exec failed: No such file or directory\n'),#缺可执行
         }#委托结束
-    except Exception as 错误:#失败
+    except Exception as 错误:#解析地锁参数可能抛 ValueError/类型错误，契约未定所以收不窄
         return 启动器失败(错误)#转致命方言
 
-def 地锁同步运行(参数们):#同步子集
+def 地锁同步运行(参数列表):#同步子集
     """处理可同步完成的子集。"""
     try:#解析
-        调用=解析地锁参数(参数们)#解析argv
+        调用=解析地锁参数(参数列表)#解析argv
         if 调用['kind']=='probe':#探测可同步
             return 启动器退出(0,'landlock: fully enforced\n')#探测成功
         return {'kind':'asynchronous'}#运行需异步
-    except Exception as 错误:#失败
+    except Exception as 错误:#解析地锁参数可能抛 ValueError/类型错误，契约未定所以收不窄
         return 启动器失败(错误)#转致命方言
 
 地锁可执行={#landlock虚拟可执行

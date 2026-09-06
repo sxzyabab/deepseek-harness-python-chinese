@@ -175,8 +175,8 @@ def 解析目录数组(原文片段):#解析一个 [...] 数组
     片段=替换字面量词(片段)#null/true/false
     try:#字面量求值
         值=ast.literal_eval(片段)#安全求值
-    except Exception as 错:#解析失败
-        raise Exception('catalog array parse failed: '+type(错).__name__+': '+str(错))#上抛
+    except Exception as 错误:#解析失败
+        raise Exception('catalog array parse failed: '+type(错误).__name__+': '+str(错误))#上抛
     if not isinstance(值,list):#必须是列表
         raise Exception('catalog root must be a list')#失败
     return 值#真实条目列表

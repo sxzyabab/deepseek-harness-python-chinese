@@ -7,30 +7,16 @@
 """
 沙盒模式表=('read-only','workspace-write','danger-full-access')#每一个 SandboxMode，供选项广告与对不受信任模式字符串的运行时校验
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 生效沙盒模式(事件们):#折叠会话覆盖
-    """会话的沙箱模式覆盖：日志里最后一条 `sandbox/mode` 事件；会话从未切换过则为 None（调用方应用部署默认）。纯折叠——恢复不需要追赶机制，因为回放日志就是状态。"""
-    if 事件们 is None:#无日志
+def 生效沙盒模式(事件列表):
+    """会话的沙箱模式覆盖：日志里最后一条 `sandbox/mode` 事件；会话从未切换过则为 None（调用方应用部署默认）。纯折叠——恢复不需要追赶机制，因为回放日志就是状态。事件是 dict。"""
+    if 事件列表 is None:#无日志
         return None#从未切换
-    for 下标 in range(len(事件们)-1,-1,-1):#从后往前
-        事件=事件们[下标]#当前事件
-        if 取字段(事件,'type')=='sandbox/mode':#最近一次切换
-            return 取字段(取字段(事件,'data'),'mode')#返回模式
+    for 下标 in range(len(事件列表)-1,-1,-1):#从后往前
+        事件=事件列表[下标]#当前事件
+        if 事件['type']=='sandbox/mode':#最近一次切换
+            return 事件['data']['mode']#返回模式
     return None#从未切换
 
-def 设沙盒模式(会话,模式):#写入会话覆盖
-    """会话沙箱模式覆盖的唯一写入路径：恰好追加一条 `sandbox/mode` 事件——切换就是它的事件；没有任何东西在带外改模式状态。在该会话下一次隔离调用（bash 或 fs）时生效——消费方每次读取都折叠。"""
-    追加=getattr(会话,'追加',None)#中文追加
-    if callable(追加):#有中文追加
-        追加('sandbox/mode',{'mode':模式})#追加一条切换事件
-        return#写完
-    会话.append('sandbox/mode',{'mode':模式})#英文追加回落
+def 设沙盒模式(会话,模式):
+    """会话沙箱模式覆盖的唯一写入路径：恰好追加一条 `sandbox/mode` 事件。会话是对象。"""
+    会话.追加('sandbox/mode',{'mode':模式})#追加一条切换事件

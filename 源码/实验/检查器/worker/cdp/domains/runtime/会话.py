@@ -2,7 +2,7 @@
 
 对齐上游 `worker/cdp/domains/runtime/session.ts`。公开面仅中文名。
 """
-from .......内核.智能体循环.辅助 import 解开,在线程跑#可等待则等待|后台跑
+from .....共享.json import 检查器错误,在线程执行#包内错误|后台跑
 from ...协议 import cdp错误,响应cdp请求#协议
 from .cdp参数 import (#参数解析
     解析求值,解析取属性,解析调函数,解析等Promise,
@@ -20,7 +20,7 @@ class Runtime域会话:#Runtime域会话
         自身.realms=realms#会话集
         自身._对象=Runtime对象表(realms.connectionId)#对象表
         自身._已公告上下文=set()#已公告上下文
-        自身._控制台释放器={}#Console释放器
+        自身._控制台拆除器={}#Console拆除器
         自身._取消realm订阅=realms.订阅(自身._接收realm)#订阅
         自身._已启用=False#是否启用
         自身._已关闭=False#是否关闭
@@ -35,7 +35,10 @@ class Runtime域会话:#Runtime域会话
             自身._响应(请求,自身._禁用)#响应
             return True#已拥有
         if 方法=='Runtime.evaluate':#求值
-            自身._响应(请求,lambda:自身._求值(请求['params']))#响应
+        def 求值():#求值体
+            """求值。"""
+            return 自身._求值(请求['params'])#求值
+        自身._响应(请求,求值)#响应
             return True#已拥有
         if 方法=='Runtime.getProperties':#取属性
             return 自身._取属性(请求)#委托
@@ -46,10 +49,16 @@ class Runtime域会话:#Runtime域会话
         if 方法=='Runtime.releaseObject':#释放对象
             return 自身._释放对象(请求)#委托
         if 方法=='Runtime.releaseObjectGroup':#释放组
-            自身._响应(请求,lambda:自身._释放对象组(请求['params']))#响应
+            def 释放对象组():#释放组体
+                """释放对象组。"""
+                return 自身._释放对象组(请求['params'])#释放
+            自身._响应(请求,释放对象组)#响应
             return True#已拥有
         if 方法=='Runtime.globalLexicalScopeNames':#词法名
-            自身._响应(请求,lambda:自身._全局词法作用域名(请求['params']))#响应
+            def 词法名():#词法名体
+                """全局词法作用域名。"""
+                return 自身._全局词法作用域名(请求['params'])#词法名
+            自身._响应(请求,词法名)#响应
             return True#已拥有
         if 方法=='Runtime.discardConsoleEntries':#丢弃Console
             自身._响应(请求,自身._丢弃控制台条目)#响应
@@ -62,14 +71,14 @@ class Runtime域会话:#Runtime域会话
         return False#未拥有
 
     def 关闭(自身):#关闭
-        """释放本连接的对象路由与 realm 订阅。"""
+        """拆除本连接的对象路由与 realm 订阅。"""
         if 自身._已关闭:#幂等
             return#返回
         自身._已关闭=True#置位
         自身._取消realm订阅()#取消订阅
-        for 释放 in 自身._控制台释放器.values():#释Console
-            释放()#回调
-        自身._控制台释放器.clear()#清Console
+        for 拆除 in 自身._控制台拆除器.values():#拆Console
+            拆除()#回调
+        自身._控制台拆除器.clear()#清Console
         自身._对象.清空()#清对象
         自身._已公告上下文.clear()#清公告
 
@@ -103,7 +112,7 @@ class Runtime域会话:#Runtime域会话
                     return 值#保留
                 if getattr(路由['realm'].nativeDomains,'state',None)=='unsupported' or (isinstance(路由['realm'].nativeDomains,dict) and 路由['realm'].nativeDomains.get('state')=='unsupported'):#不支持
                     原因=路由['realm'].nativeDomains.reason if hasattr(路由['realm'].nativeDomains,'reason') else 路由['realm'].nativeDomains['reason']#原因
-                    raise Exception(原因)#抛错
+                    raise 检查器错误(原因)#抛错
                 return 路由['handle']#后端句柄
             if isinstance(值,list):#数组
                 return [访问(项,None) for 项 in 值]#映射
@@ -116,11 +125,11 @@ class Runtime域会话:#Runtime域会话
         """将一个 realm 注册表表达式解析为连接本地对象 id。"""
         领域=自身.realms.按源(源)#取realm
         if 领域 is None:#已断
-            raise Exception('Cordis realm is no longer connected')#抛错
+            raise 检查器错误('Cordis realm is no longer connected')#抛错
         运行时=运行时后端(领域)#后端
-        完成=解开(运行时.求值({'expression':表达式,'generatePreview':True,**({} if 对象组 is None else {'objectGroup':对象组})}))#求值
+        完成=运行时.求值({'expression':表达式,'generatePreview':True,**({} if 对象组 is None else {'objectGroup':对象组})})#求值
         if 完成.get('exceptionDetails') is not None:#失败
-            raise Exception('Cordis object lookup failed')#抛错
+            raise 检查器错误('Cordis object lookup failed')#抛错
         return 自身._对象.完成(领域,完成,对象组)['result']#结果
 
     def _启用(自身):#启用
@@ -128,32 +137,32 @@ class Runtime域会话:#Runtime域会话
         自身._已启用=True#置位
         try:#启用各realm
             for 领域 in 自身.realms.全部():#扫
-                解开(运行时后端(领域).启用())#启用
+                运行时后端(领域).启用()#启用
             for 领域 in 自身.realms.全部():#扫realm
                 自身._附着控制台(领域)#附着Console
                 自身._公告(领域)#公告上下文
             return {}#空结果
-        except Exception:#回滚
+        except Exception:#运行时后端.启用可能抛检查器错误/连接错误，契约未定所以收不窄
             自身._已启用=False#清位
-            for 释放 in 自身._控制台释放器.values():#释Console
-                释放()#回调
-            自身._控制台释放器.clear()#清Console
+            for 拆除 in 自身._控制台拆除器.values():#拆Console
+                拆除()#回调
+            自身._控制台拆除器.clear()#清Console
             自身._已公告上下文.clear()#清公告
             for 领域 in 自身.realms.全部():#尽力禁用
                 try:#禁用
-                    解开(运行时后端(领域).禁用())#禁用
-                except Exception:#忽略
+                    运行时后端(领域).禁用()#禁用
+                except Exception:#回滚路径上 backend.禁用同样什么都可能抛，契约未定所以收不窄
                     pass#忽略
             raise#再抛
 
     def _禁用(自身):#禁用
         """禁用 Runtime。"""
-        for 释放 in 自身._控制台释放器.values():#释Console
-            释放()#回调
-        自身._控制台释放器.clear()#清Console
+        for 拆除 in 自身._控制台拆除器.values():#拆Console
+            拆除()#回调
+        自身._控制台拆除器.clear()#清Console
         try:#禁用后端
             for 领域 in 自身.realms.全部():#逐个
-                解开(运行时后端(领域).禁用())#禁用
+                运行时后端(领域).禁用()#禁用
         finally:#清理
             自身._已启用=False#清位
             自身._对象.清空()#清对象
@@ -164,7 +173,7 @@ class Runtime域会话:#Runtime域会话
         """Runtime.evaluate。"""
         解析=解析求值(参数)#解析
         领域=自身._按选择器取realm(解析,'contextId')#选realm
-        完成=解开(运行时后端(领域).求值({**解析['request'],**自身._后端上下文(领域,解析,'contextId')}))#求值
+        完成=运行时后端(领域).求值({**解析['request'],**自身._后端上下文(领域,解析,'contextId')})#求值
         return 自身._对象.完成(领域,完成,解析['request'].get('objectGroup'))#投影
 
     def _取属性(自身,请求):#取属性
@@ -178,8 +187,8 @@ class Runtime域会话:#Runtime域会话
         def 操作():#响应体
             """取属性并投影。"""
             解析=解析取属性(请求['params'])#解析
-            属性=解开(运行时后端(路由['realm']).取属性({**解析['request'],'handle':路由['handle']}))#取属性
-            return 自身._对象.属性们(路由['realm'],属性,路由['group'])#投影
+            属性=运行时后端(路由['realm']).取属性({**解析['request'],'handle':路由['handle']})#取属性
+            return 自身._对象.投影属性(路由['realm'],属性,路由['group'])#投影
         自身._响应(请求,操作)#响应
         return True#已拥有
 
@@ -190,18 +199,21 @@ class Runtime域会话:#Runtime域会话
         选中=自身._可选选择器取realm(请求['params'],'executionContextId')#选中realm
         if 接收者 is None and 选中 is None and 对象id is not None:#未知对象
             return False#未拥有
-        领域=(接收者['realm'] if 接收者 is not None else None) or 选中 or 自身.realms.host()#目标realm
+        领域=接收者['realm'] if 接收者 is not None else None#接收者 realm
+        if 领域 is None: 领域=选中#?? selected
+        if 领域 is None: 领域=自身.realms.host()#?? Host
         if 接收者 is not None and 选中 is not None and 接收者['realm'] is not 选中:#跨realm
             自身._发错误(请求,'Runtime.callFunctionOn receiver and execution context belong to different realms')#错误
             return True#已拥有
         def 操作():#响应体
             """调函数并投影。"""
             解析=解析调函数(请求['params'])#解析
-            组=解析['request'].get('objectGroup') or (接收者['group'] if 接收者 is not None else None)#组
+            组=解析['request'].get('objectGroup')#对象组
+            if 组 is None and 接收者 is not None: 组=接收者['group']#?? receiver.group，空串合法
             调用={**解析['request'],**自身._后端上下文(领域,解析,'executionContextId'),'arguments':[自身._路由参数(领域,项) for 项 in 解析['arguments']]}#调用
             if 接收者 is not None:#有接收者
                 调用['receiver']=接收者['handle']#接收者
-            完成=解开(运行时后端(领域).调函数(调用))#调函数
+            完成=运行时后端(领域).调函数(调用)#调函数
             return 自身._对象.完成(领域,完成,组)#投影
         自身._响应(请求,操作)#响应
         return True#已拥有
@@ -217,7 +229,7 @@ class Runtime域会话:#Runtime域会话
         def 操作():#响应体
             """等待并投影。"""
             解析=解析等Promise(请求['params'])#解析
-            完成=解开(运行时后端(路由['realm']).等Promise({**解析['request'],'promise':路由['handle']}))#等待
+            完成=运行时后端(路由['realm']).等Promise({**解析['request'],'promise':路由['handle']})#等待
             return 自身._对象.完成(路由['realm'],完成,路由['group'])#投影
         自身._响应(请求,操作)#响应
         return True#已拥有
@@ -233,7 +245,7 @@ class Runtime域会话:#Runtime域会话
         def 操作():#响应体
             """后端与表释放。"""
             解析释放对象(请求['params'])#校验
-            解开(运行时后端(路由['realm']).释放对象(路由['handle']))#后端释放
+            运行时后端(路由['realm']).释放对象(路由['handle'])#后端释放
             自身._对象.释放(对象id)#表释放
             return {}#空
         自身._响应(请求,操作)#响应
@@ -242,10 +254,10 @@ class Runtime域会话:#Runtime域会话
     def _释放对象组(自身,参数):#释放对象组
         """Runtime.releaseObjectGroup。"""
         组=解析释放对象组(参数)#组名
-        领域们=自身._对象.组内realms(组)#相关realm
+        领域表=自身._对象.组内realms(组)#相关realm
         try:#后端释放
-            for 领域 in 领域们:#逐个
-                解开(运行时后端(领域).释放对象组(组))#释放
+            for 领域 in 领域表:#逐个
+                运行时后端(领域).释放对象组(组)#释放
         finally:#表清理
             自身._对象.释放组(组)#释放组
         return {}#空
@@ -255,23 +267,25 @@ class Runtime域会话:#Runtime域会话
         解析=解析全局词法作用域名(参数)#解析
         领域=自身._按选择器取realm(解析,'executionContextId')#选realm
         上下文=自身._后端上下文(领域,解析,'executionContextId').get('context')#上下文
-        return {'names':解开(运行时后端(领域).全局词法名(上下文))}#名称
+        return {'names':运行时后端(领域).全局词法名(上下文)}#名称
 
     def _丢弃控制台条目(自身):#丢弃Console条目
         """Runtime.discardConsoleEntries。"""
         for 领域 in 自身.realms.全部():#逐个
             控制台=领域.console#Console能力
-            状态=控制台['state'] if isinstance(控制台,dict) else 控制台.state#状态
+            状态=控制台['state']#状态
             if 状态=='supported':#支持
-                后端=控制台['backend'] if isinstance(控制台,dict) else 控制台.backend#后端
-                解开(后端.清空())#清Console
-            解开(运行时后端(领域).释放对象组('console'))#释console组
+                后端=控制台['backend']#后端
+                后端.清空()#清Console
+            运行时后端(领域).释放对象组('console')#释console组
         自身._对象.释放组('console')#表释放
         return {}#空
 
     def _按选择器取realm(自身,参数,数字键):#按选择器取realm
         """缺省 Host。"""
-        return 自身._可选选择器取realm(参数,数字键) or 自身.realms.host()#缺省Host
+        领域=自身._可选选择器取realm(参数,数字键)#可选 realm
+        if 领域 is None: 领域=自身.realms.host()#?? Host
+        return 领域#缺省Host
 
     def _可选选择器取realm(自身,参数,数字键):#可选选择器
         """可选上下文选择。"""
@@ -281,7 +295,7 @@ class Runtime域会话:#Runtime域会话
             if 领域 is not None:#命中
                 return 领域#返回
             if 数字<0:#Client失效
-                raise Exception('Client execution context is no longer available')#抛错
+                raise 检查器错误('Client execution context is no longer available')#抛错
             return 自身.realms.host()#回退Host
         唯一=参数.get('uniqueContextId')#唯一id
         if isinstance(唯一,str):#有唯一
@@ -289,7 +303,7 @@ class Runtime域会话:#Runtime域会话
             if 领域 is not None:#命中
                 return 领域#返回
             if 唯一.startswith('dsh-client:'):#Client失效
-                raise Exception('Client execution context is no longer available')#抛错
+                raise 检查器错误('Client execution context is no longer available')#抛错
             return 自身.realms.host()#回退Host
         return None#无选择
 
@@ -310,7 +324,7 @@ class Runtime域会话:#Runtime域会话
             return 参数#原样
         路由=自身._对象.解析(参数['objectId'])#路由
         if 路由 is None or 路由['realm'] is not 领域:#跨realm或未知
-            raise Exception('Runtime.callFunctionOn cannot pass an object between realms')#抛错
+            raise 检查器错误('Runtime.callFunctionOn cannot pass an object between realms')#抛错
         return {'kind':'object','handle':路由['handle']}#句柄
 
     def _不支持原生路由(自身,参数):#不支持原生路由
@@ -352,31 +366,31 @@ class Runtime域会话:#Runtime域会话
                 def 启用():#启用体
                     """启用后端。"""
                     try:#成功
-                        解开(运行时后端(事件['session']).启用())#启用
+                        运行时后端(事件['session']).启用()#启用
                         自身._附着控制台(事件['session'])#附着Console
                         自身._公告(事件['session'])#公告
-                    except Exception:#失败
+                    except Exception:#新 realm 启用/附着可能抛检查器错误/连接错误，契约未定所以收不窄
                         事件['session'].关闭()#关会话
-                在线程跑(启用)#投递
+                在线程执行(启用)#投递
             return#返回
         会话=事件['session']#会话
-        释放=自身._控制台释放器.pop(会话.descriptor.realmId,None)#释Console
-        if 释放 is not None:#有
-            释放()#回调
+        拆除=自身._控制台拆除器.pop(会话.descriptor.realmId,None)#拆Console
+        if 拆除 is not None:#有
+            拆除()#回调
         自身._对象.释放realm(会话)#释对象
         自身._销毁(会话)#销毁上下文
 
     def _附着控制台(自身,领域):#附着Console
         """订阅 Console。"""
         控制台=_能力(领域.console)#能力
-        if 控制台['state']=='unsupported' or 领域.descriptor.realmId in 自身._控制台释放器:#跳过
+        if 控制台['state']=='unsupported' or 领域.descriptor.realmId in 自身._控制台拆除器:#跳过
             return#返回
         def 收(事件):#事件回调
             """转发控制台事件。"""
             if not 自身._已启用:#未启用
                 return#返回
             自身.传输.发送(自身._对象.控制台事件(领域,事件))#发送
-        自身._控制台释放器[领域.descriptor.realmId]=控制台['backend'].订阅(收)#订阅
+        自身._控制台拆除器[领域.descriptor.realmId]=控制台['backend'].订阅(收)#订阅
 
     def _公告(自身,领域):#公告上下文
         """公告合成上下文。"""
@@ -413,14 +427,12 @@ class Runtime域会话:#Runtime域会话
         自身.传输.发送(cdp错误(请求['id'],-32000,信息))#错误响应
 
 def _能力(值):#能力面
-    """统一 dict/对象能力。"""
-    if isinstance(值,dict):#字典
-        return 值#原样
-    return {'state':值.state,'backend':getattr(值,'backend',None),'reason':getattr(值,'reason',None)}#对象面
+    """能力已是 dict。"""
+    return 值#原样
 
 def 运行时后端(领域):#取Runtime后端
     """取 Runtime 后端。"""
     运行时=_能力(领域.runtime)#能力
     if 运行时['state']=='unsupported':#不支持
-        raise Exception(运行时['reason'])#抛错
+        raise 检查器错误(运行时['reason'])#抛错
     return 运行时['backend']#返回

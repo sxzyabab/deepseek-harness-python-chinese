@@ -6,13 +6,13 @@ from .设置作用域 import 间谍函数#spy（与设置作用域共用，无�
 
 __all__=['脚本化设置远程']#仅中文公开名
 
-def 脚本化设置远程(命名空间们=None,选项=None):#构建脚本化 settings 远程
+def 脚本化设置远程(命名空间列表=None,选项=None):#构建脚本化 settings 远程
     """为 bench 构建脚本化 settings Remote 命名空间。"""
-    if 命名空间们 is None:#缺省
-        命名空间们=[]#空列表
+    if 命名空间列表 is None:#缺省
+        命名空间列表=[]#空列表
     if 选项 is None:#缺省
         选项={}#空映射
-    服务中=[list(命名空间们)]#当前服务的视图（可变盒）
+    服务中=[list(命名空间列表)]#当前服务的视图（可变盒）
     可写=选项['writable'] if 'writable' in 选项 else True#可写
     有文档=选项['hasDocument'] if 'hasDocument' in 选项 else False#是否有文档
     def 应答(命名空间键):#按键应答
@@ -39,5 +39,3 @@ def 脚本化设置远程(命名空间们=None,选项=None):#构建脚本化 set
         'mutate':变更,#暴露 mutate spy
         'publish':发布,#替换服务视图
     }#返回结束
-
-scriptedSettingsRemote=脚本化设置远程#上游名

@@ -1,0 +1,11 @@
+{
+    "apply":"应用",
+    "connection":"连接",
+    "inject":"注入",
+    "locale":"本地化",
+    "remote":"远程",
+    "session":"会话",
+    "skill":"技能",
+    "slot":"槽",
+    "trigger":"触发"
+}

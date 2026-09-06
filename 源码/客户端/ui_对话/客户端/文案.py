@@ -3,10 +3,9 @@
 对齐上游 `ui-conversation/src/client/locales.ts`。公开面仅中文名。
 """
 
-__all__=['命名空间','中文','英文','NS','zh','en']#仅中文公开名
+__all__=['命名空间','中文','英文']#仅中文公开名
 
 命名空间='conversation'#词典命名空间名
-NS=命名空间#上游名
 
 计划下一步中文='描述你的任务以生成计划'#中文下一步动作文案
 计划下一步英文='describe your task to generate plan'#英文下一步动作文案
@@ -197,6 +196,3 @@ NS=命名空间#上游名
     'json.truncated':'… truncated, {total} characters total',
     'clock.md':'{m}/{d}','clock.ymd':'{y}-{m}-{d}',
 }#结束英文
-
-zh=中文#上游名
-en=英文#上游名

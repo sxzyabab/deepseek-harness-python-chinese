@@ -8,10 +8,10 @@ worker，每次读或写都是本通道上的请求。在此阻塞子进程等�
 对齐上游 `webworker-runtime/src/shell/process/protocol.ts`。公开面仅中文名。
 """
 __all__=[#仅中文公开名
-    '文件系统操作名们','是否shell启动帧',
+    '文件系统操作名表','是否shell启动帧',
 ]#公开面结束
 
-文件系统操作名们=('stat','list','readText','writeText','mkdir','remove','rename')#文件系统操作名
+文件系统操作名表=('stat','list','readText','writeText','mkdir','remove','rename')#文件系统操作名
 
 def 是否shell启动帧(数据):#判定启动帧
     """消息是否为把新 worker 变成 shell 进程的那一帧。"""

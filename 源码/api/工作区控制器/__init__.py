@@ -6,7 +6,7 @@ from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
 from .命令 import 工作区命令#命令实现
 from .提要 import 工作区提要,工作区视图#提要
 from .目录选择器 import 目录选择器控制器#目录选择
-from .工具 import 信号已中止#辅助
+from .远程错误与中止 import 已中止#中止查询
 
 __all__=['名称','注入','工作区控制器','应用','目录选择器控制器','工作区视图']#仅中文公开名
 
@@ -25,16 +25,16 @@ def _工作区域状态解析(值):#解析域全局状态
     """解析 workspace 域全局状态。"""
     return 值 if isinstance(值,dict) else {}#映射
 
-class 工作区控制器(远程服务):#工作区 Remote 服务
+class 工作区控制器(远程服务):
     """生成 ctx.remote.workspace 命名空间的宿主服务。"""
-    注入=['typert','workspaceRegistry']#类级注入
+    inject=['typert','workspaceRegistry']#框架槽：类级注入
 
     def __init__(自身,上下文):#构造
         """挂载命令、提要与子目录选择器插件。"""
         super().__init__(上下文,'workspaceController',{'namespace':'workspace'})#注册
         自身._命令=工作区命令(上下文,_工作区标识)#命令
         自身._提要=工作区提要(上下文,_工作区记录解析,_工作区域状态解析,_工作区标识)#提要
-        上下文.plugin(目录选择器控制器)#子插件
+        上下文.启动插件(目录选择器控制器)#子插件
 
     @_远程('create')
     def create(自身,请求):#创建工作区
@@ -69,10 +69,14 @@ class 工作区控制器(远程服务):#工作区 Remote 服务
     @_远程({'mode':'stream'})
     def follow(自身,信号):#流式 follow
         """产出基线后有序增量。"""
-        if 信号已中止(信号):#已取消
+        if 已中止(信号):#已取消
             return#空
         yield from 自身._提要.follow(信号)#委托提要
 
-def 应用(上下文):#安装工作区控制器
+def 应用(上下文):
     """挂载工作区 Remote 拥有者。"""
     工作区控制器(上下文)#构造即登记
+
+name=名称#框架槽
+inject=注入#框架槽
+apply=应用#框架槽

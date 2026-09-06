@@ -6,14 +6,6 @@
 
 __all__=['编辑器页脚']#仅中文公开名
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """缺席为缺省。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
-
 class 编辑器页脚:#提供方卡片动作行
     """Cancel 只在提交飞行中拒绝输入，从不因只读而拒——只读卡仍须可关。"""
     def __init__(自身,属性):#构造
@@ -26,20 +18,20 @@ class 编辑器页脚:#提供方卡片动作行
 
     def 渲染(自身):#结构化视图
         """产出与上游 JSX 同构的动作行。"""
-        翻译=取字段(自身.属性,'t')#翻译
-        忙=bool(取字段(自身.属性,'busy'))#飞行中
-        提交禁用=bool(取字段(自身.属性,'submitDisabled'))#提交门控
-        提交闲=取字段(自身.属性,'submitLabel') or 'save'#闲时标签键
-        提交忙=取字段(自身.属性,'submitBusyLabel') or 'saving'#忙时标签键
-        取消键=取字段(自身.属性,'cancelLabel') or 'cancel'#取消键
+        翻译=自身.属性['t'] if 't' in 自身.属性 else None#翻译
+        忙=bool(自身.属性['busy']) if 'busy' in 自身.属性 else False#飞行中
+        提交禁用=bool(自身.属性['submitDisabled']) if 'submitDisabled' in 自身.属性 else False#提交门控
+        提交闲=自身.属性['submitLabel'] if 'submitLabel' in 自身.属性 and 自身.属性['submitLabel'] else 'save'#闲时标签键
+        提交忙=自身.属性['submitBusyLabel'] if 'submitBusyLabel' in 自身.属性 and 自身.属性['submitBusyLabel'] else 'saving'#忙时标签键
+        取消键=自身.属性['cancelLabel'] if 'cancelLabel' in 自身.属性 and 自身.属性['cancelLabel'] else 'cancel'#取消键
         return {#结构化视图
             'type':'editor-footer',#类型
             'busy':忙,#飞行
             'submitDisabled':提交禁用,#门控
-            'cancelLabel':翻译(取消键) if 翻译 else 取消键,#取消文案
-            'submitLabel':翻译(提交忙 if 忙 else 提交闲) if 翻译 else (提交忙 if 忙 else 提交闲),#提交文案
-            'onCancel':取字段(自身.属性,'onCancel'),#取消
-            'onSubmit':取字段(自身.属性,'onSubmit'),#提交
+            'cancelLabel':翻译(取消键) if 翻译 is not None else 取消键,#取消文案
+            'submitLabel':翻译(提交忙 if 忙 else 提交闲) if 翻译 is not None else (提交忙 if 忙 else 提交闲),#提交文案
+            'onCancel':自身.属性['onCancel'] if 'onCancel' in 自身.属性 else None,#取消
+            'onSubmit':自身.属性['onSubmit'] if 'onSubmit' in 自身.属性 else None,#提交
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用

@@ -40,21 +40,41 @@ class 日志消息:
 
 ################################ 格式化 ################################
 def _格式化对象(值,导出器=None,消息=None):
-    "按 %o 与 %O 序列化成 JSON，不能序列化的退回文本展示"
+    """按 %o 与 %O 序列化成 JSON，不能序列化的退回文本展示。"""
     try:
-        return json.dumps(值,default=str,ensure_ascii=False)#JSON
-    except Exception:
+        return json.dumps(值,default=str,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
+    except (TypeError,ValueError):
         return str(值)#连 default 都处理不了的对象只能文本展示
-截断整数=lambda 值,导出器=None,消息=None: math.trunc(float(值))#%d 与 %i 共用，向零截断
+
+def 截断整数(值,导出器=None,消息=None):
+    """%d 与 %i 共用，向零截断。"""
+    return math.trunc(float(值))#向零截断
+
+def _格式化字符串(值,导出器=None,消息=None):
+    """%s 转成字符串。"""
+    return str(值)#字符串
+
+def _格式化浮点(值,导出器=None,消息=None):
+    """%f 转成浮点。"""
+    return float(值)#浮点
+
+def _丢掉样式(值,导出器=None,消息=None):
+    """丢掉 CSS 样式占位。"""
+    return ''#空串
+
+def _按名着色(值,导出器,消息):
+    """按日志器名着色。"""
+    return 日志器.着色(导出器,日志器.色号(消息.名称,导出器.色深),值)#着色
+
 默认格式化器={
-    's':lambda 值,导出器=None,消息=None: str(值),#字符串
+    's':_格式化字符串,#字符串
     'd':截断整数,#整数
     'i':截断整数,#整数
-    'f':lambda 值,导出器=None,消息=None: float(值),#浮点
+    'f':_格式化浮点,#浮点
     'o':_格式化对象,#对象
     'O':_格式化对象,#对象
-    'c':lambda 值,导出器=None,消息=None: '',#丢掉 CSS 样式
-    'C':lambda 值,导出器,消息:日志器.着色(导出器,日志器.色号(消息.名称,导出器.色深),值),#按日志器名着色
+    'c':_丢掉样式,#丢掉 CSS 样式
+    'C':_按名着色,#按日志器名着色
 }#printf 占位符到格式化函数
 
 ################################ 日志器 ################################
@@ -94,7 +114,7 @@ class 日志器:
         if 参数 and isinstance(参数[0],BaseException):
             原错=参数[0]#首参是异常
             栈文本=''.join(traceback.format_exception(type(原错),原错,原错.__traceback__))#错误自身的栈
-            调用栈=getattr(原错,'调用栈',None)#运行_自带错误栈挂上的副作用登记点调用栈
+            调用栈=getattr(原错,'调用栈',None)#运行并挂错误栈挂上的副作用登记点调用栈
             参数[0]=栈文本+'登记于：\n'+''.join(调用栈) if 调用栈 else 栈文本#接上登记点
             参数.insert(0,'%s')#按字符串占位
         elif not 参数 or not isinstance(参数[0],str):
@@ -112,7 +132,7 @@ class 日志器:
             if 格式化 is None:
                 return 全文#不认识的占位符原样保留
             return str(格式化(参数.pop(0) if 参数 else None,导出器,消息))#消耗一个参数
-        文本=re.sub(r'%([a-zA-Z%])',替换,格式串)#渲染占位符
+        文本=re.sub(r'%([a-zA-Z%])',替换,格式串,count=0)#渲染全部占位符
         #剩余参数空格拼上，再按行长截断
         对象格式化=格式化器表.get('o') or 默认格式化器['o']#剩余参数按对象渲染
         for 项 in 参数:
@@ -189,13 +209,13 @@ class 日志服务:
         """登记一个导出器，随当前纤程卸载而注销。"""
         导出器表=获取内部数据(_脱壳(自身),'导出器表')#序号到导出器
         def 执行体():
-            """分配序号并登记，返回注销它的释放器。"""
+            """分配序号并登记，返回注销它的拆除器。"""
             序号=_下一序号(自身,'导出器序号')#分配本条序号
             导出器表[序号]=导出器#登记
-            def 释放():
+            def 拆除():
                 """按序号注销该导出器。"""
                 导出器表.pop(序号,None)#注销
-            return 释放#释放器
+            return 拆除#拆除器
         return 自身.所属上下文.副作用(执行体,'上下文.日志.登记导出器()')#作为纤程副作用
 
     def 错误(自身,*位置参数):

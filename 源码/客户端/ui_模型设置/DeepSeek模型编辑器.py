@@ -6,21 +6,12 @@ import math#数学
 import re#正则
 
 __all__=[#仅中文公开名
-    '解析容量','格式化容量','模型草稿表','校验DeepSeek模型',
-    'DeepSeek模型编辑器','parseCapacity','formatCapacity','modelDrafts',
-    'validateDeepSeekModels','DeepSeekModelsEditor',
+    '解析容量','格式化容量','模型草稿表','校验DeepSeek模型','DeepSeek模型编辑器',
 ]#公开面结束
 
-容量模式=re.compile(r'^(\d+(?:\.\d+)?)([km])?$',re.I)#带可选 K/M 后缀
+容量模式=re.compile(r'^([0-9]+(?:\.[0-9]+)?)([km])?\Z',re.I|re.ASCII)#带可选 K/M 后缀
 容量尺度={'k':1000,'m':1000000}#十进制尺度
-
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
+行号前缀=re.compile(r'^[0-9]+',re.ASCII)#缓冲键行号
 
 def 解析容量(文本):#解析 K/M 容量拼写
     """空为继承；不可读为 NaN。"""
@@ -55,7 +46,7 @@ def 模型草稿表(值):#目录值→开放记录表
         return []#空
     结果=[]#草稿
     for 项 in 值:#每项
-        if isinstance(项,dict) and not isinstance(项,list):#对象
+        if isinstance(项,dict):#对象
             结果.append(dict(项))#拷贝
         else:#畸形
             结果.append({})#空对象
@@ -65,31 +56,26 @@ def 校验DeepSeek模型(值):#适配器约束校验
     """首个非法行；继承态(undefined)通过。"""
     if 值 is None:#继承
         return None#通过
-    模型们=模型草稿表(值)#草稿
+    模型列表=模型草稿表(值)#草稿
     已见=set()#已见 id
-    for 下标,模型 in enumerate(模型们):#逐行
-        标识=模型.get('id')#id
+    for 下标,模型 in enumerate(模型列表):#逐行
+        标识=模型['id'] if 'id' in 模型 else None#id
         去空白=标识.strip() if isinstance(标识,str) else None#去空白
         if 去空白 is None or len(去空白)==0:#缺 id
             return {'index':下标,'key':'modelIdRequired'}#必填
         if 去空白 in 已见:#重复
             return {'index':下标,'key':'modelIdDuplicate'}#重复
         已见.add(去空白)#记下
-        名称=模型.get('name')#name
+        名称=模型['name'] if 'name' in 模型 else None#name
         if 名称 is not None and (not isinstance(名称,str) or len(名称)==0):#非法名
             return {'index':下标,'key':'modelNameInvalid'}#非法
-        上下文=模型.get('contextWindow')#上下文
+        上下文=模型['contextWindow'] if 'contextWindow' in 模型 else None#上下文
         if 上下文 is not None and (not isinstance(上下文,(int,float)) or isinstance(上下文,bool) or not float(上下文).is_integer() or 上下文<=0):#非法
             return {'index':下标,'key':'modelContextInvalid'}#非法
-        上限=模型.get('maxTokens')#上限
+        上限=模型['maxTokens'] if 'maxTokens' in 模型 else None#上限
         if 上限 is not None and (not isinstance(上限,(int,float)) or isinstance(上限,bool) or not float(上限).is_integer() or 上限<=0):#非法
             return {'index':下标,'key':'modelMaxTokensInvalid'}#非法
     return None#通过
-
-parseCapacity=解析容量#上游名
-formatCapacity=格式化容量#上游名
-modelDrafts=模型草稿表#上游名
-validateDeepSeekModels=校验DeepSeek模型#上游名
 
 def 行号自键(键):#缓冲键前缀行号
     """`index:field` 取行号。"""
@@ -109,9 +95,9 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
 
     def 改字段(自身,下标,键,值):#改一行字段
         """替换用户层数组。"""
-        模型们=list(取字段(自身.属性,'models') or [])#当前
+        模型列表=list(自身.属性['models']) if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#当前
         下一=[]#新表
-        for 位,模型 in enumerate(模型们):#逐行
+        for 位,模型 in enumerate(模型列表):#逐行
             拷=dict(模型)#拷贝
             if 位==下标:#目标行
                 if 值 is None:#清除
@@ -119,7 +105,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
                 else:#写入
                     拷[键]=值#设
             下一.append(拷)#记入
-        变更=取字段(自身.属性,'onChange')#回调
+        变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
         if 变更 is not None:#有
             变更(下一)#通知
 
@@ -130,7 +116,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             位=行号自键(键)#行
             if 位==下标:#被删
                 continue#跳过
-            新键=re.sub(r'^\d+',str(位-1),键,count=1) if 位>下标 else 键#重键
+            新键=行号前缀.sub(str(位-1),键,count=1) if 位>下标 else 键#重键
             新编辑[新键]=文本#记下
         自身.编辑中=新编辑#覆盖
         新展开=set()#新展开
@@ -139,16 +125,17 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
                 continue#跳过
             新展开.add(位-1 if 位>下标 else 位)#移位
         自身.已展开=新展开#覆盖
-        模型们=[dict(模型) for 位,模型 in enumerate(取字段(自身.属性,'models') or []) if 位!=下标]#过滤
-        变更=取字段(自身.属性,'onChange')#回调
+        已有=自身.属性['models'] if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#当前
+        模型列表=[dict(模型) for 位,模型 in enumerate(已有) if 位!=下标]#过滤
+        变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
         if 变更 is not None:#有
-            变更(模型们)#通知
+            变更(模型列表)#通知
 
     def 重置(自身):#清除覆盖回继承
         """清缓冲并 onReset。"""
         自身.编辑中={}#清
         自身.已展开=set()#清
-        复位=取字段(自身.属性,'onReset')#回调
+        复位=自身.属性['onReset'] if 'onReset' in 自身.属性 else None#回调
         if 复位 is not None:#有
             复位()#复位
 
@@ -164,7 +151,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         键=f'{下标}:{字段}'#缓冲键
         if 键 in 自身.编辑中:#有键入
             return 自身.编辑中[键]#键入
-        值=模型.get(字段)#存量
+        值=模型[字段] if 字段 in 模型 else None#存量
         return 格式化容量(值) if isinstance(值,(int,float)) and not isinstance(值,bool) else ''#拼写
 
     def 落定容量(自身,下标,字段):#失焦落定可读缓冲
@@ -179,46 +166,70 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
 
     def 渲染(自身):#结构化视图
         """目录头、行、添加。"""
-        翻译=取字段(自身.属性,'t',lambda 键,_=None:键)#文案
-        禁用=bool(取字段(自身.属性,'disabled'))#禁用
-        模型们=list(取字段(自身.属性,'models') or [])#行
-        覆盖=bool(取字段(自身.属性,'overridden'))#用户层拥有
-        默认上下文=取字段(自身.属性,'defaultContextWindow')#默认上下文
-        默认上限=取字段(自身.属性,'defaultMaxTokens')#默认上限
+        翻译=自身.属性['t']#文案
+        禁用=bool(自身.属性['disabled']) if 'disabled' in 自身.属性 else False#禁用
+        模型列表=list(自身.属性['models']) if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#行
+        覆盖=bool(自身.属性['overridden']) if 'overridden' in 自身.属性 else False#用户层拥有
+        默认上下文=自身.属性['defaultContextWindow'] if 'defaultContextWindow' in 自身.属性 else None#默认上下文
+        默认上限=自身.属性['defaultMaxTokens'] if 'defaultMaxTokens' in 自身.属性 else None#默认上限
         行表=[]#行视图
-        for 下标,模型 in enumerate(模型们):#逐行
+        for 下标,模型 in enumerate(模型列表):#逐行
+            标识=模型['id'] if 'id' in 模型 else None#id
+            名称=模型['name'] if 'name' in 模型 else None#name
+            def 切换本行(某=下标):#披露
+                """切换该行展开。"""
+                自身.切换展开(某)#切换
+            def 移除本行(某=下标):#删除
+                """删除该行。"""
+                自身.移除(某)#删除
+            def 改标识(文,某=下标):#改 id
+                """写入 id。"""
+                自身.改字段(某,'id',文)#改
+            def 落定标识(文,某=下标):#失焦 id
+                """去空白后写回。"""
+                if 文.strip()!=文:#有空白
+                    自身.改字段(某,'id',文.strip())#落定
+            def 改名称(文,某=下标):#改 name
+                """空串则清 name。"""
+                自身.改字段(某,'name',None if 文=='' else 文)#改
             行={#行
                 'index':下标,#下标
-                'id':模型.get('id') if isinstance(模型.get('id'),str) else '',#id
-                'name':模型.get('name') if isinstance(模型.get('name'),str) else '',#name
+                'id':标识 if isinstance(标识,str) else '',#id
+                'name':名称 if isinstance(名称,str) else '',#name
                 'expanded':下标 in 自身.已展开,#展开
-                'onToggle':(lambda 某=下标:自身.切换展开(某)),#披露
-                'onRemove':(lambda 某=下标:自身.移除(某)),#删除
-                'onId':(lambda 文,某=下标:自身.改字段(某,'id',文)),#改 id
-                'onIdBlur':(lambda 文,某=下标:自身.改字段(某,'id',文.strip()) if 文.strip()!=文 else None),#落定 id
-                'onName':(lambda 文,某=下标:自身.改字段(某,'name',None if 文=='' else 文)),#改 name
+                'onToggle':切换本行,#披露
+                'onRemove':移除本行,#删除
+                'onId':改标识,#改 id
+                'onIdBlur':落定标识,#落定 id
+                'onName':改名称,#改 name
             }#行基础
             if 下标 in 自身.已展开:#披露容量
                 def 造容量(字段,回退,某=下标,模=模型):#容量控件
                     """单容量字段。"""
+                    def 键入(文,行号=某,列=字段):#键入
+                        """缓冲并解析。"""
+                        自身.编辑中[f'{行号}:{列}']=文#缓冲
+                        自身.改字段(行号,列,解析容量(文))#写行
+                    def 失焦(行号=某,列=字段):#失焦
+                        """落定可读缓冲。"""
+                        自身.落定容量(行号,列)#落定
+                    标签键='contextWindow' if 字段=='contextWindow' else 'maxTokens'#标签
+                    占位键='contextWindowPlaceholder' if 字段=='contextWindow' else 'maxTokensPlaceholder'#占位
                     return {#容量
                         'field':字段,#字段
-                        'label':翻译('contextWindow' if 字段=='contextWindow' else 'maxTokens'),#标签
+                        'label':翻译(标签键),#标签
                         'text':自身.容量文本(模,某,字段),#文本
-                        'placeholder':格式化容量(回退) if isinstance(回退,(int,float)) else 翻译('contextWindowPlaceholder' if 字段=='contextWindow' else 'maxTokensPlaceholder'),#占位
-                        'onChange':(lambda 文,行号=某,列=字段:(
-                            自身.编辑中.__setitem__(f'{行号}:{列}',文),
-                            自身.改字段(行号,列,解析容量(文)),
-                        )),#键入
-                        'onBlur':(lambda 行号=某,列=字段:自身.落定容量(行号,列)),#失焦
+                        'placeholder':格式化容量(回退) if isinstance(回退,(int,float)) else 翻译(占位键),#占位
+                        'onChange':键入,#键入
+                        'onBlur':失焦,#失焦
                     }#容量结束
                 行['advanced']=[造容量('contextWindow',默认上下文),造容量('maxTokens',默认上限)]#高级
             行表.append(行)#记入
         def 添加():#加空 id 行
             """追加空模型。"""
-            变更=取字段(自身.属性,'onChange')#回调
+            变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
             if 变更 is not None:#有
-                变更([dict(模) for 模 in 模型们]+[{'id':''}])#追加
+                变更([dict(模) for 模 in 模型列表]+[{'id':''}])#追加
         return {#视图
             'type':'deepseek-models-editor',#类型
             'title':翻译('models'),#标题
@@ -226,7 +237,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             'overridden':覆盖,#覆盖
             'resetLabel':翻译('resetModels') if 覆盖 else None,#复位
             'onReset':自身.重置 if 覆盖 else None,#复位句柄
-            'empty':翻译('modelsEmpty') if len(模型们)==0 else None,#空态
+            'empty':翻译('modelsEmpty') if len(模型列表)==0 else None,#空态
             'rows':行表,#行
             'addLabel':翻译('addModel'),#添加
             'onAdd':添加,#添加
@@ -239,5 +250,3 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
-
-DeepSeekModelsEditor=DeepSeek模型编辑器#上游名

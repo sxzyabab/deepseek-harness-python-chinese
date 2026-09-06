@@ -4,7 +4,7 @@
 配置字段键保持上游 wire。
 """
 import weakref#弱集合
-from .类型 import 是否中止信号#中止信号判定
+from .类型 import 中止信号#中止通道；深冻结跳过
 
 __all__=(#仅中文公开名
     '可弱引用映射','冻结映射','冻结列表',
@@ -120,8 +120,8 @@ def 深冻结(值):#迭代深冻结
             continue#原语跳过
         if callable(节点) and not isinstance(节点,(dict,list,type)):#函数不冻结
             continue#函数不冻结
-        if 是否中止信号(节点):#中止信号不冻结
-            continue#中止信号不冻结
+        if isinstance(节点,中止信号) or hasattr(节点,'_事件') and not isinstance(节点,(dict,list)):#中止通道不冻结
+            continue#中止通道不冻结
         编号=id(节点)#对象身份
         if 编号 in 已见:#已访问则跳过
             continue#已访问则跳过

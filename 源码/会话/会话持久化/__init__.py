@@ -17,6 +17,7 @@ from .协调器 import (#写路径编排再导出
     已存前缀字段,#已存前缀字段表
     已存后缀字段,#已存后缀字段表
 )#从协调器再导出
+from .预备 import 持久化错误,若已中止则抛出#包异常与中止
 
 #把元数据词汇再导出，使消费方从 Service Definition 导入。
 会话持久化修订=会话持久化修订#再导出品牌函数
@@ -42,34 +43,15 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '会话原样子产物字段','会话位置字段','持久化后端字段','持久化协调器选项字段',
     '已存前缀字段','已存后缀字段','默认预备会话缓存大小','默认写批最大延迟毫秒',
     '写批延迟上限毫秒','持久化协调器','会话格式不支持错误','会话持久化损坏错误',
-    '会话格式版本拒绝文案','解开','若已中止则抛出','会话持久化','默认',
+    '会话格式版本拒绝文案','会话持久化','持久化错误',
 ]#公开面结束
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待
-    return 值#同步值
-
-def 若已中止则抛出(信号):#取消优先抛出
-    """已取消则抛出。"""
-    if 信号 is None:#无信号
-        return#放过
-    方法=getattr(信号,'throwIfAborted',None)#Node风格
-    if callable(方法):#有方法
-        方法()#抛出
-        return#已检查
-    if getattr(信号,'aborted',False) is True:#已中止
-        raise Exception('aborted')#取消
-    if getattr(信号,'已中止',False) is True:#中文旗标
-        raise Exception('aborted')#取消
 
 class 会话持久化(服务):#会话持久化服务
     """耐久仅追加会话存储。实现保留连续、可无损 JSON 序列化的事件；追加仅在耐久后决议，加载平衡完整中断尾巴且不改写已提交事件。"""
     def __init__(自身,上下文):#登记为ctx.sessionPersistence
         """登记为 ctx.sessionPersistence。"""
         if type(自身) is 会话持久化:#直接实例化抽象类
-            raise Exception('@deepseek-ai/dsh-session-persistence is the abstract persistence seam; load a backend implementation instead')#必须加载实现
+            raise 持久化错误('@deepseek-ai/dsh-session-persistence is the abstract persistence seam; load a backend implementation instead')#必须加载实现
         super().__init__(上下文,'sessionPersistence')#服务名
 
     def 定位(自身,头):#定位产物
@@ -83,33 +65,29 @@ class 会话持久化(服务):#会话持久化服务
 
     def 读原始(自身,标识,信号=None):#默认拒绝原样子产物
         """原样读取一个会话的后端拥有产物文本。调用方先测支持原样子产物；之后的 None 只表示请求的会话没有已物化产物。"""
-        if 信号 is not None and (getattr(信号,'aborted',False) is True or getattr(信号,'已中止',False) is True):#已取消
-            原因=getattr(信号,'reason',None)#取消原因
-            if isinstance(原因,BaseException):#有原因
-                raise 原因#拒绝取消
-            raise Exception('aborted')#拒绝取消
-        raise Exception('this session persistence backend does not expose raw artifacts')#不支持原样子产物
+        若已中止则抛出(信号)#已取消则失败
+        raise 持久化错误('this session persistence backend does not expose raw artifacts')#不支持原样子产物
 
     def 创建(自身,头):#注册元数据
         """注册新会话的元数据。后端可以把物理写入推迟到首次追加（惰性物化）。"""
         raise NotImplementedError('SessionPersistence.create')#子类必须实现
 
-    def 追加(自身,标识,事件们):#耐久追加
+    def 追加(自身,标识,事件列表):#耐久追加
         """耐久持久化一批事件。遵守仅追加与连续 seq 约定。"""
         raise NotImplementedError('SessionPersistence.append')#子类必须实现
 
     def 预备(自身,标识,信号=None):#预备未发布会话
         """预备 resume 所用的精确未发布 Session。"""
         若已中止则抛出(信号)#已取消则失败
-        已加载=解开(自身.加载(标识))#加载平衡视图
+        已加载=自身.加载(标识)#加载平衡视图
         若已中止则抛出(信号)#加载后再检查
-        会话们=自身.ctx.get('sessions')#取会话存储
-        if 会话们 is None:#没有会话存储
-            raise Exception('cannot prepare a session: SessionStore is not configured')#无法预备
+        会话服务=自身.ctx.获取服务('sessions')#取会话存储
+        if 会话服务 is None:#没有会话存储
+            raise 持久化错误('cannot prepare a session: SessionStore is not configured')#无法预备
         事件种子=[]#深拷贝事件种子
         for 事件 in 已加载['events']:#逐条
             事件种子.append(结构化克隆(事件))#深拷贝
-        return 会话准备.创建(会话们.prepare(标识,{#构造预备
+        return 会话准备.创建(会话服务.prepare(标识,{#构造预备
             'seed':事件种子,#深拷贝事件种子
             'meta':结构化克隆(已加载['meta']),#深拷贝头
             'seedSource':'persistence',#种子来自持久化
@@ -135,5 +113,4 @@ class 会话持久化(服务):#会话持久化服务
         """列出已物化会话及其廉价的每日志变更令牌。"""
         raise NotImplementedError('SessionPersistence.listSnapshots')#子类必须实现
 
-default=会话持久化#默认导出
-默认=会话持久化#中文默认导出
+default=会话持久化#Cordis 默认导出槽

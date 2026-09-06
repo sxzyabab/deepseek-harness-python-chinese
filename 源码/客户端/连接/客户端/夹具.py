@@ -5,8 +5,9 @@ createFixtureWorld 主体。样本常量与甲日志来自 `.夹具样本` / `.�
 真实约定：一元调用吃 RpcRequest、回 RpcResponse（回显 rpcId）；流产出自造帧 rpcId；
 根 respond 吃 ClientResponse、回 RpcReceipt。公开面仅中文名；协议键保持英文。
 """
-import functools,re,threading,time#偏函数、切片、定时器、延迟
+import builtins,functools,re,threading,time#全局、偏函数、切片、定时器、延迟
 from urllib.parse import parse_qs#读查询
+from ..rpc import 连接错误,已中止#本包异常与中止
 from .接口 import 抽象接口客户端,Rpc标识,会话搜索结果上限#抽象客户端、rpcId、检索上限
 from .随机uuid import 随机uuid#造 uuid
 from .夹具历史 import 造文本块,造用户消息,造助手消息,构造甲日志#消息工厂与甲日志
@@ -17,14 +18,14 @@ from .夹具样本 import (#样本与投影/检索
     回扫目标,最近请求上下文,
 )#结束样本导入
 
-__all__=[#仅中文公开名与上游别名
+__all__=[#仅中文公开名
     '夹具接口客户端',
     '创建夹具双面',
     '创建夹具接口',
-    'FixtureApiClient',
-    'createFixtureFaces',
-    'createFixtureApi',
 ]#公开面结束
+
+斜杠命令行规则=re.compile(r'^/(\S+)((?:\s.*)?)\Z',re.ASCII)#切 /name args
+空白压扁规则=re.compile(r'[ \t\n\r\f\v]+',re.ASCII)#压空白
 
 def 造rpc请求(载荷):#自造一元请求
     """假载体像真载体一样自造 rpcId。"""
@@ -38,33 +39,9 @@ def 工作区标识(字面):#品牌断言 WorkspaceId
     """把字面量标成工作区 id。"""
     return 字面#fixture 自造 id
 
-def 取已中止(信号):#读 aborted
-    """映射或对象。"""
-    if 信号 is None:#无
-        return False#未
-    if isinstance(信号,dict):#映射
-        return bool(信号.get('aborted'))#旗
-    return bool(getattr(信号,'aborted',False))#属性
-
-def 挂中止(信号,回调):#登记 abort 监听
-    """有 addEventListener 则挂；否则无操作。"""
-    if 信号 is None:#无
-        return#完
-    函=getattr(信号,'addEventListener',None)#可能有
-    if callable(函):#事件面
-        函('abort',回调)#挂一次语义由调用方保证
-
-def 摘中止(信号,回调):#摘 abort 监听
-    """有 removeEventListener 则摘。"""
-    if 信号 is None:#无
-        return#完
-    函=getattr(信号,'removeEventListener',None)#可能有
-    if callable(函):#事件面
-        函('abort',回调)#摘
-
-def 面对象(**方法们):#造属性面
+def 面对象(**方法表):#造属性面
     """把可调用表挂成属性对象。"""
-    return type('夹具面',(),方法们)()#匿名面
+    return type('夹具面',(),方法表)()#匿名面
 
 class 夹具收件箱:#内存收件箱（FrameQueue 模式）
     """一流连接：push 入队；drain 吐帧直至 abort/breakNow。"""
@@ -84,41 +61,33 @@ class 夹具收件箱:#内存收件箱（FrameQueue 模式）
 
     def 仍活(自身,信号):#活着？
         """breakNow/abort 会跨 yield 翻转，不得粘住循环条件。"""
-        return not 取已中止(信号) and not 自身._打断#两边都未结束
+        return (not 已中止(信号)) and (not 自身._打断)#两边都未结束
 
     def drain(自身,信号):#抽出收件箱
         """同步生成器：吐帧直至 abort 或 breakNow。"""
-        def 唤醒(_事件=None):#abort 也唤醒轮询
-            """空操作：轮询侧会再读旗。"""
-            return None#无
-        挂中止(信号,唤醒)#循环外只挂一次
-        try:#泵到死
-            while 自身.仍活(信号):#仍活
-                while 自身._收件箱:#抽干
-                    yield 自身._收件箱.pop(0)#交出队头
-                if not 自身.仍活(信号):#抽完后再看
-                    break#停
-                time.sleep(0.01)#等下一推或打断
-        finally:#无论因何退出
-            摘中止(信号,唤醒)#摘监听
+        while 自身.仍活(信号):#仍活
+            while 自身._收件箱:#抽干
+                yield 自身._收件箱.pop(0)#交出队头
+            if not 自身.仍活(信号):#抽完后再看
+                break#停
+            time.sleep(0.01)#等下一推或打断
 
 def 自定位读夹具选项():#读 URL 分支
     """浏览器查询映射；非浏览器则空。"""
-    try:#取 location
-        import builtins#全局
-        页面=getattr(builtins,'location',None)#可能缺
-    except Exception:#无
+    try:#宿主可选 location
+        页面=builtins.location#页面
+    except AttributeError:#非浏览器
         页面=None#无
     if 页面 is None:#非浏览器
         return {}#空选项
-    查询=getattr(页面,'search','') or ''#查询串
+    查询=页面.search if 页面.search is not None else ''#查询串
     if 查询.startswith('?'):#带问号
         查询=查询[1:]#去掉
     参数=parse_qs(查询)#解析
     def 取一(键):#单值
         """取首个查询值。"""
-        值们=参数.get(键) or []#列表
-        return 值们[0] if 值们 else None#首或无
+        值列表=参数.get(键) or []#列表
+        return 值列表[0] if 值列表 else None#首或无
     帧序=取一('fixtureFrames')#帧序开关
     return {#各开关
         'empty':取一('fixture')=='empty',#空图
@@ -130,14 +99,11 @@ def 自定位读夹具选项():#读 URL 分支
 
 def 创建夹具接口(选项=None):#只取旧 API 面
     """丢 rpc 面。"""
-    return 造夹具世界(选项 or {}).api#旧面
+    return 造夹具世界(选项 if 选项 is not None else {}).api#旧面
 
 def 创建夹具双面(选项=None):#双面入口
     """造两张 fixture 面，同一内存状态图。"""
-    return 造夹具世界(选项 or {})#同一世界
-
-createFixtureApi=创建夹具接口#上游名
-createFixtureFaces=创建夹具双面#上游名
+    return 造夹具世界(选项 if 选项 is not None else {})#同一世界
 
 def 造夹具世界(选项):#内存假宿主
     """fx-alpha 带历史与回放；fx-beta 是子会话。返回 {api, rpc}。"""
@@ -147,13 +113,13 @@ def 造夹具世界(选项):#内存假宿主
     丢创建响应=bool(选项.get('dropSessionCreateResponse'))#丢响应
     帧序=选项.get('createFrameOrder') or 'session-first'#帧序
     此刻=time.time()*1000#毫秒墙钟
-    会话们=[] if 空图 else [#三会话或空
+    会话列表=[] if 空图 else [#三会话或空
         {'sessionId':会话标识('fx-alpha'),'updatedAt':此刻,'running':True,'blank':False,'cwd':'/tmp/fixture'},#主会话
         {'sessionId':会话标识('fx-beta'),'updatedAt':此刻-60_000,'running':False,'blank':False,'parentSessionId':会话标识('fx-alpha'),'cwd':'/tmp/fixture'},#子会话
         {'sessionId':会话标识('fx-gamma'),'updatedAt':此刻-120_000,'running':False,'blank':False,'cwd':'/tmp/fixture'},#心跳翻转
-    ]#结束会话们
+    ]#结束会话列表
     日志图={会话标识('fx-alpha'):构造甲日志()} if not 空图 else {}#仅 alpha 预填
-    模型选择={会话['sessionId']:{'provider':'deepseek-official','model':'deepseek-v4-flash'} for 会话 in 会话们}#每会话默认
+    模型选择={会话['sessionId']:{'provider':'deepseek-official','model':'deepseek-v4-flash'} for 会话 in 会话列表}#每会话默认
     附件图={str(夹具图像引用['attachmentId']):{'attachment':dict(夹具图像引用),'data':夹具图像数据}}#样本图
     凭证图={'DEEPSEEK_API_KEY':True}#已配置集合
     预设图={#三份预设
@@ -167,12 +133,12 @@ def 造夹具世界(选项):#内存假宿主
     下一rpc=[1]#自造 rpcId 序号
     已挂接=[0 if 空图 else 1]#describe 用的已挂接计数
     纪元=time.strftime('%Y-%m-%dT%H:%M:%S.000Z',time.gmtime(time.time()-300))#固定创建/更新
-    工作区们=[] if 空图 else [{#单工作区或空
+    工作区列表=[] if 空图 else [{#单工作区或空
         'workspaceId':工作区标识('fx-ws-fixture'),
         'path':'/tmp/fixture','title':'fixture',
         'sessionIds':[会话标识('fx-alpha'),会话标识('fx-beta'),会话标识('fx-gamma')],
         'createdAt':纪元,'updatedAt':纪元,
-    }]#结束工作区们
+    }]#结束工作区列表
     下一工作区=[1]#自造工作区序号
     已归档=[]#归档 id
     夹具家='/home/fixture'#家
@@ -192,8 +158,8 @@ def 造夹具世界(选项):#内存假宿主
         斜=路径.rfind('/')#末斜杠
         父='/' if 斜<=0 else 路径[:斜] or '/'#父路径
         名=路径[斜+1:]#末段
-        父们=目录树.get(父)#父节点
-        return [] if 父们 is not None and 名 in 父们 else None#空叶或无
+        父名列表=目录树.get(父)#父节点
+        return [] if 父名列表 is not None and 名 in 父名列表 else None#空叶或无
 
     def 面包屑(路径):#面包屑
         """根起累计路径。"""
@@ -229,17 +195,17 @@ def 造夹具世界(选项):#内存假宿主
             {'label':'系统设计'},{'label':'代码质量'},{'label':'Agent 产品判断'},
         ]},
     ]#结束夹具提问
-    mux连接们=set()#打开的 mux 收件箱
-    宿主连接们=set()#打开的 host 收件箱
+    mux连接集合=set()#打开的 mux 收件箱
+    宿主连接集合=set()#打开的 host 收件箱
 
     def 广播mux(帧):#广播 mux 帧
         """每连接一封新 rpcId。"""
-        for 连接 in list(mux连接们):#拷贝
+        for 连接 in list(mux连接集合):#拷贝
             连接.push({'rpcId':铸造rpc(),'payload':帧})#推
 
     def 广播宿主(帧):#广播宿主帧
         """每连接一封新 rpcId。"""
-        for 连接 in list(宿主连接们):#拷贝
+        for 连接 in list(宿主连接集合):#拷贝
             连接.push({'rpcId':铸造rpc(),'payload':帧})#推
 
     def 成功(请求,值):#成功响应
@@ -252,7 +218,7 @@ def 造夹具世界(选项):#内存假宿主
 
     def 摘要于(标识):#按 id 找摘要
         """会话目录查找。"""
-        for 项 in 会话们:#扫
+        for 项 in 会话列表:#扫
             if 项['sessionId']==标识:#命中
                 return 项#摘要
         return None#未知
@@ -518,10 +484,10 @@ def 造夹具世界(选项):#内存假宿主
         追加目标变更(标识,{'kind':'goal/change','version':1,'operation':'clear','cleared':墓碑,'clearedAt':time.time()*1000})#clear
         return {'ok':True,'value':墓碑}#回墓碑
 
-    回放们={}#每会话最多一条在飞回放
+    回放表={}#每会话最多一条在飞回放
     历史延迟毫秒=[0]#传输延迟
     下一次历史失败=[False]#一次性失败
-    流打断们=set()#breakNow 集合
+    流打断集合=set()#breakNow 集合
     重试剧本={}#sessionId → {turn, stepStarted}
     推理压测=[None]#可选压测泵状态
 
@@ -531,14 +497,14 @@ def 造夹具世界(选项):#内存假宿主
         追加(标识,{'type':'step/start','data':{'turn':轮次,'step':步}})#开步
         追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':步,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
         码点=list(回复正文 or '')#按码点
-        片们=[''.join(码点[下标:下标+6]) for 下标 in range(0,len(码点),6)] or [回复正文 or '']#每片最多 6
+        片列表=[''.join(码点[下标:下标+6]) for 下标 in range(0,len(码点),6)] or [回复正文 or '']#每片最多 6
         已发=[0]#已发片数
         定时器盒={'timer':None}#可变定时器
 
         def 定稿(已中断):#定稿
             """写 block-end + assistant/message + step/end + turn/end。"""
-            回放们.pop(标识,None)#摘句柄
-            完成=''.join(片们[:已发[0]])#已发出正文
+            回放表.pop(标识,None)#摘句柄
+            完成=''.join(片列表[:已发[0]])#已发出正文
             追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':步,'chunk':{'type':'block-end','index':0,'block':{'type':'text','text':完成}}}})#关块
             正文=f'{完成}（已中断）' if 已中断 else 完成#中断标记
             追加(标识,{'type':'assistant/message','surfaceOp':'append','data':{
@@ -550,23 +516,23 @@ def 造夹具世界(选项):#内存假宿主
 
         def 滴答():#发一片
             """下一片或定稿。"""
-            if 已发[0]>=len(片们):#发完
+            if 已发[0]>=len(片列表):#发完
                 定稿(False)#正常定稿
                 return#停
-            片=片们[已发[0]]#下一片
+            片=片列表[已发[0]]#下一片
             已发[0]+=1#前进
             追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':步,'chunk':{'type':'text-delta','index':0,'text':片}}})#delta
             定时器=threading.Timer(0.08,滴答)#下一拍
             定时器.daemon=True#守护
             定时器.start()#启动
             定时器盒['timer']=定时器#记下
-            回放们[标识]={'timer':定时器,'finish':定稿}#句柄
+            回放表[标识]={'timer':定时器,'finish':定稿}#句柄
 
         首定时=threading.Timer(0.08,滴答)#启动
         首定时.daemon=True#守护
         首定时.start()#开
         定时器盒['timer']=首定时#记下
-        回放们[标识]={'timer':首定时,'finish':定稿}#句柄
+        回放表[标识]={'timer':首定时,'finish':定稿}#句柄
 
     def 时序钩_设历史延迟(毫秒):#设传输延迟
         """毫秒。"""
@@ -574,7 +540,7 @@ def 造夹具世界(选项):#内存假宿主
 
     def 时序钩_下一次历史失败():#一次性失败
         """下一发 history 抛错。"""
-        下一次历史失败[0]=True#旗
+        下一次历史失败[0]=True#标志
 
     def 时序钩_追加用户(标识字面,消息):#直播用户消息
         """走 append。"""
@@ -590,14 +556,14 @@ def 造夹具世界(选项):#内存假宿主
     def 时序钩_开推理压测(标识字面,块数,每间隔块数,间隔毫秒):#压测泵
         """外部节奏推理流；返回完成标记。"""
         if not isinstance(块数,int) or 块数<1:#块数非法
-            raise Exception('fixture: reasoning chunk count must be a positive safe integer')#错误串勿改
+            raise 连接错误('fixture: reasoning chunk count must be a positive safe integer')#错误串勿改
         if not isinstance(每间隔块数,int) or 每间隔块数<1:#每间隔非法
-            raise Exception('fixture: reasoning chunks per interval must be a positive safe integer')#勿改
+            raise 连接错误('fixture: reasoning chunks per interval must be a positive safe integer')#勿改
         if not isinstance(间隔毫秒,int) or 间隔毫秒<1:#间隔非法
-            raise Exception('fixture: reasoning interval must be a positive safe integer')#勿改
+            raise 连接错误('fixture: reasoning interval must be a positive safe integer')#勿改
         活动=推理压测[0]#现泵
         if 活动 is not None and 活动.get('emitting') is True:#已在泵
-            raise Exception('fixture: reasoning chunk storm already running')#勿改
+            raise 连接错误('fixture: reasoning chunk storm already running')#勿改
         标识=会话标识(标识字面)#品牌
         日志=日志于(标识)#日志
         轮次=下一轮.get(标识,0)#候选轮
@@ -664,7 +630,7 @@ def 造夹具世界(选项):#内存假宿主
         标识=会话标识(标识字面)#品牌
         剧本=重试剧本.get(标识)#剧本
         if 剧本 is None:#未 begin
-            raise Exception(f'fixture: no model retry scenario for {标识字面}')#错误
+            raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
         if not 剧本['stepStarted']:#需要再开一块半截
             追加(标识,{'type':'assistant/chunk','data':{'turn':剧本['turn'],'step':1,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
             追加(标识,{'type':'assistant/chunk','data':{'turn':剧本['turn'],'step':1,'chunk':{'type':'text-delta','index':0,'text':f'第 {重试} 次应撤回的回复'}}})#半截
@@ -681,7 +647,7 @@ def 造夹具世界(选项):#内存假宿主
         标识=会话标识(标识字面)#品牌
         剧本=重试剧本.get(标识)#剧本
         if 剧本 is None:#未 begin
-            raise Exception(f'fixture: no model retry scenario for {标识字面}')#错误
+            raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
         失败体={'code':'TRANSPORT','message':'连接被重置'}#失败体
         追加(标识,{'type':'llm/retry','data':{
             'turn':剧本['turn'],'step':1,'provider':'fixture','mode':'normal','policyKey':'fixture-normal',
@@ -697,7 +663,7 @@ def 造夹具世界(选项):#内存假宿主
         标识=会话标识(标识字面)#品牌
         剧本=重试剧本.pop(标识,None)#清
         if 剧本 is None:#未 begin
-            raise Exception(f'fixture: no model retry scenario for {标识字面}')#错误
+            raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
         追加(标识,{'type':'assistant/chunk','data':{'turn':剧本['turn'],'step':1,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
         追加(标识,{'type':'assistant/message','surfaceOp':'append','data':{
             'turn':剧本['turn'],'step':1,'message':造助手消息(造文本块('重试后的完整回复')),
@@ -714,7 +680,7 @@ def 造夹具世界(选项):#内存假宿主
 
     def 时序钩_断流():#断流
         """结束每个打开的流生成器。"""
-        for 打断 in list(流打断们):#拷贝后打断
+        for 打断 in list(流打断集合):#拷贝后打断
             打断()#breakNow
 
     时序钩=面对象(#挂到 builtins.__fxTiming
@@ -742,16 +708,16 @@ def 造夹具世界(选项):#内存假宿主
         def 更新键(项):#排序键
             """updatedAt。"""
             return 项['updatedAt']#时刻
-        项们=sorted(会话们,key=更新键,reverse=True)#倒序
-        return 成功(请求,{'items':[dict(项) for 项 in 项们]})#拷贝
+        项列表=sorted(会话列表,key=更新键,reverse=True)#倒序
+        return 成功(请求,{'items':[dict(项) for 项 in 项列表]})#拷贝
 
     def 检索会话(请求,信号):#会话检索
         """表面短语匹配分页。"""
-        if 取已中止(信号):#已取消
+        if 已中止(信号):#已取消
             return 失败(请求,{'code':'cancelled','message':'fixture session search was aborted','details':{}})#取消
         查询=[令牌['value'] for 令牌 in 检索令牌跨度(请求['payload'].get('query') or '')['tokens']]#查询 token
-        候选们=[]#跨会话
-        for 摘要 in 会话们:#每会话一条最佳
+        候选列表=[]#跨会话
+        for 摘要 in 会话列表:#每会话一条最佳
             日志=日志图.get(摘要['sessionId']) or []#日志
             当前=set(折表面(日志)['nodes'])#当前表面
             本会话=[]#候选
@@ -771,22 +737,22 @@ def 造夹具世界(选项):#内存假宿主
                 })#结束候选
             if 本会话:#有命中
                 本会话.sort(key=functools.cmp_to_key(比较检索候选))#该会话排序
-                候选们.append(本会话[0])#最佳
-        候选们.sort(key=functools.cmp_to_key(比较检索候选))#跨会话排序
+                候选列表.append(本会话[0])#最佳
+        候选列表.sort(key=functools.cmp_to_key(比较检索候选))#跨会话排序
         上限=会话搜索结果上限#截断
         return 成功(请求,{#分页
             'items':[{
                 'sessionId':命中['sessionId'],
                 'snippet':检索摘录(命中['text'],命中['matchStart'],命中['matchEnd']),
-            } for 命中 in 候选们[:上限]],
-            'hasMore':len(候选们)>上限,
+            } for 命中 in 候选列表[:上限]],
+            'hasMore':len(候选列表)>上限,
         })#结束成功
 
     def 创建会话(请求):#创建或幂等挂接
         """工作区挂接与帧序分支。"""
         载荷=请求['payload']#载荷
         工作区标识值=载荷.get('workspaceId')#可选
-        工作区=None if 工作区标识值 is None else next((区 for 区 in 工作区们 if 区['workspaceId']==工作区标识值),None)#按 id
+        工作区=None if 工作区标识值 is None else next((区 for 区 in 工作区列表 if 区['workspaceId']==工作区标识值),None)#按 id
         if 工作区标识值 is not None and 工作区 is None:#id 有但找不到
             return 失败(请求,{'code':'workspace-not-found','message':f'no workspace {工作区标识值}','details':{'workspaceId':工作区标识值}})#缺失
         工作目录=(工作区 or {}).get('path') or 载荷.get('cwd') or '/tmp/fixture'#cwd
@@ -821,7 +787,7 @@ def 造夹具世界(选项):#内存假宿主
         if 请求标识 is None:#自造
             下一会话[0]+=1#前进
         建成={'sessionId':新标识,'updatedAt':time.time()*1000,'running':False,'blank':True,'cwd':工作目录}#新摘要
-        会话们.append(建成)#登记
+        会话列表.append(建成)#登记
         模型选择[新标识]={'provider':'deepseek-official','model':'deepseek-v4-flash'}#默认模型
         已挂接[0]+=1#已挂计数
 
@@ -840,7 +806,7 @@ def 造夹具世界(选项):#内存假宿主
             if 工作区 is not None:#再挂
                 挂工作区(建成['sessionId'])#挂
         if 丢创建响应:#发布后丢响应
-            raise Exception('fixture: dropped session.create response after publication')#勿改
+            raise 连接错误('fixture: dropped session.create response after publication')#勿改
         return 成功(请求,{'sessionId':建成['sessionId']})#回新 id
 
     def 重命名会话(请求):#改会话标题
@@ -889,12 +855,12 @@ def 造夹具世界(选项):#内存假宿主
         if 源.get('cwd') is not None:#继承 cwd
             子['cwd']=源['cwd']#拷
         日志图[子['sessionId']]=list(日志[:切])#拷前缀
-        会话们.append(子)#登记
+        会话列表.append(子)#登记
         帧={'type':'host/session-added','sessionId':子['sessionId'],'blank':False,'parentSessionId':标识}#子会话帧
         if 源.get('cwd') is not None:#带 cwd
             帧['cwd']=源['cwd']#拷
         广播宿主(帧)#发
-        工作区=next((区 for 区 in 工作区们 if 标识 in 区['sessionIds']),None)#源所在
+        工作区=next((区 for 区 in 工作区列表 if 标识 in 区['sessionIds']),None)#源所在
         if 工作区 is not None:#挂子会话
             工作区['sessionIds']=[子['sessionId'],*工作区['sessionIds']]#插到最前
             工作区['updatedAt']=time.strftime('%Y-%m-%dT%H:%M:%S.000Z',time.gmtime())#刷新
@@ -915,7 +881,7 @@ def 造夹具世界(选项):#内存假宿主
         if 延迟>0:#等延迟
             time.sleep(延迟/1000)#秒
         if 注定失败:#演失败
-            raise Exception('fixture: simulated history transport failure')#勿改
+            raise 连接错误('fixture: simulated history transport failure')#勿改
         值=dict(页)#页
         if 投影 is not None:#带投影
             值['projections']=投影#投影
@@ -967,7 +933,7 @@ def 造夹具世界(选项):#内存假宿主
                 附件['name']=块['name']#挂上
             附件图[str(附件['attachmentId'])]={'attachment':附件,'data':数据}#记下字节
             落库.append({'type':'image','attachment':附件})#引用块
-        if 模式=='steer' and 标识 in 回放们:#转向进行中的回放
+        if 模式=='steer' and 标识 in 回放表:#转向进行中的回放
             追加(标识,{'type':'user/message','surfaceOp':'append','data':造用户消息(落库)})#当前轮内
             return 成功(请求,{'accepted':True})#接受、不新开轮
         轮次=下一轮.get(标识,0)#下一轮号
@@ -1009,7 +975,7 @@ def 造夹具世界(选项):#内存假宿主
     def 取消会话(请求):#停回放或翻 running
         """有回放则中断定稿。"""
         标识=请求['payload']['sessionId']#id
-        回放=回放们.get(标识)#进行中
+        回放=回放表.get(标识)#进行中
         if 回放 is not None:#有回放
             定时=回放.get('timer')#定时器
             if 定时 is not None:#可停
@@ -1047,23 +1013,23 @@ def 造夹具世界(选项):#内存假宿主
     def 列目录(请求):#列目录
         """fixture 树。"""
         目标=请求['payload'].get('path') or 夹具家#缺省家
-        子们=列子(目标)#子名
-        if 子们 is None:#不在树上
+        子名列表=列子(目标)#子名
+        if 子名列表 is None:#不在树上
             return 失败(请求,{'code':'directory-unreadable','message':f'cannot list {目标}: not in the fixture tree','details':{'path':目标}})#不可读
-        条目=[{'name':名,'path':f'/{名}' if 目标=='/' else f'{目标}/{名}','hidden':名.startswith('.')} for 名 in sorted(子们)]#条目
+        条目=[{'name':名,'path':f'/{名}' if 目标=='/' else f'{目标}/{名}','hidden':名.startswith('.')} for 名 in sorted(子名列表)]#条目
         return 成功(请求,{'path':目标,'home':夹具家,'crumbs':面包屑(目标),'entries':条目,'truncated':False})#目录页
 
     def 建目录(请求):#建子目录
         """登记到目录树。"""
         父=请求['payload']['path']#父路径
         名=请求['payload']['name']#子名
-        子们=列子(父)#现有
-        if 子们 is None:#父不在树上
+        子名列表=列子(父)#现有
+        if 子名列表 is None:#父不在树上
             return 失败(请求,{'code':'directory-create-failed','message':f'missing parent {父}','details':{'path':父}})#失败
         目标=f'/{名}' if 父=='/' else f'{父}/{名}'#子路径
-        if 名 in 子们:#已有同名
+        if 名 in 子名列表:#已有同名
             return 失败(请求,{'code':'directory-exists','message':f'{目标} already exists','details':{'path':目标}})#冲突
-        目录树[父]=[*子们,名]#登记子名
+        目录树[父]=[*子名列表,名]#登记子名
         目录树[目标]=[]#空目录
         return 成功(请求,{'path':目标})#回路径
 
@@ -1073,31 +1039,31 @@ def 造夹具世界(选项):#内存假宿主
 
     def 列工作区(请求):#列工作区
         """拷贝视图。"""
-        return 成功(请求,{'items':[dict(区) for 区 in 工作区们],'archivedSessionIds':list(已归档)})#列表
+        return 成功(请求,{'items':[dict(区) for 区 in 工作区列表],'archivedSessionIds':list(已归档)})#列表
 
     def 建工作区(请求):#按 path 幂等创建
         """同路径则已有。"""
         路径=请求['payload']['path']#路径
-        已有=next((区 for 区 in 工作区们 if 区['path']==路径),None)#同路径
+        已有=next((区 for 区 in 工作区列表 if 区['path']==路径),None)#同路径
         if 已有 is not None:#已有
             return 成功(请求,{'workspace':dict(已有),'created':False})#已有
         现在=time.strftime('%Y-%m-%dT%H:%M:%S.000Z',time.gmtime())#时间戳
         末段=([部 for 部 in 路径.split('/') if 部] or [路径])[-1]#末段名
         建成={'workspaceId':工作区标识(f'fx-ws-{下一工作区[0]}'),'path':路径,'title':末段,'sessionIds':[],'createdAt':现在,'updatedAt':现在}#新
         下一工作区[0]+=1#前进
-        工作区们.insert(0,建成)#插到最前
+        工作区列表.insert(0,建成)#插到最前
         广播宿主({'type':'host/workspace-changed','workspace':dict(建成)})#广播
         return 成功(请求,{'workspace':dict(建成),'created':True})#新造
 
     def 改工作区名(请求):#改工作区标题
         """重名冲突。"""
         载荷=请求['payload']#载荷
-        工作区=next((区 for 区 in 工作区们 if 区['workspaceId']==载荷['workspaceId']),None)#按 id
+        工作区=next((区 for 区 in 工作区列表 if 区['workspaceId']==载荷['workspaceId']),None)#按 id
         if 工作区 is None:#找不到
             return 失败(请求,{'code':'workspace-not-found','message':f"no workspace {载荷['workspaceId']}",'details':{'workspaceId':载荷['workspaceId']}})#缺失
         修剪=(载荷.get('title') or '').strip()#去两端
         if 修剪!=工作区['title']:#真有改
-            if any(区['workspaceId']!=载荷['workspaceId'] and 区['title']==修剪 for 区 in 工作区们):#重名
+            if any(区['workspaceId']!=载荷['workspaceId'] and 区['title']==修剪 for 区 in 工作区列表):#重名
                 return 失败(请求,{'code':'workspace-name-conflict','message':f"workspace name '{修剪}' is already in use",'details':{'name':修剪}})#冲突
             工作区['title']=修剪#改标题
             工作区['updatedAt']=time.strftime('%Y-%m-%dT%H:%M:%S.000Z',time.gmtime())#刷新
@@ -1107,10 +1073,10 @@ def 造夹具世界(选项):#内存假宿主
     def 删工作区(请求):#删工作区
         """摘掉并广播移除。"""
         标识=请求['payload']['workspaceId']#id
-        下标=next((号 for 号,区 in enumerate(工作区们) if 区['workspaceId']==标识),-1)#下标
+        下标=next((号 for 号,区 in enumerate(工作区列表) if 区['workspaceId']==标识),-1)#下标
         if 下标==-1:#找不到
             return 失败(请求,{'code':'workspace-not-found','message':f'no workspace {标识}','details':{'workspaceId':标识}})#缺失
-        工作区们.pop(下标)#摘掉
+        工作区列表.pop(下标)#摘掉
         广播宿主({'type':'host/workspace-removed','workspaceId':标识})#广播
         return 成功(请求,{'deleted':True})#已删
 
@@ -1119,24 +1085,24 @@ def 造夹具世界(选项):#内存假宿主
         载荷=请求['payload']#载荷
         源标识=载荷['workspaceId']#源
         锚标识=载荷.get('beforeWorkspaceId')#锚
-        源下标=next((号 for 号,区 in enumerate(工作区们) if 区['workspaceId']==源标识),-1)#源
-        锚下标=len(工作区们) if 锚标识 is None else next((号 for 号,区 in enumerate(工作区们) if 区['workspaceId']==锚标识),-1)#锚
+        源下标=next((号 for 号,区 in enumerate(工作区列表) if 区['workspaceId']==源标识),-1)#源
+        锚下标=len(工作区列表) if 锚标识 is None else next((号 for 号,区 in enumerate(工作区列表) if 区['workspaceId']==锚标识),-1)#锚
         缺=源标识 if 源下标==-1 else (锚标识 if 锚下标==-1 else None)#缺谁
         if 缺 is not None:#源或锚找不到
             return 失败(请求,{'code':'workspace-not-found','message':f'no workspace {缺}','details':{'workspaceId':缺}})#缺失
         if 锚标识!=源标识:#不是插到自己前面
-            先前=[区['workspaceId'] for 区 in 工作区们]#改前序
-            工作区=工作区们.pop(源下标)#摘出
-            插入点=len(工作区们) if 锚标识 is None else next(号 for 号,区 in enumerate(工作区们) if 区['workspaceId']==锚标识)#锚现位
-            工作区们.insert(插入点,工作区)#插入
-            if any(区['workspaceId']!=先前[号] for 号,区 in enumerate(工作区们)):#序真变了
-                广播宿主({'type':'host/workspace-order-changed','workspaceIds':[区['workspaceId'] for 区 in 工作区们]})#顺序帧
-        return 成功(请求,{'workspaceIds':[区['workspaceId'] for 区 in 工作区们]})#回现序
+            先前=[区['workspaceId'] for 区 in 工作区列表]#改前序
+            工作区=工作区列表.pop(源下标)#摘出
+            插入点=len(工作区列表) if 锚标识 is None else next(号 for 号,区 in enumerate(工作区列表) if 区['workspaceId']==锚标识)#锚现位
+            工作区列表.insert(插入点,工作区)#插入
+            if any(区['workspaceId']!=先前[号] for 号,区 in enumerate(工作区列表)):#序真变了
+                广播宿主({'type':'host/workspace-order-changed','workspaceIds':[区['workspaceId'] for 区 in 工作区列表]})#顺序帧
+        return 成功(请求,{'workspaceIds':[区['workspaceId'] for 区 in 工作区列表]})#回现序
 
     def 插入会话前(请求):#重排会话槽
         """工作区内会话重排。"""
         载荷=请求['payload']#载荷
-        工作区=next((区 for 区 in 工作区们 if 区['workspaceId']==载荷['workspaceId']),None)#按 id
+        工作区=next((区 for 区 in 工作区列表 if 区['workspaceId']==载荷['workspaceId']),None)#按 id
         if 工作区 is None:#找不到
             return 失败(请求,{'code':'workspace-not-found','message':f"no workspace {载荷['workspaceId']}",'details':{'workspaceId':载荷['workspaceId']}})#缺失
         会话标识值=载荷['sessionId']#源
@@ -1168,8 +1134,8 @@ def 造夹具世界(选项):#内存假宿主
 
     def 列预设(请求):#列预设
         """两种 trust。"""
-        预设们=[{'id':标识,'trust':预设['trust'],'isDefault':标识==默认预设[0]} for 标识,预设 in 预设图.items()]#每条
-        return 成功(请求,{'presets':预设们,'authorable':True,'hasDocument':True})#列表
+        预设列表=[{'id':标识,'trust':预设['trust'],'isDefault':标识==默认预设[0]} for 标识,预设 in 预设图.items()]#每条
+        return 成功(请求,{'presets':预设列表,'authorable':True,'hasDocument':True})#列表
 
     def 选预设(请求):#设默认预设
         """记下。"""
@@ -1266,21 +1232,21 @@ def 造夹具世界(选项):#内存假宿主
     def mux流(_请求,信号):#复用事件流
         """打开基线 + drain。"""
         连接=夹具收件箱()#本连接
-        mux连接们.add(连接)#登记
+        mux连接集合.add(连接)#登记
 
         def 打断():#时序钩用
             """breakNow。"""
             连接.breakNow()#打断
 
-        流打断们.add(打断)#登记
-        for 摘要 in 会话们:#跑着的才订阅
+        流打断集合.add(打断)#登记
+        for 摘要 in 会话列表:#跑着的才订阅
             if not 摘要['running']:#停着
                 continue#跳过
             日志=日志图.get(摘要['sessionId']) or []#日志
             连接.push({'rpcId':铸造rpc(),'payload':{'type':'session/subscribed','sessionId':摘要['sessionId'],'lastSeq':len(日志)-1}})#订阅
-            值们=投影值于(日志)#整包
-            for 键 in 值们:#每键一帧
-                连接.push({'rpcId':铸造rpc(),'payload':{'type':'session/projection','sessionId':摘要['sessionId'],'key':键,'value':值们[键],'seq':len(日志)-1}})#投影
+            投影表=投影值于(日志)#整包
+            for 键 in 投影表:#每键一帧
+                连接.push({'rpcId':铸造rpc(),'payload':{'type':'session/projection','sessionId':摘要['sessionId'],'key':键,'value':投影表[键],'seq':len(日志)-1}})#投影
         if 审批未决[0]:#重放常驻审批
             连接.push({'rpcId':未决审批rpc,'payload':{
                 'type':'approval/requested','sessionId':会话标识('fx-alpha'),
@@ -1294,19 +1260,19 @@ def 造夹具世界(选项):#内存假宿主
         try:#泵到取消或打断
             yield from 连接.drain(信号)#吐帧
         finally:#摘登记
-            流打断们.discard(打断)#摘钩
-            mux连接们.discard(连接)#摘连接
+            流打断集合.discard(打断)#摘钩
+            mux连接集合.discard(连接)#摘连接
 
     def 宿主流(_请求,信号):#宿主流
         """周期性翻转 fx-gamma。"""
         连接=夹具收件箱()#本连接
-        宿主连接们.add(连接)#登记
+        宿主连接集合.add(连接)#登记
 
         def 打断():#时序钩用
             """breakNow。"""
             连接.breakNow()#打断
 
-        流打断们.add(打断)#登记
+        流打断集合.add(打断)#登记
         停心跳={'v':False}#停旗
 
         def 心跳():#每 5s 翻转 fx-gamma
@@ -1332,8 +1298,8 @@ def 造夹具世界(选项):#内存假宿主
             定时=停心跳.get('timer')#现定时
             if 定时 is not None:#可停
                 定时.cancel()#停翻转
-            流打断们.discard(打断)#摘钩
-            宿主连接们.discard(连接)#摘连接
+            流打断集合.discard(打断)#摘钩
+            宿主连接集合.discard(连接)#摘连接
 
     def 描述设置(请求):#最小就绪设置
         """DeepSeek 命名空间。"""
@@ -1360,9 +1326,9 @@ def 造夹具世界(选项):#内存假宿主
 
     def 描述凭证(请求):#按引用描述
         """configured 徽章。"""
-        引用们=请求['payload'].get('refs') or []#引用
+        引用列表=请求['payload'].get('refs') or []#引用
         凭证={}#结果
-        for 引用 in 引用们:#每引用
+        for 引用 in 引用列表:#每引用
             已配=引用 in 凭证图#是否已配
             项={'configured':已配,'writable':True}#基
             if 已配:#已配则来源为文件
@@ -1395,11 +1361,11 @@ def 造夹具世界(选项):#内存假宿主
 
     def 探询模型(请求):#探询目录
         """展平为 id/name。"""
-        模型们=[]#展平
+        模型列表=[]#展平
         for 组 in 夹具模型分组():#每组
             for 模型 in 组.get('models') or []:#每模型
-                模型们.append({'id':模型['id'],'name':模型['name']})#id/name
-        return 成功(请求,{'models':模型们})#探询
+                模型列表.append({'id':模型['id'],'name':模型['name']})#id/name
+        return 成功(请求,{'models':模型列表})#探询
 
     def 应答(消息):#答常驻审批/提问
         """先 rpcId，再载荷；已结算或未知 id 为 not-pending。"""
@@ -1425,7 +1391,7 @@ def 造夹具世界(选项):#内存假宿主
     def rpc调用(通道,端点,载荷,信号=None):#Remote 面
         """只服务 /api。"""
         if 通道!='/api':#只服务 /api
-            raise Exception(f'fixture connection RPC channel {通道!r} is unavailable')#错误串勿改
+            raise 连接错误(f'fixture connection RPC channel {通道!r} is unavailable')#错误串勿改
         参数=(载荷 or {}).get('args') or {}#Remote 参数
         标识=参数.get('agentId')#会话 id
         if 端点=='commands/list':#列命令
@@ -1448,7 +1414,7 @@ def 造夹具世界(选项):#内存假宿主
             return 完成目标(标识,参数.get('ref') or {})#完成
         if 端点=='goals/clear':#清除
             return 清除目标(标识,参数.get('ref') or {})#清除
-        raise Exception(f'fixture connection RPC endpoint {端点!r} is unavailable')#未知端点
+        raise 连接错误(f'fixture connection RPC endpoint {端点!r} is unavailable')#未知端点
 
     api=面对象(#旧一元/流面
         sessions=面对象(
@@ -1511,6 +1477,7 @@ class 夹具接口客户端(抽象接口客户端):#无 HTTP 的假客户端
         世界=造夹具世界(自定位读夹具选项())#造世界
         自身._api=世界.api#旧面
         自身.rpc=世界.rpc#Remote 面
+        自身.onEnvelope=None#可选 tap；测试可赋
         客户端=自身#捕获
         def 一元(方法键):#载荷直传闭包
             def 调用(载荷=None,信号=None,_超时=None):#直传
@@ -1537,17 +1504,17 @@ class 夹具接口客户端(抽象接口客户端):#无 HTTP 的假客户端
 
     def doFetch(自身,*位置参数,**关键字参数):#必须不可达
         """Fixture 覆盖全部协议路径。"""
-        raise Exception('FixtureApiClient overrides all protocol paths; doFetch must be unreachable')#错误串勿改
+        raise 连接错误('FixtureApiClient overrides all protocol paths; doFetch must be unreachable')#错误串勿改
 
     def callUnary(自身,方法,载荷,信号=None,超时策略='default'):#一元
         """自造信封、打 tap、派进内存、再打响应 tap。"""
         请求=造rpc请求(载荷)#自造 rpcId
         完整={'type':'client-request','rpcId':请求['rpcId'],'method':方法,'payload':载荷}#完整形态
-        if hasattr(自身,'onEnvelope'):#打 tap
+        if 自身.onEnvelope is not None:#打 tap
             自身.onEnvelope(完整)#旁路
         响应=自身._派发(方法,请求,信号 if 信号 is not None else {'aborted':False})#派进内存
         完整响应={'type':'server-response','rpcId':响应['rpcId'],'result':响应['result']}#完整响应
-        if hasattr(自身,'onEnvelope'):#打 tap
+        if 自身.onEnvelope is not None:#打 tap
             自身.onEnvelope(完整响应)#旁路
         return 响应#给调用方
 
@@ -1606,7 +1573,7 @@ class 夹具接口客户端(抽象接口客户端):#无 HTTP 的假客户端
         if 方法=='llm.providers': return api.llm.providers(请求)#提供方
         if 方法=='llm.models': return api.llm.models(请求)#模型
         if 方法=='llm.discoverModels': return api.llm.discoverModels(请求)#发现
-        raise Exception(f'fixture: unknown unary method {方法!r}')#未知
+        raise 连接错误(f'fixture: unknown unary method {方法!r}')#未知
 
     def openMux(自身,载荷,信号,打开回调=None):#mux
         """打开 mux 流并打 tap。"""
@@ -1622,14 +1589,12 @@ class 夹具接口客户端(抽象接口客户端):#无 HTTP 的假客户端
             打开回调()#通知已开
         for 信封 in 流:#逐帧
             完整={'type':'server-request','rpcId':信封['rpcId'],'method':信封['payload']['type'],'payload':信封['payload']}#完整形态
-            if hasattr(自身,'onEnvelope'):#打 tap
+            if 自身.onEnvelope is not None:#打 tap
                 自身.onEnvelope(完整)#旁路
             yield 信封#交给泵
 
     def respond(自身,消息,信号=None):#应答
         """无 HTTP POST，进内存实现。"""
-        if hasattr(自身,'onEnvelope'):#打 tap
+        if 自身.onEnvelope is not None:#打 tap
             自身.onEnvelope(消息)#旁路
         return 自身._api.respond(消息)#进内存
-
-FixtureApiClient=夹具接口客户端#上游名

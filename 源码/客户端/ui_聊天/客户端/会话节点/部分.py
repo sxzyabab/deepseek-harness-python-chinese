@@ -12,60 +12,66 @@ def 是可见助手块(类型):#是否可见 Assistant chunk
 
 class 部分累加器:#部分累加器
     """assistant/chunk 累加器：块级不可变。"""
-
     def __init__(自身,回合,步,初始块=None):#构造
         """记下回合步骤与初始块。"""
         自身.回合=回合#轮次
         自身.步=步#步骤
-        自身.块们=list(初始块 or [])#稀疏块表
+        自身.块列表=list(初始块 if 初始块 is not None else [])#稀疏块表
         自身.已变=True#需重建
-        自身.快照={'turn':回合,'step':步,'blocks':list(初始块 or [])}#缓存
+        自身.快照={'turn':回合,'step':步,'blocks':list(初始块 if 初始块 is not None else [])}#缓存
 
     def push(自身,块):#折入 chunk
         """usage/finish 返回 False。"""
-        种=块.get('type') if isinstance(块,dict) else getattr(块,'type',None)#类型
-        下标=块.get('index',0) if isinstance(块,dict) else getattr(块,'index',0)#下标
-        while len(自身.块们)<=下标:#扩容
-            自身.块们.append(None)#空洞
+        种=块['type'] if 'type' in 块 else None#类型
+        下标=块['index'] if 'index' in 块 else 0#下标
+        while len(自身.块列表)<=下标:#扩容
+            自身.块列表.append(None)#空洞
         if 种=='block-start':#块开始
-            块种=块.get('blockType') if isinstance(块,dict) else getattr(块,'blockType',None)#种类
-            自身.块们[下标]=空助手块(块种)#占位
+            块种=块['blockType'] if 'blockType' in 块 else None#种类
+            自身.块列表[下标]=空助手块(块种)#占位
             自身.已变=True#变
             return True#可见
         if 种=='text-delta':#文本增量
-            旧=自身.块们[下标]#先前
-            旧文=旧.get('text','') if isinstance(旧,dict) and 旧.get('kind')=='text' else ''#旧文
-            文=块.get('text','') if isinstance(块,dict) else getattr(块,'text','')#增量
-            自身.块们[下标]={'kind':'text','text':旧文+文}#追加
+            旧=自身.块列表[下标]#先前
+            旧文=''#默认
+            if 旧 is not None and 'kind' in 旧 and 旧['kind']=='text':#已是文本
+                旧文=旧['text'] if 'text' in 旧 and 旧['text'] is not None else ''#旧文
+            文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#增量
+            自身.块列表[下标]={'kind':'text','text':旧文+文}#追加
             自身.已变=True#变
             return True#可见
         if 种=='reasoning-delta':#推理增量
-            旧=自身.块们[下标]#先前
-            旧文=旧.get('text','') if isinstance(旧,dict) and 旧.get('kind')=='reasoning' else ''#旧文
-            文=块.get('text','') if isinstance(块,dict) else getattr(块,'text','')#增量
-            自身.块们[下标]={'kind':'reasoning','text':旧文+文}#追加
+            旧=自身.块列表[下标]#先前
+            旧文=''#默认
+            if 旧 is not None and 'kind' in 旧 and 旧['kind']=='reasoning':#已是推理
+                旧文=旧['text'] if 'text' in 旧 and 旧['text'] is not None else ''#旧文
+            文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#增量
+            自身.块列表[下标]={'kind':'reasoning','text':旧文+文}#追加
             自身.已变=True#变
             return True#可见
         if 种=='tool-call-delta':#工具增量
-            旧=自身.块们[下标]#先前
-            if isinstance(旧,dict) and 旧.get('kind')=='tool-call':#已是
+            旧=自身.块列表[下标]#先前
+            if 旧 is not None and 'kind' in 旧 and 旧['kind']=='tool-call':#已是
                 底=旧#沿用
             else:#空
                 底={'kind':'tool-call','callId':'','name':'','argsRaw':''}#空
-            标识=块.get('id') if isinstance(块,dict) else getattr(块,'id',None)#id
-            名=块.get('name') if isinstance(块,dict) else getattr(块,'name',None)#名
-            增量=块.get('argumentsDelta','') if isinstance(块,dict) else getattr(块,'argumentsDelta','')#参增量
-            自身.块们[下标]={#合并
+            标识=块['id'] if 'id' in 块 else None#id
+            名=块['name'] if 'name' in 块 else None#名
+            增量=块['argumentsDelta'] if 'argumentsDelta' in 块 and 块['argumentsDelta'] is not None else ''#参增量
+            底标识=底['callId'] if 'callId' in 底 else None#旧 id
+            底名=底['name'] if 'name' in 底 else None#旧名
+            底参=底['argsRaw'] if 'argsRaw' in 底 and 底['argsRaw'] is not None else ''#旧参
+            自身.块列表[下标]={#合并
                 'kind':'tool-call',#工具
-                'callId':底.get('callId') or str(标识 or ''),#callId
-                'name':名 if 名 is not None else 底.get('name'),#名
-                'argsRaw':底.get('argsRaw','')+增量,#参数
+                'callId':底标识 if 底标识 not in (None,'') else str(标识 if 标识 is not None else ''),#callId
+                'name':名 if 名 is not None else 底名,#名
+                'argsRaw':底参+增量,#参数
             }#结束
             自身.已变=True#变
             return True#可见
         if 种=='block-end':#块结束
-            定=块.get('block') if isinstance(块,dict) else getattr(块,'block',None)#定稿
-            自身.块们[下标]=转助手块(定)#定稿
+            定=块['block'] if 'block' in 块 else None#定稿
+            自身.块列表[下标]=转助手块(定)#定稿
             自身.已变=True#变
             return True#可见
         return False#usage/finish
@@ -73,6 +79,6 @@ class 部分累加器:#部分累加器
     def toPartial(自身):#取部分快照
         """块数组引用仅在变更后更换。"""
         if 自身.已变:#需重建
-            自身.快照={'turn':自身.回合,'step':自身.步,'blocks':[块 for 块 in 自身.块们 if 块 is not None]}#压缩
+            自身.快照={'turn':自身.回合,'step':自身.步,'blocks':[块 for 块 in 自身.块列表 if 块 is not None]}#压缩
             自身.已变=False#清
         return 自身.快照#缓存

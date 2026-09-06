@@ -4,8 +4,16 @@
 都必须准确报告不可用的内容。
 
 对齐上游 `webworker-runtime/src/node/notImplementedFail.ts`。公开面仅中文名。
+本包异常基类也落在此文件。
 """
-__all__=['未实现失败','不可用错误']#仅中文公开名
+__all__=['运行时错误','未实现失败','不可用错误']#仅中文公开名
+
+class 运行时错误(Exception):#本包异常基类
+    """webworker 运行时包内错误基类。"""
+    def __init__(自身,消息):#构造
+        """记下英文诊断。"""
+        super().__init__(消息)#基类
+        自身.消息=消息#诊断
 
 def 未实现失败(模块,符号):#构造抛错替身
     """构造一个抛错函数，错误信息包含模块名与符号名。拒绝信息在向上传播前
@@ -29,4 +37,4 @@ def 不可用错误(模块,符号):#构造拒绝错误
     """
     消息=f'web-preview: {模块}.{符号} is not available in the worker host'#拼诊断文案
     print(消息)#先写控制台（对齐 console.error）
-    return Exception(消息)#返回错误实例
+    return 运行时错误(消息)#返回错误实例

@@ -1,0 +1,22 @@
+{
+    "acp":"代理协议",
+    "capture":"捕获",
+    "erase":"擦除",
+    "export":"导出",
+    "fixture":"夹具",
+    "harness":"测试架",
+    "identity":"身份",
+    "init":"初始化",
+    "launcher":"启动器",
+    "manifest":"清单",
+    "normalize":"归一化",
+    "package":"包",
+    "profile":"配置档",
+    "self":"自身",
+    "session":"会话",
+    "snapshot":"快照",
+    "spill":"溢出",
+    "suite":"套件",
+    "support":"支持",
+    "workspace":"工作区"
+}

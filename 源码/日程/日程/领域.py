@@ -1,11 +1,10 @@
 """严格的日程解码、回放、时间校验与成帧。"""
-import json,math,re#JSON片段、安全整数、正则
+import json,math,re#JSON片段、有限数、正则
 from datetime import datetime,timezone#UTC与本地投影
 from zoneinfo import ZoneInfo#IANA时区
 
 变更版本=1#本包实现的持久日程协议版本
 最短固定间隔秒=300#固定频率提醒的固定 v1 下限
-安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
 四位年下界毫秒=int(datetime(1,1,1,tzinfo=timezone.utc).timestamp()*1000)#0001-01-01T00:00:00.000Z
 四位年上界毫秒=int(datetime(9999,12,31,23,59,59,999000,tzinfo=timezone.utc).timestamp()*1000)#9999-12-31T23:59:59.999Z
 规范UTC瞬间=re.compile(r'^(?!0000)\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z$')#规范四位年UTC瞬间
@@ -41,18 +40,6 @@ def 铸造日程标识(值):#铸造日程 id
     return 值#仅品牌转型
 
 日程标识=铸造日程标识#中文短别名
-
-def 是否安全整数(值):#对齐 Number.isSafeInteger
-    """对齐 JS Number.isSafeInteger，排除布尔。"""
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是整数
-    if isinstance(值,int):#整数
-        return abs(值)<=安全整数上限#在安全范围内
-    if isinstance(值,float):#浮点
-        if not math.isfinite(值) or not 值.is_integer():#非有限或非整
-            return False#不是安全整数
-        return abs(值)<=安全整数上限#在安全范围内
-    return False#其它类型
 
 def 是记录(值):#未知值是否为非数组对象
     """未知值是否为非数组对象。"""
@@ -101,7 +88,7 @@ def 解码瞬间(值):#校验一个规范的四位年 UTC 瞬间
 
 def 分组数字(分组,名):#把一个必需的命名正则分组读成数字
     """把一个必需的命名正则分组读成数字。"""
-    值=分组.get(名)#取出分组
+    值=分组[名] if 名 in 分组 else None#取出分组
     if 值 is None:#缺分组
         raise 日程输入错误('invalid_rule','The at value has an invalid shape.')#缺分组则规则非法
     return int(值)#转成数字
@@ -130,9 +117,9 @@ def 毫秒数(值):#把可选的一到三位小数秒归一成毫秒
         return 0#0
     return int(值.ljust(3,'0'))#短则右补 0
 
-def 未来瞬间(纪元,现在):#要求一个安全、可表示、严格未来的 UTC 目标
-    """要求一个安全、可表示、严格未来的 UTC 目标。"""
-    if (not 是否安全整数(现在)) or (not 是否安全整数(纪元)) or 纪元<四位年下界毫秒 or 纪元>四位年上界毫秒:#须安全整数且在四位年
+def 未来瞬间(纪元,现在):#要求一个可表示、严格未来的 UTC 目标
+    """要求一个可表示、严格未来的 UTC 目标。"""
+    if isinstance(现在,bool) or isinstance(纪元,bool) or (not math.isfinite(现在)) or (not math.isfinite(纪元)) or 纪元<四位年下界毫秒 or 纪元>四位年上界毫秒:#须有限且在四位年
         raise 日程输入错误('time_out_of_range','The scheduled time must be representable as a four-digit-year RFC 3339 UTC instant.')#时间越界
     if 纪元<=现在:#须严格未来
         raise 日程输入错误('not_future','The scheduled time must be strictly in the future.')#非未来
@@ -154,18 +141,18 @@ def 解析偏移瞬间(值):#解析数字偏移作为输入一部分的严格 RF
         'hour':分组数字(分组,'hour'),#时
         'minute':分组数字(分组,'minute'),#分
         'second':分组数字(分组,'second'),#秒
-        'millisecond':毫秒数(分组.get('fraction')),#毫秒
+        'millisecond':毫秒数(分组['fraction'] if 'fraction' in 分组 else None),#毫秒
     }#结束分量
     if 分量['year']==0 or 分量['hour']>23 or 分量['minute']>59 or 分量['second']>59:#年不为 0，时分秒在范围内
         raise 日程输入错误('invalid_rule','The at value must be a real ISO calendar date and time.')#非真实日历
     本地纪元=日历纪元(分量)#当作 UTC 形本地纪元
-    if 分组.get('zone')=='Z':#Z 即无偏移
+    if ('zone' in 分组) and 分组['zone']=='Z':#Z 即无偏移
         return 本地纪元#无偏移
     偏移时=分组数字(分组,'offsetHour')#偏移小时
     偏移分=分组数字(分组,'offsetMinute')#偏移分钟
-    if 偏移时>23 or 偏移分>59 or (分组.get('sign')=='-' and 偏移时==0 and 偏移分==0):#偏移须合法且禁止 -00:00
+    if 偏移时>23 or 偏移分>59 or (('sign' in 分组) and 分组['sign']=='-' and 偏移时==0 and 偏移分==0):#偏移须合法且禁止 -00:00
         raise 日程输入错误('invalid_rule','The at numeric offset is invalid.')#偏移非法
-    方向=1 if 分组.get('sign')=='+' else -1#正负方向
+    方向=1 if ('sign' in 分组 and 分组['sign']=='+') else -1#正负方向
     return 本地纪元-方向*(偏移时*60+偏移分)*60000#扣掉偏移得 UTC
 
 def 规范化时区(值):#校验并规范化一个原始 IANA 时区选择器
@@ -198,7 +185,7 @@ def 解析本地绝对(值):#解析严格本地日历字段，不咨询进程时
         'hour':分组数字(时间,'hour'),#时
         'minute':分组数字(时间,'minute'),#分
         'second':分组数字(时间,'second'),#秒
-        'millisecond':毫秒数(时间.get('fraction')),#毫秒
+        'millisecond':毫秒数(时间['fraction'] if 'fraction' in 时间 else None),#毫秒
     }#结束分量
     if 分量['year']==0 or 分量['hour']>23 or 分量['minute']>59 or 分量['second']>59:#年不为 0，时分秒在范围内
         raise 日程输入错误('invalid_rule','The local at value must be a real ISO calendar date and time.')#非真实本地日历
@@ -229,13 +216,13 @@ def 本地投影(时区名,纪元毫秒):#把一个纪元格式化成精确本�
 def 解析本地瞬间(分量,时区):#解析本地墙钟值：重叠取第一个瞬间，缺口则拒绝
     """解析本地墙钟值：重叠取第一个瞬间，缺口则拒绝。"""
     本地纪元=日历纪元(分量)#UTC 形本地纪元
-    偏移们=set()#邻近日采样到的偏移
+    偏移集合=set()#邻近日采样到的偏移
     for 增量 in (-172800000,-86400000,0,86400000,172800000):#前后两天采样
         样本=min(四位年上界毫秒,max(四位年下界毫秒,本地纪元+增量))#钳到四位年
-        偏移们.add(本地投影(时区,样本)['offset'])#收集偏移
-    候选们=[]#投影回本地字段吻合的候选
+        偏移集合.add(本地投影(时区,样本)['offset'])#收集偏移
+    候选列表=[]#投影回本地字段吻合的候选
     越界=False#是否有候选越出四位年
-    for 偏移 in 偏移们:#每个采样偏移试一次
+    for 偏移 in 偏移集合:#每个采样偏移试一次
         候选=本地纪元-偏移#扣偏移得 UTC 候选
         if 候选<四位年下界毫秒 or 候选>四位年上界毫秒:#越出四位年
             越界=True#记下越界
@@ -248,13 +235,13 @@ def 解析本地瞬间(分量,时区):#解析本地墙钟值：重叠取第一�
             and 投影['minute']==分量['minute']#分吻合
             and 投影['second']==分量['second']#秒吻合
             and 投影['millisecond']==分量['millisecond']):#毫秒吻合
-            候选们.append(候选)#重叠时可能多个
-    if len(候选们)==0:#没有合法瞬间
+            候选列表.append(候选)#重叠时可能多个
+    if len(候选列表)==0:#没有合法瞬间
         if 越界:#越界优先于缺口
             raise 日程输入错误('time_out_of_range','The scheduled time must be representable as a four-digit-year RFC 3339 UTC instant.')#时间越界
         raise 日程输入错误('invalid_rule','The local at time does not exist in the selected time zone.')#缺口
-    候选们.sort()#重叠取最早
-    return 候选们[0]#最早合法瞬间
+    候选列表.sort()#重叠取最早
+    return 候选列表[0]#最早合法瞬间
 
 def 解码延迟记录(值):#解码恰好的 v1 after 记录形
     """解码恰好的 v1 after 记录形。"""
@@ -264,7 +251,8 @@ def 解码延迟记录(值):#解码恰好的 v1 after 记录形
     if (not isinstance(正文,str)) or len(正文)==0 or 正文.strip()!=正文:#须非空且已裁切
         raise 日程日志错误('after prompt must be non-empty and already trimmed')#正文非法
     延迟秒=值['afterSeconds']#延迟秒数
-    if (not 是否安全整数(延迟秒)) or 延迟秒<=0:#须正安全整数
+    延迟是整数=(not isinstance(延迟秒,bool)) and (isinstance(延迟秒,int) or (isinstance(延迟秒,float) and 延迟秒.is_integer()))#先排除布尔再认整数
+    if (not 延迟是整数) or abs(延迟秒)>9007199254740991 or 延迟秒<=0:#外来JSON须正安全整数
         raise 日程日志错误('afterSeconds must be a positive safe integer')#延迟非法
     return {#延迟记录
         'id':解码标识(值['id']),#会话局部 id
@@ -296,8 +284,8 @@ def 解码固定频率记录(值):#解码恰好的 v1 固定频率记录形
     if (not isinstance(正文,str)) or len(正文)==0 or 正文.strip()!=正文:#须非空且已裁切
         raise 日程日志错误('every prompt must be non-empty and already trimmed')#正文非法
     间隔秒=值['everySeconds']#间隔秒数
-    间隔毫秒=间隔秒*1000 if isinstance(间隔秒,(int,float)) and not isinstance(间隔秒,bool) else float('nan')#间隔毫秒
-    if (not 是否安全整数(间隔秒)) or 间隔秒<最短固定间隔秒 or (not 是否安全整数(间隔毫秒)):#须安全整数且不低于下限
+    间隔是整数=(not isinstance(间隔秒,bool)) and (isinstance(间隔秒,int) or (isinstance(间隔秒,float) and 间隔秒.is_integer()))#先排除布尔再认整数
+    if (not 间隔是整数) or abs(间隔秒)>9007199254740991 or 间隔秒<最短固定间隔秒:#外来JSON须安全整数且不低于下限
         raise 日程日志错误('everySeconds must be a safe integer of at least '+str(最短固定间隔秒))#间隔非法
     return {#固定频率记录
         'id':解码标识(值['id']),#会话局部 id
@@ -311,7 +299,7 @@ def 解码日程记录(值):#按恰好的判别标签解码一条当前持久记
     """按恰好的判别标签解码一条当前持久记录变体。"""
     if not 是记录(值):#须是对象
         raise 日程日志错误('schedule record must be an object')#须是对象
-    种类=值.get('kind')#规则判别
+    种类=值['kind'] if 'kind' in 值 else None#规则判别
     if 种类=='after':#延迟
         return 解码延迟记录(值)#延迟
     if 种类=='at':#绝对
@@ -324,9 +312,9 @@ def 解码日程变更(值):#解码一条严格版本 1 的 schedule/change 载�
     """解码一条严格版本 1 的 `schedule/change` 载荷。"""
     if not 是记录(值):#须是对象
         raise 日程日志错误('schedule/change payload must be an object')#须是对象
-    if 值.get('version')!=变更版本:#版本须为 1
+    if ('version' not in 值) or 值['version']!=变更版本:#版本须为 1
         raise 日程日志错误('schedule/change version must be 1')#版本非法
-    操作=值.get('operation')#操作
+    操作=值['operation'] if 'operation' in 值 else None#操作
     if 操作=='create':#创建
         if not 恰好这些键(值,['version','operation','schedule']):#恰好这些键
             raise 日程日志错误('schedule create must contain exactly version, operation, and schedule')#键集非法
@@ -364,19 +352,19 @@ def 解析固定频率出现(记录,接受于):#解析一次固定频率决定�
     """解析一次固定频率决定，不枚举错过的出现。"""
     目标=解析纪元毫秒(记录['scheduledAt'])#当前目标纪元
     间隔=记录['everySeconds']*1000#间隔毫秒
-    if (not 是否安全整数(接受于)) or 接受于<四位年下界毫秒 or 接受于>四位年上界毫秒:#决定须安全整数且在四位年
+    if isinstance(接受于,bool) or (not math.isfinite(接受于)) or 接受于<四位年下界毫秒 or 接受于>四位年上界毫秒:#决定须有限且在四位年
         raise 日程日志错误('every acceptedAt must be a representable four-digit-year instant')#决定越界
-    if (not 是否安全整数(间隔)) or 间隔<=0:#间隔须正安全整数
+    if isinstance(间隔,bool) or 间隔<=0:#间隔须为正
         raise 日程日志错误('every interval milliseconds must be a positive safe integer')#间隔非法
     if 接受于<目标:#不能早于当前目标
         raise 日程日志错误('every dispatch cannot precede the active scheduledAt')#过早派发
     步数=math.floor((接受于-目标)/间隔)#跳过的整步数
     出现=目标+步数*间隔#最近到期出现
-    if (not 是否安全整数(出现)) or 出现<目标 or 出现>接受于:#出现须落在区间内
+    if 出现<目标 or 出现>接受于:#出现须落在区间内
         raise 日程日志错误('every occurrence arithmetic must stay within the accepted interval')#算术越界
     出现于=纪元转规范UTC(出现)#本次出现 UTC
     下次=出现+间隔#下一锚对齐目标
-    if (not 是否安全整数(下次)) or 下次>四位年上界毫秒:#下次不可表示则耗尽
+    if 下次>四位年上界毫秒:#下次不可表示则耗尽
         return {'occurrenceAt':出现于}#只有本次
     return {#带下次目标
         'occurrenceAt':出现于,#本次出现
@@ -393,33 +381,24 @@ def 派发后记录(记录,变更):#把一条已解码派发应用到其恰好�
     if not 有接受于:#固定频率必须带 acceptedAt
         raise 日程日志错误('every dispatch must contain acceptedAt')#必须带
     出现=解析固定频率出现(记录,解析纪元毫秒(变更['acceptedAt']))#解析本次与下次
-    if 出现.get('nextScheduledAt') is None:#没有下次则耗尽
+    if 'nextScheduledAt' not in 出现:#没有下次则耗尽
         return None#从活动集删除
     下一=dict(记录)#拷贝
     下一['scheduledAt']=出现['nextScheduledAt']#推进到下次目标
     return 下一#推进后记录
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 折叠日程事件(事件们,种子长度=0):#在持久 fork 种子边界之后折叠本包拥有的流
-    """在持久 fork 种子边界之后折叠本包拥有的流。"""
-    if (not 是否安全整数(种子长度)) or 种子长度<0 or 种子长度>len(事件们):#须落在日志内
+def 折叠日程事件(事件列表,种子长度=0):
+    """在持久 fork 种子边界之后折叠本包拥有的流。事件是 dict。"""
+    种子是整数=(not isinstance(种子长度,bool)) and (isinstance(种子长度,int) or (isinstance(种子长度,float) and 种子长度.is_integer()))#先排除布尔再认整数
+    if (not 种子是整数) or abs(种子长度)>9007199254740991 or 种子长度<0 or 种子长度>len(事件列表):#外来JSON种子须落在日志内
         raise 日程日志错误('schedule seedLength must be within the supplied event log')#种子越界
     活动={}#活动记录（保序）
     已见=[]#曾经创建的 id 序
     已见集=set()#已见集合
-    for 事件 in 事件们[种子长度:]:#只看本包后缀
-        if 取字段(事件,'type')!='schedule/change':#跳过非日程
+    for 事件 in 事件列表[种子长度:]:#只看本包后缀
+        if ('type' not in 事件) or 事件['type']!='schedule/change':#跳过非日程
             continue#下一条
-        变更=解码日程变更(取字段(事件,'data'))#解码变更
+        变更=解码日程变更(事件['data'] if 'data' in 事件 else None)#解码变更
         操作=变更['operation']#操作
         if 操作=='create':#创建
             标识=变更['schedule']['id']#新 id
@@ -433,7 +412,7 @@ def 折叠日程事件(事件们,种子长度=0):#在持久 fork 种子边界之
                 raise 日程日志错误('schedule delete targets inactive id '+json.dumps(变更['id'],ensure_ascii=False))#删不活动
             del 活动[变更['id']]#摘掉
         elif 操作=='dispatch':#派发
-            记录=活动.get(变更['id'])#取活动记录
+            记录=活动[变更['id']] if 变更['id'] in 活动 else None#取活动记录
             if 记录 is None:#须指向活动 id
                 raise 日程日志错误('schedule dispatch targets inactive id '+json.dumps(变更['id'],ensure_ascii=False))#派发不活动
             下一=派发后记录(记录,变更)#应用派发
@@ -463,7 +442,7 @@ def 创建延迟日程记录(标识,正文,延迟秒,现在):#校验模型 after
     规范正文=正文.strip()#裁切正文
     if len(规范正文)==0:#裁切后须非空
         raise 日程输入错误('invalid_prompt','prompt must be non-empty after trimming.')#非法正文
-    if (not 是否安全整数(延迟秒)) or 延迟秒<=0:#须正安全整数
+    if isinstance(延迟秒,bool) or 延迟秒<=0:#须正整数秒
         raise 日程输入错误('invalid_rule','after_seconds must be a positive safe integer.')#非法延迟
     延迟=延迟秒*1000#延迟毫秒
     目标=现在+延迟#目标纪元
@@ -506,7 +485,7 @@ def 创建固定频率日程记录(标识,正文,间隔秒,现在):#校验固定
     规范正文=正文.strip()#裁切正文
     if len(规范正文)==0:#裁切后须非空
         raise 日程输入错误('invalid_prompt','prompt must be non-empty after trimming.')#非法正文
-    if not 是否安全整数(间隔秒):#须安全整数
+    if isinstance(间隔秒,bool):#布尔不是间隔
         raise 日程输入错误('invalid_rule','every_seconds must be a safe integer.')#非法间隔
     if 间隔秒<最短固定间隔秒:#不低于五分钟
         raise 日程输入错误('frequency_too_high','every_seconds must be at least '+str(最短固定间隔秒)+'.')#频率过高
@@ -539,10 +518,10 @@ def 渲染提醒成帧(记录):#渲染到期提醒的固定抗注入模型成帧
 
 渲染提醒框=渲染提醒成帧#中文短别名
 
-def 渲染固定频率提醒批次成帧(提醒们):#按目标与创建序渲染一批抗注入的固定频率提醒
+def 渲染固定频率提醒批次成帧(提醒列表):#按目标与创建序渲染一批抗注入的固定频率提醒
     """按目标与创建序渲染一批抗注入的固定频率提醒。"""
     载荷=[]#规范 JSON 载荷
-    for 项 in 提醒们:#逐条
+    for 项 in 提醒列表:#逐条
         记录=项['record']#活动记录
         载荷.append({#一条
             'schedule_id':记录['id'],#日程 id

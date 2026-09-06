@@ -1,0 +1,20 @@
+{
+    "bytes":"字节",
+    "call":"调用",
+    "content":"内容",
+    "hint":"提示",
+    "id":"标识",
+    "label":"标签",
+    "locator":"定位器",
+    "name":"名称",
+    "owner":"所有者",
+    "retrieval":"检索",
+    "save":"保存",
+    "session":"会话",
+    "source":"来源",
+    "spill":"溢出",
+    "suggested":"建议",
+    "text":"文本",
+    "tool":"工具",
+    "type":"类型"
+}

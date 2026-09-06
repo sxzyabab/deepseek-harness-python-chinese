@@ -11,7 +11,7 @@
     "context":"上下文",
     "data":"数据",
     "depend":"依赖",
-    "dispose":"释放",
+    "dispose":"拆除",
     "effect":"效果",
     "error":"错误",
     "event":"事件",

@@ -2,6 +2,8 @@
 
 对齐上游 `client/bridge/dispatcher.ts`。公开面仅中文名。
 """
+from ...共享.json import 检查器错误#本包错误
+
 __all__=['客户端桥帧处理器','分发桥帧']#仅中文公开名
 
 class 客户端桥帧处理器:#Client桥帧处理器
@@ -82,4 +84,4 @@ def 分发桥帧(帧,处理器):#分发桥帧
     if 类型=='client-sources/session-closed':#Sources会话关闭
         处理器.源关闭(帧)#回调
         return#结束
-    raise Exception(f'Unexpected Worker source frame: {类型!r}')#未知帧
+    raise 检查器错误(f'Unexpected Worker source frame: {类型!r}')#未知帧

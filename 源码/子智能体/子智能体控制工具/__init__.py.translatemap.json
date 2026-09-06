@@ -1,0 +1,17 @@
+{
+    "accept":"接受",
+    "agent":"智能体",
+    "ancestor":"祖先",
+    "apply":"应用",
+    "deliver":"投递",
+    "execute":"执行",
+    "followup":"跟进",
+    "inject":"注入",
+    "interrupt":"打断",
+    "message":"消息",
+    "name":"名称",
+    "queue":"排队",
+    "render":"渲染",
+    "session":"会话",
+    "tool":"工具"
+}

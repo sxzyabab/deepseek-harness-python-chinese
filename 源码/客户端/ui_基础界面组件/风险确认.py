@@ -1,64 +1,55 @@
 """受控风险确认对话框。
 
 对齐上游 `ui-primitives/src/RiskConfirmation.tsx`。公开面仅中文名。
-主操作在勾选确认前不可用；组合模态+按钮。
+主操作在勾选确认前不可用；组合模态+按钮。属性为 dict。
 """
 from .模态 import 模态#模态外壳
 from .按钮 import 按钮#动作按钮
 
 __all__=['风险确认']#仅中文公开名
 
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
-
 class 风险确认:#勾选门控确认
     """属主控制 acknowledged；组合模态页脚。"""
-
-    def __init__(自身,属性=None,**关键字参数):#构造
+    def __init__(自身,属性=None,**关键字参数):
         """合并 props。"""
-        自身.属性=dict(属性 or {})#基础
+        自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
-    def 更新(自身,属性):#刷新
+    def 更新(自身,属性):
         """刷新。"""
         自身.属性=dict(属性)#最新
 
-    def 渲染(自身):#结构树
+    def 渲染(自身):
         """打开时出警告+勾选+双按钮。"""
         属性=自身.属性#props
-        已认=bool(取字段(属性,'acknowledged'))#已勾选
-        禁用=bool(取字段(属性,'disabled',False))#禁用
+        已认=属性['acknowledged'] is True if 'acknowledged' in 属性 else False#已勾选
+        禁用=属性['disabled'] is True if 'disabled' in 属性 else False#禁用
         取消钮=按钮({#取消
             'variant':'outline','className':'modalAction',
-            'onClick':取字段(属性,'onCancel'),'children':取字段(属性,'cancelLabel'),
+            'onClick':属性['onCancel'] if 'onCancel' in 属性 else None,'children':属性['cancelLabel'] if 'cancelLabel' in 属性 else None,
         })#取消结束
         确认钮=按钮({#确认
             'variant':'primary','className':'confirmAction',
-            'disabled':禁用 or (not 已认),
-            'onClick':取字段(属性,'onConfirm'),'children':取字段(属性,'confirmLabel'),
+            'disabled':禁用 is True or 已认 is False,
+            'onClick':属性['onConfirm'] if 'onConfirm' in 属性 else None,'children':属性['confirmLabel'] if 'confirmLabel' in 属性 else None,
         })#确认结束
         体={#内容
             'warning':{#警告行
                 'icon':'warning-16',#警告图标
-                'description':取字段(属性,'description'),#说明
+                'description':属性['description'] if 'description' in 属性 else None,#说明
             },#警告结束
             'acknowledgement':{#勾选
                 'checked':已认,#态
                 'disabled':禁用,#禁
-                'label':取字段(属性,'acknowledgeLabel'),#文案
+                'label':属性['acknowledgeLabel'] if 'acknowledgeLabel' in 属性 else None,#文案
                 'autoFocus':True,#自动焦
-                'onChange':取字段(属性,'onAcknowledgedChange'),#变更
+                'onChange':属性['onAcknowledgedChange'] if 'onAcknowledgedChange' in 属性 else None,#变更
             },#勾选结束
         }#体结束
         壳=模态({#模态
-            'open':取字段(属性,'open'),#开
-            'onClose':取字段(属性,'onCancel'),#关=取消
-            'title':取字段(属性,'title'),#标题
+            'open':属性['open'] if 'open' in 属性 else None,#开
+            'onClose':属性['onCancel'] if 'onCancel' in 属性 else None,#关=取消
+            'title':属性['title'] if 'title' in 属性 else None,#标题
             'className':'confirmation',#卡类
             'contentClassName':'confirmationContent',#内容类
             'footer':(取消钮,确认钮),#脚
@@ -71,10 +62,10 @@ class 风险确认:#勾选门控确认
         视图['cssModule']='风险确认.module.css'#样式
         return 视图#结束
 
-    def __call__(自身,属性=None,**关键字参数):#调用形
+    def __call__(自身,属性=None,**关键字参数):
         """对齐 React。"""
-        if 属性 is not None or 关键字参数:#有
-            合并=dict(属性 or {})#基
+        if 属性 is not None or len(关键字参数)>0:#有；判 length
+            合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
         return 自身.渲染()#渲

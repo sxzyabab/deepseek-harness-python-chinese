@@ -1,14 +1,8 @@
 """凭证引用能力缝（ctx.credentials）的服务定义。设置与组合文件携带的是密钥的引用——环境变量名——而提供方拥有实际值及其存储。消费方每次操作解析一次引用，因此变更后的凭证会在无需重启插件的情况下到达下一次操作；配置面描述引用，却从不看见其值。"""
-import re,threading#正则与后台观察拒绝
+import re#正则
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 服务=cordis.服务#Cordis 服务基类
-
-def _是否thenable(值):#判定可等待返回值
-    """监听器返回值是否可 wait。"""
-    if 值 is None:#空不是
-        return False#不是
-    等待=getattr(值,'wait',None)#取 wait
-    return callable(等待)#可调用才算
 from .类型 import 凭证引用品牌#再导出凭证引用品牌
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
@@ -63,21 +57,12 @@ class 凭证提供方(服务):#凭证提供方服务定义
     def 通知已更新(自身,引用):#向监听器扇出已提交变更
         """以内含监听失败的方式扇出 credentials/updated：每个监听器都会跑；同步抛出或异步拒绝只记日志，不改变已提交操作的结果——带 INVARIANT 码的失败除外，它们会在每个监听器都跑完后重新抛出（该重抛只从同步监听器到达调用方，因此本事件上的不变量检查不得写成 async 函数）。提供方只在写入或重载真正提交之后调用，这样坏掉的观察者绝不能让一次持久变更看起来失败。"""
         不变量失败=None#暂存不变量失败以便全部跑完再抛
-        参数=['credentials/updated',引用]#组装 emit 派发参数
-        for 监听器 in 自身.ctx.events.dispatch('emit',参数):#逐个取出监听器
+        参数=['credentials/updated',引用]#组装派发参数
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        for 监听器 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个取出监听器
             try:#同步执行单个监听器
-                返回=监听器(引用)#调用监听器并拿到可能的承诺
-                if _是否thenable(返回):#返回值可等待则接管拒绝
-                    def 盯住(任务=返回,当前引用=引用):#把异步拒绝接到诊断
-                        """把异步拒绝接到诊断。"""
-                        try:#等待承诺
-                            任务.等待()#等待承诺
-                        except Exception as 错误:#异步拒绝
-                            自身.警告监听失败(当前引用,错误)#记录异步监听失败
-                    线程=threading.Thread(target=盯住)#后台观察
-                    线程.daemon=True#不挡住退出
-                    线程.start()#启动
-            except Exception as 错误:#同步抛出
+                监听器(引用)#监听器已同步
+            except Exception as 错误:#监听器可抛任意类型，扇出契约未钉死，无法再收窄
                 if getattr(错误,'code',None)=='INVARIANT':#不变量失败要保留
                     if 不变量失败 is None:#尚未记下
                         不变量失败=错误#只记下第一次不变量失败
@@ -88,8 +73,8 @@ class 凭证提供方(服务):#凭证提供方服务定义
 
     def 警告监听失败(自身,引用,错误):#记录单个监听失败
         """同步与异步失败路径共用的内含监听诊断。"""
-        自身.ctx.logger.warn('credentials: a credentials/updated listener for "%s" failed',引用)#警告监听失败
-        自身.ctx.logger.warn(错误)#再打印失败对象
+        自身.ctx.日志.警告('credentials: a credentials/updated listener for "%s" failed',引用)#警告监听失败
+        自身.ctx.日志.警告(错误)#再打印失败对象
 
 default=凭证提供方#默认导出凭证提供方基类
 默认=凭证提供方#中文默认导出

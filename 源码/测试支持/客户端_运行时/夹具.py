@@ -55,8 +55,3 @@ def 工作区快照():#空工作区快照
 def 稳定器(函数):#默认同步稳定器
     """同步执行变更函数（对齐 act 包装的最小面）。"""
     return 函数()#直接执行
-
-sessionSnapshot=会话快照#上游名
-conversationSnapshot=对话快照#上游名
-chatSnapshot=聊天快照#上游名
-workspaceSnapshot=工作区快照#上游名

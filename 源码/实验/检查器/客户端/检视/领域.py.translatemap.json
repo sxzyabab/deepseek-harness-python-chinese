@@ -1,0 +1,14 @@
+{
+    "capabilities":"能力",
+    "client":"客户端",
+    "experimental":"实验",
+    "generation":"生成",
+    "id":"标识",
+    "inspector":"检查器",
+    "kind":"种类",
+    "label":"标签",
+    "location":"定位",
+    "origin":"来源",
+    "source":"源",
+    "time":"时间"
+}

@@ -1,8 +1,8 @@
 """按父网址解析说明符并用 importlib 导入。loadCache 与依赖图留给后续。"""
 
 import hashlib,importlib,importlib.util,os,sys#标准库
-from pathlib import Path#file URL 与本地路径互转
 from urllib.parse import urljoin#按父网址拼接相对说明符
+from ..工具 import 路径转文件url,文件url转路径#路径与 file URL 互转
 
 class 模块阶段:
     "Node 内部模块请求的阶段"
@@ -44,13 +44,13 @@ class 模块加载器:
         return _单例#不再恒为空
 
 def _规范父网址(父网址):
-    "把父网址规范成可供 urljoin 使用的 file URL"
+    """把父网址规范成可供 urljoin 使用的 file URL。"""
     if not 父网址:
-        return Path.cwd().as_uri()+'/'#无父网址时用当前目录
+        return 路径转文件url(os.getcwd())+'/'#无父网址时用当前目录
     文本=str(父网址)#统一成字符串
     if '://' in 文本:
         return 文本 if 文本.endswith('/') else 文本+'/'#网址缺尾斜杠则补上
-    return Path(文本).absolute().as_uri()+'/'#本地路径转 file URL
+    return 路径转文件url(os.path.abspath(文本))+'/'#本地路径转 file URL
 
 def _父目录路径(父网址):
     "取出父网址对应的目录路径"
@@ -63,7 +63,7 @@ def _网址到路径(网址):
     "file URL 或本地路径字符串转规范本地路径"
     文本=str(网址)#统一成字符串
     if 文本.startswith('file:'):
-        return str(Path.from_uri(文本))#file URL 转路径
+        return 文件url转路径(文本)#file URL 转路径
     return os.path.normpath(文本)#已是路径
 
 def _模块名(路径):

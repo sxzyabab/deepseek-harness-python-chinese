@@ -13,19 +13,19 @@ def 读各输入(程序,操作数,io,state,fs):#读各输入源
     """将每个操作数读为文件，报告失败者。"""
     if len(操作数)==0:#空则stdin
         return {'sources':[{'name':'-','text':io['stdin']}],'status':0}#stdin
-    源们=[]#源缓冲
+    源列表=[]#源缓冲
     状态=0#累积状态
     for 操作数名 in 操作数:#逐操作数
         if 操作数名=='-':#stdin记号
-            源们.append({'name':'-','text':io['stdin']})#收录stdin
+            源列表.append({'name':'-','text':io['stdin']})#收录stdin
             continue#下一操作数
         路径=在目录解析(state['cwd'],操作数名)#绝对路径
         try:#尝试读
-            源们.append({'name':操作数名,'text':fs['readText'](路径)})#收录文件
-        except Exception as 错误:#失败
+            源列表.append({'name':操作数名,'text':fs['readText'](路径)})#收录文件
+        except Exception as 错误:#被模拟 fs.readText/writeText 可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败(程序,操作数名,错误)}\n')#诊断
             状态=1#失败
-    return {'sources':源们,'status':状态}#返回
+    return {'sources':源列表,'status':状态}#返回
 
 def 确保尾换行(文本):#确保尾换行
     """追加尾随换行，除非文本已以换行结尾。"""
@@ -34,8 +34,8 @@ def 确保尾换行(文本):#确保尾换行
 def echo程序(argv,io,state=None,fs=None):#echo程序
     """打印参数。"""
     抑制换行=len(argv)>1 and argv[1]=='-n'#是否-n
-    词们=argv[2 if 抑制换行 else 1:]#输出词
-    io['out'](f"{' '.join(词们)}{'' if 抑制换行 else chr(10)}")#打印
+    词列表=argv[2 if 抑制换行 else 1:]#输出词
+    io['out'](f"{' '.join(词列表)}{'' if 抑制换行 else chr(10)}")#打印
     return 0#成功
 
 def printf程序(argv,io,state=None,fs=None):#printf程序
@@ -102,14 +102,14 @@ def wc程序(argv,io,state,fs):#wc程序
     选项=解析选项(argv)#解析选项
     结果=读各输入('wc',选项['operands'],io,state,fs)#读源
     所选=[旗 for 旗 in ('l','w','c') if 旗 in 选项['flags']]#所选列
-    列们=所选 if len(所选)>0 else ['l','w','c']#默认全列
+    列列表=所选 if len(所选)>0 else ['l','w','c']#默认全列
     for 源 in 结果['sources']:#逐源
         计数={#计数
             'l':len(拆成行(源['text'])),#行数
             'w':len([词 for 词 in 正则.split(r'\s+',源['text']) if 词!='']),#词数
             'c':len(源['text']),#字符数
         }#counts结束
-        单元格=[str(计数.get(列,0)).rjust(8 if len(列们)>1 else 1) for 列 in 列们]#对齐单元格
+        单元格=[str(计数.get(列,0)).rjust(8 if len(列列表)>1 else 1) for 列 in 列列表]#对齐单元格
         后缀='' if 源['name']=='-' else f" {源['name']}"#文件名
         io['out'](f"{' '.join(单元格)}{后缀}\n")#打印
     return 结果['status']#返回状态
@@ -128,7 +128,7 @@ def grep程序(argv,io,state,fs):#grep程序
     """搜索文本。"""
     选项=解析选项(argv,{'e'})#解析带e
     模式=选项['values'].get('e',选项['operands'][0] if len(选项['operands'])>0 else None)#模式
-    目标们=选项['operands'] if 'e' in 选项['values'] else 选项['operands'][1:]#目标
+    目标列表=选项['operands'] if 'e' in 选项['values'] else 选项['operands'][1:]#目标
     if 模式 is None:#缺模式
         io['err']('grep: no pattern given\n')#诊断
         return 2#用法错
@@ -138,12 +138,12 @@ def grep程序(argv,io,state,fs):#grep程序
     except 正则.error as 错误:#非法
         io['err'](f'grep: invalid pattern: {错误}\n')#诊断
         return 2#用法错
-    源们=[]#源缓冲
+    源列表=[]#源缓冲
     状态码=0#累积状态
-    if len(目标们)==0:#无目标用stdin
-        源们.append({'name':'','text':io['stdin']})#收录stdin
+    if len(目标列表)==0:#无目标用stdin
+        源列表.append({'name':'','text':io['stdin']})#收录stdin
     else:#有目标
-        for 目标 in 目标们:#逐目标
+        for 目标 in 目标列表:#逐目标
             路径=在目录解析(state['cwd'],目标)#绝对路径
             统计=fs['stat'](路径)#查询
             if 统计 is not None and 统计['directory'] is True:#目录
@@ -151,35 +151,35 @@ def grep程序(argv,io,state,fs):#grep程序
                     io['err'](f'grep: {目标}: Is a directory\n')#诊断
                     状态码=max(状态码,2)#抬高状态
                     continue#下一目标
-                文件们=[]#文件列表
-                遍历文件(路径,目标,文件们,fs)#收集
-                for 文件 in 文件们:#读入
-                    源们.append({'name':文件['display'],'text':fs['readText'](文件['path'])})#收录
+                文件列表=[]#文件列表
+                遍历文件(路径,目标,文件列表,fs)#收集
+                for 文件 in 文件列表:#读入
+                    源列表.append({'name':文件['display'],'text':fs['readText'](文件['path'])})#收录
                 continue#下一目标
             try:#读文件
-                源们.append({'name':目标,'text':fs['readText'](路径)})#收录
-            except Exception as 错误:#失败
+                源列表.append({'name':目标,'text':fs['readText'](路径)})#收录
+            except Exception as 错误:#被模拟 fs.readText/writeText 可能抛运行时错误，契约未定所以收不窄
                 io['err'](f'{描述失败("grep",目标,错误)}\n')#诊断
                 状态码=max(状态码,2)#抬高状态
-    贴名=len(源们)>1 or 'H' in 选项['flags']#是否贴文件名
+    贴名=len(源列表)>1 or 'H' in 选项['flags']#是否贴文件名
     有匹配=False#是否有匹配
-    for 条目 in 源们:#逐源
-        命中们=[]#命中行
+    for 条目 in 源列表:#逐源
+        命中列表=[]#命中行
         for 序号,行文 in enumerate(拆成行(条目['text'])):#分行
             命中=匹配器.search(行文) is not None#是否匹配
             if 命中==('v' not in 选项['flags']):#匹配或反选
-                命中们.append({'text':行文,'number':序号+1})#收录
-        if len(命中们)>0:#记有匹配
+                命中列表.append({'text':行文,'number':序号+1})#收录
+        if len(命中列表)>0:#记有匹配
             有匹配=True#有
         if 'l' in 选项['flags']:#仅文件名
-            if len(命中们)>0:#有命中
+            if len(命中列表)>0:#有命中
                 io['out'](f"{条目['name']}\n")#打印名
             continue#下一源
         if 'c' in 选项['flags']:#计数
             前=f"{条目['name']}:" if 贴名 and 条目['name']!='' else ''#前缀
-            io['out'](f"{前}{len(命中们)}\n")#打印计数
+            io['out'](f"{前}{len(命中列表)}\n")#打印计数
             continue#下一源
-        for 命中 in 命中们:#逐命中
+        for 命中 in 命中列表:#逐命中
             名前=f"{条目['name']}:" if 贴名 and 条目['name']!='' else ''#文件前缀
             号前=f"{命中['number']}:" if 'n' in 选项['flags'] else ''#行号前缀
             io['out'](f"{名前}{号前}{命中['text']}\n")#打印行
@@ -189,9 +189,9 @@ def sort程序(argv,io,state,fs):#sort程序
     """排序行。"""
     选项=解析选项(argv)#解析选项
     结果=读各输入('sort',选项['operands'],io,state,fs)#读源
-    行们=[]#合并行
+    行列表=[]#合并行
     for 源 in 结果['sources']:#逐源
-        行们.extend(拆成行(源['text']))#合并
+        行列表.extend(拆成行(源['text']))#合并
     if 'n' in 选项['flags']:#数值排序
         def 数值键(行):#键
             """解析浮点。"""
@@ -199,39 +199,39 @@ def sort程序(argv,io,state,fs):#sort程序
                 return float(行)#浮点
             except ValueError:#非法
                 return 0.0#零
-        行们=sorted(行们,key=数值键)#数值排
+        行列表=sorted(行列表,key=数值键)#数值排
     else:#字典序
-        行们=sorted(行们)#字典序
+        行列表=sorted(行列表)#字典序
     if 'r' in 选项['flags']:#逆序
-        行们.reverse()#逆
+        行列表.reverse()#逆
     if 'u' in 选项['flags']:#去重
         见过=[]#保序去重
-        for 行 in 行们:#逐行
+        for 行 in 行列表:#逐行
             if 行 not in 见过:#未见
                 见过.append(行)#收录
-        行们=见过#替换
-    io['out'](确保尾换行('\n'.join(行们)))#输出
+        行列表=见过#替换
+    io['out'](确保尾换行('\n'.join(行列表)))#输出
     return 结果['status']#返回状态
 
 def uniq程序(argv,io,state,fs):#uniq程序
     """相邻去重。"""
     选项=解析选项(argv)#解析选项
     结果=读各输入('uniq',选项['operands'],io,state,fs)#读源
-    行们=[]#合并行
+    行列表=[]#合并行
     for 源 in 结果['sources']:#逐源
-        行们.extend(拆成行(源['text']))#合并
-    组们=[]#相邻组
-    for 行 in 行们:#逐行
-        if len(组们)>0 and 组们[-1]['text']==行:#同文累加
-            组们[-1]['count']+=1#累加
+        行列表.extend(拆成行(源['text']))#合并
+    组列表=[]#相邻组
+    for 行 in 行列表:#逐行
+        if len(组列表)>0 and 组列表[-1]['text']==行:#同文累加
+            组列表[-1]['count']+=1#累加
         else:#新组
-            组们.append({'text':行,'count':1})#新组
+            组列表.append({'text':行,'count':1})#新组
     if 'd' in 选项['flags']:#仅重复
-        所选=[组 for 组 in 组们 if 组['count']>1]#重复组
+        所选=[组 for 组 in 组列表 if 组['count']>1]#重复组
     elif 'u' in 选项['flags']:#仅唯一
-        所选=[组 for 组 in 组们 if 组['count']==1]#唯一
+        所选=[组 for 组 in 组列表 if 组['count']==1]#唯一
     else:#全部
-        所选=组们#全部
+        所选=组列表#全部
     for 组 in 所选:#逐组
         前=f"{str(组['count']).rjust(7)} " if 'c' in 选项['flags'] else ''#计数前缀
         io['out'](f"{前}{组['text']}\n")#打印
@@ -241,47 +241,47 @@ def cut程序(argv,io,state,fs):#cut程序
     """切字段或字符。"""
     选项=解析选项(argv,{'d','f','c'})#解析带值标志
     分隔=选项['values'].get('d','\t')#分隔符
-    字段们=[]#字段号
+    字段列表=[]#字段号
     for 字段 in 选项['values'].get('f','').split(','):#拆字段
         try:#解析
-            字段们.append(int(字段,10))#收录
+            字段列表.append(int(字段,10))#收录
         except ValueError:#非法
             pass#跳过
     字符范围=选项['values'].get('c')#字符范围
     结果=读各输入('cut',选项['operands'],io,state,fs)#读源
-    if len(字段们)==0 and 字符范围 is None:#缺选择
+    if len(字段列表)==0 and 字符范围 is None:#缺选择
         io['err']('cut: expected -f or -c\n')#诊断
         return 2#用法错
     for 源 in 结果['sources']:#逐源
         for 行 in 拆成行(源['text']):#逐行
             if 字符范围 is not None:#按字符
-                段们=字符范围.split('-')#拆范围
+                段列表=字符范围.split('-')#拆范围
                 try:#起点
-                    起点=int(段们[0] if 段们[0]!='' else '1',10) or 1#起点
+                    起点=int(段列表[0] if 段列表[0]!='' else '1',10) or 1#起点
                 except ValueError:#非法
                     起点=1#默认
-                if len(段们)<2 or 段们[1]=='':#无终点
+                if len(段列表)<2 or 段列表[1]=='':#无终点
                     终点=起点#单字符
                 else:#有终点
                     try:#解析终点
-                        终点=int(段们[1],10)#终点
+                        终点=int(段列表[1],10)#终点
                     except ValueError:#非法
                         终点=起点#回退
                 io['out'](f"{行[起点-1:终点]}\n")#切片
                 continue#下一行
             片=行.split(分隔)#按分隔切
-            io['out'](f"{分隔.join([片[字段-1] if 0<=字段-1<len(片) else '' for 字段 in 字段们])}\n")#选字段
+            io['out'](f"{分隔.join([片[字段-1] if 0<=字段-1<len(片) else '' for 字段 in 字段列表])}\n")#选字段
     return 结果['status']#返回状态
 
 def 字符集(集合):#展开字符集
     """展开一个 `tr` 集合：`a-z` 变成该范围内的每个字符。"""
-    字符们=list(集合)#码点列表
+    字符列表=list(集合)#码点列表
     展开=[]#展开缓冲
     索引=0#游标
-    while 索引<len(字符们):#逐码点
-        起点=字符们[索引]#起点字符
-        终点=字符们[索引+2] if 索引+2<len(字符们) else None#终点候选
-        if 索引+1<len(字符们) and 字符们[索引+1]=='-' and 终点 is not None:#范围
+    while 索引<len(字符列表):#逐码点
+        起点=字符列表[索引]#起点字符
+        终点=字符列表[索引+2] if 索引+2<len(字符列表) else None#终点候选
+        if 索引+1<len(字符列表) and 字符列表[索引+1]=='-' and 终点 is not None:#范围
             for 码 in range(ord(起点),ord(终点)+1):#扫范围
                 展开.append(chr(码))#收录
             索引+=3#跳过-与终点
@@ -320,7 +320,7 @@ def sed程序(argv,io,state,fs):#sed程序
     """`sed` 仅接受替换命令；其他一切被报告，而非猜测。"""
     选项=解析选项(argv,{'e'})#解析带e
     脚本=选项['values'].get('e',选项['operands'][0] if len(选项['operands'])>0 else None)#脚本
-    目标们=选项['operands'] if 'e' in 选项['values'] else 选项['operands'][1:]#目标
+    目标列表=选项['operands'] if 'e' in 选项['values'] else 选项['operands'][1:]#目标
     解析=正则.match(r'^s(.)(.*?[^\\])?\1(.*?)\1([gi]*)$',脚本 if 脚本 is not None else '')#解析s命令
     if 解析 is None:#非替换
         io['err']('sed: only substitution scripts (s/pattern/replacement/) run in the worker host\n')#诊断
@@ -335,7 +335,7 @@ def sed程序(argv,io,state,fs):#sed程序
     except 正则.error as 错误:#非法
         io['err'](f'sed: invalid pattern: {错误}\n')#诊断
         return 2#用法错
-    结果=读各输入('sed',目标们,io,state,fs)#读源
+    结果=读各输入('sed',目标列表,io,state,fs)#读源
     def 转引用(匹配):#\\n → \\g<n>
         """对齐 JS $$$1。"""
         return f'\\g<{匹配.group(1)}>'#Python反向引用
@@ -352,7 +352,7 @@ def tee程序(argv,io,state,fs):#tee程序
     for 操作数 in 选项['operands']:#逐文件
         try:#写文件
             fs['writeText'](在目录解析(state['cwd'],操作数),io['stdin'],'a' in 选项['flags'])#写或追加
-        except Exception as 错误:#失败
+        except Exception as 错误:#被模拟 fs.readText/writeText 可能抛运行时错误，契约未定所以收不窄
             io['err'](f'{描述失败("tee",操作数,错误)}\n')#诊断
             return 1#失败
     return 0#成功

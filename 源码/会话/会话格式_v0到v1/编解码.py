@@ -7,13 +7,13 @@ from ..会话格式 import (#从会话格式导入
     快照会话格式产物,#快照产物
     快照会话格式json,#快照JSON
 )#从会话格式导入
-from ..会话格式.json import 是否安全整数#安全整数判定
+from ..会话格式.json import 安全整数上限#外来JSON安全整数上限
 from .校验 import (#从校验导入
     断言已发布会话格式头,#断言会话头
     断言已发布v0源产物,#断言v0源产物
     断言已发布v1物理产物,#断言v1物理产物
 )#从校验导入
-from .校验辅助 import 断言已发布v0键,已发布v0记录#从辅助导入
+from .记录与精确键 import 校验已发布v0键,已发布v0记录#记录与精确键
 
 物理头必填=('type','version','id','createdAt','delegationDepth')#物理头必填
 物理头可选=('cwd','parentSession','seedLength','origin','agentPreset')#物理头可选
@@ -33,13 +33,13 @@ class _已发布编解码器:#已发布编解码器
         """把物理头解码为逻辑头。"""
         return 解码物理头(值,自身.version)['header']#取逻辑头
 
-    def decodeArtifact(自身,头值,行值们):#解码产物
+    def decodeArtifact(自身,头值,行值列表):#解码产物
         """严格解码完整物理产物。"""
         物理=解码物理头(头值,自身.version)#解码物理头
         产物=快照会话格式产物({#快照产物
             'header':物理['header'],#头
             'inheritedEventCount':物理['inheritedEventCount'],#继承数
-            'events':扫描行(行值们,False)['events'],#事件
+            'events':扫描行(行值列表,False)['events'],#事件
         },f'released v{自身.version} artifact')#标签
         if 自身.version==0:#v0
             断言已发布v0源产物(产物)#断言v0
@@ -47,10 +47,10 @@ class _已发布编解码器:#已发布编解码器
             断言已发布v1物理产物(产物)#断言v1
         return 产物#返回
 
-    def decodeRecoverableArtifact(自身,头值,行值们):#可恢复解码
+    def decodeRecoverableArtifact(自身,头值,行值列表):#可恢复解码
         """解码行原子可恢复前缀。"""
         物理=解码物理头(头值,自身.version)#解码物理头
-        恢复=扫描行(行值们,True)#可恢复扫描
+        恢复=扫描行(行值列表,True)#可恢复扫描
         产物=快照会话格式产物({#快照产物
             'header':物理['header'],#头
             'inheritedEventCount':物理['inheritedEventCount'],#继承数
@@ -81,7 +81,7 @@ def 解码物理头(值,版本):#解码物理头
     """解码物理头为逻辑头与继承事件数。"""
     源=快照会话格式json(值,f'released v{版本} physical header')#快照源
     记录=已发布v0记录(源,f'released v{版本} physical header')#转记录
-    断言已发布v0键(#断言键
+    校验已发布v0键(#断言键
         记录,#记录
         物理头必填,#必填
         物理头可选,#可选
@@ -128,15 +128,15 @@ def 编码产物(产物,选项,版本):#编码产物
         物理头基['agentPreset']=头['agentPreset']#预设
     物理头=快照会话格式json(物理头基,f'released v{版本} encoded header')#断言对象
     打包=选项.get('packChunks') if isinstance(选项,dict) else getattr(选项,'packChunks',False)#是否打包
-    记录们=打包块游程(产物['events']) if 打包 else list(产物['events'])#记录
-    行们=tuple(编码出处(记录) for 记录 in 记录们)#编码行
-    return {'header':物理头,'rows':行们}#返回
+    记录列表=打包块游程(产物['events']) if 打包 else list(产物['events'])#记录
+    行列表=tuple(编码出处(记录) for 记录 in 记录列表)#编码行
+    return {'header':物理头,'rows':行列表}#返回
 
-def 扫描行(行值们,可恢复):#扫描行
+def 扫描行(行值列表,可恢复):#扫描行
     """扫描物理行；可恢复时跳过畸形前缀直至 turn/end。"""
-    事件们=[]#事件
+    事件列表=[]#事件
     问题=None#问题
-    for 行下标,值 in enumerate(行值们):#遍历行
+    for 行下标,值 in enumerate(行值列表):#遍历行
         try:#尝试解码
             行=快照会话格式json(值,f'released Session row {行下标}')#快照行
             解码=解码行(行,行下标)#解码行
@@ -151,23 +151,23 @@ def 扫描行(行值们,可恢复):#扫描行
             if any(事件['type']=='turn/end' for 事件 in 解码):#遇回合结束抛出
                 raise 问题#抛出
             continue#丢弃后续
-        行起始=len(事件们)#行起始
+        行起始=len(事件列表)#行起始
         for 事件 in 解码:#遍历解码事件
-            if 事件['seq']!=len(事件们):#序号缺口
+            if 事件['seq']!=len(事件列表):#序号缺口
                 缺口=会话格式错误(#缺口错误
-                    f'released Session row {行下标} has seq gap (expected {len(事件们)}, got {事件["seq"]})',#消息
+                    f'released Session row {行下标} has seq gap (expected {len(事件列表)}, got {事件["seq"]})',#消息
                 )#构造结束
-                del 事件们[行起始:]#回滚本行
+                del 事件列表[行起始:]#回滚本行
                 if not 可恢复:#不可恢复则抛
                     raise 缺口#抛出
                 问题=缺口#记录问题
                 break#跳出
-            事件们.append(事件)#推入
+            事件列表.append(事件)#推入
         if 问题 is not None:#本行后有问题
             if any(事件['type']=='turn/end' for 事件 in 解码):#遇回合结束抛出
                 raise 问题#抛出
             continue#继续
-    return {'events':tuple(事件们)}#冻结返回
+    return {'events':tuple(事件列表)}#冻结返回
 
 def 解码行(值,行下标):#解码行
     """解码一行；打包行展开为多事件。"""
@@ -185,12 +185,12 @@ def 解码行(值,行下标):#解码行
 def 展开打包行(行,类型,行下标):#展开打包行
     """把 text/reasoning/tool-call chunks 行展开为 assistant/chunk 事件。"""
     标签=f'released {类型} row {行下标}'#标签
-    断言已发布v0键(行,['type','seq0','time0','data'],[],标签)#断言键
+    校验已发布v0键(行,['type','seq0','time0','data'],[],标签)#断言键
     起始序号=会话格式计数(行['seq0'],f'{标签} seq0')#起始序号
     时间=会话格式安全整数(行['time0'],f'{标签} time0')#起始时间
     数据=已发布v0记录(行['data'],f'{标签} data')#数据
     是工具=类型=='tool-call-chunks'#是否工具块
-    断言已发布v0键(#断言数据键
+    校验已发布v0键(#断言数据键
         数据,#数据
         ['turn','step','index','id','dt','args'] if 是工具 else ['turn','step','index','dt','texts'],#必填
         ['name'] if 是工具 else [],#可选
@@ -265,32 +265,32 @@ def 编码出处(记录):#编码出处
     if 'sourceEventSeqs' not in 记录:#无出处则原样
         return 记录#原样
     出处列表=记录['sourceEventSeqs']#出处列表
-    数值们=[会话格式计数(值,'sourceEventSeqs member') for 值 in 出处列表]#转数字
+    数值列表=[会话格式计数(值,'sourceEventSeqs member') for 值 in 出处列表]#转数字
     带压缩=dict(记录)#展开
-    带压缩['sourceEventSeqs']=编码序号范围(数值们)#编码范围
+    带压缩['sourceEventSeqs']=编码序号范围(数值列表)#编码范围
     return 快照会话格式json(带压缩)#快照
 
-def 编码序号范围(值们):#编码序号范围
+def 编码序号范围(值列表):#编码序号范围
     """把严格递增序号压缩为单点与长度≥3 的范围。"""
-    for 下标 in range(1,len(值们)):#非递增原样
-        if 值们[下标]<=值们[下标-1]:#非递增
-            return tuple(值们)#原样
+    for 下标 in range(1,len(值列表)):#非递增原样
+        if 值列表[下标]<=值列表[下标-1]:#非递增
+            return tuple(值列表)#原样
     输出=[]#输出
     起点下标=0#起点
-    while 起点下标<len(值们):#扫描连续段
+    while 起点下标<len(值列表):#扫描连续段
         终点下标=起点下标#终点
-        while (终点下标+1<len(值们)
-                and 值们[终点下标+1]==值们[终点下标]+1):#延伸
+        while (终点下标+1<len(值列表)
+                and 值列表[终点下标+1]==值列表[终点下标]+1):#延伸
             终点下标+=1#延伸
         if 终点下标-起点下标>=2:#压成范围
-            输出.append((值们[起点下标],值们[终点下标]))#范围
+            输出.append((值列表[起点下标],值列表[终点下标]))#范围
         else:#散点
             for 下标 in range(起点下标,终点下标+1):#散点
-                输出.append(值们[下标])#推入
+                输出.append(值列表[下标])#推入
         起点下标=终点下标+1#下一段
     return tuple(输出)#冻结返回
 
-def 打包块游程(事件们):#打包块游程
+def 打包块游程(事件列表):#打包块游程
     """把连续可打包的 assistant/chunk 压成 chunks 行。"""
     输出=[]#输出
     种类=None#当前种类
@@ -304,7 +304,7 @@ def 打包块游程(事件们):#打包块游程
             输出.extend(游程)#展开
         种类=None#清空种类
         游程=[]#清空游程
-    for 事件 in 事件们:#遍历事件
+    for 事件 in 事件列表:#遍历事件
         候选=分类块(事件)#分类
         上一=游程[-1] if 游程 else None#上一事件
         if (候选 is not None and 候选==种类 and 上一 is not None
@@ -352,7 +352,7 @@ def 续接块(前,后,种类):#是否续接块
     后数据=后['data']#后数据
     前块=前数据['chunk']#前块
     后块=后数据['chunk']#后块
-    if not 是否安全整数(后['time']-前['time']):#时间差非法
+    if abs(后['time']-前['time'])>安全整数上限:#两端 time 已按安全整数校验，差值只需查量级
         return False#时间差非法
     if 后数据['turn']!=前数据['turn'] or 后数据['step']!=前数据['step']:#坐标变了
         return False#坐标变了
@@ -392,6 +392,6 @@ def 构建打包行(种类,游程):#构建打包行
         'data':{**公共,'texts':[事件['data']['chunk']['text'] for 事件 in 游程]},#数据
     })#断言
 
-def 精确键集合(记录,键们):#精确键集合
+def 精确键集合(记录,键列表):#精确键集合
     """记录自有键集合恰好等于给定键列表。"""
-    return len(记录.keys())==len(键们) and all(键 in 记录 for 键 in 键们)#比较
+    return len(记录.keys())==len(键列表) and all(键 in 记录 for 键 in 键列表)#比较

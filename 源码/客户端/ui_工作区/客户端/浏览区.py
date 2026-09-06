@@ -5,7 +5,7 @@
 添加流与错误对话框同包直连 `工作区挑选流`。公开面仅中文名。
 """
 import time#相对时间 now
-from .树 import 取字段,未分组键,派生分组,派生扁平,派生检索结果#树派生
+from .树 import 未分组键,派生分组,派生扁平,派生检索结果#树派生
 from .存储 import 扁平会话顺序键#扁平账本键
 from .行.行 import 项目行,会话行,检索结果行#行组件
 from .选择器 import 工作区挑选流#添加流程
@@ -56,63 +56,58 @@ def 切换成员(列表,键):#不可变成员切换
         return [项 for 项 in 列表 if 项!=键]#去掉
     return list(列表)+[键]#追加
 
-def 调和会话顺序(会话标识们,已存):#调和已存顺序与当前账本
+def 调和会话顺序(会话标识列表,已存):#调和已存顺序与当前账本
     """接受已存顺序，未知键跳过，新成员追加到末尾。"""
     if 已存 is None:#无已存
-        return list(会话标识们)#原样拷贝
-    按标识={标识:标识 for 标识 in 会话标识们}#id 集
+        return list(会话标识列表)#原样拷贝
     有序=[]#结果
     已纳入=set()#已纳入
+    集=set(会话标识列表)#id 集
     for 键 in 已存:#先走已存
-        标识=按标识.get(键)#查
-        if 标识 is None or 键 in 已纳入:#未知或重复
+        if 键 not in 集 or 键 in 已纳入:#未知或重复
             continue#跳过
-        有序.append(标识)#追加
+        有序.append(键)#追加
         已纳入.add(键)#记下
-    for 标识 in 会话标识们:#再收新成员
+    for 标识 in 会话标识列表:#再收新成员
         if 标识 in 已纳入:#已有
             continue#跳过
         有序.append(标识)#追加
     return 有序#调和后顺序
 
-def 比较会话近因(甲,乙,按标识):#近因比较
-    """最新在前，id 决胜。"""
-    甲时=取字段(按标识.get(甲) if isinstance(按标识,dict) else None,'updatedAt')#甲时间
-    乙时=取字段(按标识.get(乙) if isinstance(按标识,dict) else None,'updatedAt')#乙时间
-    if 甲时 is None:#缺席
-        甲时=float('-inf')#负无穷
-    if 乙时 is None:#缺席
-        乙时=float('-inf')#负无穷
-    if 乙时!=甲时:#时间不同
-        return 乙时-甲时#新的在前
-    return -1 if 甲<乙 else 1#id 决胜
+def 近因标识键(按标识,标识):#近因排序键
+    """(-updatedAt, id)；摘要必在表内。"""
+    时=按标识[标识]['updatedAt'] if 标识 in 按标识 else 0#纪元毫秒
+    return (-时,标识)#新的在前
 
-def 下一会话顺序账本(会话标识们,先前顺序,先前更新时间,列表,排序方式,按近因排序):#调和并套提升政策
+def 下一会话顺序账本(会话标识列表,先前顺序,先前更新时间,列表,排序方式,按近因排序):#调和并套提升政策
     """调和一份可编辑顺序账本并套用活动提升政策。"""
-    顺序=调和会话顺序(会话标识们,先前顺序)#先调和
-    按标识=取字段(列表,'byId') or {}#摘要表
+    顺序=调和会话顺序(会话标识列表,先前顺序)#先调和
+    按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要表
+    def 标识近因(标识):#近因键
+        """闭包按标识。"""
+        return 近因标识键(按标识,标识)#键
     if 按近因排序:#进入最近更新时全量时间排序
-        顺序=sorted(顺序,key=lambda 标识:(-取字段(按标识.get(标识) if isinstance(按标识,dict) else None,'updatedAt',float('-inf')),标识))#近因
+        顺序=sorted(顺序,key=标识近因)#近因
     elif 排序方式=='updated':#活动提升
         提升=[]#新活动
-        for 标识 in 会话标识们:#逐会话
-            会话=按标识.get(标识) if isinstance(按标识,dict) else None#摘要
-            if 会话 is None:#缺席
+        for 标识 in 会话标识列表:#逐会话
+            if 标识 not in 按标识:#缺席
                 continue#跳过
-            先前=先前更新时间.get(标识) if 先前更新时间 else None#先前时间戳
-            if 先前 is None or 取字段(会话,'updatedAt')>先前:#新或变新
+            会话=按标识[标识]#摘要
+            先前=先前更新时间[标识] if 先前更新时间 is not None and 标识 in 先前更新时间 else None#先前时间戳
+            if 先前 is None or 会话['updatedAt']>先前:#新或变新
                 提升.append(标识)#收入提升
-        提升=sorted(提升,key=lambda 标识:(-取字段(按标识.get(标识) if isinstance(按标识,dict) else None,'updatedAt',float('-inf')),标识))#近因排提升
+        提升=sorted(提升,key=标识近因)#近因排提升
         if len(提升)>0:#有提升
             提升集=set(提升)#集合
             顺序=提升+[标识 for 标识 in 顺序 if 标识 not in 提升集]#提升置顶
     更新时间={}#新时间戳表
-    for 标识 in 会话标识们:#逐会话
-        会话=按标识.get(标识) if isinstance(按标识,dict) else None#摘要
-        if 会话 is not None:#有摘要
-            更新时间[标识]=取字段(会话,'updatedAt')#记下
+    for 标识 in 会话标识列表:#逐会话
+        if 标识 in 按标识:#有摘要
+            更新时间[标识]=按标识[标识]['updatedAt']#记下
+    先前时间=先前更新时间 if 先前更新时间 is not None else {}#先前
     顺序变=先前顺序 is None or len(顺序)!=len(先前顺序) or any(顺序[下标]!=先前顺序[下标] for 下标 in range(len(顺序)))#顺序变
-    时间变=len(更新时间)!=len(先前更新时间 or {}) or any(更新时间.get(标识)!=(先前更新时间 or {}).get(标识) for 标识 in 更新时间)#时间变
+    时间变=len(更新时间)!=len(先前时间) or any(更新时间[标识]!=(先前时间[标识] if 标识 in 先前时间 else None) for 标识 in 更新时间)#时间变
     return {'order':顺序,'updatedAt':更新时间,'changed':顺序变 or 时间变}#账本结果
 
 class 工作区浏览区:#侧栏浏览区
@@ -120,7 +115,7 @@ class 工作区浏览区:#侧栏浏览区
     def __init__(自身,属性):#浏览区 props
         """记下注入动作、store、文案与外壳份额。"""
         自身.属性=属性#完整 props
-        自身.翻译=取字段(属性,'t')#文案
+        自身.翻译=属性['t']#文案
         自身.查询=''#搜索框
         自身.检索展开=False#检索轨展开
         自身.本地展开其余=[]#临时展开其余的组
@@ -147,61 +142,68 @@ class 工作区浏览区:#侧栏浏览区
         """返回线路安全查询。"""
         return 消毒检索查询(自身.查询)#清洗
 
-    def 读仓库(自身):#浏览 store 快照
+    def 读快照(自身):#浏览 store 快照
         """读 useStore 或 store 快照。"""
         属性=自身.属性#props
-        读=取字段(属性,'useStore')#钩
+        读=属性['useStore'] if 'useStore' in 属性 else None#钩
         if 读 is not None:#有钩
-            return 读(lambda 状态:状态)#快照
-        存储=取字段(属性,'store')#句柄
+            def 原样(状态):#选择器身份
+                """整表。"""
+                return 状态#快照
+            return 读(原样)#快照
+        存储=属性['store'] if 'store' in 属性 else None#句柄
         if 存储 is None:#无
             return {'groupBy':'workspace','orderBy':'updated','groupExpansion':{},'sessionOrderByAccount':{},'sessionUpdatedAtByAccount':{}}#默认
-        快照=取字段(存储,'getSnapshot')#方法
-        if callable(快照):#有
-            return 快照()#读
-        return 存储 if isinstance(存储,dict) else {}#映射
+        return 存储.getSnapshot()#读
 
     def 读动作(自身):#store 动作
-        """优先 props.actions，其次 store.actions / storeActions。"""
+        """优先 props.actions，其次 store.actions。"""
         属性=自身.属性#props
-        动作=取字段(属性,'actions') or 取字段(属性,'storeActions')#直接注入
-        if 动作 is not None:#有
-            return 动作#返回
-        存储=取字段(属性,'store')#句柄
-        return 取字段(存储,'actions') if 存储 is not None else None#嵌套
+        if 'actions' in 属性 and 属性['actions'] is not None:#直接注入
+            return 属性['actions']#返回
+        存储=属性['store'] if 'store' in 属性 else None#句柄
+        if 存储 is None:#无
+            return None#无
+        return 存储.actions#存储对象的动作面
 
-    def 同步顺序账本(自身,列表,工作区们,归档):#对齐上游 SessionTree/FlatList effect
+    def 同步顺序账本(自身,列表,工作区列表,归档):#对齐上游 SessionTree/FlatList effect
         """按 orderBy 调和各账本顺序并写回 store。"""
         动作=自身.读动作()#动作
-        if 动作 is None or not callable(取字段(动作,'syncSessionOrderAccount')):#无写口
+        if 动作 is None or 'syncSessionOrderAccount' not in 动作:#无写口
             return#停
-        相位=取字段(列表,'phase')#列表相位
+        相位=列表['phase'] if 'phase' in 列表 else None#列表相位
         if 相位 is not None and 相位!='ready':#未就绪
             return#停
-        仓库=自身.读仓库()#当前
-        排序=取字段(仓库,'orderBy') or 'updated'#排序
+        快照=自身.读快照()#当前
+        排序=快照['orderBy'] if 'orderBy' in 快照 and 快照['orderBy'] is not None else 'updated'#排序
         切到近因=自身.先前排序方式 is not None and 自身.先前排序方式!='updated' and 排序=='updated'#切入 updated
         自身.先前排序方式=排序#记下
-        顺序表=取字段(仓库,'sessionOrderByAccount') or {}#顺序
-        时间表=取字段(仓库,'sessionUpdatedAtByAccount') or {}#时间
+        顺序表=快照['sessionOrderByAccount'] if 'sessionOrderByAccount' in 快照 and 快照['sessionOrderByAccount'] is not None else {}#顺序
+        更新毫秒表=快照['sessionUpdatedAtByAccount'] if 'sessionUpdatedAtByAccount' in 快照 and 快照['sessionUpdatedAtByAccount'] is not None else {}#纪元毫秒
         已记账=set()#工作区已占会话
-        for 区 in 工作区们:#逐区
-            for 标识 in 取字段(区,'sessionIds') or []:#成员
+        for 区 in 工作区列表:#逐区
+            账本=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
+            for 标识 in 账本:#成员
                 已记账.add(标识)#记下
-        未分组=[标识 for 标识 in 取字段(列表,'ids') or [] if 取字段(取字段(列表,'byId'),标识) is not None and 标识 not in 已记账]#松散
-        账本们=[]#待同步
-        for 区 in 工作区们:#工作区账本
-            键=取字段(区,'workspaceId')#工作区 id
+        标识列表=列表['ids'] if 'ids' in 列表 and 列表['ids'] is not None else []#列表 id
+        按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要
+        未分组=[标识 for 标识 in 标识列表 if 标识 in 按标识 and 标识 not in 已记账]#松散
+        账本列表=[]#待同步
+        for 区 in 工作区列表:#工作区账本
+            键=区['workspaceId']#工作区 id
             if 键 is None:#缺 id
                 continue#跳过
-            账本们.append({'key':键,'sessionIds':[标识 for 标识 in 取字段(区,'sessionIds') or [] if 取字段(取字段(列表,'byId'),标识) is not None]})#追加
-        账本们.append({'key':未分组键,'sessionIds':未分组})#未分组
-        账本们.append({'key':扁平会话顺序键,'sessionIds':[取字段(行,'id') for 行 in 派生扁平(列表,归档)]})#扁平账本
-        for 账本 in 账本们:#逐账本
-            键=取字段(账本,'key')#键
-            下一=下一会话顺序账本(取字段(账本,'sessionIds') or [],顺序表.get(键),时间表.get(键) or {},列表,排序,排序=='updated' and (顺序表.get(键) is None or 切到近因))#下一账本
-            if 取字段(下一,'changed'):#有变
-                取字段(动作,'syncSessionOrderAccount')(仓库,键,[标识 for 标识 in 取字段(下一,'order')],取字段(下一,'updatedAt'))#写回
+            成员=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
+            账本列表.append({'key':键,'sessionIds':[标识 for 标识 in 成员 if 标识 in 按标识]})#追加
+        账本列表.append({'key':未分组键,'sessionIds':未分组})#未分组
+        账本列表.append({'key':扁平会话顺序键,'sessionIds':[行['id'] for 行 in 派生扁平(列表,归档)]})#扁平账本
+        for 账本 in 账本列表:#逐账本
+            键=账本['key']#键
+            先前序=顺序表[键] if 键 in 顺序表 else None#已存序
+            先前时=更新毫秒表[键] if 键 in 更新毫秒表 else {}#已存时
+            下一=下一会话顺序账本(账本['sessionIds'],先前序,先前时 if 先前时 is not None else {},列表,排序,排序=='updated' and (先前序 is None or 切到近因))#下一账本
+            if 下一['changed']:#有变
+                动作['syncSessionOrderAccount'](快照,键,list(下一['order']),下一['updatedAt'])#写回
 
     def 渲染查看选项(自身,分组方式,排序方式):#分组/排序菜单
         """对齐上游 ViewOptionsMenu。"""
@@ -224,33 +226,77 @@ class 工作区浏览区:#侧栏浏览区
             ],#子结束
         }#片段结束
 
-    def 渲染对话框们(自身):#重命名/删除
+    def 渲染对话框(自身):#重命名/删除
         """浏览器自有对话框，避免行卸载带走确认态。"""
-        重命名阻=自身.重命名中 or 自身.重命名草稿.strip()=='' or 自身.重命名目标 is None or 自身.重命名草稿.strip()==取字段(自身.重命名目标,'currentTitle')#阻塞
+        当前标题=自身.重命名目标['currentTitle'] if 自身.重命名目标 is not None else None#当前标题
+        重命名阻=自身.重命名中 or 自身.重命名草稿.strip()=='' or 自身.重命名目标 is None or 自身.重命名草稿.strip()==当前标题#阻塞
         会话阻=自身.会话重命名中 or 自身.会话重命名草稿.strip()=='' or 自身.会话重命名目标 is None#会话阻塞（允许确认当前标题）
+        删除名=自身.删除目标['title'] if 自身.删除目标 is not None else None#删除名
         return [#对话框列表
             {'type':'Modal','open':自身.重命名目标 is not None,'onClose':'rename-close','title':自身.翻译('rename.workspace.title'),'children':[{'type':'input','class':'renameInput','value':自身.重命名草稿,'aria-label':自身.翻译('field.workspaceName'),'onChange':'rename-draft'},{'type':'div','class':'renameError','role':'alert','children':[自身.重命名错误]} if 自身.重命名错误 else None],'footer':[{'type':'Button','variant':'outline','disabled':自身.重命名中,'onClick':'rename-close','label':自身.翻译('cancel')},{'type':'Button','variant':'primary','disabled':重命名阻,'onClick':'rename-confirm','label':自身.翻译('rename')}]},#工作区重命名
             {'type':'Modal','open':自身.会话重命名目标 is not None,'onClose':'session-rename-close','title':自身.翻译('rename.session.title'),'children':[{'type':'input','class':'renameInput','value':自身.会话重命名草稿,'aria-label':自身.翻译('field.sessionName'),'onChange':'session-rename-draft'},{'type':'div','class':'renameError','role':'alert','children':[自身.会话重命名错误]} if 自身.会话重命名错误 else None],'footer':[{'type':'Button','variant':'outline','disabled':自身.会话重命名中,'onClick':'session-rename-close','label':自身.翻译('cancel')},{'type':'Button','variant':'primary','disabled':会话阻,'onClick':'session-rename-confirm','label':自身.翻译('rename')}]},#会话重命名
-            {'type':'Modal','open':自身.删除目标 is not None,'onClose':'delete-close','title':自身.翻译('delete.workspace'),'description':自身.翻译('delete.desc',{'name':取字段(自身.删除目标,'title')}) if 自身.删除目标 else None,'children':[{'type':'div','class':'deleteStatus','role':'status','children':[自身.翻译('delete.pending')]} if 自身.删除中 else None,{'type':'div','class':'renameError','role':'alert','children':[自身.删除错误]} if 自身.删除错误 else None],'footer':[{'type':'Button','variant':'outline','disabled':自身.删除中,'onClick':'delete-close','label':自身.翻译('cancel')},{'type':'Button','variant':'outline','class':'deleteAction','disabled':自身.删除中,'onClick':'delete-confirm','label':自身.翻译('delete.workspace')}]},#删除
+            {'type':'Modal','open':自身.删除目标 is not None,'onClose':'delete-close','title':自身.翻译('delete.workspace'),'description':自身.翻译('delete.desc',{'name':删除名}) if 自身.删除目标 is not None else None,'children':[{'type':'div','class':'deleteStatus','role':'status','children':[自身.翻译('delete.pending')]} if 自身.删除中 else None,{'type':'div','class':'renameError','role':'alert','children':[自身.删除错误]} if 自身.删除错误 else None],'footer':[{'type':'Button','variant':'outline','disabled':自身.删除中,'onClick':'delete-close','label':自身.翻译('cancel')},{'type':'Button','variant':'outline','class':'deleteAction','disabled':自身.删除中,'onClick':'delete-confirm','label':自身.翻译('delete.workspace')}]},#删除
         ]#列表结束
+
+    def 渲目录流(自身,主人):#侧栏目录流孔
+        """sidebar.workspaces.directoryFlow。"""
+        渲=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None#槽
+        if 渲 is None:#无
+            return None#无
+        return 渲('sidebar.workspaces.directoryFlow',主人)#孔
+
+    def 挑中添加(自身,标识):#挑中后开会话
+        """关弹出并开会话。"""
+        自身.添加开=False#关
+        自身.属性['startSession'](标识)#开
+
+    def 关添加(自身):#关闭添加流
+        """关弹出。"""
+        自身.添加开=False#关
+
+    def 造打开会话(自身,标识):#打开该会话
+        """闭包。"""
+        def 打开():#点击
+            """open。"""
+            自身.属性['open'](标识)#打开
+        return 打开#回调
+
+    def 造会话动作(自身,项):#行菜单
+        """重命名/归档/分叉。"""
+        标识=项['id']#id
+        标题=项['title']#标题
+        def 重命名():#重命名
+            """开会话重命名。"""
+            自身.开会话重命名(标识,标题)#开
+        def 归档():#归档
+            """归档会话。"""
+            自身.归档会话(标识)#归档
+        return {'rename':重命名,'archive':归档,'fork':自身.属性['forkSession'] if 'forkSession' in 自身.属性 else None}#动作
 
     def 渲染(自身):#结构树
         """返回浏览区结构树。"""
         属性=自身.属性#props
-        宽=取字段(属性,'wide',True)#宽态
-        用会话=取字段(属性,'useSessions')#会话钩
-        用工作区=取字段(属性,'useWorkspaces')#工作区钩
-        列表=用会话(lambda 状态:状态) if 用会话 else {'ids':[],'byId':{},'current':None}#会话列表
-        工作区快照=用工作区(lambda 状态:状态) if 用工作区 else {'items':[],'archivedSessionIds':[]}#工作区
-        工作区们=取字段(工作区快照,'items') or []#列表
-        归档=取字段(工作区快照,'archivedSessionIds') or []#归档 id
-        仓库=自身.读仓库()#查看态
-        自身.同步顺序账本(列表,工作区们,归档)#调和账本
-        if 自身.删除已提交标识 is not None and not any(取字段(区,'workspaceId')==自身.删除已提交标识 for 区 in 工作区们):#删除投影已落地
+        宽=bool(属性['wide']) if 'wide' in 属性 else True#宽态
+        用会话=属性['useSessions'] if 'useSessions' in 属性 else None#会话钩
+        用工作区=属性['useWorkspaces'] if 'useWorkspaces' in 属性 else None#工作区钩
+        def 原样(状态):#选择器身份
+            """整表。"""
+            return 状态#快照
+        列表=用会话(原样) if 用会话 is not None else {'ids':[],'byId':{},'current':None}#会话列表
+        工作区快照=用工作区(原样) if 用工作区 is not None else {'items':[],'archivedSessionIds':[]}#工作区
+        工作区列表=工作区快照['items'] if 'items' in 工作区快照 and 工作区快照['items'] is not None else []#列表
+        归档=工作区快照['archivedSessionIds'] if 'archivedSessionIds' in 工作区快照 and 工作区快照['archivedSessionIds'] is not None else []#归档 id
+        快照=自身.读快照()#查看态
+        自身.同步顺序账本(列表,工作区列表,归档)#调和账本
+        if 自身.删除已提交标识 is not None and not any(区['workspaceId']==自身.删除已提交标识 for 区 in 工作区列表):#删除投影已落地
             自身.删除中=False#清
             自身.删除已提交标识=None#清
             自身.删除目标=None#关
-        目录流可用=取字段(属性,'useDirectoryFlow')(lambda 占用:占用) if 取字段(属性,'useDirectoryFlow') else False#添加入口
+        用目录流=属性['useDirectoryFlow'] if 'useDirectoryFlow' in 属性 else None#占用钩
+        def 选占用(占用):#占用态
+            """原样。"""
+            return 占用#占用
+        目录流可用=用目录流(选占用) if 用目录流 is not None else False#添加入口
         if not 宽:#轨态
             return {#轨
                 'type':'div','class':'root rail',#根
@@ -258,70 +304,110 @@ class 工作区浏览区:#侧栏浏览区
                     {'type':'div','class':'search','children':[{'type':'button','class':'searchButton','aria-label':自身.翻译('search.sessions.aria'),'onClick':'rail-search'}]},#搜索
                     {'type':'button','class':'iconButton','aria-label':自身.翻译('workspace.add'),'onClick':'rail-add'} if 目录流可用 else None,#添加
                     工作区挑选流({#添加流
-                        't':自身.翻译,'open':自身.添加开,'useWorkspaces':用工作区,'createWorkspace':取字段(属性,'createWorkspace'),#基础
-                        'useDirectoryFlow':取字段(属性,'useDirectoryFlow'),#占用
-                        'renderDirectoryFlow':lambda 主人:取字段(属性,'renderSlot')('sidebar.workspaces.directoryFlow',主人) if 取字段(属性,'renderSlot') else None,#孔
-                        'onPick':lambda 标识:(setattr(自身,'添加开',False),取字段(属性,'startSession')(标识)),#挑中
-                        'onClose':lambda:setattr(自身,'添加开',False),'addOnly':True,'side':'right',#关闭
+                        't':自身.翻译,'open':自身.添加开,'useWorkspaces':用工作区,'createWorkspace':属性['createWorkspace'] if 'createWorkspace' in 属性 else None,#基础
+                        'useDirectoryFlow':用目录流,#占用
+                        'renderDirectoryFlow':自身.渲目录流,#孔
+                        'onPick':自身.挑中添加,#挑中
+                        'onClose':自身.关添加,'addOnly':True,'side':'right',#关闭
                     }).渲染(),#流
                 ],#子结束
             }#轨结束
-        展开键=[键 for 键,开 in (取字段(仓库,'groupExpansion') or {}).items() if 开]#已展开
-        视图={'expandedGroups':展开键,'ungroupedOrder':取字段(取字段(仓库,'sessionOrderByAccount'),未分组键)}#树视图
+        展开表=快照['groupExpansion'] if 'groupExpansion' in 快照 and 快照['groupExpansion'] is not None else {}#展开
+        展开键=[键 for 键,开 in 展开表.items() if 开]#已展开
+        账本序=快照['sessionOrderByAccount'] if 'sessionOrderByAccount' in 快照 else None#账本序
+        未分组序=账本序[未分组键] if 账本序 is not None and 未分组键 in 账本序 else None#未分组
+        视图={'expandedGroups':展开键,'ungroupedOrder':未分组序}#树视图
         查询=自身.清洗查询().strip()#非空白查询
-        现在=int(time.time()*1000)#当前毫秒
-        分组方式=取字段(仓库,'groupBy') or 'workspace'#分组
-        排序方式=取字段(仓库,'orderBy') or 'updated'#排序
+        现在=int(time.time()*1000)#纪元毫秒
+        分组方式=快照['groupBy'] if 'groupBy' in 快照 and 快照['groupBy'] is not None else 'workspace'#分组
+        排序方式=快照['orderBy'] if 'orderBy' in 快照 and 快照['orderBy'] is not None else 'updated'#排序
+        检索上限=属性['searchResultLimit'] if 'searchResultLimit' in 属性 and 属性['searchResultLimit'] is not None else 20#上限
         if 查询!='':#检索模式
-            结果=派生检索结果(列表,工作区们,查询,归档,自身.正文结果,取字段(属性,'searchResultLimit') or 20)#合并检索
-            行们=[检索结果行(项,lambda 标识=取字段(项,'id'):取字段(属性,'open')(标识),自身.翻译).渲染() for 项 in 取字段(结果,'items') or []]#检索行
-            树子=行们 if 行们 else [{'type':'div','class':'empty','children':[自身.翻译('search.noMatches')]}]#空态
+            结果=派生检索结果(列表,工作区列表,查询,归档,自身.正文结果,检索上限)#合并检索
+            项列表=结果['items'] if 'items' in 结果 and 结果['items'] is not None else []#项
+            行列表=[检索结果行(项,自身.造打开会话(项['id']),自身.翻译).渲染() for 项 in 项列表]#检索行
+            树子=行列表 if len(行列表)>0 else [{'type':'div','class':'empty','children':[自身.翻译('search.noMatches')]}]#空态
             if 自身.检索中:#进行中
                 树子.insert(0,{'type':'div','class':'searchStatus','role':'status','children':[自身.翻译('search.pending')]})#挂起
             if 自身.检索警告:#内容检索失败
                 树子.insert(0,{'type':'div','class':'searchWarning','role':'status','children':[自身.翻译('search.unavailable')]})#警告
-            if 取字段(结果,'hasMore'):#截断提示
-                树子.append({'type':'div','class':'searchStatus','children':[自身.翻译('search.hasMore',{'n':取字段(属性,'searchResultLimit') or 20})]})#提示
+            if 结果['hasMore']:#截断提示
+                树子.append({'type':'div','class':'searchStatus','children':[自身.翻译('search.hasMore',{'n':检索上限})]})#提示
             列表体={'type':'div','class':'treeBody wide','children':[{'type':'div','class':'list','role':'tree','aria-label':自身.翻译('search.results.aria'),'children':树子},{'type':'span','class':'fade'}]}#检索体
         elif 分组方式=='flat':#扁平
             扁基=派生扁平(列表,归档)#扁平行
-            扁序=调和会话顺序([取字段(行,'id') for 行 in 扁基],取字段(取字段(仓库,'sessionOrderByAccount'),扁平会话顺序键))#本地序
-            按标识={取字段(行,'id'):行 for 行 in 扁基}#索引
+            扁账本=账本序[扁平会话顺序键] if 账本序 is not None and 扁平会话顺序键 in 账本序 else None#扁平序
+            扁序=调和会话顺序([行['id'] for 行 in 扁基],扁账本)#本地序
+            按标识={行['id']:行 for 行 in 扁基}#索引
             扁=[按标识[标识] for 标识 in 扁序 if 标识 in 按标识]#有序
-            树子=[会话行(项,lambda 标识=取字段(项,'id'):取字段(属性,'open')(标识),{'rename':lambda 标识=取字段(项,'id'),标题=取字段(项,'title'):自身.开会话重命名(标识,标题),'archive':lambda 标识=取字段(项,'id'):自身.归档会话(标识),'fork':取字段(属性,'forkSession')},自身.翻译,现在).渲染() for 项 in 扁] or [{'type':'div','class':'empty','children':[自身.翻译('empty.none')]}]#行或空
+            树子=[会话行(项,自身.造打开会话(项['id']),自身.造会话动作(项),自身.翻译,现在).渲染() for 项 in 扁]#行
+            if len(树子)==0:#空
+                树子=[{'type':'div','class':'empty','children':[自身.翻译('empty.none')]}]#空
             列表体={'type':'div','class':'treeBody wide','children':[{'type':'div','class':'list flatList','role':'tree','aria-label':自身.翻译('section.sessions'),'children':树子},{'type':'span','class':'fade'}]}#扁平体
         else:#按工作区分组
             有序工作区=[]#带本地序的工作区
-            for 区 in 工作区们:#逐区
-                序=调和会话顺序(取字段(区,'sessionIds') or [],取字段(取字段(仓库,'sessionOrderByAccount'),取字段(区,'workspaceId')))#序
-                拷=dict(区) if isinstance(区,dict) else {'workspaceId':取字段(区,'workspaceId'),'title':取字段(区,'title'),'sessionIds':取字段(区,'sessionIds')}#拷贝
+            for 区 in 工作区列表:#逐区
+                成员=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
+                区序=账本序[区['workspaceId']] if 账本序 is not None and 区['workspaceId'] in 账本序 else None#序
+                序=调和会话顺序(成员,区序)#序
+                拷=dict(区)#拷贝
                 拷['sessionIds']=序#写入
                 有序工作区.append(拷)#追加
-            组们=派生分组(列表,有序工作区,归档,视图)#分组
+            组列表=派生分组(列表,有序工作区,归档,视图)#分组
             树子=[]#树节点
-            if len(组们)==0:#空
+            if len(组列表)==0:#空
                 树子.append({'type':'div','class':'empty','children':[自身.翻译('empty.none')]})#空
-            for 组 in 组们:#逐组
-                键=取字段(组,'key')#组键
-                树子.append(项目行(组,lambda 键=键:自身.切换分组(键),lambda 标识=取字段(组,'workspaceId'):(自身.设分组展开(键,True),取字段(属性,'startSession')(标识)),{'rename':lambda 标识=取字段(组,'workspaceId'),标题=取字段(组,'label'):自身.开重命名(标识,标题),'delete':lambda 标识=取字段(组,'workspaceId'),标题=取字段(组,'label'):自身.开删除(标识,标题)} if 取字段(组,'workspaceId') is not None else None,自身.翻译).渲染())#头行
-                if 取字段(组,'expanded'):#展开
-                    会话们=取字段(组,'sessions') or []#会话
+            for 组 in 组列表:#逐组
+                键=组['key']#组键
+                def 造切换(组键):#切换展开
+                    """闭包。"""
+                    def 切换():#点击
+                        """翻转。"""
+                        自身.切换分组(组键)#翻转
+                    return 切换#回调
+                def 造创建(组键,工作区标识):#新建会话
+                    """闭包。"""
+                    def 创建():#点击
+                        """展开并开会话。"""
+                        自身.设分组展开(组键,True)#展开
+                        自身.属性['startSession'](工作区标识)#开
+                    return 创建#回调
+                组动作=None#重命名/删除
+                if 组['workspaceId'] is not None:#真实工作区
+                    区标识=组['workspaceId']#id
+                    区标签=组['label']#标签
+                    def 造重命名(某标识,某标题):#重命名
+                        """闭包。"""
+                        def 重命名():#点击
+                            """开重命名。"""
+                            自身.开重命名(某标识,某标题)#开
+                        return 重命名#回调
+                    def 造删除(某标识,某标题):#删除
+                        """闭包。"""
+                        def 删除():#点击
+                            """开删除。"""
+                            自身.开删除(某标识,某标题)#开
+                        return 删除#回调
+                    组动作={'rename':造重命名(区标识,区标签),'delete':造删除(区标识,区标签)}#动作
+                树子.append(项目行(组,造切换(键),造创建(键,组['workspaceId']),组动作,自身.翻译).渲染())#头行
+                if 组['expanded']:#展开
+                    会话列表=组['sessions'] if 'sessions' in 组 and 组['sessions'] is not None else []#会话
                     溢出=键 in 自身.本地展开其余#本地溢出
-                    可见=会话们 if 溢出 or len(会话们)<=折叠会话上限 else 会话们[:折叠会话上限]#截断
+                    可见=会话列表 if 溢出 or len(会话列表)<=折叠会话上限 else 会话列表[:折叠会话上限]#截断
                     for 项 in 可见:#会话行
-                        树子.append(会话行(项,lambda 标识=取字段(项,'id'):取字段(属性,'open')(标识),{'rename':lambda 标识=取字段(项,'id'),标题=取字段(项,'title'):自身.开会话重命名(标识,标题),'archive':lambda 标识=取字段(项,'id'):自身.归档会话(标识),'fork':取字段(属性,'forkSession')},自身.翻译,现在).渲染())#行
-                    if len(会话们)>折叠会话上限:#展开其余
-                        树子.append({'type':'button','class':'sessionOverflowButton','aria-expanded':溢出,'onClick':('overflow',键),'children':[自身.翻译('sessions.collapse') if 溢出 else 自身.翻译('sessions.expand',{'n':len(会话们)-折叠会话上限})]})#控件
+                        树子.append(会话行(项,自身.造打开会话(项['id']),自身.造会话动作(项),自身.翻译,现在).渲染())#行
+                    if len(会话列表)>折叠会话上限:#展开其余
+                        树子.append({'type':'button','class':'sessionOverflowButton','aria-expanded':溢出,'onClick':('overflow',键),'children':[自身.翻译('sessions.collapse') if 溢出 else 自身.翻译('sessions.expand',{'n':len(会话列表)-折叠会话上限})]})#控件
             列表体={'type':'div','class':'treeBody wide','children':[{'type':'div','class':'list','role':'tree','aria-label':自身.翻译('section.sessions'),'children':树子},{'type':'span','class':'fade'}]}#分组体
         挑选=工作区挑选流({#添加流程
             't':自身.翻译,#文案
             'open':自身.添加开,#开关
             'useWorkspaces':用工作区,#工作区钩
-            'createWorkspace':取字段(属性,'createWorkspace'),#创建
-            'useDirectoryFlow':取字段(属性,'useDirectoryFlow'),#占用
-            'renderDirectoryFlow':lambda 主人:取字段(属性,'renderSlot')('sidebar.workspaces.directoryFlow',主人) if 取字段(属性,'renderSlot') else None,#孔
-            'onPick':lambda 标识:(setattr(自身,'添加开',False),取字段(属性,'startSession')(标识)),#挑中后开会话
-            'onClose':lambda:setattr(自身,'添加开',False),#关闭
+            'createWorkspace':属性['createWorkspace'] if 'createWorkspace' in 属性 else None,#创建
+            'useDirectoryFlow':用目录流,#占用
+            'renderDirectoryFlow':自身.渲目录流,#孔
+            'onPick':自身.挑中添加,#挑中后开会话
+            'onClose':自身.关添加,#关闭
             'addOnly':True,#仅添加
             'side':'right',#侧栏方向
         })#流结束
@@ -345,27 +431,28 @@ class 工作区浏览区:#侧栏浏览区
                     挑选.渲染(),#添加流
                 ]},#区头结束
                 {'type':'div','class':'listArea','children':[列表体]},#列表席
-                *自身.渲染对话框们(),#对话框
+                *自身.渲染对话框(),#对话框
             ],#子结束
         }#根结束
 
     def 设分组展开(自身,键,展开):#写 groupExpansion
         """写 store 的分组展开。"""
         动作=自身.读动作()#动作
-        if 动作 is None or not callable(取字段(动作,'setGroupExpanded')):#无
+        if 动作 is None or 'setGroupExpanded' not in 动作:#无
             return#停
-        取字段(动作,'setGroupExpanded')(自身.读仓库(),键,展开)#写入
+        动作['setGroupExpanded'](自身.读快照(),键,展开)#写入
 
     def 切换分组(自身,键):#翻转分组展开
         """写回 store 的 groupExpansion。"""
-        仓库=自身.读仓库()#当前
-        当前=bool(取字段(取字段(仓库,'groupExpansion'),键))#当前展开
+        快照=自身.读快照()#当前
+        展开表=快照['groupExpansion'] if 'groupExpansion' in 快照 and 快照['groupExpansion'] is not None else {}#展开
+        当前=bool(展开表[键]) if 键 in 展开表 else False#当前展开
         if 当前:#收起时清本地溢出
             自身.本地展开其余=[项 for 项 in 自身.本地展开其余 if 项!=键]#去掉
         动作=自身.读动作()#动作
-        if 动作 is None or not callable(取字段(动作,'setGroupExpanded')):#无
+        if 动作 is None or 'setGroupExpanded' not in 动作:#无
             return#停
-        取字段(动作,'setGroupExpanded')(仓库,键,not 当前)#翻转
+        动作['setGroupExpanded'](快照,键,not 当前)#翻转
 
     def 开重命名(自身,工作区标识,当前标题):#打开工作区重命名
         """记下重命名目标。"""
@@ -389,21 +476,19 @@ class 工作区浏览区:#侧栏浏览区
         自身.会话重命名错误=None#清错
 
     def 归档会话(自身,会话标识):#无对话框归档
-        """直接提交归档；失败只诊断。"""
-        归档=取字段(自身.属性,'archiveSession')#注入
+        """直接提交归档；失败只诊断。注入面已等待。"""
+        归档=自身.属性['archiveSession'] if 'archiveSession' in 自身.属性 else None#注入
         if 归档 is None:#无
             return#停
         try:#提交
-            结果=归档(会话标识)#调用
-            if hasattr(结果,'等待'):#承诺
-                结果.等待()#等待
-        except Exception:#失败
+            归档(会话标识)#调用；已等待
+        except Exception:#失败；归档 RPC 异常契约未定，故不能换成更窄的 except
             pass#与上游一样非致命
 
     def 触发正文检索(自身):#防抖宿主检索
-        """非空白查询经防抖调用 searchSessions。"""
+        """非空白查询经防抖调用 searchSessions。注入面已等待。"""
         查询=自身.清洗查询().strip()#查询
-        搜索=取字段(自身.属性,'searchSessions')#注入检索
+        搜索=自身.属性['searchSessions'] if 'searchSessions' in 自身.属性 else None#注入检索
         if 查询=='' or 搜索 is None:#无需
             自身.正文结果={'items':[],'hasMore':False}#清空
             自身.检索警告=None#清警告
@@ -411,12 +496,10 @@ class 工作区浏览区:#侧栏浏览区
             return#停
         自身.检索中=True#标记
         try:#请求
-            结果=搜索(查询,None)#检索
-            if hasattr(结果,'等待'):#承诺
-                结果=结果.等待()#等待
+            结果=搜索(查询,None)#检索；已等待
             自身.正文结果=结果 if 结果 is not None else {'items':[],'hasMore':False}#写入
             自身.检索警告=None#成功
-        except Exception:#内容检索失败
+        except Exception:#内容检索失败；检索 RPC 异常契约未定，故不能换成更窄的 except
             自身.检索警告='unavailable'#警告
             自身.正文结果={'items':[],'hasMore':False}#仅本地匹配
         自身.检索中=False#结束
@@ -426,14 +509,14 @@ class 工作区浏览区:#侧栏浏览区
         属性=自身.属性#props
         动作集=自身.读动作()#store 动作
         if 动作=='rail-search':#轨搜索
-            展开=取字段(属性,'expandSidebar')#请求扩宽
-            if callable(展开):#有
+            展开=属性['expandSidebar'] if 'expandSidebar' in 属性 else None#请求扩宽
+            if 展开 is not None:#有
                 展开()#扩宽
             自身.检索展开=True#开检索
             return#已处理
         if 动作=='rail-add':#轨添加
-            展开=取字段(属性,'expandSidebar')#请求扩宽
-            if callable(展开):#有
+            展开=属性['expandSidebar'] if 'expandSidebar' in 属性 else None#请求扩宽
+            if 展开 is not None:#有
                 展开()#扩宽
             自身.添加开=True#开流
             return#已处理
@@ -465,10 +548,10 @@ class 工作区浏览区:#侧栏浏览区
             自身.查看选项开=not 自身.查看选项开#翻转
             return#已处理
         if 动作=='view-option':#分组/排序
-            if 载荷 in ('workspace','flat') and 动作集 is not None and callable(取字段(动作集,'setGroupBy')):#分组
-                取字段(动作集,'setGroupBy')(自身.读仓库(),载荷)#写
-            elif 载荷 in ('manual','updated') and 动作集 is not None and callable(取字段(动作集,'setOrderBy')):#排序
-                取字段(动作集,'setOrderBy')(自身.读仓库(),载荷)#写
+            if 载荷 in ('workspace','flat') and 动作集 is not None and 'setGroupBy' in 动作集:#分组
+                动作集['setGroupBy'](自身.读快照(),载荷)#写
+            elif 载荷 in ('manual','updated') and 动作集 is not None and 'setOrderBy' in 动作集:#排序
+                动作集['setOrderBy'](自身.读快照(),载荷)#写
             自身.查看选项开=False#关
             return#已处理
         if isinstance(动作,tuple) and 动作[0]=='overflow':#展开其余
@@ -488,19 +571,17 @@ class 工作区浏览区:#侧栏浏览区
             if 自身.重命名目标 is None or 自身.重命名中:#无效
                 return#停
             标题=自身.重命名草稿.strip()#修剪
-            if 标题=='' or 标题==取字段(自身.重命名目标,'currentTitle'):#无变
+            if 标题=='' or 标题==自身.重命名目标['currentTitle']:#无变
                 return#停
-            改名=取字段(属性,'renameWorkspace')#注入
+            改名=属性['renameWorkspace'] if 'renameWorkspace' in 属性 else None#注入
             if 改名 is None:#无
                 return#停
             自身.重命名中=True#忙
             try:#提交
-                结果=改名(取字段(自身.重命名目标,'workspaceId'),标题)#调用
-                if hasattr(结果,'等待'):#承诺
-                    结果.等待()#等待
+                改名(自身.重命名目标['workspaceId'],标题)#调用；已等待
                 自身.重命名目标=None#关
                 自身.重命名错误=None#清
-            except Exception as 原因:#失败
+            except Exception as 原因:#失败；重命名 RPC 异常契约未定，故不能换成更窄的 except
                 自身.重命名错误=str(原因)#文案
             自身.重命名中=False#闲
             return#已处理
@@ -520,17 +601,15 @@ class 工作区浏览区:#侧栏浏览区
             标题=自身.会话重命名草稿.strip()#修剪
             if 标题=='':#空
                 return#停
-            改名=取字段(属性,'renameSession')#注入
+            改名=属性['renameSession'] if 'renameSession' in 属性 else None#注入
             if 改名 is None:#无
                 return#停
             自身.会话重命名中=True#忙
             try:#提交
-                结果=改名(取字段(自身.会话重命名目标,'sessionId'),标题)#调用
-                if hasattr(结果,'等待'):#承诺
-                    结果.等待()#等待
+                改名(自身.会话重命名目标['sessionId'],标题)#调用；已等待
                 自身.会话重命名目标=None#关
                 自身.会话重命名错误=None#清
-            except Exception as 原因:#失败
+            except Exception as 原因:#失败；会话改名 RPC 异常契约未定，故不能换成更窄的 except
                 自身.会话重命名错误=str(原因)#文案
             自身.会话重命名中=False#闲
             return#已处理
@@ -543,17 +622,15 @@ class 工作区浏览区:#侧栏浏览区
         if 动作=='delete-confirm':#确认删除
             if 自身.删除目标 is None or 自身.删除中:#无效
                 return#停
-            删除=取字段(属性,'deleteWorkspace')#注入
+            删除=属性['deleteWorkspace'] if 'deleteWorkspace' in 属性 else None#注入
             if 删除 is None:#无
                 return#停
             自身.删除中=True#忙
             自身.删除错误=None#清
             try:#提交
-                结果=删除(取字段(自身.删除目标,'workspaceId'))#调用
-                if hasattr(结果,'等待'):#承诺
-                    结果.等待()#等待
-                自身.删除已提交标识=取字段(自身.删除目标,'workspaceId')#等投影
-            except Exception as 原因:#失败
+                删除(自身.删除目标['workspaceId'])#调用；已等待
+                自身.删除已提交标识=自身.删除目标['workspaceId']#等投影
+            except Exception as 原因:#失败；删除 RPC 异常契约未定，故不能换成更窄的 except
                 自身.删除中=False#闲
                 自身.删除错误=str(原因)#文案
             return#已处理

@@ -3,7 +3,7 @@
 对齐上游 `tool-fs/src/index.ts`。公开业务面仅中文名；Cordis 协议槽（name/inject/Config/apply/default）保留英文别名供加载器识别，不入 `__all__`。空不变量配套见 `.不变量`。
 """
 from ...依赖.schemastery import 数字字段#配置字段
-from .读 import 应用读工具,读行数上限,流最小大小,解析读参数,解析正整数#导入读工具与读窗口默认值
+from .读 import 应用读工具,读行数上限,流最小字节数,解析读参数,解析正整数#导入读工具与读窗口默认值
 from .写 import 应用写工具,解析写参数,格式化写输出#导入写工具
 from .编辑 import 应用编辑工具,解析编辑参数,格式化编辑输出#导入编辑工具
 from .读图 import (#导入读图公开面（对齐上游 read-image 具名导出）
@@ -24,9 +24,8 @@ from .读渲染 import (#导入读渲染面
 from .读目标 import 解析普通读目标#导入普通文件目标解析
 from .沙箱 import 文件系统沙箱控制器#导入文件系统沙箱升级控制器
 from .差异 import 差异上下文,计算块差异,从元数据取差异#导入hunk diff面
-from .错误 import 补救文件系统错误#导入模型边界错误补救
+from .错误 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
 from .会话工作目录 import 会话工作目录,会话解析选项#导出会话cwd面
-from .辅助 import 是否整数,取字段,试取,解开,是否有限数#正整数判定与配置字段
 from .类型 import (#再导出内部字段名约定
     读工具上限字段,#传给应用读工具
     读输入字段,#解析读参数结果
@@ -48,52 +47,59 @@ inject=注入#Cordis依赖声明（协议槽）
     'readLimit':数字字段(默认值=读行数上限),#读行数默认值
     'readMaxLineLength':数字字段(默认值=读最大行长),#单行长度默认值
     'readMaxBytes':数字字段(默认值=读最大字节),#字节上限默认值
-    'readStreamMinSize':数字字段(默认值=流最小大小),#流式阈值默认值
+    'readStreamMinSize':数字字段(默认值=流最小字节数),#流式阈值默认值
 }#配置模式结束
 Config=配置#Cordis配置模式（协议槽）
 
 __all__=(#仅中文公开名；Cordis 英文协议槽不入表
     '名称','注入','配置','断言正整数','应用','默认',
-    '应用读工具','读行数上限','流最小大小','解析读参数','解析正整数',
+    '应用读工具','读行数上限','流最小字节数','解析读参数','解析正整数',
     '应用写工具','解析写参数','格式化写输出',
     '应用编辑工具','解析编辑参数','格式化编辑输出',
     '应用读图工具','路径图像类型','断言图像路由','值转图像引用','格式化读图输出',
     '读最大字节','读最大行长','构建窗口','格式化读输出','路径语言','从元数据取读窗口',
     '解析普通读目标','文件系统沙箱控制器',
     '差异上下文','计算块差异','从元数据取差异',
-    '补救文件系统错误','会话工作目录','会话解析选项',
-    '是否整数','取字段','试取','解开','是否有限数',
+    '补救文件系统错误','工具文件系统错误','会话工作目录','会话解析选项',
     '读工具上限字段','读输入字段','写输入字段','编辑输入字段',
     '读窗口请求字段','读窗口结果字段','读元数据字段','差异元数据字段','文件差异字段',
 )#公开面结束
 
+def 收成正整数(名,值):#配置入口收成正整数
+    """每一项读上限都按行/字节计数——排除布尔，有限整值收成 int。"""
+    if isinstance(值,bool):#布尔不是整数
+        raise 工具文件系统错误('tool-fs: '+名+' must be a positive integer')#加载时大声失败
+    if isinstance(值,int) and 值>=1:#已经是正整数
+        return 值#原样
+    if isinstance(值,float) and 值.is_integer() and 值>=1:#整值浮点
+        return int(值)#收成int
+    raise 工具文件系统错误('tool-fs: '+名+' must be a positive integer')#加载时大声失败
+
 def 断言正整数(名,值):#断言配置项为正整数
-    """每一项读上限都按行/字符/字节计数——必须是正整数，否则窗口算术会静默出错。"""
-    if (not 是否整数(值)) or 值<1:#不是整数或小于1
-        raise Exception('tool-fs: '+名+' must be a positive integer')#加载时大声失败
+    """配置入口断言；返回收成后的 int。"""
+    return 收成正整数(名,值)#委托入口收成
 
 def 应用(上下文,配置值):#安装文件系统工具套件
     """注册完整的 read/write/edit 文件系统工具套件；在挂载了 attachments 时再加上 read_image。
 
     @param 上下文 插件上下文；工具与提示词注册都是作用在其上的 effect
-    @param 配置值 schemastery 已套用默认值后的插件配置
+    @param 配置值 schemastery 已套用默认值后的插件配置，形态是 dict
     """
-    # schemastery（配置）已经填好每个有默认值的字段。
-    断言正整数('readLimit',取字段(配置值,'readLimit'))#校验读行数
-    断言正整数('readMaxLineLength',取字段(配置值,'readMaxLineLength'))#校验单行长度
-    断言正整数('readMaxBytes',取字段(配置值,'readMaxBytes'))#校验字节上限
-    断言正整数('readStreamMinSize',取字段(配置值,'readStreamMinSize'))#校验流式阈值
+    行数=断言正整数('readLimit',配置值['readLimit'])#校验读行数
+    最大行长=断言正整数('readMaxLineLength',配置值['readMaxLineLength'])#校验单行长度
+    最大字节=断言正整数('readMaxBytes',配置值['readMaxBytes'])#校验字节上限
+    流最小=断言正整数('readStreamMinSize',配置值['readStreamMinSize'])#校验流式阈值
     应用读工具(上下文,{#注册read工具
-        '行数':取字段(配置值,'readLimit'),#行数上限
-        '最大行长':取字段(配置值,'readMaxLineLength'),#单行长度上限
-        '最大字节':取字段(配置值,'readMaxBytes'),#字节上限
-        '流最小大小':取字段(配置值,'readStreamMinSize'),#流式阈值
+        '行数':行数,#行数上限
+        '最大行长':最大行长,#单行长度上限
+        '最大字节':最大字节,#字节上限
+        '流最小字节数':流最小,#流式阈值
     })#read工具注册结束
     # read_image 是组合条件的：没有挂载的附件存储时，部署无法持久提交图像字节，因此工具从不注册；execute 体对直接调用方保留防御性再检查。
     def 挂读图(图像上下文):#仅在attachments可用时注册read_image
         """仅在 attachments 可用时注册 read_image。"""
         应用读图工具(图像上下文)#注册read_image工具
-    上下文.inject(['attachments'],挂读图)#条件注入结束
+    上下文.依赖启动(['attachments'],挂读图)#条件注入结束
     # 两个变更工具共享一套升级 API：广告门控、每调用策略解析、拒绝标记映射，全部取决于已挂载的 ctx.fs 是否隔离。
     沙箱=文件系统沙箱控制器(上下文)#构造共享沙箱控制器
     应用写工具(上下文,沙箱)#注册write工具

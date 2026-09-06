@@ -1,5 +1,4 @@
 """在 ctx.web 注册 DeepSeek 后端提供方。它调用带原生 web_search_20250305 的 Anthropic 兼容 Messages API。提供方复用 DEEPSEEK_API_KEY 但不复用 DEEPSEEK_BASE_URL，因为搜索与 chat-completions 使用不同基址。"""
-from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...凭据.凭据 import 凭证引用#凭证引用工厂
 from ...配置.配置 import 安装设置段,设置命名空间#设置段安装与命名空间
@@ -11,9 +10,6 @@ from .提供方 import (
     默认最大令牌,#默认生成上限
     默认最大使用次数,#默认 web_search 使用次数
     默认模型,#默认模型名
-    提供方标识,#提供方稳定 id
-    引用摘要映射,#从 citation 抽摘要
-    映射人机响应,#响应映射
 )#提供方实现
 
 __all__=['名称','注入','应用','配置模式','Config','name','inject']#公开面
@@ -39,41 +35,25 @@ inject=注入#Cordis依赖声明
 }#插件配置（全部可选——应用 填环境变量与常量默认值）
 Config=配置模式#Cordis 配置模式
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺席#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
-    return 值#同步值
-
 def 解析选项(上下文对象,配置):#把已解析段投影成提供方下次搜索所用的选项
     """环境回退留在这里而不是提供方里：它读到的每个值都已经完全套上默认。"""
-    密钥环境名=取字段(配置,'apiKeyEnv')#配置里的引用
+    密钥环境名=配置['apiKeyEnv'] if 'apiKeyEnv' in 配置 else None#配置里的引用
     if 密钥环境名 is None:#缺省
         密钥环境名=默认密钥环境#默认 DEEPSEEK_API_KEY
     密钥引用=凭证引用(密钥环境名)#规范化密钥引用
-    字面量=取字段(配置,'apiKey')#字面量密钥
+    字面量=配置['apiKey'] if 'apiKey' in 配置 else None#字面量密钥
     字面量密钥=字面量 if (字面量 is not None and len(字面量)>0) else None#非空才采用
     def 解析密钥():#每次搜索解析密钥
         """有凭证 seam 则走凭证解析；否则环境就是整个凭证平面。"""
         凭证=上下文对象.获取服务('credentials')#可选凭证服务
         if 凭证 is not None:#有 seam
-            命中=解开(凭证.解析(密钥引用))#解析引用（承诺则等待）
+            命中=凭证.解析(密钥引用)#解析引用，已是同步
             if 命中 is not None:#命中
-                return 取字段(命中,'value')#返回值
+                return 命中['value']#返回值
             return None#未配置
         环境项=取启动环境(上下文对象).取(密钥引用)#从启动环境取
         if 环境项 is not None:#有环境项
-            环境值=取字段(环境项,'value')#环境值
+            环境值=环境项['value']#环境值
             if 环境值 is not None and len(环境值)>0:#非空才返回
                 return 环境值#环境值
         return None#缺席
@@ -86,22 +66,22 @@ def 解析选项(上下文对象,配置):#把已解析段投影成提供方下�
         if 发起方 is None:#没有发起边界
             return#无法记日志
         发起方.session.追加('web/deepseek-search-llm-request',请求)#预派发日志事件
-    基址=取字段(配置,'baseURL')#配置基址优先
+    基址=配置['baseURL'] if 'baseURL' in 配置 else None#配置基址优先
     if 基址 is None:#配置未给
         环境项=取启动环境(上下文对象).取(搜索基址环境)#搜索专用环境变量
-        基址=取字段(环境项,'value') if 环境项 is not None else None#环境值
+        基址=环境项['value'] if 环境项 is not None else None#环境值
     if 基址 is None:#再否则默认搜索基址
         基址=默认基址#默认 Messages 基址
-    模型=取字段(配置,'model')#配置模型
+    模型=配置['model'] if 'model' in 配置 else None#配置模型
     if 模型 is None:#缺省
         模型=默认模型#默认模型
-    接口版本=取字段(配置,'apiVersion')#配置 API 版本
+    接口版本=配置['apiVersion'] if 'apiVersion' in 配置 else None#配置 API 版本
     if 接口版本 is None:#缺省
         接口版本=默认接口版本#默认版本
-    最大令牌=取字段(配置,'maxTokens')#配置生成上限
+    最大令牌=配置['maxTokens'] if 'maxTokens' in 配置 else None#配置生成上限
     if 最大令牌 is None:#缺省
         最大令牌=默认最大令牌#默认上限
-    最大使用=取字段(配置,'maxUses')#配置使用次数
+    最大使用=配置['maxUses'] if 'maxUses' in 配置 else None#配置使用次数
     if 最大使用 is None:#缺省
         最大使用=默认最大使用次数#默认次数
     选项={#提供方选项

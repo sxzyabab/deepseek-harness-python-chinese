@@ -1,0 +1,21 @@
+{
+    "archive":"归档",
+    "block":"块",
+    "byte":"字节",
+    "checksum":"校验",
+    "directory":"目录",
+    "entry":"条目",
+    "field":"字段",
+    "mode":"权限",
+    "name":"名",
+    "octal":"八进制",
+    "pack":"打包",
+    "parse":"解析",
+    "prefix":"前缀",
+    "size":"大小",
+    "split":"拆",
+    "tar":"归档",
+    "type":"类型",
+    "ustar":"ustar",
+    "write":"写"
+}

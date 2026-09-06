@@ -1,59 +1,70 @@
 """监视源文件并热替换受影响的插件。"""
-import errno,os,sys,threading,weakref
+import errno,os,re,sys,threading,weakref
 from .cordis import 服务
 from .schemastery import 字符串字段,列表字段,自然数字段#配置字段
-from pathlib import Path,PurePosixPath
+from .工具 import 路径转文件url,文件url转路径#路径与 file URL 互转
 from watchfiles import watch as 监视变化, Change as 变化种类#内核文件监视
 
 轮询间隔秒=0.1#文件监视的轮询间隔
 
 ################################ 路径与网址 ################################
-def 路径转文件url(路径):
-    "本地路径转file://"
-    return Path(路径).absolute().as_uri()
-
-def 文件url转路径(网址):
-    "file://转本地路径"
-    return str(Path.from_uri(网址))
-
 def 解析基准目录(相对路径,基准网址):
-    "按基准网址解析出热替换的监视基准目录"
+    """按基准网址解析出热替换的监视基准目录。"""
     if 基准网址:
-        文本=str(基准网址)
-        基准=Path.from_uri(文本) if 文本.startswith('file:') else Path(文本).absolute()
+        文本=str(基准网址)#统一成字符串
+        基准=文件url转路径(文本) if 文本.startswith('file:') else os.path.abspath(文本)#基准目录
     else:
-        基准=Path.cwd()
-    return os.path.normpath(基准/(相对路径 or '.'))
+        基准=os.getcwd()#当前工作目录
+    return os.path.normpath(os.path.join(基准,相对路径 or '.'))#拼成本地路径
 
 ################################ 通配与监视根 ################################
 def 通配命中(文本,通配式):
-    "按 glob 规则判断相对路径是否命中，支持 **、* 与 ?"
-    return PurePosixPath(文本.replace('\\','/')).full_match(通配式.replace('\\','/'))
+    """按 glob 规则判断相对路径是否命中，支持 **、* 与 ?。"""
+    文本=文本.replace('\\','/')#正斜杠
+    通配式=通配式.replace('\\','/')#正斜杠
+    段=[]#正则片段
+    下标=0#扫描下标
+    while 下标<len(通配式):
+        字=通配式[下标]#当前字符
+        if 字=='*':
+            if 下标+1<len(通配式) and 通配式[下标+1]=='*':
+                段.append('.*')#跨目录
+                下标+=2#吃掉 **
+                continue
+            段.append('[^/]*')#单层
+            下标+=1#前进
+        elif 字=='?':
+            段.append('[^/]')#单字符
+            下标+=1#前进
+        else:
+            段.append(re.escape(字))#字面量
+            下标+=1#前进
+    return re.fullmatch(''.join(段),文本) is not None#整串匹配
 
 class 监视目标:
-    "一个精确配置文件对应的监视根"
+    """一个精确配置文件对应的监视根。"""
     def __init__(自身,文件名,根,深度):
-        "保存规范化后的文件名、监视根与相对深度"
+        """保存规范化后的文件名、监视根与相对深度。"""
         自身.文件名=文件名#规范化后的文件名
         自身.根=根#实际存在的监视根
         自身.深度=深度#文件名相对监视根的层数
 
 def 寻找监视根(文件名):
-    "从文件路径向上找到第一个已经存在的目录，作为监视根"
-    根=Path(文件名).parent
+    """从文件路径向上找到第一个已经存在的目录，作为监视根。"""
+    根=os.path.dirname(os.path.abspath(文件名))#父目录
     深度=0#已经向上走了几层
     while True:
         try:
-            if not 根.is_dir():
+            if not os.path.isdir(根):
                 os.stat(根)#不存在会抛 ENOENT，交给下面的分支
                 raise NotADirectoryError('配置监视的父路径不是目录：'+根)#存在但不是目录
-            规范根=根.resolve()#解开符号链接
-            相对=Path(文件名).relative_to(规范根)#文件名相对监视根
-            return 监视目标(规范根/相对,规范根,深度)#监视目标
+            规范根=os.path.realpath(根)#解析符号链接
+            相对=os.path.relpath(os.path.abspath(文件名),规范根)#文件名相对监视根
+            return 监视目标(os.path.normpath(os.path.join(规范根,相对)),规范根,深度)#监视目标
         except OSError as 错误:
             if 错误.errno!=errno.ENOENT:
                 raise#不是路径缺失
-            父=根.parent#再向上一层
+            父=os.path.dirname(根)#再向上一层
             if 父==根:
                 raise#已经到文件系统根了
             根=父#继续向上
@@ -147,8 +158,8 @@ class 文件系统监视器:
     def _发出(自身,事件名,*位置参数):
         """同步调用该事件当前登记的回调。"""
         with 自身._锁:
-            回调们=list(自身._监听表.get(事件名) or [])#取一份副本，回调里可以改监听表
-        for 回调 in 回调们:
+            回调列表=list(自身._监听表.get(事件名) or [])#取一份副本，回调里可以改监听表
+        for 回调 in 回调列表:
             回调(*位置参数)#逐个调用
 
     def _对外路径(自身,绝对路径):
@@ -184,16 +195,16 @@ class 文件系统监视器:
     def _扫描目录(自身,结果,绝对根):
         """递归扫描一个监视根下的文件，按深度上限剪枝。"""
         深度上限=自身._选项.get('depth')#深度上限
-        for 当前,子目录们,文件们 in os.walk(绝对根):
+        for 当前,子目录表,文件表 in os.walk(绝对根):
             相对层=os.path.relpath(当前,绝对根)#当前层相对监视根
             层=0 if 相对层=='.' else 相对层.count(os.sep)+1#当前深度
             if 深度上限 is not None and 层>深度上限:
-                子目录们[:]=[]#超出上限就不再下降
+                子目录表[:]=[]#超出上限就不再下降
                 continue#本层文件也不要
             if 深度上限 is not None and 层==深度上限:
-                子目录们[:]=[]#到上限了，本层文件仍然要
-            子目录们[:]=[项 for 项 in 子目录们 if not 自身._被忽略(os.path.join(当前,项))]#被忽略的目录不下降
-            for 文件 in 文件们:
+                子目录表[:]=[]#到上限了，本层文件仍然要
+            子目录表[:]=[项 for 项 in 子目录表 if not 自身._被忽略(os.path.join(当前,项))]#被忽略的目录不下降
+            for 文件 in 文件表:
                 全路径=os.path.join(当前,文件)#文件路径
                 if not 自身._被忽略(全路径):
                     结果.append(os.path.abspath(全路径))#记下路径
@@ -243,12 +254,12 @@ class 文件系统监视器:
             return
         自身._发出('就绪')#放行等待方
         while not 自身._停止.is_set():
-            根们=自身._现存根()#每次重进时再看根还在不在
-            if not 根们:
+            根列表=自身._现存根()#每次重进时再看根还在不在
+            if not 根列表:
                 自身._停止.wait()#没有可监视的路径，等到关闭
                 return
             try:
-                for 变更集 in 监视变化(*根们,stop_event=自身._停止,debounce=监视防抖毫秒,watch_filter=自身._过滤变化):
+                for 变更集 in 监视变化(*根列表,stop_event=自身._停止,debounce=监视防抖毫秒,watch_filter=自身._过滤变化):
                     for 种类,路径 in 变更集:
                         自身._发出(事件对照[种类],自身._对外路径(os.path.abspath(路径)))#按种类转发
             except Exception as 错误:
@@ -295,14 +306,6 @@ class 重载信息:
 
 class 热替换(服务):
     """监视源文件，重载受影响的插件入口。"""
-    依赖声明=['加载器','定时器']#需要加载器与定时器
-    配置模式={
-        'base':字符串字段(),#监视基准目录
-        'root':列表字段(字符串字段(),默认值=['.']),#监视根
-        'ignored':列表字段(字符串字段(),默认值=['**/node_modules','**/.*','cache','data']),#忽略模式
-        'debounce':自然数字段(默认值=100),#变更防抖毫秒
-    }#配置模式
-
     def __init__(自身,上下文,配置):
         """登记热替换服务并解析基准目录。"""
         服务.__init__(自身,上下文,'热替换')#登记服务
@@ -358,13 +361,13 @@ class 热替换(服务):
     def _建立配置监视拆除体(自身,监视文件名,监视器):
         """返回登记在纤程上的副作用体，拆除时关掉该配置监视。"""
         def 执行体():
-            """交出关掉监视的释放器。"""
-            def 释放():
+            """交出关掉监视的拆除器。"""
+            def 拆除():
                 """关掉监视。刷新跑在该监视器自己的线程里，关闭时已经等过它了。"""
                 if 自身.配置监视表.get(监视文件名) is 监视器:
                     自身.配置监视表.pop(监视文件名,None)#摘掉登记
                 监视器.关闭()#关掉监视
-            return 释放#释放器
+            return 拆除#拆除器
         return 执行体#副作用体
 
     def 排队刷新(自身,刷新键,文件名,刷新):
@@ -422,16 +425,16 @@ class 热替换(服务):
 
     def _收集框架依赖(自身):
         """从进程入口出发收集框架自身依赖的模块网址。"""
-        入口任务=自身.内部加载器.loadCache.get(路径转文件网址(os.path.abspath(sys.argv[0])))#入口模块
+        入口任务=自身.内部加载器.loadCache.get(路径转文件url(os.path.abspath(sys.argv[0])))#入口模块
         return 自身.收集依赖(入口任务) if 入口任务 is not None else set()#依赖集
 
     def _打开主监视(自身,监视基准目录):
         """按插件配置打开监视全部根目录的主监视器。"""
-        忽略模式们=自身.配置['ignored']#忽略模式
+        忽略模式列表=自身.配置['ignored']#忽略模式
         def 忽略路径(路径):
             """任一忽略模式命中相对路径时为真。"""
             相对=os.path.relpath(路径,监视基准目录).replace('\\','/')#相对监视基准
-            return any(通配命中(相对,通配式) for 通配式 in 忽略模式们)#逐个模式试
+            return any(通配命中(相对,通配式) for 通配式 in 忽略模式列表)#逐个模式试
         选项=dict(自身.配置)#插件配置里的通用项
         选项['cwd']=监视基准目录#回调里给相对路径
         选项['ignored']=忽略路径#忽略判断
@@ -448,7 +451,7 @@ class 热替换(服务):
                 return#配置文件不走模块重载
             if 种类!='修改':
                 return#只有内容修改才触发模块重载
-            网址=路径转文件网址(os.path.abspath(os.path.join(监视基准目录,路径)))#文件网址
+            网址=路径转文件url(os.path.abspath(os.path.join(监视基准目录,路径)))#文件网址
             if 网址 in 自身.外部集:
                 自身.所属上下文.加载器.退出()#框架自身变了，整进程重启
                 return
@@ -457,14 +460,20 @@ class 热替换(服务):
                 防抖重载()#防抖后一起重载
                 return
             自身.所属上下文.广播('hmr/change',网址)#还没被加载过的文件
+        def 绑定种类(种类):
+            """登记一种监视事件。"""
+            def 当该种类变更(路径):
+                """把该种类的路径变更交给当变更。"""
+                当变更(种类,路径)#转发
+            return 当该种类变更#回调
         for 种类 in ('新增','修改','删除'):
-            自身.监视器.监听(种类,lambda 路径,种类=种类:当变更(种类,路径))#三种变化都要看
+            自身.监视器.监听(种类,绑定种类(种类))#三种变化都要看
 
     def _刷新命中的配置树(自身,监视基准目录,路径):
         """变化的是某棵子树的配置文件时安排刷新，并报告已命中。"""
         文件名=os.path.abspath(os.path.join(监视基准目录,路径))#按监视基准解析
         配置文件名=os.path.abspath(os.path.join(自身.基准目录,路径))#按热替换基准解析
-        for 插件配置 in 自身.所属上下文.加载器.插件配置们():
+        for 插件配置 in 自身.所属上下文.加载器.列出插件配置():
             子树=插件配置.子树#该插件配置挂的子树
             if 子树 is None or getattr(子树,'文件名',None) not in (文件名,配置文件名):
                 continue#不是这棵树的配置文件
@@ -558,8 +567,8 @@ class 热替换(服务):
     def _收集待重载插件(自身):
         """找出入口模块落在接受集依赖里的插件。"""
         待检查={}#模块任务到插件
-        for 基准网址,插件名们 in 自身._按树分组的插件名().items():
-            for 插件名 in 插件名们:
+        for 基准网址,插件名列表 in 自身._按树分组的插件名().items():
+            for 插件名 in 插件名列表:
                 自身._解析入口(待检查,基准网址,插件名)#解析入口模块
         重载表={}#插件到重载信息
         for 任务,插件 in 待检查.items():
@@ -575,7 +584,7 @@ class 热替换(服务):
     def _按树分组的插件名(自身):
         """把当前全部插件配置的插件名按所属树的基准网址分组。"""
         分组={}#基准网址到插件名集合
-        for 插件配置 in 自身.所属上下文.加载器.插件配置们():
+        for 插件配置 in 自身.所属上下文.加载器.列出插件配置():
             基准=插件配置.父组.所属树.所属上下文.基准网址#该树的解析基准
             分组.setdefault(基准,set()).add(插件配置.选项.get('name'))#登记插件名
         return 分组#分组结果
@@ -601,10 +610,10 @@ class 热替换(服务):
             return 自身.内部加载器.resolve(说明符,父网址,{})#v1 解析
         return 自身.内部加载器.resolveSync(父网址,{'specifier':说明符,'attributes':{}})#v2 同步解析
 
-    def _清缓存(自身,网址们):
+    def _清缓存(自身,网址列表):
         """清掉这些网址的模块缓存，交出能放回去的备份。"""
         备份=缓存备份(自身.内部加载器)#备份
-        for 网址 in 网址们:
+        for 网址 in 网址列表:
             备份.清掉(网址)#逐个清掉
         return 备份#备份
 
@@ -638,7 +647,7 @@ class 热替换(服务):
 
     def _替换一个(自身,旧插件,信息,新插件):
         """拆掉旧插件，再用新插件重挂它原来的每一条纤程。"""
-        相对路径=os.path.relpath(文件网址转路径(信息.入口网址),自身.基准目录)#日志用的相对路径
+        相对路径=os.path.relpath(文件url转路径(信息.入口网址),自身.基准目录)#日志用的相对路径
         try:
             自身.所属上下文.注册表.删除(旧插件)#拆掉旧插件
         except Exception as 错误:
@@ -681,7 +690,7 @@ class 缓存备份:
     def 清掉(自身,网址):
         """清掉一个网址在加载缓存与模块表里的记录。"""
         自身._加载缓存[网址]=自身._内部加载器.loadCache.pop(网址,None)#备份并清掉
-        规范=os.path.normpath(os.path.abspath(文件网址转路径(网址)))#本地路径
+        规范=os.path.normpath(os.path.abspath(文件url转路径(网址)))#本地路径
         for 模块名,模块 in list(sys.modules.items()):
             文件=getattr(模块,'__file__',None)#模块文件
             if 文件 and os.path.normpath(os.path.abspath(文件))==规范:
@@ -700,4 +709,11 @@ def 是否外部模块(网址):
     """内建模块与第三方包不参与热替换。"""
     return 网址.startswith('node:') or '/node_modules/' in 网址#外部模块
 
-默认=热替换#模块的默认插件导出
+热替换.inject=['加载器','定时器']#Cordis inject 槽
+热替换.Config={
+    'base':字符串字段(),#监视基准目录
+    'root':列表字段(字符串字段(),默认值=['.']),#监视根
+    'ignored':列表字段(字符串字段(),默认值=['**/node_modules','**/.*','cache','data']),#忽略模式
+    'debounce':自然数字段(默认值=100),#变更防抖毫秒
+}#Cordis Config 槽
+default=热替换#Cordis 默认导出槽

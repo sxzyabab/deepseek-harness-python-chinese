@@ -8,7 +8,7 @@ def 播种描述符回合(子标识,种子,描述符):#建造含描述符的创�
         暂存.追加('subagent/descriptor',描述符)#追加隐藏描述符
     else:#英文append
         暂存.append('subagent/descriptor',描述符)#追加隐藏描述符
-    事件们=getattr(暂存,'events',None)#英文事件
-    if 事件们 is None:#中文属性
-        事件们=getattr(暂存,'事件们',[])#中文事件们
-    return list(事件们)#复制事件
+    事件列表=getattr(暂存,'events',None)#英文事件
+    if 事件列表 is None:#中文属性
+        事件列表=getattr(暂存,'事件列表',[])#中文事件列表
+    return list(事件列表)#复制事件

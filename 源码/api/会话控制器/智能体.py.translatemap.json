@@ -17,5 +17,7 @@
     "session":"会话",
     "subagent":"子智能体",
     "take":"取",
-    "wait":"等待"
+    "wait":"等待",
+    "list":"列表",
+    "table":"表"
 }

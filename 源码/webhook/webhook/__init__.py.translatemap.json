@@ -1,0 +1,23 @@
+{
+    "abort":"中止",
+    "aborted":"已中止",
+    "brand":"标识构造",
+    "close":"关闭",
+    "controller":"控制器",
+    "delivery":"投递",
+    "dispatch":"分发",
+    "dispose":"拆除",
+    "error":"错误",
+    "inject":"注入",
+    "lifecycle":"生命周期",
+    "register":"登记",
+    "rule":"规则",
+    "runtime":"运行时",
+    "self":"自身",
+    "service":"服务",
+    "session":"会话",
+    "signal":"信号",
+    "snapshot":"快照",
+    "start":"启动",
+    "wait":"等待"
+}

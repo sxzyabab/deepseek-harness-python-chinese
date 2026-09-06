@@ -1,5 +1,9 @@
 {
     "session-checkpoint-policy":"会话检查点策略",
+    "session-format":"会话格式",
+    "session-format-catalog":"会话格式目录",
+    "session-format-v0-to-v1":"会话格式_v0到v1",
+    "session-format-v1-to-v2":"会话格式_v1到v2",
     "session-log-deepseek":"会话日志_deepseek",
     "session-persistence":"会话持久化",
     "session-persistence-jsonl":"会话持久化_jsonl",

@@ -1,4 +1,3 @@
-"""组：命令。"""
 from . import (
     bash工具,
     bash沙盒,

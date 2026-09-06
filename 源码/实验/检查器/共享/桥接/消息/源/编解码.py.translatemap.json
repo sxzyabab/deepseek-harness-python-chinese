@@ -1,0 +1,17 @@
+{
+    "base":"基",
+    "client":"客户端",
+    "codec":"编解码",
+    "command":"命令",
+    "content":"内容",
+    "inspector":"检查器",
+    "integer":"整数",
+    "kind":"种类",
+    "must":"必须",
+    "negative":"负",
+    "non":"非",
+    "positive":"正",
+    "protocol":"协议",
+    "result":"结果",
+    "source":"源"
+}

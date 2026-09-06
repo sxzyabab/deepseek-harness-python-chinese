@@ -1,0 +1,14 @@
+{
+    "call":"调用",
+    "define":"定义",
+    "inspect":"巡检",
+    "list":"列表",
+    "package":"包",
+    "present":"呈现",
+    "query":"查询",
+    "remove":"移除",
+    "run":"运行",
+    "runtime":"运行时",
+    "self":"自检",
+    "stop":"停止"
+}

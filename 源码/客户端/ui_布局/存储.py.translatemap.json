@@ -1,0 +1,22 @@
+{
+    "action":"动作",
+    "close":"关",
+    "create":"创建",
+    "default":"默认",
+    "details":"详情",
+    "dispose":"拆除",
+    "expand":"覆盖",
+    "handle":"句柄",
+    "layout":"布局",
+    "listen":"监听",
+    "narrow":"窄",
+    "notify":"通知",
+    "open":"开",
+    "pixel":"像素",
+    "sidebar":"侧栏",
+    "snapshot":"快照",
+    "state":"状态",
+    "store":"存储",
+    "subscribe":"订阅",
+    "toggle":"切换"
+}

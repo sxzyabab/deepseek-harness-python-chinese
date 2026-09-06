@@ -28,7 +28,10 @@ class Host原生域会话:#Host原生域会话
         """执行一条 Host 原生 CDP 请求并发送其关联结果。"""
         if not 自身.拥有(请求['method']):#不拥有
             return False#未拥有
-        响应cdp请求(自身.传输,请求,lambda:自身.目标.请求(请求['method'],请求['params']))#响应
+        def 原生请求():#原生请求体
+            """转发原生方法。"""
+            return 自身.目标.请求(请求['method'],请求['params'])#请求
+        响应cdp请求(自身.传输,请求,原生请求)#响应
         return True#已拥有
 
     def 拥有(自身,方法):#是否拥有域

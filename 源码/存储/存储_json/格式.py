@@ -32,12 +32,12 @@ def 解析(文本,描述符):#解析整单元文件
     版本=int(单元头['version'])#取版本
     if 版本!=描述符.version:#版本不匹配
         raise 存储错误('version-mismatch',f"unit '{描述符.name}': stored version {版本} != expected {描述符.version}")#拒绝
-    表对象=文档.get('tables')#表对象
-    if not isinstance(表对象,dict):#tables 不是对象
+    表映射=文档.get('tables')#表映射
+    if not isinstance(表映射,dict):#tables 不是对象
         raise 存储错误('malformed-medium',f"unit '{描述符.name}': tables is not an object")#损坏
     表映射={}#结果表
     for 表名 in 描述符.tables:#按声明表
-        记录=表对象.get(表名)#文件中的表
+        记录=表映射.get(表名)#文件中的表
         if 记录 is None:#缺表
             表映射[表名]={}#空表
             continue#下一张

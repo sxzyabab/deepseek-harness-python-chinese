@@ -17,7 +17,7 @@ from .夹具 import 聊天快照,对话快照,会话快照,工作区快照#fixtu
 from .翻译 import 制作翻译#translate 桩
 from .语言环境 import 用钉住浏览器语言#语言钉住
 
-上下文类=cordis.Context#Cordis 上下文
+上下文类=cordis.上下文#Cordis 上下文
 注入解析=getattr(cordis,'Inject',None)#Inject 解析器
 
 __all__=[#仅中文公开名
@@ -30,8 +30,6 @@ __all__=[#仅中文公开名
 
 名称='client-runtime-test'#插件名
 注入=['client']#依赖
-Error=Exception#错误别名
-
 def 绑定快照选择器(源):#绑定选择器
     """把可观察源绑定到生产渲染器的选择器钩子。"""
     return 绑定渲染器快照选择器(源)#委托生产绑定
@@ -72,17 +70,17 @@ class 拥有方属性单元:#owner-props 单元
 class 测试根:#测试根
     """测试拥有的 root 占用者。"""
 
-    def __init__(自身,槽们,稳定):#构造
+    def __init__(自身,槽表,稳定):#构造
         """记下登记表与稳定器。"""
-        自身._slots=槽们#登记表
+        自身._slots=槽表#登记表
         自身._stabilize=稳定#稳定器
         自身._disposeEntry=None#根注册释放器
 
-    def declare(自身,子们,框架):#声明根
+    def declare(自身,子项表,框架):#声明根
         """注册根 frame，声明子 slot。"""
         def 注册():#act 内注册
             """注册根。"""
-            自身._disposeEntry=自身._slots.register({'name':'root','children':子们},框架)#注册根
+            自身._disposeEntry=自身._slots.register({'name':'root','children':子项表},框架)#注册根
         自身._stabilize(注册)#稳定内注册
 
     def release(自身):#释放根
@@ -94,17 +92,17 @@ class 测试根:#测试根
 class 槽测试运行时:#slot 测试运行时
     """已组装的测试运行时。"""
 
-    def __init__(自身,上下文,槽们):#私有构造经 create
+    def __init__(自身,上下文,槽表):#私有构造经 create
         """组装会话/工作区替身并安装渲染器。"""
         自身.ctx=上下文#根上下文
-        自身.slots=槽们#注册表
+        自身.slots=槽表#注册表
         自身._stabilizer=lambda 函数:函数()#同步稳定器
-        自身.root=测试根(槽们,自身._stabilizer)#测试根
+        自身.root=测试根(槽表,自身._stabilizer)#测试根
         自身.sessions=测试会话(自身._stabilizer,上下文)#会话替身
         自身.workspaces=测试工作区(自身._stabilizer)#工作区替身
-        上下文.provide('sessions',自身.sessions)#提供会话
-        上下文.provide('workspaces',自身.workspaces)#提供工作区
-        自身._disposeWorkspaceSource=槽们.provideRoot({'hooks':{'workspaces':自身.workspaces.list}}) if hasattr(槽们,'provideRoot') else (lambda:None)#工作区源
+        上下文.提供服务('sessions',自身.sessions)#提供会话
+        上下文.提供服务('workspaces',自身.workspaces)#提供工作区
+        自身._disposeWorkspaceSource=槽表.provideRoot({'hooks':{'workspaces':自身.workspaces.list}}) if hasattr(槽表,'provideRoot') else (lambda:None)#工作区源
         自身._host=None#渲染宿主
         自身._views=[]#已渲染视图
         自身._handles=[]#功能句柄
@@ -117,20 +115,18 @@ class 槽测试运行时:#slot 测试运行时
             """捕获宿主并委托生产。"""
             自身._host=宿主#捕获宿主
             return 渲染器.renderRoot(宿主,拥有方属性)#委托生产
-        槽们.install({'renderRoot':渲染根})#安装渲染器
+        槽表.install({'renderRoot':渲染根})#安装渲染器
 
     @staticmethod
     def create():#创建运行时
         """组装运行时：真实 Context、已挂载 SlotRegistry、已安装渲染器。"""
         注册DOM快照序列化器()#注册序列化器
         上下文=上下文类()#新建上下文
-        光纤=上下文.plugin(槽登记表)#挂注册表
-        if hasattr(光纤,'await'):#等待激活
-            光纤.await()#等待
-        运行时=槽测试运行时(上下文,上下文.get('slots'))#组装
-        插件光纤=上下文.plugin({'inject':list(UI会话注入),'apply':应用UI会话})#挂 ui-session
-        if hasattr(插件光纤,'await'):#等待
-            插件光纤.await()#等待
+        光纤=上下文.启动插件(槽登记表)#挂注册表
+        光纤.等待()#等待激活
+        运行时=槽测试运行时(上下文,上下文.获取服务('slots'))#组装
+        插件光纤=上下文.启动插件({'inject':list(UI会话注入),'apply':应用UI会话})#挂 ui-session
+        插件光纤.等待()#等待
         return 运行时#返回
 
     def mount(自身,插件):#挂载功能
@@ -141,18 +137,24 @@ class 槽测试运行时:#slot 测试运行时
             必需=list(注入解析.resolve(注入表).keys()) if hasattr(注入解析,'resolve') else list(注入表 or [])#解析
         elif 注入表 is not None:#列表形
             必需=list(注入表)#列表
-        缺失=[名 for 名 in 必需 if 自身.ctx.get(名) is None]#缺失服务
+        缺失=[名 for 名 in 必需 if 自身.ctx.获取服务(名) is None]#缺失服务
         if 缺失:#有缺失
-            raise Error(f"mount would suspend: missing service(s) {', '.join(缺失)} — provide() them first")#英文诊断
-        光纤=自身.ctx.plugin(插件)#挂插件
-        自身._stabilizer(lambda:光纤.await() if hasattr(光纤,'await') else None)#稳定内等待
+            raise Exception(f"mount would suspend: missing service(s) {', '.join(缺失)} — provide() them first")#英文诊断
+        光纤=自身.ctx.启动插件(插件)#挂插件
+        def 等待激活():
+            """稳定期内等待纤程激活。"""
+            光纤.等待()#等待
+        自身._stabilizer(等待激活)#稳定内等待
         已拆=[False]#是否已拆
         def 拆除():#拆除
             """幂等拆除。"""
             if 已拆[0]:#幂等
                 return#结束
             已拆[0]=True#标记
-            自身._stabilizer(lambda:光纤.dispose() if hasattr(光纤,'dispose') else None)#稳定内拆除
+            def 拆除纤程():
+                """稳定期内拆除纤程。"""
+                光纤.拆除()#拆除
+            自身._stabilizer(拆除纤程)#稳定内拆除
         句柄={'fiber':光纤,'dispose':拆除}#句柄
         自身._handles.append(句柄)#记账
         return 句柄#返回
@@ -168,9 +170,9 @@ class 槽测试运行时:#slot 测试运行时
         自身._views.append(视图)#记账
         return 视图#返回
 
-    def declare(自身,子们):#自动声明
+    def declare(自身,子项表):#自动声明
         """在自动生成的根 frame 下声明子 slot。"""
-        for 键 in 子们:#记录键
+        for 键 in 子项表:#记录键
             自身._autoDeclared.add(键)#记录
         单元=自身._ownerCell#owner 单元
         def 自动框架(属性):#自动 frame
@@ -179,12 +181,12 @@ class 槽测试运行时:#slot 测试运行时
             单元.getVersion()#读版本
             渲染槽=属性['renderSlot'] if isinstance(属性,dict) else 属性.renderSlot#渲染函数
             return [渲染槽(键,拥有方) for 键,拥有方 in 单元.entries()]#键控渲染
-        自身.root.declare(子们,自动框架)#注册根
+        自身.root.declare(子项表,自动框架)#注册根
 
     def renderSlot(自身,键,拥有方):#渲染单 slot
         """用其 owner props 渲染一个已声明 slot。"""
         if 键 not in 自身._autoDeclared:#未声明
-            raise Error(f"renderSlot('{键}') without declare() — declare the key first (or use root.declare for a custom frame)")#英文诊断
+            raise Exception(f"renderSlot('{键}') without declare() — declare the key first (or use root.declare for a custom frame)")#英文诊断
         def 安装(下一批):#安装 owner
             """写入单元。"""
             自身._ownerCell.set(键,下一批)#写入
@@ -197,17 +199,17 @@ class 槽测试运行时:#slot 测试运行时
     def storeOf(自身,键,作用域键=None):#解析 store
         """解析渲染器会交给 slot 组件的 store 实例。"""
         if 自身._host is None:#无宿主
-            raise Error('storeOf before renderRoot() — the host face exists only inside the installed renderer')#英文诊断
-        条目们=自身._host.entriesOf(键)#条目
-        if not 条目们:#无登记
-            raise Error(f"storeOf('{键}'): no registration on the ledger")#英文诊断
-        条目=条目们[0]#首条目
+            raise Exception('storeOf before renderRoot() — the host face exists only inside the installed renderer')#英文诊断
+        条目列表=自身._host.entriesOf(键)#条目
+        if not 条目列表:#无登记
+            raise Exception(f"storeOf('{键}'): no registration on the ledger")#英文诊断
+        条目=条目列表[0]#首条目
         作用域绑定=None if 作用域键 is None else (自身._host.scope('session').resolve(作用域键) if 自身._host.scope('session') else None)#作用域绑定
         if 作用域键 is not None and 作用域绑定 is None:#作用域缺失
-            raise Error(f"storeOf('{键}'): no live Session binding for '{作用域键}'")#英文诊断
+            raise Exception(f"storeOf('{键}'): no live Session binding for '{作用域键}'")#英文诊断
         实例=自身._host.storeOf(条目,作用域绑定)#取实例
         if 实例 is None:#无 store
-            raise Error(f"storeOf('{键}'): the entry declares no store")#英文诊断
+            raise Exception(f"storeOf('{键}'): the entry declares no store")#英文诊断
         return 实例#返回
 
     def flush(自身):#冲刷
@@ -232,7 +234,3 @@ def 应用(上下文对象):#测试支持入口
     return#空 apply
 
 apply=应用#入口
-SlotTestRuntime=槽测试运行时#上游名
-TestRoot=测试根#上游名
-createSlotRenderer=创建槽渲染器实例#上游名
-bindSnapshotSelector=绑定快照选择器#上游名

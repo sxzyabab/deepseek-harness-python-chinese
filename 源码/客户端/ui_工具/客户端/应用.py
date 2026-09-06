@@ -43,12 +43,17 @@ def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
         bash工具视图样例,读工具视图,文件变更工具视图,
         检索工具视图,网页工具视图,待办工具视图,提问工具视图,
     ):#逐个挂载
-        if callable(插件.get('apply')):#有 apply
+        if 'apply' in 插件 and callable(插件['apply']):#有 apply
             插件['apply'](上下文)#走登记函数
         else:#字典登记面
-            键们=插件.get('keys') or ((插件.get('key'),) if 插件.get('key') else ())#键表
-            组件=插件.get('component')#组件
-            for 键 in 键们:#逐键
+            if 'keys' in 插件 and 插件['keys'] is not None:#多键
+                键列表=插件['keys']#键表
+            elif 'key' in 插件 and 插件['key'] is not None:#单键
+                键列表=(插件['key'],)#单键表
+            else:#无键
+                键列表=()#空
+            组件=插件['component'] if 'component' in 插件 else None#组件
+            for 键 in 键列表:#逐键
                 if 键 is None or 组件 is None:#缺
                     continue#跳
                 def 登记(键=键,组件=组件):#闭包保键
@@ -57,3 +62,6 @@ def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
                         'name':槽名工具调用视图,'key':键,'locale':命名空间,#选项
                     },组件)#组件
                 上下文.slots.inject(槽名工具调用视图,登记)#等槽
+
+inject=注入#框架槽
+apply=应用#框架槽

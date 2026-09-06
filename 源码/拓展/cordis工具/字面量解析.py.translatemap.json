@@ -1,0 +1,10 @@
+{
+    "array":"数组",
+    "comment":"注释",
+    "cursor":"游标",
+    "export":"导出",
+    "extract":"提取",
+    "literal":"字面量",
+    "parse":"解析",
+    "skip":"跳过"
+}

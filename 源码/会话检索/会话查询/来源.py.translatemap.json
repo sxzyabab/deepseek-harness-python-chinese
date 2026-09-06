@@ -1,0 +1,19 @@
+{
+    "assert":"断言",
+    "compatibility":"兼容",
+    "conflict":"冲突",
+    "created":"创建",
+    "cwd":"工作目录",
+    "delegation":"委托",
+    "depth":"深度",
+    "error":"错误",
+    "header":"头",
+    "id":"标识",
+    "length":"长度",
+    "parent":"父",
+    "seed":"种子",
+    "self":"自身",
+    "session":"会话",
+    "source":"来源",
+    "version":"版本"
+}

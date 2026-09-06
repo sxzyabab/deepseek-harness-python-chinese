@@ -1,0 +1,20 @@
+{
+    "basename":"基名",
+    "copy":"复制",
+    "describe":"描述",
+    "directory":"目录",
+    "entry":"条目",
+    "file":"文件",
+    "format":"格式",
+    "glob":"通配",
+    "list":"列出",
+    "match":"匹配",
+    "mkdir":"建目录",
+    "move":"移动",
+    "option":"选项",
+    "parse":"解析",
+    "path":"路径",
+    "program":"程序",
+    "remove":"移除",
+    "stat":"统计"
+}

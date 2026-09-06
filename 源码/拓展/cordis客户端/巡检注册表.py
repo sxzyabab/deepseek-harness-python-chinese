@@ -61,11 +61,11 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
     def _刷发布(自身):#实际推清单
         """开刷先清排队旗（对齐上游微任务首行），再进 sync 链。"""
         自身._待发布=False#先放行
-        清单们=[]#表
+        清单列表=[]#表
         for 登 in 自身.提供方.values():#每个
             清单=登.get('manifest') if isinstance(登,dict) else getattr(登,'manifest',None)#清单
             if 清单 is not None:#有
-                清单们.append(清单)#加
+                清单列表.append(清单)#加
         上一=自身._同步链#上一尾
         态={'done':False}#本环
         def 链():#串行一环
@@ -80,9 +80,9 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
             同步=自身.宿主.get('sync') if isinstance(自身.宿主,dict) else None#sync
             try:#推
                 if callable(同步):#有
-                    同步(清单们)#推给宿主
-            except Exception as 错:#失败只记
-                print('[cordis-client-runner] syncing inspect providers failed:',错)#对齐 console.error
+                    同步(清单列表)#推给宿主
+            except Exception as 错误:#失败只记
+                print('[cordis-client-runner] syncing inspect providers failed:',错误)#对齐 console.error
             态['done']=True#落定
         自身._同步链=链#新尾
         链()#启动
@@ -101,8 +101,8 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
                 决议={'ok':False,'reason':'provider-missing','message':f'Client inspect provider "{请求.get("provider")}" is unavailable'}#缺
             else:#有
                 清单=登.get('manifest') if isinstance(登,dict) else getattr(登,'manifest',{})#清单
-                方法们=清单.get('methods') or []#方法
-                if not any(m.get('name')==请求.get('method') for m in 方法们):#未声明
+                方法表=清单.get('methods') or []#方法
+                if not any(方法项.get('name')==请求.get('method') for 方法项 in 方法表):#未声明
                     决议={'ok':False,'reason':'method-missing','message':f'Client inspect provider "{请求.get("provider")}" has no method "{请求.get("method")}"'}#缺
                 else:#有方法
                     查询=登.get('query') if isinstance(登,dict) else getattr(登,'query',None)#查询
@@ -114,16 +114,16 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
                         决议={'ok':False,'reason':'cancelled','message':'Client inspect query was cancelled'}#已取消
                     else:#成功
                         决议={'ok':True,'data':数据}#带数据
-        except Exception as 错:#提供方抛
+        except Exception as 错误:#提供方抛
             if 控['aborted']:#取消优先
                 决议={'ok':False,'reason':'cancelled','message':'Client inspect query was cancelled'}#已取消
             else:#提供方错误
-                决议={'ok':False,'reason':'provider-error','message':str(错)}#错
+                决议={'ok':False,'reason':'provider-error','message':str(错误)}#错
         finally:#清进行中
             自身.进行中.pop(标识,None)#清
         if 控['aborted']:#已取消则不再回答
             return None#停
-        落定=自身.宿主.get('resolve') if isinstance(自身.宿主,dict) else None#resolve
+        落定=自身.宿主.get('解析') if isinstance(自身.宿主,dict) else None#解析
         if callable(落定) and 决议 is not None:#有
             落定(请求.get('agentId'),标识,决议)#推
         return 决议#决议
@@ -136,7 +136,6 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
         自身.进行中.pop(请求标识,None)#从表拿掉
 
 def 提供客户端巡检(上下文,注册表):#挂服务
-    """ctx.provide('cordisInspect', registry)。"""
-    if hasattr(上下文,'provide'):#有
-        上下文.provide('cordisInspect',注册表)#挂
+    """ctx.提供服务('cordisInspect', registry)。"""
+    上下文.提供服务('cordisInspect',注册表)#挂
     return 注册表#表

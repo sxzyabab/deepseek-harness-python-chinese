@@ -7,7 +7,7 @@ from .接口目录 import 查询服务目录,查询事件目录#目录查询
 from .槽目录 import 客户端槽目录#槽目录（现场投影用；无 slots 不回退查询槽目录）
 
 __all__=[#仅中文公开名
-    '客户端内置巡检','客户端巡检提供方们','守卫槽键','压缩槽树','巡检现场槽','说明',
+    '客户端内置巡检','列出客户端巡检提供方','门面钉死槽键','压缩槽树','巡检现场槽','说明',
 ]#公开面结束
 
 说明='Slots.listSubTree / Theme.listTokens 需现场 slots/theme；其余为静态目录。'#说明
@@ -16,14 +16,14 @@ __all__=[#仅中文公开名
 任意输出={'description':'JSON data owned by this inspect provider.'}#任意
 
 客户端内置巡检=[#闭包符号
-    {'name':'ctx','description':'Restricted Cordis Context. Prefer ctx.get(name) with an undefined check; use inject only for hard dependencies.','signatures':['ctx.get(name: string): unknown | undefined','ctx.on(name: string, listener: Function): () => void','ctx.provide(name: string, value: unknown): () => void','ctx.effect(callback: Function, label?: string): () => void']},
+    {'name':'ctx','description':'Restricted Cordis Context. Prefer ctx.获取服务(name) with an undefined check; use inject only for hard dependencies.','signatures':['ctx.获取服务(name: string): unknown | undefined','ctx.监听(name: string, listener: Function): () => void','ctx.提供服务(name: string, value: unknown): () => void','ctx.副作用(callback: Function, label?: string): () => void']},
     {'name':'React','description':'React runtime exposed without JSX transformation.','signatures':['React.createElement(type, props, ...children): ReactElement','React.useState(initial)','React.useEffect(effect, deps)']},
     {'name':'host','description':'Package-private JSON RPC from Client to this Package\'s Host half.','signatures':['host.call(method: string, args?: JsonValue): Promise<JsonValue>']},
     {'name':'styles','description':'Package-owned stylesheet insertion cleaned up with the Client run.','signatures':['styles.insert(css: string): () => void']},
     {'name':'console','description':'Package-tagged browser logging.','signatures':['console.log(...values): void','console.error(...values): void']},
 ]#结束
 
-守卫槽键={#守卫钉死
+门面钉死槽键={#门面钉死
     'tool.view.cordis':{#业务视图
         'description':'fixed by the dynamic Client Guard',#说明
         'values':[{'value':'self','description':'The only accepted key. The Guard binds it to this Package\'s pluginId and packageId.'}],#键
@@ -67,7 +67,7 @@ def 压缩槽树(节点,目录图=None):#压缩现场树节点
         目录图={槽['key']:槽 for 槽 in 客户端槽目录}#图
     名=节点.get('name') if isinstance(节点,dict) else getattr(节点,'name',None)#名
     条目=目录图.get(名)#目录
-    守卫=守卫槽键.get(条目['key']) if 条目 else None#守卫
+    钉死=门面钉死槽键.get(条目['key']) if 条目 else None#门面钉死键
     出={#压缩
         'name':名,#名
         'kind':节点.get('kind') if isinstance(节点,dict) else getattr(节点,'kind',None),#基数
@@ -80,16 +80,16 @@ def 压缩槽树(节点,目录图=None):#压缩现场树节点
         if 选项:#有
             出['registration']=[{'name':o.get('name'),'type':o.get('type'),'required':o.get('requirement')=='required'} for o in 选项]#摘要
         if 条目.get('keyDomain'):#键域
-            出['keyDomain']=守卫['description'] if 守卫 else 条目.get('keyDomain')#域
-            if 守卫:#允许键
-                出['allowedKeys']=[dict(v) for v in 守卫['values']]#键
+            出['keyDomain']=钉死['description'] if 钉死 else 条目.get('keyDomain')#域
+            if 钉死:#允许键
+                出['allowedKeys']=[dict(v) for v in 钉死['values']]#键
     子=节点.get('children') if isinstance(节点,dict) else getattr(节点,'children',[]) or []#子
     出['children']=[压缩槽树(c,目录图) for c in 子]#递归
     return 出#节点
 
 def 巡检槽目录条目(条目):#inspectSlotCatalog
     """目录条目完整投影。"""
-    守卫=守卫槽键.get(条目.get('key'))#守卫
+    钉死=门面钉死槽键.get(条目.get('key'))#门面钉死键
     出={#投影
         'description':条目.get('doc'),#完整约定
         'registration':[{#选项
@@ -99,13 +99,13 @@ def 巡检槽目录条目(条目):#inspectSlotCatalog
         'ownerProps':list(条目.get('ownerProps') or []),#所有者 props
         'ownerPropsReferences':list(条目.get('ownerPropsReferences') or []),#引用
         'standardProps':list(条目.get('standardProps') or []),#标准
-        'keyDomain':守卫['description'] if 守卫 else 条目.get('keyDomain'),#键域
+        'keyDomain':钉死['description'] if 钉死 else 条目.get('keyDomain'),#键域
         'hookContext':条目.get('hookContext'),#钩子
         'slotInject':条目.get('slotInject'),#注入面
         'replaceRisk':条目.get('replaceRisk'),#风险
     }#基
-    if 守卫:#允许键
-        出['allowedKeys']=[dict(v) for v in 守卫['values']]#键
+    if 钉死:#允许键
+        出['allowedKeys']=[dict(v) for v in 钉死['values']]#键
     return 出#投影
 
 def 巡检现场槽(节点,目录图=None):#inspectLiveSlot
@@ -128,7 +128,7 @@ def 巡检现场槽(节点,目录图=None):#inspectLiveSlot
         出['catalog']=巡检槽目录条目(条目)#投影
     return 出#完整
 
-def 客户端巡检提供方们(上下文=None):#内置提供方
+def 列出客户端巡检提供方(上下文=None):#内置提供方
     """静态目录 + 现场 slots/theme（无 slots 服务则抛，不静默回退目录）。"""
     服务输入=精确输入('service','Exact Service key. Omit it for the compact Service and method-signature directory.')#服务
     事件输入=精确输入('event','Exact Event name. Omit it for the compact Event and listener-signature directory.')#事件
@@ -152,23 +152,23 @@ def 客户端巡检提供方们(上下文=None):#内置提供方
     def 槽查询(输入):#Slots.listSubTree
         """现场快照；无 slots 对齐上游抛错。"""
         根=读精确(输入,'root')#根
-        槽服务=上下文.get('slots') if 上下文 is not None and hasattr(上下文,'get') else None#服务
+        槽服务=上下文.获取服务('slots') if 上下文 is not None else None#服务
         if 槽服务 is None:#服务未跑
             raise Exception('Client Slots service is not running')#抛——勿回退目录
         if not hasattr(槽服务,'snapshot'):#无快照面
             raise Exception('Client Slots service is not running')#抛
-        树们=槽服务.snapshot(根)#快照
-        选=树们[0] if 树们 else None#选中
-        出={'trees':[压缩槽树(t) for t in 树们],'referencedTypes':[]}#树
+        树列表=槽服务.snapshot(根)#快照
+        选=树列表[0] if 树列表 else None#选中
+        结果={'trees':[压缩槽树(树) for 树 in 树列表],'referencedTypes':[]}#树
         if 根 is not None:#请求根
-            出['requestedRoot']={'name':根,'available':len(树们)>0}#是否存在
+            结果['requestedRoot']={'name':根,'available':len(树列表)>0}#是否存在
         if 根 is not None and 选 is not None:#完整投影
-            出['selected']=巡检现场槽(选)#inspectLiveSlot
-        return 出#结果
+            结果['selected']=巡检现场槽(选)#inspectLiveSlot
+        return 结果#结果
 
     def 主题查询(_输入):#Theme
         """导出令牌。"""
-        主题=上下文.get('theme') if 上下文 is not None and hasattr(上下文,'get') else None#主题
+        主题=上下文.获取服务('theme') if 上下文 is not None else None#主题
         if 主题 is None:#无
             raise Exception('Client Theme service is not running')#抛
         return {'tokens':主题.exportInspectTokens(),'referencedTypes':[]}#令牌

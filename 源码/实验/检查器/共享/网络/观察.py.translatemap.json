@@ -1,0 +1,20 @@
+{
+    "body":"体",
+    "chunk":"块",
+    "end":"结束",
+    "error":"错误",
+    "event":"事件",
+    "fetch":"请求",
+    "header":"头",
+    "id":"标识",
+    "inspector":"检查器",
+    "message":"消息",
+    "observation":"观测",
+    "payload":"载荷",
+    "request":"请求",
+    "response":"响应",
+    "sent":"已发送",
+    "server":"服务器",
+    "source":"源",
+    "start":"启动"
+}

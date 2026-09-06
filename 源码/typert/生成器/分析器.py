@@ -6,34 +6,27 @@
 """
 
 __all__=[#公开面（与上游 index 再导出及本叶 export 对齐）
-    'Typert分析错误','TypertAnalysisError',
-    '分析模式','AnalysisMode',
-    '工作区分析器选项','WorkspaceAnalyzerOptions',
-    '已发现Typert包','DiscoveredTypertPackage',
-    '工作区缓存','WorkspaceCaches',
-    '工作区分析器','WorkspaceAnalyzer',
+    'Typert分析错误',
+    '分析模式',
+    '工作区分析器选项',
+    '已发现Typert包',
+    '工作区缓存',
+    '工作区分析器',
 ]#结束
 
 class Typert分析错误(Exception):#带源码向诊断的分析失败
     """对齐上游 TypertAnalysisError；工作区导出校验亦复用此类型。"""
     name='TypertAnalysisError'#错误名
 
-TypertAnalysisError=Typert分析错误#上游名
-
 分析模式=frozenset(['check','write'])#公开业务边界上缺失注解的处理方式
-AnalysisMode=分析模式#上游名
 
 def 工作区分析器选项(**关键字参数):#构造选项字典（形状登记，不做校验）
     """对齐 WorkspaceAnalyzerOptions 字段名；真分析仍硬缺口。"""
     return dict(关键字参数)#原样字典
 
-WorkspaceAnalyzerOptions=工作区分析器选项#上游名（工厂别名）
-
-def 已发现Typert包(包,根,面们):#发现结果条目
+def 已发现Typert包(包,根,面列表):#发现结果条目
     """对齐 DiscoveredTypertPackage：package / root / faces。"""
-    return {'package':包,'root':根,'faces':list(面们)}#条目
-
-DiscoveredTypertPackage=已发现Typert包#上游名（工厂别名）
+    return {'package':包,'root':根,'faces':list(面列表)}#条目
 
 硬缺口文案='依赖硬缺口 analyzer（TypeScript 编译器 API），不可落'#共用失败文案
 
@@ -57,14 +50,12 @@ class 工作区缓存:#一份不可变工作区快照上的共享备忘（结构
         """无宿主缓存时可空操作；有键则按路径删除。"""
         目标=文件#目标路径字面
         for 条目 in list(自身._hosts.values()):#每面
-            文件们=条目.get('files') if isinstance(条目,dict) else None#源文件表
-            if not isinstance(文件们,dict):#无表
+            文件表=条目.get('files') if isinstance(条目,dict) else None#源文件表
+            if not isinstance(文件表,dict):#无表
                 continue#跳过
-            for 键 in list(文件们.keys()):#拷贝键
+            for 键 in list(文件表.keys()):#拷贝键
                 if 键==目标:#命中
-                    文件们.pop(键,None)#删缓存
-
-WorkspaceCaches=工作区缓存#上游名
+                    文件表.pop(键,None)#删缓存
 
 class 工作区分析器:#把宿主与客户端当作独立 Program 来分析（公开方法均硬缺口）
     """对齐 WorkspaceAnalyzer 构造与公开方法名；方法体一律 NotImplementedError。"""
@@ -114,5 +105,3 @@ class 工作区分析器:#把宿主与客户端当作独立 Program 来分析（
     def indexSourceDeclarations(自身):#词法索引导出类型声明
         """需 ts.createSourceFile；显式失败。"""
         raise NotImplementedError('工作区分析器.indexSourceDeclarations: '+硬缺口文案)#边界
-
-WorkspaceAnalyzer=工作区分析器#上游名

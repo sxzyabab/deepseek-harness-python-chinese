@@ -18,7 +18,7 @@ def 安装进程全局(选项):#安装process全局
     `ModuleLoader.fromInternal()` 返回 undefined 而不去碰 Node 内部，
     从而让 Worker 能安装自己的模块 seam。
     """
-    起点=time.perf_counter()*1000#启动时刻（毫秒，对齐 performance.now）
+    起点=time.perf_counter_ns()#单调纳秒起点
 
     def 写(目标):#构造写函数
         """去尾换行后打印。"""
@@ -33,7 +33,7 @@ def 安装进程全局(选项):#安装process全局
         """Node 22 `process.getBuiltinModule`。"""
         try:#尝试解析
             解析结果=要求活动模块加载器().解析(标识,'/')#经活动加载器
-        except Exception:#解析失败
+        except Exception:#加载器.resolve 对非内置与未挂载什么都可能抛，Node 要 undefined，契约未定所以收不窄
             #尚未挂上加载器，或 id 无处可解析：Node 对非内置返回 undefined 而不抛错。
             return None#非内置
         if isinstance(解析结果,dict) and 解析结果.get('kind')=='static':#静态工厂
@@ -59,19 +59,19 @@ def 安装进程全局(选项):#安装process全局
 
     def 高分辨纳秒():#纳秒差
         """自启动起的纳秒差。"""
-        return int(round((time.perf_counter()*1000-起点)*1e6))#纳秒
+        return time.perf_counter_ns()-起点#纳秒
 
     def 运行秒数():#运行秒数
         """自启动起的秒数。"""
-        return (time.perf_counter()*1000-起点)/1000#秒
+        return (time.perf_counter_ns()-起点)/1e9#秒
 
     def 退出(码=None):#请求退出
         """仅告警；worker 继续运行。"""
         print(f'webworker process: exit({码 if 码 is not None else 0}) requested; the worker keeps running')#告警
 
     垫片={#构造垫片对象
-        'env':dict(选项.get('env') or {}),#可写环境副本
-        'argv':list(选项.get('argv') or ['node','dsh-webworker']),#参数向量
+        'env':dict({} if 选项.get('env') is None else 选项['env']),#可写环境副本，缺席才空表
+        'argv':list(['node','dsh-webworker'] if 选项.get('argv') is None else 选项['argv']),#??默认 argv，空列表合法
         'execArgv':[],#无执行参数
         'title':'dsh-webworker',#进程标题
         'platform':'linux',#报告linux

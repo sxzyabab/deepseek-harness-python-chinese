@@ -2,7 +2,7 @@
 import json#诊断序列化
 from ...工具.值 import 深相等json#深相等JSON
 from ..会话格式 import 会话格式错误#格式错误
-from .校验辅助 import 已发布v0记录#记录辅助
+from .记录与精确键 import 已发布v0记录#记录与精确键
 from .处置 import 已发布v0事件处置表#处置表
 
 表面类型=frozenset(['user/message','assistant/message','tool/result'])#表面类型
@@ -19,7 +19,7 @@ def 断言已发布产物关系(产物,扩展=None):#断言已发布产物关系
     表面=[]#表面序号
     打开压缩=None#打开压缩
     陈旧压缩起点=继承孤儿压缩起点(产物['events'])#陈旧压缩
-    重试们=[]#重试事件
+    重试列表=[]#重试事件
     重试起点=set()#重试起点键
     ptc根={}#ptc根
     ptc起点={}#ptc起点
@@ -144,11 +144,11 @@ def 断言已发布产物关系(产物,扩展=None):#断言已发布产物关系
             要求打开步骤(事件,数据,打开回合,打开步骤)#要求打开
             if 数据['provider']!=打开步骤提供方:#提供方不符
                 raise 会话格式错误('llm/retry provider does not match the open request/header')#错误
-            断言重试链(重试们,数据)#断言链
-            重试们.append(事件)#推入
+            断言重试链(重试列表,数据)#断言链
+            重试列表.append(事件)#推入
         elif 类型=='llm/retry-started':#LLM重试已开始
             已排=None#已排
-            for 候选 in 重试们:#查找
+            for 候选 in 重试列表:#查找
                 先前=候选['data']#先前数据
                 if 先前['retryId']==数据['retryId'] and 先前['retry']==数据['retry']:#匹配
                     已排=候选#记下
@@ -231,11 +231,11 @@ def 断言已发布产物关系(产物,扩展=None):#断言已发布产物关系
         elif 类型=='session/end-seed':#会话结束种子
             打开压缩=None#结束源生命周期
 
-def 继承孤儿压缩起点(事件们):#继承孤儿压缩起点
+def 继承孤儿压缩起点(事件列表):#继承孤儿压缩起点
     """收集被 session/end-seed 截断的压缩起点。"""
     陈旧=set()#陈旧
     打开=None#打开序号
-    for 事件 in 事件们:#遍历
+    for 事件 in 事件列表:#遍历
         if 事件['type']=='compaction/start':#开始
             打开=事件['seq']#记下
         elif 事件['type']=='compaction/end':#结束
@@ -246,10 +246,10 @@ def 继承孤儿压缩起点(事件们):#继承孤儿压缩起点
             打开=None#关闭
     return 陈旧#返回
 
-def 断言重试链(重试们,数据):#断言重试链
+def 断言重试链(重试列表,数据):#断言重试链
     """校验同策略链上的重试序号与 retryId。"""
     先前=None#先前
-    for 候选 in reversed(重试们):#逆序找
+    for 候选 in reversed(重试列表):#逆序找
         值=候选['data']#数据
         if 值['turn']==数据['turn'] and 值['step']==数据['step'] and 值['provider']==数据['provider'] and 值['policyKey']==数据['policyKey']:#同链
             先前=候选#记下
@@ -260,7 +260,7 @@ def 断言重试链(重试们,数据):#断言重试链
     if 先前 is not None and 先前['data']['retryId']!=数据['retryId']:#retryId变了
         raise 会话格式错误('llm/retry must preserve retryId across one policy chain')#错误
     if 先前 is None:#新链
-        for 候选 in 重试们:#查复用
+        for 候选 in 重试列表:#查复用
             if 候选['data']['retryId']==数据['retryId']:#复用
                 raise 会话格式错误(f'llm/retry reuses retryId {json.dumps(数据["retryId"],ensure_ascii=False)} across policy chains')#错误
 
@@ -269,9 +269,9 @@ def 要求打开步骤(事件,数据,打开回合,打开步骤):#要求打开步
     if 数据['turn']!=打开回合 or 数据['step']!=打开步骤 or 打开回合 is None or 打开步骤 is None:#不符
         raise 会话格式错误(f'{事件["type"]} does not match an open turn and step')#错误
 
-def 断言无未解决工具(生命周期们,边界):#断言无未解决工具
+def 断言无未解决工具(生命周期表,边界):#断言无未解决工具
     """边界处不得留下未解决工具调用。"""
-    未解决=next(iter(生命周期们.keys()),None)#首个未解决
+    未解决=next(iter(生命周期表.keys()),None)#首个未解决
     if 未解决 is not None:#有未解决
         raise 会话格式错误(f'{边界} leaves unresolved tool call {未解决}')#错误
 
@@ -317,16 +317,16 @@ def 应用表面(表面,事件):#应用表面
             raise 会话格式错误(f'{事件["type"]} replacement sourceEventSeqs omit a shadowed surface node')#错误
     return [*表面[:起点],事件['seq'],*表面[终点+1:]]#替换
 
-def 断言标题出处(事件们,事件,数据,校验框定文本):#断言标题出处
+def 断言标题出处(事件列表,事件,数据,校验框定文本):#断言标题出处
     """校验标题事件对人类用户消息的引用。"""
-    序号们=数据['messageSeqs']#消息序号
+    序号列表=数据['messageSeqs']#消息序号
     if 事件['type']=='session/title':#会话标题
         标题源=已发布v0记录(数据['source'],f'session/title {事件["seq"]} source')#标题源
-        if (len(序号们)==0)!=(标题源.get('kind')=='user'):#空性不符
+        if (len(序号列表)==0)!=(标题源.get('kind')=='user'):#空性不符
             raise 会话格式错误(f'session/title {事件["seq"]} messageSeqs must be empty exactly for a user title')#错误
     已选=[]#已选
-    for 序号 in 序号们:#遍历序号
-        源=事件们[序号] if isinstance(序号,int) and 0<=序号<len(事件们) else None#源事件
+    for 序号 in 序号列表:#遍历序号
+        源=事件列表[序号] if isinstance(序号,int) and 0<=序号<len(事件列表) else None#源事件
         if 源 is None or 源.get('type')!='user/message':#非用户消息
             raise 会话格式错误(f'{事件["type"]} {事件["seq"]} messageSeqs must cite earlier human user/message events')#错误
         源数据=已发布v0记录(源['data'],f'{源["type"]} {序号} data')#源数据
@@ -337,13 +337,13 @@ def 断言标题出处(事件们,事件,数据,校验框定文本):#断言标题
         文本='\n'.join([块['text'] for 块 in 内容 if 块.get('type')=='text' and isinstance(块.get('text'),str)])#拼接文本
         已选.append({'seq':序号,'text':文本})#推入
     if 事件['type']=='session/title-llm-request':#标题LLM请求
-        消息们=数据['messages']#消息
+        消息列表=数据['messages']#消息
         期望='Generate the session title from this JSON array of human messages:\n'+json.dumps(已选,ensure_ascii=False,separators=(',',':'))#期望
         #TS JSON.stringify 对对象默认无空格；Python ensure separators
-        消息=消息们[0] if isinstance(消息们,list) and len(消息们)>0 else None#首消息
+        消息=消息列表[0] if isinstance(消息列表,list) and len(消息列表)>0 else None#首消息
         内容=消息.get('content') if isinstance(消息,dict) else None#内容
         源=已发布v0记录(消息['source'],'session/title-llm-request message source') if isinstance(消息,dict) else None#源
-        if (not isinstance(消息们,list)) or len(消息们)!=1 or (消息 is None) or 消息.get('role')!='user' or (not isinstance(内容,list)) or len(内容)!=1 or 源 is None or 源.get('kind')!='plugin' or 源.get('plugin')!='dsh-session-title-llm':#不符
+        if (not isinstance(消息列表,list)) or len(消息列表)!=1 or (消息 is None) or 消息.get('role')!='user' or (not isinstance(内容,list)) or len(内容)!=1 or 源 is None or 源.get('kind')!='plugin' or 源.get('plugin')!='dsh-session-title-llm':#不符
             raise 会话格式错误('session/title-llm-request messages do not represent messageSeqs')#错误
         框定=内容[0]#框定块
         if 框定 is None or 框定.get('type')!='text' or (校验框定文本 and 框定.get('text')!=期望):#文本不符
@@ -362,9 +362,9 @@ def 断言压缩回合(所有者,打开回合,类型):#断言压缩回合
 def 断言当前表面跨度(表面,数据,类型):#断言当前表面跨度
     """shadowedSeqs 必须精确命名当前表面跨度。"""
     范围=数据['shadowedRange']#范围
-    序号们=数据['shadowedSeqs']#序号
+    序号列表=数据['shadowedSeqs']#序号
     起点=表面.index(范围['start']) if 范围['start'] in 表面 else -1#起点
     终点=表面.index(范围['end']) if 范围['end'] in 表面 else -1#终点
     期望=[] if 起点<0 or 终点<起点 else 表面[起点:终点+1]#期望
-    if len(期望)!=len(序号们) or any(期望[下标]!=序号们[下标] for 下标 in range(len(期望))):#不符
+    if len(期望)!=len(序号列表) or any(期望[下标]!=序号列表[下标] for 下标 in range(len(期望))):#不符
         raise 会话格式错误(f'{类型} shadowedSeqs do not name an exact current surface span')#错误

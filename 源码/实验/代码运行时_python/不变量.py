@@ -1,5 +1,6 @@
 """`@deepseek-ai/dsh-code-runtime-python` 的本包拥有不变量配套。"""
 from ...依赖 import cordis#外部依赖胶水
+
 包名='@deepseek-ai/dsh-code-runtime-python'#本包的不变量所有权名
 名称='code-runtime-python-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants
@@ -12,4 +13,8 @@ def 安装(_上下文对象,_失败):#空安装器
 
 def 应用(上下文对象):#注册本包不变量配套
     """注册本包的不变量配套。"""
-    return 已兑现(上下文对象.invariants.register(包名,安装))#登记
+    return 上下文对象.invariants.register(包名,安装)#登记
+
+name=名称#Cordis插件名
+inject=注入#Cordis依赖声明
+apply=应用#Cordis插件入口

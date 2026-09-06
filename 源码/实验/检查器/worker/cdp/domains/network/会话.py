@@ -2,8 +2,11 @@
 #对齐上游 worker/cdp/domains/network/session.ts
 
 import base64#正文编码
+import time#墙上时钟
 
 __all__=['网络域']#仅中文公开名
+
+_时间原点毫秒=time.time()*1000#对齐 performance.timeOrigin，模块加载即 Worker 启动
 
 class 网络域:#Network域
     """将已保留与实时网络观测投影为连接本地的 CDP 状态。"""
@@ -38,7 +41,7 @@ class 网络域:#Network域
         自身.禁用(会话)#禁用
 
     def 关闭(自身):#关闭
-        """释放仓库订阅与全部连接本地状态。"""
+        """拆除仓库订阅与全部连接本地状态。"""
         自身._取消订阅()#取消订阅
         自身._已启用.clear()#清空启用
         自身._流式请求.clear()#清空流式
@@ -82,9 +85,9 @@ class 网络域:#Network域
         """广播或清理逐出。"""
         if 事件['type']=='request-evicted':#逐出
             键=事件['requestKey']#键
-            for 会话键,请求们 in list(自身._流式请求.items()):#扫流式
-                请求们.discard(键)#删除键
-                if not 请求们:#空则移除
+            for 会话键,请求集合 in list(自身._流式请求.items()):#扫流式
+                请求集合.discard(键)#删除键
+                if len(请求集合)==0:#空则移除，判的是 length
                     del 自身._流式请求[会话键]#移除
             for 表 in 自身._待发开始.values():#清待发
                 表.pop(键,None)#删除
@@ -96,8 +99,7 @@ class 网络域:#Network域
 
     def _发送(自身,会话,事件):#发送事件
         """按类型投影 CDP 事件。"""
-        import time#时间
-        时间戳=(事件.get('timestampMs',time.time()*1000)-getattr(time,'timeOrigin',0))/1000#相对秒占位
+        时间戳=(事件['timestampMs']-_时间原点毫秒)/1000#相对秒，对齐 timestampMs - performance.timeOrigin
         类型=事件['type']#类型
         if 类型=='request-started':#开始
             自身._待发开始.get(id(会话),{})[事件['requestKey']]=事件#记待发
@@ -152,11 +154,10 @@ class 网络域:#Network域
         if 事件 is None:#无待发
             return#返回
         自身._请求类型.setdefault(id(会话),{})[请求键]=资源类型#记类型
-        import time#时间
         会话.发送事件('Network.requestWillBeSent',{#将发请求
             'requestId':事件['requestId'],'loaderId':'dsh-inspector-loader','documentURL':'dsh://host',#身份
             'request':{'url':事件['url'],'method':事件['method'],'headers':_cdp头(事件['headers']),'hasPostData':事件['hasBody']},#请求
-            'timestamp':(事件['timestampMs']-getattr(time,'timeOrigin',0))/1000,#相对秒
+            'timestamp':(事件['timestampMs']-_时间原点毫秒)/1000,#相对秒
             'wallTime':事件['wallTimeMs']/1000,#墙上秒
             'initiator':{'type':'other'},'type':资源类型,#类型
         })#sendEvent结束
@@ -166,7 +167,7 @@ class 网络域:#Network域
         流式=自身._流式请求.get(id(会话))#流式集
         if 流式 is not None:#有
             流式.discard(请求键)#删除
-            if not 流式:#空则移除
+            if len(流式)==0:#空则移除，判的是 length
                 del 自身._流式请求[id(会话)]#移除
         表=自身._待发开始.get(id(会话))#待发
         if 表 is not None:#清待发
@@ -175,9 +176,9 @@ class 网络域:#Network域
         if 类型表 is not None:#清类型
             类型表.pop(请求键,None)#删除
 
-def _cdp头(条目们):#头转CDP
+def _cdp头(条目列表):#头转CDP
     """合并同名头。"""
     头={}#空对象
-    for 名,值 in 条目们:#扫头
+    for 名,值 in 条目列表:#扫头
         头[名]=值 if 名 not in 头 else f'{头[名]}\n{值}'#合并同名
     return 头#返回

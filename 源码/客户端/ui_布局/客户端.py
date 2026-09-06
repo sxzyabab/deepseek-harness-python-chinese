@@ -4,11 +4,11 @@
 一次 register 把应用帧贡献进 root，并声明四子槽、落座布局 store、接上面板动作。
 """
 from .应用帧 import 应用帧#帧组件
-from .仓库 import 创建布局仓库#布局 store 工厂
+from .存储 import 创建布局存储#布局存储工厂
 from .服务 import 布局控制器#布局控制器
 from .主题呈现 import 主题呈现器#主题呈现
 
-__all__=['注入','应用','应用帧','布局控制器','创建布局仓库','主题呈现器']#仅中文公开名
+__all__=['注入','应用','应用帧','布局控制器','创建布局存储','主题呈现器']#仅中文公开名
 
 注入=['slots','theme']#槽位与主题
 
@@ -17,7 +17,7 @@ def 应用(上下文):#安装布局界面浏览器半边
     布局=布局控制器()#本插件布局控制器
     def 装服务与根():#提供 layout 并登记 AppFrame
         """挂服务与 root 登记。"""
-        拆服务=上下文.reflect.provide('layout',布局)#挂 layout
+        拆服务=上下文.反射.提供服务('layout',布局)#挂 layout
         def 注入面(动作):#把根 store 绑定动作交给服务
             """接线面板动作。"""
             布局.接入面板(动作)#接入
@@ -30,7 +30,7 @@ def 应用(上下文):#安装布局界面浏览器半边
                 'details':{'kind':'single','scope':'session'},#详情
                 'shell.overlay':{'kind':'list','scope':'root'},#叠层
             },#子槽结束
-            'store':创建布局仓库,#布局 store 工厂
+            'store':创建布局存储,#布局存储工厂
             'inject':注入面,#接线钩
         },应用帧)#帧组件
         def 拆除():#拆除服务与登记
@@ -38,7 +38,7 @@ def 应用(上下文):#安装布局界面浏览器半边
             拆登记()#撤登记
             拆服务()#撤服务
         return 拆除#拆除器
-    上下文.effect(装服务与根,'ui-layout: service + root registration')#服务与 root
+    上下文.副作用(装服务与根,'ui-layout: service + root registration')#服务与 root
     def 装主题呈现():#落座主题呈现器
         """从已解析快照做纯 DOM 写入。"""
         呈现=主题呈现器()#实例
@@ -46,10 +46,10 @@ def 应用(上下文):#安装布局界面浏览器半边
         def 变更(快照):#主题变更
             """投影快照。"""
             呈现.施加(快照)#投影
-        关=上下文.on('theme/change',变更)#监听
+        关=上下文.监听('theme/change',变更)#监听
         def 拆除():#拆除呈现
             """取消监听并收回写入。"""
             关()#取消
             呈现.拆除()#收回
         return 拆除#拆除器
-    上下文.effect(装主题呈现,'ui-layout: theme presenter')#主题呈现
+    上下文.副作用(装主题呈现,'ui-layout: theme presenter')#主题呈现

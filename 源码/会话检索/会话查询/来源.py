@@ -1,28 +1,20 @@
 """逻辑会话源观察者共用的不可变头检查。对齐上游 `session-query/src/sources.ts`。"""
 from .配置 import 会话查询错误#检索错误
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 断言会话头兼容(甲,乙):#断言两份头同属一源
+def 校验会话头兼容(甲,乙):
     """拒绝同一逻辑会话源上互不兼容的观察。"""
-    if (#任一身份字段不一致
-        取字段(甲,'version')!=取字段(乙,'version')
-        or 取字段(甲,'id')!=取字段(乙,'id')
-        or 取字段(甲,'createdAt')!=取字段(乙,'createdAt')
-        or 取字段(甲,'cwd')!=取字段(乙,'cwd')
-        or 取字段(甲,'parentSession')!=取字段(乙,'parentSession')
-        or 取字段(甲,'seedLength')!=取字段(乙,'seedLength')
-        or (取字段(甲,'delegationDepth') or 0)!=(取字段(乙,'delegationDepth') or 0)
+    甲深度=甲['delegationDepth'] if 'delegationDepth' in 甲 and 甲['delegationDepth'] is not None else 0#甲深度
+    乙深度=乙['delegationDepth'] if 'delegationDepth' in 乙 and 乙['delegationDepth'] is not None else 0#乙深度
+    if (
+        甲['version']!=乙['version']
+        or 甲['id']!=乙['id']
+        or 甲['createdAt']!=乙['createdAt']
+        or (甲['cwd'] if 'cwd' in 甲 else None)!=(乙['cwd'] if 'cwd' in 乙 else None)
+        or (甲['parentSession'] if 'parentSession' in 甲 else None)!=(乙['parentSession'] if 'parentSession' in 乙 else None)
+        or (甲['seedLength'] if 'seedLength' in 甲 else None)!=(乙['seedLength'] if 'seedLength' in 乙 else None)
+        or 甲深度!=乙深度
     ):#冲突判定
-        raise 会话查询错误(#源观察打架
-            f'session source headers conflict for session "{取字段(甲,"id")}"',
+        raise 会话查询错误(
+            'session source headers conflict for session "'+str(甲['id'])+'"',
             'SESSION_QUERY_SOURCE_CONFLICT',
         )#抛出源冲突

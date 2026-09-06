@@ -33,8 +33,8 @@ class 客户端对象存储:#Client对象存储
 
     def 回滚(自身,分配):#回滚分配
         """精确丢弃一次失败操作分配的句柄。"""
-        句柄们=自身.分配.pop(id(分配),set())#取出
-        for 句柄 in 句柄们:#释放
+        句柄集合=自身.分配.pop(id(分配),set())#取出
+        for 句柄 in 句柄集合:#释放
             自身.释放(句柄)#释放
 
     def 获取(自身,句柄):#获取
@@ -139,7 +139,7 @@ def 描述(值):#描述
     """描述。"""
     try:#转串
         return str(值)#转串
-    except Exception:#失败
+    except Exception:#对象预览/序列化可能抛自定义 getter，契约未定所以收不窄
         return type(值).__name__#类名
 
 def 类名(值):#类名

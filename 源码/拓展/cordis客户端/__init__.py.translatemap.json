@@ -1,0 +1,14 @@
+{
+    "apply":"应用",
+    "catalog":"目录",
+    "client":"客户端",
+    "evaluate":"求值",
+    "facade":"门面",
+    "inspect":"巡检",
+    "name":"名称",
+    "orchestrate":"编排",
+    "provider":"提供方",
+    "runtime":"运行时",
+    "slot":"槽",
+    "timer":"定时器"
+}

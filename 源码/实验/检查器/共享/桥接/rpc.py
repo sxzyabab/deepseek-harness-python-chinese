@@ -3,9 +3,9 @@
 对齐上游 `shared/bridge/rpc.ts`。公开面仅中文名。
 """
 import threading#超时定时器
-from concurrent.futures import Future as 期约#待决结果
-from .标识 import 检查器id#品牌化
-from ..json import json字节长度#帧字节
+from concurrent.futures import Future as 原生结果#待决结果
+from .标识 import 检查器id#标识构造
+from ..json import json字节长度,检查器错误#帧字节|本包错误
 from .版本 import 检查器协议版本#协议版本
 from .消息.查询.编解码 import 是否检查器查询响应信封,解析检查器查询响应帧#响应编解码
 
@@ -46,7 +46,7 @@ class 检查器查询连接:#查询连接
     def 连接(自身,sourceId,generation,sender):#连接世代
         """接纳 Worker 已确认的源世代。"""
         if 自身._已关闭:#已关闭
-            raise Exception('inspector query connection is closed')#英文诊断
+            raise 检查器错误('inspector query connection is closed')#英文诊断
         自身.断开('Inspector source generation replaced')#断开旧世代
         自身._活动={'sourceId':sourceId,'generation':generation,'sender':sender}#安装新世代
 
@@ -54,7 +54,7 @@ class 检查器查询连接:#查询连接
         """对当前已接受的源世代执行一次查询。"""
         活动=自身._活动#当前世代
         if 自身._已关闭 or 活动 is None:#未连接
-            失败=期约()#失败期约
+            失败=原生结果()#失败结果
             失败.set_exception(Exception('Inspector query transport is not connected'))#拒绝
             return 失败#返回
         自身._下一请求号+=1#分配请求号
@@ -68,10 +68,10 @@ class 检查器查询连接:#查询连接
             'query':查询,#查询体
         }#帧结束
         if json字节长度(帧)>自身.选项.maxFrameBytes:#超帧
-            失败=期约()#失败期约
+            失败=原生结果()#失败结果
             失败.set_exception(Exception(f'Inspector query request exceeds {自身.选项.maxFrameBytes} bytes'))#拒绝
             return 失败#返回
-        结果=期约()#待决期约
+        结果=原生结果()#待决结果
         def 超时():#超时
             """超时拒绝。"""
             if 自身._待决.pop(请求id,None) is not None:#仍待决
@@ -82,9 +82,9 @@ class 检查器查询连接:#查询连接
         定时器.start()#启动定时器
         try:#发送
             活动['sender'].发送(帧) if hasattr(活动['sender'],'发送') else 活动['sender'].send(帧)#写载体
-        except Exception as 错误:#发送失败
+        except Exception as 错误:#rpc 发送可能抛 OSError/连接断开，契约未定所以收不窄
             自身._拒绝待决(请求id,渲染错误(错误))#拒绝待决
-        return 结果#返回期约
+        return 结果#返回结果
 
     def 接收(自身,值):#消费响应
         """当解码后的载体值是查询响应时加以消费。"""
@@ -93,8 +93,8 @@ class 检查器查询连接:#查询连接
         try:#解码
             帧=解析检查器查询响应帧(值)#解析帧
             if json字节长度(帧)>自身.选项.maxFrameBytes:#超帧
-                raise Exception(f'inspector protocol: query response exceeds {自身.选项.maxFrameBytes} bytes')#英文诊断
-        except Exception as 错误:#解码失败
+                raise 检查器错误(f'inspector protocol: query response exceeds {自身.选项.maxFrameBytes} bytes')#英文诊断
+        except Exception as 错误:#解析检查器查询响应帧可能抛检查器错误/TypeError，契约未定所以收不窄
             自身.断开(f'Invalid Inspector query response: {渲染错误(错误)}')#断开
             raise#原样抛出
         待决=自身._待决.get(帧['requestId'])#查待决

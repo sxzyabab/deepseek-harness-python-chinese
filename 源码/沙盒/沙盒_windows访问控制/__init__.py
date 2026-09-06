@@ -9,7 +9,7 @@
 import os#存在判定与路径
 
 from .acl import 授予写入,撤销写入#授予与撤销写入ACE
-from .错误 import Win32错误#Win32错误
+from .错误 import Win32错误,访问控制错误#Win32错误与校验错误
 from .ffi import 分配指针槽,解码指针,是否空指针,抛上次错误,解析绑定#指针槽、解码、空指针、错误抛出与绑定
 from .路径边界 import 断言私有临时不相交,断言临时根在工作区外#私有临时不相交与临时根断言
 from .spawn import 引用参数,排空管道,隔离生成,隔离继承生成,等待退出#引用、排空、隔离spawn与等待
@@ -18,7 +18,7 @@ from . import win32_abi as abi#Win32 ABI常量
 from .工作区sid import 临时写入SID,工作区写入SID#SID推导
 from .授权 import ACL写入授权,聚合错误#写入授权与聚合错误
 
-def 尽力释放SID(接口,sid指针,标签,失败们):#尽力释放SID
+def 尽力释放SID(接口,sid指针,标签,失败列表):#尽力释放SID
     """释放一个可选 SID，同时为尽力的兄弟清理保留失败。"""
     if sid指针 is None:#没有指针
         return#跳过
@@ -27,38 +27,38 @@ def 尽力释放SID(接口,sid指针,标签,失败们):#尽力释放SID
         if not 是否空指针(释放):#非空则失败
             抛上次错误(接口,'LocalFree',标签)#抛出
     except BaseException as 错误:#释放失败
-        失败们.append(错误)#记下
+        失败列表.append(错误)#记下
 
 class ACL沙箱:#ACL沙箱实例
     """一个写入受限沙箱实例：令牌 + 写入 SID 授权 + spawn。init() 失败即关闭——任何 Win32 失败都撤销可撤销（临时）授权并抛出；dispose() 撤销临时授权，留下常驻工作区 ACE（跨实例复用缓存），释放每个分配，并报告每次清理失败。manageDacls: false 时调用方拥有授权：init() 不应用任何，dispose() 不撤销任何。"""
     def __init__(自身,选项):#校验并保存选项
         """校验并保存构造选项。"""
         自身.mode=选项['mode']#记下模式
-        自身._manageDacls=选项.get('manageDacls',True)#默认自己管理DACL
+        自身._manageDacls=True if 'manageDacls' not in 选项 else 选项['manageDacls']#缺键则自己管理DACL
         自身.writableDirs=[]#可写目录
         for 目录 in 选项['writableDirs']:#规范化可写目录
             绝对=os.path.abspath(目录)#绝对路径
             if not os.path.exists(绝对) or not os.path.isdir(绝对):#不存在或不是目录
-                raise Exception('AclSandbox writable dir does not exist or is not a directory: '+绝对)#非法可写目录
+                raise 访问控制错误('AclSandbox writable dir does not exist or is not a directory')#非法可写目录
             自身.writableDirs.append(绝对)#绝对路径
         自身._tempDirDefined='tempDir' in 选项#是否显式传入tempDir（含null）
         自身._tempDirOption=选项['tempDir'] if 自身._tempDirDefined else None#临时选项；未定义时为None哨兵
-        自身.writeSid=选项.get('writeSid')#记下工作区SID
-        自身.tempWriteSid=选项.get('tempWriteSid')#记下临时SID
+        自身.writeSid=选项['writeSid'] if 'writeSid' in 选项 else None#记下工作区SID
+        自身.tempWriteSid=选项['tempWriteSid'] if 'tempWriteSid' in 选项 else None#记下临时SID
         if 自身.mode=='workspace-write' and 自身.writeSid is None:#workspace-write缺SID
-            raise Exception('AclSandbox workspace-write requires a write SID — derive it from the workspace via workspaceWriteSid()')#必须有工作区SID
+            raise 访问控制错误('AclSandbox workspace-write requires a write SID — derive it from the workspace via workspaceWriteSid()')#必须有工作区SID
         if 自身.mode=='workspace-write' and not 自身._tempDirDefined:#workspace-write缺临时
-            raise Exception('AclSandbox workspace-write requires an explicit private temp directory or null')#必须显式临时或null
+            raise 访问控制错误('AclSandbox workspace-write requires an explicit private temp directory or null')#必须显式临时或null
         if 自身.mode=='read-only' and 自身._tempDirDefined and 自身._tempDirOption is not None:#只读却给了临时路径
-            raise Exception('AclSandbox read-only does not accept a temp directory')#只读不接受临时目录
+            raise 访问控制错误('AclSandbox read-only does not accept a temp directory')#只读不接受临时目录
         if 自身.mode=='read-only' and (自身.writeSid is not None or 自身.tempWriteSid is not None):#只读却给了SID
-            raise Exception('AclSandbox read-only does not accept write SIDs')#只读不接受写入SID
+            raise 访问控制错误('AclSandbox read-only does not accept write SIDs')#只读不接受写入SID
         if 自身.mode=='workspace-write' and 自身._tempDirOption is not None and 自身.tempWriteSid is None:#有临时缺临时SID
-            raise Exception('AclSandbox workspace-write with temp requires a temp write SID — derive it via tempWriteSid()')#必须有临时SID
+            raise 访问控制错误('AclSandbox workspace-write with temp requires a temp write SID — derive it via tempWriteSid()')#必须有临时SID
         if 自身._tempDirDefined and 自身._tempDirOption is None and 自身.tempWriteSid is not None:#关掉临时却给了临时SID
-            raise Exception('AclSandbox temp write SID requires a temp directory')#临时SID需要临时目录
+            raise 访问控制错误('AclSandbox temp write SID requires a temp directory')#临时SID需要临时目录
         if 自身.writeSid is not None and 自身.tempWriteSid==自身.writeSid:#两个SID相同
-            raise Exception('AclSandbox workspace and temp write SIDs must be distinct')#必须不同
+            raise 访问控制错误('AclSandbox workspace and temp write SIDs must be distinct')#必须不同
         自身._tempDirResolved=None#init后解析的临时目录
         自身._tempDirUnset=True#尚未init
         自身._api=None#已加载绑定
@@ -78,7 +78,7 @@ class ACL沙箱:#ACL沙箱实例
     def 初始化(自身):#初始化沙箱
         """创建受限令牌并应用能力 SID 授权。非幂等安全：每个实例一次。"""
         if 自身._api is not None:#已初始化
-            raise Exception('AclSandbox is already initialized')#不得重复init
+            raise 访问控制错误('AclSandbox is already initialized')#不得重复init
         接口=解析绑定()#惰性加载绑定
         当前令牌=打开当前进程令牌(接口)#打开当前进程令牌
         当前令牌打开=True#当前令牌是否仍打开
@@ -100,7 +100,7 @@ class ACL沙箱:#ACL沙箱实例
                 临时目录=自身._tempDirOption#解析临时目录
             if 临时目录 is not None:#有临时目录
                 if not os.path.exists(临时目录) or not os.path.isdir(临时目录):#不存在或不是目录
-                    raise Exception('AclSandbox temp dir does not exist or is not a directory: '+临时目录)#非法临时目录
+                    raise 访问控制错误('AclSandbox temp dir does not exist or is not a directory')#非法临时目录
                 断言私有临时不相交(自身.writableDirs,临时目录)#不得与可写目录重叠
             自身._tempDirResolved=临时目录#记下已解析临时
             自身._tempDirUnset=False#已解析
@@ -115,8 +115,8 @@ class ACL沙箱:#ACL沙箱实例
             自身._sidAllocations.append(登录SID)#记下分配
             世界SID=制作众所周知SID(接口,abi.世界SID类型)#Everyone SID
             自身._sidAllocations.append(世界SID)#记下分配
-            写入SID指针们=[项 for 项 in [自身._writeSidPtr,自身._tempWriteSidPtr] if 项 is not None]#能力SID
-            受限令牌=创建受限令牌(接口,当前令牌,登录SID,写入SID指针们,{'world':世界SID},自身.mode)#创建受限令牌
+            写入SID指针列表=[项 for 项 in [自身._writeSidPtr,自身._tempWriteSidPtr] if 项 is not None]#能力SID
+            受限令牌=创建受限令牌(接口,当前令牌,登录SID,写入SID指针列表,{'world':世界SID},自身.mode)#创建受限令牌
             自身._token=受限令牌#记下令牌
             默认SID=自身._tempWriteSidPtr if 自身._tempWriteSidPtr is not None else (自身._writeSidPtr if 自身._writeSidPtr is not None else 世界SID)#合并默认DACL用的SID
             设令牌默认DACL授予(接口,受限令牌,默认SID)#合并默认DACL
@@ -155,10 +155,10 @@ class ACL沙箱:#ACL沙箱实例
         接口=自身._api#已加载绑定
         令牌=自身._token#受限令牌
         if 接口 is None or 令牌 is None:#未初始化
-            raise Exception('AclSandbox is not initialized: call init() first')#必须先init
-        参数=选项.get('args') or []#参数
-        工作目录=选项.get('cwd') or os.getcwd()#工作目录
-        if 选项.get('stdio')=='inherit':#继承stdio
+            raise 访问控制错误('AclSandbox is not initialized: call init() first')#必须先init
+        参数=选项['args'] if 'args' in 选项 else []#缺键则无参数
+        工作目录=选项['cwd'] if 'cwd' in 选项 and 选项['cwd'] is not None and 选项['cwd']!='' else os.getcwd()#缺键或空串则用进程 cwd，对齐 ||
+        if 'stdio' in 选项 and 选项['stdio']=='inherit':#继承stdio
             原生=隔离继承生成(接口,令牌,{'command':选项['command'],'args':参数,'cwd':工作目录})#继承spawn
             退出码缓存=[None]#惰性等待
             def 等待():#等待结算
@@ -183,32 +183,32 @@ class ACL沙箱:#ACL沙箱实例
         接口=自身._api#已加载绑定
         if 接口 is None:#尚未init
             return#跳过
-        失败们=[]#清理失败
+        失败列表=[]#清理失败
         if 自身._manageDacls:#自己管理DACL
             for 授权 in 自身._grantedPaths:#可撤销授权
                 try:#撤销
                     撤销写入(接口,授权['path'],授权['sidPtr'])#撤销临时ACE
                 except BaseException as 错误:#撤销失败
-                    失败们.append(错误)#记下
+                    失败列表.append(错误)#记下
         for 标签,sid指针 in (('workspace write SID',自身._writeSidPtr),('temp write SID',自身._tempWriteSidPtr)):#写入SID
-            尽力释放SID(接口,sid指针,标签,失败们)#尽力释放
+            尽力释放SID(接口,sid指针,标签,失败列表)#尽力释放
         令牌=自身._token#受限令牌
         if 令牌 is not None:#有令牌
             try:#关闭令牌
                 if 接口.closeHandle(令牌)==0:#关闭失败
                     抛上次错误(接口,'CloseHandle','restricted token')#抛出
             except BaseException as 错误:#关闭抛出
-                失败们.append(错误)#记下
+                失败列表.append(错误)#记下
         for sid指针 in 自身._sidAllocations[:]:#init分配
             自身._sidAllocations.remove(sid指针)#弹出
-            尽力释放SID(接口,sid指针,'init SID allocation',失败们)#尽力释放
+            尽力释放SID(接口,sid指针,'init SID allocation',失败列表)#尽力释放
         自身._api=None#清绑定
         自身._token=None#清令牌
         自身._writeSidPtr=None#清工作区指针
         自身._tempWriteSidPtr=None#清临时指针
         自身._grantedPaths=[]#清已授予路径
-        if len(失败们)>0:#有清理失败
-            raise 聚合错误(失败们,'AclSandbox dispose completed with '+str(len(失败们))+' cleanup failure(s)')#报告清理失败
+        if len(失败列表)>0:#有清理失败
+            raise 聚合错误(失败列表,'AclSandbox dispose completed with '+str(len(失败列表))+' cleanup failure(s)')#报告清理失败
 
 __all__=[#公开面
     'ACL沙箱','ACL写入授权','聚合错误','临时写入SID','工作区写入SID',

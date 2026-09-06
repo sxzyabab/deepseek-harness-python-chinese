@@ -1,0 +1,14 @@
+{
+    "builtin":"内置",
+    "context":"上下文",
+    "create":"创建",
+    "error":"错误",
+    "evaluate":"求值",
+    "host":"宿主",
+    "inspect":"巡检",
+    "message":"消息",
+    "parse":"解析",
+    "precheck":"预检",
+    "sandbox":"沙箱",
+    "syntax":"语法"
+}

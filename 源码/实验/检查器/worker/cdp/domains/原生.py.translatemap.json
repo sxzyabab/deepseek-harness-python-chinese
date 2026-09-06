@@ -1,0 +1,16 @@
+{
+    "api":"接口",
+    "called":"已调用",
+    "console":"控制台",
+    "domains":"域",
+    "exception":"异常",
+    "heap":"堆",
+    "host":"宿主",
+    "method":"方法",
+    "native":"原生",
+    "params":"参数",
+    "profiler":"分析器",
+    "runtime":"运行时",
+    "schema":"模式",
+    "thrown":"已抛出"
+}

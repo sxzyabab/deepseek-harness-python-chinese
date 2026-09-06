@@ -1,0 +1,10 @@
+{
+    "backup":"备份",
+    "database":"数据库",
+    "default":"默认",
+    "module":"模块",
+    "node":"节点",
+    "sqlite":"SQLite",
+    "statement":"语句",
+    "sync":"同步"
+}

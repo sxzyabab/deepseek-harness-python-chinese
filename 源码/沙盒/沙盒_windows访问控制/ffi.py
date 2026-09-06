@@ -1,7 +1,7 @@
 """Win32 ACL 沙盒后端的惰性 ctypes 绑定。非 Windows 进程永远不会打开 Win32 库。结构布局在加载时对照 abi 常量断言。"""
 import ctypes#Win32 FFI
 from ctypes import wintypes#Windows类型
-from .错误 import Win32错误#带API名与错误码的失败
+from .错误 import Win32错误,访问控制错误#带API名与错误码的失败、布局错误
 from . import win32_abi as abi#头文件探针钉死的尺寸与常量
 
 class 启动信息输入:#stdio相关字段
@@ -56,9 +56,9 @@ class PROCESS_INFORMATION(ctypes.Structure):#与processthreadsapi.h对齐
     )#字段结束
 
 if ctypes.sizeof(STARTUPINFOW)!=abi.启动信息W大小:#ctypes算出的尺寸必须贴合头文件探针
-    raise Exception('STARTUPINFOW layout mismatch: ctypes computed '+str(ctypes.sizeof(STARTUPINFOW))+', header probe says '+str(abi.启动信息W大小))#加载失败
+    raise 访问控制错误('STARTUPINFOW layout mismatch: ctypes computed '+str(ctypes.sizeof(STARTUPINFOW))+', header probe says '+str(abi.启动信息W大小))#加载失败
 if ctypes.sizeof(PROCESS_INFORMATION)!=abi.进程信息大小:#同上
-    raise Exception('PROCESS_INFORMATION layout mismatch: ctypes computed '+str(ctypes.sizeof(PROCESS_INFORMATION))+', header probe says '+str(abi.进程信息大小))#加载失败
+    raise 访问控制错误('PROCESS_INFORMATION layout mismatch: ctypes computed '+str(ctypes.sizeof(PROCESS_INFORMATION))+', header probe says '+str(abi.进程信息大小))#加载失败
 
 def 是否空指针(值):#NULL判断
     """对 NULL 指针为真（None 或 0）。"""

@@ -43,39 +43,37 @@ Response:
 Other:
   --help
 """#用法文案
-Error=Exception#错误别名
-
 def 数值(选项,值):#解析有限数
     """解析有限数。"""
     try:#解析
         解析=float(值)#解析数字
     except Exception:#失败
-        raise Error(f'dsh-llm-mock-server: {选项} must be a finite number')#非有限
+        raise Exception(f'dsh-llm-mock-server: {选项} must be a finite number')#非有限
     if 解析!=解析 or 解析 in (float('inf'),float('-inf')):#非有限
-        raise Error(f'dsh-llm-mock-server: {选项} must be a finite number')#非有限
+        raise Exception(f'dsh-llm-mock-server: {选项} must be a finite number')#非有限
     return 解析#返回数值
 
 def 有界整数(选项,值,最小,最大):#解析有界整数
     """解析有界整数。"""
     解析=数值(选项,值)#先解析
     if 解析!=int(解析) or 解析<最小 or 解析>最大:#越界
-        raise Error(f'dsh-llm-mock-server: {选项} must be an integer between {最小} and {最大}')#越界
+        raise Exception(f'dsh-llm-mock-server: {选项} must be an integer between {最小} and {最大}')#越界
     return int(解析)#返回有界整数
 
 def 解析序列(原始):#解析行为序列
     """解析行为序列，允许首项 connection_refused。"""
     条目=[项.strip() for 项 in 原始.split(',')]#拆分条目
     if any(项=='' for 项 in 条目):#空条目
-        raise Error('dsh-llm-mock-server: --sequence must contain non-empty comma-separated behaviors')#空条目
+        raise Exception('dsh-llm-mock-server: --sequence must contain non-empty comma-separated behaviors')#空条目
     先不可用=条目[0]==连接拒绝行为#是否先拒绝
     if 连接拒绝行为 in 条目[1:]:#位置非法
-        raise Error('dsh-llm-mock-server: connection_refused is allowed only as the first behavior')#位置非法
+        raise Exception('dsh-llm-mock-server: connection_refused is allowed only as the first behavior')#位置非法
     请求条目=条目[1:] if 先不可用 else 条目#请求级行为
     if len(请求条目)==0:#缺少后续
-        raise Error('dsh-llm-mock-server: connection_refused must be followed by a request behavior')#缺少后续
+        raise Exception('dsh-llm-mock-server: connection_refused must be followed by a request behavior')#缺少后续
     for 项 in 请求条目:#校验每个行为
         if 项 not in 行为集合:#未知行为
-            raise Error(f'dsh-llm-mock-server: unknown behavior {项!r}')#未知行为
+            raise Exception(f'dsh-llm-mock-server: unknown behavior {项!r}')#未知行为
     return {'startsUnavailable':先不可用,'sequence':请求条目}#返回解析结果
 
 def 解析随机权重(原始):#解析随机权重
@@ -84,12 +82,12 @@ def 解析随机权重(原始):#解析随机权重
     for 项 in 原始.split(','):#逐项
         段=项.split('=')#拆行为与权重
         if len(段)!=2 or 段[0]=='' or 段[1]=='':#格式非法
-            raise Error('dsh-llm-mock-server: --random-weights expects behavior=weight comma-separated entries')#格式非法
+            raise Exception('dsh-llm-mock-server: --random-weights expects behavior=weight comma-separated entries')#格式非法
         行为,原始权重=段#拆开
         if 行为 not in 行为集合 or 行为=='random':#必须具体行为
-            raise Error(f'dsh-llm-mock-server: random weight requires a concrete behavior, got {行为!r}')#必须具体行为
+            raise Exception(f'dsh-llm-mock-server: random weight requires a concrete behavior, got {行为!r}')#必须具体行为
         if 行为 in 权重:#重复
-            raise Error(f'dsh-llm-mock-server: duplicate random weight for {行为!r}')#重复
+            raise Exception(f'dsh-llm-mock-server: duplicate random weight for {行为!r}')#重复
         权重[行为]=数值('--random-weights',原始权重)#写入权重
     return 权重#返回权重
 
@@ -126,14 +124,14 @@ def 解析模拟LLM命令参数(参数向量):#解析 CLI 参数
     断开延迟=None if 值.disconnect_delay_ms is None else 数值('--disconnect-delay-ms',值.disconnect_delay_ms)#断开延迟
     重试等待=None if 值.retry_after_ms is None else 数值('--retry-after-ms',值.retry_after_ms)#重试等待
     if 值.sequence is None:#缺序列
-        raise Error('dsh-llm-mock-server: --sequence is required')#缺序列
+        raise Exception('dsh-llm-mock-server: --sequence is required')#缺序列
     解析序列结果=解析序列(值.sequence)#解析序列
     if 解析序列结果['startsUnavailable'] and 端口==0:#拒绝需要显式端口
-        raise Error('dsh-llm-mock-server: connection_refused requires an explicit nonzero --port')#拒绝需要显式端口
+        raise Exception('dsh-llm-mock-server: connection_refused requires an explicit nonzero --port')#拒绝需要显式端口
     if not 解析序列结果['startsUnavailable'] and 监听延迟 is not None:#延迟依赖拒绝
-        raise Error('dsh-llm-mock-server: --listen-delay-ms requires connection_refused first in --sequence')#延迟依赖拒绝
+        raise Exception('dsh-llm-mock-server: --listen-delay-ms requires connection_refused first in --sequence')#延迟依赖拒绝
     if 'random' not in 解析序列结果['sequence'] and (随机种子 is not None or 随机权重 is not None):#随机选项依赖 random
-        raise Error('dsh-llm-mock-server: --seed and --random-weights require random in --sequence')#随机选项依赖 random
+        raise Exception('dsh-llm-mock-server: --seed and --random-weights require random in --sequence')#随机选项依赖 random
     服务器={#服务器选项
         'sequence':解析序列结果['sequence'],#行为序列
         'port':端口,#端口
@@ -175,7 +173,3 @@ def 解析模拟LLM命令参数(参数向量):#解析 CLI 参数
             'startsUnavailable':解析序列结果['startsUnavailable'],#是否先不可用
         },#config 结束
     }#返回
-
-CONNECTION_REFUSED_BEHAVIOR=连接拒绝行为#上游名
-MOCK_LLM_CLI_USAGE=模拟LLM命令用法#上游名
-parseMockLlmCliArgs=解析模拟LLM命令参数#上游名

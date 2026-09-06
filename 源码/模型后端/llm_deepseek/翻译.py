@@ -25,20 +25,27 @@ def 映射结束原因(原因):#映射结束原因
 
 def 映射用量(用量):
     """映射线路用量字段。缓存命中从 inputTokens 里减去。"""
-    详情=用量.get('prompt_tokens_details') or {}#兼容命中
-    缓存命中=详情.get('cached_tokens')#优先 details
-    if 缓存命中 is None:#没有 details
-        缓存命中=用量.get('prompt_cache_hit_tokens')#回落到线路命中
-    补全详情=用量.get('completion_tokens_details') or {}#补全细节
-    推理=补全详情.get('reasoning_tokens')#推理令牌
+    详情=用量['prompt_tokens_details'] if 'prompt_tokens_details' in 用量 else {}#兼容命中
+    if 'cached_tokens' in 详情:#优先 details
+        缓存命中=详情['cached_tokens']#details 命中
+    elif 'prompt_cache_hit_tokens' in 用量:#回落到线路命中
+        缓存命中=用量['prompt_cache_hit_tokens']#线路命中
+    else:#没有命中字段
+        缓存命中=None#缺席
+    if 'completion_tokens_details' in 用量:#补全细节
+        补全详情=用量['completion_tokens_details']#细节
+    else:#缺席当空
+        补全详情={}#空
+    推理=补全详情['reasoning_tokens'] if 'reasoning_tokens' in 补全详情 else None#推理令牌
+    命中数=0 if 缓存命中 is None else int(缓存命中)#减法用 0；显式 0 仍是 0（??）
     结果={
-        'inputTokens':用量['prompt_tokens']-(缓存命中 or 0),#去掉命中后的输入
-        'outputTokens':用量['completion_tokens'],#补全
+        'inputTokens':int(用量['prompt_tokens'])-命中数,#去掉命中后的输入
+        'outputTokens':int(用量['completion_tokens']),#补全
     }#互不相交计数
     if 缓存命中 is not None:#有命中
-        结果['cacheReadTokens']=缓存命中#有命中才带上
+        结果['cacheReadTokens']=int(缓存命中)#有命中才带上
     if 推理 is not None:#有推理
-        结果['reasoningTokens']=推理#有推理才带上
+        结果['reasoningTokens']=int(推理)#有推理才带上
     return 结果#用量
 
 def 关闭块(块):

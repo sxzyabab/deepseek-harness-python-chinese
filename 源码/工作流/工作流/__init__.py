@@ -1,6 +1,6 @@
 """工作流能力缝的服务定义。服务提供方执行编排脚本；仅观察的生命周期事件从不暴露运行控制。"""
-import threading#异步监听拒绝的后台观察
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 服务=cordis.服务#Cordis 服务基类
 from ...模型后端.llm import 装备错误#智能体错误基类
 from .类型 import (#再导出工作流公开类型
@@ -51,29 +51,27 @@ __all__=(#仅中文公开名；Cordis 英文槽不入表
 )#错误码结束
 
 class 工作流错误(装备错误):#工作流缝的带类型错误
-    """工作流缝失败的带类型错误。继承装备错误，因此 code 是可机器路由的分类。fatal 决定组合子纪律：parallel()/pipeline() 会再抛出致命错误（写错的选项或触顶的上限必须大声杀掉脚本），并把每项的 null 留给子运行失败和阶段内普通脚本错误。每一个工作流错误码都是致命的；该标志存在是为了让每个 catch 点显式区分，而不是靠暗示。"""
+    """工作流缝失败的带类型错误。继承装备错误，因此 code 是可机器路由的分类。致命标志决定组合子纪律：parallel()/pipeline() 会再抛出致命错误（写错的选项或触顶的上限必须大声杀掉脚本），并把每项的 null 留给子运行失败和阶段内普通脚本错误。每一个工作流错误码都是致命的；该标志存在是为了让每个 catch 点显式区分，而不是靠暗示。"""
     def __init__(自身,消息,码,选项=None):#构造工作流错误
-        """记下稳定 code、链式 cause，以及 fatal 标志（未指定时视为致命）。"""
+        """记下稳定 code、链式 cause，以及致命标志（未指定时视为致命）。"""
         装备错误.__init__(自身,消息,码,选项)#交给智能体错误基类
-        自身.name='WorkflowError'#固定错误名
+        自身.name='WorkflowError'#固定错误名，对齐上游 Error.name
         致命=True#默认致命
         if isinstance(选项,dict) and 'fatal' in 选项:#选项给出 fatal
             致命=选项['fatal']#取显式值
             if 致命 is None:#显式 None 仍按默认
                 致命=True#未指定时视为致命
-        自身.fatal=致命#英文致命标志
-        自身.致命=致命#中文致命标志
+        自身.致命=致命#致命标志
 
 def 是否致命工作流错误(错误):#判断是否为致命工作流错误
-    """组合子是否必须再抛出 error，而不是把该项映射为 null。任意抛出值；是否致命由宿主 isinstance 判定（脚本领域无法伪造）。当且仅当 error 是 fatal 已置位的工作流错误时返回真。"""
-    return isinstance(错误,工作流错误) and 错误.fatal#类型匹配且致命标志为真
+    """组合子是否必须再抛出 error，而不是把该项映射为 null。任意抛出值；是否致命由宿主 isinstance 判定（脚本领域无法伪造）。当且仅当 error 是 致命 已置位的工作流错误时返回真。"""
+    return isinstance(错误,工作流错误) and 错误.致命 is True#类型匹配且致命标志为真
 
 def 渲染监听错误(错误):#把抛出值渲染成可记录字符串
     """在不破坏监听器收容的前提下渲染任意抛出值。返回 str(error)；连强制转换都抛错时返回固定标签。"""
     try:#尝试强制转为字符串
         return str(错误)#返回字符串形式
-    except Exception:#字符串强制转换本身也可能抛错
-        # 字符串强制转换本身也可能抛错。
+    except Exception:#str() 对任意抛出值没有收窄契约
         return '[unrenderable thrown value]'#转换失败时返回固定标签
 
 class 工作流引擎(服务):#工作流引擎服务定义
@@ -87,23 +85,14 @@ class 工作流引擎(服务):#工作流引擎服务定义
         raise NotImplementedError('WorkflowEngine.start')#子类必须实现
 
     def 发出工作流事件(自身,名称,*参数):#派发工作流事件并收容监听器失败
-        """发出生命周期事件，同时收容并记录每个监听器的失败。名称是要派发的 workflow/* 事件；参数须匹配其声明签名。"""
+        """发出生命周期事件，同时收容并记录每个监听器的失败。名称是要派发的 workflow/* 事件；参数须匹配其声明签名。监听器按同步定死。"""
         派发参数=[名称,*参数]#组装 emit 派发参数
-        for 监听器 in 自身.ctx.events.dispatch('emit',派发参数):#遍历该事件的全部监听器
+        事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
+        for 监听器 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',派发参数):#遍历该事件的全部监听器
             try:#执行单个监听器
-                返回=监听器(*参数)#调用监听器并取得返回值
-                if 是否thenable(返回):#返回值像承诺则接管拒绝
-                    def 盯住(任务=返回,事件名=名称):#把异步拒绝接到诊断
-                        """把异步拒绝接到诊断。"""
-                        try:#等待承诺
-                            任务.等待()#等待承诺
-                        except Exception as 错误:#异步拒绝
-                            自身.ctx.logger.warn('workflow: '+事件名+' listener rejected: '+渲染监听错误(错误))#记录监听器 Promise 拒绝
-                    线程=threading.Thread(target=盯住)#后台观察
-                    线程.daemon=True#不挡住退出
-                    线程.start()#启动
-            except Exception as 错误:#监听器同步抛错
-                自身.ctx.logger.warn('workflow: '+名称+' listener threw: '+渲染监听错误(错误))#记录监听器同步抛错
+                监听器(*参数)#同步调用
+            except Exception as 错误:#监听器可抛任意类型，收容以免一条弄死派发
+                自身.ctx.日志.警告('workflow: '+名称+' listener threw: '+渲染监听错误(错误))#记录监听器同步抛错
 
 默认=工作流引擎#默认导出工作流引擎服务定义
 default=工作流引擎#Cordis 默认导出

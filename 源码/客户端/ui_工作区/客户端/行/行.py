@@ -2,7 +2,7 @@
 
 对齐上游 `ui-workspace/src/client/rows/Rows.tsx`。公开面仅中文名。
 """
-from ..树 import 取字段,相对时间#树辅助
+from ..树 import 相对时间#树辅助
 
 __all__=['项目行','会话行','检索结果行','样式表','展示标题','时间标签']#仅中文公开名
 
@@ -23,30 +23,31 @@ __all__=['项目行','会话行','检索结果行','样式表','展示标题','�
 
 def 展示标题(节点,翻译):#行显示标题
     """空白行用本地化新会话标签。"""
-    return 翻译('session.new') if 取字段(节点,'blank') else 取字段(节点,'title')#标题
+    return 翻译('session.new') if 节点['blank'] else 节点['title']#标题
 
 def 时间标签(更新于,现在,翻译):#紧凑相对时间
     """本地化紧凑相对时间。"""
     桶=相对时间(更新于,现在)#结构化桶
-    if 取字段(桶,'unit')=='now':#刚刚
+    if 桶['unit']=='now':#刚刚
         return 翻译('time.now')#刚刚
-    return 翻译('time.'+取字段(桶,'unit'),{'n':取字段(桶,'n')})#带量级
+    return 翻译('time.'+桶['unit'],{'n':桶['n']})#带量级
 
 def 悬停时间标签(更新于,现在,翻译):#悬停相对时间
     """距离套 ago 模板；now 桶保持裸。"""
     桶=相对时间(更新于,现在)#结构化桶
-    if 取字段(桶,'unit')=='now':#刚刚
+    if 桶['unit']=='now':#刚刚
         return 翻译('time.now')#刚刚
-    return 翻译('time.ago',{'t':翻译('time.'+取字段(桶,'unit'),{'n':取字段(桶,'n')})})#ago
+    return 翻译('time.ago',{'t':翻译('time.'+桶['unit'],{'n':桶['n']})})#ago
 
 def 行状态点(节点):#行状态点状态
     """待处理交互优先于运行；完成提醒再次之。"""
-    待处理=取字段(节点,'pendingInteraction')#待处理
+    待处理=节点['pendingInteraction'] if 'pendingInteraction' in 节点 else None#待处理
     if 待处理 is not None:#有交互
         return 'warning'#警告点
-    if 取字段(节点,'running') or 取字段(节点,'runningSubagentCount',0)>0:#运行中
+    后代数=节点['runningSubagentCount'] if 'runningSubagentCount' in 节点 else 0#后代数
+    if 节点['running'] or 后代数>0:#运行中
         return 'ongoing'#进行中
-    if 取字段(节点,'completed'):#未读完成
+    if 'completed' in 节点 and 节点['completed']:#未读完成
         return 'done'#完成
     return None#空闲无点
 
@@ -64,9 +65,9 @@ class 项目行:#工作区头行
     def 渲染(自身):#结构树
         """返回项目头行结构树。"""
         组=自身.分组#分组
-        标签=自身.翻译('group.ungrouped') if 取字段(组,'workspaceId') is None else 取字段(组,'label')#标签
+        标签=自身.翻译('group.ungrouped') if 组['workspaceId'] is None else 组['label']#标签
         return {#行
-            'type':'div','class':'projectRow','role':'treeitem','aria-expanded':取字段(组,'expanded'),'onClick':'toggle',#行
+            'type':'div','class':'projectRow','role':'treeitem','aria-expanded':组['expanded'],'onClick':'toggle',#行
             'children':[#子
                 {'type':'span','class':'slot folder'},#文件夹槽
                 {'type':'span','class':'title','children':[标签]},#标题
@@ -109,8 +110,8 @@ class 会话行:#会话树行
             'children':[#子
                 {'type':'span','class':'slot','children':[{'type':'StateDot','state':点}] if 点 else []},#状态槽
                 {'type':'span','class':'title','children':[标题]},#标题
-                {'type':'span','class':'time','children':[时间标签(取字段(节点,'updatedAt'),自身.现在,自身.翻译)]} if not 取字段(节点,'blank') else None,#时间
-                {'type':'span','class':'rowActions','children':[{'type':'button','class':'iconButton','aria-label':自身.翻译('actions.session.aria',{'name':标题}),'onClick':'menu'}]} if 自身.动作 and not 取字段(节点,'blank') else None,#菜单
+                {'type':'span','class':'time','children':[时间标签(节点['updatedAt'],自身.现在,自身.翻译)]} if not 节点['blank'] else None,#时间
+                {'type':'span','class':'rowActions','children':[{'type':'button','class':'iconButton','aria-label':自身.翻译('actions.session.aria',{'name':标题}),'onClick':'menu'}]} if 自身.动作 and not 节点['blank'] else None,#菜单
             ],#子结束
         }#行结束
 
@@ -134,9 +135,9 @@ class 检索结果行:#检索扁平行
         """返回检索行结构树。"""
         节点=自身.节点#节点
         点=行状态点(节点)#状态点
-        子=[{'type':'span','class':'slot','children':[{'type':'StateDot','state':点}] if 点 else []},{'type':'span','class':'title','children':[取字段(节点,'title')]},{'type':'span','class':'time','children':[取字段(节点,'workspace')]}]#基础
-        if 取字段(节点,'snippet') is not None:#有片段
-            子.append({'type':'div','class':'snippet','children':[取字段(节点,'snippet')]})#片段
+        子=[{'type':'span','class':'slot','children':[{'type':'StateDot','state':点}] if 点 else []},{'type':'span','class':'title','children':[节点['title']]},{'type':'span','class':'time','children':[节点['workspace']]}]#基础
+        if 'snippet' in 节点 and 节点['snippet'] is not None:#有片段
+            子.append({'type':'div','class':'snippet','children':[节点['snippet']]})#片段
         return {'type':'div','class':'searchRow','onClick':'open','children':子}#行
 
     def 处理动作(自身,动作):#分发

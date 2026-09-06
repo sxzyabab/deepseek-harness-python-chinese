@@ -1,0 +1,12 @@
+{
+    "dispose":"拆除",
+    "error":"错误",
+    "fiber":"光纤",
+    "host":"宿主",
+    "lifecycle":"生命周期",
+    "missing":"缺失",
+    "plugin":"插件",
+    "service":"服务",
+    "start":"启动",
+    "wait":"等待"
+}

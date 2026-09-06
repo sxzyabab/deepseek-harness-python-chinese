@@ -2,6 +2,7 @@
 
 对齐上游 `host/bridge/dispatcher.ts`。公开面仅中文名。
 """
+from ...共享.json import 检查器错误#本包错误
 from ..cdp.控制台 import 拒绝控制台桥命令#拒绝Console桥
 from ..cdp.运行时 import 拒绝运行时桥命令#拒绝Runtime桥
 from ..cdp.源 import 拒绝源桥命令#拒绝Sources桥
@@ -25,7 +26,7 @@ class 宿主桥帧处理器:#Host桥帧处理器
 
 def 分发桥帧(帧,处理器):#分发桥帧
     """分发一帧已校验的 Worker 帧，并在 Host 载体上拒绝仅 Client 的命令。"""
-    类型=帧.get('t') if isinstance(帧,dict) else getattr(帧,'t',None)#类型
+    类型=帧['t'] if 't' in 帧 else None#类型
     if 类型=='source/accepted':#接受
         处理器.接纳(帧)#回调
         return#结束
@@ -48,4 +49,4 @@ def 分发桥帧(帧,处理器):#分发桥帧
         return 拒绝源桥命令()#Host拒绝
     if 类型 in ('client-runtime/session-closed','client-sources/session-closed'):#会话关闭
         return#忽略
-    raise Exception(f'Unexpected Worker source frame: {类型!r}')#未知帧
+    raise 检查器错误(f'Unexpected Worker source frame: {类型!r}')#未知帧

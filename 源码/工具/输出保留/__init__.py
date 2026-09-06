@@ -9,31 +9,29 @@
 - `文本保留器` 约束面向字节的文本流（bash 标准输出/标准错误、web 正文）。`head` / `tail` / `headTail`，在 `收尾` 处保住 UTF-8 边界。
 """
 __all__=[#仅中文公开名
-    '取策略字段','是否非负整数','断言预算','条目保留器',
+    '断言预算','条目保留器',
     '裁掉尾部半截UTF8','裁掉前导续字节UTF8','解码UTF8','编码UTF8','拼接',
-    '文本保留器','描述省略','格式化保留通知',
+    '文本保留器','描述省略','格式化保留通知','输出保留错误',
 ]#公开面结束
 
-def 取策略字段(策略,键):#从映射或对象读策略字段
-    """从映射或对象读策略字段（对齐 TS 属性访问）。"""
-    if isinstance(策略,dict):#映射策略
-        return 策略[键]#映射键
-    return getattr(策略,键)#对象属性
-
-def 是否非负整数(值):#对齐 Number.isInteger 且非负
-    """非负整数（排除布尔）；浮点整值也接受以便对齐 JS Number.isInteger。"""
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是整数
-    if isinstance(值,int):#整型
-        return 值>=0#非负即可
-    if isinstance(值,float):#浮点
-        return 值.is_integer() and 值>=0#整值且非负
-    return False#其它类型
+class 输出保留错误(Exception):#本包异常基类
+    """截留库入参或形态非法。"""
+    def __init__(自身,消息):#记下英文消息
+        """用原样英文消息构造。"""
+        super().__init__(消息)#英文消息
 
 def 断言预算(值,名):#校验预算字段是非负整数
     """断言预算字段是非负整数（截留器请求约定）。"""
-    if not 是否非负整数(值):#非整或为负
-        raise Exception(名+' must be a non-negative integer')#字段名进入抛出文案，字面量不翻译
+    if isinstance(值,bool):#布尔不是数字
+        raise 输出保留错误(名+' must be a non-negative integer')#字段名进入抛出文案，字面量不翻译
+    if isinstance(值,int):#整型
+        合法=值>=0#非负即可
+    elif isinstance(值,float) and 值.is_integer():#整值浮点
+        合法=值>=0#非负即可
+    else:#其它类型
+        合法=False#非法
+    if not 合法:#非整或为负
+        raise 输出保留错误(名+' must be a non-negative integer')#字段名进入抛出文案，字面量不翻译
     return int(值)#收窄为整型
 
 class 条目保留器:#有序单元截留器
@@ -43,7 +41,7 @@ class 条目保留器:#有序单元截留器
     """
     def __init__(自身,策略):#按头策略构造
         """按头策略构造：`maxItems`（非负整数）。"""
-        自身.最大条目=断言预算(取策略字段(策略,'maxItems'),'maxItems')#记下留下上限
+        自身.最大条目=断言预算(策略['maxItems'],'maxItems')#记下留下上限
         自身.条目=[]#已留下的单元
         自身.已见=0#观察过的单元数
         自身.省略计数=0#因预算丢掉的单元数
@@ -99,9 +97,9 @@ def 裁掉前导续字节UTF8(字节):#裁掉后缀切点处的前导续字节
         索引+=1#前移
     return 字节[索引:]#从第一个非续字节起留下
 
-def 拼接(块们):#拼接字节块
+def 拼接(块列表):#拼接字节块
     """把各块拼成一块连续缓冲区（长度恰好是它们的总和）。"""
-    return b''.join(块们)#连续缓冲区
+    return b''.join(块列表)#连续缓冲区
 
 def 解码UTF8(字节):#utf-8解码，非致命：内部畸形字节→U+FFFD
     """对齐 TextDecoder：畸形字节替换为 U+FFFD。"""
@@ -118,18 +116,18 @@ class 文本保留器:#面向字节的文本截留器
     """
     def __init__(自身,策略):#按文本策略构造
         """按文本策略构造；字节预算必须是非负整数。"""
-        种类=取策略字段(策略,'kind')#策略判别标签
+        种类=策略['kind']#策略判别标签
         if 种类=='head':#只留前缀
-            自身.前缀上限=断言预算(取策略字段(策略,'maxBytes'),'maxBytes')#前缀上限取maxBytes
+            自身.前缀上限=断言预算(策略['maxBytes'],'maxBytes')#前缀上限取maxBytes
             自身.后缀上限=0#不留后缀
         elif 种类=='tail':#只留后缀
             自身.前缀上限=0#不留前缀
-            自身.后缀上限=断言预算(取策略字段(策略,'maxBytes'),'maxBytes')#后缀上限取maxBytes
+            自身.后缀上限=断言预算(策略['maxBytes'],'maxBytes')#后缀上限取maxBytes
         elif 种类=='headTail':#两端都留
-            自身.前缀上限=断言预算(取策略字段(策略,'headBytes'),'headBytes')#前缀上限
-            自身.后缀上限=断言预算(取策略字段(策略,'tailBytes'),'tailBytes')#后缀上限
+            自身.前缀上限=断言预算(策略['headBytes'],'headBytes')#前缀上限
+            自身.后缀上限=断言预算(策略['tailBytes'],'tailBytes')#后缀上限
         else:#未知策略
-            raise Exception('unknown TextRetentionStrategy kind: '+str(种类))#非法策略
+            raise 输出保留错误('unknown TextRetentionStrategy kind: '+str(种类))#非法策略
         自身.前缀块=[]#已留下的前缀块
         自身.前缀已持=0#前缀已持有字节数
         自身.后缀块=[]#滚动后缀窗口里的块
@@ -230,15 +228,15 @@ def 描述省略(省略,单位):#把省略量写成标准子句
     @param 单位 省略量所用名词（`items`、`bytes`、`chars`、`lines`）。
     @returns 中性子句（无尾空格）；未省略时为 `''`。
     """
-    种类=省略['kind'] if isinstance(省略,dict) else getattr(省略,'kind')#省略形态
+    种类=省略['kind']#省略形态
     if 种类=='none':#未省略
         return ''#空子句
     if 种类=='exact':#有精确计数
-        计数=省略['count'] if isinstance(省略,dict) else getattr(省略,'count')#精确计数
+        计数=省略['count']#精确计数
         return 'Omitted '+str(计数)+' '+单位+'.'#英文标准子句，字面量不翻译
     if 种类=='unknown':#省略但无计数
         return 'More '+单位+' were omitted.'#不带数字的英文子句，字面量不翻译
-    raise Exception('unknown Omitted kind: '+str(种类))#非法形态
+    raise 输出保留错误('unknown Omitted kind: '+str(种类))#非法形态
 
 def 格式化保留通知(通知,恢复):#拼出截留页脚行
     """把保留通知收成一行页脚：本库拥有的标准化省略子句（`描述省略`）后面接工具自己的恢复指引。本库从不拥有恢复措辞——只有工具知道动作（「收窄模式」、「抓取更具体的 URL」、「读溢出文件」）——因此 `恢复` 提供它们，并收到完整通知以便据此措辞（`kept`、`limit`、`omitted`，……）。任一半都可以空；两半用单个空格拼接。
@@ -247,7 +245,7 @@ def 格式化保留通知(通知,恢复):#拼出截留页脚行
     @param 恢复 工具提供的指引构造器；收到通知，返回一句话（或 `''`）。
     @returns 拼好的页脚行。
     """
-    省略=通知['omitted'] if isinstance(通知,dict) else getattr(通知,'omitted')#省略量
-    单位=通知['unit'] if isinstance(通知,dict) else getattr(通知,'unit')#单位名词
+    省略=通知['omitted']#省略量
+    单位=通知['unit']#单位名词
     片段=[描述省略(省略,单位),恢复(通知)]#省略子句与恢复指引
     return ' '.join([段 for 段 in 片段 if len(段)>0])#丢掉空半边，非空半边用单空格拼接

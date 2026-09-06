@@ -1,15 +1,21 @@
 """可重复安装安全的 JSON 与不可变值辅助。"""
 import json,math#JSON 与有限数判定
-__all__=['断言永不','快照json值','是否json值','深相等json','深冻结']#仅中文公开名
+__all__=['断言永不','快照json值','是否json值','深相等json','深冻结','值错误']#仅中文公开名
+
+class 值错误(Exception):#本包异常基类
+    """值辅助失败。"""
+    def __init__(自身,消息):#记下英文消息
+        """用原样英文消息构造。"""
+        super().__init__(消息)#英文消息
 
 def 断言永不(值,上下文=None):#标记不可达分支
     """标记封闭联合的不可达分支；运行时逃出的值一律抛错。"""
     try:#尽量 JSON 化
-        渲染=json.dumps(值,ensure_ascii=False)#JSON 文本
-    except Exception:#不可 JSON 化
+        渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON 文本
+    except (TypeError,ValueError):#不可 JSON 化
         渲染=str(值)#退回字符串
     标签=' in '+上下文 if 上下文 is not None else ''#可选上下文
-    raise Exception('unreachable variant'+标签+': '+渲染)#与上游文案对齐
+    raise 值错误('unreachable variant'+标签+': '+渲染)#与上游文案对齐
 
 def _有朴素数组原型(值):#是否朴素 list
     """是否朴素 list，而不是子类。"""
@@ -21,11 +27,11 @@ def _有朴素对象原型(值):#是否朴素 dict
 
 def _可枚举字符串键(值):#收集 JSON 可见键
     """返回每个 JSON 可见对象键，否则拒绝自有但 JSON 会丢的数据。"""
-    键们=list(值.keys())#自有键
-    for 键 in 键们:#逐键
+    键列表=list(值.keys())#自有键
+    for 键 in 键列表:#逐键
         if not isinstance(键,str):#非字符串键
             return None#拒绝
-    return 键们#可枚举字符串键
+    return 键列表#可枚举字符串键
 
 def _写入目的(目的,项,状态):#把项写入分离目标
     """把项写入分离目标槽。"""
@@ -93,14 +99,14 @@ def _遍历json值(值,分离):#迭代校验无损 JSON
             continue#下一项
         if not _有朴素对象原型(当前):#非朴素对象
             return None#拒绝
-        键们=_可枚举字符串键(当前)#可枚举键
-        if 键们 is None:#非法键
+        键列表=_可枚举字符串键(当前)#可枚举键
+        if 键列表 is None:#非法键
             return None#拒绝
         目标对象={} if 分离 else None#分离则建新对象
         _写入目的(目的,目标对象,状态)#写对象槽
         祖先.add(id(当前))#入祖先
         任务.append(('leave',id(当前)))#稍后离开
-        for 键 in reversed(键们):#逆序压栈
+        for 键 in reversed(键列表):#逆序压栈
             任务.append(('object-property',当前,键,目标对象))#对象属性
     if 分离:#要分离
         return 状态['root']#分离根
@@ -140,7 +146,7 @@ def 深冻结(值):#原地深冻结对象图
         节点=待办.pop()#弹出
         if 节点 is None or not isinstance(节点,(list,dict)):#非对象图
             continue#跳过
-        if getattr(节点,'__class__',None).__name__=='AbortSignal':#保留 AbortSignal
+        if getattr(节点,'__class__',None).__name__=='中止信号':#保留本包中止信号可变
             continue#不冻结
         标识=id(节点)#对象标识
         if 标识 in 已见:#已处理

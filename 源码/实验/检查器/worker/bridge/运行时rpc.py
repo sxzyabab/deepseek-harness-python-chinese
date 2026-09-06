@@ -2,7 +2,7 @@
 #对齐上游 worker/bridge/runtime-rpc.ts 段1
 
 import uuid,threading#请求id与超时
-from .....内核.智能体循环.辅助 import 操作任务#单次结果
+from ...共享.json import 操作任务#单次结果
 from .会话 import 发送Client会话关闭#会话关闭
 from .枢纽 import 检查器协议版本#协议版本
 
@@ -17,9 +17,9 @@ class Client运行时远程错误(Exception):#Client Runtime远程错误
 
 class Client运行时路由:#Client Runtime路由
     """Runtime 上下文注册表与关联的 Worker→Client 请求所有者。"""
-    def __init__(自身,源们,超时毫秒):#构造
+    def __init__(自身,源注册表,超时毫秒):#构造
         """订阅源事件。"""
-        自身.源们=源们#源注册表
+        自身.源注册表=源注册表#源注册表
         自身._超时毫秒=超时毫秒#超时
         自身._按源目标={}#按源目标
         自身._待决={}#待决
@@ -27,9 +27,9 @@ class Client运行时路由:#Client Runtime路由
         自身._监听=set()#生命周期监听
         自身._下一上下文id=-1#下一上下文id
         自身._已关闭=False#是否已关闭
-        自身._取消订阅=源们.订阅事件(自身._接收源事件)#订阅
+        自身._取消订阅=源注册表.订阅事件(自身._接收源事件)#订阅
 
-    def 目标们(自身):#列出目标
+    def 列出目标(自身):#列出目标
         """快照全部活动 Client 执行上下文。"""
         return list(自身._按源目标.values())#拷贝
 
@@ -43,11 +43,14 @@ class Client运行时路由:#Client Runtime路由
     def 订阅(自身,监听):#订阅
         """订阅合成执行上下文生命周期。"""
         自身._监听.add(监听)#加入
-        return lambda:自身._监听.discard(监听)#释放
+        def 拆除():#拆除本监听
+            """取消本监听。"""
+            自身._监听.discard(监听)#摘掉
+        return 拆除#拆除器
 
     def 订阅控制台(自身,目标,会话id,监听):#订阅Console
         """为一个 Client realm 与 DevTools 会话启用 Console 事件。"""
-        if not 自身.源们.发送(目标['source'],{#发送启用
+        if not 自身.源注册表.发送(目标['source'],{#发送启用
             'v':检查器协议版本,'t':'client-console/enable',#类型
             'sourceId':目标['source']['sourceId'],'generation':目标['source']['generation'],#代数
             'sessionId':会话id,#会话
@@ -57,7 +60,7 @@ class Client运行时路由:#Client Runtime路由
         自身._控制台订阅.add(id(订阅))#登记键
         自身._控制台订阅对象=getattr(自身,'_控制台订阅对象',{})#对象表
         自身._控制台订阅对象[id(订阅)]=订阅#保存
-        def 释放():#释放
+        def 拆除():#拆除
             """禁用 Console。"""
             表=getattr(自身,'_控制台订阅对象',{})#表
             if id(订阅) not in 表:#已无
@@ -65,14 +68,14 @@ class Client运行时路由:#Client Runtime路由
             del 表[id(订阅)]#移除
             自身._控制台订阅.discard(id(订阅))#键
             try:#发送禁用
-                自身.源们.发送(目标['source'],{#禁用帧
+                自身.源注册表.发送(目标['source'],{#禁用帧
                     'v':检查器协议版本,'t':'client-console/disable',#类型
                     'sourceId':目标['source']['sourceId'],'generation':目标['source']['generation'],#代数
                     'sessionId':会话id,#会话
                 })#send结束
-            except Exception:#源已失效
+            except Exception:#源注册表.发送在源已拆时可能抛 OSError/RuntimeError，契约未定所以收不窄
                 pass#源移除也会在 Client 侧禁用 Console 观察
-        return 释放#释放器
+        return 拆除#拆除器
 
     def 请求(自身,目标,会话id,命令):#发起请求
         """在其当前活动源代数中执行一次类型化命令。"""
@@ -93,14 +96,14 @@ class Client运行时路由:#Client Runtime路由
         定时.start()#启动
         自身._待决[请求id]={'target':目标,'sessionId':会话id,'op':命令['op'],'future':任务,'timer':定时}#登记
         try:#投递
-            已发=自身.源们.发送(目标['source'],{#请求帧
+            已发=自身.源注册表.发送(目标['source'],{#请求帧
                 'v':检查器协议版本,'t':'client-runtime/request',#类型
                 'sourceId':目标['source']['sourceId'],'generation':目标['source']['generation'],#代数
                 'sessionId':会话id,'requestId':请求id,'command':命令,#命令
             })#send结束
             if not 已发:#未发
                 自身._拒绝待决(请求id,RuntimeError('Client execution context disconnected before dispatch'))#拒绝
-        except Exception as 错误:#投递失败
+        except Exception as 错误:#源注册表.发送请求帧可能抛 OSError/连接断开，契约未定所以收不窄
             自身._拒绝待决(请求id,错误 if isinstance(错误,Exception) else RuntimeError(str(错误)))#拒绝
         return 任务#结果
 
@@ -116,7 +119,7 @@ class Client运行时路由:#Client Runtime路由
             if 订阅['target'] is 目标 and 订阅['sessionId']==会话id:#匹配
                 del 表[键]#移除
                 自身._控制台订阅.discard(键)#键
-        发送Client会话关闭(自身.源们,目标['source'],{#通知关闭
+        发送Client会话关闭(自身.源注册表,目标['source'],{#通知关闭
             'v':检查器协议版本,'t':'client-runtime/session-closed',#类型
             'sourceId':目标['source']['sourceId'],'generation':目标['source']['generation'],#代数
             'sessionId':会话id,#会话
@@ -193,7 +196,7 @@ class Client运行时路由:#Client Runtime路由
                 continue#跳过
             try:#隔离回调
                 订阅['listener'](帧['event'])#通知
-            except Exception:#会话故障
+            except Exception:#会话回调什么都可能抛，收不窄
                 pass#一个 DevTools Console 会话不能扰乱兄弟会话
 
     def _结算(自身,源,帧):#结算响应
@@ -227,23 +230,23 @@ class Client运行时路由:#Client Runtime路由
     def _确认Client响应(自身,源,会话id,请求id):#确认Client响应
         """发送确认帧。"""
         try:#发送确认
-            return 自身.源们.发送(源,{#确认帧
+            return 自身.源注册表.发送(源,{#确认帧
                 'v':检查器协议版本,'t':'client-runtime/response-acknowledged',#类型
                 'sourceId':源['sourceId'],'generation':源['generation'],#代数
                 'sessionId':会话id,'requestId':请求id,#请求
             })#send结束
-        except Exception:#发送失败
+        except Exception:#源注册表.发送确认帧可能抛 OSError/连接断开，契约未定所以收不窄
             return False#失败
 
     def _取消Client响应(自身,源,会话id,请求id):#取消Client响应
         """发送取消帧。"""
         try:#发送取消
-            自身.源们.发送(源,{#取消帧
+            自身.源注册表.发送(源,{#取消帧
                 'v':检查器协议版本,'t':'client-runtime/cancel',#类型
                 'sourceId':源['sourceId'],'generation':源['generation'],#代数
                 'sessionId':会话id,'requestId':请求id,#请求
             })#send结束
-        except Exception:#投递失败
+        except Exception:#源注册表.发送取消帧可能抛 OSError/连接断开，契约未定所以收不窄
             pass#取消结算不依赖对可能正在关闭的源的投递
 
     def _拒绝待决(自身,请求id,错误):#拒绝待决
@@ -260,5 +263,5 @@ class Client运行时路由:#Client Runtime路由
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调
-            except Exception:#故障
+            except Exception:#订阅回调什么都可能抛，收不窄
                 pass#一个 CDP 会话不能扰乱对另一会话的上下文投递

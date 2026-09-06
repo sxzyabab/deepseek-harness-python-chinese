@@ -1,0 +1,14 @@
+{
+    "abstract":"抽象",
+    "api":"接口",
+    "client":"客户端",
+    "error":"错误",
+    "limit":"上限",
+    "protocol":"协议",
+    "result":"结果",
+    "rpc":"远程过程调用",
+    "search":"搜索",
+    "session":"会话",
+    "slot":"槽",
+    "transport":"传输"
+}

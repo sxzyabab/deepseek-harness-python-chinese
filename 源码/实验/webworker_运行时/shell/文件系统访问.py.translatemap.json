@@ -1,0 +1,12 @@
+{
+    "access":"访问",
+    "describe":"描述",
+    "directory":"目录",
+    "error":"错误",
+    "fail":"失败",
+    "filesystem":"文件系统",
+    "host":"宿主",
+    "path":"路径",
+    "resolve":"解析",
+    "syscall":"系统调用"
+}

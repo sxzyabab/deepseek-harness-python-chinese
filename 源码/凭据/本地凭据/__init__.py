@@ -75,7 +75,7 @@ class _串行操作链:#本文件内互斥队列
         自身._队列.join()#等 task_done
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '配置模式','取字段','试取','解析规格','本地凭证提供方','默认',
+    '配置模式','解析规格','本地凭证提供方','默认','本地凭据错误',
 ]#公开面结束
 
 配置模式={#插件配置字段
@@ -85,24 +85,16 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     'debounceMs':数字字段(最小=0,默认值=100),#默认稳定窗口
 }#插件配置模式
 
-def 取字段(对象,键):#读取映射或对象上的字段
-    """读取映射或对象上的字段。"""
-    if isinstance(对象,dict):#映射
-        return 对象[键]#按键
-    return getattr(对象,键)#按属性
+class 本地凭据错误(Exception):
+    """本地凭证提供方失败。"""
+    pass#消息在构造时传入
 
-def 试取(对象,键):#读取可选字段
-    """读取可选字段，缺席为 None。"""
-    if isinstance(对象,dict):#映射
-        return 对象.get(键)#按键
-    return getattr(对象,键,None)#按属性
-
-def 解析规格(配置):#把配置收成运行时规格
-    """从插件配置解析运行时规格：显式 `path` 胜出，否则文档位于 harness 主目录下的 `.credentials.yaml`。默认值在这里给出，绝不内联。"""
-    路径=试取(配置,'path')#显式文档路径
-    主目录=试取(配置,'dshHome')#可选 harness 主目录
-    监视开关=试取(配置,'watch')#是否监视
-    防抖毫秒=试取(配置,'debounceMs')#写入稳定窗口
+def 解析规格(配置):
+    """从插件配置解析运行时规格：显式 `path` 胜出，否则文档位于 harness 主目录下的 `.credentials.yaml`。默认值在这里给出，绝不内联。配置为 dict。"""
+    路径=配置['path'] if 配置 is not None and 'path' in 配置 else None#显式文档路径
+    主目录=配置['dshHome'] if 配置 is not None and 'dshHome' in 配置 else None#可选 harness 主目录
+    监视开关=配置['watch'] if 配置 is not None and 'watch' in 配置 else None#是否监视
+    防抖毫秒=配置['debounceMs'] if 配置 is not None and 'debounceMs' in 配置 else None#写入稳定窗口
     if 监视开关 is None:#默认开启监视
         监视开关=True#默认 true
     if 防抖毫秒 is None:#默认 100ms
@@ -119,8 +111,7 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
     def __init__(自身,ctx,配置):#构造本地提供方
         """用上下文与配置构造本地提供方。编程式构造可能绕过 Schemastery 归一化；无论哪条路径都在这一步显式解析同一套默认值。"""
         super().__init__(ctx)#登记 credentials 服务
-        自身.config=配置#原始插件配置
-        自身.配置=配置#中文别名
+        自身.配置=配置#原始插件配置
         自身.规格=解析规格(配置)#解析运行时规格
         # 上次读取或持久化的原始文档文本；文件缺席时为 None。
         # 内容等于这份缓存的监视事件是空操作，这也就是自我写入抑制。
@@ -166,8 +157,8 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
             自身.排队刷新()#就绪时再对账一次
         def 收到错误(错误):#监视出错
             """监视出错。"""
-            自身.ctx.logger.warn('credentials-local: watcher error on %s',自身.规格['filename'])#警告监视失败
-            自身.ctx.logger.warn(错误)#再打印错误对象
+            自身.ctx.日志.警告('credentials-local: watcher error on %s',自身.规格['filename'])#警告监视失败
+            自身.ctx.日志.警告(错误)#再打印错误对象
         监视器.on('all',收到全部)#all 监听结束
         监视器.on('ready',收到就绪)#ready 监听结束
         监视器.on('error',收到错误)#error 监听结束
@@ -180,20 +171,20 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
 
     def 继承值(自身,引用):#读取进程环境层
         """一条引用的继承环境值；空或未设置时为 None。"""
-        条目=取启动环境(自身.ctx).getFrom(引用,['process'])#只查 process 层
+        条目=取启动环境(自身.ctx).从中取(引用,['process'])#只查 process 层
         if 条目 is None:#该层没有
             return None#缺席
-        值=取字段(条目,'value')#层提供的值
+        值=条目['value']#层提供的值
         if 值 is not None and len(值)>0:#非空才算有
             return 值#继承值
         return None#空值当缺席
 
     def dotenv回退(自身,引用):#读取 dotenv 回退层
         """一条引用的 `.env` 回退——在托管存储之下，从不在其上。启动项目高于用户主目录文件，与环境分层一致：更具体的位置胜出。"""
-        条目=取启动环境(自身.ctx).getFrom(引用,['project-env','user-env'])#项目 .env 再用户 .env
+        条目=取启动环境(自身.ctx).从中取(引用,['project-env','user-env'])#项目 .env 再用户 .env
         if 条目 is None:#两层都没有
             return None#缺席
-        值=取字段(条目,'value')#层提供的值
+        值=条目['value']#层提供的值
         if 值 is not None and len(值)>0:#非空才算有
             return 条目#回退条目
         return None#空值当缺席
@@ -203,30 +194,30 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
         继承=自身.继承值(引用)#进程环境优先
         if 继承 is not None:#继承环境胜出
             return {'value':继承,'source':'env'}#只读环境层
-        已存=自身.值表.get(引用)#再查托管文件
+        已存=自身.值表[引用] if 引用 in 自身.值表 else None#再查托管文件
         if 已存 is not None:#文件层命中
             return {'value':已存,'source':'file'}#文件层
         回退=自身.dotenv回退(引用)#最后 dotenv 回退
         if 回退 is not None:#回退层命中
-            return {'value':取字段(回退,'value'),'source':取字段(回退,'source')}#回退层
+            return {'value':回退['value'],'source':回退['source']}#回退层
         return None#各层皆无
 
     def 描述(自身,引用):#描述引用而不给值
         """描述引用而不给值。只有继承环境不可写：那是本进程无法编辑的一层。用户 `.env` 值在要紧的意义上可写——存一个键就会把它替换成生效的那一个。"""
         if 自身.继承值(引用) is not None:#进程环境正在供应
             return {'configured':True,'source':'env','writable':False}#只读已配置
-        已存=自身.值表.get(引用)#再查托管文件
+        已存=自身.值表[引用] if 引用 in 自身.值表 else None#再查托管文件
         if 已存 is not None:#文件层可写
             return {'configured':True,'source':'file','writable':True}#文件层可写
         回退=自身.dotenv回退(引用)#再查 dotenv
         if 回退 is not None:#回退层可写
-            return {'configured':True,'source':取字段(回退,'source'),'writable':True}#回退层可写
+            return {'configured':True,'source':回退['source'],'writable':True}#回退层可写
         return {'configured':False,'writable':True}#未配置但可写
 
     def 设置(自身,引用,值):#写入可写源
         """写入可写源。空值不得存，改用移除。"""
         if len(值)==0:#空值不得存
-            raise Exception('credentials-local: an empty value cannot be stored for "'+引用+'"; use unset')#改用 unset
+            raise 本地凭据错误('credentials-local: an empty value cannot be stored for "'+引用+'"; use unset')#改用 unset
         自身.写入(引用,值)#排队行编辑
 
     def 移除(自身,引用):#删除可写源条目
@@ -241,23 +232,23 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
         """排队一次重载；只有逃出扇出的不变量违规能让它拒绝，随后记成错误并保持操作链存活。"""
         def 刷新并捕获():#重载失败不得静默停热重载
             """重载失败不得静默停热重载。"""
-            try:
-                自身.刷新()#监视触发的重载
-            except Exception as 错误:
-                自身.ctx.logger.error('credentials-local: reload commit failed at %s',自身.规格['filename'])#记录提交失败
-                自身.ctx.logger.error(错误)#再打印失败对象
+            try:#监视触发的重载
+                自身.刷新()#重载
+            except Exception as 错误:#刷新可抛文档解析与不变量错误，无法再收窄
+                自身.ctx.日志.错误('credentials-local: reload commit failed at %s',自身.规格['filename'])#记录提交失败
+                自身.ctx.日志.错误(错误)#再打印失败对象
         自身.入队(刷新并捕获)#排队，不等待
 
     def 写入(自身,引用,值):#排队一次行编辑
         """排队一次行编辑；入口检查尽早拒绝，队列在运行时再判定一次。"""
         动词='unset' if 值 is None else 'set'#用于错误文案的动词
         if 自身.是否已关闭():#已拆除
-            raise Exception('credentials-local is disposed: cannot '+动词+' "'+引用+'"')#拒绝新写入
+            raise 本地凭据错误('credentials-local is disposed: cannot '+动词+' "'+引用+'"')#拒绝新写入
         自身.断言未被遮蔽(引用,动词)#入口处拒绝会被环境遮蔽的写
         def 操作():#真正写入排进互斥链
             """真正写入排进互斥链。"""
             if 自身.是否已关闭():#排队期间可能已拆除
-                raise Exception('credentials-local was disposed before the queued "'+引用+'" '+动词+' ran')#排队项作废
+                raise 本地凭据错误('credentials-local was disposed before the queued "'+引用+'" '+动词+' ran')#排队项作废
             自身.断言未被遮蔽(引用,动词)#运行时再判定：排队期间环境可能已变
             os.makedirs(os.path.dirname(自身.规格['filename']),exist_ok=True,mode=0o700)#写锁的独占创建需要父目录存在；0700，因为 harness 主目录装着用户私有数据
             def 持锁():#跨进程写锁内的读改写
@@ -282,7 +273,7 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
     def 断言未被遮蔽(自身,引用,动词):#拒绝被环境遮蔽的写
         """拒绝会被继承环境遮蔽成看似无效果的写入。只有那一层能遮蔽写入：本提供方解析的其余层都排在正在写的文档之下。"""
         if 自身.继承值(引用) is not None:#进程环境正在供应
-            raise Exception('credentials-local: "'+引用+'" is supplied read-only by the launching environment, so '+动词+' would be shadowed; unset it in the shell you start dsh from instead')#抛出遮蔽错误
+            raise 本地凭据错误('credentials-local: "'+引用+'" is supplied read-only by the launching environment, so '+动词+' would be shadowed; unset it in the shell you start dsh from instead')#抛出遮蔽错误
 
     def 启动读取(自身):#启动读盘
         """启动读取：缺席文件是空存储；无效文件让插件激活失败，因为一份存在却不可信的凭证文档绝不能当成“没有存凭证”。不可信 ≠ 无。"""
@@ -305,8 +296,8 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
         except Exception as 错误:#对账失败
             if getattr(错误,'code',None)=='INVARIANT':#不变量失败继续抛
                 raise 错误#继续抛
-            自身.ctx.logger.warn('credentials-local: reload failed at %s; keeping the last good document',自身.规格['filename'])#警告并保留
-            自身.ctx.logger.warn(错误)#再打印失败对象
+            自身.ctx.日志.警告('credentials-local: reload failed at %s; keeping the last good document',自身.规格['filename'])#警告并保留
+            自身.ctx.日志.警告(错误)#再打印失败对象
 
     def 从盘面对账(自身):#与盘面对账并发布
         """把盘上文本与缓存比较，把任何差异发布进能力缝。缺席发布空存储；不可读或无效文档抛出，好让各调用方自选策略——重载警告并保留上一份好快照，写入大声失败而不是覆盖一份它读不懂的文档。"""

@@ -1,0 +1,20 @@
+{
+    "alpha":"甲",
+    "assistant":"助手",
+    "block":"块",
+    "build":"构造",
+    "call":"调用",
+    "chunk":"分片",
+    "dispatch":"派发",
+    "fixture":"夹具",
+    "history":"历史",
+    "log":"日志",
+    "message":"消息",
+    "result":"结果",
+    "step":"步",
+    "text":"文本",
+    "tool":"工具",
+    "turn":"回合",
+    "usage":"用量",
+    "user":"用户"
+}

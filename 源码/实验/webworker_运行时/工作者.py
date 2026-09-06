@@ -8,6 +8,7 @@ Cordis 树、隧道服务器）。
 
 对齐上游 `webworker-runtime/src/worker.ts`。公开面仅中文名。
 """
+from .node.未实现失败 import 运行时错误#本包错误
 from .工作者宿主 import 创建工作者宿主#宿主装配工厂
 from .node.builtins import 创建节点内置,替换前缀表#内建表与前缀
 from .node.builtin_modules.implemented.async_hooks import als因果,在异步上下文根运行#ALS因果与根派发
@@ -35,14 +36,23 @@ def 处理消息(数据):#消息入口
     if _宿主 is None and 是否shell启动帧(数据):#shell启动
         _shell角色=True#标记角色
         安装进程全局({'cwd':数据['cwd'],'env':数据['env']})#安装最小process
-        运行shell进程(数据,{'postMessage':lambda 帧:None,'addEventListener':lambda *位置参数:None,'close':lambda:None})#跑shell；作用域由宿主注入
+        def 空投递(帧):#无宿主时丢弃出站
+            """丢弃出站帧。"""
+            return#空
+        def 空监听(*位置参数):#无宿主时不监听
+            """忽略监听登记。"""
+            return#空
+        def 空关闭():#无宿主时关闭为空
+            """忽略关闭。"""
+            return#空
+        运行shell进程(数据,{'postMessage':空投递,'addEventListener':空监听,'close':空关闭})#跑shell；作用域由宿主注入
         return#结束
     if _宿主 is None and isinstance(数据,dict) and 数据.get('t')=='init':#开局init
         if not isinstance(数据.get('image'),str):#镜像URL缺失
-            raise Exception('webworker: init frame needs a string image url')#拒绝
+            raise 运行时错误('webworker: init frame needs a string image url')#拒绝
         覆盖层=数据.get('overlays')#overlays
         if not isinstance(覆盖层,list) or any(not isinstance(层,str) for 层 in 覆盖层):#overlays非法
-            raise Exception('webworker: init frame needs an array of string overlay urls')#拒绝
+            raise 运行时错误('webworker: init frame needs an array of string overlay urls')#拒绝
         已建=创建工作者宿主({#装配宿主
             'staticModules':创建节点内置(),#内建模块表
             'staticModulePrefixes':替换前缀表,#前缀代理
@@ -53,11 +63,14 @@ def 处理消息(数据):#消息入口
         })#装配结束
         _宿主=已建#保存宿主
         for 已排 in _排队:#冲刷排队
-            在异步上下文根运行(lambda 载=已排:已建['handleMessage'](载))#根上下文派发
+        def 冲刷已排():#冲刷一条排队
+            """在根上下文派发排队消息。"""
+            已建['handleMessage'](已排)#派发
+        在异步上下文根运行(冲刷已排)#根上下文派发
         _排队.clear()#清空队列
         try:#启动树
             已建['start']()#启动
-        except Exception:#start已通过tunnel.fail报告
+        except Exception:#树 start 体什么都可能抛，已由 tunnel.fail 报告，收不窄
             pass#丢弃重复噪声
         return#结束
     if _宿主 is None:#尚未装配
@@ -66,4 +79,7 @@ def 处理消息(数据):#消息入口
         _排队.append(数据)#排队待init
         return#结束
     就绪=_宿主#已就绪宿主
-    在异步上下文根运行(lambda:就绪['handleMessage'](数据))#根上下文派发
+    def 根派发():#根上下文派发
+        """在根异步上下文中把消息交给宿主。"""
+        就绪['handleMessage'](数据)#派发
+    在异步上下文根运行(根派发)#根上下文派发

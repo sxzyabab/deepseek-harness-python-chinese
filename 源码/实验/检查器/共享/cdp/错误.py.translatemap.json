@@ -1,0 +1,16 @@
+{
+    "column":"列",
+    "details":"详情",
+    "exception":"异常",
+    "frame":"帧",
+    "function":"函数",
+    "key":"键",
+    "line":"行",
+    "name":"名",
+    "number":"号",
+    "runtime":"运行时",
+    "script":"脚本",
+    "stack":"栈",
+    "trace":"追踪",
+    "url":"网址"
+}

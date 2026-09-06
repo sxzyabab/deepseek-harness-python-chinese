@@ -1,0 +1,10 @@
+{
+    "decode":"解码",
+    "encode":"编码",
+    "frame":"帧",
+    "json":"json",
+    "key":"键",
+    "snapshot":"快照",
+    "task":"任务",
+    "worker":"工作线程"
+}

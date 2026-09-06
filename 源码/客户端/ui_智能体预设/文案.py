@@ -104,15 +104,15 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'cordis':{'name':'presetCordisName','description':'presetCordisDescription'},#创造
 }#结束
 
-def 预设展示文案(预设,翻译):#解析展示文案
-    """出厂预设走语言包；用户自写用元数据。"""
-    信任=预设.get('trust') if isinstance(预设,dict) else getattr(预设,'trust',None)#信任
-    标识=预设.get('id') if isinstance(预设,dict) else getattr(预设,'id',None)#id
-    键=出厂预设键.get(标识) if 信任=='system' else None#语言键
+def 预设展示文案(预设,翻译):
+    """出厂预设走语言包；用户自写用元数据。预设是名册 dict。"""
+    信任=预设['trust'] if 'trust' in 预设 else None#信任
+    标识=预设['id'] if 'id' in 预设 else None#id
+    键=出厂预设键[标识] if 信任=='system' and 标识 in 出厂预设键 else None#语言键
     if 键 is not None:#出厂
         return {'name':翻译(键['name']),'description':翻译(键['description'])}#本地化
-    名=预设.get('name') if isinstance(预设,dict) else getattr(预设,'name',None)#名
-    述=预设.get('description') if isinstance(预设,dict) else getattr(预设,'description',None)#述
+    名=预设['name'] if 'name' in 预设 else None#名
+    述=预设['description'] if 'description' in 预设 else None#述
     出={'name':名 if 名 is not None else 标识}#回退 id
     if 述 is not None:#有述
         出['description']=述#带上

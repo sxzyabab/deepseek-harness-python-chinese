@@ -1,0 +1,16 @@
+{
+    "apply":"应用",
+    "capability":"能力",
+    "completed":"已完成",
+    "config":"配置",
+    "continuable":"可续跑",
+    "fork":"分叉",
+    "inject":"注入",
+    "name":"名称",
+    "prepare":"准备",
+    "prefix":"前缀",
+    "provider":"提供方",
+    "seed":"种子",
+    "start":"启动",
+    "turn":"回合"
+}

@@ -1,0 +1,15 @@
+{
+    "button":"按钮",
+    "children":"子内容",
+    "class":"类",
+    "click":"点击",
+    "disabled":"禁用",
+    "ghost":"幽灵",
+    "icon":"图标",
+    "outline":"描边",
+    "primary":"主",
+    "self":"自身",
+    "size":"尺寸",
+    "toolbar":"工具栏",
+    "variant":"变体"
+}

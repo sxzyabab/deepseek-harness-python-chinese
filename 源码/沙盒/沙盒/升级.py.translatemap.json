@@ -1,0 +1,19 @@
+{
+    "approval":"审批",
+    "approve":"批准",
+    "approver":"审批方",
+    "args":"参数",
+    "denial":"拒绝",
+    "error":"错误",
+    "escalation":"升级",
+    "field":"字段",
+    "hint":"提示",
+    "marker":"标记",
+    "mode":"模式",
+    "outcome":"结果",
+    "request":"请求",
+    "sandbox":"沙箱",
+    "target":"目标",
+    "validate":"校验",
+    "wider":"更宽"
+}

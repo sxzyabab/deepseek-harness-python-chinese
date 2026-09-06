@@ -5,7 +5,7 @@
 """
 import json#解析调用参数
 
-__all__=['技能行','技能行模型','技能名','结果文本','首行','样式表']#仅中文公开名
+__all__=['技能错误','技能行','技能行模型','技能名','结果文本','首行','样式表']#仅中文公开名
 
 样式表='''#对齐 SkillRow.module.css
 .card{display:flex;flex-direction:column}
@@ -35,15 +35,11 @@ __all__=['技能行','技能行模型','技能名','结果文本','首行','样�
 @media (prefers-reduced-motion:reduce){.card[data-state=running] .row::after{animation:none;display:none}.iconIdle,.chevronHover,.inspectButton{transition:none}}
 '''#样式表结束
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
+class 技能错误(Exception):
+    """本包异常基类。"""
+    def __init__(自身,消息):
+        """记下英文消息。"""
+        super().__init__(消息)#消息原样英文
 
 def 首行(文本):#取第一物理行
     """折叠错误摘要与畸形参数回退用的第一物理行。"""
@@ -57,10 +53,10 @@ def 技能名(原始参数,调用标识):#从参数解析技能名
     try:#尝试解析 JSON
         解析=json.loads(原始参数)#解析
         if isinstance(解析,dict) and 解析 is not None:#对象
-            名=解析.get('name')#name 字段
+            名=解析['name'] if 'name' in 解析 else None#name 字段
             if isinstance(名,str) and 名!='':#非空字符串
                 return 首行(名)#第一行
-    except Exception:#流式可能暴露截断 JSON 前缀
+    except (TypeError,ValueError,json.JSONDecodeError):#流式可能暴露截断 JSON 前缀
         pass#仍用原文第一行
     if 原始参数=='':#空参数
         return 调用标识#回退 callId
@@ -68,29 +64,20 @@ def 技能名(原始参数,调用标识):#从参数解析技能名
 
 def 结果文本(块):#压平耐久结果块
     """压平耐久结果块；与 ui-tool 的 resultText 合同对齐。"""
-    if 'kind' not in 块 and not hasattr(块,'kind'):#未结算块无 kind
-        if isinstance(块,dict) and 'kind' not in 块:#映射无 kind
-            return None#无结果
-        if not isinstance(块,dict) and not hasattr(块,'kind'):#对象无 kind
-            return None#无结果
-    if isinstance(块,dict):#映射形态
-        if 'kind' not in 块:#无 kind
-            return None#无结果
-        内容=块.get('content',[])#内容块
-        错误=块.get('error')#错误
-    else:#对象形态
-        if not hasattr(块,'kind'):#无 kind
-            return None#无结果
-        内容=取字段(块,'content',[])#内容块
-        错误=取字段(块,'error')#错误
+    if not isinstance(块,dict) or 'kind' not in 块:#未结算块无 kind
+        return None#无结果
+    内容=块['content'] if 'content' in 块 and 块['content'] is not None else []#内容块
+    错误=块['error'] if 'error' in 块 else None#错误
     片段=[]#文本片段
     for 项 in 内容:#逐项
-        if 取字段(项,'type')=='text':#文本块
-            片段.append(取字段(项,'text',''))#文本
+        if isinstance(项,dict) and 'type' in 项 and 项['type']=='text':#文本块
+            片段.append(项['text'] if 'text' in 项 and 项['text'] is not None else '')#文本
         else:#其它块
-            片段.append(json.dumps(项,ensure_ascii=False,indent=2))#JSON
+            片段.append(json.dumps(项,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2))#JSON
     if len(片段)==0 and 错误 is not None:#无正文但有错误
-        片段.append(str(取字段(错误,'name'))+': '+str(取字段(错误,'code')))#错误摘要
+        错名=错误['name'] if isinstance(错误,dict) and 'name' in 错误 else None#名
+        错码=错误['code'] if isinstance(错误,dict) and 'code' in 错误 else None#码
+        片段.append(str(错名)+': '+str(错码))#错误摘要
     接合='\n'.join(片段)#拼接
     if 接合=='':#空
         return None#无结果
@@ -98,20 +85,16 @@ def 结果文本(块):#压平耐久结果块
 
 def 技能行模型(块):#派生展示模型
     """只从耐久 call 切片派生展示状态，不查活技能目录。"""
-    已结算=isinstance(块,dict) and 'kind' in 块 or (not isinstance(块,dict) and hasattr(块,'kind'))#是否已结算
-    if isinstance(块,dict):#映射
-        原始参数=(取字段(取字段(块,'call'),'argsRaw') if 已结算 else 块.get('argsRaw')) or ''#参数原文
-        调用标识=块.get('callId','')#调用 id
-        错误=块.get('error')#错误
-        是错=块.get('isError',False)#是否错误
-    else:#对象
-        原始参数=(取字段(取字段(块,'call'),'argsRaw') if 已结算 else 取字段(块,'argsRaw')) or ''#参数原文
-        调用标识=取字段(块,'callId','')#调用 id
-        错误=取字段(块,'error')#错误
-        是错=取字段(块,'isError',False)#是否错误
+    已结算=isinstance(块,dict) and 'kind' in 块#是否已结算
+    调用=块['call'] if 已结算 and 'call' in 块 else None#调用
+    原文=((调用['argsRaw'] if 调用 is not None and 'argsRaw' in 调用 else None) if 已结算 else (块['argsRaw'] if 'argsRaw' in 块 else None))#参数原文或缺席
+    原始参数='' if 原文 is None else 原文#?? 空串保留
+    调用标识=块['callId'] if 'callId' in 块 and 块['callId'] is not None else ''#调用 id
+    错误=块['error'] if 'error' in 块 else None#错误
+    是错=块['isError'] if 'isError' in 块 else False#是否错误
     if not 已结算:#进行中
         状态='running'#运行中
-    elif 取字段(错误,'code')=='interrupted':#中止
+    elif isinstance(错误,dict) and 'code' in 错误 and 错误['code']=='interrupted':#中止
         状态='stopped'#已中止
     elif 是错:#错误
         状态='error'#失败
@@ -129,7 +112,7 @@ class 技能行:#技能 toolview 组件
     """渲染一条 skill 工具调用为强调摘要与说明披露。"""
     def __init__(自身,属性=None):#可选初始 props
         """记下 props 与折叠状态。"""
-        自身.属性=属性 or {}#合成 props
+        自身.属性={} if 属性 is None else 属性#缺席才空表；空 dict 保留
         自身.已展开=False#折叠状态
 
     def 更新(自身,属性):#刷新 props
@@ -142,9 +125,9 @@ class 技能行:#技能 toolview 组件
 
     def 渲染(自身):#产出结构化视图
         """产出与上游 JSX 同构的结构化视图描述。"""
-        块=取字段(自身.属性,'block')#工具块
-        翻译=取字段(自身.属性,'t')#翻译座位
-        检查=取字段(自身.属性,'inspect')#检查回调
+        块=自身.属性['block'] if 'block' in 自身.属性 else None#工具块
+        翻译=自身.属性['t'] if 't' in 自身.属性 else None#翻译座位
+        检查=自身.属性['inspect'] if 'inspect' in 自身.属性 else None#检查回调
         模型=技能行模型(块)#视图模型
         可展开=模型['output'] is not None#有输出才可展开
         打开=自身.已展开 and 可展开#实际打开

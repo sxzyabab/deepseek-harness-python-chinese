@@ -41,8 +41,8 @@ def 需要归一化(根):#是否需归一化
     """序列化该子树是否需要归一化克隆。"""
     if not hasattr(根,'querySelectorAll'):#无 DOM
         return False#不需要
-    节点们=[根,*根.querySelectorAll('[class]')]#带 class 节点
-    for 元素 in 节点们:#扫描类
+    节点列表=[根,*根.querySelectorAll('[class]')]#带 class 节点
+    for 元素 in 节点列表:#扫描类
         取值=元素.getAttribute('class') if hasattr(元素,'getAttribute') else None#读 class
         if 取值 is not None and any(作用域类模式.match(令牌) for 令牌 in 取值.split()):#匹配作用域类
             return True#需要
@@ -61,8 +61,8 @@ def 序列化值(值,_配置=None,_缩进=None,_深度=None,_引用=None,打印�
             if 原始 is not None:#有类
                 元素.setAttribute('class',折叠类名值(原始))#折叠类名
         for svg in 收集SVG(克隆):#遍历 svg
-            子们=getattr(svg,'childNodes',[])#子节点
-            if len(子们)==0:#空则跳过
+            子项列表=getattr(svg,'childNodes',[])#子节点
+            if len(子项列表)==0:#空则跳过
                 continue#跳过
             内部=getattr(svg,'innerHTML','')#内部 HTML
             svg.setAttribute('data-content',计算指纹(内部))#指纹
@@ -80,6 +80,3 @@ def 注册DOM快照序列化器():#注册序列化器
         return#结束
     已注册[0]=True#标记已注册
     序列化器登记表.append(DOM快照序列化器)#注册
-
-domSnapshotSerializer=DOM快照序列化器#上游名
-registerDomSnapshotSerializer=注册DOM快照序列化器#上游名

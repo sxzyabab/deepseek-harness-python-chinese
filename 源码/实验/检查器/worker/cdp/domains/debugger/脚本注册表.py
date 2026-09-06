@@ -2,6 +2,7 @@
 #对齐上游 worker/cdp/domains/debugger/script-registry.ts
 
 from ...标识 import cdp字符串id#CDP脚本id
+import re#URL 断点正则
 
 __all__=['cdp脚本id','调试器脚本注册表']#仅中文公开名
 
@@ -45,8 +46,7 @@ class 调试器脚本注册表:#调试器脚本注册表
 
     def 按url模式(自身,模式):#按URL模式
         """解析 URL 匹配断点正则表达式的第一个脚本。"""
-        import re#正则
-        表达式=re.compile(模式)#编译
+        表达式=re.compile(模式,re.ASCII)#编译
         for 路由 in 自身._路由.values():#扫路由
             if 表达式.search(路由['script']['url']):#命中
                 return 路由#返回

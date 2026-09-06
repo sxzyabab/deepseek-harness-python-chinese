@@ -6,7 +6,7 @@ from ..会话.json值 import 是否普通对象,是否普通数组#普通记录�
 
 __all__=(
     'json模式错误','断言受支持json模式','断言对象json模式','校验json模式值',
-    '是否json模式记录','是否普通json数组','自有','转json',
+    '是否json模式记录','是否普通json数组','转json',
 )#仅中文公开名
 
 约束关键字={'type','oneOf','properties','required','additionalProperties','items','enum','const'}#约束关键字
@@ -24,17 +24,11 @@ class json模式错误(框架错误):
 
 def 是否普通json记录(值):
     """跨领域检测普通 JSON 记录，不接受数组或奇异对象。"""
-    try:
-        return 是否普通对象(值)#字典或其冻结形态
-    except Exception:
-        return False#探测抛错
+    return 是否普通对象(值)#字典或其冻结形态
 
 def 仅可枚举字符串键(值):
     """记录是否只含自有可枚举字符串键。"""
-    try:
-        return all(isinstance(键,str) for 键 in 值)#每个都是字符串
-    except Exception:
-        return False#探测抛错
+    return all(isinstance(键,str) for 键 in 值)#每个都是字符串
 
 def 是否json模式记录(值):
     """检测键能在 JSON 投影中存活的普通模式记录。"""
@@ -42,15 +36,12 @@ def 是否json模式记录(值):
 
 def 是否普通json数组(值):
     """检测稠密普通数组，且无 JSON 看不见的装饰。"""
-    try:
-        if not 是否普通数组(值):
-            return False#不是数组
-        额外=getattr(值,'__dict__',None)#列表额外自有属性
-        if 额外 is not None and len(额外)>0:
-            return False#JSON 会丢掉的额外键
-        return True#稠密普通数组
-    except Exception:
-        return False#探测抛错
+    if not 是否普通数组(值):
+        return False#不是数组
+    额外=getattr(值,'__dict__',None)#列表额外自有属性
+    if 额外 is not None and len(额外)>0:
+        return False#JSON 会丢掉的额外键
+    return True#稠密普通数组
 
 def 是JSON数字(值):
     """无损有限 JSON 数字，排除负零。"""
@@ -126,16 +117,13 @@ def 检查模式节点(根,根路径,违规,已见):
             if 键 in 约束关键字:
                 continue#约束关键字稍后专检
             if 键 in 注解关键字:
-                try:
-                    if not 是否json值(节点[键]):
-                        违规.append(路径+'.'+键+' annotation must be lossless JSON data')#必须无损JSON
-                except Exception:
-                    违规.append(路径+'.'+键+' annotation must be lossless JSON data')#同样记无损失败
+                if not 是否json值(节点[键]):
+                    违规.append(路径+'.'+键+' annotation must be lossless JSON data')#必须无损JSON
                 continue#下一键
             违规.append(路径+'.'+键+' is not a supported keyword (subset: type/oneOf/properties/required/additionalProperties/items/enum/const + annotations)')#未知关键字
-        if 'description' in 节点 and not isinstance(节点.get('description'),str):
+        if 'description' in 节点 and not isinstance(节点['description'],str):
             违规.append(路径+'.description must be a string')#必须字符串
-        if 'title' in 节点 and not isinstance(节点.get('title'),str):
+        if 'title' in 节点 and not isinstance(节点['title'],str):
             违规.append(路径+'.title must be a string')#必须字符串
         有类型='type' in 节点#是否有type
         有联合='oneOf' in 节点#是否有oneOf
@@ -226,17 +214,10 @@ def 断言对象json模式(模式):
     """断言受强制子集，外加对象根约束。"""
     违规=[]#违规收集
     检查模式节点(模式,'schema',违规,set())#先走子集
-    if len(违规)==0 and (not 是否json模式记录(模式) or 'type' not in 模式 or 模式.get('type')!='object'):
+    if len(违规)==0 and (not 是否json模式记录(模式) or 'type' not in 模式 or 模式['type']!='object'):
         违规.append('schema.type must be "object" (structured output is object-rooted)')#结构化输出必须对象根
     if len(违规)>0:
         raise json模式错误(违规)#有违规则抛
-
-def 安全是否JSON值(值):
-    """在探测可能抛错时安全探测无损 JSON 边界。"""
-    try:
-        return 是否json值(值)#无损则真
-    except Exception:
-        return False#当作有损
 
 def 诊断路径(路径):
     """参数校验器空哨兵路径的根感知诊断路径。"""
@@ -273,11 +254,11 @@ def 建值帧(节点,值,路径):
 
 def 检查标量值(节点,值,路径):
     """原始类型检查之后校验一个标量节点。"""
-    允许=节点.get('enum') if 'enum' in 节点 else None#枚举
+    允许=节点['enum'] if 'enum' in 节点 else None#枚举
     if 允许 is not None and 值 not in 允许:
         return ['"'+诊断路径(路径)+'" must be one of '+转json(允许)]#必须是枚举之一
-    if 'const' in 节点 and 值!=节点.get('const'):
-        return ['"'+诊断路径(路径)+'" must be '+转json(节点.get('const'))]#必须等于常量
+    if 'const' in 节点 and 值!=节点['const']:
+        return ['"'+诊断路径(路径)+'" must be '+转json(节点['const'])]#必须等于常量
     return []#标量合法
 
 def 检查值(模式,值,路径):
@@ -307,7 +288,7 @@ def 检查值(模式,值,路径):
                 if 帧['子下标']<len(帧['子']):
                     子=帧['子'][帧['子下标']]#下一子
                     if 子 is None:
-                        raise Exception('missing schema-value child frame')#子缺失
+                        raise json模式错误(['missing schema-value child frame'])#子缺失
                     帧['子下标']+=1#前进
                     帧表.append(建值帧(子['节点'],子['值'],子['路径']))#压入子帧
                     continue#去跑子
@@ -318,13 +299,12 @@ def 检查值(模式,值,路径):
                 if len(帧['违规'])>0:
                     结束(帧['违规'])#带回违规
                 elif 帧.get('种类')=='object':
-                    结束([] if 安全是否JSON值(帧['值']) else ['"'+诊断路径(帧['路径'])+'" must be a lossless JSON object'])#必须无损对象
+                    结束([] if 是否json值(帧['值']) else ['"'+诊断路径(帧['路径'])+'" must be a lossless JSON object'])#必须无损对象
                 else:
-                    结束([] if 安全是否JSON值(帧['值']) else ['"'+诊断路径(帧['路径'])+'" must be a dense lossless JSON array'])#必须稠密无损数组
+                    结束([] if 是否json值(帧['值']) else ['"'+诊断路径(帧['路径'])+'" must be a dense lossless JSON array'])#必须稠密无损数组
                 continue#下一帧
-            节点类型=帧['节点'].get('type') if 'type' in 帧['节点'] else None#声明类型
-            帧['收住']=not (节点类型 is not None and 节点类型 not in 模式类型)#合法类型才收住探测抛错
-            联合=帧['节点'].get('oneOf') if 'oneOf' in 帧['节点'] else None#联合各支
+            节点类型=帧['节点']['type'] if 'type' in 帧['节点'] else None#声明类型
+            联合=帧['节点']['oneOf'] if 'oneOf' in 帧['节点'] else None#联合各支
             if 联合 is not None:
                 帧['种类']='oneOf'#联合帧
                 帧['子']=[{'节点':支,'值':帧['值'],'路径':帧['路径']} for 支 in 联合]#各支同值同路径
@@ -333,15 +313,15 @@ def 检查值(模式,值,路径):
                 帧['阶段']='子'#去跑各支
                 continue#下一循环
             if 节点类型 is None:
-                结束([] if 安全是否JSON值(帧['值']) else 无损失败(帧['路径']))#必须无损
+                结束([] if 是否json值(帧['值']) else 无损失败(帧['路径']))#必须无损
                 continue#下一帧
             if 节点类型=='object':
                 if not 是否普通json记录(帧['值']):
                     结束(['"'+诊断路径(帧['路径'])+'" must be an object'])#必须是对象
                     continue#结束本分支
-                属性表=帧['节点'].get('properties') or {} if 'properties' in 帧['节点'] else {}#属性模式
+                属性表=帧['节点']['properties'] if 'properties' in 帧['节点'] else {}#属性模式
                 违规=[]#必填违规
-                必填=帧['节点'].get('required') or [] if 'required' in 帧['节点'] else []#必填键
+                必填=帧['节点']['required'] if 'required' in 帧['节点'] else []#必填键
                 for 键 in 必填:
                     if 键 not in 帧['值']:
                         违规.append('missing required property "'+属性路径(帧['路径'],键)+'"')#缺必填属性
@@ -351,7 +331,7 @@ def 检查值(模式,值,路径):
                         continue#缺席则跳过
                     子表.append({'节点':子模式,'值':帧['值'][键],'路径':属性路径(帧['路径'],键)})#下钻该属性
                 收尾违规=[]#未声明键
-                if 'additionalProperties' in 帧['节点'] and 帧['节点'].get('additionalProperties') is False:
+                if 'additionalProperties' in 帧['节点'] and 帧['节点']['additionalProperties'] is False:
                     for 键 in 帧['值'].keys():
                         if 键 not in 属性表:
                             收尾违规.append('"'+属性路径(帧['路径'],键)+'" is not a declared property (additionalProperties: false)')#多余键
@@ -365,7 +345,7 @@ def 检查值(模式,值,路径):
                 if not isinstance(帧['值'],list):
                     结束(['"'+诊断路径(帧['路径'])+'" must be an array'])#必须是数组
                     continue#结束本分支
-                元素=帧['节点'].get('items') if 'items' in 帧['节点'] else None#元素模式
+                元素=帧['节点']['items'] if 'items' in 帧['节点'] else None#元素模式
                 子表=[] if 元素 is None else [{'节点':元素,'值':项,'路径':帧['路径']+'['+str(下标)+']'} for 下标,项 in enumerate(帧['值'])]#每个元素一子
                 帧['种类']='array'#数组帧
                 帧['子']=子表#元素子
@@ -405,16 +385,7 @@ def 校验json模式值(模式,值,路径='value'):
     """按已断言的原始模式校验候选值。"""
     return 检查值(模式,值,路径)#走显式帧
 
-def 自有(对象,键):
-    """对齐 Object.hasOwn。"""
-    if isinstance(对象,dict):
-        return 键 in 对象#映射自有键
-    字典=getattr(对象,'__dict__',None)#实例字典
-    if 字典 is None:
-        return hasattr(对象,键)#无字典则属性
-    return 键 in 字典#自有数据
-
 def 转json(值):
     """对齐 JSON.stringify 的紧凑文本。"""
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'))#紧凑 JSON
+    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
 

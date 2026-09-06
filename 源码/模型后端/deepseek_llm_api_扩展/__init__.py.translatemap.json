@@ -1,4 +1,9 @@
 {
+    "callback":"回调",
+    "error":"错误",
+    "list":"列表",
+    "table":"表",
+    "entry":"条目",
     "context":"上下文",
     "default":"默认",
     "field":"字段",

@@ -76,7 +76,7 @@ def 解析参数(原始):#解析运行器argv
 def 要求目录(标签,路径):#要求已存在目录
     """要求路径是已存在目录。"""
     if not os.path.exists(路径) or not os.path.isdir(路径):#不是目录
-        失败(标签+' is not an existing directory: '+路径)#边界失败
+        失败(标签+' is not an existing directory')#边界失败
 
 def 主():#运行器入口
     """解析参数、物化沙箱、生成隔离子进程并镜像退出码。"""
@@ -135,12 +135,7 @@ def 主():#运行器入口
                 if 沙箱 is not None:#有实例
                     沙箱.拆除()#撤销可撤销授权
             except BaseException as 错误:#清理失败
-                消息=错误.args[0] if isinstance(错误,Exception) and len(错误.args)>0 else str(错误)#清理消息
-                if isinstance(错误,Exception) and hasattr(错误,'args') and len(错误.args)>0 and isinstance(错误.args[0],str):#有消息
-                    消息=str(错误)#用str
-                else:#兜底
-                    消息=str(错误)#字符串化
-                sys.stderr.write(运行器签名+': cleanup: '+消息+'\n')#报告清理
+                sys.stderr.write(运行器签名+': cleanup: '+str(错误)+'\n')#报告清理
         if 自有临时目录 is not None:#本运行器创建的临时
             try:#删除私有目录
                 shutil.rmtree(自有临时目录,ignore_errors=False)#递归删除

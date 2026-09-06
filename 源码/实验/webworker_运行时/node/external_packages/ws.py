@@ -5,7 +5,7 @@
 
 对齐上游 `webworker-runtime/src/node/external_packages/ws.ts`。
 """
-from ..未实现失败 import 未实现失败#未实现桩
+from ..未实现失败 import 未实现失败,运行时错误#未实现桩|本包错误
 
 __all__=['WebSocket','WebSocketServer','Server','__esModule','default']#Node面
 
@@ -21,7 +21,7 @@ class WebSocket:#客户端套接字类
 
     def __init__(自身):#构造即拒
         """构造即抛不可用。"""
-        raise Exception(f'web-preview: {模块} client sockets are not available in the worker host')#不可用
+        raise 运行时错误(f'web-preview: {模块} client sockets are not available in the worker host')#不可用
 
 class WebSocketServer:#服务器类
     """构造必须成功、方法不可达的服务器。"""

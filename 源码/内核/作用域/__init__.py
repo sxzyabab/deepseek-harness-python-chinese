@@ -8,29 +8,34 @@ from ...依赖 import cordis#外部依赖胶水
 上下文=cordis.上下文#上下文类（过滤符号挂在类上）
 from .存储 import 具名条目,匿名条目,作用域层集#再导出作用域感知登记表
 
-class 操作任务:#单次异步结果
-    """单次操作的 Future 包装。"""
-    def __init__(自身):#构造未决任务
+class 作用域错误(Exception):
+    """内核作用域包的异常基类。"""
+
+class 操作任务:
+    """单次操作的 Future 包装，只留 等待。"""
+    def __init__(自身):
         """构造未决任务。"""
-        自身._future=_原生Future()#底层 Future
-    def 兑现(自身,值=None):#成功结算
+        自身._未来=_原生Future()#底层 Future
+
+    def 兑现(自身,值=None):
         """成功结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
+        if not 自身._未来.done():
+            自身._未来.set_result(值)#写入结果
         return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
+
+    def 拒绝(自身,错误):
         """失败结算。"""
-        if not 自身._future.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._future.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._future.set_exception(Exception(错误))#包装拒绝
-    def wait(自身,超时=None):#阻塞等待
+        if not 自身._未来.done():
+            if isinstance(错误,BaseException):
+                自身._未来.set_exception(错误)#原样拒绝
+            else:
+                包装=作用域错误('task rejected')#包装拒绝
+                包装.原因=错误#附加信息
+                自身._未来.set_exception(包装)#包装拒绝
+
+    def 等待(自身,超时=None):
         """阻塞等到结算。"""
-        return 自身._future.result(timeout=超时)#取结果或抛错
-    def 等待(自身,超时=None):#兼容外来调用
-        """wait 别名。"""
-        return 自身.wait(超时)#转发
+        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 __all__=(#仅中文公开名
     '弱身份表',#按对象身份存取的弱键表（多包复用）
@@ -42,7 +47,7 @@ __all__=(#仅中文公开名
     '具名条目','匿名条目','作用域层集',#登记表原语
 )#公开面结束
 
-作用域符号=object()#写入 ctx.extend 的作用域标签键，对齐上游 Symbol('dsh.scope')
+作用域符号=object()#写入 ctx.扩展 的作用域标签键，对齐上游 Symbol('dsh.scope')
 
 class 弱身份表:#按身份存取的弱键表
     """按对象身份存取，键可被回收，对应 JS WeakMap。键死则条目清掉，标识复用不会误命中。"""
@@ -107,7 +112,7 @@ def 链接作用域父(键,父):#带循环检查的写入
     游标=父#沿父链走
     while 游标 is not None:#尚未到根
         if 游标 is 键:#成环
-            raise Exception('dsh-scope: scope parent link would form a cycle')#成环则拒绝
+            raise 作用域错误('dsh-scope: scope parent link would form a cycle')#成环则拒绝
         游标=作用域父表.取(游标)#上一父
     作用域父表.设(键,父)#记下父
 
@@ -117,7 +122,7 @@ def 绑定作用域父(键,父):#只绑一次
     已有父的键会抛错：没有开放的改接路径，因此除原绑定者外谁都不能移动作用域祖先。
     """
     if 作用域父表.有(键):#已有父
-        raise Exception('dsh-scope: scope key is already bound to a parent; re-linking requires the binding returned by the original bind')#必须用原绑定改接
+        raise 作用域错误('dsh-scope: scope key is already bound to a parent; re-linking requires the binding returned by the original bind')#必须用原绑定改接
     链接作用域父(键,父)#写入链接
     return 作用域父绑定(键)#返回绑定
 
@@ -157,8 +162,8 @@ def 创建作用域(上下文对象,键,选项=None):#铸造作用域
     """
     if 选项 is not None and '父' in 选项:#有父
         绑定作用域父(键,选项['父'])#有父则在作用域可用前绑定
-    光纤对象=上下文对象.plugin(空插件)#挂上空插件光纤
-    带标签=光纤对象.ctx.extend({作用域符号:键})#写入作用域标签
+    光纤对象=上下文对象.启动插件(空插件)#挂上空插件光纤
+    带标签=光纤对象.ctx.扩展({作用域符号:键})#写入作用域标签
     拆除中=None#共享拆除承诺；首次调用者跑静止，其余等待
     def 拆除():#竞态共用一次静止拆除
         """竞态共用一次静止拆除。"""
@@ -172,7 +177,7 @@ def 创建作用域(上下文对象,键,选项=None):#铸造作用域
             except Exception as 错误:#拆除失败
                 任务.拒绝(错误)#失败
                 raise#原样抛出
-        拆除中.wait()#竞态等待同一次完成
+        拆除中.等待()#竞态等待同一次完成
     return 作用域(带标签,光纤对象.dispose,拆除)#作用域对象
 
 def 获取作用域(上下文对象):#读最近作用域标签

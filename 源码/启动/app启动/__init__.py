@@ -54,13 +54,8 @@ __all__=[#仅中文公开名
 光纤激活=光纤状态.已激活#已激活
 光纤失败=光纤状态.失败#已失败
 
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象.get(键,缺省)#映射
-    return getattr(对象,键,缺省)#属性
+class 启动错误(Exception):
+    """应用启动粘合层失败。"""
 
 def 解析配置路径(配置路径,快照模式,工作目录=None):#解析启动配置路径
     """解析要启动的配置；回放时换基名为 cordis.snapshot.yml。"""
@@ -79,7 +74,10 @@ def 加载环境(二进制名,目录=None,警告=None):#加载单层 .env
     if 目录 is None:#缺省
         目录=os.getcwd()#cwd
     if 警告 is None:#缺省
-        警告=lambda 行:sys.stderr.write(行)#stderr
+        def 写警告(行):
+            """写标准错误。"""
+            sys.stderr.write(行)#stderr
+        警告=写警告#缺省警告
     路径=os.path.join(目录,'.env')#路径
     try:#读并应用
         应用环境文件(路径)#加载
@@ -145,7 +143,7 @@ def 读环境层(二进制名,目录,警告):#读一层 .env
     值表=解析环境文本(内容)#解析
     for 名 in 值表:#逐名检查
         if 是否仅引导(名):#引导名
-            raise Exception(
+            raise 启动错误(
                 二进制名+': '+路径+' sets "'+名+'", which only the launching environment may set'
                 +' (it decides how this process starts, where its code and instructions load from, or how it'
                 +' reaches the network); export '+名+' instead of putting it in a .env file'
@@ -157,7 +155,10 @@ def 加载分层环境(二进制名,工作目录=None,警告=None):#加载分层
     if 工作目录 is None:#缺省
         工作目录=os.getcwd()#cwd
     if 警告 is None:#缺省
-        警告=lambda 行:sys.stderr.write(行)#stderr
+        def 写警告(行):
+            """写标准错误。"""
+            sys.stderr.write(行)#stderr
+        警告=写警告#缺省警告
     主目录=解析主目录()#Harness 主目录
     继承=dict(os.environ)#继承环境副本
     项目=读环境层(二进制名,工作目录,警告)#项目层
@@ -179,13 +180,13 @@ def 解析补丁列表(二进制名,文件,内容,标签):#解析补丁列表
     """解析一份 loader 补丁列表。"""
     try:#解析 YAML
         解析=yaml.load(内容,Loader=条目列表加载器)#用 include 方言
-    except Exception as 错误:#解析失败
-        raise Exception(二进制名+': failed to parse '+标签+' '+文件+': '+str(错误))#包装
+    except yaml.YAMLError as 错误:#解析失败
+        raise 启动错误(二进制名+': failed to parse '+标签+' '+文件+': '+str(错误))#包装
     if not isinstance(解析,list):#不是顶层数组
-        raise Exception(二进制名+': '+标签+' '+文件+' must be a top-level YAML array of loader patch entries')#拒绝
+        raise 启动错误(二进制名+': '+标签+' '+文件+' must be a top-level YAML array of loader patch entries')#拒绝
     for 下标,条目 in enumerate(解析):#逐条检查
         if not isinstance(条目,dict) or 条目 is None:#不是映射
-            raise Exception(二进制名+': '+标签+' entry '+str(下标+1)+' in '+文件+' must be a mapping (a loader patch entry)')#拒绝
+            raise 启动错误(二进制名+': '+标签+' entry '+str(下标+1)+' in '+文件+' must be a mapping (a loader patch entry)')#拒绝
     return 解析#补丁列表
 
 def 加载可选补丁(二进制名,文件):#加载可选补丁
@@ -199,7 +200,7 @@ def 加载可选补丁(二进制名,文件):#加载可选补丁
     except FileNotFoundError:#缺失
         return None#没有这一层
     except OSError as 错误:#其它
-        raise Exception(二进制名+': failed to read patches '+文件+': '+str(错误))#大声失败
+        raise 启动错误(二进制名+': failed to read patches '+文件+': '+str(错误))#大声失败
     return 解析补丁列表(二进制名,文件,内容,'patches')#按 patches 标签
 
 def 加载覆盖补丁(二进制名,文件):#加载必需覆盖补丁
@@ -211,89 +212,101 @@ def 加载覆盖补丁(二进制名,文件):#加载必需覆盖补丁
         finally:#关
             打开.close()#关闭
     except OSError as 错误:#读失败
-        raise Exception(二进制名+': failed to read overlay '+文件+': '+str(错误))#缺失也失败
+        raise 启动错误(二进制名+': failed to read overlay '+文件+': '+str(错误))#缺失也失败
     return 解析补丁列表(二进制名,文件,内容,'overlay')#按 overlay 标签
 
-def 挂载根包含(上下文对象,绝对配置路径,补丁=None,裸模块基址=None):#挂上根 Include
+def 挂载根包含(上下文对象,绝对配置路径,补丁=None,裸模块基址=None):
     """挂上并记住应用启动使用的根 Include 条目。"""
     if 补丁 is None:#缺省
         补丁=[]#空
     if 裸模块基址 is None:#无宿主基址
-        上下文对象.loader.builtins['include']=包含#用原 Include
+        上下文对象.加载器.内建表['include']=包含#用原 Include
     else:#宿主解析
-        class 宿主根包含(包含):#宿主解析根 Include
-            def 导入(自身,名称,获取外层栈=None):#改写导入
+        class 宿主根包含(包含):
+            """宿主解析根 Include。"""
+            def 导入(自身,名称,获取外层栈=None):
                 """改写导入。"""
                 说明符=路径转文件url(名称) if os.path.isabs(名称) else 名称#绝对改 file URL
                 if 名称.startswith('.') or 名称.startswith('cordis:'):#相对与内建
                     return super().导入(说明符,获取外层栈)#父类
-                内部=getattr(自身.ctx.loader,'internal',None)#内部
+                内部=自身.所属上下文.加载器.内部加载器#内部加载器
                 if 内部 is None:#没有
-                    return super().导入(说明符,获取外层栈)#回退
-                return 内部.导入(说明符,裸模块基址,{})#宿主基址
-        上下文对象.loader.builtins['include']=宿主根包含#注册
-    上下文对象.loader.builtins['group']=组#注册 group 内建
+                    return super().导入(说明符,获取外层栈)#父类
+                return 内部.import_(说明符,裸模块基址,{})#宿主基址
+        上下文对象.加载器.内建表['include']=宿主根包含#注册
+    上下文对象.加载器.内建表['group']=组#注册 group 内建
     包含配置={'path':路径转文件url(绝对配置路径)}#根 include 配置
     if len(补丁)>0:#有补丁
         包含配置['patches']=list(补丁)#带上
     根条目={'id':'include','name':'cordis:include','config':包含配置}#根条目
-    包含号=解开(上下文对象.loader.创建(根条目))#创建根条目
-    加载器=上下文对象.get('loader')#再取 Loader
+    包含号=上下文对象.加载器.创建(根条目)#创建根条目，同步
+    加载器=上下文对象.获取服务('加载器',False)#再取 Loader
     if 加载器 is None:#树已拆
         return None#返回
     条目=加载器.解析(包含号)#解析条目
     启动包含表[id(上下文对象)]=条目#登记
     return 条目#返回根条目
 
-def 解开(值):#等待可等待
-    """承诺则等待。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待
-    return 值#同步
-
-def 监视用户补丁(上下文对象,选项):#监视用户补丁层
-    """经 Cordis HMR 监视用户补丁层。"""
-    二进制名=取字段(选项,'binName')#诊断前缀
-    文件名=取字段(选项,'filename')#补丁路径
-    组合=取字段(选项,'compose') or (lambda 补丁:补丁)#默认恒等
-    热重载=上下文对象.get('hmr')#HMR
+def 监视用户补丁(上下文对象,选项):
+    """经 Cordis 热替换监视用户补丁层。选项是 dict。"""
+    二进制名=选项['binName']#诊断前缀
+    文件名=选项['filename']#补丁路径
+    if 'compose' in 选项 and 选项['compose'] is not None:#有组合
+        组合=选项['compose']#组合
+    else:#缺省恒等
+        def 恒等(补丁):
+            """缺省不改补丁。"""
+            return 补丁#原样
+        组合=恒等#恒等
+    热重载=上下文对象.获取服务('热替换',False)#热替换
     if 热重载 is None:#缺少
-        raise Exception(二进制名+': user patch-layer watching requires the Cordis HMR service')#缺少
-    条目=启动包含表.get(id(上下文对象))#根 Include
-    if 条目 is None:#缺少
-        raise Exception(二进制名+': user patch-layer watching requires the root Include entry')#缺少
-    def 刷新():#注册精确路径刷新
+        raise 启动错误(二进制名+': user patch-layer watching requires the Cordis HMR service')#缺少
+    键=id(上下文对象)#上下文身份
+    if 键 not in 启动包含表:#缺少根 Include
+        raise 启动错误(二进制名+': user patch-layer watching requires the root Include entry')#缺少
+    条目=启动包含表[键]#根 Include 插件配置
+    def 刷新():
         """重读用户层并事务更新。"""
-        选项配置=取字段(取字段(条目,'options'),'config') or {}#当前配置
-        非补丁={键:值 for 键,值 in 选项配置.items() if 键!='patches'}#去掉旧补丁
-        用户补丁=加载可选补丁(二进制名,文件名) or []#重读
+        选项配置=条目.选项['config'] if 'config' in 条目.选项 else {}#当前配置
+        非补丁={键名:值 for 键名,值 in 选项配置.items() if 键名!='patches'}#去掉旧补丁
+        用户补丁=加载可选补丁(二进制名,文件名)#重读
+        if 用户补丁 is None:#缺失
+            用户补丁=[]#空
         补丁=组合(用户补丁)#组合
-        解开(条目.更新({'config':{**非补丁,'patches':补丁}}))#事务更新
+        条目.更新({'config':{**非补丁,'patches':补丁}})#事务更新，同步
+    def 空拆除():
+        """树已拆时的空拆除器。"""
+        return#空
     try:#注册
-        return 解开(热重载.registerConfig(文件名,刷新))#返回拆除器
-    except Exception as 错误:#安装失败
-        if getattr(错误,'code',None)=='INACTIVE_EFFECT':#树已拆
-            return lambda:None#空拆除
+        return 热重载.登记配置(文件名,刷新)#返回拆除器，同步
+    except cordis.Cordis错误 as 错误:#安装失败
+        if 错误.码=='INACTIVE_EFFECT':#树已拆
+            return 空拆除#空拆除
         raise#其余失败
 
-def 保留已组装拒绝(原因):#保留一条已组装拒绝
+def 保留已组装拒绝(原因):
     """计数加一。"""
-    已组装拒绝[原因]=已组装拒绝.get(原因,0)+1#计数
+    if 原因 not in 已组装拒绝:#首条
+        已组装拒绝[原因]=1#计数
+    else:#已有
+        已组装拒绝[原因]=已组装拒绝[原因]+1#加一
 
-def 释放已组装拒绝(原因):#释放一条
+def 释放已组装拒绝(原因):
     """计数减一。"""
-    数=已组装拒绝.get(原因)#当前
-    if 数 is None or 数==1:#最后一条
-        已组装拒绝.pop(原因,None)#删掉
+    if 原因 not in 已组装拒绝:#没有
+        return#空
+    数=已组装拒绝[原因]#当前
+    if 数==1:#最后一条
+        del 已组装拒绝[原因]#删掉
     else:#还有
         已组装拒绝[原因]=数-1#减一
 
-def 安装大声失败(二进制名,进程=None,拆除=None):#安装大声失败守卫
-    """把迟到的未处理插件初始化拒绝变成带标签诊断并 exit(1)。"""
+def 安装大声失败(二进制名,进程=None,拆除=None):
+    """把迟到的未处理插件初始化拒绝变成带标签诊断并 exit(1)。进程是 sys 模块。"""
     if 进程 is None:#缺省
         进程=sys#进程
     退出中=False#是否已决定退出
-    def 处理器(错误类型,错误,回溯):#未处理异常钩子（Python 用 excepthook 近似）
+    def 处理器(错误类型,错误,回溯):
         """致命失败处理器。"""
         nonlocal 退出中#修改
         if 错误 in 已组装拒绝:#启动审计已计入
@@ -301,69 +314,72 @@ def 安装大声失败(二进制名,进程=None,拆除=None):#安装大声失败
         if 退出中:#已在退出
             return#吞掉
         退出中=True#闩上
-        栈=getattr(错误,'__traceback__',None)#回溯
         文本=二进制名+': fatal load failure: '+str(错误)+'\n'#诊断
-        写=getattr(取字段(进程,'stderr'),'write',None)#写
-        if 写 is not None:#有写
-            写(文本)#先写诊断
+        进程.stderr.write(文本)#先写诊断
         if 拆除 is None:#没有拆除
-            取字段(进程,'exit')(1) if callable(取字段(进程,'exit')) else os._exit(1)#立刻退出
+            进程.exit(1)#立刻退出
             return#结束
-        def 后台拆除():#后台等拆除
+        def 后台拆除():
             """等拆除或超时。"""
             完成=threading.Event()#完成事件
-            def 跑拆除():#跑拆除
+            def 跑拆除():
                 """跑拆除。"""
                 try:#拆除
-                    结果=拆除()#跑
-                    if 是否thenable(结果):#可等待
-                        结果.等待()#等待
-                except Exception:#拆除抛错
+                    拆除()#同步
+                except Exception:#拆除抛错形态未钉死
                     pass#吞掉
                 finally:#完成
                     完成.set()#放行
             threading.Thread(target=跑拆除,daemon=True).start()#启动
             完成.wait(大声失败拆除超时毫秒/1000.0)#到时放行
-            取字段(进程,'exit')(1) if callable(取字段(进程,'exit')) else os._exit(1)#致命退出
+            进程.exit(1)#致命退出
         threading.Thread(target=后台拆除,daemon=True).start()#立即
-    # Python 无 unhandledRejection；返回空卸载器，保留 API 形状供启动器接线
-    return lambda:None#卸载器
+    def 空卸载():
+        """Python 无 unhandledRejection；保留 API 形状。"""
+        return#空
+    return 空卸载#卸载器
 
-def 断言条目已加载(上下文对象,二进制名):#断言条目已加载
+def 断言条目已加载(上下文对象,二进制名):
     """树结算之后，拒绝没有 fiber 的启用条目。"""
     失败=[]#失败
-    for 条目 in 上下文对象.loader.条目们():#逐条
-        if 取字段(条目,'fiber') is None and not 取字段(条目,'disabled'):#未禁用却无 fiber
-            失败.append(取字段(取字段(条目,'options'),'name'))#记下名
+    for 条目 in 上下文对象.加载器.列出插件配置():#逐条
+        if 条目.纤程 is None and not 条目.已禁用:#未禁用却无 fiber
+            选项=条目.选项#选项 dict
+            失败.append(选项['name'] if 'name' in 选项 else None)#记下名
     if len(失败)>0:#有加载失败
-        raise Exception(二进制名+': plugin(s) failed to load: '+', '.join(失败)+'; Cordis startup failed because these plugin(s) could not be resolved (see the error(s) logged above)')#拒绝
+        raise 启动错误(二进制名+': plugin(s) failed to load: '+', '.join(str(名) for 名 in 失败)+'; Cordis startup failed because these plugin(s) could not be resolved (see the error(s) logged above)')#拒绝
 
-def 断言条目已激活(上下文对象,二进制名):#断言条目已激活
+def 断言条目已激活(上下文对象,二进制名):
     """启用条目失败或仍未激活时拒绝。"""
     断言条目已加载(上下文对象,二进制名)#先检查加载
     失败行=[]#失败行
     拒绝原因=[]#拒绝原因
-    for 条目 in 上下文对象.loader.条目们():#逐条
-        光纤=取字段(条目,'fiber')#fiber
-        if 光纤 is None or 取字段(条目,'disabled'):#无或已禁用
+    for 条目 in 上下文对象.加载器.列出插件配置():#逐条
+        光纤=条目.纤程#fiber
+        if 光纤 is None or 条目.已禁用:#无或已禁用
             continue#跳过
-        状态=光纤.state#状态
+        状态=光纤.状态#状态
         if 状态==光纤激活:#已激活
             continue#跳过
-        名=取字段(取字段(条目,'options'),'name')#插件名
+        选项=条目.选项#选项 dict
+        名=选项['name'] if 'name' in 选项 else None#插件名
         if 状态==光纤失败:#已失败
             try:#收回原因
                 光纤.等待()#等待
-            except Exception as 错误:#拿到原因
+            except Exception as 错误:#插件启动失败形态未钉死
                 拒绝原因.append(错误)#记下
-                失败行.append(名+': '+ (错误.__traceback__ and str(错误) or str(错误)))#格式化
+                失败行.append(str(名)+': '+str(错误))#格式化
             continue#下一条
         if 状态==光纤等待:#仍在等待
-            缺失=[服务名 for 服务名 in (取字段(光纤,'inject') or {}) if 光纤.ctx.get(服务名) is None]#缺失服务
+            缺失=[]#缺失服务
+            for 服务名 in 光纤.依赖表:#依赖表
+                if 光纤.所属上下文.获取服务(服务名,False) is None:#仍缺
+                    缺失.append(服务名)#记下
             主语='service' if len(缺失)==1 else 'services'#单复数
-            失败行.append(名+': pending (waiting for '+主语+': '+(', '.join(缺失) if 缺失 else 'unknown')+')')#挂起
+            列出=', '.join(缺失) if len(缺失)>0 else 'unknown'#名单
+            失败行.append(str(名)+': pending (waiting for '+主语+': '+列出+')')#挂起
         else:#其他状态
-            失败行.append(名+': fiber state '+str(状态))#报告
+            失败行.append(str(名)+': fiber state '+str(状态))#报告
     if len(失败行)>0:#有未激活
         for 原因 in 拒绝原因:#保留到检查点
             保留已组装拒绝(原因)#保留
@@ -373,42 +389,43 @@ def 断言条目已激活(上下文对象,二进制名):#断言条目已激活
             for 原因 in 拒绝原因:#释放
                 释放已组装拒绝(原因)#释放
         名词='entry' if len(失败行)==1 else 'entries'#单复数
-        raise Exception(二进制名+': '+str(len(失败行))+' '+名词+' did not activate\n'+'\n'.join(失败行))#拒绝
+        raise 启动错误(二进制名+': '+str(len(失败行))+' '+名词+' did not activate\n'+'\n'.join(失败行))#拒绝
 
-def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基址=None):#启动 Loader 树
+def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基址=None):
     """对着绝对配置路径启动 Loader，整棵树结算后才返回。"""
     上下文对象=上下文()#根上下文
     阶段='host preparation failed'#当前阶段标签
     try:#安装并挂树
-        上下文对象.baseUrl=路径转文件url(os.path.dirname(绝对配置路径))#配置目录基址
-        if not 上下文对象.baseUrl.endswith('/'):#尾斜杠
-            上下文对象.baseUrl=上下文对象.baseUrl+'/'#补上
+        基址=路径转文件url(os.path.dirname(绝对配置路径))#配置目录基址
+        if not 基址.endswith('/'):#尾斜杠
+            基址=基址+'/'#补上
+        上下文对象.基准网址=基址#写入
         加载器类=loader.加载器#Loader
-        上下文对象.provide('dshHomePath',主目录路径)#提供主目录解析
-        解开(上下文对象.plugin(加载器类))#安装 Loader
+        上下文对象.提供服务('dshHomePath',主目录路径)#提供主目录解析
+        上下文对象.启动插件(加载器类).等待()#安装 Loader 并抛出启动失败
         if 准备 is not None:#可选宿主准备
-            解开(准备(上下文对象))#准备
+            准备(上下文对象)#准备，同步
         阶段='plugin tree failed to load'#此后归插件树
         挂载根包含(上下文对象,绝对配置路径,补丁,裸模块基址)#挂根 Include
-        加载器=上下文对象.get('loader')#Loader
+        加载器=上下文对象.获取服务('加载器',False)#Loader
         if 加载器 is not None:#仍在
-            解开(加载器.等待())#等待结算
-        if 上下文对象.get('loader') is None:#树已拆
+            加载器.等待()#等待结算，抛出插件启动失败
+        if 上下文对象.获取服务('加载器',False) is None:#树已拆
             return 上下文对象#返回
         断言条目已激活(上下文对象,二进制名)#审计激活
         return 上下文对象#返回根上下文
-    except Exception as 原因:#启动失败
-        解开(上下文对象.fiber.dispose())#拆除部分树
+    except Exception as 原因:#启动失败形态含插件树与配置错误
+        上下文对象.纤程.拆除()#拆除部分树
         细节=str(原因)#外层细节
         最深=原因#向 cause 链下走
         while isinstance(最深,Exception) and 最深.__cause__ is not None:#找最深
             最深=最深.__cause__#下一层
         栈='' if 最深 is 原因 or not isinstance(最深,Exception) else '\n'+str(最深)#深层栈
-        raise Exception(二进制名+': '+阶段+': '+细节+栈) from 原因#带阶段标签
+        raise 启动错误(二进制名+': '+阶段+': '+细节+栈) from 原因#带阶段标签
 
-def 添加源码段落(上下文对象,源码根):#添加源位置段落
+def 添加源码段落(上下文对象,源码根):
     """加一段全局提示词，点名磁盘上的 harness 源码检出。"""
-    系统提示词=上下文对象.get('systemPrompt')#系统提示词服务
+    系统提示词=上下文对象.获取服务('systemPrompt',False)#系统提示词服务
     if 系统提示词 is None:#没有该服务
         return None#空操作
     return 系统提示词.段落({#登记段落
@@ -417,10 +434,13 @@ def 添加源码段落(上下文对象,源码根):#添加源位置段落
         'text':'The DeepSeek Harness implementation checkout is at '+源码根+'. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.',#字面量
     })#section 结束
 
-def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):#渲染有效配置转储
-    """按 boot 会挂上的方式组合有效条目列表并渲染。"""
+def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):
+    """按 boot 会挂上的方式组合有效条目列表并渲染。各层条目是 dict。"""
     if 警告 is None:#缺省
-        警告=lambda 行:sys.stderr.write(行+'\n')#stderr
+        def 写警告(行):
+            """写标准错误并换行。"""
+            sys.stderr.write(行+'\n')#stderr
+        警告=写警告#缺省警告
     try:#读基配置
         打开=open(绝对配置路径,'r',encoding='utf-8')#打开
         try:#读
@@ -428,27 +448,35 @@ def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):#渲�
         finally:#关
             打开.close()#关闭
     except OSError as 错误:#读失败
-        raise Exception(二进制名+': failed to read config '+绝对配置路径+': '+str(错误))#包装
+        raise 启动错误(二进制名+': failed to read config '+绝对配置路径+': '+str(错误))#包装
     try:#解析
         解析=yaml.load(内容,Loader=条目列表加载器)#方言
-    except Exception as 错误:#解析失败
-        raise Exception(二进制名+': failed to parse config '+绝对配置路径+': '+str(错误))#包装
+    except yaml.YAMLError as 错误:#解析失败
+        raise 启动错误(二进制名+': failed to parse config '+绝对配置路径+': '+str(错误))#包装
     if not isinstance(解析,list):#不是数组
-        raise Exception(二进制名+': config '+绝对配置路径+' must be a top-level YAML array of entries')#拒绝
+        raise 启动错误(二进制名+': config '+绝对配置路径+' must be a top-level YAML array of entries')#拒绝
     基标签=os.path.basename(绝对配置路径)#基文件标签
     基=解析#基条目列表
-    def 快照(计数,警告们):#前缀快照
+    def 层补丁(层):
+        """取出一层补丁列表。"""
+        if 'patches' not in 层 or 层['patches'] is None:#省略
+            return []#空
+        return 层['patches']#补丁
+    def 层标签(层):
+        """一层标签。"""
+        return 层['label']#标签
+    def 快照(计数,警告列表):
         """应用到前缀层。"""
-        展平=copy.deepcopy([补丁 for 层 in 各层[:计数] for 补丁 in 取字段(层,'patches') or []])#克隆展平
-        def 记警告(消息,*参数):#警告
+        展平=copy.deepcopy([补丁 for 层 in 各层[:计数] for 补丁 in 层补丁(层)])#克隆展平
+        def 记警告(消息,*参数):
             """展开 %C。"""
             下标=[0]#游标
-            def 替(_):#替换
+            def 替(匹配):
                 """取下一参数。"""
                 值=参数[下标[0]] if 下标[0]<len(参数) else None#参数
                 下标[0]=下标[0]+1#推进
-                return json.dumps(值,ensure_ascii=False)#JSON
-            警告们.append(re.sub(r'%C',替,消息))#展开
+                return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
+            警告列表.append(re.sub(r'%C',替,消息))#展开
         return 应用条目补丁(基,展平,记警告)#应用
     上一=基#上一快照
     上一警告=[]#上一警告
@@ -456,39 +484,43 @@ def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):#渲�
     已组合=基#当前组合
     for 计数 in range(1,len(各层)+1):#逐层
         层=各层[计数-1]#本层
-        警告们=[]#本快照警告
-        已组合=快照(计数,警告们)#应用到本前缀
-        for 行 in 警告们[len(上一警告):]:#新尾巴
-            警告(二进制名+': ['+取字段(层,'label')+'] '+行)#带层标签
-        之前=[json.dumps(条,ensure_ascii=False,sort_keys=True) for 条 in 上一]#上一序列化
+        警告列表=[]#本快照警告
+        已组合=快照(计数,警告列表)#应用到本前缀
+        for 行 in 警告列表[len(上一警告):]:#新尾巴
+            警告(二进制名+': ['+层标签(层)+'] '+行)#带层标签
+        之前=[json.dumps(条,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True) for 条 in 上一]#上一序列化
         for 下标 in range(len(已组合)):#按位置差分
             if 下标>=len(之前):#追加行
-                出处.append({'origin':取字段(层,'label'),'patchedBy':[]})#归本层
-            elif json.dumps(已组合[下标],ensure_ascii=False,sort_keys=True)!=之前[下标]:#改写
-                出处[下标]['patchedBy'].append(取字段(层,'label'))#记补丁
+                出处.append({'origin':层标签(层),'patchedBy':[]})#归本层
+            elif json.dumps(已组合[下标],ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)!=之前[下标]:#改写
+                出处[下标]['patchedBy'].append(层标签(层))#记补丁
         上一=已组合#推进
-        上一警告=警告们#推进
+        上一警告=警告列表#推进
     return 分组转储(已组合,出处)#按出处分组
 
-def 分组转储(已组合,出处):#按出处分组转储
-    """把已组合行按连续段分组。"""
-    行们=[]#输出行
+def 分组转储(已组合,出处):
+    """把已组合行按连续段分组。出处条目是 dict。"""
+    行列表=[]#输出行
     当前标签=None#当前段标签
     组=[]#当前段行
-    def 冲掉():#冲掉当前段
+    def 冲掉():
         """冲掉当前段。"""
         nonlocal 组,当前标签#修改
         if 当前标签 is None or len(组)==0:#没有
             return#无
-        行们.append('# == '+当前标签)#段注释
-        行们.append(yaml.dump(组,allow_unicode=True,sort_keys=False).rstrip())#段 YAML
+        行列表.append('# == '+当前标签)#段注释
+        行列表.append(yaml.dump(组,allow_unicode=True,sort_keys=False).rstrip())#段 YAML
         组=[]#清空
     for 下标 in range(len(已组合)):#逐行
         记录=出处[下标]#出处
-        标签=取字段(记录,'origin') if len(取字段(记录,'patchedBy') or [])==0 else (取字段(记录,'origin')+', patched by '+', '.join(取字段(记录,'patchedBy')))#标签
+        补丁方=记录['patchedBy'] if 'patchedBy' in 记录 else []#补丁方
+        if len(补丁方)==0:#无补丁
+            标签=记录['origin']#原层
+        else:#有补丁
+            标签=记录['origin']+', patched by '+', '.join(补丁方)#标签
         if 标签!=当前标签:#新段
             冲掉()#冲掉上一段
             当前标签=标签#切换
         组.append(已组合[下标])#收入
     冲掉()#冲掉末段
-    return '\n'.join(行们)+'\n'#拼成文档
+    return '\n'.join(行列表)+'\n'#拼成文档

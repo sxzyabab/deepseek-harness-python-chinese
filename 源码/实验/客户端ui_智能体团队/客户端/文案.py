@@ -2,10 +2,9 @@
 
 对齐上游 `client-ui-agent-team/src/client/locales.ts`。公开面仅中文名。
 """
-__all__=['命名空间','中文','英文','NS','zh','en']#仅中文公开名
+__all__=['命名空间','中文','英文']#仅中文公开名
 
 命名空间='agent-team'#locale 命名空间
-NS=命名空间#英文别名
 
 中文={#简体中文词典
     'trigger':'Agent Team',#触发按钮
@@ -44,7 +43,6 @@ NS=命名空间#英文别名
     'status.in_progress':'进行中',#任务进行中
     'status.completed':'已完成',#任务已完成
 }#中文结束
-zh=中文#英文别名
 
 英文={#英文词典
     'trigger':'Agent Team',#触发按钮
@@ -83,4 +81,4 @@ zh=中文#英文别名
     'status.in_progress':'In progress',#任务进行中
     'status.completed':'Completed',#任务已完成
 }#英文结束
-en=英文#英文别名
+

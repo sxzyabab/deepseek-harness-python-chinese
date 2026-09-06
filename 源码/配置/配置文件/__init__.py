@@ -1,6 +1,6 @@
 """文件后端的设置提供方。用户 harness 主目录下的一份 YAML 或 JSON 文档承载每个命名空间段落；外部编辑经 seam 热发布，每次写入都在跨进程写锁下重读文档，再以保留注释的叶级 diff 打补丁。"""
 import os,json,errno,threading,time,io,yaml,queue#路径、JSON、错误码、线程、时间与内存流
-from concurrent.futures import Future as _原生Future#单次操作结果
+from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,布尔字段,数字字段#配置字段
 from ...工具.原子写入 import 带文件锁,原子写文件#跨进程写锁与原子替换
@@ -20,73 +20,68 @@ from ..配置 import 设置提供方,json深度相等#设置服务基类与JSON�
     'debounceMs':数字字段(最小=0,默认值=100),#默认防抖
 }#插件配置模式
 
-def _是否thenable(值):#判定可等待对象
-    """对象是否可 wait。"""
-    if 值 is None:#空不是
-        return False#不是
-    等待=getattr(值,'wait',None)#取 wait
-    return callable(等待)#可调用才算
+class 配置文件错误(Exception):
+    """文件设置提供方失败。"""
+    pass#消息在构造时传入
 
-class _操作任务:#本文件内单次入队结果
-    """单次入队操作的 Future 包装。"""
-    def __init__(自身):#构造未决任务
+class 操作任务:
+    """单次入队操作的 Future 包装。只留 等待。"""
+    def __init__(自身):
         """构造未决任务。"""
-        自身._future=_原生Future()#底层 Future
-    def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
-        if not 自身._future.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._future.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._future.set_exception(Exception(错误))#包装拒绝
-    def wait(自身,超时=None):#阻塞等待
-        """阻塞等到结算。"""
-        return 自身._future.result(timeout=超时)#取结果或抛错
+        自身.底层=原生结果()#底层 Future
 
-class _串行操作链:#本文件内互斥队列
+    def 兑现(自身,值=None):
+        """成功结算。"""
+        if not 自身.底层.done():#尚未结算
+            自身.底层.set_result(值)#写入结果
+        return 值#返回兑现值
+
+    def 拒绝(自身,错误):
+        """失败结算。"""
+        if not 自身.底层.done():#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身.底层.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身.底层.set_exception(配置文件错误(错误))#包装拒绝
+
+    def 等待(自身,超时=None):
+        """阻塞等到结算。"""
+        return 自身.底层.result(timeout=超时)#取结果或抛错
+
+class 串行操作链:
     """单工作者线程串行跑文档操作。"""
-    def __init__(自身):#启动工作者
+    def __init__(自身):
         """启动工作者线程。"""
-        自身._队列=queue.Queue()#待跑操作
-        自身._工作者=threading.Thread(target=自身._跑,daemon=True)#工作者
-        自身._工作者.start()#启动
-    def _跑(自身):#工作者循环
+        自身.队列=queue.Queue()#待跑操作
+        自身.工作者=threading.Thread(target=自身.跑,daemon=True)#工作者
+        自身.工作者.start()#启动
+
+    def 跑(自身):
         """逐项执行入队操作。"""
         while True:#常驻
-            结果,操作=自身._队列.get()#取下一项
+            结果,操作=自身.队列.get()#取下一项
             try:#跑操作
                 结果.兑现(操作())#成功
             except BaseException as 错误:#失败
                 结果.拒绝(错误)#拒绝
             finally:#无论成败
-                自身._队列.task_done()#标记完成
-    def 入队(自身,操作):#排入串行链
+                自身.队列.task_done()#标记完成
+
+    def 入队(自身,操作):
         """把操作排到此前所有操作之后，返回本次结果。"""
-        结果=_操作任务()#本次结果
-        自身._队列.put((结果,操作))#入队
+        结果=操作任务()#本次结果
+        自身.队列.put((结果,操作))#入队
         return 结果#交给调用方
-    def 等待静止(自身):#排空队列
+
+    def 等待静止(自身):
         """等到已入队操作全部跑完。"""
-        自身._队列.join()#等 task_done
+        自身.队列.join()#等 task_done
 
-def 解开(值):#可等待则等待
-    """可等待则等待，否则原样返回。"""
-    if _是否thenable(值):#可等待
-        return 值.wait()#等待
-    return 值#同步值
-
-def 取配置项(配置,键):#读配置字段
-    """读取插件配置字段，缺席为 None。"""
+def 取配置项(配置,键):
+    """读取插件配置字段。配置为 dict。"""
     if 配置 is None:#无配置
         return None#无配置
-    if isinstance(配置,dict):#映射
-        return 配置.get(键)#映射键
-    return getattr(配置,键,None)#对象属性
+    return 配置[键] if 键 in 配置 else None#映射键
 
 def 是否映射(值):#用于diff的映射
     """解析后的值是否是用于 diff 的映射。"""
@@ -166,7 +161,7 @@ def 打补丁节点(文档,路径,当前,下一值):#叶级diff
             if 键 not in 下一值:#下一值没有
                 删路径(文档,list(路径)+[键])#下一值没有则删
         for 键 in 下一值:#下一值键
-            打补丁节点(文档,list(路径)+[键],当前.get(键),下一值[键])#递归打补丁
+            打补丁节点(文档,list(路径)+[键],当前[键] if 键 in 当前 else None,下一值[键])#递归打补丁
         return#映射处理完
     if not json深度相等(当前,下一值):#不相等
         设路径(文档,list(路径),下一值)#不相等则整块替换
@@ -200,14 +195,14 @@ def 解析规格(配置):#配置收成规格
     """从插件配置解析运行时 spec：显式 path 优先，否则文档落在 harness 主目录下的 settings.yaml。"""
     路径=取配置项(配置,'path')#显式路径
     if 路径 is None:#省略path
-        主目录=解开(解析主目录(取配置项(配置,'dshHome')))#解析harness主目录
+        主目录=解析主目录(取配置项(配置,'dshHome'))#解析harness主目录
         文件名=os.path.abspath(os.path.join(主目录,'settings.yaml'))#默认文档
     else:#显式path
         文件名=os.path.abspath(路径)#显式文档
     扩展=os.path.splitext(文件名)[1]#扩展名
-    格式=格式表.get(扩展)#按扩展名取格式
+    格式=格式表[扩展] if 扩展 in 格式表 else None#按扩展名取格式
     if 格式 is None:#不支持
-        raise Exception('settings-file: extension "'+扩展+'" is not supported (use .yaml, .yml, or .json)')#拒绝
+        raise 配置文件错误('settings-file: extension "'+扩展+'" is not supported (use .yaml, .yml, or .json)')#拒绝
     监视=取配置项(配置,'watch')#是否监视
     if 监视 is None:#省略watch
         监视=True#默认监视
@@ -256,7 +251,7 @@ class 文档监视器:#轮询监视
 
     def 发出(自身,事件,*位置参数):#扇出回调
         """同步调用该事件的全部回调。"""
-        for 回调 in list(自身.监听.get(事件,[])):#快照回调
+        for 回调 in list(自身.监听[事件]):#快照回调
             回调(*位置参数)#逐个调用
 
     def 循环(自身):#轮询主循环
@@ -296,13 +291,12 @@ class 文件设置提供方(设置提供方):#文件设置提供方
     def __init__(自身,ctx,配置):#构造提供方
         """程序化构造可能绕过 Schemastery 规范化；无论哪种路径都在一个显式步骤里解析同一套默认值。"""
         super().__init__(ctx)#登记提供方
-        自身.config=配置#原始配置
-        自身.配置=配置#中文别名
+        自身.配置=配置#原始配置
         自身.规格=解析规格(配置)#解析规格
         #上次成功解析或持久化的文档原文；文件缺失时为None。内容等于本缓存的监视器事件是空操作，这也是自我写入抑制。
         自身.文本=None#文档缓存，缺失为None
         #单一独占操作链：监视器重载与文档写入按队列顺序一次一个，因此写入永远不能从并发重载正忙着替换的文本渲染。
-        自身.操作链=_串行操作链()#互斥操作队列
+        自身.操作链=串行操作链()#互斥操作队列
         自身.已关闭=False#拆除门：拒绝新的监视器事件，让进行中的工作变成空操作
 
     @property#只读属性
@@ -333,10 +327,10 @@ class 文件设置提供方(设置提供方):#文件设置提供方
             #只有逃出提交路径的不变量违反才能拒绝刷新；保持操作队列存活并作为错误浮出，这样一次中毒提交不能静默永远结束热重载。
             """保持操作队列存活并作为错误浮出。"""
             try:#等待刷新
-                任务.wait()#等待刷新
+                任务.等待()#等待刷新
             except BaseException as 错误:#逃出提交的失败
-                自身.ctx.logger.error('settings-file: reload commit failed at %s',自身.规格.文件名)#记错误
-                自身.ctx.logger.error(错误)#记原因
+                自身.ctx.日志.错误('settings-file: reload commit failed at %s',自身.规格.文件名)#记错误
+                自身.ctx.日志.错误(错误)#记原因
         观察=threading.Thread(target=收住)#后台观察
         观察.daemon=True#不挡住退出
         观察.start()#启动
@@ -357,9 +351,9 @@ class 文件设置提供方(设置提供方):#文件设置提供方
                 自身.文本=''#记下空缓存
                 if not 自身.是否已关闭():#尚未拆除
                     自身.发布({})#发布空文档
-            解开(带文件锁(自身.规格.文件名,持锁))#跨进程锁
+            带文件锁(自身.规格.文件名,持锁)#跨进程锁
             return 自身.规格.文件名#返回路径
-        return 自身.入队(操作).wait()#上操作链并等待
+        return 自身.入队(操作).等待()#上操作链并等待
 
     def 加载(自身):#读当前文档
         """读取提供方当前的原始文档。"""
@@ -380,7 +374,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
         def 操作():#持久化一个段落
             """持久化一个段落。"""
             自身.持久化段落(命名空间,段落)#写盘
-        自身.入队(操作).wait()#上操作链并等待
+        自身.入队(操作).等待()#上操作链并等待
 
     def 持久化段落(自身,命名空间,段落):#读改写一段
         #写锁的独占创建需要父目录在原子写自己有机会创建它之前就存在。
@@ -396,9 +390,9 @@ class 文件设置提供方(设置提供方):#文件设置提供方
             else:#JSON
                 输出=自身.渲染json(命名空间,段落)#JSON整键替换
             #0600：可能持有个人值的文档永远不要对世界可读。
-            解开(原子写文件(自身.规格.文件名,输出,{'mode':0o600,'dirMode':0o700}))#原子写，0600勿对世界可读
+            原子写文件(自身.规格.文件名,输出,{'mode':0o600,'dirMode':0o700})#原子写，0600勿对世界可读
             自身.文本=输出#记下缓存
-        解开(带文件锁(自身.规格.文件名,持锁))#跨进程锁
+        带文件锁(自身.规格.文件名,持锁)#跨进程锁
 
     def _初始化(自身):#服务初始化
         #基类 init 加载并发布；那里的解析失败是启动失败：已有但无效的文档必须大声失败，绝不能被静默忽略或覆盖。
@@ -406,7 +400,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
         yield from super()._初始化()#基类加载
         监视器=None#未配置则为空
         if 自身.规格.监视:#已配置监视
-            路径=解开(规范化监视路径(自身.规格.文件名))#规范化监视路径
+            路径=规范化监视路径(自身.规格.文件名)#规范化监视路径
             轮询=max(1,min(自身.规格.防抖毫秒,10))#轮询间隔
             监视器=文档监视器(路径,自身.规格.防抖毫秒,轮询)#监视文档
             def 任意事件(*位置参数):#任意监视事件
@@ -422,8 +416,8 @@ class 文件设置提供方(设置提供方):#文件设置提供方
                 自身.排队刷新()#排队对齐
             def 监视错误(错误,*位置参数):#监视错误
                 """监视错误只记警告。"""
-                自身.ctx.logger.warn('settings-file: watcher error on %s',自身.规格.文件名)#记警告
-                自身.ctx.logger.warn(错误)#记原因
+                自身.ctx.日志.警告('settings-file: watcher error on %s',自身.规格.文件名)#记警告
+                自身.ctx.日志.警告(错误)#记原因
             监视器.on('all',任意事件)#任意事件
             监视器.on('ready',监视就绪)#监视就绪
             监视器.on('error',监视错误)#监视错误
@@ -450,7 +444,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
                     片段=type(错误).__name__#只有错误名
                 else:#有行列
                     片段=type(错误).__name__+' at line '+str(标记.line+1)+', column '+str(标记.column+1)#错误名加位置
-                raise Exception('settings-file: invalid document at '+自身.规格.文件名+': '+片段)#拒绝
+                raise 配置文件错误('settings-file: invalid document at '+自身.规格.文件名+': '+片段)#拒绝
             if 根 is None:#空文档
                 根={}#空则空对象
             else:#有根
@@ -473,8 +467,8 @@ class 文件设置提供方(设置提供方):#文件设置提供方
         except Exception as 错误:#对齐失败
             if getattr(错误,'code',None)=='INVARIANT':#不变量违反
                 raise 错误#不变量违反上浮
-            自身.ctx.logger.warn('settings-file: reload failed at %s; keeping the last good document',自身.规格.文件名)#记警告
-            自身.ctx.logger.warn(错误)#记原因
+            自身.ctx.日志.警告('settings-file: reload failed at %s; keeping the last good document',自身.规格.文件名)#记警告
+            自身.ctx.日志.警告(错误)#记原因
 
     def 从磁盘对齐(自身):#与磁盘对齐
         """把磁盘文本与缓存比较，有差则发布进 seam。缺失发布空文档；不可读或不可解析的文件抛错，因此每个调用方自选策略——重载警告并保住上次好文档，写入大声失败。"""
@@ -506,25 +500,25 @@ class 文件设置提供方(设置提供方):#文件设置提供方
             raise 错误#缓存应已解析成功
         if 文档 is None:#空根
             文档=CommentedMap()#空根改成映射
-            行们=[]#文档头注释
+            行列表=[]#文档头注释
             for 行 in 自身.文本.splitlines():#扫头注释
                 剥=行.strip()#去空白
                 if 剥.startswith('#'):#注释行
                     内容=剥[1:]#去掉井号
                     if 内容.startswith(' '):#惯例空格
                         内容=内容[1:]#去掉一个空格
-                    行们.append(内容)#收下
+                    行列表.append(内容)#收下
                 elif 剥=='':#空行
-                    if len(行们)==0:#开头空行
+                    if len(行列表)==0:#开头空行
                         continue#开头空行跳过
                     break#注释块结束
                 else:#正文
                     break#遇到正文
-            if len(行们)>0:#有头注释
-                文档.yaml_set_start_comment('\n'.join(行们))#挂上头注释
+            if len(行列表)>0:#有头注释
+                文档.yaml_set_start_comment('\n'.join(行列表))#挂上头注释
         根=转普通(文档)#转JS根
         if 是否映射(根):#映射根
-            当前段=根.get(命名空间)#已存段落
+            当前段=根[命名空间] if 命名空间 in 根 else None#已存段落
         else:#非映射根
             当前段=None#非映射根
         打补丁节点(文档,[命名空间],当前段,段落)#叶级diff保注释

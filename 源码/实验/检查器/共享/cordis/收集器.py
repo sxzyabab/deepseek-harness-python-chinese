@@ -2,7 +2,7 @@
 
 对齐上游 `shared/cordis/collector.ts`。公开面仅中文名。
 """
-from ..json import json字节长度#字节长度
+from ..json import json字节长度,检查器错误#字节长度|本包错误
 from .快照 import cordis树模式版本#模式版本
 from .对象注册表 import 领域对象注册表#对象注册表
 
@@ -28,9 +28,9 @@ class cordis树收集器:#树收集器
 
     def 快照(自身):#捕获快照
         """捕获当前可达的 Context/Fiber 树。"""
-        收集=收集上下文们(自身.根)#收集可达Context
+        收集=收集上下文图(自身.根)#收集可达Context
         树=收集['root']#根信息
-        对象们=自身.objects.开始()#开启世代
+        对象表=自身.objects.开始()#开启世代
         状态={'nodeCount':0,'truncated':收集['truncated']}#节点计数与截断
 
         def 上下文节点(信息):#投影Context
@@ -39,7 +39,7 @@ class cordis树收集器:#树收集器
                 状态['truncated']=True#记截断
                 return None#放弃本节点
             状态['nodeCount']+=1#计入
-            节点={'kind':'context','objectHandle':对象们.保留(信息['value'])['handle'],'children':[]}#可变Context
+            节点={'kind':'context','objectHandle':对象表.保留(信息['value'])['handle'],'children':[]}#可变Context
             for 子 in 信息['children']:#逐子
                 if 子.get('fiber') is not None and getattr(子['fiber'],'ctx',None) is 子['value']:#由Fiber拥有
                     投影=纤程节点(子['fiber'],子)#投影Fiber
@@ -60,11 +60,11 @@ class cordis树收集器:#树收集器
                 return None#放弃
             状态['nodeCount']+=1#计入Fiber
             上下文=上下文节点(拥有)#投影拥有的Context
-            return {'kind':'fiber','objectHandle':对象们.保留(纤程)['handle'],'uid':纤程.uid,'children':[上下文]}#Fiber
+            return {'kind':'fiber','objectHandle':对象表.保留(纤程)['handle'],'uid':纤程.uid,'children':[上下文]}#Fiber
 
         根节点=上下文节点(树)#投影根
         if 根节点 is None:#根必须留下
-            raise Exception('inspector: maxNodes cannot retain the root Context')#英文诊断
+            raise 检查器错误('inspector: maxNodes cannot retain the root Context')#英文诊断
         快照={'schemaVersion':cordis树模式版本,'revision':自身.修订+1,'objectRegistryId':自身.objects.id,'root':根节点,'truncated':状态['truncated']}#初稿
         自身.修订+=1#递增修订
         while json字节长度(快照)>自身.上限.maxBytes:#超字节则剪枝
@@ -72,20 +72,20 @@ class cordis树收集器:#树收集器
             if len(移除)==0:#无可剪
                 break#结束
             for 句柄 in 移除:#释放句柄
-                对象们.释放(句柄)#释放
+                对象表.释放(句柄)#释放
             快照={**快照,'truncated':True}#标记截断
         if json字节长度(快照)>自身.上限.maxBytes:#仍超限
-            raise Exception('inspector: Cordis root exceeds the source-frame byte limit')#英文诊断
-        对象们.提交()#提交世代
+            raise 检查器错误('inspector: Cordis root exceeds the source-frame byte limit')#英文诊断
+        对象表.提交()#提交世代
         return 快照#快照
 
     def 关闭(自身):#关闭收集器
-        """释放界域全局解析器与每一个保留对象。"""
+        """拆除界域全局解析器与每一个保留对象。"""
         自身.objects.关闭()#关闭注册表
 
-def 收集上下文们(根):#收集可达Context
+def 收集上下文图(根):#收集可达Context
     """收集可达 Context。"""
-    上下文们={}#已见Context
+    上下文图={}#已见Context
     截断={'v':False}#是否因深度截断
 
     def 确保(候选,深度=0):#确保入图
@@ -96,29 +96,29 @@ def 收集上下文们(根):#收集可达Context
         值=去阴影(候选)#去阴影
         if not _是上下文(值):#非Context
             return None#放弃
-        已有=上下文们.get(id(值))#已有则复用
+        已有=上下文图.get(id(值))#已有则复用
         if 已有 is not None:#复用
             return 已有#复用
         if 值 is 根:#根本身
             信息=描述上下文(值)#描述根
-            上下文们[id(值)]=信息#入图
+            上下文图[id(值)]=信息#入图
             return 信息#根信息
         原型=去阴影(getattr(type(值),'__mro__',[None])[1] if False else getattr(值,'__class__',None))#父近似
         父=确保(getattr(值,'parent',原型),深度+1) if 值 is not 根 else None#确保父
         if 值 is not 根 and 父 is None:#父失败
             信息=描述上下文(值)#仍描述
-            上下文们[id(值)]=信息#入图
+            上下文图[id(值)]=信息#入图
             return 信息#本信息
         信息=描述上下文(值)#描述本Context
-        上下文们[id(值)]=信息#入图
+        上下文图[id(值)]=信息#入图
         if 父 is not None:#挂到父
             父['children'].append(信息)#挂到父
         return 信息#本信息
 
     根信息=确保(根)#确保根
-    注册表=getattr(根,'registry',None)#运行时注册表
+    注册表=getattr(根,'注册表',None)#运行时注册表
     if 注册表 is not None:#扫运行时
-        for 运行时 in getattr(注册表,'values',lambda: [])():#扫运行时
+        for 运行时 in 注册表.values():#扫运行时
             for 纤程 in getattr(运行时,'fibers',[]):#扫Fiber
                 if getattr(纤程,'uid',None) is None:#无uid跳过
                     continue#跳过
@@ -128,7 +128,7 @@ def 收集上下文们(根):#收集可达Context
 
 def 描述上下文(值):#描述单个Context
     """描述单个 Context。"""
-    return {'value':值,'children':[],'fiber':getattr(值,'fiber',None)}#初始信息
+    return {'value':值,'children':[],'fiber':getattr(值,'纤程',None)}#初始信息
 
 def 去阴影(值):#剥Cordis阴影包装
     """剥 Cordis 阴影包装。"""
@@ -140,11 +140,12 @@ def 去阴影(值):#剥Cordis阴影包装
 
 def _是上下文(值):#是否Context
     """是否 Context。"""
-    return 值 is not None and hasattr(值,'registry')#启发式
+    return 值 is not None and hasattr(值,'注册表')#启发式
 
 def 剪最末(上下文):#剪最末叶子并返回释放句柄
     """剪最末叶子并返回释放句柄。"""
-    if not 上下文.get('children'):#无子可剪
+    子节点列表=上下文.get('children')#子节点列表
+    if 子节点列表 is None or len(子节点列表)==0:#无子可剪，判的是 length
         return []#空
     子=上下文['children'][-1]#最末子
     if 子.get('kind')=='context':#Context子

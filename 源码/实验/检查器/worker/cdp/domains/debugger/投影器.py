@@ -21,7 +21,7 @@ def 脚本已解析事件(realm,脚本):#脚本已解析事件
         'endColumn':脚本['endColumn'],#结束列
         'executionContextId':上下文,#执行上下文
         'hash':脚本.get('hash',''),#哈希
-        'buildId':脚本.get('buildId') or '',#构建id
+        'buildId':'' if 脚本.get('buildId') is None else 脚本['buildId'],#??空串，空构建 id 合法
     }#参数结束
     if 'sourceMapUrl' in 脚本:#源映射
         参数['sourceMapURL']=脚本['sourceMapUrl']#写入

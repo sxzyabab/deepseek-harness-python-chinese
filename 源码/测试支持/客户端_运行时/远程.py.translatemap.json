@@ -1,0 +1,22 @@
+{
+    "cause":"原因",
+    "code":"码",
+    "details":"细节",
+    "drive":"驱动",
+    "emit":"派发",
+    "error":"错误",
+    "event":"事件",
+    "home":"主目录",
+    "host":"宿主",
+    "loopback":"回环",
+    "message":"消息",
+    "mount":"挂载",
+    "namespace":"命名空间",
+    "on":"订阅",
+    "protocol":"协议",
+    "remote":"远程",
+    "self":"自身",
+    "subscribe":"订阅",
+    "subscription":"订阅表",
+    "test":"测试"
+}

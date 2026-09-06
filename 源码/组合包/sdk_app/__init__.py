@@ -40,7 +40,7 @@ def 应用(上下文,配置对象=None):#安装插件
     def 动作():#解析成功动作
         """stdin EOF 触发有界关闭并发布启动就绪。"""
         标准输入结束退出(上下文,'sdk-app.stdin')#stdin EOF 触发有界关闭
-        上下文.provide(SDK应用启动服务,{'accepted':True})#发布启动就绪
+        上下文.提供服务(SDK应用启动服务,{'accepted':True})#发布启动就绪
     程序.action(动作)#登记动作
     解析命令行(上下文,程序)#解析并执行命令行
 

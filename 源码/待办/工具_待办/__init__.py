@@ -10,7 +10,7 @@ from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .类型 import 待办条目,待办状态#再导出类型面
 
-__all__=['名称','注入','配置','应用','待办条目','待办状态']#仅中文公开名
+__all__=['名称','注入','配置','应用','待办条目','待办状态','待办错误']#仅中文公开名
 
 名称='tool-todo'#Cordis插件名（字面量）
 注入=['tools']#依赖工具服务
@@ -22,21 +22,11 @@ __all__=['名称','注入','配置','应用','待办条目','待办状态']#仅�
     'allowParallelInProgress':布尔字段(可空=False),#是否允许多条 in_progress
 }#配置模式结束
 
-def 取字段(对象,键,缺省=None):#从映射或对象读字段
-    """从映射或对象读字段，缺席为缺省。"""
-    if 对象 is None:#空对象
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        if 键 in 对象:#自有键
-            return 对象[键]#映射键
-        return 缺省#缺席
-    return getattr(对象,键,缺省)#对象属性
-
-def 解开(值):#承诺则等待否则原样
-    """承诺则等待，否则原样返回。"""
-    if 是否thenable(值):#可等待
-        return 值.等待()#等待承诺
-    return 值#同步值
+class 待办错误(Exception):#本包异常基类
+    """待办工具入参或执行失败。"""
+    def __init__(自身,消息):#记下英文消息
+        """用原样英文消息构造。"""
+        super().__init__(消息)#英文消息
 
 def 描述(允许并行):#按政策拼工具描述
     """一次激活面向模型的描述。只有活跃状态那句随并行政策变化。"""
@@ -48,23 +38,23 @@ def 描述(允许并行):#按政策拼工具描述
 
 def 转待办列表(原始,允许并行):#校验并收成规范列表
     """校验参数模式表达不了的值约束，收成规范待办列表：修剪后非空且唯一的 content；未开并行时至多一条 in_progress。"""
-    待办们=[]#规范列表
+    待办列表=[]#规范列表
     已见=set()#已见内容
     活跃=0#in_progress 条数
     for 条目 in 原始:#逐条
-        内容=取字段(条目,'content').strip()#修剪
+        内容=条目['content'].strip()#修剪
         if len(内容)==0:#空内容
-            raise Exception('invalid todo: `content` must be a non-empty string')#空内容非法
+            raise 待办错误('invalid todo: `content` must be a non-empty string')#空内容非法
         if 内容 in 已见:#重复
-            raise Exception('invalid todos: duplicate content '+json.dumps(内容,ensure_ascii=False))#重复内容
+            raise 待办错误('invalid todos: duplicate content '+json.dumps(内容,ensure_ascii=False,separators=(',',':'),allow_nan=False))#重复内容
         已见.add(内容)#记下
-        状态=取字段(条目,'status')#生命周期
+        状态=条目['status']#生命周期
         if 状态=='in_progress':#正在做
             活跃+=1#计数
-        待办们.append(待办条目(内容,状态))#收下规范条
+        待办列表.append(待办条目(内容,状态))#收下规范条
     if (not 允许并行) and 活跃>1:#单活却标了多条
-        raise Exception('invalid todos: at most one task may be in_progress (got '+str(活跃)+')')#拒绝
-    return 待办们#规范列表
+        raise 待办错误('invalid todos: at most one task may be in_progress (got '+str(活跃)+')')#拒绝
+    return 待办列表#规范列表
 
 def 待办投影模式():#todos 投影的线上模式
     """整表或首次写入前的 null。会话投影缝尚未迁完时仍按同一形状登记。"""
@@ -87,7 +77,7 @@ def 待办投影模式():#todos 投影的线上模式
 
 def 应用(上下文,配置值):#注册工具与可选投影单元
     """在 ctx.tools 上登记 todo_write；组合了会话投影缝时再登记 todos 单元。"""
-    允许并行=取字段(配置值,'allowParallelInProgress')#部署政策
+    允许并行=配置值['allowParallelInProgress']#部署政策
     def 投影安装(投影上下文,*剩余):#有投影注册表才激活
         """单元子插件只在投影注册表被组合时激活。折叠：最新整表，下一 turn/start 清空。"""
         def 初始():#首次状态
@@ -95,9 +85,9 @@ def 应用(上下文,配置值):#注册工具与可选投影单元
             return None#尚未写入
         def 折叠(状态,事件):#按事件折叠
             """最新整表；turn/start 清空；其余保持同一引用。"""
-            种类=取字段(事件,'type')#事件类型
+            种类=事件['type']#事件类型
             if 种类=='todo/write':#整表替换
-                return 取字段(取字段(事件,'data'),'todos')#后写覆盖
+                return 事件['data']['todos']#后写覆盖
             if 种类=='turn/start':#新轮次
                 return None#清空清单
             return 状态#保持
@@ -112,44 +102,44 @@ def 应用(上下文,配置值):#注册工具与可选投影单元
             'view':视图,#视图
             'stateVersion':2,#状态版本
         })#登记结束
-    上下文.inject(['sessionProjections'],投影安装)#等到投影缝
+    上下文.依赖启动(['sessionProjections'],投影安装)#等到投影缝
     def 渲染(参数,值):#模型看到计数摘要
         """把结构化结果渲染成一条计数文本。"""
-        计数=取字段(值,'counts')#三态计数
-        文本='Updated todo list: '+str(取字段(计数,'pending'))+' pending, '+str(取字段(计数,'inProgress'))+' in progress, '+str(取字段(计数,'completed'))+' completed.'#摘要
+        计数=值['counts']#三态计数
+        文本='Updated todo list: '+str(计数['pending'])+' pending, '+str(计数['inProgress'])+' in progress, '+str(计数['completed'])+' completed.'#摘要
         return [{'type':'text','text':文本}]#单个文本块
     def 执行(参数,执行上下文):#整表替换
         """校验后写入所属智能体会话。"""
-        待办们=转待办列表(取字段(参数,'todos'),允许并行)#规范列表
-        智能体=取字段(执行上下文,'agent')#调用方智能体
+        待办列表=转待办列表(参数['todos'],允许并行)#规范列表
+        智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用方智能体
         if 智能体 is None:#非智能体调用方
-            raise Exception('todo_write requires an owning agent session')#拒绝而不是静默空操作
-        解开(智能体.session.append('todo/write',{'todos':待办们}))#追加整表快照
+            raise 待办错误('todo_write requires an owning agent session')#拒绝而不是静默空操作
+        智能体.session.append('todo/write',{'todos':待办列表})#追加整表快照
         def 计数(状态):#按状态计数
             """数某一状态的条数。"""
             数=0#计数
-            for 条 in 待办们:#逐条
-                if 取字段(条,'status')==状态:#命中
+            for 条 in 待办列表:#逐条
+                if 条['status']==状态:#命中
                     数+=1#加一
             return 数#条数
         投影=[]#回给模型的列表
-        for 条 in 待办们:#逐条拷贝
-            投影.append({'content':取字段(条,'content'),'status':取字段(条,'status')})#字段拷贝
-        return 已兑现({#结构化结果
+        for 条 in 待办列表:#逐条拷贝
+            投影.append({'content':条['content'],'status':条['status']})#字段拷贝
+        return {#结构化结果
             'todos':投影,#整表
             'counts':{#三态计数
                 'pending':计数('pending'),#未开始
                 'inProgress':计数('in_progress'),#进行中
                 'completed':计数('completed'),#已完成
             },#计数结束
-        })#兑现结束
+        }#结构化结果
     def 呈现调用(参数):#UI卡片
         """调用时通用卡片。"""
         return {#通用卡片
             'card':'generic',#通用卡片
             'title':'Update todo list',#标题
             'kind':'other',#其它种类
-            'rawInput':取字段(参数,'todos'),#原始输入
+            'rawInput':参数['todos'],#原始输入
         }#卡片结束
     待办工具=定义工具({#面向模型的 todo_write
         'name':'todo_write',#工具名
@@ -209,3 +199,8 @@ def 应用(上下文,配置值):#注册工具与可选投影单元
         'presentCall':呈现调用,#UI卡片
     })#定义结束
     上下文.tools.登记(待办工具)#挂到工具注册表
+
+name=名称#Cordis插件名
+inject=注入#Cordis依赖声明
+Config=配置#Cordis配置模式
+apply=应用#Cordis插件入口

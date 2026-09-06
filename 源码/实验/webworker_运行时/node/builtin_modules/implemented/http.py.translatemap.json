@@ -1,0 +1,18 @@
+{
+    "codes":"码表",
+    "create":"创建",
+    "default":"默认",
+    "error":"错误",
+    "get":"获取",
+    "http":"超文本",
+    "listen":"监听",
+    "listener":"监听器",
+    "module":"模块",
+    "port":"端口",
+    "request":"请求",
+    "response":"响应",
+    "server":"服务器",
+    "status":"状态",
+    "upgrade":"升级",
+    "when":"当"
+}

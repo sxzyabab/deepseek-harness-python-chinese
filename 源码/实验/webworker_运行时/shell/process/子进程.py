@@ -41,7 +41,7 @@ def 运行shell进程(启动,作用域):#运行进程命令
 
     def 收消息(事件):#监听宿主消息
         """处理宿主帧。"""
-        帧=事件['data'] if isinstance(事件,dict) else getattr(事件,'data',事件)#入站帧
+        帧=事件.data#MessageEvent 对象载荷
         if not isinstance(帧,dict):#非字典
             return#忽略
         if 帧.get('t')=='shell-signal':#终止信号
@@ -128,7 +128,7 @@ def 运行shell进程(启动,作用域):#运行进程命令
             结果=运行shell命令(启动['script'],选项)#脚本
         作用域['postMessage']({'t':'shell-exit','code':结果['exitCode']})#报告退出
         作用域['close']()#关闭worker
-    except Exception as 错误:#失败
+    except Exception as 错误:#被模拟命令体什么都可能抛，契约未定所以收不窄
         作用域['postMessage']({'t':'shell-out','stream':'stderr','text':f'bash: {错误}\n'})#写诊断
         作用域['postMessage']({'t':'shell-exit','code':1})#失败退出码
         作用域['close']()#关闭worker

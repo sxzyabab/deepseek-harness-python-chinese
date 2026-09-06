@@ -20,42 +20,38 @@ class 远程错误(Exception):#远程错误
 class 测试远程:#Remote 测试替身
     """转发事件路径的 Remote 服务测试替身。"""
 
-    def __init__(自身,上下文,命名空间们=None):#构造
+    def __init__(自身,上下文,命名空间表=None):#构造
         """注册为 ctx.remote，并为脚本化命名空间各提供服务。"""
-        if 命名空间们 is None:#缺省
-            命名空间们={}#空映射
+        if 命名空间表 is None:#缺省
+            命名空间表={}#空映射
         自身._subscriptions={}#事件订阅表
         自身.$host={'home':None,'isLoopback':True}#Host 事实
-        for 名 in 命名空间们:#校验命名空间名
+        for 名 in 命名空间表:#校验命名空间名
             if 名 in ('emit','$on','$mount','subscriptions','$host') or hasattr(测试远程,名):#会遮蔽
                 raise TypeError(f'TestRemote: scripted namespace "{名}" would shadow the double\'s own member')#英文诊断
-        for 名,面 in 命名空间们.items():#挂命名空间面
+        for 名,面 in 命名空间表.items():#挂命名空间面
             setattr(自身,名,面)#挂面
-        上下文.provide('remote',自身)#提供 remote
-        for 名,面 in 命名空间们.items():#提供子面
-            上下文.provide(f'remote.{名}',面)#提供子面
+        上下文.提供服务('remote',自身)#提供 remote
+        for 名,面 in 命名空间表.items():#提供子面
+            上下文.提供服务(f'remote.{名}',面)#提供子面
 
     def emit(自身,事件,参数):#投递事件
         """向订阅者投递一次转发的 host 事件。"""
-        监听们=自身._subscriptions.get(事件)#取订阅者
-        if 监听们 is None:#无订阅
+        监听集合=自身._subscriptions.get(事件)#取订阅者
+        if 监听集合 is None:#无订阅
             return#结束
-        for 监听 in list(监听们):#派发
+        for 监听 in list(监听集合):#派发
             监听(*参数)#调用
 
     def $on(自身,事件,监听):#订阅
         """订阅一次转发的 host 事件。"""
-        监听们=自身._subscriptions.setdefault(事件,set())#取或建集合
-        监听们.add(监听)#加入
+        监听集合=自身._subscriptions.setdefault(事件,set())#取或建集合
+        监听集合.add(监听)#加入
         def 退订():#退订
             """移除本订阅。"""
-            监听们.discard(监听)#退订
+            监听集合.discard(监听)#退订
         return 退订#退订器
 
     def $mount(自身):#拒绝挂载
         """生成命名空间挂载，本替身不支持。"""
-        raise Error('TestRemote: $mount needs the real Client Remote service')#英文诊断
-
-Error=Exception#错误别名
-TestRemote=测试远程#上游名
-RemoteError=远程错误#上游名
+        raise Exception('TestRemote: $mount needs the real Client Remote service')#英文诊断

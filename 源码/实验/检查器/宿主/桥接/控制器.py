@@ -3,6 +3,7 @@
 对齐上游 `host/bridge/controller.ts`。公开面仅中文名。
 """
 import os,secrets,uuid#环境与随机
+from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from ..检视.网络 import 网络主题,安装请求观察器#fetch采集
 from .传输 import 宿主检查器源#Host源
@@ -37,7 +38,7 @@ __all__=[#仅中文公开名
 def 自然数(值,名,允许零=False):#校验自然数
     """校验自然数。"""
     if not isinstance(值,int) or isinstance(值,bool) or 值<(0 if 允许零 else 1):#非法
-        raise Exception(f'inspector: {名} must be {"a non-negative" if 允许零 else "a positive"} safe integer')#拒绝
+        raise 检查器错误(f'inspector: {名} must be {"a non-negative" if 允许零 else "a positive"} safe integer')#拒绝
     return 值#返回
 
 class 检查器选项:#检查器选项
@@ -71,19 +72,13 @@ class 检查器句柄:#检查器句柄
         自身.source=source#观测连接
         自身.关闭=关闭#关闭函数
 
-    def close(自身):#关闭
-        """停止采集并等待 Worker 释放每个 socket 与 V8 session。"""
-        return 自身.关闭()#关闭
-
 def 解析检查器选项(选项=None):#解析选项
     """解析并校验全部随部署变化的 Inspector 选择。"""
     if 选项 is None:#缺省
         选项={}#空
-    def 取(键,缺省):#取字段
-        """取字段。"""
-        if isinstance(选项,dict):#映射
-            return 选项[键] if 键 in 选项 else 缺省#键
-        return getattr(选项,键,缺省)#属性
+    def 取(键,缺省):#取dict字段
+        """选项是 dict。"""
+        return 选项[键] if 键 in 选项 else 缺省#键
     规格=检查器规格(#组装规格
         host=取('host','127.0.0.1'),#主机
         port=自然数(取('port',0),'port',True),#端口可零
@@ -111,42 +106,42 @@ def 解析检查器选项(选项=None):#解析选项
         maxDisconnectedCordisTrees=自然数(取('maxDisconnectedCordisTrees',默认最大断联cordis树),'maxDisconnectedCordisTrees',True),#断联树
     )#规格结束
     if 规格.port>65535:#端口上界
-        raise Exception('inspector: port must not exceed 65535')#拒绝
+        raise 检查器错误('inspector: port must not exceed 65535')#拒绝
     最大编码分块=(规格.maxBodyChunkBytes+2)//3*4+4096#最大编码分块
     if 最大编码分块>规格.maxSourceFrameBytes:#帧装不下分块
-        raise Exception('inspector: maxSourceFrameBytes cannot carry one base64 body chunk')#拒绝
+        raise 检查器错误('inspector: maxSourceFrameBytes cannot carry one base64 body chunk')#拒绝
     if 规格.clientReconnectMaxMs<规格.clientReconnectBaseMs:#重连区间非法
-        raise Exception('inspector: clientReconnectMaxMs must be at least clientReconnectBaseMs')#拒绝
+        raise 检查器错误('inspector: clientReconnectMaxMs must be at least clientReconnectBaseMs')#拒绝
     from urllib.parse import urlparse#校验origin
     for 来源 in 规格.clientOrigins:#校验每个origin
         解析=urlparse(来源)#解析
         规范=f'{解析.scheme}://{解析.netloc}'#规范
         if 规范!=来源:#必须规范
-            raise Exception(f'inspector: client origin must be canonical: {来源}')#拒绝
+            raise 检查器错误(f'inspector: client origin must be canonical: {来源}')#拒绝
     return 规格#返回规格
 
 def 派生工作者(引导):#派生Worker
     """派生 Worker；具体运行时由宿主环境提供 MessageChannel/Worker。"""
-    raise Exception('inspector: Worker spawn binding is environment-specific')#需运行时绑定
+    raise 检查器错误('inspector: Worker spawn binding is environment-specific')#需运行时绑定
 
 def 关闭检查器(生命周期,源,请求观察,超时毫秒):#关闭检查器
     """关闭检查器。"""
-    失败们=[]#失败收集
+    失败列表=[]#失败收集
     try:#停止采集
         if 请求观察 is not None:#有观察器
             请求观察.停止()#停止
-    except Exception as 错误:#失败
-        失败们.append(错误)#收集
+    except Exception as 错误:#请求观察.停止 可能抛采集清理错误，契约未定所以收不窄
+        失败列表.append(错误)#收集
     try:#关闭源
         源.关闭()#关闭
-    except Exception as 错误:#失败
-        失败们.append(错误)#收集
+    except Exception as 错误:#源.关闭 可能抛传输/套接字错误，契约未定所以收不窄
+        失败列表.append(错误)#收集
     try:#停止生命周期
         生命周期.停止(超时毫秒)#停止
-    except Exception as 错误:#失败
-        失败们.append(错误)#收集
-    if len(失败们)>0:#汇总抛出
-        raise Exception('inspector: shutdown failed') from 失败们[0]#汇总
+    except Exception as 错误:#生命周期.停止 可能抛超时/Worker 错误，契约未定所以收不窄
+        失败列表.append(错误)#收集
+    if len(失败列表)>0:#汇总抛出
+        raise 检查器错误('inspector: shutdown failed') from 失败列表[0]#汇总
 
 def 启动检查器(选项=None):#启动检查器
     """启动 Worker、创建 Host source，并默认安装完整 fetch 采集。"""
@@ -203,12 +198,12 @@ def 启动检查器(选项=None):#启动检查器
         """意外停止清理。"""
         try:#关闭源
             源.关闭()#尽力关闭
-        except Exception as 关闭错误:#关闭失败
+        except Exception as 关闭错误:#源.关闭 在意外路径上可能抛传输错误，契约未定所以收不窄
             print('dsh inspector: Host source cleanup after Worker failure failed',关闭错误)#记录
         if 请求观察 is not None:#停止采集
             try:#停止
                 请求观察.停止()#停止
-            except Exception as 停止错误:#失败
+            except Exception as 停止错误:#请求观察.停止 在意外路径上可能抛，契约未定所以收不窄
                 print('dsh inspector: fetch cleanup after Worker failure failed',停止错误)#记录
         print('dsh inspector: Worker stopped unexpectedly',错误)#记录意外停止
     生命周期.标记运行(意外)#markRunning

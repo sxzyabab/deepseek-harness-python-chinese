@@ -1,0 +1,20 @@
+{
+    "assert":"断言",
+    "code":"代码",
+    "const":"常量",
+    "doc":"文档",
+    "enum":"枚举",
+    "error":"错误",
+    "indent":"缩进",
+    "json":"json",
+    "key":"键",
+    "mode":"模式",
+    "name":"名称",
+    "render":"渲染",
+    "schema":"模式",
+    "sdk":"sdk",
+    "tool":"工具",
+    "ts":"ts",
+    "type":"类型",
+    "union":"联合"
+}

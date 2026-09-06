@@ -1,0 +1,16 @@
+{
+    "blob":"二进制块",
+    "connection":"连接",
+    "delete":"删除",
+    "dispose":"拆除",
+    "exists":"存在",
+    "get":"获取",
+    "key":"键",
+    "list":"列出",
+    "put":"放入",
+    "row":"行",
+    "self":"自身",
+    "sqlite":"斯莱特",
+    "table":"表",
+    "unit":"单元"
+}

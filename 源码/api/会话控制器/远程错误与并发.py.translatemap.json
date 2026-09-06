@@ -1,0 +1,15 @@
+{
+    "abort":"中止",
+    "concurrent":"并发",
+    "error":"错误",
+    "execute":"执行",
+    "field":"字段",
+    "future":"结果",
+    "message":"消息",
+    "remote":"远程",
+    "self":"自身",
+    "signal":"信号",
+    "task":"任务",
+    "thread":"线程",
+    "wait":"等待"
+}

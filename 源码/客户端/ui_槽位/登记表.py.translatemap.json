@@ -1,0 +1,9 @@
+{
+    "SlotCore":"槽位登记表",
+    "resolveSlotLabel":"解析槽标签",
+    "SlotError":"槽位错误",
+    "entries":"取条目列表",
+    "entriesOfSlot":"取槽位条目",
+    "dispose":"拆除",
+    "store":"存储"
+}

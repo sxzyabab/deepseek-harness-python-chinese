@@ -42,17 +42,17 @@ class ACL写入授权:#一份写入SID的授权物化
 
     def 拆除(自身):#拆除授权
         """撤销每份可撤销授权并释放 SID；报告每次清理失败。"""
-        失败们=[]#清理失败
+        失败列表=[]#清理失败
         for 路径 in 自身._revocablePaths:#逐条可撤销路径
             try:#撤销可能失败
                 撤销写入(自身.api,路径,自身._sidPtr)#去掉ACE
             except BaseException as 错误:#撤销失败
-                失败们.append(错误)#记下，继续其余
+                失败列表.append(错误)#记下，继续其余
         try:#释放SID
             释放=自身.api.localFree(自身._sidPtr)#LocalFree
             if not 是否空指针(释放):#非空返回表示失败
                 抛上次错误(自身.api,'LocalFree','write SID')#抛出
         except BaseException as 错误:#释放失败
-            失败们.append(错误)#记下
-        if len(失败们)>0:#有清理失败
-            raise 聚合错误(失败们,'AclWriteGrant dispose completed with '+str(len(失败们))+' cleanup failure(s)')#汇总抛出
+            失败列表.append(错误)#记下
+        if len(失败列表)>0:#有清理失败
+            raise 聚合错误(失败列表,'AclWriteGrant dispose completed with '+str(len(失败列表))+' cleanup failure(s)')#汇总抛出

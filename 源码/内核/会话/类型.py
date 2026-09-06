@@ -4,7 +4,7 @@ from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结�
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER
 
 __all__=[#仅中文公开名
-    '会话标识','会话格式版本','是否安全整数','会话头字段','会话头',
+    '会话标识','会话格式版本','安全整数上限','会话头字段','会话头',
     '创建会话选项','恢复会话选项','准备会话选项',
     '智能体取消原因','轮次结束取消原因','轮次结束原因映射','轮次结束原因',
     '待办状态','待办条目','纪元请求头','请求上下文','请求头原因',
@@ -16,22 +16,6 @@ def 会话标识(标识):#品牌会话 id
     return 标识#编译期品牌在 Python 中无运行时成本
 
 会话格式版本=0#磁盘格式版本，未发布期间钉在 0
-
-def 是否整数(值):#对齐 JS Number.isInteger
-    """对齐 JS Number.isInteger，排除布尔。"""
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是数字
-    if isinstance(值,int):#整数
-        return True#整数
-    if isinstance(值,float):#浮点
-        return 值.is_integer()#整值浮点
-    return False#其它类型
-
-def 是否安全整数(值):#对齐 JS Number.isSafeInteger
-    """对齐 JS Number.isSafeInteger。"""
-    if not 是否整数(值):#不是整数
-        return False#不是整数
-    return abs(值)<=安全整数上限#落在安全范围
 
 #不可变的已校验存储元数据，放在对话事件日志之外（对齐上游 SessionHeader；本包拥有，持久化只再导出）。
 会话头字段=(#会话头字段键表

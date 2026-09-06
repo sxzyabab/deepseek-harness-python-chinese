@@ -3,11 +3,12 @@
 对齐上游 `host/inspection/network.ts`。公开面仅中文名。
 """
 import base64,threading#编码与并发
-from ...共享.桥接.消息.网络 import 请求主题们#fetch主题常量
+from ...共享.json import 检查器错误#本包错误
+from ...共享.桥接.消息.网络 import 请求主题列表#fetch主题常量
 
 __all__=['网络主题','请求采集选项','请求观察器','安装请求观察器']#仅中文公开名
 
-网络主题=请求主题们#网络主题
+网络主题=请求主题列表#网络主题
 
 class 请求采集选项:#fetch采集选项
     """请求与响应 clone 采集的字节上限。"""
@@ -29,7 +30,7 @@ def 渲染错误(错误):#渲染错误
         return f'{type(错误).__name__}: {错误}'#标准错误
     try:#字符串化
         return str(错误)#转串
-    except Exception:#不可渲染
+    except Exception:#错误对象的 str/repr 什么都可能抛，契约未定所以收不窄
         return 'unrenderable fetch error'#兜底文案
 
 def 头条目(头):#头条目
@@ -55,7 +56,7 @@ def 采集体(体,上限,分块上限,中止事件,发射):#采集body
         if hasattr(体,'read'):#类文件
             while not 中止事件.is_set():#未中止
                 块=体.read(分块上限)#读块
-                if not 块:#结束
+                if 块 is None or len(块)==0:#读到空即 EOF，判的是 length
                     break#结束
                 剩余=上限-已采#剩余额度
                 if 剩余<=0:#超限
@@ -67,7 +68,7 @@ def 采集体(体,上限,分块上限,中止事件,发射):#采集body
         if 中止事件.is_set():#中止中
             return {'capturedBytes':已采,'truncated':截断,'captureError':'inspector stopped during body capture'}#带错误
         return {'capturedBytes':已采,'truncated':截断}#正常
-    except Exception as 错误:#读取失败
+    except Exception as 错误:#body.read 可能抛 OSError、ValueError、自定义流错误，契约未定所以收不窄
         return {'capturedBytes':已采,'truncated':True,'captureError':渲染错误(错误)}#错误结果
 
 def 安装请求观察器(发布器,选项):#安装fetch观察器
@@ -77,7 +78,7 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
     if not callable(原始):#不可用
         原始=getattr(__import__('builtins'),'fetch',None)#再试
     if not callable(原始):#仍不可用
-        raise Exception('inspector: globalThis.fetch is unavailable')#不可用
+        raise 检查器错误('inspector: globalThis.fetch is unavailable')#不可用
     中止=threading.Event()#停止信号
     挂起=set()#挂起读取
     序号={'n':0}#请求序号
@@ -92,29 +93,47 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
         if hasattr(任务,'add_done_callback'):#Future
             任务.add_done_callback(收尾)#回调
         else:#线程
-            threading.Thread(target=lambda:(任务,收尾()),daemon=True).start()#近似
+            def 近似收尾():#非 Future 的近似收尾
+                """保留任务引用后立即收尾。"""
+                任务#保留引用
+                收尾()#收尾
+            threading.Thread(target=近似收尾,daemon=True).start()#近似
 
     def 观察请求(输入,初始化=None):#包装fetch
         """包装 fetch。"""
         序号['n']+=1#递增
         请求标识=f'fetch-{序号["n"]}'#请求id
-        方法=getattr(输入,'method',None) or (初始化 or {}).get('method','GET')#方法
-        网址=getattr(输入,'url',None) or str(输入)#URL
-        头=getattr(输入,'headers',None) or (初始化 or {}).get('headers',{})#头
-        有体=getattr(输入,'body',None) is not None or (初始化 or {}).get('body') is not None#是否有体
+        方法=getattr(输入,'method',None)#Request.method
+        if 方法 is None:#无 method
+            初=初始化 if 初始化 is not None else {}#缺席才空表
+            方法=初.get('method')#init.method
+            if 方法 is None: 方法='GET'#??GET，空串合法
+        网址=getattr(输入,'url',None)#Request.url
+        if 网址 is None: 网址=str(输入)#缺 url 才 str
+        头=getattr(输入,'headers',None)#Request.headers
+        if 头 is None:#无 headers
+            初=初始化 if 初始化 is not None else {}#缺席才空表
+            头=初.get('headers')#init.headers
+            if 头 is None: 头={}#缺席才空表，空字典合法
+        有体=getattr(输入,'body',None) is not None#Request.body
+        if not 有体 and 初始化 is not None:#再看 init
+            有体=初始化.get('body') is not None#init.body
         发布器.发布('fetch/start',{'requestId':请求标识,'url':网址,'method':方法,'headers':头条目(头),'hasBody':有体,'wallTimeMs':__import__('time').time()*1000})#开始
         try:#真实fetch
             响应=原始(输入,初始化) if 初始化 is not None else 原始(输入)#调用原版
-        except Exception as 错误:#失败
+        except Exception as 错误:#被包装的 fetch 实现什么都可能抛，契约未定所以收不窄
             发布器.发布('fetch/error',{'requestId':请求标识,'message':渲染错误(错误),'canceled':中止.is_set()})#错误
             raise#原样抛出
-        状态=getattr(响应,'status',0)#状态
-        状态文本=getattr(响应,'statusText','')#状态文本
-        响应头=getattr(响应,'headers',{})#头
-        内容类型=''#MIME
-        if hasattr(响应头,'get'):#有get
-            内容类型=(响应头.get('content-type') or '').split(';')[0].strip().lower()#MIME
-        发布器.发布('fetch/response',{'requestId':请求标识,'url':getattr(响应,'url',网址),'status':状态,'statusText':状态文本,'headers':头条目(响应头),'mimeType':内容类型})#响应头
+        状态=响应.status#Response.status
+        状态文本=响应.statusText#Response.statusText
+        响应头=响应.headers#Response.headers
+        原始类型=响应头.get('content-type')#MIME 原文
+        if 原始类型 is None: 原始类型=''#??空串
+        内容类型=原始类型.split(';')[0].strip().lower()#MIME
+        响应网址=响应.url#Response.url
+        if 响应网址 is None or 响应网址=='':#|| 空串也回退
+            响应网址=网址#请求 url
+        发布器.发布('fetch/response',{'requestId':请求标识,'url':响应网址,'status':状态,'statusText':状态文本,'headers':头条目(响应头),'mimeType':内容类型})#响应头
         发布器.发布('fetch/end',{'requestId':请求标识,'capturedBytes':0,'responseBodyTruncated':False})#Python侧体采集占位
         return 响应#立即返回原响应
 

@@ -1,0 +1,16 @@
+{
+    "builtin":"内置",
+    "catalog":"目录",
+    "event":"事件",
+    "exact":"精确",
+    "host":"宿主",
+    "input":"输入",
+    "inspect":"巡检",
+    "list":"列出",
+    "method":"方法",
+    "output":"输出",
+    "provider":"提供方",
+    "query":"查询",
+    "register":"登记",
+    "service":"服务"
+}

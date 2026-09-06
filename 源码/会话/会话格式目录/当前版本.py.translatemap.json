@@ -1,0 +1,15 @@
+{
+    "artifact":"产物",
+    "current":"当前版本",
+    "event":"事件",
+    "field":"字段",
+    "format":"格式",
+    "header":"头",
+    "id":"标识",
+    "installed":"已安装",
+    "key":"键",
+    "restore":"恢复",
+    "session":"会话",
+    "validate":"校验",
+    "version":"版本"
+}

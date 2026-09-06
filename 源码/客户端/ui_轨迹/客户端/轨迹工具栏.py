@@ -18,34 +18,29 @@ def _读样式(文件名):#读真实 CSS
 
 样式表=_读样式(样式文件)#完整工具栏样式
 
-def 取字段(对象,键,缺省=None):#读字段
-    """从映射或对象读字段。"""
-    if 对象 is None:#空
-        return 缺省#缺席
-    if isinstance(对象,dict):#映射
-        return 对象[键] if 键 in 对象 else 缺省#键
-    return getattr(对象,键,缺省)#属性
+def 缺省翻译(键,*_位置参数,**_关键字参数):#无文案函数
+    """原样返回键。"""
+    return 键#键
 
 class 轨迹工具栏:#粘性工具栏
     """时长开关、折叠轮次/调用、搜索。"""
-
     def __init__(自身,属性=None):#可选 props
         """记下 props。"""
-        自身.属性=属性 or {}#合成
+        自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):#刷新
         """刷新 props。"""
-        自身.属性=属性 or {}#新
+        自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):#结构树
         """产出工具栏结构树。"""
         p=自身.属性#props
-        翻译=取字段(p,'t') or (lambda 键,*_a,**_k:键)#文案
-        实测=bool(取字段(p,'actualDuration',False))#实测时长
-        实际时=bool(取字段(p,'actualTime',False))#实际时间
-        全轮折=bool(取字段(p,'allTurnsCollapsed',False))#全轮折叠
-        全助折=bool(取字段(p,'allAssistantsCollapsed',False))#全助手折叠
-        查询=取字段(p,'searchQuery','') or ''#查询
+        翻译=p['t'] if 't' in p and p['t'] is not None else 缺省翻译#文案
+        实测=bool(p['actualDuration']) if 'actualDuration' in p else False#实测时长
+        实际时=bool(p['actualTime']) if 'actualTime' in p else False#实际时间
+        全轮折=bool(p['allTurnsCollapsed']) if 'allTurnsCollapsed' in p else False#全轮折叠
+        全助折=bool(p['allAssistantsCollapsed']) if 'allAssistantsCollapsed' in p else False#全助手折叠
+        查询=p['searchQuery'] if 'searchQuery' in p and p['searchQuery'] is not None else ''#查询
         return {#结构树
             'type':'trajectory-toolbar',#类型
             'role':'toolbar',#角色
@@ -62,11 +57,11 @@ class 轨迹工具栏:#粘性工具栏
                 'search':翻译('toolbar.search'),#搜索
                 'searchPlaceholder':翻译('toolbar.searchPlaceholder'),#占位
             },#文案结束
-            'onActualDurationChange':取字段(p,'onActualDurationChange'),#时长切
-            'onActualTimeChange':取字段(p,'onActualTimeChange'),#时间切
-            'onToggleAllTurns':取字段(p,'onToggleAllTurns'),#轮切
-            'onToggleAllAssistants':取字段(p,'onToggleAllAssistants'),#助切
-            'onSearchQueryChange':取字段(p,'onSearchQueryChange'),#搜索
+            'onActualDurationChange':p['onActualDurationChange'] if 'onActualDurationChange' in p else None,#时长切
+            'onActualTimeChange':p['onActualTimeChange'] if 'onActualTimeChange' in p else None,#时间切
+            'onToggleAllTurns':p['onToggleAllTurns'] if 'onToggleAllTurns' in p else None,#轮切
+            'onToggleAllAssistants':p['onToggleAllAssistants'] if 'onToggleAllAssistants' in p else None,#助切
+            'onSearchQueryChange':p['onSearchQueryChange'] if 'onSearchQueryChange' in p else None,#搜索
             'css':样式表,#样式
             'cssModule':样式文件,#样式文件名
         }#结束
