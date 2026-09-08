@@ -1,0 +1,18 @@
+{
+    "app":"应用",
+    "bundle":"包",
+    "content":"内容",
+    "executable":"可执行",
+    "extract":"提取",
+    "file":"文件",
+    "find":"查找",
+    "hicolor":"高色",
+    "icon":"图标",
+    "linux":"Linux",
+    "pixmap":"像素图",
+    "read":"读",
+    "scalable":"可缩放",
+    "script":"脚本",
+    "theme":"主题",
+    "type":"类型"
+}

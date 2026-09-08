@@ -1,0 +1,13 @@
+{
+    "controller": "控制器",
+    "DockController": "停靠控制器",
+    "DockSnapshot": "停靠快照",
+    "subscribe": "订阅",
+    "getSnapshot": "取快照",
+    "setExpanded": "设展开",
+    "toggleExpanded": "切换展开",
+    "setMode": "设模式",
+    "openContent": "打开内容",
+    "undo": "撤销",
+    "redo": "重做"
+}

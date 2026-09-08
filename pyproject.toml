@@ -1,19 +1,28 @@
 [build-system]
 requires=["setuptools>=61"]
 build-backend="setuptools.build_meta"
-[project] #发行元数据
-name="pydsh" #发行名
+
+[project]
+name="pydsh"
 version="0.0.0.dev0"
-description="Deepseek Harness 中文学习版（非官方包）" #pip show
+description="Deepseek Harness 中文学习版（非官方包）"
 readme="README.md"
 requires-python=">=3.13"
 license="MIT"
 dependencies=[
-"pyyaml>=6",  #读cordis.yml
+    "pyyaml>=6",
+    "Pillow",
+    "psutil",
+    "watchfiles",
+    "zstandard",
+    "e2b",
 ]
+
 [project.scripts]
 pydsh="pydsh.__main__:main" #pydsh命令
+
 [tool.setuptools]
 include-package-data=true
+
 [tool.setuptools.package-dir]
 pydsh="."

@@ -3,5 +3,6 @@
     "remotes":"远程",
     "session-controller":"会话控制器",
     "settings-controller":"设置控制器",
-    "workspace-controller":"工作区控制器"
+    "workspace-controller":"工作区控制器",
+    "workspace-files":"工作区文件"
 }

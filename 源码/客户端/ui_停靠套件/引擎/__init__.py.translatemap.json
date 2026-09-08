@@ -1,0 +1,11 @@
+{
+    "engine": "引擎",
+    "constraints": "约束",
+    "geometry": "几何",
+    "tree": "树",
+    "operations": "操作",
+    "sequence": "序列",
+    "initial": "初值",
+    "planner": "规划",
+    "controller": "控制器"
+}

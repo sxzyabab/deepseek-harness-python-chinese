@@ -1,0 +1,16 @@
+{
+    "bucket":"分桶",
+    "create":"创建",
+    "error":"错误",
+    "fail":"失败",
+    "files":"文件",
+    "forget":"遗忘",
+    "init":"初值",
+    "load":"加载",
+    "reset":"重置",
+    "self":"自身",
+    "start":"启动",
+    "store":"存储",
+    "toggle":"切换",
+    "tree":"树"
+}

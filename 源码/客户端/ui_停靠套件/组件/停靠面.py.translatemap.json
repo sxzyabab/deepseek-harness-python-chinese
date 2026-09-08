@@ -1,0 +1,15 @@
+{
+    "DockSurface": "停靠面",
+    "canSplit": "可分割",
+    "dropZones": "投放模式",
+    "minPaneFraction": "最小份额",
+    "hideSplitAtCapacity": "满员藏分割",
+    "canAddTab": "可加标签",
+    "intents": "意图",
+    "labels": "文案",
+    "renderTab": "渲标签",
+    "chrome": "铬",
+    "onRoom": "房间回调",
+    "hitTest": "命中",
+    "Preview": "预览"
+}

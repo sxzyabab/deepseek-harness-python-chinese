@@ -1,0 +1,21 @@
+{
+    "action":"动作",
+    "app":"应用",
+    "busy":"忙碌",
+    "dispose":"拆除",
+    "dress":"装扮",
+    "error":"错误",
+    "fallback":"占位",
+    "icon":"图标",
+    "inFlight":"是否在飞",
+    "key":"键",
+    "label":"标签",
+    "launch":"启动",
+    "menu":"菜单",
+    "open":"打开",
+    "phase":"阶段",
+    "style":"样式",
+    "timer":"定时",
+    "toggle":"切换",
+    "url":"网址"
+}

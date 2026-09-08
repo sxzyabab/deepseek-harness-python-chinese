@@ -1,0 +1,13 @@
+{
+    "index": "__init__",
+    "dockkit": "停靠套件",
+    "contract": "约定",
+    "engine": "引擎",
+    "components": "组件",
+    "applyOp": "施加操作",
+    "replay": "回放",
+    "Sequencer": "序列器",
+    "DockController": "停靠控制器",
+    "DockSurface": "停靠面",
+    "FloatLayer": "浮动层"
+}

@@ -1,0 +1,11 @@
+{
+    "DockSurface": "停靠面",
+    "FloatLayer": "浮动层",
+    "PaneTree": "窗格树",
+    "TabPanel": "标签面板",
+    "TabMenu": "标签菜单",
+    "pointer": "指针",
+    "measure": "测量",
+    "render": "面板回调",
+    "dockkit": "停靠套件"
+}
