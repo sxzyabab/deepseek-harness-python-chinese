@@ -6,20 +6,21 @@ vitest 的 describe/it 以可运行用例表替代。
 import json,os,re#JSON、文件与正则
 from ...内核.会话 import 是否可进表面类型#表面类型判定
 from .测试架 import 运行场景#场景 harness
-from .清单 import 解析快照清单#清单解析
+from .清单 import 解析快照清单,写当前会话夹具#清单解析
 from .身份 import 脱敏会话快照标识#身份脱敏
 from .工作区 import 捕获期望工作区快照#期望工作区
+from .会话文件 import 会话夹具文件名,会话夹具名列表,会话头版本#世代夹具名
 from .归一化 import (#归一化
     提取快照溢出路径,归一化会话日志,归一化会话快照列表,归一化标准输出,
-    擦除请求头,擦除会话快照,擦除系统提示词,擦除工具模式,令牌化会话夹具工作目录,
+    擦除会话快照,擦除系统提示词,擦除工具模式,令牌化会话夹具工作目录,
 )#归一化结束
 
 __all__=[#仅中文公开名
     '场景是否跳过','标准输出期望变体','主张共享快照','断言唯一快照内容','会话夹具名',
     '夹具上下文','归一化请求头','归一化系统提示词','归一化工具模式','格式化工具模式快照',
-    '解析工具模式快照','恢复钉住工具模式','格式化系统提示词快照','断言子系统提示词快照',
+    '解析系统提示词快照','解析工具模式快照','恢复钉住工具模式','格式化系统提示词快照','断言子系统提示词快照',
     '头变更计数','未知工具调用标识','刷新夹具替换','稳定夹具消息标识','稳定刷新日志',
-    '定义ACP快照套件',
+    '系统提示词先于请求','定义ACP快照套件',
 ]#公开面结束
 
 系统提示词快照='system-prompt.expected.md'#系统提示词快照文件名
@@ -102,25 +103,8 @@ def 取子项索引(项):
     return 项['index']
 
 def 会话夹具名(名称列表):#会话 fixture 名
-    """校验并排序场景目录的会话 fixture 文件名。"""
-    if 'session.jsonl' not in 名称列表:#缺主
-        raise Exception('missing session.jsonl')#缺主
-    子项列表=[]#子
-    for 名 in 名称列表:#逐名
-        if 名=='session.jsonl':#主
-            continue#跳过
-        if not 名.startswith('session.') or not 名.endswith('.jsonl'):#非会话样
-            continue#跳过
-        匹配=re.match(r'^session\.([1-9]\d*)\.jsonl$',名)#匹配
-        if 匹配 is None:#非法
-            raise Exception(f'invalid child session fixture name: {名}')#非法
-        子项列表.append({'name':名,'index':int(匹配.group(1))})#追加
-    子项列表.sort(key=取子项索引)#按序号排序
-    for 偏移,子 in enumerate(子项列表):#连续
-        期望=偏移+1#期望索引
-        if 子['index']!=期望:#不连续
-            raise Exception(f'child session fixtures must be contiguous: expected session.{期望}.jsonl, found {子["name"]}')#不连续
-    return ['session.jsonl',*[子['name'] for 子 in 子项列表]]#返回
+    """校验并排序场景目录的会话 fixture 文件名（每角色取最高世代）。"""
+    return 会话夹具名列表(名称列表)#委托世代选择
 
 def 列出会话夹具(目录):#读目录会话 fixture 清单
     """读取一个场景目录已校验的会话 fixture 清单。"""
@@ -156,17 +140,6 @@ def 钉住头载荷(原始日志,上下文):#钉住头载荷
     """拥有 sidecar 内容的头修订。"""
     return [事件['header'] for 事件 in 归一化头事件(原始日志,上下文) if 事件['reason']!='series']#过滤 series
 
-def 从头取系统提示词(请求头列表):#从头取系统提示词
-    """从归一化头序列提取每个字符串系统提示词。"""
-    结果=[]#结果
-    for 头 in 请求头列表:#逐头
-        if not 是否记录(头):#非对象
-            continue#跳过
-        系统=头.get('system')#系统
-        if isinstance(系统,str):#字符串
-            结果.append(系统)#追加
-    return 结果#返回
-
 def 从头取工具模式(请求头列表):#从头取工具 schema
     """从归一化头序列提取每个数组值工具目录。"""
     结果=[]#结果
@@ -178,13 +151,45 @@ def 从头取工具模式(请求头列表):#从头取工具 schema
             结果.append(工具)#追加
     return 结果#返回
 
+def 系统提示词自记录(记录):#取系统提示词
+    """一条已解析 system/message 的渲染提示词文本。"""
+    if 记录.get('type')!='system/message':#非系统消息
+        return None#无
+    数据=记录.get('data') or {}#数据
+    消息=数据.get('message') or {}#消息
+    内容=消息.get('content')#内容
+    if not isinstance(内容,list):#无数组
+        return None#无
+    if len(内容)==0:#空内容
+        return ''#空提示词
+    块=内容[0] if len(内容)>0 else None#首块
+    return 块.get('text') if isinstance(块,dict) and isinstance(块.get('text'),str) else None#文本
+
 def 归一化请求头(原始日志,上下文):#归一化请求头
     """会话 JSONL 中每个 request/header 的 data.header 载荷。"""
     return [事件['header'] for 事件 in 归一化头事件(原始日志,上下文)]#头列表
 
 def 归一化系统提示词(原始日志,上下文):#归一化系统提示词
-    """请求头携带的归一化字符串系统提示词。"""
-    return 从头取系统提示词(归一化请求头(原始日志,上下文))#提示词
+    """每个 system/message 的归一化提示词文本，按日志顺序。"""
+    结果=[]#结果
+    for 记录 in 解析JSONL记录(归一化会话日志(原始日志,上下文)):#逐记录
+        提示=系统提示词自记录(记录)#取提示词
+        if 提示 is not None:#有
+            结果.append(提示)#收录
+    return 结果#返回
+
+def 系统提示词先于请求(原始日志):#系统提示词是否先于请求
+    """首个 request/header（若有）是否跟在 system/message 之后。"""
+    类型列表=[记录.get('type') for 记录 in 解析JSONL记录(原始日志)]#类型序列
+    try:#首请求头
+        首头=类型列表.index('request/header')#索引
+    except ValueError:#无头
+        return True#无头即真
+    try:#首系统消息
+        首提示=类型列表.index('system/message')#索引
+    except ValueError:#无提示
+        return False#无提示则假
+    return 首提示<首头#提示在前
 
 def 归一化工具模式(原始日志,上下文):#归一化工具 schema
     """请求头携带的归一化工具 schema 数组。"""
@@ -215,20 +220,27 @@ def 恢复钉住工具模式(头,模式列表):#恢复钉住工具 schema
         raise Exception(f'acp-snapshot: pinned request header tools must equal {工具令牌}')#令牌
     return {**头,'tools':list(模式列表)}#恢复
 
+系统提示词变更标记='\n<!-- system/message change '#系统消息变更标记前缀
+
 def 格式化系统提示词快照(提示词,变更=None):#格式化系统提示词快照
     """把归一化提示词渲染为仓库友好的 Markdown 快照。"""
     if 变更 is None:#缺省
         变更=[]#空
     快照=提示词 if 提示词.endswith('\n') else 提示词+'\n'#首段
     for 索引,改 in enumerate(变更):#变更段
-        快照+=f'\n<!-- request/header change {索引+1} -->\n\n'#标记
+        快照+=f'{系统提示词变更标记}{索引+1} -->\n\n'#标记
         快照+=改 if 改.endswith('\n') else 改+'\n'#段
     return 快照#返回
 
+def 解析系统提示词快照(快照):#解析系统提示词快照
+    """把提示词 sidecar 拆成初始提示词与每次后续变更。"""
+    import re as _re#局部正则
+    段=_re.split(r'\n<!-- system/message change [1-9]\d* -->\n\n',快照)#按标记拆分
+    return {'initial':段[0],'changes':段[1:]}#初始与变更
+
 def 初始系统提示词快照(快照):#初始提示词部分
-    """返回可能多头快照的初始提示词部分。"""
-    标记=快照.find('\n<!-- request/header change ')#标记
-    return 快照 if 标记<0 else 快照[:标记]#切片
+    """返回可能多提示词快照的初始提示词部分。"""
+    return 解析系统提示词快照(快照)['initial']#取初始段
 
 def 断言子系统提示词快照(伴随,类钉,标签):#断言子提示词
     """拒绝无法拥有不同规范提示词文本的子提示词 sidecar。"""
@@ -614,7 +626,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         if 场景['name'] in 按名:#重复
             raise Exception(f'acp-snapshot: duplicate scenario name "{场景["name"]}"')#重复
         按名[场景['name']]=场景#登记
-        for 字段 in ('systemPromptSource','toolSchemasSource'):#源字段
+        for 字段 in ('systemPromptSource','toolSchemasSource','expectedHeaderChanges','expectedPromptChanges'):#钉专用字段
             if 场景.get(字段) is not None and 场景.get('pinsHeader') is not True:#非法
                 raise Exception(f'acp-snapshot: {场景["name"]}.{字段} is only valid on a header-pinning scenario')#非法
     钉按类={}#类→钉场景
@@ -638,10 +650,9 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             raise Exception(f'acp-snapshot: {钉场景["name"]} names non-pinning {标签} source "{源名}"')#非钉
         if 源.get(字段) is not None and 源.get(字段)!=源['name']:#不自有
             raise Exception(f'acp-snapshot: {钉场景["name"]} names {标签} source "{源名}", which does not own its sidecar')#不自有
-        期望变更=钉场景.get('expectedHeaderChanges') or 0#期望
-        源变更=源.get('expectedHeaderChanges') or 0#源变更
-        if 源变更!=期望变更:#不一致
-            raise Exception(f'acp-snapshot: {钉场景["name"]} and {源名} declare different header-change counts for shared {标签}')#不一致
+        计数字段='expectedPromptChanges' if 字段=='systemPromptSource' else 'expectedHeaderChanges'#计数字段
+        if (源.get(计数字段) or 0)!=(钉场景.get(计数字段) or 0):#不一致
+            raise Exception(f'acp-snapshot: {钉场景["name"]} and {源名} declare different {计数字段} counts for shared {标签}')#不一致
         return 源#返回
     提示词源按类={类:解析源(钉,'systemPromptSource','system-prompt snapshot') for 类,钉 in 钉按类.items()}#提示词源
     模式源按类={类:解析源(钉,'toolSchemasSource','tool-schema snapshot') for 类,钉 in 钉按类.items()}#schema 源
@@ -656,17 +667,18 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             return {'skipped':True}#跳过
         目录=os.path.join(快照目录,场景['name'])#场景目录
         清单路径=os.path.join(目录,'snapshot.yml')#清单
-        解析快照清单(读文本(清单路径),清单路径)#校验清单
+        清单=解析快照清单(读文本(清单路径),清单路径)#校验清单
         输入=json.loads(读文本(os.path.join(目录,'input.json')))#输入脚本
         覆盖文件=os.path.join(目录,'replay.override.json')#覆盖
         工作区=os.path.join(目录,'workspace')#工作区
         夹具文件=列出会话夹具(目录) if not 录制中 else []#fixture 清单
         子夹具=夹具文件[1:]#子
-        比较日志=场景['comparesLog'] if 'comparesLog' in 场景 else 场景.get('hasModelTurn')#比较日志
+        主夹具=夹具文件[0] if 夹具文件 else 会话夹具文件名(0,0)#主 fixture 名
+        比较日志=场景['comparesLog'] if 'comparesLog' in 场景 else (场景.get('hasModelTurn') and 清单.get('sessionFormat') is None)#比较日志
         运行选项={#运行选项
             'agent':智能体,#智能体
             'mode':子模式,#模式
-            'fixtureFile':os.path.join(目录,'session.jsonl'),#主 fixture
+            'fixtureFile':os.path.join(目录,主夹具),#主 fixture
         }#选项起点
         if 场景.get('env') is not None:#环境
             运行选项['env']=场景['env']#写入
@@ -696,16 +708,17 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         子模式钉=set(场景.get('pinsChildToolSchemas') or [])#子 schema 钉
         子提示钉=set(场景.get('pinsChildSystemPrompts') or [])#子提示钉
         可移植夹具=令牌化会话夹具工作目录 if 场景.get('workspaceParent') is None else (lambda 日志:日志)#可移植
-        写会话夹具=(录制中 and 场景.get('recorded') and 场景.get('hasModelTurn')) or (刷新中 and 比较日志)#是否写
+        写会话夹具=写当前会话夹具(清单,子模式) and ((录制中 and 场景.get('recorded') and 场景.get('hasModelTurn')) or (刷新中 and 比较日志))#是否写
         if 写会话夹具:#写热/刷新 fixture
             断言大于(len(结果['sessionLogs']),0,f'{模式} produced no session log to harvest')#有日志
             if 刷新中:#刷新长度
                 断言相等(len(结果['sessionLogs']),len(夹具文件),f'expected {len(夹具文件)} session logs (parent + children)')#长度
-            输出文件=['session.jsonl',*[f'session.{索引+1}.jsonl' for 索引 in range(len(结果['sessionLogs'])-1)]]#输出名
+            输出文件=[会话夹具文件名(索引,会话头版本(日志['content'],f'harvested Session {索引}')) for 索引,日志 in enumerate(结果['sessionLogs'])]#输出版本化名
             已有夹具=[]#已有
-            for 名 in 输出文件:#逐名
-                路径=os.path.join(目录,名)#路径
-                已有夹具.append(读文本(路径) if os.path.isfile(路径) else '')#读
+            for 索引,_名 in enumerate(输出文件):#逐名
+                旧名=夹具文件[索引] if 索引<len(夹具文件) else None#旧文件名
+                路径=os.path.join(目录,旧名) if 旧名 is not None else None#路径
+                已有夹具.append(读文本(路径) if 路径 is not None and os.path.isfile(路径) else '')#读
             刷新替换=刷新夹具替换(结果['sessionLogs'],已有夹具) if 刷新中 else []#替换
             if 刷新中:#刷新稳定
                 新鲜夹具=[擦除会话快照(可移植夹具(稳定刷新日志(日志['content'],已有夹具[索引],刷新替换,上下文))) for 索引,日志 in enumerate(结果['sessionLogs'])]#新鲜
@@ -714,25 +727,18 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             输出夹具=脱敏会话快照标识(稳定夹具消息标识(新鲜夹具,已有夹具))#脱敏
             for 索引,内容 in enumerate(输出夹具):#写出
                 写文本(os.path.join(目录,输出文件[索引]),内容)#写
-            if 录制中:#删陈旧子
-                输出名集=set(输出文件)#集合
-                for 名 in list(os.listdir(目录)):#逐文件
-                    if re.match(r'^session\.[1-9]\d*\.jsonl$',名) and 名 not in 输出名集 and os.path.isfile(os.path.join(目录,名)):#陈旧
-                        os.remove(os.path.join(目录,名))#删除
-                夹具文件=输出文件#更新清单
+            夹具文件=输出文件#更新清单（历史世代保留为不可变回放输入）
             if 场景.get('pinsHeader') is True:#钉场景写 sidecar
                 主日志=结果['sessionLogs'][0]#主
-                钉头=钉住头载荷(主日志['content'],上下文)#钉头
-                提示词列表=从头取系统提示词(钉头)#提示词
-                断言大于(len(提示词列表),0,f'{模式} produced no system prompt to snapshot')#有提示词
+                提示词列表=归一化系统提示词(主日志['content'],上下文)#提示词
+                断言相等(len(提示词列表),1+(场景.get('expectedPromptChanges') or 0),f'{模式} produced a system prompt count that differs from 1 + expectedPromptChanges')#计数
                 提示快照=格式化系统提示词快照(提示词列表[0],提示词列表[1:])#快照
                 提示源=提示词源按类.get(类名(场景)) or 场景#源
                 提示路径=os.path.join(快照目录,提示源['name'],系统提示词快照)#路径
                 主张共享快照(提示词主张,提示路径,场景['name'],提示快照)#主张
                 写文本(提示路径,提示快照)#写
-                模式集=从头取工具模式(钉头)#schema
-                断言大于(len(模式集),0,f'{模式} produced no tool schemas to snapshot')#有 schema
-                断言相等(len(模式集),len(提示词列表),f'{模式} produced a tool-schema sequence that differs from its prompt sequence')#对齐
+                模式集=从头取工具模式(钉住头载荷(主日志['content'],上下文))#schema
+                断言相等(len(模式集),1+(场景.get('expectedHeaderChanges') or 0),f'{模式} produced a tool-schema count that differs from 1 + expectedHeaderChanges')#计数
                 工具快照=格式化工具模式快照(模式集[0],模式集[1:])#快照
                 模式源=模式源按类.get(类名(场景)) or 场景#源
                 模式路径=os.path.join(快照目录,模式源['name'],工具模式快照)#路径
@@ -747,7 +753,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             for 索引 in 子提示钉:#子提示 sidecar
                 日志=结果['sessionLogs'][索引] if 索引<len(结果['sessionLogs']) else None#日志
                 断言真(日志 is not None,f'{模式}: no child session log at index {索引} to snapshot a prompt from')#存在
-                提示词列表=从头取系统提示词(钉住头载荷(日志['content'],上下文))#提示词
+                提示词列表=归一化系统提示词(日志['content'],上下文)#提示词
                 断言大于(len(提示词列表),0,f'{模式}: child {索引} produced no system prompt to snapshot')#有
                 写文本(os.path.join(目录,子系统提示词快照(索引)),格式化系统提示词快照(提示词列表[0]))#写
         for 期望 in 标准输出期望变体(场景):#stdout 变体
@@ -770,11 +776,13 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         提示源=提示词源按类.get(类名(场景)) or 钉场景#提示源
         模式源=模式源按类.get(类名(场景)) or 钉场景#schema 源
         钉目录=os.path.join(快照目录,钉场景['name'])#钉目录
-        钉夹具=读文本(os.path.join(钉目录,'session.jsonl'))#钉 fixture
+        钉夹具名=列出会话夹具(钉目录)[0]#钉主 fixture 名
+        钉夹具=读文本(os.path.join(钉目录,钉夹具名))#钉 fixture
         钉住=钉住头载荷(钉夹具,夹具上下文(钉夹具))#钉头
         提示快照=读文本(os.path.join(快照目录,提示源['name'],系统提示词快照))#提示 sidecar
         初始提示=初始系统提示词快照(提示快照)#初始段
         断言相等(len(钉住),1+(钉场景.get('expectedHeaderChanges') or 0),f"the pinning fixture ({钉场景['name']}) has an unexpected request/header count")#计数
+        断言相等(len(解析系统提示词快照(提示快照)['changes']),钉场景.get('expectedPromptChanges') or 0,f"the prompt source ({提示源['name']}) has an unexpected system prompt change count")#提示变更
         工具快照=读文本(os.path.join(快照目录,模式源['name'],工具模式快照))#schema sidecar
         工具模式=解析工具模式快照(工具快照)#解析
         钉模式集=[工具模式['initial'],*工具模式['changes']]#序列
@@ -789,14 +797,18 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             子钉提示[索引]=读文本(os.path.join(目录,子系统提示词快照(索引)))#登记
         for 日志索引,日志 in enumerate(结果['sessionLogs']):#逐日志头均匀性
             子模式=子钉模式.get(日志索引)#子 schema
-            期望变更=(场景.get('expectedHeaderChanges') or 0) if 场景.get('pinsHeader') is True and 日志索引==0 else 0#期望变更
+            钉主=场景.get('pinsHeader') is True and 日志索引==0#是否钉主
+            期望变更=(场景.get('expectedHeaderChanges') or 0) if 钉主 else 0#期望头变更
+            期望提示变更=(场景.get('expectedPromptChanges') or 0) if 钉主 else 0#期望提示变更
             断言相等(头变更计数(日志['content']),期望变更,f"session {日志['id']}: changed request/header count")#计数
-            头事件=归一化头事件(擦除系统提示词(日志['content']),上下文)#头事件
+            头事件=归一化头事件(日志['content'],上下文)#头事件
             请求头列表=[事件['header'] for 事件 in 头事件]#头
             提示词列表=归一化系统提示词(日志['content'],上下文)#提示词
             模式集=归一化工具模式(日志['content'],上下文)#schema
-            断言相等(len(提示词列表),len(请求头列表),f"session {日志['id']}: every request/header must carry a string system prompt")#对齐
             断言相等(len(模式集),len(请求头列表),f"session {日志['id']}: every request/header must carry an array-valued tools field")#对齐
+            if len(请求头列表)>0:#有请求头
+                断言真(系统提示词先于请求(日志['content']),f"session {日志['id']}: a system/message must precede the first request/header")#系统在前
+                断言相等(len(提示词列表),1+期望提示变更,f"session {日志['id']}: system/message count")#提示计数
             if 子模式 is not None:#子 schema 计数
                 断言相等(len(子模式),1+头变更计数(日志['content']),f"session {日志['id']}: {子工具模式快照(日志索引)} has an unexpected tool-schema count")#计数
             修订=0#修订
@@ -806,15 +818,14 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
                 类钉=钉头列表[修订] if 期望变更>0 else 钉头列表[0]#类钉
                 期望=类钉 if 子模式 is None else {**类钉,'tools':子模式[修订]}#期望头
                 断言相等(头,期望,f"session {日志['id']}: request/header #{键+1} diverged from the pinned ({钉场景['name']}) header")#比较
-                if 期望变更==0:#初始提示
-                    子提示=子钉提示.get(日志索引)#子提示
-                    源标签=子系统提示词快照(日志索引) if 子提示 is not None else f"{提示源['name']}/{系统提示词快照}"#标签
-                    断言相等(格式化系统提示词快照(提示词列表[键]),子提示 if 子提示 is not None else 初始提示,f"session {日志['id']}: initial system prompt #{键+1} diverged from {源标签}")#比较
-            if 场景.get('pinsHeader') is True and 日志索引==0:#钉场景变更 sidecar
-                钉头=钉住头载荷(日志['content'],上下文)#钉头
-                钉提示=从头取系统提示词(钉头)#提示
-                钉模式=从头取工具模式(钉头)#schema
-                断言相等(格式化系统提示词快照(钉提示[0],钉提示[1:]),提示快照,f"session {日志['id']}: changed system prompts diverged from {提示源['name']}/{系统提示词快照}")#提示
+            if 期望提示变更==0:#无提示变更
+                子提示=子钉提示.get(日志索引)#子提示
+                源标签=子系统提示词快照(日志索引) if 子提示 is not None else f"{提示源['name']}/{系统提示词快照}"#标签
+                for 键,提示 in enumerate(提示词列表):#逐提示
+                    断言相等(格式化系统提示词快照(提示),子提示 if 子提示 is not None else 初始提示,f"session {日志['id']}: system prompt #{键+1} diverged from {源标签}")#比较
+            if 钉主:#钉场景变更 sidecar
+                钉模式=从头取工具模式(钉住头载荷(日志['content'],上下文))#schema
+                断言相等(格式化系统提示词快照(提示词列表[0],提示词列表[1:]),提示快照,f"session {日志['id']}: changed system prompts diverged from {提示源['name']}/{系统提示词快照}")#提示
                 断言相等(格式化工具模式快照(钉模式[0],钉模式[1:]),工具快照,f"session {日志['id']}: changed tool schemas diverged from {模式源['name']}/{工具模式快照}")#schema
         清单=解析快照清单(读文本(清单路径),清单路径)#再读清单
         if (清单.get('workspace') or {}).get('final') is True:#最终工作区
@@ -855,7 +866,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             断言真(os.path.isfile(os.path.join(目录,'input.json')),f'{名}/input.json')#input
             断言真(os.path.isfile(os.path.join(目录,'stdout.expected.jsonl')),f'{名}/stdout.expected.jsonl')#stdout
             断言相等(os.path.isfile(os.path.join(目录,视窗标准输出快照)),场景.get('pinsNativeWindowsStdout') is True,f'{名}/{视窗标准输出快照} presence must match pinsNativeWindowsStdout')#windows
-            断言真(os.path.isfile(os.path.join(目录,'session.jsonl')),f'{名}/session.jsonl')#session
+            列出会话夹具(目录)#session 世代夹具清单
             断言相等(os.path.isfile(os.path.join(目录,'replay.override.json')),场景.get('overridden') is True,f'{名}/replay.override.json presence must match overridden')#override
             断言相等(os.path.isfile(os.path.join(目录,系统提示词快照)),名 in 提示词所有者,f'{名}/{系统提示词快照} presence must match snapshot-source ownership')#提示
             断言相等(os.path.isfile(os.path.join(目录,工具模式快照)),名 in 模式所有者,f'{名}/{工具模式快照} presence must match snapshot-source ownership')#schema
@@ -878,7 +889,8 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         for 场景 in 钉按类.values():#逐钉
             提示源=提示词源按类.get(类名(场景)) or 场景#提示源
             模式源=模式源按类.get(类名(场景)) or 场景#schema 源
-            夹具=读文本(os.path.join(快照目录,场景['name'],'session.jsonl'))#fixture
+            夹具文件=列出会话夹具(os.path.join(快照目录,场景['name']))#fixture 清单
+            夹具=读文本(os.path.join(快照目录,场景['name'],夹具文件[0]))#fixture
             请求头列表=钉住头载荷(夹具,夹具上下文(夹具))#头
             提示快照=读文本(os.path.join(快照目录,提示源['name'],系统提示词快照))#提示
             断言相等(len(请求头列表),1+(场景.get('expectedHeaderChanges') or 0),f"{场景['name']}: unexpected request/header count")#计数
@@ -890,6 +902,8 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
                 恢复钉住工具模式(头,模式集[索引])#必须令牌
             断言大于(len(提示快照),0,f"{提示源['name']}/{系统提示词快照} must not be empty")#非空
             断言真(提示快照.endswith('\n'),f"{提示源['name']}/{系统提示词快照} must end in a newline")#换行
+            断言相等(len(解析系统提示词快照(提示快照)['changes']),场景.get('expectedPromptChanges') or 0,f"{提示源['name']}: prompt change count must match {场景['name']}'s expectedPromptChanges")#提示变更
+            断言相等(len(归一化系统提示词(夹具,夹具上下文(夹具))),1+(场景.get('expectedPromptChanges') or 0),f"{场景['name']}: a pinning fixture must carry exactly its declared system/message count")#系统消息数
             断言相等(工具快照,格式化工具模式快照(工具模式['initial'],工具模式['changes']),f"{模式源['name']}/{工具模式快照} must use canonical JSON formatting")#规范
             断言相等(头变更计数(夹具),场景.get('expectedHeaderChanges') or 0,f"{场景['name']}: a pinning fixture must carry exactly its declared changed headers")#变更
     用例.append({'name':'fixtures:pin-sidecars','run':断言钉组合})#用例
@@ -931,8 +945,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
                 断言真('/private{{cwd}}' not in 夹具,f"{场景['name']}/{名} carries a non-canonical macOS cwd token")#mac 令牌
                 断言相等(擦除系统提示词(夹具),夹具,f"{场景['name']}/{名} carries an unscrubbed system prompt")#提示已擦
                 断言相等(擦除工具模式(夹具),夹具,f"{场景['name']}/{名} carries unscrubbed tool schemas")#schema 已擦
-                if 场景.get('pinsHeader') is not True:#非钉
-                    断言相等(擦除请求头(夹具),夹具,f"{场景['name']}/{名} carries unscrubbed header content")#头已擦
+                断言真(系统提示词先于请求(夹具),f"{场景['name']}/{名} has a request/header with no preceding system/message")#系统在前
             夹具列表=[读文本(os.path.join(目录,名)) for 名 in 文件]#全部
             断言相等(脱敏会话快照标识(夹具列表),夹具列表,f"{场景['name']}: identity redaction fixed point")#不动点
     用例.append({'name':'fixtures:canonical-storage','run':断言规范存储})#用例

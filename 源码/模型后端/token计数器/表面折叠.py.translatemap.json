@@ -1,13 +1,18 @@
 {
+    "commit":"提交",
     "list":"列表",
     "delta":"增量",
     "error":"错误",
+    "file":"文件",
     "fold":"折叠",
+    "image":"图片",
     "message":"消息",
     "node":"节点",
+    "plan":"计划",
     "price":"计价",
     "replace":"替换",
     "shadow":"遮蔽",
+    "structural":"结构",
     "surface":"表面",
     "token":"令牌"
 }

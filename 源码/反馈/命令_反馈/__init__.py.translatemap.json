@@ -2,6 +2,7 @@
     "anonymous":"匿名",
     "apply":"应用",
     "assert":"断言",
+    "category":"类别",
     "command":"命令",
     "context":"上下文",
     "create":"创建",
@@ -16,6 +17,7 @@
     "record":"记录",
     "session":"会话",
     "take":"取",
+    "type":"类型",
     "usage":"用法",
     "user":"用户"
 }

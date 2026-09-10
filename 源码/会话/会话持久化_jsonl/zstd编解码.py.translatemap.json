@@ -1,8 +1,17 @@
 {
-    "compression":"压缩",
+    "checksum":"校验和",
+    "compress":"压缩",
+    "decoder":"解码器",
+    "decompress":"解压",
+    "descriptor":"描述符",
     "frame":"帧",
-    "missing":"缺失",
-    "package":"包",
+    "incomplete":"不完整",
+    "magic":"魔数",
     "payload":"载荷",
-    "reject":"拒绝"
+    "prefix":"前缀",
+    "public":"公开",
+    "reserved":"保留",
+    "scan":"扫描",
+    "torn":"撕裂",
+    "zstd":"zstd"
 }

@@ -5,24 +5,20 @@ from .领域 import 折叠日程事件,日程日志错误#折叠校验与日志�
 名称='tool-schedule-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务
 
-def 校验(事件列表,种子长度,失败):
-    """在其 fork 后缀策略下校验一条完整精确会话流。"""
+def 校验(事件列表,失败):
+    """在其 fork 后缀策略下校验一条自有事件流（ownEvents 已切掉继承前缀）。"""
     try:#折叠完整流
-        折叠日程事件(事件列表,种子长度)#按 seedLength 折叠
+        折叠日程事件(事件列表)#自有后缀
     except 日程日志错误 as 错误:#折叠拒绝
         失败(str(错误))#报告畸形流
 
 def 安装(上下文对象,失败):
     """为已拥有事件流安装回放与追加前校验。会话是对象，header 是 dict，events 是事件 dict 元组。"""
     for 会话对象 in 上下文对象.sessions.列出():#回放已有会话
-        头=会话对象.header#会话头
-        种子=头['seedLength'] if 头 is not None and 'seedLength' in 头 and 头['seedLength'] is not None else 0#fork 后缀，缺席当 0
-        校验(会话对象.events,种子,失败)#按 fork 后缀校验
+        校验(会话对象.ownEvents(),失败)#按自有后缀校验
     def 会话已创建(会话对象,*其余):
         """新会话创建时校验初始流。"""
-        头=会话对象.header#会话头
-        种子=头['seedLength'] if 头 is not None and 'seedLength' in 头 and 头['seedLength'] is not None else 0#fork 后缀
-        校验(会话对象.events,种子,失败)#校验初始流
+        校验(会话对象.ownEvents(),失败)#校验初始流
     上下文对象.监听('session/created',会话已创建,{'全局':True})#全局监听创建
     def 内部派发(_模式,事件名,参数,*其余):
         """提交前检查 session/event。"""
@@ -32,10 +28,7 @@ def 安装(上下文对象,失败):
         事件=参数[1]#第二参是事件
         if 事件['type']!='schedule/change':#只校验日程变更
             return#放过
-        头=会话.header#会话头
-        种子=头['seedLength'] if 头 is not None and 'seedLength' in 头 and 头['seedLength'] is not None else 0#fork 后缀
-        候选=list(会话.events)+[事件]#候选追加后的完整流
-        校验(候选,种子,失败)#校验
+        校验([*会话.ownEvents(),事件],失败)#候选追加后的完整自有流
     上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#全局监听派发
 
 安装.inject=['sessions']#安装器还依赖 sessions

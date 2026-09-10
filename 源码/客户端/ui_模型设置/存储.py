@@ -6,11 +6,48 @@ import re#正则
 from ..模式表单 import 再水合模式,取路径,有路径#schema 路径
 
 __all__=[#仅中文公开名
-    '模型设置错误','快照存储','错误文案','推导密钥引用','协议选项','提供方可用','引导就绪度','模型设置存储','已加载则刷新',
+    '模型设置错误','快照存储','错误文案','推导密钥引用','协议选项','提供方可用','引导就绪度','模型设置存储','已加载则刷新','拼合提供方目录',
 ]#公开面结束
 
 探测路由='\u0000probe'#探测用路由键
 密钥引用清洗=re.compile(r'[^A-Z0-9]+',re.ASCII)#非常量字符
+
+def 拼合提供方目录(已注册,目录):#拼合在线路由与可配置声明
+    """对齐 joinProviderDirectory：声明行在前，其后补无声明的在线路由；可选带上 declared/error。"""
+    活跃=set()#在线 id
+    for 提供方 in 已注册:#每条在线
+        if 'id' in 提供方:#有 id
+            活跃.add(提供方['id'])#记入
+    已声明=set()#已声明 id
+    for 条目 in 目录:#每条声明
+        if 'provider' in 条目:#有路由
+            已声明.add(条目['provider'])#记入
+    行表=[]#拼合结果
+    for 条目 in 目录:#声明行
+        行={#基础字段
+            'provider':条目['provider'] if 'provider' in 条目 else None,#路由
+            'displayName':条目['displayName'] if 'displayName' in 条目 else None,#显示名
+            'settingsNs':条目['settingsNs'] if 'settingsNs' in 条目 else None,#命名空间
+            'settingsPath':list(条目['settingsPath']) if 'settingsPath' in 条目 and 条目['settingsPath'] is not None else [],#路径副本
+            'active':('provider' in 条目 and 条目['provider'] in 活跃),#是否在线
+        }#基础结束
+        if 'declared' in 条目 and 条目['declared'] is not None:#可选 declared
+            行['declared']=条目['declared']#带上
+        if 'error' in 条目 and 条目['error'] is not None:#可选 error
+            行['error']=条目['error']#带上
+        行表.append(行)#记入
+    for 提供方 in 已注册:#补无声明的在线
+        标识=提供方['id'] if 'id' in 提供方 else None#id
+        if 标识 is None or 标识 in 已声明:#已有声明
+            continue#跳过
+        行表.append({#追加在线未声明行
+            'provider':标识,#路由
+            'displayName':提供方['name'] if 'name' in 提供方 else 标识,#显示名
+            'settingsNs':'',#无设置命名空间
+            'settingsPath':[],#无设置路径
+            'active':True,#在线
+        })#追加结束
+    return 行表#拼合结果
 
 class 模型设置错误(Exception):
     """本包异常基类。"""

@@ -13,7 +13,7 @@ __all__=['变体标题','分类工具','结果文本','相对化到工作区','�
 }#结束
 
 工具变体={#工具名 → 行变体
-    'bash':'bash','pwsh':'bash','read':'read','web_fetch':'read',
+    'bash':'bash','pwsh':'bash','read':'read','read_image':'read','web_fetch':'read',
     'web_search':'search','grep':'search','glob':'search',
     'write':'write','edit':'edit','run_code':'code',
     'cordis_package_inspect':'read','cordis_runtime_inspect':'read',
@@ -24,6 +24,7 @@ __all__=['变体标题','分类工具','结果文本','相对化到工作区','�
     'cordis_package_inspect':'Inspect','cordis_runtime_inspect':'Inspect',
     'cordis_run':'Run Cordis Plugin','cordis_stop':'Stop Cordis Plugin',
     'cordis_undefine':'Remove Cordis Plugin','pwsh':'Pwsh',
+    'read_image':'Read Image',
 }#结束
 
 摘要键={#变体 → 摘要键序

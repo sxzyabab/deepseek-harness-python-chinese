@@ -110,6 +110,22 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
             return 留下#截断后的块
         return 块列表#原样
 
+    def 中断块列表(自身):#中断时可定稿的块
+        """组装中断流可安全定稿的前缀：非空白文本/推理；省略工具调用与未关闭未知块。"""
+        留下=[]#可定稿前缀
+        for 下标 in 自身.顺序:#按出现顺序
+            部分=自身.必须取(下标)#取部分块
+            if 'block' in 部分:#权威块
+                类型=部分['block']['type']#权威类型
+            else:#声明类型
+                类型=部分['blockType']#声明类型
+            if 类型!='text' and 类型!='reasoning':#非文本/推理丢掉
+                continue#跳过
+            块=自身.组装一块(部分,下标)#组装
+            if (块['type']=='text' or 块['type']=='reasoning') and 块['text'].strip()!='':#非空白
+                留下.append(块)#保留
+        return 留下#中断前缀
+
     @property#用量
     def 用量(自身):#来自 usage 块的用量
         """来自 usage 块的用量；尚未到达则为 None。"""

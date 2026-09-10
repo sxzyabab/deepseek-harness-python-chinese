@@ -5,9 +5,12 @@
 会话事件、视图、属主、回合 data 均为跨线 dict。
 """
 
+from .已呈现 import 是否已呈现数据,是否已呈现文件,路径末段 as _已呈现路径末段#已呈现校验
+
 __all__=[#仅中文公开名
     '产出路径于视图',
     '收口产出',
+    '收口已呈现',
     '选出产出文件',
     '交付物定义',
     '交付物错误',
@@ -67,13 +70,31 @@ def 选出产出文件(所有者):#有产出才认领回合尾链
         return None#拒绝
     return 路径表#路径
 
+def 收口已呈现(所有者):#收口前每条路径的最新声明
+    """按首次出现路径顺序的可回放交付。属主为 dict。"""
+    回合=所有者['turn'] if 'turn' in 所有者 else None#回合
+    数据面=回合['data'] if 回合 is not None and 'data' in 回合 else None#数据面
+    数据=数据面['deliverables'] if 数据面 is not None and 'deliverables' in 数据面 else None#产出数据
+    序号=所有者['seq'] if 'seq' in 所有者 else None#收口序号
+    已呈现列表=数据['presented'] if 数据 is not None and 'presented' in 数据 and 数据['presented'] is not None else []#已呈现
+    文件表={}#路径 → 最新声明（保序）
+    for 项 in 已呈现列表:#扫
+        if 序号 is not None and 项['seq']>=序号:#收口及之后排除
+            continue#跳过
+        文件表[项['path']]=项#后写覆盖
+    return list(文件表.values())#保序值
+
 def 匹配(事件):#判定事件是否属于本节点
-    """turn/start 开节点；tool/call 与追加面 tool/result 为 update。"""
+    """turn/start 开节点；tool/call、deliverables/presented 与追加面 tool/result 为 update。"""
     类型=事件['type']#类型
     数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
     if 类型=='turn/start':#回合开始
         return {'id':str(数据['turn'] if 'turn' in 数据 else None),'role':'start'}#开节点
     if 类型=='tool/call':#工具调用
+        return {'id':str(数据['turn'] if 'turn' in 数据 else None),'role':'update'}#update
+    if 类型=='deliverables/presented':#已呈现交付
+        if not 是否已呈现数据(数据):#非法
+            return None#忽略
         return {'id':str(数据['turn'] if 'turn' in 数据 else None),'role':'update'}#update
     if 类型=='tool/result' and 是否追加面事件(事件):#追加面结果
         return {'id':str(数据['turn'] if 'turn' in 数据 else None),'role':'update'}#update
@@ -88,10 +109,27 @@ def 起始(上下文,匹配结果):#用 turn/start 建折叠状态
     return {'turn':数据['turn'] if 'turn' in 数据 else None,'calls':{},'produced':[]}#空表
 
 def 更新(上下文,匹配结果):#按调用与结果累积产出路径
-    """调用记下 callView；成功结果追加路径。"""
+    """调用记下 callView；成功结果追加路径；已呈现事件追加声明。"""
     状态=上下文['state'] if 'state' in 上下文 and 上下文['state'] is not None else {}#状态
     事件=匹配结果['event']#事件
     类型=事件['type']#类型
+    if 类型=='deliverables/presented':#已呈现交付
+        数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
+        文件表=数据['files'] if 'files' in 数据 and 数据['files'] is not None else []#文件
+        序号=事件['seq']#事件序号
+        本批=[]#本批已呈现
+        for 下标,文件 in enumerate(文件表):#按下标
+            if 是否已呈现文件(文件):#合法
+                项=dict(文件)#浅拷贝
+                项['seq']=序号#序号
+                项['index']=下标#下标
+                本批.append(项)#收下
+        if len(本批)==0:#无合法
+            return 状态#不变
+        新状态=dict(状态)#拷贝
+        已有=状态['presented'] if 'presented' in 状态 and 状态['presented'] is not None else []#已有
+        新状态['presented']=list(已有)+本批#接到末尾
+        return 新状态#返回
     if 类型=='tool/call':#调用发出
         调用表=dict(状态['calls'] if 'calls' in 状态 and 状态['calls'] is not None else {})#拷贝；空 dict 保留
         视图=匹配结果['view'] if 'view' in 匹配结果 else None#视图
@@ -130,11 +168,14 @@ def 建位置数据(上下文,范围):#写回合位置数据
     状态=上下文['state'] if 'state' in 上下文 else None#状态
     if 范围!='turn' or 状态 is None:#不写
         return None#null
+    值={'produced':状态['produced'] if 'produced' in 状态 else None}#已累积产出
+    if 'presented' in 状态 and 状态['presented'] is not None:#有已呈现才展开
+        值['presented']=状态['presented']#已呈现
     return {#回合位置
         'kind':'turn',#回合
         'turn':状态['turn'] if 'turn' in 状态 else None,#回合号
         'key':'deliverables',#本贡献键
-        'value':{'produced':状态['produced'] if 'produced' in 状态 else None},#已累积
+        'value':值,#已累积
     }#位置结束
 
 交付物定义={#产出文件会话节点定义
@@ -147,10 +188,7 @@ def 建位置数据(上下文,范围):#写回合位置数据
 
 def 路径末段(路径):#取路径末段
     """最后一段；没有分隔符则整串。"""
-    斜=路径.rfind('/')#正斜杠
-    反=路径.rfind('\\')#反斜杠
-    位=斜 if 斜>反 else 反#最后分隔
-    return 路径 if 位==-1 else 路径[位+1:]#末段
+    return _已呈现路径末段(路径)#与已呈现模块同算法
 
 def 唯一末段路径(路径表,值):#末段恰好等于 value 的那一条
     """对不上或多于一条则为 None。"""

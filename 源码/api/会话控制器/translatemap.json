@@ -1,12 +1,14 @@
 {
     "agent.ts":"智能体.py",
     "catalog.ts":"目录.py",
+    "client/session-wire-event.ts":"客户端/会话线事件.py",
     "commands.ts":"命令.py",
     "control.ts":"控制.py",
     "file-references.ts":"文件引用.py",
     "history.ts":"历史.py",
     "index.ts":"__init__.py",
     "list.ts":"列表.py",
+    "media-references.ts":"媒体引用.py",
     "model-selection-projection.ts":"模型选择投影.py",
     "skill-catalog.ts":"技能目录.py",
     "工具.py":"远程错误与并发.py"

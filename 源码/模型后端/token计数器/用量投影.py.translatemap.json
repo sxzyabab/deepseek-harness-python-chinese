@@ -1,5 +1,6 @@
 {
     "accumulate":"累加",
+    "attempt":"尝试",
     "bucket":"桶",
     "definition":"定义",
     "empty":"空",
@@ -10,6 +11,7 @@
     "replace":"替换",
     "schema":"模式",
     "split":"拆",
+    "stream":"流",
     "usage":"用量",
     "view":"视图"
 }

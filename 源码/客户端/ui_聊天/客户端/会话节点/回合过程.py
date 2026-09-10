@@ -24,7 +24,7 @@ def 可见助手事件(事件):#是否可见 Assistant 事件
     """流式或定稿可见正文。"""
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种=='assistant/chunk':#流式
+    if 种=='assistant/live-chunk':#流式
         块=数据['chunk'] if 'chunk' in 数据 else {}#块
         块种=块['type'] if 'type' in 块 else None#块种
         if 块种 in ('text-delta','reasoning-delta'):#增量
@@ -123,7 +123,7 @@ def 回合过程匹配(事件):#匹配事件
     回合=事件回合(事件)#轮次
     if 回合 is None:#无
         return None#不
-    if 种 in ('assistant/chunk','assistant/message','tool/call','tool/result','llm/retry','step/start','step/end','turn/end') or 是块行事件(事件):#相关
+    if 种 in ('assistant/live-chunk','assistant/message','tool/call','tool/result','llm/retry','step/start','step/end','turn/end') or 是块行事件(事件):#相关
         return {'id':str(回合),'role':'update'}#更新
     return None#否
 

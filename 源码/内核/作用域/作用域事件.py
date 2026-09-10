@@ -38,7 +38,7 @@ def 取参数一作用域(参数):#从组装上下文取 scope
     'subagent/end':None,#仅检查载体存在
     'subagent/start':None,#仅检查载体存在
     'system-prompt/assemble':取参数一作用域,#组装上下文.scope
-    'tools/code-dispatch-log':取参数零智能体,#载荷.agent
+    'tools/ptc-dispatch-log':取参数零智能体,#载荷.agent
     'tools/execute':取参数零智能体,#载荷.agent
     'tools/post-execute':取参数零智能体,#载荷.agent
     'tools/pre-execute':取参数零智能体,#载荷.agent

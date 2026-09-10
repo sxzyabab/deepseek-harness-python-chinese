@@ -7,7 +7,7 @@ from .landlock入口 import 授权参数 as landlock授权参数#Landlock --ro/-
 
 def bwrap配置参数(政策):
     """为一份文件效果政策构建 bwrap 配置参数。政策是 dict。"""
-    参数=['--ro-bind','/','/','--dev','/dev','--proc','/proc','--die-with-parent']#只读根加设备与进程
+    参数=['--ro-bind','/','/','--dev','/dev','--unshare-pid','--proc','/proc','--die-with-parent']#只读根、设备、独立pid、进程表
     if 政策['mode']=='workspace-write':#工作区可写
         参数.extend(['--tmpfs','/tmp'])#临时 /tmp
         根=政策['workspaceRoot']#工作区根

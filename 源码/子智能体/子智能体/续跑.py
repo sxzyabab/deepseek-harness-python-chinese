@@ -16,8 +16,8 @@ from .子体 import (#子体组合零件
     解析子深度,#解析子深度
 )#子体组合零件结束
 from .深度 import 断言子智能体最大深度#导入深度上限断言
-from .描述符播种 import 播种描述符回合#导入描述符播种
 from .错误 import 子智能体错误#导入子智能体错误
+from .目录 import 建立目录子体#父拥有目录追加
 
 class 子智能体中止错误(子智能体错误):
     """调用方取消。"""
@@ -257,25 +257,39 @@ class 子智能体续跑管理器:#可续跑管理器
         若已中止则抛出(规格['signal'] if 'signal' in 规格 else None)#准备后取消检查
         自身._断言准入(父)#准备后准入检查
         准备种子=准备['seed'] if isinstance(准备,dict) and 'seed' in 准备 else None#父前缀
-        谱系种子长度=len(准备种子) if 准备种子 is not None else 0#父前缀长度
-        种子=播种描述符回合(子标识,准备种子,描述符)#播种含描述符
+        继承计数=len(准备种子) if 准备种子 is not None else 0#精确继承前缀长度
         def 临界():#在子锁内物化并提交
             """物化并提交初始提示。"""
+            创建={#创建字段：描述符与策略在未发布装配里追加，不塞进构造种子
+                'meta':子会话元数据(父,子深度,准备种子 is not None),#是否 fork 种子
+                'inheritedEventCount':继承计数,#继承计数
+                'delegatedPolicies':委托策略,#委托策略
+                'descriptor':描述符,#描述符
+            }#创建结束
+            if 准备种子 is not None:#有父前缀
+                创建['seed']=准备种子#写入种子
             激活=自身._物化({#物化Activation
                 'childId':子标识,#子id
                 'provider':规格['provider'],#提供方
                 'parent':父,#委托父
-                'create':{'seed':种子,'meta':子会话元数据(父,子深度,谱系种子长度),'delegatedPolicies':委托策略},#创建输入
+                'create':创建,#创建输入
                 'agentOptions':解析子智能体选项(父,(请求['agentOptions'] if 'agentOptions' in 请求 else None),子深度),#子选项
                 'composition':{'persona':(请求['persona'] if 'persona' in 请求 else None),'toolFilter':(请求['toolFilter'] if 'toolFilter' in 请求 else None)},#组合
                 'signal':(规格['signal'] if 'signal' in 规格 else None),#取消
             })#materialize结束
+            子头=激活['handle'].智能体.session.header if hasattr(激活['handle'],'智能体') else 激活['handle'].agent.session.header#子头
+            if not isinstance(子头,dict):#对象形
+                子头={'id':子头.id,'createdAt':子头.createdAt}#收成 dict
+            def 提交目录():#接受后追加目录
+                """建立目录子体。"""
+                建立目录子体(父.session,子头,描述符)#目录
             return 自身._提交已物化(#提交或整份回滚
                 激活,#刚发布的Activation
                 请求['prompt'],#初始提示
                 {'kind':'user'},#用户来源
                 父,#授权父
                 (规格['signal'] if 'signal' in 规格 else None),#取消
+                提交目录,#接受后目录追加
             )#submitMaterialized结束
         消息标识=自身._锁.跑(子标识,临界)#在子锁内
         return {'childId':子标识,'messageId':消息标识}#耐久身份
@@ -292,7 +306,9 @@ class 子智能体续跑管理器:#可续跑管理器
                 if 激活.get('disposal') is not None:#拆除已打开
                     激活['disposal'].等待()#等释放后重试
                     return None#重试
-                return 自身._同步准入提交(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#驻留提交
+                消息标识=自身._同步准入提交(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#驻留提交
+                激活['announced']=True#活跟进也对外宣布
+                return 消息标识#消息 id
             活=自身._锁.跑(子标识,临界)#在子锁内
             if 活 is not None:#已接受
                 return 活#消息id
@@ -565,9 +581,9 @@ class 子智能体续跑管理器:#可续跑管理器
         # 折叠之前授权持久头：只有耐久子体的精确活直接父可以续它。
         元=已载['meta'] if isinstance(已载,dict) and 'meta' in 已载 else None#持久头
         自身._授权谱系(父,子标识,元['parentSession'] if isinstance(元,dict) and 'parentSession' in 元 else None)#授权谱系
-        种子长度=元['seedLength'] if isinstance(元,dict) and 'seedLength' in 元 and 元['seedLength'] is not None else 0#种子长度
+        继承计数=已载['inheritedEventCount'] if isinstance(已载,dict) and 'inheritedEventCount' in 已载 and 已载['inheritedEventCount'] is not None else 0#继承切口
         原始事件=已载['events'] if isinstance(已载,dict) and 'events' in 已载 else None#事件
-        事件列表=list(原始事件 if 原始事件 is not None else [])[种子长度:]#自身后缀
+        事件列表=list(原始事件 if 原始事件 is not None else [])[继承计数:]#自身后缀
         描述符=折叠子智能体描述符(事件列表)#自身后缀描述符
         if 描述符 is None or 描述符.get('mode')!='continuable':#无法续跑
             raise 子智能体错误(#拒绝
@@ -596,15 +612,22 @@ class 子智能体续跑管理器:#可续跑管理器
             raise 子智能体错误('subagent "'+str(子标识)+'" is unavailable','NOT_RESUMABLE',{'cause':错误})#包装为不可恢复
         return 自身._提交已物化(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#提交或回滚
 
-    def _提交已物化(自身,激活,内容,来源,父,信号):#提交或回滚
-        """向刚物化的 Activation 提交，或整份回滚。"""
+    def _提交已物化(自身,激活,内容,来源,父,信号,提交=None):#提交或回滚
+        """向刚物化的 Activation 提交，或整份回滚；接受后可选目录提交。"""
         try:#尝试提交
-            return 自身._同步准入提交(激活,内容,来源,父,信号)#同步准入提交
+            消息标识=自身._同步准入提交(激活,内容,来源,父,信号)#同步准入提交
+            if 提交 is not None:#有提交钩子
+                提交()#目录追加等
+            激活['announced']=True#已向调用方公布
+            return 消息标识#消息 id
         except Exception as 错误:#接受前失败
             try:#回滚拆除
                 自身._拆除(激活)#回滚
-            except Exception:#回滚失败不得掩盖原失败
-                pass#吞掉
+            except Exception as 清理错误:#回滚失败不得掩盖原失败
+                try:#记警告
+                    自身.ctx.logger.warn('subagent continuation: disposal after admission or catalog append failure also failed: '+str(清理错误))#警告
+                except Exception:#无 logger
+                    pass#吞掉
             raise 错误#保留原失败
 
     def _物化(自身,输入):#跟踪物化
@@ -630,10 +653,11 @@ class 子智能体续跑管理器:#可续跑管理器
         父=输入['parent']#委托父
         创建=(输入['create'] if 'create' in 输入 else None)#可选创建输入
         若已中止则抛出((输入['signal'] if 'signal' in 输入 else None))#创建前取消
-        def 装配(子上下文):#未发布装配
-            """未发布装配。"""
+        def 装配(子上下文,子=None):#未发布装配
+            """未发布装配。子为工厂传入的智能体；缺席时取自子上下文。"""
+            智能体=子 if 子 is not None else 子上下文.agent#优先用工厂传入的子体
             if 创建 is not None:#全新创建
-                智能体=子上下文.agent#未发布智能体
+                智能体.session.追加('subagent/descriptor',创建['descriptor'])#追加描述符
                 追加委托策略覆盖(智能体.session,创建['delegatedPolicies'] if 'delegatedPolicies' in 创建 else None)#追加策略事件
             应用子体组合(子上下文,父,(输入['composition'] if 'composition' in 输入 else None))#应用人设与工具过滤
             return 自身._装配注册表.应用(子上下文)#部署贡献
@@ -642,19 +666,25 @@ class 子智能体续跑管理器:#可续跑管理器
         if 创建 is None:#冷恢复
             句柄=所有者智能体.恢复({#恢复持久会话
                 'resumeSessionId':子标识,#要恢复的id
+                'parentAgent':父,#委托父
                 'agentOptions':(输入['agentOptions'] if 'agentOptions' in 输入 else None),#子选项
                 'signal':(输入['signal'] if 'signal' in 输入 else None),#取消
                 'setup':装配,#未发布装配
             })#resume结束
         else:#全新创建
-            句柄=所有者智能体.创建({#全新创建
+            创建选项={#创建选项
                 'sessionId':子标识,#已预留id
+                'parentAgent':父,#委托父
                 'meta':创建['meta'] if 'meta' in 创建 else None,#会话元数据
-                'seed':创建['seed'] if 'seed' in 创建 else None,#含描述符的种子
                 'agentOptions':(输入['agentOptions'] if 'agentOptions' in 输入 else None),#子选项
                 'signal':(输入['signal'] if 'signal' in 输入 else None),#取消
                 'setup':装配,#未发布装配
-            }))#create结束
+            }#选项结束
+            if 'seed' in 创建 and 创建['seed'] is not None:#有种子
+                创建选项['seed']=创建['seed']#写入
+            if 'inheritedEventCount' in 创建:#有继承计数
+                创建选项['inheritedEventCount']=创建['inheritedEventCount']#写入
+            句柄=所有者智能体.创建(创建选项)#create结束
         谱系弱=weakref.WeakSet()#子体加父谱系
         谱系弱.add(句柄.智能体)#子体
         for 祖先 in 父谱系:#父谱系
@@ -757,8 +787,7 @@ class 子智能体续跑管理器:#可续跑管理器
             """记账窗口内入队下一回合。"""
             激活['handle'].智能体.后续(消息)#入队下一回合
         已接受=自身._准入唤醒(激活,消息.id,发送跟进)#admitWaking结束
-        # 过了这一点调用方有了本子体的 id。
-        激活['announced']=True#已向调用方公布
+        # announced 由 _提交已物化 在目录提交后置位；此处只返回已接受 id。
         return 已接受#消息id
 
     def _准入唤醒(自身,激活,消息标识,发送):#记账唤醒发送

@@ -21,14 +21,14 @@ def 校验结果(执行,结果,失败):
         失败('tools/result execution must carry non-empty name and callId')#名称与调用 id 不得为空
 
 def 安装(上下文对象,失败):
-    """安装单调管线、最终快照与代码派发封闭检查。"""
+    """安装单调管线、最终快照与 PTC 派发封闭检查。"""
     阶段表=弱身份表()#每次执行的管线阶段
     打开轮次表=弱身份表()#各会话当前打开轮次
     派发根表=弱身份表()#子调用到根调用的映射
     def 校验派发(会话对象,事件):
-        """校验代码派发事件的根/父/子封闭关系。"""
+        """校验 PTC 派发事件的根/父/子封闭关系。"""
         种类=事件['type'] if 'type' in 事件 else None#事件类型
-        if 种类!='tool/code-dispatch-start' and 种类!='tool/code-dispatch':
+        if 种类!='tool/ptc-dispatch-start' and 种类!='tool/ptc-dispatch':
             return#非派发事件放过
         数据=事件['data'] if 'data' in 事件 else None#载荷
         根=str(数据['rootCallId'] if 数据 is not None and 'rootCallId' in 数据 else None)#根调用 id
@@ -47,7 +47,7 @@ def 安装(上下文对象,失败):
     def 提交派发(会话对象,事件):
         """提交派发映射：记下子调用到根的归属。"""
         种类=事件['type'] if 'type' in 事件 else None#事件类型
-        if 种类!='tool/code-dispatch-start' and 种类!='tool/code-dispatch':
+        if 种类!='tool/ptc-dispatch-start' and 种类!='tool/ptc-dispatch':
             return#非派发事件放过
         数据=事件['data'] if 'data' in 事件 else None#载荷
         根映射=派发根表.取(会话对象)#该会话映射
@@ -69,7 +69,7 @@ def 安装(上下文对象,失败):
                 打开轮次=数据['turn'] if 数据 is not None and 'turn' in 数据 else None#打开轮次
             elif 种类=='turn/end':
                 打开轮次=None#关闭轮次
-            elif (种类=='tool/code-dispatch-start' or 种类=='tool/code-dispatch') and 打开轮次 is None:
+            elif (种类=='tool/ptc-dispatch-start' or 种类=='tool/ptc-dispatch') and 打开轮次 is None:
                 失败(种类+' appended outside any open turn')#必须包在轮次内
         打开轮次表.设(会话对象,打开轮次)#记下打开轮次
         return 打开轮次#返回打开轮次
@@ -105,7 +105,7 @@ def 安装(上下文对象,失败):
             事件=参数[1]#事件
             校验派发(会话对象,事件)#校验派发
             种类=事件['type'] if 'type' in 事件 else None#事件类型
-            if (种类=='tool/code-dispatch-start' or 种类=='tool/code-dispatch') and 取打开轮次(会话对象) is None:
+            if (种类=='tool/ptc-dispatch-start' or 种类=='tool/ptc-dispatch') and 取打开轮次(会话对象) is None:
                 失败(种类+' appended outside any open turn')#必须包在轮次内
             return#会话事件处理完
         if 事件名=='tools/pre-execute':

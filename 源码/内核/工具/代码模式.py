@@ -518,7 +518,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                 raise 代码模式错误('run_code run is over ('+str(本轮.信号._异常)+'); '+名称+' not dispatched')#不再派发
             归一=json归一参数(原始参数)#派发/日志两份快照
             子调用序号+=1#子调用序号
-            子调用号=调用标识(str(执行['callId'])+':code:'+str(子调用序号))#确定性子 id
+            子调用号=调用标识(str(执行['callId'])+':ptc:'+str(子调用序号))#确定性子 id
             输入={
                 'callId':子调用号,#子调用 id
                 'rootCallId':执行['rootCallId'],#根调用
@@ -551,7 +551,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                         'isError':结果['isError'],#是否错误
                         'content':结果['content'],#默认内容
                     })#整形要记的内容
-                    智能体.session.append('tool/code-dispatch',{
+                    智能体.session.append('tool/ptc-dispatch',{
                         'rootCallId':执行['rootCallId'],#根
                         'parentCallId':执行['callId'],#父 run_code
                         'subCallId':子调用号,#子 id
@@ -589,7 +589,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                 """有序开始。"""
                 智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
                 if 智能体 is not None:
-                    智能体.session.append('tool/code-dispatch-start',{
+                    智能体.session.append('tool/ptc-dispatch-start',{
                         'rootCallId':执行['rootCallId'],#根
                         'parentCallId':执行['callId'],#父
                         'subCallId':子调用号,#子 id

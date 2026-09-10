@@ -220,9 +220,13 @@ def 解析委托运行(请求,选项):
         后台=请求['run_in_background']#模型可选后台
     return {'runInBackground':bool(后台)}#解析结束
 
-def 应用(上下文,配置值):
-    """安装委托工具：镜像提供方生命周期登记工具，并在可续接后台时挂指引。配置为 dict。"""
-    最大深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#读深度配置
+def 应用(上下文,配置值,会话=None):
+    """安装委托工具：镜像提供方生命周期登记工具，并在可续接后台时挂指引。
+
+    配置为 dict。会话为直接 Agent 装配供给的未发布 Session（常驻组合省略）；
+    本 Python 面尚未移植 modelSelectionSettings 路径，会话参数保留签名对齐。
+    """
+    _=会话#签名对齐；模型选择设置路径未移植时未使用    最大深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#读深度配置
     if 最大深度!='provider-managed':#数字上限当场校验
         断言子智能体最大深度(最大深度)#校验形态
     工具过滤=配置值['toolFilter'] if 'toolFilter' in 配置值 else None#读过滤

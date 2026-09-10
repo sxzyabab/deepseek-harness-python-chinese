@@ -1,19 +1,22 @@
 """无密钥快照测试的 LLM 回放。
 
 对齐上游 `llm-replay/src/index.ts`。公开面仅中文名。
-从 assistant/chunk 与显式标记的本地压缩调用派生模型调用脚本。
+从 v3 嵌入助手流与显式标记的本地压缩调用派生模型调用脚本。
 同步生成器流；节拍用 time.sleep；挂起用 threading.Event。
 """
-import json,os,time,threading#JSON、文件、节拍与挂起
+import json,os,re,time,threading#JSON、文件、正则、节拍与挂起
 from ...模型后端.llm import (#LLM 运行时
     语言模型适配器,语言模型错误,解析重试政策,断言永不,
 )#LLM 导入
+from ...模型后端.llm.助手流 import 展开助手流#展开嵌入助手流
 from ...模型后端.llm.标识构造 import 推理力度标识#推理力度
-from ...内核.会话 import 解码存储记录#存储解码
+from ...内核.会话 import 会话格式版本#当代版本
+from ...会话.会话格式目录 import 会话格式目录,会话格式不支持迁移错误#格式目录
 
 __all__=[#仅中文公开名
     '名称','注入','应用','解析会话日志','解析会话头','派生回放脚本',
     '解析脚本条目','加载回放脚本','加载会话脚本','安装LLM回放',
+    '准备会话快照夹具供比较',
 ]#公开面结束
 
 名称='llm-replay'#插件名
@@ -24,47 +27,208 @@ __all__=[#仅中文公开名
 ])#分片类型结束
 请求占位开='{{fromRequest:'#占位开
 请求占位闭='}}'#占位闭
-def 解码序号范围(值,最大条目=2**53-1):#解码序号范围
-    """展开 JSON 存储形态的 sourceEventSeqs（上游 decodeSeqRanges；内核尚未导出时内联）。"""
-    if not isinstance(值,list):#非数组
-        raise TypeError('sourceEventSeqs must be an array')#必须数组
-    解码=[]#结果
-    有范围=False#是否含范围
-    def 断言序号(项):#断言安全非负整数
-        """校验序号。"""
-        if not isinstance(项,int) or isinstance(项,bool) or 项<0:#非法
-            raise TypeError('sourceEventSeqs must contain non-negative safe integers')#非法
-    for 条目 in 值:#逐项
-        if isinstance(条目,int) and not isinstance(条目,bool):#单序号
-            断言序号(条目)#校验
-            if len(解码)>=最大条目:#超限
-                raise TypeError('sourceEventSeqs exceeds its event sequence')#超限
-            解码.append(条目)#追加
+工具令牌='{{tools}}'#工具 schema 令牌
+工作目录令牌模式=re.compile(r'^\{\{cwd\}\}(?:/|$)')#cwd 令牌
+
+if 会话格式目录.当前版本!=会话格式版本:#目录版本须与会话包一致
+    raise Exception(#抛出版本不匹配
+        f'llm-replay: format catalog v{会话格式目录.当前版本} '
+        +f'does not match Session v{会话格式版本}',
+    )#版本检查结束
+
+def 规范化投影头(头):#规范化投影头
+    """在物理校验前物化仅 fixture 的头省略与令牌。"""
+    归一=dict(头)#浅拷贝
+    if 头.get('version')==0 and 'delegationDepth' not in 头:#v0 缺深度
+        归一['delegationDepth']=0#补零
+    cwd=头.get('cwd')#cwd
+    if isinstance(cwd,str) and 工作目录令牌模式.match(cwd):#cwd 令牌
+        归一['cwd']=cwd.replace('{{cwd}}','/dsh-snapshot-cwd')#替换占位
+    return 归一#返回头
+
+def 规范化投影行(源):#规范化投影行
+    """省略精确请求工具伴随令牌，并为校验物化投影工具名。"""
+    记录=dict(源)#浅拷贝
+    if 记录.get('type')!='request/header':#非请求头
+        return 记录#原样
+    数据=记录.get('data')#data
+    if not isinstance(数据,dict):#非法 data
+        return 记录#原样
+    头=数据.get('header')#header
+    if not isinstance(头,dict):#非法 header
+        return 记录#原样
+    工具=头.get('tools')#tools
+    归一头=dict(头)#浅拷贝 header
+    if 工具==工具令牌:#令牌则删键
+        归一头.pop('tools',None)#删除 tools
+    elif isinstance(工具,list) and len(工具)>0 and all(isinstance(名,str) and 名!='' for 名 in 工具):#工具名数组
+        归一头['tools']=[{'name':名,'description':'','parameters':{}} for 名 in 工具]#物化工具
+    else:#其他形态
+        return 记录#原样返回
+    记录['data']={**数据,'header':归一头}#写回 data
+    return 记录#返回记录
+
+def 恢复投影请求头(目标,源):#恢复投影请求头
+    """恢复仅为满足已发布格式校验而物化的 fixture 令牌。"""
+    目标数据=目标.get('data') if isinstance(目标.get('data'),dict) else {}#目标 data
+    源数据=源.get('data') if isinstance(源.get('data'),dict) else {}#源 data
+    目标头=目标数据.get('header') if isinstance(目标数据.get('header'),dict) else {}#目标 header
+    源头=源数据.get('header') if isinstance(源数据.get('header'),dict) else {}#源 header
+    源工具=源头.get('tools')#源 tools
+    if 源工具!=工具令牌:#非令牌
+        return 目标#原样
+    return {#恢复 tools 令牌
+        **目标,#保留目标
+        'data':{#替换 data
+            **目标数据,#保留 data
+            'header':{**目标头,'tools':源工具},#恢复 tools
+        },#data 结束
+    }#返回结束
+
+def 物理行基数(行):#物理行基数
+    """返回一个物理行对确定性序号补全贡献多少逻辑事件。"""
+    if 行.get('type') not in 打包块行类型:#非打包为 1
+        return 1#1
+    数据=行.get('data')#data
+    if not isinstance(数据,dict):#非法为 1
+        return 1#1
+    载荷=数据.get('args' if 行.get('type')=='tool-call-chunks' else 'texts')#载荷
+    return len(载荷) if isinstance(载荷,list) and len(载荷)>0 else 1#按长度
+
+def 夹具格式错误(错误,头行,行号表,事件行号,物理行=None):#fixture 格式错误
+    """附加最近物理源行，同时保留不支持迁移的分类。"""
+    细节=错误.args[0] if isinstance(错误,BaseException) and 错误.args else str(错误)#详情
+    原因=getattr(错误,'__cause__',None)#原因
+    定位=原因.args[0] if isinstance(原因,BaseException) and 原因.args else 细节#定位串
+    已发布行=re.match(r'^released Session row (\d+)',str(定位))#已发布行匹配
+    事件=re.search(r'Session event (\d+)',str(定位)) or re.search(r' at seq (\d+)',str(定位)) or re.search(r'inherited Session cut (\d+)',str(定位))#事件匹配
+    if 物理行 is not None:#物理行
+        行号=行号表[物理行]#行号
+    elif 已发布行 is not None:#已发布行
+        下标=int(已发布行.group(1))#下标
+        行号=行号表[下标] if 下标<len(行号表) else 头行#行号
+    elif 事件 is None:#头
+        行号=头行#头
+    else:#事件行
+        下标=int(事件.group(1))#下标
+        行号=事件行号[下标] if 下标<len(事件行号) else 头行#事件行
+    消息=f'session snapshot line {行号}: {细节}'#组装消息
+    if isinstance(错误,会话格式不支持迁移错误):#不支持迁移
+        return 会话格式不支持迁移错误(消息,错误)#同型包装
+    return _带原因异常(消息,错误)#普通错误
+
+def _带原因异常(消息,原因):#包装异常并保留 cause
+    """创建 Exception 并挂上 __cause__。"""
+    错误=Exception(消息)#普通错误
+    错误.__cause__=原因#原因
+    return 错误#返回
+
+def 物化解析会话夹具(制品,源头):#物化解析视图
+    """从已迁移制品物化公共回放视图。"""
+    头=制品['header'] if isinstance(制品,dict) else getattr(制品,'header',{})#头
+    继承=制品['inheritedEventCount'] if isinstance(制品,dict) else getattr(制品,'inheritedEventCount',0)#继承数
+    事件=制品['events'] if isinstance(制品,dict) else getattr(制品,'events',())#事件
+    return {#构造对象
+        'id':头.get('id') if isinstance(头,dict) else '',#会话 id
+        'createdAt':头.get('createdAt') if isinstance(头,dict) else 0,#创建时间
+        'inheritedEventCount':int(继承),#继承数
+        'events':list(事件),#事件副本
+        'artifact':制品,#制品
+        'sourceHeader':源头,#源头
+    }#对象结束
+
+def 解析会话夹具(文本):#解析会话 fixture
+    """解析、补全、解码并迁移一个投影快照制品，不写回其源。"""
+    头行号=None#头行号
+    源头=None#源头
+    恢复器=None#恢复器
+    行号表=[]#物理行号
+    事件行号=[]#事件行号
+    体种=None#体种类
+    下一序号=0#下一序号
+    for 索引,行 in enumerate(文本.splitlines()):#逐行扫描
+        if 行.strip()=='':#空行
+            continue#跳过
+        try:#尝试 JSON 解析
+            值=json.loads(行)#解析本行
+        except Exception as 错误:#解析失败
+            raise Exception(f'session snapshot line {索引+1} contains invalid JSON') from 错误#无效 JSON
+        if not isinstance(值,dict):#须为对象
+            raise Exception(f'session snapshot line {索引+1} must be a JSON object')#非对象
+        行号=索引+1#行号
+        if 恢复器 is None:#头行
+            头行号=行号#记头行
+            源头=值#记源头
+            try:#创建恢复器
+                恢复器=会话格式目录.创建恢复(规范化投影头(值),{'recovery':'strict','validation':'current'})#创建
+            except Exception as 错误:#创建失败
+                raise 夹具格式错误(错误,行号,[],[])#带行号抛错
+            continue#下一行
+        记录=规范化投影行(值)#规范化行
+        打包=记录.get('type') in 打包块行类型#是否打包行
+        序号键='seq0' if 打包 else 'seq'#序号键
+        时间键='time0' if 打包 else 'time'#时间键
+        有序号=序号键 in 记录#有序号否
+        有时间=时间键 in 记录#有时间否
+        if 有序号!=有时间:#须成对
+            raise Exception(f'session snapshot line {行号} must contain both {序号键} and {时间键}, or neither')#成对要求
+        当前体种='complete' if 有序号 else 'projected'#当前体种
+        if 体种 is not None and 当前体种!=体种:#禁止混用
+            raise Exception(f'session snapshot line {行号} cannot mix projected and complete body rows')#混用错误
+        体种=当前体种#记录体种
+        if 当前体种=='projected':#投影行补全
+            记录[序号键]=下一序号#写入序号
+            记录[时间键]=0#写入零时间
+        基数=物理行基数(记录)#物理行基数
+        行号表.append(行号)#记录行号
+        事件行号.extend([行号]*基数)#事件行号
+        下一序号+=基数#推进序号
+        try:#解码行
+            恢复器.decodeRow(记录)#解码
+        except Exception as 错误:#解码失败
+            raise 夹具格式错误(错误,头行号,行号表,事件行号,len(行号表)-1)#带行号
+    if 恢复器 is None or 源头 is None or 头行号 is None:#缺头
+        raise Exception('session snapshot must start with a session header')#缺头
+    try:#完成恢复
+        return 物化解析会话夹具(恢复器.finish(),源头)#物化视图
+    except Exception as 错误:#完成失败
+        raise 夹具格式错误(错误,头行号,行号表,事件行号)#带行号抛错
+
+def 编码当前会话快照夹具(文本,已解析):#编码当前快照
+    """编码一个已迁移 fixture 同时保留投影 cwd 与请求工具令牌。"""
+    制品=已解析['artifact']#制品
+    头字段=制品['header'] if isinstance(制品,dict) else getattr(制品,'header')#头
+    继承=制品['inheritedEventCount'] if isinstance(制品,dict) else getattr(制品,'inheritedEventCount')#继承
+    事件列表=制品['events'] if isinstance(制品,dict) else getattr(制品,'events')#事件
+    头=dict(会话格式目录.编码当代头(头字段,继承))#编码当前头
+    源cwd=已解析['sourceHeader'].get('cwd')#源 cwd
+    if isinstance(源cwd,str) and 工作目录令牌模式.match(源cwd):#恢复令牌
+        头['cwd']=源cwd#恢复
+    源请求=[json.loads(行) for 行 in 文本.splitlines() if 行.strip()!=''][1:]#体行
+    源请求=[行 for 行 in 源请求 if isinstance(行,dict) and 行.get('type')=='request/header']#仅请求头
+    请求游标=0#请求游标
+    输出行=[json.dumps(头,ensure_ascii=False,separators=(',',':'))]#头
+    for 事件 in 事件列表:#逐事件
+        已编码=会话格式目录.编码当代事件(事件)#编码
+        类型=事件.get('type') if isinstance(事件,dict) else getattr(事件,'type',None)#类型
+        if 类型!='request/header':#非请求头
+            输出行.append(json.dumps(已编码,ensure_ascii=False,separators=(',',':')))#编码行
             continue#下一项
-        if not isinstance(条目,list) or len(条目)!=2:#非对
-            raise TypeError('sourceEventSeqs range entries must be [start, end] pairs')#必须对
-        起,止=条目#拆开
-        断言序号(起)#校验起
-        断言序号(止)#校验止
-        if 止<起:#倒置
-            raise TypeError('sourceEventSeqs ranges require start <= end')#倒置
-        长度=止-起+1#长度
-        if 长度>最大条目-len(解码):#超限
-            raise TypeError('sourceEventSeqs range exceeds its event sequence')#超限
-        for 序号 in range(起,止+1):#展开
-            解码.append(序号)#追加
-        有范围=True#标记
-    if 有范围 and any(解码[索引]<=解码[索引-1] for 索引 in range(1,len(解码))):#非严格递增
-        raise TypeError('sourceEventSeqs ranges must be strictly increasing')#非递增
-    return 解码#返回
+        源=源请求[请求游标]#对齐源
+        请求游标+=1#推进
+        输出行.append(json.dumps(恢复投影请求头(已编码 if isinstance(已编码,dict) else dict(已编码),源),ensure_ascii=False,separators=(',',':')))#恢复令牌
+    输出='\n'.join(输出行)#拼 JSONL
+    return 输出+('\n' if 文本.endswith('\n') else '')#保留尾换行
+
+def 准备会话快照夹具供比较(文本):#准备快照比较
+    """在内存中把一个持久或投影快照 fixture 转为当前物理格式，供期望输出比较。"""
+    已解析=解析会话夹具(文本)#解析 fixture
+    return 编码当前会话快照夹具(文本,已解析)#编码当前格式
 
 def 请求图像句柄文本(引用,版本,访问=None):#请求图像句柄文本
-    """对齐 requestImageHandleText 的最小句柄文案（内容模块尚未导出时内联）。"""
-    身份=引用.get('id') if isinstance(引用,dict) else getattr(引用,'id','image')#身份
-    预览=f"Image {身份}; request preview {版本['width']}x{版本['height']}px."#预览
-    if 访问 is None:#无访问
-        return f'{预览} It may be resized or re-encoded; source dimensions, format, and byte size may differ.'#无路径
-    return 预览#有访问则短文案
+    """兼容旧名；权威实现见 模型后端.llm.内容.请求图片句柄文案。"""
+    from ...模型后端.llm.内容 import 请求图片句柄文案#权威句柄
+    return 请求图片句柄文案(引用,版本,访问)#委托
 
 def 是否记录(值):#是否字典
     """值是否为非数组对象。"""
@@ -75,59 +239,22 @@ def 恰好这些键(值,键列表):#精确键集
     return len(值)==len(键列表) and all(键 in 值 for 键 in 键列表)#匹配
 
 def 解析会话日志(文本):#解析会话日志
-    """将会话 .jsonl 缓冲解析为事件列表。"""
-    事件列表=[]#事件列表
-    下一序号=0#下一序号
-    已跳过头=False#是否已跳过头
-    for 索引,行 in enumerate(文本.splitlines()):#逐行
-        if 行.strip()=='':#空行
-            continue#跳过
-        if not 已跳过头:#尚未跳过头
-            已跳过头=True#跳过头行
-            continue#继续
-        try:#解析 JSON
-            值=json.loads(行)#解析行
-        except Exception as 错误:#解析失败
-            raise Exception(f'session snapshot line {索引+1} contains invalid JSON') from 错误#JSON 非法
-        if not 是否记录(值):#非对象
-            raise Exception(f'session snapshot line {索引+1} must be a JSON object')#必须是对象
-        记录=值#按字典
-        打包=记录.get('type') in 打包块行类型#是否打包行
-        序号键='seq0' if 打包 else 'seq'#序号键
-        时间键='time0' if 打包 else 'time'#时间键
-        if 序号键 not in 记录:#补序号
-            记录[序号键]=下一序号#补序号
-        if 时间键 not in 记录:#补时间
-            记录[时间键]=0#补时间
-        try:#解码
-            if 'sourceEventSeqs' in 记录:#有溯源
-                记录['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'])#解码溯源范围
-            解码=解码存储记录(记录)#解码存储记录
-        except Exception as 错误:#解码失败
-            细节=错误.args[0] if 错误.args else str(错误)#错误细节
-            raise Exception(f'session snapshot line {索引+1}: {细节}') from 错误#包装错误
-        if not isinstance(解码,list):#单事件
-            解码=[解码]#包成列表
-        事件列表.extend(解码)#收集事件
-        下一序号+=len(解码)#推进序号
-    return 事件列表#返回事件
+    """将会话 .jsonl 缓冲解析为事件列表（经格式目录 createRestore 迁移）。"""
+    return 解析会话夹具(文本)['events']#返回事件
 
 def 解析会话头(文本):#解析会话头
     """从 JSONL 头读取回放身份与排序事实。"""
-    首行=next((行 for 行 in 文本.split('\n') if 行.strip()!=''), '{}')#首个非空行
-    解析=json.loads(首行)#解析头
+    已解析=解析会话夹具(文本)#解析 fixture
     return {#返回
-        'id':解析['id'] if isinstance(解析.get('id'),str) else '',#会话 id
-        'createdAt':解析['createdAt'] if isinstance(解析.get('createdAt'),(int,float)) else 0,#创建时间
-        'inheritedEventCount':int(解析['seedLength']) if isinstance(解析.get('seedLength'),(int,float)) else 0,#继承事件数
+        'id':已解析['id'],#会话 id
+        'createdAt':已解析['createdAt'],#创建时间
+        'inheritedEventCount':已解析['inheritedEventCount'],#继承事件数
     }#返回结束
 
 def 派生回放脚本(事件列表):#派生回放脚本
     """从已记录会话日志重建每 stream() 回放脚本。"""
     脚本=[]#脚本
-    当前键=[None]#当前调用键
-    当前=[]#当前分片
-    def 关闭(键,分片列表):#关闭当前调用
+    def 关闭(键,分片列表):#关闭一次模型调用
         """压入分片条目或拒绝缺 finish。"""
         if len(分片列表)==0:#空则跳过
             return#跳过
@@ -143,9 +270,6 @@ def 派生回放脚本(事件列表):#派生回放脚本
         类型=事件.get('type') if isinstance(事件,dict) else getattr(事件,'type',None)#事件类型
         数据=事件.get('data') if isinstance(事件,dict) else getattr(事件,'data',None)#事件数据
         if 类型=='compaction/summary':#压缩摘要
-            关闭(当前键[0],当前)#先关闭进行中调用
-            当前键[0]=None#清空键
-            当前.clear()#清空分片
             if isinstance(数据,dict) and 数据.get('llmStreamCall') is True:#LLM 流调用
                 if 数据.get('rawOutput') is None:#缺 rawOutput
                     raise Exception('llm-replay: compaction/summary marks an LLM stream call without rawOutput')#缺 rawOutput
@@ -159,24 +283,13 @@ def 派生回放脚本(事件列表):#派生回放脚本
                 分片列表.append({'type':'finish','reason':{'kind':'stop'}})#结束
                 脚本.append({'kind':'chunks','chunks':分片列表})#压入压缩调用
             continue#下一项
-        if 类型!='assistant/chunk':#非 assistant 分片
+        if 类型!='assistant/message' and 类型!='assistant/attempt':#非助手结算
             continue#跳过
         回合=数据.get('turn') if isinstance(数据,dict) else getattr(数据,'turn',None)#回合
         步进=数据.get('step') if isinstance(数据,dict) else getattr(数据,'step',None)#步进
-        分片=数据.get('chunk') if isinstance(数据,dict) else getattr(数据,'chunk',None)#分片
-        键=f'{回合}/{步进}'#调用键
-        if len(当前)>0 and 键!=当前键[0]:#键变
-            关闭(当前键[0],当前)#键变则关闭
-            当前.clear()#清空
-        if len(当前)==0:#新调用
-            当前键[0]=键#新调用
-        当前.append(分片)#收集分片
-        分片类型=分片.get('type') if isinstance(分片,dict) else getattr(分片,'type',None)#分片类型
-        if 分片类型=='finish':#finish 关闭
-            关闭(当前键[0],当前)#finish 关闭
-            当前键[0]=None#清空
-            当前.clear()#清空
-    关闭(当前键[0],当前)#收尾
+        流=数据.get('stream') if isinstance(数据,dict) else getattr(数据,'stream',None)#嵌入流
+        分片列表=[成员['chunk'] for 成员 in 展开助手流(流 or [])]#展开分片
+        关闭(f'{回合}/{步进}',分片列表)#关闭一次调用
     return 脚本#返回脚本
 
 def 收集字符串(值,输出):#收集字符串叶子
@@ -472,6 +585,8 @@ class 回放适配器(语言模型适配器):#回放适配器
                 结果['context']={'contextWindow':命中['contextWindow']}#写入
             if 命中.get('defaultMaxTokens') is not None:#默认上限
                 结果['defaultMaxTokens']=命中['defaultMaxTokens']#写入
+            if 命中.get('systemPromptUpdate') is not None:#系统提示词更新
+                结果['systemPromptUpdate']=命中['systemPromptUpdate']#写入
             if 命中.get('reasoningEfforts') is not None:#推理
                 推理={'efforts':[{'id':推理力度标识(标识),'name':标识} for 标识 in 命中['reasoningEfforts']]}#力度
                 if 命中.get('defaultReasoningEffort') is not None:#默认力度
@@ -640,6 +755,12 @@ def 校验已配置模型(提供方列表):#校验模型配置
                     f'llm-replay: provider "{提供方["id"]}" model "{模型["id"]}" imageRequestTokens '
                     +'requires inputModalities to include "image"',
                 )#需 image
+            系统提示更新=模型.get('systemPromptUpdate')#系统提示词更新
+            if 系统提示更新 is not None and 系统提示更新!='in-history':#仅允许 in-history
+                raise Exception(#非法更新策略
+                    f'llm-replay: provider "{提供方["id"]}" model "{模型["id"]}" systemPromptUpdate '
+                    +'must be "in-history" when present',
+                )#非法更新策略
 
 def 应用(上下文,配置=None):#Cordis 入口
     """从配置或环境安装回放。"""

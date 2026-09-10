@@ -1,5 +1,6 @@
 {
     "agent.ts":"智能体.py",
+    "assistant-stream.ts":"助手流.py",
     "constants.ts":"常量.py",
     "index.ts":"__init__.py",
     "invariant.ts":"不变量.py",

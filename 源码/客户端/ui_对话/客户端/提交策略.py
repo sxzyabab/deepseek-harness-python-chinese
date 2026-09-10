@@ -7,9 +7,17 @@
 from ..提交设置 import 忙碌回车字段,默认忙碌回车行为#字段与默认
 from .约定.提交约定 import 默认忙碌回车行为 as 默认行为#再导出别名
 
-__all__=['快照存储','提交策略','默认忙碌回车行为']#仅中文公开名
+__all__=['解析提交模式','快照存储','提交策略','默认忙碌回车行为']#仅中文公开名
 
 默认忙碌回车行为=默认行为#公开默认
+
+def 解析提交模式(偏好,忙碌,手势,可转向):
+    """对照忙碌-Enter 偏好解析一次提交手势。普通 Enter 与主发送共享 enter。"""
+    if 忙碌 is not True or 可转向 is not True:#未忙碌或不可转向
+        return 'queue'#排队
+    if 手势=='enter':#普通 Enter
+        return 偏好#用偏好
+    return 'steer' if 偏好=='queue' else 'queue'#加速取对侧
 
 class 快照存储:
     """值 + 订阅。"""
@@ -37,7 +45,7 @@ class 快照存储:
             回调()#触发
 
 class 提交策略:
-    """composer 注入面与其设置行共用。"""
+    """composer 注入面与其设置行共用；栏读 busyEnter，解析走独立函数。"""
     def __init__(自身,宿主=None):
         """缺席的组合保持进程本地。"""
         自身.busyEnter=快照存储(默认忙碌回车行为)#实时偏好
@@ -48,15 +56,6 @@ class 提交策略:
                 自身.采纳(钉宿主)#采纳
             宿主.subscribe(宿主发布)#订阅
             自身.采纳(宿主)#构造时先采纳一次
-
-    def resolve(自身,忙碌,手势,可转向):
-        """不改状态。未忙碌或不可转向则一律排队。"""
-        if 忙碌 is not True or 可转向 is not True:#未忙碌或不可转向
-            return 'queue'#排队
-        偏好=自身.busyEnter.getSnapshot()#当前偏好
-        if 手势=='enter':#普通 Enter
-            return 偏好#用偏好
-        return 'steer' if 偏好=='queue' else 'queue'#加速取对侧
 
     def setBusyEnter(自身,行为):
         """实时值在持久写入开始之前先发布。"""

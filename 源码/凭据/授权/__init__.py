@@ -168,7 +168,11 @@ class 授权服务(服务):
             取消监听()#disposer
         if not 已观察['committed']:#未提交
             raise 授权错误('authorization flow for "'+str(流程['key'])+'" resolved without committing a credential record in this attempt','NOT_COMMITTED')#未提交
-        描述=自身.ctx.credentials.描述(流程['key'])#读记录
+        键=流程['key']#目标键
+        if hasattr(自身.ctx.credentials,'描述记录') and isinstance(键,str) and '/' in 键:#记录键
+            描述=自身.ctx.credentials.描述记录(键)#读记录描述
+        else:#引用键
+            描述=自身.ctx.credentials.描述(键)#读引用描述
         if not 描述['configured']:#提交后又删
             raise 授权错误('authorization flow for "'+str(流程['key'])+'" deleted its credential record instead of committing one','NOT_COMMITTED')#未提交
         return {'status':'authorized'}#成功

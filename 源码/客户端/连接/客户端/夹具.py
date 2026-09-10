@@ -10,6 +10,7 @@ from urllib.parse import parse_qs#读查询
 from ..rpc import 连接错误,已中止#本包异常与中止
 from .接口 import 抽象接口客户端,Rpc标识,会话搜索结果上限#抽象客户端、rpcId、检索上限
 from .随机uuid import 随机uuid#造 uuid
+from ....模型后端.llm.助手流 import 助手流累积器#嵌入流累积
 from .夹具历史 import 造文本块,造用户消息,造助手消息,构造甲日志#消息工厂与甲日志
 from .夹具样本 import (#样本与投影/检索
     markdown样本,夹具图像数据,夹具图像引用,夹具模型分组,夹具用量,
@@ -258,6 +259,59 @@ def 造夹具世界(选项):#内存假宿主
             广播mux({'type':'session/event','sessionId':标识,'event':事件,'view':视图})#带视图
         for 帧 in 投影帧于(标识,日志,事件):#投影帧
             广播mux(帧)#推
+        return 事件#已追加事件
+
+    活动尝试={}#sessionId → 尝试态
+    助手修订={}#sessionId → 修订号
+
+    def 下一助手修订(标识):#下一修订
+        """进程本地修订递增。"""
+        修订=(助手修订.get(标识) or 0)+1#下一
+        助手修订[标识]=修订#记下
+        return 修订#返回
+
+    def 广播直播块(标识,尝试,块,时刻):#广播瞬态 live-chunk
+        """不入耐久日志；仅 mux 推送 assistant/live-chunk。"""
+        间隙=(活动尝试[标识].get('transientInGap') if 标识 in 活动尝试 else 0)+1#间隙计数
+        if 标识 in 活动尝试:#有尝试
+            活动尝试[标识]['transientInGap']=间隙#写下
+        游标=len(日志于(标识))-1#耐久游标
+        事件={#瞬态事件
+            'type':'assistant/live-chunk',#直播块
+            'seq':游标+1-1/(间隙+1),#分数序号
+            'time':时刻,#时间
+            'data':{'attemptId':尝试['attemptId'],'turn':尝试['turn'],'step':尝试['step'],'chunk':块},#载荷
+        }#结束
+        广播mux({'type':'session/event','sessionId':标识,'event':事件})#推
+
+    def 开始助手(标识,轮次,步):#开一次尝试
+        """铸造 attemptId、累积器，并记下活动尝试。"""
+        修订=下一助手修订(标识)#修订
+        尝试标识=f'{标识}:fixture:{修订}'#尝试 id
+        最后=len(日志于(标识))-1#末序号
+        尝试={#尝试态
+            'attemptId':尝试标识,'startedAfterSeq':-1 if 最后<0 else 最后,
+            'turn':轮次,'step':步,'stream':助手流累积器(),'index':0,'transientInGap':0,
+        }#结束
+        活动尝试[标识]=尝试#挂上
+        return 尝试#返回
+
+    def 推助手(标识,块):#推一块到活动尝试
+        """写入累积器并广播 live-chunk。"""
+        尝试=活动尝试.get(标识)#活动
+        if 尝试 is None:#无
+            raise 连接错误(f'fixture: no active Assistant attempt for {标识}')#错误
+        带时=尝试['stream'].推入({'time':int(time.time()*1000),'chunk':块})#累积
+        广播直播块(标识,尝试,带时['chunk'],带时['time'])#直播
+        尝试['index']+=1#推进索引
+        return 带时#返回
+
+    def 落定助手(标识,事件):#结束活动尝试
+        """清活动尝试；耐久事件已由调用方追加。"""
+        尝试=活动尝试.pop(标识,None)#摘下
+        if 尝试 is None:#无
+            raise 连接错误(f'fixture: no active Assistant attempt for {标识}')#错误
+        return 尝试#返回
 
     def 追加目标变更(标识,变更):#写目标
         """追加 goal/change 并回扫。"""
@@ -495,7 +549,8 @@ def 造夹具世界(选项):#内存假宿主
         """分块打字机（80ms/帧）→ 定稿 → turn/end。"""
         步=0#单步
         追加(标识,{'type':'step/start','data':{'turn':轮次,'step':步}})#开步
-        追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':步,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
+        开始助手(标识,轮次,步)#开尝试
+        推助手(标识,{'type':'block-start','index':0,'blockType':'text'})#开块
         码点=list(回复正文 or '')#按码点
         片列表=[''.join(码点[下标:下标+6]) for 下标 in range(0,len(码点),6)] or [回复正文 or '']#每片最多 6
         已发=[0]#已发片数
@@ -505,11 +560,19 @@ def 造夹具世界(选项):#内存假宿主
             """写 block-end + assistant/message + step/end + turn/end。"""
             回放表.pop(标识,None)#摘句柄
             完成=''.join(片列表[:已发[0]])#已发出正文
-            追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':步,'chunk':{'type':'block-end','index':0,'block':{'type':'text','text':完成}}}})#关块
+            推助手(标识,{'type':'block-end','index':0,'block':{'type':'text','text':完成}})#关块
+            推助手(标识,{'type':'usage','usage':夹具用量(轮次,步)})#用量
+            if not 已中断:#正常结束
+                推助手(标识,{'type':'finish','reason':{'kind':'stop'}})#结束
+            尝试=活动尝试.get(标识)#活动
             正文=f'{完成}（已中断）' if 已中断 else 完成#中断标记
-            追加(标识,{'type':'assistant/message','surfaceOp':'append','data':{
-                'turn':轮次,'step':步,'message':造助手消息(造文本块(正文)),'usage':夹具用量(轮次,步),
+            消息=追加(标识,{'type':'assistant/message','surfaceOp':'append','data':{
+                'turn':轮次,'step':步,'message':造助手消息(造文本块(正文)),
+                'stream':list(尝试['stream'].快照()) if 尝试 is not None else [],
+                'usage':夹具用量(轮次,步),
+                **({'interrupted':True} if 已中断 else {}),
             }})#定稿
+            落定助手(标识,消息)#清尝试
             追加(标识,{'type':'step/end','data':{'turn':轮次,'step':步}})#收步
             追加(标识,{'type':'turn/end','data':{'turn':轮次,'reason':{'kind':'cancelled' if 已中断 else 'completed'}}})#收轮
             设运行中(标识,False)#停跑
@@ -521,7 +584,7 @@ def 造夹具世界(选项):#内存假宿主
                 return#停
             片=片列表[已发[0]]#下一片
             已发[0]+=1#前进
-            追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':步,'chunk':{'type':'text-delta','index':0,'text':片}}})#delta
+            推助手(标识,{'type':'text-delta','index':0,'text':片})#delta
             定时器=threading.Timer(0.08,滴答)#下一拍
             定时器.daemon=True#守护
             定时器.start()#启动
@@ -583,7 +646,8 @@ def 造夹具世界(选项):#内存假宿主
         追加(标识,{'type':'turn/start','data':{'turn':轮次,'trigger':{'kind':'message','source':{'kind':'user'}}}})#开轮
         追加(标识,{'type':'user/message','surfaceOp':'append','data':造用户消息(造文本块(f'Reasoning chunk stress: {块数} chunks.'))})#用户
         追加(标识,{'type':'step/start','data':{'turn':轮次,'step':0}})#开步
-        追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':0,'chunk':{'type':'block-start','index':0,'blockType':'reasoning'}}})#开块
+        开始助手(标识,轮次,0)#开尝试
+        推助手(标识,{'type':'block-start','index':0,'blockType':'reasoning'})#开块
         起点=[time.time()*1000]#泵起点
 
         def 泵():#按墙钟补块
@@ -593,7 +657,7 @@ def 造夹具世界(选项):#内存假宿主
             止=min(应付,块数)#不超过总数
             for 下标 in range(状态['emitted'],止):#补发
                 块文=f'\n{标记}' if 下标==块数-1 else ('推理\n' if 下标%64==63 else '推理')#末块带标记
-                追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':0,'chunk':{'type':'reasoning-delta','index':0,'text':块文}}})#delta
+                推助手(标识,{'type':'reasoning-delta','index':0,'text':块文})#delta
             状态['emitted']=止#已发
             if 止<块数:#未完
                 定时=threading.Timer(间隔毫秒/1000,泵)#下一拍
@@ -622,8 +686,9 @@ def 造夹具世界(选项):#内存假宿主
         追加(标识,{'type':'turn/start','data':{'turn':轮次}})#开轮
         追加(标识,{'type':'user/message','surfaceOp':'append','data':{'content':造文本块('请重试这个请求'),'source':{'kind':'user'}}})#用户
         追加(标识,{'type':'step/start','data':{'turn':轮次,'step':1}})#开步
-        追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':1,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
-        追加(标识,{'type':'assistant/chunk','data':{'turn':轮次,'step':1,'chunk':{'type':'text-delta','index':0,'text':'应撤回的半截回复'}}})#半截
+        开始助手(标识,轮次,1)#开尝试
+        推助手(标识,{'type':'block-start','index':0,'blockType':'text'})#开块
+        推助手(标识,{'type':'text-delta','index':0,'text':'应撤回的半截回复'})#半截
 
     def 时序钩_排模型重试(标识字面,重试=1,延迟毫秒=450):#排重试
         """记录一次重试决定。"""
@@ -632,10 +697,17 @@ def 造夹具世界(选项):#内存假宿主
         if 剧本 is None:#未 begin
             raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
         if not 剧本['stepStarted']:#需要再开一块半截
-            追加(标识,{'type':'assistant/chunk','data':{'turn':剧本['turn'],'step':1,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
-            追加(标识,{'type':'assistant/chunk','data':{'turn':剧本['turn'],'step':1,'chunk':{'type':'text-delta','index':0,'text':f'第 {重试} 次应撤回的回复'}}})#半截
+            开始助手(标识,剧本['turn'],1)#开尝试
+            推助手(标识,{'type':'block-start','index':0,'blockType':'text'})#开块
+            推助手(标识,{'type':'text-delta','index':0,'text':f'第 {重试} 次应撤回的回复'})#半截
             剧本['stepStarted']=True#已开
         失败体={'code':'TRANSPORT','message':'连接被重置'}#失败体（文案勿改）
+        推助手(标识,{'type':'finish','reason':{'kind':'error','failure':失败体}})#结束块
+        尝试=活动尝试.get(标识)#活动
+        尝试事件=追加(标识,{'type':'assistant/attempt','data':{
+            'turn':剧本['turn'],'step':1,'stream':list(尝试['stream'].快照()) if 尝试 is not None else [],
+        }})#落定尝试
+        落定助手(标识,尝试事件)#清尝试
         追加(标识,{'type':'llm/retry','data':{
             'turn':剧本['turn'],'step':1,'provider':'fixture','mode':'normal','policyKey':'fixture-normal',
             'retry':重试,'maxRetries':2,'delayMs':延迟毫秒,'failure':失败体,
@@ -649,6 +721,13 @@ def 造夹具世界(选项):#内存假宿主
         if 剧本 is None:#未 begin
             raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
         失败体={'code':'TRANSPORT','message':'连接被重置'}#失败体
+        活动=活动尝试.get(标识)#活动
+        if 活动 is not None:#有半截
+            推助手(标识,{'type':'finish','reason':{'kind':'error','failure':失败体}})#结束
+            尝试事件=追加(标识,{'type':'assistant/attempt','data':{
+                'turn':剧本['turn'],'step':1,'stream':list(活动['stream'].快照()),
+            }})#落定尝试
+            落定助手(标识,尝试事件)#清尝试
         追加(标识,{'type':'llm/retry','data':{
             'turn':剧本['turn'],'step':1,'provider':'fixture','mode':'normal','policyKey':'fixture-normal',
             'retry':1,'maxRetries':2,'delayMs':延迟毫秒,'failure':失败体,
@@ -664,10 +743,18 @@ def 造夹具世界(选项):#内存假宿主
         剧本=重试剧本.pop(标识,None)#清
         if 剧本 is None:#未 begin
             raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
-        追加(标识,{'type':'assistant/chunk','data':{'turn':剧本['turn'],'step':1,'chunk':{'type':'block-start','index':0,'blockType':'text'}}})#开块
-        追加(标识,{'type':'assistant/message','surfaceOp':'append','data':{
-            'turn':剧本['turn'],'step':1,'message':造助手消息(造文本块('重试后的完整回复')),
+        完成='重试后的完整回复'#定稿正文
+        开始助手(标识,剧本['turn'],1)#开尝试
+        推助手(标识,{'type':'block-start','index':0,'blockType':'text'})#开块
+        推助手(标识,{'type':'text-delta','index':0,'text':完成})#正文
+        推助手(标识,{'type':'block-end','index':0,'block':{'type':'text','text':完成}})#关块
+        推助手(标识,{'type':'finish','reason':{'kind':'stop'}})#结束
+        尝试=活动尝试.get(标识)#活动
+        消息=追加(标识,{'type':'assistant/message','surfaceOp':'append','data':{
+            'turn':剧本['turn'],'step':1,'message':造助手消息(造文本块(完成)),
+            'stream':list(尝试['stream'].快照()) if 尝试 is not None else [],
         }})#定稿
+        落定助手(标识,消息)#清尝试
         追加(标识,{'type':'step/end','data':{'turn':剧本['turn'],'step':1}})#收步
         追加(标识,{'type':'turn/end','data':{'turn':剧本['turn'],'reason':{'kind':'completed'}}})#收轮
         设运行中(标识,False)#停跑

@@ -5,14 +5,21 @@
 import os,re#绝对路径与名模式
 import yaml#YAML 解析（对齐 js-yaml JSON_SCHEMA）
 
-__all__=['解析快照清单']#仅中文公开名
+__all__=['解析快照清单','写当前会话夹具']#仅中文公开名
 
 合法配置档=frozenset(['headless','sdk','acp','web'])#合法 profile
 合法录制=frozenset(['live','authored'])#合法录制
 合法平台=frozenset(['posix','pwsh'])#合法平台
 合法权限=frozenset(['read-only','workspace-write','danger-full-access'])#合法权限
+合法会话格式覆盖=frozenset([#合法覆盖名
+    'multi-hop','packed-row','retry-failure','shipped-profile','adjacent-migration',
+])#覆盖结束
 名称模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')#kebab-case 名
 环境名模式=re.compile(r'^[A-Z][A-Z0-9_]*$')#环境名
+
+def 写当前会话夹具(清单,模式):#是否写当前世代
+    """一次运行是否为本场景写入当前写入器的 Session fixture。"""
+    return 模式!='replay' and 清单.get('session') is None and 清单.get('sessionFormat') is None#非回放且自有且无钉住历史
 def 要求映射(值,标签):#要求映射
     """值必须为映射。"""
     if not isinstance(值,dict):#非映射
@@ -53,7 +60,7 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
         根=要求映射(解析,'manifest')#根映射
         精确键集(根,[#允许键
             'version','scenario','profile','composition','recording','header','replay',
-            'platform','permission','environment','workspace','input','session',
+            'platform','permission','environment','workspace','input','session','sessionFormat',
         ],'manifest')#精确键
         if 根.get('version')!=1:#版本
             raise Exception('manifest.version must equal 1')#版本
@@ -69,11 +76,12 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
         头=None#头
         if 根.get('header') is not None:#有头
             值=要求映射(根['header'],'manifest.header')#头映射
-            精确键集(值,['class','pin','systemPromptSource','toolSchemasSource','childSystemPrompts','childToolSchemas','changes'],'manifest.header')#键
+            精确键集(值,['class','pin','systemPromptSource','toolSchemasSource','childSystemPrompts','childToolSchemas','changes','promptChanges'],'manifest.header')#键
             if 值.get('pin') is not None and 值['pin'] is not True:#pin
                 raise Exception('manifest.header.pin must equal true when present')#pin
-            if 值.get('changes') is not None and (not isinstance(值['changes'],int) or isinstance(值['changes'],bool) or 值['changes']<0):#changes
-                raise Exception('manifest.header.changes must be a non-negative integer')#changes
+            for 字段 in ('changes','promptChanges'):#非负整数字段
+                if 值.get(字段) is not None and (not isinstance(值[字段],int) or isinstance(值[字段],bool) or 值[字段]<0):#非法
+                    raise Exception(f'manifest.header.{字段} must be a non-negative integer')#字段非法
             头={'class':要求名(值['class'],'manifest.header.class')}#头
             if 值.get('pin') is True:#钉住
                 头['pin']=True#写入
@@ -87,6 +95,8 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
                 头['childToolSchemas']=要求正整数索引(值['childToolSchemas'],'manifest.header.childToolSchemas')#写入
             if 值.get('changes') is not None:#变更
                 头['changes']=int(值['changes'])#写入
+            if 值.get('promptChanges') is not None:#提示词变更
+                头['promptChanges']=int(值['promptChanges'])#写入
         回放=None#回放
         if 根.get('replay') is not None:#有回放
             值=要求映射(根['replay'],'manifest.replay')#回放映射
@@ -116,15 +126,15 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             精确键集(值,['setup','final','parent'],'manifest.workspace')#键
             if 值.get('final') is not None and 值['final'] is not True:#final
                 raise Exception('manifest.workspace.final must equal true when present')#final
-            if 值.get('parent') is not None and 值['parent']!='home':#parent
-                raise Exception('manifest.workspace.parent must equal home')#parent
+            if 值.get('parent') is not None and 值['parent']!='outside-temp':#parent
+                raise Exception('manifest.workspace.parent must equal outside-temp')#parent
             工作区={}#组装
             if 值.get('setup') is not None:#setup
                 工作区['setup']=要求名(值['setup'],'manifest.workspace.setup')#写入
             if 值.get('final') is True:#final
                 工作区['final']=True#写入
-            if 值.get('parent')=='home':#parent
-                工作区['parent']='home'#写入
+            if 值.get('parent')=='outside-temp':#parent
+                工作区['parent']='outside-temp'#写入
             if len(工作区)==0:#空
                 raise Exception('manifest.workspace must not be empty')#空
         输入=None#输入
@@ -166,6 +176,22 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             if os.path.isabs(值['source']) or '\\' in 值['source'] or '\0' in 值['source']:#相对 POSIX
                 raise Exception('manifest.session.source must be a relative POSIX path')#相对
             会话={'source':值['source']}#写入
+        会话格式=None#会话格式
+        if 根.get('sessionFormat') is not None:#有会话格式
+            值=要求映射(根['sessionFormat'],'manifest.sessionFormat')#格式映射
+            精确键集(值,['version','coverage'],'manifest.sessionFormat')#键
+            if not isinstance(值.get('version'),int) or isinstance(值['version'],bool) or 值['version']<0:#version
+                raise Exception('manifest.sessionFormat.version must be a non-negative safe integer')#version
+            覆盖=值.get('coverage')#覆盖
+            if (not isinstance(覆盖,list) or len(覆盖)==0
+                or any(not isinstance(项,str) or 项 not in 合法会话格式覆盖 for 项 in 覆盖)
+                or len(set(覆盖))!=len(覆盖)):#coverage 非法
+                raise Exception(
+                    'manifest.sessionFormat.coverage must be a non-empty array of unique supported coverage names',
+                )#coverage
+            if 会话 is not None:#借用方不可钉历史
+                raise Exception('manifest.sessionFormat is only valid when the scenario owns its Session fixtures')#冲突
+            会话格式={'version':int(值['version']),'coverage':list(覆盖)}#组装
         结果={'version':1,'profile':根['profile']}#组装清单
         if 场景 is not None:#场景
             结果['scenario']=场景#写入
@@ -189,6 +215,8 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             结果['input']=输入#写入
         if 会话 is not None:#会话
             结果['session']=会话#写入
+        if 会话格式 is not None:#会话格式
+            结果['sessionFormat']=会话格式#写入
         return 结果#返回
     except Exception as 错误:#包装
         消息=错误.args[0] if 错误.args else str(错误)#消息

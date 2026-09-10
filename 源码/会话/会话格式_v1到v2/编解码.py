@@ -1,4 +1,5 @@
 """已发布 v2 的冻结物理 JSON 编解码器。"""
+from ...内核.会话.序号范围 import 编码序号范围,解码序号范围#序号范围编解码
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
     会话格式计数,#格式计数
@@ -76,6 +77,76 @@ def 解码产物实现(头值,行值列表,可恢复):#解码产物
     断言已发布v2物理产物(产物)#断言物理产物
     return 产物#返回
 
+class _v2解码器:#v2流式解码器
+    """以显式失败策略逐行解码已发布 v2。"""
+    def __init__(自身,头值,恢复):#构造
+        """解码头并初始化行状态。"""
+        自身.header=解码物理头(头值)#头
+        自身._恢复=恢复#恢复策略
+        自身._行下标=0#行号
+        自身._事件数=0#事件数
+        自身._继承事件数=None#继承数
+        自身._问题=None#问题
+
+    def decodeRow(自身,值,上下文):#解码行
+        """解码一行并同步发出事件。"""
+        当前行=自身._行下标#当前行
+        自身._行下标+=1#递增
+        try:#尝试解码
+            事件=解码事件(值,当前行)#解码事件
+        except BaseException as 错误:#捕获
+            当前=错误 if isinstance(错误,会话格式错误) else 会话格式错误(f'released v2 row {当前行} is malformed',错误)#包装
+            if 自身._恢复=='strict':#严格则抛
+                raise 当前#抛出
+            if 自身._问题 is None:#记录首错
+                自身._问题=当前#记下
+            return#返回
+        if 自身._问题 is not None:#已有问题
+            if 事件['type']=='turn/end':#遇回合结束抛出
+                raise 自身._问题#抛出
+            return#丢弃
+        if 事件['seq']!=自身._事件数:#序号缺口
+            间隙=会话格式错误(#缺口错误
+                f'released v2 row {当前行} has seq gap (expected {自身._事件数}, got {事件["seq"]})',#消息
+            )#构造结束
+            if 自身._恢复=='strict':#严格则抛
+                raise 间隙#抛出
+            自身._问题=间隙#记录
+            if 事件['type']=='turn/end':#遇回合结束抛出
+                raise 自身._问题#抛出
+            return#返回
+        自身._事件数+=1#递增事件数
+        if 事件['type']=='session/end-seed':#结束种子
+            数据=json记录(事件['data'],f"session/end-seed {事件['seq']} data")#data
+            if 数据.get('inherited') is True:#继承切口
+                自身._继承事件数=事件['seq']#记下
+        上下文.emitEvent(事件)#发出事件
+
+    def finish(自身,_上下文):#完成
+        """完成行校验并返回精确继承切口。"""
+        if 自身.header['isSeeded'] and 自身._继承事件数 is None:#种子缺标记
+            raise 会话格式错误('released v2 seeded Session lacks an inherited end-seed marker')#错误
+        if (not 自身.header['isSeeded']) and 自身._继承事件数 is not None:#非种子却有标记
+            raise 会话格式错误('released v2 unseeded Session contains an inherited end-seed marker')#错误
+        return 0 if 自身._继承事件数 is None else 自身._继承事件数#返回继承数
+
+def 编码头实现(头,继承事件数):#编码头
+    """编码已发布 v2 物理头记录。"""
+    断言已发布v2头(头)#断言头
+    切割=会话格式计数(继承事件数,'format v2 inherited event count')#校验切口
+    if not 头['isSeeded'] and 切割!=0:#非种子却有继承
+        raise 会话格式错误('unseeded format v2 Session has inherited events')#错误
+    物理头={'type':'session','version':2,'id':头['id'],'createdAt':头['createdAt'],'isSeeded':头['isSeeded'],'delegationDepth':头['delegationDepth']}#物理头基
+    if 'cwd' in 头:#有cwd
+        物理头['cwd']=头['cwd']#cwd
+    if 'parentSession' in 头:#有父会话
+        物理头['parentSession']=头['parentSession']#父会话
+    if 'origin' in 头:#有来源
+        物理头['origin']=头['origin']#来源
+    if 'agentPreset' in 头:#有预设
+        物理头['agentPreset']=头['agentPreset']#预设
+    return 物理头#返回
+
 def 解码事件(值,行下标):#解码事件
     """解码一行物理事件，压缩出处时展开。"""
     快照=快照会话格式json(值,f'released v2 row {行下标}')#快照
@@ -84,7 +155,10 @@ def 解码事件(值,行下标):#解码事件
         return 记录#无出处
     序号=会话格式计数(记录['seq'],f'released v2 row {行下标} seq')#序号
     带出处=dict(记录)#展开
-    带出处['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'],序号)#解码范围
+    try:#内核解码
+        带出处['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'],序号)#解码范围
+    except TypeError as 错误:#转为格式错误
+        raise 会话格式错误(错误.args[0] if 错误.args else str(错误)) from 错误#包装
     return 快照会话格式json(带出处,f'released v2 row {行下标} provenance')#断言事件
 
 def 推导继承事件数(头,事件列表):#推导继承数
@@ -127,58 +201,6 @@ def 编码出处(事件):#编码出处
     带压缩['sourceEventSeqs']=编码序号范围(事件['sourceEventSeqs'])#编码范围
     return 快照会话格式json(带压缩,f"released v2 event {事件['seq']} provenance")#断言对象
 
-def 解码序号范围(值,最大条目):#解码序号范围
-    """把单点与 [start,end] 范围展开为严格递增唯一序号。"""
-    if not isinstance(值,list):#须数组
-        raise 会话格式错误('sourceEventSeqs must be an array')#须数组
-    输出=[]#输出
-    有范围=False#是否有范围
-    for 项 in 值:#遍历项
-        if not isinstance(项,list):#单点
-            输出.append(会话格式计数(项,'sourceEventSeqs member'))#推入
-            continue#继续
-        if len(项)!=2:#须对
-            raise 会话格式错误('sourceEventSeqs range must be a [start, end] pair')#须对
-        起点=会话格式计数(项[0],'sourceEventSeqs range start')#起点
-        终点=会话格式计数(项[1],'sourceEventSeqs range end')#终点
-        if 起点>终点 or 终点>=最大条目 or 终点-起点+1>最大条目-len(输出):#越界
-            raise 会话格式错误('sourceEventSeqs range exceeds its event seq')#错误
-        for 当前 in range(起点,终点+1):#展开范围
-            输出.append(当前)#推入
-        有范围=True#标记有范围
-    已见=set()#已见
-    for 源 in 输出:#校验唯一
-        if 源>=最大条目 or 源 in 已见:#重复或越界
-            raise 会话格式错误('sourceEventSeqs ranges must contain unique earlier seqs')#错误
-        已见.add(源)#记入
-    if 有范围:#需校验递增
-        for 下标 in range(1,len(输出)):#非递增
-            if 输出[下标]<=输出[下标-1]:#非递增
-                raise 会话格式错误('sourceEventSeqs ranges must be strictly increasing')#错误
-    return 输出#返回
-
-def 编码序号范围(值列表):#编码序号范围
-    """把严格递增序号压缩为单点与长度≥3 的范围。"""
-    for 下标 in range(1,len(值列表)):#非递增原样
-        if 值列表[下标]<=值列表[下标-1]:#非递增
-            return list(值列表)#原样
-    输出=[]#输出
-    下标=0#压缩下标
-    while 下标<len(值列表):#压缩循环
-        起点=值列表[下标]#起点
-        终点=起点#终点
-        while 下标+1<len(值列表) and 值列表[下标+1]==终点+1:#连续
-            下标+=1#前进
-            终点+=1#扩展终点
-        if 终点-起点>=2:#范围
-            输出.append([起点,终点])#范围
-        else:#单点
-            输出.append(起点)#单点
-        if 终点-起点==1:#差1时补终点
-            输出.append(终点)#补终点
-        下标+=1#前进
-    return 输出#返回
-
 def json记录(值,标签):#JSON记录
     """要求值为非 null 非数组对象。"""
     if not isinstance(值,dict):#非对象
@@ -202,6 +224,18 @@ class 已发布v2会话格式编解码器类型:#v2编解码器
     def decodeHeader(自身,值):#解码头
         """把物理头解码为逻辑元数据。"""
         return 解码物理头(值)#解码物理头
+
+    def createDecoder(自身,头值,恢复):#创建解码器
+        """以显式失败策略创建逐行解码器。"""
+        return _v2解码器(头值,恢复)#创建
+
+    def encodeHeader(自身,头,继承事件数):#编码头
+        """编码当代物理头记录。"""
+        return 编码头实现(头,继承事件数)#编码头
+
+    def encodeEvent(自身,事件):#编码事件
+        """把一条逻辑事件编码为物理记录。"""
+        return 编码出处(事件)#编码出处
 
     def decodeArtifact(自身,头值,行值列表):#解码产物
         """严格解码完整物理产物。"""

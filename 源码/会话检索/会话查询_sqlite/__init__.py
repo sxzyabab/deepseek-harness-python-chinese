@@ -100,42 +100,41 @@ def 解析配置(配置):#解析运行时配置
         raise 配置非法('journalMode is not supported')#拒绝
     return 已解析#解析结果
 
-def 头绑定(头):#会话头 INSERT 绑定
-    """会话头 INSERT 绑定顺序。"""
+def 头绑定(头,继承事件数):#会话头 INSERT 绑定
+    """会话头 INSERT 绑定顺序；仅 isSeeded 时把 inheritedEventCount 写入 seed_length 列。"""
     return [
         头['id'],头['version'],头['createdAt'],
-        头['cwd'] if 'cwd' in 头 else None,头['parentSession'] if 'parentSession' in 头 else None,头['seedLength'] if 'seedLength' in 头 else None,
+        头['cwd'] if 'cwd' in 头 else None,头['parentSession'] if 'parentSession' in 头 else None,
+        继承事件数 if 头.get('isSeeded') else None,
         头['delegationDepth'] if 'delegationDepth' in 头 else None,头['agentPreset'] if 'agentPreset' in 头 else None,
     ]#绑定列表
 
 def 行头(行):#行→会话头
     """SQLite 行转会话头。"""
-    头={'version':行['version'],'id':行['session_id'],'createdAt':行['created_at']}#基础
+    头={'version':行['version'],'id':行['session_id'],'createdAt':行['created_at'],'isSeeded':行['seed_length'] is not None}#基础：seed_length 非空即种子
     if 行['cwd'] is not None:#cwd
         头['cwd']=行['cwd']#带上
     if 行['parent_session'] is not None:#父
         头['parentSession']=行['parent_session']#带上
-    if 行['seed_length'] is not None:#seed
-        头['seedLength']=行['seed_length']#带上
     if 行['delegation_depth'] is not None:#深度
         头['delegationDepth']=行['delegation_depth']#带上
     if 行['agent_preset'] is not None:#预设
         头['agentPreset']=行['agent_preset']#带上
     return 头#会话头
 
-def 观察会话(头,事件列表):#观察一条会话
+def 观察会话(头,继承事件数,事件列表):#观察一条会话
     """观察一条会话并生成指纹。"""
     分离头=结构化克隆(头)#拆离头
     分离事件=[结构化克隆(事件) for 事件 in 事件列表]#拆离事件
     文档列表=构建会话事件搜索文档(分离头['id'],分离事件)#建文档
     指纹=base64.urlsafe_b64encode(hashlib.sha256(json.dumps(
-        {'header':分离头,'events':分离事件},ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True).encode('utf-8'),
+        {'header':分离头,'inheritedEventCount':继承事件数,'events':分离事件},ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True).encode('utf-8'),
     ).digest()).decode('ascii').rstrip('=')#指纹
-    return {'header':分离头,'documents':文档列表,'fingerprint':指纹}#观察
+    return {'header':分离头,'inheritedEventCount':继承事件数,'documents':文档列表,'fingerprint':指纹}#观察
 
 def 观察活会话(会话):#观察活会话
     """观察活会话。"""
-    return 观察会话(会话.header,会话.events)#委托
+    return 观察会话(会话.header,getattr(会话,'inheritedEventCount',0),会话.events)#委托
 
 def 物化持久快照(快照列表):#快照→映射
     """物化持久快照映射。"""
@@ -179,7 +178,7 @@ def 相同头(左,右):#会话头是否相同
         and 左['createdAt']==右['createdAt']
         and (左['cwd'] if 'cwd' in 左 else None)==(右['cwd'] if 'cwd' in 右 else None)
         and (左['parentSession'] if 'parentSession' in 左 else None)==(右['parentSession'] if 'parentSession' in 右 else None)
-        and (左['seedLength'] if 'seedLength' in 左 else None)==(右['seedLength'] if 'seedLength' in 右 else None)
+        and (左.get('isSeeded') is True)==(右.get('isSeeded') is True)
         and (左['delegationDepth'] if 'delegationDepth' in 左 and 左['delegationDepth'] is not None else 0)==(右['delegationDepth'] if 'delegationDepth' in 右 and 右['delegationDepth'] is not None else 0)
         and (左['agentPreset'] if 'agentPreset' in 左 else None)==(右['agentPreset'] if 'agentPreset' in 右 else None)
     )#全等
@@ -463,7 +462,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             INSERT INTO persisted_sessions
               (id, version, created_at, cwd, parent_session, seed_length, delegation_depth, agent_preset, revision, generation)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''',(*头绑定(条目['header']),修订,世代))#写头
+        ''',(*头绑定(条目['header'],条目['inheritedEventCount'] if 'inheritedEventCount' in 条目 else 0),修订,世代))#写头
         插入=库.cursor()#文档游标
         for 文档 in 条目['documents']:#逐文档
             文本=清洗Fts文本(文档['text'])#清洗
@@ -482,7 +481,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             INSERT INTO temp.live_sessions
               (id, version, created_at, cwd, parent_session, seed_length, delegation_depth, agent_preset, fingerprint, persisted, generation)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''',(*头绑定(条目['header']),条目['fingerprint'],1 if 已持久 else 0,世代))#写头
+        ''',(*头绑定(条目['header'],条目['inheritedEventCount'] if 'inheritedEventCount' in 条目 else 0),条目['fingerprint'],1 if 已持久 else 0,世代))#写头
         插入=库.cursor()#文档游标
         for 文档 in 条目['documents']:#逐文档
             文本=清洗Fts文本(文档['text'])#清洗
@@ -590,7 +589,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
                         已加载=持久化.检查(标识,信号)#inspect
                         若已中止则抛出(信号)#inspect 后检查
                         校验会话头兼容(条目['header'],已加载['meta'])#头兼容
-                        条目['loaded']=观察会话(已加载['meta'],已加载['events'])#记下 loaded
+                        条目['loaded']=观察会话(已加载['meta'],已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,已加载['events'])#记下 loaded
                     若已中止则抛出(信号)#后快照前检查
                     后快照=持久化.列出快照(信号)#再列快照
                     若已中止则抛出(信号)#列出后检查

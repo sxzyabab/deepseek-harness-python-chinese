@@ -1,0 +1,9 @@
+{
+    "concurrent":"并发",
+    "migration":"迁移",
+    "process":"进程",
+    "scheduler":"调度器",
+    "semaphore":"信号量",
+    "verifier":"校验",
+    "worker":"工作线程"
+}

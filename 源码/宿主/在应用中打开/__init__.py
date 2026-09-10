@@ -6,6 +6,7 @@ connection.requestRejection；open 路由再校验媒体类型、64 KiB 上限�
 """
 import json,os#JSON 与路径核验
 from urllib.parse import urlsplit#取 pathname
+from ...工具.启动环境 import 取启动环境,经ssh拉起#SSH 拉起事实
 from ...依赖.schemastery import 正整数字段#有界毫秒
 from .目录 import 在应用中打开目录#白名单目录
 from .解析器 import 解析在应用中打开应用,解析启动,启动已解析#解析与启动
@@ -88,6 +89,7 @@ def 请求路径名(请求):#pathname
 
 def 应用(上下文,配置值):#登记三条路由
     """在 connection 信任围栏后登记 apps / icon / open 路由。"""
+    ssh=经ssh拉起(取启动环境(上下文))#SSH 拉起事实
     def 目录内部():#测试缝 + PATH 解析
         """补上组合的 subprocess PATH 解析。"""
         def 解析可执行(名):#检测用：找不到 → None
@@ -97,6 +99,7 @@ def 应用(上下文,配置值):#登记三条路由
             except Exception:#找不到等
                 return None#不可用
         缝=dict(内部['目录'])#可注入覆盖
+        缝['ssh']=ssh#SSH 时整表为空
         缝['解析可执行']=解析可执行#必填
         return 缝#内部事实
 

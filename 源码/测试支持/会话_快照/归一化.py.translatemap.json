@@ -11,7 +11,9 @@
     "normalize":"归一化",
     "omit":"省略",
     "path":"路径",
+    "prepare":"准备",
     "prompt":"提示词",
+    "provenance":"溯源",
     "reasoning":"推理",
     "regex":"正则",
     "replace":"替换",
@@ -28,5 +30,6 @@
     "token":"令牌",
     "tool":"工具",
     "transcript":"转录",
-    "uuid":"通用唯一标识"
+    "uuid":"通用唯一标识",
+    "version":"版本"
 }

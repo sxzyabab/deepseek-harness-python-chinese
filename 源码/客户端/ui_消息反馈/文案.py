@@ -1,77 +1,54 @@
 """`feedback` 命名空间词典。
 
-
-
 对齐上游 `ui-message-feedback/src/client/locales.ts`。公开面仅中文公开名。
-
 """
-
-
 
 __all__=['命名空间','中文','英文']#仅中文公开名
 
-
-
 命名空间='feedback'#词表命名空间
 
-
-
 中文={#简体中文词条
-
-    'action.like':'好的回答',#赞
-
-    'action.likeActive':'取消标记',#已赞取消
-
-    'action.dislike':'有问题的回答',#踩
-
-    'action.dislikeActive':'取消标记',#已踩取消
-
-    'note.open':'补充说明',#打开说明
-
-    'note.placeholder':'这条回答哪里好，或哪里有问题？（可选）',#占位
-
-    'note.save':'保存',#保存
-
-    'note.cancel':'取消',#取消
-
-    'note.aria':'反馈说明',#无障碍名
-
-    'error.conflict':'这条反馈已在别处改动，已显示最新状态',#冲突
-
-    'error.load':'反馈状态加载失败',#加载失败
-
-    'error.generic':'反馈保存失败',#保存失败
-
+    'action.like':'好的回答',
+    'action.likeActive':'取消标记',
+    'action.dislike':'有问题的回答',
+    'action.dislikeActive':'取消标记',
+    'dialog.title':'提交反馈',
+    'dialog.categories':'反馈分类',
+    'dialog.detail':'反馈详情',
+    'dialog.hint':'填写详情以帮助我们改进体验，提交内容会包括当前对话的日志',
+    'category.task-result':'任务结果',
+    'category.instruction-following':'指令理解与遵循',
+    'category.product-interaction':'产品功能与交互',
+    'category.service-stability':'服务稳定性',
+    'category.resource-cost':'资源使用与费用',
+    'category.security-privacy-permission':'安全隐私与权限',
+    'category.other':'其他',
+    'toast.recorded':'感谢你的反馈',
+    'error.conflict':'这条反馈已在别处改动，已显示最新状态',
+    'error.load':'反馈状态加载失败',
+    'error.generic':'反馈保存失败',
+    'error.noteTooLarge':'描述太长，请缩短后再提交',
 }#中文结束
 
-
-
 英文={#英文词条
-
-    'action.like':'Good response',#赞
-
-    'action.likeActive':'Remove rating',#已赞取消
-
-    'action.dislike':'Bad response',#踩
-
-    'action.dislikeActive':'Remove rating',#已踩取消
-
-    'note.open':'Add a note',#打开说明
-
-    'note.placeholder':'What was good, or what went wrong? (optional)',#占位
-
-    'note.save':'Save',#保存
-
-    'note.cancel':'Cancel',#取消
-
-    'note.aria':'Feedback note',#无障碍名
-
-    'error.conflict':'This feedback changed elsewhere; the latest state is shown',#冲突
-
-    'error.load':'Could not load feedback',#加载失败
-
-    'error.generic':'Could not save feedback',#保存失败
-
+    'action.like':'Good response',
+    'action.likeActive':'Remove rating',
+    'action.dislike':'Bad response',
+    'action.dislikeActive':'Remove rating',
+    'dialog.title':'Submit feedback',
+    'dialog.categories':'Feedback category',
+    'dialog.detail':'Feedback details',
+    'dialog.hint':'Add details to help us improve. Your submission will include the current conversation log.',
+    'category.task-result':'Task result',
+    'category.instruction-following':'Instruction understanding and following',
+    'category.product-interaction':'Product features and interaction',
+    'category.service-stability':'Service stability',
+    'category.resource-cost':'Resource usage and cost',
+    'category.security-privacy-permission':'Security, privacy, and permissions',
+    'category.other':'Other',
+    'toast.recorded':'Thanks for your feedback',
+    'error.conflict':'This feedback changed elsewhere; the latest state is shown',
+    'error.load':'Could not load feedback',
+    'error.generic':'Could not save feedback',
+    'error.noteTooLarge':'The description is too long; shorten it and submit again',
 }#英文结束
-
-

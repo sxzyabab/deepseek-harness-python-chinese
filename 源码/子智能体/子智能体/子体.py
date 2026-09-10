@@ -53,8 +53,8 @@ def 解析子智能体选项(父,请求,子深度):
     结果['subagentDepth']=子深度#盖上子深度
     return 结果#已解析选项
 
-def 子会话元数据(父,子深度,谱系种子长度):
-    """建造子会话的耐久创建元数据：父的工作区、其直接谱系、粗产品来源、必须活过持久化的递归预算、分隔继承父历史与子工作的种子边界，以及子体运行所在的组合。"""
+def 子会话元数据(父,子深度,已播种):
+    """建造子会话的耐久创建元数据：父的工作区、其直接谱系、粗产品来源、必须活过持久化的递归预算、是否继承父日志前缀（含显式空前缀），以及子体运行所在的组合。"""
     父头=父.session.header#父会话头
     预设服务=None#活组合预设服务
     父上下文=父.ctx#父上下文
@@ -63,14 +63,12 @@ def 子会话元数据(父,子深度,谱系种子长度):
     智能体预设=None#活组合预设
     if 预设服务 is not None:#有预设服务
         智能体预设=预设服务.composedPreset(父上下文)#活组合预设
-    结果={'parentSession':父头['id'] if isinstance(父头,dict) and 'id' in 父头 else None,'origin':'subagent','delegationDepth':子深度}#耐久元数据
+    结果={'parentSession':父头['id'] if isinstance(父头,dict) and 'id' in 父头 else None,'origin':'subagent','delegationDepth':子深度,'isSeeded':bool(已播种)}#耐久元数据
     工作区=父头['cwd'] if isinstance(父头,dict) and 'cwd' in 父头 else None#工作区
     if 工作区 is not None:#有工作区
         结果['cwd']=工作区#展开
     if 智能体预设 is not None:#有预设
         结果['agentPreset']=智能体预设#展开
-    if 谱系种子长度>0:#有父前缀
-        结果['seedLength']=谱系种子长度#记下边界
     return 结果#创建元数据
 
 子智能体委托上下文=(#委托作用域声明

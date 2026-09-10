@@ -1,5 +1,10 @@
 {
     "policy":"策略",
     "self":"自身",
-    "submit":"提交"
+    "submit":"提交",
+    "resolveSubmitMode":"解析提交模式",
+    "preferred":"偏好",
+    "running":"忙碌",
+    "gesture":"手势",
+    "steeringAvailable":"可转向"
 }

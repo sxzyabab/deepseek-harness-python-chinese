@@ -72,9 +72,9 @@ def 安装初始模型选择(智能体上下文,选择):
     def 请求钩子(载荷,下一步):
         """首条请求前覆盖 provider/model。"""
         已解析=下一步(载荷)#先走链
-        智能体=智能体上下文.agent#作用域智能体
+        智能体=载荷.get('agent') if isinstance(载荷,dict) else None#事件载荷中的智能体
         if 智能体 is None:#没有智能体
-            raise 会话错误('webhook Session setup has no scoped Agent')#拒绝
+            raise 会话错误('webhook Session setup has no Agent on agent/request')#拒绝
         if 智能体.session.requestHeader() is not None:#已有请求头
             return 已解析#不再覆盖
         if 'provider' not in 已解析 or 'model' not in 已解析 or 已解析['provider']!=选择['provider'] or 已解析['model']!=选择['model']:#路由已变

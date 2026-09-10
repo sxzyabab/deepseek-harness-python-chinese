@@ -61,6 +61,7 @@ from .子体 import (
     委托策略覆盖,#sandbox / approval 快照
 )
 from .投影 import 子智能体计时投影定义,子智能体身份投影定义#sessionProjections 单元
+from .目录 import 子智能体目录投影定义,建立目录子体#父拥有目录
 from .进程外 import (
     无启动能力,断言正有限,断言可用工作目录,校验已配置工作目录,解析子工作目录,
     结算跑结果,子进程跑句柄,
@@ -70,6 +71,7 @@ from .进程外 import (
 from .客户端 import (
     子智能体身份投影,#模式/标签投影
     子智能体计时投影,#活动回合计时投影
+    子智能体目录条目,#直接子发现行
 )
 __all__=(
     '子智能体运行时',
@@ -89,7 +91,8 @@ __all__=(
     '子体组合','委托策略覆盖',
     '无启动能力','断言正有限','断言可用工作目录','校验已配置工作目录','解析子工作目录',
     '结算跑结果','子进程跑句柄','跑结果结算','子进程跑句柄零件',
-    '子智能体身份投影','子智能体计时投影',
+    '子智能体身份投影','子智能体计时投影','子智能体目录条目',
+    '子智能体目录投影定义','建立目录子体',
 )
 
 class 子智能体运行时(服务):
@@ -127,7 +130,8 @@ class 子智能体运行时(服务):
             子上下文.副作用(解绑工厂,'subagents.continuationBinding()')#命名副作用
         ctx.依赖启动(['agents'],挂续跑)#agents 注入门
         def 挂投影(投影上下文):#投影可用时登记单元
-            """登记计时与身份两个投影单元；缺席时列举会大声失败。"""
+            """登记目录、计时与身份三个投影单元；缺席时列举会大声失败。"""
+            投影上下文.sessionProjections.register(子智能体目录投影定义)#父拥有目录
             投影上下文.sessionProjections.register(子智能体计时投影定义)#活动回合计时
             投影上下文.sessionProjections.register(子智能体身份投影定义)#模式/标签身份
         ctx.依赖启动(['sessionProjections'],挂投影)#投影注入门
@@ -215,6 +219,26 @@ class 子智能体运行时(服务):
         已解析=dict(请求) if isinstance(请求,dict) else {}#浅拷贝
         已解析['descriptor']=描述符#挂上描述符
         跑=提供方.启动(已解析)#等待提供方发布
+        子会话=None#同进程子会话
+        if hasattr(跑,'localAgent') and 跑.localAgent is not None:#有本地智能体
+            子会话=跑.localAgent.session#子会话
+        elif isinstance(跑,dict) and 'localAgent' in 跑 and 跑['localAgent'] is not None:#dict 形
+            子会话=跑['localAgent'].session if hasattr(跑['localAgent'],'session') else 跑['localAgent']['session']#子会话
+        if 子会话 is not None:#有本地子则追加目录
+            父=请求['parent'] if isinstance(请求,dict) and 'parent' in 请求 else None#父
+            父会话=父.session if 父 is not None and hasattr(父,'session') else None#父会话
+            子头=子会话.header if hasattr(子会话,'header') else 子会话['header']#子头
+            try:#追加目录
+                建立目录子体(父会话,子头 if isinstance(子头,dict) else {'id':子头.id,'createdAt':子头.createdAt},描述符)#目录
+            except Exception:#目录失败
+                try:#拆除跑
+                    if hasattr(跑,'dispose'):#对象形
+                        跑.dispose()#拆除
+                    elif isinstance(跑,dict) and 'dispose' in 跑:#dict 形
+                        跑['dispose']()#拆除
+                except Exception as 清理错误:#拆除也失败
+                    自身.ctx.logger.warn('subagent: disposal after catalog append failure also failed: '+str(清理错误))#警告
+                raise#目录错误上抛
         return 观察跑(自身._发出生命周期,名,请求['parent'] if isinstance(请求,dict) and 'parent' in 请求 else None,跑)#观察并返回跑
 
     def _准备可续跑(自身,名,请求):

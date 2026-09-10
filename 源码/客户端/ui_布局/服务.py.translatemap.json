@@ -1,6 +1,16 @@
 {
+    "begin":"开始",
+    "close":"关闭",
     "controller":"控制器",
+    "dispose":"拆除",
+    "has":"有",
     "layout":"布局",
+    "main":"主",
+    "navigation":"导航",
+    "open":"打开",
     "panel":"面板",
-    "transition":"过渡"
+    "rightbar":"右侧栏",
+    "select":"选择",
+    "sidebar":"侧栏",
+    "toggle":"切换"
 }

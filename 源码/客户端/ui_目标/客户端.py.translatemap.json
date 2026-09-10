@@ -1,7 +1,9 @@
 {
     "apply":"应用",
+    "activation":"激活",
     "bar":"条",
     "command":"命令",
+    "create":"创建",
     "definition":"定义",
     "dock":"坞",
     "en":"英文",
@@ -9,6 +11,7 @@
     "inject":"注入",
     "input":"输入",
     "namespace":"命名空间",
+    "source":"源",
     "view":"视图",
     "zh":"中文"
 }

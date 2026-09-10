@@ -77,14 +77,16 @@ def 驱动夹具轮次(上下文,选项):#驱动一轮
         观察=选项.get('onEvent')#可选观察者
         if 观察 is not None:#有观察者
             观察(智能体.session.id,事件)#转发观察者
-        if 类型=='assistant/chunk':#用量分片
-            分片=数据.get('chunk') if isinstance(数据,dict) else getattr(数据,'chunk',None)#分片
-            分片类型=分片.get('type') if isinstance(分片,dict) else getattr(分片,'type',None)#分片类型
-            if 分片类型=='usage':#用量
+        if 类型=='assistant/message' or 类型=='assistant/attempt':#耐久结算带流
+            流=数据.get('stream') if isinstance(数据,dict) else getattr(数据,'stream',None)#嵌入流
+            for 成员 in (流 or []):#扫流记录
+                块=成员.get('chunk') if isinstance(成员,dict) else None#原始块
+                if not isinstance(块,dict) or 块.get('type')!='usage':#非用量
+                    continue#下一块
                 回合=数据.get('turn') if isinstance(数据,dict) else getattr(数据,'turn',None)#回合
                 步进=数据.get('step') if isinstance(数据,dict) else getattr(数据,'step',None)#步进
-                用量=分片.get('usage') if isinstance(分片,dict) else getattr(分片,'usage',None)#用量
-                用量按步[f'{回合}/{步进}']=用量#记录分片用量
+                用量=块.get('usage')#用量
+                用量按步[f'{回合}/{步进}']=用量#记录流用量
         if 类型=='assistant/message':#助手消息
             文本=助手文本(事件)#提取文本
             if 文本 is not None:#有文本

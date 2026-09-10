@@ -1,0 +1,18 @@
+{
+    "assert":"断言",
+    "current":"当前",
+    "data":"数据",
+    "envelope":"信封",
+    "event":"事件",
+    "field":"字段",
+    "invalid":"无效",
+    "metadata":"元数据",
+    "object":"对象",
+    "session":"会话",
+    "subject":"主语",
+    "surface":"表面",
+    "unexpected":"意外",
+    "validate":"校验",
+    "value":"值",
+    "wire":"线"
+}

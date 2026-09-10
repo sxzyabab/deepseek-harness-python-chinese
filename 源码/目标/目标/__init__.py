@@ -151,7 +151,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         def 会话开始(载荷,*位置参数):#会话开始边解除武装
             """会话开始边解除武装。"""
             智能体=载荷['agent']#所属智能体
-            自身.缓存(智能体.session)['activation']='disarmed'#不继承上一生命周期的自动权限
+            自身.设置武装(智能体.session,'disarmed')#不继承上一生命周期的自动权限
         上下文.监听('agent/session-start',会话开始)#结束 session-start
         def 投影初态():#创建前为 null
             """创建前为 null。"""
@@ -171,6 +171,11 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             })#结束登记
         上下文.依赖启动(['sessionProjections'],投影安装)#结束 依赖启动
 
+    @_远程('get')
+    def get(自身,智能体):#Remote 导出名 get
+        """Remote 导出名 get。"""
+        return 自身.获取(智能体)#转中文
+
     def 获取(自身,智能体):#读当前目标
         """读取一个精确实时智能体的当前目标；没有当前目标时为 None。"""
         自身.断言实时(智能体)#必须是实时实例
@@ -181,9 +186,9 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
     def 解除武装(自身,智能体):#解除武装
         """去掉进程内续跑权限，不改持久阶段或修订。"""
         自身.断言实时(智能体)#必须是实时实例
+        自身.设置武装(智能体.session,'disarmed')#经发布边解除
         缓存=自身.缓存(智能体.session)#拿到缓存
         自身.同步(智能体.session,缓存)#追上日志
-        缓存['activation']='disarmed'#只改进程内字段
         return 自身.视图(缓存)#脱离视图
 
     def 创建(自身,智能体,请求):#创建目标
@@ -360,10 +365,27 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             if 事件['type']=='goal/change':#本域变更
                 待定=缓存['pendingActivation']#追加中待提交的武装
                 if 待定 is not None and 待定['seq']==事件['seq']:#若是自己刚追加的那条
-                    缓存['activation']=待定['activation']#采用意图武装
+                    武装=待定['activation']#采用意图武装
                 else:#外来变更默认解除武装
-                    缓存['activation']='disarmed'#外来变更默认解除武装
+                    武装='disarmed'#外来变更默认解除武装
+                自身.设置武装(会话,武装)#经发布边写入
             缓存['observedSeq']+=1#前进一步
+
+    def 设置武装(自身,会话,武装):#武装发布
+        """仅在实际变化时发布一条进程内武装边。"""
+        缓存=自身.缓存(会话)#拿到或播种
+        if 缓存['activation']==武装:#无变化
+            return#结束
+        缓存['activation']=武装#写入
+        视图=自身.视图(缓存)#当前视图
+        载荷={'sessionId':会话.id}#会话
+        if 视图 is not None:#有目标才带精确武装
+            载荷['goal']={#精确身份
+                'id':视图['id'],#id
+                'revision':视图['revision'],#修订
+                'activation':视图['activation'],#武装
+            }#结束 goal
+        自身.ctx.emit('goal/activation-changed',载荷)#武装变更
 
     def 带阶段(自身,当前,阶段):#阶段迁移快照
         """用一个替换阶段构造新修订。"""

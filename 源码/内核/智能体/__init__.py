@@ -13,7 +13,7 @@ from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ..作用域 import 作用域目标#作用域载体构造
 from .运行时类型 import *#再导出运行时类型（含智能体取消原因）
 from .类型 import *#再导出可持久化类型
-from .收件箱 import 收件箱,收件箱通知口#再导出收件箱
+from .收件箱 import 收件箱#再导出结构化收件箱接口
 from .已消费工作 import 折叠已消费工作,交代领取,已消费工作账本#再导出已消费工作
 from .模型选择 import 安装模型选择,模型选择,模型选择引用#再导出模型选择
 from .派发 import (
@@ -54,7 +54,7 @@ __all__=(#仅中文公开名；无英文别名
     '无工厂诊断','无发起方诊断','发起方已拆除诊断',
     '智能体设置提交','创建智能体选项','恢复智能体选项','已发表句柄','智能体工厂',
     '调用栈存储','智能体条目','发起运行','智能体注册表',
-    '收件箱','收件箱通知口','折叠已消费工作','交代领取','已消费工作账本',
+    '收件箱','折叠已消费工作','交代领取','已消费工作账本',
     '安装模型选择','模型选择','模型选择引用',
     '智能体事件派发','智能体载体','智能体事件','为组装构建上下文','发出智能体事件',
     '下一轮','下一步','收件箱目标','收件箱拼接字段',
@@ -79,17 +79,20 @@ class 智能体设置提交:#尚未发表的设置在发表直前的同步收尾
 
 class 创建智能体选项(TypedDict):#经注册表工厂程序化创建的选项
     sessionId:object#在线 Agent/会话身份
+    parentAgent:NotRequired[object]#运行时所有权的在线父 Agent；根则省略
     meta:NotRequired[object]#会话创建元数据（cwd／血统／种子边界等）
+    inheritedEventCount:NotRequired[object]#isSeeded 时分叉继承前缀长度
     seed:NotRequired[list]#初始回放/分叉历史
     agentOptions:NotRequired[object]#每 Agent 选项（模型……）
     signal:NotRequired[object]#仅创建取消信号
-    setup:NotRequired[object]#尚未发表的作用域组合回调
+    setup:NotRequired[object]#尚未发表的作用域组合回调（agentCtx, agent）
 
 class 恢复智能体选项(TypedDict):#在已持久化会话上恢复的选项
     resumeSessionId:object#要加载的已持久化会话 id
+    parentAgent:NotRequired[object]#运行时所有权的在线父 Agent；根则省略
     agentOptions:NotRequired[object]#每 Agent 选项
     signal:NotRequired[object]#仅创建取消信号
-    setup:NotRequired[object]#恢复时组合全新作用域的回调
+    setup:NotRequired[object]#恢复时组合全新作用域的回调（agentCtx, agent）
 
 class 已发表句柄:#被拥有的 Agent 外加其拆除器
     """create／resume 返回的被拥有句柄：主体 + 拆除能力。"""
@@ -197,10 +200,6 @@ class 智能体注册表(服务):#Agent 注册表
                 'resolve':解析上下文,#解析 Agent 上下文
             })#宿主结束
         ctx.依赖启动(['typert'],登记类型)#等到 typert
-        def 取智能体(目标,错误):#普通上下文默认没有当前 Agent
-            """普通上下文默认没有当前 Agent。"""
-            return None#默认 undefined
-        ctx.定义访问器('agent',取智能体)#默认 None
         def 状态监听(光纤对象,*剩余):#本服务生命周期祖先正在卸载则关闭
             """本服务生命周期祖先正在卸载则关闭新发起边界。"""
             if 光纤对象.state==光纤状态.卸载中 and 自身.有生命周期祖先(光纤对象):#正在卸载
@@ -271,7 +270,7 @@ class 智能体注册表(服务):#Agent 注册表
         """登记一个在线 Agent。同 id 已登记则抛。"""
         def 登记体():#先进入再宣布
             """先进入再宣布。"""
-            yield 自身.进入(智能体,自身.ctx.agent)#先进入
+            yield 自身.进入(智能体,None)#先进入；register 为运行时根
             自身.宣布(智能体)#再宣布
         return 自身.ctx.副作用(登记体,'agents.register()')#精确拆除器
     def 进入(自身,智能体,所有者):#进入注册表

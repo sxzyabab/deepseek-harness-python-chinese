@@ -8,6 +8,49 @@ from .远程错误与并发 import 已中止#中止查询
 
 __all__=['会话控制控制器']#仅中文公开名
 
+def _提示rpc身份(消息):
+    """浏览器提交消息的用户源所携带的提示词 RPC 身份。"""
+    源=消息['source'] if isinstance(消息,dict) and 'source' in 消息 else None#来源
+    if isinstance(源,dict) and 源.get('kind')=='user' and 'rpcId' in 源:#用户 rpc
+        return {'rpcId':源['rpcId']}#身份
+    return {}#无
+
+def _自收件箱投影队列(收件箱):
+    """从收件箱状态投影排队项。收件箱为 dict，键 next-turn / next-step。"""
+    项列表=[]#结果
+    for 消息 in 收件箱['next-turn'] if 'next-turn' in 收件箱 else []:#下一轮=排队
+        行={'id':消息['id'],'placement':'queued','message':{'id':消息['id'],'content':list(消息['content'])}}#行
+        行.update(_提示rpc身份(消息))#可选 rpc
+        项列表.append(行)#收下
+    for 消息 in 收件箱['next-step'] if 'next-step' in 收件箱 else []:#下一步
+        放置='steering' if isinstance(消息.get('source'),dict) and 消息['source'].get('kind')=='user' else 'context'#放置
+        行={'id':消息['id'],'placement':放置,'message':{'id':消息['id'],'content':list(消息['content'])}}#行
+        行.update(_提示rpc身份(消息))#可选 rpc
+        项列表.append(行)#收下
+    return 项列表#队列
+
+def _自智能体投影队列(智能体):
+    """从活体收件箱投影排队项。"""
+    return _自收件箱投影队列({
+        'next-turn':list(智能体.inbox.下一轮队列),
+        'next-step':list(智能体.inbox.下一步队列),
+    })#投影
+
+def _任务视图(任务):
+    """任务快照转视图。任务为 dict。"""
+    视图={
+        'id':任务['id'],
+        'kind':任务['kind'],
+        'label':任务['label'],
+        'status':任务['status'],
+        'startedAt':任务['startedAt'],
+    }#基础
+    if 'detail' in 任务 and 任务['detail'] is not None:#细节
+        视图['detail']=任务['detail']#写入
+    if 'finishedAt' in 任务 and 任务['finishedAt'] is not None:#结束
+        视图['finishedAt']=任务['finishedAt']#写入
+    return 视图#视图
+
 class _控制队列:
     """缓冲控制帧。"""
     def __init__(自身):
@@ -51,12 +94,16 @@ class 会话控制控制器:
         """订阅会话、投影与任务变化。"""
         自身._上下文=上下文#Cordis
         自身._流集合=set()#活跃流
-        def 会话事件(会话,事件):
-            """会话事件。"""
-            自身._会话事件(会话,事件)#委托
         def 投影变更(会话,键,值,序号):
             """投影变更。"""
             自身._广播({'type':'projection','sessionId':会话.id,'key':键,'value':值,'seq':序号})#投影
+            if 键!='inbox':#非收件箱
+                return#结束
+            取=getattr(上下文.agents,'get',None)#英文 get
+            智能体=取(会话.id) if 取 is not None else 上下文.agents.获取(会话.id)#智能体
+            if 智能体 is None or 智能体.session is not 会话:#不匹配
+                return#忽略
+            自身._广播({'type':'queue','sessionId':会话.id,'items':_自收件箱投影队列(值)})#队列
         def 挂任务(任务上下文):
             """订阅任务变化。"""
             def 任务变化(所有者):
@@ -69,7 +116,6 @@ class 会话控制控制器:
         def 拆除控制():
             """拆除。"""
             自身._拆除()#委托
-        上下文.监听('session/event',会话事件)#事件
         上下文.sessionProjections.onChanged(投影变更)#投影
         上下文.依赖启动(['jobs'],挂任务)#依赖启动
         上下文.监听('session/created',会话创建)#创建
@@ -99,10 +145,14 @@ class 会话控制控制器:
         会话列表=自身._上下文.sessions.list()#全部会话
         队列表={}#队列
         任务表={}#任务
+        取=getattr(自身._上下文.agents,'get',None)#英文 get
         for 会话 in 会话列表:#逐个
             标识=会话.id#id
-            智能体=自身._上下文.agents.get(标识)#智能体
-            队列表[标识]=[]#占位队列视图
+            智能体=取(标识) if 取 is not None else 自身._上下文.agents.获取(标识)#智能体
+            if 智能体 is not None and 智能体.session is 会话:#活体匹配
+                队列表[标识]=_自智能体投影队列(智能体)#真实队列
+            else:#冷或错配
+                队列表[标识]=[]#空
             任务表[标识]=自身._任务用于(智能体)#任务
         投影表={}#投影
         for 会话 in 会话列表:#投影基线
@@ -115,30 +165,25 @@ class 会话控制控制器:
         任务服务=自身._上下文.获取服务('jobs')#jobs
         if 任务服务 is None:#无
             return []#空
-        return 任务服务.list(智能体)#列表
+        return [_任务视图(任务) for 任务 in 任务服务.list(智能体)]#列表
 
     def _会话创建(自身,会话):
         """新会话时补 jobs 帧。"""
-        任务表=自身._任务用于(自身._上下文.agents.get(会话.id))#任务
+        取=getattr(自身._上下文.agents,'get',None)#英文 get
+        智能体=取(会话.id) if 取 is not None else 自身._上下文.agents.获取(会话.id)#智能体
+        任务表=自身._任务用于(智能体)#任务
         if len(任务表)>0:#有任务
             自身._广播({'type':'jobs','sessionId':会话.id,'jobs':任务表})#广播
-
-    def _会话事件(自身,会话,事件):
-        """inbox 拼接时广播 queue 帧。事件为 dict。"""
-        if 事件['type']!='agent/inbox/spliced':#非拼接
-            return#忽略
-        智能体=自身._上下文.agents.get(会话.id)#智能体
-        if 智能体 is None or 智能体.session is not 会话:#不匹配
-            return#忽略
-        自身._广播({'type':'queue','sessionId':会话.id,'items':[]})#占位队列帧
 
     def _任务变化(自身,所有者):
         """广播 jobs 帧。"""
         if 所有者 is not None:#单所有者
             自身._广播({'type':'jobs','sessionId':所有者.id,'jobs':自身._任务用于(所有者)})#广播
             return#结束
+        取=getattr(自身._上下文.agents,'get',None)#英文 get
         for 会话 in 自身._上下文.sessions.list():#全量
-            自身._广播({'type':'jobs','sessionId':会话.id,'jobs':自身._任务用于(自身._上下文.agents.get(会话.id))})#广播
+            智能体=取(会话.id) if 取 is not None else 自身._上下文.agents.获取(会话.id)#智能体
+            自身._广播({'type':'jobs','sessionId':会话.id,'jobs':自身._任务用于(智能体)})#广播
 
     def _广播(自身,帧):
         """向全部代推送。"""

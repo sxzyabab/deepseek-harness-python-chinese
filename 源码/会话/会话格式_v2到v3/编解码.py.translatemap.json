@@ -1,0 +1,21 @@
+{
+    "admission":"准入",
+    "assert":"断言",
+    "codec":"编解码器",
+    "context":"上下文",
+    "decode":"解码",
+    "decoder":"解码器",
+    "delegate":"委托",
+    "encode":"编码",
+    "event":"事件",
+    "finish":"完成",
+    "header":"头",
+    "inherited":"继承",
+    "issue":"问题",
+    "physical":"物理",
+    "released":"已发布",
+    "row":"行",
+    "run":"游程",
+    "session":"会话",
+    "structural":"结构"
+}

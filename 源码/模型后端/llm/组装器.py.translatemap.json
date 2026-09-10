@@ -5,6 +5,7 @@
     "call":"调用",
     "create":"创建",
     "finish":"结束",
+    "interrupt":"中断",
     "message":"消息",
     "order":"顺序",
     "partial":"部分",

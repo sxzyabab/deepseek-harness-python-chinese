@@ -1,0 +1,20 @@
+{
+    "append":"追加",
+    "claim":"声明",
+    "clear":"清除",
+    "create":"创建",
+    "inbox":"收件箱",
+    "index":"索引",
+    "pending":"待定",
+    "prepend":"前插",
+    "queue":"队列",
+    "remove":"移除",
+    "replace":"替换",
+    "self":"自身",
+    "splice":"拼接",
+    "step":"步骤",
+    "stub":"桩",
+    "target":"目标",
+    "turn":"轮次",
+    "unsupported":"不支持"
+}

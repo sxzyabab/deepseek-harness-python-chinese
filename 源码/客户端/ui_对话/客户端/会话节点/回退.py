@@ -8,7 +8,9 @@ from .事件面 import 是追加面事件#面辅助
 __all__=['未知回退定义','登记未知会话回退']#仅中文公开名
 
 def 未知匹配(事件):
-    """append-surface 才匹配。"""
+    """append-surface 才匹配；排除瞬态 live-chunk。"""
+    if 事件.get('type')=='assistant/live-chunk':#瞬态直播块
+        return None#不认领
     if 是追加面事件(事件):
         return {'id':str(事件['seq']),'role':'start'}#开
     return None#不匹配

@@ -1,5 +1,9 @@
 {
     "browse":"浏览",
+    "host":"宿主",
+    "layout":"布局",
+    "navigation":"导航",
+    "remote":"远程",
     "self":"自身",
     "workspace":"工作区"
 }

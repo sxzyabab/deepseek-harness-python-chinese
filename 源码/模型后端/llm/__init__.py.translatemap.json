@@ -34,5 +34,7 @@
     "service":"服务",
     "signal":"信号",
     "stream":"流",
-    "wait":"等待"
+    "wait":"等待",
+    "attempt":"尝试",
+    "assistant":"助手"
 }

@@ -11,7 +11,7 @@ def 是可见助手块(类型):#是否可见 Assistant chunk
     return 类型 in ('block-start','text-delta','reasoning-delta','tool-call-delta','block-end')#可见类型
 
 class 部分累加器:#部分累加器
-    """assistant/chunk 累加器：块级不可变。"""
+    """assistant/live-chunk 累加器：块级不可变。"""
     def __init__(自身,回合,步,初始块=None):#构造
         """记下回合步骤与初始块。"""
         自身.回合=回合#轮次

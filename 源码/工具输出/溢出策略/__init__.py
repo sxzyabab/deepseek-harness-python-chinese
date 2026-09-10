@@ -2,7 +2,7 @@
 
 它不注册服务，也不拥有存储或预览机制：预览是 `output_retention`（`文本保留器`），存储是 `ctx.spillStore`。策略只决定何时溢出并组合通知。
 
-第二臂把同一上限应用到持久日志：`tools/code-dispatch-log` 瀑布约束 `tool/code-dispatch` 事件上过大 `run_code` 子调用结果的副本（程序的值不动；UI 和回放经溢出产物读全文）。
+第二臂把同一上限应用到持久日志：`tools/ptc-dispatch-log` 瀑布约束 `tool/ptc-dispatch` 事件上过大 `run_code` 子调用结果的副本（程序的值不动；UI 和回放经溢出产物读全文）。
 
 ## 故意狭窄
 
@@ -158,7 +158,7 @@ def 应用(上下文,配置):#安装溢出策略
     上下文.监听('tools/post-execute',面向模型臂,{'前置':True})#前置监听
 
     def 派发日志臂(派发,下一步,*剩余):#持久dispatch-log臂
-        """用与面向模型臂约束外层结果相同的方式，约束 tool/code-dispatch 事件上过大子调用结果的副本。程序返回值不动（它已整体越过 worker 边界）；只有会话日志副本缩成预览 + 定位器，因此回放和 UI 经溢出产物读全文，与溢出的原生结果一样。"""
+        """用与面向模型臂约束外层结果相同的方式，约束 tool/ptc-dispatch 事件上过大子调用结果的副本。程序返回值不动（它已整体越过 worker 边界）；只有会话日志副本缩成预览 + 定位器，因此回放和 UI 经溢出产物读全文，与溢出的原生结果一样。"""
         内容=下一步()#委托下游
         #read子调用也溢出：日志副本不是模型上下文，因此执行后臂要避免的read→spill→再read循环在此不会发生，而read正是产出巨大日志的工具。
         文本=压平纯文本(内容)#压平纯文本
@@ -172,7 +172,7 @@ def 应用(上下文,配置):#安装溢出策略
             return 内容#原样
         return [{'type':'text','text':替换文本}]#替换日志副本
 
-    上下文.监听('tools/code-dispatch-log',派发日志臂,{'前置':True})#前置监听
+    上下文.监听('tools/ptc-dispatch-log',派发日志臂,{'前置':True})#前置监听
 
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明

@@ -3,14 +3,15 @@
 对齐上游 `llm-pi-ai/src/provider.ts`。公开面仅中文名；无英文别名。
 """
 import pi_ai#外部依赖胶水（pi-ai SDK）
-from .目录 import 目录提供方,配置错误#已安装目录提供方查找与本包异常
+from .目录 import 目录提供方,目录错误#已安装目录提供方查找与目录错误
 
 __all__=('受支持协议','线束密钥认证','路由认证','复用目录提供方','构建提供方')#仅中文公开名
 
+# Python pi_ai 无 api/*.lazy 子路径；顶层工厂与上游惰性模块同为 createProvider 用的协议实现。
 协议表={
-    #'openai-completions':pi_ai.openAICompletionsApi,#OpenAI Completions
-    #'openai-responses':pi_ai.openAIResponsesApi,#OpenAI Responses
-    #'anthropic-messages':pi_ai.anthropicMessagesApi,#Anthropic Messages
+    'openai-completions':pi_ai.openAICompletionsApi,#OpenAI Completions
+    'openai-responses':pi_ai.openAIResponsesApi,#OpenAI Responses
+    'anthropic-messages':pi_ai.anthropicMessagesApi,#Anthropic Messages
 }#可手声明的协议表
 
 def 受支持协议():
@@ -87,10 +88,10 @@ def 构建提供方(规格):
         工厂=协议表[规格['api']]#取出工厂
     if 工厂 is None:#点名了本构建没有的协议，或未运来又没点名，加载时失败
         协议名=规格['api'] if 'api' in 规格 else None#诊断用协议名
-        raise 配置错误(
+        raise 目录错误(
             'llm-pi-ai: provider "'+规格['provider']+'" names api "'+str(协议名)+'", which this build cannot serve;'
             +' supported protocols are '+', '.join(受支持协议()),
-        )#无法服务
+        )#无法服务；目录错误可被延迟校验收住
     构造={
         'id':规格['provider'],#路由键
         'name':规格['displayName'],#展示名

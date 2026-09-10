@@ -110,10 +110,10 @@ def 初始状态(回合,步号,起点序号,起点时间,已开始):#播种一�
     """空块、无用量、无重试。"""
     return {'turn':回合,'step':步号,'startSeq':起点序号,'startTime':起点时间,'started':已开始,'sawChunk':False,'blocks':[],'firstVisibleSeq':None,'firstVisibleTime':None,'firstTokenTime':None,'final':None,'usage':None,'retry':None,'stepEnd':None}#初始状态
 
-def 更新块(状态,匹配):#按一条 assistant/chunk 推进块与用量
+def 更新块(状态,匹配):#按一条 assistant/live-chunk 推进块与用量
     """非块事件原样返回。"""
     事件=匹配['event'] if 'event' in 匹配 else None#事件
-    if 事件 is None or ('type' not in 事件) or 事件['type']!='assistant/chunk':#非块事件
+    if 事件 is None or ('type' not in 事件) or 事件['type']!='assistant/live-chunk':#非块事件
         return 状态#原样
     数据=事件['data'] if 'data' in 事件 else None#载荷
     块=数据['chunk'] if 数据 is not None and 'chunk' in 数据 else None#取出块载荷
@@ -233,7 +233,7 @@ def 回放状态(上下文):#无 start 时从命中回放累积状态
         事件=匹配['event'] if 'event' in 匹配 else None#取出事件
         种类=事件['type'] if 事件 is not None and 'type' in 事件 else None#事件类型
         数据=事件['data'] if 事件 is not None and 'data' in 事件 else None#载荷
-        if 种类=='assistant/chunk':#流式块
+        if 种类=='assistant/live-chunk':#流式块
             if 状态 is None:#首次见块则播种
                 状态=初始状态(数据['turn'] if 数据 is not None and 'turn' in 数据 else None,数据['step'] if 数据 is not None and 'step' in 数据 else None,事件['seq'],事件['time'],False)#started=false
             状态=更新块(状态,匹配)#推进块与用量
@@ -255,7 +255,7 @@ def 助手匹配(事件):#按事件类型归入本步
     步号=数据['step'] if 数据 is not None and 'step' in 数据 else None#步
     if 种类=='step/start':#步开始
         return {'id':f'{回合}:{步号}','role':'start'}#作本节点 start
-    if 种类 in ('assistant/chunk','assistant/message','llm/retry','step/end'):#update 类
+    if 种类 in ('assistant/live-chunk','assistant/message','llm/retry','step/end'):#update 类
         return {'id':f'{回合}:{步号}','role':'update'}#作本节点 update
     return None#无关事件
 
@@ -272,7 +272,7 @@ def 助手更新(上下文,匹配):#按后续事件推进状态
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     种类=事件['type'] if 事件 is not None and 'type' in 事件 else None#类型
     状态=上下文['state'] if 'state' in 上下文 else None#当前状态
-    if 种类=='assistant/chunk':#流式块
+    if 种类=='assistant/live-chunk':#流式块
         return 更新块(状态,匹配)#推进
     数据=事件['data'] if 事件 is not None and 'data' in 事件 else None#载荷
     if 种类=='assistant/message':#结算消息
@@ -298,7 +298,7 @@ def 助手发布(匹配):#控制该命中何时发布视图
     种类=事件['type'] if 事件 is not None and 'type' in 事件 else None#事件类型
     if 种类=='step/start':#start
         return 'none'#不单独发布
-    if 种类!='assistant/chunk':#结算/重试/步结束
+    if 种类!='assistant/live-chunk':#结算/重试/步结束
         return 'immediate'#立即发布
     数据=事件['data'] if 事件 is not None and 'data' in 事件 else None#载荷
     块=数据['chunk'] if 数据 is not None and 'chunk' in 数据 else None#块

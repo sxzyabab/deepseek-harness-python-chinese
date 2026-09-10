@@ -18,6 +18,12 @@ class 触发服务(服务):#ctx.inputTriggers 触发管线
         super().__init__(上下文,'inputTriggers')#以 inputTriggers 登记
         自身.源列表=[]#已登记的触发源
         自身.控制器表={}#按会话身份索引的控制器
+        上下文.on('locale/change',自身._文案变更)#文案切换时刷新开放菜单
+
+    def _文案变更(自身):#locale/change
+        """重拉每个会话的开放菜单候选。"""
+        for 控 in list(自身.控制器表.values()):#每个已活会话
+            控.refreshOpenMenu()#重拉候选
 
     def registerSource(自身,源):#登记一个触发源
         """trigger+name 必须唯一——重复则抛；返回拆除器。"""

@@ -52,6 +52,7 @@ __all__=['模块代理表','模块代理前缀表']#仅中文公开名
     'node:worker_threads':'./node/builtin_modules/mock/worker_threads.ts',#worker_threads mock
     'node:sqlite':'./node/builtin_modules/mock/sqlite.ts',#sqlite mock
     #外部npm替换，以各自所替代的包命名。
+    '@deepseek-ai/node-addon-system/flock':'./node/external_packages/node-addon-system-flock.ts',#flock替换
     'koffi':'./node/external_packages/koffi.ts',#koffi替换
     'sharp':'./node/external_packages/sharp.ts',#sharp替换
     'node-pty':'./node/external_packages/node-pty.ts',#node-pty替换

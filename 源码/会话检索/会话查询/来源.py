@@ -11,7 +11,7 @@ def 校验会话头兼容(甲,乙):
         or 甲['createdAt']!=乙['createdAt']
         or (甲['cwd'] if 'cwd' in 甲 else None)!=(乙['cwd'] if 'cwd' in 乙 else None)
         or (甲['parentSession'] if 'parentSession' in 甲 else None)!=(乙['parentSession'] if 'parentSession' in 乙 else None)
-        or (甲['seedLength'] if 'seedLength' in 甲 else None)!=(乙['seedLength'] if 'seedLength' in 乙 else None)
+        or (甲.get('isSeeded') is True)!=(乙.get('isSeeded') is True)
         or 甲深度!=乙深度
     ):#冲突判定
         raise 会话查询错误(

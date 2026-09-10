@@ -5,6 +5,7 @@
     "block":"阻塞",
     "blocked":"已阻塞",
     "brand":"品牌",
+    "changed":"变更",
     "code":"码",
     "complete":"完成",
     "create":"创建",
@@ -25,6 +26,7 @@
     "revision":"修订",
     "round":"轮次",
     "self":"自身",
+    "session":"会话",
     "snapshot":"快照",
     "type":"类型",
     "view":"视图"

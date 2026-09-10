@@ -1,17 +1,6 @@
 """`sessionStats` 投影单元（对齐上游 session-stats/projection.ts）。"""
 import math#有限数
-
-def 是否令牌增量(块):
-    """流块是否携带非空首 token 增量。"""
-    类型=块['type']#类型
-    if 类型 in ('text-delta','reasoning-delta'):#文本增量
-        文本=块['text'] if 'text' in 块 else ''#文本
-        return 文本!=''#非空
-    if 类型=='tool-call-delta':#工具调用增量
-        参数=块['argumentsDelta'] if 'argumentsDelta' in 块 else ''#参数增量
-        名称=块['name'] if 'name' in 块 else None#名称
-        return 参数!='' or 名称 is not None#非空
-    return False#其它
+from ...模型后端.llm.助手流 import 助手流首令牌时间#嵌入流首 token
 
 def 用量输出令牌(用量):
     """从 assistant/message usage 读 outputTokens。"""
@@ -37,26 +26,28 @@ def 统计应用(状态,事件):
     时刻=事件['time'] if 'time' in 事件 else 0#时间
     if 类型=='step/start':#步骤开始
         return {**状态,'openStep':{'turn':数据['turn'],'step':数据['step'],'startTime':时刻,'firstTokenTime':None}}#打开步骤
-    if 类型=='assistant/chunk':#流块
+    if 类型=='assistant/attempt':#助手尝试
         开放=状态['openStep']#开放步骤
         if 开放 is None or 开放['turn']!=数据['turn'] or 开放['step']!=数据['step']:#不匹配
             return 状态#原样
-        块=数据['chunk'] if 'chunk' in 数据 else {}#流块
-        if 开放['firstTokenTime'] is not None or not 是否令牌增量(块):#已有首 token
+        首=助手流首令牌时间(数据['stream'] if 'stream' in 数据 else [])#嵌入流首 token
+        if 开放['firstTokenTime'] is not None or 首 is None:#已有或无
             return 状态#原样
-        return {**状态,'openStep':{**开放,'firstTokenTime':时刻}}#记下首 token
+        return {**状态,'openStep':{**开放,'firstTokenTime':首}}#记下首 token
     if 类型=='assistant/message':#助手消息
         开放=状态['openStep']#开放步骤
         if 开放 is None or 开放['turn']!=数据['turn'] or 开放['step']!=数据['step']:#不匹配
             return 状态#原样
+        流首=助手流首令牌时间(数据['stream'] if 'stream' in 数据 else [])#消息流首 token
+        首令牌=开放['firstTokenTime'] if 开放['firstTokenTime'] is not None else 流首#优先开放步
         下一={**状态,'llmMs':状态['llmMs']+max(0,时刻-开放['startTime']),'openStep':None}#结算模型时间
-        if 开放['firstTokenTime'] is not None:#有首 token
-            下一['ttftMs']=下一['ttftMs']+max(0,开放['firstTokenTime']-开放['startTime'])#TTFT
+        if 首令牌 is not None:#有首 token
+            下一['ttftMs']=下一['ttftMs']+max(0,首令牌-开放['startTime'])#TTFT
             下一['ttftSteps']=下一['ttftSteps']+1#计数
             用量=数据['usage'] if 'usage' in 数据 else None#用量
             输出=用量输出令牌(用量)#输出 token
             if 输出 is not None:#有 usage
-                下一['decodeMs']=下一['decodeMs']+max(0,时刻-开放['firstTokenTime'])#解码时间
+                下一['decodeMs']=下一['decodeMs']+max(0,时刻-首令牌)#解码时间
                 下一['decodeTokens']=下一['decodeTokens']+输出#token 数
         return 下一#新状态
     if 类型=='tool/call':#工具调用

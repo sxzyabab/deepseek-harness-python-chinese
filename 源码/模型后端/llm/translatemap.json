@@ -2,6 +2,7 @@
     "adapter-failure.ts":"适配器失败.py",
     "api-key.ts":"密钥.py",
     "assembler.ts":"组装器.py",
+    "assistant-stream.ts":"助手流.py",
     "attribution.ts":"归属.py",
     "brand.ts":"标识构造.py",
     "call-config.ts":"调用配置.py",

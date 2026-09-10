@@ -1,6 +1,7 @@
 {
     "abort":"中止",
     "agent":"智能体",
+    "attempt":"尝试",
     "context":"上下文",
     "dispose":"拆除",
     "integer":"整数",
@@ -17,5 +18,6 @@
     "stage":"阶段",
     "status":"状态",
     "step":"步骤",
+    "stream":"流",
     "turn":"轮次"
 }

@@ -6,31 +6,23 @@
 """
 from .变更供给 import 变更供给#每 Session 扇出
 from .提供方 import 创建文件资源提供方#file 提供方
-from .类型 import 工作区文件参数字段,工作区文件资源字段#类型面
+from .类型 import 工作区文件参数字段#类型面
 from .远程 import 工作区文件远程字段,工作区文件命名空间方法#Remote 切片
 
 __all__=[#仅中文公开名
     '注入','应用',
     '变更供给','创建文件资源提供方',
-    '工作区文件参数字段','工作区文件资源字段',
+    '工作区文件参数字段',
     '工作区文件远程字段','工作区文件命名空间方法',
 ]#公开面结束
 
-注入=['resources','remote','remote.workspaceFiles','sessions']#硬依赖
+注入=['resources','remote','remote.workspaceFiles']#硬依赖
 
 
 def 应用(上下文):
     """登记 `file` 提供方；拆除时等待仍在关闭的 Session 流。"""
-    def 当前会话():
-        """屏幕上的 Session，绝对地址按需读取。"""
-        快照=上下文.sessions.list.getSnapshot()#快照为跨包 dict
-        if 'current' not in 快照:#无键
-            return None#无当前
-        return 快照['current']#会话标识或 None
-
-    会话表={'current':当前会话}#查找面
     供给=变更供给(上下文.remote)#扇出
-    提供方=创建文件资源提供方(上下文.remote,供给,会话表)#建造
+    提供方=创建文件资源提供方(上下文.remote,供给)#建造
 
     def 寿命():
         """登记提供方；拆除时结算供给。"""

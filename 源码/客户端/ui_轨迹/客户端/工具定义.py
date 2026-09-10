@@ -88,7 +88,7 @@ def 子调用(匹配,数据):#从 dispatch-start 抽出进行中的子调用
         'subCalls':[],#子调用
     }#结束
 
-def 子结果(匹配,数据,先前=None):#从 code-dispatch 抽出子调用结果节点
+def 子结果(匹配,数据,先前=None):#从 ptc-dispatch 抽出子调用结果节点
     """返回子调用结果节点。"""
     事件=匹配['event']#事件
     参数=数据['arguments'] if 'arguments' in 数据 else None#参数
@@ -142,7 +142,7 @@ def 更新分派(状态,匹配):#把一条 dispatch 事件并入调用树
     """非 dispatch 事件状态不变。"""
     事件=匹配['event']#本条事件
     种类=事件['type']#类型
-    if 种类 not in ('tool/code-dispatch-start','tool/code-dispatch'):#非 dispatch
+    if 种类 not in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#非 dispatch
         return 状态#不变
     数据=事件['data'] if 'data' in 事件 else None#dispatch 载荷
     父标识=str(数据['parentCallId'])#父调用 id
@@ -152,10 +152,10 @@ def 更新分派(状态,匹配):#把一条 dispatch 事件并入调用树
     下标=兄弟.index(子标识) if 子标识 in 兄弟 else -1#该子是否已挂在父下
     if 下标<0 and not 接受边(状态,父标识,子标识):#新边不合法
         return 状态#不变
-    if 种类=='tool/code-dispatch-start' and 下标>=0:#已有子调用再 start
+    if 种类=='tool/ptc-dispatch-start' and 下标>=0:#已有子调用再 start
         return 状态#忽略
     调用表=dict(状态['calls'])#复制调用表
-    if 种类=='tool/code-dispatch-start':#start 则记进行中调用
+    if 种类=='tool/ptc-dispatch-start':#start 则记进行中调用
         调用表[子标识]=子调用(匹配,数据)#写入
     else:#dispatch 则记结果
         先前=调用表[子标识] if 子标识 in 调用表 else None#先前块
@@ -247,7 +247,7 @@ def 工具匹配(事件):#按事件类型归入本根调用
         消息=数据['message'] if 数据 is not None and 'message' in 数据 else None#消息
         来源=消息['source'] if 消息 is not None and 'source' in 消息 else None#来源
         return {'id':str(来源['callId']),'role':'update'}#按来源调用 id
-    if 种类 in ('tool/code-dispatch-start','tool/code-dispatch'):#嵌套 dispatch
+    if 种类 in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#嵌套 dispatch
         根标识=数据['rootCallId'] if 数据 is not None and 'rootCallId' in 数据 else None#根调用 id
         return {'id':根标识,'role':'update'} if isinstance(根标识,str) and 根标识!='' else None#合法才匹配
     return None#无关事件

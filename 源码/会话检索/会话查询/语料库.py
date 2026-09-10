@@ -4,6 +4,7 @@ from ....模型后端.llm import 结构化克隆#拆离克隆
 from ....会话.会话持久化 import 会话持久化损坏错误#持久化损坏
 from .配置 import 会话查询错误,已中止,若已中止则抛出#检索错误与中止
 from .来源 import 校验会话头兼容#头兼容断言
+from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 
 class 会话语料库:
     """按此刻挂上的持久化服务解析优先活会话的语料。"""
@@ -72,7 +73,11 @@ class 会话语料库:
             若已中止则抛出(信号)#快照后检查取消
             return 快照#返回活快照
         校验会话头兼容(已加载['meta'],列出头)#头必须兼容
-        快照={'header':结构化克隆(已加载['meta']),'events':[结构化克隆(事件) for 事件 in 已加载['events']]}#脱离快照
+        快照={#脱离快照
+            'header':结构化克隆(已加载['meta']),#克隆头
+            'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,#继承切口
+            'events':[结构化克隆(事件) for 事件 in 已加载['events']],#克隆事件
+        }#快照结束
         若已中止则抛出(信号)#组装后检查取消
         return 快照#返回持久快照
 
@@ -124,7 +129,7 @@ class 会话语料库:
                     结果=投影源(标识,源活(挂上),投影器,信号)#改用活源
                 else:#仍是持久
                     校验会话头兼容(已加载['meta'],列出头)#头必须兼容
-                    结果=投影源(标识,{'header':已加载['meta'],'events':已加载['events']},投影器,信号)#投影持久源
+                    结果=投影源(标识,{'header':已加载['meta'],'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,'events':已加载['events']},投影器,信号)#投影持久源
                 with 锁:#写入
                     已解析[标识]=结果#记下
             except Exception as 错误:#本条失败收成 rejected；取消优先
@@ -166,8 +171,8 @@ def 投影源(会话号,源,投影器,信号=None):
         return {'sessionId':会话号,'status':'rejected','reason':原因}#拒绝
 
 def 源活(会话):
-    """直接借用活对象的头与事件。"""
-    return {'header':会话.header,'events':会话.events}#借用源
+    """直接借用活对象的头、继承切口与事件。"""
+    return {'header':会话.header,'inheritedEventCount':getattr(会话,'inheritedEventCount',0),'events':会话.events}#借用源
 
 def 有序结果(标识列表,已解析):
     """按输入 id 顺序取出投影结果。"""
@@ -183,19 +188,25 @@ def 列出持久(持久化,信号=None):
         raise 会话查询错误('session persistence listing failed: '+错误消息(错误),'SESSION_QUERY_PERSISTENCE_FAILED',{'cause':错误})#打出失败
 
 def 检查持久(持久化,会话号,信号=None):
-    """inspect 一条持久会话。"""
-    try:#inspect
-        return 持久化.检查(会话号,信号)#委托持久化
-    except Exception as 错误:#inspect失败；损坏单独分类
+    """冷读一条持久会话（已存 + 中断末回合内存闭合），映射查询错误。"""
+    try:#冷读
+        冷=读冷会话日志(持久化,会话号,信号)#句柄冷读
+        return {
+            'meta':冷['header'],#头（语料沿用 meta 键）
+            'inheritedEventCount':冷['inheritedEventCount'] if 'inheritedEventCount' in 冷 else 0,#继承
+            'events':list(冷['events']) if 冷.get('events') is not None else [],#平衡事件
+            'eventState':冷['eventState'] if 'eventState' in 冷 else None,#别名状态
+        }#持久快照
+    except Exception as 错误:#冷读失败；损坏单独分类
         if 已中止(信号):#取消优先
             若已中止则抛出(信号)#抛出取消
         if isinstance(错误,会话持久化损坏错误):#存储损坏
             raise 会话查询错误('stored session "'+str(会话号)+'" is corrupt: '+错误消息(错误),'SESSION_QUERY_CORRUPT_SESSION',{'cause':错误})#损坏
-        raise 会话查询错误('failed to inspect session "'+str(会话号)+'": '+错误消息(错误),'SESSION_QUERY_PERSISTENCE_FAILED',{'cause':错误})#持久失败
+        raise 会话查询错误('failed to read stored session "'+str(会话号)+'": '+错误消息(错误),'SESSION_QUERY_PERSISTENCE_FAILED',{'cause':错误})#持久失败
 
 def 拍活快照(会话):
-    """克隆活会话的头与事件。"""
-    return {'header':结构化克隆(会话.header),'events':[结构化克隆(事件) for 事件 in 会话.events]}#脱离快照
+    """克隆活会话的头、继承切口与事件。"""
+    return {'header':结构化克隆(会话.header),'inheritedEventCount':getattr(会话,'inheritedEventCount',0),'events':[结构化克隆(事件) for 事件 in 会话.events]}#脱离快照
 
 def 会话排序键(记录):
     """最新优先，其次按 id。"""

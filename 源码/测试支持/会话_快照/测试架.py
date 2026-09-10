@@ -6,6 +6,7 @@
 import hashlib,json,os,shutil,tempfile,time,threading#哈希、JSON、文件、临时与轮询
 from .启动器 import 启动ACP测试智能体#启动器
 from .工作区 import 捕获工作区快照#工作区快照
+from .会话文件 import 最新持久会话路径,断言持久会话版本#持久世代
 
 #上游 @deepseek-ai/dsh-http-proxy；包尚未迁完时内联
 代理环境名=('http_proxy','HTTP_PROXY','https_proxy','HTTPS_PROXY','no_proxy','NO_PROXY','all_proxy','ALL_PROXY')
@@ -31,8 +32,8 @@ def 等待直到(谓词,超时毫秒=默认等待超时毫秒,间隔毫秒=轮�
             time.sleep(间隔毫秒/1000)#间隔
     raise 末次 or Exception('wait timed out')#超时
 
-def 快照溢出根(夹具文件,平台=None):#溢出根
-    """推导本场景拥有的一个稳定定长溢出根。"""
+def 快照溢出根(夹具文件,平台=None):#溢出定位前缀
+    """推导稳定定长逻辑溢出前缀；绝不在此分配文件。"""
     if 平台 is None:#缺省
         平台=os.name#平台
     场景=os.path.basename(os.path.dirname(夹具文件))#场景名
@@ -41,23 +42,25 @@ def 快照溢出根(夹具文件,平台=None):#溢出根
     return f'{根}/dsh-acp-snap-{键}'#溢出目录
 
 def 收获会话日志(根):#收获会话日志
-    """收获会话根下每个持久化 session.jsonl，主优先。"""
+    """收获会话根下每个最高世代持久化日志，主优先。"""
     日志列表=[]#日志
     if not os.path.isdir(根):#无根
         return 日志列表#空
-    for 目录,子目录,文件列表 in os.walk(根):#递归
-        for 文件 in 文件列表:#逐文件
-            if 文件!='session.jsonl':#非会话
-                continue#跳过
-            路径=os.path.join(目录,文件)#路径
-            with open(路径,'r',encoding='utf-8') as 句柄:#读
-                内容=句柄.read()#内容
-            首行=next((行 for 行 in 内容.split('\n') if 行.strip()!=''),'{}')#首行
-            头=json.loads(首行)#头
-            项={'id':头['id'] if isinstance(头.get('id'),str) else '','createdAt':头['createdAt'] if isinstance(头.get('createdAt'),(int,float)) else 0,'content':内容}#项
-            if isinstance(头.get('parentSession'),str):#父会话
-                项['parentSession']=头['parentSession']#写入
-            日志列表.append(项)#追加
+    文件列表=[]#相对路径
+    for 目录,_,名称列表 in os.walk(根):#递归
+        for 名称 in 名称列表:#逐文件
+            文件列表.append(os.path.relpath(os.path.join(目录,名称),根))#相对
+    for 相对 in 最新持久会话路径(文件列表):#最高世代
+        路径=os.path.join(根,相对)#绝对
+        with open(路径,'r',encoding='utf-8') as 句柄:#读
+            内容=句柄.read()#内容
+        断言持久会话版本(os.path.basename(路径),内容)#世代一致
+        首行=next((行 for 行 in 内容.split('\n') if 行.strip()!=''),'{}')#首行
+        头=json.loads(首行)#头
+        项={'id':头['id'] if isinstance(头.get('id'),str) else '','createdAt':头['createdAt'] if isinstance(头.get('createdAt'),(int,float)) else 0,'content':内容}#项
+        if isinstance(头.get('parentSession'),str):#父会话
+            项['parentSession']=头['parentSession']#写入
+        日志列表.append(项)#追加
     日志列表.sort(key=lambda 项:(0 if 'parentSession' not in 项 else 1,项['createdAt'],项['id']))#主优先
     return 日志列表#返回
 
@@ -261,13 +264,14 @@ def 运行场景(输入,选项):#运行场景
     工作目录=tempfile.mkdtemp(prefix='acp-snap-cwd-',dir=父)#生成 cwd
     别名=list({os.path.realpath(工作目录)})#cwd 别名
     会话根=tempfile.mkdtemp(prefix='acp-snap-sessions-')#会话根
-    溢出根=快照溢出根(选项['fixtureFile'])#溢出根
+    溢出根=None#真实溢出目录（稍后分配）
     已启动=None#已启动
     会话标识=None#会话 id
     会话日志=[]#会话日志
     结果=None#结果
     失败=None#失败
     try:#主路径
+        溢出根=tempfile.mkdtemp(prefix='acp-snap-spill-')#分配真实溢出目录
         if 选项.get('workspaceDir') and os.path.exists(选项['workspaceDir']):#播种工作区
             for 名 in os.listdir(选项['workspaceDir']):#拷贝
                 源=os.path.join(选项['workspaceDir'],名)#源
@@ -287,7 +291,8 @@ def 运行场景(输入,选项):#运行场景
             'DSH_SNAPSHOT':选项['mode'],#模式
             'DSH_SNAPSHOT_FILE':选项['fixtureFile'],#fixture
             'DSH_SNAPSHOT_SESSIONS_ROOT':会话根,#会话根
-            'DSH_SNAPSHOT_SPILL_ROOT':溢出根,#溢出根
+            'DSH_SNAPSHOT_SPILL_ROOT':溢出根,#真实溢出根
+            'DSH_SNAPSHOT_SPILL_LOCATOR_ROOT':快照溢出根(选项['fixtureFile']),#定长逻辑定位前缀
             'DSH_HOME':os.path.join(工作目录,'.dsh'),#home
             'DSH_AGENTS_HOME':os.path.join(工作目录,'.agents'),#agents
         }#环境结束
@@ -340,13 +345,17 @@ def 运行场景(输入,选项):#运行场景
             等待直到(检查,超时 or 默认等待超时毫秒)#等待
         def 等子回合结束(子,超时=None,最小=1):#等子回合结束
             """等待第 N 个子会话关闭回合。"""
+            消息=f'snapshot-harness: subagent child #{子} did not persist closed turn {最小 or 1} within {超时 or 默认等待超时毫秒}ms'#统一消息
             def 检查():#检查
                 """子回合关闭。"""
                 日志列表=收获会话日志(会话根)#日志
                 日志=日志列表[子] if 子<len(日志列表) else None#子日志
                 if 日志 is None or not 最新回合已关闭(日志['content']) or not 描述符后有请求头(日志['content']) or not 有关闭回合(日志['content'],最小 or 1):#未就绪
-                    raise Exception(f'snapshot-harness: subagent child #{子} did not persist closed turn {最小 or 1} within {超时 or 默认等待超时毫秒}ms')#未就绪
-            等待直到(检查,超时 or 默认等待超时毫秒)#等待
+                    raise Exception(消息)#未就绪
+            try:#等截止
+                等待直到(检查,超时 or 默认等待超时毫秒)#等待
+            except Exception as 原因:#截止或校验失败
+                raise Exception(消息) from 原因#保留 cause
         def 等目标阶段(标识,阶段,超时=None):#等目标阶段
             """等待目标阶段。"""
             def 检查():#检查
@@ -423,7 +432,11 @@ def 运行场景(输入,选项):#运行场景
             结果['sessionId']=会话标识#写入
     except Exception as 错误:#失败
         标准错=已启动['stderr']() if 已启动 else ''#stderr
-        失败=Exception(f'snapshot-harness: scenario failed: {错误}\nagent stderr:\n{标准错}') if 标准错 else 错误#包装
+        if 标准错:#有 stderr
+            失败=Exception(f'snapshot-harness: scenario failed: {错误}\nagent stderr:\n{标准错}')#包装
+            失败.__cause__=错误#保留 cause
+        else:#无 stderr
+            失败=错误#原样
     finally:#清理
         if 已启动 is not None:#有进程
             try:#杀
@@ -431,6 +444,8 @@ def 运行场景(输入,选项):#运行场景
             except Exception:#忽略
                 pass#忽略
         for 路径 in (工作目录,会话根,溢出根):#清理路径
+            if 路径 is None:#尚未分配溢出根
+                continue#跳过
             shutil.rmtree(路径,ignore_errors=True)#移除
     if 失败 is not None:#失败
         raise 失败#再抛

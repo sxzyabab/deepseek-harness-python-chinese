@@ -1,4 +1,5 @@
 """持久提供方报告 token 用量与上下文占用的纯折叠。对齐上游 `token-meter/src/usage-projection.ts`。公开面仅中文名。"""
+from ..llm.助手流 import 末次助手流块#末次 usage 块
 from .类型 import 计量错误#计量异常
 from .表面投影 import 折叠表面投影#O(1)表面折叠
 
@@ -90,14 +91,15 @@ def 提示词压力(用量):
     return 用量['inputTokens']+(0 if 缓存读 is None else 缓存读)+(0 if 缓存写 is None else 缓存写)#输入加缓存读写
 
 def 事件用量(事件):
-    """一块或一条定稿消息为其步报告的用量（若有）。事件为 dict。"""
+    """一次耐久助手结算为其尝试报告的用量（若有）。事件为 dict。"""
     种类=事件['type']#事件类型
     数据=事件['data']#载荷
-    if 种类=='assistant/chunk' and 数据['chunk']['type']=='usage':#用量块
-        return 数据['chunk']['usage']#块上的用量
-    if 种类=='assistant/message':#助手消息
-        return 数据['usage'] if 'usage' in 数据 else None#消息上的用量
-    return None#其余没有
+    if 种类=='assistant/message' and 'usage' in 数据:#定稿带用量
+        return 数据['usage']#消息上的用量
+    if 种类!='assistant/message' and 种类!='assistant/attempt':#其余无
+        return None#无
+    块=末次助手流块(数据['stream'] if 'stream' in 数据 else [],'usage')#流末 usage
+    return None if 块 is None else 块.get('usage')#用量
 
 def 用量初态():
     """空累计、无样本。"""
@@ -107,16 +109,18 @@ def 用量转移(状态,事件):
     """折一条用量事件。事件为 dict。"""
     种类=事件['type']#事件类型
     数据=事件['data']#载荷
-    if 种类=='assistant/chunk' and 数据['chunk']['type']=='usage':#用量块
-        回合=数据['turn']#回合
-        步=数据['step']#步
-        用量=数据['chunk']['usage']#块上用量
-    elif 种类=='assistant/message' and 'usage' in 数据:#定稿消息带用量
-        回合=数据['turn']#回合
-        步=数据['step']#步
-        用量=数据['usage']#消息上用量
-    else:#其余事件
-        return 状态#原状态
+    if 种类=='llm/retry-started':#重试已开始
+        上一样本=状态['last']#最近样本
+        if 上一样本 is not None and 上一样本['turn']==数据['turn'] and 上一样本['step']==数据['step']:#同一步
+            return {**状态,'last':None}#关掉替换槽
+        return 状态#无关则原样
+    if 种类!='assistant/message' and 种类!='assistant/attempt':#非结算
+        return 状态#原样
+    用量=事件用量(事件)#取用量
+    if 用量 is None:#无样本
+        return 状态#原样
+    回合=数据['turn']#回合
+    步=数据['step']#步
     桶=拆用量桶(用量)#拆成四个桶
     上一样本=状态['last']#最近样本
     旧桶=None#同一步旧桶
@@ -136,7 +140,7 @@ def 用量视图(状态):
     'init':用量初态,#空累计
     'apply':用量转移,#折一条事件
     'view':用量视图,#对外累计
-    'stateVersion':1,#状态版本
+    'stateVersion':2,#状态版本（嵌入流结算）
 }#用量投影定义结束
 
 def 压力初态():

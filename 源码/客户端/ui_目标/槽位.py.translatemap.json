@@ -1,7 +1,9 @@
 {
     "absent":"无",
+    "activation":"激活",
     "current":"当前",
     "goal":"目标",
     "result":"结果",
-    "slot":"槽"
+    "slot":"槽",
+    "snapshot":"快照"
 }

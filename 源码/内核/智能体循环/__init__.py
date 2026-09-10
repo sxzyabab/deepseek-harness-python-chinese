@@ -6,9 +6,9 @@ from ...依赖.schemastery import 字符串字段,整数字段,列表字段#配�
 服务=cordis.服务#服务基类
 光纤状态=cordis.纤程状态#光纤/纤程状态
 from ..智能体 import 发出智能体事件#按作用域发出 Agent 事件
-from ...模型后端.llm import 错误链#把未知错误链成日志串
+from ...模型后端.llm import 错误链,结构化克隆#把未知错误链成日志串；深拷贝头
 from ...配置.配置 import 设置命名空间#设置段安装与命名空间
-from ..会话 import 会话标识,会话准备#会话 id 与准备句柄
+from ..会话 import 会话标识,会话准备,中断轮次关闭器#会话 id、准备句柄与中断关闭器
 from .智能体 import 循环智能体#具体循环驱动
 from .常量 import 默认最大并行工具调用,安全整数上限#默认并行上限与配置入口安全整数
 from .中止与并发 import (
@@ -387,7 +387,7 @@ class 智能体循环(服务):
             卸智能体()#摘掉 Agent 监听
             卸会话()#摘掉会话监听
 
-    def 准备(自身,所有者上下文,标识,选项,会话,调用方信号=None):
+    def 准备(自身,所有者上下文,标识,选项,会话,调用方信号=None,写句柄=None,父智能体=None):
         """为一个新 Agent 构造驱动、作用域和一次记忆化反向拆除。"""
         断言智能体选项(选项)#校验选项
         所有者上下文.纤程.断言活动()#所有者光纤必须活动
@@ -428,7 +428,7 @@ class 智能体循环(服务):
             任务=操作任务()#本次拆除
             拆除中[0]=任务#先挂上供竞态等待
             def 执行拆除():
-                """停状态机、离开注册表、拆除作用域。"""
+                """停状态机、关闭写句柄、离开注册表、拆除作用域。"""
                 try:
                     融合.中止(循环错误('agent "'+str(标识)+'" lifecycle disposed'))#结束设置等待
                     try:
@@ -441,15 +441,19 @@ class 智能体循环(服务):
                             拆除作用域(驱动.作用域)#拆除作用域
                     finally:
                         try:
-                            if 脱离智能体[0] is not None:
-                                脱离智能体[0]()#离开 Agent 注册表
-                            if 脱离会话[0] is not None:
-                                脱离会话[0]()#离开会话存储
+                            if 写句柄 is not None:
+                                写句柄.关闭()#耐久排空并释放写所有权
                         finally:
-                            if 忘掉[0] is not None:
-                                忘掉[0]()#从工厂集合忘掉
-                            if (not 所有者触发) and 取消跟随所有者[0] is not None:
-                                取消跟随所有者[0]()#非所有者触发则卸所有者 effect
+                            try:
+                                if 脱离智能体[0] is not None:
+                                    脱离智能体[0]()#离开 Agent 注册表
+                                if 脱离会话[0] is not None:
+                                    脱离会话[0]()#离开会话存储
+                            finally:
+                                if 忘掉[0] is not None:
+                                    忘掉[0]()#从工厂集合忘掉
+                                if (not 所有者触发) and 取消跟随所有者[0] is not None:
+                                    取消跟随所有者[0]()#非所有者触发则卸所有者 effect
                     任务.兑现()#拆除完成
                 except BaseException as 错误:
                     任务.拒绝(错误)#拆除失败
@@ -484,7 +488,7 @@ class 智能体循环(服务):
                 """进入注册表、宣布、通知 session-start。"""
                 断言仍活()#进入前须活着
                 脱离会话[0]=驱动.ctx.sessions.进入(会话)#进入会话存储
-                脱离智能体[0]=循环上下文.agents.进入(驱动,所有者上下文.agent)#进入 Agent 注册表
+                脱离智能体[0]=循环上下文.agents.进入(驱动,父智能体)#进入 Agent 注册表（显式父）
                 驱动.ctx.sessions.宣布(会话)#宣布会话
                 断言仍活()#宣布会话后须活着
                 循环上下文.agents.宣布(驱动)#宣布 Agent
@@ -524,6 +528,8 @@ class 智能体循环(服务):
         元=选项['meta'] if 'meta' in 选项 else None#可选元数据
         if 元 is not None:
             准备选项['meta']=元#可选元数据
+        if 'inheritedEventCount' in 选项:
+            准备选项['inheritedEventCount']=选项['inheritedEventCount']#可选继承条数
         准备=会话准备.创建(自身.运行时['ctx'].sessions.准备(选项['sessionId'],准备选项))#准备会话
         已发表=自身.设置并发表(
             所有者上下文,#所有者
@@ -533,21 +539,32 @@ class 智能体循环(服务):
             选项['setup'] if 'setup' in 选项 else None,#可选设置
             选项['signal'] if 'signal' in 选项 else None,#可选取消
             'startup',#启动来源
+            None,#无已存句柄
+            选项['parentAgent'] if 'parentAgent' in 选项 else None,#运行时父
         )#设置并发表
         自身.所有权.跟踪续体(已发表)#工厂拆除等待本续体
         return 已发表#已发表句柄
 
-    def 设置并发表(自身,所有者上下文,标识,准备,智能体选项,设置,信号,来源):
+    def 设置并发表(自身,所有者上下文,标识,准备,智能体选项,设置,信号,来源,已存=None,父智能体=None):
         """在已获取的 Session 周围准备一个 Agent，跑设置，再发表它。"""
         任务=操作任务()#本续体
+        写句柄=已存['handle'] if 已存 is not None and 'handle' in 已存 else None#可选写句柄
         def 执行设置并发表():
             """设置并发表。"""
             try:
                 会话=准备.会话#已构造会话
-                已准备=自身.准备(所有者上下文,标识,智能体选项,会话,信号)#准备 Agent
+                try:
+                    已准备=自身.准备(所有者上下文,标识,智能体选项,会话,信号,写句柄,父智能体)#准备 Agent（写句柄移交拆除）
+                except BaseException as 错误:
+                    if 写句柄 is not None:
+                        try:
+                            写句柄.关闭()#准备失败则关闭
+                        except Exception:
+                            pass#吞关闭失败
+                    raise 错误#原错上抛
                 try:
                     if 设置 is not None:
-                        设置结果=设置(已准备.智能体.ctx)#设置翻译时已是同步
+                        设置结果=设置(已准备.智能体.ctx,已准备.智能体)#ctx 与 Agent 分传
                         若已中止则抛出(已准备.信号)#设置后检查取消
                         设置提交=设置结果#同步返回值
                     else:
@@ -556,9 +573,11 @@ class 智能体循环(服务):
                         提交=设置提交['commit']#可选提交
                         if 提交 is not None:
                             提交()#发表直前同步提交
+                    if 已存 is not None:
+                        自身.追加未存后缀(已存,会话)#发表前刷新构造后缀
                     任务.兑现(已准备.发表(来源))#进入注册表并宣布
                 except BaseException as 错误:
-                    已准备.拆除().等待()#回滚
+                    已准备.拆除().等待()#回滚（含关闭写句柄）
                     raise 错误#原错上抛
             except BaseException as 错误:
                 任务.拒绝(错误)#失败
@@ -570,6 +589,16 @@ class 智能体循环(服务):
         工作.start()#启动
         return 任务#已发表句柄承诺
 
+    def 追加未存后缀(自身,已存,会话):
+        """耐久存储自上次已存游标以来追加的会话事件。"""
+        if 已存 is None:
+            return#无存储
+        游标=已存['storedCount']#已存条数
+        后缀=list(会话.events)[游标:]#未存后缀
+        if len(后缀)>0:
+            已存['handle'].追加(后缀)#经句柄追加
+        已存['storedCount']=游标+len(后缀)#按已存内容推进
+
     def 恢复(自身,所有者上下文,选项):
         """从已配置的持久化服务恢复一个被拥有的 Agent。"""
         持久化=自身.运行时['ctx'].获取服务('sessionPersistence')#取持久化服务
@@ -578,12 +607,14 @@ class 智能体循环(服务):
         return 自身.经持久化恢复(所有者上下文,持久化,选项)#经显式句柄恢复
 
     def 经持久化恢复(自身,所有者上下文,持久化,选项):
-        """经延迟配置路径使用的显式持久化句柄恢复。"""
+        """打开写句柄 → 冷读 eventState → sessions.准备；保留 parentAgent。"""
         标识=选项['resumeSessionId']#要加载的会话 id
         已发表=操作任务()#加载、设置、发表
         def 执行加载并发表():
             """加载、设置、发表。"""
             准备=None#加载得到的准备
+            写句柄=None#持久化写句柄
+            已存=None#已存游标
             所有者中止=中止控制器()#所有者卸载信号
             def 加载期所有者():
                 """所有者拆除。"""
@@ -601,20 +632,40 @@ class 智能体循环(服务):
             融合=中止信号.任一(信号列表)#融合三路中止
             try:
                 try:
-                    def 加载预备():
-                        """后端 prepare。"""
-                        return 持久化.prepare(标识,融合)#同步加载
-                    准备=启动可中止操作(
-                        加载预备,#后端 prepare
+                    def 打开写():
+                        """取得写所有权。"""
+                        return 持久化.打开(标识,'write',{'signal':融合})#打开写
+                    写句柄=启动可中止操作(
+                        打开写,#打开
                         融合,#融合信号
                         标识,#身份
-                        会话准备.拆除,#取消后仍兑现则释放
-                    )#可中止加载
+                        lambda 遗弃:遗弃.关闭(),#取消后仍兑现则关闭
+                    )#可中止打开
+                    冷读=写句柄.读(0,None,{'signal':融合})#冷读全日志
+                    若已中止则抛出(融合)#检查取消
+                    已存事件=list(冷读['events'])#已存事件
+                    关闭列表=list(中断轮次关闭器(已存事件))#中断关闭器
+                    if len(关闭列表)>0:
+                        写句柄.追加(关闭列表)#经句柄追加关闭器
+                    种子=已存事件+关闭列表#平衡种子
+                    事件状态=冷读['eventState']#别名状态
+                    if len(关闭列表)>0:
+                        事件状态='detached'#合成关闭器使种子脱离
+                    准备=会话准备.创建(自身.运行时['ctx'].sessions.准备(标识,{#准备会话
+                        'seed':种子,#种子
+                        'meta':结构化克隆(写句柄.header),#请求头
+                        'inheritedEventCount':写句柄.inheritedEventCount,#继承条数
+                        'eventState':事件状态,#别名状态
+                    }))#prepare结束
+                    已存={'handle':写句柄,'storedCount':len(已存事件)+len(关闭列表)}#已存游标
+                    自身.追加未存后缀(已存,准备.会话)#刷新 end-seed 等构造后缀
                 finally:
                     取消跟随()#卸加载期所有者 effect
                 所有者上下文.纤程.断言活动()#加载后所有者仍须活动
                 if not 自身.所有权.是否活动():
                     raise 循环错误('agent loop is not active')#工厂仍须活动
+                移交=已存#移交所有权
+                写句柄=None#所有权交设置并发表/准备拆除
                 句柄=自身.设置并发表(
                     所有者上下文,#所有者
                     标识,#身份
@@ -623,6 +674,8 @@ class 智能体循环(服务):
                     选项['setup'] if 'setup' in 选项 else None,#可选设置
                     选项['signal'] if 'signal' in 选项 else None,#调用方取消
                     'resume',#恢复来源
+                    移交,#已存句柄
+                    选项['parentAgent'] if 'parentAgent' in 选项 else None,#运行时父
                 ).等待()#设置并发表
                 已发表.兑现(句柄)#已发表句柄
             except BaseException as 错误:
@@ -630,13 +683,18 @@ class 智能体循环(服务):
             finally:
                 if 准备 is not None:
                     准备.拆除()#setupAndPublish 的 using 已接管则此处为空操作
+                if 写句柄 is not None:
+                    try:
+                        写句柄.关闭()#关闭残留句柄
+                    except Exception:
+                        pass#吞关闭失败
         工作=threading.Thread(target=执行加载并发表)#工作线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
         自身.所有权.跟踪续体(已发表)#工厂拆除等待本续体
         return 已发表#已发表句柄
 
-智能体循环.inject=['agents','sessions','llm','tools','systemPrompt']#Cordis 依赖声明槽
+智能体循环.inject=['agents','sessions','llm','tools','systemPrompt','sessionProjections']#Cordis 依赖声明槽
 智能体循环.Config={
     'maxParallelToolCalls':整数字段(最小=1,默认值=默认最大并行工具调用),#并行上限
     'agents':列表字段(({

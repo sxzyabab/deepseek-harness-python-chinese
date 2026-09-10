@@ -314,4 +314,10 @@ class 会话投影注册表(服务):
             return 视图校验(视图)#解析
         return 视图#原样
 
+    register=登记#英文别名
+    stateOf=状态#英文别名
+    onChanged=变更时#英文别名
+    snapshot=快照#英文别名
+    cachedSnapshot=缓存快照#英文别名
+
 default=会话投影注册表#Cordis 默认导出槽

@@ -9,7 +9,7 @@ from .权限 import 目标工具执行,要求直接人类,完成权限#执行时
 from .收尾 import 渲染收尾上下文#终态收尾指令
 
 名称='tool-goal'#Cordis插件名
-注入=['agents','goals','tools','systemPrompt']#依赖智能体、目标、工具与系统提示
+注入=['agents','goals','tools','systemPrompt','sessionProjections']#依赖智能体、目标、工具、系统提示与会话投影
 更新动作=('edit','pause','resume','complete','blocked')#update_goal 的 action 枚举
 创建描述=(#create_goal 面向模型的说明
     'Create one persisted same-session completion goal when the current direct human request '#从人类请求推断长任务
@@ -244,6 +244,14 @@ def 应用(上下文,配置值):
                 raise 装备错误(#字段用错
                     'objective and max_goal_rounds are valid only with action edit; blocked_reason is valid only with action blocked',#指出合法 action
                     'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
+                )#结束抛错
+            当前=上下文.goals.get(执行['agent'])#当前目标视图
+            if (动作=='resume' and 当前 is not None
+                and 当前.get('id')==引用['id'] and 当前.get('revision')==引用['revision']
+                and 当前.get('phase')=='paused'):#模型不得自行恢复已暂停目标
+                raise 装备错误(#须由用户恢复
+                    'the model cannot resume a paused goal; the user must resume it',#人类可读
+                    'GOAL_TOOL_RESUME_PAUSED',#暂停恢复拒绝
                 )#结束抛错
             if 动作=='pause':#暂停
                 目标=上下文.goals.pause(执行['agent'],引用)#暂停

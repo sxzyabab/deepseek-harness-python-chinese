@@ -10,16 +10,20 @@ __all__=['量测窗格可放','取可放','可放相同','未量可放']#仅中�
 未量可放={'row':True,'column':True}#未测视为可放
 
 
-def 量测窗格可放(窗格测量表,下限=None):
+def 量测窗格可放(窗格测量表,下限=None,阻断时隐藏分栏=False):
     """窗格标识→测量 dict 映射，返回标识→半格可放结果。
 
-    每项测量含 pane / strip / chipsWidth / fillWidth（与几何.半格可放 一致）。
+    每项测量含 pane / strip / chipsWidth / fillWidth，可选 splitControlWidth。
+    阻断时隐藏分栏为真时，调用方应已把分栏控件足印写入 splitControlWidth。
     """
     if 下限 is None:#默认
         下限=分割下限#样式
     结果={}#表
     for 窗格标识,测量 in 窗格测量表.items():#逐窗
-        结果[窗格标识]=半格可放(测量,下限)#可放
+        项=dict(测量)#拷
+        if not 阻断时隐藏分栏 and 'splitControlWidth' not in 项:#未隐藏则不计
+            项['splitControlWidth']=0#零足印
+        结果[窗格标识]=半格可放(项,下限)#可放
     return 结果#表
 
 

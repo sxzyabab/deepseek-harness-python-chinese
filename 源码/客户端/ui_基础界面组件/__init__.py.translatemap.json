@@ -13,9 +13,11 @@
     "diff":"差异",
     "disclosure":"披露",
     "feedback":"反馈",
+    "file":"文件",
     "grep":"检索",
     "height":"高度",
     "hover":"悬停",
+    "icon":"图标",
     "input":"输入",
     "label":"标签",
     "link":"链接",
@@ -37,5 +39,6 @@
     "terminal":"终端",
     "text":"文本",
     "title":"标题",
+    "type":"类型",
     "variant":"变体"
 }

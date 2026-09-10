@@ -17,13 +17,14 @@ def 恒等翻译(键,参数=None):#无文案表
     'duration.compactSeconds':'{seconds}秒',#紧凑秒
     'duration.compactMinutes':'{minutes}分{seconds}秒',#紧凑分秒
     'duration.milliseconds':'{milliseconds}毫秒',#毫秒
-    'stats.counts':'{turns} 轮 · {steps} 步',#轮次与步骤计数
-    'stats.llm':'LLM {duration}',#LLM 耗时
-    'stats.toolCall':'工具调用 {duration}',#工具调用耗时
-    'stats.ttftAverage':'首 token 平均 {duration}',#平均 TTFT
-    'stats.tokensPerSecond':'{throughput} tok/s',#吞吐
+    'stats.counts':'{turns} 轮 {steps} 步',#轮次与步骤计数
     'stats.cacheHit':'缓存命中 {percent}%',#缓存命中率
-    'stats.tokens':'输入 {input} tok · 输出 {output} tok',#输入输出 token
+    'stats.dialog.title':'会话统计',#统计对话框标题
+    'stats.dialog.usageTitle':'Token 用量',#用量对话框标题
+    'stats.dialog.llmTime':'模型用时',#模型用时
+    'stats.dialog.toolTime':'工具调用用时',#工具用时
+    'stats.dialog.ttft':'首 token 平均（TTFT）',#平均 TTFT
+    'stats.dialog.speed':'输出速度（TPS）',#输出速度
     'details.title':'详情',#详情标题
     'details.close':'关闭详情',#关闭详情
     'details.empty':'点击消息流中的工具行查看详情',#详情空态
@@ -42,14 +43,15 @@ def 恒等翻译(键,参数=None):#无文案表
     'chat.turnNavigation.turn':'第 {turn} 轮',#轮次标签
     'settings.transcript.title':'对话显示',#设置标题
     'settings.transcript.description':'控制已完成轮次的过程内容',#设置说明
-    'settings.transcript.normal':'Normal',#普通模式
-    'settings.transcript.compact':'Compact',#紧凑模式
+    'settings.transcript.normal':'标准',#普通模式
+    'settings.transcript.compact':'紧凑',#紧凑模式
     'fileOpen.title':'无法打开文件',#打开文件失败标题
     'fileOpen.unknown':'无法打开此文件',#打开文件失败正文
     'fileOpen.folderTitle':'无法打开文件夹',#打开文件夹失败标题
     'fileOpen.folderUnknown':'无法打开此文件夹',#打开文件夹失败正文
     'message.extraBlock':'附加内容块',#附加块
     'message.systemPrompt':'系统提示词',#系统提示词
+    'message.systemPromptUpdate':'系统提示词更新',#系统提示更新卡
     'message.contextInjection':'上下文注入',#上下文注入
     'message.contextRecall':'跨会话召回',#跨会话召回
     'message.referenceSummary':'引用会话 · {labels}',#引用摘要
@@ -130,13 +132,14 @@ def 恒等翻译(键,参数=None):#无文案表
     'duration.compactSeconds':'{seconds}s',#紧凑秒
     'duration.compactMinutes':'{minutes}m{seconds}s',#紧凑分秒
     'duration.milliseconds':'{milliseconds}ms',#毫秒
-    'stats.counts':'{turns} turns · {steps} steps',#轮次与步骤计数
-    'stats.llm':'LLM {duration}',#LLM 耗时
-    'stats.toolCall':'Tool call {duration}',#工具调用耗时
-    'stats.ttftAverage':'TTFT avg {duration}',#平均 TTFT
-    'stats.tokensPerSecond':'{throughput} tok/s',#吞吐
+    'stats.counts':'{turns} turns {steps} steps',#轮次与步骤计数
     'stats.cacheHit':'Cache hit {percent}%',#缓存命中率
-    'stats.tokens':'Input {input} tok · Output {output} tok',#输入输出 token
+    'stats.dialog.title':'Session statistics',#统计对话框标题
+    'stats.dialog.usageTitle':'Token usage',#用量对话框标题
+    'stats.dialog.llmTime':'LLM time',#模型用时
+    'stats.dialog.toolTime':'Tool time',#工具用时
+    'stats.dialog.ttft':'Avg time to first token (TTFT)',#平均 TTFT
+    'stats.dialog.speed':'Tokens per second (TPS)',#输出速度
     'details.title':'Details',#详情标题
     'details.close':'Close details',#关闭详情
     'details.empty':'Click a tool row in the message flow to view its details',#详情空态
@@ -163,6 +166,7 @@ def 恒等翻译(键,参数=None):#无文案表
     'fileOpen.folderUnknown':"Couldn't open this folder",#打开文件夹失败正文
     'message.extraBlock':'Extra content block',#附加块
     'message.systemPrompt':'System prompt',#系统提示词
+    'message.systemPromptUpdate':'System prompt update',#系统提示更新卡
     'message.contextInjection':'Context injection',#上下文注入
     'message.contextRecall':'Session recall',#跨会话召回
     'message.referenceSummary':'Referenced session · {labels}',#引用摘要

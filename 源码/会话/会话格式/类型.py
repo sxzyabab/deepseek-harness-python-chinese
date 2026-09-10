@@ -1,9 +1,9 @@
-"""耐久会话 JSON 边界与相邻迁移目录的类型约定。"""
+"""耐久会话 JSON 边界与相邻流式迁移目录的类型约定。"""
 from typing import Literal,NotRequired,Protocol,TypedDict#字面量、可选字段、协议与结构类型
 
 会话格式json原始量=None|bool|int|float|str#耐久会话 JSON 边界接纳的标量值
 
-class 会话格式头(TypedDict):#受支持历史与当前版本格式共享的逻辑会话元数据
+class 会话格式头(TypedDict):#受支持历史与当代格式共享的逻辑会话元数据
     version:int#版本
     id:str#id
     createdAt:int#创建时间
@@ -21,16 +21,18 @@ class 会话格式事件(TypedDict):#一条已解码逻辑会话事件
     data:object#数据（会话格式json值）
 
 会话格式产物字段=('header','inheritedEventCount','events')#一份分离的完整逻辑会话产物
-会话格式迁移字段=('name','fromVersion','toVersion','migrateHeader','migrate','validateTarget','validateTargetHeader')#一个独立维护的相邻整产物迁移
-会话格式链选项字段=('currentVersion','migrations','restoreCurrent','restoreCurrentHeader')#编译唯一完整迁移链的输入
-会话格式链字段=('currentVersion','plan','migrate','migrateHeader')#纯相邻规划器与整产物迁移运行器（键名对齐上游）
-已编码会话格式产物字段=('header','rows')#一个格式特定编解码器发出的物理 JSON 记录
-会话格式编码选项字段=('packChunks',)#仅影响物理行布局、从不影响逻辑内容的选项
-会话格式编解码器字段=('version','decodeHeader','decodeArtifact','decodeRecoverableArtifact')#与一个已发布会话格式冻结的纯物理 JSON 编解码器
-会话格式目录选项字段=('currentVersion','migrations','restoreCurrent','restoreCurrentHeader','codecs','encodeCurrentArtifact')#构建静态物理编解码器与迁移目录的输入
-会话格式目录字段=('currentVersion','readHeader','decodeArtifact','decodeRecoverableArtifact','migrate','encodeCurrent')#构建静态物理分发与相邻迁移目录（键名对齐上游）
+会话格式迁移字段=('name','fromVersion','toVersion','migrateHeader','createStage','validateTargetHeader')#一个独立维护的相邻流式迁移
+会话格式链选项字段=('currentVersion','migrations','restoreCurrentHeader')#编译唯一完整迁移链的输入
+会话格式链字段=('currentVersion','createStream','migrateHeader')#纯相邻规划器与流式迁移编译器（键名对齐上游）
+会话格式恢复策略=Literal['strict','recoverable']#一次恢复选定的物理行失败策略
+会话格式编解码器字段=('version','decodeHeader','createDecoder')#与一个已发布会话格式冻结的纯物理 JSON 编解码器
+会话格式当代编码器字段=('encodeHeader','encodeEvent')#已安装当代格式的无状态物理记录编码器
+会话格式目录选项字段=('currentVersion','migrations','restoreCurrentHeader','codecs','restoreCurrent','currentEncoder','restoreTransformedCurrent')#构建静态物理编解码器与迁移目录的输入
+会话格式恢复选项字段=('recovery','validation')#一次物理行恢复应用的策略
+会话格式目录字段=('currentVersion','readHeader','createRestore','encodeCurrentHeader','encodeCurrentEvent')#构建静态物理分发与相邻迁移目录（键名对齐上游）
+会话格式恢复字段=('header','decodeRow','finish')#调用方拥有的物理行恢复
 
-class 会话格式迁移(Protocol):#一个独立维护的相邻整产物迁移
+class 会话格式迁移(Protocol):#一个独立维护的相邻流式迁移
     """命名的精确相邻转换；成员名对齐上游英文字段。"""
     @property#名称
     def name(自身):#迁移名
@@ -47,11 +49,8 @@ class 会话格式迁移(Protocol):#一个独立维护的相邻整产物迁移
     def migrateHeader(自身,头):#不读事件体地转换一头
         """不读事件体地转换一头。"""
         ...#协议桩
-    def migrate(自身,产物):#把一份分离完整产物转为恰好 toVersion
-        """把一份分离完整产物转为恰好目标版本。"""
-        ...#协议桩
-    def validateTarget(自身,产物):#拒绝相邻目标写者无法发出的任何产物
-        """拒绝相邻目标写者无法发出的任何产物。"""
+    def createStage(自身,输入):#为一份源产物创建有状态体阶段
+        """为一份源产物创建有状态体阶段。"""
         ...#协议桩
     def validateTargetHeader(自身,头):#拒绝相邻目标写者无法发出的任何头
         """拒绝相邻目标写者无法发出的任何头。"""
@@ -66,47 +65,60 @@ class 会话格式编解码器(Protocol):#与一个已发布会话格式冻结�
     def decodeHeader(自身,值):#把一个物理头解码为与体无关的逻辑元数据
         """把一个物理头解码为与体无关的逻辑元数据。"""
         ...#协议桩
-    def decodeArtifact(自身,头值,行值列表):#把完整物理头与行序列解码为逻辑事件
-        """把完整物理头与行序列解码为逻辑事件。"""
-        ...#协议桩
-    def decodeRecoverableArtifact(自身,头值,行值列表):#解码崩溃尾修复使用的行原子可恢复前缀
-        """解码崩溃尾修复使用的行原子可恢复前缀。"""
+    def createDecoder(自身,头值,恢复):#以显式失败策略创建逐行解码器
+        """以显式失败策略创建逐行解码器。"""
         ...#协议桩
 
-class 会话格式链(Protocol):#纯相邻规划器与整产物迁移运行器
-    """纯相邻规划器与整产物迁移运行器。"""
-    @property#当前版本
-    def 当前版本(自身):#当前版本
-        """当前版本。"""
+class 会话格式当代编码器(Protocol):#已安装当代格式的无状态物理记录编码器
+    """当代物理记录编码器。"""
+    def encodeHeader(自身,头,继承事件数):#编码当代物理头
+        """为一份当代产物编码物理头记录。"""
         ...#协议桩
-    def 计划(自身,源版本):#返回从一个受支持已存版本起的完整有序计划
-        """返回从一个受支持已存版本起的完整有序计划。"""
+    def encodeEvent(自身,事件):#编码当代物理事件
+        """把一条当代逻辑事件编码为一条物理记录。"""
         ...#协议桩
-    def 迁移(自身,产物):#直接恢复当前版本输入或在内存中完整迁移旧输入
-        """直接恢复当前版本输入或在内存中完整迁移旧输入。"""
+
+class 会话格式链(Protocol):#纯相邻规划器与流式迁移编译器
+    """纯相邻规划器与流式迁移编译器。"""
+    @property#当代版本
+    def 当前版本(自身):#当代版本
+        """当代版本。"""
         ...#协议桩
-    def 迁移头(自身,头):#仅把受支持头转为当前版本逻辑表示
-        """仅把受支持头转为当前版本逻辑表示。"""
+    def 创建流(自身,头,继承事件数,上下文):#创建迁移流
+        """为一份已解码源产物编译完整迁移阶段链。"""
+        ...#协议桩
+    def 迁移头(自身,头):#仅把受支持头转为当代逻辑表示
+        """仅把受支持头转为当代逻辑表示。"""
         ...#协议桩
 
 class 会话格式目录(Protocol):#构建静态物理分发与相邻迁移目录
     """构建静态物理分发与相邻迁移目录。"""
-    @property#当前版本
-    def 当前版本(自身):#当前版本
-        """当前版本。"""
+    @property#当代版本
+    def 当前版本(自身):#当代版本
+        """当代版本。"""
         ...#协议桩
     def 读头(自身,头值):#不读事件行地分类并翻译一头
         """不读事件行地分类并翻译一头。"""
         ...#协议桩
-    def 解码产物(自身,头值,行值列表):#经其冻结版本编解码器分发一份完整物理 JSON 产物
-        """经其冻结版本编解码器分发一份完整物理 JSON 产物。"""
+    def 创建恢复(自身,头值,选项):#创建一次单遍物理行恢复
+        """创建一次单遍物理行恢复为当代逻辑事件。"""
         ...#协议桩
-    def 解码可恢复产物(自身,头值,行值列表):#经其已发布行前缀恢复规则分发一份物理产物
-        """经其已发布行前缀恢复规则分发一份物理产物。"""
+    def 编码当代头(自身,头,继承事件数):#编码当代物理头
+        """编码一条当代物理头记录。"""
         ...#协议桩
-    def 迁移(自身,产物):#直接恢复当前版本输入或在内存中运行全部所需相邻迁移
-        """直接恢复当前版本输入或在内存中运行全部所需相邻迁移。"""
+    def 编码当代事件(自身,事件):#编码当代物理事件
+        """编码一条当代物理事件记录。"""
         ...#协议桩
-    def 编码当前版本(自身,产物):#编码 migrate 返回或活会话产出的当前版本产物；此处不再校验
-        """编码当前版本产物；此处不再校验。"""
+
+class 会话格式恢复(Protocol):#调用方拥有的物理行恢复
+    """终值为当代逻辑产物的物理行恢复。"""
+    @property#头
+    def header(自身):#当代逻辑头
+        """体解码前可用的当代逻辑头。"""
+        ...#协议桩
+    def decodeRow(自身,行值):#按文件顺序解码一行
+        """按文件顺序解码一行物理行。"""
+        ...#协议桩
+    def finish(自身):#完成并返回当代产物
+        """完成每个解码器与迁移阶段并返回当代产物。"""
         ...#协议桩

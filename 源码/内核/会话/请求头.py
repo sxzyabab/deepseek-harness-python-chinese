@@ -9,14 +9,11 @@ def 转json(值):
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
 
 def 归一请求头(头):
-    """把请求头归一成规范形态：空系统提示词与空工具列表变成缺省字段。"""
+    """把请求头归一成规范形态：空工具列表变成缺省字段，与请求构建方式一致。"""
     适配器默认=头['adapterDefaults'] if 'adapterDefaults' in 头 else None#适配器默认旗标
     结果={'config':头['config']}#调用配置
     if isinstance(适配器默认,dict) and (('reasoningEffort' in 适配器默认 and 适配器默认['reasoningEffort'] is True) or ('maxTokens' in 适配器默认 and 适配器默认['maxTokens'] is True)):#有真旗标
         结果['adapterDefaults']=适配器默认#有真旗标才带 adapterDefaults
-    系统=头['system'] if 'system' in 头 else None#系统提示
-    if 系统 is not None and isinstance(系统,str) and len(系统)>0:#非空系统提示
-        结果['system']=系统#非空系统提示才带
     工具列表=头['tools'] if 'tools' in 头 else None#工具列表
     if 工具列表 is not None and len(工具列表)>0:#非空工具列表
         结果['tools']=工具列表#非空工具列表才带
@@ -44,10 +41,6 @@ def 请求头是否相等(甲,乙):
     乙上限=乙默认['maxTokens'] if 'maxTokens' in 乙默认 else None#乙方 token
     if 甲上限!=乙上限:#token 旗标不同
         return False#token 旗标不同
-    甲系统=甲['system'] if 'system' in 甲 else None#甲方系统提示
-    乙系统=乙['system'] if 'system' in 乙 else None#乙方系统提示
-    if 甲系统!=乙系统:#系统提示不同
-        return False#系统提示不同
     甲方工具=甲['tools'] if 'tools' in 甲 else None#甲方工具
     乙方工具=乙['tools'] if 'tools' in 乙 else None#乙方工具
     if 甲方工具 is None:#缺省

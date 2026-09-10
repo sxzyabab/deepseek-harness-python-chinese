@@ -20,7 +20,7 @@ def 建面板回调(
     投放目标,拖中标签标识,文案,渲染标签,
     渲染标签标题=None,渲染标签菜单项=None,
     饰条窗格标识=None,饰条=None,
-    满员隐藏分割=False,水平投放=False,
+    阻断时隐藏分割=False,可否关闭标签=None,水平投放=False,
 ):
     """装配窗格回调 dict（键与标签面板/窗格树约定一致，含上游形 on* 键）。"""
     return {#回调
@@ -32,8 +32,9 @@ def 建面板回调(
         'onTabPressed':标签按下,
         'onDividerPressed':分割条按下,
         'splitBlock':分割阻断,
-        'hideSplitAtCapacity':满员隐藏分割,
+        'hideSplitWhenBlocked':阻断时隐藏分割,
         'canAddTab':可加标签,
+        'canCloseTab':可否关闭标签,
         'dropTarget':投放目标,
         'horizontalDrops':水平投放,
         'draggingTabId':拖中标签标识,

@@ -166,8 +166,8 @@ def 规划安置标签(状态,标签标识,到窗标识,下标):
     return [_签入窗(源,标签标识,到窗标识,下标)]#移
 
 
-def 规划投放标签(状态,铸造,标签标识,目标窗标识,区):
-    """投放：中心移入，边沿分裂就座；无改则空。"""
+def 规划投放标签(状态,铸造,标签标识,目标窗标识,区,造签=None):
+    """投放：中心移入，边沿分裂就座；唯一签离本窗边沿时需造签回填，否则空。"""
     源=查找标签窗格(状态,标签标识)#源
     目=取窗格(状态,目标窗标识)#目
     if 目['host']!='dock':#须停靠
@@ -177,22 +177,24 @@ def 规划投放标签(状态,铸造,标签标识,目标窗标识,区):
         if 源['id']==目标窗标识:#同窗
             return []#空
         return [_签入窗(源,标签标识,目标窗标识,len(目['tabs']))]#移末
-    if 源['id']==目标窗标识 and len(源['tabs'])==1:#唯一签投本窗
+    腾空=源['id']==目标窗标识 and len(源['tabs'])==1#唯一签离本窗
+    if 腾空 and 造签 is None:#需回填却无工厂
         return []#空
     if not 可分割(状态):#满
         return []#空
     新窗=铸造('pane')#新
-    return [#分裂再移
-        {
-            'type':'split',
-            'paneId':目标窗标识,
-            'axis':分['axis'],
-            'direction':分['direction'],
-            'newPaneId':新窗,
-            'newSplitId':铸造('split'),
-        },
-        _签入窗(源,标签标识,新窗,0),
-    ]#操作
+    操作=[{#分裂
+        'type':'split',
+        'paneId':目标窗标识,
+        'axis':分['axis'],
+        'direction':分['direction'],
+        'newPaneId':新窗,
+        'newSplitId':铸造('split'),
+    }]#操作
+    if 腾空 and 造签 is not None:#回填原窗
+        操作.append({'type':'openTab','paneId':目标窗标识,'tab':造签(铸造('tab')),'index':len(源['tabs'])})#回填
+    操作.append(_签入窗(源,标签标识,新窗,0))#移入新格
+    return 操作#操作
 
 
 def 规划浮出标签(状态,铸造,标签标识,矩形=None):

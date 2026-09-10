@@ -1,5 +1,6 @@
 {
     "append":"追加",
+    "data":"数据",
     "deep":"深",
     "derive":"派生",
     "equal":"相等",
@@ -8,9 +9,12 @@
     "json":"json",
     "manager":"管理器",
     "message":"消息",
+    "metadata":"元数据",
     "read":"读取",
     "replace":"替换",
+    "session":"会话",
     "source":"源",
     "surface":"表面",
-    "type":"类型"
+    "type":"类型",
+    "validate":"校验"
 }

@@ -87,9 +87,10 @@ def 启动进程内跑(请求,选项=None):
     激活边界=len(种子) if 种子 is not None else 0#边界
     继承=捕获委托策略覆盖(父)#策略快照
     状态={'结构化':None,'已追加':False}#子体装配状态
-    def 装配(子上下文):
-        """子体创建窗口：策略、组合、可选结构化与描述符。"""
-        追加委托策略覆盖(子上下文.agent.session,继承)#策略
+    def 装配(子上下文,子=None):
+        """子体创建窗口：策略、组合、可选结构化与描述符。子为已创建智能体；缺席时取自子上下文。"""
+        智能体=子 if 子 is not None else 子上下文.agent#优先用工厂传入的子体
+        追加委托策略覆盖(智能体.session,继承)#策略
         人设=请求['persona'] if 'persona' in 请求 else None#人设
         过滤=请求['toolFilter'] if 'toolFilter' in 请求 else None#过滤
         组合={}#组合
@@ -105,18 +106,20 @@ def 启动进程内跑(请求,选项=None):
             决策=下一步()#下一步
             if (not 状态['已追加']) and 决策['kind']=='enter':#首步
                 状态['已追加']=True#标记
-                子上下文.agent.session.追加('subagent/descriptor',请求['descriptor'])#追加
+                智能体.session.追加('subagent/descriptor',请求['descriptor'])#追加
             return 决策#返回
         子上下文.监听('agent/pre-step',步骤前)#监听
     创建选项={#创建选项
         'sessionId':子标识,#子会话 id
-        'meta':子会话元数据(父,子深度,激活边界),#元数据
+        'parentAgent':父,#委托父
+        'meta':子会话元数据(父,子深度,种子 is not None),#元数据（是否 fork 种子）
         'agentOptions':解析子智能体选项(父,请求['agentOptions'] if 'agentOptions' in 请求 else None,子深度),#选项
         'signal':信号,#取消
         'setup':装配,#装配
     }#选项结束
     if 种子 is not None:#有种子
         创建选项['seed']=种子#写入
+        创建选项['inheritedEventCount']=激活边界#继承计数
     句柄=父.ctx.agents.创建(创建选项)#创建
     return 驱动已发布跑(句柄,信号,请求['prompt'],子标识,激活边界,状态['结构化'])#驱动
 

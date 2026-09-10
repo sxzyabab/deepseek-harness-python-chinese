@@ -2,26 +2,29 @@
 
 对齐上游 `ui-sidebar-right/src/client/tabs/guide/GuideBody.tsx`。公开面仅中文名。
 无 React：视图模型产出结构树 dict；链席由宿主 renderSlotChain 调度。
+出厂向导仅为居中入口胶囊，无标题文案；条目≤4 时可选展示 description。
 """
 
-__all__=['向导体','样式表']#仅中文公开名
+__all__=['向导体','样式表','最多带说明入口数']#仅中文公开名
+
+最多带说明入口数=4#超过则隐藏各入口 description
 
 样式表='''#对齐 GuideBody.module.css
-.guide{display:flex;flex-direction:column;gap:8px;align-items:center;padding-top:24px;text-align:center}
-.guideTitle{margin:0;color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size, 14px);font-weight:500;line-height:1.6}
-.guideBody{margin:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary, 13px);line-height:1.6}
-.entries{display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:8px;width:100%;max-width:480px;margin-top:16px}
-.entry{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;color:inherit;font:inherit;text-align:left;background:transparent;border:0.5px solid var(--dsw-alias-border-l1);border-radius:8px;cursor:pointer}
+.guide{display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;box-sizing:border-box;min-height:100%;padding:0 24px}
+.guide::after{content:'';flex:0 1 10%}
+.hero{display:flex;margin-bottom:16px;color:var(--dsw-static-neutral-200)}
+.entry{display:flex;gap:14px;align-items:center;box-sizing:border-box;width:380px;max-width:100%;min-height:56px;padding:14px 20px;color:var(--dsw-alias-label-primary);font:inherit;text-align:left;background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l4);border-radius:24px;cursor:pointer}
 .entry:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.entryIcon{display:flex;flex:none;margin-top:1px;color:var(--dsw-alias-label-secondary)}
-.entryText{display:flex;flex-direction:column;gap:2px;min-width:0}
-.entryTitle{color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size, 14px);line-height:1.4}
-.entryDescription{color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary, 13px);line-height:1.4}
+.entryIcon{display:flex;flex:none;align-items:center;justify-content:center;width:26px;height:26px;color:var(--dsw-alias-label-secondary)}
+.placeholderInk{color:var(--dsw-alias-label-tertiary)}
+.entryText{display:flex;flex-direction:column;gap:3px;min-width:0}
+.entryTitle{overflow:hidden;font-size:15px;line-height:1.4;white-space:nowrap;text-overflow:ellipsis}
+.entryDescription{overflow:hidden;color:var(--dsw-alias-label-caption);font-size:13px;line-height:1.4;white-space:nowrap;text-overflow:ellipsis}
 '''#样式表结束
 
 
 class 向导体:#向导正文视图模型
-    """链席回退为出厂向导：说明文案与入口盒。"""
+    """链席回退为出厂向导：罗盘水印与入口胶囊。"""
 
     def __init__(自身,属性):
         """记下合成 props。"""
@@ -36,36 +39,49 @@ class 向导体:#向导正文视图模型
         信息=自身.属性['useTabInfo']()#标签信息
         信息['tab']['actions']['openTab'](条目['kind'],{'replaceTab':True})#开
 
+    def 入口节点(自身,条目,带说明):
+        """一枚入口胶囊。"""
+        图标=条目['icon'] if 'icon' in 条目 else None#图标
+        说明=None#说明
+        if 带说明:#短列表
+            取说明=条目['description'] if 'description' in 条目 else None#可选
+            if 取说明 is not None:#有
+                说明=取说明()#文案
+        尺寸=22 if 说明 is None else 26#图标边
+        图标类='entryIcon'+( '' if 图标 is not None else ' placeholderInk')#类
+        子=[{#图标
+            'type':'span',
+            'className':图标类,
+            'props':{'icon':图标,'size':尺寸},
+        }]#图标结束
+        文子=[{'type':'span','className':'entryTitle','text':条目['title']()}]#标题
+        if 说明 is not None:#有说明
+            文子.append({'type':'span','className':'entryDescription','text':说明})#说明
+        子.append({'type':'span','className':'entryText','children':文子})#文
+        return {#按钮
+            'type':'button',
+            'className':'entry',
+            'props':{'data-sidebar-right-guide-entry':条目['kind'],'entry':条目},
+            'onClick':lambda 甲=条目:自身.点选入口(甲),
+            'children':子,
+        }#按钮结束
+
     def 出厂树(自身):
-        """出厂向导结构树。"""
+        """出厂向导结构树：罗盘 + 入口列。"""
         属性=自身.属性#props
-        翻译=属性['t']#文案
         用入口=属性['useGuideEntries'] if 'useGuideEntries' in 属性 else None#入口钩
         条目表=用入口(lambda 表:表) if 用入口 is not None else ()#条目
-        入口节点=[]#节点
-        for 序,条目 in enumerate(条目表):#逐入口
-            图标=条目['icon'] if 'icon' in 条目 else None#图标
-            子=[]#子
-            if 图标 is not None:#有图标
-                子.append({'type':'span','className':'entryIcon','props':{'icon':图标,'size':16}})#图标
-            子.append({'type':'span','className':'entryText','children':[#文
-                {'type':'span','className':'entryTitle','text':条目['title']()},
-                {'type':'span','className':'entryDescription','text':条目['description']()},
-            ]})#文结束
-            入口节点.append({#按钮
-                'type':'button',
-                'className':'entry',
-                'props':{'data-sidebar-right-guide-entry':条目['kind'],'entry':条目},
-                'onClick':lambda 甲=条目:自身.点选入口(甲),
-                'children':子,
-            })#按钮结束
-        子节点=[#主文
-            {'type':'p','className':'guideTitle','text':翻译('guide.lead')},
-            {'type':'p','className':'guideBody','text':翻译('guide.body')},
-        ]#主文
-        if len(入口节点)>0:#有入口
-            子节点.append({'type':'div','className':'entries','children':入口节点})#入口区
-        return {'type':'div','className':'guide','props':{'data-sidebar-right-guide':True},'children':子节点}#树
+        带说明=len(条目表)<=最多带说明入口数#短列表
+        入口节点=[自身.入口节点(条目,带说明) for 条目 in 条目表]#胶囊
+        return {#树
+            'type':'div',
+            'className':'guide',
+            'props':{'data-sidebar-right-guide':True},
+            'children':[
+                {'type':'span','className':'hero','props':{'aria-hidden':'true','glyph':'compass','size':56}},
+                *入口节点,
+            ],
+        }#树结束
 
     def 渲染(自身):
         """经链席；无替换则出厂树。"""

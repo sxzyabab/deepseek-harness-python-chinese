@@ -5,7 +5,7 @@
     "codec":"编解码器",
     "create":"创建",
     "current":"当代",
-    "encode":"编码",
+    "encoder":"编码器",
     "event":"事件",
     "format":"格式",
     "generate":"生成",
@@ -15,6 +15,7 @@
     "released":"已发布",
     "restore":"恢复",
     "session":"会话",
+    "transformed":"转换",
     "type":"类型",
     "validate":"校验",
     "version":"版本"

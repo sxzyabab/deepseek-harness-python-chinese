@@ -52,10 +52,10 @@ def 重试重置(态):#llm/retry 后清空块并隐藏
     下['hidden']=True#隐藏
     return 下#重试态
 
-def 折流块(态,匹配项):#把一块 assistant/chunk 折进状态
+def 折流块(态,匹配项):#把一块 assistant/live-chunk 折进状态
     """按流块判别标签更新稀疏块。"""
     事件=匹配项['event']#事件
-    if 事件['type']!='assistant/chunk':#非
+    if 事件['type']!='assistant/live-chunk':#非
         return 态#原样
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     块=数据['chunk'] if 'chunk' in 数据 and 数据['chunk'] is not None else {}#流块
@@ -177,7 +177,7 @@ def 回放状态(上下文):#无增量状态时从匹配重放
     for 匹配项 in (上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []):#遍历
         事件=匹配项['event']#事件
         种=事件['type']#种
-        if 种=='assistant/chunk':#流块
+        if 种=='assistant/live-chunk':#流块
             数据=事件['data'] if 'data' in 事件 else {}#载荷
             if 态 is None:#首次
                 态=初态(数据['turn'] if 'turn' in 数据 else None,数据['step'] if 'step' in 数据 else None)#开
@@ -230,7 +230,7 @@ def 助手匹配(事件):#按事件认领本步骤
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='step/start':#步骤开始
         return {'id':str(数据['turn'])+':'+str(数据['step']),'role':'start'}#开
-    if 种=='assistant/chunk' or (种=='assistant/message' and 是追加面事件(事件)):#流/定稿
+    if 种=='assistant/live-chunk' or (种=='assistant/message' and 是追加面事件(事件)):#流/定稿
         return {'id':str(数据['turn'])+':'+str(数据['step']),'role':'update'}#更新
     if 种=='llm/retry':#重试
         return {'id':str(数据['turn'])+':'+str(数据['step']),'role':'update'}#更新
@@ -249,7 +249,7 @@ def 助手更新(上下文,匹配项):#折一条更新事件
     事件=匹配项['event']#事件
     种=事件['type']#种
     态=上下文['state']#态
-    if 种=='assistant/chunk':#流块
+    if 种=='assistant/live-chunk':#流块
         return 折流块(态,匹配项)#折
     if 种=='assistant/message':#定稿
         数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -265,7 +265,7 @@ def 助手发布(匹配项):#何时发布投影
     种=事件['type']#种
     if 种=='step/start':#开始
         return 'none'#不发
-    if 种!='assistant/chunk':#定稿/重试
+    if 种!='assistant/live-chunk':#定稿/重试
         return 'immediate'#立即
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     块=数据['chunk'] if 'chunk' in 数据 else None#流块

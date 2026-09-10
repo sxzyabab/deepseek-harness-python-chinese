@@ -6,6 +6,7 @@
     "expect":"期望",
     "fixture":"夹具",
     "format":"格式化",
+    "generation":"世代",
     "header":"请求头",
     "it":"用例",
     "json":"数据交换",
@@ -24,5 +25,6 @@
     "tool":"工具",
     "uuid":"通用唯一标识",
     "variant":"变体",
-    "vitest":"测试框架"
+    "vitest":"测试框架",
+    "writes":"写"
 }

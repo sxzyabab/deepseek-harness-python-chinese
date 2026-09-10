@@ -4,5 +4,9 @@
     "feed.ts":"提要.py",
     "index.ts":"__init__.py",
     "types.ts":"类型.py",
-    "工具.py":"远程错误与中止.py"
+    "工具.py":"远程错误与中止.py",
+    "client/index.ts":"客户端/__init__.py",
+    "client/model.ts":"客户端/模型.py",
+    "client/service.ts":"客户端/服务.py",
+    "typert.remote-client":"远程.py"
 }

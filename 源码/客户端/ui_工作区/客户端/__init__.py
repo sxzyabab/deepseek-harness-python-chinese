@@ -5,6 +5,7 @@
 import threading#后台观察
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
+from .导航 import 目录浏览错误,工作区UI服务,最近工作区#导航面
 from .树 import (#再导出树派生
     未分组键,
     未分组标签,
@@ -23,6 +24,9 @@ __all__=[#仅中文公开名
     '注入',
     '应用',
     '工作区错误',
+    '目录浏览错误',
+    '工作区UI服务',
+    '最近工作区',
     '中文',
     '英文',
     '工作区文案键',
@@ -43,7 +47,7 @@ __all__=[#仅中文公开名
     '工作区选择器',
 ]#公开面结束
 
-注入=['slots','sessions','workspaces','locale']#槽位、会话、工作区、文案
+注入=['slots','sessions','workspaces','locale','remote','remote.directoryPicker','layout']#含布局
 命名空间='workspace'#字典命名空间
 
 class 工作区错误(Exception):
@@ -67,6 +71,14 @@ def 流占用源(上下文,洞名):#某洞是否已填
 
 def 应用(上下文):#注册浏览区与选择器
     """槽位声明入账后注册浏览区与选择器。"""
+    工作区面=工作区UI服务(
+        上下文,
+        上下文.remote.directoryPicker,
+        上下文.workspaces,
+        上下文.sessions,
+    )#导航服务
+    if hasattr(上下文.slots,'provideRoot'):#提供根钩
+        上下文.slots.provideRoot({'hooks':{'workspaces':上下文.workspaces.list}})#工作区列表
     def 登记词典():#挂载词典
         """中英文字典。"""
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
@@ -83,6 +95,10 @@ def 应用(上下文):#注册浏览区与选择器
 
     侧栏流源=流占用源(上下文,侧栏目录流槽)#侧栏目录流占用源
     选择器流源=流占用源(上下文,英雄目录流槽)#选择器目录流占用源
+    宿主源={#宿主事实
+        'getSnapshot':lambda:上下文.remote.$host,#当前宿主
+        'subscribe':lambda 监听:上下文.on('connection/reset',监听),#连接重置
+    }#宿主源
 
     def 浏览区注入():#侧栏浏览区注入
         """浏览区驱动的 Host 动作。"""
@@ -98,58 +114,30 @@ def 应用(上下文):#注册浏览区与选择器
                 消息=错['message'] if 错 is not None and 'message' in 错 else None#文案
                 raise 工作区错误(消息)#抛出
         def 分叉会话(会话标识):#分叉会话
-            """分叉并打开子会话；失败保持当前选中。"""
-            def 成功(子标识):#打开子会话
-                """成功则打开。"""
-                上下文.sessions.open(子标识)#打开
-            任务=上下文.sessions.fork({'sessionId':会话标识,'increaseTitle':True})#分叉
-            def 观察():#观察分叉结果
-                """成功打开；失败保持选中。"""
-                try:#成功臂
-                    成功(任务.等待())#打开子会话
-                except BaseException:#失败臂
-                    pass#保持当前选中
-            线=threading.Thread(target=观察)#挂观察
-            线.daemon=True#不挡退出
-            线.start()#启动
-        def 开会话(工作区标识=None):#开新会话
-            """startSession。"""
-            return 上下文.workspaces.startSession(工作区标识)#开
-        def 打开会话(会话标识):#打开
-            """open。"""
-            return 上下文.sessions.open(会话标识)#打开
-        def 重命名工作区(工作区标识,标题):#重命名
-            """rename。"""
-            return 上下文.workspaces.rename(工作区标识,标题).等待()#等待
-        def 删除工作区(工作区标识):#删除
-            """delete。"""
-            return 上下文.workspaces.delete(工作区标识).等待()#等待
-        def 插工作区(工作区标识,锚点=None):#插
-            """insertBefore。"""
-            return 上下文.workspaces.insertBefore(工作区标识,锚点).等待()#等待
-        def 归档会话(会话标识):#归档
-            """archiveSession。"""
-            return 上下文.workspaces.archiveSession(会话标识).等待()#等待
-        def 插会话(工作区标识,会话标识,锚点=None):#插会话
-            """insertSessionBefore。"""
-            return 上下文.workspaces.insertSessionBefore(工作区标识,会话标识,锚点).等待()#等待
-        def 创建工作区(输入):#创建
-            """create。"""
-            return 上下文.workspaces.create(输入)#创建
+            """经导航面分叉；失败保持当前选中。"""
+            def 观察():#观察
+                """吞失败。"""
+                try:#成功
+                    工作区面.forkSession(会话标识)#分叉打开
+                except BaseException:#失败
+                    pass#保持
+            线=threading.Thread(target=观察)#线
+            线.daemon=True#守护
+            线.start()#启
         return {#注入面
-            'startSession':开会话,#开新会话
-            'open':打开会话,#打开会话
+            'startSession':工作区面.startSession,#开新会话
+            'open':工作区面.openSession,#打开会话
             'searchSessions':检索会话,#检索
             'searchResultLimit':上下文.sessions.searchResultLimit,#检索上限
             'renameSession':重命名会话,#改名
             'forkSession':分叉会话,#分叉
-            'renameWorkspace':重命名工作区,#重命名工作区
-            'deleteWorkspace':删除工作区,#删除工作区
-            'insertWorkspaceBefore':插工作区,#插工作区
-            'archiveSession':归档会话,#归档
-            'insertSessionBefore':插会话,#插会话
-            'createWorkspace':创建工作区,#创建工作区
-            'hooks':{'directoryFlow':侧栏流源},#侧栏目录流占用源
+            'renameWorkspace':lambda 标识,标题:上下文.workspaces.rename(标识,标题).等待(),#重命名工作区
+            'deleteWorkspace':lambda 标识:上下文.workspaces.delete(标识).等待(),#删除
+            'insertWorkspaceBefore':lambda 标识,锚:上下文.workspaces.insertBefore(标识,锚).等待(),#插
+            'archiveSession':工作区面.archiveSession,#归档
+            'insertSessionBefore':lambda 区,签,锚:上下文.workspaces.insertSessionBefore(区,签,锚).等待(),#插会话
+            'createWorkspace':上下文.workspaces.create,#创建
+            'hooks':{'directoryFlow':侧栏流源,'hostInfo':宿主源},#流与宿主
         }#注入结束
 
     def 选择器注入():#会话英雄选择器注入

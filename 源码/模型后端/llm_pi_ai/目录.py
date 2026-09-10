@@ -8,10 +8,14 @@ class 配置错误(Exception):#本包配置与目录物化失败
     """llm-pi-ai 配置或目录物化失败。"""
     pass#消息在构造时传入
 
+class 目录错误(配置错误):#可识别的目录失败，便于延迟校验收住诊断
+    """目录物化失败；延迟模式下可收住为诊断。"""
+    pass#消息在构造时传入
+
 __all__=(#仅中文公开名
     '无费用','模态列表','思考档位列表','受支持思考格式',
     '目录提供方表','目录提供方','目录提供方标识列表','目录提供方接受密钥',
-    '目录模型','解析路由模型','配置错误',
+    '目录模型','解析路由模型','配置错误','目录错误',
 )#公开面结束
 
 无费用={'input':0,'output':0,'cacheRead':0,'cacheWrite':0}#零费用占位
@@ -100,8 +104,8 @@ def 目录模型(提供方):
     return 表#目录模型表
 
 def 非法(提供方,细节):
-    """带路由诊断抛出。"""
-    raise 配置错误(f'llm-pi-ai: provider "{提供方}" {细节}')#点名路由
+    """带路由诊断抛出目录错误。"""
+    raise 目录错误(f'llm-pi-ai: provider "{提供方}" {细节}')#点名路由
 
 def 共用目录协议(默认表):
     """一条目录路由已运来模型所同意的那一条线路协议。"""
@@ -203,8 +207,8 @@ def 解析模型兼容(提供方,条目,路由,基,协议):
         兼容['supportsReasoningEffort']=支持力度#覆盖力度开关
     return {'compat':兼容}#compat块
 
-def 解析路由模型(请求):
-    """在已配置条目下合并已安装目录默认，物化一条路由的目录。请求为 dict。"""
+def 解析路由模型(请求,校验='strict'):
+    """在已配置条目下合并已安装目录默认，物化一条路由的目录。请求为 dict；校验为 strict 或 deferred。"""
     提供方=请求['provider']#路由键
     默认表=目录模型(提供方)#已安装目录，值为 dict
     目录方=目录提供方(提供方)#目录提供方 SDK 对象
@@ -217,6 +221,7 @@ def 解析路由模型(请求):
         覆盖=请求['modelOverrides']#按id覆盖；与 models 列表互斥
     else:#缺席当空
         覆盖={}#空覆盖
+    模型错误={}#按模型诊断
     for 标识,一条 in 覆盖.items():#覆盖表按模型 id 校验，不能和 models 列表并用
         if len(标识)==0:#覆盖键就是模型 id，空键无法寻址
             非法(提供方,'has a modelOverrides entry with an empty model id')#id不得空
@@ -227,7 +232,10 @@ def 解析路由模型(请求):
             非法(提供方,'sets modelOverrides for "'+标识+'" beside a models list; models already replaces the served'
                 +' catalog, so declare the fields on its entries')#应写在条目上
         if 标识 not in 默认表:#覆盖只能点目录里已有的模型，未知 id 不是新增
-            非法(提供方,'modelOverrides names "'+标识+'", which the installed catalog does not describe')#未知模型
+            消息='modelOverrides names "'+标识+'", which the installed catalog does not describe'#未知模型
+            if 校验=='strict':#严格写入
+                非法(提供方,消息)#拒绝
+            模型错误[标识]='llm-pi-ai: provider "'+提供方+'" '+消息#收住诊断
         if 'id' in 一条:#id 是字典键，条目里再写 id 会冲突
             非法(提供方,'modelOverrides entry "'+标识+'" sets "id", which is the dict key')#id是键
     if len(已配置)>0:#配置给了 models 列表则整份替换目录，不再从默认表生成条目
@@ -251,7 +259,8 @@ def 解析路由模型(请求):
     已见=set()#已见id
     配置上限={}#显式按次上限；只有条目自己写了 maxTokens 才进这张表
     模型列表=[]#物化模型
-    for 条目 in 条目列表:#逐条物化：协议、端点、窗口、上限、名字、模态都按配置→目录→路由默认回落
+    def 物化一条(条目):#物化单条；失败抛目录错误
+        """物化一条模型条目。"""
         if len(条目['id'])==0:#模型 id 不得空
             非法(提供方,'has a model with an empty id')#id不得空
         if 条目['id'] in 已见:#同一路由不能列两次同一 id
@@ -316,13 +325,22 @@ def 解析路由模型(请求):
         物化.update(解析模型推理(提供方,条目,基))#推理字段
         路由兼容参数=请求['compat'] if 'compat' in 请求 else None#兼容块或缺席
         物化.update(解析模型兼容(提供方,条目,路由兼容参数,基,协议))#兼容块
-        模型列表.append(物化)#写入
+        return 物化#物化结果
+    for 条目 in 条目列表:#逐条物化
+        try:#物化
+            模型列表.append(物化一条(条目))#写入
+        except 目录错误 as 错误:#目录失败
+            if 校验=='strict':#严格
+                raise 错误#抛出
+            模型错误[条目['id']]=str(错误)#收住
+            continue#下一条
+    可服务=[模型 for 模型 in 模型列表 if 模型['id'] not in 模型错误]#可服务模型
     有补全=False#是否有Completions模型；路由级思考开关必须落在 Completions 上
-    for 模型 in 模型列表:#扫物化结果，看这条路由有没有 Completions 模型
+    for 模型 in 可服务:#扫可服务结果
         if 模型['api']=='openai-completions':#见到 Completions 则路由级思考开关才有落点
             有补全=True#已有 Completions，不必再扫
             break#已判定
     if 路由开了兼容 and not 有补全:#路由设了开关却没有Completions模型
         非法(提供方,'sets compat reasoning switches, but no model on the route speaks openai-completions;'
             +' thinkingFormat and supportsReasoningEffort exist only on that protocol')#只存在于该协议
-    return {'models':模型列表,'configuredMaxTokens':配置上限}#物化目录
+    return {'models':可服务,'configuredMaxTokens':配置上限,'modelErrors':模型错误}#物化目录

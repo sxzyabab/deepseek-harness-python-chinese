@@ -2,7 +2,7 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from .错误 import 子智能体错误#导入子智能体错误
 
-生命周期证人键=('version','id','createdAt','cwd','parentSession','seedLength','delegationDepth')#生命周期证人键
+生命周期证人键=('version','id','createdAt','cwd','parentSession','isSeeded','delegationDepth','origin','agentPreset')#生命周期证人键
 
 class 子智能体列举一次性子体(TypedDict):#列举结果的一次性子体臂
     kind:Literal['child']#子体条目
@@ -130,18 +130,14 @@ def 准备列举(上下文对象,信号=None):
 def 解析冷身份(持久化,投影,缓存,头,有子体,信号=None):
     """沿剩余梯子解析一个冷候选。头为 dict。"""
     子标识=头['id']#候选id
-    if 缓存 is not None:#有缓存
+    if 缓存 is not None and not 头.get('isSeeded'):#未播种可走缓存（切点精确为 0）
         缓存身份=None#缓存身份
         try:#读缓存快照
             快照=缓存.缓存快照(头)#读快照
             缓存身份=读子智能体身份(快照)#读subagent单元
         except Exception:#缓存行损坏
             缓存身份=None#当作未命中
-        种子长度=头['seedLength'] if 'seedLength' in 头 and 头['seedLength'] is not None else 0#种子长度
-        序号=-1#缺省
-        if 缓存身份 is not None and 'seq' in 缓存身份:#有序号
-            序号=缓存身份['seq']#序号
-        if 缓存身份 is not None and 序号>=种子长度:#自身后缀身份
+        if 缓存身份 is not None:#有可用缓存
             return 子体行(子标识,缓存身份,'inactive',有子体)#冷子体行
     断言列举未取消(信号)#检查前取消检查点
     try:#持久化检查
@@ -153,13 +149,14 @@ def 解析冷身份(持久化,投影,缓存,头,有子体,信号=None):
     元=已检['meta']#检查头
     if not 同一生命周期(元,头):#生命周期证人分叉
         return {'kind':'diagnostic','id':子标识,'reason':'corrupt'}#损坏诊断
+    继承计数=已检['inheritedEventCount'] if 'inheritedEventCount' in 已检 and 已检['inheritedEventCount'] is not None else 0#继承切口
     try:#经注册表折叠分离日志
         事件列表=已检['events'] if 'events' in 已检 and 已检['events'] is not None else []#事件
         已折=投影.恢复({},事件列表,0,头)#从零恢复
         身份=读子智能体身份(已折['snapshot'] if 'snapshot' in 已折 else None)#读subagent单元
     except Exception:#任一单元拒绝损坏载荷
         return {'kind':'diagnostic','id':子标识,'reason':'corrupt'}#损坏诊断
-    if 身份 is None:#折叠无身份
+    if 身份 is None or (isinstance(身份,dict) and 'seq' in 身份 and 身份['seq']<继承计数):#无自身后缀身份
         return {'kind':'diagnostic','id':子标识,'reason':'corrupt'}#已结算无身份
     return 子体行(子标识,身份,'inactive',有子体)#冷子体行
 

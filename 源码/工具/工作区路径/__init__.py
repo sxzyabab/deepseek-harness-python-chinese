@@ -1,77 +1,81 @@
-"""DeepSeek Harness 用户数据共用的文件系统路径辅助。"""
-import os,errno#路径与错误码
+"""浏览器安全的工作区路径与展示辅助。"""
+import re#Windows风格判定
+from .文件地址 import 会话文件地址,绝对文件地址,解析文件地址#文件地址
+
 __all__=[#仅中文公开名
-    '主目录名','默认主目录展示','主目录环境键','有错误码','规范化监视路径',
-    '默认主目录','展开家目录路径','解析主目录','主目录路径','主目录展示',
+    '是否绝对工作区路径','解析工作区路径','缩写家目录路径','工作区标题自','路径展示拆分',
+    '文件地址为','相对化到工作目录','会话文件地址','绝对文件地址','解析文件地址',
 ]#公开面结束
 
-主目录名='.dsh'#操作系统家目录下默认 DeepSeek Harness 主目录的目录名
-默认主目录展示='~/'+主目录名#默认 DeepSeek Harness 主目录的稳定面向用户展示形式
-主目录环境键='DSH_HOME'#覆盖默认 DeepSeek Harness 主目录的环境变量
+def 是否Windows风格路径(值):#判断Windows风格路径
+    """路径是否使用 Windows 盘符或 UNC 前缀。"""
+    return bool(re.match(r'^[A-Za-z]:[/\\]',值)) or 值.startswith('\\\\')#盘符或UNC
 
-def 有错误码(错误,码):#错误对象是否带某错误码
-    """错误对象是否带某错误码。"""
-    if 错误 is None:#空值
-        return False#没有
-    if getattr(错误,'code',None)==码:#已有 Node/服务码
-        return True#命中
-    if isinstance(错误,OSError):#宿主 OSError
-        if 错误.errno==errno.ENOENT and 码=='ENOENT':#不存在
-            return True#命中
-        if 错误.errno==errno.ENOTDIR and 码=='ENOTDIR':#非目录
-            return True#命中
-    return False#未命中
+def 是否绝对工作区路径(路径):#是否绝对工作区路径
+    """路径是否为宿主接受的任一种绝对拼写。"""
+    return 路径.startswith('/') or 是否Windows风格路径(路径)#POSIX或Windows绝对
 
-def 规范化监视路径(路径):#规范化监视路径拼写
-    """给原生文件系统监视器一份路径的规范拼写，即使最终分量尚不存在。最深的已存在祖先经 realpath 解析；后缀缺失时，还要证明该祖先是可枚举目录，再还原后缀。这防止 Windows 把普通文件祖先当成普通缺失，也防止短名别名与原生监视后端发出的长路径混用。"""
-    当前=os.path.abspath(路径)#从相对当前目录的绝对路径开始
-    缺失=[]#尚不存在、待还原的后缀分量
-    while True:#向上找最深已存在祖先
-        try:#尝试解析当前层真实路径
-            规范=os.path.realpath(当前)#把现存祖先解析成规范路径
-            if len(缺失)>0:#有缺失后缀，祖先必须是目录
-                #Windows把文件当父路径探测会报ENOENT。打开已解析祖先以保住跨平台的目录要求。
-                os.listdir(规范)#打开祖先以证明它是可枚举目录
-            缺失.reverse()#按原顺序
-            return os.path.join(规范,*缺失) if len(缺失)>0 else 规范#把缺失后缀接回
-        except OSError as 错误:#realpath或listdir失败
-            if not 有错误码(错误,'ENOENT'):#非缺失错误原样抛出
-                raise 错误#原样抛出
-            父路径=os.path.dirname(当前)#上溯一层父路径
-            if 父路径==当前:#已到根仍缺失则无法继续
-                raise 错误#无法继续
-            缺失.append(os.path.basename(当前))#记下本层缺失分量
-            当前=父路径#继续检查父路径
+def 解析工作区路径(工作目录,路径):#解析工作区路径
+    """把工作区相对路径解析成路径操作用的宿主拼写。"""
+    if 是否绝对工作区路径(路径):#已是绝对
+        return 路径#原样
+    if 工作目录 is None or 工作目录=='':#无根
+        return 路径#原样
+    分隔符='\\' if 是否Windows风格路径(工作目录) and '\\' in 工作目录 else '/'#按根选分隔符
+    基=re.sub(r'[/\\]+$','',工作目录)#去掉根尾部分隔符
+    相对=re.sub(r'^[/\\]+','',路径)#去掉相对前导分隔符
+    return 基+分隔符+相对#拼接绝对路径
 
-def 默认主目录():#默认主目录绝对路径
-    """按平台路径规则解析默认 DeepSeek Harness 主目录。"""
-    return os.path.join(os.path.expanduser('~'),主目录名)#操作系统家目录下的.dsh
+def 缩写家目录路径(路径,家=None):#缩写家目录展示
+    """为展示缩写 POSIX 家目录。"""
+    if 家 is None or 家=='':#无家目录
+        return 路径#原样
+    if 是否Windows风格路径(路径) or 是否Windows风格路径(家):#Windows不缩写
+        return 路径#原样
+    根=re.sub(r'/+$','',家)#去掉家目录尾部斜杠
+    if 根=='' or 根=='/':#空或根目录不缩写
+        return 路径#原样
+    if re.sub(r'/+$','',路径)==根:#恰为家目录
+        return '~'#波浪号
+    if 路径.startswith(根+'/'):#家目录后代
+        return '~'+路径[len(根):]#缩写
+    return 路径#其他原样
 
-def 展开家目录路径(路径):#展开家目录波浪号前缀
-    """把受支持的波浪号前缀展开为操作系统家目录。"""
-    if 路径=='~':#单独波浪号就是家目录
-        return os.path.expanduser('~')#就是家目录
-    if 路径.startswith('~/') or 路径.startswith('~\\'):#斜杠后接相对家目录的后缀
-        return os.path.join(os.path.expanduser('~'),路径[2:])#相对家目录
-    return 路径#无受支持前缀则原样返回
+def 工作区标题自(路径):#工作区标题段
+    """读出工作区路径的最后非空段供展示。"""
+    修剪=re.sub(r'[/\\]+$','',路径)#去掉尾部分隔符
+    斜=修剪.rfind('/')#最后正斜杠
+    反=修剪.rfind('\\')#最后反斜杠
+    分隔符=斜 if 斜>反 else 反#最后分隔符
+    return 修剪[分隔符+1:]#取末段
 
-def 解析主目录(已配置=None,环境=None):#解析单根 harness 主目录
-    """解析单根 DeepSeek Harness 主目录。优先级从高到低：显式配置路径、`$DSH_HOME`，然后 `~/.dsh`。harness 把全部用户数据放在一个根下。空或仅空白的 `$DSH_HOME` 视为未设置，因此空白覆盖绝不会把主目录解析成当前工作目录。"""
-    if 环境 is None:#未传入环境映射
-        环境=os.environ#进程环境
-    来自环境=环境.get(主目录环境键)#读取DSH_HOME覆盖
-    if 已配置 is not None:#配置优先
-        选中=已配置#显式配置
-    elif 来自环境 is not None and len(str(来自环境).strip())>0:#非空白环境变量
-        选中=来自环境#环境覆盖
-    else:#都没有
-        选中=默认主目录()#默认~/.dsh
-    return os.path.abspath(展开家目录路径(选中))#展开波浪号并规范化为绝对路径
+def 路径展示拆分(路径):#路径展示拆分
+    """为展示拆分路径：目录前缀与末段。"""
+    修剪=re.sub(r'[/\\]+$','',路径)#去掉尾部分隔符
+    if 修剪=='':#仅分隔符
+        return {'directory':'','name':路径}#整段为名
+    斜=修剪.rfind('/')#最后正斜杠
+    反=修剪.rfind('\\')#最后反斜杠
+    切开=(斜 if 斜>反 else 反)+1#切开点
+    return {'directory':修剪[:切开],'name':修剪[切开:]}#前缀与末段
 
-def 主目录路径(*分段):#主目录下的拼接路径
-    """把路径分段拼到已解析的 DeepSeek Harness 主目录上；空列表返回主目录本身。"""
-    return os.path.join(解析主目录(),*分段)#在已解析主目录上拼接分段
+def 文件地址为(会话标识,工作目录,路径):#路径到文件地址
+    """调用方持有路径时的地址：相对或会话工作区内绝对→session；根外绝对仍会话作用域保留绝对路径。"""
+    规范=路径.replace('\\','/')#正斜杠
+    if not 是否绝对工作区路径(规范):#相对
+        return 会话文件地址(会话标识,规范)#会话相对
+    根='' if 工作目录 is None else re.sub(r'/+$','',工作目录.replace('\\','/'))#规范化根
+    if 根!='' and 规范==根:#恰为根
+        return 会话文件地址(会话标识,'')#空相对
+    if 根!='' and 规范.startswith(根+'/'):#根内
+        return 会话文件地址(会话标识,规范[len(根)+1:])#根内相对
+    return 会话文件地址(会话标识,规范)#根外仍会话作用域绝对路径
 
-def 主目录展示(已解析主目录):#主目录的面向用户标签
-    """用符号形式描述已解析的 harness 主目录，供面向用户展示。从不返回绝对机器路径：默认主目录标为 `~/.dsh`，任何配置过的主目录标为 `$DSH_HOME`。"""
-    return 默认主目录展示 if 已解析主目录==os.path.abspath(默认主目录()) else ('$'+主目录环境键)#默认用~/.dsh，覆盖用$DSH_HOME
+def 相对化到工作目录(文本,工作目录):#相对化到工作区根
+    """从工作区根起的绝对路径去掉工作区根（仅展示）。"""
+    if 工作目录 is None or 工作目录=='':#无根
+        return 文本#原样
+    根=re.sub(r'[/\\]+$','',工作目录)#去掉尾部分隔符
+    if 文本.startswith(根+'/') or 文本.startswith(根+'\\'):#根下
+        return 文本[len(根)+1:]#去掉根前缀
+    return 文本#非根下原样

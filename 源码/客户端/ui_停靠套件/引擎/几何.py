@@ -19,7 +19,7 @@ __all__=[#仅中文公开名
     '落点浮动矩形',
 ]#公开面结束
 
-分割下限={'divider':4,'chip':59,'body':48}#样式表回退像素
+分割下限={'divider':0,'chip':100,'body':48}#样式表回退像素
 拖拽阈值=4#按压变拖拽的像素阈
 _抓取偏移左=60#新面板原点相对落点
 _抓取偏移上=14#新面板原点相对落点
@@ -57,7 +57,8 @@ def 半格可放(测量,下限=None):
     if not (窗格['width']>0) or not (窗格['height']>0) or not (条带['width']>0):#未量
         return {'row':True,'column':True}#可放
     边框=max(0,窗格['width']-条带['width'])#边框宽
-    固定=max(0,条带['width']-测量['chipsWidth']-测量['fillWidth'])#固定控件宽
+    控件宽=测量['splitControlWidth'] if 'splitControlWidth' in 测量 and 测量['splitControlWidth'] is not None else 0#分栏控件足印
+    固定=max(0,条带['width']-测量['chipsWidth']-测量['fillWidth']-控件宽)#固定控件宽
     半宽=(窗格['width']-下限['divider'])/2-边框#半宽
     半高=(窗格['height']-下限['divider'])/2-边框#半高
     return {#可放

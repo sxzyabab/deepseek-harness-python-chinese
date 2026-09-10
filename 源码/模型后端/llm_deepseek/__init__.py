@@ -21,6 +21,27 @@ from .适配器 import (
     默认流空闲超时毫秒,#默认空闲超时
     深求适配器,#适配器类
 )#适配器模块
+from .请求定价 import (#请求定价再导出
+    默认低细节图像素预算,#低细节预算
+    默认每请求最大图片数,#最大图数
+    默认最大请求文件字节,#文件字节上限
+    默认请求图最大字节,#单图字节
+    默认请求图像素预算,#像素预算
+    深求图片请求定价,#图片请求定价
+    解析请求图政策,#解析请求图政策
+)#请求定价
+from .图片令牌 import 深求图片令牌#图 token
+from .文件仓 import 深求文件仓,最大聊天图字节#文件仓
+from .文件接口 import (#Files 客户端
+    深求文件客户端,#客户端
+    最大文件过期秒,#最大过期
+    最大文件上传字节,#最大上传
+    最大存储文件字节,#最大存储字节
+    最大存储文件数,#最大存储数
+    最小文件过期秒,#最小过期
+)#Files
+from .文件标识 import 深求文件标识#文件 id
+from .上传索引 import 深求上传索引,深求文件作用域摘要#上传索引
 from .类型 import (#再导出线路类型
     线路请求,#线路请求
     线路系统消息,#系统消息
@@ -42,6 +63,11 @@ __all__=(#仅中文公开名；无英文别名
     '名称','注入','配置','应用','默认',
     '设置空间','公开基址','解析适配器选项','解析模型目录','深求配置错误',
     '默认上下文窗口','默认最大令牌','默认流空闲超时毫秒','深求适配器',
+    '默认低细节图像素预算','默认每请求最大图片数','默认最大请求文件字节',
+    '默认请求图最大字节','默认请求图像素预算','深求图片请求定价','解析请求图政策',
+    '深求图片令牌','深求文件仓','最大聊天图字节',
+    '深求文件客户端','最大文件过期秒','最大文件上传字节','最大存储文件字节','最大存储文件数','最小文件过期秒',
+    '深求文件标识','深求上传索引','深求文件作用域摘要',
     '线路请求','线路系统消息','线路用户消息','线路工具消息',
     '线路助手消息','线路消息','线路工具调用','线路工具',
     '线路块','线路选择','线路增量','线路工具调用增量',
@@ -56,8 +82,17 @@ __all__=(#仅中文公开名；无英文别名
 最大安全整数=9007199254740991#Number.MAX_SAFE_INTEGER
 最小正数=5e-324#Number.MIN_VALUE#5e-324
 默认模型列表=[
-    {'id':'deepseek-v4-flash','name':'DeepSeek-V4-Flash','contextWindow':默认上下文窗口},#Flash
-    {'id':'deepseek-v4-pro','name':'DeepSeek-V4-Pro','contextWindow':默认上下文窗口},#Pro
+    {'id':'deepseek-flash','name':'DeepSeek-V41-Flash','contextWindow':默认上下文窗口,#V41 Flash
+     'inputModalities':['text','image'],#支持图文
+     'imagePixelBudget':默认请求图像素预算,'imageMaxBytes':默认请求图最大字节,#图预算
+     'systemPromptUpdate':'in-history'},#系统提示更新策略
+    {'id':'deepseek-v4-flash','name':'DeepSeek-V4-Flash','contextWindow':默认上下文窗口,#Flash
+     'description':'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.'},#描述
+    {'id':'deepseek-v4-pro','name':'DeepSeek-V4-Pro','contextWindow':默认上下文窗口,#Pro
+     'description':'Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.'},#描述
+    {'id':'deepseek-v4-flash-vision-exp','name':'DeepSeek-V4-Flash-Vision-Exp','contextWindow':默认上下文窗口,#视觉实验
+     'inputModalities':['text','image'],#支持图文
+     'imagePixelBudget':默认请求图像素预算,'imageMaxBytes':默认请求图最大字节},#图预算
 ]#默认建议目录
 目录模型={
     'id':字符串字段(可空=False),#必需id
@@ -102,6 +137,9 @@ def 解析模型目录(模型列表):#解析建议目录
             是正整数=not isinstance(上限,bool) and isinstance(上限,(int,float)) and 上限==int(上限) and 上限>0#入口校验正整数，先排除 bool
             if not 是正整数:#上限非法
                 raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" maxTokens must be a positive integer')#上限非法
+        更新模式=模型['systemPromptUpdate'] if 'systemPromptUpdate' in 模型 else None#可选系统提示词更新
+        if 更新模式 is not None and 更新模式!='in-history':#非法模式
+            raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" systemPromptUpdate must be "in-history" when present')#更新模式非法
         if 模型['id'] in 已见:#id重复
             raise 深求配置错误('llm-deepseek: duplicate catalog model "'+模型['id']+'"')#id重复
         已见.add(模型['id'])#记下已见
@@ -114,6 +152,8 @@ def 解析模型目录(模型列表):#解析建议目录
             条目['contextWindow']=模型['contextWindow']#有窗口才带上
         if 'maxTokens' in 模型:#有上限
             条目['maxTokens']=模型['maxTokens']#有上限才带上
+        if 更新模式 is not None:#有更新模式
+            条目['systemPromptUpdate']=更新模式#有更新模式才带上
         结果.append(条目)#收下
     return 结果#已校验目录
 

@@ -1,0 +1,9 @@
+{
+    "command":"命令",
+    "directory":"目录",
+    "invoke":"调用",
+    "popup":"弹出",
+    "runtime":"运行时",
+    "service":"服务",
+    "ui":"UI"
+}

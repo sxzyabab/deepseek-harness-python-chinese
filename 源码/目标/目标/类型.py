@@ -35,6 +35,10 @@ class 目标快照(TypedDict):#每次非清除目标变更写入的完整持久�
 
 目标武装=Literal['armed','disarmed']#本实时进程是否可以自动续跑一个活跃目标
 
+class 目标武装变更(TypedDict):#转发给 UI 的进程内武装更新
+    sessionId:str#实时目标武装发生变化的会话
+    goal:NotRequired[dict]#精确当前武装；没有当前目标时缺席
+
 class 目标视图(TypedDict):#当前目标投影，含从会话日志导出的值与进程内武装
     id:目标标识#稳定的目标身份
     revision:int#正数修订

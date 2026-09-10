@@ -18,7 +18,7 @@ from .模式 import (
 from .ts类型 import json模式转ts,渲染工具sdk#导入 TS SDK
 from .python类型 import json模式转py,渲染工具sdkpy#导入 Python SDK
 from .测试 import 定义内容工具夹具#导入测试夹具
-from .类型 import 代码派发开始,代码派发落定,派发开始字段,派发落定字段#导入派发事件词汇
+from .类型 import PTC派发开始,PTC派发落定,派发开始字段,派发落定字段#导入派发事件词汇
 from .呈现 import (
     调用类别,#调用类别
     调用卡片,#待处理卡片
@@ -48,7 +48,7 @@ __all__=(
     '工具运行时',
     '定义工具','值模式规格转json模式','参数模式规格转json模式','校验参数','工具参数错误',
     '断言受支持json模式','断言对象json模式','校验json模式值','json模式错误',
-    '代码派发开始','代码派发落定','派发开始字段','派发落定字段',
+    'PTC派发开始','PTC派发落定','派发开始字段','派发落定字段',
     '代码运行失败错误','运行代码名','sdk段顺序','代码sdk语言',
     'json模式转ts','渲染工具sdk','json模式转py','渲染工具sdkpy',
     '定义内容工具夹具',
@@ -623,14 +623,14 @@ class 工具运行时(服务):
             return {'kind':'exclusive'}#失败关闭
 
     def 整形派发日志(自身,派发):
-        """对一次已落定子派发跑 tools/code-dispatch-log 瀑布。"""
+        """对一次已落定子派发跑 tools/ptc-dispatch-log 瀑布。"""
         def 默认内容():
             """默认原样内容。"""
             return 派发['content']#原样
         try:
-            return 自身.ctx.链式拦截(作用域目标(自身,派发['agent'] if 'agent' in 派发 else None),'tools/code-dispatch-log',派发,默认内容)#按智能体过滤
+            return 自身.ctx.链式拦截(作用域目标(自身,派发['agent'] if 'agent' in 派发 else None),'tools/ptc-dispatch-log',派发,默认内容)#按智能体过滤
         except Exception as 错误:
-            自身.ctx.日志.警告('tools: code-dispatch-log listener failed for '+派发['name']+': '+错误消息(错误)+'; logging the original settled content')#记警告
+            自身.ctx.日志.警告('tools: ptc-dispatch-log listener failed for '+派发['name']+': '+错误消息(错误)+'; logging the original settled content')#记警告
             return 派发['content']#回落原始内容
 
     def 是否折叠(自身,名,作用域,嵌套):

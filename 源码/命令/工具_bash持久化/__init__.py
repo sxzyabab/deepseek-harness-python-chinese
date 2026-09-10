@@ -14,6 +14,7 @@ __all__=['名称','注入','配置','应用','或许截断','下一滚回偏移'
 丢失前缀说明='<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'#滚回丢掉开头时的说明
 壳重置说明='The persistent bash shell was reset; the next bash call starts from the workspace with a fresh current directory and environment.'#壳被重置后告诉模型的说明
 壳提示符='__DSH_PERSISTENT_BASH_PROMPT__ '#持久 bash 的提示符标记
+超时状态标记='[Command timed out or OOM]'#超时或 OOM 状态标记
 超时码='PERSISTENT_BASH_TIMEOUT'#超时原因码
 滚回页行数=1000#每次读取的滚回页行数
 轮询间隔毫秒=25#轮询间隔毫秒
@@ -28,7 +29,7 @@ __all__=['名称','注入','配置','应用','或许截断','下一滚回偏移'
     'description':字符串字段(默认值=默认描述),#默认工具描述
 }#配置模式结束
 退出码模式=re.compile(r'^([0-9]+)\r?\n',re.ASCII)#结束标记后的退出码
-末尾换行模式=re.compile(r'\r?\n\Z')#末尾换行
+末尾换行模式=re.compile(r'(?:\r?\n)+\Z')#末尾全部换行
 开头换行模式=re.compile(r'^\r?\n')#开头换行
 
 class 持久bash错误(Exception):#本包异常基类
@@ -106,7 +107,7 @@ def 包装命令(命令,标记):#把用户命令包进打印标记与退出码�
 
 def 剥提示符(文本):#剥掉末尾提示符和尾换行
     """剥掉末尾提示符和尾换行。"""
-    结果=末尾换行模式.sub('',文本,count=1)#先去掉末尾换行
+    结果=末尾换行模式.sub('',文本)#先去掉末尾全部换行
     while 结果.endswith(壳提示符):#末尾还是提示符
         结果=结果[:-len(壳提示符)]#切掉一层提示符
     if 结果.endswith('\n'):#再去一层尾换行
@@ -217,9 +218,9 @@ def 渲染已抽(输出,最大输出字节):#把抽出的输出渲染给模型
     else:#否则只用截断后文本
         带前缀=已渲染#截断后文本
     退出码=输出['exitCode'] if 'exitCode' in 输出 else None#可选退出码
-    if 退出码 is not None and 退出码!=0:#非零退出
-        标记='[exit code: '+str(退出码)+']'#退出码标记
-    else:#零退出或没有退出码
+    if 退出码 is not None:#有退出码（含 0）
+        标记='[Command finished with exit code '+str(退出码)+']'#完成退出码标记
+    else:#没有退出码
         标记=None#不加
     return 追加状态标记(带前缀,标记)#正文后追加状态标记
 
@@ -364,7 +365,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
                 秒数=round(已超时.timeoutMs/1000.0)#超时秒数
                 return '\n'.join([#超时说明+部分输出+重置说明
                     'Your command timed out after '+str(秒数)+' seconds or experienced an OOM error. Below is partial output:',#超时说明
-                    部分,#部分输出
+                    追加状态标记(部分,超时状态标记),#部分输出附超时标记
                     壳重置说明,#壳已重置
                 ])#拼成一段
             if 已中止(命令截止.信号):#上游取消

@@ -28,8 +28,8 @@ def 投影会话对话(快照):#从表面快照投影对话
             文本=抽出文本(事件['data']['message']['content'])#抽出助手文本
             if 文本!='':#非空才入列
                 对话.append({'role':'assistant','text':文本,'checkpoint':False,'originalText':文本,'omittedBytes':0})#入列
-        elif 种类=='tool/result':#工具结果
-            pass#引用快照不纳入工具输出
+        elif 种类=='system/message' or 种类=='tool/result':#系统消息或工具结果
+            pass#引用快照不纳入
         else:#不可达分支
             断言永不(事件,'session-reference surface event')#编译期穷尽检查
     return 对话#返回投影对话

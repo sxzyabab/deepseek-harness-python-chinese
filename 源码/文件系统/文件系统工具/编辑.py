@@ -34,10 +34,16 @@ def 格式化编辑输出(展示路径,替换全部):#格式化编辑成功消�
 
 def 应用编辑工具(上下文,沙箱):#注册 edit 工具
     """注册 edit 工具及其系统提示词指引。"""
+    def 段落文本(上下文元):#按作用域
+        """本作用域无 edit 则空。"""
+        作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域
+        if 上下文.tools.获取('edit',作用域) is None:#看不见
+            return ''#空
+        return 编辑提示文本#指引
     上下文.systemPrompt.段落({#写入系统提示词段落
         'name':'tool:edit',#段落名
         'order':102,#排序
-        'text':编辑提示文本,#指引模型先读再edit
+        'text':段落文本,#动态指引
     })#系统提示词结束
     参数表={#参数schema
         'file_path':{'type':'string','required':True,'description':'Path to edit, resolved by the filesystem backend.'},#编辑路径

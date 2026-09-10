@@ -25,7 +25,7 @@ def 有文本助手(事件):
 
 def 块有文本(事件):
     """text-delta 或 block-end 文本。"""
-    if 事件['type']!='assistant/chunk':#非
+    if 事件['type']!='assistant/live-chunk':#非
         return False#否
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     块=数据['chunk'] if 'chunk' in 数据 and 数据['chunk'] is not None else {}#块
@@ -43,7 +43,7 @@ def 回合坐标(事件):
     """没有则 None。"""
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种 in ('assistant/message','assistant/chunk','step/end','llm/retry'):#带坐标
+    if 种 in ('assistant/message','assistant/attempt','assistant/live-chunk','step/end','llm/retry'):#带坐标
         出={'turn':数据['turn'] if 'turn' in 数据 else None}#回合
         if 'step' in 数据 and 数据['step'] is not None:#有步
             出['step']=数据['step']#步
@@ -77,7 +77,7 @@ def 收口锚(上下文):
         步=坐标['step']#步号
         先前=步证[步] if 步 in 步证 else {'streamedText':False,'finalized':False}#证据
         种=事件['type']#种
-        if 种=='assistant/chunk':#流式
+        if 种=='assistant/live-chunk':#流式
             步证[步]={**先前,'streamedText':先前['streamedText'] or 块有文本(事件)}#更新
             continue#下
         if 种=='assistant/message':#终态

@@ -5,9 +5,9 @@ from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算�
 from .错误 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
 from .会话工作目录 import 会话解析选项#导入会话cwd解析选项
 
-写提示文本=(#把 write 定位为整文件创建/覆盖的稳定系统提示词指引（字面量不翻译）
-    'Use the write tool to create files or completely replace file contents. Existing files are overwritten, so read an existing file first (the default fs-observation-policy requires it) and prefer edit for targeted changes.'#整文件创建/覆盖：先读后写，定向改优先edit
-)#写提示文本结束
+写提示文本前缀=(#write 稳定指引前半（字面量不翻译）
+    'Use the write tool to create files or completely replace file contents. Existing files are overwritten, so read an existing file first (the default fs-observation-policy requires it)'#整文件创建/覆盖：先读后写
+)#写提示文本前缀结束
 def 解析写参数(参数):#校验写工具参数
     """校验 schema DSL 表达不了的值约束：只要非空白 file_path——空 content 合法。"""
     if len(参数['file_path'].strip())==0:#路径不得为空
@@ -21,10 +21,19 @@ def 格式化写输出(展示路径,结果):#格式化写结果确认信封
 
 def 应用写工具(上下文,沙箱):#注册 write 工具
     """注册 write 工具及其系统提示词指引。"""
+    def 段落文本(上下文元):#按作用域
+        """本作用域无 write 则空；有 edit 时补定向修改指引。"""
+        作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域
+        if 上下文.tools.获取('write',作用域) is None:#看不见
+            return ''#空
+        文=写提示文本前缀#前半
+        if 上下文.tools.获取('edit',作用域) is not None:#有edit
+            文+=' and prefer edit for targeted changes'#补定向
+        return 文+'.'#收尾
     上下文.systemPrompt.段落({#写入系统提示词段落
         'name':'tool:write',#段落名
         'order':101,#排序
-        'text':写提示文本,#指引模型先读再用write
+        'text':段落文本,#动态指引
     })#系统提示词结束
     参数表={#参数schema
         'file_path':{'type':'string','required':True,'description':'Path to write, resolved by the filesystem backend.'},#写入路径

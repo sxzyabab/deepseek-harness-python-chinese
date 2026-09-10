@@ -1,201 +1,45 @@
-"""可持久化 Agent 收件箱事件的增量投影。
+"""结构化收件箱接口（不含耐久投影实现）。
 
-对齐上游 `agent/src/inbox.ts`。公开面仅中文名；拼接事件 type／字段键保持上游字面量。
+对齐上游 `agent/src/runtime-types.ts` 的 Inbox。
+循环侧耐久实现见 `智能体循环/收件箱.py`（对齐 `agent-loop/src/inbox.ts`）。
+公开面仅中文名；拼接事件 type／字段键保持上游字面量。
 """
-import math#向零截断与 NaN
-from .类型 import 下一轮,下一步#两条待处理列表名
 
-__all__=('收件箱通知口','收件箱','向零截断')#仅中文公开名
+__all__=('收件箱',)#仅中文公开名
 
-安全整数上限=9007199254740991#JSON 拼接入口安全整数上限
-
-class 收件箱错误(Exception):
-    """内核智能体收件箱包的异常基类。"""
-
-class 收件箱通知口:#收件箱变更的在线通知口协议
-    """收件箱变更提交的在线通知口。循环注入实现；本类只定中文方法名。"""
-    def 已插入(自身,消息):#一条消息进入待处理
-        """发布一条插入的消息。"""
-        raise NotImplementedError('收件箱通知口.已插入')#由循环实现
-    def 已丢弃(自身,消息):#一条消息被公开拼接取消
-        """发布一条丢弃的消息。"""
-        raise NotImplementedError('收件箱通知口.已丢弃')#由循环实现
-    def 已领取(自身,消息,轮次):#一条消息在其轮次内被领取
-        """发布一条在其所属轮次内被领取的消息。"""
-        raise NotImplementedError('收件箱通知口.已领取')#由循环实现
-
-def 向零截断(值):#对齐 JS Math.trunc
-    """对齐 JS Math.trunc，含 NaN 与无穷。"""
-    if isinstance(值,bool):#布尔
-        return int(值)#布尔当 0/1
-    if isinstance(值,int):#整数
-        return 值#整数原样
-    if isinstance(值,float):#浮点
-        if 值!=值:#NaN
-            return float('nan')#NaN
-        if 值==float('inf') or 值==float('-inf'):#无穷
-            return 值#无穷原样
-        return math.trunc(值)#向 0 截断
-    try:#其它可截断
-        return math.trunc(值)#其它可截断
-    except (ValueError,OverflowError,TypeError):#不能截断
-        return float('nan')#与 JS Math.trunc 的 NaN 对齐
-
-class 收件箱:#收件箱投影
-    """只回放一次、之后增量消费后续收件箱拼接的投影。"""
-    def __init__(自身,会话,通知):#从日志回放拼接
-        """从日志回放拼接。通知口须实现 已插入／已丢弃／已领取。"""
-        自身.状态={下一轮:[],下一步:[]}#两条待处理列表
-        自身.会话=会话#所属会话
-        自身.通知=通知#在线通知口
-        头=会话.header#会话头
-        种子长度=头['seedLength'] if 'seedLength' in 头 else None#种子边界
-        if 种子长度 is None:#缺省
-            种子长度=0#缺省从 0
-        for 事件 in 会话.events[种子长度:]:#跳过种子后扫描
-            if 事件['type']!='agent/inbox/spliced':#非拼接
-                continue#只看拼接事件
-            try:#应用一条拼接
-                自身.应用(事件['data'])#投影该拼接
-            except 收件箱错误 as 错误:#持久化拼接非法
-                包装=收件箱错误('invalid persisted inbox splice at session seq '+str(事件['seq']))#带序号抛出
-                raise 包装 from 错误#带原因
+class 收件箱:#结构化接口协议
+    """Agent 拥有的待处理工作访问面；具体存储归驱动。"""
 
     @property#下一轮队列
     def 下一轮队列(自身):#等待各自轮次的提示
         """等待各自轮次的提示。"""
-        return 自身.状态[下一轮]#返回下一轮列表
+        raise NotImplementedError('收件箱.下一轮队列')#由循环实现
 
     @property#下一步队列
     def 下一步队列(自身):#等待下一个步骤边界的输入
         """等待下一个步骤边界的输入。"""
-        return 自身.状态[下一步]#返回下一步列表
-
-    @property#是否有待处理
-    def 有待处理(自身):#任一条待处理列表是否还有工作
-        """任一条待处理列表是否还有工作。"""
-        return len(自身.下一轮队列)>0 or len(自身.下一步队列)>0#任一侧非空即为有
+        raise NotImplementedError('收件箱.下一步队列')#由循环实现
 
     def 清空(自身):#清空收件箱
         """可持久化取消全部待处理输入，先清下一步再清下一轮。"""
-        自身.拼接(下一步,0,len(自身.下一步队列),[])#清空下一步
-        自身.拼接(下一轮,0,len(自身.下一轮队列),[])#清空下一轮
-
-    def 领取(自身,目标,轮次):#领取一批
-        """取出并返回为一步提议的完整批次，发布每条已领取消息。可持久化拼接是纯删除。"""
-        已领=自身.变更(下一步,0,len(自身.下一步队列),[],False)#先拿走全部下一步
-        if 目标==下一轮:#还要消费一条下一轮
-            已领.extend(自身.变更(下一轮,0,1,[],False))#再拿走一条下一轮
-        for 消息 in 已领:#发布领取
-            自身.通知.已领取(消息,轮次)#仅中文通知口
-        return 已领#返回批次
+        raise NotImplementedError('收件箱.清空')#由循环实现
 
     def 追加(自身,目标,消息):#追加消息
         """向待处理列表追加一条消息并持久记录这次插入。"""
-        自身.拼接(目标,len(自身.状态[目标]),0,[消息])#在末尾插入
+        raise NotImplementedError('收件箱.追加')#由循环实现
 
     def 前置(自身,目标,消息):#前置消息
         """向待处理列表前置一条消息并持久记录这次插入。"""
-        自身.拼接(目标,0,0,[消息])#在开头插入
+        raise NotImplementedError('收件箱.前置')#由循环实现
 
     def 替换(自身,消息身份,新消息):#替换消息
         """原地替换一条待处理消息，身份可以变。"""
-        位置=自身.定位(消息身份)#定位旧消息
-        if 位置 is None:#已不在待处理
-            return False#已不在待处理
-        自身.拼接(位置['target'],位置['index'],1,[新消息])#原地替换
-        return True#已替换
+        raise NotImplementedError('收件箱.替换')#由循环实现
 
     def 移除(自身,消息身份):#移除消息
         """移除一条待处理消息并持久记录这次取消。"""
-        位置=自身.定位(消息身份)#定位消息
-        if 位置 is None:#已不在待处理
-            return False#已不在待处理
-        自身.拼接(位置['target'],位置['index'],1,[])#删除该条
-        return True#已移除
+        raise NotImplementedError('收件箱.移除')#由循环实现
 
     def 拼接(自身,目标,起点,删除数,插入):#公开拼接
         """应用标准拼接语义并持久记录归一化结果。"""
-        return 自身.变更(目标,起点,删除数,插入,True)#带丢弃通知地变更
-
-    def 定位(自身,消息身份):#定位身份
-        """在两条自有列表中定位一个待处理身份。"""
-        for 目标 in (下一轮,下一步):#两侧都找
-            下标=0#按插入序扫描
-            for 消息 in 自身.状态[目标]:#按 id 找下标
-                if 消息['id']==消息身份:#命中
-                    return {'target':目标,'index':下标}#找到则返回位置
-                下标+=1#前进
-        return None#两侧都没有
-
-    def 变更(自身,目标,起点,删除数,插入,丢弃移除):#内部变更
-        """提交一次归一化变更并发布其在线通知。"""
-        列表=自身.状态[目标]#取出目标列表
-        截断起点=向零截断(起点)#向 0 截断
-        偏移=0 if 截断起点!=截断起点 else 截断起点#NaN 当 0
-        if 偏移<0:#从末尾算
-            实际起点=max(len(列表)+偏移,0)#从末尾算
-        else:#夹到长度
-            实际起点=min(偏移,len(列表))#夹到长度
-        截断删除=向零截断(删除数)#向 0 截断
-        原始删除=0 if 截断删除!=截断删除 else 截断删除#NaN 当 0
-        实际删除=min(max(原始删除,0),len(列表)-实际起点)#归一化删除数
-        实际起点=int(实际起点)#切片要整数
-        实际删除=int(实际删除)#切片要整数
-        if 实际删除==0 and len(插入)==0:#空操作
-            return []#空操作直接返回
-        结果标记='canceled' if 丢弃移除 and 实际删除>0 else None#公开拼接且有删除则标取消
-        拼接={'target':目标,'start':实际起点,'inserted':插入}#归一化拼接载荷
-        if 实际删除!=0:#有删除
-            拼接['removedCount']=实际删除#有删除才写条数
-        if 结果标记 is not None:#有结果
-            拼接['outcome']=结果标记#有结果才写
-        自身.校验(拼接)#先校验
-        事件=自身.会话.追加('agent/inbox/spliced',拼接)#先提交可持久化事件
-        写入=事件['data']['inserted']#以记下的插入为准
-        移除=列表[实际起点:实际起点+实际删除]#切出被移除
-        列表[实际起点:实际起点+实际删除]=list(写入)#再改投影
-        if 丢弃移除:#需要发布丢弃
-            for 消息 in 移除:#逐条丢弃通知
-                自身.通知.已丢弃(消息)#仅中文通知口
-        for 消息 in 写入:#逐条插入通知
-            自身.通知.已插入(消息)#仅中文通知口
-        return 移除#返回被移除消息
-
-    def 应用(自身,拼接):#回放拼接
-        """把一条归一化可持久化拼接应用到投影。"""
-        自身.校验(拼接)#先校验
-        列表=自身.状态[拼接['target']]#取出目标列表
-        删除数=拼接['removedCount'] if 'removedCount' in 拼接 else None#缺省删除数
-        if 删除数 is None:#缺省
-            删除数=0#缺省 0
-        起点=拼接['start']#拼接起点
-        移除=列表[起点:起点+删除数]#切出被移除
-        列表[起点:起点+删除数]=list(拼接['inserted'])#应用到投影
-        return 移除#回放移除
-
-    def 校验(自身,拼接):#校验拼接
-        """按当前投影校验一条归一化拼接。"""
-        列表=自身.状态[拼接['target']]#取出目标列表
-        删除数=拼接['removedCount'] if 'removedCount' in 拼接 else None#缺省删除数
-        if 删除数 is None:#缺省
-            删除数=0#缺省 0
-        起点=拼接['start']#拼接起点
-        起点是整数=(not isinstance(起点,bool)) and (isinstance(起点,int) or (isinstance(起点,float) and 起点.is_integer()))#排除布尔
-        删除是整数=(not isinstance(删除数,bool)) and (isinstance(删除数,int) or (isinstance(删除数,float) and 删除数.is_integer()))#排除布尔
-        起点合法=起点是整数 and abs(起点)<=安全整数上限 and 起点>=0 and 起点<=len(列表)#坐标
-        删除合法=删除是整数 and abs(删除数)<=安全整数上限 and 删除数>=0#条数
-        if not 起点合法 or not 删除合法 or 起点+删除数>len(列表):#越界
-            raise 收件箱错误('invalid inbox splice')#非法拼接
-        候选=list(列表)#模拟拼接前拷贝
-        候选[起点:起点+删除数]=list(拼接['inserted'])#模拟拼接后列表
-        if 拼接['target']==下一轮:#下一轮候选
-            合在一起=候选+list(自身.下一步队列)#下一轮候选加下一步
-        else:#下一步候选
-            合在一起=list(自身.下一轮队列)+候选#下一轮加下一步候选
-        已见=set()#已见身份
-        for 消息 in 合在一起:#两侧合在一起查重
-            身份=消息['id']#消息身份
-            if 身份 in 已见:#重复
-                raise 收件箱错误('message "'+str(身份)+'" is already pending')#身份重复
-            已见.add(身份)#记下身份
+        raise NotImplementedError('收件箱.拼接')#由循环实现

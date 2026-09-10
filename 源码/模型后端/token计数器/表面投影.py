@@ -21,9 +21,11 @@ def 折叠表面投影(声明,事件):#把一条已提交事件折到运行中�
         return {'deltaTokens':令牌数,'claim':None}#追加
     if 声明 is None:#无声明则零增量
         return {'deltaTokens':0,'claim':None}#历史回放退化成漂移
-    if 声明['start']!=操作['start'] or 声明['end']!=操作['end']:#声明范围对不上
+    起点=操作['startSeq']#替换起点
+    终点=操作['endSeq']#替换终点
+    if 声明['start']!=起点 or 声明['end']!=终点:#声明范围对不上
         raise 计量错误(
-            'token surface: replace at seq '+str(事件['seq'])+' over range '+str(操作['start'])+'-'+str(操作['end'])+' has no adjacent shadow price'
+            'token surface: replace at seq '+str(事件['seq'])+' over range '+str(起点)+'-'+str(终点)+' has no adjacent shadow price'
             +' (armed claim covers '+str(声明['start'])+'-'+str(声明['end'])+')'
         )#相邻影子价格违约
     return {'deltaTokens':令牌数-声明['tokens'],'claim':None}#新价格减去被遮蔽

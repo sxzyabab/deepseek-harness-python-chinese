@@ -38,13 +38,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [//服务目录
       {//方法
         signature: 'async createAgent(ownerCtx: Context, options: CreateAgentOptions): Promise<AgentHandle>',
         description: 'Create an owned agent on a caller-supplied session id.',
-        parameters: [{ name: 'ownerCtx', description: 'caller context that structurally owns the lifecycle.' }, { name: 'options', description: 'identities, session seed/metadata, loop options, setup, and cancellation.' }],
+        parameters: [{ name: 'ownerCtx', description: 'caller context that structurally owns the lifecycle.' }, { name: 'options', description: 'identities, optional live parent, session seed/metadata, loop options, setup, and cancellation.' }],
         returns: 'the published handle.',
       },//结束方法
       {//方法
         signature: 'async resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandle>',
         description: 'Resume an owned agent from the configured persistence service.',
-        parameters: [{ name: 'ownerCtx', description: 'caller context that owns load, setup, and the live lifecycle.' }, { name: 'options', description: 'persisted identity, loop options, setup, and cancellation.' }],
+        parameters: [{ name: 'ownerCtx', description: 'caller context that owns load, setup, and the live lifecycle.' }, { name: 'options', description: 'persisted identity, optional live parent, loop options, setup, and cancellation.' }],
         returns: 'the published handle.',
       },//结束方法
     ],//结束 methods

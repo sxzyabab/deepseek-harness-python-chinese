@@ -6,7 +6,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [//服务目录
     description: 'Goal service (`ctx.goals`) backed exclusively by the owning session log.',
     methods: [//公开方法
       {//方法
-        signature: 'get(agent: Agent): GoalView | undefined',
+        signature: '@Remote(\'get\') get(agent: Agent): GoalView | undefined',
         description: 'Read the current goal for one exact live agent.',
         parameters: [{ name: 'agent', description: 'owning live agent.' }],
         returns: 'a fresh view or `undefined` when no goal is current.',

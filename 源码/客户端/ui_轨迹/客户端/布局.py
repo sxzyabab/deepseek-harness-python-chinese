@@ -515,6 +515,7 @@ def 派生轨迹布局(输入):#折叠整份轨迹
     运行中=输入['runningCalls'] if 'runningCalls' in 输入 and 输入['runningCalls'] is not None else []#进行中工具
     请求列表=输入['requests'] if 'requests' in 输入 and 输入['requests'] is not None else []#请求视图
     调用模式=输入['callSchemas'] if 'callSchemas' in 输入 else None#schema 表
+    窗外提示=输入['systemPrompts'] if 'systemPrompts' in 输入 and 输入['systemPrompts'] is not None else []#窗外系统提示
     结果表=索引结果(节点列表)#callId → 结果
     调用表=dict(结果表)#先填结果侧
     for 调用 in 运行中:#进行中覆盖
@@ -588,7 +589,10 @@ def 派生轨迹布局(输入):#折叠整份轨迹
         if 调用['step']>0:#有步
             已代表.add(f"{调用['turn']}\u0000{调用['step']}")#记为已代表
 
-    条目表=[]#合并四类条目
+    条目表=[]#合并五类条目
+    for 提示 in 窗外提示:#窗外系统提示
+        变更={'seq':提示['seq'],'time':提示['time'],'kind':'system' if ('update' in 提示 and 提示['update']) else 'initial'}#变更形状
+        条目表.append({'kind':'system','seq':提示['seq'],'systemPrompt':提示['text'],'change':变更})#仅文本系统条目
     for 号,节点 in enumerate(节点列表):#每个会话节点
         条目表.append({'kind':'node','seq':节点['seq'],'node':节点,'nodeIndex':号})#节点条目
     for 请求 in 请求列表:#压缩请求
@@ -621,12 +625,14 @@ def 派生轨迹布局(输入):#折叠整份轨迹
             continue#下一条
         if 种类=='system':#系统提示变更
             变更=条目['change']#变更
-            请求=条目['request']#所属请求
+            请求=条目['request'] if 'request' in 条目 else None#所属请求；窗外可无
             回合=最早可见轮次(节点列表,流式) if 变更['kind']=='initial' else 包围提示轮次(节点列表,变更['seq'],流式)#归入轮
             下标+=1#下一个下标
             单元格={'index':下标,'kind':'system','text':提示变更标签(变更),'sourceSeq':变更['seq'],'timeSeconds':0,'startedAt':有限时间(变更['time'])}#系统格
-            if 请求['prompt'] is not None:#有现提示
+            if 请求 is not None and 请求['prompt'] is not None:#有现提示
                 单元格['promptDetail']=请求['prompt']#现提示
+            if 'systemPrompt' in 条目 and 条目['systemPrompt'] is not None:#仅文本详情
+                单元格['systemPromptDetail']=条目['systemPrompt']#窗外提示文本
             if 变更['previous'] is not None:#有旧提示
                 单元格['previousPromptDetail']=变更['previous']#旧提示
             推进消息(回合,{'absTime':有限时间(变更['time']),'cell':单元格})#推进 Message

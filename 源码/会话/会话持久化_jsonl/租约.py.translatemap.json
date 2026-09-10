@@ -1,0 +1,15 @@
+{
+    "acquire":"取得",
+    "contention":"争用",
+    "exclusive":"排他",
+    "filename":"文件名",
+    "handle":"句柄",
+    "held":"已持",
+    "lease":"租约",
+    "lock":"锁",
+    "owned":"写主",
+    "posix":"posix",
+    "release":"释放",
+    "session":"会话",
+    "write":"写"
+}

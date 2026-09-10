@@ -2,11 +2,13 @@
 
 对齐上游 `api/gateway/src/client/index.ts`。公开面仅中文名。
 贡献安装带追踪的 remote.<namespace> 服务；方法查找、调用与类型暴露都不走 Proxy。
+另暴露 `$stream` 可重连逻辑流工厂（域 open 回调；WebSocket mux 见硬阻塞）。
 """
 import threading#后台串行与监听器盯住
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .网关 import 网关错误,操作任务,中止控制器,中止信号#本包异常与并发原语
+from .远程流 import 远程流#可重连流
 
 __all__=[#仅中文公开名
     '注入','应用','客户端远程服务','远程命名空间服务',
@@ -172,10 +174,16 @@ class 客户端远程服务(服务):
         自身.subscriptions={}#按事件名分组的订阅
         自身.mutations=操作任务()#挂载拆除串行队列尾
         自身.mutations.兑现(None)#初始已结算
+        setattr(自身,'$stream',自身.开流)#线路名 $stream（标识符非法，动态挂）
         def 清订阅():
             """拆除时清空订阅表。"""
             自身.subscriptions.clear()#清空
         上下文.副作用(清订阅,'api-gateway.client.subscriptions')#生命周期
+
+    def 开流(自身,选项):
+        """创建一条可独立取消、可重连的逻辑流。选项为 dict：name/open/ended/carrierFailed?。"""
+        连接=自身.ownerCtx.获取服务('connection')#活动连接
+        return 远程流(连接,选项)#监督流
 
     def mount(自身,贡献):
         """把挂载纳入调用方效果。贡献为 dict。"""

@@ -1,9 +1,15 @@
 {
     "apply":"应用",
+    "catalog":"目录",
     "chunk":"分片",
+    "compare":"比较",
     "dispose":"拆除",
+    "encode":"编码",
     "entry":"条目",
     "event":"事件",
+    "fixture":"夹具",
+    "format":"格式",
+    "header":"头",
     "image":"图像",
     "inject":"注入",
     "install":"安装",
@@ -14,9 +20,12 @@
     "name":"名称",
     "package":"包",
     "patch":"补丁",
+    "prepare":"准备",
     "provider":"提供方",
+    "restore":"恢复",
     "script":"脚本",
     "self":"自身",
     "session":"会话",
-    "snapshot":"快照"
+    "snapshot":"快照",
+    "tool":"工具"
 }

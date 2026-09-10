@@ -25,6 +25,8 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'empty.models':'没有可用的模型。',#无模型
     'blocked.composer':'当前模型不可用，请先选择模型',#阻断
     'empty.efforts':'当前模型未提供推理等级。',#无力度
+    'option.deepseekV4Flash.description':'快速、高效且经济；适合目标明确、常规或并行任务。',#内置 flash
+    'option.deepseekV4Pro.description':'更强的自主编码、知识与复杂推理能力；适合复杂或质量优先的任务，但成本更高。',#内置 pro
     'retry':'重试',#重试
 }#中文结束
 
@@ -46,5 +48,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'empty.models':'No models available.',#空
     'blocked.composer':'This model is unavailable — select one to continue',#阻断
     'empty.efforts':'This model provides no reasoning effort levels.',#无力度
+    'option.deepseekV4Flash.description':'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.',#内置 flash
+    'option.deepseekV4Pro.description':'Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.',#内置 pro
     'retry':'Retry',#重试
 }#英文结束

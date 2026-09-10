@@ -10,7 +10,7 @@ __all__=['客户端说明','客户端槽目录','上游槽目录路径','查询�
 
 _本目录=os.path.dirname(os.path.abspath(__file__))#本包
 上游槽目录路径=os.path.normpath(os.path.join(
-    _本目录,'..','..','..','..','..','..','project','dsh分析','源码','拓展','cordis-client-runner','src','client','slot-catalog.ts',
+    _本目录,'..','..','..','..','..','..','project','dsh分析','源码','拓展','cordis客户端','src','client','slot-catalog.ts',
 ))#原版槽目录
 
 def _加载():#读文件并解析
@@ -22,7 +22,7 @@ def _加载():#读文件并解析
         解析数组字面量(提取导出常量数组(源,'CLIENT_SLOT_API')),#槽
     )#返回
 
-#客户端说明,客户端槽目录=_加载()#导入时物化
+客户端说明,客户端槽目录=_加载()#导入时物化
 
 def 查询槽目录(键=None,槽列表=None):#查询槽
     """紧凑目录，或一条精确槽约定。"""

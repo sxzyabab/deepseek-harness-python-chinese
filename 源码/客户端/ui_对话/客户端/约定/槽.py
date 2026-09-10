@@ -10,13 +10,14 @@ __all__=[#仅中文公开名
     '详情工具属主','命令行属主','会话根注入','会话体注入','会话页眉注入',
     '撰写栏属主','撰写栏注入','输入控件属主','撰写链属主','聊天滚动位置','聊天视图注入',
     '详情注入','空白工作区属主','审批等待','待决审批','会话根子槽','聊天节点回合注入',
-    '槽名会话','槽名会话体','槽名页眉','槽名视图','槽名聊天节点','槽名命令视图',
+    '槽名主会话','槽名会话','槽名会话体','槽名页眉','槽名视图','槽名聊天节点','槽名命令视图',
     '槽名回合尾','槽名助手动作','槽名详情工具','槽名撰写链','槽名撰写栏','槽名输入停靠',
     '槽名撰写停靠','槽名输入左','槽名输入右','槽名计划','槽名模型','槽名英雄工作区',
     '槽名英雄预设','槽名输入叠层','槽名详情','对话错误',
 ]#公开面结束
 
-槽名会话='conversation'#根槽
+槽名主会话='main.conversation'#主面板会话壳
+槽名会话='conversation'#历史根别名（文档/旧登记）
 槽名会话体='conversation.session'#严格会话体
 槽名页眉='conversation.session.header'#页眉
 槽名视图='conversation.view'#视图环
@@ -38,7 +39,7 @@ __all__=[#仅中文公开名
 槽名输入叠层='conversation.input.overlay'#输入叠层
 槽名详情='details'#详情栏
 
-会话根子槽={#根登记 children 表
+会话根子槽={#主会话壳 children 表
     'conversation.session':{'kind':'single','scope':'session'},#严格会话体
     'conversation.session.header':{'kind':'single','scope':'session'},#页眉
     'conversation.composer':{'kind':'chain','scope':'session'},#撰写链
@@ -50,6 +51,7 @@ __all__=[#仅中文公开名
     'conversation.input.right':{'kind':'list','scope':'session'},#右
     'conversation.hero.workspace':{'kind':'single','scope':'root'},#英雄工作区
     'conversation.hero.agentPreset':{'kind':'single','scope':'root'},#英雄预设
+    'conversation.hero.brand.mark':{'kind':'single','scope':'root'},#英雄品牌
 }#子槽结束
 
 #撰写附件：kind/id/file/previewUrl
@@ -64,11 +66,11 @@ __all__=[#仅中文公开名
 #聊天节点属主：selectedCallId / cwd / openFile / inspectCall / forkAt / loadImage / fileMentions
 #详情工具属主：block / cwd
 #命令行属主：node / compaction
-#会话根注入：selectWorkspace + hooks.composerBlock
+#会话根注入：selectWorkspace(经 openWorkspace，打开前 beforeOpen 迁移草稿) + hooks.composerBlock
 #会话体注入：views / releaseSessionImages / bindDraftMirror
 #会话页眉注入：views / open
 #撰写栏属主：variant / blocked / disabled / workspacePickerOpen / …
-#撰写栏注入：keyboard / addImages / removeImage / draftImages / resolveSubmitMode / …
+#撰写栏注入：keyboard / addFiles / … / hooks.busyEnter / fileUploads / …
 #输入控件属主：locked
 #撰写链属主：interactions / session
 #聊天滚动位置：anchorKey / anchorTop / scrollTop

@@ -11,7 +11,7 @@ __all__=['上游目录路径','本包片段路径','本包分片前缀','加载�
 _本目录=os.path.dirname(os.path.abspath(__file__))#本包
 # tool_cordis→拓展→源码→dsh-python-chinese→pydsh→lib→py
 上游目录路径=os.path.normpath(os.path.join(
-    _本目录,'..','..','..','..','..','..','project','dsh分析','源码','拓展','tool-cordis','src','api-catalog.ts',
+    _本目录,'..','..','..','..','..','..','project','dsh分析','源码','拓展','cordis工具','src','api-catalog.ts',
 ))#双工作区原版
 
 本包片段路径={#导出名 → 本包内嵌单文件
@@ -24,7 +24,7 @@ _本目录=os.path.dirname(os.path.abspath(__file__))#本包
     'EVENT_API':'事件目录_',#事件分片
 }#分片前缀
 
-_期望条数={'SERVICE_API':55,'EVENT_API':55}#上游全量表长
+_期望条数={'SERVICE_API':71,'EVENT_API':56}#上游全量表长（SERVICE 含 workspaceFiles 等）
 
 _缓存={}#按导出名缓存
 

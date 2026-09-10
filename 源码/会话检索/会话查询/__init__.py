@@ -7,6 +7,7 @@ from .配置 import (
     会话查询错误,#检索错误
     会话查询读取窗口上限,#默认读取窗口
     会话查询默认持久检查并发,#默认持久检查并发
+    会话查询默认准备会话缓存大小,#准备缓存
     若已中止则抛出,#中止抛出
 )#配置常量
 from .游标 import 会话搜索游标#游标品牌
@@ -28,14 +29,18 @@ from .追踪 import (
     追踪会话,#谱系追踪
 )#追踪
 from .标题折叠 import 折叠会话标题#标题折叠
+from .观测 import 会话观测,会话观测读取器#点观察
+from .冷读 import 读冷会话日志#句柄冷读
 
 __all__=[#公开面
     '会话查询引擎',
     '会话查询错误','会话查询读取窗口上限','会话查询默认持久检查并发',
+    '会话查询默认准备会话缓存大小',
     '会话搜索游标','校验会话头兼容','抽取会话事件文本',
     '构建会话事件记录','构建会话事件搜索文档',
     '过滤会话结果','过滤会话事件文档',
     '物化会话结果过滤器','物化会话事件结果过滤器','编译会话文本过滤器',
+    '会话观测','会话观测读取器','读冷会话日志',
 ]#结束
 
 class 会话查询引擎(服务):
@@ -51,8 +56,20 @@ class 会话查询引擎(服务):
         持久并发=配置['persistedInspectConcurrency'] if 'persistedInspectConcurrency' in 配置 else 会话查询默认持久检查并发#解析持久检查并发
         if isinstance(持久并发,bool) or (not isinstance(持久并发,int)) or 持久并发<1:#并发必须是正整数
             raise 会话查询错误('session-query: persistedInspectConcurrency must be a positive safe integer','SESSION_QUERY_INVALID_CONFIG')#配置非法
+        缓存大小=配置['preparedSessionCacheSize'] if 'preparedSessionCacheSize' in 配置 else 会话查询默认准备会话缓存大小#准备缓存
+        if isinstance(缓存大小,bool) or (not isinstance(缓存大小,int)) or 缓存大小<1:#缓存必须正整数
+            raise 会话查询错误('session-query: preparedSessionCacheSize must be a positive safe integer','SESSION_QUERY_INVALID_CONFIG')#配置非法
         自身._读取窗口上限=窗口上限#读取窗口上限
         自身._语料库=会话语料库(上下文,持久并发)#按并发构造语料库
+        自身._观测=会话观测读取器(上下文,自身._语料库,缓存大小)#点观察
+
+    def observeSession(自身,会话标识,选项=None):
+        """活优先点观察；英文方法名对齐上游 `observeSession` 调用面。"""
+        return 自身._观测.读(会话标识,选项)#委托
+
+    def 观测会话(自身,会话标识,选项=None):
+        """中文别名：活优先点观察。"""
+        return 自身.observeSession(会话标识,选项)#委托
 
     def 搜索会话(自身,请求,执行上下文=None):
         """在优先活会话的逻辑语料上检索，并按会话分组。子类实现。"""
@@ -69,8 +86,9 @@ class 会话查询引擎(服务):
     def 读取会话(自身,会话号):
         """读取并回放校验一条完整逻辑会话日志，且不把它变成活会话。"""
         已加载=自身._语料库.加载(会话号)#从语料加载
-        会话.创建(会话号,已加载['events'],已加载['header'])#回放校验
-        return {'session':结构化克隆(已加载['header']),'events':[快照会话事件(事件) for 事件 in 已加载['events']]}#日志快照
+        继承=已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0#继承切口
+        会话.创建(会话号,已加载['events'],已加载['header'],继承)#回放校验
+        return {'session':结构化克隆(已加载['header']),'inheritedEventCount':继承,'events':[快照会话事件(事件) for 事件 in 已加载['events']]}#日志快照
 
     def 过滤会话(自身,过滤器列表,信号=None):
         """用与提供方无关的谓词过滤完整逻辑语料。"""
@@ -94,7 +112,7 @@ class 会话查询引擎(服务):
         def 投影(源):
             """从事件折叠标题并组装观察。"""
             标题=折叠会话标题(源['events'])#折叠标题
-            观察={'session':结构化克隆(源['header'])}#克隆源头
+            观察={'session':结构化克隆(源['header']),'inheritedEventCount':源['inheritedEventCount'] if 'inheritedEventCount' in 源 else 0}#克隆源头
             if 标题 is not None:#有标题才带上
                 观察['title']=标题#写入标题
             return 观察#单条观察
@@ -126,6 +144,7 @@ class 会话查询引擎(服务):
         事件列表=已加载['events']#原始事件
         return {
             'session':结构化克隆(已加载['header']),#克隆会话头
+            'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,#继承切口
             'capturedThroughSeq':事件列表[-1]['seq'] if len(事件列表)>0 else None,#最后seq
             'events':当前面事件(会话号,事件列表),#当前面事件
         }#面快照
@@ -140,7 +159,7 @@ class 会话查询引擎(服务):
         """追踪一条事件的直接位置替换与被引用源事件。"""
         已加载=自身._语料库.加载(请求['sessionId'],信号)#加载目标会话
         若已中止则抛出(信号)#加载后检查取消
-        return {'session':已加载['header'],**追踪事件(请求['sessionId'],已加载['events'],请求['seq'])}#组装观察
+        return {'session':已加载['header'],'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,**追踪事件(请求['sessionId'],已加载['events'],请求['seq'])}#组装观察
 
     def 读取事件(自身,请求,信号=None):
         """读取一条完整事件，外加有界的原始日志上下文窗口。"""
@@ -166,6 +185,7 @@ class 会话查询引擎(服务):
             窗口事件.append(目标快照 if 事件 is 目标 else 快照会话事件(事件))#目标复用快照
         return {
             'session':结构化克隆(已加载['header']),#克隆会话头
+            'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,#继承切口
             'target':目标快照,#目标快照
             'events':窗口事件,#窗口事件
             'startSeq':起点,#起点序号

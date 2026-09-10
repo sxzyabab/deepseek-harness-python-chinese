@@ -53,7 +53,7 @@ from .配置 import 基础压缩错误#本包异常
     'Continue the task directly from the messages that follow, without acknowledging this checkpoint.'
 )#前言正文
 
-摘要输入字段=('system','tools','messages')#摘要器所压缩的重放对话表面字段
+摘要输入字段=('tools','messages')#摘要器所压缩的重放对话表面字段（系统头在 messages 前缀）
 摘要结果字段=('summary','provider','model','maxTokens','usage','rawOutput','llmStreamCall')#安全摘要内容加上随它记录的精确辅助调用信封
 
 def 结束错误(结束):
@@ -124,8 +124,6 @@ def 经语言模型摘要(上下文,配置,输入,智能体,信号=None):
         'sessionId':会话.id,#会话 id
         'purpose':'compaction',#调用目的
     }#options 基础
-    if 'system' in 输入 and 输入['system'] is not None:#复用系统提示
-        选项表['system']=输入['system']#系统提示
     if 'tools' in 输入 and 输入['tools'] is not None:#复用工具模式
         选项表['tools']=list(输入['tools'])#工具模式副本
     if 信号 is not None:#转发取消

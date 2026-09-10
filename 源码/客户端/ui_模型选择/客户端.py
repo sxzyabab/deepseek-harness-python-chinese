@@ -8,13 +8,27 @@ from .服务 import 模型目录解析器#目录解析器
 from .模型选择 import 模型选择#座位组件
 from .目录 import 模型选择错误#本包异常
 
-__all__=['注入','应用','模型选择','模型目录解析器','命名空间','中文','英文','行键','选项于','选定于']#仅中文公开名
+__all__=['注入','应用','模型选择','模型目录解析器','命名空间','中文','英文','行键','描述于','选项于','选定于']#仅中文公开名
 
 注入=['commandUi','connection','locale','sessions','slots','remote']#依赖
 
 def 行键(提供方,模型):#提供方/模型拼行键
     """不透明行键。"""
     return 提供方+'/'+模型#拼接
+
+内置描述键={#内置模型描述键
+    'deepseek-official/deepseek-v4-flash':'option.deepseekV4Flash.description',#flash
+    'deepseek-official/deepseek-v4-pro':'option.deepseekV4Pro.description',#pro
+}#结束
+
+def 描述于(提供方,模型,翻译):#内置描述本地化
+    """线上描述仍是英文权威文案时才本地化。"""
+    键名=行键(提供方,模型['id'] if 'id' in 模型 else '')#行键
+    键=内置描述键[键名] if 键名 in 内置描述键 else None#内置键
+    描述=模型['description'] if 'description' in 模型 else None#原描述
+    if 键 is not None and 描述==英文[键]:#匹配英文权威
+        return 翻译(键)#本地化
+    return 描述#原样
 
 def 选项于(目录,翻译):#目录 → 弹出选项
     """失败行列出但永不可选。"""
@@ -24,9 +38,10 @@ def 选项于(目录,翻译):#目录 → 弹出选项
         模型列表=组['models'] if 'models' in 组 and 组['models'] is not None else []#各模型
         组名=组['name'] if 'name' in 组 else None#组名
         for 模型 in 模型列表:#各模型
+            描述=描述于(组['id'],模型,翻译)#本地化描述
             详=组名#组名
-            if 'description' in 模型 and 模型['description'] is not None:#有描述
-                详=str(组名)+' · '+str(模型['description'])#组名加描述
+            if 描述 is not None:#有描述
+                详=str(组名)+' · '+str(描述)#组名加描述
             项={'id':行键(组['id'],模型['id']),'label':模型['name'] if 'name' in 模型 else None,'detail':详}#行
             当前=目录['current'] if 'current' in 目录 and 目录['current'] is not None else {}#当前
             if ('provider' in 当前 and 当前['provider']==组['id']
@@ -91,7 +106,7 @@ def 应用(上下文):#安装模型选择浏览器半边
             """/model 弹出选择。"""
             return 命令.register({#登记
                 'name':'model',#命令名
-                'description':翻译('command.description'),#描述
+                'description':lambda:翻译('command.description'),#请求候选时解析描述
                 'available':命令可用,#非子智能体
                 'ui':{#弹出 UI
                     'kind':'popupSelect',#种类
@@ -147,7 +162,7 @@ def _模型选定(模型目录,会话面,选项,会话):#选定一行
     """行键还原后经同一目录提交。"""
     if 会话面.subagentAddress(会话.sessionId) is not None:#子智能体
         raise 模型选择错误('model selection is unavailable for addressed subagent sessions')#禁
-    目录=模型列表.directoryFor(会话.sessionId)#共享目录
+    目录=模型目录.directoryFor(会话.sessionId)#共享目录
     选=选定于(目录.存储.getSnapshot(),选项['id'])#还原
     if 选 is None:#无效
         raise 模型选择错误("this provider's catalog failed to load — pick a model from a loaded group")#须已加载

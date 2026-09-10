@@ -9,6 +9,7 @@
     "discover":"发现",
     "effort":"力度",
     "fail":"失败",
+    "file":"文件",
     "finite":"有限",
     "generate":"生成",
     "image":"图片",
@@ -20,6 +21,7 @@
     "modality":"模态",
     "normal":"正常",
     "parse":"解析",
+    "plugin":"插件",
     "provider":"提供方",
     "reason":"原因",
     "reasoning":"推理",
@@ -27,8 +29,12 @@
     "result":"结果",
     "safe":"安全",
     "signal":"信号",
+    "source":"来源",
     "stop":"停止",
+    "system":"系统",
     "text":"文本",
     "token":"令牌",
-    "tool":"工具"
+    "tool":"工具",
+    "update":"更新",
+    "user":"用户"
 }

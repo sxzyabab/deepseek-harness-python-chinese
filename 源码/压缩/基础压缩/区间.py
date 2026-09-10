@@ -35,8 +35,15 @@ class 表面已变错误(基础压缩错误):
     """与摘要器及收缩失败区分开，以便手动调用方可分别报告两种原因。"""
     pass#标记类
 
+def 系统头(会话,头序号):
+    """持有表面节点 0 的 system/message；否则 None。"""
+    事件=会话.events[头序号]#表面头事件
+    if 事件 is not None and 事件['type']=='system/message':#仅系统消息
+        return 事件#系统头
+    return None#无
+
 def 选择可压缩区间(会话,计量,保留令牌):
-    """返回要压缩的闭区间位置 seq 范围，或 None。"""
+    """返回要压缩的闭区间位置 seq 范围，或 None。系统头永不进入区间。"""
     计价节点=计量['nodes'] if 'nodes' in 计量 and 计量['nodes'] is not None else []#已计价表面节点
     if len(计价节点)==0:#空表面
         return None#无可选
@@ -44,6 +51,7 @@ def 选择可压缩区间(会话,计量,保留令牌):
     if len(表面节点)!=len(计价节点) or any(#长度不一致或 seq 对不上
             表面节点[下标]!=计价节点[下标]['seq'] for 下标 in range(len(表面节点))):#逐位比对
         raise 基础压缩错误('compaction: token-meter surface does not match the current session surface')#计量与表面不同步
+    首下标=0 if 系统头(会话,表面节点[0]) is None else 1#跳过系统头
     累计=0#从尾累加 token
     保留起点下标=len(计价节点)#保留起点下标
     for 下标 in range(len(计价节点)-1,-1,-1):#从尾向前
@@ -51,15 +59,15 @@ def 选择可压缩区间(会话,计量,保留令牌):
         保留起点下标=下标#暂定保留起点
         if 累计>=保留令牌:#已够尾预算
             break#停止
-    if 保留起点下标==0:#整表面都要保留
+    if 保留起点下标<=首下标:#整可压区都要保留
         return None#无可压缩
-    while 保留起点下标>0:#向前找到平衡切割
+    while 保留起点下标>首下标:#向前找到平衡切割
         if 工具配对前平衡(会话,表面节点[保留起点下标]):#该切割平衡
             break#停止
         保留起点下标-=1#否则再让出一节点
-    if 保留起点下标==0:#找不到平衡切割
+    if 保留起点下标<=首下标:#找不到平衡切割
         return None#无可压缩
-    return {'start':表面节点[0],'end':表面节点[保留起点下标-1]}#头锚定闭区间
+    return {'start':表面节点[首下标],'end':表面节点[保留起点下标-1]}#闭区间
 
 def 扫描压缩入口状态(事件列表):
     """从尾扫描入口状态。"""
@@ -141,17 +149,23 @@ def 校验表面区间(会话,起点,终点):
     }#返回结束
 
 def 构建摘要输入(会话,被遮蔽序号列表):
-    """返回要浓缩的重放对话前缀。"""
+    """返回要浓缩的重放对话前缀；系统头经表面节点 0 派生，不在请求头 system。"""
     头=会话.请求头()#最近请求头
     事件列表=会话.events#权威事件流
+    表面节点=list(会话.surface.nodes)#当前表面
+    系统=None#派生系统消息
+    if len(表面节点)>0:#有表面头
+        头事件=系统头(会话,表面节点[0])#系统头事件
+        if 头事件 is not None:#有系统头
+            系统=会话.派生事件消息(头事件)#派生
     区间消息=[]#区间派生消息
     for 序号 in 被遮蔽序号列表:#区间 seq；每个都是合法日志下标
         消息=会话.派生事件消息(事件列表[序号])#派生模型可见消息
         if 消息 is not None:#丢掉非消息节点
             区间消息.append(消息)#收下
+    if 系统 is not None:#系统头在前
+        区间消息=[系统,*区间消息]#前缀
     输入={'messages':区间消息}#重放前缀基础
-    if 头 is not None and 'system' in 头 and 头['system'] is not None:#复用系统提示
-        输入['system']=头['system']#系统提示
     if 头 is not None and 'tools' in 头 and 头['tools'] is not None:#复用工具模式
         输入['tools']=头['tools']#工具模式
     return 输入#返回结束
@@ -164,13 +178,16 @@ def 准备压缩(依赖,会话,选择):
     if len(所选节点)!=len(被遮蔽) or any(#长度不一致或 seq 对不上
             所选节点[下标]['seq']!=被遮蔽[下标] for 下标 in range(len(所选节点))):#逐位比对
         raise 表面已变错误('compaction: selected surface changed before summarization began')#摘要前表面已变
-    合计=0#合计 token
+    启发式合计=0#启发式 token
+    路由合计=0#路由 token
     for 节点 in 所选节点:#累加
-        合计+=节点['tokens']#节点价格
+        启发式合计+=节点['heuristicTokens'] if 'heuristicTokens' in 节点 else 节点['tokens']#启发式价格
+        路由合计+=节点['tokens']#路由价格
     准备=dict(选择)#选择字段副本
     准备['measurement']=计量#当时计量
     准备['selectedNodes']=所选节点#所选节点
-    准备['shadowedTokenCount']=合计#合计 token
+    准备['shadowedTokenCount']=启发式合计#影子价格合计
+    准备['shadowedRouteTokenCount']=路由合计#路由合计
     准备['input']=构建摘要输入(会话,被遮蔽)#重放输入
     return 准备#返回结束
 
@@ -182,10 +199,11 @@ def 摘要压缩(依赖,准备,智能体,压缩事务标识,来源命令标识,�
         'source':压缩检查点来源(压缩事务标识,来源命令标识),#检查点出处
     })#用户消息结束
     装帧令牌=依赖['meter'].计价消息(检查点消息)#装帧后启发式价格
-    if 装帧令牌>=准备['shadowedTokenCount']:#没有更小
+    路由合计=准备['shadowedRouteTokenCount']#跨度路由价
+    if 装帧令牌>=路由合计:#没有更小
         raise 基础压缩错误(#收缩失败
             'summary is not smaller than the shadowed content ('
-            +str(装帧令牌)+' estimated framed tokens >= '+str(准备['shadowedTokenCount'])+')'#装帧 token 不小于被遮蔽
+            +str(装帧令牌)+' estimated framed tokens >= '+str(路由合计)+')'#装帧 token 不小于被遮蔽路由价
         )#抛出结束
     合并=dict(准备)#快照副本
     合并.update(摘要结果)#摘要结果
@@ -250,7 +268,7 @@ def 提交压缩正文(会话,开始事件,已摘要):
         摘要载荷['usage']=用量#用量
     摘要事件=会话.追加('compaction/summary',摘要载荷)#summary 结束
     会话.追加('user/message',检查点消息,{#替换用户消息
-        'surfaceOp':{'op':'replace','start':起点,'end':终点},#替换该区间
+        'surfaceOp':{'op':'replace','startSeq':起点,'endSeq':终点},#替换该区间
         'sourceEventSeqs':[开始事件['seq'],摘要事件['seq'],*被遮蔽序号],#引用 start、summary 与被遮蔽节点
     })#替换结束
     结果={#待补 end 的结果
@@ -341,7 +359,7 @@ def 压缩表面区间(依赖,会话,起点,终点,智能体,选项,信号=None)
         )#摘要结束
         if ('owner' not in 选项) or 选项['owner'] is None:#提交前再检查取消
             若已中止则抛出(信号)#取消
-        断言稳定(依赖,会话,已摘要)#摘要后稳定检查
+        校验稳定(依赖,会话,已摘要)#摘要后稳定检查
         阶段='commit'#进入提交阶段
         待完成=提交压缩正文(会话,开始事件,已摘要)#同步追加 summary 与替换
         正在关闭=True#开始关闭

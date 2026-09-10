@@ -181,6 +181,15 @@ class 轨迹快照构建器:#轨迹快照构建器
         回合结束=[]#回合结束
         调用模式={}#callId → 工具模式
         已消费变更=set()#已消费的 promptChange 序号
+        已代表提示=set()#已被请求头变更代表的提示序号
+        窗外提示=[]#窗外系统提示
+        for 贡献 in 自身.贡献:#先扫请求头变更序号
+            数据=贡献['data'] if 'data' in 贡献 else None#载荷
+            if 数据 is None or ('kind' not in 数据) or 数据['kind']!='request-header':#非请求头
+                continue#跳过
+            头=数据['header'] if 'header' in 数据 else None#请求头
+            if 头 is not None and 'change' in 头 and 头['change'] is not None and 'seq' in 头['change']:#有变更
+                已代表提示.add(头['change']['seq'])#记为已代表
         上一条请求头=None#最近一条请求头
         上一工具=索引工具([])#最近请求头的工具索引
         流式=None#流式部分助手
@@ -188,6 +197,11 @@ class 轨迹快照构建器:#轨迹快照构建器
         for 贡献 in 自身.贡献:#按锚点序折叠贡献
             数据=贡献['data'] if 'data' in 贡献 else None#取出载荷
             种类=数据['kind'] if 数据 is not None and 'kind' in 数据 else None#贡献种类
+            if 种类=='system-prompt':#窗外系统提示
+                提示=数据['prompt'] if 'prompt' in 数据 else None#提示节点
+                if 提示 is not None and 提示['seq'] not in 已代表提示:#未被请求头代表
+                    窗外提示.append(提示)#收下
+                continue#不进节点表
             if 种类=='request-header':#请求头：只更新回退上下文
                 上一条请求头=数据['header'] if 'header' in 数据 else None#记下当前头
                 提示=上一条请求头['prompt'] if 上一条请求头 is not None and 'prompt' in 上一条请求头 else None#提示
@@ -236,7 +250,10 @@ class 轨迹快照构建器:#轨迹快照构建器
         打断压缩(请求列表,边界列表)#边界打断未完成的压缩
         落回合错误(请求列表,回合结束)#回合错误落到最后助手请求
         已结算.sort(key=节点序号)#事件节点按序号排
-        return {'eventNodes':已结算,'eventLocations':事件位置,'requests':请求列表,'callSchemas':调用模式,'partial':流式,'runningCalls':进行中}#组装快照
+        快照={'eventNodes':已结算,'eventLocations':事件位置,'requests':请求列表,'callSchemas':调用模式,'partial':流式,'runningCalls':进行中}#组装快照
+        if len(窗外提示)>0:#有窗外提示才挂
+            快照['systemPrompts']=窗外提示#窗外系统提示
+        return 快照#返回
 
     def 重建贡献(自身):#按锚点序号重排贡献并重建下标
         """锚点优先，同锚点按 key。"""

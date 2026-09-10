@@ -22,6 +22,7 @@ from .预备 import (#本包预备池与并发/中止原语
     已中止,#是否已中止
 )#从预备导入
 from .写后 import 会话写后#写后控制器
+from .句柄 import 会话句柄,会话已有写主错误,会话持久化未找到错误#句柄与所有权错误
 
 默认预备会话缓存大小=5#默认预备缓存大小
 默认写批最大延迟毫秒=200#默认写批延迟毫秒
@@ -29,10 +30,10 @@ from .写后 import 会话写后#写后控制器
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
 
 持久化协调器选项字段=('preparedSessionCacheSize','writeBatchMaxDelayMs')#具体持久化后端供给协调器的策略字段
-已存前缀字段=('meta','events','revision','tornMarker')#已存会话头、有效连续事件前缀、带源限定修订与可选撕裂尾巴标记
-已存后缀字段=('meta','events')#已存会话头外加处于或越过所请求 seq 的事件（可寻址后缀读返回形态）
+已存前缀字段=('meta','inheritedEventCount','events','eventState','revision','tornMarker')#已存会话头、继承切点、有效连续事件前缀、别名状态、带源限定修订与可选撕裂尾巴标记
+已存后缀字段=('meta','inheritedEventCount','events','eventState')#已存会话头外加处于或越过所请求 seq 的事件（可寻址后缀读返回形态）
 持久化后端字段=('name','loadStored','readStoredRevision','loadStoredFrom','appendBatch','commitRepair','list','locate','close')#协调器与具体后端之间的最小耐久原语约定（含可选钩子）
-会话状态字段=('meta','cursor','materialized','owner')#协调器内存记账持有的每会话写入状态
+会话状态字段=('meta','cursor','materialized','owner','inheritedEventCount')#协调器内存记账持有的每会话写入状态
 活会话状态字段=('init','writes')#一个活会话的初始化与有界写后控制器
 预备会话源字段=('inspection','session','revision','sessionLength','tornMarker','closers')#已校验冷源以及从它建成的精确未发布 Session
 
@@ -48,9 +49,9 @@ def 外来安全整数(值):
         return abs(值)<=安全整数上限#在安全范围内
     return False#其它类型
 
-def 冻结视图(元,事件列表):#冻结逻辑视图
-    """返回不可变检查视图字典。"""
-    return {'meta':元,'events':事件列表}#头与事件
+def 冻结视图(元,事件列表,继承事件数=0,事件状态='detached'):#冻结逻辑视图
+    """返回不可变检查视图字典，含继承切点与别名状态。"""
+    return {'meta':元,'inheritedEventCount':继承事件数,'events':事件列表,'eventState':事件状态}#头、继承、事件与状态
 
 class 会话持久化损坏错误(持久化错误):#持久化损坏错误
     """后端读取成功后，耐久会话内容未通过校验。"""
@@ -145,8 +146,8 @@ def 遗留消息标识(标识,序号):#遗留消息id
 def 替换起点(事件):#替换起点seq
     """读取替换起点，把畸形表面元数据留给会话校验器。"""
     操作=当作记录(事件['surfaceOp'] if 'surfaceOp' in 事件 else None)#表面操作记录
-    if 操作 is not None and 操作.get('op')=='replace' and isinstance(操作.get('start'),(int,float)):#是replace且start是数字
-        return 操作['start']#返回起点
+    if 操作 is not None and 操作.get('op')=='replace' and isinstance(操作.get('startSeq'),(int,float)):#是replace且startSeq是数字
+        return 操作['startSeq']#返回起点
     return None#否则没有
 
 def 需要遗留前缀(事件):#是否需要遗留前缀
@@ -363,6 +364,7 @@ class 持久化协调器:#持久化协调器
         自身.活表={}#活会话控制器
         自身.退役表={}#退役承诺
         自身.链={}#每id承诺链
+        自身.活写句柄表={}#id到可入队活写的打开写句柄
         自身.预备池=会话预备池(预备缓存)#建预备池
         自身.安装写路径()#安装写路径
 
@@ -389,7 +391,7 @@ class 持久化协调器:#持久化协调器
             raise 持久化错误('session "'+str(标识)+'" already exists in this backend')#拒绝重复
         if 自身.后端.loadStored(标识) is not None:#磁盘已有日志
             raise 持久化错误('session "'+str(标识)+'" already has a persisted log on disk; load/resume it instead of creating')#应load/resume
-        自身.状态表[标识]={'meta':头,'cursor':0,'materialized':False}#记下未物化状态
+        自身.状态表[标识]={'meta':头,'cursor':0,'materialized':False,'inheritedEventCount':0}#记下未物化状态
 
     def 追加(自身,标识,事件列表):#追加事件
         """耐久持久化一批事件。遵守只追加与连续 seq 约定。"""
@@ -548,53 +550,139 @@ class 持久化协调器:#持久化协调器
                 raise 错误#其余上抛
             若已中止则抛出(信号)#读后检查取消
             if 后缀 is None:#没有产物
-                raise 持久化错误('session "'+str(标识)+'" not found')#没有产物
+                raise 会话持久化未找到错误(标识)#没有产物
             头=后缀['meta']#头
             事件列表=后缀['events']#事件
+            继承=后缀['inheritedEventCount'] if 'inheritedEventCount' in 后缀 else 0#继承切点
             自身.断言已存标识(标识,头)#头必须绑定该id
             自身.断言版本(头)#格式版本必须认识
             if any(需要遗留前缀(事件) for 事件 in 事件列表):#后缀需要更早前缀事实
                 整份=自身.读已存前缀(标识,信号)#改读完整前缀
-                return {'meta':整份['meta'],'events':[事件 for 事件 in 整份['events'] if 事件['seq']>=起始序号]}#再切后缀
+                return {#再切后缀
+                    'meta':整份['meta'],#头
+                    'inheritedEventCount':整份['inheritedEventCount'],#继承
+                    'events':[事件 for 事件 in 整份['events'] if 事件['seq']>=起始序号],#后缀事件
+                    'eventState':整份['eventState'],#别名状态
+                }#返回
             事件列表=快照已存事件(事件列表,标识)#升级并快照
             自身.断言事件受支持(头,事件列表)#拒绝未知必填类型
-            return {'meta':结构化克隆(头),'events':事件列表}#返回分离头与事件
+            return {'meta':结构化克隆(头),'inheritedEventCount':继承,'events':事件列表,'eventState':'detached'}#分离结果
         整份=自身.读已存前缀(标识,信号)#顺序回退读完整前缀
-        return {'meta':整份['meta'],'events':整份['events'][起始序号:]}#切后缀
+        return {#切后缀
+            'meta':整份['meta'],#头
+            'inheritedEventCount':整份['inheritedEventCount'],#继承
+            'events':整份['events'][起始序号:],#后缀
+            'eventState':整份['eventState'],#别名状态
+        }#返回
 
     def 读已存前缀(自身,标识,信号=None):#读已存前缀
-        """读一份分离的物理前缀，不做逻辑恢复或缓存。"""
+        """读一份分离的物理前缀，不做逻辑恢复或缓存；携带 eventState 与 inheritedEventCount。"""
         若已中止则抛出(信号)#已取消则抛
         已存=自身.后端.loadStored(标识,信号)#加载物理前缀
         若已中止则抛出(信号)#读后检查取消
         if 已存 is None:#没有产物
-            raise 持久化错误('session "'+str(标识)+'" not found')#没有产物
+            raise 会话持久化未找到错误(标识)#没有产物
         头=已存['meta']#头
         事件列表=已存['events']#事件
+        继承=已存['inheritedEventCount'] if 'inheritedEventCount' in 已存 else 0#继承切点
+        事件状态=已存['eventState'] if 'eventState' in 已存 else 'detached'#后端可直接给出共享冻结
         自身.断言已存标识(标识,头)#头必须绑定该id
         自身.断言版本(头)#格式版本必须认识
-        事件列表=快照已存事件(事件列表,标识)#升级并快照
+        if 事件状态=='shared-frozen':#已共享冻结则就地收养校验
+            事件列表=收养已存事件(list(事件列表),标识)#就地收养
+        else:#否则快照脱离
+            事件列表=快照已存事件(事件列表,标识)#升级并快照
+            事件状态='detached'#调用方拥有拷贝
         自身.断言事件受支持(头,事件列表)#拒绝未知必填类型
-        return {'meta':结构化克隆(头),'events':事件列表}#分离结果
+        return {'meta':结构化克隆(头),'inheritedEventCount':继承,'events':事件列表,'eventState':事件状态}#分离结果
+
+    def 打开(自身,标识,访问,选项=None):#打开句柄
+        """打开已存会话并返回写或读句柄。选项为 `{signal}` 或裸取消信号。"""
+        if isinstance(选项,dict):#Service Definition 选项
+            信号=选项['signal'] if 'signal' in 选项 else None#可选取消
+        else:#裸信号兼容
+            信号=选项#信号或 None
+        若已中止则抛出(信号)#已取消则抛
+        if 访问!='read' and 访问!='write':#非法访问
+            raise TypeError('session access must be "read" or "write"')#拒绝
+        前缀=自身.读已存前缀(标识,信号)#冷读前缀元数据与事件源
+        若已中止则抛出(信号)#读后再检查
+        if 访问=='write':#写打开
+            状态=自身.状态表.get(标识)#已有状态
+            if 状态 is not None and 状态.get('owner') is not None:#已有活拥有方
+                raise 会话已有写主错误(标识)#拒绝
+            if 标识 not in 自身.状态表:#新建记账
+                自身.状态表[标识]={#写入记账
+                    'meta':前缀['meta'],#头
+                    'cursor':len(前缀['events']),#游标
+                    'materialized':True,#已物化
+                    'inheritedEventCount':前缀['inheritedEventCount'],#继承
+                }#状态
+            自身.状态表[标识]['owner']='handle'#声明写主
+        持有=自身#协调器
+        缓存事件=[前缀['events']]#句柄私有事件缓存（单元素可变槽）
+        缓存状态=[前缀['eventState']]#别名状态槽
+        def 读回调(偏移,长度,读信号):#句柄读
+            """从缓存或存储读切片。"""
+            若已中止则抛出(读信号)#取消
+            事件列表=缓存事件[0]#当前缓存
+            if 访问=='write':#写句柄用缓存（含自身追加）
+                切片=事件列表[偏移:偏移+长度]#切片
+                return {'eventState':缓存状态[0],'events':切片}#返回
+            最新=持有.读已存前缀(标识,读信号)#读句柄再读存储
+            缓存事件[0]=最新['events']#刷新缓存
+            缓存状态[0]=最新['eventState']#刷新状态
+            return {'eventState':最新['eventState'],'events':最新['events'][偏移:偏移+长度]}#切片
+        def 追加回调(批次,写信号):#句柄追加
+            """经协调器追加并刷新缓存。"""
+            若已中止则抛出(写信号)#取消
+            持有.追加(标识,批次)#耐久追加
+            缓存事件[0]=list(缓存事件[0])+list(批次)#本地可见
+            缓存状态[0]='detached'#追加批为脱离拥有
+        def 关闭回调():#句柄关闭
+            """释放写声明。"""
+            if 访问=='write':#写句柄
+                状态=持有.状态表.get(标识)#状态
+                if 状态 is not None and 状态.get('owner')=='handle':#本句柄声明
+                    状态.pop('owner',None)#释放写主
+        return 会话句柄(标识,前缀['meta'],访问,前缀['inheritedEventCount'],{#构造句柄
+            'read':读回调,#读
+            'append':追加回调,#追加
+            'close':关闭回调,#关闭
+        })#句柄结束
 
     def 预备核心(自身,标识):#预备核心
-        """读取、在内存中修复、校验并冻结一份冷源一次。"""
+        """读取、在内存中修复、校验并经 eventState 移交一份冷源一次（不再使用 seedSource）。"""
         已存=自身.后端.loadStored(标识)#加载物理前缀
         if 已存 is None:#没有产物
-            raise 持久化错误('session "'+str(标识)+'" not found')#没有产物
+            raise 会话持久化未找到错误(标识)#没有产物
         try:#收养并平衡
             头=已存['meta']#头
             事件列表=已存['events']#事件
-            修订=已存['revision']#修订
+            继承=已存['inheritedEventCount'] if 'inheritedEventCount' in 已存 else 0#继承切点
+            事件状态=已存['eventState'] if 'eventState' in 已存 else 'detached'#别名状态
+            修订=已存['revision'] if 'revision' in 已存 else None#修订
             撕裂=已存['tornMarker'] if 'tornMarker' in 已存 else None#撕裂标记
             自身.断言已存标识(标识,头)#头必须绑定该id
             自身.断言版本(头)#格式版本必须认识
-            已存事件=收养已存事件(list(事件列表),标识)#就地升级收养
+            if 事件状态=='shared-frozen':#共享冻结就地收养
+                已存事件=收养已存事件(list(事件列表),标识)#就地升级收养
+            else:#否则快照脱离
+                已存事件=快照已存事件(事件列表,标识)#脱离拷贝
+                事件状态='detached'#调用方拥有
             自身.断言事件受支持(头,已存事件)#拒绝未知必填类型
             关闭列表=[收养会话事件(项) for 项 in 中断轮次关闭器(已存事件)]#合成关闭事件
             平衡=list(已存事件)+关闭列表#平衡后的日志
-            活会话=自身.上下文.sessions.prepare(标识,{'seed':平衡,'meta':头,'seedSource':'persistence'})#预备未发布会话
-            检查视图=冻结视图(活会话.header,tuple(平衡))#冻结逻辑视图
+            if len(关闭列表)>0:#合成关闭器使图脱离
+                事件状态='detached'#关闭器为新脱离值
+            会话服务=自身.上下文.sessions#会话存储
+            活会话=会话服务.准备(标识,{#预备未发布会话
+                'seed':平衡,#种子
+                'meta':头,#头
+                'inheritedEventCount':继承,#继承切点
+                'eventState':事件状态,#别名状态
+            })#prepare结束
+            检查视图=冻结视图(活会话.header,tuple(平衡),继承,事件状态)#冻结逻辑视图
             return {'inspection':检查视图,'session':活会话,'revision':修订,'sessionLength':len(活会话.events),'tornMarker':撕裂,'closers':关闭列表}#预备源
         except 会话格式不支持错误:#格式拒绝原样抛
             raise#不加包装
@@ -636,11 +724,11 @@ class 持久化协调器:#持久化协调器
             raise 持久化错误('session "'+str(活会话.id)+'" not found')#找不到
         if len(中断轮次关闭器(事件列表))>0:#活回合仍打开
             raise 持久化错误('cannot load session "'+str(活会话.id)+'" while its live turn is open; use the live Session or wait for the turn to close')#打开回合不能load
-        return 冻结视图(状态['meta'],事件列表)#冻结视图
+        return 冻结视图(状态['meta'],事件列表,getattr(活会话,'inheritedEventCount',0),'shared-frozen')#冻结视图
 
     def 检查活会话(自身,活会话):#检查活会话
         """从已经活着的 Session 借用一份不可变视图。"""
-        return 冻结视图(活会话.header,活会话.events)#冻结借用视图
+        return 冻结视图(活会话.header,活会话.events,getattr(活会话,'inheritedEventCount',0),'shared-frozen')#冻结借用视图
 
     def 等待退役(自身,标识,信号=None):#等待退役
         """带着调用方取消等待一个正在退役的生命周期。"""
@@ -702,18 +790,17 @@ class 持久化协调器:#持久化协调器
                 return 已提交['state']#返回状态
 
     def 断言版本(自身,头):#断言格式版本
-        """格式版本必须认识。"""
-        if 头['version']==会话格式版本:#正是本构建版本
-            return#放过
-        raise 自身.不支持(头,会话格式版本拒绝文案(头['id'],头['version']))#外版本拒绝
+        """格式版本必须认识（委托存储契约）。"""
+        from .存储契约 import 断言版本 as 契约断言版本#延迟导入避环
+        位置=自身.后端.locate(头) if hasattr(自身.后端,'locate') else None#位置
+        契约断言版本(头,位置)#契约
 
     def 断言事件受支持(自身,头,事件列表):#断言事件类型受支持
-        """拒绝含有本构建不认识的事件类型的日志，除非标为可忽略。"""
-        for 事件 in 事件列表:#逐条检查
-            类型=事件['type']#事件类型
-            if 类型 in 已知会话事件类型 or ('ignorable' in 事件 and 事件['ignorable'] is True):#认识或可忽略
-                continue#放过
-            raise 自身.不支持(头,'session "'+str(头['id'])+'" contains event type "'+str(类型)+'" (seq '+str(事件['seq'])+') unknown to this harness and not marked ignorable; refusing to interpret the log — it was likely written by a newer harness')#未知必填类型拒绝
+        """拒绝含有本构建不认识的事件类型的日志，除非标为可忽略（委托存储契约词汇门，不重收养）。"""
+        from .存储契约 import 校验已存事件#延迟导入避环
+        #校验已存事件会就地收养；此处事件可能已快照/收养，再跑一遍保证词汇门与契约一致
+        位置=自身.后端.locate(头) if hasattr(自身.后端,'locate') else None#位置
+        校验已存事件(头,事件列表,位置)#契约（含未知类型与遗留 fallback）
 
     def 不支持(自身,头,原因):#构造格式拒绝
         """构造指向原始产物（后端有的话）的格式拒绝。"""
@@ -724,9 +811,9 @@ class 持久化协调器:#持久化协调器
         return 会话格式不支持错误(原因+' (raw log: '+str(路径)+')',位置)#有路径则附上
 
     def 断言已存标识(自身,标识,头):#断言已存id
-        """拒绝未绑定到所请求会话 id 的后端元数据。"""
-        if 头['id']!=标识:#头id对不上
-            raise 持久化错误('stored session identity mismatch: requested "'+str(标识)+'", header contains "'+str(头['id'])+'"')#身份不匹配
+        """拒绝未绑定到所请求会话 id 的后端元数据（委托存储契约）。"""
+        from .存储契约 import 断言已存标识 as 契约断言已存标识#延迟导入避环
+        契约断言已存标识(标识,头)#契约
 
     def 安装写路径(自身):#安装写路径
         """安装写路径监听器与拆除 effect。"""
@@ -760,7 +847,14 @@ class 持久化协调器:#持久化协调器
             自身.取或建活控制器(活会话)#启动该会话写路径
         上下文.监听('session/created',会话已创建)#created监听结束
         def 会话事件(活会话,事件):#会话事件
-            """保留每条冻结事件的持久化拥有副本，并启动其有界窗口。"""
+            """有登记活写句柄则入队句柄；否则走写后有界窗口。"""
+            句柄=自身.活写句柄表.get(活会话.id)#可入队活写句柄
+            if 句柄 is not None and hasattr(句柄,'入队活写'):#接到写句柄
+                def 报告后台失败(错误):#后台失败
+                    """警告并保留缓冲。"""
+                    自身.上下文.日志.警告(自身.后端名()+': background write for session "'+str(活会话.id)+'" failed (buffered events retained): '+str(错误))#警告
+                句柄.入队活写(事件,报告后台失败)#入队句柄
+                return#不双写
             活=自身.取或建活控制器(活会话)#取得活控制器
             活['writes'].入队(事件)#入队写后
         上下文.监听('session/event',会话事件)#event监听结束
@@ -809,6 +903,12 @@ class 持久化协调器:#持久化协调器
     def 退役核心(自身,活会话):#退役核心
         """排空并释放一个精确已拆除 Session 生命周期拥有的状态。"""
         自身.冲洗(活会话).等待()#先刷耐久
+        句柄=自身.活写句柄表.get(活会话.id)#活写句柄
+        if 句柄 is not None and hasattr(句柄,'关闭'):#有打开写句柄
+            try:#关闭句柄（再排空一次也无害）
+                句柄.关闭()#关闭并释锁
+            except BaseException:#关闭失败上抛
+                raise#上抛
         标识=活会话.header['id']#会话id
         def 释放():#串行释放
             """丢掉活控制器与可选状态。"""
@@ -938,8 +1038,33 @@ class 持久化协调器:#持久化协调器
         if len(后缀)>0:#有后缀则追加
             自身.追加核心(活会话.header['id'],后缀)#追加
 
+    def 登记活写句柄(自身,句柄):#登记可入队活写句柄
+        """把 create/open 返回的写句柄接到协调器活写路由。"""
+        if getattr(句柄,'access',None)!='write':#非写
+            return#忽略
+        自身.活写句柄表[句柄.id]=句柄#登记
+
+    def 注销活写句柄(自身,句柄):#注销活写句柄
+        """句柄关闭时去掉活写路由。"""
+        标识=getattr(句柄,'id',None)#id
+        if 标识 is None:#无
+            return#忽略
+        if 自身.活写句柄表.get(标识) is 句柄:#本句柄
+            del 自身.活写句柄表[标识]#删除
+
     def 冲洗(自身,活会话):#刷耐久
-        """排空写后到静止。"""
+        """排空写后或活写句柄到静止。"""
+        句柄=自身.活写句柄表.get(活会话.id)#活写句柄
+        if 句柄 is not None and hasattr(句柄,'排空活写'):#接到写句柄
+            已完成=操作任务()#任务
+            try:#排空并刷
+                句柄.排空活写()#排空活缓冲
+                if hasattr(句柄,'刷盘'):#有刷盘
+                    句柄.刷盘()#刷盘
+                已完成.兑现(None)#成功
+            except BaseException as 错误:#失败
+                已完成.拒绝(错误)#拒绝
+            return 已完成#返回任务
         活=自身.取或建活控制器(活会话)#取得活控制器
         活['writes'].取消自动等待()#取消自动批窗
         try:#等待初始化

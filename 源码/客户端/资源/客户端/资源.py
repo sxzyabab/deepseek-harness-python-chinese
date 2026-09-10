@@ -56,9 +56,9 @@ def 取协议(地址):#读资源地址的协议键
         return None#非资源地址
     return 主机.lower()#协议键小写
 
-def 空闲快照(状态,重载):#空闲态快照
-    """无值、无失败，携带稳定重载闭包。"""
-    return {'status':状态,'value':None,'failure':None,'reload':重载}#空闲
+def 空闲快照(状态):#空闲态快照
+    """无值、无失败。"""
+    return {'status':状态,'value':None,'failure':None}#空闲
 
 class 快照存储:#本包自持的快照存储
     """getSnapshot / subscribe / set；对齐 createSnapshotStore 的同步面。"""
@@ -90,13 +90,12 @@ class 快照存储:#本包自持的快照存储
 
 class 资源记录:#一地址的运行态
     """快照、持有者计数与运行中流的中止旗。"""
-    def __init__(自身,地址,协议,存储,源,重载):#组装
+    def __init__(自身,地址,协议,存储,源):#组装
         """记下不可变字段与可变计数。"""
         自身.地址=地址#完整地址
         自身.协议=协议#协议键或 None
         自身.存储=存储#快照存储
         自身.源=源#可观察源
-        自身.重载=重载#稳定重载
         自身.持有者数=0#订阅者加钉住
         自身.控制器=None#运行中流的 Event
 
@@ -116,7 +115,7 @@ class 资源注册表(资源服务协议):#ctx.resources 实现
         自身._记录={}#地址 → 资源记录
 
     def 登记(自身,提供方):#登记一协议
-        """一协议恰有一个提供方（dict：protocol/open，可选 reload）；返回幂等拆除器。"""
+        """一协议恰有一个提供方（dict：protocol/open）；返回幂等拆除器。"""
         协议=提供方['protocol']#协议键
         if 协议 in 自身._提供方:#已有
             raise 资源错误('resources: protocol "'+str(协议)+'" already has a provider')#拒绝二次
@@ -165,16 +164,8 @@ class 资源注册表(资源服务协议):#ctx.resources 实现
     def _创建(自身,地址):#新建记录
         """初态按是否有提供方取 none 或 loading。"""
         协议=取协议(地址)#协议键
-        def 重载():#催提供方
-            """无提供方或无 reload 则为空操作。"""
-            方=自身._取提供方(协议)#提供方
-            if 方 is None:#无
-                return#空操作
-            if 'reload' not in 方:#无 reload
-                return#空操作
-            方['reload'](地址)#催
         初态=资源状态_无 if 自身._取提供方(协议) is None else 资源状态_加载中#初态
-        存储=快照存储(空闲快照(初态,重载))#快照存储
+        存储=快照存储(空闲快照(初态))#快照存储
         记录盒={'v':None}#创建后回填，供闭包持有同一记录
 
         def 取快照():#读存储
@@ -196,7 +187,7 @@ class 资源注册表(资源服务协议):#ctx.resources 实现
             return 取消#取消器
 
         源=资源源(取快照,订阅)#可观察源
-        记录=资源记录(地址,协议,存储,源,重载)#组装
+        记录=资源记录(地址,协议,存储,源)#组装
         记录盒['v']=记录#回填
         return 记录#记录
 
@@ -225,19 +216,19 @@ class 资源注册表(资源服务协议):#ctx.resources 实现
             return#共享流
         自身._停止(记录)#中止
         空闲=资源状态_无 if 自身._取提供方(记录.协议) is None else 资源状态_加载中#空闲态
-        记录.存储.set(空闲快照(空闲,记录.重载))#重置
+        记录.存储.set(空闲快照(空闲))#重置
 
     def _挂上(自身,记录):#提供方到达
         """持有则开流，空闲则 loading。"""
         if 记录.持有者数>0:#已持有
             自身._启动(记录)#开流
             return#结束
-        记录.存储.set(空闲快照(资源状态_加载中,记录.重载))#转 loading
+        记录.存储.set(空闲快照(资源状态_加载中))#转 loading
 
     def _卸下(自身,记录):#提供方离开
         """停流并报 none。"""
         自身._停止(记录)#中止
-        记录.存储.set(空闲快照(资源状态_无,记录.重载))#none
+        记录.存储.set(空闲快照(资源状态_无))#none
 
     def _启动(自身,记录):#打开提供方流
         """无提供方则跳过。"""
@@ -247,7 +238,7 @@ class 资源注册表(资源服务协议):#ctx.resources 实现
         控制器=threading.Event()#本流中止旗
         记录.控制器=控制器#挂上
         if 记录.存储.getSnapshot()['status']!=资源状态_加载中:#非 loading
-            记录.存储.set(空闲快照(资源状态_加载中,记录.重载))#先 loading
+            记录.存储.set(空闲快照(资源状态_加载中))#先 loading
         线=threading.Thread(#守护消费线程
             target=自身._消费,
             args=(记录,方,控制器),
@@ -273,12 +264,10 @@ class 资源注册表(资源服务协议):#ctx.resources 实现
                     'status':资源状态_存活,
                     'value':帧['value'],
                     'failure':None,
-                    'reload':记录.重载,
                 })#结束 set
             else:#失败帧
                 记录.存储.set({#失败，保留末值
                     'status':资源状态_失败,
                     'value':记录.存储.getSnapshot()['value'],
                     'failure':帧['error'],
-                    'reload':记录.重载,
                 })#结束 set

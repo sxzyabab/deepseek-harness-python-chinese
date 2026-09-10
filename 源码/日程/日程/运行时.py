@@ -201,13 +201,7 @@ class 日程运行时:#日程运行时
     def 读折叠(自身):#折叠当前精确运行时后缀，并把损坏的持久流关在里面
         """折叠当前精确运行时后缀，并把损坏的持久流关在里面。"""
         try:#折叠当前日志
-            会话=自身.智能体.session#会话
-            头=会话.header#头
-            if 'seedLength' in 头 and 头['seedLength'] is not None:#fork 后缀
-                种子=头['seedLength']#起点
-            else:#缺席当 0
-                种子=0#整份日志
-            return 折叠日程事件(会话.events,种子)#折叠
+            return 折叠日程事件(自身.智能体.session.ownEvents())#ownEvents 已切掉继承前缀
         except Exception as 错误:#折叠失败
             自身.已故障=True#永久故障
             细节=str(错误) if isinstance(错误,日程日志错误) else 渲染抛出(错误)#诊断细节

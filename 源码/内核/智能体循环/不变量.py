@@ -41,16 +41,16 @@ def 安装(上下文对象,失败):
         配置=头['config']#折叠配置
         工具甲=选项['tools'] if 'tools' in 选项 and 选项['tools'] is not None else []#请求工具
         工具乙=头['tools'] if 'tools' in 头 and 头['tools'] is not None else []#头上工具
-        选项系统=选项['system'] if 'system' in 选项 else None#请求系统
-        头系统=头['system'] if 'system' in 头 else None#头系统
+        选项系统=选项['system'] if 'system' in 选项 else None#请求系统（循环请求须缺席）
         选项温度=选项['temperature'] if 'temperature' in 选项 else None#请求温度
         配置温度=配置['temperature'] if 'temperature' in 配置 else None#配置温度
         选项上限=选项['maxTokens'] if 'maxTokens' in 选项 else None#请求上限
         配置上限=配置['maxTokens'] if 'maxTokens' in 配置 else None#配置上限
         选项停止=选项['stop'] if 'stop' in 选项 else None#请求停止
         配置停止=配置['stop'] if 'stop' in 配置 else None#配置停止
+        # 系统提示走表面节点 0 的 messages，从不作为 system。
         头匹配=(选项['model']==配置['model']
-            and 选项系统==头系统
+            and 选项系统 is None
             and 选项温度==配置温度
             and 选项上限==配置上限
             and 转json(选项停止)==转json(配置停止)

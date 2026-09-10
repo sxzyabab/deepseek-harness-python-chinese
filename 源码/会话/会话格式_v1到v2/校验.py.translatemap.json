@@ -10,15 +10,12 @@
     "inherited":"继承",
     "json":"json",
     "key":"键",
-    "payload":"载荷",
     "physical":"物理",
     "record":"记录",
     "relationship":"关系",
     "released":"已发布",
     "restore":"恢复",
-    "semantics":"语义",
     "session":"会话",
     "surface":"表面",
-    "target":"目标",
     "validate":"校验"
 }

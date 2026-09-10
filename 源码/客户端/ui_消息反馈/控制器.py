@@ -126,54 +126,32 @@ class 消息反馈控制器:#每会话反馈对象层
             return 自身.refresh()#刷新
         return 自身.变更(刷新,播种=False)#不预播种
 
-    def rate(自身,消息标识,评价,附注=None):#创建或替换反馈
-        """省略 note 保留已存；clearNote 才删。"""
+    def rate(自身,消息标识,评价,条目=None):#创建或替换反馈
+        """条目精确存储 text/category；空条目替换已存说明与类别。"""
+        if 条目 is None:#默认空
+            条目={}#空记录
         def 操作():#串行化体
             """对着已提交条目写入。"""
-            条目=自身.视图['items']#条目表
-            观察=条目[消息标识] if 消息标识 in 条目 else None#已观察
-            if 附注 is not None:#替换
-                写入附注=附注#新
-            elif 观察 is not None and 'note' in 观察:#沿用
-                写入附注=观察['note']#已存
-            else:#无
-                写入附注=None#省略
-            return 自身.提交写入(消息标识,评价,写入附注,观察)#put
+            表=自身.视图['items']#条目表
+            观察=表[消息标识] if 消息标识 in 表 else None#已观察
+            return 自身.提交写入(消息标识,评价,条目,观察)#put
         return 自身.变更(操作)#串行化
 
     def toggle(自身,消息标识,评价):#切换或收回
-        """已匹配则 delete，否则 put。"""
+        """已匹配则 delete，否则 put 裸评判；不结转说明与类别。"""
         def 操作():#串行化体
             """对着已存值切换。"""
-            条目=自身.视图['items']#条目表
-            观察=条目[消息标识] if 消息标识 in 条目 else None#已观察
+            表=自身.视图['items']#条目表
+            观察=表[消息标识] if 消息标识 in 表 else None#已观察
             已评=观察['rating'] if 观察 is not None and 'rating' in 观察 else None#已评
-            if 已评==评价:#已是该评价
-                return 自身.提交删除(消息标识,观察)#收回
-            附注=观察['note'] if 观察 is not None and 'note' in 观察 else None#已存说明
-            return 自身.提交写入(消息标识,评价,附注,观察)#写入
-        return 自身.变更(操作)#串行化
-
-    def clearNote(自身,消息标识):#丢掉 note、保留评价
-        """无反馈或无 note 则无需调用。"""
-        def 操作():#串行化体
-            """写入时省略 note。"""
-            条目=自身.视图['items']#条目表
-            观察=条目[消息标识] if 消息标识 in 条目 else None#已观察
-            if 观察 is None or 'note' not in 观察 or 观察['note'] is None:#无需
-                return 成功结果#成功
-            return 自身.提交写入(消息标识,观察['rating'],None,观察)#清 note
-        return 自身.变更(操作)#串行化
-
-    def clear(自身,消息标识):#去掉一条反馈
-        """无已知条目则已是目标态。"""
-        def 操作():#串行化体
-            """按观察版本删除。"""
-            条目=自身.视图['items']#条目表
-            观察=条目[消息标识] if 消息标识 in 条目 else None#已观察
-            if 观察 is None:#无
-                return 成功结果#成功
-            return 自身.提交删除(消息标识,观察)#删除
+            撤回=已评==评价#是否撤回
+            if 撤回:#已是该评价
+                结果=自身.提交删除(消息标识,观察)#收回
+            else:#写入裸评判
+                结果=自身.提交写入(消息标识,评价,{},观察)#写入
+            if 'ok' in 结果 and 结果['ok']:#成功
+                return {'ok':True,'rating':None if 撤回 else 评价}#带现评分
+            return 结果#失败原样
         return 自身.变更(操作)#串行化
 
     def dispose(自身):#拆除
@@ -181,13 +159,17 @@ class 消息反馈控制器:#每会话反馈对象层
         自身.已拆除=True#拒绝
         自身.监听者.clear()#清订阅
 
-    def 提交写入(自身,消息标识,评价,附注,观察):#put 并调和冲突
-        """按观察版本 put。"""
+    def 提交写入(自身,消息标识,评价,条目,观察):#put 并调和冲突
+        """按观察版本 put；条目 text→note、category 原样。"""
         请求={'sessionId':自身.会话标识,'messageId':消息标识,'rating':评价}#请求
         if 观察 is not None and 'version' in 观察:#有观察版本
-            请求['ifVersion']=观察['version']#带上；无观察则省略键
-        if 附注 is not None:#有 note
-            请求['note']=附注#带上
+            请求['ifVersion']=观察['version']#带上
+        else:#无观察
+            请求['ifVersion']=None#显式 null
+        if 'text' in 条目 and 条目['text'] is not None:#有正文
+            请求['note']=条目['text']#作 note
+        if 'category' in 条目 and 条目['category'] is not None:#有类别
+            请求['category']=条目['category']#类别
         载体=自身.远程.put(请求).等待()#提交
         if not 载体['ok']:#载体失败
             return 载体失败(载体['error'] if 'error' in 载体 else None)#原样

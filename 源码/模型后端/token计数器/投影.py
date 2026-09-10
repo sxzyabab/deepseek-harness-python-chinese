@@ -20,6 +20,6 @@ class 压力投影(TypedDict):#供状态展示用的近似上下文占用
     contextWindow:NotRequired[int]#最新记录的路由容量
 
 class 分解投影(TypedDict):#下一次请求上下文的启发式构成
-    systemTokens:int#系统提示词启发式 token
-    toolsTokens:int#工具模式启发式 token
-    messageTokens:int#消息表面启发式 token
+    systemTokens:int#表面顺序下末个非空幸存系统提示词
+    toolsTokens:int#最新请求信封工具模式
+    messageTokens:int#其余可见表面节点（含已被取代的系统）

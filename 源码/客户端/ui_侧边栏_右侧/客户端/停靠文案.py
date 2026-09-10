@@ -18,4 +18,11 @@ def 停靠标签(翻译):
         'addTab':翻译('dock.addTab'),#加签
         'dockFloat':翻译('dock.dockFloat'),#收回
         'closeFloat':翻译('dock.closeFloat'),#关浮
+        'dropZone':{#投放区
+            'center':翻译('dock.drop.center'),#中心
+            'left':翻译('dock.drop.left'),#左
+            'right':翻译('dock.drop.right'),#右
+            'top':翻译('dock.drop.top'),#上
+            'bottom':翻译('dock.drop.bottom'),#下
+        },
     }#投影结束

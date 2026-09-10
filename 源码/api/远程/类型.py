@@ -23,8 +23,15 @@ from .远程事件 import 远程转发事件#转发事件白名单常量
 # 不得缩成「远程转发事件名」别名——席位是 Record 映射，不是事件名联合。
 远程事件选择席位=TypedDict('远程事件选择席位',{#TypertRemoteEventSelection 席位合并
     'agent-preset/selected':Literal[True],#智能体预设已选定 → 已选
+    'approval/request':Literal[True],#审批请求瀑布 → 已选
+    'api-session/activity':Literal[True],#会话活动 → 已选
+    'api-session/added':Literal[True],#会话已添加 → 已选
+    'api-session/error':Literal[True],#会话错误 → 已选
+    'api-session/removed':Literal[True],#会话已移除 → 已选
+    'api-session/status':Literal[True],#会话状态 → 已选
     'commands/change':Literal[True],#命令表已变更 → 已选
-    'credentials/updated':Literal[True],#凭证已更新 → 已选
+    'credentials/reference-updated':Literal[True],#凭证引用已更新 → 已选
+    'goal/activation-changed':Literal[True],#目标激活已变更 → 已选
     'cordis/request-run':Literal[True],#请求运行动态包 → 已选
     'cordis/request-run-resolved':Literal[True],#动态包运行请求已决议 → 已选
     'cordis/dynamic-package':Literal[True],#动态包清单 → 已选
@@ -33,6 +40,7 @@ from .远程事件 import 远程转发事件#转发事件白名单常量
     'cordis/inspect-query-resolved':Literal[True],#动态包探查查询已决议 → 已选
     'llm/adapters-updated':Literal[True],#大模型适配器已更新 → 已选
     'settings/document-updated':Literal[True],#设置文档已更新 → 已选
+    'user-questions/request':Literal[True],#用户提问瀑布 → 已选
 })#席位合并结束：白名单每一键标为 true
 
 # 上游：TypertRemoteEvent = Extract<keyof Events, keyof TypertRemoteEventSelection>

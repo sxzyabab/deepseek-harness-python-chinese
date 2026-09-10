@@ -214,6 +214,22 @@ class 触发控制器:#每会话触发控制器
         自身._停拉取()#中止在飞拉取
         自身._归约({'type':'close'})#关菜单
 
+    def refreshOpenMenu(自身):#刷新开放菜单候选
+        """不改命中与可见行，重新拉取当前开放菜单。"""
+        if 自身.已拆除:#已拆除则忽略
+            return#结束
+        态=自身.menu.getSnapshot()#菜单快照
+        if 态 is None or not 态.get('open') or 自身.命中 is None:#无可刷新
+            return#结束
+        启动=自身.launcher.getSnapshot()#启动器源名
+        触发=自身.命中['trigger']#触发字符
+        名册=自身.依赖['roster']['sources'](触发)#该触发下的源
+        if 启动 is not None:#启动器收窄
+            名册=[源 for 源 in 名册 if 源['name']==启动]#只留启动源
+        if len(名册)==0:#无源
+            return#结束
+        自身._拉候选(自身.命中,名册)#重拉候选
+
     def dispose(自身):#随作用域拆除
         """关闭并中止。"""
         自身.已拆除=True#拒绝后续跟踪

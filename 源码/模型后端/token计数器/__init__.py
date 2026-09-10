@@ -5,14 +5,15 @@ Cordis 槽 `Config` / `default` 可保留。配置键与诊断英文字面量保
 from weakref import WeakKeyDictionary as 弱键字典#会话到回放状态
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
-from ..llm.组装器 import 块组装器#块组装器
+from ..llm.助手流 import 组装助手流#嵌入流重组
 from ..llm.调用配置 import 深冻结,结构化克隆#深冻结与拆离克隆
 from ...内核.会话 import 归一请求头,请求头是否相等,是否表面事件#规范头、头相等与表面判定
 from .类型 import 计量错误#计量异常
 from .分解投影 import 分解投影定义#分解投影
 from .用量投影 import 用量投影定义,压力投影定义#压力与用量投影
-from .计价 import 计价内容,计价请求头,计价消息 as 纯计价消息,角色开销#计价与角色开销
+from .计价 import 计价内容,计价工具令牌,计价消息 as 纯计价消息,角色开销#计价与角色开销
 from .表面折叠 import 折叠表面令牌#按节点表面折叠
+from .路由计价 import 计价表面#路由计价
 
 __all__=['计量错误','用量令牌','可选头相等','校验配置键','令牌计量','默认']#仅中文公开名（Cordis 槽另挂）
 
@@ -72,24 +73,44 @@ class 令牌计量(服务):#token 计量服务
             头=状态['header']#用最新已记录头
         else:#调用方给了头
             头=归一请求头(请求头)#规范调用方信封
+        定价=自身._路由图像计价(头)#路由图定价（若 llm 已挂）
+        文件文本=自身._文件请求文本()#文件投影（若 llm 已挂）
+        表面=计价表面(状态['surface'],定价,文件文本)#按路由计价表面
         锚点=状态['anchor']#最新锚点
         if 锚点 is not None and 可选头相等(锚点['header'],头):#信封匹配则可复用锚点
             基线=锚点['baseline']#沿用锚点基线
-            表面增量=状态['surfaceTokens']-锚点['surfaceTokens']#表面相对锚点
-        elif 头 is None and 状态['surfaceTokens']==0:#无头且空表面
+            表面增量=表面['surfaceTokens']-锚点['surfaceTokens']#表面相对锚点
+        elif 头 is None and 表面['surfaceTokens']==0:#无头且空表面
             基线={'kind':'none','tokens':0}#尚无基线
             表面增量=0#无增量
         else:#信封变了或无法复用
-            基线={'kind':'estimated','tokens':计价请求头(头)+状态['surfaceTokens']}#完整启发式
+            基线={'kind':'estimated','tokens':计价工具令牌(头)+表面['surfaceTokens']}#工具加表面（系统在表面）
             表面增量=0#已含在基线里
         return 深冻结(结构化克隆({
             'logRevision':状态['consumedEvents'],#已消费修订
             'baseline':基线,#基线
             'surfaceDeltaTokens':表面增量,#表面增量
             'totalTokens':max(0,基线['tokens']+表面增量),#非负总压力
-            'surfaceTokens':状态['surfaceTokens'],#表面合计
-            'nodes':状态['surface'],#表面节点
+            'surfaceTokens':表面['surfaceTokens'],#表面合计
+            'nodes':表面['nodes'],#表面节点
         }))#拆离并冻结
+
+    def _路由图像计价(自身,头):#路由图定价
+        """解析路由模型的图片定价；llm 服务与路由声明时才有。"""
+        if 头 is None or 'config' not in 头:#无头
+            return None#无
+        配置=头['config']#调用配置
+        llm=自身.ctx.获取服务('llm')#可选 llm
+        if llm is None or not hasattr(llm,'imageRequestPricing'):#未挂或无方法
+            return None#无
+        return llm.imageRequestPricing(配置.get('provider'),配置.get('model'))#问 llm
+
+    def _文件请求文本(自身):#文件请求文本解析器
+        """已挂载 LLM 服务时解析请求时文件投影。"""
+        llm=自身.ctx.获取服务('llm')#可选 llm
+        if llm is None or not hasattr(llm,'fileRequestText'):#未挂
+            return None#无
+        return llm.fileRequestText#绑定
 
     def 计价消息(自身,消息):#实例面计价消息
         """启发式计价一条模型可见消息（计价模块纯函数的实例面）。"""
@@ -133,7 +154,7 @@ class 令牌计量(服务):#token 计量服务
                 raise 计量错误(
                     'token meter: step/start at seq '+str(事件['seq'])+' arrived before turn '+str(打开['turn'])+'/step '+str(打开['step'])+' ended'
                 )#步未闭合
-            下一步起点={'turn':数据['turn'],'step':数据['step'],'surfaceTokens':状态['surfaceTokens']}#记下打开时表面
+            下一步起点={'turn':数据['turn'],'step':数据['step']}#记下打开步
         elif 种类=='step/end':#步结束
             打开=状态['stepStart']#打开步
             if 打开 is None or 打开['turn']!=数据['turn'] or 打开['step']!=数据['step']:#不成对
@@ -146,22 +167,24 @@ class 令牌计量(服务):#token 计量服务
                 raise 计量错误('token meter: assistant/message at seq '+str(事件['seq'])+' has no matching step/start event')#不成对
             事件令牌=表面['tokens']#本事件表面价格
             用量=数据['usage'] if 'usage' in 数据 else None#提供方用量
+            #循环在step/start之后准入提示词与用户消息；本调用只计价助手前表面
+            助手前表面=状态['surfaceTokens']#提交前当前表面合计
             if 用量 is not None and 下一头 is not None:#有用量且有头
-                提供方助手=自身._估算提供方助手(会话,事件,事件令牌)#提供方输出计价
-                锚点表面=打开['surfaceTokens']+提供方助手#打开步表面加提供方输出
+                提供方助手=自身._估算提供方助手(事件)#提供方输出计价
+                锚点表面=助手前表面+提供方助手#助手前表面加提供方输出
                 提供方合计=用量令牌(用量)#提供方合计
-                估算锚点=计价请求头(下一头)+锚点表面#完整启发式锚点
+                估算锚点=计价工具令牌(下一头)+锚点表面#完整启发式锚点（系统在表面）
                 if 提供方合计>=估算锚点:#提供方不低于启发式
                     基线={'kind':'usage','tokens':提供方合计,'usage':用量}#用提供方
                 else:#否则启发式
                     基线={'kind':'estimated','tokens':估算锚点}#启发式
                 下一锚点={'header':下一头,'surfaceTokens':锚点表面,'baseline':基线}#新锚点
             else:#没有用量或没有头
-                锚点表面=打开['surfaceTokens']+事件令牌#打开步表面加持久输出
+                锚点表面=助手前表面+事件令牌#助手前表面加持久输出
                 下一锚点={
                     'header':下一头,#当时信封
                     'surfaceTokens':锚点表面,#当时表面
-                    'baseline':{'kind':'estimated','tokens':计价请求头(下一头)+锚点表面},#估算
+                    'baseline':{'kind':'estimated','tokens':计价工具令牌(下一头)+锚点表面},#估算
                 }#启发式锚点
         状态['header']=下一头#提交头
         状态['stepStart']=下一步起点#提交打开步
@@ -170,33 +193,9 @@ class 令牌计量(服务):#token 计量服务
             状态['surfaceTokens']+=表面['deltaTokens']#更新合计
         状态['anchor']=下一锚点#提交锚点
 
-    def _估算提供方助手(自身,会话,事件,持久事件令牌):#按源块估算提供方助手输出
-        """从用量锚点所引用的精确块序号重组提供方输出。
-
-        缺失的遗留源序号保守地把持久输出当作提供方输出；显式空列表给已知空流计价。
-        """
-        源序号=事件['sourceEventSeqs'] if 'sourceEventSeqs' in 事件 else None#源块序号
-        if 源序号 is None:#遗留：用持久价格
-            return 持久事件令牌#持久输出价格
-        组装器=块组装器()#重组流
-        已见=set()#已见序号
-        定稿序号=事件['seq']#定稿序号
-        数据=事件['data']#定稿载荷
-        日志=会话.events#只追加日志
-        for 序号 in 源序号:#逐个源序号
-            if 序号>=定稿序号:#不早于定稿
-                raise 计量错误('token meter: assistant/message at seq '+str(定稿序号)+' source seq '+str(序号)+' is not earlier')#必须更早
-            if 序号 in 已见:#重复引用
-                raise 计量错误('token meter: assistant/message at seq '+str(定稿序号)+' repeats source seq '+str(序号))#不得重复
-            已见.add(序号)#记下已见
-            源事件=日志[序号]#按下标取源事件
-            if 源事件['type']!='assistant/chunk':#不是块
-                raise 计量错误('token meter: assistant/message at seq '+str(定稿序号)+' source seq '+str(序号)+' is not assistant/chunk')#必须是块
-            源数据=源事件['data']#源载荷
-            if 源数据['turn']!=数据['turn'] or 源数据['step']!=数据['step']:#不在同一步
-                raise 计量错误('token meter: assistant/message at seq '+str(定稿序号)+' source seq '+str(序号)+' belongs to another step')#必须同一步
-            组装器.推入(源数据['chunk'])#喂进组装器
-        提供方内容=组装器.块列表()#组装提供方块
+    def _估算提供方助手(自身,事件):#按嵌入流估算提供方助手输出
+        """从消息嵌入流重组提供方输出。"""
+        提供方内容=组装助手流(事件['data']['stream'] if 'stream' in 事件['data'] else []).块列表()#从嵌入流重组
         if len(提供方内容)==0:#空流
             return 0#已知空流
         return 计价内容(提供方内容)+角色开销#计价

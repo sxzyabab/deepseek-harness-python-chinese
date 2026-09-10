@@ -3,7 +3,7 @@ import os#平台判定与进程环境
 __all__=[#仅中文公开名
     '来源_进程','来源_项目环境','来源_用户环境','来源顺序','启动环境键',
     '启动环境来源','启动环境条目','启动环境层输入','查找键','启动环境快照',
-    '创建启动环境快照','取启动环境',
+    '创建启动环境快照','取启动环境','经ssh拉起',
 ]#公开面结束
 
 来源_进程='process'#本进程继承的环境；英文取值 process
@@ -78,4 +78,15 @@ def 取启动环境(上下文对象):#读取或回退本次启动快照
     if 已有 is not None:#宿主已提供
         return 已有#用启动器快照
     return 创建启动环境快照([{'source':来源_进程,'values':dict(os.environ)}])#无快照则只用进程环境
+
+def 经ssh拉起(环境):#launchedThroughSsh
+    """用启动时继承的非空 SSH_CONNECTION 或 SSH_TTY 判定 SSH；项目/用户 .env 永不构成 SSH 会话。"""
+    for 名 in ('SSH_CONNECTION','SSH_TTY'):#两种进程层标记
+        条目=环境.从中取(名,[来源_进程])#只查 process 层
+        if 条目 is None:#本层没有
+            continue#下一个
+        值=条目.get('value')#取值
+        if 值 is not None and 值!='':#非空
+            return True#经 SSH 拉起
+    return False#非 SSH
 #上游 declare module 把 launchEnvironment? 并入 Cordis Context；Python 侧由启动器 provide/提供(启动环境键, 快照) 写入同一槽。

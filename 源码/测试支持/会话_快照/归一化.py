@@ -4,11 +4,17 @@
 """
 import json,re#JSON 与正则
 from ...内核.会话 import 解码存储记录,打包块游程#会话编解码
+from ...内核.会话.序号范围 import 解码序号范围 as _内核解码序号范围#内核序号范围
 from .身份 import 脱敏会话快照标识#身份脱敏
+
+try:#比较前迁移到当前格式（可选；目录未就绪时跳过）
+    from ..llm_回放 import 准备会话快照夹具供比较#fixture 迁移比较
+except Exception:#导入失败
+    准备会话快照夹具供比较=None#不可用
 
 __all__=[#仅中文公开名
     '提取快照溢出路径','令牌化会话夹具工作目录','归一化标准输出','归一化会话日志',
-    '归一化会话快照','归一化会话快照列表','擦除系统提示词','擦除工具模式','擦除请求头','擦除会话快照',
+    '归一化会话快照','归一化会话快照列表','擦除系统提示词','擦除工具模式','擦除模型请求主体','擦除请求头','擦除会话快照',
 ]#公开面结束
 
 会话标识令牌='{{sessionId}}'#会话 id 令牌
@@ -199,19 +205,14 @@ def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdo
         帧列表.append(擦除值(帧,上下文,路径模式,身份模式))#擦除
     return '\n'.join(json.dumps(帧,ensure_ascii=False,separators=(',',':')) for 帧 in 帧列表)+'\n'#NDJSON
 
-def 解码序号范围(值):#解码序号范围内联
-    """展开 sourceEventSeqs（内核尚未导出时内联）。"""
+def 解码序号范围(值):#解码序号范围
+    """展开 sourceEventSeqs；非法形态原样返回以兼容归一化擦除。"""
     if not isinstance(值,list):#非数组
         return 值#原样
-    解码=[]#结果
-    for 条目 in 值:#逐项
-        if isinstance(条目,int) and not isinstance(条目,bool):#单
-            解码.append(条目)#追加
-        elif isinstance(条目,list) and len(条目)==2:#范围
-            解码.extend(range(条目[0],条目[1]+1))#展开
-        else:#其它
-            解码.append(条目)#原样
-    return 解码#返回
+    try:#严格解码
+        return _内核解码序号范围(值)#内核
+    except TypeError:#非法形态
+        return 值#原样
 
 def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话日志
     """将会话 JSONL 日志归一化为稳定期望输出。"""
@@ -242,6 +243,9 @@ def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话�
                 记录['data']['createdAt']=0#归零
             if 'updatedAt' in 记录['data']:#更新
                 记录['data']['updatedAt']=0#归零
+        if 记录.get('type')=='subagent/catalog' and isinstance(记录.get('data'),dict):#子智能体目录
+            if 'childCreatedAt' in 记录['data']:#子创建
+                记录['data']['childCreatedAt']=0#归零
         if 'sourceEventSeqs' in 记录:#溯源
             记录['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'])#解码
         记录列表.append(擦除值(记录,上下文,路径模式,身份模式))#擦除
@@ -267,13 +271,12 @@ def 重打包会话快照(原始日志):#重打包投影正文
             事件列表.append(事件)#收集
     正文=[]#正文行
     for 存储 in 打包块游程(事件列表):#打包
-        投影=dict(存储)#拷贝
-        省略信封(投影)#省略信封
-        正文.append(json.dumps(投影,ensure_ascii=False,separators=(',',':')))#序列化
+        省略信封(存储)#原地省略信封
+        正文.append(json.dumps(存储,ensure_ascii=False,separators=(',',':')))#序列化
     return '\n'.join([头,*正文,''])#接合
 
-def 擦除头内容(原始日志,选项):#擦除所选请求头载荷
-    """变换所选请求头载荷。"""
+def 擦除模型请求内容(原始日志,选项):#擦除所选模型请求载荷
+    """变换所选模型请求载荷。"""
     行列表=原始日志.split('\n')#行
     输出=[]#输出
     for 行 in 行列表:#逐行
@@ -285,38 +288,41 @@ def 擦除头内容(原始日志,选项):#擦除所选请求头载荷
         if not isinstance(数据,dict):#无数据
             输出.append(行)#原样
             continue#下一项
-        if 记录.get('type')=='request/header':#请求头
+        触及=False#是否触及
+        if 选项.get('system') and 记录.get('type')=='system/message':#系统消息
+            消息=数据.get('message')#消息
+            if isinstance(消息,dict) and isinstance(消息.get('content'),list) and len(消息['content'])>0:#有内容
+                块=消息['content'][0]#首块
+                if isinstance(块,dict) and isinstance(块.get('text'),str):#有文本
+                    块['text']=系统令牌#令牌
+                    触及=True#触及
+        if 选项.get('tools') and 记录.get('type')=='request/header':#请求头
             头=数据.get('header')#头
-            if not isinstance(头,dict):#无头
-                输出.append(行)#原样
-                continue#下一项
-            触及=False#是否触及
-            if 选项.get('system') and 'system' in 头:#擦系统
-                头['system']=系统令牌#令牌
-                触及=True#触及
-            if 选项.get('tools') and 'tools' in 头:#擦工具
+            if isinstance(头,dict) and 'tools' in 头:#有工具
                 头['tools']=工具令牌#令牌
                 触及=True#触及
-            输出.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')) if 触及 else 行)#写回
-        else:#其它
-            输出.append(行)#原样
+        输出.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')) if 触及 else 行)#写回
     return '\n'.join(输出)#接合
 
 def 擦除系统提示词(原始日志):#擦除系统提示词
-    """用 {{system}} 替换请求头中的系统提示词内容。"""
-    return 擦除头内容(原始日志,{'system':True})#擦系统
+    """用 {{system}} 替换每个 system/message 的渲染提示词文本。"""
+    return 擦除模型请求内容(原始日志,{'system':True})#擦系统
 
 def 擦除工具模式(原始日志):#擦除工具 schema
     """用 {{tools}} 替换完整请求头快照中的工具 schema。"""
-    return 擦除头内容(原始日志,{'tools':True})#擦工具
+    return 擦除模型请求内容(原始日志,{'tools':True})#擦工具
 
-def 擦除请求头(原始日志):#擦除全部头主体
-    """用稳定令牌替换会话 JSONL 中所有臃肿请求头内容。"""
-    return 擦除头内容(原始日志,{'system':True,'tools':True})#全擦
+def 擦除模型请求主体(原始日志):#擦除模型请求主体
+    """用稳定令牌替换臃肿模型请求内容：system/message 提示词与请求头 tools。"""
+    return 擦除模型请求内容(原始日志,{'system':True,'tools':True})#全擦
+
+def 擦除请求头(原始日志):#兼容旧名
+    """历史别名；等价于 {@link 擦除模型请求主体}。"""
+    return 擦除模型请求主体(原始日志)#全擦
 
 def 擦除会话快照(原始日志):#擦除会话快照
-    """投影持久化会话日志同时标记化全部请求头主体。"""
-    已擦=擦除请求头(原始日志)#先擦头
+    """投影持久化会话日志同时标记化提示词文本与 schema 主体。"""
+    已擦=擦除模型请求主体(原始日志)#先擦主体
     记录索引=0#索引
     行列表=[]#行
     for 行 in 已擦.split('\n'):#逐行
@@ -339,14 +345,46 @@ def 归一化会话快照(原始日志,上下文,选项=None):#归一化会话�
     """为已提交 fixture 归一化并投影持久化会话 JSONL。"""
     return 重打包会话快照(擦除会话快照(归一化会话日志(原始日志,上下文,选项)))#组合
 
+def 是否有会话格式版本(原始日志):#是否有格式版本
+    """fixture 是否声明已发布 Session 格式，因而参与迁移烧入。"""
+    首行=next((行 for 行 in 原始日志.splitlines() if 行.strip()!=''),None)#首非空行
+    if 首行 is None:#缺头
+        raise Exception('session snapshot must start with a session header')#缺头
+    头=json.loads(首行)#解析头
+    if not isinstance(头,dict) or 头.get('type')!='session':#非 session 头
+        raise Exception('session snapshot must start with a session header')#缺头
+    return 'version' in 头#是否有 version
+
+def 归一化会话格式溯源(原始日志):#归一化格式溯源
+    """仅为期望输出比较省略官方迁移后的制品头世代。"""
+    行列表=[]#输出
+    for 行 in 原始日志.split('\n'):#逐行
+        if 行.strip()=='':#空行
+            行列表.append(行)#原样
+            continue#下一项
+        记录=json.loads(行)#解析
+        if 记录.get('type')!='session' or 'version' not in 记录:#非头或不含 version
+            行列表.append(行)#原样
+            continue#下一项
+        记录.pop('version',None)#删 version
+        行列表.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')))#重序列化
+    return '\n'.join(行列表)#拼回
+
 def 归一化会话快照列表(原始日志列表,上下文,选项=None):#归一化多份快照
     """用共享类型化身份脱敏归一化一个场景的主与子日志。"""
     if 选项 is None:#缺省
         选项={}#空
+    当前=[]#当前格式日志
+    for 日志 in 原始日志列表:#逐份
+        if 准备会话快照夹具供比较 is not None and 是否有会话格式版本(日志):#可迁移
+            当前.append(准备会话快照夹具供比较(日志))#迁移到当前
+        else:#原样
+            当前.append(日志)#原样
+    可比=[归一化会话格式溯源(日志) for 日志 in 当前]#抹格式溯源
     return [#映射
         重打包会话快照(擦除会话快照(归一化会话日志(
             日志,{'sessionIds':[],'cwd':上下文['cwd'],**({'cwdAliases':上下文['cwdAliases']} if 'cwdAliases' in 上下文 else {})},
             {**选项,'identityMode':'preserve'},
         )))
-        for 日志 in 脱敏会话快照标识(原始日志列表)
+        for 日志 in 脱敏会话快照标识(可比)
     ]#返回

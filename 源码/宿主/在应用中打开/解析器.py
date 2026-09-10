@@ -58,6 +58,7 @@ class 已解析启动:#一条已验证启动
 class 已完成内部事实:#补全后的可注入事实
     """公开入口处一次性补全后的平台事实。"""
     平台:str#darwin/win32/linux/…
+    ssh:bool#SSH 拉起
     应用根列表:tuple#macOS 应用目录根
     环境:dict#环境表
     家目录:str#家目录
@@ -236,6 +237,7 @@ def 补全内部事实(内部):#resolveInternals
         raise 在应用中打开错误('open-in-app: internals.resolveExecutable is required (the subprocess capability provides it)')#大声失败
     return 已完成内部事实(#补全
         平台=内部['平台'] if '平台' in 内部 else 节点平台(),#平台
+        ssh=bool(内部['ssh']) if 'ssh' in 内部 else False,#SSH 拉起
         应用根列表=tuple(内部['应用根列表']) if '应用根列表' in 内部 else ('/Applications',os.path.join(家目录,'Applications')),#根
         环境=dict(内部['环境']) if '环境' in 内部 else dict(os.environ),#环境
         家目录=家目录,#家
@@ -586,13 +588,17 @@ def 经注册表解析(应用,探测超时毫秒,注册表,事实):#resolveWithR
     return None#全失败
 
 def 解析启动(应用,探测超时毫秒,内部=None):#resolveLaunch
-    """解析一条目录条目；未安装则 None。"""
+    """解析一条目录条目；SSH 拉起或未安装则 None。"""
     事实=补全内部事实(内部)#补全
+    if 事实.ssh:#SSH 下不探测
+        return None#空
     return 经注册表解析(应用,探测超时毫秒,注册表视图一次(探测超时毫秒,事实),事实)#解析
 
 def 解析在应用中打开应用(探测超时毫秒,内部=None):#resolveOpenInAppApps
-    """解析整份目录一次：标识 → 已验证启动（目录顺序）。"""
+    """解析整份目录一次：标识 → 已验证启动（目录顺序）。SSH 拉起时不探测，返回空映射。"""
     事实=补全内部事实(内部)#补全
+    if 事实.ssh:#SSH 拉起
+        return {}#空表
     注册表=注册表视图一次(探测超时毫秒,事实)#共享
     映射={}#可变权威
     for 应用 in 在应用中打开目录:#菜单序

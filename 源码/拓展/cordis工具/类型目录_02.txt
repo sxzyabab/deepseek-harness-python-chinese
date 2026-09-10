@@ -21,6 +21,7 @@ GenerateOptions|export interface GenerateOptions {\n    provider: string;\n    m
 GenericCallView|export interface GenericCallView {\n    card: \'generic\';\n    title: string;\n    kind?: ToolCallKind;\n    rawInput?: unknown;\n    content?: ContentBlock[];\n    locations?: FileLocation[];\n}
 GenericResultView|export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}
 GoalActivation|export type GoalActivation = \'armed\' | \'disarmed\';
+GoalActivationChanged|export interface GoalActivationChanged {\n    readonly sessionId: SessionId;\n    readonly goal?: {\n        readonly id: GoalId;\n        readonly revision: number;\n        readonly activation: GoalActivation;\n    };\n}
 GoalBlockReason|export interface GoalBlockReason {\n    readonly code: string;\n    readonly message: string;\n}
 GoalChanged|export interface GoalChanged {\n    readonly operation: GoalOperation;\n    readonly ref: GoalRef;\n    readonly goal?: GoalView;\n}
 GoalOperation|export type GoalOperation = \'create\' | \'edit\' | \'pause\' | \'resume\' | \'complete\' | \'block\' | \'clear\';

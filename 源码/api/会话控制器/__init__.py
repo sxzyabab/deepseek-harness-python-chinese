@@ -5,20 +5,22 @@
 智能体激活、命令、控制流与历史分页分别见子模块；客户端半边在 `客户端/运行时`。
 """
 import os#进程 cwd
+import socket#主机名
 from ...依赖.schemastery import 数字字段,布尔字段#配置字段
 from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
 from .常量 import 默认冷空白探测最大字节#默认策略
 from .目录 import 构建模型目录#模型目录
 from .模型选择投影 import 安装模型选择投影#投影
 from .文件引用 import 会话文件引用#文件引用
+from .媒体引用 import 会话媒体引用#媒体引用
 from .技能目录 import 会话技能目录#技能目录
 from .远程错误与并发 import 远程错误,已中止,在线程执行#远程错误与并发
 
-__all__=['名称','注入','配置','会话控制器','应用','构建模型目录','会话文件引用','会话技能目录']#仅中文公开名
+__all__=['名称','注入','配置','会话控制器','应用','构建模型目录','会话文件引用','会话媒体引用','会话技能目录']#仅中文公开名
 
 名称='session-controller'#插件名
 注入=[#依赖
-    'agentDefaultModel','agents','attachments','llm','sessions',
+    'agentDefaultModel','agents','attachments','fileUploads','llm','sessions',
     'sessionProjections','sessionQuery','typert','workspaceRegistry',
 ]#结束
 
@@ -52,10 +54,14 @@ class 会话控制器(远程服务):
         探测上限=配置值['coldBlankProbeMaxBytes'] if 'coldBlankProbeMaxBytes' in 配置值 and 配置值['coldBlankProbeMaxBytes'] is not None else 默认冷空白探测最大字节#列表
         自身._列表=会话列表(上下文,探测上限)#列表
         自身._打开路径=内部['openPath'] if 'openPath' in 内部 else None#打开路径
+        自身._揭示路径=内部['revealPath'] if 'revealPath' in 内部 else None#揭示路径
         自身._能否打开=内部['canOpenPath'] if 'canOpenPath' in 内部 else None#能否打开
         if 自身._打开路径 is None:#缺省
             from ...工具.原生命令 import openNativePath as 打开原生路径#导入
             自身._打开路径=打开原生路径#默认
+        if 自身._揭示路径 is None:#缺省揭示
+            from ...工具.原生命令 import revealNativePath as 揭示原生路径#导入
+            自身._揭示路径=揭示原生路径#默认
         if 自身._能否打开 is None:#缺省探测
             def 探测():
                 """配置或集成或平台。"""
@@ -67,7 +73,15 @@ class 会话控制器(远程服务):
                 return bool(能否打开原生路径())#平台
             自身._能否打开=探测#函数
         自身._晋升任务集合=set()#后台晋升任务
+        def 文件上传解析(会话标识):
+            """登记文件上传 Agent 解析。"""
+            结果=自身._智能体控制器.解析智能体(会话标识)#解析
+            if isinstance(结果,dict) and 'error' in 结果:#失败
+                raise 结果['error']#抛出
+            return 结果['agent'] if isinstance(结果,dict) and 'agent' in 结果 else 结果#智能体
+        上下文.副作用(lambda:上下文.fileUploads.登记智能体解析器(文件上传解析),'session-controller: file-upload Agent resolver')#文件上传
         上下文.启动插件(会话文件引用)#子插件
+        上下文.启动插件(会话媒体引用)#子插件
         上下文.启动插件(会话技能目录)#子插件
         def 会话创建(会话):
             """创建。"""
@@ -146,7 +160,7 @@ class 会话控制器(远程服务):
         """不激活智能体地检视会话。"""
         附着=自身.ctx.sessions.get(会话标识)#附着
         if 附着 is not None:#附着
-            return {'meta':附着.header,'events':list(附着.events)}#即时
+            return {'meta':附着.header,'inheritedEventCount':getattr(附着,'inheritedEventCount',0),'events':list(附着.events)}#即时
         from .智能体 import 检视会话#检视
         return 检视会话(自身.ctx,会话标识,信号)#冷读
 
@@ -180,16 +194,25 @@ class 会话控制器(远程服务):
         """报告能否原生打开工作区路径。"""
         return bool(自身._能否打开())#探测
 
+    def workspaceDesktop(自身):
+        """描述认证文件操作路由所用的服务桌面。"""
+        from ...工具.原生命令 import nativeFileManager as 原生文件管理器#导入
+        管理器=原生文件管理器()#文件管理器
+        return {'name':socket.gethostname(),'available':管理器 is not None and bool(自身._能否打开()),'fileManager':管理器}#桌面面
+
     @_远程('openWorkspacePath')
     def openWorkspacePath(自身,请求,信号):
-        """原生打开工作区路径。请求为 dict。"""
+        """原生打开或揭示工作区路径。请求为 dict。"""
         路径=请求['path'] if 'path' in 请求 and 请求['path'] is not None else ''#路径，|| 空串
         if 路径=='':#空
             raise 远程错误('gateway/bad-request','session.openWorkspacePath requires a non-empty path',{})#拒绝
         if 已中止(信号):#取消
             raise 远程错误('gateway/cancelled','path open was aborted',{})#取消
         try:
-            自身._打开路径(路径,信号)#打开
+            if ('action' in 请求) and 请求['action']=='reveal':#揭示
+                自身._揭示路径(路径,信号)#揭示
+            else:
+                自身._打开路径(路径,信号)#打开
             return {'opened':True}#确认
         except (OSError,ValueError,TypeError) as 错误:
             if 已中止(信号):#取消

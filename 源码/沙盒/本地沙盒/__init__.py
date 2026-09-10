@@ -20,7 +20,7 @@ from ..沙盒_windows访问控制 import (#导入 ACL 授权、临时根断言�
     聚合错误,#聚合清理失败
 )#windows-acl 导入结束
 from .配置 import bwrap配置参数,landlock配置参数,seatbelt配置参数#导入各平台配置构建（profiles）
-from .landlock入口 import (#从 Landlock 入口缝导入（镜像 node-addon-landlock-run）
+from .landlock入口 import (#从 Landlock 入口缝导入（镜像 node-addon-system/landlock-run）
     启动器二进制名,#启动器二进制名
     启动器失败退出,#启动器失败退出码
     启动器路径 as landlock启动器路径,#启动器路径
@@ -43,7 +43,7 @@ def 默认探测Bwrap(超时毫秒):#探测 bwrap
     """探测 `bwrap` 能否创建配置；提供方缓存有界结果。"""
     try:#缺失二进制读作不可用
         探测=subprocess.run(#只读根探测
-            ['bwrap','--ro-bind','/','/','--dev','/dev','--proc','/proc','--die-with-parent','--','true'],#探测 argv
+            ['bwrap',*bwrap配置参数({'mode':'read-only','workspaceRoot':'/'}),'--','true'],#探测 argv
             timeout=(超时毫秒/1000.0),#探测超时
             stdout=subprocess.DEVNULL,#忽略 stdout
             stderr=subprocess.DEVNULL,#忽略 stderr

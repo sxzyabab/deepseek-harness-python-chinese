@@ -162,7 +162,7 @@ def 请求头(头):
 class 派爱适配器(llm.大模型适配器):
     """派爱后端的多提供方适配器。"""
     def __init__(自身,配置):
-        """保存插件钩子。"""
+        """保存插件钩子。配置可含 auth（凭证仓+认证上下文）。"""
         llm.大模型适配器.__init__(自身)#适配器基类
         自身.配置=配置#插件钩子
         自身.快照=None#当前快照
@@ -171,9 +171,11 @@ class 派爱适配器(llm.大模型适配器):
         配置表=自身.配置['profiles']()#当前配置
         if 自身.快照 is not None and 自身.快照['profiles'] is 配置表:#同一份配置对象则复用模型集合
             return 自身.快照#复用
-        模型集合=pi_ai.createModels()#新集合
+        认证=自身.配置['auth'] if 'auth' in 自身.配置 else None#集合级认证
+        模型集合=pi_ai.createModels(认证) if 认证 is not None else pi_ai.createModels()#新集合
         for 配置项 in 配置表.values():#每条已解析路由挂上它的 pi-ai 提供方
-            模型集合.setProvider(配置项['piProvider'])#挂上每条路由的提供方
+            if 'piProvider' in 配置项 and 配置项['piProvider'] is not None:#可服务才挂
+                模型集合.setProvider(配置项['piProvider'])#挂上
         自身.快照={'profiles':配置表,'models':模型集合}#记下新快照
         return 自身.快照#当前快照
     def 配置于(自身,快照,提供方):
@@ -184,7 +186,13 @@ class 派爱适配器(llm.大模型适配器):
         return 配置项#已解析配置
     def 模型于(自身,快照,提供方,模型):
         """一份快照里一对精确路由/模型的已配置描述符。"""
-        自身.配置于(快照,提供方)#先确认拥有路由
+        配置项=自身.配置于(快照,提供方)#先确认拥有路由
+        模型错=配置项['modelErrors'] if 'modelErrors' in 配置项 else {}#按模型诊断
+        失败=模型错[模型] if 模型 in 模型错 else None#本模型
+        if 失败 is None and ('piProvider' not in 配置项 or 配置项['piProvider'] is None):#路由级
+            失败=配置项['catalogError'] if 'catalogError' in 配置项 else None#目录错误
+        if 失败 is not None:#配置无效
+            raise llm.大模型错误(失败,'INVALID_CONFIG')#无效配置
         已解析=快照['models'].getModel(提供方,模型)#从集合取模型
         if 已解析 is None:#路由有了但集合里没有这个模型
             raise llm.大模型错误('pi-ai provider "'+提供方+'" has no configured model "'+模型+'"','UNKNOWN_MODEL')#未知模型

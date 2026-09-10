@@ -45,6 +45,7 @@ def 无缓存调工具(客户端,原始名,参数,执行,选项):
 def 同步工具(客户端,上下文,选项,上一代):
     """两阶段交换：先获取并构建下一代定义，成功后再拆除上一代并注册本代。"""
     定义表={}#下一代工具定义
+    已见游标=set()#已见续页游标
     游标=None#分页游标
     while True:#循环拉取每一页
         响应=无缓存列工具(客户端,游标)#无缓存列出本页
@@ -65,6 +66,10 @@ def 同步工具(客户端,上下文,选项,上一代):
                 'execute':创建执行器(客户端,工具['name'],执行支持=='required',选项),#执行器
             }#定义结束
         游标=响应['nextCursor'] if 'nextCursor' in 响应 else None#下一页游标
+        if 游标 is not None:#有游标
+            if 游标 in 已见游标:#游标环
+                raise MCP错误('mcp-client('+选项['serverName']+'): server repeated a tools/list continuation cursor — invalid tool list')#非法列表
+            已见游标.add(游标)#记游标
         if 游标 is None:#无游标则结束
             break#退出分页
     for 注销 in 上一代.values():#拆除上一代

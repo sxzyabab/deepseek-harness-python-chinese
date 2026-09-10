@@ -148,13 +148,7 @@ def 输入错误译(错误):#把一条被包含的输入失败译成封闭工具
 def 工具折叠(智能体):#仅在预检成功后折叠，损坏映射为稳定取值
     """仅在预检成功后折叠，损坏映射为稳定取值。"""
     try:#折叠当前后缀
-        会话=智能体.session#所属会话
-        头=会话.header#会话头
-        if 'seedLength' in 头 and 头['seedLength'] is not None:#fork 后缀
-            种子=头['seedLength']#起点
-        else:#缺席当 0
-            种子=0#整份
-        return 折叠日程事件(会话.events,种子)#按 fork 后缀折叠
+        return 折叠日程事件(智能体.session.ownEvents())#ownEvents 已切掉继承前缀
     except 日程日志错误:#折叠拒绝为日志损坏
         return 日志损坏错误()#稳定损坏
     except Exception:#其它

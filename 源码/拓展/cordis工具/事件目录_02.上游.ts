@@ -1,6 +1,14 @@
 /** 本包内嵌 EVENT_API 分片 02（对照原版 api-catalog.ts） */
 export const EVENT_API: readonly EventApiEntry[] = [//事件目录
   {//事件
+    name: 'goal/activation-changed',
+    mode: 'emit',//分发模式
+    signature: '\'goal/activation-changed\'(payload: GoalActivationChanged): void',
+    summary: 'Process-local goal activation changed for one session.',
+    description: 'Process-local goal activation changed for one session.',
+    parameters: [{ name: 'payload', description: 'session id and the exact current goal activation, or no goal after a clear.' }],
+  },
+  {//事件
     name: 'goal/changed',
     mode: 'emit',//分发模式
     signature: '\'goal/changed\'(this: import(\'@deepseek-ai/dsh-scope\').Scoped<Agent>, payload: { agent: Agent; change: GoalChanged }): void',
@@ -145,11 +153,11 @@ export const EVENT_API: readonly EventApiEntry[] = [//事件目录
     parameters: [],//无参数
   },
   {//事件
-    name: 'tools/code-dispatch-log',
+    name: 'tools/ptc-dispatch-log',
     mode: 'waterfall',//分发模式
-    signature: '\'tools/code-dispatch-log\'(this: Scoped<ToolRuntime>, dispatch: CodeDispatchLog, next: () => Promise<ContentBlock[]>): Promise<ContentBlock[]>',
-    summary: 'Allow a listener to replace content in the DURABLE LOG COPY of one `run_code` sub-dispatch outcome before the bridge appends its `tool/code-dispatch` event.',
-    description: 'Allow a listener to replace content in the DURABLE LOG COPY of one `run_code` sub-dispatch outcome before the bridge appends its `tool/code-dispatch` event. `next()` keeps the content unchanged; a listener may return replacement blocks (e.g. the spill policy\'s preview + locator for an oversized text result). Only the logged copy is affected — the program already received the complete value, and the model sees neither. A throwing listener is contained: the bridge falls back to logging the original settled content. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent\'s dispatches.',
+    signature: '\'tools/ptc-dispatch-log\'(this: Scoped<ToolRuntime>, dispatch: PtcDispatchLog, next: () => Promise<ContentBlock[]>): Promise<ContentBlock[]>',
+    summary: 'Allow a listener to replace content in the DURABLE LOG COPY of one `run_code` sub-dispatch outcome before the bridge appends its `tool/ptc-dispatch` event.',
+    description: 'Allow a listener to replace content in the DURABLE LOG COPY of one `run_code` sub-dispatch outcome before the bridge appends its `tool/ptc-dispatch` event. `next()` keeps the content unchanged; a listener may return replacement blocks (e.g. the spill policy\'s preview + locator for an oversized text result). Only the logged copy is affected — the program already received the complete value, and the model sees neither. A throwing listener is contained: the bridge falls back to logging the original settled content. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent\'s dispatches.',
     parameters: [{ name: 'dispatch', description: 'the parent execution, sub-call identity, and the settled content to log.' }],
   },
   {//事件

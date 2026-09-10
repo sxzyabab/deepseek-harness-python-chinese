@@ -387,15 +387,15 @@ def 派发后记录(记录,变更):#把一条已解码派发应用到其恰好�
     下一['scheduledAt']=出现['nextScheduledAt']#推进到下次目标
     return 下一#推进后记录
 
-def 折叠日程事件(事件列表,种子长度=0):
-    """在持久 fork 种子边界之后折叠本包拥有的流。事件是 dict。"""
-    种子是整数=(not isinstance(种子长度,bool)) and (isinstance(种子长度,int) or (isinstance(种子长度,float) and 种子长度.is_integer()))#先排除布尔再认整数
-    if (not 种子是整数) or abs(种子长度)>9007199254740991 or 种子长度<0 or 种子长度>len(事件列表):#外来JSON种子须落在日志内
-        raise 日程日志错误('schedule seedLength must be within the supplied event log')#种子越界
+def 折叠日程事件(事件列表,继承事件数=0):
+    """在持久 fork 继承切口之后折叠本包拥有的流。事件是 dict；也可传入已切掉前缀的 ownEvents（此时继承事件数保持 0）。"""
+    继承是整数=(not isinstance(继承事件数,bool)) and (isinstance(继承事件数,int) or (isinstance(继承事件数,float) and 继承事件数.is_integer()))#先排除布尔再认整数
+    if (not 继承是整数) or abs(继承事件数)>9007199254740991 or 继承事件数<0 or 继承事件数>len(事件列表):#外来JSON继承须落在日志内
+        raise 日程日志错误('schedule inheritedEventCount must be within the supplied event log')#继承计数越界
     活动={}#活动记录（保序）
     已见=[]#曾经创建的 id 序
     已见集=set()#已见集合
-    for 事件 in 事件列表[种子长度:]:#只看本包后缀
+    for 事件 in 事件列表[继承事件数:]:#只看本包后缀
         if ('type' not in 事件) or 事件['type']!='schedule/change':#跳过非日程
             continue#下一条
         变更=解码日程变更(事件['data'] if 'data' in 事件 else None)#解码变更

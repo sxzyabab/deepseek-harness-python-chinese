@@ -6,6 +6,7 @@
     "concurrency":"并发",
     "config":"配置",
     "corpus":"语料库",
+    "cold":"冷",
     "cursor":"游标",
     "document":"文档",
     "engine":"引擎",

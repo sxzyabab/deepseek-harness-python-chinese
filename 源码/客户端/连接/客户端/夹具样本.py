@@ -4,6 +4,7 @@
 公开面仅中文名；协议键（type/card/kind 等）保持英文。
 """
 import json,unicodedata#参数解析与码点分类
+from ....模型后端.llm.助手流 import 展开助手流#嵌入流展开
 from .接口 import 会话搜索结果上限#检索条数上限
 
 __all__=[#仅中文公开名
@@ -303,18 +304,18 @@ def 是否令牌增量(块):#是否 token 增量块
     return 块.get('type') in ('text-delta','reasoning-delta','tool-call-delta')#增量类
 
 def 用量样本于(事件):#抽用量样本
-    """从 assistant/chunk(usage) 或 assistant/message 读提供方用量样本。"""
+    """从 assistant/message 或 assistant/attempt 的嵌入流读提供方用量样本。"""
     类型=事件.get('type') if isinstance(事件,dict) else None#类型
     数据=事件.get('data') if isinstance(事件,dict) else {}#数据
     if not isinstance(数据,dict):#无数据
         return None#无
-    用量=None#待填
-    if 类型=='assistant/chunk':#chunk 用量
-        块=数据.get('chunk') if isinstance(数据.get('chunk'),dict) else {}#块
-        if 块.get('type')=='usage':#用量块
-            用量=块.get('usage')#用量
-    elif 类型=='assistant/message':#定稿消息用量
-        用量=数据.get('usage')#用量
+    if 类型!='assistant/message' and 类型!='assistant/attempt':#非结算
+        return None#无
+    用量=数据.get('usage') if 类型=='assistant/message' else None#定稿显式用量
+    for 成员 in 展开助手流(数据.get('stream') or []):#扫嵌入流
+        块=成员.get('chunk') if isinstance(成员,dict) else None#块
+        if isinstance(块,dict) and 块.get('type')=='usage':#用量块
+            用量=块.get('usage')#覆盖为流末用量
     if 用量 is None or 数据.get('turn') is None or 数据.get('step') is None:#缺字段
         return None#无
     return {'turn':数据['turn'],'step':数据['step'],'usage':用量}#齐才成样本
@@ -352,13 +353,22 @@ def 会话统计于(日志):#会话统计
         时刻=事件.get('time',0) if isinstance(事件,dict) else 0#时刻
         if 类型=='step/start':#开步
             开步={'turn':数据.get('turn'),'step':数据.get('step'),'startTime':时刻,'firstTokenTime':None}#开步
-        elif 类型=='assistant/chunk':#chunk
-            if 开步 is not None and 开步['turn']==数据.get('turn') and 开步['step']==数据.get('step') and 开步['firstTokenTime'] is None and 是否令牌增量(数据.get('chunk')):#首 token
-                开步['firstTokenTime']=时刻#记 TTFT
+        elif 类型=='assistant/attempt':#失败/中断尝试
+            if 开步 is not None and 开步['turn']==数据.get('turn') and 开步['step']==数据.get('step'):#对齐
+                if 开步['firstTokenTime'] is None:#尚无首 token
+                    for 成员 in 展开助手流(数据.get('stream') or []):#扫流
+                        if 是否令牌增量(成员.get('chunk') if isinstance(成员,dict) else None):#首增量
+                            开步['firstTokenTime']=成员.get('time',时刻)#记 TTFT
+                            break#停
         elif 类型=='assistant/message':#定稿
             if 开步 is None or 开步['turn']!=数据.get('turn') or 开步['step']!=数据.get('step'):#对不上
                 pass#忽略
             else:#对齐开步
+                if 开步['firstTokenTime'] is None:#尚无首 token
+                    for 成员 in 展开助手流(数据.get('stream') or []):#扫流
+                        if 是否令牌增量(成员.get('chunk') if isinstance(成员,dict) else None):#首增量
+                            开步['firstTokenTime']=成员.get('time',时刻)#记 TTFT
+                            break#停
                 值['llmMs']+=max(0,时刻-开步['startTime'])#LLM 墙钟
                 if 开步['firstTokenTime'] is not None:#有首 token
                     值['ttftMs']+=max(0,开步['firstTokenTime']-开步['startTime'])#累加 TTFT
@@ -416,9 +426,9 @@ def 折表面(日志):#折当前表面节点
         类型=事件.get('type')#类型
         序号=事件.get('seq')#seq
         操作=事件.get('surfaceOp')#表面操作
-        if 类型 in ('user/message','assistant/message','tool/result') and 操作=='append':#追加
+        if 类型 in ('system/message','user/message','assistant/message','tool/result') and 操作=='append':#追加
             节点.append(序号)#挂上
-        elif 类型 in ('user/message','assistant/message','tool/result') and 操作=='replace':#替换
+        elif 类型 in ('system/message','user/message','assistant/message','tool/result') and 操作=='replace':#替换
             if 节点:#有节点
                 节点[-1]=序号#替换末
             else:#空
@@ -426,11 +436,14 @@ def 折表面(日志):#折当前表面节点
     return {'nodes':节点}#表面
 
 def 派生事件消息(事件):#抽消息
-    """简化 deriveEventMessage：从用户/助手/工具结果抽出可计价消息。"""
+    """简化 deriveEventMessage：从系统/用户/助手/工具结果抽出可计价消息。"""
     if not isinstance(事件,dict):#非映射
         return None#无
     类型=事件.get('type')#类型
     数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}#数据
+    if 类型=='system/message':#系统
+        消息=数据.get('message') if isinstance(数据.get('message'),dict) else {}#消息
+        return {'role':'system','content':消息.get('content') or []}#系统
     if 类型=='user/message':#用户
         return {'role':'user','content':数据.get('content') or []}#用户消息
     if 类型=='assistant/message':#助手
@@ -442,7 +455,10 @@ def 派生事件消息(事件):#抽消息
     return None#其它无
 
 def 上下文组成于(日志):#启发式组成
-    """token-meter 启发式上下文组成投影的 fixture 平行。"""
+    """token-meter 启发式上下文组成投影的 fixture 平行。
+
+    系统提示是 system 角色表面节点；按文本加角色框计价、无块开销，且不计消息图。
+    """
     头事件=None#最近 request/header
     for 事件 in reversed(日志):#从尾
         if isinstance(事件,dict) and 事件.get('type')=='request/header':#头
@@ -452,19 +468,26 @@ def 上下文组成于(日志):#启发式组成
     if 头事件 is not None:#有头
         数据=头事件.get('data') if isinstance(头事件.get('data'),dict) else {}#数据
         头=数据.get('header') if isinstance(数据.get('header'),dict) else 数据#头
+    系统令牌=0#系统
     消息令牌=0#表面消息合计
     for 序号 in 折表面(日志)['nodes']:#当前表面节点
         if not isinstance(序号,int) or 序号<0 or 序号>=len(日志):#空洞
             continue#跳过
         消息=派生事件消息(日志[序号])#抽消息
-        if 消息 is not None:#可计价
-            消息令牌+=估算夹具内容(消息.get('content') or [])+角色开销#计价
-    系统令牌=0#系统
+        if 消息 is None:#非消息
+            continue#跳过
+        if 消息.get('role')=='system':#系统角色
+            字符数=0#字符
+            for 块 in 消息.get('content') or []:#各块
+                if isinstance(块,dict) and 块.get('type')=='text':#文本
+                    字符数+=len(块.get('text') or '')#长度
+                else:#其它
+                    字符数+=len(json.dumps(块,ensure_ascii=False))#JSON 长度
+            系统令牌=(字符数+字符每令牌-1)//字符每令牌+角色开销#系统+角色
+            continue#不计消息
+        消息令牌+=估算夹具内容(消息.get('content') or [])+角色开销#计价
     工具令牌=0#工具
     if isinstance(头,dict):#有头
-        系统=头.get('system')#系统
-        if isinstance(系统,str):#有系统
-            系统令牌=(len(系统)+字符每令牌-1)//字符每令牌+角色开销#系统+角色
         工具=头.get('tools')#工具
         if isinstance(工具,list) and 工具:#有工具
             工具令牌=(len(json.dumps(工具,ensure_ascii=False))+字符每令牌-1)//字符每令牌+块开销#工具 JSON
@@ -558,7 +581,7 @@ def 投影帧于(会话标识,日志,事件):#事件 → 投影帧
         帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'contextPressure','value':上下文压力于(日志),'seq':序号})#压力帧
     if 类型=='request/context':#容量变化
         帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'contextPressure','value':上下文压力于(日志),'seq':序号})#压力
-    if 类型 in ('request/header','user/message','assistant/message','tool/result'):#推进组成
+    if 类型 in ('request/header','system/message','user/message','assistant/message','tool/result'):#推进组成
         帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'contextBreakdown','value':上下文组成于(日志),'seq':序号})#组成
     if 类型 in ('assistant/message','tool/result','step/end'):#统计触发
         帧列表.append({'type':'session/projection','sessionId':会话标识,'key':'sessionStats','value':会话统计于(日志),'seq':序号})#统计

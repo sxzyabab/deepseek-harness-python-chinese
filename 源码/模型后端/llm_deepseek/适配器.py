@@ -22,6 +22,8 @@ from ...工具.超时 import 空闲看门狗,取超时#空闲看门狗与超时�
 from .序列化 import 序列化请求#线路序列化
 from .事件流 import 解析服务推送#服务推送事件解析
 from .翻译 import 翻译#线路翻译
+from .请求定价 import 深求图片请求定价#图定价
+from .文件仓 import 深求文件仓#文件仓
 
 __all__=(#仅中文公开名
     '默认流空闲超时毫秒','默认上下文窗口','默认最大令牌',
@@ -116,6 +118,8 @@ def 模型信息(提供方,模型):
     }#拆离信息
     if 'description' in 模型 and 模型['description'] is not None:#有描述
         信息['description']=模型['description']#有描述才带上
+    if 'systemPromptUpdate' in 模型 and 模型['systemPromptUpdate'] is not None:#有更新模式
+        信息['systemPromptUpdate']=模型['systemPromptUpdate']#有更新模式才带上
     return 信息#模型信息
 
 def 解析提供方重试等待(值):
@@ -170,6 +174,8 @@ class 深求适配器(大模型适配器):
     def __init__(自身,配置):
         """保存插件拥有的操作局部解析钩子。"""
         自身.配置=配置#插件钩子
+        解析文件=配置.get('解析文件仓') if isinstance(配置,dict) else None#可选仓
+        自身.文件仓=解析文件() if 解析文件 is not None else 深求文件仓()#解析或新建仓
 
     def 提供方信息(自身,提供方):
         """提供方展示。"""
@@ -178,6 +184,19 @@ class 深求适配器(大模型适配器):
     def 提供方重试政策(自身,提供方):
         """提供方政策。"""
         return 自身.配置['选项']()['retryPolicy']#按操作读取已解析政策
+
+    def 图片请求定价(自身,提供方,模型):
+        """图请求定价；与序列化器同一套访问解析。"""
+        解析附件=自身.配置.get('解析附件') if isinstance(自身.配置,dict) else None#可选附件
+        附件=解析附件() if 解析附件 is not None else None#附件服务
+        解析图片访问=自身.配置.get('解析图片访问') if isinstance(自身.配置,dict) else None#可选桥
+        if 附件 is None:#无附件
+            解析访问=None#无访问
+        else:#有则桥接
+            def 解析访问(引用):#访问解析
+                """桥进执行世界。"""
+                return 解析图片访问(附件,引用) if 解析图片访问 is not None else None#解析
+        return 深求图片请求定价(自身.配置['选项'](),模型,解析访问)#路由定价
 
     def 列出模型(自身,提供方):
         """建议目录。"""
@@ -201,7 +220,7 @@ class 深求适配器(大模型适配器):
         if 条目 is None:#未编目
             信息={'provider':提供方,'id':模型,'name':模型,'inputModalities':['text']}#未编目仍声明纯文本
         else:#有目录
-            信息=模型信息(提供方,条目)#目录条目
+            信息=模型信息(提供方,条目)#目录条目（含可选 systemPromptUpdate）
         信息['context']={'contextWindow':窗口}#窗口
         if 条目 is not None and 'maxTokens' in 条目 and 条目['maxTokens'] is not None:#条目上限；?? 显式 0 仍记下
             信息['defaultMaxTokens']=条目['maxTokens']#条目上限

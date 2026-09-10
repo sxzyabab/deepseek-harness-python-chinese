@@ -58,8 +58,8 @@ def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
         待完成={'kind':'clear'}#清空未完成调用
         打开步骤=None#关闭步骤
         下一步骤=下一步骤+1#下一步骤号加一
-    elif 种类=='assistant/chunk':#助手块
-        要求打开步骤(踪迹,'assistant/chunk',数据['turn'],数据['step'],失败)#必须在打开步骤
+    elif 种类=='assistant/attempt':#助手尝试
+        要求打开步骤(踪迹,'assistant/attempt',数据['turn'],数据['step'],失败)#必须在打开步骤
     elif 种类=='assistant/message':#助手消息
         要求打开步骤(踪迹,'assistant/message',数据['turn'],数据['step'],失败)#必须在打开步骤
     elif 种类=='tool/call':#工具调用
@@ -81,11 +81,13 @@ def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
             if (调用号 not in 踪迹['pendingCalls']) and (not 合成未启动):#既无先前调用也不是合成未启动
                 失败('tool/result for '+str(调用号)+' with no prior tool/call in this step')#本步必须先有 tool/call
             待完成={'kind':'delete','callId':调用号}#从待完成集删掉
+    elif 种类=='system/message':#系统消息
+        要求打开步骤(踪迹,'system/message',数据['turn'],数据['step'],失败)#必须在打开步骤
     elif 种类=='user/message':#用户消息
         pass#无额外关系
     elif 种类=='session/end-seed':#种子结束
         pass#无约束
-    elif 种类=='todo/write' or 种类=='request/header' or 种类=='request/context':#核心执行事件
+    elif 种类=='request/header' or 种类=='request/context':#核心执行事件
         if 踪迹['openTurn'] is None:#没有打开轮次
             失败(种类+' appended outside any open turn (core execution events must be turn-enclosed)')#核心执行事件必须包在轮次内
     else:#可合并扩展的事件

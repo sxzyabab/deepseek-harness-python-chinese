@@ -2,6 +2,7 @@
 
 对齐上游 `ui-chat/src/client/apply.ts`。公开面仅中文名。
 """
+import 客户端.ui_侧边栏_文档预览.客户端 as _侧边栏文档预览#文档预览面：SidebarRightResourceParamsMap.file
 from ..聊天设置 import 聊天设置命名空间#Chat 设置段
 from .文案 import 命名空间,中文,英文#词典
 from .存储 import 创建聊天存储#选中存储
@@ -10,12 +11,14 @@ from .约定.快照 import 空聊天快照#空快照
 from .聊天.用回合数据 import 用回合数据值#回合数据
 from .聊天.登记节点渲染器 import 登记聊天节点渲染器#节点渲染器
 from .聊天.聊天视图 import 聊天视图#Chat 视图
-from .聊天.统计行 import 统计行#统计
+from .聊天.统计行 import 统计行#统计（对齐 StatsPills）
 from .聊天.审批命令 import 审批命令#审批卡
 from .详情.详情面板 import 详情面板#详情
 from .设置.转录视图行 import 转录视图行#设置行
 from .会话节点 import 登记会话节点#会话节点
 from .会话节点.节点工厂 import 聊天错误#本包异常
+
+_=_侧边栏文档预览#保活侧效导入（对齐 documentpreview，非 textpreview）
 
 __all__=['注入','应用']#仅中文公开名
 
@@ -126,12 +129,12 @@ def 应用(上下文):
                 节点表=聊天['getSnapshot']()['nodes']#节点表
                 return 节点表['processSource'](键)#节点
             def 关提及(属主):
-                """fileMentions.forClosing。"""
+                """fileMentions.forClosing(属主, 会话标识)。"""
                 服务=上下文.获取服务('chatFileMentions')#服务
                 if 服务 is None:#无
                     return None#无
                 关=服务.forClosing#方法
-                return 关(属主)#提及
+                return 关(属主,会话标识)#提及
             def 打开文件(_路径):
                 """打开文件（远程异步略）。"""
                 return None#略

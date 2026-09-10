@@ -14,7 +14,8 @@ class 计量错误(Exception):
 
 class 表面节点(TypedDict):#当前有序会话表面上一个已计价节点
     seq:int#该表面事件的持久序号
-    tokens:int#本节点所投影精确消息的启发式 token
+    tokens:int#本节点在所测路由下投影精确消息的请求压力 token
+    heuristicTokens:int#同一消息的固定启发式 token，与任何路由无关
 
 class 测量基线无(TypedDict):#尚无基线
     kind:Literal['none']#种类

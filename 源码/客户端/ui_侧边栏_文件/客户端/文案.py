@@ -8,8 +8,8 @@ __all__=['中文','英文','侧栏文件文案键']#仅中文公开名
 
 中文={#简体中文词条（键集合的权威源）
     'type.label':'文件',#类型标签
-    'guide.title':'文件',#向导标题
-    'guide.description':'浏览这个会话工作区里的文件，点开就能查看。',#向导说明
+    'guide.title':'工作区文件',#向导标题
+    'guide.description':'浏览会话工作区的文件',#向导描述
     'loading':'正在读取…',#读取中
     'empty':'空目录',#空目录
     'truncated':'条目太多，只显示了一部分。',#截断提示
@@ -24,11 +24,11 @@ __all__=['中文','英文','侧栏文件文案键']#仅中文公开名
 
 英文={#英文词条，对照中文权威源核验键齐全
     'type.label':'Files',#类型标签
-    'guide.title':'Files',#向导标题
-    'guide.description':'Browse the files in this session\'s workspace and open any of them.',#向导说明
+    'guide.title':'Workspace files',#向导标题
+    'guide.description':'Browse files in this session\'s workspace',#向导描述
     'loading':'Reading…',#读取中
     'empty':'Empty directory',#空目录
-    'truncated':'Too many entries; showing only some of them.',#截断提示
+    'truncated':'Too many entries, showing only some of them.',#截断提示
     'noWorkspace':'This session has no workspace directory.',#无工作区
     'reload':'Reload',#重新读取
     'entry.other':'Not a file or a directory, so it cannot be opened.',#其它条目

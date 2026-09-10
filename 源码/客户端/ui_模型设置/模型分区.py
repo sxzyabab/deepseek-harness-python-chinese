@@ -276,6 +276,7 @@ class 模型分区:#模型设置分区
                 'provider':条目路由,#路由
                 'displayName':条目['displayName'] if 'displayName' in 条目 else None,#显示名
                 'customTag':翻译('customTag') if 'declared' in 条目 and 条目['declared'] is True else None,#自定义标
+                'catalogError':条目['error'] if 'error' in 条目 else None,#目录声明错误
                 'credentialConfigured':凭证已配,#已配点
                 'credentialMissing':凭证缺,#缺配点
                 'credentialConfiguredLabel':翻译('credentialConfigured'),#已配文案

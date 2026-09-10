@@ -4,10 +4,12 @@
     "field":"字段",
     "final":"最终",
     "fold":"折叠",
+    "join":"拼接",
     "key":"键",
     "object":"对象",
     "output":"输出",
     "push":"推送",
+    "stream":"流",
     "take":"取",
     "text":"文本"
 }

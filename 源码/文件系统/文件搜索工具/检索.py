@@ -170,10 +170,19 @@ def 呈现检索结果(参数,结果):#完成调用后的搜索卡片展示
 
 def 应用检索工具(上下文,上限):#注册grep工具与系统提示
     """注册 grep 工具及其系统提示指引。"""
+    def 段落文本(上下文元):#按作用域决定指引
+        """本作用域无 grep 则空。"""
+        作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域
+        if 上下文.tools.获取('grep',作用域) is None:#看不见
+            return ''#空段落
+        文='Use the grep tool — not shell grep or rg — to search file contents.'#基础指引
+        if 上下文.tools.获取('read',作用域) is not None:#有read
+            文+=' Use read on a matched file when you need surrounding context.'#补上下文
+        return 文#返回
     上下文.systemPrompt.段落({#挂上grep使用指引
         'name':'tool:grep',#段落名
         'order':104,#排序，紧随glob
-        'text':'Use the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.',#要求用本工具而非shell grep
+        'text':段落文本,#动态文本
     })#系统提示段落结束
     def 渲染(参数,值):#把规范值渲染成文本块
         """把规范值渲染成文本块。"""

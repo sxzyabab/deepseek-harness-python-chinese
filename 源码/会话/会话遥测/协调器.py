@@ -29,8 +29,8 @@ def 身份于(会话,事件):
         属性['session.cwd']=头['cwd']#cwd
     if 'parentSession' in 头 and 头['parentSession'] is not None:#父
         属性['session.parent_id']=str(头['parentSession'])#父 id
-    if 'seedLength' in 头 and 头['seedLength'] is not None:#种子长度
-        属性['session.seed_length']=头['seedLength']#种子
+    if 头.get('isSeeded'):#已播种：线属性仍用 seed_length，值取 inheritedEventCount
+        属性['session.seed_length']=getattr(会话,'inheritedEventCount',0)#种子长度
     return 属性#返回
 
 def 关闭记录(会话):
@@ -54,7 +54,6 @@ class 会话遥测协调器:
         自身._上下文=上下文#ctx
         自身._后端=后端#sink dict
         自身._已收养=weakref.WeakKeyDictionary()#活会话身份
-        自身._块见过=weakref.WeakKeyDictionary()#首块跟踪
         if 捕获=='live':#实时捕获
             上下文.监听('session/created',自身._收养)#创建
             上下文.监听('session/disposed',自身._会话已拆除)#拆除
@@ -72,16 +71,11 @@ class 会话遥测协调器:
         """按游标重放规范日志。"""
         游标=交接游标[会话] if 会话 in 交接游标 else 会话.firstLiveSeq-1#起点
         for 事件 in 会话.events:#逐事件
+            if 事件['seq']<=游标:#已交接
+                continue#跳过
             if 至序号 is not None and 事件['seq']>至序号:#越界
                 break#停
-            自身._包含(自身._重放一条,会话,事件,游标)#逐条
-
-    def _重放一条(自身,会话,事件,游标):
-        """已交接则只跟踪，否则捕获。"""
-        if 事件['seq']<=游标:#已交接
-            自身._跟踪(会话,事件)#跟踪
-            return#结束
-        自身._捕获事件(会话,事件)#捕获
+            自身._包含(自身._捕获事件,会话,事件)#捕获
 
     def _收养(自身,会话):
         """收养活会话。"""
@@ -97,26 +91,8 @@ class 会话遥测协调器:
         del 自身._已收养[会话]#退役
         自身._递交(会话,{'record':自身._脱敏(关闭记录(会话))})#shutdown
 
-    def _见过(自身,会话):
-        """块见过集合。"""
-        if 会话 not in 自身._块见过:#首次
-            自身._块见过[会话]=set()#新集合
-        return 自身._块见过[会话]#返回
-
-    def _跟踪(自身,会话,事件):
-        """只更新投影状态。"""
-        if 事件['type']=='assistant/chunk':#块
-            数据=事件['data'] if 'data' in 事件 else {}#载荷
-            自身._见过(会话).add(str(数据['turn'])+':'+str(数据['step']))#键
-
     def _捕获事件(自身,会话,事件):
         """单事件捕获。"""
-        if 事件['type']=='assistant/chunk':#块投影
-            数据=事件['data'] if 'data' in 事件 else {}#载荷
-            键=str(数据['turn'])+':'+str(数据['step'])#键
-            if 键 in 自身._见过(会话):#已见过
-                return#跳过
-            自身._见过(会话).add(键)#记下
         自身._递交(会话,{'record':自身._脱敏({
             'channel':'ledger','time':事件['time'],'severity':严重度于(事件),
             'attributes':身份于(会话,事件),'body':结构化克隆(事件['data'] if 'data' in 事件 else None),

@@ -142,7 +142,7 @@ def 折分发(态,匹配项):#把代码分发事件折进子树
     """start 挂运行中；dispatch 结算。"""
     事件=匹配项['event']#事件
     种=事件['type']#种
-    if 种 not in ('tool/code-dispatch-start','tool/code-dispatch'):#非
+    if 种 not in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#非
         return 态#原样
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     父标识=str(数据['parentCallId'])#父
@@ -155,7 +155,7 @@ def 折分发(态,匹配项):#把代码分发事件折进子树
         if 'callId' in 候 and 候['callId']==子标识:#命中
             下标=甲#记下
             break#停
-    if 种=='tool/code-dispatch-start':#分发起始
+    if 种=='tool/ptc-dispatch-start':#分发起始
         if 下标>=0 or not 接受边({'children':子表,'parents':父表},父标识,子标识):#已存在或非法
             return 态#不改
         子表[父标识]=兄弟+[子调用(匹配项,数据)]#追加
@@ -258,7 +258,7 @@ def 工具匹配(事件):#按事件认领本根调用
         来源=消息['source'] if 消息 is not None and 'source' in 消息 else None#来源
         来源标识=来源['callId'] if 来源 is not None and 'callId' in 来源 else None#来源
         return {'id':str(来源标识),'role':'update'}#更新
-    if 种 in ('tool/code-dispatch-start','tool/code-dispatch'):#分发
+    if 种 in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#分发
         根标识=数据['rootCallId'] if 'rootCallId' in 数据 else None#根
         if isinstance(根标识,str) and 根标识!='':#合法
             return {'id':根标识,'role':'update'}#挂根

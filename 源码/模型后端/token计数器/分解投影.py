@@ -1,8 +1,8 @@
 """启发式上下文构成投影的纯折叠。对齐上游 `token-meter/src/breakdown-projection.ts`。公开面仅中文名。"""
-from ...内核.会话 import 归一请求头#规范请求头
+from ...内核.会话 import 归一请求头,是否表面事件#规范请求头与表面判定
 from .类型 import 计量错误#计量异常
-from .计价 import 计价系统令牌,计价工具令牌#系统与工具计价
-from .表面投影 import 折叠表面投影#O(1)表面折叠
+from .计价 import 计价工具令牌#工具计价
+from .表面折叠 import 计划表面令牌,提交表面令牌#计划/提交
 
 __all__=['分解投影定义']#仅中文公开名
 
@@ -28,40 +28,50 @@ class 分解视图模式:
         return 结果#校验后的视图
 
 def 分解初态():
-    """初始全零。"""
-    return {'systemTokens':0,'toolsTokens':0,'messageTokens':0}#初态
+    """初始空节点与零合计。"""
+    return {'nodes':[],'breakdown':{'systemTokens':0,'toolsTokens':0,'messageTokens':0}}#初态
 
 def 分解转移(状态,事件):
     """折一条分解事件。事件为 dict。"""
-    折叠=折叠表面投影(状态['claim'] if 'claim' in 状态 else None,事件)#折叠表面
-    系统=状态['systemTokens']#沿用系统
-    工具=状态['toolsTokens']#沿用工具
     if 事件['type']=='request/header':#新请求头
-        头=归一请求头(事件['data']['header'])#规范信封
-        系统=计价系统令牌(头)#重计价系统
-        工具=计价工具令牌(头)#重计价工具
-    if (
-        系统==状态['systemTokens']#系统未变
-        and 工具==状态['toolsTokens']#工具未变
-        and 折叠['deltaTokens']==0#表面未动
-        and 折叠['claim'] is None#没有新声明
-        and ('claim' not in 状态 or 状态['claim'] is None)#声明也没有
-    ):
-        return 状态#原状态
-    结果={'systemTokens':系统,'toolsTokens':工具,'messageTokens':状态['messageTokens']+折叠['deltaTokens']}#新状态
-    if 折叠['claim'] is not None:#有声明才带上
-        结果['claim']=折叠['claim']#下一声明
-    return 结果#返回
+        工具=计价工具令牌(归一请求头(事件['data']['header']))#仅工具
+        if 工具==状态['breakdown']['toolsTokens']:#未变
+            return 状态#原样
+        分解=dict(状态['breakdown'])#拷贝合计
+        分解['toolsTokens']=工具#更新工具
+        return {'nodes':状态['nodes'],'breakdown':分解}#新状态
+    if not 是否表面事件(事件):#非表面
+        return 状态#原样
+    计划=计划表面令牌(状态['nodes'],事件)#只读计划
+    节点列表=list(状态['nodes'])#可写副本
+    提交表面令牌(节点列表,{
+        'tokens':计划['tokens'],#本事件价格
+        'deltaTokens':计划['deltaTokens'],#增量
+        'node':{'seq':事件['seq'],'heuristicTokens':计划['tokens'],'system':事件['type']=='system/message'},#带系统分类
+        'target':计划['target'],#提交目标
+    })#提交
+    系统=0#末个非空系统
+    for 节点 in reversed(节点列表):#从末向前
+        if 节点.get('system') and 节点['heuristicTokens']>0:#非空系统
+            系统=节点['heuristicTokens']#记下
+            break#找到即停
+    合计=状态['breakdown']#旧合计
+    消息=合计['systemTokens']+合计['messageTokens']+计划['deltaTokens']-系统#其余为消息
+    if 系统==合计['systemTokens'] and 消息==合计['messageTokens']:#合计未变
+        分解=合计#沿用
+    else:#新合计
+        分解={'systemTokens':系统,'toolsTokens':合计['toolsTokens'],'messageTokens':消息}#写回
+    return {'nodes':节点列表,'breakdown':分解}#新状态
 
 def 分解视图(状态):
-    """去掉内部声明。"""
-    return {'systemTokens':状态['systemTokens'],'toolsTokens':状态['toolsTokens'],'messageTokens':状态['messageTokens']}#对外三数
+    """只暴露分解合计。"""
+    return dict(状态['breakdown'])#对外三数
 
 分解投影定义={
     'key':'contextBreakdown',#投影键
     'schema':分解视图模式,#视图模式
-    'init':分解初态,#初始全零
+    'init':分解初态,#初始空
     'apply':分解转移,#折一条事件
-    'view':分解视图,#去掉内部声明
-    'stateVersion':2,#状态版本
+    'view':分解视图,#去掉内部节点
+    'stateVersion':4,#状态版本
 }#分解投影定义结束

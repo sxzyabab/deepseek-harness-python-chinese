@@ -5,5 +5,6 @@
     "fs-sandbox":"文件系统沙盒",
     "tool-fs":"文件系统工具",
     "tool-fs-search":"文件搜索工具",
+    "tool-present":"工具_呈现",
     "tool-str-replace-editor":"字符串替换工具"
 }

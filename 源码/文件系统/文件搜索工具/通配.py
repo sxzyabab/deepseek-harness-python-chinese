@@ -169,8 +169,11 @@ def 应用通配工具(上下文,上限):#注册glob工具与系统提示
     上下文.systemPrompt.段落({#挂上glob使用指引
         'name':'tool:glob',#段落名
         'order':103,#排序，在grep之前
-        'text':'Use the glob tool — not shell find — to discover files by path pattern. A pattern with no "/" matches basenames at any depth, so "*" matches every file in the tree rather than its top level. '#要求用本工具而非shell find
-            +'Results are files only, never directories, and include hidden and ignored files: a result that fits comes back in modification-time order, '+超额指引,#结果约定与超额策略
+        'text':(lambda 上下文元:(#按作用域
+            '' if 上下文.tools.获取('glob',上下文元['scope'] if 'scope' in 上下文元 else None) is None#看不见则空
+            else 'Use the glob tool — not shell find — to discover files by path pattern. A pattern with no "/" matches basenames at any depth, so "*" matches every file in the tree rather than its top level. '#要求用本工具而非shell find
+                +'Results are files only, never directories, and include hidden and ignored files: a result that fits comes back in modification-time order, '+超额指引#结果约定与超额策略
+        )),#动态文本
     })#系统提示段落结束
     def 渲染(参数,值):#按上限渲染文本
         """按上限渲染文本块。"""

@@ -1,19 +1,12 @@
 """已发布 v2 逻辑产物校验与当代恢复。"""
 import json,os#JSON与绝对路径
-from ...模型后端.llm import 块组装器,展开助手流#块装配与流展开
-from ...工具.值 import 深相等json#深度相等
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
     会话格式不支持迁移错误,#不支持迁移
     会话格式计数,#格式计数
     会话格式安全整数,#安全整数
-    快照会话格式json,#快照JSON
 )#从会话格式导入
-from ..会话格式_v0到v1 import (#从v0到v1导入
-    断言已发布产物关系,#断言关系
-    断言已发布载荷语义,#断言载荷语义
-    断言已发布表面元数据,#断言表面元数据
-)#从v0到v1导入
+from ..会话格式_v0到v1 import 断言已发布产物关系#从v0到v1导入
 from .处置 import 已发布v2事件处置,已发布v2事件类型#从处置导入
 
 头必填=('version','id','createdAt','isSeeded','delegationDepth')#头必填
@@ -50,14 +43,16 @@ def 断言已发布v2头(头):#断言v2头
 
 def 断言已发布v2产物(产物):#断言v2产物
     """校验已发布 v2 写出器发出的精确逻辑镜像。"""
-    校验已发布v2产物(产物,'target',已发布v2事件类型集)#目标模式
+    校验已发布v2产物(产物,'current',已发布v2事件类型集)#当代+已发布类型
 
 def 断言已发布v2物理产物(产物):#断言物理产物
     """仅校验已发布 v2 物理头、事件信封与继承切割。"""
     校验已发布v2产物(产物,'physical')#物理模式
 
-def 校验已发布v2产物(产物,模式,已知事件类型=None):#校验v2产物
-    """按目标、当代或物理模式校验产物。"""
+def 校验已发布v2产物(产物,模式,已知事件类型=None,关系头版本=None):#校验v2产物
+    """按当代或物理模式校验产物。"""
+    if 关系头版本 is None:#默认用产物头版本
+        关系头版本=产物['header']['version']#关系头版本
     断言已发布v2头(产物['header'])#断言头
     切割=会话格式计数(产物['inheritedEventCount'],'format v2 inherited event count')#切割
     if 切割>len(产物['events']):#越界
@@ -72,10 +67,8 @@ def 校验已发布v2产物(产物,模式,已知事件类型=None):#校验v2产�
             raise 会话格式错误(f'format v2 event {下标} type must be a string')#类型须串
         处置=已发布v2事件处置.get(类型)#处置
         已安装=已知事件类型 is not None and 类型 in 已知事件类型#已安装
-        可忽略未知=(处置 is None#可忽略未知
-            and 模式=='current'#当代模式
-            and 记录.get('ignorable') is True)#可忽略
-        if 模式!='physical' and 处置 is None and not 已安装 and not 可忽略未知:#未知必填
+        可忽略未知=处置 is None and 记录.get('ignorable') is True#可忽略未知
+        if 模式=='current' and 处置 is None and not 已安装 and not 可忽略未知:#未知必填
             raise 会话格式不支持迁移错误(#拒绝
                 f'format v2 contains unknown event type {json.dumps(类型,ensure_ascii=False)} at seq {下标}',#消息
             )#Error结束
@@ -92,10 +85,6 @@ def 校验已发布v2产物(产物,模式,已知事件类型=None):#校验v2产�
         会话格式安全整数(记录['time'],f'format v2 event {下标} time')#时间
         if 'ignorable' in 记录 and 记录['ignorable'] is not True:#ignorable非法
             raise 会话格式错误(f'format v2 event {下标} ignorable must be true when present')#错误
-        if 模式=='target' and 表面:#表面元数据
-            断言已发布表面元数据(记录,下标,类型,'forbid-assistant')#表面元数据
-        if 模式=='target' and 处置 is not None:#载荷
-            断言载荷(事件,处置)#载荷
         if 类型=='session/end-seed':#end-seed
             数据=json记录(事件['data'],f'session/end-seed {下标} data')#data
             if 数据.get('inherited') is True:#继承标记
@@ -104,51 +93,11 @@ def 校验已发布v2产物(产物,模式,已知事件类型=None):#校验v2产�
         raise 会话格式错误('format v2 seeded header disagrees with its last inherited end-seed marker')#错误
     if not 产物['header']['isSeeded'] and 最后继承标记 is not None:#非种子却有标记
         raise 会话格式错误('format v2 unseeded Session contains an inherited end-seed marker')#错误
-    if 模式=='target':#目标模式
-        断言已发布产物关系(产物,已发布v2关系扩展)#关系
-
-def 断言载荷(事件,处置):#断言载荷
-    """按处置表校验事件载荷与嵌入助手流。"""
-    数据=json记录(事件['data'],f"{事件['type']} {事件['seq']} data")#data
-    精确键(数据,处置['required'],处置['optional'],f"{事件['type']} {事件['seq']} data")#精确键
-    for 键 in 处置['opaque']:#不透明键
-        if 键 in 数据:#有键
-            快照会话格式json(数据[键],f"{事件['type']} {事件['seq']} opaque {键}")#快照
-    if 事件['type']=='assistant/attempt' or 事件['type']=='assistant/message':#助手流事件
-        回合=会话格式计数(数据['turn'],f"{事件['type']} {事件['seq']} turn")#回合
-        步骤=会话格式计数(数据['step'],f"{事件['type']} {事件['seq']} step")#步骤
-        装配器=块组装器()#装配器
-        try:#尝试展开
-            定时=展开助手流(数据['stream'])#展开流
-            for 成员 in 定时:#遍历成员
-                断言已发布载荷语义({#断言语义
-                    'type':'assistant/chunk',#类型
-                    'seq':事件['seq'],#序号
-                    'time':成员['time'],#时间
-                    'data':{'turn':回合,'step':步骤,'chunk':成员['chunk']},#数据
-                },2)#版本2
-                装配器.推入(成员['chunk'])#推入块
-        except BaseException as 错误:#捕获
-            raise 会话格式错误(f"{事件['type']} {事件['seq']} has an invalid embedded stream",错误)#错误
-        if 事件['type']=='assistant/attempt':#attempt到此
-            return#返回
-        断言已发布载荷语义(事件,2)#消息语义
-        if len(定时)>0:#有流
-            消息=json记录(数据['message'],f"assistant/message {事件['seq']} message")#消息
-            内容=装配器.中断块列表() if 数据.get('interrupted') is True else 装配器.块列表()#内容
-            if not 深相等json(消息['content'],内容):#内容不一致
-                raise 会话格式错误(f"assistant/message {事件['seq']} message content disagrees with its embedded stream")#错误
-            if not 深相等json(数据['usage'],装配器.用量):#用量不一致
-                raise 会话格式错误(f"assistant/message {事件['seq']} usage disagrees with its embedded stream")#错误
-            出处=json记录(消息['source'],f"assistant/message {事件['seq']} source")#出处
-            if not 深相等json(出处['replayState'],装配器.回放状态):#回放不一致
-                raise 会话格式错误(f"assistant/message {事件['seq']} replay state disagrees with its embedded stream")#错误
-        return#返回
-    if 事件['type']=='session/end-seed':#end-seed
-        if 'inherited' in 数据 and 数据['inherited'] is not True:#inherited非法
-            raise 会话格式错误(f"session/end-seed {事件['seq']} inherited must be true when present")#错误
-        return#返回
-    断言已发布载荷语义(事件,2)#其余语义
+    if 模式=='current':#当代模式：按关系头版本做关系校验
+        断言已发布产物关系(#关系
+            {**产物,'header':{**产物['header'],'version':关系头版本}},#关系头版本
+            已发布v2关系扩展,#扩展
+        )#关系结束
 
 def json记录(值,标签):#JSON记录
     """要求值为非 null 非数组对象。"""
@@ -166,7 +115,9 @@ def 精确键(值,必填,可选,标签):#精确键
         if 键 not in 允许:#意外
             raise 会话格式错误(f'{标签} has unexpected field {键}')#意外错误
 
-def 恢复已发布v2产物(产物,已知事件类型):#恢复v2产物
+def 恢复已发布v2产物(产物,已知事件类型,关系头版本=None):#恢复v2产物
     """恢复并校验一个已解码的已发布 v2 产物。"""
-    校验已发布v2产物(产物,'current',已知事件类型)#当代模式
+    if 关系头版本 is None:#默认用产物头版本
+        关系头版本=产物['header']['version']#关系头版本
+    校验已发布v2产物(产物,'current',已知事件类型,关系头版本)#当代模式
     return 产物#返回

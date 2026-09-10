@@ -97,8 +97,8 @@ class 工具结果修剪器(服务):
             内容=自身.修剪内容(结果['content'])#尝试修剪
             if 内容 is None:#未超预算则跳过
                 continue#下一条
-            修剪前=自身.测量内容(结果['content'])#修剪前
-            修剪后=自身.测量内容(内容)#修剪后
+            修剪前=自身.测量码点数(结果['content'])#修剪前
+            修剪后=自身.测量码点数(内容)#修剪后
             新结果=dict(结果)#保留结果外壳
             新结果['content']=内容#已修剪块
             新消息=dict(消息)#其余字段原样
@@ -113,7 +113,7 @@ class 工具结果修剪器(服务):
             新数据=dict(数据)#其余事件数据
             新数据['message']=冻结后#已修剪消息
             替换=会话.追加('tool/result',新数据,{#追加替换结果
-                'surfaceOp':{'op':'replace','start':序号,'end':序号},#替换该节点
+                'surfaceOp':{'op':'replace','startSeq':序号,'endSeq':序号},#替换该节点
                 'sourceEventSeqs':[序号],#引用原文
             })#append结束
             出处=消息['source'] if 'source' in 消息 else None#工具调用来源

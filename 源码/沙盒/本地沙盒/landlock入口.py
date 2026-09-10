@@ -1,4 +1,4 @@
-"""对应 npm 包 `@deepseek-ai/node-addon-landlock-run` 的 Python 入口面：解析启动器路径、构建授权 argv、跑功能探测。
+"""对应 npm 包 `@deepseek-ai/node-addon-system/landlock-run` 的 Python 入口面：解析启动器路径、构建授权 argv、跑功能探测。
 
 本模块拥有启动器 CLI 约定，使消费方不必自行拼写标志或解析启动器输出。政策（沙箱模式）仍属消费方：本包只知道哪些路径被授予读或写。本树尚未迁入 native/landlock-run，因此入口缝落在 sandbox_local 内；日后独立包迁入后可由该包替换。
 """
@@ -30,7 +30,7 @@ def 启动器路径(解析包清单=None):
     平台=sys.platform#宿主平台
     if 平台.startswith('linux'):#Linux 族收成 linux
         平台='linux'#npm os
-    平台包='@deepseek-ai/node-addon-landlock-run-'+平台+'-'+_架构()#按平台/架构拼包名
+    平台包='@deepseek-ai/node-addon-system-'+平台+'-'+_架构()#按平台/架构拼包名
     if 解析包清单 is not None:#测试钩子：解析 platform 包的 package.json
         try:
             清单路径=解析包清单(平台包+'/package.json')#抛出表示不可解析

@@ -12,6 +12,7 @@ from .阻断 import 阻断登记表#阻断
 from .提交策略 import 提交策略,默认忙碌回车行为#提交策略
 from .服务 import 会话控制器,不支持图片媒体类型,对话错误#会话服务
 from .会话根 import 会话根,派生阶段#骨架根
+from .会话面板 import 会话面板#主面板
 from .会话体 import 会话体,会话页眉#严格会话体与页眉
 from .空白英雄 import 工作区芯片,英雄辉光,英雄壳#英雄铬
 from .输入栏 import 输入栏#composer 栏
@@ -42,7 +43,7 @@ __all__=[#仅中文公开名
     '命名空间','中文','英文',
     '创建聊天存储','阻断登记表','提交策略','默认忙碌回车行为',
     '会话控制器','不支持图片媒体类型','对话错误',
-    '会话根','派生阶段','会话页眉','会话体',
+    '会话根','派生阶段','会话面板','会话页眉','会话体',
     '工作区芯片','英雄辉光','英雄壳','输入栏',
     '审批面板','待决审批','上下文仪表','详情面板',
     '待办面板','待办停靠','待办停靠条目','权限选择',
@@ -167,6 +168,7 @@ def 应用(上下文):
     """登记词典、回车行、骨架/聊天/输入栏/统计/队列/节点键，完整依赖启动。"""
     会话面=上下文.sessions#会话面
     工作区面=上下文.workspaces#工作区面
+    工作区导航=上下文.获取服务('uiWorkspace')#工作区 UI 导航（openSession）
     布局=上下文.layout#布局面
     槽=上下文.slots#槽登记表
     登记会话节点(上下文)#登记会话节点构建器
@@ -226,32 +228,41 @@ def 应用(上下文):
         return 会话面.provide({'hooks':['input'],'props':['inputActions'],'resolve':解析})#提供
     上下文.副作用(提供输入,'ui-conversation: input standard-kit provider')#挂
     def 根注入(会话标识):
-        """阻断源 + 选定工作区。"""
+        """阻断源 + 选定工作区（经 openWorkspace，打开前迁移草稿）。"""
         def 选定工作区(工作区标识):
-            """空白草稿随行。connectWorkspace 返回任务。"""
-            下一标识=工作区面.connectWorkspace(工作区标识).等待()#会话 id
-            if 会话标识 is not None and 下一标识!=会话标识:#跨会话
+            """空白草稿随行；openWorkspace 在打开前调用 beforeOpen。"""
+            def 打开前(下一标识):
+                """跨会话迁移草稿与附件。"""
+                if 会话标识 is None or 下一标识==会话标识:#同会话
+                    return#无需
                 旧=枢纽.shell(会话标识)#旧壳
                 快=旧.snapshot#快照 dict
                 草稿=快['draft'] if 'draft' in 快 else ''#草稿
-                图列=快['imageIds'] if 'imageIds' in 快 else None#图 id
-                图列表=list(图列) if 图列 is not None else []#图
+                附件列=快['attachmentIds'] if 'attachmentIds' in 快 else (快['imageIds'] if 'imageIds' in 快 else None)#附件
+                附件列表=list(附件列) if 附件列 is not None else []#附件表
                 新=枢纽.shell(下一标识)#新壳
-                if len(图列表)==0 or 新.addImages(图列表):#无图或收下；判 length
-                    if 草稿!='':#有文
-                        新.setDraft(草稿)#迁文
-                        旧.setDraft('')#清空旧
-                    for 图标识 in 图列表:#摘图
-                        旧.removeImage(图标识)#移除
-            会话面.open(下一标识)#打开
+                加附=新.addAttachments if hasattr(新,'addAttachments') else (新.addImages if hasattr(新,'addImages') else None)#加附件
+                摘附=旧.removeAttachment if hasattr(旧,'removeAttachment') else (旧.removeImage if hasattr(旧,'removeImage') else None)#摘附件
+                可迁=len(附件列表)==0 or (加附 is not None and 加附(附件列表))#无附或收下
+                if not 可迁:#拒收
+                    return#止
+                if 会话面.binding(下一标识) is None:#须有绑定
+                    raise Exception('ui-conversation: session "'+str(下一标识)+'" resolved no binding')#抛
+                控制器=具体会话(上下文)#控制器
+                if hasattr(控制器,'rebindDraftFiles'):#重绑
+                    控制器.rebindDraftFiles(下一标识,附件列表)#重绑
+                if 草稿!='':#有文
+                    新.setDraft(草稿)#迁文
+                    旧.setDraft('')#清空旧
+                if 摘附 is not None:#可摘
+                    for 附标识 in 附件列表:#摘
+                        摘附(附标识)#移除
+            打开=工作区导航.openWorkspace if 工作区导航 is not None else 工作区面.openWorkspace#打开工作区
+            结果=打开(工作区标识,打开前)#打开；导航面优先
+            if hasattr(结果,'等待'):#任务面
+                结果.等待()#等连接打开
         阻断源=缺席阻断 if 会话标识 is None else 阻断表.storeFor(会话标识)#阻断
         return {'hooks':{'composerBlock':阻断源},'selectWorkspace':选定工作区}#注入
-    槽.register({#登记会话根
-        'name':'conversation',#根
-        'locale':命名空间,#文案
-        'children':dict(会话根子槽),#子槽
-        'inject':根注入,#注入
-    },会话根)#根组件
     def 体注入(会话标识,_动作=None):
         """视图环 + 释放图 + 草稿镜像。"""
         控制器=具体会话(上下文)#控制器
@@ -266,44 +277,31 @@ def 应用(上下文):
             'releaseSessionImages':释放图,#释放图
             'bindDraftMirror':绑镜像,#镜像
         }#返回
-    槽.register({#登记会话体
-        'name':'conversation.session',#体
-        'children':{'conversation.view':{'kind':'list','scope':'session'}},#视图环
-        'store':聊天存储,#共享 store
-        'inject':体注入,#注入
-    },会话体)#体组件
     def 打开会话(标识):
-        """打开会话。"""
-        return 会话面.open(标识)#打开
+        """经工作区 UI 打开会话。"""
+        if 工作区导航 is not None:#有 uiWorkspace
+            return 工作区导航.openSession(标识)#导航打开
+        return 会话面.open(标识)#回退会话面
     def 页眉注入(_会话标识=None,_动作=None):
         """视图环 + 打开会话。"""
         return {'views':视图面,'open':打开会话}#注入
-    槽.register({#登记页眉
-        'name':'conversation.session.header',#页眉
-        'locale':命名空间,#文案
-        'children':{#子
-            'conversation.session.header.actions':{'kind':'list','scope':'session'},#动作
-            'conversation.session.header.utilities':{'kind':'list','scope':'session'},#工具
-        },#子结束
-        'store':聊天存储,#共享 store
-        'inject':页眉注入,#注入
-    },会话页眉)#页眉组件
-    def 解析提交(忙碌,手势,可转向):
-        """提交策略。"""
-        return 提交.resolve(忙碌,手势,可转向)#策略
     def 栏注入(会话标识):
-        """无会话则静态空源。"""
+        """无会话则静态空源；hooks 含 busyEnter。"""
         if 会话标识 is None:#无会话
             return {#静态空
                 'keyboard':None,#无键盘
                 'addImages':None,#无加图
                 'removeImage':None,#无摘图
                 'draftImages':None,#无草稿图
-                'resolveSubmitMode':解析提交,#策略
                 'toggleCommandMenu':None,#无菜单
                 'stop':None,#无停止
                 'command':None,#无命令
-                'hooks':{'notices':缺席通知,'lexicon':缺席词表,'menuLauncher':缺席菜单启动器},#空 hooks
+                'hooks':{#空 hooks
+                    'busyEnter':提交.busyEnter,#忙碌 Enter 仍可订阅
+                    'notices':缺席通知,#通知
+                    'lexicon':缺席词表,#词表
+                    'menuLauncher':缺席菜单启动器,#启动器
+                },#hooks 结束
             }#结束
         控制器=具体会话(上下文)#控制器
         壳=枢纽.shell(会话标识)#壳
@@ -366,25 +364,63 @@ def 应用(上下文):
             'addImages':加图,#加图
             'removeImage':摘图,#摘图
             'draftImages':读草稿图,#读草稿图
-            'resolveSubmitMode':解析提交,#策略
             'toggleCommandMenu':None if 触发 is None else 切命令菜单,#菜单
             'stop':停止,#停止
             'command':命令,#命令
             'hooks':{#外部源
+                'busyEnter':提交.busyEnter,#忙碌 Enter 偏好
                 'notices':壳.notices,#通知
                 'lexicon':壳.lexicon,#词表
                 'menuLauncher':启动器 if 启动器 is not None else 缺席菜单启动器,#启动器
             },#hooks 结束
         }#返回
-    槽.register({#登记 composer 栏
-        'name':'conversation.composer.bar',#栏
-        'locale':命名空间,#文案
-        'children':{#子席
-            'conversation.input.plan':{'kind':'single','scope':'session'},#计划
-            'conversation.input.model':{'kind':'single','scope':'session'},#模型
-        },#子结束
-        'inject':栏注入,#注入
-    },输入栏)#栏组件
+    def 挂主与会话壳():
+        """等 main 洞就绪后登记会话面板与子槽。"""
+        拆面板=槽.register({#主面板占位
+            'name':'main',#主洞
+            'key':'conversation',#本实现键
+            'children':{'main.conversation':{'kind':'single','scope':'session-maybe'}},#会话根子洞
+        },会话面板)#面板组件
+        拆根=槽.register({#登记会话根
+            'name':'main.conversation',#根
+            'locale':命名空间,#文案
+            'children':dict(会话根子槽),#子槽
+            'inject':根注入,#注入
+        },会话根)#根组件
+        拆体=槽.register({#登记会话体
+            'name':'conversation.session',#体
+            'children':{'conversation.view':{'kind':'list','scope':'session'}},#视图环
+            'store':聊天存储,#共享 store
+            'inject':体注入,#注入
+        },会话体)#体组件
+        拆页眉=槽.register({#登记页眉
+            'name':'conversation.session.header',#页眉
+            'locale':命名空间,#文案
+            'children':{#子
+                'conversation.session.header.actions':{'kind':'list','scope':'session'},#动作
+                'conversation.session.header.utilities':{'kind':'list','scope':'session'},#工具
+            },#子结束
+            'store':聊天存储,#共享 store
+            'inject':页眉注入,#注入
+        },会话页眉)#页眉组件
+        拆栏=槽.register({#登记 composer 栏
+            'name':'conversation.composer.bar',#栏
+            'locale':命名空间,#文案
+            'children':{#子席
+                'conversation.input.plan':{'kind':'single','scope':'session'},#计划
+                'conversation.input.model':{'kind':'single','scope':'session'},#模型
+            },#子结束
+            'inject':栏注入,#注入
+        },输入栏)#栏组件
+        def 拆():
+            """逆序拆。"""
+            拆栏()#栏
+            拆页眉()#页眉
+            拆体()#体
+            拆根()#根
+            拆面板()#面板
+        return 拆#拆除器
+    槽.inject('main',挂主与会话壳)#等 main 洞
     槽.register({#审批接管
         'name':'conversation.composer',#链
         'select':选审批,#选择器

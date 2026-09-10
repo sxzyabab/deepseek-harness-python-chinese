@@ -1,6 +1,6 @@
-"""@deepseek-ai/dsh-home-paths 的本包拥有不变量配套。"""
-包名='@deepseek-ai/dsh-home-paths'#本包的不变量所有权名
-名称='home-paths-invariant'#配套不变量插件名
+"""@deepseek-ai/dsh-util-workspace-path 的本包拥有不变量配套。"""
+包名='@deepseek-ai/dsh-util-workspace-path'#本包的不变量所有权名
+名称='workspace-path-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明

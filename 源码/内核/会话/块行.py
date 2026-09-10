@@ -1,9 +1,16 @@
-"""assistant/chunk delta 游程的无损存储打包。对齐上游 `session/src/chunk-rows.ts`。公开面仅中文名。"""
+"""assistant/chunk delta 游程的无损存储打包。
+
+对齐上游曾有的 `session/src/chunk-rows.ts`。**追踪源码已删除该模块**：当代写入不再打包
+`text-chunks` / `reasoning-chunks` / `tool-call-chunks`；本模块仅保留供历史日志与测试夹具
+解码（以及会话格式 v0→v1 迁移边）。公开面仅中文名。
+
+新写入路径不得依赖 `打包块游程`：JSONL `编码段` 已逐事件原样写出，`packChunks` 配置为历史遗留开关。
+"""
 from ...模型后端.llm.标识构造 import 调用标识#导入调用标识构造
 from ...模型后端.llm.永不 import 断言永不#导入穷尽检查
 from .类型 import 安全整数上限#外来 JSON 安全整数上限
 
-__all__=['打包块游程','解码存储记录']#仅中文公开名
+__all__=['打包块游程','解码存储记录']#仅中文公开名；历史读路径
 
 最少游程=3#最少打包成员
 

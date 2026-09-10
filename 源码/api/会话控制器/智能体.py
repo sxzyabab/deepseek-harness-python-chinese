@@ -47,8 +47,11 @@ def 有子智能体所有者(上下文,头,智能体):
     父标识=头['parentSession'] if 'parentSession' in 头 else None#父会话
     if 父标识 is None or 智能体 is None:#无父或无智能体
         return False#否
-    父=上下文.agents.get(父标识)#父智能体
-    return 父 is not None and 上下文.agents.isOwnedBy(智能体.id,父)#拥有
+    父=上下文.agents.get(父标识) if hasattr(上下文.agents,'get') else 上下文.agents.获取(父标识)#父智能体
+    if 父 is None:#无父
+        return False#否
+    拥有=getattr(上下文.agents,'isOwnedBy',None) or getattr(上下文.agents,'是否被拥有',None)#拥有查询
+    return 拥有 is not None and 拥有(智能体.id,父)#拥有
 
 def 子智能体所有权错误(会话标识):
     """构建 session/agent-busy 失败。"""
@@ -66,7 +69,8 @@ def 检视会话(上下文,会话标识,信号=None):
             if 'cwd' not in 头 or 头['cwd'] is None:#无 cwd
                 raise 会话未找到('session "'+str(会话标识)+'" not found')#未找到
             事件列表=观测.events if 观测.events is not None else []#事件
-            return {'meta':头,'events':list(事件列表)}#结果
+            继承=getattr(观测,'inheritedEventCount',0)#继承切口
+            return {'meta':头,'inheritedEventCount':继承,'events':list(事件列表)}#结果
         finally:
             if hasattr(观测,'close'):#可关
                 观测.close()#关
@@ -258,14 +262,14 @@ class 会话智能体控制器:
         """解析预设并返回 setup。"""
         预设服务=自身._上下文.获取服务('agentPresets')#预设服务
         if 预设服务 is None:#无
-            def 仅选择(智能体上下文):
-                """只安装选择。"""
-                自身._安装选择(智能体上下文)#选择
+            def 仅选择(_智能体上下文,智能体):
+                """只安装选择；第二参为工厂传入的智能体。"""
+                自身._安装选择(智能体)#选择
             return {'setup':仅选择}#仅选择
         解析标识=预设服务.resolve(预设标识).id#解析 id
-        def 设置(智能体上下文):
+        def 设置(智能体上下文,智能体):
             """安装选择并挂载预设。"""
-            自身._安装选择(智能体上下文)#选择
+            自身._安装选择(智能体)#选择
             预设服务.mount(智能体上下文,解析标识)#挂载
         return {'agentPreset':解析标识,'setup':设置}#组合
 
@@ -274,11 +278,8 @@ class 会话智能体控制器:
         选择=自身._上下文.agentDefaultModel.currentSelection()#选择 dict
         return {'provider':选择['provider'],'model':选择['model']}#选项
 
-    def _安装选择(自身,智能体上下文):
-        """在智能体上下文安装 selection。"""
-        智能体=智能体上下文.agent#智能体
-        if 智能体 is None:#无
-            raise 远程错误('gateway/internal','api-session: Agent setup has no scoped Agent',{})#拒绝
+    def _安装选择(自身,智能体):
+        """在智能体上安装 selection。"""
         自身.选择用于(智能体)#安装
 
     def 选择用于(自身,智能体):
@@ -320,6 +321,32 @@ class 会话智能体控制器:
         from ...内核.智能体 import 安装模型选择#安装
         安装模型选择(智能体.ctx,{'current':选择,'assembled':None})#安装
         return 选择#返回
+
+    def 选择下次请求(自身,智能体,选择):
+        """提交并缓存下一次提示组装的已验证选择。"""
+        智能体.session.追加('model/selection',选择)#记录
+        自身.选择用于(智能体).current=选择#安装
+
+    def 串行图像准入(自身,智能体,操作):
+        """串行化同一智能体的图片准入与模型选择。操作为无参可调用，返回其结果。"""
+        键=id(智能体)#键
+        先前=自身._图像准入链[键] if 键 in 自身._图像准入链 else None#先前链
+        def 跑():
+            """先等先前再跑操作。"""
+            if 先前 is not None:#有先前
+                try:
+                    先前.等待()#等先验
+                except BaseException:
+                    pass#链继续
+            return 操作()#执行
+        任务=操作任务()#本环
+        自身._图像准入链[键]=任务#登记
+        try:
+            任务.兑现(跑())#兑现
+        except BaseException as 错误:
+            任务.拒绝(错误)#拒绝
+            raise#原样
+        return 任务.等待()#结果
 
     def _观测预设(自身,观测):
         """从全投影观测读 agentPreset。"""

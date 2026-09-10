@@ -2,7 +2,7 @@
 # 格式：名称|声明
 SessionEventWindow|export interface SessionEventWindow {\n    session: SessionHeader;\n    target: SessionEvent;\n    events: SessionEvent[];\n    startSeq: number;\n    endSeq: number;\n}
 SessionForkSource|export type SessionForkSource = Session | SessionId;
-SessionHeader|export interface SessionHeader {\n    readonly version: number;\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly seedLength?: number;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n    readonly agentPreset?: string;\n}
+SessionHeader|export interface SessionHeader {\n    readonly version: number;\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly isSeeded: boolean;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n    readonly agentPreset?: string;\n}
 SessionId|export type SessionId = Branded<\'SessionId\'>;
 SessionInspection|export interface SessionInspection {\n    readonly meta: SessionHeader;\n    readonly events: readonly SessionEvent[];\n}
 SessionLineageNode|export interface SessionLineageNode {\n    session: SessionRecord;\n    descendants: SessionLineageNode[];\n}
@@ -25,6 +25,7 @@ SessionSearchExecContext|export interface SessionSearchExecContext {\n    signal
 SessionSearchHit|export interface SessionSearchHit extends SessionRecord {\n    bestMatch: SessionEventSearchHit;\n}
 SessionSearchPage|export interface SessionSearchPage<T> {\n    items: readonly T[];\n    nextCursor?: SessionSearchCursor;\n}
 SessionSearchRequest|export interface SessionSearchRequest {\n    query: string;\n    sessionFilters?: readonly SessionResultFilter[];\n    eventFilters?: readonly SessionEventMetadataFilter[];\n    limit?: number;\n    cursor?: SessionSearchCursor;\n}
+SessionSeedEventState|export type SessionSeedEventState = \'detached\' | \'shared-frozen\';
 SessionStartSource|export type SessionStartSource = \'startup\' | \'resume\' | \'clear\' | \'compact\';
 SessionSurfaceSnapshot|export interface SessionSurfaceSnapshot {\n    session: SessionHeader;\n    capturedThroughSeq: number | null;\n    events: SurfaceEvent[];\n}
 SessionTelemetryRecord|export interface SessionTelemetryRecord {\n    channel: \'ledger\' | \'ops\';\n    time: number;\n    severity: SessionTelemetrySeverity;\n    attributes: Record<string, string | number>;\n    body: unknown;\n}

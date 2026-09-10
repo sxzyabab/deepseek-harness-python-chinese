@@ -1,24 +1,34 @@
 """平台无关的已生成宿主 Remote 贡献组装（客户端面）。
 
 对齐上游 `api/remotes/src/client/index.ts`。公开面仅中文名。
-挂载本客户端组装明确选中的宿主能力：commands、goals、dynamic、plugin-inventory、message-feedback。
-各叶包父目录（交互/目标/拓展/host/反馈）需在导入路径上，与现有 `goal`/`commands` 等叶包导入约定一致。
-
-加厚面：再导出动态包/清单载荷词表与转发事件白名单，使业务包只点名本组装。
-侧效拉入各归属包 `类型` 模块，使转发事件键面与宿主声明同源。
+挂载序：agentPresets → commands → settings → goals → llm → dynamic →
+plugin-inventory → message-feedback → session-feedback → file-uploads →
+session-reference → subagents → session → workspace → workspaceFiles。
 """
-from ...交互.命令.远程 import TYPERT_REMOTE as 命令远程#commands ./remote
-from ...拓展.cordis服务端.远程 import 远程贡献对象 as 动态远程#dynamic ./remote
-from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback ./remote
+from ...预设.智能体预设.远程 import TYPERT_REMOTE as 智能体预设远程#agent-presets
+from ...交互.命令.远程 import TYPERT_REMOTE as 命令远程#commands
+from ...api.设置控制器.远程 import TYPERT_REMOTE as 设置控制器远程#settings-controller
+from ...目标.目标.远程 import TYPERT_REMOTE as 目标远程#goals
+from ...模型后端.llm.远程 import TYPERT_REMOTE as 大模型远程#llm
+from ...拓展.cordis服务端.远程 import 远程贡献对象 as 动态远程#dynamic
+from ...宿主.插件清单.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory
+from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback
+from ...反馈.命令_反馈.远程 import TYPERT_REMOTE as 会话反馈远程#command-feedback
+from ...客户端.文件上传.远程 import TYPERT_REMOTE as 文件上传远程#file-upload
+from ...上下文.会话引用.远程 import TYPERT_REMOTE as 会话引用远程#session-reference
+from ...子智能体.子智能体.远程 import TYPERT_REMOTE as 子智能体远程#subagent
+from ...api.会话控制器.远程 import TYPERT_REMOTE as 会话远程#session-controller
+from ...api.工作区控制器.远程 import TYPERT_REMOTE as 工作区远程#workspace-controller
+from ...api.工作区文件.远程 import TYPERT_REMOTE as 工作区文件远程#workspace-files
 from ...交互.命令 import 类型 as _命令类型#侧效：commands 事件声明
-from ...目标.目标 import 类型 as _目标类型#侧效：goals 事件声明
 from ...拓展.cordis服务端 import 类型 as _动态类型#侧效：动态包转发事件
-from ...模型后端.llm.类型 import 类型 as _大模型类型#侧效：大模型事件声明
-from ...预设.智能体预设 import 类型 as _预设类型#侧效：agent-preset/selected
+from ...目标.目标 import 类型 as _目标类型#侧效：goals 事件声明
+from ...模型后端.llm import 类型 as _大模型类型#侧效：大模型事件声明
+from ...预设.智能体预设 import 类型 as _预设类型#侧效：agent-preset
 from ...配置.配置 import 类型 as _设置类型#侧效：设置事件声明
 from .类型 import 远程转发事件名#转发事件名类型出处
 from .远程事件 import 远程转发事件#白名单
-from .远程方法目录 import 所选远程目录,包名元组,导出名元组,所选远程贡献#五包目录与贡献
+from .远程方法目录 import 所选远程目录,包名元组,导出名元组,所选远程贡献#目录与贡献
 from . import 载荷词汇#载荷词表再导出面
 
 客户端远程=dict#TypertClientRemote / ClientRemote：$mount / $on / 命名空间面
@@ -38,7 +48,11 @@ def 所选贡献():
 
     对齐上游 client/index.ts 挂载顺序；各包 `远程.py` 为手写 TYPERT_REMOTE。
     """
-    return (命令远程,动态远程,消息反馈远程)#本切片实际挂载的贡献
+    return (#追踪挂载序
+        智能体预设远程,命令远程,设置控制器远程,目标远程,大模型远程,动态远程,
+        插件清单远程,消息反馈远程,会话反馈远程,文件上传远程,会话引用远程,
+        子智能体远程,会话远程,工作区远程,工作区文件远程,
+    )#结束
 
 def 应用(上下文):
     """挂载本客户端组装明确选中的宿主能力；返回拆除函数。"""

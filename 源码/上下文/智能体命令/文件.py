@@ -55,25 +55,34 @@ def 探测文件(路径,文件系统=None,信号=None):#按是否有提供方选
     """返回三分探测。"""
     return 宿主探测文件(路径,信号) if 文件系统 is None else 提供方探测文件(路径,文件系统,信号)#无提供方走宿主stat
 
+def 是否缺失提供方路径错误(错误):#判断是否为提供方路径缺失
+    """FS_NOT_FOUND。"""
+    return getattr(错误,'code',None)=='FS_NOT_FOUND'#提供方缺失码
+
 def 存在为标记(路径,文件系统=None,信号=None):#判断根标记路径是否存在
-    """标记路径是否存在。"""
+    """标记路径是否存在；确认缺失为假，其他失败上抛。"""
     if 文件系统 is not None:#有提供方
         try:#尝试resolve再stat
             目标=文件系统.解析(路径,信号选项(信号))#解析标记路径
             return 文件系统.状态(目标,信号) is not None#有元数据即存在
-        except 文件系统错误:#吞掉提供方失败，暂当标记不存在
+        except Exception as 错误:#提供方失败
             若已中止则抛出(信号)#取消优先
-            return False#当前把失败当成不存在
+            if 是否缺失提供方路径错误(错误):#确认缺失
+                return False#缺失
+            raise#其他失败上抛，停止发现
     try:#宿主stat
         若已中止则抛出(信号)#stat前检查取消
         os.stat(路径)#路径存在即可，不要求是文件
         若已中止则抛出(信号)#stat后检查取消
         return True#存在
-    except OSError:#吞掉宿主stat失败
-        return False#当作标记不存在
+    except OSError as 错误:#宿主stat失败
+        若已中止则抛出(信号)#取消优先
+        if 是否缺失路径错误(错误):#确认缺失
+            return False#缺失
+        raise#其他失败上抛
 
 def 寻找项目根(工作目录,标记列表,文件系统=None,信号=None):#向上寻找项目根
-    """从会话 cwd 向上走到第一个含已配置根标记的目录。没有任何标记时为 cwd。"""
+    """从会话 cwd 向上走到第一个含已配置根标记的目录。没有任何标记时为 cwd。标记探测不可用时上抛。"""
     当前=os.path.abspath(工作目录)#从绝对cwd开始
     while True:#一直向上直到根或命中标记
         for 标记 in 标记列表:#逐个检查标记

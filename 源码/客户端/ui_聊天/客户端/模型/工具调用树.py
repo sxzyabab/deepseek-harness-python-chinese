@@ -1,4 +1,4 @@
-"""拥有 Code Dispatch 配对的递归工具调用树。
+"""拥有 PTC Dispatch 配对的递归工具调用树。
 
 对齐上游 `ui-chat/src/client/model/tool-call-tree.ts`。公开面仅中文名。
 事件为会话事件 dict。
@@ -37,10 +37,10 @@ class 工具调用树:
         return 父深+1<=最大工具调用树深#不超深
 
     def 应用(自身,事件):
-        """消费 code-dispatch 生命周期。事件为 dict。"""
+        """消费 PTC Dispatch 生命周期。事件为 dict。"""
         种=事件['type'] if 'type' in 事件 else None#种
         数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#载荷
-        if 种=='tool/code-dispatch-start':#开始
+        if 种=='tool/ptc-dispatch-start':#开始
             父=数据['parentCallId'] if 'parentCallId' in 数据 else None#父
             子=数据['subCallId'] if 'subCallId' in 数据 else None#子
             if 自身.接受边(父,子) is not True:#拒
@@ -57,7 +57,7 @@ class 工具调用树:
             自身.深度[子]=父深+1#深
             自身.修订+=1#升
             return True#消费
-        if 种!='tool/code-dispatch':#非结果
+        if 种!='tool/ptc-dispatch':#非结果
             return False#未消费
         父=数据['parentCallId'] if 'parentCallId' in 数据 else None#父
         子=数据['subCallId'] if 'subCallId' in 数据 else None#子

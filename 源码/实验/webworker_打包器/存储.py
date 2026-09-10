@@ -12,7 +12,7 @@ __all__=[#仅中文公开名
     '索引工作区包','组合配置档','配置树列表','预览夹具列表','描述打包',
 ]#公开面结束
 
-工作区扫描根=['vendor','packages','native/landlock-run/packages','apps']#扫描根
+工作区扫描根=['vendor','packages','native/system/packages','apps']#扫描根
 
 命令行包='apps/cli'#CLI包路径
 

@@ -60,8 +60,12 @@ def 构造甲日志():#手写 fx-alpha 历史
 
     #常驻历史代表已完成的模型请求，因此保留当时的路由容量，与直播 prompt 路径一致。
     推({'type':'request/context','data':{'provider':'deepseek-official','model':'deepseek-v4-flash','contextWindow':128_000}})#请求上下文
+    夹具系统提示='你是 DeepSeek Harness 的 fixture 助手。用简洁的中文回答，并在需要时调用工具。'#表面节点 0
     for 轮次 in range(60):#前 60 轮批量历史
         推({'type':'turn/start','data':{'turn':轮次}})#开轮
+        # 渲染的系统提示是表面节点 0，排在第一条用户消息之前。
+        if 轮次==0:#首轮先落系统提示
+            推({'type':'system/message','surfaceOp':'append','data':{'turn':轮次,'step':0,'message':{'role':'system','content':造文本块(夹具系统提示),'source':{'kind':'plugin','plugin':'@deepseek-ai/dsh-system-prompt'}}}})#系统消息
         用户序号=推({'type':'user/message','surfaceOp':'append','data':造用户消息(造文本块(用户markdown字面量 if 轮次==59 else f'问题 {轮次}：fixture 历史消息，用于翻页与渲染验收。'))})#用户
         if 轮次==0:#首轮落标题
             推({'type':'session/title','data':{'title':'Fixture 历史会话','messageSeqs':[用户序号],'source':{'kind':'fallback'}}})#标题
@@ -107,8 +111,8 @@ def 构造甲日志():#手写 fx-alpha 历史
     推({'type':'tool/call','data':{'turn':轮次,'step':0,'callId':调用标识,'name':'run_code','arguments':参数}})#根调用
     def 派发对(号,名,派发参数,结果正文,是否错误=False):#一对 start+完成
         """子派发开始与完成。"""
-        推({'type':'tool/code-dispatch-start','data':{'rootCallId':调用标识,'parentCallId':调用标识,'subCallId':f'{调用标识}:code:{号}','name':名,'arguments':派发参数}})#start
-        推({'type':'tool/code-dispatch','data':{'rootCallId':调用标识,'parentCallId':调用标识,'subCallId':f'{调用标识}:code:{号}','name':名,'arguments':派发参数,'isError':是否错误,'content':[{'type':'text','text':结果正文}]}})#完成
+        推({'type':'tool/ptc-dispatch-start','data':{'rootCallId':调用标识,'parentCallId':调用标识,'subCallId':f'{调用标识}:ptc:{号}','name':名,'arguments':派发参数}})#start
+        推({'type':'tool/ptc-dispatch','data':{'rootCallId':调用标识,'parentCallId':调用标识,'subCallId':f'{调用标识}:ptc:{号}','name':名,'arguments':派发参数,'isError':是否错误,'content':[{'type':'text','text':结果正文}]}})#完成
     派发对(1,'bash',{'command':'ls notes','description':'List notes'},'demo.txt\nnew-demo.txt')#bash
     派发对(2,'read',{'file_path':'notes/demo.txt'},'hello fixture\n')#成功 read
     派发对(3,'read',{'file_path':'notes/missing.txt'},'Error: ENOENT: notes/missing.txt not found',True)#错误 read

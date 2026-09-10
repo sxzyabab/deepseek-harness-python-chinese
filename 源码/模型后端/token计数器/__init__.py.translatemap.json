@@ -1,6 +1,7 @@
 {
     "anchor":"锚点",
     "apply":"应用",
+    "assemble":"组装",
     "baseline":"基线",
     "config":"配置",
     "default":"默认",
@@ -15,7 +16,9 @@
     "node":"节点",
     "price":"计价",
     "projection":"投影",
+    "route":"路由",
     "session":"会话",
+    "stream":"流",
     "surface":"表面",
     "sync":"同步",
     "token":"令牌",

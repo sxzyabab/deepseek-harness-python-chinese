@@ -79,27 +79,37 @@ def 工具列表(选项):
         })#一条工具
     return 映射#工具列表
 
-def 派上下文信封(选项,消息列表):
+def 派上下文信封(系统提示,选项,消息列表):
     """组装两条转换路径共用的请求级派爱上下文信封。选项为 dict。"""
     工具=工具列表(选项)#映射工具
     信封={'messages':消息列表}#上下文信封
-    if 'system' in 选项 and 选项['system'] is not None:#有系统提示才写 systemPrompt，缺席不带该字段
-        信封['systemPrompt']=选项['system']#有系统提示才带上
+    if 系统提示 is not None:#有系统提示才写 systemPrompt，缺席不带该字段
+        信封['systemPrompt']=系统提示#有系统提示才带上
     if 工具 is not None and len(工具)>0:#判 length：空工具列表不带 tools 字段
         信封['tools']=工具#有工具才带上
     return 信封#信封
 
+def 拆分系统提示词(选项):
+    """选出两条转换路径共用的派爱 systemPrompt 来源。选项为 dict。"""
+    if 'system' in 选项 and 选项['system'] is not None:#一次性槽获胜
+        return {'systemPrompt':选项['system'],'messages':选项['messages']}#整份历史都转换
+    对话=选项['messages']#对话
+    if len(对话)==0 or 对话[0].get('role')!='system':#无前导系统
+        return {'systemPrompt':None,'messages':对话}#不发送系统提示
+    文本=压平文本(对话[0])#压平前导文本
+    return {'systemPrompt':文本 if len(文本)>0 else None,'messages':对话[1:]}#空文本则不发送
+
 def 纯文本上下文(选项):
     """同步纯文本转换。选项与消息均为 dict。"""
+    拆分=拆分系统提示词(选项)#拆分系统提示词
     工具名={}#调用id到工具名
     消息列表=[]#派爱消息
-    对话=选项['messages']#对话
-    for 消息 in 对话:#按对话顺序转换；系统折成用户，助手走回放，工具结果拆成独立消息
+    for 消息 in 拆分['messages']:#按对话顺序转换；未供给槽的系统折成用户，助手走回放，工具结果拆成独立消息
         内容=消息['content']#内容
         if llm.内容含图片(内容):#纯文本路径没有附件服务，见到图片必须失败
             raise llm.大模型错误('pi-ai image conversion requires the durable attachment service','UNSUPPORTED_CONTENT')#纯文本路径不支持图片
         角色=消息['role']#角色
-        if 角色=='system':#派爱上下文没有 in-history 系统角色，折成用户消息保顺序
+        if 角色=='system':#派爱只有单一 systemPrompt 槽；未供给该槽的系统消息折成用户消息保顺序
             消息列表.append({'role':'user','content':压平文本(消息),'timestamp':0})#折成用户消息以保顺序
             continue#下一条
         if 角色=='assistant':#助手走回放重建，并记下工具名供后续工具结果用
@@ -132,17 +142,17 @@ def 纯文本上下文(选项):
                 'isError':False if 失败 is None else 失败,#缺省不算失败
                 'timestamp':0,#历史时间戳
             })#独立工具结果消息
-    return 派上下文信封(选项,消息列表)#组装信封
+    return 派上下文信封(拆分['systemPrompt'],选项,消息列表)#组装信封
 
 def 带图片转派上下文(选项,附件):
     """带图片的转换。选项与消息均为 dict。"""
+    拆分=拆分系统提示词(选项)#拆分系统提示词
     工具名={}#调用id到工具名
     消息列表=[]#派爱消息
-    对话=选项['messages']#对话
-    for 消息 in 对话:#带图片路径：系统仍折成用户，用户内容走附件，工具结果可含图片
+    for 消息 in 拆分['messages']:#带图片路径：未供给槽的系统仍折成用户，用户内容走附件，工具结果可含图片
         内容=消息['content']#内容
         角色=消息['role']#角色
-        if 角色=='system':#历史里的系统消息不能带图片，派爱无法表示
+        if 角色=='system':#历史里未供给槽的系统消息不能带图片，派爱无法表示
             if llm.内容含图片(内容):#系统消息含图片则拒绝
                 raise llm.大模型错误('pi-ai cannot represent an image in an in-history system message','UNSUPPORTED_CONTENT')#派爱无法表示
             消息列表.append({'role':'user','content':压平文本(消息),'timestamp':0})#折成用户消息
@@ -181,7 +191,7 @@ def 带图片转派上下文(选项,附件):
                 'isError':False if 失败 is None else 失败,#缺省不算失败
                 'timestamp':0,#历史时间戳
             })#独立工具结果消息
-    return 派上下文信封(选项,消息列表)#组装信封
+    return 派上下文信封(拆分['systemPrompt'],选项,消息列表)#组装信封
 
 def 转派上下文(选项,附件=None):
     """把 harness 历史转换成派爱 Context。选项为 dict。"""

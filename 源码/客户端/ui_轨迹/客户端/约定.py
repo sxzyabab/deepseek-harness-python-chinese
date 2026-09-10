@@ -7,6 +7,7 @@ Python 侧用字典信封承载贡献；类型注释不强制。
 __all__=['空轨迹快照']#仅中文公开名
 
 空轨迹快照={#空轨迹快照
+    'systemPrompts':(),#尚无窗外系统提示
     'eventNodes':(),#尚无事件节点
     'eventLocations':{},#尚无事件位置
     'requests':(),#尚无请求
