@@ -1,17 +1,11 @@
 {
     "bundle":"组合包",
     "client":"客户端",
-    "config":"配置",
-    "declaration":"声明",
-    "fallback":"回退",
-    "format":"格式",
+    "engine":"引擎",
     "manifest":"清单",
-    "migration":"迁移",
-    "module":"模块",
+    "package":"包",
     "patch":"补丁",
     "profile":"配置档",
     "reload":"重载",
-    "session":"会话",
-    "tree":"树",
     "type":"类型"
 }

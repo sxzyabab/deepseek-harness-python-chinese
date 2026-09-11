@@ -608,6 +608,8 @@ def 成摘要(技能):
         'source':技能['source'],#来源
         'provider':技能['provider'],#提供方
     }#结束摘要基础
+    if 'path' in 技能:#可选绝对路径
+        摘要['path']=技能['path']#路径
     if 'whenToUse' in 技能:#可选何时使用
         摘要['whenToUse']=技能['whenToUse']#何时使用
     if 'resourceBase' in 技能:#可选资源基址

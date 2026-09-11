@@ -82,8 +82,15 @@ def 应用(上下文):#安装浏览器连接插件
     if 用夹具:#需要夹具
         from .夹具 import 夹具接口客户端#延迟导入夹具
         夹具客户端=夹具接口客户端()#造
+    窗口=globals()#页面全局
+    传输=窗口['__DSH_TRANSPORT__'] if '__DSH_TRANSPORT__' in 窗口 else None#载体覆盖
     接口=夹具客户端 if 夹具客户端 is not None else 网页接口客户端()#夹具优先，否则真实 HTTP
-    rpc=夹具客户端.rpc if 夹具客户端 is not None else 创建网页连接rpc()#夹具自带 RPC，否则 web RPC
+    if 夹具客户端 is not None:#夹具 RPC
+        rpc=夹具客户端.rpc#夹具自带 RPC
+    elif 传输 is not None and 'rpc' in 传输:#传输已解码逻辑 RPC
+        rpc=传输['rpc']#替换 HTTP 调用方
+    else:#默认 Web RPC
+        rpc=创建网页连接rpc()#web RPC
     已启动={'v':False}#流循环是否已被某个消费者占用
     描述={'v':None}#当前世代的宿主描述
     监听集合=set()#描述订阅者
@@ -148,7 +155,8 @@ def 应用(上下文):#安装浏览器连接插件
     主机名=''#默认
     if 页面 is not None:#有页面
         主机名=页面.hostname if 页面.hostname is not None else (urlparse(页面.href).hostname or '')#主机名
-    是否回环=页面 is None or 是否回环主机名(主机名)#无页面或主机名是回环
+    拥有宿主=传输 is not None and 'ownsHost' in 传输 and 传输['ownsHost'] is True#页面拥有 Host
+    是否回环=拥有宿主 or 页面 is None or 是否回环主机名(主机名)#特权面可达
     句柄=连接句柄(#组装服务句柄
         接口,#共享 API
         是否回环,#回环

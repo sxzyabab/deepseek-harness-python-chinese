@@ -16,6 +16,9 @@ from .清单 import (#再导出启动清单类型
     启动模块行,#模块行
     启动插件行,#插件行
     解析启动清单,#解析
+    解析客户端声明,#dsh.client 声明
+    精确包说明符,#裸包根说明符
+    剥客户端后缀,#剥 /client
 )#清单面
 
 __all__=[#仅中文公开名
@@ -30,6 +33,9 @@ __all__=[#仅中文公开名
     '启动模块行',
     '启动插件行',
     '解析启动清单',
+    '解析客户端声明',
+    '精确包说明符',
+    '剥客户端后缀',
 ]#公开面结束
 
 构建指示='run `pnpm run build` before launch'#构建指示（错误串，不改）
@@ -65,27 +71,6 @@ class 客户端包组合错误(客户端模块错误):
                 行列表.append('    - '+str(错误))#消息
         super().__init__('\n'.join(行列表))#聚合错误
         自身.失败列表=失败列表#原失败列表
-
-def 解析客户端声明(包名,值):
-    """把未知已解析 JSON 值收窄成 dsh.client 声明，字段畸形则抛。"""
-    if 值 is None:#没有 dsh.client
-        return None#无声明
-    if not isinstance(值,dict):#不是对象
-        raise 客户端模块错误('client-modules: '+包名+' has a non-object dsh.client declaration')#非对象
-    if 'platform' not in 值 or not isinstance(值['platform'],str):#platform 必须是字符串
-        raise 客户端模块错误('client-modules: '+包名+' dsh.client.platform must be a string')#类型错
-    注入=值['inject'] if 'inject' in 值 else None#可选注入边
-    if 注入 is not None and (not isinstance(注入,list) or any(not isinstance(项,str) for 项 in 注入)):#inject 必须是字符串数组
-        raise 客户端模块错误('client-modules: '+包名+' dsh.client.inject must be a string array')#类型错
-    立即=值['immediately'] if 'immediately' in 值 else None#是否立即预取
-    if 立即 is not None and not isinstance(立即,bool):#immediately 必须是布尔
-        raise 客户端模块错误('client-modules: '+包名+' dsh.client.immediately must be a boolean')#类型错
-    声明={'platform':值['platform']}#已校验声明
-    if 注入 is not None:#有注入
-        声明['inject']=list(注入)#注入边
-    if 立即 is not None:#有立即标记
-        声明['immediately']=立即#立即预取
-    return 声明#声明
 
 def 客户端导出路径(包名,导出字段):
     """把 exports['./client'] 解析成相对路径。"""
@@ -295,6 +280,8 @@ class 客户端模块注册表(服务):
         }#结束元数据
         if 'inject' in 声明:#有注入
             元数据['inject']=声明['inject']#注入边
+        if 'external' in 声明:#有外部请求
+            元数据['external']=声明['external']#外部请求
         自身.包元数据[包名]=元数据#写入缓存
         return 元数据#返回元数据
 

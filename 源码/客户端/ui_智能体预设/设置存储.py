@@ -2,7 +2,7 @@
 
 对齐上游 `ui-agent-preset/src/client/settings-store.ts`。公开面仅中文名。
 """
-__all__=['设置命名空间','错误文','写默认预设','读名册','预设选项','预设设置控制器','智能体预设错误']#仅中文公开名
+__all__=['设置命名空间','错误文','写智能体预设设置','写默认预设','写模式选择启用','读名册','预设选项','预设设置控制器','智能体预设错误']#仅中文公开名
 
 设置命名空间='agent-presets'#宿主设置 ns
 
@@ -18,10 +18,10 @@ def 错误文(错误):#拒绝值收成文案
         return str(错误.args[0])#消息
     return str(错误)#其它
 
-def 写默认预设(接口,标识):#把预设写成后续会话默认
+def 写智能体预设设置(接口,补丁):#统一写入 default / modeSelectionEnabled
     """失败返回文案；成功返回 None。settings.update 返回任务。"""
     try:#调用 settings.update
-        应答=接口.settings.update({'ns':设置命名空间,'patch':{'default':标识}}).等待()#写入
+        应答=接口.settings.update({'ns':设置命名空间,'patch':补丁}).等待()#写入
     except Exception as 错误:#传输拒绝；RPC 异常契约未定
         return 错误文(错误)#文案
     if 'result' not in 应答:#无
@@ -31,6 +31,16 @@ def 写默认预设(接口,标识):#把预设写成后续会话默认
         return None#无文案
     错误体=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
     return 错误体['message'] if 'message' in 错误体 else str(错误体)#业务错误
+
+def 写默认预设(接口,标识):#把预设写成后续会话默认
+    """失败返回文案；成功返回 None。"""
+    return 写智能体预设设置(接口,{'default':标识})#只写 default
+
+def 写模式选择启用(接口,启用):#写出选择器开关
+    """失败返回文案；成功返回 None。"""
+    return 写智能体预设设置(接口,{'modeSelectionEnabled':启用})#只写 modeSelectionEnabled
+
+空名册={'presets':[],'authorable':False,'modeSelectionEnabled':False}#无服务时等同空名册
 
 def 读名册(接口):#读名册并折叠拒绝
     """成功 {ok,value} 或失败 {ok:False,error}。list 返回任务。"""
@@ -42,6 +52,9 @@ def 读名册(接口):#读名册并折叠拒绝
         if 结果['ok']:#成功
             return {'ok':True,'value':结果['value'] if 'value' in 结果 else None}#名册
         错误体=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
+        码=错误体['code'] if isinstance(错误体,dict) and 'code' in 错误体 else None#错误码
+        if 码=='gateway/invocation-unavailable':#服务缺席
+            return {'ok':True,'value':空名册}#当空名册
         return {'ok':False,'error':错误体['message'] if 'message' in 错误体 else str(错误体)}#业务失败
     except Exception as 错误:#传输失败；RPC 异常契约未定
         return {'ok':False,'error':错误文(错误)}#文案

@@ -1,6 +1,8 @@
 {
     "apply":"应用",
     "command":"命令",
+    "connection":"连接",
+    "definition":"定义",
     "download":"下载",
     "error":"错误",
     "export":"导出",

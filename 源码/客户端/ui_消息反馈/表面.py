@@ -15,9 +15,9 @@ class 反馈表面:#按会话成对体
         自身._会话标识=会话标识#会话
         自身.反馈=消息反馈控制器(上下文.remote.messageFeedback,会话标识)#消息层
         def 路由(目标,条目):#按目标路由提交
-            """消息目标走负面评分；会话目标走 sessionFeedback。"""
+            """消息目标走所选评分；会话目标走 sessionFeedback。"""
             if 'kind' in 目标 and 目标['kind']=='message':#消息
-                return 自身.反馈.rate(目标['messageId'],'negative',条目)#负面
+                return 自身.反馈.rate(目标['messageId'],目标['rating'],条目)#所选评判
             return 自身._记录会话(条目)#会话级
         自身.对话框=反馈对话框控制器(路由)#对话框
 

@@ -21,6 +21,7 @@
     "path":"路径",
     "profile":"配置档",
     "read":"读取",
+    "reload":"重载",
     "resolve":"解析",
     "symlink":"符号链接",
     "template":"模板",

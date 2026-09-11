@@ -109,6 +109,18 @@ class 输入枢纽:#会话输入门面注册表
         作用域=自身.取会话面().scope(标识)#作用域
         return None if 作用域 is None else 自身.控制器(作用域)#控制器
 
+    def canPickFiles(自身,标识):
+        """不创建会话输入，只问已有壳是否接受文件。"""
+        if 标识 not in 自身.外壳表:#无壳
+            return False#不接受
+        return 自身.外壳表[标识].canPickFiles() is True#已绑且可用
+
+    def pickFiles(自身,标识):
+        """按壳存活接入策略打开文件对话框；无壳则无操作。"""
+        if 标识 not in 自身.外壳表:#无壳
+            return#停
+        自身.外壳表[标识].pickFiles()#打开
+
     def 下沉(自身,会话,文本,图片标识列表,模式):
         """乐观清空后发提示。"""
         if 文本=='' and len(图片标识列表)==0:

@@ -395,9 +395,9 @@ def 造夹具世界(选项):#内存假宿主
         return {'ok':True,'value':[#五条（描述文案勿改）
             {'name':'compact','description':'fixture：压缩当前会话上下文'},
             {'name':'echo','description':'fixture：回显参数','input':{'hint':'text to echo'}},
-            {'name':'goal','description':'set or view the goal for a long-running task','input':{'hint':'<objective>'}},
-            {'name':'permission','description':'Switch the permission preset (sandbox mode + approval policy)','input':{'hint':'<preset>'}},
-            {'name':'plan','description':'Enter or leave plan mode','input':{'hint':'[off|message]'}},
+            {'definitionId':'@deepseek-ai/dsh-command-goal','name':'goal','description':'Set or view the goal for a long-running task','input':{'hint':'<objective>','attachments':True}},
+            {'definitionId':'@deepseek-ai/dsh-permission-presets','name':'permission','description':'Switch the permission preset (sandbox mode + approval policy)','input':{'hint':'<preset>'}},
+            {'definitionId':'@deepseek-ai/dsh-plan-mode','name':'plan','description':'Enter or leave plan mode','input':{'hint':'[off|message]','attachments':True}},
         ]}#结束成功
 
     def 执行命令(标识,行):#执行一行
@@ -1222,7 +1222,7 @@ def 造夹具世界(选项):#内存假宿主
     def 列预设(请求):#列预设
         """两种 trust。"""
         预设列表=[{'id':标识,'trust':预设['trust'],'isDefault':标识==默认预设[0]} for 标识,预设 in 预设图.items()]#每条
-        return 成功(请求,{'presets':预设列表,'authorable':True,'hasDocument':True})#列表
+        return 成功(请求,{'presets':预设列表,'authorable':True,'modeSelectionEnabled':True,'hasDocument':True})#列表
 
     def 选预设(请求):#设默认预设
         """记下。"""

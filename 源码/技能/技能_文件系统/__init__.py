@@ -973,7 +973,7 @@ class 文件系统技能提供方:#本地文件系统提供方
         解析结果=解析技能文件(定位器['path'],自身.ctx,信号,候选['source']=='bundled')#捆绑根走宿主直读
         if 解析结果 is None:#文件消失或非法
             return None#没有
-        定义={'name':解析结果['name'],'description':解析结果['description'],'invocation':解析结果['invocation'],'source':候选['source'],'provider':自身.name,'resourceBase':{'kind':'directory','path':定位器['directory']},'path':定位器['path'],'content':解析结果['content']}#组装完整定义
+        定义={'name':解析结果['name'],'description':解析结果['description'],'invocation':解析结果['invocation'],'source':候选['source'],'provider':自身.name,'resourceBase':{'kind':'directory','path':定位器['directory']},'path':解析结果['path'],'content':解析结果['content']}#组装完整定义
         if 'whenToUse' in 解析结果:#可选何时使用
             定义['whenToUse']=解析结果['whenToUse']#何时使用
         if 'metadata' in 解析结果:#可选元数据

@@ -106,7 +106,9 @@ def 应用(上下文):#安装模型选择浏览器半边
             """/model 弹出选择。"""
             return 命令.register({#登记
                 'name':'model',#命令名
+                'label':lambda:翻译('command.label'),#命令标签
                 'description':lambda:翻译('command.description'),#请求候选时解析描述
+                'icon':'IconDataOutline16',#数据轮廓图标（primitives 组件名）
                 'available':命令可用,#非子智能体
                 'ui':{#弹出 UI
                     'kind':'popupSelect',#种类

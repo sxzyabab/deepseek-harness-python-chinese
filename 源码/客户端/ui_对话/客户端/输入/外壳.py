@@ -71,6 +71,7 @@ class 会话输入壳:#每会话输入外壳
         自身.图片标识列表=[]#本草稿图 id
         自身.已拆除=False#拆除后丢迟到结算
         自身.镜像写出=None#草稿持久化
+        自身.文件选择器=None#已挂载作曲器的文件选择面
         自身.notices=快照存储(None)#通知 store
         自身.state=快照存储(自身.合成())#初态
         自身.actions={#公开动作面
@@ -247,6 +248,31 @@ class 会话输入壳:#每会话输入外壳
         弹=自身.取弹层()#弹层
         if 弹 is not None:#可
             弹.dismiss()#关
+
+    def bindFilePicker(自身,选择器):
+        """绑定已挂载作曲器的文件动作与存活接入可用性。选择器为对象，含 available/open。"""
+        自身.文件选择器=选择器#记下
+        def 解绑():
+            """仍是自己才清。"""
+            if 自身.文件选择器 is 选择器:#同
+                自身.文件选择器=None#清
+        return 解绑#拆除器
+
+    def canPickFiles(自身):
+        """已绑且当前接受文件。"""
+        选择器=自身.文件选择器#面
+        if 选择器 is None:#未绑
+            return False#不接受
+        return 选择器.available() is True#可用性
+
+    def pickFiles(自身):
+        """按存活接入策略打开原生文件对话框。"""
+        选择器=自身.文件选择器#面
+        if 选择器 is None:#未绑
+            return#停
+        if 选择器.available() is False:#不接受
+            return#停
+        选择器.open()#打开
 
     def beginCommand(自身,认领,跨度):
         """机器是否接受。"""

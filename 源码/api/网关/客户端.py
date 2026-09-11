@@ -13,6 +13,7 @@ from .远程流 import 远程流#可重连流
 __all__=[#仅中文公开名
     '注入','应用','客户端远程服务','远程命名空间服务',
     '拼端点','远程服务键','作用域投影','要求严格描述符',
+    '载体失败','取消失败',
 ]#公开面结束
 
 注入=['typert','connection']#依赖 typert 与 connection
@@ -39,6 +40,13 @@ def 载体失败(端点,错误):
     """带上错误消息。"""
     消息=错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else str(错误)#消息
     return 内部失败('client api: '+端点+' failed: '+str(消息))#失败
+
+def 取消失败(端点,原因):
+    """调用方中止折入 gateway/cancelled，载体抛出作为 cause。"""
+    错误={'code':'gateway/cancelled','message':'client api: Remote invocation "'+端点+'" was aborted','details':{}}#取消码
+    if isinstance(原因,BaseException):#有原因
+        错误['cause']=原因#挂上 cause
+    return {'ok':False,'error':错误}#失败结果
 
 def 要求严格编解码(编解码,端点,字段):
     """弱模式不允许出现在客户端生成描述符。编解码为 dict。"""
@@ -453,6 +461,8 @@ class 客户端远程服务(服务):
                 return {'ok':False,'error':结果['error']}#原样
             return {'ok':True,'value':解析(描述符['result'],结果['value'],端点,'result')}#成功
         except BaseException as 错误:
+            if 信号 is not None and 信号.事件.is_set():#调用方中止
+                return 取消失败(端点,错误)#取消码
             return 载体失败(端点,错误)#折成内部失败
 
 def 应用(上下文):

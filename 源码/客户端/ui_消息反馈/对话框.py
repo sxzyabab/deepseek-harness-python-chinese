@@ -71,6 +71,13 @@ class 反馈对话框控制器:#按会话对话框控制器
         现['submitting']=False#结束提交
         错误=结果['error'] if 'error' in 结果 else {}#错误
         现['failure']=错误['code'] if 'code' in 错误 else None#失败码
+        现['toast']=0#清确认 toast
+        自身.状态.set(现)#发布
+
+    def 关掉失败(自身):#关掉失败提示
+        """清掉当前失败轻提示，不关闭草稿。"""
+        现=dict(自身.状态.getSnapshot())#现
+        现['failure']=None#清失败
         自身.状态.set(现)#发布
 
     def 确认(自身):#确认轻提示

@@ -1,8 +1,10 @@
 {
     "apply":"应用",
     "endpoint":"端点",
+    "entry":"条目",
     "error":"错误",
     "event":"事件",
+    "fiber":"光纤",
     "frame":"帧",
     "graph":"图",
     "inject":"注入",
@@ -17,5 +19,6 @@
     "self":"自身",
     "source":"源",
     "style":"样式",
-    "task":"任务"
+    "task":"任务",
+    "tear":"拆除"
 }

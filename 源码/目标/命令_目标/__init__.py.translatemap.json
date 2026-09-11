@@ -1,7 +1,9 @@
 {
     "assert":"断言",
+    "attachment":"附件",
     "clear":"清除",
     "command":"命令",
+    "definition":"定义",
     "edit":"编辑",
     "error":"错误",
     "goal":"目标",

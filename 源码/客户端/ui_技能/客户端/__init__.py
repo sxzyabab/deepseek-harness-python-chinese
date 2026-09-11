@@ -17,7 +17,7 @@ from ..技能行 import 技能行,技能错误#技能工具行与本包异常
 
 __all__=['注入','应用']#仅中文公开名；对齐上游 export inject / apply
 
-注入=['inputTriggers','connection','sessions','slots','locale','remote']#触发源、连接、会话、槽位、文案、远程
+注入=['inputTriggers','sessions','slots','locale','remote','remote.skills','sidebarRight']#触发源、会话、槽位、文案、远程、skills 与右侧边栏
 
 class 操作任务:#本文件内单次操作结果
     """单次操作的 Future 包装，只留 等待。"""
@@ -43,12 +43,6 @@ class 操作任务:#本文件内单次操作结果
         """阻塞等到结算。"""
         return 自身._结果.result(timeout=超时)#取结果或抛错
 
-def 已结算(值=None):#立刻结算的任务
-    """立刻兑现的操作任务。"""
-    任务=操作任务()#新任务
-    任务.兑现(值)#立刻成功
-    return 任务#已完成
-
 def 已中止(信号):#读 threading.Event
     """无信号视为未中止。"""
     if 信号 is None:#无
@@ -59,6 +53,44 @@ def 若已中止则抛出(信号):#已取消则抛
     """已中止则抛技能错误。"""
     if 已中止(信号):#已取消
         raise 技能错误('aborted')#中止
+
+def 编码段(段):
+    """百分编码一段，冒号保持字面量。"""
+    from urllib.parse import quote as 百分编码#URI 段编码
+    return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
+
+def 编码路径(路径):
+    """按斜杠分段编码。"""
+    return '/'.join(编码段(段) for 段 in 路径.split('/'))#分段
+
+def 是否绝对工作区路径(路径):
+    """POSIX 根、Windows 盘符或 UNC。"""
+    if 路径.startswith('/'):
+        return True#POSIX 绝对
+    if 路径.startswith('\\\\'):
+        return True#UNC
+    if len(路径)>=3 and 路径[0].isalpha() and 路径[1]==':' and 路径[2] in '/\\':
+        return True#盘符
+    return False#相对
+
+def 会话文件地址(会话标识,路径):
+    """编成 dsh-resource://file/session/<id>/<path>。"""
+    规范化=路径.replace('\\','/')#统一斜杠
+    while 规范化.startswith('./'):
+        规范化=规范化[2:]#剥前导 ./
+    return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
+
+def 文件资源地址(会话标识,cwd,路径):
+    """相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址。"""
+    规范化=路径.replace('\\','/')#统一斜杠
+    if not 是否绝对工作区路径(规范化):
+        return 会话文件地址(会话标识,规范化)#相对
+    根='' if cwd is None else cwd.replace('\\','/').rstrip('/')#工作区根
+    if 根!='' and 规范化==根:
+        return 会话文件地址(会话标识,'')#根本身
+    if 根!='' and 规范化.startswith(根+'/'):
+        return 会话文件地址(会话标识,规范化[len(根)+1:])#剥根
+    return 会话文件地址(会话标识,规范化)#工作区外仍会话作用域
 
 def 应用(上下文):#安装技能引用浏览器半边
     """登记「/」源、词表，以及按键的工具行。"""
@@ -72,8 +104,7 @@ def 应用(上下文):#安装技能引用浏览器半边
             'name':'tool.call.toolview','key':'skill','locale':命名空间,#条目选项
         },技能行)#技能工具行组件
     上下文.slots.inject('tool.call.toolview',登记工具行)#等槽出现
-    连接=上下文.获取服务('connection')#根连接
-    技能接口=连接.api.skills#skills RPC
+    技能接口=上下文.remote.skills#登记时捕获的根 Remote 上的 skills
     会话服务=上下文.获取服务('sessions')#会话服务
     拉取表={}#会话 → 在飞/已落定目录拉取
     词表监听={}#会话 → 词表监听者集合
@@ -87,30 +118,29 @@ def 应用(上下文):#安装技能引用浏览器半边
                 print('[ui-skill] lexicon listener failed:',错误)#记日志
 
     def 拉目录(会话标识):#按会话单飞拉取技能目录
-        """按会话单飞拉取技能目录。"""
-        if 会话服务.subagentAddress(会话标识) is not None:#子智能体会话
-            return 已结算([])#没有用户技能目录
+        """按会话单飞拉取技能目录，返回共享条目。"""
         已有=拉取表[会话标识] if 会话标识 in 拉取表 else None#已有拉取
         if 已有 is not None:#同键复用
-            return 已有['promise']#共享任务
+            return 已有#共享条目
         中止器=threading.Event()#自有中止旗
         def 中止拉取():#中止在飞拉取
             """仅失效/拆除时触发。"""
             中止器.set()#标中止
         def 解包目录(包装):#从 list 响应取出 skills
-            """解包 skill.list 业务结果。"""
+            """解包 skills/list 业务结果。"""
+            若已中止则抛出(中止器)#拉取期间失效则抛
             结果=包装['result']#业务结果
             if not 结果['ok']:#业务失败转成抛错
                 错误=结果['error'] if 'error' in 结果 else None#错误
                 码=错误['code'] if 错误 is not None and 'code' in 错误 else None#码
                 消息=错误['message'] if 错误 is not None and 'message' in 错误 else None#消息
-                raise 技能错误('skill.list failed: '+str(码)+': '+str(消息))#转抛
+                raise 技能错误('skills/list failed: '+str(码)+': '+str(消息))#转抛
             return 结果['value']['skills']#目录条目
         任务=操作任务()#本键共享拉取
-        条目={'promise':任务,'abort':中止拉取}#本键共享条目
+        条目={'promise':任务,'abort':中止拉取,'signal':中止器}#本键共享条目
         拉取表[会话标识]=条目#写入缓存
         def 执行拉取():#单飞拉取体
-            """只调一次 skill.list，成败结算共享任务。"""
+            """只调一次 skills/list，成败结算共享任务。"""
             try:#拉取并解包
                 包装=技能接口.list({'sessionId':会话标识},中止器).等待()#唯一一次 list
                 技能列表=解包目录(包装)#业务解包
@@ -124,7 +154,7 @@ def 应用(上下文):#安装技能引用浏览器半边
         线=threading.Thread(target=执行拉取)#后台拉取
         线.daemon=True#不挡退出
         线.start()#启动
-        return 任务#共享任务
+        return 条目#共享条目
 
     def 失效(键):#丢掉一键缓存
         """丢掉一键缓存并中止在飞拉取。"""
@@ -146,7 +176,9 @@ def 应用(上下文):#安装技能引用浏览器半边
         """按查询过滤本会话技能候选。"""
         查询=选项['query'] if 'query' in 选项 else ''#查询串
         信号=选项['signal'] if 'signal' in 选项 else None#中止信号
-        技能列表=拉目录(会话['sessionId']).等待()#共享目录
+        if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体会话
+            return []#无用户技能目录
+        技能列表=拉目录(会话['sessionId'])['promise'].等待()#共享目录
         if 已中止(信号):#被取代的按键：共享拉取仍热着，本调用方让出
             return []#早退
         结果=[]#候选列表
@@ -164,7 +196,9 @@ def 应用(上下文):#安装技能引用浏览器半边
 
     def 预热(会话):#作用域诞生预热
         """点火即忘的作用域诞生预热。"""
-        任务=拉目录(会话['sessionId'])#预热
+        if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体
+            return#不预热
+        任务=拉目录(会话['sessionId'])['promise']#预热
         def 忽略():#吞掉成败
             """预热失败由 candidates 再报。"""
             try:#等待
@@ -200,6 +234,47 @@ def 应用(上下文):#安装技能引用浏览器半边
                 del 词表监听[键]#摘掉会话键
         return 退订#拆除器
 
+    def 打开引用(会话,引用):#打开技能源文件预览
+        """子智能体拒绝；已落定目录立刻打开，否则拉目录后打开。"""
+        会话标识=会话['sessionId']#会话键
+        if 会话服务.subagentAddress(会话标识) is not None:#子智能体
+            return False#不预览
+        列表=会话服务.list.getSnapshot().byId#会话列表
+        摘要=列表[会话标识] if 会话标识 in 列表 else None#当前会话
+        cwd=摘要['cwd'] if 摘要 is not None and 'cwd' in 摘要 else None#工作目录
+        目标=引用['ref'] if 'ref' in 引用 else ''#mention
+        def 打开(目录):#目录就绪后打开
+            """按 mention 找路径并打开。"""
+            路径=None#命中路径
+            for 技能 in 目录:#逐条
+                名=技能['name'] if 'name' in 技能 else ''#技能名
+                if '/'+名==目标:#命中
+                    路径=技能['path'] if 'path' in 技能 else None#路径
+                    break#找到
+            if 路径 is None:#目录里没有
+                return False#未打开
+            地址=文件资源地址(会话标识,cwd,路径)#会话作用域地址
+            上下文.sidebarRight.openResource(地址)#侧栏打开
+            return True#已受理
+        条目=拉取表[会话标识] if 会话标识 in 拉取表 else None#缓存
+        已落定=条目['settled'] if 条目 is not None and 'settled' in 条目 else None#快照
+        if 已落定 is not None:#已落定
+            return 打开(已落定)#同步打开
+        条目=拉目录(会话标识)#加入或发起拉取
+        def 到达后打开():#目录到达后打开
+            """仍有效才打开。"""
+            try:#等待目录
+                目录=条目['promise'].等待()#目录
+                if not 已中止(条目['signal']):#仍有效
+                    打开(目录)#打开
+            except BaseException as 错误:#预览失败
+                if not 已中止(条目['signal']):#仍有效才记
+                    print('[ui-skill] reference preview failed:',错误)#记日志
+        线=threading.Thread(target=到达后打开)#后台打开
+        线.daemon=True#不挡退出
+        线.start()#启动
+        return True#已受理
+
     def 选定(载荷):#选定：插入字面 /name 加空格
         """纯文本引用决策。"""
         候选项=载荷['candidate']#候选
@@ -213,6 +288,7 @@ def 应用(上下文):#安装技能引用浏览器半边
         'warm':预热,#预热
         'lexicon':词表,#词表
         'subscribeLexicon':订阅词表,#订阅词表
+        'openReference':打开引用,#打开技能源
         'onPick':选定,#选定
     }#源结束
     触发服务=上下文.获取服务('inputTriggers')#斜杠触发服务

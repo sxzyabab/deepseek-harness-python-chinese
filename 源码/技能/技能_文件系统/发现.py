@@ -93,8 +93,9 @@ def 读技能文本(上下文,路径,信号=None,信任宿主=False):
         return 经文件系统读技能文本(上下文,文件系统服务,路径,信号)#经 fs 服务读
     try:#宿主直读
         若已中止则抛出(信号)#读前再查取消
-        with open(路径,'r',encoding='utf-8') as 文件:#Node 读文件
-            return 文件.read()#UTF-8 文本
+        真实路径=os.path.realpath(路径)#解析真实路径
+        with open(真实路径,'r',encoding='utf-8') as 文件:#Node 读文件
+            return {'path':真实路径,'content':文件.read()}#路径加正文
     except (OSError,UnicodeDecodeError) as 错误:#读失败
         若已中止则抛出(信号)#取消优先
         if 是否缺失技能路径错误(错误):#缺失则没有
@@ -123,7 +124,7 @@ def 经文件系统读技能文本(上下文,文件系统服务,路径,信号=No
     if 信息['type']!='file':#非文件则没有
         return None#没有
     try:#读文本失败可能是非文本
-        return 文件系统服务.读文本(目标,信号)#读 UTF-8
+        return {'path':文件系统服务.进程路径(目标),'content':文件系统服务.读文本(目标,信号)}#路径加正文
     except Exception as 错误:#文件系统服务抛带 code 的结构化错误，类型由对面 seam 决定
         若已中止则抛出(信号)#取消优先
         if 是否缺失技能路径错误(错误):#缺失则没有
@@ -241,7 +242,7 @@ def 解析技能文件(路径,上下文,信号=None,信任宿主=False):
     if 原文 is None:#缺失
         return None#当作没有此技能
     try:#非法 YAML 则忽略文件
-        解析结果=解析frontmatter(原文)#拆 --- 块
+        解析结果=解析frontmatter(原文['content'])#拆 --- 块
     except yaml.YAMLError as 错误:#YAML 抛错
         上下文.日志.警告('skill file '+路径+' ignored: invalid YAML frontmatter: '+错误消息(错误))#记非法 YAML
         return None#忽略
@@ -261,7 +262,7 @@ def 解析技能文件(路径,上下文,信号=None,信任宿主=False):
     except (TypeError,技能文件系统错误) as 错误:#策略非法
         上下文.日志.警告('skill file '+路径+' ignored: invalid invocation frontmatter: '+错误消息(错误))#记非法策略
         return None#忽略
-    结果={'name':名称,'description':描述,'invocation':调用,'content':解析结果['body'].strip()}#解析成功
+    结果={'name':名称,'description':描述,'invocation':调用,'path':原文['path'],'content':解析结果['body'].strip()}#解析成功
     结果.update(可选字符串(解析结果['data'],'whenToUse'))#可选何时使用
     结果.update(可选元数据(解析结果['data']))#可选元数据对象
     return 结果#解析结果
@@ -346,7 +347,7 @@ def 发现根(根,上下文,提供方名):
         解析结果=解析技能文件(定位器['path'],上下文,None,信任 is True)#捆绑根走宿主直读
         if 解析结果 is None:#缺失或非法 frontmatter
             continue#跳过
-        候选={'name':解析结果['name'],'description':解析结果['description'],'invocation':解析结果['invocation'],'provider':提供方名,'source':根['source'],'rank':根['rank'],'locator':定位器,'resourceBase':{'kind':'directory','path':定位器['directory']},'path':定位器['path']}#组装候选
+        候选={'name':解析结果['name'],'description':解析结果['description'],'invocation':解析结果['invocation'],'provider':提供方名,'source':根['source'],'rank':根['rank'],'locator':定位器,'resourceBase':{'kind':'directory','path':定位器['directory']},'path':解析结果['path']}#组装候选
         if 'whenToUse' in 解析结果:#可选何时使用
             候选['whenToUse']=解析结果['whenToUse']#何时使用
         if 'metadata' in 解析结果:#可选元数据

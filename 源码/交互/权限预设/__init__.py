@@ -3,6 +3,7 @@ from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,枚举字段,常量字段,复合类型字段#配置字段
 服务=cordis.服务#Cordis 服务基类
 from ...配置.配置 import 安装设置段,设置命名空间#设置段安装与命名空间
+from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...沙盒.沙盒策略 import 沙盒模式表,生效沙盒模式,设沙盒模式#沙盒模式表、折叠与写入
 from ..用户审批 import 审批策略表,生效审批策略,设审批策略#审批策略表、折叠与写入
 from .类型 import (#再导出权限域纯类型
@@ -188,6 +189,7 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
                 自身.应用(智能体.session,名,写审批)#共享写路径
                 return {'kind':'success','text':'preset '+名}#简短结算
             命令上下文.commands.登记({#登记 /permission
+                'definitionId':命令定义标识('@deepseek-ai/dsh-permission-presets'),#稳定定义身份
                 'name':'permission',#命令名
                 'description':'Switch the permission preset (sandbox mode + approval policy)',#发现摘要，字面量不翻译
                 'input':{'hint':'<preset>'},#输入占位

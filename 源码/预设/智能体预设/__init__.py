@@ -25,6 +25,7 @@ from . import 类型 as _类型#触发客户端安全事件声明
 设置空间名='agent-presets'#设置命名空间
 智能体预设设置模式={#用户可写设置
     'default':字符串字段(),#默认预设 id
+    'modeSelectionEnabled':布尔字段(),#是否启用模式选择
 }#设置模式结束
 
 def 组合戳(路径):
@@ -72,7 +73,7 @@ class 智能体预设名册(服务):
             自身.settings=设置上下文.settings.登记(#注册命名空间
                 设置命名空间(设置空间名),#agent-presets
                 智能体预设设置模式,#用户切片模式
-                {'base':{'default':配置默认}},#组合层默认
+                {'base':{'default':配置默认,'modeSelectionEnabled':True}},#组合层默认
             )#结束登记
             自身.settingsService=设置上下文.settings#保住写入面
             def 挂拆():
@@ -110,15 +111,23 @@ class 智能体预设名册(服务):
 
     @property
     def defaultId(自身):
-        """调用方未点名时挂载的预设 id。"""
+        """调用方未点名时挂载的预设 id。隐藏选择器时忽略陈旧用户默认。"""
+        return 自身._选择策略()['defaultId']#策略有效默认
+
+    def _选择策略(自身):
+        """读一份内部一致的选择策略快照。"""
+        if 自身.settings is None:#无用户层
+            配置默认=自身.config['default'] if 'default' in 自身.config else None#配置默认
+            return {'enabled':True,'defaultId':配置默认}#开选择、用配置默认
+        切片=自身.settings.get()#用户切片 dict
+        启用=切片['modeSelectionEnabled'] if 'modeSelectionEnabled' in 切片 else True#缺席则开
         配置默认=自身.config['default'] if 'default' in 自身.config else None#配置默认
-        if 自身.settings is not None:#有用户层
-            切片=自身.settings.get()#用户切片 dict
-            用户默认=切片['default'] if 'default' in 切片 else None#用户覆盖
-            if 用户默认 is not None and 用户默认!='':#有非空用户默认，对齐 ||
-                return 用户默认#用户覆盖
-            return 配置默认#回落配置
-        return 配置默认#配置默认
+        用户默认=切片['default'] if 'default' in 切片 else None#用户覆盖
+        if 启用 is True:#启用模式选择
+            if 用户默认 is not None and 用户默认!='':#有非空用户默认
+                return {'enabled':True,'defaultId':用户默认}#用户覆盖
+            return {'enabled':True,'defaultId':配置默认}#回落配置
+        return {'enabled':False,'defaultId':配置默认}#关闭选择则忽略用户默认
 
     @property
     def roots(自身):
@@ -222,6 +231,10 @@ class 智能体预设名册(服务):
             自身.bindings.设(智能体键,绑定作用域父(智能体键,常驻['key']))#初次挂上
         else:#已有绑定则再链接
             绑定.改接(常驻['key'])#改父到新常驻键
+        try:#监听器可能抛
+            自身.所属上下文.广播('tools/change')#通知工具集变更
+        except BaseException as 错误:#监听失败只记日志
+            自身.所属上下文.日志.警告('agent-presets: tools/change listener failed after recomposing an Agent: '+str(错误))#不阻断再组合
         return 预设#现在安装的预设
 
     def standingKeyFor(自身,标识=None):

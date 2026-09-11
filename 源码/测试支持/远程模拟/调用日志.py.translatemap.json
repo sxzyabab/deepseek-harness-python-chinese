@@ -1,0 +1,19 @@
+{
+    "args":"参数",
+    "call":"调用",
+    "endpoint":"端点",
+    "log":"日志",
+    "miss":"漏配",
+    "mode":"模式",
+    "pending":"待定",
+    "push":"推入",
+    "record":"记录",
+    "request":"请求",
+    "result":"结果",
+    "self":"自身",
+    "seq":"序号",
+    "state":"状态",
+    "store":"库",
+    "stream":"流",
+    "unmatched":"漏配"
+}

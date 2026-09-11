@@ -115,6 +115,7 @@ def 恒等翻译(键,参数=None):#无文案表
     'message.turnTime.ttft':'首 token 用时（TTFT）',#TTFT
     'duration.seconds':'{seconds}秒',#秒
     'duration.minutes':'{minutes}分{seconds}秒',#分秒
+    'duration.hours':'{hours}小时{minutes}分{seconds}秒',#时分秒
     'command.running':'执行中…',#命令执行中
     'command.failed':'指令失败',#命令失败
     'command.done':'已完成',#命令完成
@@ -230,6 +231,7 @@ def 恒等翻译(键,参数=None):#无文案表
     'message.turnTime.ttft':'Time to first token (TTFT)',#TTFT
     'duration.seconds':'{seconds}s',#秒
     'duration.minutes':'{minutes}m {seconds}s',#分秒
+    'duration.hours':'{hours}h {minutes}m {seconds}s',#时分秒
     'command.running':'Running…',#命令执行中
     'command.failed':'Command failed',#命令失败
     'command.done':'Completed',#命令完成

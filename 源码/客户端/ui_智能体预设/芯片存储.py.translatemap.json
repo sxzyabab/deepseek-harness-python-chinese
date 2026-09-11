@@ -1,9 +1,14 @@
 {
+    "blank":"空白",
     "chip":"芯片",
     "error":"错误",
+    "generation":"世代",
+    "picker":"选择器",
     "preset":"预设",
     "self":"自身",
+    "session":"会话",
     "snapshot":"快照",
     "store":"存储",
-    "subscribe":"订阅"
+    "subscribe":"订阅",
+    "sync":"同步"
 }

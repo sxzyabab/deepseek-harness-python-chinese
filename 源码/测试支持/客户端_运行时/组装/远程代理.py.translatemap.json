@@ -1,0 +1,20 @@
+{
+    "abort":"中止",
+    "apply":"应用",
+    "cancel":"取消",
+    "carrier":"载体",
+    "connection":"连接",
+    "endpoint":"端点",
+    "event":"事件",
+    "failure":"失败",
+    "inject":"注入",
+    "namespace":"命名空间",
+    "open":"打开",
+    "plugin":"插件",
+    "prefix":"前缀",
+    "proxy":"代理",
+    "remote":"远程",
+    "self":"自身",
+    "signal":"信号",
+    "stream":"流"
+}

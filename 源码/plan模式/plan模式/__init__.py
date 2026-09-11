@@ -8,6 +8,7 @@ import re,weakref#标题匹配与会话弱表
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from ...模型后端.llm import 创建用户消息#铸造用户消息
+from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...内核.工具 import 定义工具#定义工具
 from ...交互.用户提问 import 用户提问错误#用户提问通道错误
 from .类型 import 计划投影字段,计划投影#再导出计划域纯类型
@@ -205,6 +206,11 @@ class 计划模式控制器(服务):#计划模式控制器服务
                 if 原文 is None:#缺席
                     原文=''#空
                 消息=原文.strip()#去掉首尾空白
+                附件=调用['attachments'] if 'attachments' in 调用 else ()#已准入附件
+                if 附件 is None:#缺席
+                    附件=()#空
+                if 消息=='off' and len(附件)>0:#off 不得带附件
+                    return {'kind':'error','text':'Attachments cannot accompany /plan off.'}#拒绝
                 if 消息=='off':#离开
                     结果=自身.设置(智能体,False)#选择未激活
                     if 结果=='committed':#已立刻写入日志
@@ -217,9 +223,12 @@ class 计划模式控制器(服务):#计划模式控制器服务
                         return {'kind':'success','text':'Leaving plan mode (applies from the next step).'}#仍等待提交
                     return {'kind':'success','text':'Plan mode is already inactive.'}#已经未激活
                 结局=自身.设置(智能体,True)#选择激活
-                if 消息!='':#非空附言
+                if 消息!='' or len(附件)>0:#有附言或附件
+                    内容列表=[*附件]#附件块
+                    if 消息!='':#有文本
+                        内容列表.append({'type':'text','text':消息})#可选文本
                     智能体.转向(创建用户消息({#注入为用户消息
-                        'content':[{'type':'text','text':消息}],#附言正文
+                        'content':内容列表,#内容块
                         'source':{'kind':'user'},#用户来源
                     }))#转向结束
                 if 结局=='committed':#已立刻写入
@@ -228,9 +237,10 @@ class 计划模式控制器(服务):#计划模式控制器服务
                     回执='Entering plan mode (applies from the next step). Use /plan off to leave.'#下一步生效
                 return {'kind':'success','text':回执}#成功回执
             命令上下文.commands.register({#登记 /plan
+                'definitionId':命令定义标识('@deepseek-ai/dsh-plan-mode'),#稳定定义身份
                 'name':'plan',#命令名
                 'description':'Enter or leave plan mode',#进入或离开计划模式
-                'input':{'hint':'[off|message]'},#off 离开；其余当作用户附言
+                'input':{'hint':'[off|message]','attachments':True},#off 离开；其余当作用户附言；可带附件
                 'handler':处理,#处理函数
             })#登记结束
         上下文.依赖启动(['commands'],命令安装)#等到命令缝

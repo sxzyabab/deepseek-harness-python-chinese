@@ -4,6 +4,7 @@
     "client":"客户端",
     "code":"代码",
     "context":"上下文",
+    "cancel":"取消",
     "descriptor":"描述符",
     "endpoint":"端点",
     "error":"错误",

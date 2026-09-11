@@ -184,6 +184,29 @@ def 应用(上下文):
     阻断表=阻断登记表()#按会话阻断
     枢纽=输入枢纽(上下文,翻译)#每会话输入枢纽
     节点注入=造聊天节点回合注入()#节点回合数据注入
+    def 登记文件动作(作用域):
+        """等 commandUi 后登记 file 动作。"""
+        命令=作用域.get('commandUi')#命令面
+        def 挂文件():
+            """登记 /file 动作。"""
+            def 标题():
+                """本地化文件标题。"""
+                return 翻译('input.file')#标题
+            def 可用(会话):
+                """作曲器是否接受文件。会话为 dict。"""
+                return 枢纽.canPickFiles(会话['sessionId'])#可用性
+            def 跑(会话):
+                """打开文件选择。会话为 dict。"""
+                枢纽.pickFiles(会话['sessionId'])#打开
+            return 命令.register({#贡献
+                'name':'file',#命令名
+                'label':标题,#本地化标题
+                'icon':'IconPaperclipOutline16',#回形针字形名
+                'available':可用,#作曲器是否接受文件
+                'ui':{'kind':'action','run':跑},#打开文件选择
+            })#登记结束
+        作用域.副作用(挂文件,'ui-conversation: File action')#挂
+    上下文.inject(['commandUi'],登记文件动作)#等 commandUi
     def 回车注入():
         """hooks + setBusyEnter。"""
         return {'hooks':{'busyEnter':提交.busyEnter},'setBusyEnter':提交.setBusyEnter}#注入

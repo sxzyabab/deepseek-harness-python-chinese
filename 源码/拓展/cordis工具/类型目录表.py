@@ -1,11 +1,11 @@
-"""装配类型目录——本包 `类型目录_*.txt`（511 条，对齐上游 TYPE_API）。"""
+"""装配类型目录——本包 `类型目录_*.txt`（514 条，对齐上游 TYPE_API）。"""
 import os#路径
 from .类型条目解析 import 解析类型紧凑文本#紧凑行解析
 
 __all__=['类型目录','类型片段名列表','类型本地条数','类型上游条数']#公开面
 
 _本目录=os.path.dirname(os.path.abspath(__file__))#本包
-类型上游条数=511#上游 TYPE_API 名数
+类型上游条数=514#上游 TYPE_API 名数
 类型片段名列表=[#按序拼接，无重叠
     '类型目录_01.txt',#Adapter–DynamicCordis*
     '类型目录_02.txt',#EditGoal–LlmReasoning*

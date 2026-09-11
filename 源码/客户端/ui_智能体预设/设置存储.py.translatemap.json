@@ -2,6 +2,9 @@
     "settings":"设置",
     "store":"存储",
     "error":"错误",
+    "mode":"模式",
+    "roster":"名册",
+    "selection":"选择",
     "snapshot":"快照",
     "subscribe":"订阅",
     "dispose":"拆除"

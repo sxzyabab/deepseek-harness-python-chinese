@@ -2,7 +2,7 @@
 import os,threading#路径与并发去重
 from ...依赖 import cordis#Cordis
 from ...依赖.schemastery import 字符串字段,数字字段#配置
-from ...工具.工作区路径 import 解析主目录#harness 主目录
+from ...工具.主目录路径 import 解析主目录,缓存路径#harness 主目录与缓存根
 from ..附件 import 附件存储,若已中止则抛出#附件缝
 from .压缩限流 import 压缩限流器#并发限流
 from .存储 import (#存储原语
@@ -92,8 +92,9 @@ class 本地附件存储(附件存储):
     def __init__(自身,上下文对象,配置):
         """记下根目录、限额、规范化策略与压缩限流。配置是 dict。"""
         super().__init__(上下文对象)#登记 attachments
-        主目录=配置['dshHome'] if 'dshHome' in 配置 else None#显式主目录
-        自身.根=os.path.abspath(os.path.join(解析主目录(主目录),'attachments','v1'))#版本化根
+        主目录=解析主目录(配置['dshHome'] if 'dshHome' in 配置 else None)#解析 harness 主目录
+        自身.根=os.path.join(主目录,'attachments','v1')#版本化存储根
+        自身.缓存根=缓存路径({'dshHome':主目录},'attachments')#请求图缓存根
         自身.限额={#冻结限额
             'maxImageBytes':配置['maxImageBytes'] if 'maxImageBytes' in 配置 else 默认最大图像字节,
             'maxImagesPerMessage':配置['maxImagesPerMessage'] if 'maxImagesPerMessage' in 配置 else 默认每消息最大图像数,
@@ -189,7 +190,7 @@ class 本地附件存储(附件存储):
                     def 读():
                         """限流内读或生成。"""
                         存储=已存储 if 已存储 is not None else 自身.读取图像(引用,共享中止)#读源
-                        return 读取请求图像文件(自身.根,存储,策略,共享中止)#生成请求
+                        return 读取请求图像文件(自身.缓存根,存储,策略,共享中止)#生成请求
                     return 自身.压缩.运行(读)#限流
                 操作=共享请求(启动)#新建共享请求
                 自身.请求飞行[键]=操作#记下

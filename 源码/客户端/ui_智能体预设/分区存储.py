@@ -4,7 +4,7 @@
 浏览器不编辑任何组合正文；新预设是宿主侧对已有预设的复制。
 """
 import re#正则
-from .设置存储 import 错误文,写默认预设,读名册#读名册、错误文案、写默认
+from .设置存储 import 错误文,写默认预设,写模式选择启用,读名册#读名册、错误文案、写默认与选择器
 
 __all__=['分区控制器','草稿阻挡','分区初始','预设标识形']#仅中文公开名
 
@@ -12,6 +12,7 @@ __all__=['分区控制器','草稿阻挡','分区初始','预设标识形']#仅�
 
 分区初始={#页面初始快照
     'status':'idle','error':None,'authorable':False,'hasDocument':False,
+    'showPicker':False,'policySaving':False,
     'rows':[],'copy':None,'view':None,'pendingDelete':None,'deleting':False,'revealedPaths':{},
 }#结束初始
 
@@ -61,12 +62,52 @@ class 分区控制器:#预设管理页控制器
         自身.接口=接口#预设与设置线
         自身.名册变更=名册变更#名册目录变更回调
         自身.存储=简易快照存储(分区初始)#页面快照存储
+        自身.加载中=False#是否正在排空加载
+        自身.请求重载=False#加载期间又有失效
 
     def _合并(自身,补丁):#合并进快照
         """浅合并补丁。"""
         现=自身.存储.getSnapshot()#现
         现.update(补丁)#合并
         自身.存储.set(现)#写
+
+    def 确认有效默认(自身,选择器):#策略写入后回读并反映宿主有效默认
+        """开关对齐且名册就绪时返回有效默认 id。"""
+        自身.load()#重读名册
+        if 自身.存储.getSnapshot()['status']=='error':#失败则再读一次
+            自身.load()#再读
+        态=自身.存储.getSnapshot()#最新快照
+        if 态['status']!='ready' or 态['showPicker']!=选择器:#开关未对齐
+            return None#无效
+        for 行 in 态['rows']:#找默认
+            if 'isDefault' in 行 and 行['isDefault']:#默认
+                return 行['id']#有效默认 id
+        return None#无名册默认
+
+    def setPickerVisible(自身,露出,同步空白会话=None):#写出选择器开关
+        """露出或藏起新会话预设选择，不改已保存的默认。"""
+        态=自身.存储.getSnapshot()#当前快照
+        if 态['status']!='ready' or 态['policySaving'] or 态['showPicker']==露出:#无需写
+            return#忽略
+        自身._合并({'policySaving':True,'error':None})#上锁
+        try:#写入并确认
+            失败=写模式选择启用(自身.接口,露出)#写出开关
+            if 失败 is not None:#写入失败
+                自身.load()#重读
+                自身._合并({'error':失败})#整页展示失败
+                return#停在失败
+            有效=自身.确认有效默认(露出)#确认有效默认
+            if 有效 is None:#开关未对齐或名册未就绪
+                return#停
+            if 同步空白会话 is not None:#可选同步空白会话
+                同步失败=同步空白会话(有效)#同步
+                if 同步失败 is not None:#同步拒绝
+                    自身._合并({'error':同步失败})#整页展示
+        except Exception as 错误:#传输失败；RPC 异常契约未定
+            自身.load()#重读
+            自身._合并({'error':错误文(错误)})#整页展示失败
+        finally:#无论成败都解锁
+            自身._合并({'policySaving':False})#解锁
 
     def _改草稿(自身,补丁):#改打开的复制草稿
         """对话框未开则忽略。"""
@@ -79,6 +120,19 @@ class 分区控制器:#预设管理页控制器
         自身._合并({'copy':下一})#写入
 
     def load(自身):#读名册并刷新快照
+        """合并失效，读期间收到的变更不会丢。"""
+        自身.请求重载=True#标失效
+        if 自身.加载中:#已有在飞
+            return#等当前趟排完
+        自身.加载中=True#开一趟
+        try:#循环读到没有新失效
+            while 自身.请求重载:#至少读一次
+                自身.请求重载=False#本趟已认领失效
+                自身._单次加载()#本趟拥有的一次读取
+        finally:#无论成败都清在飞
+            自身.加载中=False#允许下次开新趟
+
+    def _单次加载(自身):#单次读取
         """空名册 → unavailable。"""
         前=自身.存储.getSnapshot()#读取前
         if 前['status']=='loading':#已有读取在飞
@@ -92,8 +146,9 @@ class 分区控制器:#预设管理页控制器
         预设列表=值['presets'] if 'presets' in 值 and 值['presets'] is not None else []#列表
         可写=bool(值['authorable']) if 'authorable' in 值 else False#可否编写
         有文档=bool(值['hasDocument']) if 'hasDocument' in 值 else False#有无打开器
+        选择启用=bool(值['modeSelectionEnabled']) if 'modeSelectionEnabled' in 值 else False#选择器开关
         if len(预设列表)==0:#部署未配置任何预设
-            自身._合并({'status':'unavailable','rows':[],'authorable':可写,'hasDocument':有文档,'copy':None,'view':None})#不可用
+            自身._合并({'status':'unavailable','rows':[],'authorable':可写,'hasDocument':有文档,'showPicker':选择启用,'copy':None,'view':None})#不可用
             return#空名册到此为止
         揭示=前['revealedPaths'] if 前['revealedPaths'] is not None else {}#重载前的揭示
         保留={}#只保留仍在名册里的路径
@@ -102,6 +157,7 @@ class 分区控制器:#预设管理页控制器
                 保留[键]=路径#留下
         自身._合并({#写入就绪快照
             'status':'ready','error':None,'authorable':可写,'hasDocument':有文档,
+            'showPicker':选择启用,
             'rows':[dict(项) for 项 in 预设列表],'revealedPaths':保留,
         })#结束就绪
 
@@ -222,10 +278,25 @@ class 分区控制器:#预设管理页控制器
         except Exception as 错误:#传输或未知拒绝；RPC 异常契约未定
             自身._合并({'deleting':False,'pendingDelete':None,'error':错误文(错误)})#清确认并展示拒绝
 
-    def makeDefault(自身,标识):#设为默认预设
-        """写入已落定且名册已重读。"""
-        失败=写默认预设(自身.接口,标识)#经设置面写入
-        if 失败 is not None:#写入失败
-            自身._合并({'error':失败})#整页展示失败
-            return#停在失败
-        自身.load()#重读名册以刷新 isDefault
+    def makeDefault(自身,标识,同步空白会话=None):#设为默认预设
+        """写入已落定且名册已重读。选择器关闭或策略在写则忽略。"""
+        态=自身.存储.getSnapshot()#当前快照
+        if not 态['showPicker'] or 态['policySaving']:#选择器关或策略在写
+            return#忽略
+        自身._合并({'policySaving':True,'error':None})#上锁
+        try:#写入并确认
+            失败=写默认预设(自身.接口,标识)#经设置面写入
+            if 失败 is not None:#写入失败
+                自身._合并({'error':失败})#整页展示失败
+                return#停在失败
+            有效=自身.确认有效默认(True)#确认有效默认
+            if 有效 is None:#名册未就绪
+                return#停
+            if 同步空白会话 is not None:#可选同步空白会话
+                同步失败=同步空白会话(有效)#同步
+                if 同步失败 is not None:#同步拒绝
+                    自身._合并({'error':同步失败})#整页展示
+        except Exception as 错误:#传输失败；RPC 异常契约未定
+            自身._合并({'error':错误文(错误)})#整页展示失败
+        finally:#无论成败都解锁
+            自身._合并({'policySaving':False})#解锁

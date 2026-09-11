@@ -8,16 +8,20 @@ from ...依赖 import include#外部依赖胶水
 from ...工具.工作区路径 import 解析主目录#主目录解析
 
 __all__=[#仅中文公开名
-    '配置目录名','配置补丁文件名','配置模板','默认组合包',
+    '配置目录名','配置补丁文件名','配置模板','默认组合包','默认配置档补丁重载',
     '解析配置目录','初始化配置档','愈合模块回退','读配置清单','写配置清单',
     '解析组合包目录','加载配置档','组合条目',
 ]#公开面结束
 
 配置目录名='profiles'#配置目录名
 配置补丁文件名='cordis.patch.yml'#用户补丁文件名
+默认配置档补丁重载='live'#自定义配置保留历史上的现场补丁
 配置模板={#随附模板
-    'web':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app'],#Web
-    'headless':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-headless'],#无头
+    'acp':{'bundles':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-acp-app'],'patchReload':'startup'},#ACP
+    'web':{'bundles':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app'],'patchReload':'live'},#Web
+    'headless':{'bundles':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-headless'],'patchReload':'startup'},#无头
+    'sdk':{'bundles':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-sdk-app'],'patchReload':'startup'},#SDK
+    'sdk-minimal':{'bundles':['@deepseek-ai/dsh-sdk-minimal'],'patchReload':'startup'},#最小SDK
 }#模板结束
 安装拥有元组={#安装拥有元组
     'headless':['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app','@deepseek-ai/dsh-headless'],#旧无头
@@ -43,8 +47,10 @@ def 解析配置目录(名,主目录=None):#解析配置目录
         raise Exception('dsh: invalid profile name '+json.dumps(名))#拒绝
     return os.path.join(主目录,配置目录名,名)#拼目录
 
-def 初始化配置档(目录,组合包列表):#初始化配置
+def 初始化配置档(目录,组合包列表,补丁重载=None):#初始化配置
     """初始化一个配置目录。"""
+    if 补丁重载 is None:#缺省
+        补丁重载=默认配置档补丁重载#现场重载
     os.makedirs(目录,exist_ok=True)#确保目录
     清单路径=os.path.join(目录,'package.json')#清单
     if not os.path.exists(清单路径):#没有清单
@@ -52,7 +58,7 @@ def 初始化配置档(目录,组合包列表):#初始化配置
             'name':'dsh-profile-'+os.path.basename(目录),#包名
             'private':True,#私有
             'dependencies':{},#空依赖
-            'dsh':{'profile':{'bundles':list(组合包列表)}},#组合包列表
+            'dsh':{'profile':{'bundles':list(组合包列表),'patchReload':补丁重载}},#组合包列表与重载策略
         }#清单结束
         文件=open(清单路径,'w',encoding='utf-8')#打开
         try:#写
@@ -103,16 +109,24 @@ def 同组合包(左,右):#列表是否相同
     return len(左)==len(右) and all(左[下标]==右[下标] for 下标 in range(len(左)))#比较
 
 def 规范化随附配置(名,目录,清单):#规范化随附配置
-    """把恰好是安装拥有的组合包元组规范化到其随附模板。"""
+    """把恰好是安装拥有的组合包元组规范化到其随附模板，或给当前元组补上随附重载默认。"""
     拥有=安装拥有元组.get(名)#安装拥有
     当前=配置模板.get(名)#当前模板
     组合包=((清单.get('dsh') or {}).get('profile') or {}).get('bundles')#当前列表
-    if 拥有 is None or 当前 is None or 组合包 is None or not 同组合包(组合包,拥有):#不是
+    if 当前 is None or 组合包 is None:#非随附或无列表
+        return 清单#原样
+    已是当前=同组合包(组合包,当前['bundles'])#已是当前模板
+    是退役元组=拥有 is not None and 同组合包(组合包,拥有)#旧安装元组
+    配置段=(清单.get('dsh') or {}).get('profile') or {}#profile
+    缺重载默认=('patchReload' not in 配置段) and 已是当前#缺重载默认
+    if (是退役元组 is False) and (缺重载默认 is False):#无需规范化
         return 清单#原样
     规范化=dict(清单)#拷贝
     dsh=dict(清单.get('dsh') or {})#dsh
     配置=dict(dsh.get('profile') or {})#profile
-    配置['bundles']=list(当前)#换成模板
+    配置['bundles']=list(当前['bundles'])#换成模板
+    if 'patchReload' not in 配置:#缺重载
+        配置['patchReload']=当前['patchReload']#补重载默认
     dsh['profile']=配置#写回
     规范化['dsh']=dsh#写回
     写配置清单(目录,规范化)#写回磁盘
@@ -154,9 +168,14 @@ def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#�
         模板=配置模板.get(名)#随附模板
         if 模板 is None:#没有模板
             raise Exception(二进制名+': profile '+json.dumps(名)+" does not exist; create it with 'dsh plugin --profile "+名+" add <package>'")#未知
-        初始化配置档(目录,模板)#首次初始化
+        初始化配置档(目录,模板['bundles'],模板['patchReload'])#首次初始化
     清单=规范化随附配置(名,目录,读配置清单(二进制名,目录))#读并规范化
-    组合包列表=((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or []#组合包列表
+    配置段=((清单.get('dsh') or {}).get('profile') or {})#profile
+    组合包列表=配置段.get('bundles') or []#组合包列表
+    原始重载=配置段.get('patchReload') if 'patchReload' in 配置段 else None#原始重载字段
+    if 原始重载 is not None and 原始重载!='live' and 原始重载!='startup':#非法值
+        raise Exception(二进制名+': profile manifest '+os.path.join(目录,'package.json')+' dsh.profile.patchReload must be "live" or "startup"')#拒绝
+    补丁重载=默认配置档补丁重载 if 原始重载 is None else 原始重载#默认现场
     层列表=[]#层
     for 包名 in 组合包列表:#每层
         包目录=解析组合包目录(二进制名,包名,安装锚点,目录)#解析包目录
@@ -169,7 +188,7 @@ def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#�
     补丁路径=os.path.join(目录,配置补丁文件名)#用户补丁
     用户层=选项.get('userLayer',True)#是否读用户层
     补丁=加载覆盖(二进制名,补丁路径) if 用户层 and os.path.exists(补丁路径) else []#用户补丁
-    return {'name':名,'dir':目录,'layers':层列表,'patchPath':补丁路径,'patches':补丁}#已加载配置
+    return {'name':名,'dir':目录,'layers':层列表,'patchPath':补丁路径,'patches':补丁,'patchReload':补丁重载}#已加载配置
 
 def 组合条目(各层,警告=None):#组合条目
     """在空根上把补丁层组合成有效条目列表。"""

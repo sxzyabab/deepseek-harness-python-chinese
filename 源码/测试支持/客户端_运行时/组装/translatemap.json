@@ -1,0 +1,18 @@
+{
+    "assembly":"组装",
+    "bundle":"捆绑",
+    "client":"客户端",
+    "default":"默认",
+    "entry":"入口",
+    "fixture":"夹具",
+    "in-process":"进程内",
+    "module":"模块",
+    "plan":"计划",
+    "proxy":"代理",
+    "remote":"远程",
+    "response":"应答",
+    "roster":"名册",
+    "self":"自身",
+    "test":"测试",
+    "vitest":"测试夹具入口"
+}

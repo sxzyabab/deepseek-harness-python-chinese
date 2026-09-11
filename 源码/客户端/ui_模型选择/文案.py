@@ -8,9 +8,11 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 命名空间='model'#词表命名空间
 
 中文={#简体中文
+    'command.label':'模型',#命令标签
     'command.description':'选择本会话使用的模型',#命令描述
     'option.loadError':'目录加载失败：{message}',#目录加载失败
     'trigger.fallback':'选择模型',#回退标签
+    'trigger.loading':'正在加载模型…',#加载中
     'trigger.selectAria':'选择模型',#未选定无障碍
     'trigger.aria':'选择模型，当前 {model}',#已选定无障碍
     'trigger.ariaEffort':'选择模型，当前 {model}，推理等级 {effort}',#带力度
@@ -31,9 +33,11 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 }#中文结束
 
 英文={#英文
+    'command.label':'Model',#命令标签
     'command.description':'Select the model for this conversation',#命令描述
     'option.loadError':'Catalog failed to load: {message}',#目录失败
     'trigger.fallback':'Select model',#回退
+    'trigger.loading':'Loading models…',#加载中
     'trigger.selectAria':'Select model',#未选定
     'trigger.aria':'Select model, current {model}',#已选定
     'trigger.ariaEffort':'Select model, current {model}, reasoning effort {effort}',#带力度

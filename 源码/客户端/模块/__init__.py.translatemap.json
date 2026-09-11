@@ -4,10 +4,13 @@
     "bundle":"包产物",
     "client":"客户端",
     "compose":"组合",
+    "declaration":"声明",
     "default":"默认",
     "entry":"入口",
     "error":"错误",
+    "exact":"精确",
     "export":"导出",
+    "external":"外部",
     "flush":"冲刷",
     "graph":"图",
     "hash":"哈希",
@@ -25,5 +28,8 @@
     "route":"路由",
     "self":"自身",
     "service":"服务",
+    "specifier":"说明符",
+    "strip":"剥",
+    "suffix":"后缀",
     "tap":"挂钩"
 }

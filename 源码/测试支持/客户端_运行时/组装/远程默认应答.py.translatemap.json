@@ -1,0 +1,21 @@
+{
+    "agent":"智能体",
+    "baseline":"基线",
+    "control":"控制",
+    "credential":"凭据",
+    "default":"默认",
+    "describe":"描述",
+    "envelope":"信封",
+    "follow":"跟随",
+    "inventory":"清单",
+    "list":"列表",
+    "preset":"预设",
+    "remote":"远程",
+    "response":"应答",
+    "self":"自身",
+    "session":"会话",
+    "settings":"设置",
+    "stream":"流",
+    "unary":"一元",
+    "workspace":"工作区"
+}

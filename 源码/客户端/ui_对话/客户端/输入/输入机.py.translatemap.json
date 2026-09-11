@@ -5,5 +5,7 @@
     "abort":"中止",
     "draft":"草稿",
     "dispatch":"派发",
-    "snapshot":"快照"
+    "snapshot":"快照",
+    "retain":"仍持",
+    "claim":"认领"
 }

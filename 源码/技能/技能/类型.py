@@ -45,6 +45,7 @@ class 技能调用策略(TypedDict):#模型面/用户面是否可调用；提供
     userInvocable:bool#面向人的命令目录与加载器是否包含此技能
 
 class 技能摘要(TypedDict):#ctx.skills.列出()/快照() 返回的、与调用面无关的技能元数据
+    path:NotRequired[str]#提供方给出时的绝对指令文件路径；虚拟技能缺席
     name:str#kebab-case 标识符
     description:str#发现消费方展示的短路由描述
     whenToUse:NotRequired[str]#可选的额外路由指引
@@ -56,12 +57,10 @@ class 技能摘要(TypedDict):#ctx.skills.列出()/快照() 返回的、与调�
 class 技能候选(技能摘要):#提供方目录条目，供注册表合并并随后加载
     rank:float#层内优先排名；较低先胜
     locator:object#不透明的提供方自有句柄，回传给 provider.get()
-    path:NotRequired[str]#提供方有绝对路径时给出
     metadata:NotRequired[dict]#从提供方专用 frontmatter 解析出的可选元数据
 
 class 技能定义(技能摘要):#完整解析后的技能定义，含 ctx.skills.获取() 加载的正文
     content:str#去掉提供方专用元数据后的 Markdown 指令正文
-    path:NotRequired[str]#技能来自磁盘时的绝对路径
     metadata:NotRequired[dict]#从 frontmatter 解析出的可选元数据
 
 class 技能注册输入(TypedDict):#ctx.skills.登记() 接受的运行时技能贡献；invocation/provider 可省略

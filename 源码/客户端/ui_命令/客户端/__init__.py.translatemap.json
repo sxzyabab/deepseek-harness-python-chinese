@@ -1,6 +1,6 @@
 {
-    "command":"命令",
+    "apply":"应用",
+    "inject":"注入",
     "runtime":"运行时",
-    "self":"自身",
-    "ui":"UI"
+    "command":"命令"
 }

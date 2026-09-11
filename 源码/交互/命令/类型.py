@@ -1,7 +1,9 @@
 """持久命令事件词汇表以及注册表的 Cordis 事件声明，与仅类型消费方共享。客户端安全：这里碰不到仅 Host 的符号，因此 Client 编译面读到的 commands/change 签名与 Host 发出的相同。"""
-from .标识构造 import 命令标识#再导出命令配对 id 标识
+from .标识构造 import 命令定义标识,命令标识#再导出命令定义身份与配对 id 标识
 
-命令输入描述字段=('hint',)#命令可选非结构化输入的不可变元数据：用户尚未给出自由输入时显示的占位
+命令输入描述字段=('hint','attachments')#命令可选非结构化输入：占位提示；attachments 为真时接受附件
+
+命令提交附件种类=('image','file')#浏览器提交的命令附件：编码图片或暂存文件回执
 
 命令结果种类=('success','error')#成功或失败判别标签
 
@@ -11,7 +13,7 @@ from .标识构造 import 命令标识#再导出命令配对 id 标识
 
 命令执行字段=('commandId','result')#已结算执行：生命周期配对 id 加归一化结果
 
-命令描述字段=('name','description','input')#返回给 UI 适配器的无处理函数不可变命令视图
+命令描述字段=('definitionId','name','description','input')#返回给 UI 适配器的无处理函数不可变命令视图；definitionId 可选
 
 命令来源映射=('user',)#命令来源映射：今天唯一变体是人类 UI 派发
 

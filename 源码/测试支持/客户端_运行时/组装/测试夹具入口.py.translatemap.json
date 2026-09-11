@@ -1,0 +1,16 @@
+{
+    "assert":"断言",
+    "client":"客户端",
+    "close":"关闭",
+    "create":"创建",
+    "dispose":"拆除",
+    "error":"错误",
+    "fixture":"夹具",
+    "load":"装载",
+    "mock":"模拟",
+    "plan":"计划",
+    "remote":"远程",
+    "self":"自身",
+    "start":"启动",
+    "test":"测试"
+}

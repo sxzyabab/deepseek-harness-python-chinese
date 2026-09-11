@@ -4,5 +4,7 @@
     "shell":"外壳",
     "store":"存储",
     "snapshot":"快照",
-    "machine":"输入机"
+    "machine":"输入机",
+    "picker":"选择器",
+    "file":"文件"
 }

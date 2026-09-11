@@ -23,12 +23,12 @@ __all__=[#仅中文公开名
 回合尾属主=dict#turn / seq / openFile
 助手动作属主=dict#messageId
 聊天文件提及=dict#forClosing(回合尾属主, 会话标识)
-聊天节点属主=dict#selectedCallId / cwd / openFile / inspectCall / forkAt / loadImage / …
+聊天节点属主=dict#cwd / openSkill / openFile / inspectCall / forkAt / loadImage / …
 回合过程属主=dict#spec / foldable / open / setOpen
 详情工具属主=dict#block / cwd
 命令行属主=dict#node / compaction
 聊天滚动位置=dict#anchorKey / anchorTop / scrollTop
-聊天视图注入=dict#hooks / keyedHooks / openDetails / …
+聊天视图注入=dict#hooks / keyedHooks / openDetails / openSkill / …
 详情注入=dict#closeDetails
 
 聊天节点回合注入={#CHAT_NODE_INJECT 形状

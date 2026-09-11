@@ -15,7 +15,7 @@ __all__=[#仅中文公开名
 
 注入=[#Cordis inject
     'inputTriggers','locale','sessions','remote','remote.fileReferences',#基础服务
-    'remote.sessionReferenceResolver',#会话引用解析
+    'remote.sessionReferenceResolver','sidebarRight',#会话引用解析与右侧边栏
 ]#inject 结束
 
 class 引用错误(Exception):
@@ -58,6 +58,44 @@ def 缩写家目录路径(路径,家目录):
     if 路径==家目录 or 路径.startswith(家目录.rstrip('/')+'/'):
         return '~'+路径[len(家目录):]#缩写
     return 路径#原样
+
+def 编码段(段):
+    """百分编码一段，冒号保持字面量。"""
+    from urllib.parse import quote as 百分编码#URI 段编码
+    return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
+
+def 编码路径(路径):
+    """按斜杠分段编码。"""
+    return '/'.join(编码段(段) for 段 in 路径.split('/'))#分段
+
+def 是否绝对工作区路径(路径):
+    """POSIX 根、Windows 盘符或 UNC。"""
+    if 路径.startswith('/'):
+        return True#POSIX 绝对
+    if 路径.startswith('\\\\'):
+        return True#UNC
+    if len(路径)>=3 and 路径[0].isalpha() and 路径[1]==':' and 路径[2] in '/\\':
+        return True#盘符
+    return False#相对
+
+def 会话文件地址(会话标识,路径):
+    """编成 dsh-resource://file/session/<id>/<path>。"""
+    规范化=路径.replace('\\','/')#统一斜杠
+    while 规范化.startswith('./'):
+        规范化=规范化[2:]#剥前导 ./
+    return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
+
+def 文件资源地址(会话标识,cwd,路径):
+    """相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址。"""
+    规范化=路径.replace('\\','/')#统一斜杠
+    if not 是否绝对工作区路径(规范化):
+        return 会话文件地址(会话标识,规范化)#相对
+    根='' if cwd is None else cwd.replace('\\','/').rstrip('/')#工作区根
+    if 根!='' and 规范化==根:
+        return 会话文件地址(会话标识,'')#根本身
+    if 根!='' and 规范化.startswith(根+'/'):
+        return 会话文件地址(会话标识,规范化[len(根)+1:])#剥根
+    return 会话文件地址(会话标识,规范化)#工作区外仍会话作用域
 
 def 目录载荷(标签,提及):
     """把一个目录目的地投影为 onPick 已理解的 drill 载荷。"""
@@ -233,6 +271,22 @@ def 应用(上下文):
             }#插入结束
         return None#无法识别
 
+    def 打开引用(会话,引用):#打开文件引用预览
+        """仅文件外观；剥 mention 后按会话 cwd 编址打开。"""
+        if 引用.get('appearance')!='file':
+            return False#仅文件外观
+        原文=引用['ref'] if 'ref' in 引用 else ''#mention
+        if 原文.startswith('@"'):
+            路径=原文[2:-1]#剥引号 mention
+        else:
+            路径=原文[1:]#剥 @
+        列表=会话面.list.getSnapshot().byId#会话列表
+        摘要=列表[会话.sessionId] if 会话.sessionId in 列表 else None#当前会话
+        cwd=摘要['cwd'] if 摘要 is not None and 'cwd' in 摘要 else None#工作目录
+        地址=文件资源地址(会话.sessionId,cwd,路径)#会话作用域地址
+        上下文.sidebarRight.openResource(地址)#侧栏打开
+        return True#已受理
+
     源={#组合引用源
         'trigger':'@',#触发字符
         'name':'reference',#源名
@@ -240,6 +294,7 @@ def 应用(上下文):
         'candidates':列出候选,#并行发现
         'header':页眉,#页眉面包屑
         'onPick':选中,#选中行
+        'openReference':打开引用,#打开文件预览
         'codec':{#编解码
             'clipboardText':剪贴板文本,#剪贴板即 mention
             'serialize':序列化引用,#序列化不重建身份

@@ -5,5 +5,7 @@
     "popup":"弹出",
     "runtime":"运行时",
     "service":"服务",
-    "ui":"UI"
+    "ui":"UI",
+    "claim":"认领",
+    "token":"令牌"
 }

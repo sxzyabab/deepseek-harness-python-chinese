@@ -1,5 +1,7 @@
 """面向人的 /goal 命令，叠在同会话持久目标域之上。"""
 import re#解析 edit 后跟替换陈述
+from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
+from ...模型后端.llm import 创建用户消息#铸造用户消息
 from ..目标 import 目标错误#目标域边界错误
 
 名称='command-goal'#Cordis插件名
@@ -86,10 +88,28 @@ def 缺少目标(动作):
         'text':'No goal is currently set; /goal '+动作+' requires one. '+用法,#指出需要先有目标
     }#结束错误结果
 
+def 提交目标附件(调用):
+    """把调用已接纳的作曲器附件作为一条模型可见用户消息提交到目标下一轮之前。调用是 dict。"""
+    附件=调用['attachments'] if 'attachments' in 调用 else ()#已准入附件
+    if 附件 is None or len(附件)==0:#无附件则跳过
+        return#跳过
+    调用['agent'].后续(创建用户消息({#跟进一条用户消息
+        'content':[*附件,{'type':'text','text':'Reference attachments for the goal objective.'}],#附件加说明
+        'source':{'kind':'user'},#用户来源
+    }))#followup结束
+
 def 执行目标命令(上下文,调用):
     """把一条已解析的人类命令交给拥有持久化的域执行。调用是 dict。"""
     原文=调用['rawInput'] if 'rawInput' in 调用 else ''#本命令语法
     命令=解析目标命令(原文)#解析
+    附件=调用['attachments'] if 'attachments' in 调用 else ()#已准入附件
+    if 附件 is None:#缺席
+        附件=()#空
+    if len(附件)>0 and 命令['kind']!='create' and 命令['kind']!='edit':#附件只能跟目标陈述
+        return {#错误结果
+            'kind':'error',#命令失败
+            'text':'Attachments only accompany a goal objective: /goal <objective> or /goal edit <objective>.',#用法说明
+        }#结束错误
     try:#域边界可能抛 目标错误
         当前=上下文.goals.get(调用['agent'])#该智能体当前目标
         种类=命令['kind']#语法判别
@@ -105,16 +125,19 @@ def 执行目标命令(上下文,调用):
                     'kind':'error',#命令失败
                     'text':'A goal is already '+阶段标签(当前['phase'])+'. Use /goal edit <objective> to change it or /goal clear before replacing it.',#须先编辑或清除
                 }#结束拒绝覆盖
-            return 渲染目标('Goal created',上下文.goals.create(调用['agent'],{'objective':命令['objective']}))#创建并渲染
+            已创建=上下文.goals.create(调用['agent'],{'objective':命令['objective']})#创建
+            提交目标附件(调用)#提交附件
+            return 渲染目标('Goal created',已创建)#创建并渲染
         if 种类=='edit':#编辑
             if 当前 is None:#没有可编辑的目标
                 return 缺少目标('edit')#缺目标
             if 当前['phase']=='complete':#已完成则改为新建
-                return 渲染目标('Goal created',上下文.goals.create(调用['agent'],{'objective':命令['objective']}))#完成后重建
-            return 渲染目标(#就地编辑
-                'Goal updated',#更新标题
-                上下文.goals.edit(调用['agent'],目标引用(当前),{'objective':命令['objective']}),#比较交换编辑
-            )#结束更新渲染
+                已替换=上下文.goals.create(调用['agent'],{'objective':命令['objective']})#完成后重建
+                提交目标附件(调用)#提交附件
+                return 渲染目标('Goal created',已替换)#重建并渲染
+            已编辑=上下文.goals.edit(调用['agent'],目标引用(当前),{'objective':命令['objective']})#比较交换编辑
+            提交目标附件(调用)#提交附件
+            return 渲染目标('Goal updated',已编辑)#结束更新渲染
         if 种类=='pause':#暂停
             if 当前 is None:#没有可暂停的目标
                 return 缺少目标('pause')#缺目标
@@ -141,9 +164,10 @@ def 应用(上下文):
         """把调用交给本解析器。"""
         return 执行目标命令(上下文,调用)#解析并分发
     上下文.commands.register({#挂到命令注册表
+        'definitionId':命令定义标识('@deepseek-ai/dsh-command-goal'),#稳定定义身份
         'name':'goal',#斜杠命令名
-        'description':'set or view the goal for a long-running task',#面向人的简述
-        'input':{'hint':'[<objective>|clear|edit <objective>|pause|resume]'},#输入提示
+        'description':'Set or view the goal for a long-running task',#面向人的简述
+        'input':{'hint':'[<objective>|clear|edit <objective>|pause|resume]','attachments':True},#输入提示，允许附件
         'handler':处理,#把调用交给本解析器
     })#结束注册
 

@@ -7,6 +7,8 @@ AgentFactory|export interface AgentFactory {\n    createAgent(ownerCtx: Context,
 AgentHandle|export interface AgentHandle {\n    agent: Agent;\n    dispose(): Promise<void>;\n}
 AgentOptions|export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    maxTokens?: number;\n}
 AgentPreset|export interface AgentPreset {\n    readonly id: string;\n    readonly trust: PresetTrust;\n    readonly path: string;\n    readonly name?: string;\n    readonly description?: string;\n    readonly order?: number;\n    readonly broken?: string;\n}
+AgentPresetRoster|export interface AgentPresetRoster {\n    readonly presets: readonly AgentPresetRow[];\n    readonly authorable: boolean;\n    readonly modeSelectionEnabled: boolean;\n}
+AgentPresetRow|export interface AgentPresetRow {\n    readonly id: string;\n    readonly trust: PresetTrust;\n    readonly isDefault: boolean;\n    readonly name?: string;\n    readonly description?: string;\n    readonly broken?: string;\n}
 AgentSetup|export type AgentSetup = (agentCtx: Context) => AgentSetupCommit | Promise<AgentSetupCommit | void> | void;
 AgentSetupCommit|export interface AgentSetupCommit {\n    commit(): void;\n}
 AgentStatus|export type AgentStatus = \'idle\' | \'running\';
@@ -42,11 +44,12 @@ CodeRunFailure|export interface CodeRunFailure {\n    kind: \'exception\' | \'ti
 CodeRunRequest|export interface CodeRunRequest {\n    program: string;\n    bindings: CodeBindingNamespace[];\n    signal?: AbortSignal;\n}
 CodeRunResult|export interface CodeRunResult {\n    value?: CodeJsonValue;\n    logs: string[];\n    error?: CodeRunFailure;\n}
 CollectedOutput|export interface CollectedOutput {\n    text: string;\n    truncated: boolean;\n    spillPath?: string;\n}
-CommandDefinition|export interface CommandDefinition {\n    readonly name: string;\n    readonly description: string;\n    readonly input?: CommandInputDescriptor;\n    readonly recordInput?: boolean;\n    readonly handler: (invocation: CommandInvocation) => CommandResult | Promise<CommandResult>;\n}
-CommandDescriptor|export interface CommandDescriptor {\n    readonly name: string;\n    readonly description: string;\n    readonly input?: CommandInputDescriptor;\n}
+CommandDefinition|export interface CommandDefinition {\n    readonly definitionId?: CommandDefinitionId;\n    readonly name: string;\n    readonly description: string;\n    readonly input?: CommandInputDescriptor;\n    readonly recordInput?: boolean;\n    readonly handler: (invocation: CommandInvocation) => CommandResult | Promise<CommandResult>;\n}
+CommandDefinitionId|export type CommandDefinitionId = Branded<\'CommandDefinitionId\'>;
+CommandDescriptor|export interface CommandDescriptor {\n    readonly definitionId?: CommandDefinitionId;\n    readonly name: string;\n    readonly description: string;\n    readonly input?: CommandInputDescriptor;\n}
 CommandExecution|export interface CommandExecution {\n    readonly commandId: CommandId;\n    readonly result: CommandResult;\n}
 CommandId|export type CommandId = Branded<\'CommandId\'>;
-CommandInputDescriptor|export interface CommandInputDescriptor {\n    readonly hint: string;\n}
+CommandInputDescriptor|export interface CommandInputDescriptor {\n    readonly hint: string;\n    readonly attachments?: boolean;\n}
 CommandInvocation|export interface CommandInvocation {\n    readonly commandId: CommandId;\n    readonly agent: Agent;\n    readonly rawInput: string;\n    readonly signal: AbortSignal;\n}
 CommandResult|export type CommandResult = {\n    readonly kind: \'success\';\n    readonly text?: string;\n    readonly sourceEventSeq?: number;\n} | {\n    readonly kind: \'error\';\n    readonly text: string;\n};
 CompactionAgentContext|export interface CompactionAgentContext {\n    session: Session;\n    options: {\n        provider?: string;\n        model?: string;\n    };\n}

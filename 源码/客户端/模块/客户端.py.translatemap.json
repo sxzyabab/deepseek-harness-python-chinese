@@ -2,8 +2,10 @@
     "apply":"应用",
     "boot":"启动",
     "client":"客户端",
+    "declaration":"声明",
     "error":"错误",
     "entry":"入口",
+    "exact":"精确",
     "graph":"图",
     "loader":"加载器",
     "manifest":"清单",
@@ -12,6 +14,9 @@
     "parse":"解析",
     "plugin":"插件",
     "record":"记录",
+    "specifier":"说明符",
+    "strip":"剥",
+    "suffix":"后缀",
     "system":"系统",
     "window":"窗口"
 }

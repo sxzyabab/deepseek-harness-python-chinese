@@ -61,26 +61,17 @@ def 应用(上下文):#安装产出物浏览器半边
         },呈现行)#呈现行
     上下文.slots.inject('tool.call.toolview',注入工具视图)#结束 toolview
     翻译=上下文.locale.bind(命名空间)#绑定本插件词表
-    def 收口提及(所有者,会话标识):#收口散文里的产出与已呈现提及
-        """与回合尾行同一套认领测试。属主为 dict。"""
+    def 收口提及(所有者,_会话标识=None):#收口散文里的产出与已交付提及
+        """与回合尾行同一套认领测试。属主为 dict。多余会话标识被忽略。"""
         路径表=选出产出文件(所有者)#选出本回合产出路径
         已呈现表=收口已呈现(所有者)#收口前已呈现
         if 路径表 is None and len(已呈现表)==0:#两面皆空
             return None#不提供提及
-        交付表={项['path']:项 for 项 in 已呈现表}#路径 → 已呈现
-        合并=list(dict.fromkeys([*(路径表 if 路径表 is not None else []),*交付表.keys()]))#去重保序
-        def 打开路径(路径):#打开
-            """普通产出走聊天打开；已呈现走原生打开。"""
-            if 路径 not in 交付表:#普通产出
-                所有者['openFile'](路径)#聊天打开
-                return#结束
-            项=交付表[路径]#已呈现
-            打开器.打开(会话标识,项['seq'],项['index'])#原生打开
+        合并=list(dict.fromkeys([*(路径表 if 路径表 is not None else []),*(项['path'] for 项 in 已呈现表)]))#去重保序
         def 打开标签(路径):#无障碍打开文案
-            """按是否已呈现选键。"""
-            键='presented.open' if 路径 in 交付表 else 'produced.open'#键
-            return 翻译(键,{'name':路径})#文案
-        return 产出文件提及(合并,打开路径,打开标签)#匹配提及
+            """一律侧栏预览文案。"""
+            return 翻译('presented.previewButton',{'name':路径})#文案
+        return 产出文件提及(合并,所有者['openFile'],打开标签)#匹配提及
     上下文.提供服务('chatFileMentions',{'forClosing':收口提及})#提供收口散文提及服务
 
 inject=注入#框架槽

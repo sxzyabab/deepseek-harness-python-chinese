@@ -4,5 +4,9 @@
     "machine.ts":"输入机.py",
     "facade.ts":"外壳.py",
     "hub.ts":"枢纽.py",
-    "index.ts":"__init__.py"
+    "index.ts":"__init__.py",
+    "reference-activation.ts":"引用激活.py",
+    "claim-decor.ts":"认领装饰.py",
+    "keymap.ts":"键图.py",
+    "text-ref.ts":"文本引用.py"
 }

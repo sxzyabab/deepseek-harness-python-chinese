@@ -24,7 +24,7 @@ __all__=['注入','应用']#仅中文公开名
 
 注入=[#前置 inject
     'slots','sessions','uiSession','uiConversation','layout','locale',
-    'settingsScope','remote','remote.session',
+    'settingsScope','remote','remote.session','sidebarRight',
 ]#依赖
 
 def 造回合数据(_标准,数据):
@@ -39,6 +39,44 @@ def 造回合数据(_标准,数据):
         'turnData':造回合数据,#回合数据
     },#hooks 结束
 }#注入结束
+
+def 编码段(段):
+    """百分编码一段，冒号保持字面量。"""
+    from urllib.parse import quote as 百分编码#URI 段编码
+    return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
+
+def 编码路径(路径):
+    """按斜杠分段编码。"""
+    return '/'.join(编码段(段) for 段 in 路径.split('/'))#分段
+
+def 是否绝对工作区路径(路径):
+    """POSIX 根、Windows 盘符或 UNC。"""
+    if 路径.startswith('/'):
+        return True#POSIX 绝对
+    if 路径.startswith('\\\\'):
+        return True#UNC
+    if len(路径)>=3 and 路径[0].isalpha() and 路径[1]==':' and 路径[2] in '/\\':
+        return True#盘符
+    return False#相对
+
+def 会话文件地址(会话标识,路径):
+    """编成 dsh-resource://file/session/<id>/<path>。"""
+    规范化=路径.replace('\\','/')#统一斜杠
+    while 规范化.startswith('./'):
+        规范化=规范化[2:]#剥前导 ./
+    return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
+
+def 文件资源地址(会话标识,cwd,路径):
+    """相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址。"""
+    规范化=路径.replace('\\','/')#统一斜杠
+    if not 是否绝对工作区路径(规范化):
+        return 会话文件地址(会话标识,规范化)#相对
+    根='' if cwd is None else cwd.replace('\\','/').rstrip('/')#工作区根
+    if 根!='' and 规范化==根:
+        return 会话文件地址(会话标识,'')#根本身
+    if 根!='' and 规范化.startswith(根+'/'):
+        return 会话文件地址(会话标识,规范化[len(根)+1:])#剥根
+    return 会话文件地址(会话标识,规范化)#工作区外仍会话作用域
 
 def 应用(上下文):
     """登记节点、词典、视图、统计、审批与详情。"""
@@ -135,9 +173,26 @@ def 应用(上下文):
                     return None#无
                 关=服务.forClosing#方法
                 return 关(属主,会话标识)#提及
-            def 打开文件(_路径):
-                """打开文件（远程异步略）。"""
-                return None#略
+            def 打开文件(路径,选项=None):#打开文件
+                """右侧边栏打开；行号作导航参数。"""
+                列表=上下文.sessions.list.getSnapshot().byId#会话表
+                摘要=列表[会话标识] if 会话标识 in 列表 else None#当前
+                cwd=摘要['cwd'] if 摘要 is not None and 'cwd' in 摘要 else None#工作目录
+                地址=文件资源地址(会话标识,cwd,路径)#会话作用域地址
+                行=选项['line'] if 选项 is not None and 'line' in 选项 else None#行号
+                if 行 is None:#无行号
+                    上下文.sidebarRight.openResource(地址)#打开
+                else:#带行号
+                    上下文.sidebarRight.openResource(地址,{'params':{'line':行}})#打开并落点
+            def 打开技能(名):#打开技能源
+                """经输入触发打开技能引用。"""
+                作用域=上下文.sessions.scope(会话标识)#会话作用域
+                if 作用域 is None:#无
+                    return#停
+                触发=上下文.获取服务('inputTriggers')#触发服务
+                if 触发 is None:#无
+                    return#停
+                触发.sessionOf(作用域).openReference('skill',{'ref':'/'+名})#打开技能引用
             def 加载更早():
                 """会话 loadOlder。"""
                 return 会话.loadOlder()#派
@@ -159,6 +214,7 @@ def 应用(上下文):
                 'openDetails':打开详情,#详情
                 'fileMentions':关提及,#提及
                 'openFile':打开文件,#打开文件
+                'openSkill':打开技能,#打开技能
                 'loadOlder':加载更早,#更早
                 'loadThrough':加载到,#到 seq
                 'loadImage':加载图,#图

@@ -55,6 +55,8 @@ class 会话技能目录(远程服务):
             投影=[]#结果
             for 项 in 技能列表:#逐项
                 条目={'name':项['name'],'description':项['description'],'modelInvocable':项['invocation']['modelInvocable']}#基础
+                if 'path' in 项 and 项['path'] is not None:#有绝对路径
+                    条目['path']=项['path']#路径
                 if 'whenToUse' in 项 and 项['whenToUse'] is not None:#有时机
                     条目['whenToUse']=项['whenToUse']#时机
                 投影.append(条目)#收集

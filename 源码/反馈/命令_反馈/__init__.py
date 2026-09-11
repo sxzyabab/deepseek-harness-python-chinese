@@ -4,6 +4,7 @@
 """
 from ...依赖 import cordis#外部依赖胶水
 from ...身份.匿名用户id import 获取或创建匿名用户id#匿名用户 id
+from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from .类型 import 反馈类别表#类别表
 
 名称='command-feedback'#Cordis插件名
@@ -60,8 +61,9 @@ def 应用(上下文):
         """处理一条 /feedback。"""
         return 执行反馈命令(调用)#处理函数
     上下文.commands.register({#注册命令
+        'definitionId':命令定义标识('@deepseek-ai/dsh-command-feedback'),#稳定定义身份
         'name':'feedback',#命令名
-        'description':'record feedback about this session',#描述
+        'description':'Record feedback about this session',#描述
         'input':{'hint':'<text>'},#输入提示
         'recordInput':False,#不记录原始输入
         'handler':处理,#处理函数

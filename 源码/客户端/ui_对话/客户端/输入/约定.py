@@ -31,11 +31,14 @@ __all__=[#公开面
 输入通知=dict#level/text/seq
 输入目标=dict#beginCommand/insertReference
 会话输入=dict#每会话门面
-会话输入解析=dict#for(actx)
+会话输入解析=dict#按作用域取门面(actx)
 输入动作=dict#公开 setDraft/addImages/…
-撰写键盘=dict#含 steerQueue 的私有键盘面
+撰写键盘=dict#含 steerQueue、bindFilePicker 的私有键盘面
 输入机选项=dict#mergeWindowMs/now
-输入状态=dict#draft/imageIds/phase/queue/…
+输入状态=dict#draft/imageIds/phase/queue/claim.name/…
+
+#命令认领：name 目录名 / token 展示拼写 / hint? / attachments? / submit
+#触发控制器另含 openReference(来源,引用)→是否打开预览
 
 输入事件种=(#机唯一写路径判别标签
     'draft-changed','begin-command','insert-ref','consume-token','set-invalid',

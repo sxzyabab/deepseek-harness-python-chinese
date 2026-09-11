@@ -1,5 +1,12 @@
 {
-    "app":"应用",
     "apply":"应用",
-    "self":"自身"
+    "address":"地址",
+    "encode":"编码",
+    "file":"文件",
+    "path":"路径",
+    "resource":"资源",
+    "self":"自身",
+    "segment":"段",
+    "workspace":"工作区",
+    "absolute":"绝对"
 }

@@ -52,22 +52,18 @@ def 应用(上下文):#安装消息反馈浏览器半边
                 """current。"""
                 条目=表面.反馈.getSnapshot()['items']#表
                 return 条目[消息标识] if 消息标识 in 条目 else None#条目
-            def 切换(消息标识,评价):#切换
-                """toggle。"""
-                return 表面.反馈.toggle(消息标识,评价)#切换
-            def 打开对话框(消息标识):#打开
+            def 撤回(消息标识,评价):#撤回
+                """retract。"""
+                return 表面.反馈.retract(消息标识,评价)#撤回
+            def 打开对话框(消息标识,评价):#打开
                 """openDialog。"""
-                表面.对话框.打开({'kind':'message','messageId':消息标识})#打开
-            def 确认():#确认轻提示
-                """acknowledge。"""
-                表面.对话框.确认()#确认
+                表面.对话框.打开({'kind':'message','messageId':消息标识,'rating':评价})#打开
             return {#注入面
                 'hooks':{'feedback':表面.反馈},#共享视图
                 'ensure':确保,#确保已读
                 'current':当前,#当前条目
-                'toggle':切换,#切换
+                'retract':撤回,#撤回
                 'openDialog':打开对话框,#打开对话框
-                'acknowledge':确认,#确认
             }#注入结束
         return 上下文.slots.register({#登记
             'name':'conversation.chat.assistant-actions',#助手动作槽
@@ -88,6 +84,7 @@ def 应用(上下文):#安装消息反馈浏览器半边
                 'edit':对话框.编辑,#编辑
                 'submit':对话框.提交草稿,#提交
                 'dismiss':对话框.关闭,#关闭
+                'dismissFailure':对话框.关掉失败,#关掉失败
                 'dismissToast':对话框.退役轻提示,#退役
             }#注入结束
         return 上下文.slots.register({#登记

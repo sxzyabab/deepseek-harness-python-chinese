@@ -35,12 +35,14 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'presetIdPlaceholder':'my-agent',#占位
     'displayName':'名称',#显示名
     'displayNamePlaceholder':'选择器中显示的名字，缺省用标识符',#显示名占位
-    'inUse':'当前使用',#使用中
+    'inUse':'新任务默认',#新任务默认
+    'selectionOffDefault':'默认',#选择关闭时的默认标记
     'builtInGroup':'内置',#内置组
     'customGroup':'自定义',#自定义组
     'noDescription':'暂无描述。',#无描述
     'brokenBadge':'加载失败',#失败徽章
     'brokenNoCopy':'预设加载失败，不能复制',#失败不可复制
+    'switchRefused':'无法切换到「{name}」：{reason}',#切换拒绝
     'copyOf':'复制自',#复制自
     'composition':'组装（agent.cordis.yml）',#组装
     'cancel':'取消',#取消
@@ -61,6 +63,11 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'deleteDescription':'预设目录将被删除。已在其上运行的会话不受影响；新会话将无法再选择它。',#删除说明
     'deleteConfirm':'删除',#确认删除
     'deleting':'正在删除…',#删除中
+    'showPicker':'允许切换agent模式',#允许切换模式
+    'showPickerBeta':'beta',#测试标记
+    'showPickerDescription':'开启后，新任务可选择标准、PTC、创造、极简及自定义模式；关闭后统一使用默认模式（默认为标准模式，可自定义）。仅影响新任务。',#选择器说明
+    'enablePickerToSetDefault':'请先开启 Agent 模式选择，再设置默认模式',#先开选择再设默认
+    'enablePickerToCreate':'请先开启 Agent 模式选择，再启动创造模式',#先开选择再创造
 }#中文结束
 
 英文={#英文（与上游键对齐）
@@ -82,8 +89,8 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'duplicate':'Duplicate','duplicateUnavailable':'This deployment has no writable preset directory','delete':'Delete',
     'presetId':'Identifier','presetIdPlaceholder':'my-agent','displayName':'Name',
     'displayNamePlaceholder':'Shown in the picker; defaults to the identifier',
-    'inUse':'In use','builtInGroup':'Built-in','customGroup':'Custom','noDescription':'No description.',
-    'brokenBadge':'Failed to load','brokenNoCopy':'A preset that failed to load cannot be duplicated','copyOf':'Copied from',
+    'inUse':'New task default','selectionOffDefault':'Default','builtInGroup':'Built-in','customGroup':'Custom','noDescription':'No description.',
+    'brokenBadge':'Failed to load','brokenNoCopy':'A preset that failed to load cannot be duplicated','switchRefused':'Could not switch to {name}: {reason}','copyOf':'Copied from',
     'composition':'Composition (agent.cordis.yml)','cancel':'Cancel','close':'Close','retry':'Retry',
     'copyTitle':'Duplicate preset',
     'copyIntro':"The whole preset is copied on this machine. The identifier becomes its directory name and cannot be changed later; everything else is edited in the preset's own files.",
@@ -95,6 +102,10 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'deleteTitle':'Delete this preset?',
     'deleteDescription':'The preset directory is deleted. Sessions already running on it keep working; new sessions cannot select it.',
     'deleteConfirm':'Delete','deleting':'Deleting…',
+    'showPicker':'Allow switching Agent modes','showPickerBeta':'Beta',
+    'showPickerDescription':'When enabled, new tasks can choose Standard, PTC, Creator, Minimal, and custom modes. When disabled, all new tasks use the default mode (Standard by default; configurable). Only affects new tasks.',
+    'enablePickerToSetDefault':'Turn on Agent mode selection to choose a default',
+    'enablePickerToCreate':'Turn on Agent mode selection to start Creator mode',
 }#英文结束
 
 出厂预设键={#出厂 id → 语言键

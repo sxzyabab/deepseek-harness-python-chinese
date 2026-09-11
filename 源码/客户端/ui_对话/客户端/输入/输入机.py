@@ -30,6 +30,10 @@ def 不可达(值):
     """封闭输入事件的穷尽性兜底。"""
     raise 对话错误('unreachable input event: '+repr(值))#不可能到达
 
+def 仍持认领(草稿,令牌):
+    """完整命令名可单独站住；参数需要令牌的分隔。"""
+    return 草稿.startswith(令牌) or 草稿==令牌.rstrip()#完整令牌或去尾空白的裸名
+
 def 令牌后参数(草稿,令牌):#从草稿剥掉认领令牌得到提交参数
     """容忍前导空白；裸令牌缺尾部分隔则空参数；恰吃一个分隔字符。"""
     文本=草稿.lstrip()#去掉前导空白
@@ -121,10 +125,12 @@ class 输入机:#纯输入机，每会话一份
         }#结束
         if 自身.认领 is not None:#有认领
             令牌=自身.认领['token']#令牌
-            认领快照={'token':令牌}#快照
+            认领快照={'name':自身.认领['name'] if 'name' in 自身.认领 else '','token':令牌}#目录名与令牌
             提示=自身.认领['hint'] if 'hint' in 自身.认领 else None#hint
             if 提示 is not None:#有 hint
                 认领快照['hint']=提示#带上
+            if 'attachments' in 自身.认领 and 自身.认领['attachments'] is True:#接受附件
+                认领快照['attachments']=True#带上
             快照['claim']=认领快照#写入
         if 自身.粘贴 is not None:#有粘贴尝试
             快照['paste']=dict(自身.粘贴)#带上
@@ -204,10 +210,9 @@ class 输入机:#纯输入机，每会话一份
         自身.出现表=保留#写回
 
     def 监视认领(自身):#认领完整性监视
-        """破坏令牌前缀则释放认领。"""
+        """破坏令牌前缀则释放认领；裸完整名仍持认领。"""
         if 自身.相位=='claimed' and 自身.认领 is not None:#认领相位
-            令牌=自身.认领['token']#令牌
-            if 自身.草稿.startswith(令牌) is False:#前缀已破
+            if 仍持认领(自身.草稿,自身.认领['token']) is False:#前缀已破
                 自身.相位='plain'#退回
                 自身.认领=None#丢掉
 
@@ -505,7 +510,7 @@ class 输入机:#纯输入机，每会话一份
         if 文案 is None:#仍无
             文案='command failed'#默认
         if (自身.草稿==飞行['attempt']['draftSnapshot']#活草稿仍等于快照
-            and 自身.认领 is not None and 自身.草稿.startswith(自身.认领['token'])):#认领仍在
+            and 自身.认领 is not None and 仍持认领(自身.草稿,自身.认领['token'])):#认领仍在
             自身.相位='claimed'#回到 claimed
             return [{'type':'notice','level':'error','text':文案}]#错误
         自身.相位='plain'#草稿已漂移

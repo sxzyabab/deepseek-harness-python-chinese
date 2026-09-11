@@ -207,6 +207,26 @@ class 触发控制器:#每会话触发控制器
             return 自身._执行(结果,命中['span'])#认领/插入/文本
         return False#无人认领
 
+    def openReference(自身,源名,引用):#打开引用预览
+        """把芯片交给拥有源，或把可编辑词交给当前词表拥有源。"""
+        if 自身.已拆除:#已拆除
+            return False#拒绝
+        投影=自身._投影()#会话投影
+        原文=引用['ref'] if 'ref' in 引用 else ''#mention
+        for 拥有 in 自身.依赖['roster']['all']():#每个源
+            if 源名 is None:#无芯片源则按词表
+                触发=拥有['trigger']#触发符
+                词=拥有['lexicon'] if 'lexicon' in 拥有 else None#词表
+                名列表=词(投影) if 词 is not None else None#热卷
+                命中=原文.startswith(触发) and 名列表 is not None and 原文[1:] in 名列表#触发+词表
+            else:#芯片源名
+                命中=拥有['name']==源名#名匹配
+            打开=拥有['openReference'] if 'openReference' in 拥有 else None#预览钩子
+            if 命中 and 打开 is not None and 打开(投影,引用):#源受理
+                自身.dismiss()#关菜单
+                return True#已受理
+        return False#无人受理
+
     def dismiss(自身):#外部关掉菜单
         """例如指针点在 composer 区域外。"""
         if 自身.已拆除:#已拆除则忽略
@@ -274,7 +294,10 @@ class 触发控制器:#每会话触发控制器
         if isinstance(结果,dict) and 'claim' in 结果:#认领命令
             return 作用域.首个结果(作用域,'slash/input-begin-command',{'claim':结果['claim'],'span':跨度}) is True#开始命令
         if isinstance(结果,dict) and 'text' in 结果:#纯文本替换
-            return 作用域.首个结果(作用域,'slash/input-insert-text',{'text':结果['text'],'span':跨度}) is True#插入文本
+            载荷={'text':结果['text'],'span':跨度}#插入文本
+            if 'continue' in 结果 and 结果['continue'] is True:#继续触发
+                载荷['continue']=True#带上
+            return 作用域.首个结果(作用域,'slash/input-insert-text',载荷) is True#插入文本
         if isinstance(结果,dict) and 'insert' in 结果:#引用插入
             return 作用域.首个结果(作用域,'slash/input-insert-reference',{'reference':结果['insert'],'span':跨度}) is True#插入引用
         return False#未知

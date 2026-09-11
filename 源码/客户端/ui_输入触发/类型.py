@@ -22,7 +22,7 @@ __all__=[#仅中文公开名
 选定途径=('menu','space','enter')#三条选定路径
 
 #输入触发候选：纯展示数据——零行为声明
-#字段 name / description? / icon? / hint?
+#字段 name / label? / description? / icon? / hint? / section? / value? / drill?
 输入触发候选=dict#菜单候选形
 
 #词跨度：选定瞬间的触发词跨度快照；CAS：过期 draftRev ⇒ 整次动作空操作
@@ -58,7 +58,7 @@ __all__=[#仅中文公开名
 
 #输入触发源：一个触发来源
 #字段 trigger / name / order? / codec?
-#方法 candidates / onPick / matchSpace? / matchEnter? / warm? / lexicon? / subscribeLexicon?
+#方法 candidates / onPick / matchSpace? / matchEnter? / warm? / lexicon? / subscribeLexicon? / openReference? / header?
 输入触发源=dict#触发来源形
 
 #触发守卫：触发可用性档位
