@@ -1,9 +1,3 @@
-"""一次性直接 Agent 驱动器。
-
-组合包补丁骑在 dsh-base 上；本运行器经核心注册表创建一名 Agent，把任务驱动到静止，flush 其 Session，打印最终助手文本，然后退出。
-
-对齐上游 `@deepseek-ai/dsh-headless`。公开面仅中文名。
-"""
 import os,uuid,sys#路径、uuid、标准流
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段#配置字段
@@ -61,8 +55,8 @@ def 失败(出入,错误):#失败路径
     出入['stderr'].write('dsh: '+str(错误)+'\n')#写错误
     出入['exit'](1)#请求失败退出
 
-def 跑(上下文,任务,出入):#跑一次性任务
-    """经新创建的 Agent 跑一项任务并请求进程退出。"""
+def 执行任务(上下文,任务,出入):#执行一次性任务
+    """经新创建的 Agent 执行一项任务并请求进程退出。"""
     加载器=上下文.获取服务('loader')#Loader
     if 加载器 is not None:#有 Loader
         加载器.等待()#等待结算
@@ -102,10 +96,10 @@ def 应用(上下文,配置值):#安装无头运行器
     """挂载一次性直接驱动器。"""
     退出=上下文.获取服务('appExit')#退出请求
     if 退出 is None:#启动器未提供
-        raise 无头错误('headless-runner: the launcher must provide ctx.appExit before the tree mounts')#拒绝
+        raise 无头错误('headless-runner: 启动器必须在树挂载前提供 ctx.appExit')#拒绝
     出入={'stdout':内部流['stdout'],'stderr':内部流['stderr'],'exit':退出}#组装 IO
-    try:#跑任务
-        跑(上下文,配置值['task'],出入)#跑
+    try:#执行任务
+        执行任务(上下文,配置值['task'],出入)#执行
     except Exception as 错误:#任务与智能体循环可抛任意类型，无头驱动无法再收窄
         失败(出入,错误)#报告
 

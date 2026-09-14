@@ -1,8 +1,3 @@
-"""InputTriggerService（ctx.inputTriggers）：触发管线的根半边。
-
-对齐上游 `ui-input-trigger/src/client/service.ts`。公开面仅中文名。
-无状态源登记表加上每会话控制器映射；可变交互状态住在控制器上。
-"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .控制器 import 触发控制器,触发错误#每会话控制器与本包异常
@@ -31,13 +26,13 @@ class 触发服务(服务):#ctx.inputTriggers 触发管线
         名=源['name']#源名
         for 已 in 自身.源列表:#查重
             if 已['trigger']==触发 and 已['name']==名:#重复
-                raise 触发错误('slash source "'+str(触发)+str(名)+'" is already registered')#抛
+                raise 触发错误('斜杠源 "'+str(触发)+str(名)+'" 已经登记')#抛
         自身.源列表.append(源)#写入花名册
         for 控 in list(自身.控制器表.values()):#通知每个已活会话
             try:#晚到源仍须预热并入词库
                 控.sourceAdded(源)#通知该会话源已加入
             except Exception as 错误:#源回调故障；源回调异常契约未定，故不能换成更窄的 except
-                print('[ui-input-trigger] source "'+str(触发)+str(名)+'" late-registration setup failed:',错误)#记错误
+                print('[ui-input-trigger] 源 "'+str(触发)+str(名)+'" 迟登记安装失败:',错误)#记错误
         def 拆除源():#拆除该源
             """从花名册摘掉并通知控制器。"""
             if 源 not in 自身.源列表:#已拆除则幂等
@@ -51,10 +46,10 @@ class 触发服务(服务):#ctx.inputTriggers 触发管线
         """惰性；作用域拆除器会移除并拆除它。"""
         会话面=自身.ctx.获取服务('sessions')#会话面
         if 会话面 is None:#未挂载
-            raise 触发错误('ui-input-trigger: sessions service unavailable')#抛
+            raise 触发错误('ui-input-trigger: sessions 服务不可用')#抛
         标识=会话面.scopeOf(作用域)#会话身份
         if 标识 is None:#必须在会话作用域内
-            raise 触发错误('slash.sessionOf requires a session scope')#抛
+            raise 触发错误('slash.sessionOf 需要会话作用域')#抛
         if 标识 in 自身.控制器表:#已有则复用
             return 自身.控制器表[标识]#控制器
         def 按触发(触发字符):#过滤排序

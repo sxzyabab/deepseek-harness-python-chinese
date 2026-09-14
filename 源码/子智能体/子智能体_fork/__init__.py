@@ -1,6 +1,5 @@
-"""进程内 fork 子智能体后端（对齐 upstream subagent-fork-in-process）。"""
 from ...依赖.schemastery import 字典字段,字符串字段#配置
-from ..子智能体_in_process_driver import 启动进程内跑#共享驱动
+from ..子智能体_in_process_driver import 启动进程内运行#共享驱动
 
 __all__=['名称','注入','配置','应用']#公开面
 
@@ -34,7 +33,7 @@ class 进程内分叉提供方:
         """启动一次性分叉子体。请求为 dict。"""
         种子=已完成回合前缀(请求['parent'])#种子
         选项={} if len(种子)==0 else {'seed':种子}#选项
-        return 启动进程内跑(请求,选项)#启动
+        return 启动进程内运行(请求,选项)#启动
 
     def 准备可续跑(自身,请求):
         """准备可续跑分叉规格。请求为 dict。"""

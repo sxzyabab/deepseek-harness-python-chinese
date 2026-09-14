@@ -1,8 +1,3 @@
-"""按 form 解析上下文展开体。
-
-对齐上游 `ui-chat/src/client/chat/ContextBody.tsx`。公开面仅中文名。
-属性为 dict。
-"""
 
 __all__=['上下文体']#仅中文公开名
 

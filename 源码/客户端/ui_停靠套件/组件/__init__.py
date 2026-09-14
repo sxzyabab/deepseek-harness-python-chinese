@@ -1,7 +1,3 @@
-"""停靠套件组件层：视图模型 / 渲染驱动。
-
-对齐上游 `ui-dockkit/src/components/`。公开面仅中文名。
-"""
 from .停靠面 import 停靠面#面
 from .浮动层 import 浮动层#浮层
 from .窗格树 import 窗格树#树

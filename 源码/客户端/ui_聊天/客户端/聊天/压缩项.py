@@ -1,9 +1,3 @@
-"""压缩落点标记行：披露摘要。
-
-对齐上游 `ui-chat/src/client/chat/CompactionItem.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
-
 __all__=['压缩项']#仅中文公开名
 
 def 恒等翻译(键,参数=None):

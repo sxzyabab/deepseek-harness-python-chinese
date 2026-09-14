@@ -1,7 +1,3 @@
-"""因输出 token 上限结束的回合通知。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/turn-max-tokens.ts`。公开面仅中文名。
-"""
 from .节点工厂 import 聊天错误,聊天合成序号偏移,聊天节点#公共
 
 __all__=['回合顶格定义','登记回合顶格会话节点']#仅中文公开名

@@ -1,7 +1,3 @@
-"""轨迹拥有的收件箱分类与输入消息记录节点定义。
-
-对齐上游 `ui-trajectory/src/client/trajectory-message-definitions.ts`。公开面仅中文名。
-"""
 from .轨迹节点 import 轨迹节点#包装轨迹贡献信封
 from .轨迹记录 import 轨迹错误#本包异常
 

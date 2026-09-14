@@ -1,4 +1,3 @@
-"""用户设置能力 seam（`ctx.settings`）的服务定义。提供方存储一份按命名空间分节的原始文档；插件登记命名空间模式并读取解析值，解析按模式缺省、登记方组合 `base`、用户文档节这一顺序叠层。"""
 import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
@@ -387,24 +386,24 @@ class 设置提供方(服务):#ctx.settings
             动词='mutate'#改写
         登记=自身._登记表[命名空间] if 命名空间 in 自身._登记表 else None#当前登记
         if 登记 is None:#未登记
-            raise 设置错误('settings namespace "'+str(命名空间)+'" is not registered')#大声失败
+            raise 设置错误('settings namespace "'+str(命名空间)+'" 未登记')#大声失败
         if 自身.是否已停():#服务已拆除
-            raise 设置错误('settings service is disposed: "'+str(命名空间)+'" cannot be written')#拒新写
+            raise 设置错误('settings 服务已拆除: "'+str(命名空间)+'" 无法写入')#拒新写
         if not 自身.可写:#只读提供方
-            raise 设置错误('settings provider is read-only: "'+str(命名空间)+'" cannot be updated in-process')#拒写
+            raise 设置错误('settings 提供方只读: "'+str(命名空间)+'" 无法在进程内更新')#拒写
         if 模式=='mutate':#路径编辑
             载荷={'ops':输入}#包成对象以便克隆
         else:#merge/replace
             if not 是否普通对象(输入):#必须普通对象
-                raise TypeError('settings '+动词+' for "'+str(命名空间)+'" must be a plain object')#必须普通对象
+                raise TypeError('settings '+动词+' for "'+str(命名空间)+'" 必须是普通对象')#必须普通对象
             载荷=输入#节本身
         def 拒绝(标签,路径):#按路径造错
             """从值标签及其路径构造校验错误。"""
-            return TypeError('settings '+动词+' for "'+str(命名空间)+'" must contain only JSON-compatible data (found '+标签+' at '+路径+')')#按路径拒
+            return TypeError('settings '+动词+' for "'+str(命名空间)+'" 只能包含 JSON 兼容数据（在 '+路径+' 发现 '+标签+'）')#按路径拒
         快照=克隆JSON形(载荷,拒绝)#分离并校验
         前=自身._写队列[命名空间] if 命名空间 in 自身._写队列 else 已结算任务(None)#前一次写
         任务=操作任务()#本次写
-        def 跑():#串到前任之后
+        def 执行排队写入():#串到前任之后
             """绕过失败的前任后执行本次写入。"""
             try:#前任失败不得毒化
                 try:#等前任
@@ -412,9 +411,9 @@ class 设置提供方(服务):#ctx.settings
                 except Exception:#前任任务体可抛任意类型，排队只要求绕过
                     pass#绕过
                 if 自身.是否已停():#排队期间被拆除
-                    raise 设置错误('settings service was disposed before the queued "'+str(命名空间)+'" '+动词+' ran')#不再跑
+                    raise 设置错误('settings 服务在排队的 "'+str(命名空间)+'" '+动词+' 执行前已拆除')#不再执行
                 if 命名空间 not in 自身._登记表 or 自身._登记表[命名空间] is not 登记:#登记方光纤已拆
-                    raise 设置错误('settings namespace "'+str(命名空间)+'" registration was disposed before the queued '+动词+' ran')#不再跑
+                    raise 设置错误('settings namespace "'+str(命名空间)+'" 登记在排队的 '+动词+' 执行前已拆除')#不再执行
                 当前=自身.节(命名空间)#当前用户节
                 if 当前 is None:#缺席
                     当前={}#空节
@@ -438,7 +437,7 @@ class 设置提供方(服务):#ctx.settings
                 任务.兑现()#成功
             except Exception as 错误:#写入体可抛设置错误、冲突、模式校验与提供方持久化错误，无法再收窄
                 任务.拒绝(错误)#调用方看见拒绝
-        工作=工作线程(target=跑)#工作线程
+        工作=工作线程(target=执行排队写入)#工作线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
         自身._写队列[命名空间]=任务#钉成新尾巴
@@ -469,7 +468,7 @@ class 设置提供方(服务):#ctx.settings
             return None#缺席
         段落=自身._文档[命名空间]#文档里的值
         if not 是否普通对象(段落):#必须是键对象
-            raise TypeError('settings section "'+str(命名空间)+'" must be an object of keys')#畸形
+            raise TypeError('settings section "'+str(命名空间)+'" 必须是键对象')#畸形
         return 段落#普通对象节
 
     def 解析(自身,模式对象,基线,段落,校验=None):#叠层 + 模式 + 所有者校验
@@ -517,7 +516,7 @@ class 设置提供方(服务):#ctx.settings
         for 观察者 in list(登记['watcher_list']):#快照观察者
             前尾=观察者['tail']#接到当前尾巴
             段=操作任务()#本段
-            def 跑(当前观察者=观察者,当前段=段,当前前尾=前尾,当前下一=下一,当前上一=上一):#闭包钉值
+            def 执行观察者回调(当前观察者=观察者,当前段=段,当前前尾=前尾,当前下一=下一,当前上一=上一):#闭包钉值
                 """按观察者串行调用。"""
                 try:#等前尾
                     try:#前任
@@ -539,7 +538,7 @@ class 设置提供方(服务):#ctx.settings
                     自身._待排干.discard(当前段)#摘掉
             观察者['tail']=段#新尾巴
             自身._待排干.add(段)#拆除时等待
-            线=工作线程(target=跑)#后台
+            线=工作线程(target=执行观察者回调)#后台
             线.daemon=True#不挡退出
             线.start()#启动
         不变量失败=None#延后的 INVARIANT

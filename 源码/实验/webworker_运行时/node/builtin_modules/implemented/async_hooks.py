@@ -1,15 +1,3 @@
-"""worker 的 `node:async_hooks`：显式切换模型上的 `AsyncLocalStorage`，带两路回退。
-浏览器没有异步上下文跟踪，因此一次读取所答的存储由三个槽按序决定：
-
-1. 钩子覆盖层 — 由钩子层在一个回调持续期间设置。
-2. 恢复上下文 — 显式切换槽。`快照全部` 复制每个活动实例的有效存储，
-   `恢复全部` 发布一份拷贝。
-2b. 边界环境 — `run()` 也在此发布自有存储。
-3. 折叠栈 — 改写器未触及代码的回退。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/async_hooks.ts`。
-公开面中文名；Node 面经 default 暴露英文名。
-"""
 from ...未实现失败 import 未实现失败,运行时错误#未实现失败工厂|本包错误
 
 __all__=[#公开面
@@ -218,7 +206,7 @@ def triggerAsyncId():#触发异步id
 
 def createHook(*位置参数,**关键字参数):#创建钩子（不可用）
     """无法创建异步钩子：worker 中无异步资源跟踪。"""
-    raise 运行时错误('web-preview: node:async_hooks.createHook is not available in the worker host')#响亮失败
+    raise 运行时错误('web-preview: worker 宿主里没有 node:async_hooks.createHook')#响亮失败
 
 AsyncResource=未实现失败('node:async_hooks','AsyncResource')#未实现失败
 AsyncLocalStorage=异步本地存储#Node面别名

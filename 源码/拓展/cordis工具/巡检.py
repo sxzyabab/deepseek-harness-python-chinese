@@ -1,7 +1,3 @@
-"""动态 Cordis Fiber 的缺失/已提供服务查询与文本报告全节渲染。
-
-对齐上游 `拓展/tool-cordis/src/inspect.ts`。公开面仅中文名。
-"""
 import re#去 {@link}
 from .光纤状态 import 光纤状态,状态标签#状态镜像与标签
 from .接口目录 import 服务目录,事件目录,类型目录,继承上下文目录#生成目录
@@ -146,8 +142,8 @@ def 描述临时(上下文,智能体=None):#渲染 temporary 节
         输出.append(头)#插件头
         for 包 in 行['packages']:#每个包
             半边='+'.join((['host'] if 包['hasHostHalf'] else [])+(['client'] if 包['hasClientHalf'] else []))#半边
-            活动跑=行['activeRun'] if 'activeRun' in 行 else None#活动
-            活动=活动跑 if 活动跑 is not None and 活动跑['packageId']==包['packageId'] else None#该包是否在跑
+            活动运行=行['activeRun'] if 'activeRun' in 行 else None#活动
+            活动=活动运行 if 活动运行 is not None and 活动运行['packageId']==包['packageId'] else None#该包是否在运行
             if 活动 is None:#未激活
                 输出.append('    - '+str(包['packageId'])+': '+包['name']+' ('+半边+') — '+包['purpose'])#元数据
                 continue#下一包
@@ -249,9 +245,9 @@ def 描述接口(上下文,目录=None,名=None,继承=None,类型列表=None):#
             if 服务['catalogued']:#已编目
                 continue#跳过
             行列表.append('- '+服务['name']+' (provided by '+服务['owner']+') — running, but this catalog has no signature for it; inject: [\''+服务['name']+'\'] still reaches it')#无签名提示
-        未跑=缺席服务(上下文,目录)#缺席
-        if len(未跑)>0:#有
-            行列表.append('not running (loadable services with no live provider): '+', '.join(未跑))#缺席列表
+        缺席列表=缺席服务(上下文,目录)#缺席
+        if len(缺席列表)>0:#有
+            行列表.append('not running (loadable services with no live provider): '+', '.join(缺席列表))#缺席列表
     形态=类型闭包([签名 for 服务 in 选中 for 签名 in 服务['methods']],类型列表)#引用类型
     if len(形态)>0:#有类型
         行列表.append('type shapes (referenced by the signatures above — read these before assuming a field is a string):')#标题

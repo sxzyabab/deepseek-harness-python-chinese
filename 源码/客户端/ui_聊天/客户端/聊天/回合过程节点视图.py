@@ -1,8 +1,3 @@
-"""回合级过程披露控制器。
-
-对齐上游 `ui-chat/src/client/chat/TurnProcessNodeView.tsx`。公开面仅中文名。
-属性、节点、过程面均为 dict。
-"""
 from ..会话节点.公共 import 聊天错误#本包异常
 
 __all__=['回合过程节点视图']#仅中文公开名

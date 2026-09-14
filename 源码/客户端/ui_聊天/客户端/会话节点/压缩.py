@@ -1,7 +1,3 @@
-"""自动压缩生命周期与落地检查点。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/compaction.ts`。公开面仅中文名。
-"""
 from .节点工厂 import 聊天节点#聊天节点工厂
 from .命令 import 压缩来源,压缩摘要,更新压缩状态#命令侧复用
 

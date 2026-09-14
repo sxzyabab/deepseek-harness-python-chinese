@@ -1,10 +1,3 @@
-"""页面侧 postMessage 隧道半端。
-将类 fetch 调用转成 `req` 帧，并从 worker 的 `res` /
-`res-head`+`res-chunk`+`res-end` 帧重建 Response，
-使启动载荷、包传输、ApiClient、Typert RPC 等消费方都只说普通 HTTP。
-
-对齐上游 `webworker-runtime/src/client/client.ts`。公开面仅中文名。
-"""
 import base64 as _基64#Base64编码
 import json#JSON解析
 import re#源映射尾注
@@ -99,7 +92,7 @@ class 逻辑流入箱:#逻辑流入箱
         if len(自身._帧列表)==0:#队列空
             if 自身._已失败:#失败则抛出
                 raise 自身._失败#抛出
-            raise 运行时错误('web-preview tunnel: logical stream inbox is empty; host must pump frames')#需宿主泵帧
+            raise 运行时错误('web-preview tunnel: 逻辑流收件箱为空，宿主必须泵帧')#需宿主泵帧
         return 自身._帧列表.pop(0)#取出队首
 
 class 工作线程隧道:#Worker隧道

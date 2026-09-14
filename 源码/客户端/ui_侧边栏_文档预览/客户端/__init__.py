@@ -1,9 +1,3 @@
-"""浏览器半边：把 `text` 登记为右侧侧栏 tab 类型。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/index.ts`。公开面仅中文名。
-公开两段路径不变：类型进 `ctx.sidebarRightTabs`，正文进带键的 `sidebar.right.pane.tab` 席，
-芯片标题进 `sidebar.right.pane.tab.title`。本模块只接线。
-"""
 from .文案 import 中文,英文,侧栏文档预览文案键#词典
 from .定义 import 文本预览标识,文本定义#类型定义
 from .存储 import 创建文本存储#视图存储

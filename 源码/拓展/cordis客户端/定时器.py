@@ -1,10 +1,3 @@
-"""Cordis 定时器服务的浏览器契约与调度算法面。
-
-对齐上游 `cordis-client-runner/src/client/timer.ts`。公开面仅中文名。
-无法在本树执行：globalThis.setTimeout/setInterval 与 Fiber effect 挂接。
-本模块落盘服务键、混入助手、以及用可注入时钟实现的 超时/间隔/节流/防抖 算法。
-"""
-
 __all__=[#仅中文公开名
     '服务键','混入助手','说明','默认时钟','客户端定时器服务','安装客户端定时器',
 ]#公开面结束

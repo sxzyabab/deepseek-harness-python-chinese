@@ -1,9 +1,3 @@
-"""SlotRegistry：渲染器拥有的 Cordis 服务，叠在纯 SlotCore 之上。
-
-对齐上游 `ui-renderer/src/client/registry.ts`。公开面仅中文名。
-本层拥有 slots/changed 事件桥、register/声明注入、install/renderSlot、store 实例轴。
-选项、贡献、规格、条目、作用域绑定、适配器一律为 dict；宿主面为对象。
-"""
 from ...ui_槽位 import 槽位登记表#纯登记表
 from ....依赖 import cordis#外部依赖胶水
 from .绑定 import 槽组装错误,可观察源#本包组装失败与可观察源
@@ -402,7 +396,7 @@ class 槽登记表(服务):
             try:#隔离失败
                 监听()#回调
             except Exception as 错误:#订阅者抛错
-                print('root standard-source subscriber failed:',错误)#打印
+                print('根标准源订阅者失败:',错误)#打印
 
     def 发布作用域修订(自身):
         """在映射已权威后发布一次已安装作用域名册过渡。"""
@@ -411,7 +405,7 @@ class 槽登记表(服务):
             try:#隔离失败
                 监听()#回调
             except Exception as 错误:#订阅者抛错
-                print('scope-adapter subscriber failed:',错误)#打印
+                print('作用域适配器订阅者失败:',错误)#打印
 
     def 解析存储(自身,句柄,作用域绑定):
         """解析（创建或复用）已登记句柄的 store 实例。句柄为对象。"""

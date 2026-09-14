@@ -1,10 +1,3 @@
-"""会话列骨架：英雄铬、composer 定位与会话链。
-
-对齐上游 `ui-conversation/src/client/skeleton/ConversationRoot.tsx`。公开面仅中文名。
-席位高度经回调引用写入滚动体 `--dsh-composer-height`。
-属性、快照、工作区项为 dict。
-"""
-
 __all__=['会话根','工作区标签','派生阶段']#仅中文公开名
 
 def 恒等翻译(键,参数=None):

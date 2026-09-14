@@ -1,9 +1,3 @@
-"""令牌样式按钮原子。
-
-对齐上游 `ui-primitives/src/Button.tsx`。公开面仅中文名。
-变体映射到 --dsw-alias-button-* 填充族。
-"""
-
 __all__=['按钮','变体表','尺寸表']#仅中文公开名
 
 变体表=('primary','ghost','outline','toolbar')#视觉变体

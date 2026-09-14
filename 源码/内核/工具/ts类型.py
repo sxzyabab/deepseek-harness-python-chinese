@@ -1,4 +1,3 @@
-"""Code Mode 代码生成：把已注册工具模式纯投影成模型编程所用的 TypeScript SDK 文本。对齐上游 `tools/src/ts-types.ts`。公开面仅中文名。"""
 import re
 from .json模式 import 断言受支持json模式,转json#导入统一 JSON Schema 校验
 

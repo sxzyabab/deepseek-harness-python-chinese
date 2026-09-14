@@ -1,7 +1,3 @@
-"""复制、读取与删除本地编写的预设。
-
-对齐上游 `agent-presets/src/authoring.ts`。公开面仅中文名。
-"""
 import os#路径
 import shutil#复制与删除
 import stat as 状态模组#权限位

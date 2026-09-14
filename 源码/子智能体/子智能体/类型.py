@@ -1,14 +1,13 @@
-"""缝面向消费方的约定：SubagentProvider 的请求、结果与能力类型，以及插件与宿主观察的 subagent/start 和 subagent/end 载荷。内部控制接口跟实现走——生命周期观察者在 lifecycle，续跑宿主在 continuation——因此本模块保持已发布表面。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
-def 子智能体跑标识(标识):#把字符串打成跑id品牌
+def 子智能体运行标识(标识):#把字符串打成跑id品牌
     """把字符串打成 SubagentRunId。仅供服务铸造；消费方从不自己造键。"""
     return 标识#原样返回并打成跑id品牌
 
-子智能体跑标识品牌='SubagentRunId'#跑身份品牌名
+子智能体运行标识品牌='SubagentRunId'#跑身份品牌名
 
 class 子智能体跑信息(TypedDict):#已发布子智能体跑的只观察身份细节，由 subagent/start 携带；一次性跑与可续跑 Activation 纪元共享此载荷
-    runId:str#与配对终态事件共享的唯一身份（子智能体跑标识品牌）
+    runId:str#与配对终态事件共享的唯一身份（子智能体运行标识品牌）
     provider:str#子体首次创建时记下的提供方名
     id:str#子智能体的会话 id
     local:bool#SubagentRun.localAgent 在 start 兑现时是否存在的快照

@@ -1,8 +1,3 @@
-"""目标激活可观察源：编排 Remote 读取与现场激活事件。
-
-对齐上游 `ui-goal/src/client/activation-source.ts`。公开面仅中文名。
-依赖与快照为 dict；可观察面带 getSnapshot/subscribe。
-"""
 
 __all__=['创建目标激活源']#仅中文公开名
 

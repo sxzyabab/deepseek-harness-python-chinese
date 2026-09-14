@@ -1,9 +1,3 @@
-"""Cordis 动态插件工具共用的模型指引。
-
-对齐上游 `拓展/tool-cordis/src/prompt.ts`。公开面仅中文名；模型可见英文正文保持上游，
-Host 半在本 Python 树改为 plain Python 函数体（与沙箱一致）。
-"""
-
 __all__=['cordis系统提示']#仅中文公开名
 
 cordis系统提示='''# Dynamic Cordis Plugins

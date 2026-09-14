@@ -1,9 +1,3 @@
-"""浏览器 Worker 用的 `node:tty`。宿主无终端支撑的文件描述符，
-因此终端检测恒为 false。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/tty.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 __all__=['是否终端','isatty','__esModule','default']#中文与Node面
 
 def 是否终端(描述符):#检测是否终端

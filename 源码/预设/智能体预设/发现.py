@@ -1,7 +1,3 @@
-"""智能体预设的文件系统发现。
-
-对齐上游 `agent-presets/src/discovery.ts`。公开面仅中文名。
-"""
 import os,yaml
 from ...依赖 import include#外部依赖胶水（PyYAML 与 include）
 条目列表读取器=include.插件列表读取器#加载器 YAML 方言（含 !!js）

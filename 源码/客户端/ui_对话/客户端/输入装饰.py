@@ -1,9 +1,3 @@
-"""草稿装饰纯核心：芯片、认领令牌、纯文本引用、幽灵提示。
-
-对齐上游 `ui-conversation/src/client/input/decorations.ts`。公开面仅中文名。
-零 React — 骨架渲染这些指令。
-状态与词表为 dict。
-"""
 import re#纯文本引用扫描
 
 __all__=['扫描文本引用','派生装饰','惰性装饰','空词表']#仅中文公开名

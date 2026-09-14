@@ -1,7 +1,3 @@
-"""事件源会话服务：只追加的会话日志、内存存储，以及派生出的 LLM 消息历史。
-
-对齐上游 `session/src/index.ts`。公开面仅中文名；Cordis 默认导出槽可保留。
-"""
 import time,threading,weakref#时间、线程与弱表
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
@@ -98,7 +94,7 @@ def 收住会话观察者(上下文对象,名称,标识,参数,回调列表):#�
         try:#收住同步抛错
             回调(*参数)#监听器已是同步回调
         except Exception as 错误:#同步抛错
-            上下文对象.日志.警告('session "'+str(标识)+'": '+名称+' listener threw: '+str(错误))#记抛错
+            上下文对象.日志.警告('session "'+str(标识)+'": '+名称+' 监听器抛错: '+str(错误))#记抛错
 
 def 是否有提供方模型(值):#是否有提供方/模型
     """未知值是否携带当前的提供方/模型对。"""
@@ -111,9 +107,9 @@ def 是否有提供方模型(值):#是否有提供方/模型
 def 断言支持的请求头(类型,数据,位置):#拒绝旧请求头
     """拒绝随旧增量编码一起移除的请求头词汇。"""
     if 类型=='request/header-delta':#已移除的增量类型
-        raise 会话错误(位置+' uses unsupported legacy request/header-delta format')#旧格式
+        raise 会话错误(位置+' 使用了已不支持的旧版 request/header-delta 格式')#旧格式
     if 类型=='request/header' and 是否普通记录(数据) and 'reason' in 数据 and 数据['reason']=='fallback':#已移除的 fallback 原因
-        raise 会话错误(位置+' uses unsupported legacy request/header reason "fallback"')#旧原因
+        raise 会话错误(位置+' 使用了已不支持的旧版 request/header 原因 "fallback"')#旧原因
 
 消息角色按类型={#表面事件类型→角色
     'system/message':'system',#系统
@@ -139,55 +135,55 @@ def 断言消息事件形(事件,主题):#校验消息形
         消息=表['message'] if 表 is not None and 'message' in 表 else None#其余在 data.message
     消息标识值=消息['id'] if 是否普通记录(消息) and 'id' in 消息 else None#消息 id
     if (not 是否普通记录(消息)) or (not isinstance(消息标识值,str)) or 消息标识值=='':#缺已识别消息
-        raise 会话错误(主题+' lacks an identified message')#缺已识别消息
+        raise 会话错误(主题+' 缺少已标识的消息')#缺已识别消息
     期望角色=消息角色按类型[类型]#期望角色
     if 消息['role']!=期望角色:#角色必须贴合类型
-        raise 会话错误(主题+' message must have role "'+期望角色+'"')#角色不对
+        raise 会话错误(主题+' 消息角色必须是 "'+期望角色+'"')#角色不对
     来源=消息['source'] if 'source' in 消息 else None#来源
     来源种=来源['kind'] if 是否普通记录(来源) and 'kind' in 来源 else None#kind
     if (not 是否普通记录(来源)) or (not isinstance(来源种,str)) or 来源种=='':#非法来源
-        raise 会话错误(主题+' message has invalid source')#非法来源
+        raise 会话错误(主题+' 消息来源非法')#非法来源
     if not isinstance(消息['content'] if 'content' in 消息 else None,list):#内容必须是数组
-        raise 会话错误(主题+' message has invalid content')#非法内容
+        raise 会话错误(主题+' 消息内容非法')#非法内容
     if 类型=='system/message':#系统消息
         插件=来源['plugin'] if 'plugin' in 来源 else None#插件名
         if 来源种!='plugin' or (not isinstance(插件,str)) or 插件=='':#须插件来源
-            raise 会话错误(主题+' message must have plugin source')#拒绝
+            raise 会话错误(主题+' 消息必须有插件来源')#拒绝
         return#系统到此
     if 类型=='assistant/message':#助手消息
         if 来源种!='model' or not 是否有提供方模型(来源):#必须是带提供方/模型的模型来源
-            raise 会话错误(主题+' message must have model source')#必须是模型来源
+            raise 会话错误(主题+' 消息必须有模型来源')#必须是模型来源
         return#助手到此
     if 类型!='tool/result':#用户消息
         return#用户消息到此
     调用号=来源['callId'] if 来源 is not None and 'callId' in 来源 else None#callId
     if 来源种!='tool' or (not isinstance(调用号,str)) or 调用号=='':#必须是工具来源
-        raise 会话错误(主题+' message must have tool source')#必须是工具来源
+        raise 会话错误(主题+' 消息必须有工具来源')#必须是工具来源
     内容=消息['content'] if 'content' in 消息 else None#内容块
     块=内容[0] if len(内容)>0 else None#唯一块
     if (len(内容)!=1 or (not 是否普通记录(块))
         or 块['type']!='tool-result'
         or (not isinstance(块['content'] if 'content' in 块 else None,list))):#必须是单块工具结果
-        raise 会话错误(主题+' message must contain one tool-result block')#必须是单块工具结果
+        raise 会话错误(主题+' 消息必须包含一块 tool-result')#必须是单块工具结果
     if 块['toolCallId']!=调用号:#块 id 必须贴合来源
-        raise 会话错误(主题+' message has mismatched tool call ids')#工具调用 id 不一致
+        raise 会话错误(主题+' 消息的工具调用 id 不一致')#工具调用 id 不一致
 
 def 断言适配器默认(值,配置,下标,已给出):#校验适配器默认
     """校验从耐久请求头导入的适配器默认标记。"""
     if not 已给出:#未给则跳过
         return#未给则跳过
     if 值 is None or (not 是否普通记录(值)):#必须是普通对象
-        raise 会话错误('seed request/header at index '+str(下标)+' has invalid adapterDefaults')#非法标记表
+        raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 adapterDefaults 非法')#非法标记表
     for 键 in 值.keys():#未知键
         if 键 not in 允许适配器键:#未知键
-            raise 会话错误('seed request/header at index '+str(下标)+' has invalid adapterDefaults')#未知键
+            raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 adapterDefaults 非法')#未知键
     for 标记 in 值.values():#标记必须是 true
         if 标记 is not True:#标记必须是 true
-            raise 会话错误('seed request/header at index '+str(下标)+' has invalid adapterDefaults')#标记必须是 true
+            raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 adapterDefaults 非法')#标记必须是 true
     if ('reasoningEffort' in 值 and 值['reasoningEffort'] is True) and (配置 is None or 'reasoningEffort' not in 配置):#力度标记却无配置
-        raise 会话错误('seed request/header at index '+str(下标)+' has invalid adapterDefaults')#力度标记却无配置
+        raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 adapterDefaults 非法')#力度标记却无配置
     if ('maxTokens' in 值 and 值['maxTokens'] is True) and (配置 is None or 'maxTokens' not in 配置):#token 标记却无配置
-        raise 会话错误('seed request/header at index '+str(下标)+' has invalid adapterDefaults')#token 标记却无配置
+        raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 adapterDefaults 非法')#token 标记却无配置
 
 def 断言助手落定形(数据,类型,下标):#断言助手落定形状
     """校验恢复会话生命周期逻辑直接使用的字段，不回放嵌入流。"""
@@ -197,7 +193,7 @@ def 断言助手落定形(数据,类型,下标):#断言助手落定形状
     if ((not 外来安全整数(轮次)) or 轮次<0
         or (not 外来安全整数(步骤)) or 步骤<0
         or (not isinstance(流,list))):#字段非法
-        raise 会话错误('seed '+类型+' at index '+str(下标)+' has invalid settlement fields')#拒绝
+        raise 会话错误('种子 '+类型+' 下标 '+str(下标)+' 的落定字段非法')#拒绝
 
 def 断言当前llm形(事件,下标):#校验当前 LLM 形
     """在种子/加载边界拒绝过时请求头与畸形消息。"""
@@ -208,37 +204,37 @@ def 断言当前llm形(事件,下标):#校验当前 LLM 形
         头表=头 if 是否普通记录(头) else None#普通对象
         配置=头表['config'] if 头表 is not None and 'config' in 头表 else None#模型配置
         if not 是否有提供方模型(配置):#缺提供方/模型
-            raise 会话错误('seed request/header at index '+str(下标)+' lacks provider/model')#缺提供方/模型
+            raise 会话错误('种子 request/header 下标 '+str(下标)+' 缺少 provider/model')#缺提供方/模型
         if 配置 is not None and 'reasoningEffort' in 配置:#给了力度
             推理力度=配置['reasoningEffort']#推理力度
             if not isinstance(推理力度,str) or len(推理力度)==0:#必须是非空字符串
-                raise 会话错误('seed request/header at index '+str(下标)+' has an invalid reasoningEffort')#非法力度
+                raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 reasoningEffort 非法')#非法力度
         已给出默认=头表 is not None and 'adapterDefaults' in 头表#是否给出适配器默认
         断言适配器默认(头表['adapterDefaults'] if 头表 is not None and 'adapterDefaults' in 头表 else None,配置,下标,已给出默认)#适配器默认标记
         原因=表['reason'] if 表 is not None and 'reason' in 表 else None#原因
         if 原因!='initial' and 原因!='resume' and 原因!='change' and 原因!='series':#非法原因
-            raise 会话错误('seed request/header at index '+str(下标)+' has an invalid reason')#拒绝
+            raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 reason 非法')#拒绝
         if 表 is not None and 'startsSeries' in 表 and 表['startsSeries'] is not True:#系列标记
-            raise 会话错误('seed request/header at index '+str(下标)+' has an invalid startsSeries marker')#拒绝
+            raise 会话错误('种子 request/header 下标 '+str(下标)+' 的 startsSeries 标记非法')#拒绝
     类型=事件['type'] if 'type' in 事件 else None#事件类型
     if 类型=='assistant/attempt':#助手尝试
         断言助手落定形(表,类型,下标)#落定字段
         return#结束
     if not 是否消息事件类型(类型):#非消息类型跳过
         return#跳过
-    断言消息事件形(事件,'seed '+str(类型)+' at index '+str(下标))#校验消息形
+    断言消息事件形(事件,'种子 '+str(类型)+' 下标 '+str(下标))#校验消息形
     if 类型=='assistant/message':#助手消息
         断言助手落定形(表,类型,下标)#落定字段
 
 def 断言会话事件信封(值,下标):#断言信封
     """在一次 JSON 物化之后校验固定事件信封。"""
     if not 是否普通记录(值):#非普通对象
-        raise 会话错误('seed event at index '+str(下标)+' has an invalid event envelope')#非法信封
+        raise 会话错误('种子事件下标 '+str(下标)+' 的事件信封非法')#非法信封
     if 'type' in 值 and 值['type']=='request/header-delta':#已移除的增量编码
-        raise 会话错误('seed event at index '+str(下标)+' uses unsupported legacy request/header-delta format')#旧格式
+        raise 会话错误('种子事件下标 '+str(下标)+' 使用了已不支持的旧版 request/header-delta 格式')#旧格式
     for 键 in list(值.keys()):#信封键必须认识
         if 键 not in 会话事件信封字段:#未知键
-            raise 会话错误('seed event at index '+str(下标)+' has an invalid event envelope')#非法信封
+            raise 会话错误('种子事件下标 '+str(下标)+' 的事件信封非法')#非法信封
     类型=值['type'] if 'type' in 值 else None#事件类型
     序号=值['seq'] if 'seq' in 值 else None#序号
     时间=值['time'] if 'time' in 值 else None#时间
@@ -247,8 +243,8 @@ def 断言会话事件信封(值,下标):#断言信封
         or (not 外来安全整数(时间))
         or ('data' not in 值)
         or ('ignorable' in 值 and 值['ignorable'] is not True)):#非法信封
-        raise 会话错误('seed event at index '+str(下标)+' has an invalid event envelope')#非法信封
-    校验会话事件数据(值,'seed '+str(类型)+' at index '+str(下标))#校验载荷
+        raise 会话错误('种子事件下标 '+str(下标)+' 的事件信封非法')#非法信封
+    校验会话事件数据(值,'种子 '+str(类型)+' 下标 '+str(下标))#校验载荷
     if (类型=='request/header' or 类型=='system/message' or 类型=='user/message'
         or 类型=='assistant/attempt' or 类型=='assistant/message' or 类型=='tool/result'):#需 LLM 形状
         断言当前llm形(值,下标)#当前 LLM 形
@@ -256,41 +252,41 @@ def 断言会话事件信封(值,下标):#断言信封
 def 校验会话头(标识,输入):#校验创建头
     """就地校验并冻结一份脱离的创建头。"""
     if 输入 is None or (not 是否普通记录(输入)):#必须是普通对象
-        raise 会话错误('session header is not a plain JSON record')#不是普通 JSON 记录
+        raise 会话错误('会话头不是普通 JSON 记录')#不是普通 JSON 记录
     if ('version' not in 输入) or 输入['version']!=会话格式版本:#版本必须匹配
-        raise 会话错误('session header version must be '+str(会话格式版本)+', got '+str(输入['version'] if 'version' in 输入 else None))#版本不对
+        raise 会话错误('会话头 version 必须是 '+str(会话格式版本)+'，实际为 '+str(输入['version'] if 'version' in 输入 else None))#版本不对
     if ('id' not in 输入) or 输入['id']!=标识:#头 id 必须贴合会话 id
-        raise 会话错误('session header id "'+str(输入['id'] if 'id' in 输入 else None)+'" does not match session id "'+str(标识)+'"')#id 不匹配
+        raise 会话错误('会话头 id "'+str(输入['id'] if 'id' in 输入 else None)+'" 与会话 id "'+str(标识)+'" 不一致')#id 不匹配
     创建于=输入['createdAt'] if 'createdAt' in 输入 else None#创建时间
     if (not 外来安全整数(创建于)) or 创建于<0:#必须是非负安全整数
-        raise 会话错误('session header createdAt must be a non-negative safe integer')#非法 createdAt
+        raise 会话错误('会话头 createdAt 必须是非负安全整数')#非法 createdAt
     if 'cwd' in 输入:#给了工作目录
         工作目录=输入['cwd']#工作目录
         if not isinstance(工作目录,str):#必须是字符串
-            raise 会话错误('session header cwd must be a string')#必须是字符串
+            raise 会话错误('会话头 cwd 必须是字符串')#必须是字符串
         if not 是否绝对路径(工作目录):#必须是绝对路径
-            raise 会话错误('session header cwd must be an absolute path, got "'+str(工作目录)+'"')#相对路径非法
+            raise 会话错误('会话头 cwd 必须是绝对路径，实际为 "'+str(工作目录)+'"')#相对路径非法
     if 'parentSession' in 输入 and not isinstance(输入['parentSession'],str):#给了父会话
-        raise 会话错误('session header parentSession must be a string')#必须是字符串
+        raise 会话错误('会话头 parentSession 必须是字符串')#必须是字符串
     if 'seedLength' in 输入:#废弃字段
-        raise 会话错误('session header has invalid field "seedLength"')#拒绝
+        raise 会话错误('会话头含非法字段 "seedLength"')#拒绝
     if 'isSeeded' not in 输入 or not isinstance(输入['isSeeded'],bool):#种子标记类型
-        raise 会话错误('session header isSeeded must be a boolean')#拒绝
+        raise 会话错误('会话头 isSeeded 必须是布尔')#拒绝
     if 'origin' in 输入 and 输入['origin']!='subagent':#给了来源
-        raise 会话错误('session header origin must be "subagent"')#只允许 subagent
+        raise 会话错误('会话头 origin 必须是 "subagent"')#只允许 subagent
     if 'delegationDepth' in 输入:#给了委托深度
         深度=输入['delegationDepth']#委托深度
         if (not 外来安全整数(深度)) or 深度<0:#必须是非负安全整数
-            raise 会话错误('session header delegationDepth must be a non-negative safe integer')#非法 delegationDepth
+            raise 会话错误('会话头 delegationDepth 必须是非负安全整数')#非法 delegationDepth
     if 'agentPreset' in 输入 and not isinstance(输入['agentPreset'],str):#给了预设
-        raise 会话错误('session header agentPreset must be a string')#必须是字符串
+        raise 会话错误('会话头 agentPreset 必须是字符串')#必须是字符串
     return 冻结树(输入)#冻结后返回
 
 def 校验恢复会话头(标识,输入):#校验恢复头
     """就地校验并冻结一份独占所有的持久化头。"""
     if 输入 is not None and 是否普通记录(输入):#看起来像对象
         if type(输入) not in 允许恢复头类型:#必须是普通对象或字典
-            raise 会话错误('session header is not a plain JSON record')#带自定义原型则拒
+            raise 会话错误('会话头不是普通 JSON 记录')#带自定义原型则拒
     return 校验会话头(标识,输入)#再走字段校验
 
 def 快照会话头(标识,来源=None):#快照创建头
@@ -301,14 +297,14 @@ def 快照会话头(标识,来源=None):#快照创建头
         输入=来源#借用调用方头
     快照=快照json值(输入)#无损 JSON 脱离
     if 快照 is None:#不能无损序列化
-        raise 会话错误('session header is not losslessly JSON-serializable')#不能无损序列化
+        raise 会话错误('会话头无法无损 JSON 序列化')#不能无损序列化
     return 校验会话头(标识,快照)#校验并冻结
 
 def 收养会话事件(事件):#就地收养事件
     """校验一份独占所有的事件，并深冻结其已识别消息，不复制该事件。"""
-    校验会话事件数据(事件,'session event at seq '+str(事件['seq']))#校验载荷
+    校验会话事件数据(事件,'会话事件 seq '+str(事件['seq']))#校验载荷
     校验表面元数据(事件)#校验表面元数据
-    断言消息事件形(事件,'session event at seq '+str(事件['seq']))#校验消息形
+    断言消息事件形(事件,'会话事件 seq '+str(事件['seq']))#校验消息形
     类型=事件['type']#事件类型
     if 类型=='user/message':#用户消息
         冻结树(事件['data'])#整份 data 就是消息
@@ -351,18 +347,18 @@ class 会话:#事件源会话
                 else:#恢复接管原件
                     快照=源#恢复接管原件
                 if 快照 is None:#不能无损序列化
-                    raise 会话错误('seed event at index '+str(下标)+' is not losslessly JSON-serializable')#非法种子
+                    raise 会话错误('种子事件下标 '+str(下标)+' 无法无损 JSON 序列化')#非法种子
                 断言会话事件信封(快照,下标)#信封
-                断言支持的请求头(快照['type'],快照['data'],'seed event at index '+str(下标))#拒绝旧请求头
+                断言支持的请求头(快照['type'],快照['data'],'种子事件下标 '+str(下标))#拒绝旧请求头
                 if 快照['seq']!=下标:#必须从 0 连续
-                    raise 会话错误('seed event at index '+str(下标)+' has seq '+str(快照['seq'])+' (expected '+str(下标)+'); seed must be contiguous from 0')#序号不连续
+                    raise 会话错误('种子事件下标 '+str(下标)+' 的 seq 为 '+str(快照['seq'])+'（期望 '+str(下标)+'）；种子必须从 0 连续')#序号不连续
                 try:#校验下一条表面转移
                     自身.表面管理器.校验下一条(快照)#规划候选
                 except Exception as 错误:#表面拒绝
                     消息=str(错误)#诊断
                     if isinstance(错误,Exception) and len(错误.args)>0:#有参数
                         消息=str(错误.args[0])#错误文案
-                    raise 会话错误('invalid seed event at index '+str(下标)+': '+消息)#包一层种子下标
+                    raise 会话错误('种子事件下标 '+str(下标)+' 非法: '+消息)#包一层种子下标
                 if 模式=='snapshot':#快照深冻结
                     自身.日志.append(冻结树(快照))#收下冻结事件
                 else:#恢复不二次冻结
@@ -374,19 +370,19 @@ class 会话:#事件源会话
         else:#快照头
             自身.header=快照会话头(标识,头)#快照头
         if 自身.header['isSeeded'] and 种子 is None:#带种子却无种子
-            raise 会话错误('seeded session requires an explicit constructor seed')#拒绝
+            raise 会话错误('已播种会话必须显式提供构造种子')#拒绝
         if 自身.header['isSeeded'] and 供给继承事件数 is None:#缺继承条数
-            raise 会话错误('seeded session requires an inherited event count')#拒绝
+            raise 会话错误('已播种会话必须提供继承事件条数')#拒绝
         继承事件数=0 if 供给继承事件数 is None else 供给继承事件数#继承条数
         if (not 外来安全整数(继承事件数)) or 继承事件数<0:#非法
-            raise 会话错误('session inherited event count must be a non-negative safe integer')#拒绝
+            raise 会话错误('会话继承事件条数必须是非负安全整数')#拒绝
         继承事件数=int(继承事件数)#归一为 int
         if (not 自身.header['isSeeded']) and 继承事件数!=0:#未种子却有继承
-            raise 会话错误('unseeded session inherited event count must be 0')#拒绝
+            raise 会话错误('未播种会话的继承事件条数必须为 0')#拒绝
         if 继承事件数>len(自身.日志):#继承超出日志
-            raise 会话错误('session inherited event count exceeds its event log')#拒绝
+            raise 会话错误('会话继承事件条数超出其事件日志')#拒绝
         if 模式=='snapshot' and 自身.header['isSeeded'] and 继承事件数!=len(自身.日志):#种子须等于继承前缀
-            raise 会话错误('seeded session constructor seed must equal its inherited prefix')#拒绝
+            raise 会话错误('已播种会话的构造种子必须等于其继承前缀')#拒绝
         自身.inheritedEventCount=继承事件数#保存继承条数
         if 种子 is not None and 模式=='snapshot' and 自身.header['isSeeded']:#新鲜分叉
             自身.追加('session/end-seed',{'inherited':True})#带继承标记
@@ -452,14 +448,14 @@ class 会话:#事件源会话
             表面元数据['surfaceOp']=表面意图['surfaceOp']#表面操作
         数据快照=快照json值(数据)#脱离载荷
         if 数据快照 is None:#不能无损序列化
-            raise 会话错误('session event "'+str(类型)+'" carries non-JSON-serializable data')#非法 data
-        断言支持的请求头(类型,数据快照,'session event "'+str(类型)+'"')#拒绝旧请求头
+            raise 会话错误('会话事件 "'+str(类型)+'" 携带了无法 JSON 序列化的 data')#非法 data
+        断言支持的请求头(类型,数据快照,'会话事件 "'+str(类型)+'"')#拒绝旧请求头
         表面元数据快照=快照json值(表面元数据)#脱离表面元数据
         if 表面元数据快照 is None:#不能无损序列化
-            raise 会话错误('session event "'+str(类型)+'" carries non-JSON-serializable surface metadata')#非法表面元数据
+            raise 会话错误('会话事件 "'+str(类型)+'" 携带了无法 JSON 序列化的表面元数据')#非法表面元数据
         条目=附着表.get(自身)#在线附着，脱离会话为 None
         if 条目 is not None and 条目['appending']:#发表边界仍开着
-            raise 会话错误('session append cannot reenter while another append is being published')#禁止重入
+            raise 会话错误('另一条追加正在发表时，会话追加不得重入')#禁止重入
         事件={#铸造不可变事件
             'type':类型,#类型
             'seq':len(自身.日志),#连续性约定
@@ -471,7 +467,7 @@ class 会话:#事件源会话
         if 'sourceEventSeqs' in 表面元数据快照:#可选来源序号
             事件['sourceEventSeqs']=表面元数据快照['sourceEventSeqs']#可选来源序号
         事件=冻结树(事件)#不可变事件
-        校验会话事件数据(事件,'session event "'+str(类型)+'" at seq '+str(事件['seq']))#校验载荷
+        校验会话事件数据(事件,'会话事件 "'+str(类型)+'" seq '+str(事件['seq']))#校验载荷
         自身.表面管理器.校验下一条(事件)#规划表面转移
         if 条目 is not None:#在线才打开发表边界
             条目['appending']=True#打开发表边界
@@ -581,7 +577,7 @@ class 会话存储(服务):#内存会话存储
         else:#调用方供给
             会话号=会话标识(标识)#品牌化
         if 会话号 in 自身.存储:#不得覆盖在线条目
-            raise 会话错误('session "'+str(会话号)+'" already exists')#不得覆盖在线条目
+            raise 会话错误('会话 "'+str(会话号)+'" 已存在')#不得覆盖在线条目
         if 选项 is not None and 'eventState' in 选项:#持久化移交
             事件状态=选项['eventState']#别名状态
             if 事件状态=='detached' or 事件状态=='shared-frozen':#恢复路径
@@ -593,7 +589,7 @@ class 会话存储(服务):#内存会话存储
                     事件状态,#状态
                 )#从恢复结束
             if 事件状态 is not None:#未知状态
-                断言永不(事件状态,'SessionStore.prepare event state')#穷尽守卫
+                断言永不(事件状态,'会话存储.准备 的事件状态')#穷尽守卫
         种子=选项['seed'] if 选项 is not None and 'seed' in 选项 else None#可选种子
         元=选项['meta'] if 选项 is not None and 'meta' in 选项 else None#可选创建元数据
         继承事件数=选项['inheritedEventCount'] if 选项 is not None and 'inheritedEventCount' in 选项 else None#可选继承
@@ -623,9 +619,9 @@ class 会话存储(服务):#内存会话存储
         标识=会话对象.id#会话 id
         载体=作用域目标(会话对象,获取作用域(自身.ctx))#本存储作用域上的载体
         if 标识 in 自身.存储:#不得覆盖
-            raise 会话错误('session "'+str(标识)+'" already exists')#不得覆盖
+            raise 会话错误('会话 "'+str(标识)+'" 已存在')#不得覆盖
         if 会话对象 in 附着表:#不得重复附着
-            raise 会话错误('session "'+str(标识)+'" is already attached to a store')#不得重复附着
+            raise 会话错误('会话 "'+str(标识)+'" 已附着到存储')#不得重复附着
         条目={#新条目
             'id':标识,#会话 id
             'session':会话对象,#会话对象
@@ -650,7 +646,7 @@ class 会话存储(服务):#内存会话存储
             仍有效[0]=False#标为失效
             if 条目['announcing'] or 条目['appending']:#正在宣布或追加
                 条目['detachRequested']=True#推迟脱离
-                return#等边界解开
+                return#等边界释放
             条目['detach']()#立即脱离
         return 脱离#返回脱离器
 
@@ -668,7 +664,7 @@ class 会话存储(服务):#内存会话存储
         """对一份已进入的会话恰好发出一次 session/created。"""
         条目=自身._在线条目(会话对象)#必须是本存储在线条目
         if 条目['announced'] or 条目['announcing']:#已经或正在宣布
-            raise 会话错误('session "'+str(条目['id'])+'" was already announced')#不得重复宣布
+            raise 会话错误('会话 "'+str(条目['id'])+'" 已经宣布过')#不得重复宣布
         条目['announced']=True#已宣布（部分投递也算）
         回调参数=[会话对象]#回调实参
         条目['announcing']=True#正在宣布
@@ -688,7 +684,7 @@ class 会话存储(服务):#内存会话存储
             回调列表=收集会话回调(自身.ctx,[条目['carrier'],'session/disposed',条目['session']])#解析快照
             收住会话观察者(自身.ctx,'session/disposed',条目['id'],回调参数,回调列表)#收住地调用
         except Exception as 错误:#派发本身抛错
-            自身.ctx.日志.警告('session "'+str(条目['id'])+'": session/disposed dispatch threw: '+str(错误))#记派发失败
+            自身.ctx.日志.警告('session "'+str(条目['id'])+'": session/disposed 派发抛错: '+str(错误))#记派发失败
 
     def 冲洗(自身,会话对象):#耐久检查点
         """为会话派发被等待的 session/flush 耐久检查点；全部落定后抛第一个失败。"""
@@ -713,7 +709,7 @@ class 会话存储(服务):#内存会话存储
         """返回精确在线条目；脱离/已准备对象拒绝。"""
         条目=附着表.get(会话对象)#附着
         if 条目 is None or 自身.存储.get(条目['id']) is not 条目:#未附着或不是本存储当前条目
-            raise 会话错误('session "'+str(会话对象.id)+'" is not live in this store')#必须在线
+            raise 会话错误('会话 "'+str(会话对象.id)+'" 不在本存储中在线')#必须在线
         return 条目#精确条目
 
     def 获取(自身,标识):#按 id 查找
@@ -733,7 +729,7 @@ class 会话存储(服务):#内存会话存储
     def 分叉(自身,源,边界=None,子会话号=None):#分叉
         """从一份在线源的稳定前缀铸造一份在线子会话（前缀不得结束在打开轮次内）。"""
         if 子会话号 is not None and 自身.获取(子会话号) is not None:#子 id 已被占用
-            raise 会话分叉错误('session "'+str(子会话号)+'" already exists','SESSION_ALREADY_EXISTS')#已存在
+            raise 会话分叉错误('会话 "'+str(子会话号)+'" 已存在','SESSION_ALREADY_EXISTS')#已存在
         在线源=自身._解析分叉源(源)#解析在线源
         种子=自身._分叉种子(在线源,边界)#切稳定前缀
         元={'parentSession':在线源.id,'isSeeded':True}#子头
@@ -753,23 +749,23 @@ class 会话存储(服务):#内存会话存储
             边界=最后['seq']#切到当前末尾
         if (not 外来安全整数(边界)) or 边界<0:#必须是非负安全整数
             raise 会话分叉错误(
-                'fork boundary for session "'+str(会话对象.id)+'" must be a non-negative safe integer, got '+str(边界),
+                '会话 "'+str(会话对象.id)+'" 的分叉边界必须是非负安全整数，实际为 '+str(边界),
                 'INVALID_BOUNDARY',
             )#非法边界
         if 边界>=len(事件列表):#超出日志
             最后序号=最后['seq'] if 最后 is not None else None#当前最后 seq
             if 最后序号 is None:#无
-                最后文本='none'#无
+                最后文本='无'#无
             else:#有
                 最后文本=str(最后序号)#有
             raise 会话分叉错误(
-                'fork boundary '+str(边界)+' does not exist in session "'+str(会话对象.id)+'" (last seq: '+最后文本+')',
+                '分叉边界 '+str(边界)+' 在会话 "'+str(会话对象.id)+'" 中不存在（最后 seq: '+最后文本+'）',
                 'INVALID_BOUNDARY',
             )#不存在的边界
         边界事件=事件列表[边界]#边界上的事件
         if 边界事件 is None or 边界事件['seq']!=边界:#必须贴合连续 seq
             raise 会话分叉错误(
-                'fork boundary '+str(边界)+' does not match a contiguous event seq in session "'+str(会话对象.id)+'"',
+                '分叉边界 '+str(边界)+' 与会话 "'+str(会话对象.id)+'" 中的连续事件 seq 不匹配',
                 'INVALID_BOUNDARY',
             )#不连续
         最后轮次=None#最后一轮边界
@@ -783,7 +779,7 @@ class 会话存储(服务):#内存会话存储
             下标-=1#继续往前
         if 最后轮次 is not None and 最后轮次['type']=='turn/start':#结束在打开轮次内
             raise 会话分叉错误(
-                'fork boundary '+str(边界)+' in session "'+str(会话对象.id)+'" ends inside open turn '+str(最后轮次['data']['turn']),
+                '会话 "'+str(会话对象.id)+'" 的分叉边界 '+str(边界)+' 落在打开轮次 '+str(最后轮次['data']['turn'])+' 内',
                 'OPEN_TURN',
             )#打开轮次
         return list(事件列表[:边界+1])#含端前缀
@@ -793,13 +789,13 @@ class 会话存储(服务):#内存会话存储
         if isinstance(源,str):#按 id
             会话对象=自身.获取(源)#查找在线
             if 会话对象 is None:#未知
-                raise 会话分叉错误('session "'+str(源)+'" not found','SESSION_NOT_FOUND')#未知
+                raise 会话分叉错误('会话 "'+str(源)+'" 未找到','SESSION_NOT_FOUND')#未知
             return 会话对象#在线会话
         在线=自身.获取(源.id)#按对象 id 查找
         if 在线 is None:#存储里没有
-            raise 会话分叉错误('session "'+str(源.id)+'" not found','SESSION_NOT_FOUND')#未知
+            raise 会话分叉错误('会话 "'+str(源.id)+'" 未找到','SESSION_NOT_FOUND')#未知
         if 在线 is not 源:#必须是在线实例
-            raise 会话分叉错误('session "'+str(源.id)+'" is not the live store instance','SESSION_NOT_LIVE')#必须是在线实例
+            raise 会话分叉错误('会话 "'+str(源.id)+'" 不是本存储的在线实例','SESSION_NOT_LIVE')#必须是在线实例
         return 源#就是在线对象
 
 # 会话头字段权威在 .类型，本模块再导出供持久化等消费方。

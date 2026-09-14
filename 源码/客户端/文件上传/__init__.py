@@ -1,8 +1,3 @@
-"""Host 文件上传服务：流式接收与按 Agent 作用域的暂存凭证。
-
-对齐上游 `@deepseek-ai/dsh-client-file-upload` 的 `src/index.ts`。
-公开面仅中文名。Cordis 服务键与依赖槽保持上游英文字面量。
-"""
 import weakref#会话 → 暂存表
 from ...内核.作用域 import 获取作用域#作用域标签
 from ...工具.加密 import 随机uuid#铸造凭证

@@ -1,9 +1,3 @@
-"""子智能体引用：只读编写器认领判定。
-
-对齐上游 `ui-subagent/src/client/index.ts` 中的 `selectReadOnlySubagent`。
-公开面仅中文名。只读撰写器见 `只读撰写器.py`；目录动作 React 半仍欠。
-"""
-
 __all__=['选择只读子智能体']#仅中文公开名
 
 def 选择只读子智能体(属主):#是否改用只读编写器

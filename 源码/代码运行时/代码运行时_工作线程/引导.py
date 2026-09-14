@@ -1,11 +1,35 @@
-"""工作线程侧执行逻辑，写成对着注入端口的普通函数，以便单元套件能在进程内对着假端口跑每一行。"""
 import traceback#异常堆栈渲染
+from concurrent.futures import Future as 原生结果#单次操作结果
 from .输出json import json字符串字节上限,json值字节上限,截断json字符串字节#JSON字节账本
 from .工作线程json import 快照代码json值,编码工作线程json,解码工作线程json#无损JSON编解码
 
 捕获错误=Exception#钉死异常基类，避免模型改写
 控制台级别=('log','info','warn','error','debug')#五种日志级别
 检视选项={'depth':4,'maxArrayLength':100,'maxStringLength':10000}#有界inspect选项：深到有用，又封顶以免病态值撑爆渲染
+
+class 操作任务:
+    """单次操作的 Future 包装，只留 等待。"""
+    def __init__(自身):
+        """构造未决任务。"""
+        自身.未来=原生结果()#底层 Future
+
+    def 兑现(自身,值=None):
+        """成功结算。"""
+        if 自身.未来.done() is False:#尚未结算
+            自身.未来.set_result(值)#写入结果
+        return 值#返回兑现值
+
+    def 拒绝(自身,错误):
+        """失败结算。"""
+        if 自身.未来.done() is False:#尚未结算
+            if isinstance(错误,BaseException):#已是异常
+                自身.未来.set_exception(错误)#原样拒绝
+            else:#非异常
+                自身.未来.set_exception(捕获错误(str(错误)))#包装拒绝
+
+    def 等待(自身):
+        """阻塞等到结算。"""
+        return 自身.未来.result()#取结果或抛错
 
 class 引导端口:#bootstrap所需的端口API——由父端口与测试假端口满足
     """工作线程/测试共用端口面（约定：实现投递与监听）。"""
@@ -51,7 +75,7 @@ class 日志缓冲:#日志字节账本
             if len(前缀)>0:#前缀非空才交付；判 length
                 前缀字节=json字符串字节上限(前缀,可用)#再计量前缀
                 if 前缀字节 is None:#前缀越界是账本内部错误
-                    raise 捕获错误('worker output ledger produced an oversized log prefix')#内部错误
+                    raise 捕获错误('工作线程输出账本产出了超限日志前缀')#内部错误
                 自身.已用字节+=前缀字节+分隔#计入前缀与逗号
                 自身.条数+=1#条数加一
                 自身.交付槽(前缀)#交付截断前缀
@@ -139,7 +163,7 @@ def 准备完成(值,剩余输出字节,最大输出字节):#准备完成值片�
     except Exception:#快照对任意值没有收窄契约
         快照=None#视为无效完成
     if 快照 is None:#不是无损JSON
-        return 准备失败('invalid-output','program completion must be lossless JSON',剩余输出字节,最大输出字节)#改报invalid-output
+        return 准备失败('invalid-output','程序完成值必须是无损 JSON',剩余输出字节,最大输出字节)#改报invalid-output
     if json值字节上限(快照,剩余输出字节) is None:#快照装不进剩余预算
         return 输出超限(最大输出字节)#改报output-limit
     return {'value':编码工作线程json(快照)}#编码后作为完成值
@@ -155,7 +179,7 @@ def 准备异常(错误,剩余输出字节,最大输出字节):#准备异常片�
             详情=str(错误)#强制转
         消息=详情 if isinstance(详情,str) else str(详情)#保证字符串
     except Exception:#str/traceback 对任意抛出值没有收窄契约
-        消息='program threw an unrenderable value'#固定兜底说明
+        消息='程序抛出了无法渲染的值'#固定兜底说明
     return 准备失败('exception',消息,剩余输出字节,最大输出字节)#按异常准入
 
 def 定义绑定错误字段(错误,键,值):#给错误实例挂自有字段
@@ -201,17 +225,17 @@ def 接线应答(端口,待决):#把应答接到pending
         编号=消息['id']#调用编号
         if 编号 not in 待决:#未知或重复
             return#丢
-        条目=待决[编号]#句柄
+        条目=待决[编号]#任务
         del 待决[编号]#先摘掉，保证只结算一次
         if 'ok' in 消息 and 消息['ok'] is True:#成功分支
             值=解码工作线程json(消息['value'] if 'value' in 消息 else None)#解码线路值
             if 值 is None:#有损则拒
-                条目['reject'](捕获错误('binding resolution must be lossless JSON'))#拒绝
-            else:#无损则决议
-                条目['resolve'](值)#决议
+                条目.拒绝(捕获错误('绑定解析必须是无损 JSON'))#拒绝
+            else:#无损则兑现
+                条目.兑现(值)#兑现
         else:#失败分支
-            说明=消息['message'] if 'message' in 消息 else 'binding failed'#宿主说明
-            条目['reject'](捕获错误(说明))#用宿主说明拒绝
+            说明=消息['message'] if 'message' in 消息 else '绑定失败'#宿主说明
+            条目.拒绝(捕获错误(说明))#用宿主说明拒绝
     端口.监听('message',处理)#登记监听
 
 def 制作命名空间列表(数据,端口,待决,下一编号,错误类表=None):#构造程序可见命名空间
@@ -232,32 +256,20 @@ def 制作命名空间列表(数据,端口,待决,下一编号,错误类表=None
                 except Exception:#快照对任意值没有收窄契约
                     脱离=None#视为无效实参
                 if 脱离 is None:#不是无损JSON
-                    raise 绑定失败(拒绝类,成员名,'binding arguments must be lossless JSON')#posting前拒绝
-                盒子={'value':None,'error':None,'done':False}#结算盒
-                def 决议(值):#成功
-                    """记下成功值。"""
-                    盒子['value']=值#记下
-                    盒子['done']=True#完成
-                def 拒绝(错误):#失败
-                    """记下失败。"""
-                    盒子['error']=错误#记下
-                    盒子['done']=True#完成
-                def 拒绝并包装(错误):#失败并包成绑定错误
-                    """把宿主拒绝包成命名空间错误。"""
-                    拒绝(绑定失败(拒绝类,成员名,str(错误)))#包装
+                    raise 绑定失败(拒绝类,成员名,'绑定实参必须是无损 JSON')#posting前拒绝
+                任务=操作任务()#等待宿主应答
                 编号=下一编号['value']#签发相关id
                 下一编号['value']=编号+1#递增
-                待决[编号]={'resolve':决议,'reject':拒绝并包装}#登记
+                待决[编号]=任务#登记
                 try:#投递可能失败
                     端口.投递({'type':'call','id':编号,'global':全局名,'name':成员名,'args':编码工作线程json(脱离)})#发出绑定调用
                 except Exception as 错误:#克隆失败
                     del 待决[编号]#立刻摘掉
-                    raise 绑定失败(拒绝类,成员名,'binding arguments must be structured-cloneable: '+str(错误))#拒绝
-                while not 盒子['done']:#自旋等待应答（工作线程线程内；宿主泵并发投递）
-                    pass#等
-                if 盒子['error'] is not None:#失败
-                    raise 盒子['error']#抛出
-                return 盒子['value']#成功值
+                    raise 绑定失败(拒绝类,成员名,'绑定实参必须可结构化克隆: '+str(错误))#拒绝
+                try:#等待应答
+                    return 任务.等待()#阻塞到宿主应答
+                except Exception as 错误:#宿主拒绝或绑定失败
+                    raise 绑定失败(拒绝类,成员名,str(错误))#包装
             命名空间[名]=桥接#挂成员
         结果.append(命名空间)#收入
     return 结果#返回列表

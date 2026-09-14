@@ -1,7 +1,3 @@
-"""运行时入口共享的 Agent 作用域模型选择。
-
-对齐上游 `agent/src/model-selection.ts`。选择／组装／请求字段键保持上游 wire 名。
-"""
 from typing import NotRequired,TypedDict#可选字段与结构类型
 
 __all__=('模型选择','模型选择引用','安装模型选择')#仅中文公开名

@@ -1,7 +1,3 @@
-"""面向模型的只读 Cordis 能力查询的宿主注册表。
-
-对齐上游 `拓展/cordis-host-runner/src/inspect-registry.ts`。公开面仅中文名。
-"""
 from ...依赖 import cordis#外部依赖胶水
 from .类型 import 动态插件错误#本包异常
 服务=cordis.服务#Cordis 服务基类

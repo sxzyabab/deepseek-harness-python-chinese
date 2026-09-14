@@ -1,8 +1,3 @@
-"""输入枢纽：按会话解析的输入门面注册表。
-
-对齐上游 `ui-conversation/src/client/input/hub.ts`。公开面仅中文名。
-每个会话一个会话输入壳，在 sessions provide 物化时创建，由作用域 disposer 拆除。
-"""
 from ..队列.存储 import 队列读面自会话#队列只读面
 from .外壳 import 会话输入壳#会话输入壳
 from ..服务 import 对话错误#发送失败

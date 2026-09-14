@@ -7,5 +7,10 @@
     "inspector":"检查器",
     "tool-agent-team":"工具_智能体团队",
     "webworker-packer":"webworker_打包器",
-    "webworker-runtime":"webworker_运行时"
+    "webworker-runtime":"webworker_运行时",
+    "runShellProcess":"执行shell进程",
+    "跑shell进程":"执行shell进程",
+    "watchAbort":"监视中止",
+    "盯中止":"监视中止",
+    "bootReadyTask":"操作任务"
 }

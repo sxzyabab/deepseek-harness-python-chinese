@@ -1,7 +1,3 @@
-"""浏览器可读的内置 Preview 文件系统 overlay 目录。
-
-对齐上游 `webworker-runtime/src/fixture-manifest.ts`。公开面仅中文名。
-"""
 from .node.未实现失败 import 运行时错误#本包错误
 import re#id形态校验
 
@@ -35,7 +31,7 @@ def 解析预览fixture清单(值):#解析并校验
     for 原始 in 记录['fixtures']:#逐条校验
         条目=收窄记录(原始)#条目记录
         if 条目 is None:#非对象
-            raise 运行时错误('preview fixture manifest contains an invalid fixture entry')#拒绝条目
+            raise 运行时错误('preview fixture 清单含有非法 fixture 条目')#拒绝条目
         标识=条目.get('id')#id字段
         标签=条目.get('label')#标签
         说明=条目.get('description')#说明
@@ -46,12 +42,12 @@ def 解析预览fixture清单(值):#解析并校验
             or not isinstance(标签,str) or len(标签)==0#标签
             or not isinstance(说明,str) or len(说明)==0#说明
             or not isinstance(覆盖层,list) or len(覆盖层)==0 or len(覆盖地址列表)!=len(覆盖层)):#overlay
-            raise 运行时错误('preview fixture manifest contains an invalid fixture entry')#拒绝条目
+            raise 运行时错误('preview fixture 清单含有非法 fixture 条目')#拒绝条目
         if 标识 in 已见标识:#重复id
             raise 运行时错误(f'preview fixture manifest repeats id "{标识}"')#拒绝
         已见标识.add(标识)#记入集合
         条目列表.append({'id':标识,'label':标签,'description':说明,'overlays':覆盖地址列表})#追加合法条目
     默认=记录.get('defaultFixture')#默认字段
     if 默认 is not None and (not isinstance(默认,str) or 默认 not in 已见标识):#默认非法
-        raise 运行时错误('preview fixture manifest defaultFixture does not name a fixture')#拒绝
+        raise 运行时错误('preview fixture 清单的 defaultFixture 没有对应条目')#拒绝
     return {'version':预览fixture清单版本,'defaultFixture':默认,'fixtures':条目列表}#返回manifest

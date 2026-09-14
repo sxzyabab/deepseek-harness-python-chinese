@@ -1,8 +1,3 @@
-"""只读的当前 Session 活动提醒目录。
-
-对齐上游 `ui-schedule/src/client/ScheduleCatalogAction.tsx`。公开面仅中文名。
-无真 React：类状态 + 结构树字典。
-"""
 import math#取整
 import time#纪元毫秒
 from datetime import datetime#时刻

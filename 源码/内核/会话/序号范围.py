@@ -1,7 +1,3 @@
-"""JSONL `sourceEventSeqs` 数组的无损范围编解码。
-
-对齐上游 `session/src/seq-ranges.ts`。公开面仅中文名。
-"""
 from .类型 import 安全整数上限#安全整数上限
 
 __all__=['编码序号范围','解码序号范围']#仅中文公开名
@@ -13,7 +9,7 @@ def _严格递增(值列表):#是否严格递增
 def _断言序号(值):#断言安全非负整数
     """校验 sourceEventSeqs 成员。"""
     if isinstance(值,bool) or not isinstance(值,int) or 值<0 or abs(值)>安全整数上限:#非法
-        raise TypeError('sourceEventSeqs must contain non-negative safe integers')#非法
+        raise TypeError('sourceEventSeqs 必须包含非负安全整数')#非法
 
 def 编码序号范围(值列表):#编码序号范围
     """把有利可图的连续段压成闭区间对；非严格递增则原样拷贝。"""
@@ -36,29 +32,29 @@ def 编码序号范围(值列表):#编码序号范围
 def 解码序号范围(值,最大条目=安全整数上限):#解码序号范围
     """展开 JSON 存储形态的 sourceEventSeqs。"""
     if not isinstance(值,list):#非数组
-        raise TypeError('sourceEventSeqs must be an array')#必须数组
+        raise TypeError('sourceEventSeqs 必须是数组')#必须数组
     解码=[]#结果
     有范围=False#是否含范围
     for 条目 in 值:#逐项
         if isinstance(条目,int) and not isinstance(条目,bool):#单序号
             _断言序号(条目)#校验
             if len(解码)>=最大条目:#超限
-                raise TypeError('sourceEventSeqs exceeds its event sequence')#超限
+                raise TypeError('sourceEventSeqs 超出其事件序列')#超限
             解码.append(条目)#追加
             continue#下一项
         if not isinstance(条目,list) or len(条目)!=2:#非对
-            raise TypeError('sourceEventSeqs range entries must be [start, end] pairs')#必须对
+            raise TypeError('sourceEventSeqs 范围条目必须是 [start, end] 对')#必须对
         起,止=条目#拆开
         _断言序号(起)#校验起
         _断言序号(止)#校验止
         if 止<起:#倒置
-            raise TypeError('sourceEventSeqs ranges require start <= end')#倒置
+            raise TypeError('sourceEventSeqs 范围要求 start <= end')#倒置
         长度=止-起+1#长度
         if 长度>最大条目-len(解码):#超限
-            raise TypeError('sourceEventSeqs range exceeds its event sequence')#超限
+            raise TypeError('sourceEventSeqs 范围超出其事件序列')#超限
         for 序号 in range(起,止+1):#展开
             解码.append(序号)#追加
         有范围=True#标记
     if 有范围 and not _严格递增(解码):#非严格递增
-        raise TypeError('sourceEventSeqs ranges must be strictly increasing')#非递增
+        raise TypeError('sourceEventSeqs 范围必须严格递增')#非递增
     return 解码#返回

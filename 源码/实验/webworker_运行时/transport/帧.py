@@ -1,8 +1,3 @@
-"""页面与 worker 宿主之间的隧道帧协议。帧经 `postMessage` 穿越，
-故入站帧在使用前须校验。
-
-对齐上游 `webworker-runtime/src/transport/frames.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 
 __all__=['解析入站帧']#仅中文公开名
@@ -20,10 +15,10 @@ def 解析入站帧(数据):#校验入站帧
     帧=数据#当作字典
     if 帧.get('t')=='init':#初始化
         if not isinstance(帧.get('image'),str):#缺镜像
-            raise 运行时错误('webworker tunnel: init frame needs a string image url')#拒绝
+            raise 运行时错误('webworker tunnel: init 帧需要字符串 image url')#拒绝
         覆盖层=帧.get('overlays')#覆盖层
         if not isinstance(覆盖层,list) or any(not isinstance(层,str) for 层 in 覆盖层):#覆盖层非法
-            raise 运行时错误('webworker tunnel: init frame needs an array of string overlay urls')#拒绝
+            raise 运行时错误('webworker tunnel: init 帧需要字符串 overlay url 列表')#拒绝
         return {'t':'init','image':帧['image'],'overlays':覆盖层}#返回init
     标识=帧.get('id')#取id
     if not isinstance(标识,(str,int)):#id不可用

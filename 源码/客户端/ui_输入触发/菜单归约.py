@@ -1,8 +1,3 @@
-"""菜单归约纯核心。每源一组；按世代闸门结算；就绪且空的组自动关闭。
-
-对齐上游 `ui-input-trigger/src/core/menu.ts`。公开面仅中文名。零 React / DOM / cordis。
-"""
-
 __all__=['菜单关闭','铺分组','菜单归约','精确匹配']#仅中文公开名
 
 菜单关闭={'open':False,'hit':None,'generation':0,'groups':[],'highlight':None}#关闭静息态

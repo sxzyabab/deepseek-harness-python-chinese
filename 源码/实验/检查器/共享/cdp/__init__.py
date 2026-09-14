@@ -1,7 +1,3 @@
-"""与界域无关的 Runtime、Console、Source 与 Debugger 协议类型。
-
-对齐上游 `shared/cdp/index.ts`。公开面仅中文名。
-"""
 from .能力 import *#导出能力
 from .控制台 import *#导出Console
 from .调试器 import *#导出Debugger

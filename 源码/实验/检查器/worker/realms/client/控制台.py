@@ -1,4 +1,3 @@
-"""类型化 Client Console 事件传输上的 ConsoleBackend。"""
 #对齐上游 worker/realms/client/console.ts
 
 from .值 import Client控制台事件#Console转换

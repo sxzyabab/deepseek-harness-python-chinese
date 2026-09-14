@@ -1,7 +1,3 @@
-"""仅由私有模块状态支撑的 Remote 装饰器与显式网关绑定。
-
-对齐上游 `@deepseek-ai/dsh-typert-protocol`。公开面仅中文名。严格反射仍是 Typert 编译器的职责；本模块提供运行时标记与可导出服务基类。
-"""
 import re,weakref#段名校验与原型标记弱表
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
@@ -33,7 +29,7 @@ class 查找策略失败(Exception):#lookup 策略拒绝错误
 def 校验段名(主语,值):#校验 Remote 段名
     """非法端点段则抛。"""
     if not 是否合法远程段(值):#非法
-        raise TypeError('typert-protocol: '+主语+' must contain only RPC endpoint segment characters')#拒绝
+        raise TypeError('typert-protocol: '+主语+' 只能包含 RPC 端点段字符')#拒绝
 
 def 绑定远程网关(服务实例,服务键,选项=None):#显式 Service→网关绑定
     """把一个可见 Service 字段绑定到 Cordis 键与 Remote 命名空间。"""
@@ -64,7 +60,7 @@ def 记下标记(原型,方法名,调用模式,导出名=None):#把一条标记�
     if 当前 is not None:#同一方法被标过
         if 当前.get('exportName')==标记.get('exportName') and 当前['invocation']==标记['invocation']:#相同
             return#幂等忽略
-        raise Exception('typert-protocol: Remote method "'+方法名+'" has conflicting invocation markers')#冲突
+        raise Exception('typert-protocol: Remote 方法 "'+方法名+'" 的调用标记冲突')#冲突
     表[方法名]=标记#写入
 
 def 远程(方法或导出名=None):#直接 Remote 调用装饰器
@@ -90,7 +86,7 @@ def 记下标记到函数(方法,调用模式,导出名=None):#把标记挂在�
         标记['exportName']=导出名#记下
     已有=getattr(方法,'_typert_remote_marker',None)#已有
     if 已有 is not None and 已有!=标记:#冲突
-        raise Exception('typert-protocol: Remote method "'+方法.__name__+'" has conflicting invocation markers')#冲突
+        raise Exception('typert-protocol: Remote 方法 "'+方法.__name__+'" 的调用标记冲突')#冲突
     方法._typert_remote_marker=标记#挂上
 
 def 远程作用域(键,导出名=None):#作用域 Remote 装饰器工厂

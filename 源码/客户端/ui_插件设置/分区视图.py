@@ -1,8 +1,3 @@
-"""插件设置分区与可配置页签、插件卡片壳。
-
-对齐上游 PluginsSettingsSection / ConfigurablePluginsTab / PluginCard。公开面仅中文名。
-"""
-
 __all__=['插件设置分区','可配置插件页签','插件卡片']#仅中文公开名
 
 class 插件设置分区:#插件设置分区组件

@@ -1,7 +1,3 @@
-"""浮动层视图模型：按 z 序叠浮窗，自持拖移/缩放预览。
-
-对齐上游 `ui-dockkit/src/components/FloatLayer.tsx`。公开面仅中文名。
-"""
 from ..引擎.约束 import 浮动最小尺寸#下限
 from ..引擎.几何 import 平移矩形,缩放矩形#几何
 from ..引擎.树 import 浮动矩形,取窗格,取标签,唯一标签标识#树

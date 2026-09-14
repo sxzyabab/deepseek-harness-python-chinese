@@ -1,7 +1,3 @@
-"""本页最近一次读到的宿主定义注册表（清单源）。
-
-对齐上游 `ui-cordis/src/client/inventory.ts`。公开面仅中文名。
-"""
 import threading#后台观察清单读取
 
 __all__=['创建清单源']#仅中文公开名

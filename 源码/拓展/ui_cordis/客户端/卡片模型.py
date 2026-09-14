@@ -1,8 +1,3 @@
-"""Cordis 生命周期工具调用的可回放稳定视图模型。
-
-对齐上游 `ui-cordis/src/client/card-model.ts`。公开面仅中文名。
-纯数据推导，无 DOM / React。
-"""
 import json#解析参数
 from json import JSONDecodeError#JSON 解析失败
 

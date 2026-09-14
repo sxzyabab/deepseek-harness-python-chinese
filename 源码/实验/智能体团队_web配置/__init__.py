@@ -1,8 +1,3 @@
-"""私有 Web profile 层，挂载 Agent Teams 客户端插件。
-
-对齐上游 `@deepseek-ai/dsh-experimental-agent-team-web-profile`。
-本模块不导出运行时 API。公开面仅中文名。
-"""
 __all__=['名称','注入','应用']#仅中文公开名
 
 名称='agent-team-web-profile'#插件名

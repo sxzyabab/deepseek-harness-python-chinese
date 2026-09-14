@@ -1,8 +1,3 @@
-"""回合尾：扩展链 + 助手 IconActions。
-
-对齐上游 `ui-conversation/src/client/chat/TurnTailNodeView.tsx`。公开面仅中文名。
-属性、节点、快照为 dict。
-"""
 from .消息图标动作 import 消息图标动作#图标行
 from .回合助手 import 助手文本#闭包正文
 

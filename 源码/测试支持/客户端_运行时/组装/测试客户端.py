@@ -1,8 +1,3 @@
-"""整客户端测试载体：经进程内模块表上的生产启动客户端启动组装计划。
-
-对齐上游 `client-runtime/src/assembly/test-client.ts`。公开面仅中文名。
-无异步：启动回合用锁串行；中止与就绪等待用 Event。
-"""
 import builtins,threading#页面全局与启动回合锁
 from ....依赖 import cordis#外部依赖胶水
 from ....客户端.热更新.客户端 import 拆除条目光纤#条目光纤拆除

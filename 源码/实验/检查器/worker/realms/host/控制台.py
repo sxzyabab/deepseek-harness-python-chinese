@@ -1,4 +1,3 @@
-"""原生 Node Runtime 通知上的 ConsoleBackend 实现。"""
 #对齐上游 worker/realms/host/console.ts
 
 from .桥接 import Host通知通道#通知通道

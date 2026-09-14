@@ -1,8 +1,3 @@
-"""无 Cordis 依赖的 Markdown 原语本地化文案适配。
-
-对齐上游 `ui-chat/src/client/markdown-labels.ts`。公开面仅中文名。
-"""
-
 __all__=['markdown标签']#仅中文公开名
 
 def markdown标签(翻译):#构造 Markdown 标签

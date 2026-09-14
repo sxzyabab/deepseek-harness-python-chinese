@@ -1,7 +1,3 @@
-"""Host Sources 由 Worker 侧 Node inspector 适配器直接提供。
-
-对齐上游 `host/cdp/sources.ts`。公开面仅中文名。
-"""
 from ...共享.json import 检查器错误#本包错误
 
 __all__=['源桥能力','拒绝源桥命令']#仅中文公开名

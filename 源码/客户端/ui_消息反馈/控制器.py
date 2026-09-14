@@ -1,8 +1,3 @@
-"""浏览器本地对象层：覆盖一个 Session 的持久消息反馈 sidecar。
-
-对齐上游 `ui-message-feedback/src/client/controller.ts`。公开面仅中文名。
-宿主拥有逐条 compare-and-set；version-conflict 应答携带权威条目。
-"""
 import threading#串行链
 from concurrent.futures import Future as _原生Future#单次操作结果
 
@@ -279,4 +274,4 @@ class 消息反馈控制器:#每会话反馈对象层
             try:#订阅者失败不得外溢
                 监听()#通知
             except Exception as 错误:#抛错；订阅者异常契约未定，故不能换成更窄的 except
-                print('[ui-message-feedback] subscriber threw:',错误)#记日志
+                print('[ui-message-feedback] 订阅者抛错:',错误)#记日志

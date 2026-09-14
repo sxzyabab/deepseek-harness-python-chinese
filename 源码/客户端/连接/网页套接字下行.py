@@ -1,9 +1,3 @@
-"""两条服务端到浏览器事件流的宿主侧 WebSocket 载体。
-
-对齐上游 `connection/src/websocket-downlink.ts`。公开面仅中文名。客户端发来的消息是协议违规：上行仍走 HTTP。
-
-完整帧泵依赖宿主 apiproxy 事件流与 WebSocket 协商实现；本模块迁入拒绝升级与下行拥有面，泵送在网关事件面可用时挂上。
-"""
 import json,threading,uuid#JSON、中止与随机 id
 
 __all__=['拒绝网页套接字升级','网页套接字下行']#仅中文公开名

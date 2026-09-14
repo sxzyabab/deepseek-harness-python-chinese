@@ -1,7 +1,3 @@
-"""由 Team roster 与任务命令共享的输入规范化。
-
-对齐上游 `agent-team/src/validation.ts`。公开面仅中文名。
-"""
 import re#路径段校验
 from .错误 import 团队错误#领域错误
 

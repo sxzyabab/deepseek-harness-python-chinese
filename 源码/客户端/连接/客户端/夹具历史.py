@@ -1,8 +1,3 @@
-"""fx-alpha 历史脚本与消息工厂。
-
-对齐上游 `connection/src/client/fixture.ts` 的 `buildAlphaLog` 与消息构造辅助。
-公开面仅中文名；协议键保持英文。假宿主世界与接口客户端见 `夹具.py`。
-"""
 import json,time#参数序列化、时间戳
 from .夹具样本 import (#构造甲日志用到的样本与用量
     markdown样本,用户markdown字面量,终端输出样本,搜索命中正文,搜索路径正文,

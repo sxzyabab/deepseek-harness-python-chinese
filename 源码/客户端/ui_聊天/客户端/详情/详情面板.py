@@ -1,8 +1,3 @@
-"""所选工具调用的整块详情面板。
-
-对齐上游 `ui-chat/src/client/details/DetailsPanel.tsx`。公开面仅中文名。
-无真 React：结构树描述。属性、块、快照为 dict。
-"""
 import json#美化与序列化
 from .工具节点读取 import 查找工具调用#按 callId 查找
 

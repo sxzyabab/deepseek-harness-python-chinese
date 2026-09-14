@@ -1,5 +1,3 @@
-"""按父网址解析说明符并用 importlib 导入。loadCache 与依赖图留给后续。"""
-
 import hashlib,importlib,importlib.util,os,sys#标准库
 from urllib.parse import urljoin#按父网址拼接相对说明符
 from ..工具 import 路径转文件url,文件url转路径#路径与 file URL 互转

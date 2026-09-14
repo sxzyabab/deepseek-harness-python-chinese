@@ -1,9 +1,3 @@
-"""悬停/焦点提示泡。
-
-对齐上游 `ui-primitives/src/Tooltip.tsx`。公开面仅中文名。
-锚点为子元素本身；气泡 fixed 定位。属性为 dict。
-"""
-
 __all__=['提示泡','侧表']#仅中文公开名
 
 侧表=('right','bottom','top')#放置侧

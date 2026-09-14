@@ -1,9 +1,3 @@
-"""父拥有的耐久子智能体目录事件及其分块投影。
-
-对齐上游 `subagent/src/catalog.ts`。公开面仅中文名。
-事件名 `subagent/catalog` 与投影键 `subagentCatalog` 是线协议，原样英文。
-从 `工具.分块列表` 导入分块原语。
-"""
 from ...工具.分块列表 import 追加分块列表,迭代分块列表,分块列表模式#分块列表
 
 __all__=[#仅中文公开名
@@ -18,28 +12,28 @@ __all__=[#仅中文公开名
 def _校验目录事件(数据):#校验一条目录事件
     """返回规范 dict 或抛 ValueError。"""
     if not isinstance(数据,dict):#须映射
-        raise ValueError('subagent catalog event must be an object')#拒绝
+        raise ValueError('子智能体目录事件必须是对象')#拒绝
     if 'version' not in 数据 or 数据['version']!=子智能体目录版本:#版本
-        raise ValueError('subagent catalog event version mismatch')#拒绝
+        raise ValueError('子智能体目录事件版本不匹配')#拒绝
     if 'childId' not in 数据 or not isinstance(数据['childId'],str):#子 id
-        raise ValueError('subagent catalog event requires childId')#拒绝
+        raise ValueError('子智能体目录事件需要 childId')#拒绝
     创建于=数据['childCreatedAt'] if 'childCreatedAt' in 数据 else None#创建时刻
     if not isinstance(创建于,int) or isinstance(创建于,bool) or 创建于<0:#非负 int
-        raise ValueError('subagent catalog event requires childCreatedAt')#拒绝
+        raise ValueError('子智能体目录事件需要 childCreatedAt')#拒绝
     模式=数据['mode'] if 'mode' in 数据 else None#模式
     if 模式=='one-shot':#一次性
         规范={'version':子智能体目录版本,'childId':数据['childId'],'childCreatedAt':创建于,'mode':'one-shot'}#规范
         if 'label' in 数据 and 数据['label'] is not None:#有标签
             if not isinstance(数据['label'],str):#须字符串
-                raise ValueError('subagent catalog one-shot label must be a string')#拒绝
+                raise ValueError('子智能体目录一次性 label 必须是字符串')#拒绝
             规范['label']=数据['label']#标签
         return 规范#规范
     if 模式=='continuable':#可续跑
         标签=数据['label'] if 'label' in 数据 else None#标签
         if not isinstance(标签,str):#须字符串
-            raise ValueError('subagent catalog continuable requires label')#拒绝
+            raise ValueError('子智能体目录可续跑需要 label')#拒绝
         return {'version':子智能体目录版本,'childId':数据['childId'],'childCreatedAt':创建于,'mode':'continuable','label':标签}#规范
-    raise ValueError('subagent catalog event mode unsupported')#拒绝
+    raise ValueError('子智能体目录事件 mode 不受支持')#拒绝
 
 _头模式=分块列表模式(_校验目录事件)#头校验器
 

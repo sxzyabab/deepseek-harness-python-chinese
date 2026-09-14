@@ -1,7 +1,3 @@
-"""每个 DevTools 会话上，跨 Host 与 Client realm 的 Debugger 与源路由。
-
-对齐上游 `worker/cdp/domains/debugger/session.ts`。公开面仅中文名。
-"""
 from .....共享.json import 检查器错误,在线程执行#包内错误|后台跑
 from .....共享.校验 import 精确键,可选布尔#校验
 from ...协议 import 响应cdp请求,发送cdp失败#协议
@@ -30,7 +26,7 @@ class Debugger域会话:#Debugger域会话
                 原生=能力['backend']#后端
                 break#找到
         if 原生 is None:#无原生
-            raise 检查器错误('Inspector has no native Host debugger transport')#抛错
+            raise 检查器错误('检查器没有原生 Host 调试器传输')#抛错
         自身._原生=原生#保存后端
         自身._取消realm订阅=realms.订阅(自身._接收realm)#订阅
         自身._启用请求={}#启用请求
@@ -49,7 +45,7 @@ class Debugger域会话:#Debugger域会话
             自身._响应(请求,启用)#响应
             return True#已拥有
         if 方法=='Debugger.disable':#禁用
-            精确键(请求['params'],[],'Debugger.disable parameters')#无参
+            精确键(请求['params'],[],'Debugger.disable 参数')#无参
             自身._响应(请求,自身._禁用)#响应
             return True#已拥有
         if 方法=='Debugger.getScriptSource':#取源
@@ -71,7 +67,7 @@ class Debugger域会话:#Debugger域会话
             自身._响应(请求,帧求值)#响应
             return True#已拥有
         if 方法=='Debugger.pause':#暂停
-            精确键(请求['params'],[],'Debugger.pause parameters')#无参
+            精确键(请求['params'],[],'Debugger.pause 参数')#无参
             自身._响应(请求,自身._暂停)#响应
             return True#已拥有
         if 方法=='Debugger.resume':#恢复
@@ -96,12 +92,12 @@ class Debugger域会话:#Debugger域会话
 
     def _启用(自身,参数):#启用
         """Debugger.enable。"""
-        精确键(参数,['maxScriptsCacheSize'],'Debugger.enable parameters')#键
+        精确键(参数,['maxScriptsCacheSize'],'Debugger.enable 参数')#键
         if 自身._已启用:#已启用
             return {}#空
         缓存=参数.get('maxScriptsCacheSize')#缓存大小
         if 缓存 is not None and (not isinstance(缓存,(int,float)) or isinstance(缓存,bool) or not (缓存==缓存) or 缓存<0):#非法
-            raise 检查器错误('Debugger.enable maxScriptsCacheSize must be a non-negative number')#抛错
+            raise 检查器错误('Debugger.enable 的 maxScriptsCacheSize 必须是非负数')#抛错
         启用请求={} if 缓存 is None else {'maxScriptsCacheSize':缓存}#启用请求
         自身._启用请求=启用请求#保存
         自身._已启用=True#置位
@@ -145,29 +141,29 @@ class Debugger域会话:#Debugger域会话
 
     def _取脚本来源(自身,参数):#取脚本来源
         """Debugger.getScriptSource。"""
-        精确键(参数,['scriptId'],'Debugger.getScriptSource parameters')#键
+        精确键(参数,['scriptId'],'Debugger.getScriptSource 参数')#键
         if not isinstance(参数.get('scriptId'),str):#类型
-            raise 检查器错误('Debugger.getScriptSource requires scriptId')#抛错
+            raise 检查器错误('Debugger.getScriptSource 需要 scriptId')#抛错
         路由=自身._脚本.解析(参数['scriptId'])#路由
         if 路由 is not None:#本地
             return {'scriptSource':路由['source'].取脚本来源(路由['script']['scriptKey'])}#本地
         if 自身._脚本.曾不支持(参数['scriptId']) or 参数['scriptId'].startswith('client:'):#Client失效
-            raise 检查器错误('Client script is no longer available')#抛错
+            raise 检查器错误('Client 脚本已不可用')#抛错
         return 自身._原生.请求('Debugger.getScriptSource',参数)#原生
 
     def _内容搜索(自身,参数):#内容搜索
         """Debugger.searchInContent。"""
-        精确键(参数,['scriptId','query','caseSensitive','isRegex'],'Debugger.searchInContent parameters')#键
+        精确键(参数,['scriptId','query','caseSensitive','isRegex'],'Debugger.searchInContent 参数')#键
         if not isinstance(参数.get('scriptId'),str) or not isinstance(参数.get('query'),str):#缺必填
-            raise 检查器错误('Debugger.searchInContent requires scriptId and query')#抛错
+            raise 检查器错误('Debugger.searchInContent 需要 scriptId 和 query')#抛错
         if 参数.get('caseSensitive') is not None and not isinstance(参数['caseSensitive'],bool):#大小写类型
-            raise 检查器错误('Debugger.searchInContent caseSensitive must be a boolean')#抛错
+            raise 检查器错误('Debugger.searchInContent 的 caseSensitive 必须是布尔')#抛错
         if 参数.get('isRegex') is not None and not isinstance(参数['isRegex'],bool):#正则类型
-            raise 检查器错误('Debugger.searchInContent isRegex must be a boolean')#抛错
+            raise 检查器错误('Debugger.searchInContent 的 isRegex 必须是布尔')#抛错
         路由=自身._脚本.解析(参数['scriptId'])#路由
         if 路由 is None:#无本地
             if 自身._脚本.曾不支持(参数['scriptId']) or 参数['scriptId'].startswith('client:'):#Client失效
-                raise 检查器错误('Client script is no longer available')#抛错
+                raise 检查器错误('Client 脚本已不可用')#抛错
             return 自身._原生.请求('Debugger.searchInContent',参数)#原生已同步
         源=路由['source'].取脚本来源(路由['script']['scriptKey'])#取源已同步
         return {'result':按行搜索(源,参数['query'],参数.get('caseSensitive') is True,参数.get('isRegex') is True)}#结果
@@ -176,7 +172,7 @@ class Debugger域会话:#Debugger域会话
         """Debugger.evaluateOnCallFrame。"""
         解析=解析调用帧求值(参数)#解析
         if 解析['callFrameId'].startswith('client:'):#Client不可用
-            raise 检查器错误('Client native debugging is unavailable')#抛错
+            raise 检查器错误('Client 原生调试不可用')#抛错
         领域=自身._调用帧realms.get(解析['callFrameId'])#调用帧 realm
         if 领域 is None: 领域=自身._支持调试的()#??支持调试的 realm
         对象组=解析.get('objectGroup')#对象组
@@ -188,17 +184,17 @@ class Debugger域会话:#Debugger域会话
         """Debugger.pause。"""
         支持=[领域 for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']#支持的
         if len(支持)==0:#全不支持
-            raise 检查器错误('Debugger.pause is unsupported by every active realm')#抛错
+            raise 检查器错误('当前所有活动 realm 都不支持 Debugger.pause')#抛错
         结果列表=[调试后端(领域).暂停() for 领域 in 支持]#逐个暂停已同步
         return 合并结果(结果列表)#合并
 
     def _恢复(自身,参数):#恢复
         """Debugger.resume。"""
-        精确键(参数,['terminateOnResume'],'Debugger.resume parameters')#键
+        精确键(参数,['terminateOnResume'],'Debugger.resume 参数')#键
         请求=可选布尔(参数,'terminateOnResume')#可选
         支持=[领域 for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']#支持的
         if len(支持)==0:#全不支持
-            raise 检查器错误('Debugger.resume is unsupported by every active realm')#抛错
+            raise 检查器错误('当前所有活动 realm 都不支持 Debugger.resume')#抛错
         结果列表=[调试后端(领域).恢复(请求) for 领域 in 支持]#逐个恢复已同步
         return 合并结果(结果列表)#合并
 
@@ -225,7 +221,7 @@ class Debugger域会话:#Debugger域会话
             if 路由 is not None and _能力(路由['realm'].debugger)['state']=='unsupported':#不支持
                 return _能力(路由['realm'].debugger)['reason']#原因
             if 路由 is None and 自身._脚本.曾不支持(脚本id):#已退役
-                return 'Client script is no longer available'#原因
+                return 'Client 脚本已不可用'#原因
         if isinstance(参数.get('url'),str):#有URL
             路由=自身._脚本.按url(参数['url'])#按URL
             if 路由 is not None and _能力(路由['realm'].debugger)['state']=='unsupported':#不支持
@@ -253,7 +249,7 @@ class Debugger域会话:#Debugger域会话
                     try:#启用
                         自身._启用realm(事件['session'])#启用
                     except Exception as 错误:#_启用realm 可能抛检查器错误/连接错误，契约未定所以收不窄
-                        print(f'Inspector could not enable Debugger realm {事件["session"].descriptor.label}:',错误)#记录
+                        print(f'检查器无法启用 Debugger realm {事件["session"].descriptor.label}:',错误)#记录
                 在线程执行(启用单个领域)#投递
             return#返回
         会话=事件['session']#会话
@@ -326,7 +322,7 @@ class Debugger域会话:#Debugger域会话
         for 候选 in 自身.realms.全部():#查找
             if _能力(候选.debugger)['state']=='supported':#支持
                 return 候选#返回
-        raise 检查器错误('No active realm supports call-frame evaluation')#无
+        raise 检查器错误('当前没有活动 realm 支持调用帧求值')#无
 
     def _卸能力(自身):#卸全部能力
         """卸全部能力。"""

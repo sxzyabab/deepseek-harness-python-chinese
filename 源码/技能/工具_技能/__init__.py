@@ -1,4 +1,3 @@
-"""持久会话技能目录与面向模型的 skill 加载工具。"""
 import hashlib#目录条目摘要用 SHA-256
 import json#目录条目规范 JSON 编码
 import re#技能手势正则与空白压缩
@@ -26,7 +25,7 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 }#配置模式结束
 
 class 工具技能错误(Exception):
-    """本包异常基类。错误消息原样英文。"""
+    """本包异常基类。"""
 
 def 浅拷贝基址(基址):
     """浅拷贝提供方给出的资源基址记录。基址是 dict。"""
@@ -58,11 +57,11 @@ def 目录源条目(技能列表,描述最大长度):
 def 校验正整数(名,值,下限=1):
     """配置入口正整数断言，排除布尔，非法则在加载时大声失败。"""
     if isinstance(值,bool):#布尔不是整数
-        raise 工具技能错误('tool-skill: '+名+' must be an integer greater than or equal to '+str(下限))#加载时大声失败
+        raise 工具技能错误('tool-skill: '+名+' 必须是大于等于 '+str(下限)+' 的整数')#加载时大声失败
     if isinstance(值,float) and 值.is_integer():#整值浮点
         值=int(值)#收成int
     if not isinstance(值,int) or 值<下限:#非整数或低于下限
-        raise 工具技能错误('tool-skill: '+名+' must be an integer greater than or equal to '+str(下限))#加载时大声失败
+        raise 工具技能错误('tool-skill: '+名+' 必须是大于等于 '+str(下限)+' 的整数')#加载时大声失败
 
 def 目录描述(值,最大长度):
     """规范化、长度受限的描述，恰好是目录发布它的样子（未转义）。按字符数截断。"""
@@ -279,7 +278,7 @@ def 应用(上下文,配置值=None):
         """按精确技能名加载模型可调用技能正文。参数与执行上下文是跨包 dict。"""
         名=参数['name'] if 'name' in 参数 else None#技能名参数
         if 是否技能名(名) is False:#名不合法
-            raise 工具技能错误('invalid skill name "'+str(名)+'"')#非法名
+            raise 工具技能错误('非法技能名 "'+str(名)+'"')#非法名
         智能体=执行上下文['agent']#调用方智能体
         查找=查找选项(智能体,执行上下文['signal'] if 'signal' in 执行上下文 else None)#cwd加取消加观察作用域
         摘要=None#目录里的摘要
@@ -288,14 +287,14 @@ def 应用(上下文,配置值=None):
                 摘要=项#记下
                 break#已找到
         if 摘要 is None:#目录没有
-            raise 工具技能错误('skill "'+名+'" is unknown or no longer available')#未知或已消失
+            raise 工具技能错误('技能 "'+名+'" 未知或已不可用')#未知或已消失
         if 是否模型可调用(摘要) is False:#用户专用技能
-            raise 工具技能错误('skill "'+名+'" is not available for model invocation')#模型不可调用
+            raise 工具技能错误('技能 "'+名+'" 不可供模型调用')#模型不可调用
         技能=上下文.skills.获取(名,查找)#加载正文
         if 技能 is None:#加载后消失
-            raise 工具技能错误('skill "'+名+'" is unknown or no longer available')#未知或已消失
+            raise 工具技能错误('技能 "'+名+'" 未知或已不可用')#未知或已消失
         if 是否模型可调用(技能) is False:#定义上不可调用
-            raise 工具技能错误('skill "'+名+'" is not available for model invocation')#模型不可调用
+            raise 工具技能错误('技能 "'+名+'" 不可供模型调用')#模型不可调用
         结果={'name':技能['name'],'provider':技能['provider'],'content':技能['content']}#结构化结果
         if 'resourceBase' in 技能 and 技能['resourceBase'] is not None:#有基址则展开
             结果['resourceBase']=浅拷贝基址(技能['resourceBase'])#浅拷贝基址

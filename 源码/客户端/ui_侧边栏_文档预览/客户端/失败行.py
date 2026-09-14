@@ -1,8 +1,3 @@
-"""一个 Remote 错误码应得的失败行。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/failure-line.ts`。公开面仅中文名。
-与组件分开，使映射可单独测试。本读取器未命名的码落到携带载体消息的通用行。
-"""
 
 __all__=['人读字节','失败行']#仅中文公开名
 

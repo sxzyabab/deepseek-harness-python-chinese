@@ -1,4 +1,3 @@
-"""调度一步助手工具调用。独占调用形成屏障；并行调用用有界滚动池。"""
 import json,threading
 from ...模型后端.llm import 断言永不,创建工具结果消息
 from ..工具 import 工具体前中止,调度器符号

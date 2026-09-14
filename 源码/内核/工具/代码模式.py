@@ -1,4 +1,3 @@
-"""Code Mode 的 run_code 传输。程序经嵌套执行调用注册表里该智能体可见的工具。对齐上游 `tools/src/code-mode.ts`。公开面仅中文名。"""
 import json,threading
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...模型后端.llm import 调用标识,装备错误 as 框架错误#导入调用 id 与框架错误
@@ -37,7 +36,7 @@ class 操作任务:
             if isinstance(错误,BaseException):
                 自身._原生结果.set_exception(错误)#原样拒绝
             else:
-                包装=代码模式错误('task rejected')#包装拒绝
+                包装=代码模式错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息做成属性
                 自身._原生结果.set_exception(包装)#包装拒绝
 
@@ -53,7 +52,7 @@ class 中止信号:
         自身._异常=None#中止时抛出的异常
         if 已中止标志:
             自身._事件.set()#置位
-            自身._异常=代码模式错误('aborted')#默认中止异常
+            自身._异常=代码模式错误('已中止')#默认中止异常
 
     def 触发(自身,原因=None):
         """标记中止。"""
@@ -62,11 +61,11 @@ class 中止信号:
         if isinstance(原因,BaseException):
             自身._异常=原因#用异常对象承载
         elif 原因 is not None:
-            中止异常=代码模式错误('aborted')#包装
+            中止异常=代码模式错误('已中止')#包装
             中止异常.原因=原因#附加属性
             自身._异常=中止异常#记下
         else:
-            自身._异常=代码模式错误('aborted')#默认
+            自身._异常=代码模式错误('已中止')#默认
         自身._事件.set()#置位
 
 class 中止控制器:
@@ -93,7 +92,7 @@ def 若已中止则抛出(信号):
         return#仍活着
     if 信号._异常 is not None:
         raise 信号._异常#抛出
-    raise 代码模式错误('aborted')#默认中止
+    raise 代码模式错误('已中止')#默认中止
 
 def 在线程执行(函数):
     """在工作线程执行并返回任务。回调翻译时已是同步函数。"""
@@ -129,15 +128,15 @@ def 全部结算(任务列表):
 def 任一落定(任务集):
     """最先落定的那路胜出。"""
     完成=threading.Event()#任一完成
-    def 盯(任务):
-        """等待一路。"""
+    def 等待一路落定(任务):
+        """等待一路并唤醒。"""
         try:
             任务.等待()#等待
         except BaseException:
             pass#赛跑不关心成败
         完成.set()#唤醒
     for 任务 in list(任务集):
-        工作=threading.Thread(target=盯,args=(任务,))#盯梢线程
+        工作=threading.Thread(target=等待一路落定,args=(任务,))#等待线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
     完成.wait()#阻塞到任一落定
@@ -420,9 +419,9 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
     if 已中止(外层信号):
         本轮.中止(外层信号._异常)#已中止则立刻跟
     elif 外层信号 is not None:
-        盯外层=threading.Thread(target=跟外层中止)#盯梢线程
-        盯外层.daemon=True#不挡住退出
-        盯外层.start()#启动
+        外层线程=threading.Thread(target=跟外层中止)#跟外层中止线程
+        外层线程.daemon=True#不挡住退出
+        外层线程.start()#启动
     子调用序号=0#子调用序号
     未开始队列=[]#未开始队列
     在飞=set()#在飞体
@@ -488,7 +487,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                             """体结束后离池。"""
                             在飞.discard(任务)#离池
                             唤醒()#唤醒车道
-                        def 盯飞(任务=飞行,收尾=离池):
+                        def 等待飞行落定(任务=飞行,收尾=离池):
                             """等到飞行落定。"""
                             try:
                                 任务.等待()#等待
@@ -496,13 +495,13 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                                 pass#飞行失败仍离池
                             收尾()#离池
                         在飞.add(飞行)#入池
-                        盯梢=threading.Thread(target=盯飞)#盯梢线程
-                        盯梢.daemon=True#不挡住退出
-                        盯梢.start()#启动
+                        等待线程=threading.Thread(target=等待飞行落定)#等待飞行线程
+                        等待线程.daemon=True#不挡住退出
+                        等待线程.start()#启动
             finally:
                 with 条件:
                     驾驶中=False#释放占位
-        驾驶任务=在线程跑(车道)#新一轮驱动
+        驾驶任务=在线程执行(车道)#新一轮驱动
         return 驾驶任务#返回本轮驱动
     def 排空派发():
         """每次派发都已落定并提交。"""
@@ -560,11 +559,11 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                         'isError':结果['isError'],#是否错误
                         'content':已记,#可能被替换的耐久内容
                     })#落定事件
-                日志任务=在线程跑(日志体)#跟踪副作用
+                日志任务=在线程执行(日志体)#跟踪副作用
                 def 日志离集(任务=日志任务):
                     """落定后离集。"""
                     日志工作.discard(任务)#离集
-                def 盯日志(任务=日志任务,收尾=日志离集):
+                def 等待日志落定(任务=日志任务,收尾=日志离集):
                     """等到日志落定。"""
                     try:
                         任务.等待()#等待
@@ -572,9 +571,9 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                         pass#shapeDispatchLog 是收住的
                     收尾()#离集
                 日志工作.add(日志任务)#跟踪副作用
-                盯梢=threading.Thread(target=盯日志)#盯梢
-                盯梢.daemon=True#不挡住退出
-                盯梢.start()#启动
+                日志线程=threading.Thread(target=等待日志落定)#等待日志线程
+                日志线程.daemon=True#不挡住退出
+                日志线程.start()#启动
             条目={
                 'flight':空结算任务(),#占位，start() 替换
                 'settled':False,#尚未停住
@@ -604,7 +603,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                         停住盒[0]={'kind':派发结局['kind'],'exec':已准备['exec'],'result':派发结局['result']}#停住
                         条目['settled']=True#允许提交
                         唤醒()#唤醒车道
-                    条目['flight']=在线程跑(飞)#体在飞
+                    条目['flight']=在线程执行(飞)#体在飞
                     return#体在飞
                 停住盒[0]={'kind':已准备['kind'],'exec':已准备['exec'],'result':已准备['result']}#预落定
                 条目['settled']=True#可提交

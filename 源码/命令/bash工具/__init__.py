@@ -1,7 +1,3 @@
-"""`ctx.shell` 能力 seam 的面向模型消费方。对齐上游 `tool-bash/src/index.ts`。公开面仅中文名。
-
-后台调用把进程句柄登记到 `ctx.jobs`；一旦返回 id，其工作使用任务取消而不是工具调用信号。
-"""
 import json,math,os,threading#JSON片段、有限数、路径与后台结算线程
 from concurrent.futures import Future as 原生Future#单次操作结果
 from ...依赖.schemastery import 布尔字段#配置字段
@@ -65,12 +61,12 @@ def 已中止(信号):#读中止事实
 def 校验Bash参数(参数):#校验参数值
     """已解析工具参数；execute校验ParameterSchemaSpec没有的值约束。"""
     if len(参数['command'].strip())==0:#命令为空
-        raise bash工具错误('invalid command: expected a non-empty string')#拒绝空命令
+        raise bash工具错误('非法 command：需要非空字符串')#拒绝空命令
     if len(参数['description'].strip())==0:#描述为空
-        raise bash工具错误('invalid description: expected a non-empty string')#拒绝空描述
+        raise bash工具错误('非法 description：需要非空字符串')#拒绝空描述
     超时=参数['timeoutMs'] if 'timeoutMs' in 参数 else None#可选超时
     if 超时 is not None and (isinstance(超时,bool) or not isinstance(超时,(int,float)) or not math.isfinite(超时) or 超时<=0):#超时非法
-        raise bash工具错误('invalid timeoutMs: expected a positive number, got '+json.dumps(超时,ensure_ascii=False,separators=(',',':'),allow_nan=False))#拒绝非正超时
+        raise bash工具错误('非法 timeoutMs：需要正数，实际为 '+json.dumps(超时,ensure_ascii=False,separators=(',',':'),allow_nan=False))#拒绝非正超时
     校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
 
 def 拼Bash描述(后台启用,升级模式):#拼工具描述
@@ -190,7 +186,7 @@ def 规范Bash结果(结果):#规范化前台结果
 
 def 抛中止():#抛出工具调用中止
     """抛出带AbortError名的体后中止。"""
-    错误=装备错误('tool call aborted',工具体后中止)#中止错误
+    错误=装备错误('工具调用已中止',工具体后中止)#中止错误
     错误.name='AbortError'#名字
     raise 错误#抛出
 
@@ -203,7 +199,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
     升级模式=[] if 默认模式 is None else list(升级目标)#有隔离才暴露升级
     沙箱政策=None if 默认模式 is None else 上下文.获取服务('sandboxPolicy',False)#政策服务
     if 默认模式 is not None and 沙箱政策 is None:#隔离却缺政策
-        raise bash工具错误('tool-bash: the mounted bash executor confines but ctx.sandboxPolicy is missing')#加载时失败
+        raise bash工具错误('tool-bash: 已挂载的 bash 执行器会隔离，但缺少 ctx.sandboxPolicy')#加载时失败
     def 解析沙箱政策(执行上下文):#解析常驻政策
         """挂上隔离执行器时，解析本次调用的完整常驻政策。"""
         if 沙箱政策 is None:#无政策服务
@@ -216,7 +212,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
     def 审批Bash升级(模式,理由,执行上下文,常驻政策):#审批bash升级
         """在任何东西执行之前，经ctx.approval解析沙箱升级请求。"""
         if len(升级模式)==0:#本组合没有升级
-            raise bash工具错误('sandbox_permissions is not available in this composition (no sandboxing executor to escalate)')#拒绝
+            raise bash工具错误('本组合没有可升级的沙箱执行器，不能使用 sandbox_permissions')#拒绝
         return 批准升级(#共用审批
             {'requestedMode':模式,'justification':理由,'effectiveMode':常驻政策['mode'],'subject':'command'},#升级请求
             {#审批上下文
@@ -266,24 +262,24 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             请求['sandboxPolicy']=政策#带上
         if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#走后台
             if 后台启用 is not True:#配置关闭
-                raise bash工具错误('run_in_background is disabled for this deployment (enableRunInBackground: false)')#拒绝
+                raise bash工具错误('run_in_background 已对本部署关闭（enableRunInBackground: false）')#拒绝
             任务服务=上下文.获取服务('jobs',False)#读取任务服务
             if 任务服务 is None:#缺少任务服务
-                raise bash工具错误('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')#拒绝
+                raise bash工具错误('后台任务不可用：请加载 @deepseek-ai/dsh-jobs 与 @deepseek-ai/dsh-tool-jobs')#拒绝
             if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):#已取消
                 抛中止()#抛出中止
             def 任务体():#任务体
                 """在ctx.jobs下拉起后台bash进程。"""
                 进程=上下文.shell.启动(上下文.shell.解析(请求))#解析并后台启动
                 结算=操作任务()#任务done
-                def 盯结算():#等到进程关闭再映射结果
+                def 监视结算():#等到进程关闭再映射结果
                     """把进程done映射成任务结果。"""
                     try:#正常结算
                         进程.done.等待()#等到关闭
                         结算.兑现(进程结果(进程))#映射并兑现
                     except BaseException as 错误:#失败
                         结算.拒绝(错误)#拒绝
-                工作=threading.Thread(target=盯结算)#后台结算线程
+                工作=threading.Thread(target=监视结算)#后台结算线程
                 工作.daemon=True#不挡住退出
                 工作.start()#启动
                 def 取消():#取消则杀进程

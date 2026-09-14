@@ -1,7 +1,3 @@
-"""运行时子进程的私有拆除阶梯：先标准输入 EOF，再 SIGTERM，再 SIGKILL。
-
-对齐上游 `sdk/client/src/dispose.ts`。公开面仅中文名。SDK 客户端运行在任何 harness 上下文之外，因此不能挂靠 subprocess 服务。
-"""
 import sys,subprocess#平台判定与超时等待
 
 __all__=['拆除运行时进程','SDK拆除错误']#仅中文公开名
@@ -30,11 +26,11 @@ def 强制终止于时限(子进程,毫秒):
     except ProcessLookupError:
         return#已退出
     except OSError as 错误:
-        raise SDK拆除错误('SIGKILL failed') from 错误#带 cause
+        raise SDK拆除错误('SIGKILL 失败') from 错误#带 cause
     if 时限内退出(子进程,毫秒):#宽限内退出
         return#成功
-    处置='accepted' if 已接受 else 'refused'#记录是否被接受
-    raise SDK拆除错误('runtime process did not exit within '+str(毫秒)+'ms after SIGKILL was '+处置)#超时
+    处置='已接受' if 已接受 else '已拒绝'#记录是否被接受
+    raise SDK拆除错误('运行时进程在 SIGKILL '+处置+' 后 '+str(毫秒)+' 毫秒内仍未退出')#超时
 
 def 拆除运行时进程(子进程,宽限,平台=None):
     """仅在退出后返回。POSIX 先发 SIGTERM 再发 SIGKILL；Windows 直接强制终止。宽限为 dict。"""

@@ -1,7 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-approval` 的本包拥有不变量配套。
-
-对齐上游 `ui-approval/src/invariant.ts`。公开面仅中文名。
-"""
 包名='@deepseek-ai/dsh-client-ui-approval'#本包的不变量所有权名
 名称='client-ui-approval-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

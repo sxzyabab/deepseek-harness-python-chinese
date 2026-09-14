@@ -1,7 +1,3 @@
-"""拥有 Inspector Worker 与 Host 观测源的 Host 控制器。
-
-对齐上游 `host/bridge/controller.ts`。公开面仅中文名。
-"""
 import os,secrets,uuid#环境与随机
 from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本

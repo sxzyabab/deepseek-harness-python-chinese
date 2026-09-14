@@ -1,10 +1,3 @@
-"""宿主渲染的主题引导，覆盖浏览器插件树尚未激活的间隔。
-
-每次 index 响应都嵌入当前持久化的内置偏好；浏览器只解析 `system`，
-然后写入与客户端插件树激活后 ui-layout 的 ThemePresenter 所拥有的相同 DOM 字段。
-
-对齐上游 `ui-theme/src/boot-theme.ts`。公开面仅中文名。
-"""
 import json,re#JSON 嵌入与开 body 定位
 from .主题设置 import 默认偏好#默认跟随系统
 

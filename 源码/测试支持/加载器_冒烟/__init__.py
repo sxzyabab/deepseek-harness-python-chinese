@@ -1,8 +1,3 @@
-"""无密钥示例冒烟的共享子进程 harness。
-
-对齐上游 `loader-smoke/src/index.ts`。公开面仅中文名。
-经应用 bin 与 Cordis Loader 启动真实 `cordis.yml`。
-"""
 import os,tempfile,subprocess,shutil#环境、临时目录、子进程与清理
 from .智能体轮次 import 驱动夹具轮次#再导出轮次驱动
 
@@ -55,7 +50,7 @@ def 解析示例启动(选项):#解析如何 spawn 示例 bin
     环境={**清代理环境(),**(选项.get('env') or {})}#清代理后叠加
     if 模式=='src':#源模式
         if 选项.get('tsconfigPath') is None:#缺 tsconfig
-            raise Exception("resolveExampleLaunch: 'src' mode needs tsconfigPath for the workspace paths map.")#缺 tsconfig
+            raise Exception("resolveExampleLaunch: 'src' 模式需要 tsconfigPath 才能建立工作区路径表。")#缺 tsconfig
         #Python 侧无 tsx；保留 --import 形态供对照，实际命令仍为当前解释器入口
         源导入=选项.get('sourceImport')#tsx 导入形态
         钩子='tsx/esm' if 源导入=='tsx/esm' else 'tsx'#钩子名

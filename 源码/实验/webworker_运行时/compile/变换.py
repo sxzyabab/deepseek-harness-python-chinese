@@ -1,11 +1,3 @@
-"""worker 的模块变换：一次解析把 ES 模块变成 CommonJS 体，
-并把每个挂起点接到 ambient-store 协议上。
-
-镜像打包器是本变换的唯一调用方：它降级所打包的每个 JavaScript 入口，
-并在镜像清单里记下 LOWERING_VERSION。
-
-对齐上游 `webworker-runtime/src/compile/transform.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import re#已降低检测与静态请求扫描
 

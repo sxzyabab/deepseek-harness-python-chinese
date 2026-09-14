@@ -1,8 +1,3 @@
-"""网页组装在无会话、无工作区、默认设置下启动并渲染时会打到的全部 Remote 端点的默认应答。
-
-对齐上游 `client-runtime/src/assembly/remote-default-responses.ts`。公开面仅中文名。
-应答表是跨包线形态，故为 dict；端点名不译。
-"""
 from ...远程模拟 import 成功信封,打开流脚本#成功信封与开流脚本
 
 __all__=['远程默认应答']#仅中文公开名

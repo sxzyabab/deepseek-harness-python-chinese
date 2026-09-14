@@ -1,9 +1,3 @@
-"""会话状态点。
-
-对齐上游 `ui-primitives/src/StateDot.tsx`。公开面仅中文名。
-done/warning/error 为实心晕；ongoing 为 3x3 像素追逐。属性为 dict。
-"""
-
 __all__=['状态点','状态表','矩阵格']#仅中文公开名
 
 状态表=('done','warning','ongoing','error')#四态

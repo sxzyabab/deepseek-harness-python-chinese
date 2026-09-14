@@ -1,9 +1,3 @@
-"""空白草稿阶段英雄铬：鱼标标题、辉光与工作区芯片。
-
-对齐上游 `ui-conversation/src/client/skeleton/EmptyHero.tsx`。公开面仅中文名。
-属性为 dict。
-"""
-
 __all__=['工作区标签','工作区芯片','英雄辉光','英雄壳']#仅中文公开名
 
 def 恒等翻译(键,参数=None):

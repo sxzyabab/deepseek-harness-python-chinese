@@ -1,11 +1,3 @@
-"""动态包上下文门面：生命周期安全动词白名单与槽/主题座位规则。
-
-对齐上游 `cordis-client-runner/src/client/guard.ts`。公开面仅中文名。
-硬缺口（保留不通过，勿假实现）：真实 Proxy 门面、`Reflect.apply` 绑 this、
-SlotRegistry.prototype.register 接收者、theme 层 `ctx.effect` 拆除依赖真实 Fiber、React 组件认领键。
-本模块落盘白名单、教学拒绝、槽/主题规则（含 register 后 claim）、主入口分流。
-"""
-
 __all__=[#仅中文公开名
     '上下文动词','定时器动词','槽账本行字段','门面环境字段','业务视图槽名','业务视图自键',
     '拒绝门面','是否上下文返回','拒绝上下文返回','拒绝未声明读取','规范化槽登记选项',

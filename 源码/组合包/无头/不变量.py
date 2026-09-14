@@ -1,7 +1,3 @@
-"""`@deepseek-ai/dsh-headless` 的本包拥有不变量配套。
-
-对齐上游 `headless/src/invariant.ts`。公开面仅中文名。
-"""
 包名='@deepseek-ai/dsh-headless'#本包的不变量所有权名
 名称='headless-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

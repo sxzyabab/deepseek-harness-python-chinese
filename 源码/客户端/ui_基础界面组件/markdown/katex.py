@@ -1,9 +1,3 @@
-"""TeX→视图树，复刻 rehype-katex 三臂错误链。
-
-对齐上游 `ui-primitives/src/markdown/katex.tsx`。公开面仅中文名。
-KaTeX 串行与 DOM 映射由宿主注入；未装载则抛错，从不静默降级。
-"""
-
 from .解析 import 基础界面错误#本包异常
 
 __all__=['渲染TeX到树','装载TeX渲染','样式对象']#仅中文公开名

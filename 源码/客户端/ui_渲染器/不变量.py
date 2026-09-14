@@ -1,8 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-renderer` 的本包拥有不变量配套。
-
-对齐上游 `ui-renderer/src/invariant.ts`。公开面仅中文名。
-校验每一次 `slots/changed` 派发时，其变更已作用到渲染器拥有的槽位注册表。
-"""
 from ...依赖 import cordis#外部依赖胶水
 
 包名='@deepseek-ai/dsh-client-ui-renderer'#本包的不变量所有权名

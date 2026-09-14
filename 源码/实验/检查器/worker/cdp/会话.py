@@ -1,4 +1,3 @@
-"""一条 DevTools 连接：显式本地域路由，外加私有 Host V8 会话。"""
 #对齐上游 worker/cdp/session.ts
 
 from ...共享.json import 检查器错误#包内错误

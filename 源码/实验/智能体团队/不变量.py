@@ -1,7 +1,3 @@
-"""Agent Teams 运行时不变式伴生。
-
-对齐上游 `agent-team/src/invariant.ts`。公开面仅中文名。
-"""
 import copy#试应用克隆
 from .投影 import 是否团队事件,团队投影定义#投影面
 

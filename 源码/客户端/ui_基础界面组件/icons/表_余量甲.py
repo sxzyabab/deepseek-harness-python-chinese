@@ -1,5 +1,3 @@
-"""icons 余量甲：设置/导航/关闭/刷新/赞踩/分享（原版 path 原文）。"""
-
 表={#名 → 描述
     'settings-14':{#IconSettingsOutline14
         'viewBox':'0 0 14 14','defaultSize':14,

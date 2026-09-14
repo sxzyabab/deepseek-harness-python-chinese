@@ -1,8 +1,3 @@
-"""经内部节点 store 查找任意根级或嵌套工具生命周期。
-
-对齐上游 `ui-chat/src/client/details/tool-node-reader.ts`。公开面仅中文名。
-快照与块为 dict。
-"""
 
 __all__=['查找工具调用']#仅中文公开名
 

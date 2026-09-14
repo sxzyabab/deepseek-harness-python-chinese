@@ -5,5 +5,6 @@
     "host": "宿主",
     "open": "打开",
     "present": "呈现",
-    "register": "登记"
+    "register": "登记",
+    "run": "执行打开"
 }

@@ -1,7 +1,3 @@
-"""轨迹系统提示与请求头事实的 ConversationNode Definition。
-
-对齐上游 `ui-trajectory/src/client/trajectory-request-header-definition.ts`。公开面仅中文名。
-"""
 from .轨迹节点 import 轨迹节点#包成轨迹视图节点
 from .轨迹记录 import 轨迹错误#本包异常
 

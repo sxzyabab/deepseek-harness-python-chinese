@@ -1,7 +1,3 @@
-"""欢迎提示状态；浏览器可用宿主设置时持久保存。
-
-对齐上游 `ui-settings-models/src/client/welcome-store.ts`。公开面仅中文名。
-"""
 from .引导文案 import 欢迎通知设置命名空间,欢迎通知确认字段,欢迎通知版本#引导常量
 from .存储 import 快照存储,错误文案,模型设置错误#共用快照与文案
 

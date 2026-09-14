@@ -1,7 +1,3 @@
-"""预设的展示元数据：选择器显示的名称与描述。
-
-对齐上游 `agent-presets/src/metadata.ts`。公开面仅中文名。
-"""
 import os#路径拼接
 import yaml#外部依赖胶水（PyYAML）
 

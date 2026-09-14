@@ -1,9 +1,3 @@
-"""计划模式状态芯片。
-
-对齐上游 `ui-plan/src/client/PlanModeControl.tsx`。公开面仅中文名。
-
-有效目标是计划模式时渲染，并经 exitPlanMode 执行 /plan off。
-"""
 __all__=['计划芯片','计划错误']#仅中文公开名
 
 class 计划错误(Exception):

@@ -1,7 +1,3 @@
-"""轨迹视图：会话视图槽上的轨迹标签页面。
-
-对齐上游 `ui-trajectory/src/client/TrajectoryView.tsx` 的注入与布局消费面。公开面仅中文名。
-"""
 from .布局 import 派生轨迹布局,追加轨迹流式布局#布局折叠
 from .轨迹表实现 import 轨迹表#权威实现（上游 TrajectoryTable）
 

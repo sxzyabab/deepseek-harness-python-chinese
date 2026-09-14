@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-permission-presets` 的本包拥有不变量配套。
-
-对齐上游 `ui-permission-presets/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：命令与槽位贡献的生命周期由 HMR 安全规格证明。
-"""
 包名='@deepseek-ai/dsh-client-ui-permission-presets'#本包的不变量所有权名
 名称='client-ui-permission-presets-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

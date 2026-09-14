@@ -1,7 +1,3 @@
-"""提供方路由的模型请求重试政策，挂在智能体循环的请求恢复扩展点上。
-
-对齐上游 `llm-retry/src/index.ts`。公开面仅中文名。每次调度的重试在其可取消等待之前持久化。载荷与政策为 dict。
-"""
 import json,math,random,threading,uuid#标准库
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .标识构造 import 重试身份#导入重试链身份
@@ -43,7 +39,7 @@ class 中止信号:
     """threading.Event 取消通道。"""
     def __init__(自身,事件=None):
         """创建一条取消通道。"""
-        自身._事件=事件 if 事件 is not None else threading.Event()#中止旗标
+        自身._事件=事件 if 事件 is not None else threading.Event()#中止信号
         自身._异常=None#中止时抛出的异常
 
     def 触发(自身,原因=None):
@@ -81,14 +77,14 @@ def 合成信号(信号列表):
         if 已中止(信号):#已中止
             融合.触发()#立刻胜出
             return 融合#已中止的融合信号
-    def 盯(源):
+    def 转发中止(源):
         """等一路置位后触发融合。"""
         源._事件.wait()#阻塞
         融合.触发()#转发
     for 信号 in 信号列表:#并行听
         if 信号 is None:#无信号
             continue#跳过
-        threading.Thread(target=盯,args=(信号,),daemon=True).start()#听一路
+        threading.Thread(target=转发中止,args=(信号,),daemon=True).start()#听一路
     return 融合#融合信号
 
 def 校验配置(配置值):
@@ -98,8 +94,8 @@ def 校验配置(配置值):
         return#没有键则通过
     键名=键名列表[0]#第一个键
     if 键名=='retryPolicy':#政策被错放在这里
-        raise 重试错误('llm-retry: retryPolicy belongs under each provider configuration')#政策属于各提供方配置
-    raise 重试错误('llm-retry: unknown key "'+键名+'"')#未知键
+        raise 重试错误('llm-retry: retryPolicy 应写在各提供方配置下')#政策属于各提供方配置
+    raise 重试错误('llm-retry: 未知键 "'+键名+'"')#未知键
 
 def 全部结算(任务列表):
     """等全部操作任务落定，吞掉失败。"""
@@ -137,12 +133,12 @@ def 可取消等待(延迟毫秒,信号):
     if 已中止(信号):#已中止则不等
         return False#已中止则不等
     完成=threading.Event()#等到时或中止
-    def 盯中止():
+    def 等待中止():
         """中止时放行等待。"""
         信号._事件.wait()#阻塞到中止
         完成.set()#放行
     if 信号 is not None:#有信号
-        threading.Thread(target=盯中止,daemon=True).start()#听中止
+        threading.Thread(target=等待中止,daemon=True).start()#听中止
     完成.wait(延迟毫秒/1000.0)#延迟秒
     if 已中止(信号):#未等到
         return False#未等到
@@ -295,7 +291,7 @@ def 应用(上下文,配置值=None,内部=None):
         def 拆除():
             """去掉监听器、中止生命周期并排空活动恢复。"""
             去掉监听()#去掉监听器
-            生命周期.中止(重试错误('llm-retry plugin disposed'))#中止生命周期
+            生命周期.中止(重试错误('llm-retry 插件已拆除'))#中止生命周期
             with 活动锁:#拷贝活动恢复
                 进行中=list(活动)#拷贝活动恢复
             全部结算(进行中)#排空活动恢复

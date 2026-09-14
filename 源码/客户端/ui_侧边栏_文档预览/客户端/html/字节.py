@@ -1,7 +1,3 @@
-"""UTF-8 解码用于文件字节；编码仅用于 iframe 脚本载荷。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/bytes.ts`。公开面仅中文名。
-"""
 import base64#base64
 
 __all__=['解码文本','编码文本']#仅中文公开名

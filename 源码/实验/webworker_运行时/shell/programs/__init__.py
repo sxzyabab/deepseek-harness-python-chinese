@@ -1,9 +1,3 @@
-"""命令表：本 shell 能运行的每个程序名。浏览器 worker 不派生进程，因此此表
-就是机器的 `/bin`——不在表中的名称报告 `command not found`，与真 shell
-对未安装二进制的报告完全一致。
-
-对齐上游 `webworker-runtime/src/shell/programs/index.ts`。公开面仅中文名。
-"""
 from .内建 import 内建程序#内建程序表
 from .文件 import 文件程序#文件程序表
 from .文本 import 文本程序#文本程序表

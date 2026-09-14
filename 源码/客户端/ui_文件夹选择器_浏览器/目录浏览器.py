@@ -1,9 +1,3 @@
-"""应用内工作区目录浏览器（Miller 视图 + 路径编辑 + 新建文件夹）。
-
-对齐上游 `ui-directory-picker-browse/src/client/DirectoryBrowser.tsx`。公开面仅中文名。
-纯消费注入的浏览调用；主人决定 Open 语义并拥有工作区创建错误面。
-列举结果、条目、props 均为 dict；中止为 threading.Event。
-"""
 import threading#列举中止旗
 import time#时钟与防抖
 

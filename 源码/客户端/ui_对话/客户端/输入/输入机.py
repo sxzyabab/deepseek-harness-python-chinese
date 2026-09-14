@@ -1,9 +1,3 @@
-"""输入机：纯的每会话输入状态机。
-
-对齐上游 `ui-conversation/src/client/input/machine.ts`。公开面仅中文名。
-事件进、效应出；零 DOM / 环境时钟。包私有——会话输入壳是唯一调用方。
-草稿真相：每个芯片持有一个 U+FFFC；出现表携带身份与投影。
-"""
 import re#裸令牌后分隔判定
 import threading#中止 Event
 from ..服务 import 对话错误#本包异常

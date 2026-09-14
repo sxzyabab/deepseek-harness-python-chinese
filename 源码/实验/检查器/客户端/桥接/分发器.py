@@ -1,7 +1,3 @@
-"""已校验 Worker 帧到浏览器 realm 能力处理器的分发。
-
-对齐上游 `client/bridge/dispatcher.ts`。公开面仅中文名。
-"""
 from ...共享.json import 检查器错误#本包错误
 
 __all__=['客户端桥帧处理器','分发桥帧']#仅中文公开名

@@ -1,4 +1,3 @@
-"""Worker 侧非 CDP 查询的准入、执行与有界结算。"""
 #对齐上游 worker/inspection/query-router.ts
 
 import json#查询帧序列化

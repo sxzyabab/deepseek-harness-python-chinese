@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-skill-badge 的本包拥有不变量配套。对齐上游 skill-badge/src/invariant.ts。"""
 包名='@deepseek-ai/dsh-skill-badge'#本包的不变量所有权名
 名称='skill-badge-invariant'#配套不变量插件名（字面量不译）
 注入=['invariants']#依赖 invariants 服务

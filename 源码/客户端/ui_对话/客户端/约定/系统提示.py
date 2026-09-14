@@ -1,8 +1,3 @@
-"""对已加载 Session 表面的仅系统提示不可变解释。
-
-对齐上游 `ui-conversation/src/client/contract/system-prompt.ts`。公开面仅中文名。
-状态与事件为 dict；替换映射为 dict。
-"""
 from .....内核.会话 import 是否表面事件#是否表面事件
 
 __all__=['检视系统提示']#仅中文公开名

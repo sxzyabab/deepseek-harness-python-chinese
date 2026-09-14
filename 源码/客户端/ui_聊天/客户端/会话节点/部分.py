@@ -1,7 +1,3 @@
-"""流式 chunk 累加为部分 Assistant 投影。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/partial.ts`。公开面仅中文名。
-"""
 from .事件投影 import 空助手块,转助手块#块转换
 
 __all__=['是可见助手块','部分累加器']#仅中文公开名

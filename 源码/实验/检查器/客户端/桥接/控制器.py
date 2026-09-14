@@ -1,7 +1,3 @@
-"""Cordis 插件入口的浏览器 Client 桥构造。
-
-对齐上游 `client/bridge/controller.ts`。公开面仅中文名。
-"""
 from .传输 import 客户端检查器源#Client源
 from ..检视.领域 import 客户端领域源#realm源
 

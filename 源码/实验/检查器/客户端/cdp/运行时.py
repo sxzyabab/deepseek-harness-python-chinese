@@ -1,7 +1,3 @@
-"""类型化 Runtime 命令协议的 Client realm 执行器。
-
-对齐上游 `client/cdp/runtime.ts`。公开面仅中文名。
-"""
 from ...共享.json import 是否json值,json字节长度,检查器错误#JSON|本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from .错误 import 客户端运行时执行错误#执行错误
@@ -76,7 +72,7 @@ class 客户端运行时会话:#Client Runtime会话
             return {'op':操作}#确认
         if 操作=='global-lexical-scope-names':#全局词法名
             return {'op':操作,'names':[]}#空列表
-        raise 检查器错误(f'Unexpected Client Runtime command: {操作!r}')#未知
+        raise 检查器错误(f'未预期的 Client Runtime 命令：{操作!r}')#未知
 
     def 关闭(自身):#关闭
         """关闭。"""
@@ -96,15 +92,15 @@ class 客户端运行时会话:#Client Runtime会话
 
     def 求值(自身,命令,分配,信号=None):#求值
         """求值。"""
-        raise 客户端运行时执行错误('unsupported','Client evaluate requires a browser JS realm binding')#需浏览器绑定
+        raise 客户端运行时执行错误('unsupported','客户端 evaluate 需要浏览器 JS realm 绑定')#需浏览器绑定
 
     def 调函数(自身,命令,分配,信号=None):#调函数
         """调函数。"""
-        raise 客户端运行时执行错误('unsupported','Client call-function requires a browser JS realm binding')#需浏览器绑定
+        raise 客户端运行时执行错误('unsupported','客户端 call-function 需要浏览器 JS realm 绑定')#需浏览器绑定
 
     def 等待承诺(自身,命令,分配,信号=None):#等待Promise
         """等待 Promise。"""
-        raise 客户端运行时执行错误('unsupported','Client await-promise requires a browser JS realm binding')#需浏览器绑定
+        raise 客户端运行时执行错误('unsupported','客户端 await-promise 需要浏览器 JS realm 绑定')#需浏览器绑定
 
 class 客户端运行时执行器:#Client Runtime执行器
     """执行 Runtime 请求，同时按 DevTools 会话隔离对象句柄。"""
@@ -124,11 +120,11 @@ class 客户端运行时执行器:#Client Runtime执行器
             响应=响应帧(帧,{'ok':True,'result':结果})#成功响应
             if not 是否json值(响应) or json字节长度(响应)>自身.上限.maxResponseBytes:#超字节
                 会话.回滚(分配)#回滚
-                return 响应帧(帧,{'ok':False,'error':{'code':'result-too-large','message':'Client Runtime result exceeds the source-frame byte limit'}})#过大
+                return 响应帧(帧,{'ok':False,'error':{'code':'result-too-large','message':'Client Runtime 结果超出源帧字节上限'}})#过大
             if 延迟对象提交:#延迟提交
                 if 帧['requestId'] in 自身.响应分配:#重复id
                     会话.回滚(分配)#回滚
-                    return 响应帧(帧,{'ok':False,'error':{'code':'invalid-request','message':'Client Runtime request id is already pending'}})#非法
+                    return 响应帧(帧,{'ok':False,'error':{'code':'invalid-request','message':'Client Runtime 请求 id 已在等待中'}})#非法
                 自身.响应分配[帧['requestId']]={'sessionId':帧['sessionId'],'session':会话,'allocation':分配}#挂起
             else:#立即提交
                 会话.提交分配(分配)#提交

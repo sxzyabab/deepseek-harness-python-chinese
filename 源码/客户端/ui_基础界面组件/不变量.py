@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-primitives` 的本包拥有不变量配套。
-
-对齐上游 `ui-primitives/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：纯 props-in 的 React 原子、无 Cordis API——无事件、无服务、无跨插件可变状态；渲染约定由本包组件规格直接断言。
-"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-client-ui-primitives'#本包的不变量所有权名
 名称='client-ui-primitives-invariant'#配套不变量插件名（字面量）

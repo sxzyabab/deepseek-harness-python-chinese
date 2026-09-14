@@ -1,4 +1,3 @@
-"""统一 JSON 值模式 DSL、类型推断、编译，以及带类型的工具定义辅助。对齐上游 `tools/src/schema.ts`。公开面仅中文名。"""
 import math
 from ...模型后端.llm import 装备错误 as 框架错误#导入框架错误基类
 from .json模式 import (
@@ -56,7 +55,7 @@ def 安装编译属性表(去向,已编译):
     else:
         去向['target']['properties']=已编译['properties']#写入 properties
 
-def 跑模式编译器(起始):
+def 执行模式编译(起始):
     """不递归下降地执行作者模式编译任务图。"""
     在途=set()#当前路径上已见节点
     任务列表=[起始]#任务栈
@@ -197,7 +196,7 @@ def 跑模式编译器(起始):
 def 编译属性表(输入,路径):
     """编译一张隐式属性表，并收集各属性的必填性。"""
     托盘={}#根托盘
-    跑模式编译器({'kind':'property-map','input':输入,'path':路径,'destination':{'kind':'root','holder':托盘}})#从属性表任务起步
+    执行模式编译({'kind':'property-map','input':输入,'path':路径,'destination':{'kind':'root','holder':托盘}})#从属性表任务起步
     if 托盘.get('value') is None:
         作者错误(路径+' did not compile')#根必须已写入
     return 托盘['value']#已编译表
@@ -205,7 +204,7 @@ def 编译属性表(输入,路径):
 def 编译值模式(输入,路径):
     """编译一个作者节点，不施加任何消费方根约束。"""
     托盘={}#根托盘
-    跑模式编译器({'kind':'value','input':输入,'path':路径,'allowRequired':False,'destination':{'kind':'root','holder':托盘}})#从值任务起步
+    执行模式编译({'kind':'value','input':输入,'path':路径,'allowRequired':False,'destination':{'kind':'root','holder':托盘}})#从值任务起步
     if 托盘.get('value') is None:
         作者错误(路径+' did not compile')#根必须已写入
     return 托盘['value']#已编译节点

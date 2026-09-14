@@ -1,7 +1,3 @@
-"""Inspector Client 包及其 source map 的浏览器侧目录。
-
-对齐上游 `client/cdp/sources.ts`。公开面仅中文名。
-"""
 import base64#分片编码
 from ...共享.json import 检查器错误#本包错误
 from ...共享.身份 import 检查器id#品牌化

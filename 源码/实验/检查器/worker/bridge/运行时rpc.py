@@ -1,4 +1,3 @@
-"""Worker 拥有的合成 Client 上下文与源代数之间的路由。"""
 #对齐上游 worker/bridge/runtime-rpc.ts 段1
 
 import uuid,threading#请求id与超时
@@ -55,7 +54,7 @@ class Client运行时路由:#Client Runtime路由
             'sourceId':目标['source']['sourceId'],'generation':目标['source']['generation'],#代数
             'sessionId':会话id,#会话
         }):#send结束
-            raise RuntimeError('Client Console source disconnected before enable')#未发送
+            raise RuntimeError('客户端控制台源在 enable 之前已断开')#未发送
         订阅={'target':目标,'sessionId':会话id,'listener':监听}#订阅项
         自身._控制台订阅.add(id(订阅))#登记键
         自身._控制台订阅对象=getattr(自身,'_控制台订阅对象',{})#对象表

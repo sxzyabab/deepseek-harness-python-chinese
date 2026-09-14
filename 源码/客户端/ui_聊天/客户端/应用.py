@@ -1,7 +1,3 @@
-"""登记 Chat Conversation target、渲染器、统计与详情面。
-
-对齐上游 `ui-chat/src/client/apply.ts`。公开面仅中文名。
-"""
 import 客户端.ui_侧边栏_文档预览.客户端 as _侧边栏文档预览#文档预览面：SidebarRightResourceParamsMap.file
 from ..聊天设置 import 聊天设置命名空间#Chat 设置段
 from .文案 import 命名空间,中文,英文#词典

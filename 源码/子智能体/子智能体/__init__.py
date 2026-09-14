@@ -1,10 +1,9 @@
-"""子智能体能力缝（ctx.subagents）的 Service Definition：具名提供方注册表，外加按能力校验的异步 start API。提供方在返回跑之前建立子体，因此兑现是唯一的发布与所有权转移边界。"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#导入服务基类
 from ...内核.作用域 import 作用域目标#导入作用域载体解析
 from ...内核.工具 import 断言对象json模式#导入对象JSON模式断言
 from .类型 import (
-    子智能体跑标识,#跑 id 品牌构造
+    子智能体运行标识,#跑 id 品牌构造
     子智能体跑信息,#subagent/start 载荷
     子智能体跑结束信息,#subagent/end 载荷
     子智能体能力,#提供方启动时能力广告
@@ -20,7 +19,7 @@ from .类型 import (
 )
 from .错误 import 子智能体错误#缝内带码失败
 from .深度 import 断言子智能体最大深度,委托深度于#共享深度词汇
-from .生命周期 import 创建生命周期发出,观察跑,创建激活观察者#start/end 发布与 Activation 观察
+from .生命周期 import 创建生命周期发出,观察运行,创建激活观察者#start/end 发布与 Activation 观察
 from .续跑 import (
     子智能体续跑管理器,#可续跑编排（agents 注入后挂上）
     协调者消息来源,#父跟进归属
@@ -64,9 +63,9 @@ from .投影 import 子智能体计时投影定义,子智能体身份投影定�
 from .目录 import 子智能体目录投影定义,建立目录子体#父拥有目录
 from .进程外 import (
     无启动能力,断言正有限,断言可用工作目录,校验已配置工作目录,解析子工作目录,
-    结算跑结果,子进程跑句柄,
+    结算运行结果,子进程运行句柄,
     跑结果结算,#settleRunResult 零件
-    子进程跑句柄零件,#subprocessRunHandle 零件
+    子进程运行句柄零件,#subprocessRunHandle 零件
 )
 from .客户端 import (
     子智能体身份投影,#模式/标签投影
@@ -75,7 +74,7 @@ from .客户端 import (
 )
 __all__=(
     '子智能体运行时',
-    '子智能体跑标识','子智能体跑信息','子智能体跑结束信息','子智能体能力',
+    '子智能体运行标识','子智能体跑信息','子智能体跑结束信息','子智能体能力',
     '子智能体启动请求','已解析子智能体启动请求','可续跑创建请求','可续跑创建规格',
     '子智能体停止原因映射','子智能体停止原因','子智能体结果','子智能体跑','子智能体提供方',
     '子智能体错误','断言子智能体最大深度','委托深度于',
@@ -90,7 +89,7 @@ __all__=(
     '解析子智能体选项','解析子深度','子智能体深度错误','子智能体委托上下文',
     '子体组合','委托策略覆盖',
     '无启动能力','断言正有限','断言可用工作目录','校验已配置工作目录','解析子工作目录',
-    '结算跑结果','子进程跑句柄','跑结果结算','子进程跑句柄零件',
+    '结算运行结果','子进程运行句柄','跑结果结算','子进程运行句柄零件',
     '子智能体身份投影','子智能体计时投影','子智能体目录条目',
     '子智能体目录投影定义','建立目录子体',
 )
@@ -186,13 +185,13 @@ class 子智能体运行时(服务):
         def 效果():#效果作用域登记
             """登记并返回拆除器；重复名大声失败。"""
             if 名 in 自身._提供方表:#名已占用
-                raise 子智能体错误('a subagent provider named "'+名+'" is already registered','DUPLICATE_PROVIDER')#拒绝重复
+                raise 子智能体错误('名为 "'+名+'" 的子智能体提供方已登记','DUPLICATE_PROVIDER')#拒绝重复
             自身._提供方表[名]=提供方#写入注册表
             def 回滚():#回滚：移除并通知
                 """移出注册表并发布 provider-removed。"""
                 自身._提供方表.pop(名,None)#移出注册表
                 自身._发出生命周期('subagent/provider-removed',名)#发布移除边
-            # 抛出的 added 监听器会解开已 yield 的回滚，匹配仓库大声失败的登记语义。
+            # 抛出的 added 监听器会拆除已 yield 的回滚，匹配仓库大声失败的登记语义。
             自身.ctx.广播('subagent/provider-added',提供方)#发布新增
             return 回滚#拆除器
         return 自身.ctx.副作用(效果,'subagents.registerProvider()')#命名副作用
@@ -237,9 +236,9 @@ class 子智能体运行时(服务):
                     elif isinstance(跑,dict) and 'dispose' in 跑:#dict 形
                         跑['dispose']()#拆除
                 except Exception as 清理错误:#拆除也失败
-                    自身.ctx.logger.warn('subagent: disposal after catalog append failure also failed: '+str(清理错误))#警告
+                    自身.ctx.logger.warn('子智能体：目录追加失败后的拆除也失败了：'+str(清理错误))#警告
                 raise#目录错误上抛
-        return 观察跑(自身._发出生命周期,名,请求['parent'] if isinstance(请求,dict) and 'parent' in 请求 else None,跑)#观察并返回跑
+        return 观察运行(自身._发出生命周期,名,请求['parent'] if isinstance(请求,dict) and 'parent' in 请求 else None,跑)#观察并返回跑
 
     def _准备可续跑(自身,名,请求):
         """解析一个提供方的分离可续跑创建贡献。"""
@@ -247,8 +246,8 @@ class 子智能体运行时(服务):
         准备=getattr(提供方,'准备可续跑',None)#中文能力
         if 准备 is None:#缺少能力
             raise 子智能体错误(
-                'subagent provider "'+提供方.名称+'" does not support continuable children '
-                +'(no prepareContinuable capability)',
+                '子智能体提供方 "'+提供方.名称+'" 不支持可续跑子体'
+                +'（无 prepareContinuable 能力）',
                 'UNSUPPORTED_CAPABILITY',
             )
         return 准备(请求)#委托提供方
@@ -257,14 +256,14 @@ class 子智能体运行时(服务):
         """查找供派发用的提供方，否则大声失败。"""
         提供方=自身._提供方表.get(名)#按名查找
         if 提供方 is None:#缺席
-            raise 子智能体错误('no subagent provider registered for "'+名+'"','NO_PROVIDER')#拒绝
+            raise 子智能体错误('没有为 "'+名+'" 登记的子智能体提供方','NO_PROVIDER')#拒绝
         return 提供方#已登记提供方
 
     def _要求续跑(自身):#必须有管理器
         """解析可选的可续跑子智能体管理器，否则大声失败。"""
         if 自身._续跑 is None:#agents 未注入
             raise 子智能体错误(
-                'continuable subagents require the agents service',
+                '可续跑子智能体需要 agents 服务',
                 'CONTINUATION_UNAVAILABLE',
             )
         return 自身._续跑#管理器
@@ -285,7 +284,7 @@ class 子智能体运行时(服务):
         for 当,帽 in 需要:#逐项检查
             if 当 and (帽 not in 能力 or not 能力[帽]):#请求了但提供方没有
                 raise 子智能体错误(
-                    'subagent provider "'+提供方.名称+'" does not support the "'+帽+'" capability',
+                    '子智能体提供方 "'+提供方.名称+'" 不支持 "'+帽+'" 能力',
                     'UNSUPPORTED_CAPABILITY',
                 )
 

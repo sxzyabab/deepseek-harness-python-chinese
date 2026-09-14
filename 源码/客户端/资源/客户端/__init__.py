@@ -1,9 +1,3 @@
-"""浏览器半边：`ctx.resources`（协议提供方、钉住、活源）与 resource 根 keyed hook。
-
-对齐上游 `resources/src/client/index.ts`。公开面仅中文名。
-无 React：`useResource` 不落地为钩子函数；数据面由 `资源注册表.取源` / `使用资源` 承担，
-槽位仍贡献 `keyedHooks.resource`，由 ui_渲染器 按标准钩子命名合成到组件 props。
-"""
 from .资源 import (#注册表与地址协议
     资源方案,
     取协议,

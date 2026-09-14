@@ -1,8 +1,3 @@
-"""子进程 seam 的本地 PTY 终端进程实现。
-
-对齐上游 `subprocess-local/src/terminal.ts`。公开面仅中文名；无英文别名。
-本文件不规范路径、不调用 realpath：对照 TS terminal.ts，无 realpathSync.native；cwd/路径拼写由启动方规格原样持有，禁止在此加 TS 没有的路径回落。
-"""
 import signal,threading,time#信号名反查、拆除线程与宽限短睡
 from concurrent.futures import Future as _原生Future#单次操作结果
 
@@ -185,7 +180,7 @@ class 本地终端句柄:#本地 PTY 会话
             return 自身.清理#复用
         清理=操作任务()#本次清理
         自身.清理=清理#记下
-        def 跑一次():#后台跑 closeOnce
+        def 后台关闭一次():#后台执行 closeOnce
             """一次完整拆除；失败清空 cleanup 以允许重试。"""
             try:#拆除可能失败
                 自身.关闭一次()#完整拆除
@@ -193,7 +188,7 @@ class 本地终端句柄:#本地 PTY 会话
             except (本地子进程错误,OSError) as 错误:#拆除失败
                 自身.清理=None#允许重试
                 清理.拒绝(错误)#拒绝清理
-        工作=threading.Thread(target=跑一次)#拆除线程
+        工作=threading.Thread(target=后台关闭一次)#拆除线程
         工作.daemon=True#不挡住退出
         工作.start()#启动
         return 清理#调用方等静止或失败

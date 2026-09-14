@@ -1,8 +1,3 @@
-"""ClientModuleSystem — 客户端模块加载器约定背后的实现。
-
-对齐上游 `modules/src/client/system.ts`。公开面仅中文名。
-加载包返回操作任务；到达 / prefetch / import_ 在内部阻塞后返回裸值。
-"""
 import json,threading#JSON 与脚本加载链
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .清单 import 客户端模块错误#本包异常

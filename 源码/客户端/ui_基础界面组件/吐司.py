@@ -1,9 +1,3 @@
-"""瞬时顶栏吐司。
-
-对齐上游 `ui-primitives/src/Toast.tsx`。公开面仅中文名。
-HOLD_MS+FADE_MS 必须与吐司.module.css 动画一致。属性为 dict。
-"""
-
 __all__=['吐司','保持毫秒','淡出毫秒']#仅中文公开名
 
 保持毫秒=3000#全不透明保持

@@ -1,7 +1,3 @@
-"""Worker 进程启动器所用的虚拟可执行项注册表。
-
-对齐上游 `webworker-runtime/src/shell/process/virtual-executables.ts`。公开面仅中文名。
-"""
 from ...module_system.posix路径 import 基名#路径基名
 from .地锁 import 地锁可执行#landlock可执行项
 

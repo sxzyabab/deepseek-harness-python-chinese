@@ -1,7 +1,3 @@
-"""一个会话的反馈面：消息反馈对象层与对话框控制器。
-
-对齐上游 `ui-message-feedback/src/client/surface.ts`。公开面仅中文名。
-"""
 from .控制器 import 消息反馈控制器,描述失败#消息层
 from .对话框 import 反馈对话框控制器#对话框
 

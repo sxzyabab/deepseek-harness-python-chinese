@@ -1,11 +1,3 @@
-"""shell 运行用的宿主内文件系统：直接叠在已挂载 VFS 上的
-shell 文件系统面，外加每个程序共享的路径与诊断辅助。
-
-本实现从内存应答。在自有 worker 中运行的命令使用消息后端实现
-（`process/子进程.py`），由本实现从宿主侧服务。
-
-对齐上游 `webworker-runtime/src/shell/fs-access.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#VFS 错误
 from ..module_system.posix路径 import 解析 as 解析路径#路径解析
 from ..storage.活动 import 要求活动vfs#活动VFS

@@ -1,7 +1,3 @@
-"""文案拥有的 HTML 实现名与 iframe 状态文案。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/locales.ts`。公开面仅中文名。
-"""
 
 __all__=['中文','英文','超文本预览键']#仅中文公开名
 

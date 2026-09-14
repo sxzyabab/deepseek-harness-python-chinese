@@ -1,7 +1,3 @@
-"""面向 DeepSeek Harness SDK 运行时子进程的底层 JSON-RPC 客户端。
-
-对齐上游 `sdk/client/src/client.ts`。公开面仅中文名。经子进程标准输入输出讲 sdk_protocol 线协议；设计对偶是仓库 python/sdk 的 HarnessClient。本客户端运行在任何 harness 上下文之外，因此直接 spawn，不走 subprocess 服务。
-"""
 import os,subprocess,threading,time#环境、子进程、线程与超时
 from concurrent.futures import Future as 原生结果#单次操作结果
 from collections import deque#有界 stderr 尾
@@ -73,7 +69,7 @@ class 中止信号:
         自身._异常=None#中止时抛出的异常
         if 已中止标志:#创建时已中止
             自身._事件.set()#置位
-            自身._异常=SDK客户端错误('request aborted')#默认
+            自身._异常=SDK客户端错误('请求已中止')#默认
 
     def 触发(自身,原因=None):
         """标记中止。"""
@@ -84,7 +80,7 @@ class 中止信号:
         elif 原因 is not None:#非异常
             自身._异常=SDK客户端错误(str(原因))#包装
         else:#无原因
-            自身._异常=SDK客户端错误('request aborted')#默认
+            自身._异常=SDK客户端错误('请求已中止')#默认
         自身._事件.set()#置位
 
 class 中止控制器:
@@ -138,7 +134,7 @@ class 通知订阅:
         """已排队项丢弃，未完成等待者拒绝。"""
         自身.卸订阅()#从客户端表删除
         自身.状态['queue'].clear()#丢掉未取走的通知
-        自身.失败(传输已关闭错误('notification subscription closed'))#拒绝未完成等待者
+        自身.失败(传输已关闭错误('通知订阅已关闭'))#拒绝未完成等待者
 
     def 失败(自身,错误):
         """首次失败胜出；已入队通知仍可排空。"""
@@ -190,7 +186,7 @@ class 装备客户端:
     def 启动(自身):
         """进程仍活着时幂等；关闭之后拒绝复用。"""
         if 自身.关闭任务 is not None:#已关闭
-            raise 传输已关闭错误('DeepSeek Harness runtime client is closed')#不能再 start
+            raise 传输已关闭错误('DeepSeek Harness 运行时客户端已关闭')#不能再 start
         if 自身.子进程 is not None:#已有子进程
             return#幂等返回
         命令=选项字段(自身.选项,'command')#运行时命令
@@ -216,17 +212,17 @@ class 装备客户端:
             """通知等待流落定的人。"""
             if 落定旗['stderr'] and 落定旗['exited']:#都齐
                 自身.流落定.兑现(None)#兑现
-        def 盯退出():
+        def 监视退出():
             """记下退出码并让订阅失败。"""
             码=子.wait()#等待退出
             自身.退出码=码#记下退出码
             自身._已退出=True#标记已退出
             落定旗['exited']=True#标记已退出
             或许落定()#尝试兑现落定
-            自身.令订阅失败(自身._关闭错误('DeepSeek Harness runtime exited'))#让订阅失败
+            自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已退出'))#让订阅失败
             if 自身.传输 is not None:#有传输
                 自身.传输.关闭()#关闭传输
-        threading.Thread(target=盯退出,daemon=True).start()#盯 exit
+        threading.Thread(target=监视退出,daemon=True).start()#监视 exit
         def 读标准错误():
             """追加 stderr 块到有界尾部。"""
             try:
@@ -263,14 +259,14 @@ class 装备客户端:
             or 'version' not in 信息
             or not isinstance(信息['name'],str)
             or not isinstance(信息['version'],str)):#缺少身份
-            raise SDK协议错误('initialize returned no server identity: '+str(结果))#协议错误
+            raise SDK协议错误('initialize 未返回服务器身份：'+str(结果))#协议错误
         return {'serverInfo':{'name':信息['name'],'version':信息['version']}}#只交出线稳定字段
 
     def 提示(自身,会话号,内容块列表):
         """排队一条提示并返回其持久收件箱身份。"""
         结果=自身.请求('session/prompt',{'sessionId':会话号,'contentBlocks':内容块列表})#发
         if (not 是否普通对象(结果)) or 'messageId' not in 结果 or not isinstance(结果['messageId'],str):#缺 messageId
-            raise SDK协议错误('session/prompt returned no message id: '+str(结果))#协议错误
+            raise SDK协议错误('session/prompt 未返回消息 id：'+str(结果))#协议错误
         return 结果['messageId']#交出消息 id
 
     def 请求(自身,方法,参数=None,超时毫秒=None):
@@ -278,10 +274,10 @@ class 装备客户端:
         自身.启动()#惰性确保子进程已启动
         if 自身._已退出 or 自身.拉起错误 is not None:#已经退出或 spawn 失败
             自身._落定流()#等 stderr/exit 落定以便拼诊断
-            raise 自身._关闭错误('DeepSeek Harness runtime is not running')#带退出码与 stderr 尾部
+            raise 自身._关闭错误('DeepSeek Harness 运行时未在运行')#带退出码与 stderr 尾部
         传输=自身.传输#取出传输
         if 传输 is None:#start 后仍无传输
-            raise 传输已关闭错误('DeepSeek Harness runtime is not running')#关闭
+            raise 传输已关闭错误('DeepSeek Harness 运行时未在运行')#关闭
         if 超时毫秒 is not None:#调用方给了单次超时
             超时=超时毫秒#用单次
         elif 'requestTimeoutMs' in 自身.选项:#选项默认
@@ -296,7 +292,7 @@ class 装备客户端:
             def 到期():
                 """到期后 abort，带方法名与毫秒数。"""
                 time.sleep(超时/1000.0)#等待
-                控制器.中止(请求超时错误(方法+' timed out after '+str(超时)+'ms waiting for the DeepSeek Harness runtime'))#abort
+                控制器.中止(请求超时错误(方法+' 等待 DeepSeek Harness 运行时超时，已过 '+str(超时)+'ms'))#中止
             threading.Thread(target=到期,daemon=True).start()#定时
             return 传输.请求(方法,载荷,控制器.信号)#带信号发请求
         except JSONRPC响应错误:
@@ -318,7 +314,7 @@ class 装备客户端:
                 自身.订阅表.pop(标识,None)#删除
         订阅=通知订阅(状态,卸下)#构造句柄
         if 自身.关闭任务 is not None or 自身._已退出 or 自身.拉起错误 is not None:#客户端已关或进程已死
-            订阅.失败(自身._关闭错误('DeepSeek Harness runtime closed'))#生来失败
+            订阅.失败(自身._关闭错误('DeepSeek Harness 运行时已关闭'))#生来失败
             return 订阅#仍返回句柄
         with 自身.锁:#互斥
             自身.订阅表[标识]=订阅#登记活动订阅
@@ -360,7 +356,7 @@ class 装备客户端:
         try:
             自身.请求('shutdown',None,关超时)#先尽量走协议 shutdown
         except BaseException as 错误:
-            自身.标准错误尾.append('shutdown request failed: '+错误消息(错误))#写入 stderr 尾部
+            自身.标准错误尾.append('shutdown 请求失败：'+错误消息(错误))#写入 stderr 尾部
         if 'disposeEofGraceMs' in 自身.选项 and 自身.选项['disposeEofGraceMs'] is not None:#EOF 宽限
             eof宽限=自身.选项['disposeEofGraceMs']#用选项
         else:#缺席
@@ -375,7 +371,7 @@ class 装备客户端:
         })#拆除阶梯结束
         if 自身.传输 is not None:#有传输
             自身.传输.关闭()#关掉传输
-        自身.令订阅失败(自身._关闭错误('DeepSeek Harness runtime closed'))#让剩余订阅失败
+        自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已关闭'))#让剩余订阅失败
 
     def _派发通知(自身,通知):
         """先记下子智能体系谱。"""
@@ -431,9 +427,9 @@ class 装备客户端:
         """多段用换行拼。"""
         段列表=[原因]#先放原因
         if 自身.拉起错误 is not None:#有 spawn 错误
-            段列表.append('spawn error: '+错误消息(自身.拉起错误))#附上
+            段列表.append('拉起错误：'+错误消息(自身.拉起错误))#附上
         if 自身._已退出:#有退出码
-            段列表.append('exit code: '+str(自身.退出码))#附上
+            段列表.append('退出码：'+str(自身.退出码))#附上
         if len(自身.标准错误尾)>0:#有 stderr 尾
-            段列表.append('stderr tail:\n'+'\n'.join(自身.标准错误尾))#附上
+            段列表.append('标准错误尾部：\n'+'\n'.join(自身.标准错误尾))#附上
         return 传输已关闭错误('\n'.join(段列表))#多段拼

@@ -1,8 +1,3 @@
-"""校验已声明工作区路径，并为其原生打开动作寻址。
-
-对齐上游 `ui-deliverables/src/presented.ts`。公开面仅中文名。
-路径常量与动作取值是线协议，原样英文。
-"""
 from urllib.parse import urlencode#查询串
 
 __all__=[#仅中文公开名

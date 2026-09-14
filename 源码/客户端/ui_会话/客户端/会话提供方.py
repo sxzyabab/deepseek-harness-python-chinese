@@ -1,8 +1,3 @@
-"""标准 SessionProvider 席位的会话自有渲染语义。
-
-对齐上游 `ui-session/src/client/session-provider.tsx`。公开面仅中文名。
-无真 React：返回结构树字典。
-"""
 __all__=['渲染会话区域']#仅中文公开名
 
 def 渲染会话区域(绑定,属性):#渲染当前选中会话体或其空分支

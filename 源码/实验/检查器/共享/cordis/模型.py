@@ -1,7 +1,3 @@
-"""非 CDP 读取器共用的、对消费者中立的 Cordis 运行时树。
-
-对齐上游 `shared/cordis/model.ts`。公开面仅中文名。
-"""
 from .快照 import cordis树最大深度#最大嵌套深度
 from ..身份 import 检查器id#品牌化
 from ..json import 是否普通对象,检查器错误#普通对象|本包错误

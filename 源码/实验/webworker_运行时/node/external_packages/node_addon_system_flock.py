@@ -1,11 +1,3 @@
-"""单进程 Worker 对 `@deepseek-ai/node-addon-system/flock` 的替换实现。
-
-JSONL 后端的进程内写声明已排除所有写者，
-因此其内核锁请求无需再占另一资源即可成功。
-
-对齐上游 `webworker-runtime/src/node/external_packages/node-addon-system-flock.ts`。
-文件名下划线：Python 无法 import 连字符模块名。
-"""
 
 __all__=['tryLockExclusive','__esModule','default']#Node面
 

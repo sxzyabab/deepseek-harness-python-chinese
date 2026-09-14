@@ -1,4 +1,3 @@
-"""进程外子智能体后端的提供方侧词汇——围绕另一进程中子体强制本缝自身约定的零件：无能力广告、计时界限校验、子工作目录解析、永不拒绝的结果结算，以及标准跑句柄发布。零件为 dict。"""
 import math,os#有限数判定与路径
 from typing import NotRequired,TypedDict#可选字段与结构类型
 from .错误 import 子智能体错误#缝内失败
@@ -17,7 +16,7 @@ class 跑结果结算(TypedDict):#settleRunResult 的输入
     signal:object#请求的取消信号
     onAbort:object#启动时登记的中止回调
 
-class 子进程跑句柄零件(TypedDict):#subprocessRunHandle 的输入
+class 子进程运行句柄零件(TypedDict):#subprocessRunHandle 的输入
     id:object#父作用域跑 id
     result:object#已压平、永不拒绝的结果任务
     signal:object#请求的取消信号
@@ -65,7 +64,7 @@ def 解析子工作目录(前缀,已配置,父工作目录):
         raise 子智能体错误(前缀+': no working directory for the child — configure `cwd` or delegate from a parent session that has one','NO_CWD')#必须给出cwd
     return 断言可用工作目录(前缀,'parent session cwd',父工作目录)#校验父cwd
 
-def 结算跑结果(零件):
+def 结算运行结果(零件):
     """按缝约定结算进程外跑结果：发布后 result 永不拒绝。零件为 dict。"""
     try:#尝试回合
         结果=零件['attempt']()#等待尝试
@@ -82,7 +81,7 @@ def 结算跑结果(零件):
             pass#诊断槽不能拒绝跑结果
         return {'output':零件['collectOutput'](),'stopReason':'error'}#压成错误
 
-class 子进程跑句柄实例:
+class 子进程运行句柄实例:
     """持有者所有的远程一次性跑：协议字段 id/localAgent/result 保持与上游 SubagentRun 一致；拆除入口仅中文 销毁。"""
     def __init__(自身,标识,结果,拆除):
         """记下身份、永不拒绝的结果，以及幂等拆除闭包。"""
@@ -95,7 +94,7 @@ class 子进程跑句柄实例:
         """取消剩余工作并等待后端拆除到静止。幂等。"""
         return 自身._拆除()#同一任务
 
-def 子进程跑句柄(零件):
+def 子进程运行句柄(零件):
     """为进程外子体发布缝跑句柄。销毁() 幂等（一份记忆化拆除）。零件为 dict。"""
     拆除盒=[None]#记忆化拆除
     def 拆除():
@@ -105,4 +104,4 @@ def 子进程跑句柄(零件):
         零件['requestCancel']()#结算本地取消
         拆除盒[0]=零件['teardown']()#启动后端拆除
         return 拆除盒[0]#返回同一任务
-    return 子进程跑句柄实例(零件['id'],零件['result'],拆除)#缝句柄
+    return 子进程运行句柄实例(零件['id'],零件['result'],拆除)#缝句柄

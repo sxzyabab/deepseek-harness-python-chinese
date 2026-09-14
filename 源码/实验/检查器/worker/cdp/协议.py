@@ -1,4 +1,3 @@
-"""Worker 拥有的最小 CDP 请求与传输类型。"""
 #对齐上游 worker/cdp/protocol.ts
 
 from ...共享.json import 在线程执行#后台跑
@@ -12,18 +11,18 @@ def 是否普通对象(值):#普通对象判定
 def 解析cdp请求(值):#解析CDP请求
     """在路由前解析一条 DevTools 请求。"""
     if not 是否普通对象(值):#非对象
-        raise ValueError('inspector CDP: invalid request')#抛错
+        raise ValueError('inspector CDP: 请求无效')#抛错
     请求id=值.get('id')#id
     方法=值.get('method')#方法
     参数=值.get('params')#参数
     if not isinstance(请求id,int) or isinstance(请求id,bool) or 请求id<0:#id非法
-        raise ValueError('inspector CDP: invalid request')#抛错
+        raise ValueError('inspector CDP: 请求无效')#抛错
     if 请求id>9007199254740991:#超安全整数
-        raise ValueError('inspector CDP: invalid request')#抛错
+        raise ValueError('inspector CDP: 请求无效')#抛错
     if not isinstance(方法,str) or len(方法)==0:#method非法
-        raise ValueError('inspector CDP: invalid request')#抛错
+        raise ValueError('inspector CDP: 请求无效')#抛错
     if 参数 is not None and not 是否普通对象(参数):#params非法
-        raise ValueError('inspector CDP: invalid request')#抛错
+        raise ValueError('inspector CDP: 请求无效')#抛错
     return {'id':请求id,'method':方法,'params':参数 if 参数 is not None else {}}#请求对象
 
 def cdp错误(请求id,码,信息):#构造错误响应

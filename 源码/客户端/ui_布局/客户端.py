@@ -1,8 +1,3 @@
-"""布局插件浏览器半边。
-
-对齐上游 `ui-layout/src/client/index.ts`。公开面仅中文名。
-一次 register 把应用帧贡献进 root，并声明四子槽、落座布局 store、接上面板动作。
-"""
 from .应用帧 import 应用帧#帧组件
 from .存储 import 创建布局存储#布局存储工厂
 from .服务 import 布局控制器#布局控制器

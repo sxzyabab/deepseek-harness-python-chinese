@@ -54,9 +54,9 @@ class _串行操作链:#本文件内互斥队列
     def __init__(自身):#启动工作者
         """启动工作者线程。"""
         自身._队列=queue.Queue()#待跑操作
-        自身._工作者=threading.Thread(target=自身._跑,daemon=True)#工作者
+        自身._工作者=threading.Thread(target=自身._执行操作循环,daemon=True)#工作者
         自身._工作者.start()#启动
-    def _跑(自身):#工作者循环
+    def _执行操作循环(自身):#工作者循环
         """逐项执行入队操作。"""
         while True:#常驻
             结果,操作=自身._队列.get()#取下一项

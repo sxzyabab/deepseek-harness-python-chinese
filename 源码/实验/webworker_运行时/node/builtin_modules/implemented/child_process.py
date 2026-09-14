@@ -1,10 +1,3 @@
-"""跨 worker 自有 shell 的 `node:child_process`。
-
-浏览器 worker 不能 fork，故本模块即机器的进程层。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/child_process.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from .buffer import Buffer#本包Buffer
 from .events import 事件发出器#导入事件发出器
 from ...未实现失败 import 未实现失败,运行时错误#导入未实现桩|本包错误
@@ -217,8 +210,8 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
                     命令argv=prepared['argv']#替换argv
                     文件系统=prepared['filesystem'] if 'filesystem' in prepared else None#可选fs
                     缺失可执行=prepared['missingExecutable'] if 'missingExecutable' in prepared else None#缺失
-                    续跑()#继续
-                def 续跑():#已知性检查与启动
+                    继续启动()#继续
+                def 继续启动():#已知性检查与启动
                     """已知性检查与启动。"""
                     命令=命令argv[0]#命令名
                     脚本=识别shell脚本(命令argv)#shell脚本

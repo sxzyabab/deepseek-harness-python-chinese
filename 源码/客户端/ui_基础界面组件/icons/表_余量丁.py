@@ -1,5 +1,3 @@
-"""icons 余量丁：文件夹/树拐/主题/数据/列表笔/目标/技能/归档/智能体预设。"""
-
 表={#名 → 描述
     'folder-open-outline-16':{#IconFolderOpenOutline16
         'viewBox':'0 0 16 16','defaultSize':16,

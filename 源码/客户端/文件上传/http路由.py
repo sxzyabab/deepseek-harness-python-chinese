@@ -1,7 +1,3 @@
-"""登记在 Connection fetch 注册表上的已认证原始字节上传路由。
-
-对齐上游 `file-upload/src/http-route.ts`。响应为连接包惯用的字典形态。
-"""
 import json#JSON 结果
 from urllib.parse import parse_qs,urlparse#查询解析
 from ...工具.标识构造 import 标识构造#会话 id 标识

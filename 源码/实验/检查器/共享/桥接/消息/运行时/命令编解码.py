@@ -1,7 +1,3 @@
-"""Client Runtime 命令的精确线上解码器。
-
-对齐上游 `shared/bridge/messages/runtime/command-codec.ts`。公开面仅中文名。
-"""
 from ....json import 是否json值,是否普通对象,检查器错误#JSON校验|本包错误
 from ....校验 import 精确键,可选布尔,可选非负数,可选字符串,线上标识#校验
 

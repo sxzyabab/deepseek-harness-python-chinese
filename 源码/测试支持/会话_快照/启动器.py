@@ -1,7 +1,3 @@
-"""ACP 测试共享启动器：经 JSON-RPC stdio 驱动智能体子进程。
-
-对齐上游 `session-snapshot/src/launcher.ts`。公开面仅中文名。
-"""
 import json,os,tempfile,threading,subprocess,time,sys#进程与 IO
 import yaml#YAML 补丁
 from ..加载器_冒烟 import 解析示例启动#示例启动解析

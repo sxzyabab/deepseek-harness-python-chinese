@@ -1,8 +1,3 @@
-"""由 Host 支撑的已完成 Turn transcript 呈现策略。
-
-对齐上游 `ui-chat/src/client/transcript-view.ts`。公开面仅中文名。
-宿主快照为 dict。
-"""
 from ..聊天设置 import 默认转录视图模式,转录视图字段#设置常量
 
 __all__=['转录视图策略']#仅中文公开名

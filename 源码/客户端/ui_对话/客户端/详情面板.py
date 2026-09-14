@@ -1,8 +1,3 @@
-"""详情第三栏：选中工具的 Input/Output。
-
-对齐上游 `ui-conversation/src/client/skeleton/DetailsPanel.tsx`。公开面仅中文名。
-属性与选中为 dict。
-"""
 
 __all__=['详情面板']#仅中文公开名
 

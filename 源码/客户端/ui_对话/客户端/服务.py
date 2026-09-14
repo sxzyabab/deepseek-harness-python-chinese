@@ -1,8 +1,3 @@
-"""按作用域寻址的会话发送、取消与历史编排。
-
-对齐上游 `ui-conversation/src/client/service.ts`。公开面仅中文名。
-浏览器 File/Blob/URL API 在非浏览器宿主半退化为 data URL 或拒绝。
-"""
 import uuid#草稿 id
 from ....依赖 import cordis#外部依赖胶水
 from ....依赖.工具 import 二进制#base64 编解码

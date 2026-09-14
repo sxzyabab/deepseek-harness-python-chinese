@@ -1,8 +1,3 @@
-"""一窗格：标签条、分割控件与正文的视图模型。
-
-对齐上游 `ui-dockkit/src/components/TabPanel.tsx`。公开面仅中文名。
-手势经面板回调离开；正文由 renderTab 供给。
-"""
 from ..引擎.树 import 取标签#树
 from .面板回调 import 分割阻断预算,分割阻断宽度#阻断
 from .标签菜单 import 标签菜单#菜单

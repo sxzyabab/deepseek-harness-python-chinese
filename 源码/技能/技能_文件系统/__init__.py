@@ -1,9 +1,3 @@
-"""本地文件系统技能提供方。
-
-本包是 ctx.skills 提供方注册表的一种实现。它从项目、自定义与用户根
-发现目录包和扁平 Markdown 技能，解析 YAML frontmatter，并在存在文件系统服务时
-经 ctx.fs 加载正文。对应上游 @deepseek-ai/dsh-skill-filesystem。
-"""
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖.schemastery import 字符串字段,布尔字段,列表字段,数字字段#配置字段
@@ -74,7 +68,7 @@ class 操作任务:
             if isinstance(错误,BaseException):#已是异常
                 自身.未来.set_exception(错误)#原样拒绝
             else:#非异常
-                包装=技能文件系统错误('task rejected')#包装拒绝
+                包装=技能文件系统错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息做成属性
                 自身.未来.set_exception(包装)#包装拒绝
 
@@ -89,7 +83,7 @@ class 中止信号:
         自身.事件=threading.Event()#中止标志
         if 已中止标志:#创建时已中止
             自身.事件.set()#置位
-            中止原因表[自身]=技能文件系统错误('aborted')#默认
+            中止原因表[自身]=技能文件系统错误('已中止')#默认
 
     def 触发(自身,原因=None):
         """标记中止。"""
@@ -98,11 +92,11 @@ class 中止信号:
         if isinstance(原因,BaseException):#原因已是异常
             中止原因表[自身]=原因#旁表承载
         elif 原因 is not None:#非异常原因
-            错=技能文件系统错误('aborted')#包装
+            错=技能文件系统错误('已中止')#包装
             错.原因=原因#附加在异常上
             中止原因表[自身]=错#记下
         else:#无原因
-            中止原因表[自身]=技能文件系统错误('aborted')#默认
+            中止原因表[自身]=技能文件系统错误('已中止')#默认
         自身.事件.set()#置位
 
 class 中止控制器:
@@ -295,7 +289,7 @@ class _Windows目录等待:#ReadDirectoryChangesW 子树等待
         无效=wintypes.HANDLE(-1).value#INVALID_HANDLE_VALUE
         句柄=内核.CreateFileW(路径,文件列目录,共享读|共享写|共享删,None,打开已有,备份语义|重叠标志,None)#打开目录
         if 句柄==无效 or 句柄 is None:#打开失败
-            raise OSError(ctypes.get_last_error(),'CreateFileW failed for watch root')#上抛
+            raise OSError(ctypes.get_last_error(),'监视根 CreateFileW 失败')#上抛
         自身.目录句柄=句柄#目录句柄
         自身.通知缓冲=ctypes.create_string_buffer(65536)#通知缓冲
         类重叠=type('OVERLAPPED',(ctypes.Structure,),{'_fields_':[('Internal',ctypes.c_ulonglong),('InternalHigh',ctypes.c_ulonglong),('Offset',wintypes.DWORD),('OffsetHigh',wintypes.DWORD),('hEvent',wintypes.HANDLE)]})#重叠结构
@@ -303,7 +297,7 @@ class _Windows目录等待:#ReadDirectoryChangesW 子树等待
         自身.等待句柄=内核.CreateEventW(None,True,False,None)#手动复位事件
         if not 自身.等待句柄:#建事件失败
             内核.CloseHandle(句柄)#收句柄
-            raise OSError(ctypes.get_last_error(),'CreateEventW failed')#上抛
+            raise OSError(ctypes.get_last_error(),'CreateEventW 失败')#上抛
         自身.重叠结构.hEvent=自身.等待句柄#挂到重叠
         自身.监视掩码=0x00000001|0x00000002|0x00000004|0x00000008|0x00000010|0x00000040#名/目录/属性/大小/写入/创建
         自身.已关闭=False#拆除标志
@@ -321,7 +315,7 @@ class _Windows目录等待:#ReadDirectoryChangesW 子树等待
             if 错==997:#ERROR_IO_PENDING 正常
                 pass#等事件
             else:#真失败
-                raise OSError(错,'ReadDirectoryChangesW failed')#上抛
+                raise OSError(错,'ReadDirectoryChangesW 失败')#上抛
         等待毫秒=max(int(超时秒*1000),1)#至少 1ms
         结果=内核.WaitForSingleObject(自身.等待句柄,等待毫秒)#等通知或超时
         if 结果==0:#WAIT_OBJECT_0
@@ -362,7 +356,7 @@ class _Linux目录等待:#inotify 根+一层子目录
         自身.监视掩码=0x00000100|0x00000200|0x00000002|0x00000040|0x00000080|0x00000004|0x00000400|0x00000800#CREATE/DELETE/MODIFY/MOVED_FROM/MOVED_TO/ATTRIB/DELETE_SELF/MOVE_SELF
         自身.通知fd=libc.inotify_init1(IN_CLOEXEC|IN_NONBLOCK)#实例
         if 自身.通知fd<0:#失败
-            raise OSError(ctypes.get_errno(),'inotify_init1 failed')#上抛
+            raise OSError(ctypes.get_errno(),'inotify_init1 失败')#上抛
         自身.监视表={}#wd→路径
         自身.已关闭=False#拆除标志
         自身.加监视(路径)#根
@@ -660,7 +654,7 @@ class 技能监视管理器:#技能根监视管理器
     def 拆除(自身):#关闭全部监视
         """关闭每一个宿主监视器并收容迟到的文件系统回调。"""
         自身.拆除中=True#拒绝新打开
-        自身.生命周期.中止(技能文件系统错误('skill-filesystem watcher disposed'))#中止打开中的 ready
+        自身.生命周期.中止(技能文件系统错误('skill-filesystem 监视器已拆除'))#中止打开中的 ready
         with 自身.锁:#快照状态
             状态列表=list(自身.根.values())#快照状态
             自身.根.clear()#先清空表
@@ -778,7 +772,7 @@ class 技能监视管理器:#技能根监视管理器
 
     def 处理祖先监视事件(自身,状态,模式):#祖先路径变化
         """祖先路径变化。"""
-        def 跑():#不阻塞 fs 回调
+        def 处理后台祖先事件():#不阻塞 fs 回调
             """再探模式并按需重监视。"""
             try:#stat 失败可能是权限/IO
                 当前=解析根监视模式(状态['root']['path'],自身.config['followSymlinks'])#再探
@@ -791,7 +785,7 @@ class 技能监视管理器:#技能根监视管理器
             自身.排队失效()#模式变了，目录可能变
             状态['unhealthy']=True#需要换句柄
             自身.调度重监视(状态)#调度重监视
-        工作=threading.Thread(target=跑)#后台处理
+        工作=threading.Thread(target=处理后台祖先事件)#后台处理
         工作.daemon=True#不挡住退出
         工作.start()#启动
 
@@ -811,11 +805,11 @@ class 技能监视管理器:#技能根监视管理器
         def 等中止():#拆除则拒绝 ready
             """拆除则拒绝 ready。"""
             信号.事件.wait()#等到生命周期中止
-            原因=中止原因表[信号] if 信号 in 中止原因表 else 技能文件系统错误('aborted')#拆除原因
+            原因=中止原因表[信号] if 信号 in 中止原因表 else 技能文件系统错误('已中止')#拆除原因
             if isinstance(原因,BaseException):#已是异常
                 就绪.拒绝(原因)#拒绝
             else:#无异常
-                就绪.拒绝(技能文件系统错误('aborted'))#拒绝
+                就绪.拒绝(技能文件系统错误('已中止'))#拒绝
         中止线程=threading.Thread(target=等中止)#守护线程听拆除
         中止线程.daemon=True#不挡住退出
         中止线程.start()#启动
@@ -872,7 +866,7 @@ class 技能监视管理器:#技能根监视管理器
     def 调度重监视(自身,状态):#等当前打开结束后再确保句柄
         """等当前打开结束后再确保句柄。"""
         当前打开=状态['opening']#当前打开
-        def 跑():#不阻塞事件回调
+        def 执行重监视():#不阻塞事件回调
             """收容打开失败后再确保。"""
             等待监视器打开(当前打开)#收容打开失败
             try:#重开失败已有日志
@@ -880,7 +874,7 @@ class 技能监视管理器:#技能根监视管理器
             except BaseException:#打开失败
                 return#监视启动已记下这次重试失败；下一次不完整发现会再试
             自身.排队失效()#重开成功，目录可能已变
-        工作=threading.Thread(target=跑)#后台重开
+        工作=threading.Thread(target=执行重监视)#后台重开
         工作.daemon=True#不挡住退出
         工作.start()#立即启动
 

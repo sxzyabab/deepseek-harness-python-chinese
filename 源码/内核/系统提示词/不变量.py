@@ -1,4 +1,3 @@
-"""系统提示词组装的包内不变量。对齐上游 `@deepseek-ai/dsh-system-prompt/invariant`。"""
 import json,re#json 与正则
 
 包名='@deepseek-ai/dsh-system-prompt'#本包名
@@ -17,29 +16,29 @@ def 校验组装(组装,失败):
     已见段落=set()#已见段落名
     for 段 in 组装['sections']:
         if len(段['name'])==0:
-            失败('assembled section names must be non-empty')#段落名不得为空
+            失败('组装后的段落名不得为空')#段落名不得为空
         if 段['name'] in 已见段落:
-            失败('assembled section name '+json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is duplicated')#段落名不得重复
+            失败('组装后的段落名 '+json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 重复')#段落名不得重复
         已见段落.add(段['name'])#记下段落名
         if not isinstance(段['text'],str):
-            失败('assembled section '+json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' text must be a string')#段落文本必须是字符串
+            失败('组装后的段落 '+json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 的 text 必须是字符串')#段落文本必须是字符串
     已见上下文=set()#已见上下文名
     for 上下文块 in 组装['contexts']:
         if len(上下文块['name'])==0:
-            失败('assembled context names must be non-empty')#上下文名不得为空
+            失败('组装后的上下文名不得为空')#上下文名不得为空
         if 上下文块['name'] in 已见上下文:
-            失败('assembled context name '+json.dumps(上下文块['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is duplicated')#上下文名不得重复
+            失败('组装后的上下文名 '+json.dumps(上下文块['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 重复')#上下文名不得重复
         已见上下文.add(上下文块['name'])#记下上下文名
         if not isinstance(上下文块['text'],str):
-            失败('assembled context '+json.dumps(上下文块['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' text must be a string')#上下文文本必须是字符串
+            失败('组装后的上下文 '+json.dumps(上下文块['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 的 text 必须是字符串')#上下文文本必须是字符串
     for 工具 in 组装['tools']:
         if len(工具['name'])==0:
-            失败('assembled tool names must be non-empty')#工具名不得为空
+            失败('组装后的工具名不得为空')#工具名不得为空
     for 名,值 in 组装['variables'].items():
         if not 是否合法变量名(名):
-            失败('assembled variable name '+json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is invalid')#变量名须合法
+            失败('组装后的变量名 '+json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 非法')#变量名须合法
         if 值 is not None and not isinstance(值,str):
-            失败('assembled variable '+json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' must be a string or undefined')#变量值须为字符串或缺省
+            失败('组装后的变量 '+json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 必须是字符串或未定义')#变量值须为字符串或缺省
 
 def 安装(上下文对象,失败):
     """在权威组装瀑布结果外包一层校验。"""

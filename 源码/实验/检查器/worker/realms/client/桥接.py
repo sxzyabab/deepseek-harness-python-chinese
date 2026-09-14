@@ -1,4 +1,3 @@
-"""一个已连接 Client realm 的 Worker 侧桥依赖。"""
 #对齐上游 worker/realms/client/bridge.ts
 
 __all__=['创建Client_realm桥']#仅中文公开名

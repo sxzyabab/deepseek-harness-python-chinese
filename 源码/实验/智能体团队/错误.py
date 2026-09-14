@@ -1,7 +1,3 @@
-"""类型化的 Agent Teams 失败。
-
-对齐上游 `agent-team/src/error.ts`。公开面仅中文名。
-"""
 import reprlib#有界单行渲染
 from ...模型后端.llm import 装备错误#Harness 错误基类
 

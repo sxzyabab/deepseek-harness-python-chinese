@@ -1,7 +1,3 @@
-"""宿主用户设置文档里存储的忙碌时 Enter 偏好。
-
-对齐上游 `ui-conversation/src/submission-settings.ts`。公开面仅中文名。配置键英文字面量保持上游。
-"""
 from ...依赖.schemastery import 枚举字段#配置字段
 
 __all__=[#仅中文公开名

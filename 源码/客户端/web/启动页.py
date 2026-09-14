@@ -1,9 +1,3 @@
-"""无框架启动页与失败报告。
-
-对齐上游 `web/src/boot-page.ts`。公开面仅中文名。
-客户端插件失败时仍可用。错误与提示文案原样英文。
-"""
-
 __all__=['启动页']#仅中文公开名
 
 def 建区块(文档,类名,文本=None):
@@ -25,7 +19,7 @@ class 启动页:#内核拥有的页面
         自身.字标=建区块(文档,'wordmark','HARNESS')#字标
         自身.旋转=建区块(文档,'spinner')#进度弧
         自身.旋转.dataset.dshBootSpinner=''#旋转器标记
-        自身.提示=建区块(文档,'hint','Loading plugins…')#加载提示
+        自身.提示=建区块(文档,'hint','正在加载插件…')#加载提示
         自身.卡片.append(自身.字标,自身.旋转,自身.提示)#卡片子树
         自身.根.append(自身.卡片)#根下挂卡片
         容器.append(自身.根)#挂到应用容器
@@ -66,7 +60,7 @@ class 启动页:#内核拥有的页面
             return#无需失败报告
         文档=自身.根.ownerDocument#文档
         报告=建区块(文档,'failed')#失败报告根
-        报告.append(建区块(文档,'failedTitle','Failed to load plugins'))#标题
+        报告.append(建区块(文档,'failedTitle','加载插件失败'))#标题
         for 标识 in 失败名:#失败条目名
             报告.append(建区块(文档,'failedItem',标识))#一条
         if 自身.失败文案 is not None:#总失败

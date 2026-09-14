@@ -1,8 +1,3 @@
-"""呈现调用状态行：可展开的定稿结果。
-
-对齐上游 `ui-deliverables/src/client/PresentRow.tsx`。公开面仅中文名。
-流式参数可能残缺；props 为槽位合成 dict。
-"""
 import json#解析参数
 
 __all__=['呈现行','文件名摘要']#仅中文公开名
@@ -76,9 +71,9 @@ class 呈现行:#present 工具视图行
             输出='\n'.join(段)#拼接
         细节=输出#默认输出
         if 细节=='' and 已结 and 'error' in 块 and 块['error'] is not None:#无输出有错
-            错=块['error']#错
-            名=错['name'] if 'name' in 错 else ''#名
-            码=错['code'] if 'code' in 错 else ''#码
+            错误体=块['error']#错误体
+            名=错误体['name'] if 'name' in 错误体 else ''#名
+            码=错误体['code'] if 'code' in 错误体 else ''#码
             细节=f"{名}: {码}"#细节
         点态='ongoing' if 状态=='running' else ('done' if 状态=='ok' else ('warning' if 状态=='stopped' else 'error'))#状态点
         return {#视图

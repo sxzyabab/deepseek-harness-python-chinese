@@ -1,11 +1,10 @@
-"""本包拥有的子智能体注册表与生命周期不变量。公开面仅中文名；Cordis 协议槽不进入 `__all__`。"""
 包名='@deepseek-ai/dsh-subagent'#本包的不变量所有权名
 名称='subagent-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务
 
 __all__=['包名','名称','注入','安装','应用']#仅中文公开名
 
-def 校验跑结束(开始,结束,失败):
+def 校验运行结束(开始,结束,失败):
     """断言终态生命周期载荷与其启动身份一致：提供方、子 id、本地性三者必须同对。事件为 dict。"""
     if (开始['provider']!=结束['provider'] or 开始['id']!=结束['id'] or 开始['local']!=结束['local']):#身份分叉
         失败('subagent/end identity diverges from subagent/start for run '+repr(结束['runId']))#身份不一致
@@ -50,7 +49,7 @@ def 安装(上下文对象,失败):
         载荷=参数[0]#end 载荷
         if 载荷['runId'] not in 跑表:#必须先有 start
             失败('subagent/end has no matching subagent/start for run '+repr(载荷['runId']))#必须先有 start
-        校验跑结束(跑表[载荷['runId']],载荷,失败)#校验身份一致
+        校验运行结束(跑表[载荷['runId']],载荷,失败)#校验身份一致
         暂存结束.add(id(载荷))#暂存 end
 
     上下文对象.监听('internal/dispatch',派发检查,{'全局':True})#全局监听 dispatch

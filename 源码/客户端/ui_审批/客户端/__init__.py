@@ -1,7 +1,3 @@
-"""浏览器审批消费者，叠在既有作用域 Remote Event waterfall 上。
-
-对齐上游 `ui-approval/src/client/index.ts`。公开面仅中文名。
-"""
 import threading#拆卸清理等待
 from .审批面板 import 审批面板#审批面板
 from .约定.槽 import 待决审批,审批错误#待处理审批面

@@ -1,7 +1,3 @@
-"""进程外 harness SDK 的 JSON-RPC 方法与通知。
-
-对齐上游 `sdk/server/src/server.ts`。公开面仅中文名。外围上下文拥有插件、持久化与已配置的适配器。
-"""
 import os,threading#默认工作目录与路径解析、创建去重
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...模型后端 import llm_deepseek#DeepSeek LLM 插件模块
@@ -115,14 +111,14 @@ class 装备SDKJSONRPC服务端:
         上限=参数['maxTokens'] if 'maxTokens' in 参数 else None#可选上限
         if 上限 is not None:#若带了 maxTokens
             if isinstance(上限,bool) or (not isinstance(上限,int)) or 上限<=0:#必须是正整数
-                raise TypeError('initialize maxTokens must be a positive safe integer')#非法上限
+                raise TypeError('initialize 的 maxTokens 必须是正整数')#非法上限
         自身.cwd=os.path.abspath(参数['cwd'] if 'cwd' in 参数 else None)#解析并记下工作目录
         自身.provider=参数['provider'] if 'provider' in 参数 else None#记下提供方
         自身.model=参数['model'] if 'model' in 参数 else None#记下模型
         自身.maxTokens=上限#记下可选 token 上限
         if not 自身.有适配器(自身.provider):#上下文里还没有该提供方
             if 自身.provider!='deepseek-official':#非官方提供方缺失则失败
-                raise SDK服务端错误('no adapter registered for provider "'+str(自身.provider)+'"')#失败
+                raise SDK服务端错误('没有为提供方 "'+str(自身.provider)+'" 登记适配器')#失败
             光纤=自身.ctx.启动插件(llm_deepseek,{})#官方提供方则挂载 DeepSeek 回退
             光纤.等待()#等到适配器已登记
             自身.llm光纤=光纤#记下
@@ -134,7 +130,7 @@ class 装备SDKJSONRPC服务端:
         句柄=记录['handle']#智能体句柄
         智能体=句柄.智能体#智能体
         if 自身.ctx.agents.获取(智能体.id) is not 智能体:#句柄上的智能体已不在注册表
-            raise SDK服务端错误('session agent was disposed outside the server: '+str(参数['sessionId'] if 'sessionId' in 参数 else None))#拒绝
+            raise SDK服务端错误('会话智能体已在服务端之外被拆除：'+str(参数['sessionId'] if 'sessionId' in 参数 else None))#拒绝
         消息=创建用户消息({'content':参数['contentBlocks'] if 'contentBlocks' in 参数 else None,'source':{'kind':'user'}})#构造用户消息
         智能体.后续(消息)#投入该会话智能体
         return {'messageId':消息.id}#返回已排队消息 id
@@ -179,7 +175,7 @@ class 装备SDKJSONRPC服务端:
         if len(失败列表)==1:#恰好一次失败
             raise 失败列表[0]#原样抛出
         if len(失败列表)>1:#多次失败
-            raise 聚合错误(失败列表,'SDK server teardown failed')#聚合
+            raise 聚合错误(失败列表,'SDK 服务端拆除失败')#聚合
         return {}#成功则返回空对象
 
     def 处理请求(自身,方法,参数):
@@ -191,13 +187,13 @@ class 装备SDKJSONRPC服务端:
             return 自身.提示(载荷)#转为提示参数并处理
         if 方法=='shutdown':#关闭
             return 自身.关闭()#执行关闭
-        raise SDK服务端错误('unknown DeepSeek Harness SDK runtime method: '+str(方法))#未知方法
+        raise SDK服务端错误('未知的 DeepSeek Harness SDK 运行时方法：'+str(方法))#未知方法
 
     def 取或创建会话(自身,会话号):
         """已有则直接返回；否则启动创建并去重并发。"""
         if 自身.正在关闭:#关闭中拒绝新会话
-            raise SDK服务端错误('SDK server is shutting down')#拒绝
-        应跑=False#是否由本调用执行创建
+            raise SDK服务端错误('SDK 服务端正在关闭')#拒绝
+        应执行创建=False#是否由本调用执行创建
         with 自身.锁:#互斥
             已有=自身.会话表[会话号] if 会话号 in 自身.会话表 else None#查已完成记录
             if 已有 is not None:#已有
@@ -208,8 +204,8 @@ class 装备SDKJSONRPC服务端:
             else:#新创建
                 创建=操作任务()#共享任务
                 自身.会话创建中[会话号]=创建#登记
-                应跑=True#本调用执行
-        if 应跑:#由本调用跑体
+                应执行创建=True#本调用执行
+        if 应执行创建:#由本调用执行创建体
             try:
                 选项={'provider':自身.provider,'model':自身.model}#智能体路由选项
                 if 自身.maxTokens is not None:#有上限才写入

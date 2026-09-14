@@ -1,4 +1,3 @@
-"""`@deepseek-ai/dsh-hooks-claude-code` 的本包不变量配套。"""
 包名='@deepseek-ai/dsh-hooks-claude-code'#本包名，用于登记所有权
 名称='hooks-claude-code-invariant'#配套插件名
 注入=['invariants']#依赖不变量服务

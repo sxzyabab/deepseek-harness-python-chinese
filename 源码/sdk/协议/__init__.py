@@ -1,7 +1,3 @@
-"""DeepSeek Harness SDK 运行时的共享线协议：换行分隔的 JSON-RPC 标准输入输出传输，以及两端共用的具名请求、结果与通知类型。
-
-对齐上游 `@deepseek-ai/dsh-sdk-protocol`。公开面仅中文名。运行时服务端插件（`sdk_jsonrpc_server`）提供本协议；SDK 客户端（`sdk_client`）驱动本协议。纯库——无插件、无 Config、无注册。
-"""
 from .传输 import JSONRPC响应错误,JSONRPC传输对等端,换行JSONRPC传输#传输面
 from .类型 import (#协议类型面
     初始化参数,#握手参数

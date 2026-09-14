@@ -1,7 +1,3 @@
-"""持久 Team 邮箱：准入、目标本地投递、确认与恢复。
-
-对齐上游 `agent-team/src/mailbox.ts`。公开面仅中文名。
-"""
 import copy,json,threading,uuid#克隆、字节计、串行、消息 id
 from ...模型后端.llm import 创建用户消息#用户消息工厂
 from .错误 import 团队错误,错误文案#领域错误

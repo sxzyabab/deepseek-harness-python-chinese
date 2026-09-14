@@ -1,7 +1,3 @@
-"""与环境无关的 Cordis 运行时树读取器。
-
-对齐上游 `shared/cordis/reader.ts`。公开面仅中文名。
-"""
 __all__=['cordis运行时树读取器','创建cordis运行时树读取器']#仅中文公开名
 
 class cordis运行时树读取器:#运行时树读取器

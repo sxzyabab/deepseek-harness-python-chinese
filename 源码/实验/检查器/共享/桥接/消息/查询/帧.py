@@ -1,7 +1,3 @@
-"""源-到-Worker 非 CDP 查询的带版本帧。
-
-对齐上游 `shared/bridge/messages/query/frames.ts`。公开面仅中文名。
-"""
 from ...版本 import 检查器协议版本#协议版本
 
 __all__=['检查器查询请求标识','检查器查询请求帧','检查器查询响应帧']#仅中文公开名

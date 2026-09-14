@@ -1,15 +1,3 @@
-"""Node 形态的定时器句柄。浏览器的 `setTimeout`/`setInterval` 返回
-数字 id，而 harness 与自带代码会对句柄调用 `.unref()`
-（`client-hmr` 的轮询间隔、cordis 的定时器插件）。包装器返回带 Node 的
-`ref`/`unref`/`hasRef` 的句柄对象，且 `clear*` 接受两种形态——
-对象也会转换为其数字 id，因此把它当数字存的代码仍可用。
-
-处理器还绑定到注册定时器时的异步上下文
-（`./async-context-hooks.ts`），因此在发起方边界内调度的回调
-触发时仍归属于该边界。
-
-对齐上游 `webworker-runtime/src/node/globals/timers.ts`。公开面仅中文名。
-"""
 from ..builtin_modules.implemented.async_hooks import 绑定异步上下文#导入异步上下文绑定
 
 __all__=['安装定时器全局']#仅中文公开名

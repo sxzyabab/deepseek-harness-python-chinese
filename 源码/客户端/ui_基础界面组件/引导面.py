@@ -1,9 +1,3 @@
-"""首跑全视口接管面。
-
-对齐上游 `ui-primitives/src/OnboardingSurface.tsx`。公开面仅中文名。
-遮罩传送到 body；挂载期间把 #root 置 inert。属性为 dict。
-"""
-
 __all__=['引导面']#仅中文公开名
 
 class 引导面:#引导接管铬

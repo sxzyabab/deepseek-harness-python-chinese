@@ -1,7 +1,3 @@
-"""非 CDP Inspector 查询帧的精确解码器。
-
-对齐上游 `shared/bridge/messages/query/codec.ts`。公开面仅中文名。
-"""
 from ....cordis.模型 import 解析cordis运行时树#解析树
 from ....json import 是否普通对象,检查器错误#普通对象|本包错误
 from ....校验 import 精确键,精确对象,线上标识#校验

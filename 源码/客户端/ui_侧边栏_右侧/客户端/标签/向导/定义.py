@@ -1,8 +1,3 @@
-"""向导类型登记第一阶段。
-
-对齐上游 `ui-sidebar-right/src/client/tabs/guide/definition.ts`。公开面仅中文名。
-页面类型：不认领资源地址，按 kind 打开；优先级 builtin。
-"""
 from ...约定.种子 import 向导种类#向导种类
 
 __all__=['向导标识','向导定义']#仅中文公开名

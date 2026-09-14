@@ -1,7 +1,3 @@
-"""面向模型的 Cordis 运行时/包巡检、定义、运行、停止与移除工具。
-
-对齐上游 `@deepseek-ai/dsh-tool-cordis`。公开面仅中文名；工具名与模型可见英文描述保持上游。
-"""
 import json,re#JSON 与 @pluginId 正则
 from ...内核.工具 import 定义工具#工具定义工厂
 from ...模型后端.llm import 创建用户消息#用户消息工厂
@@ -29,22 +25,22 @@ def 要求智能体(执行):
     """工具执行必须带 Agent。执行为 dict。"""
     智能体=执行['agent'] if 'agent' in 执行 else None#调用方 Agent
     if 智能体 is None:#无会话
-        raise 工具错误('Cordis dynamic tools require an Agent-backed session')#失败
+        raise 工具错误('Cordis 动态工具需要有 Agent 支撑的会话')#失败
     return 智能体#返回
 
 def 要求json对象(值):
     """非普通对象则失败。"""
     if not isinstance(值,dict):#非普通对象
-        raise 工具错误('expected a JSON object')#失败
+        raise 工具错误('需要 JSON 对象')#失败
     return 值#对象本身
 
 def 要求json字符串(值,键):
     """非字符串则失败。值为 dict。"""
     if 键 not in 值:#缺键
-        raise 工具错误('expected JSON string field "'+键+'"')#失败
+        raise 工具错误('需要 JSON 字符串字段 "'+键+'"')#失败
     字段=值[键]#取出字段
     if not isinstance(字段,str):#非字符串
-        raise 工具错误('expected JSON string field "'+键+'"')#失败
+        raise 工具错误('需要 JSON 字符串字段 "'+键+'"')#失败
     return 字段#字符串值
 
 def 自检状态(引用):
@@ -283,7 +279,7 @@ def 应用(上下文):
         """按层细化自检。参数与执行为 dict。"""
         智能体=要求智能体(执行)#调用方 Agent
         if 'packageId' in 参数 and 'pluginId' not in 参数:#有包无插件
-            raise 工具错误('cordis_inspect_self packageId requires pluginId')#必须带插件
+            raise 工具错误('cordis_inspect_self 的 packageId 必须带 pluginId')#必须带插件
         if 'pluginId' not in 参数:#列出全部插件
             return {'mode':'plugins','plugins':[自检摘要(引用) for 引用 in 上下文.dynamicCordisRunner.列插件(智能体)]}#摘要列表
         插件标识=动态插件标识(参数['pluginId'])#品牌化
@@ -523,7 +519,7 @@ def 应用(上下文):
             return 决策#原样
         信号=载荷['signal'] if 'signal' in 载荷 else None#取消信号
         if 信号 is not None and 信号.is_set():#已取消
-            raise 工具错误('aborted')#抛
+            raise 工具错误('已中止')#抛
         智能体=载荷['agent']#智能体
         上下文列表=[]#每条引用一条上下文消息
         for 标识 in 标识列表:#每条引用

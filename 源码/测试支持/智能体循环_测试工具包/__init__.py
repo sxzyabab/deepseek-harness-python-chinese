@@ -1,8 +1,3 @@
-"""智能体循环测试的共享服务挂载、真实 AgentLoop 驱动与结构性收件箱桩。
-
-调用方仍拥有上下文、循环、适配器、可选插件、智能体与拆除。
-对齐上游 `agent-loop-testkit/src/index.ts`。公开面仅中文名。
-"""
 from ...模型后端.llm import 默认 as 语言模型运行时#LLM运行时插件
 from ...内核.会话 import 默认 as 会话存储#会话存储插件
 from ...会话.会话投影 import 默认 as 会话投影注册表#会话投影注册表插件

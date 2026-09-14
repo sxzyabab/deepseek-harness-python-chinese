@@ -1,8 +1,3 @@
-"""延迟悬停预览卡，传送到 document.body。
-
-对齐上游 `ui-primitives/src/HoverCard.tsx`。公开面仅中文名。
-锚点包一层；卡片固定在右缘；指针宽限穿越缝隙。属性为 dict。
-"""
 from .指针宽限 import 指针宽限#离开宽限
 from .剪贴板 import 写剪贴板#复制
 

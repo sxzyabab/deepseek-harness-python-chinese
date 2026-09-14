@@ -1,8 +1,3 @@
-"""`ctx.sidebarRight`：其它插件可问本栏的导航与呈现面。
-
-对齐上游 `ui-sidebar-right/src/client/service.ts`。公开面仅中文名。
-跨包值为 dict。钉住为可调用 (地址, 信号Event)。
-"""
 from ...ui_停靠套件.引擎 import (#树只读
     活动停靠窗格标识,
     可分割,
@@ -100,7 +95,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
     def _在会话放置资源(自身,会话标识,动作,地址,选项):
         """认领并放置资源。"""
         if not 地址.startswith(资源方案前缀):#非资源
-            raise Exception('sidebarRight: no registered tab type claims "'+地址+'"')#拒绝
+            raise Exception('sidebarRight: 没有已登记的标签类型认领 "'+地址+'"')#拒绝
         种类=选项['kind'] if 'kind' in 选项 else None#点名
         自身._放置(会话标识,动作,自身.注册表.认领(地址,种类),地址,选项,选项['params'] if 'params' in 选项 else None)#放
 
@@ -108,7 +103,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         """放置页面种类。"""
         定义=自身.注册表.取(种类)#定义
         if 定义 is None:#无
-            raise Exception('sidebarRight: no tab type is registered as "'+种类+'"')#拒绝
+            raise Exception('sidebarRight: 没有标签类型登记为 "'+种类+'"')#拒绝
         地址=页面地址(种类)#页面地址
         认领={'kind':种类,'contentId':地址,'title':定义['title'](地址)}#认领
         自身._放置(会话标识,动作,认领,地址,选项,选项['params'] if 'params' in 选项 else None)#放
@@ -235,5 +230,5 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
     def _要求(自身):
         """须有挂载席。"""
         if 自身.绑定席 is None:#无
-            raise Exception('sidebarRight: no session surface is mounted')#拒绝
+            raise Exception('sidebarRight: 未挂载会话表面')#拒绝
         return 自身.绑定席#绑定

@@ -1,7 +1,3 @@
-"""在精确 live Lead Session 日志上串行化的 Team 事务。
-
-对齐上游 `agent-team/src/journal.ts`。公开面仅中文名。
-"""
 import threading#串行队尾
 from .错误 import 团队错误#领域错误
 

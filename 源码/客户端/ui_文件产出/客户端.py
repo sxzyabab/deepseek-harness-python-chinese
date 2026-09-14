@@ -1,8 +1,3 @@
-"""产出物插件的浏览器半边。
-
-对齐上游 `ui-deliverables/src/client/index.ts`。公开面仅中文名。
-把交付物行登记进聊天视图的回合尾链，并提供 chatFileMentions 服务。
-"""
 from .文案 import 命名空间,中文,英文#词表
 from .回合产出 import 交付物定义,选出产出文件,产出文件提及,收口产出,收口已呈现#节点与选取
 from .产出文件 import 产出文件行#产出文件行组件（旧面保留）

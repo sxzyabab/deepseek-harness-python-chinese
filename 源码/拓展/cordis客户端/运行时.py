@@ -1,9 +1,3 @@
-"""按包的浏览器生命周期：可观察面、加载结果与现场摘要。
-
-对齐上游 `cordis-client-runner/src/client/runtime.ts` 可落盘面。公开面仅中文名。
-无法 JS·vm / Loader / ModuleLoader 执行：evaluateClientHalf、loader.create、模块表工厂。
-本模块落盘类型词汇、错误抽取、模块 id、排队/收回/优先级/认领与现场快照投影。
-"""
 from .求值器 import 客户端重定向,动态样式#渲染崩溃重定向与样式记账
 
 __all__=[#仅中文公开名

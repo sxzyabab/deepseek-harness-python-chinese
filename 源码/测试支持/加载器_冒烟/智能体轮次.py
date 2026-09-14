@@ -1,7 +1,3 @@
-"""测试专用的直接智能体轮次驱动，供组装后的 Loader fixture 共享。
-
-对齐上游 `loader-smoke/src/agent-turn.ts`。公开面仅中文名。
-"""
 from threading import Event as 事件#首次发布等待
 from ...模型后端.llm import 创建用户消息#构造用户消息
 
@@ -34,7 +30,7 @@ def 唯一根智能体(上下文):#取得唯一根智能体
     """要求恰好一个已配置根智能体。"""
     注册表=上下文.获取服务('agents')#智能体注册表
     if 注册表 is None:#无注册表
-        raise Exception('fixture turn requires exactly one top-level agent, found 0')#无注册表
+        raise Exception('夹具轮次需要恰好一个顶层 agent，实际为 0')#无注册表
     根列表=注册表.roots()#根智能体列表
     if len(根列表)==0:#尚无根
         已发布=事件()#首次发布门闩

@@ -1,8 +1,3 @@
-"""Chat 视图：稳定键列表、分页、待定 steering、贴底与回合轨。
-
-对齐上游 `ui-chat/src/client/chat/ChatView.tsx`。公开面仅中文名。
-属性、快照、项为 dict。
-"""
 from .聊天节点席 import 聊天节点席#节点席
 from .消息项 import 待插话泡#pending steering
 from .消息铬 import 格式化运行时长#回合时钟

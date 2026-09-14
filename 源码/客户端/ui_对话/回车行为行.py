@@ -1,8 +1,3 @@
-"""忙碌时 Enter 偏好的通用设置行。
-
-对齐上游 `ui-conversation/src/client/settings/EnterBehaviorRow.tsx`。公开面仅中文名。
-属性为 dict。
-"""
 
 __all__=['回车行为行','选项表']#仅中文公开名
 

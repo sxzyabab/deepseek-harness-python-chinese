@@ -1,7 +1,3 @@
-"""三张出厂插件卡片视图：终端 / Agent 循环 / 网页搜索。
-
-对齐上游 BashCard / AgentLoopCard / WebSearchCard。公开面仅中文名。
-"""
 from .分区视图 import 插件卡片#卡片壳
 from .字段 import 取值字段,密钥字段#字段控件
 

@@ -1,7 +1,3 @@
-"""无会话级选择时，Agent 使用的默认模型选择。
-
-对齐上游 `agent-default-model/src/index.ts`。公开面仅中文名；设置文档键与 Cordis 服务槽名（`agentDefaultModel`）保持上游字面量。
-"""
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段#配置字段
 服务=cordis.服务#导入 Cordis 服务基类

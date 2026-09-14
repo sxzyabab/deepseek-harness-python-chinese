@@ -14,5 +14,6 @@
     "path":"路径",
     "workspace":"工作区",
     "absolute":"绝对",
-    "segment":"段"
+    "segment":"段",
+    "promise":"任务"
 }

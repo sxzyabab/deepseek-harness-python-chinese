@@ -1,4 +1,3 @@
-"""Node 原生 Inspector 协议返回值的小型校验器。"""
 #对齐上游 worker/realms/host/values.ts
 
 __all__=['是否原生记录','要求原生记录','可选原生字段']#仅中文公开名

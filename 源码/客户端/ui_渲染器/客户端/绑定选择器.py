@@ -1,8 +1,3 @@
-"""uSES 桥：把任意裸可观察快照源变成带类型的选择器钩子。
-
-对齐上游 `ui-renderer/src/client/bind.ts`。公开面仅中文名。
-仅客户端渲染，不接线服务器快照。源为对象：subscribe / getSnapshot。
-"""
 __all__=['绑定快照选择器']#仅中文公开名
 
 def 绑定快照选择器(源):

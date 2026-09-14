@@ -1,5 +1,3 @@
-"""icons 余量乙：赞踩/分享/思考/预设/链接/右上/增强/垃圾桶/用户。"""
-
 表={#名 → 描述
     'like-16':{#IconLikeOutline16
         'viewBox':'0 0 16 16','defaultSize':16,

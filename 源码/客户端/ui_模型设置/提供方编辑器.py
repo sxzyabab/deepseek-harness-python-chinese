@@ -1,8 +1,3 @@
-"""单个提供方档案的编辑卡片。
-
-对齐上游 `ui-settings-models/src/client/ProviderEditor.tsx`。公开面仅中文名。
-主键是只写 API 密钥；折叠自定义区承载各适配器族扩展字段。推理力度故意不在提供方级。
-"""
 import copy#深拷草稿
 from ..模式表单 import 再水合模式,取路径,有路径,设路径,删路径,校验草稿#路径编辑
 from .DeepSeek模型编辑器 import DeepSeek模型编辑器,模型草稿表,校验DeepSeek模型#DeepSeek 目录

@@ -1,7 +1,3 @@
-"""作用域上下文原语：铸造一个用不透明身份给注册打标签的 Cordis 上下文，并为该身份构建仅用于路由的事件载体。
-
-对齐上游 `@deepseek-ai/dsh-scope`（`index.ts`）。公开面仅中文名；无英文公开别名。
-"""
 import weakref,threading#弱引用与并发
 from concurrent.futures import Future as _原生Future#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
@@ -29,7 +25,7 @@ class 操作任务:
             if isinstance(错误,BaseException):
                 自身._未来.set_exception(错误)#原样拒绝
             else:
-                包装=作用域错误('task rejected')#包装拒绝
+                包装=作用域错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息
                 自身._未来.set_exception(包装)#包装拒绝
 
@@ -112,7 +108,7 @@ def 链接作用域父(键,父):#带循环检查的写入
     游标=父#沿父链走
     while 游标 is not None:#尚未到根
         if 游标 is 键:#成环
-            raise 作用域错误('dsh-scope: scope parent link would form a cycle')#成环则拒绝
+            raise 作用域错误('dsh-scope：作用域父链接会成环')#成环则拒绝；包名不译
         游标=作用域父表.取(游标)#上一父
     作用域父表.设(键,父)#记下父
 
@@ -122,7 +118,7 @@ def 绑定作用域父(键,父):#只绑一次
     已有父的键会抛错：没有开放的改接路径，因此除原绑定者外谁都不能移动作用域祖先。
     """
     if 作用域父表.有(键):#已有父
-        raise 作用域错误('dsh-scope: scope key is already bound to a parent; re-linking requires the binding returned by the original bind')#必须用原绑定改接
+        raise 作用域错误('dsh-scope：作用域键已绑定父级；改接须用原绑定返回的句柄')#必须用原绑定改接；包名不译
     链接作用域父(键,父)#写入链接
     return 作用域父绑定(键)#返回绑定
 
@@ -141,15 +137,9 @@ def 获取作用域链(键):#走到根
 
 def 等到光纤静止(光纤对象):#等到拆除惯性结束
     """即使原始拆除器已被领取，也跟随 Cordis 光纤走完拆除与 inertia。"""
-    结果=光纤对象.dispose()#发起拆除
-    if hasattr(结果,'等待'):#拆除返回承诺
-        结果.等待()#等到拆除承诺
+    光纤对象.dispose().等待()#拆除返回任务，翻译时已确定要等
     while 光纤对象.inertia is not None:#仍有惯性
-        惯性=光纤对象.inertia#当前惯性
-        if hasattr(惯性,'等待'):#惯性可等待
-            惯性.等待()#等到惯性结束
-        else:#非承诺
-            break#非承诺则停
+        光纤对象.inertia.等待()#惯性是任务，翻译时已确定要等
 
 def 空插件(上下文对象,配置=None):#共享空操作插件
     """作为支撑作用域光纤的共享空操作插件；光纤只为拥有经作用域上下文做出的注册。"""
@@ -164,7 +154,7 @@ def 创建作用域(上下文对象,键,选项=None):#铸造作用域
         绑定作用域父(键,选项['父'])#有父则在作用域可用前绑定
     光纤对象=上下文对象.启动插件(空插件)#挂上空插件光纤
     带标签=光纤对象.ctx.扩展({作用域符号:键})#写入作用域标签
-    拆除中=None#共享拆除承诺；首次调用者跑静止，其余等待
+    拆除中=None#共享拆除任务；首次调用者跑静止，其余等待
     def 拆除():#竞态共用一次静止拆除
         """竞态共用一次静止拆除。"""
         nonlocal 拆除中#修改外层

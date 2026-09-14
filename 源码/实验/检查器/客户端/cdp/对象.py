@@ -1,7 +1,3 @@
-"""Client 本地对象句柄与 CDP 兼容的 RemoteObject 序列化。
-
-对齐上游 `client/cdp/objects.ts`。公开面仅中文名。
-"""
 from ...共享.桥接.标识 import 客户端远程对象句柄#句柄
 from ...共享.json import 是否json值#JSON
 from ...共享.cordis.对象注册表 import 识别领域对象#语义引用

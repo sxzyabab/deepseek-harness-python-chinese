@@ -1,8 +1,3 @@
-"""由运行时会话面与快照派生的队列约定。
-
-对齐上游 `ui-conversation/src/client/contract/queue.ts`。公开面仅中文名。
-"""
-
 __all__=['队列项标识','队列动作','队列行']#仅中文公开名
 
 #队列项标识：SessionFace.updateQueue 第 0 参（行 id）

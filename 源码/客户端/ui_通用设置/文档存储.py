@@ -1,7 +1,3 @@
-"""可选本地设置文档动作的状态所有者。
-
-对齐上游 `ui-settings-general/src/client/settings-document-store.ts`。公开面仅中文名。
-"""
 __all__=['快照存储','设置文档存储','已加载则刷新文档','通用设置错误']#仅中文公开名
 
 class 通用设置错误(Exception):

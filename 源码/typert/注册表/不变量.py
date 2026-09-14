@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-typert-registry` 的本包拥有不变量配套。
-
-对齐上游 `registry/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：模式与包反射记录在登记与拆除内一起变更，没有可交叉核对的独立事件或第二数据源；重复身份在拥有该操作的边界失败。
-"""
 包名='@deepseek-ai/dsh-typert-registry'#本包的不变量所有权名
 名称='typert-registry-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

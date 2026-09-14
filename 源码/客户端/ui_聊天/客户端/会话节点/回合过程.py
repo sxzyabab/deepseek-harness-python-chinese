@@ -1,7 +1,3 @@
-"""轮次作用域的过程范围与正文边界 Definition。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/turn-process.ts`。公开面仅中文名。
-"""
 from ..约定.助手内容 import 有助手回复内容#可见回复
 from ..约定.回合过程 import 是子代理委派工具,回合过程规格#过程契约
 from .节点工厂 import 聊天错误,聊天合成序号偏移,聊天节点#公共

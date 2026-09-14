@@ -1,8 +1,3 @@
-"""拥有 PTC Dispatch 配对的递归工具调用树。
-
-对齐上游 `ui-chat/src/client/model/tool-call-tree.ts`。公开面仅中文名。
-事件为会话事件 dict。
-"""
 import json#参数序列化
 
 __all__=['最大工具调用树深','工具调用树']#仅中文公开名

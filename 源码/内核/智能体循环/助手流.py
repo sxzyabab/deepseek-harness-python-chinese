@@ -1,8 +1,3 @@
-"""进程本地的助手尝试分帧与耐久流累积。
-
-对齐上游 `agent-loop/src/assistant-stream.ts`。公开面仅中文名；事件名与帧 type 保持上游 wire。
-无英文别名。
-"""
 import time#墙钟毫秒
 from ...模型后端.llm import 助手流累积器,块组装器,尝试标识#流紧凑、组装与尝试 id
 

@@ -1,13 +1,3 @@
-"""在应用中打开的浏览器半边。
-
-对齐上游 `ui-open-in-app/src/client/index.ts`。公开面仅中文名。
-会话头部一个分体按钮：在记住的应用中打开会话 workspace 目录（摘要 cwd），
-并列出主机探测到已安装的全部可命名应用。可用性每页读一次；上次选择经
-控制器快照存储持久化（`dsh.open-in-app.choice`）。
-
-TypeScript 声明合并面（LocaleNamespaceMap['open-in-app']）以注释保留；
-可执行面全量落中文。
-"""
 from ....宿主.在应用中打开.共享 import 图标前缀#线路径
 from .控制器 import 在应用中打开控制器#页面控制器
 from .在应用中打开动作 import 在应用中打开动作#头部贡献

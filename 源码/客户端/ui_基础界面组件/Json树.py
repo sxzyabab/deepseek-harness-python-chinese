@@ -1,8 +1,3 @@
-"""只读、令牌主题的 JSON 树。
-
-对齐上游 `ui-primitives/src/JsonTree.tsx`。公开面仅中文名。
-包无 cordis；文案经 props 注入，缺省字段保留内置默认。
-"""
 import json#序列化
 from .剪贴板 import 写剪贴板#复制
 from .菜单 import 菜单#复制菜单

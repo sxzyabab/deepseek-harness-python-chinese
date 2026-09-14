@@ -1,10 +1,3 @@
-"""无框架启动页的光纤状态投影词汇。
-
-对齐上游 `web/src/loader-status.ts`。公开面仅中文名。
-启动链订阅 `internal/status`，并投影拥有 loader 条目的当前状态。
-标签字符串原样英文。
-"""
-
 __all__=['光纤状态值','状态标签']#仅中文公开名
 
 光纤状态值={#cordis FiberState 值镜像

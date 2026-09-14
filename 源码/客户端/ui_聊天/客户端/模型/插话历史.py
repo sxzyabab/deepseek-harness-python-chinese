@@ -1,9 +1,3 @@
-"""从事件溯源的 agent 收件箱重建持久转向身份。
-
-对齐上游 `ui-chat/src/client/model/steering-history.ts`。公开面仅中文名。
-事件为会话事件 dict。
-"""
-
 __all__=['插话历史']#仅中文公开名
 
 class 插话历史:

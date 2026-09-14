@@ -1,8 +1,3 @@
-"""`trajectory` 命名空间词典（视图页签标签与工具栏文案）。
-
-对齐上游 `ui-trajectory/src/client/locales.ts`。公开面仅中文名。
-"""
-
 __all__=['命名空间','轨迹文案键','中文','英文']#仅中文公开名
 
 命名空间='trajectory'#词典命名空间名

@@ -1,11 +1,3 @@
-"""结构性未实现桩：被替换的模块必须暴露导入方命名的每一个符号
-（缺失的 CommonJS 符号在调用时退化为 `undefined`，
-而不是在链接期失败），且每一个符号在最终被调用时
-都必须准确报告不可用的内容。
-
-对齐上游 `webworker-runtime/src/node/notImplementedFail.ts`。公开面仅中文名。
-本包异常基类也落在此文件。
-"""
 __all__=['运行时错误','未实现失败','不可用错误']#仅中文公开名
 
 class 运行时错误(Exception):#本包异常基类
@@ -35,6 +27,6 @@ def 不可用错误(模块,符号):#构造拒绝错误
     """构造拒绝错误并先写入控制台，供无法做成普通抛错函数的桩使用
     （构造器、结构性假对象上的方法）。
     """
-    消息=f'web-preview: {模块}.{符号} is not available in the worker host'#拼诊断文案
+    消息=f'web-preview: {模块}.{符号} 在 worker 宿主里不可用'#拼诊断文案
     print(消息)#先写控制台（对齐 console.error）
     return 运行时错误(消息)#返回错误实例

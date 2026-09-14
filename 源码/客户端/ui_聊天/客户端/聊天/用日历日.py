@@ -1,7 +1,3 @@
-"""每个本地午夜推进的本地日历日纪元。
-
-对齐上游 `ui-chat/src/client/chat/use-calendar-day.ts`。公开面仅中文名。
-"""
 import time as 时间模块#墙钟
 from .消息铬 import 本地日起点,距下一本地午夜毫秒#午夜边界
 

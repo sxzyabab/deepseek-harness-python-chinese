@@ -1,9 +1,3 @@
-"""导航参数：按打开对象分型的声明合并面。
-
-对齐上游 `ui-sidebar-right/src/client/contract/params.ts`。公开面仅中文名。
-Python 无声明合并；资源类型参数与页面种类参数以可选 dict 承载，运行时不校验。
-正文按 `navigation.address` 的方案与类型收窄 `params`。
-"""
 
 __all__=[#仅中文公开名
     '右侧侧栏资源参数','右侧侧栏标签参数','右侧侧栏导航参数',

@@ -1,4 +1,3 @@
-"""Worker 拥有的活动 Host 与 Client JavaScript realm 生命周期模型。"""
 #对齐上游 worker/inspection/realm.ts
 
 __all__=['检查器realm描述','检查器realm上下文','检查器realm会话','检查器realm']#仅中文公开名

@@ -1,10 +1,3 @@
-"""命令界面插件的浏览器半边。
-
-对齐上游 `ui-commands/src/client/index.ts`。公开面仅中文名。
-挂上命令UI运行时（`ctx.commandUi`），并把 popupSelect 壳登记进
-conversation.input.overlay。弹出视图依赖未在本批配额内的弹出层模块时，
-叠层登记把视图位留空，由宿主在弹出层落盘后补上。
-"""
 from .约定 import (#再导出约定形
     选定确认,选定选项,弹出选定规格,动作规格,命令UI规格,
     命令贡献,命令装饰,命令UI约定,命令错误,

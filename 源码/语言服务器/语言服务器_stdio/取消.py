@@ -1,4 +1,3 @@
-"""本地 LSP 提供方在宿主 I/O、队列与协议阶段共用的取消辅助。"""
 import threading#中止竞态线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 取超时,已中止,若已中止则抛出,等待中止#超时分类与中止入口
@@ -22,7 +21,7 @@ class 操作任务:
             if isinstance(错误,BaseException):#已是异常
                 自身.未来.set_exception(错误)#原样拒绝
             else:#非异常
-                自身.未来.set_exception(语言服务器错误('task rejected','LSP_INTERNAL'))#包装拒绝
+                自身.未来.set_exception(语言服务器错误('任务被拒绝','LSP_INTERNAL'))#包装拒绝
 
     def 等待(自身,超时=None):
         """阻塞等到结算。"""
@@ -33,7 +32,7 @@ def 中止错误(信号):
     超时=取超时(信号)#尝试取出超时分类
     if 超时 is not None:#有超时原因则原样返回
         return 超时#超时原因
-    return 语言服务器错误('LSP query aborted','LSP_ABORTED')#通用中止
+    return 语言服务器错误('语言服务器查询已中止','LSP_ABORTED')#通用中止
 
 def 可中止等待(工作,信号=None):
     """等待工作完成，同时允许查询信号放弃等待；底层工作仍保留自己的处理，并继续到其所有者定义的静止边界。工作是操作任务或已有同步值。"""
@@ -66,9 +65,9 @@ def 可中止等待(工作,信号=None):
         else:#非异常
             结果任务.拒绝(语言服务器错误(str(错误),'LSP_INTERNAL'))#拒绝
 
-    def 跑工作():
+    def 执行工作():
         """等待原工作并结算。"""
-        try:#跑工作
+        try:#执行工作
             if isinstance(工作,操作任务):#任务
                 值=工作.等待()#等待
             else:#同步值
@@ -77,15 +76,15 @@ def 可中止等待(工作,信号=None):
         except BaseException as 错误:#工作拒绝
             结算失败(错误)#失败
 
-    def 盯中止():
+    def 转发中止():
         """信号中止时拒绝竞态。"""
         等待中止(信号)#阻塞到中止
         结算失败(中止错误(信号))#用分类中止拒绝
 
-    工作线程=threading.Thread(target=跑工作)#跑工作
+    工作线程=threading.Thread(target=执行工作)#执行工作
     工作线程.daemon=True#不挡住退出
     工作线程.start()#启动
-    中止线程=threading.Thread(target=盯中止)#盯中止
+    中止线程=threading.Thread(target=转发中止)#转发中止
     中止线程.daemon=True#不挡住退出
     中止线程.start()#启动
     return 结果任务.等待()#同步等待竞态

@@ -1,4 +1,3 @@
-"""智能体技能提供方注册表。本包拥有技能能力缝的 Service Definition 角色。具体提供方决定技能从何处来；本服务只合并提供方目录、解析某名称的胜出技能，并把胜出摘要与定义暴露给消费方。"""
 import json,math,re,threading,weakref#正则、缓存键、有限数、中止通道与原因旁表
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
@@ -49,7 +48,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在信号对象上
 
 class 技能错误(Exception):
-    """本包异常基类。错误消息原样英文。"""
+    """本包异常基类。"""
 
 class 中止信号:
     """threading.Event 取消通道。原因用异常对象承载，不对外挂第二字段。"""
@@ -58,7 +57,7 @@ class 中止信号:
         自身.事件=threading.Event()#中止标志
         if 已中止标志:#创建时已中止
             自身.事件.set()#置位
-            中止原因表[自身]=技能错误('aborted')#默认中止异常
+            中止原因表[自身]=技能错误('已中止')#默认中止异常
 
     def 触发(自身,原因=None):
         """标记中止。"""
@@ -67,11 +66,11 @@ class 中止信号:
         if isinstance(原因,BaseException):#原因已是异常
             中止原因表[自身]=原因#旁表承载
         elif 原因 is not None:#非异常原因
-            错=技能错误('aborted')#包装
+            错=技能错误('已中止')#包装
             错.原因=原因#附加在异常上
             中止原因表[自身]=错#记下
         else:#无原因
-            中止原因表[自身]=技能错误('aborted')#默认
+            中止原因表[自身]=技能错误('已中止')#默认
         自身.事件.set()#置位
 
 class 中止控制器:
@@ -98,7 +97,7 @@ def 若已中止则抛出(信号):
         return#仍活着
     if 信号 in 中止原因表:#有承载异常
         raise 中止原因表[信号]#抛出
-    raise 技能错误('aborted')#默认中止
+    raise 技能错误('已中止')#默认中止
 
 def 是否技能名(名):
     """判断字符串是否为合法 kebab-case 技能名。"""
@@ -176,8 +175,8 @@ class 技能层:#一层的提供方与运行时表
         def 重复错误(名):#重复提供方诊断
             """重复提供方诊断。"""
             if 作用域 is None:#全局层
-                return 技能错误('a skill provider named "'+名+'" is already registered')#全局层重复
-            return 技能错误('a skill provider named "'+名+'" is already registered in this scope')#本作用域重复
+                return 技能错误('名为 "'+名+'" 的技能提供方已登记')#全局层重复
+            return 技能错误('名为 "'+名+'" 的技能提供方已在本作用域登记')#本作用域重复
         自身.提供方=具名条目(重复错误)#命名提供方表
         自身.运行时={}#运行时技能表
 
@@ -232,7 +231,7 @@ class 技能注册表(服务):#技能注册表服务
             提供方=构造(控制)#同步构造提供方
             名=提供方['name']#提供方自报名称
             if 名==运行时提供方名:#占用保留名
-                raise 技能错误('"'+运行时提供方名+'" is reserved for runtime skill registrations')#runtime名保留
+                raise 技能错误('"'+运行时提供方名+'" 保留给运行时技能登记')#runtime名保留
             次序=自身.下一提供方次序#本次次序
             自身.下一提供方次序+=1#单调递增
             def 写入层(层):#插入并在拆除时撤回
@@ -245,7 +244,7 @@ class 技能注册表(服务):#技能注册表服务
                     nonlocal 登记#修改外层
                     登记=None#先清登记，避免迟到失效
                     撤销()#从层移除
-                    生命周期.中止(技能错误('skill provider "'+名+'" disposed'))#中止生命周期
+                    生命周期.中止(技能错误('技能提供方 "'+名+'" 已拆除'))#中止生命周期
                 return 拆除#拆除器
             return 自身.层集.副作用(自身.ctx,写入层,{'标签':'skills.registerProvider()'})#按调用上下文的层插入
         except BaseException as 错误:#工厂或插入失败
@@ -491,7 +490,7 @@ def 规范提供方观察(输出,提供方名):
 
 def 非法提供方观察(提供方名):
     """list 返回值非法。"""
-    return TypeError('skill provider "'+提供方名+'" list() must return an array or { candidates, complete } observation')#要求数组或观察
+    return TypeError('技能提供方 "'+提供方名+'" 的列出() 必须返回数组或 { candidates, complete } 观察')#要求数组或观察
 
 def 运行时获取(候选,选项=None):
     """运行时提供方 get：定位器就是定义本身。候选是 dict。"""
@@ -532,41 +531,41 @@ def 校验候选(候选,提供方名):
     """校验提供方候选。候选是 dict。"""
     名=候选['name'] if 'name' in 候选 else None#技能名
     if not isinstance(名,str):#名必须是字符串
-        raise TypeError('skill provider "'+提供方名+'" returned a non-string skill name')#非字符串名
+        raise TypeError('技能提供方 "'+提供方名+'" 返回了非字符串技能名')#非字符串名
     if 技能名模式.fullmatch(名) is None:#名必须匹配公开文法
-        raise 技能错误('skill provider "'+提供方名+'" returned invalid skill name "'+名+'"')#非法技能名
+        raise 技能错误('技能提供方 "'+提供方名+'" 返回了非法技能名 "'+名+'"')#非法技能名
     描述=候选['description'] if 'description' in 候选 else None#描述
     if not isinstance(描述,str):#描述必须是字符串
-        raise TypeError('skill provider "'+提供方名+'" returned skill "'+名+'" with a non-string description')#非字符串描述
+        raise TypeError('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 描述不是字符串')#非字符串描述
     if len(描述)==0:#描述不可空
-        raise 技能错误('skill provider "'+提供方名+'" returned skill "'+名+'" without a description')#缺描述
+        raise 技能错误('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 缺少描述')#缺描述
     校验调用(候选['invocation'] if 'invocation' in 候选 else None,'skill provider "'+提供方名+'" returned skill "'+名+'"')#校验调用策略
     何时=候选['whenToUse'] if 'whenToUse' in 候选 else None#可选何时使用
     if 何时 is not None and not isinstance(何时,str):#若有则必须是字符串
-        raise TypeError('skill provider "'+提供方名+'" returned skill "'+名+'" with a non-string whenToUse')#非字符串whenToUse
+        raise TypeError('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 的 whenToUse 不是字符串')#非字符串whenToUse
     来源=候选['source'] if 'source' in 候选 else None#来源
     if not isinstance(来源,str):#来源必须是字符串
-        raise TypeError('skill provider "'+提供方名+'" returned skill "'+名+'" with a non-string source')#非字符串来源
+        raise TypeError('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 的 source 不是字符串')#非字符串来源
     排名=候选['rank'] if 'rank' in 候选 else None#排名
     if isinstance(排名,bool) or not isinstance(排名,(int,float)) or not math.isfinite(排名):#入口排除布尔，排名必须是有限数
-        raise 技能错误('skill provider "'+提供方名+'" returned skill "'+名+'" with an invalid rank')#非法排名
+        raise 技能错误('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 排名非法')#非法排名
     提供方字段=候选['provider'] if 'provider' in 候选 else None#提供方字段
     if not isinstance(提供方字段,str):#提供方字段必须是字符串
-        raise TypeError('skill provider "'+提供方名+'" returned skill "'+名+'" with a non-string provider')#非字符串提供方
+        raise TypeError('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 的 provider 不是字符串')#非字符串提供方
     if 提供方字段!=提供方名:#必须自称本提供方
-        raise 技能错误('skill provider "'+提供方名+'" returned skill "'+名+'" for provider "'+提供方字段+'"')#提供方名不一致
+        raise 技能错误('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 声称属于提供方 "'+提供方字段+'"')#提供方名不一致
     路径=候选['path'] if 'path' in 候选 else None#可选路径
     if 路径 is not None and not isinstance(路径,str):#若有路径则必须是字符串
-        raise TypeError('skill provider "'+提供方名+'" returned skill "'+名+'" with a non-string path')#非字符串路径
+        raise TypeError('技能提供方 "'+提供方名+'" 返回的技能 "'+名+'" 的 path 不是字符串')#非字符串路径
 
 def 校验运行时技能(技能):
     """校验运行时注册输入。技能是 dict。"""
     名=技能['name'] if 'name' in 技能 else None#技能名
     if not isinstance(名,str) or 技能名模式.fullmatch(名) is None:#非法名
-        raise 技能错误('invalid skill name "'+str(名)+'"')#非法名
+        raise 技能错误('非法技能名 "'+str(名)+'"')#非法名
     描述=技能['description'] if 'description' in 技能 else None#描述
     if 描述 is None or len(描述)==0:#缺描述
-        raise 技能错误('skill "'+名+'" requires a description')#缺描述
+        raise 技能错误('技能 "'+名+'" 需要描述')#缺描述
     校验调用(技能['invocation'] if 'invocation' in 技能 else None,'runtime skill "'+名+'"')#校验可选调用策略
 
 def 校验定义(技能):
@@ -580,24 +579,24 @@ def 校验定义(技能):
     正文=技能['content'] if 'content' in 技能 else None#正文
     路径=技能['path'] if 'path' in 技能 else None#可选路径
     if not isinstance(名,str):#名类型
-        raise TypeError('loaded skill name must be a string')#名类型
+        raise TypeError('已加载技能名必须是字符串')#名类型
     if 技能名模式.fullmatch(名) is None:#名文法
-        raise 技能错误('loaded skill has invalid name "'+名+'"')#名文法
+        raise 技能错误('已加载技能名非法 "'+名+'"')#名文法
     if not isinstance(描述,str):#描述类型
-        raise TypeError('loaded skill "'+名+'" description must be a string')#描述类型
+        raise TypeError('已加载技能 "'+名+'" 的 description 必须是字符串')#描述类型
     if len(描述)==0:#描述非空
-        raise 技能错误('loaded skill "'+名+'" requires a description')#描述非空
+        raise 技能错误('已加载技能 "'+名+'" 需要描述')#描述非空
     校验调用(调用,'loaded skill "'+名+'"')#调用策略
     if 何时 is not None and not isinstance(何时,str):#whenToUse类型
-        raise TypeError('loaded skill "'+名+'" whenToUse must be a string')#whenToUse类型
+        raise TypeError('已加载技能 "'+名+'" 的 whenToUse 必须是字符串')#whenToUse类型
     if not isinstance(来源,str):#来源类型
-        raise TypeError('loaded skill "'+名+'" source must be a string')#来源类型
+        raise TypeError('已加载技能 "'+名+'" 的 source 必须是字符串')#来源类型
     if not isinstance(提供方,str):#提供方类型
-        raise TypeError('loaded skill "'+名+'" provider must be a string')#提供方类型
+        raise TypeError('已加载技能 "'+名+'" 的 provider 必须是字符串')#提供方类型
     if not isinstance(正文,str):#正文类型
-        raise TypeError('loaded skill "'+名+'" content must be a string')#正文类型
+        raise TypeError('已加载技能 "'+名+'" 的 content 必须是字符串')#正文类型
     if 路径 is not None and not isinstance(路径,str):#路径类型
-        raise TypeError('loaded skill "'+名+'" path must be a string')#路径类型
+        raise TypeError('已加载技能 "'+名+'" 的 path 必须是字符串')#路径类型
 
 def 成摘要(技能):
     """剥成调用面无关摘要。技能是 dict。序列化时省略缺席键。"""
@@ -621,23 +620,23 @@ def 校验调用(调用,主题):
     if 调用 is None:#运行时注册允许省略
         return#省略
     if not isinstance(调用,dict):#必须是普通对象
-        raise TypeError(主题+' with a non-object invocation policy')#非对象策略
+        raise TypeError(主题+' 的调用策略不是对象')#非对象策略
     if 'modelInvocable' not in 调用 or not isinstance(调用['modelInvocable'],bool):#模型面必须是布尔
-        raise TypeError(主题+' with a non-boolean invocation.modelInvocable')#非布尔modelInvocable
+        raise TypeError(主题+' 的 invocation.modelInvocable 不是布尔')#非布尔modelInvocable
     if 'userInvocable' not in 调用 or not isinstance(调用['userInvocable'],bool):#用户面必须是布尔
-        raise TypeError(主题+' with a non-boolean invocation.userInvocable')#非布尔userInvocable
+        raise TypeError(主题+' 的 invocation.userInvocable 不是布尔')#非布尔userInvocable
 
 def 校验正整数(名,值,下限=1):
     """配置入口正整数断言。排除布尔。"""
     if isinstance(值,bool) or not isinstance(值,int) or 值<下限:#非整数或低于下限
-        raise 技能错误('skill: '+名+' must be an integer greater than or equal to '+str(下限))#加载时大声失败
+        raise 技能错误('skill: '+名+' 必须是大于等于 '+str(下限)+' 的整数')#加载时大声失败
 
 def 错误消息(错误):
     """渲染任意提供方失败，不让强制转换逃出收容。"""
     try:#String()也可能被敌对值打断
         return str(错误)#常规渲染
     except Exception:#无法渲染；敌对值可能在 str 时抛任意错误
-        return '[unrenderable thrown value]'#占位消息
+        return '[无法渲染的抛出值]'#占位消息
 
 技能注册表.Config=技能注册表.配置#Cordis 配置模式槽
 default=技能注册表#Cordis 默认导出

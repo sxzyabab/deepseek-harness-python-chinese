@@ -1,9 +1,3 @@
-"""非必要视觉对齐的按帧节流调度。
-
-对齐上游 `ui-conversation/src/client/chat/use-throttled-visual-update.ts`。公开面仅中文名。
-无 React 钩——提供可绑定的调度器类。
-"""
-
 __all__=['节流视觉更新','默认间隔帧']#仅中文公开名
 
 默认间隔帧=3#默认等 3 帧

@@ -1,8 +1,3 @@
-"""Cordis 动态插件卡片的浏览器半：清单面板、工具行登记与 @pluginId 源。
-
-对齐上游 `ui-cordis/src/client/index.ts` 的 apply 接线。公开面仅中文名。
-Define/Run/Action 行与面板已落盘嵌套 JSX 结构树+样式原文；DisclosureRow/CodeBlock/图标/业务视图槽仍需浏览器。
-"""
 from .文案 import 命名空间,中文,英文,文案键#词典
 from .状态 import 取包,可见状态#状态
 from .清单 import 创建清单源#清单

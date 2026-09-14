@@ -1,8 +1,3 @@
-"""cordis_stop / cordis_undefine 本地化卡：嵌套 JSX 结构树。
-
-对齐上游 `ui-cordis/src/client/CordisActionRow.tsx`。公开面仅中文名。
-复用运行行样式表；图标半需浏览器。无法 JS·vm 执行：图标原语像素。
-"""
 from .卡片模型 import 动作卡片#卡模型
 from .运行行 import 样式表#共用样式
 

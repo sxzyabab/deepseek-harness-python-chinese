@@ -1,7 +1,3 @@
-"""建立在装备客户端之上的高层运行 API。
-
-对齐上游 `sdk/client/src/api.ts`。公开面仅中文名。DeepSeekHarness 跨多个会话拥有一个运行时子进程；HarnessSession.run 发送一条提示，并在整个智能体下次进入空闲时落定。
-"""
 import os,uuid#工作目录与会话 id
 from .客户端 import 装备客户端,是否普通对象,SDK协议错误#底层客户端与协议错误
 
@@ -150,16 +146,16 @@ def 归一化输入(输入):
 def 校验会话事件(值):
     """在返回带类型结果之前，校验线 session.event 信封里的字段。"""
     if (not 是否普通对象(值)) or 'type' not in 值 or not isinstance(值['type'],str):#必须是带 type 字符串的对象
-        raise SDK协议错误('session.event carried no event envelope: '+str(值))#缺信封
+        raise SDK协议错误('session.event 没有事件信封：'+str(值))#缺信封
     if 值['type']=='assistant/message':#助手消息需要校验 content
         数据=值['data'] if 'data' in 值 else None#data
         消息=数据['message'] if 是否普通对象(数据) and 'message' in 数据 else None#data.message
         内容=消息['content'] if 是否普通对象(消息) and 'content' in 消息 else None#content
         if not isinstance(内容,list):#不是列表
-            raise SDK协议错误('assistant/message event carried malformed content: '+str(值))#畸形 content
+            raise SDK协议错误('assistant/message 事件的 content 畸形：'+str(值))#畸形 content
         for 块 in 内容:#每块必须有 type
             if (not 是否普通对象(块)) or 'type' not in 块 or not isinstance(块['type'],str):#缺 type
-                raise SDK协议错误('assistant/message event carried malformed content: '+str(值))#畸形 content
+                raise SDK协议错误('assistant/message 事件的 content 畸形：'+str(值))#畸形 content
     return 值#通过校验
 
 def 是否收件箱回执(值,消息号):

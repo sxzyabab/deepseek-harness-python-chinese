@@ -1,4 +1,3 @@
-"""建议性的按智能体重复调用检测器。它用已记录的模型上下文丰富后执行决策，既不否决也不改写调用。配置与链语义见包 README；理由见 repeat-tool-reminder Agent Note。"""
 import json,re,weakref#JSON规范串、通配正则与按智能体弱表
 from ...依赖.schemastery import 列表字段,数字字段,字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息#构造提醒用户消息
@@ -71,13 +70,13 @@ def 预览参数(规范串,上限):
 def 校验阈值(值列表):
     """按大声失败约定校验 `thresholds` 并返回升序排序结果（升级规则把 `thresholds[0]` 读成温和档，因此顺序在此归一一次）。"""
     if len(值列表)==0:#空列表
-        raise 重复工具提醒错误('repeat-tool-reminder: `thresholds` must not be empty')#拒绝空阈值
+        raise 重复工具提醒错误('repeat-tool-reminder: `thresholds` 不得为空')#拒绝空阈值
     for 值 in 值列表:#逐个检查
         是整数=(not isinstance(值,bool)) and (isinstance(值,int) or (isinstance(值,float) and 值.is_integer()))#排除布尔后的整数
         if (not 是整数) or 值<2:#非整数或小于2
-            raise 重复工具提醒错误('repeat-tool-reminder: invalid threshold '+str(值)+' — every threshold must be an integer >= 2')#拒绝非法阈值
+            raise 重复工具提醒错误('repeat-tool-reminder: 非法阈值 '+str(值)+' — 每档必须是大于等于 2 的整数')#拒绝非法阈值
     if len(set(值列表))!=len(值列表):#有重复
-        raise 重复工具提醒错误('repeat-tool-reminder: `thresholds` must not contain duplicates')#拒绝重复
+        raise 重复工具提醒错误('repeat-tool-reminder: `thresholds` 不得含重复项')#拒绝重复
     return sorted(值列表)#升序拷贝
 
 def 前置上下文(本提醒,下游列表):
@@ -93,7 +92,7 @@ def 应用(上下文对象,配置):
     参数预览字符=配置['argumentsPreviewChars'] if 'argumentsPreviewChars' in 配置 else None#预览上限
     预览是整数=(not isinstance(参数预览字符,bool)) and (isinstance(参数预览字符,int) or (isinstance(参数预览字符,float) and 参数预览字符.is_integer()))#排除布尔后的整数
     if (not 预览是整数) or 参数预览字符<1:#预览上限非法
-        raise 重复工具提醒错误('repeat-tool-reminder: invalid argumentsPreviewChars '+str(参数预览字符)+' — must be an integer >= 1')#拒绝非法上限
+        raise 重复工具提醒错误('repeat-tool-reminder: 非法 argumentsPreviewChars '+str(参数预览字符)+' — 必须是大于等于 1 的整数')#拒绝非法上限
     链表=weakref.WeakKeyDictionary()#按智能体持有重复链（对齐 WeakMap）
 
     def 已跟踪(工具名):

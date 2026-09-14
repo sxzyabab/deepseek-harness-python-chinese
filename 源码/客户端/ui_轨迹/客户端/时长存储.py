@@ -1,11 +1,3 @@
-"""轨迹时长偏好源规格。
-
-
-
-对齐上游 `ui-trajectory/src/client/duration-store.ts`。公开面仅中文名。
-
-"""
-
 
 
 __all__=['创建轨迹时长存储']#仅中文公开名

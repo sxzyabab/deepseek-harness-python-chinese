@@ -1,9 +1,3 @@
-"""助手推理披露行（Think 变体）。
-
-对齐上游 `ui-chat/src/client/chat/ReasoningRow.tsx`。公开面仅中文名。
-属性为 dict。
-"""
-
 __all__=['推理行','首行','末行']#仅中文公开名
 
 def 恒等翻译(键,参数=None):

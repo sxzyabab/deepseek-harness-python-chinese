@@ -1,10 +1,3 @@
-"""子进程服务定义的词汇。
-
-对齐上游 `subprocess/src/types.ts`。公开面仅中文名；无英文别名。
-带每路 stdio 模式的完全指定 spawn 请求、带溢出恢复的有界收集输出、原始管道流，以及树范围终止。
-命令默认值、shell 语义、协议分帧和展示属于 bash 执行器缝这类消费方。
-字段键字面量对齐上游载荷，保持跨缝可读。
-"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 __all__=(#仅中文公开名；无英文别名

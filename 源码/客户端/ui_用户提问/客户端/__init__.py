@@ -1,9 +1,3 @@
-"""Web 提问插件的浏览器半边：把 QuestionComposer 登记为会话声明的 composer 链上一条选择器路由条目，外加 `question` 词典。
-
-选择器把主人的当前项收窄到提问载体；整套行为面骑在载体上；文案走标准 locale 座位。
-
-对齐上游 `ui-user-questions/src/client/index.ts`。公开面仅中文名。
-"""
 from .约定.槽位 import 待答提问,计划审阅于,提问错误#约定再导出
 from .文案 import 中文,英文#词典
 from .提问撰写器 import 提问撰写器,解析推荐标签#撰写器入口

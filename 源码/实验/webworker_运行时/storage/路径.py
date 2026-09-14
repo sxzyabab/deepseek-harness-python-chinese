@@ -1,8 +1,3 @@
-"""worker 宿主内存文件系统的虚拟根。集中放在一个模块，
-使 process shim、path/os shim 与 VFS 镜像收集器不会漂移。
-
-对齐上游 `webworker-runtime/src/storage/paths.ts`。公开面仅中文名。
-"""
 from ..镜像布局 import 默认根#虚拟根常量
 
 __all__=['dsh根','dsh主目录','dsh节点模块','dsh配置','dsh工作区','dsh临时']#仅中文公开名

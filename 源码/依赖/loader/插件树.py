@@ -1,4 +1,3 @@
-"""可变的加载器插件树。持久化由子类提供。"""
 import random
 from urllib.parse import urljoin as 拼接网址#按基准网址解析相对说明符
 from .. import cordis

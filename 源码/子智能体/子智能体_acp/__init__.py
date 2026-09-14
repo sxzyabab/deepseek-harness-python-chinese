@@ -1,7 +1,6 @@
-"""进程外 ACP 子智能体后端（对齐 upstream subagent-acp）。"""
 from ...依赖.schemastery import 字典字段,字符串字段,列表字段,数字字段#配置
 from ..子智能体.错误 import 子智能体错误#缝内失败
-from .运行 import 启动acp跑,默认处置eof宽限毫秒,默认处置宽限毫秒#运行
+from .运行 import 启动acp运行,默认处置eof宽限毫秒,默认处置宽限毫秒#运行
 
 名称='subagent-acp'#Cordis 插件名
 注入=['subagents','subprocess']#依赖
@@ -29,7 +28,7 @@ class acp提供方:
 
     def 启动(自身,请求):
         """启动 ACP 一次性跑。请求为 dict。"""
-        return 启动acp跑(请求,自身._规格)#进程外跑
+        return 启动acp运行(请求,自身._规格)#进程外跑
 
 def 应用(上下文,配置值):
     """加载 ACP 提供方。配置为 dict。"""

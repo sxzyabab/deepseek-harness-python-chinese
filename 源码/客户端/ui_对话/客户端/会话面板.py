@@ -1,8 +1,3 @@
-"""根作用域 main 占位；Session 绑定属于其子 Conversation。
-
-对齐上游 `ui-conversation/src/client/skeleton/ConversationPanel.tsx`。公开面仅中文名。
-浏览器半边由宿主渲染；本模块落盘会话面板的槽转发面。
-"""
 __all__=['会话面板']#仅中文公开名
 
 

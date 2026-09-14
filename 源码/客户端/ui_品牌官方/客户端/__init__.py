@@ -1,8 +1,3 @@
-"""通用浏览器品牌槽位的官方 DeepSeek Harness 占位。
-
-对齐上游 `ui-brand-official/src/client/index.ts`。公开面仅中文名。
-把侧栏品牌槽位作为一组声明感知注册填满。
-"""
 import os#读构建档案
 from .品牌 import 官方品牌标志,官方品牌名称#官方标志与名称
 

@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-output-retention 的本包拥有不变量配套。"""
 包名='@deepseek-ai/dsh-output-retention'#本包的不变量所有权名
 名称='output-retention-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

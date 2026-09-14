@@ -1,4 +1,3 @@
-"""工具注册表、模型呈现模式，以及预执行/守卫/环绕/后执行/结果管线。对齐上游 `@deepseek-ai/dsh-tools`。公开面仅中文名；Cordis 槽 `inject`/`Config`/`default` 为协议兼容，不入 `__all__`。"""
 import json,math,threading,weakref
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
@@ -89,7 +88,7 @@ class 可弱引用表(dict):
 class 工具错误(框架错误):
     """内核工具包的异常基类。"""
     def __init__(自身,消息,码='TOOL_ERROR'):
-        """用英文消息构造。"""
+        """用消息构造。"""
         super().__init__(消息,码)#框架错误
         自身.name='ToolError'#类名
 
@@ -123,7 +122,7 @@ def 错误消息(错误):
             return 错误.message#属性 message
         return str(错误)#其余字符串化
     except Exception:
-        return '<unprintable thrown value>'#不可打印
+        return '<无法打印的抛出值>'#不可打印
 
 def 从内容取失败消息(内容):
     """从策略反馈导出一条失败消息，不改其已渲染块。"""
@@ -134,13 +133,13 @@ def 从内容取失败消息(内容):
         else:
             文本列表.append('['+str(块['type'])+' content]')#类型占位
     文本='\n'.join(文本列表)#换行连接
-    return 文本 if len(文本)>0 else 'tool result blocked by post-execute policy'#空则用默认句
+    return 文本 if len(文本)>0 else '工具结果被 post-execute 策略拦截'#空则用默认句
 
 def 物化呈现(候选):
     """快照并冻结一份耐久工具结果投影，或拒绝有损数据。"""
     脱离=快照json值(候选)#脱离
     if 脱离 is None:
-        raise TypeError('tool result must be losslessly JSON-serializable')#必须无损
+        raise TypeError('工具结果必须能无损 JSON 序列化')#必须无损
     return 深冻结(脱离)#冻结
 
 def 错误信息(错误):
@@ -164,7 +163,7 @@ def 解析并行上限(值):
     else:
         是整数=False#其余非法
     if (not 是整数) or 上限<1:
-        raise 工具错误('maxParallelSubCalls must be a positive integer')#必须正整数
+        raise 工具错误('maxParallelSubCalls 必须是正整数')#必须正整数
     return 上限#已校验上限
 
 class 工具未找到错误(框架错误):
@@ -172,9 +171,9 @@ class 工具未找到错误(框架错误):
     def __init__(自身,工具名,可达路径=None):
         """用名字与可选替代路径构造。"""
         if 可达路径 is None:
-            消息='unknown tool "'+工具名+'"'#裸未知
+            消息='未知工具 "'+工具名+'"'#裸未知
         else:
-            消息='unknown tool "'+工具名+'": '+可达路径#带路径
+            消息='未知工具 "'+工具名+'": '+可达路径#带路径
         super().__init__(消息,'UNKNOWN_TOOL')#错误码
         自身.name='ToolNotFoundError'#类名
 
@@ -182,20 +181,20 @@ class 工具输出错误(框架错误):
     """工具函数体或后策略值违反其声明输出时抛出。"""
     def __init__(自身,工具名,违规列表):
         """用违规构造；公开属性仅 违规列表。"""
-        super().__init__('tool "'+工具名+'" returned invalid output: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
+        super().__init__('工具 "'+工具名+'" 返回了非法输出: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
         自身.name='ToolOutputError'#错误名槽
         自身.违规列表=违规列表#违规诊断列表
 
 def 投影失败(工具名,投影器,错误):
     """把一次投影器异常转成规范的非法输出失败。"""
-    return 工具输出错误(工具名,['output.'+投影器+' failed: '+错误消息(错误)])#包成输出错误
+    return 工具输出错误(工具名,['output.'+投影器+' 失败: '+错误消息(错误)])#包成输出错误
 
 def 快照投影(工具名,投影器,候选):
     """在后续耐久结果物化之前快照一次投影器结果。"""
     try:
         脱离=快照json值(候选)#脱离
         if 脱离 is None:
-            raise 工具输出错误(工具名,['output.'+投影器+' returned non-lossless JSON'])#非无损 JSON
+            raise 工具输出错误(工具名,['output.'+投影器+' 返回了非无损 JSON'])#非无损 JSON
         return 脱离#已脱离投影
     except 工具输出错误:
         raise#已是输出错误则原样抛
@@ -207,12 +206,12 @@ def 快照工具值(工具名,候选):
     try:
         脱离=快照json值(候选)#脱离
         if 脱离 is None:
-            raise 工具输出错误(工具名,['value is not lossless JSON'])#非无损
+            raise 工具输出错误(工具名,['value 不是无损 JSON'])#非无损
         return 脱离#规范值
     except 工具输出错误:
         raise#已是输出错误
     except Exception as 错误:
-        raise 工具输出错误(工具名,['value snapshot failed: '+错误消息(错误)])#快照失败
+        raise 工具输出错误(工具名,['value 快照失败: '+错误消息(错误)])#快照失败
 
 def 铸造执行令牌():
     """铸造同进程关联令牌。"""
@@ -226,7 +225,7 @@ def 工具错误结果(错误):
     if 信息 is not None:
         失败['info']=信息#结构化
     return {
-        'content':[{'type':'text','text':'Error: '+消息}],#Native 信封
+        'content':[{'type':'text','text':'错误: '+消息}],#Native 信封
         'isError':True,#失败
         'error':失败,#细节
     }#失败结果
@@ -235,10 +234,10 @@ def 工具体后中止结果(先前=None):
     """函数体已调用后取消取代成功时的规范结果。"""
     推迟=先前['additionalContexts'] if 先前 is not None and 'additionalContexts' in 先前 and 先前['additionalContexts'] is not None else []#保留已推迟上下文
     结果={
-        'content':[{'type':'text','text':'Error: tool call aborted'}],#模型可见
+        'content':[{'type':'text','text':'错误: 工具调用已中止'}],#模型可见
         'isError':True,#失败
         'error':{
-            'message':'tool call aborted',#消息
+            'message':'工具调用已中止',#消息
             'info':{'name':'AbortError','code':工具体后中止},#体后码
         },#结构化
     }#中止失败
@@ -250,10 +249,10 @@ def 工具体前中止结果(先前=None):
     """取消阻止工具函数体调用时的规范结果。"""
     推迟=先前['additionalContexts'] if 先前 is not None and 'additionalContexts' in 先前 and 先前['additionalContexts'] is not None else []#保留已推迟上下文
     结果={
-        'content':[{'type':'text','text':'Error: tool call aborted before dispatch'}],#模型可见
+        'content':[{'type':'text','text':'错误: 工具调用在派发前已中止'}],#模型可见
         'isError':True,#失败
         'error':{
-            'message':'tool call aborted before dispatch',#消息
+            'message':'工具调用在派发前已中止',#消息
             'info':{'name':'AbortError','code':工具体前中止},#体前码
         },#结构化
     }#中止失败
@@ -262,19 +261,19 @@ def 工具体前中止结果(先前=None):
     return 结果#返回
 
 def 熔合工具信号(调用方,包装器):
-    """熔合调用方与包装器取消。盯梢线程等 Event 置位，拆除后不再转发。"""
+    """熔合调用方与包装器取消。转发线程等 Event 置位，拆除后不再转发。"""
     if 调用方 is 包装器:
         def 空拆除():
             """同一信号无需熔合。"""
             return#无事
         return {'signal':调用方,'dispose':空拆除}#同一信号
     控制器=中止控制器()#熔合控制器
-    停止=threading.Event()#拆除旗
+    停止=threading.Event()#拆除标志
     def 拆除():
-        """停止盯梢转发。"""
+        """停止转发中止。"""
         停止.set()#不再转发
-    def 盯(来源):
-        """等来源中止再转发。"""
+    def 转发中止(来源):
+        """等到来源中止再转发给熔合控制器。"""
         if 来源 is None:
             return#无信号
         来源._事件.wait()#阻塞到置位
@@ -289,7 +288,7 @@ def 熔合工具信号(调用方,包装器):
         for 来源 in (调用方,包装器):
             if 来源 is None:
                 continue#无信号
-            工作=threading.Thread(target=盯,args=(来源,))#盯梢线程
+            工作=threading.Thread(target=转发中止,args=(来源,))#转发线程
             工作.daemon=True#不挡住退出
             工作.start()#启动
     return {'signal':控制器.信号,'dispose':拆除}#熔合信号与拆除
@@ -301,8 +300,8 @@ class 工具层:
         def 重复错误(名):
             """重复注册诊断。"""
             if 作用域 is None:
-                return Exception('tool "'+名+'" is already registered (for a per-agent variant, register through that agent\'s `agent.ctx` instead)')#全局重复
-            return Exception('tool "'+名+'" is already registered in this scope')#作用域内重复
+                return Exception('工具 "'+名+'" 已登记（若要按智能体变体，请经该智能体的 `agent.ctx` 登记）')#全局重复
+            return Exception('工具 "'+名+'" 已在本作用域登记')#作用域内重复
         自身.工具=具名条目(重复错误)#具名工具
         自身.限制=匿名条目()#限制
         自身.守卫=匿名条目()#守卫
@@ -393,7 +392,7 @@ class 工具运行时(服务):
             语言=运行时.language#语言
             渲染=sdk渲染器.get(语言)#查渲染器
             if 渲染 is None:
-                raise 工具错误('dsh-tools: no SDK renderer for '+str(语言))#无渲染器
+                raise 工具错误('dsh-tools: 没有 '+str(语言)+' 的 SDK 渲染器')#无渲染器
             return 渲染(自身.sdk模式(上下文['scope'] if 'scope' in 上下文 else None))#渲染 SDK
         return {'name':'tools:sdk','order':sdk段顺序,'text':文本}#段登记
 
@@ -432,13 +431,13 @@ class 工具运行时(服务):
         """用 mode 而不是部署默认来呈现调用作用域的工具。"""
         上下文=自身.ctx#当前上下文
         if 获取作用域(上下文) is None:
-            raise 工具错误('tools.presentAs() requires a scoped context (agent.ctx): a context-global presentation is the `mode` config field on the tools row')#必须作用域上下文
+            raise 工具错误('tools.presentAs() 需要作用域上下文 (agent.ctx)：上下文全局的呈现是 tools 行上的 `mode` 配置字段')#必须作用域上下文
         def 执行体():
             """组合 effect。"""
             def 写入层(层):
                 """装入层。"""
                 if 层.模式 is not None:
-                    raise 工具错误('tools.presentAs("'+模式值+'") conflicts with "'+层.模式+'" already declared for this scope; one composition selects one presentation')#一作用域一种呈现
+                    raise 工具错误('tools.presentAs("'+模式值+'") 与本作用域已声明的 "'+层.模式+'" 冲突；一次组合只能选一种呈现')#一作用域一种呈现
                 层.模式=模式值#写入
                 def 清掉():
                     """拆除时清掉。"""
@@ -470,11 +469,11 @@ class 工具运行时(服务):
         """解析代码运行时，否则抛出可操作的错误配置。"""
         运行时=自身.ctx.获取服务('codeRuntime')#可选服务
         if 运行时 is None:
-            raise 工具错误('dsh-tools: mode "'+呈现+'" requires a code runtime — load a ctx.codeRuntime implementation (e.g. @deepseek-ai/dsh-code-runtime-worker-thread) or set tools mode to "native"')#可操作错误
+            raise 工具错误('dsh-tools: 模式 "'+呈现+'" 需要代码运行时 — 请加载 ctx.codeRuntime 实现（例如 @deepseek-ai/dsh-code-runtime-worker-thread）或把 tools 模式设为 "native"')#可操作错误
         语言=运行时.language#语言
         if 语言 not in sdk渲染器:
             已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in sdk渲染器.keys())#已知语言
-            raise 工具错误('dsh-tools: no SDK renderer registered for runtime language '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' (known: '+已知+')')#未知语言
+            raise 工具错误('dsh-tools: 运行时语言 '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 没有已登记的 SDK 渲染器（已知: '+已知+'）')#未知语言
         return 运行时#已校验运行时
 
     def 登记(自身,定义):
@@ -482,13 +481,13 @@ class 工具运行时(服务):
         名=定义['name']#工具名
         输出=定义['output'] if 'output' in 定义 else None#输出约定
         if 输出 is None or (not isinstance(输出,dict)) or (not 是否可调用(输出['render'] if 'render' in 输出 else None)) or ('presentationMeta' in 输出 and 输出['presentationMeta'] is not None and not 是否可调用(输出['presentationMeta'])):
-            raise TypeError('tool "'+名+'" must declare output { schema, render, presentationMeta? }')#必须声明输出
+            raise TypeError('工具 "'+名+'" 必须声明 output { schema, render, presentationMeta? }')#必须声明输出
         断言受支持json模式(输出['schema'])#输出模式必须是子集
         超时=定义['timeoutMs'] if 'timeoutMs' in 定义 else None#超时
         if 超时 is not None and not 是否正有限(超时):
-            raise TypeError('tool "'+名+'" timeoutMs must be a positive finite number')#必须正有限
+            raise TypeError('工具 "'+名+'" 的 timeoutMs 必须是正有限数')#必须正有限
         if 名==运行代码名:
-            raise 工具错误('tool name "'+运行代码名+'" is reserved for the Code Mode presentation transport and cannot be registered or shadowed')#不得注册或遮蔽
+            raise 工具错误('工具名 "'+运行代码名+'" 保留给 Code Mode 呈现传输，不能登记或遮蔽')#不得注册或遮蔽
         def 插入(层):
             """插入定义。"""
             return 层.工具.插入(名,定义)#插入
@@ -498,11 +497,11 @@ class 工具运行时(服务):
         """为调用智能体作用域限制全局工具。"""
         作用域=获取作用域(自身.ctx)#当前作用域
         if 作用域 is None:
-            raise 工具错误('tools.restrict() requires a scoped context (agent.ctx): a context-global restriction would mask every agent — deny the tool for the intended agent instead')#必须作用域上下文
+            raise 工具错误('tools.restrict() 需要作用域上下文 (agent.ctx)：上下文全局的限制会遮住每个智能体 — 请改为对目标智能体拒绝该工具')#必须作用域上下文
         白名单=过滤器['allow'] if 'allow' in 过滤器 else None#白名单
         黑名单=过滤器['deny'] if 'deny' in 过滤器 else None#黑名单
         if 白名单 is None and 黑名单 is None:
-            raise 工具错误('tools.restrict({}) is a no-op: pass `allow` and/or `deny` (an empty filter is almost always a materialized-empty-config bug)')#空过滤器几乎总是物化空配置缺陷
+            raise 工具错误('tools.restrict({}) 是空操作：请传入 `allow` 和/或 `deny`（空过滤器几乎总是物化空配置缺陷）')#空过滤器几乎总是物化空配置缺陷
         已编译={}#编译成集
         if 白名单 is not None:
             已编译['allow']=set(白名单)#白名单集
@@ -510,13 +509,12 @@ class 工具运行时(服务):
             已编译['deny']=set(黑名单)#黑名单集
         点名=list(白名单 or [])+list(黑名单 or [])#全部点名
         if 运行代码名 in 点名:
-            raise 工具错误('tools.restrict() cannot name reserved Code Mode presentation transport "'+运行代码名+'"; restrict end-capability tools instead')#不得限制传输
+            raise 工具错误('tools.restrict() 不能点名保留的 Code Mode 呈现传输 "'+运行代码名+'"；请改为限制终端能力工具')#不得限制传输
         已知=自身.视图(作用域)['restrictableNames']#可限制的全局名
         未知=[名 for 名 in 点名 if 名 not in 已知]#未知名
         if len(未知)>0:
-            词='s' if len(未知)>1 else ''#复数
-            已知文本=', '.join(sorted(已知)) or '(none)'#已知或空
-            raise 工具错误('tools.restrict() names unknown global tool'+词+' '+', '.join('"'+名+'"' for 名 in 未知)+'; known global tools: '+已知文本)#列出未知与已知
+            已知文本=', '.join(sorted(已知)) or '（无）'#已知或空
+            raise 工具错误('tools.restrict() 点名了未知全局工具 '+', '.join('"'+名+'"' for 名 in 未知)+'；已知全局工具: '+已知文本)#列出未知与已知
         def 追加(层):
             """追加限制。"""
             return 层.限制.追加(已编译)#追加
@@ -595,7 +593,7 @@ class 工具运行时(服务):
                 continue#排除传输自身
             输出=快照json值(定义['output']['schema'])#输出模式快照
             if 输出 is None:
-                raise 工具错误('tool "'+定义['name']+'" output schema must be lossless JSON before SDK projection')#必须无损
+                raise 工具错误('工具 "'+定义['name']+'" 的输出模式在 SDK 投影前必须是无损 JSON')#必须无损
             项=自身.投影模式(定义,True)#模型字段
             项['output']=输出#规范输出模式
             结果.append(项)#收下
@@ -608,7 +606,7 @@ class 工具运行时(服务):
         参数=定义['parameters']#参数
         脱离=快照json值(参数) if 脱离参数 else 参数#可选脱离
         if 脱离 is None:
-            raise 工具错误('tool "'+名+'" parameters must be lossless JSON before schema projection')#必须无损
+            raise 工具错误('工具 "'+名+'" 的 parameters 在模式投影前必须是无损 JSON')#必须无损
         return {'name':名,'description':描述,'parameters':脱离}#模型模式
 
     def 执行模式(自身,执行输入):
@@ -630,7 +628,7 @@ class 工具运行时(服务):
         try:
             return 自身.ctx.链式拦截(作用域目标(自身,派发['agent'] if 'agent' in 派发 else None),'tools/ptc-dispatch-log',派发,默认内容)#按智能体过滤
         except Exception as 错误:
-            自身.ctx.日志.警告('tools: ptc-dispatch-log listener failed for '+派发['name']+': '+错误消息(错误)+'; logging the original settled content')#记警告
+            自身.ctx.日志.警告('tools: '+派发['name']+' 的 ptc-dispatch-log 监听器失败: '+错误消息(错误)+'；改记原始落定内容')#记警告
             return 派发['content']#回落原始内容
 
     def 是否折叠(自身,名,作用域,嵌套):
@@ -641,11 +639,11 @@ class 工具运行时(服务):
         """经预策略、守卫、环绕派发、后策略、内容最终化与最终通知执行。"""
         def 下一步(已准备):
             """准备后跑完。"""
-            return 自身.跑完已准备(已准备)#跑完
+            return 自身.执行完已准备(已准备)#执行完
         return 自身.准备执行(执行输入,下一步)#准备后跑完
 
-    def 跑完已准备(自身,已准备):
-        """跑完已准备执行。"""
+    def 执行完已准备(自身,已准备):
+        """执行完已准备执行。"""
         种类=已准备['kind']#按准备种类
         if 种类=='dispatch':
             已派发=自身.派发调度执行(已准备['exec'])#环绕+体
@@ -656,7 +654,7 @@ class 工具运行时(服务):
             return 自身.最终化调度执行(已准备['exec'],已准备['result'])#后执行+收尾
         if 种类=='final-result':
             return 自身.收尾调度执行(已准备['exec'],已准备['result'])#只收尾
-        return 断言永不(已准备,'scheduled tool preparation')#未覆盖种类
+        return 断言永不(已准备,'已调度工具准备')#未覆盖种类
 
     def 铸造执行(自身,执行输入):
         """铸造执行对象。"""
@@ -702,7 +700,7 @@ class 工具运行时(服务):
         try:
             脱离=快照json值(执行输入['arguments'])#脱离
             if 脱离 is None:
-                raise TypeError('tool execution arguments must be losslessly JSON-serializable')#必须无损
+                raise TypeError('工具执行参数必须能无损 JSON 序列化')#必须无损
             执行=可弱引用表(基础)#拷贝基础
             执行['arguments']=深冻结(脱离)#冻结参数
             执行盒[0]=执行#供终止本轮键控
@@ -717,7 +715,7 @@ class 工具运行时(服务):
                     'exec':执行,#已铸造执行
                     'result':工具错误结果(工具未找到错误(
                         名,#工具名
-                        'only `'+运行代码名+'` is callable directly — call `'+名+'` from inside a `'+运行代码名+'` program instead',#替代路径
+                        '只能直接调用 `'+运行代码名+'` — 请在 `'+运行代码名+'` 程序内部调用 `'+名+'`',#替代路径
                     )),#未知工具但带路径
                 }#折叠拒绝
             return {'kind':'ready','exec':执行}#进入策略管线
@@ -765,7 +763,7 @@ class 工具运行时(服务):
                     'kind':'post-result',#还要后执行
                     'exec':执行,#执行
                     'result':自身.物化最终结果({
-                        'content':[{'type':'text','text':'Error: '+拒绝原因}],#模型可见错误
+                        'content':[{'type':'text','text':'错误: '+拒绝原因}],#模型可见错误
                         'isError':True,#失败
                         'error':{'message':拒绝原因},#失败细节
                     }),#物化拒绝
@@ -780,14 +778,14 @@ class 工具运行时(服务):
         """原始调用方信号当前是否已中止。"""
         状态=自身.取消状态.get(执行)#取消状态
         if 状态 is None:
-            raise 工具错误('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
+            raise 工具错误('工具注册表调度器不变量被破坏：缺少取消状态')#调度器不变量
         return 已中止(状态['callerSignal'])#原始信号
 
     def 取消结果(自身,执行,先前=None):
         """按工具函数体是否已开始选出的规范取消结局。"""
         状态=自身.取消状态.get(执行)#取消状态
         if 状态 is None:
-            raise 工具错误('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
+            raise 工具错误('工具注册表调度器不变量被破坏：缺少取消状态')#调度器不变量
         if 状态['bodyInvoked']:
             return 工具体后中止结果(先前)#体后中止
         return 工具体前中止结果(先前)#体前中止
@@ -796,7 +794,7 @@ class 工具运行时(服务):
         """用熔回任何环绕包装器替换的原始调用方信号派发已注册函数体。"""
         状态=自身.取消状态.get(执行)#取消状态
         if 状态 is None:
-            raise 工具错误('tool registry scheduler invariant violated: missing cancellation state')#调度器不变量
+            raise 工具错误('工具注册表调度器不变量被破坏：缺少取消状态')#调度器不变量
         包装器信号=执行['signal']#包装器信号
         熔合=熔合工具信号(状态['callerSignal'],包装器信号)#熔合调用方与包装器
         信号=熔合['signal']#熔合后信号
@@ -829,7 +827,7 @@ class 工具运行时(服务):
             已归一=自身.归一派发结果(执行,结果)#经输出约定归一
             推迟=自身.推迟上下文.get(执行)#体推迟的上下文
             if 推迟 is None:
-                raise 工具错误('tool registry scheduler invariant violated: unprepared execution')#未准备
+                raise 工具错误('工具注册表调度器不变量被破坏：未准备的执行')#未准备
             if len(推迟)==0:
                 带推迟=已归一#原样
             else:
@@ -888,7 +886,7 @@ class 工具运行时(服务):
         调用号=执行['callId']#调用 id
         def 报告失败(错误):
             """收住观察者失败。"""
-            自身.ctx.日志.警告('tool "'+工具名+'" ('+str(调用号)+'): tools/result observer failed: '+错误消息(错误))#记警告
+            自身.ctx.日志.警告('工具 "'+工具名+'" ('+str(调用号)+'): tools/result 观察者失败: '+错误消息(错误))#记警告
         参数=[作用域目标(自身,执行['agent'] if 'agent' in 执行 else None),'tools/result',执行,结果]#载体、事件、载荷
         事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
         回调列表=list(获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数))#逐个监听器
@@ -903,12 +901,12 @@ class 工具运行时(服务):
         审批=自身.ctx.获取服务('approval')#可选审批服务
         if 审批 is None:
             return {
-                'decision':{'kind':'deny','reason':询问['reason'] if 'reason' in 询问 and 询问['reason'] is not None else ('tool "'+执行['name']+'" requires approval (not yet supported)')},#缺审批通道
+                'decision':{'kind':'deny','reason':询问['reason'] if 'reason' in 询问 and 询问['reason'] is not None else ('工具 "'+执行['name']+'" 需要审批（尚未支持）')},#缺审批通道
                 'approvalCancelled':False,#不是取消
             }#降级拒绝
         if 'agent' not in 执行 or 执行['agent'] is None:
             return {
-                'decision':{'kind':'deny','reason':'tool "'+执行['name']+'" requires approval, but the call has no agent to route it through'},#无处路由
+                'decision':{'kind':'deny','reason':'工具 "'+执行['name']+'" 需要审批，但这次调用没有可路由的智能体'},#无处路由
                 'approvalCancelled':False,#不是取消
             }#降级拒绝
         请求={
@@ -923,11 +921,11 @@ class 工具运行时(服务):
         if 结局=='allowed-once':
             return {'decision':{'kind':'allow'},'approvalCancelled':False}#允许一次
         if 结局=='rejected':
-            return {'decision':{'kind':'deny','reason':'the user rejected tool "'+执行['name']+'"'},'approvalCancelled':False}#人的不
+            return {'decision':{'kind':'deny','reason':'用户拒绝了工具 "'+执行['name']+'"'},'approvalCancelled':False}#人的不
         if 结局=='cancelled':
-            return {'decision':{'kind':'deny','reason':'approval for tool "'+执行['name']+'" was cancelled'},'approvalCancelled':True}#取消
+            return {'decision':{'kind':'deny','reason':'工具 "'+执行['name']+'" 的审批被取消'},'approvalCancelled':True}#取消
         if 结局=='unavailable':
-            return {'decision':{'kind':'deny','reason':'tool "'+执行['name']+'" requires approval, but no approval channel is available'},'approvalCancelled':False}#无通道
+            return {'decision':{'kind':'deny','reason':'工具 "'+执行['name']+'" 需要审批，但没有可用的审批通道'},'approvalCancelled':False}#无通道
         return 断言永不(结局,'ApprovalOutcome')#穷尽
 
     def 后执行(自身,执行,结果):
@@ -948,11 +946,11 @@ class 工具运行时(服务):
                 失败['additionalContexts']=决策上下文#只带挡住决策的上下文
             return 自身.标记规范(执行,失败)#挡住
         if 'content' in 决策 and 'value' in 决策:
-            raise TypeError('tools/post-execute accept decision cannot replace both value and content')#不得同时替换
+            raise TypeError('tools/post-execute 的 accept 决策不能同时替换 value 和 content')#不得同时替换
         附加=list(结果.get('additionalContexts') or [])+list(决策上下文)#体的加决策的
         if 'value' in 决策:
             if 结果['isError']:
-                raise TypeError('tools/post-execute cannot replace the value of a failed result')#失败不能换值
+                raise TypeError('tools/post-execute 不能替换失败结果的 value')#失败不能换值
             工具=自身.解析可执行(执行['name'],执行['agent'] if 'agent' in 执行 else None,'parent' in 执行 and 执行['parent'] is not None)#可执行定义
             if 工具 is None:
                 raise 工具未找到错误(执行['name'])#不可见

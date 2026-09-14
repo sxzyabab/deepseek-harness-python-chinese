@@ -1,7 +1,3 @@
-"""共享 Typert 运行时注册表的客户端面。
-
-对齐上游 `typert/registry/src/client/index.ts`。公开面仅中文名。
-"""
 from ..服务 import Typert注册表#与宿主面相同的注册表实现
 
 注入=[]#不注入其他服务；本插件是客户端反射根

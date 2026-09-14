@@ -1,8 +1,3 @@
-"""浏览器半机器可读的 cordis API 目录查询面。
-
-对齐上游 `拓展/cordis-client-runner/src/client/api-catalog.ts`。
-SERVICE/EVENT/TYPE/INHERITED_CTX_API 从原版相对路径整表加载。公开面仅中文名。
-"""
 import os,re#路径与类型名
 from ..cordis工具.字面量解析 import 提取导出常量数组,解析数组字面量#复用解析器
 
@@ -67,7 +62,7 @@ def 查询服务目录(键=None,服务列表=None):#查询服务
             服务=候选#记下
             break#结束
     if 服务 is None:#未知
-        raise Exception('no catalogued Service named "'+键+'"')#失败
+        raise Exception('目录里没有名为 "'+键+'" 的 Service')#失败
     return {'mode':'service','service':{'key':服务['key'],'description':服务['description'],'access':{'optional':{'expression':'ctx.获取服务('+__import__('json').dumps(服务['key'])+')','requiresUndefinedCheck':True},'hardDependency':{'inject':[服务['key']],'expression':上下文属性(服务['key'])}},'methods':服务['methods']},'referencedTypes':引用类型闭包([方法['signature'] for 方法 in 服务['methods']])}#详细
 
 def 查询事件目录(名=None,事件列表=None):#查询事件
@@ -82,5 +77,5 @@ def 查询事件目录(名=None,事件列表=None):#查询事件
             事件=候选#记下
             break#结束
     if 事件 is None:#未知
-        raise Exception('no catalogued Event named "'+名+'"')#失败
+        raise Exception('目录里没有名为 "'+名+'" 的 Event')#失败
     return {'mode':'event','event':{'name':事件['name'],'description':事件['description'],'mode':事件['mode'],'signature':事件['signature'],'parameters':事件['parameters']},'referencedTypes':引用类型闭包([事件['signature']])}#详细

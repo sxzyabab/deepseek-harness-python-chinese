@@ -1,7 +1,3 @@
-"""shell / agent-loop / web-search 三张出厂卡片控制器。
-
-对齐上游 bash/agent-loop/web-search-card-controller.ts。公开面仅中文名。
-"""
 from .卡片表单 import 卡片表单,数字字段,文本字段#表单
 
 __all__=[#仅中文公开名

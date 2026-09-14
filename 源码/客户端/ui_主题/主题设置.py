@@ -1,7 +1,3 @@
-"""宿主用户设置文档里持久化的主题偏好。
-
-对齐上游 `ui-theme/src/theme-settings.ts`。公开面仅中文名；偏好字面量与设置键保持上游。
-"""
 from ...依赖.schemastery import 枚举字段#配置字段
 
 __all__=[#仅中文公开名

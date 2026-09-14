@@ -1,8 +1,3 @@
-"""端点具名的 Remote mock：端点表、活流控制、日志，以及 Connection 载体面。
-
-对齐上游 `remote-mock/src/remote-mock.ts`。公开面仅中文名。
-`rpc` / `call` / `open` 是 `__DSH_TRANSPORT__.rpc` 读取的框架槽，不进 __all__。
-"""
 import threading#活流锁与中止赛跑
 from .调用日志 import 调用日志库#日志库
 from .命名空间代理 import 创建远程代理#惰性命名空间
@@ -308,12 +303,12 @@ class 远程模拟:
         with 自身._锁:#串行
             自身._活流.append(流)#记入活流
             自身._唤醒已打开(端点)#唤醒打开等待
-        流.跑脚本(脚本,参数)#跑脚本
+        流.执行脚本(脚本,参数)#执行脚本
         return 流#返回流
 
     def _无规则文案(自身,端点):
         """无规则诊断文案。"""
-        return f"remote-mock: no rule for {端点}; registered: {', '.join(自身.端点列表())}"#英文诊断
+        return f"remote-mock: {端点} 没有规则；已登记：{', '.join(自身.端点列表())}"#诊断
 
     def _匹配(自身,端点,条件):
         """端点上仍打开或仍持有未拉项的流；其余忘掉。"""

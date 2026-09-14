@@ -1,7 +1,3 @@
-"""Client 源目录操作与值的精确解码器。
-
-对齐上游 `shared/bridge/messages/sources/codec.ts`。公开面仅中文名。
-"""
 import re#Base64校验
 from ....json import 是否普通对象,检查器错误#普通对象|本包错误
 from ....校验 import 精确键,精确对象,可选布尔,可选字符串,线上标识#校验

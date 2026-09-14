@@ -1,4 +1,3 @@
-"""监视源文件并热替换受影响的插件。"""
 import errno,os,re,sys,threading,weakref
 from .cordis import 服务
 from .schemastery import 字符串字段,列表字段,自然数字段#配置字段
@@ -596,7 +595,7 @@ class 热替换(服务):
             if 网址 in 自身.拒绝集:
                 return#已经判定不重载
             任务=自身.内部加载器.loadCache.get(网址)#模块任务
-            插件=自身.所属上下文.加载器.解开导出(任务.module.getNamespace()) if 任务 is not None else None#插件导出
+            插件=自身.所属上下文.加载器.取出默认导出(任务.module.getNamespace()) if 任务 is not None else None#插件导出
             if 任务 is None or 插件 is None:
                 return#还没加载，或者导出里没有插件
             待检查[任务]=插件#记进待检查
@@ -623,7 +622,7 @@ class 热替换(服务):
         try:
             for 信息 in 重载表.values():
                 导出=自身.所属上下文.加载器.导入(信息.入口网址,[])#重新导入，不给外层栈免得把监视线程的帧挂上去
-                新插件表[信息.入口网址]=自身.所属上下文.加载器.解开导出(导出)#解开导出
+                新插件表[信息.入口网址]=自身.所属上下文.加载器.取出默认导出(导出)#取出默认导出
         except Exception as 原因:
             记录构建失败(自身.所属上下文,原因)#记下失败
             return None#整体放弃

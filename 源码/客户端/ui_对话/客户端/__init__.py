@@ -1,8 +1,3 @@
-"""会话浏览器半公开面。
-
-对齐上游 `ui-conversation/src/client/index.ts` 可 Python 化部分。公开面仅中文名。
-输入机全量与会话节点构建器本轮已落。浏览器半边 `应用` 登记词表、骨架与停靠插件。
-"""
 import re#绝对路径判定
 from ..提交设置 import 会话设置命名空间#提交设置命名空间
 from ..回车行为行 import 回车行为行#设置行
@@ -195,7 +190,7 @@ def 应用(上下文):
             def 可用(会话):
                 """作曲器是否接受文件。会话为 dict。"""
                 return 枢纽.canPickFiles(会话['sessionId'])#可用性
-            def 跑(会话):
+            def 执行打开(会话):
                 """打开文件选择。会话为 dict。"""
                 枢纽.pickFiles(会话['sessionId'])#打开
             return 命令.register({#贡献
@@ -203,7 +198,7 @@ def 应用(上下文):
                 'label':标题,#本地化标题
                 'icon':'IconPaperclipOutline16',#回形针字形名
                 'available':可用,#作曲器是否接受文件
-                'ui':{'kind':'action','run':跑},#打开文件选择
+                'ui':{'kind':'action','run':执行打开},#打开文件选择
             })#登记结束
         作用域.副作用(挂文件,'ui-conversation: File action')#挂
     上下文.inject(['commandUi'],登记文件动作)#等 commandUi
@@ -270,7 +265,7 @@ def 应用(上下文):
                 if not 可迁:#拒收
                     return#止
                 if 会话面.binding(下一标识) is None:#须有绑定
-                    raise Exception('ui-conversation: session "'+str(下一标识)+'" resolved no binding')#抛
+                    raise Exception('ui-conversation: 会话 "'+str(下一标识)+'" 解析不到绑定')#抛
                 控制器=具体会话(上下文)#控制器
                 if hasattr(控制器,'rebindDraftFiles'):#重绑
                     控制器.rebindDraftFiles(下一标识,附件列表)#重绑
@@ -281,9 +276,7 @@ def 应用(上下文):
                     for 附标识 in 附件列表:#摘
                         摘附(附标识)#移除
             打开=工作区导航.openWorkspace if 工作区导航 is not None else 工作区面.openWorkspace#打开工作区
-            结果=打开(工作区标识,打开前)#打开；导航面优先
-            if hasattr(结果,'等待'):#任务面
-                结果.等待()#等连接打开
+            打开(工作区标识,打开前)#打开；导航面优先
         阻断源=缺席阻断 if 会话标识 is None else 阻断表.storeFor(会话标识)#阻断
         return {'hooks':{'composerBlock':阻断源},'selectWorkspace':选定工作区}#注入
     def 体注入(会话标识,_动作=None):

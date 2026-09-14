@@ -1,7 +1,3 @@
-"""轨迹根工具生命周期的 ConversationNode Definition。
-
-对齐上游 `ui-trajectory/src/client/trajectory-tool-definition.ts`。公开面仅中文名。
-"""
 import json#子调用参数序列化
 from .轨迹节点 import 轨迹节点#包成轨迹视图节点
 from .轨迹记录 import 轨迹错误#本包异常

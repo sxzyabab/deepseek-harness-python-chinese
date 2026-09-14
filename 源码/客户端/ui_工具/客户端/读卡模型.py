@@ -1,7 +1,3 @@
-"""从冻结调用切片纯派生读卡道具。
-
-对齐上游 `ui-tool/src/client/tool/models/read-card-model.ts`。公开面仅中文名。
-"""
 from .调用模型 import 相对化到工作区#相对化
 
 __all__=['聊天读最大行数','读卡模型']#仅中文公开名

@@ -1,7 +1,3 @@
-"""常规设置分区：叠放功能贡献的条目。
-
-对齐上游 `ui-settings-general/src/client/GeneralSection.tsx`。公开面仅中文名。
-"""
 
 __all__=['常规条目分区','样式表']#仅中文公开名
 

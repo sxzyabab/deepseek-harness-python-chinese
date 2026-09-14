@@ -1,8 +1,3 @@
-"""`sidebarDocumentPreview` 命名空间词典。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/locales.ts`。公开面仅中文名。
-失败行是本文件的重点：无法展示一页的预览必须说明若干不同原因中的哪一种。
-"""
 
 __all__=['中文','英文','侧栏文档预览文案键']#仅中文公开名
 

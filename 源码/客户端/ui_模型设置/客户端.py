@@ -1,7 +1,3 @@
-"""模型设置与产品引导插件的浏览器半边。
-
-对齐上游 `ui-settings-models/src/client/index.ts`。公开面仅中文名。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .引导文案 import 欢迎通知设置命名空间#欢迎 ns
 from .存储 import 模型设置存储,已加载则刷新#模型存储

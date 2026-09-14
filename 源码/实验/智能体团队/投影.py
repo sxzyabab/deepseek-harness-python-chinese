@@ -1,8 +1,3 @@
-"""仅宿主侧、从已提交 Session 事件增量投影的 Team 状态。
-
-对齐上游 `agent-team/src/projection.ts`。公开面仅中文名。
-Python 侧不做 zod；校验函数对齐上游 schema 语义。
-"""
 import re#数字任务 id
 from .类型 import 团队标识,团队消息标识,团队任务标识#身份构造
 from .任务图 import 断言任务图候选#图校验

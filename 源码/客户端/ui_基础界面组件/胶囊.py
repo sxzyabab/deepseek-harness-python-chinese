@@ -1,9 +1,3 @@
-"""小圆角标签芯片。
-
-对齐上游 `ui-primitives/src/Pill.tsx`。公开面仅中文名。
-有 onClick 时为可交互按钮；否则为静态 span。
-"""
-
 __all__=['胶囊']#仅中文公开名
 
 class 胶囊:#标签芯片

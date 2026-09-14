@@ -1,7 +1,3 @@
-"""设置壳与无主文案插件的浏览器半边。
-
-对齐上游 `ui-settings-general/src/client/index.ts`。公开面仅中文名。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .文档存储 import 设置文档存储,已加载则刷新文档#文档存储
 from .设置根 import 设置根#壳根

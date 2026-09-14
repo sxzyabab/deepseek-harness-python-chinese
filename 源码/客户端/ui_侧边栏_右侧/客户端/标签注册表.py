@@ -1,9 +1,3 @@
-"""标签类型登记第一阶段：类型是什么。
-
-对齐上游 `ui-sidebar-right/src/client/tab-registry.ts`。公开面仅中文名。
-地址认领对齐 VS Code 编辑器解析器。跨包定义为 dict。
-订阅通知就地持有，不依赖客户端.存储运行时。
-"""
 import fnmatch#通配
 from urllib.parse import urlparse#路径提取
 
@@ -19,7 +13,7 @@ def _通知订阅者(监听者列表,标签,*参数):
         try:#单回调
             监听(*参数)#调用
         except Exception as 错误:#订阅者回调契约未定
-            print(标签+' subscriber failed:',错误)#打出
+            print(标签+' 订阅者失败:',错误)#打出
 
 
 def _路径于(地址):
@@ -74,10 +68,10 @@ class 右侧侧栏标签注册表:#标签类型登记表
         种类=定义['kind']#种类
         带=定义['priority'] if 'priority' in 定义 and 定义['priority'] is not None else 默认优先级带#带
         if 标识 in 自身.标识集:#撞 id
-            raise Exception('sidebarRight: tab type id "'+标识+'" is already registered')#接线错误
+            raise Exception('sidebarRight: 标签类型 id "'+标识+'" 已经登记')#接线错误
         持=自身.种类表[种类] if 种类 in 自身.种类表 else None#已持
         if 持 is not None and not _可共存(持,带):#不可共存
-            raise Exception('sidebarRight: tab kind "'+种类+'" is already registered ('+持['inForce']['band']+')')#拒绝
+            raise Exception('sidebarRight: 标签种类 "'+种类+'" 已经登记 ('+持['inForce']['band']+')')#拒绝
         自身.登记序+=1#序
         模式列表=定义['patterns'] if 'patterns' in 定义 and 定义['patterns'] is not None else ()#模式
         条目={#已登记
@@ -174,14 +168,14 @@ class 右侧侧栏标签注册表:#标签类型登记表
         if 种类 is not None:#点名
             定义=自身.取(种类)#定义
             if 定义 is None:#无
-                raise Exception('sidebarRight: no tab type is registered as "'+种类+'"')#拒绝
+                raise Exception('sidebarRight: 没有标签类型登记为 "'+种类+'"')#拒绝
             可开=定义['canOpen'] if 'canOpen' in 定义 else None#否决
             if 可开 is not None and not 可开(地址):#拒
-                raise Exception('sidebarRight: tab type "'+种类+'" refuses "'+地址+'"')#拒绝
+                raise Exception('sidebarRight: 标签类型 "'+种类+'" 拒绝 "'+地址+'"')#拒绝
             return {'kind':种类,'contentId':地址,'title':定义['title'](地址)}#认领
         候选表=自身.候选(地址)#候选
         if len(候选表)==0:#无
-            raise Exception('sidebarRight: no registered tab type claims "'+地址+'"')#拒绝
+            raise Exception('sidebarRight: 没有已登记的标签类型认领 "'+地址+'"')#拒绝
         选=候选表[0]#优
         return {'kind':选['kind'],'contentId':地址,'title':选['title'](地址)}#认领
 

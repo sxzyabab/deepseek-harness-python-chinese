@@ -1,8 +1,3 @@
-"""会话页眉只读预设标签。
-
-对齐上游 `ui-agent-preset/src/client/AgentPresetLabel.tsx`。公开面仅中文名。
-会话一旦开跑组合即固定，页眉只报告正在跑什么。
-"""
 from .文案 import 预设展示文案#展示文案
 
 __all__=['预设标签']#仅中文公开名

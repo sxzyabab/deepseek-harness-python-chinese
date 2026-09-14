@@ -1,7 +1,3 @@
-"""通用 Connection RPC 通道的宿主注册表与 HTTP 适配器。
-
-对齐上游 `connection/src/rpc-host.ts`。公开面仅中文名。
-"""
 import json,re#JSON 与通道名校验
 from urllib.parse import urlparse#解析路径
 from ...依赖 import cordis#外部依赖胶水

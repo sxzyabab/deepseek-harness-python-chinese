@@ -1,8 +1,3 @@
-"""进程级槽位，持有已挂载的文件系统。与任何后端实现分开：
-`node:fs` 代理依赖槽位，而非 worker 入口挂载了哪个后端。
-
-对齐上游 `webworker-runtime/src/storage/active.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 
 __all__=['设活动vfs','要求活动vfs']#仅中文公开名
@@ -25,5 +20,5 @@ def 要求活动vfs():#读取活动VFS
         活动文件系统。
     """
     if _活动 is None:#尚未挂载
-        raise 运行时错误('webworker vfs: no filesystem is mounted; the worker entry must call setActiveVfs before any node:fs access')#要求先挂载
+        raise 运行时错误('webworker vfs: 尚未挂载文件系统；worker 入口必须在任何 node:fs 访问之前调用 setActiveVfs')#要求先挂载
     return _活动#返回活动实例

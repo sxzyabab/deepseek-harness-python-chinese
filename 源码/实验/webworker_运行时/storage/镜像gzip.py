@@ -1,9 +1,3 @@
-"""镜像字节信封。打包器写出一个装 ustar 归档的 gzip 成员，
-worker 用平台自带解压器 inflate，再让 tar 读取器见到字节——
-`storage/tar.ts` 保持纯 ustar 读取器，内无编解码器。
-
-对齐上游 `webworker-runtime/src/storage/image-gzip.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import gzip#gzip解压
 

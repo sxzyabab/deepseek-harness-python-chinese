@@ -1,7 +1,3 @@
-"""从 Cordis 快照到连接中立语义 DOM 的 Worker 投影。
-
-对齐上游 `worker/cdp/domains/dom/model.ts`。公开面仅中文名。
-"""
 from ...标识 import cdp数字id#后端节点id
 
 __all__=['Cordis_Dom后端']#仅中文公开名

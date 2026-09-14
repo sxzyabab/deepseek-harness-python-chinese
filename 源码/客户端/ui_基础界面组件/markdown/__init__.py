@@ -1,7 +1,3 @@
-"""markdown 子包入口。
-
-对齐上游 `ui-primitives/src/markdown/` 本波已迁组件。公开面仅中文名。
-"""
 from .消息文本 import 消息文本#字面文本
 from .代码块 import 代码块#代码面
 from .json块 import json块,最大字节,默认截断标签#JSON 块

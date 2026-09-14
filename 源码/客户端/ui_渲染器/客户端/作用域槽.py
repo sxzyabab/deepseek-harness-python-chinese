@@ -1,9 +1,3 @@
-"""声明式槽位的渲染器。逐条绑定强制子授权，条目边界吞下登记方失败。
-
-对齐上游 `ui-renderer/src/client/scoped-slots.tsx`。公开面仅中文名。
-无真 React：结构树字典 + 类边界。
-宿主为 槽宿主面 对象；条目、规格、选项、适配器、绑定为 dict；locale 面为对象。
-"""
 from ...ui_槽位 import 过期授权错误,槽位所有权错误#错误与命名
 from .登记表 import 标准钩子属性名#钩子命名
 from .绑定 import (#内部绑定
@@ -243,7 +237,7 @@ class 槽错误边界:
         except 槽组装错误:#组装错误穿透
             raise#再抛
         except Exception as 错误:#登记方崩溃
-            print("slot entry crashed in '"+自身.slotKey+"':",错误)#打印
+            print("槽条目在 '"+自身.slotKey+"' 崩溃:",错误)#打印
             自身.失败=True#标记失败
             自身.onEntryError(错误)#上报
             return {'type':'slot-error','slotKey':自身.slotKey}#崩溃面
@@ -513,7 +507,7 @@ def 渲染出口内容(宿主,槽键,拥有方,选项,作用域绑定):
                 命中=选择(拥有方) if 选择 is not None else None#纯选择；select 为函数
             except Exception as 错误:#选择器抛错
                 登记方=条目['registrant'] if 'registrant' in 条目 and 条目['registrant'] is not None else 'unknown registrant'#登记方
-                print("chain selector crashed in '"+str(槽键)+"' ("+str(登记方)+"), treating as declined:",错误)#打印并谢绝
+                print("链选择器在 '"+str(槽键)+"' ("+str(登记方)+") 崩溃，视为谢绝:",错误)#打印并谢绝
                 continue#下一条
             if 命中 is not None:#命中
                 当选=守卫(条目,条目键于(条目),{**拥有方,'matched':命中})#带 matched 渲染

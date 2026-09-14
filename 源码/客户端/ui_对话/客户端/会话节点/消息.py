@@ -1,8 +1,3 @@
-"""输入消息会话节点：用户 / 插话 / 注入上下文。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/message.ts`。公开面仅中文名。
-事件与状态为 dict。
-"""
 from ..服务 import 对话错误#本包异常
 from .节点工厂 import 聊天节点#聊天节点工厂
 from .事件面 import 是追加面事件,是替换面事件,上下文出处,上下文形态#面判断

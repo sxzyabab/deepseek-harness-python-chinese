@@ -1,9 +1,3 @@
-"""纯槽位登记表（无 cordis）。
-
-对齐上游 `ui-slots/src/index.ts` 中的 SlotCore 与 resolveSlotLabel。公开面仅中文名。
-变更传播：每次变更同步抬版本并触发 onMutate；subscribe 按微任务批处理。
-选项、规格、记、条目、形状一律为跨线 dict。
-"""
 import threading#微任务近似
 
 __all__=['槽位错误','槽位登记表','解析槽标签','空条目']#仅中文公开名

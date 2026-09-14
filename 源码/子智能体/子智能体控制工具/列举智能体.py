@@ -1,7 +1,3 @@
-"""全局命名的 `list_agents` 工具：`ctx.subagents.列出子体()` 可续跑投影上的薄面向模型适配器，`descendants` 作用域则走 `ctx.subagents.列出后代()`。它与根 `send_message` 插件分开可加载，以便部署能登记续跑投递而不暴露发现。
-
-对齐上游 `tool-subagent-control/src/list-agents.ts`。公开面仅中文名。
-"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...内核.工具 import 定义工具#导入工具定义
 from ...模型后端.llm import 断言永不#导入穷尽检查

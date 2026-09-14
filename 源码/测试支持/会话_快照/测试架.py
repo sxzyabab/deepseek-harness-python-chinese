@@ -1,8 +1,3 @@
-"""ACP 快照套件共享子进程 harness。
-
-对齐上游 `session-snapshot/src/harness.ts`。公开面仅中文名。
-同步 + threading 轮询等待；无 asyncio。
-"""
 import hashlib,json,os,shutil,tempfile,time,threading#哈希、JSON、文件、临时与轮询
 from .启动器 import 启动ACP测试智能体#启动器
 from .工作区 import 捕获工作区快照#工作区快照
@@ -30,7 +25,7 @@ def 等待直到(谓词,超时毫秒=默认等待超时毫秒,间隔毫秒=轮�
         except Exception as 错误:#尚未
             末次=错误#记下
             time.sleep(间隔毫秒/1000)#间隔
-    raise 末次 or Exception('wait timed out')#超时
+    raise 末次 or Exception('等待超时')#超时
 
 def 快照溢出根(夹具文件,平台=None):#溢出定位前缀
     """推导稳定定长逻辑溢出前缀；绝不在此分配文件。"""
@@ -91,7 +86,7 @@ def 最新打开回合(内容):#最新打开回合号
     记录=json.loads(完整[开始+1:结束 if 结束>=0 else None])#记录
     回合=(记录.get('data') or {}).get('turn')#回合
     if not isinstance(回合,int) or isinstance(回合,bool) or 回合<1:#非法
-        raise Exception('snapshot-harness: invalid persisted turn/start record')#非法
+        raise Exception('snapshot-harness: 非法的已持久化 turn/start 记录')#非法
     return 回合#返回
 
 def 有关闭回合(内容,回合):#是否含关闭回合
@@ -130,7 +125,7 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
             if 'additionalDirectories' in 步骤:#附加目录
                 参数['additionalDirectories']=步骤['additionalDirectories']#写入
             客户端['newSession'](参数)#新建
-            raise Exception('snapshot-harness: expected session/new to be rejected but it succeeded')#意外成功
+            raise Exception('snapshot-harness: 期望 session/new 被拒绝，但它成功了')#意外成功
         except Exception:#期望拒绝
             if 'expected session/new' in str(sys_exc()):#意外成功再抛
                 raise#再抛
@@ -138,19 +133,19 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
     if 操作=='prompt':#提示
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: prompt before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 prompt')#未建
         客户端['prompt']({'sessionId':标识,'prompt':[{'type':'text','text':步骤['text']}]})#提示
         return#结束
     if 操作=='promptContent':#内容块提示
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: promptContent before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 promptContent')#未建
         客户端['prompt']({'sessionId':标识,'prompt':步骤['content']})#提示
         return#结束
     if 操作=='promptAndWaitForAgentMessage':#提示并等助手
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: promptAndWaitForAgentMessage before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 promptAndWaitForAgentMessage')#未建
         等待文本=步骤['waitForText']#等待文本
         def 匹配(更新):#匹配更新
             """精确文本块。"""
@@ -163,10 +158,10 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
     if 操作=='promptExpectError':#提示期望错误
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: promptExpectError before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 promptExpectError')#未建
         try:#应失败
             客户端['prompt']({'sessionId':标识,'prompt':[{'type':'text','text':步骤['text']}]})#提示
-            raise Exception('snapshot-harness: expected the prompt to fail but it succeeded')#意外成功
+            raise Exception('snapshot-harness: 期望提示失败，但它成功了')#意外成功
         except Exception:#期望失败
             if 'expected the prompt' in str(sys_exc()):#意外
                 raise#再抛
@@ -174,7 +169,7 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
     if 操作=='promptAndCancel':#提示并取消
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: promptAndCancel before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 promptAndCancel')#未建
         结果盒={}#结果
         def 派发():#后台提示
             """不阻塞取消路径。"""
@@ -197,7 +192,7 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
     if 操作=='waitForTurnEnd':#等回合结束
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: waitForTurnEnd before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 waitForTurnEnd')#未建
         等回合结束(标识,步骤.get('timeoutMs'))#等
         return#结束
     if 操作=='waitForSubagentTurnEnd':#等子回合结束
@@ -206,37 +201,37 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
     if 操作=='waitForGoalPhase':#等目标阶段
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: waitForGoalPhase before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 waitForGoalPhase')#未建
         等目标阶段(标识,步骤['phase'],步骤.get('timeoutMs'))#等
         return#结束
     if 操作=='waitForInboxMessage':#等收件箱
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: waitForInboxMessage before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 waitForInboxMessage')#未建
         等收件箱(标识,步骤['text'],步骤.get('timeoutMs'))#等
         return#结束
     if 操作=='waitForTitleAfterTurnEnd':#等标题
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: waitForTitleAfterTurnEnd before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 waitForTitleAfterTurnEnd')#未建
         等标题(标识,步骤.get('timeoutMs'))#等
         return#结束
     if 操作=='waitForEventAfterTurnEnd':#等事件
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: waitForEventAfterTurnEnd before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 waitForEventAfterTurnEnd')#未建
         等事件后(标识,步骤['type'],步骤.get('timeoutMs'))#等
         return#结束
     if 操作=='waitForTurnStart':#等回合开始
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: waitForTurnStart before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 waitForTurnStart')#未建
         等回合开始(标识,步骤.get('timeoutMs'),步骤.get('minimumTurn'))#等
         return#结束
     if 操作=='cancel':#取消
         标识=取会话标识()#会话
         if 标识 is None:#未建
-            raise Exception('snapshot-harness: cancel before newSession')#未建
+            raise Exception('snapshot-harness: 在 newSession 之前调用 cancel')#未建
         if 步骤.get('waitForFile') is not None:#等文件
             等待工作区文件(工作目录,步骤['waitForFile']['path'],步骤['waitForFile'].get('timeoutMs'))#等
         客户端['cancel']({'sessionId':标识})#取消

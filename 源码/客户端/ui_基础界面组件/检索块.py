@@ -1,8 +1,3 @@
-"""检索结果面：grep 分组匹配或 glob 路径列表。
-
-对齐上游 `ui-primitives/src/SearchBlock.tsx`。公开面仅中文名。
-扁平行经头尾封顶；复制写完整结构化结果。属性与文件为 dict。
-"""
 from .头尾封顶 import 头尾封顶#高度封顶
 from .复制反馈 import 复制反馈#复制反馈
 

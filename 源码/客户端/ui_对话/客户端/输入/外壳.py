@@ -1,9 +1,3 @@
-"""纯输入机上的会话输入外壳：唯一机器调用方与效果执行器。
-
-对齐上游 `ui-conversation/src/client/input/facade.ts`。公开面仅中文名。
-拥有输入状态存储（机器状态 + 队列叠加）、通知通道与提交事务管道。
-依赖为 dict；触发器与弹层为本包对象；机事件与效应为 dict。
-"""
 import threading#序列化取消标志
 import time#缺省墙钟
 from ..服务 import 对话错误#本包异常

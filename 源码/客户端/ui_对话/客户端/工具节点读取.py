@@ -1,8 +1,3 @@
-"""经内部聊天节点索引读工具生命周期。
-
-对齐上游 `ui-conversation/src/client/chat/tool-node-reader.ts`。公开面仅中文名。
-快照、节点与块为 dict；节点仓为含 get/values 的 dict。
-"""
 
 __all__=['根工具调用','查找工具调用','工具节点']#仅中文公开名
 

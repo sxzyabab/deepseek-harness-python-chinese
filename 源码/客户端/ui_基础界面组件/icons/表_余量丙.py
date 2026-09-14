@@ -1,5 +1,3 @@
-"""icons 余量丙：发送/停止/附件/加载/下载/播放/暂停/全屏/插件/个性化/项目。"""
-
 表={#名 → 描述
     'send-16':{#IconSendOutline16
         'viewBox':'0 0 16 16','defaultSize':16,

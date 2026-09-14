@@ -1,11 +1,3 @@
-"""由 readable-stream 浏览器构建支撑的 `node:stream` 兼容层。
-
-readable-stream 是 Node 流实现的用户态副本。worker 只拥有如 VFS 文件流等
-平台适配器；流状态、背压、异步迭代、中止处理与事件顺序留在该维护实现中。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/stream.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from readable_stream import Stream#readable-stream包
 
 __all__=[#中文公开名与Node英文挂名

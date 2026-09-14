@@ -1,11 +1,3 @@
-"""插件清单设置分区的文案词典。
-
-
-
-对齐上游 `ui-settings-plugin-inventory/src/client/locales.ts`。公开面仅中文公开名。
-
-"""
-
 
 
 __all__=['命名空间','中文','英文']#仅中文公开名

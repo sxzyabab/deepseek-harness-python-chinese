@@ -1,8 +1,3 @@
-"""终端命令+输出面。
-
-对齐上游 `ui-primitives/src/TerminalBlock.tsx`。公开面仅中文名。
-提示行（态点+cwd+命令）、ANSI 输出、退出/信号胶囊、复制控件。属性与 span 为 dict。
-"""
 from .头尾封顶 import 头尾封顶#高度封顶
 from .复制反馈 import 复制反馈#复制反馈
 from .ansi import 解析ansi行#ANSI 行

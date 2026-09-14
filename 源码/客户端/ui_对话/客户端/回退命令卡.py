@@ -1,8 +1,3 @@
-"""默认命令行：精简 GenericToolCard，作 commandview 回退。
-
-对齐上游 `ui-conversation/src/client/chat/GenericCommandCard.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 
 __all__=['回退命令卡','行状态','前导图标']#仅中文公开名
 

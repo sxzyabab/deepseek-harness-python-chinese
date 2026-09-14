@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-settings` 的本包拥有不变量配套。
-
-对齐上游 `ui-settings/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：把 settings.section 台账投影到导航的呈现壳——不发射 cordis 事件，也不拥有跨插件可变关系；槽位声明/注册冲突已在槽位核心于加载时大声失败。
-"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-client-ui-settings'#本包的不变量所有权名
 名称='client-ui-settings-invariant'#配套不变量插件名（字面量）

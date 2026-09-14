@@ -1,8 +1,3 @@
-"""命令生命周期渲染：按命令名键分发 commandview。
-
-对齐上游 `ui-conversation/src/client/chat/CommandNodeView.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from .回退命令卡 import 回退命令卡#回退
 from .压缩命令卡 import 压缩命令卡#手动压缩
 

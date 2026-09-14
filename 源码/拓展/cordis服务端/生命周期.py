@@ -1,7 +1,3 @@
-"""宿主半 Fiber 生命周期：把沙箱产出的插件落成子 Fiber。
-
-对齐上游 `拓展/cordis-host-runner/src/lifecycle.ts`。公开面仅中文名。
-"""
 from .沙箱边界 import 包装沙箱插件#带门面包装的插件
 from .类型 import 动态插件错误#本包异常
 

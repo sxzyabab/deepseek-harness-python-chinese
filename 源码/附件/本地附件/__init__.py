@@ -1,4 +1,3 @@
-"""`DSH_HOME` 下根目录的本地耐久附件后端。对齐上游 attachment-local/src/index.ts。"""
 import os,threading#路径与并发去重
 from ...依赖 import cordis#Cordis
 from ...依赖.schemastery import 字符串字段,数字字段#配置
@@ -61,9 +60,9 @@ class 共享请求:
         自身.已结算=False#是否已结算
         自身.等待者=0#等待者计数
         自身.中止=threading.Event()#共享中止
-        def 跑():
+        def 执行共享启动():
             """后台执行启动函数。"""
-            try:#跑启动
+            try:#执行启动
                 自身.结果=启动(自身.中止)#执行并取结果
             except BaseException as 错误:#失败
                 自身.错误=错误#记下
@@ -71,7 +70,7 @@ class 共享请求:
                 with 自身.锁:#持锁
                     自身.已结算=True#已结算
                 自身.完成.set()#通知
-        threading.Thread(target=跑,daemon=True).start()#启动线程
+        threading.Thread(target=执行共享启动,daemon=True).start()#启动线程
 
     def 等待(自身,信号=None):
         """等待共享请求完成，可选链接外部中止。"""
@@ -110,7 +109,7 @@ class 本地附件存储(附件存储):
         }#策略结束
         并发度=配置['imageCompressionConcurrency'] if 'imageCompressionConcurrency' in 配置 else 默认图像压缩并发度#并发配置
         if isinstance(并发度,bool) or (not isinstance(并发度,int)) or 并发度<1 or 并发度>最大图像压缩并发度:#非法
-            raise TypeError('attachment-local: imageCompressionConcurrency must be an integer from 1 through '+str(最大图像压缩并发度))#拒绝
+            raise TypeError('attachment-local: imageCompressionConcurrency 必须是 1 到 '+str(最大图像压缩并发度)+' 的整数')#拒绝
         自身.图像压缩并发度值=并发度#记下
         自身.压缩=压缩限流器(并发度)#限流器
         自身.请求飞行={}#变体键到共享请求

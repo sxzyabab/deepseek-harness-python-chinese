@@ -1,7 +1,3 @@
-"""Worker 装配入口：整棵 harness Cordis 树放进一个 dedicated Web Worker。
-
-对齐上游 `webworker-runtime/src/worker-host.ts`。公开面仅中文名。
-"""
 from .node.未实现失败 import 运行时错误#本包错误
 from .module_system.模块加载器 import 设活动模块加载器,工作线程模块加载器#模块加载器
 from .module_system.posix路径 import 目录名,拼接#路径工具
@@ -25,7 +21,7 @@ def 要求全局端口(通道):#解析消息通道
     作用域=globals()#全局作用域
     发送=作用域.get('postMessage')#postMessage
     if not callable(发送):#非dedicated worker
-        raise 运行时错误('webworker host: no channel; pass options.channel outside a dedicated worker')#拒绝
+        raise 运行时错误('webworker host: 没有通道；专用 worker 之外请传 options.channel')#拒绝
     def 包装发送(消息,转移=None):#包装端口
         """调用全局 postMessage。"""
         发送(消息,转移)#发送
@@ -104,7 +100,7 @@ def 读boot载荷(上下文):#读boot载荷
     """组装页面 Cordis 前引导所需的载荷。"""
     web服务器=上下文['get']('webServer')#webServer服务
     if web服务器 is None:#缺失
-        raise 运行时错误('webworker host: no webServer service, so the page cannot receive its boot injections')#拒绝
+        raise 运行时错误('webworker host: 没有 webServer 服务，页面收不到 boot 注入')#拒绝
     return {'injections':web服务器['collectIndexInjections']()}#收集注入表
 
 def 安装日志汇(上下文,要求):#安装日志sink
@@ -184,7 +180,7 @@ def 创建工作线程宿主(选项):#创建宿主
                   f"image lowering={降低版本})")#诊断
             def 直达fetch(请求):#直连fetch占位
                 """树未接线时拒绝。"""
-                raise 运行时错误('webworker host: tree not fully wired in this Python batch')#拒绝
+                raise 运行时错误('webworker host: 本 Python 批次里树尚未完全接线')#拒绝
             def boot载荷():#boot载荷
                 """读boot载荷；无上下文则空注入。"""
                 if 状态['context'] is None:#无上下文
@@ -239,7 +235,7 @@ def 启动工作线程宿主(选项):#一步启动
         作用域=globals()#全局
         加监听=作用域.get('addEventListener')#监听API
         if not callable(加监听):#无监听器API
-            raise 运行时错误('webworker host: no message source; pass options.channel outside a dedicated worker')#拒绝
+            raise 运行时错误('webworker host: 没有消息源；专用 worker 之外请传 options.channel')#拒绝
         def 收消息(事件):#挂处理器
             """转发 message 事件。"""
             数据=事件.data#MessageEvent 对象载荷

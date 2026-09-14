@@ -1,7 +1,3 @@
-"""应用二进制共用的启动粘合层。
-
-对齐上游 `@deepseek-ai/dsh-app-boot`。公开面仅中文名。配置键与诊断字面量保持上游。
-"""
 import os,re,sys,copy,json,threading#路径、环境、流、克隆、JSON、定时
 from ...依赖 import cordis,include,loader
 import yaml#外部依赖胶水（含 PyYAML）
@@ -322,15 +318,15 @@ def 安装大声失败(二进制名,进程=None,拆除=None):
         def 后台拆除():
             """等拆除或超时。"""
             完成=threading.Event()#完成事件
-            def 跑拆除():
-                """跑拆除。"""
+            def 执行拆除():
+                """执行拆除。"""
                 try:#拆除
                     拆除()#同步
                 except Exception:#拆除抛错形态未钉死
                     pass#吞掉
                 finally:#完成
                     完成.set()#放行
-            threading.Thread(target=跑拆除,daemon=True).start()#启动
+            threading.Thread(target=执行拆除,daemon=True).start()#启动
             完成.wait(大声失败拆除超时毫秒/1000.0)#到时放行
             进程.exit(1)#致命退出
         threading.Thread(target=后台拆除,daemon=True).start()#立即

@@ -1,7 +1,3 @@
-"""把轨迹记录纯投影成可测量的虚拟账本行。
-
-对齐上游 `ui-trajectory/src/client/trajectory-virtual-rows.ts`。公开面仅中文名。
-"""
 from urllib.parse import quote as 编码URI组件#DOM 安全身份编码
 from .轨迹记录 import 轨迹记录身份#稳定记录身份
 

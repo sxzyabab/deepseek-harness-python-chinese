@@ -1,4 +1,3 @@
-"""第一方后端共用的缓冲、序列化、收养、修复与拆除编排。第三方后端可直接实现公开持久化接缝。"""
 import json,math,threading#JSON相等、安全整数、后台串行链
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#后端拆除失败聚合
@@ -75,13 +74,13 @@ class 会话格式不支持错误(持久化错误):#格式不支持错误
 def 会话格式版本拒绝文案(标识,版本):#格式版本拒绝文案
     """本构建不读取的已存会话格式版本的、带方向的拒绝文案。"""
     if 版本>会话格式版本:#比本构建新
-        return 'session "'+str(标识)+'" uses log format v'+str(版本)+', but this harness reads only v'+str(会话格式版本)+': the log was written by a newer harness — upgrade the harness to open it'#更新的harness写出
-    return 'session "'+str(标识)+'" uses log format v'+str(版本)+', older than the supported v'+str(会话格式版本)+', and this build ships no upgrade path for it'#更旧且无升级路径
+        return '会话 "'+str(标识)+'" 使用日志格式 v'+str(版本)+'，但本 harness 只读取 v'+str(会话格式版本)+'：日志由更新的 harness 写出 — 请升级 harness 再打开'#更新的harness写出
+    return '会话 "'+str(标识)+'" 使用日志格式 v'+str(版本)+'，比受支持的 v'+str(会话格式版本)+' 更旧，且本构建没有升级路径'#更旧且无升级路径
 
-def 结算错误列表(承诺列表):#收集已拒绝原因
-    """从一组承诺收集拒绝原因（不抛）。"""
+def 结算错误列表(任务列表):#收集已拒绝原因
+    """从一组任务收集拒绝原因（不抛）。"""
     错误列表=[]#拒绝原因
-    for 项 in 承诺列表:#遍历
+    for 项 in 任务列表:#遍历
         try:#等结算
             项.等待()#成败都等
         except BaseException as 原因:#拒绝
@@ -107,16 +106,16 @@ def 断言受支持事件(事件列表,标识):#断言事件受支持
     遗留类型='request/header-delta'#遗留头增量类型
     for 事件 in 事件列表:#找遗留头增量
         if 事件['type']==遗留类型:#有遗留头增量
-            raise 持久化错误('session "'+str(标识)+'" contains unsupported legacy request/header-delta event at seq '+str(事件['seq']))#拒绝
+            raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有已不支持的旧版 request/header-delta 事件')#拒绝
     遗留模式类型='mode/set'#遗留模式类型
     for 事件 in 事件列表:#找遗留模式
         if 事件['type']==遗留模式类型:#有遗留模式
-            raise 持久化错误('session "'+str(标识)+'" contains unsupported legacy mode/set event at seq '+str(事件['seq']))#拒绝
+            raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有已不支持的旧版 mode/set 事件')#拒绝
     for 事件 in 事件列表:#找遗留fallback原因
         if 事件['type']=='request/header':#请求头
             数据=(事件['data'] if 'data' in 事件 else None)#载荷
             if isinstance(数据,dict) and 数据.get('reason')=='fallback':#原因是fallback
-                raise 持久化错误('session "'+str(标识)+'" contains unsupported legacy request/header reason "fallback" at seq '+str(事件['seq']))#拒绝
+                raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有已不支持的旧版 request/header 原因 "fallback"')#拒绝
 
 def 当作记录(值):#当作字段表
     """返回对象记录，不把数组放宽成消息载荷。"""
@@ -174,7 +173,7 @@ def 迁移遗留转向事件(事件,标识):#迁移遗留转向事件
         return 事件#原样
     数据=当作记录((事件['data'] if 'data' in 事件 else None))#载荷记录
     if 数据 is None:#不是记录
-        raise 持久化错误('session "'+str(标识)+'" contains malformed pre-react-loop steering/message at seq '+str(事件['seq']))#畸形拒绝
+        raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有畸形的 react 循环前 steering/message')#畸形拒绝
     包装=当作记录(数据.get('message'))#已包装消息
     if 包装 is not None and 外来安全整数(数据.get('turn')) and 仅有键(数据,['turn','message']):#已有message包装
         升级=dict(事件)#拷贝信封
@@ -182,7 +181,7 @@ def 迁移遗留转向事件(事件,标识):#迁移遗留转向事件
         升级['data']=包装#拆包成用户消息
         return 升级#升级结果
     if (not 外来安全整数(数据.get('turn'))) or (not 仅有键(数据,['turn','content','source'])):#旧信封畸形
-        raise 持久化错误('session "'+str(标识)+'" contains malformed pre-react-loop steering/message at seq '+str(事件['seq']))#畸形拒绝
+        raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有畸形的 react 循环前 steering/message')#畸形拒绝
     消息={键:值 for 键,值 in 数据.items() if 键!='turn'}#去掉turn留下消息字段
     消息['id']=遗留消息标识(标识,事件['seq'])#补遗留id
     消息['role']='user'#角色
@@ -201,7 +200,7 @@ def 迁移遗留回合开始事件(事件,标识):#迁移遗留回合开始
     触发=当作记录(数据.get('trigger'))#trigger记录
     轮次=数据.get('turn')#turn
     if (not 外来安全整数(轮次)) or 轮次<1 or (not 仅有键(数据,['turn','trigger'])) or 触发 is None or not isinstance(触发.get('kind'),str) or len(触发['kind'])==0:#畸形
-        raise 持久化错误('session "'+str(标识)+'" contains malformed pre-react-loop turn/start at seq '+str(事件['seq']))#畸形拒绝
+        raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有畸形的 react 循环前 turn/start')#畸形拒绝
     升级=dict(事件)#拷贝信封
     升级['data']={'turn':轮次}#只保留turn
     return 升级#升级结果
@@ -215,7 +214,7 @@ def 迁移遗留回合结束事件(事件,标识):#迁移遗留回合结束
         return 事件#原样
     def 畸形():#畸形拒绝
         """抛出畸形拒绝。"""
-        raise 持久化错误('session "'+str(标识)+'" contains malformed pre-react-loop turn/end at seq '+str(事件['seq']))#抛出
+        raise 持久化错误('会话 "'+str(标识)+'" 在 seq '+str(事件['seq'])+' 含有畸形的 react 循环前 turn/end')#抛出
     原因=当作记录(数据.get('reason'))#原因记录
     轮次=数据.get('turn')#turn
     if (not 外来安全整数(轮次)) or 轮次<1 or (not 仅有键(数据,['turn','reason'])) or 原因 is None or not isinstance(原因.get('kind'),str):#reason畸形
@@ -354,16 +353,16 @@ class 持久化协调器:#持久化协调器
         预备缓存=选项['preparedSessionCacheSize'] if 'preparedSessionCacheSize' in 选项 else 默认预备会话缓存大小#预备缓存大小
         写批延迟=选项['writeBatchMaxDelayMs'] if 'writeBatchMaxDelayMs' in 选项 else 默认写批最大延迟毫秒#写批最大延迟
         if (not 外来安全整数(预备缓存)) or 预备缓存<1:#预备缓存非法
-            raise TypeError('preparedSessionCacheSize must be a positive safe integer')#拒绝
+            raise TypeError('preparedSessionCacheSize 必须是正安全整数')#拒绝
         if (not 外来安全整数(写批延迟)) or 写批延迟<1 or 写批延迟>写批延迟上限毫秒:#写批延迟非法
-            raise TypeError('writeBatchMaxDelayMs must be an integer between 1 and '+str(写批延迟上限毫秒))#拒绝
+            raise TypeError('writeBatchMaxDelayMs 必须是 1 到 '+str(写批延迟上限毫秒)+' 之间的整数')#拒绝
         自身.上下文=上下文#插件上下文
         自身.后端=后端#具体后端
         自身.写批最大延迟毫秒=写批延迟#记下延迟
         自身.状态表={}#id到会话状态
         自身.活表={}#活会话控制器
-        自身.退役表={}#退役承诺
-        自身.链={}#每id承诺链
+        自身.退役表={}#退役任务
+        自身.链={}#每id任务链
         自身.活写句柄表={}#id到可入队活写的打开写句柄
         自身.预备池=会话预备池(预备缓存)#建预备池
         自身.安装写路径()#安装写路径
@@ -376,32 +375,32 @@ class 持久化协调器:#持久化协调器
         """登记分离的会话元数据，供第一次追加时惰性创建。"""
         快照=快照json值(头)#无损快照头
         if 快照 is None:#无法JSON序列化
-            raise TypeError('session metadata must be losslessly JSON-serializable')#拒绝
+            raise TypeError('会话元数据必须能无损 JSON 序列化')#拒绝
         if (not 外来安全整数(快照['createdAt'])) or 快照['createdAt']<0:#创建时刻非法
-            raise TypeError('session metadata createdAt must be a non-negative safe integer')#拒绝
-        def 跑创建():
+            raise TypeError('会话元数据 createdAt 必须是非负安全整数')#拒绝
+        def 后台创建():
             """串行创建核心。"""
             return 自身.创建核心(快照)#惰性登记
-        return 自身.串行化(快照['id'],跑创建).等待()#串行创建
+        return 自身.串行化(快照['id'],后台创建).等待()#串行创建
 
     def 创建核心(自身,头):#创建核心
         """纯惰性：只记录意图。直到第一次追加才有产物。"""
         标识=头['id']#会话id
         if 标识 in 自身.状态表 or 自身.预备池.有(标识):#内存已有
-            raise 持久化错误('session "'+str(标识)+'" already exists in this backend')#拒绝重复
+            raise 持久化错误('会话 "'+str(标识)+'" 在本后端已存在')#拒绝重复
         if 自身.后端.loadStored(标识) is not None:#磁盘已有日志
-            raise 持久化错误('session "'+str(标识)+'" already has a persisted log on disk; load/resume it instead of creating')#应load/resume
+            raise 持久化错误('会话 "'+str(标识)+'" 磁盘上已有持久化日志；请 load/resume 而不是创建')#应load/resume
         自身.状态表[标识]={'meta':头,'cursor':0,'materialized':False,'inheritedEventCount':0}#记下未物化状态
 
     def 追加(自身,标识,事件列表):#追加事件
         """耐久持久化一批事件。遵守只追加与连续 seq 约定。"""
         批次=快照json值(事件列表)#无损快照批次
         if 批次 is None:#无法JSON序列化
-            raise TypeError('session event batch is not losslessly JSON-serializable because it contains non-JSON-serializable data')#拒绝
-        def 跑追加():
+            raise TypeError('会话事件批次无法无损 JSON 序列化，因其含有无法 JSON 序列化的数据')#拒绝
+        def 后台追加():
             """串行追加核心。"""
             return 自身.追加核心(标识,批次)#耐久追加
-        return 自身.串行化(标识,跑追加).等待()#串行追加
+        return 自身.串行化(标识,后台追加).等待()#串行追加
 
     def 追加核心(自身,标识,事件列表):#追加核心
         """每条追加路径都汇到这里。"""
@@ -416,7 +415,7 @@ class 持久化协调器:#持久化协调器
         for 事件 in 事件列表:#检查每条
             期望=状态['cursor']+下标#期望seq
             if 事件['seq']!=期望:#seq对不上游标
-                raise 持久化错误('append seq mismatch for "'+str(标识)+'": expected '+str(期望)+' at index '+str(下标)+', got '+str(事件['seq']))#拒绝缺口
+                raise 持久化错误('会话 "'+str(标识)+'" 追加 seq 不匹配：下标 '+str(下标)+' 期望 '+str(期望)+'，实际 '+str(事件['seq']))#拒绝缺口
             下标+=1#下一条
         自身.后端.appendBatch(状态['meta'],事件列表,状态['materialized'])#耐久追加
         状态['materialized']=True#已物化
@@ -428,25 +427,25 @@ class 持久化协调器:#持久化协调器
         while True:#修订重试循环
             自身.等待退役(标识,信号)#先等退役排空
             if 自身.上下文.sessions.get(标识) is not None:#已经活着
-                raise 持久化错误('cannot prepare session "'+str(标识)+'" while it is live')#活着不能预备
+                raise 持久化错误('会话 "'+str(标识)+'" 仍在线时不能预备')#活着不能预备
             def 冷加载():#冷加载
                 """串行冷加载。"""
-                def 跑预备():
+                def 后台预备():
                     """串行预备核心。"""
                     return 自身.预备核心(标识)#冷预备
-                return 自身.串行化(标识,跑预备).等待()#冷加载
+                return 自身.串行化(标识,后台预备).等待()#冷加载
             def 提交修复(源):#提交修复
                 """串行提交修复。"""
-                def 跑提交():
+                def 后台提交():
                     """串行提交已预备。"""
                     return 自身.提交已预备(源)#提交修复
-                return 自身.串行化(标识,跑提交,信号).等待()#提交修复
+                return 自身.串行化(标识,后台提交,信号).等待()#提交修复
             预留=自身.预备池.预留(标识,冷加载,提交修复,信号)#独占预留
             if 预留 is None:#修订变了则重试
                 continue#重试
             if 自身.上下文.sessions.get(标识) is not None:#预留期间变成活的
                 自身.预备池.释放(预留,False)#释放预留
-                raise 持久化错误('cannot prepare session "'+str(标识)+'" while it is live')#活着不能预备
+                raise 持久化错误('会话 "'+str(标识)+'" 仍在线时不能预备')#活着不能预备
             def 释放回调():#释放时
                 """还回预备池。"""
                 源=预留['source']#预备源
@@ -465,16 +464,16 @@ class 持久化协调器:#持久化协调器
                 return 自身.加载活快照(活着)#返回活快照
             def 冷加载():#冷加载
                 """串行冷加载。"""
-                def 跑预备():
+                def 后台预备():
                     """串行预备核心。"""
                     return 自身.预备核心(标识)#冷预备
-                return 自身.串行化(标识,跑预备).等待()#冷加载
+                return 自身.串行化(标识,后台预备).等待()#冷加载
             def 提交修复(源):#提交修复
                 """串行提交修复。"""
-                def 跑提交():
+                def 后台提交():
                     """串行提交已预备。"""
                     return 自身.提交已预备(源)#提交修复
-                return 自身.串行化(标识,跑提交).等待()#提交修复
+                return 自身.串行化(标识,后台提交).等待()#提交修复
             预留=自身.预备池.预留(标识,冷加载,提交修复)#独占预留
             if 预留 is None:#修订变了则重试
                 continue#重试
@@ -497,18 +496,18 @@ class 持久化协调器:#持久化协调器
             try:#尝试冷检查
                 def 冷加载():#冷加载
                     """串行冷加载。"""
-                    def 跑预备():
-                    """串行预备核心。"""
-                    return 自身.预备核心(标识)#冷预备
-                return 自身.串行化(标识,跑预备).等待()#冷加载
+                    def 后台预备():
+                        """串行预备核心。"""
+                        return 自身.预备核心(标识)#冷预备
+                    return 自身.串行化(标识,后台预备).等待()#冷加载
                 源=自身.预备池.检查(标识,冷加载,信号)#共享观察预备源
                 已附着=自身.上下文.sessions.get(标识)#观察期间是否已附着
                 if 已附着 is not None:#已活则借活视图
                     return 自身.检查活会话(已附着)#借活视图
-                def 跑核对():
+                def 后台核对():
                     """串行核对预备源修订。"""
                     return 自身.预备源是否当前(源,信号)#修订是否仍当前
-                仍当前=自身.串行化(标识,跑核对,信号).等待()#串行核对修订
+                仍当前=自身.串行化(标识,后台核对,信号).等待()#串行核对修订
                 已发布=自身.上下文.sessions.get(标识)#核对期间是否已发布
                 if 已发布 is not None:#已活则借活视图
                     return 自身.检查活会话(已发布)#借活视图
@@ -526,17 +525,17 @@ class 持久化协调器:#持久化协调器
     def 从序号读(自身,标识,起始序号,信号=None):#从seq读
         """从起始序号起读取已存事件，分离且非变更。"""
         if (not 外来安全整数(起始序号)) or 起始序号<0:#fromSeq非法
-            raise TypeError('readFrom fromSeq must be a non-negative safe integer, got '+str(起始序号))#拒绝
+            raise TypeError('readFrom 的 fromSeq 必须是非负安全整数，实际为 '+str(起始序号))#拒绝
         退役=自身.退役表.get(标识)#可能的退役
         if 退役 is not None:#有退役
             if 信号 is None:#无取消
                 退役.等待()#直接等
             else:
                 观察排队取消(退役,信号).等待()#带取消
-        def 跑读后缀():
+        def 后台读后缀():
             """串行读后缀。"""
             return 自身.从序号读核心(标识,起始序号,信号)#读后缀
-        return 自身.串行化(标识,跑读后缀,信号).等待()#串行读后缀
+        return 自身.串行化(标识,后台读后缀,信号).等待()#串行读后缀
 
     def 从序号读核心(自身,标识,起始序号,信号=None):#从seq读核心
         """返回头与后缀事件。"""
@@ -604,7 +603,7 @@ class 持久化协调器:#持久化协调器
             信号=选项#信号或 None
         若已中止则抛出(信号)#已取消则抛
         if 访问!='read' and 访问!='write':#非法访问
-            raise TypeError('session access must be "read" or "write"')#拒绝
+            raise TypeError('会话访问必须是 "read" 或 "write"')#拒绝
         前缀=自身.读已存前缀(标识,信号)#冷读前缀元数据与事件源
         若已中止则抛出(信号)#读后再检查
         if 访问=='write':#写打开
@@ -687,7 +686,7 @@ class 持久化协调器:#持久化协调器
         except 会话格式不支持错误:#格式拒绝原样抛
             raise#不加包装
         except BaseException as 错误:#校验失败
-            raise 会话持久化损坏错误('stored session "'+str(标识)+'" failed validation: '+str(错误),错误)#其余包成损坏
+            raise 会话持久化损坏错误('已存会话 "'+str(标识)+'" 校验失败: '+str(错误),错误)#其余包成损坏
 
     def 提交已预备(自身,源):#提交已预备源
         """提交一次已预备修复，并建立其无拥有方的耐久游标。"""
@@ -695,7 +694,7 @@ class 持久化协调器:#持久化协调器
         游标=len(源['inspection']['events'])#平衡后长度
         已有=自身.状态表.get(标识)#已有状态
         if 已有 is not None and 已有.get('owner') is not None:#已有活拥有方
-            raise 持久化错误('session "'+str(标识)+'" already has a live persistence owner')#不能提交
+            raise 持久化错误('会话 "'+str(标识)+'" 已有活持久化拥有方')#不能提交
         if not 自身.预备源是否当前(源):#修订变了则放弃
             return None#放弃
         if (源['tornMarker'] if 'tornMarker' in 源 else None) is not None or len(源['closers'])>0:#需要物理修复
@@ -719,11 +718,11 @@ class 持久化协调器:#持久化协调器
         自身.冲洗(活会话).等待()#先刷耐久
         状态=自身.状态表.get(活会话.id)#刷后的状态
         if 状态 is None:#丢状态
-            raise 持久化错误('session "'+str(活会话.id)+'" lost persistence state during load')#丢状态
+            raise 持久化错误('会话 "'+str(活会话.id)+'" 在加载期间丢失了持久化状态')#丢状态
         if len(事件列表)==0:#空日志当找不到
-            raise 持久化错误('session "'+str(活会话.id)+'" not found')#找不到
+            raise 持久化错误('会话 "'+str(活会话.id)+'" 未找到')#找不到
         if len(中断轮次关闭器(事件列表))>0:#活回合仍打开
-            raise 持久化错误('cannot load session "'+str(活会话.id)+'" while its live turn is open; use the live Session or wait for the turn to close')#打开回合不能load
+            raise 持久化错误('会话 "'+str(活会话.id)+'" 的活轮次仍打开时不能加载；请用活 Session 或等轮次关闭')#打开回合不能load
         return 冻结视图(状态['meta'],事件列表,getattr(活会话,'inheritedEventCount',0),'shared-frozen')#冻结视图
 
     def 检查活会话(自身,活会话):#检查活会话
@@ -741,12 +740,12 @@ class 持久化协调器:#持久化协调器
         观察排队取消(退役,信号).等待()#排队期间可取消
 
     def 串行化(自身,标识,操作,信号=None):#按id串行化
-        """在同一会话 id 的任何在途操作之后跑操作，使一个会话的写入永不交错。"""
+        """在同一会话 id 的任何在途操作之后执行操作，使一个会话的写入永不交错。"""
         先前=自身.链.get(标识)#前一操作
         已开始=[False]#本操作是否已开始
         下一=操作任务()#本操作任务
-        def 跑():
-            """前一成败都跑本操作。"""
+        def 后台执行():
+            """前一成败都执行本操作。"""
             try:
                 if 先前 is not None:#有前一操作
                     try:
@@ -755,7 +754,7 @@ class 持久化协调器:#持久化协调器
                         pass#吞掉前一拒绝
                 若已中止则抛出(信号)#开始前检查取消
                 已开始[0]=True#标记已开始
-                结果=操作()#跑操作
+                结果=操作()#执行操作
                 下一.兑现(结果)#成功
             except BaseException as 错误:#本操作失败
                 下一.拒绝(错误)#拒绝
@@ -770,7 +769,7 @@ class 持久化协调器:#持久化协调器
             if 自身.链.get(标识) is 尾巴:#仍是本尾巴才删
                 del 自身.链[标识]#删除
         自身.链[标识]=尾巴#安装尾巴
-        threading.Thread(target=跑,daemon=True).start()#后台跑本操作
+        threading.Thread(target=后台执行,daemon=True).start()#后台执行本操作
         threading.Thread(target=收尾,daemon=True).start()#后台收尾
         if 信号 is None:#无取消
             return 下一#返回本操作
@@ -798,7 +797,7 @@ class 持久化协调器:#持久化协调器
     def 断言事件受支持(自身,头,事件列表):#断言事件类型受支持
         """拒绝含有本构建不认识的事件类型的日志，除非标为可忽略（委托存储契约词汇门，不重收养）。"""
         from .存储契约 import 校验已存事件#延迟导入避环
-        #校验已存事件会就地收养；此处事件可能已快照/收养，再跑一遍保证词汇门与契约一致
+        #校验已存事件会就地收养；此处事件可能已快照/收养，再执行一遍保证词汇门与契约一致
         位置=自身.后端.locate(头) if hasattr(自身.后端,'locate') else None#位置
         校验已存事件(头,事件列表,位置)#契约（含未知类型与遗留 fallback）
 
@@ -808,7 +807,7 @@ class 持久化协调器:#持久化协调器
         if 位置 is None:#无路径
             return 会话格式不支持错误(原因)#格式错误
         路径=位置['path']#绝对路径
-        return 会话格式不支持错误(原因+' (raw log: '+str(路径)+')',位置)#有路径则附上
+        return 会话格式不支持错误(原因+'（原始日志: '+str(路径)+'）',位置)#有路径则附上
 
     def 断言已存标识(自身,标识,头):#断言已存id
         """拒绝未绑定到所请求会话 id 的后端元数据（委托存储契约）。"""
@@ -829,7 +828,7 @@ class 持久化协调器:#持久化协调器
                     while len(自身.链)>0:#排空串行链
                         结算错误列表(list(自身.链.values()))#等链空
                     if len(错误列表)>0:#有flush失败
-                        raise 聚合错误(错误列表,名+' dispose failed')#聚合拆除失败
+                        raise 聚合错误(错误列表,名+' 拆除失败')#聚合拆除失败
                 except BaseException as 错误:#排空失败
                     拆除错误=错误#记下主失败
                     raise#继续抛
@@ -852,7 +851,7 @@ class 持久化协调器:#持久化协调器
             if 句柄 is not None and hasattr(句柄,'入队活写'):#接到写句柄
                 def 报告后台失败(错误):#后台失败
                     """警告并保留缓冲。"""
-                    自身.上下文.日志.警告(自身.后端名()+': background write for session "'+str(活会话.id)+'" failed (buffered events retained): '+str(错误))#警告
+                    自身.上下文.日志.警告(自身.后端名()+': 会话 "'+str(活会话.id)+'" 的后台写入失败（已保留缓冲事件）: '+str(错误))#警告
                 句柄.入队活写(事件,报告后台失败)#入队句柄
                 return#不双写
             活=自身.取或建活控制器(活会话)#取得活控制器
@@ -889,7 +888,7 @@ class 持久化协调器:#持久化协调器
         def 警告失败(错误):#退役失败警告
             """退役失败警告。"""
             忘掉()#忘掉
-            自身.上下文.日志.警告(自身.后端名()+': session "'+str(活会话.id)+'" retirement failed: '+str(错误))#警告
+            自身.上下文.日志.警告(自身.后端名()+': 会话 "'+str(活会话.id)+'" 退役失败: '+str(错误))#警告
         def 观察退役结算():#成败都忘掉
             """成败都忘掉；失败警告。"""
             try:#等退役
@@ -938,10 +937,10 @@ class 持久化协调器:#持久化协调器
             return 活['init']#当前初始化任务
         活['writes']=自身.创建写后(活会话,取初始化)#写后依赖init
         自身.活表[活会话]=活#先挂上以免重入
-        def 跑已创建():
+        def 后台已创建():
             """串行 onCreated。"""
             return 自身.已创建时(活会话,种子)#创建时同步
-        活['init']=自身.串行化(活会话.header['id'],跑已创建)#串行onCreated
+        活['init']=自身.串行化(活会话.header['id'],后台已创建)#串行onCreated
         return 活#返回新控制器
 
     def 附着已预备(自身,活会话,预留):#附着已预备会话
@@ -949,7 +948,7 @@ class 持久化协调器:#持久化协调器
         源=预留['source']#预备源
         状态=预留['state']#会话状态
         if 源['session'] is not 活会话 or 状态.get('owner') is not None or 状态['cursor']!=len(源['inspection']['events']) or 活会话.firstLiveSeq!=状态['cursor']:#预备与状态不一致
-            raise 持久化错误('session "'+str(活会话.id)+'" preparation no longer matches its persistence state')#预备与状态不一致
+            raise 持久化错误('会话 "'+str(活会话.id)+'" 的预备已不再匹配其持久化状态')#预备与状态不一致
         后缀=[结构化克隆(事件) for 事件 in 活会话.events[状态['cursor']:]]#未发布后缀
         自身.预备池.附着(预留)#标记已附着
         状态['owner']=活会话#绑定拥有方
@@ -961,10 +960,10 @@ class 持久化协调器:#持久化协调器
             return 活['init']#当前初始化任务
         活['writes']=自身.创建写后(活会话,取初始化)#写后依赖init
         if len(后缀)>0:#有未发布后缀
-            def 跑追加后缀():
+            def 后台追加后缀():
                 """串行追加未发布后缀。"""
                 return 自身.追加核心(活会话.id,后缀)#追加后缀
-            活['init']=自身.串行化(活会话.id,跑追加后缀)#串行追加后缀
+            活['init']=自身.串行化(活会话.id,后台追加后缀)#串行追加后缀
         return 活#返回控制器
 
     def 种子匹配已持久(自身,标识,种子,游标):#种子是否匹配已持久
@@ -990,9 +989,9 @@ class 持久化协调器:#持久化协调器
                 已存工作目录=已跟踪['meta']['cwd'] if 'cwd' in 已跟踪['meta'] else None#已存cwd
                 活工作目录=活会话.header['cwd'] if 'cwd' in 活会话.header else None#活cwd
                 if 已存工作目录!=活工作目录:#cwd不一致
-                    raise 持久化错误('session "'+str(标识)+'" is already persisted at a different cwd (persisted: '+str(已存工作目录)+', live: '+str(活工作目录)+') (id collision)')#碰撞
+                    raise 持久化错误('会话 "'+str(标识)+'" 已在不同 cwd 持久化（已存: '+str(已存工作目录)+'，在线: '+str(活工作目录)+'）（id 碰撞）')#碰撞
                 if not 自身.种子匹配已持久(标识,种子,已跟踪['cursor']):#种子对不上已持久前缀
-                    raise 持久化错误('session "'+str(标识)+'" is already persisted with '+str(已跟踪['cursor'])+' event(s) that do not match this live session (id collision)')#碰撞
+                    raise 持久化错误('会话 "'+str(标识)+'" 已持久化 '+str(已跟踪['cursor'])+' 条事件，且与本次在线会话不匹配（id 碰撞）')#碰撞
                 已跟踪['owner']=活会话#认领拥有方
                 后缀=种子[已跟踪['cursor']:]#种子后缀
                 if len(后缀)>0:#有后缀则追加
@@ -1003,7 +1002,7 @@ class 持久化协调器:#持久化协调器
             if (not 已跟踪['materialized']) and (not 有在途写):#真正废弃：未物化且无在途写
                 del 自身.状态表[标识]#回收该id
             else:#仍绑着另一个活会话
-                raise 持久化错误('session "'+str(标识)+'" is already bound to a different live session in this backend (id collision)')#碰撞
+                raise 持久化错误('会话 "'+str(标识)+'" 已绑定到本后端另一个在线会话（id 碰撞）')#碰撞
         已存=自身.后端.loadStored(标识)#跨存储解析一次id
         if 已存 is not None:#有已存前缀
             自身.收养活前缀(活会话,种子,已存)#按活前缀收养
@@ -1025,12 +1024,12 @@ class 持久化协调器:#持久化协调器
         头工作目录=头['cwd'] if 'cwd' in 头 else None#已存cwd
         活工作目录=活会话.header['cwd'] if 'cwd' in 活会话.header else None#活cwd
         if 头工作目录!=活工作目录:#cwd不一致
-            raise 持久化错误('session "'+str(活会话.header['id'])+'" is already persisted at a different cwd (persisted: '+str(头工作目录)+', live: '+str(活工作目录)+') (id collision)')#碰撞
+            raise 持久化错误('会话 "'+str(活会话.header['id'])+'" 已在不同 cwd 持久化（已存: '+str(头工作目录)+'，在线: '+str(活工作目录)+'）（id 碰撞）')#碰撞
         自身.断言版本(头)#格式版本必须认识
         已存事件=快照已存事件(事件列表,活会话.header['id'])#升级并快照
         自身.断言事件受支持(头,已存事件)#拒绝未知必填类型
         if not 种子覆盖前缀(种子,已存事件):#种子盖不住已存前缀
-            raise 持久化错误('session "'+str(活会话.header['id'])+'" already has a persisted log on disk that does not match this live session (id collision)')#碰撞
+            raise 持久化错误('会话 "'+str(活会话.header['id'])+'" 磁盘上已有持久化日志，且与本次在线会话不匹配（id 碰撞）')#碰撞
         if 撕裂 is not None:#只截断修复
             自身.后端.commitRepair(头,撕裂,[])#截断撕裂尾巴
         自身.状态表[活会话.header['id']]={'meta':结构化克隆(头),'cursor':len(已存事件),'materialized':True,'owner':活会话}#绑定已物化状态
@@ -1079,13 +1078,13 @@ class 持久化协调器:#持久化协调器
         def 写批次(批次):#耐久一批
             """先等初始化再串行追加活批次。"""
             就绪().等待()#先等初始化
-            def 跑追加活():
+            def 后台追加活():
                 """串行追加活批次。"""
                 return 自身.追加活批次(活会话.header['id'],批次)#追加活批次
-            自身.串行化(活会话.header['id'],跑追加活).等待()#串行追加活批次
+            自身.串行化(活会话.header['id'],后台追加活).等待()#串行追加活批次
         def 报告后台失败(错误):#后台失败
             """警告并保留缓冲。"""
-            自身.上下文.日志.警告(自身.后端名()+': background write for session "'+str(活会话.id)+'" failed (buffered events retained): '+str(错误))#警告并保留缓冲
+            自身.上下文.日志.警告(自身.后端名()+': 会话 "'+str(活会话.id)+'" 的后台写入失败（已保留缓冲事件）: '+str(错误))#警告并保留缓冲
         return 会话写后({'maxDelayMs':自身.写批最大延迟毫秒,'write':写批次,'reportBackgroundFailure':报告后台失败})#写后选项
 
     def 追加活批次(自身,标识,批次):#追加活批次

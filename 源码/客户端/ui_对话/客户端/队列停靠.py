@@ -1,8 +1,3 @@
-"""队列停靠：输入区上方的排队条。
-
-对齐上游 `ui-conversation/src/client/queue/QueueDock.tsx`。公开面仅中文名。
-属性与队列行为 dict。
-"""
 from .服务 import 对话错误#本包异常
 
 __all__=['队列停靠','队列停靠条目']#仅中文公开名

@@ -1,8 +1,3 @@
-"""worker 侧的 `node:module`：`createRequire` 交出 worker 模块加载器的同步 require。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/module.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from ...未实现失败 import 运行时错误#本包错误
 from ....module_system.模块加载器 import 要求活动模块加载器#导入加载器
 
@@ -28,11 +23,11 @@ def 是否内置(说明符):#判定是否内置
 
 def 剥离类型脚本类型(*位置参数,**关键字参数):#TS剥离不可用
     """TypeScript 剥离是 Node 22+ 加载器特性，worker 无对应物。"""
-    raise 运行时错误('web-preview: node:module.stripTypeScriptTypes is not available in the worker host')#抛不可用
+    raise 运行时错误('web-preview: worker 宿主里没有 node:module.stripTypeScriptTypes')#抛不可用
 
 def 注册(*位置参数,**关键字参数):#注册钩子不可用
     """此处加载器钩子无意义：worker 加载器拥有解析。"""
-    raise 运行时错误('web-preview: node:module.register is not available in the worker host')#抛不可用
+    raise 运行时错误('web-preview: worker 宿主里没有 node:module.register')#抛不可用
 
 def 同步内置ESM导出():#ESM导出同步空操作
     """worker 加载器只物化 CommonJS。"""

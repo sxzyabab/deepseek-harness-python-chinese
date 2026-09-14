@@ -1,8 +1,3 @@
-"""全局主题 DOM 施加器：把已解析 ThemeSnapshot 投影到 document。
-
-对齐上游 `ui-layout/src/client/theme-presenter.ts`。公开面仅中文名。
-无 DOM 时仅记录快照，供宿主半对照。快照为 dict。
-"""
 import builtins#探测 document
 
 __all__=['深色属性','主题呈现器']#仅中文公开名

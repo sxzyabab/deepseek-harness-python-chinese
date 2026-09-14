@@ -1,8 +1,3 @@
-"""Linux 用户 systemd scope 启动与受管范围所有权。
-
-对齐上游 `subprocess-local/src/linux-scope.ts`。公开面仅中文名。
-引导文件与 runner 调用是本模块实际引用的上游函数，不另占文件。
-"""
 import ctypes,json,os,re,signal,sys,tempfile,threading,time#libc、JSON、路径、正则、信号、解释器、临时目录、观察线程与可中止睡眠
 from concurrent.futures import Future as 原生结果#单次操作结果
 from secrets import token_hex#单元词干随机后缀
@@ -341,15 +336,15 @@ class Linux范围启动:#scope 启动结算
         return 结局#返回结局
 
 class 直接范围:#直接范围
-    """是否在跑与向直接进程发信号。"""
-    def __init__(自身,是否在跑,发信号回调):#记下回调
+    """是否在运行与向直接进程发信号。"""
+    def __init__(自身,是否在运行,发信号回调):#记下回调
         """记下在跑探针与发信号。"""
-        自身._是否在跑=是否在跑#探针
+        自身._是否在运行=是否在运行#探针
         自身._发信号=发信号回调#发信号
 
-    def 是否在跑(自身):#是否在跑
+    def 是否在运行(自身):#是否在运行
         """直接进程是否仍在跑。"""
-        return 自身._是否在跑()#探针
+        return 自身._是否在运行()#探针
 
     def 发信号(自身,信号):#发信号
         """向直接进程发 SIGTERM/SIGKILL。"""
@@ -381,11 +376,11 @@ class Systemd范围所有者:#systemd scope 所有者
         if 自身.已停:#已停
             return#结束
         自身.已请求终止=True#记下终止请求
-        if 自身.直接.是否在跑():#在跑则记终止信号
+        if 自身.直接.是否在运行():#在跑则记终止信号
             自身.启动.终止信号集.add(信号)#记终止信号
         自身.观察请求消费()#观察请求消费
         需直接回退=自身.建立=='pending'#建立前需直接回退
-        if 需直接回退 and 自身.直接.是否在跑():#直接发
+        if 需直接回退 and 自身.直接.是否在运行():#直接发
             自身.直接.发信号(信号)#直接发
         try:#systemctl kill
             完成=自身.同步跑([自身.systemctl,'--user','kill','--kill-whom=all',f'--signal={信号}',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#选项
@@ -403,7 +398,7 @@ class Systemd范围所有者:#systemd scope 所有者
             if 信号=='SIGKILL':#清杀失败
                 自身.杀失败=None#清
             return#结束
-        if (not 需直接回退) and 自身.直接.是否在跑():#建立后回退
+        if (not 需直接回退) and 自身.直接.是否在运行():#建立后回退
             自身.直接.发信号(信号)#回退
         if 信号=='SIGKILL':#KILL 失败
             输出=f'{出}\n{错}'#输出
@@ -415,7 +410,7 @@ class Systemd范围所有者:#systemd scope 所有者
         if 自身.已停:#已停
             return#结束
         try:#直接杀
-            if 自身.直接.是否在跑():#在跑
+            if 自身.直接.是否在运行():#在跑
                 自身.直接.发信号('SIGKILL')#SIGKILL
         except (本地子进程错误,OSError):#吞
             pass#继续原生所有者
@@ -434,7 +429,7 @@ class Systemd范围所有者:#systemd scope 所有者
         自身.观察请求消费()#观察
         if 自身.建立=='established':#已建立则非缺席路径
             return False#非缺席
-        if (not 自身.直接.是否在跑()) and os.path.exists(自身.启动.文件['requestPath']):#引导未消费
+        if (not 自身.直接.是否在运行()) and os.path.exists(自身.启动.文件['requestPath']):#引导未消费
             return False#仍待
         if 自身.杀失败 is not None:#抛杀失败
             raise 自身.杀失败#抛杀失败
@@ -442,7 +437,7 @@ class Systemd范围所有者:#systemd scope 所有者
 
     def 空受管范围(自身,当前任务数):#空受管范围
         """已请求终止且无任务且直接进程已走。"""
-        return 自身.已请求终止 and 当前任务数==0 and not 自身.直接.是否在跑()#空范围
+        return 自身.已请求终止 and 当前任务数==0 and not 自身.直接.是否在运行()#空范围
 
     def 释放空范围(自身):#释放空范围
         """释放残留空 scope。"""
@@ -532,7 +527,7 @@ class Systemd范围所有者:#systemd scope 所有者
             if 自身._观察 is None:#未建
                 观察=操作任务()#观察任务
                 自身._观察=观察#记下
-                def 跑观察():#后台观察
+                def 后台观察退出():#后台观察
                     """活动则等，停下后兑现。"""
                     try:#观察
                         轮询间隔毫秒=范围初始轮询间隔毫秒#轮询间隔
@@ -549,7 +544,7 @@ class Systemd范围所有者:#systemd scope 所有者
                             if 自身._观察 is 观察:#仍是本观察
                                 自身._观察=None#清观察
                         观察.拒绝(错误)#重抛
-                工作=threading.Thread(target=跑观察)#观察线程
+                工作=threading.Thread(target=后台观察退出)#观察线程
                 工作.daemon=True#不挡住退出
                 工作.start()#启动
         自身._观察.等待()#等待
@@ -658,11 +653,11 @@ def 启动Linux范围(规格,目标环境,内部=None):#启动 Linux scope
     except BaseException:#失败
         清理Linux启动文件(文件)#清理
         raise#重抛
-    def 是否在跑():#直接范围在跑
+    def 是否在运行():#直接范围在跑
         """pid 仍在且未退出。"""
         return 孩子.pid is not None and 孩子.poll() is None#在跑
     def 发信号(信号):#向孩子组发信号
         """组信号。"""
         向孩子组发信号(孩子,信号)#发信号
-    所有者=Systemd范围所有者(f'{单元基}.scope',启动,直接范围(是否在跑,发信号),取内部(内部,'systemctl','systemctl'),取内部(内部,'spawnSync',同步跑),取内部(内部,'systemctlQuery',查询systemctl),取内部(内部,'sleep',可中止睡眠))#所有者
+    所有者=Systemd范围所有者(f'{单元基}.scope',启动,直接范围(是否在运行,发信号),取内部(内部,'systemctl','systemctl'),取内部(内部,'spawnSync',同步跑),取内部(内部,'systemctlQuery',查询systemctl),取内部(内部,'sleep',可中止睡眠))#所有者
     return 受管进程启动(孩子.stdin,孩子.stdout,孩子.stderr,直接结局(孩子,启动),所有者)#受管启动

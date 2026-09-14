@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-store` 的本包拥有不变量配套。
-
-对齐上游 `store/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：本包导出库引擎且不创建进程全局状态；每个存储实例由其归属测试覆盖。
-"""
 包名='@deepseek-ai/dsh-client-store'#本包的不变量所有权名
 名称='client-store-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

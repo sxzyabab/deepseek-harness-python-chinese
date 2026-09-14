@@ -1,9 +1,3 @@
-"""默认 Agent 模型选择的包内不变量配套。
-
-该服务没有独立事件关系：设置注册在当前选择能观察到任何可变值之前已经校验完毕。空安装器把这种缺失明确留在组合后的不变量集合里。
-
-对齐上游 `agent-default-model/src/invariant.ts`。
-"""
 包名='@deepseek-ai/dsh-agent-default-model'#本包的不变量所有权名
 名称='agent-default-model-invariant'#配套插件名（字面量不译）
 注入=['invariants']#依赖 invariants 服务

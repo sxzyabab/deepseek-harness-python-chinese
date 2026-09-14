@@ -1,8 +1,3 @@
-"""本包登记的第一阶段：`text` tab 类型是什么。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/definition.ts`。公开面仅中文名。
-该类型以 `fallback` 档认领每个 `dsh-resource://file/session/<sessionId>/<path>` 地址。
-"""
 from urllib.parse import unquote,urlparse#段解码与 URI
 
 __all__=['文本预览种类','文本预览标识','基名','文本定义']#仅中文公开名

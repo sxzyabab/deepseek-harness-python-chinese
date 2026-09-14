@@ -1,4 +1,3 @@
-"""Client 目录键与公共 Runtime 脚本键之间的 realm 稳定翻译。"""
 #对齐上游 worker/realms/client/scripts.ts
 
 __all__=['Client脚本身份']#仅中文公开名

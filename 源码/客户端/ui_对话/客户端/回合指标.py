@@ -1,8 +1,3 @@
-"""已结算回合页脚与统计行共用的延迟/吞吐折叠。
-
-对齐上游 `ui-conversation/src/client/chat/turn-metrics.ts`。公开面仅中文名。
-节点与用量为快照 dict。
-"""
 
 __all__=['助手步骤读数','派生回合指标']#仅中文公开名
 

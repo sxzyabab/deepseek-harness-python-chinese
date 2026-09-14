@@ -1,4 +1,3 @@
-"""会话事件日志之上的表面层：产出 LLM 消息的事件的有序视图。对齐上游 `session/src/surface.ts`。公开面仅中文名。"""
 from .类型 import 安全整数上限,表面事件类型 as 表面事件类型元组#外来 JSON 上限与表面类型词表
 from .已知事件类型 import 已知会话事件类型#导入已知事件类型
 
@@ -54,28 +53,28 @@ def 校验会话事件数据(事件,主题):#校验会话事件数据
     类型=事件['type'] if 'type' in 事件 else None#类型
     if 类型=='request/header':#请求头
         if not 是否记录(数据):#data须对象
-            raise 表面错误(主题+' data must be an object')#data须对象
+            raise 表面错误(主题+' 的 data 必须是对象')#data须对象
         头=数据['header'] if 'header' in 数据 else None#内层头
         if not 是否记录(头):#header须对象
-            raise 表面错误(主题+' header must be an object')#header须对象
+            raise 表面错误(主题+' 的 header 必须是对象')#header须对象
         if 'system' in 头:#禁止 system
-            raise 表面错误(主题+' must omit header.system; use system/message')#禁止system
+            raise 表面错误(主题+' 必须省略 header.system；改用 system/message')#禁止system
         工具=头['tools'] if 'tools' in 头 else None#工具
         if isinstance(工具,list) and len(工具)==0:#空工具
-            raise 表面错误(主题+' must omit empty tools')#须省略
+            raise 表面错误(主题+' 必须省略空的 tools')#须省略
         默认=头['adapterDefaults'] if 'adapterDefaults' in 头 else None#适配器默认
         if 是否记录(默认) and len(默认)==0:#空默认
-            raise 表面错误(主题+' must omit empty adapterDefaults')#须省略
+            raise 表面错误(主题+' 必须省略空的 adapterDefaults')#须省略
     elif 类型=='tool/result':#工具结果
         if not 是否记录(数据):#data须对象
-            raise 表面错误(主题+' data must be an object')#data须对象
+            raise 表面错误(主题+' 的 data 必须是对象')#data须对象
         if 'error' not in 数据:#无错误放过
             return#无错误放过
         消息=数据['message'] if 'message' in 数据 else None#消息
         内容=消息['content'] if 是否记录(消息) and 'content' in 消息 else None#内容
         块=内容[0] if isinstance(内容,list) and len(内容)>0 else None#首块
         if (not 是否记录(块)) or ('isError' not in 块) or 块['isError'] is not True:#须错误块
-            raise 表面错误(主题+' error requires message content[0].isError === true')#矛盾
+            raise 表面错误(主题+' 的 error 要求 message content[0].isError === true')#矛盾
 
 def 创建折叠状态():#空折叠状态
     """创建空的表面折叠状态。"""
@@ -111,59 +110,59 @@ def 取出表面操作(事件):#取出表面操作
         if 类型 not in 已知会话事件类型 and ('ignorable' in 事件 and 事件['ignorable'] is True):#可忽略放过
             return None#可忽略放过
         if 'surfaceOp' in 事件:#却带了表面操作
-            raise 表面错误('session event "'+str(类型)+'" is not surface-eligible and cannot carry surfaceOp')#非法携带
+            raise 表面错误('会话事件 "'+str(类型)+'" 不可进表面，不能携带 surfaceOp')#非法携带
         if 'sourceEventSeqs' in 事件:#却带了源序号
-            raise 表面错误('session event "'+str(类型)+'" is not surface-eligible and cannot carry sourceEventSeqs')#非法携带
+            raise 表面错误('会话事件 "'+str(类型)+'" 不可进表面，不能携带 sourceEventSeqs')#非法携带
         return None#非表面事件
     if 'surfaceOp' not in 事件:#可进表面却没有标记
-        raise 表面错误('session event "'+str(类型)+'" is surface-eligible and requires a surfaceOp marker')#缺少标记
+        raise 表面错误('会话事件 "'+str(类型)+'" 可进表面，必须带 surfaceOp 标记')#缺少标记
     操作=事件['surfaceOp']#取出操作
     if 操作=='append':#追加
         return 操作#追加
     if 操作 is None or isinstance(操作,(str,bytes,int,float,bool,list)):#不是对象
-        raise 表面错误('session event "'+str(类型)+'" carries an invalid surfaceOp')#非法操作
+        raise 表面错误('会话事件 "'+str(类型)+'" 携带了非法 surfaceOp')#非法操作
     if not isinstance(操作,dict):#不是记录
-        raise 表面错误('session event "'+str(类型)+'" carries an invalid surfaceOp')#非法操作
+        raise 表面错误('会话事件 "'+str(类型)+'" 携带了非法 surfaceOp')#非法操作
     if not 是否替换操作(操作):#不是合法替换
-        raise 表面错误('session event "'+str(类型)+'" carries an invalid replace surfaceOp')#非法替换
+        raise 表面错误('会话事件 "'+str(类型)+'" 携带了非法 replace surfaceOp')#非法替换
     return 操作#合法替换
 
 def 断言出处(事件,被遮蔽序号):#校验出处
     """按先前日志条目与替换区间校验引用的源事件序号。"""
     原始=事件['sourceEventSeqs'] if 'sourceEventSeqs' in 事件 else None#原始源序号
     if 事件['type']=='assistant/message' and 原始 is not None:#助手消息不得带源序号
-        raise 表面错误('assistant/message embeds its source stream and cannot carry sourceEventSeqs')#禁止
+        raise 表面错误('assistant/message 内嵌其源流水，不能携带 sourceEventSeqs')#禁止
     已见=set()#已见源
     if 原始 is not None:#有出处字段
         if not isinstance(原始,list):#不是数组
-            raise 表面错误('sourceEventSeqs on event at seq '+str(事件['seq'])+' must be an array when present')#必须是数组
+            raise 表面错误('seq '+str(事件['seq'])+' 上的 sourceEventSeqs 若出现必须是数组')#必须是数组
         if len(原始)==0:#空数组
-            raise 表面错误('sourceEventSeqs must not be empty')#不得空
+            raise 表面错误('sourceEventSeqs 不得为空')#不得空
         不早源=None#不早于当前的源
         for 源 in 原始:#逐个源
             if not 是否事件序号(源):#不是合法序号
-                raise 表面错误('session event "'+str(事件['type'])+'" sourceEventSeqs must densely contain non-negative safe integers')#必须是稠密非负安全整数
+                raise 表面错误('会话事件 "'+str(事件['type'])+'" 的 sourceEventSeqs 必须稠密包含非负安全整数')#必须是稠密非负安全整数
             已见.add(源)#记下
             if 不早源 is None and 源>=事件['seq']:#找到不早于当前的
                 不早源=源#找到不早于当前的
         if len(已见)!=len(原始):#有重复
-            raise 表面错误('sourceEventSeqs must not contain duplicates')#不得重复
+            raise 表面错误('sourceEventSeqs 不得含重复项')#不得重复
         if 不早源 is not None:#引用了不更早的事件
-            raise 表面错误('sourceEventSeqs must reference earlier events: '+str(不早源)+' >= current seq '+str(事件['seq']))#必须引用更早事件
+            raise 表面错误('sourceEventSeqs 必须引用更早事件: '+str(不早源)+' >= 当前 seq '+str(事件['seq']))#必须引用更早事件
     缺=[]#被遮蔽却未引用
     for 序号 in 被遮蔽序号:#被遮蔽序号
         if 序号 not in 已见:#未引用
             缺.append(序号)#记下缺失
     if len(缺)>0:#缺引用
         缺文=', '.join(str(项) for 项 in 缺)#拼缺失
-        raise 表面错误('surface replace: sourceEventSeqs must include every shadowed surface node; missing '+缺文)#必须覆盖每个被遮蔽节点
+        raise 表面错误('表面替换: sourceEventSeqs 必须包含每个被遮蔽的表面节点；缺少 '+缺文)#必须覆盖每个被遮蔽节点
 
 def 校验表面元数据(事件):#校验表面元数据
     """校验一条事件的表面元数据，不检查其是否属于某日志或表面。"""
     操作=取出表面操作(事件)#取操作
     if 操作 is not None and 操作!='append':#替换
         if 操作['startSeq']>=事件['seq'] or 操作['endSeq']>=事件['seq']:#引用不更早
-            raise 表面错误('surface replace at seq '+str(事件['seq'])+': startSeq and endSeq must reference earlier events')#须引用更早
+            raise 表面错误('seq '+str(事件['seq'])+' 处的表面替换: startSeq 与 endSeq 必须引用更早事件')#须引用更早
     if 操作 is not None:#有操作
         断言出处(事件,[])#事件本地出处
     return 操作#返回操作
@@ -174,14 +173,14 @@ def 替换区间(状态,操作):#定位替换区间
     try:#查起点
         起点下标=节点列表.index(操作['startSeq'])#起点下标
     except ValueError:#表面里没有起点
-        raise 表面错误('surface replace: start seq '+str(操作['startSeq'])+' not found in surface')#起点不在表面
+        raise 表面错误('表面替换: 起点 seq '+str(操作['startSeq'])+' 不在表面中')#起点不在表面
     try:#查终点
         终点下标=节点列表.index(操作['endSeq'])#终点下标
     except ValueError:#表面里没有终点
-        raise 表面错误('surface replace: end seq '+str(操作['endSeq'])+' not found in surface')#终点不在表面
+        raise 表面错误('表面替换: 终点 seq '+str(操作['endSeq'])+' 不在表面中')#终点不在表面
     if 起点下标>终点下标:#起点在终点之后
         raise 表面错误(
-            'surface replace: start seq '+str(操作['startSeq'])+' (index '+str(起点下标)+') is after end seq '+str(操作['endSeq'])+' (index '+str(终点下标)+')'
+            '表面替换: 起点 seq '+str(操作['startSeq'])+'（下标 '+str(起点下标)+'）在终点 seq '+str(操作['endSeq'])+'（下标 '+str(终点下标)+'）之后'
         )#区间颠倒
     return {#区间
         'startIdx':起点下标,#起点下标
@@ -227,12 +226,12 @@ def 断言工具结果改写(事件,被遮蔽序号,事件列表,基序号):#校
     if 事件['type']!='tool/result':#非工具结果
         return#非工具结果放过
     if len(被遮蔽序号)!=1:#不是恰好一个节点
-        raise 表面错误('tool/result surface replacement must rewrite exactly one current node')#必须只改一个
+        raise 表面错误('tool/result 表面替换必须恰好改写一个当前节点')#必须只改一个
     for 原序号 in 被遮蔽序号:#被遮蔽的原事件
         窗口下标=原序号-基序号#窗口下标
         原事件=事件列表[窗口下标] if 0<=窗口下标<len(事件列表) else None#窗口内原事件
         if 原事件 is None or 原事件['type']!='tool/result':#目标不是当前工具结果
-            raise 表面错误('tool/result surface replacement must target a current tool/result')#必须对准当前 tool/result
+            raise 表面错误('tool/result 表面替换必须对准当前 tool/result')#必须对准当前 tool/result
         原载荷=dict(原事件['data'])#原载荷副本
         新载荷=dict(事件['data'])#替换载荷副本
         原结果=原事件['data']['message']['content'][0]#原第一条内容
@@ -248,7 +247,7 @@ def 断言工具结果改写(事件,被遮蔽序号,事件列表,基序号):#校
         新消息['content']=[新块]#抹掉内容
         新载荷['message']=新消息#写回
         if not json深相等(原载荷,新载荷):#其余字段不同
-            raise 表面错误('tool/result surface replacement may change only content')#只许改内容
+            raise 表面错误('tool/result 表面替换只许改 content')#只许改内容
 
 def 断言系统头改写(事件,状态,起点下标,被遮蔽序号,事件列表,基序号):#校验系统头改写
     """保护表面节点 0 上的系统提示。"""
@@ -259,12 +258,12 @@ def 断言系统头改写(事件,状态,起点下标,被遮蔽序号,事件列�
     if 头 is None or 头['type']!='system/message':#头非系统放过
         return#头非系统放过
     if 事件['type']!='system/message' or len(被遮蔽序号)!=1:#须单节点系统改写
-        raise 表面错误('surface replace: node 0 holds the system prompt and may be rewritten only by a system/message over exactly that node')#拒绝
+        raise 表面错误('表面替换: 节点 0 持有系统提示，只能由恰好覆盖该节点的 system/message 改写')#拒绝
 
 def 计划表面事件(状态,事件,期望序号,事件列表,基序号):#计划表面变迁
     """在回放边界校验一条事件，并准备其原子折叠变迁。"""
     if 事件['seq']!=期望序号:#序号不连续
-        raise 表面错误('session event seq '+str(事件['seq'])+' is not contiguous; expected '+str(期望序号))#必须连续
+        raise 表面错误('会话事件 seq '+str(事件['seq'])+' 不连续；期望 '+str(期望序号))#必须连续
     表面操作=校验表面元数据(事件)#校验表面元数据
     if 表面操作 is None:#非表面
         return None#非表面

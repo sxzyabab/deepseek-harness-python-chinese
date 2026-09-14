@@ -1,8 +1,3 @@
-"""浏览器主题注册表与外观偏好行登记。
-
-对齐上游 `ui-theme/src/client/index.ts` 的 apply 面。公开面仅中文名。
-ThemeRuntime 无 DOM；样式表字符串见 `.样式`（本包已落盘 design-platform 等全部分片）。
-"""
 from ..主题设置 import 主题设置命名空间#命名空间字面
 from .文案 import 设置命名空间,中文,英文,主题文案键#词典
 from .主题运行时 import 主题运行时,解析活动主题,合并令牌覆盖,内置主题,内置检视令牌#运行时

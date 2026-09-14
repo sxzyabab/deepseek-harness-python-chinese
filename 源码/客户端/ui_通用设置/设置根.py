@@ -1,8 +1,3 @@
-"""设置壳根：侧栏底触发器 + 居中模态面板与分区导航。
-
-对齐上游 `ui-settings-general/src/client/SettingsRoot.tsx`。公开面仅中文名。
-"""
-
 __all__=['设置根','导航图标','样式表']#仅中文公开名
 
 样式表=None#样式原文落在 设置根.module.css

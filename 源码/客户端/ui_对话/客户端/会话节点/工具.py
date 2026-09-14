@@ -1,8 +1,3 @@
-"""根工具生命周期与嵌套代码分发。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/tool.ts`。公开面仅中文名。
-事件与状态为 dict。
-"""
 import json#子调用参数序列化
 from ..服务 import 对话错误#本包异常
 from ..约定.聊天节点 import 已结算工具#已结算判断

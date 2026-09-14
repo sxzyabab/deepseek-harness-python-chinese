@@ -1,11 +1,3 @@
-"""进程 worker 自己的半边：收到 shell 启动帧的新 worker 在此运行
-一条命令然后关闭。
-
-它不挂载 VFS 镜像、不启动 Cordis 树、不加载插件——与宿主 worker 共享的
-唯一东西是启动它的那个束。其文件系统是宿主的，经消息到达。
-
-对齐上游 `webworker-runtime/src/shell/process/child.ts`。公开面仅中文名。
-"""
 import threading as 线程#等待文件系统回复
 from ..解释 import 运行shell命令,运行shell程序#解释器入口
 from ..文件系统访问 import 文件系统错误#FS错误构造

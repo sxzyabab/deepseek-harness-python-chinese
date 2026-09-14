@@ -1,4 +1,3 @@
-"""一个原生 Node inspector 会话上的 DebuggerBackend 实现。"""
 #对齐上游 worker/realms/host/debugger.ts
 
 from ....共享.json import 检查器错误#包内错误

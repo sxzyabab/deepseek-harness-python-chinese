@@ -234,7 +234,7 @@ class 会话:
         代=自身._打开代#代
         任务=_操作任务()#承诺
         自身._打开承诺=任务#登记
-        def 跑():
+        def 后台打开():
             """执行打开。"""
             try:
                 自身._执行打开(代)#打开
@@ -244,7 +244,7 @@ class 会话:
             finally:
                 if 自身._打开承诺 is 任务:#仍是本承诺
                     自身._打开承诺=None#清空
-        threading.Thread(target=跑,daemon=True).start()#后台
+        threading.Thread(target=后台打开,daemon=True).start()#后台
         任务.等待()#同步等待（对齐阻塞切片）
 
     def loadOlder(自身):
@@ -281,7 +281,7 @@ class 会话:
         代=自身._打开代#代
         任务=_操作任务()#承诺
         自身._跳转承诺=任务#登记
-        def 跑():
+        def 后台跳转():
             """跳转循环。"""
             try:
                 while 自身._还有更多 and 自身._跳转目标 is not None and 自身._基序号>自身._跳转目标:#未覆盖
@@ -303,7 +303,7 @@ class 会话:
                 自身._加载更早=False#清
                 自身._通知器.标脏()#脏
                 任务.兑现(None)#完成
-        threading.Thread(target=跑,daemon=True).start()#后台
+        threading.Thread(target=后台跳转,daemon=True).start()#后台
         任务.等待()#等
 
     def resync(自身):

@@ -1,9 +1,3 @@
-"""渲染 live Team roster 与 compare-and-set 任务板（无头结构树）。
-
-对齐上游 `client-ui-agent-team/src/client/TeamAction.tsx`。公开面仅中文名。
-无真 React：返回结构树字典；状态机驻留在实例上。
-"""
-
 __all__=['团队动作','任务表单','拆分项','失败文案']#仅中文公开名
 
 空草稿={'subject':'','description':'','blockers':'','scopes':''}#空草稿

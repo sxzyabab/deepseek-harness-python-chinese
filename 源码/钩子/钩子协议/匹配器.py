@@ -1,4 +1,3 @@
-"""两种钩子方言共用的匹配器。Claude把字母数字/下划线/竖线模式当字面备选项，其余当正则；Codex把每个非空模式当未锚定正则。缺席、空字符串和`*`匹配全部。运行时匹配把非法正则当作不匹配；配置解析器用匹配诊断拒绝并给出诊断。"""
 import json,re#JSON片段与正则
 
 克劳德字面=re.compile(r'^[A-Za-z0-9_|]+\Z')#Claude字面模式正则；行尾用\\Z对齐 JS $
@@ -23,7 +22,7 @@ def 匹配诊断(匹配器,模式):
     if 模式=='claude-code' and 克劳德字面.match(图案) is not None:#Claude字面模式有效
         return None#无诊断
     if 编译正则(图案) is None:#正则编译失败则给出诊断
-        return 'invalid '+模式+' regex matcher '+json.dumps(图案,ensure_ascii=False,separators=(',',':'),allow_nan=False)#稳定诊断文案
+        return '非法 '+模式+' 正则匹配器 '+json.dumps(图案,ensure_ascii=False,separators=(',',':'),allow_nan=False)#稳定诊断文案
     return None#正则有效则无诊断
 
 def 匹配命中(匹配器,查询,模式):

@@ -1,4 +1,3 @@
-"""实验性检查器的 Worker 引导入口。"""
 #对齐上游 worker/entry.ts
 
 from ..共享.json import 在线程执行,检查器错误#后台跑|包内错误
@@ -9,9 +8,9 @@ __all__=['主入口']#仅中文公开名
 def 主入口(控制端口,启动数据):#主入口
     """在子进程/线程中校验启动数据并装配 Worker。"""
     if 控制端口 is None:#主线程误载
-        raise RuntimeError('experimental inspector: Worker entry loaded on the main thread')#主线程误载则抛错
+        raise RuntimeError('实验性检查器：Worker 入口被加载到了主线程')#主线程误载则抛错
     if not isinstance(启动数据,dict) or 'hostSourcePort' not in 启动数据:#启动数据无效
-        raise RuntimeError('experimental inspector: invalid Worker boot data')#启动数据无效
+        raise RuntimeError('实验性检查器：Worker 启动数据无效')#启动数据无效
     启动包={#Worker启动包
         'hostSourcePort':启动数据['hostSourcePort'],#Host源端口
         'config':启动数据['config'],#配置（由上层已解析）
@@ -36,7 +35,7 @@ def 主入口(控制端口,启动数据):#主入口
         """解析并停止。"""
         try:#解析并停止
             if not isinstance(消息,dict) or 消息.get('type')!='stop':#非法控制
-                raise ValueError('invalid host control')#校验控制帧
+                raise ValueError('宿主控制帧无效')#校验控制帧
             在线程执行(停止)#触发停止
         except Exception as 错误:#控制帧校验或 postMessage 可能抛 ValueError/传输错误，契约未定所以收不窄
             控制端口.postMessage({'type':'failure','message':str(错误)})#回传失败

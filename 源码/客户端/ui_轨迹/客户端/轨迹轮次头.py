@@ -1,8 +1,3 @@
-"""轨迹轮次头：粘性栏，Input/Output/Think/Time 列标签。
-
-对齐上游 `ui-trajectory/src/client/TrajectoryTurnHeader.tsx`。公开面仅中文名。
-"""
-
 __all__=['轨迹轮次头','列标签']#仅中文公开名
 
 列标签=('Input','Output','Think','Time')#度量列字面

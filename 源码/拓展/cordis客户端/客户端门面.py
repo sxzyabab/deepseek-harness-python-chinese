@@ -1,10 +1,3 @@
-"""浏览器半运行面：门面契约、装配接线与失败教学。
-
-对齐上游 `cordis-client-runner/src/client/index.ts`。公开面仅中文名。
-硬缺口（保留不通过，勿假实现）：evaluateClientHalf 的 new Function、React 闭包符号、
-document 真插入样式、Loader/ModuleLoader 挂载执行体。
-本模块落盘门面形状、失败文案与 apply 装配接线（定时器/巡检/编排/事件/拆除）。
-"""
 from .定时器 import 安装客户端定时器#定时器
 from .巡检注册表 import 客户端巡检注册表,提供客户端巡检#巡检
 from .提供方 import 列出客户端巡检提供方#内置提供方
@@ -164,10 +157,10 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
             return 槽服务.onEntryError(记账.处理入口崩溃)#拆除器
         上下文.副作用(挂入口崩溃,'cordis-client-runner: slot entry errors')#随 Fiber 拆除
 
-    def 跑宿主半(会话,插件标识,包标识,模式,请求标识,批后续):#runHostHalf
+    def 执行宿主半(会话,插件标识,包标识,模式,请求标识,批后续):#runHostHalf
         """折载体失败为业务失败。"""
         if 远端 is None:#无
-            return {'ok':False,'message':'remote.dynamicCordisRunner missing'}#失败
+            return {'ok':False,'message':'缺少 remote.dynamicCordisRunner'}#失败
         答=远端.runHostHalf(会话,插件标识,包标识,模式,请求标识,批后续)#远程
         if isinstance(答,dict) and 答.get('ok'):#成功
             return 答.get('value')#值
@@ -177,7 +170,7 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
     def 取客户端码(会话,插件标识,运行标识):#getClientCode
         """载体失败则抛。"""
         if 远端 is None:#无
-            raise Exception('remote.dynamicCordisRunner missing')#抛
+            raise Exception('缺少 remote.dynamicCordisRunner')#抛
         答=远端.getClientCode(会话,插件标识,运行标识)#远程
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
@@ -187,17 +180,17 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
     def 落定审批(请求标识,决议):#resolveRequestRun
         """载体失败则抛。"""
         if 远端 is None:#无
-            raise Exception('remote.dynamicCordisRunner missing')#抛
+            raise Exception('缺少 remote.dynamicCordisRunner')#抛
         答=远端.resolveRequestRun(请求标识,决议)#远程
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
             raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
         return 答.get('value') if isinstance(答,dict) else 答#应答
 
-    def 落定用户跑(会话,插件标识,决议):#settleUserRun
+    def 落定用户运行(会话,插件标识,决议):#settleUserRun
         """载体失败则抛。"""
         if 远端 is None:#无
-            raise Exception('remote.dynamicCordisRunner missing')#抛
+            raise Exception('缺少 remote.dynamicCordisRunner')#抛
         答=远端.settleUserRun(会话,插件标识,决议)#远程
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
@@ -207,10 +200,10 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
     编排=运行编排器({#对齐 CordisRunOrchestrator：runner + host（决议走 host.resolveRequestRun）
         'runner':记账,#页本地加载器
         'host':{#折好的宿主操作
-            'runHostHalf':跑宿主半,#宿主半
+            'runHostHalf':执行宿主半,#宿主半
             'getClientCode':取客户端码,#取码
             'resolveRequestRun':落定审批,#审批
-            'settleUserRun':落定用户跑,#用户
+            'settleUserRun':落定用户运行,#用户
         },#host
         # drive 故意不挂假 Loader：有 Remote 时仍欠 evaluate/mount 硬缺口
     })#编排

@@ -1,8 +1,3 @@
-"""文件类型的芯片标题：类型标签前的文件夹图标。
-
-对齐上游 `ui-sidebar-files/src/client/FilesTitle.tsx`。公开面仅中文名。
-登记在 `sidebar.right.pane.tab.title`；无则芯片只显示裸标签。正文树自有行字形，不用本图标。
-"""
 
 __all__=['文件标题']#仅中文公开名
 

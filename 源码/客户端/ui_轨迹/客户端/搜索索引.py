@@ -1,7 +1,3 @@
-"""轨迹搜索索引：增量全文索引。
-
-对齐上游 `ui-trajectory/src/client/trajectory-search-index.ts`。公开面仅中文名。
-"""
 import json#任意值压成 JSON
 from .轨迹记录 import 轨迹记录身份#稳定记录身份
 from .轨迹预览 import 轨迹预览文本#Markdown 预览纯文本

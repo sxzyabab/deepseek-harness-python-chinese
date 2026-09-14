@@ -1,7 +1,3 @@
-"""按一个 Session 身份寻址的浏览器上传服务约定。
-
-对齐上游 `file-upload/src/client/contract.ts`。
-"""
 __all__=['文件上传进度字段','文件上传服务协议']#仅中文公开名
 
 文件上传进度字段=('loaded','total')#已消费字节与可选总量

@@ -1,6 +1,5 @@
-"""Claude Code 子智能体后端（对齐 upstream subagent-claude-code）。"""
 from ...依赖.schemastery import 字典字段,字符串字段,数字字段#配置
-from .运行 import 启动claude跑,默认处置宽限毫秒#运行
+from .运行 import 启动claude运行,默认处置宽限毫秒#运行
 
 名称='subagent-claude-code'#Cordis 插件名
 注入=['subagents','subprocess']#依赖
@@ -23,7 +22,7 @@ class claude提供方:
 
     def 启动(自身,请求):
         """启动 Claude 一次性跑。请求为 dict。"""
-        return 启动claude跑(请求,自身._规格)#跑
+        return 启动claude运行(请求,自身._规格)#跑
 
 def 应用(上下文,配置值):
     """加载 Claude 提供方。配置为 dict。"""

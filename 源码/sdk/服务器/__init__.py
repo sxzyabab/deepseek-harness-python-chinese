@@ -1,7 +1,3 @@
-"""面向 SDK 的标准输入输出 JSON-RPC 插件。
-
-对齐上游 `@deepseek-ai/dsh-sdk-jsonrpc-server`。公开面仅中文名。是否加载由外部 cordis.yml 决定；标准输出留给协议帧。保持具名插件导出且无默认导出，以便 Loader 保留 name、inject、Config 和 apply。
-"""
 import sys,threading#生产 stdio、退出与异步退出拍
 from ...依赖.schemastery import 布尔字段#配置字段
 from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输

@@ -1,8 +1,3 @@
-"""一次待处理审批 waterfall 的 composer 接管。
-
-对齐上游 `ui-approval/src/client/ApprovalPanel.tsx`。公开面仅中文名。
-无真 React：返回结构树字典；一次作答闩。
-"""
 from .约定.槽 import 审批错误#本包异常
 
 __all__=['审批面板','审批流']#仅中文公开名

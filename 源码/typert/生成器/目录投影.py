@@ -1,10 +1,3 @@
-"""面向 Cordis 目录的投影：叠在与编译器无关的 Typert 模型之上。
-
-对齐上游 `typert/generator/src/cordis-catalog.ts`。公开面仅中文名。
-本模块负责 Cordis 校验与文本投影；调用方提供仓库特有的类型分类与继承数据。
-`投影Cordis目录` / `收集事件` / `收集服务`（根扫描入口）必须 WorkspaceAnalyzer，
-显式 NotImplementedError，不空壳装通过。
-"""
 import re#词边界与标签
 from .模型 import 子类型节点标识列表#子边
 from .渲染器 import 类型图渲染器#类型图渲染器

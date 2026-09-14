@@ -1,8 +1,3 @@
-"""浏览器 UI 渲染器。
-
-对齐上游 `ui-renderer/src/client/index.ts`。公开面仅中文名。
-在 Cordis 依赖激活后安装槽位渲染器，并暴露挂载操作。
-"""
 from .作用域槽 import 创建槽渲染器#槽位渲染器工厂
 from .应用组装 import 构建渲染应用#应用组装
 from .登记表 import 槽登记表#槽位注册表

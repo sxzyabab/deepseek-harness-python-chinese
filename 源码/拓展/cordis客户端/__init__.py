@@ -1,17 +1,3 @@
-"""动态包运行器插件的 Node 半：纯浏览器侧能力。
-
-对齐上游 `@deepseek-ai/dsh-cordis-client-runner`（`src/index.ts` + `src/client/index.ts` 再导出面）。
-公开面仅中文名。空 apply 只为让该行出现在宿主 cordis.yml / Loader 里。
-槽目录与客户端 api-catalog 为编译期纯数据；求值器/守卫/定时器/巡检/编排/runtime
-可迁面已迁；evaluate/Loader/Proxy/Function/React DOM 硬缺口不冒充。
-
-硬缺口（不迁，仅标注）：
-1. React DOM/浏览器执行
-2. cordis Function/vm（求值器·编排器·runtime 执行体）
-3. Proxy/Reflect.apply（守卫门面执行体）
-4. document 真插入样式、Loader/ModuleLoader
-"""
-
 '''
 from .槽目录 import 客户端说明,客户端槽目录,查询槽目录#槽约定
 from .接口目录 import (#客户端 API 目录

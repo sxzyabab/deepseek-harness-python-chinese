@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-model-selection` 的本包拥有不变量配套。
-
-对齐上游 `ui-model-selection/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：仅有一处命令贡献注册，其拆除由 HMR 安全规格证明——不发射 cordis 事件，也不拥有跨插件可变状态。
-"""
 包名='@deepseek-ai/dsh-client-ui-model-selection'#本包的不变量所有权名
 名称='client-ui-model-selection-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

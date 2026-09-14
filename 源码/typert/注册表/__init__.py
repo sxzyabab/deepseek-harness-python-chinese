@@ -1,7 +1,3 @@
-"""共享 Typert 运行时注册表的宿主入口。
-
-对齐上游 `typert/registry/src/index.ts`。公开面仅中文名。
-"""
 from .服务 import (#注册表实现与键构造
     拼模式键,拼包面键,拼端点,Typert注册表,
 )#服务

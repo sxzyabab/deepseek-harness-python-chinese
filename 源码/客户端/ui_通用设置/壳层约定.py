@@ -1,9 +1,3 @@
-"""设置外壳约定——`sidebar.settings` 占位者的类型。
-
-对齐上游 `ui-settings-general/src/client/shell-contract.ts`。公开面仅中文名。
-放在本包而不是 ui_settings：引用侧栏槽类型；底座不得依赖任何 ui-* 展示包。
-"""
-
 __all__=[#仅中文公开名
     '设置分区行','设置引导步骤','设置根注入面','设置根组件属性',
 ]#公开面结束

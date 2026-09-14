@@ -1,7 +1,3 @@
-"""按轮次物化的跨节点过程布局事实投影。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/turn-process-presentation.ts`。公开面仅中文名。
-"""
 from ..约定.回合过程 import 回合过程独立种类#独立种类
 
 __all__=['同过程呈现','推导过程呈现','聊天回合过程投影器']#仅中文公开名

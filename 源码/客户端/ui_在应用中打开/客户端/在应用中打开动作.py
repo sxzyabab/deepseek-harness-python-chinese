@@ -1,9 +1,3 @@
-"""会话头部「在应用中打开」分体按钮的控制器面。
-
-对齐上游 `ui-open-in-app/src/client/OpenInAppAction.tsx`。公开面仅中文名。
-像素级 React/CSS 渲染延后；本模块完整移植状态机、标签映射、启动与菜单动作，
-经 渲染() 产出与上游 JSX 同构的结构树。
-"""
 import threading#忙碌/错误定时器
 from .文案 import 命名空间#locale 命名空间（inject 契约）
 

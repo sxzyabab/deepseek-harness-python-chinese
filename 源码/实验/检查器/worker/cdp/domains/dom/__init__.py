@@ -1,4 +1,3 @@
-"""Cordis 语义 DOM 域导出。"""
 #对齐上游 worker/cdp/domains/dom/index.ts
 
 from .模型 import Cordis_Dom后端#DOM模型

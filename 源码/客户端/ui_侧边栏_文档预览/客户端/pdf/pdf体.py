@@ -1,7 +1,3 @@
-"""PDF 页呈现；二进制内容与标签信息来自文档拥有方。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/PdfBody.tsx`。公开面仅中文名。
-"""
 from .存储 import 默认pdf视图#默认视图
 from .运行时 import 打开pdf#打开
 from .错误 import pdf工作线程失败#失败

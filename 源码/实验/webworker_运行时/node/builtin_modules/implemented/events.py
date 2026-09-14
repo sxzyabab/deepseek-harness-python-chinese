@@ -1,9 +1,3 @@
-"""`node:events`：带 harness 代码所用成员的最小 EventEmitter。
-发出顺序与监听器身份遵循 Node；基本 on/once/off/emit 集合之外的一律抛错。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/events.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 __all__=['事件发出器']#仅中文公开名；EventEmitter/default 为 Node 面挂名不入表
 
 class 事件发出器:#事件发出器

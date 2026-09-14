@@ -1,8 +1,3 @@
-"""从冻结调用切片纯派生 web 卡片 props。
-
-对齐上游 `ui-tool/src/client/tool/models/web-card-model.ts`。公开面仅中文名。
-"""
-
 __all__=['网页卡模型']#仅中文公开名
 
 def 网页卡模型(块):#从调用切片派生 web 卡片 props

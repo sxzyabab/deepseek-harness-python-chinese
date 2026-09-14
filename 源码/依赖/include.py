@@ -1,4 +1,3 @@
-"""由 YAML 或 JSON 文件支撑的插件树。"""
 import errno,json,os,re,threading,time,yaml
 from .loader import (
     插件树,#嵌套配置文件的树基类

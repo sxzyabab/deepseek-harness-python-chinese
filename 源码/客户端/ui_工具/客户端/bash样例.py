@@ -1,8 +1,3 @@
-"""Bash 工具行样例：keyed toolview 洞上的第三方姿态登记。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/bash-sample.tsx`。公开面仅中文名。
-本地复制 ToolRow 整行展开交互；终端卡优先，无终端的执行失败走 IN/OUT 回退。
-"""
 from .调用模型 import 派生工具行#行模型
 from .终端卡模型 import 终端卡模型,终端已失败,终端块文案#终端卡
 from .文案 import 会话命名空间#词典席

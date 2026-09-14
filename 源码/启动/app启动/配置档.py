@@ -1,7 +1,3 @@
-"""`dsh --profile` 启动器家族的配置发现、初始化与补丁层组合。
-
-对齐上游 `app-boot/src/profile.ts`。公开面仅中文名。
-"""
 import os,json,copy#路径、JSON、克隆
 from ...依赖 import include#外部依赖胶水
 应用条目补丁=include.应用插件补丁#补丁应用

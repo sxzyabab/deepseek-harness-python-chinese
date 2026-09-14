@@ -1,4 +1,3 @@
-"""一条架在通过子进程能力拉起的语言服务器上的 JSON-RPC 端点。拥有 id 关联、出站请求/通知，以及入站的服务器→客户端请求：用静态配置回答 workspace/configuration，并拒绝 workspace/applyEdit（本宿主从不应用编辑或运行命令）。封顶 stderr，把成帧/解码失败浮成致命关闭，并通过句柄暴露树范围终止，好让实例拥有拆除；组/树机制住在子进程 Service Provider 里。"""
 import threading#stdout读线程与写入互斥
 from ..语言服务器 import 语言服务器错误#本缝异常基类
 from .取消 import 操作任务#单次操作结果
@@ -49,24 +48,24 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
         标准入=自身.句柄.stdin#协议stdin
         标准出=自身.句柄.stdout#协议stdout
         if 标准入 is None or 标准出 is None:#管道流缺失
-            raise 语言服务器错误('lsp-stdio: subprocess implementation dropped a piped protocol stream','LSP_INTERNAL')#拒绝丢流的实现
+            raise 语言服务器错误('lsp-stdio: 子进程实现丢掉了管道协议流','LSP_INTERNAL')#拒绝丢流的实现
         自身.标准入=标准入#记下stdin
-        自身.关闭承诺=操作任务()#进程关闭边界
+        自身.关闭任务=操作任务()#进程关闭边界
         def 关闭边界():
             """固化关闭原因并拒绝全部未决。"""
             with 自身.锁:#互斥
                 原因=自身.关闭原因 if 自身.关闭原因 is not None else 语言服务器错误(自身.退出消息(),'LSP_INTERNAL')#已有致命原因或从退出消息构造
                 自身.关闭原因=原因#固化关闭原因
             自身.拒绝全部(原因)#拒绝全部未决请求
-            自身.关闭承诺.兑现(None)#兑现关闭承诺
-        def 盯完成():
+            自身.关闭任务.兑现(None)#兑现关闭任务
+        def 等待句柄完成():
             """等待句柄 done。done 是子进程包操作任务。"""
             try:#等待done
                 自身.句柄.done.等待()#正常退出
             except BaseException as 错误:#拉起级失败
                 自身.失败(收成错误(错误))#记录拉起失败
             关闭边界()#进入关闭边界
-        threading.Thread(target=盯完成,daemon=True).start()#盯done
+        threading.Thread(target=等待句柄完成,daemon=True).start()#等待done
         def 读标准出():
             """后台读协议stdout直到EOF。"""
             try:#读管道
@@ -112,13 +111,13 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
             自身.下一标识=标识+1#递增
             if 自身.关闭原因 is not None:#连接已关闭
                 raise 自身.关闭原因#立刻用关闭原因拒绝
-            条目={'resolve':None,'reject':None,'承诺':操作任务()}#挂起直到响应或失败
-            自身.未决[标识]=条目#记下未决
+            任务=操作任务()#挂起直到响应或失败
+            自身.未决[标识]=任务#记下未决
         try:#写入请求
             自身.写入({'jsonrpc':'2.0','id':标识,'method':方法,'params':参数})#写成帧
         except BaseException:#写入失败已由write记到连接
             pass#消费写入本身
-        return 条目['承诺'].等待()#交给调用方
+        return 任务.等待()#交给调用方
 
     def 通知(自身,方法,参数):
         """发送一条通知（无 id、无响应）。"""
@@ -188,16 +187,16 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
     def 处理响应(自身,标识,帧):
         """按 id 取出未决并结算。帧是 dict。"""
         with 自身.锁:#互斥
-            条目=自身.未决.pop(标识,None)#按id取出
-        if 条目 is None:#未知id则忽略
+            任务=自身.未决.pop(标识,None)#按id取出
+        if 任务 is None:#未知id则忽略
             return#忽略
         if 'error' in 帧 and 帧['error'] is not None and isinstance(帧['error'],dict):#错误响应
             错误=帧['error']#错误对象
             消息=错误['message'] if 'message' in 错误 else None#取message
-            条目['承诺'].拒绝(语言服务器错误(消息 if isinstance(消息,str) else 'LSP error response','LSP_PROTOCOL'))#用消息拒绝
+            任务.拒绝(语言服务器错误(消息 if isinstance(消息,str) else '语言服务器错误响应','LSP_PROTOCOL'))#用消息拒绝
             return#已拒绝
         结果=帧['result'] if 'result' in 帧 else None#兑现result
-        条目['承诺'].兑现(结果)#兑现
+        任务.兑现(结果)#兑现
 
     def 写入(自身,消息):
         """编码并写入 stdin，等到写入回调后返回。"""
@@ -222,7 +221,7 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
     def 退出消息(自身):
         """退出关闭的错误消息；服务器写过 stderr 时追加保留的尾。"""
         尾=自身.stderr尾.strip()#去掉尾空白
-        return 'language server exited' if 尾=='' else 'language server exited; stderr: '+尾#无尾则短消息
+        return '语言服务器已退出' if 尾=='' else '语言服务器已退出; stderr: '+尾#无尾则短消息
 
     def 失败(自身,错误):
         """只保留第一次原因。"""
@@ -236,8 +235,8 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
         with 自身.锁:#互斥
             等待中=list(自身.未决.values())#快照未决
             自身.未决.clear()#清空表
-        for 条目 in 等待中:#逐条拒绝
-            条目['承诺'].拒绝(错误)#拒绝
+        for 任务 in 等待中:#逐条拒绝
+            任务.拒绝(错误)#拒绝
 
 连接写入器=object#连接写入器类型面
 连接孵化器=object#连接孵化器类型面

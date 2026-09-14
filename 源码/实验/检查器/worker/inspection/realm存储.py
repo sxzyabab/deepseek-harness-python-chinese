@@ -1,4 +1,3 @@
-"""Worker 拥有的 Host 与 Client realm 定义注册表。"""
 #对齐上游 worker/inspection/realm-store.ts
 
 from ..realms.client import Client检查器realm#Client realm

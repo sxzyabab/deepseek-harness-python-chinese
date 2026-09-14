@@ -1,8 +1,3 @@
-"""`node:vm` 桩。在独立 realm 中编译脚本无浏览器对应物；
-自修改与工作流行可挂载，在尝试编译时报告缺口。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/mock/vm.ts`。
-"""
 from ...未实现失败 import 未实现失败#导入未实现桩
 
 __all__=[#Node面

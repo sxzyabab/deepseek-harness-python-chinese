@@ -1,8 +1,3 @@
-"""按会话键缓存的命令目录。
-
-对齐上游 `ui-commands/src/client/directory.ts`。公开面仅中文名。
-AbortSignal 译为 threading.Event；拉取同步落定。描述符为跨包 dict。
-"""
 import threading#中止与等待
 from .约定 import 命令错误#本包异常
 from .解析 import 解析命令#精确名优先于本地化别名

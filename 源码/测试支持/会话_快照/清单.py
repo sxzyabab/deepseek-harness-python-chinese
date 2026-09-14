@@ -1,7 +1,3 @@
-"""解析并校验一份已记录会话快照清单。
-
-对齐上游 `session-snapshot/src/manifest.ts`。公开面仅中文名。
-"""
 import os,re#绝对路径与名模式
 import yaml#YAML 解析（对齐 js-yaml JSON_SCHEMA）
 
@@ -63,22 +59,22 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             'platform','permission','environment','workspace','input','session','sessionFormat',
         ],'manifest')#精确键
         if 根.get('version')!=1:#版本
-            raise Exception('manifest.version must equal 1')#版本
+            raise Exception('manifest.version 必须等于 1')#版本
         场景=None if 根.get('scenario') is None else 要求名(根['scenario'],'manifest.scenario')#场景
         if not isinstance(根.get('profile'),str) or 根['profile'] not in 合法配置档:#profile
-            raise Exception('manifest.profile must be headless, sdk, acp, or web')#profile
+            raise Exception('manifest.profile 必须是 headless、sdk、acp 或 web')#profile
         组合=None if 根.get('composition') is None else 要求名(根['composition'],'manifest.composition')#组合
         录制=None#录制
         if 根.get('recording') is not None:#有录制
             if not isinstance(根['recording'],str) or 根['recording'] not in 合法录制:#非法
-                raise Exception('manifest.recording must be live or authored')#非法
+                raise Exception('manifest.recording 必须是 live 或 authored')#非法
             录制=根['recording']#写入
         头=None#头
         if 根.get('header') is not None:#有头
             值=要求映射(根['header'],'manifest.header')#头映射
             精确键集(值,['class','pin','systemPromptSource','toolSchemasSource','childSystemPrompts','childToolSchemas','changes','promptChanges'],'manifest.header')#键
             if 值.get('pin') is not None and 值['pin'] is not True:#pin
-                raise Exception('manifest.header.pin must equal true when present')#pin
+                raise Exception('manifest.header.pin 若出现必须等于 true')#pin
             for 字段 in ('changes','promptChanges'):#非负整数字段
                 if 值.get(字段) is not None and (not isinstance(值[字段],int) or isinstance(值[字段],bool) or 值[字段]<0):#非法
                     raise Exception(f'manifest.header.{字段} must be a non-negative integer')#字段非法
@@ -102,32 +98,32 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             值=要求映射(根['replay'],'manifest.replay')#回放映射
             精确键集(值,['override'],'manifest.replay')#键
             if 值.get('override') is not True:#override
-                raise Exception('manifest.replay.override must equal true')#override
+                raise Exception('manifest.replay.override 必须等于 true')#override
             回放={'override':True}#写入
         平台=None#平台
         if 根.get('platform') is not None:#有平台
             if not isinstance(根['platform'],str) or 根['platform'] not in 合法平台:#非法
-                raise Exception('manifest.platform must be posix or pwsh')#非法
+                raise Exception('manifest.platform 必须是 posix 或 pwsh')#非法
             平台=根['platform']#写入
         权限=None#权限
         if 根.get('permission') is not None:#有权限
             if not isinstance(根['permission'],str) or 根['permission'] not in 合法权限:#非法
-                raise Exception('manifest.permission must be read-only, workspace-write, or danger-full-access')#非法
+                raise Exception('manifest.permission 必须是 read-only、workspace-write 或 danger-full-access')#非法
             权限=根['permission']#写入
         环境=None#环境
         if 根.get('environment') is not None:#有环境
             值=要求映射(根['environment'],'manifest.environment')#环境映射
             if any(not 环境名模式.match(键) or not isinstance(项,str) for 键,项 in 值.items()):#非法
-                raise Exception('manifest.environment must map uppercase environment names to strings')#非法
+                raise Exception('manifest.environment 必须把大写环境名映射到字符串')#非法
             环境=dict(值)#写入
         工作区=None#工作区
         if 根.get('workspace') is not None:#有工作区
             值=要求映射(根['workspace'],'manifest.workspace')#工作区映射
             精确键集(值,['setup','final','parent'],'manifest.workspace')#键
             if 值.get('final') is not None and 值['final'] is not True:#final
-                raise Exception('manifest.workspace.final must equal true when present')#final
+                raise Exception('manifest.workspace.final 若出现必须等于 true')#final
             if 值.get('parent') is not None and 值['parent']!='outside-temp':#parent
-                raise Exception('manifest.workspace.parent must equal outside-temp')#parent
+                raise Exception('manifest.workspace.parent 必须是 outside-temp')#parent
             工作区={}#组装
             if 值.get('setup') is not None:#setup
                 工作区['setup']=要求名(值['setup'],'manifest.workspace.setup')#写入
@@ -136,17 +132,17 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             if 值.get('parent')=='outside-temp':#parent
                 工作区['parent']='outside-temp'#写入
             if len(工作区)==0:#空
-                raise Exception('manifest.workspace must not be empty')#空
+                raise Exception('manifest.workspace 不能为空')#空
         输入=None#输入
         if 根.get('input') is not None:#有输入
             值=要求映射(根['input'],'manifest.input')#输入映射
             精确键集(值,['task','attachments'],'manifest.input')#键
             if 值.get('task') is not None and (not isinstance(值['task'],str) or 值['task'].strip()==''):#task
-                raise Exception('manifest.input.task must be a non-empty string when present')#task
+                raise Exception('manifest.input.task 若出现必须是非空字符串')#task
             附件列表=None#附件
             if 值.get('attachments') is not None:#有附件
                 if not isinstance(值['attachments'],list) or len(值['attachments'])==0:#非法
-                    raise Exception('manifest.input.attachments must be a non-empty array')#非法
+                    raise Exception('manifest.input.attachments 必须是非空数组')#非法
                 附件列表=[]#列表
                 for 索引,项 in enumerate(值['attachments']):#逐项
                     附件=要求映射(项,f'manifest.input.attachments[{索引}]')#映射
@@ -159,9 +155,9 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
                         raise Exception(f'manifest.input.attachments[{索引}].data must be non-empty base64')#data
                     附件列表.append({'id':附件['id'],'mediaType':附件['mediaType'],'data':附件['data']})#追加
                 if len({项['id'] for 项 in 附件列表})!=len(附件列表):#重复
-                    raise Exception('manifest.input.attachments must have unique ids')#重复
+                    raise Exception('manifest.input.attachments 的 id 必须唯一')#重复
             if 值.get('task') is None and 附件列表 is None:#空输入
-                raise Exception('manifest.input must declare task or attachments')#空
+                raise Exception('manifest.input 必须声明 task 或 attachments')#空
             输入={}#组装
             if 值.get('task') is not None:#task
                 输入['task']=值['task']#写入
@@ -172,16 +168,16 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             值=要求映射(根['session'],'manifest.session')#会话映射
             精确键集(值,['source'],'manifest.session')#键
             if not isinstance(值.get('source'),str) or 值['source'].strip()=='':#source
-                raise Exception('manifest.session.source must be a non-empty string')#source
+                raise Exception('manifest.session.source 必须是非空字符串')#source
             if os.path.isabs(值['source']) or '\\' in 值['source'] or '\0' in 值['source']:#相对 POSIX
-                raise Exception('manifest.session.source must be a relative POSIX path')#相对
+                raise Exception('manifest.session.source 必须是相对 POSIX 路径')#相对
             会话={'source':值['source']}#写入
         会话格式=None#会话格式
         if 根.get('sessionFormat') is not None:#有会话格式
             值=要求映射(根['sessionFormat'],'manifest.sessionFormat')#格式映射
             精确键集(值,['version','coverage'],'manifest.sessionFormat')#键
             if not isinstance(值.get('version'),int) or isinstance(值['version'],bool) or 值['version']<0:#version
-                raise Exception('manifest.sessionFormat.version must be a non-negative safe integer')#version
+                raise Exception('manifest.sessionFormat.version 必须是非负安全整数')#version
             覆盖=值.get('coverage')#覆盖
             if (not isinstance(覆盖,list) or len(覆盖)==0
                 or any(not isinstance(项,str) or 项 not in 合法会话格式覆盖 for 项 in 覆盖)
@@ -190,7 +186,7 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
                     'manifest.sessionFormat.coverage must be a non-empty array of unique supported coverage names',
                 )#coverage
             if 会话 is not None:#借用方不可钉历史
-                raise Exception('manifest.sessionFormat is only valid when the scenario owns its Session fixtures')#冲突
+                raise Exception('仅当场景拥有自己的 Session 夹具时才允许 manifest.sessionFormat')#冲突
             会话格式={'version':int(值['version']),'coverage':list(覆盖)}#组装
         结果={'version':1,'profile':根['profile']}#组装清单
         if 场景 is not None:#场景

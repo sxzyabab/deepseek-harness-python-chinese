@@ -1,4 +1,3 @@
-"""原生 Node Debugger 通知上的 SourceBackend 实现。"""
 #对齐上游 worker/realms/host/sources.ts
 
 from ....共享.json import 检查器错误#包内错误

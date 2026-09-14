@@ -1,7 +1,3 @@
-"""每个 DevTools 会话上，跨统一 Host 与 Client realm 的 Runtime 路由。
-
-对齐上游 `worker/cdp/domains/runtime/session.ts`。公开面仅中文名。
-"""
 from .....共享.json import 检查器错误,在线程执行#包内错误|后台跑
 from ...协议 import cdp错误,响应cdp请求#协议
 from .cdp参数 import (#参数解析

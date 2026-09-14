@@ -1,9 +1,3 @@
-"""为 dsh-scope 不变量生成的作用域事件路由主体解析器。
-
-对齐上游 `scoped-events.generated.ts`。勿手改；上游以 `pnpm run gen-scoped-events` 重新生成后再同步本表。
-公开面仅中文名；无英文公开别名。事件名字符串为 Cordis 运行时字面量，保持上游原样。
-"""
-
 __all__=('未登记','按事件取主体解析器')#仅中文公开名；解析辅助与表为包内细节
 
 未登记=object()#对应 TS 查表得到的 undefined；与 None（仅检查载体）区分

@@ -1,13 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-directory-picker-browse` 的本包拥有不变量配套。
-
-
-
-对齐上游 `ui-directory-picker-browse/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：每一份列表都是按需从 Host 重读。
-
-"""
-
 from ...依赖 import cordis#外部依赖胶水
 
 

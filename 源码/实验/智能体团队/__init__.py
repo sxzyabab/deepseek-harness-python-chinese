@@ -1,7 +1,3 @@
-"""Agent Teams 服务门面：覆盖 roster、mailbox、task 与运行时生命周期所有者。
-
-对齐上游 `agent-team/src/index.ts`。公开面仅中文名。
-"""
 import threading#微任务调度
 from ...依赖.schemastery import 正整数字段,字典字段#配置字段
 from ...依赖.工具 import 聚合错误#聚合错误

@@ -1,9 +1,3 @@
-"""施加可搜索隐藏状态，且不卸载稳定子树。
-
-对齐上游 `ui-chat/src/client/chat/searchable-hidden.ts`。公开面仅中文名。
-无真 DOM：以结构描述 hidden/until-found 与 beforematch 揭示。
-"""
-
 __all__=['可搜索隐藏']#仅中文公开名
 
 class 可搜索隐藏:#可搜索隐藏席位

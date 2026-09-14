@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-subagent-in-process-driver 的本包拥有不变量配套。"""
 包名='@deepseek-ai/dsh-subagent-in-process-driver'#包名
 名称='subagent-in-process-driver-invariant'#插件名
 注入=['invariants']#依赖

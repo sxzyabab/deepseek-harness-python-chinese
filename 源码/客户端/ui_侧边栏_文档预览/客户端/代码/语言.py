@@ -1,7 +1,3 @@
-"""映射到共享 CodeBlock 已支持文法的文件后缀。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/code/languages.ts`。公开面仅中文名。
-"""
 
 __all__=['代码扩展名','路径语言']#仅中文公开名
 

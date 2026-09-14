@@ -1,9 +1,3 @@
-"""用户/转向字面文本原语；助手输出走 Markdown文本。
-
-对齐上游 `ui-primitives/src/markdown/MessageText.tsx`。公开面仅中文名。
-属性为 dict。
-"""
-
 __all__=['消息文本']#仅中文公开名
 
 class 消息文本:#字面文本

@@ -1,8 +1,3 @@
-"""模型选择插件浏览器半边。
-
-对齐上游 `ui-model-selection/src/client/index.ts`。公开面仅中文名。
-/model 弹出与撰写器座位共用每会话目录。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .服务 import 模型目录解析器#目录解析器
 from .模型选择 import 模型选择#座位组件

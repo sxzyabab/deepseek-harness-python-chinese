@@ -1,12 +1,3 @@
-"""Worker 的进程表。浏览器 Worker 无法 fork，因此
-`node:child_process` 垫片自建表：每个正在运行的命令一条记录，
-`process.kill` 与子进程服务的树形记账都按 pid 寻址。
-
-与两侧消费者分开存放，因为它们从相反方向需要它——
-垫片负责登记条目，`process` 全局负责发信号。
-
-对齐上游 `webworker-runtime/src/node/process-table.ts`。公开面仅中文名。
-"""
 __all__=['登记进程','释放进程','进程存活','信号进程']#仅中文公开名
 
 _表项表={}#pid到表项

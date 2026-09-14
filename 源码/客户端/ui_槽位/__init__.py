@@ -1,7 +1,3 @@
-"""槽位登记表纯核心。
-
-对齐上游 `@deepseek-ai/dsh-client-ui-slots`。公开面仅中文名。
-"""
 from .登记表 import 槽位登记表,解析槽标签,槽位错误#登记表面
 from .渲染器 import 过期授权错误,槽位所有权错误#错误类型
 

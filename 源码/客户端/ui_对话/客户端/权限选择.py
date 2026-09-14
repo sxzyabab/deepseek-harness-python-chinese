@@ -1,8 +1,3 @@
-"""访问模式芯片：只读 / 工作区写 / Full access。
-
-对齐上游 `ui-conversation/src/client/skeleton/PermissionSelect.tsx`。公开面仅中文名。
-属性与选项为 dict。
-"""
 import re#kebab 检测
 
 __all__=['权限选择','显示名','选项标签','完全访问','权限字形键']#仅中文公开名

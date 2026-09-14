@@ -1,8 +1,3 @@
-"""增量高亮源码；文档拥有方供给累计文本与换行偏好。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/code/CodeBody.tsx`。公开面仅中文名。
-无 React：正文为视图模型。
-"""
 from .语言 import 路径语言#文法
 from ..远程过程调用 import 宿主文件#宿主文件
 

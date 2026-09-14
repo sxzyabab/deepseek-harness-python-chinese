@@ -1,10 +1,3 @@
-"""打包规则表：镜像 include/exclude 决策的唯一落点。
-模式为 picomatch glob。Exclude 匹配树根相对路径（因此 `src/**` 只丢掉根级源码树），
-page-asset 模式匹配镜像路径。遍历机制——嵌套 `node_modules` 压平与点目录剪枝——留在收集器；
-这些表只承载判断。
-
-对齐上游 `webworker-packer/src/rules.ts`。公开面仅中文名。
-"""
 __all__=[#仅中文公开名
     '排除','工作区排除','页面资源','镜像入口种子',
 ]#公开面结束

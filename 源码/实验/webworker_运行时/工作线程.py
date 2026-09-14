@@ -1,8 +1,3 @@
-"""Dedicated Web Worker 入口。本应用拥有的 Node 兼容层以模块表与捕获的请求
-监听器形式交给宿主装配；装配拥有其余一切。
-
-对齐上游 `webworker-runtime/src/worker.ts`。公开面仅中文名。
-"""
 from .node.未实现失败 import 运行时错误#本包错误
 from .工作线程宿主 import 创建工作线程宿主#宿主装配工厂
 #对齐上游预装：buffer / async_hooks / timers / crypto / builtins / http / shell
@@ -21,7 +16,7 @@ def 安装工作线程入口(#工作线程入口
     安装crypto全局=None,#installCryptoGlobals
     安装process全局=None,#installProcessGlobal
     是否shell启动帧=None,#isShellStartFrame
-    跑shell进程=None,#runShellProcess
+    执行shell进程=None,#runShellProcess
     自身=None,#worker global scope
 ):
     """安装消息入口：init 前排队，shell 角色分派，装配后根上下文派发。"""
@@ -43,15 +38,15 @@ def 安装工作线程入口(#工作线程入口
             shell角色[0]=True#标记角色
             if 安装process全局 is not None:#安装最小process
                 安装process全局({'cwd':数据.get('cwd'),'env':数据.get('env')})#安装
-            if 跑shell进程 is not None:#跑shell命令
-                跑shell进程(数据,作用域)#跑
+            if 执行shell进程 is not None:#执行shell命令
+                执行shell进程(数据,作用域)#执行
             return#结束
         if 宿主[0] is None and isinstance(数据,dict) and 数据.get('t')=='init':#开局init
             if not isinstance(数据.get('image'),str):#镜像URL缺失
-                raise 运行时错误('webworker: init frame needs a string image url')#拒绝
+                raise 运行时错误('webworker: init 帧需要字符串 image url')#拒绝
             覆盖层=数据.get('overlays')#overlays
             if not isinstance(覆盖层,list) or any(not isinstance(层,str) for 层 in 覆盖层):#overlays非法
-                raise 运行时错误('webworker: init frame needs an array of string overlay urls')#拒绝
+                raise 运行时错误('webworker: init 帧需要字符串 overlay url 列表')#拒绝
             创建=创建工作线程宿主({#装配宿主
                 'staticModules':创建内建() if callable(创建内建) else {},#内建模块表
                 'staticModulePrefixes':{} if 替换前缀 is None else 替换前缀,#??空表，空字典合法

@@ -1,8 +1,3 @@
-"""Markdown 到纯文本的投影，用于紧凑摘要与标签。
-
-对齐上游 `ui-primitives/src/markdown/plain-text.ts`。公开面仅中文名。
-mdast 节点与选项为 dict。
-"""
 from .解析 import 解析GFM#流式 GFM 解析
 
 __all__=['抽取Markdown纯文本','内联文本','块文本']#仅中文公开名

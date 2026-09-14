@@ -1,7 +1,3 @@
-"""浏览器侧对已键入 API 密钥的判定。
-
-对齐上游 `ui-settings-models/src/client/apiKey.ts`。公开面仅中文名。
-"""
 import re#正则
 
 __all__=['合法密钥模式','环境行模式','是否引号包裹','密钥失败']#仅中文公开名

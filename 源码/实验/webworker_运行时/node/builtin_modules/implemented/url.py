@@ -1,9 +1,3 @@
-"""worker 侧的 `node:url`：主机树使用的两种转换，外加浏览器已提供的 WHATWG 类。
-VFS 路径为 POSIX，故 file-URL 映射是简单的百分号编码对。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/url.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 __all__=[#中文公开名与Node英文挂名
     '文件url转路径','路径转文件url','解析',
     'fileURLToPath','pathToFileURL','resolve','URL','URLSearchParams','__esModule','default',

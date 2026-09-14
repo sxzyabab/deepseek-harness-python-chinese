@@ -1,8 +1,3 @@
-"""检查器跨界消息一律承认的 JSON 值。
-
-对齐上游 `shared/json.ts`。公开面仅中文名。
-本包并发原语也落在此文件。
-"""
 import json,threading#序列化与后台线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 

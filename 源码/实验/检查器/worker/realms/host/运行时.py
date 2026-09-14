@@ -1,4 +1,3 @@
-"""一个原生 Node inspector 会话上的 RuntimeBackend 实现。"""
 #对齐上游 worker/realms/host/runtime.ts 段1
 
 from ....共享.json import 检查器错误#包内错误
@@ -65,7 +64,7 @@ class Host运行时后端:#Host Runtime后端
             所选=请求['context'] if 'context' in 请求 and 请求['context'] is not None else _默认上下文(自身._默认上下文id)#所选上下文
             上下文=_原生上下文(所选,'executionContextId')#上下文
         if 接收者 is None and 上下文 is None:#不可用
-            raise 检查器错误('Host Runtime default execution context is unavailable')#抛错
+            raise 检查器错误('Host Runtime 默认执行上下文不可用')#抛错
         参数={#请求
             'functionDeclaration':请求['functionDeclaration'],#函数声明
             **({'objectId':接收者} if 接收者 is not None else 上下文),#目标
@@ -99,7 +98,7 @@ class Host运行时后端:#Host Runtime后端
         })#request结束
         名字=响应['names'] if 'names' in 响应 else None#名字
         if not isinstance(名字,list) or not all(isinstance(名,str) for 名 in 名字):#校验
-            raise 检查器错误('Host Runtime returned invalid lexical scope names')#无效
+            raise 检查器错误('Host Runtime 返回了无效的词法作用域名')#无效
         return 名字#名字
 
     def 释放对象(自身,句柄):#释放对象
@@ -124,7 +123,7 @@ class Host运行时后端:#Host Runtime后端
     def _属性集(自身,值):#属性集
         """转换属性结果。"""
         if 'result' not in 值 or not isinstance(值['result'],list):#无效
-            raise 检查器错误('Host Runtime returned invalid properties')#无效
+            raise 检查器错误('Host Runtime 返回了无效的属性')#无效
         输出={'properties':[自身._属性(项) for 项 in 值['result']]}#属性
         if 'internalProperties' in 值 and 值['internalProperties'] is not None:#内部
             输出['internalProperties']=自身._内部属性(值['internalProperties'])#含
@@ -138,7 +137,7 @@ class Host运行时后端:#Host Runtime后端
         """转换属性描述符。"""
         记录=要求原生记录(值,'Host Runtime property descriptor')#记录
         if not isinstance(记录.get('name'),str) or not isinstance(记录.get('configurable'),bool) or not isinstance(记录.get('enumerable'),bool):#无效
-            raise 检查器错误('Host Runtime returned invalid property descriptor')#无效
+            raise 检查器错误('Host Runtime 返回了无效的属性描述符')#无效
         描述符={**记录,'name':记录['name'],'configurable':记录['configurable'],'enumerable':记录['enumerable']}#描述符
         if 'value' in 记录 and 记录['value'] is not None:#值
             描述符['value']=自身.远程对象(记录['value'])#值
@@ -153,12 +152,12 @@ class Host运行时后端:#Host Runtime后端
     def _内部属性(自身,值):#内部属性
         """转换内部属性列表。"""
         if not isinstance(值,list):#无效
-            raise 检查器错误('Host Runtime returned invalid internal properties')#无效
+            raise 检查器错误('Host Runtime 返回了无效的内部属性')#无效
         结果=[]#列表
         for 项 in 值:#映射
             记录=要求原生记录(项,'Host Runtime internal property')#记录
             if not isinstance(记录.get('name'),str):#无效
-                raise 检查器错误('Host Runtime returned invalid internal property')#无效
+                raise 检查器错误('Host Runtime 返回了无效的内部属性')#无效
             描述符={'name':记录['name']}#描述符
             if 'value' in 记录 and 记录['value'] is not None:#值
                 描述符['value']=自身.远程对象(记录['value'])#值
@@ -168,12 +167,12 @@ class Host运行时后端:#Host Runtime后端
     def _私有属性(自身,值):#私有属性
         """转换私有属性列表。"""
         if not isinstance(值,list):#无效
-            raise 检查器错误('Host Runtime returned invalid private properties')#无效
+            raise 检查器错误('Host Runtime 返回了无效的私有属性')#无效
         结果=[]#列表
         for 项 in 值:#映射
             记录=要求原生记录(项,'Host Runtime private property')#记录
             if not isinstance(记录.get('name'),str):#无效
-                raise 检查器错误('Host Runtime returned invalid private property')#无效
+                raise 检查器错误('Host Runtime 返回了无效的私有属性')#无效
             描述符={'name':记录['name']}#描述符
             if 'value' in 记录 and 记录['value'] is not None:#值
                 描述符['value']=自身.远程对象(记录['value'])#值
@@ -190,7 +189,7 @@ class Host运行时后端:#Host Runtime后端
         行号=记录['lineNumber'] if 'lineNumber' in 记录 else None#行号
         列号=记录['columnNumber'] if 'columnNumber' in 记录 else None#列号
         if not isinstance(记录.get('text'),str) or not isinstance(行号,int) or isinstance(行号,bool) or not isinstance(列号,int) or isinstance(列号,bool):#无效
-            raise 检查器错误('Host Runtime returned invalid exception details')#无效
+            raise 检查器错误('Host Runtime 返回了无效的异常详情')#无效
         详情={**记录,'text':记录['text'],'lineNumber':行号,'columnNumber':列号}#详情
         if 'stackTrace' in 记录 and 记录['stackTrace'] is not None:#栈
             详情['stackTrace']=自身.栈跟踪(记录['stackTrace'])#栈
@@ -202,7 +201,7 @@ class Host运行时后端:#Host Runtime后端
         """转换原生 V8 RemoteObject。"""
         记录=要求原生记录(值,'Host Runtime RemoteObject')#记录
         if not isinstance(记录.get('type'),str):#无效
-            raise 检查器错误('Host Runtime returned an invalid RemoteObject')#无效
+            raise 检查器错误('Host Runtime 返回了无效的 RemoteObject')#无效
         描述符={键:项 for 键,项 in 记录.items() if 键!='objectId'}#去掉objectId
         对象id=记录['objectId'] if isinstance(记录.get('objectId'),str) else None#对象id
         语义=None if 对象id is None else 自身._识别对象(对象id)#语义引用
@@ -217,14 +216,14 @@ class Host运行时后端:#Host Runtime后端
         """转换原生栈跟踪。"""
         记录=要求原生记录(值,'Host Runtime stack trace')#记录
         if 'callFrames' not in 记录 or not isinstance(记录['callFrames'],list):#无效
-            raise 检查器错误('Host Runtime returned an invalid stack trace')#无效
+            raise 检查器错误('Host Runtime 返回了无效的栈跟踪')#无效
         帧列表=[]#帧
         for 帧 in 记录['callFrames']:#帧
             字段=要求原生记录(帧,'Host Runtime call frame')#字段
             行号=字段['lineNumber'] if 'lineNumber' in 字段 else None#行号
             列号=字段['columnNumber'] if 'columnNumber' in 字段 else None#列号
             if not isinstance(字段.get('functionName'),str) or not isinstance(字段.get('url'),str) or not isinstance(行号,int) or isinstance(行号,bool) or not isinstance(列号,int) or isinstance(列号,bool):#无效
-                raise 检查器错误('Host Runtime returned an invalid call frame')#无效
+                raise 检查器错误('Host Runtime 返回了无效的调用帧')#无效
             项={'functionName':字段['functionName'],'url':字段['url'],'lineNumber':行号,'columnNumber':列号}#帧对象
             if isinstance(字段.get('scriptId'),str):#脚本
                 项['scriptKey']=Host脚本键(字段['scriptId'])#键
@@ -290,4 +289,4 @@ def _转原生参数(值):#转原生参数
         return {'objectId':值['handle']}#对象
     if 种类=='undefined':#undefined
         return {}#undefined
-    raise 检查器错误(f'Unexpected Runtime call argument: {值!r}')#未预期
+    raise 检查器错误(f'未预期的 Runtime 调用参数：{值!r}')#未预期

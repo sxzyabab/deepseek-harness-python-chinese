@@ -1,7 +1,3 @@
-"""模型重试链会话节点。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/retry.ts`。公开面仅中文名。
-"""
 from .节点工厂 import 聊天错误,聊天节点,上下文位置#公共
 
 __all__=['重试定义','登记重试会话节点']#仅中文公开名

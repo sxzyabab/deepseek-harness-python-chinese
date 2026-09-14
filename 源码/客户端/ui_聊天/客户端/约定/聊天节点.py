@@ -1,7 +1,3 @@
-"""Chat 业务 Definition 产出的最终 Chat 渲染单元与载荷。
-
-对齐上游 `ui-chat/src/client/contract/chat-nodes.ts`。公开面仅中文名。
-"""
 
 __all__=[#仅中文公开名
     '聊天会话视图节点','聊天节点数据表','助手聊天数据','工具聊天数据',

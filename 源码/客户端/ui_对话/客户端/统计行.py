@@ -1,8 +1,3 @@
-"""会话环境读数带：回合/步/时长/吞吐/缓存/令牌。
-
-对齐上游 `ui-conversation/src/client/chat/StatsLine.tsx`。公开面仅中文名。
-节点、用量、统计为 dict。
-"""
 from .消息铬 import 格式化每秒令牌#吞吐数字
 from .回合指标 import 助手步骤读数#步骤读数
 

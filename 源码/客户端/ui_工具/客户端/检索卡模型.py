@@ -1,8 +1,3 @@
-"""从冻结调用切片纯派生 search 卡片 props。
-
-对齐上游 `ui-tool/src/client/tool/models/search-card-model.ts`。公开面仅中文名。
-"""
-
 __all__=['聊天检索最大行数','检索卡模型']#仅中文公开名
 
 聊天检索最大行数=8#聊天行 search 正文折叠前最大行数

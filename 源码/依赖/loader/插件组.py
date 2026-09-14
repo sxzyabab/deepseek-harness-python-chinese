@@ -1,4 +1,3 @@
-"""子插件配置列表的运行时拥有者，以及把它挂成嵌套组的插件。"""
 from .. import cordis
 from weakref import WeakSet as 弱引用集合#热替换换掉的插件对象自行掉出
 from .插件配置 import 插件配置#插件配置节点

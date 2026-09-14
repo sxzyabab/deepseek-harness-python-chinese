@@ -1,10 +1,3 @@
-"""任何 VFS 模块运行前 Worker 所需的 `process` 全局。Cordis 在构造 Loader 时
-会读 `process.env` 与 `process.versions.node`，且 `cordis.yml` 保留其
-`!!js process.*` 表达式，因此配置字节与 Node 部署保持一致。第三方 Node
-包用是否存在 `process.title` 来避开仅浏览器全局。
-
-对齐上游 `webworker-runtime/src/node/globals/process.ts`。公开面仅中文名。
-"""
 import time#高分辨率起点
 from ...module_system.模块加载器 import 要求活动模块加载器#导入活动加载器
 from ..进程表 import 进程存活,信号进程#导入进程表操作

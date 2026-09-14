@@ -7,5 +7,6 @@
     "service":"服务",
     "ui":"UI",
     "claim":"认领",
+    "run":"分离执行",
     "token":"令牌"
 }

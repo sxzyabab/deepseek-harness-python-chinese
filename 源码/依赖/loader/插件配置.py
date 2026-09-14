@@ -1,4 +1,3 @@
-"""插件树里的一份已配置插件。"""
 from .. import cordis
 from .. import 工具
 from ..工具 import 求值,是否表达式节点,取表达式#配置表达式
@@ -15,7 +14,7 @@ def 更新错误(阶段,选项,原因):
     """把插件配置生命周期失败收成一条带原因的错误。"""
     编号=选项['id'] if 'id' in 选项 else None#插件配置编号
     名称=选项['name'] if 'name' in 选项 else None#插件名
-    return 加载器错误('failed to '+阶段+' plugin config '+str(编号)+' ('+str(名称)+'): '+str(原因),原因)#交给调用方抛出
+    return 加载器错误('无法'+阶段+'插件配置 '+str(编号)+'（'+str(名称)+'）：'+str(原因),原因)#交给调用方抛出
 
 def 排序键(选项:dict)->dict:
     "把 id、name 提到最前，config 放到最后，其余键按名排序"
@@ -119,13 +118,13 @@ class 插件配置:
     def _导入并启动(自身):
         "导入插件模块再启动它"
         try:
-            插件=自身.加载器.解开导出(自身.父组.所属树.导入(自身.选项.get('name'),自身.取外层栈()))#导入
+            插件=自身.加载器.取出默认导出(自身.父组.所属树.导入(自身.选项.get('name'),自身.取外层栈()))#导入
         except BaseException as 错误:
-            raise 更新错误('import',自身.选项,错误)#导入失败
+            raise 更新错误('导入',自身.选项,错误)#导入失败
         try:
             自身._启动(插件)#启动
         except BaseException as 错误:
-            raise 更新错误('apply',自身.选项,错误)#启动失败
+            raise 更新错误('应用',自身.选项,错误)#启动失败
 
     def _启动(自身,插件):
         "补丁上下文、启动插件，插件回调在启动插件里同步跑完"
@@ -146,7 +145,7 @@ class 插件配置:
         try:
             自身.纤程.等待()#取出启动错误
         except BaseException as 错误:
-            raise 更新错误('apply',自身.选项,错误)#应用失败
+            raise 更新错误('应用',自身.选项,错误)#应用失败
 
     def _拆除(自身,纤程=None):
         "拆掉指定纤程，期间把本层标记为正在拆除"
@@ -215,7 +214,7 @@ class 插件配置:
             自身._拆除(旧纤程)#拆掉旧纤程
         except BaseException as 错误:
             自身.选项=原选项#回滚选项
-            raise 更新错误('dispose',候选,错误)
+            raise 更新错误('拆除',候选,错误)
         提交()#提交候选
         自身.事件上下文.广播('loader/partial-dispose',自身,旧快照,True)#通知隔离钩子回收
 
@@ -229,9 +228,9 @@ class 插件配置:
             try:
                 自身._补丁上下文(变化键列表)#按旧选项再补一次
             except BaseException as 回滚错误:
-                raise 更新错误('rollback',旧快照,cordis.聚合错误([错误,回滚错误]))
+                raise 更新错误('回滚',旧快照,cordis.聚合错误([错误,回滚错误]))
             自身.事件上下文.广播('loader/partial-dispose',自身,候选,True)#通知隔离钩子回收
-            raise 更新错误('apply',候选,错误)
+            raise 更新错误('应用',候选,错误)
         提交()#提交候选
         自身.事件上下文.广播('loader/partial-dispose',自身,旧快照,True)#通知隔离钩子回收
 
@@ -239,18 +238,18 @@ class 插件配置:
         "插件名或依赖变了，拆掉旧纤程再用新插件启动"
         try:
             if 'name' in 变化键列表:
-                新插件=自身.加载器.解开导出(自身.父组.所属树.导入(候选.get('name'),自身.取外层栈()))#按新名导入
+                新插件=自身.加载器.取出默认导出(自身.父组.所属树.导入(候选.get('name'),自身.取外层栈()))#按新名导入
             else:
                 新插件=旧纤程.运行时.回调#插件没换，沿用旧回调
         except BaseException as 错误:
-            raise 更新错误('import',候选,错误)
+            raise 更新错误('导入',候选,错误)
         旧插件=旧纤程.运行时.回调#回滚时用的旧插件
         自身.选项=候选#先按候选跑
         try:
             自身._拆除(旧纤程)#拆掉旧纤程
         except BaseException as 错误:
             自身.选项=原选项#回滚选项
-            raise 更新错误('dispose',候选,错误)
+            raise 更新错误('拆除',候选,错误)
         try:
             自身._启动(新插件)#用新插件启动
         except BaseException as 错误:
@@ -258,8 +257,8 @@ class 插件配置:
             try:
                 自身._启动(旧插件)#装回旧插件
             except BaseException as 回滚错误:
-                raise 更新错误('rollback',旧快照,cordis.聚合错误([错误,回滚错误]))
+                raise 更新错误('回滚',旧快照,cordis.聚合错误([错误,回滚错误]))
             自身.事件上下文.广播('loader/partial-dispose',自身,候选,True)#通知隔离钩子回收
-            raise 更新错误('apply',候选,错误)
+            raise 更新错误('应用',候选,错误)
         提交()#提交候选
         自身.事件上下文.广播('loader/partial-dispose',自身,旧快照,True)#通知隔离钩子回收

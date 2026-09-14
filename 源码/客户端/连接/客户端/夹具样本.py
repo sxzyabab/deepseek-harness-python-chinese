@@ -1,8 +1,3 @@
-"""fixture 展示样本常量、模型目录与工具视图/投影/检索辅助。
-
-对齐上游 `connection/src/client/fixture.ts` 样本区与 present*/viewFor/投影/检索叶。
-公开面仅中文名；协议键（type/card/kind 等）保持英文。
-"""
 import json,unicodedata#参数解析与码点分类
 from ....模型后端.llm.助手流 import 展开助手流#嵌入流展开
 from .接口 import 会话搜索结果上限#检索条数上限

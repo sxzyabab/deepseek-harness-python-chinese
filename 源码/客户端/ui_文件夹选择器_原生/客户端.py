@@ -1,9 +1,3 @@
-"""原生选目录后端的浏览器半边。
-
-用无渲染占用方填上 ui-workspace 的两个 directory-flow 洞；每次 open 都去驱动 host.pickDirectory，并把唯一结果经拥有方会话回报。
-
-对齐上游 `ui-directory-picker-native/src/client/index.ts`。公开面仅中文名。
-"""
 from .流 import 原生目录流#无渲染原生选目录占用方
 
 __all__=['注入','应用','原生目录流']#仅中文公开名

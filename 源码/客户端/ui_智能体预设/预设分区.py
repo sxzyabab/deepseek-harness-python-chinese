@@ -1,8 +1,3 @@
-"""智能体预设设置分区：名册卡片、复制对话框、只读查看与删除确认。
-
-对齐上游 `ui-agent-preset/src/client/AgentPresetSection.tsx`。公开面仅中文名。
-浏览器不编辑组合正文；复制是创建唯一途径。
-"""
 from .文案 import 预设展示文案#展示文案
 from .分区存储 import 草稿阻挡#客户端阻挡
 

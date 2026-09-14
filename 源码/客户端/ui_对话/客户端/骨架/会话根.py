@@ -1,9 +1,3 @@
-"""常驻会话骨架：英雄相位、撰写座位与会话滚动体。
-
-对齐上游 `ui-conversation/src/client/skeleton/ConversationRoot.tsx`。公开面仅中文名。
-DOM/ResizeObserver 半由宿主渲染；本模块落盘相位与座位推导。
-属性、快照、工作区项为 dict。
-"""
 
 __all__=['会话根','工作区标签','派生相位','芯片标题']#仅中文公开名
 

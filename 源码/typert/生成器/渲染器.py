@@ -1,8 +1,3 @@
-"""对与编译器无关的 TypeGraph 做渲染与遍历。
-
-对齐上游 `typert/generator/src/renderer.ts`。公开面仅中文名。
-代码输出走本模块，不回头碰 TypeScript AST。
-"""
 import re#属性名合法性
 from .模型 import 子类型节点标识列表#子边
 

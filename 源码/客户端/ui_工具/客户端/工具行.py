@@ -1,9 +1,3 @@
-"""工具摘要行：单行工具摘要与展开体。
-
-对齐上游 `ui-tool/src/client/tool/components/ToolRow.tsx`。公开面仅中文名。
-展开态本地；整行作为展开开关；错误行折叠摘要为失败首行。
-卡材料互斥；展开体优先卡再 IN/OUT；code 变体程序走代码块。
-"""
 from .差异卡模型 import 聊天差异最大行数#diff 封顶
 from .读卡模型 import 聊天读最大行数#读封顶
 from .检索卡模型 import 聊天检索最大行数#检索封顶

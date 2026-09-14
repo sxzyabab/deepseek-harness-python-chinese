@@ -1,8 +1,3 @@
-"""`koffi` 桩：Windows ACL 层与 Landlock 启动器使用的 FFI 桥。
-类型构造器返回不透明令牌；任何真正跨入原生代码的入口都大声失败。
-
-对齐上游 `webworker-runtime/src/node/external_packages/koffi.ts`。
-"""
 import json#诊断序列化
 from ..未实现失败 import 未实现失败,运行时错误#未实现桩|本包错误
 
@@ -30,7 +25,7 @@ def 解析类型(目标):#解析为描述符
         if 大小 is None: raise 运行时错误(f'web-preview: koffi type "{目标}" is unknown to the stub')#未知
         return 造令牌(目标,大小)#造令牌
     if not isinstance(目标,dict) or 目标.get('__dshKoffiType') is None:#非法
-        raise 运行时错误('web-preview: koffi type '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is not a stub descriptor')#报错
+        raise 运行时错误('web-preview: koffi 类型 '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 不是桩描述符')#报错
     return 目标#交回
 
 def 描述(目标):#取标签

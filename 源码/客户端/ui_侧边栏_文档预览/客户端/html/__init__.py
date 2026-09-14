@@ -1,7 +1,3 @@
-"""内置 HTML 元数据与带键正文登记；装配属于包入口。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/index.ts`。公开面仅中文名。
-"""
 from ..远程过程调用 import 宿主文件#宿主文件
 from .文案 import 中文,英文,超文本预览键#词典
 from .超文本体 import 超文本体#正文

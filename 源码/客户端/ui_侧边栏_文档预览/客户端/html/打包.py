@@ -1,8 +1,3 @@
-"""有限的 HTML 声明经典脚本与样式表；无模块、CSS 依赖或运行时 fetch 遍历。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/pack.ts`。公开面仅中文名。
-无 DOM 时只返回正文包（不解析依赖）；有 DOM 时按上游规则收集。
-"""
 import re#相对判定
 from .字节 import 解码文本#解码
 from ..面 import 已中止#中止
@@ -26,10 +21,10 @@ def 打包超文本(数据,相对读取,信号):
     无浏览器 DOM 时返回仅正文的包（依赖留空）；解码、上限与读取失败抛错。
     """
     if 已中止(信号):#已中止
-        raise RuntimeError('aborted')#中止
+        raise RuntimeError('已中止')#中止
     总计=len(数据)#字节数
     if 总计>_总计上限:#超限
-        raise ValueError('HTML package exceeds its total byte limit')
+        raise ValueError('HTML 包超过总字节上限')
     解码文本(数据)#校验 UTF-8
     # Python 半无 document.createElement；不遍历依赖，只交完整正文。
     return {'data':数据,'assets':[]}#正文包

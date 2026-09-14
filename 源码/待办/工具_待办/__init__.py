@@ -1,9 +1,3 @@
-"""面向模型的整表替换待办工具。
-
-每次调用向所属智能体会话追加 `todo/write` 快照；回放后写覆盖，界面从会话事件渲染。非智能体调用方没有所属列表，直接拒绝。
-
-对齐上游 `@deepseek-ai/dsh-tool-todo`。公开面仅中文名。配置键、事件名与诊断英文字面量保持上游。本包不提供默认导出（Loader 的 unwrapExports 会折叠掉 inject）。
-"""
 import json#重复内容报错片段
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 布尔字段#配置字段
@@ -44,16 +38,16 @@ def 转待办列表(原始,允许并行):#校验并收成规范列表
     for 条目 in 原始:#逐条
         内容=条目['content'].strip()#修剪
         if len(内容)==0:#空内容
-            raise 待办错误('invalid todo: `content` must be a non-empty string')#空内容非法
+            raise 待办错误('非法待办: `content` 必须是非空字符串')#空内容非法
         if 内容 in 已见:#重复
-            raise 待办错误('invalid todos: duplicate content '+json.dumps(内容,ensure_ascii=False,separators=(',',':'),allow_nan=False))#重复内容
+            raise 待办错误('非法待办: 重复 content '+json.dumps(内容,ensure_ascii=False,separators=(',',':'),allow_nan=False))#重复内容
         已见.add(内容)#记下
         状态=条目['status']#生命周期
         if 状态=='in_progress':#正在做
             活跃+=1#计数
         待办列表.append(待办条目(内容,状态))#收下规范条
     if (not 允许并行) and 活跃>1:#单活却标了多条
-        raise 待办错误('invalid todos: at most one task may be in_progress (got '+str(活跃)+')')#拒绝
+        raise 待办错误('非法待办: 至多一条任务可为 in_progress（实际 '+str(活跃)+'）')#拒绝
     return 待办列表#规范列表
 
 def 待办投影模式():#todos 投影的线上模式
@@ -113,7 +107,7 @@ def 应用(上下文,配置值):#注册工具与可选投影单元
         待办列表=转待办列表(参数['todos'],允许并行)#规范列表
         智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用方智能体
         if 智能体 is None:#非智能体调用方
-            raise 待办错误('todo_write requires an owning agent session')#拒绝而不是静默空操作
+            raise 待办错误('todo_write 需要所属智能体会话')#拒绝而不是静默空操作
         智能体.session.append('todo/write',{'todos':待办列表})#追加整表快照
         def 计数(状态):#按状态计数
             """数某一状态的条数。"""

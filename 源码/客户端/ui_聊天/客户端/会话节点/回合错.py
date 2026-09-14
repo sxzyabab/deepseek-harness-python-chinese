@@ -1,7 +1,3 @@
-"""终局回合失败会话节点。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/turn-error.ts`。公开面仅中文名。
-"""
 from .节点工厂 import 聊天错误,聊天节点#聊天节点工厂
 from .事件面 import 展示失败文案#面辅助
 

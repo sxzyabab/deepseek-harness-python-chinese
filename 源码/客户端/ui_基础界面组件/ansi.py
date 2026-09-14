@@ -1,9 +1,3 @@
-"""终端 ANSI → 按行带样式 span。
-
-对齐上游 `ui-primitives/src/ansi.ts` 可 Python 化段。公开面仅中文名。
-剥 OSC/惰性控制；解析 CSI SGR 前景/背景/装饰；按行切开。
-光标回放（\\r/退格/擦行）走列缓冲简化实现。
-"""
 import re#正则
 
 __all__=['解析ansi行','净文本']#仅中文公开名

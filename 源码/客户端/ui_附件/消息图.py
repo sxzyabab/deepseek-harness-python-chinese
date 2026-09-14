@@ -1,9 +1,3 @@
-"""历史消息图与图库。
-
-对齐上游 `ui-attachment/src/MessageImage.tsx`。公开面仅中文名。
-可重试加载；单击打开原图灯箱；单图按 singleFit，多图 64px 方砖。
-props 与附件均为跨线 dict。
-"""
 from .原图灯箱 import 原图灯箱#灯箱
 
 __all__=['消息图','图库','单图适配']#仅中文公开名

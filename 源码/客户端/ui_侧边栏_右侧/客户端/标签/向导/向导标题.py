@@ -1,7 +1,3 @@
-"""向导签芯片标题。
-
-对齐上游 `ui-sidebar-right/src/client/tabs/guide/GuideTitle.tsx`。公开面仅中文名。
-"""
 
 __all__=['向导标题']#仅中文公开名
 

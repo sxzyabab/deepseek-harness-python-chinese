@@ -1,10 +1,3 @@
-"""Web UI 复制控件共用的宿主剪贴板写入。
-
-对齐上游 `ui-primitives/src/clipboard.ts`。公开面仅中文名。
-成功反馈留在各控件；本助手只报告宿主是否接受了一次写入。
-浏览器环境优先 Clipboard API；无 DOM 时返回 False。
-"""
-
 __all__=['写剪贴板']#仅中文公开名
 
 def 写剪贴板(文本):#写入宿主剪贴板
@@ -20,9 +13,7 @@ def 写剪贴板(文本):#写入宿主剪贴板
         写入=getattr(剪贴,'writeText',None) if 剪贴 is not None else None#writeText
         if 写入 is not None:#有异步 API
             try:#尝试
-                结果=写入(文本)#写入
-                if hasattr(结果,'等待'):#承诺
-                    结果.等待()#等
+                写入(文本)#同步写入
                 return True#接受
             except Exception:#权限拒绝
                 return False#失败

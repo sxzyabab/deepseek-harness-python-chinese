@@ -1,4 +1,3 @@
-"""`@deepseek-ai/dsh-settings` 的本包拥有不变量配套。"""
 from . import json深度相等#接缝自身的相等判断
 
 包名='@deepseek-ai/dsh-settings'#本包的不变量所有权名
@@ -11,14 +10,14 @@ def 安装(上下文对象,失败):#安装提交事件检查
         """监听已提交的设置解析值变更。"""
         设置=上下文对象.获取服务('settings')#取当前设置服务
         if 设置 is None:#没有活的设置服务
-            失败('settings/updated for "'+str(命名空间)+'" emitted without a live settings service')#缺少服务则失败
+            失败('settings/updated 针对 "'+str(命名空间)+'" 发出时没有活的设置服务')#缺少服务则失败
         当前=设置.get(命名空间)#取该命名空间的权威解析值
         if 当前 is None:#命名空间未注册
-            失败('settings/updated for "'+str(命名空间)+'" emitted while the namespace is unregistered')#未注册则失败
+            失败('settings/updated 针对 "'+str(命名空间)+'" 发出时该命名空间未注册')#未注册则失败
         if not json深度相等(当前,下一值):#载荷与权威值不一致
-            失败('settings/updated for "'+str(命名空间)+'" does not match the authoritative resolved value')#值不匹配则失败
+            失败('settings/updated 针对 "'+str(命名空间)+'" 与权威解析值不一致')#值不匹配则失败
         if json深度相等(下一值,上一值):#新旧解析值相等
-            失败('settings/updated for "'+str(命名空间)+'" emitted without a resolved-value change')#无变化却发出则失败
+            失败('settings/updated 针对 "'+str(命名空间)+'" 在解析值未变时发出')#无变化却发出则失败
     上下文对象.监听('settings/updated',监听更新)#更新监听结束
 
 def 应用(上下文对象):#对外导出配套入口

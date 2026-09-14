@@ -1,10 +1,3 @@
-"""面向与编译器无关的 Typert 模型的 TypeScript 工程分析器公开面。
-
-对齐上游 `typert/generator/src/analyzer.ts` 的**可再导出公开符号**。
-真实现依赖 TypeScript 编译器 API（Program / checker / 源文件抽取），属硬缺口4，
-本叶只登记边界：构造可落，分析/发现/索引一律显式 NotImplementedError，勿假实现。
-"""
-
 __all__=[#公开面（与上游 index 再导出及本叶 export 对齐）
     'Typert分析错误',
     '分析模式',

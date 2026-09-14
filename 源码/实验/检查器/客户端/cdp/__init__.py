@@ -1,7 +1,3 @@
-"""描述浏览器 Client realm 的源侧 CDP 能力声明。
-
-对齐上游 `client/cdp/index.ts`。公开面仅中文名。
-"""
 from .控制台 import 控制台桥能力#Console
 from .调试器 import 调试器桥能力#Debugger
 from .堆分析器 import 堆分析器桥能力#HeapProfiler

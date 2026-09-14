@@ -1,9 +1,3 @@
-"""构建可中止内置 API 共用的 Node 风格取消错误。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/abort-error.ts`。
-公开面仅中文名。文件名下划线以便 Python import。
-本包中止原语也落在此文件：信号一律 threading.Event。
-"""
 __all__=['中止错误','已中止','若已中止则抛出']#仅中文公开名
 
 class 中止错误(Exception):#Node AbortError

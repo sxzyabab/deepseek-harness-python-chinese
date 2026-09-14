@@ -1,9 +1,3 @@
-"""worker 侧的 `node:crypto`：WebCrypto 提供随机性，`@noble/hashes` 提供 Node
-流式 Hash 对象所提供的同步摘要（SubtleCrypto 是异步的，而此处每个调用方都同步哈希）。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/crypto.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from ...未实现失败 import 运行时错误#本包错误
 import hashlib#对齐 @noble/hashes 同步摘要
 from ......工具.加密 import 随机uuid as 铸造uuid#导入UUID铸造
@@ -48,7 +42,7 @@ def 创建哈希(算法):#创建同步哈希
     键=算法.lower().replace('-','')#查算法名
     哈希器=哈希器表.get(键)#查算法
     if 哈希器 is None:#未知算法
-        raise 运行时错误(f'web-preview: node:crypto.createHash("{算法}") is not available in the worker host')#拒绝
+        raise 运行时错误(f'web-preview: worker 宿主里没有 node:crypto.createHash("{算法}")')#拒绝
     分块列表=[]#分块缓冲
     哈希={}#构造哈希对象
 

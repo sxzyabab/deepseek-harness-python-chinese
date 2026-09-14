@@ -1,4 +1,3 @@
-"""循环用的中止通道与任务赛跑。"""
 import threading#后台线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 
@@ -7,7 +6,7 @@ class 循环错误(Exception):
 
 class 中止错误(循环错误):
     """取消通道已中止。"""
-    def __init__(自身,消息='aborted',种类=None):
+    def __init__(自身,消息='已中止',种类=None):
         """用消息与可选控制流种类构造。"""
         super().__init__(消息)#错误消息原样英文
         if 种类 is not None:#有控制流种类
@@ -31,7 +30,7 @@ class 操作任务:
             if isinstance(错误,BaseException):#已是异常
                 自身._原生结果.set_exception(错误)#原样拒绝
             else:#非异常
-                包装=循环错误('task rejected')#包装拒绝
+                包装=循环错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息做成属性
                 自身._原生结果.set_exception(包装)#包装拒绝
 
@@ -113,7 +112,7 @@ def 包装中止错误(标识,原因):
     """把非异常原因收成创建中止错误。"""
     if isinstance(原因,BaseException):#已是异常
         return 原因#已是异常
-    中止异常=循环错误('agent "'+str(标识)+'" creation aborted')#包装文案
+    中止异常=循环错误('智能体 "'+str(标识)+'" 创建已中止')#包装文案
     中止异常.原因=原因#附加属性
     return 中止异常#包装错误
 

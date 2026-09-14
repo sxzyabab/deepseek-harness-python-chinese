@@ -1,7 +1,3 @@
-"""作用域派发的包内不变量。
-
-对齐上游 `@deepseek-ai/dsh-scope/invariant`。
-"""
 from .作用域事件 import 按事件取主体解析器,未登记#导入主体解析
 from . import 是否作用域载体,获取载体键#导入载体判定与键读取
 
@@ -20,13 +16,13 @@ def 安装(上下文对象,失败):
             return#非作用域过滤事件则放过
         if not 是否作用域载体(派发接收者):
             失败(
-                '"'+事件名+'" is a scope-filtered event but was dispatched without a scope carrier — '#缺载体
-                +'pass scopeTarget(base, subject) as the dispatch thisArg (agent events: use agentEvents(ctx, agent))'#用法（诊断字面量对齐上游）
+                '"'+事件名+'" 是作用域过滤事件，但派发时没有作用域载体 — '#缺载体
+                +'请把 scopeTarget(base, subject) 作为派发 thisArg（智能体事件：用 agentEvents(ctx, agent)）'#用法
             )#缺少载体则失败
         if 解析器 is not None and 获取载体键(派发接收者) is not 解析器(参数):
             失败(
-                '"'+事件名+'" was dispatched with a scope carrier keyed to a DIFFERENT subject than its arguments name — '#主体不同
-                +"the carrier key and the event's subject must be the same object (use agentEvents(ctx, agent))"#须同一对象
+                '"'+事件名+'" 派发所用作用域载体的键与参数点名的主体不是同一个 — '#主体不同
+                +'载体键与事件主体必须是同一对象（用 agentEvents(ctx, agent)）'#须同一对象
             )#主体不一致则失败
     上下文对象.监听('internal/dispatch',监听,{'全局':True})#全局监听，覆盖全部作用域过滤事件
 

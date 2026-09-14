@@ -1,9 +1,3 @@
-"""结构化 index 注入表的页面侧解释器。已服务表单把相同行渲染进
-index.html 文本；静态 worker 页面没有已服务 HTML，因此直接执行该表。
-行严格按表序执行，因此全局行在读取它的脚本之前落地。
-
-对齐上游 `webworker-runtime/src/client/apply-injections.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 
 __all__=['应用索引注入']#仅中文公开名

@@ -1,7 +1,3 @@
-"""经与其它查看器相同的文档扩展点登记的纯文本实现。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/text/index.ts`。公开面仅中文名。
-"""
 from .文本体 import 文本体#正文
 
 __all__=['纯文本体标识','文本体定义','应用','文本体']#仅中文公开名

@@ -1,8 +1,3 @@
-"""Trajectory 目标的类型约定常量与空快照。
-
-对齐上游 `ui-trajectory/src/client/trajectory-contract.ts`。公开面仅中文名。
-Python 侧用字典信封承载贡献；类型注释不强制。
-"""
 
 __all__=['空轨迹快照']#仅中文公开名
 

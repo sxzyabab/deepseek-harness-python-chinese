@@ -1,7 +1,3 @@
-"""Host 与 Client 插件面共用的、由生命周期驱动的 Cordis 树发布。
-
-对齐上游 `shared/cordis/observer.ts`。公开面仅中文名。
-"""
 import threading#微任务调度
 from .收集器 import cordis树收集器#树收集器
 

@@ -132,7 +132,7 @@ class 会话写后:
         自身.取消定时器()#取消自动窗
         自身.截止已过=False#清过期
         活动=操作任务()#活动写任务
-        def 跑写():
+        def 后台写入():
             """执行耐久写并处理失败保留。"""
             try:
                 写=自身.选项['write']#写汇
@@ -148,7 +148,7 @@ class 会话写后:
                     自身.选项['reportBackgroundFailure'](错误)#报告
                 自身.活动=None#清活动写
                 活动.拒绝(错误)#继续拒绝
-        线程=threading.Thread(target=跑写)#后台写线程
+        线程=threading.Thread(target=后台写入)#后台写线程
         线程.daemon=True#不挡退出
         自身.活动=活动#记下活动写
         线程.start()#启动

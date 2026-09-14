@@ -1,7 +1,3 @@
-"""Host、Worker 与注入 Client 生命周期值的精确解码器。
-
-对齐上游 `shared/bridge/control-codec.ts`。公开面仅中文名。
-"""
 from urllib.parse import urlparse as 解析网址#解析URL
 from ..json import 是否普通对象,检查器错误#普通对象|本包错误
 from ..校验 import 精确键,精确对象#精确校验

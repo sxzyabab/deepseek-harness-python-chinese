@@ -1,4 +1,3 @@
-"""文件后端的设置提供方。用户 harness 主目录下的一份 YAML 或 JSON 文档承载每个命名空间段落；外部编辑经 seam 热发布，每次写入都在跨进程写锁下重读文档，再以保留注释的叶级 diff 打补丁。"""
 import os,json,errno,threading,time,io,yaml,queue#路径、JSON、错误码、线程、时间与内存流
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
@@ -53,10 +52,10 @@ class 串行操作链:
     def __init__(自身):
         """启动工作者线程。"""
         自身.队列=queue.Queue()#待跑操作
-        自身.工作者=threading.Thread(target=自身.跑,daemon=True)#工作者
+        自身.工作者=threading.Thread(target=自身.执行操作循环,daemon=True)#工作者
         自身.工作者.start()#启动
 
-    def 跑(自身):
+    def 执行操作循环(自身):
         """逐项执行入队操作。"""
         while True:#常驻
             结果,操作=自身.队列.get()#取下一项
@@ -202,7 +201,7 @@ def 解析规格(配置):#配置收成规格
     扩展=os.path.splitext(文件名)[1]#扩展名
     格式=格式表[扩展] if 扩展 in 格式表 else None#按扩展名取格式
     if 格式 is None:#不支持
-        raise 配置文件错误('settings-file: extension "'+扩展+'" is not supported (use .yaml, .yml, or .json)')#拒绝
+        raise 配置文件错误('settings-file: 扩展名 "'+扩展+'" 不受支持（请用 .yaml、.yml 或 .json）')#拒绝
     监视=取配置项(配置,'watch')#是否监视
     if 监视 is None:#省略watch
         监视=True#默认监视
@@ -219,7 +218,7 @@ class 文档监视器:#轮询监视
         自身.稳定毫秒=稳定毫秒#落定期
         自身.轮询毫秒=轮询毫秒#轮询间隔
         自身.监听={'all':[],'ready':[],'error':[]}#事件表
-        自身.停止=threading.Event()#拆除旗标
+        自身.停止=threading.Event()#拆除信号
         自身.线程=None#工作线程
 
     def on(自身,事件,回调):#登记回调
@@ -229,7 +228,7 @@ class 文档监视器:#轮询监视
 
     def 启动(自身):#启动线程
         """启动轮询线程。"""
-        自身.线程=threading.Thread(target=自身.循环)#工作线程
+        自身.线程=threading.Thread(target=自身.执行监视循环)#工作线程
         自身.线程.daemon=True#不挡住退出
         自身.线程.start()#启动
 
@@ -254,7 +253,7 @@ class 文档监视器:#轮询监视
         for 回调 in list(自身.监听[事件]):#快照回调
             回调(*位置参数)#逐个调用
 
-    def 循环(自身):#轮询主循环
+    def 执行监视循环(自身):#轮询主循环
         """忽略初始签名，就绪后把落定的外部改动发成 all。"""
         try:#整段循环
             已发布=自身.签名()#初始签名不发all
@@ -329,7 +328,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
             try:#等待刷新
                 任务.等待()#等待刷新
             except BaseException as 错误:#逃出提交的失败
-                自身.ctx.日志.错误('settings-file: reload commit failed at %s',自身.规格.文件名)#记错误
+                自身.ctx.日志.错误('settings-file: %s 处重载提交失败',自身.规格.文件名)#记错误
                 自身.ctx.日志.错误(错误)#记原因
         观察=threading.Thread(target=收住)#后台观察
         观察.daemon=True#不挡住退出
@@ -416,7 +415,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
                 自身.排队刷新()#排队对齐
             def 监视错误(错误,*位置参数):#监视错误
                 """监视错误只记警告。"""
-                自身.ctx.日志.警告('settings-file: watcher error on %s',自身.规格.文件名)#记警告
+                自身.ctx.日志.警告('settings-file: %s 上的监视器错误',自身.规格.文件名)#记警告
                 自身.ctx.日志.警告(错误)#记原因
             监视器.on('all',任意事件)#任意事件
             监视器.on('ready',监视就绪)#监视就绪
@@ -444,7 +443,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
                     片段=type(错误).__name__#只有错误名
                 else:#有行列
                     片段=type(错误).__name__+' at line '+str(标记.line+1)+', column '+str(标记.column+1)#错误名加位置
-                raise 配置文件错误('settings-file: invalid document at '+自身.规格.文件名+': '+片段)#拒绝
+                raise 配置文件错误('settings-file: '+自身.规格.文件名+' 处文档无效: '+片段)#拒绝
             if 根 is None:#空文档
                 根={}#空则空对象
             else:#有根
@@ -455,7 +454,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
             else:#有内容
                 根=json.loads(文本)#解析JSON
         if (not isinstance(根,dict)) or isinstance(根,list):#非映射根
-            raise TypeError('settings-file: '+自身.规格.文件名+' must be a map of namespace sections')#拒绝
+            raise TypeError('settings-file: '+自身.规格.文件名+' 必须是命名空间段落映射')#拒绝
         return 根#段落映射
 
     def 刷新(自身):#监视器后重读
@@ -467,7 +466,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
         except Exception as 错误:#对齐失败
             if getattr(错误,'code',None)=='INVARIANT':#不变量违反
                 raise 错误#不变量违反上浮
-            自身.ctx.日志.警告('settings-file: reload failed at %s; keeping the last good document',自身.规格.文件名)#记警告
+            自身.ctx.日志.警告('settings-file: %s 处重载失败；保留上次好文档',自身.规格.文件名)#记警告
             自身.ctx.日志.警告(错误)#记原因
 
     def 从磁盘对齐(自身):#与磁盘对齐

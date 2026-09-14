@@ -1,8 +1,3 @@
-"""检索工具行：grep/glob 共用。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/search-row.tsx`。公开面仅中文名。
-props 与行模型均为 dict。
-"""
 from .调用模型 import 派生工具行#行模型
 from .检索卡模型 import 检索卡模型#检索卡
 from .工具行 import 工具行#外壳

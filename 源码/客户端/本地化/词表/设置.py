@@ -1,11 +1,3 @@
-"""`settings.locale` 命名空间词表（语言行文案）。
-
-
-
-对齐上游 `locale/src/locales/settings.ts`。公开面仅中文公开名。
-
-"""
-
 
 
 __all__=['设置中文','设置英文']#仅中文公开名

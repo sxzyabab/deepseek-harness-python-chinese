@@ -1,8 +1,3 @@
-"""原生挑选占用者（包内；客户端表面只暴露 Loader 导出）。
-
-对齐上游 `ui-directory-picker-native/src/client/flow.ts`。公开面仅中文名。
-无渲染流占用者：每次 open 上升沿恰好跑一次挑选并报告恰好一次结果。
-"""
 import threading#后台观察挑选结果
 
 __all__=['原生目录流','原生流注入面']#仅中文公开名

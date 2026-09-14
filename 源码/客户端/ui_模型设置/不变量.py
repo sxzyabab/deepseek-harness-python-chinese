@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-settings-models` 的本包拥有不变量配套。
-
-对齐上游 `ui-settings-models/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：仅导航条目的分区插件，渲染固定的空内容列——不发射 cordis 事件，也不拥有跨插件可变关系。
-"""
 包名='@deepseek-ai/dsh-client-ui-settings-models'#本包的不变量所有权名
 名称='client-ui-settings-models-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

@@ -1,7 +1,3 @@
-"""右栏根：声明会话子席的框架占位。
-
-对齐上游 `ui-sidebar-right/src/client/shell/RightbarRoot.tsx`。公开面仅中文名。
-"""
 
 __all__=['右栏根']#仅中文公开名
 

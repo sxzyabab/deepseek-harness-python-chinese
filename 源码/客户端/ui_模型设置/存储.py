@@ -1,7 +1,3 @@
-"""模型设置页存储与首次引导就绪度投影。
-
-对齐上游 `ui-settings-models/src/client/store.ts`。公开面仅中文名。
-"""
 import re#正则
 from ..模式表单 import 再水合模式,取路径,有路径#schema 路径
 

@@ -1,10 +1,3 @@
-"""InputState.queue 投影的队列读面。
-
-对齐上游 `ui-conversation/src/client/queue/store.ts`。公开面仅中文名。
-纯投影——没有第二份存储，也不拷贝；会话快照在无关互换时保持队列数组引用稳定。
-快照为 dict。
-"""
-
 __all__=['队列读面','队列读面自会话']#仅中文公开名
 
 class 队列读面:

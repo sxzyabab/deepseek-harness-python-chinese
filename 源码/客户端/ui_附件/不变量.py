@@ -1,8 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-attachment` 的本包拥有不变量配套。
-
-对齐上游 `ui-attachment/src/invariant.ts`。公开面仅中文名。
-无运行时不变量：纯 props 入的原子，没有 Cordis API。
-"""
 包名='@deepseek-ai/dsh-client-ui-attachment'#本包的不变量所有权名
 名称='client-ui-attachment-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

@@ -1,12 +1,3 @@
-"""typert 生成器可选的 tsdown（rolldown）插件面。
-
-依赖硬缺口 analyzer：writeBundle / 代码输出工作区 中调用工作区生成器的
-discover·generate 路径不可落；本叶落地装饰器检测、清单探测、路径解析、
-制品落盘与插件外壳（转译钩子仅做跳过判定，真正降低装饰器依赖
-TypeScript transpileModule，非 analyzer）。
-
-对齐上游 `typert/generator/src/tsdown-plugin.ts`。公开面仅中文名。
-"""
 import json,os,re#清单与路径、装饰器检测
 
 __all__=[#公开面
@@ -114,6 +105,6 @@ def 工作区根(起点):#从输出目录向上找工作区根
     while not os.path.isfile(os.path.join(当前,'tsconfig.host.json')):#尚未见到宿主 tsconfig
         父=os.path.dirname(当前)#上一层
         if 父==当前:#到文件系统根仍没有
-            raise FileNotFoundError('typert-generator: cannot find workspace root above '+起点)#对齐上游文案
+            raise FileNotFoundError('typert-generator: 在 '+起点+' 之上找不到工作区根')#对齐上游文案
         当前=父#继续向上
     return 当前#含 tsconfig.host.json 的目录

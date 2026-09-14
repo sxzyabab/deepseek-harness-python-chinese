@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-typert-protocol` 的本包拥有不变量配套。
-
-对齐上游 `protocol/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：装饰器保留私有不可变声明，绑定是冻结值，没有可交叉核对的独立事件流。
-"""
 包名='@deepseek-ai/dsh-typert-protocol'#本包的不变量所有权名
 名称='typert-protocol-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

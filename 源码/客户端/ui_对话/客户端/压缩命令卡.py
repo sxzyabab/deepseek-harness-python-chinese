@@ -1,9 +1,3 @@
-"""`/compact` 命令行与成功检查点披露。
-
-对齐上游 `ui-conversation/src/client/chat/CompactionCommandCard.tsx`。公开面仅中文名。
-无检查点的结果走回退命令卡。
-属性与节点为 dict。
-"""
 from .压缩项 import 压缩项#检查点标记
 from .回退命令卡 import 回退命令卡#回退卡
 

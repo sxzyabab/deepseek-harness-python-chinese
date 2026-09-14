@@ -1,7 +1,3 @@
-"""只读 Schedule 目录的浏览器半部。
-
-对齐上游 `ui-schedule/src/client/index.ts`。公开面仅中文名。
-"""
 from .日程目录动作 import 日程目录动作#目录动作组件
 from .文案 import 命名空间,中文,英文#词典与键
 

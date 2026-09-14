@@ -235,10 +235,10 @@ class _直连事件流:
             请求={}#空
         if 自身._已关闭:#已拆
             return#空
-        自身._泵=threading.Thread(target=lambda:自身._跑(请求,信号),daemon=True)#泵
+        自身._泵=threading.Thread(target=lambda:自身._执行跟随泵(请求,信号),daemon=True)#泵
         自身._泵.start()#启
 
-    def _跑(自身,请求,信号):
+    def _执行跟随泵(自身,请求,信号):
         """打开 follow 并把变更交给 publish。"""
         助手修订=None#助手修订
         try:

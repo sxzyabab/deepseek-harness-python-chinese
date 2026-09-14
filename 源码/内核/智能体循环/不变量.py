@@ -1,4 +1,3 @@
-"""循环构建的 LLM 调用的包内请求重建不变量。"""
 import json#JSON
 from ...模型后端.llm import 是否循环请求,是否冻结#循环请求判定与冻结判定
 from ..会话 import 折叠请求头#请求头折叠
@@ -16,14 +15,14 @@ def 安装(上下文对象,失败):
         if not 是否循环请求(选项):
             return 下一步()#非循环请求则放过
         if not 是否冻结(选项):
-            失败('a loop-built request must be frozen')#请求必须冻结
+            失败('循环组装的请求必须已冻结')#请求必须冻结
         if 'sessionId' not in 选项 or 选项['sessionId'] is None:
-            失败('a loop-built request must carry a session id')#必须带会话 id
+            失败('循环组装的请求必须携带会话 id')#必须带会话 id
         会话=上下文对象.sessions.获取(选项['sessionId'])#按 id 取在线会话
         if 会话 is None:
-            失败('a loop-built request must carry a live session id, got "'+str(选项['sessionId'])+'"')#必须是在线会话
+            失败('循环组装的请求必须携带在线会话 id，实际为 "'+str(选项['sessionId'])+'"')#必须是在线会话
         if not 是否冻结(选项['messages']):
-            失败('a loop-built request must carry a frozen messages array')#消息必须冻结
+            失败('循环组装的请求必须携带冻结的 messages 数组')#消息必须冻结
         事件列表=会话.events#会话日志
         有步骤=False#是否有步骤开始
         for 事件 in 事件列表:
@@ -31,13 +30,13 @@ def 安装(上下文对象,失败):
                 有步骤=True#见到步骤开始
                 break#已找到
         if not 有步骤:
-            return 失败('a loop-built request with no step/start in its session log')#缺少 step/start
+            return 失败('循环组装的请求其会话日志中没有 step/start')#缺少 step/start
         头=折叠请求头(事件列表)#折叠请求头
         if 头 is None:
-            return 失败('a loop-built request with no request/header event in its session log')#缺少 request/header
+            return 失败('循环组装的请求其会话日志中没有 request/header 事件')#缺少 request/header
         期望=会话.派生消息()#按日志派生消息
         if 转json(选项['messages'])!=转json(期望):
-            失败('llm request for session "'+str(会话.id)+'" diverges from the dispatch-time durable derivation (log-reconstruction desync)')#派发时耐久派生不同步
+            失败('会话 "'+str(会话.id)+'" 的 llm 请求与派发时耐久派生分叉（日志重建不同步）')#派发时耐久派生不同步
         配置=头['config']#折叠配置
         工具甲=选项['tools'] if 'tools' in 选项 and 选项['tools'] is not None else []#请求工具
         工具乙=头['tools'] if 'tools' in 头 and 头['tools'] is not None else []#头上工具
@@ -56,7 +55,7 @@ def 安装(上下文对象,失败):
             and 转json(选项停止)==转json(配置停止)
             and 转json(工具甲)==转json(工具乙))#与折叠请求头逐项比对
         if not 头匹配:
-            失败('llm request for session "'+str(会话.id)+'" diverges from the folded request header')#与折叠请求头分叉
+            失败('会话 "'+str(会话.id)+'" 的 llm 请求与折叠请求头分叉')#与折叠请求头分叉
         return 下一步()#校验通过后继续
     上下文对象.监听('llm/stream',监听流,{'全局':True,'前置':True})#全局且前置
 

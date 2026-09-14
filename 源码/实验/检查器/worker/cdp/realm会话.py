@@ -1,4 +1,3 @@
-"""从共享 realm 注册表为每条 DevTools 连接打开的会话。"""
 #对齐上游 worker/cdp/realm-sessions.ts
 
 import uuid#随机UUID
@@ -31,7 +30,7 @@ class 检查器realm会话集:#realm会话集
         """返回必需的 Host 会话。"""
         会话=自身._会话.get(自身._realms.host.descriptor.realmId)#取Host
         if 会话 is None:#不可用
-            raise RuntimeError('Host Inspector realm session is unavailable')#抛错
+            raise RuntimeError('宿主 Inspector realm 会话不可用')#抛错
         return 会话#返回
 
     def 按上下文id(自身,contextId):#按上下文id

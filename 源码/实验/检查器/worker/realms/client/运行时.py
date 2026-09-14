@@ -1,4 +1,3 @@
-"""类型化 Worker→Client 传输上的 RuntimeBackend。"""
 #对齐上游 worker/realms/client/runtime.ts
 
 from ....共享.json import 操作任务,检查器错误#单次结果|包内错误
@@ -60,7 +59,7 @@ class Client运行时后端:#Client Runtime后端
     def 全局词法名(自身,上下文=None):#全局词法名
         """执行 global-lexical-scope-names。"""
         if 上下文 is not None:#不支持上下文
-            raise RuntimeError('Client Runtime does not support native execution contexts')#抛错
+            raise RuntimeError('客户端 Runtime 不支持原生执行上下文')#抛错
         return 自身._期望(自身._请求({'op':'global-lexical-scope-names'}).等待(),'global-lexical-scope-names')['names']#名字
 
     def 释放对象(自身,句柄):#释放对象
@@ -99,25 +98,25 @@ def _参数转Client(值):#参数转Client
 def _断言求值选项(请求):#断言求值选项
     """拒绝不支持选项。"""
     if 请求.get('context') is not None:#上下文
-        raise RuntimeError('Client Runtime does not support native execution contexts')#抛错
+        raise RuntimeError('客户端 Runtime 不支持原生执行上下文')#抛错
     if 请求.get('throwOnSideEffect') is True:#副作用
-        raise RuntimeError('Client Runtime does not support throwOnSideEffect')#抛错
+        raise RuntimeError('客户端 Runtime 不支持 throwOnSideEffect')#抛错
     if 请求.get('serializationOptions') is not None:#序列化
-        raise RuntimeError('Client Runtime does not support serializationOptions')#抛错
+        raise RuntimeError('客户端 Runtime 不支持 serializationOptions')#抛错
     if 请求.get('disableBreaks') is True:#禁用断点
-        raise RuntimeError('Client Runtime does not support disableBreaks')#抛错
+        raise RuntimeError('客户端 Runtime 不支持 disableBreaks')#抛错
     if 请求.get('allowUnsafeEvalBlockedByCSP') is True:#CSP
-        raise RuntimeError('Client Runtime cannot bypass the page Content Security Policy')#不能绕过
+        raise RuntimeError('客户端 Runtime 不能绕过页面内容安全策略')#不能绕过
     if 请求.get('timeoutMs') is not None and 请求.get('awaitPromise') is not True:#超时
-        raise RuntimeError('Client Runtime supports timeout only when awaitPromise is enabled')#仅await时
+        raise RuntimeError('客户端 Runtime 仅在启用 awaitPromise 时支持 timeout')#仅await时
 
 def _断言调用选项(请求):#断言调用选项
     """拒绝不支持选项。"""
     if 请求.get('context') is not None:#上下文
-        raise RuntimeError('Client Runtime does not support native execution contexts')#抛错
+        raise RuntimeError('客户端 Runtime 不支持原生执行上下文')#抛错
     if 请求.get('throwOnSideEffect') is True:#副作用
-        raise RuntimeError('Client Runtime does not support throwOnSideEffect')#抛错
+        raise RuntimeError('客户端 Runtime 不支持 throwOnSideEffect')#抛错
     if 请求.get('serializationOptions') is not None:#序列化
-        raise RuntimeError('Client Runtime does not support serializationOptions')#抛错
+        raise RuntimeError('客户端 Runtime 不支持 serializationOptions')#抛错
     if 请求.get('userGesture') is True:#手势
-        raise RuntimeError('Client Runtime does not support userGesture')#抛错
+        raise RuntimeError('客户端 Runtime 不支持 userGesture')#抛错

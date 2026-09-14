@@ -1,4 +1,3 @@
-"""realm 中立脚本与调试器事件的 CDP 投影。"""
 #对齐上游 worker/cdp/domains/debugger/projector.ts
 
 from .脚本注册表 import cdp脚本id#脚本id转换

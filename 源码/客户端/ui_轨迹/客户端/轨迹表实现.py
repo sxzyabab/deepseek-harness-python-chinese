@@ -1,10 +1,3 @@
-"""轨迹表：分块样式拼装 + 轮次感知事件账本与本地记录检查器。
-
-对齐上游 `ui-trajectory/src/client/TrajectoryTable.tsx` + `TrajectoryTable.module.css`。
-公开面仅中文名。React 像素半（虚拟滚动 DOM、指针拖拽）以结构树动作描述；完整 DOM 仍以上游为准。
-样式正文按壳/行/详情/载荷/目录分块落盘，本模块拼成 样式表 与 样式分块。
-本文件为权威唯一实现；旧 `轨迹表.py` 与同名包 `轨迹表/` 仅废弃说明，勿从彼处导入。
-"""
 import json#系统提示词工具目录差分
 import os#同目录样式路径
 from .轨迹记录 import 轨迹记录身份,格式化已用秒数#记录面

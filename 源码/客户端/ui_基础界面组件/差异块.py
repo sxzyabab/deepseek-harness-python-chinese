@@ -1,8 +1,3 @@
-"""文件变更内联差异面。
-
-对齐上游 `ui-primitives/src/DiffBlock.tsx`。公开面仅中文名。
-路径头+删/增块；头尾封顶；复制控件写可见 diff 文本。hunk 为 dict。
-"""
 from .头尾封顶 import 头尾封顶#高度封顶
 from .复制反馈 import 复制反馈#复制反馈
 

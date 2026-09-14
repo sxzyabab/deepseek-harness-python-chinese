@@ -1,9 +1,3 @@
-"""Cordis 面板：清单、审批、版本与生命周期动作的嵌套 JSX 结构树。
-
-对齐上游 `ui-cordis/src/client/CordisPanel.tsx`。公开面仅中文名。
-DOM 嵌套与 class/data-* 来自上游；图标/Tooltip 半需浏览器。
-无法 JS·vm 执行：真实按钮交互与侧栏挂载像素。
-"""
 import os#读样式
 from .状态 import 可见状态,取包#状态面
 

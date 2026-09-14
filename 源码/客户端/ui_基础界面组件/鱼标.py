@@ -1,8 +1,3 @@
-"""DeepSeek 鱼标。
-
-对齐上游 `ui-primitives/src/FishLogo.tsx`。公开面仅中文名。
-原生 23.16×17.04；默认宽 24，高按比。
-"""
 from .icons.属性 import 取尺寸,取类名#尺寸/类
 
 __all__=['鱼标','鱼路径']#仅中文公开名

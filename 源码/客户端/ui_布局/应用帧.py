@@ -1,10 +1,3 @@
-"""三栏壳帧：登记进内建 root 槽。
-
-对齐上游 `ui-layout/src/client/AppFrame.tsx`。公开面仅中文名。
-属性、面板快照、动作为 dict。拥有网格轨道（sidebar | center | rightbar）、
-拖拽把手与列求解；根作用域 main 槽按活动面板键选择 Conversation 或全局面板。
-右列是轨道而非盒子：占用方经 layout 报告 shown/track/fullscreen。
-"""
 import os#产品标题环境变量
 
 from .列宽 import (#列宽求解

@@ -1,8 +1,3 @@
-"""子智能体只读撰写器：目录寻址会话无法接受人工输入时的替换面。
-
-对齐上游 `ui-subagent/src/client/SubagentReadOnlyComposer.tsx`。公开面仅中文名。
-"""
-
 __all__=['只读撰写器','样式表']#仅中文公开名
 
 样式表='''#对齐 SubagentReadOnlyComposer.module.css

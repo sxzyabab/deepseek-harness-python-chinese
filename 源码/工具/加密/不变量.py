@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-util-crypto 的本包拥有不变量配套。"""
 包名='@deepseek-ai/dsh-util-crypto'#本包的不变量所有权名
 名称='util-crypto-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务

@@ -1,7 +1,3 @@
-"""可编脚本 mock LLM 服务器的独立进程包装。
-
-对齐上游 `llm-mock-server/src/bin.ts`。公开面仅中文名。
-"""
 import json,sys,time,signal#JSON、标准流、延迟与信号
 from .命令行 import 模拟LLM命令用法,解析模拟LLM命令参数#CLI 解析
 from . import 启动模拟LLM服务器#服务器启动

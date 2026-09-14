@@ -1,8 +1,3 @@
-"""网页检索/抓取完成面。
-
-对齐上游 `ui-primitives/src/WebBlock.tsx`。公开面仅中文名。
-仅 http(s) 成外链；search/fetch 两种 kind。属性与来源为 dict。
-"""
 
 __all__=['网页块','安全链接','链接标签']#仅中文公开名
 

@@ -1,4 +1,3 @@
-"""由独立 Runtime、Console 与 Source 后端装配的 Client realm 定义。"""
 #对齐上游 worker/realms/client/index.ts
 
 import uuid#随机id

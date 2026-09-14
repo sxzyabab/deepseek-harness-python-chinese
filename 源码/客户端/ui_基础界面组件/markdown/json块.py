@@ -1,8 +1,3 @@
-"""可折叠 JSON 块（会话侧，独立于 RPC 面板 PayloadJson）。
-
-对齐上游 `ui-primitives/src/markdown/JsonBlock.tsx`。公开面仅中文名。
-截断按 UTF-8 字节，切点落在字符边界。属性为 dict。
-"""
 import json#美化
 
 __all__=['json块','最大字节','默认截断标签']#仅中文公开名

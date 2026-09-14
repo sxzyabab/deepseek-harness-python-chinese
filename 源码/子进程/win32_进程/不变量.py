@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-win32-process 的本包拥有不变量配套。"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-win32-process'#本包的不变量所有权名
 名称='win32-process-invariant'#配套不变量插件名

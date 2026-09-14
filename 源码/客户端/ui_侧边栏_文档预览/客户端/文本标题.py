@@ -1,7 +1,3 @@
-"""文本类型的芯片标题：打开时注册表捕获的名字前的文件类型彩色表。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/TextTitle.tsx`。公开面仅中文名。
-"""
 
 __all__=['文本标题']#仅中文公开名
 

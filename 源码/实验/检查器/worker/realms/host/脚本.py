@@ -1,4 +1,3 @@
-"""Host 原生脚本身份到规范化源与调试器值的转换。"""
 #对齐上游 worker/realms/host/scripts.ts
 
 __all__=['Host脚本键']#仅中文公开名

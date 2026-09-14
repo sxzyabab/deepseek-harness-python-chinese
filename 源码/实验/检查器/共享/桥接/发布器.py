@@ -1,7 +1,3 @@
-"""MessagePort 与 WebSocket 桥接实现共用的源侧接口。
-
-对齐上游 `shared/bridge/publisher.ts`。公开面仅中文名。
-"""
 import time#默认时间戳
 
 __all__=[#仅中文公开名

@@ -1,8 +1,3 @@
-"""通用浏览器品牌槽位的官方 DeepSeek Harness 占位。
-
-对齐上游 `ui-brand-official/src/client/Brand.tsx`。公开面仅中文名。
-无真 React：返回结构树字典。
-"""
 __all__=['官方品牌标志','官方品牌名称']#仅中文公开名
 
 class 官方品牌标志:#侧栏标志占位

@@ -1,10 +1,3 @@
-"""从本仓库打包 Preview 部署：组合并降级基础镜像，再写入每个具名 fixture overlay 及其清单。
-
-用法: dsh-pack-vfs-image --out <file> [--profile web] [--root /dsh]
-      node --import tsx/esm src/bin.ts --out ../../apps/web/dist/preview/vfs-image.tar.gz
-
-对齐上游 `webworker-packer/src/bin.ts`。公开面仅中文名。
-"""
 from .打包 import 打包器错误,打包虚拟文件系统镜像,打包虚拟文件系统叠加#本包错误|打包入口
 import json,os,sys#文件系统与进程
 from ..webworker_运行时 import (#预览夹具清单面

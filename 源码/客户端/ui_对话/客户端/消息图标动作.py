@@ -1,8 +1,3 @@
-"""用户/助手 IconActions 行：复制、可选分支、日期感知时钟。
-
-对齐上游 `ui-conversation/src/client/chat/MessageIconActions.tsx`。公开面仅中文名。
-属性为 dict。
-"""
 from .消息铬 import 格式化延迟秒,格式化消息时钟,格式化运行时长,格式化每秒令牌,本地日起点,距下一本地午夜毫秒#时钟辅助
 import time as 时间模块,threading#墙钟与后台观察
 

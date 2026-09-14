@@ -1,8 +1,3 @@
-"""动态包包宿主半求值所用的沙箱（Python 侧：compile 预检 + exec 求值）。
-
-对齐上游 `拓展/cordis-host-runner/src/sandbox.ts` 的公开语义。
-Node vm 在 Python 树用 compile/exec 近似；宿主内置巡检符号表保持上游字面量。
-"""
 from ...依赖.工具 import 二进制#base64 编解码
 from .沙箱边界 import 沙箱定义工具,沙箱登记工具#沙箱工具登记
 
@@ -25,18 +20,18 @@ __all__=[#仅中文公开名
     {'name':'TextDecoder','description':'Standard text decoder constructor.','signatures':['new TextDecoder(label?: string)']},#文本解码器
 ]#只读内建表
 
-定时器重定向=('Node timers are unavailable. Use the cordis timer service instead: declare inject: [\'timer\'] on your plugin '
-    + 'and call ctx.timeout / ctx.interval after querying Host Service.listService for the exact overloads. '
-    + 'Those calls are fiber effects, cleaned up automatically when stopped.')#改用 ctx 定时器
+定时器重定向=('没有 Node 定时器。请改用 cordis 的 timer 服务：在插件上声明 inject: [\'timer\']，'
+    + '查 Host Service.listService 得到精确重载后再调用 ctx.timeout / ctx.interval。'
+    + '这些调用是纤程副作用，停止时会自动清理。')#改用 ctx 定时器
 
 节点API重定向={#Node API 重定向
-    'require':'Node modules are unavailable. Use the cordis services on ctx instead — e.g. inject: [\'fs\'] for files, [\'web\'] for HTTP, [\'bash\'] for processes; query Service.listService with cordis_inspect_query first.',#改用 ctx 服务
+    'require':'没有 Node 模块。请改用 ctx 上的 cordis 服务——例如文件用 inject: [\'fs\']，HTTP 用 [\'web\']，进程用 [\'bash\']；先用 cordis_inspect_query 查 Service.listService。',#改用 ctx 服务
     'setTimeout':定时器重定向,#定时器
     'setInterval':定时器重定向,#间隔
     'setImmediate':定时器重定向,#立即
     'clearTimeout':定时器重定向,#清超时
     'clearInterval':定时器重定向,#清间隔
-    'fetch':'Network access goes through the cordis web service: declare inject: [\'web\'] and call ctx.web (query Host Service.listService with cordis_inspect_query for its methods).',#改用 ctx.web
+    'fetch':'网络访问走 cordis 的 web 服务：声明 inject: [\'web\'] 并调用 ctx.web（先用 cordis_inspect_query 查 Host Service.listService 得到其方法）。',#改用 ctx.web
 }#重定向结束
 
 def 带标记控制台(标识):#带标记控制台
@@ -58,7 +53,7 @@ def 节点API陷阱():#Node API 陷阱
             """陷阱。"""
             def 触发(*_位置参数,**_关键字参数):#调用即抛
                 """教学错误。"""
-                raise Exception(f'{名称} is not available in the dynamic package sandbox — {说明}')#教学错误
+                raise Exception(f'动态包沙箱里没有 {名称} — {说明}')#教学错误
             return 触发#陷阱函数
         陷阱[名]=造陷阱()#写入
     return 陷阱#陷阱表
@@ -101,19 +96,19 @@ def 解析错误消息(半边,上下文):#解析失败教学
     """面向模型的错误消息。"""
     出错行=(上下文.split('\n')+[ ''])[1] if '\n' in 上下文 else ''#出错源码行
     if r'\bas\b' in 出错行 or ' as ' in 出错行:#像类型断言
-        return (f'dynamic package `{半边}` failed to parse:\n{上下文}\n'
-            + 'The sandbox runs plain JavaScript, not TypeScript. Remove type annotations:\n'
+        return (f'动态包 `{半边}` 解析失败：\n{上下文}\n'
+            + '沙箱跑的是普通 JavaScript，不是 TypeScript。请去掉类型注解：\n'
             + "  ✗ { type: 'text' as const, text: x }\n"
             + "  ✓ { type: 'text', text: x }")#去掉注解
-    return (f'dynamic package `{半边}` failed to parse:\n{上下文}\n'
-        + 'Note: it runs as the BODY of an async function (line numbers are offset by the 1-line wrapper). '
-        + 'Check bracket balance — ending the returned plugin object with `});` closes a call that was never opened; '
-        + 'a plain `return { … }` ends with `}` (an optional `;`), never `)`.')#括号平衡提示
+    return (f'动态包 `{半边}` 解析失败：\n{上下文}\n'
+        + '注意：它作为异步函数的函数体运行（行号会因 1 行包装而偏移）。'
+        + '请核对括号：返回的插件对象用 `});` 结尾会关掉一个从未打开的调用；'
+        + '普通 `return { … }` 以 `}` 结束（可选 `;`），不要用 `)`。')#括号平衡提示
 
 def 预检代码(代码,半边):#定义时预检
     """解析一半源码但不运行：教学启发式对齐上游 vm Script 预检。"""
     if not isinstance(代码,str):#必须是字符串
-        raise Exception(f'dynamic package `{半边}` failed to parse:\nexpected a string function body')#非法
+        raise Exception(f'动态包 `{半边}` 解析失败：\n需要字符串函数体')#非法
     上下文=f'SyntaxError: Unexpected token\n{代码.splitlines()[0] if 代码.splitlines() else ""}'#合成上下文
     出错行=(代码.splitlines() or [''])[0]#出错源码行近似取首行
     if ' as ' in 代码:#像类型断言（整份粗检；上游只看出错行）

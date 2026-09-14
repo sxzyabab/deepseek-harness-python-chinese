@@ -1,8 +1,3 @@
-"""测试作用域的 Remote 模拟与惰性客户端启动。
-
-对齐上游 `client-runtime/src/assembly/vitest.ts`。公开面仅中文名。
-无 vitest：夹具由调用方 关闭；不引入 pytest/assert。
-"""
 from ...远程模拟 import 远程模拟#远程模拟
 from .远程默认应答 import 远程默认应答#远程默认应答
 from .测试客户端 import 测试客户端#测试客户端

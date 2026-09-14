@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-conversation` 的本包拥有不变量配套。
-
-对齐上游 `ui-conversation/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：会话服务不发 cordis 事件，本包拥有的两环（'conversation.view' 页签环与 'conversation.chat.node' 业务渲染器席位）都走槽位系统，其账本不变量由运行时槽位包持有。
-"""
 包名='@deepseek-ai/dsh-client-ui-conversation'#本包的不变量所有权名
 名称='client-ui-conversation-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

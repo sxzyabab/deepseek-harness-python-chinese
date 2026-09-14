@@ -1,7 +1,3 @@
-"""静态 WebWorker 预览的启动前文件系统源选择器。
-
-对齐上游 `webworker-runtime/src/client/source-chooser.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 from ..fixture清单 import 解析预览fixture清单#解析函数
 
@@ -219,7 +215,7 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     if 请求源==空源标识:#空源则直接无叠加层
         return []#空叠加层
     if not callable(拉取):#无fetch
-        raise 运行时错误('preview source chooser: fetch is unavailable')#拒绝
+        raise 运行时错误('preview source chooser: fetch 不可用')#拒绝
     响应=拉取(清单网址)#请求夹具清单
     if not 响应.ok:#清单响应失败
         raise 运行时错误(f'preview source chooser: fixture manifest returned {响应.status}')#抛出状态错误
@@ -251,10 +247,10 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
             raise 运行时错误(f'preview source chooser: unknown or interactive source "{请求源}"')#抛出未知源错误
         return 指定['overlays']#返回指定项叠加层
     if 文档 is None:#无document
-        raise 运行时错误('preview source chooser: missing #root')#缺少环境
+        raise 运行时错误('preview source chooser: 缺少 #root')#缺少环境
     根=文档.getElementById('root')#获取页面根节点
     if 根 is None:#缺少根节点
-        raise 运行时错误('preview source chooser: missing #root')#失败
+        raise 运行时错误('preview source chooser: 缺少 #root')#失败
     已选=清单['defaultFixture'] if 清单['defaultFixture'] is not None else 空源标识#默认选中项
     样式=文档.createElement('style')#创建样式元素
     样式.dataset.previewSourceStyle=''#标记选择器样式
@@ -277,7 +273,7 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     根.prepend(选择器)#插入选择器到根前部
     表单=选择器.querySelector('[data-preview-source-card]')#定位表单元素
     if 表单 is None:#表单未渲染
-        raise 运行时错误('preview source chooser: form was not rendered')#失败
+        raise 运行时错误('preview source chooser: 表单未渲染')#失败
     #上游用Promise等待submit；Python侧由调用方在浏览器宿主接线提交回调。
     #此处同步路径要求表单已带所选值（测试/宿主注入）。
     源标识=已选#默认所选

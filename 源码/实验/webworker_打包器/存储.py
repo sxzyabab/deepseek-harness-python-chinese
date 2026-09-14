@@ -1,9 +1,3 @@
-"""打包器的存储知识：本树的 workspace、profile 组合与配置树在哪，以及如何报告一次打包。
-
-库半边把这些全部当参数接收。查找留在这里，才能让同一库打另一棵树，并让 `打包` 不假设 pnpm workspace 或 `dsh` CLI。
-
-对齐上游 `webworker-packer/src/repository.ts`。公开面仅中文名。
-"""
 from .打包 import 打包器错误#本包错误
 import json,os,shutil,subprocess,sys,tempfile#子进程、文件系统与临时目录
 from ...工具.主目录路径 import 主目录环境键#DSH_HOME环境键

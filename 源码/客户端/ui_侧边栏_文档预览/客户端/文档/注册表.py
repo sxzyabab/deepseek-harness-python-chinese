@@ -1,8 +1,3 @@
-"""文件扩展名预览登记；组件分派属于带键文档槽。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/document/registry.ts`。公开面仅中文名。
-"""
-
 __all__=['匹配文档预览','文档预览注册表']#仅中文公开名
 
 
@@ -54,7 +49,7 @@ class 文档预览注册表:
         """与匹配的带键槽组件分开登记元数据；返回幂等拆除器。"""
         标识=定义['id']#实现名
         if 标识 in 自身._已登记:#重复
-            raise ValueError('documentPreviews: duplicate implementation "'+标识+'"')
+            raise ValueError('documentPreviews: 重复实现 "'+标识+'"')
         自身._已登记[标识]=定义#挂上
         自身._发布()#发布
         存活=[True]#可变旗

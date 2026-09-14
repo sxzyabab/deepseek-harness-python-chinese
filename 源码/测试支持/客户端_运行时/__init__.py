@@ -1,8 +1,3 @@
-"""jsdom slot 测试运行时：Cordis Context、SlotRegistry、ui-session 与 UI 渲染器。
-
-对齐上游 `client-runtime/src/index.ts`。公开面仅中文名。
-无真 React：稳定器用同步调用；渲染结果为结构字典。
-"""
 from ...依赖 import cordis#外部依赖胶水
 from ...客户端.ui_渲染器.客户端 import 槽登记表,创建槽渲染器#槽登记与渲染器
 from ...客户端.ui_渲染器.客户端.绑定选择器 import 绑定快照选择器 as 绑定渲染器快照选择器#选择器绑定
@@ -198,7 +193,7 @@ class 槽测试运行时:#slot 测试运行时
     def storeOf(自身,键,作用域键=None):#解析 store
         """解析渲染器会交给 slot 组件的 store 实例。"""
         if 自身._host is None:#无宿主
-            raise Exception('storeOf before renderRoot() — the host face exists only inside the installed renderer')#英文诊断
+            raise Exception('storeOf 必须在 renderRoot() 之后调用——宿主面只存在于已安装的渲染器内')#诊断
         条目列表=自身._host.entriesOf(键)#条目
         if not 条目列表:#无登记
             raise Exception(f"storeOf('{键}'): no registration on the ledger")#英文诊断

@@ -1,12 +1,3 @@
-"""变换后的模块在每个挂起点调用的运行时。
-
-`pause` 快照每个环境存储并交回一个**始终兑现**的令牌（拒绝走在其内）；
-`resume` 把该快照恢复为恢复帧的第一件事，再返回值或重抛错误，
-使两条完成路径因果精确。状态本身属于 `node:async_hooks` 代理——
-本模块只搬动它。
-
-对齐上游 `webworker-runtime/src/polyfill/async-context/als-runtime.ts`。公开面仅中文名。
-"""
 __all__=['创建als运行时']#仅中文公开名
 
 def 创建als运行时(因果面=None):#构建运行时
@@ -68,7 +59,7 @@ def 创建als运行时(因果面=None):#构建运行时
                     内层.close()#关闭
                 return {'done':True,'value':送来}#默认完成
             return {'next':下一步,'return':关闭}#步进面
-        raise TypeError('webworker als: for-await source is not iterable')#拒绝
+        raise TypeError('webworker als: for-await 源不可迭代')#拒绝
 
     def 关闭迭代器(迭代):#关闭
         """关闭迭代器；关闭失败时忽略。"""

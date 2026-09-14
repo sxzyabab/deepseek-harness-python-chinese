@@ -1,8 +1,3 @@
-"""对只追加文本流做块级增量 markdown 解析。
-
-对齐上游 `ui-primitives/src/markdown/incremental.ts`。公开面仅中文名。
-mdast 节点为 dict。
-"""
 
 __all__=['未稳定尾部块数','增量Markdown解析器','块键']#仅中文公开名
 

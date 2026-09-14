@@ -1,7 +1,3 @@
-"""model 命名空间词典。
-
-对齐上游 `ui-model-selection/src/client/locales.ts`。公开面仅中文名。
-"""
 
 __all__=['命名空间','中文','英文']#仅中文公开名
 

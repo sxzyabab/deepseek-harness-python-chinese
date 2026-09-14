@@ -1,7 +1,3 @@
-"""经 Inspector Worker ingest WebSocket 的 Client 观测与 Runtime 端点。
-
-对齐上游 `client/bridge/transport.ts`。公开面仅中文名。
-"""
 import json,threading#序列化与中止
 from ...共享.json import 是否json值,json字节长度,检查器错误#JSON工具|本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本

@@ -1,11 +1,3 @@
-"""worker 束的模块代理表：宿主树的唯一平台分叉。每个条目替换一个 Node
-内建或外部 npm 包；workspace 与 vendored 模块始终按原样挂载。
-
-构建把这些变成打包器别名，`node/builtins.ts` 把同一批模块变成加载器的
-静态表——一份列表，两个消费者。
-
-对齐上游 `webworker-runtime/src/module-proxies.ts`。公开面仅中文名。
-"""
 __all__=['模块代理表','模块代理前缀表']#仅中文公开名
 
 模块代理表={#精确说明符代理表

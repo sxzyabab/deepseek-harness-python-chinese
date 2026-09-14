@@ -1,8 +1,3 @@
-"""助手步骤节点：流式/定稿/中断共用一个键控渲染器。
-
-对齐上游 `ui-conversation/src/client/chat/AssistantNodeView.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from .助手Markdown import 助手Markdown#块体
 
 __all__=['助手节点视图']#仅中文公开名

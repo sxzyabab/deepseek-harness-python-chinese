@@ -1,8 +1,3 @@
-"""围栏/程序体/详情原文共用代码面。
-
-对齐上游 `ui-primitives/src/markdown/CodeBlock.tsx`。公开面仅中文名。
-高亮由宿主语法表完成；本组件产出 banner+原文材料。属性为 dict。
-"""
 from ..复制反馈 import 复制反馈#复制反馈
 
 __all__=['代码块']#仅中文公开名

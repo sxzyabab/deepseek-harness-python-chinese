@@ -1,7 +1,3 @@
-"""在智能体作用域上下文下挂载一份预设组合，并在智能体发布前证明结果可用。
-
-对齐上游 `agent-presets/src/mount.ts`。公开面仅中文名。
-"""
 import os#绝对路径判定
 from ...依赖 import include#外部依赖胶水
 from ...依赖.工具 import 获取内部数据,聚合错误#隔离表与聚合失败

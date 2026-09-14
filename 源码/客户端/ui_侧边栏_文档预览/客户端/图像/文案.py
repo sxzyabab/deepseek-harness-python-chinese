@@ -1,7 +1,3 @@
-"""文案拥有的图片渲染器标签与状态文案。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/image/locales.ts`。公开面仅中文名。
-"""
 
 __all__=['中文','英文','图像预览键']#仅中文公开名
 

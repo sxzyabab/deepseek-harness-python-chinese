@@ -1,7 +1,3 @@
-"""客户端测试运行时的 Controller 与 UI 域 fixture 形状。
-
-对齐上游 `client-runtime/src/fixtures.ts`。公开面仅中文名。
-"""
 from ...客户端.ui_聊天.客户端.约定.快照 import 空聊天快照#空聊天快照
 
 __all__=[#仅中文公开名

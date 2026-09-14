@@ -1,20 +1,3 @@
-"""Node 兼容性表，集中一处。两个消费者共用，且必须解析到同一模块实例：
-  - Worker 的 vite 构建为静态打进 Worker 的代码（自带 loader、Connection 等）
-    对这些说明符做别名；
-  - Worker 模块加载器在裸名解析之前，从本表应答来自 VFS 加载模块的
-    `require('node:fs')`。
-此处缺席的项在解析时大声失败，而不是解析成空模块。`process` 故意缺席：
-Worker 宿主自行安装该全局，并在装配时填入本表。
-
-导入路径携带分类：`./implemented/<module>` 在 Worker 数据源之上承载
-模块的真实语义，而 `./mock/<module>` 是结构性占位，调用时报告缺失能力。
-文件名与其 Node 模块说明符完全一致，含嵌套。
-
-每个值都是静态模块工厂，因此加载器仅在 `require` 点名该说明符时
-才读表项。工厂推迟的是读表，不是模块求值。
-
-对齐上游 `webworker-runtime/src/node/builtins.ts`。公开面仅中文名。
-"""
 from .未实现失败 import 运行时错误#本包错误
 from .builtin_modules.implemented import async_hooks as 节点异步钩子#async_hooks实现
 from .builtin_modules.implemented import buffer as 节点缓冲#buffer实现

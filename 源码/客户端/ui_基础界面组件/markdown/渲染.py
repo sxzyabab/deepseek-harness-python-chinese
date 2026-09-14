@@ -1,12 +1,3 @@
-"""直接 mdast→视图树 markdown 渲染器。
-
-对齐上游 `ui-primitives/src/markdown/render.tsx`。公开面仅中文名。
-替换 react-markdown / remark-rehype 管线：对解析节点做 switch，
-流式可把已冻结块缓存为视图树；不可信输出策略不变：
-链接/图片走协议白名单，图片额外要求绝对 HTTP(S)，
-原始 HTML 当字面文本，KaTeX 不跑受信命令。
-mdast 节点与块定位一律为 dict。
-"""
 import re#语言 id 截断
 from urllib.parse import urlparse as 解析URL#协议检查
 from .katex import 渲染TeX到树#TeX→树

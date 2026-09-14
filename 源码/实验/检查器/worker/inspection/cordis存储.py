@@ -1,7 +1,3 @@
-"""Worker 拥有的与 CDP 无关的 Cordis 树快照仓库。
-
-对齐上游 `worker/inspection/cordis-store.ts`。公开面仅中文名。
-"""
 from ...共享.cordis.快照 import 解析cordis树快照#解析快照
 from ...共享.桥接.消息.cordis import cordis树主题#树主题
 from ...共享.cordis.投影器 import (#投影面

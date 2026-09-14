@@ -1,8 +1,3 @@
-"""把聊天视图节点增量折成 ChatSnapshot。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/chat-snapshot-builder.ts`。公开面仅中文名。
-按键存储、位置索引与遗留兼容切片。节点与贡献一律 dict。
-"""
 from ..约定.聊天节点 import 运行中工具#运行中判断
 
 __all__=['聊天快照构建器','聊天视图定义','登记聊天会话视图']#仅中文公开名

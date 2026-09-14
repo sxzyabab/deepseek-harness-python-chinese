@@ -1,8 +1,3 @@
-"""Composer 上下文占用环与分解面板。
-
-对齐上游 `ui-conversation/src/client/skeleton/ContextMeter.tsx`。公开面仅中文名。
-属性、压力、分解为 dict。
-"""
 import math#圆周
 
 from .统计行 import 上下文占用,格式化令牌#占用与紧凑令牌

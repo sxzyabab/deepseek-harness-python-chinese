@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-subprocess-local` 的本包拥有不变量配套。
-
-对齐上游 `subprocess-local/src/invariant.ts`。公开面仅中文名；无英文别名。
-
-无运行时不变量：本包在所属缝已强制的约定之外，不暴露独立事件序列或可变数据关系。
-"""
 from ...依赖 import cordis#外部依赖胶水
 __all__=('包名','名称','注入','安装','应用')#仅中文公开名
 

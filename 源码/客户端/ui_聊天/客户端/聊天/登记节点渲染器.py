@@ -1,8 +1,3 @@
-"""把本包业务渲染器挂到 conversation.chat.node 键席。
-
-对齐上游 `ui-chat/src/client/chat/register-node-renderers.ts`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from ..文案 import 命名空间#NS
 from .消息项 import 用户消息行,模型重试行,回合错行,回合顶格行#消息行
 from .压缩项 import 压缩项#压缩

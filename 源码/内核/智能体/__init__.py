@@ -1,8 +1,3 @@
-"""Agent 服务：在线注册表、工厂委托，以及进程本地发起方作用域。
-
-对齐上游 `agent/src/index.ts`。公开面仅中文名；ctx 服务槽 `agents`、事件名与诊断英文字面量保持上游。
-具体创建与驱动归循环。
-"""
 import threading#线程本地存储与后台观察
 from concurrent.futures import Future as _原生Future#单次操作结果
 from typing import NotRequired,TypedDict#结构类型
@@ -42,7 +37,7 @@ class 操作任务:
             if isinstance(错误,BaseException):
                 自身._未来.set_exception(错误)#原样拒绝
             else:
-                包装=智能体错误('task rejected')#包装拒绝
+                包装=智能体错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息
                 自身._未来.set_exception(包装)#包装拒绝
 
@@ -64,9 +59,9 @@ __all__=(#仅中文公开名；无英文别名
     '智能体句柄协议',
 )#公开面结束
 
-无工厂诊断='no agent factory registered (load an agent-loop plugin)'#无工厂诊断
-无发起方诊断='no initiating agent is active'#无发起方诊断
-发起方已拆除诊断='agent initiator scope is disposed'#发起方已拆除诊断
+无工厂诊断='未登记智能体工厂（请加载 agent-loop 插件）'#无工厂诊断；插件名不译
+无发起方诊断='当前没有活动的发起智能体'#无发起方诊断
+发起方已拆除诊断='智能体发起方作用域已拆除'#发起方已拆除诊断
 
 class 智能体错误(Exception):
     """内核智能体包的异常基类。"""
@@ -131,7 +126,7 @@ class 调用栈存储:#对应 Node AsyncLocalStorage
         if 栈 is None or len(栈)==0:#空栈
             return None#停用或空栈
         return 栈[-1]#栈顶
-    def 跑(自身,值,操作):#压栈后调用
+    def 压栈执行(自身,值,操作):#压栈后调用
         """压栈后调用操作，返回后弹栈。"""
         栈=自身._取栈()#本线程栈
         栈.append(值)#压入
@@ -225,16 +220,16 @@ class 智能体注册表(服务):#Agent 注册表
         return 智能体#返回
     def 带发起方(自身,智能体,操作):#带发起方运行
         """以一个精确 Agent 作为其进程本地发起方运行一项操作。"""
-        return 自身.带着发起方跑(智能体,操作)#委托
+        return 自身.带着发起方执行(智能体,操作)#委托
     def 无发起方(自身,操作):#无发起方运行
         """在隐藏任何继承发起 Agent 的边界内运行一项操作。"""
-        return 自身.带着发起方跑(None,操作)#清除发起方
+        return 自身.带着发起方执行(None,操作)#清除发起方
     def 设工厂(自身,工厂):#登记工厂
         """登记 Agent 创建工厂；已有工厂则抛错。"""
         def 设工厂体():#挂上 effect 并在拆除时清空槽
             """挂上 effect 并在拆除时清空槽。"""
             if 自身.工厂 is not None:#已有工厂
-                raise 智能体错误('an agent factory is already registered')#不得重复
+                raise 智能体错误('已登记智能体工厂，不得重复')#不得重复
             原始=取符号(工厂,符号.原始)#剥到具体目标
             if 原始 is None and isinstance(工厂,可追踪包装):#可追踪包装
                 原始=object.__getattribute__(工厂,'_值')#包装内目标
@@ -277,10 +272,10 @@ class 智能体注册表(服务):#Agent 注册表
         """插入已构造 Agent 但不宣布它。"""
         身份=智能体.id#Agent id
         if 身份!=智能体.session.id:#与会话 id 不一致
-            raise 智能体错误('agent id "'+str(身份)+'" does not match session id "'+str(智能体.session.id)+'"')#必须同一身份
+            raise 智能体错误('智能体 id "'+str(身份)+'" 与会话 id "'+str(智能体.session.id)+'" 不一致')#必须同一身份
         载体=作用域目标(智能体,智能体)#以自身为键的载体
         if 身份 in 自身.存储:#已登记
-            raise 智能体错误('agent "'+str(身份)+'" is already registered')#不得覆盖
+            raise 智能体错误('智能体 "'+str(身份)+'" 已登记')#不得覆盖
         条目=智能体条目(身份,智能体,所有者,载体)#新条目
         自身.存储[身份]=条目#写入存储
         仍有效=True#脱离是否仍有效
@@ -312,14 +307,14 @@ class 智能体注册表(服务):#Agent 注册表
             try:#收住同步抛错
                 回调(*参数)#监听器已是同步回调
             except Exception as 错误:#同步抛错
-                自身.ctx.日志.警告('agent "'+str(条目.身份)+'": agent/disposed listener threw: '+str(错误))#记抛错
+                自身.ctx.日志.警告('智能体 "'+str(条目.身份)+'"：agent/disposed 监听器抛错：'+str(错误))#记抛错；事件名不译
     def 宣布(自身,智能体):#宣布
         """宣布先前用进入插入的 Agent。"""
         条目=自身.存储.get(智能体.id)#取条目
         if 条目 is None or 条目.智能体 is not 智能体:#不是在线条目
-            raise 智能体错误('agent "'+str(智能体.id)+'" is not live in this registry')#必须是本注册表在线实例
+            raise 智能体错误('智能体 "'+str(智能体.id)+'" 不在本注册表在线')#必须是本注册表在线实例
         if 条目.已宣布 or 条目.正在宣布:#已经或正在宣布
-            raise 智能体错误('agent "'+str(条目.身份)+'" was already announced')#不得重复宣布
+            raise 智能体错误('智能体 "'+str(条目.身份)+'" 已经宣布过')#不得重复宣布
         条目.正在宣布=True#正在宣布
         条目.已宣布=True#已宣布
         参数=[条目.载体,'agent/created',{'agent':条目.智能体}]#载体、事件名、载荷
@@ -369,7 +364,7 @@ class 智能体注册表(服务):#Agent 注册表
             自身.发起运行存储.停用()#停用运行存储
             任务.兑现()#完成本次拆除
         return 自身.发起拆除#共享拆除承诺
-    def 带着发起方跑(自身,智能体,操作):#建立一个被跟踪的发起或清除边界
+    def 带着发起方执行(自身,智能体,操作):#建立一个被跟踪的发起或清除边界
         """建立一个被跟踪的发起或清除边界。"""
         if 自身.发起状态!='active':#非活动
             raise 智能体错误(发起方已拆除诊断)#非活动则拒
@@ -379,9 +374,9 @@ class 智能体注册表(服务):#Agent 注册表
         自身._计数锁.release()#解锁
         def 内层():#嵌套发起方存储
             """嵌套发起方存储。"""
-            return 自身.发起方存储.跑(智能体,操作)#发起方存储
+            return 自身.发起方存储.压栈执行(智能体,操作)#发起方存储
         try:#调用操作
-            结果=自身.发起运行存储.跑(运行,内层)#嵌套两层
+            结果=自身.发起运行存储.压栈执行(运行,内层)#嵌套两层
         except Exception:#同步抛错
             自身.释放发起运行(运行)#释放运行
             raise#原样抛出

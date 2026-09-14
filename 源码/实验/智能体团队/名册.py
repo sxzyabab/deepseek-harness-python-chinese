@@ -1,7 +1,3 @@
-"""Team 成员关系、可延续子代供应，以及 roster 拥有的拆除。
-
-对齐上游 `agent-team/src/roster.ts`。公开面仅中文名。
-"""
 import re,uuid,threading#名字模式、预留子 id、中止盯梢
 from ...依赖.工具 import 聚合错误#聚合错误
 from ...子智能体.子智能体 import 折叠子智能体描述符#描述符折叠

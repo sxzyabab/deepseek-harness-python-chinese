@@ -1,7 +1,3 @@
-"""Client 源目录操作的带版本信封。
-
-对齐上游 `shared/bridge/messages/sources/frames.ts`。公开面仅中文名。
-"""
 from ....json import 是否普通对象,检查器错误#普通对象|本包错误
 from ....校验 import 精确键,精确对象,线上标识#校验
 from ...版本 import 检查器协议版本#协议版本

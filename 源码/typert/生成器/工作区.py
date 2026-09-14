@@ -1,9 +1,3 @@
-"""工作区级发现与由模型驱动的 Typert 生成。
-
-对齐上游 `typert/generator/src/workspace.ts`。公开面仅中文名。
-`discover` / `generate` 编排依赖硬缺口 analyzer，本叶以显式 NotImplementedError 登记边界；
-已有 WorkspaceModel 上的发射走 `自模型生成`（不触 TS 编译器）。
-"""
 import json,os#读 package.json
 from .分析器 import Typert分析错误#分析错误类型
 from .代码输出 import 面模型代码输出器#按面模型输出

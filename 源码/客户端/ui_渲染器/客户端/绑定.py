@@ -1,9 +1,3 @@
-"""渲染器宿主与标准源作用域的内部绑定。
-
-对齐上游 `ui-renderer/src/client/bindings.tsx`。公开面仅中文名。
-无真 React Context：用显式栈模拟提供者。
-宿主为 槽宿主面 对象；可观察源与作用域适配器为 dict。
-"""
 from .绑定选择器 import 绑定快照选择器#uSES 绑定
 
 __all__=[#仅中文公开名

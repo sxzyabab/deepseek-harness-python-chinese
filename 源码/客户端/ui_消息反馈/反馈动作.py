@@ -1,8 +1,3 @@
-"""逐条消息反馈控件：赞/踩 + 可选说明。
-
-对齐上游 `ui-message-feedback/src/client/MessageFeedbackActions.tsx`。公开面仅中文名。
-"""
-
 __all__=['消息反馈动作']#仅中文公开名
 
 def 缺省翻译(键,_插值=None):#无文案函数

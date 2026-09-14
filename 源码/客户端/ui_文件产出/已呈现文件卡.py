@@ -1,8 +1,3 @@
-"""已呈现文件卡：身份与默认应用/文件管理器动作。
-
-对齐上游 `ui-deliverables/src/client/PresentedFileCard.tsx`。公开面仅中文名。
-props 为槽位合成 dict。
-"""
 import re#剥尾注
 
 __all__=['已呈现文件卡','卡描述','文件扩展名']#仅中文公开名

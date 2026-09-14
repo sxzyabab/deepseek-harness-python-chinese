@@ -1,7 +1,3 @@
-"""与环境无关的检查器模型与桥接协议导出。
-
-对齐上游 `shared/index.ts`。公开面仅中文名。
-"""
 from .桥接.消息.控制 import *#导出控制消息
 from .桥接.控制编解码 import *#导出控制编解码
 from .cordis.快照 import *#导出Cordis快照

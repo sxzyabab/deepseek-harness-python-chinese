@@ -1,11 +1,3 @@
-"""Typert Loader 集成：为已挂载的插件包自动注册清单。
-
-对齐上游 `typert/loader/src/index.ts`。公开面仅中文名。
-当一条 Loader 条目挂载时，解析该条目的 package.json；导出 `./typert` 的包
-导入其宿主面并把 TYPERT 清单注册进 ctx.typert，条目卸载时撤回。
-显式 packages 覆盖嵌在另一条 Loader 条目后面的插件。
-扫描按条目名增量进行：internal/plugin 标脏，微任务 flush 再调和。
-"""
 import json,os,importlib.util,threading#读清单、拼路径、动态导入与后台链
 from concurrent.futures import Future as 原生结果#单次操作结果
 
@@ -348,16 +340,16 @@ def 应用(上下文,配置=None):
                 return#放弃
             已登记[条目名]=上下文.typert.register(清单)#登记并记下拆除器
         承诺=操作任务()#飞行中任务
-        def 跑注册():
+        def 执行注册():
             """成功失败都从 pending 删掉。"""
-            try:#跑任务体
+            try:#执行任务体
                 任务()#导入并登记
                 承诺.兑现(None)#成功
             except Exception as 错误:#失败
                 承诺.拒绝(错误)#上抛
             finally:#无论成败
                 进行中.pop(条目名,None)#删掉
-        threading.Thread(target=跑注册,daemon=True).start()#启动
+        threading.Thread(target=执行注册,daemon=True).start()#启动
         进行中[条目名]=承诺#记下飞行中任务
         return 承诺#交给 flush 等待
 

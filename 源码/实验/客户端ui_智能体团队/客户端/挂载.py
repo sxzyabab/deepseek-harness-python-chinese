@@ -1,7 +1,3 @@
-"""源码安全的 Agent Teams 浏览器注册与 Remote 挂载生命周期。
-
-对齐上游 `client-ui-agent-team/src/client/mount.ts`。公开面仅中文名。
-"""
 from .团队动作 import 团队动作#动作 UI
 from .文案 import 命名空间,中文,英文#词典
 

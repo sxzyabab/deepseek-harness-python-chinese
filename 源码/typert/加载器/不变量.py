@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-typert-loader` 的本包拥有不变量配套。
-
-对齐上游 `loader/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：Loader 条目生命周期直接拥有每一份精确的注册表拆除器，集成测试观察注册与移除。
-"""
 包名='@deepseek-ai/dsh-typert-loader'#本包的不变量所有权名
 名称='typert-loader-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

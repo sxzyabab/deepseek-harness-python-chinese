@@ -1,8 +1,3 @@
-"""整客户端层的 remote.<ns> 服务，不使用生成的 Remote 客户端。
-
-对齐上游 `client-runtime/src/assembly/remote-proxies.ts`。公开面仅中文名。
-中止信号为 threading.Event；一元调用同步，拒绝当场折叠。
-"""
 import threading#中止事件
 from ....api.网关.客户端 import 取消失败,载体失败#取消失败与载体失败
 from .名册 import 客户端测试运行时错误#本包异常
@@ -55,9 +50,7 @@ class 命名空间代理:#命名空间代理
         自身._模拟=模拟#模拟
 
     def __getattr__(自身,属性):#取值
-        """非字符串或 then 则惰性；否则返回调用闭包。"""
-        if 属性=='then':#避免 thenable
-            raise AttributeError(属性)#惰性
+        """返回调用闭包。"""
         命名空间=自身._命名空间#命名空间
         连接=自身._连接#连接
         模拟=自身._模拟#模拟
@@ -71,7 +64,7 @@ class 命名空间代理:#命名空间代理
             if 模拟.取模式(端点)=='stream':#流模式
                 打开=getattr(连接.rpc,'open',None)#开流
                 if 打开 is None:#无开流器
-                    raise 客户端测试运行时错误('client-test-runtime: '+端点+' is a stream but the carrier has no in-process opener')#英文诊断
+                    raise 客户端测试运行时错误('client-test-runtime: '+端点+' 是流端点，但载体没有进程内开流器')#诊断
                 流信号=信号 if 信号 is not None else 中止事件()#缺席则新建未置位事件
                 return 打开('/api',端点,{'args':参数表},流信号)#打开流
             try:#一元调用

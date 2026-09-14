@@ -1,8 +1,3 @@
-"""浏览器轨迹插件：向会话视图槽贡献一条条目。
-
-对齐上游 `ui-trajectory/src/client/index.ts`。公开面仅中文名。
-React 像素半以结构树 `轨迹视图` 接线；完整 DOM/CSS 仍以上游为准。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .时长存储 import 创建轨迹时长存储#时长偏好
 from .消息定义 import 登记轨迹消息定义#消息定义

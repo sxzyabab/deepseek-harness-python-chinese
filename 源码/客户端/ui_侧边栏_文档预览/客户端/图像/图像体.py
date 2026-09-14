@@ -1,7 +1,3 @@
-"""以固有 CSS 像素尺寸渲染的完整图片字节。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/image/ImageBody.tsx`。公开面仅中文名。
-"""
 from ..远程过程调用 import 宿主文件#宿主文件
 
 __all__=['图像媒体类型','图像体','图像扩展名']#仅中文公开名

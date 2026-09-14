@@ -1,9 +1,3 @@
-"""把 conversation 词条接到零 cordis 附件原子的标签 props。
-
-对齐上游 `ui-conversation/src/client/image-labels.ts`。公开面仅中文名。
-限额为 dict。
-"""
-
 __all__=['图像尺寸文案','附件错误文案','灯箱标签','消息图像标签','拖放覆盖层标签','附件栏标签']#仅中文公开名
 
 def 图像尺寸文案(字节数):

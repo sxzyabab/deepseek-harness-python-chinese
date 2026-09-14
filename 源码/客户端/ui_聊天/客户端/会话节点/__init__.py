@@ -1,7 +1,3 @@
-"""登记本包贡献的 Chat 业务 Definition 与目标构建器。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/register.ts`。公开面仅中文名。
-"""
 from .收件箱 import 登记收件箱会话节点#收件箱
 from .消息 import 登记消息会话节点#消息
 from .请求提示 import 登记请求提示会话节点#请求提示词

@@ -1,7 +1,3 @@
-"""Host 与 Client 观测源共用的、与界域无关的有界缓冲。
-
-对齐上游 `shared/bridge/buffer.ts`。公开面仅中文名。
-"""
 from .版本 import 检查器协议版本#协议版本
 from ..json import 是否json值,json字节长度,检查器错误#JSON工具|本包错误
 

@@ -1,4 +1,3 @@
-"""拥有插件树并导入已配置插件的加载器服务。"""
 import json,os,time
 from .. import cordis
 from .内部 import 模块加载器#Node 内部模块加载器
@@ -54,8 +53,8 @@ class 加载器(插件树):
         """完整重载时由宿主重启进程。默认什么都不做。"""
         return#由宿主覆盖
 
-    def 解开导出(自身,导出):
-        """从模块导出里摊出真正的插件对象。"""
+    def 取出默认导出(自身,导出):
+        """从模块导出里取出默认导出的插件对象。"""
         if 导出 is None:
             return None#空导出
         if hasattr(导出,'default'):

@@ -1,8 +1,3 @@
-"""每个已挂载二进制文档一份真实模块工作线程与 PDF.js 加载任务。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/runtime.ts`。公开面仅中文名。
-Python 半无浏览器 Worker / PDF.js；打开入口声明会话形，缺后端时失败回调。
-"""
 from .错误 import pdf工作线程失败#失败
 from ..面 import 已中止#中止
 
@@ -25,13 +20,13 @@ def 打开pdf(数据,信号,报告失败):
     def 取文档():
         """加载文档；无后端则失败。"""
         if 已中止(信号) or 已关[0]:#已停
-            raise RuntimeError('aborted')
-        错=pdf工作线程失败(None)#无 Worker
+            raise RuntimeError('已中止')
+        错误体=pdf工作线程失败(None)#无 Worker
         try:
-            报告失败(错)#回调
+            报告失败(错误体)#回调
         except Exception:#回调抛
             pass#忽略
         拆除()#清
-        raise 错#失败
+        raise 错误体#失败
 
     return {'document':取文档,'dispose':拆除}#会话

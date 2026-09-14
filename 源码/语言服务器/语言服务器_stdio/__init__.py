@@ -1,7 +1,3 @@
-"""ctx.lsp 的通用 stdio 语言服务器后端。一个插件实例配置一张具名服务器命令表，并为每一项注册一个隔离提供方。每个提供方按规范工作区目标惰性单飞一个服务器进程，经瞬时打开服务查询，并在下一次只读查询之前或之中替换已失败的选中传输。提供方经 ctx.fs 读源、经 ctx.subprocess 拉起服务器，因此本地与远程实现共用一个宿主。
-
-命名空间插件（具名导出，无默认导出）。生命周期按 effect 作用域：拆除时从 ctx.lsp 注销并拆掉每一个活着的服务器。
-"""
 import threading#提供方队列与生命周期
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,列表字段,字典字段,任意字段,数字字段#配置字段
@@ -68,12 +64,12 @@ def 全部结算(任务列表):#对齐Promise.allSettled
 def 断言定时器(提供方标识,名称,值):#校验定时器预算
     """拒绝会被 Node 钳位、而不是按配置调度的定时器值。排除布尔。"""
     if isinstance(值,bool) or isinstance(值,int) is False or 值<1 or 值>定时器延迟上限毫秒:#超出可调度范围
-        raise 语言服务器错误('lsp-stdio: servers.'+str(提供方标识)+'.'+名称+' must be a positive integer no greater than '+str(定时器延迟上限毫秒),'LSP_INVALID_PROVIDER')#加载时失败
+        raise 语言服务器错误('lsp-stdio: servers.'+str(提供方标识)+'.'+名称+' 必须是不超过 '+str(定时器延迟上限毫秒)+' 的正整数','LSP_INVALID_PROVIDER')#加载时失败
 
 def 断言正整数(提供方标识,名称,值):#校验正整数配置
     """加载时拒绝非正或非整数配置值，让错误配置大声失败。排除布尔。"""
     if isinstance(值,bool) or isinstance(值,int) is False or 值<1:#非正整数
-        raise 语言服务器错误('lsp-stdio: servers.'+str(提供方标识)+'.'+名称+' must be a positive integer','LSP_INVALID_PROVIDER')#加载时失败
+        raise 语言服务器错误('lsp-stdio: servers.'+str(提供方标识)+'.'+名称+' 必须是正整数','LSP_INVALID_PROVIDER')#加载时失败
 
 def 校验服务器配置(提供方标识,已解析):#加载时校验一条服务器配置
     """在表中任何一个提供方注册之前，校验一条已解析的服务器配置。已解析是 dict。"""
@@ -107,7 +103,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
     def 断言活动(自身,信号=None):#已拆除或已取消则拒绝
         """拒绝无法发布或使用提供方拥有实例的工作。"""
         if 自身.是否已拆除():#拆除后拒绝
-            raise 语言服务器错误('lsp-stdio provider is disposed','LSP_DISPOSED')#LSP_DISPOSED
+            raise 语言服务器错误('lsp-stdio 提供方已拆除','LSP_DISPOSED')#LSP_DISPOSED
         if 信号 is not None and 已中止(信号):#已取消
             raise 中止错误(信号)#抛分类中止错误
 
@@ -125,7 +121,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
         飞行=操作任务()#飞行解析的结算尾
         with 自身.锁:#纳入拆除等待集
             自身.工作区解析集.add(飞行)#飞行集
-        def 跑规范化():#后台规范化
+        def 执行规范化():#后台规范化
             """规范化工作区。"""
             try:#规范化
                 工作区=规范化工作区(自身.文件系统,请求['workspaceRoot'],查询信号)#得到规范工作区
@@ -139,7 +135,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
                     pass#忽略
                 with 自身.锁:#移出
                     自身.工作区解析集.discard(飞行)#不再被拆除等待
-        threading.Thread(target=跑规范化,daemon=True).start()#规范化
+        threading.Thread(target=执行规范化,daemon=True).start()#规范化
         try:#等待规范化
             工作区=工作区任务.等待()#得到规范工作区
         except BaseException:#失败也要等飞行尾
@@ -150,7 +146,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
             raise#抛出
         自身.断言活动(查询信号)#解析后再检查拆除与取消
         工作区键=工作区['target']['targetKey']#稳定工作区键
-        def 跑生命周期():#在该工作区队列上跑完整生命周期
+        def 执行生命周期():#在该工作区队列上执行完整生命周期
             """读源→打开→查询→关闭。"""
             自身.断言活动(查询信号)#轮到时再检查
             # 在工作区队列内、拉起之前读取：排队查询在轮到时看到当前字节。
@@ -171,19 +167,19 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
                 if 实例.已死:#实例已死
                     实例.拆除()#有界拆除
                     自身.若当前则驱逐(工作区键,实例)#若槽仍是它则丢掉
-        return 自身.入队(工作区键,查询信号,跑生命周期)#排队
+        return 自身.入队(工作区键,查询信号,执行生命周期)#排队
 
     def 入队(自身,工作区键,信号,运行):#按工作区串行排队
         """为一个规范工作区串行化一次完整查询生命周期。"""
         with 自身.锁:#取先前尾
             先前=自身.队列表[工作区键] if 工作区键 in 自身.队列表 else None#缺席则无先前工作
         结果任务=操作任务()#本查询结果
-        def 跑():#可中止地等待先前工作再跑本查询
+        def 执行排队工作():#可中止地等待先前工作再执行本查询
             """串行执行。"""
             try:#等待先前
                 if 先前 is not None:#有先前尾才等
                     可中止等待(先前,信号)#可中止等待
-                结果任务.兑现(运行())#跑本查询
+                结果任务.兑现(运行())#执行本查询
             except BaseException as 错误:#失败
                 结果任务.拒绝(错误)#拒绝
         # 即便本调用方放弃等待，尾仍跟随实际的先前工作。它永不拒绝。
@@ -195,8 +191,8 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
                     先前.等待()#先前
                 except BaseException:#不继承
                     pass#忽略
-            try:#跑
-                跑()#本查询
+            try:#执行
+                执行排队工作()#本查询
             finally:#结算尾
                 尾.兑现(None)#永不拒绝
                 with 自身.锁:#清槽
@@ -244,7 +240,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
     def 拆除全部(自身):#拆除本提供方全部实例
         """拆除每一个活实例并挡住后续查询。"""
         自身.已拆除=True#挡住新查询
-        自身.生命周期.中止(语言服务器错误('lsp-stdio provider is disposed','LSP_DISPOSED'))#中止飞行中的等待
+        自身.生命周期.中止(语言服务器错误('lsp-stdio 提供方已拆除','LSP_DISPOSED'))#中止飞行中的等待
         with 自身.锁:#快照
             活着=list(自身.实例表.values())#快照活实例
             排空=list(自身.队列表.values())#快照队列尾
@@ -269,31 +265,31 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
         with 自身.锁:#清空
             自身.队列表.clear()#清空队列表
             自身.工作区解析集.clear()#清空飞行解析集
-        抛出拆除失败(失败列表,'lsp-stdio instance teardown failed')#有失败则在全部结算后抛
+        抛出拆除失败(失败列表,'lsp-stdio 实例拆除失败')#有失败则在全部结算后抛
 
 def 应用(上下文,配置):
     """注册已配置的 stdio LSP 提供方。加载时（凭证擦洗之后）解析每一个可执行文件，再发布任何提供方；每个进程在首次匹配查询时惰性拉起。配置是 dict。"""
     服务器表=配置['servers'] if 'servers' in 配置 else {}#展开服务器表
     条目表=list(服务器表.items()) if isinstance(服务器表,dict) else []#条目
     if len(条目表)==0:#空表则加载失败
-        raise 语言服务器错误('lsp-stdio: servers must contain at least one server','LSP_INVALID_PROVIDER')#失败
+        raise 语言服务器错误('lsp-stdio: servers 至少要有一台服务器','LSP_INVALID_PROVIDER')#失败
     搭建中止=中止控制器()#加载期取消控制器
     def 插件事件(纤维):
         """插件回调必须在 Cordis 能跑 effect 清理之前看见自己的拆除。纤维是 cordis 对象。"""
         if 纤维 is 上下文.纤程 and 纤维.编号 is None:#本插件纤程已拆除
-            搭建中止.中止(语言服务器错误('lsp-stdio setup disposed','LSP_DISPOSED'))#中止仍在进行的可执行解析
+            搭建中止.中止(语言服务器错误('lsp-stdio 搭建已拆除','LSP_DISPOSED'))#中止仍在进行的可执行解析
     停止监听=上下文.监听('internal/plugin',插件事件)#结束 拆除监听
     提供方列表=[]#先解析全部可执行文件再构造提供方
     查找列表=[]#并行解析条目
     try:#注册前先解析每一项服务器本地设置
         for 提供方标识,原始配置 in 条目表:#逐项（并行用线程）
             if str(提供方标识).strip()=='':#拒绝空id
-                raise 语言服务器错误('lsp-stdio: server ids must be non-empty strings','LSP_INVALID_PROVIDER')#失败
+                raise 语言服务器错误('lsp-stdio: 服务器 id 必须是非空字符串','LSP_INVALID_PROVIDER')#失败
             已解析=原始配置#schema已填默认值
             校验服务器配置(提供方标识,已解析)#加载时校验预算与字节上限
             查找任务=操作任务()#解析任务
             查找列表.append(查找任务)#记下
-            def 跑解析(标识=提供方标识,配置值=已解析,结果=查找任务):
+            def 执行解析(标识=提供方标识,配置值=已解析,结果=查找任务):
                 """解析可执行并构造提供方。"""
                 try:#解析
                     if 已中止(搭建中止.信号):#已拆除
@@ -307,7 +303,7 @@ def 应用(上下文,配置):
                     结果.兑现(本地语言服务器提供方(标识,上下文.fs,配置值,可执行,拉起))#构造隔离提供方
                 except BaseException as 错误:#失败
                     结果.拒绝(错误)#拒绝
-            threading.Thread(target=跑解析,daemon=True).start()#并行解析
+            threading.Thread(target=执行解析,daemon=True).start()#并行解析
         try:#等待全部解析
             for 查找 in 查找列表:#逐项等待
                 提供方列表.append(查找.等待())#全部成功才收下
@@ -337,7 +333,7 @@ def 应用(上下文,配置):
                     提供方.拆除全部()#拆除本提供方
                 except BaseException as 错误:#失败
                     失败列表.append(错误)#记下
-            抛出拆除失败(失败列表,'lsp-stdio provider teardown failed')#有失败则抛
+            抛出拆除失败(失败列表,'lsp-stdio 提供方拆除失败')#有失败则抛
         return 拆除全部#拆除器
     上下文.副作用(挂注册,'lsp-stdio.registerProviders')#结束 注册副作用
 

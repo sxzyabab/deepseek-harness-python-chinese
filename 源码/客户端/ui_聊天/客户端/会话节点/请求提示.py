@@ -1,7 +1,3 @@
-"""Chat target 的请求头提示词与系统消息 Definition。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/request-prompt.ts`。公开面仅中文名。
-"""
 from .节点工厂 import 聊天错误,聊天节点#节点工厂
 
 __all__=['系统消息定义','请求提示定义','登记请求提示会话节点']#仅中文公开名

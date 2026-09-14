@@ -1,7 +1,3 @@
-"""欢迎通知与官方 DeepSeek 引导对话框。
-
-对齐上游 WelcomeNotice.tsx / DeepSeekOnboardingDialog.tsx。公开面仅中文名。
-"""
 from .存储 import 引导就绪度#就绪度投影
 from .引导模态 import 引导模态#共用模态
 from .提供方编辑器 import 提供方编辑器#密钥编辑器

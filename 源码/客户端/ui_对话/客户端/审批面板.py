@@ -1,9 +1,3 @@
-"""审批接管面板：composer 链选中审批等待时。
-
-对齐上游 `ui-conversation/src/client/skeleton/ApprovalPanel.tsx`。公开面仅中文名。
-一次作答闩：点后禁用，失败再解锁。匹配载体经 `待决审批` 铸域面。
-属性与根块为 dict。
-"""
 import json#解析 command
 from .服务 import 对话错误#本包异常
 from .约定.槽 import 待决审批#审批域面

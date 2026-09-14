@@ -1,8 +1,3 @@
-"""回合用量与时间 IconActions 胶囊面板。
-
-对齐上游 `ui-chat/src/client/chat/TurnUsagePanel.tsx`。公开面仅中文名。
-属性与用量为 dict。
-"""
 from .消息铬 import 格式化延迟秒,格式化运行时长,格式化每秒令牌#时长与吞吐
 from .令牌格式 import 格式化缓存命中百分比,格式化精确令牌,格式化令牌#token 格式
 

@@ -1,9 +1,3 @@
-"""worker 侧的 `node:http`：`createServer` 返回其 `listen` 立即成功且无套接字的
-Server，并保留捕获的请求监听器，以便隧道服务器可将合成请求喂入真实路由表。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/http.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 import threading#监听器就绪门
 from ...未实现失败 import 运行时错误#本包错误
 
@@ -104,11 +98,11 @@ def 创建服务器(监听器=None):#创建假服务器
 
 def 请求(*位置参数,**关键字参数):#出站request不可用
     """出站 HTTP 在 worker 中只有一个载体：`fetch`。"""
-    raise 运行时错误('web-preview: node:http.request is not available in the worker host — use fetch')#引导用fetch
+    raise 运行时错误('web-preview: worker 宿主里没有 node:http.request，请用 fetch')#引导用fetch
 
 def 获取(*位置参数,**关键字参数):#出站get不可用
     """同 request。"""
-    raise 运行时错误('web-preview: node:http.get is not available in the worker host — use fetch')#引导用fetch
+    raise 运行时错误('web-preview: worker 宿主里没有 node:http.get，请用 fetch')#引导用fetch
 
 状态码表={#状态文本表
     200:'OK',204:'No Content',304:'Not Modified',400:'Bad Request',#一批

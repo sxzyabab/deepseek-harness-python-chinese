@@ -621,7 +621,7 @@ def 是否可执行缺失(错误):#ENOENT
     码=getattr(错误,'code',None)#挂靠码
     return 码=='ENOENT'#对齐 Node
 
-def 跑外壳打开(路径,看护毫秒,事实):#shell-open
+def 执行外壳打开(路径,看护毫秒,事实):#shell-open
     """在看护窗口下经 OS open verb 打开目录。"""
     信号=threading.Event()#不主动中止
     完成=threading.Event()#结算
@@ -643,10 +643,10 @@ def 跑外壳打开(路径,看护毫秒,事实):#shell-open
         return 结局['值']#结局
     return 'launched'#仍在跑 → 已启动
 
-def 跑启动(启动,路径,看护毫秒,事实):#runLaunch
-    """跑一条启动器并归类结局。"""
+def 执行启动器(启动,路径,看护毫秒,事实):#runLaunch
+    """执行一条启动器并归类结局。"""
     if 启动.种类=='shell-open':#外壳
-        return 跑外壳打开(路径,看护毫秒,事实)#打开
+        return 执行外壳打开(路径,看护毫秒,事实)#打开
     if 启动.种类=='argv':#argv
         try:#派生
             选项={'看护毫秒':看护毫秒}#看护
@@ -663,10 +663,10 @@ def 跑启动(启动,路径,看护毫秒,事实):#runLaunch
 def 启动已解析(已解析,路径,看护毫秒,内部=None):#launchResolved
     """启动已解析应用：主启动器，失败则回退。"""
     事实=补全内部事实(内部)#补全
-    主=跑启动(已解析.启动,路径,看护毫秒,事实)#主
+    主=执行启动器(已解析.启动,路径,看护毫秒,事实)#主
     if 主=='launched' or 已解析.回退启动 is None:#成功或无回退
         return 主#结局
-    回退=跑启动(已解析.回退启动,路径,看护毫秒,事实)#回退
+    回退=执行启动器(已解析.回退启动,路径,看护毫秒,事实)#回退
     if 回退=='launched':#回退成功
         return 'launched'#成功
     return 'missing' if 主=='missing' or 回退=='missing' else 'failed'#缺失优先

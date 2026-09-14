@@ -1,8 +1,3 @@
-"""命令节点视图与手动压缩节点视图。
-
-对齐上游 `ui-chat/src/client/chat/CommandNodeView.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from .回退命令卡 import 回退命令卡#回退卡
 from .压缩命令卡 import 压缩命令卡#压缩卡
 

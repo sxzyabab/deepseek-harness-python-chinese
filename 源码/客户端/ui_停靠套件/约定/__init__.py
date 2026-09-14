@@ -1,7 +1,3 @@
-"""停靠套件约定层。
-
-对齐上游 `ui-dockkit/src/contract/`。公开面仅中文名。
-"""
 from .类型 import (#类型约定
     停靠错误,
     分割轴行,

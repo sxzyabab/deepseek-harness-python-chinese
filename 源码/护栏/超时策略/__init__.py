@@ -1,8 +1,3 @@
-"""协作式工具调用超时强制器。工具声明 `timeoutMs` 并承诺遵守 `exec.signal`；本包装器武装该截止时间，并把自身到期映射为 `TOOL_TIMEOUT`，不与工具 Promise 竞态或丢弃它。
-
-FIXME: 首次打标签发布前敲定拟议的 `@deepseek-ai/dsh-timeout-guard` 重命名——仅建议，使名称与其所在的 `guard/` 对齐；在决议时再定
-（重新分组 Agent Note：architecture/2026-07-29-package-regrouping）。
-"""
 from ...依赖 import cordis#外部依赖胶水
 from ...工具.超时 import 截止,取超时#截止武装与按码判定
 

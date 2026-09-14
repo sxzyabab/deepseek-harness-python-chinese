@@ -1,7 +1,3 @@
-"""Markdown 实现标签与原语外壳。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/markdown/locales.ts`。公开面仅中文名。
-"""
 
 __all__=['中文','英文','标记文本预览键']#仅中文公开名
 

@@ -1,7 +1,3 @@
-"""浏览器后台上传 Cordis 服务。
-
-对齐上游 `file-upload/src/client/index.ts`。公开面仅中文名。
-"""
 from .运行时 import 文件上传运行时#上传运行时服务
 from .约定 import 文件上传服务协议#服务契约
 from ..类型 import 文件上传凭证标识#凭证品牌

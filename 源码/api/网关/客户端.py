@@ -1,10 +1,4 @@
-"""生成 Typert Remote 描述符的客户端投影。
-
-对齐上游 `api/gateway/src/client/index.ts`。公开面仅中文名。
-贡献安装带追踪的 remote.<namespace> 服务；方法查找、调用与类型暴露都不走 Proxy。
-另暴露 `$stream` 可重连逻辑流工厂（域 open 回调；WebSocket mux 见硬阻塞）。
-"""
-import threading#后台串行与监听器盯住
+import threading#后台串行与监听器等待
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .网关 import 网关错误,操作任务,中止控制器,中止信号#本包异常与并发原语
@@ -34,16 +28,16 @@ def 内部失败(消息):
 
 def 已撤(端点):
     """方法已不再挂载。"""
-    return 内部失败('client api: Remote method '+端点+' is no longer mounted')#已撤
+    return 内部失败('client api: 远程方法 '+端点+' 已不再挂载')#已撤
 
 def 载体失败(端点,错误):
     """带上错误消息。"""
     消息=错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else str(错误)#消息
-    return 内部失败('client api: '+端点+' failed: '+str(消息))#失败
+    return 内部失败('client api: '+端点+' 失败: '+str(消息))#失败
 
 def 取消失败(端点,原因):
     """调用方中止折入 gateway/cancelled，载体抛出作为 cause。"""
-    错误={'code':'gateway/cancelled','message':'client api: Remote invocation "'+端点+'" was aborted','details':{}}#取消码
+    错误={'code':'gateway/cancelled','message':'client api: 远程调用 "'+端点+'" 已中止','details':{}}#取消码
     if isinstance(原因,BaseException):#有原因
         错误['cause']=原因#挂上 cause
     return {'ok':False,'error':错误}#失败结果
@@ -51,7 +45,7 @@ def 取消失败(端点,原因):
 def 要求严格编解码(编解码,端点,字段):
     """弱模式不允许出现在客户端生成描述符。编解码为 dict。"""
     if 'mode' not in 编解码 or 编解码['mode']!='strict':#弱模式
-        raise 网关错误('definition-unavailable',端点,'client api: generated Remote '+端点+' field '+repr(字段)+' has no strict codec')#无严格编解码
+        raise 网关错误('definition-unavailable',端点,'client api: 生成的 Remote '+端点+' 字段 '+repr(字段)+' 没有严格编解码')#无严格编解码
 
 def 要求严格描述符(描述符):
     """结果、参数与 Context 身份编解码均须 strict。描述符为 dict。"""
@@ -65,11 +59,11 @@ def 要求严格描述符(描述符):
 def 解析(编解码,值,端点,字段):
     """弱模式没有 schema。编解码为 dict。"""
     if 'mode' not in 编解码 or 编解码['mode']!='strict':#弱模式
-        raise 网关错误('definition-unavailable',端点,'client api: generated Remote '+端点+' field '+repr(字段)+' has no strict codec')#无严格
+        raise 网关错误('definition-unavailable',端点,'client api: 生成的 Remote '+端点+' 字段 '+repr(字段)+' 没有严格编解码')#无严格
     try:
         return 编解码['schema'].parse(值)#解析
     except (TypeError,ValueError,KeyError,AttributeError) as 原因:
-        raise 网关错误('input-invalid',端点,'client api: '+端点+' rejected '+repr(字段)) from 原因#字段被拒绝
+        raise 网关错误('input-invalid',端点,'client api: '+端点+' 拒绝了 '+repr(字段)) from 原因#字段被拒绝
 
 def 作用域投影(描述符):
     """Context 调用或 scope+唯一 lookup。描述符为 dict。"""
@@ -85,7 +79,7 @@ def 作用域投影(描述符):
     选中=查找列表[0] if len(查找列表)==1 else None#必须恰好一个
     查找键=选中['parameter']['lookup'] if 选中 is not None and 'lookup' in 选中['parameter'] else None#lookup 键
     if 选中 is None or 选中['parameter']['wire']!=描述符['scope']['wire'] or 查找键!=描述符['scope']['context']:#不对齐
-        raise 网关错误('signature-invalid',拼端点(描述符),'client api: generated Remote '+拼端点(描述符)+' scope must select its only lookup parameter')#scope 必须选中唯一查找
+        raise 网关错误('signature-invalid',拼端点(描述符),'client api: 生成的 Remote '+拼端点(描述符)+' 的 scope 必须选中其唯一 lookup 参数')#scope 必须选中唯一查找
     return {#用 scope 与该查找参数拼投影
         'context':描述符['scope']['context'],#上下文
         'wire':描述符['scope']['wire'],#线字段
@@ -100,7 +94,7 @@ class 远程命名空间服务(服务):
     def 断言方法可用(命名空间,方法):
         """保留字段或原型成员则抛。"""
         if 方法 in 命名空间保留字段 or hasattr(远程命名空间服务,方法):#冲突
-            raise 网关错误('binding-invalid',命名空间+'/'+方法,'client api: method '+repr(命名空间+'/'+方法)+' conflicts with its namespace service')#冲突
+            raise 网关错误('binding-invalid',命名空间+'/'+方法,'client api: 方法 '+repr(命名空间+'/'+方法)+' 与其命名空间服务冲突')#冲突
 
     def __init__(自身,上下文,名,调用远程):
         """以 remote.命名空间 登记。"""
@@ -113,7 +107,7 @@ class 远程命名空间服务(服务):
         """连实例自有字段一起检查。"""
         远程命名空间服务.断言方法可用(自身.namespace,方法)#类级
         if hasattr(自身,方法) and 方法 not in 自身.methods:#实例上已有但不是已挂方法
-            raise 网关错误('binding-invalid',自身.namespace+'/'+方法,'client api: method '+repr(自身.namespace+'/'+方法)+' conflicts with its namespace service')#冲突
+            raise 网关错误('binding-invalid',自身.namespace+'/'+方法,'client api: 方法 '+repr(自身.namespace+'/'+方法)+' 与其命名空间服务冲突')#冲突
 
     @property
     def empty(自身):
@@ -227,7 +221,7 @@ class 客户端远程服务(服务):
             监听=项['listener']#监听器
             def 报告(错误):
                 """报告监听器抛错。"""
-                print('client api: Remote event',repr(事件),'listener threw:',错误)#报告
+                print('client api: 远程事件',repr(事件),'监听器抛错:',错误)#报告
             try:
                 监听(*参数)#同步调用
             except BaseException as 错误:
@@ -240,11 +234,11 @@ class 客户端远程服务(服务):
         return 自身.subscriptions[事件]#可追加
 
     def 入队(自身,操作):
-        """前一步无论成败都跑本次。返回操作任务。"""
+        """前一步无论成败都执行本次。返回操作任务。"""
         前=自身.mutations#当前队列尾
         任务=操作任务()#本次结果
         锚=操作任务()#队列尾锚，吞掉成败
-        def 跑():
+        def 后台执行():
             """前任失败不挡本次；锚始终成功。"""
             try:
                 try:
@@ -257,7 +251,7 @@ class 客户端远程服务(服务):
                 任务.拒绝(错误)#调用方看见拒绝
             finally:
                 锚.兑现(None)#队列继续
-        线=threading.Thread(target=跑)#工作线程
+        线=threading.Thread(target=后台执行)#工作线程
         线.daemon=True#不挡住退出
         线.start()#启动
         自身.mutations=锚#钉成新尾巴
@@ -291,13 +285,13 @@ class 客户端远程服务(服务):
             """冲突则抛。"""
             方法集合=表[描述符['namespace']] if 描述符['namespace'] in 表 else set()#已见方法
             if 描述符['method'] in 方法集合:#本贡献内重复
-                raise 网关错误('binding-invalid',拼端点(描述符),'client api: contribution repeats '+种类+' method '+拼端点(描述符))#重复
+                raise 网关错误('binding-invalid',拼端点(描述符),'client api: 贡献重复了 '+种类+' 方法 '+拼端点(描述符))#重复
             方法集合.add(描述符['method'])#记下
             表[描述符['namespace']]=方法集合#写回
             句柄=自身.namespaces[描述符['namespace']] if 描述符['namespace'] in 自身.namespaces else None#已挂载
             服务实例=句柄['service'] if 句柄 is not None and 'service' in 句柄 else None#服务
             if 服务实例 is not None and 服务实例.has(种类,描述符['method']):#该变体已挂着
-                raise 网关错误('binding-invalid',拼端点(描述符),'client api: '+种类+' method '+拼端点(描述符)+' is already mounted')#已挂载
+                raise 网关错误('binding-invalid',拼端点(描述符),'client api: '+种类+' 方法 '+拼端点(描述符)+' 已经挂载')#已挂载
         for 描述符 in 贡献['descriptors']:#逐个
             要求严格描述符(描述符)#只要严格
             if 描述符['invocation']['kind']=='direct':#直接
@@ -310,10 +304,10 @@ class 客户端远程服务(服务):
             服务实例=句柄['service'] if 句柄 is not None and 'service' in 句柄 else None#服务
             if 服务实例 is None:#还要新建
                 if hasattr(自身,命名空间):#与远程服务自身字段冲突
-                    raise 网关错误('binding-invalid',命名空间,'client api: namespace '+repr(命名空间)+' conflicts with the Remote service')#冲突
+                    raise 网关错误('binding-invalid',命名空间,'client api: 命名空间 '+repr(命名空间)+' 与 Remote 服务冲突')#冲突
                 服务键=远程服务键(命名空间)#将要登记的键
                 if 自身.ownerCtx.获取服务(服务键) is not None:#已有活动服务
-                    raise 网关错误('binding-invalid',命名空间,'client api: namespace '+repr(命名空间)+' conflicts with an existing Remote namespace')#冲突
+                    raise 网关错误('binding-invalid',命名空间,'client api: 命名空间 '+repr(命名空间)+' 与已有 Remote 命名空间冲突')#冲突
             直接方法=直接表[命名空间] if 命名空间 in 直接表 else set()#直接
             作用域方法=作用域表[命名空间] if 命名空间 in 作用域表 else set()#作用域
             方法名集合=set(直接方法)|set(作用域方法)#将出现的方法
@@ -395,7 +389,7 @@ class 客户端远程服务(服务):
             光纤.拆除()#拆除
             raise#抛
         if 服务盒['service'] is None:#没构造
-            raise 网关错误('service-unavailable',名,'client api: namespace '+repr(名)+' did not start')#未启动
+            raise 网关错误('service-unavailable',名,'client api: 命名空间 '+repr(名)+' 未能启动')#未启动
         句柄={'service':服务盒['service'],'dispose':光纤.拆除}#记下
         自身.namespaces[名]=句柄#写入
         return 句柄#返回
@@ -418,7 +412,7 @@ class 客户端远程服务(服务):
             return 自身.调用(直接['descriptor'],None,直接['token'],调用方,值列表)#直接
         if 作用域 is not None:#没有直接则仍走作用域
             return 自身.调用(作用域['descriptor'],作用域['projection'],作用域['token'],调用方,值列表)#作用域
-        raise 网关错误('method-unavailable','','client api: Remote method is no longer mounted')#都不在了
+        raise 网关错误('method-unavailable','','client api: 远程方法已不再挂载')#都不在了
 
     def 调用(自身,描述符,投影,令牌,调用方,值列表,已绑身份=None):
         """按描述符组线参数并经 Connection 发出 RPC。描述符为 dict。"""
@@ -429,16 +423,16 @@ class 客户端远程服务(服务):
         期望=len(描述符['parameters'])-(0 if 投影下标 is None else 1)#业务参数个数
         有调用方信号=('cancellation' in 描述符 and 描述符['cancellation'] is not None) and len(值列表)==期望+1#多传的那个视为取消信号
         if len(值列表)!=期望 and not 有调用方信号:#个数不符
-            约定=str(期望)+' argument(s)' if 'cancellation' not in 描述符 or 描述符['cancellation'] is None else str(期望)+' business argument(s) plus an optional AbortSignal'#约定文案
-            raise 网关错误('arguments-invalid',端点,'client api: '+端点+' expected '+约定+', got '+str(len(值列表)))#组装错误
+            约定=str(期望)+' 个参数' if 'cancellation' not in 描述符 or 描述符['cancellation'] is None else str(期望)+' 个业务参数外加可选 AbortSignal'#约定文案
+            raise 网关错误('arguments-invalid',端点,'client api: '+端点+' 期望 '+约定+'，实际 '+str(len(值列表)))#组装错误
         参数={}#具名线参数
         if 投影 is not None:#需要注入上下文身份
             绑定器=None if 已绑身份 is not None else 自身.ownerCtx.typert.contexts.getClient(投影['context'])#绑定器
             if 已绑身份 is None and 绑定器 is None:#既无预绑定也无绑定器
-                raise 网关错误('context-unavailable',端点,'client api: '+端点+' has no Client Context binder for '+repr(投影['context']))#无绑定器
+                raise 网关错误('context-unavailable',端点,'client api: '+端点+' 没有 '+repr(投影['context'])+' 的客户端 Context 绑定器')#无绑定器
             身份=已绑身份['value'] if 已绑身份 is not None else (绑定器.identity(调用方) if 绑定器 is not None else None)#身份
             if 身份 is None:#读不到
-                raise 网关错误('context-unavailable',端点,'client api: '+端点+' requires a '+repr(投影['context'])+' Context')#需要上下文
+                raise 网关错误('context-unavailable',端点,'client api: '+端点+' 需要 '+repr(投影['context'])+' Context')#需要上下文
             参数[投影['wire']]=解析(投影['codec'],身份,端点,投影['wire'])#编进线字段
         值下标=0#位置参数游标
         for 参数下标,参数描述 in enumerate(描述符['parameters']):#按描述符顺序
@@ -450,7 +444,7 @@ class 客户端远程服务(服务):
             值下标+=1#下一个
         连接=自身.ownerCtx.获取服务('connection')#活动连接
         if 连接 is None:#没有
-            raise 网关错误('service-unavailable',端点,'client api: '+端点+' has no active Connection')#无连接
+            raise 网关错误('service-unavailable',端点,'client api: '+端点+' 没有活动 Connection')#无连接
         调用方信号=值列表[期望] if 有调用方信号 else None#调用方信号
         信号=令牌['abort'].信号 if 调用方信号 is None else 中止信号.任一([令牌['abort'].信号,调用方信号])#合成
         try:

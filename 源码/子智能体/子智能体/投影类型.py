@@ -1,4 +1,3 @@
-"""纯客户端安全的子智能体投影词汇。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 class 子智能体目录一次性条目(TypedDict):#一次性直接子发现行

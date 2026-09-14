@@ -1,10 +1,3 @@
-"""浏览器半闭包求值：符号面、陷阱、样式记账与插件收窄。
-
-对齐上游 `cordis-client-runner/src/client/evaluator.ts`。公开面仅中文名。
-无法在本 Python 树执行：上游依赖 `new Function`、浏览器 `document` 与 React 闭包符号；
-本模块落盘教学重定向、harness/console 契约、样式记账与插件形态校验。
-"""
-
 __all__=[#仅中文公开名
     '定时器重定向','客户端重定向','闭包陷阱','harness陷阱','标记控制台',
     '动态样式','是否动态插件','校验求值返回','错误文本','闭包参数名','说明',
@@ -13,9 +6,8 @@ __all__=[#仅中文公开名
 说明='求值本体需浏览器 Function/React/DOM；Python 半仅承载契约、陷阱文案与样式记账语义。'#说明
 
 定时器重定向=(#定时器教学
-    "browser timer globals are unavailable in dynamic packages. Declare inject: ['timer'] on the returned plugin, "
-    'query Client Service.listService for the exact API, and close over that plugin ctx. In React, create timers '
-    'from an event handler or React.useEffect and return callback-form disposers from the effect cleanup.'
+    "动态包里没有浏览器定时器全局。请在返回的插件上声明 inject: ['timer']，"
+    '用 Client Service.listService 查精确 API，并闭包该插件 ctx。在 React 里从事件处理或 React.useEffect 创建定时器，并在 effect 清理里返回回调形态的拆除器。'
 )#结束
 
 客户端重定向={#被扣全局 → 教学
@@ -23,8 +15,8 @@ __all__=[#仅中文公开名
     'setInterval':定时器重定向,#间隔
     'clearTimeout':定时器重定向,#清超时
     'clearInterval':定时器重定向,#清间隔
-    'fetch':'network belongs to the HOST half: register a handler there with harness.handle(method, fn) and call it here via host.call(method, args).',#网络
-    'require':'modules cannot be imported here. React arrives as the `React` closure symbol; everything else goes through ctx services or host.call.',#模块
+    'fetch':'网络属于宿主半：在那边用 harness.handle(method, fn) 登记处理函数，这边通过 host.call(method, args) 调用。',#网络
+    'require':'这里不能导入模块。React 作为闭包符号 `React` 传入；其余走 ctx 服务或 host.call。',#模块
 }#结束
 
 闭包参数名=('React','console','styles','host','harness')#固定座位；其后接陷阱键与 process/Buffer
@@ -37,7 +29,7 @@ def 闭包陷阱():#可调用教学陷阱
             """抛教学错误。"""
             def 陷(*_位置,**_关键字):#陷阱
                 """永不返回。"""
-                raise Exception(f'{名称} is not available in a dynamic client half — {文}')#教学
+                raise Exception(f'动态客户端半里没有 {名称} — {文}')#教学
             return 陷#函数
         陷阱[名]=造()#写入
     return 陷阱#表
@@ -49,8 +41,8 @@ def harness陷阱():#harness 座位只在宿主侧
         def __getattr__(自身,属性):#读任何属性
             """永不返回。"""
             raise Exception(#教学
-                f'harness.{属性} belongs to the HOST half (`code`): register handlers there with harness.handle(method, fn); '
-                'the browser half calls them via host.call(method, args).'
+                f'harness.{属性} 属于宿主半（`code`）：在那边用 harness.handle(method, fn) 登记处理函数；'
+                '浏览器半通过 host.call(method, args) 调用。'
             )#抛
     return _座位()#实例
 
@@ -98,7 +90,7 @@ class 动态样式:#按包 style 标签记账（语义面，无 DOM）
     def 插入(自身,样式文本):#插入样式
         """需要 CSS 字符串；返回拆除器。"""
         if not isinstance(样式文本,str):#非串
-            raise Exception('styles.insert(css) needs a CSS string')#错
+            raise Exception('styles.insert(css) 需要 CSS 字符串')#错
         自身.标签列表.append(样式文本)#记账
         下标=len(自身.标签列表)-1#位置
         def 拆除():#拆除器
@@ -132,8 +124,8 @@ def 校验求值返回(返回值):#收窄返回
         return 返回值#原样
     if 返回值 is None:#忘了 return
         raise Exception(#教学
-            'client half returned `undefined` — did you forget `return`?\n'
+            '客户端半返回了 `undefined` — 是不是忘了 `return`？\n'
             '  ✓ return (ctx) => { … }\n'
             "  ✓ return { name: '…', inject: ['slots'], apply(ctx) { … } }"
         )#抛
-    raise Exception('client half must `return` a plugin: a function, or an object with an `apply(ctx)` method')#形态
+    raise Exception('客户端半必须 `return` 一个插件：函数，或带 `apply(ctx)` 方法的对象')#形态

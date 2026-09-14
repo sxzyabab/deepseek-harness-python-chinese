@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-subagent-acp 的本包拥有不变量配套。"""
 包名='@deepseek-ai/dsh-subagent-acp'#包名
 名称='subagent-acp-invariant'#插件名
 注入=['invariants']#依赖

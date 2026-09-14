@@ -1,9 +1,3 @@
-"""客户端命令面的冻结约定。仅类型形。
-
-对齐上游 `ui-commands/src/client/contract.ts`。公开面仅中文名。
-CommandUiRuntime（`ctx.commandUi`）实现此面；业务包只消费 register。
-跨包值为 dict；AbortSignal 在调用处译为可中止信号。
-"""
 
 __all__=[#仅中文公开名
     '命令错误',

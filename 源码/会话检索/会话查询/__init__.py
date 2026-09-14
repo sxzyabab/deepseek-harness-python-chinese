@@ -1,4 +1,3 @@
-"""统一的、优先活会话的会话检索服务。对齐上游 `@deepseek-ai/dsh-session-query`。公开面仅中文名。"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis服务基类
 from ...内核.会话 import 会话,快照会话事件#会话回放与事件快照
@@ -52,13 +51,13 @@ class 会话查询引擎(服务):
         super().__init__(上下文,'sessionQuery')#注册服务名
         窗口上限=配置['readWindowMax'] if 'readWindowMax' in 配置 else 会话查询读取窗口上限#解析窗口上限
         if isinstance(窗口上限,bool) or (not isinstance(窗口上限,int)) or 窗口上限<0:#窗口必须是非负整数
-            raise 会话查询错误('session-query: readWindowMax must be a non-negative integer','SESSION_QUERY_INVALID_CONFIG')#配置非法
+            raise 会话查询错误('session-query: readWindowMax 必须是非负整数','SESSION_QUERY_INVALID_CONFIG')#配置非法
         持久并发=配置['persistedInspectConcurrency'] if 'persistedInspectConcurrency' in 配置 else 会话查询默认持久检查并发#解析持久检查并发
         if isinstance(持久并发,bool) or (not isinstance(持久并发,int)) or 持久并发<1:#并发必须是正整数
-            raise 会话查询错误('session-query: persistedInspectConcurrency must be a positive safe integer','SESSION_QUERY_INVALID_CONFIG')#配置非法
+            raise 会话查询错误('session-query: persistedInspectConcurrency 必须是正安全整数','SESSION_QUERY_INVALID_CONFIG')#配置非法
         缓存大小=配置['preparedSessionCacheSize'] if 'preparedSessionCacheSize' in 配置 else 会话查询默认准备会话缓存大小#准备缓存
         if isinstance(缓存大小,bool) or (not isinstance(缓存大小,int)) or 缓存大小<1:#缓存必须正整数
-            raise 会话查询错误('session-query: preparedSessionCacheSize must be a positive safe integer','SESSION_QUERY_INVALID_CONFIG')#配置非法
+            raise 会话查询错误('session-query: preparedSessionCacheSize 必须是正安全整数','SESSION_QUERY_INVALID_CONFIG')#配置非法
         自身._读取窗口上限=窗口上限#读取窗口上限
         自身._语料库=会话语料库(上下文,持久并发)#按并发构造语料库
         自身._观测=会话观测读取器(上下文,自身._语料库,缓存大小)#点观察
@@ -176,7 +175,7 @@ class 会话查询引擎(服务):
         事件列表=已加载['events']#原始日志
         目标=事件列表[序号] if 序号<len(事件列表) else None#按序号取目标
         if 目标 is None or 目标['seq']!=序号:#缺席或序号对不上
-            raise 会话查询错误('session "'+str(会话号)+'" has no event at seq '+str(序号),'SESSION_QUERY_EVENT_NOT_FOUND')#未找到
+            raise 会话查询错误('会话 "'+str(会话号)+'" 没有 seq '+str(序号)+' 的事件','SESSION_QUERY_EVENT_NOT_FOUND')#未找到
         起点=max(0,序号-前窗口)#窗口起点
         终点=min(len(事件列表)-1,序号+后窗口)#窗口终点
         目标快照=快照会话事件(目标)#目标事件快照
@@ -197,7 +196,7 @@ class 会话查询引擎(服务):
         if 值 is None:#缺省为0
             return 0#默认0
         if isinstance(值,bool) or (not isinstance(值,int)) or 值<0 or 值>自身._读取窗口上限:#必须落在上限内
-            raise 会话查询错误(名+' must be an integer between 0 and '+str(自身._读取窗口上限),'SESSION_QUERY_INVALID_WINDOW')#窗口非法
+            raise 会话查询错误(名+' 必须是 0 到 '+str(自身._读取窗口上限)+' 之间的整数','SESSION_QUERY_INVALID_WINDOW')#窗口非法
         return 值#返回合法窗口
 
 会话查询引擎.inject=['sessions']#Cordis inject 槽

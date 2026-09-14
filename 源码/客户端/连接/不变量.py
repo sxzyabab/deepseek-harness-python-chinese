@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-connection` 的本包拥有不变量配套。
-
-对齐上游 `connection/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：线层不发出 cordis 事件，也不拥有跨插件可变关系 — 流/重连顺序由其行为规格直接行使，rpcId 往返纪律由 apiproxy 约定层拥有，node 半边单条路由登记的 register/dispose 对称由 webserver 包的不变量审计。
-"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-client-connection'#本包的不变量所有权名
 名称='client-connection-invariant'#配套不变量插件名（字面量）

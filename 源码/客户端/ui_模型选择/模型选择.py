@@ -1,7 +1,3 @@
-"""撰写器模型座位：两级菜单（模型 / 推理等级）。
-
-对齐上游 `ui-model-selection/src/client/ModelSelect.tsx`。公开面仅中文名。
-"""
 __all__=['模型选择','样式表']#仅中文公开名
 
 样式表='''#对齐 ModelSelect.module.css 核心

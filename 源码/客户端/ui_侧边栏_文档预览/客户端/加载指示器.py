@@ -1,7 +1,3 @@
-"""文档读取与渲染共享的不确定加载反馈。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/LoadingIndicator.tsx`。公开面仅中文名。
-"""
 
 __all__=['加载指示器']#仅中文公开名
 

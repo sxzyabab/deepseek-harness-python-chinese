@@ -1,7 +1,3 @@
-"""Host MessagePort 接受的已校验 Worker 帧分发。
-
-对齐上游 `host/bridge/dispatcher.ts`。公开面仅中文名。
-"""
 from ...共享.json import 检查器错误#本包错误
 from ..cdp.控制台 import 拒绝控制台桥命令#拒绝Console桥
 from ..cdp.运行时 import 拒绝运行时桥命令#拒绝Runtime桥

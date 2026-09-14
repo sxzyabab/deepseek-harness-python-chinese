@@ -1,4 +1,3 @@
-"""内部可续跑子智能体管理器：稳定子 id、描述符持久化、Activation 准入、活所有权图、冷恢复、子优先拆除，以及向父投递结算，藏在 ctx.subagents 后面。"""
 import uuid,weakref,threading#随机uuid、弱谱系与后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from typing import Literal,TypedDict#字面量与结构类型
@@ -64,12 +63,7 @@ def 若已中止则抛出(信号):
     原因=getattr(信号,'_异常',None)#承载的异常
     if isinstance(原因,BaseException):#已是异常
         raise 原因#原样
-    raise 子智能体中止错误('AbortError')#默认
-
-def 带解析器():
-    """建造可外部兑现/拒绝的操作任务对。"""
-    任务=操作任务()#新任务
-    return {'promise':任务,'resolve':任务.兑现,'reject':任务.拒绝}#解析器
+    raise 子智能体中止错误('已中止')#默认
 
 class 协调者消息来源(TypedDict):
     """模型协调者对其某个子体跟进的归属。"""
@@ -127,19 +121,19 @@ def 拆除于(激活):
 
 def 结算摘要(子标识,停止原因):#结算摘要
     """一行告诉父某个后台子体做完了以及为何，用父自己的任务词汇。"""
-    主语='Background subagent '+str(子标识)#主语
+    主语='后台子智能体 '+str(子标识)#主语
     if 停止原因=='completed':#正常完成
-        return 主语+' finished and will do no further work unless you send it more.'#完成文案
+        return 主语+' 已完成，除非再发消息，否则不会继续工作。'#完成文案
     if 停止原因=='aborted':#已中止
-        return 主语+' was stopped before it finished.'#中止文案
+        return 主语+' 在完成前被停止。'#中止文案
     if 停止原因=='max-tokens':#token上限
-        return 主语+' ran out of room before it finished.'#上限文案
+        return 主语+' 在完成前用尽了额度。'#上限文案
     # 步骤前拒绝——钩子拒绝、策略插件——丢弃了子体已认领的输入。
     if 停止原因=='refusal':#拒绝
-        return 主语+' declined the task.'#拒绝文案
+        return 主语+' 拒绝了该任务。'#拒绝文案
     if 停止原因=='error':#错误
-        return 主语+' failed before it finished.'#失败文案
-    return 主语+' ended abnormally ('+str(停止原因)+') before it finished.'#异常文案
+        return 主语+' 在完成前失败。'#失败文案
+    return 主语+' 在完成前异常结束（'+str(停止原因)+'）。'#异常文案
 
 class 子体锁:#串行化每个耐久子体的投递、释放与拆除
     """串行化每个耐久子体的投递、释放与拆除。"""
@@ -147,8 +141,8 @@ class 子体锁:#串行化每个耐久子体的投递、释放与拆除
         """空锁表。"""
         自身._尾={}#每子体链尾
 
-    def 跑(自身,子标识,操作):#排队临界区
-        """在 childId 上先前排队的每个操作之后跑 operation。返回该操作自己的结算。"""
+    def 排队执行(自身,子标识,操作):#排队临界区
+        """在 childId 上先前排队的每个操作之后执行 operation。返回该操作自己的结算。"""
         先前=自身._尾.get(子标识)#先前链尾
         结果盒=[None]#操作结果
         错误盒=[None]#操作错误
@@ -190,7 +184,7 @@ class 子智能体续跑管理器:#可续跑管理器
         自身._关闭作用域={}#作用域拆除根到成员（用 id 键，值存 Agent 集合）
         自身._关闭根代理={}#根 id → 精确 Agent 弱引用
         自身._排空中=False#管理器是否正在排空
-        # 普通 Cordis 所有者效果按登记反序解开，表达不了动态子图。
+        # 普通 Cordis 所有者效果按登记反序拆除，表达不了动态子图。
         def 激活所有者插件(子上下文,配置=None):#私有所有者作用域插件
             """作为支撑 Activation 句柄的共享空操作插件。"""
             return#无注册
@@ -203,19 +197,19 @@ class 子智能体续跑管理器:#可续跑管理器
             自身._关闭作用域.pop(键,None)#关掉
             自身._关闭根代理.pop(键,None)#摘掉
         上下文对象.监听('agent/disposed',根离开)#disposed监听
-        def 排空拆除():#先解开：排空森林
+        def 排空拆除():#先拆除：排空森林
             """结构拆除：先排空。"""
             自身.排空()#排空
-        def 作用域拆除():#后解开：释放作用域
+        def 作用域拆除():#后拆除：释放作用域
             """结构拆除：释放作用域。"""
             if hasattr(作用域,'dispose'):#有拆除
                 作用域.拆除()#释放
         def 效果工厂():#结构拆除顺序
             """先排空森林，再释放作用域。"""
-            def 拆除():#反序解开
+            def 拆除():#反序拆除
                 """先排空再释放作用域。"""
-                排空拆除()#先解开：排空森林
-                作用域拆除()#后解开：释放作用域
+                排空拆除()#先拆除：排空森林
+                作用域拆除()#后拆除：释放作用域
             return 拆除#拆除器
         上下文对象.副作用(效果工厂,'subagents.continuations()')#结构拆除顺序
 
@@ -291,7 +285,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 (规格['signal'] if 'signal' in 规格 else None),#取消
                 提交目录,#接受后目录追加
             )#submitMaterialized结束
-        消息标识=自身._锁.跑(子标识,临界)#在子锁内
+        消息标识=自身._锁.排队执行(子标识,临界)#在子锁内
         return {'childId':子标识,'messageId':消息标识}#耐久身份
 
     def 跟进(自身,父,子标识,内容,选项):#跟进投递
@@ -309,7 +303,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 消息标识=自身._同步准入提交(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#驻留提交
                 激活['announced']=True#活跟进也对外宣布
                 return 消息标识#消息 id
-            活=自身._锁.跑(子标识,临界)#在子锁内
+            活=自身._锁.排队执行(子标识,临界)#在子锁内
             if 活 is not None:#已接受
                 return 活#消息id
             自身._断言准入(父)#重试前准入检查
@@ -323,12 +317,12 @@ class 子智能体续跑管理器:#可续跑管理器
             # 即使目标缺席也拒绝陈旧调用方，使替换的同 id Agent 永远不能探测本管理器状态。
             if 自身.ctx.agents.获取(调用方.id) is not 调用方:#不是注册表当前项
                 raise 子智能体错误(#拒绝陈旧祖先
-                    'interrupting "'+str(目标会话标识)+'" requires the exact live ancestor agent',#文案
+                    '打断 "'+str(目标会话标识)+'" 需要精确的活祖先智能体',#文案
                     'UNAUTHORIZED',#错误码
                 )#SubagentError结束
             if 调用方.id==目标会话标识:#不能打断自己
                 raise 子智能体错误(#拒绝自打断
-                    'agent "'+str(调用方.id)+'" cannot interrupt itself',#文案
+                    '智能体 "'+str(调用方.id)+'" 不能打断自己',#文案
                     'UNAUTHORIZED',#错误码
                 )#SubagentError结束
         激活=自身._激活表.get(目标会话标识)#活目标
@@ -338,15 +332,15 @@ class 子智能体续跑管理器:#可续跑管理器
             父会话=激活['handle'].智能体.session.header#头
             if (父会话['parentSession'] if isinstance(父会话,dict) and 'parentSession' in 父会话 else None)!=权威['parentSessionId']:#不是直接父
                 raise 子智能体错误(#拒绝
-                    'subagent "'+str(目标会话标识)+'" belongs to another parent session',#文案
+                    '子智能体 "'+str(目标会话标识)+'" 属于另一个父会话',#文案
                     'UNAUTHORIZED',#错误码
                 )#SubagentError结束
         else:#祖先权威
             谱系=激活.get('ancestry')#活谱系弱集
             if 谱系 is None or 权威['agent'] not in 谱系:#祖先不在活谱系
                 raise 子智能体错误(#拒绝
-                    'subagent "'+str(目标会话标识)+'" is not a live descendant of agent "'#文案前
-                    +str(权威['agent'].id)+'"',#文案后
+                    '子智能体 "'+str(目标会话标识)+'" 不是智能体 "'#文案前
+                    +str(权威['agent'].id)+'" 的活后代',#文案后
                     'UNAUTHORIZED',#错误码
                 )#SubagentError结束
         # 拆除已经用整份 Activation 拆除停了目标。
@@ -376,7 +370,7 @@ class 子智能体续跑管理器:#可续跑管理器
             for 子 in 激活.get('ownedChildren') or set():#记下子
                 被拥有.add(子)#记下
         根列表=[激活 for 激活 in 自身._激活表.values() if 激活['childId'] not in 被拥有]#森林根
-        自身._拆除根列表(根列表,'activation(s)')#拆除根
+        自身._拆除根列表(根列表,'Activation')#拆除根
 
     def 排空后代(自身,父列表):#排空作用域后代
         """只停精确活宿主拥有父的可续跑后代。"""
@@ -422,19 +416,19 @@ class 子智能体续跑管理器:#可续跑管理器
             自身._拆除(激活)#打开记忆化事务，稍后等待
         for 物化 in 物化列表:#等作用域物化
             物化['settled'].等待()#屏障
-        自身._拆除根列表(目标根列表,'scoped activation(s)')#拆除作用域根
+        自身._拆除根列表(目标根列表,'作用域 Activation')#拆除作用域根
 
     def _授权报告者(自身,子):#授权报告者
         """只授权一个驻留 Activation 的精确 Agent。"""
         激活=自身._激活表.get(子.id)#按id查找
         if 激活 is None or 激活['handle'].智能体 is not 子:#不是精确活可续跑子体
             raise 子智能体错误(#拒绝
-                'agent "'+str(子.id)+'" is not a live continuable subagent and cannot report',#文案
+                '智能体 "'+str(子.id)+'" 不是活的可续跑子智能体，无法报告',#文案
                 'UNAUTHORIZED',#错误码
             )#SubagentError结束
         if 激活.get('disposal') is not None:#拆除已打开
             raise 子智能体错误(#拒绝
-                'subagent "'+str(子.id)+'" activation is being disposed; the report was not delivered',#文案
+                '子智能体 "'+str(子.id)+'" 的 Activation 正在拆除；报告未投递',#文案
                 'ACTIVATION_CLOSING',#错误码
             )#SubagentError结束
         return 激活#已授权Activation
@@ -446,14 +440,14 @@ class 子智能体续跑管理器:#可续跑管理器
         父=自身.ctx.agents.获取(父标识) if 父标识 is not None else None#活父
         if 父 is None:#父不活
             raise 子智能体错误(#拒绝
-                'direct parent is not live; report was not delivered',#文案
+                '直接父不存活；报告未投递',#文案
                 'PARENT_UNAVAILABLE',#错误码
             )#SubagentError结束
         return 父#活直接父
 
     def _投递报告(自身,激活,父,内容,投递):#投递报告
         """经选定的父调度预设投递一份成帧报告。"""
-        前缀={'type':'text','text':'Background subagent '+str(激活['childId'])+' reported:'}#前缀
+        前缀={'type':'text','text':'后台子智能体 '+str(激活['childId'])+' 报告：'}#前缀
         消息=创建用户消息({#成帧报告消息
             'content':[前缀]+list(内容),#前缀加选定内容
             'source':{#报告归属
@@ -485,7 +479,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 父.注入(消息)#安静注入
         except Exception as 错误:#父不接受
             raise 子智能体错误(#翻译为父不可用
-                'direct parent is not live; report was not delivered',#文案
+                '直接父不存活；报告未投递',#文案
                 'PARENT_UNAVAILABLE',#错误码
                 {'cause':错误},#原因
             )#SubagentError结束
@@ -500,7 +494,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 失败列表.append(错误)#记下
         if len(失败列表)>0:#有失败
             raise 子智能体错误(#聚合拒绝
-                'continuable subagent teardown failed for '+str(len(失败列表))+' '+失败主语+': '#文案前
+                '可续跑子智能体拆除失败，涉及 '+str(len(失败列表))+' 个'+失败主语+'：'#文案前
                 +'; '.join([错误链(原因) for 原因 in 失败列表]),#文案后
                 'ACTIVATION_TEARDOWN_FAILED',#错误码
             )#SubagentError结束
@@ -550,11 +544,11 @@ class 子智能体续跑管理器:#可续跑管理器
             return#通过
         if 关闭=='manager':#整份
             raise 子智能体错误(#拒绝新操作
-                'continuable subagents are draining; the operation was not admitted',#文案
+                '可续跑子智能体正在排空；操作未被准入',#文案
                 'DRAINING',#错误码
             )#SubagentError结束
         raise 子智能体错误(#作用域拒绝
-            'continuable subagents below parent "'+str(关闭.id)+'" are draining; the operation was not admitted',#文案
+            '父 "'+str(关闭.id)+'" 之下的可续跑子智能体正在排空；操作未被准入',#文案
             'DRAINING',#错误码
         )#SubagentError结束
 
@@ -575,7 +569,7 @@ class 子智能体续跑管理器:#可续跑管理器
             已载=持久化.检查(子标识,选项['signal'] if 'signal' in 选项 else None)#检查头与事件
         except Exception as 错误:#检查失败
             若已中止则抛出((选项['signal'] if 'signal' in 选项 else None))#取消则改抛Abort
-            raise 子智能体错误('subagent "'+str(子标识)+'" is unavailable','NOT_RESUMABLE',{'cause':错误})#不可恢复
+            raise 子智能体错误('子智能体 "'+str(子标识)+'" 不可用','NOT_RESUMABLE',{'cause':错误})#不可恢复
         若已中止则抛出((选项['signal'] if 'signal' in 选项 else None))#检查后取消
         自身._断言准入(父)#检查后准入
         # 折叠之前授权持久头：只有耐久子体的精确活直接父可以续它。
@@ -587,8 +581,8 @@ class 子智能体续跑管理器:#可续跑管理器
         描述符=折叠子智能体描述符(事件列表)#自身后缀描述符
         if 描述符 is None or 描述符.get('mode')!='continuable':#无法续跑
             raise 子智能体错误(#拒绝
-                'subagent "'+str(子标识)+'" has no supported continuation state and cannot be resumed; '#文案前
-                +'do not retry send_message with this id',#文案后
+                '子智能体 "'+str(子标识)+'" 没有可支持的续跑状态，无法恢复；'#文案前
+                +'请勿用此 id 重试 send_message',#文案后
                 'NOT_RESUMABLE',#错误码
             )#SubagentError结束
         try:#重建Activation
@@ -609,7 +603,7 @@ class 子智能体续跑管理器:#可续跑管理器
             若已中止则抛出((选项['signal'] if 'signal' in 选项 else None))#取消则改抛Abort
             if isinstance(错误,子智能体错误):#已是缝错误则原样
                 raise 错误#原样
-            raise 子智能体错误('subagent "'+str(子标识)+'" is unavailable','NOT_RESUMABLE',{'cause':错误})#包装为不可恢复
+            raise 子智能体错误('子智能体 "'+str(子标识)+'" 不可用','NOT_RESUMABLE',{'cause':错误})#包装为不可恢复
         return 自身._提交已物化(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#提交或回滚
 
     def _提交已物化(自身,激活,内容,来源,父,信号,提交=None):#提交或回滚
@@ -625,7 +619,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 自身._拆除(激活)#回滚
             except Exception as 清理错误:#回滚失败不得掩盖原失败
                 try:#记警告
-                    自身.ctx.logger.warn('subagent continuation: disposal after admission or catalog append failure also failed: '+str(清理错误))#警告
+                    自身.ctx.logger.warn('子智能体续跑：准入或目录追加失败后的拆除也失败了：'+str(清理错误))#警告
                 except Exception:#无 logger
                     pass#吞掉
             raise 错误#保留原失败
@@ -633,10 +627,10 @@ class 子智能体续跑管理器:#可续跑管理器
     def _物化(自身,输入):#跟踪物化
         """经私有 activation-owner 作用域创建或恢复子 Agent。"""
         自身._断言准入(输入['parent'])#准入必须开着
-        屏障=带解析器()#发布或回滚屏障
+        屏障=操作任务()#发布或回滚屏障
         谱系=自身._活谱系(输入['parent'])#同步准入边界谱系
         物化标识=object()#物化身份
-        物化={'lineage':谱系,'settled':屏障['promise']}#已准入物化
+        物化={'lineage':谱系,'settled':屏障}#已准入物化
         自身._物化表[物化标识]=物化#登记屏障
         自身._物化集合.add(物化标识)#登记
         try:#实际创建或恢复
@@ -644,7 +638,7 @@ class 子智能体续跑管理器:#可续跑管理器
         finally:#无论成败摘屏障
             自身._物化表.pop(物化标识,None)#移出集合
             自身._物化集合.discard(物化标识)#移出
-            屏障['resolve']()#放开排空等待
+            屏障.兑现()#放开排空等待
 
     def _跟踪物化(自身,输入,父谱系):#实际创建或恢复
         """执行一次被跟踪的物化。"""
@@ -703,7 +697,7 @@ class 子智能体续跑管理器:#可续跑管理器
             'disposal':None,#尚未拆除
             'accepted':set(),#尚无已接受唤醒
             'announced':False,#尚未向调用方公布
-            'poke':带解析器(),#结算唤醒
+            'poke':操作任务(),#结算唤醒
         }#activation结束
         # 转移之后，任何失败都必须拆除已创建句柄、移除 Activation，并在拒绝之前回滚父所有权。
         自身._激活表[子标识]=激活#装进活表
@@ -743,7 +737,7 @@ class 子智能体续跑管理器:#可续跑管理器
             return 激活['disposal']#复用
         任务=操作任务()#拆除操作任务
         激活['disposal']=任务#记忆化
-        def 跑():#拆除句柄
+        def 后台拆除句柄():#拆除句柄
             """拆除句柄并回滚所有权。"""
             try:#拆除句柄
                 激活['handle'].拆除()#释放Agent
@@ -751,7 +745,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 自身._激活表.pop(激活['childId'],None)#移出活表
                 自身._释放所有权(激活['childId'])#回滚父所有权
                 任务.兑现()#放开
-        threading.Thread(target=跑).start()#后台
+        threading.Thread(target=后台拆除句柄).start()#后台
         return 任务#拆除事务
 
     def _获取所有权(自身,父,子标识):#登记父所有权
@@ -761,7 +755,7 @@ class 子智能体续跑管理器:#可续跑管理器
             return#跳过
         if 父激活.get('disposal') is not None:#父正在拆
             raise 子智能体错误(#拒绝建立子体
-                'subagent parent "'+str(父.id)+'" is being disposed; the child was not established',#文案
+                '子智能体父 "'+str(父.id)+'" 正在拆除；子体未建立',#文案
                 'ACTIVATION_CLOSING',#错误码
             )#SubagentError结束
         父激活['ownedChildren'].add(子标识)#记下子
@@ -775,8 +769,8 @@ class 子智能体续跑管理器:#可续跑管理器
 
     def _唤醒(自身,激活):#唤醒结算观察者
         """让结算观察者在所有权或收件箱变化后重新观察静止。"""
-        激活['poke']['resolve']()#放开当前等待
-        激活['poke']=带解析器()#续订下一轮
+        激活['poke'].兑现()#放开当前等待
+        激活['poke']=操作任务()#续订下一轮
 
     def _提交(自身,激活,内容,来源,父):#提交已成帧消息
         """把一条消息作为子体的下一 FIFO 回合提交，并返回其已接受收件箱 id。"""
@@ -809,7 +803,7 @@ class 子智能体续跑管理器:#可续跑管理器
         自身._断言准入(父)#截止前准入
         if 拆除于(激活) is not None:#拆除已打开
             raise 子智能体错误(#拒绝
-                'subagent "'+str(激活['childId'])+'" activation is being disposed; the message was not accepted',#文案
+                '子智能体 "'+str(激活['childId'])+'" 的 Activation 正在拆除；消息未被接受',#文案
                 'ACTIVATION_CLOSING',#错误码
             )#SubagentError结束
         子头=激活['handle'].智能体.session.header#子会话头
@@ -820,18 +814,18 @@ class 子智能体续跑管理器:#可续跑管理器
         """对照耐久直接父谱系授权一次操作。"""
         if 自身.ctx.agents.获取(父.id) is not 父:#不是注册表当前项
             raise 子智能体错误(#拒绝陈旧父
-                'subagent "'+str(子标识)+'" delivery requires the exact live parent agent',#文案
+                '向子智能体 "'+str(子标识)+'" 投递需要精确的活父智能体',#文案
                 'UNAUTHORIZED',#错误码
             )#SubagentError结束
         if 父会话!=父.id:#不是直接父
-            raise 子智能体错误('subagent "'+str(子标识)+'" belongs to another parent session','UNAUTHORIZED')#拒绝
+            raise 子智能体错误('子智能体 "'+str(子标识)+'" 属于另一个父会话','UNAUTHORIZED')#拒绝
 
     def _观察结算(自身,激活):#后台结算观察
         """跟随一次 Activation 到结算。"""
         def 循环():#不阻塞调用方
             """驻留结算循环。"""
             while 拆除于(激活) is None:#驻留循环
-                戳=激活['poke']['promise']#本轮唤醒
+                戳=激活['poke']#本轮唤醒
                 智能体=激活['handle'].智能体#子智能体
                 空闲时=智能体.等到空闲#空闲等待
                 try:#静止或被戳
@@ -866,7 +860,7 @@ class 子智能体续跑管理器:#可续跑管理器
                     if 拆除于(激活) is not None or 自身._状态于(激活)!='settled':#忙或已拆
                         return {'settling':False}#再观察
                     return {'settling':True,'done':自身._拆除(激活)}#打开拆除
-                结算中=自身._锁.跑(激活['childId'],锁内决定)#锁内决定
+                结算中=自身._锁.排队执行(激活['childId'],锁内决定)#锁内决定
                 if not 结算中.get('settling'):#尚未拆除
                     if 智能体.status!='running':#等下一次戳
                         try:#等戳
@@ -878,7 +872,7 @@ class 子智能体续跑管理器:#可续跑管理器
                     结算中['done'].等待()#拆除事务
                 except Exception as 错误:#拆除失败
                     自身.ctx.日志.警告(#记录但不抛给观察循环
-                        'subagent "'+str(激活['childId'])+'" activation teardown failed: '+错误链(错误),#文案
+                        '子智能体 "'+str(激活['childId'])+'" 的 Activation 拆除失败：'+错误链(错误),#文案
                     )#warn结束
                 return#本纪元结束
         threading.Thread(target=循环,daemon=True).start()#立即启动
@@ -888,18 +882,18 @@ class 子智能体续跑管理器:#可续跑管理器
         已有=激活.get('disposal')#已有事务
         if 已有 is not None:#幂等
             return 已有#同一事务
-        完成=带解析器()#对外承诺
+        完成=操作任务()#对外任务
         # 存在即准入截止。
-        激活['disposal']=完成['promise']#安装截止
-        def 跑完():#跑完拆除
+        激活['disposal']=完成#安装截止
+        def 后台完成拆除():#后台完成拆除
             """完成拆除后兑现或拒绝。"""
             try:#完成拆除
                 自身._完成拆除(激活)#完成
-                完成['resolve']()#成功
+                完成.兑现()#成功
             except Exception as 错误:#失败
-                完成['reject'](错误)#拒绝
-        threading.Thread(target=跑完).start()#后台
-        return 完成['promise']#同一事务
+                完成.拒绝(错误)#拒绝
+        threading.Thread(target=后台完成拆除).start()#后台
+        return 完成#同一事务
 
     def _完成拆除(自身,激活):#完成拆除
         """同步传播停止，然后完成子优先释放。"""
@@ -920,7 +914,7 @@ class 子智能体续跑管理器:#可续跑管理器
                     拆除.等待()#子事务
                 except Exception as 错误:#子失败
                     失败列表.append(子智能体错误(#记下聚合
-                        'subagent "'+str(子标识)+'" child teardown failed: '+错误链(错误),#文案
+                        '子智能体 "'+str(子标识)+'" 的子体拆除失败：'+错误链(错误),#文案
                         'ACTIVATION_TEARDOWN_FAILED',#错误码
                     ))#push结束
             智能体.等到空闲()#等本Agent静止
@@ -929,7 +923,7 @@ class 子智能体续跑管理器:#可续跑管理器
             激活['observer']['capture'](智能体)#快照终态
         except Exception as 错误:#释放路径失败
             失败列表.append(子智能体错误(#记下
-                'subagent "'+str(子标识)+'" activation teardown failed: '+错误链(错误),#文案
+                '子智能体 "'+str(子标识)+'" 的 Activation 拆除失败：'+错误链(错误),#文案
                 'ACTIVATION_TEARDOWN_FAILED',#错误码
                 {'cause':错误},#原因
             ))#push结束
@@ -937,7 +931,7 @@ class 子智能体续跑管理器:#可续跑管理器
             激活['handle'].拆除()#释放Agent
         except Exception as 错误:#句柄拆除失败
             失败列表.append(子智能体错误(#记下
-                'subagent "'+str(子标识)+'" activation handle disposal failed: '+错误链(错误),#文案
+                '子智能体 "'+str(子标识)+'" 的 Activation 句柄拆除失败：'+错误链(错误),#文案
                 'ACTIVATION_TEARDOWN_FAILED',#错误码
                 {'cause':错误},#原因
             ))#push结束
@@ -946,7 +940,7 @@ class 子智能体续跑管理器:#可续跑管理器
             失败=失败列表[0]#原样
         elif len(失败列表)>1:#多边界
             失败=子智能体错误(#聚合
-                'subagent "'+str(子标识)+'" activation teardown failed at '+str(len(失败列表))+' boundaries: '#文案前
+                '子智能体 "'+str(子标识)+'" 的 Activation 拆除在 '+str(len(失败列表))+' 个边界失败：'#文案前
                 +'; '.join([错误链(项) for 项 in 失败列表]),#文案后
                 'ACTIVATION_TEARDOWN_FAILED',#错误码
                 {'cause':聚合错误(失败列表)},#原因
@@ -973,9 +967,9 @@ class 子智能体续跑管理器:#可续跑管理器
             摘要=结算摘要(激活['childId'],终态['stopReason'] if 'stopReason' in 终态 else None)#开场行
             输出=终态['output'] if 'output' in 终态 else None#可选最终输出
             if 输出 is None:#无收尾
-                内容=[{'type':'text','text':摘要},{'type':'text','text':'It left no closing message.'}]#无收尾
+                内容=[{'type':'text','text':摘要},{'type':'text','text':'没有收尾消息。'}]#无收尾
             else:#带收尾
-                内容=[{'type':'text','text':摘要},{'type':'text','text':'Its closing message:'}]+list(输出)#带收尾
+                内容=[{'type':'text','text':摘要},{'type':'text','text':'收尾消息：'}]+list(输出)#带收尾
             消息=创建用户消息({#结算通知
                 'content':内容,#摘要加可选收尾
                 'source':{#结算归属
@@ -998,7 +992,7 @@ class 子智能体续跑管理器:#可续跑管理器
             自身._唤醒发送(父,消息,按状态发送)#记账后按状态发送
         except Exception as 错误:#投递失败
             自身.ctx.日志.警告(#记录并丢掉
-                'subagent "'+str(激活['childId'])+'" settlement notice was not delivered to its parent: '#文案前
+                '子智能体 "'+str(激活['childId'])+'" 的结算通知未投递到其父：'#文案前
                 +错误链(错误),#文案后
             )#warn结束
 
@@ -1009,8 +1003,8 @@ class 子智能体续跑管理器:#可续跑管理器
             子.ctx.sessions.flush(子.session)#刷新会话
         except Exception as 错误:#刷新失败
             自身.ctx.日志.警告(#记录后继续拆除
-                'subagent "'+str(激活['childId'])+'" best-effort final session flush failed; '#文案前
-                +'the persisted state may be unavailable or stale on resume: '+错误链(错误),#文案后
+                '子智能体 "'+str(激活['childId'])+'" 尽力最终会话刷新失败；'#文案前
+                +'持久化状态在恢复时可能不可用或过期：'+错误链(错误),#文案后
             )#warn结束
 
     def _要求持久化(自身):#必须有持久化
@@ -1018,7 +1012,7 @@ class 子智能体续跑管理器:#可续跑管理器
         持久化=自身.ctx.获取服务('sessionPersistence')#可选持久化
         if 持久化 is None:#未挂载
             raise 子智能体错误(#拒绝
-                'continuable subagents require session persistence (load a dsh-session-persistence backend)',#文案
+                '可续跑子智能体需要会话持久化（请加载 dsh-session-persistence 后端）',#文案
                 'PERSISTENCE_UNAVAILABLE',#错误码
             )#SubagentError结束
         return 持久化#持久化服务

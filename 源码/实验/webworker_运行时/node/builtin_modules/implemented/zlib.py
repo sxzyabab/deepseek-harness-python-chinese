@@ -1,15 +1,3 @@
-"""worker 侧的 `node:zlib`。worker 组合不带压缩编解码器：启动补丁强制
-JSONL 会话后端走明文路径（`compression: 'none'`），因为 VFS 在内存里，
-压缩没有收益。Zstandard 表面仍保持其模块作用域形态——后端加载时会读取
-`constants` 并对回调形式做 `promisify`——而每次编解码调用都响亮失败，
-点名缺失的能力。
-
-`createZstdDecompress` 故意返回无句柄对象：后端会探测 Node 的私有流形态，
-探测拒绝时回退到其公开的一次性解码器。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/zlib.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from ...未实现失败 import 未实现失败#未实现桩
 
 __all__=[#中文公开名与Node英文挂名

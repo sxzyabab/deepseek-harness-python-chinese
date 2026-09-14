@@ -1,7 +1,3 @@
-"""消息反馈插件的浏览器半边。
-
-对齐上游 `ui-message-feedback/src/client/index.ts`。公开面仅中文名。
-"""
 from .文案 import 命名空间,中文,英文#词表
 from .表面 import 反馈表面#按会话表面
 from .反馈动作 import 消息反馈动作#赞/踩组件
@@ -100,14 +96,14 @@ def 应用(上下文):#安装消息反馈浏览器半边
         """裸 /feedback 打开会话对话框。"""
         def 登记装饰():#装饰
             """decorate feedback。"""
-            def 跑(会话):#打开
+            def 执行打开(会话):#打开
                 """打开会话级对话框。"""
                 标识=会话['sessionId'] if isinstance(会话,dict) else 会话.sessionId#会话 id
                 表面于(标识).对话框.打开({'kind':'session'})#打开
             return 子上下文.commandUi.decorate({#装饰
                 'name':'feedback',#命令名
                 'available':lambda:True,#始终可用
-                'ui':{'kind':'action','run':跑},#动作
+                'ui':{'kind':'action','run':执行打开},#动作
             })#decorate 结束
         子上下文.副作用(登记装饰,'ui-message-feedback: /feedback decoration')#副作用
     上下文.依赖启动(['commandUi'],挂命令装饰)#命令 UI 门

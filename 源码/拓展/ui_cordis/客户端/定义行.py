@@ -1,9 +1,3 @@
-"""只读 cordis_define 卡：嵌套 JSX 结构树 + 样式串。
-
-对齐上游 `ui-cordis/src/client/CordisDefineRow.tsx`。公开面仅中文名。
-结构树字段/嵌套与上游 JSX 同构；DisclosureRow/CodeBlock/图标半需浏览器。
-无法 JS·vm 执行：源码高亮与真实 DOM 展开动画。
-"""
 import os#读样式
 from .卡片模型 import 定义卡片#卡模型
 from .状态 import 可见状态#可见态

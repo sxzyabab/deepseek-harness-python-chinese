@@ -1,7 +1,3 @@
-"""代理策略解析：本包与传输无关的纯半边。把启动环境收成一份代理策略，并回答给定网址是否走代理、走哪一个。
-
-这里不引入 undici，因此在没有 Node 传输的运行时里仍可加载，与 dsh-web-fetch-http 的求值面一致。
-"""
 import re#拆分绕过列表
 from urllib.parse import urlparse as 解析网址#对应 URL.parse
 __all__=[#仅中文公开名

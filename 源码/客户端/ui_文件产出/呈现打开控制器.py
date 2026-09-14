@@ -1,8 +1,3 @@
-"""交付卡片与收口消息文件提及共用的原生打开状态。
-
-对齐上游 `ui-deliverables/src/client/present-open.ts`。公开面仅中文名。
-async/await 翻成同步；Promise 翻成直接返回。中止用 threading.Event。
-"""
 import threading#寿命与元数据中止
 from concurrent.futures import Future as _原生Future,wait as _等待全部#在飞任务
 from ...客户端.存储 import 创建快照存储#快照存储
@@ -13,7 +8,7 @@ __all__=['已呈现打开控制器','已呈现打开错误']#仅中文公开名
 class 已呈现打开错误(Exception):
     """已呈现打开失败。"""
     def __init__(自身,消息):
-        """记下英文消息。"""
+        """记下消息。"""
         super().__init__(消息)#英文
 
 class _操作任务:#单次操作 Future
@@ -60,17 +55,16 @@ class 已呈现打开控制器:#浏览器侧打开控制器
             """更新阶段。"""
             状态[网址]='opening' if 动作=='open' else 'revealing'#进行中
         自身.状态.update(写进行中)#发布进行中
-        任务=_操作任务()#新任务
-        自身._在飞.add(任务._未来)#记下
+        未来=_原生Future()#拆除时等待
+        自身._在飞.add(未来)#记下
         try:#请求
             自身._请求(网址,动作)#同步请求
-            任务.兑现()#成功
+            未来.set_result(None)#成功
         except BaseException as 错误:#失败
-            任务.拒绝(错误)#拒绝
+            未来.set_exception(错误)#拒绝
             raise#上抛
         finally:#结算
-            自身._在飞.discard(任务._未来)#移出
-        return 任务.等待()#已结算
+            自身._在飞.discard(未来)#移出
 
     def 加载宿主(自身):#加载宿主元数据
         """读服务桌面元数据，合并并发读。"""
@@ -92,7 +86,6 @@ class 已呈现打开控制器:#浏览器侧打开控制器
             if 自身._加载中 is 任务:#仍是本任务
                 自身._加载中=None#清
             自身._在飞.discard(任务._未来)#移出
-        return 任务.等待()#已结算
 
     def 重置宿主(自身):#连接替换时作废
         """作废桌面元数据；曾在读则重载。"""

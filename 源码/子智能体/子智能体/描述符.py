@@ -1,4 +1,3 @@
-"""耐久的子智能体子描述符：版本化、对模型隐藏的 subagent/descriptor 会话事件，标识每个有会话的子智能体，并记录它是一次性还是可续跑。可续跑描述符额外保存冷恢复所需的已声明组合。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...内核.会话 import 快照json值#导入无损JSON快照
 

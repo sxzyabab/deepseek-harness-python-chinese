@@ -1,4 +1,3 @@
-"""在一个 Host 源端口与一个回环端点上装配检查器 Worker。"""
 #对齐上游 worker/server.ts
 
 from ..共享.json import 在线程执行#后台执行

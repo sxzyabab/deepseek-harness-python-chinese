@@ -1,7 +1,3 @@
-"""Landlock 启动器解析与 worker shell 的每进程 VFS 强制。
-
-对齐上游 `webworker-runtime/src/shell/process/landlock.ts`。公开面仅中文名。
-"""
 from ...module_system.posix路径 import 解析 as 解析路径#路径解析
 from ...storage.路径 import dsh临时#临时根
 from ..文件系统访问 import 文件系统错误#FS错误

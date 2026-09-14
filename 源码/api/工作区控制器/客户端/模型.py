@@ -263,14 +263,14 @@ class 客户端工作区模型:
         自身._已调度通知=True#标记
         自身._通知代+=1#本代
         代=自身._通知代#捕获
-        def 跑():
+        def 后台通知():
             """微任务派发。"""
             if 代!=自身._通知代:#已作废
                 return#跳过
             自身._已调度通知=False#清调度
             自身._冲刷()#派发
         import threading#延迟导入
-        threading.Thread(target=跑,daemon=True,name='workspace-controller-notify').start()#调度
+        threading.Thread(target=后台通知,daemon=True,name='workspace-controller-notify').start()#调度
 
     def _冲刷(自身):
         """派发通知。"""

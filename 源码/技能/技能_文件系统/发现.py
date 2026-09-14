@@ -1,4 +1,3 @@
-"""本地技能根发现与技能文件解析。"""
 import os,re,stat,weakref#路径、正则、文件状态与原因旁表
 import yaml#外部依赖胶水（PyYAML）
 from ...工具.工作区路径 import (#共用家目录与监视路径，禁止本包内联假实现
@@ -19,7 +18,7 @@ from ...工具.工作区路径 import (#共用家目录与监视路径，禁止�
 解析dsh家目录=解析主目录#本包沿用旧名，委托 home_paths
 
 class 技能文件系统错误(Exception):
-    """本包异常基类。错误消息原样英文。"""
+    """本包异常基类。"""
 
 中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在信号对象上
 
@@ -37,7 +36,7 @@ def 若已中止则抛出(信号):
         return#仍活着
     if 信号 in 中止原因表:#有承载异常
         raise 中止原因表[信号]#抛出
-    raise 技能文件系统错误('aborted')#默认中止
+    raise 技能文件系统错误('已中止')#默认中止
 
 def 是技能名(名称):
     """判断字符串是否为合法 kebab-case 技能名。"""
@@ -64,11 +63,11 @@ def 是否缺失技能路径错误(错误):
 def 校验正整数(字段,数值):
     """配置入口正整数断言，排除布尔，加载时大声失败。"""
     if isinstance(数值,bool):#布尔不是整数
-        raise TypeError('skill-filesystem: '+字段+' must be a positive integer')#加载时大声失败
+        raise TypeError('skill-filesystem: '+字段+' 必须是正整数')#加载时大声失败
     if isinstance(数值,float) and 数值.is_integer():#整值浮点
         数值=int(数值)#收成int
     if not isinstance(数值,int) or 数值<1:#非正整数
-        raise TypeError('skill-filesystem: '+字段+' must be a positive integer')#加载时大声失败
+        raise TypeError('skill-filesystem: '+字段+' 必须是正整数')#加载时大声失败
 
 def 变更工具名(行动者):
     """只认 edit/write 第一方变更工具。行动者是跨包 dict。"""
@@ -196,7 +195,7 @@ def 可选字符串(数据,键):
 def 拒绝旧调用键(数据,旧键,规范键):
     """拒绝旧驼峰调用键。数据是 dict。"""
     if 旧键 in 数据:#出现旧键
-        raise 技能文件系统错误('frontmatter field "'+旧键+'" is unsupported; use "'+规范键+'"')#指向规范键
+        raise 技能文件系统错误('frontmatter 字段 "'+旧键+'" 不受支持；请用 "'+规范键+'"')#指向规范键
 
 def frontmatter布尔(数据,键):
     """frontmatter 布尔；键不存在为 None，非法则抛错。数据是 dict。"""
@@ -215,7 +214,7 @@ def frontmatter布尔(数据,键):
             return True#为真
         if 规范=='false' or 规范=='no' or 规范=='off':#假词
             return False#为假
-    raise TypeError('frontmatter field "'+键+'" must be a boolean')#其它类型非法
+    raise TypeError('frontmatter 字段 "'+键+'" 必须是布尔')#其它类型非法
 
 def 解析调用策略(数据):
     """从 frontmatter 解析调用策略。数据是 dict。"""

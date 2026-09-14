@@ -1,8 +1,3 @@
-"""轨迹工具栏：时间线与账本折叠控件。
-
-对齐上游 `ui-trajectory/src/client/TrajectoryToolbar.tsx`。公开面仅中文名。
-样式正文落在同目录 轨迹工具栏.module.css，本模块读成 样式表。
-"""
 import os#同目录样式路径
 
 __all__=['轨迹工具栏','样式表','样式文件']#仅中文公开名

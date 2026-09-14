@@ -1,8 +1,3 @@
-"""命令表的文件与目录工具，全部叠在 shell 的文件系统上。列表每行打印一项：
-此处从不是终端，因此真 `ls` 为 tty 选择的列布局在工具结果中只会是噪音。
-
-对齐上游 `webworker-runtime/src/shell/programs/files.ts`。公开面仅中文名。
-"""
 import fnmatch as 文件名匹配#名称glob（对齐picomatch）
 from datetime import datetime as 日期时间,timezone as 时区#修改时间
 from ...module_system.posix路径 import 基名,目录名,解析 as 解析路径#路径工具

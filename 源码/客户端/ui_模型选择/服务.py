@@ -1,7 +1,3 @@
-"""ModelDirectoryResolver（ctx.modelDirectories）：每会话模型目录根所有者。
-
-对齐上游 `ui-model-selection/src/client/service.ts`。公开面仅中文名。
-"""
 from ...依赖 import cordis#外部依赖胶水
 from .目录 import 模型目录,模型选择错误#每会话目录与异常
 服务=cordis.服务#Cordis 服务基类

@@ -1,7 +1,3 @@
-"""纯 ACP transcript 与会话日志归一化器。
-
-对齐上游 `session-snapshot/src/normalize.ts`。公开面仅中文名。
-"""
 import json,re#JSON 与正则
 from ...内核.会话 import 解码存储记录,打包块游程#会话编解码
 from ...内核.会话.序号范围 import 解码序号范围 as _内核解码序号范围#内核序号范围
@@ -176,7 +172,7 @@ def 令牌化会话夹具工作目录(原始日志):#令牌化 fixture cwd
     工作目录=头['cwd'] if isinstance(头.get('cwd'),str) else ''#cwd
     基名=工作目录.replace('\\','/').rstrip('/').split('/')[-1] if 工作目录 else ''#basename
     if 基名=='':#无 basename
-        raise Exception('acp-snapshot: cannot tokenize a cwd without a basename')#无 basename
+        raise Exception('acp-snapshot: 没有 basename 则无法把 cwd 分词')#无 basename
     上下文={'sessionIds':[],'cwd':工作目录}#上下文
     return '\n'.join(#重写
         行 if 行.strip()=='' else json.dumps(令牌化夹具值(json.loads(行),上下文,基名),ensure_ascii=False,separators=(',',':'))
@@ -333,7 +329,7 @@ def 擦除会话快照(原始日志):#擦除会话快照
         if 记录索引==0:#头
             记录索引+=1#推进
             if 记录.get('type')!='session':#必须会话头
-                raise Exception('session snapshot must start with a session header')#非法
+        raise Exception('会话快照必须以会话头开始')#非法
             行列表.append(行)#原样
             continue#下一项
         记录索引+=1#推进
@@ -349,10 +345,10 @@ def 是否有会话格式版本(原始日志):#是否有格式版本
     """fixture 是否声明已发布 Session 格式，因而参与迁移烧入。"""
     首行=next((行 for 行 in 原始日志.splitlines() if 行.strip()!=''),None)#首非空行
     if 首行 is None:#缺头
-        raise Exception('session snapshot must start with a session header')#缺头
+        raise Exception('会话快照必须以会话头开始')#缺头
     头=json.loads(首行)#解析头
     if not isinstance(头,dict) or 头.get('type')!='session':#非 session 头
-        raise Exception('session snapshot must start with a session header')#缺头
+        raise Exception('会话快照必须以会话头开始')#缺头
     return 'version' in 头#是否有 version
 
 def 归一化会话格式溯源(原始日志):#归一化格式溯源

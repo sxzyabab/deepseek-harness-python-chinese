@@ -1,8 +1,3 @@
-"""斜杠触发插件浏览器半边。
-
-对齐上游 `ui-input-trigger/src/client/index.ts`。公开面仅中文名。
-挂触发服务，并把菜单视图挂进 input.overlay。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .菜单视图 import 菜单视图#菜单组件
 from .服务 import 触发服务#根服务
@@ -31,7 +26,7 @@ def 应用(上下文):#安装斜杠触发浏览器半边
                 """菜单状态与点选/关闭。"""
                 作用域会话=会话面.scope(会话标识)#作用域
                 if 作用域会话 is None:#无
-                    raise 触发错误('ui-input-trigger: session "'+str(会话标识)+'" resolved no scope')#失败
+                    raise 触发错误('ui-input-trigger: 会话 "'+str(会话标识)+'" 解析不到作用域')#失败
                 控制器=触发.sessionOf(作用域会话)#该会话控制器
                 def 点选项(来源,下标):#点选
                     """转调 pick。"""

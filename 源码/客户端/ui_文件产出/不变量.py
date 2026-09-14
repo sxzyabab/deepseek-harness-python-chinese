@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-deliverables` 的本包拥有不变量配套。
-
-对齐上游 `ui-deliverables/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：提示词段落、槽位、词典、事件定义以及可选服务注册均由 effect 拥有，拆除由其插件规格证明；本包不拥有可变状态。
-"""
 包名='@deepseek-ai/dsh-client-ui-deliverables'#本包的不变量所有权名
 名称='client-ui-deliverables-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

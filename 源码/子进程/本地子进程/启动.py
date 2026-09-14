@@ -1,8 +1,3 @@
-"""本地子进程服务的进程管道：带每路 stdio 处置的分离进程树 spawn、带溢出文件的保尾收集、树范围发信号，以及 SIGTERM→SIGKILL 升级。
-
-对齐上游 `subprocess-local/src/spawn.ts`。公开面仅中文名；无英文别名。
-本层只对 abort 信号作出反应；截止、拆除阶梯和原因分类归调用方。
-"""
 import math,os,signal,sys,tempfile,threading,time#有限数、路径、信号、平台、溢出目录、收集线程与轮询
 from concurrent.futures import Future as 原生结果#单次操作结果
 from secrets import token_hex#溢出文件名随机后缀

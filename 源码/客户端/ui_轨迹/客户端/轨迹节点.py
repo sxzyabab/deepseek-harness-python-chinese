@@ -1,8 +1,3 @@
-"""把一条轨迹贡献包进引擎拥有的 target 信封，产出轨迹视图节点。
-
-对齐上游 `ui-trajectory/src/client/trajectory-definition-common.ts`。公开面仅中文名。
-"""
-
 __all__=['轨迹节点']#仅中文公开名
 
 def 轨迹节点(上下文,锚点序号,数据):#组装轨迹视图节点

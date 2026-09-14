@@ -1,7 +1,3 @@
-"""宿主用户设置文档里的聊天转录偏好。
-
-对齐上游 `ui-chat/src/chat-settings.ts`。公开面仅中文名。
-"""
 from ...依赖.schemastery import 枚举字段#配置字段
 
 __all__=[#仅中文公开名

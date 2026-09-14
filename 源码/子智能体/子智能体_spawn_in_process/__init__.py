@@ -1,6 +1,5 @@
-"""进程内 spawn 子智能体后端（对齐 upstream subagent-spawn-in-process）。"""
 from ...依赖.schemastery import 字典字段,字符串字段#配置
-from ..子智能体_in_process_driver import 启动进程内跑#共享驱动
+from ..子智能体_in_process_driver import 启动进程内运行#共享驱动
 
 名称='subagent-spawn-in-process'#Cordis 插件名
 注入=['subagents']#依赖
@@ -18,7 +17,7 @@ class 进程内孵化提供方:
 
     def 启动(自身,请求):
         """启动一次性孵化子体。请求为 dict。"""
-        return 启动进程内跑(请求,{})#新鲜子体
+        return 启动进程内运行(请求,{})#新鲜子体
 
     def 准备可续跑(自身,请求=None):
         """准备可续跑规格。请求为 dict。"""

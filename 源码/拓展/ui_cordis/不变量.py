@@ -1,8 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-cordis` 的本包拥有不变量配套。
-
-对齐上游 `拓展/ui-cordis/src/invariant.ts`。公开面仅中文名。
-无运行时不变量：可变关系活在浏览器进程里，宿主不变量服务够不到。
-"""
 包名='@deepseek-ai/dsh-client-ui-cordis'#本包的不变量所有权名
 名称='client-ui-cordis-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-subagent-claude-code 的本包拥有不变量配套。"""
 包名='@deepseek-ai/dsh-subagent-claude-code'#包名
 名称='subagent-claude-code-invariant'#插件名
 注入=['invariants']#依赖

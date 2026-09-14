@@ -1,4 +1,3 @@
-"""同时暴露 Network、Console 与 Sources 所需的最小页面 target CDP 方法。"""
 #对齐上游 worker/cdp/target.ts
 
 __all__=['cdp方法未处理','处理脚手架']#仅中文公开名

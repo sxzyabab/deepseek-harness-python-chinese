@@ -1,16 +1,3 @@
-"""ALS shim 的全局钩子层：在回调被注册处捕获异步上下文，
-在回调运行处恢复。配合 async_hooks 的折叠栈，
-给 worker 两种覆盖——边界内的 await 因边界栈条目仍开着
-而保持其存储，交给平台的工作（then、queueMicrotask、定时器、
-fetch）因注册时已捕获而保持其存储。
-
-此处打补丁：Promise.prototype.then、queueMicrotask 与 fetch。
-补丁保持的两个性质：
-- 值仍是原生 promise——包装的是处理器，从不包装链；
-- 空处理器槽保持空。
-
-对齐上游 `webworker-runtime/src/polyfill/async-context/async-context-hooks.ts`。公开面仅中文名。
-"""
 from ...node.builtin_modules.implemented.async_hooks import (
     绑定异步上下文,#bindAsyncContext
     捕获异步上下文,#captureAsyncContext

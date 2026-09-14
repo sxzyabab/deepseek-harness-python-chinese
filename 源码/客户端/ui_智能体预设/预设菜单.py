@@ -1,7 +1,3 @@
-"""预设选择菜单：行与芯片共用的触发器+菜单。
-
-对齐上游 `ui-agent-preset/src/client/PresetMenu.tsx`。公开面仅中文名。
-"""
 from .文案 import 预设展示文案#展示文案
 
 __all__=['预设菜单']#仅中文公开名

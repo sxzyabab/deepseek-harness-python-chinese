@@ -1,7 +1,3 @@
-"""`package.json` 共享声明。各读取方自行负责 JSON 校验与解析后的默认值。
-
-对齐上游 `@deepseek-ai/dsh-package-manifest/types`。线协议键名保持英文。
-"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 __all__=[#仅中文公开名

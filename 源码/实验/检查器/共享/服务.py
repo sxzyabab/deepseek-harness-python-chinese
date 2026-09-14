@@ -1,7 +1,3 @@
-"""Host 与 Client 插件面共用的 Cordis 服务 API。
-
-对齐上游 `shared/service.ts`。公开面仅中文名。
-"""
 from .桥接.查询读取器 import 创建查询cordis运行时树读取器#查询读取器
 
 __all__=['检查器服务','创建检查器服务']#仅中文公开名

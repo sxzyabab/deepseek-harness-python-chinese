@@ -1,8 +1,3 @@
-"""请求提示检视：对照系统节点规范化 request/header。
-
-对齐上游 `ui-conversation/src/client/contract/request-inspection.ts`。公开面仅中文名。
-先前与系统节点为 dict 或 None；事件为 dict。
-"""
 import json#工具目录比对
 
 __all__=['检视请求提示']#仅中文公开名

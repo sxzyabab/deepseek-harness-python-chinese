@@ -1,7 +1,3 @@
-"""Host 观测源代数的稳定描述符。
-
-对齐上游 `host/inspection/realm.ts`。公开面仅中文名。
-"""
 import time,uuid#时间与UUID
 from ...共享.身份 import 检查器id#带品牌id工厂
 from ..cdp import 桥能力#桥能力集

@@ -1,7 +1,3 @@
-"""生成的 Typert 反射、Remote 调用、以及依赖倒置的 lookup/Context 提供方的运行时注册表。
-
-对齐上游 `typert/registry/src/service.ts`。公开面仅中文名。不做 TypeScript 分析，也不生成模式。
-"""
 import re#端点段校验
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类

@@ -1,7 +1,3 @@
-"""PDF 渲染器拥有的文案。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/locales.ts`。公开面仅中文名。
-"""
 
 __all__=['中文','英文','pdf文案键']#仅中文公开名
 

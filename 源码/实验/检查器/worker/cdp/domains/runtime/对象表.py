@@ -1,7 +1,3 @@
-"""每个 CDP 连接上，各 realm Runtime 对象的路由与投影。
-
-对齐上游 `worker/cdp/domains/runtime/object-table.ts`。公开面仅中文名。
-"""
 from ...标识 import cdp字符串id#CDP对象id
 
 __all__=['Runtime对象表']#仅中文公开名

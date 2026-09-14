@@ -1,7 +1,3 @@
-"""可配置的包拥有运行时不变量贡献注册表。
-
-工作区每个包从 `./invariant` 配套注册检查；普通包入口点与诊断解耦。
-"""
 import re#编译包名过滤正则
 from ...依赖.schemastery import 字典字段,布尔字段,列表字段,字符串字段#配置校验
 from ...依赖 import cordis#Cordis
@@ -21,7 +17,7 @@ class 不变量错误(Exception):#包归因不变量失败
     """包拥有的运行时不变量被违反时抛出。"""
     def __init__(自身,包名,消息):#构造包归因失败
         """记下包名与英文消息。"""
-        super().__init__('invariant violated by "'+包名+'": '+消息)#标准前缀
+        super().__init__('不变量被 "'+包名+'" 违反: '+消息)#标准前缀
         自身.包名=包名#完整 npm 包名
         自身.code='INVARIANT'#稳定机器可读不变量失败码
         自身.name='InvariantError'#错误名
@@ -32,14 +28,14 @@ def 编译模式列表(字段名,值列表):#编译并校验一个包过滤列�
     结果=[]#正则列表
     for 值 in 值列表:#逐项
         if len(值)==0 or 值.strip()!=值:#空白或带外围空白
-            raise 不变量错误('@deepseek-ai/dsh-invariants',字段名+' entries must be non-blank and have no surrounding whitespace')#拒绝
+            raise 不变量错误('@deepseek-ai/dsh-invariants',字段名+' 条目必须非空且无外围空白')#拒绝
         if 值 in 已见:#重复
-            raise 不变量错误('@deepseek-ai/dsh-invariants',字段名+' contains duplicate regex '+repr(值))#拒绝
+            raise 不变量错误('@deepseek-ai/dsh-invariants',字段名+' 含重复正则 '+repr(值))#拒绝
         已见.add(值)#记下
         try:#编译正则
             结果.append(re.compile(值))#加入列表
         except re.error as 原因:#非法正则
-            raise 不变量错误('@deepseek-ai/dsh-invariants',字段名+' contains invalid regex '+repr(值)) from 原因#包装
+            raise 不变量错误('@deepseek-ai/dsh-invariants',字段名+' 含非法正则 '+repr(值)) from 原因#包装
     return 结果#返回编译结果
 
 class 不变量注册表(服务):#包拥有不变量注册表
@@ -78,9 +74,9 @@ class 不变量注册表(服务):#包拥有不变量注册表
     def register(自身,包名,安装器):#注册一个包的不变量安装器
         """注册一个包的不变量安装器。即使过滤禁用其检查，包名也会被预留。启用的安装器在子 fiber 中运行；失败会拆除该 fiber 并释放预留。"""
         if len(包名)==0 or 包名.strip()!=包名 or 空白模式.search(包名) is not None:#包名非法
-            raise 不变量错误('@deepseek-ai/dsh-invariants','packageName must be non-blank and contain no whitespace')#拒绝
+            raise 不变量错误('@deepseek-ai/dsh-invariants','packageName 必须非空且不含空白')#拒绝
         if 包名 in 自身._注册:#重复注册
-            raise 不变量错误('@deepseek-ai/dsh-invariants','package "'+包名+'" is already registered')#拒绝
+            raise 不变量错误('@deepseek-ai/dsh-invariants','包 "'+包名+'" 已登记')#拒绝
         上下文对象=自身._所有者上下文#显式来源
         注册表=自身._注册#共享注册集
         注册表.add(包名)#预留包名
@@ -92,11 +88,11 @@ class 不变量注册表(服务):#包拥有不变量注册表
             return 安装器(子上下文,失败)#跑包安装器
         if hasattr(安装器,'inject') and 安装器.inject is not None:#安装器声明依赖
             安装不变量.inject=安装器.inject#透传 inject
-        def 跑注册():#在 effect 内完成注册生命周期
+        def 执行注册():#在 effect 内完成注册生命周期
             """在 effect 内完成注册生命周期。"""
-            return 自身._运行注册(上下文对象,包名,安装不变量,注册表)#跑生命周期
+            return 自身._运行注册(上下文对象,包名,安装不变量,注册表)#执行生命周期
         try:#在 effect 中安装
-            注册效果=上下文对象.副作用(跑注册,'invariants.register('+repr(包名)+')')#登记副作用
+            注册效果=上下文对象.副作用(执行注册,'invariants.register('+repr(包名)+')')#登记副作用
             return 注册效果#返回 disposer
         except BaseException as 错误:#登记失败
             注册表.discard(包名)#释放预留

@@ -1,4 +1,3 @@
-"""有界浏览器源目录传输上的 Client SourceBackend。"""
 #对齐上游 worker/realms/client/sources.ts
 
 import base64#分块解码
@@ -21,7 +20,7 @@ class Client源后端:#Client源后端
     def 列脚本(自身):#列脚本
         """确保目录已加载。"""
         if 自身._已关闭:#已关闭
-            raise RuntimeError('Client source session is closed')#抛错
+            raise RuntimeError('客户端源会话已关闭')#抛错
         if 自身._目录 is None:#惰性加载
             自身._目录=自身._加载目录()#加载
         return 自身._目录#目录
@@ -31,7 +30,7 @@ class Client源后端:#Client源后端
         路由=自身._路由(脚本键)#路由
         源=自身._读(路由['localKey'],'source')#读源
         if 源 is None:#不可用
-            raise RuntimeError('Client script source is unavailable')#抛错
+            raise RuntimeError('客户端脚本源不可用')#抛错
         return 源#返回
 
     def 取源映射(自身,脚本键):#取源映射
@@ -71,7 +70,7 @@ class Client源后端:#Client源后端
         自身.列脚本()#确保目录
         路由=自身._脚本.get(脚本键)#取路由
         if 路由 is None:#不可用
-            raise RuntimeError('Client script is no longer available')#抛错
+            raise RuntimeError('客户端脚本已不可用')#抛错
         return 路由#返回
 
     def _读(自身,脚本键,内容):#读内容分块
@@ -87,7 +86,7 @@ class Client源后端:#Client源后端
                 return None#无
             字节=base64.b64decode(结果['data'])#解码
             if len(字节)>自身.路由.分块字节 or 结果['nextOffset']!=偏移+len(字节) or (not 结果.get('eof') and 结果['nextOffset']==偏移) or 结果['nextOffset']>自身.路由.最大内容字节:#无效块
-                raise RuntimeError('Client source returned an invalid content chunk')#无效块
+                raise RuntimeError('客户端源返回了无效内容块')#无效块
             块列表.append(字节)#收集
             偏移=结果['nextOffset']#推进
             if 结果.get('eof'):#结束

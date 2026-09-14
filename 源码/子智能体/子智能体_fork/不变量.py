@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-subagent-fork-in-process 的本包拥有不变量配套。"""
 包名='@deepseek-ai/dsh-subagent-fork-in-process'#包名
 名称='subagent-fork-in-process-invariant'#插件名
 注入=['invariants']#依赖

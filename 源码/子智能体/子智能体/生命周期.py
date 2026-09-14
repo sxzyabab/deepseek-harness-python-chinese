@@ -1,9 +1,8 @@
-"""两种子智能体形态的生命周期边发布：带隔离的发出、一次性跑观察者、可续跑 Activation 观察者。公开载荷约定与缝的其余面向消费方类型一起放在类型模块；本模块只拥有实现，以及续跑管理器消费的包私有 ActivationObserver。"""
 import uuid,threading#随机uuid与后台观察
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...内核.智能体 import 折叠已消费工作#导入已消费工作折叠
 from .助手输出 import 最终助手输出#导入最终助手输出选取
-from .类型 import 子智能体跑标识#导入跑id品牌构造
+from .类型 import 子智能体运行标识#导入跑id品牌构造
 
 def 渲染抛值(值):
     """渲染任何监听器抛出的值，不让强制转换逃出隔离。"""
@@ -12,7 +11,7 @@ def 渲染抛值(值):
             return 值.__class__.__name__+': '+str(值)#名与文案
         return str(值)#普通值
     except TypeError:
-        return '<unrenderable thrown value>'#不可渲染哨兵
+        return '<不可渲染的抛出值>'#不可渲染哨兵
 
 def 创建生命周期发出(上下文对象,载体):
     """建造本缝每条边都经其发布的带隔离生命周期发射器。每个监听器独立隔离：同步抛出会被记录，而不饿死对等监听器。"""
@@ -27,13 +26,13 @@ def 创建生命周期发出(上下文对象,载体):
             try:
                 回调(信息)#同步调用监听器
             except BaseException as 错误:
-                上下文对象.日志.警告('subagent: '+名称+' listener threw: '+渲染抛值(错误))#记录抛出
+                上下文对象.日志.警告('子智能体：'+名称+' 监听器抛出：'+渲染抛值(错误))#记录抛出
     return 发出#生命周期发出
 
-def 观察跑(发出,提供方,父,跑):
+def 观察运行(发出,提供方,父,跑):
     """为一次被接受的一次性跑发出 start/end 生命周期对。返回同一跑，未改动。跑为对象，result 为操作任务。"""
     身份={#共享身份
-        'runId':子智能体跑标识(str(uuid.uuid4())),#铸造跑id
+        'runId':子智能体运行标识(str(uuid.uuid4())),#铸造跑id
         'provider':提供方,#提供方名
         'id':跑.id,#子会话id
         'local':跑.localAgent is not None,#是否进程内
@@ -86,7 +85,7 @@ def 纪元停止原因(事件列表):
 
 def 创建激活观察者(发出,提供方,子标识,父):
     """为一次可续跑 Activation 的驻留纪元建造观察者。观察者看到与一次性跑相同的词汇。驻留前的创建失败不发生命周期边。"""
-    身份={'runId':子智能体跑标识(str(uuid.uuid4())),'provider':提供方,'id':子标识,'local':True}#共享身份，进程内
+    身份={'runId':子智能体运行标识(str(uuid.uuid4())),'provider':提供方,'id':子标识,'local':True}#共享身份，进程内
     边界=[0]#纪元后缀起点（用列表可变）
     捕获=[{'stopReason':'completed'}]#捕获的终态
     def 终态(失败):

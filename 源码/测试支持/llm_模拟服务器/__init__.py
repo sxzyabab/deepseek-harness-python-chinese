@@ -1,9 +1,3 @@
-"""面向传输、协议与语义空 LLM 恢复测试的可编脚本 OpenAI 兼容 HTTP/SSE 服务器。
-
-对齐上游 `llm-mock-server/src/index.ts`。公开面仅中文名。
-每个已接受的 chat-completions 请求消费一个行为；服务器从不重试或解读 harness 策略。
-同步 + ThreadingHTTPServer，无 asyncio。
-"""
 import json,os,socket,threading,time#JSON、随机种子、网络、线程与延迟
 from http.server import BaseHTTPRequestHandler as 基处理器,ThreadingHTTPServer as 线程HTTP服务器#HTTP 服务
 
@@ -54,20 +48,20 @@ def 解析选项(选项):#解析服务器选项
     工具参数=选项.get('toolArguments') or '{"value":"mock"}'#工具参数
     序列=选项.get('sequence')#行为序列
     if 主机=='':#空主机
-        raise Exception('llm-mock-server: host must not be empty')#空主机
+        raise Exception('llm-mock-server: host 不能为空')#空主机
     if not 序列:#空序列
-        raise Exception('llm-mock-server: sequence must not be empty')#空序列
+        raise Exception('llm-mock-server: sequence 不能为空')#空序列
     末项=序列[-1]#末项行为
     if 选项.get('apiKey')=='':#空密钥
-        raise Exception('llm-mock-server: apiKey must not be empty')#空密钥
+        raise Exception('llm-mock-server: apiKey 不能为空')#空密钥
     if 成功文本=='' or 部分文本=='' or 推理文本=='' or 工具名=='':#空文本
-        raise Exception('llm-mock-server: successText/partialText/reasoningText/toolName must not be empty')#空文本
+        raise Exception('llm-mock-server: successText/partialText/reasoningText/toolName 不能为空')#空文本
     if 选项.get('requestId')=='':#空请求 id
-        raise Exception('llm-mock-server: requestId must not be empty')#空请求 id
+        raise Exception('llm-mock-server: requestId 不能为空')#空请求 id
     try:#校验 JSON
         json.loads(工具参数)#校验工具参数 JSON
     except Exception:#解析失败
-        raise Exception('llm-mock-server: toolArguments must be valid JSON')#JSON 非法
+        raise Exception('llm-mock-server: toolArguments 必须是合法 JSON')#JSON 非法
     配置权重=选项.get('randomWeights') or 默认模拟LLM随机权重#配置权重
     随机权重=[]#正权重列表
     for 行为,权重 in 配置权重.items():#逐项权重
@@ -78,7 +72,7 @@ def 解析选项(选项):#解析服务器选项
         if 权重>0:#正权重
             随机权重.append((行为,权重))#收集
     if len(随机权重)==0:#无正权重
-        raise Exception('llm-mock-server: randomWeights must contain at least one positive weight')#无正权重
+        raise Exception('llm-mock-server: randomWeights 必须至少有一个正权重')#无正权重
     已解析={#返回已解析选项
         'host':主机,'port':端口,'sequence':list(序列),'lastBehavior':末项,
         'repeatLast':选项.get('repeatLast') or False,'randomSeed':随机种子,
@@ -283,7 +277,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             except Exception:#忽略
                 return#忽略
 
-        def _跑行为(自身,记录):#执行行为
+        def _执行行为(自身,记录):#执行行为
             """按行为分支执行。"""
             行为=记录['behavior']#具体行为
             if 行为=='script_exhausted':#脚本耗尽
@@ -404,7 +398,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 'scriptBehavior':记录['scriptBehavior'],'behavior':记录['behavior'],'path':路径,
             })#请求事件
             try:#执行行为
-                自身._跑行为(记录)#执行
+                自身._执行行为(记录)#执行
             except Exception as 错误:#处理器失败
                 结束记录(已解析,记录,'server_error')#记服务器错误
                 if 自身.headers_sent:#头已发

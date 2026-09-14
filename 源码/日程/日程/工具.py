@@ -1,4 +1,3 @@
-"""智能体作用域的日程管理工具，建立在持久会话折叠上。"""
 import json,time#JSON 文本与墙钟
 from ...依赖 import cordis#外部依赖胶水
 from ...内核.工具 import 定义工具#定义面向模型的工具
@@ -15,7 +14,7 @@ from .领域 import (
     日程视图,#面向模型视图
 )#domain 导出
 from .持久化 import 冲洗日程持久#导入持久屏障
-from .事务 import 跑日程事务#导入串行事务
+from .事务 import 执行日程事务#导入串行事务
 
 共有视图片段={#视图共有字段
     'id':{'type':'string','required':True},#日程 id
@@ -128,7 +127,7 @@ def 可取消日程事务(智能体,信号,任务):#串行一次操作；调用�
         if 取消 is not None:#已取消
             return 取消#停正文
         return 任务()#跑完整操作
-    return 跑日程事务(智能体,体)#串行
+    return 执行日程事务(智能体,体)#串行
 
 def 日志损坏错误():#稳定的持久日志失败
     """稳定的持久日志失败。"""

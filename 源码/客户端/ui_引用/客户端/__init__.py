@@ -1,8 +1,3 @@
-"""统一的 Web `@` 引用源。
-
-对齐上游 `ui-reference/src/client/index.ts`。公开面仅中文名。
-文件与会话发现经可取消的 Remote 命名空间并行，排序与标签确定。
-"""
 import json#行载荷编解码
 import time#相对时间基准
 from ....上下文.文件引用.词法 import 格式化文件提及#文件 mention 格式化

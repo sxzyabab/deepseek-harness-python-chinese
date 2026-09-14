@@ -1,4 +1,3 @@
-"""事件总线：派发模式、监听器登记与上下文过滤。"""
 import threading
 from ..工具 import (
     有序槽位表,#纤程本地钩子表
@@ -34,14 +33,14 @@ class 事件服务:
         回调列表=_获取内部成员(自身,'解析监听器')(自身,'emit',参数)#本次要跑的回调
         失败列表=[]#收集到的错误
         失败锁=threading.Lock()#保护失败列表
-        def 跑监听器(回调):
-            """在自己的线程里跑一个监听器。"""
+        def 执行监听器(回调):
+            """在自己的线程里执行一个监听器。"""
             try:
                 回调(*参数)#调用监听器
             except Exception as 错误:#监听器可抛任意异常，聚合后一并抛出
                 with 失败锁:
                     失败列表.append(错误)#收集失败
-        线程表=[threading.Thread(target=跑监听器,args=(回调,)) for 回调 in 回调列表]#每个监听器一条线程
+        线程表=[threading.Thread(target=执行监听器,args=(回调,)) for 回调 in 回调列表]#每个监听器一条线程
         for 线程 in 线程表:
             线程.start()#启动
         for 线程 in 线程表:

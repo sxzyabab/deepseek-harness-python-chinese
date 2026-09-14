@@ -1,7 +1,3 @@
-"""共享 Team 任务 DAG 命令与经运行时充实的视图。
-
-对齐上游 `agent-team/src/task-board.ts`。公开面仅中文名。
-"""
 import copy#脱离视图
 from .错误 import 团队错误#领域错误
 from .名册 import 解析活跃成员#活跃成员解析

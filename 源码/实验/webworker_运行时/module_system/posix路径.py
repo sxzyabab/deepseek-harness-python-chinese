@@ -1,10 +1,3 @@
-"""worker VFS 的 POSIX 路径辅助：单一绝对根、无盘符、无符号链接。
-
-**不是 `node:path` 替代品。** dirname、basename 与 parse 会先规范化，
-因为此处每个调用方把结果交给 VFS，而 VFS 用规范化绝对路径做键。
-
-对齐上游 `webworker-runtime/src/module-system/posix-path.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 from urllib.parse import quote as 百分号编码,unquote as 百分号解码#URL编解码
 

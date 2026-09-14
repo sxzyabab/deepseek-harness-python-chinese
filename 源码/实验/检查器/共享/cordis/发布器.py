@@ -1,7 +1,3 @@
-"""Host/Client 共用的浏览器安全 Cordis 快照发布。
-
-对齐上游 `shared/cordis/publisher.ts`。公开面仅中文名。
-"""
 from ..桥接.消息.cordis import cordis树主题#主题
 from .观察者 import 观察cordis树#观察
 

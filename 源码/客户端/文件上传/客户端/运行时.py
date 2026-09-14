@@ -1,8 +1,3 @@
-"""字节与流式请求体的后台上传实现。
-
-对齐上游 `file-upload/src/client/runtime.ts`。
-浏览器 Worker/XHR/Blob 在 Python 侧用线程或同步 urllib/自定义 fetch 钩子表达；fixture 与钩子逻辑保留。
-"""
 import builtins,json,threading,time#全局、JSON、线程与轮询
 from urllib.parse import parse_qs,urlencode,urljoin#URL 拼装
 import urllib.request as 请求库#标准库 HTTP
@@ -50,7 +45,7 @@ def 物化字节(数据):#聚合成精确字节
         return bytes(块)#字节
     if 是否流式正文(数据):#流
         return b''.join(bytes(块) if not isinstance(块,str) else 块.encode('utf-8') for 块 in 数据)#聚合
-    raise TypeError('background upload worker received an invalid body')#非法体
+    raise TypeError('后台上传工作线程收到非法体')#非法体
 
 class 进度可读:#带进度的类文件正文
     """供 urllib 边读边报进度。"""
@@ -282,14 +277,14 @@ def 解析文件上传结果(正文):#解析 JSON 结果
     值=json.loads(正文)#解析
     成功=值['ok'] if 是否普通对象(值) and 'ok' in 值 else None#ok
     if 是否普通对象(值) is False or isinstance(成功,bool) is False:#形态不对
-        raise TypeError('file upload transport returned an invalid result')#类型错误
+        raise TypeError('文件上传传输返回了非法结果')#类型错误
     if 成功 is False:#失败支
         错误=值['error'] if 'error' in 值 else None#错误字段
         码=错误['code'] if 是否普通对象(错误) and 'code' in 错误 else None#码
         消息=错误['message'] if 是否普通对象(错误) and 'message' in 错误 else None#消息
         细节=错误['details'] if 是否普通对象(错误) and 'details' in 错误 else None#细节
         if isinstance(码,str) is False or isinstance(消息,str) is False or 是否普通对象(细节) is False:#失败形态不对
-            raise TypeError('file upload transport returned an invalid failure')#类型错误
+            raise TypeError('文件上传传输返回了非法失败')#类型错误
         return {#失败
             'ok':False,#失败
             'error':远程错误(码,消息,细节),#Remote 错误
@@ -303,7 +298,7 @@ def 解析文件上传结果(正文):#解析 JSON 结果
     if (isinstance(凭证,str) is False or 是否普通对象(文件) is False
         or isinstance(附件,str) is False or isinstance(叶名,str) is False
         or isinstance(字节,bool) or isinstance(字节,int) is False or 字节<0):#凭证形态不对
-        raise TypeError('file upload transport returned an invalid receipt')#类型错误
+        raise TypeError('文件上传传输返回了非法回执')#类型错误
     return {#成功
         'ok':True,#成功
         'value':{#值

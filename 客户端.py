@@ -3,7 +3,7 @@ from __future__ import annotations#启用延迟注解求值，便于前向引用
 
 from dataclasses import dataclass
 from typing import TypeAlias as 类型别名
-from pydantic import BaseModel,ConfigDict,Field
+from pydantic import BaseModel,Field
 
 基本JSON值:类型别名=str|int|float|bool|None
 JSON数据:类型别名=基本JSON值|dict[str,"JSON数据"]|list["JSON数据"]
@@ -26,7 +26,7 @@ class 服务器信息(BaseModel):
 
 _服务器信息=服务器信息
 class 初始化响应(BaseModel):
-    服务器信息:_服务器信息=Field(default=None,alias='serverInfo')
+    服务器信息:_服务器信息|None=Field(default=None,alias='serverInfo')
 
 
 #client.py
@@ -44,11 +44,13 @@ NotificationFilter:类型别名=Callable[[通知消息],bool]
 @dataclass(slots=True)#用slots数据类降低内存占用
 class Harness配置:#启动本地DeepSeek Harness SDK运行时的配置
     "启动本地DeepSeek Harness SDK运行时的配置"#类文档说明用途
-    运行时二进制:str|None=None#显式运行时可执行文件路径
-    桥接二进制:str|None=None#兼容用的桥接可执行文件路径
-    启动参数覆盖:tuple[str,...]|None=None#覆盖默认启动参数
+    dsh二进制:str|None=None#显式dsh可执行文件路径
+    配置档:str="sdk"#传给运行时的--profile
+    补丁:tuple[str,...]=()#传给运行时的--patch路径
+    dsh主目录:str|None=None#显式DSH_HOME，空则要求环境变量已有非空值
     工作目录:str|None=None#子进程工作目录
     环境变量:dict[str,str]|None=None#额外合并进子进程的环境变量
+    初始化超时秒数:float=30.0#initialize请求超时秒数
     请求超时秒数:float|None=None#请求默认超时秒数
     关闭超时秒数:float|None=1.0#关闭时等待秒数
 
@@ -56,8 +58,9 @@ class Harness配置:#启动本地DeepSeek Harness SDK运行时的配置
 class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时通信的同步JSON-RPC客户端
     """通过标准输入输出与DeepSeek Harness SDK运行时通信的同步JSON-RPC客户端。"""#类文档说明传输方式
 
-    def __init__(self,config:Harness配置|None=None)->None:#用可选配置构造客户端
+    def __init__(self,config:Harness配置|None=None,*,_启动参数:tuple[str,...]|None=None)->None:#用可选配置构造客户端
         self.config=config or Harness配置()#保存配置，缺省用空配置
+        self._启动参数=_启动参数#可选整段替换启动argv
         self._proc:subprocess.Popen[str]|None=None#运行时子进程句柄，未启动为None
         self._lock=threading.Lock()#保护共享表结构的互斥锁
         self._write_lock=threading.Lock()#保护stdin写入的互斥锁
@@ -84,11 +87,10 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             return#避免重复拉起
         with self._lock:#加锁清会话亲子表
             self._session_parents.clear()#新进程从空会话树开始
-        启动参数=list(self.config.启动参数覆盖 or self.默认启动参数())#解析最终启动参数
         环境变量=os.environ.copy()#继承当前进程环境
         if self.config.环境变量:#若配置了额外环境变量
             环境变量.update(self.config.环境变量)#合并覆盖到子进程环境
-        self.注入捆绑默认配置(环境变量)#捆绑启动且无配置时注入默认cordis
+        启动参数=list(self._启动参数 or self.默认启动参数(环境变量))#解析最终启动参数，可能写入DSH_HOME
         self._proc=subprocess.Popen(#拉起运行时子进程
             启动参数,#启动参数列表
             stdin=subprocess.PIPE,#管道标准输入供写JSON-RPC
@@ -104,11 +106,14 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
         self.启动错误读取线程()#启动stderr读取线程
 
     def 关闭(self)->None:#关闭运行时并清理等待者
+        """关闭运行时，并给持久状态刷盘留出有界窗口。"""#说明关闭时允许短暂排空
         进程=self._proc#取出当前子进程引用
         if 进程 is None:#未启动则无需关闭
             return#直接返回
+        关闭完成=False#shutdown RPC是否成功返回
         try:#尝试发送协议层shutdown
             self.请求("shutdown",None,response_model=关闭响应,timeout_seconds=self.config.关闭超时秒数)#请求优雅关闭
+            关闭完成=True#标记shutdown已完成，随后先wait再terminate
         except Exception as 错误:#shutdown失败只记诊断，不中断关闭流程
             self._stderr_lines.append(f"shutdown request failed: {错误}")#记录shutdown失败信息
         if 进程.stdin:#若stdin仍可用
@@ -116,16 +121,22 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
                 进程.stdin.close()#关闭标准输入
             except Exception as 错误:#关闭失败只记诊断
                 self._stderr_lines.append(f"stdin close failed: {错误}")#记录stdin关闭失败
+        if 关闭完成:#shutdown成功则先给进程一段时间自行退出
+            try:#等待进程在超时内退出
+                进程.wait(timeout=self.config.关闭超时秒数)#带超时等待
+            except subprocess.TimeoutExpired:#超时则继续走terminate
+                pass#不在此处强杀
         if 进程.poll() is None:#进程仍在运行
             try:#发送SIGTERM/terminate
                 进程.terminate()#请求终止
             except ProcessLookupError:#进程已消失则忽略
                 pass#吞掉查找失败
-        try:#等待进程在超时内退出
-            进程.wait(timeout=self.config.关闭超时秒数)#带超时等待
-        except subprocess.TimeoutExpired:#超时则强杀
-            进程.kill()#强制杀死
-            进程.wait()#再等到真正退出
+        if 进程.poll() is None:#terminate后仍在运行
+            try:#再等一轮超时
+                进程.wait(timeout=self.config.关闭超时秒数)#带超时等待
+            except subprocess.TimeoutExpired:#超时则强杀
+                进程.kill()#强制杀死
+                进程.wait()#再等到真正退出
         self._proc=None#清空进程句柄
         self.失败等待者(self.运行时关闭错误("DeepSeek Harness runtime closed"))#唤醒所有等待者为关闭错误
         if self._reader_thread and self._reader_thread.is_alive():#读取线程仍活着
@@ -139,6 +150,7 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
         cwd:str,#会话工作目录
         provider:str,#模型提供方
         model:str,#模型名
+        reasoning_effort:str|None=None,#可选推理强度
         max_tokens:int|None=None,#可选最大token
     )->初始化响应:#返回校验后的初始化响应
         载荷:JSON对象={#组装initialize参数
@@ -146,12 +158,20 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             "provider":provider,#提供方
             "model":model,#模型
         }#基础载荷结束
+        if reasoning_effort is not None:#若指定了推理强度
+            载荷["reasoningEffort"]=reasoning_effort#写入驼峰字段
         if max_tokens is not None:#若指定了max_tokens
             载荷["maxTokens"]=max_tokens#写入驼峰字段
         try:#initialize失败时关闭进程再抛出
-            return self.请求("initialize",载荷,response_model=初始化响应)#发请求并校验
-        except BaseException:#任意失败都先关闭
+            return self.请求("initialize",载荷,response_model=初始化响应,timeout_seconds=self.config.初始化超时秒数)#发请求并校验，使用initialize专用超时
+        except TimeoutError as 错误:#超时额外带上当前profile
             self.关闭()#回收半初始化状态
+            raise TimeoutError(f"{错误}\nselected dsh profile {self.config.配置档!r}") from 错误#附带profile
+        except BaseException as 错误:#其他失败也先关闭
+            self.关闭()#回收半初始化状态
+            诊断=self.运行时诊断()#收集stderr等诊断
+            if isinstance(错误,JSON_RPC错误) and 诊断:#RPC错误把诊断拼进消息
+                raise JSON_RPC错误(错误.code,f"{错误.message}\n{诊断}",错误.data) from 错误#带诊断再抛
             raise#原样抛出
 
     def session_prompt(#发送session/prompt并返回messageId
@@ -440,36 +460,35 @@ class Harness客户端:#通过标准输入输出与DeepSeek Harness SDK运行时
             部分.append("stderr tail:\n"+"\n".join(self._stderr_lines))#拼接stderr尾部
         return "\n".join(部分)#合并为单字符串
 
-    def 默认启动参数(self)->tuple[str,...]:#解析默认启动参数元组
-        if self.config.运行时二进制 is not None:#显式runtime优先
-            return (self.config.运行时二进制,)#单元素可执行路径
-        if self.config.桥接二进制 is not None:#其次兼容bridge
-            return (self.config.桥接二进制,)#单元素桥接路径
-        try:#尝试从捆绑运行时包解析
-            from .runtime import resolve_bundled_launch_args#导入捆绑启动解析
-        except ImportError as 错误:#未安装运行时包
-            raise FileNotFoundError(#提示安装或显式配置
-                "Unable to locate the bundled DeepSeek Harness SDK runtime. "
-                "Install deepseek-harness-runtime-bin or set Harness配置.运行时二进制."
-            ) from 错误#保留导入错误链
-        return resolve_bundled_launch_args()#返回捆绑启动argv
+    def 默认启动参数(self,env:dict[str,str])->tuple[str,...]:#解析默认启动参数元组，并按需写入DSH_HOME
+        if self.config.dsh二进制 is None:#未显式指定则用捆绑运行时
+            try:#尝试从捆绑运行时包解析
+                from .runtime import resolve_bundled_launch_args#导入捆绑启动解析
+            except ImportError as 错误:#未安装运行时包
+                raise FileNotFoundError(#提示安装捆绑运行时
+                    "Unable to locate the bundled DeepSeek Harness dsh runtime. "
+                    "Install deepseek-harness-runtime-bin or set Harness配置.dsh二进制."
+                ) from 错误#保留导入错误链
+            基础参数=resolve_bundled_launch_args()#捆绑启动argv
+        else:#显式dsh路径
+            基础参数=(str(Path(self.config.dsh二进制).expanduser().resolve()),)#展开用户目录并解析绝对路径
 
-    def 注入捆绑默认配置(self,env:dict[str,str])->None:#捆绑启动且无配置时注入默认cordis路径
-        """为无非空配置的捆绑启动注入默认配置。
+        if self.config.dsh主目录 is not None:#配置了dsh主目录
+            if not self.config.dsh主目录.strip():#空字符串非法
+                raise ValueError("Harness配置 requires a non-empty dsh主目录")#拒绝空主目录
+            env["DSH_HOME"]=str(Path(self.config.dsh主目录).expanduser().resolve())#写入绝对DSH_HOME
+        elif not env.get("DSH_HOME","").strip():#配置与环境都没有非空DSH_HOME
+            raise ValueError(#Python SDK从不隐式使用~/.dsh
+                "Harness配置 requires an explicit dsh主目录 or non-empty DSH_HOME; "
+                "the Python SDK never uses ~/.dsh implicitly"
+            )#错误结束
 
-        两种捆绑载体都要求显式配置。显式runtime、启动参数与配置通道保持不动。
-        """#说明何时注入、何时不动
-        使用捆绑运行时=(#判定是否走捆绑默认启动路径
-            self.config.启动参数覆盖 is None#未覆盖启动参数
-            and self.config.运行时二进制 is None#未指定runtime
-            and self.config.桥接二进制 is None#未指定bridge
-        )#捆绑判定结束
-        if not 使用捆绑运行时 or env.get("DSH_CORDIS_CONFIG"):#非捆绑或已有配置则跳过
-            return#不注入
-        #默认启动参数已导入该包，否则会抛出安装缺失错误
-        from .runtime import bundled_default_config_path#导入默认配置路径解析
-
-        env["DSH_CORDIS_CONFIG"]=str(bundled_default_config_path())#写入默认cordis绝对路径
+        补丁参数=tuple(#把每个补丁展开成--patch 绝对路径
+            参数
+            for 补丁 in self.config.补丁
+            for 参数 in ("--patch",str(Path(补丁).expanduser().resolve()))
+        )#补丁参数结束
+        return (*基础参数,"--profile",self.config.配置档,*补丁参数)#捆绑或显式dsh + profile + patches
 
     def 取消订阅通知(self,subscription_id:str)->None:#按订阅id退订
         with self._lock:#加锁
@@ -575,16 +594,29 @@ def _int_or_none(value:object)->int|None:#把值收窄为int或None
 
 
 
+#py原生版专属
+@dataclass(slots=True)
+class pydsh配置:
+    APIkey:str
+    baseAPIurl:str
+    ...
 
-#简化
 class Harness服务:
     '统一管理rpc/嵌入式等Agent服务'
     def __init__():
         ...
 
-    def 创建Agent():
+    def 创建Agent()->Agent:
         ...
 
     
 class Agent:
     '统一Agent操作入口'
+    def __init__(self)->None:
+        ...
+
+    def 启动(self)->None:
+        ...
+
+    def 紧急停止(self)->None:
+        ...

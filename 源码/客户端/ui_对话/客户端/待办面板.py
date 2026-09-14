@@ -1,8 +1,3 @@
-"""计划条：composer 上方待办整表快照。
-
-对齐上游 `ui-conversation/src/client/skeleton/TodoPanel.tsx`。公开面仅中文名。
-属性与待办为 dict。
-"""
 
 __all__=['待办面板','待办停靠','待办停靠条目','进度文案']#仅中文公开名
 

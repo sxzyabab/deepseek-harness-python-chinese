@@ -1,8 +1,3 @@
-"""网页工具行：web_search / web_fetch。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/web-row.tsx`。公开面仅中文名。
-props 与行模型均为 dict。
-"""
 from .调用模型 import 派生工具行#行模型
 from .网页卡模型 import 网页卡模型#网页卡
 from .工具行 import 工具行#外壳

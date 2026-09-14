@@ -1,8 +1,3 @@
-"""外壳 chrome 与通用导航词典。
-
-对齐上游 `ui-settings-general/src/client/locales.ts`。公开面仅中文名。
-"""
-
 __all__=['命名空间','中文','英文']#仅中文公开名
 
 命名空间='settings'#词表命名空间

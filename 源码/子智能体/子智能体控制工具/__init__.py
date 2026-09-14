@@ -1,7 +1,3 @@
-"""全局命名的 `send_message` 与 `interrupt_agent` 工具：`ctx.subagents.跟进()` 与 `ctx.subagents.打断()` 上的薄面向模型适配器。它们自己不做生命周期路由——驻留、冷恢复与中断授权属于子智能体服务——并且与绑定提供方的 `@deepseek-ai/dsh-tool-subagent` 实例分开，以便多个委托工具共享一套控制 API。
-
-对齐上游 `tool-subagent-control/src/index.ts`。可单独加载的发现工具见 `.列举智能体`；本包空不变量配套见 `.不变量`。公开面仅中文名。
-"""
 from ...内核.工具 import 定义工具#导入工具定义
 from ...内核.会话 import 会话标识#导入会话id品牌
 from ..子智能体.错误 import 子智能体错误#缝内失败

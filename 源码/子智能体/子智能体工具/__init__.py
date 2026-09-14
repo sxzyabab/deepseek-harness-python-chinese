@@ -1,4 +1,3 @@
-"""经一个已配置的 `ctx.subagents` 提供方做面向模型的委托。提供方生命周期控制工具登记和随上下文变化的模式措辞。前台调用在收集后总是释放该次运行。后台策略由本插件配置选择：一次性调用拥有普通 Task，可续接调用走 `ctx.subagents.启动可续跑()`。"""
 import threading#后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖.cordis import 聚合错误#多失败聚合
@@ -59,7 +58,7 @@ class 中止信号:
     """threading.Event 取消通道。"""
     def __init__(自身):
         """创建一条取消通道。"""
-        自身._事件=threading.Event()#中止旗标
+        自身._事件=threading.Event()#中止标志
         自身._异常=None#中止时抛出的异常
 
     def 触发(自身,原因=None):
@@ -71,7 +70,7 @@ class 中止信号:
         elif 原因 is not None:#非异常
             自身._异常=子智能体错误(str(原因),'CANCELLED')#包装
         else:#无原因
-            自身._异常=子智能体错误('aborted','CANCELLED')#默认
+            自身._异常=子智能体错误('已中止','CANCELLED')#默认
         自身._事件.set()#置位
 
 class 中止控制器:
@@ -112,7 +111,7 @@ def 输出值文本(值列表):
 def 结算启动(启动,信号):
     """结算尚未完成的启动，且不破坏任务生产者约定。启动为跑对象。"""
     结局任务=操作任务()#任务done
-    def 盯结算():
+    def 监视结算():
         """把启动收成任务结局。"""
         try:#正常结算
             结局任务.兑现(结算运行(启动))#先得到运行再结算
@@ -121,7 +120,7 @@ def 结算启动(启动,信号):
                 结局任务.兑现({'status':'killed'})#中止结局
             else:#否则失败并带细节
                 结局任务.兑现({'status':'failed','detail':str(错误)})#失败结局
-    工作=threading.Thread(target=盯结算,daemon=True)#后台结算线程
+    工作=threading.Thread(target=监视结算,daemon=True)#后台结算线程
     工作.start()#启动
     return 结局任务#交给任务收集器
 
@@ -131,14 +130,14 @@ def 停止原因错误(结果):
     if 原因=='completed':#正常完成
         return None#不是错误
     if 原因=='aborted':#被取消
-        return 'subagent run was cancelled'#取消文案
+        return '子智能体运行已取消'#取消文案
     if 原因=='error':#运行失败
-        return 'subagent run failed'#失败文案
+        return '子智能体运行失败'#失败文案
     if 原因=='max-tokens':#撞到token上限
-        return 'subagent run hit its token limit before finishing'#上限文案
+        return '子智能体运行在完成前达到令牌上限'#上限文案
     if 原因=='refusal':#拒绝任务
-        return 'subagent declined the task'#拒绝文案
-    return 'subagent run ended abnormally ('+str(原因)+')'#异常结束文案
+        return '子智能体拒绝了该任务'#拒绝文案
+    return '子智能体运行异常结束（'+str(原因)+'）'#异常结束文案
 
 def 附带部分文本(错误,输出):
     """把子体保留的部分回答追加到停止原因错误上。输出块为 dict。"""
@@ -149,7 +148,7 @@ def 附带部分文本(错误,输出):
     文本=''.join(文本列表)#拼接
     if len(文本)==0:#无文本则仅标题
         return 错误#仅标题
-    return 错误+'\nPartial output before the run ended:\n'+文本#标题后附部分输出
+    return 错误+'\n运行结束前的部分输出：\n'+文本#标题后附部分输出
 
 def 结算前台运行(运行):
     """收集并释放一次前台运行，不让拆除替换一次独立的结果失败。运行为对象。"""
@@ -171,7 +170,7 @@ def 结算前台运行(运行):
         if 拆除['status']=='rejected':#拆除也失败
             raise 聚合错误(#两条诊断都保留
                 [执行['reason'],拆除['reason']],#结果失败与拆除失败
-                'subagent run failed: '+str(执行['reason'])+'; dispose failed: '+str(拆除['reason']),#聚合文案
+                '子智能体运行失败：'+str(执行['reason'])+'；拆除失败：'+str(拆除['reason']),#聚合文案
             )#结束
         raise 执行['reason']#只抛结果失败
     if 拆除['status']=='rejected':#完成后拆除失败仍报错
@@ -212,7 +211,7 @@ def 解析委托运行(请求,选项):
     """把模型可选的调度请求解析成一条执行路线。请求与选项为 dict。"""
     if not 选项['backgroundEnabled']:#本实例关闭后台
         if 'run_in_background' in 请求 and 请求['run_in_background'] is True:#强制后台
-            raise 子智能体错误('run_in_background is disabled for this tool instance (enableRunInBackground: false)','BACKGROUND_DISABLED')#拒绝强制后台
+            raise 子智能体错误('run_in_background 已对本工具实例关闭（enableRunInBackground: false）','BACKGROUND_DISABLED')#拒绝强制后台
         return {'runInBackground':False}#只能前台
     if 'run_in_background' not in 请求 or 请求['run_in_background'] is None:#省略时
         后台=选项['continuable']#可续接默认后台，一次性默认前台
@@ -226,12 +225,13 @@ def 应用(上下文,配置值,会话=None):
     配置为 dict。会话为直接 Agent 装配供给的未发布 Session（常驻组合省略）；
     本 Python 面尚未移植 modelSelectionSettings 路径，会话参数保留签名对齐。
     """
-    _=会话#签名对齐；模型选择设置路径未移植时未使用    最大深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#读深度配置
+    _=会话#签名对齐；模型选择设置路径未移植时未使用
+    最大深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#读深度配置
     if 最大深度!='provider-managed':#数字上限当场校验
         断言子智能体最大深度(最大深度)#校验形态
     工具过滤=配置值['toolFilter'] if 'toolFilter' in 配置值 else None#读过滤
     if 工具过滤 is not None and ('allow' not in 工具过滤 or 工具过滤['allow'] is None) and ('deny' not in 工具过滤 or 工具过滤['deny'] is None):#空过滤
-        raise 子智能体错误('tool-subagent: `toolFilter` is configured but names neither `allow` nor `deny` — remove the key or fill the filter','EMPTY_TOOL_FILTER')#空过滤失败
+        raise 子智能体错误('tool-subagent: 已配置 `toolFilter` 但既未写 `allow` 也未写 `deny` — 删掉该键或填上过滤','EMPTY_TOOL_FILTER')#空过滤失败
     后台启用=True#默认允许
     if 'enableRunInBackground' in 配置值 and 配置值['enableRunInBackground'] is False:#显式关闭
         后台启用=False#关闭后台
@@ -247,14 +247,14 @@ def 应用(上下文,配置值,会话=None):
         if (配置深度 is not None and 配置深度!='provider-managed'
             and ('depthLimit' not in 能力 or not 能力['depthLimit'])):#数字上限但无能力
             raise 子智能体错误(#挂载失败
-                'tool-subagent: provider "'+提供方.名称+'" cannot enforce maxDepth (no depthLimit capability) — '
-                +"set maxDepth: 'provider-managed' to leave the recursion budget to the provider",#文案
+                'tool-subagent: 提供方 "'+提供方.名称+'" 无法强制 maxDepth（无 depthLimit 能力）—'
+                +"请设 maxDepth: 'provider-managed' 把递归预算交给提供方",#文案
                 'UNSUPPORTED_CAPABILITY',#码
             )#结束
         措辞=提供方措辞(bool(提供方.继承父上下文))#按是否继承会话选措辞
         if 可续接 and not hasattr(提供方,'准备可续跑'):#可续接策略但提供方不能准备
             raise 子智能体错误(#挂载失败
-                'tool-subagent: provider "'+提供方.名称+'" does not support `backgroundMode: continuable`',#文案
+                'tool-subagent: 提供方 "'+提供方.名称+'" 不支持 `backgroundMode: continuable`',#文案
                 'UNSUPPORTED_CAPABILITY',#码
             )#结束
         if 后台启用:#基础描述加上后台策略后缀
@@ -301,7 +301,7 @@ def 应用(上下文,配置值,会话=None):
         def 执行(参数,执行元数据):
             """按解析路线前台等待、一次性后台登记任务，或可续接立刻返回子体 id。参数与执行为 dict；父为智能体对象。"""
             if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#没有调用方
-                raise 子智能体错误('subagent tool requires a calling agent (exec.agent was undefined)','NO_AGENT')#缺父失败
+                raise 子智能体错误('子智能体工具需要调用方智能体（exec.agent 未定义）','NO_AGENT')#缺父失败
             父=执行元数据['agent']#调用方智能体
             配置深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#配置深度
             请求={#启动子体请求
@@ -331,7 +331,7 @@ def 应用(上下文,配置值,会话=None):
                     return {'kind':'continuable','subagentId':已启动['childId']}#立刻返回子体id
                 任务服务=上下文.获取服务('jobs')#取任务运行时
                 if 任务服务 is None:#未装任务能力
-                    raise 子智能体错误('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs','JOBS_UNAVAILABLE')#缺任务运行时
+                    raise 子智能体错误('后台任务不可用：请加载 @deepseek-ai/dsh-jobs 与 @deepseek-ai/dsh-tool-jobs','JOBS_UNAVAILABLE')#缺任务运行时
                 def 任务体():
                     """在 ctx.jobs 下拉起一次性后台子体。"""
                     控制器=中止控制器()#任务拥有的中止
@@ -340,7 +340,7 @@ def 应用(上下文,配置值,会话=None):
                     启动=上下文.subagents.启动(提供方名,启动请求)#启动子运行
                     def 取消(原因=None):
                         """中止启动/运行。"""
-                        控制器.中止(原因 if 原因 is not None else 'background subagent task killed')#中止
+                        控制器.中止(原因 if 原因 is not None else '后台子智能体任务已杀死')#中止
                     return {#任务句柄
                         'cancel':取消,#取消
                         'done':结算启动(启动,控制器.信号),#启动结算为任务结局
@@ -412,7 +412,7 @@ def 应用(上下文,配置值,会话=None):
     if 现存 is not None:#已经在
         挂载(现存)#立刻挂载
     else:#还没有
-        上下文.日志.信息('subagent provider "'+提供方名+'" not registered yet; the "'+工具名+'" tool will register when it appears')#等待提供方
+        上下文.日志.信息('子智能体提供方 "'+提供方名+'" 尚未登记；"'+工具名+'" 工具会在它出现时再登记')#等待提供方
     if 后台启用 and 可续接:#可续接且允许后台才挂指引
         def 段落文本(上下文元):
             """工具未挂或当前作用域看不见则空文本。上下文元为 dict。"""

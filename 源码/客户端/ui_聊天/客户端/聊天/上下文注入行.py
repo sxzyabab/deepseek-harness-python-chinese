@@ -1,8 +1,3 @@
-"""注入上下文披露行。
-
-对齐上游 `ui-chat/src/client/chat/ContextInjectionRow.tsx`。公开面仅中文名。
-属性为 dict。
-"""
 from .上下文体 import 上下文体#按 form 选体
 
 __all__=['上下文注入行']#仅中文公开名

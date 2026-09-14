@@ -1,4 +1,3 @@
-"""宿主 UI 集成用的跨平台原生路径与文本文档打开器。默认意图优先用平台能点名的默认浏览器打开可渲染文档，再回退到默认应用。WSL 把路径翻译给 Windows 桌面。"""
 import os,platform,re#平台判定
 from pathlib import Path,PureWindowsPath#路径与Windows URI
 from . import 运行原生命令,已中止,原生命令错误#运行器与中止

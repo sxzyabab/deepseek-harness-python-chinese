@@ -1,4 +1,3 @@
-"""每个 DevTools 连接通向 Host 主线程真实 V8 inspector 目标的桥。"""
 #对齐上游 worker/realms/host/bridge.ts
 
 import threading#串行投递

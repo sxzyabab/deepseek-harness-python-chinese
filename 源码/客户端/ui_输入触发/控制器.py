@@ -1,8 +1,3 @@
-"""InputTriggerController：触发管道的每会话半边。
-
-对齐上游 `ui-input-trigger/src/client/controller.ts`。公开面仅中文名。
-拥有全部可变交互状态——权威触发命中、菜单存储、候选拉取生命周期。
-"""
 import threading#候选拉取中止标志
 from .探测 import 检测触发#光标处触发检测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约#关菜单态、铺组、归约
@@ -24,7 +19,7 @@ def 已中止(信号):#读 threading.Event
 def 若已中止则抛出(信号):#已取消则抛
     """已中止则抛触发错误。"""
     if 已中止(信号):#已取消
-        raise 触发错误('aborted')#中止
+        raise 触发错误('已中止')#中止
 
 class 简易快照存储:#快照存储
     """订阅 + set。"""
@@ -313,7 +308,7 @@ class 触发控制器:#每会话触发控制器
             try:#问该源的热卷
                 名列表=词(投影)#同步拉取名字
             except Exception as 错误:#源实现抛错；源回调异常契约未定，故不能换成更窄的 except
-                print('[ui-input-trigger] source "'+str(源['name'])+'" lexicon failed:',错误)#失败只记日志
+                print('[ui-input-trigger] 源 "'+str(源['name'])+'" 词表失败:',错误)#失败只记日志
                 continue#跳过该源
             if 名列表 is None:#卷尚未热
                 continue#跳过
@@ -354,7 +349,7 @@ class 触发控制器:#每会话触发控制器
             except Exception as 错误:#源失败；源回调异常契约未定，故不能换成更窄的 except
                 if 已中止(取消):#已被新一轮取代
                     continue#丢
-                print('[ui-input-trigger] source "'+str(名)+'" candidates failed:',错误)#失败只记日志
+                print('[ui-input-trigger] 源 "'+str(名)+'" 候选失败:',错误)#失败只记日志
                 自身._归约({'type':'source-failed','generation':世代,'source':名})#静默摘掉该组
 
     def _停拉取(自身):#中止在飞拉取

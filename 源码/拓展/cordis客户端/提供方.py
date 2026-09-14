@@ -1,8 +1,3 @@
-"""内置客户端巡检提供方：服务/事件/内置符号/槽/主题。
-
-对齐上游 `cordis-client-runner/src/client/providers.ts`。公开面仅中文名。
-Slots/Theme 现场查询需浏览器 slots/theme 服务；目录查询可走本包接口目录。
-"""
 from .接口目录 import 查询服务目录,查询事件目录#目录查询
 from .槽目录 import 客户端槽目录#槽目录（现场投影用；无 slots 不回退查询槽目录）
 
@@ -50,7 +45,7 @@ def 登记(标识,说明文,方法,查询,输入模式=None,输出模式=None):#
     def 执行(请求方法,输入,_上下文=None):#查询
         """未知方法则抛。"""
         if 请求方法!=方法:#未知
-            raise Exception(f'unknown {标识} inspect method "{请求方法}"')#抛
+            raise Exception(f'未知的 {标识} 巡检方法 "{请求方法}"')#抛
         return 查询(输入)#委托
     return {#登记
         'manifest':{#清单
@@ -154,9 +149,9 @@ def 列出客户端巡检提供方(上下文=None):#内置提供方
         根=读精确(输入,'root')#根
         槽服务=上下文.获取服务('slots') if 上下文 is not None else None#服务
         if 槽服务 is None:#服务未跑
-            raise Exception('Client Slots service is not running')#抛——勿回退目录
+            raise Exception('客户端 Slots 服务未在运行')#抛——勿回退目录
         if not hasattr(槽服务,'snapshot'):#无快照面
-            raise Exception('Client Slots service is not running')#抛
+            raise Exception('客户端 Slots 服务未在运行')#抛
         树列表=槽服务.snapshot(根)#快照
         选=树列表[0] if 树列表 else None#选中
         结果={'trees':[压缩槽树(树) for 树 in 树列表],'referencedTypes':[]}#树
@@ -170,13 +165,13 @@ def 列出客户端巡检提供方(上下文=None):#内置提供方
         """导出令牌。"""
         主题=上下文.获取服务('theme') if 上下文 is not None else None#主题
         if 主题 is None:#无
-            raise Exception('Client Theme service is not running')#抛
+            raise Exception('客户端 Theme 服务未在运行')#抛
         return {'tokens':主题.exportInspectTokens(),'referencedTypes':[]}#令牌
 
     def 槽执行(方法,输入,_上下文=None):#Slots.query
         """仅 listSubTree。"""
         if 方法!='listSubTree':#未知
-            raise Exception(f'unknown Slots inspect method "{方法}"')#抛
+            raise Exception(f'未知的 Slots 巡检方法 "{方法}"')#抛
         return 槽查询(输入)#委托
 
     return [#登记表

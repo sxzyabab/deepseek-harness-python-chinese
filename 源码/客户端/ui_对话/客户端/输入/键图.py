@@ -1,9 +1,3 @@
-"""作曲器键图：菜单裁决、空格裁决、Enter 提交与粘贴路由。
-
-对齐上游 `ui-conversation/src/client/input/editor/keymap.ts`。
-公开面仅中文名。处理器为本包对象；IME 组合用纪元毫秒。
-根属性 `data-composer-composing` 压住占位符。
-"""
 import time#纪元毫秒
 
 __all__=['登记作曲器键图']#仅中文公开名

@@ -1,8 +1,3 @@
-"""只读宿主插件清单页签。
-
-对齐上游 `ui-settings-plugin-inventory/src/client/PluginInventorySettingsTab.tsx`。公开面仅中文名。
-"""
-
 __all__=['插件清单错误','插件清单页签','阶段文案键','模块短名','条目匹配']#仅中文公开名
 
 阶段文案键={#fiber 阶段 → 文案键

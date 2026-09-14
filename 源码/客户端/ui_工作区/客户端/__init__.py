@@ -1,7 +1,3 @@
-"""工作区插件的浏览器半边。两次注册：浏览区填侧栏，选择器填会话英雄。
-
-对齐上游 `ui-workspace/src/client/index.ts`。公开面仅中文名。
-"""
 import threading#后台观察
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store

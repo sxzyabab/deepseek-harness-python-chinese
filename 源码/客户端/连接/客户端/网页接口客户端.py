@@ -1,7 +1,3 @@
-"""浏览器 API 载体：上行走 HTTP，每条下行事件流一条 WebSocket。
-
-对齐上游 `connection/src/client/web-api-client.ts`。公开面仅中文名。
-"""
 import builtins,json,time#全局、JSON、短等
 import urllib.request as 请求库#标准库
 from urllib.parse import urljoin,urlparse,urlunparse#拼基址与改协议
@@ -61,13 +57,13 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
             try:#解析
                 数据=事件 if isinstance(事件,str) else 事件.data#文本
                 if not isinstance(数据,str):#不接受二进制
-                    raise 连接错误('binary WebSocket frame')#错
+                    raise 连接错误('二进制 WebSocket 帧')#错
                 完整=服务端请求模式.parse(json.loads(数据))#先当 JSON 再当 server-request
                 载荷=完整['payload']#载荷
                 帧=帧模式.parse(载荷)#再校验载荷变体
                 rpc标识=完整['rpcId']#关联
             except (连接错误,json.JSONDecodeError,UnicodeDecodeError,KeyError,TypeError,ValueError) as 错误:#解析或模式失败
-                print(f'[client-connection] dropping malformed WebSocket frame on {路径}:',错误)#大声丢掉
+                print(f'[client-connection] 丢弃畸形 WebSocket 帧 {路径}:',错误)#大声丢掉
                 return#本帧忽略
             自身.onEnvelope(完整)#让抽象客户端看见信封
             入队({'kind':'frame','envelope':{'rpcId':rpc标识,'payload':帧}})#入队给迭代器
@@ -101,7 +97,7 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
                     打开回调()#视为已开
                 入队({'kind':'end'})#结束
         except OSError as 错误:#打开失败
-            print(f'[client-connection] WebSocket open failed on {路径}:',错误)#诊断
+            print(f'[client-connection] WebSocket 打开失败 {路径}:',错误)#诊断
             if callable(打开回调):#仍通知打开超时路径
                 打开回调()#避免永久卡住
             入队({'kind':'end'})#结束

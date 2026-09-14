@@ -1,8 +1,3 @@
-"""浏览器线客户端。插件选择 fixture 或 HTTP 传输，提供共享 API 客户端，
-并让运行时对象层带着自己的汇启动流控制器。
-
-对齐上游 `connection/src/client/index.ts`。公开面仅中文名。
-"""
 import builtins#读页面 location
 from urllib.parse import parse_qs,urlparse#读查询
 from ..回环主机名 import 是否回环主机名#回环主机名判定
@@ -104,7 +99,7 @@ def 应用(上下文):#安装浏览器连接插件
             try:#监听器抛错不得打断其余
                 监听()#通知
             except Exception as 错误:#只记日志
-                print('[web-runtime] host-description listener threw:',错误)#诊断
+                print('[web-runtime] 宿主描述监听抛错:',错误)#诊断
 
     def 取快照():#读当前快照
         """最近一次已连接世代的描述。"""
@@ -121,7 +116,7 @@ def 应用(上下文):#安装浏览器连接插件
     def 启动(汇,配置=None):#启动循环，只能一次
         """第二次占用抛错。"""
         if 已启动['v']:#已占用
-            raise 连接错误('connection: the stream loop is already owned by another consumer')#第二次占用失败
+            raise 连接错误('connection: 流循环已被其他消费者占用')#第二次占用失败
         已启动['v']=True#标记已占用
         def 已连接(下一个):#握手完成
             """先发布描述再转发。"""

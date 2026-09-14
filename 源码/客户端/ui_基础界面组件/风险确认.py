@@ -1,8 +1,3 @@
-"""受控风险确认对话框。
-
-对齐上游 `ui-primitives/src/RiskConfirmation.tsx`。公开面仅中文名。
-主操作在勾选确认前不可用；组合模态+按钮。属性为 dict。
-"""
 from .模态 import 模态#模态外壳
 from .按钮 import 按钮#动作按钮
 

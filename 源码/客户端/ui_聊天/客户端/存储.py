@@ -1,8 +1,3 @@
-"""按 Session 的 Chat 选中存储，供 transcript 与详情面板共享。
-
-对齐上游 `ui-chat/src/client/stores.ts`。公开面仅中文名。
-状态为本包自造 dict。
-"""
 from .约定.存储 import 初始聊天状态,回合过程视图条目#存储契约
 
 __all__=['已存回合过程条目','创建聊天存储']#仅中文公开名

@@ -1,7 +1,3 @@
-"""shell 内建：读取或改动 shell 自身状态（目录、环境、退出状态）而非文件系统的程序。
-
-对齐上游 `webworker-runtime/src/shell/programs/builtins.ts`。公开面仅中文名。
-"""
 import threading as 线程#睡眠可取消
 from datetime import datetime as 日期时间,timezone as 时区#ISO时间
 from ..展开 import 读变量#读变量

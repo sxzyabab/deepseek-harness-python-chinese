@@ -1,4 +1,3 @@
-"""各接受调用方时区的线边界共享的时间词汇。只做校验与规范化：本库不格式化、也不拥有失败词汇——各边界自行声明并抛出拒绝。"""
 from zoneinfo import ZoneInfo#IANA 时区
 from zoneinfo import ZoneInfoNotFoundError as 时区未找到#未知区名
 import re#IANA 区名模式

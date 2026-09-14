@@ -1,7 +1,3 @@
-"""`node:perf_hooks`：worker 自有的高分辨率时钟。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/perf_hooks.ts`。
-"""
 from ...未实现失败 import 未实现失败#未实现桩
 
 __all__=['performance','PerformanceObserver','__esModule','default']#Node面

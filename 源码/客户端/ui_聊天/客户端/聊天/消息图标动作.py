@@ -1,8 +1,3 @@
-"""消息 IconActions：时钟、分叉、运行时长。
-
-对齐上游 `ui-chat/src/client/chat/MessageIconActions.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from .消息铬 import 格式化消息时钟,格式化运行时长#时间标签
 from .用日历日 import 用日历日#日席位
 

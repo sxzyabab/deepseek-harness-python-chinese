@@ -1,4 +1,3 @@
-"""随纤程生命周期一起拆除的定时器服务。"""
 import threading
 from .服务 import 服务
 

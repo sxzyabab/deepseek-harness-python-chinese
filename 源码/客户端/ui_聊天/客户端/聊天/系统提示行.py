@@ -1,9 +1,3 @@
-"""系统提示词披露行。
-
-对齐上游 `ui-chat/src/client/chat/SystemPromptRow.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
-
 __all__=['系统提示行']#仅中文公开名
 
 def 恒等翻译(键,参数=None):

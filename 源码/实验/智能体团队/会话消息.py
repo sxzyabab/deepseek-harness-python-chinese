@@ -1,7 +1,3 @@
-"""供应与邮箱恢复共享的持久 Session 消息接受检查。
-
-对齐上游 `agent-team/src/session-message.ts`。公开面仅中文名。
-"""
 __all__=['消息已接受']#仅中文公开名
 
 def 待认领收件箱消息(事件列表):#待认领 inbox

@@ -1,9 +1,3 @@
-"""停靠表面存储：每会话一份布局，纯规划器算、存储只整表写回。
-
-对齐上游 `ui-sidebar-right/src/client/stores.ts`。公开面仅中文名。
-产品规则：展开列不停靠空窗；折叠列可空；页面种类每窗至多一枚。跨包值为 dict。
-句柄自持订阅；规格形同 defineStore（init/actions/create）。
-"""
 from ...ui_停靠套件.引擎 import (#停靠引擎（避开组件包导入）
     创建初始状态,
     空历史,

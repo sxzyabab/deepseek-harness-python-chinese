@@ -1,9 +1,3 @@
-"""注入上下文披露行：角色+生产者，展开体按 form。
-
-对齐上游 `ui-conversation/src/client/chat/ContextInjectionRow.tsx`。公开面仅中文名。
-实际渲染形态由选上下文体解析；不可读 form 回退不透明。
-属性为 dict。
-"""
 from .上下文体 import 上下文体#按 form 选体
 
 __all__=['上下文注入行']#仅中文公开名

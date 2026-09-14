@@ -1,7 +1,3 @@
-"""经文档元数据与带键正文槽的内置 PDF 登记。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/index.ts`。公开面仅中文名。
-"""
 from .文案 import 中文,英文,pdf文案键#词典
 from .存储 import 创建pdf存储#存储
 from .pdf体 import pdf体,失败文案#正文

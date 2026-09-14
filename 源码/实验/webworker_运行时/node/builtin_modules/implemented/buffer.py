@@ -1,8 +1,3 @@
-"""Worker 用的 `node:buffer`，由 `buffer` npm 包（feross）支撑，并安装匹配的
-`globalThis.Buffer`。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/buffer.ts`。
-"""
 from buffer import Buffer,kMaxLength#feross buffer包
 
 __all__=['Buffer','kMaxLength','constants','__esModule','default']#Node面

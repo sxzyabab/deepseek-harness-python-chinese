@@ -1,7 +1,3 @@
-"""助手步骤会话节点：流式 / 定稿 / 打断。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/assistant.ts`。公开面仅中文名。
-"""
 from ..服务 import 对话错误#本包异常
 from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
 from .事件面 import 是追加面事件,空助手块,转助手块,转助手块列表,是令牌增量#面辅助

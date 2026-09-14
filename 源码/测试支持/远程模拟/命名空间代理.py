@@ -1,8 +1,3 @@
-"""惰性命名空间访问，供原生 Remote 间谍使用；生产 Remote 声明保持不变。
-
-对齐上游 `remote-mock/src/remote-proxy.ts`。不移植 thenable/`then` 探测。
-"""
-
 class 方法空间:
     """已访问方法的缓存表。"""
 

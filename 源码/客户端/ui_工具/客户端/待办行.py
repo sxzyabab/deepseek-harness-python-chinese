@@ -1,8 +1,3 @@
-"""待办工具行：todo_write 计划风味摘要行，替换通用 Tool call 卡。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/todo-row.tsx`。公开面仅中文名。
-登记进按键 tool.call.toolview 洞；持久列表在 TodoPanel，本行保持单行直至展开。
-"""
 import json#解析 args JSON
 from .文案 import 会话命名空间#conversation 词典席
 from .调用模型 import 派生工具行#行模型

@@ -1,9 +1,3 @@
-"""worker 的 `node:fs` 代理背后的内存文件系统。内容来自构建时镜像
-（见 加载vfs镜像）；异步持久 sink 镜像所选子树时，
-本实现仍是同步权威。
-
-对齐上游 `webworker-runtime/src/storage/memory.ts`。公开面中文方法名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import time#mtime
 from ..module_system.posix路径 import 目录名,拼接,规范化,解析,分隔符#路径工具

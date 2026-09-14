@@ -1,8 +1,3 @@
-"""定位并解析 api-catalog 的 SERVICE_API / EVENT_API。
-
-优先读本包内嵌单文件或分片；本包有内容时优先用本包。
-只解析真实条目，禁止占位。
-"""
 import os#路径
 from .字面量解析 import 提取导出常量数组,解析数组字面量#解析
 

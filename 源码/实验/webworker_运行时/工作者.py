@@ -1,13 +1,3 @@
-"""Dedicated Web Worker 入口。本应用拥有的 Node 兼容层以模块表与捕获的请求
-监听器形式交给宿主装配；装配拥有其余一切（process 全局、VFS 镜像、
-Cordis 树、隧道服务器）。
-
-装配存在之前需要基础镜像与所选 overlays；它们经隧道开局 `init` 帧到达。
-本束不从自身 URL 读取任何东西，因此部署决定每个归档放在何处。
-`init` 之前的消息在此排队；boot 期间的请求在宿主内排队。
-
-对齐上游 `webworker-runtime/src/worker.ts`。公开面仅中文名。
-"""
 from .node.未实现失败 import 运行时错误#本包错误
 from .工作者宿主 import 创建工作者宿主#宿主装配工厂
 from .node.builtins import 创建节点内置,替换前缀表#内建表与前缀
@@ -49,10 +39,10 @@ def 处理消息(数据):#消息入口
         return#结束
     if _宿主 is None and isinstance(数据,dict) and 数据.get('t')=='init':#开局init
         if not isinstance(数据.get('image'),str):#镜像URL缺失
-            raise 运行时错误('webworker: init frame needs a string image url')#拒绝
+            raise 运行时错误('webworker: init 帧需要字符串 image url')#拒绝
         覆盖层=数据.get('overlays')#overlays
         if not isinstance(覆盖层,list) or any(not isinstance(层,str) for 层 in 覆盖层):#overlays非法
-            raise 运行时错误('webworker: init frame needs an array of string overlay urls')#拒绝
+            raise 运行时错误('webworker: init 帧需要字符串 overlay url 列表')#拒绝
         已建=创建工作者宿主({#装配宿主
             'staticModules':创建节点内置(),#内建模块表
             'staticModulePrefixes':替换前缀表,#前缀代理

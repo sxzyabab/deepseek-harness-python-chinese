@@ -1,8 +1,3 @@
-"""从冻结调用切片纯推导 diff 卡片 props。
-
-对齐上游 `ui-tool/src/client/tool/models/diff-card-model.ts`。公开面仅中文名。
-"""
-
 __all__=['聊天差异最大行数','收窄差异','差异卡模型']#仅中文公开名
 
 聊天差异最大行数=8#聊天行折叠前的 diff 最大行数

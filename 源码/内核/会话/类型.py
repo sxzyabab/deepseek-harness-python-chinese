@@ -1,4 +1,3 @@
-"""会话身份、磁盘格式版本与事件词汇的运行时常量。对齐上游 `session/src/types.ts`。公开面仅中文名。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 安全整数上限=9007199254740991#JS Number.MAX_SAFE_INTEGER

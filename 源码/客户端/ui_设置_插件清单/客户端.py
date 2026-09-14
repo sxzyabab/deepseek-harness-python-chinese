@@ -1,8 +1,3 @@
-"""只读宿主插件清单的浏览器半边。
-
-对齐上游 `ui-settings-plugin-inventory/src/client/index.ts`。公开面仅中文名。
-把清单页签登记进 Web 设置。
-"""
 from .文案 import 命名空间,中文,英文#词表
 from .清单页签 import 插件清单页签,插件清单错误#页签组件
 

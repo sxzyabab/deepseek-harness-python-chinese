@@ -1,8 +1,3 @@
-"""构建拥有、同版本的 PDF.js 资源；全部二进制资源在本地解码。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/assets.ts`。公开面仅中文名。
-Python 半无打包的 worker 源与内联资源；打开 PDF 须由宿主注入。
-"""
 import base64#解码
 
 __all__=['工作线程源','创建pdf二进制数据工厂']#仅中文公开名
@@ -26,7 +21,7 @@ def 创建pdf二进制数据工厂(资源=None):
             文件名=请求['filename']#文件名
             文件表=表[种类] if 种类 in 表 else {}#文件表
             if 文件名 not in 文件表:#未打包
-                raise LookupError('PDF.js asset is not bundled: '+种类+'/'+文件名)
+                raise LookupError('PDF.js 资源未打包: '+种类+'/'+文件名)
             return base64.b64decode(文件表[文件名])#字节
 
     return 二进制数据工厂#构造器

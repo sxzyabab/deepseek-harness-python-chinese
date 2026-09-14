@@ -1,7 +1,3 @@
-"""跨 realm Inspector Worker 与完整 fetch 采集的 Host Cordis 插件。
-
-对齐上游 `host/plugin.ts`。公开面仅中文名。
-"""
 from ..共享.json import 检查器错误#本包错误
 from .桥接.控制器 import 解析检查器选项,启动检查器#控制器面
 from ..共享.服务 import 创建检查器服务#服务门面工厂
@@ -22,7 +18,7 @@ def 拆除检查器(句柄,清理列表):#拆除检查器与已注册清理项
     except Exception as 错误:#插件关闭面什么都可能抛，收不窄
         失败列表.append(错误)#记入列表
     if len(失败列表)>0:#汇总抛出
-        raise 检查器错误('experimental-inspector: disposal failed') from 失败列表[0]#汇总
+        raise 检查器错误('experimental-inspector：拆除失败') from 失败列表[0]#汇总
 
 def 应用(上下文,配置):#应用Host插件
     """启动 Worker、暴露 ctx.inspector，并注入匹配的 Client bootstrap。"""
@@ -43,7 +39,7 @@ def 应用(上下文,配置):#应用Host插件
             try:#尽力清理
                 拆除检查器(句柄,清理列表)#回滚
             except Exception as 回滚错误:#回滚路径同样收不窄
-                上下文.日志.错误('experimental-inspector: initialization rollback failed',回滚错误)#记录回滚失败
+                上下文.日志.错误('experimental-inspector：初始化回滚失败',回滚错误)#记录回滚失败
             raise 错误#继续抛出
         def 卸除():#效应清理
             """效应清理。"""

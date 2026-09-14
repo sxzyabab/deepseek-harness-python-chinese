@@ -1,4 +1,3 @@
-"""会话遥测捕获协调器（对齐 upstream session-telemetry/coordinator）。"""
 import time,weakref#时间、弱表
 from ...模型后端.llm import 结构化克隆#深拷贝
 
@@ -128,10 +127,10 @@ class 会话遥测协调器:
 
     def _包含(自身,步骤,*位置参数):
         """捕获步失败不得打断会话火hose。"""
-        try:#跑
+        try:#执行
             步骤(*位置参数)#执行
         except Exception as 错误:#捕获步任意失败都 warn；上游 catch 未定更窄契约
-            自身._上下文.日志.警告('telemetry: capture step failed: '+str(错误))#警告
+            自身._上下文.日志.警告('telemetry: 捕获步失败: '+str(错误))#警告
 
     def _事件入口(自身,会话,事件):
         """session/event。"""
@@ -156,6 +155,6 @@ class 会话遥测协调器:
         try:#后端关闭
             自身._后端['关闭']()#同步关闭
         except Exception as 错误:#失败
-            自身._上下文.日志.警告('telemetry: backend shutdown failed: '+str(错误))#警告
+            自身._上下文.日志.警告('telemetry: 后端关闭失败: '+str(错误))#警告
 
 __all__=['会话遥测协调器']#公开面

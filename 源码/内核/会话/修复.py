@@ -1,4 +1,3 @@
-"""中断会话日志的崩溃恢复修补。对齐上游 `session/src/repair.ts`。公开面仅中文名。"""
 from ...模型后端.llm.标识构造 import 消息标识,调用标识#导入消息标识与调用标识构造
 from ...模型后端.llm.消息 import 冻结消息#导入冻结消息
 
@@ -56,10 +55,10 @@ def 中断轮次关闭器(事件列表):#合成中断轮次关闭事件
         调用序号=项['callSeq'] if 'callSeq' in 项 else None#可选 tool/call 序号
         已启动=调用序号 is not None#是否已记下 tool/call
         if 已启动:#已记下 tool/call
-            说明='The tool call was interrupted after it was recorded, but no result was durably recorded. Its outcome is unknown. Decide whether to retry from the tool semantics: retry only if the operation is read-only or idempotent; if it may have side effects, first verify external state or ask the user. Do not retry blindly.'#已启动说明
+            说明='工具调用在已记录后被中断，但没有耐久记下结果。结局未知。是否重试请按工具语义决定：只读或幂等才可重试；若可能有副作用，先核对外部状态或询问用户。不要盲目重试。'#已启动说明
             错误={'name':'ToolOutcomeUnknownError','code':工具结局未知}#结局未知
         else:#未启动
-            说明='The tool call was interrupted before the Harness recorded it as started. Retry it if it is still needed.'#未启动说明
+            说明='工具调用在 Harness 记为已启动之前被中断。若仍需要则重试。'#未启动说明
             错误={'name':'ToolNotStartedError','code':工具未启动}#未启动
         消息=冻结消息({#冻结合成错误结果
             'id':消息标识('interrupted-tool-result-'+str(调用号)+'-'+str(序号)),#确定性消息 id

@@ -1,7 +1,3 @@
-"""代码预览元数据与正文，经公开文档扩展点登记。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/code/index.ts`。公开面仅中文名。
-"""
 from .文案 import 中文,英文#词典
 from .语言 import 代码扩展名#扩展名
 from .代码体 import 代码体,样式表#正文

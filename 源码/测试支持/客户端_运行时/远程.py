@@ -1,7 +1,3 @@
-"""测试拥有的 Remote 面：带显式测试事件驱动器的 $on 订阅。
-
-对齐上游 `client-runtime/src/remote.ts`。公开面仅中文名。
-"""
 __all__=['测试远程','远程错误']#仅中文公开名
 
 #上游 @deepseek-ai/dsh-typert-protocol RemoteError；包尚未迁完时内联
@@ -54,4 +50,4 @@ class 测试远程:#Remote 测试替身
 
     def $mount(自身):#拒绝挂载
         """生成命名空间挂载，本替身不支持。"""
-        raise Exception('TestRemote: $mount needs the real Client Remote service')#英文诊断
+        raise Exception('TestRemote: $mount 需要真正的客户端 Remote 服务')#诊断

@@ -1,8 +1,3 @@
-"""机器可读的 cordis API 目录查询面。
-
-对齐上游 `拓展/tool-cordis/src/api-catalog.ts`。
-SERVICE/EVENT/TYPE 分别来自服务目录表、事件目录表、类型目录表。
-"""
 import re#类型名词边界
 from .服务目录表 import 服务目录#服务
 from .事件目录表 import 事件目录#事件
@@ -71,7 +66,7 @@ def 查询服务目录(键=None,服务列表=None):#查询服务
             服务=候选#记下
             break#结束
     if 服务 is None:#未知服务
-        raise Exception('no catalogued Service named "'+键+'"')#未知
+        raise Exception('目录里没有名为 "'+键+'" 的 Service')#未知
     return {#服务模式
         'mode':'service',#模式
         'service':{#详细服务
@@ -106,7 +101,7 @@ def 查询事件目录(名=None,事件列表=None):#查询事件
             事件=候选#记下
             break#结束
     if 事件 is None:#未知事件
-        raise Exception('no catalogued Event named "'+名+'"')#未知
+        raise Exception('目录里没有名为 "'+名+'" 的 Event')#未知
     return {#事件模式
         'mode':'event',#模式
         'event':{#详细事件

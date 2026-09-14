@@ -1,8 +1,3 @@
-"""工具调用树：根/子调用共用一条 keyed 原子派发路径。
-
-对齐上游 `ui-tool/src/client/tool/ToolCallTree.tsx`。公开面仅中文名。
-renderSlot 由宿主注入；缺登记时回退工具卡。
-"""
 from .回退工具卡 import 回退工具卡#回退卡
 
 __all__=['工具调用树','工具调用枝','工具调用','调用名']#仅中文公开名

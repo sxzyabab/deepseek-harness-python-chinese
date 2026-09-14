@@ -1,8 +1,3 @@
-"""默认模型设置与插件配置的结构类型。
-
-对齐上游 `agent-default-model/src/index.ts` 中的 `AgentDefaultModelSettings` 与 `Config`。
-公开面仅中文名；字段键 `provider` / `model` / `reasoningEffort` 保持上游字面量（Settings 文档与组合配置键）。
-"""
 from typing import NotRequired,TypedDict#结构类型与可选字段
 
 __all__=('智能体默认模型设置','插件配置')#仅中文公开名

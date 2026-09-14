@@ -1,16 +1,4 @@
-"""技能引用插件的浏览器半边。
-
-登记「/」技能源——候选来自 skill.list RPC，按每次调用的会话
-投影 sessionId 寻址（会话一律由智能体托底；宿主从会话头解析 cwd）。
-选定落下字面 `/name ` 文本，提示发出同一字面量（纯文本引用决策）。
-确定性在宿主侧——预步骤边界认出前导 `/name` 命名用户可调用技能。
-RPC 走登记时捕获的插件根上下文连接。目录拉取按会话缓存：每次按键的
-候选重询在本地过滤已落定快照。本浏览器半边还拥有 `skill` 键的 toolview。
-
-对齐上游 `ui-skill/src/client/index.ts`。公开面仅中文名。
-SkillRow 像素半硬缺口跳过；逻辑行从父包 `技能行` 接线。
-"""
-import threading#单飞拉取与预热盯住
+import threading#单飞拉取与预热等待
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ..技能行 import 技能行,技能错误#技能工具行与本包异常
@@ -52,7 +40,7 @@ def 已中止(信号):#读 threading.Event
 def 若已中止则抛出(信号):#已取消则抛
     """已中止则抛技能错误。"""
     if 已中止(信号):#已取消
-        raise 技能错误('aborted')#中止
+        raise 技能错误('已中止')#中止
 
 def 编码段(段):
     """百分编码一段，冒号保持字面量。"""
@@ -115,7 +103,7 @@ def 应用(上下文):#安装技能引用浏览器半边
             try:#单个监听者失败不得饿死其余
                 监听()#触发
             except Exception as 错误:#订阅者异常契约未定，故不能换成更窄的 except
-                print('[ui-skill] lexicon listener failed:',错误)#记日志
+                print('[ui-skill] 词表监听失败:',错误)#记日志
 
     def 拉目录(会话标识):#按会话单飞拉取技能目录
         """按会话单飞拉取技能目录，返回共享条目。"""
@@ -134,10 +122,10 @@ def 应用(上下文):#安装技能引用浏览器半边
                 错误=结果['error'] if 'error' in 结果 else None#错误
                 码=错误['code'] if 错误 is not None and 'code' in 错误 else None#码
                 消息=错误['message'] if 错误 is not None and 'message' in 错误 else None#消息
-                raise 技能错误('skills/list failed: '+str(码)+': '+str(消息))#转抛
+                raise 技能错误('skills/list 失败: '+str(码)+': '+str(消息))#转抛
             return 结果['value']['skills']#目录条目
         任务=操作任务()#本键共享拉取
-        条目={'promise':任务,'abort':中止拉取,'signal':中止器}#本键共享条目
+        条目={'任务':任务,'abort':中止拉取,'signal':中止器}#本键共享条目
         拉取表[会话标识]=条目#写入缓存
         def 执行拉取():#单飞拉取体
             """只调一次 skills/list，成败结算共享任务。"""
@@ -178,7 +166,7 @@ def 应用(上下文):#安装技能引用浏览器半边
         信号=选项['signal'] if 'signal' in 选项 else None#中止信号
         if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体会话
             return []#无用户技能目录
-        技能列表=拉目录(会话['sessionId'])['promise'].等待()#共享目录
+        技能列表=拉目录(会话['sessionId'])['任务'].等待()#共享目录
         if 已中止(信号):#被取代的按键：共享拉取仍热着，本调用方让出
             return []#早退
         结果=[]#候选列表
@@ -198,7 +186,7 @@ def 应用(上下文):#安装技能引用浏览器半边
         """点火即忘的作用域诞生预热。"""
         if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体
             return#不预热
-        任务=拉目录(会话['sessionId'])['promise']#预热
+        任务=拉目录(会话['sessionId'])['任务']#预热
         def 忽略():#吞掉成败
             """预热失败由 candidates 再报。"""
             try:#等待
@@ -264,12 +252,12 @@ def 应用(上下文):#安装技能引用浏览器半边
         def 到达后打开():#目录到达后打开
             """仍有效才打开。"""
             try:#等待目录
-                目录=条目['promise'].等待()#目录
+                目录=条目['任务'].等待()#目录
                 if not 已中止(条目['signal']):#仍有效
                     打开(目录)#打开
             except BaseException as 错误:#预览失败
                 if not 已中止(条目['signal']):#仍有效才记
-                    print('[ui-skill] reference preview failed:',错误)#记日志
+                    print('[ui-skill] 引用预览失败:',错误)#记日志
         线=threading.Thread(target=到达后打开)#后台打开
         线.daemon=True#不挡退出
         线.start()#启动

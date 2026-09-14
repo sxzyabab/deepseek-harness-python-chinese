@@ -1,9 +1,3 @@
-"""助手推理披露行（Think 变体），独立于工具行。
-
-对齐上游 `ui-conversation/src/client/chat/ReasoningRow.tsx`。公开面仅中文名。
-流式跟末行并节流滚摘要；定稿取首行。
-属性为 dict。
-"""
 from .节流视觉更新 import 节流视觉更新#摘要跟尾节流
 
 __all__=['推理行','首行','末行']#仅中文公开名

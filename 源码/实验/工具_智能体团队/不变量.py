@@ -1,7 +1,3 @@
-"""`@deepseek-ai/dsh-experimental-tool-agent-team` 的本包拥有不变量配套。
-
-追踪源无 invariant.ts；按基础包模式写空不变量。
-"""
 from ...依赖 import cordis#外部依赖胶水
 
 包名='@deepseek-ai/dsh-experimental-tool-agent-team'#本包的不变量所有权名

@@ -1,4 +1,3 @@
-"""代码执行能力 seam 的 Service Definition：把一份模型写的程序对着宿主异步绑定跑一次。运行时对工具与会话一无所知；那些由消费方拥有。"""
 import re#匹配 dunder 形式成员名
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类

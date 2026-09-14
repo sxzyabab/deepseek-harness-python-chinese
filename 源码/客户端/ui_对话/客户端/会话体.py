@@ -1,8 +1,3 @@
-"""会话体与页眉：严格会话槽填入常驻滚动口。
-
-对齐上游 `ui-conversation/src/client/skeleton/ConversationSession.tsx`。公开面仅中文名。
-属性、快照、页签为 dict；视图环为契约 dict（list/subscribe/version）。
-"""
 
 __all__=['会话体','会话页眉','解析活动视图','派生谱系','默认视图标识']#仅中文公开名
 

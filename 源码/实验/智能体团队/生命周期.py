@@ -1,8 +1,3 @@
-"""Team 运行时的共享准入截止与有界结算。
-
-对齐上游 `agent-team/src/lifecycle.ts`。公开面仅中文名。
-本包并发与中止原语也落在此文件。
-"""
 import threading#定时器与事件
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .错误 import 团队错误#领域错误

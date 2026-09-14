@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-plan` 的本包拥有不变量配套。
-
-对齐上游 `ui-plan/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：计划状态与边界所有权由 dsh-plan-mode 审计，而控件是槽位 effect，其声明、登记与拆除由本包行使。
-"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-client-ui-plan'#本包的不变量所有权名
 名称='client-ui-plan-invariant'#配套不变量插件名（字面量）

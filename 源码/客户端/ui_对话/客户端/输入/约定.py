@@ -1,9 +1,3 @@
-"""冻结的输入机约定（类型与队列投影面）。
-
-对齐上游 `ui-conversation/src/client/input/contract.ts`。公开面仅中文名。
-含 steerQueue（空草稿加速 Enter / 整队转向）与 InputState.queue。
-机事件/效应以判别标签 `type` 的 dict 载荷表达。
-"""
 from ..约定.队列 import 队列行#队列行
 
 __all__=[#公开面

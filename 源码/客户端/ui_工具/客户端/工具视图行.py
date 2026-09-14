@@ -1,8 +1,3 @@
-"""工具行视图：提问 / 待办 专属 toolview 登记。
-
-对齐上游 `ask-question-row.tsx` / `todo-row.tsx`。公开面仅中文名。
-通用 ToolRow 铬仍见上游；本模块落盘摘要派生与登记 apply。
-"""
 import json#解析结果/参数
 from .调用模型 import 派生工具行#行模型
 

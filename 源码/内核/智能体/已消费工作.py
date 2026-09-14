@@ -1,7 +1,3 @@
-"""一份智能体日志如何交代它已消费的工作。
-
-对齐上游 `agent/src/consumed-work.ts`。公开面仅中文名；事件 type 与载荷字段键保持上游字面量。
-"""
 from typing import NotRequired,TypedDict#可选字段与结构类型
 
 __all__=('已消费工作账本','交代领取','折叠已消费工作')#仅中文公开名

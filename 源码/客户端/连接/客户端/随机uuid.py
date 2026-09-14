@@ -1,7 +1,3 @@
-"""浏览器安全的 UUID 生成，用于客户端线关联。
-
-对齐上游 `connection/src/client/random-uuid.ts`。公开面仅中文名。
-"""
 import os#熵源
 
 __all__=['随机uuid']#仅中文公开名

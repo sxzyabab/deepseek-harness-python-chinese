@@ -7,7 +7,7 @@ from pathlib import Path#导入路径工具用于解析工作目录
 from typing import Callable#导入可调用类型用于通知回调
 
 from .客户端 import (Harness客户端,Harness配置,
-JSON对象,通知消息)#导入底层客户端与其配置
+    JSON对象,通知消息)#导入底层客户端与其配置
 from .异常 import SDK协议错误#导入协议错误类型
 
 @dataclass(slots=True)#用slots数据类降低内存占用
@@ -20,14 +20,16 @@ class DeepSeekHarness配置:#启动本地DeepSeek Harness SDK运行时的配置
 
     提供方:str="deepseek-official"#默认模型提供方名称
     模型:str="deepseek-v4-flash"#默认模型标识
+    推理强度:str|None=None#可选推理强度，写入initialize的reasoningEffort
     最大令牌数:int|None=None#可选的最大生成token数
     工作目录:str|None=None#会话工作目录，空则用当前目录
     运行时工作目录:str|None=None#运行时进程工作目录，空则与工作目录相同
-    会话根目录:str|None=None#会话持久化根目录，会写入环境变量
-    cordis:str|None=None#cordis配置路径，会写入环境变量
+    dsh二进制:str|None=None#显式dsh可执行文件路径
+    配置档:str="sdk"#传给运行时的--profile
+    补丁:tuple[str,...]=()#传给运行时的--patch路径
+    dsh主目录:str|None=None#显式DSH_HOME，空则要求环境变量已有非空值
     环境变量:dict[str,str]=field(default_factory=dict)#额外注入的环境变量字典
-    运行时二进制:str|None=None#显式指定的运行时可执行文件路径
-    启动参数覆盖:tuple[str,...]|None=None#覆盖默认启动参数的元组
+    初始化超时秒数:float=30.0#initialize请求超时秒数
     请求超时秒数:float|None=None#请求超时秒数，空表示不超时
     关闭超时秒数:float|None=1.0#关闭子进程等待秒数
     基址:str|None=None#可选的DeepSeek API基址，注入环境变量
@@ -41,7 +43,6 @@ class 运行结果:#单次agent轮次运行结果
     结束原因:str|None#最后一轮结束原因种类，可能为空
     事件列表:list[JSON对象]#本会话树内收集到的会话事件列表
     通知列表:list[通知消息]#本轮收到的全部通知列表
-    会话根目录:str|None=None#配置中的会话根目录，便于调用方定位产物
 
 
 class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能体轮次
@@ -51,7 +52,7 @@ class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能�
     请用上下文管理器使用本实例，或结束后显式调用关闭，以确保子进程被回收。
     """#说明生命周期所有权约定
 
-    def __init__(self,config:DeepSeekHarness配置|None=None,**kwargs:object)->None:#用配置对象或关键字参数构造
+    def __init__(self,config:DeepSeekHarness配置|None=None,*,_启动参数:tuple[str,...]|None=None,**kwargs:object)->None:#用配置对象或关键字参数构造
         if config is not None and kwargs:#禁止同时传配置对象与关键字
             raise TypeError("pass either DeepSeekHarness配置 or keyword options, not both")#明确二选一错误
         self.config=config or DeepSeekHarness配置(**kwargs)#保存最终配置实例
@@ -59,11 +60,6 @@ class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能�
         运行时工作目录=str(Path(self.config.运行时工作目录).resolve()) if self.config.运行时工作目录 is not None else 工作目录#解析运行时工作目录
         self._cwd=工作目录#保存会话cwd供initialize使用
         进程环境变量=dict(self.config.环境变量)#复制额外环境变量，避免改动调用方字典
-        if self.config.会话根目录 is not None:#若配置了会话根目录
-            进程环境变量["DSH_SESSION_ROOT"]=self.config.会话根目录#注入会话根目录环境变量
-        if self.config.cordis is not None:#若配置了cordis路径
-            进程环境变量["DSH_CORDIS_CONFIG"]=self.config.cordis#注入cordis配置环境变量
-        进程环境变量["DSH_CWD"]=工作目录#始终注入会话工作目录
         if self.config.基址 is not None:#若配置了API基址
             进程环境变量["DEEPSEEK_BASE_URL"]=self.config.基址#注入基址环境变量
         if self.config.密钥 is not None:#若配置了API密钥
@@ -71,13 +67,17 @@ class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能�
 
         self._client=Harness客户端(#创建并持有底层JSON-RPC客户端
             Harness配置(#把高层配置映射为客户端启动配置
-                运行时二进制=self.config.运行时二进制,#透传运行时二进制
-                启动参数覆盖=self.config.启动参数覆盖,#透传启动参数覆盖
+                dsh二进制=self.config.dsh二进制,#透传dsh可执行文件
+                配置档=self.config.配置档,#透传profile
+                补丁=self.config.补丁,#透传patch路径
+                dsh主目录=self.config.dsh主目录,#透传DSH_HOME
                 工作目录=运行时工作目录,#使用运行时工作目录
                 环境变量=进程环境变量,#传入组装好的环境变量
+                初始化超时秒数=self.config.初始化超时秒数,#透传initialize超时
                 请求超时秒数=self.config.请求超时秒数,#透传请求超时
                 关闭超时秒数=self.config.关闭超时秒数,#透传关闭超时
-            )#Harness配置构造结束
+            ),#Harness配置构造结束
+            _启动参数=_启动参数,#测试或调用方可整段替换启动argv
         )#Harness客户端构造结束
         self._initialized=False#标记尚未完成initialize
 
@@ -100,6 +100,7 @@ class DeepSeekHarness:#可复用的同步SDK，用于跑DeepSeek Harness智能�
             cwd=self._cwd,#传入会话工作目录
             provider=self.config.提供方,#传入提供方
             model=self.config.模型,#传入模型名
+            reasoning_effort=self.config.推理强度,#传入可选推理强度
             max_tokens=self.config.最大令牌数,#传入可选max_tokens
         )#initialize调用结束
         self._initialized=True#标记已完成初始化
@@ -177,7 +178,6 @@ class Session:#绑定到某个Harness与会话id的运行句柄
             结束原因=结束原因(事件列表),#从事件提取结束原因
             事件列表=事件列表,#收集到的事件列表
             通知列表=通知列表,#收集到的通知列表
-            会话根目录=self.harness.config.会话根目录,#透传会话根目录配置
         )#运行结果构造结束
 
 

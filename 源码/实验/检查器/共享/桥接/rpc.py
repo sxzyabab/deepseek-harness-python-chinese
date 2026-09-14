@@ -1,7 +1,3 @@
-"""共享的 Host/Client 相关非 CDP 查询请求所有者。
-
-对齐上游 `shared/bridge/rpc.ts`。公开面仅中文名。
-"""
 import threading#超时定时器
 from concurrent.futures import Future as 原生结果#待决结果
 from .标识 import 检查器id#标识构造

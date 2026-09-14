@@ -1,7 +1,3 @@
-"""动态 Cordis 插件服务：不可变包定义、每个插件一条活动运行、人工批准的客户端激活，以及宿主/客户端调用。
-
-对齐上游 `拓展/cordis-host-runner/src/index.ts`。公开面仅中文名；Remote 导出名与事件名保持上游字面量。
-"""
 import re#前缀校验
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 整数字段#配置字段
@@ -139,12 +135,12 @@ class 动态插件运行器服务(远程服务):#动态运行器服务
         插件=自身.本会话插件(智能体,插件标识)#本会话拥有的插件
         if 插件 is None:#不存在
             return {'ok':False,'reason':'plugin-missing','message':插件缺失文案(插件标识)}#失败
-        曾在跑=(插件['run'] if 'run' in 插件 else None) is not None#移除前是否在跑
+        曾在运行=(插件['run'] if 'run' in 插件 else None) is not None#移除前是否在运行
         自身.取消挂起(插件标识,'dynamic plugin "'+插件标识+'" was removed before approval')#取消挂起审批
         if (插件['run'] if 'run' in 插件 else None) is not None:#有活动运行
             自身.收回(插件)#收回
         自身.注册表.删除(插件标识)#从注册表删掉
-        return {'ok':True,'wasRunning':曾在跑}#成功回执
+        return {'ok':True,'wasRunning':曾在运行}#成功回执
 
     @远程('undefineFromPanel')
     def 面板取消定义(自身,智能体,插件标识):#面板移除

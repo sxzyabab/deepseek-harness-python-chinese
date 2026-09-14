@@ -1,8 +1,3 @@
-"""浏览选目录后端的浏览器半边。
-
-对齐上游 `ui-directory-picker-browse/src/client/index.ts`。公开面仅中文名。
-用应用内对话框填上 ui-workspace 的两个目录流空洞。
-"""
 from .流 import 浏览目录流#浏览目录流占用方
 
 __all__=['注入','应用','浏览目录流']#仅中文公开名

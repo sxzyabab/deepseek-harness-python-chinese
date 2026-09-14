@@ -1,7 +1,3 @@
-"""Inspector Worker 的失败遏制与关闭协调。
-
-对齐上游 `host/bridge/lifecycle.ts`。公开面仅中文名。
-"""
 import threading#超时与事件
 from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.控制编解码 import 解析检查器工作者控制#控制帧解析

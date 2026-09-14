@@ -1,9 +1,3 @@
-"""cordis_run 卡与包业务视图座：嵌套 JSX 结构树 + 样式串。
-
-对齐上游 `ui-cordis/src/client/CordisRunRow.tsx`。公开面仅中文名。
-业务视图槽 renderSlot 与图标半需浏览器；读数逻辑与 DOM 嵌套来自上游。
-无法 JS·vm 执行：Package 拥有的 React 业务视图。
-"""
 import os#读样式
 from .卡片模型 import 运行卡片#卡模型
 from .运行卡片索引 import 工具视图键#视图键

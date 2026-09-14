@@ -1,8 +1,3 @@
-"""工具详情体：选中调用的结构化输出。
-
-对齐上游 `ui-tool/src/client/tool/ToolDetails.tsx`。公开面仅中文名。
-按卡片意图优先；未知则展平结果文本。
-"""
 from .差异卡模型 import 差异卡模型#diff
 from .读卡模型 import 读卡模型#读
 from .检索卡模型 import 检索卡模型#检索

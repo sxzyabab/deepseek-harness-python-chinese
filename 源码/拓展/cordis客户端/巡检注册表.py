@@ -1,12 +1,3 @@
-"""只读 Cordis 能力提供方的浏览器注册表。
-
-对齐上游 `cordis-client-runner/src/client/inspect-registry.ts`。公开面仅中文名。
-清单 sync/resolve 需 Remote；本模块落盘登记、查询决议、取消旗标与同步串行链。
-无 AbortController：用进行中表上的 aborted 旗标作取消等价。
-publish：同栈多次合并；开刷先清旗（对齐 microtask 内先清 publishQueued）。
-无 Timer/线程——Python 半同步拍清单。
-"""
-
 __all__=[#仅中文公开名
     '客户端巡检注册表','提供客户端巡检','说明',
 ]#公开面结束
@@ -28,7 +19,7 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
         清单=登记.get('manifest') if isinstance(登记,dict) else getattr(登记,'manifest',None)#清单
         标识=清单.get('id') if isinstance(清单,dict) else None#id
         if not isinstance(标识,str) or 标识.strip()=='':#空
-            raise Exception('Client Cordis inspect provider id must not be empty')#抛
+            raise Exception('客户端 Cordis 巡检提供方 id 不能为空')#抛
         if 标识 in 自身.提供方:#重复
             raise Exception(f'Client Cordis inspect provider "{标识}" is already registered')#抛
         名集=set()#方法名

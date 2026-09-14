@@ -1,4 +1,3 @@
-"""在各 JavaScript 运行时可用的 UUID 铸造。`crypto.randomUUID` 是安全上下文 Web API——局域网 HTTP 页面或 worker 没有该方法——而 `crypto.getRandomValues` 在各处都可用。本模块用 `secrets` 统一替代各调用方的 polyfill。"""
 import secrets#密码学随机
 from ...依赖.工具 import 二进制#base64 编解码
 __all__=['字节转base64','随机uuid']#仅中文公开名

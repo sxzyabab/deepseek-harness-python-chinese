@@ -1,4 +1,3 @@
-"""技能能力缝的共享类型面：目录摘要/候选/定义、提供方约定、查找选项、用户显式调用的消息来源，以及 seam 的 Cordis 事件声明。仅类型——没有运行时代码；线协议字段名与上游 JS 对齐，公开类型名为中文。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 技能调用来源种类='skill-invocation'#用户显式技能调用的 MessageSource 判别标签
@@ -105,10 +104,10 @@ class 技能提供方:#一种技能来源的提供方接口，例如本地目录
 
     def 列出(自身,选项):#列出当前查找上下文可用的技能候选
         """列出候选；远程初始化与发现在本方法内等待。应在 options.signal 中止时尽快结束。"""
-        raise NotImplementedError('SkillProvider.list')#由提供方实现
+        raise NotImplementedError('技能提供方.列出 未实现')#由提供方实现
 
     def 获取(自身,候选,选项):#为先前列出的候选加载完整技能正文
         """加载完整正文；已不可加载则返回 None。"""
-        raise NotImplementedError('SkillProvider.get')#由提供方实现
+        raise NotImplementedError('技能提供方.获取 未实现')#由提供方实现
 
-# 事件 skills/change() @mode emit：技能提供方、运行时贡献或提供方支持的目录可能已变化。这是未过滤的失效通知；消费方按自己的查找选项重新拉取目录（快照）。监听器失败（同步抛出与异步拒绝一样）被收容并记日志，不能否决注册表变更，也不能阻止后续监听器执行。无参数。
+# 事件 skills/change() @mode emit：技能提供方、运行时贡献或提供方支持的目录可能已变化。这是未过滤的失效通知；消费方按自己的查找选项重新拉取目录（快照）。监听器失败（同步抛出）被收容并记日志，不能否决注册表变更，也不能阻止后续监听器执行。无参数。

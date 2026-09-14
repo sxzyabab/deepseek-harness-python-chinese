@@ -1,7 +1,3 @@
-"""每会话模型目录：两条选定入口共享的唯一状态。
-
-对齐上游 `ui-model-selection/src/client/directory.ts`。公开面仅中文名。
-"""
 __all__=['模型目录','空目录状态','模型选择错误']#仅中文公开名
 
 class 模型选择错误(Exception):

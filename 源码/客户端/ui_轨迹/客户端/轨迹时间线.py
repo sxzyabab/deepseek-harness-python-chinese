@@ -1,8 +1,3 @@
-"""轨迹时间线：Chrome-Network 式总览，聚焦账本选区。
-
-对齐上游 `TrajectoryTimeline.tsx` + `TrajectoryTimeline.module.css`。公开面仅中文名。
-样式正文落在同目录 轨迹时间线.module.css；本模块读成 样式表，并提供结构树视图与手势逻辑。
-"""
 import math#有限数判定
 import os#同目录样式路径
 from datetime import datetime#记录时刻格式化

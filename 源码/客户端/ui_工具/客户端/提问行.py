@@ -1,8 +1,3 @@
-"""提问工具行：问句风味摘要行，替换通用 Tool call 卡。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/ask-question-row.tsx`。公开面仅中文名。
-登记进按键 tool.call.toolview 洞；问题本身在撰写器接管面渲染。
-"""
 import json#解析答案 JSON
 from .调用模型 import 派生工具行#行模型
 from .工具行 import 工具行#摘要行外壳

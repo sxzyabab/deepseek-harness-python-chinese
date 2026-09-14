@@ -1,8 +1,3 @@
-"""子智能体会话头目录动作：直接子项树与懒展开后代。
-
-对齐上游 `ui-subagent/src/client/SubagentCatalogAction.tsx` 的展示与格式化逻辑。
-公开面仅中文名。DOM 焦点导航/指针外关闭需浏览器宿主；本模块落盘结构树与样式。
-"""
 import time#活动时长 now
 
 __all__=[#仅中文公开名

@@ -1,8 +1,3 @@
-"""把 gen-cordis-api 风格的 TypeScript 对象字面量数组解析成 Python 列表。
-
-对齐上游 `api-catalog.ts` 中 SERVICE_API / EVENT_API / TYPE_API 的数据形态；
-仅解析真实原文条目，不做占位裁剪。
-"""
 import ast#字面量求值
 
 __all__=['解析目录数组','抽出导出数组']#公开面
@@ -136,7 +131,7 @@ def 替换字面量词(文本):#null/true/false → Python（跳过字符串）
 def 匹配方括号数组(文本,开括号位置):#从 [ 找到配对 ]
     """字符串感知的方括号匹配，返回闭括号下标。"""
     if 开括号位置>=len(文本) or 文本[开括号位置]!='[':#必须是 [
-        raise Exception('expected "[" at catalog array start')#失败
+        raise Exception('目录数组开头应为 "["')#失败
     深度=0#嵌套深度
     索引=开括号位置#扫描
     长度=len(文本)#总长
@@ -162,23 +157,23 @@ def 匹配方括号数组(文本,开括号位置):#从 [ 找到配对 ]
             if 深度==0:#配对完成
                 return 索引#闭括号位置
         索引+=1#前进
-    raise Exception('unclosed catalog array literal')#未闭合
+    raise Exception('目录数组字面量未闭合')#未闭合
 
 def 解析目录数组(原文片段):#解析一个 [...] 数组
     """把 SERVICE_API / EVENT_API / TYPE_API 的数组字面量解析为 list。"""
     去注释=去掉注释(原文片段)#先去注释
     起=去注释.find('[')#数组起点
     if 起<0:#没有
-        raise Exception('catalog array literal not found')#失败
+        raise Exception('找不到目录数组字面量')#失败
     止=匹配方括号数组(去注释,起)#配对终点
     片段=给裸键加引号(去注释[起:止+1])#键加引号
     片段=替换字面量词(片段)#null/true/false
     try:#字面量求值
         值=ast.literal_eval(片段)#安全求值
     except Exception as 错误:#解析失败
-        raise Exception('catalog array parse failed: '+type(错误).__name__+': '+str(错误))#上抛
+        raise Exception('目录数组解析失败：'+type(错误).__name__+': '+str(错误))#上抛
     if not isinstance(值,list):#必须是列表
-        raise Exception('catalog root must be a list')#失败
+        raise Exception('目录根必须是列表')#失败
     return 值#真实条目列表
 
 def 抽出导出数组(全文,常量名):#从整份 api-catalog 抽出一个 export const
@@ -186,12 +181,12 @@ def 抽出导出数组(全文,常量名):#从整份 api-catalog 抽出一个 exp
     标记='export const '+常量名#定位标记
     起=全文.find(标记)#起点
     if 起<0:#缺失
-        raise Exception('export const '+常量名+' not found')#失败
+        raise Exception('找不到 export const '+常量名)#失败
     等号=全文.find('=',起+len(标记))#等号
     if 等号<0:#畸形
-        raise Exception('export const '+常量名+' has no "="')#失败
+        raise Exception('export const '+常量名+' 没有 "="')#失败
     方括号=全文.find('[',等号)#数组起点
     if 方括号<0:#畸形
-        raise Exception('export const '+常量名+' has no array')#失败
+        raise Exception('export const '+常量名+' 没有数组')#失败
     闭=匹配方括号数组(全文,方括号)#闭括号
     return 解析目录数组(全文[方括号:闭+1])#解析片段

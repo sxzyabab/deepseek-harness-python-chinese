@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-agent-tool-presentation` 的包内不变量配套。
-
-对齐上游 `agent-tool-presentation/src/invariant.ts`。
-
-无运行时不变量：本包只对 `ctx.tools` 做一次作用域调用，自身不拥有事件或快照；它建立的关系——某个 Agent 组装使用哪种展示——由工具注册表持有，并由 `dsh-tools` 在那里观察。
-"""
 包名='@deepseek-ai/dsh-agent-tool-presentation'#本包名（登记到 invariants 的所有权键）
 名称='tool-presentation-invariant'#配套插件名（字面量对齐上游）
 注入=['invariants']#配套预占包所有权前必须具备的服务

@@ -243,7 +243,7 @@ class 会话管理器:
         自身._通知器.标脏()#脏
         飞行={'expandableRows':可展开,'activityRows':活动行,'parentAvailableOverride':None}#飞行态
         自身._目录飞行[父会话标识]=飞行#登记
-        def 跑():
+        def 后台刷新目录():
             """拉目录。"""
             try:
                 子面=自身._远程.subagents if hasattr(自身._远程,'subagents') else 自身._远程['subagents']#subagents
@@ -279,7 +279,7 @@ class 会话管理器:
                 if 父会话标识 in 自身._目录陈旧:#trailing
                     自身._目录陈旧.discard(父会话标识)#清
                     自身.refreshSubagents(父会话标识)#再刷
-        threading.Thread(target=跑,daemon=True).start()#后台
+        threading.Thread(target=后台刷新目录,daemon=True).start()#后台
 
     def setSubagentCatalogOpen(自身,父会话标识,打开):
         """标记目录菜单打开态。"""
@@ -302,7 +302,7 @@ class 会话管理器:
         自身._通知器.标脏()#脏
         任务=_任务()#飞行
         自身._列表飞行=任务#登记
-        def 跑():
+        def 后台刷新列表():
             """拉列表。"""
             try:
                 会话面=自身._远程.session if hasattr(自身._远程,'session') else 自身._远程['session']#session
@@ -351,7 +351,7 @@ class 会话管理器:
                 自身._列表飞行=None#清
                 自身._通知器.标脏()#脏
                 任务.兑现(None)#完成
-        threading.Thread(target=跑,daemon=True).start()#后台
+        threading.Thread(target=后台刷新列表,daemon=True).start()#后台
         任务.等待()#等
 
     def search(自身,查询,信号=None):

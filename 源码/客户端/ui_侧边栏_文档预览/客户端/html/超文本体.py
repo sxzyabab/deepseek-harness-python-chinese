@@ -1,7 +1,3 @@
-"""在启用脚本的不透明 iframe 中渲染完整 HTML，无父应用访问。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/HtmlBody.tsx`。公开面仅中文名。
-"""
 from .引导 import 创建超文本文档#引导
 from .打包 import 打包超文本#打包
 from .读取相对 import 创建读取超文本相对#相对读

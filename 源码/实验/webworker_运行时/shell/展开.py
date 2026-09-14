@@ -1,9 +1,3 @@
-"""词展开：一个已解析参数变成程序在 argv 中收到的零个或多个字段。覆盖文法
-产生的片段种类——字面文本、变量（含 `:-` / `:+` 形式）、命令替换、算术，
-以及对照 VFS 匹配的 glob。
-
-对齐上游 `webworker-runtime/src/shell/expand.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import fnmatch as 文件名匹配#glob段匹配（对齐 picomatch 用法）
 import math as 数学#整除

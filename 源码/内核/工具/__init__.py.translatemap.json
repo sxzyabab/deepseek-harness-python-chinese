@@ -4,6 +4,7 @@
     "code":"代码",
     "define":"定义",
     "dispatch":"派发",
+    "forward":"转发",
     "error":"错误",
     "inject":"注入",
     "json":"json",

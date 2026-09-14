@@ -1,8 +1,3 @@
-"""壳层 chrome 内容：触发器/页眉/关闭标签。
-
-对齐上游 `ui-settings-general/src/client/chrome.tsx`。公开面仅中文名。
-"""
-
 __all__=['触发器内容','页眉内容','关闭标签','样式表']#仅中文公开名
 
 样式表='''#对齐 chrome.module.css

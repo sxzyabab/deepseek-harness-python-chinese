@@ -1,8 +1,3 @@
-"""按启动器组合捆绑补丁文件的方式读取一份 dsh --profile 的浏览器名册。
-
-对齐上游 `client-runtime/src/assembly/bundle-roster.ts`。公开面仅中文名。
-诊断不夹带绝对路径。
-"""
 import json,os,re,yaml#JSON、路径、正则与 YAML
 from ....依赖.include import 应用插件补丁,插件列表读取器#补丁应用与条目列表方言
 from ....客户端.模块 import 解析客户端声明#dsh.client 声明解析

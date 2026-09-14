@@ -1,7 +1,3 @@
-"""Agent Teams Web 词典。
-
-对齐上游 `client-ui-agent-team/src/client/locales.ts`。公开面仅中文名。
-"""
 __all__=['命名空间','中文','英文']#仅中文公开名
 
 命名空间='agent-team'#locale 命名空间

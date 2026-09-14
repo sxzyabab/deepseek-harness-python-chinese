@@ -1,15 +1,3 @@
-"""树的列举半边：把目录列进存储。
-
-对齐上游 `ui-sidebar-files/src/client/face.ts`。公开面仅中文名。
-组件从不阻塞等待。它调用 `start` / `load` / `toggle`，本面执行列举并把结果经存储动作写回——
-槽位标准的 `inject` 形：会话标识由框架解析，写集合仍是存储的。
-
-树用绝对路径键住每一级，并把同一绝对路径交给端点；端点还回工作区相对路径，树无用处，丢掉。
-一级同时只允许一次列举：再次请求（重新读取、重置后重开）作废飞行中的上一代，其结算不再写入。
-清理骑在拥有方信号上：已结束的记录不再发请求；记录消失时忘掉分桶与代次账本。
-
-AbortSignal 译为 threading.Event；TS 的 fire-and-forget then 译为守护线程。
-"""
 import re#去尾分隔符
 import threading#列举线程与中止监视
 
@@ -42,7 +30,7 @@ def 创建列举(远程):
     """
 
     def 列举(会话标识,路径,信号):
-        """调用 list；失败原样透传；成功只留条目与截断旗。"""
+        """调用 list；失败原样透传；成功只留条目与截断标志。"""
         结果=远程.workspaceFiles.list(会话标识,路径,信号)#RemoteResult
         if not 结果['ok']:#失败
             return 结果#透传
@@ -95,7 +83,7 @@ def 文件面(列举):
             """播种本 tab 树并列举根；信号中止时遗忘。"""
             动作['start'](标签标识,根)#播种
 
-            def 盯中止():
+            def 等待结算后清登记():
                 """信号置位则清代次并遗忘桶。"""
                 while not 已中止(信号):#未中止
                     信号.wait(0.05)#短等
@@ -108,7 +96,7 @@ def 文件面(列举):
                     del 代次表[标签标识]#清
                 动作['forget'](标签标识)#忘
             else:#监视一次
-                线=threading.Thread(target=盯中止,daemon=True,name='dsh-sidebar-files-abort')#盯中止
+                线=threading.Thread(target=等待结算后清登记,daemon=True,name='dsh-sidebar-files-abort')#等待结算后清登记
                 线.start()#启动
             加载(标签标识,根,信号)#列根
 

@@ -1,7 +1,3 @@
-"""语言环境查找链的测试替身。
-
-对齐上游 `client-runtime/src/translate.ts`。公开面仅中文名。
-"""
 import re#模板插值
 
 __all__=['制作翻译']#仅中文公开名

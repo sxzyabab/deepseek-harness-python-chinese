@@ -1,9 +1,3 @@
-"""本包登记的第一阶段：`files` tab 类型是什么。
-
-对齐上游 `ui-sidebar-files/src/client/definition.tsx`。公开面仅中文名。
-该类型是页面而非查看器：不宣称地址。向导页把它作为入口；树经 `tabActions.openResource`
-打开文件，由 `dsh-resource://file` 查看器认领。
-"""
 
 __all__=['文件种类','文件标识','文件定义','文件夹页字形']#仅中文公开名
 

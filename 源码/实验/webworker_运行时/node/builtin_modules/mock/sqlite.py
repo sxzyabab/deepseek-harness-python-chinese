@@ -1,9 +1,3 @@
-"""`node:sqlite` 桩。Web 配置把 session-query-sqlite 设为
-`:memory:` 与 `openAt: never`，因此验收链期间不打开数据库；
-到达构造器意味着该配置已变。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/mock/sqlite.ts`。
-"""
 from ...未实现失败 import 不可用错误,未实现失败#导入拒绝辅助
 
 __all__=['DatabaseSync','StatementSync','backup','__esModule','default']#Node面

@@ -1,8 +1,3 @@
-"""ui-workspace 槽约定：浏览区与挑选器注入面、目录流孔主人份额。
-
-对齐上游 `ui-workspace/src/client/contract/slots.ts`。公开面仅中文名。
-"""
-
 __all__=[#仅中文公开名
     '目录流槽名',
     '目录流槽名表',

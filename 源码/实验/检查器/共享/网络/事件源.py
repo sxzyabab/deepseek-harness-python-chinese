@@ -1,7 +1,3 @@
-"""对捕获响应所载 Server-Sent Events 的增量 UTF-8 解析器。
-
-对齐上游 `shared/network/event-source.ts`。公开面仅中文名。
-"""
 from .观察 import 检查器事件源消息#SSE消息
 
 __all__=['检查器事件源解析器']#仅中文公开名

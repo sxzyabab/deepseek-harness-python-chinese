@@ -1,4 +1,3 @@
-"""压缩 Service Definition（`ctx.compaction`）：提供方决定何时压缩，并通过子类化压缩引擎把一段历史替换成一个摘要节点。本接口必然依赖会话与 LLM 词汇。"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis服务基类
 from .类型 import 压缩结果字段#再导出压缩结果词汇
@@ -45,16 +44,16 @@ class 压缩智能体上下文:
 
 class 手动压缩智能体上下文(压缩智能体上下文):
     """把显式空闲会话压缩相对驱动回合串行化所需的智能体能力。耐久的 compaction/start 标记另行排除其他压缩事务。"""
-    def 跑维护(自身,任务):
+    def 执行维护(自身,任务):
         """仅在智能体空闲时运行非回合维护操作，并扣住后续唤醒输入直到其结束。智能体已在活动时同步抛出。返回该任务结果。"""
-        raise NotImplementedError('手动压缩智能体上下文.跑维护')#由智能体实现
+        raise NotImplementedError('手动压缩智能体上下文.执行维护')#由智能体实现
 
 class 压缩引擎(服务):
     """抽象压缩服务。实现方拥有触发策略、保留与摘要，并可消费独立的计量服务。成功一次运行会把一段表面跨度替换成一个摘要节点，并阻止同一会话的并发压缩。替换用户消息使用带事务身份的压缩检查点来源，以便消费方独立于后端识别并对齐。每个上下文加载一个实现为 ctx.compaction。"""
     def __init__(自身,上下文对象):
         """登记为 ctx.compaction。直接实例化抽象类会在加载时大声失败。"""
         if type(自身) is 压缩引擎:#直接实例化抽象类
-            raise 压缩错误('@deepseek-ai/dsh-compaction is the abstract compaction seam; load an implementation such as @deepseek-ai/dsh-compaction-basic instead')#必须加载实现
+            raise 压缩错误('@deepseek-ai/dsh-compaction 是抽象压缩缝；请加载如 @deepseek-ai/dsh-compaction-basic 的实现')#必须加载实现
         super().__init__(上下文对象,'compaction')#注册到上下文
 
     def 按需压缩(自身,智能体,触发,信号):

@@ -1,8 +1,3 @@
-"""从冻结调用切片纯派生终端卡片 props。
-
-对齐上游 `ui-tool/src/client/tool/models/terminal-card-model.ts`。公开面仅中文名。
-路径折叠为纯字符串算法；工作区拼接由调用方注入的解析函数完成。
-"""
 import re#路径段折叠
 
 __all__=['终端块文案','终端已失败','终端卡模型']#仅中文公开名

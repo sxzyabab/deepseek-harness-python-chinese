@@ -1,7 +1,3 @@
-"""Worker 拥有的 HTTP 发现、DevTools CDP 与 Client 摄入端点。
-
-对齐上游 `worker/bridge/endpoint.ts`。公开面仅中文名。
-"""
 import json,socket,threading#HTTP与套接字
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer#HTTP服务
 from urllib.parse import urlparse as 解析网址#路径解析

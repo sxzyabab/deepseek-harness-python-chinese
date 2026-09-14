@@ -1,7 +1,3 @@
-"""轨迹列表折叠：展开助手块、用量、自身时长、partial/runningCalls 与组描述。
-
-对齐上游 `ui-trajectory/src/client/layout.ts`。公开面仅中文名。
-"""
 import json#源值字符串化
 import math#有限数判定
 from urllib.parse import urlparse as 解析URL#安全图片源协议校验

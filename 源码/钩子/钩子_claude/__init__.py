@@ -1,4 +1,3 @@
-"""在 harness 拦截扩展点上桥接未经修改的 Claude Code 命令钩子。支持 SessionStart、提示/工具前后、Stop、以及子智能体起停。它拥有 Claude 载荷、环境、替换和判定映射；共用的执行与解析在 `dsh-hook-protocol`。`updatedInput` 会记日志并警告但不兑现。定制行为应在同一扩展点上用带类型的原生插件。"""
 import json,os,time,threading#读配置、进程 cwd、单调时钟与后台链
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
@@ -49,7 +48,7 @@ class 操作任务:
             if isinstance(错误,BaseException):#已是异常
                 自身.原生结果.set_exception(错误)#原样拒绝
             else:
-                包装=钩子claude错误('task rejected')#包装拒绝
+                包装=钩子claude错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息做成属性
                 自身.原生结果.set_exception(包装)#包装拒绝
 
@@ -70,7 +69,7 @@ def 下一条处理器标识(钩子点):
 def 断言正整数(名字,值):
     """摘要上限约束的是持久事件字段——必须是正整数，否则切片会静默失常。"""
     if isinstance(值,bool) or (not isinstance(值,int)) or 值<1:#非正整数则失败
-        raise TypeError('hooks-claude-code: '+名字+' must be a positive integer')#报告非法配置
+        raise TypeError('hooks-claude-code: '+名字+' 必须是正整数')#报告非法配置
 
 def 最后轮次(智能体):
     """智能体日志里最后一个打开轮次号；没有智能体则为 0。智能体是对象。"""
@@ -204,7 +203,7 @@ def 应用(上下文,配置值=None):
         return 分离.排空#清理器即排空
     上下文.副作用(取得排空,'hooks-claude-code: drain detached hook runs')#拆除时排空分离运行
 
-    def 跑点(钩子点,匹配主体,载荷,选项):
+    def 执行钩子点(钩子点,匹配主体,载荷,选项):
         """跑 point 上配置的、匹配器选中 matchQuery 的每条命令钩子，stdin 带该事件的 payload，再折合结果。选项是 dict。"""
         组列表=已解析[钩子点] if 钩子点 in 已解析 else []#该点的匹配组
         输出列表=[]#各条钩子的解码输出
@@ -290,7 +289,7 @@ def 应用(上下文,配置值=None):
         def 任务():
             """分离链：跑 SessionStart 并注入。"""
             try:
-                合并=跑点('SessionStart',来源,会话开始载荷(上下文,智能体,来源),{'agent':智能体,'signal':分离.信号})#按来源匹配并分离跟踪
+                合并=执行钩子点('SessionStart',来源,会话开始载荷(上下文,智能体,来源),{'agent':智能体,'signal':分离.信号})#按来源匹配并分离跟踪
                 上下文消息=从合并取上下文(合并)#折成用户消息
                 if 上下文消息 is not None:#有上下文才注入
                     智能体.注入(上下文消息)#注入
@@ -298,14 +297,14 @@ def 应用(上下文,配置值=None):
                 #分离链里注入与载荷组装可抛智能体包/消息包多种错误，契约未钉死
                 上下文.日志.警告('hooks-claude-code: SessionStart hook failed: '+str(错误))#记录失败
         后台=操作任务()#分离链任务
-        def 跑():
-            """后台跑分离链。"""
+        def 执行分离链():
+            """后台执行分离链。"""
             try:
-                任务()#跑分离链
+                任务()#执行分离链
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=跑,daemon=True).start()#启动
+        threading.Thread(target=执行分离链,daemon=True).start()#启动
         分离.登记(后台)#登记分离链
     上下文.监听('agent/session-start',会话开始监听)#结束 session-start 监听
 
@@ -323,7 +322,7 @@ def 应用(上下文,配置值=None):
                 块列表=[]#空
             内容.extend(list(块列表))#摊平
         智能体=载荷['agent'] if 'agent' in 载荷 else None#智能体
-        合并=跑点('UserPromptSubmit','',提示载荷(上下文,智能体,内容),{#该事件无匹配主体
+        合并=执行钩子点('UserPromptSubmit','',提示载荷(上下文,智能体,内容),{#该事件无匹配主体
             'agent':智能体,#智能体
             'turn':载荷['turn'] if 'turn' in 载荷 else None,#轮次
             'signal':载荷['signal'] if 'signal' in 载荷 else None,#信号
@@ -350,9 +349,9 @@ def 应用(上下文,配置值=None):
         选项={'turn':轮次,'signal':执行['signal'] if 'signal' in 执行 else None}#运行选项
         if 智能体 is not None:#有智能体才传入
             选项['agent']=智能体#智能体
-        合并=跑点('PreToolUse',执行['name'],工具前载荷(上下文,执行),选项)#按工具名匹配
+        合并=执行钩子点('PreToolUse',执行['name'],工具前载荷(上下文,执行),选项)#按工具名匹配
         if 'decision' in 合并 and 合并['decision']=='deny':#拒绝则否认
-            原因=合并['reason'] if 'reason' in 合并 and 合并['reason'] is not None and 合并['reason']!='' else 'blocked by PreToolUse hook'#空串原因回落默认（原 ||）
+            原因=合并['reason'] if 'reason' in 合并 and 合并['reason'] is not None and 合并['reason']!='' else '已被 PreToolUse 钩子阻断'#空串原因回落默认（原 ||）
             return {'kind':'deny','reason':原因}#否认
         if 'decision' in 合并 and 合并['decision']=='ask':#询问则请求确认
             判定={'kind':'ask'}#询问
@@ -369,10 +368,10 @@ def 应用(上下文,配置值=None):
         选项={'turn':轮次,'signal':执行['signal'] if 'signal' in 执行 else None}#运行选项
         if 智能体 is not None:#有智能体才传入
             选项['agent']=智能体#智能体
-        合并=跑点('PostToolUse',执行['name'],工具后载荷(上下文,执行,结果),选项)#按工具名匹配
+        合并=执行钩子点('PostToolUse',执行['name'],工具后载荷(上下文,执行,结果),选项)#按工具名匹配
         上下文消息=从合并取上下文(合并)#附加上下文
         if 'decision' in 合并 and 合并['decision']=='deny':#拒绝则阻断工具结果
-            原因=合并['reason'] if 'reason' in 合并 and 合并['reason'] is not None and 合并['reason']!='' else 'blocked by PostToolUse hook'#空串原因回落默认（原 ||）
+            原因=合并['reason'] if 'reason' in 合并 and 合并['reason'] is not None and 合并['reason']!='' else '已被 PostToolUse 钩子阻断'#空串原因回落默认（原 ||）
             判定={#阻断
                 'kind':'block',#阻断
                 'feedback':[{'type':'text','text':原因}],#反馈
@@ -392,13 +391,13 @@ def 应用(上下文,配置值=None):
     def 轮次将停监听(载荷,*位置参数):
         """阻断型 Stop 钩子在停止边界转向，让状态机看到待处理输入再跑一步。载荷是 dict。"""
         智能体=载荷['agent']#智能体
-        合并=跑点('Stop','',停止载荷(上下文,智能体),{#该事件无匹配主体
+        合并=执行钩子点('Stop','',停止载荷(上下文,智能体),{#该事件无匹配主体
             'agent':智能体,#智能体
             'turn':载荷['turn'] if 'turn' in 载荷 else None,#轮次
             'signal':载荷['signal'] if 'signal' in 载荷 else None,#信号
         })#跑 Stop
         if 'decision' in 合并 and 合并['decision']=='deny':#阻断型 Stop 强迫续跑
-            文本=合并['reason'] if 'reason' in 合并 and 合并['reason'] is not None and 合并['reason']!='' else 'continue: blocked by Stop hook'#空串原因回落默认（原 ||）
+            文本=合并['reason'] if 'reason' in 合并 and 合并['reason'] is not None and 合并['reason']!='' else 'continue: 已被 Stop 钩子阻断'#空串原因回落默认（原 ||）
             智能体.转向(创建用户消息({'content':[{'type':'text','text':文本}],'source':插件来源}))#注入转向消息
     上下文.监听('agent/turn-stopping',轮次将停监听)#结束 turn-stopping 监听
 
@@ -414,7 +413,7 @@ def 应用(上下文,配置值=None):
                 选项={'signal':分离.信号}#运行选项
                 if 孩子 is not None:#有孩子才传入
                     选项['agent']=孩子#孩子
-                合并=跑点('SubagentStart',子智能体类型,子智能体载荷(上下文,'SubagentStart',信息,孩子),选项)#按默认类型匹配
+                合并=执行钩子点('SubagentStart',子智能体类型,子智能体载荷(上下文,'SubagentStart',信息,孩子),选项)#按默认类型匹配
                 上下文消息=从合并取上下文(合并)#折成用户消息
                 if 上下文消息 is not None and 孩子 is not None:#有上下文且孩子还在才注入
                     孩子.注入(上下文消息)#注入
@@ -422,14 +421,14 @@ def 应用(上下文,配置值=None):
                 #分离链里注入可抛智能体包多种错误，契约未钉死
                 上下文.日志.警告('hooks-claude-code: SubagentStart hook failed: '+str(错误))#记录失败
         后台=操作任务()#分离链任务
-        def 跑():
-            """后台跑分离链。"""
+        def 执行分离链():
+            """后台执行分离链。"""
             try:
-                任务()#跑分离链
+                任务()#执行分离链
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=跑,daemon=True).start()#启动
+        threading.Thread(target=执行分离链,daemon=True).start()#启动
         分离.登记(后台)#登记分离链
     上下文.监听('subagent/start',子智能体开始监听)#结束 subagent/start 监听
 
@@ -447,16 +446,16 @@ def 应用(上下文,配置值=None):
             选项={'signal':分离.信号}#运行选项
             if 孩子 is not None:#有孩子才传入
                 选项['agent']=孩子#孩子
-            跑点('SubagentStop',子智能体类型,子智能体载荷(上下文,'SubagentStop',信息,孩子),选项)#只观察，分离跟踪
+            执行钩子点('SubagentStop',子智能体类型,子智能体载荷(上下文,'SubagentStop',信息,孩子),选项)#只观察，分离跟踪
         后台=操作任务()#分离链任务
-        def 跑():
-            """后台跑分离链。"""
+        def 执行分离链():
+            """后台执行分离链。"""
             try:
-                任务()#跑分离链
+                任务()#执行分离链
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=跑,daemon=True).start()#启动
+        threading.Thread(target=执行分离链,daemon=True).start()#启动
         分离.登记(后台)#登记分离链
     上下文.监听('subagent/end',子智能体结束监听)#结束 subagent/end 监听
 

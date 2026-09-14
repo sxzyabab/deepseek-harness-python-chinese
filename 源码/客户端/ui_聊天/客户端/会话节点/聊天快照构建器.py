@@ -1,7 +1,3 @@
-"""把聊天视图节点增量折成 ChatSnapshot。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/chat-snapshot-builder.ts`。公开面仅中文名。
-"""
 from ..约定.快照 import 聊天快照,聊天节点存储,聊天位置节点索引,聊天回合导航索引,遗留会话切片#快照
 from .回合导航 import 回合导航项#导航
 from .回合过程呈现 import 聊天回合过程投影器#过程呈现

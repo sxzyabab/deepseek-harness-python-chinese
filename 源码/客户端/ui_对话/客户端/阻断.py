@@ -1,8 +1,3 @@
-"""Composer 阻断：其它插件让某会话输入栏失效的唯一途径。
-
-对齐上游 `ui-conversation/src/client/input/blocks.ts`。公开面仅中文名。
-"""
-
 __all__=['快照存储','阻断登记表']#仅中文公开名
 
 class 快照存储:#简易阻断快照

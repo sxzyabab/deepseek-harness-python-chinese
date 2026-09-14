@@ -1,7 +1,3 @@
-"""从已路由 Cordis 快照到对消费者中立树的纯投影。
-
-对齐上游 `shared/cordis/projector.ts`。公开面仅中文名。
-"""
 from .模型 import cordis运行时树模式版本,cordis运行时源标识化#模式与源标识
 
 __all__=[#仅中文公开名

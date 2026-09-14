@@ -1,8 +1,3 @@
-"""触发候选菜单：渲染 InputTriggerService 菜单仓到 input.overlay。
-
-对齐上游 `ui-input-trigger/src/client/MenuView.tsx`。公开面仅中文名。
-"""
-
 __all__=['菜单视图','选项标识','样式表']#仅中文公开名
 
 样式表='''#对齐 MenuView.module.css

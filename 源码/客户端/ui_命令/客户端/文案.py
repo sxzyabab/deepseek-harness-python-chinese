@@ -1,7 +1,3 @@
-"""`command` 命名空间词典。
-
-对齐上游 `ui-commands/src/client/locales.ts`。公开面仅中文名。
-"""
 
 __all__=['中文','英文']#仅中文公开名
 

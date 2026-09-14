@@ -1,8 +1,3 @@
-"""文本预览的正文：文件内容，或未展示的原因。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/TextPreview.tsx`。公开面仅中文名。
-无 React：正文为视图模型，产出结构树 dict。两处来源在此汇合：标准资源钩的元数据与本类型存储所持内容。
-"""
 from .失败行 import 失败行#失败行
 from .远程过程调用 import 宿主文件#宿主文件
 from .文档.注册表 import 匹配文档预览#匹配

@@ -1,7 +1,3 @@
-"""仅浏览器宿主运行时：dedicated Web Worker 内的 harness Cordis 树。
-
-对齐上游 `webworker-runtime/src/index.ts`。公开面仅中文名。
-"""
 from .polyfill.async_context.als运行时 import 创建als运行时#ALS运行时工厂
 from .transport.帧 import 解析入站帧#解析入站帧
 from .module_system.模块加载器 import (#模块加载器面

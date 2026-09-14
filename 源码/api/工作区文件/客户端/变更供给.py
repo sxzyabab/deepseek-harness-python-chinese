@@ -166,14 +166,14 @@ class _会话供给:
 def _包装拆除(拆除):
     """把 dispose 收成带 等待 的任务。dispose 翻译时已是同步阻塞。"""
     任务=_可等待()#任务
-    def 跑():
+    def 后台拆除():
         """执行拆除。"""
         try:
             拆除()#同步拆除
             任务.兑现()#成功
         except BaseException as 错误:
             任务.拒绝(错误)#失败
-    线=threading.Thread(target=跑,daemon=True)#后台
+    线=threading.Thread(target=后台拆除,daemon=True)#后台
     线.start()#启动
     return 任务#任务
 

@@ -1,7 +1,3 @@
-"""适配 Remote 相对读取而不改变其 Session 或 Host 路径权威。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/read-relative.ts`。公开面仅中文名。
-"""
 import re#路径校验
 from urllib.parse import unquote#解码
 from ..远程过程调用 import 文档文件字节#字节解码
@@ -26,14 +22,14 @@ def 创建读取超文本相对(关联读取,地址,寿命):
             切=井
         路径=unquote(引用 if 切<0 else 引用[:切])#路径
         if 路径=='' or _绝对路径.search(路径) is not None or '\0' in 路径 or '\\' in 路径:#非法
-            raise ValueError('HTML dependency must use a relative file path')
+            raise ValueError('HTML 依赖必须使用相对文件路径')
         if 已中止(寿命) or 已中止(信号):#中止
-            raise RuntimeError('aborted')
+            raise RuntimeError('已中止')
         结果=关联读取(地址,路径,信号)#RemoteResult
         if 已中止(寿命) or 已中止(信号):#中止
-            raise RuntimeError('aborted')
+            raise RuntimeError('已中止')
         if not 结果['ok']:#失败
-            raise RuntimeError(结果['error']['message'] if 'message' in 结果['error'] else 'read failed')
+            raise RuntimeError(结果['error']['message'] if 'message' in 结果['error'] else '读取失败')
         return 文档文件字节(结果['value'])#字节
 
     return 读取#相对读

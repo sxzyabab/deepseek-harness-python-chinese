@@ -1,7 +1,3 @@
-"""通用 Connection 一元 RPC 通道的浏览器调用方。
-
-对齐上游 `connection/src/client/rpc.ts`。公开面仅中文名。
-"""
 import builtins,json,re#全局、JSON 与形态校验
 import urllib.request as 请求库#标准库 fetch 形
 from urllib.parse import urljoin#拼基址
@@ -31,10 +27,10 @@ def 断言目标(通道,端点):#校验通道与端点
     段列表=端点.split('/')#端点按段切开
     目标=通道+'/'+端点#拼
     if not 通道规则.fullmatch(通道):#通道名非法
-        raise 连接错误('connection: invalid RPC target '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
+        raise 连接错误('connection: 非法 RPC 目标 '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
     for 段 in 段列表:#任一段
         if 段=='' or 段=='.' or 段=='..' or 端点段规则.fullmatch(段) is None:#空段、相对段或非法字符
-            raise 连接错误('connection: invalid RPC target '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
+            raise 连接错误('connection: 非法 RPC 目标 '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
 
 class 网页连接rpc:#浏览器 RPC 调用方
     """拥有请求关联与响应信封校验的调用方。"""
@@ -54,16 +50,16 @@ class 网页连接rpc:#浏览器 RPC 调用方
             with 请求库.urlopen(请求) as 响应:#POST
                 状态=响应.status#HTTP 状态
                 if 状态<200 or 状态>=300:#HTTP 层失败
-                    raise 连接错误(f'transport failure for {通道}/{端点}: HTTP {状态}')#传输失败
+                    raise 连接错误(f'{通道}/{端点} 传输失败: HTTP {状态}')#传输失败
                 正文=响应.read().decode('utf-8')#读正文
         except 连接错误:#已是本层
             raise#原样
         except OSError as 错误:#传输失败
-            raise 连接错误(f'transport failure for {通道}/{端点}: {错误}') from 错误#包一层
+            raise 连接错误(f'{通道}/{端点} 传输失败: {错误}') from 错误#包一层
         完整=服务端响应模式.parse(json.loads(正文))#校验服务端响应信封
         回显=完整['rpcId']#关联 id
         if 回显!=rpc标识:#关联必须对上
-            raise 连接错误(f'rpcId mismatch for {端点}: sent {rpc标识}, got {回显}')#对不上则失败
+            raise 连接错误(f'{端点} rpcId 不匹配: 已发送 {rpc标识}，收到 {回显}')#对不上则失败
         return 完整['result']#交出业务结果
 
 def 创建网页连接rpc():#浏览器 RPC 调用方

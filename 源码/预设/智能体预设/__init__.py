@@ -1,7 +1,3 @@
-"""智能体预设：每个会话从一份预设组合其面向模型的插件集。
-
-对齐上游 `@deepseek-ai/dsh-agent-presets`。公开面仅中文名。服务键 `agentPresets`、配置键与诊断字面量保持上游。
-"""
 import os#文件戳
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,枚举字段,布尔字段,列表字段#配置字段

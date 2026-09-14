@@ -1,8 +1,3 @@
-"""纯生成制品与运行时注册表类型。
-
-对齐上游 `typert/registry/src/types.ts`。公开面仅中文名；结构为普通字典约定。
-"""
-
 __all__=[#仅中文公开名
     'Typert面','Typert文档标签','Typert文档','Typert成员模型','Typert类型模型',
     'Typert服务模型','Typert事件模型','Typert对象模型','Typert包模型','Typert模式',

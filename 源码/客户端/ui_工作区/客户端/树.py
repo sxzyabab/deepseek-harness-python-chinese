@@ -1,8 +1,3 @@
-"""由宿主工作区的顺序与成员关系派生工作区浏览器树。
-
-对齐上游 `ui-workspace/src/client/tree.ts`。公开面仅中文名。
-子智能体后代索引内联对齐 runtime `subagent-lineage.ts`。
-"""
 from datetime import datetime#解析工作区创建时间
 from zoneinfo import ZoneInfo#UTC
 

@@ -1,4 +1,3 @@
-"""Worker 拥有的源代数、观测分发与扩展传输。"""
 #对齐上游 worker/bridge/hub.ts 段1
 import json#JSON
 
@@ -13,10 +12,10 @@ def _json字节长(值):#估计JSON字节
 def _解析源帧(值,每帧上限):#解析源帧占位
     """委托共享解析；此处要求已是映射。"""
     if not isinstance(值,dict):#非对象
-        raise ValueError('inspector protocol: invalid source frame')#抛错
+        raise ValueError('inspector 协议：源帧无效')#抛错
     记录=值.get('records')#记录
     if isinstance(记录,list) and len(记录)>每帧上限:#超限
-        raise ValueError('inspector protocol: too many records')#抛错
+        raise ValueError('inspector 协议：记录过多')#抛错
     return 值#返回
 
 class 检查器源注册表:#源注册表
@@ -112,7 +111,7 @@ class 检查器源注册表:#源注册表
             return#返回
         状态=自身._源表.get(帧.get('sourceId'))#取状态
         if 状态 is None or 状态['connection'] is not 连接 or 状态['source']['generation']!=帧.get('generation'):#归属不符
-            raise ValueError('inspector protocol: frame does not belong to the active source generation')#抛错
+            raise ValueError('inspector 协议：帧不属于当前源世代')#抛错
         if 帧['t']=='source/close':#关闭
             del 自身._源表[帧['sourceId']]#删除
             for 消费者 in 自身._消费者列表:#通知
@@ -181,7 +180,7 @@ class 检查器源注册表:#源注册表
     def _打开(自身,连接,源,主题列表):#打开源
         """登记新代数并接受。"""
         if 源['kind']!=连接['kind']:#种类不符
-            raise ValueError('inspector protocol: source kind does not match its carrier')#抛错
+            raise ValueError('inspector 协议：源种类与载体不匹配')#抛错
         接受=set(主题列表)#接受主题
         旧=自身._源表.get(源['sourceId'])#旧代数
         if 旧 is not None:#有旧

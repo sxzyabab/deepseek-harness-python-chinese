@@ -1,4 +1,3 @@
-"""加载 gen-cordis-api 三表：委托各目录表模块（原版全文解析）。"""
 from .服务目录表 import 服务目录#服务
 from .事件目录表 import 事件目录#事件
 from .类型目录表 import 类型目录#类型

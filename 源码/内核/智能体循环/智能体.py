@@ -1,4 +1,3 @@
-"""默认 Agent 驱动器：处理排队轮次与步骤边界输入。每次请求都从会话日志派生。"""
 import threading
 from ..智能体 import 智能体事件,为组装构建上下文,下一轮,下一步
 from ...模型后端.llm import (
@@ -106,10 +105,10 @@ class 循环智能体:
         if 自身.阶段['kind']!='idle':
             自身.阶段['abort'].中止(原因)#中止活动
 
-    def 跑维护(自身,任务):
-        """跑维护。"""
+    def 执行维护(自身,任务):
+        """从空闲阶段执行一次非轮次维护。"""
         if 自身.阶段['kind']!='idle':
-            raise 循环错误('agent "'+str(自身.id)+'" already has active work')#已有活动
+            raise 循环错误('智能体 "'+str(自身.id)+'" 已有活动工作')#已有活动
         落定=操作任务()#维护落定
         维护={
             'kind':'maintenance',#种类
@@ -205,7 +204,7 @@ class 循环智能体:
     def 预步骤(自身,目标,位置):
         """预步骤。"""
         if 自身.阶段['kind']!='running':
-            raise 循环错误('agent "'+str(自身.id)+'": pre-step outside running phase')#必须在运行
+            raise 循环错误('智能体 "'+str(自身.id)+'"：预步骤不在运行阶段')#必须在运行
         信号=自身.阶段['abort'].信号#轮次信号
         已领=自身.inbox.领取(目标,位置['turn'])#领取批次
         组装=自身.循环上下文.systemPrompt.组装(为组装构建上下文(自身,信号))#组装提示词
@@ -240,7 +239,7 @@ class 循环智能体:
     def 轮次(自身):
         """跑一轮。"""
         if 自身.阶段['kind']!='running':
-            自身.抛错误(循环错误('agent "'+str(自身.id)+'": turn without driver reservation'))#没有驱动器预留
+            自身.抛错误(循环错误('智能体 "'+str(自身.id)+'"：轮次没有驱动器预留'))#没有驱动器预留
         阶段=自身.阶段#运行阶段
         信号=阶段['abort'].信号#取消信号
         若已中止则抛出(信号)#进入前检查
@@ -310,7 +309,7 @@ class 循环智能体:
     def 一步(自身,决定):
         """跑一步：先投影系统提示与用户消息，再准备配置并派生请求。"""
         if 自身.阶段['kind']!='running':
-            raise 循环错误('agent "'+str(自身.id)+'": step outside running phase')#必须在运行
+            raise 循环错误('智能体 "'+str(自身.id)+'"：步骤不在运行阶段')#必须在运行
         阶段=自身.阶段#运行阶段
         轮次号=阶段['turn']#轮次
         步骤号=阶段['step']#步骤
@@ -407,7 +406,7 @@ class 循环智能体:
                 except BaseException as 落定错误:#落定失败
                     raise 聚合错误(#聚合错误
                         [错误,落定错误],#原因
-                        'Assistant stream failed and its durable settlement was rejected',#消息
+                        '助手流失败且其耐久落定被拒绝',#消息
                     ) from 错误#cause
                 raise 错误#重抛原错误
             try:#尝试完成
@@ -507,7 +506,7 @@ class 循环智能体:
         提议提供方=提议配置['provider'] if 'provider' in 提议配置 else None#提议提供方
         提议模型=提议配置['model'] if 'model' in 提议配置 else None#提议模型
         if 提议提供方 is None or 提议提供方=='' or 提议模型 is None or 提议模型=='':
-            raise 循环错误('agent "'+str(自身.id)+'" has no provider/model: set AgentOptions.provider and AgentOptions.model or supply both via the agent/request waterfall')#必须有提供方与模型
+            raise 循环错误('智能体 "'+str(自身.id)+'" 没有提供方/模型：请设置 AgentOptions.provider 与 AgentOptions.model，或经 agent/request 瀑布同时提供两者')#必须有提供方与模型；事件名与选项键不译
         已准备调用=None#已准备调用
         try:
             已准备调用=自身.循环上下文.llm.准备调用(提议配置,信号)#准备调用

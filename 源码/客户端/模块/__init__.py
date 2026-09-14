@@ -1,9 +1,3 @@
-"""客户端模块系统的 Node 半边（dsh.client 双面包）。
-
-扫描宿主 Loader 条目中声明了 dsh.client 的包，合成 window.__DSH_BOOT__ 入口图，提供 /plugins/<id>/client.js，挂钩 index 渲染以注入启动清单，并提供 clientModules 服务。
-
-对齐上游 `@deepseek-ai/dsh-client-modules`。公开面仅中文名。本包默认导出注册表类。
-"""
 import hashlib,json,os,threading#哈希、JSON、路径与微任务近似
 from urllib.parse import unquote,urlparse#解码路径
 from ...依赖 import cordis#外部依赖胶水

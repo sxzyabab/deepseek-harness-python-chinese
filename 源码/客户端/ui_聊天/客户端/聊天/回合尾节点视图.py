@@ -1,8 +1,3 @@
-"""回合尾：扩展链 + 助手 IconActions + 用量/时间胶囊。
-
-对齐上游 `ui-chat/src/client/chat/TurnTailNodeView.tsx`。公开面仅中文名。
-属性、节点、快照为 dict。
-"""
 from .消息图标动作 import 消息图标动作#图标行
 from .回合助手 import 助手文本#闭包正文
 from .回合用量面板 import 回合用量面板,回合时间面板#胶囊

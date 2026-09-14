@@ -1,8 +1,3 @@
-"""已落定轮次页脚与 StatsLine 共用的延迟/吞吐折叠。
-
-对齐上游 `ui-chat/src/client/contract/turn-metrics.ts`。公开面仅中文名。
-节点与用量为快照 dict。
-"""
 
 __all__=['用量输出令牌','助手步骤读数','推导回合指标']#仅中文公开名
 

@@ -1,7 +1,3 @@
-"""不依赖 Cordis 的 UI 基元库入口。
-
-对齐上游 `@deepseek-ai/dsh-client-ui-primitives`。公开面仅中文名。
-"""
 from .头尾封顶 import 头尾封顶#头尾封顶算术
 from .剪贴板 import 写剪贴板#剪贴板
 from .复制反馈 import 复制反馈,复制反馈毫秒#复制反馈

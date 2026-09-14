@@ -1,7 +1,3 @@
-"""Host Console 由 Worker 侧 Node inspector 适配器直接提供。
-
-对齐上游 `host/cdp/console.ts`。公开面仅中文名。
-"""
 from ...共享.json import 检查器错误#本包错误
 
 __all__=['控制台桥能力','拒绝控制台桥命令']#仅中文公开名

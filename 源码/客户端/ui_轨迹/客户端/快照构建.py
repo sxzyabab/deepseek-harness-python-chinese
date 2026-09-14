@@ -1,7 +1,3 @@
-"""轨迹快照构建器：把会话视图贡献压成舞台向的 TrajectorySnapshot。
-
-对齐上游 `ui-trajectory/src/client/trajectory-snapshot-builder.ts`。公开面仅中文名。
-"""
 from .约定 import 空轨迹快照#空快照
 
 __all__=['空轨迹快照','轨迹快照构建器','轨迹视图定义','登记轨迹会话视图']#仅中文公开名

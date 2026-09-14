@@ -1,7 +1,3 @@
-"""已完成回合的页脚数据与 Chat 节点。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/turn-tail.ts`。公开面仅中文名。
-"""
 from ..约定.回合指标 import 推导回合指标 as 派生回合指标#回合指标
 from .节点工厂 import 聊天错误,聊天合成序号偏移,聊天节点#公共
 from .事件面 import 是追加面事件,转助手块列表#面辅助

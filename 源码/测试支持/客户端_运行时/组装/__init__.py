@@ -1,7 +1,3 @@
-"""整客户端层入口（仅深导入）。不挂包根，以免 slot 层规格装入组装机械。
-
-对齐上游 `client-runtime/src/assembly/index.ts`。公开面仅中文名。
-"""
 from .名册 import 客户端名册,组装计划,客户端名册行#名册
 from .测试客户端 import 测试客户端#测试客户端
 from .远程默认应答 import 远程默认应答#远程默认应答

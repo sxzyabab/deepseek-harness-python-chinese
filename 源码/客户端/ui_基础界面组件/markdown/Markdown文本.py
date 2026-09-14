@@ -1,8 +1,3 @@
-"""不可信助手 Markdown 渲染面。
-
-对齐上游 `ui-primitives/src/markdown/MarkdownText.tsx`。公开面仅中文名。
-流式：增量解析器冻结除尾两块外的块；定稿：含数学全量解析+脚注区。
-"""
 from .解析 import 解析GFM,解析GFM含数学#两臂文法
 from .增量 import 增量Markdown解析器#流式增量
 from .渲染 import (#渲染管线

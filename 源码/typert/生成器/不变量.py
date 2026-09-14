@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-typert-generator` 的本包拥有不变量配套。
-
-对齐上游 `generator/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：本源码项目分析器与构建期代码输出在任何 cordis 运行时之外执行；模型快照、可执行制品、以及消费包的类型检查强制其输出约定。
-"""
 包名='@deepseek-ai/dsh-typert-generator'#本包的不变量所有权名
 名称='typert-generator-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

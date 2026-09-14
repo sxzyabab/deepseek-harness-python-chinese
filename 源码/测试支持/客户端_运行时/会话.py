@@ -1,7 +1,3 @@
-"""声明式 fixture 之上的测试拥有 Session Controller 面。
-
-对齐上游 `client-runtime/src/sessions.ts`。公开面仅中文名。
-"""
 from ...客户端.连接.客户端.接口 import 会话搜索结果上限#搜索结果上限
 from ...内核.作用域 import 创建作用域,获取作用域#作用域铸造与读标签
 from .夹具 import 会话快照#会话快照工厂
@@ -282,7 +278,7 @@ class 测试会话:#会话测试替身
         """经已安装测试行为创建。"""
         自身.calls.append({'method':'create','args':[选项]})#记录
         if 自身._createStub is None:#未桩
-            raise Exception('test sessions: create is not stubbed — call stubCreate() first')#英文诊断
+            raise Exception('测试会话：create 尚未打桩——先调用 stubCreate()')#诊断
         标识=自身._createStub(选项)#走桩
         自身._要求(标识)#要求可寻址
         return 标识#返回

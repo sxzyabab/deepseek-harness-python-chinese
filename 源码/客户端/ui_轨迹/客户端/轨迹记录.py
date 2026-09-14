@@ -1,7 +1,3 @@
-"""共享的轨迹记录数据与格式化约定。
-
-对齐上游 `ui-trajectory/src/client/trajectory-record.ts`。公开面仅中文名。
-"""
 import math#有限数判定
 import re#千分位插入
 

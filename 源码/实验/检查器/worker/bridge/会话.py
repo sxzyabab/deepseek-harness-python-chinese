@@ -1,4 +1,3 @@
-"""Worker 拥有的 Client 会话共享清理投递。"""
 #对齐上游 worker/bridge/session.ts
 
 __all__=['发送Client会话关闭']#仅中文公开名

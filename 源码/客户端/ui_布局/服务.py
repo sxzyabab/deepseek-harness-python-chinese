@@ -1,8 +1,3 @@
-"""LayoutController：ctx.layout 背后的跨插件面板动作面。
-
-对齐上游 `ui-layout/src/client/service.ts`。公开面仅中文名。
-面板几何与主面板选择住在根布局 store；写入仍落在 store 声明的动作集内。
-"""
 import threading#导航中止
 
 __all__=['布局控制器']#仅中文公开名
@@ -18,7 +13,7 @@ class 布局控制器:#跨插件面板动作面
     def 选择面板(自身,面板标识):#选择主面板
         """未登记则抛错并保留当前选择。"""
         if 面板标识 is not None and not 自身.有主面板(面板标识):#未登记
-            raise Exception('layout.selectPanel: main panel "'+str(面板标识)+'" is not registered')#保留
+            raise Exception('layout.selectPanel: 主面板 "'+str(面板标识)+'" 未登记')#保留
         自身.导航.set()#中止挂起导航
         自身.面板['selectPanel'](面板标识)#写入 store
 

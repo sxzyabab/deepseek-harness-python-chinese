@@ -1,8 +1,3 @@
-"""审批详情命令卡。
-
-对齐上游 `ui-chat/src/client/chat/ApprovalCommand.tsx`。公开面仅中文名。
-属性为 dict。
-"""
 from .回退命令卡 import 回退命令卡#命令卡
 
 __all__=['审批命令']#仅中文公开名

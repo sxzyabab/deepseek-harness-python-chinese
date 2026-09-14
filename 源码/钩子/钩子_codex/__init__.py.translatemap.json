@@ -6,5 +6,6 @@
     "inject":"注入",
     "name":"名称",
     "run":"执行",
+    "runPoint":"执行钩子点",
     "self":"自身"
 }

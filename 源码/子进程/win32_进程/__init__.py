@@ -1,4 +1,3 @@
-"""Windows ACL 沙箱使用的 Win32 进程、标准 IO 与作业对象原语。"""
 import ctypes,os,struct,time#FFI、平台、结构打包与退避
 __all__=[#仅中文公开名
     '错误缓冲不足','Win32错误','分配指针槽','分配uint32','解码指针','解码uint32',

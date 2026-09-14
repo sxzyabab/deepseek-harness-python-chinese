@@ -1,7 +1,3 @@
-"""经活动 Worker WebSocket 的 Client 侧非 CDP 查询桥。
-
-对齐上游 `client/bridge/rpc.ts`。公开面仅中文名。
-"""
 import json#序列化
 from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.rpc import 检查器查询连接#查询连接基类

@@ -1,10 +1,3 @@
-"""按回合折叠的产出文件定义与读取器。
-
-对齐上游 `ui-deliverables/src/client/turn-deliverables.ts`。公开面仅中文名。
-仅客户端、不看模型正文：词表来自变更工具随附的 locations。
-会话事件、视图、属主、回合 data 均为跨线 dict。
-"""
-
 from .已呈现 import 是否已呈现数据,是否已呈现文件,路径末段 as _已呈现路径末段#已呈现校验
 
 __all__=[#仅中文公开名

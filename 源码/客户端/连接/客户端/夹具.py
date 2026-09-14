@@ -1,10 +1,3 @@
-"""无服务器的独立 UI 开发假宿主。
-
-对齐上游 `connection/src/client/fixture.ts` 的 FixtureApiClient / createFixtureFaces /
-createFixtureWorld 主体。样本常量与甲日志来自 `.夹具样本` / `.夹具历史`。
-真实约定：一元调用吃 RpcRequest、回 RpcResponse（回显 rpcId）；流产出自造帧 rpcId；
-根 respond 吃 ClientResponse、回 RpcReceipt。公开面仅中文名；协议键保持英文。
-"""
 import builtins,functools,re,threading,time#全局、偏函数、切片、定时器、延迟
 from urllib.parse import parse_qs#读查询
 from ..rpc import 连接错误,已中止#本包异常与中止
@@ -300,7 +293,7 @@ def 造夹具世界(选项):#内存假宿主
         """写入累积器并广播 live-chunk。"""
         尝试=活动尝试.get(标识)#活动
         if 尝试 is None:#无
-            raise 连接错误(f'fixture: no active Assistant attempt for {标识}')#错误
+            raise 连接错误(f'fixture: 会话 {标识} 没有进行中的助手尝试')#错误
         带时=尝试['stream'].推入({'time':int(time.time()*1000),'chunk':块})#累积
         广播直播块(标识,尝试,带时['chunk'],带时['time'])#直播
         尝试['index']+=1#推进索引
@@ -310,7 +303,7 @@ def 造夹具世界(选项):#内存假宿主
         """清活动尝试；耐久事件已由调用方追加。"""
         尝试=活动尝试.pop(标识,None)#摘下
         if 尝试 is None:#无
-            raise 连接错误(f'fixture: no active Assistant attempt for {标识}')#错误
+            raise 连接错误(f'fixture: 会话 {标识} 没有进行中的助手尝试')#错误
         return 尝试#返回
 
     def 追加目标变更(标识,变更):#写目标
@@ -695,7 +688,7 @@ def 造夹具世界(选项):#内存假宿主
         标识=会话标识(标识字面)#品牌
         剧本=重试剧本.get(标识)#剧本
         if 剧本 is None:#未 begin
-            raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
+            raise 连接错误(f'fixture: 没有 {标识字面} 的模型重试场景')#错误
         if not 剧本['stepStarted']:#需要再开一块半截
             开始助手(标识,剧本['turn'],1)#开尝试
             推助手(标识,{'type':'block-start','index':0,'blockType':'text'})#开块
@@ -719,7 +712,7 @@ def 造夹具世界(选项):#内存假宿主
         标识=会话标识(标识字面)#品牌
         剧本=重试剧本.get(标识)#剧本
         if 剧本 is None:#未 begin
-            raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
+            raise 连接错误(f'fixture: 没有 {标识字面} 的模型重试场景')#错误
         失败体={'code':'TRANSPORT','message':'连接被重置'}#失败体
         活动=活动尝试.get(标识)#活动
         if 活动 is not None:#有半截
@@ -742,7 +735,7 @@ def 造夹具世界(选项):#内存假宿主
         标识=会话标识(标识字面)#品牌
         剧本=重试剧本.pop(标识,None)#清
         if 剧本 is None:#未 begin
-            raise 连接错误(f'fixture: no model retry scenario for {标识字面}')#错误
+            raise 连接错误(f'fixture: 没有 {标识字面} 的模型重试场景')#错误
         完成='重试后的完整回复'#定稿正文
         开始助手(标识,剧本['turn'],1)#开尝试
         推助手(标识,{'type':'block-start','index':0,'blockType':'text'})#开块
@@ -1501,7 +1494,7 @@ def 造夹具世界(选项):#内存假宿主
             return 完成目标(标识,参数.get('ref') or {})#完成
         if 端点=='goals/clear':#清除
             return 清除目标(标识,参数.get('ref') or {})#清除
-        raise 连接错误(f'fixture connection RPC endpoint {端点!r} is unavailable')#未知端点
+        raise 连接错误(f'fixture 连接 RPC 端点 {端点!r} 不可用')#未知端点
 
     api=面对象(#旧一元/流面
         sessions=面对象(
@@ -1553,7 +1546,7 @@ def 造夹具世界(选项):#内存假宿主
 
 def _会话导出桩():#下载 stub
     """fixture 不服务导出。"""
-    return {'status':404,'body':'fixture mode does not serve session export'}#404
+    return {'status':404,'body':'夹具模式不提供会话导出'}#404
 
 class 夹具接口客户端(抽象接口客户端):#无 HTTP 的假客户端
     """覆盖协议级虚方法，直接派进内存 ApiProxy；仍自造 rpcId 并喂观察 tap。"""
@@ -1660,7 +1653,7 @@ class 夹具接口客户端(抽象接口客户端):#无 HTTP 的假客户端
         if 方法=='llm.providers': return api.llm.providers(请求)#提供方
         if 方法=='llm.models': return api.llm.models(请求)#模型
         if 方法=='llm.discoverModels': return api.llm.discoverModels(请求)#发现
-        raise 连接错误(f'fixture: unknown unary method {方法!r}')#未知
+        raise 连接错误(f'fixture: 未知一元方法 {方法!r}')#未知
 
     def openMux(自身,载荷,信号,打开回调=None):#mux
         """打开 mux 流并打 tap。"""

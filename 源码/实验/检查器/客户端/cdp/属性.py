@@ -1,7 +1,3 @@
-"""Client 侧属性枚举。
-
-对齐上游 `client/cdp/properties.ts`。公开面仅中文名。
-"""
 from .错误 import 客户端运行时执行错误#执行错误
 
 __all__=['获取客户端属性']#仅中文公开名

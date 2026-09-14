@@ -22,7 +22,7 @@
     "registry":"注册表",
     "reject":"拒绝",
     "resume":"恢复",
-    "run":"运行",
+    "run":"压栈执行",
     "scope":"作用域",
     "service":"服务",
     "session":"会话",

@@ -1,8 +1,3 @@
-"""回退斜杠命令卡。
-
-对齐上游 `ui-chat/src/client/chat/GenericCommandCard.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 
 __all__=['回退命令卡']#仅中文公开名
 

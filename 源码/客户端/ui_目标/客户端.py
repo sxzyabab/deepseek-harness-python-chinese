@@ -1,8 +1,3 @@
-"""目标界面插件的浏览器半边。
-
-对齐上游 `ui-goal/src/client/index.ts`。公开面仅中文名。
-conversation.input.dock 条上的 GoalBar 条目；激活源拥有现场 Remote 读与事件。
-"""
 from .文案 import 命名空间,中文,英文#词表
 from .槽位 import 无当前目标结果#失败结果
 from .激活源 import 创建目标激活源#激活源
@@ -49,7 +44,7 @@ def 应用(上下文):#安装目标界面浏览器半边
         """激活源加四个变更动词。"""
         绑定=会话服务.binding(会话标识)#该会话绑定
         if 绑定 is None:#不可用
-            raise RuntimeError('ui-goal: session "'+str(会话标识)+'" is unavailable')#抬错
+            raise RuntimeError('ui-goal: 会话 "'+str(会话标识)+'" 不可用')#抬错
         def 读目标():#权威读
             """调用时读取当前现场目标。"""
             return 上下文.remote.goals.get(会话标识)#读

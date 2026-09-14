@@ -1,4 +1,3 @@
-"""与源载体无关的 Cordis 树查询执行。"""
 #对齐上游 worker/inspection/cordis-query.ts
 
 def 执行检查器查询(读取器,查询):#执行查询

@@ -1,7 +1,3 @@
-"""无密钥快照层背后的会话日志快照支持。
-
-对齐上游 `session-snapshot/src/index.ts`。公开面仅中文名。
-"""
 from .身份 import 脱敏会话快照标识#身份脱敏
 from .测试架 import 运行场景,快照溢出根#场景 harness
 from .启动器 import 启动ACP测试智能体,物化配置档补丁#启动器

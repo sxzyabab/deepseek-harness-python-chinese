@@ -1,7 +1,3 @@
-"""由表面替换重建的一代不可变模型上下文。
-
-对齐上游 `ui-chat/src/client/model/conversation-context.ts`。公开面仅中文名。
-"""
 
 __all__=['会话上下文起源种','会话上下文']#仅中文公开名
 

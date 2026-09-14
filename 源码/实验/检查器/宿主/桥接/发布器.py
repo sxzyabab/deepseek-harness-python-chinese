@@ -1,7 +1,3 @@
-"""经专用 Worker MessagePort 的带缓冲 Host 观测发布。
-
-对齐上游 `host/bridge/publisher.ts`。公开面仅中文名。
-"""
 import threading,time#微任务与时钟
 from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.缓冲 import 检查器源缓冲#源缓冲

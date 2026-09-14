@@ -1,7 +1,3 @@
-"""内置 Markdown 元数据与带键文档正文登记。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/markdown/index.ts`。公开面仅中文名。
-"""
 from .文案 import 中文,英文,标记文本预览键#词典
 from .标记文本体 import 标记文本体#正文
 

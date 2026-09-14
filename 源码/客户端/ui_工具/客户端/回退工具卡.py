@@ -1,8 +1,3 @@
-"""回退工具卡：未登记工具名的回退行。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/GenericToolCard.tsx`。公开面仅中文名。
-props 与行模型、卡模型均为 dict。
-"""
 from .调用模型 import 派生工具行#行模型
 from .读卡模型 import 读卡模型#读
 from .差异卡模型 import 差异卡模型#差异

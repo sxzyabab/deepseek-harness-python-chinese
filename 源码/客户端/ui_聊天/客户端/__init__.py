@@ -1,7 +1,3 @@
-"""Chat 浏览器半公开面。
-
-对齐上游 `ui-chat/src/client/index.ts`。公开面仅中文名。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .存储 import 创建聊天存储,已存回合过程条目#选中存储
 from .转录视图 import 转录视图策略#呈现策略

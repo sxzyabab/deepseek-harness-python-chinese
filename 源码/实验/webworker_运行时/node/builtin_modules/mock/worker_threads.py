@@ -1,9 +1,3 @@
-"""`node:worker_threads` 桩。不支持嵌套 Worker，因此工作流与
-code-runtime 插件体可挂载、在使用时失败。
-线程身份值是真实的：它们表示「这是主线程」。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/mock/worker_threads.ts`。
-"""
 from ...未实现失败 import 未实现失败#导入未实现桩
 
 __all__=[#Node面

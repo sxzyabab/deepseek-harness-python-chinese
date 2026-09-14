@@ -1,8 +1,3 @@
-"""轨迹轮次：粘性轮次头 + 正文。
-
-对齐上游 `TrajectoryTurn.tsx` / `TrajectoryTurnHeader.tsx`。公开面仅中文名。
-样式正文落在同目录 轨迹轮次.module.css / 轨迹轮次头.module.css。
-"""
 import os#同目录样式路径
 
 __all__=['轨迹轮次','轨迹轮次头','列标签','轮次样式表','轮次头样式表','轮次样式文件','轮次头样式文件']#仅中文公开名

@@ -1,7 +1,3 @@
-"""连接监督器：拥有一个插件实例的 MCP 客户端/传输世代，使框架工具注册表与存活世代保持同步；连接断开时按有界指数退避重启已配置的服务器。
-
-对齐上游 `mcp-client/src/connection.ts`。公开面仅中文名。配置键与诊断英文字面量保持上游。
-"""
 import math,threading,time#有限判定、定时器与时间戳
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
@@ -28,7 +24,7 @@ class 操作任务:
             if isinstance(错误,BaseException):#已是异常
                 自身._未来.set_exception(错误)#原样拒绝
             else:#非异常
-                包装=MCP错误('task rejected')#包装拒绝
+                包装=MCP错误('任务被拒绝')#包装拒绝
                 包装.原因=错误#附加信息做成属性
                 自身._未来.set_exception(包装)#包装拒绝
 
@@ -50,19 +46,19 @@ def 解析重连策略(配置,路径):
     if 配置 is not None:#调用方给出了重连配置
         for 键 in 配置.keys():#遍历调用方给出的键
             if 键 not in 重连默认值:#未知键则拒绝
-                raise MCP错误(路径+'.'+键+' is not a reconnect option')#未知键
+                raise MCP错误(路径+'.'+键+' 不是重连选项')#未知键
     启用=重连默认值['enabled'] if 配置 is None or 'enabled' not in 配置 else 配置['enabled']#是否启用
     初始=重连默认值['initialDelayMs'] if 配置 is None or 'initialDelayMs' not in 配置 else 配置['initialDelayMs']#初始延迟
     上限=重连默认值['maxDelayMs'] if 配置 is None or 'maxDelayMs' not in 配置 else 配置['maxDelayMs']#延迟上限
     次数=重连默认值['maxAttempts'] if 配置 is None or 'maxAttempts' not in 配置 else 配置['maxAttempts']#最大尝试次数
     if isinstance(初始,bool) or not isinstance(初始,(int,float)) or not math.isfinite(初始) or 初始<=0 or 初始>定时器延迟上限毫秒:#初始延迟非法
-        raise MCP错误(路径+'.initialDelayMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#拒绝
+        raise MCP错误(路径+'.initialDelayMs 必须是不超过 '+str(定时器延迟上限毫秒)+' 的正有限数')#拒绝
     if isinstance(上限,bool) or not isinstance(上限,(int,float)) or not math.isfinite(上限) or 上限<=0 or 上限>定时器延迟上限毫秒:#延迟上限非法
-        raise MCP错误(路径+'.maxDelayMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#拒绝
+        raise MCP错误(路径+'.maxDelayMs 必须是不超过 '+str(定时器延迟上限毫秒)+' 的正有限数')#拒绝
     if 初始>上限:#初始延迟超过上限
-        raise MCP错误(路径+'.initialDelayMs must be less than or equal to maxDelayMs')#拒绝颠倒的延迟对
+        raise MCP错误(路径+'.initialDelayMs 必须小于等于 maxDelayMs')#拒绝颠倒的延迟对
     if isinstance(次数,bool) or not isinstance(次数,int) or 次数<1:#尝试次数非法
-        raise MCP错误(路径+'.maxAttempts must be a positive integer')#拒绝非正整数
+        raise MCP错误(路径+'.maxAttempts 必须是正整数')#拒绝非正整数
     return {'enabled':启用,'initialDelayMs':初始,'maxDelayMs':上限,'maxAttempts':次数}#已解析策略
 
 def 启动连接(上下文,配置,策略):
@@ -104,7 +100,7 @@ def 启动连接(上下文,配置,策略):
         本次=操作任务()#本次运行
         新链=操作任务()#新链尾
         状态['syncChain']=新链#先挂上新链尾
-        def 跑链():
+        def 执行同步链():
             """先前成败都继续；本次落定后放行新链。"""
             try:#等先前
                 try:#先前失败也继续
@@ -122,7 +118,7 @@ def 启动连接(上下文,配置,策略):
                     本次.拒绝(错误)#交给调用方
             finally:#无论成败都放行链
                 新链.兑现(None)#放行
-        threading.Thread(target=跑链,daemon=True).start()#串行链
+        threading.Thread(target=执行同步链,daemon=True).start()#串行链
         return 本次#把本次运行交给调用方
 
     def 世代断开(世代):
@@ -149,7 +145,7 @@ def 启动连接(上下文,配置,策略):
         定时=threading.Timer(世代关闭超时毫秒/1000,超时)#超时定时器
         定时.daemon=True#不独自撑住进程
         定时.start()#启动
-        def 盯关闭():
+        def 等待关闭到达():
             """关闭到达则取消超时并报告正常关闭。"""
             try:#等待
                 关闭任务.等待()#等关闭
@@ -157,7 +153,7 @@ def 启动连接(上下文,配置,策略):
                 pass#仍算观察到
             定时.cancel()#取消超时
             结算(True)#正常关闭
-        threading.Thread(target=盯关闭,daemon=True).start()#盯关闭
+        threading.Thread(target=等待关闭到达,daemon=True).start()#等待关闭到达
         return 结果.等待()#阻塞等到结果
 
     def 安排重连():
@@ -180,7 +176,7 @@ def 启动连接(上下文,配置,策略):
                 for 注销 in 状态['disposers'].values():#注销全部工具
                     注销()#注销
                 状态['disposers']={}#清空 disposer
-            def 跑放弃():
+            def 执行放弃拆除():
                 """等链尾后拆除。"""
                 try:#等链
                     if 状态['syncChain'] is not None:#有链尾
@@ -188,7 +184,7 @@ def 启动连接(上下文,配置,策略):
                 except MCP错误:#链失败也拆
                     pass#仍拆
                 放弃拆除()#注销工具
-            threading.Thread(target=跑放弃,daemon=True).start()#接到同步链尾
+            threading.Thread(target=执行放弃拆除,daemon=True).start()#接到同步链尾
             上下文.日志.错误(标签+': giving up after '+str(策略['maxAttempts'])+' consecutive failed reconnect attempts — tools unregistered; reload the plugin or restart the Host to reconnect')#记录放弃
             return#停止重连
         延迟=min(策略['maxDelayMs'],策略['initialDelayMs']*(2**(状态['failedAttempts']-1)))#指数退避并封顶
@@ -288,7 +284,7 @@ def 启动连接(上下文,配置,策略):
             关闭.兑现(None)#放行
 
     状态['settling']=连接世代#先记下函数；下面立刻跑启动尝试
-    def 跑启动():
+    def 执行启动尝试():
         """插件激活时的那一次尝试。"""
         try:#连接
             连接世代(True)#启动路径
@@ -296,9 +292,9 @@ def 启动连接(上下文,配置,策略):
             if 状态['client'] is not None:#初次成功则无错误
                 就绪.兑现({})#成功
             else:#失败则带上真实错误
-                错误=状态['firstAttemptError'] or MCP错误(标签+': initial connection failed')#真实错误
+                错误=状态['firstAttemptError'] or MCP错误(标签+': 初次连接失败')#真实错误
                 就绪.兑现({'error':错误})#带错误
-    threading.Thread(target=跑启动,daemon=True).start()#后台启动，避免阻塞 apply 登记 effect
+    threading.Thread(target=执行启动尝试,daemon=True).start()#后台启动，避免阻塞 apply 登记 effect
 
     def 拆除():
         """停止重连，关闭存活客户端，等待静默，然后注销本服务器仍拥有的全部工具。"""

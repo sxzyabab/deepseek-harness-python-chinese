@@ -1,9 +1,3 @@
-"""文件变更工具行：edit / write 的 keyed toolview。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/file-mutation-row.tsx`。公开面仅中文名。
-共享 ToolRow；展开体喂 diff 卡材料；失败无 diff 时走 Output 首行摘要。
-props 与行模型均为 dict。
-"""
 from .调用模型 import 派生工具行#行模型
 from .差异卡模型 import 差异卡模型#diff 卡
 from .工具行 import 工具行#外壳

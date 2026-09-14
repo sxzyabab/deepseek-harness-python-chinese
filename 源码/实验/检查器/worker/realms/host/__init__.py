@@ -1,4 +1,3 @@
-"""由连接本地 Node inspector 会话支撑的 Host realm 适配器。"""
 #对齐上游 worker/realms/host/index.ts
 
 import uuid#随机id

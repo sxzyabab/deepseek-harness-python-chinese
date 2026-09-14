@@ -1,7 +1,3 @@
-"""封闭的非 CDP Inspector 查询与结果模型。
-
-对齐上游 `shared/bridge/messages/query/commands.ts`。公开面仅中文名。
-"""
 __all__=[#仅中文公开名
     'cordis树获取查询','检查器查询','cordis树获取结果','检查器查询结果',
     '检查器查询错误','检查器查询请求器',

@@ -1,9 +1,3 @@
-"""Web 启动内核。
-
-对齐上游 `web/src/boot.ts`。公开面仅中文名。
-只拥有模块系统、Cordis 加载器与无框架启动页；
-插件组装与渲染器交接是启动客户端与挂载客户端。
-"""
 from concurrent.futures import ThreadPoolExecutor as 线程池执行器#预取并发
 from .启动客户端 import 网页错误,启动客户端#组装与本包异常
 from .启动页 import 启动页#启动页
@@ -45,11 +39,11 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
         try:#跑启动
             窗口=自身.窗口#门面
             if 窗口 is None:#缺窗口
-                raise 网页错误('web boot: window.__ModuleLoader__ bootstrap facade is missing')#失败
+                raise 网页错误('网页启动：缺少 window.__ModuleLoader__ 引导门面')#失败
             if '__DSH_BOOT_READY__' in 窗口:#有就绪门
-                窗口['__DSH_BOOT_READY__']['promise'].等待()#等引导就绪
+                窗口['__DSH_BOOT_READY__'].等待()#等引导就绪
             if '__ModuleLoader__' not in 窗口:#缺门面
-                raise 网页错误('web boot: window.__ModuleLoader__ bootstrap facade is missing')#失败
+                raise 网页错误('网页启动：缺少 window.__ModuleLoader__ 引导门面')#失败
             模块加载器=窗口['__ModuleLoader__']#模块加载器门面
             创建选项={'boot':窗口['__DSH_BOOT__'] if '__DSH_BOOT__' in 窗口 else None,'staticModules':静态模块表()}#基础选项
             if '__DSH_TRANSPORT__' in 窗口:#预注入传输
@@ -62,7 +56,7 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
             自身.清单=自身.模块系统.manifest#记下清单
             自身.预取立即层()#预取立即层
             if 上下文构造 is None:#未绑定 Context
-                raise 网页错误('web boot: Context class is not bound')#失败
+                raise 网页错误('网页启动：未绑定 Context 类')#失败
             上下文=上下文构造()#新 Cordis 树
             自身.上下文=上下文#记下
             自身.页.setTotal(len(自身.清单['plugins']))#设进度总数

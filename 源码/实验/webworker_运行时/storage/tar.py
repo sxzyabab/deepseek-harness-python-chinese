@@ -1,9 +1,3 @@
-"""未压缩 ustar 归档：VFS 镜像格式。一次 fetch 交付整棵树，
-读取器交出指向已拉取缓冲的子数组视图，故挂载不拷贝，
-worker 内也不跑 inflate。
-
-对齐上游 `webworker-runtime/src/storage/tar.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import math#块对齐ceil
 

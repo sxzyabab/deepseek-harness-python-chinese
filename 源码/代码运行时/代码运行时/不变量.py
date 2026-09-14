@@ -1,4 +1,3 @@
-"""@deepseek-ai/dsh-code-runtime 的本包拥有不变量配套。"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-code-runtime'#本包的不变量所有权名
 名称='code-runtime-invariant'#配套不变量插件名

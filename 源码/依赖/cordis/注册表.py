@@ -1,4 +1,3 @@
-"""插件登记与依赖声明。"""
 from weakref import WeakKeyDictionary as 弱键字典
 from ..工具 import 设置内部数据,构建外层栈#内部槽写入与外层栈
 from .纤程 import 纤程,纤程运行时#纤程与同插件共用记录

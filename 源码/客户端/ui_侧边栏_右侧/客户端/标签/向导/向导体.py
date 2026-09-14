@@ -1,9 +1,3 @@
-"""向导正文：链宿主与出厂向导回退。
-
-对齐上游 `ui-sidebar-right/src/client/tabs/guide/GuideBody.tsx`。公开面仅中文名。
-无 React：视图模型产出结构树 dict；链席由宿主 renderSlotChain 调度。
-出厂向导仅为居中入口胶囊，无标题文案；条目≤4 时可选展示 description。
-"""
 
 __all__=['向导体','样式表','最多带说明入口数']#仅中文公开名
 

@@ -1,7 +1,3 @@
-"""client-hmr 的浏览器半边：客户端插件条目的热重载驱动。
-
-对齐上游 `hmr/src/client/index.ts`。公开面仅中文名。监听宿主的系统 SSE 通道；收到 `rebuilt` 帧时重载该条目的打包产物，并原地替换 cordis 光纤。
-"""
 import json,threading#JSON 解析与重载串行链
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .事件 import 插件事件帧,事件端点,热更新错误#再导出 SSE 帧、路径与本包错误

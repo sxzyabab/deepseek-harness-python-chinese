@@ -1,14 +1,3 @@
-"""资源模型的公开约定面。
-
-对齐上游 `resources/src/client/contract.ts`。
-一份资源是一个地址；资源地址是 `dsh-resource://<type>/…` 形式的 URL，host 即协议键。
-其它 scheme（如 `sidebar://guide`）是导航地址，不指向资源。
-
-无 React：上游 `useResource` 标准钩子由槽位根 keyedHooks 合成；本模块提供
-`使用资源` 作为同步读快照的可调用面，订阅请用注册表的 `取源(地址).subscribe`。
-跨组件快照字段键与状态字面量保持上游英文字面量（status/value/failure）。
-提供方登记与 open 第二参均为 dict。
-"""
 __all__=[#仅中文公开名
     '资源状态_无',
     '资源状态_加载中',

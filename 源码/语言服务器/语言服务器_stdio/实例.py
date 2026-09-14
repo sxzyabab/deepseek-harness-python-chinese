@@ -1,4 +1,3 @@
-"""一条语言服务器实例：一条连接，加上 initialize 握手、可中止的串行查询队列、瞬时 didOpen→请求→didClose 生命周期，以及有界拆除。一个实例拥有一个 (提供方 id, 规范工作区) 进程。查询经单一队列串行，以便一次未能拦住服务器的取消可以终止该实例而不杀掉无关工作；不同实例并行运行。"""
 import threading#队列与拆除互斥
 from ...工具.超时 import 截止,已中止#有界截止期与已中止判定
 from ..语言服务器 import 语言服务器错误#带稳定code的语言服务器错误
@@ -46,26 +45,26 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
         自身.能力=None#握手后的服务器能力
         自身.队列=None#查询串行尾；缺席表示尚无先前工作
         自身.已拆除=False#是否已拆除
-        自身.拆除承诺=None#进行中的拆除
+        自身.拆除任务=None#进行中的拆除
         自身.进程已关=False#进程是否已关闭
         自身.就绪=操作任务()#握手完成边界
         自身.锁=threading.Lock()#队列与拆除互斥
-        def 跑握手():#后台initialize
+        def 执行握手():#后台initialize
             """开始initialize握手。"""
             try:#握手
                 自身.初始化()#initialize
                 自身.就绪.兑现(None)#成功
             except BaseException as 错误:#握手失败
                 自身.就绪.拒绝(错误)#拒绝每一条查询
-        threading.Thread(target=跑握手,daemon=True).start()#开始握手
-        def 盯关闭():#进程关闭后同步置位dead
-            """等待连接关闭承诺。"""
+        threading.Thread(target=执行握手,daemon=True).start()#开始握手
+        def 等待进程关闭():#进程关闭后同步置位dead
+            """等待连接关闭任务。"""
             try:#等待
-                自身.连接.关闭承诺.等待()#进程关闭
+                自身.连接.关闭任务.等待()#进程关闭
             except BaseException:#关闭路径失败
                 pass#仍置位
             自身.进程已关=True#同步置位
-        threading.Thread(target=盯关闭,daemon=True).start()#盯关闭
+        threading.Thread(target=等待进程关闭,daemon=True).start()#等待进程关闭
 
     @property#只读属性
     def 已死(自身):#同步存活检查
@@ -81,12 +80,12 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
         结果任务=操作任务()#本查询结果
         with 自身.锁:#互斥排队
             先前=自身.队列#先前的队列尾
-            def 跑():#可中止地等待队列尾再跑
-                """轮到后跑瞬时打开生命周期。"""
+            def 执行排队查询():#可中止地等待队列尾再执行
+                """轮到后执行瞬时打开生命周期。"""
                 try:#等待先前并执行
                     if 先前 is not None:#有先前尾才等
                         可中止等待(先前,信号)#可中止地等待队列尾
-                    值=自身.跑查询(请求,源,信号)#跑瞬时打开生命周期
+                    值=自身.执行查询(请求,源,信号)#执行瞬时打开生命周期
                     结果任务.兑现(值)#成功
                 except BaseException as 错误:#查询失败
                     if 自身.是传输失败(错误):#传输失败则拆除实例
@@ -105,7 +104,7 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
                     except BaseException:#先前失败
                         pass#不继承
                 try:#等本查询线程跑完
-                    跑()#跑本查询（内含可中止等待）
+                    执行排队查询()#执行本查询（内含可中止等待）
                 finally:#结算尾
                     尾.兑现(None)#尾永不拒绝
             threading.Thread(target=跟尾,daemon=True).start()#串行
@@ -128,10 +127,10 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
         自身.能力=能力#记下能力供后续查询
         自身.连接.通知('initialized',{})#发送initialized通知
 
-    def 跑查询(自身,请求,源,信号=None):#跑瞬时打开→请求→关闭
-        """跑瞬时打开生命周期。"""
+    def 执行查询(自身,请求,源,信号=None):#执行瞬时打开→请求→关闭
+        """执行瞬时打开生命周期。"""
         if 自身.已拆除:#已拆除则拒绝
-            raise 语言服务器错误('LSP instance was disposed','LSP_DISPOSED')#拒绝
+            raise 语言服务器错误('语言服务器实例已拆除','LSP_DISPOSED')#拒绝
         if 信号 is not None and 已中止(信号):#进入前若已取消则抛错
             raise 中止错误(信号)#取消
         try:#等待握手，允许查询信号放弃
@@ -142,12 +141,12 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
             raise 错误#把原失败交给调用方
         能力=自身.能力#握手后的能力
         if 能力 is None:#能力缺失则未初始化
-            raise 语言服务器错误('LSP instance is not initialized','LSP_INTERNAL')#未初始化
+            raise 语言服务器错误('语言服务器实例尚未初始化','LSP_INTERNAL')#未初始化
         操作=请求['operation']#语义操作
         if 支持操作(能力,操作) is False:#服务器未宣称该操作
-            raise 语言服务器错误('server does not support '+str(操作),'LSP_UNSUPPORTED_OPERATION')#拒绝不支持的操作
+            raise 语言服务器错误('服务器不支持 '+str(操作),'LSP_UNSUPPORTED_OPERATION')#拒绝不支持的操作
         if 支持瞬时打开(能力['textDocumentSync'] if 'textDocumentSync' in 能力 else None) is False:#不支持瞬时打开关闭
-            raise 语言服务器错误('server does not support the transient textDocument/didOpen this host requires','LSP_UNSUPPORTED_OPERATION')#拒绝缺少openClose
+            raise 语言服务器错误('服务器不支持本宿主所需的瞬时 textDocument/didOpen','LSP_UNSUPPORTED_OPERATION')#拒绝缺少openClose
         网址=源['fileUrl']#源文件URI
         已打开=False#是否已成功didOpen
         try:#打开文档、发请求、归一结果
@@ -188,13 +187,13 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
             参数['context']={'includeDeclaration':True}#始终包含声明
         请求标识=自身.连接.窥视下一标识()#预先看见即将分配的id
         发送=操作任务()#请求操作任务包装
-        def 跑发送():#后台发请求
+        def 执行发送():#后台发请求
             """发出带id请求。"""
             try:#请求
                 发送.兑现(自身.连接.请求(请求方法(操作),参数))#响应
             except BaseException as 错误:#失败
                 发送.拒绝(错误)#拒绝
-        threading.Thread(target=跑发送,daemon=True).start()#发出
+        threading.Thread(target=执行发送,daemon=True).start()#发出
         if 信号 is None:#无取消则直接等待响应
             return 发送.等待()#等待
         return 自身.竞态中止(发送,请求标识,信号)#与取消竞态
@@ -212,14 +211,14 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
                 已结算=False#默认未结算
                 try:#请求结算与宽限竞态
                     结算哨=操作任务()#发送落定哨
-                    def 盯发送():#等发送落定后兑现哨
+                    def 等待发送落定():#等发送落定后兑现哨
                         """等发送落定后兑现哨。"""
                         try:#等待发送
                             发送.等待()#等待
                         except BaseException:#成败都算落定
                             pass#吞掉
                         结算哨.兑现(标记已结算())#标记已结算
-                    threading.Thread(target=盯发送,daemon=True).start()#盯发送
+                    threading.Thread(target=等待发送落定,daemon=True).start()#等待发送落定
                     可中止等待(结算哨,宽限.signal)#竞态
                     已结算=True#宽限耗尽前已结算
                 except BaseException:#宽限到期或其它
@@ -246,8 +245,8 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
         if 方法 in 生命周期空操作方法:#生命周期记账请求
             return None#空成功
         if 方法=='workspace/applyEdit':#应用编辑
-            raise 语言服务器错误('workspace/applyEdit is not permitted by this host','LSP_UNSUPPORTED_OPERATION')#拒绝applyEdit
-        raise 语言服务器错误('unsupported server request: '+str(方法),'LSP_UNSUPPORTED_OPERATION')#其余方法一律拒绝
+            raise 语言服务器错误('本宿主不允许 workspace/applyEdit','LSP_UNSUPPORTED_OPERATION')#拒绝applyEdit
+        raise 语言服务器错误('不支持的服务器请求: '+str(方法),'LSP_UNSUPPORTED_OPERATION')#其余方法一律拒绝
 
     def 拆除(自身):#拆除本实例
         """拒绝排队工作，尝试优雅 shutdown/exit，再升级 SIGTERM→SIGKILL，并等待进程关闭。"""
@@ -257,17 +256,17 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
         """只发布一次拆除，并让每一个调用方等待同一条静止边界。"""
         with 自身.锁:#互斥
             自身.已拆除=True#挡住新查询
-            if 自身.拆除承诺 is None:#只启动一次拆除
-                自身.拆除承诺=操作任务()#拆除操作任务
-                def 跑拆除():#后台拆除
+            if 自身.拆除任务 is None:#只启动一次拆除
+                自身.拆除任务=操作任务()#拆除操作任务
+                def 执行拆除事务():#后台拆除
                     """执行 tearDown。"""
                     try:#拆除
                         自身.执行拆除()#有界拆除
-                        自身.拆除承诺.兑现(None)#成功
+                        自身.拆除任务.兑现(None)#成功
                     except BaseException as 错误:#拆除失败
-                        自身.拆除承诺.拒绝(错误)#拒绝
-                threading.Thread(target=跑拆除,daemon=True).start()#启动
-            任务对象=自身.拆除承诺#共用
+                        自身.拆除任务.拒绝(错误)#拒绝
+                threading.Thread(target=执行拆除事务,daemon=True).start()#启动
+            任务对象=自身.拆除任务#共用
         return 任务对象.等待()#共用同一条静止边界
 
     def 执行拆除(自身):#优雅关闭失败则强制终止
@@ -284,19 +283,19 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
     def 优雅关闭(自身,信号):#有界优雅关闭
         """尽力而为的 LSP shutdown/exit，含进程关闭，由 signal 封顶。"""
         关闭发送=操作任务()#shutdown请求
-        def 跑关闭():#后台shutdown
+        def 执行关闭请求():#后台shutdown
             """发送shutdown。"""
             try:#请求
                 关闭发送.兑现(自身.连接.请求('shutdown',None))#有界等待shutdown响应
             except BaseException as 错误:#失败
                 关闭发送.拒绝(错误)#拒绝
-        threading.Thread(target=跑关闭,daemon=True).start()#发出
+        threading.Thread(target=执行关闭请求,daemon=True).start()#发出
         可中止等待(关闭发送,信号)#与关闭截止竞态
         自身.连接.通知('exit',None)#发送exit通知
-        可中止等待(自身.连接.关闭承诺,信号)#有界等待进程关闭
+        可中止等待(自身.连接.关闭任务,信号)#有界等待进程关闭
 
     def 强制终止(自身):#强制终止并等待退出
         """终止提供方托管范围，然后等待直接服务器结果与整段范围静止。这些等待有意无界，因为静止——而不是再一个定时器——才是拆除欠调用方的后置条件。"""
         自身.连接.终止()#seam升级SIGTERM→宽限→SIGKILL
-        自身.连接.关闭承诺.等待()#协议连接关闭
+        自身.连接.关闭任务.等待()#协议连接关闭
         自身.连接.等待进程树退出()#托管范围退出

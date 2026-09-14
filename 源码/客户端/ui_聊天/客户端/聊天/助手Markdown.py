@@ -1,8 +1,3 @@
-"""助手块有序渲染：正文、Think 行、图组。
-
-对齐上游 `ui-chat/src/client/chat/AssistantMarkdown.tsx`。公开面仅中文名。
-属性与块为 dict。
-"""
 from .推理行 import 推理行#Think 披露
 
 __all__=['助手Markdown']#仅中文公开名

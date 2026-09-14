@@ -1,7 +1,3 @@
-"""稳定的 Client 源身份：每个 WebSocket 代数使用新描述符。
-
-对齐上游 `client/inspection/realm.ts`。公开面仅中文名。
-"""
 import time,uuid#时间与UUID
 from ...共享.身份 import 检查器id#带品牌id
 from ..cdp import 桥能力#桥能力集

@@ -1,7 +1,3 @@
-"""轨迹表投影纯函数：展平、折叠、请求边界、详情标签与展示文案。
-
-对齐上游 `ui-trajectory/src/client/TrajectoryTable.tsx` 中非 DOM 的纯投影。公开面仅中文名。
-"""
 import difflib#系统提示词差分
 import json#Schema / JSON 载荷解析
 from datetime import datetime#本地时刻

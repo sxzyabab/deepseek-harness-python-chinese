@@ -1,7 +1,3 @@
-"""每个 DevTools 会话上，基于 Cordis 树快照的只读 DOM 投影。
-
-对齐上游 `worker/cdp/domains/dom/session.ts`。公开面仅中文名。
-"""
 import json#属性序列化
 from .....共享.json import 检查器错误#包内错误
 from .....共享.cordis.对象注册表 import 领域对象表达式#对象表达式
@@ -79,7 +75,7 @@ class Cordis_Dom会话:#Cordis DOM会话
     def _执行(自身,方法,参数):#执行方法
         """按方法分发。"""
         if 方法 in 只读写拒绝方法:#只读
-            raise 检查器错误('Cordis DOM projection is read-only')#只读
+            raise 检查器错误('Cordis DOM 投影只读')#只读
         if 方法=='DOM.enable':#启用
             自身._已启用=True#置位
             return {}#空
@@ -105,7 +101,7 @@ class Cordis_Dom会话:#Cordis DOM会话
             return {'outerHTML':外层html(自身._选节点(参数))}#HTML
         if 方法=='DOM.pushNodesByBackendIdsToFrontend':#后端id推前端
             if not isinstance(参数.get('backendNodeIds'),list):#类型
-                raise 检查器错误('backendNodeIds must be an array')#抛错
+                raise 检查器错误('backendNodeIds 必须是数组')#抛错
             节点ids=[]#结果
             for 值 in 参数['backendNodeIds']:#映射
                 if not isinstance(值,int) or isinstance(值,bool) or 值<1:#非法
@@ -124,10 +120,10 @@ class Cordis_Dom会话:#Cordis DOM会话
             对象id=cdp字符串id(字符串参数(参数.get('objectId'),'objectId'),'objectId')#对象id
             绑定=自身._对象到节点.get(对象id)#绑定
             if 绑定 is None:#无绑定
-                raise 检查器错误('RemoteObject is not a current Cordis node')#无绑定
+                raise 检查器错误('RemoteObject 不是当前的 Cordis 节点')#无绑定
             节点=自身._后端.文档()['byBackendId'].get(绑定['backendNodeId'])#取节点
             if 节点 is None:#无节点
-                raise 检查器错误('Cordis node is no longer available')#无节点
+                raise 检查器错误('Cordis 节点已不可用')#无节点
             自身._推节点路径(节点)#推路径
             return {'nodeId':自身._节点id(节点)}#节点id
         if 方法=='DOM.performSearch':#执行搜索
@@ -153,24 +149,24 @@ class Cordis_Dom会话:#Cordis DOM会话
             自身._从前端id取(参数.get('nodeId'))#校验存在
             return {}#空
         if 方法 in ('DOM.getBoxModel','DOM.getNodeForLocation'):#盒模型/位置
-            raise 检查器错误('Cordis semantic nodes do not have browser layout geometry')#无布局
-        raise 检查器错误('Method not found: '+方法)#抛错
+            raise 检查器错误('Cordis 语义节点没有浏览器布局几何')#无布局
+        raise 检查器错误('找不到方法：'+方法)#抛错
 
     def _解析节点(自身,节点,对象组):#解析为对象
         """解析为 Runtime 对象。"""
         路由=节点['object'] if 'object' in 节点 else None#对象路由
         if 路由 is None:#结构节点
-            raise 检查器错误('Structural Cordis node has no live Runtime object')#结构节点
+            raise 检查器错误('结构 Cordis 节点没有活的 Runtime 对象')#结构节点
         if 路由['connection']['state']=='disconnected':#已断
-            raise 检查器错误('Cordis realm is disconnected')#已断
+            raise 检查器错误('Cordis realm 已断开')#已断
         快照=路由['snapshot']#快照对象
         表达式=领域对象表达式({'registryId':快照.objectRegistryId,'handle':路由['node']['objectHandle']})#表达式
         远程=自身._运行时.解析对象(路由['source'],表达式,对象组)#求值已同步
         if 'objectId' not in 远程:#无id
-            raise 检查器错误('Cordis object lookup returned no RemoteObjectId')#无id
+            raise 检查器错误('Cordis 对象查找未返回 RemoteObjectId')#无id
         原始id=远程['objectId']#原始id
         if not isinstance(原始id,str):#无id
-            raise 检查器错误('Cordis object lookup returned no RemoteObjectId')#无id
+            raise 检查器错误('Cordis 对象查找未返回 RemoteObjectId')#无id
         对象id=cdp字符串id(原始id,'objectId')#品牌id
         自身._绑定对象id(对象id,节点,对象组)#绑定
         return {**远程,**呈现(节点)}#合并呈现
@@ -180,7 +176,7 @@ class Cordis_Dom会话:#Cordis DOM会话
         对象=节点['object'] if 'object' in 节点 else None#对象路由
         源=None if 对象 is None else (对象['source'] if 'source' in 对象 else None)#源
         if 源 is None:#结构节点
-            raise 检查器错误('Structural Cordis node cannot bind a Runtime object')#结构节点
+            raise 检查器错误('结构 Cordis 节点不能绑定 Runtime 对象')#结构节点
         自身._对象到节点[objectId]={'backendNodeId':节点['backendNodeId'],'sourceId':源['sourceId'],'generation':源['generation']}#登记
         if group is None:#无组
             return#返回
@@ -201,14 +197,14 @@ class Cordis_Dom会话:#Cordis DOM会话
             节点=None if 绑定 is None else 自身._后端.文档()['byBackendId'].get(绑定['backendNodeId'])#取节点
             if 节点 is not None:#命中
                 return 节点#返回
-        raise 检查器错误('Cordis node is not available')#未找到
+        raise 检查器错误('Cordis 节点不可用')#未找到
 
     def _从前端id取(自身,值):#从前端id取节点
         """从前端 id 取节点。"""
         后端id=自身._前端到后端.get(cdp节点id(值,'nodeId'))#后端id
         节点=None if 后端id is None else 自身._后端.文档()['byBackendId'].get(后端id)#节点
         if 节点 is None:#不可用
-            raise 检查器错误('Cordis NodeId is not available in this document')#不可用
+            raise 检查器错误('本文件中没有这个 Cordis NodeId')#不可用
         return 节点#返回
 
     def _序列化(自身,节点,父id,剩余,投递):#序列化节点
@@ -389,7 +385,7 @@ def 可搜索(节点):#可搜索文本
 def 数字参数(值,名):#非负整数参数
     """非负整数参数。"""
     if not isinstance(值,int) or isinstance(值,bool) or 值<0:#校验
-        raise 检查器错误(名+' must be a non-negative integer')#抛错
+        raise 检查器错误(名+' 必须是非负整数')#抛错
     return 值#返回
 
 def 深度参数(值,缺省):#深度参数
@@ -399,19 +395,19 @@ def 深度参数(值,缺省):#深度参数
     if 值==-1:#无限
         return float('inf')#无限
     if not isinstance(值,int) or isinstance(值,bool) or 值<1:#非法
-        raise 检查器错误('depth must be -1 or a positive integer')#非法
+        raise 检查器错误('depth 必须是 -1 或正整数')#非法
     return 值#返回
 
 def cdp节点id(值,名):#前端节点id
     """前端节点 id。"""
     if not isinstance(值,int) or isinstance(值,bool):#校验
-        raise 检查器错误(名+' must be an integer')#校验
+        raise 检查器错误(名+' 必须是整数')#校验
     return cdp数字id(值,名)#品牌
 
 def cdp后端节点id(值,名):#后端节点id
     """后端节点 id。"""
     if not isinstance(值,int) or isinstance(值,bool):#校验
-        raise 检查器错误(名+' must be an integer')#校验
+        raise 检查器错误(名+' 必须是整数')#校验
     return cdp数字id(值,名)#品牌
 
 def 非负整数(值,名):#非负整数
@@ -421,7 +417,7 @@ def 非负整数(值,名):#非负整数
 def 字符串参数(值,名):#字符串参数
     """字符串参数。"""
     if not isinstance(值,str):#校验
-        raise 检查器错误(名+' must be a string')#校验
+        raise 检查器错误(名+' 必须是字符串')#校验
     return 值#返回
 
 def 可选字符串(值):#可选字符串

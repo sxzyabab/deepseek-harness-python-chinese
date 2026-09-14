@@ -1,14 +1,3 @@
-"""Worker 装配入口：整棵 harness Cordis 树放进一个 dedicated Web Worker。
-
-每个平台对象都经 options 到达——`node:*` 代理表、应用假 `node:http` 捕获的
-请求监听器、镜像字节——因此本包从不回伸进组装它的应用。
-
-构造故意拆成两步。创建工作者宿主是同步的，使 worker 能接受消息
-并排队 boot 期间到达的请求；工作者宿主.start 再挂载镜像、模块加载器
-与树。启动工作者宿主两步都做。
-
-对齐上游 `webworker-runtime/src/worker-host.ts`。公开面仅中文名。
-"""
 from .node.未实现失败 import 运行时错误#本包错误
 import json as _json#清单解析
 from .module_system.模块加载器 import 设活动模块加载器,工作线程模块加载器#模块加载器
@@ -35,7 +24,7 @@ def 要求全局端口(通道):#解析消息通道
     作用域=globals()#全局作用域
     投递=作用域.get('postMessage')#postMessage
     if not callable(投递):#非dedicated worker
-        raise 运行时错误('webworker host: no channel; pass options.channel outside a dedicated worker')#拒绝
+        raise 运行时错误('webworker host: 没有通道；专用 worker 之外请传 options.channel')#拒绝
     def 包装投递(消息,转移=None):#包装 postMessage
         """把出站消息交给全局 postMessage。"""
         投递(消息,转移)#投递
@@ -121,10 +110,10 @@ def 创建工作者宿主(选项):#创建宿主
             槽['context']=上下文#保存上下文
             连接=上下文['get']('connection')#Connection服务
             if 连接 is None:#缺失
-                raise 运行时错误('webworker host: the tree activated without a Connection service')#拒绝
+                raise 运行时错误('webworker host: 树激活时没有 Connection 服务')#拒绝
             网关=上下文['get']('typertGateway')#Typert网关
             if 网关 is None:#缺失
-                raise 运行时错误('webworker host: the tree activated without a typertGateway service')#拒绝
+                raise 运行时错误('webworker host: 树激活时没有 typertGateway 服务')#拒绝
             处理器=连接['createSharedFetchHandler']('/api')#直连fetch面
             用量=加载器.用量()#模块用量
             预设=补丁结果['presetOverlay']#是否应用preset
@@ -241,7 +230,7 @@ def 读启动载荷(上下文):#读boot载荷
     """组装页面 Cordis 前引导所需的载荷。"""
     网页服务=上下文['get']('webServer')#webServer服务
     if 网页服务 is None:#缺失
-        raise 运行时错误('webworker host: no webServer service, so the page cannot receive its boot injections')#拒绝
+        raise 运行时错误('webworker host: 没有 webServer 服务，页面收不到 boot 注入')#拒绝
     return {'injections':网页服务['collectIndexInjections']()}#收集注入表
 
 def 启动工作者宿主(选项):#一步启动
@@ -251,7 +240,7 @@ def 启动工作者宿主(选项):#一步启动
         作用域=globals()#全局
         加监听=作用域.get('addEventListener')#监听器API
         if not callable(加监听):#无监听器API
-            raise 运行时错误('webworker host: no message source; pass options.channel outside a dedicated worker')#拒绝
+            raise 运行时错误('webworker host: 没有消息源；专用 worker 之外请传 options.channel')#拒绝
         def 收消息(事件):#挂处理器
             """转发 Worker MessageEvent。"""
             宿主['handleMessage'](事件.data)#对象载荷

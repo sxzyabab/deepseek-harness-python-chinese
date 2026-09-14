@@ -1,8 +1,3 @@
-"""动态包运行器 Host-for-Client Remote 贡献（对齐上游 `./remote`）。
-
-对照本包已挂 `@远程` 的导出名（与 `远程方法目录` 对齐）。
-服务键/命名空间为 `dynamicCordisRunner`（与宿主 `远程服务` 登记名一致）。
-"""
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['远程贡献对象']#仅中文公开名；default 为框架槽不入表

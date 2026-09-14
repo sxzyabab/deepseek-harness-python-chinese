@@ -1,10 +1,3 @@
-"""浏览器半边：把 `files` 登记为右侧侧栏 tab 类型。
-
-对齐上游 `ui-sidebar-files/src/client/index.ts`。公开面仅中文名。
-公开两段路径不变：类型进 `ctx.sidebarRightTabs`，正文进带键的 `sidebar.right.pane.tab` 席。
-本包分层：类型是什么（定义）、记什么（存储）、怎么列（面）、画什么（文件体）、说什么（文案），
-本模块只接线。
-"""
 from .文案 import 中文,英文,侧栏文件文案键#词典
 from .定义 import 文件种类,文件标识,文件定义#类型定义
 from .存储 import 文件树错误,创建文件存储#视图存储

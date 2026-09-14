@@ -1,7 +1,3 @@
-"""Client Console 会话与事件的类型化传输。
-
-对齐上游 `shared/bridge/messages/runtime/console-frames.ts`。公开面仅中文名。
-"""
 from ....json import 是否普通对象,检查器错误#普通对象|本包错误
 from ....校验 import 精确键,精确对象,线上标识#校验
 from ....cdp.控制台 import 运行时控制台类型#Console类别

@@ -1,8 +1,3 @@
-"""动态 Cordis 插件服务：默认导出运行器服务类。
-
-对齐上游 `@deepseek-ai/dsh-cordis-host-runner`。公开面仅中文名。本包默认导出运行器服务。
-叶子已齐（本轮新迁 0）；宿主半用 compile/exec 近似 Node vm，非硬缺口 2 的浏览器 Function/vm。
-"""
 from .运行器 import (#运行器与再导出
     动态插件运行器服务,#默认服务类
     巡检注册表服务,#巡检注册表

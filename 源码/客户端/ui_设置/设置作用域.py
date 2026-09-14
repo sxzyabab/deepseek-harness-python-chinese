@@ -1,8 +1,3 @@
-"""设置命名空间作用域约定的宿主传输。
-
-对齐上游 `ui-settings/src/client/settings-scope.ts`。公开面仅中文名。
-约定类型住在 runtime；本文件拥有线上行为与失效订阅。
-"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from 客户端.schema_form import 再水合模式,校验草稿#再水合与校验

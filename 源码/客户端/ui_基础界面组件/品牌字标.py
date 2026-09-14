@@ -1,8 +1,3 @@
-"""DeepSeek Harness 品牌字标。
-
-对齐上游 `ui-primitives/src/BrandWordmark.tsx`。公开面仅中文名。
-宿主按 viewBox+元素表画 SVG；fill 走 currentColor / 反色 token。
-"""
 from .icons.属性 import 取尺寸,取类名#尺寸/类
 
 __all__=['品牌字标','字标元素']#仅中文公开名

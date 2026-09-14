@@ -1,12 +1,3 @@
-"""文件树正文：会话工作区根，按级懒列举。
-
-对齐上游 `ui-sidebar-files/src/client/FilesBody.tsx`。公开面仅中文名。
-树所记状态在存储里按 tab 分桶；请求经注入面。本模块只决定每个绝对路径画什么、
-点击含义：目录切换展开，文件经拥有方 `tabActions.openResource` 打开供 `file:` 查看器认领，
-其它条目展示但拒绝打开。页眉带唯一控件：重新读取——丢掉已列层级并对展开者再请求。
-
-无 React：正文为视图模型类，产出结构树 dict。工作区路径地址辅助内嵌于此，以免扩大移植面。
-"""
 import re#自然排序分段与地址编码
 from urllib.parse import quote#段编码
 from .面 import 子路径#子路径键

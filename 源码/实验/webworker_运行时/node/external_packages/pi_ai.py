@@ -1,8 +1,3 @@
-"""`@earendil-works/pi-ai` 桩，含其 `/providers/all` 与 `/api/*.lazy` 子路径。
-
-对齐上游 `webworker-runtime/src/node/external_packages/pi-ai.ts`。
-文件名下划线：Python 无法 import 连字符模块名。
-"""
 from ..未实现失败 import 未实现失败#未实现桩
 
 __all__=[#Node面

@@ -1,4 +1,3 @@
-"""Worker 拥有的 Client 只读源目录请求路由。"""
 #对齐上游 worker/bridge/source-rpc.ts
 
 import uuid,threading#请求id与超时

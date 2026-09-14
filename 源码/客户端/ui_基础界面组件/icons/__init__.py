@@ -1,8 +1,3 @@
-"""ic_ds_* 图标集：真实 path 数据（非示意）。
-
-对齐上游 `ui-primitives/src/icons/index.tsx` 全表 70 Icon。公开面仅中文名。
-路径 d 字面量直接取自上游 SVG，禁止示意替换。
-"""
 from .属性 import 取尺寸,取类名#尺寸/类
 from .表_余量甲 import 表 as 表甲#设置/导航/关闭/刷新
 from .表_余量乙 import 表 as 表乙#赞踩/分享/思考/链接

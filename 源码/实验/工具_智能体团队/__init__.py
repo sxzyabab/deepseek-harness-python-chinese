@@ -1,10 +1,3 @@
-"""面向模型的作用域工具，供可选 Agent Teams 运行时使用。
-
-对齐上游 `@deepseek-ai/dsh-experimental-tool-agent-team`。公开面仅中文名。
-依赖：`..智能体团队`（上游 `@deepseek-ai/dsh-experimental-agent-team`）当前仍为空壳，
-尚未导出 `团队任务标识` / `agentTeams` 服务方法；本包按追踪实现工具面，服务调用仍走
-`ctx.agentTeams.*`（上游键名）。团队任务 id 标识构造暂在本包内联。
-"""
 import json#紧凑JSON渲染
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段#配置字段

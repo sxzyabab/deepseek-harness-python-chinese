@@ -1,7 +1,3 @@
-"""DeepSeek Files API 上传复用、失效与配额恢复。
-
-对齐上游 `llm-deepseek/src/file-store.ts`。公开面仅中文名；无英文别名。
-"""
 import threading,time#共享上传与时钟
 from ..llm import 大模型错误#LLM 错误
 from .文件接口 import 深求文件客户端,是否文件配额错误#Files 客户端与配额判定
@@ -46,13 +42,13 @@ def 中止原因(信号):#中止原因
     原因=getattr(信号,'原因',None)#原因
     if isinstance(原因,BaseException):#已是异常
         return 原因#原样
-    return RuntimeError('DeepSeek file upload cancelled with a non-Error reason.')#包装
+    return RuntimeError('DeepSeek 文件上传因非 Error 原因被取消。')#包装
 
 def 上传失败(错误):#上传失败
     """非 Error 原因包装。"""
     if isinstance(错误,BaseException):#已是异常
         return 错误#原样
-    return RuntimeError('DeepSeek file upload failed with a non-Error reason.')#包装
+    return RuntimeError('DeepSeek 文件上传因非 Error 原因失败。')#包装
 
 def 扩展名(媒体类型):#扩展名
     """媒体类型到扩展名。"""
@@ -64,7 +60,7 @@ def 扩展名(媒体类型):#扩展名
         return 'webp'#webp
     if 媒体类型=='image/gif':#gif
         return 'gif'#gif
-    raise 大模型错误('unsupported DeepSeek upload media type','INVALID_REQUEST')#不支持
+    raise 大模型错误('不支持的 DeepSeek 上传媒体类型','INVALID_REQUEST')#不支持
 
 def 文件名(版本):#文件名
     """确定性请求图文件名。"""
@@ -103,7 +99,7 @@ class 深求文件仓:#文件存储
             if 活动 is None:#新建共享
                 控制器=_仓中止控制器()#新建
                 共享={'controller':控制器,'settled':False,'waiters':0,'结果':None,'错误':None,'事件':threading.Event()}#共享
-                def 跑():#后台上传
+                def 执行后台上传():#后台上传
                     """单次上传。"""
                     try:#上传
                         值=自身._确保已上传一次(版本,连接,政策,控制器.信号)#一次
@@ -120,7 +116,7 @@ class 深求文件仓:#文件存储
                                 自身.飞行中.pop(键,None)#删
                 自身.飞行中[键]=共享#登记
                 活动=共享#本调用等待新建
-                启动=跑#锁外启动
+                启动=执行后台上传#锁外启动
         if 启动 is not None:#新建
             threading.Thread(target=启动,daemon=True).start()#锁外启动
         return 自身._等待上传(活动,信号)#锁外等待
@@ -159,7 +155,7 @@ class 深求文件仓:#文件存储
     def _确保已上传一次(自身,版本,连接,政策,信号):#单次确保上传
         """单次确保上传路径。"""
         if 版本.get('bytes',len(版本.get('data') or b''))>最大聊天图字节:#超聊天限
-            raise 大模型错误('DeepSeek chat image exceeds the 32 MiB per-image limit.','INVALID_REQUEST')#超限
+            raise 大模型错误('DeepSeek 聊天图片超过每张 32 MiB 上限。','INVALID_REQUEST')#超限
         作用域=深求文件作用域摘要(连接['baseURL'],连接['apiKey'])#作用域
         现在=自身.现在()#当前毫秒
         边距毫秒=政策['refreshMarginSeconds']*1000#刷新边距
@@ -177,7 +173,7 @@ class 深求文件仓:#文件存储
                 'signal':信号,#取消
             })#上传
             if 远程['bytes']!=len(版本['data']):#长度不符
-                raise 大模型错误('DeepSeek Files API upload response does not match the submitted image.','INVALID_RESPONSE')#不符
+                raise 大模型错误('DeepSeek Files API 上传响应与提交的图片不符。','INVALID_RESPONSE')#不符
             return {
                 'scope':作用域,#作用域
                 'attachmentId':版本['attachment']['attachmentId'],#附件

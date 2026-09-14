@@ -1,4 +1,3 @@
-"""在 Worker 拥有的规范化网络存储之上的 CDP Network 投影。"""
 #对齐上游 worker/cdp/domains/network/session.ts
 
 import base64#正文编码
@@ -72,14 +71,14 @@ class 网络域:#Network域
             请求id=参数.get('requestId')#请求id
             正文=自身._存储.响应体(请求id)#正文
             if not isinstance(请求id,str):#类型
-                raise ValueError('Network requestId must be a string')#类型
+                raise ValueError('Network requestId 必须是字符串')#类型
             if not 正文.get('complete'):#未完成
                 集合=自身._流式请求.setdefault(id(会话),set())#流式集
                 集合.add(请求id)#登记
             return {'bufferedData':base64.b64encode(正文['bytes']).decode('ascii')}#缓冲数据
         if 方法 in ('Network.setCacheDisabled','Network.setBypassServiceWorker','Network.setExtraHTTPHeaders','Network.clearBrowserCache','Network.clearBrowserCookies'):#空结果族
             return {}#空结果
-        raise RuntimeError(f'unsupported Network method {方法}')#抛错
+        raise RuntimeError(f'不支持的 Network 方法 {方法}')#抛错
 
     def _接收(自身,事件):#接收存储事件
         """广播或清理逐出。"""

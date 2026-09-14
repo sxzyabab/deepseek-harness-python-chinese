@@ -1,4 +1,3 @@
-"""针对完整 request/header 会话事件的请求头重建工具。对齐上游 `session/src/request-header.ts`。公开面仅中文名。"""
 import json#JSON
 from ...模型后端.llm.调用配置 import 调用配置相等#导入调用配置相等比较
 
@@ -10,10 +9,10 @@ def 转json(值):
 
 def 归一请求头(头):
     """把请求头归一成规范形态：空工具列表变成缺省字段，与请求构建方式一致。"""
-    适配器默认=头['adapterDefaults'] if 'adapterDefaults' in 头 else None#适配器默认旗标
+    适配器默认=头['adapterDefaults'] if 'adapterDefaults' in 头 else None#适配器默认标志
     结果={'config':头['config']}#调用配置
-    if isinstance(适配器默认,dict) and (('reasoningEffort' in 适配器默认 and 适配器默认['reasoningEffort'] is True) or ('maxTokens' in 适配器默认 and 适配器默认['maxTokens'] is True)):#有真旗标
-        结果['adapterDefaults']=适配器默认#有真旗标才带 adapterDefaults
+    if isinstance(适配器默认,dict) and (('reasoningEffort' in 适配器默认 and 适配器默认['reasoningEffort'] is True) or ('maxTokens' in 适配器默认 and 适配器默认['maxTokens'] is True)):#有真标志
+        结果['adapterDefaults']=适配器默认#有真标志才带 adapterDefaults
     工具列表=头['tools'] if 'tools' in 头 else None#工具列表
     if 工具列表 is not None and len(工具列表)>0:#非空工具列表
         结果['tools']=工具列表#非空工具列表才带
@@ -35,12 +34,12 @@ def 请求头是否相等(甲,乙):
         return False#配置不同
     甲力度=甲默认['reasoningEffort'] if 'reasoningEffort' in 甲默认 else None#甲方力度
     乙力度=乙默认['reasoningEffort'] if 'reasoningEffort' in 乙默认 else None#乙方力度
-    if 甲力度!=乙力度:#推理力度旗标不同
-        return False#推理力度旗标不同
+    if 甲力度!=乙力度:#推理力度标志不同
+        return False#推理力度标志不同
     甲上限=甲默认['maxTokens'] if 'maxTokens' in 甲默认 else None#甲方 token
     乙上限=乙默认['maxTokens'] if 'maxTokens' in 乙默认 else None#乙方 token
-    if 甲上限!=乙上限:#token 旗标不同
-        return False#token 旗标不同
+    if 甲上限!=乙上限:#token 标志不同
+        return False#token 标志不同
     甲方工具=甲['tools'] if 'tools' in 甲 else None#甲方工具
     乙方工具=乙['tools'] if 'tools' in 乙 else None#乙方工具
     if 甲方工具 is None:#缺省

@@ -1,10 +1,3 @@
-"""worker 侧的 `node:util`：harness 代码实际导入的成员。Node 的 inspect 输出
-仅用于诊断，故 JSON 形态渲染足够；`promisify` 严格遵循 Node 的错误优先
-回调约定，因为 zlib 风格 API 在模块作用域用它包装。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/util.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from ...未实现失败 import 运行时错误#本包错误
 import json#诊断序列化
 import math#Object.is 的 NaN/+0/-0
@@ -26,37 +19,38 @@ def 对象同(左,右):#对齐 Object.is
     if isinstance(左,(int,str,bool)) and type(左) is type(右): return 左==右#原始同值
     return False#其余否
 
-def 承诺化(函数):#回调转Promise
-    """将错误优先回调函数包装为返回 promise 的函数。"""
-    承诺类=globals()['Promise']#Promise构造器
-
+def 承诺化(函数):#回调转同步结果
+    """将错误优先回调函数包装为同步返回结果的函数。"""
     def 包装(*参数):#返回包装器
-        """追加错误优先回调并返回 Promise。"""
-        def 执行(兑现,拒绝):#Promise体
-            """桥接回调。"""
-            def 回调(错误,值=None):#错误优先回调
-                """有错拒绝，否则兑现。"""
-                if 错误 is not None:#有错
-                    拒绝(错误 if isinstance(错误,BaseException) else Exception(检视(错误)))#拒绝
-                else:#成功
-                    兑现(值)#兑现
-            函数(*参数,回调)#追加回调
-        return 承诺类(执行)#返回Promise
+        """追加错误优先回调并同步交出结果。"""
+        结算={'值':None,'错误':None}#单次结算
+        def 回调(错误,值=None):#错误优先回调
+            """有错记下错误，否则记下值。"""
+            if 错误 is not None:#有错
+                结算['错误']=错误#拒绝
+            else:#成功
+                结算['值']=值#兑现
+        函数(*参数,回调)#追加回调
+        if 结算['错误'] is not None:#有错
+            错误=结算['错误']#取出
+            if isinstance(错误,BaseException):#已是异常
+                raise 错误#原样抛出
+            raise Exception(检视(错误))#包装抛出
+        return 结算['值']#同步结果
     return 包装#交回
 
-def 回调化(函数):#Promise转回调
-    """将返回 promise 的函数包装为错误优先回调函数。"""
+def 回调化(函数):#同步结果转回调
+    """将同步返回结果的函数包装为错误优先回调函数。"""
     def 包装(*参数):#返回包装器
         """末参为回调，前面为实参。"""
         回调=参数[-1]#末参回调
         其余=参数[:-1]#前面实参
-        def 成功(值):#兑现
-            """回调成功。"""
-            回调(None,值)#成功
-        def 失败(错误):#拒绝
-            """回调失败。"""
+        try:
+            值=函数(*其余)#同步调用
+        except BaseException as 错误:
             回调(错误)#失败
-        函数(*其余).then(成功,失败)#桥接
+            return
+        回调(None,值)#成功
     return 包装#交回
 
 def 检视(值):#诊断渲染
@@ -146,7 +140,7 @@ types={#类型谓词集
 
 def 解析参数(*位置参数,**关键字参数):#不可用
     """CLI 参数解析在 worker 主机内无调用方。"""
-    raise 运行时错误('web-preview: node:util.parseArgs is not available in the worker host')#抛错
+    raise 运行时错误('web-preview: worker 宿主里没有 node:util.parseArgs')#抛错
 
 def 弃用(函数):#弃用包装透传
     """弃用包装器原样传过函数。"""

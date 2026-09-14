@@ -1,7 +1,3 @@
-"""组件本地日历日滴答：跨午夜推进本地日席。
-
-对齐上游 `ui-conversation/src/client/chat/use-calendar-day.ts`。公开面仅中文名。
-"""
 from .消息铬 import 本地日起点,距下一本地午夜毫秒#午夜辅助
 import time as 时间模块#墙钟
 

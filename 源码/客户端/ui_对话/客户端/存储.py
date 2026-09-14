@@ -1,8 +1,3 @@
-"""会话与详情注册共享的每会话聊天存储。
-
-对齐上游 `ui-conversation/src/client/stores.ts`。公开面仅中文名。
-插件在 apply 时创建句柄，使身份跟随 fiber。
-"""
 from .约定.视图 import 初始聊天状态#初值
 
 __all__=['快照存储','创建聊天存储']#仅中文公开名

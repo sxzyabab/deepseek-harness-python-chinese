@@ -1,9 +1,3 @@
-"""子进程能力缝（ctx.subprocess）的服务定义。
-
-对齐上游 `subprocess/src/index.ts`。公开面仅中文名；无英文别名。
-执行世界里的可执行文件查找、带原始或收集 stdio 的完全指定受管进程树，以及一个终端进程原语。
-命令默认值、shell 语义、截止、协议分帧、终端就绪和展示属于消费方。本地实现在 subprocess_local。
-"""
 import os,re#父环境与敏感名模式
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#从 Cordis 导入服务基类

@@ -1,4 +1,3 @@
-"""Client 线上值到 realm 中立 Runtime 值的转换。"""
 #对齐上游 worker/realms/client/values.ts
 
 __all__=[#仅中文公开名

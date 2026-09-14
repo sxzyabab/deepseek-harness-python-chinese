@@ -1,7 +1,3 @@
-"""登记 Tool 调用树、详情渲染器与内置原子视图。
-
-对齐上游 `ui-tool/src/client/apply.ts`。公开面仅中文名。
-"""
 from .文案 import 会话命名空间#会话文案命名空间
 from .工具调用树 import 工具调用树#工具调用树组件
 from .工具详情 import 工具详情#工具详情渲染器

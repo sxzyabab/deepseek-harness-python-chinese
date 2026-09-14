@@ -1,7 +1,3 @@
-"""两种载体共用的、带版本的源生命周期、观测与扩展帧。
-
-对齐上游 `shared/bridge/messages/observation.ts`。公开面仅中文名。
-"""
 from ...身份 import 检查器id#品牌化
 from ...json import 是否json值,是否普通对象,检查器错误#JSON|本包错误
 from ...校验 import 精确键#精确键

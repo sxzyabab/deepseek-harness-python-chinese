@@ -1,7 +1,3 @@
-"""/api 传输的 node:http ↔ fetch 桥（web 载体的宿主侧）。
-
-对齐上游 `connection/src/http-bridge.ts`。公开面仅中文名。fetch 形态的处理函数本身与传输无关。
-"""
 import threading#客户端断开中止
 
 __all__=['默认最大请求正文字节','桥接']#仅中文公开名

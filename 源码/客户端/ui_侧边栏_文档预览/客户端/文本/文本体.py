@@ -1,8 +1,3 @@
-"""没有更具体文档渲染器时的纯源码展示。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/text/TextBody.tsx`。公开面仅中文名。
-无 React：正文为视图模型，产出结构树 dict。
-"""
 from .行 import 页行#行辅助
 
 __all__=['文本体']#仅中文公开名

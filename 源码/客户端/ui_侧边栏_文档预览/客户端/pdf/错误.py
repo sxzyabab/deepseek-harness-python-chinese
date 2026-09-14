@@ -1,7 +1,3 @@
-"""结构化 PDF 工作线程失败；渲染器文案拥有可见说明。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/errors.ts`。公开面仅中文名。
-"""
 
 __all__=['pdf工作线程失败']#仅中文公开名
 

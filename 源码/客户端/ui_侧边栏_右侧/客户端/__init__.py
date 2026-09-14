@@ -1,8 +1,3 @@
-"""浏览器半边：右栏面板、头栏展开钮、标签登记与导航面。
-
-对齐上游 `ui-sidebar-right/src/client/index.ts`。公开面仅中文名。
-两席共享每会话存储；类型两段登记：定义进 `sidebarRightTabs`，正文进键控席。
-"""
 from .文案 import 中文,英文,右侧侧栏文案键#词典
 from .停靠文案 import 停靠标签#停靠投影
 from .约定.槽位 import (#席约定

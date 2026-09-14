@@ -1,7 +1,3 @@
-"""浏览器安全、零依赖的回环判定。
-
-对齐上游 `connection/src/loopback-hostname.ts`。公开面仅中文名。供 /api Host 围栏与本包 ctx.connection 状态共用。
-"""
 import re#段数字校验
 
 __all__=['是否回环主机名']#仅中文公开名

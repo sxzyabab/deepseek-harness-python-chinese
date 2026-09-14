@@ -1,8 +1,3 @@
-"""槽位拥有的标签信息：自存储与导航钩派生。
-
-对齐上游 `ui-sidebar-right/src/client/tab-info.ts`。公开面仅中文名。
-无 React：工厂返回可调用读面，由正文视图模型在渲染时调用。
-"""
 from ...ui_停靠套件.引擎 import 查找标签窗格#找窗
 
 __all__=['标签信息工厂','向导标签信息工厂']#仅中文公开名
@@ -24,7 +19,7 @@ def 标签信息工厂(标准,上下文):
         布局=用存储(lambda 态:态['bySession'][会话标识]['layout'] if 会话标识 in 态['bySession'] else None)#布局
         导航=用导航(标签标识)#导航
         if 布局 is None or 标签标识 not in 布局['tabs'] or 导航 is None:#未提交
-            raise Exception('sidebarRight: tab "'+str(标签标识)+'" is not committed in session "'+str(会话标识)+'"')#拒绝
+            raise Exception('sidebarRight: 标签 "'+str(标签标识)+'" 未在会话 "'+str(会话标识)+'" 中提交')#拒绝
         签=布局['tabs'][标签标识]#记录
         窗=查找标签窗格(布局,标签标识)#窗
         可见=窗['host']=='float' or (布局['expanded'] and (是标题 or 窗['activeTabId']==标签标识))#可见

@@ -1,8 +1,3 @@
-"""助手步骤节点视图。
-
-对齐上游 `ui-chat/src/client/chat/AssistantNodeView.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from .助手Markdown import 助手Markdown#块体
 from .消息图标动作 import 消息图标动作#动作行
 

@@ -1,9 +1,3 @@
-"""订阅某回合按键位置数据 store 中的一个值。
-
-对齐上游 `ui-chat/src/client/chat/use-turn-data.ts`。公开面仅中文名。
-源为本包自造 dict，键 getSnapshot / subscribe。
-"""
-
 __all__=['空源','用回合数据值']#仅中文公开名
 
 def 空快照():

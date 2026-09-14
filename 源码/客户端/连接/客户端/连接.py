@@ -1,9 +1,3 @@
-"""打开两条流并保持迭代，丢失后按指数退避重连。
-
-对齐上游 `connection/src/client/connection.ts`。公开面仅中文名。
-状态（generation/attempt）是实例私有的，从不进 store。
-泵体把每帧交给汇（汇抛错不得杀死泵）。
-"""
 import random,threading,time#抖动、后台循环、睡眠
 from ..rpc import 连接错误,已中止#本包异常与中止
 
@@ -126,9 +120,9 @@ class 连接控制器:#浏览器连接控制器
                     错误=描述结果['error'] if 'error' in 描述结果 else {}#错误
                     码=错误['code'] if 'code' in 错误 else '?'#码
                     消息=错误['message'] if 'message' in 错误 else '?'#消息
-                    raise 连接错误(f'host.describe failed: {码}: {消息}')#当成本世代失败
+                    raise 连接错误(f'host.describe 失败: {码}: {消息}')#当成本世代失败
                 if 已中止(取消):#握手期间已被 abort
-                    raise 连接错误('generation aborted during readiness handshake')#失败
+                    raise 连接错误('就绪握手期间世代已中止')#失败
                 自身.尝试=0#成功则清失败计数
                 自身._发状态('connected')#通知 UI 已连接
                 if 自身._世代仍活(取消):#世代仍活
@@ -142,7 +136,7 @@ class 连接控制器:#浏览器连接控制器
                 return#退出
             自身._发状态('reconnecting')#进入重连
             自身.尝试+=1#失败次数加一
-            print(f'[web-runtime] connection lost, retry #{自身.尝试}')#诊断日志
+            print(f'[web-runtime] 连接丢失，重试 #{自身.尝试}')#诊断日志
             可取消睡眠(自身._退避延迟(自身.尝试),threading.Event())#抖动睡眠
 
     def _发状态(自身,状态):#去重的状态发出
@@ -179,4 +173,4 @@ class 连接控制器:#浏览器连接控制器
         try:#汇可能抛
             函数(参数)#执行
         except Exception as 错误:#只记日志
-            print('[web-runtime] connection sink threw:',错误)#诊断
+            print('[web-runtime] 连接汇抛错:',错误)#诊断

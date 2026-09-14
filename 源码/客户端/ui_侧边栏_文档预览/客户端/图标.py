@@ -1,7 +1,3 @@
-"""本包自绘、共享图标集尚未携带的字形。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/icons.tsx`。公开面仅中文名。
-"""
 
 __all__=['不换行图标16','换行图标16']#仅中文公开名
 

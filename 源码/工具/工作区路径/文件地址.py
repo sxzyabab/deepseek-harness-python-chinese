@@ -1,4 +1,3 @@
-"""`dsh-resource://file/…` 地址文法：文件在侧边栏与资源模型间如何命名，构建与解析均不触碰文件系统。"""
 from urllib.parse import quote,unquote#段编解码
 
 __all__=['会话文件地址','绝对文件地址','解析文件地址']#公开面

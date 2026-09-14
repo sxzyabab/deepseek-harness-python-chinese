@@ -1,8 +1,3 @@
-"""pi-ai 提供方档案的模型列表与端点探询。
-
-对齐上游 `ui-settings-models/src/client/ModelListEditor.tsx`。公开面仅中文名。
-空列表表示沿用内置目录；任一条目即整体替换。探询问的是表单当前值（含未存密钥）。
-"""
 import re#正则
 from .DeepSeek模型编辑器 import 解析容量,格式化容量#容量拼写
 from .存储 import 错误文案#拒绝文案

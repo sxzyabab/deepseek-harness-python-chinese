@@ -1,9 +1,3 @@
-"""预览的读取半边：把页读进存储。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/face.ts`。公开面仅中文名。
-组件从不阻塞等待。它要一页，本面执行读取并通过存储动作写入结局。
-AbortSignal 译为 threading.Event；TS 的 fire-and-forget then 译为守护线程。
-"""
 import threading#读取线程与中止监视
 from .远程过程调用 import 文档文件字节#字节解码
 

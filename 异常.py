@@ -24,3 +24,26 @@ class cordis错误(Exception):
 
 class 插件接口错误(cordis错误):
     ...
+
+#deepseek方面
+class deepseek异常(Exception):
+    ...
+
+class API欠费(deepseek异常):
+    '该充值了'
+
+class API请求被限流(deepseek异常):
+    ...
+
+class 服务过载(deepseek异常):
+    'deepseek的API服务过载'
+
+class API超时(deepseek异常):
+    ...
+
+class 连接失败(Exception):
+    ...
+
+#
+class 预期中的停止(Exception):
+    ...

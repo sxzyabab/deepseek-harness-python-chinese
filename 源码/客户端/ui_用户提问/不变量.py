@@ -1,10 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-user-questions` 的本包拥有不变量配套。
-
-对齐上游 `ui-user-questions/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：工具与槽位注册是由各自注册表拥有并观察的 effect；
-宿主待处理表经由公开线路协议行使。
-"""
 from ...依赖 import cordis#外部依赖胶水
 包名='@deepseek-ai/dsh-client-ui-user-questions'#本包的不变量所有权名
 名称='client-ui-user-questions-invariant'#配套不变量插件名（字面量）

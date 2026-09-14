@@ -1,7 +1,3 @@
-"""发现、挂载与消费方共用的智能体预设词汇。
-
-对齐上游 `agent-presets/src/preset.ts`。公开面仅中文名。
-"""
 import re#预设 id 文法
 
 __all__=[#仅中文公开名

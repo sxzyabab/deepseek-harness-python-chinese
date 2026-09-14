@@ -1,5 +1,6 @@
 {
     "hook":"钩子",
+    "waitSettle":"等待落地",
     "self":"自身",
     "separate":"分离"
 }

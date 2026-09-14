@@ -1,11 +1,3 @@
-"""assistant/chunk delta 游程的无损存储打包。
-
-对齐上游曾有的 `session/src/chunk-rows.ts`。**追踪源码已删除该模块**：当代写入不再打包
-`text-chunks` / `reasoning-chunks` / `tool-call-chunks`；本模块仅保留供历史日志与测试夹具
-解码（以及会话格式 v0→v1 迁移边）。公开面仅中文名。
-
-新写入路径不得依赖 `打包块游程`：JSONL `编码段` 已逐事件原样写出，`packChunks` 配置为历史遗留开关。
-"""
 from ...模型后端.llm.标识构造 import 调用标识#导入调用标识构造
 from ...模型后端.llm.永不 import 断言永不#导入穷尽检查
 from .类型 import 安全整数上限#外来 JSON 安全整数上限
@@ -187,7 +179,7 @@ def 打包块游程(事件列表):
 
 def 畸形(标签,原因):
     """抛出统一的畸形行诊断。"""
-    raise 块行错误('malformed '+标签+' storage row: '+原因)#带标签抛错
+    raise 块行错误('畸形 '+标签+' 存储行: '+原因)#带标签抛错
 
 def 校验游程数据(标签,数据,载荷键):
     """校验共享游程数据字段与载荷/dt 元数；返回成员载荷。"""
@@ -197,54 +189,54 @@ def 校验游程数据(标签,数据,载荷键):
     if (not isinstance(轮次,(int,float)) or isinstance(轮次,bool)
         or not isinstance(步骤,(int,float)) or isinstance(步骤,bool)
         or not isinstance(块下标,(int,float)) or isinstance(块下标,bool)):#基字段非数字
-        畸形(标签,'turn/step/index must be numbers')#必须是数字
+        畸形(标签,'turn/step/index 必须是数字')#必须是数字
     载荷=数据[载荷键] if 载荷键 in 数据 else None#取出载荷
     if (not isinstance(载荷,list)) or len(载荷)==0:#非非空数组
-        畸形(标签,载荷键+' must be a non-empty string array')#必须是非空字符串数组
+        畸形(标签,载荷键+' 必须是非空字符串数组')#必须是非空字符串数组
     for 项 in 载荷:#逐项
         if not isinstance(项,str):#非字符串
-            畸形(标签,载荷键+' must be a non-empty string array')#必须是非空字符串数组
+            畸形(标签,载荷键+' 必须是非空字符串数组')#必须是非空字符串数组
     间隔=数据['dt'] if 'dt' in 数据 else None#取出间隔
     if not isinstance(间隔,list):#非数组
-        畸形(标签,'dt must be an array of safe integers')#必须是安全整数数组
+        畸形(标签,'dt 必须是安全整数数组')#必须是安全整数数组
     for 缝 in 间隔:#逐个间隔
         if not 外来安全整数(缝):#非安全整数
-            畸形(标签,'dt must be an array of safe integers')#必须是安全整数数组
+            畸形(标签,'dt 必须是安全整数数组')#必须是安全整数数组
     if len(间隔)!=len(载荷)-1:#元数不匹配
-        畸形(标签,'dt length '+str(len(间隔))+' does not match '+str(len(载荷))+' members')#间隔长度必须少一
+        畸形(标签,'dt 长度 '+str(len(间隔))+' 与 '+str(len(载荷))+' 个成员不匹配')#间隔长度必须少一
     return 载荷#返回载荷
 
 def 校验行(值,标签):
     """校验一行标签解析值的信封与数据，任何畸形都抛。"""
     if not 恰好这些键(值,('type','seq0','time0','data')):#信封键不对
-        畸形(标签,'envelope must be exactly {type, seq0, time0, data}')#必须恰好这些键
+        畸形(标签,'信封必须恰好是 {type, seq0, time0, data}')#必须恰好这些键
     序号零=值['seq0'] if 'seq0' in 值 else None#序号锚点
     if not 外来安全整数(序号零) or 序号零<0:#序号非法
-        畸形(标签,'seq0 must be a non-negative safe integer')#必须非负安全整数
+        畸形(标签,'seq0 必须是非负安全整数')#必须非负安全整数
     时间零=值['time0'] if 'time0' in 值 else None#时间锚点
     if not 外来安全整数(时间零):#时间非法
-        畸形(标签,'time0 must be a safe integer')#必须是安全整数
+        畸形(标签,'time0 必须是安全整数')#必须是安全整数
     数据=值['data'] if 'data' in 值 else None#取出数据
     if not 是否记录(数据):#不是对象
-        畸形(标签,'data must be an object')#必须是对象
+        畸形(标签,'data 必须是对象')#必须是对象
     if 标签=='tool-call-chunks':#工具调用行
         带名=恰好这些键(数据,('turn','step','index','id','name','dt','args'))#带 name 形态
         if (not 带名) and (not 恰好这些键(数据,('turn','step','index','id','dt','args'))):#两种形态都不对
-            畸形(标签,'data must be exactly {turn, step, index, id, name?, dt, args}')#必须恰好这些键
+            畸形(标签,'data 必须恰好是 {turn, step, index, id, name?, dt, args}')#必须恰好这些键
         if not isinstance(数据['id'] if 'id' in 数据 else None,str) or (带名 and not isinstance(数据['name'] if 'name' in 数据 else None,str)):#id/name 类型不对
-            畸形(标签,'id (and name when present) must be strings')#必须是字符串
+            畸形(标签,'id（以及出现时的 name）必须是字符串')#必须是字符串
         载荷=校验游程数据(标签,数据,'args')#校验 args
     else:#文本或推理行
         if not 恰好这些键(数据,('turn','step','index','dt','texts')):#键不对
-            畸形(标签,'data must be exactly {turn, step, index, dt, texts}')#必须恰好这些键
+            畸形(标签,'data 必须恰好是 {turn, step, index, dt, texts}')#必须恰好这些键
         载荷=校验游程数据(标签,数据,'texts')#校验 texts
     if not 外来安全整数(序号零+len(载荷)-1):#末成员序号越界
-        畸形(标签,'member seqs must stay safe integers')#成员序号必须保持安全整数
+        畸形(标签,'成员 seq 必须保持为安全整数')#成员序号必须保持安全整数
     时间=时间零#运行时间
     for 缝 in 数据['dt']:#累加间隔
         时间=时间+缝#加上间隔
         if not 外来安全整数(时间):#时间越界
-            畸形(标签,'member times must stay safe integers')#时间必须保持安全整数
+            畸形(标签,'成员时间必须保持为安全整数')#时间必须保持安全整数
     return 值#当作已校验行
 
 def 展开行(行):
@@ -275,7 +267,7 @@ def 展开行(行):
             if 'name' in 数据:#有名
                 块['name']=数据['name']#有名则带
         else:#封闭联合穷尽
-            return 断言永不(行,'chunk-rows expandRow')#不可达
+            return 断言永不(行,'块行 展开行')#不可达
         事件列表.append({#重建事件
             'type':'assistant/chunk',#助手块
             'seq':行['seq0']+下标,#成员序号

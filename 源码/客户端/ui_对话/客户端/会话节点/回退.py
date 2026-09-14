@@ -1,7 +1,3 @@
-"""未被认领的 append-surface 回退。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/fallback.ts`。公开面仅中文名。
-"""
 from .节点工厂 import 聊天节点#聊天节点工厂
 from .事件面 import 是追加面事件#面辅助
 

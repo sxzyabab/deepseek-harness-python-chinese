@@ -1,4 +1,3 @@
-"""Worker 拥有的规范化 fetch 观测与捕获正文仓库。"""
 #对齐上游 worker/inspection/network-store.ts 段1
 
 import base64,re,time#解码与时间
@@ -72,7 +71,7 @@ class 网络存储:#网络存储
         """在响应头到达后读取一个保留的响应体。"""
         请求=自身._按id取请求(请求id)#取请求
         if not 请求['responseSeen']:#未见响应
-            raise RuntimeError('response headers have not arrived')#未见响应
+            raise RuntimeError('响应头尚未到达')#未见响应
         return _组装正文(请求['responseBody'],请求['responseBodyTruncated'],请求.get('responseCaptureError'),请求['completed'])#组装
 
     def 拆除(自身):#拆除
@@ -91,7 +90,7 @@ class 网络存储:#网络存储
         时间戳=源.get('timeOriginMs',0)+记录.get('monotonicMs',0)#时间戳
         if 记录['topic']=='fetch/start':#开始
             if 键 in 自身._请求:#重复id
-                raise RuntimeError('fetch observation reused an active request id')#抛错
+                raise RuntimeError('fetch 观察复用了仍活动的 request id')#抛错
             请求={#新请求
                 'key':键,'requestId':键,'sourceId':源['sourceId'],#身份
                 'requestBody':[],'responseBody':[],#体块
@@ -236,11 +235,11 @@ class 网络存储:#网络存储
     def _按id取请求(自身,值):#按id取请求
         """公开请求 id 查找。"""
         if not isinstance(值,str):#类型
-            raise ValueError('Network requestId must be a string')#类型
+            raise ValueError('Network requestId 必须是字符串')#类型
         for 请求 in 自身._请求.values():#查找
             if 请求['requestId']==值:#命中
                 return 请求#返回
-        raise RuntimeError(f'No resource with given identifier: {值}')#未找到
+        raise RuntimeError(f'没有这个标识的资源：{值}')#未找到
 
 def _组装正文(块列表,截断,捕获错,完整):#组装捕获正文
     """合并块。"""
@@ -252,16 +251,16 @@ def _组装正文(块列表,截断,捕获错,完整):#组装捕获正文
 def _解码base64(值):#解码base64
     """规范 base64。"""
     if 值=='' or len(值)%4!=0 or 规范base64.fullmatch(值) is None:#非规范
-        raise ValueError('fetch payload body chunk must be canonical base64')#抛错
+        raise ValueError('fetch 载荷 body 块必须是规范 base64')#抛错
     字节=base64.b64decode(值)#解码
     if base64.b64encode(字节).decode('ascii')!=值:#再校验
-        raise ValueError('fetch payload body chunk must be canonical base64')#抛错
+        raise ValueError('fetch 载荷 body 块必须是规范 base64')#抛错
     return 字节#返回
 
 def _要求载荷(值):#要求载荷对象
     """必须为映射。"""
     if not isinstance(值,dict):#非对象
-        raise ValueError('fetch payload must be an object')#非对象
+        raise ValueError('fetch 载荷必须是对象')#非对象
     return 值#返回
 
 def _字符串字段(值,名):#字符串字段

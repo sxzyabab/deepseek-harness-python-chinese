@@ -1,7 +1,3 @@
-"""直连 DeepSeek 适配器的模型目录编辑与容量解析。
-
-对齐上游 `ui-settings-models/src/client/DeepSeekModelsEditor.tsx`。公开面仅中文名。
-"""
 import math#数学
 import re#正则
 

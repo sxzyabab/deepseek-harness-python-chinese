@@ -1,8 +1,3 @@
-"""基于 worker VFS 的 CommonJS 模块加载器。它填补 Cordis 对每次入口导入使用的
-`loader.internal` 接缝，并支撑 `node:module` 的 `createRequire` 代理。
-
-对齐上游 `webworker-runtime/src/module-system/module-loader.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import json as _json#清单解析
 from ..polyfill.async_context.als运行时 import 创建als运行时#ALS运行时
@@ -303,5 +298,5 @@ def 设活动模块加载器(加载器):#设置活动加载器
 def 要求活动模块加载器():#获取活动加载器
     """读取已发布的加载器。"""
     if _活动 is None:#尚未挂载
-        raise 运行时错误('webworker modules: no loader is mounted; the worker entry must call setActiveModuleLoader before any createRequire use')#未挂载错误
+        raise 运行时错误('webworker modules: 尚未挂载加载器；worker 入口必须在任何 createRequire 之前调用 setActiveModuleLoader')#未挂载错误
     return _活动#返回活动加载器

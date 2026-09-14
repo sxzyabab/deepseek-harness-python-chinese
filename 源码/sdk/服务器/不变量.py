@@ -1,8 +1,3 @@
-"""`@deepseek-ai/dsh-sdk-jsonrpc-server` 的本包拥有不变量配套。
-
-对齐上游 `sdk/server/src/invariant.ts`。公开面仅中文名。
-无运行时不变量：本展示适配器不拥有持久的包内事件序列；边界与回放测试覆盖其协议映射。
-"""
 包名='@deepseek-ai/dsh-sdk-jsonrpc-server'#本包的不变量所有权名
 名称='sdk-jsonrpc-server-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

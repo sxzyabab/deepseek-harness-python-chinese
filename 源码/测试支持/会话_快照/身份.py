@@ -1,7 +1,3 @@
-"""已提交会话快照的关系保持身份脱敏。
-
-对齐上游 `session-snapshot/src/identity.ts`。公开面仅中文名。
-"""
 import json,re#JSON 与正则
 
 __all__=['脱敏会话快照标识']#仅中文公开名

@@ -1,7 +1,3 @@
-"""固定引导在不透明 iframe 内运行；无 Host 回调进入其文档。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/html/bootstrap.ts`。公开面仅中文名。
-"""
 import json#载荷
 from .字节 import 解码文本,编码文本#编解码
 

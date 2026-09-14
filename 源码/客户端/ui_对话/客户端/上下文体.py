@@ -1,9 +1,3 @@
-"""上下文披露展开体：按 durable form 分发呈现。
-
-对齐上游 `ui-conversation/src/client/chat/ContextBody.tsx`。公开面仅中文名。
-未知/畸形 form 一律不透明体；列表全有或全无。
-源与内容为 dict / 列表。
-"""
 import json as 编码#紧凑 JSON
 
 __all__=[#公开面
@@ -301,7 +295,7 @@ def 选上下文体(表单,内容,源,翻译):
         return 不透 if 召回会话(源) is None else {'rendered':'recall','summary':None,'body':召回体(内容,源,翻译)}#出
     if 表单 is None:#无声明
         return 不透#opaque
-    raise ValueError(f'unreachable context form: {表单}')#闭联合
+    raise ValueError(f'不可达上下文形态: {表单}')#闭联合
 
 class 上下文体:
     """读节点 form 后选体。"""

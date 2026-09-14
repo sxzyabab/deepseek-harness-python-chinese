@@ -1,7 +1,3 @@
-"""文件上传 Host-for-Client Remote 贡献（对齐上游 `./remote`）。
-
-对照 `@Remote`：upload。
-"""
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面

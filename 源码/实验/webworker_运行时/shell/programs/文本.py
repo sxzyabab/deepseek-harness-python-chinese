@@ -1,8 +1,3 @@
-"""命令表的文本工具。每个都将操作数读为文件，并在空时回退到标准输入，
-与其 POSIX 对应物一样。
-
-对齐上游 `webworker-runtime/src/shell/programs/text.ts`。公开面仅中文名。
-"""
 import re as 正则#正则与转义
 from ..文件系统访问 import 描述失败,在目录解析#FS辅助
 from .选项 import 数值选项,解析选项,拆成行#选项工具

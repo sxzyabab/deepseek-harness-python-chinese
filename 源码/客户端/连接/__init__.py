@@ -1,7 +1,3 @@
-"""浏览器客户端 RPC 的宿主 HTTP 桥。
-
-对齐上游 `@deepseek-ai/dsh-client-connection`。公开面仅中文名。配置键英文字面量保持上游。
-"""
 from urllib.parse import urlparse#取路径
 from ...依赖.schemastery import 列表字段,字符串字段,自然数字段#配置字段
 from .接口路径 import 接口路径,复用事件路径,宿主事件路径#API 与事件路径常量

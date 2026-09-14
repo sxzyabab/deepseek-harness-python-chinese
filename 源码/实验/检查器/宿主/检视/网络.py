@@ -1,7 +1,3 @@
-"""完整 globalThis.fetch 采集：发布观测且不延迟响应交付。
-
-对齐上游 `host/inspection/network.ts`。公开面仅中文名。
-"""
 import base64,threading#编码与并发
 from ...共享.json import 检查器错误#本包错误
 from ...共享.桥接.消息.网络 import 请求主题列表#fetch主题常量

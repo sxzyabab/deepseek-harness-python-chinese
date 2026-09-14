@@ -1,9 +1,3 @@
-"""`@deepseek-ai/dsh-client-ui-message-feedback` 的本包拥有不变量配套。
-
-对齐上游 `ui-message-feedback/src/invariant.ts`。公开面仅中文名。
-
-无运行时不变量：槽位注册与按会话控制器映射由同一 effect disposer 拆除。
-"""
 包名='@deepseek-ai/dsh-client-ui-message-feedback'#本包的不变量所有权名
 名称='client-ui-feedback-invariant'#配套不变量插件名（字面量）
 注入=['invariants']#依赖 invariants 服务

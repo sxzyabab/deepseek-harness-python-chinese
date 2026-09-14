@@ -1,7 +1,3 @@
-"""插件设置面的浏览器半边。
-
-对齐上游 `ui-settings-plugins/src/client/index.ts`。公开面仅中文名。
-"""
 from .文案 import 命名空间,中文,英文#词典
 from .卡片控制器 import (#三张出厂卡控制器
     终端命名空间,智能体循环命名空间,网页搜索命名空间,#命名空间

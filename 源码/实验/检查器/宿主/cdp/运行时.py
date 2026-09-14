@@ -1,7 +1,3 @@
-"""Host Runtime 由 Worker 侧 Node inspector 适配器直接提供。
-
-对齐上游 `host/cdp/runtime.ts`。公开面仅中文名。
-"""
 from ...共享.json import 检查器错误#本包错误
 from .错误 import 宿主cdp桥不可用错误#桥不可用错误
 from .对象 import 拒绝对象桥操作#拒绝对象操作

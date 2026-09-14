@@ -1,4 +1,3 @@
-"""随包 dsh-badge 技能提供方。对齐上游 `@deepseek-ai/dsh-skill-badge`（packages/skill/skill-badge）。"""
 import os#资源路径解析
 from ..技能 import 捆绑技能排名#打包技能标准排名（与 dsh-skill 同源常量）
 

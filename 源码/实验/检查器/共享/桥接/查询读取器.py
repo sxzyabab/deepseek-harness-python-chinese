@@ -1,7 +1,3 @@
-"""面向与传输无关的 Cordis 树读取器的、基于查询的适配器。
-
-对齐上游 `shared/bridge/query-reader.ts`。公开面仅中文名。
-"""
 from ..cordis.读取器 import cordis运行时树读取器#树读取器基类
 
 __all__=['创建查询cordis运行时树读取器']#仅中文公开名

@@ -1,8 +1,3 @@
-"""`@deepseek-ai/dsh-sdk-client` 的本包拥有不变量配套。
-
-对齐上游 `sdk/client/src/invariant.ts`。公开面仅中文名。
-无运行时不变量：本客户端库运行在任何 harness 上下文之外；事件序列关系由运行时自身的包拥有。
-"""
 包名='@deepseek-ai/dsh-sdk-client'#本包的不变量所有权名
 名称='sdk-client-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

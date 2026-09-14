@@ -1,4 +1,3 @@
-"""耐久会话持久化 Service Definition（`ctx.sessionPersistence`）。后端把会话事件存成事件源日志，并把不可回放的会话头元数据单独携带；调用方通过 `创建`/`打开` 取得的会话句柄寻址一个已存会话。"""
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#导入Cordis服务基类
 from ...内核.会话 import 会话头字段#导入会话头（本包只再导出，不拥有）
@@ -79,7 +78,7 @@ class 会话持久化(服务):#会话持久化服务
     def __init__(自身,上下文):#登记为ctx.sessionPersistence
         """登记为 ctx.sessionPersistence。"""
         if type(自身) is 会话持久化:#直接实例化抽象类
-            raise 持久化错误('@deepseek-ai/dsh-session-persistence is the abstract persistence seam; load a backend implementation instead')#必须加载实现
+            raise 持久化错误('@deepseek-ai/dsh-session-persistence 是抽象持久化接缝；请改加载后端实现')#必须加载实现
         super().__init__(上下文,'sessionPersistence')#服务名
 
     def 创建(自身,头,选项=None):#创建并取写句柄
@@ -116,7 +115,7 @@ class 会话持久化(服务):#会话持久化服务
     def 读原始(自身,标识,信号=None):#默认拒绝原样子产物
         """原样读取一个会话的后端拥有产物文本。"""
         若已中止则抛出(信号)#已取消则失败
-        raise 持久化错误('this session persistence backend does not expose raw artifacts')#不支持原样子产物
+        raise 持久化错误('此后端不暴露原样子产物')#不支持原样子产物
 
     def 追加(自身,标识,事件列表):#耐久追加（旧面）
         """耐久持久化一批事件（旧协调器面；优先经写句柄追加）。"""

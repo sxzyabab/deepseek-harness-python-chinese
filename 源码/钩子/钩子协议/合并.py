@@ -1,5 +1,3 @@
-"""把命中的钩子收成最严格的一份结果。权限优先级是 deny > ask > allow；第一次 continue:false 的停止会粘住；胜出档位的原因会拼接；上下文和系统消息按钩子顺序累积。"""
-
 合并判定=('allow','ask','deny','none')#合并后的判定
 
 合并结果字段=('decision','reason','stop','stopReason','additionalContext','systemMessages')#合并后的钩子结果字段

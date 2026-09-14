@@ -1,11 +1,3 @@
-"""Markdown 渲染器的两套 mdast 文法入口。
-
-对齐上游 `ui-primitives/src/markdown/parse.ts`。公开面仅中文名。
-流式臂：GFM + CJK 友好加粗（不含数学，避免流式闪 KaTeX 错）。
-定稿臂：流式臂 + 兼容 TeX 定界符 + 数学。
-Python 侧经装载注入与上游同构的可调用体；未装载则抛错，从不静默降级。
-"""
-
 __all__=['基础界面错误','解析GFM','解析GFM含数学','装载流式解析','装载定稿解析']#仅中文公开名
 
 class 基础界面错误(Exception):

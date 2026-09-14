@@ -1,7 +1,3 @@
-"""Host RemoteObject handle 从不经 Host source 桥。
-
-对齐上游 `host/cdp/objects.ts`。公开面仅中文名。
-"""
 from .错误 import 宿主cdp桥不可用错误#桥不可用错误
 
 __all__=['拒绝对象桥操作']#仅中文公开名

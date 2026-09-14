@@ -1,9 +1,3 @@
-"""由模型驱动的 Typert 制品代码输出。
-
-对齐上游 `typert/generator/src/emitter.ts`。只消费 FaceModel 与 TypeGraph；
-TypeScript 编译器节点不进入本边界。公开面仅中文名。
-Remote 声明 source map 细粒度映射依赖 `@jridgewell/gen-mapping`，本面产出合法空映射。
-"""
 import json,os,re#字面量、路径与标识符
 from .渲染器 import 类型图渲染器#类型图渲染器
 

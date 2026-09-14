@@ -1,9 +1,3 @@
-"""右栏席：帧右列面板与浮层意图面。
-
-对齐上游 `ui-sidebar-right/src/client/shell/SidebarRight.tsx`。公开面仅中文名。
-无 React：视图模型持呈现同步、服务绑定与停靠意图；正文经键控席调度。
-停靠表面组件（DockSurface/FloatLayer）由宿主在有套件时挂载；本模块产出意图与结构树。
-"""
 from ....ui_停靠套件.引擎 import 查找窗格内容标签,可分割,停靠窗格标识列表#树
 from ..约定.种子 import 向导种类,页面地址#向导
 from ..停靠文案 import 停靠标签#文案投影

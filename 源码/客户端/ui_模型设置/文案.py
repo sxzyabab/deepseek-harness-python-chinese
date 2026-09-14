@@ -1,7 +1,3 @@
-"""模型设置分区的文案词典。
-
-对齐上游 `ui-settings-models/src/client/locales.ts`。公开面仅中文名。
-"""
 from .引导文案 import 欢迎通知文案#引导欢迎通知文案
 
 __all__=['命名空间','中文','英文']#仅中文公开名

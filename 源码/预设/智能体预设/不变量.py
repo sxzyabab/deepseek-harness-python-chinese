@@ -1,7 +1,3 @@
-"""`@deepseek-ai/dsh-agent-presets` 的本包拥有不变量配套。
-
-对齐上游 `agent-presets/src/invariant.ts`。公开面仅中文名。
-"""
 from .挂载 import 泄漏服务,活预设挂载#泄漏服务与活挂载
 
 包名='@deepseek-ai/dsh-agent-presets'#本包的不变量所有权名

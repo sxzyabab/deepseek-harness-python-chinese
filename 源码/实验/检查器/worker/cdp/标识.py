@@ -1,4 +1,3 @@
-"""由 Worker 侧 Chrome DevTools 连接拥有的不透明标识符。"""
 #对齐上游 worker/cdp/ids.ts
 
 __all__=['cdp字符串id','cdp数字id']#仅中文公开名

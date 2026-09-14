@@ -1,7 +1,3 @@
-"""触发检测纯核心：从光标向后扫描，按守卫档位找存活的触发字符。
-
-对齐上游 `ui-input-trigger/src/core/detect.ts`。公开面仅中文名。零 React / DOM / cordis。
-"""
 import re#正则
 
 __all__=['检测触发','词边界可']#仅中文公开名

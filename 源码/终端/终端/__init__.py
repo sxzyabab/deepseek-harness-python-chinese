@@ -1,4 +1,3 @@
-"""按所有者作用域的持久 PTY 注册表。后端负责终端机制，本服务负责 id、发布、授权与等待清理。"""
 import threading,weakref#后台清槽与已拆除所有者弱集
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
@@ -76,7 +75,7 @@ class 操作任务:#单次操作结果
 
 def 后台清发送槽(记录,操作):#发送结束后清掉活动槽
     """对齐 void operation.done.then(清,清)：成败都清槽。"""
-    def 盯():#后台等到结算
+    def 等待发送结算():#后台等到结算
         """等到发送结算后清槽。"""
         try:#等待结算
             操作.done.等待()#等done
@@ -84,7 +83,7 @@ def 后台清发送槽(记录,操作):#发送结束后清掉活动槽
             pass#吸收，只为清槽
         if 记录['active'] is 操作:#仍是这次发送才清
             记录['active']=None#清活动发送
-    工作=threading.Thread(target=盯)#后台线程
+    工作=threading.Thread(target=等待发送结算)#后台线程
     工作.daemon=True#不挡住退出
     工作.start()#立刻开跑
 
@@ -117,9 +116,9 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
         """在本 effect 作用域登记一种后端类型。类型非空且唯一；返回只撤掉这一次贡献的 disposer。后端是对象。"""
         类型=后端.type#后端类型名
         if 类型 is None or len(类型)==0:#拒绝空类型
-            raise 终端错误('pty backend type must be non-empty')#拒绝空类型
+            raise 终端错误('pty 后端类型不得为空')#拒绝空类型
         if 类型 in 自身.后端表:#类型已占用
-            raise 终端错误('a PTY backend named "'+str(类型)+'" is already registered','DUPLICATE_BACKEND')#拒绝重复后端
+            raise 终端错误('名为 "'+str(类型)+'" 的 PTY 后端已登记','DUPLICATE_BACKEND')#拒绝重复后端
         def 挂上():#按effect登记
             """写入注册表并在拆除时删除。"""
             自身.后端表[类型]=后端#写入注册表
@@ -146,10 +145,10 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
         类型=请求['type']#后端类型
         后端=自身.后端表[类型] if 类型 in 自身.后端表 else None#按类型取后端
         if 后端 is None:#无后端
-            raise 终端错误('no PTY backend registered for "'+str(类型)+'"','NO_BACKEND')#无后端
+            raise 终端错误('没有为 "'+str(类型)+'" 登记的 PTY 后端','NO_BACKEND')#无后端
         名称=请求['name'] if 'name' in 请求 else None#可选显示名
         if 名称 is not None and len(名称)==0:#拒绝空名
-            raise 终端错误('PTY session name must be non-empty')#拒绝空名
+            raise 终端错误('PTY 会话名不得为空')#拒绝空名
         释放名=自身.预留名称(所有者,名称)#预留显示名
         搭建预留=自身.预留搭建(所有者)#预留未发布搭建
         if 信号 is None:#调用方未给取消时
@@ -175,9 +174,9 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
             会话=后端.搭建(规格)#交给后端搭建
             若已中止则抛出(信号)#搭建后再次检查取消
             if 自身.拆除中:#服务已开始拆除
-                raise 终端错误('PTY service is disposing','SERVICE_DISPOSING')#拒绝发布
+                raise 终端错误('PTY 服务正在拆除','SERVICE_DISPOSING')#拒绝发布
             if not 自身.是否在场所有者(所有者):#所有者已不在场
-                raise 终端错误('PTY owner is no longer live','OWNER_NOT_LIVE')#拒绝发布
+                raise 终端错误('PTY 所有者已不在场','OWNER_NOT_LIVE')#拒绝发布
             记录={#已发布记录
                 'id':会话标识,#会话id
                 'owner':所有者,#所有者
@@ -195,7 +194,7 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
             回滚失败=None#回滚失败
             if 会话 is not None and 会话标识 not in 自身.会话表:#已有会话但未发布
                 try:#关闭未发布会话
-                    会话.关闭('PTY spawn rolled back').等待()#按回滚关闭
+                    会话.关闭('PTY 搭建已回滚').等待()#按回滚关闭
                 except BaseException as 关闭错误:#关闭失败
                     回滚失败={'error':关闭错误}#记下回滚失败
                     清理失败=回滚失败#清理失败就是回滚失败
@@ -206,7 +205,7 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
             except BaseException as 取消错误:#发生了取消
                 失败=取消错误#改抛取消
             if 回滚失败 is not None and not 已中止(信号):#回滚失败且不是调用方取消
-                raise 聚合错误([失败,回滚失败['error']],'PTY spawn and rollback both failed')#搭建与回滚双失败
+                raise 聚合错误([失败,回滚失败['error']],'PTY 搭建与回滚均失败')#搭建与回滚双失败
             raise 失败#抛出选定失败
         finally:#无论成败都释放预留
             搭建预留['release'](清理失败)#释放搭建预留
@@ -226,9 +225,9 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
         """开始一次互斥的交互发送，返回可供前台等待或登记任务的在场操作句柄。"""
         记录=自身.期望已拥有(所有者,标识)#校验所有权
         if 记录['closing'] is not None:#关闭中拒绝
-            raise 终端错误('PTY session '+str(标识)+' is closing')#关闭中拒绝
+            raise 终端错误('PTY 会话 '+str(标识)+' 正在关闭')#关闭中拒绝
         if 记录['active'] is not None:#已有发送
-            raise 终端错误('PTY session '+str(标识)+' already has an active send','SEND_ACTIVE')#已有发送
+            raise 终端错误('PTY 会话 '+str(标识)+' 已有活动发送','SEND_ACTIVE')#已有发送
         操作=记录['session'].开始发送(请求)#交给后端
         记录['active']=操作#记下活动发送
         后台清发送槽(记录,操作)#结束后清槽
@@ -272,7 +271,7 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
     def 断言可用(自身):#服务须仍可用
         """服务拆除中则拒绝。"""
         if 自身.拆除中:#拆除中
-            raise 终端错误('PTY service is disposing','SERVICE_DISPOSING')#拆除中拒绝
+            raise 终端错误('PTY 服务正在拆除','SERVICE_DISPOSING')#拆除中拒绝
 
     def 是否在场所有者(自身,所有者):#所有者是否仍在场
         """未拆除且注册表仍是这个实例。"""
@@ -286,7 +285,7 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
     def 确保所有者清理(自身,所有者):#确保所有者拆除钩子
         """经精确所有者的作用域挂接一次被等待的清理。"""
         if not 自身.是否在场所有者(所有者):#不在场
-            raise 终端错误('agent "'+str(所有者.id)+'" is not the registered PTY owner','OWNER_NOT_LIVE')#拒绝
+            raise 终端错误('智能体 "'+str(所有者.id)+'" 不是已登记的 PTY 所有者','OWNER_NOT_LIVE')#拒绝
         if 所有者 in 自身.所有者清理:#已挂过
             return#不必再挂
         def 执行体():#所有者作用域拆除时
@@ -306,12 +305,12 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
             return 空释放名#空释放
         for 记录 in 自身.会话表.values():#已发布重名
             if 记录['owner'] is 所有者 and 记录['name']==名称:#已发布重名
-                raise 终端错误('PTY session name "'+str(名称)+'" already exists for this owner','DUPLICATE_NAME')#拒绝
+                raise 终端错误('PTY 会话名 "'+str(名称)+'" 对本所有者已存在','DUPLICATE_NAME')#拒绝
         if 所有者 not in 自身.预留名表:#尚无集合
             自身.预留名表[所有者]=set()#新建
         已预留=自身.预留名表[所有者]#该所有者的预留集
         if 名称 in 已预留:#正在创建中
-            raise 终端错误('PTY session name "'+str(名称)+'" is already being created','DUPLICATE_NAME')#拒绝
+            raise 终端错误('PTY 会话名 "'+str(名称)+'" 正在创建','DUPLICATE_NAME')#拒绝
         已预留.add(名称)#占用此名
         def 释放():#释放名
             """去掉此名；空了则摘所有者。"""
@@ -379,15 +378,15 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
         for 搭建 in 待取消:#摘掉记录
             自身.摘掉未发布搭建(搭建)#摘掉
         if len(失败列表)>0:#有清理失败
-            raise 聚合错误(失败列表,'failed to roll back unpublished PTY setup')#聚合抛出
+            raise 聚合错误(失败列表,'回滚未发布 PTY 搭建失败')#聚合抛出
 
     def 期望已拥有(自身,所有者,标识):#取已拥有记录
         """取已拥有记录；未知或他人会话则抛稳定错误。"""
         记录=自身.会话表[标识] if 标识 in 自身.会话表 else None#按id查找
         if 记录 is None:#未知会话
-            raise 终端错误('unknown PTY session '+str(标识),'NO_SESSION')#未知会话
+            raise 终端错误('未知 PTY 会话 '+str(标识),'NO_SESSION')#未知会话
         if 记录['owner'] is not 所有者:#他人会话
-            raise 终端错误('PTY session '+str(标识)+' belongs to another agent','FOREIGN_SESSION')#他人会话
+            raise 终端错误('PTY 会话 '+str(标识)+' 属于另一智能体','FOREIGN_SESSION')#他人会话
         return 记录#通过校验
 
     def 快照(自身,记录,开机信息=None):#组装快照或创建结果
@@ -423,15 +422,15 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
         except BaseException as 错误:#关闭失败
             失败列表.append(错误)#记下
         if len(失败列表)>0:#有失败则聚合抛出
-            raise 聚合错误(失败列表,'failed to clean up PTY lifecycle')#聚合抛出
+            raise 聚合错误(失败列表,'清理 PTY 生命周期失败')#聚合抛出
 
     def 拆除所属(自身,所有者):#拆除一个所有者的全部PTY
         """拆除一个所有者的全部 PTY。"""
         try:#取消并关闭
             自身.取消并关闭(#走统一清理
                 所有者,#该所有者
-                终端错误('PTY owner is no longer live','OWNER_NOT_LIVE'),#取消原因
-                'PTY owner disposed',#关闭原因
+                终端错误('PTY 所有者已不在场','OWNER_NOT_LIVE'),#取消原因
+                'PTY 所有者已拆除',#关闭原因
             )#取消并关闭结束
         finally:#无论成败都清预留名
             自身.预留名表.pop(所有者,None)#去掉该所有者的预留名
@@ -442,8 +441,8 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
         try:#取消并关闭全部
             自身.取消并关闭(#不定所有者即全部
                 None,#全部所有者
-                终端错误('PTY service is disposing','SERVICE_DISPOSING'),#取消原因
-                'PTY service disposed',#关闭原因
+                终端错误('PTY 服务正在拆除','SERVICE_DISPOSING'),#取消原因
+                'PTY 服务已拆除',#关闭原因
             )#取消并关闭结束
         finally:#无论成败都清表
             自身.后端表.clear()#清后端
@@ -470,7 +469,7 @@ class 终端会话服务(服务):#可替换PTY后端与精确智能体会话的�
                     记录['closing']=None#清栅栏
                 失败列表.append(错误)#记下
         if len(失败列表)>0:#有失败则聚合抛出
-            raise 聚合错误(失败列表,'failed to close '+str(len(失败列表))+' PTY session(s)')#聚合抛出
+            raise 聚合错误(失败列表,'关闭 '+str(len(失败列表))+' 个 PTY 会话失败')#聚合抛出
 
 __all__=['终端会话服务','终端错误','终端错误码']#公开面
 default=终端会话服务#Cordis默认导出

@@ -1,4 +1,3 @@
-"""把 Claude Code 的事件到匹配组钩子格式解析成共用的 MatcherGroup。只跑命令钩子；其他钩子类型作为已跳过返回，方便桥接层警告。插件根与项目目录替换在解析时应用到命令上。"""
 from ..钩子协议 import 匹配诊断#按方言校验匹配器
 
 克劳德事件表=(#Claude Code 支持的钩子事件
@@ -82,7 +81,7 @@ def 解析克劳德代码配置(原始,变量=None):
                 匹配器=None#丢掉
             诊断=匹配诊断(匹配器,'claude-code')#按 Claude 方言校验匹配器
             if 诊断 is not None:#非法正则拒绝整份配置
-                raise SyntaxError(诊断+' on event '+repr(事件))#带事件名的诊断
+                raise SyntaxError(诊断+' 于事件 '+repr(事件))#带事件名的诊断
             匹配组={'hooks':命令列表}#本组命令钩子
             if 匹配器 is not None:#有 matcher 才写入
                 匹配组['matcher']=匹配器#匹配模式

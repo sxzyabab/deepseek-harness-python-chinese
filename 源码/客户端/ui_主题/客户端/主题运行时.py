@@ -1,8 +1,3 @@
-"""主题运行时：偏好、注册表、覆盖层与快照发布（无 DOM）。
-
-对齐上游 `ui-theme/src/client/index.ts` 中 ThemeRuntime 核心逻辑。
-公开面仅中文名。prefers-color-scheme 媒体查询由宿主注入系统色板。
-"""
 from ..主题设置 import 默认偏好,是否主题偏好,主题偏好字段,主题错误#偏好约定
 
 __all__=[#仅中文公开名
@@ -70,11 +65,11 @@ def 校验覆盖层(来源,令牌表):
     已校={}#防御拷贝
     for 名,值 in 令牌表.items():#逐令牌
         if isinstance(值,str):#裸串
-            raise TypeError('theme override "'+名+'" from "'+来源+'" is a bare string — pass { light, dark }')#教学
+            raise TypeError('主题覆盖 "'+名+'" 来自 "'+来源+'" 是裸字符串 — 请传入 { light, dark }')#教学
         if not isinstance(值,dict) or 'light' not in 值 or 'dark' not in 值:#形状
-            raise TypeError('theme override "'+名+'" from "'+来源+'" must map to a { light, dark } pair of strings')#教学
+            raise TypeError('主题覆盖 "'+名+'" 来自 "'+来源+'" 必须映射到 { light, dark } 字符串对')#教学
         if not isinstance(值['light'],str) or not isinstance(值['dark'],str):#必须字符串
-            raise TypeError('theme override "'+名+'" from "'+来源+'" must map to a { light, dark } pair of strings')#教学
+            raise TypeError('主题覆盖 "'+名+'" 来自 "'+来源+'" 必须映射到 { light, dark } 字符串对')#教学
         已校[名]={'light':值['light'],'dark':值['dark']}#拷贝
     return 已校#已校
 

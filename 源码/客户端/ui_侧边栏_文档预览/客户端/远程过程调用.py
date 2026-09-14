@@ -1,8 +1,3 @@
-"""本类型执行的分页读取，绑定到 Client Remote。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/rpc.ts`。公开面仅中文名。
-内容是消费者的业务：`file` 资源只携带元数据，文本在此按行页到达。
-"""
 import base64#线路 base64
 
 __all__=[#仅中文公开名
@@ -17,11 +12,11 @@ def 宿主文件(地址):
     """
     前缀='dsh-resource://file/session/'#会话前缀
     if not 地址.startswith(前缀):#非会话
-        raise ValueError('ui-sidebar-documentpreview: not a session file address "'+地址+'"')
+        raise ValueError('ui-sidebar-documentpreview: 不是会话文件地址 "'+地址+'"')
     余=地址[len(前缀):]#sessionId/path
     斜=余.find('/')#分隔
     if 斜<0:#无路径
-        raise ValueError('ui-sidebar-documentpreview: not a session file address "'+地址+'"')
+        raise ValueError('ui-sidebar-documentpreview: 不是会话文件地址 "'+地址+'"')
     from urllib.parse import unquote#段解码
     return {'sessionId':unquote(余[:斜]),'path':unquote(余[斜+1:])}#会话与路径
 

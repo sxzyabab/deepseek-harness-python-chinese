@@ -1,15 +1,3 @@
-"""从宿主 worker 启动并监督 shell 进程。
-
-进程是从这个同一束启动的 Web Worker，由其第一帧告知成为 shell 进程而非
-宿主。这就是在浏览器中买到真进程语义的方式：命令在宿主线程外运行，
-`terminate()` 即使中途循环也能停下它——协作式线程内解释器永远做不到的事。
-
-在不存在 `Worker` 构造器处（Node 测试宿主），同一命令在本线程内联运行。
-除抢占外一切行为相同，差异被点名而非隐藏：`destroy`
-只能请求内联命令停止。
-
-对齐上游 `webworker-runtime/src/shell/process/host.ts`。公开面仅中文名。
-"""
 from ...node.未实现失败 import 运行时错误#本包错误
 from ..解释 import 运行shell命令,运行shell程序#解释器入口
 from ..文件系统访问 import 宿主文件系统#宿主FS

@@ -1,7 +1,3 @@
-"""工作区槽约定再导出。
-
-对齐上游 `ui-workspace/src/client/contract/`。公开面仅中文名。
-"""
 from .槽位 import (#约定面
     目录流槽名,
     目录流槽名表,

@@ -1,9 +1,3 @@
-"""跨活动内存 VFS 的 Node 文件系统监视。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/fs-watch.ts`。
-文件名下划线：Python 无法 import 连字符模块名。
-公开面中文名；Node 面经别名暴露英文名。
-"""
 import threading#中止等待
 from .buffer import Buffer#本包Buffer
 from .events import 事件发出器#导入事件发出器
@@ -275,7 +269,7 @@ def 监视文件(路径,选项或监听器,或许监听器=None):#导出watchFil
     """为一条路径注册 stat 轮询监视器。"""
     选项={} if callable(选项或监听器) else 选项或监听器#解析选项
     监听器=选项或监听器 if callable(选项或监听器) else 或许监听器#解析监听器
-    if 监听器 is None: raise TypeError('The "listener" argument must be of type function')#必须有监听器
+    if 监听器 is None: raise TypeError('"listener" 参数必须是函数')#必须有监听器
     目标=归一路径(路径)#归一路径
     监视器=_统计监视表.get(目标)#查共享监视器
     if 监视器 is None:#尚无共享实例

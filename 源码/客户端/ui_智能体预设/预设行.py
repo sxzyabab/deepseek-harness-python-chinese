@@ -1,7 +1,3 @@
-"""智能体预设偏好行：新会话默认预设选择器。
-
-对齐上游 `ui-agent-preset/src/client/AgentPresetRow.tsx`。公开面仅中文名。
-"""
 from .文案 import 预设展示文案#展示文案
 
 __all__=['预设行','样式表']#仅中文公开名

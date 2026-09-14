@@ -1,7 +1,3 @@
-"""每个活动 DevTools Runtime 会话共享的 Client Console 观测。
-
-对齐上游 `client/cdp/console.ts`。公开面仅中文名。
-"""
 from .栈 import 捕获客户端控制台栈,空解析脚本#捕获栈|空脚本键
 
 __all__=['控制台桥能力','客户端控制台观察器']#仅中文公开名

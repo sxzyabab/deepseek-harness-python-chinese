@@ -1,7 +1,3 @@
-"""客户端设置作用域接缝的测试替身。
-
-对齐上游 `client-runtime/src/settings-scope.ts`。公开面仅中文名。
-"""
 __all__=['桩设置作用域']#仅中文公开名
 
 class 间谍函数:#简单 spy 可调用（对齐 vitest vi.fn）

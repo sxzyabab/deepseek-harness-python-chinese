@@ -1,7 +1,3 @@
-"""纯文本渲染器与文档滚动器共享的源码行辅助。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/text/lines.ts`。公开面仅中文名。
-"""
 
 __all__=['页行','已载入页','末已载行','滚到行']#仅中文公开名
 

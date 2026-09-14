@@ -1,8 +1,3 @@
-"""todo_write 行摘要：纯计划推导。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/plan-summary.ts`。公开面仅中文名。
-"""
-
 __all__=['计划摘要']#仅中文公开名
 
 def 计划摘要(待办列表):#从整表推导

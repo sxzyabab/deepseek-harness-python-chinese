@@ -1,9 +1,3 @@
-"""HMR 插件的 node 半边：开发热重载链的宿主端。
-
-一个定时器对图中每一行的客户端打包产物做 stat 轮询（故意用轮询：网络盘没有 inotify 事件），内容变化经 `clientModules.rebuilt(id)` 上报，并提供 `/plugins/events` SSE 通道，把 graph/rebuilt 帧广播给浏览器半边。
-
-对齐上游 `@deepseek-ai/dsh-client-hmr`。公开面仅中文名。配置键英文字面量保持上游。
-"""
 import json,os,threading#JSON、路径与定时器
 from ...依赖.schemastery import 自然数字段#配置字段
 from .事件 import 插件事件帧,事件端点,热更新错误#再导出 SSE 帧、路径与本包错误

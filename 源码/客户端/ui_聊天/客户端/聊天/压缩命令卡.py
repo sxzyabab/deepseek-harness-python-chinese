@@ -1,8 +1,3 @@
-"""压缩命令卡：命令 + 压缩摘要。
-
-对齐上游 `ui-chat/src/client/chat/CompactionCommandCard.tsx`。公开面仅中文名。
-属性与节点为 dict。
-"""
 from .压缩项 import 压缩项#压缩项
 from .回退命令卡 import 回退命令卡#命令卡
 

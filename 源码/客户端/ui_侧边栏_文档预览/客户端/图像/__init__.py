@@ -1,7 +1,3 @@
-"""内置图片元数据与带键文档正文登记。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/image/index.ts`。公开面仅中文名。
-"""
 from .文案 import 中文,英文,图像预览键#词典
 from .图像体 import 图像体,图像扩展名#正文
 

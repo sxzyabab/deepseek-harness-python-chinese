@@ -1,8 +1,3 @@
-"""Session Controller 适配器：选择器钩子与 Slot 作用域数据。
-
-对齐上游 `ui-session/src/client/index.ts`。公开面仅中文名。
-TypeScript 声明合并面以注释保留；可执行面全量落中文。
-"""
 from ...存储 import 通知订阅者#订阅者通知
 from .会话提供方 import 渲染会话区域#SessionProvider 渲染语义
 

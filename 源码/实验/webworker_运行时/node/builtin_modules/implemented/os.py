@@ -1,10 +1,3 @@
-"""worker 侧的 `node:os`：每个值指向 VFS 或报告主机树所建的固定平台身份
-（`linux`，一颗 CPU）。值为真实而非抛错，因为若干 `[Service.init]` 体在
-构造期间会读取它们。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/os.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from ....storage.路径 import dsh主目录,dsh临时#VFS路径常量
 
 __all__=[#中文公开名与Node英文挂名

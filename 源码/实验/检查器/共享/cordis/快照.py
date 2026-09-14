@@ -1,7 +1,3 @@
-"""与 CDP 无关的 Cordis Context/Fiber 树快照模型。
-
-对齐上游 `shared/cordis/snapshot.ts`。公开面仅中文名。
-"""
 from ..json import 是否普通对象,检查器错误#普通对象|本包错误
 from ..校验 import 精确键,精确对象,线上标识#校验
 

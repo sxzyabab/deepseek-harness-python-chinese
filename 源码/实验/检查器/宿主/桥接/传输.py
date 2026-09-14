@@ -1,7 +1,3 @@
-"""经专用 MessagePort 的 Host realm 观测发布器。
-
-对齐上游 `host/bridge/transport.ts`。公开面仅中文名。
-"""
 from ...共享.桥接.消息.观察 import 检查器协议版本,解析工作者源帧#观测消息
 from ...共享.桥接.发布器 import 检查器源连接#源连接基类
 from ..检视.领域 import 创建宿主领域源#Host源描述工厂

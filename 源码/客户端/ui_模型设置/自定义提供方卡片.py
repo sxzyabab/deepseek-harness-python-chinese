@@ -1,8 +1,3 @@
-"""声明 pi-ai 未出厂提供方的创建卡片。
-
-对齐上游 `ui-settings-models/src/client/CustomProviderCard.tsx`。公开面仅中文名。
-一次 settings.mutate 写入整档；密钥经 credentials.set 另走。端点、协议、至少一个模型在此必填。
-"""
 import re#正则
 from .DeepSeek模型编辑器 import 校验DeepSeek模型#模型门闩
 from .密钥判定 import 密钥失败#密钥门闩

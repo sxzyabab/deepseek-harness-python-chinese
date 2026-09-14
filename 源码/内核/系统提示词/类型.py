@@ -1,4 +1,3 @@
-"""系统提示词组装的结构类型。对齐上游 `system-prompt/src/index.ts` 公开接口。公开面仅中文名；字段键保持上游字面量。"""
 from typing import NotRequired,TypedDict#可选字段与结构类型
 
 __all__=(

@@ -1,8 +1,3 @@
-"""打开本地设置文档的页眉动作。
-
-对齐上游 `ui-settings-general/src/client/SettingsDocumentAction.tsx`。公开面仅中文名。
-"""
-
 __all__=['文档动作','样式表']#仅中文公开名
 
 样式表='''#对齐 SettingsDocumentAction.module.css

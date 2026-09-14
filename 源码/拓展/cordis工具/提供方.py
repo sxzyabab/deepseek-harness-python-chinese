@@ -1,7 +1,3 @@
-"""Cordis 工具包登记的第一方宿主巡检提供方。
-
-对齐上游 `拓展/tool-cordis/src/providers.ts`。公开面仅中文名。
-"""
 from ..cordis服务端 import 宿主内置巡检#宿主内置巡检数据
 from .接口目录 import 事件目录,查询服务目录,查询事件目录#目录与查询
 
@@ -43,7 +39,7 @@ def 登记(标识,说明,方法,查询,输入模式=None,输出模式=None):#组
     def 执行(请求方法,输入,_上下文=None):#执行查询
         """未知方法则抛。"""
         if 请求方法!=方法:#未知
-            raise Exception('unknown '+标识+' inspect method "'+请求方法+'"')#未知
+            raise Exception('未知的 '+标识+' 巡检方法 "'+请求方法+'"')#未知
         return 查询(输入)#委托
     return {#组装登记
         'manifest':{#清单
@@ -70,7 +66,7 @@ def 列出宿主巡检提供方(上下文):#构造宿主巡检提供方
     def 工具查询(方法,_输入,查询上下文):#现场工具
         """返回当前 Agent 可调用工具模式。"""
         if 方法!='listTools':#未知
-            raise Exception('unknown Tool inspect method "'+方法+'"')#未知
+            raise Exception('未知的 Tool 巡检方法 "'+方法+'"')#未知
         智能体=查询上下文['agent']#所属 Agent
         return {'tools':上下文.tools.schemas(智能体)}#该 Agent 的工具模式
     return [#登记列表

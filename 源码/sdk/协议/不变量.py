@@ -1,8 +1,3 @@
-"""`@deepseek-ai/dsh-sdk-protocol` 的本包拥有不变量配套。
-
-对齐上游 `sdk/protocol/src/invariant.ts`。公开面仅中文名。
-无运行时不变量：本包是纯线协议库（传输类加类型声明），自身没有事件序列或可变数据关系；两端各自拥有其协议行为。
-"""
 包名='@deepseek-ai/dsh-sdk-protocol'#本包的不变量所有权名
 名称='sdk-protocol-invariant'#配套不变量插件名
 注入=['invariants']#依赖 invariants 服务

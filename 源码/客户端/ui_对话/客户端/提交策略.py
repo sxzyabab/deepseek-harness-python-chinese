@@ -1,9 +1,3 @@
-"""Composer 提交策略：忙碌-Enter 偏好与键盘手势解析。
-
-对齐上游 `ui-conversation/src/client/input/submission-policy.ts`。公开面仅中文名。
-真正的投递窗口权威仍在 Host 与 Agent。
-快照为 dict。
-"""
 from ..提交设置 import 忙碌回车字段,默认忙碌回车行为#字段与默认
 from .约定.提交约定 import 默认忙碌回车行为 as 默认行为#再导出别名
 

@@ -1,8 +1,3 @@
-"""停靠分割树视图模型：嵌套份额格子与可拖分隔条。
-
-对齐上游 `ui-dockkit/src/components/PaneTree.tsx`。公开面仅中文名。
-预览份额覆盖录制份额直至手势落定。
-"""
 from ..引擎.树 import 取节点#树
 from .标签面板 import 标签面板#窗格
 

@@ -1,9 +1,3 @@
-"""页侧运行编排：审批、对账与活动图。
-
-对齐上游 `cordis-client-runner/src/client/orchestrator.ts`。公开面仅中文名。
-inFlight 按插件串行；orchestrate/drive 收尾在 finally 清活动；决议只走 answer/settle。
-evaluate/Loader 真挂载仍属硬缺口，本叶不冒充 Function/React。
-"""
 from .运行时 import 可观察,错误字段#可观察与错误
 
 __all__=[#仅中文公开名
@@ -166,7 +160,7 @@ class 运行编排器:#CordisRunOrchestrator
             自身.commit()#通知
 
     def approve(自身,请求标识,批后续=False):#批准
-        """进入编排串行；对齐 Promise<void>。"""
+        """进入编排串行。"""
         请求=自身.请求.get(请求标识)#取出
         if 请求 is None or not 请求.get('requiresApproval'):#不可答或已授权路径
             return#空
@@ -202,9 +196,8 @@ class 运行编排器:#CordisRunOrchestrator
         插件=计划['pluginId']#插件
         飞=自身.进行中.get(插件)#已在飞
         if 飞 is not None:#对齐 return running
-            return 飞#复用同一次（不启第二趟）
-        盒={'done':False}#attempt 盒（同步 Promise 占位）
-        自身.进行中[插件]=盒#记下进行中
+            return#复用同一次（不启第二趟）
+        自身.进行中[插件]=True#记下进行中
         自身.活动[插件]={#标编排中
             'phase':'orchestrating','agentId':计划['agentId'],
             'packageId':计划['packageId'],'mode':计划['mode'],
@@ -216,11 +209,9 @@ class 运行编排器:#CordisRunOrchestrator
         try:#驱动两半
             自身._驱动(计划)#drive（void）
         finally:#对齐 attempt.finally
-            盒['done']=True#落定
             自身.进行中.pop(插件,None)#拿掉进行中
             自身.活动.pop(插件,None)#清 orchestrating
             自身.commit()#通知
-        return 盒#本次 attempt
 
     def _取宿主(自身):#env.host 接缝
         """折好的宿主 RPC 操作表。"""
@@ -233,9 +224,9 @@ class 运行编排器:#CordisRunOrchestrator
 
     def _启动宿主(自身,计划):#startHost
         """调用 host.runHostHalf；接缝抛错折成 {ok:false,...错误字段}。"""
-        跑=自身._取宿主().get('runHostHalf')#动词
+        执行宿主半=自身._取宿主().get('runHostHalf')#动词
         try:#远程启动
-            return 跑(#对齐六参；无审批 id 传 None
+            return 执行宿主半(#对齐六参；无审批 id 传 None
                 计划['agentId'],计划['pluginId'],计划['packageId'],计划['mode'],
                 计划.get('requestId'),计划.get('approveFutureVersions',False),
             )#结束

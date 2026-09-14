@@ -1,9 +1,3 @@
-"""`node:timers/promises`：基于线程事件的阻塞延迟。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/timers/promises.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-await 已在翻译时去掉，本面直接阻塞到时限或中止。
-"""
 import threading#事件等待
 from ..abort_error import 中止错误,已中止,若已中止则抛出#本包中止原语
 

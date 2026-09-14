@@ -1,8 +1,3 @@
-"""`node:fs/promises` 表面：VFS 桥的 promise 成员，再导出为具名绑定。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/fs/promises.ts`。
-公开面中文名；Node 面经别名暴露英文名。
-"""
 from ..fs import 目录条目,承诺面#从fs桥再导出
 
 __all__=[#中文与Node面

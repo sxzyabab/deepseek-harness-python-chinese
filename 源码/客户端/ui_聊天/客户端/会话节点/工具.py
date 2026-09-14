@@ -1,7 +1,3 @@
-"""根工具生命周期与嵌套代码分发。
-
-对齐上游 `ui-chat/src/client/conversation-nodes/tool.ts`。公开面仅中文名。
-"""
 import json#子调用参数序列化
 from ..约定.聊天节点 import 是已结算工具#已结算判断
 from .节点工厂 import 聊天错误,聊天合成序号偏移,聊天节点#公共

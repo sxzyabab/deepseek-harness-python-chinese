@@ -1,8 +1,3 @@
-"""工作区归档与目录 UI 能力。
-
-对齐上游 `ui-workspace/src/client/navigation.ts`。公开面仅中文名。
-AbortSignal / AbortController 译为 threading.Event；async 一律同步等待。
-"""
 import threading#寿命中止与后台观察
 from datetime import datetime#创建时解析
 
@@ -16,7 +11,7 @@ class 目录浏览错误(Exception):
         自身.rpcError=rpc错误#业务失败
         码=rpc错误['code'] if isinstance(rpc错误,dict) and 'code' in rpc错误 else ''#码
         文=rpc错误['message'] if isinstance(rpc错误,dict) and 'message' in rpc错误 else str(rpc错误)#文
-        super().__init__('directory browse failed: '+str(码)+': '+str(文))#消息
+        super().__init__('目录浏览失败: '+str(码)+': '+str(文))#消息
         自身.name='DirectoryBrowseError'#错误名
 
 
@@ -70,9 +65,9 @@ class 工作区UI服务:#跨控制器导航与目录
                 工作区=项#记
                 break#止
         if 工作区 is None:#未知
-            raise Exception('uiWorkspace.connectWorkspace: unknown workspace '+str(工作区标识))#抛
+            raise Exception('uiWorkspace.connectWorkspace: 未知工作区 '+str(工作区标识))#抛
         if 工作区标识 in 自身.connecting:#飞行中
-            return 自身.connecting[工作区标识].等待() if hasattr(自身.connecting[工作区标识],'等待') else 自身.connecting[工作区标识]#共享
+            return 自身.connecting[工作区标识].等待()#共享
         已归档=快['archivedSessionIds']#已归档
         会话快=自身.sessions.list.getSnapshot()#会话
         for 标识 in 会话快['ids']:#找可复用
@@ -84,7 +79,7 @@ class 工作区UI服务:#跨控制器导航与目录
         任务=自身.sessions.create({'workspaceId':工作区标识})#创建
         自身.connecting[工作区标识]=任务#记下
         try:#等待
-            return 任务.等待() if hasattr(任务,'等待') else 任务#会话 id
+            return 任务.等待()#会话 id
         finally:#清
             自身.connecting.pop(工作区标识,None)#删
 
@@ -98,7 +93,7 @@ class 工作区UI服务:#跨控制器导航与目录
         导航=自身.ctx.layout.beginNavigation()#导航中止 Event
         def 仍当前():
             """导航与寿命均未中止。"""
-            导航已中=导航.is_set() if hasattr(导航,'is_set') else False#导航
+            导航已中=导航.is_set()#导航
             return (not 导航已中) and (not 自身.lifetime.is_set())#当前
         会话标识=自身.connectWorkspace(工作区标识)#连接
         if not 仍当前():#被取代
@@ -112,8 +107,8 @@ class 工作区UI服务:#跨控制器导航与目录
         """分叉并打开子会话。"""
         导航=自身.ctx.layout.beginNavigation()#导航中止
         任务=自身.sessions.fork({'sessionId':会话标识,'increaseTitle':True})#分叉
-        子标识=任务.等待() if hasattr(任务,'等待') else 任务#子
-        导航已中=导航.is_set() if hasattr(导航,'is_set') else False#导航
+        子标识=任务.等待()#子
+        导航已中=导航.is_set()#导航
         if not 导航已中 and not 自身.lifetime.is_set():#仍当前
             自身.openSession(子标识)#打开
 
@@ -137,27 +132,26 @@ class 工作区UI服务:#跨控制器导航与目录
         try:#打开
             自身.openWorkspace(目标)#打开
         except BaseException as 原因:#失败
-            print('new session failed:',原因)#告警
+            print('新建会话失败:',原因)#告警
 
     def archiveSession(自身,会话标识):
         """归档会话。"""
         任务=自身.workspaces.archiveSession(会话标识)#归档
-        if hasattr(任务,'等待'):#任务
-            任务.等待()#等
+        任务.等待()#等
 
     def pickDirectory(自身):
         """打开宿主目录选择器。"""
         结果=自身.directoryPicker.pick()#选
-        结果=结果.等待() if hasattr(结果,'等待') else 结果#等
+        结果=结果.等待()#等
         if not 结果['ok']:#失败
-            错=结果['error']#错
-            raise Exception('directory picker failed: '+str(错['message'] if isinstance(错,dict) and 'message' in 错 else 错))#抛
+            错误体=结果['error']#错误体
+            raise Exception('目录选择器失败: '+str(错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else 错误体))#抛
         return 结果['value']#路径或 None
 
     def listDirectory(自身,路径=None,信号=None):
         """列一级目录。"""
         结果=自身.directoryPicker.list(路径,信号)#列
-        结果=结果.等待() if hasattr(结果,'等待') else 结果#等
+        结果=结果.等待()#等
         if not 结果['ok']:#失败
             raise 目录浏览错误(结果['error'])#抛
         return 结果['value']#列表
@@ -165,7 +159,7 @@ class 工作区UI服务:#跨控制器导航与目录
     def createDirectory(自身,路径,名):
         """建子目录。"""
         结果=自身.directoryPicker.createDirectory(路径,名)#建
-        结果=结果.等待() if hasattr(结果,'等待') else 结果#等
+        结果=结果.等待()#等
         if not 结果['ok']:#失败
             raise 目录浏览错误(结果['error'])#抛
         return 结果['value']#绝对路径
@@ -207,7 +201,7 @@ class 工作区UI服务:#跨控制器导航与目录
                     if 自身.lifetime.is_set():#已中止
                         return#止
                     初始[0]='waiting'#回等待
-                    print('initial workspace selection failed:',原因)#告警
+                    print('初始工作区选择失败:',原因)#告警
             线=threading.Thread(target=观察)#线
             线.daemon=True#守护
             线.start()#启

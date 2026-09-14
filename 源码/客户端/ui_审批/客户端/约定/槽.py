@@ -1,8 +1,3 @@
-"""审批 composer 与可选关联详情约定。
-
-对齐上游 `ui-approval/src/client/contract/slots.ts`。公开面仅中文名。
-TypeScript 声明合并面以注释保留；可执行域面为 `待决审批`。
-"""
 import threading#中止等待与结算等待
 
 __all__=['待决审批','下一审批键','审批决定','审批错误','已中止','若已中止则抛出']#仅中文公开名

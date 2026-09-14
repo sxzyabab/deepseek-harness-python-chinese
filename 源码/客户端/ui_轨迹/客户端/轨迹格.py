@@ -1,8 +1,3 @@
-"""轨迹步骤格：下标 · 种类标签 · 文本 · 可选消息指标 · 已用时间。
-
-对齐上游 `ui-trajectory/src/client/TrajectoryCell.tsx`。公开面仅中文名。
-样式正文落在同目录 轨迹格.module.css，本模块读成 样式表。
-"""
 import os#同目录样式路径
 from .轨迹记录 import 格式化已用秒数#时长格式化
 

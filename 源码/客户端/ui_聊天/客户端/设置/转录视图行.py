@@ -1,8 +1,3 @@
-"""已完成回合 transcript 呈现方式的通用设置行。
-
-对齐上游 `ui-chat/src/client/settings/TranscriptViewRow.tsx`。公开面仅中文名。
-无真 React：结构树描述。属性为 dict。
-"""
 
 __all__=['转录视图行','转录视图选项']#仅中文公开名
 

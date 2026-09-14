@@ -1,9 +1,3 @@
-"""浏览器可用性/选择状态与分体按钮的启动载体。
-
-对齐上游 `ui-open-in-app/src/client/controller.ts`。公开面仅中文名。
-拥有每页一次的可用性读取、持久化上次选择，以及启动 POST。
-可用性与选择经快照存储发布，使每个会话头部共享同一份事实。
-"""
 import builtins,json#页面 location / localStorage 与 JSON
 import urllib.error#URL 失败
 from urllib.parse import urljoin#拼绝对 URL
@@ -110,7 +104,7 @@ class 快照存储:#本包自持快照存储
             if 原始 is not None:#有值
                 自身.状态=json.loads(原始)#整值还原
         except (TypeError,ValueError,AttributeError) as 错误:#再水合失败
-            print("snapshot store '"+自身.持久化名+"' rehydration failed:",错误)#诊断
+            print("快照存储 '"+自身.持久化名+"' 回灌失败:",错误)#诊断
             自身._可持久化=False#关
 
     def _写出(自身):#写入 localStorage
@@ -124,7 +118,7 @@ class 快照存储:#本包自持快照存储
         try:#写
             存储.setItem(自身.持久化名,json.dumps(自身.状态,ensure_ascii=False,separators=(',',':'),allow_nan=False))#整值
         except (TypeError,ValueError,AttributeError,OSError) as 错误:#写失败
-            print("snapshot store '"+自身.持久化名+"' persistence failed:",错误)#诊断
+            print("快照存储 '"+自身.持久化名+"' 持久化失败:",错误)#诊断
             自身._可持久化=False#关
 
 class 在应用中打开控制器:#页面生命周期控制器
@@ -141,7 +135,7 @@ class 在应用中打开控制器:#页面生命周期控制器
         if 自身._加载已启动:#已启动
             return#共享
         自身._加载已启动=True#标记
-        自身._跑()#同步读
+        自身._执行可用性读取()#同步读
 
     def 选定(自身,应用标识):#记住一次挑选
         """目录 id 来自可用性列表。"""
@@ -159,7 +153,7 @@ class 在应用中打开控制器:#页面生命周期控制器
         if not 响应['ok']:#失败
             raise 在应用中打开错误('open failed: HTTP '+str(响应['status']))#抛错
 
-    def _跑(自身):#可用性读取
+    def _执行可用性读取(自身):#可用性读取
         """网络失败吞掉：不可达主机等同无应用。"""
         应用列表=[]#缺省空
         try:#读

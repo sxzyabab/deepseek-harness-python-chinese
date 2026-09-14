@@ -1,4 +1,3 @@
-"""DSH SDK 子进程客户端（对齐 upstream subagent-dsh-sdk/run.ts）。"""
 import threading,uuid#线程与子 id
 from concurrent.futures import Future as 原生结果#结果 Future
 from ...内核.会话 import 会话标识#品牌
@@ -8,7 +7,7 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
 默认处置eof宽限毫秒=6000#EOF 宽限
 默认处置宽限毫秒=3000#处置宽限
 
-__all__=['默认关闭超时毫秒','默认处置eof宽限毫秒','默认处置宽限毫秒','启动sdk跑']#公开面
+__all__=['默认关闭超时毫秒','默认处置eof宽限毫秒','默认处置宽限毫秒','启动sdk运行']#公开面
 
 class 操作任务:
     """单次操作的 Future 包装，只留 等待。"""
@@ -53,7 +52,7 @@ class sdk跑:
         """等待结果落定并关闭装备。"""
         return 自身._拆除()#同一闭包
 
-def 启动sdk跑(请求,规格):
+def 启动sdk运行(请求,规格):
     """用深求装备驱动一个独立子运行时。请求与规格为 dict；父为智能体对象。"""
     父=请求['parent']#父
     if 'cwd' in 规格 and 规格['cwd'] is not None:#规格覆盖

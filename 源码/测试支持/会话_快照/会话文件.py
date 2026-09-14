@@ -1,7 +1,3 @@
-"""录制会话夹具使用的不可变 Session 世代文件名。
-
-对齐上游 `session-snapshot/src/session-files.ts`。公开面仅中文名。
-"""
 import json,os,re#JSON、路径与正则
 from ...会话.会话格式.文件名 import 会话格式日志文件名,解析会话格式日志文件名#持久日志名
 
@@ -58,7 +54,7 @@ def 会话夹具文件列表(名称列表):#选择夹具文件
         if 先前 is None or 夹具['version']>先前['version']:#更高则换
             已选[夹具['index']]=夹具#登记
     if 0 not in 已选:#缺父
-        raise Exception('missing parent session fixture')#缺父
+        raise Exception('缺少父会话夹具')#缺父
     有序=sorted(已选.values(),key=lambda 项:项['index'])#按索引排序
     for 偏移,夹具 in enumerate(有序):#检查连续
         if 夹具['index']!=偏移:#不连续

@@ -1,8 +1,3 @@
-"""聊天流节点席：订阅稳定键、施加过程可见性并分发 conversation.chat.node。
-
-对齐上游 `ui-chat/src/client/chat/ChatNodeSeat.tsx`。公开面仅中文名。
-属性、节点、规格为 dict。
-"""
 from ..约定.回合过程 import 回合过程独立种类#过程折叠独立种类
 from ..存储 import 已存回合过程条目#持久过程开合
 from .可搜索隐藏 import 可搜索隐藏#可搜索隐藏

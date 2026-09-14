@@ -1,10 +1,3 @@
-"""`ws` 桩。`WebSocketDownlinks` 在 Connection 一出现就在字段初始化器里
-构造 `WebSocketServer`，因此类必须可构造；
-假 HTTP 服务器从不发出 `upgrade`，故任何方法都到不了
-（隧道改经 SSE 分支承载下行事件）。
-
-对齐上游 `webworker-runtime/src/node/external_packages/ws.ts`。
-"""
 from ..未实现失败 import 未实现失败,运行时错误#未实现桩|本包错误
 
 __all__=['WebSocket','WebSocketServer','Server','__esModule','default']#Node面

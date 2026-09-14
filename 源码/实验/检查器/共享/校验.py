@@ -1,7 +1,3 @@
-"""版本化检查器线上协议共用的精确对象读取器。
-
-对齐上游 `shared/validation.ts`。公开面仅中文名。
-"""
 from .身份 import 检查器id#品牌化
 from .json import 是否普通对象,检查器错误#普通对象|本包错误
 

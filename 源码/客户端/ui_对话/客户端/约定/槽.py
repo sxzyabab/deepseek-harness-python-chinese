@@ -1,9 +1,3 @@
-"""会话槽声明及其组合后的组件 props。
-
-对齐上游 `ui-conversation/src/client/contract/slots.ts`。公开面仅中文名。
-TypeScript 声明合并的 SlotMap / SessionStandardProps 在此以子槽表与注释面保留；
-可执行域面仅 `待决审批`。
-"""
 __all__=[#仅中文公开名
     '撰写附件','英雄智能体预设属主','会话体属主','页眉动作属主',
     '输入区','视图属主','聊天文件提及','回合尾属主','助手动作属主','聊天节点属主',

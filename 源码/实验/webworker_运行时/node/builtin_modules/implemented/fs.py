@@ -1,10 +1,3 @@
-"""跨 worker 自有内存 VFS 的 `node:fs` 桥。`MemoryVfs` 拥有路径、字节、目录树与
-Node 错误码；本模块只添加 Node-API 形态而非 VFS 业务的部分：Buffer 结果、
-`Dirent` 对象、文件描述符、`mkdtemp`、访问检查、监视器、流与 promise 表面。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/implemented/fs.ts`。
-公开面中文名；Node 面经别名与 default 暴露英文名。
-"""
 from .buffer import Buffer#本包Buffer
 from ....storage.活动 import 要求活动vfs#导入活动VFS
 from .stream import Readable,Writable#导入流基类
@@ -115,7 +108,7 @@ def 统计(路径,选项或回调=None,或许回调=None):#异步回调stat
     """经 Node 回调形式读取 stats。"""
     选项=None if callable(选项或回调) else 选项或回调#解析选项
     回调=选项或回调 if callable(选项或回调) else 或许回调#解析回调
-    if 回调 is None: raise TypeError('The "callback" argument must be of type function')#必须有回调
+    if 回调 is None: raise TypeError('"callback" 参数必须是函数')#必须有回调
     微任务=globals().get('queueMicrotask')#微任务
     def 执行():#微任务体
         """同步stat后回调。"""

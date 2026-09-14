@@ -1,8 +1,3 @@
-"""默认 composer 栏：conversation.composer.bar 槽入口。
-
-对齐上游 `ui-conversation/src/client/skeleton/InputBar.tsx`。公开面仅中文名。
-机状态经 useInput/inputActions；键盘/停止经 inject。属性、输入态、限额为 dict。
-"""
 from .输入装饰 import 派生装饰,惰性装饰#镜像装饰
 from .图像标签 import 附件错误文案,附件栏标签,拖放覆盖层标签,图像尺寸文案,灯箱标签#附件文案
 from .上下文仪表 import 上下文仪表#占用环

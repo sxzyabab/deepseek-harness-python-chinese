@@ -1,9 +1,3 @@
-"""计划控制插件的浏览器半边。
-
-对齐上游 `ui-plan/src/client/index.ts`。公开面仅中文名。
-
-占据 conversation.input.plan 席位，用活动状态芯片展示。
-"""
 from .文案 import 命名空间,中文,英文#词表
 from .计划芯片 import 计划芯片#芯片组件
 

@@ -1,8 +1,3 @@
-"""产品引导步骤共用的阻塞模态外壳。
-
-对齐上游 `ui-settings-models/src/client/OnboardingModal.tsx`。公开面仅中文名。
-"""
-
 __all__=['引导模态','忽略隐式关闭']#仅中文公开名
 
 def 忽略隐式关闭():#模态隐式关闭空操作

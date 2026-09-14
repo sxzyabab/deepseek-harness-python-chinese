@@ -1,7 +1,3 @@
-"""块原语共用的头/尾高度封顶算术。
-
-对齐上游 `ui-primitives/src/head-tail-cap.ts`。公开面仅中文名。切分是 ceil(maxLines / 2) 行头、余下为尾行；结果未超封顶则展示全部行。
-"""
 import math#向上取整
 
 __all__=['头尾封顶']#仅中文公开名

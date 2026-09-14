@@ -1,7 +1,3 @@
-"""模型设置分区：提供方行、装卡与编辑器卡片。
-
-对齐上游 `ui-settings-models/src/client/ModelsSection.tsx`。公开面仅中文名。
-"""
 from .存储 import 推导密钥引用,错误文案,提供方可用,协议选项#存储辅助
 from .提供方编辑器 import 提供方编辑器#编辑卡片
 from .自定义提供方卡片 import 自定义提供方卡片#创建卡片

@@ -1,8 +1,3 @@
-"""默认无密钥的 ACP 快照套件工厂与纯辅助。
-
-对齐上游 `session-snapshot/src/suite.ts`。公开面仅中文名。
-vitest 的 describe/it 以可运行用例表替代。
-"""
 import json,os,re#JSON、文件与正则
 from ...内核.会话 import 是否可进表面类型#表面类型判定
 from .测试架 import 运行场景#场景 harness
@@ -205,17 +200,17 @@ def 解析工具模式快照(快照):#解析工具 schema 快照
     """解析并校验工具 schema sidecar。"""
     解析=json.loads(快照)#解析
     if not 是否记录(解析):#非对象
-        raise Exception('acp-snapshot: tool-schema snapshot must be an object')#非对象
+        raise Exception('acp-snapshot: 工具模式快照必须是对象')#非对象
     初始=解析.get('initial')#初始
     变更=解析.get('changes')#变更
     if not isinstance(初始,list) or not isinstance(变更,list) or not all(isinstance(项,list) for 项 in 变更):#非法
-        raise Exception('acp-snapshot: tool-schema snapshot must carry array-valued initial and changes fields')#非法
+        raise Exception('acp-snapshot: 工具模式快照必须带数组型的 initial 与 changes 字段')#非法
     return {'initial':初始,'changes':变更}#返回
 
 def 恢复钉住工具模式(头,模式列表):#恢复钉住工具 schema
     """把一个 sidecar schema 集恢复进标记化钉头。"""
     if not 是否记录(头):#非对象
-        raise Exception('acp-snapshot: pinned request header must be an object')#非对象
+        raise Exception('acp-snapshot: 钉住的请求头必须是对象')#非对象
     if 头.get('tools')!=工具令牌:#必须令牌
         raise Exception(f'acp-snapshot: pinned request header tools must equal {工具令牌}')#令牌
     return {**头,'tools':list(模式列表)}#恢复
@@ -589,7 +584,7 @@ def 稳定刷新日志(新鲜,已有,替换列表,新鲜上下文):#稳定刷新
         插入标题=记录.get('type')=='session/title' and (已有记录 is None or 已有记录.get('type')!='session/title')#插入标题
         if 插入标题:#插入标题
             if not isinstance(先前事件时间,int) or isinstance(先前事件时间,bool):#无前时间
-                raise Exception('acp-snapshot: inserted title has no preceding event time')#失败
+                raise Exception('acp-snapshot: 插入的标题前面没有事件时间')#失败
             记录['time']=先前事件时间#写入
         else:#普通对齐
             if 字符串映射 is not None and 成员数==1 and 已有记录 is not None and 已有记录.get('type')==记录.get('type'):#可复用

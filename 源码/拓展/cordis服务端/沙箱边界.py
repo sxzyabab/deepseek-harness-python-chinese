@@ -1,8 +1,3 @@
-"""沙箱宿主半与真实运行时之间的登记边界（Python 侧精简实现）。
-
-对齐上游 `拓展/cordis-host-runner/src/guard.ts` 的公开面：isPlugin、normalizeHandler、guardedPlugin。
-完整跨 realm JSON 克隆与 schema 归一在 Python 侧用 json 往返近似。
-"""
 import json#跨边界 JSON 往返
 from copy import deepcopy as 深拷贝#普通对象拷贝
 
@@ -33,14 +28,14 @@ def 克隆JSON(值,路径='value'):#跨边界 JSON 克隆
     try:#往返
         return json.loads(json.dumps(值,ensure_ascii=False))#物化
     except (TypeError,ValueError) as 错误:#无法序列化
-        raise Exception(f'{路径} must be lossless JSON data (objects, arrays, strings, numbers, booleans, null) — not a class instance, function, Map/Set, Date, or undefined. Return a plain object built from the values you need, or `return null` when the caller needs no value back.') from 错误#教学错误
+        raise Exception(f'{路径} 必须是无损 JSON 数据（对象、数组、字符串、数字、布尔、null），不能是类实例、函数、Map/Set、Date 或 undefined。请返回由所需值组成的普通对象；调用方不需要返回值时用 `return null`。') from 错误#教学错误
 
 def 归一处理方法(方法,函数):#归一 handle
     """方法名必须是非空字符串，处理函数必须是函数。"""
     if not isinstance(方法,str) or 方法=='':#方法名
-        raise Exception('harness.handle(method, fn) needs a non-empty string method name')#必须非空字符串
+        raise Exception('harness.handle(method, fn) 需要非空字符串方法名')#必须非空字符串
     if not callable(函数):#处理函数
-        raise Exception(f'harness.handle("{方法}") needs a handler function as its second argument')#第二参必须是函数
+        raise Exception(f'harness.handle("{方法}") 的第二个参数必须是处理函数')#第二参必须是函数
     def 处理(参数):#克隆返回
         """跨边界物化。"""
         return 克隆JSON(函数(参数),f'harness.handle("{方法}") result')#物化
@@ -49,7 +44,7 @@ def 归一处理方法(方法,函数):#归一 handle
 def 沙箱定义工具(选项):#沙箱 defineTool 最小实现
     """打上动态工具标记；完整 schema 归一留给 tools 包。"""
     if not isinstance(选项,dict):#选项必须是对象
-        raise Exception('harness.defineTool options must be an object')#教学错误
+        raise Exception('harness.defineTool 的 options 必须是对象')#教学错误
     工具=深拷贝(选项)#拷贝
     工具[动态工具标记]=True#打标记
     return 工具#带标记的定义
@@ -57,7 +52,7 @@ def 沙箱定义工具(选项):#沙箱 defineTool 最小实现
 def 沙箱登记工具(上下文,工具):#沙箱 registerTool
     """必须带标记。"""
     if not isinstance(工具,dict) or 工具.get(动态工具标记) is not True:#没有标记
-        raise Exception('dynamic tool registration must use a tool returned by harness.defineTool(...)')#必须走 defineTool
+        raise Exception('动态工具登记必须使用 harness.defineTool(...) 返回的工具')#必须走 defineTool
     return 上下文.tools.register(工具)#交给真实注册表
 
 def 包装沙箱插件(插件,报告失败):#包装后的插件

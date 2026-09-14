@@ -1,8 +1,3 @@
-"""把作曲器点击经存活引用属主路由，不编辑草稿。
-
-对齐上游 `ui-conversation/src/client/input/editor/reference-activation.ts`。
-公开面仅中文名。点击载荷为 dict；芯片与文本引用为本包对象。
-"""
 
 __all__=['登记引用激活']#仅中文公开名
 

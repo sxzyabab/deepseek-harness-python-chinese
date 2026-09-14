@@ -1,7 +1,3 @@
-"""浏览器 Client 桥的重连生命周期。
-
-对齐上游 `client/bridge/lifecycle.ts`。公开面仅中文名。
-"""
 import random,threading#抖动与定时
 
 __all__=['客户端桥生命周期']#仅中文公开名

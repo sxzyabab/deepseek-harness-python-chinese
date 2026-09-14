@@ -1,4 +1,3 @@
-"""共享的进程内子体组合：委托深度预算、耐久会话元数据、已解析的子 AgentOptions、委托策略种子，以及子智能体需要的作用域装配。一次性提供方驱动与续跑管理器都这样组合子体。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from .深度 import 委托深度于,断言子智能体最大深度#导入委托深度读取
 
@@ -18,7 +17,7 @@ class 子智能体深度错误(Exception):
     """启动子体会超过所请求深度上限时抛出。"""
     def __init__(自身,尝试深度,最大深度):
         """记下尝试深度与上限；消费方只读中文属性。"""
-        Exception.__init__(自身,'subagent depth '+str(尝试深度)+' exceeds maxDepth '+str(最大深度))#文案含两个数
+        Exception.__init__(自身,'子智能体深度 '+str(尝试深度)+' 超过 maxDepth '+str(最大深度))#文案含两个数
         自身.尝试深度=尝试深度#已算出的子深度
         自身.最大深度=最大深度#调用方给出的绝对上限
 
@@ -30,7 +29,7 @@ def 解析子深度(父,最大深度=None):
     """从父解析子体委托深度并强制可选上限。持久父头是单调下限，因此恢复的父不能像顶层一样委托。"""
     子深度=委托深度于(父)+1#父深度加一
     if (not isinstance(子深度,int)) or isinstance(子深度,bool) or 子深度>安全整数上限:#超出安全整数
-        raise 范围错误('subagent child depth exceeds the safe-integer range')#拒绝
+        raise 范围错误('子智能体子体深度超出安全整数范围')#拒绝
     if 最大深度 is not None and 子深度>最大深度:#超过可选上限
         raise 子智能体深度错误(子深度,最大深度)#深度超限
     return 子深度#已解析深度

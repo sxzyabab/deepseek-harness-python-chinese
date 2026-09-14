@@ -1,8 +1,3 @@
-"""收件箱会话节点：累计 next-turn / next-step 拼接状态。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/inbox.ts`。公开面仅中文名。
-拼接载荷为 dict。
-"""
 from ..服务 import 对话错误#本包异常
 
 __all__=['下一回合收件箱定义','下一步收件箱定义','登记收件箱会话节点','应用拼接']#仅中文公开名

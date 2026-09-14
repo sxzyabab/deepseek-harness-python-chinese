@@ -1,7 +1,3 @@
-"""检查器快照所引用活对象的界域本地保留与身份。
-
-对齐上游 `shared/cordis/object-registry.ts`。公开面仅中文名。
-"""
 import uuid#随机标识
 from ..json import 检查器错误#包内错误
 from ..身份 import 检查器id#品牌化
@@ -49,7 +45,7 @@ class 领域对象注册表:#界域对象注册表
     def 开始(自身):#开启世代
         """开启一次替换世代。"""
         if 自身.已释放:#已释放
-            raise 检查器错误('inspector: realm object registry is disposed')#英文诊断
+            raise 检查器错误('检查器：界域对象注册表已拆除')#诊断
         return 领域对象世代(自身)#新世代
 
     def 解析(自身,句柄):#按句柄解析
@@ -99,13 +95,13 @@ class 领域对象世代:#对象世代
     def 保留(自身,值):#保留到本世代
         """保留一个对象并取得其稳定不透明引用。"""
         if 自身.已提交:#已提交
-            raise 检查器错误('inspector: realm object generation is already committed')#英文诊断
+            raise 检查器错误('检查器：界域对象世代已提交')#诊断
         return 自身.所有者.保留对象(值,自身.保留)#委托注册表
 
     def 释放(自身,句柄):#释放句柄
         """停止保留在约束待定快照时被省略的对象。"""
         if 自身.已提交:#已提交
-            raise 检查器错误('inspector: realm object generation is already committed')#英文诊断
+            raise 检查器错误('检查器：界域对象世代已提交')#诊断
         自身.保留.pop(句柄,None)#从表删除
 
     def 提交(自身):#提交本世代

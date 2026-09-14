@@ -1,8 +1,3 @@
-"""读工具行：keyed toolview 洞。
-
-对齐上游 `ui-tool/src/client/tool/toolviews/read-row.tsx`。公开面仅中文名。
-props 与行模型均为 dict。
-"""
 from .调用模型 import 派生工具行#行模型
 from .读卡模型 import 读卡模型#读卡
 from .工具行 import 工具行#外壳

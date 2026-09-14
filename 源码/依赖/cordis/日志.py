@@ -1,4 +1,3 @@
-"""日志门面、日志服务、日志消息与格式化。"""
 import json,math,time,traceback,re
 from weakref import ref as 弱引用,ReferenceType as 弱引用类型
 from ..工具 import 设置内部数据,获取内部数据,调用方上下文壳#内部数据面读写，方法里的自身可能是壳

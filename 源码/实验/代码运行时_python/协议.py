@@ -1,7 +1,3 @@
-"""Node 宿主与 CPython 子进程之间的无版本 fd-3 JSON-lines 线路协议。
-
-对齐上游 `code-runtime-python/src/protocol.ts`。宿主把每条入站帧当敌对流量校验。
-"""
 import json,math,re#JSON、数值与整数令牌扫描
 协议文件描述符=3#fd-3 引导通道
 线路帧字段角色={#各帧字段 required/optional 角色

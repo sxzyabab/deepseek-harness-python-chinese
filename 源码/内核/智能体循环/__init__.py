@@ -1,4 +1,3 @@
-"""具体 agent-loop 插件：铸造带作用域的循环智能体，经 agent/session 注册表发表它们，并拥有其有序拆除。"""
 import uuid,threading#随机身份与工作线程
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
@@ -107,7 +106,7 @@ class 工厂所有权:
     def 拆除(自身):
         """拆除工厂。"""
         自身.接受中=False#不再接受新工作
-        自身.拆除控制器.中止(循环错误('agent loop is not active'))#中止进行中的等待
+        自身.拆除控制器.中止(循环错误('智能体循环未活动'))#中止进行中的等待
         自身.失活.兑现()#放开活动期内等待
         任务列表=[]#并行排空
         for 拆除器 in list(自身.在线智能体):
@@ -155,7 +154,7 @@ def 解析并行上限(值):
     """在所属配置边界解析部署级调度上限。"""
     上限=默认最大并行工具调用 if 值 is None else 值#缺省用默认
     if isinstance(上限,bool) or not isinstance(上限,int) or 上限<1:
-        raise 循环错误('maxParallelToolCalls must be a positive integer')#非法上限
+        raise 循环错误('maxParallelToolCalls 必须是正整数')#非法上限；配置键不译
     return 上限#已校验上限
 
 def 断言智能体选项(选项):
@@ -163,7 +162,7 @@ def 断言智能体选项(选项):
     最大令牌=选项['maxTokens'] if 'maxTokens' in 选项 else None#可选上限
     if 最大令牌 is not None:
         if isinstance(最大令牌,bool) or not isinstance(最大令牌,int) or 最大令牌<=0 or abs(最大令牌)>安全整数上限:
-            raise TypeError('agent maxTokens must be a positive safe integer')#非法 maxTokens
+            raise TypeError('智能体 maxTokens 必须是正安全整数')#非法 maxTokens；字段键不译
 
 def 叠启动器身份(条目列表,身份表):
     """把启动器拥有的身份叠到配置 Agent 上。"""
@@ -201,13 +200,13 @@ def 校验配置智能体(条目列表):
         恢复号=条目['resumeSessionId'] if 'resumeSessionId' in 条目 else None#恢复会话 id
         有恢复=恢复号 is not None and 恢复号!=''#给了非空 resume
         if 会话号 is not None and 有恢复:
-            raise 循环错误('agent "'+str(配置id)+'": sessionId and resumeSessionId are mutually exclusive')#互斥
+            raise 循环错误('智能体 "'+str(配置id)+'"：sessionId 与 resumeSessionId 互斥')#互斥；字段键不译
         精确=恢复号 if 有恢复 else 会话号#取精确身份
         if 精确 is None:
             continue#无精确身份则跳过
         先到=精确身份.get(精确)#是否已被占用
         if 先到 is not None:
-            raise 循环错误('agents "'+str(先到)+'" and "'+str(配置id)+'" use duplicate exact session identity "'+str(精确)+'"')#重复
+            raise 循环错误('智能体 "'+str(先到)+'" 与 "'+str(配置id)+'" 使用了重复的精确会话身份 "'+str(精确)+'"')#重复
         精确身份[精确]=配置id#记下先到者
 
 def 拆除作用域(作用域对象):
@@ -337,14 +336,14 @@ class 智能体循环(服务):
         """向身份绑定的消费方报告一次被收住的声明式启动失败。"""
         if not 自身.所有权.是否活动():
             return#工厂已拆除则抑制
-        自身.ctx.日志.警告('agent "'+str(配置id)+'": config-driven '+动作+' of "'+str(会话号)+'" failed: '+错误链(错误))#记警告
+        自身.ctx.日志.警告('智能体 "'+str(配置id)+'"：配置驱动 '+动作+' "'+str(会话号)+'" 失败：'+错误链(错误))#记警告；动作 resume/restore 不译
         参数=['agent-loop/config-start-failed',{'sessionId':会话号,'error':错误}]#事件名与载荷
         事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
         for 回调 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个监听器
             try:
                 回调(*参数)#监听器翻译时已是同步
             except BaseException as 监听错误:
-                自身.ctx.日志.警告('agent "'+str(配置id)+'": config-start-failed listener threw: '+错误链(监听错误))#记抛错
+                自身.ctx.日志.警告('智能体 "'+str(配置id)+'"：config-start-failed 监听器抛错：'+错误链(监听错误))#记抛错；事件名不译
 
     def 恢复或首次创建(自身,所有者上下文,持久化,会话号,智能体选项,元):
         """再挂载时恢复已物化的精确配置身份，或在首次使用时创建它。"""
@@ -392,7 +391,7 @@ class 智能体循环(服务):
         断言智能体选项(选项)#校验选项
         所有者上下文.纤程.断言活动()#所有者光纤必须活动
         if not 自身.所有权.是否活动():
-            raise 循环错误('agent loop is not active')#工厂必须活动
+            raise 循环错误('智能体循环未活动')#工厂必须活动
         if 已中止(调用方信号):
             raise 包装中止错误(标识,调用方信号._异常 if 调用方信号 is not None else None)#调用方已取消
         循环上下文=自身.运行时['ctx']#未追踪运行时上下文
@@ -430,13 +429,13 @@ class 智能体循环(服务):
             def 执行拆除():
                 """停状态机、关闭写句柄、离开注册表、拆除作用域。"""
                 try:
-                    融合.中止(循环错误('agent "'+str(标识)+'" lifecycle disposed'))#结束设置等待
+                    融合.中止(循环错误('智能体 "'+str(标识)+'" 生命周期已拆除'))#结束设置等待
                     try:
                         if 机器[0] is None:
                             驱动就绪.等待()#等铸造完成或失败
                         驱动=机器[0]#已铸造驱动
                         if 驱动 is not None:
-                            驱动.取消(中止错误('aborted',种类='disposed'))#按拆除取消
+                            驱动.取消(中止错误('已中止',种类='disposed'))#按拆除取消；种类码不译
                             驱动.等到空闲()#等到空闲
                             拆除作用域(驱动.作用域)#拆除作用域
                     finally:
@@ -469,7 +468,7 @@ class 智能体循环(服务):
                     """所有者拆除。"""
                     if 拆除中[0] is not None:
                         return#已在拆除则不再重入
-                    融合.中止(循环错误('agent "'+str(标识)+'" setup aborted: owner disposed during setup'))#设置中所有者没了
+                    融合.中止(循环错误('智能体 "'+str(标识)+'" 设置已中止：设置期间所有者已拆除'))#设置中所有者没了
                     return 拆除(True)#所有者触发的拆除
                 return 执行所有者拆除#拆除器
             取消跟随所有者[0]=所有者上下文.副作用(所有者生命周期,'agentLoop.lifecycle('+str(标识)+')')#effect 名
@@ -603,7 +602,7 @@ class 智能体循环(服务):
         """从已配置的持久化服务恢复一个被拥有的 Agent。"""
         持久化=自身.运行时['ctx'].获取服务('sessionPersistence')#取持久化服务
         if 持久化 is None:
-            raise 循环错误('cannot resume: session persistence is not configured (load a dsh-session-persistence backend)')#无法恢复
+            raise 循环错误('无法恢复：未配置会话持久化（请加载 dsh-session-persistence 后端）')#无法恢复；包名不译
         return 自身.经持久化恢复(所有者上下文,持久化,选项)#经显式句柄恢复
 
     def 经持久化恢复(自身,所有者上下文,持久化,选项):
@@ -620,7 +619,7 @@ class 智能体循环(服务):
                 """所有者拆除。"""
                 def 拆除():
                     """设置中所有者没了。"""
-                    所有者中止.中止(循环错误('agent "'+str(标识)+'" setup aborted: owner disposed during setup'))#设置中所有者没了
+                    所有者中止.中止(循环错误('智能体 "'+str(标识)+'" 设置已中止：设置期间所有者已拆除'))#设置中所有者没了
                 return 拆除#拆除器
             取消跟随=所有者上下文.副作用(加载期所有者,'agentLoop.resume-load('+str(标识)+')')#effect 名
             信号列表=[]#融合三路中止
@@ -663,7 +662,7 @@ class 智能体循环(服务):
                     取消跟随()#卸加载期所有者 effect
                 所有者上下文.纤程.断言活动()#加载后所有者仍须活动
                 if not 自身.所有权.是否活动():
-                    raise 循环错误('agent loop is not active')#工厂仍须活动
+                    raise 循环错误('智能体循环未活动')#工厂仍须活动
                 移交=已存#移交所有权
                 写句柄=None#所有权交设置并发表/准备拆除
                 句柄=自身.设置并发表(

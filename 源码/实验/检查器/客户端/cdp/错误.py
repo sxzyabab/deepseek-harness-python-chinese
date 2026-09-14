@@ -1,7 +1,3 @@
-"""属于传输层而非被求值 JavaScript 的 Client Runtime 失败。
-
-对齐上游 `client/cdp/errors.ts`。公开面仅中文名。
-"""
 __all__=['客户端运行时执行错误']#仅中文公开名
 
 class 客户端运行时执行错误(Exception):#Client运行时执行错误

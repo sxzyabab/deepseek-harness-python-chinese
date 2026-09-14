@@ -1,9 +1,3 @@
-"""订阅并分发一个稳定 Context 键，不观察兄弟节点。
-
-对齐上游 `ui-conversation/src/client/chat/ChatNodeSeat.tsx`。公开面仅中文名。
-属性与快照为 dict；节点仓为含 get 的 dict。
-"""
-
 __all__=['节点席']#仅中文公开名
 
 def 恒等翻译(键,参数=None):

@@ -1,7 +1,3 @@
-"""浏览器安全的暂存文件上传请求与凭证类型。
-
-对齐上游 `file-upload/src/types.ts`。`RemoteError` 尚未落入 `typert.协议`，本模块提供结构兼容实现。
-"""
 from ...工具.标识构造 import 标识构造#标识构造原语
 
 __all__=[#仅中文公开名

@@ -1,8 +1,3 @@
-"""把 gen-cordis-api 产出的 TS 对象字面量数组解析成 Python 列表。
-
-只覆盖 api-catalog 使用的子集：单引号字符串、标识符键、嵌套对象/数组、行注释。
-"""
-
 __all__=['解析数组字面量','提取导出常量数组']#公开面
 
 class 字面量游标:#扫描器
@@ -40,14 +35,14 @@ class 字面量游标:#扫描器
         """匹配期望字符。"""
         自身.跳过空白与注释()#对齐
         if 自身.结束() or 自身.文本[自身.位置]!=期望:#不匹配
-            raise Exception('expected '+repr(期望)+' at '+str(自身.位置))#失败
+            raise Exception('在 '+str(自身.位置)+' 处应为 '+repr(期望))#失败
         自身.位置+=1#前进
 
     def 解析字符串(自身):#单引号字符串
         """解码为 Python str。"""
         自身.跳过空白与注释()#对齐
         if 自身.结束() or 自身.文本[自身.位置]!="'":#必须单引号
-            raise Exception('expected string at '+str(自身.位置))#失败
+            raise Exception('在 '+str(自身.位置)+' 处应为字符串')#失败
         自身.位置+=1#跳过开引号
         块=[]#字符缓冲
         while not 自身.结束():#读到闭引号
@@ -57,7 +52,7 @@ class 字面量游标:#扫描器
                 return ''.join(块)#拼成
             if 字=='\\':#转义
                 if 自身.结束():#残缺
-                    raise Exception('unterminated escape at '+str(自身.位置))#失败
+                    raise Exception('在 '+str(自身.位置)+' 处转义未结束')#失败
                 转义=自身.文本[自身.位置]#下一字符
                 自身.位置+=1#前进
                 if 转义=='n':#换行
@@ -76,16 +71,16 @@ class 字面量游标:#扫描器
                     块.append(转义)#收入
                 continue#继续
             块.append(字)#普通字符
-        raise Exception('unterminated string at '+str(自身.位置))#未闭合
+        raise Exception('在 '+str(自身.位置)+' 处字符串未闭合')#未闭合
 
     def 解析标识符(自身):#键名
         """读出标识符。"""
         自身.跳过空白与注释()#对齐
         if 自身.结束():#完
-            raise Exception('expected identifier at '+str(自身.位置))#失败
+            raise Exception('在 '+str(自身.位置)+' 处应为标识符')#失败
         字=自身.文本[自身.位置]#首字
         if not (字.isalpha() or 字 in '_$'):#非法起首
-            raise Exception('expected identifier at '+str(自身.位置))#失败
+            raise Exception('在 '+str(自身.位置)+' 处应为标识符')#失败
         起=自身.位置#起点
         自身.位置+=1#前进
         while not 自身.结束():#后续
@@ -105,7 +100,7 @@ class 字面量游标:#扫描器
             return 自身.解析对象()#字典
         if 字=='[':#数组
             return 自身.解析数组()#列表
-        raise Exception('unexpected value start '+repr(字)+' at '+str(自身.位置))#未知
+        raise Exception('在 '+str(自身.位置)+' 处遇到意外的值开头 '+repr(字))#未知
 
     def 解析对象(自身):#花括号对象
         """返回 dict。"""
@@ -129,7 +124,7 @@ class 字面量游标:#扫描器
             if 字=='}':#结束
                 自身.吃掉('}')#闭
                 return 结果#字典
-            raise Exception('expected , or } at '+str(自身.位置))#失败
+            raise Exception('在 '+str(自身.位置)+' 处应为 , 或 }')#失败
 
     def 解析数组(自身):#方括号数组
         """返回 list。"""
@@ -151,7 +146,7 @@ class 字面量游标:#扫描器
             if 字==']':#结束
                 自身.吃掉(']')#闭
                 return 结果#列表
-            raise Exception('expected , or ] at '+str(自身.位置))#失败
+            raise Exception('在 '+str(自身.位置)+' 处应为 , 或 ]')#失败
 
 def 解析数组字面量(文本):#顶层数组
     """把 `[...]` 文本解析成 list。"""
@@ -159,7 +154,7 @@ def 解析数组字面量(文本):#顶层数组
     结果=游标.解析数组()#数组
     游标.跳过空白与注释()#尾部
     if not 游标.结束():#还有垃圾
-        raise Exception('trailing junk at '+str(游标.位置))#失败
+        raise Exception('在 '+str(游标.位置)+' 处有多余内容')#失败
     return 结果#列表
 
 def 提取导出常量数组(源,常量名):#从整文件切出数组字面量
@@ -167,10 +162,10 @@ def 提取导出常量数组(源,常量名):#从整文件切出数组字面量
     标记='export const '+常量名#导出标记
     起=源.find(标记)#查找
     if 起<0:#没有
-        raise Exception('missing export const '+常量名)#失败
+        raise Exception('缺少 export const '+常量名)#失败
     方括号=源.find('[',起)#数组起点
     if 方括号<0:#没有
-        raise Exception('missing array for '+常量名)#失败
+        raise Exception(常量名+' 缺少数组')#失败
     深度=0#括号深度
     在字符串=False#是否在单引号串内
     转义=False#上一字符是反斜杠
@@ -208,4 +203,4 @@ def 提取导出常量数组(源,常量名):#从整文件切出数组字面量
             if 深度==0:#顶层闭合
                 return 源[方括号:位置+1]#含闭括号
         位置+=1#前进
-    raise Exception('unclosed array for '+常量名)#未闭合
+    raise Exception(常量名+' 的数组未闭合')#未闭合

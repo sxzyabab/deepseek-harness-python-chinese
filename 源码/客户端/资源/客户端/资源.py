@@ -1,11 +1,5 @@
-"""`ctx.resources`：协议提供方登记表与按地址状态，支撑使用资源。
-
-对齐上游 `resources/src/client/resources.ts`。
-每条地址一条记录，页面存续期内不丢弃；末位持有者释放时只中止流并把快照重置为空闲。
-AbortSignal 译为 threading.Event；提供方 open 的帧流译为同步可迭代，在守护线程中消费。
-"""
 import json#登记诊断标签
-import threading#中止旗与消费线程
+import threading#中止标志与消费线程
 from urllib.parse import urlparse#解析资源地址
 from .约定 import (#状态字面量与服务约定
     资源状态_无,
@@ -86,7 +80,7 @@ class 快照存储:#本包自持的快照存储
             try:#单回调
                 监听()#通知
             except Exception as 错误:#不得饿死其余
-                print('[client-resources] subscriber failed:',错误)#诊断
+                print('[client-resources] 订阅者失败:',错误)#诊断
 
 class 资源记录:#一地址的运行态
     """快照、持有者计数与运行中流的中止旗。"""

@@ -1,7 +1,3 @@
-"""每条 /api 请求的浏览器信任围栏。
-
-对齐上游 `connection/src/api-request-trust.ts`。公开面仅中文名。防御 DNS 重绑定与跨站请求；Host 围栏约束每一条请求。
-"""
 from urllib.parse import urlparse#解析权威与 Origin
 from .回环主机名 import 是否回环主机名#回环主机名判定
 from .rpc import 连接错误#本包异常

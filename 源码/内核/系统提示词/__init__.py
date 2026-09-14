@@ -1,4 +1,3 @@
-"""有序系统段落、动态上下文、工具模式与提示词变量的注册表。对齐上游 `@deepseek-ai/dsh-system-prompt`。公开面仅中文名；Cordis 服务键与事件名、配置键、诊断字面量保持上游字面量。"""
 import json,math,re#json、有限数与正则
 from ...依赖 import 工具,cordis#外部依赖胶水
 from ...依赖.schemastery import 布尔字段,字符串字段,列表字段#配置字段
@@ -61,10 +60,10 @@ def 校验工具顺序(工具顺序):
     已见=set()#已见名
     for 名 in 工具顺序:#逐个名
         if 名 in 已见:#重复
-            raise 系统提示词错误('toolOrder lists "'+名+'" more than once')#不得重复
+            raise 系统提示词错误('toolOrder 多次列出了 "'+名+'"')#不得重复
         已见.add(名)#记下
     if 工具顺序其余 not in 已见:#缺少占位
-        raise 系统提示词错误('toolOrder must contain the "'+工具顺序其余+'" rest entry (where unlisted tools are inserted)')#必须含 rest
+        raise 系统提示词错误('toolOrder 必须包含 "'+工具顺序其余+'" 其余项（未列出的工具插在此处）')#必须含 rest
     return 工具顺序#原样返回
 
 def 排序工具(工具列表,工具顺序,已知名):
@@ -75,7 +74,7 @@ def 排序工具(工具列表,工具顺序,已知名):
             占用=工具#找到保留名
             break#只需一个
     if 占用 is not None:#提供方返回了保留名
-        raise 系统提示词错误('tool provider returned reserved tool name "'+工具顺序其余+'" (reserved for toolOrder\'s rest entry)')#保留名非法
+        raise 系统提示词错误('工具提供方返回了保留工具名 "'+工具顺序其余+'"（保留给 toolOrder 的其余项）')#保留名非法
     if 工具顺序 is None:#未配置
         工具列表.sort(key=工具名)#未配置则字典序
         return 工具列表#就地排序后返回
@@ -84,9 +83,8 @@ def 排序工具(工具列表,工具顺序,已知名):
         if 名!=工具顺序其余 and 名 not in 已知名:#未知配置名
             未知名.append(名)#收集未知名
     if len(未知名)>0:#有未知名
-        已知名文本=', '.join(sorted(已知名)) or '(none)'#已知名或空
-        词='s' if len(未知名)>1 else ''#复数
-        raise 系统提示词错误('toolOrder lists unregistered tool'+词+' '+', '.join('"'+名+'"' for 名 in 未知名)+'; known tools: '+已知名文本)#组装时未知名失败
+        已知名文本=', '.join(sorted(已知名)) or '（无）'#已知名或空
+        raise 系统提示词错误('toolOrder 列出了未登记工具 '+', '.join('"'+名+'"' for 名 in 未知名)+'；已知工具: '+已知名文本)#组装时未知名失败
     已列出=set(工具顺序)#已列出集合
     其余=[]#未列出
     for 工具 in 工具列表:#收集未列出
@@ -142,21 +140,21 @@ def 插值(输入,变量表,种类):
         匹配=引用组规则.match(文本[开:])#尝试完整组
         if 匹配 is None:#不是完整组
             if 文本.find('}}',开+2)>=0:#后面有 }}，更后的闭合使这畸形
-                raise 系统提示词错误('malformed prompt variable reference at "'+文本[开:开+16]+'…" in '+种类+' "'+输入['name']+'" (references are complete simple {{name}} groups)')#畸形引用
+                raise 系统提示词错误('提示词变量引用畸形，位于 "'+文本[开:开+16]+'…"，在'+种类+' "'+输入['name']+'" 中（引用必须是完整简单的 {{name}} 组）')#畸形引用
             结果+=文本[上次:开+2]#把 {{ 当字面写出
             上次=开+2#跳过 {{
             开=文本.find('{{',上次)#下一引用
             continue#下一引用
         名=匹配.group(0)[2:-2]#取出名字；{{}} 得到空名并走畸形引用路径
         if not 是否合法变量名(名):#名不合法
-            raise 系统提示词错误('malformed prompt variable reference "{{'+名+'}}" in '+种类+' "'+输入['name']+'" (variable names match '+变量名规则文本+')')#畸形名
+            raise 系统提示词错误('提示词变量引用畸形 "{{'+名+'}}"，在'+种类+' "'+输入['name']+'" 中（变量名须匹配 '+变量名规则文本+'）')#畸形名
         if 名 not in 变量表:#未登记，对齐 Object.hasOwn
             已登记=list(变量表.keys())#已登记名
-            已知=', '.join(已登记) if len(已登记)>0 else '(none)'#列出或空
-            raise 系统提示词错误('unknown prompt variable "{{'+名+'}}" in '+种类+' "'+输入['name']+'"; registered variables: '+已知)#未知变量
+            已知=', '.join(已登记) if len(已登记)>0 else '（无）'#列出或空
+            raise 系统提示词错误('未知提示词变量 "{{'+名+'}}"，在'+种类+' "'+输入['name']+'" 中；已登记变量: '+已知)#未知变量
         值=变量表[名]#取值
         if 值 is None:#本组装无值（对齐 JS undefined）
-            raise 系统提示词错误('prompt variable "{{'+名+'}}" has no value for this assembly ('+种类+' "'+输入['name']+'")')#未定义
+            raise 系统提示词错误('提示词变量 "{{'+名+'}}" 本次组装没有值（'+种类+' "'+输入['name']+'"）')#未定义
         结果+=文本[上次:开]+值#前缀加替换
         上次=开+len(匹配.group(0))#跳过整组
         开=文本.find('{{',上次)#下一引用
@@ -169,18 +167,18 @@ class 提示词层:#一个全局或作用域层
         def 段落重复(名):#段落重复名诊断
             """段落重复名诊断。"""
             if 作用域 is None:#全局
-                return Exception('prompt section "'+名+'" is already registered (for a per-agent override, register through that agent\'s `agent.ctx` instead)')#全局重复
-            return Exception('prompt section "'+名+'" is already registered in this scope')#作用域重复
+                return Exception('提示词段落 "'+名+'" 已登记（若要按智能体覆盖，请经该智能体的 `agent.ctx` 登记）')#全局重复
+            return Exception('提示词段落 "'+名+'" 已在本作用域登记')#作用域重复
         def 上下文重复(名):#上下文重复名诊断
             """上下文重复名诊断。"""
             if 作用域 is None:#全局
-                return Exception('prompt context "'+名+'" is already registered (for a per-agent override, register through that agent\'s `agent.ctx` instead)')#全局重复
-            return Exception('prompt context "'+名+'" is already registered in this scope')#作用域重复
+                return Exception('提示词上下文 "'+名+'" 已登记（若要按智能体覆盖，请经该智能体的 `agent.ctx` 登记）')#全局重复
+            return Exception('提示词上下文 "'+名+'" 已在本作用域登记')#作用域重复
         def 变量重复(名):#变量重复名诊断
             """变量重复名诊断。"""
             if 作用域 is None:#全局
-                return Exception('prompt variable "'+名+'" is already registered (for a per-agent value, register through that agent\'s `agent.ctx` instead)')#全局重复
-            return Exception('prompt variable "'+名+'" is already registered in this scope')#作用域重复
+                return Exception('提示词变量 "'+名+'" 已登记（若要按智能体取值，请经该智能体的 `agent.ctx` 登记）')#全局重复
+            return Exception('提示词变量 "'+名+'" 已在本作用域登记')#作用域重复
         自身.段落=具名条目(段落重复)#段落表
         自身.上下文表=具名条目(上下文重复)#上下文表
         自身.运行时上下文抑制器=匿名条目()#运行时上下文抑制器
@@ -234,7 +232,7 @@ class 系统提示词(服务):#系统提示词服务
     def 段落(自身,段落):#登记段落
         """在调用上下文的作用域登记一段有序提示词。作用域段落遮蔽同名全局段落；同一层内重复与非有限顺序会抛。登记与拆除发出 `system-prompt/change`。返回精确 Cordis effect 拆除器。"""
         if not 是否有限数(段落['order']):#顺序非有限
-            raise TypeError('prompt section "'+段落['name']+'" order must be a finite number')#必须有限
+            raise TypeError('提示词段落 "'+段落['name']+'" 的 order 必须是有限数')#必须有限
         def 插入(层):#插入本段落
             """插入本段落到该层具名表。"""
             return 层.段落.插入(段落['name'],段落)#插入
@@ -243,7 +241,7 @@ class 系统提示词(服务):#系统提示词服务
     def 上下文(自身,上下文块):#登记上下文
         """在调用上下文的作用域登记有序动态上下文。作用域条目遮蔽同名全局条目。返回精确 Cordis effect 拆除器。"""
         if not 是否有限数(上下文块['order']):#顺序非有限
-            raise TypeError('prompt context "'+上下文块['name']+'" order must be a finite number')#必须有限
+            raise TypeError('提示词上下文 "'+上下文块['name']+'" 的 order 必须是有限数')#必须有限
         def 插入(层):#插入本上下文
             """插入本上下文到该层具名表。"""
             return 层.上下文表.插入(上下文块['name'],上下文块)#插入
@@ -266,14 +264,14 @@ class 系统提示词(服务):#系统提示词服务
     def 变量(自身,名,提供方):#登记变量
         """在调用上下文的作用域登记一个提示词变量。作用域值遮蔽全局；非法或重复名会抛。提供方可返回 None（对齐 undefined），但渲染引用该值的段落随后失败。返回精确 Cordis effect 拆除器。"""
         if not 是否合法变量名(名):#名不合法
-            raise 系统提示词错误('invalid prompt variable name "'+名+'" (must match '+变量名规则文本+')')#非法名
+            raise 系统提示词错误('非法提示词变量名 "'+名+'"（必须匹配 '+变量名规则文本+'）')#非法名
         def 插入(层):#插入本变量
             """插入本变量提供方到该层具名表。"""
             return 层.变量.插入(名,提供方)#插入
         return 自身.层集.副作用(自身.ctx,插入,{'标签':'systemPrompt.variable()'})#挂上 effect
 
     def 组装(自身,上下文=None):#组装提示词
-        """组装全局与作用域提供方，脱离工具参数，应用规范排序，再跑组装瀑布。作用域段落与变量遮蔽全局。返回的瀑布值是权威的，除了有效完整段落之后被还原成唯一提示词段落，以及活动抑制器强制清空上下文。"""
+        """组装全局与作用域提供方，脱离工具参数，应用规范排序，再执行组装瀑布。作用域段落与变量遮蔽全局。返回的瀑布值是权威的，除了有效完整段落之后被还原成唯一提示词段落，以及活动抑制器强制清空上下文。"""
         if 上下文 is None:#缺省
             上下文={}#缺省空上下文
         作用域=上下文['scope'] if 'scope' in 上下文 else None#观察作用域
@@ -327,7 +325,7 @@ class 系统提示词(服务):#系统提示词服务
             if 'complete' in 段 and 段['complete'] is True:#完整
                 完整定义.append(段)#收下
         if len(完整定义)>1:#多于一个完整
-            raise 系统提示词错误('multiple complete prompt sections are active: '+', '.join(json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False) for 段 in 完整定义))#组装失败
+            raise 系统提示词错误('同时有多个完整提示词段落生效: '+', '.join(json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False) for 段 in 完整定义))#组装失败
         完整段落=None#记下完整段
         段落列表=[]#已组装段落
         for 段 in 段落定义:#解析文本
@@ -358,7 +356,7 @@ class 系统提示词(服务):#系统提示词服务
         def 内建(*位置参数):#瀑布内建
             """瀑布内建：交回本轮从登记表建出的组装。"""
             return 组装结果#原样
-        已变换=自身.ctx.链式拦截(作用域目标(自身,作用域),'system-prompt/assemble',组装结果,上下文,内建)#跑瀑布
+        已变换=自身.ctx.链式拦截(作用域目标(自身,作用域),'system-prompt/assemble',组装结果,上下文,内建)#执行瀑布
         if 完整段落 is None and not 运行时上下文已抑制:#无需还原
             return 已变换#无需还原
         结果=dict(已变换)#保留其余

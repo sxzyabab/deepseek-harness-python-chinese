@@ -1,9 +1,3 @@
-"""无密钥快照测试的 LLM 回放。
-
-对齐上游 `llm-replay/src/index.ts`。公开面仅中文名。
-从 v3 嵌入助手流与显式标记的本地压缩调用派生模型调用脚本。
-同步生成器流；节拍用 time.sleep；挂起用 threading.Event。
-"""
 import json,os,re,time,threading#JSON、文件、正则、节拍与挂起
 from ...模型后端.llm import (#LLM 运行时
     语言模型适配器,语言模型错误,解析重试政策,断言永不,
@@ -188,7 +182,7 @@ def 解析会话夹具(文本):#解析会话 fixture
         except Exception as 错误:#解码失败
             raise 夹具格式错误(错误,头行号,行号表,事件行号,len(行号表)-1)#带行号
     if 恢复器 is None or 源头 is None or 头行号 is None:#缺头
-        raise Exception('session snapshot must start with a session header')#缺头
+        raise Exception('会话快照必须以会话头开始')#缺头
     try:#完成恢复
         return 物化解析会话夹具(恢复器.finish(),源头)#物化视图
     except Exception as 错误:#完成失败
@@ -272,7 +266,7 @@ def 派生回放脚本(事件列表):#派生回放脚本
         if 类型=='compaction/summary':#压缩摘要
             if isinstance(数据,dict) and 数据.get('llmStreamCall') is True:#LLM 流调用
                 if 数据.get('rawOutput') is None:#缺 rawOutput
-                    raise Exception('llm-replay: compaction/summary marks an LLM stream call without rawOutput')#缺 rawOutput
+                    raise Exception('llm-replay: compaction/summary 标记了没有 rawOutput 的 LLM 流调用')#缺 rawOutput
                 分片列表=[]#分片
                 for 索引,块 in enumerate(数据['rawOutput']):#逐块
                     块类型=块.get('type') if isinstance(块,dict) else getattr(块,'type',None)#块类型
@@ -605,7 +599,7 @@ def 节拍延迟(毫秒,信号):#节拍等待
     截止=time.monotonic()+毫秒/1000#截止
     while time.monotonic()<截止:#等待
         if 信号 is not None and getattr(信号,'aborted',False):#中止
-            raise Exception('aborted')#中止
+            raise Exception('已中止')#中止
         time.sleep(0.01)#短睡
 
 def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
@@ -614,14 +608,14 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
     if 种类=='chunks':#分片
         for 分片 in 条目['chunks']:#逐分片
             if 信号 is not None and getattr(信号,'aborted',False):#中止
-                raise Exception('aborted')#中止
+                raise Exception('已中止')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
         return#结束
     if 种类=='throw':#抛错
         for 分片 in 条目['chunks']:#先发前缀
             if 信号 is not None and getattr(信号,'aborted',False):#中止
-                raise Exception('aborted')#中止
+                raise Exception('已中止')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
         raise 语言模型错误(条目['message'],条目['code'])#抛已记录错误
@@ -637,13 +631,13 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
             门闩.set()#放行
         if 信号 is not None:#有信号
             if getattr(信号,'aborted',False):#已中止
-                raise Exception('aborted')#中止
+                raise Exception('已中止')#中止
             if hasattr(信号,'addEventListener'):#DOM 风格
                 信号.addEventListener('abort',中止回调,{'once':True})#监听
             elif hasattr(信号,'add_callback'):#回调风格
                 信号.add_callback(中止回调)#监听
         门闩.wait()#等中止
-        raise Exception('aborted')#中止
+        raise Exception('已中止')#中止
     断言永不(条目,'llm-replay replay entry')#穷尽
 
 def 提供方已接受(条目):#是否到达 2xx 后提交点
@@ -768,7 +762,7 @@ def 应用(上下文,配置=None):#Cordis 入口
         配置={}#空
     文件=配置.get('file') or os.environ.get('DSH_SNAPSHOT_FILE')#主 fixture
     if 文件 is None or 文件=='':#缺路径
-        raise Exception('llm-replay: a fixture path is required (Config.file or $DSH_SNAPSHOT_FILE)')#缺路径
+        raise Exception('llm-replay: 需要夹具路径（Config.file 或 $DSH_SNAPSHOT_FILE）')#缺路径
     校验已配置模型(配置.get('providers'))#校验模型
     覆盖=配置.get('overrideFile') or os.environ.get('DSH_SNAPSHOT_OVERRIDE')#覆盖
     子环境=os.environ.get('DSH_SNAPSHOT_CHILD_FILES')#子环境

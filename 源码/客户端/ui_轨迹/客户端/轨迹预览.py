@@ -1,8 +1,3 @@
-"""轨迹消费方共用的有界 Markdown→纯文本投影。
-
-对齐上游 `ui-trajectory/src/client/trajectory-preview.ts`。公开面仅中文名。
-运行时 primitives 未迁完时本地实现有界纯文本抽取。
-"""
 import re#空白折叠与简单标记剥离
 
 __all__=['轨迹预览文本']#仅中文公开名

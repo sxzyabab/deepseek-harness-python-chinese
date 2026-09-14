@@ -1,8 +1,3 @@
-"""消息项：用户泡、重试、回合错、插话等简单聊天节点。
-
-对齐上游 `ui-chat/src/client/chat/MessageItem.tsx`。公开面仅中文名。
-属性、节点、块均为 dict。
-"""
 import math#重试秒
 import time#倒计时
 

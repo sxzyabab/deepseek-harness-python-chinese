@@ -1,9 +1,3 @@
-"""命令界面运行时（`ctx.commandUi`）。
-
-对齐上游 `ui-commands/src/client/service.ts`。公开面仅中文名。
-会话键目录 + 「/」源 + 贡献登记 + 每会话弹出控制器。
-弹出选定完整壳属 popup.ts，本文件只持打开/拆除面。
-"""
 from ...ui_基础界面组件.按名排序 import 按名排序#名与标签排序
 from .约定 import 命令错误#本包异常
 from .目录 import 命令目录#按会话键目录
@@ -55,7 +49,7 @@ class 命令UI运行时:#CommandUiRuntime
         上下文.provide('commandUi',自身)#提供
         文案=上下文.get('locale')#文案
         if 文案 is None:#无
-            raise 命令错误('ui-commands: locale service unavailable')#失败
+            raise 命令错误('ui-commands: locale 服务不可用')#失败
         自身.t=文案.bind('command')#翻译
         自身.贡献={}#名 → 贡献 dict
         自身.装饰={}#名 → 装饰 dict
@@ -67,13 +61,13 @@ class 命令UI运行时:#CommandUiRuntime
                 return []#空
             结果=上下文.remote.commands.list(会话标识)#列
             if 结果['ok'] is not True:#失败
-                错=结果['error']#错
-                raise 命令错误('command.list failed: '+str(错['code'])+': '+str(错['message']))#抛
+                错误体=结果['error']#错误体
+                raise 命令错误('command.list 失败: '+str(错误体['code'])+': '+str(错误体['message']))#抛
             return 结果['value']#表
         自身.目录=命令目录(拉目录)#目录
         触发=上下文.get('inputTriggers')#斜杠
         if 触发 is None:#无
-            raise 命令错误('ui-commands: slash service unavailable')#失败
+            raise 命令错误('ui-commands: 斜杠服务不可用')#失败
         def 登记源():
             """登记 '/' 源。"""
             def 预热(会话):
@@ -106,7 +100,7 @@ class 命令UI运行时:#CommandUiRuntime
         """取会话服务。"""
         会话=自身.ctx.get('sessions')#会话
         if 会话 is None:#无
-            raise 命令错误('ui-commands: sessions service unavailable')#失败
+            raise 命令错误('ui-commands: sessions 服务不可用')#失败
         return 会话#会话
 
     def register(自身,贡献):
@@ -115,7 +109,7 @@ class 命令UI运行时:#CommandUiRuntime
         def 挂():
             """挂上。"""
             if 名 in 自身.贡献:#重
-                raise 命令错误('ui-commands: duplicate contribution for /'+名)#抛
+                raise 命令错误('ui-commands: 重复贡献 /'+名)#抛
             自身.贡献[名]=贡献#记
             def 摘贡献():
                 """摘掉该贡献。"""
@@ -133,7 +127,7 @@ class 命令UI运行时:#CommandUiRuntime
         def 挂():
             """挂上。"""
             if 名 in 自身.装饰:#重
-                raise 命令错误('ui-commands: duplicate decoration for /'+名)#抛
+                raise 命令错误('ui-commands: 重复装饰 /'+名)#抛
             自身.装饰[名]=装饰#记
             def 摘装饰():
                 """摘掉该装饰。"""
@@ -149,7 +143,7 @@ class 命令UI运行时:#CommandUiRuntime
         """解析每会话弹出控制器。"""
         标识=自身.sessions().scopeOf(作用域)#id
         if 标识 is None:#非会话
-            raise 命令错误('command.popupFor requires a session scope')#抛
+            raise 命令错误('command.popupFor 需要会话作用域')#抛
         if 标识 in 自身.弹出:#已有
             return 自身.弹出[标识]#复用
         def 消费(片段):
@@ -205,7 +199,7 @@ class 命令UI运行时:#CommandUiRuntime
             if 贡献['available'](会话) is False:#不可用
                 continue#下
             if 名 in 已见:#撞
-                raise 命令错误('ui-commands: contribution /'+名+' collides with a host command')#抛
+                raise 命令错误('ui-commands: 贡献 /'+名+' 与宿主命令冲突')#抛
             行项={'name':名}#行
             if 'label' in 贡献 and 贡献['label'] is not None:#标题
                 行项['label']=贡献['label']()#解析
@@ -238,7 +232,7 @@ class 命令UI运行时:#CommandUiRuntime
         if 'input' in 描 and 描['input'] is not None:#认领
             return {'claim':自身.前缀认领(描,会话,认领令牌(描,自身.t))}#本地化拼写
         自身.经片段消费(会话['sessionId'],{'via':'menu','span':点选['span']})#消费
-        自身.跑分离(描,会话,'/'+名)#分离执行
+        自身.分离执行(描,会话,'/'+名)#分离执行
         return 'handled'#已处理
 
     def 匹配空格(自身,会话,令牌):
@@ -303,7 +297,7 @@ class 命令UI运行时:#CommandUiRuntime
         if 附件数>0:#裸 execute
             拒附件()#拒
         自身.经片段消费(会话['sessionId'],{'via':'enter','token':令牌})#消费
-        自身.跑分离(描,会话,规范)#分离执行
+        自身.分离执行(描,会话,规范)#分离执行
         return 'handled'#已处理
 
     def invoke(自身,名,规格,会话,片段):
@@ -338,11 +332,11 @@ class 命令UI运行时:#CommandUiRuntime
         标识=会话['sessionId']#id
         结果=自身.ctx.remote.commands.execute(标识,行,附件)#RPC
         if 结果['ok'] is not True:#拒
-            错=结果['error']#错
-            raise 命令错误('command.execute failed: '+str(错['code'])+': '+str(错['message']))#抛
+            错误体=结果['error']#错误体
+            raise 命令错误('command.execute 失败: '+str(错误体['code'])+': '+str(错误体['message']))#抛
         值=结果['value']#值
         if 值 is None:#未匹配
-            return {'kind':'error','text':'unknown or malformed command: '+行}#错误
+            return {'kind':'error','text':'未知或格式错误的命令: '+行}#错误
         自身.通知已执行(标识,已提交命令名(行),值['result'])#回执
         if len(附件)>0 and 值['result']['kind']=='error':#带附件且处理失败
             return {'kind':'error','text':值['result']['text']}#报错误
@@ -360,7 +354,7 @@ class 命令UI运行时:#CommandUiRuntime
         守卫={'kind':'span','span':片段['span']} if 片段['via']=='menu' else {'kind':'bare-token','token':片段['token']}#守卫
         作用.bail(作用,'slash/input-consume-token',{'guard':守卫})#消费
 
-    def 跑分离(自身,描,会话,行):
+    def 分离执行(自身,描,会话,行):
         """裸宿主命令分离执行。"""
         try:#跑
             结局=自身.执行(会话,行,())#执行
@@ -368,7 +362,7 @@ class 命令UI运行时:#CommandUiRuntime
             自身.提示(会话['sessionId'],'error',错误.args[0] if len(错误.args)>0 else str(错误))#提示
             return#止
         if 结局['kind']=='error':#准入失败
-            文=结局['text'] if 'text' in 结局 else '/'+描['name']+' failed'#文案
+            文=结局['text'] if 'text' in 结局 else '/'+描['name']+' 失败'#文案
             自身.提示(会话['sessionId'],'error',文)#提示
 
     def 提示(自身,标识,级别,文本):

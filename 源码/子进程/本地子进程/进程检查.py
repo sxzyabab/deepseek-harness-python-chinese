@@ -1,7 +1,3 @@
-"""平台进程表检查：终端就绪、信号与拆除。
-
-对齐上游 `subprocess-local/src/process-inspector.ts`。公开面仅中文名；无英文别名。
-"""
 import os,re,signal,struct,sys,sysconfig,importlib.util,platform as 平台库#读proc、匹配数字名、信号、小端整型、平台与标准库载入
 from .终端 import 本地子进程错误#本包错误
 标准库子进程规格=importlib.util.spec_from_file_location('dsh_stdlib_subprocess',os.path.join(sysconfig.get_path('stdlib'),'subprocess.py'))#标准库subprocess路径

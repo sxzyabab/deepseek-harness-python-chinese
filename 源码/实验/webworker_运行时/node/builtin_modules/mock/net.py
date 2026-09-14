@@ -1,8 +1,3 @@
-"""Worker 用的 `node:net`。此处无任何东西接受或拨出套接字：假 HTTP
-服务器从不发出 `upgrade`，因此只有地址谓词与可构造但大声的 Socket 可达。
-
-对齐上游 `webworker-runtime/src/node/builtin_modules/mock/net.ts`。
-"""
 from ...未实现失败 import 运行时错误#本包错误
 import re#字面量模式
 
@@ -16,11 +11,11 @@ class Socket:#套接字占位类
 
     def write(自身,*位置参数,**关键字参数):#写入拒绝
         """从不向套接字写入；到达此处意味着升级路径已激活。"""
-        raise 运行时错误('web-preview: node:net Socket.write is not available in the worker host')#抛不可用
+        raise 运行时错误('web-preview: worker 宿主里没有 node:net Socket.write')#抛不可用
 
     def end(自身,*位置参数,**关键字参数):#结束拒绝
         """write 的对应物。"""
-        raise 运行时错误('web-preview: node:net Socket.end is not available in the worker host')#抛不可用
+        raise 运行时错误('web-preview: worker 宿主里没有 node:net Socket.end')#抛不可用
 
     def destroy(自身):#安静拆除
         """接受拆除，使拆除路径保持安静。"""
@@ -43,11 +38,11 @@ def isIP(value):#返回IP族
 
 def createServer(*位置参数,**关键字参数):#创建服务器拒绝
     """TCP 监听是假 HTTP 服务器的事；裸 net 服务器不可达。"""
-    raise 运行时错误('web-preview: node:net.createServer is not available in the worker host')#抛不可用
+    raise 运行时错误('web-preview: worker 宿主里没有 node:net.createServer')#抛不可用
 
 def connect(*位置参数,**关键字参数):#出站连接拒绝
     """出站连接在 Worker 中无载体。"""
-    raise 运行时错误('web-preview: node:net.connect is not available in the worker host')#抛不可用
+    raise 运行时错误('web-preview: worker 宿主里没有 node:net.connect')#抛不可用
 
 __esModule=True#CJS互操作标记
 default={'Socket':Socket,'isIP':isIP,'isIPv4':isIPv4,'isIPv6':isIPv6,'createServer':createServer,'connect':connect}#默认导出

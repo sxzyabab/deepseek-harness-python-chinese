@@ -1,4 +1,3 @@
-"""`ctx.sessionProjections` 注册表与驱动逻辑（对齐上游 session-projection/src/index.ts）。"""
 import weakref#按会话弱引用缓存单元
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
@@ -35,7 +34,7 @@ class 会话投影注册表(服务):
         键=定义['key']#单元键
         状态版本=定义['stateVersion']#状态版本
         if isinstance(状态版本,bool):#布尔不是整数
-            raise 会话投影错误('session projection '+repr(键)+' stateVersion must be a non-negative integer, got '+str(状态版本))#拒绝
+            raise 会话投影错误('会话投影 '+repr(键)+' 的 stateVersion 必须是非负整数，实际为 '+str(状态版本))#拒绝
         if isinstance(状态版本,int):#整数
             合法=abs(状态版本)<=9007199254740991#外来安全范围
         elif isinstance(状态版本,float) and 状态版本.is_integer():#整值浮点
@@ -43,7 +42,7 @@ class 会话投影注册表(服务):
         else:#其它
             合法=False#非法
         if (not 合法) or 状态版本<0:#非法版本
-            raise 会话投影错误('session projection '+repr(键)+' stateVersion must be a non-negative integer, got '+str(状态版本))#拒绝
+            raise 会话投影错误('会话投影 '+repr(键)+' 的 stateVersion 必须是非负整数，实际为 '+str(状态版本))#拒绝
         wire=定义['wire'] if 'wire' in 定义 else None#可选 wire 块
         擦除={
             'key':键,#键
@@ -60,7 +59,7 @@ class 会话投影注册表(服务):
             else:#共享键
                 已有=自身._登记[键]#已有登记
                 if 已有['def']['stateVersion']!=状态版本:#版本冲突
-                    raise 会话投影错误('session projection key '+repr(键)+' is already registered at stateVersion '+str(已有['def']['stateVersion'])+'; refusing to share it with stateVersion '+str(状态版本))#拒绝
+                    raise 会话投影错误('会话投影键 '+repr(键)+' 已按 stateVersion '+str(已有['def']['stateVersion'])+' 登记；拒绝与 stateVersion '+str(状态版本)+' 共享')#拒绝
                 已有['refs']+=1#加引用
             def 拆除():
                 """最后一个引用离开时删除键。"""
@@ -191,7 +190,7 @@ class 会话投影注册表(服务):
             行=检查点[定义['key']] if 定义['key'] in 检查点 else None#行
             可用=(行 is not None and 行['ver']==定义['stateVersion'] and 行['seq']>=基础序号-1 and 行['seq']<=结束序号)#可用行
             if (not 可用) and 基础序号>0:#中缀恢复不可行
-                raise 会话投影错误('session projection '+repr(定义['key'])+' cannot restore from seq '+str(基础序号)+': its checkpoint row is missing, version-mismatched, or beyond the supplied log end; re-read from seq 0')#拒绝
+                raise 会话投影错误('会话投影 '+repr(定义['key'])+' 无法从 seq '+str(基础序号)+' 恢复：检查点行缺失、版本不匹配或超出所给日志末端；请从 seq 0 重读')#拒绝
             状态=行['val'] if 可用 else 定义['init'](头)#种子状态
             校验=定义['stateSchema']#可选校验
             if 可用 and 校验 is not None:#校验种子
@@ -202,7 +201,7 @@ class 会话投影注册表(服务):
                 事件=事件列表[索引]#事件
                 期望=基础序号+索引#期望 seq
                 if 事件 is None or 事件['seq']!=期望:#缺口
-                    raise 会话投影错误('session projection '+repr(定义['key'])+' cannot restore across missing seq '+str(期望))#拒绝
+                    raise 会话投影错误('会话投影 '+repr(定义['key'])+' 无法跨过缺失的 seq '+str(期望)+' 恢复')#拒绝
                 状态=定义['apply'](状态,事件)#折叠
             if 定义['wire'] is not None:#有 wire
                 值表[定义['key']]=定义['wire']['view'](状态)#视图
@@ -272,7 +271,7 @@ class 会话投影注册表(服务):
         for 序号 in range(单元['observedSeq']+1,直到序号+1):#逐 seq
             事件=事件列表[序号] if 序号<len(事件列表) else None#事件
             if 事件 is None or 事件['seq']!=序号:#缺口
-                raise 会话投影错误('session projection '+repr(定义['key'])+' cannot advance across missing seq '+str(序号))#拒绝
+                raise 会话投影错误('会话投影 '+repr(定义['key'])+' 无法跨过缺失的 seq '+str(序号)+' 推进')#拒绝
             下一=定义['apply'](单元['state'],事件)#折叠
             单元['state']=下一#写回
             单元['observedSeq']=序号#水位
@@ -303,7 +302,7 @@ class 会话投影注册表(服务):
         """返回 schema 校验后的 wire 视图。"""
         wire=登记['def']['wire']#wire
         if wire is None:#无 wire
-            raise 会话投影错误('session projection '+repr(登记['def']['key'])+' has no wire view')#错误
+            raise 会话投影错误('会话投影 '+repr(登记['def']['key'])+' 没有 wire 视图')#错误
         状态=单元['state']#状态
         校验=登记['def']['stateSchema']#可选
         if 校验 is not None:#校验状态

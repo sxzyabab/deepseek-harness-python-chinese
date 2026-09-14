@@ -1,8 +1,3 @@
-"""Typert 分析器、与编译器无关的模型、以及由模型驱动的制品代码输出的公开 API。
-
-对齐上游 `typert/generator/src/index.ts` 已迁面。公开面仅中文名。
-分析器真实现属硬缺口4；本包再导出其公开符号与 NotImplementedError 边界。
-"""
 from .模型 import 子类型节点标识列表,关键字类型名,类型运算符名,成员可见性#模型
 from .分析器 import (#分析器公开面（真实现硬缺口；边界已登记）
     Typert分析错误,

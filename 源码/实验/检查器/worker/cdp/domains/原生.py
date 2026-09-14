@@ -1,4 +1,3 @@
-"""realm 迁移期间仅 Host 原生 CDP 方法的显式适配器。"""
 #对齐上游 worker/cdp/domains/native.ts
 
 from ..协议 import 响应cdp请求#协议工具

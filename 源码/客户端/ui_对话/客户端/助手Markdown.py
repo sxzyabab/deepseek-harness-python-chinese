@@ -1,9 +1,3 @@
-"""助手块有序渲染：正文、Think 行、图组；工具头由聊天流分组。
-
-对齐上游 `ui-conversation/src/client/chat/AssistantMarkdown.tsx`。公开面仅中文名。
-流式/定稿/中断共用；仅 tool-call 时不画壳。
-属性与块为 dict。
-"""
 from ..服务 import 对话错误#本包异常
 from .推理行 import 推理行#Think 披露
 from .图像标签 import 消息图像标签 as 消息图标签#图廊标签

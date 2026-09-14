@@ -1,7 +1,3 @@
-"""可恢复的 PDF 查看偏好；文档对象与画布仍属组件本地。
-
-对齐上游 `ui-sidebar-documentpreview/src/client/pdf/store.ts`。公开面仅中文名。
-"""
 
 __all__=['默认pdf视图','创建pdf存储']#仅中文公开名
 

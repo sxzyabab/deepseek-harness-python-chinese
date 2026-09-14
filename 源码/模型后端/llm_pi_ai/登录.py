@@ -1,8 +1,3 @@
-"""为自带登录的 pi-ai 提供方做的授权流。
-
-对齐上游 `llm-pi-ai/src/login.ts`。公开面仅中文名。
-harness 中立 notice/prompt 词表与 pi-ai AuthInteraction 之间的翻译。
-"""
 import pi_ai#外部依赖胶水
 from ...凭据.凭据 import 是否凭证键段#键段判定
 from .目录 import 目录提供方,目录提供方标识列表#目录
@@ -47,13 +42,13 @@ def 中继(事件,会话):
         return#结束
     if 类型=='auth_url':#授权 URL
         会话['notify']({
-            'message':取('instructions') or 'Open this page to continue signing in.',
+            'message':取('instructions') or '打开此页面以继续登录。',
             'url':取('url'),
         })#通知
         return#结束
     if 类型=='device_code':#设备码
         会话['notify']({
-            'message':'Enter this code on the verification page to finish signing in.',
+            'message':'在验证页输入此代码以完成登录。',
             'url':取('verificationUri'),
             'code':取('userCode'),
         })#通知
@@ -61,7 +56,7 @@ def 中继(事件,会话):
     if 类型=='progress':#进度
         会话['notify']({'message':取('message')})#通知
         return#结束
-    会话['notify']({'message':'Signing in…'})#未知成员仍显示有事在发生
+    会话['notify']({'message':'正在登录…'})#未知成员仍显示有事在发生
 
 def 重述(提示):
     """用 seam 词表重述一次 pi-ai 提示。"""
@@ -100,7 +95,7 @@ def 登记派爱登录流(上下文,认证注入):
                 提供方标识,
             )#警告
             continue#跳过
-        def 跑(会话,标识=提供方标识,方=提供方):
+        def 执行登录(会话,标识=提供方标识,方=提供方):
             """一次登录尝试。会话为 dict。"""
             模型集合=pi_ai.createModels(认证注入)#自有集合
             模型集合.setProvider(方)#挂提供方
@@ -120,5 +115,5 @@ def 登记派爱登录流(上下文,认证注入):
             'key':记录键于(提供方标识),
             'label':getattr(提供方,'name',提供方标识),
             'methods':方法列表,
-            'run':跑,
+            'run':执行登录,
         })#登记

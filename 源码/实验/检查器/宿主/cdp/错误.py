@@ -1,7 +1,3 @@
-"""Client 风格 CDP 桥命令误路由到 Host 时的显式失败。
-
-对齐上游 `host/cdp/errors.ts`。公开面仅中文名。
-"""
 from .栈 import 宿主cdp桥原因#拒绝原因常量
 
 __all__=['宿主cdp桥不可用错误']#仅中文公开名

@@ -1,8 +1,3 @@
-"""harness LLM seam 的通用 pi-ai 后端实现。
-
-对齐上游 `llm-pi-ai/src/adapter.ts`。公开面仅中文名；无英文别名。
-中止信号公开面为已中止/原因；中止控制器公开面为信号/中止。对接上游 AbortSignal 时只在读取函数内认英文键。
-"""
 import threading#工作线程
 from .. import llm#语言模型服务
 import pi_ai#外部依赖胶水（pi-ai SDK）
@@ -20,11 +15,11 @@ class 中止信号:
     """threading.Event 取消通道。原因用异常对象承载，不对外挂第二字段。"""
     def __init__(自身,已中止标志=False):
         """创建一条取消通道。"""
-        自身._事件=threading.Event()#中止旗标
+        自身._事件=threading.Event()#中止信号
         自身._异常=None#中止时抛出的异常
         if 已中止标志:#创建时已中止
             自身._事件.set()#置位
-            自身._异常=llm.大模型错误('aborted','ABORTED')#默认中止
+            自身._异常=llm.大模型错误('已中止','ABORTED')#默认中止
 
     def 触发(自身,原因=None):
         """标记中止。"""
@@ -33,11 +28,11 @@ class 中止信号:
         if isinstance(原因,BaseException):#原因已是异常
             自身._异常=原因#用异常对象承载
         elif 原因 is not None:#非异常原因
-            错=llm.大模型错误('aborted','ABORTED')#包装
+            错=llm.大模型错误('已中止','ABORTED')#包装
             错.原因=原因#附加属性
             自身._异常=错#记下
         else:#无原因
-            自身._异常=llm.大模型错误('aborted','ABORTED')#默认
+            自身._异常=llm.大模型错误('已中止','ABORTED')#默认
         自身._事件.set()#置位
 
 class 中止控制器:
@@ -62,7 +57,7 @@ def 若已中止则抛出(信号):
         return#继续
     原因=信号._异常#异常对象承载原因
     if 原因 is None:#无原因
-        raise llm.大模型错误('aborted','ABORTED')#默认中止
+        raise llm.大模型错误('已中止','ABORTED')#默认中止
     raise 原因#原样抛出
 
 def 合成信号(源列表):
@@ -72,14 +67,14 @@ def 合成信号(源列表):
         if 源 is not None and 已中止(源):#已中止
             融合.中止(源._异常)#立刻胜出
             return 融合.信号#已中止的融合信号
-    def 盯(来源):
+    def 转发中止(来源):
         """等到来源置位后转发给融合控制器。"""
         来源._事件.wait()#阻塞到中止
         融合.中止(来源._异常)#转发异常
     for 源 in 源列表:#每路一线程
         if 源 is None:#无信号
             continue#跳过
-        线程(target=盯,args=(源,),daemon=True).start()#听一路
+        线程(target=转发中止,args=(源,),daemon=True).start()#听一路
     return 融合.信号#融合信号
 
 def 配置流选项(配置,推理,密钥):

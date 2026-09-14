@@ -1,8 +1,3 @@
-"""从一个助手生命周期收集可见散文。
-
-对齐上游 `ui-chat/src/client/chat/turn-assistant.ts`。公开面仅中文名。
-块为快照 dict。
-"""
 
 __all__=['助手文本']#仅中文公开名
 

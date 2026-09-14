@@ -1,8 +1,3 @@
-"""斜杠命令生命周期与手动压缩集成。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/command.ts`。公开面仅中文名。
-事件与状态为 dict。
-"""
 from ..服务 import 对话错误#本包异常
 from .节点工厂 import 聊天节点#聊天节点工厂
 from .事件面 import 是替换面事件#面辅助

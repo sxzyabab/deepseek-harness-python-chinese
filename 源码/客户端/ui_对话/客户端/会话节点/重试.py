@@ -1,8 +1,3 @@
-"""模型重试链会话节点。
-
-对齐上游 `ui-conversation/src/client/conversation-nodes/retry.ts`。公开面仅中文名。
-事件与状态为 dict。
-"""
 from ..服务 import 对话错误#本包异常
 from .节点工厂 import 聊天节点,上下文位置#公共
 

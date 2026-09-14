@@ -1,8 +1,3 @@
-"""客户端槽位编译期约定目录。
-
-对齐上游 `拓展/cordis-client-runner/src/client/slot-catalog.ts`。
-纯字符串数据、无客户端导入；从原版相对路径整表加载。公开面仅中文名。
-"""
 import os#路径
 from ..cordis工具.字面量解析 import 提取导出常量数组,解析数组字面量#复用解析器
 
@@ -46,5 +41,5 @@ def 查询槽目录(键=None,槽列表=None):#查询槽
             槽=候选#记下
             break#结束
     if 槽 is None:#未知
-        raise Exception('no catalogued Slot named "'+键+'"')#失败
+        raise Exception('目录里没有名为 "'+键+'" 的 Slot')#失败
     return {'mode':'slot','slot':槽,'notes':list(客户端说明)}#精确约定

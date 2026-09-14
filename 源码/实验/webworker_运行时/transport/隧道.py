@@ -1,8 +1,3 @@
-"""postMessage 隧道的 worker 端。它拥有分发通道，以及在宿主树就绪前
-暂存请求的队列。
-
-对齐上游 `webworker-runtime/src/transport/tunnel.ts`。公开面仅中文名。
-"""
 from ..node.未实现失败 import 运行时错误#本包错误
 import json as _json#序列化boot载荷
 from urllib.parse import urlparse as 解析网址#解析请求URL
@@ -124,7 +119,7 @@ class 隧道服务器:#隧道服务器
         """接受一个 postMessage 载荷。"""
         帧=解析入站帧(数据)#校验帧
         if 帧['t']=='init':#重复init
-            raise 运行时错误('webworker tunnel: duplicate init frame; the tunnel is already open')#拒绝
+            raise 运行时错误('webworker tunnel: 重复的 init 帧，隧道已经打开')#拒绝
         if 帧['t']=='abort':#中止
             进行=自身._进行中.get(帧['id'])#取进行中
             if 进行 is not None:#有
@@ -275,7 +270,7 @@ class 隧道服务器:#隧道服务器
     def _服务boot(自身,帧,汇):#服务启动载荷
         """GET /__boot__ 的启动载荷。"""
         if 自身._缝合 is None:#须已serve
-            raise 运行时错误('webworker tunnel: boot payload requested before the host tree is serving')#拒绝
+            raise 运行时错误('webworker tunnel: 宿主树尚未对外服务就请求了 boot 载荷')#拒绝
         if 帧['method']!='GET':#仅GET
             汇['end']({'status':405,'headers':{'allow':'GET'}})#方法不允许
             return#结束
@@ -304,7 +299,7 @@ class 隧道服务器:#隧道服务器
     def _服务直达(自身,帧,汇):#直达fetch
         """直达 fetch 处理器。"""
         if 自身._缝合 is None:#须已serve
-            raise 运行时错误('webworker tunnel: direct fetch requested before the host tree is serving')#拒绝
+            raise 运行时错误('webworker tunnel: 宿主树尚未对外服务就请求了直接 fetch')#拒绝
         已中止=[False]#取消标志
         def 中止():#中止
             """标记中止。"""

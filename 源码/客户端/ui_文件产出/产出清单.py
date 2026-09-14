@@ -1,8 +1,3 @@
-"""交付物行：产出芯片与已呈现文件卡。
-
-对齐上游 `ui-deliverables/src/client/Deliverables.tsx`。公开面仅中文名。
-认领含变更路径或已声明文件的收口回合；props 为槽位合成 dict。
-"""
 from .产出文件 import 产出文件行#产出芯片行
 from .已呈现文件卡 import 已呈现文件卡#已呈现文件卡
 from .回合产出 import 选出产出文件,收口已呈现#路径选取

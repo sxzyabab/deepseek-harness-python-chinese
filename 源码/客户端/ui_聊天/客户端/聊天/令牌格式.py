@@ -1,7 +1,3 @@
-"""紧凑与精确 token 计数、缓存命中百分比。
-
-对齐上游 `ui-chat/src/client/chat/token-format.ts`。公开面仅中文名。
-"""
 import math#舍入
 
 __all__=['格式化令牌','格式化精确令牌','格式化缓存命中百分比']#仅中文公开名

@@ -1,9 +1,3 @@
-"""右对齐 `/goal` 输入气泡。
-
-对齐上游 `ui-goal/src/client/GoalCommandInputView.tsx`。公开面仅中文名。
-无普通消息动作。
-"""
-
 __all__=['目标命令输入视图']#仅中文公开名
 
 def 缺省翻译(键,_插值=None):#无文案函数

@@ -1,4 +1,3 @@
-"""只读枚举耐久子智能体子体与后代树，直接来自活会话存储与可选会话持久化——无查询服务。头与快照为 dict，会话为对象。"""
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from .错误 import 子智能体错误#导入子智能体错误
 
@@ -50,7 +49,7 @@ def 已中止(信号):
 def 断言列举未取消(信号):
     """在下一个取消检查点停下列举。"""
     if 已中止(信号):#已取消
-        raise 子智能体错误('subagent listing was cancelled','CANCELLED')#稳定取消失败
+        raise 子智能体错误('子智能体列举已取消','CANCELLED')#稳定取消失败
 
 def 语料排序键(记录):
     """按耐久创建时间再按 id 比较兄弟。记录为 dict，头为 dict。"""
@@ -93,13 +92,13 @@ def 准备列举(上下文对象,信号=None):
     投影=上下文对象.获取服务('sessionProjections')#投影注册表
     if 投影 is None:#未挂载投影
         raise 子智能体错误(#配置错误
-            'listing subagents requires the sessionProjections registry (load @deepseek-ai/dsh-session-projection)',#文案
+            '列举子智能体需要 sessionProjections 注册表（请加载 @deepseek-ai/dsh-session-projection）',#文案
             'SUBAGENT_CONTROL_PROJECTIONS_UNAVAILABLE',#错误码
         )#结束
     会话存储=上下文对象.获取服务('sessions')#会话存储
     if 会话存储 is None:#未挂载存储
         raise 子智能体错误(#配置错误
-            'listing subagents requires the session store (load @deepseek-ai/dsh-session)',#文案
+            '列举子智能体需要会话存储（请加载 @deepseek-ai/dsh-session）',#文案
             'SUBAGENT_CONTROL_SESSION_STORE_UNAVAILABLE',#错误码
         )#结束
     断言列举未取消(信号)#取消检查点

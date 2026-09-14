@@ -1,4 +1,3 @@
-"""进程内一次性子智能体结构化输出运行时（对齐 upstream structured.ts）。"""
 from ...内核.工具 import 工具参数错误,校验json模式值#参数校验
 结构化输出工具名='structured_output'#工具名
 结构化输出指令=(
