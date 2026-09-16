@@ -59,9 +59,9 @@ __all__=(#仅中文公开名；无英文别名
     '智能体句柄协议',
 )#公开面结束
 
-无工厂诊断='未登记智能体工厂（请加载 agent-loop 插件）'#无工厂诊断；插件名不译
-无发起方诊断='当前没有活动的发起智能体'#无发起方诊断
-发起方已拆除诊断='智能体发起方作用域已拆除'#发起方已拆除诊断
+无工厂诊断='no agent factory registered (load an agent-loop plugin)'#无工厂诊断；插件名不译
+无发起方诊断='no initiating agent is active'#无发起方诊断
+发起方已拆除诊断='agent initiator scope is disposed'#发起方已拆除诊断
 
 class 智能体错误(Exception):
     """内核智能体包的异常基类。"""
@@ -229,7 +229,7 @@ class 智能体注册表(服务):#Agent 注册表
         def 设工厂体():#挂上 effect 并在拆除时清空槽
             """挂上 effect 并在拆除时清空槽。"""
             if 自身.工厂 is not None:#已有工厂
-                raise 智能体错误('已登记智能体工厂，不得重复')#不得重复
+                raise 智能体错误('an agent factory is already registered')#不得重复
             原始=取符号(工厂,符号.原始)#剥到具体目标
             if 原始 is None and isinstance(工厂,可追踪包装):#可追踪包装
                 原始=object.__getattribute__(工厂,'_值')#包装内目标
@@ -266,16 +266,16 @@ class 智能体注册表(服务):#Agent 注册表
         def 登记体():#先进入再宣布
             """先进入再宣布。"""
             yield 自身.进入(智能体,None)#先进入；register 为运行时根
-            自身.宣布(智能体)#再宣布
+            自身.宣布(智能体,启动)#再串行宣布，来源 startup
         return 自身.ctx.副作用(登记体,'agents.register()')#精确拆除器
     def 进入(自身,智能体,所有者):#进入注册表
         """插入已构造 Agent 但不宣布它。"""
         身份=智能体.id#Agent id
         if 身份!=智能体.session.id:#与会话 id 不一致
-            raise 智能体错误('智能体 id "'+str(身份)+'" 与会话 id "'+str(智能体.session.id)+'" 不一致')#必须同一身份
+            raise 智能体错误('agent id "'+str(身份)+'" does not match session id "'+str(智能体.session.id)+'"')#必须同一身份
         载体=作用域目标(智能体,智能体)#以自身为键的载体
         if 身份 in 自身.存储:#已登记
-            raise 智能体错误('智能体 "'+str(身份)+'" 已登记')#不得覆盖
+            raise 智能体错误('agent "'+str(身份)+'" is already registered')#不得覆盖
         条目=智能体条目(身份,智能体,所有者,载体)#新条目
         自身.存储[身份]=条目#写入存储
         仍有效=True#脱离是否仍有效
@@ -307,21 +307,24 @@ class 智能体注册表(服务):#Agent 注册表
             try:#收住同步抛错
                 回调(*参数)#监听器已是同步回调
             except Exception as 错误:#同步抛错
-                自身.ctx.日志.警告('智能体 "'+str(条目.身份)+'"：agent/disposed 监听器抛错：'+str(错误))#记抛错；事件名不译
-    def 宣布(自身,智能体):#宣布
-        """宣布先前用进入插入的 Agent。"""
+                自身.ctx.日志.警告('agent "'+str(条目.身份)+'": agent/disposed listener threw: '+str(错误))#记抛错；事件名不译
+    def 宣布(自身,智能体,来源,信号=None):#宣布
+        """宣布先前用进入插入的 Agent。监听器失败否决发表。"""
         条目=自身.存储.get(智能体.id)#取条目
         if 条目 is None or 条目.智能体 is not 智能体:#不是在线条目
-            raise 智能体错误('智能体 "'+str(智能体.id)+'" 不在本注册表在线')#必须是本注册表在线实例
+            raise 智能体错误('agent "'+str(智能体.id)+'" is not live in this registry')#必须是本注册表在线实例
         if 条目.已宣布 or 条目.正在宣布:#已经或正在宣布
-            raise 智能体错误('智能体 "'+str(条目.身份)+'" 已经宣布过')#不得重复宣布
+            raise 智能体错误('agent "'+str(条目.身份)+'" was already announced')#不得重复宣布
         条目.正在宣布=True#正在宣布
         条目.已宣布=True#已宣布
-        参数=[条目.载体,'agent/created',{'agent':条目.智能体}]#载体、事件名、载荷
-        try:#派发创建
+        载荷={'agent':条目.智能体,'source':来源}#创建载荷
+        if 信号 is not None:
+            载荷['signal']=信号#可选仅创建信号
+        参数=[条目.载体,'agent/created',载荷]#载体、事件名、载荷
+        try:#串行派发创建；监听器失败原样抛出
             事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
-            for 回调 in 获取内部数据(事件总线,'解析监听器')(事件总线,'emit',参数):#逐个监听器
-                回调(*参数)#监听器已是同步回调
+            for 回调 in 获取内部数据(事件总线,'解析监听器')(事件总线,'serial',参数):#逐个监听器
+                回调(*参数)#监听器已是同步回调，失败否决发表
         finally:#无论成败
             条目.正在宣布=False#宣布结束
             if 条目.请求脱离:#有推迟脱离

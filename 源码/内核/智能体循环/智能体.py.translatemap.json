@@ -2,8 +2,13 @@
     "abort":"中止",
     "agent":"智能体",
     "attempt":"尝试",
+    "boundary":"边界",
+    "content":"内容",
     "context":"上下文",
     "dispose":"拆除",
+    "freeze":"冻结",
+    "generation":"代际",
+    "header":"头",
     "maintain":"维护",
     "integer":"整数",
     "native":"原生",
@@ -20,5 +25,6 @@
     "status":"状态",
     "step":"步骤",
     "stream":"流",
+    "surface":"表面",
     "turn":"轮次"
 }

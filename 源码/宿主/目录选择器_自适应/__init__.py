@@ -51,12 +51,22 @@ def 应用(上下文):#解析交互并挂条目
         async def 卸载():#倒序卸
             """卸掉本插件挂上的全部条目。"""
             for 标识 in reversed(list(标识列表)):#后挂先卸
-                if getattr(上下文.loader,'store',{}).get(标识) is None:#已不在
+                条目=getattr(上下文.loader,'store',{}).get(标识)#树上的条目
+                if 条目 is None:#已不在
                     continue#跳过
-                await 上下文.loader.remove(标识)#卸掉
+                纤程=getattr(条目,'fiber',None)#条目纤程
+                拆除=纤程.dispose() if 纤程 is not None else None#先拿到拆除
+                上下文.loader.remove(标识)#从树上摘掉
+                if 拆除 is not None:#有拆除承诺
+                    await 拆除#等这一面静止
         try:#先后端后界面
             for 包名 in (后端包[后端],界面包[后端]):#两面
-                标识列表.append(await 上下文.loader.create({'name':包名}))#创建
+                标识=await 上下文.loader.create({'name':包名})#创建
+                标识列表.append(标识)#记下
+                条目=上下文.loader.resolve(标识)#解析刚挂上的条目
+                if getattr(条目,'fiber',None) is None:#没有纤程
+                    raise Exception('directory-picker-auto: failed to load '+包名)#失败
+                await 条目.fiber.await()#等这一面启动完成
         except Exception:#中途失败
             await 卸载()#卸残留
             raise#原样抛出

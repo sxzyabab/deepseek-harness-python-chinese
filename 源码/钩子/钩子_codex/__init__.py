@@ -265,37 +265,44 @@ def 应用(上下文,配置值=None):
         后列=下游列表 if 下游列表 is not None else []#缺席当空
         return [本桥]+list(后列)#本桥在前，下游原有在后
 
-    def 会话开始监听(载荷,*位置参数):
-        """SessionStart 在分离钩子兑现时注入纯 stdout；慢钩子可能赶不上第一次请求。载荷是 dict。"""
+    def 智能体已创建监听(载荷,*位置参数):
+        """智能体创建时跑 SessionStart 并等完。载荷是 dict。"""
         智能体=载荷['agent']#智能体
         来源=载荷['source']#会话来源
+        创建信号=载荷['signal'] if 'signal' in 载荷 else None#创建边取消信号
+        if 创建信号 is None:#没有创建信号
+            拥有信号=分离.信号#只用拆除信号
+        else:
+            拥有信号=创建信号#创建信号与拆除信号任一取消
+            if 分离.信号.is_set():#拆除已触发
+                拥有信号.set()#一并取消
         def 任务():
-            """分离链：跑 SessionStart 并注入。"""
+            """跑 SessionStart 并注入。"""
             try:
                 会话载荷=共用载荷(上下文,智能体,'SessionStart',模型)#公共字段
                 会话载荷['source']=来源#加上来源
-                合并=执行钩子点('SessionStart',来源,会话载荷,{#按来源匹配，纯 stdout 当上下文，分离跟踪
+                合并=执行钩子点('SessionStart',来源,会话载荷,{#按来源匹配，纯 stdout 当上下文
                     'agent':智能体,#智能体
                     'plainStdoutAsContext':True,#纯 stdout 当上下文
-                    'signal':分离.信号,#分离取消信号
+                    'signal':拥有信号,#拥有取消信号
                 })#跑 SessionStart
                 上下文消息=从合并取上下文(合并)#折成用户消息
                 if 上下文消息 is not None:#有上下文才注入
                     智能体.注入(上下文消息)#注入
             except Exception as 错误:
-                #分离链里注入与载荷组装可抛智能体包/消息包多种错误，契约未钉死
                 上下文.日志.警告('hooks-codex: SessionStart hook failed: '+str(错误))#记录失败
-        后台=操作任务()#分离链任务
-        def 执行分离链():
-            """后台执行分离链。"""
+        后台=操作任务()#本条创建边任务
+        def 执行链():
+            """执行并结算。"""
             try:
-                任务()#执行分离链
+                任务()#执行
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=执行分离链,daemon=True).start()#启动
-        分离.登记(后台)#登记分离链
-    上下文.监听('agent/session-start',会话开始监听)#结束 session-start 监听
+        threading.Thread(target=执行链,daemon=True).start()#启动
+        分离.登记(后台)#纳入拆除排空
+        后台.等待()#创建边等到跑完
+    上下文.监听('agent/created',智能体已创建监听)#结束 created 监听
 
     def 预步骤监听(载荷,下一步,*位置参数):
         """UserPromptSubmit → PreStepDecision。Codex 支持拒绝，不支持改写或询问。载荷是 dict。"""

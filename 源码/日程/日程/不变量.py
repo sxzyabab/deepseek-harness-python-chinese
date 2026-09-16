@@ -2,7 +2,7 @@
 from .领域 import 折叠日程事件,日程日志错误#折叠校验与日志错误
 
 包名='@deepseek-ai/dsh-schedule'#本包的不变量所有权名
-名称='tool-schedule-invariant'#配套不变量插件名
+名称='schedule-invariant'#配套不变量插件名
 注入=['invariants']#依赖invariants服务
 
 def 校验(事件列表,失败):

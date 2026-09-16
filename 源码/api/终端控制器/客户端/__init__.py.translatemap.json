@@ -1,0 +1,17 @@
+{
+    "apply":"应用",
+    "cleanup":"清理",
+    "client":"客户端",
+    "close":"关闭",
+    "dispose":"拆除",
+    "failure":"失败",
+    "inject":"注入",
+    "launch":"启动",
+    "prefer":"首选",
+    "recover":"恢复",
+    "retry":"重试",
+    "self":"自身",
+    "shell":"外壳",
+    "terminal":"终端",
+    "view":"视图"
+}

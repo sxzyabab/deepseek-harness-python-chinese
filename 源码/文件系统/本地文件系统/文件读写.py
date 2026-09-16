@@ -1,15 +1,11 @@
 """不含 Cordis 的本地文件系统机制。此提供方层返回已校验的 UTF-8 文本、流式读取大文件并拒绝二进制数据；写入在私有兄弟目录里暂存独占的仅所有者文件，并原子发布。"""
-import os#路径与底层文件描述符
-import errno#POSIX 错误号
-import uuid#暂存目录唯一名
-import stat#文件类型位判定
-import shutil#递归删除暂存
-import codecs#增量 UTF-8 解码
+import os,re,errno,uuid,stat,shutil,codecs#路径、上级分量、错误号、唯一名、类型位、递归删除与增量解码
 from .. import 文件系统 as fs#文件系统错误与品牌
 from .win32 import 复制文件Dacl,替换文件,Win32系统错误#Windows DACL 复制、替换与 Win32 错误
 
 二进制采样字节=8192#二进制探测采样字节数
 diff基准读取块字节=64*1024#diff 基准每次读取块大小
+上级分量=re.compile(r'(?:^|[\\/])\.\.(?:[\\/]|$)')#物理路径里的 .. 分量
 是普通文件模式=stat.S_ISREG#POSIX 普通文件
 是目录模式=stat.S_ISDIR#POSIX 目录
 是符号链接模式=stat.S_ISLNK#POSIX 符号链接
@@ -119,11 +115,20 @@ def 探测状态(绝对路径,跟随链接):#按 stat 或 lstat 探测，缺失�
             raise 补节点错误码(错误)#上抛
         return None#缺失
 
+def 本地展示路径(工作目录,路径):#锚定展示拼写
+    """用原生盘符语义与 POSIX 物理父穿越锚定路径。"""
+    绝对工作=工作目录 if os.path.isabs(工作目录) else os.getcwd()+os.sep+工作目录#相对工作目录拼到进程 cwd
+    原始=路径 if os.path.isabs(路径) else 绝对工作+os.sep+路径#相对路径拼到绝对工作目录
+    物理拼写=原始 if 上级分量.search(原始) is not None else os.path.abspath(os.path.join(工作目录,路径))#含 .. 则保留物理拼写
+    if os.name=='nt':#Windows 走原生解析
+        return os.path.abspath(os.path.join(工作目录,路径))#DOS 盘符相对解析
+    return 物理拼写#POSIX 保留物理穿越
+
 def 解析本地目标(工作目录,路径):#解析本地稳定目标
     """把路径解析成绝对展示路径与 realpath 身份。对缺失目标，对最近已存在祖先做 realpath 并追加缺失后缀。"""
     if len(路径.strip())==0:#空路径视为未找到
         raise fs.文件系统错误('file_path must be a non-empty string','FS_NOT_FOUND')#空路径
-    展示路径=os.path.abspath(os.path.join(工作目录,路径))#相对 cwd 得到绝对展示路径
+    展示路径=本地展示路径(工作目录,路径)#绝对展示拼写
     try:#优先对文件自身做 realpath
         return {'displayPath':展示路径,'targetKey':fs.目标键(os.path.realpath(展示路径))}#存在则目标键即 realpath
     except OSError as 错误:#realpath 失败
@@ -136,6 +141,8 @@ def 解析本地目标(工作目录,路径):#解析本地稳定目标
     while True:#直到找到已存在祖先
         try:#尝试 realpath 当前祖先
             真实祖先=os.path.realpath(祖先)#已存在祖先的 realpath
+            if '..' in 缺失:#穿越尚未存在的目录
+                raise fs.文件系统错误(f'cannot resolve "{展示路径}": parent traversal crosses a missing directory','FS_NOT_FOUND')#视为未找到
             if os.name=='nt':#Windows 修复：非目录祖先
                 父信息=os.stat(真实祖先)#stat 该祖先
                 if not 是目录模式(父信息.st_mode):#祖先不是目录
@@ -209,7 +216,7 @@ def 列目录(目标,信号=None):#列举目录直接子项
         若已中止则抛出(信号,'list')#每项前检查中止
         try:#解析子目标并探测元数据
             身份=解析本地目标(目标键,名称)#相对父目标键解析身份
-            子目标={'displayPath':os.path.join(展示路径,名称),'targetKey':身份['targetKey']}#展示路径用父展示路径拼接基名
+            子目标={'displayPath':本地展示路径(展示路径,名称),'targetKey':身份['targetKey']}#展示路径用父展示路径锚定
             子信息=探测(子目标['targetKey'])#探测子项
             条目={'name':名称,'type':子信息['type'] if 子信息 is not None else 'other','target':子目标}#基础字段
             if 子信息 is not None:#有元数据则带版本
@@ -218,7 +225,7 @@ def 列目录(目标,信号=None):#列举目录直接子项
                 条目['size']=子信息['size']#字节大小
             结果.append(条目)#收入子项
         except (OSError,fs.文件系统错误) as 错误:#子项解析失败
-            raise 列举读写错误(os.path.join(展示路径,名称),错误)#按子路径报告
+            raise 列举读写错误(本地展示路径(展示路径,名称),错误)#按子路径报告
         若已中止则抛出(信号,'list')#每项后再查中止
     return 结果#按名称顺序返回
 
@@ -304,6 +311,24 @@ def 读整文件字节(目标,信号,最大字节,内部=None):#按字节上限�
     if len(数据)>最大字节:#stat 后文件增长越过上限
         raise fs.文件系统错误(f'cannot read "{展示路径}": content exceeds the {最大字节}-byte limit','FS_TOO_LARGE')#拒绝无界缓冲
     return 数据#完整原始字节
+
+def 读字节窗口(目标,范围,信号=None):#按字节窗口读取原始内容
+    """读取普通文件在 [offset, offset + length) 处的原始字节，不做解码或二进制拒绝。"""
+    确认普通文件(目标,'read',信号)#先确认是普通文件
+    if 范围['length']==0:#零长度窗口直接空
+        return b''#空窗口
+    展示路径=目标['displayPath']#展示路径
+    try:#有界窗口读取
+        with open(目标['targetKey'],'rb') as 文件:#二进制打开
+            文件.seek(范围['offset'])#从偏移处开始
+            数据=文件.read(范围['length'])#至多 length 字节
+    except OSError as 错误:#读失败
+        if 是否中止错误(错误) or 已中止(信号):#中止
+            raise fs.文件系统错误('read aborted','FS_ABORTED')#结构化错误
+        raise 补节点错误码(错误)#其他错误原样抛出
+    if 已中止(信号):#读后再查中止
+        raise fs.文件系统错误('read aborted','FS_ABORTED')#结构化错误
+    return 数据#窗口原始字节
 
 def 流整文件文本(目标,信号=None):#流式解码整文件
     """以已解码文本块读取整个普通 UTF-8 文本文件。文本语义与读整文件文本相同，但从不把整文件放进内存。"""

@@ -87,12 +87,12 @@ def 文档字面量(文档):#文档字段的可 JSON 字面量
     return 出#字面量
 
 def 严格编解码字面量(边界,模式名):#严格模式编解码字面量
-    """mode/typeSymbol/schema。"""
+    """mode/typeSymbol/create。"""
     return '\n'.join([#逐行
         '{',
         "  mode: 'strict',",
         '  typeSymbol: '+引号(边界['typeSymbol'] if 边界 is not None and 'typeSymbol' in 边界 else None)+',',
-        '  schema: '+模式名+',',
+        '  create: '+模式名+',',
         '}',
     ])#拼成多行
 
@@ -209,9 +209,10 @@ class 模式代码输出器:#Zod 模式代码输出器
 
     def 输出代码(自身):#输出定义行、导出与边界查询
         """组装模式制品。"""
-        定义列表=[自身.声明定义(声明) for 声明 in 自身.声明列表]#声明 → const
-        for 边界 in 自身.边界列表:#每条边界再补一条 const
-            定义列表.append('const '+自身.边界名(边界['key'] if 边界 is not None and 'key' in 边界 else None)+' = '+自身.类型模式(边界['type'] if 边界 is not None and 'type' in 边界 else None))#边界模式
+        定义列表=[自身.声明定义(声明) for 声明 in 自身.声明列表]#声明 → 惰性工厂
+        for 边界 in 自身.边界列表:#每条边界再补一条惰性工厂
+            名=自身.边界名(边界['key'] if 边界 is not None and 'key' in 边界 else None)#内部名
+            定义列表.append('let '+名+'$value\nconst '+名+' = () => ('+名+'$value ??= '+自身.类型模式(边界['type'] if 边界 is not None and 'type' in 边界 else None)+')')#边界工厂
         导出列表=[]#导出表
         for 模型 in 自身.模式列表:#显式模式
             导出=模型['export'] if 模型 is not None and 'export' in 模型 else None#导出
@@ -231,7 +232,7 @@ class 模式代码输出器:#Zod 模式代码输出器
         名=自身.模式名(声明['id'] if 声明 is not None and 'id' in 声明 else None)#内部名
         类型参数=(声明['typeParameters'] if 声明 is not None and 'typeParameters' in 声明 else None) or []#类型参数
         if len(类型参数)==0:#非泛型
-            return 'const '+名+' = '+自身.声明模式(声明,{})#直接
+            return 'let '+名+'$value\nconst '+名+' = () => ('+名+'$value ??= '+自身.声明模式(声明,{})+')'#惰性工厂
         形参列表=[]#形参名与 id
         for 序号,参数 in enumerate(类型参数):#逐个
             形参列表.append(('type'+str(序号)+'$schema',参数['id'] if 参数 is not None and 'id' in 参数 else None))#形参
@@ -314,7 +315,7 @@ class 模式代码输出器:#Zod 模式代码输出器
             if len((声明['typeParameters'] if 声明 is not None and 'typeParameters' in 声明 else None) or [])==0:#非泛型
                 if len(实参)>0:#多余实参
                     自身.失败(节点名,'non-generic declaration received '+str(len(实参))+' type arguments')#失败
-                return 'z.lazy(() => '+名+')'#惰性
+                return 'z.lazy(() => '+名+'())'#惰性调用工厂
             参数模式=自身.声明实参(节点,声明,替换)#解析实参
             return 'z.lazy(() => '+名+'('+', '.join(参数模式)+'))'#调用工厂
         if 目标种类=='type-parameter':#类型参数
@@ -604,7 +605,7 @@ class 面模型代码输出器:#面模型代码输出器
         行列表.append('  face: '+引号(自身.面['face'] if 自身.面 is not None and 'face' in 自身.面 else None)+',')#面名
         行列表.append('  schemas: [')#模式表起
         for 导出 in 模式制品['exports']:#逐条
-            行列表.append('    { name: '+引号(导出['exportName'])+', schema: '+导出['exportName']+' },')#名与 Zod
+            行列表.append('    { name: '+引号(导出['exportName'])+', create: '+导出['exportName']+' },')#名与工厂
         行列表.append('  ],')#schemas 止
         行列表.append('  invocations: [')#调用表起
         for 调用 in (包模型['invocations'] if 包模型 is not None and 'invocations' in 包模型 else None) or []:#逐条调用
@@ -629,7 +630,7 @@ class 面模型代码输出器:#面模型代码输出器
             行列表.append('import type { '+', '.join(sorted(导入表[说明符]))+' } from '+引号(说明符))#类型导入
         行列表.append('')#空行
         for 导出 in 模式制品['exports']:#逐条模式
-            行列表.append('export declare const '+导出['exportName']+': z.ZodType<'+导出['exportName']+'$source>')#ZodType
+            行列表.append('export declare const '+导出['exportName']+': () => z.ZodType<'+导出['exportName']+'$source>')#工厂类型
         if len(模式制品['exports'])>0:#声明后空行
             行列表.append('')#空行
         行列表.append('export declare const TYPERT: unknown')#对外 unknown
@@ -663,6 +664,9 @@ class 面模型代码输出器:#面模型代码输出器
         实现=调用['implementation'] if 调用 is not None and 'implementation' in 调用 else None#实现名
         if 实现 is not None:#有实现名
             行列表.append('  implementation: '+引号(实现)+',')#实现
+        模式=调用['mode'] if 调用 is not None and 'mode' in 调用 else None#调用模式
+        if 模式 is not None:#有模式
+            行列表.append('  mode: '+引号(模式)+',')#模式
         约定=(调用['invocation'] if 调用 is not None and 'invocation' in 调用 else None) or {}#调用约定
         if (约定['kind'] if 约定 is not None and 'kind' in 约定 else None)=='direct':#直接调用
             行列表.append("  invocation: { kind: 'direct' },")#直接
@@ -799,4 +803,6 @@ class 面模型代码输出器:#面模型代码输出器
             参数列表.append('signal?: AbortSignal')#signal
         结果边界=调用['result'] if 调用 is not None and 'result' in 调用 else None#结果边界
         结果=自身.渲染器.renderType(结果边界['type'] if 结果边界 is not None and 'type' in 结果边界 else None,引用名)#结果手写类型
+        if (调用['mode'] if 调用 is not None and 'mode' in 调用 else None)=='stream':#流式
+            return '('+', '.join(参数列表)+') => AsyncIterable<'+结果+'>'#流
         return '('+', '.join(参数列表)+') => Promise<RemoteResult<'+结果+'>>'#包装

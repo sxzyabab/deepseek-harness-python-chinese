@@ -1,16 +1,27 @@
+from uuid import uuid4 as 生成随机UUID#多开页面地址后缀
 from ...ui_停靠套件.引擎 import (#树只读
     活动停靠窗格标识,
     可分割,
     停靠窗格标识列表,
     查找标签窗格,
+    查找内容标签,
     取窗格,
 )#引擎
 from .约定.种子 import 页面地址#页面地址
+from .存储 import 可关闭标签#独一停靠向导不可关
 from .标签域 import 标签域#标签域
 
-__all__=['创建右侧侧栏控制器','右侧侧栏控制器','资源方案前缀']#仅中文公开名
+__all__=['右侧侧栏错误','创建右侧侧栏控制器','右侧侧栏控制器','资源方案前缀']#仅中文公开名
 
 资源方案前缀='dsh-resource://'#资源地址前缀
+
+
+class 右侧侧栏错误(Exception):
+    """本包右侧侧栏接线失败。"""
+
+    def __init__(自身,消息):
+        """记下英文消息。"""
+        super().__init__(消息)#消息原样英文
 
 
 def 创建右侧侧栏控制器(注册表,钉住):
@@ -49,7 +60,21 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         自身.注册表=注册表#类型表
         自身.已认=已认 if 已认 is not None else {}#认领表
         自身.绑定席=None#挂载席绑定
+        自身.关闭钩表={}#kind → 钩
         自身.标签域=标签域(自身,钉住)#标签域
+
+    def 登记关闭钩(自身,种类,钩):
+        """显式移除前登记资源清理；失败则保留标签。返回拆除器。"""
+        if 种类 in 自身.关闭钩表:#已登记
+            raise 右侧侧栏错误('sidebarRight: close handler already registered for '+种类)
+        自身.关闭钩表[种类]=钩#挂上
+
+        def 拆除():
+            """仅卸本钩。"""
+            if 种类 in 自身.关闭钩表 and 自身.关闭钩表[种类] is 钩:#仍是
+                del 自身.关闭钩表[种类]#卸
+
+        return 拆除#拆除器
 
     def 绑定(自身,绑定):
         """采纳挂载席绑定。"""
@@ -87,15 +112,37 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
             自身._在会话放置标签(会话标识,动作,种类,选项)#放
 
     def 在会话关闭(自身,会话标识,标签标识):
-        """会话定向关签。"""
+        """会话定向关签；独一停靠向导保持打开。"""
         动作=自身._动作于(会话标识)#动作
-        if 动作 is not None:#有
+        认=自身.已认[会话标识] if 会话标识 in 自身.已认 else None#认
+        if 动作 is None or 认 is None:#无
+            return#停
+        表面表=认['store']['getSnapshot']()['bySession']#表
+        表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
+        if 表面 is None:#无
+            return#停
+        签表=表面['layout']['tabs']#签表
+        if 标签标识 not in 签表 or not 可关闭标签(表面,标签标识):#不可关
+            return#停
+        签=签表[标签标识]#记录
+
+        def 提交():
+            """关签。"""
             动作['closeTab'](会话标识,标签标识)#关
+
+        自身._清理后移除(会话标识,签,提交)#清后关
+
+    def _清理后移除(自身,会话标识,签,提交):
+        """先跑关闭钩再提交。"""
+        钩=自身.关闭钩表[签['kind']] if 签['kind'] in 自身.关闭钩表 else None#钩
+        if 钩 is not None:#有
+            钩(会话标识,签)#跑
+        提交()#提交
 
     def _在会话放置资源(自身,会话标识,动作,地址,选项):
         """认领并放置资源。"""
         if not 地址.startswith(资源方案前缀):#非资源
-            raise Exception('sidebarRight: 没有已登记的标签类型认领 "'+地址+'"')#拒绝
+            raise 右侧侧栏错误('sidebarRight: no registered tab type claims "'+地址+'"')
         种类=选项['kind'] if 'kind' in 选项 else None#点名
         自身._放置(会话标识,动作,自身.注册表.认领(地址,种类),地址,选项,选项['params'] if 'params' in 选项 else None)#放
 
@@ -103,8 +150,11 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         """放置页面种类。"""
         定义=自身.注册表.取(种类)#定义
         if 定义 is None:#无
-            raise Exception('sidebarRight: 没有标签类型登记为 "'+种类+'"')#拒绝
-        地址=页面地址(种类)#页面地址
+            raise 右侧侧栏错误('sidebarRight: no tab type is registered as "'+种类+'"')
+        if 定义.get('multiple') is True:#每次独立内容
+            地址=页面地址(种类)+'/'+str(生成随机UUID())#带 UUID
+        else:#每窗一页
+            地址=页面地址(种类)#页面地址
         认领={'kind':种类,'contentId':地址,'title':定义['title'](地址)}#认领
         自身._放置(会话标识,动作,认领,地址,选项,选项['params'] if 'params' in 选项 else None)#放
 
@@ -117,14 +167,38 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
             意图['replaceTab']=放置['replaceTab']#写
         if 'revealIfOpened' in 放置:#揭示
             意图['revealIfOpened']=放置['revealIfOpened']#写
-        def 落定(标签标识):
-            """记导航。"""
-            自身.标签域.导航(会话标识,标签标识,{'address':地址,'params':参数})#导航
-        动作['openContent'](会话标识,意图,落定)#开
+
+        def 提交():
+            """开内容并记导航。"""
+            def 落定(标签标识):
+                """记导航。"""
+                自身.标签域.导航(会话标识,标签标识,{'address':地址,'params':参数})#导航
+            动作['openContent'](会话标识,意图,落定)#开
+
+        认=自身.已认[会话标识] if 会话标识 in 自身.已认 else None#认
+        布局=None#布局
+        if 认 is not None:#有存储
+            表面表=认['store']['getSnapshot']()['bySession']#表
+            表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
+            if 表面 is not None:#有
+                布局=表面['layout']#布局
+        被替=None#被替签
+        if 布局 is not None and 'replaceTab' in 放置 and 放置['replaceTab'] is not None:#有替
+            被替=布局['tabs'][放置['replaceTab']] if 放置['replaceTab'] in 布局['tabs'] else None#记录
+        已开=None#已开签
+        if 布局 is not None and 放置.get('revealIfOpened') is not False:#默揭示
+            已开=查找内容标签(布局,认领['contentId'],认领['kind'])#已开
+        if 被替 is None or (已开 is not None and 被替['id']==已开):#无需清
+            提交()#开
+            return#停
+        自身._清理后移除(会话标识,被替,提交)#替前清
 
     def 关闭(自身,标签标识):
-        """关挂载会话签。"""
+        """关挂载会话签；独一停靠向导保持打开。"""
         绑=自身._要求()#绑定
+        if 绑['sessionId'] in 自身.已认:#经会话路径
+            自身.在会话关闭(绑['sessionId'],标签标识)#关
+            return#停
         绑['actions']['closeTab'](绑['sessionId'],标签标识)#关
 
     def 活动(自身):
@@ -230,5 +304,5 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
     def _要求(自身):
         """须有挂载席。"""
         if 自身.绑定席 is None:#无
-            raise Exception('sidebarRight: 未挂载会话表面')#拒绝
+            raise 右侧侧栏错误('sidebarRight: no session surface is mounted')
         return 自身.绑定席#绑定

@@ -1,0 +1,10 @@
+{
+    "create":"创建",
+    "lazy":"惰性",
+    "loaded":"已加载",
+    "parent":"父",
+    "require":"导入",
+    "specifier":"规格名",
+    "url":"网址",
+    "value":"值"
+}

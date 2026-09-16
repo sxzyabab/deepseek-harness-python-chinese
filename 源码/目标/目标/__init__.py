@@ -2,7 +2,6 @@
 import re,time,uuid,weakref#阻塞码、纪元毫秒、目标 id 与会话弱表
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 数字字段#配置字段
-服务=cordis.服务#Cordis 服务基类
 from ...内核.智能体 import 智能体事件#按智能体作用域派发
 from ...typert.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器
 from .类型 import *#纯类型出口再导出到包根
@@ -10,86 +9,98 @@ from .域 import *#宿主侧域词汇再导出到包根
 from .折叠 import (
     应用目标事件,#严格折叠步进
     解码目标变更,#严格解码器
-    空目标折叠状态,#空累加器
     目标变更引用,#变更 → 引用
     折叠目标,#整日志折叠
 )#纯回放折叠
 from .运行时 import (
     目标变更版本,#载荷版本
     目标错误,#域边界错误
-    目标标识,#目标 id 品牌函数（覆盖类型面的同名别名）
-)#运行时构造（须在类型星号导入之后，保住 GoalId 值出口）
+    目标标识,#目标 id 品牌函数
+)#运行时构造
 from .远程 import TYPERT_REMOTE#Host-for-Client Remote 贡献
 
 配置={#插件配置模式
     'defaultMaxGoalRounds':数字字段(默认值=256),#默认 256 轮
 }#结束 Config 模式
 Config=配置#Cordis 配置模式
-阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z',re.ASCII)#小写短横线分类码
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
-
-目标投影模式={#`goal` 投影的线上载荷模式（整个当前目标，或创建前/清除后的 null）
-    'anyOf':[#有目标或空
-        {#有当前目标时的整值
-            'type':'object',#对象
-            'additionalProperties':False,#不许多余键
-            'properties':{#投影字段
-                'goal':{#快照字段
-                    'type':'object',#对象
-                    'additionalProperties':False,#不许多余键
-                    'properties':{#快照字段
-                        'id':{'type':'string','minLength':1},#非空 id
-                        'revision':{'type':'integer','minimum':1},#正数修订
-                        'objective':{'type':'string','minLength':1},#非空陈述
-                        'phase':{'type':'string','enum':['active','paused','blocked','complete']},#合法阶段
-                        'blockedReason':{#可选阻塞原因
-                            'type':'object',#对象
-                            'additionalProperties':False,#不许多余键
-                            'properties':{#码与说明
-                                'code':{'type':'string'},#分类码
-                                'message':{'type':'string'},#说明
-                            },#结束 properties
-                        },#结束 blockedReason
-                        'maxGoalRounds':{'type':'integer','minimum':1},#正数上限
-                    },#结束 goal.properties
-                    'required':['id','revision','objective','phase','maxGoalRounds'],#必填快照字段
-                },#结束 goal
-                'roundsStarted':{'type':'integer','minimum':0},#非负轮次
-                'createdAt':{'type':'number'},#创建时间
-                'updatedAt':{'type':'number'},#变更时间
-            },#结束 properties
-            'required':['goal','roundsStarted','createdAt','updatedAt'],#投影必填
-        },#结束有目标分支
-        {'type':'null'},#创建前或清除后
-    ],#结束 anyOf
-}#结束目标投影模式
+阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z',re.ASCII)#小写短横线分类码
 
 def 此刻毫秒():#对齐 Date.now
     """当前纪元毫秒。"""
     return int(time.time()*1000)#纪元毫秒
 
-def 应用目标投影(状态,事件):#投影级折叠
-    """当前纪元毫秒。"""
-    return int(time.time()*1000)#纪元毫秒
+def 折叠状态从投影(状态):#检查点 → 严格折叠
+    """从一份检查点安全的投影状态构造严格折叠状态。"""
+    当前=状态['current']#当前目标
+    return {#严格累加器
+        'goal':当前['goal'] if 当前 is not None else None,#快照
+        'roundsStarted':当前['roundsStarted'] if 当前 is not None else 0,#轮次
+        'createdAt':当前['createdAt'] if 当前 is not None else None,#创建
+        'updatedAt':当前['updatedAt'] if 当前 is not None else None,#变更
+        'lastRef':None,#投影不保留最近引用
+        'seenGoalIds':set(状态['seenGoalIds']),#已见身份
+    }#结束累加器
+
+def 投影状态从折叠(状态):#严格折叠 → 检查点
+    """把严格折叠状态转成检查点安全的投影状态。"""
+    当前=None#默认无当前
+    if 状态['goal'] is not None:#有快照
+        if 状态['createdAt'] is None or 状态['updatedAt'] is None:#缺时间戳
+            raise Exception('current goal fold lacks timestamps')#折叠坏了
+        当前={#当前投影
+            'goal':状态['goal'],#快照
+            'roundsStarted':状态['roundsStarted'],#轮次
+            'createdAt':状态['createdAt'],#创建
+            'updatedAt':状态['updatedAt'],#变更
+        }#结束当前
+    return {#检查点
+        'current':当前,#当前或空
+        'seenGoalIds':list(状态['seenGoalIds']),#已见身份
+        'failure':None,#合法流
+    }#结束检查点
 
 def 应用目标投影(状态,事件):#投影级折叠
-    """`goal` 投影单元的轻量最后一条胜出折叠。与严格回放折叠（折叠.py：迁移校验、畸形变更大声失败、Set 型状态）不同，这次迁移是投影级：状态是纯 JSON（持久化缓存前置条件），任何非目标或畸形事件返回同一引用（注册表的 Object.is 门闩——与 title/todos 同一姿态），已写入变更的正确性是写侧的职责（目标服务在追加前已校验；包不变量在安装处对违规流大声失败）。"""
-    if 事件['type']!='goal/change':#非本事件保持引用
-        return 状态#保持原投影引用
-    try:#持久载荷可能畸形
-        变更=解码目标变更(事件['data'])#严格解码
-    except Exception:#解码失败：投影侧吞掉，不改写引用
-        return 状态#保持原投影引用，供 Object.is 门闩
-    if 变更 is None:#kind 对不上也保持引用
-        return 状态#保持原投影引用
-    if 变更['operation']=='clear':#墓碑清空投影
-        return None#清除后为 null
-    return {#整快照覆盖
-        'goal':变更['goal'],#当前快照
-        'roundsStarted':变更['roundsStarted'],#已接纳轮次
-        'createdAt':变更['createdAt'],#创建时间
-        'updatedAt':变更['updatedAt'],#变更时间
-    }#结束有目标投影
+    """经严格回放规则折叠持久目标事件，不从投影登记表的事件驱动里抛错。
+
+    第一条非法自有事件留在 failure；宿主目标访问拒绝该状态，客户端视图停在最后合法目标。
+    """
+    if 状态['failure'] is not None:#已经失败
+        return 状态#保持
+    类型=事件['type']#事件类型
+    if 类型!='goal/change':#非自有变更
+        if 类型!='user/message':#也不是用户消息
+            return 状态#无关
+        数据=事件['data']#载荷
+        来源=数据['source'] if 'source' in 数据 else None#来源
+        if 来源 is None or 来源['kind']!='goal':#非目标轮次
+            return 状态#无关
+    折叠=折叠状态从投影(状态)#严格累加器
+    try:#严格步进
+        应用目标事件(折叠,事件)#应用
+        return 投影状态从折叠(折叠)#下一投影
+    except Exception as 错误:#严格失败
+        消息=str(错误)#诊断
+        下一=dict(状态)#拆离
+        下一['failure']='goal replay failed at session event '+str(事件['seq'])+': '+消息#记下
+        return 下一#失败态
+
+def 投影初态():#创建前
+    """创建前的空检查点。"""
+    return {'current':None,'seenGoalIds':[],'failure':None}#空
+
+def 投影视图(状态):#线视图
+    """客户端只看当前目标。"""
+    return 状态['current']#当前或空
+
+目标投影定义={#goal 投影单元
+    'key':'goal',#投影键
+    'stateSchema':None,#由折叠自检
+    'init':投影初态,#空检查点
+    'apply':应用目标投影,#严格折叠
+    'wire':{'viewSchema':None,'view':投影视图},#当前目标
+    'stateVersion':6,#状态版本
+}#结束定义
 
 def 解析轮次上限(值):#校验调用方可见的正安全整数轮次上限
     """校验调用方可见的正安全整数轮次上限。"""
@@ -135,7 +146,7 @@ def 解析阻塞原因(原因):#校验并脱离一份策略拥有的阻塞说明
 
 class 目标服务(远程服务):#目标域服务（ctx.goals）
     """目标服务（`ctx.goals`），完全由所属会话日志支撑。"""
-    inject=['agents']#依赖智能体注册表
+    inject=['agents','sessionProjections']#依赖智能体与投影登记表
     Config=配置#插件配置模式
 
     def __init__(自身,上下文,配置值=None):#构造并挂投影单元
@@ -147,29 +158,24 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         if 默认上限 is None:#省略则 256
             默认上限=256#部署默认
         自身.已解析={'defaultMaxGoalRounds':解析轮次上限(默认上限)}#解析默认上限
-        自身.缓存表=weakref.WeakKeyDictionary()#会话 → 折叠缓存
-        def 会话开始(载荷,*位置参数):#会话开始边解除武装
-            """会话开始边解除武装。"""
-            智能体=载荷['agent']#所属智能体
-            自身.设置武装(智能体.session,'disarmed')#不继承上一生命周期的自动权限
-        上下文.监听('agent/session-start',会话开始)#结束 session-start
-        def 投影初态():#创建前为 null
-            """创建前为 null。"""
-            return None#空
-        def 投影视图(状态):#状态即视图
-            """状态即视图。"""
-            return 状态#原样
-        def 投影安装(投影上下文,*位置参数):#可选投影子插件
-            """`goal` 投影单元：goal/change 整值的最后一条胜出折叠。仅当组合了投影注册表时单元子插件才激活。"""
-            投影上下文.sessionProjections.register({#登记 goal 键
-                'key':'goal',#投影键
-                'schema':目标投影模式,#线上模式
-                'init':投影初态,#创建前为 null
-                'apply':应用目标投影,#轻量折叠
-                'view':投影视图,#状态即视图
-                'stateVersion':4,#状态版本
-            })#结束登记
-        上下文.依赖启动(['sessionProjections'],投影安装)#结束 依赖启动
+        自身.运行时表=weakref.WeakKeyDictionary()#会话 → 进程内武装
+        def 智能体已创建(载荷,*位置参数):#新生命周期解除武装
+            """新智能体生命周期默认解除武装。"""
+            自身.设置武装(载荷['agent'].session,'disarmed')#不继承上一生命周期
+        上下文.监听('agent/created',智能体已创建)#创建边
+        上下文.sessionProjections.register(目标投影定义)#登记 goal 键
+        def 会话事件(会话,事件,*位置参数):#持久变更调和武装
+            """自有变更落盘后写入进程内武装。"""
+            if 事件['type']!='goal/change':#非自有
+                return#放过
+            运行时=自身.运行时状态(会话)#进程内
+            待定=运行时['pendingActivation']#追加中意图
+            if 待定 is not None and 待定['offset']==事件['seq']:#自己刚追加的
+                武装=待定['activation']#采用意图
+            else:#外来变更
+                武装='disarmed'#默认解除
+            自身.设置武装(会话,武装)#经发布边写入
+        上下文.监听('session/event',会话事件)#日志边
 
     @_远程('get')
     def get(自身,智能体):#Remote 导出名 get
@@ -179,23 +185,19 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
     def 获取(自身,智能体):#读当前目标
         """读取一个精确实时智能体的当前目标；没有当前目标时为 None。"""
         自身.断言实时(智能体)#必须是实时实例
-        缓存=自身.缓存(智能体.session)#拿到或播种缓存
-        自身.同步(智能体.session,缓存)#追上未观察事件
-        return 自身.视图(缓存)#脱离视图
+        return 自身.视图(自身.状态(智能体.session),自身.运行时状态(智能体.session))#脱离视图
 
     def 解除武装(自身,智能体):#解除武装
         """去掉进程内续跑权限，不改持久阶段或修订。"""
         自身.断言实时(智能体)#必须是实时实例
         自身.设置武装(智能体.session,'disarmed')#经发布边解除
-        缓存=自身.缓存(智能体.session)#拿到缓存
-        自身.同步(智能体.session,缓存)#追上日志
-        return 自身.视图(缓存)#脱离视图
+        return 自身.视图(自身.状态(智能体.session),自身.运行时状态(智能体.session))#脱离视图
 
     def 创建(自身,智能体,请求):#创建目标
         """创建并武装一个目标。已完成目标可以被替换；其它当前阶段必须先清除或恢复。"""
         规格=解析创建目标(请求,自身.已解析['defaultMaxGoalRounds'])#解析默认并校验
-        缓存=自身.准备变更(智能体)#实时实例加已同步缓存
-        当前=缓存['state']['goal']#当前快照
+        状态,运行时=自身.准备变更(智能体)#实时实例加投影
+        当前=状态['goal'] if 状态 is not None else None#当前快照
         if 当前 is not None and 当前['phase']!='complete':#未完成目标还在
             raise 目标错误('goal "'+str(当前['id'])+'" already exists with phase "'+str(当前['phase'])+'"','GOAL_ALREADY_EXISTS')#拒绝覆盖
         现在=此刻毫秒()#创建与变更同一时刻
@@ -206,12 +208,13 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             'phase':'active',#创建即为活跃
             'maxGoalRounds':规格['maxGoalRounds'],#已解析上限
         }#结束快照
-        return 自身.提交快照(智能体,缓存,'create',快照,0,现在,现在,'armed')#提交并武装
+        return 自身.提交快照(智能体,运行时,'create',快照,0,现在,现在,'armed')#提交并武装
 
     def 编辑(自身,智能体,引用,请求):#比较交换编辑
         """编辑目标陈述和/或轮次上限，不改阶段。"""
-        缓存=自身.准备变更(智能体)#实时加同步
-        当前=自身.期望当前(缓存,引用)#引用必须对准当前
+        状态,运行时=自身.准备变更(智能体)#实时加投影
+        当前态=自身.期望当前(状态,引用)#引用必须对准当前
+        当前=当前态['goal']#快照
         if ('objective' not in 请求 or 请求['objective'] is None) and ('maxGoalRounds' not in 请求 or 请求['maxGoalRounds'] is None):#两个字段都缺
             raise 目标错误('goal edit requires objective and/or maxGoalRounds','GOAL_INVALID_EDIT')#编辑空操作
         快照={#修订 +1，阶段保留
@@ -227,7 +230,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             快照['objective']=解析陈述(请求['objective'])#规范化陈述
         if 'maxGoalRounds' in 请求 and 请求['maxGoalRounds'] is not None:#可选替换上限
             快照['maxGoalRounds']=解析轮次上限(请求['maxGoalRounds'])#已校验上限
-        return 自身.提交当前(智能体,缓存,'edit',快照,缓存['activation'])#武装保持不变
+        return 自身.提交当前(智能体,当前态,运行时,'edit',快照,运行时['activation'])#武装保持不变
 
     @_远程('edit')
     def edit(自身,智能体,引用,请求):#Remote 导出名 edit
@@ -245,19 +248,20 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 
     def 恢复(自身,智能体,引用):#恢复或再武装
         """恢复并武装一个已停止目标，或在会话开始边之后给活跃目标重新武装，前提是轮次预算仍有余量。"""
-        缓存=自身.准备变更(智能体)#实时加同步
-        当前=自身.期望当前(缓存,引用)#引用必须对准
+        状态,运行时=自身.准备变更(智能体)#实时加投影
+        当前态=自身.期望当前(状态,引用)#引用必须对准
+        当前=当前态['goal']#快照
         可恢复=('active','paused','blocked')#可恢复阶段
         if 当前['phase'] not in 可恢复:#已完成等不可恢复
             raise 自身.迁移错误(当前,'resume',可恢复)#阶段不对
-        if 当前['phase']=='active' and 缓存['activation']=='armed':#已经活跃且武装
+        if 当前['phase']=='active' and 运行时['activation']=='armed':#已经活跃且武装
             raise 目标错误('goal "'+str(当前['id'])+'" is already active and armed','GOAL_INVALID_TRANSITION')#空恢复
-        if 缓存['state']['roundsStarted']>=当前['maxGoalRounds']:#预算耗尽
+        if 当前态['roundsStarted']>=当前['maxGoalRounds']:#预算耗尽
             raise 目标错误(#须先提高上限
                 'goal "'+str(当前['id'])+'" exhausted '+str(当前['maxGoalRounds'])+' goal rounds; increase maxGoalRounds before resuming',#轮次用完
                 'GOAL_INVALID_TRANSITION',#迁移非法
             )#结束抛错
-        return 自身.提交当前(智能体,缓存,'resume',自身.带阶段(当前,'active'),'armed')#回到活跃并武装
+        return 自身.提交当前(智能体,当前态,运行时,'resume',自身.带阶段(当前,'active'),'armed')#回到活跃并武装
 
     @_远程('resume')
     def resume(自身,智能体,引用):#Remote 导出名 resume
@@ -282,15 +286,17 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 
     def 阻塞(自身,智能体,引用,原因):#阻塞
         """把一个活跃目标标为阻塞并解除武装。"""
-        缓存=自身.准备变更(智能体)#实时加同步
-        当前=自身.期望当前(缓存,引用)#引用必须对准
+        状态,运行时=自身.准备变更(智能体)#实时加投影
+        当前态=自身.期望当前(状态,引用)#引用必须对准
+        当前=当前态['goal']#快照
         if 当前['phase']!='active':#只能从活跃阻塞
             raise 自身.迁移错误(当前,'block',['active'])#阶段不对
         快照=自身.带阶段(当前,'blocked')#阶段迁移快照
         快照['blockedReason']=解析阻塞原因(原因)#阶段加已校验原因
         return 自身.提交当前(#提交阻塞快照
             智能体,#所属智能体
-            缓存,#已同步缓存
+            当前态,#当前投影
+            运行时,#进程内
             'block',#阻塞动词
             快照,#带原因的阻塞快照
             'disarmed',#阻塞后不再续跑
@@ -298,17 +304,18 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 
     def 清除(自身,智能体,引用):#清除
         """清除当前目标，同时保留持久墓碑与历史。"""
-        缓存=自身.准备变更(智能体)#实时加同步
-        当前=自身.期望当前(缓存,引用)#引用必须对准
+        状态,运行时=自身.准备变更(智能体)#实时加投影
+        当前态=自身.期望当前(状态,引用)#引用必须对准
+        当前=当前态['goal']#快照
         墓碑={'id':当前['id'],'revision':当前['revision']+1}#墓碑修订 +1
         变更={#清除变更
             'kind':'goal/change',#事件标签
             'version':目标变更版本,#当前版本
             'operation':'clear',#清除
             'cleared':墓碑,#墓碑引用
-            'clearedAt':自身.下一变更时间(缓存),#不早于上次变更
+            'clearedAt':自身.下一变更时间(当前态),#不早于上次变更
         }#结束墓碑载荷
-        自身.提交(智能体,缓存,变更,'disarmed')#提交并解除武装
+        自身.提交(智能体,运行时,变更,'disarmed')#提交并解除武装
         return dict(墓碑)#脱离副本
 
     @_远程('clear')
@@ -317,67 +324,57 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         return 自身.清除(智能体,引用)#转中文
 
     def 准备变更(自身,智能体):#变更前置
-        """解析并校验一次变更所用的缓存。"""
+        """解析一次变更所用的持久投影与进程内武装。"""
         自身.断言实时(智能体)#必须是实时实例
-        缓存=自身.缓存(智能体.session)#拿到或播种
-        自身.同步(智能体.session,缓存)#追上日志
-        return 缓存#已同步缓存
+        return 自身.状态(智能体.session),自身.运行时状态(智能体.session)#投影加武装
 
-    def 期望当前(自身,缓存,引用):#比较交换
+    def 期望当前(自身,状态,引用):#比较交换
         """拒绝过期或缺失的当前状态引用。"""
-        当前=缓存['state']['goal']#当前快照
-        if 当前 is None:#没有当前目标
+        if 状态 is None:#没有当前目标
             raise 目标错误('no current goal','GOAL_NOT_FOUND')#没有当前目标
+        当前=状态['goal']#当前快照
         if 引用['id']!=当前['id'] or 引用['revision']!=当前['revision']:#身份或修订对不上
             raise 目标错误(#过期引用
                 'stale goal ref "'+str(引用['id'])+'" revision '+str(引用['revision'])+'; current is "'+str(当前['id'])+'" revision '+str(当前['revision']),#指出当前修订
                 'GOAL_STALE_REVISION',#比较交换失败
             )#结束抛错
-        return 当前#对准的当前快照
+        return 状态#对准的当前投影
 
     def 断言实时(自身,智能体):#实例同一性
         """强制精确的实时智能体身份，而不信任仅 id 匹配。"""
         if 自身.ctx.agents.获取(智能体.id) is not 智能体:#不是注册表里那一份
             raise 目标错误('agent "'+str(智能体.id)+'" is not live in this registry','GOAL_AGENT_NOT_LIVE')#已换实例
 
-    def 缓存(自身,会话):#懒播种
-        """返回每会话缓存；首次以解除武装折叠一份种子。"""
-        缓存=自身.缓存表.get(会话)#已有则用
-        if 缓存 is not None:#命中
-            return 缓存#已有缓存
-        状态=空目标折叠状态()#空累加器
-        for 事件 in 会话.events:#回放已有日志
-            应用目标事件(状态,事件)#严格步进
-        缓存={#新缓存
-            'state':状态,#已折叠状态
-            'activation':'disarmed',#种子默认解除武装
-            'observedSeq':会话.seq,#已观察到当前序号
-            'pendingActivation':None,#没有在途武装
-        }#结束缓存
-        自身.缓存表[会话]=缓存#按会话记住
-        return 缓存#新缓存
+    def 状态(自身,会话):#读登记表投影
+        """读登记表维护的当前持久投影。"""
+        投影=自身.ctx.sessionProjections.stateOf(会话,'goal')#检查点
+        if 投影 is None:#未登记
+            raise Exception('goal projection is not registered')#未登记
+        if 投影['failure'] is not None:#回放失败
+            raise Exception(投影['failure'])#失败诊断
+        return 投影['current']#当前或空
 
-    def 同步(自身,会话,缓存):#追上未观察事件
-        """增量观察持久事件，并调和本地武装意图。"""
-        事件列表=会话.events#不可变快照
-        for 事件 in 事件列表[缓存['observedSeq']:]:#只看新事件
-            应用目标事件(缓存['state'],事件)#严格步进
-            if 事件['type']=='goal/change':#本域变更
-                待定=缓存['pendingActivation']#追加中待提交的武装
-                if 待定 is not None and 待定['seq']==事件['seq']:#若是自己刚追加的那条
-                    武装=待定['activation']#采用意图武装
-                else:#外来变更默认解除武装
-                    武装='disarmed'#外来变更默认解除武装
-                自身.设置武装(会话,武装)#经发布边写入
-            缓存['observedSeq']+=1#前进一步
+    def 运行时状态(自身,会话):#懒播种武装
+        """返回进程内武装状态；首次为解除武装。"""
+        运行时=自身.运行时表.get(会话)#已有则用
+        if 运行时 is not None:#命中
+            return 运行时#已有
+        运行时={'activation':'disarmed','pendingActivation':None}#种子
+        自身.运行时表[会话]=运行时#按会话记住
+        return 运行时#新状态
 
     def 设置武装(自身,会话,武装):#武装发布
         """仅在实际变化时发布一条进程内武装边。"""
-        缓存=自身.缓存(会话)#拿到或播种
-        if 缓存['activation']==武装:#无变化
+        运行时=自身.运行时状态(会话)#拿到或播种
+        if 运行时['activation']==武装:#无变化
             return#结束
-        缓存['activation']=武装#写入
-        视图=自身.视图(缓存)#当前视图
+        运行时['activation']=武装#写入
+        投影=自身.ctx.sessionProjections.stateOf(会话,'goal')#检查点
+        if 投影 is None:#静态注入要求登记表先于本服务
+            return#结束
+        if 投影['failure'] is not None:#失败态不发视图
+            return#结束
+        视图=自身.视图(投影['current'],运行时)#当前视图
         载荷={'sessionId':会话.id}#会话
         if 视图 is not None:#有目标才带精确武装
             载荷['goal']={#精确身份
@@ -399,11 +396,12 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 
     def 迁移(自身,智能体,引用,操作,允许,阶段,武装):#pause/complete 共用
         """共用的已校验阶段迁移。"""
-        缓存=自身.准备变更(智能体)#实时加同步
-        当前=自身.期望当前(缓存,引用)#引用必须对准
+        状态,运行时=自身.准备变更(智能体)#实时加投影
+        当前态=自身.期望当前(状态,引用)#引用必须对准
+        当前=当前态['goal']#快照
         if 当前['phase'] not in 允许:#阶段不对
             raise 自身.迁移错误(当前,操作,允许)#阶段不对
-        return 自身.提交当前(智能体,缓存,操作,自身.带阶段(当前,阶段),武装)#提交迁移
+        return 自身.提交当前(智能体,当前态,运行时,操作,自身.带阶段(当前,阶段),武装)#提交迁移
 
     def 迁移错误(自身,当前,操作,允许):#阶段错误
         """渲染稳定的非法迁移错误。"""
@@ -412,30 +410,24 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             'GOAL_INVALID_TRANSITION',#迁移非法
         )#结束错误
 
-    def 提交当前(自身,智能体,缓存,操作,快照,武装):#非创建快照提交
+    def 提交当前(自身,智能体,状态,运行时,操作,快照,武装):#非创建快照提交
         """提交一次保留当前目标导出计数/时间的变更。"""
-        创建于=缓存['state']['createdAt']#必须已有创建时间
-        if 创建于 is None:#缓存坏了
-            raise 目标错误('current goal cache lacks createdAt','GOAL_CACHE_CORRUPT')#缓存坏了
         return 自身.提交快照(#带上保留的计数时间
             智能体,#所属智能体
-            缓存,#已同步缓存
+            运行时,#进程内
             操作,#动词
             快照,#下一快照
-            缓存['state']['roundsStarted'],#轮次不变
-            创建于,#创建时间不变
-            自身.下一变更时间(缓存),#变更时间不倒退
+            状态['roundsStarted'],#轮次不变
+            状态['createdAt'],#创建时间不变
+            自身.下一变更时间(状态),#变更时间不倒退
             武装,#意图武装
         )#结束提交
 
-    def 下一变更时间(自身,缓存):#不早于上次变更
+    def 下一变更时间(自身,状态):#不早于上次变更
         """在墙钟回拨时夹紧当前目标的下一时间戳。"""
-        变更于=缓存['state']['updatedAt']#必须已有变更时间
-        if 变更于 is None:#缓存坏了
-            raise 目标错误('current goal cache lacks updatedAt','GOAL_CACHE_CORRUPT')#缓存坏了
-        return max(此刻毫秒(),变更于)#取较晚者
+        return max(此刻毫秒(),状态['updatedAt'])#取较晚者
 
-    def 提交快照(自身,智能体,缓存,操作,快照,已接纳轮次,创建于,变更于,武装):#整值提交
+    def 提交快照(自身,智能体,运行时,操作,快照,已接纳轮次,创建于,变更于,武装):#整值提交
         """构造并提交一次整快照变更。"""
         变更={#整值载荷
             'kind':'goal/change',#事件标签
@@ -446,23 +438,34 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             'createdAt':创建于,#创建时间
             'updatedAt':变更于,#变更时间
         }#结束载荷
-        自身.提交(智能体,缓存,变更,武装)#追加并通知
-        视图=自身.视图(缓存)#读回实时视图
-        if 视图 is None:#提交后不应变空
-            raise 目标错误('snapshot commit cleared the goal unexpectedly','GOAL_CACHE_CORRUPT')#提交后不应变空
-        return 视图#已提交视图
+        自身.提交(智能体,运行时,变更,武装)#追加并通知
+        结果={#已提交视图
+            'id':快照['id'],#身份
+            'revision':快照['revision'],#修订
+            'objective':快照['objective'],#陈述
+            'phase':快照['phase'],#阶段
+            'maxGoalRounds':快照['maxGoalRounds'],#上限
+            'roundsStarted':已接纳轮次,#轮次
+            'createdAt':创建于,#创建
+            'updatedAt':变更于,#变更
+            'activation':运行时['activation'],#武装
+        }#结束视图
+        if 'blockedReason' in 快照:#阻塞带原因
+            结果['blockedReason']=dict(快照['blockedReason'])#脱离原因
+        return 结果#已提交视图
 
-    def 提交(自身,智能体,缓存,变更,武装):#追加边界
-        """把一次变更提交进目标日志、缓存和实时事件流。"""
+    def 提交(自身,智能体,运行时,变更,武装):#追加边界
+        """把一次变更提交进目标日志和实时事件流。"""
         引用=目标变更引用(变更)#本条引用
         会话=智能体.session#所属会话
-        缓存['pendingActivation']={'seq':会话.seq,'activation':武装}#同步追加前记下意图
+        运行时['pendingActivation']={'offset':会话.seq,'activation':武装}#同步追加前记下意图
         try:#追加可能抛
-            会话.append('goal/change',变更)#写入会话日志
-            自身.同步(会话,缓存)#立即观察本条，采用 pending 武装
+            事件=会话.append('goal/change',变更)#写入会话日志
+            if 运行时['pendingActivation'] is not None and 运行时['pendingActivation']['offset']==事件['seq']:#本条
+                运行时['activation']=武装#立即采用
         finally:#无论成败都清掉意图
-            缓存['pendingActivation']=None#避免残留到后续外来事件
-        视图=自身.视图(缓存)#提交后视图，清除则为 None
+            运行时['pendingActivation']=None#避免残留到后续外来事件
+        视图=自身.视图(自身.状态(会话),运行时)#提交后视图，清除则为 None
         通知={#实时通知
             'operation':变更['operation'],#本次动词
             'ref':dict(引用),#脱离引用
@@ -471,25 +474,21 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
             通知['goal']=视图#带视图
         智能体事件(自身.ctx,智能体)['emit']('goal/changed',{'change':通知})#作用域内派发
 
-    def 视图(自身,缓存):#缓存 → 视图
+    def 视图(自身,状态,运行时):#投影 → 视图
         """构造一份脱离的当前视图。"""
-        目标=缓存['state']['goal']#当前快照
-        创建于=缓存['state']['createdAt']#创建时间
-        变更于=缓存['state']['updatedAt']#变更时间
-        if 目标 is None:#没有当前目标
+        if 状态 is None:#没有当前目标
             return None#没有当前目标
-        if 创建于 is None or 变更于 is None:#缺时间戳
-            raise Exception('goal "'+str(目标['id'])+'" cache lacks timestamps')#缓存坏了
+        目标=状态['goal']#当前快照
         结果={#脱离视图
             'id':目标['id'],#稳定身份
             'revision':目标['revision'],#正数修订
             'objective':目标['objective'],#陈述
             'phase':目标['phase'],#阶段
             'maxGoalRounds':目标['maxGoalRounds'],#上限
-            'roundsStarted':缓存['state']['roundsStarted'],#已接纳轮次
-            'createdAt':创建于,#创建时间
-            'updatedAt':变更于,#变更时间
-            'activation':缓存['activation'],#进程内武装
+            'roundsStarted':状态['roundsStarted'],#已接纳轮次
+            'createdAt':状态['createdAt'],#创建时间
+            'updatedAt':状态['updatedAt'],#变更时间
+            'activation':运行时['activation'],#进程内武装
         }#结束视图
         if 'blockedReason' in 目标:#仅阻塞带原因
             结果['blockedReason']=dict(目标['blockedReason'])#脱离原因
@@ -508,4 +507,9 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 默认=目标服务#中文默认导出
 default=目标服务#Cordis 默认导出
 
-__all__=['目标服务','默认']#公开面
+__all__=[#仅中文公开名
+    '目标服务','默认','配置',
+    '应用目标投影','目标投影定义',
+    '目标变更版本','目标错误','目标标识',
+    '解码目标变更','折叠目标','目标变更引用',
+]#公开面结束

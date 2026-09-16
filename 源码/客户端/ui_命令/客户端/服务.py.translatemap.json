@@ -1,6 +1,7 @@
 {
     "command":"命令",
     "directory":"目录",
+    "dismiss":"解散",
     "invoke":"调用",
     "popup":"弹出",
     "runtime":"运行时",

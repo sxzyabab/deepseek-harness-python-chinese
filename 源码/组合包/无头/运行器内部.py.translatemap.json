@@ -1,0 +1,8 @@
+{
+    "internals":"内部流",
+    "read":"读",
+    "runner":"运行器",
+    "stdin":"标准输入",
+    "stderr":"标准错误",
+    "stdout":"标准输出"
+}

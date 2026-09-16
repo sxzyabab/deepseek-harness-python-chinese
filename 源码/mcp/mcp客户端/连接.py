@@ -4,7 +4,7 @@ from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .传输 import 创建传输,MCP错误#传输工厂与本包异常
 from .工具 import 同步工具#工具同步
 
-__all__=['重连默认值','解析重连策略','启动连接']#仅中文公开名
+__all__=['重连默认值','默认最大指令字节','解析重连策略','启动连接']#仅中文公开名
 
 class 操作任务:
     """单次操作的 Future 包装，只留 等待。"""
@@ -40,30 +40,33 @@ class 操作任务:
 }#重连默认值结束
 
 世代关闭超时毫秒=5000#世代关闭等待上限
+默认最大指令字节=32768#归属服务器指令的 UTF-8 字节上限
 
 def 解析重连策略(配置,路径):
     """从原始重连配置到监督器实际运行策略的唯一切确解析步骤。配置为 dict。"""
     if 配置 is not None:#调用方给出了重连配置
         for 键 in 配置.keys():#遍历调用方给出的键
             if 键 not in 重连默认值:#未知键则拒绝
-                raise MCP错误(路径+'.'+键+' 不是重连选项')#未知键
+                raise MCP错误(路径+'.'+键+' is not a reconnect option')#未知键
     启用=重连默认值['enabled'] if 配置 is None or 'enabled' not in 配置 else 配置['enabled']#是否启用
     初始=重连默认值['initialDelayMs'] if 配置 is None or 'initialDelayMs' not in 配置 else 配置['initialDelayMs']#初始延迟
     上限=重连默认值['maxDelayMs'] if 配置 is None or 'maxDelayMs' not in 配置 else 配置['maxDelayMs']#延迟上限
     次数=重连默认值['maxAttempts'] if 配置 is None or 'maxAttempts' not in 配置 else 配置['maxAttempts']#最大尝试次数
     if isinstance(初始,bool) or not isinstance(初始,(int,float)) or not math.isfinite(初始) or 初始<=0 or 初始>定时器延迟上限毫秒:#初始延迟非法
-        raise MCP错误(路径+'.initialDelayMs 必须是不超过 '+str(定时器延迟上限毫秒)+' 的正有限数')#拒绝
+        raise MCP错误(路径+'.initialDelayMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#拒绝
     if isinstance(上限,bool) or not isinstance(上限,(int,float)) or not math.isfinite(上限) or 上限<=0 or 上限>定时器延迟上限毫秒:#延迟上限非法
-        raise MCP错误(路径+'.maxDelayMs 必须是不超过 '+str(定时器延迟上限毫秒)+' 的正有限数')#拒绝
+        raise MCP错误(路径+'.maxDelayMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#拒绝
     if 初始>上限:#初始延迟超过上限
-        raise MCP错误(路径+'.initialDelayMs 必须小于等于 maxDelayMs')#拒绝颠倒的延迟对
+        raise MCP错误(路径+'.initialDelayMs must be less than or equal to maxDelayMs')#拒绝颠倒的延迟对
     if isinstance(次数,bool) or not isinstance(次数,int) or 次数<1:#尝试次数非法
-        raise MCP错误(路径+'.maxAttempts 必须是正整数')#拒绝非正整数
+        raise MCP错误(路径+'.maxAttempts must be a positive integer')#拒绝非正整数
     return {'enabled':启用,'initialDelayMs':初始,'maxDelayMs':上限,'maxAttempts':次数}#已解析策略
 
 def 启动连接(上下文,配置,策略):
     """为一台 MCP 服务器启动受监督连接，并按重连策略保持存活。配置为 dict。"""
     标签='mcp-client('+配置['serverName']+')'#日志前缀
+    拆除不完整消息=标签+': transport closure could not be confirmed during disposal — server shutdown may be incomplete'#拆除诊断
+    最大指令字节=配置['maxInstructionBytes'] if 'maxInstructionBytes' in 配置 else 默认最大指令字节#指令上限
     选项={#普通同步用桥接选项
         'registrationFailure':'contain',#冲突时包容
         'serverName':配置['serverName'],#服务器命名空间
@@ -85,6 +88,7 @@ def 启动连接(上下文,配置,策略):
         'firstAttemptError':None,#初次失败原因
         'syncChain':None,#同步串行链
         'settling':None,#进行中的连接尝试
+        'serverInstructions':'',#最近一次成功连通的指令快照
     }#状态结束
     就绪=操作任务()#初次尝试结算
 
@@ -176,6 +180,7 @@ def 启动连接(上下文,配置,策略):
                 for 注销 in 状态['disposers'].values():#注销全部工具
                     注销()#注销
                 状态['disposers']={}#清空 disposer
+                状态['serverInstructions']=''#清空指令
             def 执行放弃拆除():
                 """等链尾后拆除。"""
                 try:#等链
@@ -245,6 +250,14 @@ def 启动连接(上下文,配置,策略):
                     页['nextCursor']=列出.nextCursor#游标
                 return 页#返回
             世代容器['request']=发请求#请求面
+            原文=(getattr(会话,'get_instructions',lambda:None)() or '')#SDK 指令
+            if isinstance(原文,str):#有文本
+                原文=原文.rstrip()#去掉尾空白
+            else:#无
+                原文=''#空
+            指令=('### MCP server: '+配置['serverName']+'\n\n'+原文) if 原文!='' else ''#带标题
+            if len(指令.encode('utf-8'))>最大指令字节:#超上限
+                raise MCP错误(标签+': server instructions exceed maxInstructionBytes ('+str(最大指令字节)+')')#拒绝
             排队同步(世代容器,启动选项 if 启动 else 选项).等待()#排队初次同步
         except MCP错误 as 错误:#连接或同步失败
             if 状态['firstAttemptError'] is None:#只记下第一次错误
@@ -261,12 +274,13 @@ def 启动连接(上下文,配置,策略):
             if not 已安静:#关闭超时
                 状态['client']=None#放弃当前客户端
                 状态['clientClosed']=None#放弃关闭承诺
-                上下文.日志.错误(标签+': failed generation did not close within '+str(世代关闭超时毫秒)+'ms — reconnect stopped to avoid overlapping server processes; reload the plugin or restart the Host to retry')#停止重连
+                上下文.日志.错误(标签+': failed generation could not confirm transport closure — reconnect stopped to avoid overlapping server processes; reload the plugin or restart the Host to retry')#停止重连
                 return#不再重连
             世代断开(世代容器)#正常转入断开以重连
             return#结束失败路径
         if not 仍是当前(世代容器):#已不是当前则退出
             return#退出
+        状态['serverInstructions']=指令#记下快照
         状态['connectedAt']=int(time.time()*1000)#记下连通时刻
         if 状态['failedAttempts']>0:#重连成功则记信息
             上下文.日志.信息(标签+': reconnected and re-synced tools (attempt '+str(状态['failedAttempts'])+'/'+str(策略['maxAttempts'])+')')#重连成功
@@ -292,13 +306,14 @@ def 启动连接(上下文,配置,策略):
             if 状态['client'] is not None:#初次成功则无错误
                 就绪.兑现({})#成功
             else:#失败则带上真实错误
-                错误=状态['firstAttemptError'] or MCP错误(标签+': 初次连接失败')#真实错误
+                错误=状态['firstAttemptError'] or MCP错误(标签+': initial connection failed')#真实错误
                 就绪.兑现({'error':错误})#带错误
     threading.Thread(target=执行启动尝试,daemon=True).start()#后台启动，避免阻塞 apply 登记 effect
 
     def 拆除():
         """停止重连，关闭存活客户端，等待静默，然后注销本服务器仍拥有的全部工具。"""
         状态['disposed']=True#标记已拆除
+        状态['serverInstructions']=''#清空指令
         定时=状态['reconnectTimer']#已武装定时器
         if 定时 is not None:#有定时器
             定时.cancel()#取消待发重连
@@ -313,11 +328,33 @@ def 启动连接(上下文,配置,策略):
             except MCP错误:#传输已消失
                 pass#忽略
             if 当前关闭 is not None and not 等待关闭(当前关闭):#关闭超时
-                上下文.日志.错误(标签+': generation did not close within '+str(世代关闭超时毫秒)+'ms during disposal — server shutdown may be incomplete')#拆除时关闭不完整
+                上下文.日志.错误(拆除不完整消息)#拆除时关闭不完整
         if 状态['syncChain'] is not None:#有同步链
             状态['syncChain'].等待()#等待同步链排空
         for 注销 in 状态['disposers'].values():#注销全部工具
             注销()#注销
         状态['disposers']={}#清空 disposer
 
-    return {'ready':就绪,'dispose':拆除}#句柄
+    def 读指令():
+        """读最近一次成功连通的服务器指令。"""
+        return 状态['serverInstructions']#快照
+
+    def 资源请求(请求,执行):
+        """经当前世代转发 MCP 资源请求。请求为 dict。"""
+        世代=状态['client']#当前世代
+        if 世代 is None or 状态['connectedAt'] is None:#未连通
+            raise MCP错误(标签+': server is disconnected')#拒绝
+        方法=请求['method']#方法
+        选项={'signal':执行['signal'] if 'signal' in 执行 else None,'timeout':配置['toolCallTimeoutMs']}#超时
+        会话=世代['session']#会话
+        if 方法=='resources/list':#列出
+            参数={'cursor':请求['cursor']} if 'cursor' in 请求 else None#游标
+            return 会话.list_resources(参数) if 参数 is not None else 会话.list_resources()#列出
+        if 方法=='resources/templates/list':#模板
+            参数={'cursor':请求['cursor']} if 'cursor' in 请求 else None#游标
+            return 会话.list_resource_templates(参数) if 参数 is not None else 会话.list_resource_templates()#模板
+        if 方法=='resources/read':#读取
+            return 会话.read_resource({'uri':请求['uri']})#读取
+        raise MCP错误(标签+': unknown resource method '+str(方法))#穷尽失败
+
+    return {'ready':就绪,'dispose':拆除,'instructions':读指令,'resources':{'request':资源请求}}#句柄

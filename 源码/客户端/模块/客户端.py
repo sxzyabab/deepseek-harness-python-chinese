@@ -19,6 +19,7 @@ from .清单 import (#再导出线约定
 
 __all__=[#仅中文公开名
     '应用',
+    '创建客户端模块系统',
     '客户端模块错误',
     '客户端模块系统',
     '精确包说明符',
@@ -37,12 +38,27 @@ __all__=[#仅中文公开名
     '客户端模块系统选项',
 ]#公开面结束
 
+注入=['loader']#所需服务：发布其内部模块系统的 Loader
+
+def 创建客户端模块系统(目标,启动模块,选项):
+    """从 HTML 门面已物化的 modules 打包建造活模块系统。"""
+    系统选项={#构造选项
+        'manifest':解析启动清单(选项['boot']),#解析启动图
+        'staticModules':选项['staticModules'] if 'staticModules' in 选项 else None,#平台种子
+        'registrationTarget':目标,#登记门面
+        'bootstrapModule':启动模块,#已物化启动模块
+    }#基
+    if 'loadBundle' in 选项 and 选项['loadBundle'] is not None:#可选加载钩
+        系统选项['loadBundle']=选项['loadBundle']#写入
+    return 客户端模块系统(系统选项)#构造系统
+
 def 应用(上下文):#安装浏览器半边
     """把内核建成的模块系统登记为 ctx.modules。"""
-    窗口=globals()#窗口面
-    if '__DSH_MODULES__' not in 窗口 or 窗口['__DSH_MODULES__'] is None:#槽位空
-        raise 客户端模块错误('client-modules: window.__DSH_MODULES__ missing — the shell kernel must construct the module system before plugin boot')#大声失败
-    模块=窗口['__DSH_MODULES__']#内核交接槽
+    加载器=上下文.loader#取 Loader
+    模块=加载器.internal#内部模块系统
+    if 模块 is None or getattr(模块,'version',None)!='client':#不是客户端模块系统
+        raise 客户端模块错误('client-modules: the Loader has no client module system')#大声失败
     上下文.反射.提供服务('modules',模块)#提供 ctx.modules
 
+inject=注入#框架槽
 apply=应用#框架槽

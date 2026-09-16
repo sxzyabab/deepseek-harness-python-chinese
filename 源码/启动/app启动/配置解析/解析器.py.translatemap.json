@@ -1,0 +1,16 @@
+{
+    "bare":"裸",
+    "compile":"编译",
+    "dispose":"拆除",
+    "enforce":"强制",
+    "fallback":"回退",
+    "generation":"世代",
+    "install":"安装",
+    "package":"包",
+    "replace":"替换",
+    "resolution":"解析",
+    "resolver":"解析器",
+    "route":"路由",
+    "verify":"校验",
+    "worker":"工作线程"
+}

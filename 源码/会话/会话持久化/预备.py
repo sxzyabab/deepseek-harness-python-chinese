@@ -1,6 +1,6 @@
 """有界共享与独占预留未发布 Session。"""
 import threading#后台观察与加载
-from concurrent.futures import Future as 原生结果#单次操作结果
+from threading import Event as 事件#单次操作结算门
 
 class 持久化错误(Exception):
     """会话持久化包的异常基类。"""
@@ -14,30 +14,40 @@ class 中止错误(持久化错误):
             自身.种类=种类#按结构识别，不做类型嗅探
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    """单次操作结算；只留 等待。"""
     def __init__(自身):
         """构造未决任务。"""
-        自身._未来=原生结果()#底层结果
+        自身._完成=事件()#结算门
+        自身._值=None#成功值
+        自身._错误=None#失败原因
 
     def 兑现(自身,值=None):
         """成功结算。"""
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
+        if 自身._完成.is_set():#已结算
+            return 值#幂等
+        自身._值=值#记下
+        自身._完成.set()#开门
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                包装=持久化错误('task rejected')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身._未来.set_exception(包装)#包装拒绝
+        """失败结算；非异常则包成本包错误。"""
+        if 自身._完成.is_set():#已结算
+            return#幂等
+        if isinstance(错误,BaseException):#已是异常
+            自身._错误=错误#原样
+        else:#非异常
+            包装=持久化错误('task rejected')#包装拒绝
+            包装.原因=错误#附加信息做成属性
+            自身._错误=包装#记下
+        自身._完成.set()#开门
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
-        return 自身._未来.result(timeout=超时)#取结果或抛错
+        """阻塞等到结算；失败原样抛。"""
+        if not 自身._完成.wait(超时):#超时未结算
+            raise TimeoutError('operation timed out')#超时
+        if 自身._错误 is not None:#失败
+            raise 自身._错误#原样抛
+        return 自身._值#成功值
 
 def 已中止(信号):
     """信号是否已中止。无信号视为未中止。"""

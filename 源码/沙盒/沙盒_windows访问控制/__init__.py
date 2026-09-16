@@ -156,10 +156,15 @@ class ACL沙箱:#ACL沙箱实例
         令牌=自身._token#受限令牌
         if 接口 is None or 令牌 is None:#未初始化
             raise 访问控制错误('AclSandbox is not initialized: call init() first')#必须先init
+        if 'controlFileDescriptor' in 选项 and 选项['controlFileDescriptor'] is not None and not ('stdio' in 选项 and 选项['stdio']=='inherit'):#控制管只允许继承stdio
+            raise 访问控制错误('control pipe requires inherited stdio')#必须 inherit
         参数=选项['args'] if 'args' in 选项 else []#缺键则无参数
         工作目录=选项['cwd'] if 'cwd' in 选项 and 选项['cwd'] is not None and 选项['cwd']!='' else os.getcwd()#缺键或空串则用进程 cwd，对齐 ||
         if 'stdio' in 选项 and 选项['stdio']=='inherit':#继承stdio
-            原生=隔离继承生成(接口,令牌,{'command':选项['command'],'args':参数,'cwd':工作目录})#继承spawn
+            继承选项={'command':选项['command'],'args':参数,'cwd':工作目录}#继承spawn规格
+            if 'controlFileDescriptor' in 选项 and 选项['controlFileDescriptor'] is not None:#有控制管
+                继承选项['controlFileDescriptor']=选项['controlFileDescriptor']#原样带上
+            原生=隔离继承生成(接口,令牌,继承选项)#继承spawn
             退出码缓存=[None]#惰性等待
             def 等待():#等待结算
                 if 退出码缓存[0] is None:#首次等待

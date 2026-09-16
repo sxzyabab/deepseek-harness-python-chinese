@@ -1,7 +1,6 @@
 from .输入装饰 import 派生装饰,惰性装饰#镜像装饰
 from .图像标签 import 附件错误文案,附件栏标签,拖放覆盖层标签,图像尺寸文案,灯箱标签#附件文案
 from .上下文仪表 import 上下文仪表#占用环
-from .权限选择 import 权限选择#访问模式
 
 __all__=['输入栏']#仅中文公开名
 
@@ -179,7 +178,6 @@ class 输入栏:#composer.bar 主体
         解析提交=属性['resolveSubmitMode'] if 'resolveSubmitMode' in 属性 else None#提交模式
         切换菜单=属性['toggleCommandMenu'] if 'toggleCommandMenu' in 属性 else None#命令菜单
         停止=属性['stop'] if 'stop' in 属性 else None#停止
-        命令=属性['command'] if 'command' in 属性 else None#命令
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         渲染槽=属性['renderSlot'] if 'renderSlot' in 属性 else 空渲染槽#槽
         用通知=属性['useNotices'] if 'useNotices' in 属性 else None#通知
@@ -205,7 +203,6 @@ class 输入栏:#composer.bar 主体
         计划活=False#计划占位
         有目标=False#目标
         限额=None#限额
-        权限=None#权限
         if 用投影 is not None:#有投影
             计划=用投影('plan')#计划
             if 计划 is not None:#有帧
@@ -214,7 +211,6 @@ class 输入栏:#composer.bar 主体
                 计划活=活 if 待 is not True else (活 is not True)#活
             有目标=用投影('goal') is not None#目标
             限额=用投影('imageLimits')#限额
-            权限=用投影('permissions')#权限
         活着=输入 is not None and 键盘 is not None and 输入动作 is not None#机面齐全
         草稿值=输入['draft'] if 输入 is not None and 'draft' in 输入 else None#草稿
         草稿=草稿值 if 草稿值 is not None else ''#空则空串
@@ -276,7 +272,7 @@ class 输入栏:#composer.bar 主体
                 占位=翻译('placeholder.plan')#占位
             else:#默认
                 占位=翻译('placeholder.default')#占位
-        访问=None if 命令 is None else 权限选择({'value':权限,'locked':禁用,'command':命令,'t':翻译})()#访问
+        访问=None if 会话标识 is None else 渲染槽('conversation.input.permission',{'locked':禁用})#权限席
         仪表=上下文仪表({'useProjection':用投影,'t':翻译})() if 用投影 is not None else None#仪表
         栏项=[]#轨
         for 附 in 附件:#扫

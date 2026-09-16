@@ -4,6 +4,7 @@ from ...模型后端.llm import (#LLM 运行时
 )#LLM 导入
 from ...模型后端.llm.助手流 import 展开助手流#展开嵌入助手流
 from ...模型后端.llm.标识构造 import 推理力度标识#推理力度
+from ...模型后端.llm.内容 import 请求图片句柄文案,卸载图片文案#图像句柄与卸载文案
 from ...内核.会话 import 会话格式版本#当代版本
 from ...会话.会话格式目录 import 会话格式目录,会话格式不支持迁移错误#格式目录
 
@@ -221,7 +222,6 @@ def 准备会话快照夹具供比较(文本):#准备快照比较
 
 def 请求图像句柄文本(引用,版本,访问=None):#请求图像句柄文本
     """兼容旧名；权威实现见 模型后端.llm.内容.请求图片句柄文案。"""
-    from ...模型后端.llm.内容 import 请求图片句柄文案#权威句柄
     return 请求图片句柄文案(引用,版本,访问)#委托
 
 def 是否记录(值):#是否字典
@@ -266,7 +266,7 @@ def 派生回放脚本(事件列表):#派生回放脚本
         if 类型=='compaction/summary':#压缩摘要
             if isinstance(数据,dict) and 数据.get('llmStreamCall') is True:#LLM 流调用
                 if 数据.get('rawOutput') is None:#缺 rawOutput
-                    raise Exception('llm-replay: compaction/summary 标记了没有 rawOutput 的 LLM 流调用')#缺 rawOutput
+                    raise Exception('llm-replay: compaction/summary marks an LLM stream call without rawOutput')#缺 rawOutput
                 分片列表=[]#分片
                 for 索引,块 in enumerate(数据['rawOutput']):#逐块
                     块类型=块.get('type') if isinstance(块,dict) else getattr(块,'type',None)#块类型
@@ -450,22 +450,29 @@ def 读覆盖文档(值,文件):#读覆盖文档
         补丁列表.append({'at':位置索引,'entry':读回放条目(项['entry'],文件,f'{位置}.entry')})#补丁
     return {'patches':补丁列表}#增补形态
 
-def 从文件派生脚本(文件):#从 JSONL 派生
-    """从会话 JSONL 派生主脚本。"""
-    if not os.path.exists(文件):#缺失
-        raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
-    with open(文件,'r',encoding='utf-8') as 句柄:#读文件
-        return 派生回放脚本(解析会话日志(句柄.read()))#解析并派生
+def 读主夹具(配置):#读主 JSONL，整脚本覆盖占用同路径时跳过
+    """主 JSONL 存在且不是覆盖文件时解析。"""
+    文件=配置['file']#主路径
+    if not os.path.exists(文件) or 文件==配置.get('overrideFile'):#缺失或同路径覆盖
+        return None#跳过
+    with open(文件,'r',encoding='utf-8') as 句柄:#读
+        return 解析会话夹具(句柄.read())#夹具
 
-def 加载回放脚本(配置):#加载主回放脚本
-    """加载主会话的回放脚本。"""
+def 从夹具派生脚本(文件,夹具):#已迁移夹具派生
+    """夹具缺席则失败。"""
+    if 夹具 is None:#缺失
+        raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
+    return 派生回放脚本(夹具['events'])#派生
+
+def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
+    """有覆盖则整替换或按索引补丁。"""
     覆盖=配置.get('overrideFile')#覆盖路径
     if 覆盖 is not None and os.path.exists(覆盖):#有覆盖
         with open(覆盖,'r',encoding='utf-8') as 句柄:#读覆盖
             文档=读覆盖文档(json.loads(句柄.read()),覆盖)#读覆盖
         if isinstance(文档,list):#整替换
             return 文档#整替换
-        脚本=从文件派生脚本(配置['file'])#派生基线
+        脚本=从夹具派生脚本(配置['file'],夹具)#派生基线
         派生长度=len(脚本)#长度
         已见=set()#已见索引
         for 补丁 in 文档['patches']:#逐补丁
@@ -482,7 +489,18 @@ def 加载回放脚本(配置):#加载主回放脚本
             else:#替换
                 脚本[补丁['at']]=补丁['entry']#应用补丁
         return 脚本#返回
-    return 从文件派生脚本(配置['file'])#无覆盖则派生
+    return 从夹具派生脚本(配置['file'],夹具)#无覆盖则派生
+
+def 从文件派生脚本(文件):#从 JSONL 派生
+    """从会话 JSONL 派生主脚本。"""
+    if not os.path.exists(文件):#缺失
+        raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
+    with open(文件,'r',encoding='utf-8') as 句柄:#读文件
+        return 派生回放脚本(解析会话日志(句柄.read()))#解析并派生
+
+def 加载回放脚本(配置):#加载主回放脚本
+    """加载主会话的回放脚本。"""
+    return 解析回放脚本(配置,读主夹具(配置))#主脚本
 
 def 子脚本排序键(项):
     """按创建时刻与录制 id 排序。"""
@@ -490,12 +508,9 @@ def 子脚本排序键(项):
 
 def 加载会话脚本(配置):#加载主与子脚本
     """按绑定顺序加载主与子脚本。"""
-    主条目=加载回放脚本(配置)#主条目
-    if os.path.exists(配置['file']):#有头
-        with open(配置['file'],'r',encoding='utf-8') as 句柄:#读头
-            主头=解析会话头(句柄.read())#头
-    else:#无头
-        主头={'id':'','createdAt':0,'inheritedEventCount':0}#默认
+    主夹具=读主夹具(配置)#主夹具
+    主条目=解析回放脚本(配置,主夹具)#主条目
+    主头=主夹具 if 主夹具 is not None else {'id':'','createdAt':0}#无头则默认
     主={'recordedId':主头['id'],'createdAt':主头['createdAt'],'entries':主条目,'primary':True}#主脚本
     子项列表=[]#子脚本
     for 子文件 in 配置.get('childFiles') or []:#逐子
@@ -544,8 +559,20 @@ class 回放适配器(语言模型适配器):#回放适配器
         if 视觉 is None:#无
             return None#无
         def 计价(图像列表):#计价函数
-            """按出现计价。"""
-            return [{'visualTokens':视觉,'text':请求图像句柄文本(引用,{'width':引用.get('width'),'height':引用.get('height')})} for 引用 in 图像列表]#列表
+            """按出现计价；卸载图视觉 token 为 0。"""
+            结果=[]#行
+            for 项 in 图像列表:#逐项
+                if isinstance(项,dict):#带附件与卸载标记
+                    引用=项.get('attachment')#附件
+                    卸载=项.get('offloaded') is True#卸载
+                else:#旧式裸引用
+                    引用=项#引用
+                    卸载=False#未卸载
+                if 卸载:#卸载图
+                    结果.append({'visualTokens':0,'text':卸载图片文案(引用)})#零视觉
+                else:#在线附件
+                    结果.append({'visualTokens':视觉,'text':请求图像句柄文本(引用,{'width':引用.get('width') if isinstance(引用,dict) else None,'height':引用.get('height') if isinstance(引用,dict) else None})})#计价
+            return 结果#列表
         return {'priceImages':计价}#图像计价
 
     def listModels(自身,提供方):#列模型
@@ -599,7 +626,7 @@ def 节拍延迟(毫秒,信号):#节拍等待
     截止=time.monotonic()+毫秒/1000#截止
     while time.monotonic()<截止:#等待
         if 信号 is not None and getattr(信号,'aborted',False):#中止
-            raise Exception('已中止')#中止
+            raise Exception('aborted')#中止
         time.sleep(0.01)#短睡
 
 def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
@@ -608,14 +635,14 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
     if 种类=='chunks':#分片
         for 分片 in 条目['chunks']:#逐分片
             if 信号 is not None and getattr(信号,'aborted',False):#中止
-                raise Exception('已中止')#中止
+                raise Exception('aborted')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
         return#结束
     if 种类=='throw':#抛错
         for 分片 in 条目['chunks']:#先发前缀
             if 信号 is not None and getattr(信号,'aborted',False):#中止
-                raise Exception('已中止')#中止
+                raise Exception('aborted')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
         raise 语言模型错误(条目['message'],条目['code'])#抛已记录错误
@@ -631,13 +658,13 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
             门闩.set()#放行
         if 信号 is not None:#有信号
             if getattr(信号,'aborted',False):#已中止
-                raise Exception('已中止')#中止
+                raise Exception('aborted')#中止
             if hasattr(信号,'addEventListener'):#DOM 风格
                 信号.addEventListener('abort',中止回调,{'once':True})#监听
             elif hasattr(信号,'add_callback'):#回调风格
                 信号.add_callback(中止回调)#监听
         门闩.wait()#等中止
-        raise Exception('已中止')#中止
+        raise Exception('aborted')#中止
     断言永不(条目,'llm-replay replay entry')#穷尽
 
 def 提供方已接受(条目):#是否到达 2xx 后提交点

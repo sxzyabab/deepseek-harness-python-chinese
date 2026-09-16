@@ -1,0 +1,7 @@
+{
+    "internals":"内部流",
+    "startup":"启动",
+    "stdin":"标准输入",
+    "stdout":"标准输出",
+    "tty":"终端"
+}

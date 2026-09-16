@@ -222,7 +222,7 @@ class 会话命令控制器:
                 try:
                     自身._上下文.agentDefaultModel.saveSelection(已选)#保存
                 except (OSError,ValueError,TypeError) as 警告:
-                    自身._上下文.日志.警告('session-controller: default model not saved: '+str(警告))#日志
+                    自身._上下文.日志.警告('session-controller: model selection changed for the Session but the default was not saved: '+str(警告))#日志
                 return {'selected':dict(已选)}#返回
             except 远程错误:
                 raise#原样
@@ -280,8 +280,6 @@ class 会话命令控制器:
                     文案='session "'+str(请求['sessionId'])+'" has no completed turn to fork from'#文案
                 raise 远程错误('session/fork-unavailable',文案,{'sessionId':请求['sessionId']})#拒绝
             切开=边界['seq']+1#切开点
-            while 切开<len(事件列表) and 事件列表[切开]['type']!='turn/start':#推到下一回合开始
-                切开+=1#前进
             try:
                 工作区=自身._分叉工作区(头)#解析工作区
             except BaseException as 错误:

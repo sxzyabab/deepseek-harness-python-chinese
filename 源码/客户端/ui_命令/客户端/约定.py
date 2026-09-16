@@ -11,7 +11,7 @@ class 命令错误(Exception):
 #选定确认：title / description / acknowledgeLabel / cancelLabel / confirmLabel
 选定确认=dict#选定前确认文案形
 
-#选定选项：id / label / detail? / active? / confirmation?
+#选定选项：id / label / badge? / detail? / active? / confirmation?
 选定选项=dict#弹出选择一行形
 
 #弹出选定规格：kind='popupSelect' / options(session, signal) / onSelect(option, session)
@@ -29,5 +29,5 @@ class 命令错误(Exception):
 #命令装饰：name / available(session) / ui——挂在宿主命令上的裸调用 UI
 命令装饰=dict#宿主命令装饰形
 
-#命令UI约定：register / decorate / popupFor
+#命令UI约定：register / decorate / dismiss / popupFor
 命令UI约定=dict#ctx.commandUi 服务面形

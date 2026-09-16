@@ -1,6 +1,7 @@
 import os,re#父环境与敏感名模式
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#从 Cordis 导入服务基类
+from ....工具.http代理 import 子进程代理环境#子进程继承的代理环境
 from .类型 import (
     托管环境前缀,#托管环境变量前缀
     托管环境键,#托管键品牌
@@ -34,6 +35,7 @@ from .类型 import (
     终端句柄,#终端句柄
     标准输入模式,#标准输入模式
     标准输出模式,#标准输出模式
+    终端环境,#终端环境
 )#再导出子进程公开类型
 
 __all__=(#仅中文公开名；无英文别名
@@ -52,6 +54,7 @@ __all__=(#仅中文公开名；无英文别名
     '前台组字段','前台组',
     '终端句柄字段','终端句柄',
     '标准输入模式','标准输出模式',
+    '终端环境','可执行未找到错误',
 )#公开面结束
 
 敏感环境模式=re.compile(r'KEY|PASSWORD|SECRET|TOKEN',re.I|re.ASCII)#凭证形态环境名模式；仓库内每个启动器共用
@@ -67,6 +70,12 @@ def 擦洗父环境():#去掉凭证形态名字和全部 DSH_* 名字后的环�
     for 键,值 in os.environ.items():#遍历父环境
         if 值 is not None and 敏感环境模式.search(键) is None and not 键.upper().startswith(托管环境前缀):#非凭证且非 DSH_ 才保留
             环境[键]=值#写入擦洗后的环境
+    for 名,代理值 in 子进程代理环境().items():#叠上子进程代理环境
+        if 代理值 is None:#用户从未设置则删
+            if 名 in 环境:#有名
+                del 环境[名]#去掉
+        else:#有值
+            环境[名]=代理值#还原用户导出
     return 环境#返回擦洗后的环境
 
 class 子进程运行时(服务):#子进程运行时服务定义
@@ -92,6 +101,10 @@ class 子进程运行时(服务):#子进程运行时服务定义
         """
         raise NotImplementedError('子进程运行时.解析可执行文件')#子类必须实现
 
+    def 终端环境(自身,信号=None):#查看壳选择事实
+        """查看提供方执行环境里的壳选择事实。可执行查找与分配仍是独立操作。"""
+        raise NotImplementedError('子进程运行时.终端环境')#子类必须实现
+
     def 启动(自身,规格):#启动受管子进程
         """从完全指定的规格启动一个受管子进程；本缝不套默认值。返回存活进程句柄。"""
         raise NotImplementedError('子进程运行时.启动')#子类必须实现
@@ -101,3 +114,12 @@ class 子进程运行时(服务):#子进程运行时服务定义
         raise NotImplementedError('子进程运行时.启动终端')#子类必须实现
 
 default=子进程运行时#Cordis默认导出
+
+class 可执行未找到错误(Exception):#可执行查找未找到文件
+    """可执行查找完成但没有找到可执行文件。"""
+    def __init__(自身,消息,原因=None):#记下诊断
+        """记下提供方查找诊断与可选原始失败。"""
+        super().__init__(消息)#英文诊断
+        自身.name='SubprocessExecutableNotFoundError'#错误名
+        if 原因 is not None:#有原因
+            自身.__cause__=原因#链上原因

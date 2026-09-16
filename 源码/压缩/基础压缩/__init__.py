@@ -338,9 +338,19 @@ class 基础压缩引擎(压缩引擎):
         def 摘要钩子(输入,所有者,中止=None):
             """转给自身.摘要。"""
             return 自身.摘要(输入,所有者,中止)#动态分发
+        def 无法恢复(*位置参数):
+            """瀑布落到内建则无法恢复。"""
+            return False#无法恢复
+        def 恢复(错误,智能体,源事件序号,信号=None):
+            """把摘要失败交给 compaction/summary-error 瀑布。"""
+            载荷={'session':智能体.session,'sourceEventSeqs':源事件序号,'error':错误}#恢复载荷
+            if 信号 is not None:#可选取消
+                载荷['signal']=信号#取消信号
+            return 自身.ctx.链式拦截('compaction/summary-error',载荷,无法恢复)#瀑布恢复
         return {#依赖对象
             'meter':自身.ctx.tokenMeter,#单例计量
             'summarize':摘要钩子,#动态分发钩子
+            'recover':恢复,#摘要失败恢复
         }#返回结束
 
 基础压缩引擎.inject=注入#Cordis inject 槽

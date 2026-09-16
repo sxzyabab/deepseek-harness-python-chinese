@@ -1,11 +1,12 @@
 {
+    "abort":"中止",
+    "claim":"认领",
+    "dispatch":"派发",
+    "draft":"草稿",
     "input":"输入",
     "machine":"输入机",
-    "self":"自身",
-    "abort":"中止",
-    "draft":"草稿",
-    "dispatch":"派发",
-    "snapshot":"快照",
     "retain":"仍持",
-    "claim":"认领"
+    "self":"自身",
+    "snapshot":"快照",
+    "submit":"提交"
 }

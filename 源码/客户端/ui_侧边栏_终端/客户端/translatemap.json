@@ -1,0 +1,16 @@
+{
+    "index.ts":"__init__.py",
+    "locales.ts":"文案.py",
+    "face.ts":"面.py",
+    "terminal-theme.ts":"终端主题.py",
+    "terminal-cursor.ts":"终端光标.py",
+    "TerminalIcon.tsx":"终端图标.py",
+    "TerminalGuide.tsx":"终端引导.py",
+    "TerminalGuide.module.css":"终端引导.module.css",
+    "TerminalBody.tsx":"终端体.py",
+    "TerminalBody.module.css":"终端体.module.css",
+    "TerminalTitle.tsx":"终端标题.py",
+    "TerminalRecovery.tsx":"终端恢复.py",
+    "TerminalCleanup.tsx":"终端清理.py",
+    "TerminalCleanup.module.css":"终端清理.module.css"
+}

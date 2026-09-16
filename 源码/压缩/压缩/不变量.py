@@ -1,6 +1,7 @@
 """本包拥有的压缩日志流不变量。"""
 import weakref#会话与事件弱表
 from ...内核.会话 import 是否替换表面事件#替换表面事件判断
+from ...内核.会话.表面 import 表面管理器#由事件缓冲驱动的表面
 from .检查点 import 是否压缩检查点来源#压缩检查点来源判断
 
 包名='@deepseek-ai/dsh-compaction'#本包的不变量所有权名
@@ -14,6 +15,50 @@ def 校验标识(值,标签,失败):
     """要求耐久不透明身份为非空字符串。"""
     if not isinstance(值,str) or len(值)==0:#空或非字符串
         失败(标签+' must be a non-empty string')#失败
+
+def 校验序号(值,标签,失败):
+    """在本包事件边界校验耐久事件序号身份。"""
+    if isinstance(值,bool) or not isinstance(值,(int,float)):#非数字
+        失败(标签+' must be a non-negative safe integer event seq')#失败
+        return 0#占位
+    if isinstance(值,float):#外来 JSON 整值浮点
+        if not 值.is_integer():#非整数
+            失败(标签+' must be a non-negative safe integer event seq')#失败
+            return 0#占位
+        值=int(值)#收成 int
+    if 值<0 or abs(值)>安全整数上限:#非法序号
+        失败(标签+' must be a non-negative safe integer event seq')#失败
+        return 0#占位
+    return 值#合法序号
+
+def 校验遮蔽序号(跟踪,事件,失败):
+    """校验一段被遮蔽表面跨度及其完整有序身份列表。"""
+    事件类型=事件['type']#事件类型标签
+    数据=事件['data']#事件载荷
+    区间=数据['shadowedRange'] if 'shadowedRange' in 数据 and 数据['shadowedRange'] is not None else {}#被遮蔽区间
+    起点=校验序号(区间['start'] if 'start' in 区间 else None,事件类型+' shadowedRange.start',失败)#区间起点
+    终点=校验序号(区间['end'] if 'end' in 区间 else None,事件类型+' shadowedRange.end',失败)#区间终点
+    原始列表=数据['shadowedSeqs'] if 'shadowedSeqs' in 数据 and 数据['shadowedSeqs'] is not None else []#被遮蔽 seq
+    序号列表=[校验序号(序号,事件类型+' shadowedSeqs['+str(下标)+']',失败) for 下标,序号 in enumerate(原始列表)]#逐项品牌化
+    if len(序号列表)==0:#列表不得为空
+        失败(事件类型+' shadowedSeqs must be non-empty')#失败
+    if len(序号列表)>0 and (序号列表[0]!=起点 or 序号列表[-1]!=终点):#首尾须对齐区间
+        失败(事件类型+' shadowedRange must match the first and last shadowedSeqs')#区间与列表不一致
+    表面=跟踪['surface'].nodes#当前表面节点
+    try:#起点下标
+        起点下标=表面.index(起点)#起点在表面中的下标
+    except ValueError:#缺失
+        起点下标=-1#缺失
+    try:#终点下标
+        终点下标=表面.index(终点)#终点在表面中的下标
+    except ValueError:#缺失
+        终点下标=-1#缺失
+    if 起点下标<0 or 终点下标<起点下标:#起点缺失或终点早于起点
+        失败(事件类型+' shadowed seqs must name an earlier current surface span')#不是当前表面上的更早跨度
+        return#已失败
+    期望=表面[起点下标:终点下标+1]#期望的完整跨度
+    if len(期望)!=len(序号列表) or any(期望[下标]!=序号列表[下标] for 下标 in range(len(期望))):#长度或任一项对不上
+        失败(事件类型+' shadowedSeqs must list every node in the current surface span')#必须列出跨度内每个节点
 
 def 校验来源命令标识(事件类型,值,期望,失败):
     """保持可选发起命令身份在同一事务内稳定。"""
@@ -90,6 +135,9 @@ def 校验压缩事件(跟踪,事件,失败):
     类型=事件['type']#事件类型
     if 类型=='session/end-seed':#种子边界清括号
         return {'kind':'end-seed'}#种子边界迁移
+    if 类型=='compaction/prune':#裁剪事件只校验遮蔽跨度
+        校验遮蔽序号(跟踪,事件,失败)#校验当前表面跨度
+        return None#裁剪不改跟踪括号
     if 类型=='user/message' and 是否替换表面事件(事件) and 是否压缩检查点来源(事件['data']['source'] if 'source' in 事件['data'] else None):#压缩检查点替换
         校验检查点(跟踪,事件,失败)#校验检查点对齐
         return None#检查点不改跟踪括号
@@ -125,12 +173,7 @@ def 校验压缩事件(跟踪,事件,失败):
         校验所有者(未结束['turn'],跟踪['openTurn'],类型,失败)#所有者须仍对齐回合
         if 未结束['summarized']:#同一事务禁止重复摘要
             失败('compaction/summary repeated within one compaction')#失败
-        序号列表=数据['shadowedSeqs'] if 'shadowedSeqs' in 数据 and 数据['shadowedSeqs'] is not None else []#被遮蔽 seq 列表
-        if len(序号列表)==0:#列表不得为空
-            失败('compaction/summary shadowedSeqs must be non-empty')#失败
-        区间=数据['shadowedRange'] if 'shadowedRange' in 数据 and 数据['shadowedRange'] is not None else {}#被遮蔽区间
-        if 序号列表[0]!=区间['start'] or 序号列表[-1]!=区间['end']:#首尾须对齐区间
-            失败('compaction/summary shadowedRange must match the first and last shadowedSeqs')#区间与列表不一致
+        校验遮蔽序号(跟踪,事件,失败)#校验当前表面跨度
         代币=数据['shadowedTokenCount']#token 计数
         代币是整数=(not isinstance(代币,bool)) and (isinstance(代币,int) or (isinstance(代币,float) and 代币.is_integer()))#排除布尔
         if (not 代币是整数) or 代币<0 or abs(代币)>安全整数上限:#token 须为非负安全整数
@@ -186,7 +229,13 @@ def 安装(上下文对象,失败):
 
     def 种子(会话):
         """回放该会话已有事件并记下已提交跟踪。"""
-        跟踪={'openTurn':None,'compaction':None}#空初始跟踪
+        表面事件=[]#已回放表面事件缓冲
+        跟踪={#空初始跟踪
+            'openTurn':None,#当前未结束回合
+            'compaction':None,#未结束压缩事务
+            'surfaceEvents':表面事件,#事件缓冲
+            'surface':表面管理器(表面事件,0,上下文对象.sessions.消息投影列表),#由缓冲驱动的表面
+        }#跟踪结束
         跟踪表[会话]=跟踪#挂到映射
         过期孤儿=继承孤儿开始序号列表(会话.events)#继承前缀里被种子作废的 start
         for 事件 in 会话.events:#重放已有事件
@@ -197,6 +246,7 @@ def 安装(上下文对象,失败):
             if 迁移 is not None:#有迁移
                 跟踪['compaction']=应用压缩迁移(迁移)#提交迁移
             应用回合边界(跟踪,事件)#推进回合光标
+            表面事件.append(事件)#收入表面缓冲
         return 跟踪#返回重建跟踪
 
     def 取跟踪(会话):
@@ -215,17 +265,19 @@ def 安装(上下文对象,失败):
         """事件真正发布后再提交压缩迁移。"""
         跟踪=取跟踪(会话)#取跟踪
         校验回合边界(跟踪,事件,失败)#校验回合边界
-        if 应用回合边界(跟踪,事件):#回合边界已处理
-            return#不再看压缩
+        改了回合=应用回合边界(跟踪,事件)#回合边界是否已处理
         类型=事件['type']#事件类型
-        if 类型!='session/end-seed' and 类型!='compaction/start' and 类型!='compaction/summary' and 类型!='compaction/end':#非压缩生命周期
-            return#忽略
-        候选=暂存.get(id(事件))#取出预提交暂存
-        if 候选 is None or 候选['session'] is not 会话:#未预校验不得发布
-            失败('compaction event published without pre-commit validation')#失败
-            return#已失败
-        暂存.pop(id(事件),None)#消费暂存
-        跟踪['compaction']=应用压缩迁移(候选['transition'])#提交迁移
+        if (not 改了回合) and 类型!='session/end-seed' and 类型!='compaction/start' and 类型!='compaction/summary' and 类型!='compaction/end':#非压缩生命周期
+            跟踪['surfaceEvents'].append(事件)#收入表面缓冲
+            return#忽略压缩括号
+        if not 改了回合:#压缩生命周期须已预校验
+            候选=暂存.get(id(事件))#取出预提交暂存
+            if 候选 is None or 候选['session'] is not 会话:#未预校验不得发布
+                失败('compaction event published without pre-commit validation')#失败
+                return#已失败
+            暂存.pop(id(事件),None)#消费暂存
+            跟踪['compaction']=应用压缩迁移(候选['transition'])#提交迁移
+        跟踪['surfaceEvents'].append(事件)#收入表面缓冲
     上下文对象.监听('session/event',会话事件,{'全局':True})#全局监听
     def 内部派发(_模式,事件名,参数,*其余):
         """提交前检查 session/event。"""

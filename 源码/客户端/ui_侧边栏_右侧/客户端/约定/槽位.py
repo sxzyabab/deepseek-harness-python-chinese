@@ -6,6 +6,7 @@ __all__=[#仅中文公开名
     '席名右侧签标题',
     '席名右侧向导',
     '席名右侧签菜单项',
+    '席名右侧向导条目',
     '右侧侧栏子槽',
 ]#公开面结束
 
@@ -15,9 +16,11 @@ __all__=[#仅中文公开名
 席名右侧签标题='sidebar.right.pane.tab.title'#键控标题席
 席名右侧向导='sidebar.right.tab.guide'#向导链席
 席名右侧签菜单项='sidebar.right.tab.menu.item'#菜单列表席
+席名右侧向导条目='sidebar.right.tab.guide.entry'#向导卡片键控席
 
 右侧侧栏子槽={#右栏会话席声明的子槽
     席名右侧签正文:{'kind':'keyed','scope':'session'},#正文
     席名右侧签标题:{'kind':'keyed','scope':'session'},#标题
     席名右侧签菜单项:{'kind':'list','scope':'session'},#菜单
+    席名右侧向导条目:{'kind':'keyed','scope':'session'},#向导条目
 }#子槽结束

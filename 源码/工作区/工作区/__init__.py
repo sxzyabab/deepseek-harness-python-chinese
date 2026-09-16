@@ -177,6 +177,16 @@ class 工作区注册表(服务):
             自身._写状态({**状态,'archivedSessionIds':[*状态['archivedSessionIds'],会话号]})#追加
         return 自身._入队写操作(操作)#串行
 
+    def unarchiveSession(自身,会话号):
+        """取消归档。"""
+        def 操作():
+            """写操作。"""
+            状态=自身._要求状态()#当前状态
+            if 会话号 not in 状态['archivedSessionIds']:#未归档
+                return#幂等
+            自身._写状态({**状态,'archivedSessionIds':[项 for 项 in 状态['archivedSessionIds'] if 项!=会话号]})#丢掉该 id
+        return 自身._入队写操作(操作)#串行
+
     def resolveByPath(自身,路径):
         """按规范路径解析工作区。"""
         规范=规范化真实路径(路径)#规范

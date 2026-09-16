@@ -8,10 +8,16 @@ from ...沙盒.沙盒策略 import 沙盒模式表,生效沙盒模式,设沙盒�
 from ..用户审批 import 审批策略表,生效审批策略,设审批策略#审批策略表、折叠与写入
 from .类型 import (#再导出权限域纯类型
     预设选项字段,#预设选项字段
+    权限目录字段,#进程目录字段
     权限选择字段,#权限选择字段
 )#类型再导出结束
 
 自定义预设='custom'#派生的非预设状态名
+自动预设='auto'#实验性按次审查预设名
+自动预设捆={#在线 Auto 集成的固定执行捆
+    'sandbox':'danger-full-access',#全开
+    'approval':'never',#不问
+}#自动预设捆结束
 权限设置命名空间=设置命名空间('permission')#携带未来会话默认值的设置命名空间
 默认预设表={#默认两档预设：名 → 旋钮捆
     'workspace-write':{#工作区写入档
@@ -41,22 +47,9 @@ from .类型 import (#再导出权限域纯类型
     'type':'object',#对象
     'additionalProperties':False,#禁多余键
     'properties':{#字段
-        'options':{#选项数组
-            'type':'array',#数组
-            'items':{#选项对象
-                'type':'object',#对象
-                'additionalProperties':False,#禁多余键
-                'properties':{#选项字段
-                    'value':{'type':'string','minLength':1},#非空选项值
-                    'name':{'type':'string','minLength':1},#非空展示名
-                    'description':{'type':'string'},#可选说明
-                },#选项字段结束
-                'required':['value','name'],#值与名必填
-            },#选项对象结束
-        },#options 结束
         'currentValue':{'type':'string','minLength':1},#非空当前值
     },#字段结束
-    'required':['options','currentValue'],#两字段必填
+    'required':['currentValue'],#当前值必填
 }#投影模式结束
 
 class 权限预设错误(Exception):#本包配置与解析失败
@@ -113,8 +106,11 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
         if 预设表 is None:#模式应已填默认
             预设表=默认预设表#回落默认表
         自身.预设表=dict(预设表)#运行时预设表（脱离副本）
+        自身.自动准入=None#在线 Auto 准入
         if 自定义预设 in 自身.预设表:#custom 不得当表键
             raise 权限预设错误('permission: "'+自定义预设+'" is reserved for the derived not-a-preset state and cannot name a table entry')#拒绝占用保留名
+        if 自动预设 in 自身.预设表:#auto 不得当表键
+            raise 权限预设错误('permission: "'+自动预设+'" is reserved and cannot name a configured preset')#拒绝占用保留名
         if 自身.ctx.shell.sandboxMode is None:#执行器不约束
             raise 权限预设错误('permission: the mounted bash executor does not confine (no sandboxMode) — presets bundle a sandbox mode, so composing this plugin over an unconfined executor is a misconfiguration')#拒绝无沙盒组合
         推导默认=自身.派生(空旋钮)#从组合默认推导预设
@@ -156,9 +152,9 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
         def 投影初态():#空日志初态
             """空日志初态（脱离副本）。"""
             return dict(空旋钮)#脱离副本
-        def 投影视图(状态):#派生选择
-            """派生选择。"""
-            return 自身.选择于(状态)#派生
+        def 投影视图(状态):#只看当前值
+            """线路只看当前值。"""
+            return {'currentValue':自身.派生(状态)}#当前值
         def 投影安装(投影上下文,*位置参数):#有投影注册表才登记
             """权限投影单元。"""
             投影上下文.sessionProjections.register({#登记 permissions 单元
@@ -199,8 +195,33 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
 
     @property#只读属性
     def 名表(自身):#公布的预设名
-        """公布的预设名，按预设表声明顺序。"""
-        return list(自身.预设表.keys())#声明顺序的键
+        """公布的预设名：配置表按声明顺序，Auto 在其集成在线时跟在后面。"""
+        名列表=list(自身.预设表.keys())#声明顺序的键
+        if 自身.自动准入 is not None:#Auto 在线
+            名列表=名列表+[自动预设]#跟上 Auto
+        return 名列表#可切换名
+
+    def 目录(自身):#进程目录
+        """读出现在会话 UI 所用的完整进程级目录。"""
+        选项=[]#可选项
+        for 名 in 自身.名表:#按贡献顺序
+            选项.append(自身.选项于(名))#收下
+        return {'options':选项}#目录
+
+    def 登记自动(自身,准入):#登记 Auto
+        """在调用方集成寿命内公布固定的当前会话 Auto 预设。准入是同步门。"""
+        def 安装():
+            """挂上 Auto 并在拆除时摘掉。"""
+            if 自身.自动准入 is not None:#已经登记
+                raise 权限预设错误('permission: preset "auto" is already registered')#重复登记
+            自身.自动准入=准入#记下准入
+            自身.发出目录已变()#目录已变
+            def 拆除():
+                """去掉 Auto。"""
+                自身.自动准入=None#清掉
+                自身.发出目录已变()#目录已变
+            return 拆除#拆除器
+        return 自身.ctx.副作用(安装,'permissionPresets.registerAuto()')#effect 寿命
 
     @property#只读属性
     def 默认预设(自身):#未来会话默认
@@ -227,33 +248,24 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
             """沙盒与审批是否同时相等。规格是 dict。"""
             return 规格['sandbox']==沙盒 and 规格['approval']==审批#捆匹配
         上次=状态['preset']#有上次选择
-        if 上次 is not None and 上次 in 自身.预设表:#有上次选择
-            规格=自身.预设表[上次]#查表
-            if 匹配(规格):#仍匹配则保住意图
+        if 上次 is not None:#有上次选择
+            规格=自身.规格于(上次)#查表或在线 Auto
+            if 规格 is not None and 匹配(规格):#仍匹配则保住意图
                 return 上次#保住
         for 名,规格 in 自身.预设表.items():#按表序找第一匹配
             if 匹配(规格):#第一匹配胜出
                 return 名#胜出
         return 自定义预设#无匹配则派生 custom
 
-    def 选择于(自身,状态):#构建选择投影
-        """为一份已折叠旋钮状态构建完整选择值。"""
-        当前值=自身.派生(状态)#当前值
-        选项=[]#表内选项
-        for 名 in 自身.名表:#按声明顺序
-            选项.append(自身.选项于(名))#收下
-        if 当前值==自定义预设:#仅当前是 custom 时追加
-            选项=选项+[自身.选项于(自定义预设)]#追加 custom
-        return {'options':选项,'currentValue':当前值}#完整选择
-
     def 解析(自身,名):#按名解析捆
         """解析一条预设的旋钮捆。名不在表里则抛出。"""
-        if 名 not in 自身.预设表:#未知名
-            raise 权限预设错误('permission: unknown preset "'+名+'" (known: '+', '.join(自身.预设表.keys())+')')#大声失败
-        return 自身.预设表[名]#返回捆
+        规格=自身.规格于(名)#查表或在线 Auto
+        if 规格 is None:#未知名
+            raise 权限预设错误('permission: unknown preset "'+名+'" (known: '+', '.join(自身.名表)+')')#大声失败
+        return 规格#返回捆
 
     def 选项于(自身,名):#构建展示选项
-        """为表条目或 CUSTOM_PRESET 构建客户端选项。"""
+        """为可用预设或 CUSTOM_PRESET 构建客户端选项。"""
         if 名==自定义预设:#派生状态
             return {'value':自定义预设,'name':'Custom','description':'Current sandbox and approval settings do not match a preset.'}#固定 custom 选项
         规格=自身.解析(名)#未知名在此抛
@@ -275,20 +287,23 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
     def 应用(自身,会话,名,设审批):#共享写路径
         """用调用方选定的存活或初始化策略写入器应用一条预设。"""
         规格=自身.解析(名)#先证明可解析
-        if 自身.当前(会话.events)!=名:#与当前不同才记意图
-            会话.追加('permission/preset',{'preset':名})#写下所选预设
-        事件列表=会话.events#追加后的日志
+        if 名==自动预设 and 自身.自动准入 is not None:#在线 Auto 先过准入
+            自身.自动准入()#准入
+        当前=自身.当前(会话.events)#当前生效
+        事件列表=会话.events#追加前的日志
         生效沙盒=生效沙盒模式(事件列表)#当前沙盒覆盖
         if 生效沙盒 is None:#无覆盖
             生效沙盒=自身.ctx.shell.sandboxMode#组合默认
-        if 规格['sandbox']!=生效沙盒:#沙盒已变
-            设沙盒模式(会话,规格['sandbox'])#经权威 setter 写
         生效审批=生效审批策略(事件列表)#当前审批覆盖
         if 生效审批 is None:#无覆盖
             审批配置=自身.ctx.approval.配置#审批插件配置
             生效审批=审批配置['policy'] if 'policy' in 审批配置 else None#配置
             if 生效审批 is None:#再缺
                 生效审批='ask'#ask
+        if 当前!=名:#与当前不同才记意图
+            会话.追加('permission/preset',{'preset':名})#写下所选预设
+        if 规格['sandbox']!=生效沙盒:#沙盒已变
+            设沙盒模式(会话,规格['sandbox'])#经权威 setter 写
         if 规格['approval']!=生效审批:#审批已变
             设审批(规格['approval'])#经调用方选定的写入器
 
@@ -304,6 +319,10 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
             if 事件['type']=='session/end-seed':#命中
                 已播种=True#已播种
                 break#停
+        if 已选==自动预设:#日志里是 Auto
+            if 自身.自动准入 is None:#集成不在线
+                raise 权限预设错误('permission: cannot restore preset "auto" without its active integration')#拒绝恢复
+            自身.自动准入()#过准入
         if 已选 is None and 沙盒 is None and 审批 is None and (not 已播种):#真正全新
             名=自身.默认预设#用户默认
             规格=自身.解析(名)#解析捆
@@ -328,10 +347,28 @@ class 权限预设服务(服务):#权限预设服务：拥有部署的权限预�
                 配置策略='ask'#ask
             设审批策略(会话,配置策略)#用配置或 ask 钉上
 
+    def 发出目录已变(自身):#目录失效
+        """发出无载荷、不可否决的目录失效通知。"""
+        派发=自身.ctx.events.dispatch#事件派发
+        监听器列表=派发('emit',['permission-presets/catalog-changed'])#取出监听器
+        for 监听器 in 监听器列表:#逐个
+            try:#监听器可能抛
+                监听器()#同步调用
+            except Exception as 错误:#失败只警告
+                自身.ctx.日志.警告('permission: catalog-changed listener failed: '+str(错误))#记日志
+
+    def 规格于(自身,名):#查表或 Auto
+        """解析一条已配置或当前在线的固定预设，不抛。"""
+        if 名 in 自身.预设表:#表内
+            return 自身.预设表[名]#已配置捆
+        if 名==自动预设 and 自身.自动准入 is not None:#在线 Auto
+            return 自动预设捆#固定捆
+        return None#未知
+
 __all__=[#仅中文公开名
-    '自定义预设','权限设置命名空间','默认预设表','配置模式','空旋钮',
+    '自定义预设','自动预设','权限设置命名空间','默认预设表','配置模式','空旋钮',
     '权限选择投影模式','生效权限预设','应用旋钮事件','折叠旋钮',
-    '权限预设错误','权限预设服务','预设选项字段','权限选择字段',
+    '权限预设错误','权限预设服务','预设选项字段','权限目录字段','权限选择字段',
 ]#公开面结束
 name='permission-presets'#Cordis插件名
 Config=配置模式#Cordis配置模式

@@ -7,6 +7,7 @@
     "home-paths":"主目录路径",
     "http-proxy":"http代理",
     "launch-environment":"启动环境",
+    "lazy-require":"惰性导入",
     "native-command":"原生命令",
     "output-retention":"输出保留",
     "package-manifest":"包清单",

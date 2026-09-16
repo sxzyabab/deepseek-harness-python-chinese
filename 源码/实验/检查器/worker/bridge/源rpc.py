@@ -1,6 +1,7 @@
 #对齐上游 worker/bridge/source-rpc.ts
 
-import uuid,threading#请求id与超时
+import uuid#请求id
+from threading import Timer as 定时器#超时定时器
 from ...共享.json import 操作任务#单次结果
 from .会话 import 发送Client会话关闭#会话关闭
 from .枢纽 import 检查器协议版本#协议版本

@@ -20,6 +20,7 @@ __all__=['图像准入错误码集合','附件错误码','附件错误','是否�
     'ATTACHMENT_NOT_FOUND',#对象缺失
     'ATTACHMENT_READ_FAILED',#读取失败
     'ATTACHMENT_PROJECTION_UNSUPPORTED',#不支持请求投影
+    'ATTACHMENT_FILES_UNSUPPORTED',#不支持原字节文件
 ])#联合结束
 
 class 附件错误(Exception):#稳定协议路由失败

@@ -61,7 +61,7 @@ __all__=(
 )#仅中文公开名；Cordis 槽 inject/Config/default 另见类与模块尾
 
 调度器符号=object()#调度器符号
-折叠段顺序=99#折叠段顺序
+折叠段顺序=800#PTC_ONLY 段顺序
 工具体后中止='ABORTED'#体后中止
 工具体前中止='ABORTED_BEFORE_DISPATCH'#体前中止
 
@@ -122,7 +122,7 @@ def 错误消息(错误):
             return 错误.message#属性 message
         return str(错误)#其余字符串化
     except Exception:
-        return '<无法打印的抛出值>'#不可打印
+        return '<unprintable thrown value>'#不可打印
 
 def 从内容取失败消息(内容):
     """从策略反馈导出一条失败消息，不改其已渲染块。"""
@@ -133,13 +133,13 @@ def 从内容取失败消息(内容):
         else:
             文本列表.append('['+str(块['type'])+' content]')#类型占位
     文本='\n'.join(文本列表)#换行连接
-    return 文本 if len(文本)>0 else '工具结果被 post-execute 策略拦截'#空则用默认句
+    return 文本 if len(文本)>0 else 'tool result blocked by post-execute policy'#空则用默认句
 
 def 物化呈现(候选):
     """快照并冻结一份耐久工具结果投影，或拒绝有损数据。"""
     脱离=快照json值(候选)#脱离
     if 脱离 is None:
-        raise TypeError('工具结果必须能无损 JSON 序列化')#必须无损
+        raise TypeError('tool result must be losslessly JSON-serializable')#必须无损
     return 深冻结(脱离)#冻结
 
 def 错误信息(错误):
@@ -163,7 +163,7 @@ def 解析并行上限(值):
     else:
         是整数=False#其余非法
     if (not 是整数) or 上限<1:
-        raise 工具错误('maxParallelSubCalls 必须是正整数')#必须正整数
+        raise 工具错误('maxParallelSubCalls must be a positive integer')#必须正整数
     return 上限#已校验上限
 
 class 工具未找到错误(框架错误):
@@ -171,9 +171,9 @@ class 工具未找到错误(框架错误):
     def __init__(自身,工具名,可达路径=None):
         """用名字与可选替代路径构造。"""
         if 可达路径 is None:
-            消息='未知工具 "'+工具名+'"'#裸未知
+            消息='unknown tool "'+工具名+'"'#裸未知
         else:
-            消息='未知工具 "'+工具名+'": '+可达路径#带路径
+            消息='unknown tool "'+工具名+'": '+可达路径#带路径
         super().__init__(消息,'UNKNOWN_TOOL')#错误码
         自身.name='ToolNotFoundError'#类名
 
@@ -181,20 +181,20 @@ class 工具输出错误(框架错误):
     """工具函数体或后策略值违反其声明输出时抛出。"""
     def __init__(自身,工具名,违规列表):
         """用违规构造；公开属性仅 违规列表。"""
-        super().__init__('工具 "'+工具名+'" 返回了非法输出: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
+        super().__init__('tool "'+工具名+'" returned invalid output: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
         自身.name='ToolOutputError'#错误名槽
         自身.违规列表=违规列表#违规诊断列表
 
 def 投影失败(工具名,投影器,错误):
     """把一次投影器异常转成规范的非法输出失败。"""
-    return 工具输出错误(工具名,['output.'+投影器+' 失败: '+错误消息(错误)])#包成输出错误
+    return 工具输出错误(工具名,['output.'+投影器+' failed: '+错误消息(错误)])#包成输出错误
 
 def 快照投影(工具名,投影器,候选):
     """在后续耐久结果物化之前快照一次投影器结果。"""
     try:
         脱离=快照json值(候选)#脱离
         if 脱离 is None:
-            raise 工具输出错误(工具名,['output.'+投影器+' 返回了非无损 JSON'])#非无损 JSON
+            raise 工具输出错误(工具名,['output.'+投影器+' returned non-lossless JSON'])#非无损 JSON
         return 脱离#已脱离投影
     except 工具输出错误:
         raise#已是输出错误则原样抛
@@ -206,12 +206,12 @@ def 快照工具值(工具名,候选):
     try:
         脱离=快照json值(候选)#脱离
         if 脱离 is None:
-            raise 工具输出错误(工具名,['value 不是无损 JSON'])#非无损
+            raise 工具输出错误(工具名,['value is not lossless JSON'])#非无损
         return 脱离#规范值
     except 工具输出错误:
         raise#已是输出错误
     except Exception as 错误:
-        raise 工具输出错误(工具名,['value 快照失败: '+错误消息(错误)])#快照失败
+        raise 工具输出错误(工具名,['value snapshot failed: '+错误消息(错误)])#快照失败
 
 def 铸造执行令牌():
     """铸造同进程关联令牌。"""
@@ -225,7 +225,7 @@ def 工具错误结果(错误):
     if 信息 is not None:
         失败['info']=信息#结构化
     return {
-        'content':[{'type':'text','text':'错误: '+消息}],#Native 信封
+        'content':[{'type':'text','text':'Error: '+消息}],#Native 信封
         'isError':True,#失败
         'error':失败,#细节
     }#失败结果
@@ -234,10 +234,10 @@ def 工具体后中止结果(先前=None):
     """函数体已调用后取消取代成功时的规范结果。"""
     推迟=先前['additionalContexts'] if 先前 is not None and 'additionalContexts' in 先前 and 先前['additionalContexts'] is not None else []#保留已推迟上下文
     结果={
-        'content':[{'type':'text','text':'错误: 工具调用已中止'}],#模型可见
+        'content':[{'type':'text','text':'Error: tool call aborted'}],#模型可见
         'isError':True,#失败
         'error':{
-            'message':'工具调用已中止',#消息
+            'message':'tool call aborted',#消息
             'info':{'name':'AbortError','code':工具体后中止},#体后码
         },#结构化
     }#中止失败
@@ -329,7 +329,7 @@ class 工具运行时(服务):
     """工具注册表与执行管线。"""
     注入=['systemPrompt']#依赖系统提示词
     配置={
-        'mode':枚举字段('native','code','both',默认值='native'),#呈现默认 native
+        'mode':枚举字段('native','ptc','both',默认值='native'),#呈现默认 native
         'maxParallelSubCalls':自然数字段(最小=1,默认值=10),#并行上限默认 10
     }#Loader 配置模式
 
@@ -375,11 +375,11 @@ class 工具运行时(服务):
         raise KeyError(键)#未知键
 
     def 折叠段(自身):
-        """code 执行器折叠的提示词陈述。"""
+        """ptc 执行器折叠的提示词陈述。"""
         def 文本(上下文):
-            """仅 code 才有文案。"""
-            return 仅代码指令 if 自身.解析呈现(上下文['scope'] if 'scope' in 上下文 else None)=='code' else ''#仅 code
-        return {'name':'tools:code-only','order':折叠段顺序,'text':文本}#段登记
+            """仅 ptc 才有文案。"""
+            return 仅代码指令 if 自身.解析呈现(上下文['scope'] if 'scope' in 上下文 else None)=='ptc' else ''#仅 ptc
+        return {'name':'tools:ptc-only','order':折叠段顺序,'text':文本}#段登记
 
     def sdk段(自身):
         """生成 SDK 提示词段。"""
@@ -394,7 +394,7 @@ class 工具运行时(服务):
             if 渲染 is None:
                 raise 工具错误('dsh-tools: 没有 '+str(语言)+' 的 SDK 渲染器')#无渲染器
             return 渲染(自身.sdk模式(上下文['scope'] if 'scope' in 上下文 else None))#渲染 SDK
-        return {'name':'tools:sdk','order':sdk段顺序,'text':文本}#段登记
+        return {'name':'tools:sdk','order':sdk段顺序,'interpolate':False,'text':文本}#段登记
 
     def 解析呈现(自身,作用域=None):
         """一个作用域的智能体看见的呈现。"""
@@ -415,12 +415,25 @@ class 工具运行时(服务):
                 return 自身.要求代码运行时(自身.默认模式)#必需
             def 窥探运行时():
                 """窥探运行时。"""
-                return 自身.ctx.获取服务('codeRuntime')#可选服务
+                return 自身.ctx.获取服务('ptcRuntime')#可选服务
+            def 窥探审批():
+                """窥探审批通道。"""
+                return 自身.ctx.获取服务('approval')#可选审批
+            def 解析沙箱政策(执行):
+                """解析站立政策。"""
+                政策=自身.ctx.获取服务('sandboxPolicy')#沙箱政策服务
+                if 政策 is None:
+                    raise 工具错误('dsh-tools: confined PTC runtime requires sandboxPolicy')#必须有政策
+                if 'agent' not in 执行 or 执行['agent'] is None:
+                    return 政策.解析({})#无会话
+                return 政策.解析({'session':执行['agent'].session})#按会话
             def 整形日志(派发):
                 """整形日志。"""
                 return 自身.整形派发日志(派发)#委托
             自身.代码传输=创建运行代码工具(自身,{
                 'requireRuntime':要求运行时,#必需
+                'peekApprover':窥探审批,#窥探审批
+                'resolveSandboxPolicy':解析沙箱政策,#解析沙箱政策
                 'peekRuntime':窥探运行时,#窥探
                 'maxParallel':自身.最大并行子调用,#并行上限
                 'shapeDispatchLog':整形日志,#整形日志
@@ -458,7 +471,7 @@ class 工具运行时(服务):
             return {'schemas':模式列表,'knownNames':list(视图['knownNames'])}#已知名含限制前
         自身.要求代码运行时(呈现)#必需运行时与渲染器
         模式列表=[自身.投影模式(定义,False) for 定义 in 视图['visible'].values()]#含传输
-        if 呈现=='code':
+        if 呈现=='ptc':
             return {
                 'schemas':[项 for 项 in 模式列表 if 项['name']==运行代码名],#仅 run_code
                 'knownNames':[运行代码名],#顺序校验只认传输
@@ -467,9 +480,9 @@ class 工具运行时(服务):
 
     def 要求代码运行时(自身,呈现):
         """解析代码运行时，否则抛出可操作的错误配置。"""
-        运行时=自身.ctx.获取服务('codeRuntime')#可选服务
+        运行时=自身.ctx.获取服务('ptcRuntime')#可选服务
         if 运行时 is None:
-            raise 工具错误('dsh-tools: 模式 "'+呈现+'" 需要代码运行时 — 请加载 ctx.codeRuntime 实现（例如 @deepseek-ai/dsh-code-runtime-worker-thread）或把 tools 模式设为 "native"')#可操作错误
+            raise 工具错误('dsh-tools: 模式 "'+呈现+'" 需要PTC运行时 — 请加载 ctx.ptcRuntime 实现（例如 @deepseek-ai/dsh-ptc-runtime-node）或把 tools 模式设为 "native"')#可操作错误
         语言=运行时.language#语言
         if 语言 not in sdk渲染器:
             已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in sdk渲染器.keys())#已知语言
@@ -487,7 +500,7 @@ class 工具运行时(服务):
         if 超时 is not None and not 是否正有限(超时):
             raise TypeError('工具 "'+名+'" 的 timeoutMs 必须是正有限数')#必须正有限
         if 名==运行代码名:
-            raise 工具错误('工具名 "'+运行代码名+'" 保留给 Code Mode 呈现传输，不能登记或遮蔽')#不得注册或遮蔽
+            raise 工具错误('工具名 "'+运行代码名+'" 保留给 PTC mode 呈现传输，不能登记或遮蔽')#不得注册或遮蔽
         def 插入(层):
             """插入定义。"""
             return 层.工具.插入(名,定义)#插入
@@ -509,7 +522,7 @@ class 工具运行时(服务):
             已编译['deny']=set(黑名单)#黑名单集
         点名=list(白名单 or [])+list(黑名单 or [])#全部点名
         if 运行代码名 in 点名:
-            raise 工具错误('tools.restrict() 不能点名保留的 Code Mode 呈现传输 "'+运行代码名+'"；请改为限制终端能力工具')#不得限制传输
+            raise 工具错误('tools.restrict() 不能点名保留的 PTC mode 呈现传输 "'+运行代码名+'"；请改为限制终端能力工具')#不得限制传输
         已知=自身.视图(作用域)['restrictableNames']#可限制的全局名
         未知=[名 for 名 in 点名 if 名 not in 已知]#未知名
         if len(未知)>0:
@@ -586,7 +599,7 @@ class 工具运行时(服务):
         return [自身.投影模式(定义,True) for 定义 in 自身.视图(作用域)['visible'].values()]#脱离参数
 
     def sdk模式(自身,作用域=None):
-        """把可见可调用工具投影到生成的 Code Mode SDK 约定。"""
+        """把可见可调用工具投影到生成的 PTC 模式 SDK 约定。"""
         结果=[]#SDK 模式
         for 定义 in 自身.视图(作用域)['visible'].values():
             if 定义['name']==运行代码名:
@@ -632,8 +645,8 @@ class 工具运行时(服务):
             return 派发['content']#回落原始内容
 
     def 是否折叠(自身,名,作用域,嵌套):
-        """code 模式折叠是否拒绝模型直接调用。"""
-        return (not 嵌套) and 自身.解析呈现(作用域)=='code' and 名!=运行代码名#非嵌套且 code 且不是传输
+        """ptc 模式折叠是否拒绝模型直接调用。"""
+        return (not 嵌套) and 自身.解析呈现(作用域)=='ptc' and 名!=运行代码名#非嵌套且 ptc 且不是传输
 
     def 执行(自身,执行输入):
         """经预策略、守卫、环绕派发、后策略、内容最终化与最终通知执行。"""
@@ -691,6 +704,8 @@ class 工具运行时(服务):
             基础['agent']=智能体#有智能体才带
         if 父 is not None:
             基础['parent']=父#有父才带
+        if 'schema' in 执行输入 and 执行输入['schema'] is not None:
+            基础['schema']=执行输入['schema']#有绑定期模式才带
         捕获最终器=None#开始时快照
         if 可见 is not None and 'finalizeContent' in 可见 and 可见['finalizeContent'] is not None:
             捕获最终器=可见['finalizeContent']#快照回调
@@ -750,22 +765,29 @@ class 工具运行时(服务):
             if 门['kind']=='ask':
                 询问决议=自身.服务询问(执行,门)#走审批接缝
             else:
-                询问决议={'decision':门,'approvalCancelled':False}#允许或拒绝
-            决策=询问决议['decision']#最终允许/拒绝
+                询问决议={'decision':门,'approvalCancelled':False}#允许、拒绝或取消
+            决策=询问决议['decision']#最终决策
             if 自身.调用方已取消(执行) and 询问决议['approvalCancelled']:
                 return 下一步({'kind':'post-result','exec':执行,'result':工具体前中止结果()})#仍走后执行
+            if 决策['kind']=='cancel':
+                return 下一步({'kind':'post-result','exec':执行,'result':工具体前中止结果()})#规范取消
             if 决策['kind']=='allow':
                 拒绝原因=自身.求守卫原因(执行)#单调守卫
+                拒绝信息=None#允许无 info
             else:
                 拒绝原因=决策['reason']#策略拒绝原因
+                拒绝信息=决策['info'] if 决策['kind']=='deny' and 'info' in 决策 else None#拒绝结构化身份
             if 拒绝原因 is not None:
+                失败={'message':拒绝原因}#失败细节
+                if 拒绝信息 is not None:
+                    失败['info']=拒绝信息#结构化身份
                 return 下一步({
                     'kind':'post-result',#还要后执行
                     'exec':执行,#执行
                     'result':自身.物化最终结果({
                         'content':[{'type':'text','text':'错误: '+拒绝原因}],#模型可见错误
                         'isError':True,#失败
-                        'error':{'message':拒绝原因},#失败细节
+                        'error':失败,#失败细节
                     }),#物化拒绝
                 })#后执行仍能看见拒绝
             if 自身.调用方已取消(执行):

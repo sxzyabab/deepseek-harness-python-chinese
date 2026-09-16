@@ -1,38 +1,41 @@
-"""在 ctx.llm 上为 deepseek-official 提供方路由注册 DeepSeek 适配器。
-
-对齐上游 `llm-deepseek/src/index.ts`。公开面仅中文名；无英文别名。
-连接事实按请求解析而不是在加载时冻结：插件把它的 cordis.yml 条目配置叠在可选的 llm-deepseek 用户设置段下，并经可选凭证 seam 解析 API 密钥。唯一在注册时捕获的事实——重试政策——在变更时就地重新注册该路由。
-"""
-from math import isfinite as 是否有限#有限数判断
-from ...依赖.schemastery import 字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段,字典字段#配置字段
+"""在 ctx.llm 上为 deepseek-official 提供方路由注册 DeepSeek 适配器。"""
 from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误
-    解析重试政策,#政策解析
+    解析图片附件访问,#图片访问
     重试政策错误,#政策校验失败
 )#导入 llm 词表
-from ...凭据.凭据 import 凭证引用#凭证引用工厂
 from ...工具.启动环境 import 取启动环境#启动环境快照
+from ...身份.匿名用户id import 获取或创建匿名用户id#匿名用户
 from ...配置.配置 import json深度相等,安装设置段,设置命名空间#JSON相等、设置段安装与命名空间
-from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
-from .适配器 import (
+from .配置 import 配置,公开基址,消息基址,解析适配器选项,深求配置错误#配置
+from .协议无关.默认值 import (
     默认上下文窗口,#默认窗口
+    默认文件过期秒,#文件过期
+    默认文件配额清理批,#清理批
+    默认文件刷新边距秒,#刷新边距
+    默认文件接口超时毫秒,#Files 超时
+    默认图片卸载字节量子,#卸载字节量子
+    默认图片卸载张数量子,#卸载张数量子
+    默认内联图片卸载字节量子,#内联卸载量子
+    默认最大内联请求图字节,#内联图字节
     默认最大令牌,#默认输出上限
     默认流空闲超时毫秒,#默认空闲超时
-    深求适配器,#适配器类
-)#适配器模块
-from .请求定价 import (#请求定价再导出
+)#默认值
+from .适配器 import 深求适配器#适配器类
+from .协议无关.请求定价 import (
     默认低细节图像素预算,#低细节预算
     默认每请求最大图片数,#最大图数
     默认最大请求文件字节,#文件字节上限
     默认请求图最大字节,#单图字节
-    默认请求图像素预算,#像素预算
+    请求图最大边,#每边上限
     深求图片请求定价,#图片请求定价
-    解析请求图政策,#解析请求图政策
+    解析请求图最大字节,#解析字节
+    解析请求图目标,#解析目标
 )#请求定价
-from .图片令牌 import 深求图片令牌#图 token
-from .文件仓 import 深求文件仓,最大聊天图字节#文件仓
-from .文件接口 import (#Files 客户端
+from .协议无关.图片令牌 import 深求图片令牌,深求请求图尺寸#图 token
+from .协议无关.文件仓 import 深求文件仓,最大图片字节#文件仓
+from .协议无关.文件接口 import (
     深求文件客户端,#客户端
     最大文件过期秒,#最大过期
     最大文件上传字节,#最大上传
@@ -40,10 +43,14 @@ from .文件接口 import (#Files 客户端
     最大存储文件数,#最大存储数
     最小文件过期秒,#最小过期
 )#Files
-from .文件标识 import 深求文件标识#文件 id
-from .上传索引 import 深求上传索引,深求文件作用域摘要#上传索引
-from .类型 import (#再导出线路类型
+from .协议无关.文件标识 import 深求文件标识#文件 id
+from .协议无关.上传索引 import 深求上传索引,深求文件作用域摘要#上传索引
+from .协议无关.类型 import 深求协议表#协议名
+from .协议.对话补全.类型 import (
     线路请求,#线路请求
+    线路文本内容部件,#文本部件
+    线路文件内容部件,#文件部件
+    线路图片网址内容部件,#图片网址部件
     线路系统消息,#系统消息
     线路用户消息,#用户消息
     线路工具消息,#工具消息
@@ -59,144 +66,29 @@ from .类型 import (#再导出线路类型
     线路错误,#错误体
 )#类型再导出结束
 
-__all__=(#仅中文公开名；无英文别名
+__all__=(#仅中文公开名
     '名称','注入','配置','应用','默认',
-    '设置空间','公开基址','解析适配器选项','解析模型目录','深求配置错误',
-    '默认上下文窗口','默认最大令牌','默认流空闲超时毫秒','深求适配器',
+    '设置空间','公开基址','消息基址','解析适配器选项','深求配置错误',
+    '默认上下文窗口','默认文件过期秒','默认文件配额清理批','默认文件刷新边距秒',
+    '默认文件接口超时毫秒','默认图片卸载字节量子','默认图片卸载张数量子',
+    '默认内联图片卸载字节量子','默认最大内联请求图字节','默认最大令牌','默认流空闲超时毫秒',
+    '深求适配器','深求协议表',
     '默认低细节图像素预算','默认每请求最大图片数','默认最大请求文件字节',
-    '默认请求图最大字节','默认请求图像素预算','深求图片请求定价','解析请求图政策',
-    '深求图片令牌','深求文件仓','最大聊天图字节',
+    '默认请求图最大字节','请求图最大边','深求图片请求定价','解析请求图最大字节','解析请求图目标',
+    '深求图片令牌','深求请求图尺寸','深求文件仓','最大图片字节',
     '深求文件客户端','最大文件过期秒','最大文件上传字节','最大存储文件字节','最大存储文件数','最小文件过期秒',
     '深求文件标识','深求上传索引','深求文件作用域摘要',
-    '线路请求','线路系统消息','线路用户消息','线路工具消息',
+    '线路请求','线路文本内容部件','线路文件内容部件','线路图片网址内容部件',
+    '线路系统消息','线路用户消息','线路工具消息',
     '线路助手消息','线路消息','线路工具调用','线路工具',
     '线路块','线路选择','线路增量','线路工具调用增量',
     '线路用量','线路错误',
 )#公开面结束
 
-名称='llm-deepseek'#插件名（字面量不译）
+名称='llm-deepseek'#插件名
 注入=['llm']#依赖 llm 服务
 设置空间=设置命名空间('llm-deepseek')#设置命名空间
-默认接口密钥环境='DEEPSEEK_API_KEY'#默认密钥环境变量
 提供方='deepseek-official'#官方路由名
-最大安全整数=9007199254740991#Number.MAX_SAFE_INTEGER
-最小正数=5e-324#Number.MIN_VALUE#5e-324
-默认模型列表=[
-    {'id':'deepseek-flash','name':'DeepSeek-V41-Flash','contextWindow':默认上下文窗口,#V41 Flash
-     'inputModalities':['text','image'],#支持图文
-     'imagePixelBudget':默认请求图像素预算,'imageMaxBytes':默认请求图最大字节,#图预算
-     'systemPromptUpdate':'in-history'},#系统提示更新策略
-    {'id':'deepseek-v4-flash','name':'DeepSeek-V4-Flash','contextWindow':默认上下文窗口,#Flash
-     'description':'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.'},#描述
-    {'id':'deepseek-v4-pro','name':'DeepSeek-V4-Pro','contextWindow':默认上下文窗口,#Pro
-     'description':'Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.'},#描述
-    {'id':'deepseek-v4-flash-vision-exp','name':'DeepSeek-V4-Flash-Vision-Exp','contextWindow':默认上下文窗口,#视觉实验
-     'inputModalities':['text','image'],#支持图文
-     'imagePixelBudget':默认请求图像素预算,'imageMaxBytes':默认请求图最大字节},#图预算
-]#默认建议目录
-目录模型={
-    'id':字符串字段(可空=False),#必需id
-    'name':字符串字段(),#可选名
-    'description':字符串字段(),#可选描述
-    'contextWindow':整数字段(最小=1),#正整数窗口
-    'maxTokens':整数字段(最小=1),#正整数上限
-}#目录条目模式
-配置={
-    'apiKeyEnv':字符串字段(默认值=默认接口密钥环境),#密钥引用
-    'baseURL':字符串字段(),#基址
-    'thinking':枚举字段(常量字段('enabled'),常量字段('disabled')),#思考开关
-    'reasoningEffort':枚举字段(常量字段('off'),常量字段('high'),常量字段('max')),#力度
-    'maxTokens':整数字段(最小=1,最大=最大安全整数,默认值=默认最大令牌),#输出上限
-    'defaultContextWindow':整数字段(最小=1,默认值=默认上下文窗口),#默认窗口
-    #'models':字典字段(目录模型,默认值=默认模型列表),#目录
-    'streamIdleTimeoutMs':数字字段(最小=最小正数,最大=定时器延迟上限毫秒,默认值=默认流空闲超时毫秒),#空闲超时
-    'retryPolicy':'重试政策模式',#重试政策
-}#配置运行时模式
-公开基址='https://api.deepseek.com'#公开API默认
-基址环境='DEEPSEEK_BASE_URL'#基址环境变量
-
-class 深求配置错误(Exception):
-    """llm-deepseek 配置校验失败。"""
-
-def 解析模型目录(模型列表):#解析建议目录
-    """解析、校验并拆离建议模型目录。条目为 dict。"""
-    已见=set()#已见id
-    结果=[]#拆离后的目录
-    for 模型 in (模型列表 if 模型列表 is not None else 默认模型列表):#逐条
-        if len(模型['id'])==0:#id空
-            raise 深求配置错误('llm-deepseek: catalog model ids must be non-empty')#id不得空
-        if 'name' in 模型 and 模型['name'] is not None and len(模型['name'])==0:#名给了但是空
-            raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" has an empty name')#名非法
-        if 'contextWindow' in 模型:#有窗口
-            窗口=模型['contextWindow']#窗口
-            是正整数=not isinstance(窗口,bool) and isinstance(窗口,(int,float)) and 窗口==int(窗口) and 窗口>0#入口校验正整数，先排除 bool
-            if not 是正整数:#窗口非法
-                raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" contextWindow must be a positive integer')#窗口非法
-        if 'maxTokens' in 模型:#有上限
-            上限=模型['maxTokens']#上限
-            是正整数=not isinstance(上限,bool) and isinstance(上限,(int,float)) and 上限==int(上限) and 上限>0#入口校验正整数，先排除 bool
-            if not 是正整数:#上限非法
-                raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" maxTokens must be a positive integer')#上限非法
-        更新模式=模型['systemPromptUpdate'] if 'systemPromptUpdate' in 模型 else None#可选系统提示词更新
-        if 更新模式 is not None and 更新模式!='in-history':#非法模式
-            raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" systemPromptUpdate must be "in-history" when present')#更新模式非法
-        if 模型['id'] in 已见:#id重复
-            raise 深求配置错误('llm-deepseek: duplicate catalog model "'+模型['id']+'"')#id重复
-        已见.add(模型['id'])#记下已见
-        条目={'id':模型['id']}#拆离条目
-        if 'name' in 模型:#有名
-            条目['name']=模型['name']#有名才带上
-        if 'description' in 模型:#有描述
-            条目['description']=模型['description']#有描述才带上
-        if 'contextWindow' in 模型:#有窗口
-            条目['contextWindow']=模型['contextWindow']#有窗口才带上
-        if 'maxTokens' in 模型:#有上限
-            条目['maxTokens']=模型['maxTokens']#有上限才带上
-        if 更新模式 is not None:#有更新模式
-            条目['systemPromptUpdate']=更新模式#有更新模式才带上
-        结果.append(条目)#收下
-    return 结果#已校验目录
-
-def 解析适配器选项(原始配置,环境=None):#解析连接事实
-    """从原始配置到已校验连接事实的那一次显式解析步骤。配置为 dict。"""
-    思考=原始配置['thinking'] if 'thinking' in 原始配置 else None#思考开关
-    力度=原始配置['reasoningEffort'] if 'reasoningEffort' in 原始配置 else None#力度
-    if 思考=='disabled' and 力度 is not None and 力度!='off':#禁用思考却给了非off力度
-        raise 深求配置错误('llm-deepseek: only reasoningEffort "off" can be configured when thinking is disabled')#禁用思考时只能off
-    if 'defaultContextWindow' in 原始配置:#有窗口
-        窗口=原始配置['defaultContextWindow']#窗口
-        是正整数=not isinstance(窗口,bool) and isinstance(窗口,(int,float)) and 窗口==int(窗口) and 窗口>0#入口校验正整数，先排除 bool
-        if not 是正整数:#窗口非法
-            raise 深求配置错误('llm-deepseek: defaultContextWindow must be a positive integer')#窗口非法
-    if 'maxTokens' in 原始配置:#有上限
-        上限=原始配置['maxTokens']#上限
-        是正安全=not isinstance(上限,bool) and isinstance(上限,(int,float)) and 上限==int(上限) and 上限>0 and abs(上限)<=最大安全整数#入口校验正安全整数
-        if not 是正安全:#上限非法
-            raise 深求配置错误('llm-deepseek: maxTokens must be a positive safe integer')#上限非法
-    空闲超时=原始配置['streamIdleTimeoutMs'] if 'streamIdleTimeoutMs' in 原始配置 else 默认流空闲超时毫秒#空闲超时或默认
-    if not 是否有限(空闲超时) or 空闲超时<=0 or 空闲超时>定时器延迟上限毫秒:#空闲超时非法
-        raise 深求配置错误('llm-deepseek: streamIdleTimeoutMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒))#空闲超时非法
-    if 'baseURL' in 原始配置:#配置基址
-        基址=原始配置['baseURL']#配置基址
-    else:#回落环境或公开
-        环境项=环境.取(基址环境) if 环境 is not None else None#受信环境
-        if 环境项 is not None:#有环境项
-            基址=环境项['value']#环境基址
-        else:#公开默认
-            基址=公开基址#公开默认
-    return {
-        'apiKeyEnv':凭证引用(原始配置['apiKeyEnv'] if 'apiKeyEnv' in 原始配置 else 默认接口密钥环境),#凭证引用
-        'baseURL':基址,#基址
-        'defaults':{
-            'thinking':思考,#开关
-            'reasoningEffort':力度,#力度
-        },#思考默认
-        'maxTokens':原始配置['maxTokens'] if 'maxTokens' in 原始配置 else 默认最大令牌,#输出上限
-        'defaultContextWindow':原始配置['defaultContextWindow'] if 'defaultContextWindow' in 原始配置 else 默认上下文窗口,#默认窗口
-        'models':解析模型目录(原始配置['models'] if 'models' in 原始配置 else None),#目录
-        'streamIdleTimeoutMs':空闲超时,#空闲超时
-        'retryPolicy':解析重试政策(原始配置['retryPolicy'] if 'retryPolicy' in 原始配置 else None,'llm-deepseek: retryPolicy'),#解析政策
-    }#已校验事实
 
 def 应用(上下文对象,原始配置=None):#加载插件
     """加载插件：按请求解析连接事实并注册路由。"""
@@ -246,9 +138,41 @@ def 应用(上下文对象,原始配置=None):#加载插件
         """首次签发后复用。"""
         nonlocal 用户标识#惰性
         if 用户标识 is None:#尚未签发
-            用户标识=获取或创建匿名用户标识()#签发
+            用户标识=获取或创建匿名用户id()#首次签发后复用
         return 用户标识#匿名id
-    适配器=深求适配器({'选项':选项,'解析接口密钥':解析接口密钥,'解析用户标识':解析用户标识})#构造适配器
+    def 解析附件():#当前附件仓
+        """当前附件服务；缺席对纯文本合法。"""
+        return 上下文对象.获取服务('attachments')#仓
+    def 解析图片访问(附件仓,引用):#图片访问
+        """把附件仓上的宿主路径桥进已挂载的工具执行世界。"""
+        文件系统=上下文对象.获取服务('fs')#可选 fs
+        def 映射宿主路径(宿主路径):#映射
+            """宿主对象位置到进程路径。"""
+            if 文件系统 is None:#无 fs
+                return None#不可用
+            return 文件系统.从宿主路径映射进程路径(宿主路径)#映射
+        return 解析图片附件访问(附件仓,映射宿主路径,引用)#访问
+    def 准备扩展(请求):#请求扩展
+        """准备插件贡献字段。"""
+        扩展=上下文对象.获取服务('deepseekLlmApiExtensions')#注册表
+        if 扩展 is None:#无
+            def 接纳():#空
+                """无贡献。"""
+                return None#空
+            return {'fields':{},'accept':接纳}#空扩展
+        return 扩展.准备(请求)#准备
+    def 回放降级(细节):#回放降级
+        """报告不可用消息回放，不暴露耐久内容或签名。"""
+        上下文对象.日志.警告('llm-deepseek: unusable Messages replay state on assistant history for route "'+str(细节['provider'])+'/'+str(细节['model'])+'"; sending provider-neutral content ('+str(细节['reason'])+')')#警告
+    适配器=深求适配器({
+        '选项':选项,#连接
+        '解析接口密钥':解析接口密钥,#密钥
+        '解析用户标识':解析用户标识,#用户
+        '解析附件':解析附件,#附件
+        '解析图片访问':解析图片访问,#访问
+        '准备扩展':准备扩展,#扩展
+        '回放降级':回放降级,#降级
+    })#构造适配器
     上下文对象.llm.注册可配置提供方([
         {'provider':提供方,'displayName':'DeepSeek','settingsNs':设置空间,'settingsPath':[]},#官方路由
     ])#声明可配置提供方
@@ -271,7 +195,7 @@ def 应用(上下文对象,原始配置=None):#加载插件
         'onChange':确保登记事实,#变更时刷新注册捕获的政策
     })#安装设置段
 
-默认=应用#默认导出该插件入口（中文名）
+默认=应用#默认导出该插件入口
 name=名称#框架槽
 inject=注入#框架槽
 apply=应用#框架槽

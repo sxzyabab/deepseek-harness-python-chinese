@@ -16,7 +16,7 @@ __all__=(#仅中文公开名；无英文别名
     '令牌用量','提供方信息','可配置提供方',
     '模型发现请求','发现到的模型','模型信息','模型上下文',
     '推理力度信息','模型推理信息','已解析模型信息',
-    '系统提示词更新','工具模式','生成选项',
+    '系统提示词更新','图片请求预算','回放信封','工具模式','生成选项',
 )#公开面结束
 
 class 中止信号:
@@ -43,6 +43,7 @@ class 语言模型失败(TypedDict):#可序列化提供方或传输失败事实
     status:NotRequired[int]#提供方 HTTP 状态（若有）
     providerRetryAfterMs:NotRequired[float]#提供方请求的延迟毫秒
     requestId:NotRequired[str]#不透明提供方签发请求标识
+    offloadImages:NotRequired[int]#还需卸载的最旧保留出现张数
 
 class 文本块(TypedDict):#对最终用户可见的纯文本
     """对最终用户可见的纯文本。"""
@@ -58,6 +59,7 @@ class 图片块(TypedDict):#持久栅格图片引用
     """持久的栅格图片引用，在用户或助手内容里都合法。"""
     type:Literal['image']#图片标签
     attachment:object#附件服务拥有的不可变字节与固有显示元数据
+    offloaded:NotRequired[Literal[True]]#表面已卸载则走占位文本
 
 class 文件块(TypedDict):#持久逐字文件引用
     """持久的逐字文件引用，在用户内容里合法；请求组装投影为句柄文本。"""
@@ -135,6 +137,7 @@ class 令牌用量(TypedDict):#一次模型调用的 token 记账
     """一次模型调用的 token 记账（缓存字段可选）；计数互斥。"""
     inputTokens:int#未缓存输入
     outputTokens:int#输出
+    totalTokens:NotRequired[int]#可选精确合计
     cacheReadTokens:NotRequired[int]#缓存读取
     cacheWriteTokens:NotRequired[int]#缓存写入
     reasoningTokens:NotRequired[int]#推理
@@ -175,6 +178,19 @@ class 模型信息(TypedDict):#适配器发现的目录模型
     name:str#显示名
     description:NotRequired[str]#可选描述
     inputModalities:NotRequired[list]#可选输入模态
+
+class 图片请求预算(TypedDict):#一条视觉路由对保留出现的字节预算
+    """一条精确视觉路由按请求版本字节执行的请求图预算。"""
+    representation:Literal['raw','base64']#原始文件字节或内联 base64 长度
+    maxBytes:NotRequired[int]#可选累计表示字节上限
+    maxImages:NotRequired[int]#可选出现张数上限
+    byteQuantum:NotRequired[int]#可选字节移除量子
+    countQuantum:NotRequired[int]#可选张数移除量子
+
+class 回放信封(TypedDict):#适配器私有无损回放状态
+    """成功响应的适配器私有回放状态，随终止 finish 块保存。"""
+    response:object#响应级私有元数据
+    blocks:NotRequired[list]#按发出块顺序的逐块私有元数据
 
 class 模型上下文(TypedDict):#精确路由的上下文容量
     """一条精确提供方/模型路由的提供方拥有上下文容量。"""

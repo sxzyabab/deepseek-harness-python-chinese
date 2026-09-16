@@ -7,7 +7,7 @@ __all__=[#仅中文公开名
     '创建会话选项','会话种子事件状态','恢复会话选项','准备会话选项',
     '智能体取消原因','轮次结束取消原因','轮次结束原因映射','轮次结束原因',
     '待办状态','待办条目','纪元请求头','请求上下文','请求头原因',
-    '核心会话事件类型','表面事件类型','表面操作','表面意图','会话事件信封字段',
+    '核心会话事件类型','工具结果错误','表面事件类型','表面操作','表面意图','会话事件信封字段',
 ]#公开面结束
 
 def 会话标识(标识):#品牌会话 id
@@ -86,6 +86,11 @@ class 请求上下文(TypedDict):#一条已解析模型路由的注册绑定元�
     systemPromptUpdate:NotRequired[Literal['in-history']]#系统提示更新模式
 
 请求头原因=Literal['initial','resume','change','series']#为何追加 request/header 快照
+
+class 工具结果错误(TypedDict):#tool/result.error；仅结果块 isError 时允许
+    name:str#失败身份名
+    code:str#失败码
+    reason:NotRequired[str]#面向用户的原始原因，在模型内容之外
 
 核心会话事件类型=Literal[#核心事件类型（线协议英文）
     'turn/start','turn/end','step/start','step/end',

@@ -15,7 +15,6 @@ from .审批面板 import 审批面板,待决审批#审批接管
 from .上下文仪表 import 上下文仪表#占用环
 from .详情面板 import 详情面板#详情列
 from .待办面板 import 待办面板,待办停靠,待办停靠条目#计划条
-from .权限选择 import 权限选择#访问模式
 from .聊天视图 import 聊天视图#聊天流
 from .聊天节点席 import 聊天节点席#节点席
 from .节点席 import 节点席#节点席别名面
@@ -28,7 +27,7 @@ from .工具节点读取 import 根工具调用,查找工具调用#工具查找
 from .登记节点渲染器 import 登记聊天节点渲染器#登记
 from .队列停靠 import 队列停靠,队列停靠条目#队列
 from .输入 import (#输入机子包
-    输入机,会话输入壳,输入枢纽,投影剪贴板,派生装饰,空输入状态,占位符,
+    输入机,会话输入壳,输入枢纽,派生装饰,空输入状态,占位符,
 )#输入结束
 from .会话节点 import 登记会话节点#会话节点
 from .约定.槽 import 会话根子槽#根子槽表
@@ -41,18 +40,17 @@ __all__=[#仅中文公开名
     '会话根','派生阶段','会话面板','会话页眉','会话体',
     '工作区芯片','英雄辉光','英雄壳','输入栏',
     '审批面板','待决审批','上下文仪表','详情面板',
-    '待办面板','待办停靠','待办停靠条目','权限选择',
+    '待办面板','待办停靠','待办停靠条目',
     '聊天视图','聊天节点席','节点席','助手节点视图','助手Markdown',
     '用户消息行','模型重试行','回合错行','回合顶格行','待插话泡',
     '格式化运行时长','格式化消息时钟','统计行','上下文占用','格式化令牌',
     '根工具调用','查找工具调用','登记聊天节点渲染器','队列停靠','队列停靠条目',
-    '输入机','会话输入壳','输入枢纽','投影剪贴板','派生装饰','空输入状态','占位符',
+    '输入机','会话输入壳','输入枢纽','派生装饰','空输入状态','占位符',
     '登记会话节点',
 ]#公开面结束
 
 注入=[#会话插件所需服务
-    'slots','layout','sessions','workspaces','locale','connection','remote','settingsScope',
-    'conversationEvents','conversationViews',
+    'slots','sessions','fileUpload','uiSession','uiWorkspace','locale','settingsScope',
 ]#依赖
 
 绝对路径=re.compile(r'^[A-Za-z]:[/\\]|\\\\')#盘符或 UNC
@@ -173,6 +171,7 @@ def 应用(上下文):
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
     上下文.副作用(登记词典,'ui-conversation: dictionaries')#词典
     翻译=上下文.locale.bind(命名空间)#绑定翻译
+    聊天翻译=上下文.locale.bind('chat')#聊天词典
     聊天存储=创建聊天存储()#本光纤聊天存储
     提交=提交策略(上下文.settingsScope.bind({'namespace':会话设置命名空间}))#提交策略
     聊天滚动={}#会话 id → 滚动位置
@@ -243,7 +242,7 @@ def 应用(上下文):
             """该会话输入壳。"""
             壳=枢纽.shellFor(绑定)#壳
             return {'hooks':{'input':壳.state},'props':{'inputActions':壳.actions}}#套件
-        return 会话面.provide({'hooks':['input'],'props':['inputActions'],'resolve':解析})#提供
+        return 会话面.provide({'hooks':['conversation','input'],'props':['inputActions'],'resolve':解析})#提供
     上下文.副作用(提供输入,'ui-conversation: input standard-kit provider')#挂
     def 根注入(会话标识):
         """阻断源 + 选定工作区（经 openWorkspace，打开前迁移草稿）。"""
@@ -256,25 +255,21 @@ def 应用(上下文):
                 旧=枢纽.shell(会话标识)#旧壳
                 快=旧.snapshot#快照 dict
                 草稿=快['draft'] if 'draft' in 快 else ''#草稿
-                附件列=快['attachmentIds'] if 'attachmentIds' in 快 else (快['imageIds'] if 'imageIds' in 快 else None)#附件
-                附件列表=list(附件列) if 附件列 is not None else []#附件表
+                附件列表=list(快['attachmentIds']) if 'attachmentIds' in 快 else []#附件
                 新=枢纽.shell(下一标识)#新壳
-                加附=新.addAttachments if hasattr(新,'addAttachments') else (新.addImages if hasattr(新,'addImages') else None)#加附件
-                摘附=旧.removeAttachment if hasattr(旧,'removeAttachment') else (旧.removeImage if hasattr(旧,'removeImage') else None)#摘附件
-                可迁=len(附件列表)==0 or (加附 is not None and 加附(附件列表))#无附或收下
+                可迁=len(附件列表)==0 or 新.addAttachments(附件列表)#无附或收下
                 if not 可迁:#拒收
                     return#止
                 if 会话面.binding(下一标识) is None:#须有绑定
-                    raise Exception('ui-conversation: 会话 "'+str(下一标识)+'" 解析不到绑定')#抛
+                    raise 对话错误('ui-conversation: session "'+str(下一标识)+'" resolved no binding')#抛
                 控制器=具体会话(上下文)#控制器
-                if hasattr(控制器,'rebindDraftFiles'):#重绑
-                    控制器.rebindDraftFiles(下一标识,附件列表)#重绑
+                控制器.rebindDraftFiles(下一标识,附件列表)#重绑
                 if 草稿!='':#有文
                     新.setDraft(草稿)#迁文
                     旧.setDraft('')#清空旧
-                if 摘附 is not None:#可摘
+                if len(附件列表)>0:#有附
                     for 附标识 in 附件列表:#摘
-                        摘附(附标识)#移除
+                        旧.removeAttachment(附标识)#移除
             打开=工作区导航.openWorkspace if 工作区导航 is not None else 工作区面.openWorkspace#打开工作区
             打开(工作区标识,打开前)#打开；导航面优先
         阻断源=缺席阻断 if 会话标识 is None else 阻断表.storeFor(会话标识)#阻断
@@ -423,6 +418,7 @@ def 应用(上下文):
             'name':'conversation.composer.bar',#栏
             'locale':命名空间,#文案
             'children':{#子席
+                'conversation.input.permission':{'kind':'single','scope':'session'},#当前会话权限
                 'conversation.input.plan':{'kind':'single','scope':'session'},#计划
                 'conversation.input.model':{'kind':'single','scope':'session'},#模型
             },#子结束
@@ -506,7 +502,7 @@ def 应用(上下文):
         }#返回
     def 聊天标签():
         """视图标签。"""
-        return 翻译('view.chat')#标签
+        return 聊天翻译('view.chat')#聊天词典标签
     槽.register({#登记聊天视图
         'name':'conversation.view',#视图
         'id':'chat',#id

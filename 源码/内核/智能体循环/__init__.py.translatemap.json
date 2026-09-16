@@ -40,5 +40,9 @@
     "tool":"工具",
     "validate":"校验",
     "wait":"等待",
-    "write":"写入"
+    "write":"写入",
+    "boundary":"边界",
+    "definition":"定义",
+    "initialize":"初始化",
+    "publication":"发表"
 }

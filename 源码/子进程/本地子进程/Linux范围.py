@@ -1,14 +1,16 @@
-import ctypes,json,os,re,signal,sys,tempfile,threading,time#libc、JSON、路径、正则、信号、解释器、临时目录、观察线程与可中止睡眠
-from concurrent.futures import Future as 原生结果#单次操作结果
+import ctypes,errno,json,os,re,signal,socket,sys,tempfile,time#libc、缺席码、JSON、路径、正则、信号、套接字、解释器、临时目录与可中止睡眠
+from threading import Event as 同步事件,Lock as 互斥锁,Thread as 线程#观察广播、互斥与后台线程
 from secrets import token_hex#单元词干随机后缀
 from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#派生、忽略流与同步 systemd
 from ...工具.超时 import 已中止,若已中止则抛出#中止入口
+from ..子进程.控制 import 子进程控制描述符#控制通道 fd
 from .启动 import 子环境#擦洗后的子环境
 from .终端 import 本地子进程错误#本包错误
+from .控制派生 import 控制管道#父侧控制管
 
 __all__=(#仅中文公开名
     '探测Linux引导','探测Linux范围','探测Linux管理器','探测Linux原生',
-    '准备Linux终端范围','启动Linux范围',
+    '准备Linux终端范围','启动Linux范围','向Linux直接进程发信号',
 )#公开面结束
 
 systemctl超时毫秒=5_000#systemctl超时
@@ -22,30 +24,6 @@ F_GETFD=1#取 fd 标志
 F_SETFD=2#设 fd 标志
 FD_CLOEXEC=1#close-on-exec
 缓存Execve=None#懒加载 libc execve
-
-class 操作任务:#单次操作结果
-    """单次操作的 Future 包装，只留等待。"""
-    def __init__(自身):#构造未决任务
-        """构造未决任务。"""
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(本地子进程错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        """阻塞到结算。"""
-        return 自身.未来.result(timeout=超时)#取结果或抛错
 
 def 锁json(值):#线协议 JSON
     """按对拍锁写出 JSON 文本。"""
@@ -257,7 +235,7 @@ def runner环境(选择器,调用=None):# runner 环境
     return 环境#返回
 
 def runner标准流(规格):# runner stdio
-    """直接 Linux 目标 stdio。"""
+    """直接 Linux 目标 stdio；可选控制管占 fd 7。"""
     标准流=规格['stdio']#三路处置
     入=DEVNULL if 标准流['stdin']=='ignore' else PIPE#stdin
     出=None if 标准流['stdout']=='inherit' else PIPE#stdout
@@ -317,6 +295,39 @@ def 探测Linux原生(内部=None):#探测 Linux 原生
     """为一次合格 spawn 复核每个 Linux 原生先决。"""
     return 探测Linux引导(内部) and 探测Linux范围(内部)#引导且 scope
 
+class 操作任务:
+    """单次操作结果；兑现或拒绝一次。"""
+    def __init__(自身):#未决
+        """构造未决任务。"""
+        自身._事件=同步事件()#落定事件
+        自身._值=None#兑现值
+        自身._错误=None#拒绝错误
+
+    def 兑现(自身,值=None):#成功结算
+        """成功结算。"""
+        if 自身._事件.is_set():#已结算
+            return 值#忽略
+        自身._值=值#记下
+        自身._事件.set()#落定
+        return 值#返回
+
+    def 拒绝(自身,错误):#失败结算
+        """失败结算。"""
+        if 自身._事件.is_set():#已结算
+            return#忽略
+        if isinstance(错误,BaseException):#已是异常
+            自身._错误=错误#原样
+        else:#包装
+            自身._错误=本地子进程错误(str(错误))#包装
+        自身._事件.set()#落定
+
+    def 等待(自身):#阻塞等到结算
+        """阻塞等到结算。"""
+        自身._事件.wait()#等
+        if 自身._错误 is not None:#失败
+            raise 自身._错误#抛出
+        return 自身._值#兑现值
+
 class Linux范围启动:#scope 启动结算
     """引导消费与已请求终止信号。"""
     def __init__(自身,文件,种类):#记下文件与种类
@@ -336,19 +347,20 @@ class Linux范围启动:#scope 启动结算
         return 结局#返回结局
 
 class 直接范围:#直接范围
-    """是否在运行与向直接进程发信号。"""
-    def __init__(自身,是否在运行,发信号回调):#记下回调
-        """记下在跑探针与发信号。"""
+    """是否在运行、向直接进程发信号与直接结算。"""
+    def __init__(自身,是否在运行,发信号回调,已结算):#记下回调
+        """记下在跑探针、发信号与直接结算任务。"""
         自身._是否在运行=是否在运行#探针
         自身._发信号=发信号回调#发信号
+        自身.已结算=已结算#直接退出/错误结算
 
     def 是否在运行(自身):#是否在运行
         """直接进程是否仍在跑。"""
         return 自身._是否在运行()#探针
 
     def 发信号(自身,信号):#发信号
-        """向直接进程发 SIGTERM/SIGKILL。"""
-        自身._发信号(信号)#回调
+        """向直接进程发 SIGTERM/SIGKILL；已提交或 PID 缺席则为真。"""
+        return 自身._发信号(信号)#回调
 
 class Systemd范围所有者:#systemd scope 所有者
     """终止与整范围结算使用的平台所有者。"""
@@ -365,10 +377,11 @@ class Systemd范围所有者:#systemd scope 所有者
         自身.已停=False#是否已停
         自身.已请求终止=False#是否已请求终止
         自身._观察=None#观察任务
-        自身._观察锁=threading.Lock()#观察锁
+        自身._观察锁=互斥锁()#观察锁
         自身.杀失败=None#杀失败
+        自身.直接杀结算=None#直接杀结算
         自身.唤醒代际=0#唤醒代际
-        自身._唤醒事件=threading.Event()#唤醒事件
+        自身._唤醒事件=同步事件()#唤醒事件
         自身._唤醒代际快照=0#等待者代际
 
     def 发信号(自身,信号):#发信号
@@ -380,8 +393,9 @@ class Systemd范围所有者:#systemd scope 所有者
             自身.启动.终止信号集.add(信号)#记终止信号
         自身.观察请求消费()#观察请求消费
         需直接回退=自身.建立=='pending'#建立前需直接回退
+        直接已投递=False#是否已直接投递
         if 需直接回退 and 自身.直接.是否在运行():#直接发
-            自身.直接.发信号(信号)#直接发
+            直接已投递=自身.直接.发信号(信号)#直接发
         try:#systemctl kill
             完成=自身.同步跑([自身.systemctl,'--user','kill','--kill-whom=all',f'--signal={信号}',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#选项
             码=完成.returncode#状态
@@ -397,13 +411,15 @@ class Systemd范围所有者:#systemd scope 所有者
         if 错误 is None and 码==0:#成功
             if 信号=='SIGKILL':#清杀失败
                 自身.杀失败=None#清
+                自身.直接杀结算=None#清直接杀结算
             return#结束
         if (not 需直接回退) and 自身.直接.是否在运行():#建立后回退
-            自身.直接.发信号(信号)#回退
+            直接已投递=自身.直接.发信号(信号)#回退
         if 信号=='SIGKILL':#KILL 失败
             输出=f'{出}\n{错}'#输出
             if not 缺失单元.search(输出):#非缺失单元
                 自身.杀失败=错误 if 错误 is not None else 本地子进程错误(f"systemctl could not signal {自身.单元}: {输出.strip() or ('exit '+str(码))}")#记失败
+                自身.直接杀结算=自身.直接.已结算 if 直接已投递 else None#已投递则汇合物理结算
 
     def 为宿主退出终止(自身):#宿主退出终止
         """宿主退出期间同步强制最终终止。"""
@@ -437,7 +453,7 @@ class Systemd范围所有者:#systemd scope 所有者
 
     def 空受管范围(自身,当前任务数):#空受管范围
         """已请求终止且无任务且直接进程已走。"""
-        return 自身.已请求终止 and 当前任务数==0 and not 自身.直接.是否在运行()#空范围
+        return 自身.已请求终止 and 当前任务数==0 and (not 自身.直接.是否在运行() or not os.path.exists(自身.启动.文件['requestPath']))#已请求终止且无任务，且直接进程已走或请求已消费
 
     def 释放空范围(自身):#释放空范围
         """释放残留空 scope。"""
@@ -473,7 +489,11 @@ class Systemd范围所有者:#systemd scope 所有者
     def 范围活动(自身):#范围是否活动
         """查询单元；活动则 True。"""
         自身.观察请求消费()#观察
+        代际=自身.唤醒代际#查询前代际
+        直接在跑=自身.直接.是否在运行()#查询前直接是否在跑
         结果=自身.查询(自身.systemctl,['--user','show',自身.单元,'--property=LoadState','--property=ActiveState','--property=TasksCurrent'])#查询
+        if 代际!=自身.唤醒代际:#查询过期，当作仍活动
+            return True#信号会使投递前的状态失效
         输出=f"{结果['stdout']}\n{结果['stderr']}"#输出
         if 结果['status']==0:#成功
             状态=自身.解析单元状态(结果['stdout'])#解析
@@ -486,11 +506,19 @@ class Systemd范围所有者:#systemd scope 所有者
                 return False#已停
             if 状态['activeState'] not in ('active','activating','reloading','deactivating'):#未知活动
                 raise 本地子进程错误(f"systemctl returned unknown ActiveState for {自身.单元}: {锁json(状态['activeState'])}")#抛错
-            if 自身.杀失败 is not None:#抛杀失败
-                raise 自身.杀失败#抛杀失败
             if 自身.空受管范围(状态['tasksCurrent']):#残留空范围
                 自身.释放空范围()#释放
                 return False#当作已停
+            if 自身.杀失败 is not None:#抛杀失败
+                if 直接在跑 and 自身.直接杀结算 is not None:#直接仍在且有结算
+                    结算=自身.直接杀结算#取出
+                    自身.直接杀结算=None#摘掉
+                    try:#汇合物理结算
+                        结算.等待()#等直接结局
+                    except BaseException:#直接结局保留错误
+                        pass#本屏障只汇合物理结算
+                    return 自身.范围活动()#重查
+                raise 自身.杀失败#抛杀失败
             return True#活动
         if not 缺失单元.search(输出):#非缺失
             if 'error' in 结果 and 结果['error'] is not None:#抛错误
@@ -544,7 +572,7 @@ class Systemd范围所有者:#systemd scope 所有者
                             if 自身._观察 is 观察:#仍是本观察
                                 自身._观察=None#清观察
                         观察.拒绝(错误)#重抛
-                工作=threading.Thread(target=后台观察退出)#观察线程
+                工作=线程(target=后台观察退出)#观察线程
                 工作.daemon=True#不挡住退出
                 工作.start()#启动
         自身._观察.等待()#等待
@@ -576,23 +604,39 @@ def 直接结局(孩子,启动):#直接结局
         except BaseException as 错误:#读失败
             失败=错误 if isinstance(错误,BaseException) else 本地子进程错误(str(错误))#失败
             任务.拒绝(失败)#拒绝
-    工作=threading.Thread(target=盯退出)#退出监视线程
+    工作=线程(target=盯退出)#退出监视线程
     工作.daemon=True#不挡住退出
     工作.start()#启动
     return 任务#结局任务
 
+def 向Linux直接进程发信号(pid,发送):#向直接进程发信号
+    """区分缺席 PID 与投递失败；已提交或 PID 缺席则为真。"""
+    try:#提交
+        if 发送():#已提交
+            return True#成功
+    except BaseException:#失败的信号仍允许独立缺席观察
+        pass#吞
+    try:#探活
+        os.kill(pid,0)#存在性
+        return False#仍在
+    except OSError as 错误:#失败
+        return 错误.errno==errno.ESRCH#缺席
+
 def 向孩子组发信号(孩子,信号):#向孩子组发信号
-    """负 pid 打组，失败则打直接孩子。"""
+    """负 pid 打组；TERM 组成功即可，KILL 还要直接提交。"""
+    组已投递=False#组是否投递
     try:#组信号
         os.kill(-(孩子.pid),getattr(signal,信号))#负 pid
-    except OSError:#失败
-        try:#回退
-            if 信号=='SIGKILL':#强制
-                孩子.kill()#立刻杀
-            else:#温和
-                孩子.terminate()#TERM
-        except OSError:#直接进程已退出
-            pass#吞
+        组已投递=True#成功
+    except OSError:#缺失或不可达的组仍允许直接进程尝试
+        pass#吞
+    if 组已投递 and 信号=='SIGTERM':#TERM 组成功即可
+        return True#已投递
+    def 发送直接():#直接进程信号
+        """向直接 pid 发信号。"""
+        os.kill(孩子.pid,getattr(signal,信号))#直接 pid
+        return True#已提交
+    return 向Linux直接进程发信号(孩子.pid,发送直接)#直接发
 
 class Linux终端范围启动:#Linux 终端 scope 启动
     """精确一次性 scope/引导的 Linux PTY 调用与所有者。"""
@@ -608,13 +652,14 @@ class Linux终端范围启动:#Linux 终端 scope 启动
 
 class 受管进程启动:#受管进程启动
     """公共 stdio 与结果生命周期消费的平台启动事实。"""
-    def __init__(自身,标准输入,标准输出,标准错误,直接结局,所有者):#记下
-        """记下管道、直接结局与所有者。"""
+    def __init__(自身,标准输入,标准输出,标准错误,直接结局,所有者,控制=None):#记下
+        """记下管道、直接结局、所有者与可选控制管。"""
         自身.标准输入=标准输入#stdin
         自身.标准输出=标准输出#stdout
         自身.标准错误=标准错误#stderr
         自身.直接结局=直接结局#直接结局任务
         自身.所有者=所有者#所有者
+        自身.控制=控制#可选控制通道
 
 def 准备Linux终端范围(规格,目标环境,内部=None):#准备 Linux 终端 scope
     """用同一启动请求与引导核心准备一个 Linux PTY scope。"""
@@ -640,7 +685,11 @@ def 启动Linux范围(规格,目标环境,内部=None):#启动 Linux scope
     if 内部 is None:#缺省
         内部={}#空
     调用=内部['runnerInvocation'] if 'runnerInvocation' in 内部 and 内部['runnerInvocation'] is not None else 解析Runner调用()#调用
-    文件=创建Linux启动文件({'cwd':规格['cwd'],'env':目标环境})#文件
+    控制请求=规格['stdio']['control'] if 'control' in 规格['stdio'] else None#可选控制
+    请求={'cwd':规格['cwd'],'env':目标环境}#启动请求
+    if 控制请求 is not None:#有控制管
+        请求['control']=控制请求#写入请求
+    文件=创建Linux启动文件(请求)#文件
     启动=Linux范围启动(文件,'subprocess')#启动结算
     单元基=单元词干('dsh-subprocess')#单元
     入,出,错=runner标准流(规格)#直接 stdio
@@ -649,15 +698,28 @@ def 启动Linux范围(规格,目标环境,内部=None):#启动 Linux scope
         if 派生 is not None:#测试覆盖
             孩子=派生(取内部(内部,'systemdRun','systemd-run'),范围参数(单元基,调用,规格['argv']))#测试 spawn
         else:#生产
-            孩子=Popen([取内部(内部,'systemdRun','systemd-run')]+范围参数(单元基,调用,规格['argv']),cwd=os.getcwd(),env=runner环境(文件['requestPath'],调用),stdin=入,stdout=出,stderr=错,start_new_session=True)#分离
+            启动参数={'args':[取内部(内部,'systemdRun','systemd-run')]+范围参数(单元基,调用,规格['argv']),'cwd':os.getcwd(),'env':runner环境(文件['requestPath'],调用),'stdin':入,'stdout':出,'stderr':错,'start_new_session':True}#Popen 参数
+            if 控制请求=='pipe':#显式控制通道
+                控制父,控制子=socket.socketpair()#一对双工套接字
+                def 放到控制描述符():#子进程把套接字放到 fd 7
+                    """把继承套接字放到保留控制描述符。"""
+                    os.dup2(控制子.fileno(),子进程控制描述符)#占 fd 7
+                启动参数['pass_fds']=(控制子.fileno(),)#继承子端
+                启动参数['preexec_fn']=放到控制描述符#放到 7
+                孩子=Popen(**启动参数)#分离
+                控制子.close()#父进程关掉子端
+                孩子.控制=控制父#挂到孩子上供控制管道读取
+            else:#无控制管
+                孩子=Popen(**启动参数)#分离
     except BaseException:#失败
         清理Linux启动文件(文件)#清理
         raise#重抛
+    直接=直接结局(孩子,启动)#直接结局任务
     def 是否在运行():#直接范围在跑
         """pid 仍在且未退出。"""
         return 孩子.pid is not None and 孩子.poll() is None#在跑
     def 发信号(信号):#向孩子组发信号
         """组信号。"""
-        向孩子组发信号(孩子,信号)#发信号
-    所有者=Systemd范围所有者(f'{单元基}.scope',启动,直接范围(是否在运行,发信号),取内部(内部,'systemctl','systemctl'),取内部(内部,'spawnSync',同步跑),取内部(内部,'systemctlQuery',查询systemctl),取内部(内部,'sleep',可中止睡眠))#所有者
-    return 受管进程启动(孩子.stdin,孩子.stdout,孩子.stderr,直接结局(孩子,启动),所有者)#受管启动
+        return 向孩子组发信号(孩子,信号)#发信号
+    所有者=Systemd范围所有者(f'{单元基}.scope',启动,直接范围(是否在运行,发信号,直接),取内部(内部,'systemctl','systemctl'),取内部(内部,'spawnSync',同步跑),取内部(内部,'systemctlQuery',查询systemctl),取内部(内部,'sleep',可中止睡眠))#所有者
+    return 受管进程启动(孩子.stdin,孩子.stdout,孩子.stderr,直接,所有者,控制管道(孩子,控制请求))#受管启动

@@ -1,21 +1,8 @@
 {
-    "abort":"中止",
     "adapter":"适配器",
-    "context":"上下文",
-    "table":"表",
-    "default":"默认",
-    "error":"错误",
-    "idle":"空闲",
-    "info":"信息",
-    "max":"最大",
-    "model":"模型",
-    "provider":"提供方",
-    "reasoning":"推理",
-    "request":"请求",
-    "signal":"信号",
-    "stream":"流",
-    "timeout":"超时",
-    "token":"令牌",
-    "user":"用户",
-    "window":"窗口"
+    "chat":"对话",
+    "completion":"补全",
+    "implementation":"实现",
+    "messages":"消息",
+    "protocol":"协议"
 }

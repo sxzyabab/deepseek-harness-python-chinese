@@ -8,5 +8,6 @@
     "section":"节",
     "system":"系统",
     "tool":"工具",
-    "variable":"变量"
+    "variable":"变量",
+    "interpolate":"插值"
 }

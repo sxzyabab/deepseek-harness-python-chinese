@@ -1,0 +1,12 @@
+{
+    "canonical":"规范",
+    "fallback":"回退",
+    "isPackagedExecutable":"是否打包可执行文件",
+    "legacy":"遗留",
+    "link":"链接",
+    "module":"模块",
+    "packaged":"打包",
+    "profile":"配置",
+    "real":"真实",
+    "symlink":"符号链接"
+}

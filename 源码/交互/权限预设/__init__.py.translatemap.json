@@ -1,6 +1,8 @@
 {
     "apply":"应用",
     "approval":"审批",
+    "auto":"自动",
+    "catalog":"目录",
     "config":"配置",
     "custom":"自定义",
     "default":"默认",

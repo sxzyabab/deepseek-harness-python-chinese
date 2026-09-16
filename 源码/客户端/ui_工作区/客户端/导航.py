@@ -139,6 +139,10 @@ class 工作区UI服务:#跨控制器导航与目录
         任务=自身.workspaces.archiveSession(会话标识)#归档
         任务.等待()#等
 
+    def unarchiveSession(自身,会话标识):
+        """解除归档，恢复到记录的工作区位置。"""
+        自身.workspaces.unarchiveSession(会话标识).等待()#等
+
     def pickDirectory(自身):
         """打开宿主目录选择器。"""
         结果=自身.directoryPicker.pick()#选

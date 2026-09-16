@@ -1,6 +1,12 @@
 {
+    "abbreviate":"缩写",
+    "auto":"自动",
     "call":"调用",
+    "denial":"拒绝",
+    "home":"主目录",
     "model":"模型",
+    "query":"查询",
+    "review":"审查",
     "self":"自身",
     "tool":"工具"
 }

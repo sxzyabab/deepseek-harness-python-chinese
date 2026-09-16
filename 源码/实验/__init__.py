@@ -7,6 +7,14 @@ from . import (
     工具_智能体团队,
     webworker_打包器,
     webworker_运行时,
+    自动审查,
+    浏览器操作_chrome_devtools_mcp,
+    浏览器操作_playwright_mcp,
+    浏览器操作_运行时,
+    浏览器操作_stagehand_原生,
+    计算机操作_cua驱动_mcp,
+    计算机操作_cua驱动_原生,
+    ptc运行时_python,
 )
 __all__=[
     '智能体团队',
@@ -17,4 +25,12 @@ __all__=[
     '工具_智能体团队',
     'webworker_打包器',
     'webworker_运行时',
+    '自动审查',
+    '浏览器操作_chrome_devtools_mcp',
+    '浏览器操作_playwright_mcp',
+    '浏览器操作_运行时',
+    '浏览器操作_stagehand_原生',
+    '计算机操作_cua驱动_mcp',
+    '计算机操作_cua驱动_原生',
+    'ptc运行时_python',
 ]

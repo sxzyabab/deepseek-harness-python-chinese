@@ -6,7 +6,7 @@ from ...工具.工作区路径 import 解析主目录#主目录解析
 __all__=[#仅中文公开名
     '配置目录名','配置补丁文件名','配置模板','默认组合包','默认配置档补丁重载',
     '解析配置目录','初始化配置档','愈合模块回退','读配置清单','写配置清单',
-    '解析组合包目录','加载配置档','组合条目',
+    '解析组合包目录','加载配置档','加载配置目录','组合条目','创建配置解析世代',
 ]#公开面结束
 
 配置目录名='profiles'#配置目录名
@@ -203,17 +203,22 @@ def 组合条目(各层,警告=None):#组合条目
     展平=copy.deepcopy([补丁 for 层 in 各层 for 补丁 in 层])#展平克隆
     return 应用条目补丁([],展平,记警告)#应用
 
-def 愈合模块回退(安装锚点,主目录=None):#愈合模块回退
-    """维护扁平模块回退 $DSH_HOME/profiles/node_modules。"""
+def 愈合模块回退(安装锚点,主目录=None,物化=True):#愈合模块回退
+    """维护扁平模块回退 $DSH_HOME/profiles/node_modules。物化为 False 时只计算世代。"""
     if 主目录 is None:#缺省
         主目录=解析主目录()#主目录
     配置根=os.path.join(主目录,配置目录名)#配置根
     模块目录=os.path.join(配置根,'node_modules')#扁平回退
-    os.makedirs(模块目录,exist_ok=True)#确保
+    if 物化:#写盘
+        os.makedirs(模块目录,exist_ok=True)#确保
     应用清单=json.loads(open(安装锚点,encoding='utf-8').read())#应用清单
     链接={}#包名到真实目录
+    声明者={}#包名到声明清单路径
+    版本表={}#包名到版本
     if 应用清单.get('name') is not None:#有名
         链接[应用清单['name']]=os.path.dirname(安装锚点)#链应用自己
+        声明者[应用清单['name']]=安装锚点#声明者
+        版本表[应用清单['name']]=应用清单.get('version')#版本
     队列=[{'anchor':安装锚点,'manifest':应用清单}]#BFS
     while 队列:#出队
         当前=队列.pop(0)#出队
@@ -225,12 +230,31 @@ def 愈合模块回退(安装锚点,主目录=None):#愈合模块回退
             if 目录 is None:#未安装
                 continue#跳过
             链接[依赖名]=目录#记下
+            声明者[依赖名]=当前['anchor']#声明者
             清单路径=os.path.join(目录,'package.json')#依赖清单
-            队列.append({'anchor':清单路径,'manifest':json.loads(open(清单路径,encoding='utf-8').read())})#入队
-    for 包名,目标 in 链接.items():#每条链接
-        链接路径=os.path.join(模块目录,包名)#扁平链接
-        os.makedirs(os.path.dirname(链接路径),exist_ok=True)#作用域包父目录
-        确保符号链接(链接路径,目标)#确保链接
+            依赖清单=json.loads(open(清单路径,encoding='utf-8').read())#读
+            版本表[依赖名]=依赖清单.get('version')#版本
+            队列.append({'anchor':清单路径,'manifest':依赖清单})#入队
+    if 物化:#写链接
+        for 包名,目标 in 链接.items():#每条链接
+            链接路径=os.path.join(模块目录,包名)#扁平链接
+            os.makedirs(os.path.dirname(链接路径),exist_ok=True)#作用域包父目录
+            确保符号链接(链接路径,目标)#确保链接
+    条目=[]#世代条目
+    for 包名,目录 in 链接.items():#安装级
+        条目.append({#条目
+            'name':包名,
+            'packageDir':目录,
+            'version':版本表.get(包名),
+            'declarer':声明者[包名],
+            'scope':'installation',
+        })#结束
+    return {#世代
+        'profilesDir':配置根,
+        'profileDir':None,
+        'localPackageNames':[],
+        'entries':条目,
+    }#结束
 
 def 确保符号链接(链接,目标):#确保符号链接
     """确保 link 是指向 target 的符号链接。"""
@@ -245,3 +269,35 @@ def 确保符号链接(链接,目标):#确保符号链接
     except FileExistsError:#竞态
         if not (os.path.islink(链接) and os.readlink(链接)==目标):#不对
             raise#失败
+
+def 创建配置解析世代(选项):
+    """不物化链接或代理即计算一代配置解析表。选项为 dict。"""
+    主目录=选项['home'] if 'home' in 选项 else None#可选主目录
+    return 愈合模块回退(选项['installAnchor'],主目录,False)#只计算
+
+def 加载配置目录(二进制名,目录,安装锚点,选项=None):
+    """加载已经初始化的配置目录，不经共享主目录解析。"""
+    if 选项 is None:#缺省
+        选项={}#空
+    from . import 加载覆盖补丁 as 加载覆盖#延迟导入避免环
+    清单=读配置清单(二进制名,目录)#读清单
+    配置段=((清单.get('dsh') or {}).get('profile') or {})#profile
+    组合包列表=配置段.get('bundles') or []#组合包列表
+    原始重载=配置段.get('patchReload') if 'patchReload' in 配置段 else None#原始重载
+    if 原始重载 is not None and 原始重载!='live' and 原始重载!='startup':#非法
+        raise Exception(二进制名+': profile manifest '+os.path.join(目录,'package.json')+' dsh.profile.patchReload must be "live" or "startup"')#拒绝
+    补丁重载=默认配置档补丁重载 if 原始重载 is None else 原始重载#默认现场
+    层列表=[]#层
+    for 包名 in 组合包列表:#每层
+        包目录=解析组合包目录(二进制名,包名,安装锚点,目录)#解析包目录
+        包清单=json.loads(open(os.path.join(包目录,'package.json'),encoding='utf-8').read())#读组合包清单
+        声明=((包清单.get('dsh') or {}).get('bundle') or {}).get('patch')#声明的补丁
+        if 声明 is None:#没有
+            raise Exception(二进制名+': profile bundle '+json.dumps(包名)+' declares no dsh.bundle in its package.json')#错误配置
+        补丁路径=os.path.join(包目录,声明)#绝对补丁
+        层列表.append({'packageName':包名,'packageDir':包目录,'patchPath':补丁路径,'patches':加载覆盖(二进制名,补丁路径)})#已解析层
+    补丁路径=os.path.join(目录,配置补丁文件名)#用户补丁
+    用户层=选项.get('userLayer',True)#是否读用户层
+    补丁=加载覆盖(二进制名,补丁路径) if 用户层 and os.path.exists(补丁路径) else []#用户补丁
+    return {'name':os.path.basename(目录),'dir':目录,'layers':层列表,'patchPath':补丁路径,'patches':补丁,'patchReload':补丁重载}#已加载配置
+

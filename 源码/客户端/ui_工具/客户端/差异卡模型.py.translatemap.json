@@ -1,7 +1,12 @@
 {
+    "applied":"已应用",
     "card":"卡",
     "diff":"差异",
+    "editor":"编辑器",
+    "escalate":"升级",
+    "intended":"意图",
     "model":"模型",
+    "parse":"解析",
     "self":"自身",
     "tool":"工具"
 }

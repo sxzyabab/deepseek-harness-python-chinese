@@ -5,10 +5,12 @@ __all__=['中文','英文','提问文案键']#仅中文公开名
     'error.unanswered':'请选择一个选项或填写自定义答案。',#未作答时的错误
     'nav.prev':'上一题',#上一题导航
     'nav.next':'下一题',#下一题导航
+    'nav.minimize':'收起问题卡片',#收起卡片
+    'nav.maximize':'展开问题卡片',#展开卡片
     'nav.cancel':'放弃整组问题',#放弃整组
     'option.recommended':'推荐',#推荐选项标记
     'custom.placeholder':'输入你的答案',#自定义答案占位
-    'action.skip':'跳过本题',#跳过本题
+    'action.skip':'跳过',#跳过本题
     'action.next':'下一题',#下一题动作
     'plan.header':'计划待审',#计划待审标题
     'plan.approve':'确认执行',#批准计划
@@ -21,10 +23,12 @@ __all__=['中文','英文','提问文案键']#仅中文公开名
     'error.unanswered':'Please select an option or enter a custom answer.',#未作答时的错误
     'nav.prev':'Previous question',#上一题导航
     'nav.next':'Next question',#下一题导航
+    'nav.minimize':'Collapse the question card',#收起卡片
+    'nav.maximize':'Expand the question card',#展开卡片
     'nav.cancel':'Dismiss all questions',#放弃整组
     'option.recommended':'Recommended',#推荐选项标记
     'custom.placeholder':'Type your answer',#自定义答案占位
-    'action.skip':'Skip this question',#跳过本题
+    'action.skip':'Skip',#跳过本题
     'action.next':'Next',#下一题动作
     'plan.header':'Plan review',#计划待审标题
     'plan.approve':'Approve',#批准计划

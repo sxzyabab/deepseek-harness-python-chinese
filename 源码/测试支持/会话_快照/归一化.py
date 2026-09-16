@@ -1,12 +1,7 @@
 import json,re#JSON 与正则
-from ...内核.会话 import 解码存储记录,打包块游程#会话编解码
 from ...内核.会话.序号范围 import 解码序号范围 as _内核解码序号范围#内核序号范围
 from .身份 import 脱敏会话快照标识#身份脱敏
-
-try:#比较前迁移到当前格式（可选；目录未就绪时跳过）
-    from ..llm_回放 import 准备会话快照夹具供比较#fixture 迁移比较
-except Exception:#导入失败
-    准备会话快照夹具供比较=None#不可用
+from ..llm_回放 import 准备会话快照夹具供比较#fixture 迁移比较
 
 __all__=[#仅中文公开名
     '提取快照溢出路径','令牌化会话夹具工作目录','归一化标准输出','归一化会话日志',
@@ -34,12 +29,12 @@ __all__=[#仅中文公开名
 文件URI前缀模式=re.compile(r'(?:^|[^a-z0-9+.-])file:\/\/\/?$',re.I)#file URI 前缀
 UUID模式=re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',re.I)#UUID
 本地溢出路径模式=re.compile(#本地溢出路径
-    r'\{\{cwd\}\}[\\/]\.spill[\\/]session-[0-9a-f]{12}[\\/][0-9a-f]{12}-([A-Za-z0-9._~-]+?)'
-    +r'(?=\. Use read with offset/limit|[\s)]|$)',
+    r'\{\{cwd\}\}[\\/]+\.spill[\\/]+session-[0-9a-f]{12}[\\/]+[0-9a-f]{12}-([A-Za-z0-9._~-]+?)'
+    +r'(?=\. Use read with offset/limit|[\s)"]|\\+"|$)',
 )#本地结束
 快照溢出路径模式=re.compile(#快照溢出路径
-    r'(?:[A-Za-z]:)?[\\/](?:tmp|t)[\\/](?:dsh-acp-snap-[0-9a-f]{9}|dsh-acp-snapshot-spill)[\\/]session-[0-9a-f]{12}[\\/][0-9a-f]{12}-([A-Za-z0-9._~-]+?)'
-    +r'(?=\. Use read with offset/limit|[\s)]|$)',
+    r'(?:[A-Za-z]:)?[\\/]+(?:tmp|t)[\\/]+(?:dsh-acp-snap-[0-9a-f]{9}|dsh-acp-snapshot-spill)[\\/]+session-[0-9a-f]{12}[\\/]+[0-9a-f]{12}-([A-Za-z0-9._~-]+?)'
+    +r'(?=\. Use read with offset/limit|[\s)"]|\\+"|$)',
 )#快照结束
 def 是否打包行(记录):#是否打包行
     """是否打包 fixture 行。"""
@@ -51,6 +46,18 @@ def 省略信封(记录):#省略信封字段
     记录.pop('time',None)#删时间
     记录.pop('seq0',None)#删起始序号
     记录.pop('time0',None)#删起始时间
+
+def 归一化反馈时钟(记录):#服务拥有的反馈时钟
+    """只动服务时钟，不动用户撰写载荷。"""
+    if 记录.get('type')!='feedback/message-put' or not isinstance(记录.get('data'),dict):#非反馈
+        return#放过
+    条目=记录['data'].get('item')#条目
+    if not isinstance(条目,dict):#无条目
+        return#放过
+    if 'createdAt' in 条目:#创建
+        条目['createdAt']=0#归零
+    if 'updatedAt' in 条目:#更新
+        条目['updatedAt']=0#归零
 
 def 规范化嵌入路径(值):#规范化嵌入路径
     """仅在生成的带路径文本标记内转换分隔符。"""
@@ -171,8 +178,8 @@ def 令牌化会话夹具工作目录(原始日志):#令牌化 fixture cwd
     头=json.loads(首行) if 首行 is not None else {}#头
     工作目录=头['cwd'] if isinstance(头.get('cwd'),str) else ''#cwd
     基名=工作目录.replace('\\','/').rstrip('/').split('/')[-1] if 工作目录 else ''#basename
-    if 基名=='':#无 basename
-        raise Exception('acp-snapshot: 没有 basename 则无法把 cwd 分词')#无 basename
+        if 基名=='':#无 basename
+        raise Exception('acp-snapshot: cannot tokenize a cwd without a basename')#无 basename
     上下文={'sessionIds':[],'cwd':工作目录}#上下文
     return '\n'.join(#重写
         行 if 行.strip()=='' else json.dumps(令牌化夹具值(json.loads(行),上下文,基名),ensure_ascii=False,separators=(',',':'))
@@ -231,9 +238,22 @@ def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话�
                 数据['dt']=[0]*len(数据['dt'])#归零
         elif 'time' in 记录:#普通时间
             记录['time']=0#归零
+        if 记录.get('type') in ('assistant/message','assistant/attempt') and isinstance(记录.get('data'),dict):#助手结算
+            流=记录['data'].get('stream')#嵌入流
+            if isinstance(流,list):#流成员
+                for 成员 in 流:#逐成员
+                    if not isinstance(成员,dict):#非对象
+                        continue#跳过
+                    if isinstance(成员.get('time'),(int,float)):#成员时间
+                        成员['time']=0#归零
+                    if isinstance(成员.get('time0'),(int,float)):#成员锚
+                        成员['time0']=0#归零
+                    if isinstance(成员.get('dt'),list):#间隙
+                        成员['dt']=[0]*len(成员['dt'])#归零
         if 记录.get('type')=='hook/result' and isinstance(记录.get('data'),dict):#hook 结果
             if 'durationMs' in 记录['data']:#时长
                 记录['data']['durationMs']=0#归零
+        归一化反馈时钟(记录)#反馈时钟
         if 记录.get('type')=='goal/change' and isinstance(记录.get('data'),dict):#目标变更
             if 'createdAt' in 记录['data']:#创建
                 记录['data']['createdAt']=0#归零
@@ -247,28 +267,15 @@ def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话�
         记录列表.append(擦除值(记录,上下文,路径模式,身份模式))#擦除
     return '\n'.join(json.dumps(记录,ensure_ascii=False,separators=(',',':')) for 记录 in 记录列表)+'\n'#JSONL
 
-def 重打包会话快照(原始日志):#重打包投影正文
-    """重打包投影正文记录，使持久化冲刷边界不影响已提交快照。"""
+def 重打包会话快照(原始日志):#投影正文：只省略信封
+    """紧凑流嵌在事件数据里，持久化冲刷边界不能改行布局。"""
     行列表=[行 for 行 in 原始日志.split('\n') if 行.strip()!='']#非空行
     头=行列表.pop(0)#头行
-    下一序号=0#下一序号
-    事件列表=[]#事件
+    正文=[]#正文行
     for 行 in 行列表:#逐行
         记录=json.loads(行)#解析
-        if 是否打包行(记录):#打包行
-            解码=解码存储记录({**记录,'seq0':下一序号,'time0':0})#解码
-            if not isinstance(解码,list):#单
-                解码=[解码]#包
-            下一序号+=len(解码)#推进
-            事件列表.extend(解码)#收集
-        else:#普通事件
-            事件={**记录,'seq':下一序号,'time':0}#合成信封
-            下一序号+=1#推进
-            事件列表.append(事件)#收集
-    正文=[]#正文行
-    for 存储 in 打包块游程(事件列表):#打包
-        省略信封(存储)#原地省略信封
-        正文.append(json.dumps(存储,ensure_ascii=False,separators=(',',':')))#序列化
+        省略信封(记录)#原地省略信封
+        正文.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')))#序列化
     return '\n'.join([头,*正文,''])#接合
 
 def 擦除模型请求内容(原始日志,选项):#擦除所选模型请求载荷
@@ -329,11 +336,12 @@ def 擦除会话快照(原始日志):#擦除会话快照
         if 记录索引==0:#头
             记录索引+=1#推进
             if 记录.get('type')!='session':#必须会话头
-        raise Exception('会话快照必须以会话头开始')#非法
+                raise Exception('session snapshot must start with a session header')#非法
             行列表.append(行)#原样
             continue#下一项
         记录索引+=1#推进
         省略信封(记录)#省略信封
+        归一化反馈时钟(记录)#反馈时钟
         行列表.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')))#写回
     return '\n'.join(行列表)#接合
 
@@ -345,13 +353,13 @@ def 是否有会话格式版本(原始日志):#是否有格式版本
     """fixture 是否声明已发布 Session 格式，因而参与迁移烧入。"""
     首行=next((行 for 行 in 原始日志.splitlines() if 行.strip()!=''),None)#首非空行
     if 首行 is None:#缺头
-        raise Exception('会话快照必须以会话头开始')#缺头
+        raise Exception('session snapshot must start with a session header')#缺头
     头=json.loads(首行)#解析头
     if not isinstance(头,dict) or 头.get('type')!='session':#非 session 头
-        raise Exception('会话快照必须以会话头开始')#缺头
+        raise Exception('session snapshot must start with a session header')#缺头
     return 'version' in 头#是否有 version
 
-def 归一化会话格式溯源(原始日志):#归一化格式溯源
+def 归一化会话格式元数据(原始日志):#归一化格式元数据
     """仅为期望输出比较省略官方迁移后的制品头世代。"""
     行列表=[]#输出
     for 行 in 原始日志.split('\n'):#逐行
@@ -372,11 +380,11 @@ def 归一化会话快照列表(原始日志列表,上下文,选项=None):#归�
         选项={}#空
     当前=[]#当前格式日志
     for 日志 in 原始日志列表:#逐份
-        if 准备会话快照夹具供比较 is not None and 是否有会话格式版本(日志):#可迁移
+        if 是否有会话格式版本(日志):#可迁移
             当前.append(准备会话快照夹具供比较(日志))#迁移到当前
         else:#原样
             当前.append(日志)#原样
-    可比=[归一化会话格式溯源(日志) for 日志 in 当前]#抹格式溯源
+    可比=[归一化会话格式元数据(日志) for 日志 in 当前]#抹格式元数据
     return [#映射
         重打包会话快照(擦除会话快照(归一化会话日志(
             日志,{'sessionIds':[],'cwd':上下文['cwd'],**({'cwdAliases':上下文['cwdAliases']} if 'cwdAliases' in 上下文 else {})},

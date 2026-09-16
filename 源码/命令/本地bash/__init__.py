@@ -13,6 +13,7 @@ from ...工具.超时 import (
     截止,#融合截止
     定时器延迟上限毫秒,#定时器延迟上限
     取超时,#取出超时原因
+    若已中止则抛出,#写前已中止则抛
 )#超时库
 
 __all__=[#仅中文公开名
@@ -129,9 +130,14 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         标准误读取=自身.收集['stderr'].自偏移读取(自身.标准误偏移)#从上次偏移读标准误
         自身.标准输出偏移=标准输出读取['nextOffset']#推进标准输出偏移
         自身.标准误偏移=标准误读取['nextOffset']#推进标准误偏移
-        标准误文本=标准误读取['text']#标准误文本
-        if len(标准误文本)==0:#没有真正的标准误
-            标准误文本=自身.消费启动失败()#用启动说明
+        启动失败=自身.消费启动失败()#取出一次提供方失败说明
+        if len(标准误读取['text'])>0 and not 标准误读取['text'].endswith('\n'):#标准误非空且缺换行
+            失败分隔='\n'#补分隔
+        else:#已经换行或为空
+            失败分隔=''#不插分隔
+        标准误文本=标准误读取['text']#标准误正文
+        if len(启动失败)>0:#有提供方失败说明
+            标准误文本=标准误文本+失败分隔+启动失败#追加失败说明
         标准输出文本=标准输出读取['text']#标准输出增量
         if len(标准输出文本)>0 and not 标准输出文本.endswith('\n'):#标准输出非空且没换行
             分隔='\n'#插分隔
@@ -174,7 +180,12 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
             自身.done.兑现()#句柄 done 决议
         except BaseException as 错误:#启动拒绝
             自身.status='killed'#没有进程，算被杀掉
-            自身.失败说明='spawn failed: '+str(错误)#把失败说明留给读取路径
+            细节='unprintable provider failure'#不可打印失败的回退文案
+            try:#尝试把拒绝值转成字符串
+                细节=str(错误)#可读细节
+            except BaseException:#拒绝值本身不可打印
+                pass#提供方拥有的拒绝值不能让句柄 done 拒绝
+            自身.失败说明='subprocess failed before reporting an outcome: '+细节#失败说明
             自身.执行器.进程已结束(自身,自身.失败说明,True,错误)#通知子类这是启动失败
             自身.done.兑现()#句柄 done 仍决议，不拒绝
 
@@ -271,18 +282,32 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
 
     def 运行(自身,规格):#前台跑一条已解析规格
         """前台跑一条已解析规格。"""
-        return 自身.按参数表运行(规格,['bash','-c',规格['command']])#用bash -c前台跑
+        return 自身.按参数表运行(规格,['bash','-c',规格['command']])['result']#用bash -c前台跑，只回结果
 
-    def 按参数表运行(自身,规格,参数表):#按给定argv前台运行
-        """用本执行器的前台生命周期、环境、输出、超时与取消语义跑一条显式 argv。"""
+    def 按参数表运行(自身,规格,参数表或准备):#按给定argv或准备函数前台运行
+        """用本执行器的前台生命周期、环境、输出、超时与取消语义跑一条显式 argv。准备函数被同一截止取消。"""
         截止对象=截止(规格['signal'] if 'signal' in 规格 else None,规格['timeoutMs'],'BASH_TIMEOUT')#为本次前台跑装上截止
         try:#等到进程结束再拆定时器
+            if callable(参数表或准备):#准备函数与执行共用截止
+                try:#准备期间也可被超时取消
+                    若已中止则抛出(截止对象.信号)#准备前已中止则抛
+                    参数表=参数表或准备(截止对象.信号)#准备 argv
+                    若已中止则抛出(截止对象.信号)#准备后再查
+                except BaseException as 错误:#准备失败或中止
+                    if 取超时(截止对象.信号,'BASH_TIMEOUT') is None:#不是本执行器超时
+                        raise 错误#原样抛出
+                    return {'spawnRequested':False,'result':{
+                        'exitCode':None,'signal':None,'timedOut':True,'aborted':False,'timeoutMs':规格['timeoutMs'],
+                        'stdout':{'text':'','truncated':False},'stderr':{'text':'','truncated':False},
+                    }}#未派生，空结果
+            else:#已经是 argv
+                参数表=参数表或准备#直接用
             句柄=自身.ctx.subprocess.启动(自身.拉起规格(规格,规格['stdoutMaxBytes'],截止对象.信号,参数表))#按规格启动子进程
             结算=句柄.done.等待()#等到进程结束
             收集=取出已收集(句柄)#取出两路收集读取器
             已超时=取超时(截止对象.信号,'BASH_TIMEOUT') is not None#是否因本执行器超时结束
             被中止=已中止(截止对象.信号) is True and not 已超时#中止但不是本执行器超时
-            return {
+            return {'spawnRequested':True,'result':{
                 'exitCode':结算['exitCode'],#退出码
                 'signal':结算['signal'],#终止信号
                 'timedOut':已超时,#是否超时
@@ -290,7 +315,7 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
                 'timeoutMs':规格['timeoutMs'],#本次超时预算
                 'stdout':最终输出(收集['stdout']),#收成最终标准输出
                 'stderr':最终输出(收集['stderr']),#收成最终标准误
-            }#前台运行结果
+            }}#已派生的前台运行结果
         finally:#拆除时清掉定时器
             截止对象.释放()#释放已武装定时器
 
@@ -300,6 +325,7 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
 
     def 按参数表启动(自身,规格,参数表):#按给定argv后台启动
         """用本执行器的后台生命周期、环境、输出、取消与进程树所有权语义启动一条显式 argv。后台运行忽略 timeoutMs。"""
+        若已中止则抛出(规格['signal'] if 'signal' in 规格 else None)#后台启动前已中止则抛
         当前=自身.配置#权威配置
         运行中=自身.ctx.subprocess.启动(自身.拉起规格(规格,当前['maxOutputBytes'],规格['signal'] if 'signal' in 规格 else None,参数表))#按配置输出上限启动后台进程
         收集=取出已收集(运行中)#取出两路收集读取器

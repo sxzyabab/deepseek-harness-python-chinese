@@ -1,7 +1,13 @@
 {
+    "blank":"空白",
+    "entry":"条目",
+    "list":"列表",
+    "order":"排序",
+    "pin":"钉住",
+    "reconcile":"调和",
+    "recency":"近因",
     "self":"自身",
     "tree":"树",
-    "workspace":"工作区",
-    "list":"列表",
-    "entry":"条目"
+    "visible":"可见",
+    "workspace":"工作区"
 }

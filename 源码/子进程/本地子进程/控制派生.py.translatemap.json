@@ -1,0 +1,8 @@
+{
+    "channel":"通道",
+    "control":"控制",
+    "environment":"环境",
+    "pipe":"管道",
+    "spawn":"派生",
+    "subprocess":"子进程"
+}

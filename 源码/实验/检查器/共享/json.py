@@ -1,5 +1,5 @@
-import json,threading#序列化与后台线程
-from concurrent.futures import Future as 原生结果#单次操作结果
+import json#序列化
+from threading import Event as 事件,Lock as 锁,Thread as 线程#完成门、结算互斥、工作线程
 
 __all__=[#仅中文公开名
     '检查器json标量','检查器json值','检查器json对象',
@@ -17,25 +17,44 @@ class 检查器错误(Exception):#检查器错误基类
         自身.消息=消息#诊断
 
 class 操作任务:#单次操作结果
-    """单次操作的 Future 包装，只暴露 等待。"""
+    """单次操作结果，只暴露兑现、拒绝、等待。"""
     def __init__(自身):#构造未决任务
         """构造未决任务。"""
-        自身._future=原生结果()#底层 Future
+        自身._门=事件()#完成门
+        自身._锁=锁()#结算互斥
+        自身._值=None#成功值
+        自身._错误=None#失败异常
+        自身._已结算=False#是否已结算
 
     def 兑现(自身,值=None):#成功结算
         """成功结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
+        with 自身._锁:#竞态
+            if 自身._已结算:#已结算
+                return 值#忽略
+            自身._已结算=True#标记
+            自身._值=值#写入结果
+        自身._门.set()#放行
         return 值#返回兑现值
 
     def 拒绝(自身,错误):#失败结算
         """失败结算。"""
-        if not 自身._future.done():#尚未结算
-            自身._future.set_exception(错误)#原样拒绝
+        with 自身._锁:#竞态
+            if 自身._已结算:#已结算
+                return#忽略
+            自身._已结算=True#标记
+            if isinstance(错误,BaseException):#已是异常
+                自身._错误=错误#原样
+            else:#非异常
+                自身._错误=Exception(str(错误))#包装
+        自身._门.set()#放行
 
     def 等待(自身,超时=None):#阻塞等待
         """阻塞等到结算。"""
-        return 自身._future.result(timeout=超时)#取结果或抛错
+        if not 自身._门.wait(超时):#超时未完成
+            raise TimeoutError()#超时
+        if 自身._错误 is not None:#失败
+            raise 自身._错误#原样抛
+        return 自身._值#成功值
 
 def 在线程执行(函数):#在工作线程执行
     """在工作线程执行并返回操作任务。"""
@@ -44,10 +63,9 @@ def 在线程执行(函数):#在工作线程执行
         """执行函数并结算。"""
         try:#执行
             任务.兑现(函数())#兑现
-        except Exception as 错误:#Future 结算路径上的回调什么都可能抛，契约未定所以收不窄
+        except Exception as 错误:#结算路径上的回调什么都可能抛，契约未定所以收不窄
             任务.拒绝(错误)#拒绝
-    工作=threading.Thread(target=执行并结算)#工作线程
-    工作.daemon=True#不挡住退出
+    工作=线程(target=执行并结算,daemon=True)#工作线程
     工作.start()#启动
     return 任务#操作任务
 

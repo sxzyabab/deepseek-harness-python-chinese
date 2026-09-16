@@ -78,6 +78,12 @@ def 失败快照(值):#校验并拆离可序列化失败载荷
             if not isinstance(请求标识,str) or len(请求标识)==0:#requestId 非法
                 return None#requestId 必须是非空字符串
             事实['requestId']=请求标识#有请求 id 才带上
+        if 'offloadImages' in 值:#有还需卸载张数
+            卸载=值['offloadImages']#还需卸载张数
+            是正安全=isinstance(卸载,(int,float)) and not isinstance(卸载,bool) and 卸载==int(卸载) and 卸载>0#正安全整数
+            if not 是正安全:#张数非法
+                return None#必须是正安全整数
+            事实['offloadImages']=卸载#有张数才带上
         return 深冻结(事实)#字段合法则冻结拆离
     except Exception:#读失败
         return None#读失败则放弃载荷

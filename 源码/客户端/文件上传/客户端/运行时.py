@@ -1,5 +1,5 @@
 import builtins,json,threading,time#全局、JSON、线程与轮询
-from urllib.parse import parse_qs,urlencode,urljoin#URL 拼装
+from urllib.parse import urlencode,urljoin#URL 拼装
 import urllib.request as 请求库#标准库 HTTP
 from ....依赖 import cordis#Cordis
 服务=cordis.服务#服务基类
@@ -161,17 +161,6 @@ def 取全局钩子():#读启动前钩子
     except AttributeError:#未注入
         return None#无
 
-def 是否夹具页():#是否 fixture 页
-    """URL 带 fixture 查询。"""
-    try:#宿主可选 location
-        页面=builtins.location#页面
-    except AttributeError:#非浏览器
-        return False#否
-    查询=页面.search if 页面.search is not None else ''#查询串
-    if 查询.startswith('?'):#带问号
-        查询=查询[1:]#去掉
-    return 'fixture' in parse_qs(查询)#带 fixture
-
 def 解析网址(路径):#相对路径解析为绝对 URL
     """有页面 origin 则用，否则 http://dsh.internal。"""
     源=None#可选源
@@ -317,7 +306,6 @@ class 文件上传运行时(服务):#上传运行时
         """提供方客户端上下文。"""
         super().__init__(上下文,'fileUpload')#登记服务名
         钩子=取全局钩子()#启动前钩子
-        自身.可用=钩子 is not None or (not 是否夹具页())#fixture 且无钩子则不可用
         if 钩子 is None:#无钩子
             自身._载体=线程载体()#线程载体
         else:#有钩子
@@ -325,13 +313,11 @@ class 文件上传运行时(服务):#上传运行时
 
     def 投递(自身,请求):#投递
         """用 Cordis 启动前选定的载体投递一次请求体。"""
-        if not 自身.可用:#fixture 不可用
-            raise 文件上传错误('background upload is unavailable in fixture mode')#拒绝
         return 自身._载体['post'](请求)#委托载体
 
     def 上传(自身,会话标识,数据,名=None,信号=None,进度回调=None):#上传入口
         """为一个 Session 存储一个文件。"""
-        if (not 是否精确字节(数据)) and 自身.可用:#非精确字节且有后台载体
+        if not 是否精确字节(数据):#非精确字节走后台载体
             查询={'sessionId':str(会话标识)}#会话查询
             if 名 is not None:#可选名
                 查询['name']=名#写入
@@ -349,8 +335,6 @@ class 文件上传运行时(服务):#上传运行时
             if 响应['status']!=200:#传输层失败
                 raise 文件上传错误('file upload transport failed with HTTP '+str(响应['status']))#抛错
             return 解析文件上传结果(响应['body'])#解析 JSON 结果
-        if (not 是否精确字节(数据)) and 是否流式正文(数据):#流却无载体
-            raise 文件上传错误('stream file upload requires a background carrier')#必须有载体
         字节=物化字节(数据)#聚合成精确字节
         上传面=自身.ctx.remote.fileUploads.upload#编码 Remote 上传
         请求体={'data':字节转base64(字节)}#编码

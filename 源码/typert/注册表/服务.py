@@ -40,13 +40,12 @@ def 校验线路名(主语,值):#校验 RPC 端点段字符
         raise 注册表错误('typert: invalid '+主语+' "'+值+'" — must contain only RPC endpoint segment characters')#拒绝
 
 def 校验编解码(编解码,主语):#校验一条编解码声明
-    """弱 JSON 模式直接通过；严格模式要有类型符号与 parse。"""
+    """弱 JSON 模式直接通过；严格模式要有类型符号与 create。"""
     if 编解码.get('mode')=='src-json':#弱模式
         return#通过
     校验非空(主语+' type symbol',编解码.get('typeSymbol') or '')#类型符号
-    模式=编解码.get('schema')#模式实例
-    if 模式 is None or not callable(getattr(模式,'parse',None)):#无 parse
-        raise 注册表错误('typert: '+主语+' strict codec has no parse() method')#拒绝
+    if not callable(编解码.get('create')):#无工厂
+        raise 注册表错误('typert: '+主语+' strict codec has no create() factory')#拒绝
 
 def 校验调用(描述符):#校验一条调用描述符
     """校验 id/服务/命名空间/方法/参数/作用域/接收方。"""
@@ -103,6 +102,14 @@ def 匹配过滤(记录,过滤):#记录是否匹配过滤
     if 过滤.get('face') is not None and 记录['face']!=过滤['face']:#面不匹配
         return False#否
     return True#是
+
+def 物化模式(记录):#首次调用 create 并缓存活模式
+    """返回带活 schema 的模式记录。"""
+    模式=记录.get('value')#缓存
+    if 模式 is None:#尚未物化
+        模式=记录['create']()#工厂
+        记录['value']=模式#缓存
+    return {'name':记录['name'],'schema':模式,'package':记录['package'],'face':记录['face'],'key':记录['key']}#活记录
 
 class 变更源:#注册表变更源
     """向当前监听器广播变更。"""
@@ -529,13 +536,14 @@ class Typert注册表(服务):#Typert 运行时注册表服务
 
     def get(自身,键):#按全局键取模式记录
         """缺席为 None。"""
-        return 自身.模式表.get(键)#记录
+        记录=自身.模式表.get(键)#工厂记录
+        return None if 记录 is None else 物化模式(记录)#活记录
 
     def resolve(自身,键):#解析必需模式，缺席则抛
         """键畸形、包面缺席、或该模式未被贡献时抛出。"""
         记录=自身.模式表.get(键)#查找
         if 记录 is not None:#命中
-            return 记录#返回
+            return 物化模式(记录)#活记录
         井号=键.find('#')#分隔
         if 井号<=0 or 井号==len(键)-1:#畸形
             raise 注册表错误('typert: invalid schema key "'+键+'" — expected "<package>#<name>"')#拒绝
@@ -548,7 +556,7 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         """按注册顺序枚举活模式。"""
         if 过滤 is None:#缺省
             过滤={}#空
-        return [记录 for 记录 in 自身.模式表.values() if 匹配过滤(记录,过滤)]#过滤
+        return [物化模式(记录) for 记录 in 自身.模式表.values() if 匹配过滤(记录,过滤)]#过滤并物化
 
     def getPackage(自身,包名,面='host'):#按包名与面取包记录
         """缺席为 None。"""
@@ -586,6 +594,8 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         本批=set()#本批键
         for 模式 in 贡献['schemas']:#逐条
             校验段('schema name',模式['name'])#名
+            if not callable(模式.get('create')):#无工厂
+                raise 注册表错误('typert: schema "'+模式['name']+'" has no create() factory')#拒绝
             键=拼模式键(贡献['package'],模式['name'])#全局键
             if 键 in 本批 or 键 in 自身.模式表:#冲突
                 raise 注册表错误('typert: schema "'+键+'" is already registered')#拒绝

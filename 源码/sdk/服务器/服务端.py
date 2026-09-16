@@ -119,7 +119,7 @@ class 装备SDKJSONRPC服务端:
         if not 自身.有适配器(自身.provider):#上下文里还没有该提供方
             if 自身.provider!='deepseek-official':#非官方提供方缺失则失败
                 raise SDK服务端错误('没有为提供方 "'+str(自身.provider)+'" 登记适配器')#失败
-            光纤=自身.ctx.启动插件(llm_deepseek,{})#官方提供方则挂载 DeepSeek 回退
+            光纤=自身.ctx.启动插件(llm_deepseek)#官方提供方则挂载 DeepSeek 回退
             光纤.等待()#等到适配器已登记
             自身.llm光纤=光纤#记下
         return {'serverInfo':{'name':'deepseek-harness-sdk-runtime','version':'0.0.1'}}#线稳定身份

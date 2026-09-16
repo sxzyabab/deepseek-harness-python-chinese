@@ -1,7 +1,6 @@
-import threading#超时定时器
-from concurrent.futures import Future as 原生结果#待决结果
+from threading import Timer as 定时器#超时定时器
 from .标识 import 检查器id#标识构造
-from ..json import json字节长度,检查器错误#帧字节|本包错误
+from ..json import 操作任务,json字节长度,检查器错误#单次结果|帧字节|本包错误
 from .版本 import 检查器协议版本#协议版本
 from .消息.查询.编解码 import 是否检查器查询响应信封,解析检查器查询响应帧#响应编解码
 
@@ -50,8 +49,8 @@ class 检查器查询连接:#查询连接
         """对当前已接受的源世代执行一次查询。"""
         活动=自身._活动#当前世代
         if 自身._已关闭 or 活动 is None:#未连接
-            失败=原生结果()#失败结果
-            失败.set_exception(Exception('Inspector query transport is not connected'))#拒绝
+            失败=操作任务()#失败任务
+            失败.拒绝(Exception('Inspector query transport is not connected'))#拒绝
             return 失败#返回
         自身._下一请求号+=1#分配请求号
         请求id=检查器id(f'query-{自身._下一请求号}','requestId')#分配请求id
@@ -64,23 +63,23 @@ class 检查器查询连接:#查询连接
             'query':查询,#查询体
         }#帧结束
         if json字节长度(帧)>自身.选项.maxFrameBytes:#超帧
-            失败=原生结果()#失败结果
-            失败.set_exception(Exception(f'Inspector query request exceeds {自身.选项.maxFrameBytes} bytes'))#拒绝
+            失败=操作任务()#失败任务
+            失败.拒绝(Exception(f'Inspector query request exceeds {自身.选项.maxFrameBytes} bytes'))#拒绝
             return 失败#返回
-        结果=原生结果()#待决结果
+        任务=操作任务()#待决任务
         def 超时():#超时
             """超时拒绝。"""
             if 自身._待决.pop(请求id,None) is not None:#仍待决
-                结果.set_exception(Exception(f'Inspector query {查询["op"]} timed out after {自身.选项.timeoutMs}ms'))#超时拒绝
-        定时器=threading.Timer(自身.选项.timeoutMs/1000,超时)#定时器
-        定时器.daemon=True#守护
-        自身._待决[请求id]={'op':查询['op'],'resolve':结果,'timer':定时器}#登记待决
-        定时器.start()#启动定时器
+                任务.拒绝(Exception(f'Inspector query {查询["op"]} timed out after {自身.选项.timeoutMs}ms'))#超时拒绝
+        计时=定时器(自身.选项.timeoutMs/1000,超时)#定时器
+        计时.daemon=True#守护
+        自身._待决[请求id]={'op':查询['op'],'任务':任务,'timer':计时}#登记待决
+        计时.start()#启动定时器
         try:#发送
             活动['sender'].发送(帧) if hasattr(活动['sender'],'发送') else 活动['sender'].send(帧)#写载体
         except Exception as 错误:#rpc 发送可能抛 OSError/连接断开，契约未定所以收不窄
             自身._拒绝待决(请求id,渲染错误(错误))#拒绝待决
-        return 结果#返回结果
+        return 任务#返回任务
 
     def 接收(自身,值):#消费响应
         """当解码后的载体值是查询响应时加以消费。"""
@@ -110,7 +109,7 @@ class 检查器查询连接:#查询连接
             return True#已消费
         待决['timer'].cancel()#清超时
         del 自身._待决[帧['requestId']]#移除待决
-        待决['resolve'].set_result(结果封装['result'])#兑现结果
+        待决['任务'].兑现(结果封装['result'])#兑现结果
         return True#已消费
 
     def 断开(自身,reason):#断开世代
@@ -132,7 +131,7 @@ class 检查器查询连接:#查询连接
         if 待决 is None:#无则返回
             return#返回
         待决['timer'].cancel()#清定时器
-        待决['resolve'].set_exception(error)#拒绝
+        待决['任务'].拒绝(error)#拒绝
 
 def 渲染错误(错误):#规范化错误
     """包装为 Exception。"""

@@ -7,6 +7,11 @@ from .树 import (#再导出树派生
     未分组标签,
     工作区标签,
     索引子智能体后代,
+    拥有分组键,
+    按近因排序,
+    调和手动顺序,
+    钉住当前空白,
+    可见会话标识,
     派生分组,
     派生扁平,
     派生检索结果,
@@ -32,6 +37,11 @@ __all__=[#仅中文公开名
     '未分组标签',
     '工作区标签',
     '索引子智能体后代',
+    '拥有分组键',
+    '按近因排序',
+    '调和手动顺序',
+    '钉住当前空白',
+    '可见会话标识',
     '派生分组',
     '派生扁平',
     '派生检索结果',
@@ -131,7 +141,6 @@ def 应用(上下文):#注册浏览区与选择器
             'deleteWorkspace':lambda 标识:上下文.workspaces.delete(标识).等待(),#删除
             'insertWorkspaceBefore':lambda 标识,锚:上下文.workspaces.insertBefore(标识,锚).等待(),#插
             'archiveSession':工作区面.archiveSession,#归档
-            'insertSessionBefore':lambda 区,签,锚:上下文.workspaces.insertSessionBefore(区,签,锚).等待(),#插会话
             'createWorkspace':上下文.workspaces.create,#创建
             'hooks':{'directoryFlow':侧栏流源,'hostInfo':宿主源},#流与宿主
         }#注入结束

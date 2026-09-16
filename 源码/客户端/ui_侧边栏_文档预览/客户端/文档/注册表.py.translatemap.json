@@ -1,7 +1,9 @@
 {
+    "binary":"二进制",
     "candidates":"候选",
     "document":"文档",
     "matching":"匹配",
+    "path":"路径",
     "preview":"预览",
     "register":"注册",
     "registry":"注册表",

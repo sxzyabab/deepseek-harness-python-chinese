@@ -1,0 +1,17 @@
+{
+    "bind":"绑定",
+    "cancel":"取消",
+    "child":"子",
+    "dispose":"拆除",
+    "drive":"驱动",
+    "guest":"宾客",
+    "host":"宿主",
+    "json":"json",
+    "progress":"进度",
+    "ptc":"ptc",
+    "result":"结果",
+    "run":"运行",
+    "self":"自身",
+    "start":"启动",
+    "workflow":"工作流"
+}

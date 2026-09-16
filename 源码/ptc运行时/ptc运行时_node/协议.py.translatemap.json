@@ -1,0 +1,17 @@
+{
+    "boot":"引导",
+    "call":"调用",
+    "data":"数据",
+    "done":"完成",
+    "error":"错误",
+    "field":"字段",
+    "log":"日志",
+    "message":"消息",
+    "node":"节点",
+    "output":"输出",
+    "program":"程序",
+    "protocol":"协议",
+    "ptc":"ptc",
+    "reply":"回复",
+    "self":"自身"
+}

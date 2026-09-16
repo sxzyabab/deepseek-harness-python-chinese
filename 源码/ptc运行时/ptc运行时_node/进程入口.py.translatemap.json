@@ -1,0 +1,17 @@
+{
+    "channel":"通道",
+    "control":"控制",
+    "entry":"入口",
+    "environment":"环境",
+    "exit":"退出",
+    "inherit":"继承",
+    "main":"主程序",
+    "open":"打开",
+    "process":"进程",
+    "program":"程序",
+    "run":"运行",
+    "self":"自身",
+    "state":"状态",
+    "stderr":"标准错误",
+    "stdout":"标准输出"
+}

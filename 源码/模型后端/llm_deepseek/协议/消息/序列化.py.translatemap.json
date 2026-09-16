@@ -1,0 +1,11 @@
+{
+    "assistant":"助手",
+    "content":"内容",
+    "effort":"力度",
+    "input":"输入",
+    "message":"消息",
+    "serialize":"序列化",
+    "system":"系统",
+    "tool":"工具",
+    "unsupported":"不支持"
+}

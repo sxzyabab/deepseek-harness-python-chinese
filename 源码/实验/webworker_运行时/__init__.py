@@ -4,6 +4,8 @@ from .module_system.模块加载器 import (#模块加载器面
     默认条件列表,要求活动模块加载器,设活动模块加载器,工作线程模块加载器,
 )#模块系统
 from .module_system import posix路径#POSIX路径工具
+from .模块代理 import 模块代理表,模块代理前缀表#模块代理与前缀
+from .node.external_packages.已替换外部 import 替换外部包清单#被替换的外部包
 from .transport.合成http import 创建合成交换#合成HTTP交换
 from .compile.变换 import 降低模块源#模块降低
 from .transport.隧道 import api前缀,合成主机,隧道服务器#隧道服务器面
@@ -24,7 +26,8 @@ from .storage import 类型 as vfs类型#VFS类型面
 __all__=[#仅中文公开名
     '创建als运行时','解析入站帧',
     '默认条件列表','要求活动模块加载器','设活动模块加载器','工作线程模块加载器',
-    'posix路径','创建合成交换','降低模块源',
+    'posix路径','模块代理表','模块代理前缀表','替换外部包清单',
+    '创建合成交换','降低模块源',
     'api前缀','合成主机','隧道服务器',
     '创建工作线程宿主',
     '默认根','镜像配置路径','镜像空目录列表','镜像文件名','镜像主目录',

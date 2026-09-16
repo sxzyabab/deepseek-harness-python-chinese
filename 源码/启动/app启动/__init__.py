@@ -11,18 +11,20 @@ import yaml#外部依赖胶水（含 PyYAML）
 from ...工具.工作区路径 import 主目录路径,解析主目录#主目录
 from ...工具.启动环境 import 创建启动环境快照#启动环境快照
 from .配置档 import (#配置档再导出
-    组合条目,默认组合包,愈合模块回退,初始化配置档,加载配置档,
+    组合条目,默认组合包,愈合模块回退,初始化配置档,加载配置档,加载配置目录,
     配置补丁文件名,配置模板,配置目录名,读配置清单,解析组合包目录,
-    解析配置目录,写配置清单,
+    解析配置目录,写配置清单,创建配置解析世代,
 )#再导出结束
+from .配置解析.服务 import 插件包表#配置解析服务
+from .监视配置 import 监视配置#精确路径监视
 
 __all__=[#仅中文公开名
     '解析配置路径','加载环境','加载分层环境','监视用户补丁','加载可选补丁','加载覆盖补丁',
     '渲染配置转储','挂载根包含','安装大声失败','大声失败拆除超时毫秒',
     '断言条目已加载','断言条目已激活','启动','添加源码段落','源码段落名',
-    '组合条目','默认组合包','愈合模块回退','初始化配置档','加载配置档',
+    '组合条目','默认组合包','愈合模块回退','初始化配置档','加载配置档','加载配置目录',
     '配置补丁文件名','配置模板','配置目录名','读配置清单','解析组合包目录',
-    '解析配置目录','写配置清单',
+    '解析配置目录','写配置清单','创建配置解析世代','插件包表','监视配置','审计启动条目',
 ]#公开面结束
 
 源码段落名='harness:source'#源位置段落名
@@ -36,13 +38,14 @@ __all__=[#仅中文公开名
     'JAVA_TOOL_OPTIONS','_JAVA_OPTIONS','JDK_JAVA_OPTIONS','PYTHONHOME',
     'GIT_SSH','GIT_SSH_COMMAND','GIT_EXTERNAL_DIFF','GIT_PAGER','GIT_EDITOR',
     'GIT_ASKPASS','SSH_ASKPASS','GIT_CONFIG_GLOBAL','GIT_CONFIG_SYSTEM','GIT_CONFIG_COUNT',
-    'EDITOR','VISUAL','PAGER',
+    'EDITOR','VISUAL','PAGER','BROWSER',
     'DEEPSEEK_BASE_URL','DEEPSEEK_SEARCH_BASE_URL',
     'SSL_CERT_FILE','SSL_CERT_DIR',
     'HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY',
     'REQUESTS_CA_BUNDLE','CURL_CA_BUNDLE','NODE_TLS_REJECT_UNAUTHORIZED',
 ])#引导名结束
 引导名前缀=['DSH_','XDG_','DYLD_','BASH_FUNC_']#引导专用前缀
+主目录层代理名=set(['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY'])#主目录 .env 可设的代理名
 启动包含表={}#根 Include 条目登记（ctx id → entry）
 已组装拒绝={}#已组装激活拒绝计数
 
@@ -122,9 +125,10 @@ def 应用环境文件(路径):#把 .env 写入进程环境
         if 名 not in os.environ:#未继承
             os.environ[名]=值#写入
 
-def 读环境层(二进制名,目录,警告):#读一层 .env
-    """解析某目录的 .env 但不应用，拒绝引导专用名。"""
+def 读环境层(二进制名,目录,警告,主目录):#读一层 .env
+    """解析某目录的 .env 但不应用，拒绝引导专用名。主目录层可设代理名。"""
     路径=os.path.join(目录,'.env')#该层路径
+    是主目录=os.path.abspath(目录)==主目录#是否主目录层
     try:#读文件
         文件=open(路径,'r',encoding='utf-8')#打开
         try:#读
@@ -139,10 +143,15 @@ def 读环境层(二进制名,目录,警告):#读一层 .env
     值表=解析环境文本(内容)#解析
     for 名 in 值表:#逐名检查
         if 是否仅引导(名):#引导名
+            代理名=名.upper() in 主目录层代理名#是否代理
+            if 是主目录 and 代理名:#主目录层放过代理
+                continue#接受
+            补救=('export '+名+', or put it in '+os.path.join(主目录,'.env')+', which does not travel with a repository'
+                if 代理名 else 'export '+名+' instead of putting it in a .env file')#补救
             raise 启动错误(
                 二进制名+': '+路径+' sets "'+名+'", which only the launching environment may set'
                 +' (it decides how this process starts, where its code and instructions load from, or how it'
-                +' reaches the network); export '+名+' instead of putting it in a .env file'
+                +' reaches the network); '+补救
             )#错误
     return {'path':路径,'values':值表}#路径与条目
 
@@ -157,8 +166,8 @@ def 加载分层环境(二进制名,工作目录=None,警告=None):#加载分层
         警告=写警告#缺省警告
     主目录=解析主目录()#Harness 主目录
     继承=dict(os.environ)#继承环境副本
-    项目=读环境层(二进制名,工作目录,警告)#项目层
-    用户=None if 主目录==os.path.abspath(工作目录) else 读环境层(二进制名,主目录,警告)#用户层
+    项目=读环境层(二进制名,工作目录,警告,主目录)#项目层
+    用户=None if 主目录==os.path.abspath(工作目录) else 读环境层(二进制名,主目录,警告,主目录)#用户层
     for 层 in (项目,用户):#按层应用
         if 层 is None:#缺失
             continue#跳过
@@ -183,6 +192,19 @@ def 解析补丁列表(二进制名,文件,内容,标签):#解析补丁列表
     for 下标,条目 in enumerate(解析):#逐条检查
         if not isinstance(条目,dict) or 条目 is None:#不是映射
             raise 启动错误(二进制名+': '+标签+' entry '+str(下标+1)+' in '+文件+' must be a mapping (a loader patch entry)')#拒绝
+    基=os.path.dirname(os.path.abspath(文件))#补丁目录
+    def 访问(条目):
+        """把插入条目里的文件系统路径改成 file URL。"""
+        名=条目['name'] if 'name' in 条目 else None#插件名
+        if isinstance(名,str) and (os.path.isabs(名) or 名.startswith('./') or 名.startswith('../')):#路径形
+            条目['name']=路径转文件url(os.path.abspath(os.path.join(基,名)))#改 file URL
+        if ('group' in 条目 and 条目['group']) and isinstance(条目['config'] if 'config' in 条目 else None,list):#组内条目
+            for 子 in 条目['config']:#递归
+                访问(子)#访问
+    for 补丁 in 解析:#每条补丁
+        if 'insert' in 补丁 and 补丁['insert'] is not None:#有插入
+            for 条目 in 补丁['insert']:#逐条
+                访问(条目)#改写
     return 解析#补丁列表
 
 def 加载可选补丁(二进制名,文件):#加载可选补丁
@@ -270,13 +292,26 @@ def 监视用户补丁(上下文对象,选项):
             用户补丁=[]#空
         补丁=组合(用户补丁)#组合
         条目.更新({'config':{**非补丁,'patches':补丁}})#事务更新，同步
+        加载器=上下文对象.获取服务('加载器',False)#Loader
+        if 加载器 is not None:#仍在
+            加载器.等待()#等结算
+            for 插件配置 in 加载器.列出插件配置():#每条光纤
+                光纤=插件配置.纤程#fiber
+                if 光纤 is not None:#有光纤
+                    try:#收拒绝
+                        光纤.等待()#等待
+                    except Exception:#allSettled：拒绝不打断其余
+                        pass#继续
+        失败=未激活条目(上下文对象)#审计
+        if len(失败)>0:#有失败
+            raise 启动错误(激活诊断(二进制名,'warning',失败).rstrip())#拒绝本次刷新
     def 空拆除():
         """树已拆时的空拆除器。"""
         return#空
     try:#注册
-        return 热重载.登记配置(文件名,刷新)#返回拆除器，同步
+        return 监视配置(上下文对象,文件名,热重载.配置,刷新)#精确路径监视
     except cordis.Cordis错误 as 错误:#安装失败
-        if 错误.码=='INACTIVE_EFFECT':#树已拆
+        if getattr(错误,'码',None)=='INACTIVE_EFFECT' or getattr(错误,'code',None)=='INACTIVE_EFFECT':#树已拆
             return 空拆除#空拆除
         raise#其余失败
 
@@ -334,6 +369,108 @@ def 安装大声失败(二进制名,进程=None,拆除=None):
         """Python 无 unhandledRejection；保留 API 形状。"""
         return#空
     return 空卸载#卸载器
+
+必需启动条目标识=set([#定义可用 DSH 应用的条目 id
+    'agent-loop','webserver','modules','connection','headless-runner','acp','sdk-jsonrpc-server',
+])#标识结束
+
+def 格式化激活错误(错误):
+    """展开插件栈、嵌套原因与聚合成员一次。"""
+    细节=[]#行
+    已见=set()#去环
+    def 访问(值):
+        """递归展开。"""
+        if not isinstance(值,Exception):#非异常
+            细节.append(str(值))#字符串
+            return#结束
+        if 值 in 已见:#环
+            return#停
+        已见.add(值)#记下
+        细节.append(str(值))#消息
+        if 值.__cause__ is not None:#原因
+            访问(值.__cause__)#下一层
+        if hasattr(值,'exceptions'):#聚合
+            for 成员 in 值.exceptions:#成员
+                访问(成员)#展开
+    访问(错误)#开始
+    return '\n'.join(细节)#拼
+
+def 未激活条目(上下文对象):
+    """收集加载失败与禁用表达式错误。"""
+    失败=[]#失败
+    拒绝原因=[]#拒绝原因
+    for 条目 in 上下文对象.加载器.列出插件配置():#逐条
+        选项=条目.选项#选项 dict
+        主语=str(选项['id'] if 'id' in 选项 else None)+' ('+str(选项['name'] if 'name' in 选项 else None)+')'#主体
+        try:#读禁用
+            if 条目.已禁用:#已禁用
+                continue#跳过
+        except Exception as 错误:#禁用表达式失败
+            失败.append({'entry':条目,'diagnostic':主语+': disabled expression failed: '+格式化激活错误(错误)})#记下
+            continue#下一条
+        光纤=条目.纤程#fiber
+        if 光纤 is None:#无光纤
+            失败.append({'entry':条目,'diagnostic':主语+': failed to import'})#导入失败
+            continue#下一条
+        状态=光纤.状态#状态
+        if 状态==光纤激活:#已激活
+            continue#跳过
+        if 状态==光纤失败:#已失败
+            try:#收回原因
+                光纤.等待()#等待
+            except Exception as 错误:#插件启动失败
+                拒绝原因.append(错误)#记下
+                失败.append({'entry':条目,'diagnostic':主语+': '+格式化激活错误(错误)})#格式化
+            continue#下一条
+        if 状态==光纤等待:#仍在等待
+            缺失=[]#缺失服务
+            for 服务名 in 光纤.依赖表:#依赖表
+                if 光纤.所属上下文.获取服务(服务名,False) is None:#仍缺
+                    缺失.append(服务名)#记下
+            主语服务='service' if len(缺失)==1 else 'services'#单复数
+            列出=', '.join(缺失) if len(缺失)>0 else 'unknown'#名单
+            失败.append({'entry':条目,'diagnostic':主语+': pending (waiting for '+主语服务+': '+列出+')'})#挂起
+        else:#其他状态
+            失败.append({'entry':条目,'diagnostic':主语+': fiber state '+str(状态)})#报告
+    if len(拒绝原因)>0:#有拒绝
+        for 原因 in 拒绝原因:#保留到检查点
+            保留已组装拒绝(原因)#保留
+        try:#检查点
+            pass#同步路径已收住原因
+        finally:#释放
+            for 原因 in 拒绝原因:#释放
+                释放已组装拒绝(原因)#释放
+    return 失败#失败列表
+
+def 激活诊断(二进制名,严重度,失败列表):
+    """渲染未激活条目诊断。"""
+    名词='entry' if len(失败列表)==1 else 'entries'#单复数
+    前缀='' if 二进制名=='' else 二进制名+': '#前缀
+    return 前缀+严重度+': '+str(len(失败列表))+' '+名词+' did not activate\n'+'\n'.join(项['diagnostic'] for 项 in 失败列表)+'\n'#诊断
+
+def 审计启动条目(上下文对象,二进制名,警告=None):
+    """对已结算 Loader 树应用 DSH 启动政策。"""
+    if 警告 is None:#缺省
+        def 写警告(行):
+            """写标准错误。"""
+            sys.stderr.write(行)#stderr
+        警告=写警告#缺省
+    失败=未激活条目(上下文对象)#收集
+    必需=[]#必需失败
+    可选=[]#可选失败
+    根包含=启动包含表.get(id(上下文对象))#引导 Include
+    for 项 in 失败:#分流
+        条目=项['entry']#条目
+        选项=条目.选项#选项
+        标识=选项['id'] if 'id' in 选项 else None#id
+        if 条目 is 根包含 or 标识 in 必需启动条目标识:#必需
+            必需.append(项)#收下
+        else:#可选
+            可选.append(项)#收下
+    if len(可选)>0:#有可选失败
+        警告(激活诊断(二进制名,'warning',可选))#警告
+    if len(必需)>0:#有必需失败
+        raise 启动错误(激活诊断('','required startup failure',必需).rstrip())#拒绝
 
 def 断言条目已加载(上下文对象,二进制名):
     """树结算之后，拒绝没有 fiber 的启用条目。"""
@@ -398,6 +535,13 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
         上下文对象.基准网址=基址#写入
         加载器类=loader.加载器#Loader
         上下文对象.提供服务('dshHomePath',主目录路径)#提供主目录解析
+        def 更新观察(_配置,_不保存,下一步):
+            """Fiber.update 丢掉重启承诺；在瀑布返回前观察。"""
+            try:#观察
+                下一步()#同步
+            except Exception as 错误:#激活失败
+                上下文对象.日志.错误(错误)#记日志
+        上下文对象.监听('internal/update',更新观察,{'全局':True,'前置':True})#前置观察
         上下文对象.启动插件(加载器类).等待()#安装 Loader 并抛出启动失败
         if 准备 is not None:#可选宿主准备
             准备(上下文对象)#准备，同步
@@ -408,7 +552,7 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
             加载器.等待()#等待结算，抛出插件启动失败
         if 上下文对象.获取服务('加载器',False) is None:#树已拆
             return 上下文对象#返回
-        断言条目已激活(上下文对象,二进制名)#审计激活
+        审计启动条目(上下文对象,二进制名)#审计激活
         return 上下文对象#返回根上下文
     except Exception as 原因:#启动失败形态含插件树与配置错误
         上下文对象.纤程.拆除()#拆除部分树
@@ -426,7 +570,7 @@ def 添加源码段落(上下文对象,源码根):
         return None#空操作
     return 系统提示词.段落({#登记段落
         'name':源码段落名,#段落名
-        'order':-99,#紧挨身份开场之后
+        'order':系统提示词.取段落序号('HARNESS_SOURCE'),#共享放置
         'text':'The DeepSeek Harness implementation checkout is at '+源码根+'. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.',#字面量
     })#section 结束
 

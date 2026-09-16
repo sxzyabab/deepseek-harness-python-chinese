@@ -191,9 +191,20 @@ def 准备压缩(依赖,会话,选择):
     准备['input']=构建摘要输入(会话,被遮蔽)#重放输入
     return 准备#返回结束
 
-def 摘要压缩(依赖,准备,智能体,压缩事务标识,来源命令标识,信号=None):
+def 摘要压缩(依赖,准备,智能体,压缩事务标识,来源命令标识,校验稳定,信号=None):
     """返回摘要后待提交快照。"""
-    摘要结果=依赖['summarize'](准备['input'],智能体,信号)#跑摘要钩子
+    while True:#失败可恢复则重试
+        若已中止则抛出(信号)#进入前检查取消
+        try:#跑摘要钩子
+            摘要结果=依赖['summarize'](准备['input'],智能体,信号)#跑摘要钩子
+            break#成功则离开
+        except Exception as 错误:#摘要失败
+            if 已中止(信号):#取消优先
+                raise 错误#原样抛
+            校验稳定(依赖,智能体.session,准备)#跨度须仍合法
+            if not 依赖['recover'](错误,智能体,准备['shadowedSeqs'],信号):#无法恢复
+                raise 错误#原样抛
+            准备=准备压缩(依赖,智能体.session,校验表面区间(智能体.session,准备['start'],准备['end']))#按耐久改写重计价
     检查点消息=创建用户消息({#合成替换用户消息
         'content':装帧摘要(摘要结果['summary']),#装帧摘要
         'source':压缩检查点来源(压缩事务标识,来源命令标识),#检查点出处
@@ -244,11 +255,11 @@ def 提交压缩正文(会话,开始事件,已摘要):
     用量=已摘要['usage'] if 'usage' in 已摘要 else None#用量
     检查点消息=已摘要['checkpointMessage']#替换消息
     if 'llmStreamCall' in 已摘要 and 已摘要['llmStreamCall'] is True:#是否已标记 LLM 调用
-        调用出处={'rawOutput':已摘要['rawOutput'],'llmStreamCall':True}#已标记须带完整输出
+        调用记录={'rawOutput':已摘要['rawOutput'],'llmStreamCall':True}#已标记须带完整输出
     elif 'rawOutput' not in 已摘要 or 已摘要['rawOutput'] is None:#未标记且无输出
-        调用出处={}#省略
+        调用记录={}#省略
     else:#未标记则可选输出
-        调用出处={'rawOutput':已摘要['rawOutput']}#可选输出
+        调用记录={'rawOutput':已摘要['rawOutput']}#可选输出
     开始数据=开始事件['data']#start 载荷
     摘要载荷={#摘要计量事件
         'compactionId':开始数据['compactionId'],#事务 id
@@ -259,7 +270,7 @@ def 提交压缩正文(会话,开始事件,已摘要):
         'provider':提供方,#提供方
         'model':模型,#模型
     }#摘要载荷基础
-    摘要载荷.update(调用出处)#调用出处
+    摘要载荷.update(调用记录)#调用记录
     if 'sourceCommandId' in 开始数据 and 开始数据['sourceCommandId'] is not None:#start 是否带命令
         摘要载荷['sourceCommandId']=开始数据['sourceCommandId']#沿用命令 id
     if 最大令牌 is not None:#有上限才写入
@@ -355,6 +366,7 @@ def 压缩表面区间(依赖,会话,起点,终点,智能体,选项,信号=None)
             智能体,#智能体
             压缩事务标识,#事务 id
             选项['sourceCommandId'] if 'sourceCommandId' in 选项 else None,#来源命令
+            校验稳定,#稳定检查
             信号,#取消
         )#摘要结束
         if ('owner' not in 选项) or 选项['owner'] is None:#提交前再检查取消

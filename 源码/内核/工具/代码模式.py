@@ -1,6 +1,7 @@
-import json,threading
+import json,math,threading
 from concurrent.futures import Future as 原生结果#单次操作结果
-from ...模型后端.llm import 调用标识,装备错误 as 框架错误#导入调用 id 与框架错误
+from ...模型后端.llm import 调用标识,装备错误 as 框架错误,深冻结,创建用户消息#导入调用 id、框架错误、冻结与用户消息
+from ...沙盒.沙盒 import 批准升级,校验升级参数,升级目标#导入沙箱升级
 from ..会话 import 快照json值#导入无损 JSON 快照
 from .模式 import 定义工具,参数模式规格转json模式#导入工具定义器与参数编译
 
@@ -11,7 +12,7 @@ __all__=(
 )#仅中文公开名
 
 运行代码名='run_code'#传输工具名
-sdk段顺序=150#SDK 段顺序
+sdk段顺序=5000#SDK 段顺序，对齐 TOOLS_SDK
 json缩进='  '#两空格 JSON 呈现
 json缩进上限=10#总缩进上限
 
@@ -153,7 +154,8 @@ typescript风味={
         +'arguments: `code`, the BODY of an async function (erasable syntax only; top-level '
         +'`await` and `return` work), and `description`, a short summary of what the program '
         +'does. Call tools as `await tools.name(args)` per the declarations in the system '
-        +'prompt. Only what you print or return comes back — curate it.'
+        +'prompt. Only what you print or return is program output — curate it. Image-bearing '
+        +'subtool results are attached after the run.'
     ),#工具描述
     'codeDescription':'The program: the body of an async TypeScript function.',#代码参数描述
 }#TS 风味
@@ -162,8 +164,9 @@ python风味={
         'Execute a Python program against the available tools. Takes two required '
         +'arguments: `code`, the BODY of an async function (top-level `await` and `return` '
         +'work), and `description`, a short summary of what the program does. Call tools as '
-        +'`await tools.name(args)` per the declarations in the system prompt. Answer '
-        +'with `print(...)` and/or `return <value>` — only that comes back, so curate it.'
+        +'`await tools.name(args)` per the declarations in the system prompt. Use '
+        +'`print(...)` and/or `return <value>` for program output — curate it. Image-bearing '
+        +'subtool results are attached after the run.'
     ),#工具描述
     'codeDescription':'The program: the body of an async Python function.',#代码参数描述
 }#Python 风味
@@ -176,18 +179,46 @@ python风味={
     +'5-10 words (shown in the UI). Examples: "Count TODO markers across packages"; '
     +'"Read failing test and its fixture"; "Rename config key in every cordis.yml".'
 )#description 参数文案
+运行代码控件={
+    'timeoutMs':{'type':'number','description':'Positive elapsed-time budget in milliseconds, capped by the deployment maximum.'},#超时
+    'sandbox_permissions':{'type':'string','enum':list(升级目标),'description':'Wider sandbox mode for this complete program execution; requires justification and approval.'},#沙箱权限
+    'justification':{'type':'string','description':'Reason this complete program needs wider access, shown to the user for approval.'},#理由
+}#控件参数
+升级指引文案=' A sandbox escalation approves this complete program for one execution only. Nested tools retain their own policies and approvals. Request wider access only after evidence of a denial. Earlier effects may already have completed: inspect them before explicitly retrying. Programs are never replayed automatically.'#升级指引
+
+def 控制参数(运行时):
+    """按运行时能力裁剪 timeoutMs 与沙箱升级字段。"""
+    if 运行时 is None:
+        return dict(运行代码控件)#目录读者给全套
+    结果={}#按能力收录
+    截止=运行时.超时()#数值截止
+    if 截止 is not None:
+        超时=dict(运行代码控件['timeoutMs'])#拷贝
+        超时['description']='Positive elapsed-time budget in milliseconds, including nested tool and approval waits. Default '+str(截止['defaultMs'])+'; capped at '+str(截止['maxMs'])+'. Zero does not disable the deadline.'#带上下限
+        结果['timeoutMs']=超时#收录超时
+    if 运行时.沙箱模式() is not None:
+        结果['sandbox_permissions']=运行代码控件['sandbox_permissions']#收录权限
+        结果['justification']=运行代码控件['justification']#收录理由
+    return 结果#已裁剪
+
+def 升级指引(运行时):
+    """运行时有文件政策时返回升级指引，否则空串。"""
+    if 运行时 is None:
+        return ''#无运行时
+    if 运行时.沙箱模式() is None:
+        return ''#无围栏
+    return 升级指引文案#指引
 
 def 解析风味(窥探运行时):
     """按已加载运行时的语言解析 run_code 风味。"""
     运行时=窥探运行时()#窥探运行时
     if 运行时 is None:
         return typescript风味#TS 回落
-    语言=运行时['language'] if isinstance(运行时,dict) and 'language' in 运行时 else getattr(运行时,'language',None)#语言名
-    风味=运行代码风味[语言] if isinstance(语言,str) and 语言 in 运行代码风味 else None#查表
-    if 风味 is None:
+    语言=运行时.语言()#语言名
+    if 语言 not in 运行代码风味:
         已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in 运行代码风味.keys())#已知语言
         raise 代码模式错误('dsh-tools: no run_code schema flavor registered for runtime language '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' (known: '+已知+')')#大声失败
-    return 风味#该语言风味
+    return 运行代码风味[语言]#该语言风味
 
 class 代码运行失败错误(框架错误):
     """程序运行本身失败时由 run_code 抛出。"""
@@ -343,14 +374,16 @@ def 创建运行代码工具(注册表,选项):
     """构建 run_code 工具定义。"""
     要求运行时=选项['requireRuntime']#必需运行时
     窥探运行时=选项['peekRuntime']#窥探运行时
+    窥探审批=选项['peekApprover']#窥探审批通道
+    解析沙箱政策=选项['resolveSandboxPolicy']#解析站立政策
     并行上限=选项['maxParallel']#并行上限
     整形派发日志=选项['shapeDispatchLog']#整形日志内容
     def 渲染运行代码输出(_参数,值):
         """渲染模型文本。"""
-        return _渲染运行代码(值)#委托
-    def 执行运行代码(参数,执行):
+        return _渲染运行代码(值,窥探运行时)#委托
+    def 跑传输(参数,执行):
         """跑程序。"""
-        return 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,整形派发日志,参数,执行)#委托
+        return 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,并行上限,整形派发日志,参数,执行)#委托
     def 呈现运行代码调用(参数):
         """待处理呈现。"""
         return {
@@ -359,17 +392,19 @@ def 创建运行代码工具(注册表,选项):
             'kind':'execute',#执行类
             'rawInput':参数['code'],#程序体
         }#呈现卡片
+    静态参数={
+        'code':{'type':'string','required':True,'description':typescript风味['codeDescription']},#代码体
+        'description':{
+            'type':'string',#字符串
+            'required':True,#必填
+            'description':运行代码描述参数文案,#语言无关文案
+        },#UI 标签
+    }#必填参数
+    静态参数.update(运行代码控件)#控件字段
     定义=定义工具({
         'name':运行代码名,#传输名
         'description':typescript风味['description'],#占位描述
-        'parameters':{
-            'code':{'type':'string','required':True,'description':typescript风味['codeDescription']},#代码体
-            'description':{
-                'type':'string',#字符串
-                'required':True,#必填
-                'description':运行代码描述参数文案,#语言无关文案
-            },#UI 标签
-        },#静态参数规格
+        'parameters':静态参数,#含控件
         'output':{
             'schema':{
                 'type':'object',#对象
@@ -377,37 +412,87 @@ def 创建运行代码工具(注册表,选项):
                 'properties':{
                     'logs':{'type':'array','required':True,'items':{'type':'string'}},#捕获日志
                     'result':{'type':'json'},#可选返回值
+                    'sandbox':{
+                        'type':'object',#对象
+                        'additionalProperties':False,#封闭
+                        'properties':{
+                            'mode':{'type':'string','required':True,'enum':['read-only','workspace-write','danger-full-access']},#沙箱模式
+                            'denied':{'type':'boolean','required':True},#是否拒绝
+                            'enforcement':{'type':'string','enum':['full','partial']},#强制程度
+                        },#字段
+                    },#沙箱投影
                 },#字段
             },#schema
             'render':渲染运行代码输出,#渲染模型文本
         },#规范输出
-        'execute':执行运行代码,#跑程序
+        'execute':跑传输,#跑程序
         'presentCall':呈现运行代码调用,#待处理呈现
     })#经 defineTool 编译
     def 读描述():
-        """发出时读风味描述。"""
-        return 解析风味(窥探运行时)['description']#当前风味
+        """发出时读风味描述、执行说明与升级指引。"""
+        运行时=窥探运行时()#当前运行时
+        说明=运行时.执行说明() if 运行时 is not None else ''#提供方说明
+        文案=解析风味(窥探运行时)['description']#当前风味
+        if 说明:
+            文案=文案+' '+说明#接说明
+        if 运行时 is not None:
+            文案=文案+" The working directory is the Session's current directory."#工作目录句
+        return 文案+升级指引(运行时)#接升级指引
     def 读参数():
         """按当前风味重编译参数模式。"""
-        return 参数模式规格转json模式({
+        规格={
             'code':{'type':'string','required':True,'description':解析风味(窥探运行时)['codeDescription']},#代码描述随语言
             'description':{'type':'string','required':True,'description':运行代码描述参数文案},#标签文案不变
-        })#投影成模型可见模式
+        }#必填
+        规格.update(控制参数(窥探运行时()))#按能力收录控件
+        return 参数模式规格转json模式(规格)#投影成模型可见模式
     return 带取值定义(定义,读描述,读参数)#替换 description/parameters
 
-def _渲染运行代码(值):
+def _渲染运行代码(值,窥探运行时):
     """渲染 run_code 规范输出。"""
     渲染='' if 'result' not in 值 else 渲染完成值(值['result'])#返回值文本
     段列表=[项 for 项 in ['\n'.join(值['logs']),渲染] if len(项)>0]#去掉空段
+    沙箱=值.get('sandbox')#沙箱投影
+    if isinstance(沙箱,dict) and 沙箱.get('enforcement')=='partial':
+        段列表.append('File sandbox enforcement is partial on this host.')#部分强制
+    if isinstance(沙箱,dict) and 沙箱.get('denied'):
+        段列表.append('The '+str(沙箱.get('mode'))+' file sandbox denied an operation.'+升级指引(窥探运行时()))#拒绝加指引
     文本='\n'.join(段列表) if len(段列表)>0 else '(run_code completed with no output)'#无输出时的哨兵句
     return [{'type':'text','text':文本}]#文本块
 
-def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,整形派发日志,参数,执行):
+def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,并行上限,整形派发日志,参数,执行):
     """跑一次 run_code 程序并排空子派发。"""
     from . import 调度器符号#延迟导入
     if len(参数['description'].strip())==0:
         raise 代码模式错误('invalid description: expected a non-empty string')#必须非空
     运行时=要求运行时()#组装/执行时必需运行时
+    校验升级参数(参数.get('sandbox_permissions'),参数.get('justification'))#配对校验
+    if 参数.get('timeoutMs') is not None and 运行时.超时() is None:
+        raise 代码模式错误('timeoutMs is not available for this PTC runtime')#运行时无截止
+    超时毫秒=参数.get('timeoutMs')#可选截止
+    if 超时毫秒 is not None:
+        if isinstance(超时毫秒,bool) or (not isinstance(超时毫秒,(int,float))) or (not math.isfinite(超时毫秒)) or 超时毫秒<=0:
+            raise 代码模式错误('invalid timeoutMs: expected a positive finite number')#必须正有限
+    站立政策=None if 运行时.沙箱模式() is None else 解析沙箱政策(执行)#有围栏才解析
+    政策=站立政策#本次政策
+    if 参数.get('sandbox_permissions') is not None and 参数.get('justification') is not None:
+        if 站立政策 is None:
+            raise 代码模式错误('sandbox_permissions is not available for this PTC runtime')#运行时无围栏
+        批准模式=批准升级({
+            'requestedMode':参数['sandbox_permissions'],#目标模式
+            'justification':参数['justification'],#理由
+            'effectiveMode':站立政策['mode'],#当前模式
+            'subject':'program',#主语
+        },{
+            'approver':窥探审批(),#审批通道
+            'agent':执行.get('agent'),#智能体
+            'callId':执行['callId'],#调用 id
+            'toolName':运行代码名,#传输名
+            'signal':执行.get('signal'),#取消信号
+        })#一次批准
+        政策=dict(站立政策)#拷贝站立
+        政策['mode']=批准模式#盖上批准模式
+    若已中止则抛出(执行.get('signal'))#升级后若已取消则停
     本轮=中止控制器()#本轮控制器
     外层信号=执行['signal'] if 'signal' in 执行 else None#外层取消通道
     def 跟外层中止():
@@ -508,8 +593,9 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
         驱动().等待()#跑到静止
         while len(日志工作)>0:
             全部结算(list(日志工作))#排空日志副作用
-    def 绑定(名称):
+    def 绑定(模式):
         """绑定一个工具。"""
+        名称=模式['name']#工具名
         def 调用(原始参数):
             """一次 SDK 子派发。"""
             nonlocal 子调用序号
@@ -522,6 +608,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                 'callId':子调用号,#子调用 id
                 'rootCallId':执行['rootCallId'],#根调用
                 'name':名称,#工具名
+                'schema':模式,#绑定期模式，不入日志
                 'arguments':归一['dispatched'],#派发副本
                 'parent':执行['token'],#外层 token
                 'signal':本轮.信号,#本轮信号
@@ -550,7 +637,7 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                         'isError':结果['isError'],#是否错误
                         'content':结果['content'],#默认内容
                     })#整形要记的内容
-                    智能体.session.append('tool/ptc-dispatch',{
+                    事件={
                         'rootCallId':执行['rootCallId'],#根
                         'parentCallId':执行['callId'],#父 run_code
                         'subCallId':子调用号,#子 id
@@ -558,7 +645,11 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                         'arguments':归一['logged'],#日志副本
                         'isError':结果['isError'],#是否错误
                         'content':已记,#可能被替换的耐久内容
-                    })#落定事件
+                    }#落定事件
+                    失败=结果.get('error')#失败细节
+                    if isinstance(失败,dict) and 失败.get('info') is not None:
+                        事件['error']=失败['info']#结构化错误身份
+                    智能体.session.append('tool/ptc-dispatch',事件)#落定事件
                 日志任务=在线程执行(日志体)#跟踪副作用
                 def 日志离集(任务=日志任务):
                     """落定后离集。"""
@@ -616,6 +707,14 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                     结果=调度器['finalize'](停住['exec'],停住['result'])#后执行 + 最终化
                 else:
                     结果=调度器['finish'](停住['exec'],停住['result'])#跳过后执行
+                if not 结果.get('isError'):
+                    for 块 in (结果.get('content') or []):
+                        if 块.get('type')=='image':
+                            执行['deferContext'](创建用户消息({
+                                'content':结果['content'],#含子图
+                                'source':{'kind':'plugin','plugin':'tools-ptc'},#传输插件来源
+                            }))#推迟图片上下文
+                            break#一块即可
                 for 上下文块 in (结果.get('additionalContexts') or []):
                     执行['deferContext'](上下文块)#渡到外层结果
                 if 结果.get('concludesTurn'):
@@ -641,10 +740,10 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
     for 模式项 in 注册表.诸模式(执行['agent'] if 'agent' in 执行 else None):
         if 模式项['name']==运行代码名:
             continue#不绑定传输自身
-        函数表[模式项['name']]=绑定(模式项['name'])#自有可枚举绑定
+        函数表[模式项['name']]=绑定(深冻结(模式项))#自有可枚举绑定
 
     try:
-        运行结局=运行时.run({
+        请求={
             'program':参数['code'],#程序体
             'bindings':[{
                 'global':'tools',#全局名
@@ -652,15 +751,37 @@ def 执行运行代码(注册表,要求运行时,窥探运行时,并行上限,�
                 'errorClass':{'name':'ToolCallError','memberNameProperty':'toolName'},#绑定失败类
             }],#bindings
             'signal':本轮.信号,#本轮信号
-        })#交给代码运行时
+        }#运行请求
+        智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
+        if 智能体 is not None:
+            头=智能体.session.header#会话头
+            if 'cwd' in 头:
+                请求['cwd']=头['cwd']#会话工作目录
+        if 政策 is not None:
+            请求['sandboxPolicy']=政策#本次政策
+        if 超时毫秒 is not None:
+            请求['timeoutMs']=超时毫秒#本次截止
+        运行结局=运行时.运行(运行时.解析(请求))#先解析再跑
     finally:
         本轮.中止('run_code settled')#本轮落定
         排空派发()#排空派发与日志
     if 运行结局.get('error'):
         错误=运行结局['error']#程序失败
         日志文本=('\nCaptured output:\n'+'\n'.join(运行结局['logs'])) if len(运行结局['logs'])>0 else ''#捕获输出
-        raise 代码运行失败错误('code run failed ('+错误['kind']+'): '+错误['message']+日志文本)#带种类与日志
+        沙箱=运行结局.get('sandbox')#沙箱投影
+        if 沙箱 is None:
+            沙箱文本=''#无沙箱
+        else:
+            强制=沙箱.get('enforcement')#强制程度
+            沙箱文本=('\nFile sandbox: '+沙箱['mode']
+                +( '' if 强制 is None else '; enforcement: '+强制)
+                +( '; operation denied' if 沙箱.get('denied') else '')
+                +'.')#沙箱句
+        升级=升级指引(运行时) if 沙箱 is not None and 沙箱.get('denied') else ''#拒绝才接指引
+        raise 代码运行失败错误('code run failed ('+错误['kind']+'): '+错误['message']+日志文本+沙箱文本+升级)#带种类、日志与沙箱
     成功={'logs':运行结局['logs']}#成功规范值
+    if 运行结局.get('sandbox') is not None:
+        成功['sandbox']=运行结局['sandbox']#有沙箱才带
     if 'value' in 运行结局:
         成功['result']=运行结局['value']#有返回值才带，含 JSON null
     return 成功#规范值

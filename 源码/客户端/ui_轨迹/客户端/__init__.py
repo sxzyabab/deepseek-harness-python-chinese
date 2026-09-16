@@ -1,5 +1,6 @@
 from .文案 import 命名空间,中文,英文#词典
 from .时长存储 import 创建轨迹时长存储#时长偏好
+from .字符串换行存储 import 创建轨迹字符串换行存储#JSON 折行偏好
 from .消息定义 import 登记轨迹消息定义#消息定义
 from .请求头定义 import 登记轨迹请求头定义#请求头定义
 from .助手定义 import 登记轨迹助手定义#助手定义
@@ -72,6 +73,7 @@ def 应用(上下文):#安装轨迹视图浏览器半边
     上下文.副作用(登记词典,'ui-trajectory: dictionaries')#登记中英文案
     翻译=上下文.locale.bind(命名空间)#绑定本命名空间的翻译
     时长=创建轨迹时长存储()#本插件共享的实测时长偏好句柄
+    折行=创建轨迹字符串换行存储()#本插件共享的 JSON 字符串折行偏好
     登记轨迹消息定义(上下文)#登记消息块定义
     登记轨迹请求头定义(上下文)#登记请求头定义
     登记轨迹助手定义(上下文)#登记助手消息定义
@@ -101,6 +103,10 @@ def 应用(上下文):#安装轨迹视图浏览器半边
                 时长['set'](值)#写入
             return {#组装注入面
                 'hooks':{'duration':时长},#把时长句柄注入视图钩子
+                'jsonStringWrapping':{#JSON 字符串折行默认
+                    'getDefault':折行['getSnapshot'],#读默认
+                    'setDefault':折行['set'],#写默认
+                },#折行结束
                 'loadOlder':加载更早,#向更早分页
                 'setActualDuration':设实测时长,#实测时长
                 'deriveLayout':派生轨迹布局,#布局折叠

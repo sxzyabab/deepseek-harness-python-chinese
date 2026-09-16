@@ -61,9 +61,7 @@ def 结束错误(结束):
     种类=结束['kind']#结束类别
     if 种类=='error' or 种类=='aborted':#提供方错误或已取消
         失败=结束['failure']#失败事实
-        错误=基础压缩错误(失败['message'] if 'message' in 失败 else str(失败))#带 message 的错误
-        错误.code=失败['code'] if 'code' in 失败 else None#保留失败码
-        return 错误#返回错误
+        return 语言模型错误(失败['message'],失败['code'],失败)#语言模型错误
     if 种类=='max-tokens':#触达 token 上限
         错误=基础压缩错误('summarization truncated at the token cap (incomplete checkpoint)')#截断错误
         错误.code='MAX_TOKENS'#截断码

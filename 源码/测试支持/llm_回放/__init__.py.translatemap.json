@@ -1,5 +1,7 @@
 {
     "apply":"应用",
+    "offloaded":"卸载",
+    "attachment":"附件",
     "catalog":"目录",
     "chunk":"分片",
     "compare":"比较",

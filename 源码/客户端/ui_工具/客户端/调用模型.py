@@ -60,6 +60,17 @@ def 相对化到工作区(文本,工作区):#工作区绝对路径 → 相对展
         return 文本[len(根)+1:]#剥掉
     return 文本#原样
 
+def 缩写主目录(文本,主目录):#宿主主目录前缀 → ~
+    """缺席或空则路径不变；整段等于主目录时为 ~。"""
+    if 主目录 is None or 主目录=='':#无主目录
+        return 文本#不改
+    根=主目录.rstrip('/\\')#去掉尾部分隔符
+    if 文本==根:#恰好主目录
+        return '~'#波浪号
+    if 文本.startswith(根+'/') or 文本.startswith(根+'\\'):#主目录加分隔符
+        return '~/'+文本[len(根)+1:]#波浪号相对
+    return 文本#原样
+
 def 解析参数(参数原文):#把参数原文解析成值
     """非 JSON 则 None。"""
     try:#尝试 JSON
@@ -87,6 +98,10 @@ def 派生摘要(变体,参数原文):#从参数派生一行摘要
     已解析=解析参数(参数原文)#尝试解析
     if not isinstance(已解析,dict):#非对象
         return 首行(参数原文)#原文首行
+    if 变体=='search' and 'queries' in 已解析 and isinstance(已解析['queries'],list):#网页检索多查询
+        查询列表=[首行(项) for 项 in 已解析['queries'] if isinstance(项,str) and 项!='']#非空串
+        if len(查询列表)>0:#有查询
+            return ', '.join(查询列表)#逗号拼接首行
     键列表=摘要键[变体] if 变体 in 摘要键 else ()#按变体键序
     挑中=挑字符串(已解析,键列表)#按变体键序
     if 挑中 is not None:#命中
@@ -119,7 +134,7 @@ def 派生正文(变体,参数原文):#从参数派生展开正文
             return 代码#程序本身
     return json.dumps(已解析,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#美化参数
 
-def 派生工具行(工具名或块,块=None,工作区=None):#冻结切片 → 行模型
+def 派生工具行(工具名或块,块=None,工作区=None,主目录=None):#冻结切片 → 行模型
     """ToolRow 所需的全部字段。可 (工具名,块) 或单参块（块内带 toolName/name）。"""
     if 块 is None and not isinstance(工具名或块,str):#单参块形
         块=工具名或块#块
@@ -167,7 +182,7 @@ def 派生工具行(工具名或块,块=None,工作区=None):#冻结切片 → �
     if 参数原文=='':#无参数
         基底=块['callId'] if 'callId' in 块 and 块['callId'] is not None else ''#callId
     else:#有参数
-        基底=相对化到工作区(派生摘要(变体,参数原文),工作区)#相对化摘要
+        基底=缩写主目录(相对化到工作区(派生摘要(变体,参数原文),工作区),主目录)#相对化后再缩写主目录
     工具自有标题=工具标题[工具名] if 工具名 in 工具标题 else None#可能没有
     if 变体=='others' and 工具名!='' and 工具自有标题 is None:#others 且无自有标题
         摘要=工具名+' · '+str(基底)#真名骑在摘要槽
@@ -177,9 +192,15 @@ def 派生工具行(工具名或块,块=None,工作区=None):#冻结切片 → �
     if 输出=='':#空串视为无文本
         输出=None#无
     错误摘要=首行(输出) if 状态=='error' and 输出 is not None else None#仅错误行
+    自动拒绝=None#普通结果无拒绝
+    if 已结算 and 'isError' in 块 and 块['isError'] and 错误 is not None:#已结算失败
+        错名=错误['name'] if 'name' in 错误 else None#错误名
+        if 错名=='AutoReviewDeniedError' and 错误码=='AUTO_REVIEW_DENIED':#自动审查拒绝
+            原因=错误['reason'] if 'reason' in 错误 else None#原始原因
+            自动拒绝={'reason':原因 if isinstance(原因,str) else None}#非串当无原因
     return {#行模型
         'variant':变体,'title':工具自有标题 if 工具自有标题 is not None else 变体标题[变体],
         'summary':摘要,'filePath':派生文件路径(变体,参数原文),
         'body':派生正文(变体,参数原文),'output':输出,
-        'errorSummary':错误摘要,'state':状态,
+        'errorSummary':错误摘要,'autoReviewDenial':自动拒绝,'state':状态,
     }#模型

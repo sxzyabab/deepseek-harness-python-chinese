@@ -1,0 +1,13 @@
+{
+    "classify":"分类",
+    "denial":"拒绝",
+    "diagnostics":"诊断",
+    "executable":"可执行",
+    "failure":"失败",
+    "match":"匹配",
+    "runner":"运行器",
+    "sandbox":"沙箱",
+    "signature":"签名",
+    "spawn":"派生",
+    "workdir":"工作目录"
+}

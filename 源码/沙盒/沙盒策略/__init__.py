@@ -7,7 +7,6 @@ import os#进程 cwd 回落
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段,枚举字段#配置字段
 服务=cordis.服务#Cordis 服务基类
-from ..沙盒 import 规范路径#导入规范路径
 from .会话模式 import (#覆盖套件
     沙盒模式表,#合法模式表
     生效沙盒模式,#折叠
@@ -20,8 +19,10 @@ class 沙箱政策错误(Exception):
     """沙箱政策包的异常基类。"""
 
 def 解析工作区根(路径):
-    """在词法归一化抹掉对符号链接敏感的分量之前解析文件系统身份。"""
-    return os.path.abspath(规范路径(路径))#先规范再词法绝对化
+    """保留执行世界拼写；强制提供方在其宿主上解析文件系统身份。"""
+    if not os.path.isabs(路径):#必须绝对
+        raise 沙箱政策错误('sandbox-policy: workspace root must be an absolute execution-world path')#非法相对根
+    return 路径#原样拼写
 
 def 渲染政策上下文(政策):
     """渲染政策，不声称挂载了哪些能力。政策是 dict。模型可见字面量不翻译。"""

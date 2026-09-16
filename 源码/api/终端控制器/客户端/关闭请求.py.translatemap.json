@@ -1,0 +1,13 @@
+{
+    "close":"关闭",
+    "id":"标识",
+    "load":"载入",
+    "pending":"未完成",
+    "persist":"持久",
+    "remove":"移除",
+    "request":"请求",
+    "save":"保存",
+    "self":"自身",
+    "storage":"存储",
+    "terminal":"终端"
+}

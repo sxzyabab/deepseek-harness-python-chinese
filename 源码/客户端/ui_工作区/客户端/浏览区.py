@@ -1,5 +1,14 @@
 import time#相对时间 now
-from .树 import 未分组键,派生分组,派生扁平,派生检索结果#树派生
+from .树 import (#树派生
+    未分组键,
+    按近因排序,
+    调和手动顺序,
+    钉住当前空白,
+    可见会话标识,
+    派生分组,
+    派生扁平,
+    派生检索结果,
+)#树导出结束
 from .存储 import 扁平会话顺序键#扁平账本键
 from .行.行 import 项目行,会话行,检索结果行#行组件
 from .选择器 import 工作区挑选流#添加流程
@@ -147,7 +156,7 @@ class 工作区浏览区:#侧栏浏览区
             return 读(原样)#快照
         存储=属性['store'] if 'store' in 属性 else None#句柄
         if 存储 is None:#无
-            return {'groupBy':'workspace','orderBy':'updated','groupExpansion':{},'sessionOrderByAccount':{},'sessionUpdatedAtByAccount':{}}#默认
+            return {'groupBy':'workspace','orderBy':'updated','groupExpansion':{},'sessionOrderByAccount':{}}#默认
         return 存储.getSnapshot()#读
 
     def 读动作(自身):#store 动作
@@ -163,41 +172,50 @@ class 工作区浏览区:#侧栏浏览区
     def 同步顺序账本(自身,列表,工作区列表,归档):#对齐上游 SessionTree/FlatList effect
         """按 orderBy 调和各账本顺序并写回 store。"""
         动作=自身.读动作()#动作
-        if 动作 is None or 'syncSessionOrderAccount' not in 动作:#无写口
+        if 动作 is None or 'syncSessionOrders' not in 动作:#无写口
             return#停
         相位=列表['phase'] if 'phase' in 列表 else None#列表相位
         if 相位 is not None and 相位!='ready':#未就绪
             return#停
         快照=自身.读快照()#当前
         排序=快照['orderBy'] if 'orderBy' in 快照 and 快照['orderBy'] is not None else 'updated'#排序
-        切到近因=自身.先前排序方式 is not None and 自身.先前排序方式!='updated' and 排序=='updated'#切入 updated
-        自身.先前排序方式=排序#记下
+        if 排序!='manual':#近因模式不写手动账本
+            return#停
         顺序表=快照['sessionOrderByAccount'] if 'sessionOrderByAccount' in 快照 and 快照['sessionOrderByAccount'] is not None else {}#顺序
-        更新毫秒表=快照['sessionUpdatedAtByAccount'] if 'sessionUpdatedAtByAccount' in 快照 and 快照['sessionUpdatedAtByAccount'] is not None else {}#纪元毫秒
+        按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要
+        当前=列表['current'] if 'current' in 列表 else None#当前
+        当前空白=当前 if 当前 is not None and 当前 in 按标识 and 按标识[当前]['blank'] is True else None#选中空白
         已记账=set()#工作区已占会话
         for 区 in 工作区列表:#逐区
             账本=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
             for 标识 in 账本:#成员
                 已记账.add(标识)#记下
         标识列表=列表['ids'] if 'ids' in 列表 and 列表['ids'] is not None else []#列表 id
-        按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要
         未分组=[标识 for 标识 in 标识列表 if 标识 in 按标识 and 标识 not in 已记账]#松散
-        账本列表=[]#待同步
+        活动序={}#当前活动顺序
         for 区 in 工作区列表:#工作区账本
             键=区['workspaceId']#工作区 id
             if 键 is None:#缺 id
                 continue#跳过
             成员=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
-            账本列表.append({'key':键,'sessionIds':[标识 for 标识 in 成员 if 标识 in 按标识]})#追加
-        账本列表.append({'key':未分组键,'sessionIds':未分组})#未分组
-        账本列表.append({'key':扁平会话顺序键,'sessionIds':[行['id'] for 行 in 派生扁平(列表,归档)]})#扁平账本
-        for 账本 in 账本列表:#逐账本
-            键=账本['key']#键
-            先前序=顺序表[键] if 键 in 顺序表 else None#已存序
-            先前时=更新毫秒表[键] if 键 in 更新毫秒表 else {}#已存时
-            下一=下一会话顺序账本(账本['sessionIds'],先前序,先前时 if 先前时 is not None else {},列表,排序,排序=='updated' and (先前序 is None or 切到近因))#下一账本
-            if 下一['changed']:#有变
-                动作['syncSessionOrderAccount'](快照,键,list(下一['order']),下一['updatedAt'])#写回
+            已存=顺序表[键] if 键 in 顺序表 else None#已存
+            基底=调和手动顺序([标识 for 标识 in 成员 if 标识 in 按标识],已存,按标识)#调和
+            空白=当前空白 if 当前空白 is not None and 当前空白 in 成员 else None#本区空白
+            活动序[键]=钉住当前空白(基底,空白)#钉住
+        未分组已存=顺序表[未分组键] if 未分组键 in 顺序表 else None#未分组已存
+        未分组基底=调和手动顺序(未分组,未分组已存,按标识)#调和
+        活动序[未分组键]=钉住当前空白(未分组基底,当前空白 if 当前空白 is not None and 当前空白 in 未分组 else None)#钉住
+        扁平成员=可见会话标识(列表,归档)#扁平可见
+        扁平已存=顺序表[扁平会话顺序键] if 扁平会话顺序键 in 顺序表 else None#扁平已存
+        扁平基底=调和手动顺序(扁平成员,扁平已存,按标识)#调和
+        活动序[扁平会话顺序键]=钉住当前空白(扁平基底,当前空白 if 当前空白 is not None and 当前空白 in 扁平成员 else None)#钉住
+        变更={}#与已存不同的账本
+        for 键,标识列 in 活动序.items():#逐账本
+            已存=顺序表[键] if 键 in 顺序表 else None#已存
+            if 已存 is None or len(已存)!=len(标识列) or any(标识列[下标]!=已存[下标] for 下标 in range(len(标识列))):#有变
+                变更[键]=list(标识列)#记下
+        if len(变更)>0:#有变
+            动作['syncSessionOrders'](快照,变更)#写回
 
     def 渲染查看选项(自身,分组方式,排序方式):#分组/排序菜单
         """对齐上游 ViewOptionsMenu。"""
@@ -317,7 +335,7 @@ class 工作区浏览区:#侧栏浏览区
         排序方式=快照['orderBy'] if 'orderBy' in 快照 and 快照['orderBy'] is not None else 'updated'#排序
         检索上限=属性['searchResultLimit'] if 'searchResultLimit' in 属性 and 属性['searchResultLimit'] is not None else 20#上限
         if 查询!='':#检索模式
-            结果=派生检索结果(列表,工作区列表,查询,归档,自身.正文结果,检索上限)#合并检索
+            结果=派生检索结果(列表,工作区列表,查询,归档,{},自身.正文结果,检索上限)#合并检索
             项列表=结果['items'] if 'items' in 结果 and 结果['items'] is not None else []#项
             行列表=[检索结果行(项,自身.造打开会话(项['id']),自身.翻译).渲染() for 项 in 项列表]#检索行
             树子=行列表 if len(行列表)>0 else [{'type':'div','class':'empty','children':[自身.翻译('search.noMatches')]}]#空态
@@ -329,25 +347,32 @@ class 工作区浏览区:#侧栏浏览区
                 树子.append({'type':'div','class':'searchStatus','children':[自身.翻译('search.hasMore',{'n':检索上限})]})#提示
             列表体={'type':'div','class':'treeBody wide','children':[{'type':'div','class':'list','role':'tree','aria-label':自身.翻译('search.results.aria'),'children':树子},{'type':'span','class':'fade'}]}#检索体
         elif 分组方式=='flat':#扁平
-            扁基=派生扁平(列表,归档)#扁平行
+            扁成员=可见会话标识(列表,归档)#扁平可见
+            按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要
             扁账本=账本序[扁平会话顺序键] if 账本序 is not None and 扁平会话顺序键 in 账本序 else None#扁平序
-            扁序=调和会话顺序([行['id'] for 行 in 扁基],扁账本)#本地序
-            按标识={行['id']:行 for 行 in 扁基}#索引
-            扁=[按标识[标识] for 标识 in 扁序 if 标识 in 按标识]#有序
+            扁基底=按近因排序(扁成员,按标识) if 排序方式=='updated' else 调和手动顺序(扁成员,扁账本,按标识)#基底
+            当前=列表['current'] if 'current' in 列表 else None#当前
+            当前空白=当前 if 当前 is not None and 当前 in 按标识 and 按标识[当前]['blank'] is True and 当前 in 扁成员 else None#选中空白
+            扁序=钉住当前空白(扁基底,当前空白)#钉住
+            扁=派生扁平(列表,扁序,{})#扁平行
             树子=[会话行(项,自身.造打开会话(项['id']),自身.造会话动作(项),自身.翻译,现在).渲染() for 项 in 扁]#行
             if len(树子)==0:#空
                 树子=[{'type':'div','class':'empty','children':[自身.翻译('empty.none')]}]#空
             列表体={'type':'div','class':'treeBody wide','children':[{'type':'div','class':'list flatList','role':'tree','aria-label':自身.翻译('section.sessions'),'children':树子},{'type':'span','class':'fade'}]}#扁平体
         else:#按工作区分组
             有序工作区=[]#带本地序的工作区
+            按标识组=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要
+            当前组=列表['current'] if 'current' in 列表 else None#当前
+            当前空白组=当前组 if 当前组 is not None and 当前组 in 按标识组 and 按标识组[当前组]['blank'] is True else None#选中空白
             for 区 in 工作区列表:#逐区
                 成员=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
                 区序=账本序[区['workspaceId']] if 账本序 is not None and 区['workspaceId'] in 账本序 else None#序
-                序=调和会话顺序(成员,区序)#序
+                基底=按近因排序(成员,按标识组) if 排序方式=='updated' else 调和手动顺序(成员,区序,按标识组)#基底
+                空白=当前空白组 if 当前空白组 is not None and 当前空白组 in 成员 else None#本区空白
                 拷=dict(区)#拷贝
-                拷['sessionIds']=序#写入
+                拷['sessionIds']=钉住当前空白(基底,空白)#写入
                 有序工作区.append(拷)#追加
-            组列表=派生分组(列表,有序工作区,归档,视图)#分组
+            组列表=派生分组(列表,有序工作区,归档,{},视图)#分组
             树子=[]#树节点
             if len(组列表)==0:#空
                 树子.append({'type':'div','class':'empty','children':[自身.翻译('empty.none')]})#空
@@ -545,7 +570,36 @@ class 工作区浏览区:#侧栏浏览区
             if 载荷 in ('workspace','flat') and 动作集 is not None and 'setGroupBy' in 动作集:#分组
                 动作集['setGroupBy'](自身.读快照(),载荷)#写
             elif 载荷 in ('manual','updated') and 动作集 is not None and 'setOrderBy' in 动作集:#排序
-                动作集['setOrderBy'](自身.读快照(),载荷)#写
+                快照=自身.读快照()#当前
+                用会话=属性['useSessions'] if 'useSessions' in 属性 else None#会话钩
+                用工作区=属性['useWorkspaces'] if 'useWorkspaces' in 属性 else None#工作区钩
+                def 原样(状态):#选择器身份
+                    """整表。"""
+                    return 状态#快照
+                列表=用会话(原样) if 用会话 is not None else {'ids':[],'byId':{},'current':None}#会话
+                工作区快照=用工作区(原样) if 用工作区 is not None else {'items':[],'archivedSessionIds':[]}#工作区
+                工作区列表=工作区快照['items'] if 'items' in 工作区快照 and 工作区快照['items'] is not None else []#列表
+                归档=工作区快照['archivedSessionIds'] if 'archivedSessionIds' in 工作区快照 and 工作区快照['archivedSessionIds'] is not None else []#归档
+                按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要
+                当前=列表['current'] if 'current' in 列表 else None#当前
+                当前空白=当前 if 当前 is not None and 当前 in 按标识 and 按标识[当前]['blank'] is True else None#选中空白
+                顺序表=快照['sessionOrderByAccount'] if 'sessionOrderByAccount' in 快照 and 快照['sessionOrderByAccount'] is not None else {}#已存
+                已记账=set()#已占
+                活动序={}#展示序
+                for 区 in 工作区列表:#逐区
+                    成员=区['sessionIds'] if 'sessionIds' in 区 and 区['sessionIds'] is not None else []#成员
+                    for 标识 in 成员:#成员
+                        已记账.add(标识)#记下
+                    键=区['workspaceId']#键
+                    已存=顺序表[键] if 键 in 顺序表 else None#已存
+                    基底=按近因排序(成员,按标识)#近因展示
+                    活动序[键]=钉住当前空白(基底,当前空白 if 当前空白 is not None and 当前空白 in 成员 else None)#钉住
+                标识列表=列表['ids'] if 'ids' in 列表 and 列表['ids'] is not None else []#列表 id
+                未分组=[标识 for 标识 in 标识列表 if 标识 in 按标识 and 标识 not in 已记账]#松散
+                活动序[未分组键]=钉住当前空白(按近因排序(未分组,按标识),当前空白 if 当前空白 is not None and 当前空白 in 未分组 else None)#未分组
+                扁平成员=可见会话标识(列表,归档)#扁平
+                活动序[扁平会话顺序键]=钉住当前空白(按近因排序(扁平成员,按标识),当前空白 if 当前空白 is not None and 当前空白 in 扁平成员 else None)#扁平
+                动作集['setOrderBy'](快照,载荷,活动序)#写
             自身.查看选项开=False#关
             return#已处理
         if isinstance(动作,tuple) and 动作[0]=='overflow':#展开其余

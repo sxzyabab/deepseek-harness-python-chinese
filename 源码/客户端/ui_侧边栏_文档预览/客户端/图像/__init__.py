@@ -1,9 +1,10 @@
 from .文案 import 中文,英文,图像预览键#词典
 from .图像体 import 图像体,图像扩展名#正文
 
-__all__=['图像体标识','图像体定义','应用','图像体','图像扩展名','中文','英文','图像预览键']#仅中文公开名
+__all__=['图像体标识','图像扩展名','二进制图像扩展名','图像体定义','应用','图像体','中文','英文','图像预览键']#仅中文公开名
 
 图像体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/image'#实现 id
+二进制图像扩展名=('png','jpg','jpeg','gif','webp','bmp','ico')#位图后缀；SVG 留下
 
 
 def 图像体定义(标题):
@@ -11,6 +12,7 @@ def 图像体定义(标题):
     return {#元数据
         'id':图像体标识,
         'extensions':图像扩展名,
+        'binaryExtensions':二进制图像扩展名,
         'priority':'builtin',
         'title':标题,
         'loading':'bytes-complete',

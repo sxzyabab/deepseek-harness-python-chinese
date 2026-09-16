@@ -1,0 +1,19 @@
+{
+    "addon":"插件",
+    "attach":"附着",
+    "broadcast":"广播",
+    "browser":"浏览器",
+    "close":"关闭",
+    "consume":"消费",
+    "control":"控制",
+    "enqueue":"入队",
+    "follow":"跟随",
+    "output":"输出",
+    "resize":"调整尺寸",
+    "screen":"屏幕",
+    "self":"自身",
+    "serialize":"序列化",
+    "sequence":"序号",
+    "terminal":"终端",
+    "write":"写入"
+}

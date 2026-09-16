@@ -13,6 +13,7 @@ def pdf体定义(标题):
     return {#元数据
         'id':pdf体标识,
         'extensions':['pdf'],
+        'binaryExtensions':['pdf'],
         'priority':'builtin',
         'title':标题,
         'loading':'bytes-complete',

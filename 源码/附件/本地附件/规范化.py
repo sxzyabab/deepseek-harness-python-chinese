@@ -1,10 +1,11 @@
 """确定性提供者无关图像规范化。对齐上游 attachment-local/src/normalization.ts。"""
 from io import BytesIO#内存缓冲
-from PIL import Image,ImageOps#图像处理
+from PIL import ImageOps#图像定向
 from ..附件.错误 import 附件错误#附件失败
 from ..附件.请求投影 import 请求图像尺寸#投影几何
 from .编码 import 编码首个不超限,编码阶梯,是否耗尽编码#质量阶梯
 from .图像 import 检测图像,编码alpha是否兼容#检测与 alpha 兼容
+from .锐化 import 取锐化#惰性栅格入口
 __all__=['规范化策略字段','规范化图像字段','能否直通规范化','规范化图像']#仅中文公开名
 
 规范化策略字段=('maxPixels','maxDimension','maxBytes')#规范化策略
@@ -49,11 +50,11 @@ def _初始尺寸(已检测,策略):#总像素预算后再套长边上限
 
 def _准备管线(数据,宽,高):#固定尺寸 sRGB 管线
     """从提交字节构建固定尺寸、已定向、无元数据的 sRGB 管线。"""
-    with Image.open(BytesIO(数据)) as 源:#打开
+    with 取锐化().open(BytesIO(数据)) as 源:#打开
         定向=ImageOps.exif_transpose(源)#应用方向
         if 定向.mode not in ('RGB','RGBA'):#统一到 sRGB 族
             定向=定向.convert('RGBA' if 'A' in 定向.mode else 'RGB')#转换
-        定向.thumbnail((宽,高),Image.Resampling.LANCZOS)#内贴缩放且不放大
+        定向.thumbnail((宽,高),取锐化().Resampling.LANCZOS)#内贴缩放且不放大
         return 定向#已准备图像
 
 def 规范化图像(数据,已检测,策略):#产出持久规范化版本

@@ -1,7 +1,9 @@
 {
     "apply":"应用",
+    "binary":"二进制",
     "body":"体",
     "definition":"定义",
+    "extension":"扩展名",
     "image":"图像",
     "self":"自身"
 }

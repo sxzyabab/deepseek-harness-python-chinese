@@ -2,8 +2,8 @@ import atexit,os,threading#宿主退出收尾、路径解析与后台释放线�
 import node_pty as 伪终端库#node-pty 的 Python 面；缺失则模块加载失败
 from ...工具.超时 import 若已中止则抛出#中止入口；信号来自超时库
 from .终端 import 本地子进程错误,本地终端句柄,贯通流#本包错误、PTY 句柄与输出流
-from ..子进程 import 子进程运行时#子进程服务定义
-from .启动 import 启动子进程,子环境,输出收集器#管道启动与收集
+from ..子进程 import 子进程运行时,可执行未找到错误#子进程服务定义与查找失败
+from .启动 import 启动子进程,子环境,输出收集器,准备受管进程绑定#管道启动与收集
 from .进程检查 import (
     进程身份,#精确身份
     创建进程检查器,#按平台选实现
@@ -15,7 +15,7 @@ from .进程检查 import (
 
 __all__=(#仅中文公开名；无英文别名
     '本地子进程运行时','本地子进程错误',
-    '启动子进程','子环境','输出收集器',
+    '启动子进程','子环境','输出收集器','准备受管进程绑定',
     '进程身份','创建进程检查器','Posix进程检查器','Linux进程检查器','Mac进程检查器','组内有活成员',
     '本地终端句柄','贯通流',
 )#公开面结束
@@ -41,13 +41,14 @@ def 拉起伪终端(程序,参数,选项):#分配本地 PTY
 class 本地子进程运行时(子进程运行时):#本地子进程服务
     """本地子进程服务：分离进程树、stdio 处置（原始管道、继承、带溢出文件的有界保尾收集）、凭证擦洗环境、带 SIGTERM→宽限→SIGKILL 升级的树范围发信号，以及宿主退出期间的同步最终终止。
 
-    公开方法仅中文：解析可执行文件、启动、启动终端。
+    公开方法仅中文：解析可执行文件、终端环境、启动、启动终端。
     """
     def __init__(自身,上下文对象):#用 Cordis 上下文构造本地提供方
         """登记为 ctx.subprocess，并挂拆除与宿主退出收尾。"""
         super().__init__(上下文对象)#登记为 subprocess 服务
         自身.存活=set()#存活子进程句柄
         自身.终端表=set()#存活终端句柄
+        自身.控制通道=set()#调用方控制端点
         自身.内部={}#spawn 测试钩子
         自身.终端检查器=None#可选终端检查器覆盖
         def 宿主退出时():#宿主退出时强制停树
@@ -104,6 +105,12 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
             自身.为宿主退出终止()#强制停
         自身.存活.clear()#清空子进程集合
         自身.终端表.clear()#清空终端集合
+        for 控制 in list(自身.控制通道):#关闭控制端点
+            try:#尽力关闭
+                控制.close()#关闭
+            except OSError:#已关
+                pass#吞掉
+        自身.控制通道.clear()#清空控制通道
         if len(失败列表)==1:#单个失败原样抛出
             raise 失败列表[0]#原样
         if len(失败列表)>1:#多个失败
@@ -135,8 +142,8 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
                 continue#试下一个 PATH 候选
         若已中止则抛出(信号)#报错前再检查取消
         if 绝对:#绝对路径不是可执行文件
-            raise 本地子进程错误('subprocess-local: command '+repr(命令)+' is not an executable file')#稳定错误
-        raise 本地子进程错误('subprocess-local: command '+repr(命令)+' was not found on PATH')#PATH 上找不到
+            raise 可执行未找到错误('subprocess-local: command '+repr(命令)+' is not an executable file')#稳定错误
+        raise 可执行未找到错误('subprocess-local: command '+repr(命令)+' was not found on PATH')#PATH 上找不到
 
     def 可执行候选(自身,命令,环境):#按 PATH/PATHEXT 展开候选路径
         """每个 PATH 目录拼出绝对候选。"""
@@ -157,10 +164,31 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
                 候选列表.append(os.path.abspath(os.path.join(目录,命令+扩展)))#拼出绝对候选
         return 候选列表#候选列表
 
+    def 终端环境(自身,信号=None):#查看壳选择事实
+        """查看本机执行环境里的壳选择事实。"""
+        若已中止则抛出(信号)#取消
+        if os.name=='nt':#Windows
+            平台='windows'#Windows 族
+            壳=os.environ['ComSpec'] if 'ComSpec' in os.environ else None#ComSpec
+        else:#POSIX
+            平台='posix'#POSIX 族
+            if 'SHELL' in os.environ:#环境壳
+                壳=os.environ['SHELL']#SHELL
+            else:#口令库登录壳
+                import pwd as 口令#登录数据库
+                壳=口令.getpwuid(os.getuid()).pw_shell#登录壳
+        结果={'platform':平台}#平台
+        if 壳 is not None and len(壳)>0:#有壳
+            结果['defaultShell']=壳#默认壳
+        return 结果#环境事实
+
     def 启动(自身,规格):#启动一个受管子进程
         """按规格 spawn，纳入存活集合；整树退出后释放所有权。规格是 dict。"""
         句柄=启动子进程(规格,自身.内部)#按规格 spawn
         自身.存活.add(句柄)#纳入存活集合
+        控制=句柄.control#控制通道
+        if 控制 is not None:#请求了控制通道
+            自身.控制通道.add(控制)#纳入集合
         def 释放():#整树退出后从集合移除
             """等整树再释放。"""
             try:#等待可能因取消返回 False
@@ -186,12 +214,15 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         if len(参数表)==0 or 参数表[0] is None or len(str(参数表[0]))==0:#argv 没有程序
             raise 本地子进程错误('subprocess-local: terminal argv must contain a program')#终端必须有程序
         若已中止则抛出(规格['signal'] if 'signal' in 规格 else None)#分配前检查取消
+        类型=规格['terminalType']#经 TERM 广告的仿真
+        环境=子环境(规格['env'] if 'env' in 规格 else None)#擦洗后叠加的环境
+        环境['TERM']=类型#广告终端类型
         选项={#组装 PTY fork 选项
-            'name':'dumb',#终端类型
+            'name':类型,#终端类型
             'rows':规格['rows'] if 'rows' in 规格 else None,#行数
             'cols':规格['cols'] if 'cols' in 规格 else None,#列数
             'cwd':规格['cwd'] if 'cwd' in 规格 else None,#工作目录
-            'env':子环境(规格['env'] if 'env' in 规格 else None),#擦洗后叠加的环境
+            'env':环境,#擦洗后叠加的环境
         }#结束 PTY 选项
         if 自身.终端检查器 is not None:#测试覆盖
             检查器=自身.终端检查器#覆盖

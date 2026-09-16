@@ -23,6 +23,20 @@ __all__=[#仅中文公开名
 作业扩展限制旗标偏移=16#JOBOBJECT_EXTENDED_LIMIT_FLAGS_OFFSET
 启动信息w大小=104#STARTUPINFOW_SIZE
 进程信息大小=24#PROCESS_INFORMATION_SIZE
+启动旗标偏移=60#x64 STARTUPINFOW.dwFlags
+保留2计数偏移=66#x64 STARTUPINFOW.cbReserved2
+保留2指针偏移=72#x64 STARTUPINFOW.lpReserved2
+标准输入句柄偏移=80#x64 STARTUPINFOW.hStdInput
+标准输出句柄偏移=88#x64 STARTUPINFOW.hStdOutput
+标准错误句柄偏移=96#x64 STARTUPINFOW.hStdError
+打开文件旗=0x01#FOPEN
+管道文件旗=0x08#FPIPE
+设备文件旗=0x40#FDEV
+字符文件类型=2#FILE_TYPE_CHAR
+管道文件类型=3#FILE_TYPE_PIPE
+句柄字节=8#64位 HANDLE
+无效句柄值=0xFFFFFFFFFFFFFFFF#UV_INVALID_OS_FILE_HANDLE
+无效描述符值=0xFFFFFFFFFFFFFFFE#UV_INVALID_FILE_DESCRIPTOR
 
 class Win32错误(Exception):#Win32 调用失败
     """Win32 调用失败，携带 API 名与错误码。"""
@@ -97,6 +111,7 @@ def 进程绑定():#构建基础进程绑定
     缓存进程表={#基础表
         'closeHandle':内核.CloseHandle,#关闭句柄
         'getLastError':内核.GetLastError,#最后错误
+        'getFileType':内核.GetFileType,#文件类型
         'formatMessageW':内核.FormatMessageW,#格式化消息
         'createPipe':内核.CreatePipe,#创建管道
         'setHandleInformation':内核.SetHandleInformation,#句柄继承
@@ -160,15 +175,47 @@ def 创建管道(接口表,拥有):#创建匿名管道对
     拥有.add(读);拥有.add(写)#登记所有权
     return {'read':读,'write':写}#管道对
 
-def 编码启动信息(标准输入,标准输出,标准错误):#编码 STARTUPINFOW
-    """编码带 stdio 的 STARTUPINFOW。"""
+def 编码启动信息(标准输入,标准输出,标准错误,保留2长度=None,保留2指针=None):#编码 STARTUPINFOW
+    """编码带 stdio 的 x64 STARTUPINFOW；可选 CRT 保留描述符表。"""
     缓冲=bytearray(启动信息w大小)#零缓冲
     struct.pack_into('I',缓冲,0,启动信息w大小)#cb
-    struct.pack_into('I',缓冲,44,使用标准句柄)#dwFlags 偏移按 x64 STARTUPINFOW
-    struct.pack_into('Q',缓冲,56,int(标准输入) if 标准输入 is not None else 0)#hStdInput
-    struct.pack_into('Q',缓冲,64,int(标准输出) if 标准输出 is not None else 0)#hStdOutput
-    struct.pack_into('Q',缓冲,72,int(标准错误) if 标准错误 is not None else 0)#hStdError
+    struct.pack_into('I',缓冲,启动旗标偏移,使用标准句柄)#dwFlags
+    struct.pack_into('Q',缓冲,标准输入句柄偏移,int(标准输入) if 标准输入 is not None else 0)#hStdInput
+    struct.pack_into('Q',缓冲,标准输出句柄偏移,int(标准输出) if 标准输出 is not None else 0)#hStdOutput
+    struct.pack_into('Q',缓冲,标准错误句柄偏移,int(标准错误) if 标准错误 is not None else 0)#hStdError
+    if 保留2长度 is not None:#有 CRT 描述符表
+        struct.pack_into('H',缓冲,保留2计数偏移,保留2长度)#cbReserved2
+        struct.pack_into('Q',缓冲,保留2指针偏移,int(保留2指针) if 保留2指针 is not None else 0)#lpReserved2
     return 缓冲#结构缓冲
+
+def 描述符句柄(描述符,标签):#CRT fd 转 OS 句柄
+    """用 msvcrt._get_osfhandle 把 runner CRT 描述符换成 OS 句柄。"""
+    运行时=ctypes.cdll.msvcrt#CRT
+    句柄=运行时._get_osfhandle(描述符)#fd 转句柄
+    if 是否空指针(句柄) or 句柄==无效句柄值 or 句柄==无效描述符值 or 句柄==-1:#无效
+        raise Win32错误('uv_get_osfhandle',0,'uv_get_osfhandle returned an invalid handle for target '+标签+' fd '+str(描述符))#无效句柄
+    return 句柄#OS 句柄
+
+def 继承控制stdio(接口表,标准输入,标准输出,标准错误,控制描述符,控制句柄):#编码 CRT 描述符表
+    """在子运行时分配描述符前编码带控制管的 CRT 启动表。"""
+    计数=控制描述符+1#含 fd 0..control
+    句柄偏移=4+计数#旗标后句柄区
+    字节=bytearray(句柄偏移+计数*句柄字节)#整块
+    struct.pack_into('I',字节,0,计数)#描述符个数
+    for 索引 in range(计数):#空槽先关
+        struct.pack_into('Q',字节,句柄偏移+索引*句柄字节,无效句柄值)#无效句柄
+    for 描述,句柄 in ((0,标准输入),(1,标准输出),(2,标准错误),(控制描述符,控制句柄)):#四路
+        种类=接口表['getFileType'](句柄)#文件类型
+        if 描述==控制描述符 and 种类!=管道文件类型:#控制必须是管道
+            raise Win32错误('GetFileType',0,'subprocess control descriptor is not a Windows pipe')#非管道
+        旗=打开文件旗#FOPEN
+        if 种类==管道文件类型:#管道
+            旗=旗|管道文件旗#FPIPE
+        elif 种类==字符文件类型:#字符设备
+            旗=旗|设备文件旗#FDEV
+        字节[4+描述]=旗#旗标字节
+        struct.pack_into('Q',字节,句柄偏移+描述*句柄字节,int(句柄))#句柄
+    return bytes(字节)#CRT 块
 
 def 创建受限进程(接口表,选项,命令行,创建标志,启动信息,进程信息):#CreateProcessAsUserW 包装
     """受限令牌创建进程；显式环境块在 ctypes 下会触发 ERROR_INVALID_PARAMETER，因此 lpEnvironment 保持 NULL。"""
@@ -244,19 +291,31 @@ def 创建关闭即杀作业(接口表):#创建 kill-on-close 作业
     return 作业#作业句柄
 
 def 生成继承作业进程(接口表,选项):#挂起创建、加入作业、再恢复
-    """挂起创建子进程，分配到 kill-on-close 作业，再恢复运行。"""
+    """挂起创建子进程，分配到 kill-on-close 作业，再恢复运行。可选控制管走同一 CRT 描述符。"""
     作业=创建关闭即杀作业(接口表)#作业
     def 取标准句柄(选择器,标签):#取标准句柄
         句柄=接口表['getStdHandle'](选择器)#系统标准句柄
         if not 是否空指针(句柄):return 句柄#有效
         码=接口表['getLastError']();尽力关闭(接口表,作业);抛win32错误(接口表,'GetStdHandle',码,'null '+标签+' handle')#失败
     标准输入=取标准句柄(标准输入句柄,'stdin');标准输出=取标准句柄(标准输出句柄,'stdout');标准错误=取标准句柄(标准错误句柄,'stderr')#stdio
-    已启用=[];创建结果=0;失败码=0#状态
+    控制=None#可选控制管
+    if 'controlFileDescriptor' in 选项 and 选项['controlFileDescriptor'] is not None:#请求控制管
+        控制描述符=选项['controlFileDescriptor']#目标 fd
+        控制={'fileDescriptor':控制描述符,'handle':描述符句柄(控制描述符,'control')}#CRT 转句柄
+    已启用=[];创建结果=0;失败码=0;控制块=None#状态
     try:#暂时恢复继承位并创建
-        for 句柄,标签 in [(标准输入,'stdin'),(标准输出,'stdout'),(标准错误,'stderr')]:#三路 stdio
+        继承=[(标准输入,'stdin'),(标准输出,'stdout'),(标准错误,'stderr')]#三路 stdio
+        if 控制 is not None:#另加控制句柄
+            继承.append((控制['handle'],'control'))#控制
+        for 句柄,标签 in 继承:#逐路启用继承
             if 接口表['setHandleInformation'](句柄,句柄可继承,句柄可继承)==0:抛上次错误(接口表,'SetHandleInformation',标签+' (enable inherit)')#失败
             已启用.append(句柄)#记下
-        启动信息=编码启动信息(标准输入,标准输出,标准错误)#STARTUPINFOW
+        if 控制 is None:#无 CRT 表
+            启动信息=编码启动信息(标准输入,标准输出,标准错误)#STARTUPINFOW
+        else:#带 CRT 描述符表
+            控制字节=继承控制stdio(接口表,标准输入,标准输出,标准错误,控制['fileDescriptor'],控制['handle'])#编码表
+            控制块=(ctypes.c_char*len(控制字节)).from_buffer_copy(控制字节)#Keep-alive 直到 CreateProcess 返回
+            启动信息=编码启动信息(标准输入,标准输出,标准错误,len(控制字节),ctypes.addressof(控制块))#带 lpReserved2
         进程信息=ctypes.create_string_buffer(进程信息大小)#PROCESS_INFORMATION
         创建结果=创建受限进程(接口表,选项,构建命令行(选项['command'],选项['args']),挂起创建,启动信息,进程信息)#挂起创建
         if 创建结果==0:失败码=接口表['getLastError']()#记失败码

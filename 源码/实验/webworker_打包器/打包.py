@@ -5,9 +5,8 @@ from ..webworker_运行时 import (#从运行时导入打包所需符号
     降低模块源,内存vfs,打包tar,工作线程模块加载器,#模块降级、内存VFS、打包tar、工作线程加载器
     默认根,镜像配置路径,镜像空目录列表,镜像清单路径,#默认根、配置路径、空目录、清单路径
     镜像覆盖目录列表,#覆盖层允许的目录
+    模块代理表,模块代理前缀表,替换外部包清单,#模块代理、前缀与被替换外部包
 )#运行时包结束
-from ..webworker_运行时.节点.外部包.已替换外部 import 已替换外部包#被替换的外部包
-from ..webworker_运行时.模块代理 import 模块代理,模块代理前缀#模块代理与前缀
 from .变换镜像 import 包装契约#包装契约
 from .规则 import 排除,工作区排除,镜像入口种子,页面资源#排除规则、入口种子、页面资源
 
@@ -198,8 +197,8 @@ def 扫描镜像(文件表,选项,根包列表,根):#只保留工作线程可达
     加载器=工作线程模块加载器({#工作线程模块加载器
         'vfs':虚拟文件系统,#虚拟文件系统
         'root':根,#虚拟根
-        'staticModules':{名:桩 for 名 in 模块代理.keys()},#静态模块桩
-        'staticModulePrefixes':{名:桩 for 名 in 模块代理前缀.keys()},#静态前缀桩
+        'staticModules':{名:桩 for 名 in 模块代理表.keys()},#静态模块桩
+        'staticModulePrefixes':{名:桩 for 名 in 模块代理前缀表.keys()},#静态前缀桩
     })#加载器结束
     队列=[{'specifier':说明符,'from':根,'importer':'worker assembly entry'} for 说明符 in (选项['entries'] if 选项.get('entries') is not None else 镜像入口种子)]#入口种子入队
     for 名 in 根包列表:#每个工作区根包的导出面
@@ -305,7 +304,7 @@ def 物化(名册,选项):#将每个名册包的依赖闭包物化进镜像
     文件表={}#镜像文件表
     包表={}#包文件计数
     缺失=[]#缺失列表
-    已替换=set(已替换外部包)#已替换外部包
+    已替换=set(替换外部包清单)#已替换外部包
     队列=[{'name':名,'from':选项['resolveFrom']} for 名 in 名册]#待物化队列
     while len(队列)>0:#BFS物化
         条目=队列.pop(0)#取出队列项

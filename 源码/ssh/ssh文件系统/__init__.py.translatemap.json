@@ -1,0 +1,20 @@
+{
+    "abort":"中止",
+    "call":"调用",
+    "contains":"包含",
+    "edit":"编辑",
+    "error":"错误",
+    "file":"文件",
+    "list":"列",
+    "path":"路径",
+    "read":"读",
+    "resolve":"解析",
+    "sandbox":"沙箱",
+    "self":"自身",
+    "ssh":"ssh",
+    "stat":"状态",
+    "stream":"流",
+    "system":"系统",
+    "url":"网址",
+    "write":"写"
+}

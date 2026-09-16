@@ -95,6 +95,12 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
         """返回执行世界进程路径。"""
         return str(目标['targetKey'])#本地后端目标键就是 realpath
 
+    def 宿主路径转进程路径(自身,宿主路径):#本地世界把绝对宿主路径收成进程路径
+        """本地世界：绝对路径经规范后即进程路径；相对路径无映射。"""
+        if not os.path.isabs(宿主路径):#相对路径
+            return None#无映射
+        return os.path.abspath(宿主路径)#规范绝对路径
+
     def 文件网址(自身,目标):#返回规范 file URI
         """返回规范 file URI。"""
         return 路径转文件网址(自身.进程路径(目标))#把进程路径编成 file URL

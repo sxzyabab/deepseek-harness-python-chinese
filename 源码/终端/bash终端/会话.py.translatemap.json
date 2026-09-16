@@ -1,7 +1,16 @@
 {
+    "append":"追加",
+    "bound":"有界",
+    "buffer":"缓冲",
+    "byte":"字节",
+    "chunk":"块",
     "clean":"清洗",
+    "coalesce":"合并",
     "config":"配置",
+    "empty":"空",
     "self":"自身",
     "session":"会话",
-    "terminal":"终端"
+    "terminal":"终端",
+    "truncate":"截断",
+    "unit":"码元"
 }

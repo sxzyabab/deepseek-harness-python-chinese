@@ -1,4 +1,5 @@
-import re,uuid,threading#名字模式、预留子 id、中止盯梢
+import re,uuid#名字模式、预留子 id
+from threading import Event as 同步事件,Thread as 线程#进度门与中止盯梢
 from ...依赖.工具 import 聚合错误#聚合错误
 from ...子智能体.子智能体 import 折叠子智能体描述符#描述符折叠
 from .错误 import 团队错误,错误文案#领域错误
@@ -6,7 +7,7 @@ from .持久化 import 读持久会话#持久读取
 from .会话消息 import 消息已接受#消息接受
 from .类型 import 团队标识#TeamId
 from .校验 import 必填文本#必填文本
-from .生命周期 import 操作任务,已中止,若已中止则抛出,合成中止#本包原语
+from .生命周期 import 已中止,若已中止则抛出,合成中止#本包原语
 
 __all__=['解析活跃成员','团队名册']#仅中文公开名
 
@@ -150,17 +151,16 @@ class 团队名册:#成员表
         """创建一个具名、可延续的 Team Lead 直接子代。"""
         if 自身._生命周期.已拆除:#已拆除
             raise 团队错误('Agent Teams service is disposing','TEAM_DISPOSED')#已拆除
-        操作=操作任务()#飞行跟踪用
-        自身._飞行中创建.add(操作)#跟踪
+        条目={'完成':同步事件(),'错误':None}#飞行条目
+        自身._飞行中创建.add(条目)#跟踪
         try:#等待
-            结果=自身._已准入创建(调用方,请求)#已准入创建
-            操作.兑现(结果)#兑现跟踪
-            return 结果#返回
+            return 自身._已准入创建(调用方,请求)#已准入创建
         except Exception as 错误:#已准入创建可能抛团队错误/供应错误，契约未定所以收不窄
-            操作.拒绝(错误)#拒绝跟踪
-            raise#上抛
+            条目['错误']=错误#记下失败
+            raise#原样上抛
         finally:#摘跟踪
-            自身._飞行中创建.discard(操作)#摘跟踪
+            条目['完成'].set()#落定
+            自身._飞行中创建.discard(条目)#摘跟踪
 
     def 列出待创建(自身):#飞行中创建
         """返回为有序拆除捕获的已准入创建操作。"""

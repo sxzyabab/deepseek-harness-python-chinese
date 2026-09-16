@@ -1,4 +1,5 @@
-import threading
+from threading import Thread as 线程#工作线程
+from queue import Queue as 队列#跨线程一次结果
 from ..智能体 import 智能体事件,为组装构建上下文,下一轮,下一步
 from ...模型后端.llm import (
     语言模型错误,
@@ -16,7 +17,10 @@ from .收件箱 import 循环收件箱#投影拥有的耐久收件箱
 from .运行时上下文 import 运行时上下文投影,系统提示投影
 from .工具调用 import 执行工具调用
 from .助手流 import 助手流尝试#在线流尝试
-from .中止与并发 import 已中止,中止控制器,若已中止则抛出,操作任务,循环错误,中止错误
+from .中止与并发 import (
+    已中止,中止控制器,若已中止则抛出,循环错误,中止错误,
+    已决议队列,放入成功,放入失败,等待队列结果,
+)
 
 def 请求提议(头):
     """在插件提议下一次请求配置前去掉适配器派生值。"""
@@ -36,28 +40,23 @@ class 循环智能体:
         """构造驱动器。"""
         自身.循环上下文=循环上下文#循环上下文
         自身.id=标识#会话 id
-        自身.options=选项 if 选项 is not None else {}#Agent 选项
+        自身.options=选项#Agent 选项
         自身.session=会话#会话
         自身.派发=智能体事件(循环上下文,自身)#建融合派发器
         自身.作用域=创建作用域(循环上下文,自身)#铸造作用域
         自身.ctx=自身.作用域.上下文#作用域上下文（不在此挂 agent）
         自身.inbox=循环收件箱(自身.ctx.sessionProjections,会话,自身.派发)#投影拥有的收件箱
-        上次轮次=0#日志里最近轮次
-        for 事件 in reversed(会话.events):
-            if 事件['type']=='turn/start':
-                数据=事件['data']#载荷
-                上次轮次=数据['turn'] if 'turn' in 数据 and 数据['turn'] is not None else 0#最近轮次
-                break#已找到
+        边界=循环上下文.sessionProjections.状态(会话,'turnBoundary')#轮次边界投影
+        上次轮次=边界['lastTurn'] if 边界 is not None and 'lastTurn' in 边界 else 0#上次轮次
         自身.阶段={'kind':'idle','lastTurn':上次轮次}#从空闲开始
-        空闲落定=操作任务()#当前活动落定
-        空闲落定.兑现()#空闲已兑现
-        自身.活动落定=空闲落定#跟踪活动
+        自身.活动落定=已决议队列()#空闲已落定
         自身.请求头已记=False#是否已记请求头
-        自身.请求表面代际=会话.surface.replaceGeneration#附着时代际
+        自身.请求表面代际=会话.surface.contentGeneration#附着时代际
         自身.助手流修订=0#助手流修订
         自身.助手尝试计数=0#助手尝试计数
         自身.运行时上下文=运行时上下文投影(自身.ctx,会话)#恢复运行时上下文
         自身.系统提示=系统提示投影(会话)#系统提示表面投影
+        自身.已冻结消息=set()#已冻结消息身份，不留对象引用
 
     @property
     def 状态(自身):
@@ -108,8 +107,8 @@ class 循环智能体:
     def 执行维护(自身,任务):
         """从空闲阶段执行一次非轮次维护。"""
         if 自身.阶段['kind']!='idle':
-            raise 循环错误('智能体 "'+str(自身.id)+'" 已有活动工作')#已有活动
-        落定=操作任务()#维护落定
+            raise 循环错误('agent "'+str(自身.id)+'" already has active work')#已有活动
+        落定=队列(1)#维护落定
         维护={
             'kind':'maintenance',#种类
             'abort':中止控制器(),#取消控制器
@@ -118,22 +117,23 @@ class 循环智能体:
         }#维护阶段
         自身.设阶段(维护)#进入维护
         自身.活动落定=落定#跟踪活动
-        结果=操作任务()#任务结果
+        结果=队列(1)#任务结果
         def 执行维护并收尾():
             """执行维护并收尾。"""
             try:
-                结果.兑现(任务(维护['abort'].信号))#交给任务
+                放入成功(结果,任务(维护['abort'].信号))#交给任务
             except BaseException as 错误:
-                结果.拒绝(错误)#拒绝
+                放入失败(结果,错误)#失败
             finally:
                 自身.设阶段({'kind':'idle','lastTurn':维护['lastTurn']})#回到空闲
-                if 维护['wakeRequested'] and 自身.inbox.有待处理:
+                原因=维护['abort'].信号._异常#中止原因
+                已拆除=原因 is not None and getattr(原因,'kind',None)=='disposed'#拆除种类
+                if (not 已拆除) and 维护['wakeRequested'] and 自身.inbox.有待处理:
                     自身.叫醒驱动器()#有闩且有工作则叫醒
-                落定.兑现()#活动落定
-        工作=threading.Thread(target=执行维护并收尾)#工作线程
-        工作.daemon=True#不挡住退出
+                放入成功(落定)#活动落定
+        工作=线程(target=执行维护并收尾,daemon=True)#工作线程
         工作.start()#启动
-        return 结果#任务操作任务
+        return 结果#任务结果队列
 
     def 叫醒驱动器(自身,中止后唤醒=False):
         """启动一个驱动器，或把它的唤醒闩在维护或已中止活动后面。"""
@@ -149,7 +149,7 @@ class 循环智能体:
             if (not 已拆除) and (自身.阶段['kind']=='maintenance' or 中止后唤醒):
                 自身.阶段['wakeRequested']=True#闩住
             return#不新开驱动器
-        驱动器=操作任务()#驱动器落定
+        驱动器=队列(1)#驱动器落定
         自身.活动落定=驱动器#跟踪活动
         自身.设阶段({
             'kind':'running',#种类
@@ -163,18 +163,17 @@ class 循环智能体:
             """带发起者执行驱动器。"""
             try:
                 循环上下文.agents.带发起方(自身,自身.踢)#带发起者跑
-                驱动器.兑现()#落定
+                放入成功(驱动器)#落定
             except BaseException as 错误:
-                驱动器.拒绝(错误)#拒绝
-        工作=threading.Thread(target=执行驱动)#驱动线程
-        工作.daemon=True#不挡住退出
+                放入失败(驱动器,错误)#失败
+        工作=线程(target=执行驱动,daemon=True)#驱动线程
         工作.start()#启动
 
     def 等到空闲(自身):
         """等到空闲。"""
         while True:
             活动=自身.活动落定#当前活动
-            活动.等待()#等待当前
+            等待队列结果(活动)#等待当前
             if 活动 is 自身.活动落定:
                 return#没有被替换
 
@@ -204,7 +203,7 @@ class 循环智能体:
     def 预步骤(自身,目标,位置):
         """预步骤。"""
         if 自身.阶段['kind']!='running':
-            raise 循环错误('智能体 "'+str(自身.id)+'"：预步骤不在运行阶段')#必须在运行
+            raise 循环错误('agent "'+str(自身.id)+'": pre-step outside running phase')#必须在运行
         信号=自身.阶段['abort'].信号#轮次信号
         已领=自身.inbox.领取(目标,位置['turn'])#领取批次
         组装=自身.循环上下文.systemPrompt.组装(为组装构建上下文(自身,信号))#组装提示词
@@ -239,7 +238,7 @@ class 循环智能体:
     def 轮次(自身):
         """跑一轮。"""
         if 自身.阶段['kind']!='running':
-            自身.抛错误(循环错误('智能体 "'+str(自身.id)+'"：轮次没有驱动器预留'))#没有驱动器预留
+            自身.抛错误(循环错误('agent "'+str(自身.id)+'": turn without driver reservation'))#没有驱动器预留
         阶段=自身.阶段#运行阶段
         信号=阶段['abort'].信号#取消信号
         若已中止则抛出(信号)#进入前检查
@@ -309,7 +308,7 @@ class 循环智能体:
     def 一步(自身,决定):
         """跑一步：先投影系统提示与用户消息，再准备配置并派生请求。"""
         if 自身.阶段['kind']!='running':
-            raise 循环错误('智能体 "'+str(自身.id)+'"：步骤不在运行阶段')#必须在运行
+            raise 循环错误('agent "'+str(自身.id)+'": step outside running phase')#必须在运行
         阶段=自身.阶段#运行阶段
         轮次号=阶段['turn']#轮次
         步骤号=阶段['step']#步骤
@@ -326,7 +325,7 @@ class 循环智能体:
             提交列表=自身.系统提示.投影(渲染提示,{#投影到 system/message 表面
                 'inHistory':已准备调用 is not None and 已准备调用.get('systemPromptUpdate')=='in-history',#历史内
                 'startsSeries':开系列
-                    or 自身.请求表面代际!=自身.session.surface.replaceGeneration#或表面代际变
+                    or 自身.请求表面代际!=自身.session.surface.contentGeneration#或表面代际变
                     or 自身.工具是否变(组装['tools'] if 'tools' in 组装 else None),#或工具变
             })#投影结束
             for 项 in 提交列表:#逐条系统提交
@@ -406,7 +405,7 @@ class 循环智能体:
                 except BaseException as 落定错误:#落定失败
                     raise 聚合错误(#聚合错误
                         [错误,落定错误],#原因
-                        '助手流失败且其耐久落定被拒绝',#消息
+                        'Assistant stream failed and its durable settlement was rejected',#消息
                     ) from 错误#cause
                 raise 错误#重抛原错误
             try:#尝试完成
@@ -481,9 +480,11 @@ class 循环智能体:
             and 已存配置['provider']==路由['provider']
             and 已存配置['model']==路由['model']
             and 适配器力度 is not True):
-            推理力度=已存配置['reasoningEffort'] if 'reasoningEffort' in 已存配置 else None#同路由且非适配器默认才恢复力度
+            已存力度=已存配置['reasoningEffort'] if 'reasoningEffort' in 已存配置 else None#同路由且非适配器默认才恢复力度
         else:
-            推理力度=None#不恢复
+            已存力度=None#不恢复
+        选项力度=自身.options['reasoningEffort'] if 'reasoningEffort' in 自身.options else None#选项力度
+        推理力度=已存力度 if 选项力度 is None else 选项力度#选项优先，缺省用已存
         最大令牌=自身.options['maxTokens'] if 'maxTokens' in 自身.options else None#选项里的 token 上限
         if 自身.请求头已记:
             种子=请求提议(已存头)#已记下则用提议
@@ -506,7 +507,7 @@ class 循环智能体:
         提议提供方=提议配置['provider'] if 'provider' in 提议配置 else None#提议提供方
         提议模型=提议配置['model'] if 'model' in 提议配置 else None#提议模型
         if 提议提供方 is None or 提议提供方=='' or 提议模型 is None or 提议模型=='':
-            raise 循环错误('智能体 "'+str(自身.id)+'" 没有提供方/模型：请设置 AgentOptions.provider 与 AgentOptions.model，或经 agent/request 瀑布同时提供两者')#必须有提供方与模型；事件名与选项键不译
+            raise 循环错误('agent "'+str(自身.id)+'" has no provider/model: set AgentOptions.provider and AgentOptions.model or supply both via the agent/request waterfall')#必须有提供方与模型；事件名与选项键不译
         已准备调用=None#已准备调用
         try:
             已准备调用=自身.循环上下文.llm.准备调用(提议配置,信号)#准备调用
@@ -524,7 +525,7 @@ class 循环智能体:
     def 构建请求(自身,配置,已准备调用,工具列表,开系列,信号):
         """记录已解析信封，并从已准入表面派生冻结请求（提示不在 header）。"""
         会话=自身.session#取出会话
-        表面代际=会话.surface.replaceGeneration#表面代际
+        表面代际=会话.surface.contentGeneration#表面代际
         头输入={'config':配置}#规范请求头输入（无 system）
         if 已准备调用 is not None:
             头输入['adapterDefaults']=已准备调用['adapterDefaults']#有适配器默认则带
@@ -567,7 +568,15 @@ class 循环智能体:
             or 先前窗口!=现窗口 or 先前更新!=现更新):
             会话.追加('request/context',请求上下文)#记下变更
         若已中止则抛出(信号)#记下后检查
+        深冻结(头)#冻结请求头
         边界消息=会话.派生消息()#从已准入表面派生
+        for 消息 in 边界消息:
+            身份=id(消息)#消息身份
+            if 身份 in 自身.已冻结消息:
+                continue#已冻结则跳过
+            深冻结(消息)#深冻结
+            自身.已冻结消息.add(身份)#记入集合
+        深冻结(边界消息)#冻结派生列表
         请求=dict(头['config'])#调用配置
         请求['messages']=边界消息#派生消息
         if 'tools' in 头 and 头['tools'] is not None:

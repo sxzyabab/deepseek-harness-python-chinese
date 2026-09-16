@@ -1,5 +1,6 @@
 {
     "assemble":"组装",
+    "computer":"计算机",
     "context":"上下文",
     "default":"默认",
     "identity":"身份",
@@ -7,7 +8,9 @@
     "interpolate":"插值",
     "order":"顺序",
     "persona":"人设",
+    "prefix":"前缀",
     "prompt":"提示词",
+    "suffix":"后缀",
     "read":"读取",
     "render":"渲染",
     "rest":"其余",

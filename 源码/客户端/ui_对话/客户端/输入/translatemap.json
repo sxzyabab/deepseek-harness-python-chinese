@@ -8,5 +8,8 @@
     "reference-activation.ts":"引用激活.py",
     "claim-decor.ts":"认领装饰.py",
     "keymap.ts":"键图.py",
-    "text-ref.ts":"文本引用.py"
+    "text-ref.ts":"文本引用.py",
+    "runtime.ts":"运行时.py",
+    "view-binding.ts":"视图绑定.py",
+    "projection.ts":"投影.py"
 }

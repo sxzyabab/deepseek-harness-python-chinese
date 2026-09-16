@@ -1,7 +1,8 @@
 """栅格检查：准入时全解码，已验证读取时仅头探测。对齐上游 attachment-local/src/image.ts。"""
 from io import BytesIO#字节缓冲
-from PIL import Image,ImageOps#图像解码与 EXIF 方向
+from PIL import ImageOps#EXIF 方向
 from ..附件.错误 import 附件错误#附件失败
+from .锐化 import 取锐化#惰性栅格入口
 __all__=['已检测图像字段','编码alpha是否兼容','探测图像','检测图像']#仅中文公开名
 
 已检测图像字段=(#已解码元数据
@@ -65,7 +66,7 @@ def 编码alpha是否兼容(源有alpha,输出):#编码结果 alpha 是否兼容
 def 探测图像(数据):#仅头探测
     """解析受支持栅格头并返回内在元数据，不解码像素。"""
     try:#打开头
-        with Image.open(BytesIO(数据)) as 图像:#头探测
+        with 取锐化().open(BytesIO(数据)) as 图像:#头探测
             return _图像元数据(图像)#元数据
     except 附件错误:#已是附件错误
         raise#原样
@@ -75,7 +76,7 @@ def 探测图像(数据):#仅头探测
 def 检测图像(数据,限额=None):#全解码检测
     """全解码受支持栅格并返回内在元数据；可选维度准入。"""
     try:#全解码路径
-        with Image.open(BytesIO(数据)) as 图像:#打开
+        with 取锐化().open(BytesIO(数据)) as 图像:#打开
             图像.load()#强制解码像素
             结果=_图像元数据(图像)#元数据
     except 附件错误:#已是附件错误

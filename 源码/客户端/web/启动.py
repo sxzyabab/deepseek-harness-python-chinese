@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor as 线程池执行器#预取并发
+from threading import Thread as 线程#预取扇出
 from .启动客户端 import 网页错误,启动客户端#组装与本包异常
 from .启动页 import 启动页#启动页
 from .挂载 import 挂载客户端#应用挂载
@@ -9,18 +9,26 @@ __all__=['网页应用入口','上下文构造']#仅中文公开名
 上下文构造=None#Cordis Context 类；启动前由宿主写入
 
 def 全部并发(调用表):
-    """并发执行无参调用。调用抛错则原样抬出。"""
+    """扇出：每路一线程，join 后按原序抬错。"""
     if len(调用表)==0:#空
         return#无事
-    池=线程池执行器(max_workers=len(调用表))#池
-    未来表=[]#未来
-    try:#提交
-        for 调用 in 调用表:#逐个
-            未来表.append(池.submit(调用))#提交
-        for 项 in 未来表:#等待
-            项.result()#抬错
-    finally:#关池
-        池.shutdown(wait=True)#关
+    错误表=[None]*len(调用表)#按原序错误
+    def 跑一路(下标,调用):
+        """执行一路并记下错误。"""
+        try:#跑
+            调用()#无参调用
+        except BaseException as 错误:#失败
+            错误表[下标]=错误#记下
+    线程表=[]#工作线程
+    for 下标,调用 in enumerate(调用表):#每路一线程
+        工作=线程(target=跑一路,args=(下标,调用),daemon=True)#工作线程
+        工作.start()#启动
+        线程表.append(工作)#登记
+    for 工作 in 线程表:#扇出 join
+        工作.join()#等到结束
+    for 错误 in 错误表:#按原序检查
+        if 错误 is not None:#有失败
+            raise 错误#原样抛
 
 class 网页应用入口:#apps/web 消费的浏览器启动入口
     """绘制启动页；run 启动加载器。"""
@@ -41,7 +49,7 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
             if 窗口 is None:#缺窗口
                 raise 网页错误('网页启动：缺少 window.__ModuleLoader__ 引导门面')#失败
             if '__DSH_BOOT_READY__' in 窗口:#有就绪门
-                窗口['__DSH_BOOT_READY__'].等待()#等引导就绪
+                窗口['__DSH_BOOT_READY__'].等待()#等引导就绪；生产者不在本范围
             if '__ModuleLoader__' not in 窗口:#缺门面
                 raise 网页错误('网页启动：缺少 window.__ModuleLoader__ 引导门面')#失败
             模块加载器=窗口['__ModuleLoader__']#模块加载器门面
@@ -78,7 +86,7 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
         上下文=自身.上下文#当前
         自身.上下文=None#清空引用
         if 上下文 is not None:#有树
-            上下文.fiber.dispose().等待()#拆除插件树并等落定
+            上下文.fiber.dispose().等待()#拆除插件树并等落定；cordis 光纤须显式等待
         自身.页.dispose()#拆除启动页
 
     def 预取立即层(自身):
@@ -92,7 +100,7 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
                 def 预取一条():
                     """只提前开传输；失败由 Loader 导入再报。"""
                     try:#预取
-                        自身.模块系统.prefetch(标识)#预取
+                        自身.模块系统.prefetch(标识)#预取；模块系统内同步阻塞
                     except 网页错误:#仅吞本包预取失败
                         return#忽略
                 return 预取一条#调用

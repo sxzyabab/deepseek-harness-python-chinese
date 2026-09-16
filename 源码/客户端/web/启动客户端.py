@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor as 线程池执行器#全部并发
+from threading import Thread as 线程#创建扇出
 from .加载器状态 import 状态标签#光纤状态标签
 
 __all__=['网页错误','加载器插件','启动客户端','断言条目已激活']#仅中文公开名
@@ -9,18 +9,26 @@ class 网页错误(Exception):
 加载器插件=None#cordis Loader 插件类；启动前由宿主写入
 
 def 全部并发(调用表):
-    """并发执行无参调用并等待全部完成。调用抛错则原样抬出。"""
+    """扇出：每路一线程，join 后按原序抬错。"""
     if len(调用表)==0:#空
         return#无事
-    池=线程池执行器(max_workers=len(调用表))#池
-    未来表=[]#未来
-    try:#提交
-        for 调用 in 调用表:#逐个
-            未来表.append(池.submit(调用))#提交
-        for 项 in 未来表:#等待
-            项.result()#抬错
-    finally:#关池
-        池.shutdown(wait=True)#关
+    错误表=[None]*len(调用表)#按原序错误
+    def 跑一路(下标,调用):
+        """执行一路并记下错误。"""
+        try:#跑
+            调用()#无参调用
+        except BaseException as 错误:#失败
+            错误表[下标]=错误#记下
+    线程表=[]#工作线程
+    for 下标,调用 in enumerate(调用表):#每路一线程
+        工作=线程(target=跑一路,args=(下标,调用),daemon=True)#工作线程
+        工作.start()#启动
+        线程表.append(工作)#登记
+    for 工作 in 线程表:#扇出 join
+        工作.join()#等到结束
+    for 错误 in 错误表:#按原序检查
+        if 错误 is not None:#有失败
+            raise 错误#原样抛
 
 def 启动客户端(选项):
     """组装客户端。选项为 dict：ctx、modules、manifest、onEntryState?。"""
@@ -55,7 +63,7 @@ def 启动客户端(选项):
                 汇报(名,'failed')#失败
         return 创建一条#调用
     全部并发([造创建(名) for 名 in 行表])#并发创建
-    加载器.等待()#等全部静默，必须显式调用
+    加载器.等待()#等全部静默，cordis 须显式调用
     断言条目已激活(上下文)#审计激活
 
 def 断言条目已激活(上下文):

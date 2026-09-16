@@ -1,7 +1,8 @@
 {
+    "attachment":"附件",
     "hub":"枢纽",
     "input":"输入",
+    "notice":"通知",
     "self":"自身",
-    "pick":"选择",
-    "file":"文件"
+    "steer":"转向"
 }

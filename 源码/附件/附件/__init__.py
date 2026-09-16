@@ -5,19 +5,19 @@ from ...依赖 import cordis#外部依赖胶水
 from .标识构造 import 附件标识,图像变体标识#标识构造
 from .错误 import 附件错误,是否图像准入错误#错误面
 from .准入 import 准入编码图像批次#线上准入
-from .请求投影 import 请求图像尺寸#请求投影几何
+from .请求投影 import 请求图像尺寸,长边尺寸#请求投影几何
 from .类型 import (#类型锚点
     图像媒体类型,图像附件引用字段,图像附件限额字段,
     编码图像附件字段,保存图像附件字段,已存储图像附件字段,
-    图像请求策略字段,请求图像附件字段,
+    图像请求目标字段,请求图像附件字段,
 )#类型导入结束
 
 __all__=[#仅中文公开名
     '附件标识','图像变体标识','附件错误','是否图像准入错误',
-    '准入编码图像批次','请求图像尺寸','操作任务','若已中止则抛出',
+    '准入编码图像批次','请求图像尺寸','长边尺寸','操作任务','若已中止则抛出',
     '图像媒体类型','图像附件引用字段','图像附件限额字段',
     '编码图像附件字段','保存图像附件字段','已存储图像附件字段',
-    '图像请求策略字段','请求图像附件字段',
+    '图像请求目标字段','请求图像附件字段',
     '附件存储',
 ]#公开面结束
 
@@ -84,6 +84,28 @@ class 附件存储(服务):#不可变二进制附件服务
             引用列表.append(自身.保存图像(输入))#单图保存，同步
         return tuple(引用列表)#同序返回
 
+    def 准入提示内容(自身,内容):
+        """准入一条 Host 提示，把上传图像换成耐久引用。"""
+        if all(块['type']!='image' for 块 in 内容):#无图像块
+            return [{'type':'text','text':块['text']} if 块['type']=='text' else {'type':'file','attachment':块['attachment']} for 块 in 内容]#原样投影
+        图像列表=[块 for 块 in 内容 if 块['type']=='image']#图像块
+        引用列表=准入编码图像批次(自身,图像列表)#准入并提交
+        游标=0#引用游标
+        结果=[]#已准入块
+        for 块 in 内容:#按原序
+            if 块['type']=='text':#文本
+                结果.append({'type':'text','text':块['text']})#文本
+            elif 块['type']=='file':#文件
+                结果.append({'type':'file','attachment':块['attachment']})#文件
+            else:#图像
+                结果.append({'type':'image','attachment':引用列表[游标]})#引用
+                游标=游标+1#推进
+        return 结果#同序
+
+    def 是否附件错误(自身,错误):
+        """按稳定码识别本能力发出的失败。"""
+        return isinstance(错误,附件错误)#按本包错误类识别
+
     def 保存图像(自身,输入):#验证并耐久提交单图
         """验证并耐久提交单图，返回内容寻址规范化引用。"""
         raise NotImplementedError('AttachmentStore.saveImage')#子类必须实现
@@ -96,7 +118,24 @@ class 附件存储(服务):#不可变二进制附件服务
         """定位提供者拥有的规范化对象；非宿主文件后端返回 None。"""
         return None#默认非文件后端
 
-    def 读取图像请求(自身,引用,策略,信号=None):#生成或读取确定性请求版本
+    def 保存文件(自身,输入):
+        """按原字节耐久提交一份文件。默认拒绝。"""
+        raise 附件错误('The mounted attachment provider cannot store verbatim files.','ATTACHMENT_FILES_UNSUPPORTED')#默认不支持
+
+    def 保存文件流(自身,输入):
+        """从有界块按原字节耐久提交一份文件。默认拒绝。"""
+        raise 附件错误('The mounted attachment provider cannot stream verbatim files.','ATTACHMENT_FILES_UNSUPPORTED')#默认不支持
+
+    def 读取文件流(自身,引用,信号=None):
+        """按有界块读回原字节文件。默认拒绝。"""
+        若已中止则抛出(信号)#取消优先
+        raise 附件错误('The mounted attachment provider cannot read verbatim files.','ATTACHMENT_FILES_UNSUPPORTED')#默认不支持
+
+    def 文件宿主路径(自身,引用):
+        """定位提供者拥有的原字节文件；非宿主文件后端返回 None。"""
+        return None#默认非文件后端
+
+    def 读取图像请求(自身,引用,目标,信号=None):#生成或读取确定性请求版本
         """从已存储规范化图像生成或读取确定性模型请求版本。"""
         若已中止则抛出(信号)#取消优先
         raise 附件错误('The mounted attachment provider cannot derive model-request images.','ATTACHMENT_PROJECTION_UNSUPPORTED')#默认不支持

@@ -1,0 +1,19 @@
+{
+    "acceptView":"接纳视图",
+    "describe":"描述",
+    "ensure":"确保",
+    "face":"面",
+    "generation":"世代",
+    "inFlight":"飞行中",
+    "load":"加载",
+    "mirror":"镜像",
+    "namespace":"命名空间",
+    "persistence":"持久化",
+    "rerun":"需重跑",
+    "run":"运行",
+    "runner":"跑线程",
+    "self":"自身",
+    "setting":"设置",
+    "snapshot":"快照",
+    "store":"存储"
+}

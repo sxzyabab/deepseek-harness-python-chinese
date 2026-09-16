@@ -11,6 +11,7 @@
     "message":"消息",
     "metadata":"元数据",
     "read":"读取",
+    "reference":"引用",
     "replace":"替换",
     "session":"会话",
     "source":"源",

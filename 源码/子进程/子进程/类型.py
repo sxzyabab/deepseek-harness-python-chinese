@@ -15,6 +15,7 @@ __all__=(#仅中文公开名；无英文别名
     '前台组字段','前台组',
     '终端句柄字段','终端句柄',
     '标准输入模式','标准输出模式',
+    '终端环境',
 )#公开面结束
 
 托管环境前缀='DSH_'#预留给 DeepSeek Harness 管理的子环境事实的命名空间前缀
@@ -40,11 +41,12 @@ class 收集模式(TypedDict):#一路输出的有界内存收集
     maxBytes:int#内存上限（字节）；溢出时保留尾部
     spill:NotRequired[溢出配置]#完整流溢出文件；缺省则完全不溢出
 
-三路输入输出字段=('stdin','stdout','stderr')#每路 stdio 处置，全部显式——本缝不套默认值
+三路输入输出字段=('stdin','stdout','stderr','control')#每路 stdio 处置，全部显式——本缝不套默认值
 class 三路输入输出(TypedDict):#每路 stdio 处置
     stdin:object#标准输入处置：ignore / pipe / {data}
     stdout:object#标准输出处置：pipe / inherit / 收集模式
     stderr:object#标准错误处置：pipe / inherit / 收集模式
+    control:NotRequired[Literal['pipe']]#可选独立字节双工通道
 
 启动规格字段=('argv','cwd','stdio','graceMs','signal','env')#完全指定的 spawn 请求
 class 启动规格(TypedDict):#完全指定的 spawn 请求；本缝不套默认值
@@ -79,7 +81,7 @@ class 收集输出集合(TypedDict):#收集模式输出集合
     stdout:NotRequired[object]#当且仅当 stdout 是收集模式时存在
     stderr:NotRequired[object]#当且仅当 stderr 是收集模式时存在
 
-句柄字段=('pid','stdin','stdout','stderr','collected','done','终止','等待退出')#一棵自己的进程树里的存活子进程
+句柄字段=('pid','stdin','stdout','stderr','control','collected','done','终止','等待退出')#一棵自己的进程树里的存活子进程
 class 句柄:#存活子进程句柄协议
     """收集输出在退出后仍可读；管道流属于调用方。终止处处按树范围。
 
@@ -89,6 +91,7 @@ class 句柄:#存活子进程句柄协议
     stdin=None#子的 stdin，当且仅当以 stdin:pipe 启动时存在
     stdout=None#子的原始 stdout，当且仅当以 stdout:pipe 启动时存在
     stderr=None#子的原始 stderr，当且仅当以 stderr:pipe 启动时存在
+    control=None#请求时的独立字节通道；原生启动失败可缺席
     collected=None#收集模式流的基于偏移的读取器（退出后也可读）
     done=None#在进程 close 时兑现退出事实；仅 spawn 级失败会拒绝
 
@@ -102,13 +105,14 @@ class 句柄:#存活子进程句柄协议
 
 终端信号=('SIGINT','SIGTERM','SIGKILL','SIGTSTP','SIGHUP')#终端进程原语支持的信号（与 terminal 缝成员一致）
 
-终端启动规格字段=('argv','cwd','env','rows','cols','graceMs','signal')#完全指定的终端进程启动
+终端启动规格字段=('argv','cwd','env','rows','cols','terminalType','graceMs','signal')#完全指定的终端进程启动
 class 终端启动规格(TypedDict):#完全指定的终端进程启动
     argv:list#可执行文件与参数；argv[0] 是程序
     cwd:str#该子进程提供方执行世界中的工作目录
     env:NotRequired[dict]#在提供方环境擦洗之后叠上的显式环境
     rows:int#初始终端行数
     cols:int#初始终端列数
+    terminalType:str#经 TERM 广告给子进程的终端仿真
     graceMs:int#完整终端会话的 TERM-to-KILL 清理宽限
     signal:NotRequired[object]#终端分配的取消；已发布句柄拥有其后续生命周期
 
@@ -117,7 +121,7 @@ class 前台组(TypedDict):#终端当前前台进程组事实
     processGroupId:int#终端驱动发布的前台进程组 id
     inputWaiting:bool#提供方当前能否证明该组正在等待终端输入
 
-终端句柄字段=('pid','output','done','写入','检查前台','发信号前台','终止')#一个存活终端进程及其拥有的操作系统会话
+终端句柄字段=('pid','output','done','写入','调整尺寸','检查前台','发信号前台','终止')#一个存活终端进程及其拥有的操作系统会话
 class 终端句柄:#存活终端句柄协议
     """终端分配、前台组检查/发信号、会话树清理是同一深层子进程原语。
 
@@ -130,6 +134,10 @@ class 终端句柄:#存活终端句柄协议
     def 写入(自身,数据):#向终端输入写入文本
         """向终端输入写入文本，不做隐式换行转换。"""
         raise NotImplementedError('终端句柄.写入')#由提供方实现
+
+    def 调整尺寸(自身,列,行):#改终端尺寸
+        """改终端尺寸并通知前台应用。"""
+        raise NotImplementedError('终端句柄.调整尺寸')#由提供方实现
 
     def 检查前台(自身):#检查当前前台进程组
         """返回其 id 与等待输入事实；无法解析前台组时为 None。"""
@@ -145,3 +153,7 @@ class 终端句柄:#存活终端句柄协议
 
 标准输入模式=('ignore','pipe')#stdin 处置字面量；另有 {data} 批处理形态
 标准输出模式=('pipe','inherit')#stdout/stderr 处置字面量；另有收集配置对象
+
+class 终端环境(TypedDict):#提供方执行环境里的壳选择事实
+    platform:Literal['posix','windows']#解释可执行路径与壳参数的操作系统族
+    defaultShell:NotRequired[str]#提供方能解析时的登录或环境所选壳

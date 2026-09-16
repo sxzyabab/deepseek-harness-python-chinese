@@ -6,18 +6,12 @@ from .abort_error import 中止错误,已中止#导入中止错误|中止谓词
 from ...未实现失败 import 运行时错误#本包错误
 from .fs_watch import FSWatcher,StatWatcher,unwatchFile,watch,watchAsync,watchFile#监视导出
 
-__all__=[#中文公开名与Node英文挂名
+__all__=[#仅中文公开名
     '目录条目','常量','读流','写流','承诺面',
     '读取文件同步','写入文件同步','追加文件同步','存在同步','统计同步','统计',
-    '改权限同步','链接统计同步','链接统计','真实路径同步','读目录同步','建目录同步','建临时目录同步',
+    '改权限同步','链接统计同步','链接统计','真实路径同步','真实路径','读目录同步','建目录同步','建临时目录同步',
     '移除同步','取消链接同步','重命名同步','访问同步','打开同步','读取同步','写入同步',
     '关闭同步','硬链接同步','打开句柄同步','创建读流','创建写流','打开目录同步',
-    'Dirent','constants','FSWatcher','StatWatcher','unwatchFile','watch','watchFile',
-    'readFileSync','writeFileSync','appendFileSync','existsSync','statSync','stat',
-    'chmodSync','lstatSync','lstat','realpathSync','readdirSync','mkdirSync','mkdtempSync',
-    'rmSync','unlinkSync','renameSync','accessSync','openSync','readSync','writeSync',
-    'closeSync','linkSync','openHandleSync','ReadStream','WriteStream',
-    'createReadStream','createWriteStream','opendirSync','promises','__esModule','default',
 ]#公开结束
 
 def vfs():#取当前活动VFS
@@ -38,6 +32,10 @@ def 取编码(选项):#提取编码
     if isinstance(选项,str): return 选项#字符串即编码
     if isinstance(选项,dict): return 选项.get('encoding')#对象取encoding
     return getattr(选项,'encoding',None)#属性
+
+def 数值模式(模式):#把八进制字符串或数字权限位收成int
+    """规范化 mode。"""
+    return int(模式,8) if isinstance(模式,str) else 模式#字符串按八进制
 
 def 读字节(路径):#同步读字节
     """同步读文件字节。"""
@@ -108,7 +106,7 @@ def 统计(路径,选项或回调=None,或许回调=None):#异步回调stat
     """经 Node 回调形式读取 stats。"""
     选项=None if callable(选项或回调) else 选项或回调#解析选项
     回调=选项或回调 if callable(选项或回调) else 或许回调#解析回调
-    if 回调 is None: raise TypeError('"callback" 参数必须是函数')#必须有回调
+    if 回调 is None: raise TypeError('The "callback" argument must be of type function')#必须有回调
     微任务=globals().get('queueMicrotask')#微任务
     def 执行():#微任务体
         """同步stat后回调。"""
@@ -122,8 +120,7 @@ def 统计(路径,选项或回调=None,或许回调=None):#异步回调stat
 
 def 改权限同步(路径,模式):#同步chmod
     """更改条目权限位；stat 精确读回所设。"""
-    位=int(str(模式),8) if isinstance(模式,str) else 模式#解析八进制或数值
-    vfs().改权限同步(归一路径(路径),位)#委托
+    vfs().改权限同步(归一路径(路径),数值模式(模式))#解析并委托
 
 def 链接统计同步(路径,选项=None):#同步lstat
     """对路径做 stat 且不跟随符号链接（镜像无符号链接）。"""
@@ -136,6 +133,21 @@ def 链接统计(路径,选项或回调=None,或许回调=None):#异步回调lst
 def 真实路径同步(路径):#同步realpath
     """规范路径（仅规范化：镜像无符号链接）。"""
     return vfs().真实路径同步(归一路径(路径))#委托VFS
+
+def 真实路径(路径,回调):#异步回调realpath
+    """经 Node 回调形式解析规范路径，并挂 native 别名。"""
+    微任务=globals().get('queueMicrotask')#微任务
+    def 执行():#微任务体
+        """同步realpath后回调。"""
+        try: 结果=真实路径同步(路径)#同步realpath
+        except 运行时错误 as 错误:#VFS 失败
+            回调(错误)#回调错误
+            return#结束
+        回调(None,结果)#成功回调
+    if callable(微任务): 微任务(执行)#排队
+    else: 执行()#同步兜底仅当无微任务API
+
+真实路径.native=真实路径#Node native 别名
 
 def 读目录同步(路径,选项=None):#同步列目录
     """列出目录。"""
@@ -288,9 +300,18 @@ def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
         """读一段。"""
         return _兑现({'bytesRead':读取同步(fd,缓冲,偏移,长度,位置),'buffer':缓冲})#同步读
 
-    def 取统计():#取stats
+    def 改权限(模式):#改权限
+        """改权限。"""
+        if 目录: 改权限同步(目标,模式)#目录路径chmod
+        else: 描述符('fchmod')['file'].chmod(数值模式(模式))#经句柄chmod
+        return _兑现(None)#兑现
+
+    def 取统计(选项=None):#取stats
         """取 stats。"""
-        return _兑现(统计同步(目标) if 目录 else 描述符('fstat')['file'].stat())#取stats
+        if 目录: return _兑现(统计同步(目标,选项))#目录路径stat
+        if 选项 is not None and 'bigint' in 选项 and 选项['bigint'] is True:#BigInt形态
+            return _兑现(描述符('fstat')['file'].statBigInt())#句柄BigInt
+        return _兑现(描述符('fstat')['file'].stat())#句柄普通
 
     def 截断(长度=0):#截断
         """截断。"""
@@ -314,7 +335,7 @@ def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
         return _兑现(None)#兑现
 
     return {'fd':fd,'readFile':读整文件,'writeFile':写整文件,'write':写一段,'read':读一段,#句柄
-        'stat':取统计,'truncate':截断,'sync':刷盘,'datasync':数据刷盘,'close':关闭句柄}#其余
+        'chmod':改权限,'stat':取统计,'truncate':截断,'sync':刷盘,'datasync':数据刷盘,'close':关闭句柄}#其余
 
 def 流自动销毁(自动关闭):#默认自动销毁
     """Node 通过流的 `autoDestroy` 状态实现文件流 `autoClose`。"""
@@ -655,6 +676,7 @@ chmodSync=改权限同步#chmod
 lstatSync=链接统计同步#lstat
 lstat=链接统计#异步lstat
 realpathSync=真实路径同步#realpath
+realpath=真实路径#回调realpath
 readdirSync=读目录同步#列目录
 mkdirSync=建目录同步#mkdir
 mkdtempSync=建临时目录同步#mkdtemp
@@ -678,7 +700,7 @@ default={#默认导出
     'FSWatcher':FSWatcher,'StatWatcher':StatWatcher,'ReadStream':读流,'WriteStream':写流,#类
     'readFileSync':读取文件同步,'writeFileSync':写入文件同步,'appendFileSync':追加文件同步,#读写
     'existsSync':存在同步,'statSync':统计同步,'stat':统计,'lstatSync':链接统计同步,'lstat':链接统计,#stat
-    'realpathSync':真实路径同步,'chmodSync':改权限同步,#路径
+    'realpathSync':真实路径同步,'realpath':真实路径,'chmodSync':改权限同步,#路径
     'readdirSync':读目录同步,'mkdirSync':建目录同步,'mkdtempSync':建临时目录同步,#目录
     'rmSync':移除同步,'unlinkSync':取消链接同步,'renameSync':重命名同步,'accessSync':访问同步,#路径操作
     'opendirSync':打开目录同步,'openHandleSync':打开句柄同步,'linkSync':硬链接同步,#句柄与硬链

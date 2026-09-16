@@ -1,7 +1,12 @@
 {
+    "auto":"自动",
     "card":"卡",
+    "denial":"拒绝",
     "fallback":"回退",
     "generic":"回退",
+    "home":"主目录",
+    "localize":"本地化",
+    "review":"审查",
     "self":"自身",
     "tool":"工具"
 }

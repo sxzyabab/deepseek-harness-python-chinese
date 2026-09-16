@@ -1,12 +1,17 @@
 {
     "boot":"启动",
+    "canvas":"画布",
     "dark":"深色",
     "default":"默认",
+    "font":"字号",
     "inject":"注入",
+    "injection":"注入行",
     "light":"浅色",
     "preference":"偏好",
     "scheme":"配色方案",
     "script":"脚本",
+    "size":"字号",
+    "style":"样式",
     "system":"系统",
     "theme":"主题"
 }

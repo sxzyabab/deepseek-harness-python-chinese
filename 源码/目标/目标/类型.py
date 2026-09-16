@@ -56,3 +56,8 @@ class 目标投影(TypedDict):#goal 投影值：当前持久目标及其回放�
     roundsStarted:int#本目标已接纳的最高轮次号
     createdAt:int#创建变更的纪元毫秒
     updatedAt:int#最近一次变更的纪元毫秒
+
+class 目标投影状态(TypedDict):#严格检查点状态，用来导出当前目标客户端值
+    current:目标投影|None#最近合法当前目标；创建前与清除后为 None
+    seenGoalIds:list#本会话已创建过的目标身份，用来拒绝复用
+    failure:str|None#首次严格回放失败；流合法时为 None

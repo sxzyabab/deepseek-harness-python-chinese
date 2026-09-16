@@ -1,0 +1,23 @@
+{
+    "cleanup":"清理",
+    "close":"关闭",
+    "collect":"收集",
+    "control":"控制",
+    "dispose":"拆除",
+    "done":"完成",
+    "inject":"注入",
+    "observe":"观察",
+    "pipe":"管道",
+    "prepare":"准备",
+    "process":"进程",
+    "remote":"远端",
+    "self":"自身",
+    "spawn":"启动",
+    "ssh":"ssh",
+    "start":"启动",
+    "stream":"流",
+    "subprocess":"子进程",
+    "terminal":"终端",
+    "terminate":"终止",
+    "wait":"等待"
+}

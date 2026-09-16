@@ -4,6 +4,16 @@ from ..服务 import 对话错误#发送失败
 
 __all__=['输入枢纽']#仅中文公开名
 
+class 即时任务:#已兑现的汇结局
+    """Promise.resolve 的同步任务面，只留等待。"""
+    def __init__(自身,值):
+        """记下值。"""
+        自身._值=值#值
+
+    def 等待(自身):
+        """立即交回。"""
+        return 自身._值#值
+
 class 输入枢纽:#会话输入门面注册表
     """SessionInputResolver 面；发布为 ctx.conversation.input。"""
     def __init__(自身,根上下文,翻译):
@@ -27,9 +37,9 @@ class 输入枢纽:#会话输入门面注册表
         会话=绑定.session#会话面
         作用域=绑定.ctx#作用域 ctx
         壳容器={'shell':None}#闭包可变
-        def 默认汇(文本,图片标识列表,模式):
+        def 默认汇(文本,附件标识列表,模式,信号):
             """发提示。"""
-            自身.下沉(会话,文本,图片标识列表,模式)#下沉
+            return 自身.下沉(会话,文本,附件标识列表,模式,信号)#下沉
         def 转向队列():
             """并入当前回合。"""
             自身.转向队列(会话,壳容器['shell'])#转向
@@ -39,6 +49,22 @@ class 输入枢纽:#会话输入门面注册表
         def 取弹层():
             """弹层关闭面。"""
             return 自身.弹层(作用域)#弹层
+        def 序列化附件(标识列表):
+            """解析草稿附件为线载荷。"""
+            return 自身.会话附件().serializeDraftAttachments(标识列表)#任务
+        def 释放附件(标识列表):
+            """提交成功后释放；会话拆除后服务可能已卸。"""
+            会话面=自身.根上下文.获取服务('conversation')#附件面
+            if 会话面 is None:#已卸
+                return#停
+            for 附标识 in 标识列表:#各 id
+                会话面.releaseDraftAttachment(附标识)#释放
+        def 不支持通知(令牌):
+            """命令不接受附件。"""
+            名=令牌.strip()#修剪
+            if 名.startswith('/'):#去斜杠
+                名=名[1:]#切
+            return 自身.翻译('command.attachmentsUnsupported',{'command':名})#文案
         壳=会话输入壳({#本会话壳
             'actx':作用域,#作用域
             'inputTriggers':取触发,#斜杠控制器
@@ -46,6 +72,11 @@ class 输入枢纽:#会话输入门面注册表
             'queue':队列读面自会话(会话),#队列读面
             'defaultSink':默认汇,#下沉
             'steerQueue':转向队列,#转向
+            'commandAttachments':{#命令附件
+                'serialize':序列化附件,#序列化
+                'release':释放附件,#释放
+                'unsupportedNotice':不支持通知,#通知
+            },#附件结束
         })#壳结束
         壳容器['shell']=壳#供闭包
         自身.外壳表[标识]=壳#登记
@@ -62,7 +93,8 @@ class 输入枢纽:#会话输入门面注册表
                 return True if 壳.consumeToken(求['guard']) else None#消费
             def 插入文本(求):
                 """插入文本。"""
-                return True if 壳.insertText(求['text'],求['span']) else None#插入
+                继续=求['continue'] is True if 'continue' in 求 else False#继续完成
+                return True if 壳.insertText(求['text'],求['span'],继续) else None#插入
             退订列表=[#四条监听
                 作用域.监听('slash/input-begin-command',开始命令),#开始命令
                 作用域.监听('slash/input-insert-reference',插入引用),#插入引用
@@ -70,17 +102,15 @@ class 输入枢纽:#会话输入门面注册表
                 作用域.监听('slash/input-insert-text',插入文本),#插入文本
             ]#结束
             def 拆除():
-                """卸监听、丢壳、释放草稿图。"""
+                """卸监听、丢壳、释放草稿附件。"""
                 for 退 in 退订列表:
                     退()#退订
-                快照=壳.snapshot#快照
-                草稿=快照['imageIds'] if 'imageIds' in 快照 else []#草稿图
-                壳.dispose()#拆壳
+                草稿=壳.dispose()#仍占用的附件
                 自身.外壳表.pop(标识,None)#删表
                 会话面=自身.根上下文.获取服务('conversation')#附件面
                 if 会话面 is not None:
-                    for 图标识 in 草稿:
-                        会话面.releaseDraftImage(图标识)#释放
+                    for 附标识 in 草稿:
+                        会话面.releaseDraftAttachment(附标识)#释放
                 return None#无额外
             return 拆除#退订器
         作用域.副作用(挂监听,'conversation.input: session shell')#挂
@@ -116,29 +146,11 @@ class 输入枢纽:#会话输入门面注册表
             return#停
         自身.外壳表[标识].pickFiles()#打开
 
-    def 下沉(自身,会话,文本,图片标识列表,模式):
-        """乐观清空后发提示。"""
-        if 文本=='' and len(图片标识列表)==0:
-            return#停
-        标识=会话.sessionId#会话 id
-        壳=自身.外壳表[标识] if 标识 in 自身.外壳表 else None#壳
-        if 壳 is not None:
-            壳.commitSend(图片标识列表)#提交发送
-        def 失败():
-            """恢复草稿或释放图。"""
-            if 标识 in 自身.外壳表 and 自身.外壳表[标识] is 壳 and 壳 is not None:
-                壳.restoreImages(图片标识列表)#恢复图
-                if 壳.snapshot['draft']=='':
-                    壳.setDraft(文本)#还原正文
-                return#停
-            会话面=自身.根上下文.获取服务('conversation')#附件面
-            if 会话面 is not None:
-                for 图标识 in 图片标识列表:
-                    会话面.releaseDraftImage(图标识)#释放
-        try:
-            自身.会话附件().sendSession(会话,文本,图片标识列表,模式)#发
-        except 对话错误:
-            失败()#恢复
+    def 下沉(自身,会话,文本,附件标识列表,模式,信号):
+        """乐观清空后发提示。空内容直接成功。"""
+        if 文本=='' and len(附件标识列表)==0:
+            return 即时任务({'kind':'success'})#空成功
+        return 自身.会话附件().sendSession(会话,文本,附件标识列表,模式,信号)#发
 
     def 转向队列(自身,会话,壳):
         """FIFO 严格 steer。窗口关闭或行已认领则静默收敛。"""
@@ -155,7 +167,7 @@ class 输入枢纽:#会话输入门面注册表
                 continue#下一条
             错误=结果['error'] if 'error' in 结果 else {}#错误
             码=错误['code'] if 'code' in 错误 else None#码
-            if 码 in ('steer-unavailable','queue-item-not-found'):
+            if 码 in ('session/steer-unavailable','session/queue-item-not-found'):
                 return#停
             壳.notify('error',自身.翻译('queue.steerFailed'))#通知
             return#停

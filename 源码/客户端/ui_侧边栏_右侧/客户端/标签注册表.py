@@ -66,12 +66,16 @@ class 右侧侧栏标签注册表:#标签类型登记表
         """登记一类型；返回幂等拆除器。"""
         标识=定义['id']#实现 id
         种类=定义['kind']#种类
+        入口表=定义['guide'] if 'guide' in 定义 and 定义['guide'] is not None else ()#入口
+        入口标识表=[入口['id'] for 入口 in 入口表]#id
+        if len(set(入口标识表))!=len(入口标识表):#重
+            raise Exception('sidebarRight: duplicate guide entry id in "'+标识+'"')
         带=定义['priority'] if 'priority' in 定义 and 定义['priority'] is not None else 默认优先级带#带
         if 标识 in 自身.标识集:#撞 id
-            raise Exception('sidebarRight: 标签类型 id "'+标识+'" 已经登记')#接线错误
+            raise Exception('sidebarRight: tab type id "'+标识+'" is already registered')
         持=自身.种类表[种类] if 种类 in 自身.种类表 else None#已持
         if 持 is not None and not _可共存(持,带):#不可共存
-            raise Exception('sidebarRight: 标签种类 "'+种类+'" 已经登记 ('+持['inForce']['band']+')')#拒绝
+            raise Exception('sidebarRight: tab kind "'+种类+'" is already registered ('+持['inForce']['band']+')')
         自身.登记序+=1#序
         模式列表=定义['patterns'] if 'patterns' in 定义 and 定义['patterns'] is not None else ()#模式
         条目={#已登记
@@ -168,14 +172,14 @@ class 右侧侧栏标签注册表:#标签类型登记表
         if 种类 is not None:#点名
             定义=自身.取(种类)#定义
             if 定义 is None:#无
-                raise Exception('sidebarRight: 没有标签类型登记为 "'+种类+'"')#拒绝
+                raise Exception('sidebarRight: no tab type is registered as "'+种类+'"')
             可开=定义['canOpen'] if 'canOpen' in 定义 else None#否决
             if 可开 is not None and not 可开(地址):#拒
-                raise Exception('sidebarRight: 标签类型 "'+种类+'" 拒绝 "'+地址+'"')#拒绝
+                raise Exception('sidebarRight: tab type "'+种类+'" refuses "'+地址+'"')
             return {'kind':种类,'contentId':地址,'title':定义['title'](地址)}#认领
         候选表=自身.候选(地址)#候选
         if len(候选表)==0:#无
-            raise Exception('sidebarRight: 没有已登记的标签类型认领 "'+地址+'"')#拒绝
+            raise Exception('sidebarRight: no registered tab type claims "'+地址+'"')
         选=候选表[0]#优
         return {'kind':选['kind'],'contentId':地址,'title':选['title'](地址)}#认领
 
@@ -194,7 +198,7 @@ class 右侧侧栏标签注册表:#标签类型登记表
         for 定义 in 自身.缓存:#逐类型
             条目表=定义['guide'] if 'guide' in 定义 and 定义['guide'] is not None else ()#入口
             for 条目 in 条目表:#逐入口
-                盒.append({**条目,'kind':定义['kind']})#带 kind
+                盒.append({**条目,'kind':定义['kind'],'providerId':定义['id']})#带 kind 与实现
         盒.sort(key=lambda 项:项['order'])#序
         自身.向导条目=tuple(盒)#稳定
         _通知订阅者(自身.监听者,'[ui-sidebar-right] tab registry')#通知

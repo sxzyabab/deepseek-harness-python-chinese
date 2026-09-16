@@ -1,0 +1,6 @@
+{
+    "fs-ssh":"ssh文件系统",
+    "sandbox-ssh":"ssh沙盒",
+    "ssh":"ssh",
+    "subprocess-ssh":"ssh进程"
+}

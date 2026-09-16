@@ -1,32 +1,6 @@
-import json,threading#JSON 与脚本加载链
-from concurrent.futures import Future as 原生结果#单次操作结果
+import json#JSON 选择器
+from threading import Event as 事件#飞行到达门闩
 from .清单 import 客户端模块错误#本包异常
-
-class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
-    def __init__(自身):
-        """构造未决任务。"""
-        自身._结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        """成功结算。"""
-        if not 自身._结果.done():#尚未结算
-            自身._结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        """失败结算。"""
-        if not 自身._结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                包装=客户端模块错误('task rejected')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身._结果.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        """阻塞等到结算。"""
-        return 自身._结果.result(timeout=超时)#取结果或抛错
 
 __all__=['客户端模块系统','剥客户端后缀','认领样式']#仅中文公开名
 
@@ -51,42 +25,48 @@ def 认领样式(标识):
     return 拥有#归本插件的键
 
 def 默认加载包(网址):
-    """同源外部经典脚本；返回操作任务，由到达内部等待。"""
+    """同源外部经典脚本；阻塞到 load/error，失败原样抛。"""
     if 'document' not in globals():#无 DOM
         raise 客户端模块错误('client-modules: bundle script '+网址+' failed to load')#无法加载
     文档=globals()['document']#浏览器 document
     元素=文档.createElement('script')#经典脚本元素
     元素.async=True#DOM 属性不译
     元素.src=网址#包 URL
-    任务=操作任务()#脚本加载任务
+    完成=事件()#脚本结算门
+    错误箱=[]#失败箱
     def 成功(_事件=None):
-        """卸掉元素并兑现。"""
+        """卸掉元素并放行。"""
         元素.remove()#卸掉
-        任务.兑现(None)#兑现
+        完成.set()#放行
     def 失败(_事件=None):
-        """卸掉元素并拒绝。"""
+        """卸掉元素、记下错误并放行。"""
         元素.remove()#卸掉
-        任务.拒绝(客户端模块错误('client-modules: bundle script '+网址+' failed to load'))#失败
+        错误箱.append(客户端模块错误('client-modules: bundle script '+网址+' failed to load'))#失败
+        完成.set()#放行
     元素.addEventListener('load',成功,{'once':True})#只听一次
     元素.addEventListener('error',失败,{'once':True})#只听一次
     文档.head.append(元素)#挂到 head
-    return 任务#返回任务
+    完成.wait()#阻塞到结算
+    if len(错误箱)>0:#失败
+        raise 错误箱[0]#原样抛
 
 class 客户端模块系统:
     """状态表加上到达/物化机械，实现客户端模块加载器。"""
     def __init__(自身,选项):
         """在已解析的启动行上建造模块系统。选项是 dict。"""
+        清单=选项['manifest']#已解析启动清单
         自身.version='client'#加载器版本标签
         自身.loadCache={}#已物化记录
         种子源=选项['staticModules'] if 'staticModules' in 选项 else None#平台种子
         自身.种子=dict(种子源) if 种子源 is not None else {}#种子表
         自身.静态表={}#壳自有模块
         自身.工厂表={}#已登记工厂
-        自身.进行中到达={}#进行中预取
+        自身.进行中到达={}#标识 → 飞行去重条目
         自身.正在物化=set()#正在物化的 id
         自身.图行={}#启动图行
-        自身.加载包=选项['loadBundle'] if 'loadBundle' in 选项 and 选项['loadBundle'] is not None else 默认加载包#加载钩
-        for 行 in 选项['modules']:#索引启动行
+        自身.加载包=选项['loadBundle'] if 'loadBundle' in 选项 and 选项['loadBundle'] is not None else 默认加载包#加载钩；须同步阻塞
+        自身.启动模块=选项['bootstrapModule'] if 'bootstrapModule' in 选项 else None#已物化启动模块
+        for 行 in 清单['modules']:#索引启动行
             标识=行['id']#包名
             if 标识 in 自身.图行:#重复 id
                 raise 客户端模块错误('client-modules: duplicate graph entry "'+标识+'"')#重复
@@ -101,24 +81,39 @@ class 客户端模块系统:
             if 标识 in 自身.工厂表:#重复登记
                 raise 客户端模块错误('client-modules: duplicate factory registration for "'+标识+'" (bundle executed twice without invalidate?)')#重复
             自身.工厂表[标识]=工厂#收下工厂
-        窗口['__ModuleLoader__']={'load':交接加载}#安装登记槽
+        目标=选项['registrationTarget']#稳定登记门面
+        目标['load']=交接加载#活汇
+        窗口['__ModuleLoader__']=目标#安装登记槽
+
+    def 等待到达(自身,条目):
+        """等同一标识的在飞到达；失败原样抛。"""
+        条目['完成'].wait()#等门
+        if len(条目['错误'])>0:#失败
+            raise 条目['错误'][0]#原样抛
 
     def 到达(自身,行):
         """加载一行图，使其工厂登记上；内部阻塞，返回 None。"""
         标识=行['id']#行身份
         网址=行['url']#URL
-        if 标识 in 自身.进行中到达:#共享进行中
-            自身.进行中到达[标识].等待()#等同一加载
+        在飞=自身.进行中到达[标识] if 标识 in 自身.进行中到达 else None#飞行去重
+        if 在飞 is not None:#共享进行中
+            自身.等待到达(在飞)#等同一加载
             return None#已登记或失败已抛
         if 标识 in 自身.工厂表:#已登记
             return None#跳过
-        任务=自身.加载包(网址)#加载脚本；形态是操作任务
-        自身.进行中到达[标识]=任务#记下进行中
+        完成=事件()#本飞门闩
+        错误箱=[]#本飞错误
+        条目={'完成':完成,'错误':错误箱}#飞行条目
+        自身.进行中到达[标识]=条目#记下进行中
         try:#等脚本
-            任务.等待()#阻塞到加载结束
+            自身.加载包(网址)#同步加载
             if 标识 not in 自身.工厂表:#脚本没来登记
                 raise 客户端模块错误('client-modules: bundle '+网址+' loaded without registering "'+标识+'" via __ModuleLoader__.load')#缺登记
+        except BaseException as 错误:#失败
+            错误箱.append(错误)#记下
+            raise#原样抛
         finally:#无论成败
+            完成.set()#放行等待方
             自身.进行中到达.pop(标识,None)#清进行中
         return None#工厂已登记
 

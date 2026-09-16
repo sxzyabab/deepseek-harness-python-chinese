@@ -21,6 +21,7 @@ class 提示词段落(TypedDict):#注册表输入的一段系统提示词
     name:str#唯一名；重复登记会抛
     order:float#升序拼接；约定 −100 是 harness 身份，0 是部署人设，工具指导用 100–199
     text:object#静态文本，或每次组装用该次组装上下文求值的提供方；可含严格 {{variable}}
+    interpolate:NotRequired[bool]#是否插值提示变量；缺省真，假则保留字面文本
     complete:NotRequired[bool]#真则瀑布后还原为本作用域唯一提示词段落；多于一个有效完整段会使组装失败
 
 class 提示词上下文(TypedDict):#动态运行时上下文贡献
@@ -33,6 +34,7 @@ class 已组装段落(TypedDict):#文本已解析、尚未插值的段落
     """组装的一段：提示词段落且文本已解析。"""
     name:str#贡献段落的唯一名
     text:str#已解析（尚未插值）的段落文本
+    interpolate:NotRequired[bool]#是否插值提示变量；缺省真，假则保留字面文本
 
 class 已组装上下文(TypedDict):#文本已解析的动态上下文
     """一条已解析的动态上下文贡献。"""

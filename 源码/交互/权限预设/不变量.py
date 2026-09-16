@@ -1,5 +1,6 @@
 """包内权限预设事件不变量。"""
 import json#诊断里序列化未知预设名
+from . import 自动预设#实验性 Auto 预设名
 包名='@deepseek-ai/dsh-permission-presets'#本包名，用于登记所有权
 名称='permission-presets-invariant'#配套插件名
 注入=['invariants']#依赖不变量服务
@@ -8,6 +9,8 @@ def 校验事件(上下文对象,事件,失败):#校验单条预设事件
     """校验本包事件字段，忽略无关事件。事件是 dict。"""
     if 事件['type']=='permission/preset':#预设意图事件
         预设=事件['data']['preset']#所选预设名
+        if 预设==自动预设:#Auto 由集成门把守
+            return#放过
         名表=list(上下文对象.permissionPresets.名表)#当前公布表键
         if 预设 not in 名表:#点名未知预设
             失败('permission/preset names unknown preset '+json.dumps(预设,ensure_ascii=False,separators=(',',':'),allow_nan=False))#报告不可解析

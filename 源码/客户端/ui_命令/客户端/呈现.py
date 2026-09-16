@@ -10,7 +10,7 @@ __all__=['内置行面','分区行']#仅中文公开名
 宿主面={#第一方名 → 文案键与字形名
     'goal':{'label':'label.goal','description':'description.goal','icon':'IconGoalOutline16'},#目标
     'plan':{'label':'label.plan','description':'description.plan','icon':'IconPlanOutline14'},#计划
-    'feedback':{'label':'label.feedback','description':'description.feedback','icon':'IconSendOutline16'},#反馈
+    'feedback':{'label':'label.feedback','description':'description.feedback','icon':'IconPaperPlaneOutline14'},#反馈
     'compact':{'label':'label.compact','description':'description.compact','icon':'IconCompactOutline16'},#压缩
     'permission':{'label':'label.permission','description':'description.permission','icon':'IconShieldOutline16'},#权限
     'export':{'label':'label.export','description':'description.export','icon':'IconDownloadOutline16'},#导出

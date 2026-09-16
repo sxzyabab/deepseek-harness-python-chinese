@@ -28,6 +28,7 @@
     "persist":"持久",
     "prepare":"准备",
     "range":"区间",
+    "record":"记录",
     "region":"区间",
     "replace":"替换",
     "retain":"保留",

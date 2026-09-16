@@ -11,7 +11,8 @@ import sys#解释器路径与平台
 import tempfile#平台临时根与私有临时目录
 from ...依赖.schemastery import 字符串字段,自然数字段,列表字段#配置字段
 from ...模型后端.llm import 断言永不#导入封闭联合穷尽辅助
-from ..沙盒 import 沙箱提供方,沙箱不可用错误#导入沙箱提供方与不可用错误
+from ...工具.超时 import 若已中止则抛出#中止入口
+from ..沙盒 import 沙箱提供方,沙箱不可用错误,规范路径#导入沙箱提供方、不可用错误与规范路径
 from ..沙盒_windows访问控制 import (#导入 ACL 授权、临时根断言与 SID 推导
     ACL写入授权,#写入授权物化
     断言临时根在工作区外,#临时根边界
@@ -107,7 +108,7 @@ def 断言正有限数(名称,值):
     'bwrap':('read-only file system',),#只读文件系统
     'landlock':('permission denied',),#权限被拒绝
     'seatbelt':('operation not permitted',),#操作不允许
-    'windows-acl':('access is denied','access to the path','permission denied'),#Windows 拒绝措辞
+    'windows-acl':('access is denied','access to the path','permission denied','operation not permitted'),#Windows 拒绝措辞
     'runnerCommand':('read-only file system','permission denied'),#覆盖运行器的并集
 }#拒绝签名结束
 
@@ -169,8 +170,10 @@ class 本地沙箱提供方(沙箱提供方):#本地进程沙箱提供方
             return 拆除#释放器
         上下文对象.副作用(挂拆,'sandbox-local acl grant cleanup')#临时授权随提供方撤销
 
-    def 隔离(自身,参数表,政策):#包装为隔离 argv
+    def 隔离(自身,参数表,政策,信号=None):#包装为隔离 argv
         """按 `policy` 把 `argv` 包进所选运行器的调用——有已配置 `runnerCommand` 时用它（操作者的断言，不探测），否则用说自己配置方言的平台链运行器。"""
+        若已中止则抛出(信号)#解析前检查取消
+        政策={**政策,'workspaceRoot':规范路径(政策['workspaceRoot'])}#工作区根按规范路径
         if 自身.runnerCommand is not None:#有覆盖
             return {#覆盖运行器
                 'argv':[*自身.runnerCommand,*bwrap配置参数(政策),'--',*参数表],#覆盖加 bwrap 配置

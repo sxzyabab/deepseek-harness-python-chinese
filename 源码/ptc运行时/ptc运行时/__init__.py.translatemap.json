@@ -1,0 +1,18 @@
+{
+    "binding":"绑定",
+    "dunder":"双下划线",
+    "execution":"执行",
+    "global":"全局",
+    "isolation":"隔离",
+    "language":"语言",
+    "member":"成员",
+    "portable":"可移植",
+    "reserved":"保留",
+    "resolve":"解析",
+    "run":"运行",
+    "runtime":"运行时",
+    "sandbox":"沙箱",
+    "self":"自身",
+    "timeout":"超时",
+    "word":"字"
+}
