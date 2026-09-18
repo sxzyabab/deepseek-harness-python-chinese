@@ -41,13 +41,14 @@ def 终端块文案(翻译):#从会话词条组装终端块文案
     return {#原语文案面
         'signal':信号,
         'exitCode':退出码,
-        'running':翻译('terminal.running'),'failed':翻译('terminal.failed'),
-        'done':翻译('terminal.done'),'copy':翻译('copy'),'copied':翻译('copied'),
-        'noOutput':翻译('terminal.noOutput'),'collapseAria':翻译('terminal.collapseAria'),
-        'collapse':翻译('collapse'),
-        'expandAria':展开无障碍文,
-        'expand':展开其余文,
-    }#labels
+    'noExitCode':翻译('terminal.noExitCode'),
+    'running':翻译('terminal.running'),'failed':翻译('terminal.failed'),
+    'done':翻译('terminal.done'),'copy':翻译('copy'),'copied':翻译('copied'),
+    'noOutput':翻译('terminal.noOutput'),'collapseAria':翻译('terminal.collapseAria'),
+    'collapse':翻译('collapse'),
+    'expandAria':展开无障碍文,
+    'expand':展开其余文,
+  }#labels
 
 def 终端已失败(模型):#折叠行的失败信号
     """非运行且（非零码或有信号）。"""

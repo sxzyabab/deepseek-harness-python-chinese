@@ -24,8 +24,10 @@ from .builtin_modules.mock import sqlite as 节点sqlite#sqlite桩
 from .builtin_modules.mock import vm as 节点vm#vm桩
 from .builtin_modules.mock import worker_threads as 节点工作线程#worker_threads桩
 from .external_packages import koffi as koffi包#koffi桩
+from .external_packages import libreoffice_kit as libreoffice包#libreoffice套件桩
 from .external_packages import node_addon_system_flock as flock包#flock桩
 from .external_packages import node_pty as node_pty包#node-pty桩
+from .external_packages import execa as execa包#execa桩
 from .external_packages import pi_ai as pi_ai包#pi-ai桩
 from .external_packages import ripgrep as ripgrep包#ripgrep桩
 from .external_packages import sharp as sharp包#sharp桩
@@ -70,10 +72,12 @@ def _工厂(模块):#静态模块工厂
 }#内建表结束
 
 外部表={#外部替换表
+    '@deepseek-ai/libreoffice-kit':_工厂(libreoffice包),#office转换套件
     '@deepseek-ai/node-addon-system/flock':_工厂(flock包),#flock原生锁
     'koffi':_工厂(koffi包),#FFI桥
     'sharp':_工厂(sharp包),#图像
     'node-pty':_工厂(node_pty包),#伪终端
+    'execa':_工厂(execa包),#外部命令
     'ws':_工厂(ws包),#WebSocket
     '@vscode/ripgrep':_工厂(ripgrep包),#ripgrep路径
     '@earendil-works/pi-ai':_工厂(pi_ai包),#pi-ai

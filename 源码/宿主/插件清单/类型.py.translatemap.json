@@ -1,8 +1,10 @@
 {
     "entry":"条目",
+    "fiber":"光纤",
     "inventory":"清单",
-    "loader":"加载器",
-    "name":"名称",
+    "management":"管理",
+    "phase":"阶段",
     "plugin":"插件",
-    "type":"类型"
+    "preset":"预设",
+    "snapshot":"快照"
 }

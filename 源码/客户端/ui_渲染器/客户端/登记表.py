@@ -1,5 +1,6 @@
-from ...ui_槽位 import 槽位登记表#纯登记表
+from ...ui_槽位 import 槽位登记表,过期授权错误#纯登记表与过期授权
 from ....依赖 import cordis#外部依赖胶水
+from ..错误 import 槽装配错误#独占持久装配失败
 from .绑定 import 槽组装错误,可观察源#本包组装失败与可观察源
 
 服务=cordis.服务#Cordis 服务基类
@@ -30,6 +31,16 @@ def 拷贝唯一(种类,目标,值表,最终属性,属性名映射):
         最终属性.add(属性名)#登记
         目标[名称]=值#写入
 
+def 要求作用域键(定义,绑定):
+    """非根工厂 store 解析必须有会话键。定义为 dict。"""
+    if 绑定 is None:#缺绑定
+        raise 槽组装错误(str(定义['scope'])+' factory store resolution requires a session id')#抛错
+    return 绑定['key']#返回键
+
+def 空拆除():
+    """空 disposer。"""
+    return None#无
+
 class 槽宿主面:
     """域中立宿主 API；locale / 适配器经登记表活读。"""
     def __init__(自身,登记表):
@@ -58,6 +69,10 @@ class 槽宿主面:
         """报告崩溃。"""
         自身._登记表._core.报告条目错误(键,条目,错误,信息)#报告
 
+    def reportFactoryError(自身,名,登记,错误):
+        """报告工厂崩溃。"""
+        自身._登记表._core.报告工厂错误(名,登记,错误)#报告
+
     def specOf(自身,键):
         """动态规范。"""
         return 自身._登记表._core.动态规格(键)#规格
@@ -74,6 +89,30 @@ class 槽宿主面:
         if 存储 is None:#空
             return None#无
         return 自身._登记表.解析存储(存储,作用域绑定)#解析
+
+    def factoryStoreOf(自身,定义,作用域绑定,出现):
+        """解析工厂 store。定义为 dict。"""
+        return 自身._登记表.解析工厂存储(定义,作用域绑定,出现)#解析
+
+    def retainFactoryOccurrence(自身,定义,出现):
+        """保留工厂出现。定义为 dict。"""
+        return 自身._登记表.保留工厂出现(定义,出现)#保留
+
+    def subscribeFactory(自身,名,回调):
+        """订工厂定义寿命。"""
+        return 自身._登记表._core.订阅工厂(名,回调)#订
+
+    def getFactoryVersion(自身,名):
+        """工厂版本。"""
+        return 自身._登记表._core.工厂版本(名)#版本
+
+    def factoryOf(自身,名):
+        """取工厂定义。"""
+        return 自身._登记表._core.取工厂(名)#定义
+
+    def isFactoryLive(自身,定义):
+        """工厂定义是否仍登记。定义为 dict。"""
+        return 自身._登记表._core.工厂仍存活(定义)#活
 
     def scope(自身,作用域):
         """取已安装适配器。session-maybe 与 session 共用。"""
@@ -92,6 +131,7 @@ class 槽登记表(服务):
         super().__init__(上下文,'slots')#服务名 slots
         自身._core=槽位登记表()#纯登记表
         自身._stores={}#句柄轴
+        自身._factoryStores={}#工厂 store 轴
         自身._storeScopeOwners={}#作用域拥有方
         自身._renderer=None#已安装渲染器
         自身._locale=None#已安装 locale 面
@@ -137,6 +177,13 @@ class 槽登记表(服务):
             """登记并交 fiber 拆除。"""
             return 自身._登记(选项,组件)#拆除器
         return 自身.ctx.副作用(寿命,'slots.register()')#经纤程拆除
+
+    def registerFactory(自身,选项,组件):
+        """经调用方副作用拆除。选项为 dict。"""
+        def 寿命():
+            """登记工厂并交 fiber 拆除。"""
+            return 自身._登记工厂(选项,组件)#拆除器
+        return 自身.ctx.副作用(寿命,'slots.registerFactory()')#经纤程拆除
 
     def inject(自身,键,回调):
         """声明已存在时回调同步跑；否则等声明后跑。"""
@@ -283,7 +330,7 @@ class 槽登记表(服务):
         自身.ctx.副作用(寿命,'slots.installScope('+repr(作用域)+')')#诊断名
 
     def bindStoreScope(自身,绑定):
-        """重绑同一键会把清理所有权交给最新 Context 代。绑定为 dict。"""
+        """清理只丢内存实例；持久属作用域键。绑定为 dict。"""
         键=绑定['key']#作用域键
         上下文=绑定['ctx']#拥有 Context
         当前=自身._storeScopeOwners[键] if 键 in 自身._storeScopeOwners else None#当前拥有方
@@ -293,13 +340,13 @@ class 槽登记表(服务):
         def 寿命():
             """作用域死亡清理。"""
             def 清理():
-                """清拥有方与实例。"""
+                """清拥有方并释放实例。"""
                 if 键 not in 自身._storeScopeOwners:#无
                     return#忽略
                 if 自身._storeScopeOwners[键] is not 上下文:#已被更新代接管
                     return#忽略
                 del 自身._storeScopeOwners[键]#清拥有方
-                自身.清除存储作用域(键)#清实例
+                自身.释放存储作用域(键)#仅释内存实例
             return 清理#返回清理
         上下文.副作用(寿命,'slots: store scope '+str(键))#诊断名
 
@@ -326,7 +373,7 @@ class 槽登记表(服务):
         return 自身._core.快照(根)#委托核心
 
     def onEntryError(自身,回调):
-        """委托核心。"""
+        """委托核心；登记可为条目或工厂。"""
         return 自身._core.条目错误时(回调)#委托核心
 
     def spec(自身,键):
@@ -371,6 +418,39 @@ class 槽登记表(服务):
             已卸[0]=True#标记
             拆除()#卸核心
             if 存储 is not None:#有
+                自身._拆除(存储)#释引用
+        return 拆除器#返回
+
+    def _登记工厂(自身,选项,组件):
+        """核心写入 + 共享轴或工厂轴记账。选项为 dict。"""
+        登记方=None#登记方戳
+        try:#可选 fiber 诊断戳
+            纤=自身.ctx.纤程#纤程
+        except AttributeError:#无
+            纤=None#无
+        if 纤 is not None:#有
+            登记方=纤.name#诊断戳
+        擦除=dict(选项)#擦除选项
+        if 登记方 is not None:#有
+            擦除['registrant']=登记方#诊断戳
+        拆除=自身._core.登记工厂(擦除,组件)#核心写入
+        定义=自身._core.取工厂(选项['name'])#取定义
+        if 定义 is None:#消失
+            raise 槽组装错误('slot factory "'+str(选项['name'])+'" disappeared during registration')#抛错
+        存储=定义['store'] if 'store' in 定义 else None#store
+        if 存储 is not None and callable(存储) is False:#共享句柄
+            自身._获取(存储,定义['scope'])#轴记账
+        elif callable(存储):#独占工厂
+            自身._factoryStores[定义]={'occurrences':{},'mounted':{}}#建工厂轴
+        已卸=[False]#幂等门闩
+        def 拆除器():
+            """幂等卸核心并释轴。"""
+            if 已卸[0] is True:#已卸
+                return#结束
+            已卸[0]=True#标记
+            拆除()#卸核心
+            自身._factoryStores.pop(定义,None)#删工厂轴
+            if 存储 is not None and callable(存储) is False:#共享句柄
                 自身._拆除(存储)#释引用
         return 拆除器#返回
 
@@ -427,22 +507,77 @@ class 槽登记表(服务):
             实例表[键]=实例#写入
         return 实例#返回
 
-    def 清除存储作用域(自身,键):
-        """为一个死亡作用域键清除每一个活的非根 Store 句柄。"""
-        for 句柄,记录 in list(自身._stores.items()):#逐句柄
+    def 解析工厂存储(自身,定义,作用域绑定,出现):
+        """按出现解析工厂 store。定义为 dict。"""
+        if 自身._core.工厂仍存活(定义) is False:#已死
+            raise 过期授权错误('slot factory "'+str(定义['name'])+'" is not registered')#过期授权
+        声明=定义['store'] if 'store' in 定义 else None#store 声明
+        if 声明 is None:#无
+            return None#无
+        if callable(声明) is False:#共享句柄
+            return 自身.解析存储(声明,作用域绑定)#走条目轴
+        轴=自身._factoryStores[定义]#工厂轴
+        if 定义['scope']=='root':#根
+            作用域键=根实例键#根键
+        else:#会话
+            作用域键=要求作用域键(定义,作用域绑定)#要求会话键
+        if 作用域绑定 is not None and 定义['scope']!='root':#非根有绑定
+            自身.bindStoreScope(作用域绑定)#绑寿命
+        出现表=轴['occurrences']#出现表
+        记录=出现表[出现] if 出现 in 出现表 else None#出现记录
+        if 记录 is None:#首遇
+            句柄=声明()#铸造句柄
+            规格=句柄.spec#规格
+            if isinstance(规格,dict):#dict 规格
+                if 'persist' in 规格:#独占不得持久
+                    raise 槽装配错误('exclusive store for factory "'+str(定义['name'])+'" cannot declare persistence')#装配失败
+            elif hasattr(规格,'persist'):#对象规格有 persist（对齐 !== undefined）
+                raise 槽装配错误('exclusive store for factory "'+str(定义['name'])+'" cannot declare persistence')#装配失败
+            记录={'handle':句柄,'instances':{},'retainers':0}#新记录
+            出现表[出现]=记录#写入
+        实例表=记录['instances']#实例
+        if 作用域键 in 实例表:#已有
+            return 实例表[作用域键]#复用
+        创建=记录['handle'].create#创建入口
+        if 定义['scope']=='root' or 作用域绑定 is None:#无键
+            实例=创建()#创建
+        else:#会话键
+            实例=创建(作用域绑定['key'])#创建
+        实例表[作用域键]=实例#写入
+        return 实例#返回
+
+    def 保留工厂出现(自身,定义,出现):
+        """提交可枚举出现；返回拆除器。定义为 dict。"""
+        if 自身._core.工厂仍存活(定义) is False:#死
+            return 空拆除#空
+        存储=定义['store'] if 'store' in 定义 else None#store
+        if callable(存储) is False:#非独占
+            return 空拆除#空
+        轴=自身._factoryStores[定义]#工厂轴
+        记录=轴['occurrences'][出现]#出现记录
+        记录['retainers']+=1#加保留
+        轴['mounted'][出现]=记录#提交可枚举
+        已释=[False]#幂等门闩
+        def 拆除器():
+            """减保留；归零卸挂载。"""
+            if 已释[0] is True:#已释
+                return#结束
+            已释[0]=True#标记
+            记录['retainers']-=1#减保留
+            if 记录['retainers']!=0:#仍有持有
+                return#结束
+            轴['mounted'].pop(出现,None)#卸挂载
+        return 拆除器#返回
+
+    def 释放存储作用域(自身,键):
+        """丢掉已物化的非根实例；不 clearPersisted。"""
+        for 记录 in list(自身._stores.values()):#逐句柄
             if 记录['scope']=='root':#根跳过
                 continue#跳过
-            实例表=记录['instances']#实例
-            实例=实例表[键] if 键 in 实例表 else None#读
-            if 实例 is None:#未创建
-                实例=句柄.create(键)#物化以便清持久
-            try:#可选 clearPersisted
-                清=实例.clearPersisted#清持久
-            except AttributeError:#无此方法
-                清=None#无
-            if 清 is not None:#有
-                清()#清持久
-            实例表.pop(键,None)#删实例
+            记录['instances'].pop(键,None)#删实例
+        for 轴 in list(自身._factoryStores.values()):#逐工厂轴
+            for 记录 in list(轴['mounted'].values()):#已挂载出现
+                记录['instances'].pop(键,None)#删出现实例
 
     def _获取(自身,句柄,作用域):
         """在轴上绑定（或再引用）句柄。"""

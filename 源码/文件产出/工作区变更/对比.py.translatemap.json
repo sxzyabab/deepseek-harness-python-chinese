@@ -1,0 +1,17 @@
+{
+    "compare":"对比",
+    "text":"文本",
+    "terminated":"已终止",
+    "lines":"行列表",
+    "hunk":"块",
+    "coarse":"粗糙",
+    "added":"新增",
+    "deleted":"删除",
+    "context":"上下文",
+    "timeout":"超时",
+    "before":"之前",
+    "after":"之后",
+    "patch":"补丁",
+    "old":"旧",
+    "new":"新"
+}

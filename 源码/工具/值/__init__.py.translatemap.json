@@ -1,4 +1,12 @@
 {
+    "weak":"弱",
+    "map":"映射",
+    "with":"带",
+    "clear":"清空",
+    "delete":"删除",
+    "has":"有",
+    "get":"获取",
+    "set":"设",
     "ancestor":"祖先",
     "array":"数组",
     "assert":"断言",

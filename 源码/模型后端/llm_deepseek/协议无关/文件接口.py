@@ -4,6 +4,7 @@ from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文
 from urllib.parse import quote as 百分编码,urlparse as 解析网址,urlencode as 编码查询#URL
 from ...llm import 归属头,大模型错误#归属头与 LLM 错误
 from .文件标识 import 深求文件标识#文件 id
+from .消息接口 import 消息文件测试版头 as 消息文件测试版,消息接口根#Messages API
 
 __all__=(#仅中文公开名
     '消息文件测试版','最小文件过期秒','最大文件过期秒','最大文件上传字节',
@@ -11,7 +12,6 @@ __all__=(#仅中文公开名
     '深求文件错误','是否文件配额错误','深求文件客户端',
 )#公开面结束
 
-消息文件测试版='files-api-2025-04-14'#消息文件操作必选测试版
 最小文件过期秒=3600#最小过期秒
 最大文件过期秒=2592000#最大过期秒
 最大文件上传字节=128*1024*1024#最大上传字节
@@ -126,10 +126,13 @@ class 深求文件客户端:#Files 客户端
     """按已配置 URL 根发 Files 请求，拒绝重定向以免凭证离源。"""
     def __init__(自身,选项):#构造
         """记下端点、API 密钥快照、协议与可选传输。"""
-        自身.基址=选项['baseURL'].rstrip('/')#基址
         自身.接口密钥=选项['apiKey']#密钥
         自身.协议=选项['protocol']#线路协议
-        自身.路径='/v1/files' if 自身.协议=='messages' else '/files'#资源路径
+        if 自身.协议=='messages':#消息
+            自身.基址=消息接口根(选项['baseURL'])#Messages API 根
+        else:#对话补全
+            自身.基址=选项['baseURL'].rstrip('/')#去尾斜杠
+        自身.路径='/files'#资源路径
         自身.取传输=选项.get('fetch')#可选自定义；缺省用 http.client
 
     def 解析文件(自身,值,操作):#按协议解析

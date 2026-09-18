@@ -1,0 +1,12 @@
+{
+    "action":"动作",
+    "apply":"应用",
+    "approval":"审批",
+    "execute":"执行",
+    "inject":"注入",
+    "offset":"偏移",
+    "present":"呈现",
+    "render":"渲染",
+    "self":"自身",
+    "tool":"工具"
+}

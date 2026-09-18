@@ -30,7 +30,15 @@ def 源块(值):#未知值转源块
     文本值=值['text'] if 'text' in 值 else None#文本
     if isinstance(文本值,str):#有文本
         return {'type':'thinking' if 类型=='reasoning' else 类型,'content':文本值}#推理改 thinking
-    图片源=抽图片源(值)#尝试抽图片源
+    附件=值['attachment'] if 'attachment' in 值 else None#附件引用
+    if (类型=='image' or 类型=='file') and isinstance(附件,dict) and isinstance(附件.get('attachmentId'),str):#带 attachmentId 的图/文件
+        结果={'type':类型,'content':stringify源值(值)}#线形块正文
+        if 类型=='image':#图片走图片加载器
+            结果['attachment']=附件#图片附件引用
+        else:#普通文件
+            结果['file']=附件#文件附件引用，不进图片加载器
+        return 结果#源块
+    图片源=抽图片源(值)#尝试抽图片源（旧形态）
     替代值=值['alt'] if 'alt' in 值 else None#可选 alt
     替代=替代值 if isinstance(替代值,str) else None#非字符串则无
     结果={'type':类型,'content':'' if 图片源 is not None else stringify源值(值)}#通用源块
@@ -101,8 +109,16 @@ def 助手源块(块):#助手块转源块
     if 种类=='tool-call':#工具调用
         return {'type':'tool-call','content':'' if ('argsRaw' not in 块 or 块['argsRaw'] is None) else 块['argsRaw'],'callId':块['callId'],'toolName':块['name']}#调用；?? 空串保留
     if 种类=='image':#图片附件
-        return {'type':'image','content':stringify源值(块['attachment'] if 'attachment' in 块 else None)}#附件元数据
+        return 源块({'type':'image','attachment':块['attachment'] if 'attachment' in 块 else None})#经通用源块
     return 源块(块['block'] if 'block' in 块 else None)#其它块走通用转换
+
+def 图片块数(内容):#数 type=image 的块
+    """内容里的图片块个数。"""
+    return sum(1 for 块 in 内容 if isinstance(块,dict) and 块.get('type')=='image')#计数
+
+def 文件块数(内容):#数 type=file 的块
+    """内容里的文件块个数。"""
+    return sum(1 for 块 in 内容 if isinstance(块,dict) and 块.get('type')=='file')#计数
 
 def 挂用量(单元格,用量):#挂用量字段
     """有提供方用量时拷到 Message 单元格。"""
@@ -183,11 +199,19 @@ def 预览内容属性(内容):#有预览则包成 previewMarkdown 字段
     return {} if 预览 is None else {'previewMarkdown':预览}#无则空
 
 def 输入单元格详情(节点):#输入单元格共用字段
-    """用户/转向/上下文共用字段。"""
+    """用户/转向/上下文共用字段；有图/文件时填附件摘要。"""
     内容=节点['content'] if 'content' in 节点 and 节点['content'] is not None else []#内容块；空列表保留
     预览=预览内容(内容)#首段文本预览
+    预览Markdown=None if 预览=='' else 预览#空串当无预览
+    图片数=图片块数(内容)#图片块
+    文件数=文件块数(内容)#文件块
+    片段=[]#附件摘要片段
+    if 图片数>0:#有图
+        片段.append(f'图片 ×{图片数}')#图片计数
+    if 文件数>0:#有文件
+        片段.append(f'文件 ×{文件数}')#文件计数
     字段={#输入单元格字段
-        'text':'',#正文留给预览
+        'text':' · '.join(片段),#附件摘要
         'sourceSeq':节点['seq'],#源序号
         'messageSource':节点['source'] if 'source' in 节点 else None,#消息来源
         'inputDetail':详情内容(内容),#输入详情文本
@@ -195,8 +219,8 @@ def 输入单元格详情(节点):#输入单元格共用字段
         'timeSeconds':0,#输入无自身耗时
         'startedAt':有限时间(节点['time']),#节点时间
     }#字段结束
-    if 预览 is not None:#有预览才挂
-        字段['previewMarkdown']=预览#预览
+    if 预览Markdown is not None:#有预览才挂
+        字段['previewMarkdown']=预览Markdown#预览
     return 字段#共用字段
 
 def 索引结果(节点列表):#callId → 结果节点

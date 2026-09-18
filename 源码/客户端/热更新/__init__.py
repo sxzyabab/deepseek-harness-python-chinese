@@ -128,6 +128,8 @@ def 应用(上下文,配置值):
 
     def 拆除通道():
         """取消订阅、注销路由、拆掉连接。"""
+        if 退订图广播 is not None:#有图广播
+            退订图广播()#退订
         退订重建()#取消 rebuilt 订阅
         拆除路由()#注销路由
         for 响应 in list(连接集):#仍打开的连接
@@ -145,9 +147,15 @@ def 应用(上下文,配置值):
     退订图=None#图订阅拆除
     轮询线程=None#轮询线程
     上下文.副作用(监视效应,'client-hmr: bundle watches')#监视生命周期
+    def 广播图():
+        """图变更时广播 graph 帧。"""
+        行=sse数据({'type':'graph','graph':上下文.clientModules.graph()})#帧
+        for 响应 in list(连接集):#写给每个打开的 SSE
+            响应.write(行)#写出
+
     def 通道效应():
-        """登记路由与 rebuilt 广播，返回拆除器。"""
-        nonlocal 拆除路由,退订重建#写入外层绑定
+        """登记路由与 graph/rebuilt 广播，返回拆除器。"""
+        nonlocal 拆除路由,退订重建,退订图广播#写入外层绑定
         拆除路由=上下文.webServer.register({#注册精确路径
             'kind':'exact',#精确匹配
             'path':事件端点,#SSE 端点
@@ -158,10 +166,12 @@ def 应用(上下文,配置值):
             行=sse数据({'type':'rebuilt','id':标识,'rev':修订})#组装 rebuilt 帧
             for 响应 in list(连接集):#写给每个打开的 SSE
                 响应.write(行)#写出
+        退订图广播=上下文.clientModules.onGraphChanged(广播图)#图变广播
         退订重建=上下文.clientModules.onRebuilt(广播重建)#订阅重建
         return 拆除通道#拆除器
     拆除路由=None#路由拆除
     退订重建=None#重建订阅拆除
+    退订图广播=None#图广播拆除
     上下文.副作用(通道效应,'client-hmr: /plugins/events channel')#通道生命周期
 
 name=名称#框架槽

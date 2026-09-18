@@ -3,7 +3,7 @@ from .清单页签 import 插件清单页签,插件清单错误#页签组件
 
 __all__=['注入','应用','插件清单页签','命名空间','中文','英文']#仅中文公开名
 
-注入=['slots','locale','remote','remote.pluginInventory']#槽位、文案、远程、清单远程面
+注入=['slots','locale','remote','remote.pluginInventory','modules']#槽位、文案、远程、清单远程面、模块
 
 def 应用(上下文):#安装只读清单页签
     """把惰性清单页签贡献给插件设置分区。"""
@@ -22,9 +22,27 @@ def 应用(上下文):#安装只读清单页签
             消息=错误['message'] if 'message' in 错误 else None#消息
             raise 插件清单错误(f"pluginInventory.list failed: {码}: {消息}")#诊断
         return 结果['value'] if 'value' in 结果 else None#快照
+    def 预设名(预设):#解析预设显示名
+        """优先元数据 name，否则 id。"""
+        if 'name' in 预设 and 预设['name'] is not None and 预设['name']!='':#有 name
+            return 预设['name']#显示名
+        if 'id' in 预设:#有 id
+            return 预设['id']#回退 id
+        return ''#空
+    def 重试本页():#重试本页同步
+        """modules.entries.retry；失败记日志。"""
+        try:#重试
+            上下文.modules.entries.retry()#本页同步
+        except Exception as 错:#失败
+            上下文.logger.error(错)#记日志
     def 注入面():#页签注入面
-        """只暴露 list。"""
-        return {'list':列表}#注入
+        """清单、预设名、本页同步钩子。"""
+        return {#注入
+            'list':列表,#清单
+            'presetName':预设名,#预设显示名
+            'hooks':{'clientSync':上下文.modules.entries.state},#本页同步状态
+            'retryClient':重试本页,#重试本页
+        }#注入结束
     def 页签标签():#页签文案
         """全部清单页签标签。"""
         return 翻译('tab')#标签

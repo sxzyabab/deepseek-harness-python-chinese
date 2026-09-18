@@ -3,12 +3,12 @@
     "boot":"启动",
     "client":"客户端",
     "connect":"连接",
+    "connection":"连接",
     "dispose":"拆除",
     "entry":"条目",
     "error":"错误",
     "flush":"冲刷",
-    "global":"全局",
-    "hold":"持有",
+    "install":"安装",
     "loader":"加载器",
     "mount":"挂载",
     "plan":"计划",
@@ -20,7 +20,5 @@
     "start":"启动",
     "test":"测试",
     "timeout":"超时",
-    "transport":"传输",
-    "turn":"回合",
     "unload":"卸下"
 }

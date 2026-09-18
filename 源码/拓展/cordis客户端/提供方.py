@@ -57,13 +57,18 @@ def 登记(标识,说明文,方法,查询,输入模式=None,输出模式=None):#
     }#结束
 
 def 压缩槽树(节点,目录图=None):#压缩现场树节点
-    """有目录则附用途。"""
+    """有目录则附用途；工厂节点只留身份与子树。"""
     if 目录图 is None:#缺省
         目录图={槽['key']:槽 for 槽 in 客户端槽目录}#图
+    类型=节点.get('type') if isinstance(节点,dict) else getattr(节点,'type',None)#节点类型
     名=节点.get('name') if isinstance(节点,dict) else getattr(节点,'name',None)#名
+    if 类型=='factory':#工厂节点
+        子=节点.get('children') if isinstance(节点,dict) else getattr(节点,'children',[]) or []#子
+        return {'type':'factory','name':名,'scope':节点.get('scope') if isinstance(节点,dict) else getattr(节点,'scope',None),'children':[压缩槽树(c,目录图) for c in 子]}#工厂压缩
     条目=目录图.get(名)#目录
     钉死=门面钉死槽键.get(条目['key']) if 条目 else None#门面钉死键
     出={#压缩
+        'type':类型,#槽类型
         'name':名,#名
         'kind':节点.get('kind') if isinstance(节点,dict) else getattr(节点,'kind',None),#基数
         'scope':节点.get('scope') if isinstance(节点,dict) else getattr(节点,'scope',None),#作用域
@@ -104,12 +109,20 @@ def 巡检槽目录条目(条目):#inspectSlotCatalog
     return 出#投影
 
 def 巡检现场槽(节点,目录图=None):#inspectLiveSlot
-    """现场槽完整约定 + 占用者。"""
+    """现场槽完整约定 + 占用者；工厂节点返回身份与登记者。"""
     if 目录图 is None:#缺省
         目录图={槽['key']:槽 for 槽 in 客户端槽目录}#图
+    类型=节点.get('type') if isinstance(节点,dict) else getattr(节点,'type',None)#节点类型
     名=节点.get('name') if isinstance(节点,dict) else getattr(节点,'name',None)#名
+    if 类型=='factory':#工厂详情
+        出={'type':'factory','name':名,'scope':节点.get('scope') if isinstance(节点,dict) else getattr(节点,'scope',None)}#身份
+        登记者=节点.get('registrant') if isinstance(节点,dict) else getattr(节点,'registrant',None)#登记者
+        if 登记者 is not None:#有
+            出['registrant']=登记者#带上
+        return 出#工厂
     条目=目录图.get(名)#目录
     出={#完整
+        'type':类型,#槽类型
         'name':名,#名
         'kind':节点.get('kind') if isinstance(节点,dict) else getattr(节点,'kind',None),#基数
         'scope':节点.get('scope') if isinstance(节点,dict) else getattr(节点,'scope',None),#作用域
@@ -129,8 +142,8 @@ def 列出客户端巡检提供方(上下文=None):#内置提供方
     事件输入=精确输入('event','Exact Event name. Omit it for the compact Event and listener-signature directory.')#事件
     服务输出={'description':'Compact Service directory, or one exact Service contract with only its referenced type declarations.'}#出
     事件输出={'description':'Compact Event directory, or one exact Event contract with only its referenced type declarations.'}#出
-    子树输入={'type':'object','properties':{'root':{'type':'string','description':'Exact live Slot key. When supplied, selected contains the full contract for this Slot.'}},'additionalProperties':False}#子树
-    子树输出={'description':'Compact purpose/topology trees. With root, selected also contains that Slot\'s full contract and live occupants.'}#出
+    子树输入={'type':'object','properties':{'root':{'type':'string','description':'Exact live Slot key or factory:<name>. When supplied, selected contains that declaration.'}},'additionalProperties':False}#子树
+    子树输出={'description':'Compact topology trees. An exact Slot includes its catalog and occupants; an exact Factory includes identity, scope, and registrant.'}#出
 
     def 查服务(输入):#服务查询
         """按键。"""
@@ -179,7 +192,7 @@ def 列出客户端巡检提供方(上下文=None):#内置提供方
         登记('Event','Progressive Client Event discovery: compact listener directory, then one exact event contract.','listEvents',查事件,事件输入,事件输出),#事件
         登记('Builtin','Plain-JavaScript symbols available to a dynamic Client half.','listBuiltins',查内置),#内置
         {#Slots
-            'manifest':{'id':'Slots','description':'Progressive live Slot inspection: compact purpose/topology trees plus one exact Slot contract.','methods':[{'name':'listSubTree','description':'Return compact live Slot trees for navigation. With root, also return the selected Slot\'s full contract and occupants.','inputSchema':子树输入,'outputSchema':子树输出}]},
+            'manifest':{'id':'Slots','description':'Progressive live Slot inspection with explicit Slot and Factory topology nodes.','methods':[{'name':'listSubTree','description':'Return compact live Slot and Factory trees, plus available detail for one exact root.','inputSchema':子树输入,'outputSchema':子树输出}]},
             'query':槽执行,#查询
         },#Slots
         登记('Theme','Current theme token names and light/dark override requirements.','listTokens',主题查询),#Theme

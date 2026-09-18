@@ -201,14 +201,15 @@ class 工作区文件(远程服务):
         """按整文件上限读完整常规文件字节。"""
         目标,信息=自身._定位文件(工作区文件作用域,路径,信号)#定位
         上限=自身._配置['maxFileBytes']#上限
-        if 'size' in 信息 and 信息['size']>上限:#已知过大
-            raise 远程错误('workspace-file/too-large','"'+路径+'" exceeds the '+str(上限)+' byte full-file cap',{'path':路径,'limit':上限})#拒绝
-        数据=_读字节窗口(自身.ctx.fs,目标,0,上限+1,信号)#多读一字节探测
-        if len(数据)>上限:#仍过大
-            raise 远程错误('workspace-file/too-large','"'+路径+'" exceeds the '+str(上限)+' byte full-file cap',{'path':路径,'limit':上限})#拒绝
+        try:
+            数据=自身.ctx.fs.读字节(目标,信号,上限)#整文件
+        except BaseException as 原因:
+            if getattr(原因,'code',None)=='FS_TOO_LARGE':#过大
+                raise 远程错误('workspace-file/too-large','"'+路径+'" exceeds the '+str(上限)+' byte full-file cap',{'path':路径,'limit':上限},原因=原因)#拒绝
+            raise#原样
         结果=自身._状态于(目标,信息)#stat
         结果['offset']=0#起点
-        结果['data']=base64.b64encode(数据).decode('ascii')#base64
+        结果['data']=base64.b64encode(bytes(数据)).decode('ascii')#base64
         结果['eof']=True#整文件
         return 结果#窗
 

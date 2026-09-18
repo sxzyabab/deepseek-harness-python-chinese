@@ -8,6 +8,7 @@ __all__=['中文','英文','工作区文案键']#仅中文公开名
     'viewOptions.label':'视图选项',#视图选项标签
     'groupBy.label':'分组方式',#分组方式标签
     'groupBy.workspace':'按工作区',#按工作区分组
+    'groupBy.workspaceTree':'按工作区树',#按工作区树分组
     'groupBy.flat':'单列表',#扁平单列表
     'orderBy.label':'排序方式',#排序方式标签
     'orderBy.manual':'手动排序',#手动排序
@@ -53,6 +54,7 @@ __all__=['中文','英文','工作区文案键']#仅中文公开名
     'status.planReview':'计划待审',#计划待审状态
     'status.waitingAnswer':'等待回答',#等待回答状态
     'status.completed':'已完成',#已完成状态
+    'schedule.active':'有活动定时任务',#有活动定时任务
     'hover.created':'创建于 {time}',#创建时间悬停
     'hover.copied':'已复制',#已复制提示
     'date.ymd':'{y}年{m}月{d}日',#年月日格式
@@ -73,6 +75,7 @@ __all__=['中文','英文','工作区文案键']#仅中文公开名
     'viewOptions.label':'View options',#视图选项标签
     'groupBy.label':'Group by',#分组方式标签
     'groupBy.workspace':'WorkSpace',#按工作区分组
+    'groupBy.workspaceTree':'Workspace Tree',#按工作区树分组
     'groupBy.flat':'In one list',#扁平单列表
     'orderBy.label':'Order by',#排序方式标签
     'orderBy.manual':'Manual',#手动排序
@@ -118,6 +121,7 @@ __all__=['中文','英文','工作区文案键']#仅中文公开名
     'status.planReview':'Plan awaiting review',#计划待审状态
     'status.waitingAnswer':'Waiting for answer',#等待回答状态
     'status.completed':'Completed',#已完成状态
+    'schedule.active':'Has active scheduled task',#有活动定时任务
     'hover.created':'Created {time}',#创建时间悬停
     'hover.copied':'Copied',#已复制提示
     'date.ymd':'{y}-{m}-{d}',#年月日格式

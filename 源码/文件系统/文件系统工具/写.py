@@ -50,7 +50,7 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
             差异列表=[]#空diff列表
         else:#有基准文本
             差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(参数['file_path'],值['before'],值['after'])]#只保留展示字段
-        return {'diffs':差异列表}#diff meta
+        return {'operation':值['operation'],'diffs':差异列表}#含operation的diff meta
     def 无条件意图():#裸默认无条件写入
         """裸默认无条件写入。"""
         return None#无条件

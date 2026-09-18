@@ -144,7 +144,7 @@ def 文件候选行(候选,保留引号,标位置,翻译):
         行['drill']=True#下钻
     return [行]#行结束
 
-def 会话候选行(候选,更新于,现在,家目录,翻译):
+def 会话候选行(候选,标签,更新于,现在,家目录,分组,翻译):
     """位置只在非当前工作区时才告知。候选为线协议 dict。"""
     分档=相对时间(更新于,现在)#相对时间分档
     单位=分档['unit']#单位
@@ -155,14 +155,13 @@ def 会话候选行(候选,更新于,现在,家目录,翻译):
     else:
         cwd=候选['cwd'] if 'cwd' in 候选 else None#cwd
         位置=翻译('candidate.noCwd') if cwd is None else 缩写家目录路径(cwd,家目录)#缩写 cwd
-    标签=候选['label'] if 'label' in 候选 else ''#展示名
     提及=候选['mention'] if 'mention' in 候选 else ''#序列化
     值={'kind':'session','label':标签,'mention':提及}#行载荷
     return {#候选行
         'name':标签,#行名
         'description':年龄 if 位置 is None else f'{位置} · {年龄}',#位置 · 年龄
         'icon':'session',#图标
-        'section':翻译('section.sessions'),#分组
+        'section':分组,#分组标题
         'value':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False),#序列化载荷
     }#行结束
 
@@ -212,6 +211,8 @@ def 应用(上下文):
         for 候选 in 文件项:
             行列表.extend(文件候选行(候选,引号,标位置,翻译))#展开
         表=列表 if 列表 is not None else {}#缺席当空
+        本会话=会话.sessionId#当前会话 id
+        会话行包装=[]#带 child 标记的会话行
         for 候选 in 会话项:
             标识=候选['sessionId'] if 'sessionId' in 候选 else None#id
             摘要=表[标识] if 标识 in 表 else None#列表摘要
@@ -221,7 +222,23 @@ def 应用(上下文):
                 更新=候选['createdAt']#创建时间
             else:
                 更新=现在#回退现在
-            行列表.append(会话候选行(候选,更新,现在,家,翻译))#会话行
+            子项=(
+                摘要 is not None
+                and 'origin' in 摘要 and 摘要['origin']=='subagent'
+                and 'parentId' in 摘要 and 摘要['parentId']==本会话
+            )#本会话子智能体
+            if 'displayTitle' in 候选 and 候选['displayTitle'] is not None:
+                标签=候选['displayTitle']#展示标题优先
+            else:
+                标签=候选['label'] if 'label' in 候选 else ''#回退 label
+            分组=翻译('section.subagents' if 子项 else 'section.sessions')#分组
+            会话行包装.append({'child':子项,'row':会话候选行(候选,标签,更新,现在,家,分组,翻译)})#包装
+        for 项 in 会话行包装:
+            if 项['child']:
+                行列表.append(项['row'])#子智能体行在前
+        for 项 in 会话行包装:
+            if not 项['child']:
+                行列表.append(项['row'])#其它会话行
         return 行列表#候选结束
 
     def 页眉(_会话,请求):

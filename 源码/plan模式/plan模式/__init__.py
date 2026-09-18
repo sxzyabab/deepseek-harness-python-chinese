@@ -271,7 +271,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
                             {'label':批准标签,'description':'Leave plan mode; the plan is carried out from the next step.'},#批准离开
                             {'label':继续规划标签,'description':'Stay in plan mode; feedback goes back to the model.'},#继续规划
                         ],#选项结束
-                        'intent':{'kind':'plan-review','approve':批准标签},#审阅意图
+                        'intent':{'kind':'plan-review','approve':批准标签,'callId':执行上下文['callId']},#审阅意图含调用 id
                     }],#问题结束
                     'agent':智能体,#所属智能体
                     'signal':执行上下文['signal'] if 'signal' in 执行上下文 else None,#随工具调用取消

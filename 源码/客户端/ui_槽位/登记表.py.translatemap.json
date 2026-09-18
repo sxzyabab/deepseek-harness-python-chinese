@@ -5,5 +5,17 @@
     "entries":"取条目列表",
     "entriesOfSlot":"取槽位条目",
     "dispose":"拆除",
-    "store":"存储"
+    "store":"存储",
+    "registerFactory":"登记工厂",
+    "StoredFactory":"已存工厂",
+    "SlotFactoryMap":"槽工厂表",
+    "reportFactoryError":"报告工厂错误",
+    "LiveCompositionNode":"活合成节点",
+    "LiveSlotNode":"活槽节点",
+    "LiveFactoryNode":"活工厂节点",
+    "factory":"取工厂",
+    "factoryVersion":"工厂版本",
+    "subscribeFactory":"订阅工厂",
+    "isFactoryLive":"工厂仍存活",
+    "snapshot":"快照"
 }

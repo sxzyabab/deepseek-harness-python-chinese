@@ -1,0 +1,21 @@
+{
+    "answer":"应答",
+    "client":"客户端",
+    "deliver":"投递",
+    "dispose":"拆除",
+    "event":"事件",
+    "frame":"帧",
+    "host":"宿主",
+    "next":"下一环",
+    "owned":"拥有",
+    "pump":"泵送",
+    "ready":"就绪",
+    "reject":"拒绝",
+    "remote":"远程",
+    "result":"结果",
+    "self":"自身",
+    "signal":"信号",
+    "stream":"流",
+    "subscribe":"订阅",
+    "waterfall":"瀑布"
+}

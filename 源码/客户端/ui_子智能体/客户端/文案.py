@@ -17,6 +17,9 @@ __all__=['命名空间','中文','英文','子智能体文案键']#仅中文公�
     'duration.yearsMonths':'约{years}年{months}个月',#约年月时长
     'duration.exactDays':'{days}天{hours}小时{minutes}分{seconds}秒',#精确到秒的天数时长
     'duration.exactTitle':'总活跃耗时：{duration}',#总活跃耗时标题
+    'tokens.thousand':'{value}K',#千级 token
+    'tokens.million':'{value}M',#百万级 token
+    'tokens.total':'{value} tok',#总 token
     'loading.label':'正在加载子代理…',#加载中可见标签
     'loading.aria':'正在加载子代理',#加载中无障碍名
     'load.error':'无法加载子代理',#加载失败文案
@@ -31,7 +34,10 @@ __all__=['命名空间','中文','英文','子智能体文案键']#仅中文公�
     'count.total.other':'{count} 个子代理',#总数复数
     'count.running.one':'{count} 个子代理，正在运行',#运行数单数
     'count.running.other':'{count} 个子代理，正在运行',#运行数复数
+    'switcher.aria':'切换子代理：{title}',#切换器无障碍名
     'tree.aria':'子代理会话',#树无障碍名
+    'open.sidebar':'在侧边栏打开 {label}',#侧栏打开
+    'sidebar.chat':'聊天',#侧栏聊天标签
     'readonly.oneShot.title':'一次性子代理记录',#一次性只读标题
     'readonly.title':'此子代理暂时只读',#只读标题
     'readonly.oneShot.body':'一次性任务不支持后续消息，可在这里查看完整执行记录。',#一次性只读说明
@@ -53,6 +59,9 @@ __all__=['命名空间','中文','英文','子智能体文案键']#仅中文公�
     'duration.yearsMonths':'~{years}y {months}mo',#约年月时长
     'duration.exactDays':'{days}d {hours}h {minutes}m {seconds}s',#精确到秒的天数时长
     'duration.exactTitle':'Total active duration: {duration}',#总活跃耗时标题
+    'tokens.thousand':'{value}K',#千级 token
+    'tokens.million':'{value}M',#百万级 token
+    'tokens.total':'{value} tok',#总 token
     'loading.label':'Loading subagents…',#加载中可见标签
     'loading.aria':'Loading subagents',#加载中无障碍名
     'load.error':'Unable to load subagents',#加载失败文案
@@ -67,7 +76,10 @@ __all__=['命名空间','中文','英文','子智能体文案键']#仅中文公�
     'count.total.other':'{count} subagents',#总数复数
     'count.running.one':'{count} subagent running',#运行数单数
     'count.running.other':'{count} subagents running',#运行数复数
+    'switcher.aria':'Switch subagent: {title}',#切换器无障碍名
     'tree.aria':'Subagent sessions',#树无障碍名
+    'open.sidebar':'Open {label} in sidebar',#侧栏打开
+    'sidebar.chat':'Chat',#侧栏聊天标签
     'readonly.oneShot.title':'One-shot subagent record',#一次性只读标题
     'readonly.title':'This subagent is read-only for now',#只读标题
     'readonly.oneShot.body':'One-shot tasks do not accept follow-ups; review the full execution record here.',#一次性只读说明

@@ -5,6 +5,7 @@ __all__=['新鲜','创建文本存储']#仅中文公开名
 def 新鲜():
     """标签在读取、滚动、切换或应答任何事前的状态。"""
     return {#空桶
+        'loadRevision':0,
         'version':None,
         'observedVersion':None,
         'pages':{},
@@ -35,15 +36,29 @@ def 已选(草稿,标签标识,渲染器标识):
         桶['rendererId']=渲染器标识#选择
 
 
-def 加载中(草稿,标签标识,模式=None,观察版本=None):
+def 加载中(草稿,标签标识,模式=None,观察版本=None,内容渲染器标识=None):
     """标记一页读取在飞行中。"""
     状态=_分桶(草稿,标签标识)#该桶
     if 状态['version'] is None and not 状态['loading']:#首次观察
         状态['observedVersion']=观察版本#记下
+    if 内容渲染器标识 is None:#清
+        if 'contentRendererId' in 状态:#有
+            del 状态['contentRendererId']#删
+    else:#记下
+        状态['contentRendererId']=内容渲染器标识#写
     状态['loading']=True#加载中
     状态['failure']=None#清失败
     if 模式 is not None:#有模式
         状态['mode']=模式#记下
+
+
+def 已渲染(草稿,标签标识,修订,版本):
+    """渲染器自有加载完成。"""
+    状态=草稿['byTab'].get(标签标识)#桶
+    if 状态 is None or 状态.get('mode')!='renderer' or 状态.get('loadRevision')!=修订:#过期
+        return#停
+    状态['version']=版本#版本
+    状态['loading']=False#结束
 
 
 def 完成(草稿,标签标识,文件):
@@ -78,6 +93,7 @@ def 已失败(草稿,标签标识,失败):
 def 重置(草稿,标签标识):
     """丢掉每一页、保留视图，以便从第一行重读。"""
     状态=_分桶(草稿,标签标识)#该桶
+    状态['loadRevision']=状态.get('loadRevision',0)+1#晋修订
     状态['pages']={}#清页
     if 'complete' in 状态:#有完整
         del 状态['complete']#清
@@ -121,6 +137,7 @@ def 创建文本存储():
         'actions':{#动作写集合
             'selected':已选,#选择渲染器
             'loading':加载中,#加载中
+            'rendered':已渲染,#渲染器完成
             'complete':完成,#完整字节
             'page':页,#一页
             'failed':已失败,#失败

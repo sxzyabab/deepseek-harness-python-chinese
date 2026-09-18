@@ -3,7 +3,8 @@ __all__=[#仅中文公开名
     '输入区','视图属主','聊天文件提及','回合尾属主','助手动作属主','聊天节点属主',
     '详情工具属主','命令行属主','会话根注入','会话体注入','会话页眉注入',
     '撰写栏属主','撰写栏注入','输入控件属主','撰写链属主','聊天滚动位置','聊天视图注入',
-    '详情注入','空白工作区属主','审批等待','待决审批','会话根子槽','聊天节点回合注入',
+    '详情注入','空白工作区属主','审批等待','待决审批','会话根子槽','会话内容子槽','会话内容本地席',
+    '聊天节点回合注入',
     '槽名主会话','槽名会话','槽名会话体','槽名页眉','槽名视图','槽名聊天节点','槽名命令视图',
     '槽名回合尾','槽名助手动作','槽名详情工具','槽名撰写链','槽名撰写栏','槽名输入停靠',
     '槽名撰写停靠','槽名输入左','槽名输入右','槽名计划','槽名权限','槽名模型','槽名英雄工作区',
@@ -34,20 +35,24 @@ __all__=[#仅中文公开名
 槽名输入叠层='conversation.input.overlay'#输入叠层
 槽名详情='details'#详情栏
 
-会话根子槽={#主会话壳 children 表
-    'conversation.session':{'kind':'single','scope':'session'},#严格会话体
+会话根子槽={#主会话壳 children（仅页眉；内容走工厂）
     'conversation.session.header':{'kind':'single','scope':'session'},#页眉
+}#子槽结束
+
+会话内容子槽={#conversation.content 工厂 children
+    'conversation.session':{'kind':'single','scope':'session'},#严格会话体
     'conversation.composer':{'kind':'chain','scope':'session'},#撰写链
     'conversation.composer.bar':{'kind':'single','scope':'session-maybe'},#栏
-    'conversation.input.overlay':{'kind':'list','scope':'session'},#叠层
     'conversation.input.dock':{'kind':'list','scope':'session'},#输入停靠
-    'conversation.composer.dock':{'kind':'list','scope':'session'},#撰写停靠
-    'conversation.input.left':{'kind':'list','scope':'session'},#左
-    'conversation.input.right':{'kind':'list','scope':'session'},#右
-    'conversation.hero.workspace':{'kind':'single','scope':'root'},#英雄工作区
-    'conversation.hero.agentPreset':{'kind':'single','scope':'root'},#英雄预设
     'conversation.hero.brand.mark':{'kind':'single','scope':'root'},#英雄品牌
-}#子槽结束
+    'conversation.hero.workspace':{'kind':'single','scope':'root'},#英雄工作区
+    'conversation.hero.agentPreset':{'kind':'single','scope':'session-maybe'},#英雄预设
+}#内容子槽结束
+
+会话内容本地席={#工厂本地席
+    'views':{'scope':'session'},#视图席
+    'widthControls':{'scope':'root'},#宽度控件席
+}#本地席结束
 
 #撰写附件：kind/id/file/previewUrl
 #英雄智能体预设属主：芯片自管，禁止 children

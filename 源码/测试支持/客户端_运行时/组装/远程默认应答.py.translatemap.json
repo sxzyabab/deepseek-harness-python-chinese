@@ -1,6 +1,7 @@
 {
     "agent":"智能体",
     "baseline":"基线",
+    "catalog":"目录",
     "control":"控制",
     "credential":"凭据",
     "default":"默认",
@@ -9,6 +10,7 @@
     "follow":"跟随",
     "inventory":"清单",
     "list":"列表",
+    "permission":"权限",
     "preset":"预设",
     "remote":"远程",
     "response":"应答",

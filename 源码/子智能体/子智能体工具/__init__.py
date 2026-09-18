@@ -7,17 +7,19 @@ from ..子智能体 import 断言子智能体最大深度,结算运行#深度断
 from ..子智能体.错误 import 子智能体错误#缝内失败
 
 名称='tool-subagent'#Cordis插件名
-注入=['tools','subagents','systemPrompt']#依赖工具、子智能体与系统提示词
+注入=['tools','subagents','systemPrompt','sessionProjections']#依赖工具、子智能体、提示词与投影
 子智能体段落顺序=116.5#可续接委托指引段落顺序
 配置入口上限=2**53-1#外来 JSON 配置的深度上限校验
 配置={#部署配置：委托到哪个提供方以及子体默认值
     'provider':字符串字段(可空=False),#必填提供方名
     'toolName':字符串字段(默认值='subagent'),#默认工具名
+    'modelSelectionSettings':布尔字段(默认值=False),#默认关闭模型选择设置
     'enableRunInBackground':布尔字段(默认值=True),#默认允许后台
     'backgroundMode':枚举字段('one-shot','continuable',默认值='one-shot'),#默认一次性
     'agentOptions':字典字段({#智能体选项模式
         'provider':字符串字段(),#模型提供方
         'model':字符串字段(),#模型名
+        'reasoningEffort':字符串字段(),#推理力度
         'maxTokens':整数字段(默认值=1),#正整数token上限
     },默认值=None),#省略时保持未定义
     'persona':字符串字段(),#可选人格字符串
@@ -25,7 +27,7 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
         'allow':列表字段(字符串字段(),默认值=None),#省略allow时不物化空数组
         'deny':列表字段(字符串字段(),默认值=None),#省略deny时不物化空数组
     },默认值=None),#省略整个过滤
-    'maxDepth':复合类型字段(自然数字段(最大=配置入口上限),常量字段('provider-managed'),默认值=3),#默认深度3
+    'maxDepth':复合类型字段(自然数字段(最大=配置入口上限),常量字段('provider-managed')),#无默认；省略读 Host 设置
 }#配置模式结束
 
 __all__=['名称','注入','配置','子智能体段落顺序','应用']#仅中文公开名
@@ -249,9 +251,8 @@ def 应用(上下文,配置值,会话=None):
     def 挂载(提供方):
         """提供方出现时登记面向模型的委托工具。提供方为对象。"""
         能力=提供方.能力 if 提供方.能力 is not None else {}#提供方能力
-        配置深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#配置深度
-        if (配置深度 is not None and 配置深度!='provider-managed'
-            and ('depthLimit' not in 能力 or not 能力['depthLimit'])):#数字上限但无能力
+        解析深度=上下文.subagents.解析最大深度(配置值['maxDepth'] if 'maxDepth' in 配置值 else None)#按设置解析
+        if 解析深度 is not None and ('depthLimit' not in 能力 or not 能力['depthLimit']):#解析后需强制但无能力
             raise 子智能体错误(#挂载失败
                 'tool-subagent: provider "'+提供方.名称+'" cannot enforce maxDepth (no depthLimit capability) — '
                 +"set maxDepth: 'provider-managed' to leave the recursion budget to the provider",#文案
@@ -309,14 +310,14 @@ def 应用(上下文,配置值,会话=None):
             if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#没有调用方
                 raise 子智能体错误('subagent tool requires a calling agent (exec.agent was undefined)','NO_AGENT')#缺父失败
             父=执行元数据['agent']#调用方智能体
-            配置深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#配置深度
+            解析深度=上下文.subagents.解析最大深度(配置值['maxDepth'] if 'maxDepth' in 配置值 else None)#按设置解析
             请求={#启动子体请求
                 'label':参数['description'],#展示用短描述
                 'prompt':[{'type':'text','text':参数['prompt']}],#任务提示块
                 'parent':父,#父智能体
             }#request骨架
-            if 配置深度 is not None and 配置深度!='provider-managed':#有数字上限才写入
-                请求['maxDepth']=配置深度#写入
+            if 解析深度 is not None:#有数字上限才写入
+                请求['maxDepth']=解析深度#写入
             if 'agentOptions' in 配置值 and 配置值['agentOptions'] is not None:#有选项才展开
                 请求['agentOptions']=配置值['agentOptions']#写入
             if 'persona' in 配置值 and 配置值['persona'] is not None:#有人格才展开

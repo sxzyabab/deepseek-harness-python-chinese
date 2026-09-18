@@ -8,7 +8,7 @@ __all__=['解析快照清单','写当前会话夹具']#仅中文公开名
 合法平台=frozenset(['posix','pwsh'])#合法平台
 合法权限=frozenset(['read-only','workspace-write','danger-full-access'])#合法权限
 合法会话格式覆盖=frozenset([#合法覆盖名
-    'multi-hop','packed-row','retry-failure','shipped-profile','adjacent-migration',
+    'multi-hop','packed-row','retry-failure','shipped-profile','adjacent-migration','retired-tools',
 ])#覆盖结束
 名称模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')#kebab-case 名
 环境名模式=re.compile(r'^[A-Z][A-Z0-9_]*$')#环境名

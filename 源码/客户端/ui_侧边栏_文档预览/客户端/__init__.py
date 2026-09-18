@@ -2,7 +2,7 @@ from .文案 import 中文,英文,侧栏文档预览文案键#词典
 from .定义 import 文本预览标识,文本定义#类型定义
 from .存储 import 创建文本存储#视图存储
 from .面 import 文本面#业务面
-from .远程过程调用 import 创建分页读,宿主文件#远程
+from .远程过程调用 import 创建分页读,宿主文件,文档文件字节#远程
 from .失败行 import 失败行#失败行
 from .文档.注册表 import 文档预览注册表,匹配文档预览#注册表
 from .文档.约定 import 文档标签信息工厂#约定
@@ -12,8 +12,10 @@ from .html import 应用 as 登记超文本#HTML
 from .图像 import 应用 as 登记图像#图片
 from .pdf import 应用 as 登记pdf#PDF
 from .代码 import 应用 as 登记代码#代码
+from .office import 应用 as 登记Office#Office
 from .文本预览 import 文本预览#正文视图模型
 from .文本标题 import 文本标题#标题视图模型
+from ..配置 import 默认配置#配置
 
 __all__=[#仅中文公开名
     '注入',
@@ -43,6 +45,7 @@ __all__=[#仅中文公开名
 
 def 应用(上下文):
     """登记类型、词典、正文与芯片标题，并挂各格式渲染器。"""
+    配置=默认配置#配置
     预览表=文档预览注册表()#注册表
 
     def 提供注册表():
@@ -71,9 +74,17 @@ def 应用(上下文):
     上下文.副作用(登记词典,'ui-sidebar-documentpreview: dictionaries')#词典寿命
 
     存储=创建文本存储()#每会话独占
+
+    def 完整读(文件,信号):
+        """完整字节读并解码。"""
+        结果=上下文.remote.workspaceFiles.readAll(文件['sessionId'],文件['path'],信号)#读
+        if 结果['ok']:#成功
+            return {'ok':True,'value':文档文件字节(结果['value'])}#解码
+        return 结果#失败原样
+
     面=文本面(
         创建分页读(上下文.remote),#分页
-        lambda 文件,信号:上下文.remote.workspaceFiles.readAll(文件['sessionId'],文件['path'],信号),#完整
+        完整读,#完整
     )
     源={'getSnapshot':预览表.取快照,'subscribe':预览表.订阅}#快照源（线路字段名）
 
@@ -126,6 +137,7 @@ def 应用(上下文):
     登记图像(上下文)#图片
     登记pdf(上下文)#PDF
     登记代码(上下文)#代码
+    登记Office(上下文,配置.get('office'))#Office
 
 
 inject=注入#框架槽

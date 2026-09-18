@@ -473,22 +473,26 @@ class Cordis目录投影器:#Cordis 目录投影器
         声明表={}#名字 → 声明文本
         歧义=set()#跨文件重名
         面名=自身.面['face'] if 自身.面 is not None and 'face' in 自身.面 else None#本面
+        截断=(自身.策略['runtimeDeclarationMaxChars'] if 自身.策略 is not None and 'runtimeDeclarationMaxChars' in 自身.策略 else None)#策略截断
+        if 截断 is None:#未配置
+            截断=声明截断#默认 1500
         for 声明 in 自身.源声明列表:#逐条源声明
             if (声明['face'] if 声明 is not None and 'face' in 声明 else None)!=面名:#面不符
                 continue#跳过
-            if (声明['kind'] if 声明 is not None and 'kind' in 声明 else None)=='enum':#枚举
-                continue#跳过
             位置=声明['location'] if 声明 is not None and 'location' in 声明 else None#位置
             文件=(位置['file'] if 位置 is not None and 'file' in 位置 else None) or ''#文件
-            if not re.match(r'^packages/[^/]+/[^/]+/src/.+\.tsx?$',文件):#不在包 src
+            种类=声明['kind'] if 声明 is not None and 'kind' in 声明 else None#种类
+            在包源=re.match(r'^packages/[^/]+/[^/]+/src/.+\.tsx?$',文件) is not None#包 src
+            在厂商枚举=种类=='enum' and re.match(r'^vendor/[^/]+/src/.+\.ts$',文件) is not None#vendor 枚举
+            if (not 在包源) and (not 在厂商枚举):#都不收
                 continue#跳过
             名=声明['name'] if 声明 is not None and 'name' in 声明 else None#类型名
             if 名 in 声明表:#同名已出现
                 歧义.add(名)#歧义
                 continue#不覆盖
             文本=(声明['text'] if 声明 is not None and 'text' in 声明 else None) or ''#声明文本
-            if len(文本)>声明截断:#超长
-                文本=文本[:声明截断]+' /* …truncated — full shape in source */'#截断桩
+            if len(文本)>截断:#超长
+                文本=文本[:截断]+' /* …truncated — full shape in source */'#截断桩
             声明表[名]=文本#写入
         for 名 in 歧义:#去掉歧义
             if 名 in 声明表:#仍在表中
@@ -777,6 +781,11 @@ def 类型链接行(签名,本页,链页):#签名类型交叉链接行
     链接列表=['['+名+']('+链页[名]+')' for 名 in sorted(见到) if (链页[名] if 名 in 链页 else None)!=本页]#丢掉当前页
     return '' if len(链接列表)==0 else 'Types: '+' · '.join(链接列表)#Types 行
 
+def 源链(源):#渲染 file:line 为仅文件链接
+    """对齐上游 sourceLink：展示与链接都只用文件路径。"""
+    文件=(源.split(':')[0] if 源 else '')#去掉行号
+    return '[`'+文件+'`](../../'+文件+')'#文件链
+
 def 渲染事件(事件,本页,链页):#渲染一条事件 Markdown
     """锚、标题、围栏、源链。"""
     名=事件['name'] if 事件 is not None and 'name' in 事件 else None#事件名
@@ -791,7 +800,7 @@ def 渲染事件(事件,本页,链页):#渲染一条事件 Markdown
     if 链接:#有
         出.extend([链接, ''])#写入
     源=(事件['source'] if 事件 is not None and 'source' in 事件 else None) or ''#源指针
-    出.extend(['Source: [`'+源+'`](../../'+(源.split(':')[0] if ':' in 源 else 源)+')', ''])#源链
+    出.extend(['Source: '+源链(源), ''])#源链
     return 出#行
 
 def 渲染服务(服务,本页,链页):#渲染一条服务 Markdown
@@ -823,7 +832,7 @@ def 渲染服务(服务,本页,链页):#渲染一条服务 Markdown
         if 链接:#有
             出.extend([链接, ''])#写入
     源=(服务['source'] if 服务 is not None and 'source' in 服务 else None) or ''#源指针
-    出.extend(['Source: [`'+源+'`](../../'+(源.split(':')[0] if ':' in 源 else 源)+')', ''])#源链
+    出.extend(['Source: '+源链(源), ''])#源链
     return 出#行
 
 def 渲染页区域(页,服务列表,事件列表,策略):#渲染一页生成区
@@ -831,7 +840,7 @@ def 渲染页区域(页,服务列表,事件列表,策略):#渲染一页生成区
     链页=(策略['linkedTypePages'] if 策略 is not None and 'linkedTypePages' in 策略 else None) or {}#类型链接
     行列表=[#区域头
         区域开,'','<a id="cordis-surface"></a>','','## Cordis API','',
-        'Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — this section is byte-identical in both language sides of the page. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).',
+        'Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).',
         '',
     ]#结束
     for 服务 in 服务列表:#各服务

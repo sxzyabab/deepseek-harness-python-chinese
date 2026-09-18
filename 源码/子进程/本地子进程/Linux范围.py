@@ -384,6 +384,16 @@ class Systemd范围所有者:#systemd scope 所有者
         自身._唤醒事件=同步事件()#唤醒事件
         自身._唤醒代际快照=0#等待者代际
 
+    def 检查任务数(自身):#TasksCurrent
+        """统计原生范围内的任务数；不可观察则为 None。"""
+        完成=自身.同步跑([自身.systemctl,'--user','show','--property=LoadState','--property=ActiveState','--property=TasksCurrent',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#show
+        if 完成.returncode!=0 or not isinstance(完成.stdout,str):#不可观察
+            return None#无
+        状态=自身.解析单元状态(完成.stdout)#解析
+        if 状态['loadState']=='loaded' and 状态['activeState']=='active':#活动
+            return 状态['tasksCurrent']#任务
+        return None#无
+
     def 发信号(自身,信号):#发信号
         """向受管范围发 SIGTERM/SIGKILL。"""
         if 自身.已停:#已停

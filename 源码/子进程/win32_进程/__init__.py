@@ -7,6 +7,8 @@ __all__=[#仅中文公开名
 
 错误缓冲不足=122#ERROR_INSUFFICIENT_BUFFER
 使用标准句柄=0x00000100#STARTF_USESTDHANDLES
+使用显示窗口=0x00000001#STARTF_USESHOWWINDOW
+隐藏窗口=0#SW_HIDE
 句柄可继承=0x1#HANDLE_FLAG_INHERIT
 无限等待=0xFFFFFFFF#INFINITE
 挂起创建=0x4#CREATE_SUSPENDED
@@ -24,6 +26,7 @@ __all__=[#仅中文公开名
 启动信息w大小=104#STARTUPINFOW_SIZE
 进程信息大小=24#PROCESS_INFORMATION_SIZE
 启动旗标偏移=60#x64 STARTUPINFOW.dwFlags
+显示窗口偏移=64#x64 STARTUPINFOW.wShowWindow
 保留2计数偏移=66#x64 STARTUPINFOW.cbReserved2
 保留2指针偏移=72#x64 STARTUPINFOW.lpReserved2
 标准输入句柄偏移=80#x64 STARTUPINFOW.hStdInput
@@ -176,10 +179,11 @@ def 创建管道(接口表,拥有):#创建匿名管道对
     return {'read':读,'write':写}#管道对
 
 def 编码启动信息(标准输入,标准输出,标准错误,保留2长度=None,保留2指针=None):#编码 STARTUPINFOW
-    """编码带 stdio 的 x64 STARTUPINFOW；可选 CRT 保留描述符表。"""
+    """编码带 stdio 的 x64 STARTUPINFOW；可选 CRT 保留描述符表；隐藏控制台窗口。"""
     缓冲=bytearray(启动信息w大小)#零缓冲
     struct.pack_into('I',缓冲,0,启动信息w大小)#cb
-    struct.pack_into('I',缓冲,启动旗标偏移,使用标准句柄)#dwFlags
+    struct.pack_into('I',缓冲,启动旗标偏移,使用标准句柄|使用显示窗口)#dwFlags：标准句柄并隐藏窗口
+    struct.pack_into('H',缓冲,显示窗口偏移,隐藏窗口)#wShowWindow=SW_HIDE
     struct.pack_into('Q',缓冲,标准输入句柄偏移,int(标准输入) if 标准输入 is not None else 0)#hStdInput
     struct.pack_into('Q',缓冲,标准输出句柄偏移,int(标准输出) if 标准输出 is not None else 0)#hStdOutput
     struct.pack_into('Q',缓冲,标准错误句柄偏移,int(标准错误) if 标准错误 is not None else 0)#hStdError

@@ -2,6 +2,7 @@
 import threading,time#共享上传与时钟
 from ...llm import 大模型错误#LLM 错误
 from .文件接口 import 深求文件客户端,是否文件配额错误#Files 客户端与配额判定
+from .消息接口 import 消息接口根#Messages API 根
 from .上传索引 import 深求文件作用域摘要,深求上传索引#作用域与上传索引
 
 __all__=('最大图片字节','深求文件仓',)#仅中文公开名
@@ -57,10 +58,9 @@ def 上传失败(错误):#上传失败
 
 def 文件作用域(连接):#命名空间
     """Files 资源父 URL 区分自定义协议命名空间。"""
-    根=连接['baseURL'].rstrip('/')#去尾斜杠
     if 连接['protocol']=='messages':#消息
-        return 深求文件作用域摘要(根+'/v1',连接['apiKey'])#v1 命名空间
-    return 深求文件作用域摘要(根,连接['apiKey'])#对话补全根
+        return 深求文件作用域摘要(消息接口根(连接['baseURL']),连接['apiKey'])#Messages API 根
+    return 深求文件作用域摘要(连接['baseURL'],连接['apiKey'])#对话补全根
 
 def 扩展名(媒体类型):#扩展名
     """媒体类型到扩展名。"""

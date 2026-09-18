@@ -23,8 +23,10 @@ __all__=[#仅中文公开名
 ]#工作区排除结束
 
 页面资源=[#属于PAGE、不属于worker加载器的镜像路径
-    'node_modules/*/lib/client.js',#非作用域client
-    'node_modules/@*/*/lib/client.js',#作用域client
+    'node_modules/*/lib/client.js',#非作用域client入口
+    'node_modules/*/lib/client.*.js',#非作用域client兄弟chunk
+    'node_modules/@*/*/lib/client.js',#作用域client入口
+    'node_modules/@*/*/lib/client.*.js',#作用域client兄弟chunk
 ]#页面资源结束
 
 镜像入口种子=[#worker装配在组合roster之外直接require的说明符

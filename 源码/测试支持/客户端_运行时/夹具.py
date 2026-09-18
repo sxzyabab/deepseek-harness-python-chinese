@@ -14,7 +14,6 @@ def 会话快照(会话标识):#静止会话快照
     """一份完整静止的 Session Controller 快照。"""
     return {#返回快照
         'sessionId':会话标识,#会话 id
-        'queue':[],#队列
         'pendingSubmissions':[],#待提交
         'running':False,#未运行
         'subagent':None,#无子智能体

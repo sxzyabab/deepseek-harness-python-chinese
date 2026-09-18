@@ -1,19 +1,5 @@
 {
     "apply":"应用",
-    "assert":"断言",
-    "boot":"启动",
-    "exhaust":"穷尽",
-    "global":"全局",
-    "html":"超文本",
     "index":"索引",
-    "inject":"注入",
-    "kind":"种类",
-    "load":"加载",
-    "placement":"放置",
-    "preload":"预加载",
-    "row":"行",
-    "script":"脚本",
-    "source":"源",
-    "style":"样式",
-    "unknown":"未知"
+    "inject":"注入"
 }

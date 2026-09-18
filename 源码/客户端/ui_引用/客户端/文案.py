@@ -4,6 +4,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 
 中文={#简体中文词条（键集合真源）
     'section.files':'文件与文件夹',#文件分组标题
+    'section.subagents':'子智能体',#子智能体分组标题
     'section.sessions':'对话',#会话分组标题
     'candidate.noCwd':'（无工作目录）',#无 cwd 占位
     'crumb.root':'工作区',#面包屑根
@@ -17,6 +18,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 
 英文={#英文文案，按中文键集合校验
     'section.files':'Files & folders',#文件分组标题
+    'section.subagents':'Subagents',#子智能体分组标题
     'section.sessions':'Sessions',#会话分组标题
     'candidate.noCwd':'(no cwd)',#无 cwd 占位
     'crumb.root':'Workspace',#面包屑根

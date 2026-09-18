@@ -3,9 +3,10 @@ from ...依赖.schemastery import 字符串字段,正整数字段,自然数字�
 from ...依赖.工具 import 聚合错误#拆除失败
 from ...内核.作用域 import 操作任务#分配任务
 from ...typert.协议 import 远程服务,远程 as _远程#Remote
-from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号#中止
+from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
 from .外壳 import 发现外壳,解析外壳#壳
 from .浏览器终端 import 浏览器终端#PTY 视图
+from .保持 import 终端保持#保持与回收
 from .类型 import 远程错误#限额与身份
 
 __all__=['配置','终端控制器']#仅中文公开名
@@ -19,6 +20,9 @@ __all__=['配置','终端控制器']#仅中文公开名
     'maxBufferedBytes':正整数字段(最小=1024,默认值=2*1024*1024),#跟随缓冲
     'maxInputBytes':正整数字段(默认值=64*1024),#单次输入
     'disposeGraceMs':正整数字段(默认值=1000),#终止宽限
+    'unattendedTimeoutMs':自然数字段(默认值=7200000),#无人值守超时
+    'activityPollIntervalMs':正整数字段(默认值=30000),#活动轮询
+    'cleanupRetryMs':正整数字段(默认值=60000),#清理重试
 }#配置结束
 
 身份形态=re.compile(r'^[\w-]{1,128}$',re.ASCII)#终端/附着 id
@@ -31,36 +35,11 @@ def _流方法(方法):#标流式 Remote
 class 终端控制器(远程服务):#会话范围浏览器终端
     """类型化 Remote 控制短暂的会话终端进程。"""
     def __init__(自身,上下文,配置值):#构造
-        """挂 sandbox/mode 守卫与拆除。"""
+        """挂拆除；不注入 sessionProjections。"""
         super().__init__(上下文,'terminalController',{'namespace':'terminal'})#登记
         自身.配置值=配置值 if 配置值 is not None else {}#配置
         自身.拥有者={}#会话 id → 拥有
         自身.寿命=中止控制器()#寿命
-        def 派发(模式,事件名,*参数):#internal/dispatch
-            """改 sandbox 模式前须关掉浏览器终端。"""
-            if 事件名!='session/event':#其它
-                return#跳
-            if len(参数)<2:#不足
-                return#跳
-            会话,事件=参数[0],参数[1]#会话与事件
-            类型=事件['type'] if isinstance(事件,dict) else getattr(事件,'type',None)#类型
-            if 类型!='sandbox/mode':#其它
-                return#跳
-            会话标识=会话.id if hasattr(会话,'id') else 会话['id']#id
-            拥有=自身.拥有者.get(会话标识)#拥有
-            if 拥有 is None:#无
-                return#跳
-            活=len(拥有['terminals'])+len(拥有['pending'])+len(拥有['allocations'])#占用
-            if 活==0:#无终端
-                return#跳
-            当前=自身.所属上下文.sessionProjections.状态(会话,'sandboxMode')#投影
-            if 当前 is None:#无投影
-                当前=自身.所属上下文.sandboxPolicy.defaultMode#默认
-            数据=事件['data'] if isinstance(事件,dict) else None#数据
-            新模式=数据['mode'] if isinstance(数据,dict) else None#新
-            if 新模式!=当前:#要改
-                raise 远程错误('gateway/bad-request','Close browser terminals before changing the Session sandbox mode',{})#拒绝
-        上下文.监听('internal/dispatch',派发,{'全局':True})#全局
         def 拆除效果():#fiber
             """拆全部拥有者。"""
             def 清理():#拆除器
@@ -82,9 +61,13 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         """不解析壳。"""
         若已中止则抛出(信号)#中止
         执行=自身._执行环境(智能体)#提供方
-        政策=执行['sandboxPolicy'].解析({'session':智能体.session})#政策
+        头=智能体.session.header if hasattr(智能体.session,'header') else None#头
+        会话目录=头.cwd if 头 is not None and hasattr(头,'cwd') else None#会话 cwd
+        if 会话目录 is None and isinstance(头,dict):#dict 头
+            会话目录=头.get('cwd')#cwd
+        根=执行['sandboxPolicy'].workspaceRoot#工作区根
         return {
-            'cwd':政策['workspaceRoot'],#工作区
+            'cwd':会话目录 if 会话目录 is not None else 根,#工作区
             'maxInputBytes':自身.配置值.get('maxInputBytes',64*1024),#输入
             'maxCols':自身.配置值.get('maxCols',500),#列
             'maxRows':自身.配置值.get('maxRows',200),#行
@@ -145,10 +128,29 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             终端=任务.等待()#终端
             拥有['terminals'][标识]=终端#提交
             拥有['allocations'].pop(标识,None)#摘残留
+            def 关闭中():
+                """关闭 id。"""
+                拥有['closedIds'].add(标识)#记
+            def 已关():
+                """摘终端。"""
+                拥有['terminals'].pop(标识,None)#摘
+            def 失败汇(错误):
+                """日志。"""
+                print('Browser terminal cleanup failed',错误)#日志
+            终端.监视(自身.配置值,关闭中,已关,失败汇)#监视
             自身._要求开着(拥有,标识)#仍开
             return 终端.info#信息
         finally:#摘进行
             拥有['pending'].pop(标识,None)#摘
+
+    @_流方法
+    def retain(自身,会话标识,标识,信号):#窗口保持
+        """不激活 Agent。"""
+        拥有=自身.拥有者.get(会话标识)#拥有
+        终端=None if 拥有 is None else 拥有['terminals'].get(标识)#终端
+        if 终端 is None or (拥有 is not None and 标识 in 拥有['closedIds']) or (拥有 is not None and 已中止(拥有['lifetime'].信号)):#不可用
+            raise 远程错误('terminal/unavailable','Terminal is closing or unavailable',{})#拒绝
+        yield from 终端.保持(信号)#保持
 
     @_流方法
     def follow(自身,智能体,标识,附着标识,信号):#附着不绑进程寿命
@@ -193,13 +195,13 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         终端=拥有['terminals'].get(标识)#已提交
         if 终端 is not None:#有
             终端.关闭()#关
-            del 拥有['terminals'][标识]#摘
+            拥有['terminals'].pop(标识,None)#摘
         else:#残留分配
             分配=拥有['allocations'].get(标识)#残留
             if 分配 is None:#无
                 return#成功
-            分配['handle'].终止()#终止
-            del 拥有['allocations'][标识]#摘
+            分配['cleanup'].close()#关
+            拥有['allocations'].pop(标识,None)#摘
 
     def _拥有(自身,智能体):#按会话
         """没有则创建并挂智能体拆除。"""
@@ -246,8 +248,8 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                 except BaseException as 错误:#失败
                     失败.append(错误)#收
             for 分配 in list(拥有['allocations'].values()):#残留
-                try:#终止
-                    分配['handle'].终止()#终止
+                try:#拆除保持
+                    分配['cleanup'].dispose()#拆
                 except BaseException as 错误:#失败
                     失败.append(错误)#收
             if len(失败)>0:#有
@@ -265,13 +267,14 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         拥有=自身.拥有者.get(智能体.id)#拥有
         终端=None if 拥有 is None else 拥有['terminals'].get(标识)#终端
         if 终端 is None:#无
-            raise 远程错误('gateway/bad-request','Terminal no longer exists in this Session',{})#拒绝
+            raise 远程错误('terminal/unavailable','Terminal no longer exists in this Session',{})#拒绝
+        自身._要求开着(拥有,标识)#未关闭
         return 终端#终端
 
     def _要求开着(自身,拥有,标识):#未关闭身份
         """已关则拒绝。"""
         if 标识 in 拥有['closedIds']:#已关
-            raise 远程错误('gateway/bad-request','Terminal was closed in this Session',{})#拒绝
+            raise 远程错误('terminal/unavailable','Terminal was closed in this Session',{})#拒绝
 
     def _尺寸(自身,列,行):#限额内安全整数
         """超出则拒绝。"""
@@ -303,7 +306,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         return 任务#任务
 
     def _生成(自身,智能体,拥有,请求,信号):#spawnTerminal
-        """沙箱包装 argv；失败则终止并可能留下 allocations。"""
+        """失败则经 TerminalRetention 清理并可能留下 allocations。"""
         环境=自身.environment(智能体,信号)#环境
         执行=自身._执行环境(智能体)#提供方
         if 请求.get('shellPath') is None:#默认
@@ -317,21 +320,14 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                     break#停
         if 壳 is None:#不可用
             raise 远程错误('gateway/bad-request','Selected shell is not available in this execution environment',{})#拒绝
-        政策=执行['sandboxPolicy'].解析({'session':智能体.session})#政策
-        参数表=[壳['path'],*壳['args']]#argv
-        if 政策['mode']!='danger-full-access':#须隔离
-            沙箱=智能体.ctx.获取服务('sandbox',False)#沙箱
-            if 沙箱 is None:#缺
-                raise 远程错误('gateway/bad-request','The Session sandbox mode requires an execution sandbox provider',{})#拒绝
-            已隔离=沙箱.隔离(参数表,政策)#隔离
-            参数表=已隔离['argv']#argv
         句柄=执行['subprocess'].启动终端({
-            'argv':参数表,#参数
+            'argv':[壳['path'],*壳['args']],#参数
             'cwd':环境['cwd'],#目录
             'cols':请求['cols'],#列
             'rows':请求['rows'],#行
             'terminalType':'xterm-256color',#TERM
             'env':{'DSH_SESSION_ID':智能体.id},#会话
+            'shellActivity':True,#活动观察
             'graceMs':自身.配置值.get('disposeGraceMs',1000),#宽限
             'signal':信号,#中止
         })#句柄
@@ -345,22 +341,32 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             'state':'running',#运行
             'exitCode':None,#码
         }#信息
-        分配={'handle':句柄,'info':信息}#残留槽
-        拥有['allocations'][请求['id']]=分配#先登记
         try:#提交
             若已中止则抛出(信号)#中止
             return 浏览器终端(句柄,信息,自身.配置值.get('scrollback',1000),自身.配置值.get('maxBufferedBytes',2*1024*1024))#终端
         except BaseException as 错误:#失败
-            分配['info']=dict(信息)#拷
-            分配['info']['state']='failed'#失败
-            分配['info']['error']=str(错误)#消息
-            try:#清理
+            def 观察():
+                """活动。"""
+                return 句柄.检查活动() if hasattr(句柄,'检查活动') else 句柄.inspectActivity()#活动
+            def 终止():
+                """关残留。"""
+                拥有['closedIds'].add(请求['id'])#记
                 句柄.终止()#终止
                 拥有['allocations'].pop(请求['id'],None)#摘
+            def 失败汇(清理错误):
+                """日志。"""
+                print('Browser terminal allocation cleanup failed',清理错误)#日志
+            清理=终端保持(自身.配置值,观察,终止,失败汇)#保持清理
+            拥有['allocations'][请求['id']]={
+                'info':{**信息,'state':'failed','error':str(错误)},#失败信息
+                'cleanup':清理,#清理
+            }#残留
+            try:#关
+                清理.close()#关
             except BaseException as 清理错误:#失败
                 raise 聚合错误([错误,清理错误],'Terminal allocation cleanup failed')#聚合
             raise 错误#原样
 
-inject=['subprocess','sandboxPolicy','sessionProjections','typert']#框架槽
+inject=['subprocess','sandboxPolicy','typert']#框架槽
 Config=配置#框架槽
 default=终端控制器#框架槽

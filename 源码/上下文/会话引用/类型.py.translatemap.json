@@ -6,6 +6,7 @@
     "compaction":"压缩",
     "context":"上下文",
     "conversation":"对话",
+    "display":"展示",
     "field":"字段",
     "id":"标识",
     "input":"输入",
@@ -21,6 +22,8 @@
     "role":"角色",
     "session":"会话",
     "text":"文本",
+    "title":"标题",
     "trunc":"截断",
-    "version":"版本"
+    "version":"版本",
+    "workspace":"工作区"
 }

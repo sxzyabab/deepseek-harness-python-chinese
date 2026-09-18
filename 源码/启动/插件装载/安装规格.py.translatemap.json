@@ -1,0 +1,16 @@
+{
+    "error":"错误",
+    "git":"git",
+    "install":"安装",
+    "invalid":"非法",
+    "kind":"种类",
+    "name":"名称",
+    "parse":"解析",
+    "path":"路径",
+    "range":"范围",
+    "reason":"理由",
+    "registry":"注册表",
+    "self":"自身",
+    "spec":"规格",
+    "tarball":"tarball"
+}

@@ -8,6 +8,7 @@ from .树 import (#再导出树派生
     工作区标签,
     索引子智能体后代,
     拥有分组键,
+    拥有父文件夹,
     按近因排序,
     调和手动顺序,
     钉住当前空白,
@@ -38,6 +39,7 @@ __all__=[#仅中文公开名
     '工作区标签',
     '索引子智能体后代',
     '拥有分组键',
+    '拥有父文件夹',
     '按近因排序',
     '调和手动顺序',
     '钉住当前空白',
@@ -101,20 +103,45 @@ def 应用(上下文):#注册浏览区与选择器
 
     侧栏流源=流占用源(上下文,侧栏目录流槽)#侧栏目录流占用源
     选择器流源=流占用源(上下文,英雄目录流槽)#选择器目录流占用源
+    def 宿主快照():#当前宿主
+        """读 remote.$host。"""
+        return 上下文.remote.$host#宿主
+    def 宿主订阅(监听):#连接重置
+        """订 connection/reset。"""
+        return 上下文.on('connection/reset',监听)#订
     宿主源={#宿主事实
-        'getSnapshot':lambda:上下文.remote.$host,#当前宿主
-        'subscribe':lambda 监听:上下文.on('connection/reset',监听),#连接重置
+        'getSnapshot':宿主快照,#当前宿主
+        'subscribe':宿主订阅,#连接重置
     }#宿主源
+
+    def 重命名工作区(标识,标题):#重命名工作区
+        """转发 rename。"""
+        return 上下文.workspaces.rename(标识,标题).等待()#等
+
+    def 删除工作区(标识):#删除工作区
+        """转发 delete。"""
+        return 上下文.workspaces.delete(标识).等待()#等
+
+    def 插入工作区前(标识,锚):#插到某工作区前
+        """转发 insertBefore。"""
+        return 上下文.workspaces.insertBefore(标识,锚).等待()#等
+
+    def 创建工作区(输入):#创建
+        """create。"""
+        return 上下文.workspaces.create(输入)#创建
 
     def 浏览区注入():#侧栏浏览区注入
         """浏览区驱动的 Host 动作。"""
         def 重命名会话(会话标识,标题):#按会话 id 改标题
-            """改名是会话动词。"""
-            绑定=上下文.sessions.binding(会话标识)#解析绑定
-            会话=绑定.session if 绑定 is not None else None#会话面
-            if 会话 is None:#未绑定
-                raise 工作区错误('unknown session "'+str(会话标识)+'"')#失败
-            结果=会话.rename(标题).等待()#改名
+            """经引用占用改名。"""
+            def 改名(引用):#占用回调
+                """绑定面改名。"""
+                return 引用.binding.session.rename(标题)#改名
+            结果=上下文.sessions.using(
+                会话标识,
+                {'source':'workspaceOperation'},
+                改名,
+            ).等待()#占用改名
             if not 结果['ok']:#失败
                 错=结果['error'] if 'error' in 结果 else None#错误
                 消息=错['message'] if 错 is not None and 'message' in 错 else None#文案
@@ -137,19 +164,16 @@ def 应用(上下文):#注册浏览区与选择器
             'searchResultLimit':上下文.sessions.searchResultLimit,#检索上限
             'renameSession':重命名会话,#改名
             'forkSession':分叉会话,#分叉
-            'renameWorkspace':lambda 标识,标题:上下文.workspaces.rename(标识,标题).等待(),#重命名工作区
-            'deleteWorkspace':lambda 标识:上下文.workspaces.delete(标识).等待(),#删除
-            'insertWorkspaceBefore':lambda 标识,锚:上下文.workspaces.insertBefore(标识,锚).等待(),#插
+            'renameWorkspace':重命名工作区,#重命名工作区
+            'deleteWorkspace':删除工作区,#删除
+            'insertWorkspaceBefore':插入工作区前,#插
             'archiveSession':工作区面.archiveSession,#归档
-            'createWorkspace':上下文.workspaces.create,#创建
+            'createWorkspace':创建工作区,#创建
             'hooks':{'directoryFlow':侧栏流源,'hostInfo':宿主源},#流与宿主
         }#注入结束
 
     def 选择器注入():#会话英雄选择器注入
         """挑选器私有注入份额。"""
-        def 创建工作区(输入):#创建
-            """create。"""
-            return 上下文.workspaces.create(输入)#创建
         return {#注入面
             'createWorkspace':创建工作区,#创建工作区
             'hooks':{'directoryFlow':选择器流源},#选择器目录流占用源

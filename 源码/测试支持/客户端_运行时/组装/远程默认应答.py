@@ -16,12 +16,13 @@ __all__=['远程默认应答']#仅中文公开名
         'dynamicCordisRunner/syncInspectManifest':成功信封(None),#同步巡检清单
         'dynamicCordisRunner/inventory':成功信封([]),#动态运行器清单
         'credentials/describe':成功信封({}),#凭据描述
+        'permissionPresets/catalog':成功信封({'options':[]}),#权限预设目录
     },#unary结束
     'streams':[#无脚本的流声明
         'session/follow',#会话跟随
     ],#streams结束
     'stream':{#带脚本的流
-        'session/control':打开流脚本([{'type':'baseline','value':{'queues':{},'jobs':{},'projections':{}}}]),#会话控制
+        'session/control':打开流脚本([{'type':'baseline','value':{'jobs':{},'projections':{}}}]),#会话控制
         'workspace/follow':打开流脚本([{'type':'baseline','value':{'items':[],'archivedSessionIds':[]}}]),#工作区跟随
     },#stream结束
 }#远程默认应答结束

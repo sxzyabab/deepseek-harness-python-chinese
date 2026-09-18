@@ -1,9 +1,9 @@
 __all__=[#仅中文公开名
-    '远程错误','取远程错误','网页终端标识','终端附着标识','视图问题表',
+    '远程错误','取远程错误','网页终端标识','终端附着标识','视图问题表','终端保持帧',
 ]#公开面结束
 
 视图问题表=('missingTerminal','inputFull','attachmentEnded','invalidOutput','terminalLimit')#产品错误键
-
+终端保持帧={'type':'retained'}#窗口保持确认帧形态
 class 远程错误(Exception):#对齐上游 RemoteError
     """code/message/details。"""
     def __init__(自身,码,消息,详情=None,原因=None):#记下

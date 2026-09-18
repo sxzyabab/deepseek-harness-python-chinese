@@ -2,6 +2,7 @@ import pi_ai#外部依赖胶水
 from ...凭据.凭据 import 是否凭证键段#键段判定
 from .目录 import 目录提供方,目录提供方标识列表#目录
 from .认证 import 记录键于#记录键
+from .模型 import 创建模型集#空模型集合
 
 __all__=['登记派爱登录流']#仅中文公开名
 
@@ -97,7 +98,7 @@ def 登记派爱登录流(上下文,认证注入):
             continue#跳过
         def 执行登录(会话,标识=提供方标识,方=提供方):
             """一次登录尝试。会话为 dict。"""
-            模型集合=pi_ai.createModels(认证注入)#自有集合
+            模型集合=创建模型集(认证注入)#自有集合
             模型集合.setProvider(方)#挂提供方
             类型='oauth' if 会话.get('method')=='oauth' else 'api_key'#认证类型
             def 通知(事件):

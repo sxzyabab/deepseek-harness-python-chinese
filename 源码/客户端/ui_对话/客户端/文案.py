@@ -146,11 +146,13 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'queue.remove':'删除排队消息',#删除排队
     'queue.steer':'插话发送',#插话发送
     'queue.steer.unavailable':'仅运行中可插话发送',#插话不可用
+    'error.sessionInUse':'当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。',#会话占用
     'queue.editFailed':'编辑失败：这条消息可能已经开始发送。',#编辑失败
     'queue.removeFailed':'删除失败：这条消息可能已经开始发送。',#删除失败
     'queue.steerFailed':'插话发送失败，请重试。',#插话失败
     'terminal.signal':'信号 {signal}',#终端信号
     'terminal.exitCode':'退出码 {code}',#退出码
+    'terminal.noExitCode':'未正常退出',#无退出码
     'terminal.running':'运行中',#终端运行中
     'terminal.failed':'失败',#终端失败
     'terminal.done':'已完成',#终端完成
@@ -302,11 +304,13 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'queue.remove':'Remove queued message',#删除排队
     'queue.steer':'Steer queued message',#插话发送
     'queue.steer.unavailable':'Steering is available only while the agent is running',#插话不可用
+    'error.sessionInUse':'This session is already in use, possibly by another running DSH instance (such as dsh web or the desktop app). Quit other running DSH instances and try again.',#会话占用
     'queue.editFailed':'Edit failed: this message may have already started sending.',#编辑失败
     'queue.removeFailed':'Removal failed: this message may have already started sending.',#删除失败
     'queue.steerFailed':'Steering failed. Try again.',#插话失败
     'terminal.signal':'signal {signal}',#终端信号
     'terminal.exitCode':'exit code {code}',#退出码
+    'terminal.noExitCode':'no exit code',#无退出码
     'terminal.running':'Running',#终端运行中
     'terminal.failed':'Failed',#终端失败
     'terminal.done':'Done',#终端完成

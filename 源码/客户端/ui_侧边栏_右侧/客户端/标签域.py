@@ -107,6 +107,8 @@ class 标签域:#每会话标签出现次
                 出['paneId']=次['paneId']#窗
             if 'paneId' in 放置 and 放置['paneId'] is not None:#覆盖窗
                 出['paneId']=放置['paneId']#窗
+            if 'preferNewPane' in 放置:#优先新窗
+                出['preferNewPane']=放置['preferNewPane']#写
             if 'revealIfOpened' in 放置:#揭示
                 出['revealIfOpened']=放置['revealIfOpened']#写
             return 出#放置

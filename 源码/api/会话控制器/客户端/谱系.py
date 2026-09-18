@@ -5,12 +5,11 @@
 """
 __all__=['展平谱系']#仅中文公开名
 
-def 展平谱系(摘要列表,已完成=None):
+def 展平谱系(摘要列表):
     """摘要 -> 带谱系缩进的扁平列表。
 
-    摘要列表为带 sessionId／可选 parentSessionId 的 dict 序列；
-    已完成为 sessionId 集合（缺席=False）。
-    返回渲染顺序的展示行（含 depth／completed）。
+    摘要列表为带 sessionId／可选 parentSessionId 的 dict 序列。
+    返回渲染顺序的展示行（含 depth）。
     """
     按标识={}#按 id 索引
     for 摘要 in 摘要列表:#填充
@@ -35,7 +34,6 @@ def 展平谱系(摘要列表,已完成=None):
             return#停
         已访问.add(标识)#标记
         行=dict(摘要)#拷贝
-        行['completed']=已完成 is not None and 标识 in 已完成#完成提醒
         行['depth']=深度#缩进
         输出.append(行)#收下
         for 子 in (子表[标识] if 标识 in 子表 else []):#子项

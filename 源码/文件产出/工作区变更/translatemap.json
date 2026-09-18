@@ -1,0 +1,10 @@
+{
+    "index.ts":"__init__.py",
+    "types.ts":"类型.py",
+    "capture.ts":"捕获.py",
+    "compare.ts":"对比.py",
+    "git.ts":"版本库.py",
+    "numstat.ts":"行数统计.py",
+    "paths.ts":"路径.py",
+    "recorder.ts":"记录器.py"
+}

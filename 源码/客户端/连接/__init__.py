@@ -97,7 +97,10 @@ def 应用(上下文,配置值=None):#安装连接插件
             响应.writeHead(403)#禁止
             响应.end('forbidden')#正文
             return#不再桥接
-        桥接(请求,响应,共享处理,最大请求正文字节)#Node HTTP → fetch 桥
+        def 下一():#默认桥
+            """落到共享 API 桥。"""
+            桥接(请求,响应,共享处理,最大请求正文字节)#Node HTTP → fetch 桥
+        上下文.waterfall('connection/request',请求,响应,下一)#瀑布后桥接
     路由={'kind':'prefix','path':接口路径,'handler':路由处理}#HTTP 前缀路由
     def 登记接口路由():#登记 /api 前缀
         """把路由交给 web 服务器。"""

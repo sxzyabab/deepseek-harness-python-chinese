@@ -1,0 +1,10 @@
+{
+    "disabled":"禁用",
+    "enabled":"启用",
+    "id":"编号",
+    "name":"模块名",
+    "patch":"补丁",
+    "plugin":"插件",
+    "self":"自身",
+    "write":"写"
+}

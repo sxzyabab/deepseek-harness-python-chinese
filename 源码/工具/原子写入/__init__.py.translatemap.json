@@ -18,10 +18,14 @@
     "parent":"父",
     "path":"路径",
     "permission":"权限",
+    "rename":"改名",
     "retry":"重试",
     "self":"自身",
     "take":"取",
+    "temp":"临时",
     "timeout":"超时",
+    "transient":"瞬时",
     "whether":"是否",
+    "windows":"Windows",
     "write":"写入"
 }

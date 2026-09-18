@@ -1,0 +1,17 @@
+{
+    "path":"路径",
+    "to":"转",
+    "posix":"斜杠",
+    "inside":"位于",
+    "temporary":"临时",
+    "root":"根",
+    "canonical":"规范",
+    "display":"展示",
+    "durable":"持久",
+    "compare":"比较",
+    "home":"家目录",
+    "cwd":"工作目录",
+    "absolute":"绝对",
+    "missing":"缺失",
+    "candidate":"候选"
+}

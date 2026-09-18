@@ -4,6 +4,7 @@ import pi_ai#外部依赖胶水（pi-ai SDK）
 from ...工具.超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .上下文 import 转派上下文#上下文转换
 from .流 import 转流块#事件翻译
+from .模型 import 创建模型集,取受支持思考档#模型集合与思考档
 
 __all__=('派爱适配器','合成信号','配置流选项','解析思考档位','推理信息','请求头','流空闲超时码','已中止','若已中止则抛出')#仅中文公开名
 
@@ -101,7 +102,7 @@ def 可描述思考档位(模型,力度):
     """本精确模型实际能接受的配置默认，用于描述它。"""
     if 力度 is None:#没有配置默认则不描述档位
         return None#没有配置
-    受支持=pi_ai.getSupportedThinkingLevels(模型)#受支持档位
+    受支持=取受支持思考档(模型)#受支持档位
     for 档位 in 受支持:#配置档位必须是本模型实际能接受的
         if 档位==力度:#模型支持该档位才拿去描述
             return 力度#用该档位
@@ -111,7 +112,7 @@ def 解析思考档位(模型,力度):
     """校验显式的 harness/配置力度，不调用 pi-ai 的钳制。"""
     if 力度 is None:#没有显式力度则不校验
         return None#没有力度
-    受支持=pi_ai.getSupportedThinkingLevels(模型)#受支持档位
+    受支持=取受支持思考档(模型)#受支持档位
     for 档位 in 受支持:#显式力度必须命中受支持列表，否则大声失败
         if 档位==力度:#支持则原样用，不钳到邻近档位
             return 力度#支持则用
@@ -127,7 +128,7 @@ def 推理信息(模型,默认档位):
     推理=模型.reasoning#SDK 模型对象的 reasoning 属性
     if 推理 is False or 推理 is None:#非推理模型不提供力度控件
         return {}#不提供控件
-    档位列表=pi_ai.getSupportedThinkingLevels(模型)#受支持档位
+    档位列表=取受支持思考档(模型)#受支持档位
     力度列表=[]#展示列表
     for 档位 in 档位列表:#每个受支持档位做成 id 加展示名
         力度列表.append({
@@ -167,7 +168,7 @@ class 派爱适配器(llm.大模型适配器):
         if 自身.快照 is not None and 自身.快照['profiles'] is 配置表:#同一份配置对象则复用模型集合
             return 自身.快照#复用
         认证=自身.配置['auth'] if 'auth' in 自身.配置 else None#集合级认证
-        模型集合=pi_ai.createModels(认证) if 认证 is not None else pi_ai.createModels()#新集合
+        模型集合=创建模型集(认证) if 认证 is not None else 创建模型集()#新集合
         for 配置项 in 配置表.values():#每条已解析路由挂上它的 pi-ai 提供方
             if 'piProvider' in 配置项 and 配置项['piProvider'] is not None:#可服务才挂
                 模型集合.setProvider(配置项['piProvider'])#挂上

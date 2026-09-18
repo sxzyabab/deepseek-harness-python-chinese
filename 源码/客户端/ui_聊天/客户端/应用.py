@@ -1,3 +1,4 @@
+import threading#分叉后台观察
 import 客户端.ui_侧边栏_文档预览.客户端 as _侧边栏文档预览#文档预览面：SidebarRightResourceParamsMap.file
 from ..聊天设置 import 聊天设置命名空间#Chat 设置段
 from .文案 import 命名空间,中文,英文#词典
@@ -19,7 +20,7 @@ _=_侧边栏文档预览#保活侧效导入（对齐 documentpreview，非 textp
 __all__=['注入','应用']#仅中文公开名
 
 注入=[#前置 inject
-    'slots','sessions','uiSession','uiConversation','layout','locale',
+    'slots','sessions','uiWorkspace','uiSession','uiConversation','layout','locale',
     'settingsScope','remote','remote.session','sidebarRight',
 ]#依赖
 
@@ -189,6 +190,13 @@ def 应用(上下文):
                 if 触发 is None:#无
                     return#停
                 触发.sessionOf(作用域).openReference('skill',{'ref':'/'+名})#打开技能引用
+            def 打开外部链接(网址):#打开外部链接
+                """优先侧栏浏览器标签，否则系统新窗。"""
+                标签表=上下文.获取服务('sidebarRightTabs')#侧栏标签
+                if 标签表 is not None and 标签表.get('browser') is not None:#有浏览器
+                    上下文.sidebarRight.openTab('browser',{'params':{'url':网址}})#侧栏打开
+                else:#无则新窗
+                    print('open external:',网址)#无浏览器时仅记日志
             def 加载更早():
                 """会话 loadOlder。"""
                 return 会话.loadOlder()#派
@@ -198,9 +206,18 @@ def 应用(上下文):
             def 加载图(附件):
                 """图 URL。"""
                 return 上下文.uiConversation.imageUrl(会话标识,附件)#图
-            def 分叉于(_序号):
-                """分叉（异步略）。"""
-                return None#略
+            def 分叉于(序号):
+                """分叉并经工作区导航打开子会话。"""
+                def 观察():
+                    """后台分叉。"""
+                    try:#成功
+                        子标识=上下文.sessions.fork({'sessionId':会话标识,'atSeq':序号,'increaseTitle':True}).等待()#分叉
+                        上下文.uiWorkspace.openSession(子标识)#经工作区打开
+                    except BaseException:#失败
+                        pass#源视图不变
+                线=threading.Thread(target=观察)#线
+                线.daemon=True#守护
+                线.start()#启
             return {#注入面
                 'hooks':{'transcriptView':转录.mode},#呈现
                 'keyedHooks':{#按键
@@ -211,6 +228,7 @@ def 应用(上下文):
                 'fileMentions':关提及,#提及
                 'openFile':打开文件,#打开文件
                 'openSkill':打开技能,#打开技能
+                'openExternalLink':打开外部链接,#外部链接
                 'loadOlder':加载更早,#更早
                 'loadThrough':加载到,#到 seq
                 'loadImage':加载图,#图

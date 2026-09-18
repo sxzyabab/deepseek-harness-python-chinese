@@ -14,6 +14,8 @@ __all__=['解析ansi行','净文本']#仅中文公开名
     '255,255,85':'var(--dsw-alias-state-warn-secondary)',
     '0,0,187':'var(--dsw-alias-state-business-primary)',
     '85,85,255':'var(--dsw-static-blue-400)',
+    '0,187,187':'var(--dsw-static-blue-600)',
+    '85,255,255':'var(--dsw-static-blue-500)',
 }#令牌结束
 
 标准前景={#30-37 / 90-97 → rgb

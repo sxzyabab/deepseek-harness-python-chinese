@@ -1,4 +1,7 @@
 {
+    "show":"显示",
+    "hide":"隐藏",
+    "window":"窗口",
     "allocate":"分配",
     "assign":"分配",
     "bind":"绑定",

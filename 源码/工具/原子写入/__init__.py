@@ -8,6 +8,10 @@ __all__=[#仅中文公开名
 锁重试初始毫秒=20#首次锁重试间隔毫秒
 锁重试上限毫秒=200#锁重试间隔上限毫秒
 锁超时毫秒=2000#等待写锁的截止毫秒
+Windows瞬时改名错误=frozenset({'EACCES','EBUSY','EPERM'})#Windows瞬时改名错误码名
+Windows改名重试初始毫秒=20#改名首次退避
+Windows改名重试上限毫秒=200#改名退避上限
+Windows改名重试次数=8#改名最多重试次数
 
 class 原子写入错误(Exception):#本包异常基类
     """原子写入或写锁失败。"""
@@ -19,6 +23,44 @@ def 是否已存在(错误):#独占创建是否因路径已存在而失败
     """独占创建是否因路径已存在而失败。"""
     return isinstance(错误,OSError) and 错误.errno==errno.EEXIST#Python已存在
 
+def 是否Windows瞬时改名错误(错误):#Windows瞬时干扰
+    """是否 Windows 报告对原子替换的瞬时干扰。"""
+    if os.name!='nt':#非 Windows
+        return False#否
+    if not isinstance(错误,OSError):#非系统错误
+        return False#否
+    名=errno.errorcode.get(错误.errno)#错误码名
+    return 名 in Windows瞬时改名错误#在集合内
+
+def 原子改名临时(临时,文件名):#带重试的原子改名
+    """目标改名；Windows 对瞬时干扰有界重试。"""
+    间隔=Windows改名重试初始毫秒#当前退避
+    重试=0#已重试次数
+    while True:#直到成功或超限
+        try:#尝试改名
+            os.replace(临时,文件名)#原子改名覆盖
+            return#成功
+        except OSError as 错误:#改名失败
+            if not 是否Windows瞬时改名错误(错误):#非瞬时
+                raise 错误#原样抛
+            if 重试>=Windows改名重试次数:#超限
+                raise 错误#最终失败
+        time.sleep(间隔/1000.0)#退避
+        间隔=min(间隔*2,Windows改名重试上限毫秒)#指数增大
+        重试+=1#计数
+
+def 是否锁争用(错误,锁路径):#独占创建是否因锁争用
+    """独占创建是否因已有锁而失败；EPERM 仅在锁路径存在时算争用。"""
+    if 是否已存在(错误):#EEXIST
+        return True#争用
+    if not isinstance(错误,OSError) or errno.errorcode.get(错误.errno)!='EPERM':#非EPERM
+        return False#否
+    try:#EPERM时确认锁存在
+        os.lstat(锁路径)#探测
+        return True#存在则争用
+    except OSError:#锁存在未证实
+        return False#保持原始EPERM权威
+
 def 原子写文件(文件名,内容,选项):#一步原子替换目标文件
     """一步原子替换 `文件名` 为 `内容`，并创建父目录。
 
@@ -26,7 +68,7 @@ def 原子写文件(文件名,内容,选项):#一步原子替换目标文件
     - `mode`：打在新临时 inode 上并随改名带走的权限位（受进程 umask 约束）；必填。
     - `dirMode`：本调用所创建父目录的权限位（受 umask 约束；已有目录保留其 mode）。省略则用 mkdir 默认值——树里存放用户私有数据时传 `0o700`。
 
-    内容先写入以独占创建（`wx`）打开的随机后缀兄弟：打开拒绝跟随种在临时路径上的符号链接，新 inode 带着 `mode` 穿过改名，因此替换权限更宽的文件时无需 chmod 竞态即可收窄。改名也会替换作为符号链接的目标本身，而不是写穿到其指向对象；同目录兄弟使改名留在同一文件系统。任何失败都会删除临时文件并再抛出失败。崩溃耐久性（fsync）不在范围内。
+    内容先写入以独占创建（`wx`）打开的随机后缀兄弟：打开拒绝跟随种在临时路径上的符号链接，新 inode 带着 `mode` 穿过改名，因此替换权限更宽的文件时无需 chmod 竞态即可收窄。改名也会替换作为符号链接的目标本身，而不是写穿到其指向对象；同目录兄弟使改名留在同一文件系统。Windows 替换对瞬时 `EACCES`、`EBUSY` 和 `EPERM` 在有界间隔内重试。任何失败都会删除临时文件并再抛出失败。崩溃耐久性（fsync）不在范围内。
     """
     父目录=os.path.dirname(文件名) or '.'#目标父目录；无目录分量时对齐 Node `path.dirname` 的 '.'
     if 'dirMode' not in 选项:#省略dirMode则用mkdir默认
@@ -47,7 +89,7 @@ def 原子写文件(文件名,内容,选项):#一步原子替换目标文件
             os.write(描述符,内容.encode('utf-8'))#按UTF-8写入完整内容
         finally:#关掉描述符
             os.close(描述符)#关掉
-        os.replace(临时,文件名)#原子改名覆盖目标
+        原子改名临时(临时,文件名)#带Windows重试的原子改名
         临时已建=False#改名后临时路径不再存在
     finally:#失败则清理临时
         if 临时已建:#仍留着临时文件
@@ -56,11 +98,15 @@ def 原子写文件(文件名,内容,选项):#一步原子替换目标文件
             except OSError:#临时可能未建成或已搬走；只有这类删失败能到这里
                 pass#吞掉清理失败
 
-def 带文件锁(文件名,操作):#跨进程串行化同一文件的写方
-    """围绕一次操作为 `文件名` 持有跨进程写锁。锁是 `wx` 创建的兄弟（`<文件名>.lock`）；与 `原子写文件` 基于改名的提交配对后，读者保持无锁，只有写方争用。争用按指数退避，截止后以超时错误失败。争用方从不删除已有锁，因为文件年龄不能证明所有者已停；孤儿恢复是运维动作。父目录必须已存在。"""
+def 带文件锁(文件名,操作,选项=None):#跨进程串行化同一文件的写方
+    """围绕一次操作为 `文件名` 持有跨进程写锁。锁是 `wx` 创建的兄弟（`<文件名>.lock`）；与 `原子写文件` 基于改名的提交配对后，读者保持无锁，只有写方争用。`EEXIST` 直接是争用；`EPERM` 仅在新鲜 lstat 确认锁路径存在时才是争用。Windows 对一次未确认的 EPERM 再试。争用按指数退避，截止后以超时错误失败。争用方从不删除已有锁。父目录必须已存在。"""
+    if 选项 is None:#缺省选项
+        选项={}#空
     锁路径=文件名+'.lock'#写锁兄弟路径
-    截止=time.time()*1000.0+锁超时毫秒#等待锁的截止时刻
+    等待毫秒=选项['waitMs'] if 'waitMs' in 选项 else 锁超时毫秒#等待上限
+    截止=time.time()*1000.0+等待毫秒#等待锁的截止时刻
     间隔=锁重试初始毫秒#当前退避间隔
+    已重试未确认权限=False#是否已重试未确认EPERM
     while True:#直到拿到锁或超时
         try:#尝试独占创建锁文件
             标志=os.O_CREAT|os.O_EXCL|os.O_WRONLY#独占创建
@@ -73,10 +119,12 @@ def 带文件锁(文件名,操作):#跨进程串行化同一文件的写方
                 os.close(描述符)#关掉
             break#拿到锁，离开重试循环
         except OSError as 错误:#创建锁失败
-            if not 是否已存在(错误):#非争用错误直接抛出
-                raise 错误#原样抛出
+            if not 是否锁争用(错误,锁路径):#非争用
+                if os.name!='nt' or errno.errorcode.get(错误.errno)!='EPERM' or 已重试未确认权限:#不可重试
+                    raise 错误#原样抛出
+                已重试未确认权限=True#标记已重试
         if time.time()*1000.0>=截止:#已过等待截止
-            raise 原子写入错误('atomic-write: timed out waiting for the writer lock')#超时等待写锁
+            raise 原子写入错误('atomic-write: timed out waiting for the writer lock at '+锁路径)#超时等待写锁
         time.sleep(间隔/1000.0)#按当前间隔等待
         间隔=min(间隔*2,锁重试上限毫秒)#指数增大间隔并封顶
     try:#持锁执行操作

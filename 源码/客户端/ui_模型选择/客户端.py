@@ -96,7 +96,7 @@ def 应用(上下文):#安装模型选择浏览器半边
             return _模型选项(模型目录,会话面,会话,翻译)#选项
         def 命令选定(选项,会话):#选定一行
             """提交选定。"""
-            return _模型选定(模型目录,会话面,选项,会话)#选定
+            return _模型选定(模型目录,会话面,选项,会话,翻译)#选定
         def 登记():#登记贡献
             """/model 弹出选择。"""
             return 命令.register({#登记
@@ -155,7 +155,7 @@ def _模型选项(模型目录,会话面,会话,翻译):#拉选项行
     目录=模型目录.directoryFor(会话.sessionId).load()#加载已等待
     return 选项于(目录,翻译)#展平
 
-def _模型选定(模型目录,会话面,选项,会话):#选定一行
+def _模型选定(模型目录,会话面,选项,会话,翻译):#选定一行
     """行键还原后经同一目录提交。"""
     if 会话面.subagentAddress(会话.sessionId) is not None:#子智能体
         raise 模型选择错误('model selection is unavailable for addressed subagent sessions')#禁
@@ -163,7 +163,14 @@ def _模型选定(模型目录,会话面,选项,会话):#选定一行
     选=选定于(目录.存储.getSnapshot(),选项['id'])#还原
     if 选 is None:#无效
         raise 模型选择错误("this provider's catalog failed to load — pick a model from a loaded group")#须已加载
-    目录.select(选)#提交已等待
+    结果=目录.select(选)#提交已等待，交回 RemoteResult 形
+    if 'ok' in 结果 and 结果['ok']:#成功
+        return#结束
+    错=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
+    码=错['code'] if 'code' in 错 else None#错误码
+    if 码=='session/writer-held':#会话占用
+        raise 模型选择错误(翻译('error.sessionInUse'))#占用文案
+    raise 模型选择错误(str(码)+': '+str(错['message'] if 'message' in 错 else None))#其它失败
 
 inject=注入#框架槽
 apply=应用#框架槽

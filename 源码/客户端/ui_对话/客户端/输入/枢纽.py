@@ -1,4 +1,3 @@
-from ..队列.存储 import 队列读面自会话#队列只读面
 from .外壳 import 会话输入壳#会话输入壳
 from ..服务 import 对话错误#发送失败
 
@@ -69,7 +68,7 @@ class 输入枢纽:#会话输入门面注册表
             'actx':作用域,#作用域
             'inputTriggers':取触发,#斜杠控制器
             'popup':取弹层,#弹层
-            'queue':队列读面自会话(会话),#队列读面
+            'inbox':会话.projections.faceOf('inbox'),#收件箱投影
             'defaultSink':默认汇,#下沉
             'steerQueue':转向队列,#转向
             'commandAttachments':{#命令附件
@@ -156,9 +155,8 @@ class 输入枢纽:#会话输入门面注册表
         """FIFO 严格 steer。窗口关闭或行已认领则静默收敛。"""
         if 壳 is None:
             return#停
-        快照=会话.getSnapshot()#快照
-        队列=快照['queue'] if 'queue' in 快照 else []#队列
-        排队=[项 for 项 in 队列 if 项['placement']=='queued']#排队
+        收件箱=会话.projections.faceOf('inbox').getSnapshot()#收件箱
+        排队=收件箱['next-turn'] if 收件箱 is not None and 'next-turn' in 收件箱 else []#排队
         if len(排队)==0:
             return#停
         for 项 in 排队:

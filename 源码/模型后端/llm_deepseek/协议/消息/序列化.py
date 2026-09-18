@@ -1,7 +1,7 @@
 """把系统快照与对话回合映射成消息协议请求。"""
 import json,base64#工具入参与内联图编码
 from ....llm import 大模型错误,请求图片句柄文案#错误与句柄
-from .回放 import 校验对象,读取回放#对象与回放
+from .回放 import 读取回放#回放
 
 __all__=('序列化',)#仅中文公开名
 
@@ -10,12 +10,14 @@ def 不支持(种类):
     raise 大模型错误('DeepSeek Messages cannot represent '+种类,'UNSUPPORTED_CONTENT')#不支持
 
 def 工具入参(原文):
-    """仅在构造发出的原生 tool_use 块时解析工具入参。"""
+    """历史参数 Messages 无法表示时用空 input；持久内容不变。"""
     try:#JSON
         值=json.loads(原文)#解码
     except (json.JSONDecodeError,TypeError,ValueError,UnicodeDecodeError):#非法
-        raise 大模型错误('DeepSeek Messages historical tool input is invalid JSON','INVALID_REQUEST')#非法
-    return 校验对象(值,'INVALID_REQUEST')#对象
+        return {}#空入参
+    if isinstance(值,dict):#对象
+        return 值#原样
+    return {}#非对象则空
 
 def 助手块(消息,模型,回放降级=None):
     """序列化一条助手消息的线路块。"""

@@ -13,22 +13,29 @@ from ...工具.启动环境 import 创建启动环境快照#启动环境快照
 from .配置档 import (#配置档再导出
     组合条目,默认组合包,愈合模块回退,初始化配置档,加载配置档,加载配置目录,
     配置补丁文件名,配置模板,配置目录名,读配置清单,解析组合包目录,
-    解析配置目录,写配置清单,创建配置解析世代,
+    解析配置目录,写配置清单,创建配置解析世代,可选组合包,
+    愈合隔离配置模块回退,拆开配置模块回退,
 )#再导出结束
 from .配置解析.服务 import 插件包表#配置解析服务
-from .监视配置 import 监视配置#精确路径监视
+from .配置档上下文 import 读配置档补丁,解析遥测补丁#配置档上下文
+from .配置档插件 import 读配置插件,写配置组合包,对账配置插件#配置档插件
+from .配置档清洗 import 清洗配置档#清洗
 
 __all__=[#仅中文公开名
-    '解析配置路径','加载环境','加载分层环境','监视用户补丁','加载可选补丁','加载覆盖补丁',
+    '解析配置路径','加载环境','加载分层环境','加载可选补丁','加载覆盖补丁',
     '渲染配置转储','挂载根包含','安装大声失败','大声失败拆除超时毫秒',
     '断言条目已加载','断言条目已激活','启动','添加源码段落','源码段落名',
-    '组合条目','默认组合包','愈合模块回退','初始化配置档','加载配置档','加载配置目录',
+    '组合条目','默认组合包','可选组合包','愈合模块回退','初始化配置档','加载配置档','加载配置目录',
     '配置补丁文件名','配置模板','配置目录名','读配置清单','解析组合包目录',
-    '解析配置目录','写配置清单','创建配置解析世代','插件包表','监视配置','审计启动条目',
+    '解析配置目录','写配置清单','创建配置解析世代','插件包表','审计启动条目',
+    '读配置档补丁','解析遥测补丁','读配置插件','写配置组合包','对账配置插件','清洗配置档',
+    '愈合隔离配置模块回退','拆开配置模块回退','协调配置档补丁','启动错误',
 ]#公开面结束
 
+#常量
 源码段落名='harness:source'#源位置段落名
 大声失败拆除超时毫秒=2000#拆除超时毫秒
+光纤拆除=光纤状态.已拆除 if hasattr(光纤状态,'已拆除') else 4#已拆除
 引导名精确=set([#引导专用名
     'PATH','HOME','USERPROFILE','SHELL',
     'NODE_OPTIONS','NODE_PATH','NODE_EXTRA_CA_CERTS',
@@ -54,7 +61,69 @@ __all__=[#仅中文公开名
 光纤失败=光纤状态.失败#已失败
 
 class 启动错误(Exception):
-    """应用启动粘合层失败。"""
+    """应用启动粘合层失败；可附带未激活条目元数据。"""
+
+    def __init__(自身,消息,条目表=None):
+        """记下消息与可选条目；失败 outcome 挂为 cause。"""
+        条目表=条目表 if 条目表 is not None else []#条目
+        失败值=[]#原失败
+        for 项 in 条目表:#逐条
+            结果=项.get('outcome') if isinstance(项,dict) else None#结果
+            if isinstance(结果,dict) and 结果.get('kind')=='failed':#失败
+                错=结果.get('error')#错误值
+                if isinstance(错,BaseException):#异常
+                    失败值.append(错)#收下
+        if len(失败值)>0:#有原失败
+            super().__init__(消息)#基类
+            if len(失败值)==1:#单失败
+                自身.__cause__=失败值[0]#挂上
+            else:#多失败
+                自身.__cause__=ExceptionGroup('Plugin activation failures',失败值)#聚合
+        else:#无原失败
+            super().__init__(消息)#基类
+        自身.entries=条目表#条目
+        自身.startup=None#启动日志切片
+
+def 协调配置档补丁(上下文对象,补丁,二进制名,必需标识=None):
+    """应用一整代补丁并等待 Loader 激活诊断。"""
+    if 必需标识 is None:#缺省
+        必需标识=[]#空
+    键=id(上下文对象)#上下文身份
+    if 键 not in 启动包含表:#缺少根 Include
+        raise 启动错误(二进制名+': profile reload requires the root Include entry')#缺少
+    条目=启动包含表[键]#根 Include
+    先前失败=[dict(项,diagnostic=未激活诊断(项),fiber=项['entry'].纤程,options=json.dumps(项['entry'].选项,ensure_ascii=False,sort_keys=True,separators=(',',':'))) for 项 in 未激活条目(上下文对象)]#先前失败
+    先前光纤=[]#先前光纤
+    for 行 in 上下文对象.加载器.列出插件配置():#逐条
+        if 行.纤程 is None:#无光纤
+            continue#跳过
+        先前光纤.append({'fiber':行.纤程,'failed':行.纤程.状态==光纤失败 or 行.纤程.状态==光纤拆除})#记下
+    选项配置=条目.选项['config'] if 'config' in 条目.选项 else {}#当前配置
+    非补丁={键名:值 for 键名,值 in 选项配置.items() if 键名!='patches'}#去掉旧补丁
+    条目.更新({'config':{**非补丁,'patches':list(补丁)}})#事务更新
+    for 项 in 先前光纤:#等旧光纤
+        try:#等待
+            项['fiber'].等待()#结算
+        except Exception:#旧失败可忽略
+            pass#吞掉既有失败
+    加载器=上下文对象.获取服务('加载器',False)#Loader
+    if 加载器 is not None:#仍在
+        加载器.等待()#等结算
+    失败=未激活条目(上下文对象)#新失败
+    def 是否引入(项):
+        """是否新的或已变失败。"""
+        if 项['entry'].选项.get('id') in 必需标识:#显式必需
+            return True#引入
+        for 先前 in 先前失败:#比对
+            if (先前['entry'] is 项['entry'] and 先前.get('fiber') is 项['entry'].纤程
+                and 先前.get('options')==json.dumps(项['entry'].选项,ensure_ascii=False,sort_keys=True,separators=(',',':'))
+                and 先前.get('diagnostic')==未激活诊断(项)):#未变
+                return False#不是引入
+        return True#引入
+    引入=[项 for 项 in 失败 if 是否引入(项)]#新失败
+    if len(引入)>0:#有引入
+        raise 启动错误(激活诊断(二进制名,引入).rstrip())#拒绝
+    return [未激活诊断(项) for 项 in 失败]#诊断文本
 
 def 解析配置路径(配置路径,快照模式,工作目录=None):#解析启动配置路径
     """解析要启动的配置；回放时换基名为 cordis.snapshot.yml。"""
@@ -265,56 +334,6 @@ def 挂载根包含(上下文对象,绝对配置路径,补丁=None,裸模块基�
     启动包含表[id(上下文对象)]=条目#登记
     return 条目#返回根条目
 
-def 监视用户补丁(上下文对象,选项):
-    """经 Cordis 热替换监视用户补丁层。选项是 dict。"""
-    二进制名=选项['binName']#诊断前缀
-    文件名=选项['filename']#补丁路径
-    if 'compose' in 选项 and 选项['compose'] is not None:#有组合
-        组合=选项['compose']#组合
-    else:#缺省恒等
-        def 恒等(补丁):
-            """缺省不改补丁。"""
-            return 补丁#原样
-        组合=恒等#恒等
-    热重载=上下文对象.获取服务('热替换',False)#热替换
-    if 热重载 is None:#缺少
-        raise 启动错误(二进制名+': user patch-layer watching requires the Cordis HMR service')#缺少
-    键=id(上下文对象)#上下文身份
-    if 键 not in 启动包含表:#缺少根 Include
-        raise 启动错误(二进制名+': user patch-layer watching requires the root Include entry')#缺少
-    条目=启动包含表[键]#根 Include 插件配置
-    def 刷新():
-        """重读用户层并事务更新。"""
-        选项配置=条目.选项['config'] if 'config' in 条目.选项 else {}#当前配置
-        非补丁={键名:值 for 键名,值 in 选项配置.items() if 键名!='patches'}#去掉旧补丁
-        用户补丁=加载可选补丁(二进制名,文件名)#重读
-        if 用户补丁 is None:#缺失
-            用户补丁=[]#空
-        补丁=组合(用户补丁)#组合
-        条目.更新({'config':{**非补丁,'patches':补丁}})#事务更新，同步
-        加载器=上下文对象.获取服务('加载器',False)#Loader
-        if 加载器 is not None:#仍在
-            加载器.等待()#等结算
-            for 插件配置 in 加载器.列出插件配置():#每条光纤
-                光纤=插件配置.纤程#fiber
-                if 光纤 is not None:#有光纤
-                    try:#收拒绝
-                        光纤.等待()#等待
-                    except Exception:#allSettled：拒绝不打断其余
-                        pass#继续
-        失败=未激活条目(上下文对象)#审计
-        if len(失败)>0:#有失败
-            raise 启动错误(激活诊断(二进制名,'warning',失败).rstrip())#拒绝本次刷新
-    def 空拆除():
-        """树已拆时的空拆除器。"""
-        return#空
-    try:#注册
-        return 监视配置(上下文对象,文件名,热重载.配置,刷新)#精确路径监视
-    except cordis.Cordis错误 as 错误:#安装失败
-        if getattr(错误,'码',None)=='INACTIVE_EFFECT' or getattr(错误,'code',None)=='INACTIVE_EFFECT':#树已拆
-            return 空拆除#空拆除
-        raise#其余失败
-
 def 保留已组装拒绝(原因):
     """计数加一。"""
     if 原因 not in 已组装拒绝:#首条
@@ -400,17 +419,15 @@ def 未激活条目(上下文对象):
     失败=[]#失败
     拒绝原因=[]#拒绝原因
     for 条目 in 上下文对象.加载器.列出插件配置():#逐条
-        选项=条目.选项#选项 dict
-        主语=str(选项['id'] if 'id' in 选项 else None)+' ('+str(选项['name'] if 'name' in 选项 else None)+')'#主体
         try:#读禁用
             if 条目.已禁用:#已禁用
                 continue#跳过
         except Exception as 错误:#禁用表达式失败
-            失败.append({'entry':条目,'diagnostic':主语+': disabled expression failed: '+格式化激活错误(错误)})#记下
+            失败.append({'entry':条目,'outcome':{'kind':'failed','error':错误,'phase':'disabled expression failed'}})#记下
             continue#下一条
         光纤=条目.纤程#fiber
         if 光纤 is None:#无光纤
-            失败.append({'entry':条目,'diagnostic':主语+': failed to import'})#导入失败
+            失败.append({'entry':条目,'outcome':{'kind':'failed','error':'failed to import'}})#导入失败
             continue#下一条
         状态=光纤.状态#状态
         if 状态==光纤激活:#已激活
@@ -420,18 +437,16 @@ def 未激活条目(上下文对象):
                 光纤.等待()#等待
             except Exception as 错误:#插件启动失败
                 拒绝原因.append(错误)#记下
-                失败.append({'entry':条目,'diagnostic':主语+': '+格式化激活错误(错误)})#格式化
+                失败.append({'entry':条目,'outcome':{'kind':'failed','error':错误}})#格式化
             continue#下一条
         if 状态==光纤等待:#仍在等待
             缺失=[]#缺失服务
             for 服务名 in 光纤.依赖表:#依赖表
                 if 光纤.所属上下文.获取服务(服务名,False) is None:#仍缺
                     缺失.append(服务名)#记下
-            主语服务='service' if len(缺失)==1 else 'services'#单复数
-            列出=', '.join(缺失) if len(缺失)>0 else 'unknown'#名单
-            失败.append({'entry':条目,'diagnostic':主语+': pending (waiting for '+主语服务+': '+列出+')'})#挂起
+            失败.append({'entry':条目,'outcome':{'kind':'pending','missing':缺失}})#挂起
         else:#其他状态
-            失败.append({'entry':条目,'diagnostic':主语+': fiber state '+str(状态)})#报告
+            失败.append({'entry':条目,'outcome':{'kind':'failed','error':'fiber state '+str(状态)}})#报告
     if len(拒绝原因)>0:#有拒绝
         for 原因 in 拒绝原因:#保留到检查点
             保留已组装拒绝(原因)#保留
@@ -442,11 +457,62 @@ def 未激活条目(上下文对象):
                 释放已组装拒绝(原因)#释放
     return 失败#失败列表
 
-def 激活诊断(二进制名,严重度,失败列表):
-    """渲染未激活条目诊断。"""
+def 失败细节(结果):
+    """渲染一条失败插件的原错误与激活阶段。"""
+    阶段=结果['phase'] if 'phase' in 结果 else None#阶段
+    前缀='' if 阶段 is None else 阶段+': '#阶段前缀
+    return 前缀+格式化激活错误(结果['error'])#细节
+
+def 未激活诊断(项):
+    """重载比较与可选警告用的稳定按条目文本。"""
+    条目=项['entry']#条目
+    结果=项['outcome']#结果
+    if 结果['kind']=='failed':#失败
+        细节=失败细节(结果)#细节
+    else:#挂起
+        缺失=结果['missing']#缺失
+        主语='service' if len(缺失)==1 else 'services'#单复数
+        列出=', '.join(缺失) if len(缺失)>0 else 'unknown'#名单
+        细节='pending (waiting for '+主语+': '+列出+')'#挂起行
+    选项=条目.选项#选项
+    return str(选项['id'] if 'id' in 选项 else None)+' ('+str(选项['name'] if 'name' in 选项 else None)+'): '+细节#诊断
+
+def 激活诊断(二进制名,失败列表):
+    """渲染仅可选警告。"""
     名词='entry' if len(失败列表)==1 else 'entries'#单复数
-    前缀='' if 二进制名=='' else 二进制名+': '#前缀
-    return 前缀+严重度+': '+str(len(失败列表))+' '+名词+' did not activate\n'+'\n'.join(项['diagnostic'] for 项 in 失败列表)+'\n'#诊断
+    return 二进制名+': warning: '+str(len(失败列表))+' '+名词+' did not activate\n'+'\n'.join(未激活诊断(项) for 项 in 失败列表)+'\n'#诊断
+
+def 启动诊断(二进制名,失败列表,必需集合):
+    """分组启动失败与待服务，并标出每条必需条目。"""
+    行=[二进制名+': startup failed: '+str(len(必需集合))+' required '+('plugin' if len(必需集合)==1 else 'plugins')+' did not activate']#首行
+    已失败=[{'entry':项['entry'],'outcome':项['outcome']} for 项 in 失败列表 if 项['outcome']['kind']=='failed']#失败
+    挂起=[{'entry':项['entry'],'outcome':项['outcome']} for 项 in 失败列表 if 项['outcome']['kind']=='pending']#挂起
+    挂起.sort(key=lambda 项:0 if 项['entry'] in 必需集合 else 1)#必需在前
+    def 标签(条目):
+        """带必需标记的标签。"""
+        选项=条目.选项#选项
+        标识=str(选项['id'] if 'id' in 选项 else None)#id
+        return 标识+(' (required)' if 条目 in 必需集合 else '')#标签
+    if len(已失败)>0:#有失败
+        行.append('')#空行
+        行.append('Failed plugins ('+str(len(已失败))+'):')#标题
+        for 项 in 已失败:#逐条
+            条目=项['entry']#条目
+            选项=条目.选项#选项
+            行.append('  '+标签(条目))#标签
+            行.append('    Package: '+str(选项['name'] if 'name' in 选项 else None))#包名
+            for 细行 in 失败细节(项['outcome']).split('\n'):#细节
+                行.append('    '+细行)#缩进
+    if len(挂起)>0:#有挂起
+        宽=max([len('Plugin')]+[len(标签(项['entry'])) for 项 in 挂起])+2#列宽
+        行.append('')#空行
+        行.append('Plugins waiting for services ('+str(len(挂起))+'):')#标题
+        行.append('  '+'Plugin'.ljust(宽)+'Missing services')#表头
+        for 项 in 挂起:#逐条
+            缺失=项['outcome']['missing']#缺失
+            列出=', '.join(缺失) if len(缺失)>0 else 'unknown'#名单
+            行.append('  '+标签(项['entry']).ljust(宽)+列出)#行
+    return '\n'.join(行)#诊断
 
 def 审计启动条目(上下文对象,二进制名,警告=None):
     """对已结算 Loader 树应用 DSH 启动政策。"""
@@ -456,21 +522,29 @@ def 审计启动条目(上下文对象,二进制名,警告=None):
             sys.stderr.write(行)#stderr
         警告=写警告#缺省
     失败=未激活条目(上下文对象)#收集
-    必需=[]#必需失败
-    可选=[]#可选失败
     根包含=启动包含表.get(id(上下文对象))#引导 Include
-    for 项 in 失败:#分流
+    必需集合=set()#必需条目
+    for 项 in 失败:#收集必需
         条目=项['entry']#条目
         选项=条目.选项#选项
         标识=选项['id'] if 'id' in 选项 else None#id
         if 条目 is 根包含 or 标识 in 必需启动条目标识:#必需
-            必需.append(项)#收下
-        else:#可选
-            可选.append(项)#收下
-    if len(可选)>0:#有可选失败
-        警告(激活诊断(二进制名,'warning',可选))#警告
-    if len(必需)>0:#有必需失败
-        raise 启动错误(激活诊断('','required startup failure',必需).rstrip())#拒绝
+            必需集合.add(条目)#收下
+    if len(必需集合)>0:#有必需失败
+        条目表=[]#诊断条目
+        for 项 in 失败:#逐条
+            条目=项['entry']#条目
+            选项=条目.选项#选项
+            条目表.append({#元数据
+                'id':选项['id'] if 'id' in 选项 else None,
+                'module':选项['name'] if 'name' in 选项 else None,
+                'required':条目 in 必需集合,
+                'fiberState':条目.纤程.状态 if 条目.纤程 is not None else None,
+                'outcome':项['outcome'],
+            })#结束
+        raise 启动错误(启动诊断(二进制名,失败,必需集合),条目表)#拒绝
+    if len(失败)>0:#可选失败
+        警告(激活诊断(二进制名,失败))#警告
 
 def 断言条目已加载(上下文对象,二进制名):
     """树结算之后，拒绝没有 fiber 的启用条目。"""
@@ -527,6 +601,7 @@ def 断言条目已激活(上下文对象,二进制名):
 def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基址=None):
     """对着绝对配置路径启动 Loader，整棵树结算后才返回。"""
     上下文对象=上下文()#根上下文
+    启动日志=[]#启动日志切片
     阶段='host preparation failed'#当前阶段标签
     try:#安装并挂树
         基址=路径转文件url(os.path.dirname(绝对配置路径))#配置目录基址
@@ -541,6 +616,7 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
                 下一步()#同步
             except Exception as 错误:#激活失败
                 上下文对象.日志.错误(错误)#记日志
+                启动日志.append({'ts':0,'name':'internal/update','type':'error','args':(错误,)})#记入切片
         上下文对象.监听('internal/update',更新观察,{'全局':True,'前置':True})#前置观察
         上下文对象.启动插件(加载器类).等待()#安装 Loader 并抛出启动失败
         if 准备 is not None:#可选宿主准备
@@ -556,12 +632,15 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
         return 上下文对象#返回根上下文
     except Exception as 原因:#启动失败形态含插件树与配置错误
         上下文对象.纤程.拆除()#拆除部分树
+        if isinstance(原因,启动错误):#启动审计错误
+            原因.startup={'configurationPath':绝对配置路径,'messages':启动日志}#附上切片
+            raise 原因#原样抛出
         细节=str(原因)#外层细节
         最深=原因#向 cause 链下走
         while isinstance(最深,Exception) and 最深.__cause__ is not None:#找最深
             最深=最深.__cause__#下一层
         栈='' if 最深 is 原因 or not isinstance(最深,Exception) else '\n'+str(最深)#深层栈
-        raise 启动错误(二进制名+': '+阶段+': '+细节+栈) from 原因#带阶段标签
+        raise Exception(二进制名+': '+阶段+': '+细节+栈) from 原因#带阶段标签
 
 def 添加源码段落(上下文对象,源码根):
     """加一段全局提示词，点名磁盘上的 harness 源码检出。"""

@@ -43,17 +43,132 @@ class 槽位登记表:#纯槽位登记表
     def __init__(自身):
         """构造时空无人观察，不 markDirty。"""
         自身.记录表={}#按键的登记记录；创建后永不删除
+        自身.工厂表={}#按名的工厂记录；创建后永不删除
         自身.变更监听=set()#每次变更同步通知
         自身.句柄作用域={}#共享句柄→首次挂载作用域 + 活挂载计数
         自身.脏集=set()#待冲刷的脏记录
         自身.脏映射={}#id→记录
         自身.已排冲刷=False#是否已排微任务冲刷
         自身.已退位=set()#崩溃退位的条目 id
-        自身.条目错误监听=set()#条目崩溃监听
+        自身.条目错误监听=set()#条目/工厂崩溃监听
         根=自身.取记录('root')#取得或创建 root
         根['spec']={'kind':'single','scope':'root'}#单占、根作用域
         根['declaredBy']='(built-in)'#框架内置
         根['declarationEpoch']=1#首次声明世代
+
+    def 取工厂记录(自身,名):
+        """第一次碰到时创建空白工厂记录。"""
+        if 名 in 自身.工厂表:#已有
+            return 自身.工厂表[名]#返回
+        记={'definition':None,'version':0,'listeners':set()}#空白工厂记录
+        自身.工厂表[名]=记#写入
+        return 记#返回
+
+    def 登记工厂(自身,选项,组件):
+        """登记一条可复用工厂定义；已有定义或子槽冲突则抛错。返回拆除器。"""
+        名=选项['name']#工厂名
+        记=自身.取工厂记录(名)#工厂记录
+        if 记['definition'] is not None:#已有定义
+            raise 槽位错误('slot factory "'+str(名)+'" already has a definition')#重复定义
+        子表=选项['children'] if 'children' in 选项 else None#子槽声明
+        if 子表 is not None:#有子
+            for 子键 in 子表.keys():#每个子键
+                子记=自身.记录表[子键] if 子键 in 自身.记录表 else None#已有
+                if 子记 is not None and 子记['spec'] is not None:#已被声明
+                    声明者=子记['declaredBy'] if 'declaredBy' in 子记 and 子记['declaredBy'] is not None else 'an unknown entry'#声明者
+                    raise 槽位错误('slot "'+str(子键)+'" is already declared (by '+str(声明者)+')')#一槽一声明者
+        存储=选项['store'] if 'store' in 选项 else None#存储座位
+        作用域=选项['scope']#工厂作用域
+        if 存储 is not None and 是存储工厂(存储) is False:#共享句柄
+            钉=自身.句柄作用域[id(存储)] if id(存储) in 自身.句柄作用域 else None#已钉
+            if 钉 is not None and 钉['scope']!=作用域:#跨作用域
+                raise 槽位错误('store handle mounted under factory "'+str(名)+'" (scope "'+str(作用域)+'") is already mounted under scope "'+str(钉['scope'])+'" — one handle, one scope')#一柄一作用域
+            if 钉 is not None:#已钉
+                钉['count']+=1#加计数
+            else:#首次
+                自身.句柄作用域[id(存储)]={'scope':作用域,'count':1,'handle':存储}#钉住
+        定义={'name':名,'component':组件,'scope':作用域}#已存工厂
+        if 子表 is not None:#子槽
+            定义['children']=子表#children
+        if 存储 is not None:#存储
+            定义['store']=存储#store
+        if 'inject' in 选项:#注入
+            定义['inject']=选项['inject']#inject
+        if 'locale' in 选项:#文案
+            定义['locale']=选项['locale']#locale
+        if 'slots' in 选项:#局部位置
+            定义['slots']=选项['slots']#slots
+        if 'registrant' in 选项:#诊断
+            定义['registrant']=选项['registrant']#registrant
+        记['definition']=定义#写入定义
+        自身.标工厂脏(记)#标脏
+        本批=[]#攒齐子声明再发布
+        登记方=选项['registrant'] if 'registrant' in 选项 else None#登记方
+        尾='' if 登记方 is None or 登记方=='' else ' ('+str(登记方)+')'#尾
+        if 子表 is not None:#声明子槽
+            for 子键,子规格 in 子表.items():#每个子槽
+                子记=自身.取记录(子键)#取得或创建
+                子记['spec']=子规格#规格
+                子记['declaredBy']='factory "'+str(名)+'"'+尾#声明者
+                子记['parent']='factory:'+str(名)#父为工厂键
+                子记['declarationEpoch']=子记['declarationEpoch']+1#抬世代
+                本批.append((子键,子记))#攒
+            for 子键,子记 in 本批:#标脏
+                自身.标脏(子键,子记)#变更
+            for _,子记 in 本批:#声明寿命
+                自身.通知声明(子记)#同步
+        def 拆除():
+            """幂等；仅当本定义仍挂着时拆除。"""
+            if 记['definition'] is not 定义:#已换或已拆
+                return#空操作
+            记['definition']=None#清定义
+            自身.标工厂脏(记)#标脏
+            定义存储=定义['store'] if 'store' in 定义 else None#存储
+            if 定义存储 is not None and 是存储工厂(定义存储) is False:#共享句柄
+                钉=自身.句柄作用域[id(定义存储)] if id(定义存储) in 自身.句柄作用域 else None#已钉
+                if 钉 is not None:#有
+                    钉['count']-=1#减
+                    if 钉['count']==0:#归零
+                        del 自身.句柄作用域[id(定义存储)]#拿掉
+            自身.拆除子槽(定义['children'] if 'children' in 定义 else None)#塌缩子槽
+        return 拆除#拆除器
+
+    def 取工厂(自身,名):
+        """读取已登记工厂定义；缺席为 None。"""
+        if 名 not in 自身.工厂表:#无
+            return None#缺席
+        return 自身.工厂表[名]['definition']#定义
+
+    def 工厂版本(自身,名):
+        """工厂定义单调版本；未碰过为 0。"""
+        if 名 not in 自身.工厂表:#无
+            return 0#0
+        return 自身.工厂表[名]['version']#版本
+
+    def 订阅工厂(自身,名,回调):
+        """订阅工厂定义寿命；微任务批处理通知。"""
+        记=自身.取工厂记录(名)#取得或创建
+        记['listeners'].add(回调)#加入
+        def 退订():
+            """从集合拿掉。"""
+            记['listeners'].discard(回调)#删
+        return 退订#退订器
+
+    def 工厂仍存活(自身,定义):
+        """保留的工厂定义是否仍是当前登记。身份用 is。"""
+        名=定义['name']#工厂名
+        if 名 not in 自身.工厂表:#无
+            return False#死
+        return 自身.工厂表[名]['definition'] is 定义#同对象
+
+    def 标工厂脏(自身,记):
+        """抬工厂版本并微任务通知订阅者。"""
+        记['version']=记['version']+1#抬版本
+        def 微任务通知():
+            """通知工厂订阅者。"""
+            for 回调 in list(记['listeners']):#快照
+                回调()#调用
+        threading.Timer(0,微任务通知).start()#近似 queueMicrotask
 
     def 取记录(自身,键):
         """第一次碰到时创建空白记录。"""
@@ -247,8 +362,8 @@ class 槽位登记表:#纯槽位登记表
         return 自身.规格(键)#同规格
 
     def 快照(自身,根=None):
-        """导出声明拓扑。不含组件或可执行钩。"""
-        def 建树(名,已见):
+        """导出声明拓扑为活合成节点；不含组件或可执行钩。"""
+        def 建槽(名,已见):
             """环或未声明则 None。"""
             if 名 not in 自身.记录表:#无
                 return None#无
@@ -263,7 +378,7 @@ class 槽位登记表:#纯槽位登记表
             子节点=[]#子树
             for 子名,候选 in 自身.记录表.items():#所有记录
                 if 候选['spec'] is not None and 候选['parent']==名:#活子
-                    节=建树(子名,支)#建
+                    节=建槽(子名,支)#建
                     if 节 is not None:#可用
                         子节点.append(节)#记入
             占用者=[]#占用者表
@@ -280,6 +395,7 @@ class 槽位登记表:#纯槽位登记表
                     行['order']=形['order']#order
                 占用者.append(行)#记入
             节点={#活槽节点
+                'type':'slot',#判别：普通槽
                 'name':名,#槽键
                 'kind':记['spec']['kind'],#基数
                 'scope':记['spec']['scope'],#作用域
@@ -289,19 +405,43 @@ class 槽位登记表:#纯槽位登记表
             if 记['declaredBy'] is not None:#声明者
                 节点['declaredBy']=记['declaredBy']#带上
             return 节点#返回
+        def 建工厂(名):
+            """无定义则 None。"""
+            if 名 not in 自身.工厂表:#无
+                return None#无
+            定义=自身.工厂表[名]['definition']#定义
+            if 定义 is None:#缺席
+                return None#无
+            节点名='factory:'+str(名)#父键
+            子节点=[]#子树
+            for 子名,候选 in 自身.记录表.items():#所有记录
+                if 候选['spec'] is not None and 候选['parent']==节点名:#工厂子
+                    节=建槽(子名,set([节点名]))#建
+                    if 节 is not None:#可用
+                        子节点.append(节)#记入
+            节点={#活工厂节点
+                'type':'factory',#判别：工厂
+                'name':名,#工厂名
+                'scope':定义['scope'],#作用域
+                'children':子节点,#子树
+            }#节点结束
+            if 'registrant' in 定义:#登记方
+                节点['registrant']=定义['registrant']#带上
+            return 节点#返回
         if 根 is not None:#指定根
-            节=建树(根,set())#建
+            if 根.startswith('factory:'):#工厂根
+                节=建工厂(根[len('factory:'):])#建工厂
+            else:#普通槽根
+                节=建槽(根,set())#建槽
             return [] if 节 is None else [节]#不可用则空
         结果=[]#活根表
-        for 名,记 in 自身.记录表.items():#所有
-            if 记['spec'] is None:#未声明
-                continue#跳
-            父=记['parent']#父
-            if 父 is not None:#有父
-                父记=自身.记录表[父] if 父 in 自身.记录表 else None#父记录
-                if 父记 is not None and 父记['spec'] is not None:#父仍活
-                    continue#非根
-            节=建树(名,set())#建
+        for 名,记 in 自身.记录表.items():#所有槽
+            if 记['spec'] is not None and 记['parent'] is None:#活根槽
+                节=建槽(名,set())#建
+                if 节 is not None:#可用
+                    结果.append(节)#记入
+        for 名 in 自身.工厂表.keys():#所有工厂
+            节=建工厂(名)#建
             if 节 is not None:#可用
                 结果.append(节)#记入
         return 结果#返回
@@ -357,8 +497,13 @@ class 槽位登记表:#纯槽位登记表
         for 回调 in list(自身.条目错误监听):#快照后通知
             回调(键,条目,错误,{'abdicated':退位})#同步
 
+    def 报告工厂错误(自身,名,登记,错误):
+        """工厂出现崩溃：经条目监督通道通知，不退位共享定义。"""
+        for 回调 in list(自身.条目错误监听):#快照后通知
+            回调('factory:'+str(名),登记,错误,{'abdicated':False})#同步
+
     def 条目错误时(自身,回调):
-        """每次报告同步触发。"""
+        """每次报告同步触发；登记可为条目或工厂定义。"""
         自身.条目错误监听.add(回调)#加入
         def 退订():
             """从集合拿掉。"""
@@ -374,8 +519,11 @@ class 槽位登记表:#纯槽位登记表
                 钉['count']-=1#减
                 if 钉['count']==0:#归零
                     del 自身.句柄作用域[id(存储)]#拿掉
-        子表=条目['children'] if 'children' in 条目 else None#子槽
-        if 子表 is None:#无子；空 dict 在 JS 为真仍塌缩
+        自身.拆除子槽(条目['children'] if 'children' in 条目 else None)#塌缩子槽
+
+    def 拆除子槽(自身,子表):
+        """塌缩子槽声明树；空 dict 在 JS 为真仍塌缩。"""
+        if 子表 is None:#无子
             return#完
         for 子键 in 子表.keys():#每个子槽
             if 子键 not in 自身.记录表:#无

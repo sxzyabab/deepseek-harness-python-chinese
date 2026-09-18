@@ -41,6 +41,8 @@ def 计划审阅于(问题列表):#把请求收窄为可渲染的计划审阅
         'plan':题目['detail'],#计划 markdown
         'approve':批准,#批准选项
     }#审阅字段结束
+    if 'callId' in 意图 and 意图['callId'] is not None:#有调用 id 才带上
+        审阅['callId']=意图['callId']#工具调用 id
     if 拒绝 is not None:#有拒绝选项才带上
         审阅['decline']=拒绝#拒绝选项
     return 审阅#收窄后的审阅

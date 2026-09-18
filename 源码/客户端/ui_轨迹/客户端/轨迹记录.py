@@ -4,12 +4,17 @@ import re#千分位插入
 __all__=[#仅中文公开名
     '轨迹错误',
     '轨迹单元格种类',
+    '轨迹源块键',
     '轨迹记录身份',
     '格式化毫秒时长',
     '格式化已用秒数',
 ]#公开面结束
 
 千分位插入=re.compile(r'\B(?=([0-9]{3})+(?![0-9]))')#千分位缝
+
+# 布局产出的源块字段约定：type、content 必有；attachment 为图片附件引用；
+# file 为普通文件附件引用（从不交给图片加载器）；可选 callId、toolName。
+轨迹源块键=('type','content','attachment','file','callId','toolName')#源块字段
 
 class 轨迹错误(Exception):
     """本包异常基类。"""

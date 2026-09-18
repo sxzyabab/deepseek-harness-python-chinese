@@ -3,10 +3,10 @@ from .会话提供方 import 渲染会话区域#SessionProvider 渲染语义
 
 __all__=[#仅中文公开名
     '注入','应用','会话界面','会话错误','待处理交互基座','标准钩子属性名',
-    '内置源','相同待处理交互',
+    '内置源','相同待处理交互','相同会话状态',
 ]#公开面结束
 
-注入=['sessions','slots']#所需的 Controller 与渲染器服务
+注入=['sessions','slots','remote']#所需的 Controller、渲染器与远程服务
 
 def 标准钩子属性名(名称):#钩子到标准 prop 名
     """`session` → `useSession`。"""
@@ -147,51 +147,100 @@ def 相同待处理交互(左,右):#按引用比较两份待处理投影
             return False#不等
     return True#全同
 
-class 物化绑定:#已物化的绑定缓存
-    """Controller 拥有方、物化值与释放入口。"""
+def 相同会话状态(左,右):#比较统一状态投影
+    """大小与 running/pending/unread 全同。"""
+    if len(左)!=len(右):#大小不同
+        return False#不等
+    for 会话标识,状态 in 左.items():#逐项
+        if 会话标识 not in 右:#缺右侧
+            return False#不等
+        候选=右[会话标识]#右侧行
+        if 候选.get('running')!=状态.get('running'):#运行态不同
+            return False#不等
+        if 候选.get('pendingInteraction') is not 状态.get('pendingInteraction'):#待处理不同
+            return False#不等
+        if 候选.get('completionUnread')!=状态.get('completionUnread'):#未读不同
+            return False#不等
+    return True#全同
 
-    def __init__(自身,拥有方,值,释放):#构造
+def 创建绑定源(值):#构造可观察绑定源
+    """value/listeners/getSnapshot/subscribe。"""
+    源={'value':值,'listeners':set()}#源对象
+    def 读快照():#读快照
+        """当前值。"""
+        return 源['value']#值
+    def 订阅(监听):#订阅
+        """返回退订。"""
+        源['listeners'].add(监听)#登记
+        def 退订():#退订
+            """去掉监听。"""
+            源['listeners'].discard(监听)#去掉
+        return 退订#退订
+    源['getSnapshot']=读快照#挂读
+    源['subscribe']=订阅#挂订
+    return 源#返回源
+
+class 物化绑定:#已物化的绑定缓存
+    """Controller 拥有方、可观察源与释放入口。"""
+
+    def __init__(自身,拥有方,源,释放):#构造
         """记下三件套。"""
         自身.owner=拥有方#拥有方
-        自身.value=值#物化值
+        自身.source=源#可观察源
         自身.release=释放#释放缓存
 
 class 会话界面:#会话作用域源名册与渲染器适配器
-    """Cordis 服务：提供/待处理/作用域适配。"""
+    """Cordis 服务：提供/待处理/状态/作用域适配。"""
 
     def __init__(自身,上下文,会话面):#构造服务
         """登记服务名 uiSession。"""
         自身.ctx=上下文#Cordis 上下文
         自身.sessions=会话面#会话对象层
         自身.descriptors=[{**内置源,'resolve':内置解析}]#始终含内置源
-        自身.bindings={}#按会话缓存物化绑定
-        自身.absent=自身.物化缺席()#先物化缺席绑定
-        自身.currentBinding=自身.解析当前()#再解析当前
-        自身.currentListeners=set()#当前绑定订阅者
+        自身.bindings={}#按拥有方缓存物化绑定
+        自身.absent=创建绑定源(自身.物化缺席())#先物化缺席源
+        自身.current=创建绑定源(自身.absent['value'])#再构造当前源
         自身.pendingDomains=[]#已注册待处理域
         自身.pendingSnapshot={}#待处理投影
-        自身.pendingListeners=set()#待处理订阅者
-        自身.pendingInteractions={#待处理可观察源
-            'getSnapshot':自身.读待处理快照,#读当前投影
-            'subscribe':自身._订待处理,#订阅
-        }#待处理源结束
+        自身.running={}#运行态表
+        自身.completionUnread=set()#完成未读集
+        自身.statusSnapshot={}#状态投影
+        自身.statusListeners=set()#状态订阅者
+        自身.mainRetainId=None#主视图持有会话
+        自身.disposeMainRetain=lambda:None#主视图持有退订
+        自身.active=True#服务是否活跃
+        自身.sessionStatus={#状态可观察源
+            'getSnapshot':自身.读状态快照,#读当前投影
+            'subscribe':自身._订状态,#订阅
+        }#状态源结束
         自身.adapter={#作用域适配器
-            'current':{#当前绑定源
-                'getSnapshot':自身.读当前绑定,#当前绑定快照
-                'subscribe':自身._订当前,#订阅当前
-            },#当前结束
-            'resolve':自身.解析,#按键解析作用域
+            'current':自身.current,#当前绑定源
+            'bindingSource':自身.取绑定源,#按引用取源
             'renderArea':渲染会话区域,#SessionProvider 渲染语义
         }#适配器结束
         def 投影寿命():#绑定投影寿命
-            """列表变更刷新当前；拆卸释放全部物化。"""
-            def 列表变更():#列表变更
-                """刷新当前绑定。"""
-                自身.发布当前()#刷新
-            退订列表=会话面.list.subscribe(列表变更)#列表变更
+            """列表变更刷新主视图与状态；远程运行态观察。"""
+            def 列表变更主视图():#列表变更
+                """刷新主视图绑定。"""
+                自身.发布主视图()#刷新
+            def 列表变更状态():#列表变更
+                """协调状态。"""
+                自身.协调状态()#协调
+            def 远程运行态(会话标识,运行中):#远程事件
+                """观察运行态。"""
+                自身.观察运行态(会话标识,运行中)#观察
+            退订列表=会话面.list.subscribe(列表变更主视图)#列表→主视图
+            退订状态=会话面.list.subscribe(列表变更状态)#列表→状态
+            退订远程=上下文.remote.$on('api-session/status',远程运行态)#远程运行态
+            自身.发布主视图()#首次主视图
+            自身.协调状态()#首次状态
             def 拆卸():#拆卸
-                """退订并释放。"""
+                """标死并释放。"""
+                自身.active=False#标死
                 退订列表()#退订列表
+                退订状态()#退订状态
+                退订远程()#退订远程
+                自身.disposeMainRetain()#退订主视图持有
                 记录列表=list(自身.bindings.values())#快照缓存
                 自身.bindings.clear()#清空缓存
                 for 记录 in 记录列表:#释放全部物化
@@ -199,29 +248,28 @@ class 会话界面:#会话作用域源名册与渲染器适配器
             return 拆卸#返回拆卸
         上下文.副作用(投影寿命,'ui-session: Session binding projection')#诊断名
 
-    def 读待处理快照(自身):#待处理投影
-        """当前跨域待处理投影。"""
-        return 自身.pendingSnapshot#投影
+    def 读状态快照(自身):#状态投影
+        """当前统一 Session UI 状态。"""
+        return 自身.statusSnapshot#投影
 
-    def 读当前绑定(自身):#当前绑定
-        """当前选中会话绑定。"""
-        return 自身.currentBinding#绑定
-
-    def _订当前(自身,监听):#订阅当前绑定
+    def _订状态(自身,监听):#订阅状态
         """返回退订。"""
-        自身.currentListeners.add(监听)#登记
+        自身.statusListeners.add(监听)#登记
         def 退订():#退订
             """去掉监听。"""
-            自身.currentListeners.discard(监听)#去掉
+            自身.statusListeners.discard(监听)#去掉
         return 退订#退订
 
-    def _订待处理(自身,监听):#订阅待处理
-        """返回退订。"""
-        自身.pendingListeners.add(监听)#登记
-        def 退订():#退订
-            """去掉监听。"""
-            自身.pendingListeners.discard(监听)#去掉
-        return 退订#退订
+    def 取绑定源(自身,引用):#按引用取稳定渲染器源
+        """缺席或服务已死回退缺席源。"""
+        if not 自身.active:#已死
+            return 自身.absent#缺席
+        if 引用 is None:#显式缺席
+            return 自身.absent#缺席
+        拥有方=引用.binding#拥有方
+        if 自身.sessions.binding(引用.sessionId) is not 拥有方:#代际不匹配
+            raise 会话错误('ui-session: Session reference is not active in this Controller')#抛错
+        return 自身.源为(拥有方)#取或创建源
 
     def provide(自身,描述符):#登记一次会话作用域标准源贡献
         """由调用方 Cordis fiber 拥有 disposer。"""
@@ -230,7 +278,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
             自身.descriptors.append(描述符)#挂上描述符
             try:#尝试重建
                 自身.重建绑定()#重建全部绑定
-            except Exception:#失败回滚；重建绑定会抛 会话错误，也经 slots.bindStoreScope，契约未定
+            except Exception:#失败回滚
                 自身.descriptors.pop()#失败则回滚
                 raise#上抛
             def 拆卸():#拆卸
@@ -256,7 +304,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
             自身.发布待处理交互()#投影
         域=待处理交互域(优先级,域已变更)#构造域
         def 域寿命():#域寿命
-            """挂上域并立即投影；异步拆卸先清可见值。"""
+            """挂上域并立即投影；拆卸先清可见值。"""
             自身.pendingDomains.append(域)#挂上域
             自身.发布待处理交互()#立即投影
             def 拆卸():#拆卸
@@ -278,52 +326,63 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         return 发布到域#返回发布器
 
     def 重建绑定(自身):#描述符变更后重建全部缓存
-        """失败释放半成品。"""
+        """更新各源值并通知。"""
         缺席=自身.物化缺席()#新缺席绑定
-        绑定表={}#新缓存
-        try:#尝试重物化
-            for 会话标识,缓存 in 自身.bindings.items():#遍历旧缓存
-                绑定表[会话标识]=自身.创建物化绑定(缓存.owner)#按旧拥有方重物化
-        except Exception:#失败；创建物化绑定经 slots.bindStoreScope，契约未定
-            for 记录 in 绑定表.values():#失败释放半成品
-                记录.release()#释放
-            raise#上抛
-        旧=自身.bindings#旧缓存
-        自身.absent=缺席#换缺席
-        自身.bindings=绑定表#换缓存
-        for 记录 in 旧.values():#释放旧缓存
-            记录.release()#释放
-        自身.发布当前()#刷新当前
+        更新表=[{'source':记录.source,'value':自身.物化(记录.owner)} for 记录 in 自身.bindings.values()]#收集更新
+        自身.absent['value']=缺席#换缺席值
+        for 项 in 更新表:#换各源值
+            项['source']['value']=项['value']#写入
+        通知订阅者(自身.absent['listeners'],'[ui-session] absent binding')#通知缺席
+        for 项 in 更新表:#通知各绑定
+            通知订阅者(项['source']['listeners'],'[ui-session] Session binding')#通知
+        自身.发布主视图()#刷新主视图
 
-    def 解析(自身,键):#按会话解析
-        """无绑定则缺席。"""
-        拥有方=自身.sessions.binding(键)#取 Controller 绑定
-        if 拥有方 is None:#无绑定
-            return None#缺席
-        缓存=自身.bindings[键] if 键 in 自身.bindings else None#读缓存
-        if 缓存 is not None and 缓存.owner is 拥有方:#拥有方未变
-            return 缓存.value#复用
-        记录=自身.创建物化绑定(拥有方)#重物化
-        自身.bindings[键]=记录#写入缓存
-        if 缓存 is not None:#有旧
-            缓存.release()#释放旧记录
-        return 记录.value#返回新值
+    def 源为(自身,拥有方):#取或创建绑定源
+        """命中缓存则复用。"""
+        缓存=自身.bindings[拥有方] if 拥有方 in 自身.bindings else None#读缓存
+        if 缓存 is not None:#命中
+            return 缓存.source#复用
+        记录=自身.创建物化绑定(拥有方)#创建
+        自身.bindings[拥有方]=记录#写入
+        return 记录.source#返回源
 
-    def 解析当前(自身):#解析当前选中
-        """无选中或解析失败走缺席。"""
-        当前=自身.sessions.list.getSnapshot().current#列表当前 id
-        if 当前 is None:#无选中
-            return 自身.absent#缺席
-        结果=自身.解析(当前)#解析
-        return 结果 if 结果 is not None else 自身.absent#解析或缺席
-
-    def 发布当前(自身):#推送当前绑定变更
-        """引用未变则跳过。"""
-        下一=自身.解析当前()#解析下一当前
-        if 下一 is 自身.currentBinding:#引用未变
+    def 发布主视图(自身):#推送主视图绑定
+        """按 mainView 持有选择当前。"""
+        if not 自身.active:#已死
             return#跳过
-        自身.currentBinding=下一#更新当前
-        通知订阅者(自身.currentListeners,'[ui-session] current binding')#通知订阅者
+        按标识=自身.sessions.list.getSnapshot().byId#列表索引
+        当前标识=自身.current['value'].get('key') if isinstance(自身.current['value'],dict) else getattr(自身.current['value'],'key',None)#当前键
+        当前是主=当前标识 is not None and (自身.sessions.retainInfo(当前标识).getSnapshot().get('retainedBy',{}).get('mainView',0) or 0)>0#当前是否主视图
+        if 当前是主:#保持当前
+            下一标识=当前标识#保持
+        else:#找主视图持有
+            下一标识=None#默认无
+            for 候选 in 按标识.values():#逐行
+                持有=候选.get('retainedBy',{}) if isinstance(候选,dict) else getattr(候选,'retainedBy',{})#持有图
+                if (持有.get('mainView',0) if isinstance(持有,dict) else 0)>0:#主视图持有
+                    下一标识=候选.get('id') if isinstance(候选,dict) else getattr(候选,'id',None)#取 id
+                    break#找到
+        自身.监视主视图持有(下一标识)#监视
+        拥有方=None if 下一标识 is None else 自身.sessions.binding(下一标识)#取拥有方
+        值=自身.absent['value'] if 拥有方 is None else 自身.源为(拥有方)['value']#下一值
+        if 自身.current['value'] is 值:#未变
+            return#跳过
+        自身.current['value']=值#更新当前
+        通知订阅者(自身.current['listeners'],'[ui-session] main binding')#通知
+
+    def 监视主视图持有(自身,会话标识):#监视主视图持有变更
+        """id 未变则跳过。"""
+        if 会话标识 is 自身.mainRetainId:#未变
+            return#跳过
+        自身.disposeMainRetain()#退订旧
+        自身.mainRetainId=会话标识#记下新 id
+        if 会话标识 is None:#无
+            自身.disposeMainRetain=lambda:None#空
+        else:#有
+            def 持有变更():#持有变更
+                """刷新主视图。"""
+                自身.发布主视图()#刷新
+            自身.disposeMainRetain=自身.sessions.retainInfo(会话标识).subscribe(持有变更)#订阅
 
     def 发布待处理交互(自身):#跨域合成待处理投影
         """更大或相等优先级胜出。"""
@@ -331,7 +390,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         for 域 in 自身.pendingDomains:#逐域
             for 交互 in 域.值快照():#逐交互
                 优先级=域.优先级(交互)#算优先级
-                会话标识=交互.sessionId#待处理交互基座
+                会话标识=交互.sessionId#所属会话
                 先前=胜出表[会话标识] if 会话标识 in 胜出表 else None#已有胜出
                 if 先前 is None or 优先级>=先前['precedence']:#更大或相等胜出
                     胜出表[会话标识]={'interaction':交互,'precedence':优先级}#写入胜出
@@ -339,55 +398,112 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         if 相同待处理交互(自身.pendingSnapshot,投影):#同内容
             return#跳过
         自身.pendingSnapshot=投影#更新投影
-        通知订阅者(自身.pendingListeners,'[ui-session] pending interactions')#通知
+        自身.发布状态()#刷新统一状态
+
+    def 观察运行态(自身,会话标识,运行中):#观察运行态变更
+        """主视图外停止记完成未读。"""
+        先前=自身.running[会话标识] if 会话标识 in 自身.running else None#先前值
+        基线前=自身.sessions.list.getSnapshot().get('phase')=='pending'#基线前
+        自身.running[会话标识]=运行中#写入
+        if 运行中:#运行
+            自身.completionUnread.discard(会话标识)#清未读
+        elif (先前 is True or (先前 is None and 基线前)) and not 自身.是主视图(会话标识):#主视图外停止
+            自身.completionUnread.add(会话标识)#记未读
+        自身.发布状态()#刷新状态
+
+    def 协调状态(自身):#按列表协调运行态与未读
+        """就绪后清幽灵。"""
+        列表=自身.sessions.list.getSnapshot()#列表快照
+        在场=set(列表.get('byId',{}).keys())#在场 id
+        for 标识 in 在场:#逐在场
+            行=列表['byId'][标识]#行
+            先前=自身.running[标识] if 标识 in 自身.running else None#先前运行态
+            运行=行.get('running') if isinstance(行,dict) else getattr(行,'running',None)#行运行态
+            if 先前 is None:#基线
+                自身.running[标识]=运行#写入
+            elif 先前!=运行:#差异
+                自身.观察运行态(标识,运行)#观察
+            持有=行.get('retainedBy',{}) if isinstance(行,dict) else getattr(行,'retainedBy',{})#持有
+            if (持有.get('mainView',0) if isinstance(持有,dict) else 0)>0:#主视图
+                自身.completionUnread.discard(标识)#清未读
+        if 列表.get('phase')=='ready':#就绪后清幽灵
+            for 标识 in list(自身.running.keys()):#逐运行态键
+                if 标识 in 在场:#仍在场
+                    continue#跳过
+                del 自身.running[标识]#删运行态
+                自身.completionUnread.discard(标识)#删未读
+        自身.发布状态()#刷新状态
+
+    def 是主视图(自身,会话标识):#是否主视图持有
+        """mainView 计数大于 0。"""
+        行=自身.sessions.list.getSnapshot().get('byId',{}).get(会话标识)#行
+        if 行 is None:#无行
+            return False#否
+        持有=行.get('retainedBy',{}) if isinstance(行,dict) else getattr(行,'retainedBy',{})#持有
+        return (持有.get('mainView',0) if isinstance(持有,dict) else 0)>0#主视图
+
+    def 发布状态(自身):#合成统一 Session UI 状态
+        """并集 id 后投影。"""
+        列表标识=list(自身.sessions.list.getSnapshot().get('byId',{}).keys())#列表
+        标识集=set(列表标识)|set(自身.running.keys())|set(自身.pendingSnapshot.keys())|set(自身.completionUnread)#并集
+        下一={}#下一投影
+        for 标识 in 标识集:#逐 id
+            下一[标识]={#状态行
+                'running':自身.running[标识] if 标识 in 自身.running else None,#运行态
+                'pendingInteraction':自身.pendingSnapshot[标识] if 标识 in 自身.pendingSnapshot else None,#待处理
+                'completionUnread':标识 in 自身.completionUnread,#未读
+            }#行结束
+        if 相同会话状态(自身.statusSnapshot,下一):#同内容
+            return#跳过
+        自身.statusSnapshot=下一#更新投影
+        通知订阅者(自身.statusListeners,'[ui-session] Session status')#通知
 
     def 创建物化绑定(自身,拥有方):#物化并挂生命周期
-        """作用域死亡时清缓存。"""
+        """作用域死亡时清缓存并回退缺席值。"""
         值=自身.物化(拥有方)#合并描述符
+        自身.ctx.slots.bindStoreScope(值)#绑 store 作用域
+        源=创建绑定源(值)#可观察源
         记录箱=[None]#前向引用
 
         def 作用域寿命():#作用域死亡清理
             """已被替换则忽略。"""
             def 清理():#清理
-                """清缓存并可能回退缺席。"""
-                if 拥有方.sessionId not in 自身.bindings or 自身.bindings[拥有方.sessionId] is not 记录箱[0]:#已被替换
+                """清缓存并刷新主视图。"""
+                if 拥有方 not in 自身.bindings or 自身.bindings[拥有方] is not 记录箱[0]:#已被替换
                     return#忽略
-                del 自身.bindings[拥有方.sessionId]#清缓存
-                if 自身.currentBinding is not 值:#非当前
-                    return#只清缓存
-                自身.currentBinding=自身.absent#回退缺席
-                通知订阅者(自身.currentListeners,'[ui-session] current binding')#通知
+                del 自身.bindings[拥有方]#清缓存
+                源['value']=自身.absent['value']#回退缺席值
+                通知订阅者(源['listeners'],'[ui-session] Session binding')#通知
+                自身.发布主视图()#刷新主视图
             return 清理#返回清理
         释放效果=拥有方.ctx.副作用(作用域寿命,'ui-session: binding '+str(拥有方.sessionId))#诊断名
         def 释放():#释放缓存
             """执行绑定 effect 拆除。"""
             释放效果()#拆除
             return None#无返回
-        记录=物化绑定(拥有方,值,释放)#缓存记录
+        记录=物化绑定(拥有方,源,释放)#缓存记录
         记录箱[0]=记录#前向写入
         return 记录#返回记录
 
     def 物化(自身,绑定):#合并全部描述符
-        """拒绝未声明成员；绑 store 作用域。"""
+        """拒绝未声明成员。"""
         钩子={}#钩子表
         键控={}#键控表
         属性={}#prop 表
         最终属性=set()#最终 prop 名去重
         for 描述符 in 自身.descriptors:#逐描述符
-            贡献=解析贡献(描述符,绑定)#解析贡献；dict
+            贡献=解析贡献(描述符,绑定)#解析贡献
             校验贡献(描述符,贡献)#校验
             拷贝已声明('hook',钩子,描述符['hooks'] if 'hooks' in 描述符 else None,贡献['hooks'] if 'hooks' in 贡献 else None,最终属性)#拷钩子
             拷贝已声明('keyed hook',键控,描述符['keyedHooks'] if 'keyedHooks' in 描述符 else None,贡献['keyedHooks'] if 'keyedHooks' in 贡献 else None,最终属性)#拷键控
             拷贝已声明('prop',属性,描述符['props'] if 'props' in 描述符 else None,贡献['props'] if 'props' in 贡献 else None,最终属性)#拷 prop
-        值={#作用域绑定
+        return {#作用域绑定
             'key':绑定.sessionId,#会话键
             'ctx':绑定.ctx,#拥有 Context
             'hooks':钩子,#钩子
             'keyedHooks':键控,#键控
             'props':属性,#prop
         }#绑定结束
-        自身.ctx.slots.bindStoreScope(值)#把 store 作用域绑到该绑定
-        return 值#返回
 
     def 物化缺席(自身):#无 Session 时的缺席形状
         """声明同名成员为 None。"""
@@ -404,11 +520,17 @@ class 会话界面:#会话作用域源名册与渲染器适配器
 def 应用(上下文):#浏览器侧安装入口
     """安装会话根源与作用域适配器。"""
     服务=会话界面(上下文,上下文.sessions)#构造服务
+    def 持有信息(键):#键控持有信息
+        """转调 Controller。"""
+        return 上下文.sessions.retainInfo(键)#持有
     上下文.slots.provideRoot({#贡献根源
         'hooks':{#根钩子
             'sessions':上下文.sessions.list,#根列表源
-            'sessionPendingInteraction':服务.pendingInteractions,#根待处理源
+            'sessionStatus':服务.sessionStatus,#根状态源
         },#钩子结束
+        'keyedHooks':{#键控根钩子
+            'sessionRetainInfo':持有信息,#持有信息
+        },#键控结束
     })#根贡献结束
     上下文.slots.installScope('session',服务.adapter)#安装 session 作用域
 

@@ -8,6 +8,7 @@ class 询问用户问题选项(TypedDict):#提供给用户的一条可选答案
 class 询问用户问题意图(TypedDict):#调用方声明的展示意图：该问题就是这种决定，认得该标签的 UI 可按此展示；意图只改展示，从不改协议
     kind:Literal['plan-review']#提交评审的计划：detail 是 ask() 要求的计划 markdown
     approve:str#批准该计划的选项标签；点名的不是本问题自己的选项时，在 ask() 被拒绝
+    callId:NotRequired[str]#已记录的工具调用 id，其参数含被评审的计划
 
 class 询问用户问题项(TypedDict):#用户提问请求里的一条问题
     id:str#调用方提供的稳定问题 id，会在答案里回显

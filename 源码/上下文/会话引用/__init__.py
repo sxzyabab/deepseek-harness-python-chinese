@@ -102,29 +102,13 @@ class 会话引用解析器(服务):
             if 记录['header']['id']==智能体.id:#自身
                 continue#排除
             过滤.append({'record':记录,'index':下标})#保留原始顺序作平局键
-        if 针=='':#无过滤时先按亲和截断再读标题
-            def 亲和键(行):
-                """cwd 亲和再原顺序。"""
-                头=行['record']['header']#会话头
-                return (候选排序(头['cwd'] if 'cwd' in 头 else None,目标目录),行['index'])#排序键
-            检查集=sorted(过滤,key=亲和键)[:上限]#先截断再观察标题
-        else:#有针则先观察全部再过滤
-            检查集=过滤#全部观察
-        观察列表=自身.ctx.sessionQuery.批量读取标题快照([行['record']['header']['id'] for 行 in 检查集],信号)#读标题快照
-        中间=[]#带原顺序与标签
-        for 观察下标,行 in enumerate(检查集):#配对标题观察
-            观察=观察列表[观察下标]#与检查集对齐
-            if 观察['status']=='fulfilled':#标题读取成功
-                值=观察['value']#观察值
-                标题快照=值['title'] if 'title' in 值 else None#折叠标题
-                标题=标题快照['title'] if 标题快照 is not None else None#标题文本
-                标签=标题 if 标题 is not None else 行['record']['header']['id']#有标题用标题，否则id
-            else:#失败则用id
-                标签=行['record']['header']['id']#用id
-            中间.append({'record':行['record'],'index':行['index'],'label':标签})#中间行
+        观察列表=[]#带投影标签
+        for 行 in 过滤:#逐行投影
+            标签组=自身.投影标签(行['record'])#提及标签与展示标题
+            观察列表.append({'record':行['record'],'index':行['index'],'label':标签组['label'],'displayTitle':标签组['displayTitle']})#中间行
         已滤=[]#按针过滤
-        for 行 in 中间:#逐行
-            if 针=='':#无针则全留（已截断）
+        for 行 in 观察列表:#逐行
+            if 针=='':#无针则全留
                 已滤.append(行)#留下
                 continue#下一
             头=行['record']['header']#会话头
@@ -136,6 +120,8 @@ class 会话引用解析器(服务):
                 已滤.append(行)#留下
             elif 针 in 行['label'].lower():#标签包含
                 已滤.append(行)#留下
+            elif 针 in 行['displayTitle'].lower():#展示标题包含
+                已滤.append(行)#留下
         def 亲和键2(行):
             """再按亲和排序。"""
             头=行['record']['header']#会话头
@@ -144,12 +130,40 @@ class 会话引用解析器(服务):
         候选列表=[]#宿主候选
         for 行 in 已滤:#收成宿主候选
             头=行['record']['header']#会话头
-            条目={'sessionId':头['id'],'label':行['label'],'createdAt':头['createdAt']}#候选对象
+            条目={'sessionId':头['id'],'label':行['label'],'displayTitle':行['displayTitle'],'sameWorkspace':False,'createdAt':头['createdAt']}#候选对象
             目录=头['cwd'] if 'cwd' in 头 else None#可选cwd
             if 目录 is not None:#有cwd才带上
                 条目['cwd']=目录#写入cwd
+                条目['sameWorkspace']=目录==目标目录#同工作区
             候选列表.append(条目)#收下
         return 候选列表#候选列表
+
+    def 投影标签(自身,记录):
+        """会话投影在不读日志时能回答的提及标签与展示标题。"""
+        头=记录['header']#会话头
+        附着=None#在线附着
+        会话表=自身.ctx.get('sessions') if hasattr(自身.ctx,'get') else None#会话表
+        if 会话表 is not None and hasattr(会话表,'get'):#有表
+            附着=会话表.get(头['id'])#附着
+        投影=自身.ctx.get('sessionProjections') if hasattr(自身.ctx,'get') else None#投影服务
+        快照=None#投影快照
+        if 附着 is not None and 投影 is not None:#在线
+            快照=投影.snapshot(附着,['title','subagent'])#在线切面
+        elif not (头['isSeeded'] if 'isSeeded' in 头 else False):#冷非种子
+            缓存=自身.ctx.get('sessionProjectionCache') if hasattr(自身.ctx,'get') else None#投影缓存
+            if 缓存 is not None:#有缓存
+                快照=缓存.cachedSnapshot(头,0,['title','subagent'])#冷检查点
+        标签=头['id']#缺省 id
+        if 快照 is not None:#有快照
+            标题=快照['values']['title'] if 'values' in 快照 and 'title' in 快照['values'] else None#标题
+            if 标题 is not None:#有标题
+                标签=标题#用标题
+        展示=标签#缺省展示
+        if 快照 is not None and 'values' in 快照 and 'subagent' in 快照['values']:#有子智能体
+            子=快照['values']['subagent']#子投影
+            if 子 is not None and 'label' in 子 and 子['label'] is not None:#有标签
+                展示=子['label']#优先子标签
+        return {'label':标签,'displayTitle':展示}#标签组
 
     def 准备(自身,智能体,内容,引用列表,信号=None):
         """入队前快照全部引用，并返回一份聚合的持久上下文。"""
@@ -181,6 +195,7 @@ class 会话引用解析器(服务):
             事实={#一条引用事实
                 'sessionId':源['data']['sessionId'],#源会话id
                 'label':源['data']['label'],#标签
+                'capturedFormatVersion':源['capturedFormatVersion'],#捕获格式版本
                 'capturedThroughSeq':源['data']['capturedThroughSeq'],#捕获序号
                 'inputIndex':下标,#输入顺序
             }#事实骨架
@@ -199,6 +214,7 @@ class 会话引用解析器(服务):
             保留=保留引用会话(源['snapshot'],源['input']['label'],自身.配置['maxReferenceBytes'])#按预算保留
             if 保留 is None:#固定数据仍装不下
                 raise 会话引用错误('referenced session snapshot cannot fit the configured byte budget','SESSION_REFERENCE_BUDGET_EXCEEDED')#超出预算
+            保留['capturedFormatVersion']=源['snapshot']['session']['version']#捕获格式版本
             已渲染.append(保留)#收下数据与统计
         return 已渲染#全部成功
 

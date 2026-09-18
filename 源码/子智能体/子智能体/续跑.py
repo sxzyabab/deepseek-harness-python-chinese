@@ -170,14 +170,37 @@ class 子体锁:#串行化每个耐久子体的投递、释放与拆除
             raise 错误盒[0]#抛出
         return 结果盒[0]#成功值
 
+class 激活池:#进程内槽位池
+    """经不间断可续跑父链路共享的进程内槽位。"""
+    def __init__(自身):#空池
+        """空池。"""
+        自身._槽=set()#已占用槽
+
+    def 预留(自身,容量):#重建前预留
+        """重建前预留；返回的释放对未发布回滚也容忍。"""
+        if len(自身._槽)>=容量:#已满
+            raise 子智能体错误(#拒绝
+                'subagent limit reached (active child limit: '+str(容量)+'); wait for an existing child to finish '
+                +'or complete this work with the current agents',
+                'ACTIVATION_LIMIT_REACHED',
+            )#SubagentError结束
+        槽=object()#槽标记
+        自身._槽.add(槽)#占用
+        def 释放():#归还
+            """幂等释放。"""
+            自身._槽.discard(槽)#归还
+        return 释放#释放器
+
 class 子智能体续跑管理器:#可续跑管理器
     """ctx.subagents 背后的可续跑子智能体编排服务。工具模式与宿主适配器是本约定的消费方；前台一次性委托继续调用 ctx.subagents.start()，从不进入本生命周期。"""
-    def __init__(自身,上下文对象,宿主,装配注册表):#安装管理器
-        """安装管理器。"""
+    def __init__(自身,上下文对象,宿主,装配注册表,最大活跃子体):#安装管理器
+        """安装管理器。最大活跃子体为 ()->int。"""
         自身.ctx=上下文对象#服务上下文
         自身._宿主=宿主#宿主钩子
         自身._装配注册表=装配注册表#装配注册表
+        自身._最大活跃子体=最大活跃子体#活子上限
         自身._激活表={}#子会话 id → 其活 Activation
+        自身._根池={}#根 Agent id → 激活池（弱：根拆除时靠 disposed 清）
         自身._物化集合=set()#进行中物化 id
         自身._物化表={}#物化 id → 物化记录
         自身._锁=子体锁()#每子体锁
@@ -196,6 +219,7 @@ class 子智能体续跑管理器:#可续跑管理器
             键=id(智能体)#对象身份
             自身._关闭作用域.pop(键,None)#关掉
             自身._关闭根代理.pop(键,None)#摘掉
+            自身._根池.pop(键,None)#清根池
         上下文对象.监听('agent/disposed',根离开)#disposed监听
         def 排空拆除():#先拆除：排空森林
             """结构拆除：先排空。"""
@@ -624,23 +648,41 @@ class 子智能体续跑管理器:#可续跑管理器
                     pass#吞掉
             raise 错误#保留原失败
 
+    def _根池于(自身,父):#解析根池
+        """根的池解析一次；后代直接继承其驻留父的池。"""
+        父激活=自身._激活表.get(父.id)#驻留父
+        if 父激活 is not None and 父激活.get('pool') is not None:#继承父池
+            return 父激活['pool']#池
+        键=id(父)#根身份
+        池=自身._根池.get(键)#已有
+        if 池 is None:#新建
+            池=激活池()#池
+            自身._根池[键]=池#登记
+        return 池#池
+
     def _物化(自身,输入):#跟踪物化
         """经私有 activation-owner 作用域创建或恢复子 Agent。"""
         自身._断言准入(输入['parent'])#准入必须开着
+        若已中止则抛出((输入['signal'] if 'signal' in 输入 else None))#取消检查
         屏障=操作任务()#发布或回滚屏障
         谱系=自身._活谱系(输入['parent'])#同步准入边界谱系
+        池=自身._根池于(输入['parent'])#池
+        释放槽=池.预留(自身._最大活跃子体())#预留槽
         物化标识=object()#物化身份
         物化={'lineage':谱系,'settled':屏障}#已准入物化
         自身._物化表[物化标识]=物化#登记屏障
         自身._物化集合.add(物化标识)#登记
         try:#实际创建或恢复
-            return 自身._跟踪物化(输入,谱系)#驻留Activation
+            return 自身._跟踪物化(输入,谱系,池,释放槽)#驻留Activation
+        except Exception:#失败归还槽
+            释放槽()#归还
+            raise#原样
         finally:#无论成败摘屏障
             自身._物化表.pop(物化标识,None)#移出集合
             自身._物化集合.discard(物化标识)#移出
             屏障.兑现()#放开排空等待
 
-    def _跟踪物化(自身,输入,父谱系):#实际创建或恢复
+    def _跟踪物化(自身,输入,父谱系,池,释放槽):#实际创建或恢复
         """执行一次被跟踪的物化。"""
         子标识=输入['childId']#子id
         提供方=输入['provider']#提供方
@@ -687,6 +729,8 @@ class 子智能体续跑管理器:#可续跑管理器
             except TypeError:#不可弱引用
                 pass#跳过
         激活={#驻留纪元
+            'pool':池,#激活池
+            'releaseSlot':释放槽,#释放槽
             'childId':子标识,#子id
             'parentSession':父.id,#父会话id
             'provider':提供方,#提供方名
@@ -743,6 +787,9 @@ class 子智能体续跑管理器:#可续跑管理器
                 激活['handle'].拆除()#释放Agent
             finally:#无论成败
                 自身._激活表.pop(激活['childId'],None)#移出活表
+                释放=激活.get('releaseSlot')#槽释放
+                if 释放 is not None:#有
+                    释放()#归还槽
                 自身._释放所有权(激活['childId'])#回滚父所有权
                 任务.兑现()#放开
         threading.Thread(target=后台拆除句柄).start()#后台
@@ -947,6 +994,9 @@ class 子智能体续跑管理器:#可续跑管理器
             )#SubagentError结束
         # 只到现在 Activation 才消失。
         自身._激活表.pop(子标识,None)#移出活表
+        释放=激活.get('releaseSlot')#槽释放
+        if 释放 is not None:#有
+            释放()#归还槽
         # 在释放所有权之前，父仍把本子体算进去因此不能被判为已结算。
         自身._通知结算(激活,激活['observer']['terminal'](失败))#向父投递结算
         # 即使失败也释放所有权。

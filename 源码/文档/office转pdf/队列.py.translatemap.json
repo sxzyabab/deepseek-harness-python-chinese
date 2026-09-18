@@ -1,0 +1,22 @@
+{
+    "ConversionQueue":"转换队列",
+    "Reader":"读取方",
+    "Job":"转换任务",
+    "read":"读取",
+    "dispose":"拆除",
+    "drain":"抽干",
+    "execute":"执行任务",
+    "finish":"结算",
+    "retain":"保留",
+    "release":"释放读取方",
+    "cancel":"取消任务",
+    "fail":"失败结算",
+    "busy":"忙碌错误",
+    "unavailable":"不可用错误",
+    "copy":"复制结果",
+    "reservation":"预留字节数",
+    "config":"配置",
+    "generation":"世代",
+    "convert":"转换函数",
+    "self":"自身"
+}

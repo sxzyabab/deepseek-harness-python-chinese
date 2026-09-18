@@ -20,6 +20,10 @@
     'cordis/inspect-query',#动态包探查查询
     'cordis/inspect-query-resolved',#动态包探查查询已决议
     'llm/adapters-updated',#大模型适配器已更新
+    'permission-presets/catalog-changed',#权限预设目录已变更
+    'plugin-manager/changed',#插件装载已变更
+    'plugin-manager/install-log',#插件安装日志
+    'plugin-manager/install-state',#插件安装状态
     'settings/document-updated',#设置文档已更新
     'user-questions/request',#用户提问瀑布
 )#只读元组，元素为字面量事件名

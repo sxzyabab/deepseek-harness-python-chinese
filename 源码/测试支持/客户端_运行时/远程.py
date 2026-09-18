@@ -20,16 +20,29 @@ class 测试远程:#Remote 测试替身
         """注册为 ctx.remote，并为脚本化命名空间各提供服务。"""
         if 命名空间表 is None:#缺省
             命名空间表={}#空映射
+        自身._ctx=上下文#根上下文
         自身._subscriptions={}#事件订阅表
         自身.$host={'home':None,'isLoopback':True}#Host 事实
-        for 名 in 命名空间表:#校验命名空间名
-            if 名 in ('emit','$on','$mount','subscriptions','$host') or hasattr(测试远程,名):#会遮蔽
+        自身._校验命名空间(命名空间表)#校验
+        上下文.提供服务('remote',自身)#提供 remote
+        自身._安装命名空间(命名空间表)#安装子面
+
+    def 提供命名空间(自身,命名空间表):#追加命名空间
+        """向本 Remote 服务追加脚本化命名空间面。"""
+        自身._校验命名空间(命名空间表)#校验
+        自身._安装命名空间(命名空间表)#安装
+
+    def _校验命名空间(自身,命名空间表):#校验命名空间
+        """拒绝会遮蔽替身自有成员的命名空间名。"""
+        for 名 in 命名空间表:#逐名
+            if 名 in 自身.__dict__ or hasattr(测试远程,名):#会遮蔽
                 raise TypeError(f'TestRemote: scripted namespace "{名}" would shadow the double\'s own member')#英文诊断
+
+    def _安装命名空间(自身,命名空间表):#安装命名空间
+        """挂面并提供 remote.<name> 服务。"""
         for 名,面 in 命名空间表.items():#挂命名空间面
             setattr(自身,名,面)#挂面
-        上下文.提供服务('remote',自身)#提供 remote
-        for 名,面 in 命名空间表.items():#提供子面
-            上下文.提供服务(f'remote.{名}',面)#提供子面
+            自身._ctx.提供服务(f'remote.{名}',面)#提供子面
 
     def emit(自身,事件,参数):#投递事件
         """向订阅者投递一次转发的 host 事件。"""
@@ -50,4 +63,4 @@ class 测试远程:#Remote 测试替身
 
     def $mount(自身):#拒绝挂载
         """生成命名空间挂载，本替身不支持。"""
-        raise Exception('TestRemote: $mount 需要真正的客户端 Remote 服务')#诊断
+        raise Exception('TestRemote: $mount needs the real Client Remote service')#英文诊断

@@ -1,4 +1,4 @@
-"""实时会话队列、任务与投影控制流。
+"""实时会话任务与投影控制流。
 
 对齐上游 `session-controller/src/control.ts`。公开面仅中文名。
 """
@@ -7,34 +7,6 @@ from ...工具.双端队列 import 双端队列#缓冲
 from .远程错误与并发 import 已中止#中止查询
 
 __all__=['会话控制控制器']#仅中文公开名
-
-def _提示rpc身份(消息):
-    """浏览器提交消息的用户源所携带的提示词 RPC 身份。"""
-    源=消息['source'] if isinstance(消息,dict) and 'source' in 消息 else None#来源
-    if isinstance(源,dict) and 源.get('kind')=='user' and 'rpcId' in 源:#用户 rpc
-        return {'rpcId':源['rpcId']}#身份
-    return {}#无
-
-def _自收件箱投影队列(收件箱):
-    """从收件箱状态投影排队项。收件箱为 dict，键 next-turn / next-step。"""
-    项列表=[]#结果
-    for 消息 in 收件箱['next-turn'] if 'next-turn' in 收件箱 else []:#下一轮=排队
-        行={'id':消息['id'],'placement':'queued','message':{'id':消息['id'],'content':list(消息['content'])}}#行
-        行.update(_提示rpc身份(消息))#可选 rpc
-        项列表.append(行)#收下
-    for 消息 in 收件箱['next-step'] if 'next-step' in 收件箱 else []:#下一步
-        放置='steering' if isinstance(消息.get('source'),dict) and 消息['source'].get('kind')=='user' else 'context'#放置
-        行={'id':消息['id'],'placement':放置,'message':{'id':消息['id'],'content':list(消息['content'])}}#行
-        行.update(_提示rpc身份(消息))#可选 rpc
-        项列表.append(行)#收下
-    return 项列表#队列
-
-def _自智能体投影队列(智能体):
-    """从活体收件箱投影排队项。"""
-    return _自收件箱投影队列({
-        'next-turn':list(智能体.inbox.下一轮队列),
-        'next-step':list(智能体.inbox.下一步队列),
-    })#投影
 
 def _任务视图(任务):
     """任务快照转视图。任务为 dict。"""
@@ -97,13 +69,6 @@ class 会话控制控制器:
         def 投影变更(会话,键,值,序号):
             """投影变更。"""
             自身._广播({'type':'projection','sessionId':会话.id,'key':键,'value':值,'seq':序号})#投影
-            if 键!='inbox':#非收件箱
-                return#结束
-            取=getattr(上下文.agents,'get',None)#英文 get
-            智能体=取(会话.id) if 取 is not None else 上下文.agents.获取(会话.id)#智能体
-            if 智能体 is None or 智能体.session is not 会话:#不匹配
-                return#忽略
-            自身._广播({'type':'queue','sessionId':会话.id,'items':_自收件箱投影队列(值)})#队列
         def 挂任务(任务上下文):
             """订阅任务变化。"""
             def 任务变化(所有者):
@@ -143,22 +108,17 @@ class 会话控制控制器:
     def _基线(自身):
         """同步读完整控制基线。"""
         会话列表=自身._上下文.sessions.list()#全部会话
-        队列表={}#队列
         任务表={}#任务
         取=getattr(自身._上下文.agents,'get',None)#英文 get
         for 会话 in 会话列表:#逐个
             标识=会话.id#id
             智能体=取(标识) if 取 is not None else 自身._上下文.agents.获取(标识)#智能体
-            if 智能体 is not None and 智能体.session is 会话:#活体匹配
-                队列表[标识]=_自智能体投影队列(智能体)#真实队列
-            else:#冷或错配
-                队列表[标识]=[]#空
             任务表[标识]=自身._任务用于(智能体)#任务
         投影表={}#投影
         for 会话 in 会话列表:#投影基线
             快照=自身._上下文.sessionProjections.snapshot(会话)#快照 dict
             投影表[会话.id]={'asOfSeq':快照['asOfSeq'],'values':快照['values']}#块
-        return {'queues':队列表,'jobs':任务表,'projections':投影表}#基线
+        return {'jobs':任务表,'projections':投影表}#基线
 
     def _任务用于(自身,智能体):
         """读智能体任务快照。"""

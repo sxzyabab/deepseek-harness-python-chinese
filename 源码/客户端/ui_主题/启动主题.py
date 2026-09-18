@@ -27,6 +27,7 @@ def 启动主题脚本(偏好,字号):#按偏好与字号拼脚本体
         +' && typeof matchMedia !== \'undefined\''#且存在 matchMedia
         +' && matchMedia(\'(prefers-color-scheme: dark)\').matches;'#且系统为暗色
         +'const dark = preference === \'dark\' || systemDark;'#显式暗色或系统暗色
+        +'document.documentElement.dataset.dsThemeSource = preference;'#根节点记下偏好源
         +'document.body.toggleAttribute(\'data-ds-dark-theme\', dark);'#同步 body 暗色属性
         +'document.body.style.setProperty(\'--dsh-content-font-size\', '+字号声明+');'#内容字号
         +'})()'#内联 IIFE

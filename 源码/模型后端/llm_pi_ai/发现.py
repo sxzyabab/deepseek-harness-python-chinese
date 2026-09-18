@@ -145,6 +145,7 @@ def 发现模型(请求,已存密钥=None):
                     'name':模型['name'],#展示名
                     'contextWindow':模型['contextWindow'],#窗口
                     'maxTokens':模型['maxTokens'],#上限
+                    'inputModalities':list(模型['input']),#输入模态
                 })#目录条目
             return 结果#目录答案，后面的 HTTP 列表不再走
     基址=请求['baseURL'] if 'baseURL' in 请求 else None#端点

@@ -13,7 +13,7 @@ def 启动宿主半(组,插件,报告门面失败):
         光纤.拆除()#先拆掉，不留失败 Fiber
         消息=错误.args[0] if len(错误.args)>0 else str(错误)#失败文本
         if isinstance(消息,str) and 'already registered' in 消息:#名字已被占用
-            raise 动态插件错误(消息+' — to REPLACE something an earlier dynamic package registered, first cordis_stop that package\'s id (find it with cordis_runtime_inspect what:"temporary"), then run the new version.') from 错误#教学错误
+            raise 动态插件错误(消息+' — to REPLACE something an earlier dynamic package registered, first stop that package through its runner or the Cordis panel before running the new version.') from 错误#教学错误
         raise#原样抛
     return 光纤#已落定
 

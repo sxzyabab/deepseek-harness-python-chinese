@@ -3,7 +3,7 @@ from .文案 import 命名空间,中文,英文#词典
 
 __all__=['注入','挂载智能体团队界面','登记界面']#仅中文公开名
 
-注入=['sessions','remote','slots','locale']#依赖
+注入=['sessions','uiWorkspace','remote','slots','locale']#依赖
 
 def 领导会话标识(会话服务,会话标识):#映射 Lead
     """把当前会话映射到 Team Lead 会话。"""
@@ -63,10 +63,11 @@ def 登记界面(上下文):#注册 UI
             return#返回
         父会话=领导会话标识(会话服务,会话标识)#Lead
         会话服务.refreshSubagents(父会话)#刷新子列表已同步
-        当前=会话服务.list.getSnapshot()#当前列表
-        if 当前['current']!=会话标识:#当前会话已变
+        持有=会话服务.retainInfo(会话标识).getSnapshot()#持有快照
+        主视图=持有['retainedBy']['mainView'] if 'retainedBy' in 持有 and 'mainView' in 持有['retainedBy'] else 0#主视图计数
+        if 主视图==0:#主视图未持有
             return#返回
-        会话服务.openSubagent({#打开子会话
+        上下文.uiWorkspace.openSession({#经工作区打开子会话
             'parentSessionId':父会话,#父会话
             'childSessionId':成员['id'],#子会话
             'mode':'continuable',#可续模式
@@ -87,7 +88,7 @@ def 登记界面(上下文):#注册 UI
 def 挂载智能体团队界面(上下文,贡献):#挂载 Team UI
     """挂载一份生成的 Team Remote contribution，再注册其浏览器 UI。"""
     卸远程=上下文.remote.$mount(贡献).等待()#挂 Remote，得到拆除函数
-    界面=上下文.依赖启动(['sessions','remote.agentTeams','slots','locale'],登记界面)#注入 UI
+    界面=上下文.依赖启动(['sessions','uiWorkspace','remote.agentTeams','slots','locale'],登记界面)#注入 UI
     try:#等就绪
         界面.等待()#等待插件树抛出启动失败
     except Exception:#挂载 UI 可能抛 DOM/插件错误，契约未定所以收不窄

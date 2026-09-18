@@ -84,6 +84,11 @@ def 登记作曲器键图(编辑器,处理器):
             return True#已处理
         return False#放行
 
+    def 处理Tab(事件):
+        """有高亮则落定；Shift+Tab 在菜单打开时一律离开。"""
+        键='tabBack' if 事件 is not None and 事件['shiftKey'] is True else 'tab'#前进或后退
+        return 箭头(键)(事件)#裁决
+
     def 处理空格(事件):
         """组合中放行；认领则消费。"""
         if 是否组合事件(事件,近期组合) is True:#组合
@@ -143,7 +148,7 @@ def 登记作曲器键图(编辑器,处理器):
         编辑器.登记更新监听(同步组合),#每次更新再同步
         编辑器.登记命令('arrow-up',箭头('up')),#上
         编辑器.登记命令('arrow-down',箭头('down')),#下
-        编辑器.登记命令('tab',箭头('tab')),#Tab 仅菜单高亮时作用
+        编辑器.登记命令('tab',处理Tab),#Tab / Shift+Tab
         编辑器.登记命令('escape',处理Escape),#Escape
         编辑器.登记命令('space',处理空格),#空格
         编辑器.登记命令('enter',处理回车),#Enter

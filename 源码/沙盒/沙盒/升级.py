@@ -37,11 +37,13 @@ def 升级提示标记(主语):
     return '[sandbox: escalation available — retry this exact '+主语+' once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]'#面向模型的升级提示
 
 def 批准升级(请求,审批):
-    """在任何东西执行之前解析沙箱升级请求。请求与审批都是 dict；审批方是对象。返回盖到恰好这次调用上的授予模式；其他每条路径抛出不同的逐字文本。"""
+    """在执行前解析沙箱权限请求。重复生效模式则直接返回；严格更宽需审批。请求与审批都是 dict；审批方是对象。"""
     模式=请求['requestedMode']#目标模式
     生效模式=请求['effectiveMode']#当前生效模式
     理由=请求['justification']#理由
     主语=请求['subject']#动作名词
+    if 模式==生效模式:#重复生效模式
+        return 生效模式#无需审批
     可升=更宽模式[生效模式] if 生效模式 in 更宽模式 else ()#可升级目标
     if 模式 not in 可升:#不是严格更宽
         raise 沙箱升级错误('sandbox escalation to "'+模式+'" is not strictly wider than this call\'s current "'+生效模式+'" mode')#非加宽拒绝

@@ -41,7 +41,7 @@ class 启动清单(dict):#启动清单
     """解析后的启动清单：一条线，两种消费方视图。键：rev、modules、plugins。"""
 
 class 客户端插件交接(dict):#打包登记
-    """经 window.__ModuleLoader__.load 提交的一个客户端打包工厂登记。键：id、factory。"""
+    """经 window.__ModuleLoader__.load 提交的一个客户端打包工厂登记。键：id、factory；可选 chunk。"""
 
 class 客户端窗口(dict):#窗口协议
     """Web 启动协议的 Window API。键：__DSH_BOOT__、__ModuleLoader__。"""
@@ -50,7 +50,7 @@ class 客户端模块记录(dict):#模块记录
     """已物化模块账本。键：id、exports、styles、edges。"""
 
 class 客户端模块加载器:#客户端模块 loader 约定
-    """内嵌 Loader 与客户端 HMR 插件消费的内部约定子集。"""
+    """内嵌 Loader 与客户端 HMR 插件消费的内部约定子集。含 version、manifest、entries、loadCache、import、prefetch、invalidate。"""
 
 class 客户端模块系统选项(dict):#模块系统选项
     """ClientModuleSystem 的选项。键：manifest、staticModules、registrationTarget、bootstrapModule；可选 loadBundle。"""

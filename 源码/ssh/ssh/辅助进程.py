@@ -209,10 +209,17 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
                 raise ssh错误('expected resize object')#失败
             进程表.调整终端尺寸(进程标识模式(原始.get('id')),原始['cols'],原始['rows'])#调
             return None#空
-        if 方法=='terminal.write' or 方法=='terminal.inspect' or 方法=='terminal.signal':#终端操作
+        if 方法=='terminal.write' or 方法=='terminal.inspect' or 方法=='terminal.activity' or 方法=='terminal.signal':#终端操作
             if not isinstance(原始,dict):#非对象
                 raise ssh错误('expected terminal object')#失败
-            操作='write' if 方法=='terminal.write' else ('inspect' if 方法=='terminal.inspect' else 'signal')#操作
+            if 方法=='terminal.write':#写
+                操作='write'#写
+            elif 方法=='terminal.inspect':#前台
+                操作='inspect'#检查
+            elif 方法=='terminal.activity':#活动
+                操作='activity'#活动
+            else:#信号
+                操作='signal'#信号
             return 进程表.终端操作(进程标识模式(原始.get('id')),操作,原始.get('value'))#操作
         if 方法=='executable':#可执行
             if not isinstance(原始,dict) or 'command' not in 原始:#缺

@@ -170,6 +170,7 @@ class 发现到的模型(TypedDict):#端点报告的一个模型
     name:NotRequired[str]#可选显示名
     contextWindow:NotRequired[int]#可选上下文窗口
     maxTokens:NotRequired[int]#可选最大输出
+    inputModalities:NotRequired[list]#可选输入模态
 
 class 模型信息(TypedDict):#适配器发现的目录模型
     """适配器发现的一个模型；目录成员资格是建议性的。"""

@@ -110,9 +110,10 @@ class 会话输入壳:#每会话输入外壳
             'getSnapshot':自身.读词表,#读
             'subscribe':自身.订词表,#订
         }#词表结束
-        队列=依赖['queue'] if 'queue' in 依赖 else None#队列读面
-        if 队列 is not None:#有队列
-            队列.subscribe(自身.发布)#队列变则重发
+        自身.退订收件箱=None#收件箱退订
+        收件箱=依赖['inbox'] if 'inbox' in 依赖 else None#收件箱投影
+        if 收件箱 is not None:#有收件箱
+            自身.退订收件箱=收件箱.subscribe(自身.发布)#收件箱变则重发
 
     @property
     def 编辑器(自身):
@@ -394,6 +395,13 @@ class 会话输入壳:#每会话输入外壳
         自身.通知序号+=1#前进
         自身.notices.set({'level':级别,'text':正文,'seq':自身.通知序号})#写入
 
+    def focus(自身):
+        """把键盘连同上次插入符还回编写器。"""
+        根=自身.编辑器.取根元素()#根
+        if 根 is not None:#有根
+            根.focus({'preventScroll':True})#DOM 焦点
+        自身.编辑器.focus()#Lexical 恢复选区
+
     def dispose(自身):
         """拆除并返回仍占用的附件 id。"""
         if 自身.已拆除 is True:#已拆
@@ -408,6 +416,8 @@ class 会话输入壳:#每会话输入外壳
             飞行['controller'].abort()#中止
         自身.已拆除=True#后续丢弃
         自身.执行派发({'type':'release'})#释放
+        if 自身.退订收件箱 is not None:#有订阅
+            自身.退订收件箱()#退订
         自身.卸编辑器()#卸编辑器
         自身.脱离草稿.clear()#清
         自身.失败脱离.clear()#清
@@ -648,11 +658,12 @@ class 会话输入壳:#每会话输入外壳
         return 自身.已拆除 is True or 中止 is True#失效
 
     def 合成(自身):
-        """编辑器投影叠提交平面与队列。"""
+        """编辑器投影叠提交平面与收件箱排队。"""
         机态=自身.输入机.state#机态
-        队列面=自身.依赖['queue'] if 'queue' in 自身.依赖 else None#队列
-        队列=队列面.getSnapshot() if 队列面 is not None else list(空队列)#队列
-        快照={'draft':自身.投影['clipboardText'],'attachmentIds':list(自身.附件标识列表),'draftRev':自身.修订,'phase':机态['phase'],'occurrences':list(自身.投影['occurrences']),'queue':list(队列)}#叠好
+        收件箱面=自身.依赖['inbox'] if 'inbox' in 自身.依赖 else None#收件箱
+        收件箱=收件箱面.getSnapshot() if 收件箱面 is not None else None#快照
+        排队=收件箱['next-turn'] if 收件箱 is not None and 'next-turn' in 收件箱 else list(空队列)#排队
+        快照={'draft':自身.投影['clipboardText'],'attachmentIds':list(自身.附件标识列表),'draftRev':自身.修订,'phase':机态['phase'],'occurrences':list(自身.投影['occurrences']),'queue':list(排队)}#叠好
         if 'claim' in 机态:#有认领
             快照['claim']=机态['claim']#带上
         return 快照#快照

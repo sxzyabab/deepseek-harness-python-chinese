@@ -7,6 +7,7 @@ from ...子进程.本地子进程 import 输出收集器#收集尾
 from ..ssh.模式 import (
     完成模式,#done
     前台模式,#inspect
+    终端活动模式,#activity
     输出快照帧上限,#快照帧
     输出快照模式,#snapshot
     已准备模式,#prepare
@@ -547,7 +548,7 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
             'cwd':规格['cwd'],#目录
             'env':环境墓碑(规格.get('env')),#环境
             'graceMs':规格['graceMs'],#宽限
-            'terminal':{'rows':规格['rows'],'cols':规格['cols'],'terminalType':规格['terminalType']},#终端
+            'terminal':{'rows':规格['rows'],'cols':规格['cols'],'terminalType':规格['terminalType'],'shellActivity':规格.get('shellActivity')},#终端
         },已准备模式,信号)#预留
         标识=已准备['id']#id
         套接字对象=None#流
@@ -588,6 +589,9 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
             def 检查前台():#inspect
                 """可空前台。"""
                 return ssh.请求('terminal.inspect',{'id':标识},前台模式)#观察
+            def 检查活动():#activity
+                """shell 活动。"""
+                return ssh.请求('terminal.activity',{'id':标识},终端活动模式)#活动
             def 发信号前台(信号名):#signal
                 """投递。"""
                 def 正整数(值):#组 id
@@ -619,6 +623,7 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
             句柄对象.调整尺寸=调整尺寸#方法
             句柄对象.写入=写入#方法
             句柄对象.检查前台=检查前台#方法
+            句柄对象.检查活动=检查活动#方法
             句柄对象.发信号前台=发信号前台#方法
             句柄对象.终止=终止#方法
             def 中止时():#信号

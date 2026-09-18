@@ -186,7 +186,7 @@ class 未知节点视图:
         return 自身.渲染()#渲
 
 def 登记聊天节点渲染器(上下文):
-    """inject 各 kind，含命令子席与回合尾链/动作席。"""
+    """inject 各 kind，含命令子席与回合尾列表/动作席。"""
     槽=上下文.slots#槽
     def 挂(键,组件,子=None):
         """inject+register。"""
@@ -210,7 +210,7 @@ def 登记聊天节点渲染器(上下文):
     挂('turn-max-tokens',回合满令牌节点视图)#满令牌
     挂('turn-process',回合过程节点视图)#过程
     挂('turn-tail',回合尾节点视图,{#回合尾
-        'conversation.chat.turnTail':{'kind':'chain','scope':'session'},#尾链
+        'conversation.chat.turnTail':{'kind':'list','scope':'session'},#尾列表
         'conversation.chat.assistant-actions':{'kind':'list','scope':'session'},#动作
     })#尾
     挂('unknown',未知节点视图)#未知

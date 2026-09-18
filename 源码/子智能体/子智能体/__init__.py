@@ -96,9 +96,21 @@ __all__=(
 
 class 子智能体运行时(服务):
     """具名提供方注册表，含一次性跑、耐久发现与可续跑子体操作。"""
-    def __init__(自身,ctx):
-        """用 Cordis 上下文安装子智能体服务。"""
+    配置模式={'maxDepth':1,'maxActiveSubagents':8}#缺省宿主配置
+
+    def __init__(自身,ctx,配置=None):
+        """用 Cordis 上下文安装子智能体服务。配置可含 maxDepth 与 maxActiveSubagents。"""
         super().__init__(ctx,'subagents')#登记服务名
+        配置={} if 配置 is None else dict(配置)#拷贝
+        if 'maxDepth' not in 配置:#缺省深度
+            配置['maxDepth']=1#缺省
+        if 'maxActiveSubagents' not in 配置:#缺省活子
+            配置['maxActiveSubagents']=8#缺省
+        断言子智能体最大深度(配置['maxDepth'])#深度形态
+        def 配置取值():#读当前配置
+            """读闭包内配置。"""
+            return 配置#当前
+        自身._设置源=配置取值#初始设置源
         自身._提供方表={}#提供方注册表（插入顺序用 dict 保序）
         自身._续跑=None#可选续跑管理器；agents 注入前为空
         自身._装配注册表=子智能体激活装配注册表()#可续跑未发布窗口贡献
@@ -106,6 +118,23 @@ class 子智能体运行时(服务):
             """按委托父解析作用域载体。"""
             return 作用域目标(自身,父)#载体
         自身._发出生命周期=创建生命周期发出(自身.ctx,取委托父载体)#按委托父载体隔离派发
+        def 空变更():#设置变更空操作
+            """设置变更空操作。"""
+            return#空
+        def 挂设置(设置上下文):#设置可用时安装节
+            """安装 subagent 设置节。"""
+            def 校验(值):#校验深度
+                """深度形态。"""
+                断言子智能体最大深度(值.get('maxDepth') if isinstance(值,dict) else None)#校验
+            def 设源(源):#更新源
+                """替换设置源。"""
+                自身._设置源=源#更新
+            设置上下文.settings.installSection(ctx,'subagent',自身.配置模式,配置,{
+                'validate':校验,#校验
+                'setSource':设源,#更新源
+                'onChange':空变更,#空
+            })#installSection结束
+        ctx.依赖启动(['settings'],挂设置)#设置注入门
         def 挂续跑(子上下文):
             """agents 可用时挂续跑管理器；纤维拆除只解绑本实例。"""
             def 准备可续跑宿主(名,请求):
@@ -114,10 +143,13 @@ class 子智能体运行时(服务):
             def 观察激活宿主(提供方,子标识,父):
                 """驻留纪元观察。"""
                 return 自身._观察激活(提供方,子标识,父)#委托
+            def 最大活跃():#活子上限
+                """读设置。"""
+                return 自身._设置源()['maxActiveSubagents']#上限
             管理器=子智能体续跑管理器(子上下文,{
                 '准备可续跑':准备可续跑宿主,#提供方分离创建
                 '观察激活':观察激活宿主,#驻留纪元观察
-            },自身._装配注册表)
+            },自身._装配注册表,最大活跃)
             自身._续跑=管理器#挂上
             def 解绑工厂():#纤维拆除时解绑
                 """返回仅解绑本实例的 disposer。"""
@@ -134,6 +166,14 @@ class 子智能体运行时(服务):
             投影上下文.sessionProjections.register(子智能体计时投影定义)#活动回合计时
             投影上下文.sessionProjections.register(子智能体身份投影定义)#模式/标签身份
         ctx.依赖启动(['sessionProjections'],挂投影)#投影注入门
+
+    def 解析最大深度(自身,已配置=None):#解析深度策略
+        """按当前用户设置解析委托工具的深度策略。"""
+        if 已配置=='provider-managed':#提供方自管
+            return None#无数值
+        if 已配置 is not None:#显式
+            return 已配置#上限
+        return 自身._设置源()['maxDepth']#设置缺省
 
     def 启动可续跑(自身,规格):#启动可续跑子体
         """建立一次耐久可续跑子体并投递其初始提示；收件箱接受即决议。"""

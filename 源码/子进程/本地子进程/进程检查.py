@@ -1,4 +1,4 @@
-import os,re,signal,struct,sys,sysconfig,importlib.util,platform as 平台库#读proc、匹配数字名、信号、小端整型、平台与标准库载入
+import os,re,signal,struct,sys,sysconfig,importlib.util,platform as 平台库,stat as 文件状态#读proc、匹配数字名、信号、小端整型、平台与标准库载入
 from .终端 import 本地子进程错误#本包错误
 标准库子进程规格=importlib.util.spec_from_file_location('dsh_stdlib_subprocess',os.path.join(sysconfig.get_path('stdlib'),'subprocess.py'))#标准库subprocess路径
 标准库子进程=importlib.util.module_from_spec(标准库子进程规格)#标准库模块壳
@@ -30,6 +30,15 @@ def 默认列目录(路径):#生产默认：列目录
     """列出目录名。"""
     return os.listdir(路径)#列目录
 
+def 默认读链接(路径):#生产默认：读符号链接
+    """读符号链接目标。"""
+    return os.readlink(路径)#链接目标
+
+def 默认状态(路径):#生产默认：文件状态
+    """取设备状态。"""
+    信息=os.stat(路径)#stat
+    return {'rdev':信息.st_rdev,'isCharacterDevice':文件状态.S_ISCHR(信息.st_mode)}#设备号与类型
+
 def 默认打开(路径):#生产默认：只读打开
     """只读打开路径。"""
     return os.open(路径,os.O_RDONLY)#打开只读
@@ -44,10 +53,12 @@ def 默认杀(pid,信号):#生产默认：发信号
 
 class 进程检查器内部:#可注入系统调用边界
     """文件系统、进程表与信号系统调用周围的可测试边界。"""
-    def __init__(自身,读文件=None,列目录=None,打开=None,读=None,关闭=None,执行=None,杀=None):#注入或用生产默认
+    def __init__(自身,读文件=None,列目录=None,读链接=None,状态=None,打开=None,读=None,关闭=None,执行=None,杀=None):#注入或用生产默认
         """构造可测试边界。"""
         自身.读文件=读文件 if 读文件 is not None else 默认读文件#读文本文件
         自身.列目录=列目录 if 列目录 is not None else 默认列目录#列目录
+        自身.读链接=读链接 if 读链接 is not None else 默认读链接#读符号链接
+        自身.状态=状态 if 状态 is not None else 默认状态#取设备状态
         自身.打开=打开 if 打开 is not None else 默认打开#打开只读
         自身.读=读 if 读 is not None else 自身.默认读#定位读
         自身.关闭=关闭 if 关闭 is not None else os.close#关描述符
@@ -85,13 +96,14 @@ def 解析ProcStat(文本):#解析Linux /proc/<pid>/stat
         父pid=int(其余[1])#ppid
         进程组=int(其余[2])#pgrp
         会话=int(其余[3])#session
-        前台组=int(其余[5])#tpgid（跳过tty_nr）
+        终端设备=int(其余[4])#tty_nr
+        前台组=int(其余[5])#tpgid
         启动=其余[19]#starttime
     except ValueError:#数字畸形
         return None#畸形
     if len(状态)!=1:#状态必须单字符
         return None#畸形
-    return {'pid':pid,'parentPid':父pid,'pgrp':进程组,'session':会话,'state':状态,'tpgid':前台组,'started':启动}#已校验字段
+    return {'pid':pid,'parentPid':父pid,'pgrp':进程组,'session':会话,'state':状态,'ttyDevice':终端设备,'tpgid':前台组,'started':启动}#已校验字段
 
 def 读LinuxStat(内部,pid):#读并解析一个pid的stat
     """读并解析一个 pid 的 `/proc/<pid>/stat`；不可读当作进程已走。"""
@@ -99,6 +111,27 @@ def 读LinuxStat(内部,pid):#读并解析一个pid的stat
         return 解析ProcStat(内部.读文件('/proc/'+str(pid)+'/stat'))#畸形行也当缺失
     except OSError:#无法读/proc条目
         return None#当作进程已走
+
+def Linux设备号(值):#归一化 tty_nr
+    """把有符号 32 位设备号归一成无符号。"""
+    return 值&0xFFFFFFFF#无符号32位
+
+def 读Linux终端设备(内部,pid,tty设备,tid=None):#解析stdin是否仍是该终端
+    """解析 stdin 是否仍是该终端设备；失败则 None。"""
+    终端设备=Linux设备号(tty设备)#归一化
+    if 终端设备==0:#无终端
+        return None#不可比
+    路径='/proc/'+str(pid)+'/fd/0' if tid is None else '/proc/'+str(pid)+'/task/'+str(tid)+'/fd/0'#stdin描述符
+    try:#fd可能消失
+        目标=内部.读链接(路径)#符号链接目标
+        if 目标=='/dev/tty':#别名
+            return 终端设备#用shell的tty_nr
+        状态=内部.状态(路径)#直接设备
+        if 状态['isCharacterDevice'] and Linux设备号(状态['rdev'])==终端设备:#设备号匹配
+            return 终端设备#匹配
+        return None#不匹配
+    except OSError:#读不了stdin设备
+        return None#当作不可比
 
 def 组内有活成员(进程组号,内部=None):#Linux进程组存活探针
     """报告一个 Linux 进程组是否有正在执行的成员。False 表示组里只剩僵尸/死条目；None 表示进程表无法证明。"""
@@ -121,11 +154,11 @@ def 组内有活成员(进程组号,内部=None):#Linux进程组存活探针
     return False if 见过 else None#见过则只有僵尸；没见过则无法证明缺席
 
 def 数字条目(内部,路径):#目录里的数字名
-    """列目录中的数字名（pid/tid）；不可读当作没有条目。"""
+    """列目录中的数字名（pid/tid）；读失败返回 None，与空目录区分。"""
     try:#目录可能不可读
         return [int(条目) for 条目 in 内部.列目录(路径) if 数字名模式.fullmatch(条目)]#只收pid/tid
     except (ValueError,OSError):#读不了该目录或名字不是整数
-        return []#当作没有条目
+        return None#读失败与空目录区分
 
 def 读系统调用(内部,pid,tid):#读线程当前syscall
     """读 `/proc/<pid>/task/<tid>/syscall`；失败或用户态则 None。"""
@@ -183,10 +216,10 @@ def poll含标准输入(内部,pid,地址,数量):#pollfd数组是否在等stdin
         偏移+=8#下一项
     return False#没有stdin等待
 
-def epoll含标准输入(内部,pid,epollfd):#epoll实例是否盯着stdin
+def epoll含标准输入(内部,pid,tid,epollfd):#epoll实例是否盯着stdin
     """epoll 实例的 fdinfo 是否登记了目标 fd 0。"""
     try:#fdinfo可能不可读
-        文本=内部.读文件('/proc/'+str(pid)+'/fdinfo/'+str(epollfd))#epoll fdinfo
+        文本=内部.读文件('/proc/'+str(pid)+'/task/'+str(tid)+'/fdinfo/'+str(epollfd))#epoll fdinfo
         for 行 in 文本.split('\n'):#逐行
             if epoll标准输入模式.match(行.strip()):#目标fd为0
                 return True#盯着stdin
@@ -201,21 +234,35 @@ def epoll含标准输入(内部,pid,epollfd):#epoll实例是否盯着stdin
     'aarch64':{'read':63,'pselect':72,'ppoll':73,'epollPwait':22},#别名
 }#结束系统调用表
 
-def 系统调用在等标准输入(内部,pid,系统调用,表):#当前syscall是否在等stdin
+已支持系统调用表=list({id(表):表 for 表 in 系统调用表.values()}.values())#去重后的表清单
+
+def Linux系统调用表(架构):#主表+备选表
+    """本 arch 主表优先，其余已支持表作备选。"""
+    主表=系统调用表.get(架构)#本arch主表
+    if 主表 is None:#不支持
+        return None#无
+    return [主表]+[表 for 表 in 已支持系统调用表 if 表 is not 主表]#主表优先
+
+def 系统调用在等标准输入(内部,pid,tid,系统调用,表列表):#当前syscall是否在等stdin
     """当前 syscall 是否在等 fd 0。"""
     参数=系统调用['args']#参数表
     a0=参数[0] if len(参数)>0 else 0#第一参
     a1=参数[1] if len(参数)>1 else 0#第二参
     a2=参数[2] if len(参数)>2 else 0#第三参
-    if 系统调用['number']==表['read']:#read(0,...)
-        return a0==0#fd为0
-    if 系统调用['number']==表.get('select') or 系统调用['number']==表['pselect']:#select/pselect
-        return a0>=1 and fd集含标准输入(内部,pid,a1)#nfds≥1且readfds含stdin
-    if 系统调用['number']==表.get('poll') or 系统调用['number']==表['ppoll']:#poll/ppoll
-        return a1>=1 and poll含标准输入(内部,pid,a0,a1)#nfds≥1且数组含stdin POLLIN
-    if 系统调用['number']==表.get('epollWait') or 系统调用['number']==表['epollPwait']:#epoll_wait/pwait
-        return a2>=1 and epoll含标准输入(内部,pid,a0)#maxevents≥1且epfd盯着stdin
+    for 表 in 表列表:#逐表匹配
+        if 系统调用['number']==表['read']:#read(0,...)
+            return a0==0#fd为0
+        if 系统调用['number']==表.get('select') or 系统调用['number']==表['pselect']:#select/pselect
+            return a0>=1 and fd集含标准输入(内部,pid,a1)#nfds≥1且readfds含stdin
+        if 系统调用['number']==表.get('poll') or 系统调用['number']==表['ppoll']:#poll/ppoll
+            return a1>=1 and poll含标准输入(内部,pid,a0,a1)#nfds≥1且数组含stdin POLLIN
+        if 系统调用['number']==表.get('epollWait') or 系统调用['number']==表['epollPwait']:#epoll_wait/pwait
+            return a2>=1 and epoll含标准输入(内部,pid,tid,a0)#maxevents≥1且epfd盯着stdin
     return False#其他调用不算等stdin
+
+def 静止(状态):#是否静止
+    """僵尸与死状态回答在表里但从不回答仍在跑。"""
+    return 状态 is not None and 僵尸态模式.fullmatch(状态) is not None#僵尸/死
 
 def 建进程树(条目列表,根pid):#后序遍历：孩子先于祖先
     """从带父指针的条目建后序进程树。"""
@@ -243,8 +290,29 @@ def 建进程树(条目列表,根pid):#后序遍历：孩子先于祖先
     访问(根)#从根走
     return 结果#孩子在前
 
+class Posix进程快照:#一次POSIX表观察
+    """一次进程表观察；complete 表示扫描是否未漏不可读行。"""
+    def __init__(自身,行列表,完整):#钉行集与完整性
+        """保存行与完整性。"""
+        自身._行列表=行列表#行
+        自身.complete=完整#完整性
+        自身._按pid={行['pid']:行 for 行 in 行列表}#按pid索引
+
+    def 树(自身,根pid):#后序树
+        """观察到的根与子孙，孩子在前。"""
+        return 建进程树(自身._行列表,根pid)#复用建树
+
+    def 会话(自身,会话号):#会话成员
+        """观察到的会话成员；表省略会话 id 时为空。"""
+        return [进程身份(行['pid'],行['started']) for 行 in 自身._行列表 if 行.get('session')==会话号]#匹配才收
+
+    def 存活(自身,身份):#快照内探活
+        """该精确身份当时是否为非静止进程。"""
+        行=自身._按pid.get(身份.pid)#按pid取
+        return 行 is not None and 行['started']==身份.started and not 静止(行.get('state'))#身份匹配且非静止
+
 class Posix进程检查器:#POSIX共用：组/进程信号
-    """POSIX 共用：组/进程信号；子类补平台前台/树/存活。"""
+    """POSIX 共用：组/进程信号；子类补平台前台/快照/存活。"""
     def __init__(自身,内部):#注入系统调用
         """保存 internals。"""
         自身.内部=内部#系统调用边界
@@ -262,24 +330,20 @@ class Posix进程检查器:#POSIX共用：组/进程信号
         """平台前台 pgid。"""
         raise NotImplementedError('foregroundPgid')#子类必须实现
 
-    def 是否在等标准输入(自身,进程组号):#子类实现
+    def 是否在等标准输入(自身,进程组号,壳pid):#子类实现
         """平台 stdin 等待。"""
         raise NotImplementedError('isStdinWaiting')#子类必须实现
 
-    def 进程树(自身,根pid):#子类实现
-        """平台进程树。"""
-        raise NotImplementedError('processTree')#子类必须实现
-
-    def 进程会话(自身,会话号):#子类实现
-        """平台会话成员。"""
-        raise NotImplementedError('processSession')#子类必须实现
+    def 快照(自身):#子类实现
+        """平台共享快照。"""
+        raise NotImplementedError('snapshot')#子类必须实现
 
     def 是否存活(自身,身份):#子类实现
         """平台存活。"""
         raise NotImplementedError('isAlive')#子类必须实现
 
 class Linux进程检查器(Posix进程检查器):#Linux：/proc
-    """Linux：经 `/proc` 做前台、stdin 等待、树与会话检查。"""
+    """Linux：经 `/proc` 做前台、stdin 等待、快照与存活检查。"""
     def __init__(自身,架构,内部):#钉arch以选syscall号
         """交给 POSIX 基类并保存架构。"""
         super().__init__(内部)#保存internals
@@ -293,60 +357,71 @@ class Linux进程检查器(Posix进程检查器):#Linux：/proc
         前台组=状态行['tpgid']#tpgid
         return 前台组 if 前台组>0 else None#≤0表示无前台
 
-    def 是否在等标准输入(自身,进程组号):#组内是否有线程在等stdin
-        """组内是否有线程在等 stdin。"""
-        表=系统调用表.get(自身.架构)#本arch调用号
-        if 表 is None:#未知arch无法判断
+    def 是否在等标准输入(自身,进程组号,壳pid):#组内是否有线程在等shell终端stdin
+        """组内是否有线程在等 shell 终端 stdin。"""
+        表列表=Linux系统调用表(自身.架构)#ABI表
+        if 表列表 is None:#未知arch无法判断
             return False#无法判断
-        for pid in 数字条目(自身.内部,'/proc'):#每个进程
+        壳=读LinuxStat(自身.内部,壳pid)#shell stat
+        if 壳 is None:#shell已走
+            return False#否
+        终端设备=读Linux终端设备(自身.内部,壳pid,壳['ttyDevice'])#shell终端
+        if 终端设备 is None:#没有可比对的终端
+            return False#否
+        进程列表=数字条目(自身.内部,'/proc')#每个进程
+        if 进程列表 is None:#/proc不可读
+            return False#否
+        for pid in 进程列表:#每个进程
             状态行=读LinuxStat(自身.内部,pid)#可能已消失
             if 状态行 is None or 状态行['pgrp']!=进程组号:#不是该组
                 continue#下个进程
-            for tid in 数字条目(自身.内部,'/proc/'+str(pid)+'/task'):#每个线程
+            线程列表=数字条目(自身.内部,'/proc/'+str(pid)+'/task')#每个线程
+            if 线程列表 is None:#task不可读
+                continue#下个进程
+            for tid in 线程列表:#每个线程
                 调用=读系统调用(自身.内部,pid,tid)#当前调用
-                if 调用 is not None and 系统调用在等标准输入(自身.内部,pid,调用,表):#在等stdin
+                if 调用 is not None and 系统调用在等标准输入(自身.内部,pid,tid,调用,表列表) and 读Linux终端设备(自身.内部,pid,状态行['ttyDevice'],tid)==终端设备:#在等stdin且同终端
                     return True#命中
         return False#没有线程在等
-
-    def 进程树(自身,根pid):#/proc建树
-        """从 `/proc` 建后序树。"""
-        条目列表=[]#树条目
-        for pid in 数字条目(自身.内部,'/proc'):#每个pid
-            状态行=读LinuxStat(自身.内部,pid)#可能已消失
-            if 状态行 is None:#能读才收
-                continue#跳过
-            条目列表.append({'pid':pid,'parentPid':状态行['parentPid'],'started':状态行['started']})#收下
-        return 建进程树(条目列表,根pid)#后序
-
-    def 进程会话(自身,会话号):#同一session的成员
-        """同一 session 的成员。"""
-        成员列表=[]#结果
-        for pid in 数字条目(自身.内部,'/proc'):#每个pid
-            状态行=读LinuxStat(自身.内部,pid)#可能已消失
-            if 状态行 is not None and 状态行['session']==会话号:#匹配才收
-                成员列表.append(进程身份(pid,状态行['started']))#收下
-        return 成员列表#会话成员
 
     def 是否存活(自身,身份):#启动时刻匹配且非僵尸/死
         """启动时刻匹配且非僵尸/死。"""
         状态行=读LinuxStat(自身.内部,身份.pid)#当前stat
         if 状态行 is None:#进程已走
             return False#不活
-        return 状态行['started']==身份.started and not 僵尸态模式.fullmatch(状态行['state'])#身份仍是原进程且能执行
+        return 状态行['started']==身份.started and not 静止(状态行['state'])#身份仍是原进程且能执行
+
+    def 快照(自身):#一次/proc快照
+        """一次 `/proc` 快照；目录不可读则抛错。"""
+        进程列表=数字条目(自身.内部,'/proc')#目录项
+        if 进程列表 is None:#不可读
+            raise 本地子进程错误('Cannot inspect processes: /proc directory is unreadable')#不可读
+        完整=True#完整性
+        行列表=[]#行
+        for pid in 进程列表:#每个pid
+            状态行=读LinuxStat(自身.内部,pid)#可能已消失
+            if 状态行 is None:#漏行
+                完整=False#不完整
+                continue#跳过
+            行列表.append({'pid':pid,'parentPid':状态行['parentPid'],'started':状态行['started'],'session':状态行['session'],'state':状态行['state']})#收下
+        return Posix进程快照(行列表,完整)#快照
 
 def mac进程表(内部):#一次/bin/ps快照
-    """一次 `/bin/ps -axo pid=,ppid=,lstart=` 快照。"""
+    """一次 `/bin/ps -axo pid=,ppid=,lstart=` 快照；返回行与完整性。"""
     文本=内部.执行('/bin/ps',['-axo','pid=,ppid=,lstart='])#整表
-    条目列表=[]#结果
+    完整=True#完整性
+    行列表=[]#结果
     for 行 in 文本.split('\n'):#每行pid ppid lstart
         匹配=ps三列模式.match(行)#三列
         if 匹配 is None:#空行或畸形
+            if len(行.strip())>0:#非空畸形
+                完整=False#不完整
             continue#跳过
-        条目列表.append({'pid':int(匹配.group(1)),'parentPid':int(匹配.group(2)),'started':匹配.group(3)})#lstart当启动身份
-    return 条目列表#快照
+        行列表.append({'pid':int(匹配.group(1)),'parentPid':int(匹配.group(2)),'started':匹配.group(3),'session':None,'state':None})#lstart当启动身份
+    return {'rows':行列表,'complete':完整}#表
 
 class Mac进程检查器(Posix进程检查器):#macOS：ps
-    """macOS：经 `/bin/ps` 做前台、树与存活检查；不采样 syscall。"""
+    """macOS：经 `/bin/ps` 做前台、快照与存活检查；不采样 syscall。"""
     def 前台进程组(自身,壳pid):#ps -o tpgid
         """`ps -o tpgid=`；≤0 或非整数则无前台。"""
         try:#进程可能已走
@@ -355,24 +430,21 @@ class Mac进程检查器(Posix进程检查器):#macOS：ps
         except (ValueError,OSError,标准库子进程.CalledProcessError):#ps失败或非整数
             return None#当作没有前台
 
-    def 是否在等标准输入(自身,进程组号):#macOS不采样syscall
+    def 是否在等标准输入(自身,进程组号,壳pid):#macOS不采样syscall
         """macOS 不采样 syscall，无法判断则不当作在等。"""
         return False#无法判断则不当作在等
 
-    def 进程树(自身,根pid):#ps快照建树
-        """ps 快照建后序树。"""
-        return 建进程树(mac进程表(自身.内部),根pid)#后序
-
-    def 进程会话(自身,会话号):#macOS不暴露会话成员
-        """macOS 不暴露会话成员。"""
-        return []#空
-
     def 是否存活(自身,身份):#ps表里仍有同一pid+lstart
         """ps 表里仍有同一 pid+lstart。"""
-        for 条目 in mac进程表(自身.内部):#精确身份
+        for 条目 in mac进程表(自身.内部)['rows']:#精确身份
             if 条目['pid']==身份.pid and 条目['started']==身份.started:#命中
                 return True#仍活
         return False#已走
+
+    def 快照(自身):#一次ps快照
+        """一次 ps 快照。"""
+        表=mac进程表(自身.内部)#表
+        return Posix进程快照(表['rows'],表['complete'])#包成共享观察
 
 def 节点平台():#对齐Node process.platform
     """把 sys.platform 粗映射到 Node 平台名。"""

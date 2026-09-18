@@ -60,8 +60,8 @@ class 命令UI运行时:#CommandUiRuntime
         自身.t=文案.bind('command')#翻译
         自身.贡献={}#名 → 贡献 dict
         自身.装饰={}#名 → 装饰 dict
-        自身.弹出={}#sessionId → 控制器
-        自身.聚焦钩={}#sessionId → focus
+        自身.弹出={}#binding → 控制器
+        自身.弹出值=set()#强持控制器
         def 拉目录(会话标识):
             """RPC 列命令；子智能体会话空表。"""
             if 自身.sessions().subagentAddress(会话标识) is not None:#子
@@ -147,49 +147,52 @@ class 命令UI运行时:#CommandUiRuntime
         return 拆装饰#拆
 
     def 解散(自身,名):
-        """关掉该命令已打开的弹出，不消费草稿。"""
-        for 控制器 in list(自身.弹出.values()):#逐会话
+        """关掉该命令已打开的弹出，不消费草稿；还焦编写器。"""
+        for 控制器 in list(自身.弹出值):#逐绑定值
             if 控制器.命令==名:#同名
                 控制器.dismiss()#关
+                控制器.focusComposer()#还焦
 
     def popupFor(自身,作用域):
-        """解析每会话弹出控制器。"""
-        标识=自身.sessions().scopeOf(作用域)#id
-        if 标识 is None:#非会话
-            raise 命令错误('command.popupFor 需要会话作用域')#抛
-        if 标识 in 自身.弹出:#已有
-            return 自身.弹出[标识]#复用
+        """解析每会话弹出控制器；须保留会话代次。"""
+        会话面=自身.sessions()#会话服务
+        会话=会话面.sessionOf(作用域) if hasattr(会话面,'sessionOf') else None#会话
+        if 会话 is None and hasattr(会话面,'scopeOf'):#回退 id
+            标识=会话面.scopeOf(作用域)#id
+            绑定=会话面.binding(标识) if 标识 is not None and hasattr(会话面,'binding') else None#绑定
+        else:#有会话
+            标识=会话['sessionId'] if isinstance(会话,dict) else getattr(会话,'sessionId',None)#id
+            绑定=会话面.binding(标识) if 标识 is not None and hasattr(会话面,'binding') else None#绑定
+        if 绑定 is None:#无保留绑定
+            raise 命令错误('command.popupFor 需要已保留会话作用域')#抛
+        键=id(绑定)#弱键代用
+        if 键 in 自身.弹出:#已有
+            return 自身.弹出[键]#复用
+        绑上下文=绑定['ctx'] if isinstance(绑定,dict) else 绑定.ctx#绑定 ctx
         def 消费(片段):
             """消费打开时令牌。片段为 dict。"""
             守卫={'kind':'span','span':片段['span']} if 片段['via']=='menu' else {'kind':'bare-token','token':片段['token']}#守卫
-            return 作用域.bail(作用域,'slash/input-consume-token',{'guard':守卫}) is True#成败
+            return 绑上下文.bail(绑上下文,'slash/input-consume-token',{'guard':守卫}) is True#成败
         def 聚焦():
-            """调用该会话聚焦钩。"""
-            if 标识 not in 自身.聚焦钩:#无
+            """经对话输入面聚焦。"""
+            对话=绑上下文.get('conversation')#对话
+            if 对话 is None:#无
                 return None#停
-            return 自身.聚焦钩[标识]()#聚焦
+            return 对话.input.for_(绑上下文).focus() if hasattr(对话.input,'for_') else 对话.input.按作用域取门面(绑上下文).focus()#聚焦
         控制器=弹出选定控制器(消费,聚焦)#控
-        自身.弹出[标识]=控制器#挂
+        自身.弹出[键]=控制器#挂
+        自身.弹出值.add(控制器)#强持
         def 拆会话():
             """会话拆除。"""
             控制器.dispose()#拆
-            自身.弹出.pop(标识,None)#摘
-            自身.聚焦钩.pop(标识,None)#摘
+            自身.弹出.pop(键,None)#摘
+            自身.弹出值.discard(控制器)#摘值
             def 空拆():
                 """副作用约定的拆除器。"""
                 return None#无事
             return 空拆#空
-        作用域.副作用(拆会话,'command: session popup')#挂
+        绑上下文.副作用(拆会话,'command: session popup')#挂
         return 控制器#交
-
-    def bindComposerFocus(自身,标识,聚焦):
-        """绑定编写器聚焦钩。"""
-        自身.聚焦钩[标识]=聚焦#挂
-        def 解绑():
-            """仍同一钩才摘。"""
-            if 标识 in 自身.聚焦钩 and 自身.聚焦钩[标识] is 聚焦:#同
-                自身.聚焦钩.pop(标识,None)#摘
-        return 解绑#拆
 
     def 候选(自身,会话,请求):
         """菜单候选：宿主 + 贡献，内置行本地化；空查询分区。"""

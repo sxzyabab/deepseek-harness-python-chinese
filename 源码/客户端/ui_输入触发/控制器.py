@@ -58,6 +58,7 @@ class 触发控制器:#每会话触发控制器
         自身.launcher=简易快照存储(None)#启动器当前源
         自身.lexicon=简易快照存储({})#按触发分组的热词表
         自身.命中=None#当前触发命中
+        自身.已驳回=None#已驳回命中身份 dict 或 None
         自身.拉取=None#在飞的候选拉取取消标志
         自身.已拆除=False#作用域已拆除
         自身.词表拆除表={}#词表订阅 disposer，按 id(源)
@@ -77,7 +78,14 @@ class 触发控制器:#每会话触发控制器
         自身._清启动器()#键入跟踪清掉启动器态
         原始=检测触发(草稿,光标,守卫)#光标处检测触发
         if 原始 is None:#光标处无活触发
+            # 启动器打开的菜单由手势打开：聚焦立刻再跟踪空草稿不得关掉它。
+            if 启动中:#启动器跟进跟踪
+                return#放行
             自身.命中=None#清权威命中
+            # 冻结档是提交手势记账，不得把驳回再武装起来。
+            档=守卫['tier'] if isinstance(守卫,dict) and 'tier' in 守卫 else None#可用档
+            if 档!='frozen':#非冻结才清驳回
+                自身.已驳回=None#清
             自身._停拉取()#中止在飞拉取
             自身._归约({'type':'close'})#关菜单
             return#本轮结束
@@ -85,11 +93,24 @@ class 触发控制器:#每会话触发控制器
         跨度=dict(命中['span'])#跨度拷贝
         跨度['draftRev']=草稿修订#打上当前草稿修订号
         命中['span']=跨度#写回
+        if 启动中:#启动器是新意图
+            自身.已驳回=None#清驳回
+        if 自身.已驳回 is not None:#仍有驳回记忆
+            驳=自身.已驳回#已驳回身份
+            同驳回=(驳['trigger']==命中['trigger'] and 驳['query']==命中['query']
+                and 驳.get('quoted')==命中.get('quoted')
+                and 驳['start']==命中['span']['start'] and 驳['end']==命中['span']['end'])#同令牌
+            if not 同驳回:#令牌变了
+                自身.已驳回=None#清
+            else:#仍是被驳回的那一个
+                自身.命中=命中#仍更新权威命中
+                return#不重开菜单
         前=自身.menu.getSnapshot()#变更前菜单快照
         同=not 启动中 and 前['open'] and 前['hit'] is not None#启动器未开且菜单已开且有命中
         if 同:#比触发与查询与跨度
             前命=前['hit']#前命中
             同=(前命['trigger']==命中['trigger'] and 前命['query']==命中['query']
+                and 前命.get('quoted')==命中.get('quoted')
                 and 前命['span']['start']==命中['span']['start']
                 and 前命['span']['end']==命中['span']['end'])#未变
         自身.命中=命中#写下权威命中
@@ -155,6 +176,7 @@ class 触发控制器:#每会话触发控制器
         点选=源['onPick'] if 'onPick' in 源 else None#点选入口
         结果=点选({'candidate':候选,'session':自身._投影(),'position':命中['position'],'via':'menu','span':命中['span']}) if 点选 is not None else None#点选
         自身._停拉取()#中止在飞拉取
+        自身._记下驳回()#落地点选则记下驳回
         自身._归约({'type':'close'})#关菜单
         自身._执行(结果,命中['span'])#执行认领/插入
 
@@ -171,7 +193,8 @@ class 触发控制器:#每会话触发控制器
         if 键=='down':#下移高亮
             自身._归约({'type':'move','dir':1})#高亮下移一项
             return 'consumed'#已消费
-        if 键=='escape':#关闭菜单
+        if 键=='escape' or 键=='tabBack':#关闭菜单（退出手势）
+            自身._记下驳回()#记下驳回身份
             自身._停拉取()#中止在飞拉取
             自身._归约({'type':'close'})#关菜单
             return 'consumed'#已消费
@@ -226,6 +249,7 @@ class 触发控制器:#每会话触发控制器
         """例如指针点在 composer 区域外。"""
         if 自身.已拆除:#已拆除则忽略
             return#结束
+        自身._记下驳回()#记下驳回身份
         自身._停拉取()#中止在飞拉取
         自身._归约({'type':'close'})#关菜单
 
@@ -362,6 +386,20 @@ class 触发控制器:#每会话触发控制器
         """有启动器则清掉。"""
         if 自身.launcher.getSnapshot() is not None:#有
             自身.launcher.set(None)#清掉
+
+    def _记下驳回(自身):#记下开放菜单身份为已驳回
+        """光秃再跟踪不能复活它。"""
+        命中=自身.命中#权威命中
+        if 命中 is None:#无
+            自身.已驳回=None#清
+            return#结束
+        自身.已驳回={#令牌身份
+            'trigger':命中['trigger'],#触发
+            'query':命中['query'],#查询
+            'quoted':命中['quoted'] if 'quoted' in 命中 else False,#引用态
+            'start':命中['span']['start'],#起点
+            'end':命中['span']['end'],#终点
+        }#结束
 
     def _归约(自身,事件):#归约菜单
         """把菜单事件送进纯归约并写回存储。"""

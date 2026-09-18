@@ -464,6 +464,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 候选['contextWindow']=模型['contextWindow']#有窗口才带上
             if 'maxTokens' in 模型:#有上限
                 候选['maxTokens']=模型['maxTokens']#有上限才带上
+            if 'inputModalities' in 模型:#有输入模态
+                候选['inputModalities']=list(模型['inputModalities'])#拆离模态
             模型列表.append(候选)#记下
         return 模型列表#去重后的候选
 

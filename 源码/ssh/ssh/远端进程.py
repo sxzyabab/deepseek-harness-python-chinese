@@ -242,6 +242,9 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 try:#等
                     结局=终端.done.等待() if hasattr(终端.done,'等待') else 终端.done#退出
                     完成.兑现({'outcome':结局,'spills':{},'collected':{}})#完成
+                    if 请求.get('terminal') is not None and 请求['terminal'].get('shellActivity') is True:#shell 活动
+                        输出线程.join()#等转发
+                        return#由客户端回收
                     终端.终止()#静止
                     输出线程.join()#等转发
                     自身._记住完成(标识,记录,完成)#记住
@@ -471,10 +474,12 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
             记录['ordinary'].等待退出()#等
         if 记录['terminal'] is not None:#终端
             记录['terminal'].终止()#终止
+            if 记录['request'].get('terminal') is not None and 记录['request']['terminal'].get('shellActivity') is True and 记录['done'] is not None:#shell 活动
+                自身._记住完成(标识,记录,记录['done'])#记住完成
         if 记录['ordinary'] is None and 记录['terminal'] is None:#尚未启动
             自身.释放(标识)#释放预留
 
-    def 终端操作(自身,标识,操作,值=None):#write/inspect/signal
+    def 终端操作(自身,标识,操作,值=None):#write/inspect/activity/signal
         """对预留拥有的终端操作。"""
         终端=自身.取记录(标识)['terminal']#终端
         if 终端 is None:#无
@@ -485,6 +490,8 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         if 操作=='inspect':#前台
             前台=终端.检查前台()#观察
             return 前台#可空
+        if 操作=='activity':#活动
+            return 终端.检查活动()#观测
         if 值 not in ('SIGINT','SIGTERM','SIGKILL','SIGTSTP','SIGHUP'):#信号
             raise ssh错误('expected terminal signal')#拒绝
         return 终端.发信号前台(值)#组 id

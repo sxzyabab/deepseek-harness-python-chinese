@@ -29,7 +29,7 @@ __all__=[#仅中文公开名
     '清单行字段','动态包公告字段','请求已落定字段','撤回公告字段','运行请求字段',
 ]#公开面结束
 
-注入=['slots','locale','inputTriggers','remote','remote.dynamicCordisRunner','dynamicCordisRunner']#硬依赖
+注入=['slots','locale','remote','remote.dynamicCordisRunner','dynamicCordisRunner']#硬依赖
 
 class 远端错误(Exception):
     """远端 RPC 载体失败。"""
@@ -43,7 +43,7 @@ def 读远端错(答):
     return str(码)+': '+str(消息)#拼
 
 def 应用(上下文):
-    """登记词典、清单端口、工具行、面板槽与 @pluginId 源。行组件为结构树面。"""
+    """登记词典、清单端口、工具行与面板槽。行组件为结构树面。"""
     def 挂词典():
         """登记本包词典。"""
         上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
@@ -248,74 +248,6 @@ def 应用(上下文):
         },动作行)#动作行
 
     上下文.slots.inject('tool.call.toolview',登记动作行)#动作行
-
-    def 本会话行(会话标识,查询):
-        """本会话且 id 含查询。行与快照为 dict。"""
-        结果=[]#过滤
-        for 行 in 清单['getSnapshot']()['rows']:#每行
-            if 行['agentId']==会话标识 and 查询 in str(行['pluginId']):#命中
-                结果.append(行)#收入
-        return 结果#过滤
-
-    def 候选用包(行):
-        """优先待切换、当前、最后定义。行为清单 dict。"""
-        if 'nextPackageId' in 行:#待切换
-            包标识=行['nextPackageId']#优先
-        elif 'currentPackageId' in 行:#当前
-            包标识=行['currentPackageId']#当前
-        else:#最后定义
-            表=行['packages'] if 'packages' in 行 else []#表
-            if len(表)==0:#空
-                return None#无
-            包标识=表[-1]['packageId']#末
-        return 取包(行,包标识)#包
-
-    def 候选(会话,选项):
-        """映射候选项。会话与选项为 dict。"""
-        查询=选项['query'] if 'query' in 选项 else ''#查询
-        结果=[]#列表
-        for 行 in 本会话行(会话['sessionId'],查询):#过滤
-            项={'name':str(行['pluginId'])}#名
-            包=候选用包(行)#包
-            if 包 is not None:#有
-                项['description']=包['purpose']#用途
-            结果.append(项)#加
-        return 结果#列表
-
-    def 预热源():
-        """触发源预热。"""
-        清单['refresh']()#预热
-
-    def 词表(会话):
-        """本会话插件 id 词表。会话为 dict。"""
-        名列表=[]#词
-        for 行 in 本会话行(会话['sessionId'],''):#本会话
-            名列表.append(str(行['pluginId']))#id
-        return 名列表#词表
-
-    def 订阅词表(会话,监听器):
-        """词表订阅。会话参数保留以对齐源面。"""
-        return 清单['subscribe'](监听器)#订阅
-
-    def 选定(载荷):
-        """@ 选定后插入文本。载荷为 dict。"""
-        候选项=载荷['candidate']#候选项
-        return {'text':'@'+候选项['name']+' '}#插入
-
-    源={#@pluginId 源
-        'trigger':'@','name':'cordis','order':1,#元
-        'candidates':候选,#候选
-        'warm':预热源,#预热
-        'lexicon':词表,#词表
-        'subscribeLexicon':订阅词表,#订阅
-        'onPick':选定,#选定
-    }#源结束
-
-    def 登记触发源():
-        """登记 @pluginId 输入源。"""
-        触发=上下文.获取服务('inputTriggers')#触发服务
-        触发.registerSource(源)#登记
-    上下文.副作用(登记触发源,'ui-cordis: @pluginId source')#登记
     清单['refresh']()#启动读一次
 
 inject=注入#框架槽

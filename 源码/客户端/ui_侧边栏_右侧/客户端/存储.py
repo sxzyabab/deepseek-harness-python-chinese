@@ -9,6 +9,7 @@ from ...ui_停靠套件.引擎 import (#停靠引擎（避开组件包导入）
     停靠窗格标识列表,
     查找标签窗格,
     查找窗格内容标签,
+    查找内容标签,
     取窗格,
     规划打开内容,
     规划落定,
@@ -23,6 +24,7 @@ from ...ui_停靠套件.引擎 import (#停靠引擎（避开组件包导入）
     规划调整分割,
 )#引擎结束
 from .约定.种子 import 向导种类,页面地址#向导种子
+from .持久化 import 读侧栏布局,写侧栏布局,清侧栏布局#布局持久化
 
 __all__=['可关闭标签','独一停靠标签','创建表面','创建右侧侧栏存储']#仅中文公开名
 
@@ -203,8 +205,20 @@ def 创建右侧侧栏存储(种子):
             内容=意图['contentId']#内容
             页面=内容==页面地址(种类)#是否页面
             持有=_窗页面(态,窗 if 窗 is not None else 活动停靠窗格标识(态),种类) if 页面 else None#页唯一
-            if 持有 is not None:#焦已有页面
-                规划果={'ops':[{'type':'focusTab','tabId':持有}],'tabId':持有}#焦
+            已揭示=持有 if 页面 else (None if 意图.get('revealIfOpened') is False else 查找内容标签(态,内容,种类))#揭示
+            新窗签=[None]#新窗签盒
+            if 意图.get('preferNewPane') is True and 替换 is None and 已揭示 is None:#优先新窗
+                def 造新(标识):
+                    """新窗内造签。"""
+                    新窗签[0]=标识#记下
+                    return {'id':标识,'kind':种类,'contentId':内容,'title':意图['title']}#记录
+                分出=规划分窗格(态,铸,窗,造新)#分
+            else:#不分
+                分出=[]#空
+            if 已揭示 is not None:#焦已有
+                规划果={'ops':[{'type':'focusTab','tabId':已揭示}],'tabId':已揭示}#焦
+            elif 新窗签[0] is not None:#落新窗
+                规划果={'ops':分出,'tabId':新窗签[0]}#新
             else:#常规开
                 入={'kind':种类,'contentId':内容,'title':意图['title']}#入
                 if 窗 is not None:#有窗
@@ -354,11 +368,31 @@ def 创建右侧侧栏存储(种子):
                 通知()#广播
             return 调用#绑定
 
-        return {#实例
+        def 设(下一态):
+            """整表替换。"""
+            nonlocal 状态#态
+            状态=下一态#写
+            通知()#广播
+
+        实例={#实例
             'getSnapshot':取快照,
             'subscribe':订阅,
             'actions':{名:绑(名,函) for 名,函 in 动作表.items()},
             'scopeKey':作用域键,
+            'store':{'set':设},
         }#实例
+        if 作用域键 is None:#无作用域
+            return 实例#实例
+        已存=读侧栏布局(作用域键)#恢复
+        if 已存 is not None:#有
+            设({'bySession':{作用域键:已存}})#写回
+        def 持久化监听():
+            """写出当前表面。"""
+            表面=取快照()['bySession'].get(作用域键)#表面
+            if 表面 is not None:#有
+                写侧栏布局(作用域键,表面)#写
+        订阅(持久化监听)#订
+        实例['clearPersisted']=lambda:清侧栏布局(作用域键)#清理
+        return 实例#实例
 
     return {'init':初值,'actions':动作表,'create':铸造}#规格+工厂

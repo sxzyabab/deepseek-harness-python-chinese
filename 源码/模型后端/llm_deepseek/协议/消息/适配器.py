@@ -5,7 +5,7 @@ from urllib.parse import urlparse as 解析网址#拆 URL
 from ....llm import 归属头,大模型适配器,大模型错误#归属、基类与错误
 from ....工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号#空闲看门狗与中止
 from ...协议无关.模型信息 import 目录模型信息,模型信息#模型信息
-from ...协议无关.文件接口 import 消息文件测试版#测试版头
+from ...协议无关.消息接口 import 消息文件测试版头 as 消息文件测试版,消息接口根#Messages API
 from ...协议无关.请求文件 import 文件解析失败,请求文件#Files
 from ...协议无关.请求扩展 import 准备请求扩展#扩展
 from .图片 import 图片定价,内联图片,准备文件标识,准备图片#图
@@ -147,7 +147,7 @@ class 深求消息适配器(大模型适配器):
                 头['x-deepseek-harness-session-id']=str(选项['sessionId'])#会话
             if 选项.get('purpose')=='compaction':#压缩
                 头['x-deepseek-harness-compact']='1'#压缩
-            网址=连接['baseURL'].rstrip('/')+'/v1/messages'#端点
+            网址=消息接口根(连接['baseURL'])+'/messages'#Messages 端点
             解析=解析网址(网址)#拆
             载荷=扩展['payload']#JSON
             if isinstance(载荷,str):#文本

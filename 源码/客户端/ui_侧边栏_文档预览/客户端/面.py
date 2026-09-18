@@ -1,5 +1,4 @@
 import threading#读取线程与中止监视
-from .远程过程调用 import 文档文件字节#字节解码
 
 __all__=['已中止','文本面']#仅中文公开名
 
@@ -18,8 +17,8 @@ def 文本面(读取,完整读取):
     """
 
     def 工厂(_会话标识,动作):
-        """构造 loadPage / reloadPages / loadAll / reloadAll。"""
-        标签表={}#标签标识 → {generation, version, mode}
+        """构造 loadPage / reloadPages / loadAll / reloadAll / prepareRenderer。"""
+        标签表={}#标签标识 → 簿记
 
         def 读取簿(标签标识,信号):
             """取或建簿记；首次武装中止监听。"""
@@ -30,6 +29,9 @@ def 文本面(读取,完整读取):
 
             def 清理():
                 """记录结束：清簿记与桶。"""
+                飞=簿.get('controller')#飞行
+                if 飞 is not None:#有
+                    飞.set()#中止
                 if 标签标识 in 标签表:#仍在
                     del 标签表[标签标识]#清
                 动作['forget'](标签标识)#清桶
@@ -42,10 +44,18 @@ def 文本面(读取,完整读取):
                 threading.Thread(target=监视,daemon=True).start()#守护
             return 簿#簿记
 
-        def 模式簿(标签标识,信号,模式):
-            """换模式时晋代并重置桶。"""
+        def 模式簿(标签标识,信号,模式,渲染器标识=None):
+            """换模式或渲染器时晋代并重置桶。"""
             簿=读取簿(标签标识,信号)#簿记
-            if 簿['mode']!=模式:#换模式
+            if 簿['mode']!=模式 or 簿.get('rendererId')!=渲染器标识:#换
+                飞=簿.get('controller')#旧飞
+                if 飞 is not None:#有
+                    飞.set()#中止
+                if 渲染器标识 is None:#清
+                    if 'rendererId' in 簿:#有
+                        del 簿['rendererId']#删
+                else:#记下
+                    簿['rendererId']=渲染器标识#写
                 簿['mode']=模式#记下
                 簿['generation']+=1#晋代
                 簿['version']=None#清版本
@@ -84,31 +94,24 @@ def 文本面(读取,完整读取):
             if 已中止(信号):#已中止
                 return#停
             簿=模式簿(标签标识,信号,'bytes-complete')#完整字节
-            代次=簿['generation']#本代
+            旧飞=簿.get('controller')#旧飞
+            if 旧飞 is not None:#有
+                旧飞.set()#中止
+            控制器=threading.Event()#本飞
+            簿['controller']=控制器#记下
             动作['loading'](标签标识,'bytes-complete',观察版本)#标加载
 
             def 结算():
                 """完整读结算。"""
-                if 已中止(信号) or 簿['generation']!=代次:#过期
+                if 已中止(信号) or 控制器.is_set():#过期
                     return#丢
-                结果=完整读取(文件,信号)#RemoteResult
-                if 已中止(信号) or 簿['generation']!=代次:#过期
+                结果=完整读取(文件,信号)#RemoteResult（已解码）
+                if 已中止(信号) or 控制器.is_set():#过期
                     return#丢
                 if not 结果['ok']:#失败
                     动作['failed'](标签标识,结果['error'])#失败
                     return#停
-                try:
-                    文件字节=文档文件字节(结果['value'])#解码
-                except Exception as 错:#畸形 base64
-                    动作['failed'](标签标识,{#远程错误形
-                        'name':'RemoteError',
-                        'message':'document file byte response has malformed base64 data',
-                        'isDSHRemoteError':True,
-                        'code':'gateway/internal',
-                        'details':{},
-                        'cause':错,
-                    })
-                    return#停
+                文件字节=结果['value']#已解码
                 簿['version']=文件字节['version']#记下
                 动作['complete'](标签标识,文件字节)#写入
 
@@ -119,6 +122,9 @@ def 文本面(读取,完整读取):
             if 已中止(信号):#已中止
                 return#停
             簿=读取簿(标签标识,信号)#簿记
+            飞=簿.get('controller')#旧飞
+            if 飞 is not None:#有
+                飞.set()#中止
             簿['generation']+=1#晋代
             簿['version']=None#清版本
             动作['reset'](标签标识)#重置
@@ -131,11 +137,21 @@ def 文本面(读取,完整读取):
             """丢掉旧完整结果并重读。"""
             重启(标签标识,文件,信号,观察版本,'bytes-complete')#完整模式
 
+        def 准备渲染器(标签标识,信号,渲染器标识,观察版本=None,重载=False):
+            """开始渲染器自有加载，不读源字节。"""
+            if 已中止(信号):#已中止
+                return#停
+            模式簿(标签标识,信号,'renderer',渲染器标识)#渲染器模式
+            if 重载:#重载
+                动作['reset'](标签标识)#清内容
+            动作['loading'](标签标识,'renderer',观察版本,渲染器标识)#标加载
+
         return {#注入面
             'loadPage':加载页,
             'reloadPages':重启,
             'loadAll':加载全部,
             'reloadAll':重载全部,
+            'prepareRenderer':准备渲染器,
         }#面结束
 
     return 工厂#inject 工厂

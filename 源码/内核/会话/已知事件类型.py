@@ -58,6 +58,7 @@ __all__=['已知会话事件类型','消息投影事件类型']#仅中文公开�
     'turn/start',#轮次开始
     'user/message',#用户消息
     'web/deepseek-search-llm-request',#搜索 LLM 请求
+    'workspace/changes',#工作区变更
 ))#集合结束
 
 消息投影事件类型=frozenset((#模型可见效果需要显式纯解释器的事件类型

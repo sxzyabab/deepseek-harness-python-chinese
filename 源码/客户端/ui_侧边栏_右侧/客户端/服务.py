@@ -160,9 +160,36 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
 
     def _放置(自身,会话标识,动作,认领,地址,放置,参数):
         """共享开路径。"""
+        认=自身.已认[会话标识] if 会话标识 in 自身.已认 else None#认
+        表面=None#表面
+        if 认 is not None:#有存储
+            表面表=认['store']['getSnapshot']()['bySession']#表
+            表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
+        if 表面 is None and 自身.绑定席 is not None and 自身.绑定席['sessionId']==会话标识:#绑席表面
+            表面表=自身.绑定席['surfaces']#表
+            表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
+        布局=表面['layout'] if 表面 is not None else None#布局
+        目标窗=None#目标窗
+        if 布局 is not None:#有布局
+            目标窗=放置['paneId'] if 'paneId' in 放置 and 放置['paneId'] is not None else 活动停靠窗格标识(布局)#窗
+        目标=布局['nodes'][目标窗] if 布局 is not None and 目标窗 is not None and 目标窗 in 布局['nodes'] else None#节点
+        优先新窗=(放置.get('preferNewPane') is True
+            and ('replaceTab' not in 放置 or 放置['replaceTab'] is None)
+            and 表面 is not None
+            and 目标 is not None
+            and 目标.get('kind')=='pane'
+            and 目标.get('host')=='dock'
+            and len(目标.get('tabs') or [])>0
+            and 可分割(布局)
+            and len(停靠窗格标识列表(布局))<2
+            and 自身.绑定席 is not None
+            and 自身.绑定席['sessionId']==会话标识
+            and 自身.绑定席['canSplitPane'](目标['id']))#可否优先新窗
         意图={'kind':认领['kind'],'contentId':认领['contentId'],'title':认领['title']}#意图
         if 'paneId' in 放置 and 放置['paneId'] is not None:#窗
             意图['paneId']=放置['paneId']#写
+        if 优先新窗:#新窗
+            意图['preferNewPane']=True#写
         if 'replaceTab' in 放置 and 放置['replaceTab'] is not None:#替
             意图['replaceTab']=放置['replaceTab']#写
         if 'revealIfOpened' in 放置:#揭示
@@ -175,13 +202,6 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
                 自身.标签域.导航(会话标识,标签标识,{'address':地址,'params':参数})#导航
             动作['openContent'](会话标识,意图,落定)#开
 
-        认=自身.已认[会话标识] if 会话标识 in 自身.已认 else None#认
-        布局=None#布局
-        if 认 is not None:#有存储
-            表面表=认['store']['getSnapshot']()['bySession']#表
-            表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
-            if 表面 is not None:#有
-                布局=表面['layout']#布局
         被替=None#被替签
         if 布局 is not None and 'replaceTab' in 放置 and 放置['replaceTab'] is not None:#有替
             被替=布局['tabs'][放置['replaceTab']] if 放置['replaceTab'] in 布局['tabs'] else None#记录

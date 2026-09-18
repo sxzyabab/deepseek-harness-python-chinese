@@ -1,0 +1,22 @@
+{
+    "anchor":"锚定",
+    "args":"参数",
+    "bundle":"组合包",
+    "command":"命令",
+    "context":"上下文",
+    "manifest":"清单",
+    "operation":"操作",
+    "option":"选项",
+    "output":"输出",
+    "package":"包",
+    "path":"路径",
+    "pnpm":"pnpm",
+    "profile":"配置档",
+    "reconcile":"调和",
+    "run":"跑",
+    "save":"保存",
+    "self":"自身",
+    "spec":"规格",
+    "stream":"流",
+    "view":"查看"
+}

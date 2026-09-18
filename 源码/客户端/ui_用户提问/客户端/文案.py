@@ -13,9 +13,9 @@ __all__=['中文','英文','提问文案键']#仅中文公开名
     'action.skip':'跳过',#跳过本题
     'action.next':'下一题',#下一题动作
     'plan.header':'计划待审',#计划待审标题
-    'plan.approve':'确认执行',#批准计划
+    'plan.approve':'同意执行',#批准计划
     'plan.decline':'拒绝',#拒绝计划
-    'plan.discuss':'去聊天里说',#改去聊天讨论
+    'plan.discuss':'要求修改',#要求修改计划
 }#中文词典结束
 
 英文={#英文词条，键与中文权威源一致
@@ -33,7 +33,7 @@ __all__=['中文','英文','提问文案键']#仅中文公开名
     'plan.header':'Plan review',#计划待审标题
     'plan.approve':'Approve',#批准计划
     'plan.decline':'Refuse',#拒绝计划
-    'plan.discuss':'Chat about it',#改去聊天讨论
+    'plan.discuss':'Request changes',#要求修改计划
 }#英文词典结束
 
 提问文案键=tuple(中文.keys())#由中文词典键推导的键域

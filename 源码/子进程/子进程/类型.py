@@ -105,7 +105,7 @@ class 句柄:#存活子进程句柄协议
 
 终端信号=('SIGINT','SIGTERM','SIGKILL','SIGTSTP','SIGHUP')#终端进程原语支持的信号（与 terminal 缝成员一致）
 
-终端启动规格字段=('argv','cwd','env','rows','cols','terminalType','graceMs','signal')#完全指定的终端进程启动
+终端启动规格字段=('argv','cwd','env','rows','cols','terminalType','shellActivity','graceMs','signal')#完全指定的终端进程启动
 class 终端启动规格(TypedDict):#完全指定的终端进程启动
     argv:list#可执行文件与参数；argv[0] 是程序
     cwd:str#该子进程提供方执行世界中的工作目录
@@ -113,6 +113,7 @@ class 终端启动规格(TypedDict):#完全指定的终端进程启动
     rows:int#初始终端行数
     cols:int#初始终端列数
     terminalType:str#经 TERM 广告给子进程的终端仿真
+    shellActivity:NotRequired[bool]#请求受支持的交互 shell 生命周期观测
     graceMs:int#完整终端会话的 TERM-to-KILL 清理宽限
     signal:NotRequired[object]#终端分配的取消；已发布句柄拥有其后续生命周期
 
@@ -121,11 +122,16 @@ class 前台组(TypedDict):#终端当前前台进程组事实
     processGroupId:int#终端驱动发布的前台进程组 id
     inputWaiting:bool#提供方当前能否证明该组正在等待终端输入
 
-终端句柄字段=('pid','output','done','写入','调整尺寸','检查前台','发信号前台','终止')#一个存活终端进程及其拥有的操作系统会话
+终端活动字段=('state','revision')#shell 生命周期观测
+class 终端活动(TypedDict):#终端活动观测
+    state:str#idle / busy / unknown
+    revision:int#随观测变化的修订
+
+终端句柄字段=('pid','output','done','写入','调整尺寸','检查前台','检查活动','发信号前台','终止')#一个存活终端进程及其拥有的操作系统会话
 class 终端句柄:#存活终端句柄协议
     """终端分配、前台组检查/发信号、会话树清理是同一深层子进程原语。
 
-    数据字段名对齐上游；方法仅中文：写入、检查前台、发信号前台、终止。
+    数据字段名对齐上游；方法仅中文：写入、检查前台、检查活动、发信号前台、终止。
     """
     pid=None#顶层终端进程 id
     output=None#按投递顺序的 UTF-8 终端输出字节；退出后排空已排队输出时结束
@@ -140,15 +146,19 @@ class 终端句柄:#存活终端句柄协议
         raise NotImplementedError('终端句柄.调整尺寸')#由提供方实现
 
     def 检查前台(自身):#检查当前前台进程组
-        """返回其 id 与等待输入事实；无法解析前台组时为 None。"""
+        """返回前台组事实；无法解析则为 None。"""
         raise NotImplementedError('终端句柄.检查前台')#由提供方实现
 
-    def 发信号前台(自身,信号名):#向当前前台进程组投递信号
-        """投递允许的终端信号，返回实际收到该信号的组 id。"""
+    def 检查活动(自身):#观测命令活动
+        """返回 state 与 revision；不支持时 unknown。"""
+        raise NotImplementedError('终端句柄.检查活动')#由提供方实现
+
+    def 发信号前台(自身,信号):#向前台组发信号
+        """投递信号并返回打到的组 id。"""
         raise NotImplementedError('终端句柄.发信号前台')#由提供方实现
 
-    def 终止(自身):#幂等终止整终端会话
-        """幂等地终止提供方仍能观察到的每个终端会话成员并等待静止。"""
+    def 终止(自身):#终止终端会话
+        """幂等终止并等待静止。"""
         raise NotImplementedError('终端句柄.终止')#由提供方实现
 
 标准输入模式=('ignore','pipe')#stdin 处置字面量；另有 {data} 批处理形态

@@ -1,4 +1,6 @@
 {
     "app-boot":"app启动",
-    "cmdline":"命令行"
+    "cmdline":"命令行",
+    "hmr":"热更新",
+    "plugin-manager":"插件装载"
 }

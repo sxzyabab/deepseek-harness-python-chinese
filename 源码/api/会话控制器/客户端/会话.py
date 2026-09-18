@@ -13,7 +13,6 @@ from .约定.事件 import 可变会话事件源#事件源
 from .通知器 import 通知器#通知
 from .投影存储 import 投影值存储#投影
 from .时区 import 解析客户端时区#时区
-from .队列镜像 import 会话队列镜像#队列
 from .助手流 import 客户端助手流#助手流
 
 __all__=['页消息数','跳转页消息数','会话']#仅中文公开名
@@ -87,7 +86,6 @@ class 会话:
         自身._加载更早=False#加载更早
         自身._跳转目标=None#跳转目标
         自身._跳转承诺=None#跳转承诺
-        自身._队列镜像=会话队列镜像()#队列
         自身._助手流=客户端助手流()#助手流
         自身._运行中=False#运行
         自身._提示已尝试=False#提示尝试
@@ -103,6 +101,7 @@ class 会话:
         自身._作用域上下文=None#actx
         自身._通知器=通知器(自身._重建快照)#通知
         自身._快照=自身._构建快照()#初始
+        自身._停观察收件箱=自身.projections.面('inbox').subscribe(自身._观察提交收件箱)#收件箱
 
     def 绑定作用域(自身,作用域上下文):
         """绑定 ClientSessions 铸造的 Agent 作用域上下文（单次）。"""
@@ -331,18 +330,6 @@ class 会话:
         自身._通知器.确保新鲜()#新鲜
         return 自身._快照#快照
 
-    def replaceControl(自身,队列项):
-        """用流基线替换瞬态控制值。"""
-        自身._队列镜像.替换(队列项)#替换
-        自身._观察提交队列(队列项)#观察
-        自身._通知器.标脏()#脏
-
-    def handleControlFrame(自身,帧):
-        """应用寻址到本会话的队列替换。"""
-        自身._队列镜像.替换(帧['items'])#替换
-        自身._观察提交队列(帧['items'])#观察
-        自身._通知器.标脏()#脏
-
     def handleRunning(自身,运行中):
         """运行位中继。"""
         if 运行中 and 自身._空白:#首条落地
@@ -401,6 +388,8 @@ class 会话:
 
     def dispose(自身):
         """停止存活 Remote 源。"""
+        if hasattr(自身,'_停观察收件箱') and callable(自身._停观察收件箱):#有
+            自身._停观察收件箱()#停
         for 请求标识 in list(自身._提交结算.keys()):#未结算
             自身._失败退役提交(请求标识)#失败退役
         自身._打开代+=1#升代
@@ -516,14 +505,22 @@ class 会话:
         曾等待=自身._等待首轮#曾
         if 事件.get('type')=='turn/start':#回合开始
             自身._等待首轮=False#清
-        队列变=自身._队列镜像.接受耐久(事件)#队列
         自身.eventSource.追加(条目)#追加
         自身._观察提交事件(事件)#观察
-        return 队列变 or 曾等待!=自身._等待首轮#脏否
+        return 曾等待!=自身._等待首轮#脏否
 
     def _观察提交事件(自身,事件):
-        """持久 user/message 时退役回声。"""
-        if len(自身._提交结算)==0 or 事件.get('type')!='user/message':#无关
+        """即使插入与认领共享一次投影通知，也观察持久接受。"""
+        if len(自身._提交结算)==0:#无
+            return#空
+        if 事件.get('type')=='agent/inbox/spliced':#收件箱拼接
+            数据=事件['data'] if isinstance(事件.get('data'),dict) else None#载荷
+            插入=数据.get('inserted') if 数据 is not None else None#插入
+            if isinstance(插入,list):#有
+                for 消息 in 插入:#逐条
+                    自身._观察提交事件({'type':'user/message','data':消息})#观察
+            return#结束
+        if 事件.get('type')!='user/message':#无关
             return#空
         数据=事件['data'] if isinstance(事件.get('data'),dict) else None#载荷
         源=数据['source'] if isinstance(数据,dict) and isinstance(数据.get('source'),dict) else None#来源
@@ -531,14 +528,18 @@ class 会话:
             return#空
         自身._调度已观察退役(源['rpcId'],_内容附件引用(数据.get('content') if 数据 else None))#调度
 
-    def _观察提交队列(自身,项列表):
-        """队列出现时退役回声。"""
+    def _观察提交收件箱(自身):
+        """Inbox 投影出现时退役回声。"""
         if len(自身._提交结算)==0:#无
             return#空
-        for 项 in 项列表:#逐项
-            if 'rpcId' in 项 and 项['rpcId'] is not None:#有 rpc
-                内容=项['message']['content'] if isinstance(项.get('message'),dict) else None#内容
-                自身._调度已观察退役(项['rpcId'],_内容附件引用(内容))#调度
+        收件箱=自身.projections.取('inbox')#投影
+        if not isinstance(收件箱,dict):#无
+            return#空
+        for 键 in ('next-turn','next-step'):#两栏
+            for 消息 in 收件箱.get(键,[]) if isinstance(收件箱.get(键),list) else []:#逐条
+                源=消息.get('source') if isinstance(消息,dict) else None#来源
+                if isinstance(源,dict) and 源.get('kind')=='user' and 'rpcId' in 源:#用户 rpc
+                    自身._调度已观察退役(源['rpcId'],_内容附件引用(消息.get('content')))#调度
 
     def _调度已观察退役(自身,请求标识,附件列表):
         """闩住并延后完成。"""
@@ -594,7 +595,6 @@ class 会话:
                 子['parentAvailable']=自身._父可用#写入
         return {
             'sessionId':自身.sessionId,
-            'queue':自身._队列镜像.快照(),
             'pendingSubmissions':自身._待定提交,
             'running':自身._运行中,
             'subagent':子,

@@ -42,8 +42,8 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
         自身.模块系统=None#模块系统
         自身.清单=None#启动清单
 
-    def run(自身):
-        """加载并激活每个客户端入口，再把挂载点交给 UI 渲染器。"""
+    def run(自身,失败回调=None):
+        """加载并激活每个客户端入口，再把挂载点交给 UI 渲染器。失败回调可选。"""
         try:#跑启动
             窗口=自身.窗口#门面
             if 窗口 is None:#缺窗口
@@ -69,8 +69,9 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
             自身.上下文=上下文#记下
             自身.页.setTotal(len(自身.清单['plugins']))#设进度总数
             def 投影状态(名,状态):
-                """投影到启动页。"""
-                自身.页.setState(名,状态)#写下
+                """投影到启动页；载体呈现失败时跳过 failed。"""
+                if 失败回调 is None or 状态!='failed':#可写页
+                    自身.页.setState(名,状态)#写下
             启动客户端({#组装插件树
                 'ctx':上下文,#根上下文
                 'modules':自身.模块系统,#模块系统
@@ -78,8 +79,13 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
                 'onEntryState':投影状态,#投影
             })#启动客户端结束
             挂载客户端(上下文,自身.容器)#挂应用
-        except 网页错误 as 原因:#启动失败
-            自身.页.fail(原因.args[0] if len(原因.args)>0 else str(原因))#启动页失败报告
+        except Exception as 原因:#启动失败
+            if 失败回调 is not None:#载体呈现
+                失败回调(原因)#回调
+            elif isinstance(原因,网页错误):#本包错误
+                自身.页.fail(原因.args[0] if len(原因.args)>0 else str(原因))#启动页失败报告
+            else:#其它
+                自身.页.fail(str(原因))#启动页失败报告
 
     def dispose(自身):
         """拆除客户端插件树以及当前拥有挂载点的页面。"""

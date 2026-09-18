@@ -1,5 +1,9 @@
 {
+    "attachment":"附件",
+    "block":"块",
+    "file":"文件",
     "record":"记录",
     "self":"自身",
+    "source":"源",
     "trajectory":"轨迹"
 }

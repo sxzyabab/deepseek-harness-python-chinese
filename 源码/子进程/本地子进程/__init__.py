@@ -1,9 +1,18 @@
 import atexit,os,threading#宿主退出收尾、路径解析与后台释放线程
 import node_pty as 伪终端库#node-pty 的 Python 面；缺失则模块加载失败
 from ...工具.超时 import 若已中止则抛出#中止入口；信号来自超时库
+from .命令活动 import 准备命令活动#shell 活动
 from .终端 import 本地子进程错误,本地终端句柄,贯通流#本包错误、PTY 句柄与输出流
 from ..子进程 import 子进程运行时,可执行未找到错误#子进程服务定义与查找失败
-from .启动 import 启动子进程,子环境,输出收集器,准备受管进程绑定#管道启动与收集
+from .启动 import 启动子进程,子环境,输出收集器,准备受管进程绑定,节点平台#管道启动与收集
+from .Linux范围 import (
+    探测Linux管理器,#已引导后的廉价探测
+    探测Linux原生,#首次引导+范围探测
+    准备Linux终端范围,#终端 scope
+    向Linux直接进程发信号,#直接进程信号
+    直接范围,#终端绑定用直接面
+    操作任务,#直接结算闩
+)#Linux 受管范围
 from .进程检查 import (
     进程身份,#精确身份
     创建进程检查器,#按平台选实现
@@ -34,12 +43,35 @@ def 环境键值(环境,键名):#按平台语义取 PATH/PATHEXT
             return 值#返回
     return None#未命中
 
+def 目标环境(规格):#物化并校验最终目标环境
+    """对齐 targetEnvironment：空字节校验后叠控制通道标记。"""
+    参数表=list(规格['argv']) if 'argv' in 规格 and 规格['argv'] is not None else []#argv
+    for 下标,值 in enumerate(参数表):#逐参
+        if '\0' in str(值):#空字节
+            名='file' if 下标==0 else 'args['+str(下标-1)+']'#属性名
+            raise TypeError("The argument '"+名+"' must be a string without null bytes. Received "+repr(值))#拒
+    工作目录=规格['cwd'] if 'cwd' in 规格 else None#cwd
+    if 工作目录 is not None and '\0' in str(工作目录):#cwd 空字节
+        raise TypeError("The property 'options.cwd' must be a string without null bytes. Received "+repr(工作目录))#拒
+    环境=子环境(规格['env'] if 'env' in 规格 else None)#擦洗后叠加
+    for 键,值 in list(环境.items()):#逐条
+        if '\0' in str(键) or (值 is not None and '\0' in str(值)):#键或值空字节
+            raise TypeError("The property 'options.env["+repr(键)+"]' must be a string without null bytes.")#拒
+    标准流=规格['stdio'] if 'stdio' in 规格 else None#可选 stdio
+    控制=标准流['control'] if isinstance(标准流,dict) and 'control' in 标准流 else None#控制
+    from .控制派生 import 控制环境#控制标记
+    return 控制环境(环境,控制)#盖启动标记
+
 def 拉起伪终端(程序,参数,选项):#分配本地 PTY
     """分配本地 PTY 会话。"""
     return 伪终端库.spawn(程序,list(参数),选项)#启动 PTY 进程
 
+def 探测Windows作业(内部=None):#Windows Job 路径；本树尚未迁入 windows-job
+    """对齐 probeWindowsJob：本地无 Win32 Job runner 时恒为 False。"""
+    return False#未迁入则不可用
+
 class 本地子进程运行时(子进程运行时):#本地子进程服务
-    """本地子进程服务：分离进程树、stdio 处置（原始管道、继承、带溢出文件的有界保尾收集）、凭证擦洗环境、带 SIGTERM→宽限→SIGKILL 升级的树范围发信号，以及宿主退出期间的同步最终终止。
+    """本地子进程服务：平台选定的受管范围、Node 形 stdio 处置（原始管道、继承、带溢出文件的有界保尾收集）、凭证擦洗环境，以及提供方拥有的范围发信号。POSIX 先 TERM 再 KILL；Windows 立即终止。JavaScript 可观察的宿主退出也会做同步最终终止。
 
     公开方法仅中文：解析可执行文件、终端环境、启动、启动终端。
     """
@@ -50,6 +82,8 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         自身.终端表=set()#存活终端句柄
         自身.控制通道=set()#调用方控制端点
         自身.内部={}#spawn 测试钩子
+        自身.回退警告已发=False#弱包含警告闩
+        自身.Linux深探测已过=False#Linux 引导探测正缓存
         自身.终端检查器=None#可选终端检查器覆盖
         def 宿主退出时():#宿主退出时强制停树
             """同步强制停仍拥有的树与终端。"""
@@ -81,7 +115,7 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
                 pass#一个终端不得阻止对其余目标的最终终止
 
     def 销毁受管进程(自身):#正常销毁全部受管进程
-        """先终止（升级），再等待整树退出。"""
+        """先终止，再等待整棵受管范围退出；等待期间集合仍权威。"""
         失败列表=[]#收集拒绝原因
         for 句柄 in list(自身.存活):#遍历存活子进程
             try:#开始升级终止
@@ -89,28 +123,28 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
             except (本地子进程错误,OSError) as 错误:#终止本身失败
                 失败列表.append(错误)#记下
             try:#忽略 spawn 失败后再等整树
-                句柄.done.等待()#等到孩子结局
+                句柄.done.等待() if hasattr(句柄,'done') else 句柄.等待结局()#等到孩子结局
             except (本地子进程错误,OSError):#spawn 级失败已结算
                 pass#仍要等整树
             try:#等整树
                 句柄.等待退出()#等整树
             except (本地子进程错误,OSError) as 错误:#等待失败
                 失败列表.append(错误)#记下
+            自身.存活.discard(句柄)#范围走后释放所有权
         for 终端 in list(自身.终端表):#遍历存活终端
             try:#等待终端会话静止
-                终端.终止().等待()#幂等拆除
+                终端.终止()#幂等拆除
+                自身.终端表.discard(终端)#静止后摘
             except (本地子进程错误,OSError) as 错误:#拆除失败
                 失败列表.append(错误)#记下
-        if len(失败列表)>0:#仍有失败则走宿主退出式强制停
-            自身.为宿主退出终止()#强制停
-        自身.存活.clear()#清空子进程集合
-        自身.终端表.clear()#清空终端集合
         for 控制 in list(自身.控制通道):#关闭控制端点
             try:#尽力关闭
                 控制.close()#关闭
             except OSError:#已关
                 pass#吞掉
         自身.控制通道.clear()#清空控制通道
+        if len(失败列表)>0:#仍有失败则走宿主退出式强制停
+            自身.为宿主退出终止()#强制停
         if len(失败列表)==1:#单个失败原样抛出
             raise 失败列表[0]#原样
         if len(失败列表)>1:#多个失败
@@ -134,7 +168,7 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
             try:#检查是否为可执行文件
                 if not os.path.isfile(候选):#不是文件
                     continue#试下一个
-                if os.name!='nt' and not os.access(候选,os.X_OK):#POSIX 需可执行
+                if not os.access(候选,os.X_OK):#需可执行（对齐 access X_OK）
                     continue#试下一个
                 若已中止则抛出(信号)#命中后再检查一次取消
                 return 候选#返回命中路径
@@ -146,7 +180,7 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         raise 可执行未找到错误('subprocess-local: command '+repr(命令)+' was not found on PATH')#PATH 上找不到
 
     def 可执行候选(自身,命令,环境):#按 PATH/PATHEXT 展开候选路径
-        """每个 PATH 目录拼出绝对候选。"""
+        """每个 PATH 目录相对 cwd 拼出绝对候选。"""
         路径=环境键值(环境,'PATH')#取出 PATH
         if 路径 is None:#没有 PATH
             路径=''#空
@@ -161,8 +195,50 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         候选列表=[]#结果
         for 目录 in 路径.split(分隔):#每个 PATH 目录
             for 扩展 in 扩展列表:#每个扩展
-                候选列表.append(os.path.abspath(os.path.join(目录,命令+扩展)))#拼出绝对候选
+                候选列表.append(os.path.abspath(os.path.join(os.getcwd(),目录,命令+扩展)))#相对 cwd 绝对化
         return 候选列表#候选列表
+
+    def 选择包含模式(自身,种类):#ordinary|terminal → linux-scope|windows-job|fallback
+        """按平台选受管范围；不可用则回退。"""
+        平台=自身.内部['platform'] if 'platform' in 自身.内部 and 自身.内部['platform'] is not None else 节点平台()#平台
+        回退原因=None#可选原因
+        if 平台=='linux':#Linux
+            if 自身.Linux深探测已过:#已引导
+                可用=探测Linux管理器(自身.内部)#廉价
+            else:#首次
+                可用=探测Linux原生(自身.内部)#深探测
+            if 可用:#可用
+                自身.Linux深探测已过=True#缓存正结果
+                return 'linux-scope'#Linux scope
+            回退原因='the current user-systemd scope or private bootstrap is unavailable'#原因
+        if 种类=='ordinary' and 平台=='win32':#普通进程才试 Job
+            if 探测Windows作业(自身.内部):#Job 可用
+                return 'windows-job'#Job
+        自身.警告回退(平台,种类,回退原因)#弱包含警告
+        return 'fallback'#回退
+
+    def 警告回退(自身,平台,种类,选定原因=None):#弱包含警告只发一次
+        """提供方生命周期内只警告一次。"""
+        if 自身.回退警告已发:#已发
+            return#空操作
+        自身.回退警告已发=True#闩上
+        if 选定原因 is not None:#已有原因
+            原因=选定原因#用选定
+        elif 平台=='darwin':#macOS
+            原因='macOS has no supported persistent process-range owner'#mac
+        elif 平台=='win32':#Windows
+            if 种类=='terminal':#终端
+                原因='Windows ConPTY remains outside Job containment'#ConPTY
+            else:#普通
+                原因='the Win32 Job runner is unavailable'#Job
+        else:#其它
+            原因='platform '+str(平台)+' has no native managed range'#平台
+        日志=getattr(自身.ctx,'logger',None) if hasattr(自身,'ctx') else None#日志
+        文案='subprocess-local is using weaker process-tree containment because '+原因+'; descendants that escape the process group or direct-parent tree are not guaranteed to terminate or delay waitForExit()'#警告
+        if 日志 is not None and hasattr(日志,'warn'):#有 warn
+            日志.warn(文案)#打日志
+        else:#无 logger
+            print(文案)#打印
 
     def 终端环境(自身,信号=None):#查看壳选择事实
         """查看本机执行环境里的壳选择事实。"""
@@ -184,11 +260,19 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
 
     def 启动(自身,规格):#启动一个受管子进程
         """按规格 spawn，纳入存活集合；整树退出后释放所有权。规格是 dict。"""
-        句柄=启动子进程(规格,自身.内部)#按规格 spawn
+        自身.选择包含模式('ordinary')#探测并可能警告；普通路径本地仍走回退 spawn
+        句柄=启动子进程(规格,自身.内部)#按规格 spawn（绑定受管进程未迁入前恒回退）
         自身.存活.add(句柄)#纳入存活集合
         控制=句柄.control#控制通道
         if 控制 is not None:#请求了控制通道
             自身.控制通道.add(控制)#纳入集合
+            def 控制关闭(*位置参数):#close 后摘
+                """控制端关闭后从集合移除。"""
+                自身.控制通道.discard(控制)#摘
+            if hasattr(控制,'once'):#有 once
+                控制.once('close',控制关闭)#听 close
+            elif hasattr(控制,'监听'):#中文贯通
+                控制.一次('close',控制关闭)#听 close
         def 释放():#整树退出后从集合移除
             """等整树再释放。"""
             try:#等待可能因取消返回 False
@@ -199,7 +283,10 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         def 跟完成():#无论 spawn 成败都安排释放
             """先等 done，再释放。"""
             try:#spawn 失败会拒绝
-                句柄.done.等待()#等到孩子结局或拒绝
+                if hasattr(句柄,'done'):#有 done
+                    句柄.done.等待()#等到孩子结局或拒绝
+                else:#中文
+                    句柄.等待结局()#等到孩子结局
             except (本地子进程错误,OSError):#spawn 级失败已结算
                 pass#仍释放
             释放()#等整树再删
@@ -209,39 +296,89 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         return 句柄#返回存活句柄
 
     def 启动终端(自身,规格):#启动一个本地终端会话
-        """经 PTY 后端分配终端会话；纳入存活集合。规格是 dict。"""
+        """经 PTY 后端分配终端会话；Linux 可用时走 scope。规格是 dict。"""
         参数表=list(规格['argv']) if 'argv' in 规格 and 规格['argv'] is not None else []#argv
         if len(参数表)==0 or 参数表[0] is None or len(str(参数表[0]))==0:#argv 没有程序
             raise 本地子进程错误('subprocess-local: terminal argv must contain a program')#终端必须有程序
         若已中止则抛出(规格['signal'] if 'signal' in 规格 else None)#分配前检查取消
+        if 自身.终端检查器 is not None:#测试覆盖
+            检查器=自身.终端检查器#覆盖
+        else:#生产惰性创建
+            检查器=创建进程检查器()#平台检查器
+        包含模式=自身.选择包含模式('terminal')#包含模式
+        环境=目标环境(规格)#物化目标环境
+        平台=自身.内部['platform'] if 'platform' in 自身.内部 and 自身.内部['platform'] is not None else 节点平台()#平台
+        活动=准备命令活动(规格,环境,平台)#可选 shell 活动
+        启动规格=dict(规格)#拷贝
+        if 活动 is not None:#改 argv/env
+            启动规格['argv']=活动.参数表#活动 argv
+            启动规格['env']=活动.环境#活动环境
+        启动环境=活动.环境 if 活动 is not None else 环境#环境
         类型=规格['terminalType']#经 TERM 广告的仿真
-        环境=子环境(规格['env'] if 'env' in 规格 else None)#擦洗后叠加的环境
-        环境['TERM']=类型#广告终端类型
         选项={#组装 PTY fork 选项
             'name':类型,#终端类型
             'rows':规格['rows'] if 'rows' in 规格 else None,#行数
             'cols':规格['cols'] if 'cols' in 规格 else None,#列数
             'cwd':规格['cwd'] if 'cwd' in 规格 else None,#工作目录
-            'env':环境,#擦洗后叠加的环境
+            'env':dict(启动环境,TERM=类型),#擦洗后叠加的环境
         }#结束 PTY 选项
-        if 自身.终端检查器 is not None:#测试覆盖
-            检查器=自身.终端检查器#覆盖
-        else:#生产惰性创建
-            检查器=创建进程检查器()#平台检查器
-        终端=拉起伪终端(参数表[0],参数表[1:],选项)#启动 PTY 进程
-        句柄=本地终端句柄(终端,检查器,规格['graceMs'])#包成本地终端句柄
+        范围=None#Linux 终端 scope
+        try:#启动
+            if 包含模式=='linux-scope':#Linux scope
+                范围环境=dict(启动环境)#拷贝
+                if 'cwd' in 规格:#有 cwd
+                    范围环境['PWD']=规格['cwd']#PWD
+                范围环境['TERM']=类型#TERM
+                范围=准备Linux终端范围(启动规格,范围环境,自身.内部)#准备
+                选项['cwd']=范围.cwd#scope cwd
+                选项['env']=范围.env#scope env
+                终端=拉起伪终端(范围.command,范围.args,选项)#经 systemd-run
+            else:#回退
+                启动参数=参数表 if 活动 is None else list(活动.参数表)#argv
+                终端=拉起伪终端(启动参数[0],启动参数[1:],选项)#直接 PTY
+        except Exception:#失败
+            if 范围 is not None:#有范围
+                范围.清理()#清理启动文件
+            if 活动 is not None:#有活动
+                活动.拆除()#清理
+            raise#原样
+        句柄盒={'句柄':None}#所有者可在句柄发布前查 running
+        直接结算=操作任务()#直接退出闩
+        所有者=None#可选所有者
+        结算结局=None#可选结局改写
+        if 范围 is not None:#绑所有者
+            def 是否在跑():#句柄是否仍运行
+                """句柄未发布前当仍运行。"""
+                句=句柄盒['句柄']#当前
+                return True if 句 is None else 句.运行中#在跑
+            def 发直接信号(信号):#向直接进程发信号
+                """node-pty 吞信号错误；scope 需要投递结果。"""
+                import signal as 信号模块#信号常量
+                return 向Linux直接进程发信号(终端.pid,lambda:os.kill(终端.pid,getattr(信号模块,信号)))#投递
+            所有者=范围.绑定所有者(直接范围(是否在跑,发直接信号,直接结算))#绑
+            结算结局=范围.结算结局#改写
+        def 静止摘表():#静止后摘
+            """从存活集合移除。"""
+            自身.终端表.discard(句柄盒['句柄'])#摘
+        句柄=本地终端句柄(#包成本地终端句柄
+            终端,检查器,规格['graceMs'],平台,所有者,结算结局,活动,静止摘表,规格.get('shellActivity') is True,
+        )#构造结束
+        句柄盒['句柄']=句柄#发布
         自身.终端表.add(句柄)#纳入存活终端集合
         def 释放():#终端结束后释放所有权
             """先确保会话静止，再从集合移除。"""
+            直接结算.兑现()#兑现直接结算
+            if 规格.get('shellActivity') is True:#shell 活动由客户端回收
+                return#不 terminate
             try:#拆除
-                句柄.终止().等待()#先确保会话静止
+                句柄.终止()#先确保会话静止
             except (本地子进程错误,OSError):#释放失败不再向外抛
                 pass#吞掉
             自身.终端表.discard(句柄)#再从集合移除
         def 跟完成():#结算后释放
             """等 done 再释放。"""
             try:#done 可能拒绝
-                句柄.done.等待()#等到退出
+                句柄.等待结局()#等到退出
             except (本地子进程错误,OSError):#传输失败
                 pass#仍释放
             释放()#释放所有权

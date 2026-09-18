@@ -431,7 +431,7 @@ class 会话命令控制器:
             raise 远程错误('gateway/internal','Unable to read image attachment.',{})#内部
 
     def updateQueue(自身,请求):
-        """变更仍待处理的队列项。请求为 dict。"""
+        """变更仍待处理的收件箱出现，必要时恢复冷 Agent。请求为 dict。"""
         动作=请求['action'] if 'action' in 请求 else None#动作
         if isinstance(动作,dict) and 动作.get('kind')=='edit':#编辑
             内容=动作['content'] if 'content' in 动作 else None#编辑内容
@@ -447,9 +447,15 @@ class 会话命令控制器:
                     'queue edit content must include non-whitespace text',
                     {},
                 )#拒绝
-        智能体=_活智能体(自身._上下文,请求['sessionId'])#仅活智能体
-        if 智能体 is None:#不在线
-            raise 远程错误('session/queue-item-not-found','queued item is no longer pending',{'itemId':请求['itemId'] if 'itemId' in 请求 else None})#拒绝
+        智能体=_活智能体(自身._上下文,请求['sessionId'])#先看活体
+        if 智能体 is None:#冷则恢复
+            结果=自身._智能体控制器.解析智能体(请求['sessionId'])#恢复
+            if isinstance(结果,dict) and 'error' in 结果:#失败
+                错误=结果['error']#取出
+                if getattr(错误,'code',None)!='session/not-found':#其它失败
+                    raise 错误#上抛
+                raise 远程错误('session/queue-item-not-found','queued item is no longer pending',{'itemId':请求['itemId'] if 'itemId' in 请求 else None})#映射未找到
+            智能体=结果['agent']#采用
         if 有子智能体所有者(自身._上下文,智能体.session.header,智能体):#子智能体
             快照=自身._上下文.sessionProjections.snapshot(智能体.session,['subagent'])#快照
             身份=快照['values']['subagent'] if isinstance(快照,dict) and 'values' in 快照 and 'subagent' in 快照['values'] else None#身份

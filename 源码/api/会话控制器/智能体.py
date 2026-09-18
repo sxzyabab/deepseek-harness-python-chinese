@@ -150,7 +150,15 @@ class 会话智能体控制器:
             竞态=自身._活智能体(会话标识)#竞态
             if 竞态 is not None:#又有了
                 return 竞态#返回
+            竞态会话=自身._上下文.sessions.get(会话标识)#附着竞态
+            if 竞态会话 is not None and 有子智能体所有者(自身._上下文,竞态会话.header,None):#子智能体
+                return {'error':子智能体所有权错误(会话标识)}#拒绝
+            if getattr(错误,'name',None)=='SessionAlreadyOwnedError' or type(错误).__name__=='SessionAlreadyOwnedError':#写者占用
+                return {'error':远程错误('session/writer-held',远程错误消息(错误),{'sessionId':会话标识})}#映射
             return {'error':远程错误('gateway/internal','resume failed for session "'+str(会话标识)+'": '+远程错误消息(错误),{})}#内部
+        发布=自身._活智能体(会话标识)#共享恢复后再查存活所有权
+        if 发布 is not None:#已有策略结果
+            return 发布#优先
         return {'agent':条目['结果']}#成功
 
     def 解析观测智能体(自身,观测):

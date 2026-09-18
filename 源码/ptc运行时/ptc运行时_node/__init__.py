@@ -311,7 +311,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 沙箱['enforcement']=已隔离['enforcement']#记下
             环境={}#墓碑表
             for 键 in os.environ.keys():#父环境
-                if 键.upper() not in 启动环境名:#非启动名
+                if 键.upper() not in 启动环境名 and 键.upper()!='ELECTRON_RUN_AS_NODE':#非启动名且非 Electron 选择器
                     环境[键]=None#删除墓碑
             if 打包:#打包可执行
                 环境['DSH_PTC_RUNTIME_NODE']='1'#标记

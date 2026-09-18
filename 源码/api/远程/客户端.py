@@ -1,9 +1,7 @@
 """平台无关的已生成宿主 Remote 贡献组装（客户端面）。
 
 对齐上游 `api/remotes/src/client/index.ts`。公开面仅中文名。
-挂载序：agentPresets → commands → settings → goals → llm → dynamic →
-plugin-inventory → message-feedback → session-feedback → file-uploads →
-session-reference → subagents → session → workspace → workspaceFiles。
+本地已有远程贡献的挂载序与上游对齐；插件装载 / 办公转 PDF 等尚无本地远程模块时不入表。
 """
 from ...预设.智能体预设.远程 import TYPERT_REMOTE as 智能体预设远程#agent-presets
 from ...交互.命令.远程 import TYPERT_REMOTE as 命令远程#commands
@@ -46,7 +44,7 @@ __all__=[#仅中文公开名
 def 所选贡献():
     """返回本组装选中的 Remote 贡献。
 
-    对齐上游 client/index.ts 挂载顺序；各包 `远程.py` 为手写 TYPERT_REMOTE。
+    对齐上游 client/index.ts 挂载顺序中本地已有远程模块的子集。
     """
     return (#追踪挂载序
         智能体预设远程,命令远程,设置控制器远程,目标远程,大模型远程,动态远程,

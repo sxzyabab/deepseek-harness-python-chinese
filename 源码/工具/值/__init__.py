@@ -1,5 +1,5 @@
-import json,math#JSON 与有限数判定
-__all__=['断言永不','快照json值','是否json值','深相等json','深冻结','值错误']#仅中文公开名
+import json,math,weakref#JSON、有限数判定与弱键
+__all__=['断言永不','快照json值','是否json值','深相等json','深冻结','带值弱映射','值错误']#仅中文公开名
 
 class 值错误(Exception):#本包异常基类
     """值辅助失败。"""
@@ -158,3 +158,49 @@ def 深冻结(值):#原地深冻结对象图
             for 项 in 节点:#子项
                 待办.append(项)#下钻
     return 值#原值返回
+
+class 带值弱映射:#弱键查找并强保留关联值
+    """弱键查找，并强保留关联值的可迭代集合。每个值只能属于一个键；不做自动清理。"""
+    def __init__(自身):#空容器
+        """构造空弱映射。"""
+        自身._键表=weakref.WeakKeyDictionary()#弱键表
+        自身._值集=[]#插入顺序强保留值
+
+    @property
+    def values(自身):#只读值视图
+        """按插入顺序的活强保留值。"""
+        return tuple(自身._值集)#只读快照
+
+    def get(自身,键):#取
+        """读键关联的值；缺席为 None。"""
+        return 自身._键表.get(键)#查
+
+    def has(自身,键):#有
+        """键是否有关联。"""
+        return 键 in 自身._键表#测
+
+    def set(自身,键,值):#设
+        """把一个键与一个调用方唯一值关联。"""
+        if 键 in 自身._键表:#已有
+            旧值=自身._键表[键]#旧值
+            if 旧值 is 值:#同值
+                return 自身#链式
+            if 旧值 in 自身._值集:#摘旧
+                自身._值集.remove(旧值)#摘
+        自身._键表[键]=值#写入
+        自身._值集.append(值)#强保留
+        return 自身#链式
+
+    def delete(自身,键):#删
+        """移除一个关联及其强保留值。"""
+        if 键 not in 自身._键表:#无
+            return False#未删
+        值=自身._键表.pop(键)#删键
+        if 值 in 自身._值集:#摘值
+            自身._值集.remove(值)#摘
+        return True#已删
+
+    def clear(自身):#清空
+        """移除每个关联与强保留值。"""
+        自身._键表=weakref.WeakKeyDictionary()#新弱表
+        自身._值集.clear()#清值

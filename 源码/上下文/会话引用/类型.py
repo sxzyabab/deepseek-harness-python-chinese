@@ -3,6 +3,7 @@
 会话引用来源引用字段=(#各源会话的快照事实字段
     'sessionId',#源会话id
     'label',#展示标签
+    'capturedFormatVersion',#捕获格式版本
     'capturedThroughSeq',#捕获截止事件序号
     'compacted',#是否含压缩检查点
     'originalMessages',#投影前消息数
@@ -13,6 +14,6 @@
     'inputIndex',#输入引用序号
 )#引用事实字段结束
 会话引用输入字段=('sessionId','label')#宿主选出的一条源会话
-会话引用候选字段=('sessionId','label','cwd','createdAt')#来自精确会话元数据的一条面向宿主候选
+会话引用候选字段=('sessionId','label','displayTitle','cwd','sameWorkspace','createdAt')#来自精确会话元数据的一条面向宿主候选
 已准备引用消息字段=('content','additionalContext')#直接消息内容与可选的被引用会话上下文
 引用对话项字段=('role','text')#仅文本的投影对话项

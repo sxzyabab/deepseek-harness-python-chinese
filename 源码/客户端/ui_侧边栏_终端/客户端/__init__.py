@@ -25,6 +25,20 @@ def 应用(上下文):#登记终端类型与席位
             已恢复.clear()#清空
         return 拆除#拆除器
     上下文.副作用(寿命,'ui-sidebar-terminal.lifetime')#寿命
+    def 窗口持有():#把打开的终端标签同步给终端控制器
+        """订阅 openTabs 并 retainTabs。"""
+        def 同步():#同步持有
+            """过滤 terminal 种类。"""
+            打开=上下文.sidebarRight.openTabs.getSnapshot()#打开标签
+            上下文.webTerminals.retainTabs([标签 for 标签 in 打开 if 标签.get('kind')=='terminal' or getattr(标签,'kind',None)=='terminal'])#持有
+        退订=上下文.sidebarRight.openTabs.subscribe(同步)#订阅
+        同步()#首次
+        def 拆除():#卸载
+            """退订并清空持有。"""
+            退订()#退订
+            上下文.webTerminals.retainTabs([])#清空
+        return 拆除#拆除器
+    上下文.副作用(窗口持有,'ui-sidebar-terminal.window-holds')#窗口持有
     def 目标(会话标识,键):#读导航参数
         """terminal 出现域的 params。"""
         return 上下文.sidebarRight.tabDomain.occurrence(会话标识,{'id':键}).navigation.getSnapshot()['params']#params
@@ -38,7 +52,9 @@ def 应用(上下文):#登记终端类型与席位
         """按出现键解析模型。"""
         参数=目标(会话标识,键)#params
         壳路径=参数['shellPath'] if 参数 is not None and 'shellPath' in 参数 else None#壳
-        return 上下文.webTerminals.view(会话标识,键,终端标识(会话标识,键),壳路径)#模型
+        导航=上下文.sidebarRight.tabDomain.occurrence(会话标识,{'id':键}).navigation.getSnapshot()#导航快照
+        内容标识=导航['address'] if 'address' in 导航 else None#内容地址
+        return 上下文.webTerminals.view(会话标识,键,内容标识,终端标识(会话标识,键),壳路径)#模型
     包标识='@deepseek-ai/dsh-client-ui-sidebar-terminal'#实现键
     翻译=上下文.locale.bind(命名空间)#绑定
     def 登记词典():#中英文案
@@ -75,7 +91,7 @@ def 应用(上下文):#登记终端类型与席位
         """关标签即关进程。"""
         def 关闭(会话标识,标签):#关闭
             """同步安排清理。"""
-            上下文.webTerminals.close(会话标识,标签['id'],终端标识(会话标识,标签['id']))#关闭
+            上下文.webTerminals.close(会话标识,标签['id'],标签.get('contentId'),终端标识(会话标识,标签['id']))#关闭
         return 上下文.sidebarRight.registerCloseHandler('terminal',关闭)#登记
     上下文.副作用(登记关闭,'ui-sidebar-terminal.close')#关闭
     def 注入面(会话标识):#标题与正文共用
@@ -157,8 +173,11 @@ def 应用(上下文):#登记终端类型与席位
                     任务=操作任务()#新任务
                     已恢复[会话标识]=任务#记下
                     def 工作():#线程体
-                        """recover 后开标签。"""
+                        """先物化已开视图，recover 后开标签。"""
                         try:#调用
+                            for 标签 in 上下文.sidebarRight.tabsIn(会话标识):#已开标签
+                                if (标签.get('kind') if isinstance(标签,dict) else getattr(标签,'kind',None))=='terminal':#终端
+                                    视图(会话标识,标签['id'] if isinstance(标签,dict) else 标签.id)#物化
                             终端表=上下文.webTerminals.recover(会话标识)#恢复
                             if 已拆除:#已卸
                                 任务.兑现(None)#空

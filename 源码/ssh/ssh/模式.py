@@ -4,7 +4,7 @@ __all__=[#仅中文公开名
     'ssh错误','进程标识','文本流标识','进程标识模式','文本流标识模式','远端路径',
     '目标模式','信息模式','路径信息模式','政策模式','目录项模式','意图模式','编辑模式',
     '写结果模式','编辑结果模式','环境模式','启动模式','握手模式','流端点模式','已准备模式',
-    '结局模式','输出快照模式','输出快照帧上限','完成模式','前台模式','信息可空模式','路径信息可空模式',
+    '结局模式','输出快照模式','输出快照帧上限','完成模式','前台模式','终端活动模式','信息可空模式','路径信息可空模式',
 ]#公开面结束
 
 uuid形态=re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\Z',re.ASCII)#UUID
@@ -246,6 +246,15 @@ def 前台模式(值):#terminal.inspect
         return None#空
     严格对象(值,('processGroupId','inputWaiting'))#键
     return 值#前台
+
+def 终端活动模式(值):#terminal.activity
+    """shell 活动观测。"""
+    严格对象(值,('state','revision'))#键
+    if 值.get('state') not in ('idle','busy','unknown'):#状态
+        raise ssh错误('expected terminal activity state')#失败
+    if not isinstance(值.get('revision'),int) or isinstance(值.get('revision'),bool) or 值['revision']<0:#修订
+        raise ssh错误('expected nonnegative revision')#失败
+    return 值#活动
 
 信息可空模式=可空信息(信息模式)#stat 可空
 路径信息可空模式=可空信息(路径信息模式)#lstat 可空

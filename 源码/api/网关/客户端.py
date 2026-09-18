@@ -3,10 +3,11 @@ from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .网关 import 网关错误,操作任务,中止控制器,中止信号#本包异常与并发原语
 from .远程流 import 远程流#可重连流
+from .远程事件 import 客户端远程事件#转发事件
 
 __all__=[#仅中文公开名
     '注入','应用','客户端远程服务','远程命名空间服务',
-    '拼端点','远程服务键','作用域投影','要求严格描述符',
+    '拼端点','远程服务键','作用域投影','要求严格输入',
     '载体失败','取消失败',
 ]#公开面结束
 
@@ -47,31 +48,20 @@ def 要求严格编解码(编解码,端点,字段):
     if 'mode' not in 编解码 or 编解码['mode']!='strict':#弱模式
         raise 网关错误('definition-unavailable',端点,'client api: 生成的 Remote '+端点+' 字段 '+repr(字段)+' 没有严格编解码')#无严格编解码
 
-def 要求严格描述符(描述符):
-    """结果、参数与 Context 身份编解码均须 strict。描述符为 dict。"""
+def 要求严格输入(描述符):
+    """参数与 Context 身份编解码均须 strict。描述符为 dict。"""
     端点=拼端点(描述符)#端点
-    要求严格编解码(描述符['result'],端点,'result')#结果
     for 参数 in 描述符['parameters']:#每个参数
         要求严格编解码(参数['codec'],端点,参数['wire'])#按线字段
     if 描述符['invocation']['kind']=='context':#上下文调用
         要求严格编解码(描述符['invocation']['codec'],端点,描述符['invocation']['wire'])#身份
 
-def 解析(编解码,值,端点,字段):
-    """弱模式没有 schema。编解码为 dict。"""
-    if 'mode' not in 编解码 or 编解码['mode']!='strict':#弱模式
-        raise 网关错误('definition-unavailable',端点,'client api: 生成的 Remote '+端点+' 字段 '+repr(字段)+' 没有严格编解码')#无严格
-    try:
-        return 编解码['schema'].parse(值)#解析
-    except (TypeError,ValueError,KeyError,AttributeError) as 原因:
-        raise 网关错误('input-invalid',端点,'client api: '+端点+' 拒绝了 '+repr(字段)) from 原因#字段被拒绝
-
 def 作用域投影(描述符):
     """Context 调用或 scope+唯一 lookup。描述符为 dict。"""
     if 描述符['invocation']['kind']=='context':#调用约定本身就是上下文
-        return {#用调用约定上的上下文、线字段与编解码
+        return {#用调用约定上的上下文与线字段
             'context':描述符['invocation']['context'],#上下文
             'wire':描述符['invocation']['wire'],#线字段
-            'codec':描述符['invocation']['codec'],#编解码
         }#结束
     if 'scope' not in 描述符 or 描述符['scope'] is None:#没有 scope
         return None#无投影
@@ -83,7 +73,6 @@ def 作用域投影(描述符):
     return {#用 scope 与该查找参数拼投影
         'context':描述符['scope']['context'],#上下文
         'wire':描述符['scope']['wire'],#线字段
-        'codec':选中['parameter']['codec'],#编解码
         'parameterIndex':选中['index'],#被吃掉的下标
     }#结束
 
@@ -173,14 +162,23 @@ class 客户端远程服务(服务):
         super().__init__(上下文,'remote')#登记
         自身.ownerCtx=上下文#拥有方上下文
         自身.namespaces={}#已安装命名空间
-        自身.subscriptions={}#按事件名分组的订阅
         自身.mutations=操作任务()#挂载拆除串行队列尾
         自身.mutations.兑现(None)#初始已结算
         setattr(自身,'$stream',自身.开流)#线路名 $stream（标识符非法，动态挂）
-        def 清订阅():
-            """拆除时清空订阅表。"""
-            自身.subscriptions.clear()#清空
-        上下文.副作用(清订阅,'api-gateway.client.subscriptions')#生命周期
+        连接=上下文.获取服务('connection')#连接
+        def 开远程流(端点,载荷,信号):
+            """进程内或 WebSocket 流。"""
+            本地=None#本地
+            if hasattr(连接,'rpc') and hasattr(连接.rpc,'open') and 连接.rpc.open is not None:#有本地 open
+                本地=连接.rpc.open('/api',端点,载荷,信号)#本地
+            if 本地 is not None:#本地
+                return 本地#流
+            raise 网关错误('service-unavailable',端点,'client api: Remote stream mux 硬阻塞，无本地 open')#硬阻塞
+        自身._事件=客户端远程事件(上下文,连接,开远程流)#远程事件
+        def 清传输():
+            """拆除传输。"""
+            自身._事件.拆除()#拆事件
+        上下文.副作用(清传输,'api-gateway.client.transport')#生命周期
 
     def 开流(自身,选项):
         """创建一条可独立取消、可重连的逻辑流。选项为 dict：name/open/ended/carrierFailed?。"""
@@ -200,38 +198,8 @@ class 客户端远程服务(服务):
         return 卸#拆除函数
 
     def on(自身,事件,监听器):
-        """按登记本身识别而不是按监听器函数。"""
-        订阅={'listener':监听器}#本次登记
-        监听列表=自身.listeners(事件)#取或创建
-        监听列表.append(订阅)#追加
-        def 退订():
-            """按登记对象找下标。"""
-            try:
-                监听列表.remove(订阅)#删除
-            except ValueError:
-                pass#已不在
-        return 退订#拆除器
-
-    def dispatch(自身,事件,参数):
-        """隔离同步抛错的监听器。翻译时监听器已是同步回调。"""
-        if 事件 not in 自身.subscriptions:#没有订阅
-            return#直接返回
-        监听列表=自身.subscriptions[事件]#取该事件
-        for 项 in list(监听列表):#按快照逐个
-            监听=项['listener']#监听器
-            def 报告(错误):
-                """报告监听器抛错。"""
-                print('client api: 远程事件',repr(事件),'监听器抛错:',错误)#报告
-            try:
-                监听(*参数)#同步调用
-            except BaseException as 错误:
-                报告(错误)#报告
-
-    def listeners(自身,事件):
-        """空数组会保留。"""
-        if 事件 not in 自身.subscriptions:#还没有
-            自身.subscriptions[事件]=[]#新建
-        return 自身.subscriptions[事件]#可追加
+        """经转发事件所有者登记。"""
+        return 自身._事件.订阅(自身.ctx,事件,监听器)#订阅
 
     def 入队(自身,操作):
         """前一步无论成败都执行本次。返回操作任务。"""
@@ -293,7 +261,7 @@ class 客户端远程服务(服务):
             if 服务实例 is not None and 服务实例.has(种类,描述符['method']):#该变体已挂着
                 raise 网关错误('binding-invalid',拼端点(描述符),'client api: '+种类+' 方法 '+拼端点(描述符)+' 已经挂载')#已挂载
         for 描述符 in 贡献['descriptors']:#逐个
-            要求严格描述符(描述符)#只要严格
+            要求严格输入(描述符)#只要严格
             if 描述符['invocation']['kind']=='direct':#直接
                 加入(直接表,描述符,'direct')#记入
             if 作用域投影(描述符) is not None:#能投影
@@ -433,12 +401,12 @@ class 客户端远程服务(服务):
             身份=已绑身份['value'] if 已绑身份 is not None else (绑定器.identity(调用方) if 绑定器 is not None else None)#身份
             if 身份 is None:#读不到
                 raise 网关错误('context-unavailable',端点,'client api: '+端点+' 需要 '+repr(投影['context'])+' Context')#需要上下文
-            参数[投影['wire']]=解析(投影['codec'],身份,端点,投影['wire'])#编进线字段
+            参数[投影['wire']]=身份#编进线字段
         值下标=0#位置参数游标
         for 参数下标,参数描述 in enumerate(描述符['parameters']):#按描述符顺序
             if 投影 is not None and 参数下标==投影下标:#被作用域吃掉
                 continue#跳过
-            值=解析(参数描述['codec'],值列表[值下标],端点,参数描述['wire'])#解析
+            值=值列表[值下标]#原样
             if 值 is not None:#省略键不写线字段
                 参数[参数描述['wire']]=值#写入
             值下标+=1#下一个
@@ -453,7 +421,7 @@ class 客户端远程服务(服务):
                 return 已撤(端点)#已撤
             if 'ok' not in 结果 or not 结果['ok']:#业务或分发失败
                 return {'ok':False,'error':结果['error']}#原样
-            return {'ok':True,'value':解析(描述符['result'],结果['value'],端点,'result')}#成功
+            return {'ok':True,'value':结果['value']}#成功
         except BaseException as 错误:
             if 信号 is not None and 信号.事件.is_set():#调用方中止
                 return 取消失败(端点,错误)#取消码

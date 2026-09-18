@@ -79,14 +79,18 @@ def 门面可读(属性,已声明):#Proxy has 语义
         return True#可见
     return 属性 in 已声明#已声明服务
 
-def 规范化槽登记选项(选项,环境,槽规格查询=None):#slots.register 选项改写（不含账本/claim）
-    """分配遮蔽优先级、钉死 tool.view.cordis key。返回改写后的选项；账本与 claim 在登记槽并认领。"""
+def 规范化槽登记选项(选项,环境,槽规格查询=None,方法名='register'):#slots.register / registerFactory 选项改写
+    """分配遮蔽优先级、钉死 tool.view.cordis key。Factory 不分配优先级。账本与 claim 在登记槽并认领。"""
     if not isinstance(选项,dict):#必须对象
         拒绝门面(环境,'slots.register(options, component) needs an options object with a `name`')#教学
     出=dict(选项)#浅拷贝
     槽=出.get('name')#目标槽
     if not isinstance(槽,str) or 槽=='':#name
-        拒绝门面(环境,'slots.register options need a string `name` (the target slot key)')#教学
+        拒绝门面(环境,f'slots.{方法名} options need a string `name`')#教学
+    if 方法名=='registerFactory':#工厂登记不改写优先级
+        出['_ledgerSlot']=f'factory:{槽}'#账本工厂键
+        出['_priorityResolved']=None#工厂无遮蔽优先级
+        return 出#改写后
     if 槽==业务视图槽名:#业务视图
         if 出.get('key')!=业务视图自键:#只接受 self
             拒绝门面(环境,'tool.view.cordis only accepts key "self"; the runtime binds it to this Package')#教学
@@ -98,26 +102,26 @@ def 规范化槽登记选项(选项,环境,槽规格查询=None):#slots.register
         分配=环境.get('allocatePriority') if isinstance(环境,dict) else getattr(环境,'allocatePriority',None)#分配
         优先=分配() if callable(分配) else 优先#页本地名次
         出['priority']=优先#写入
-    出['_priorityResolved']=优先#供登记后账本（不进真实 register 选项）
+    出['_ledgerSlot']=槽#账本槽名
+    出['_priorityResolved']=优先#供登记后账本
     return 出#改写后
 
-def 登记槽并认领(槽服务,选项,组件,环境):#对齐 guardedSlots.register：先 register，再账本，再 claim
+def 登记槽并认领(槽服务,选项,组件,环境,方法名='register'):#对齐 guardedSlots.register / registerFactory
     """
-    选项经规范化后调用真实 slots.register；仅接受成功后才 ledger.push 与 claim(component)。
+    选项经规范化后调用真实 slots.register 或 registerFactory；仅接受成功后才 ledger.push 与 claim(component)。
     无 Proxy/Reflect.apply：以槽服务为接收者的原型 this 仍为硬缺口（Python 绑定方法可直调）。
     """
     规格查询=getattr(槽服务,'spec',None) if 槽服务 is not None else None#槽规格
-    出=规范化槽登记选项(选项,环境,规格查询 if callable(规格查询) else None)#改写
+    出=规范化槽登记选项(选项,环境,规格查询 if callable(规格查询) else None,方法名)#改写
     优先=出.pop('_priorityResolved',出.get('priority'))#账本优先级
-    槽=出.get('name')#槽名
-    登记=getattr(槽服务,'register',None) if 槽服务 is not None else None#真实 register
+    账本槽=出.pop('_ledgerSlot',出.get('name'))#账本键
+    登记=getattr(槽服务,方法名,None) if 槽服务 is not None else None#真实方法
     if not callable(登记):#无座位
-        #硬缺口：无浏览器 SlotRegistry 时不冒充登记成功，也不 claim（避免污染所有者索引）
-        拒绝门面(环境,'slots.register is unavailable on this half (SlotRegistry hard gap)')#拒
-    拆除=登记(出,组件)#以服务方法调用（对齐 register.call(target,…) 意图；无 Reflect）
+        拒绝门面(环境,f'slots.{方法名} is unavailable on this half (SlotRegistry hard gap)')#拒
+    拆除=登记(出,组件)#以服务方法调用
     账本=环境.get('ledger') if isinstance(环境,dict) else getattr(环境,'ledger',None)#账本
     if isinstance(账本,list):#可记账
-        账本.append({'slot':槽,'priority':优先})#登记接受之后
+        账本.append({'slot':账本槽,'priority':优先})#登记接受之后
     认领=环境.get('claim') if isinstance(环境,dict) else getattr(环境,'claim',None)#claim
     if callable(认领):#有
         认领(组件)#注册表接受之后才认领
@@ -141,11 +145,14 @@ def 读服务座位(名,服务,环境,真实上下文=None):#readService 座位�
     """slots/theme 走专用规则入口；其余仅拒 Context 返回。无 Proxy 包装（硬缺口）。"""
     if 服务 is None or (not isinstance(服务,(dict,object)) and not callable(服务)):#标量
         return 服务#原样
-    if 名=='slots':#槽座位：register → 规范化 → 真登记 → 账本 → claim
+    if 名=='slots':#槽座位：register / registerFactory → 规范化 → 真登记 → 账本 → claim
         def 登记(选项,组件):#对齐 Proxy register
             """接 claim。"""
-            return 登记槽并认领(服务,选项,组件,环境)#全路径
-        return {'service':服务,'seat':'slots','register':登记,'normalize':规范化槽登记选项,'env':环境}#接线
+            return 登记槽并认领(服务,选项,组件,环境,'register')#槽登记
+        def 登记工厂(选项,组件):#对齐 Proxy registerFactory
+            """工厂定义记账。"""
+            return 登记槽并认领(服务,选项,组件,环境,'registerFactory')#工厂登记
+        return {'service':服务,'seat':'slots','register':登记,'registerFactory':登记工厂,'normalize':规范化槽登记选项,'env':环境}#接线
     if 名=='theme':#主题座位：覆盖源钉死
         def 覆盖(源参数,令牌参数=None):#对齐 Proxy overrideTokens
             """钉死源。"""
