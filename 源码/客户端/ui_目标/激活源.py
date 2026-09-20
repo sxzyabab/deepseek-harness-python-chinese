@@ -63,7 +63,7 @@ def 创建目标激活源(依赖):
         if 目标 is None:#空
             if _活跃引用(依赖['projection'].getSnapshot()) is None:#权威清空
                 发布({})#清空
-            return#结束
+            return
         发布({'id':目标['id'],'revision':目标['revision'],'activation':目标['activation']})#写入激活
 
     def 刷新投影():
@@ -74,7 +74,7 @@ def 创建目标激活源(依赖):
         if 引用 is None:#无活跃
             if 'id' in 快照:#曾有 id
                 发布({})#清空
-            return#结束
+            return
         if ('id' not in 快照) or 快照['id']!=引用['id'] or ('revision' not in 快照) or 快照['revision']!=引用['revision']:#CAS 变
             发布({'id':引用['id'],'revision':引用['revision']})#先挂 CAS 引用
         发起权威读(引用)#再权威读

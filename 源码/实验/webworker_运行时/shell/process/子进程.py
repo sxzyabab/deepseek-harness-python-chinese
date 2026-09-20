@@ -1,5 +1,5 @@
 import threading as 线程#等待文件系统回复
-from ..解释 import 运行shell命令,运行shell程序#解释器入口
+from ..解释 import 运行shell命令,运行shell程序,壳中止信号#解释器入口与壳中止
 from ..文件系统访问 import 文件系统错误#FS错误构造
 
 __all__=['运行shell进程']#仅中文公开名
@@ -7,29 +7,13 @@ __all__=['运行shell进程']#仅中文公开名
 def 运行shell进程(启动,作用域):#运行进程命令
     """将运行一条命令作为本 worker 的全部用途，然后关闭。"""
     待回复={}#待回复调用
-    终止={'aborted':False,'_listeners':{}}#终止信号面
+    终止=壳中止信号()#终止信号面
     下一调用=[0]#下一调用id
     锁=线程.Lock()#保护待回复
 
     def 中止(原因=None):#触发取消
-        """对齐 AbortController.abort。"""
-        终止['aborted']=True#标记
-        for 回调 in list(终止.get('_listeners',{}).get('abort',[])):#通知
-            回调()#回调
-        终止['_listeners']['abort']=[]#清
-
-    def 加监听(类型,回调,选项=None):#挂监听
-        """对齐 addEventListener。"""
-        终止.setdefault('_listeners',{}).setdefault(类型,[]).append(回调)#登记
-
-    def 卸监听(类型,回调):#卸监听
-        """对齐 removeEventListener。"""
-        列表=终止.get('_listeners',{}).get(类型,[])#列表
-        终止['_listeners'][类型]=[丙 for 丙 in 列表 if 丙 is not 回调]#过滤
-
-    终止['addEventListener']=加监听#挂面
-    终止['removeEventListener']=卸监听#挂面
-    终止['abort']=中止#挂面
+        """置位终止信号。"""
+        终止.中止()#置位
 
     def 收消息(事件):#监听宿主消息
         """处理宿主帧。"""
@@ -45,7 +29,7 @@ def 运行shell进程(启动,作用域):#运行进程命令
             等待=待回复.pop(帧['id'],None)#取
         if 等待 is None:#无等待者
             return#忽略
-        if 帧.get('failure') is None:#成功结算
+        if 'failure' not in 帧:#成功结算
             等待['result']=帧.get('value')#结果
             等待['event'].set()#唤醒
         else:#失败结算
@@ -114,7 +98,7 @@ def 运行shell进程(启动,作用域):#运行进程命令
         'onOutput':输出回调,#转发输出
     }#options结束
     try:#选运行路径
-        if 启动.get('script') is None:#直接程序
+        if 'script' not in 启动:#直接程序
             结果=运行shell程序(启动['argv'],选项)#直接程序
         else:#脚本解释
             结果=运行shell命令(启动['script'],选项)#脚本

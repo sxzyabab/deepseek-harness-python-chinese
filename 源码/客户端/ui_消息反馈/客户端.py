@@ -2,9 +2,9 @@ from .文案 import 命名空间,中文,英文#词表
 from .表面 import 反馈表面#按会话表面
 from .反馈动作 import 消息反馈动作#赞/踩组件
 
-__all__=['注入','应用','反馈表面','消息反馈动作','命名空间','中文','英文']#仅中文公开名
+__all__=['依赖','应用','反馈表面','消息反馈动作','命名空间','中文','英文']#仅中文公开名
 
-注入=['slots','remote','remote.messageFeedback','remote.sessionFeedback','locale']#依赖
+依赖=['slots','remote','remote.messageFeedback','remote.sessionFeedback','locale']#依赖
 
 def 应用(上下文):#安装消息反馈浏览器半边
     """逐条消息反馈入口、会话对话框入口及其按会话表面。"""
@@ -108,5 +108,5 @@ def 应用(上下文):#安装消息反馈浏览器半边
         子上下文.副作用(登记装饰,'ui-message-feedback: /feedback decoration')#副作用
     上下文.依赖启动(['commandUi'],挂命令装饰)#命令 UI 门
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

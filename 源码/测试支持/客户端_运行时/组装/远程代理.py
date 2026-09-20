@@ -2,17 +2,17 @@ import threading#中止事件
 from ....api.网关.客户端 import 取消失败,载体失败#取消失败与载体失败
 from .名册 import 客户端测试运行时错误#本包异常
 
-__all__=['远程接口包名','收集远程命名空间','远程代理插件']#仅中文公开名
+__all__=['远程接口包名','收集远程命名空间','远程代理插件']
 
 远程接口包名='@deepseek-ai/dsh-api-remotes'#远程接口包名
 远程前缀='remote.'#远程服务前缀
 中止事件=threading.Event#中止信号类型
 
 def 收集远程命名空间(模块表,模拟):#收集远程命名空间
-    """名册模块注入的每个 remote.<ns>，外加模拟已有规则的每个端点的命名空间。"""
-    名称集=set()#命名空间集
-    for 模块 in 模块表:#每个模块
-        for 服务名 in 注入名列表(getattr(模块,'inject',None)):#注入表
+    """名册模块依赖的每个 remote.<ns>，外加模拟已有规则的每个端点的命名空间。"""
+    名称集=set()
+    for 模块 in 模块表:
+        for 服务名 in 依赖名列表(getattr(模块,'inject',None)):
             if 服务名.startswith(远程前缀):#remote. 前缀
                 名称集.add(服务名[len(远程前缀):])#收下命名空间
     for 端点 in 模拟.端点列表():#模拟已登记端点
@@ -21,15 +21,15 @@ def 收集远程命名空间(模块表,模拟):#收集远程命名空间
             名称集.add(端点[:斜杠])#收下命名空间
     return sorted(名称集)#排序
 
-def 注入名列表(注入):#抽出注入名
+def 依赖名列表(依赖):
     """列表形原样，记录形取键，缺席为空。"""
-    if 注入 is None:#无注入
-        return []#空
-    if isinstance(注入,list):#列表形
-        return 注入#原样
-    if isinstance(注入,dict):#记录形
-        return list(注入.keys())#键
-    return []#其它形态空
+    if 依赖 is None:
+        return []
+    if isinstance(依赖,list):
+        return 依赖
+    if isinstance(依赖,dict):
+        return list(依赖.keys())
+    return []
 
 def 远程代理插件(命名空间表,模拟):#远程代理插件
     """提供命名空间代理的插件；测试客户端启动在 Loader 行之前挂上它。"""

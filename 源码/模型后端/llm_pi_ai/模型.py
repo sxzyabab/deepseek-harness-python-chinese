@@ -23,7 +23,7 @@ def 创建提供方(输入):
         return 输入['api'].stream(模型,上下文,选项)#流
     def 简化流(模型,上下文,选项):
         """委托协议简化流。"""
-        return 输入['api'].streamSimple(模型,上下文,选项)#简化流
+        return 输入['api'].stream_simple(模型,上下文,选项)#简化流
     结果={'id':输入['id'],'name':输入['name'],'auth':输入['auth'],#身份与认证
           'getModels':取模型,'stream':流,'streamSimple':简化流}#委托面
     if 'baseUrl' in 输入:#有基址

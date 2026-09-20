@@ -1,8 +1,9 @@
+"""本地磁盘附件存储后端。"""
 import os,threading#路径与并发去重
-from ...依赖 import cordis#Cordis
+from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字符串字段,数字字段#配置
 from ...工具.主目录路径 import 解析主目录,缓存路径#harness 主目录与缓存根
-from ..附件 import 附件存储,若已中止则抛出#附件缝
+from ..附件 import 附件存储,若已中止则抛出#抽象附件服务
 from .压缩限流 import 压缩限流器#并发限流
 from .存储 import (#存储原语
     提交已准备图像文件,准备图像文件,读取图像文件,校验图像文件,
@@ -19,7 +20,7 @@ __all__=[#仅中文公开名
     '配置模式','能否直通规范化','规范化策略字段',
     '提交已准备图像文件','准备图像文件','读取图像文件','保存图像文件','校验图像文件',
     '读取请求图像文件','请求图像变体标识',
-    '本地附件存储','默认','名称','注入','应用','apply',
+    '本地附件存储','默认','名称','依赖','应用',
 ]#公开面结束
 
 默认最大图像字节=20*1024*1024#单图默认 20MiB
@@ -46,8 +47,8 @@ __all__=[#仅中文公开名
     'imageCompressionConcurrency':数字字段(最小=1,最大=最大图像压缩并发度,默认值=默认图像压缩并发度),
 }#配置结束
 
-名称='attachment-local'#Cordis 插件名
-注入=[]#由宿主加载
+名称='attachment-local'#框架 插件名
+依赖=[]#由宿主加载
 
 class 共享请求:
     """同一变体键上的并发请求去重。"""
@@ -88,9 +89,9 @@ class 共享请求:
 class 本地附件存储(附件存储):
     """持久化内容寻址本地附件存储。"""
     Config=配置模式#插件配置模式
-    def __init__(自身,上下文对象,配置):
+    def __init__(自身,上下文,配置):
         """记下根目录、限额、规范化策略与压缩限流。配置是 dict。"""
-        super().__init__(上下文对象)#登记 attachments
+        super().__init__(上下文)#登记 attachments
         主目录=解析主目录(配置['dshHome'] if 'dshHome' in 配置 else None)#解析 harness 主目录
         自身.根=os.path.join(主目录,'attachments','v1')#版本化存储根
         自身.缓存根=缓存路径({'dshHome':主目录},'attachments')#请求图缓存根
@@ -205,12 +206,15 @@ class 本地附件存储(附件存储):
                 threading.Thread(target=等完再清理,daemon=True).start()#后台清理
         return 操作.等待(信号)#等待结果
 
-def 应用(上下文对象,配置=None):
+def 应用(上下文,配置=None):
     """在宿主组合上挂载本地附件存储。"""
     if 配置 is None:#无配置
         配置={}#空配置
-    本地附件存储(上下文对象,配置)#构造并登记
+    本地附件存储(上下文,配置)#构造并登记
     return None#无额外拆除
 
-apply=应用#Cordis 插件入口
-默认=本地附件存储#默认导出
+apply=应用
+name=名称
+inject=依赖
+默认=本地附件存储
+default=本地附件存储

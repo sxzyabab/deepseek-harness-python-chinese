@@ -133,7 +133,7 @@ class 官方引导对话框:#官方 DeepSeek 首次引导
             if not 已变:#稍后
                 if 完成 is not None:#有
                     完成()#移交
-                return#结束
+                return
             if 控制器 is not None:#有
                 控制器.load()#刷新
         自身.编辑器=提供方编辑器({#仅密钥装卡

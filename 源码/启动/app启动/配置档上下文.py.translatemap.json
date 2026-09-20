@@ -1,9 +1,0 @@
-{
-    "bundle":"组合包",
-    "context":"上下文",
-    "overlay":"覆盖",
-    "patch":"补丁",
-    "profile":"配置档",
-    "resolve":"解析",
-    "telemetry":"遥测"
-}

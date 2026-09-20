@@ -102,15 +102,15 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
         方法=getattr(输入,'method',None)#Request.method
         if 方法 is None:#无 method
             初=初始化 if 初始化 is not None else {}#缺席才空表
-            方法=初.get('method')#init.method
-            if 方法 is None: 方法='GET'#??GET，空串合法
+            if 'method' not in 初: 方法='GET'#??GET，空串合法
+            else: 方法=初['method']#init.method
         网址=getattr(输入,'url',None)#Request.url
         if 网址 is None: 网址=str(输入)#缺 url 才 str
         头=getattr(输入,'headers',None)#Request.headers
         if 头 is None:#无 headers
             初=初始化 if 初始化 is not None else {}#缺席才空表
-            头=初.get('headers')#init.headers
-            if 头 is None: 头={}#缺席才空表，空字典合法
+            if 'headers' not in 初: 头={}#缺席才空表，空字典合法
+            else: 头=初['headers']#init.headers
         有体=getattr(输入,'body',None) is not None#Request.body
         if not 有体 and 初始化 is not None:#再看 init
             有体=初始化.get('body') is not None#init.body
@@ -123,8 +123,8 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
         状态=响应.status#Response.status
         状态文本=响应.statusText#Response.statusText
         响应头=响应.headers#Response.headers
-        原始类型=响应头.get('content-type')#MIME 原文
-        if 原始类型 is None: 原始类型=''#??空串
+        if 'content-type' not in 响应头: 原始类型=''#??空串
+        else: 原始类型=响应头['content-type']#MIME 原文
         内容类型=原始类型.split(';')[0].strip().lower()#MIME
         响应网址=响应.url#Response.url
         if 响应网址 is None or 响应网址=='':#|| 空串也回退

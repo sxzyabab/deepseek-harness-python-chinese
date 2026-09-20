@@ -197,7 +197,7 @@ def 编译属性表(输入,路径):
     """编译一张隐式属性表，并收集各属性的必填性。"""
     托盘={}#根托盘
     执行模式编译({'kind':'property-map','input':输入,'path':路径,'destination':{'kind':'root','holder':托盘}})#从属性表任务起步
-    if 托盘.get('value') is None:
+    if 'value' not in 托盘:
         作者错误(路径+' did not compile')#根必须已写入
     return 托盘['value']#已编译表
 
@@ -205,7 +205,7 @@ def 编译值模式(输入,路径):
     """编译一个作者节点，不施加任何消费方根约束。"""
     托盘={}#根托盘
     执行模式编译({'kind':'value','input':输入,'path':路径,'allowRequired':False,'destination':{'kind':'root','holder':托盘}})#从值任务起步
-    if 托盘.get('value') is None:
+    if 'value' not in 托盘:
         作者错误(路径+' did not compile')#根必须已写入
     return 托盘['value']#已编译节点
 
@@ -216,7 +216,7 @@ def 值模式规格转json模式(规格):
     return 模式节点#返回原始模式
 
 def 参数模式规格转json模式(规格):
-    """把隐式开放参数对象编译成原始 JSON Schema。"""
+    """把隐式开放参数编译成原始 JSON Schema。"""
     已编译=编译属性表(规格,'parameters')#编译属性表
     模式节点={'type':'object','properties':已编译['properties']}#拼对象根
     if 已编译.get('required') is not None:

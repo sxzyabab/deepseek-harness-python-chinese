@@ -71,7 +71,7 @@ def 解析服务推送(流,活动=None):
                 yield 事件#让出
                 continue#下一事件
             if ':' in 行:#有字段
-                名,值=行.split(':',1)#拆
+                名,值=行.split(':',1)
                 if 值.startswith(' '):#前导空格
                     值=值[1:]#剥
             else:#无冒号

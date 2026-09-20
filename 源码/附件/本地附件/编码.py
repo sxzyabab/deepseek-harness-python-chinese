@@ -1,4 +1,4 @@
-"""共享质量阶梯与惰性候选执行。对齐上游 attachment-local/src/encoding.ts。"""
+"""共享质量阶梯与惰性候选执行。"""
 from io import BytesIO#内存缓冲
 __all__=[#仅中文公开名
     '图像编码质量阶梯','WEBP编码力度','编码图像','编码阶梯',

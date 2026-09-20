@@ -1,5 +1,3 @@
-#对齐上游 worker/cdp/session.ts
-
 from ...共享.json import 检查器错误#包内错误
 from .协议 import 解析cdp请求,cdp错误#协议
 from .目标 import cdp方法未处理,处理脚手架#脚手架

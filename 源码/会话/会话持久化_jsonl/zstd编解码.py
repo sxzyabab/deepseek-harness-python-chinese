@@ -1,4 +1,4 @@
-"""JSONL 持久化后端的 Zstandard 帧原语（对齐 upstream zstd.ts 公开面）。"""
+"""JSONL 持久化后端的 Zstandard 帧原语。"""
 from io import BytesIO#字节流
 import zstandard as zstd#zstd
 
@@ -13,9 +13,12 @@ def 压缩zstd帧(明文):#压缩一帧
 
 def 解压zstd帧(载荷):#解压一帧或拼接帧
     """解压完整帧并校验；多帧拼接时读尽全部明文。"""
-    解压器=zstd.ZstdDecompressor()#解压器
-    with 解压器.stream_reader(BytesIO(载荷)) as 阅读器:#多帧阅读器
-        return 阅读器.read()#全部明文
+    解压器=zstd.ZstdDecompressor()
+    try:
+        with 解压器.stream_reader(BytesIO(载荷)) as 阅读器:
+            return 阅读器.read()
+    except zstd.ZstdError as 错误:
+        raise Error('corrupt Zstandard session log: frame failed validation') from 错误
 
 def 扫描zstd帧(缓冲,最大帧数=None):#结构扫描帧
     """在不解压的情况下定位完整帧；EOF 落在末帧内则返回撕裂起点。"""
@@ -87,7 +90,7 @@ def 解压zstd前缀(输入):#解压不完整前缀
                 except zstd.ZstdError:#不完整帧/校验未完成
                     break#保留已产明文
                 if not 块:#EOF
-                    break#结束
+                    break
                 块列表.append(块)#收集
     except zstd.ZstdError:#开流即失败
         return b''.join(块列表)#可能为空
@@ -118,7 +121,7 @@ class 公开zstd帧解码器:#公开一次性 API 多帧适配器
                 终点=帧['end']#终点
                 try:#一次性解压
                     明文=解压zstd帧(源[起点:终点])#解压该帧
-                except Exception as 错误:#校验失败
+                except Error as 错误:
                     raise Error(f'corrupt Zstandard session log: frame at byte {起点} failed validation') from 错误#包装
                 yield 明文#交出
         finally:#无论成败

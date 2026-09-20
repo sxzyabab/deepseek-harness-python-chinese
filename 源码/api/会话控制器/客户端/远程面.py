@@ -1,7 +1,6 @@
 """会话集群所调用的 Remote 命名空间约定。
 
-对齐上游 `session-controller/src/client/sessions/remotes.ts`。公开面仅中文名。
-运行时以宿主注入的 remote 对象承载；本模块只文档化期望形状。
+运行时以宿主提供的 remote 对象承载；本模块只文档化期望形状。
 """
 __all__=['会话远程面说明']#仅中文公开名
 

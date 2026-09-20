@@ -1,6 +1,6 @@
 import threading#提供方队列与生命周期
 from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 字符串字段,列表字段,字典字段,任意字段,数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,列表字段,字典字段,任意字段,数字字段
 聚合错误=cordis.聚合错误#聚合错误
 from ...语言服务器.语言服务器 import 语言服务器错误,语言服务器提供方标识#LSP错误与提供方id工厂
 from ...工具.超时 import 定时器延迟上限毫秒,中止控制器,合成信号,已中止#定时器上限与取消
@@ -8,12 +8,13 @@ from .取消 import 可中止等待,中止错误,操作任务#取消与操作任
 from .宿主 import 规范化工作区,读宿主源#宿主I/O
 from .实例 import 语言服务器实例#语言服务器实例
 
-名称='lsp-stdio'#供加载器诊断用的Cordis插件名
-注入=['fs','lsp','subprocess']#本插件所需的服务
+包名='@deepseek-ai/dsh-lsp-stdio'
+名称='lsp-stdio'
+依赖=['fs','lsp','subprocess']
 
-__all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '名称','注入','应用','配置模式','本地语言服务器提供方',
-]#公开面结束
+__all__=[
+    '包名','名称','依赖','应用','默认','配置模式','本地语言服务器提供方',
+]
 
 默认最大消息字节=16000000#默认单条成帧消息上限（字节）
 默认最大标准误字节=1000000#默认stderr尾上限（字节）
@@ -24,8 +25,8 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 本地服务器配置模式={#单条服务器配置模式
     'command':字符串字段(可空=False),#可执行文件必填
     'args':列表字段(字符串字段(),默认值=[]),#参数默认空数组
-    'env':字典字段(字符串字段(),默认值={}),#环境默认空对象
-    'extensionToLanguage':字典字段(字符串字段(),可空=False),#扩展映射必填
+    'env':字典字段(键值结构=(字符串字段(),字符串字段()),默认值={}),#环境默认空对象
+    'extensionToLanguage':字典字段(键值结构=(字符串字段(),字符串字段()),可空=False),#扩展映射必填
     'initializationOptions':任意字段(默认值=None),#初始化选项默认null
     'configuration':任意字段(默认值=None),#配置回答默认null
     'maxMessageBytes':数字字段(默认值=默认最大消息字节),#消息上限默认值
@@ -36,7 +37,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 }#结束本地服务器配置模式
 
 配置模式={#插件配置模式
-    'servers':字典字段(本地服务器配置模式,可空=False),#服务器表必填
+    'servers':字典字段(字典结构=本地服务器配置模式,可空=False),#服务器表必填
 }#结束 Config schema
 
 本地服务器配置字段=('command','extensionToLanguage','args','env','initializationOptions','configuration','maxMessageBytes','maxStderrBytes','maxDocumentBytes','shutdownTimeoutMs','killGraceMs')#一项已配置的本地语言服务器及其宿主上限
@@ -57,7 +58,7 @@ def 全部结算(任务列表):#对齐Promise.allSettled
             if isinstance(任务,操作任务):#任务
                 任务.等待()#等待
             结果列表.append({'status':'fulfilled','value':None})#成功
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             结果列表.append({'status':'rejected','reason':错误})#拒绝
     return 结果列表#全部结算
 
@@ -126,7 +127,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
             try:#规范化
                 工作区=规范化工作区(自身.文件系统,请求['workspaceRoot'],查询信号)#得到规范工作区
                 工作区任务.兑现(工作区)#成功
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 工作区任务.拒绝(错误)#拒绝
             finally:#无论成败都移出飞行集
                 try:#结算飞行尾
@@ -180,7 +181,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
                 if 先前 is not None:#有先前尾才等
                     可中止等待(先前,信号)#可中止等待
                 结果任务.兑现(运行())#执行本查询
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 结果任务.拒绝(错误)#拒绝
         # 即便本调用方放弃等待，尾仍跟随实际的先前工作。它永不拒绝。
         尾=操作任务()#实际工作的结算尾
@@ -200,7 +201,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
                         del 自身.队列表[工作区键]#删除
         with 自身.锁:#记下新尾
             自身.队列表[工作区键]=尾#新尾
-        threading.Thread(target=跟尾,daemon=True).start()#启动
+        threading.Thread(target=跟尾,daemon=True).start()
         return 结果任务.等待()#交给调用方
 
     def 取实例(自身,工作区键,工作区):#取出或创建实例
@@ -272,7 +273,7 @@ def 应用(上下文,配置):
     服务器表=配置['servers'] if 'servers' in 配置 else {}#展开服务器表
     条目表=list(服务器表.items()) if isinstance(服务器表,dict) else []#条目
     if len(条目表)==0:#空表则加载失败
-        raise 语言服务器错误('lsp-stdio: servers 至少要有一台服务器','LSP_INVALID_PROVIDER')#失败
+        raise 语言服务器错误('lsp-stdio: servers 至少要有一台服务器','LSP_INVALID_PROVIDER')
     搭建中止=中止控制器()#加载期取消控制器
     def 插件事件(纤维):
         """插件回调必须在 Cordis 能跑 effect 清理之前看见自己的拆除。纤维是 cordis 对象。"""
@@ -284,7 +285,7 @@ def 应用(上下文,配置):
     try:#注册前先解析每一项服务器本地设置
         for 提供方标识,原始配置 in 条目表:#逐项（并行用线程）
             if str(提供方标识).strip()=='':#拒绝空id
-                raise 语言服务器错误('lsp-stdio: 服务器 id 必须是非空字符串','LSP_INVALID_PROVIDER')#失败
+                raise 语言服务器错误('lsp-stdio: 服务器 id 必须是非空字符串','LSP_INVALID_PROVIDER')
             已解析=原始配置#schema已填默认值
             校验服务器配置(提供方标识,已解析)#加载时校验预算与字节上限
             查找任务=操作任务()#解析任务
@@ -299,9 +300,9 @@ def 应用(上下文,配置):
                         raise 中止错误(搭建中止.信号)#中止
                     def 拉起(规格):
                         """子进程拉起器。"""
-                        return 上下文.subprocess.启动(规格)#启动
+                        return 上下文.subprocess.启动(规格)
                     结果.兑现(本地语言服务器提供方(标识,上下文.fs,配置值,可执行,拉起))#构造隔离提供方
-                except BaseException as 错误:#失败
+                except BaseException as 错误:
                     结果.拒绝(错误)#拒绝
             threading.Thread(target=执行解析,daemon=True).start()#并行解析
         try:#等待全部解析
@@ -331,14 +332,15 @@ def 应用(上下文,配置):
             for 提供方 in 提供方列表:#顺序拆除
                 try:#拆除全部是同步等待
                     提供方.拆除全部()#拆除本提供方
-                except BaseException as 错误:#失败
+                except BaseException as 错误:
                     失败列表.append(错误)#记下
             抛出拆除失败(失败列表,'lsp-stdio 提供方拆除失败')#有失败则抛
         return 拆除全部#拆除器
     上下文.副作用(挂注册,'lsp-stdio.registerProviders')#结束 注册副作用
 
-name=名称#Cordis插件名槽
-inject=注入#Cordis依赖槽
-Config=配置模式#Cordis配置槽
-apply=应用#Cordis入口槽
-default=应用#Cordis默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+Config=配置模式#框架槽
+apply=应用#框架槽
+default=默认#框架槽

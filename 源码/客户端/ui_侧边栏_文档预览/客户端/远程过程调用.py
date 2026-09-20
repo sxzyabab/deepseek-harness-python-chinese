@@ -1,8 +1,9 @@
 import base64#线路 base64
+from urllib.parse import unquote as 百分号解码
 
-__all__=[#仅中文公开名
+__all__=[
     '宿主文件','创建分页读','文档文件字节',
-]#公开面结束
+]
 
 
 def 宿主文件(地址):
@@ -17,8 +18,7 @@ def 宿主文件(地址):
     斜=余.find('/')#分隔
     if 斜<0:#无路径
         raise ValueError('ui-sidebar-documentpreview: 不是会话文件地址 "'+地址+'"')
-    from urllib.parse import unquote#段解码
-    return {'sessionId':unquote(余[:斜]),'path':unquote(余[斜+1:])}#会话与路径
+    return {'sessionId':百分号解码(余[:斜]),'path':百分号解码(余[斜+1:])}
 
 
 def 创建分页读(远程):

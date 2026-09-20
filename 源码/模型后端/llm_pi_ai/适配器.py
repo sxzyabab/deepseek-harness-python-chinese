@@ -193,7 +193,7 @@ class 派爱适配器(llm.大模型适配器):
         if 已解析 is None:#路由有了但集合里没有这个模型
             raise llm.大模型错误('pi-ai provider "'+提供方+'" has no configured model "'+模型+'"','UNKNOWN_MODEL')#未知模型
         return 已解析#已配置模型
-    def 提供方信息(自身,提供方):
+    def 提供方简介(自身,提供方):
         """提供方展示。"""
         配置项=自身.当前()['profiles'][提供方] if 提供方 in 自身.当前()['profiles'] else None#当前配置
         if 配置项 is None:#没有该路由则展示名落到路由键
@@ -313,7 +313,7 @@ class 派爱适配器(llm.大模型适配器):
                         raise 超时#超时则抛
                     if 结果['done']:#上游正常结束
                         耗尽=True#正常耗尽
-                        return#结束生成器
+                        return生成器
                     yield 结果['value']#让出一块
             finally:#生成器结束
                 if not 耗尽:#调用方提前停消费则中止上游

@@ -25,7 +25,7 @@ def 去掉空子节点(子节点列表):#去掉 None
     return [子 for 子 in 子节点列表 if 子 is not None]#过滤
 
 def 动作图标(种):#RowAction 子图标
-    """对齐上游各动作按钮内图标。"""
+    """各动作按钮内图标。"""
     if 种=='approveOnce':#仅此版
         return {'type':'IconCheckOutline16','size':14}#勾
     if 种=='approvePlugin':#后续
@@ -95,7 +95,7 @@ def 阻塞优先(行列表):#审批行置顶
     return 前+后#合并
 
 def 组装行树(视,选中包,已加载,翻译,忙碌,失败图,渲染失败图,动作错误图):#一行 li 树
-    """对齐 renderRow 的嵌套 JSX。"""
+    """各行嵌套结构。"""
     列=视['listed'] if 'listed' in 视 else None#清单
     活动=视['activity'] if 'activity' in 视 else None#活动
     插件=视['pluginId'] if 'pluginId' in 视 else None#id
@@ -365,8 +365,8 @@ class 面板:#Cordis 侧栏面板
                     失败映射,渲映射,自身.动作错误,
                 ))#行
             return 树列表#列表
-        if len(全部)==0:#空则不渲染（对齐上游 return null）
-            return {'type':None,'visible':False,'css':样式表,'note':'无插件时上游 return null'}#隐藏
+        if len(全部)==0:
+            return {'type':None,'visible':False,'css':样式表,'note':'无插件时不渲染'}
         清单错=清单['error'] if 清单 is not None and 'error' in 清单 else None#读失败
         已读=清单['read'] if 清单 is not None and 'read' in 清单 else False#是否已读
         体子=去掉空子节点([#panel body
@@ -414,7 +414,7 @@ class 面板:#Cordis 侧栏面板
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        """结构树面。"""
         if 属性 is not None:#有
             自身.更新(属性)#刷新
         return 自身.渲染()#渲

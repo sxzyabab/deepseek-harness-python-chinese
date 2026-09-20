@@ -1,5 +1,3 @@
-#对齐上游 worker/cdp/domains/debugger/script-registry.ts
-
 from ...标识 import cdp字符串id#CDP脚本id
 import re#URL 断点正则
 

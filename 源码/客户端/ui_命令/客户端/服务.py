@@ -39,24 +39,22 @@ class 弹出选定控制器:#每会话弹出控制器
     def dispose(自身):
         """拆除。"""
         自身.已开=False#关
-        自身.命令=None#清
+        自身.命令=None
 
     def dismiss(自身):
         """关掉弹出，不消费草稿。"""
         自身.已开=False#关
-        自身.命令=None#清
+        自身.命令=None
 
 class 命令UI运行时:#CommandUiRuntime
     """命令面：目录 + 「/」源 + 贡献/装饰 + 每会话弹出。"""
-    inject=['inputTriggers','sessions','remote','remote.commands']#所需服务
-
     def __init__(自身,上下文):
         """挂上 commandUi 并登记斜杠源。"""
         自身.ctx=上下文#上下文
         上下文.provide('commandUi',自身)#提供
-        文案=上下文.get('locale')#文案
-        if 文案 is None:#无
+        if 'locale' not in 上下文:#无
             raise 命令错误('ui-commands: locale 服务不可用')#失败
+        文案=上下文['locale']#文案
         自身.t=文案.bind('command')#翻译
         自身.贡献={}#名 → 贡献 dict
         自身.装饰={}#名 → 装饰 dict
@@ -72,9 +70,9 @@ class 命令UI运行时:#CommandUiRuntime
                 raise 命令错误('command.list 失败: '+str(错误体['code'])+': '+str(错误体['message']))#抛
             return 结果['value']#表
         自身.目录=命令目录(拉目录)#目录
-        触发=上下文.get('inputTriggers')#斜杠
-        if 触发 is None:#无
+        if 'inputTriggers' not in 上下文:#无
             raise 命令错误('ui-commands: 斜杠服务不可用')#失败
+        触发=上下文['inputTriggers']#斜杠
         def 登记源():
             """登记 '/' 源。"""
             def 预热(会话):
@@ -121,12 +119,12 @@ class 命令UI运行时:#CommandUiRuntime
             def 摘贡献():
                 """摘掉该贡献。"""
                 自身.贡献.pop(名,None)#摘
-            return 摘贡献#拆
+            return 摘贡献
         拆=自身.ctx.副作用(挂,'command.register()')#挂
         def 拆贡献():
             """拆副作用。"""
-            拆()#拆
-        return 拆贡献#拆
+            拆()
+        return 拆贡献
 
     def decorate(自身,装饰):
         """挂宿主装饰；重名抛。装饰为 dict。"""
@@ -139,12 +137,12 @@ class 命令UI运行时:#CommandUiRuntime
             def 摘装饰():
                 """摘掉该装饰。"""
                 自身.装饰.pop(名,None)#摘
-            return 摘装饰#拆
+            return 摘装饰
         拆=自身.ctx.副作用(挂,'command.decorate()')#挂
         def 拆装饰():
             """拆副作用。"""
-            拆()#拆
-        return 拆装饰#拆
+            拆()
+        return 拆装饰
 
     def 解散(自身,名):
         """关掉该命令已打开的弹出，不消费草稿；还焦编写器。"""
@@ -175,16 +173,16 @@ class 命令UI运行时:#CommandUiRuntime
             return 绑上下文.bail(绑上下文,'slash/input-consume-token',{'guard':守卫}) is True#成败
         def 聚焦():
             """经对话输入面聚焦。"""
-            对话=绑上下文.get('conversation')#对话
-            if 对话 is None:#无
+            if 'conversation' not in 绑上下文:#无
                 return None#停
-            return 对话.input.for_(绑上下文).focus() if hasattr(对话.input,'for_') else 对话.input.按作用域取门面(绑上下文).focus()#聚焦
+            对话=绑上下文['conversation']#对话
+            return 对话.input.按作用域取门面(绑上下文).focus()#聚焦
         控制器=弹出选定控制器(消费,聚焦)#控
         自身.弹出[键]=控制器#挂
         自身.弹出值.add(控制器)#强持
         def 拆会话():
             """会话拆除。"""
-            控制器.dispose()#拆
+            控制器.dispose()
             自身.弹出.pop(键,None)#摘
             自身.弹出值.discard(控制器)#摘值
             def 空拆():
@@ -359,7 +357,7 @@ class 命令UI运行时:#CommandUiRuntime
         return {'kind':'success'}#成功
 
     def 通知已执行(自身,会话标识,名,结果):
-        """发布本地回执，不嗅探 thenable。"""
+        """发布本地回执。"""
         自身.ctx.emit('command/executed',会话标识,名,结果)#回执
 
     def 经片段消费(自身,标识,片段):
@@ -386,7 +384,11 @@ class 命令UI运行时:#CommandUiRuntime
         作用=自身.sessions().scope(标识)#作用域
         if 作用 is None:#无
             return#止
-        会话=作用.get('conversation')#对话
-        if 会话 is None:#无
+        if 'conversation' not in 作用:#无
             return#止
+        会话=作用['conversation']#对话
         会话.input.按作用域取门面(作用).notify(级别,文本)#抛提示
+
+依赖=['inputTriggers','sessions','remote','remote.commands']
+inject=依赖#框架槽
+命令UI运行时.inject=依赖#框架槽

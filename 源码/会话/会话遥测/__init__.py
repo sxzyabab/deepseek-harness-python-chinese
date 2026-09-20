@@ -1,11 +1,13 @@
-"""会话遥测捕获侧 Service Definition（对齐 upstream session-telemetry）。"""
-from ...依赖 import cordis#Cordis
+"""会话遥测捕获侧服务定义。"""
+from ...依赖 import cordis#框架
 服务=cordis.服务#服务基类
 from .协调器 import 会话遥测协调器#协调器
-__all__=[#公开面
-    '会话遥测严重度','会话遥测记录','会话遥测接收器','会话遥测共享状态',
+__all__=[
+    '包名','名称','默认','会话遥测严重度','会话遥测记录','会话遥测接收器','会话遥测共享状态',
     '会话遥测后端','会话遥测协调器',
-]#结束
+]
+包名='@deepseek-ai/dsh-session-telemetry'
+名称='session-telemetry'
 
 会话遥测严重度=('info','warn','error')#严重度词汇
 
@@ -16,7 +18,7 @@ __all__=[#公开面
 class 会话遥测后端(服务):
     """部署选定的遥测后端；重复加载由 Cordis 拒绝。"""
     def __init__(自身,上下文):
-        """登记为 ctx.sessionTelemetry。"""
+        """以 sessionTelemetry 名安装服务。"""
         super().__init__(上下文,'sessionTelemetry')#服务键
 
     @property
@@ -50,4 +52,6 @@ class 会话遥测接收器:
         """关闭后端。"""
         return#协议占位
 
-default=会话遥测后端#Cordis 默认导出槽
+默认=会话遥测后端
+name=名称#框架槽
+default=默认#框架槽

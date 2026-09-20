@@ -1,6 +1,6 @@
-"""模型会话标题共享策略（对齐上游 session-title-llm）。"""
+"""模型会话标题共享策略。"""
 import json#消息 JSON 帧
-from ...依赖.schemastery import 字典字段,数字字段,字符串字段#配置字段
+from ...依赖.schemastery import 字典字段,数字字段,字符串字段
 from ...模型后端.llm import 创建用户消息,深冻结#LLM 辅助
 from ...工具.超时 import 截止#截止
 from ..会话标题.归一 import 归一化会话标题#标题归一
@@ -9,7 +9,7 @@ class 会话标题llm错误(Exception):
     """模型标题策略包的异常基类。"""
 
 会话标题超时码='SESSION_TITLE_TIMEOUT'#超时原因码
-最大定时器延迟毫秒=2147483647#对齐 MAX_TIMER_DELAY_MS
+最大定时器延迟毫秒=2147483647#定时器延迟上限（毫秒）
 配置字段={
     'targetWords':数字字段(默认值=None),#非 CJK 目标词数（必填由加载器校验）
     'targetCjkCharacters':数字字段(默认值=None),#CJK 目标字符
@@ -19,7 +19,7 @@ class 会话标题llm错误(Exception):
     'provider':字符串字段(),#可选路由
     'model':字符串字段(),#可选模型
 }#字段表
-会话标题llm配置模式=字典字段(配置字段)#配置模式
+会话标题llm配置模式=字典字段(字典结构=配置字段)#配置模式
 
 def 已中止(信号):
     """信号是否已中止。无信号视为未中止。"""
@@ -98,5 +98,6 @@ def 用llm生成会话标题(上下文,配置,请求,选中消息,标题提供�
         raise 会话标题llm错误('session-title-llm: title model produced no text')#拒绝
     return {'title':标题,'messageSeqs':[项['seq'] for 项 in 选中消息],'model':路由}#结果
 
-名称='session-title-llm'#库插件名（非 Cordis 根）
-__all__=['会话标题超时码','会话标题llm配置模式','解析会话标题llm配置','登记会话标题llm提供方','用llm生成会话标题','名称','会话标题llm错误']#公开面
+包名='@deepseek-ai/dsh-session-title-llm'
+名称='session-title-llm'
+__all__=['包名','名称','会话标题超时码','会话标题llm配置模式','解析会话标题llm配置','登记会话标题llm提供方','用llm生成会话标题','会话标题llm错误']

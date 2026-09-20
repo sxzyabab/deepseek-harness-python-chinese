@@ -15,12 +15,12 @@ from ..钩子协议 import (
 from .配置 import 解析科德克斯配置#导入配置解析
 
 名称='hooks-codex'#插件名
-注入=['shell']#依赖 shell 服务
+依赖=['shell']#依赖 shell 服务
 配置={#插件配置：Codex hooks.json 所在位置，以及载荷上的模型名
     'configPath':字符串字段(),#Codex hooks.json 路径；必填；进程级，加载时读一次
     'model':字符串字段(默认值=''),#盖在每份载荷上的模型名（Codex 每个事件都带 model）
     'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒（Codex 默认：600000）
-    'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字节),#hook/result 事件里持久 stderr 摘要的字节上限；键名保持上游字符口径
+    'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字节),#hook/result 事件里持久 stderr 摘要的字节上限
 }#配置模式结束
 插件来源={'kind':'plugin','plugin':'hooks-codex'}#本桥注入的每条上下文都盖上的来源
 处理器计数=0#处理器计数，用于稳定 id
@@ -399,9 +399,9 @@ def 应用(上下文,配置值=None):
             智能体.转向(创建用户消息({'content':[{'type':'text','text':文本}],'source':插件来源}))#注入转向消息
     上下文.监听('agent/turn-stopping',轮次将停监听)#结束 turn-stopping 监听
 
-__all__=['名称','注入','应用','配置','钩子codex错误']#仅中文公开名
+__all__=['名称','依赖','应用','配置','钩子codex错误']#仅中文公开名
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
 default=应用#Cordis默认导出

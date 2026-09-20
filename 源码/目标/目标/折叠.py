@@ -186,28 +186,28 @@ def 校验快照迁移(状态,变更,当前):
         下一原因=下一['blockedReason'] if 'blockedReason' in 下一 else None#下一阻塞原因
         if 下一['phase']!=当前['phase'] or json.dumps(下一原因,ensure_ascii=False,separators=(',',':'),allow_nan=False)!=json.dumps(当前原因,ensure_ascii=False,separators=(',',':'),allow_nan=False):#阶段或原因被改
             raise 目标折叠错误('goal edit cannot change phase or blocked reason')#编辑越权
-        return#结束 edit
+        return edit
     if 操作=='pause':#暂停
         要求同一定义(当前,下一,操作)#不得改定义
         if 当前['phase']!='active' or 下一['phase']!='paused':#必须 active→paused
             raise 目标折叠错误('goal pause has an invalid phase transition')#阶段非法
-        return#结束 pause
+        return pause
     if 操作=='resume':#恢复
         要求同一定义(当前,下一,操作)#不得改定义
         可恢复=set(('active','paused','blocked'))#可恢复阶段
         if 当前['phase'] not in 可恢复 or 下一['phase']!='active' or 状态['roundsStarted']>=下一['maxGoalRounds']:#阶段或预算非法
             raise 目标折叠错误('goal resume has an invalid phase transition or exhausted round budget')#恢复失败
-        return#结束 resume
+        return resume
     if 操作=='complete':#完成
         要求同一定义(当前,下一,操作)#不得改定义
         if 当前['phase']=='complete' or 下一['phase']!='complete':#不得从已完成再完成
             raise 目标折叠错误('goal complete has an invalid phase transition')#阶段非法
-        return#结束 complete
+        return complete
     if 操作=='block':#阻塞
         要求同一定义(当前,下一,操作)#不得改定义
         if 当前['phase']!='active' or 下一['phase']!='blocked':#必须 active→blocked
             raise 目标折叠错误('goal block has an invalid phase transition')#阶段非法
-        return#结束 block
+        return block
     if 操作=='create':#创建不应走当前目标迁移
         raise 目标折叠错误('goal create cannot be validated as a current-goal transition')#走错路径
     raise 目标折叠错误('unknown goal snapshot operation')#运行时兜底

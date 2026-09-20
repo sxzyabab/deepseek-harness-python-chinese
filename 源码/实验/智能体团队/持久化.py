@@ -1,13 +1,13 @@
-__all__=['读持久会话']#仅中文公开名
+__all__=['读持久会话']
 
-def 读持久会话(持久化,标识,信号):#读持久会话
+def 读持久会话(持久化,标识,信号):
     """经短命读句柄读取已存会话的头与完整事件日志，返回前关闭句柄。"""
-    句柄=持久化.open(标识,'read',{'signal':信号})#开读句柄
-    try:#读取
-        return {#视图
-            'header':句柄.header,#会话头
-            'inheritedEventCount':句柄.inheritedEventCount,#继承事件数
-            'events':句柄.read(0,None,{'signal':信号}),#读全量
-        }#视图结束
-    finally:#关闭
-        句柄.close()#关句柄
+    句柄=持久化.open(标识,'read',{'signal':信号})
+    try:
+        return {
+            'header':句柄.header,
+            'inheritedEventCount':句柄.inheritedEventCount,
+            'events':句柄.read(0,None,{'signal':信号}),
+        }
+    finally:
+        句柄.close()

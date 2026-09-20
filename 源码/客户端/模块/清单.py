@@ -17,7 +17,7 @@ __all__=[#仅中文公开名
     '客户端模块记录',
     '客户端模块加载器',
     '客户端模块系统选项',
-]#公开面结束
+]
 
 class 客户端模块错误(Exception):
     """本包模块系统失败。"""
@@ -71,13 +71,13 @@ def 解析客户端声明(包名,值):#解析 dsh.client
         raise 客户端模块错误('client-modules: '+包名+' has a non-object dsh.client declaration')#非对象
     if 'platform' not in 值 or not isinstance(值['platform'],str):#platform 必须是字符串
         raise 客户端模块错误('client-modules: '+包名+' dsh.client.platform must be a string')#platform 不合格
-    注入=可选字符串数组(包名,'dsh.client.inject',值['inject'] if 'inject' in 值 else None)#可选 inject
+    依赖=可选字符串数组(包名,'dsh.client.inject',值['inject'] if 'inject' in 值 else None)#可选 inject
     外部=可选字符串数组(包名,'dsh.client.external',值['external'] if 'external' in 值 else None)#可选 external
     if 'immediately' in 值 and not isinstance(值['immediately'],bool):#immediately 可选布尔
         raise 客户端模块错误('client-modules: '+包名+' dsh.client.immediately must be a boolean')#immediately 不合格
     声明={'platform':值['platform']}#已校验声明
-    if 注入 is not None:#有注入
-        声明['inject']=注入#注入边
+    if 依赖 is not None:#有依赖
+        声明['inject']=依赖#依赖边
     if 外部 is not None:#有外部
         声明['external']=外部#外部请求
     if 'immediately' in 值:#有立即标记
@@ -125,7 +125,7 @@ def 解析启动清单(线值):#解析启动清单
             raise 客户端模块错误('client-modules: duplicate graph entry "'+值['id']+'"')#重复
         已见条目标识.add(值['id'])#记下 id
         主语='boot manifest entry '+位置#诊断主语
-        注入=可选字符串数组(主语,'inject',值['inject'] if 'inject' in 值 else None)#可选 inject
+        依赖=可选字符串数组(主语,'inject',值['inject'] if 'inject' in 值 else None)#可选 inject
         外部=可选字符串数组(主语,'external',值['external'] if 'external' in 值 else None)#可选 external
         if 'immediately' in 值 and not isinstance(值['immediately'],bool):#immediately 可选布尔
             raise 客户端模块错误('client-modules: boot manifest entry '+位置+' immediately must be a boolean')#immediately 不合格
@@ -133,14 +133,14 @@ def 解析启动清单(线值):#解析启动清单
             'id':值['id'],#包名
             'url':值['url'],#HMR URL
             'rev':值['rev'],#修订
-            'inject':[] if 注入 is None else list(注入),#缺省空依赖
+            'inject':[] if 依赖 is None else list(依赖),#缺省空依赖
             'external':[] if 外部 is None else list(外部),#缺省空外部
-        })#结束 append
+        })
         插件列表.append({#插件行
             'id':值['id'],#包名
-            'inject':[] if 注入 is None else list(注入),#缺省空依赖
+            'inject':[] if 依赖 is None else list(依赖),#缺省空依赖
             'immediately':值['immediately'] is True if 'immediately' in 值 else False,#缺省 false
-        })#结束 plugins.append
+        })
     条目标识集=set(行['id'] for 行 in 模块字段列表)#图上全部 id
     初始网址表={}#条目 → 初始批 URL
     批网址集=set()#已见批 URL

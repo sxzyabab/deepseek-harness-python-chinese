@@ -1,4 +1,4 @@
-from urllib.parse import urlparse#解析权威与 Origin
+from urllib.parse import urlparse as 解析URL
 from .回环主机名 import 是否回环主机名#回环主机名判定
 from .rpc import 连接错误#本包异常
 
@@ -21,7 +21,7 @@ def 取头(请求头表,名):#读单个头
 
 def 解析权威(权威):#权威字符串 → 解析结果
     """Host 头权威的归一化；无法解析则为 None。"""
-    解析=urlparse('http://'+权威)#用 http 特殊方案解析
+    解析=解析URL('http://'+权威)
     if not 解析.hostname:#无主机名
         return None#不当权威
     return 解析#解析结果
@@ -30,7 +30,7 @@ def 规范权威(条目,解析):#权威 → 规范 host 或 host:port
     """已解析权威的规范形态：没写端口时是 hostname，否则 hostname:port。"""
     端口=解析.port#显式或默认
     if 解析.port is None:#http 默认 80 时改用 https 看是否写了 443
-        端口=urlparse('https://'+条目).port#https 默认 443
+        端口=解析URL('https://'+条目).port
     if 端口 is None:#无显式端口
         return 解析.hostname.lower() if 解析.hostname else ''#只有 hostname
     return (解析.hostname or '').lower()+':'+str(端口)#hostname:port
@@ -75,7 +75,7 @@ def 是否受信任接口请求(请求,受信任表):#/api 信任判定
     源=取头(请求头表,'origin')#可选 Origin
     if 源 is None:#无 Origin：Host 围栏已够
         return True#通过
-    源解析=urlparse(源)#解析 Origin
+    源解析=解析URL(源)
     请求主机=(主机解析.hostname or '')+(':'+str(主机解析.port) if 主机解析.port else '')#请求 host
     源主机=(源解析.hostname or '')+(':'+str(源解析.port) if 源解析.port else '')#源 host
     return 源主机==请求主机 or ((源解析.hostname==主机解析.hostname) and (源解析.port==主机解析.port or (源解析.port is None and 主机解析.port is None)))#同源比较

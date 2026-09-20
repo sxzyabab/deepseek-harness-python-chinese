@@ -5,9 +5,9 @@ from .控制器 import 触发控制器,触发错误#每会话控制器与本包�
 from .探测 import 检测触发#纯核心探测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约,精确匹配#纯核心归约
 
-__all__=['注入','应用','菜单视图','触发服务','触发控制器','检测触发','菜单关闭','铺分组','菜单归约','精确匹配','命名空间','中文','英文']#仅中文公开名
+__all__=['依赖','应用','菜单视图','触发服务','触发控制器','检测触发','菜单关闭','铺分组','菜单归约','精确匹配','命名空间','中文','英文']#仅中文公开名
 
-注入=['sessions','locale']#会话与文案
+依赖=['sessions','locale']#会话与文案
 
 def 应用(上下文):#安装斜杠触发浏览器半边
     """登记词典与触发服务，并把菜单视图挂进 input.overlay。"""
@@ -38,7 +38,7 @@ def 应用(上下文):#安装斜杠触发浏览器半边
                     'menu':控制器.menu,#菜单仓
                     'onPick':点选项,#点选
                     'onDismiss':关闭菜单,#关闭
-                }#结束
+                }
             return 作用域.slots.register({#登记
                 'name':'conversation.input.overlay',#叠层槽
                 'id':'slash-menu',#条目 id
@@ -49,5 +49,5 @@ def 应用(上下文):#安装斜杠触发浏览器半边
         作用域.slots.inject('conversation.input.overlay',登记)#等槽
     上下文.依赖启动(['slots','inputTriggers','sessions'],挂菜单)#注入
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

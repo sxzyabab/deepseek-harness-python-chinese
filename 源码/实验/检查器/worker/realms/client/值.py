@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/client/values.ts
-
 __all__=[#仅中文公开名
     'Client完成','Client属性','Client内部属性','Client异常',
     'Client控制台事件','Client远程对象','Client句柄',

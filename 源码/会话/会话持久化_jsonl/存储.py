@@ -115,7 +115,7 @@ class jsonl会话句柄:#JSONL 会话句柄
         if 自身._关闭中 is not None:#已关闭中
             return 自身._关闭中#返回
         完成=threading.Event()#完成事件
-        失败槽=[None]#失败
+        失败槽=[None]
         def 执行关闭():#关闭体
             """排空、释租、释放簿记。"""
             排空失败=None#排空失败
@@ -123,20 +123,20 @@ class jsonl会话句柄:#JSONL 会话句柄
                 while True:#直至缓冲空
                     try:#排空
                         自身.排空活写()#排空
-                    except BaseException as 错误:#失败
+                    except BaseException as 错误:
                         排空失败=错误#记录
                         break#退出
                     #等链：本实现同步链，无需额外等待
                     if len(自身._缓冲)==0:#空
-                        break#结束
+                        break
             finally:#释放
-                失败列表=[]#失败
+                失败列表=[]
                 if 排空失败 is not None:#有排空失败
                     失败列表.append(排空失败 if isinstance(排空失败,Exception) else Exception(错误链(排空失败)))#规范化
                 try:#释租
                     if 自身._租约 is not None:#有租约
                         自身._租约.释放()#释放
-                except BaseException as 释错:#失败
+                except BaseException as 释错:
                     失败列表.append(释错 if isinstance(释错,Exception) else Exception(错误链(释错)))#规范化
                 自身._存储.释放句柄(自身,自身._状态['materialized'])#簿记
                 if len(失败列表)>1:#多失败
@@ -159,23 +159,23 @@ class jsonl会话句柄:#JSONL 会话句柄
             自身._批定时器=None#清引用
             try:#排空
                 自身.排空活写()#排空
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 报告后台失败(错误)#报告
         自身._批定时器=threading.Timer(活写批最大延迟毫秒/1000,到期)#定时器
         自身._批定时器.daemon=True#守护
-        自身._批定时器.start()#启动
+        自身._批定时器.start()
 
     def 排空活写(自身):#排空活缓冲
         """经变更链耐久排空路由活缓冲。"""
         if 自身._排空中 is not None:#单飞
             自身._排空中.wait()#加入
-            return#结束
+            return
         事件=threading.Event()#本轮
         自身._排空中=事件#记下
-        失败=None#失败
+        失败=None
         try:#排空
             自身._排空缓冲()#实现
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             失败=错误#记录
         finally:#清引用
             自身._排空中=None#清空
@@ -196,7 +196,7 @@ class jsonl会话句柄:#JSONL 会话句柄
                 自身._缓冲.clear()#清空
                 try:#持久化
                     自身._持久化连续(物化追加批(批次))#物化并持久化
-                except BaseException:#失败
+                except BaseException:
                     自身._缓冲=批次+自身._缓冲#按序放回
                     自身._排空暂停=True#暂停
                     raise#抛出
@@ -212,12 +212,12 @@ class jsonl会话句柄:#JSONL 会话句柄
         断言连续(自身.id,批次,自身._状态['cursor'])#连续
         if 自身._状态.get('tornTruncateTo') is not None:#有截断
             自身._存储.截断撕裂尾(自身.header,自身._状态['tornTruncateTo'])#截断
-            自身._状态['tornTruncateTo']=None#清
+            自身._状态['tornTruncateTo']=None
         if 自身._状态.get('recoveredTail') is not None:#有恢复尾
             尾=自身._状态['recoveredTail']#尾
             if len(尾)>0:#非空
                 自身._存储.持久化批次(自身.header,尾,自身._状态['materialized'],自身._状态['inheritedEventCount'])#写尾
-            自身._状态['recoveredTail']=None#清
+            自身._状态['recoveredTail']=None
         自身._存储.持久化批次(自身.header,批次,自身._状态['materialized'],自身._状态['inheritedEventCount'])#写批
         自身._状态['materialized']=True#已物化
         自身._状态['cursor']+=len(批次)#推进
@@ -247,10 +247,6 @@ class jsonl会话句柄:#JSONL 会话句柄
         """已关闭拒绝。"""
         if 自身._关闭中 is not None:#关闭中
             raise 会话句柄已关闭错误(自身.id,操作)#拒绝
-
-    #兼容基句柄方法名
-    enqueueLive=入队活写#英文别名
-    drainLive=排空活写#英文别名
 
 class jsonl后端跟踪器:#JSONL 后端跟踪器
     """每会话 id 单一活跃写者、挂起未物化会话与拆卸清扫。"""
@@ -311,7 +307,7 @@ class jsonl后端跟踪器:#JSONL 后端跟踪器
         """关闭时释放簿记。"""
         自身.打开句柄.discard(句柄)#删除
         if 句柄.access!='write':#读
-            return#结束
+            return
         自身._写者.pop(句柄.id,None)#删写者
         if not 已物化:#从未物化
             自身._挂起.pop(句柄.id,None)#清挂起
@@ -327,7 +323,7 @@ class jsonl后端跟踪器:#JSONL 后端跟踪器
                 写者.刷盘()#刷盘
             except 会话句柄已关闭错误:#已关闭
                 continue#跳过
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 错误列表.append(错误)#记录
         if len(错误列表)>0:#有失败
             raise ExceptionGroup(f'{自身.name} flush failed',错误列表)#聚合
@@ -340,30 +336,30 @@ class jsonl后端跟踪器:#JSONL 后端跟踪器
         """安装活会话路由与拆卸（与协调器二选一时慎用，以免双写）。"""
         def 会话事件(会话,事件):#事件
             """入队活写。"""
-            写者=自身._写者.get(会话.id)#写者
-            if 写者 is None:#无
+            if 会话.id not in 自身._写者:#无
                 return#忽略
+            写者=自身._写者[会话.id]#写者
             写者.入队活写(事件,lambda 错误:上下文.日志.警告(
                 f'session-persistence: background write for session "{会话.id}" failed (buffered events retained): {错误}'
             ))#入队
         上下文.监听('session/event',会话事件)#监听
         def 会话刷盘(会话):#刷盘
             """排空并刷。"""
-            写者=自身._写者.get(会话.id)#写者
-            if 写者 is None:#无
+            if 会话.id not in 自身._写者:#无
                 return None#无
+            写者=自身._写者[会话.id]#写者
             写者.排空活写()#排空
             写者.刷盘()#刷
-            return None#结束
+            return None
         上下文.监听('session/flush',会话刷盘)#监听
         def 会话已拆除(会话):#拆除
             """关闭写句柄。"""
-            写者=自身._写者.get(会话.id)#写者
-            if 写者 is None:#无
+            if 会话.id not in 自身._写者:#无
                 return#忽略
+            写者=自身._写者[会话.id]#写者
             try:#关闭
                 写者.关闭()#关闭
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 上下文.日志.警告(f'session-persistence: final drain for session "{会话.id}" failed: {错误}')#警告
         上下文.监听('session/disposed',会话已拆除)#监听
 
@@ -371,10 +367,7 @@ def _若已中止(信号):#取消检查
     """已中止则抛。"""
     if 信号 is None:#无
         return#无事
-    if getattr(信号,'aborted',False) or getattr(信号,'已中止',False):#已中止
-        原因=getattr(信号,'reason',None) or getattr(信号,'原因',None)#原因
-        if isinstance(原因,BaseException):#异常
-            raise 原因#抛
+    if 信号.is_set():#已中止
         raise InterruptedError('aborted')#包装
 
 __all__=[#公开面

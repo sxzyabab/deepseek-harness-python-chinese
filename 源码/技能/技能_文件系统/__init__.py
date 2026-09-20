@@ -25,14 +25,14 @@ from .发现 import (
 )#发现层已有符号，禁止在此重写
 __all__=[#仅中文公开名；Cordis 英文槽不入表
     '默认监视稳定阈值毫秒','默认监视轮询间隔毫秒','默认监视项目上限',
-    '名称','注入','配置','应用',
+    '名称','依赖','配置','应用',
 ]#公开面结束
 
 默认监视稳定阈值毫秒=200#写入稳定阈值默认毫秒
 默认监视轮询间隔毫秒=100#轮询/稳定探测默认间隔
 默认监视项目上限=128#同时监视的项目根上限
 名称='skill-filesystem'#Cordis插件名
-注入=['skills']#依赖 skills 服务
+依赖=['skills']#依赖 skills 服务
 
 配置模式={
     'providerName':字符串字段(默认值='filesystem'),#默认提供方名 filesystem
@@ -41,7 +41,7 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
     'agentsHome':字符串字段(),#agents 家目录
     'customSkillDirs':列表字段(字符串字段(),默认值=[]),#默认可选自定义根为空
     'watch':布尔字段(默认值=True),#默认开监视
-    'watchUsePolling':布尔字段(默认值=False),#默认原生事件；对齐 TS chokidar.watch 的 usePolling，打开根监视器时真正切换后端
+    'watchUsePolling':布尔字段(默认值=False),#默认原生事件；打开根监视器时真正切换后端
     'watchStabilityThresholdMs':数字字段(默认值=默认监视稳定阈值毫秒),#稳定阈值
     'watchPollIntervalMs':数字字段(默认值=默认监视轮询间隔毫秒),#探测间隔
     'watchMaxProjects':数字字段(默认值=默认监视项目上限),#项目上限
@@ -222,7 +222,7 @@ def 等待监视器打开(打开):#等待打开并吞掉失败
         return#监视启动已记下底层失败；拆除只收容它
 
 class 祖先路径监视器:#缺失根的下一路径轮询
-    """对齐 Node watchFile：轮询下一路径出现，不拖住进程。"""
+    """轮询下一路径出现，不拖住进程。"""
     def __init__(自身,路径,间隔毫秒,回调):#记下路径与回调
         """用路径、轮询间隔与变化回调构造监视器。"""
         自身.路径=路径#下一路径
@@ -231,7 +231,7 @@ class 祖先路径监视器:#缺失根的下一路径轮询
         自身.停止标志=threading.Event()#拆除标志
         自身.监视线程=threading.Thread(target=自身.执行监视)#监视线程
         自身.监视线程.daemon=True#不拖住进程
-        自身.监视线程.start()#启动
+        自身.监视线程.start()
     def 关闭(自身):#摘掉该监听
         """停止接事件并等待监视线程退出。"""
         自身.停止标志.set()#请求停止
@@ -258,7 +258,7 @@ class 祖先路径监视器:#缺失根的下一路径轮询
             自身.回调()#异步处理，不阻塞 fs 回调
 
 def 建原生目录等待(路径):#按平台打开原生目录事件等待
-    """打开对齐 chokidar 非轮询后端的目录事件等待；不支持的平台返回 None。"""
+    """打开非轮询目录事件等待；不支持的平台返回 None。"""
     系统=os.name#nt / posix
     if 系统=='nt':#Windows ReadDirectoryChangesW
         return _Windows目录等待(路径)#子树通知
@@ -369,7 +369,7 @@ class _Linux目录等待:#inotify 根+一层子目录
         if wd<0:#失败则跳过该路径
             return#子项可能竞态消失
         自身.监视表[wd]=目标#记下
-    def 刷新子目录(自身):#对齐 depth 1 子目录监视
+    def 刷新子目录(自身):#depth 1 子目录监视
         """根下现有子目录都挂上 inotify。"""
         try:#根可能消失
             for 名 in os.listdir(自身.根路径):#直接子项
@@ -410,7 +410,7 @@ class _Linux目录等待:#inotify 根+一层子目录
             pass#收容
 
 class 根目录监视器:#已存在根的目录监视（原生或轮询）
-    """对齐 chokidar：忽略初扫、写入稳定窗口、depth 1；usePolling 切换原生事件与轮询。"""
+    """忽略初扫、写入稳定窗口、depth 1；usePolling 切换原生事件与轮询。"""
     def __init__(自身,路径,稳定毫秒,轮询毫秒,跟随符号链接,用轮询=False):#记下窗口与后端
         """记下监视路径、落定期窗口与是否强制轮询。"""
         自身.路径=路径#监视锚点
@@ -418,7 +418,7 @@ class 根目录监视器:#已存在根的目录监视（原生或轮询）
         自身.轮询毫秒=轮询毫秒#轮询/稳定探测间隔
         自身.跟随符号链接=跟随符号链接#是否跟随符号链接
         自身.用轮询=用轮询#True→轮询；False→原生（不可用则等待时退回间隔）
-        自身.options={'usePolling':用轮询,'interval':轮询毫秒,'awaitWriteFinish':{'stabilityThreshold':稳定毫秒,'pollInterval':轮询毫秒},'followSymlinks':跟随符号链接,'depth':1,'ignoreInitial':True}#对齐 chokidar.watch 选项，供检视
+        自身.options={'usePolling':用轮询,'interval':轮询毫秒,'awaitWriteFinish':{'stabilityThreshold':稳定毫秒,'pollInterval':轮询毫秒},'followSymlinks':跟随符号链接,'depth':1,'ignoreInitial':True}#watch 选项，供检视
         自身.监听={'ready':[],'error':[],'add':[],'addDir':[],'change':[],'unlink':[],'unlinkDir':[]}#事件表
         自身.停止=threading.Event()#拆除标志
         自身.线程=None#工作线程
@@ -436,7 +436,7 @@ class 根目录监视器:#已存在根的目录监视（原生或轮询）
                 自身.原生等待=None#退回间隔等待，但仍记录 usePolling=False
         自身.线程=threading.Thread(target=自身.循环)#工作线程
         自身.线程.daemon=True#不挡住退出
-        自身.线程.start()#启动
+        自身.线程.start()
     def 关闭(自身):#停止监视
         """停止监视并等待线程退出。"""
         自身.停止.set()#拒绝新等待
@@ -458,7 +458,7 @@ class 根目录监视器:#已存在根的目录监视（原生或轮询）
         间隔秒=max(自身.轮询毫秒,1)/1000.0#稳定/轮询节拍
         if 自身.用轮询 or 自身.原生等待 is None:#轮询后端或无原生
             自身.停止.wait(间隔秒)#按间隔等待
-            return#结束
+            return
         try:#原生等待可被关闭打断
             自身.原生等待.等待(间隔秒)#有事件或超时都回到快照路径
         except OSError as 错误:#原生运行时失败
@@ -522,7 +522,7 @@ class 根目录监视器:#已存在根的目录监视（原生或轮询）
         if 新 is None:#根没了
             自身.发出('unlinkDir',自身.路径)#根目录本身被删
             if 旧 is None:#没有旧子项
-                return#结束
+                return
             根绝对=os.path.abspath(自身.路径)#根键
             for 路径 in 旧:#旧子项
                 if 路径==根绝对:#根已发
@@ -531,7 +531,7 @@ class 根目录监视器:#已存在根的目录监视（原生或轮询）
                     自身.发出('unlinkDir',路径)#目录删除
                 else:#文件
                     自身.发出('unlink',路径)#文件删除
-            return#结束
+            return
         if 旧 is None:#根刚出现
             旧={}#从空比
         旧键=set(旧.keys())#旧路径
@@ -580,7 +580,7 @@ class 根目录监视器:#已存在根的目录监视（原生或轮询）
         except Exception as 错误:#循环失败；发出回调类型由注册表决定，收不窄
             自身.发出('error',错误)#循环失败
 
-class 技能监视管理器:#技能根监视管理器
+class 技能根监视:#技能根监视
     """拥有有界宿主监视器，发现与读取仍走文件系统服务。"""
     def __init__(自身,上下文,失效,配置):#注入失效回调与已解析配置
         """注入失效回调与已解析配置。"""
@@ -589,7 +589,7 @@ class 技能监视管理器:#技能根监视管理器
         自身.config=配置#监视配置
         自身.根={}#路径→状态
         自身.项目={}#项目根→其技能路径
-        自身.生命周期=中止控制器()#管理器生命周期
+        自身.生命周期=中止控制器()#技能根监视生命周期
         自身.拆除中=False#拆除中
         自身.失效已排队=False#微任务失效是否已排队
         自身.锁=threading.Lock()#状态锁
@@ -601,7 +601,7 @@ class 技能监视管理器:#技能根监视管理器
     def 观察根体(自身,根列表):#观察体
         """分类共享根与项目根并保留/释放。"""
         if 自身.拆除中:#拆除中不再打开
-            return#结束
+            return
         项目根表={}#按项目根分组
         for 根 in 根列表:#分类共享根与项目根
             if 'projectRoot' not in 根:#非项目根
@@ -649,7 +649,7 @@ class 技能监视管理器:#技能根监视管理器
         for 状态 in 状态列表:#任一技能根下
             if 是否潜在技能路径(状态['root'],规范化):#可能是技能
                 自身.invalidate()#同步失效
-                return#结束
+                return
 
     def 拆除(自身):#关闭全部监视
         """关闭每一个宿主监视器并收容迟到的文件系统回调。"""
@@ -701,7 +701,7 @@ class 技能监视管理器:#技能根监视管理器
         已有=状态['opening']#已有进行中的打开
         if 已有 is not None:#已有进行中的打开
             已有.等待()#交给调用方等待
-            return#结束
+            return
         打开=操作任务()#启动打开
         状态['opening']=打开#记下进行中
         try:#无论成败都清 opening
@@ -781,24 +781,24 @@ class 技能监视管理器:#技能根监视管理器
                     自身.处理监视错误(状态,错误)#记错误并重监视
                 return#本次事件结束
             if 自身.拆除中 or len(状态['owners'])==0 or 同一监视模式(模式,当前):#拆除、无主或模式未变
-                return#结束
+                return
             自身.排队失效()#模式变了，目录可能变
             状态['unhealthy']=True#需要换句柄
             自身.调度重监视(状态)#调度重监视
         工作=threading.Thread(target=处理后台祖先事件)#后台处理
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
 
     def 打开根监视器(自身,状态,模式):#目录监视已存在的根
         """目录监视已存在的根；watchUsePolling 传入根监视器以切换原生/轮询后端。"""
-        监视器=根目录监视器(模式['anchor'],自身.config['stabilityThresholdMs'],自身.config['pollIntervalMs'],自身.config['followSymlinks'],自身.config['usePolling'])#打开根监视；usePolling 对齐 chokidar
+        监视器=根目录监视器(模式['anchor'],自身.config['stabilityThresholdMs'],自身.config['pollIntervalMs'],自身.config['followSymlinks'],自身.config['usePolling'])#打开根监视；usePolling 切换后端
         def 关闭句柄():#关掉目录监视
             """关掉目录监视。"""
             监视器.关闭()#关掉
-        句柄={'mode':模式,'关闭':关闭句柄,'options':监视器.options,'watcher':监视器}#包装关闭，并暴露 chokidar 对齐选项
+        句柄={'mode':模式,'关闭':关闭句柄,'options':监视器.options,'watcher':监视器}#包装关闭，并暴露监视选项
         已就绪=False#ready 之前的 error 拒绝 readiness
         就绪=操作任务()#等待 ready
-        信号=自身.生命周期.信号#管理器生命周期
+        信号=自身.生命周期.信号#技能根监视生命周期
         if 已中止(信号):#已拆除
             自身.关闭监视器(句柄)#关掉刚打开的
             若已中止则抛出(信号)#抛拆除原因
@@ -812,7 +812,7 @@ class 技能监视管理器:#技能根监视管理器
                 就绪.拒绝(技能文件系统错误('已中止'))#拒绝
         中止线程=threading.Thread(target=等中止)#守护线程听拆除
         中止线程.daemon=True#不挡住退出
-        中止线程.start()#启动
+        中止线程.start()
         def 收到错误(错误):#监视 error
             """监视 error。"""
             if 已就绪 is False:#尚未 ready
@@ -891,7 +891,7 @@ class 技能监视管理器:#技能根监视管理器
             自身.invalidate()#通知注册表
         工作=threading.Thread(target=微任务)#微任务线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
 
     def 关闭监视器(自身,监视器):#关闭句柄并收容错误
         """关闭句柄并收容错误。监视器是本包句柄 dict。"""
@@ -920,7 +920,7 @@ class 文件系统技能提供方:#本地文件系统提供方
         自定义=配置['customSkillDirs'] if 'customSkillDirs' in 配置 else []#自定义根
         自身.自定义技能目录=[os.path.abspath(根) for 根 in 自定义]#自定义根绝对化
         自身.ctx=上下文#Cordis 上下文
-        自身.监视管理器=技能监视管理器(上下文,控制['invalidate'],解析监视配置(配置))#监视管理器
+        自身.监视=技能根监视(上下文,控制['invalidate'],解析监视配置(配置))#技能根监视
         信号=控制['signal']#注册表生命周期信号
         def 等拆除():#注册拆除时关闭监视
             """信号置位后关闭监视。"""
@@ -928,7 +928,7 @@ class 文件系统技能提供方:#本地文件系统提供方
             自身.拆除()#关闭监视
         拆除线程=threading.Thread(target=等拆除)#守护线程
         拆除线程.daemon=True#不挡住退出
-        拆除线程.start()#启动
+        拆除线程.start()
         if 'bundledSkillDir' in 配置:#显式捆绑根优先
             捆绑=配置['bundledSkillDir']#显式根
         elif 包含默认根 is True and 'DSH_BUNDLED_SKILL_DIR' in os.environ:#仅默认根模式才读环境
@@ -947,7 +947,7 @@ class 文件系统技能提供方:#本地文件系统提供方
         根列表=自身.根列表(工作目录)#解析本 cwd 的扫描根
         完整=True#监视失败则标不完整
         try:#监视启动失败不丢已发现候选
-            自身.监视管理器.观察根(根列表)#按根保留监视
+            自身.监视.观察根(根列表)#按根保留监视
         except BaseException as 错误:#监视启动失败
             if 自身.已拆除 is True:#拆除中则上抛
                 raise 错误#上抛
@@ -976,14 +976,14 @@ class 文件系统技能提供方:#本地文件系统提供方
 
     def 观察宿主变更(自身,路径):#宿主变更失效
         """第一方文件系统变更后同步使本提供方失效。"""
-        自身.监视管理器.观察宿主变更(路径)#交给监视管理器
+        自身.监视.观察宿主变更(路径)#交给技能根监视
 
     def 拆除(自身):#拆除监视
         """关闭每一个宿主监视器并收容迟到的文件系统回调。"""
         if 自身.已拆除 is True:#只启动一次拆除
             return#已拆除
         自身.已拆除=True#占位
-        自身.监视管理器.拆除()#关闭监视
+        自身.监视.拆除()#关闭监视
 
     def 根列表(自身,工作目录):#解析本查找的扫描根
         """解析本查找的扫描根。"""
@@ -1011,8 +1011,8 @@ def 应用(上下文,配置=None):#安装提供方与监视拆除
         提供方盒[0]=文件系统技能提供方(上下文,控制,配置)#构造提供方
         return 提供方盒[0]#交给注册表
     上下文.skills.登记提供方(构造)#挂到技能注册表
-    def 监视副作用():#把监视器拆除接到光纤
-        """把监视器拆除接到光纤。"""
+    def 监视副作用():#把监视器拆除接到纤程
+        """把监视器拆除接到纤程。"""
         def 拆除监视():#关闭全部监视器
             """关闭全部监视器。"""
             提供方盒[0].拆除()#只拆除一次
@@ -1026,7 +1026,7 @@ def 应用(上下文,配置=None):#安装提供方与监视拆除
     上下文.监听('fs/observed',收到观察)#结束 fs/observed
 
 name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
+inject=依赖#Cordis 依赖槽
 Config=配置#Cordis 配置槽
 apply=应用#Cordis 入口槽
 default=应用#Cordis 默认导出槽

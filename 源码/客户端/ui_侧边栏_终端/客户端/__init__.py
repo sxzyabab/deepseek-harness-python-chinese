@@ -8,9 +8,9 @@ from .终端标题 import 终端标题#页签标题
 from .终端恢复 import 终端恢复#会话头恢复
 from .终端清理 import 终端清理#清理通知
 
-__all__=['注入','应用','终端引导','终端体','终端标题','终端恢复','终端清理','命名空间','中文','英文']#仅中文公开名
+__all__=['依赖','应用','终端引导','终端体','终端标题','终端恢复','终端清理','命名空间','中文','英文']#仅中文公开名
 
-注入=['slots','locale','sidebarRight','sidebarRightTabs','webTerminals','theme']#槽、文案、侧栏、终端、主题
+依赖=['slots','locale','sidebarRight','sidebarRightTabs','webTerminals','theme']#槽、文案、侧栏、终端、主题
 
 def 应用(上下文):#登记终端类型与席位
     """登记类型、可观察视图与后台清理。"""
@@ -191,7 +191,7 @@ def 应用(上下文):#登记终端类型与席位
                             if 会话标识 in 已恢复:#仍是本任务
                                 del 已恢复[会话标识]#去掉以便重试
                             任务.拒绝(错误)#拒绝
-                    threading.Thread(target=工作).start()#启动
+                    threading.Thread(target=工作).start()
                     return 任务#任务
                 return {'restore':恢复}#注入
             return 上下文.slots.register({#席位
@@ -224,5 +224,5 @@ def 应用(上下文):#登记终端类型与席位
         return 上下文.slots.inject('shell.overlay',登记清理)#等槽
     上下文.副作用(挂清理,'ui-sidebar-terminal.cleanup')#清理
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

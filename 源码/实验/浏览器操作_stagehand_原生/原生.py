@@ -1,7 +1,7 @@
 import json,base64#结果与截图
 from ...工具.值 import 断言永不#封闭联合
 from ...工具.超时 import 若已中止则抛出#中止
-from stagehand import Stagehand,localBrowser#上游 @browserbasehq/stagehand
+from stagehand import Stagehand,localBrowser
 
 __all__=['浏览器输入','浏览器方法','stagehand排空错误','打开原生浏览器','stagehand模型模式']#仅中文公开名
 
@@ -11,11 +11,11 @@ class stagehand排空错误(Exception):#SDK 未排空
 def 校验模型(模型):#显式凭据
     """固定版本 SDK 接受的一份模型凭据。"""
     if not isinstance(模型,dict):#非对象
-        raise Exception('Stagehand requires a nonblank model API key')#失败
+        raise Exception('Stagehand 需要非空的模型 API 密钥')
     名=模型.get('modelName')#名
     钥=模型.get('apiKey')#钥
     if not isinstance(名,str) or not isinstance(钥,str) or len(钥.strip())==0:#空白钥
-        raise Exception('Stagehand requires a nonblank model API key')#失败
+        raise Exception('Stagehand 需要非空的模型 API 密钥')
     结果={'modelName':名,'apiKey':钥}#模型
     if 模型.get('headers') is not None:#头
         结果['headers']=模型['headers']#头
@@ -27,19 +27,19 @@ def 解析页参数(参数):#可选 pageId
     """可选 pageId。"""
     页=参数.get('pageId') if isinstance(参数,dict) else None#页
     if 页 is not None and (not isinstance(页,str) or len(页)<1):#非法
-        raise Exception('Stagehand browser tab is unavailable; list tabs to select a current pageId')#失败
+        raise Exception('Stagehand 浏览器标签页不可用；请列出标签页以选择当前 pageId')
     return 页#页
 
 def 解析导航(参数):#navigate
     """navigate 参数。"""
     if not isinstance(参数,dict) or not isinstance(参数.get('url'),str):#非法
-        raise Exception('Stagehand browser operation')#失败
+        raise Exception('Stagehand 浏览器操作')
     return {'pageId':解析页参数(参数),'url':参数['url']}#参数
 
 def 解析标签(参数):#tabs
     """tabs 参数。"""
     if not isinstance(参数,dict):#非法
-        raise Exception('Stagehand browser operation')#失败
+        raise Exception('Stagehand 浏览器操作')
     动作=参数.get('action')#动作
     if 动作=='list':#列
         return {'action':'list'}#参数
@@ -48,23 +48,24 @@ def 解析标签(参数):#tabs
     if 动作=='select' or 动作=='close':#选/关
         页=参数.get('pageId')#页
         if not isinstance(页,str) or len(页)<1:#非法
-            raise Exception('Stagehand browser tab is unavailable; list tabs to select a current pageId')#失败
+            raise Exception('Stagehand 浏览器标签页不可用；请列出标签页以选择当前 pageId')
         return {'action':动作,'pageId':页}#参数
     raise Exception('Stagehand browser operation')#失败
 
 def 解析截图(参数):#screenshot
     """screenshot 参数。"""
     if not isinstance(参数,dict):#非法
-        raise Exception('Stagehand browser operation')#失败
-    整页=参数.get('fullPage')#整页
-    if 整页 is None:#缺省
+        raise Exception('Stagehand 浏览器操作')
+    if 'fullPage' not in 参数:#缺省
         整页=False#否
+    else:
+        整页=参数['fullPage']#整页
     return {'pageId':解析页参数(参数),'fullPage':bool(整页)}#参数
 
 def 解析指令(参数):#act/observe
     """带 instruction 的参数。"""
     if not isinstance(参数,dict) or not isinstance(参数.get('instruction'),str) or len(参数['instruction'])<1:#非法
-        raise Exception('Stagehand browser operation')#失败
+        raise Exception('Stagehand 浏览器操作')
     结果={'pageId':解析页参数(参数),'instruction':参数['instruction']}#参数
     if 'schema' in 参数:#extract
         结果['schema']=参数['schema']#模式
@@ -96,14 +97,14 @@ def 选页(浏览器,页id):#当前或指定页
                 页=候选#记下
                 break#停
     if 页 is None:#不可用
-        raise Exception('Stagehand browser tab is unavailable; list tabs to select a current pageId')#失败
+        raise Exception('Stagehand 浏览器标签页不可用；请列出标签页以选择当前 pageId')
     return 页#页
 
 def 打开原生浏览器(配置):#公开初始化
     """用公开初始化与原生模型配置打开固定版本 SDK。宿主另拥有已启动的 Chromium；本工作者只拥有其 CDP 连接。"""
     浏览器=localBrowser.connect({#连接
         'cdpUrl':配置['cdpEndpoint'],#端点
-        **({} if 配置.get('extensionId') is None else {'extensionId':配置['extensionId']}),#扩展
+        **({} if 'extensionId' not in 配置 else {'extensionId':配置['extensionId']}),#扩展
     })#连接结束
     stagehand=Stagehand.create({'browser':浏览器,'model':配置['model'],'logging':{'level':'off'}})#SDK
     def 关():#关 SDK
@@ -151,7 +152,7 @@ def 打开原生浏览器(配置):#公开初始化
         if 方法=='extract':#提取
             参数=浏览器输入['extract'](原始参数)#参数
             选项={'page':选页(浏览器,参数.get('pageId')),'timeout':配置['operationTimeoutMs']}#超时
-            if 参数.get('schema') is None:#无模式
+            if 'schema' not in 参数:#无模式
                 结果=stagehand.extract(参数['instruction'],选项)#提取
             else:#有模式
                 结果=stagehand.extract(参数['instruction'],参数['schema'],选项)#提取

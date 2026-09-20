@@ -1,11 +1,12 @@
 import threading#单飞拉取与预热等待
 from concurrent.futures import Future as 原生结果#单次操作结果
+from urllib.parse import quote as 百分编码#URI 段编码
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ..技能行 import 技能行,技能错误#技能工具行与本包异常
 
-__all__=['注入','应用']#仅中文公开名；对齐上游 export inject / apply
+__all__=['依赖','应用']#仅中文公开名
 
-注入=['inputTriggers','sessions','slots','locale','remote','remote.skills','sidebarRight']#触发源、会话、槽位、文案、远程、skills 与右侧边栏
+依赖=['inputTriggers','sessions','slots','locale','remote','remote.skills','sidebarRight']#触发源、会话、槽位、文案、远程、skills 与右侧边栏
 
 class 操作任务:#本文件内单次操作结果
     """单次操作的 Future 包装，只留 等待。"""
@@ -44,7 +45,6 @@ def 若已中止则抛出(信号):#已取消则抛
 
 def 编码段(段):
     """百分编码一段，冒号保持字面量。"""
-    from urllib.parse import quote as 百分编码#URI 段编码
     return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
 
 def 编码路径(路径):
@@ -120,7 +120,7 @@ def 应用(上下文):#安装技能引用浏览器半边
             结果=包装['result']#业务结果
             if not 结果['ok']:#业务失败转成抛错
                 错误=结果['error'] if 'error' in 结果 else None#错误
-                码=错误['code'] if 错误 is not None and 'code' in 错误 else None#码
+                码=错误['code'] if 错误 is not None and 'code' in 错误 else None
                 消息=错误['message'] if 错误 is not None and 'message' in 错误 else None#消息
                 raise 技能错误('skills/list 失败: '+str(码)+': '+str(消息))#转抛
             return 结果['value']['skills']#目录条目
@@ -141,7 +141,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                 任务.拒绝(错误)#共享失败
         线=threading.Thread(target=执行拉取)#后台拉取
         线.daemon=True#不挡退出
-        线.start()#启动
+        线.start()
         return 条目#共享条目
 
     def 失效(键):#丢掉一键缓存
@@ -195,7 +195,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                 pass#忽略
         线=threading.Thread(target=忽略)#后台
         线.daemon=True#不挡退出
-        线.start()#启动
+        线.start()
 
     def 词表(会话):#同步词表
         """已落定目录的技能名。"""
@@ -260,7 +260,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                     print('[ui-skill] 引用预览失败:',错误)#记日志
         线=threading.Thread(target=到达后打开)#后台打开
         线.daemon=True#不挡退出
-        线.start()#启动
+        线.start()
         return True#已受理
 
     def 选定(载荷):#选定：插入字面 /name 加空格
@@ -292,5 +292,5 @@ def 应用(上下文):#安装技能引用浏览器半边
         return 拆除#拆除器
     上下文.副作用(挂源,'ui-skill: source')#生命周期
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

@@ -14,10 +14,10 @@ def 运行时桥能力(来源):#Runtime桥能力
     return {'type':'client-runtime','origin':来源}#能力
 
 class 客户端运行时上限:#Client运行时上限
-    """Host 部署注入的 Client 侧上限。"""
+    """Host 部署写入的 Client 侧上限。"""
     def __init__(自身,maxObjectsPerSession,maxPropertiesPerResult,maxResponseBytes):#构造
         """保存上限。"""
-        自身.maxObjectsPerSession=maxObjectsPerSession#每会话对象上限
+        自身.maxObjectsPerSession=maxObjectsPerSession#每会话上限
         自身.maxPropertiesPerResult=maxPropertiesPerResult#每结果属性上限
         自身.maxResponseBytes=maxResponseBytes#响应字节上限
 
@@ -206,8 +206,7 @@ class 客户端运行时执行器:#Client Runtime执行器
 
     def 取会话(自身,会话标识):#取或建会话
         """取或建会话。"""
-        会话=自身.会话表.get(会话标识)#已有
-        if 会话 is None:#新建
-            会话=客户端运行时会话(自身.上限.maxObjectsPerSession,自身.上限.maxPropertiesPerResult,自身.解析脚本)#会话
-            自身.会话表[会话标识]=会话#登记
+        if 会话标识 not in 自身.会话表:#新建
+            自身.会话表[会话标识]=客户端运行时会话(自身.上限.maxObjectsPerSession,自身.上限.maxPropertiesPerResult,自身.解析脚本)#会话
+        会话=自身.会话表[会话标识]#已有
         return 会话#返回

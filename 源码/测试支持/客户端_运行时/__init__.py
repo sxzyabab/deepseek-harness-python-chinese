@@ -2,9 +2,9 @@ import builtins#localStorage
 from ...依赖 import cordis#外部依赖胶水
 from ...客户端.ui_渲染器.客户端 import 槽登记表,创建槽渲染器#槽登记与渲染器
 from ...客户端.ui_渲染器.客户端.绑定选择器 import 绑定快照选择器 as 绑定渲染器快照选择器#选择器绑定
-from ...客户端.ui_会话.客户端 import 应用 as 应用UI会话,注入 as UI会话注入#ui-session
+from ...客户端.ui_会话.客户端 import 应用 as 应用UI会话,依赖 as UI会话依赖
 from .快照 import DOM快照序列化器,注册DOM快照序列化器#序列化器
-from .会话 import 夹具会话,测试会话#会话替身
+from .会话 import 夹具会话,测试会话,创建快照存储#会话替身与快照存储
 from .工作区 import 测试工作区#工作区替身
 from .设置作用域 import 桩设置作用域#设置作用域桩
 from .远程 import 测试远程,远程错误#Remote 替身
@@ -13,41 +13,18 @@ from .翻译 import 制作翻译#translate 桩
 from .语言环境 import 用钉住浏览器语言#语言钉住
 
 上下文类=cordis.上下文#Cordis 上下文
-注入解析=getattr(cordis,'Inject',None)#Inject 解析器
+依赖解析=getattr(cordis,'Inject',None)
 
 __all__=[#仅中文公开名
     '绑定快照选择器','创建槽渲染器','测试根','槽测试运行时',
     'DOM快照序列化器','注册DOM快照序列化器','夹具会话','测试会话',
     '桩设置作用域','测试工作区','测试远程','远程错误',
     '聊天快照','对话快照','会话快照','工作区快照','制作翻译','用钉住浏览器语言',
-    '名称','注入','应用',
-]#公开面结束
+    '名称','依赖','应用',
+]
 
-名称='client-runtime-test'#插件名
-注入=['client']#依赖
-
-def 创建快照存储(初值):#简易快照存储
-    """对齐 createSnapshotStore。"""
-    状态=[dict(初值) if isinstance(初值,dict) else 初值]#状态盒
-    监听者=set()#订阅者
-    def 取快照():#读
-        """返回当前。"""
-        return 状态[0]#状态
-    def 订阅(回调):#订阅
-        """登记。"""
-        监听者.add(回调)#加入
-        return lambda:监听者.discard(回调)#退订
-    def 更新(变换):#更新
-        """变换并通知。"""
-        变换(状态[0])#变换
-        for 回调 in list(监听者):#通知
-            回调()#触发
-    def 设置(值):#整值替换
-        """替换并通知。"""
-        状态[0]=值#写
-        for 回调 in list(监听者):#通知
-            回调()#触发
-    return {'getSnapshot':取快照,'subscribe':订阅,'update':更新,'set':设置}#面
+名称='client-runtime-test'
+依赖=['client']
 
 def 绑定快照选择器(源):#绑定选择器
     """把可观察源绑定到生产渲染器的选择器钩子。"""
@@ -123,7 +100,7 @@ class 槽测试运行时:#slot 测试运行时
         自身.panelInfo=创建快照存储({'activePanelId':None})#面板信息
         def 未桩上传(*_参数,**_关键字):#未桩上传
             """响亮失败。"""
-            raise Exception('client test runtime: file upload is not stubbed')#英文诊断
+            raise Exception('客户端测试运行时：文件上传未桩')
         自身.fileUpload={'upload':未桩上传}#文件上传桩
         上下文.提供服务('sessions',自身.sessions)#提供会话
         上下文.提供服务('workspaces',自身.workspaces)#提供工作区
@@ -149,40 +126,40 @@ class 槽测试运行时:#slot 测试运行时
         """组装运行时：真实 Context、已挂载 SlotRegistry、已安装渲染器。"""
         注册DOM快照序列化器()#注册序列化器
         上下文=上下文类()#新建上下文
-        光纤=上下文.启动插件(槽登记表)#挂注册表
-        光纤.等待()#等待激活
+        纤程=上下文.启动插件(槽登记表)#挂注册表
+        纤程.等待()#等待激活
         运行时=槽测试运行时(上下文,上下文.获取服务('slots'))#组装
-        插件光纤=上下文.启动插件({'inject':list(UI会话注入),'apply':应用UI会话})#挂 ui-session
-        插件光纤.等待()#等待
+        插件纤程=上下文.启动插件({'inject':list(UI会话依赖),'apply':应用UI会话})
+        插件纤程.等待()#等待
         return 运行时#返回
 
     def mount(自身,插件):#挂载功能
         """在真实 fiber 上挂载功能插件。"""
-        注入表=getattr(插件,'inject',None) if not isinstance(插件,dict) else 插件.get('inject')#解析注入
-        必需=[]#必需服务
-        if 注入解析 is not None and 注入表 is not None:#有解析器
-            必需=list(注入解析.resolve(注入表).keys()) if hasattr(注入解析,'resolve') else list(注入表 or [])#解析
-        elif 注入表 is not None:#列表形
-            必需=list(注入表)#列表
+        依赖表=getattr(插件,'inject',None) if not isinstance(插件,dict) else 插件.get('inject')
+        必需=[]
+        if 依赖解析 is not None and 依赖表 is not None:
+            必需=list(依赖解析.resolve(依赖表).keys()) if hasattr(依赖解析,'resolve') else list(依赖表 or [])
+        elif 依赖表 is not None:
+            必需=list(依赖表)
         缺失=[名 for 名 in 必需 if 自身.ctx.获取服务(名) is None]#缺失服务
         if 缺失:#有缺失
-            raise Exception(f"mount would suspend: missing service(s) {', '.join(缺失)} — provide() them first")#英文诊断
-        光纤=自身.ctx.启动插件(插件)#挂插件
+            raise Exception(f"挂载会挂起：缺少服务 {', '.join(缺失)}，请先 provide()")
+        纤程=自身.ctx.启动插件(插件)#挂插件
         def 等待激活():
             """稳定期内等待纤程激活。"""
-            光纤.等待()#等待
+            纤程.等待()#等待
         自身._stabilizer(等待激活)#稳定内等待
         已拆=[False]#是否已拆
         def 拆除():#拆除
             """幂等拆除。"""
             if 已拆[0]:#幂等
-                return#结束
+                return
             已拆[0]=True#标记
             def 拆除纤程():
                 """稳定期内拆除纤程。"""
-                光纤.拆除()#拆除
+                纤程.拆除()#拆除
             自身._stabilizer(拆除纤程)#稳定内拆除
-        句柄={'fiber':光纤,'dispose':拆除}#句柄
+        句柄={'fiber':纤程,'dispose':拆除}#句柄
         自身._handles.append(句柄)#记账
         return 句柄#返回
 
@@ -287,7 +264,7 @@ class 槽测试运行时:#slot 测试运行时
     def dispose(自身):#拆除
         """拆除运行时。"""
         if 自身._disposed:#幂等
-            return#结束
+            return
         自身._disposed=True#标记
         自身._autoRootView=None#清空自动根
         while 自身._views:#卸视图
@@ -306,8 +283,10 @@ class 槽测试运行时:#slot 测试运行时
         if 存储 is not None and hasattr(存储,'clear'):#有 clear
             存储.clear()#清空
 
-def 应用(上下文对象):#测试支持入口
+def 应用(上下文):#测试支持入口
     """客户端运行时由规格直接组装，无默认挂载面。"""
     return#空 apply
 
-apply=应用#入口
+name=名称
+inject=依赖
+apply=应用

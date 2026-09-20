@@ -7,7 +7,7 @@ id 是随机 UUID，以裸行写入主目录下 `.anonymous-user-id` 文件；�
 import os,re#路径、读写与 UUID 形态
 from uuid import uuid4 as 随机uuid#UUID 生成
 from ...工具.标识构造 import 标识构造#名义类型
-from ...工具.工作区路径 import 解析主目录#解析 harness 主目录
+#from ...工具.主目录路径 import 解析主目录#解析 harness 主目录
 __all__=['匿名用户id类型','匿名用户id文件名','获取或创建匿名用户id']#仅中文公开名
 
 匿名用户id类型=标识构造#匿名用户 id 品牌别名

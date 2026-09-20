@@ -1,14 +1,13 @@
-"""把瞬态助手帧接到一次持久 v2 结算的 Web 展示折叠。
+"""把瞬态助手帧接到一次持久 v2 结算的 Web 呈现折叠。
 
-对齐上游 `session-controller/src/client/sessions/assistant-stream.ts`。
-帧 → `assistant/live-chunk` 瞬态条目。公开面仅中文公开名。
+帧 → `assistant/live-chunk` 瞬态条目。
 """
 from ....模型后端.llm.助手流 import 展开助手流#展开基线流
 
 __all__=['客户端助手流','助手结算条目']#仅中文公开名
 
 class 客户端助手流:
-    """把瞬态助手展示挡在结算感知接口之后。"""
+    """把瞬态助手呈现挡在结算感知接口之后。"""
 
     def __init__(自身):
         """空流状态。"""
@@ -114,7 +113,7 @@ class 客户端助手流:
                     },
                 },
             }#瞬态
-        if 类型=='end':#结束
+        if 类型=='end':
             尝试=自身._活动尝试#活动
             if 尝试 is None or 尝试['attemptId']!=帧['attemptId']:#不匹配
                 return None#忽略

@@ -1,6 +1,6 @@
 """把一个完整 Turn 的耐久尝试生命周期折叠为精确 token 计量。
 
-对齐上游 `token-meter/src/turn-usage.ts`。公开面仅中文名。
+公开面仅中文名。
 缺失生命周期边界、不完整用量、不安全计数或矛盾精确总量时整轮不可披露。
 """
 from ..llm.助手流 import 末次助手流块#末次 usage 块
@@ -133,7 +133,7 @@ def 派生回合令牌用量(事件列表):#派生回合令牌用量
 
     def 关闭开放(路由=None):#关闭开放尝试
         """用样本关闭 open 态。"""
-        if 状态['kind']!='open' or 状态.get('sample') is None:#不可关
+        if 状态['kind']!='open' or 'sample' not in 状态:#不可关
             return False#失败
         归一=_归一用量(状态['sample'],路由)#归一
         if 归一 is None:#非法
@@ -204,9 +204,10 @@ def 派生回合令牌用量(事件列表):#派生回合令牌用量
                 or not _同尝试(状态,数据.get('turn'),数据.get('step'))):#非法
                 无效=True#失效
                 continue#下一项
-            样本=数据.get('usage')#显式用量
-            if 样本 is None:#回退流
+            if 'usage' not in 数据:#回退流
                 样本=_流用量(数据.get('stream') or [])#流用量
+            else:
+                样本=数据['usage']#显式用量
             if 样本 is not None:#有样本
                 状态={**状态,'sample':样本}#更新
             路由=_消息路由(数据.get('message') or {})#路由

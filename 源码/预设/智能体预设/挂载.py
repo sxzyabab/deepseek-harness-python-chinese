@@ -53,9 +53,9 @@ def 活预设挂载():
     修剪已拆除挂载()#先修剪
     return list(挂载列表)#快照
 
-def 在光纤内(光纤,根):
-    """`fiber` 是否就是 `root` 本身，或挂在其任何子树里。光纤是纤程对象。"""
-    当前=光纤#从待测往上走
+def 在纤程内(纤程,根):
+    """`fiber` 是否就是 `root` 本身，或挂在其任何子树里。纤程是纤程对象。"""
+    当前=纤程#从待测往上走
     while True:#沿父链
         if 当前 is 根:#撞上根
             return True#属于
@@ -67,17 +67,17 @@ def 在光纤内(光纤,根):
             return False#到顶
         当前=父#继续向上
 
-def 泄漏服务(上下文对象,挂载光纤):
+def 泄漏服务(上下文,挂载纤程):
     """已挂载子树发布进根域的服务名。实现是 服务实现 对象。"""
-    存储=上下文对象.反射.存储#服务实现存储
-    根隔离=获取内部数据(上下文对象.根,'属性链')['隔离']#根域隔离表
+    存储=上下文.反射.存储#服务实现存储
+    根隔离=获取内部数据(上下文.根,'属性链')['隔离']#根域隔离表
     泄漏=[]#泄漏名
     for 键,实现 in list(存储.items()):#每个存储槽
         if 实现 is None:#空槽
             continue#跳过
         名=实现.名称#服务名
-        光纤=实现.纤程#提供方光纤
-        if not 在光纤内(光纤,挂载光纤):#不是本子树
+        纤程=实现.纤程#提供方纤程
+        if not 在纤程内(纤程,挂载纤程):#不是本子树
             continue#跳过
         if 名 in 根隔离 and 根隔离[名] is 键:#存在根域符号下即泄漏
             泄漏.append(名)#记下
@@ -97,19 +97,19 @@ def 常驻挂载于(智能体上下文):
             return 候选#命中
     return None#未找到
 
-def 智能体服务(上下文对象,智能体,名):
+def 智能体服务(上下文,智能体,名):
     """一个智能体对其预设所挂服务的实例。智能体是对象，带 ctx。"""
     挂载=常驻挂载于(智能体.ctx)#智能体加入的常驻挂载
     if 挂载 is None:#未加入
         return None#无
-    存储=上下文对象.反射.存储#服务实现存储
-    挂载光纤=挂载['fiber']#子树 fiber
+    存储=上下文.反射.存储#服务实现存储
+    挂载纤程=挂载['fiber']#子树 fiber
     for 实现 in list(存储.values()):#每个实现
         if 实现 is None:#空槽
             continue#跳过
         if 实现.名称!=名:#名字不匹配
             continue#跳过
-        if 在光纤内(实现.纤程,挂载光纤):#本子树发布的
+        if 在纤程内(实现.纤程,挂载纤程):#本子树发布的
             return 实现.值#命中
     return None#预设未挂该服务
 
@@ -120,21 +120,21 @@ def 未激活行(树):
     for 条目 in 树.列出插件配置():#每个条目
         if 条目.已禁用:#禁用行不算
             continue#跳过
-        光纤=条目.纤程#条目 fiber
+        纤程=条目.纤程#条目 fiber
         选项=条目.选项#选项 dict
         标识=选项['id'] if 'id' in 选项 else None#条目 id
         插件名=选项['name'] if 'name' in 选项 else None#插件名
-        if 光纤 is None:#无 fiber
+        if 纤程 is None:#无 fiber
             行列表.append(str(标识)+' ('+str(插件名)+'): never started')#从未启动
             continue#下一条
         try:#等 fiber 激活
-            光纤.等待()#等激活
+            纤程.等待()#等激活
         except Exception as 错误:#导入或激活失败
             行列表.append(str(标识)+' ('+str(插件名)+'): '+挂载细节(错误))#失败诊断
             continue#下一条
         缺失=[]#仍缺的注入
-        for 名 in 光纤.依赖表:#注入表
-            if 光纤.所属上下文.获取服务(名,False) is None:#仍缺
+        for 名 in 纤程.依赖表:#注入表
+            if 纤程.所属上下文.获取服务(名,False) is None:#仍缺
                 缺失.append(名)#记下
         if len(缺失)>0:#仍在等
             行列表.append(str(标识)+' ('+str(插件名)+'): waiting for '+', '.join(缺失))#等待中
@@ -170,17 +170,17 @@ def 挂载预设(智能体上下文,预设):
             raise 预设错误('mounted subtree did not publish its entry tree')#异常
         子树=已挂载[配置标识]#构造器发布的树与 fiber
         树=子树['tree']#条目树
-        光纤=子树['fiber']#真实 fiber
+        纤程=子树['fiber']#真实 fiber
         不可用=未激活行(树)#未激活行
         if len(不可用)>0:#有行不可用
             raise 预设错误(str(len(不可用))+' row(s) did not activate:\n'+'\n'.join(不可用))#拒绝半组合
-        泄漏=泄漏服务(智能体上下文,光纤)#根域泄漏
+        泄漏=泄漏服务(智能体上下文,纤程)#根域泄漏
         if len(泄漏)>0:#有进程全局服务
             raise 预设错误(
                 'row(s) published process-global service(s) ['+', '.join(泄漏)+']; '
                 +'a preset service must sit behind an `isolate` realm or move to the host composition'
             )#拒绝泄漏
-        挂载列表.append({'presetId':预设['id'],'fiber':光纤,'key':获取作用域(智能体上下文)})#登记活挂载
+        挂载列表.append({'presetId':预设['id'],'fiber':纤程,'key':获取作用域(智能体上下文)})#登记活挂载
     except Exception as 错误:#子树沉降、审计与本包错误统一包成预设挂载错误
         try:#拆除本子树
             句柄.拆除()#拆除

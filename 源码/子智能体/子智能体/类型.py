@@ -63,7 +63,7 @@ class 子智能体结果(TypedDict):#子智能体跑的终态结局，由 Subage
     stopReason:子智能体停止原因#跑为何结束
 
 class 子智能体跑:#发布后返回的一次性子句柄协议；提示提交、回合工作以及该边界之后的基础设施故障属于 result
-    """持有者所有的一次性子跑。提供方对象实现本协议：载荷字段名对齐上游 SubagentRun（id/localAgent/result）；拆除入口仅 销毁。"""
+    """持有者所有的一次性子跑。提供方对象实现本协议：载荷字段名 id/localAgent/result 为线协议键；拆除入口仅 销毁。"""
     id=None#父作用域跑 id（会话标识品牌；载荷键字面量）
     localAgent=None#精确的已发布进程内子体；远程跑为 None（载荷键字面量）
     result=None#结算结果承诺（载荷键字面量；上游为 Promise<SubagentResult>）
@@ -73,7 +73,7 @@ class 子智能体跑:#发布后返回的一次性子句柄协议；提示提交
         raise NotImplementedError('子智能体跑.销毁')#由提供方实现
 
 class 子智能体提供方:#运行子智能体的一个已登记传输协议；提供方是受信任的同进程实现
-    """具名传输实现。登记名字段对齐上游 provider.name；能力与启动入口仅中文方法 启动 / 准备可续跑。"""
+    """具名传输实现。登记名字段为 provider.name；能力与启动入口仅中文方法 启动 / 准备可续跑。"""
     name=None#唯一注册表名（例如 spawn、fork、acp；载荷键字面量）
     capabilities=None#本提供方支持的启动时功能（子智能体能力；载荷键字面量）
     inheritsParentContext=None#子体是否看见父的已完成回合前缀（描述性，非服务校验）
@@ -86,7 +86,7 @@ class 子智能体提供方:#运行子智能体的一个已登记传输协议；
         """可选可续跑创建能力；方法存在即能力。缺省实现表示不支持。"""
         raise NotImplementedError('子智能体提供方.准备可续跑')#由具备该能力的提供方覆写
 
-# 事件声明（仅文档；由服务经生命周期发射器派发；对齐上游 Cordis Events 扩充）：
+# 事件声明（仅文档；由服务经生命周期发射器派发）：
 # subagent/provider-added(provider) @mode emit：提供方在注册表中变为可解析。
 # subagent/provider-removed(name) @mode emit：提供方离开注册表；已接受的跑仍由持有者拥有。
 # subagent/start(info) @mode emit：提供方建立了已发布子体；与 subagent/end 成对；作用域过滤按委托父载体。

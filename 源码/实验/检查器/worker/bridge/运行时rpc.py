@@ -1,5 +1,3 @@
-#对齐上游 worker/bridge/runtime-rpc.ts 段1
-
 import uuid,threading#请求id与超时
 from ...共享.json import 操作任务#单次结果
 from .会话 import 发送Client会话关闭#会话关闭

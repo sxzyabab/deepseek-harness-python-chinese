@@ -1,6 +1,6 @@
-from .应用 import 注入,应用#浏览器半边登记
+from .应用 import 依赖,应用
 
-__all__=['注入','应用']#公开面
+__all__=['依赖','应用']
 
-inject=注入#框架槽
-apply=应用#框架槽
+inject=依赖
+apply=应用

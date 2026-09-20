@@ -20,7 +20,7 @@ from ...依赖.schemastery import 字符串字段,布尔字段,数字字段#配�
 服务=cordis.服务#服务初始化符号
 from ..凭据 import 凭证提供方,凭证引用,解析凭证键#凭证提供方基类与键
 from ...工具.原子写入 import 原子写文件,带文件锁#文件锁与原子写
-from ...工具.工作区路径 import 规范化监视路径,解析主目录#监视路径规范化与主目录解析
+from ...工具.主目录路径 import 规范化监视路径,解析主目录#监视路径规范化与主目录解析
 from ...工具.启动环境 import 取启动环境#启动环境读取
 from .文档 import (#文档解析与权限
     凭证文件名,文档版本,解析凭证文档,渲染扁平迁移,渲染引用,渲染记录,
@@ -29,7 +29,7 @@ from .文档 import (#文档解析与权限
 from .监视 import 监视#文档热重载监视
 
 class _操作任务:#本文件内单次入队结果
-    """单次入队操作的 Future 包装，供 wait 等待。"""
+    """单次入队操作的 Future 包装，只留等待。"""
     def __init__(自身):#构造未决任务
         """构造未决任务。"""
         自身._future=_原生Future()#底层 Future
@@ -45,7 +45,7 @@ class _操作任务:#本文件内单次入队结果
                 自身._future.set_exception(错误)#原样拒绝
             else:#非异常
                 自身._future.set_exception(Exception(错误))#包装拒绝
-    def wait(自身,超时=None):#阻塞等待
+    def 等待(自身,超时=None):#阻塞等待
         """阻塞等到结算。"""
         return 自身._future.result(timeout=超时)#取结果或抛错
 
@@ -350,10 +350,10 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
         断言仅所有者(自身.规格['filename'])#先检查仅所有者可读（0600 / umask）
         try:#按 utf8 读文档
             文本=读文档文本(自身.规格['filename'])#按 utf8 读文档
-        except Exception as 错误:#读失败
-            if not 是否缺席(错误):#非缺席则原样抛出
-                raise 错误#原样抛出
-            return#缺席则空存储
+        except OSError as 错误:
+            if not 是否缺席(错误):
+                raise 错误
+            return
         if 渲染扁平迁移(文本) is not None:#需迁移
             文本=自身.迁移扁平文档()#就地升级
         文档=解析凭证文档(文本,自身.规格['filename'])#解析
@@ -395,10 +395,10 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
         断言仅所有者(自身.规格['filename'])#从盘对账：再检仅所有者可读（0600 / umask）
         try:#读盘
             文本=读文档文本(自身.规格['filename'])#按 utf8 读文档
-        except Exception as 错误:#读失败
-            if not 是否缺席(错误):#非缺席则原样抛出
-                raise 错误#原样抛出
-            文本=None#缺席当成空文档
+        except OSError as 错误:
+            if not 是否缺席(错误):
+                raise 错误
+            文本=None
         # 未变内容（包括本提供方自己的写入）是空操作——文本缓存自我写入抑制；已关闭则不再发布。
         if 文本==自身.文本 or 自身.是否已关闭():#自我写入抑制或已关闭
             return#空操作

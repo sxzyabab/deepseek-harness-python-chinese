@@ -29,7 +29,7 @@ class 工具工作流运行结束数据(TypedDict):#运行结束记录
     runId:str#运行标识
     stopReason:工作流停止原因#停止原因
 
-# 会话事件映射扩充（仅文档；由记录器经 session.append 写入；对齐上游 SessionEventMap）：
+# 会话事件映射扩充（仅文档；由记录器经 session.append 写入；SessionEventMap）：
 # tool-workflow/run-start(data) — 打开一条顶层工作流记录；data 为稳定的运行身份与展示名称。
 # tool-workflow/agent-start(data) — 记录一名已发布的工作流成员；data 含运行身份、成员序号、展示身份与子 Session。
 # tool-workflow/agent-end(data) — 记录一名成员的结算；data 含运行身份、成对的成员序号与结局。

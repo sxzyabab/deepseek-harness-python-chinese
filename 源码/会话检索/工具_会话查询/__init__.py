@@ -1,13 +1,14 @@
-"""面向模型、且经工作区授权的会话历史检索与读取工具。对齐上游 `@deepseek-ai/dsh-tool-session-query`。"""
-from ...依赖.schemastery import 整数字段#配置字段
+"""面向模型、且经工作区授权的会话历史检索与读取工具。"""
+from ...依赖.schemastery import 整数字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .入参 import 工具入参#工具入参面
 from .操作 import 操作#工具执行
-from .展示 import 展示#工具展示
+from .呈现 import 呈现#工具呈现
 
-名称='tool-session-query'#Cordis插件名（字面量）
-注入=['tools','systemPrompt','sessionQuery']#依赖工具、系统提示词与会话检索
+包名='@deepseek-ai/dsh-tool-session-query'
+名称='tool-session-query'
+依赖=['tools','systemPrompt','sessionQuery']#依赖工具、系统提示词与会话检索
 
 默认最大搜索结果数=100#默认最大命中数
 默认搜索超时毫秒=30000#默认检索超时毫秒
@@ -15,7 +16,7 @@ from .展示 import 展示#工具展示
 配置={
     'maxSearchResults':整数字段(默认值=默认最大搜索结果数),#命中上限
     'searchTimeoutMs':整数字段(默认值=默认搜索超时毫秒),#超时毫秒
-}#配置结束
+}
 
 提示词文本=(
     'Use session_search to find relevant work from prior sessions, or session_event_search to search earlier '
@@ -29,7 +30,7 @@ def 渲染文本输出(参数,值):
 
 文本输出={'schema':{'type':'string'},'render':渲染文本输出}#字符串输出
 
-__all__=['名称','注入','配置','应用','默认最大搜索结果数','默认搜索超时毫秒']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认','配置','默认最大搜索结果数','默认搜索超时毫秒']
 
 def 解析配置(配置值):
     """解析运行时配置。"""
@@ -63,30 +64,30 @@ def 应用(上下文,配置值):
         return 操作['executeEventTrace'](上下文,参数,执行)#执行
     def 呈现事件追踪(参数):
         """追踪卡。"""
-        return 展示['presentEventTargetCall']('Trace event',参数)#卡
+        return 呈现['presentEventTargetCall']('Trace event',参数)#卡
     def 执行事件读取(参数,执行):
         """session_event_read。"""
         return 操作['executeEventRead'](上下文,参数,执行)#执行
     def 呈现事件读取(参数):
         """读取卡。"""
-        return 展示['presentEventTargetCall']('Read event',参数)#卡
+        return 呈现['presentEventTargetCall']('Read event',参数)#卡
     上下文.tools.register(定义工具({
         'name':'session_search','description':'Search prior sessions in the caller workspace and return the strongest matching event from each session.',
         'parameters':工具入参['sessionSearchParameters'],'output':文本输出,'timeoutMs':已解析['searchTimeoutMs'],
         'execute':执行会话搜索,
-        'presentCall':展示['presentSessionSearchCall'],
+        'presentCall':呈现['presentSessionSearchCall'],
     }))#session_search
     上下文.tools.register(定义工具({
         'name':'session_event_search','description':'Search prior events in one authorized session; the current session excludes the step performing this call.',
         'parameters':工具入参['eventSearchParameters'],'output':文本输出,'timeoutMs':已解析['searchTimeoutMs'],
         'execute':执行事件搜索,
-        'presentCall':展示['presentEventSearchCall'],
+        'presentCall':呈现['presentEventSearchCall'],
     }))#session_event_search
     上下文.tools.register(定义工具({
         'name':'session_trace','description':'Read the authorized session lineage around one session, including complete visible ancestor and descendant relationships.',
         'parameters':工具入参['targetSessionParameter'],'output':文本输出,'isConcurrencySafe':并发安全,
         'execute':执行谱系,
-        'presentCall':展示['presentSessionTraceCall'],
+        'presentCall':呈现['presentSessionTraceCall'],
     }))#session_trace
     上下文.tools.register(定义工具({
         'name':'session_event_trace','description':'Read every direct replacement and relationship to a cited source event for one event in an authorized session.',
@@ -107,8 +108,9 @@ def 应用(上下文,配置值):
         'presentCall':呈现事件读取,
     }))#session_event_read
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置#Cordis Config 槽
-apply=应用#Cordis插件入口
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=默认#框架槽

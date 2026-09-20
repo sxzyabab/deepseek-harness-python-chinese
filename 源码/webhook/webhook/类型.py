@@ -1,3 +1,3 @@
-"""Provider-neutral webhook deliveries, rules, and Session requests. 对齐上游 `webhook/src/types.ts`。"""
+"""提供方无关的 webhook 投递、规则与会话请求结构。"""
 
 __all__=[]#类型面由消费方按结构使用

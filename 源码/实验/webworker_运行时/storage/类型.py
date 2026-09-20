@@ -1,20 +1,20 @@
-__all__=[#仅中文公开名
+__all__=[
     'vfs编码','vfs读选项字段','vfs错误字段','vfs统计字段','vfs大整数统计字段',
     'vfs统计选项字段','vfs写选项字段','vfs注水选项字段','vfs目录项字段',
     'vfs目录字段','vfs文件句柄字段','vfs打开文件字段','vfs变更种类','vfs变更汇字段',
-]#公开面结束
+]
 
 vfs编码=('utf8','utf-8')#VFS在Node接受任意BufferEncoding处接受的编码
 vfs读选项字段=('encoding',)#同步与promise面都接受的读选项字段
 vfs错误字段=('code','path','syscall')#带code的Node兼容错误字段
-vfs统计字段=(#名册读取的fs.Stats子集字段
-    'size','ino','mtimeMs','ctimeMs','atimeMs','birthtimeMs','mtime','mode',#数值与时间
-)#统计字段结束
-vfs大整数统计字段=(#bigint:true下返回的Stats字段
-    'size','mode','dev','ino','nlink',#身份与链接
-    'mtimeMs','mtimeNs','ctimeMs','ctimeNs','atimeMs','atimeNs','birthtimeMs','birthtimeNs',#时间
-    'mtime','ctime','atime','birthtime',#Date形态
-)#大整数统计结束
+vfs统计字段=(
+    'size','ino','mtimeMs','ctimeMs','atimeMs','birthtimeMs','mtime','mode',
+)
+vfs大整数统计字段=(
+    'size','mode','dev','ino','nlink',
+    'mtimeMs','mtimeNs','ctimeMs','ctimeNs','atimeMs','atimeNs','birthtimeMs','birthtimeNs',
+    'mtime','ctime','atime','birthtime',
+)
 vfs统计选项字段=('bigint',)#Stat选项；bigint选择大整数形态
 vfs写选项字段=('encoding','mode','flag')#名册传入的写选项
 vfs注水选项字段=('mode','mtimeMs')#镜像或持久存储注水时的显式元数据

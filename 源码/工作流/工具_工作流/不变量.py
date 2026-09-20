@@ -2,9 +2,9 @@
 from ...内核.会话 import 安全整数上限#外来 JSON 安全整数上限
 包名='@deepseek-ai/dsh-tool-workflow'#本包在不变量注册表中的名字
 名称='tool-workflow-invariant'#配套插件名
-注入=['invariants']#依赖不变量服务
+依赖=['invariants']#依赖不变量服务
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用']#仅中文公开名
 
 def 是否工作流记录事件(事件):#判断是否为本包记录事件
     """本包是否拥有这条候选 Session 事件。事件是 dict。"""
@@ -109,7 +109,7 @@ def 应用事件(追踪,事件,失败):#按事件类型更新折叠状态
         return#运行结束处理结束
     失败('unknown tool-workflow event type '+str(事件类型))#未知类型则失败
 
-def 安装(上下文对象,失败):#把记录不变量装到上下文上
+def 安装(上下文,失败):#把记录不变量装到上下文上
     """为每个已挂接 Session 安装独立的增量折叠。"""
     追踪表={}#会话身份到折叠状态，键为 id(会话)
     暂存={}#派发阶段暂存的候选折叠（键为 id(事件)）
@@ -130,7 +130,7 @@ def 安装(上下文对象,失败):#把记录不变量装到上下文上
             return 追踪表[键]#已提交折叠
         return 播种(会话)#补种子
 
-    for 会话 in 上下文对象.sessions.list():#为已有会话播种
+    for 会话 in 上下文.sessions.list():#为已有会话播种
         播种(会话)#播种
     def 会话已创建(会话,*其余):#新会话立即播种
         """新会话立即播种。"""
@@ -159,16 +159,16 @@ def 安装(上下文对象,失败):#把记录不变量装到上下文上
             return 失败('session/event reached publication without matching workflow-record validation')#未经预检就发布则失败
         暂存.pop(id(事件),None)#丢掉暂存
         追踪表[id(会话)]=候选['trace']#提交折叠
-    上下文对象.监听('session/created',会话已创建,{'全局':True})#新会话立即播种
-    上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#全局监听派发
-    上下文对象.监听('session/event',会话事件,{'全局':True})#全局监听会话事件
+    上下文.监听('session/created',会话已创建,{'全局':True})#新会话立即播种
+    上下文.监听('internal/dispatch',内部派发,{'全局':True})#全局监听派发
+    上下文.监听('session/event',会话事件,{'全局':True})#全局监听会话事件
 
 安装.inject=['sessions']#安装器还依赖 sessions 服务
 
-def 应用(上下文对象):#把本包不变量登记到上下文
+def 应用(上下文):#把本包不变量登记到上下文
     """注册本包的不变量配套。携带不变量服务的 Cordis 上下文。返回安装成功后该登记的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#同步登记
+    return 上下文.invariants.register(包名,安装)#同步登记
 
 name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
+inject=依赖#Cordis 依赖槽
 apply=应用#Cordis 入口槽

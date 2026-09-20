@@ -16,7 +16,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '修剪记账字段','修剪结果字段','已解析配置字段','工具结果修剪配置字段',
 ]#公开面结束
 
-注入=['tokenMeter']#依赖tokenMeter
+依赖=['tokenMeter']#依赖tokenMeter
 配置={#插件配置模式
     'thresholdChars':数字字段(默认值=默认预算['thresholdChars']),#触发阈值
     'headChars':数字字段(默认值=默认预算['headChars']),#开头保留
@@ -27,7 +27,7 @@ class 工具结果修剪器(服务):
     """对当前工具结果表面节点做确定性头/中/尾修剪。token-meter 为每条被遮蔽节点的已记录影子价格事件计价，因此修剪确实需要计价能力。"""
 
     def __init__(自身,上下文,配置值=None):
-        """注册为 ctx.toolResultPruner，并解析冻结的字符预算。"""
+        """以 toolResultPruner 名安装，并解析冻结的字符预算。"""
         if 配置值 is None:#缺省空配置
             配置值={}#空配置
         super().__init__(上下文,'toolResultPruner')#注册服务名
@@ -127,6 +127,6 @@ class 工具结果修剪器(服务):
             去掉码点+=修剪前-修剪后#累加节省
         return {'pruned':已记账,'charsRemoved':去掉码点}#本遍结果
 
-工具结果修剪器.inject=注入#Cordis inject 槽
-工具结果修剪器.Config=配置#Cordis Config 槽
-default=工具结果修剪器#Cordis默认导出
+工具结果修剪器.inject=依赖#框架 inject 槽
+工具结果修剪器.Config=配置#框架 Config 槽
+default=工具结果修剪器#框架默认导出

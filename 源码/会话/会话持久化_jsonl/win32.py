@@ -45,7 +45,7 @@ def 发布新文件win32(已有,替换):#写穿发布新文件
     目标=_扩展路径(替换)#目标
     成功=移动(源,目标,MOVEFILE_WRITE_THROUGH)#写穿移动
     if 成功:#成功
-        return#结束
+        return
     码=ctypes.get_last_error()#末次错误
     错误=OSError(f'MoveFileExW {_映射errno(码)} (Win32 {码}): {已有} -> {替换}')#构造
     错误.winerror=码#Win32 码
@@ -60,11 +60,11 @@ def 是否eexist(错误):#是否 EEXIST
     """文件系统冲突是否表示目标已存在。"""
     码=getattr(错误,'code',None)#自定义码
     if 码=='EEXIST':#已映射
-        return True#是
+        return True
     if getattr(错误,'winerror',None) in (ERROR_FILE_EXISTS,ERROR_ALREADY_EXISTS):#Win32
-        return True#是
+        return True
     if getattr(错误,'errno',None) in (getattr(os,'EEXIST',17),ERROR_FILE_EXISTS,ERROR_ALREADY_EXISTS):#errno
-        return True#是
+        return True
     return False#否
 
 __all__=['发布新文件win32','是否eexist','MOVEFILE_WRITE_THROUGH']#公开面

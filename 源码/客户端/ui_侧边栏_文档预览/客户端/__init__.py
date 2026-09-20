@@ -18,7 +18,7 @@ from .文本标题 import 文本标题#标题视图模型
 from ..配置 import 默认配置#配置
 
 __all__=[#仅中文公开名
-    '注入',
+    '依赖',
     '应用',
     '命名空间',
     '中文',
@@ -37,10 +37,10 @@ __all__=[#仅中文公开名
     '纯文本体标识',
     '文本预览',
     '文本标题',
-]#公开面结束
+]
 
 命名空间='sidebarDocumentPreview'#本包文案命名空间（线路字面量）
-注入=['slots','locale','sidebarRightTabs','remote','remote.workspaceFiles']#槽、文案、右侧标签、Remote
+依赖=['slots','locale','sidebarRightTabs','remote','remote.workspaceFiles']#槽、文案、右侧标签、Remote
 
 
 def 应用(上下文):
@@ -140,5 +140,5 @@ def 应用(上下文):
     登记Office(上下文,配置.get('office'))#Office
 
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

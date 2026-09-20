@@ -93,7 +93,7 @@ class 输入机:#纯提交平面状态机
         """完整命令名在有无参数分隔时都保住认领。"""
         if 自身.相位=='claimed' and 自身.认领 is not None and 仍持认领(草稿,自身.认领['token']) is False:#丢掉认领
             自身.相位='plain'#明文
-            自身.认领=None#清
+            自身.认领=None
         return []#无效应
 
     def 认领命令(自身,认领):
@@ -121,7 +121,7 @@ class 输入机:#纯提交平面状态机
         """铸造普通发送，相位回到明文。"""
         飞行=自身.铸造尝试(模式,草稿)#铸造
         自身.脱离表[飞行['attempt']['seq']]=飞行['controller']#脱离
-        自身.认领=None#清认领
+        自身.认领=None认领
         自身.相位='plain'#明文
         return 飞行['attempt']#尝试
 
@@ -155,7 +155,7 @@ class 输入机:#纯提交平面状态机
             自身.认领=结局['claim']#记下
             自身.相位='submitting'#提交中
             return [{'type':'begin-submit','attempt':尝试,'claim':结局['claim'],'args':令牌后参数(尝试['draftSnapshot'],结局['claim']['token'])}]#提交
-        自身.飞行=None#清槽
+        自身.飞行=None槽
         自身.相位='plain'#明文
         if 结局 is not None:#已处理且无认领
             return []#空
@@ -166,7 +166,7 @@ class 输入机:#纯提交平面状态机
         """裁决失败：通知并留草稿。"""
         if 自身.相位!='adjudicating' or 自身.飞行 is None or 自身.飞行['attempt']['seq']!=尝试['seq']:#过期
             return []#空
-        自身.飞行=None#清槽
+        自身.飞行=None槽
         自身.相位='plain'#明文
         return [{'type':'notice','level':'error','text':消息}]#通知
 
@@ -175,10 +175,10 @@ class 输入机:#纯提交平面状态机
         飞行=自身.飞行#飞行槽
         if 自身.相位!='submitting' or 飞行 is None or 飞行['attempt']['seq']!=事件['attempt']['seq']:#过期
             return []#空
-        自身.飞行=None#清槽
+        自身.飞行=None槽
         if 事件['ok'] is True:#成功
             自身.相位='plain'#明文
-            自身.认领=None#清
+            自身.认领=None
             效应表=[{'type':'commit-draft','retainSuffixOf':飞行['attempt']['draftSnapshot']}]#清草稿
             结局=事件['outcome'] if 'outcome' in 事件 else None#结局
             if 结局 is not None and 'text' in 结局 and 结局['text'] is not None:#有文案
@@ -194,7 +194,7 @@ class 输入机:#纯提交平面状态机
             自身.相位='claimed'#回到认领
             return [] if 消息 is None else [{'type':'notice','level':'error','text':消息}]#通知
         自身.相位='plain'#明文
-        自身.认领=None#清
+        自身.认领=None
         return [] if 消息 is None else [{'type':'notice','level':'error','text':消息}]#通知
 
     def 汇已结算(自身,事件):
@@ -216,17 +216,17 @@ class 输入机:#纯提交平面状态机
         """附件直送已接受；无正文后缀可留。"""
         if 自身.相位!='plain':#非明文
             return []#空
-        自身.认领=None#清
+        自身.认领=None
         return [{'type':'commit-draft','retainSuffixOf':None}]#整根清空
 
     def 释放(自身):
         """拆除：中止飞行与脱离发送。"""
         if 自身.飞行 is not None:#有冻结
             自身.飞行['controller'].abort()#中止
-            自身.飞行=None#清
+            自身.飞行=None
         for 控制器 in list(自身.脱离表.values()):#脱离
             控制器.abort()#中止
         自身.脱离表.clear()#清
         自身.相位='plain'#明文
-        自身.认领=None#清
+        自身.认领=None
         return []#无效应

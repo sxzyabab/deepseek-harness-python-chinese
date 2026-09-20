@@ -1,11 +1,9 @@
 import builtins#读页面 location
-from urllib.parse import urlparse#读主机名
+from urllib.parse import urlparse as 解析URL
 from ..回环主机名 import 是否回环主机名#回环主机名判定
 from ..rpc import 连接错误#本包异常
-from .接口 import (#再导出浏览器可用的网关通道与核心类型辅助
+from .接口 import (#再导出浏览器可用的连接协议辅助
     传输错误,
-    会话搜索结果上限,
-    抽象接口客户端,
     结果槽,
     Rpc标识,
 )#来自本包接口模块
@@ -13,12 +11,12 @@ from .连接 import 连接控制器,解析连接配置#连接控制器与恢复�
 from .rpc import 创建网页连接rpc#浏览器 RPC 工厂
 
 __all__=[#仅中文公开名
-    '注入','应用','安装连接','连接句柄',
-    '结果槽','抽象接口客户端','Rpc标识','会话搜索结果上限','传输错误',
+    '依赖','应用','安装连接','连接句柄',
+    '结果槽','Rpc标识','传输错误',
     '连接控制器','解析连接配置','创建网页连接rpc',
-]#公开面结束
+]
 
-注入=[]#无依赖
+依赖=[]#无依赖
 
 class 世代源:#可观察世代或状态
     """getSnapshot + subscribe。"""
@@ -99,7 +97,7 @@ def 安装连接(上下文,选项=None):
         """仍是自己才停。"""
         if 属主['v'] is not 当前:#不是
             return#停
-        属主['v']=None#清
+        属主['v']=None
         当前['stopNetworkWatch']()#卸网络
         当前['controller'].停止()#停泵
         发布世代(None)#收回
@@ -143,7 +141,7 @@ def 安装连接(上下文,选项=None):
             """仍是自己才清。"""
             if 世代源登记['v'] is not 源:#不是
                 return#停
-            世代源登记['v']=None#清
+            世代源登记['v']=None
             当前=属主['v']#属主
             if 当前 is not None and 当前['source'] is 源:#同
                 释放属主(当前)#释放
@@ -159,7 +157,7 @@ def 安装连接(上下文,选项=None):
         def 仍属本代():
             """属主仍是这次 start。"""
             当前=属主['v']#属主
-            return 当前 is not None and 当前['token'] is 令牌#是
+            return 当前 is not None and 当前['token'] is 令牌
         def 已连接(宿主):
             """发布世代再转发。"""
             世代号['v']=世代号['v']+1#前进
@@ -184,7 +182,7 @@ def 安装连接(上下文,选项=None):
             'onConnected':已连接,#覆盖
             'onStateChange':状态变化,#覆盖
             'onReconnectRequested':汇['onReconnectRequested'] if 'onReconnectRequested' in 汇 else None,#再开物理载体
-        }#结束
+        }
         合并=dict(恢复)#恢复
         if 配置 is not None:#有覆盖
             合并.update(配置)#叠
@@ -218,7 +216,7 @@ def 安装连接(上下文,选项=None):
         return 退订#退订器
     主机名=''#默认
     if 页面 is not None:#有页面
-        主机名=页面.hostname if 页面.hostname is not None else (urlparse(页面.href).hostname or '')#主机名
+        主机名=页面.hostname if 页面.hostname is not None else (解析URL(页面.href).hostname or '')
     拥有宿主=传输 is not None and 'ownsHost' in 传输 and 传输['ownsHost'] is True#页面拥有 Host
     是否回环=拥有宿主 or 页面 is None or 是否回环主机名(主机名)#特权面可达
     句柄=连接句柄(#组装
@@ -228,8 +226,8 @@ def 安装连接(上下文,选项=None):
         rpc,#RPC
         重连,#重连
         登记世代源,#登记
-        启动,#启动
-    )#结束
+        启动,
+    )
     上下文.提供服务('connection',句柄)#提供
 
 def 应用(上下文):
@@ -245,5 +243,5 @@ def 应用(上下文):
         选项['location']=页面#带上
     安装连接(上下文,选项)#安装
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

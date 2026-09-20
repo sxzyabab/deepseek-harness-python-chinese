@@ -1,4 +1,3 @@
-import math#向零截断与 NaN
 from ..智能体.类型 import 下一轮,下一步#两条待处理列表名
 
 __all__=(#仅中文公开名
@@ -7,8 +6,8 @@ __all__=(#仅中文公开名
 
 安全整数上限=9007199254740991#JSON 拼接入口安全整数上限
 
-def 向零截断(值):#对齐 JS Math.trunc
-    """对齐 JS Math.trunc，含 NaN 与无穷。"""
+def 向零截断(值):#向零截断浮点
+    """向零截断浮点，NaN 与无穷原样返回。"""
     if isinstance(值,bool):#布尔
         return int(值)#布尔当 0/1
     if isinstance(值,int):#整数
@@ -18,11 +17,11 @@ def 向零截断(值):#对齐 JS Math.trunc
             return float('nan')#NaN
         if 值==float('inf') or 值==float('-inf'):#无穷
             return 值#无穷原样
-        return math.trunc(值)#向 0 截断
+        return int(值)#向 0 截断
     try:#其它可截断
-        return math.trunc(值)#其它可截断
+        return int(值)#其它可截断
     except (ValueError,OverflowError,TypeError):#不能截断
-        return float('nan')#与 JS Math.trunc 的 NaN 对齐
+        return float('nan')#NaN 原样
 
 def _空收件箱状态(头=None):#投影初值
     """标准 inbox 折叠初值。"""

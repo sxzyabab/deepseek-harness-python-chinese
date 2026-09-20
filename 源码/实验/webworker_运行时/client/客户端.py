@@ -152,10 +152,10 @@ class 工作线程隧道:#Worker隧道
         标识=自身._下一号#分配请求号
         自身._下一号+=1#递增
         正文=初始化.get('body')#请求体
-        方法=初始化.get('method')#请求方法
-        if 方法 is None: 方法='GET'#??GET，空串合法
-        头=初始化.get('headers')#请求头
-        if 头 is None: 头={}#缺席才空表，空字典合法
+        if 'method' not in 初始化: 方法='GET'#??GET，空串合法
+        else: 方法=初始化['method']#请求方法
+        if 'headers' not in 初始化: 头={}#缺席才空表，空字典合法
+        else: 头=初始化['headers']#请求头
         帧={'t':'req','id':标识,'method':方法,'url':str(输入),#组装请求帧
             'headers':dict(头)}#请求头
         if 正文 is not None:#有体
@@ -213,7 +213,7 @@ class 工作线程隧道:#Worker隧道
                 自身._中止worker操作(标识)#中止
 
     def boot载荷(自身):#获取启动载荷
-        """读取 pre-cordis 启动载荷（注入表）。"""
+        """读取 pre-cordis 启动载荷（依赖表）。"""
         响应=自身.拉取('/__boot__')#请求引导路由
         if not 响应['ok']:#非成功
             正文=响应['text']()#正文
@@ -225,14 +225,8 @@ class 工作线程隧道:#Worker隧道
         响应=自身.拉取(网址)#经隧道拉取
         if not 响应['ok']:#非成功
             raise 运行时错误(f'web-preview tunnel: bundle {网址} failed with HTTP {响应["status"]}')#抛错
-        源文本=响应['text']()#源文本
-        源=本地化源映射(源文本,网址,自身.拉取)#本地化源映射
-        全局=globals()#全局
-        文档=全局.get('document')#document
-        if 文档 is None:#无document则仅返回源
-            return 源#返回源供宿主执行
-        #上游用blob URL+script标签；此处执行注入由宿主document承担。
-        return 源#返回源
+        源文本=响应['text']()
+        return 本地化源映射(源文本,网址,自身.拉取)
 
     def _中止worker操作(自身,标识):#中止worker操作
         """尽力取消：已失败的 worker 反正收不到帧。"""
@@ -270,10 +264,10 @@ class 工作线程隧道:#Worker隧道
                 if isinstance(正文,(bytes,bytearray)):#字节
                     return 正文.decode('utf-8')#解码
                 return '' if 正文 is None else 正文#??空串，空正文合法
-            响应头=帧.get('headers')#响应头
-            if 响应头 is None: 响应头={}#缺席才空表，空字典合法
-            挂起['resolve']({'ok':(0 if 帧.get('status') is None else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':正文,'json':取json,'text':取text})#兑现Response面
-            return#结束
+            if 'headers' not in 帧: 响应头={}#缺席才空表，空字典合法
+            else: 响应头=帧['headers']#响应头
+            挂起['resolve']({'ok':(0 if 'status' not in 帧 else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':正文,'json':取json,'text':取text})#兑现Response面
+            return
         if 种类=='res-head':#流式响应头
             挂起=自身._一元.get(帧['id'])#取挂起
             if 挂起 is None:#无挂起则忽略
@@ -281,15 +275,15 @@ class 工作线程隧道:#Worker隧道
             自身._一元.pop(帧['id'],None)#删一元
             控制器={'chunks':[],'closed':False,'error':None}#体流控制器
             自身._体流[帧['id']]=控制器#存控制器
-            响应头=帧.get('headers')#响应头
-            if 响应头 is None: 响应头={}#缺席才空表，空字典合法
-            挂起['resolve']({'ok':(0 if 帧.get('status') is None else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':控制器,'stream':True})#兑现流式
-            return#结束
+            if 'headers' not in 帧: 响应头={}#缺席才空表，空字典合法
+            else: 响应头=帧['headers']#响应头
+            挂起['resolve']({'ok':(0 if 'status' not in 帧 else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':控制器,'stream':True})#兑现流式
+            return
         if 种类=='res-chunk':#流式分块
             控制器=自身._体流.get(帧['id'])#取控制器
             if 控制器 is not None:#有控制器
                 控制器['chunks'].append(bytes(帧['chunk']))#入队分块
-            return#结束
+            return
         if 种类=='res-end':#流式结束
             控制器=自身._体流.pop(帧['id'],None)#取控制器
             if 控制器 is None:#无则忽略
@@ -297,7 +291,7 @@ class 工作线程隧道:#Worker隧道
             自身._进行中.pop(帧['id'],None)#删进行中
             自身._拆除表.pop(帧['id'],None)#拆除监听
             控制器['closed']=True#关闭流
-            return#结束
+            return
         if 种类=='res-err':#响应错误
             原因=Exception(f"web-preview tunnel: {帧.get('message')}")#错误原因
             自身._告警拒绝(帧['id'],f"res-err: {帧.get('message')}")#告警
@@ -305,16 +299,16 @@ class 工作线程隧道:#Worker隧道
             挂起=自身._一元.pop(帧['id'],None)#取一元挂起
             if 挂起 is not None:#头未结算
                 挂起['reject'](原因)#拒绝
-                return#结束
+                return
             控制器=自身._体流.pop(帧['id'],None)#取体流
             if 控制器 is None:#无则忽略
                 return#忽略
             自身._拆除表.pop(帧['id'],None)#拆除监听
             控制器['error']=原因#体流出错
-            return#结束
+            return
         if 种类 in ('stream-item','stream-end','stream-error'):#逻辑流帧
             入箱=自身._逻辑流.get(帧['id'])#取入箱
             if 入箱 is not None:#有入箱
                 入箱.推入(帧)#推入
-            return#结束
+            return
         raise 运行时错误(f'web-preview tunnel: unknown frame {帧!r}')#未知帧

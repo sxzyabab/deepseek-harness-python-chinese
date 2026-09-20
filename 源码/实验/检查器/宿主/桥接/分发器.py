@@ -25,16 +25,16 @@ def 分发桥帧(帧,处理器):#分发桥帧
     类型=帧['t'] if 't' in 帧 else None#类型
     if 类型=='source/accepted':#接受
         处理器.接纳(帧)#回调
-        return#结束
+        return
     if 类型=='source/append-acknowledged':#追加确认
         处理器.确认(帧)#回调
-        return#结束
+        return
     if 类型=='source/resnapshot':#重快照
         处理器.重快照(帧)#回调
-        return#结束
+        return
     if 类型=='source/rejected':#拒绝
         处理器.拒绝(帧)#回调
-        return#结束
+        return
     if 类型=='client-runtime/request':#Client运行时请求
         return 拒绝运行时桥命令(帧['command'])#Host拒绝
     if 类型 in ('client-runtime/cancel','client-runtime/response-acknowledged'):#取消或确认

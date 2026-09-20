@@ -23,7 +23,7 @@ __all__=[#仅中文公开名
 视窗标准输出快照='stdout.expected.windows.jsonl'#Windows stdout 快照
 工具令牌='{{tools}}'#工具令牌
 打包块行类型=frozenset(['text-chunks','reasoning-chunks','tool-call-chunks'])#打包行类型
-UUID模式=re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',re.I)#UUID
+UUID模式=re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z',re.I|re.ASCII)#UUID
 def 子工具模式快照(索引):#子工具 schema 文件名
     """返回某一子 fixture 索引的专用工具 schema sidecar。"""
     return f'tool-schemas.{索引}.expected.json'#按索引命名
@@ -337,9 +337,9 @@ def 夹具消息标识替换(日志列表,夹具列表):#消息 id 替换
     已有=唯一消息标识(夹具列表)#已有
     替换={}#替换
     for 指纹,新标识 in 新鲜.items():#逐指纹
-        旧标识=已有.get(指纹)#旧
-        if 旧标识 is None or 新标识==旧标识:#无或相同
+        if 指纹 not in 已有 or 新标识==已有[指纹]:#无或相同
             continue#跳过
+        旧标识=已有[指纹]#旧
         替换[新标识]=旧标识#登记
     return 替换#返回
 
@@ -360,9 +360,9 @@ def 应用夹具消息标识(内容,替换):#应用消息 id 替换
         记录=json.loads(行)#解析
         改=False#是否改
         for 消息 in 列出记录消息(记录):#逐消息
-            新=替换.get(消息['id'])#替换
-            if 新 is None:#无
+            if 消息['id'] not in 替换:#无
                 continue#跳过
+            新=替换[消息['id']]#替换
             消息['id']=新#写入
             改=True#改
         行列表.append(json.dumps(记录,ensure_ascii=False,separators=(',',':')) if 改 else 行)#写回
@@ -444,11 +444,11 @@ def 保留夹具易变(记录,已有):#保留 fixture 易变字段
         for 字段 in ('id','createdAt','cwd','parentSession'):#字段
             if 字段 in 记录 and 字段 in 已有:#双方有
                 记录[字段]=已有[字段]#借出
-        return#结束
+        return
     if 'time' in 记录 and 'time' in 已有:#事件时间
         记录['time']=已有['time']#借出
     if 记录.get('type')!='hook/result':#非 hook
-        return#结束
+        return
     数据=记录.get('data')#数据
     已有数据=已有.get('data')#已有数据
     if 是否记录(数据) and 是否记录(已有数据) and 'durationMs' in 数据 and 'durationMs' in 已有数据:#时长
@@ -607,7 +607,7 @@ def 类名(场景):#头类名
     return 场景.get('headerClass') or 'default'#默认类
 
 def 定义ACP快照套件(选项):#定义 ACP 快照套件
-    """把场景表注册为可运行用例表（对齐 vitest describe/it 树）。"""
+    """把场景表注册为可运行用例表。"""
     智能体=选项['agent']#待测智能体
     快照目录=选项['snapshotsDir']#快照目录
     场景列表=选项['scenarios']#场景列表
@@ -638,9 +638,9 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
     def 解析源(钉场景,字段,标签):#解析共享源
         """解析钉场景引用的 sidecar 源场景。"""
         源名=钉场景.get(字段) or 钉场景['name']#源名
-        源=按名.get(源名)#源
-        if 源 is None:#未知
+        if 源名 not in 按名:#未知
             raise Exception(f'acp-snapshot: {钉场景["name"]} names unknown {标签} source "{源名}"')#未知
+        源=按名[源名]#源
         if 源.get('pinsHeader') is not True:#非钉
             raise Exception(f'acp-snapshot: {钉场景["name"]} names non-pinning {标签} source "{源名}"')#非钉
         if 源.get(字段) is not None and 源.get(字段)!=源['name']:#不自有
@@ -669,7 +669,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         夹具文件=列出会话夹具(目录) if not 录制中 else []#fixture 清单
         子夹具=夹具文件[1:]#子
         主夹具=夹具文件[0] if 夹具文件 else 会话夹具文件名(0,0)#主 fixture 名
-        比较日志=场景['comparesLog'] if 'comparesLog' in 场景 else (场景.get('hasModelTurn') and 清单.get('sessionFormat') is None)#比较日志
+        比较日志=场景['comparesLog'] if 'comparesLog' in 场景 else (场景.get('hasModelTurn') and 'sessionFormat' not in 清单)#比较日志
         运行选项={#运行选项
             'agent':智能体,#智能体
             'mode':子模式,#模式
@@ -702,7 +702,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         }#上下文结束
         子模式钉=set(场景.get('pinsChildToolSchemas') or [])#子 schema 钉
         子提示钉=set(场景.get('pinsChildSystemPrompts') or [])#子提示钉
-        可移植夹具=令牌化会话夹具工作目录 if 场景.get('workspaceParent') is None else (lambda 日志:日志)#可移植
+        可移植夹具=令牌化会话夹具工作目录 if 'workspaceParent' not in 场景 else (lambda 日志:日志)#可移植
         写会话夹具=写当前会话夹具(清单,子模式) and ((录制中 and 场景.get('recorded') and 场景.get('hasModelTurn')) or (刷新中 and 比较日志))#是否写
         if 写会话夹具:#写热/刷新 fixture
             断言大于(len(结果['sessionLogs']),0,f'{模式} produced no session log to harvest')#有日志
@@ -847,7 +847,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             断言真(os.path.isfile(清单路径),f'{名}/snapshot.yml')#存在
             清单=解析快照清单(读文本(清单路径),清单路径)#解析
             断言相等(清单.get('profile'),智能体.get('profile') or 'acp',f'{名}: manifest profile')#profile
-            断言真(清单.get('session') is None,f'{名}: ACP scenarios own their session')#无 session
+            断言真('session' not in 清单,f'{名}: ACP scenarios own their session')#无 session
             def 子索引(模式):#子 sidecar 索引
                 """从文件名提取子索引集合。"""
                 结果=set()#索引集

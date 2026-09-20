@@ -1,8 +1,8 @@
 from .流 import 浏览目录流#浏览目录流占用方
 
-__all__=['注入','应用','浏览目录流']#仅中文公开名
+__all__=['依赖','应用','浏览目录流']#仅中文公开名
 
-注入=['slots','workspaces','locale']#槽位、工作区、文案
+依赖=['slots','workspaces','locale']#槽位、工作区、文案
 词表命名空间='directory-browser'#对话框词表命名空间
 
 中文={#中文词表
@@ -81,5 +81,5 @@ def 应用(上下文):#安装浏览选目录浏览器半边
         return 上下文.slots.inject('sidebar.workspaces.directoryFlow',两侧登记)#侧栏
     上下文.slots.inject('conversation.hero.workspace.directoryFlow',挂侧栏)#嵌套 inject
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

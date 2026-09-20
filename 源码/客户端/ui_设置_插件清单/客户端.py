@@ -1,9 +1,9 @@
 from .文案 import 命名空间,中文,英文#词表
 from .清单页签 import 插件清单页签,插件清单错误#页签组件
 
-__all__=['注入','应用','插件清单页签','命名空间','中文','英文']#仅中文公开名
+__all__=['依赖','应用','插件清单页签','命名空间','中文','英文']#仅中文公开名
 
-注入=['slots','locale','remote','remote.pluginInventory','modules']#槽位、文案、远程、清单远程面、模块
+依赖=['slots','locale','remote','remote.pluginInventory','modules']#槽位、文案、远程、清单远程面、模块
 
 def 应用(上下文):#安装只读清单页签
     """把惰性清单页签贡献给插件设置分区。"""
@@ -18,7 +18,7 @@ def 应用(上下文):#安装只读清单页签
         结果=应答['result'] if 'result' in 应答 else 应答#信封或业务
         if not 结果['ok']:#业务失败
             错误=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
-            码=错误['code'] if 'code' in 错误 else None#码
+            码=错误['code'] if 'code' in 错误 else None
             消息=错误['message'] if 'message' in 错误 else None#消息
             raise 插件清单错误(f"pluginInventory.list failed: {码}: {消息}")#诊断
         return 结果['value'] if 'value' in 结果 else None#快照
@@ -42,7 +42,7 @@ def 应用(上下文):#安装只读清单页签
             'presetName':预设名,#预设显示名
             'hooks':{'clientSync':上下文.modules.entries.state},#本页同步状态
             'retryClient':重试本页,#重试本页
-        }#注入结束
+        }
     def 页签标签():#页签文案
         """全部清单页签标签。"""
         return 翻译('tab')#标签
@@ -58,5 +58,5 @@ def 应用(上下文):#安装只读清单页签
         },插件清单页签)#页签组件
     上下文.slots.inject('settings.plugins.tab',登记页签)#页签
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

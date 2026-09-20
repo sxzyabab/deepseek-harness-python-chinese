@@ -74,7 +74,7 @@ def 可中止等待(工作,信号=None):
                 值=工作#原样
             结算成功(值)#成功
         except BaseException as 错误:#工作拒绝
-            结算失败(错误)#失败
+            结算失败(错误)
 
     def 转发中止():
         """信号中止时拒绝竞态。"""
@@ -83,8 +83,8 @@ def 可中止等待(工作,信号=None):
 
     工作线程=threading.Thread(target=执行工作)#执行工作
     工作线程.daemon=True#不挡住退出
-    工作线程.start()#启动
+    工作线程.start()
     中止线程=threading.Thread(target=转发中止)#转发中止
     中止线程.daemon=True#不挡住退出
-    中止线程.start()#启动
+    中止线程.start()
     return 结果任务.等待()#同步等待竞态

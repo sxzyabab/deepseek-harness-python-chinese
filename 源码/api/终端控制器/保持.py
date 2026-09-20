@@ -1,7 +1,4 @@
-"""一个终端所有者的窗口保持与保守空闲回收。
-
-对齐上游 `terminal-controller/src/retention.ts`。公开面仅中文名。
-"""
+"""一个终端所有者的窗口保持与保守空闲回收。"""
 import threading#观察与定时
 import time#单调时钟
 from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号#中止
@@ -26,7 +23,7 @@ class 终端保持:
         自身._空闲=None#空闲 dict
         自身._关闭中=False#关闭中
         自身._已拆除=False#已拆除
-        自身._清理=None#清理任务
+        自身._清理=None
         自身._锁=threading.Lock()#互斥
         自身._调度(0)#即调度
 
@@ -42,7 +39,7 @@ class 终端保持:
             """释放持有。"""
             with 自身._锁:#互斥
                 if 持有者 not in 自身._保持者:#已释
-                    return#结束
+                    return
                 自身._保持者.discard(持有者)#移除
             自身.作废()#作废
             结束.set()#唤醒
@@ -64,7 +61,7 @@ class 终端保持:
     def 作废(自身):
         """接受输入前作废未完成的空闲观察。"""
         自身._纪元+=1#纪元
-        自身._空闲=None#清空
+        自身._空闲=None
 
     def close(自身):
         """启动或加入清理。"""
@@ -81,13 +78,13 @@ class 终端保持:
                     自身._终止()#终止
                 except BaseException as 错误:
                     with 自身._锁:#允许重试
-                        自身._清理=None#清空
+                        自身._清理=None
                     自身._调度(自身._策略['cleanupRetryMs'])#重试
                     raise 错误#上抛
             任务=threading.Thread(target=跑清理)#线程
             任务.daemon=True#守护
             自身._清理=任务#记下
-            任务.start()#启动
+            任务.start()
             return 任务#任务
 
     def dispose(自身):
@@ -99,7 +96,7 @@ class 终端保持:
     def _取消定时(自身):
         """清定时器。"""
         定时=自身._定时器#取出
-        自身._定时器=None#清空
+        自身._定时器=None
         if 定时 is not None:#有
             定时.cancel()#取消
 
@@ -107,31 +104,31 @@ class 终端保持:
         """调度观察或重试关闭。"""
         with 自身._锁:#互斥
             if 自身._已拆除 or 自身._定时器 is not None:#已有
-                return#结束
+                return
             if (not 自身._关闭中) and (len(自身._保持者)>0 or 自身._策略['unattendedTimeoutMs']==0):#有持有或禁用
-                return#结束
+                return
             def 到点():
                 """到期回调。"""
-                自身._定时器=None#清空
+                自身._定时器=None
                 if 自身._关闭中:#重试关闭
                     try:
                         自身.close()#关闭
                     except BaseException as 错误:
                         自身._失败汇(错误)#报告
-                    return#结束
+                    return
                 自身._观察空闲()#观察
             定时=threading.Timer(max(延迟毫秒,0)/1000.0,到点)#定时
             定时.daemon=True#守护
             自身._定时器=定时#记下
-            定时.start()#启动
+            定时.start()
 
     def _观察空闲(自身):
         """观察空闲并可能回收。"""
         if 自身._观察中 is not None:#进行中
-            return#结束
+            return
         纪元=自身._纪元#纪元
         自身._观察中=True#标记
-        def 跑():
+        def 在线程执行():
             """后台观察。"""
             try:
                 try:
@@ -139,11 +136,11 @@ class 终端保持:
                 except BaseException:
                     活动={'state':'unknown','revision':0}#未知
                 if 自身._已拆除 or 自身._关闭中 or len(自身._保持者)>0 or 纪元!=自身._纪元:#过期
-                    return#结束
+                    return
                 现在=time.monotonic()*1000#单调毫秒
                 if 活动.get('state')!='idle':#非空闲
-                    自身._空闲=None#清空
-                    return#结束
+                    自身._空闲=None
+                    return
                 修订=活动.get('revision',0)#修订
                 空闲=自身._空闲#当前
                 轮询=自身._策略['activityPollIntervalMs']#轮询
@@ -156,9 +153,9 @@ class 终端保持:
             except BaseException as 错误:
                 自身._失败汇(错误)#报告
             finally:
-                自身._观察中=None#清空
+                自身._观察中=None
                 if not 自身._关闭中:#再调度
                     自身._调度(自身._策略['activityPollIntervalMs'])#调度
-        线=threading.Thread(target=跑)#线程
+        线=threading.Thread(target=在线程执行)#线程
         线.daemon=True#守护
-        线.start()#启动
+        线.start()

@@ -1,14 +1,11 @@
-"""会话控制器远程错误、中止查询与线程任务。
-
-对齐上游会话控制器杂物袋：RemoteError、Abort 查询与工作线程任务。公开面仅中文名。
-"""
+"""会话控制器远程错误、中止查询与线程任务。"""
 import threading#后台任务
 from threading import Event as 同步事件#跨线程结算广播
 
 __all__=['远程错误','远程错误消息','已中止','若已中止则抛出','在线程执行']#仅中文公开名
 
 class 远程错误(Exception):
-    """对齐上游 RemoteError。附加信息做成属性。"""
+    """远程错误。附加信息做成属性。"""
     def __init__(自身,码,消息,详情=None,原因=None):
         """记下 code/message/details。"""
         super().__init__(消息)#消息
@@ -47,13 +44,13 @@ def 在线程执行(函数):
             完成.set()#广播
     工作=threading.Thread(target=执行并结算)#工作线程
     工作.daemon=True#不挡住退出
-    工作.start()#启动
+    工作.start()
     class 线程结局:
         """跨线程工作结局；只公开 等待结局。"""
         def 等待结局(自身):
             """阻塞到工作结束；失败原样抛。"""
             完成.wait()#等结算
-            if 箱['错误'] is not None:#失败
+            if 箱['错误'] is not None:
                 raise 箱['错误']#原样抛
             return 箱['结果']#成功值
     return 线程结局()#句柄

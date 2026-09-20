@@ -17,7 +17,7 @@ from .事件 import (#Remote 组装再导出的动态 Cordis 词汇
 )#事件
 
 __all__=[#仅中文公开名
-    '注入','应用','命名空间','中文','英文','文案键',
+    '依赖','应用','命名空间','中文','英文','文案键',
     '取包','可见状态','创建清单源','面板',
     '选定包标识','面板可见状态','阻塞优先','面板样式表',
     '定义卡片','运行卡片','动作卡片','调用状态',
@@ -29,7 +29,7 @@ __all__=[#仅中文公开名
     '清单行字段','动态包公告字段','请求已落定字段','撤回公告字段','运行请求字段',
 ]#公开面结束
 
-注入=['slots','locale','remote','remote.dynamicCordisRunner','dynamicCordisRunner']#硬依赖
+依赖=['slots','locale','remote','remote.dynamicCordisRunner','dynamicCordisRunner']
 
 class 远端错误(Exception):
     """远端 RPC 载体失败。"""
@@ -118,7 +118,7 @@ def 应用(上下文):
     上下文.remote.$on('cordis/dynamic-retract',包撤回)#撤回
 
     def 新运行请求(请求):
-        """对齐上游：仅缺行时 refresh。请求为事件 dict。"""
+        """仅缺行时刷新。请求为事件 dict。"""
         插件=请求['pluginId']#插件
         行列表=清单['getSnapshot']()['rows']#当前行
         已有=False#本页是否已有该插件
@@ -250,5 +250,5 @@ def 应用(上下文):
     上下文.slots.inject('tool.call.toolview',登记动作行)#动作行
     清单['refresh']()#启动读一次
 
-inject=注入#框架槽
-apply=应用#框架槽
+inject=依赖
+apply=应用

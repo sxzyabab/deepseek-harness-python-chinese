@@ -6,12 +6,12 @@ from .远程流 import 远程流#可重连流
 from .远程事件 import 客户端远程事件#转发事件
 
 __all__=[#仅中文公开名
-    '注入','应用','客户端远程服务','远程命名空间服务',
+    '依赖','应用','客户端远程服务','远程命名空间服务',
     '拼端点','远程服务键','作用域投影','要求严格输入',
     '载体失败','取消失败',
 ]#公开面结束
 
-注入=['typert','connection']#依赖 typert 与 connection
+依赖=['typert','connection']
 
 命名空间保留字段=frozenset(['ctx','empty','invokeRemote','methods','name','namespace'])#方法名不得占用
 
@@ -34,7 +34,7 @@ def 已撤(端点):
 def 载体失败(端点,错误):
     """带上错误消息。"""
     消息=错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else str(错误)#消息
-    return 内部失败('client api: '+端点+' 失败: '+str(消息))#失败
+    return 内部失败('client api: '+端点+' 失败: '+str(消息))
 
 def 取消失败(端点,原因):
     """调用方中止折入 gateway/cancelled，载体抛出作为 cause。"""
@@ -62,7 +62,7 @@ def 作用域投影(描述符):
         return {#用调用约定上的上下文与线字段
             'context':描述符['invocation']['context'],#上下文
             'wire':描述符['invocation']['wire'],#线字段
-        }#结束
+        }
     if 'scope' not in 描述符 or 描述符['scope'] is None:#没有 scope
         return None#无投影
     查找列表=[{'parameter':参数,'index':下标} for 下标,参数 in enumerate(描述符['parameters']) if 参数['source']=='lookup']#lookup 参数
@@ -74,7 +74,7 @@ def 作用域投影(描述符):
         'context':描述符['scope']['context'],#上下文
         'wire':描述符['scope']['wire'],#线字段
         'parameterIndex':选中['index'],#被吃掉的下标
-    }#结束
+    }
 
 class 远程命名空间服务(服务):
     """直接与作用域变体的方法表。"""
@@ -221,7 +221,7 @@ class 客户端远程服务(服务):
                 锚.兑现(None)#队列继续
         线=threading.Thread(target=后台执行)#工作线程
         线.daemon=True#不挡住退出
-        线.start()#启动
+        线.start()
         自身.mutations=锚#钉成新尾巴
         return 任务#本次结果
 
@@ -350,15 +350,15 @@ class 客户端远程服务(服务):
                 """转给远程服务。"""
                 return 自身.调用方法(直接,作用域,调用方,参数)#委托
             服务盒['service']=远程命名空间服务(插件上下文,名,委托调用)#构造
-        光纤=自身.ownerCtx.启动插件({'name':远程服务键(名),'apply':插件应用})#登记插件
+        纤程=自身.ownerCtx.启动插件({'name':远程服务键(名),'apply':插件应用})#登记插件
         try:
-            光纤.等待()#等到服务已登记
+            纤程.等待()#等到服务已登记
         except BaseException:
-            光纤.拆除()#拆除
+            纤程.拆除()#拆除
             raise#抛
         if 服务盒['service'] is None:#没构造
             raise 网关错误('service-unavailable',名,'client api: 命名空间 '+repr(名)+' 未能启动')#未启动
-        句柄={'service':服务盒['service'],'dispose':光纤.拆除}#记下
+        句柄={'service':服务盒['service'],'dispose':纤程.拆除}#记下
         自身.namespaces[名]=句柄#写入
         return 句柄#返回
 
@@ -431,5 +431,5 @@ def 应用(上下文):
     """在客户端根上挂载 Remote 服务。"""
     客户端远程服务(上下文)#构造并登记
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

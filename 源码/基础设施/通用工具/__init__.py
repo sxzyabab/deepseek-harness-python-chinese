@@ -1,4 +1,5 @@
 from . import 系统性能监控
+from collections import ChainMap as 链映射
 
 ################################ 自由使用.号 ################################
 from weakref import WeakKeyDictionary as 弱引用键字典#按对象身份存双下数据，对象回收后自动清

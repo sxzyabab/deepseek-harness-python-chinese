@@ -212,12 +212,12 @@ def 继承控制stdio(接口表,标准输入,标准输出,标准错误,控制描
         种类=接口表['getFileType'](句柄)#文件类型
         if 描述==控制描述符 and 种类!=管道文件类型:#控制必须是管道
             raise Win32错误('GetFileType',0,'subprocess control descriptor is not a Windows pipe')#非管道
-        旗=打开文件旗#FOPEN
+        打开文件标志=打开文件旗#FOPEN
         if 种类==管道文件类型:#管道
-            旗=旗|管道文件旗#FPIPE
+            打开文件标志=打开文件标志|管道文件旗#FPIPE
         elif 种类==字符文件类型:#字符设备
-            旗=旗|设备文件旗#FDEV
-        字节[4+描述]=旗#旗标字节
+            打开文件标志=打开文件标志|设备文件旗#FDEV
+        字节[4+描述]=打开文件标志#旗标字节
         struct.pack_into('Q',字节,句柄偏移+描述*句柄字节,int(句柄))#句柄
     return bytes(字节)#CRT 块
 

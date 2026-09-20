@@ -154,7 +154,7 @@ class 会话遥测协调器:
             自身._包含(自身._递交关闭,会话)#shutdown
         try:#后端关闭
             自身._后端['关闭']()#同步关闭
-        except Exception as 错误:#失败
+        except Exception as 错误:
             自身._上下文.日志.警告('telemetry: 后端关闭失败: '+str(错误))#警告
 
 __all__=['会话遥测协调器']#公开面

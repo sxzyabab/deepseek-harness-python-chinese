@@ -1,5 +1,5 @@
 import json,re#JSON 与通道名校验
-from urllib.parse import urlparse#解析路径
+from urllib.parse import urlparse as 解析URL
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .http桥 import 桥接#HTTP 桥
@@ -44,7 +44,7 @@ def rpcFetch处理(通道,处理函数):#把 RPC handler 适配成 FetchHandler
     def fetch(请求):#处理一条 POST
         """处理一条标准 Fetch 请求。"""
         网址=请求['url'] if 'url' in 请求 else ''#url
-        路径名=urlparse(网址).path#路径
+        路径名=解析URL(网址).path
         端点=路径切端点(通道,路径名)#路径 → 端点
         方法=请求['method'] if 'method' in 请求 else None#方法
         if 方法!='POST' or 端点 is None:#只接受合法 POST 端点
@@ -85,7 +85,7 @@ def rpcFetch处理(通道,处理函数):#把 RPC handler 适配成 FetchHandler
     return {'fetch':fetch}#处理器对象
 
 class 宿主连接服务(服务):#提供 ctx.connection
-    """宿主 Connection 服务，通道登记属于调用方光纤。"""
+    """宿主 Connection 服务，通道登记属于调用方纤程。"""
     def __init__(自身,上下文,受信任主机表):#绑定上下文与受信任 Host
         """在活动 HTTP 服务器上提供宿主半边。"""
         super().__init__(上下文,'connection')#服务名 connection
@@ -95,7 +95,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
     @property#登记面
     def rpc(自身):#每次取都闭包当前 ctx
         """作用域落在读取本服务的 Context 上的通用通道注册表。"""
-        拥有=自身.ctx#调用方光纤上下文
+        拥有=自身.ctx#调用方纤程上下文
         def 独占(通道,处理,选项):#独占通道
             """登记绝对通道。"""
             return 自身.登记(拥有,通道,处理,选项)#登记
@@ -108,7 +108,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
         """由拦截器与回退组成一条共享通道的 Fetch 处理器。"""
         def fetch(请求):#按路径选拦截器或回退
             """每条请求恰好选一个目标。"""
-            路径名=urlparse(请求['url'] if 'url' in 请求 else '').path#路径
+            路径名=解析URL(请求['url'] if 'url' in 请求 else '').path
             端点=路径切端点(通道,路径名)#切出相对端点
             拦截器=自身.拦截器表[通道] if 通道 in 自身.拦截器表 else None#该通道的拦截器
             if 端点 is None or 拦截器 is None or not 拦截器['matches'](端点):#未声称
@@ -137,7 +137,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
         def 登记路由():#登记 HTTP 前缀
             """把路由交给 web 服务器。"""
             return 拥有.webServer.register(路由)#登记
-        return 拥有.副作用(登记路由,'client-connection: '+通道+' rpc channel')#登记归调用方光纤
+        return 拥有.副作用(登记路由,'client-connection: '+通道+' rpc channel')#登记归调用方纤程
 
     def 登记拦截器(自身,拥有,通道,匹配,处理函数,选项):#在共享通道上登记拦截器
         """在共享 /api 通道的回退之前拦截所拥有的端点。"""
@@ -148,7 +148,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
             'fetchHandler':rpcFetch处理(通道,处理函数),#解码并调 handler
             'options':选项,#信任政策
         }#结束拦截器
-        def 效应():#归调用方光纤
+        def 效应():#归调用方纤程
             """写入表；拆除时删除。"""
             if 通道 in 自身.拦截器表:#同一通道只能有一个拦截器
                 raise 连接错误('connection: shared RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' already has an interceptor')#重复登记失败

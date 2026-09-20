@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/client/scripts.ts
-
 __all__=['Client脚本身份']#仅中文公开名
 
 class Client脚本身份:#Client脚本身份

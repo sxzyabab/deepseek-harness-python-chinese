@@ -1,4 +1,5 @@
 """经授权 Host 渲染与既有 PDF 正文支撑的 Office 预览登记。"""
+from .....工具.超时 import 若已中止则抛出#中止
 from ..文档.标签寿命 import 保留文档标签#标签寿命
 from ..远程过程调用 import 文档文件字节#文档字节
 from ..失败行 import 失败行#失败行
@@ -39,8 +40,8 @@ def 应用(上下文,配置):
     def 不可用读(文件,信号):
         """不可用时拒绝。"""
         文件#源
-        if hasattr(信号,'throwIfAborted'):#中止
-            信号.throwIfAborted()#抛
+        if 信号 is not None:#有信号
+            若已中止则抛出(信号)#已中止则抛
         raise RuntimeError(翻译('unavailable'))#拒绝
     当前读=[不可用读]#可变读
     def 登记类型():

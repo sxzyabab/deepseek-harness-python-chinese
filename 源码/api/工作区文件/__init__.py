@@ -1,28 +1,28 @@
 """工作区文件服务：只读预览、工作区目录列举与观察变更流。
 
-对齐上游 `@deepseek-ai/dsh-api-workspace-files`。公开面仅中文名。
 文件读取跟随组合文件系统读权限（可含工作区外）；目录与变更观察仍限定工作区内。
 """
 import base64#字节窗线路编码
 import os#路径解析
 import re#相对路径校验
-from urllib.parse import unquote,urlparse#工作区相对路径
-from ...依赖.schemastery import 正整数字段#配置字段
-from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
-from .变更 import 工作区变更供给#changes 供给
-from .类型 import 远程错误,已中止#远程错误与中止
+from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
+from ...依赖.schemastery import 正整数字段
+from ...typert.协议 import 远程服务,远程 as _远程
+from .变更 import 工作区变更供给
+from .类型 import 远程错误,已中止
 
-__all__=['名称','注入','配置','工作区文件','应用']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认','配置','工作区文件']
 
-名称='workspace-files'#插件名
-注入=['fs','sandboxPolicy','sessions','typert']#依赖
+包名='@deepseek-ai/dsh-api-workspace-files'
+名称='workspace-files'
+依赖=['fs','sandboxPolicy','sessions','typert']
 
 配置={#部署页/列举上限
     'maxBytes':正整数字段(默认值=2*1024*1024,最小=1),#单页与单窗字节上限（含）
     'maxFileBytes':正整数字段(默认值=32*1024*1024,最小=1),#整文件字节上限（含）
     'maxLines':正整数字段(默认值=5000,最小=1),#页行数缺省与上限
     'maxEntries':正整数字段(默认值=2000,最小=1),#目录条目上限
-}#配置结束
+}
 
 空字节=chr(0)#页上出现则视为二进制
 安全整数上限=9007199254740991#JSON 入口安全整数
@@ -88,11 +88,11 @@ def _切页(块序列,偏移,限额,最大字节,路径):
 
 def _工作区相对路径(根网址,目标网址):
     """由两条规范 `file:` URI 推导相对工作区路径；根自身为空串。"""
-    根=urlparse(根网址).path.rstrip('/')#去尾斜杠
-    目标=urlparse(目标网址).path#目标 path
+    根=解析网址(根网址).path.rstrip('/')
+    目标=解析网址(目标网址).path
     if 目标==根:#即根
         return ''#空
-    return '/'.join(unquote(段) for 段 in 目标[len(根)+1:].split('/'))#解码拼接
+    return '/'.join(百分号解码(段) for 段 in 目标[len(根)+1:].split('/'))
 
 
 def _目录条目(子项):
@@ -127,7 +127,7 @@ def _读字节窗口(文件系统,目标,偏移,长度,信号):
 
 class 工作区文件(远程服务):
     """经组合文件系统的宿主 Remote 文件读取与工作区目录观察。"""
-    inject=注入#框架槽：类级注入
+    inject=依赖#框架槽
     Config=配置#框架槽：Cordis 配置
 
     def __init__(自身,上下文,配置值=None):
@@ -140,7 +140,7 @@ class 工作区文件(远程服务):
             'maxFileBytes':配置值['maxFileBytes'] if 'maxFileBytes' in 配置值 and 配置值['maxFileBytes'] is not None else 32*1024*1024,
             'maxLines':配置值['maxLines'] if 'maxLines' in 配置值 and 配置值['maxLines'] is not None else 5000,
             'maxEntries':配置值['maxEntries'] if 'maxEntries' in 配置值 and 配置值['maxEntries'] is not None else 2000,
-        }#配置结束
+        }
         自身._供给=工作区变更供给(上下文)#变更供给
         def 登记查找(子上下文):
             """登记 workspaceFileScope 查找。"""
@@ -339,14 +339,14 @@ def 应用(上下文,配置值=None):
     工作区文件(上下文,配置值)#构造即登记
 
 
-# changes 为 stream 模式 Remote（对齐 @Remote({ mode: 'stream' })）
-_变更标记=getattr(工作区文件.changes,'_typert_remote_marker',None)#装饰器标记
-if isinstance(_变更标记,dict):#有标记
-    _变更标记['mode']='stream'#流式交付
+# changes 为 stream 模式 Remote
+_变更标记=getattr(工作区文件.changes,'_typert_remote_marker',None)
+if isinstance(_变更标记,dict):
+    _变更标记['mode']='stream'
 
-
+默认=工作区文件
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
-default=工作区文件#框架槽：默认导出
+default=默认#框架槽

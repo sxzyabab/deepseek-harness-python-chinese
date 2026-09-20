@@ -1,25 +1,26 @@
 """仅用于自动化的 Agent Client Protocol 服务器，经 JSON-RPC stdio 承载。
 
-对齐上游 `@deepseek-ai/dsh-acp`。公开面仅中文名。本桥接向受信任的程序化客户端暴露新铸造的 harness 会话。保持具名插件导出且无默认导出。
+本桥接向受信任的程序化客户端暴露新铸造的 harness 会话。保持具名插件导出且无默认导出。
 """
 import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#多失败聚合
-from ...依赖.schemastery import 字符串字段#配置字段
+from ...依赖.schemastery import 字符串字段
 from ...模型后端.llm import 创建用户消息,错误链#铸造用户消息与错误链文本
 from ...内核.会话 import 会话标识#会话 id 品牌
 from .编解码 import ACP提示转文本,提示含不受支持内容,回合结束到停止原因#提示展平与停止原因映射
 from .线路 import 协议版本,请求错误,创建NDJSON流,智能体侧连接,操作任务#ACP 线路面
 
-__all__=['名称','注入','配置','应用']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认','配置']
 
-名称='acp'#Cordis插件名（字面量）
-注入=['agents']#依赖 agents 服务
+包名='@deepseek-ai/dsh-acp'
+名称='acp'
+依赖=['agents']
 
 配置={#插件配置模式
     'provider':字符串字段(),#可选提供方
     'model':字符串字段(),#可选模型
-}#配置结束
+}
 
 def 非法参数(细节):
     """把非法参数细节保留在 SDK 线路错误消息里。"""
@@ -366,7 +367,7 @@ def 应用(上下文,配置值):
                 raise 聚合错误(失败列表,'ACP agent teardown failed for '+str(len(失败列表))+' session(s): '+细节)#聚合
             任务.兑现(None)#成功
         except BaseException as 错误:
-            任务.拒绝(错误)#失败
+            任务.拒绝(错误)
         return 任务.等待()#把同一结果交给调用方
 
     def 连接关闭后():
@@ -389,7 +390,9 @@ def 应用(上下文,配置值):
         return 拆除#拆除器
     上下文.副作用(生命周期,'acp.connection')#副作用名
 
+默认=应用
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
+default=默认#框架槽

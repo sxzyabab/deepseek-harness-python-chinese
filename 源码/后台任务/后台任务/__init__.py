@@ -1,5 +1,2 @@
-"""后台任务 Service Definition（中文名包）。
-
-对齐上游 `@deepseek-ai/dsh-jobs`。
-"""
-__all__=[]#实现尚未迁入
+"""后台任务服务定义。"""
+__all__=[]

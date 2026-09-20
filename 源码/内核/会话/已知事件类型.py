@@ -1,6 +1,6 @@
-__all__=['已知会话事件类型','消息投影事件类型']#仅中文公开名
+__all__=['已知会话事件类型','消息投影事件类型']
 
-已知会话事件类型=frozenset((#本构建认识的会话事件类型
+已知会话事件类型=frozenset((
     'agent-preset/selected',#Agent 预设已选
     'agent/inbox/spliced',#收件箱拼接
     'approval/asked',#已询问审批
@@ -59,8 +59,8 @@ __all__=['已知会话事件类型','消息投影事件类型']#仅中文公开�
     'user/message',#用户消息
     'web/deepseek-search-llm-request',#搜索 LLM 请求
     'workspace/changes',#工作区变更
-))#集合结束
+))
 
-消息投影事件类型=frozenset((#模型可见效果需要显式纯解释器的事件类型
+消息投影事件类型=frozenset((
     'image/offload',#图片卸载
-))#投影集合结束
+))

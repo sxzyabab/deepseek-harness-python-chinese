@@ -208,7 +208,7 @@ def 标准输入结束退出(上下文,标签):
     退出=上下文.获取服务('appExit',False)#退出请求
     就绪=上下文.获取服务('appReady',False)#就绪信号
     if 退出 is None or 就绪 is None:#启动器未提供
-        raise 启动错误('stdio app: the launcher must provide ctx.appExit and ctx.appReady before the tree mounts')#拒绝
+        raise 启动错误('stdio app: 启动器必须在插件树挂载前提供 ctx.appExit 与 ctx.appReady')#拒绝
     标准输入=内部流['stdin']#标准输入流
     活跃=True#监听仍有效
     已结束=False#EOF 已处理
@@ -264,9 +264,9 @@ def 解析命令行(上下文,程序):
     参数=上下文.获取服务('cmdlineArgs',False)#内部参数服务
     退出=上下文.获取服务('appExit',False)#退出请求
     if 参数 is None or 退出 is None:#启动器未提供
-        raise 启动错误(程序.name()+': the launcher must provide ctx.cmdlineArgs and ctx.appExit before the tree mounts')#拒绝
+        raise 启动错误(程序.name()+': 启动器必须在插件树挂载前提供 ctx.cmdlineArgs 与 ctx.appExit')#拒绝
     if not 有动作(程序):#无 action
-        raise 启动错误(程序.name()+': no command in the program declares an action; parseCmdline runs the invoked command\'s action on a successful parse, and app code there publishes its service')#拒绝
+        raise 启动错误(程序.name()+': 程序中没有任何命令声明 action；parseCmdline 在解析成功后跑被调用命令的 action，应用代码在那里发布服务')#拒绝
     配置退出与输出(程序)#接到适配器
     try:#解析
         程序.parse(参数['get'](),{'from':'user'})#按 user 来源解析

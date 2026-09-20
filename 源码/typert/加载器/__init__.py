@@ -3,13 +3,12 @@ from json import dumps as 编码json,loads as 解码json
 from os.path import dirname as 目录名,join as 拼接路径
 from pathlib import Path as 路径
 from traceback import print_exc as 打印错误
-from 源码.内核.应用启动 import 上下文类型
-from 源码.内核.typert.注册表.类型 import 贡献
+from ..注册表.类型 import Typert贡献 as 贡献#贡献字典构造（dict 别名）
 
 成员种类=set(('property','method','getter','setter','call','construct','index'))#允许的成员种类
 宿主导出='./typert'#包导出键
 名称='typert-loader'#插件名
-注入=('typert','loader')#依赖服务
+依赖=('typert','loader')#依赖服务
 配置={'packages':[]}#默认配置
 
 def 校验清单(包名,导出):
@@ -170,9 +169,9 @@ def 导出键(包名,导出字段):
     """解析 ./typert 导出路径。"""
     if not isinstance(导出字段,dict):
         return None
-    目标=导出字段.get(宿主导出)
-    if 目标 is None:
+    if 宿主导出 not in 导出字段:
         return None
+    目标=导出字段[宿主导出]
     if isinstance(目标,str):
         return 目标
     if isinstance(目标,dict):
@@ -185,7 +184,7 @@ def 转错误(错误):
     """把任意失败规范成异常。"""
     return 错误 if isinstance(错误,BaseException) else RuntimeError(str(错误))
 
-def 应用(上下文:上下文类型,配置=None):
+def 应用(上下文,配置=None):
     """扫描当前加载器条目，并在生命周期内跟随挂载与卸载。"""
     实际配置=配置 or {}
     基础地址=getattr(上下文,'基础地址',None) or getattr(上下文,'baseUrl',None)
@@ -360,4 +359,7 @@ def 应用(上下文:上下文类型,配置=None):
         文本='\n'.join(f'  - {一项.args[0] if 一项.args else 一项}' for 一项 in 失败)
         raise RuntimeError(f'typert-loader: {len(失败)} typert contributor(s) failed to register:\n{文本}')
 
-__all__=['宿主导出','名称','注入','配置','校验清单','应用']
+__all__=['宿主导出','名称','依赖','配置','校验清单','应用']
+name=名称
+inject=依赖
+apply=应用

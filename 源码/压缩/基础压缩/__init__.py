@@ -1,3 +1,4 @@
+"""轻量压缩后端：用 token 计量做压力、保留与摘要收敛计价；summarize 为唯一子类钩子。"""
 import weakref#每智能体溢出计数与会话→智能体弱映射
 from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布尔字段,列表字段#配置字段
 from ..压缩 import 压缩引擎,手动压缩错误#导入压缩引擎与手动失败
@@ -60,7 +61,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     'maxOverflowRetries':溢出重试模式,#溢出重试
 }#modelPolicy 结束
 
-注入=['llm','tokenMeter','sessions']#依赖 llm、计量与会话协调器
+依赖=['llm','tokenMeter','sessions']#依赖 llm、计量与会话协调器
 配置={#插件配置模式
     'thresholdRatio':阈值比例模式,#阈值比例
     'retainRatio':保留比例模式,#保留比例
@@ -95,10 +96,10 @@ def 对话目标(智能体):
     return {'provider':提供方,'model':模型}#用智能体选项
 
 class 基础压缩引擎(压缩引擎):
-    """依赖很轻的压缩后端，用 ctx.tokenMeter 做压力、保留、被引用源事件与摘要收敛计价。summarize() 是唯一的子类定制钩子。"""
+    """轻量压缩后端：用 token 计量做压力、保留、被引用源事件与摘要收敛计价；summarize 为唯一子类定制钩子。"""
 
     def __init__(自身,上下文,配置值=None):
-        """绑定 compaction 服务，解析并冻结配置；auto 时挂自动监听。"""
+        """以 compaction 名安装，解析并冻结配置；auto 时挂自动监听。"""
         if 配置值 is None:#缺省空配置
             配置值={}#空配置
         super().__init__(上下文)#绑定 compaction 服务
@@ -201,7 +202,7 @@ class 基础压缩引擎(压缩引擎):
         上下文.监听('agent/request-error',请求错误)#request-error 结束
 
     def 摘要(自身,输入,智能体,信号=None):
-        """通过一次直接的 ctx.llm.stream() 调用摘要重放对话区间；覆盖这一唯一钩子即可换成模板或远程摘要器。"""
+        """经 llm.stream 摘要重放对话区间；覆盖本钩子可换成模板或远程摘要器。"""
         目标=对话目标(智能体)#对话目标
         if 目标 is None:#没有精确目标
             配置值=自身.配置#用服务默认
@@ -353,6 +354,6 @@ class 基础压缩引擎(压缩引擎):
             'recover':恢复,#摘要失败恢复
         }#返回结束
 
-基础压缩引擎.inject=注入#Cordis inject 槽
-基础压缩引擎.Config=配置#Cordis Config 槽
-default=基础压缩引擎#Cordis默认导出
+基础压缩引擎.inject=依赖#框架 inject 槽
+基础压缩引擎.Config=配置#框架 Config 槽
+default=基础压缩引擎#框架默认导出

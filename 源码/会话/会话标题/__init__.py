@@ -1,6 +1,6 @@
-"""日志驱动会话标题服务、确定性回退与提供方契约（对齐上游 session-title）。"""
+"""日志驱动会话标题服务、确定性回退与提供方契约。"""
 import threading,weakref#并发与弱表
-from ...依赖 import cordis#Cordis
+from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字典字段,数字字段#配置
 服务=cordis.服务#服务基类
 from ...模型后端.llm import 深冻结#冻结配置
@@ -76,19 +76,20 @@ def 标题输入初始(头):
     'apply':_标题输入应用,
 }#无 wire
 
-名称='session-title'#配套插件名常量
-注入=['sessions','sessionProjections']#依赖常量
-配置模式=字典字段({
+包名='@deepseek-ai/dsh-session-title'
+名称='session-title'
+依赖=['sessions','sessionProjections']#依赖常量
+配置模式=字典字段(字典结构={
     'fallbackMaxWords':数字字段(默认值=8),#回退词数
     'fallbackMaxBytes':数字字段(默认值=80),#回退字节
     'maxTitleBytes':数字字段(默认值=200),#标题字节上限
-})#配置结束
-__all__=['会话标题服务','会话标题错误','会话标题无效错误','折叠会话标题','标题投影定义','名称','注入','应用']#公开面
+})
+__all__=['包名','名称','依赖','应用','默认','会话标题服务','会话标题错误','会话标题无效错误','折叠会话标题','标题投影定义']
 
 class 会话标题服务(服务):
     """日志驱动标题与可选异步提供方。"""
     def __init__(自身,上下文,配置值):
-        """安装 ctx.sessionTitle。"""
+        """以 sessionTitle 名安装服务。"""
         super().__init__(上下文,'sessionTitle')#服务名
         for 键 in ('fallbackMaxWords','fallbackMaxBytes','maxTitleBytes'):
             值=配置值[键]#读配置
@@ -99,7 +100,7 @@ class 会话标题服务(服务):
         自身._配置=深冻结(dict(配置值))#冻结配置
         自身._提供方=None#唯一提供方
         自身._工作=weakref.WeakKeyDictionary()#每会话工作状态
-        自身._生命周期=threading.Event()#拆除旗
+        自身._生命周期=threading.Event()#拆除后置位，阻止新工作
         上下文.sessionProjections.登记(标题投影定义)#title 单元
         上下文.sessionProjections.登记(标题输入投影定义)#titleInput 单元
         上下文.监听('session/event',自身._路由事件)#事件路由
@@ -139,7 +140,7 @@ class 会话标题服务(服务):
         会话.append('session/title',{'title':归一,'messageSeqs':[],'source':{'kind':'user'}})#追加
         结果=自身.获取(会话)#再读
         if 结果 is None:
-            raise 会话标题错误('renamed title failed to fold')#失败
+            raise 会话标题错误('renamed title failed to fold')
         return 结果#快照
 
     def 登记提供方(自身,提供方):
@@ -153,8 +154,8 @@ class 会话标题服务(服务):
             def 拆除():
                 """清提供方。"""
                 自身._提供方=None#清空
-            return 拆除#拆除器
-        return 自身.ctx.副作用(效果,'sessionTitle.register()')#挂 effect
+            return 拆除#拆除时清提供方
+        return 自身.ctx.副作用(效果,'sessionTitle.register()')#绑定提供方寿命
 
     def _处理用户消息(自身,会话,事件):
         """确保回退并调度自动标题。"""
@@ -190,7 +191,9 @@ def 应用(上下文,配置值):
     """注册会话标题服务。"""
     会话标题服务(上下文,配置值)#构造即登记
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置模式#Cordis Config 槽
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置模式#框架槽
+default=默认#框架槽

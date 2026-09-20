@@ -1,4 +1,4 @@
-"""一次性会话全文只读模型的 SQLite 模式。对齐上游 `session-query-sqlite/src/schema.ts`。"""
+"""一次性会话全文只读模型的 SQLite 模式。"""
 import os,sqlite3#路径与 sqlite3
 __all__=[
     '会话查询sqlite应用标识',

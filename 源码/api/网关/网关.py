@@ -1,6 +1,6 @@
 """通过 Cordis 服务与已注册提供方做在线 Typert Remote 分发。
 
-对齐上游 `api/gateway/src/index.ts`。公开面仅中文名。传输、请求关联与响应信封属于 Connection。
+传输、请求关联与响应信封属于 Connection。
 """
 import inspect,re,threading#参数名、标识符与中止
 from concurrent.futures import Future as 原生结果#单次操作结果
@@ -105,7 +105,7 @@ class 中止信号:
                 continue#跳过
             工作=threading.Thread(target=转发中止,args=(信号,))#转发线程
             工作.daemon=True#不挡住退出
-            工作.start()#启动
+            工作.start()
         return 融合.信号#融合信号
 
 class 中止控制器:
@@ -366,14 +366,14 @@ class Typert网关服务(服务):
             raise 网关错误('provider-mismatch',端点,'Context provider '+repr(调用['context'])+' does not match its strict definition',{'field':调用['wire']})#抛出
         身份=解码(调用['codec'],参数[调用['wire']] if 调用['wire'] in 参数 else None,'input-invalid',端点,调用['wire'])#解码身份
         try:
-            上下文对象=提供方['resolve'](身份)#同步解析
+            上下文=提供方['resolve'](身份)#同步解析
         except BaseException as 原因:
             if getattr(原因,'name',None)=='TypertLookupFailure':#查找策略按结构识别
                 raise#原样
             raise 网关错误('context-failed',端点,'Context provider '+repr(调用['context'])+' failed',{'cause':原因,'field':调用['wire']})#包成
-        if 上下文对象 is None:#未解析到
+        if 上下文 is None:#未解析到
             raise 网关错误('context-not-found',端点,'Context provider '+repr(调用['context'])+' did not resolve the requested identity',{'field':调用['wire']})#抛出
-        return 上下文对象#上下文
+        return 上下文#上下文
 
     def 解析参数(自身,参数,参数表,端点):
         """缺席 json 可省略；lookup 必须出现。参数与参数表为 dict。"""
@@ -385,9 +385,9 @@ class Typert网关服务(服务):
         if 'lookup' not in 参数:#缺键
             raise 网关错误('lookup-unavailable',端点,'lookup parameter '+repr(参数['name'])+' has no provider key',{'field':参数['wire']})#抛出
         键=参数['lookup']#查找键
-        提供方=自身.ctx.typert.lookups.get(键)#提供方
-        if 提供方 is None:#不可用
+        if 键 not in 自身.ctx.typert.lookups:#不可用
             raise 网关错误('lookup-unavailable',端点,'lookup provider '+repr(键)+' is unavailable',{'field':参数['wire']})#抛出
+        提供方=自身.ctx.typert.lookups[键]#提供方
         严格=参数['codec']['mode']=='strict' if 'mode' in 参数['codec'] else False#严格
         符号匹配=('wireTypeSymbol' in 提供方 and 'typeSymbol' in 参数['codec'] and 提供方['wireTypeSymbol']==参数['codec']['typeSymbol'])#符号
         if 提供方['wire']!=参数['wire'] or (严格 and not 符号匹配):#不匹配

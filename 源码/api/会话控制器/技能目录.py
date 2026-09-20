@@ -1,15 +1,11 @@
-"""会话寻址、冷可读技能目录 Remote。
+"""会话寻址、冷可读技能目录 Remote。"""
+from ...typert.协议 import 远程服务,远程 as _远程
+from .远程错误与并发 import 远程错误,远程错误消息
 
-对齐上游 `session-controller/src/skill-catalog.ts`。公开面仅中文名。
-"""
-from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
-from .远程错误与并发 import 远程错误,远程错误消息#远程错误
-
-__all__=['会话技能目录']#仅中文公开名
+__all__=['会话技能目录']
 
 class 会话技能目录(远程服务):
     """在不激活冷智能体的情况下列出技能。"""
-    注入=['agents','sessionQuery','typert']#依赖
 
     def __init__(自身,上下文):
         """登记 sessionSkillCatalog 服务。"""
@@ -78,3 +74,6 @@ class 会话技能目录(远程服务):
             return 预设服务.standingKeyFor(智能体预设)#键
         except (OSError,ValueError,TypeError,KeyError,AttributeError):
             return None#未知预设回退全局
+
+依赖=['agents','sessionQuery','typert']
+会话技能目录.inject=依赖#框架槽

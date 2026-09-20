@@ -9,12 +9,6 @@ from .json import (#从json导入
     会话格式版本,#版本校验
 )#json工具
 
-def _取(对象,键):#取字段
-    """支持映射或属性风格的编解码器与选项。"""
-    if isinstance(对象,dict):#映射
-        return 对象[键]#键取
-    return getattr(对象,键)#属性取
-
 def 畸形结果(目标版本,错误,已存版本=None):#畸形结果
     """构造畸形头读结果。"""
     结果={'status':'malformed','targetVersion':目标版本,'reason':str(错误)}#基结果
@@ -51,12 +45,12 @@ class 已编译会话格式目录:#已编译目录
         """记下链、编解码器映射与当代编码器。"""
         自身.链=创建会话格式链(选项)#创建链
         自身.当前版本=自身.链.当前版本#当代版本
-        自身.恢复当前版本=_取(选项,'restoreCurrent')#恢复当代
-        自身.恢复转换当代=_取(选项,'restoreTransformedCurrent')#恢复转换当代
-        自身.当代编码器=_取(选项,'currentEncoder')#当代编码器
+        自身.恢复当前版本=选项['restoreCurrent']#恢复当代
+        自身.恢复转换当代=选项['restoreTransformedCurrent']#恢复转换当代
+        自身.当代编码器=选项['currentEncoder']#当代编码器
         编解码器映射={}#编解码器映射
-        for 编解码器 in _取(选项,'codecs'):#遍历编解码器
-            版本=会话格式版本(_取(编解码器,'version'),'Session format codec version')#校验版本
+        for 编解码器 in 选项['codecs']:#遍历编解码器
+            版本=会话格式版本(编解码器.version,'Session format codec version')#校验版本
             if 版本 in 编解码器映射:#重复
                 raise 会话格式错误(f'Session format codec v{版本} is duplicated')#重复
             if isinstance(编解码器,dict):#映射则冻结副本
@@ -80,7 +74,7 @@ class 已编译会话格式目录:#已编译目录
         已存版本=None#已存版本
         try:#尝试检查版本
             已存版本=检查会话格式版本(头值)#检查
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             return 畸形结果(自身.当前版本,错误)#畸形
         if 已存版本>自身.当前版本:#更新
             return 深冻结({#冻结结果
@@ -89,16 +83,16 @@ class 已编译会话格式目录:#已编译目录
                 'targetVersion':自身.当前版本,#目标
                 'reason':f'stored Session uses newer format v{已存版本}; this build writes v{自身.当前版本}',#原因
             })#freeze结束
-        编解码器=自身.编解码器表.get(已存版本)#取编解码器
-        if 编解码器 is None:#无编解码器
+        if 已存版本 not in 自身.编解码器表:#无编解码器
             return 深冻结({#冻结结果
                 'status':'unsupported',#不支持
                 'storedVersion':已存版本,#已存
                 'targetVersion':自身.当前版本,#目标
                 'reason':f'this build has no Session format codec for v{已存版本}',#原因
             })#freeze结束
+        编解码器=自身.编解码器表[已存版本]#取编解码器
         try:#尝试解码迁移
-            已解码=快照会话格式头(_取(编解码器,'decodeHeader')(头值),'format v'+str(已存版本)+' header')#解码头
+            已解码=快照会话格式头(编解码器.decodeHeader(头值),'format v'+str(已存版本)+' header')#解码头
             头=自身.链.迁移头(已解码)#迁移头
             return 深冻结({#冻结结果
                 'status':'current' if 已存版本==自身.当前版本 else 'migration-required',#状态
@@ -106,7 +100,7 @@ class 已编译会话格式目录:#已编译目录
                 'targetVersion':自身.当前版本,#目标
                 'header':头,#头
             })#freeze结束
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             if isinstance(错误,会话格式不支持迁移错误):#不支持迁移
                 return 深冻结({#冻结结果
                     'status':'unsupported',#不支持
@@ -123,18 +117,18 @@ class 已编译会话格式目录:#已编译目录
             raise 会话格式不支持迁移错误(#不支持
                 f'stored Session uses newer format v{已存版本}; this build writes v{自身.当前版本}',#消息
             )#Error结束
-        编解码器=自身.编解码器表.get(已存版本)#取编解码器
-        if 编解码器 is None:#无
+        if 已存版本 not in 自身.编解码器表:#无
             raise 会话格式不支持迁移错误(f'this build has no Session format codec for v{已存版本}')#不支持
+        编解码器=自身.编解码器表[已存版本]#取编解码器
         return 已存版本,编解码器#返回
 
     def 创建恢复(自身,头值,恢复选项):#创建恢复
         """创建一次单遍物理行恢复为当代逻辑事件。"""
         已存版本,编解码器=自身.产物编解码器(头值)#取编解码器
-        解码器=_取(编解码器,'createDecoder')(头值,_取(恢复选项,'recovery'))#创建解码器
+        解码器=编解码器.createDecoder(头值,恢复选项['recovery'])#创建解码器
         源切口=getattr(解码器,'headerInheritedEventCount',None)#源切口
         if 已存版本==自身.当前版本:#已是当代
-            恢复器=自身.恢复当前版本 if _取(恢复选项,'validation')=='current' else 恒等产物#恢复器
+            恢复器=自身.恢复当前版本 if 恢复选项['validation']=='current' else 恒等产物#恢复器
             return 当代会话格式恢复(解码器,源切口,恢复器,自身.当前版本)#当代恢复
         收集器=会话格式事件收集器()#收集器
         迁移=自身.链.创建流(#创建迁移流
@@ -142,14 +136,14 @@ class 已编译会话格式目录:#已编译目录
             源切口,#源切口
             收集器,#收集器
         )#createStream结束
-        恢复器=自身.恢复当前版本 if _取(恢复选项,'validation')=='current' else 自身.恢复转换当代#恢复器
+        恢复器=自身.恢复当前版本 if 恢复选项['validation']=='current' else 自身.恢复转换当代#恢复器
         return 迁移会话格式恢复(#迁移恢复
             解码器,#解码器
             源切口,#源切口
             迁移,#迁移流
             收集器,#收集器
             恢复器,#恢复器
-            _取(恢复选项,'validation'),#校验
+            恢复选项['validation'],#校验
             已存版本,#源版本
             自身.当前版本,#当代版本
         )#Migrating结束
@@ -158,14 +152,14 @@ class 已编译会话格式目录:#已编译目录
         """编码一条当代物理头记录。"""
         if 检查会话格式版本(头)!=自身.当前版本:#非当代
             raise 会话格式错误(f'encodeCurrent requires Session format v{自身.当前版本}')#错误
-        已编码=_取(自身.当代编码器,'encodeHeader')(头,继承事件数)#编码
+        已编码=自身.当代编码器.encodeHeader(头,继承事件数)#编码
         if 检查会话格式版本(已编码)!=自身.当前版本:#头非当代
             raise 会话格式错误('current Session codec returned a non-current header')#错误
         return 已编码#返回
 
     def 编码当代事件(自身,事件):#编码当代事件
         """编码一条当代物理事件记录。"""
-        return _取(自身.当代编码器,'encodeEvent')(事件)#编码
+        return 自身.当代编码器.encodeEvent(事件)#编码
 
     #上游英文字段名别名（线协议/对照调用面）
     @property#当代版本
@@ -249,7 +243,7 @@ class 迁移会话格式恢复:#迁移恢复
         }#artifact结束
         try:#尝试恢复
             已恢复=自身.恢复产物(产物)#恢复
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             if 自身.校验=='current' or isinstance(错误,会话格式不支持迁移错误):#已是则原样
                 raise 错误#原样
             细节=str(错误)#细节

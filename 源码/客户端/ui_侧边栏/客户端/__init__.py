@@ -5,16 +5,16 @@ from .侧栏根 import 侧栏根,折叠落定毫秒,滚动条滞留毫秒,样式
 from .头部前置控件 import 头部前置控件#macOS 前置控件
 
 __all__=[#仅中文公开名
-    '注入','应用','命名空间','中文','英文','侧栏文案键',
+    '依赖','应用','命名空间','中文','英文','侧栏文案键',
     '侧栏槽名','侧栏子槽','侧栏词表命名空间',
     '侧栏根','折叠落定毫秒','滚动条滞留毫秒','样式表','头部前置控件',
-]#公开面结束
+]
 
 命名空间=侧栏词表命名空间#词表命名空间
-注入=['slots','layout','uiWorkspace','locale']#槽位、布局、工作区 UI、文案
+依赖=['slots','layout','uiWorkspace','locale']#槽位、布局、工作区 UI、文案
 
 def 解析槽标签(标签):#解析槽标签
-    """对齐 ui-slots resolveSlotLabel。字面量或零参 thunk。"""
+    """字面量或零参 thunk。"""
     if 标签 is None:return None#无标签
     if callable(标签):return 标签()#thunk
     return 标签#字面量
@@ -91,5 +91,5 @@ def 应用(上下文):#安装侧栏壳
     上下文.slots.inject('conversation.session.header.leading',挂前置)#注入前置
     同步面板()#首次同步面板列表
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

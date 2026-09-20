@@ -130,24 +130,18 @@ class 会话句柄:#会话句柄
             自身._后端['flush'](信号)#后端刷盘
 
     def 入队活写(自身,事件,报告后台失败):#入队活写
-        """缓冲一条活会话事件（若后端提供 enqueueLive / 入队活写）。"""
-        自身._断言打开('enqueueLive')#已关闭拒绝
-        if '入队活写' in 自身._后端:#中文键
-            自身._后端['入队活写'](事件,报告后台失败)#委托
-            return#结束
-        if 'enqueueLive' in 自身._后端:#英文键
-            自身._后端['enqueueLive'](事件,报告后台失败)#委托
-            return#结束
-        raise 持久化错误('session "'+str(自身.id)+'" handle does not support live enqueue')#缺口
+        """缓冲一条活会话事件（若后端提供入队活写）。"""
+        自身._断言打开('入队活写')#已关闭拒绝
+        if '入队活写' not in 自身._后端:#无面
+            raise 持久化错误('session "'+str(自身.id)+'" handle does not support live enqueue')#缺口
+        自身._后端['入队活写'](事件,报告后台失败)#委托
 
     def 排空活写(自身):#排空活写
         """耐久排空路由活缓冲（若后端提供）。"""
-        自身._断言打开('drainLive')#已关闭拒绝
-        if '排空活写' in 自身._后端:#中文键
-            return 自身._后端['排空活写']()#委托
-        if 'drainLive' in 自身._后端:#英文键
-            return 自身._后端['drainLive']()#委托
-        return None#无活缓冲面则空操作
+        自身._断言打开('排空活写')#已关闭拒绝
+        if '排空活写' not in 自身._后端:#无面
+            return None#无活缓冲面则空操作
+        return 自身._后端['排空活写']()#委托
 
     def 关闭(自身):#关闭句柄
         """释放句柄；写句柄完成待定耐久并释放写所有权。幂等。"""

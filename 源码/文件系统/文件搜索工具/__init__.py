@@ -1,11 +1,4 @@
-"""面向模型的文件系统发现工具套件（`glob`、`grep`），跑在打包的 ripgrep 二进制上。本插件一次注册两个工具；二进制随依赖附带，因此不需要系统安装 `rg`，也不经过 shell 层。
-
-## 由 spawn 支撑，不是 `ctx.fs` 提供方方法
-
-本地工作区发现是进程支撑的 `rg` 工作流，因此这些工具通过 `ctx.subprocess.spawn()` 以固定的 ripgrep argv 模板执行——绝不用 `ctx.shell`，绝不用 `ctx.shell.start()`，也绝不是模型可见的后台任务。工具层拥有模式、参数校验、argv 构造、结果解析、保留、格式化结果溢出与超时声明；子进程 seam 拥有 spawn 执行、进程树终止、环境擦洗与原始输出捕获。本包注入 `tools`、`systemPrompt` 与 `subprocess`——故意不注入 `fs`；`ctx.spillStore` 用 `获取服务()` 机会性读取，因为格式化结果溢出是可选的。
-
-返回路径相对已解析工作目录展示，且仅在工作目录与文件系统 `read` 根是同一工作区的共置部署中可跟进读取——这是已文档化的 v1 部署要求，不是运行时校验。
-"""
+"""登记面向模型的文件系统发现工具（glob、grep）；以前台 argv 跑打包 ripgrep，不经 shell；本包负责模式校验、argv、解析、保留与超时。"""
 from ...依赖.schemastery import 布尔字段,数字字段#配置字段
 from ...工具.超时 import 定时器延迟上限毫秒#导入定时器延迟上限
 from .通配 import (#再导出glob公开面
@@ -49,7 +42,7 @@ from .搜索管道 import (#再导出search-core公开面
 )#search-core再导出结束
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '名称','注入','配置','应用',
+    '名称','依赖','配置','应用',
     '通配最大结果数','通配版本控制排除','应用通配工具','构造通配命令','格式化通配输出',
     '解析通配参数','呈现通配调用','呈现通配结果','跨顶层抽样',
     '检索最大行字节','检索最大命中数','应用检索工具','构造检索命令','格式化检索命中',
@@ -58,7 +51,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 ]#公开面结束
 
 名称='tool-fs-search'#加载器诊断使用的Cordis插件名
-注入=['tools','systemPrompt','subprocess']#搜索工具套件所需的服务（spillStore可选，经获取服务读取）
+依赖=['tools','systemPrompt','subprocess']#搜索工具套件所需的服务（spillStore可选，经获取服务读取）
 
 配置={#插件配置；超额glob抽样是显式部署选择，其余字段有默认值
     'sampleOverCapGlobResults':布尔字段(可空=False),#超额glob是否跨顶层抽样，必填
@@ -118,7 +111,7 @@ def 应用(上下文,配置值):#注册glob与grep工具套件
     })#grep上限交给应用检索工具
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

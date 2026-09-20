@@ -1,6 +1,6 @@
 """把 pi-ai 助手事件翻译成 harness 流式协议。
 
-对齐上游 `llm-pi-ai/src/stream.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import json#JSON 序列化
 import re#正则

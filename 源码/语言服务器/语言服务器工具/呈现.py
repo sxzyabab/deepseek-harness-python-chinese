@@ -1,7 +1,4 @@
-"""`lsp` 工具的纯格式化与会话 cwd 辅助。
-
-对齐上游 `tool-lsp/src/render.ts` 与 `session-cwd.ts`。
-"""
+"""`lsp` 工具的纯格式化与会话 cwd 辅助。"""
 from ..语言服务器.类型 import 语言服务器操作#操作联合
 from ..语言服务器 import 语言服务器错误#本缝异常基类
 

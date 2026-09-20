@@ -1,17 +1,17 @@
 包名='@deepseek-ai/dsh-hooks-codex'#本包名，用于登记所有权
 名称='hooks-codex-invariant'#配套插件名
-注入=['invariants']#依赖不变量服务
+依赖=['invariants']#依赖不变量服务
 
 def 安装(子上下文=None,失败=None):
     """没有运行时不变量：本桥发布的是钩子协议会话事件，由那份配套拥有每条结果引用的调用事件。"""
     return None#不挂运行时检查
 
-def 应用(上下文对象):
+def 应用(上下文):
     """登记本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献
+    return 上下文.invariants.register(包名,安装)#登记贡献
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用']#仅中文公开名
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 apply=应用#Cordis插件入口
 default=应用#Cordis默认导出

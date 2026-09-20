@@ -1,10 +1,10 @@
 from .求值器 import 客户端重定向,动态样式#渲染崩溃重定向与样式记账
 
-__all__=[#仅中文公开名
+__all__=[
     '加载失败阶段','浏览器半字段','渲染失败字段','运行器环境字段',
     '模块标识','错误字段','渲染失败消息','成功结果','说明',
     '可观察','现场包投影','包运行器记账',
-]#公开面结束
+]
 
 说明='mount/teardown 的 Loader 入口与 ModuleLoader 工厂需浏览器；排队/收回/认领/递减优先级本树可跑。'#说明
 
@@ -45,11 +45,11 @@ def 渲染失败消息(槽,消息):#渲染崩溃教学
         if 名 in 消息 and 文 not in 消息:#点名且未带
             重定向=文#记下
             break#停
-    基=f'your entry in slot "{槽}" crashed while React rendered it: {消息}'#基
+    基=f'你在槽 "{槽}" 的入口在 React 渲染时崩溃：{消息}'
     return 基 if 重定向 is None else 基+'\n'+重定向#拼
 
 def 成功结果(运行标识,等待=None):#成功加载
-    """对齐 settled。"""
+    """已结算结果。"""
     出={'ok':True,'pluginRunId':运行标识}#成功
     if 等待:#停等
         出['waitingFor']=list(等待)#带
@@ -142,7 +142,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         for 函数 in list(自身._听):#逐个
             函数()#唤
 
-    def 分配优先级(自身):#allocatePriority：对齐 `--nextPriority`
+    def 分配优先级(自身):
         """后登记更前；先递减再返回（首调为 -1）。"""
         自身.下一优先级-=1#递减
         return 自身.下一优先级#名次
@@ -159,9 +159,9 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
                 return 态['value']#原值
             if 上一 is not None:#等上一
                 try:#成败都过
-                    上一()#落定上一
-                except Exception:#吞掉——对齐 next.then(()=>{}, ()=>{})
-                    pass#不堵
+                    上一()
+                except Exception:
+                    pass
             try:#本操作
                 态['value']=操作()#跑
             except Exception as 错误:#失败
@@ -256,7 +256,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         return 成功结果(半边['pluginRunId'])#骨架成功
 
     def load(自身,半边):#加载：按插件串队
-        """对齐 enqueue(load)；重入接尾而非抛。"""
+        """排队加载；重入接尾而非抛。"""
         return 自身._入队(半边['pluginId'],lambda:自身._加载体(半边))#串队
 
     def retract(自身,插件标识,运行标识):#收回：亦串队

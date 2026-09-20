@@ -10,7 +10,7 @@ __all__=['运行shell命令','运行shell程序']#仅中文公开名
 未找到退出码=127#表中不持有的命令名所报告的状态
 替换嵌套上限=16#`$( … )` 的嵌套上限
 
-def 解析shell(源,选项):#对齐上游 @yarnpkg/parsers.parseShell
+def 解析shell(源,选项):
     """解析命令源为 AST。实现由宿主绑定 yarnpkg parsers，本批次不迁解析器。"""
     raise NotImplementedError('@yarnpkg/parsers.parseShell')#外部依赖
 
@@ -53,7 +53,7 @@ def 启动运行(选项):#构建运行上下文
             'signal':选项.get('signal'),#取消信号
         },#state结束
         'io':{#字节面
-            'stdin':'' if 选项.get('stdin') is None else 选项['stdin'],#??空串，空 stdin 合法
+            'stdin':'' if 'stdin' not in 选项 else 选项['stdin'],#??空串，空 stdin 合法
             'out':写stdout,#写stdout
             'err':写stderr,#写stderr
         },#io结束
@@ -76,8 +76,8 @@ def 运行shell命令(源,选项):#运行命令行
         消息=str(错误).split('\n')[0]#首行
         运行['io']['err'](f'bash: syntax error: {消息}\n')#报告首行
         return 运行['settle'](2)#语法失败码
-    文件系统=选项.get('fs')#可选 fs
-    if 文件系统 is None: 文件系统=宿主文件系统()#??宿主 fs
+    if 'fs' not in 选项: 文件系统=宿主文件系统()#??宿主 fs
+    else: 文件系统=选项['fs']#可选 fs
     机=解释器(标准程序(),文件系统,选项.get('signal'))#建解释器
     return 运行['settle'](机.行(行,运行['state'],运行['io']))#解释并落定
 
@@ -93,8 +93,8 @@ def 运行shell程序(argv,选项):#直接运行程序
     if 信号 is not None and 信号.get('aborted') is True:#已中止
         return 运行['settle'](中止退出码)#130
     try:#执行
-        文件系统=选项.get('fs')#可选 fs
-        if 文件系统 is None: 文件系统=宿主文件系统()#??宿主 fs
+        if 'fs' not in 选项: 文件系统=宿主文件系统()#??宿主 fs
+        else: 文件系统=选项['fs']#可选 fs
         return 运行['settle'](程序(argv,运行['io'],运行['state'],文件系统))#落定结果
     except Exception as 错误:#被模拟程序体什么都可能抛，契约未定所以收不窄
         运行['io']['err'](f'bash: {名}: {错误}\n')#诊断
@@ -180,15 +180,15 @@ class 解释器:#解释器
             def 主体(内层):#带重定向跑
                 """跑子shell行。"""
                 return 自身.行(命令['subshell'],嵌套,内层)#嵌套行
-            参数列表=命令.get('args')#重定向参数
-            if 参数列表 is None: 参数列表=[]#缺席才空列表，空 args 合法
+            if 'args' not in 命令: 参数列表=[]#缺席才空列表，空 args 合法
+            else: 参数列表=命令['args']#重定向参数
             return 自身.带重定向(参数列表,状态,io,主体)#重定向
         if 类型=='group':#分组
             def 主体(内层):#共享状态
                 """跑分组行。"""
                 return 自身.行(命令['group'],状态,内层)#共享
-            参数列表=命令.get('args')#重定向参数
-            if 参数列表 is None: 参数列表=[]#缺席才空列表，空 args 合法
+            if 'args' not in 命令: 参数列表=[]#缺席才空列表，空 args 合法
+            else: 参数列表=命令['args']#重定向参数
             return 自身.带重定向(参数列表,状态,io,主体)#重定向
         if 类型=='command':#程序调用
             return 自身.程序调用(命令,状态,io)#跑程序
@@ -198,16 +198,16 @@ class 解释器:#解释器
         """展开命令的词并运行它们所指名的程序。"""
         argv=[]#参数向量
         重定向列表=[]#重定向列表
-        参数列表=命令.get('args')#命令参数
-        if 参数列表 is None: 参数列表=[]#缺席才空列表，空 args 合法
+        if 'args' not in 命令: 参数列表=[]#缺席才空列表，空 args 合法
+        else: 参数列表=命令['args']#命令参数
         for 参数 in 参数列表:#拆参数
             if 参数.get('type')=='redirection':#重定向
                 重定向列表.append(参数)#收集
                 continue#下一参数
             argv.extend(展开参数(参数,自身.上下文(状态)))#展开入argv
         前缀={}#前缀环境
-        环境列表=命令.get('envs')#前缀环境赋值
-        if 环境列表 is None: 环境列表=[]#缺席才空列表，空 envs 合法
+        if 'envs' not in 命令: 环境列表=[]#缺席才空列表，空 envs 合法
+        else: 环境列表=命令['envs']#前缀环境赋值
         for 环境 in 环境列表:#收集前缀赋值
             右值列表=环境.get('args')#赋值右值列表
             右=环境['args'][0] if 右值列表 is not None and len(右值列表)>0 else None#右值，判的是 length
@@ -236,13 +236,13 @@ class 解释器:#解释器
 
     def 带重定向(自身,重定向列表,状态,io,主体):#应用重定向
         """在一个主体周围应用重定向，然后什么也不恢复。"""
-        stdin=io['stdin']#当前stdin
-        out=io['out']#当前stdout
-        err=io['err']#当前stderr
+        输入=io['stdin']#当前stdin
+        输出=io['out']#当前stdout
+        错误流=io['err']#当前stderr
         for 重定向 in 重定向列表:#逐重定向
             目标列表=[]#展开目标
-            目标源=重定向.get('args')#重定向目标
-            if 目标源 is None: 目标源=[]#缺席才空列表
+            if 'args' not in 重定向: 目标源=[]#缺席才空列表
+            else: 目标源=重定向['args']#重定向目标
             for 参数 in 目标源:#展开
                 目标列表.extend(展开参数(参数,自身.上下文(状态)))#展开
             目标=目标列表[0] if len(目标列表)>0 else None#首目标
@@ -252,9 +252,9 @@ class 解释器:#解释器
             try:#应用一种重定向
                 子类型=重定向.get('subtype')#子类型
                 if 子类型=='<':#读入
-                    stdin=自身.文件系统['readText'](在目录解析(状态['cwd'],目标))#读文件为stdin
+                    输入=自身.文件系统['readText'](在目录解析(状态['cwd'],目标))#读文件为stdin
                 elif 子类型=='<<<':#here-string
-                    stdin=f'{目标}\n'#字面加换行
+                    输入=f'{目标}\n'#字面加换行
                 elif 子类型 in ('>','>>'):#截断写或追加写
                     路径=在目录解析(状态['cwd'],目标)#绝对路径
                     if 子类型=='>':#先截断
@@ -263,14 +263,14 @@ class 解释器:#解释器
                         """串行追加。"""
                         自身.文件系统['writeText'](路径,文本,True)#串行追加
                     if 重定向.get('fd')==2:#stderr
-                        err=文件汇#挂stderr
+                        错误流=文件汇#挂stderr
                     else:#stdout
-                        out=文件汇#挂stdout
+                        输出=文件汇#挂stdout
                 elif 子类型=='>&':#描述符复制
                     if 重定向.get('fd')==2 and 目标=='1':#2>&1
-                        err=out#复制
-                    elif (重定向.get('fd') is None or 重定向.get('fd')==1) and 目标=='2':#1>&2
-                        out=err#复制
+                        错误流=输出#复制
+                    elif ('fd' not in 重定向 or 重定向['fd']==1) and 目标=='2':#1>&2
+                        输出=错误流#复制
                     else:#不支持
                         描述符=重定向.get('fd') if 重定向.get('fd') is not None else 1#描述符
                         io['err'](f'bash: {描述符}>&{目标}: unsupported descriptor redirection\n')#诊断
@@ -281,7 +281,7 @@ class 解释器:#解释器
             except Exception as 错误:#重定向路径上的 VFS 读写可能抛运行时错误，契约未定所以收不窄
                 io['err'](f"{描述失败('bash',在目录解析(状态['cwd'],目标),错误)}\n")#诊断
                 return 1#失败
-        return 主体({'stdin':stdin,'out':out,'err':err})#跑主体
+        return 主体({'stdin':输入,'out':输出,'err':错误流})#跑主体
 
     def 上下文(自身,状态):#构建展开上下文
         """展开钩子：`$( … )` 在同一表的嵌套解释器上运行。"""

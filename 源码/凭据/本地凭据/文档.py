@@ -1,6 +1,6 @@
 """凭证 YAML 文档的解析、渲染与仅所有者权限检查。
 
-对齐上游 `credentials-local` 的 versioned `refs` + `records` 布局（DOCUMENT_VERSION=1）。
+versioned `refs` + `records` 布局（DOCUMENT_VERSION=1）。
 公开面仅中文名。
 
 注释往返：上游用 `yaml` 包的 CST/`parseDocument` 保注释编辑；本包 `pyproject.toml` 仅依赖
@@ -10,7 +10,7 @@
 import os,errno,io,copy#路径、错误码、文本流与深拷贝
 import yaml#PyYAML
 from ..凭据 import 凭证引用,解析凭证键#引用与记录键
-from ...工具.工作区路径 import 规范化监视路径#监视路径规范化
+from ...工具.主目录路径 import 规范化监视路径#监视路径规范化
 
 凭证文件名='.credentials.yaml'#harness 主目录内凭证文档的基名
 文档版本=1#本构建读写的布局版本

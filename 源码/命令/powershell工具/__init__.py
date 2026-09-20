@@ -1,7 +1,6 @@
-"""`ctx.shell` 能力 seam 的面向模型 PowerShell 消费方。
+"""面向模型的 PowerShell 消费方。
 
-对齐上游 `tool-pwsh/src/index.ts`。公开面仅中文名。
-用于 Windows 组合，由 PowerShell 执行器支撑 `ctx.shell`；工具约定是 PowerShell 方言：原生 `C:\\...` 路径与 `$env:NAME` 变量。行为与 bash 工具逐调用镜像。
+用于 Windows 组合，由 PowerShell 执行器支撑外壳能力；工具约定是 PowerShell 方言：原生 C:\\... 路径与 $env:NAME 变量。行为与 bash 工具逐调用镜像。
 """
 import json,math,os#JSON片段、有限数与路径
 from ...依赖.schemastery import 布尔字段#配置字段
@@ -14,12 +13,12 @@ from ...沙盒.沙盒 import (
     校验升级参数,#校验升级参数配对
 )#沙箱升级面
 from .后台 import 做成任务完成#后台done映射为任务结果
-from .呈现 import 渲染Pwsh结果,渲染Pwsh进程读取#pwsh渲染
+from .渲染 import 渲染Pwsh结果,渲染Pwsh进程读取#pwsh渲染
 
-__all__=['名称','注入','配置','应用']#仅中文公开名
+__all__=['名称','依赖','配置','应用']#仅中文公开名
 
 名称='tool-pwsh'#插件名（字面量不译）
-注入=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
+依赖=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
 配置={#pwsh工具配置模式
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
 }#配置模式结束
@@ -160,7 +159,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             请求['session']=智能体.session#按会话
         return 沙箱政策服务.resolve(请求)#解析常驻政策
     def 批准Pwsh升级(模式,理由,执行,常驻政策):#审批pwsh升级
-        """在任何东西执行之前，经 ctx.approval 解析沙箱升级请求。"""
+        """在任何东西执行之前，经审批层解析沙箱升级请求。"""
         if len(升级模式)==0:#本组合没有升级
             raise pwsh工具错误('sandbox_permissions is not available in this composition (no sandboxing executor to escalate)')#拒绝
         return 批准升级(#共用审批
@@ -244,7 +243,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):#已取消
                 抛中止()#抛出中止
             def 任务体():#任务体
-                """在 ctx.jobs 下拉起后台 pwsh 进程。"""
+                """在通用任务层下拉起后台 pwsh 进程。"""
                 进程=上下文.shell.启动(上下文.shell.解析(请求))#解析并后台启动
                 def 取消():#取消则杀进程
                     """请求杀掉后台进程。"""
@@ -270,7 +269,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             抛中止()#抛出中止
         return 规范Pwsh结果(结果)#返回规范前台结果
     def 呈现调用(参数):#调用卡片
-        """后台确认不带终端退出状态；通用卡片镜像 bash 工具的后台展示。"""
+        """后台确认不带终端退出状态；通用卡片镜像 bash 工具的后台呈现。"""
         if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#后台
             return {#通用执行卡片
                 'card':'generic',#通用卡
@@ -288,7 +287,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             卡片['cwd']=参数['workdir']#带上
         return 卡片#前台卡片
     def 呈现结果(参数,结果):#结果卡片
-        """已完成前台输出展示为终端；后台确认与执行错误用通用围栏输出。"""
+        """已完成前台输出呈现为终端；后台确认与执行错误用通用围栏输出。"""
         if 'content' not in 结果:#无内容
             return None#不认
         内容=结果['content']#内容块列表
@@ -373,7 +372,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
     }))#pwsh工具结束
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

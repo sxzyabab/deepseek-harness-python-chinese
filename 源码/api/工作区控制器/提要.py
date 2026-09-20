@@ -1,7 +1,4 @@
-"""重连安全的工作区基线与增量生产者。
-
-对齐上游 `workspace-controller/src/feed.ts`。公开面仅中文名。
-"""
+"""重连安全的工作区基线与增量生产者。"""
 import threading#关注者等待
 from ...工具.双端队列 import 双端队列#帧缓冲
 from .远程错误与中止 import 已中止,远程错误#中止与远程错误
@@ -174,7 +171,7 @@ class 工作区提要:
                 return#忽略
             自身._已知标识.discard(键)#移除
             自身._发布({'type':'remove','workspaceId':自身._工作区标识(键)})#remove
-            return#结束
+            return
         if 键 not in 自身._已知标识:#未知 upsert
             return#忽略
         自身._发布({'type':'upsert','workspace':变更工作区视图(键,变更['value'],自身._工作区记录解析)})#upsert

@@ -34,15 +34,16 @@ def 渲染pdf页(文档,页号,画布,信号,像素比,渲染文本=None):
             已取消[0]=True#标记
             if hasattr(任务,'cancel'):#可取消
                 任务.cancel()#停画布
-            if 文本 is not None and hasattr(文本,'cancel'):#文本
-                文本.cancel()#停文本
+            if 文本 is not None and 'cancel' in 文本:
+                文本['cancel']()
 
         try:
             if 已中止(信号):#已中止
                 取消()#停
             任务.等待()#同步等待画布
-            if 文本 is not None and hasattr(文本,'promise'):#文本
-                文本['promise'].等待() if hasattr(文本['promise'],'等待') else None#等文本
+            承诺=文本['promise'] if 文本 is not None and 'promise' in 文本 else None
+            if 承诺 is not None:
+                承诺.等待()
             if 已中止(信号):#已中止
                 raise RuntimeError('已中止')
             return {'width':视口['width'],'height':视口['height']}#尺寸

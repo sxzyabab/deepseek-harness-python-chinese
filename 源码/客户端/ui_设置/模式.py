@@ -1,7 +1,8 @@
-import re#数字键判定
-from ...依赖.cordis.服务 import 服务#Cordis 服务基类
+import re
+from ...依赖.cordis.服务 import 服务
+from .设置作用域 import 设置错误
 
-__all__=['设置模式服务']#仅中文公开名
+__all__=['设置模式服务']
 
 数字键=re.compile(r'^\d+\Z',re.ASCII)#纯数字键
 
@@ -22,7 +23,7 @@ def 克隆脊(根,路径):
     for 下标 in range(len(路径)-1):#走到叶前
         键=路径[下标]#本键
         下一=路径[下标+1]#下一键
-        旧=目标[int(键)] if isinstance(目标,list) else 目标.get(键)#子
+        旧=目标[int(键)] if isinstance(目标,list) else (目标[键] if 键 in 目标 else None)
         子=克隆容器(旧,下一)#拷或新建
         if isinstance(目标,list):#数组
             目标[int(键)]=子#写回
@@ -62,7 +63,7 @@ class 设置模式服务(服务):
             类型名=节点['type'] if 'type' in 节点 else None#类型
             if 类型名=='object':#对象
                 表=节点['dict'] if 'dict' in 节点 else None#字段表
-                节点=表.get(键) if isinstance(表,dict) else None#子
+                节点=(表[键] if 键 in 表 else None) if isinstance(表,dict) else None
             elif 类型名=='dict' or 类型名=='array':#字典或数组
                 节点=节点['inner'] if 'inner' in 节点 else None#内层
             else:#标量
@@ -94,9 +95,9 @@ class 设置模式服务(服务):
         return 键 in 父#有键
 
     def 设路径(自身,根,路径,值):
-        """不可变写入；空路径抛英文。"""
+        """不可变写入；空路径抛错。"""
         if len(路径)==0:#空
-            raise Exception('ui-settings: setPath needs a non-empty path')#空路径
+            raise 设置错误('设路径需要非空路径')
         结果,父,叶=克隆脊(根,路径)#脊
         if isinstance(父,list):#数组
             父[int(叶)]=值#写
@@ -107,7 +108,7 @@ class 设置模式服务(服务):
     def 删路径(自身,根,路径):
         """不可变删除；缺席原根。"""
         if len(路径)==0:#空
-            raise Exception('ui-settings: deletePath needs a non-empty path')#空路径
+            raise 设置错误('删路径需要非空路径')
         if 自身.有路径(根,路径) is False:#无
             return 根#原样
         结果,父,叶=克隆脊(根,路径)#脊

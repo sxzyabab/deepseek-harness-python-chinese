@@ -1,22 +1,23 @@
 """严格的日程解码、回放、时间校验与成帧。"""
-import json,math,re#JSON片段、有限数、正则
-from datetime import datetime,timezone#UTC与本地投影
-from zoneinfo import ZoneInfo#IANA时区
+import json,math,re#JSON片段、有限性、正则
+from datetime import datetime,timedelta,timezone#UTC、固定偏移与本地投影
+from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 
 变更版本=1#本包实现的持久日程协议版本
 最短固定间隔秒=300#固定频率提醒的固定 v1 下限
-四位年下界毫秒=int(datetime(1,1,1,tzinfo=timezone.utc).timestamp()*1000)#0001-01-01T00:00:00.000Z
-四位年上界毫秒=int(datetime(9999,12,31,23,59,59,999000,tzinfo=timezone.utc).timestamp()*1000)#9999-12-31T23:59:59.999Z
-规范UTC瞬间=re.compile(r'^(?!0000)\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z$')#规范四位年UTC瞬间
+四位年下界毫秒=int(datetime(1,1,1,tzinfo=ZoneInfo('UTC')).timestamp()*1000)#0001-01-01T00:00:00.000Z
+四位年上界毫秒=int(datetime(9999,12,31,23,59,59,999000,tzinfo=ZoneInfo('UTC')).timestamp()*1000)#9999-12-31T23:59:59.999Z
+规范UTC瞬间=re.compile(r'^(?!0000)[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z\Z',re.ASCII)#规范四位年UTC瞬间
 偏移瞬间=re.compile(#带显式Z或数字偏移的瞬间
-    r'^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})'#年-月-日
-    +r'T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})'#时:分:秒
-    +r'(?:\.(?P<fraction>\d{1,3}))?(?P<zone>Z|(?P<sign>[+-])'#可选小数秒与区
-    +r'(?P<offsetHour>\d{2}):(?P<offsetMinute>\d{2}))$'#偏移时:分
+    r'^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})'#年-月-日
+    +r'T(?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})'#时:分:秒
+    +r'(?:\.(?P<fraction>[0-9]{1,3}))?(?P<zone>Z|(?P<sign>[+-])'#可选小数秒与区
+    +r'(?P<offsetHour>[0-9]{2}):(?P<offsetMinute>[0-9]{2}))\Z'#偏移时:分
+    ,re.ASCII
 )#结束偏移瞬间
-本地日期=re.compile(r'^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})$')#本地日历日期
-本地时间=re.compile(r'^(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?:\.(?P<fraction>\d{1,3}))?$')#本地墙钟时间
-IANA区=re.compile(r'^[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)+$')#IANA Area/Location
+本地日期=re.compile(r'^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})\Z',re.ASCII)#本地日历日期
+本地时间=re.compile(r'^(?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})(?:\.(?P<fraction>[0-9]{1,3}))?\Z',re.ASCII)#本地墙钟时间
+IANA区=re.compile(r'^[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)+\Z',re.ASCII)#IANA Area/Location
 
 class 日程日志错误(Exception):#持久日志错误
     """畸形或转移非法的持久日程数据错误。"""
@@ -58,23 +59,38 @@ def 解码标识(值):#在持久边界校验一个稳定的会话局部 id
     return 铸造日程标识(值)#打品牌
 
 def 解析纪元毫秒(瞬间):#对齐 Date.parse
-    """把规范 UTC 瞬间解析成纪元毫秒。"""
+    """把规范 UTC 瞬间解析成纪元毫秒；轮廓写死，不用 fromisoformat。"""
     if not isinstance(瞬间,str):#须是字符串
         return float('nan')#非法
-    try:#解析 ISO
-        文本=瞬间#候选
-        if 文本.endswith('Z'):#UTC 后缀
-            文本=文本[:-1]+'+00:00'#换 Python 偏移
-        时刻=datetime.fromisoformat(文本)#解析
+    匹配=偏移瞬间.match(瞬间)#按写死轮廓
+    if 匹配 is None:#轮廓不对
+        return float('nan')#非法
+    try:#按捕获组构造
+        年=int(匹配.group('year'))#年
+        月=int(匹配.group('month'))#月
+        日=int(匹配.group('day'))#日
+        时=int(匹配.group('hour'))#时
+        分=int(匹配.group('minute'))#分
+        秒=int(匹配.group('second'))#秒
+        小数=匹配.group('fraction') if 匹配.group('fraction') is not None else ''#小数秒
+        微秒=int((小数+'000').ljust(3,'0')[:3])*1000 if 小数!='' else 0#毫秒→微秒
+        if 匹配.group('zone')=='Z':#UTC
+            区=ZoneInfo('UTC')#零区
+        else:#数字偏移
+            偏移=timedelta(hours=int(匹配.group('offsetHour')),minutes=int(匹配.group('offsetMinute')))#偏移
+            if 匹配.group('sign')=='-':#西向
+                偏移=-偏移#取负
+            区=timezone(偏移)#固定偏移
+        时刻=datetime(年,月,日,时,分,秒,微秒,tzinfo=区)#时刻
         return int(时刻.timestamp()*1000)#纪元毫秒
-    except Exception:#解析失败
-        return float('nan')#NaN
+    except (ValueError,OverflowError,OSError):
+        return float('nan')
 
 def 纪元转规范UTC(纪元毫秒):#对齐 Date#toISOString
     """把纪元毫秒格式化成规范四位年 RFC 3339 UTC。"""
     整毫秒=int(纪元毫秒)#整毫秒
     秒,毫秒=divmod(整毫秒,1000)#拆秒与毫秒
-    时刻=datetime.fromtimestamp(秒,tz=timezone.utc)#UTC 时刻
+    时刻=datetime.fromtimestamp(秒,tz=ZoneInfo('UTC'))#UTC 时刻
     return 时刻.strftime('%Y-%m-%dT%H:%M:%S')+f'.{毫秒:03d}Z'#规范轮廓
 
 def 解码瞬间(值):#校验一个规范的四位年 UTC 瞬间
@@ -96,9 +112,9 @@ def 分组数字(分组,名):#把一个必需的命名正则分组读成数字
 def 日历纪元(分量):#把精确日历字段转成 UTC 形纪元，并拒绝归一化
     """把精确日历字段转成 UTC 形纪元，并拒绝归一化。"""
     try:#构造 UTC 形
-        时刻=datetime(分量['year'],分量['month'],分量['day'],分量['hour'],分量['minute'],分量['second'],分量['millisecond']*1000,tzinfo=timezone.utc)#填字段
-    except Exception:#非法日历
-        raise 日程输入错误('invalid_rule','The at value must be a real ISO calendar date and time.')#非真实日历
+        时刻=datetime(分量['year'],分量['month'],分量['day'],分量['hour'],分量['minute'],分量['second'],分量['millisecond']*1000,tzinfo=ZoneInfo('UTC'))#填字段
+    except (ValueError,OverflowError):
+        raise 日程输入错误('invalid_rule','The at value must be a real ISO calendar date and time.')
     纪元=int(时刻.timestamp()*1000)#读纪元
     if (not math.isfinite(纪元)#须有限
         or 时刻.year!=分量['year']#年未被归一
@@ -164,8 +180,8 @@ def 规范化时区(值):#校验并规范化一个原始 IANA 时区选择器
             规范='UTC'#规范名
         else:#IANA
             规范=ZoneInfo(值).key#解析规范名
-    except Exception as 错误:#拒绝
-        raise 日程输入错误('invalid_time_zone','time_zone must be UTC or a valid IANA Area/Location name.',错误)#时区非法
+    except ZoneInfoNotFoundError as 错误:
+        raise 日程输入错误('invalid_time_zone','time_zone must be UTC or a valid IANA Area/Location name.',错误)
     if 规范!='UTC' and IANA区.match(规范) is None:#解析结果仍须是 UTC 或 IANA
         raise 日程输入错误('invalid_time_zone','time_zone must resolve to UTC or an IANA Area/Location name.')#解析结果非法
     return 规范#规范 IANA 名
@@ -195,10 +211,10 @@ def 解析本地绝对(值):#解析严格本地日历字段，不咨询进程时
 def 本地投影(时区名,纪元毫秒):#把一个纪元格式化成精确本地字段及产生它们的区偏移
     """把一个纪元格式化成精确本地字段及产生它们的区偏移。"""
     try:#按该时区投影
-        区=timezone.utc if 时区名=='UTC' else ZoneInfo(时区名)#目标时区
+        区=ZoneInfo('UTC') if 时区名=='UTC' else ZoneInfo(时区名)#目标时区
         时刻=datetime.fromtimestamp(纪元毫秒/1000,tz=区)#本地时刻
-    except Exception:#时区无偏移
-        raise 日程输入错误('invalid_time_zone','time_zone did not expose a usable UTC offset.')#时区无偏移
+    except (ZoneInfoNotFoundError,OverflowError,OSError,ValueError):
+        raise 日程输入错误('invalid_time_zone','time_zone did not expose a usable UTC offset.')
     偏移=时刻.utcoffset()#区偏移
     if 偏移 is None:#拿不到可用偏移
         raise 日程输入错误('invalid_time_zone','time_zone did not expose a usable UTC offset.')#时区无偏移
@@ -358,7 +374,7 @@ def 解析固定频率出现(记录,接受于):#解析一次固定频率决定�
         raise 日程日志错误('every interval milliseconds must be a positive safe integer')#间隔非法
     if 接受于<目标:#不能早于当前目标
         raise 日程日志错误('every dispatch cannot precede the active scheduledAt')#过早派发
-    步数=math.floor((接受于-目标)/间隔)#跳过的整步数
+    步数=(接受于-目标)//间隔#跳过的整步数
     出现=目标+步数*间隔#最近到期出现
     if 出现<目标 or 出现>接受于:#出现须落在区间内
         raise 日程日志错误('every occurrence arithmetic must stay within the accepted interval')#算术越界

@@ -1,6 +1,6 @@
 """持久的 pi-ai 回放元数据与助手历史重建。
 
-对齐上游 `llm-pi-ai/src/replay.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import json#JSON 解析
 from json import JSONDecodeError#畸形 JSON

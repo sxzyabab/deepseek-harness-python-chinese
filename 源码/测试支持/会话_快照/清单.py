@@ -1,5 +1,5 @@
 import os,re#绝对路径与名模式
-import yaml#YAML 解析（对齐 js-yaml JSON_SCHEMA）
+import yaml
 
 __all__=['解析快照清单','写当前会话夹具']#仅中文公开名
 
@@ -10,12 +10,12 @@ __all__=['解析快照清单','写当前会话夹具']#仅中文公开名
 合法会话格式覆盖=frozenset([#合法覆盖名
     'multi-hop','packed-row','retry-failure','shipped-profile','adjacent-migration','retired-tools',
 ])#覆盖结束
-名称模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')#kebab-case 名
-环境名模式=re.compile(r'^[A-Z][A-Z0-9_]*$')#环境名
+名称模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\Z',re.ASCII)#kebab-case 名
+环境名模式=re.compile(r'^[A-Z][A-Z0-9_]*\Z',re.ASCII)#环境名
 
 def 写当前会话夹具(清单,模式):#是否写当前世代
     """一次运行是否为本场景写入当前写入器的 Session fixture。"""
-    return 模式!='replay' and 清单.get('session') is None and 清单.get('sessionFormat') is None#非回放且自有且无钉住历史
+    return 模式!='replay' and 'session' not in 清单 and 'sessionFormat' not in 清单#非回放且自有且无钉住历史
 def 要求映射(值,标签):#要求映射
     """值必须为映射。"""
     if not isinstance(值,dict):#非映射
@@ -48,10 +48,10 @@ def 要求正整数索引(值,标签):#要求正整数索引
 
 def 解析快照清单(源,路径='snapshot.yml'):#解析清单
     """解析一份 snapshot.yml，不接纳未知字段。"""
-    try:#解析 YAML
-        解析=yaml.safe_load(源)#仅安全加载
-    except Exception as 错误:#YAML 非法
-        raise Exception(f'session-snapshot: {路径}: invalid YAML: {错误}')#YAML 非法
+    try:
+        解析=yaml.safe_load(源)
+    except yaml.YAMLError as 错误:
+        raise Exception(f'session-snapshot: {os.path.basename(路径)}: YAML 非法: {错误}')
     try:#校验
         根=要求映射(解析,'manifest')#根映射
         精确键集(根,[#允许键
@@ -60,10 +60,10 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
         ],'manifest')#精确键
         if 根.get('version')!=1:#版本
             raise Exception('manifest.version 必须等于 1')#版本
-        场景=None if 根.get('scenario') is None else 要求名(根['scenario'],'manifest.scenario')#场景
+        场景=None if 'scenario' not in 根 else 要求名(根['scenario'],'manifest.scenario')#场景
         if not isinstance(根.get('profile'),str) or 根['profile'] not in 合法配置档:#profile
             raise Exception('manifest.profile 必须是 headless、sdk、acp 或 web')#profile
-        组合=None if 根.get('composition') is None else 要求名(根['composition'],'manifest.composition')#组合
+        组合=None if 'composition' not in 根 else 要求名(根['composition'],'manifest.composition')#组合
         录制=None#录制
         if 根.get('recording') is not None:#有录制
             if not isinstance(根['recording'],str) or 根['recording'] not in 合法录制:#非法
@@ -156,7 +156,7 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
                     附件列表.append({'id':附件['id'],'mediaType':附件['mediaType'],'data':附件['data']})#追加
                 if len({项['id'] for 项 in 附件列表})!=len(附件列表):#重复
                     raise Exception('manifest.input.attachments 的 id 必须唯一')#重复
-            if 值.get('task') is None and 附件列表 is None:#空输入
+            if 'task' not in 值 and 附件列表 is None:#空输入
                 raise Exception('manifest.input 必须声明 task 或 attachments')#空
             输入={}#组装
             if 值.get('task') is not None:#task
@@ -213,7 +213,7 @@ def 解析快照清单(源,路径='snapshot.yml'):#解析清单
             结果['session']=会话#写入
         if 会话格式 is not None:#会话格式
             结果['sessionFormat']=会话格式#写入
-        return 结果#返回
-    except Exception as 错误:#包装
-        消息=错误.args[0] if 错误.args else str(错误)#消息
-        raise Exception(f'session-snapshot: {路径}: {消息}') from 错误#包装
+        return 结果
+    except Exception as 错误:
+        消息=错误.args[0] if 错误.args else str(错误)
+        raise Exception(f'session-snapshot: {os.path.basename(路径)}: {消息}') from 错误

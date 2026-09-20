@@ -1,12 +1,11 @@
-import os,re,sys,tempfile,shutil,threading,subprocess,time,socket#路径、平台、临时目录、删除、心跳、ssh、宽限与 Unix 套接字
-from ...依赖 import cordis#服务
-服务=cordis.服务#基类
-from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段#配置字段
-from ...内核.作用域 import 操作任务#就绪与操作
-from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号,截止#中止与截止
-from .协议 import ssh请求对等,ssh协议版本#对等
-from .模式 import 握手模式,流端点模式,ssh错误#握手与流坐标
-from .流安全 import 认证流,套接字流#认证与套接字面
+import os,re,sys,tempfile,shutil,threading,subprocess,time,socket
+from ...依赖 import cordis
+from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段
+from ...内核.作用域 import 操作任务
+from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号,截止
+from .协议 import ssh请求对等,ssh协议版本
+from .模式 import 握手模式,流端点模式,ssh错误
+from .流安全 import 认证流,套接字流
 
 __all__=['配置','ssh连接']#仅中文公开名
 
@@ -25,7 +24,7 @@ __all__=['配置','ssh连接']#仅中文公开名
 }#配置结束
 
 主机形态=re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.@-]*\Z',re.ASCII)#主机别名
-哈希形态=re.compile(r'^[0-9a-f]{64}\Z')#SHA-256
+哈希形态=re.compile(r'^[0-9a-f]{64}\Z',re.ASCII)#SHA-256
 
 def 单引号(值):#远端 argv 引用
     """POSIX 单引号。"""
@@ -49,7 +48,7 @@ def 包装管道(文件):#Popen 管道面
         """读管道。"""
         流._暂停事件.wait()#pause
         return 文件.read(大小)#读
-    def 毁(错误=None):#关
+    def 关闭流(错误=None):#关
         """关管道。"""
         if 流.closed:#已关
             return#忽略
@@ -66,11 +65,11 @@ def 包装管道(文件):#Popen 管道面
             回调()#通知
     流.write=写#写
     流.read=读#读
-    流.destroy=毁#毁
+    流.destroy=关闭流#毁
     return 流#面
 
-class ssh连接(服务):#一局不重连的 SSH 会话
-    """丢失会使全部活动操作失效。"""
+class ssh连接(cordis.服务):
+    """一局不重连的 SSH 会话。丢失会使全部活动操作失效。"""
     Config=配置#框架槽：类级配置
     def __init__(自身,上下文,配置值):#构造
         """校验配置并启动主连接。"""
@@ -101,12 +100,12 @@ class ssh连接(服务):#一局不重连的 SSH 会话
             except BaseException as 错误:#失败
                 自身._失败(错误 if isinstance(错误,BaseException) else ssh错误(str(错误)))#失败
                 自身.就绪.拒绝(错误)#拒绝
-        threading.Thread(target=启动线程).start()#启动
+        threading.Thread(target=启动线程).start()
         def 拆除效果():#fiber
             """拆除连接。"""
             def 清理():#拆除器
                 """关连接。"""
-                自身.拆除()#拆
+                自身.拆除()
             return 清理#拆除器
         上下文.副作用(拆除效果,'ssh.connection')#登记
 
@@ -157,7 +156,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
     @property#只读
     def 引导路径(自身):#已验证 PTC 入口
         """未配置则在程序执行前拒绝。"""
-        if 自身.远端 is None or 自身.配置值.get('bootstrapPath') is None:#未配
+        if 自身.远端 is None or 'bootstrapPath' not in 自身.配置值:#未配
             raise ssh错误('SSH PTC requires a verified bootstrapPath and bootstrapHash')#拒绝
         return 自身.配置值['bootstrapPath']#路径
 
@@ -180,7 +179,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
         """返回已暂停套接字；消费方挂上后再恢复。"""
         任务=操作任务()#操作
         自身.操作表.add(任务)#跟踪
-        def 跑():#线程
+        def 在线程执行():#线程
             """建立流。"""
             try:#建立
                 值=自身._建立流(端点,信号)#流
@@ -189,7 +188,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
                 任务.拒绝(错误)#拒绝
             finally:#摘
                 自身.操作表.discard(任务)#摘
-        threading.Thread(target=跑).start()#启动
+        threading.Thread(target=在线线程执行).start()
         return 任务.等待()#流
 
     def _建立流(自身,端点,信号=None):#转发并认证
@@ -214,12 +213,12 @@ class ssh连接(服务):#一局不重连的 SSH 会话
                 try:#取消
                     自身._控制命令(['-O','cancel','-L',转发])#取消
                 except BaseException:#忽略
-                    pass#吞
+                    pass
             if os.path.exists(本地):#残留
                 try:#删
                     os.remove(本地)#删
                 except OSError:#忽略
-                    pass#吞
+                    pass
         try:#转发
             自身._控制命令(['-O','forward','-o','ExitOnForwardFailure=yes','-L',转发],信号)#转发
         except BaseException:#失败
@@ -251,16 +250,16 @@ class ssh连接(服务):#一局不重连的 SSH 会话
         """只跑一次。"""
         if 自身._拆除任务 is not None:#已开始
             自身._拆除任务.wait()#等
-            return#结束
+            return
         完成=threading.Event()#完成
         自身._拆除任务=完成#记下
-        def 跑():#一次
+        def 在线程执行():#一次
             """拆除体。"""
             try:#拆
                 自身._拆除一次()#拆
             finally:#广播
                 完成.set()#完
-        threading.Thread(target=跑).start()#拆
+        threading.Thread(target=在线线程执行).start()#拆
         完成.wait()#等
 
     def _拆除一次(自身):#一次拆除
@@ -268,12 +267,12 @@ class ssh连接(服务):#一局不重连的 SSH 会话
         自身._已关=True#记下
         自身.寿命.中止(ssh错误('SSH connection is closing'))#中止
         if 自身.心跳 is not None:#心跳
-            自身.心跳.cancel()#清
+            自身.心跳.cancel()
         try:#尽量 close
             try:#就绪
                 自身.就绪.等待()#等
             except BaseException:#启动失败
-                pass#吞
+                pass
             if 自身.失败 is None and 自身.对等 is not None:#健康
                 def 空(值):#z.null
                     """空。"""
@@ -293,12 +292,12 @@ class ssh连接(服务):#一局不重连的 SSH 会话
                 try:#等
                     自身.子进程已关.等待()#等
                 finally:#清
-                    强制.cancel()#清
+                    强制.cancel()
             for 任务 in list(自身.操作表):#操作
                 try:#等
                     任务.等待()#等
                 except BaseException:#忽略
-                    pass#吞
+                    pass
             if 自身.目录 is not None:#临时
                 shutil.rmtree(自身.目录,ignore_errors=True)#删
 
@@ -363,7 +362,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
         自身.失败=错误#记下
         自身.寿命.中止(错误)#中止
         if 自身.心跳 is not None:#心跳
-            自身.心跳.cancel()#清
+            自身.心跳.cancel()
         if 自身.对等 is not None:#对等
             自身.对等.关闭(错误)#关
         for 套接字对象 in reversed(list(自身.套接字表)):#套接字
@@ -398,7 +397,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
                     if not 块:#结束
                         break#停
             except OSError:#关
-                pass#吞
+                pass
         threading.Thread(target=丢弃错误,daemon=True).start()#丢弃
         对等=ssh请求对等(包装管道(子.stdout),包装管道(子.stdin),自身.配置值['maxFrameBytes'],自身.配置值['maxPending'])#对等
         自身.对等=对等#记下
@@ -425,7 +424,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
             """lease/2 截止。"""
             if 心跳未决['任务'] is not None:#已有
                 return#跳
-            def 跑():#线程
+            def 在线程执行():#线程
                 """heartbeat。"""
                 try:#请求
                     def 空(值):#null
@@ -437,9 +436,9 @@ class ssh连接(服务):#一局不重连的 SSH 会话
                     自身._失败(错误 if isinstance(错误,BaseException) else ssh错误(str(错误)))#失败
                 finally:#摘
                     心跳未决['任务']=None#空闲
-            心跳未决['任务']=threading.Thread(target=跑)#任务
+            心跳未决['任务']=threading.Thread(target=在线线程执行)#任务
             心跳未决['任务'].daemon=True#守护
-            心跳未决['任务'].start()#启动
+            心跳未决['任务'].start()
         间隔=自身.配置值['leaseMs']//3#间隔
         def 心跳循环():#循环
             """按间隔心跳直到关闭。"""
@@ -450,7 +449,7 @@ class ssh连接(服务):#一局不重连的 SSH 会话
                 心跳一次()#跳
         心跳线程=threading.Thread(target=心跳循环)#心跳
         心跳线程.daemon=True#守护
-        心跳线程.start()#启动
+        心跳线程.start()
         自身.心跳=type('定时',(),{'cancel':lambda 自身2: None})()#占位；循环靠 _已关
         return 握手#hello
 

@@ -13,7 +13,7 @@ from .文件体 import (#正文视图模型
 from .文件标题 import 文件标题#芯片标题
 
 __all__=[#仅中文公开名
-    '注入',
+    '依赖',
     '应用',
     '命名空间',
     '中文',
@@ -35,10 +35,10 @@ __all__=[#仅中文公开名
     '文件体',
     '样式表',
     '文件标题',
-]#公开面结束
+]
 
 命名空间='sidebarFiles'#本包文案命名空间（线路字面量）
-注入=['slots','locale','sidebarRightTabs','remote','remote.workspaceFiles']#槽、文案、右侧标签、Remote
+依赖=['slots','locale','sidebarRightTabs','remote','remote.workspaceFiles']#槽、文案、右侧标签、Remote
 
 
 def 应用(上下文):
@@ -88,5 +88,5 @@ def 应用(上下文):
     上下文.副作用(挂标题,'ui-sidebar-files: files tab title')#标题寿命
 
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

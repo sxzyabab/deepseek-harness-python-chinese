@@ -154,7 +154,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         """不可读文本留屏。"""
         键=f'{下标}:{字段}'#键
         if 键 not in 自身.编辑中:#无
-            return#结束
+            return
         解析=解析容量(自身.编辑中[键])#解析
         if 解析 is not None and isinstance(解析,float) and math.isnan(解析):#不可读
             return#留屏

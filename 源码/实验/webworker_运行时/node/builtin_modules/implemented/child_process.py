@@ -160,7 +160,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
         管道=子.stdout if 流=='stdout' else 子.stderr#取管道
         if 管道 is not None:#有管道
             管道.推送(文本)#推入管道
-            return#结束
+            return
         下标=1 if 流=='stdout' else 2#流下标
         if stdio[下标]=='inherit':#继承流
             print(文本[:-1] if 文本.endswith('\n') else 文本)#打到控制台
@@ -191,13 +191,13 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
         """异步启动命令。"""
         try:#尝试
             启动进程,宿主文件系统,虚拟可执行,标准程序=_载入shell面()#载入shell
-            cwd=选项['cwd'] if 选项.get('cwd') is not None else dsh根#??dsh根，空串合法
-            命令argv=argv#待运行argv
-            文件系统=None#可选文件系统
-            缺失可执行=None#缺失可执行退出
-            可执行=虚拟可执行(程序)#查虚拟可执行
-            if 可执行 is not None:#有虚拟包装
-                准备=可执行.prepare(参数,{'cwd':cwd,'filesystem':宿主文件系统()})#准备（可能thenable）
+            cwd=选项['cwd'] if 选项.get('cwd') is not None else dsh根#缺席用虚拟根，空串合法
+            命令argv=argv
+            文件系统=None
+            缺失可执行=None
+            可执行=虚拟可执行(程序)
+            if 可执行 is not None:
+                准备=可执行.prepare(参数,{'cwd':cwd,'filesystem':宿主文件系统()})
                 def 处理准备(prepared):#处理准备结果
                     """处理虚拟包装准备结果。"""
                     nonlocal 命令argv,文件系统,缺失可执行#外层
@@ -206,7 +206,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
                         投递('stdout',prepared['stdout'] if 'stdout' in prepared else '')#stdout
                         投递('stderr',prepared['stderr'] if 'stderr' in prepared else '')#stderr
                         结算(prepared['exitCode'] if 'exitCode' in prepared else None)#结算
-                        return#结束
+                        return
                     命令argv=prepared['argv']#替换argv
                     文件系统=prepared['filesystem'] if 'filesystem' in prepared else None#可选fs
                     缺失可执行=prepared['missingExecutable'] if 'missingExecutable' in prepared else None#缺失
@@ -222,7 +222,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
                             投递('stderr',缺失可执行['stderr'] if 'stderr' in 缺失可执行 else '')#stderr
                             结算(缺失可执行['exitCode'] if 'exitCode' in 缺失可执行 else None)#结算
                         else: 启动失败(构造enoent(程序))#ENOENT
-                        return#结束
+                        return
                     参数表={#启动参数
                         'script':脚本,'argv':命令argv,'cwd':cwd,#基本
                         'env':规范化环境(选项.get('env')),#环境
@@ -234,7 +234,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
                     if 表项.get('signal') is not None:#已有待投信号
                         if 表项['signal']=='SIGKILL': 表项['process'].destroy()#强杀
                         else: 表项['process'].interrupt()#软中断
-                处理准备(准备)#翻译后准备面同步返回
+                处理准备(准备)
             else:#无虚拟包装
                 命令argv=argv#原argv
                 文件系统=None#无
@@ -244,7 +244,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
                 已知=脚本 is not None or 命令 in 标准程序()#是否已知
                 if not 已知:#未知
                     启动失败(构造enoent(程序))#ENOENT
-                    return#结束
+                    return
                 参数表={#启动参数
                     'script':脚本,'argv':命令argv,'cwd':cwd,#基本
                     'env':规范化环境(选项.get('env')),#环境

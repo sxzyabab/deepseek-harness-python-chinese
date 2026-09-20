@@ -21,19 +21,19 @@ def 拆除检查器(句柄,清理列表):#拆除检查器与已注册清理项
         raise 检查器错误('experimental-inspector：拆除失败') from 失败列表[0]#汇总
 
 def 应用(上下文,配置):#应用Host插件
-    """启动 Worker、暴露 ctx.inspector，并注入匹配的 Client bootstrap。"""
-    def 效应():#插件效应作用域
+    """启动 Worker、暴露 ctx.inspector，并写入匹配的 Client bootstrap。"""
+    def 效应():
         """插件效应作用域。"""
-        规格=解析检查器选项(配置)#解析规格
-        句柄=启动检查器(规格)#启动检查器
-        清理列表=[]#清理回调列表
-        try:#安装服务与注入
-            清理列表.append(发布cordis树(上下文,句柄.source,{'maxNodes':规格.maxCordisNodes,'maxBytes':规格.maxSourceFrameBytes-4096}))#发布Cordis树
-            清理列表.append(上下文.提供服务('inspector',创建检查器服务(句柄.source)))#注册服务
-            def 注入(表):#注入bootstrap
-                """注入 bootstrap。"""
-                表.append({'kind':'global','name':'__DSH_INSPECTOR__','value':句柄.endpoint.client})#写入全局
-            清理列表.append(上下文.监听('webserver/index-inject',注入))#注入监听
+        规格=解析检查器选项(配置)
+        句柄=启动检查器(规格)
+        清理列表=[]
+        try:
+            清理列表.append(发布cordis树(上下文,句柄.source,{'maxNodes':规格.maxCordisNodes,'maxBytes':规格.maxSourceFrameBytes-4096}))
+            清理列表.append(上下文.提供服务('inspector',创建检查器服务(句柄.source)))
+            def 依赖(表):
+                """把 Client 引导写入页面全局表。"""
+                表.append({'kind':'global','name':'__DSH_INSPECTOR__','value':句柄.endpoint.client})
+            清理列表.append(上下文.监听('webserver/index-inject',依赖))
             print(f'dsh inspector: {句柄.endpoint.devtoolsFrontendUrl}')#打印DevTools地址
         except Exception as 错误:#插件 inject 失败，体什么都可能抛，收不窄
             try:#尽力清理
@@ -47,4 +47,4 @@ def 应用(上下文,配置):#应用Host插件
         return 卸除#效应清理
     上下文.副作用(效应,'experimental-inspector: Host Worker')#效应标签
 
-apply=应用#Cordis入口
+apply=应用

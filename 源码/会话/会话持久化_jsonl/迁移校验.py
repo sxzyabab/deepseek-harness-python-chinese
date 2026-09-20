@@ -12,11 +12,11 @@ class _校验调度器:#校验调度器
 
     def 运行(自身,操作,信号=None):#受许可保护运行
         """取得许可后运行操作。"""
-        if 信号 is not None and (getattr(信号,'aborted',False) or getattr(信号,'已中止',False)):#已中止
+        if 信号 is not None and 信号.is_set():#已中止
             raise InterruptedError('迁移校验已中止')#中止
         自身._锁.acquire()#取得
         try:#执行
-            if 信号 is not None and (getattr(信号,'aborted',False) or getattr(信号,'已中止',False)):#再检查
+            if 信号 is not None and 信号.is_set():#再检查
                 raise InterruptedError('迁移校验已中止')#中止
             return 操作()#运行
         finally:#释放

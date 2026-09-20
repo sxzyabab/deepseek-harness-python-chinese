@@ -1,6 +1,6 @@
 """pi-ai 适配器的配置模式与提供方配置校验。
 
-对齐上游 `llm-pi-ai/src/config.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import math#有限数判断
 from .. import llm#语言模型服务

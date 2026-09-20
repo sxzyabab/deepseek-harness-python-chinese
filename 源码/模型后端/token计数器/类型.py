@@ -1,4 +1,4 @@
-"""回放 token 计量的公开配置与测量词表。对齐上游 `token-meter/src/types.ts`。公开面仅中文名。"""
+"""回放 token 计量的公开配置与测量词表。公开面仅中文名。"""
 from typing import Literal,TypedDict#字面量与结构类型
 from .投影 import 用量投影,压力投影,分解投影#再导出投影词表
 

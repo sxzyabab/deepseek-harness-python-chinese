@@ -65,7 +65,7 @@ class 设置文档存储:
                     态['status']='unavailable'#不可用
                     态['error']=消息#错误
                 自身.存储.update(写成不可用)#写入
-                return#结束
+                return
             值=结果['value'] if 'value' in 结果 and 结果['value'] is not None else {}#值
             有文档=bool(值['hasDocument']) if 'hasDocument' in 值 else False#是否有文档
             def 写结果(态):
@@ -107,7 +107,7 @@ class 设置文档存储:
         finally:#清 opening
             def 清打开(态):
                 """打开不再在飞。"""
-                态['opening']=False#结束
+                态['opening']=False
             自身.存储.update(清打开)#写入
 
 def 已加载则刷新文档(控制器):

@@ -1,4 +1,4 @@
-from urllib.parse import unquote,urlparse#段解码与 URI
+from urllib.parse import unquote as 百分号解码,urlparse as 解析URL
 
 __all__=['文本预览种类','文本预览标识','基名','文本定义']#仅中文公开名
 
@@ -9,7 +9,7 @@ __all__=['文本预览种类','文本预览标识','基名','文本定义']#仅�
 def _解析文件地址(地址):
     """读回 `dsh-resource://file/…`；非法则 None。语法归属 util/workspace-path，内嵌以免扩大移植面。"""
     try:
-        网址=urlparse(地址)#解析
+        网址=解析URL(地址)
         if 网址.scheme!='dsh-resource' or 网址.netloc!='file':#非本方案
             return None#拒绝
         段列表=网址.path.split('/')#['', scope, ...]
@@ -20,9 +20,9 @@ def _解析文件地址(地址):
         其余=段列表[2:]#rest
         if len(其余)==0 or 其余[0]=='' or len(其余)<2:#缺 id 或路径
             return None#拒绝
-        return {'scope':'session','sessionId':unquote(其余[0]),'path':'/'.join(unquote(段) for 段 in 其余[1:])}#会话
-    except Exception:#畸形
-        return None#拒绝
+        return {'scope':'session','sessionId':百分号解码(其余[0]),'path':'/'.join(百分号解码(段) for 段 in 其余[1:])}
+    except (ValueError,UnicodeError):
+        return None
 
 
 def 基名(地址):
@@ -31,9 +31,9 @@ def 基名(地址):
     if 名=='':#无段
         return 地址#整址
     try:
-        return unquote(名)#解码
-    except Exception:#畸形百分号
-        return 名#原样
+        return 百分号解码(名)
+    except (ValueError,UnicodeError):
+        return 名
 
 
 def 文本定义():

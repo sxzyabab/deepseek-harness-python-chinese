@@ -1,6 +1,5 @@
 """`changes` 流生产者：落在一代工作区根内的每次 `fs/observed` 成为一帧。
 
-对齐上游 `workspace-files/src/changes.ts`。公开面仅中文名。
 观察由工具在各自文件系统操作后发出，因此只覆盖 Agent 写入；操作系统不被监视。
 每一代在产出任何排队或实时变更前，先以 `ready` 确认观察队列与已解析工作区根。
 """
@@ -48,7 +47,7 @@ class 工作区变更供给:
                     return#静默结束
                 raise#其他失败
             if 根 is None or 已中止(信号) or 跟随者.是否已关闭:#中途取消
-                return#结束
+                return
             yield {'kind':'ready'}#就绪
             for 目标,观测 in 跟随者.读(信号):#排空
                 if not 自身._上下文.fs.包含(根,目标):#根外

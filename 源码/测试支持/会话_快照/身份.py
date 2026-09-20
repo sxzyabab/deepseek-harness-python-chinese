@@ -53,7 +53,7 @@ def 脱敏会话快照标识(日志列表):#脱敏会话快照 id
             序=int(规范.group(2))#序号
             种类计数[规范种类]=max(种类计数.get(规范种类,0),序)#抬高计数
             令牌表[值]=值#规范令牌原样保留
-            return#结束
+            return
         下一=种类计数.get(种类,0)+1#下一序号
         种类计数[种类]=下一#写计数
         令牌表[值]=f'{{{{{种类}:{下一}}}}}'#分配新令牌
@@ -68,13 +68,13 @@ def 脱敏会话快照标识(日志列表):#脱敏会话快照 id
                 认领(匹配.group(1),'message')#认领
             for 匹配 in 匿名用户模式.finditer(值):#匿名用户
                 认领(匹配.group(1),'id')#认领
-            return#结束
+            return
         if isinstance(值,list):#数组
             for 项 in 值:#递归
                 收集(项,记录类型)#递归
-            return#结束
+            return
         if not 是否记录(值):#非字典
-            return#结束
+            return
         消息=消息标识(值)#消息对象 id
         if 消息 is not None:#消息对象
             认领(消息,'message')#认领

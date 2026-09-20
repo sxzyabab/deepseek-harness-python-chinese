@@ -3,7 +3,7 @@ __all__=[#公开面
     '撰写键盘','编辑选区','编辑范围','出现','粘贴分量','粘贴尝试态',
     '输入机选项','输入状态','提交尝试','输入相位表','空输入状态','占位符',
     '输入事件种','输入效应种',
-]#公开面结束
+]
 
 草稿附件标识=str#浏览器草稿图 id
 输入相位表=('plain','adjudicating','claimed','submitting')#相位
@@ -42,7 +42,7 @@ __all__=[#公开面
 )#效应种结束
 
 def 空输入状态():#初值
-    """无草稿、无附件、plain、空排队（对齐 InboxState next-turn）。"""
+    """无草稿、无附件、plain、空排队（InboxState next-turn）。"""
     return {#态
         'draft':'',#草稿
         'attachmentIds':[],#附件
@@ -50,4 +50,4 @@ def 空输入状态():#初值
         'phase':'plain',#相位
         'occurrences':[],#出现
         'queue':[],#排队
-    }#结束
+    }

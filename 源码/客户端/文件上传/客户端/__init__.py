@@ -3,19 +3,19 @@ from .约定 import 文件上传服务协议#服务契约
 from ..类型 import 文件上传凭证标识#凭证品牌
 
 __all__=[#仅中文公开名
-    '注入',
+    '依赖',
     '应用',
     '文件上传运行时',
     '文件上传服务协议',
     '文件上传凭证标识',
-]#公开面结束
+]
 
-注入=['remote']#硬依赖 remote
+依赖=['remote']#硬依赖 remote
 
 def 应用(上下文):#客户端插件体
     """提供浏览器后台上传服务。"""
     上下文.启动插件(文件上传运行时)#挂上运行时服务
 
 name='file-upload'#Cordis 插件名
-inject=注入#Cordis 依赖声明
+inject=依赖#Cordis 依赖声明
 apply=应用#Cordis 插件入口

@@ -1,6 +1,6 @@
 """为配置面的「获取可用模型」动作回答这个提供方能服务哪些模型。
 
-对齐上游 `llm-pi-ai/src/discovery.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import json,math#JSON 与有限数
 from json import JSONDecodeError#JSON 解析失败

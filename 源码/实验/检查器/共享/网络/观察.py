@@ -71,5 +71,5 @@ class 请求错误载荷(请求身份):#fetch错误载荷
     def __init__(自身,requestId,message,canceled):#构造
         """保存 fetch 错误字段。"""
         super().__init__(requestId)#请求标识
-        自身.message=message#错误信息
+        自身.message=message#错误详情
         自身.canceled=canceled#是否取消

@@ -1,67 +1,67 @@
-from ..builtin_modules.implemented.async_hooks import 绑定异步上下文#导入异步上下文绑定
+from ..builtin_modules.implemented.async_hooks import 绑定异步上下文
 
-__all__=['安装定时器全局']#仅中文公开名
+__all__=['安装定时器全局']
 
-def 句柄化(标识):#数字id包装为句柄
+def 句柄化(标识):
     """构造 Node 形态定时器句柄。"""
-    句柄={}#句柄对象
-    def 引用():#无操作ref
+    句柄={}
+    def 引用():
         """保持引用。"""
-        return 句柄#链式
-    def 取消引用():#无操作unref
+        return 句柄
+    def 取消引用():
         """取消引用。"""
-        return 句柄#链式
-    def 有引用():#恒有引用
+        return 句柄
+    def 有引用():
         """是否仍被引用。"""
-        return True#恒有引用
-    def 转原始():#暴露数字id
+        return True
+    def 转原始():
         """转为数字 id。"""
-        return 标识#数字id
-    句柄['ref']=引用#ref
-    句柄['unref']=取消引用#unref
-    句柄['hasRef']=有引用#hasRef
-    句柄['valueOf']=转原始#对齐 Symbol.toPrimitive
-    return 句柄#返回句柄
+        return 标识
+    句柄['ref']=引用
+    句柄['unref']=取消引用
+    句柄['hasRef']=有引用
+    句柄['valueOf']=转原始
+    return 句柄
 
-def 取标识(句柄):#从句柄取数字id
+def 取标识(句柄):
     """从句柄或数字取定时器 id。"""
-    if isinstance(句柄,(int,float)) and not isinstance(句柄,bool): return int(句柄)#已是数字
-    if isinstance(句柄,dict) and callable(句柄.get('valueOf')): return int(句柄['valueOf']())#转数字
-    return None#无法识别
+    if isinstance(句柄,(int,float)) and not isinstance(句柄,bool): return int(句柄)
+    if isinstance(句柄,dict) and 'valueOf' in 句柄 and callable(句柄['valueOf']): return int(句柄['valueOf']())
+    return None
 
-def 绑定处理器(处理器):#绑定处理器上下文
+def 绑定处理器(处理器):
     """将定时器处理器绑定到其注册上下文；非函数无可绑定。"""
-    return 绑定异步上下文(处理器) if callable(处理器) else 处理器#函数则绑定
+    return 绑定异步上下文(处理器) if callable(处理器) else 处理器
 
-def 包装调度(调度):#包装调度器
+def 包装调度(调度):
     """调度后包为句柄。"""
-    def 调度句柄(处理器,超时=None,*参数):#绑定后调度
+    def 调度句柄(处理器,超时=None,*参数):
         """绑定处理器后调度并包句柄。"""
-        return 句柄化(调度(绑定处理器(处理器),超时,*参数))#绑定后调度
-    return 调度句柄#交回
+        return 句柄化(调度(绑定处理器(处理器),超时,*参数))
+    return 调度句柄
 
-def 包装清除(清除):#包装清除器
+def 包装清除(清除):
     """先取 id 再清除。"""
-    def 清除句柄(句柄=None):#清除
+    def 清除句柄(句柄=None):
         """接受句柄或数字 id。"""
-        清除(取标识(句柄))#先取id再清除
-    return 清除句柄#交回
+        清除(取标识(句柄))
+    return 清除句柄
 
-def 安装定时器全局():#安装定时器全局
+def 安装定时器全局():
     """用 Node 形态包装器替换 Worker 的定时器全局。"""
-    作用域=globals()#可写全局面
-    原生超时=作用域['setTimeout']#原生setTimeout
-    原生间隔=作用域['setInterval']#原生setInterval
-    原生清超时=作用域['clearTimeout']#原生clearTimeout
-    原生清间隔=作用域['clearInterval']#原生clearInterval
-    作用域['setTimeout']=包装调度(原生超时)#替换setTimeout
-    作用域['setInterval']=包装调度(原生间隔)#替换setInterval
-    作用域['clearTimeout']=包装清除(原生清超时)#替换clearTimeout
-    作用域['clearInterval']=包装清除(原生清间隔)#替换clearInterval
+    作用域=globals()
+    原生超时=作用域['setTimeout']
+    原生间隔=作用域['setInterval']
+    原生清超时=作用域['clearTimeout']
+    原生清间隔=作用域['clearInterval']
+    作用域['setTimeout']=包装调度(原生超时)
+    作用域['setInterval']=包装调度(原生间隔)
+    作用域['clearTimeout']=包装清除(原生清超时)
+    作用域['clearInterval']=包装清除(原生清间隔)
 
-    def 立即(处理器,*参数):#安装setImmediate
+    def 立即(处理器,*参数):
         """零延时调度。"""
-        return 句柄化(原生超时(绑定处理器(处理器),0,*参数))#零延时
+        return 句柄化(原生超时(绑定处理器(处理器),0,*参数))
 
-    作用域['setImmediate']=立即#挂setImmediate
-    作用域['clearImmediate']=包装清除(原生清超时)#用clearTimeout清immediate
+    作用域['setImmediate']=立即
+    作用域['clearImmediate']=包装清除(原生清超时)

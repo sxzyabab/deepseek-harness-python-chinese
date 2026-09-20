@@ -64,7 +64,7 @@ class 消息图:#历史缩略图
         except Exception:#加载器异常契约未定，故不能换成更窄的 except
             if 自身.存活:#仍活
                 自身.错误=True#失败
-            return#结束
+            return
         if not 自身.存活:#已死
             return#丢弃
         自身.源=地址#记下
@@ -77,7 +77,7 @@ class 消息图:#历史缩略图
     def 打开(自身):#开灯箱
         """有源才开。"""
         if 自身.源 is None:#无源
-            return#结束
+            return
         自身.打开中=True#打开
         文案=自身.属性['labels'] if 'labels' in 自身.属性 and 自身.属性['labels'] is not None else {}#文案
         附件=自身.属性['attachment'] if 'attachment' in 自身.属性 and 自身.属性['attachment'] is not None else {}#附件

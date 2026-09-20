@@ -6,17 +6,17 @@ from .插件装载页 import 插件装载页#装载页
 from .插件面板图标 import 插件面板图标#面板图标
 
 __all__=[#仅中文公开名
-    '注入','应用','命名空间','面板标识',
+    '依赖','应用','命名空间','面板标识',
     '中文','英文','插件装载文案键',
     '行配置键','配置账本源',
     '插件装载控制','是否安装待决','行键','包视图','排序包表',
     '装载文案','短名','包文案','提示文案',
     '插件装载页','插件面板图标',
-]#公开面结束
+]
 
 命名空间='pluginManager'#本包文案命名空间（线路字面量）
 面板标识='plugins'#侧栏入口与主面板共享 id（线路字面量）
-注入=['slots','locale','remote','remote.pluginManager','remote.pluginInventory']#槽、文案、远程
+依赖=['slots','locale','remote','remote.pluginManager','remote.pluginInventory']#槽、文案、远程
 
 def 应用(上下文):
     """贡献侧栏插件入口与主栏装载页，并跟随 Host 变更事件。"""
@@ -86,5 +86,5 @@ def 应用(上下文):
 
     上下文.slots.inject('sidebar.panellist',挂侧栏)#侧栏
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

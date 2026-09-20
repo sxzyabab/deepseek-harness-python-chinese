@@ -53,7 +53,7 @@ def 代码程序(单元格):
         return None#无
     if 'inputDetail' not in 单元格 or 单元格['inputDetail'] is None:#无参数原文
         return None#无
-    参数=解析记录(单元格['inputDetail'])#参数对象
+    参数=解析记录(单元格['inputDetail'])#参数
     if 参数 is None or 'code' not in 参数 or not isinstance(参数['code'],str):#缺 code
         return None#无
     if 'description' in 参数 and 参数['description'] is not None and not isinstance(参数['description'],str):#描述非法

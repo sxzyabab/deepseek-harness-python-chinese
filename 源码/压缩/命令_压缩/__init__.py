@@ -1,15 +1,12 @@
-"""面向人类的 /compact 命令，走与后端无关的压缩 seam。
-
-对齐上游 `@deepseek-ai/dsh-command-compact`。
-"""
+"""面向人类的 /compact 命令，经压缩服务接口触发手动压缩。"""
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ..压缩 import 手动压缩错误#预期手动压缩失败
 
-名称='command-compact'#Cordis插件名
-注入=['commands','compaction']#依赖命令注册表与压缩缝
+名称='command-compact'#框架插件名
+依赖=['commands','compaction']#依赖命令注册表与压缩缝
 用法='Usage: /compact (no arguments)'#用法提示文案
 
-__all__=['名称','注入','应用','默认']#仅中文公开名
+__all__=['名称','依赖','应用','默认']#仅中文公开名
 
 def 断言永不可达(值):
     """本地封闭联合出现未处理成员时大声失败。"""
@@ -39,7 +36,7 @@ def 执行压缩(上下文,调用):
         return {'kind':'error','text':用法}#用法错误
     信号=调用['signal'] if 'signal' in 调用 else None#取消信号
     配对=调用['commandId'] if 'commandId' in 调用 else None#命令配对 id
-    try:#调用压缩 seam
+    try:#调用压缩服务接口
         结果=上下文.compaction.立即压缩(调用['agent'],信号,配对)#立即压缩
         if 结果 is None:#尚无可压缩历史
             return {'kind':'success','text':'No compactable history yet.'}#空成功
@@ -69,8 +66,8 @@ def 应用(上下文):
         'handler':处理,#处理函数
     })#register结束
 
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-apply=应用#Cordis插件入口
+name=名称#框架插件名
+inject=依赖#框架依赖声明
+apply=应用#框架插件入口
 默认=应用#默认导出
-default=应用#Cordis默认导出
+default=应用#框架默认导出

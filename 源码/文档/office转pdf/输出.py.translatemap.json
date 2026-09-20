@@ -1,7 +1,0 @@
-{
-    "readPdf":"读取pdf",
-    "path":"路径",
-    "limit":"上限",
-    "signal":"信号",
-    "OfficeToPdfError":"office转pdf错误"
-}

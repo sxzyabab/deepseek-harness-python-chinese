@@ -11,7 +11,7 @@ __all__=[#仅中文公开名
     '客户端文件上传钩子字段',
     '已中止',
     '若已中止则抛出',
-]#公开面结束
+]
 
 编码文件上传请求字段=('data','name')#规范 base64 与可选显示名
 文件上传结果字段=('receiptId','file')#凭证与持久引用
@@ -43,7 +43,7 @@ def 取远程错误(值):#结构识别远程错误
         return 值#视为远程失败
     if isinstance(值,dict):#映射形副本
         标=值['isDSHRemoteError'] if 'isDSHRemoteError' in 值 else None#标记
-        码=值['code'] if 'code' in 值 else None#码
+        码=值['code'] if 'code' in 值 else None
         if 标 is True and isinstance(码,str):#带标记
             return 值#视为远程失败
         return None#不匹配
@@ -56,6 +56,6 @@ def 已中止(信号):#读 threading.Event
     return 信号.is_set()#Event 置位
 
 def 若已中止则抛出(信号):#已取消则抛
-    """对齐 AbortSignal.throwIfAborted。"""
+    """已中止则抛文件上传错误。"""
     if 已中止(信号):#已取消
         raise 文件上传错误('The operation was aborted.')#AbortError 文案

@@ -1,4 +1,4 @@
-"""计量服务与纯上下文分解投影共用的固定密度启发式令牌计价。对齐上游 `token-meter/src/estimate.ts`。公开面仅中文名。"""
+"""计量服务与纯上下文分解投影共用的固定密度启发式令牌计价。公开面仅中文名。"""
 from math import ceil as 上取整#上取整
 from json import dumps as 编码#紧凑json
 

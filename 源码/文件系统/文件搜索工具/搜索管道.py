@@ -1,6 +1,6 @@
-"""`glob` / `grep` 搜索工具共用的执行管道：本包拥有的 `SEARCH_*` 错误词汇、一个以普通 argv 向量执行打包 ripgrep 二进制并返回完整原始 stdout 的 spawn 助手、尽力而为的格式化结果溢出交接，以及工作目录相对路径展示。
+"""`glob` / `grep` 共用的搜索执行管道：打包 ripgrep 以前台 argv 启动、取完整内存 stdout、格式化结果并尽力溢出保存。
 
-两个工具都作为普通前台 spawn 通过 `ctx.subprocess` 执行——绝不用 `ctx.shell`，绝不用 `ctx.shell.start()`，也绝不是模型可见的后台任务。ripgrep 二进制随依赖附带，因此不需要系统安装 `rg`；argv 向量与 ripgrep 之间不存在 shell 层，因此不涉及 shell 引号。原始 `rg` stdout 是内部传输细节：工具向子进程 seam 请求每次运行的 stdout 捕获预算，只解析 `rawOutputMaxBytes` 内完整的内存 stdout，从不读溢出文件。面向模型的恢复产物是通过 `ctx.spillStore.saveText()` 保存的格式化结果（`尽力保存格式化结果`）。
+不经 shell 层；只解析 `rawOutputMaxBytes` 内完整 stdout，截断则失败。格式化结果经溢出存储保存供模型恢复。
 """
 import importlib#惰性解析打包rg路径
 import os#绝对路径、相对路径与分隔符
@@ -19,7 +19,7 @@ rg路径记忆=None#进程内惰性解析一次的rg路径
 非法模式=re.compile(r'regex parse error|error parsing glob',re.I|re.ASCII)#ripgrep拒绝正则或glob的stderr
 
 class 搜索工具错误(Exception):#参数校验失败
-    """搜索工具入参非法；错误信息保持上游英文原文。"""
+    """搜索工具入参非法；详情保持英文线协议原文。"""
     def __init__(自身,消息):#记下英文消息
         """用原样英文消息构造。"""
         super().__init__(消息)#英文消息
@@ -31,7 +31,7 @@ def 已中止(信号):#读取中止标志
     return 信号.is_set()#Event置位
 
 def 字节长(文本):#UTF-8字节长度
-    """对齐 Buffer.byteLength(text, 'utf8')。"""
+    """按 UTF-8 字节计长。"""
     return len(文本.encode('utf-8'))#按utf8计字节
 
 class 搜索错误(装备错误):#搜索带类型错误
@@ -46,62 +46,62 @@ class 搜索错误(装备错误):#搜索带类型错误
         自身.name='SearchError'#固定错误名
 
 def 标准错误摘录(标准错误文本,已截断):#stderr诊断摘录
-    """把保留的 stderr 尾做成诊断摘录；子进程 seam 丢掉字节时附截断说明。"""
-    文本=标准错误文本.strip()#去掉首尾空白
-    if len(文本)==0:#空则无摘录；判 length
-        return ''#空摘录
-    if 已截断:#被截断则标注
-        return 文本+' [stderr truncated]'#带截断标记
-    return 文本#完整摘录
+    """把保留的 stderr 尾做成诊断摘录；子进程丢掉字节时附截断说明。"""
+    文本=标准错误文本.strip()
+    if len(文本)==0:
+        return ''
+    if 已截断:#子进程侧已截断则标注
+        return 文本+' [stderr truncated]'
+    return 文本
 
 def 归类运行失败(工具名,退出码,标准错误文本,标准错误已截断):#把非0/1退出归类为搜索错误
     """把非零退出的 rg 运行归入搜索错误词汇。不存在 shell 层，因此不会出现 exit 127 或 shell「找不到命令」文本——启动失败在 spawn 时拒绝。"""
     标准错误=标准错误摘录(标准错误文本,标准错误已截断)#诊断摘录
     if 非法模式.search(标准错误) is not None:#ripgrep拒绝正则或glob
         return 搜索错误(工具名+' pattern rejected by ripgrep: '+标准错误,'SEARCH_INVALID_PATTERN')#模式非法
-    if len(标准错误)>0:#有stderr则接上；判 length
-        后缀=': '+标准错误#带stderr
-    else:#无stderr
-        后缀=''#空后缀
+    if len(标准错误)>0:#有stderr则接上
+        后缀=': '+标准错误
+    else:
+        后缀=''
     return 搜索错误(工具名+' search failed (exit '+str(退出码)+')'+后缀,'SEARCH_FAILED')#其余非零退出
 
 def 完整标准输出(工具名,标准输出,原始输出最大字节值):#取完整stdout或报溢出
-    """获取已完成运行的完整原始 stdout，对内存传输强制 rawOutputMaxBytes。截断结果意味着子进程 seam 无法在请求预算内保留完整 stdout，因此工具明确失败，而不是解析一份静默残缺的流。"""
+    """取已完成运行的完整原始 stdout，强制 `rawOutputMaxBytes`。截断则失败，不解析残缺流。"""
     收窄='narrow pattern, path, or include and retry'#溢出时的收窄建议
-    if 标准输出['lossy'] is not True:#seam声称stdout完整
-        if 'text' not in 标准输出 or 标准输出['text'] is None:#缺席或null当空
-            内存文本=''#空文本
-        else:#有文本
-            内存文本=标准输出['text']#内存文本
-        内联字节=字节长(内存文本)#内存文本的UTF-8字节
+    if 标准输出['lossy'] is not True:#lossy 非真表示 stdout 完整
+        if 'text' not in 标准输出 or 标准输出['text'] is None:#缺席或显式空当空串
+            内存文本=''
+        else:
+            内存文本=标准输出['text']
+        内联字节=字节长(内存文本)#内存文本的 UTF-8 字节
         if 内联字节>原始输出最大字节值:#完整但超过工具自己的解析上限
-            raise 搜索错误(#原始输出过大
-                工具名+' produced '+str(内联字节)+' bytes of raw output, over the '+str(原始输出最大字节值)+'-byte cap; '+收窄,#报告实际字节与上限
-                'SEARCH_RAW_OUTPUT_OVERFLOW',#溢出码
-            )#超上限错误结束
-        return 内存文本#完整且未超上限
-    raise 搜索错误(#seam未能在预算内保留完整stdout
+            raise 搜索错误(#报告实际字节与上限
+                工具名+' produced '+str(内联字节)+' bytes of raw output, over the '+str(原始输出最大字节值)+'-byte cap; '+收窄,
+                'SEARCH_RAW_OUTPUT_OVERFLOW',
+            )
+        return 内存文本
+    raise 搜索错误(#子进程未能在预算内保留完整 stdout
         工具名+' produced more raw output than the subprocess seam retained within the '+str(原始输出最大字节值)+'-byte cap; '+收窄,#截断即失败
-        'SEARCH_RAW_OUTPUT_OVERFLOW',#溢出码
-    )#lossy失败结束
+        'SEARCH_RAW_OUTPUT_OVERFLOW',
+    )
 
 def 解析rg路径():#惰性解析打包的rg绝对路径
     """打包的 ripgrep 二进制路径，每个进程惰性解析一次。
 
-    对齐 `@vscode/ripgrep`：在调用边界解析平台包，把缺失或损坏的安装失败留在第一次搜索调用上，成为 SEARCH_FAILED——这是本包已文档化的「加载时不探测」约定。
+    在调用边界解析平台包，缺失或损坏的安装在第一次搜索时以 SEARCH_FAILED 失败——加载时不探测。
     """
     global rg路径记忆#进程内记忆
     if rg路径记忆 is None:#首次调用才动态导入平台包
-        模块=importlib.import_module('vscode_ripgrep')#对齐@vscode/ripgrep的Python面
-        rg路径记忆=模块.rgPath#具名导出rgPath
+        模块=importlib.import_module('vscode_ripgrep')
+        rg路径记忆=模块.rgPath#平台包导出的二进制路径
     return rg路径记忆#之后复用同一路径
 
 def 执行ripgrep(上下文,执行,工具名,参数向量,原始输出最大字节值,宽限毫秒,标准错误最大字节值):#执行打包的ripgrep并取完整stdout
-    """以普通 argv 向量执行打包的 ripgrep 二进制并返回其完整原始 stdout。工作目录在可用时为调用 agent 的会话 cwd，否则为 process.cwd()。转发 exec.signal，以便协作工具超时与调用方取消终止进程树。
+    """以前台 argv 执行打包 ripgrep 并返回完整原始 stdout。工作目录优先取会话 cwd，否则取进程 cwd。转发 exec.signal 以支持超时与取消。
 
-    spawn 不受限（普通 ctx.subprocess 调用），因此前置 --no-config：否则宿主 RIPGREP_CONFIG_PATH（或二进制旁的 rg.conf）可能注入 --pre。collect 处置是 seam 的诊断尾形态（无溢出文件）：工具从不读原始溢出路径，截断的 stdout 失败为 SEARCH_RAW_OUTPUT_OVERFLOW。
+    前置 --no-config，避免宿主 RIPGREP_CONFIG_PATH 注入 --pre。只读内存内 stdout；截断失败为 SEARCH_RAW_OUTPUT_OVERFLOW。
 
-    退出语义由工具拥有：exit 0 是带结果的成功，exit 1 是零结果的成功（noMatches），其余抛出搜索错误。
+    退出语义：exit 0 有结果成功，exit 1 零结果成功（noMatches），其余抛搜索错误。
     """
     信号=执行['signal'] if 'signal' in 执行 else None#中止信号
     if 已中止(信号):#调用前已中止
@@ -130,8 +130,8 @@ def 执行ripgrep(上下文,执行,工具名,参数向量,原始输出最大字�
             raise 搜索错误(工具名+' was aborted before completion (tool timeout or caller cancellation)','SEARCH_ABORTED')#中止优先于启动失败
         raise 搜索错误(工具名+' could not start its search command (ripgrep launch failed)','SEARCH_FAILED',{'cause':错误})#其余创建失败带cause
     try:#等待进程结束
-        结局=句柄.done.等待()#seam在结束时给出退出码或信号
-    except (本地子进程错误,OSError) as 错误:#handle.done拒绝：seam基础设施失败
+        结局=句柄.done.等待()#结束时给出退出码或信号
+    except (本地子进程错误,OSError) as 错误:#等待失败：子进程基础设施错误
         raise 搜索错误(工具名+' could not start its search command (ripgrep launch failed)','SEARCH_FAILED',{'cause':错误})#归为SEARCH_FAILED并链cause
     已收集=句柄.collected#已收集输出
     标准输出读取器=已收集['stdout'] if 'stdout' in 已收集 else None#stdout读取器

@@ -114,7 +114,7 @@ def 打开浏览器工作者(配置,信号,警告):#隔离连接
         """经工作者执行一次操作。"""
         若已中止则抛出(操作信号)#中止
         if 关闭中 is not None:#已关
-            raise Exception('Stagehand browser Worker is closed')#已关
+            raise Exception('Stagehand 浏览器工作者已关闭')
         def 取消时():#操作取消
             """取消则关连接。"""
             try:#关

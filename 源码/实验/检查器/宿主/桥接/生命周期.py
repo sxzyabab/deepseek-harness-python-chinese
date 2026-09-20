@@ -47,7 +47,7 @@ class 检查器工作者生命周期:#Worker生命周期
             except Exception as 错误:#json.loads 控制帧可能抛 JSONDecodeError/TypeError，契约未定所以收不窄
                 结果['error']=错误 if isinstance(错误,Exception) else Exception(str(错误))#拒绝
                 完成.set()#结束
-                return#结束
+                return
             if 控制['type']=='ready':#就绪
                 结果['ready']=控制#就绪
                 完成.set()#结束

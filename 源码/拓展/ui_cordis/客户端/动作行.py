@@ -72,7 +72,7 @@ class 动作行:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        """结构树面。"""
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

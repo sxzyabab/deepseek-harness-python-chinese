@@ -1,53 +1,50 @@
-"""配置域 Remote 拥有者：`settings` 与并列的 `credentials`。
+"""配置域远程拥有者：settings 与并列的 credentials。"""
+import os
+from ...依赖.schemastery import 布尔字段
+from ...typert.协议 import 远程服务,远程 as _远程
+from .凭据 import 凭据控制器
+from .远程错误与中止 import 远程错误,远程错误消息,已中止
+from .投影与写入 import 命名空间视图,拒绝写入
 
-对齐上游 `@deepseek-ai/dsh-api-settings-controller`。公开面仅中文名。
-"""
-import os#路径
-from ...依赖.schemastery import 布尔字段#配置字段
-from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
-from .凭据 import 凭据控制器#凭据命名空间
-from .远程错误与中止 import 远程错误,远程错误消息,已中止#远程错误与中止
-from .投影与写入 import 命名空间视图,拒绝写入#投影与拒绝
+__all__=['包名','名称','依赖','应用','默认','配置','设置控制器','凭据控制器']
 
-__all__=['名称','注入','配置','设置控制器','应用','凭据控制器']#仅中文公开名
+包名='@deepseek-ai/dsh-api-settings-controller'
+名称='settings-controller'
+依赖=[]
 
-名称='settings-controller'#插件名
-注入=[]#无类级额外注入
-
-配置={#原生打开策略
+配置={
     'nativeOpen':布尔字段(),#可覆盖桌面打开探测
-}#配置结束
+}
 
-class 设置控制器(远程服务):#设置 Remote 服务
-    """生成 ctx.remote.settings 命名空间。"""
-    def __init__(自身,上下文,配置值=None,内部=None):#构造
+class 设置控制器(远程服务):
+    """生成 remote.settings 命名空间。"""
+    def __init__(自身,上下文,配置值=None,内部=None):
         """登记 settings 命名空间并挂载凭据子插件。"""
-        super().__init__(上下文,'settingsController',{'namespace':'settings'})#注册
-        if 配置值 is None:#缺配置
-            配置值={}#空配置
-        if 内部 is None:#缺集成
-            内部={}#空集成
-        自身._打开路径=内部['openPath'] if 'openPath' in 内部 else None#打开路径
-        自身._打开文本=内部['openTextFile'] if 'openTextFile' in 内部 else None#打开文本
-        自身._能否打开=内部['canOpenPath'] if 'canOpenPath' in 内部 else None#探测
-        if 自身._打开路径 is None:#缺省打开路径
-            from ...工具.原生命令 import openNativePath as 打开原生路径#延迟导入
-            自身._打开路径=打开原生路径#默认
-        if 自身._打开文本 is None:#缺省打开文本
-            from ...工具.原生命令 import openNativeTextFile as 打开文本文档#延迟导入
-            自身._打开文本=打开文本文档#默认
-        if 自身._能否打开 is None:#缺省探测
-            def 缺省能否打开():#探测
+        super().__init__(上下文,'settingsController',{'namespace':'settings'})
+        if 配置值 is None:
+            配置值={}
+        if 内部 is None:
+            内部={}
+        自身._打开路径=内部['openPath'] if 'openPath' in 内部 else None
+        自身._打开文本=内部['openTextFile'] if 'openTextFile' in 内部 else None
+        自身._能否打开=内部['canOpenPath'] if 'canOpenPath' in 内部 else None
+        if 自身._打开路径 is None:
+            from ...工具.原生命令 import openNativePath as 打开原生路径
+            自身._打开路径=打开原生路径
+        if 自身._打开文本 is None:
+            from ...工具.原生命令 import openNativeTextFile as 打开文本文档
+            自身._打开文本=打开文本文档
+        if 自身._能否打开 is None:
+            def 缺省能否打开():
                 """配置覆盖或集成存在或平台支持。"""
-                if 'nativeOpen' in 配置值:#显式配置
-                    return bool(配置值['nativeOpen'])#配置
-                if 'openPath' in 内部:#测试注入
-                    return True#可打开
-                from ...工具.原生命令 import canOpenNativePath as 能否打开原生路径#延迟导入
-                return bool(能否打开原生路径())#平台
-            自身._能否打开=缺省能否打开#函数
-        上下文.启动插件(凭据控制器)#并列凭据命名空间
-
+                if 'nativeOpen' in 配置值:
+                    return bool(配置值['nativeOpen'])
+                if 'openPath' in 内部:
+                    return True
+                from ...工具.原生命令 import canOpenNativePath as 能否打开原生路径
+                return bool(能否打开原生路径())
+            自身._能否打开=缺省能否打开
+        上下文.启动插件(凭据控制器)
     @_远程
     def describe(自身):#描述全部命名空间
         """红化描述全部注册命名空间。"""
@@ -86,7 +83,7 @@ class 设置控制器(远程服务):#设置 Remote 服务
             raise 远程错误('gateway/cancelled','settings document open was aborted',{})#取消
         try:#准备文档
             路径=设置.prepareDocument()#准备
-        except OSError as 错误:#失败
+        except OSError as 错误:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','settings document preparation was aborted',{},原因=错误)#取消
             raise 远程错误('gateway/internal','settings document preparation failed: '+远程错误消息(错误),{},原因=错误)#内部
@@ -97,7 +94,7 @@ class 设置控制器(远程服务):#设置 Remote 服务
         try:#打开
             自身._打开文本(路径,信号)#打开
             return {'opened':True}#确认
-        except OSError as 错误:#失败
+        except OSError as 错误:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','settings document open was aborted',{},原因=错误)#取消
             raise 远程错误('gateway/internal','path open failed: '+远程错误消息(错误),{},原因=错误)#内部
@@ -119,7 +116,7 @@ class 设置控制器(远程服务):#设置 Remote 服务
         try:#打开
             自身._打开路径(目录,信号)#打开
             return {'opened':True}#确认
-        except OSError as 错误:#失败
+        except OSError as 错误:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','path open was aborted',{},原因=错误)#取消
             raise 远程错误('gateway/internal','path open failed: '+远程错误消息(错误),{},原因=错误)#内部
@@ -146,7 +143,7 @@ class 设置控制器(远程服务):#设置 Remote 服务
         for 候选 in 设置.describe({'redactSecrets':True}):#扫描
             if 候选['ns']==命名空间:#命中
                 描述符=候选#记下
-                break#结束
+                break
         if 描述符 is None:#写后消失
             raise 远程错误('gateway/internal','settings namespace "'+命名空间+'" was disposed after the '+模式,{})#内部
         return 命名空间视图(描述符)#红化视图
@@ -162,7 +159,9 @@ def 应用(上下文,配置值=None):
     """挂载 settings 与 credentials Remote 拥有者。"""
     设置控制器(上下文,配置值)#构造即登记
 
+默认=应用
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
+default=默认#框架槽

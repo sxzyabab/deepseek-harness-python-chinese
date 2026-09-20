@@ -1,7 +1,7 @@
 import difflib#系统提示词差分
 import json#Schema / JSON 载荷解析
-from datetime import datetime#本地时刻
-from zoneinfo import ZoneInfo#时区
+from datetime import datetime as 日期时间
+from zoneinfo import ZoneInfo as 时区信息
 from .轨迹记录 import 轨迹记录身份,格式化已用秒数#记录面
 from .轨迹预览 import 轨迹预览文本#有界预览
 
@@ -126,7 +126,7 @@ def 格式化开始时刻(时间戳):#本地时间标签
     if 数!=数 or 数 in (float('inf'),float('-inf')):#非有限
         return 'Not available'#不可用
     秒=数/1000 if 数>1e12 else 数#毫秒或秒
-    时刻=datetime.fromtimestamp(秒,tz=ZoneInfo('UTC')).astimezone()#纪元转当地
+    时刻=日期时间.fromtimestamp(秒,tz=时区信息('UTC')).astimezone()
     return 时刻.strftime('%Y-%m-%d %H:%M:%S.')+f'{int(时刻.microsecond/1000):03d}'#日时.毫秒
 
 def 总耗时文案(指标):#总耗时

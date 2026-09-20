@@ -1,11 +1,11 @@
 """解析 Remote 智能体与会话身份的宿主 BFF 策略。
 
-对齐上游 `remotes/src/agent-lookup.ts`。公开面仅中文名。诊断英文字面量保持上游。
+诊断英文字面量保持线协议。
 """
 import threading#后台恢复
 from typing import NotRequired,TypedDict#结构类型
 from concurrent.futures import Future as 原生结果#单次操作结果
-from ...typert.协议 import 查找策略失败#查找失败错误
+from ...typert.协议 import 查找策略失败
 
 __all__=(#仅中文公开名
     '远程会话未找到','远程子智能体会话所有权',
@@ -169,7 +169,7 @@ def 创建远程智能体解析器(上下文,选项):
                     恢复中.pop(会话标识,None)#允许同一身份再次恢复
             工作=threading.Thread(target=后台恢复会话)#后台恢复
             工作.daemon=True#不挡住退出
-            工作.start()#启动
+            工作.start()
         try:
             return {'agent':恢复.等待()}#恢复成功则返回智能体
         except 远程会话未找到 as 错误:
@@ -205,8 +205,8 @@ def 创建远程智能体解析器(上下文,选项):
         def 解析到上下文(会话标识):
             """宿主上下文。"""
             return 解析到智能体(会话标识).ctx#智能体上下文
-        类型上下文.typert.lookups.configure('agent',解析到智能体)#配置智能体查找
-        类型上下文.typert.lookups.configure('session',解析到会话)#配置会话查找
+        类型上下文.typert.lookups.configure('agent',解析到智能体)
+        类型上下文.typert.lookups.configure('session',解析到会话)
         类型上下文.typert.contexts.configureHost('agent',解析到上下文)#宿主上下文提供方
     上下文.依赖启动(['typert'],挂查找)#等 typert 可用
     return 解析智能体#返回共享解析器

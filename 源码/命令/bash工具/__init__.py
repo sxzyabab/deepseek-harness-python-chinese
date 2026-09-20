@@ -11,12 +11,12 @@ from ...沙盒.沙盒 import (
     校验升级参数,#校验升级参数配对
 )#导入沙箱升级与路径辅助
 from .后台 import 进程结果#后台结果映射
-from .呈现 import 解析退出状态,渲染结果,渲染进程读取#退出解析与渲染
+from .渲染 import 解析退出状态,渲染结果,渲染进程读取#退出解析与渲染
 
-__all__=['名称','注入','配置','应用']#仅中文公开名
+__all__=['名称','依赖','配置','应用']#仅中文公开名
 
 名称='tool-bash'#Cordis插件名
-注入=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
+依赖=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
 配置={#bash工具部署配置
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
 }#配置模式结束
@@ -97,7 +97,7 @@ def 拼Bash描述(后台启用,升级模式):#拼工具描述
         +'it — but it does not forbid attempting or escalating other commands later.')#不影响其他命令
 
 def 呈现Bash调用(参数):#调用卡片
-    """前台调用展示为终端，后台启动展示为通用卡片。两条路径标题都是命令；前台cwd传给桥去解析，后台描述留在卡片内容里。"""
+    """前台调用呈现为终端，后台启动呈现为通用卡片。两条路径标题都是命令；前台cwd传给桥去解析，后台描述留在卡片内容里。"""
     if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#后台
         return {#通用执行卡片
             'card':'generic',#通用卡
@@ -116,15 +116,15 @@ def 呈现Bash调用(参数):#调用卡片
     return 卡片#前台卡片
 
 def 呈现Bash结果(参数,结果):#结果卡片
-    """已完成前台输出展示为终端；后台确认与执行错误用通用围栏输出，没有退出状态药丸。"""
+    """已完成前台输出呈现为终端；后台确认与执行错误用通用围栏输出，没有退出状态药丸。"""
     if 'content' not in 结果:#无内容
-        return None#不展示
+        return None#不呈现
     内容=结果['content']#内容块
     if 内容 is None:#无内容
-        return None#不展示
+        return None#不呈现
     块=内容[0] if len(内容)==1 else None#唯一内容块
     if 块 is None or 块['type']!='text':#不是单文本块
-        return None#不展示
+        return None#不呈现
     原文=块['text']#正文
     是后台='run_in_background' in 参数 and 参数['run_in_background'] is True#是否后台
     if 是后台 is True or ('isError' in 结果 and 结果['isError'] is True):#后台或错误
@@ -191,7 +191,7 @@ def 抛中止():#抛出工具调用中止
     raise 错误#抛出
 
 def 应用(上下文,配置值=None):#加载bash工具插件
-    """在ctx.tools上登记bash；有隔离执行器时要求ctx.sandboxPolicy。"""
+    """在 tools 服务上登记 bash；有隔离执行器时要求沙盒策略服务。"""
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True#是否启用后台
@@ -210,7 +210,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             请求['session']=智能体.session#带上会话
         return 沙箱政策.resolve(请求)#按会话解析
     def 审批Bash升级(模式,理由,执行上下文,常驻政策):#审批bash升级
-        """在任何东西执行之前，经ctx.approval解析沙箱升级请求。"""
+        """在执行前经审批服务解析沙箱升级请求。"""
         if len(升级模式)==0:#本组合没有升级
             raise bash工具错误('本组合没有可升级的沙箱执行器，不能使用 sandbox_permissions')#拒绝
         return 批准升级(#共用审批
@@ -269,7 +269,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):#已取消
                 抛中止()#抛出中止
             def 任务体():#任务体
-                """在ctx.jobs下拉起后台bash进程。"""
+                """在任务服务下拉起后台 bash 进程。"""
                 进程=上下文.shell.启动(上下文.shell.解析(请求))#解析并后台启动
                 结算=操作任务()#任务done
                 def 监视结算():#等到进程关闭再映射结果
@@ -393,7 +393,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
     }))#bash工具结束
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

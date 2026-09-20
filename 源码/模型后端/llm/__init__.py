@@ -1,8 +1,4 @@
-"""LLM 服务：带瀑布可拦截流式调用 API 的适配器注册表。
-
-对齐上游 `llm/src/index.ts`。公开面仅中文名；ctx 槽 `llm`、事件名与失败码字面量保持上游。
-无英文别名。中文消费方别名（大模型／超出）保留供下游包导入。
-"""
+"""语言模型适配器注册表与可拦截的流式调用入口。"""
 import math,threading#有限数与后台观察
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
@@ -107,7 +103,7 @@ __all__=(#仅中文公开名；无英文别名
     '卸载图片前缀张数','按政策卸载请求图片','解析图片附件访问',
     '语言模型失败','文本块','推理块','图片块','工具调用块','工具结果块',
     '文本模态','图片模态','模型模态','正常停止','工具调用停止','达到令牌上限',
-    '令牌用量','提供方信息','可配置提供方','模型发现请求','发现到的模型',
+    '令牌用量','提供方简介','可配置提供方','模型发现请求','发现到的模型',
     '模型信息','模型上下文','推理力度信息','模型推理信息','已解析模型信息',
     '系统提示词更新','图片请求预算','回放信封','工具模式','生成选项',
     '上下文摘要最大字符','截上下文摘要','冻结消息',
@@ -193,7 +189,7 @@ def 断言可用密钥(原始,包名,引用):#接受已提供凭证或拒绝
 
 class 语言模型适配器:#面向 harness 消息与流词表的提供方线路适配器
     """面向 harness 消息与流词表的提供方线路适配器。"""
-    def 提供方信息(自身,提供方):#描述本适配器拥有的一条提供方路由
+    def 提供方简介(自身,提供方):#描述本适配器拥有的一条提供方路由
         """描述本适配器拥有的一条提供方路由。"""
         return {'id':提供方,'name':提供方}#默认 id 与 name 同路由名
 
@@ -279,11 +275,11 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         自身.ctx.日志.警告(错误)#附带错误
 
     def 注册适配器(自身,提供方列表,适配器):#为给定提供方路由注册适配器
-        """为给定提供方路由注册适配器。全有或全无，随光纤拆除。"""
+        """为给定提供方路由注册适配器。全有或全无，随纤程拆除。"""
         持有=set()#本注册持有的路由
         已释放=False#是否已拆除
-        def 执行体():#随光纤的 effect
-            """随光纤的 effect。"""
+        def 执行体():#随纤程的 effect
+            """随纤程的 effect。"""
             if len(提供方列表)==0:#初次注册为空
                 raise 语言模型错误('an adapter must register at least one provider','INVALID_ADAPTER')#初次注册不得为空
             自身.提交路由(持有,自身.准备路由(提供方列表,适配器,持有))#校验并提交
@@ -316,7 +312,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 raise 语言模型错误('adapter provider names must be non-empty','INVALID_ADAPTER')#名不得空
             if 提供方 in 已见 or (提供方 in 自身.适配器表 and 提供方 not in 持有):#冲突
                 raise 语言模型错误('an adapter for provider "'+提供方+'" is already registered','DUPLICATE_ADAPTER')#冲突
-            信息=适配器.提供方信息(提供方)#适配器给出的元数据
+            信息=适配器.提供方简介(提供方)#适配器给出的元数据
             if 'id' not in 信息 or not isinstance(信息['id'],str) or 信息['id']!=提供方 or 'name' not in 信息 or not isinstance(信息['name'],str) or len(信息['name'])==0:#元数据非法
                 raise 语言模型错误('adapter metadata for provider "'+提供方+'" must preserve its id and have a non-empty name','INVALID_ADAPTER')#元数据非法
             已见.add(提供方)#记下本批已见
@@ -383,8 +379,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 自身.目录[条目['provider']]=条目#再挂上新的
             持有=拆离#更新持有
             自身.发出适配器已更新()#通知观察者
-        def 执行体():#随光纤的 effect
-            """随光纤的 effect。"""
+        def 执行体():#随纤程的 effect
+            """随纤程的 effect。"""
             if len(条目列表)==0:#初次注册为空
                 raise 语言模型错误('a configurable-provider registration must declare at least one provider','INVALID_DIRECTORY')#不得为空
             提交(条目列表)#提交初集
@@ -419,8 +415,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
 
     def 注册模型发现(自身,设置命名空间,发现):#注册模型发现
         """主动为这个插件拥有的设置命名空间询问提供方端点。"""
-        def 执行体():#随光纤的 effect
-            """随光纤的 effect。"""
+        def 执行体():#随纤程的 effect
+            """随纤程的 effect。"""
             if len(设置命名空间)==0:#命名空间空
                 raise 语言模型错误('model discovery needs a non-empty settings namespace','INVALID_DISCOVERY')#非法发现
             if 设置命名空间 in 自身.发现表:#已被占用
@@ -442,9 +438,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
 
     def 发现模型(自身,设置命名空间,请求):#发现端点模型
         """询问一个提供方端点它所通告的模型。"""
-        发现=自身.发现表.get(设置命名空间)#取出发现回调
-        if 发现 is None:#没有要约
+        if 设置命名空间 not in 自身.发现表:#没有要约
             raise 语言模型错误('no model discovery is registered for "'+设置命名空间+'"','NO_DISCOVERY')#未注册发现
+        发现=自身.发现表[设置命名空间]#取出发现回调
         路由=请求.get('provider') or ''#可选路由
         端点=请求.get('baseURL') or ''#可选端点
         if len(路由)==0 and len(端点)==0:#路由与端点都空
@@ -475,9 +471,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
 
     def 图片请求定价(自身,提供方,模型):#图片请求定价
         """解析一条精确路由的提供方侧请求图定价；未注册或声明无时为 None。"""
-        注册=自身.适配器表.get(提供方)#可选注册
-        if 注册 is None:#未注册
+        if 提供方 not in 自身.适配器表:#未注册
             return None#无
+        注册=自身.适配器表[提供方]#可选注册
         return 注册['adapter'].图片请求定价(提供方,模型)#问适配器
 
     def 文件请求文本(自身,引用):#文件请求文本
@@ -663,9 +659,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
 
     def 取注册(自身,提供方):#按路由取注册
         """按路由取注册。"""
-        注册=自身.适配器表.get(提供方)#查表
-        if 注册 is None:#未注册
+        if 提供方 not in 自身.适配器表:#未注册
             raise 语言模型错误('no adapter registered for provider "'+提供方+'"','NO_ADAPTER')#未注册
+        注册=自身.适配器表[提供方]#查表
         return 注册#已捕获注册
 
     def 按适配器过滤(自身,选项,适配器):#去掉他适配器拥有的回放状态
@@ -743,7 +739,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             迭代器=iter(流)#取出迭代器
         except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块
             yield 适配器失败块(错误,选项.get('signal'))#变成终止失败块
-            return#结束生成器
+            return生成器
         已完成=False#迭代是否已正常结束
         try:#消费适配器迭代器
             while True:#直到 done
@@ -755,10 +751,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块
                     已完成=True#不再交还迭代器
                     yield 适配器失败块(错误,选项.get('signal'))#变成终止失败块
-                    return#结束生成器
+                    return生成器
                 if 项.get('done'):#适配器结束
                     已完成=True#正常完成
-                    return#结束生成器
+                    return生成器
                 yield 项['value']#让出一块
         finally:#生成器被提前关掉
             if not 已完成 and 迭代器 is not None:#迭代尚未完成
@@ -773,7 +769,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
     def 带注册流出(自身,选项,已准备=None):#经可选捕获注册流出
         """经可选捕获注册流出。"""
         def 内层(*位置参数):#最终适配器边界
-            """最终适配器边界；忽略瀑布多余参数，对齐 JS 函数。"""
+            """最终适配器边界；忽略瀑布多余参数。"""
             return 自身.适配器流(选项,已准备)#适配器流
         return 自身.ctx.链式拦截(自身,'llm/stream',选项,内层)#走 llm/stream 瀑布
 

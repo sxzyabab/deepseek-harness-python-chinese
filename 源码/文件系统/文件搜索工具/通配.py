@@ -1,8 +1,8 @@
-"""面向模型的 `glob` 工具：发现路径匹配 glob 的文件，按修改时间排序。执行通过子进程 seam 以普通 argv 向量直接拉起打包的 ripgrep 二进制——本模块拥有面向模型的模式、参数校验、argv 构造、结果解析、内联抽样与格式化；进程相关问题留在 `ctx.subprocess` 后面。"""
+"""面向模型的 glob 工具：发现路径匹配 glob 的文件，按修改时间排序。执行通过子进程以普通 argv 向量直接拉起打包的 ripgrep 二进制——本模块拥有面向模型的模式、参数校验、argv 构造、结果解析、内联抽样与格式化；进程相关问题留在子进程层后面。"""
 import os#平台路径分隔符
 from ...内核.工具 import 定义工具#导入工具定义器
 from .搜索管道 import 搜索工具错误,执行ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与溢出保存
-from .展示 import glob搜索元,搜索视图自元#导入卡片meta投影
+from .呈现 import glob搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择
 
 通配最大结果数=100#内联路径默认上限
@@ -136,7 +136,7 @@ def 渲染通配路径(路径列表,上限,根,溢出引用=None):#按上限渲�
     return 格式化通配输出(跨顶层抽样(路径列表,上限['maxResults'],根),len(路径列表),溢出引用)#跨顶层抽样
 
 def 通配卡片页(路径列表,上限,根):#卡片与文本共用的内联页
-    """已完成 glob 卡片展示的内联路径页，计算方式与渲染通配路径相同，因此卡片与文本对哪些路径活过上限意见一致。"""
+    """已完成 glob 卡片呈现的内联路径页，计算方式与渲染通配路径相同，因此卡片与文本对哪些路径活过上限意见一致。"""
     if len(路径列表)<=上限['maxResults']:#未超额则整份；判 length
         return {'items':路径列表,'truncated':False}#整份
     if not 上限['sampleOverCapGlobResults']:#取修改时间头部
@@ -144,12 +144,12 @@ def 通配卡片页(路径列表,上限,根):#卡片与文本共用的内联页
     return {'items':跨顶层抽样(路径列表,上限['maxResults'],根)['items'],'truncated':True}#跨顶层抽样
 
 def 呈现通配调用(参数):#调用中的搜索卡片
-    """调用中展示：以 pattern（以及根）为标题的搜索卡片。"""
+    """调用中呈现：以 pattern（以及根）为标题的搜索卡片。"""
     何处=(' in '+参数['path']) if 'path' in 参数 else ''#有path则写入标题
     return {'card':'generic','title':'Glob '+参数['pattern']+何处,'kind':'search','rawInput':参数['pattern']}#通用搜索卡片
 
-def 呈现通配结果(参数,结果):#完成调用后的搜索卡片展示
-    """完成调用后的展示：从结果的 presentationMeta 投影搜索卡片。畸形或缺失的元数据回退到通用卡片。"""
+def 呈现通配结果(参数,结果):#完成调用后的搜索卡片呈现
+    """完成调用后的呈现：从结果的 presentationMeta 投影搜索卡片。畸形或缺失的元数据回退到通用卡片。"""
     _=参数#视图从结果推导，不使用参数
     if 'isError' in 结果 and 结果['isError']:#错误结果不投影搜索卡片
         return None#无搜索卡片
@@ -179,7 +179,7 @@ def 应用通配工具(上下文,上限):#注册glob工具与系统提示
         """按上限渲染文本块。"""
         _=参数#渲染不依赖原始参数
         return [{'type':'text','text':渲染通配路径(值['paths'],上限,值['root'])}]#单个文本块
-    def 展示元(参数,值):#投影搜索卡片meta
+    def 呈现元(参数,值):#投影搜索卡片meta
         """投影搜索卡片meta。"""
         _=参数#meta不依赖原始参数
         页=通配卡片页(值['paths'],上限,值['root'])#与文本同一内联页
@@ -223,7 +223,7 @@ def 应用通配工具(上下文,上限):#注册glob工具与系统提示
                 },#schema.properties结束
             },#schema结束
             'render':渲染,#按上限渲染文本
-            'presentationMeta':展示元,#投影搜索卡片meta
+            'presentationMeta':呈现元,#投影搜索卡片meta
         },#output结束
         'execute':执行,#执行一次glob
         'presentCall':呈现通配调用,#调用中卡片

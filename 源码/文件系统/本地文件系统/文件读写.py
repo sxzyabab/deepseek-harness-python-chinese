@@ -37,25 +37,25 @@ def 补节点错误码(错误):#给 OSError 补上 Node 风格 code
 def 是否不存在错误(错误):#ENOENT
     """判断是否为文件不存在。"""
     if not isinstance(错误,BaseException):#非异常
-        return False#否
+        return False
     if getattr(错误,'code',None)=='ENOENT':#Node 风格
-        return True#是
+        return True
     return isinstance(错误,OSError) and 错误.errno==errno.ENOENT#POSIX errno
 
 def 是否已存在错误(错误):#EEXIST
     """判断是否为已存在。"""
     if not isinstance(错误,BaseException):#非异常
-        return False#否
+        return False
     if getattr(错误,'code',None)=='EEXIST':#Node 风格
-        return True#是
+        return True
     return isinstance(错误,OSError) and 错误.errno==errno.EEXIST#POSIX errno
 
 def 是否非目录错误(错误):#ENOTDIR
     """判断是否为父段不是目录。"""
     if not isinstance(错误,BaseException):#非异常
-        return False#否
+        return False
     if getattr(错误,'code',None)=='ENOTDIR':#Node 风格
-        return True#是
+        return True
     return isinstance(错误,OSError) and 错误.errno==errno.ENOTDIR#POSIX errno
 
 def 是否中止错误(错误):#结构化中止
@@ -65,10 +65,10 @@ def 是否中止错误(错误):#结构化中止
 def 是否权限错误(错误):#EACCES 或 EPERM
     """判断是否为权限错误。"""
     if not isinstance(错误,BaseException):#非异常
-        return False#否
+        return False
     码=getattr(错误,'code',None)#Node 风格码
     if 码=='EACCES' or 码=='EPERM':#权限类
-        return True#是
+        return True
     return isinstance(错误,OSError) and (错误.errno==errno.EACCES or 错误.errno==errno.EPERM)#POSIX errno
 
 def 错误消息(错误):#把未知错误收成消息字符串
@@ -402,7 +402,7 @@ def 原子写文件(绝对路径,内容,模式,信号,内部=None,若缺则创�
     临时路径=os.path.join(暂存目录,临时名)#临时文件路径
     平台=取内部(内部,'platform')#宿主或测试覆盖平台
     if 平台 is None:#未覆盖
-        平台='win32' if os.name=='nt' else os.name#对齐 Node process.platform
+        平台='win32' if os.name=='nt' else os.name#映射到 Node process.platform
     复制Dacl=取内部(内部,'copyFileDacl') or 复制文件Dacl#DACL 复制
     替换=取内部(内部,'replaceFile') or 替换文件#Win32 替换
     链接文件=取内部(内部,'linkFile') or os.link#硬链接发布

@@ -1,6 +1,6 @@
-"""bash 能力缝叠在子进程能力缝上的本地服务提供方。对齐上游 `bash-local/src/index.ts`。公开面仅中文名。
+"""叠在子进程能力上的本地 bash 服务提供方。
 
-公开命令经 ctx.subprocess 在受管进程组里以 bash -c 跑；子类可用显式 argv 复用同一套机制。
+公开命令经子进程在受管进程组里以 bash -c 跑；子类可用显式 argv 复用同一套机制。
 本执行器拥有命令默认值、截止与原因分类、对模型友好的终端环境，以及后台读取时面向模型的 stdout/stderr 合并。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
@@ -98,11 +98,11 @@ def 取出已收集(句柄):#取出收集模式的两路读取器
     标准输出=已收集输出['stdout'] if 'stdout' in 已收集输出 else None#标准输出读取器
     标准误=已收集输出['stderr'] if 'stderr' in 已收集输出 else None#标准误读取器
     if 标准输出 is None or 标准误 is None:#实现丢掉了请求的收集流
-        raise 本地bash错误('bash-local: subprocess implementation dropped a requested collect stream')#按缝约定这两路必须在
+        raise 本地bash错误('bash-local: subprocess implementation dropped a requested collect stream')#按约定这两路必须在
     return {'stdout':标准输出,'stderr':标准误}#两路读取器
 
 class 后台进程句柄:#外壳执行器.启动 返回的后台进程
-    """后台进程句柄：数据字段对齐上游，方法仅中文读取输出与杀死。"""
+    """后台进程句柄：方法仅中文读取输出与杀死。"""
     def __init__(自身,运行中,收集,规格,宿主):#钉住子进程与收集器
         """记下存活子进程、两路收集器、规格与宿主执行器。"""
         自身.status='running'#刚拉起，算在跑
@@ -190,16 +190,17 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
             自身.done.兑现()#句柄 done 仍决议，不拒绝
 
 class 本地Bash执行器(外壳执行器):#本地 bash 执行器
-    """架在 ctx.subprocess 上的本地 bash 执行器。
+    """架在子进程能力上的本地 bash 执行器。
 
     有界输出、溢出文件和进程组 SIGTERM→SIGKILL 升级是子进程服务的机制；
     本执行器在每次启动时提供它们的配置预算。公开方法仅中文：解析、运行、启动、按参数表运行/启动。
     """
-    inject=['subprocess']#Cordis注入子进程服务（协议槽）
-    Config=配置模式#Cordis配置模式（协议槽）
-    def __init__(自身,上下文对象,配置):#用上下文和配置构造执行器
+    依赖=['subprocess']
+    inject=依赖
+    Config=配置模式
+    def __init__(自身,上下文,配置):#用上下文和配置构造执行器
         """用上下文和配置构造执行器；入口配置必须能拿来跑。"""
-        super().__init__(上下文对象)#交给 shell 执行器基类
+        super().__init__(上下文)#交给 shell 执行器基类
         断言可用Bash配置(配置)#入口配置必须能拿来跑
         def 读入口():#组合入口配置源
             """组合入口配置源。"""
@@ -211,13 +212,13 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
         def 变更时():#每个字段都在每条命令经 getter 读取
             """文档变化时没有从源派生、需要重建的东西。"""
             return#空变更钩子
-        安装设置段(上下文对象,外壳设置命名空间,配置模式,配置,{
+        安装设置段(上下文,外壳设置命名空间,配置模式,配置,{
             'validate':断言可用Bash配置,#写入时再断言能跑
             'setSource':设源,#切换权威配置源
             'onChange':变更时,#空变更钩子
         })#设置段安装结束
 
-    @property#只读属性
+    @property
     def 配置(自身):#读取当前权威配置
         """当前权威配置：设置段，或组合入口。"""
         return 自身.源()#调用当前配置源
@@ -339,4 +340,4 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
         """给子类往进程上贴执行事实的结算钩子。基类实现故意留空。"""
         return#基类故意留空
 
-default=本地Bash执行器#Cordis默认导出（协议槽）
+default=本地Bash执行器#框架槽

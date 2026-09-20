@@ -11,4 +11,4 @@ __all__=['侧栏槽名','侧栏子槽','侧栏词表命名空间']#仅中文公�
     'sidebar.workspaces':{'kind':'single','scope':'root'},#工作区浏览区
     'sidebar.settings':{'kind':'single','scope':'root'},#设置面
     'sidebar.footer.action':{'kind':'list','scope':'root'},#页脚动作
-}#结束
+}

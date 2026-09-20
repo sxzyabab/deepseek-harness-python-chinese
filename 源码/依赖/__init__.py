@@ -6,6 +6,7 @@ from . import (
     schemastery,
     logger_console,
     loader,
+    node_pty,
 )
 __all__=[
     '工具',
@@ -15,4 +16,5 @@ __all__=[
     'schemastery',
     'logger_console',
     'loader',
+    'node_pty',
 ]

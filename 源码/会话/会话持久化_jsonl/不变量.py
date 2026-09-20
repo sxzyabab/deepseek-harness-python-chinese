@@ -1,18 +1,20 @@
-"""@deepseek-ai/dsh-session-persistence-jsonl 的本包拥有不变量配套。"""
-包名='@deepseek-ai/dsh-session-persistence-jsonl'#包名
-名称='session-persistence-jsonl-invariant'#插件名
-注入=['invariants']#依赖
+"""向 invariants 登记本包；无独立运行时检查。"""
+包名='@deepseek-ai/dsh-session-persistence-jsonl'
+名称='session-persistence-jsonl-invariant'
+依赖=['invariants']
 
-__all__=['包名','名称','注入','安装','应用']#公开面
+__all__=['包名','名称','依赖','应用','默认']
 
 def 安装(*位置参数):
     """空安装器。"""
-    return#无不变量
+    return
 
-def 应用(上下文对象):
+def 应用(上下文):
     """登记不变量配套。"""
-    return 上下文对象.invariants.register(包名,安装)#登记
+    return 上下文.invariants.register(包名,安装)
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=默认#框架槽

@@ -1,7 +1,9 @@
 import threading as 线程#睡眠可取消
-from datetime import datetime as 日期时间,timezone as 时区#ISO时间
+from datetime import datetime as 日期时间#ISO时间
+from zoneinfo import ZoneInfo#UTC
 from ..展开 import 读变量#读变量
 from ..文件系统访问 import 在目录解析#路径解析
+from ..解释 import 已中止#本包中止谓词
 from .选项 import 解析选项#选项解析
 
 __all__=['内建程序']#仅中文公开名
@@ -156,28 +158,21 @@ def sleep程序(argv,io,state,fs=None):#sleep程序
         被杀[0]=True#标记
         完成.set()#唤醒
     信号=state.get('signal')#取消信号
-    if 信号 is not None and 信号.get('aborted') is True:#已中止则立刻
+    if 已中止(信号):#已中止则立刻
         return 信号退出码#信号码
-    def 监听(事件名,回调,一次=False):#挂监听
-        """对齐 addEventListener。"""
-        监听表=信号.setdefault('_listeners',{})#监听表
-        监听表.setdefault(事件名,[]).append((回调,一次))#登记
-    if 信号 is not None and hasattr(信号,'get'):#有信号面
-        if 'addEventListener' in 信号:#可调用面
-            信号['addEventListener']('abort',中止,{'once':True})#挂一次
-        else:#dict面
-            监听('abort',中止,True)#挂
+    if 信号 is not None:#有信号面
+        信号.加监听(中止)#挂
     定时=线程.Timer(秒数,完成.set)#定时结束
     定时.start()#启动
     完成.wait()#等待或被杀
     定时.cancel()#清定时器
-    if 信号 is not None and 'removeEventListener' in 信号:#卸监听
-        信号['removeEventListener']('abort',中止)#卸
-    return 信号退出码 if 被杀[0] or (信号 is not None and 信号.get('aborted') is True) else 0#信号码或成功
+    if 信号 is not None:#卸监听
+        信号.卸监听(中止)#卸
+    return 信号退出码 if 被杀[0] or 已中止(信号) else 0#信号码或成功
 
 def date程序(argv,io,state=None,fs=None):#date程序
     """打印ISO时间。"""
-    io['out'](f"{日期时间.now(时区.utc).isoformat().replace('+00:00','Z')}\n")#ISO时间
+    io['out'](f"{日期时间.now(ZoneInfo('UTC')).isoformat().replace('+00:00','Z')}\n")#ISO时间
     return 0#成功
 
 def seq程序(argv,io,state=None,fs=None):#seq程序

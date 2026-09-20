@@ -179,7 +179,7 @@ def 转换块(状态,事件,上下文):#转换块
         状态['pending']={'group':尝试组(回合,步骤),'afterLastChunk':[]}#新建
     待定=状态['pending']#取待定
     断言尝试切口(状态,待定['group'],事件['seq'])#断言切口
-    if 待定['group'].get('accumulator') is None:#确保累加器
+    if 'accumulator' not in 待定['group']:#确保累加器
         待定['group']['accumulator']=助手流累加器()#新建
     待定['group']['accumulator'].推入({'time':事件['time'],'chunk':数据['chunk']})#推入块
     记块跨度(待定['group'],事件['seq'],1,事件['time'])#记跨度
@@ -405,9 +405,9 @@ def 追加流记录(组,源,末时间,已拥有=True):#追加流记录
 
 def 冲刷累加器(组):#冲刷累加器
     """把累加器快照并入流。"""
-    累加器=组.get('accumulator')#累加器
-    if 累加器 is None:#无则返回
+    if 'accumulator' not in 组:#无则返回
         return#返回
+    累加器=组['accumulator']#累加器
     for 记录值 in 累加器.快照():#快照记录
         追加流记录(组,记录值,流记录末时间(记录值),False)#追加
     组.pop('accumulator',None)#删除累加器

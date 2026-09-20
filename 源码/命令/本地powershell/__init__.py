@@ -1,9 +1,8 @@
-"""bash 能力缝的本地 PowerShell 服务提供方。
+"""本地 PowerShell 服务提供方。
 
-对齐上游 `pwsh-local/src/index.ts`。公开面仅中文名。
-每条命令经 ctx.subprocess 拉起受管进程，以 `pwsh -NoLogo -NoProfile -NonInteractive -Command` 运行；
+每条命令经子进程拉起受管进程，以 pwsh -NoLogo -NoProfile -NonInteractive -Command 运行；
 执行器负责命令缺省、截止与原因分类、面向模型的终端环境，以及后台读取时面向模型的 stdout/stderr 合并。
-命令字符串作为 `-Command` 的一个 argv 元素传入：由 PowerShell 自己解析文本，中间没有 shell。
+命令字符串作为 -Command 的一个 argv 元素传入：由 PowerShell 自己解析文本，中间没有 shell。
 """
 import os,math,threading#工作目录、有限数与后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
@@ -104,11 +103,11 @@ def 取出已收集(句柄):#取出收集模式的两路读取器
     标准输出=已收集输出['stdout'] if 'stdout' in 已收集输出 else None#标准输出读取器
     标准误=已收集输出['stderr'] if 'stderr' in 已收集输出 else None#标准误读取器
     if 标准输出 is None or 标准误 is None:#实现丢掉了请求的收集流
-        raise 本地powershell错误('pwsh-local: subprocess implementation dropped a requested collect stream')#按缝约定这两路必须在
+        raise 本地powershell错误('pwsh-local: subprocess implementation dropped a requested collect stream')#按约定这两路必须在
     return {'stdout':标准输出,'stderr':标准误}#两路读取器
 
 class 后台进程句柄:#外壳执行器.启动 返回的后台进程
-    """后台进程句柄：数据字段对齐上游，方法仅中文读取输出与杀死。"""
+    """后台进程句柄：方法仅中文读取输出与杀死。"""
     def __init__(自身,运行中,收集,规格,宿主):#钉住子进程与收集器
         """记下存活子进程、两路收集器、规格与宿主执行器。"""
         自身.status='running'#刚拉起，算在跑
@@ -186,16 +185,17 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
             自身.done.兑现()#句柄 done 仍决议，不拒绝
 
 class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
-    """架在 ctx.subprocess 上的本地 PowerShell 执行器。
+    """架在子进程能力上的本地 PowerShell 执行器。
 
     有界输出、溢出文件和进程树终止是子进程服务的机制；本执行器在每次启动时提供它们的配置预算。
     公开方法仅中文：解析、运行、启动、按参数表运行/启动、参数表、进程已结束。
     """
-    inject=['subprocess']#Cordis注入子进程服务（协议槽）
-    Config=配置模式#Cordis配置模式（协议槽）
-    def __init__(自身,上下文对象,配置):#用上下文和配置构造执行器
+    依赖=['subprocess']
+    inject=依赖
+    Config=配置模式
+    def __init__(自身,上下文,配置):#用上下文和配置构造执行器
         """用上下文和配置构造执行器；入口配置必须能拿来跑，并解析 pwsh 可执行文件。"""
-        super().__init__(上下文对象)#交给 shell 执行器基类
+        super().__init__(上下文)#交给 shell 执行器基类
         断言可用Pwsh配置(配置)#入口配置必须能拿来跑
         def 读入口():#组合入口配置源
             """组合入口配置源。"""
@@ -214,18 +214,18 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
                 return#不用重探文件系统
             自身.已声明Pwsh路径=声明#记下新的声明
             自身.已解析Pwsh路径=解析Pwsh路径(声明)#按新声明重新解析
-        安装设置段(上下文对象,外壳设置命名空间,配置模式,配置,{#与 bash 家族共用外壳设置命名空间
+        安装设置段(上下文,外壳设置命名空间,配置模式,配置,{#与 bash 家族共用外壳设置命名空间
             'validate':断言可用Pwsh配置,#写入时再断言能跑
             'setSource':设源,#切换权威配置源
             'onChange':变更时,#仅声明路径变化才重探
         })#设置段安装结束
 
-    @property#只读属性
+    @property
     def 配置(自身):#读取当前权威配置
         """当前权威配置：设置段，或组合入口。"""
         return 自身.源()#调用当前配置源
 
-    @property#只读属性
+    @property
     def pwsh路径(自身):#读取解析后的pwsh路径
         """每条命令都经这个 pwsh 可执行文件运行。"""
         return 自身.已解析Pwsh路径#返回当前解析结果
@@ -261,7 +261,7 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         return 规格#完整规格
 
     def 参数表(自身,规格):#拼出本次pwsh调用argv
-        """一条已解析规格对应的 pwsh 调用 argv——隔离子类经 ctx.sandbox.confine 包装的 argv 级缝。"""
+        """一条已解析规格对应的 pwsh 调用 argv——隔离子类经沙盒包装的 argv 级接口。"""
         return [自身.pwsh路径,'-NoLogo','-NoProfile','-NonInteractive','-Command',编码前导+规格['command']]#pwsh加编码钉住语句再跟命令
 
     def 拉起规格(自身,规格,标准输出上限,信号,参数表):#把规格和argv映射成子进程启动规格
@@ -336,4 +336,4 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         """给子类往进程上贴执行事实的结算钩子。基类实现故意留空；pwsh 隔离消费方是 pwsh_sandbox。"""
         return#基类故意留空
 
-default=本地PowerShell执行器#Cordis默认导出（协议槽）
+default=本地PowerShell执行器#框架槽

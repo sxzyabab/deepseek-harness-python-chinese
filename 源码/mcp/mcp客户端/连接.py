@@ -2,9 +2,9 @@ import math,threading,time#有限判定、定时器与时间戳
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .传输 import 创建传输,MCP错误#传输工厂与本包异常
-from .工具 import 同步工具#工具同步
+from .工具桥接 import 同步工具#工具同步
 
-__all__=['重连默认值','默认最大指令字节','解析重连策略','启动连接']#仅中文公开名
+__all__=['重连默认值','默认最大指令字节','解析重连策略','启动连接']
 
 class 操作任务:
     """单次操作的 Future 包装，只留 等待。"""
@@ -148,7 +148,7 @@ def 启动连接(上下文,配置,策略):
             结算(False)#失败关闭
         定时=threading.Timer(世代关闭超时毫秒/1000,超时)#超时定时器
         定时.daemon=True#不独自撑住进程
-        定时.start()#启动
+        定时.start()
         def 等待关闭到达():
             """关闭到达则取消超时并报告正常关闭。"""
             try:#等待
@@ -277,7 +277,7 @@ def 启动连接(上下文,配置,策略):
                 上下文.日志.错误(标签+': failed generation could not confirm transport closure — reconnect stopped to avoid overlapping server processes; reload the plugin or restart the Host to retry')#停止重连
                 return#不再重连
             世代断开(世代容器)#正常转入断开以重连
-            return#结束失败路径
+            return失败路径
         if not 仍是当前(世代容器):#已不是当前则退出
             return#退出
         状态['serverInstructions']=指令#记下快照

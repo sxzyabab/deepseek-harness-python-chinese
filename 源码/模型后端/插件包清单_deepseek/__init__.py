@@ -1,18 +1,15 @@
-"""为官方 DeepSeek 请求贡献 `dsh_plugin_packages` 字段。
-
-对齐上游 `@deepseek-ai/dsh-plugin-package-inventory-deepseek`。公开面仅中文名。
-"""
+"""向官方 DeepSeek 请求贡献 dsh_plugin_packages 字段。"""
 import json,os#读 manifest 与路径
 from json import JSONDecodeError#清单解析失败
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 布尔字段#配置字段
-光纤状态=cordis.纤程状态#纤程状态
+纤程状态=cordis.纤程状态#纤程状态
 
-名称='plugin-package-inventory-deepseek'#Cordis 插件名
-注入=['agents','deepseekLlmApiExtensions','loader']#依赖
+名称='plugin-package-inventory-deepseek'#框架 插件名
+依赖=['agents','deepseekLlmApiExtensions','loader']#依赖
 配置模式={'enabled':布尔字段(默认值=True)}#默认开启
 
-__all__=['清单错误','名称','注入','配置模式','应用','默认']#仅中文公开名
+__all__=['清单错误','名称','依赖','配置模式','应用','默认']#仅中文公开名
 
 class 清单错误(Exception):
     """插件包清单解析与校验失败。"""
@@ -89,7 +86,7 @@ class 包身份解析器:#带进程内缓存的解析器
             if 锚 is None or 锚 in 已见:#空或重复
                 continue#跳过
             已见.add(锚)#记下
-            去重.append(锚)#收下
+            去重.append(锚)#按出现顺序保留
         锚列表=去重#用去重后的
         键='\u0000'.join(锚列表)+'\u0000'+说明符#缓存键
         if 键 in 自身.缓存:#命中缓存
@@ -113,7 +110,7 @@ class 包身份解析器:#带进程内缓存的解析器
 
 def 列出活动条目(树,根裸基础url=None):#枚举活动非 group 条目
     """只保留 ACTIVE 且未 disabled 的条目。树为对象。"""
-    输出=[]#收集
+    输出=[]#活动非 group 条目
     for 条目 in 树.entries():#遍历
         选项=条目.options#选项，配置为 dict
         分组=选项['group'] if 选项 is not None and 'group' in 选项 else None#group 行
@@ -122,13 +119,13 @@ def 列出活动条目(树,根裸基础url=None):#枚举活动非 group 条目
         if 条目.disabled is True:#禁用
             continue#跳过
         纤程=条目.fiber#纤程
-        if 纤程 is None or 纤程.state!=光纤状态.已激活:#非 ACTIVE
+        if 纤程 is None or 纤程.state!=纤程状态.已激活:#非 ACTIVE
             continue#跳过
         项={'entry':条目}#基础项
         if 根裸基础url is not None and 条目.parent.tree is 树:#根树，按对象引用相等
             项['bareBaseUrl']=根裸基础url#带上 bare base
-        输出.append(项)#收下
-    return 输出#返回
+        输出.append(项)#纳入结果
+    return 输出#仅活动条目
 
 def 收集活动插件包(上下文,解析器,宿主基础url,会话id=None):#收集一次请求的包集
     """去重后按 name/version 排序。"""
@@ -170,9 +167,9 @@ def 应用(上下文,配置=None):#注册 dsh_plugin_packages 字段
             return {'value':值}#返回
     上下文.deepseekLlmApiExtensions.注册('dsh_plugin_packages',提供方())#登记字段
 
-apply=应用#Cordis 插件入口
+apply=应用#框架槽
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 Config=配置模式#框架槽
-默认=应用#默认导出
-default=应用#Cordis 默认导出
+默认=应用
+default=应用#框架槽

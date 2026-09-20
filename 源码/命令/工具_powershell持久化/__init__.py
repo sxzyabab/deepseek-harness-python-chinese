@@ -1,4 +1,4 @@
-"""面向模型的持久 pwsh 工具。对齐上游 `tool-pwsh-persistent`。
+"""面向模型的持久 pwsh 工具。
 
 与 bash 持久化工具共享 PTY 轮询与重置契约；仅包装命令、提示符与工具名不同。
 """
@@ -14,7 +14,7 @@ from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#工具定义
 from ...工具.超时 import 截止,取超时,中止控制器,合成信号,已中止,若已中止则抛出#超时与中止
 
-__all__=['名称','注入','配置','应用']#公开面
+__all__=['名称','依赖','配置','应用']#公开面
 
 壳提示符='__DSH_PERSISTENT_PWSH_PROMPT__ '#pwsh 提示符
 超时码='PERSISTENT_PWSH_TIMEOUT'#超时码
@@ -22,11 +22,11 @@ __all__=['名称','注入','配置','应用']#公开面
 默认描述='Run commands in a persistent PowerShell shell. State, including the current directory and exported environment variables, persists across calls for this agent.'#默认描述
 pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '"+壳提示符+"' }"#初始化
 名称='tool-pwsh-persistent'#Cordis 插件名
-注入=['tools','terminals']#依赖工具与终端
+依赖=['tools','terminals']#依赖工具与终端
 配置={#配置模式
     'backendType':字符串字段(默认值='shell'),#后端类型
     'timeoutMs':数字字段(默认值=300000),#默认超时
-    'maxOutputChars':数字字段(默认值=16000),#输出字节预算（配置键沿用上游）
+    'maxOutputChars':数字字段(默认值=16000),#输出字节预算（配置键为线协议英文）
     'description':字符串字段(默认值=默认描述),#工具描述
 }#结束
 滚回页行数=1000#滚回页行数
@@ -403,7 +403,7 @@ def 应用(上下文,配置值):#加载持久pwsh工具插件
     登记持久pwsh(上下文,已解析)#注册
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

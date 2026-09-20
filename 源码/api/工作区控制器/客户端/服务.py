@@ -1,7 +1,4 @@
-"""无 React 的 Client Workspace 服务与命令门面。
-
-对齐上游 `workspace-controller/src/client/service.ts`。公开面仅中文名。
-"""
+"""无 React 的 Client Workspace 服务与命令门面。"""
 from ....依赖.cordis import 服务#Cordis 服务基类
 
 __all__=[#仅中文公开名
@@ -55,35 +52,35 @@ class 工作区控制器(服务):
     def rename(自身,工作区标识,标题):
         """重命名 Workspace。"""
         结果=自身._模型.rename(工作区标识,标题)#发远程
-        if not 结果.get('ok'):#失败
+        if not 结果.get('ok'):
             raise _命令错误('rename',结果['error'])#映射
         return _可等待(结果['value']['workspace'])#视图
 
     def delete(自身,工作区标识):
         """删除一份 Workspace 登记，不删除会话或文件。"""
         结果=自身._模型.delete(工作区标识)#发远程
-        if not 结果.get('ok'):#失败
+        if not 结果.get('ok'):
             raise _命令错误('delete',结果['error'])#映射
         return _可等待(None)#完成
 
     def insertBefore(自身,工作区标识,锚点=None):
         """在 Host 登记顺序内移动 Workspace。"""
         结果=自身._模型.insertBefore(工作区标识,锚点)#发远程
-        if not 结果.get('ok'):#失败
+        if not 结果.get('ok'):
             raise _命令错误('reorder',结果['error'])#映射
         return _可等待(None)#完成
 
     def archiveSession(自身,会话标识):
         """从 Workspace 分组表层归档一个会话。"""
         结果=自身._模型.archiveSession(会话标识)#发远程
-        if not 结果.get('ok'):#失败
+        if not 结果.get('ok'):
             raise _命令错误('session archive',结果['error'])#映射
         return _可等待(None)#完成
 
     def insertSessionBefore(自身,工作区标识,会话标识,锚点=None):
         """在一个 Workspace 账本内移动会话。"""
         结果=自身._模型.insertSessionBefore(工作区标识,会话标识,锚点)#发远程
-        if not 结果.get('ok'):#失败
+        if not 结果.get('ok'):
             raise _命令错误('move',结果['error'])#映射
         return _可等待(结果['value']['workspace'])#视图
 

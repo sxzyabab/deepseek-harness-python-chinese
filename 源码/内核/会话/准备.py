@@ -1,34 +1,34 @@
-class 会话准备:#会话准备
+class 会话准备:
     """一份尚未发表的精确会话，以及让它仍可使用的提供方状态。拆除同步且幂等。"""
-    def __init__(自身,会话,选项):#构造
+    def __init__(自身,会话,选项):
         """记下尚未发表的会话与准备选项。"""
-        自身.已释放=False#是否已释放
-        自身.会话=会话#尚未发表的会话
-        自身._选项=选项#准备选项
+        自身.已释放=False
+        自身.会话=会话
+        自身._选项=选项
 
-    @staticmethod#静态工厂
-    def 创建(会话,选项=None):#创建准备
+    @staticmethod
+    def 创建(会话,选项=None):
         """把一份尚未发表的会话包进一次准备生命周期。"""
-        if 选项 is None:#未给选项
-            选项={}#选项缺省为空对象
-        return 会话准备(会话,选项)#构造
+        if 选项 is None:
+            选项={}
+        return 会话准备(会话,选项)
 
-    def 拆除(自身):#拆除
+    def 拆除(自身):
         """本准备离开调用方时只释放一次提供方状态。"""
-        if 自身.已释放:#已释放
-            return#已释放则幂等返回
-        自身.已释放=True#标为已释放
-        释放=自身._选项.get('release') if isinstance(自身._选项,dict) else None#可选释放回调
-        if 释放 is not None:#有释放回调
-            释放()#有释放回调则调用
+        if 自身.已释放:
+            return
+        自身.已释放=True
+        释放=自身._选项.get('release') if isinstance(自身._选项,dict) else None
+        if 释放 is not None:
+            释放()
 
-    def __enter__(自身):#进入 with
+    def __enter__(自身):
         """进入 with 块。"""
-        return 自身#本准备
+        return 自身
 
-    def __exit__(自身,异常类型,异常,回溯):#离开 with
+    def __exit__(自身,异常类型,异常,回溯):
         """离开 with 块时拆除。"""
-        自身.拆除()#拆除
-        return False#不吞异常
+        自身.拆除()
+        return False
 
-__all__=['会话准备']#仅中文公开名
+__all__=['会话准备']

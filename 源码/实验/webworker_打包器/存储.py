@@ -1,6 +1,6 @@
 from .打包 import 打包器错误#本包错误
 import json,os,shutil,subprocess,sys,tempfile#子进程、文件系统与临时目录
-from ...工具.主目录路径 import 主目录环境键#DSH_HOME环境键
+from ...工具.主目录路径 import 主目录环境键
 
 __all__=[#仅中文公开名
     '索引工作区包','组合配置档','配置树列表','预览夹具列表','描述打包',
@@ -15,10 +15,7 @@ __all__=[#仅中文公开名
 预览示例根='packages/experimental/webworker-runtime/tests/fixtures/vfs-example'#示例根
 
 def 索引工作区包(仓库根):#按名索引每一个workspace与vendored包
-    """按名索引每一个 workspace 与 vendored 包。
-
-    对齐上游 `indexWorkspacePackages`。
-    """
+    """按名索引每一个 workspace 与 vendored 包。"""
     索引={}#包名到绝对目录
     def 访问(目录):#递归访问目录
         清单=os.path.join(目录,'package.json')#清单路径
@@ -38,14 +35,11 @@ def 索引工作区包(仓库根):#按名索引每一个workspace与vendored包
     return 索引#返回索引
 
 def 组合配置档(仓库根,配置档):#经真实CLI dump路径组合profile
-    """经真实 CLI dump 路径组合一个 profile，`!!js` 保持未求值。
-
-    对齐上游 `composeProfile`。
-    """
+    """经真实 CLI dump 路径组合一个 profile，`!!js` 保持未求值。"""
     家=tempfile.mkdtemp(prefix='dsh-pack-home-',dir=tempfile.gettempdir())#临时主目录
     try:#跑CLI dump
         环境=dict(os.environ)#复制环境
-        环境[主目录环境键]=家#隔离DSH_HOME
+        环境[主目录环境键]=家
         return subprocess.check_output(#跑CLI dump
             [sys.executable,'--import','tsx/esm',os.path.join(仓库根,命令行入口),'--profile',配置档,'--dump-default-config'],#argv
             cwd=仓库根,encoding='utf-8',env=环境,#选项
@@ -54,10 +48,7 @@ def 组合配置档(仓库根,配置档):#经真实CLI dump路径组合profile
         shutil.rmtree(家,ignore_errors=True)#清临时家
 
 def 配置树列表(仓库根):#读CLI包声明的配置树
-    """CLI 包为部署镜像声明的配置树（其 package.json 的 `dsh.configTrees`）。
-
-    对齐上游 `configTrees`。
-    """
+    """CLI 包为部署镜像声明的配置树（其 package.json 的 `dsh.configTrees`）。"""
     包目录=os.path.join(仓库根,命令行包)#CLI目录
     清单=json.loads(open(os.path.join(包目录,'package.json'),'r',encoding='utf-8').read())#读清单
     dsh块=清单.get('dsh')#dsh 字段
@@ -84,10 +75,7 @@ def 配置树列表(仓库根):#读CLI包声明的配置树
     return 结果#带绝对源目录的树
 
 def 预览夹具列表(仓库根):#仓库预览提供的内置文件系统夹具
-    """仓库预览提供的内置文件系统 fixture。
-
-    对齐上游 `previewFixtures`。
-    """
+    """仓库预览提供的内置文件系统 fixture。"""
     根=os.path.join(仓库根,预览示例根)#示例根
     return [{#具名选择器条目
         'id':'vfs-example',#标识
@@ -97,10 +85,7 @@ def 预览夹具列表(仓库根):#仓库预览提供的内置文件系统夹具
     }]#列表结束
 
 def 描述打包(结果,仓库根,输出文件):#把一次打包渲染成构建日志行
-    """把一次打包渲染成构建日志应携带的行。
-
-    对齐上游 `describePack`。
-    """
+    """把一次打包渲染成构建日志应携带的行。"""
     def 前缀大小(前缀):#前缀下字节和
         return sum(len(字节) for 名,字节 in 结果['files'].items() if 名.startswith(前缀))#字节和
     def 兆字节(字节数):#MB文案

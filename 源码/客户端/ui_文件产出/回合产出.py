@@ -13,7 +13,7 @@ __all__=[#仅中文公开名
     '产出文件提及',
     '唯一末段路径',
     '是否追加面事件',
-]#公开面结束
+]
 
 表面事件类型=frozenset({'user/message','assistant/message','tool/result'})#可进表面的事件类型
 
@@ -21,14 +21,14 @@ class 交付物错误(Exception):
     """本包异常基类。"""
 
 def 是否追加面事件(事件):#表面且操作为追加
-    """对齐 session/surface 的 isAppendSurfaceEvent。"""
+    """表面且操作为追加。"""
     if 事件['type'] not in 表面事件类型:#类型不对
         return False#否
     return 事件['surfaceOp']=='append' if 'surfaceOp' in 事件 else False#追加
 
 def _是否记录(值):#对象且非列表
     """窄化为 dict。"""
-    return isinstance(值,dict)#是
+    return isinstance(值,dict)
 
 def _路径值(值):#非空白路径
     """保留工具收到的精确拼写。"""
@@ -36,10 +36,10 @@ def _路径值(值):#非空白路径
 
 def _合法编辑参数(参数):#edit 字段
     """old/new 字符串且不同。"""
-    if not isinstance(参数.get('old_string'),str) or len(参数['old_string'])==0:#旧串
-        return False#否
-    if not isinstance(参数.get('new_string'),str):#新串
-        return False#否
+    if 'old_string' not in 参数 or not isinstance(参数['old_string'],str) or len(参数['old_string'])==0:
+        return False
+    if 'new_string' not in 参数 or not isinstance(参数['new_string'],str):
+        return False
     if 参数['old_string']==参数['new_string']:#相同
         return False#否
     全替=参数['replace_all'] if 'replace_all' in 参数 else None#全替
@@ -52,7 +52,7 @@ def _编辑器变更路径(参数):#str_replace_editor
         return None#否
     命令=参数['command'] if 'command' in 参数 else None#命令
     if 命令=='create':#创建
-        return 路径 if isinstance(参数.get('file_text'),str) else None#有正文
+        return 路径 if 'file_text' in 参数 and isinstance(参数['file_text'],str) else None
     if 命令=='str_replace':#替换
         旧=参数['old_str'] if 'old_str' in 参数 else None#旧
         新=参数['new_str'] if 'new_str' in 参数 else None#新
@@ -72,13 +72,13 @@ def _编辑器变更路径(参数):#str_replace_editor
 def _变更路径(名,参数原文):#从工具参数取路径
     """受支持第一方变更才返回路径。"""
     try:#解析
-        参数=_json.loads(参数原文)#JSON
-    except Exception:#非法
+        参数=_json.loads(参数原文)
+    except _json.JSONDecodeError:
         return None#空
     if not _是否记录(参数):#非对象
         return None#空
     if 名=='write':#写
-        return _路径值(参数['file_path'] if 'file_path' in 参数 else None) if isinstance(参数.get('content'),str) else None#有内容
+        return _路径值(参数['file_path'] if 'file_path' in 参数 else None) if 'content' in 参数 and isinstance(参数['content'],str) else None
     if 名=='edit':#改
         return _路径值(参数['file_path'] if 'file_path' in 参数 else None) if _合法编辑参数(参数) else None#合法
     if 名=='str_replace_editor':#编辑器
@@ -106,12 +106,10 @@ def 选出产出文件(所有者):#有产出才认领回合尾链
     """没有产出则 null（此处 None）。属主为 dict。"""
     回合=所有者['turn'] if 'turn' in 所有者 else None#回合
     数据面=回合['data'] if 回合 is not None and 'data' in 回合 else None#数据面 dict
-    if 数据面 is None:#无
-        数据=None#空
-    elif hasattr(数据面,'get'):#Map 或 dict
-        数据=数据面.get('deliverables') if callable(getattr(数据面,'get',None)) else (数据面['deliverables'] if 'deliverables' in 数据面 else None)#取
-    else:#无
-        数据=None#空
+    if 数据面 is None:
+        数据=None
+    else:
+        数据=数据面['deliverables'] if 'deliverables' in 数据面 else None
     序号=所有者['seq'] if 'seq' in 所有者 else None#收口序号
     路径表=收口产出(数据,序号)#过滤
     if len(路径表)==0:#无产出
@@ -122,11 +120,9 @@ def _交付数据(所有者):#读 deliverables 回合数据
     """属主 turn.data。"""
     回合=所有者['turn'] if 'turn' in 所有者 else None#回合
     数据面=回合['data'] if 回合 is not None and 'data' in 回合 else None#数据面
-    if 数据面 is None:#无
-        return None#空
-    if hasattr(数据面,'get') and callable(数据面.get):#Map
-        return 数据面.get('deliverables')#取
-    return 数据面['deliverables'] if 'deliverables' in 数据面 else None#dict
+    if 数据面 is None:
+        return None
+    return 数据面['deliverables'] if 'deliverables' in 数据面 else None
 
 def 收口已呈现(所有者):#收口前每条路径的最新声明
     """按首次出现路径顺序的可回放交付。属主为 dict。"""
@@ -241,13 +237,15 @@ def 建位置数据(上下文,范围,先前=None):#写回合位置数据
     if 'changes' in 状态 and 状态['changes'] is not None:#有改动
         值['changes']=状态['changes']#改动
     if (先前 is not None and 'kind' in 先前 and 先前['kind']=='turn'
-        and 先前.get('turn')==状态.get('turn') and 先前.get('key')=='deliverables'
-        and 先前.get('value')==值):#未变——浅比不够，按字段
-        旧值=先前['value'] if 'value' in 先前 else None#旧
-        if (旧值 is not None and 旧值.get('produced') is 状态.get('produced')
-            and 旧值.get('presented') is 状态.get('presented')
-            and 旧值.get('changes') is 状态.get('changes')):#引用同
-            return 先前#复用
+        and (先前['turn'] if 'turn' in 先前 else None)==(状态['turn'] if 'turn' in 状态 else None)
+        and (先前['key'] if 'key' in 先前 else None)=='deliverables'
+        and (先前['value'] if 'value' in 先前 else None)==值):
+        旧值=先前['value'] if 'value' in 先前 else None
+        if (旧值 is not None
+            and (旧值['produced'] if 'produced' in 旧值 else None) is (状态['produced'] if 'produced' in 状态 else None)
+            and (旧值['presented'] if 'presented' in 旧值 else None) is (状态['presented'] if 'presented' in 状态 else None)
+            and (旧值['changes'] if 'changes' in 旧值 else None) is (状态['changes'] if 'changes' in 状态 else None)):
+            return 先前
     return {#回合位置
         'kind':'turn',#回合
         'turn':状态['turn'] if 'turn' in 状态 else None,#回合号

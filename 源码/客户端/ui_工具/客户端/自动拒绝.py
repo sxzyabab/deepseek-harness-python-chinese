@@ -19,4 +19,4 @@ def 本地化自动拒绝(拒绝,翻译):
     return {#展示
         'summary':翻译('tool.autoReviewRejected'),#折叠摘要
         'output':翻译('tool.autoReviewNotExecuted',{'reason':原因}),#展开行
-    }#结束
+    }

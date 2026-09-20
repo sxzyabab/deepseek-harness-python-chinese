@@ -27,7 +27,7 @@ class 工作流结果(TypedDict):#存活工作流运行兑现的结局；value �
     error:NotRequired[str]#失败消息（当且仅当 stopReason 不是 completed 时存在）
     agentsStarted:int#该运行整个生命周期内接受了多少次 agent() 调用；优雅结算时为脚本侧计数；终止路径上降级为宿主观察到的计数
 
-class 工作流运行信息(TypedDict):#一次运行的身份细节，由每条 workflow/* 事件携带为借用的不可变数据，绝不是存活运行本身
+class 工作流运行身份(TypedDict):#一次运行的身份细节，由每条 workflow/* 事件携带为借用的不可变数据，绝不是存活运行本身
     id:str#运行 id（工作流运行标识品牌）
     meta:工作流元数据#运行已校验的 meta 块
 
@@ -47,7 +47,7 @@ class 工作流结果信息(TypedDict):#已结算运行作为事件数据的结�
     error:NotRequired[str]#失败消息（当且仅当 stopReason 不是 completed 时存在）
     agentsStarted:int#该运行接受了多少次 agent() 调用（见工作流结果.agentsStarted）
 
-# 事件声明（仅文档；由引擎经 emitWorkflowEvent 派发；对齐上游 Cordis Events 扩充）：
+# 事件声明（仅文档；由引擎经 emitWorkflowEvent 派发；Cordis Events 扩充）：
 # workflow/start(info) @mode emit：一次工作流运行已启动——脚本的 meta 块已校验，即将执行正文；与 workflow/end 成对。
 # workflow/phase(info, title) @mode emit：脚本进入一个阶段（一次 phase(title) 调用）——供观察者分组进度；无执行语义。
 # workflow/log(info, message) @mode emit：脚本写出一行叙述（一次 log(message) 调用）。

@@ -1,23 +1,22 @@
 """平台无关的已生成宿主 Remote 贡献组装（客户端面）。
 
-对齐上游 `api/remotes/src/client/index.ts`。公开面仅中文名。
-本地已有远程贡献的挂载序与上游对齐；插件装载 / 办公转 PDF 等尚无本地远程模块时不入表。
+本地已有远程贡献的挂载序；插件装载 / 办公转 PDF 等尚无本地远程模块时不入表。
 """
-from ...预设.智能体预设.远程 import TYPERT_REMOTE as 智能体预设远程#agent-presets
-from ...交互.命令.远程 import TYPERT_REMOTE as 命令远程#commands
-from ...api.设置控制器.远程 import TYPERT_REMOTE as 设置控制器远程#settings-controller
-from ...目标.目标.远程 import TYPERT_REMOTE as 目标远程#goals
-from ...模型后端.llm.远程 import TYPERT_REMOTE as 大模型远程#llm
-from ...拓展.cordis服务端.远程 import 远程贡献对象 as 动态远程#dynamic
-from ...宿主.插件清单.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory
-from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback
-from ...反馈.命令_反馈.远程 import TYPERT_REMOTE as 会话反馈远程#command-feedback
-from ...客户端.文件上传.远程 import TYPERT_REMOTE as 文件上传远程#file-upload
-from ...上下文.会话引用.远程 import TYPERT_REMOTE as 会话引用远程#session-reference
-from ...子智能体.子智能体.远程 import TYPERT_REMOTE as 子智能体远程#subagent
-from ...api.会话控制器.远程 import TYPERT_REMOTE as 会话远程#session-controller
-from ...api.工作区控制器.远程 import TYPERT_REMOTE as 工作区远程#workspace-controller
-from ...api.工作区文件.远程 import TYPERT_REMOTE as 工作区文件远程#workspace-files
+from ...预设.智能体预设.远程 import 远程贡献表 as 智能体预设远程#agent-presets
+from ...交互.命令.远程 import 远程贡献表 as 命令远程#commands
+from ...api.设置控制器.远程 import 远程贡献表 as 设置控制器远程#settings-controller
+from ...目标.目标.远程 import 远程贡献表 as 目标远程#goals
+from ...模型后端.llm.远程 import 远程贡献表 as 大模型远程#llm
+from ...拓展.cordis服务端.远程 import 远程贡献表 as 动态远程#dynamic
+from ...宿主.插件清单.远程 import 远程贡献表 as 插件清单远程#plugin-inventory
+from ...反馈.消息反馈.远程 import 远程贡献表 as 消息反馈远程#message-feedback
+from ...反馈.命令_反馈.远程 import 远程贡献表 as 会话反馈远程#command-feedback
+from ...客户端.文件上传.远程 import 远程贡献表 as 文件上传远程#file-upload
+from ...上下文.会话引用.远程 import 远程贡献表 as 会话引用远程#session-reference
+from ...子智能体.子智能体.远程 import 远程贡献表 as 子智能体远程#subagent
+from ...api.会话控制器.远程 import 远程贡献表 as 会话远程#session-controller
+from ...api.工作区控制器.远程 import 远程贡献表 as 工作区远程#workspace-controller
+from ...api.工作区文件.远程 import 远程贡献表 as 工作区文件远程#workspace-files
 from ...交互.命令 import 类型 as _命令类型#侧效：commands 事件声明
 from ...拓展.cordis服务端 import 类型 as _动态类型#侧效：动态包转发事件
 from ...目标.目标 import 类型 as _目标类型#侧效：goals 事件声明
@@ -33,19 +32,16 @@ from . import 载荷词汇#载荷词表再导出面
 上下文远程槽名='remote'#Cordis Context 上的 Remote 服务槽名
 
 __all__=[#仅中文公开名
-    '注入','应用','所选贡献','所选远程目录','包名元组','导出名元组','所选远程贡献',
+    '依赖','应用','所选贡献','所选远程目录','包名元组','导出名元组','所选远程贡献',
     '远程转发事件名','远程转发事件',
     '客户端远程','上下文远程槽名',
     '载荷词汇',
 ]#公开面结束
 
-注入=['remote']#依赖 remote 服务
+依赖=['remote']
 
 def 所选贡献():
-    """返回本组装选中的 Remote 贡献。
-
-    对齐上游 client/index.ts 挂载顺序中本地已有远程模块的子集。
-    """
+    """返回本组装选中的 Remote 贡献。"""
     return (#追踪挂载序
         智能体预设远程,命令远程,设置控制器远程,目标远程,大模型远程,动态远程,
         插件清单远程,消息反馈远程,会话反馈远程,文件上传远程,会话引用远程,
@@ -68,5 +64,5 @@ def 应用(上下文):
             拆除()#拆除
     return 整拆#拆除函数
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

@@ -118,9 +118,9 @@ class Cordis_Dom会话:#Cordis DOM会话
             return {'object':自身._解析节点(自身._选节点(参数),可选字符串(参数.get('objectGroup')))}#对象
         if 方法=='DOM.requestNode':#请求节点
             对象id=cdp字符串id(字符串参数(参数.get('objectId'),'objectId'),'objectId')#对象id
-            绑定=自身._对象到节点.get(对象id)#绑定
-            if 绑定 is None:#无绑定
+            if 对象id not in 自身._对象到节点:#无绑定
                 raise 检查器错误('RemoteObject 不是当前的 Cordis 节点')#无绑定
+            绑定=自身._对象到节点[对象id]#绑定
             节点=自身._后端.文档()['byBackendId'].get(绑定['backendNodeId'])#取节点
             if 节点 is None:#无节点
                 raise 检查器错误('Cordis 节点已不可用')#无节点
@@ -172,7 +172,7 @@ class Cordis_Dom会话:#Cordis DOM会话
         return {**远程,**呈现(节点)}#合并呈现
 
     def _绑定对象id(自身,objectId,节点,group):#绑定对象id
-        """登记对象映射。"""
+        """登记映射。"""
         对象=节点['object'] if 'object' in 节点 else None#对象路由
         源=None if 对象 is None else (对象['source'] if 'source' in 对象 else None)#源
         if 源 is None:#结构节点
@@ -250,12 +250,13 @@ class Cordis_Dom会话:#Cordis DOM会话
 
     def _节点id(自身,节点):#取或分配前端id
         """取或分配前端 id。"""
-        节点id=自身._后端到前端.get(节点['backendNodeId'])#已有
-        if 节点id is None:#新
+        if 节点['backendNodeId'] not in 自身._后端到前端:#新
             节点id=cdp数字id(自身._下一节点id,'nodeId')#分配
             自身._下一节点id+=1#推进
             自身._后端到前端[节点['backendNodeId']]=节点id#登记
             自身._前端到后端[节点id]=节点['backendNodeId']#反向
+        else:
+            节点id=自身._后端到前端[节点['backendNodeId']]#已有
         return 节点id#返回
 
     def _父前端id(自身,节点):#父前端id
@@ -293,9 +294,9 @@ class Cordis_Dom会话:#Cordis DOM会话
             自身.传输.发送({'method':'DOM.documentUpdated','params':{}})#通知
             return#返回
         if 类型=='child-inserted':#子插入
-            父前端=自身._后端到前端.get(变更['parentBackendNodeId'])#父前端
-            if 父前端 is None:#父未知
+            if 变更['parentBackendNodeId'] not in 自身._后端到前端:#父未知
                 return#返回
+            父前端=自身._后端到前端[变更['parentBackendNodeId']]#父前端
             前驱=0 if 变更['previousBackendNodeId']==0 else 自身._后端到前端.get(变更['previousBackendNodeId'])#前驱
             if 前驱 is None:#前驱未知
                 return#返回
@@ -311,9 +312,9 @@ class Cordis_Dom会话:#Cordis DOM会话
             自身.传输.发送({'method':'DOM.childNodeRemoved','params':{'parentNodeId':父前端,'nodeId':节点id}})#移除
             return#返回
         if 类型=='children-replaced':#子替换
-            父前端=自身._后端到前端.get(变更['parentBackendNodeId'])#父
-            if 父前端 is None:#未知
+            if 变更['parentBackendNodeId'] not in 自身._后端到前端:#未知
                 return#返回
+            父前端=自身._后端到前端[变更['parentBackendNodeId']]#父
             for 子 in 变更['children']:#忘记各子
                 自身._忘记子树(子)#忘记
             自身._已送子节点.add(变更['parentBackendNodeId'])#记已送

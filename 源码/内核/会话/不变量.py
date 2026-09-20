@@ -1,187 +1,187 @@
-from ...依赖 import cordis#外部依赖胶水
-from ...模型后端.llm.永不 import 断言永不#导入穷尽检查
-from .修复 import 工具未启动#导入工具未启动错误码
-from ..作用域 import 弱身份表#导入按身份存取的弱表
+from ...依赖 import cordis
+from ...模型后端.llm.永不 import 断言永不
+from .修复 import 工具未启动
+from ..作用域 import 弱身份表
 
-包名='@deepseek-ai/dsh-session'#本包名
-名称='session-invariant'#配套插件名
-注入=['invariants']#依赖 invariants 服务
+包名='@deepseek-ai/dsh-session'
+名称='session-invariant'
+依赖=['invariants']
 
-__all__=['包名','名称','注入','安装','应用','空踪迹','校验事件','应用变迁']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用','空踪迹','校验事件','应用变迁']
 
-def 要求打开步骤(踪迹,种类,轮次,步骤,失败):#要求步骤打开
+def 要求打开步骤(踪迹,种类,轮次,步骤,失败):
     """断言步骤作用域事件点名的是当前打开的轮次与步骤。"""
-    if 踪迹['openTurn']!=轮次 or 踪迹['openStep']!=步骤:#与打开的轮次/步骤不符
-        失败(种类+' 点名轮次 '+str(轮次)+'/步骤 '+str(步骤)+'，但当前打开的是轮次 '+str(踪迹['openTurn'])+'/步骤 '+str(踪迹['openStep']))#点名与打开不一致
+    if 踪迹['openTurn']!=轮次 or 踪迹['openStep']!=步骤:
+        失败(种类+' 点名轮次 '+str(轮次)+'/步骤 '+str(步骤)+'，但当前打开的是轮次 '+str(踪迹['openTurn'])+'/步骤 '+str(踪迹['openStep']))
 
-def 校验事件(踪迹,事件,失败):#纯校验并返回变迁
+def 校验事件(踪迹,事件,失败):
     """校验一条候选事件，不改已提交踪迹。"""
-    序号=事件['seq']#事件序号
-    if 序号<=踪迹['lastSeq']:#序号未严格递增
-        失败('seq 必须严格递增: 看到 '+str(序号)+' 发生在 '+str(踪迹['lastSeq'])+' 之后')#序号必须递增
-    打开轮次=踪迹['openTurn']#下一打开轮次
-    打开步骤=踪迹['openStep']#下一打开步骤
-    下一轮次=踪迹['nextTurn']#下一轮次号
-    下一步骤=踪迹['nextStep']#下一步骤号
-    待完成={'kind':'none'}#默认不改调用集
-    种类=事件['type']#事件类型
-    数据=事件['data']#载荷
-    if 种类=='turn/start':#轮次开始
-        轮次=数据['turn']#事件轮次
-        if 踪迹['openTurn'] is not None:#已有打开轮次
-            失败('turn/start '+str(轮次)+' 时轮次 '+str(踪迹['openTurn'])+' 仍打开')#不得嵌套打开
-        if 轮次!=踪迹['nextTurn']:#轮次号不连续
-            失败('turn/start 期望轮次 '+str(踪迹['nextTurn'])+'，实际为 '+str(轮次))#必须是下一号
-        打开轮次=轮次#打开该轮次
+    序号=事件['seq']
+    if 序号<=踪迹['lastSeq']:
+        失败('seq 必须严格递增: 看到 '+str(序号)+' 发生在 '+str(踪迹['lastSeq'])+' 之后')
+    打开轮次=踪迹['openTurn']
+    打开步骤=踪迹['openStep']
+    下一轮次=踪迹['nextTurn']
+    下一步骤=踪迹['nextStep']
+    待完成={'kind':'none'}
+    种类=事件['type']
+    数据=事件['data']
+    if 种类=='turn/start':
+        轮次=数据['turn']
+        if 踪迹['openTurn'] is not None:
+            失败('turn/start '+str(轮次)+' 时轮次 '+str(踪迹['openTurn'])+' 仍打开')
+        if 轮次!=踪迹['nextTurn']:
+            失败('turn/start 期望轮次 '+str(踪迹['nextTurn'])+'，实际为 '+str(轮次))
+        打开轮次=轮次
         下一步骤=1#步骤从 1 起
-    elif 种类=='turn/end':#轮次结束
-        轮次=数据['turn']#事件轮次
-        if 踪迹['openTurn']!=轮次:#结束的不是打开轮次
-            失败('turn/end '+str(轮次)+' 与打开轮次 '+str(踪迹['openTurn'])+' 不匹配')#必须匹配打开轮次
-        if 踪迹['openStep'] is not None:#步骤仍打开
-            失败('turn/end '+str(轮次)+' 时步骤 '+str(踪迹['openStep'])+' 仍打开')#结束前必须关步骤
-        打开轮次=None#关闭轮次
-        下一轮次=下一轮次+1#下一轮次号加一
-    elif 种类=='step/start':#步骤开始
-        轮次=数据['turn']#事件轮次
-        步骤=数据['step']#事件步骤
-        if 踪迹['openTurn']!=轮次:#不在打开轮次里
-            失败('step/start 在轮次 '+str(轮次)+'，但打开轮次是 '+str(踪迹['openTurn']))#必须在打开轮次
-        if 踪迹['openStep'] is not None:#已有打开步骤
-            失败('step/start '+str(步骤)+' 时步骤 '+str(踪迹['openStep'])+' 仍打开')#不得嵌套打开
-        if 步骤!=踪迹['nextStep']:#步骤号不连续
-            失败('step/start 期望轮次 '+str(轮次)+' 的步骤 '+str(踪迹['nextStep'])+'，实际为 '+str(步骤))#必须是下一号
-        打开步骤=步骤#打开该步骤
-    elif 种类=='step/end':#步骤结束
-        要求打开步骤(踪迹,'step/end',数据['turn'],数据['step'],失败)#必须点名打开步骤
-        待完成={'kind':'clear'}#清空未完成调用
-        打开步骤=None#关闭步骤
-        下一步骤=下一步骤+1#下一步骤号加一
-    elif 种类=='assistant/attempt':#助手尝试
-        要求打开步骤(踪迹,'assistant/attempt',数据['turn'],数据['step'],失败)#必须在打开步骤
-    elif 种类=='assistant/message':#助手消息
-        要求打开步骤(踪迹,'assistant/message',数据['turn'],数据['step'],失败)#必须在打开步骤
-    elif 种类=='tool/call':#工具调用
-        要求打开步骤(踪迹,'tool/call',数据['turn'],数据['step'],失败)#必须在打开步骤
-        待完成={'kind':'add','callId':数据['callId']}#记下未完成调用
-    elif 种类=='tool/result':#工具结果
+    elif 种类=='turn/end':
+        轮次=数据['turn']
+        if 踪迹['openTurn']!=轮次:
+            失败('turn/end '+str(轮次)+' 与打开轮次 '+str(踪迹['openTurn'])+' 不匹配')
+        if 踪迹['openStep'] is not None:
+            失败('turn/end '+str(轮次)+' 时步骤 '+str(踪迹['openStep'])+' 仍打开')
+        打开轮次=None
+        下一轮次=下一轮次+1
+    elif 种类=='step/start':
+        轮次=数据['turn']
+        步骤=数据['step']
+        if 踪迹['openTurn']!=轮次:
+            失败('step/start 在轮次 '+str(轮次)+'，但打开轮次是 '+str(踪迹['openTurn']))
+        if 踪迹['openStep'] is not None:
+            失败('step/start '+str(步骤)+' 时步骤 '+str(踪迹['openStep'])+' 仍打开')
+        if 步骤!=踪迹['nextStep']:
+            失败('step/start 期望轮次 '+str(轮次)+' 的步骤 '+str(踪迹['nextStep'])+'，实际为 '+str(步骤))
+        打开步骤=步骤
+    elif 种类=='step/end':
+        要求打开步骤(踪迹,'step/end',数据['turn'],数据['step'],失败)
+        待完成={'kind':'clear'}
+        打开步骤=None
+        下一步骤=下一步骤+1
+    elif 种类=='assistant/attempt':
+        要求打开步骤(踪迹,'assistant/attempt',数据['turn'],数据['step'],失败)
+    elif 种类=='assistant/message':
+        要求打开步骤(踪迹,'assistant/message',数据['turn'],数据['step'],失败)
+    elif 种类=='tool/call':
+        要求打开步骤(踪迹,'tool/call',数据['turn'],数据['step'],失败)
+        待完成={'kind':'add','callId':数据['callId']}
+    elif 种类=='tool/result':
         if 'surfaceOp' not in 事件 or 事件['surfaceOp']!='append':#表面替换而非追加
-            if 踪迹['openTurn'] is None:#没有打开轮次
-                失败('tool/result 表面替换追加在任何打开轮次之外')#替换必须在轮次内
-        else:#追加
-            要求打开步骤(踪迹,'tool/result',数据['turn'],数据['step'],失败)#追加必须在打开步骤
-            消息=数据['message']#结果消息
-            来源=消息['source']#工具来源
-            调用号=来源['callId']#结果对应的调用
-            内容=消息['content']#内容块
-            块=内容[0]#第一块
-            错误=数据['error'] if 'error' in 数据 else None#可选错误身份
+            if 踪迹['openTurn'] is None:
+                失败('tool/result 表面替换追加在任何打开轮次之外')
+        else:
+            要求打开步骤(踪迹,'tool/result',数据['turn'],数据['step'],失败)
+            消息=数据['message']
+            来源=消息['source']
+            调用号=来源['callId']
+            内容=消息['content']
+            块=内容[0]
+            错误=数据['error'] if 'error' in 数据 else None
             合成未启动=('isError' in 块 and 块['isError'] is True) and (错误 is not None and 'code' in 错误 and 错误['code']==工具未启动)#合成的未启动错误
-            if (调用号 not in 踪迹['pendingCalls']) and (not 合成未启动):#既无先前调用也不是合成未启动
-                失败('本步骤没有先前 tool/call 却出现了 '+str(调用号)+' 的 tool/result')#本步必须先有 tool/call
-            待完成={'kind':'delete','callId':调用号}#从待完成集删掉
-    elif 种类=='system/message':#系统消息
-        要求打开步骤(踪迹,'system/message',数据['turn'],数据['step'],失败)#必须在打开步骤
-    elif 种类=='user/message':#用户消息
-        pass#无额外关系
-    elif 种类=='session/end-seed':#种子结束
-        pass#无约束
-    elif 种类=='request/header' or 种类=='request/context':#核心执行事件
-        if 踪迹['openTurn'] is None:#没有打开轮次
-            失败(种类+' 追加在任何打开轮次之外（核心执行事件必须包在轮次内）')#核心执行事件必须包在轮次内
-    else:#可合并扩展的事件
+            if (调用号 not in 踪迹['pendingCalls']) and (not 合成未启动):
+                失败('本步骤没有先前 tool/call 却出现了 '+str(调用号)+' 的 tool/result')
+            待完成={'kind':'delete','callId':调用号}
+    elif 种类=='system/message':
+        要求打开步骤(踪迹,'system/message',数据['turn'],数据['step'],失败)
+    elif 种类=='user/message':
+        pass
+    elif 种类=='session/end-seed':
+        pass
+    elif 种类=='request/header' or 种类=='request/context':
+        if 踪迹['openTurn'] is None:
+            失败(种类+' 追加在任何打开轮次之外（核心执行事件必须包在轮次内）')
+    else:
         pass#可合并扩展的事件关系归其拥有插件
-    return {#构造变迁
-        'scalars':{#标量下一状态
-            'lastSeq':序号,#上次序号
-            'openTurn':打开轮次,#打开轮次
-            'openStep':打开步骤,#打开步骤
-            'nextTurn':下一轮次,#下一轮次号
-            'nextStep':下一步骤,#下一步骤号
-        },#标量下一状态
-        'pendingCalls':待完成,#调用集变更
-    }#变迁
+    return {
+        'scalars':{
+            'lastSeq':序号,
+            'openTurn':打开轮次,
+            'openStep':打开步骤,
+            'nextTurn':下一轮次,
+            'nextStep':下一步骤,
+        },
+        'pendingCalls':待完成,
+    }
 
-def 应用变迁(踪迹,变迁):#应用变迁
+def 应用变迁(踪迹,变迁):
     """在事件提交后应用一条已校验变迁。"""
-    标量=变迁['scalars']#标量字段
-    踪迹['lastSeq']=标量['lastSeq']#写入序号
-    踪迹['openTurn']=标量['openTurn']#写入打开轮次
-    踪迹['openStep']=标量['openStep']#写入打开步骤
-    踪迹['nextTurn']=标量['nextTurn']#写入下一轮次
-    踪迹['nextStep']=标量['nextStep']#写入下一步骤
-    变更=变迁['pendingCalls']#调用集变更
-    种=变更['kind']#变更种类
-    if 种=='none':#无变更
-        pass#无变更
-    elif 种=='add':#增加调用
-        踪迹['pendingCalls'].add(变更['callId'])#加入待完成
-    elif 种=='delete':#删除调用
-        踪迹['pendingCalls'].discard(变更['callId'])#移出待完成
-    elif 种=='clear':#清空
-        踪迹['pendingCalls'].clear()#清掉本步调用
-    else:#封闭联合穷尽
-        断言永不(变更,'会话踪迹待完成调用变迁')#不可达
+    标量=变迁['scalars']
+    踪迹['lastSeq']=标量['lastSeq']
+    踪迹['openTurn']=标量['openTurn']
+    踪迹['openStep']=标量['openStep']
+    踪迹['nextTurn']=标量['nextTurn']
+    踪迹['nextStep']=标量['nextStep']
+    变更=变迁['pendingCalls']
+    种=变更['kind']
+    if 种=='none':
+        pass
+    elif 种=='add':
+        踪迹['pendingCalls'].add(变更['callId'])
+    elif 种=='delete':
+        踪迹['pendingCalls'].discard(变更['callId'])
+    elif 种=='clear':
+        踪迹['pendingCalls'].clear()
+    else:
+        断言永不(变更,'会话踪迹待完成调用变迁')
 
-def 空踪迹():#空踪迹
+def 空踪迹():
     """每个会话用于关系日志检查的空账本。"""
-    return {#空踪迹
+    return {
         'lastSeq':-1,#尚无序号
-        'openTurn':None,#无打开轮次
-        'openStep':None,#无打开步骤
+        'openTurn':None,
+        'openStep':None,
         'nextTurn':1,#下一轮从 1
-        'nextStep':1,#下一步从 1
-        'pendingCalls':set(),#无待完成调用
-    }#空踪迹
+        'nextStep':1,
+        'pendingCalls':set(),
+    }
 
-def 安装(上下文对象,失败):#安装会话不变量
-    """把会话贡献安装进其子注册光纤。"""
-    踪迹表=弱身份表()#各会话踪迹
-    暂存表=弱身份表()#提交前暂存的变迁
-    def 播种会话(会话):#从已有日志播种
+def 安装(上下文,失败):
+    """把会话贡献安装进其子注册纤程。"""
+    踪迹表=弱身份表()
+    暂存表=弱身份表()
+    def 播种会话(会话):
         """从已有日志播种。"""
-        踪迹=空踪迹()#空踪迹
-        踪迹表.设(会话,踪迹)#挂上会话
-        for 事件 in 会话.events:#回放已有事件
-            应用变迁(踪迹,校验事件(踪迹,事件,失败))#校验并提交
-        return 踪迹#返回踪迹
-    def 取踪迹(会话):#取踪迹
+        踪迹=空踪迹()
+        踪迹表.设(会话,踪迹)
+        for 事件 in 会话.events:
+            应用变迁(踪迹,校验事件(踪迹,事件,失败))
+        return 踪迹
+    def 取踪迹(会话):
         """取踪迹，缺则播种。"""
-        已有=踪迹表.取(会话)#已有踪迹
-        if 已有 is None:#缺
-            return 播种会话(会话)#缺则播种
-        return 已有#已有
-    for 会话 in 上下文对象.sessions.列出():#已有会话
-        播种会话(会话)#为已有会话播种
-    def 新会话(载体,会话,*位置参数):#新会话播种
+        已有=踪迹表.取(会话)
+        if 已有 is None:
+            return 播种会话(会话)
+        return 已有
+    for 会话 in 上下文.sessions.列出():
+        播种会话(会话)
+    def 新会话(载体,会话,*位置参数):
         """新会话播种。派发 this 是载体。"""
-        播种会话(会话)#播种
-    上下文对象.监听('session/created',新会话,{'全局':True})#新会话播种
-    def 提交事件(载体,会话,事件,*位置参数):#事件发表后提交变迁
+        播种会话(会话)
+    上下文.监听('session/created',新会话,{'全局':True})
+    def 提交事件(载体,会话,事件,*位置参数):
         """事件发表后提交变迁。派发 this 是载体。"""
-        暂存=暂存表.取(事件)#取出暂存
-        if 暂存 is None or 暂存['session'] is not 会话:#没有匹配的提交前校验
-            return 失败('session/event 到达发表时没有匹配的提交前校验')#发表前必须已校验
-        暂存表.设(事件,None)#清掉暂存
-        应用变迁(暂存['trace'],暂存['transition'])#应用到踪迹
-    上下文对象.监听('session/event',提交事件,{'全局':True})#全局监听
-    def 派发钩子(_模式,事件名,参数,*其余):#派发时先纯校验
+        暂存=暂存表.取(事件)
+        if 暂存 is None or 暂存['session'] is not 会话:
+            return 失败('session/event 到达发表时没有匹配的提交前校验')
+        暂存表.设(事件,None)
+        应用变迁(暂存['trace'],暂存['transition'])
+    上下文.监听('session/event',提交事件,{'全局':True})
+    def 派发钩子(_模式,事件名,参数,*其余):
         """派发时先纯校验。"""
-        if 事件名!='session/event':#只看会话事件
-            return#只看会话事件
-        会话=参数[0]#会话
-        事件=参数[1]#事件
-        踪迹=取踪迹(会话)#取踪迹
-        变迁=校验事件(踪迹,事件,失败)#纯校验
-        暂存表.设(事件,{'session':会话,'trace':踪迹,'transition':变迁})#暂存待提交
-    上下文对象.监听('internal/dispatch',派发钩子,{'全局':True})#全局监听
+        if 事件名!='session/event':
+            return
+        会话=参数[0]
+        事件=参数[1]
+        踪迹=取踪迹(会话)
+        变迁=校验事件(踪迹,事件,失败)
+        暂存表.设(事件,{'session':会话,'trace':踪迹,'transition':变迁})
+    上下文.监听('internal/dispatch',派发钩子,{'全局':True})
 
 安装.inject=['sessions']#安装时还要 sessions（Cordis 安装器协议槽）
 
-def 应用(上下文对象):#注册会话不变量配套
+def 应用(上下文):
     """注册会话不变量配套。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献并返回拆除器
+    return 上下文.invariants.register(包名,安装)
 
-name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖声明槽
-apply=应用#Cordis 插件入口槽
+name=名称
+inject=依赖
+apply=应用

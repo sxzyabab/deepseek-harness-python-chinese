@@ -1,7 +1,6 @@
 """用 git 工作树快照与文件工具整文件捕获汇总每轮变更，以 workspace/changes 宣告，经 workspaceChanges 提供摘要与对比。
 
-公开业务面仅中文名；Cordis 协议槽（name/inject/Config/apply/default）保留英文别名供加载器识别，不入 `__all__`。
-包名单 workspace-changes、服务名 workspaceChanges、事件名 workspace/changes 与配置键保持英文。
+公开业务面仅中文名。包名、服务名、事件名与配置键保持英文线协议。
 """
 import os,sys,tempfile#平台、家目录与临时根
 from ...依赖.schemastery import 数字字段#配置字段
@@ -163,7 +162,7 @@ def 应用(上下文,配置值):#登记服务并观察轮次
             工作目录=可记录(会话)#是否记录
             if 工作目录 is not None:#顶层有cwd
                 记录器自(会话,工作目录).开始(事件['data']['turn'])#拍基线
-            return#结束
+            return
         if 事件['type']=='tool/result':#工具结果
             if 会话 in 记录器表:#有记录器
                 记录器表[会话].观察(事件)#记序号
@@ -201,5 +200,5 @@ name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-默认=应用#中文默认导出
-default=应用#Cordis默认导出
+默认=应用
+default=应用#框架槽

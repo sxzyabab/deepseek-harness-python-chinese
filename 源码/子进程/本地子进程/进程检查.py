@@ -238,9 +238,9 @@ def epoll含标准输入(内部,pid,tid,epollfd):#epoll实例是否盯着stdin
 
 def Linux系统调用表(架构):#主表+备选表
     """本 arch 主表优先，其余已支持表作备选。"""
-    主表=系统调用表.get(架构)#本arch主表
-    if 主表 is None:#不支持
+    if 架构 not in 系统调用表:#不支持
         return None#无
+    主表=系统调用表[架构]#本arch主表
     return [主表]+[表 for 表 in 已支持系统调用表 if 表 is not 主表]#主表优先
 
 def 系统调用在等标准输入(内部,pid,tid,系统调用,表列表):#当前syscall是否在等stdin
@@ -267,15 +267,16 @@ def 静止(状态):#是否静止
 def 建进程树(条目列表,根pid):#后序遍历：孩子先于祖先
     """从带父指针的条目建后序进程树。"""
     按pid={条目['pid']:条目 for 条目 in 条目列表}#pid→条目
-    根=按pid.get(根pid)#根
-    if 根 is None:#根不在表里
+    if 根pid not in 按pid:#根不在表里
         return []#空
+    根=按pid[根pid]#根
     按父={}#父→孩子
     for 条目 in 条目列表:#建邻接
-        孩子列表=按父.get(条目['parentPid'])#已有孩子
-        if 孩子列表 is None:#尚无
+        if 条目['parentPid'] not in 按父:#尚无
             孩子列表=[]#新建
             按父[条目['parentPid']]=孩子列表#写回
+        else:
+            孩子列表=按父[条目['parentPid']]#已有孩子
         孩子列表.append(条目)#加上这个
     已访=set()#防环
     结果=[]#后序结果
@@ -328,19 +329,19 @@ class Posix进程检查器:#POSIX共用：组/进程信号
 
     def 前台进程组(自身,壳pid):#子类实现
         """平台前台 pgid。"""
-        raise NotImplementedError('foregroundPgid')#子类必须实现
+        raise NotImplementedError('foregroundPgid')
 
     def 是否在等标准输入(自身,进程组号,壳pid):#子类实现
         """平台 stdin 等待。"""
-        raise NotImplementedError('isStdinWaiting')#子类必须实现
+        raise NotImplementedError('isStdinWaiting')
 
     def 快照(自身):#子类实现
         """平台共享快照。"""
-        raise NotImplementedError('snapshot')#子类必须实现
+        raise NotImplementedError('snapshot')
 
     def 是否存活(自身,身份):#子类实现
         """平台存活。"""
-        raise NotImplementedError('isAlive')#子类必须实现
+        raise NotImplementedError('isAlive')
 
 class Linux进程检查器(Posix进程检查器):#Linux：/proc
     """Linux：经 `/proc` 做前台、stdin 等待、快照与存活检查。"""
@@ -446,7 +447,7 @@ class Mac进程检查器(Posix进程检查器):#macOS：ps
         表=mac进程表(自身.内部)#表
         return Posix进程快照(表['rows'],表['complete'])#包成共享观察
 
-def 节点平台():#对齐Node process.platform
+def 节点平台():#映射到 Node process.platform
     """把 sys.platform 粗映射到 Node 平台名。"""
     名=sys.platform#本机
     if 名=='win32':#Windows
@@ -457,7 +458,7 @@ def 节点平台():#对齐Node process.platform
         return 'linux'#Node名
     return 名#原样
 
-def 机器架构():#对齐Node process.arch粗映射
+def 机器架构():#映射到 Node process.arch
     """把本机 machine 粗映射到 Node arch 名。"""
     机器=平台库.machine().lower()#本机
     if 机器 in ('x86_64','amd64'):#x64
@@ -469,7 +470,7 @@ def 机器架构():#对齐Node process.arch粗映射
 def 创建进程检查器(平台=None,架构=None,内部=None):#按平台选实现
     """创建受支持平台的检查器，或在插件加载时失败。"""
     if 平台 is None:#默认本机
-        平台=节点平台()#对齐Node
+        平台=节点平台()#本机平台
     if 架构 is None:#默认本机arch
         架构=机器架构()#本机
     if 内部 is None:#默认真系统调用

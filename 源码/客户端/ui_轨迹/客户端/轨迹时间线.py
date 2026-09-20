@@ -1,7 +1,7 @@
 import math#有限数判定
 import os#同目录样式路径
-from datetime import datetime#记录时刻格式化
-from zoneinfo import ZoneInfo#时区
+from datetime import datetime as 日期时间
+from zoneinfo import ZoneInfo as 时区信息
 from .时间线 import 派生轨迹时间线,格式化时间线偏移#模型派生
 
 __all__=[#仅中文公开名
@@ -73,7 +73,7 @@ def 时间线种类标签(种类):#种类 → Tooltip 标题
 
 def 格式化记录时刻(时间戳):#本地时分秒.毫秒
     """把毫秒时间戳格式成本地时刻串。"""
-    时刻=datetime.fromtimestamp(时间戳/1000.0,tz=ZoneInfo('UTC')).astimezone()#纪元毫秒转当地
+    时刻=日期时间.fromtimestamp(时间戳/1000.0,tz=时区信息('UTC')).astimezone()
     return 时刻.strftime('%H:%M:%S.')+f'{int(时刻.microsecond/1000):03d}'#含毫秒
 
 def 时间线提示文案(种类,明细=None):#跨度 Tooltip
@@ -205,7 +205,7 @@ class 轨迹时间线:#全域总览时间线
         自身.动画视口=False#关掉动画
         当前=自身.视口#视口
         if 当前 is not None and (当前['end']<模型['start'] or 当前['start']>模型['end']):#越界
-            自身.视口=None#清空
+            自身.视口=None空
 
     def _跟随选中(自身):#选中跨度滚进视口
         """选中记录不在当前视口时平移视口。"""
@@ -299,13 +299,13 @@ class 轨迹时间线:#全域总览时间线
             return 自身.渲染()#重渲
         if 动作=='pointer-leave':#离开轨道
             if 自身._拖动手势 is None and 自身._平移手势 is None:#无手势
-                自身.悬停=None#清悬停
+                自身.悬停=None悬停
             return 自身.渲染()#重渲
         if 动作=='pointer-cancel':#取消
-            自身._拖动手势=None#清拖
-            自身._平移手势=None#清平移
-            自身.草稿=None#清草稿
-            自身.悬停=None#清悬停
+            自身._拖动手势=None拖
+            自身._平移手势=None平移
+            自身.草稿=None草稿
+            自身.悬停=None悬停
             自身.平移中=False#清标记
             return 自身.渲染()#重渲
         if 动作=='wheel':#滚轮缩放
@@ -400,7 +400,7 @@ class 轨迹时间线:#全域总览时间线
             平移=自身._平移手势#平移
             if 平移 is not None and 平移['pointerId']==指针标识:#结束平移
                 已移=平移['moved'] or abs(客户X-平移['anchorClientX'])>=最小拖动像素#是否移动
-                自身._平移手势=None#清
+                自身._平移手势=None
                 自身.平移中=False#清
                 if not 已移:#单击右键清空选区
                     自身._改选区(None)#清空
@@ -411,8 +411,8 @@ class 轨迹时间线:#全域总览时间线
             点时刻=域起+比例*域宽#抬起时刻
             选中=有序区间(拖动['anchorTime'],点时刻)#选区
             自身.悬停={'fraction':比例,'recordIndex':记录下标}#悬停
-            自身._拖动手势=None#清拖
-            自身.草稿=None#清草稿
+            自身._拖动手势=None拖
+            自身.草稿=None草稿
             点击=abs(客户X-拖动['anchorClientX'])<最小拖动像素#是否点击
             点中跨=None#点中跨度
             if 点击 and 拖动['recordIndex'] is not None:#点在跨度上

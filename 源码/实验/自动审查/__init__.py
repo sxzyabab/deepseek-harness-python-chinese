@@ -4,10 +4,10 @@ from ...内核.工具 import 运行代码名#外层传输名
 from ...模型后端.llm import 块组装器,创建用户消息,深冻结#审查流
 from ...工具.超时 import 已中止,合成信号,中止控制器#中止
 
-__all__=['名称','注入','应用']#仅中文公开名
+__all__=['名称','依赖','应用']
 
-名称='experimental-auto-review'#插件名
-注入=['llm','permissionPresets','sessions','tools']#依赖
+名称='experimental-auto-review'
+依赖=['llm','permissionPresets','sessions','tools']
 自动预设='auto'#AUTO_PRESET
 自动审查拒绝错误名='AutoReviewDeniedError'#结构化错误名
 自动审查拒绝码='AUTO_REVIEW_DENIED'#结构化错误码
@@ -40,7 +40,7 @@ def 转json(值):#一份不可变日志值
     """一份不可变日志值的 JSON 文本。"""
     渲染=json.dumps(值,ensure_ascii=False,indent=2)#缩进
     if 渲染 is None:#不可序列化
-        raise Exception('auto-review: a required value is not JSON-serializable')#失败
+        raise Exception('自动审查：必填值无法 JSON 序列化')
     return 渲染#文本
 
 def 解析已记参数(原文):#原生调用原始参数
@@ -48,9 +48,9 @@ def 解析已记参数(原文):#原生调用原始参数
     if 原文=='':#空
         return {}#空对象
     try:#JSON
-        return json.loads(原文)#解析
-    except Exception:#非 JSON
-        return 原文#原文
+        return json.loads(原文)
+    except (json.JSONDecodeError,TypeError,ValueError):
+        return 原文
 
 def 同一json(左,右):#无损 JSON 比较
     """比较两份无损 JSON 值且不保留别名。"""
@@ -63,7 +63,7 @@ def 是否记录(值):#对象记录而非 null/数组
 def 已记模式(值,期望名,模式):#校验待审 schema
     """校验已记待审动作必须具备的 schema 字段。"""
     if not isinstance(值.get('description'),str) or not 是否记录(值.get('parameters')):#不完整
-        raise Exception('auto-review: the pending '+模式+' tool schema is incomplete')#失败
+        raise Exception('自动审查：待处理 '+模式+' 工具模式不完整')
     return {'name':期望名,'description':值['description'],'parameters':值['parameters']}#模式
 
 def 是否人类指令(来源):#已发运 Web 人类指令
@@ -86,7 +86,7 @@ def 直接父初始提示序号(智能体,事件表):#创建提示序号
     """进程内子创建提示在可见角色上的身份。"""
     会话=智能体.session#会话
     头=会话.header#头
-    if 头.get('origin')!='subagent' or 头.get('parentSession') is None:#非子
+    if 头.get('origin')!='subagent' or 'parentSession' not in 头:#非子
         return None#无
     已过创建界=False#边界
     for 事件 in 事件表:#逐条
@@ -148,21 +148,21 @@ def 划定ptc开始(事件表):#把 PTC 开始划到当时打开的步骤
         if 事件['type']!='tool/ptc-dispatch-start':#非 PTC
             continue#下
         if 打开步骤 is None:#无主
-            raise Exception('auto-review: a PTC call has no owning step in the session log')#失败
+            raise Exception('自动审查：PTC 调用在会话日志中没有所属步骤')
         开始表.append({'event':事件,'step':打开步骤})#收下
     return {'starts':开始表,'openStep':打开步骤}#划定
 
 def 原生动作(执行,头工具,已记):#从可见调用与请求头解析
     """从可见调用与最新请求头解析一次原生动作。"""
     if 已记['data']['name']!=执行['name'] or not 同一json(解析已记参数(已记['data']['arguments']),执行['arguments']):#不一致
-        raise Exception('auto-review: the pending native call disagrees with its logged action')#失败
+        raise Exception('自动审查：待处理原生调用与已记动作不一致')
     候选表=头工具 if isinstance(头工具,list) else []#候选
     模式表=[]#匹配
     for 模式 in 候选表:#逐个
         if 是否记录(模式) and 模式.get('name')==执行['name']:#名匹配
             模式表.append(模式)#收下
     if len(模式表)!=1:#缺失或歧义
-        raise Exception('auto-review: the pending native tool schema is missing or ambiguous')#失败
+        raise Exception('自动审查：待处理原生工具模式缺失或有歧义')
     模式=已记模式(模式表[0],执行['name'],'native')#校验
     return {'mode':'native','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
 
@@ -173,10 +173,10 @@ def ptc动作(执行,开始,可见父键):#从绑定 schema 与已记身份解�
             or 事件['data']['rootCallId']!=执行['rootCallId']
             or 事件['data']['name']!=执行['name']
             or not 同一json(事件['data']['arguments'],执行['arguments'])):#不一致
-        raise Exception('auto-review: the pending PTC call disagrees with its logged action')#失败
-    模式值=执行.get('schema')#绑定
-    if 模式值 is None or 模式值.get('name')!=执行['name']:#缺失
-        raise Exception('auto-review: the pending PTC binding schema is missing or inconsistent')#失败
+        raise Exception('自动审查：待处理 PTC 调用与已记动作不一致')
+    if 'schema' not in 执行 or 执行['schema'].get('name')!=执行['name']:#缺失
+        raise Exception('自动审查：待处理 PTC 绑定模式缺失或不一致')
+    模式值=执行['schema']#绑定
     模式=已记模式(模式值,执行['name'],'PTC')#校验
     return {'mode':'ptc-inner','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
 
@@ -187,10 +187,10 @@ def 快照自动审查(智能体,执行):#冻结五段
     节点表=list(会话.surface.nodes)#表面
     头=会话.请求头()#请求头
     if 头 is None or len(头['config'].get('provider') or '')==0 or len(头['config'].get('model') or '')==0:#无路由
-        raise Exception('auto-review: no complete request-header route is available')#失败
+        raise Exception('自动审查：没有完整的请求头路由可用')
     工作目录=会话.header.get('cwd')#cwd
     if 工作目录 is None or len(工作目录)==0:#无目录
-        raise Exception('auto-review: the session has no working directory')#失败
+        raise Exception('自动审查：会话没有工作目录')
     原生调用表=[]#原生
     for 事件 in 事件表:#过滤
         if 事件['type']=='tool/call':#原生
@@ -201,33 +201,31 @@ def 快照自动审查(智能体,执行):#冻结五段
     按作用域原生={}#键 → 调用列表
     for 事件 in 原生调用表:#分桶
         键=作用域调用键(步骤身份(事件['data']),事件['data']['callId'])#键
-        桶=按作用域原生.get(键)#桶
-        if 桶 is None:#新
+        if 键 not in 按作用域原生:#新
             按作用域原生[键]=[事件]#开桶
         else:#已有
-            桶.append(事件)#追加
+            按作用域原生[键].append(事件)#追加
     按父开始={}#父键 → 开始
     按子调用开始={}#子键 → 开始
     for 开始 in 划定['starts']:#逐个
         子键=作用域调用键(开始['step'],开始['event']['data']['subCallId'])#子
         if 子键 in 按子调用开始:#歧义
-            raise Exception('auto-review: a PTC call identity is ambiguous in the session log')#失败
+            raise Exception('自动审查：PTC 调用身份在会话日志中有歧义')
         按子调用开始[子键]=开始#记下
         父键=作用域调用键(开始['step'],开始['event']['data']['parentCallId'])#父
-        桶=按父开始.get(父键)#桶
-        if 桶 is None:#新
+        if 父键 not in 按父开始:#新
             按父开始[父键]=[开始]#开桶
         else:#已有
-            桶.append(开始)#追加
+            按父开始[父键].append(开始)#追加
     if 当前步骤 is None:#无打开步骤
-        raise Exception('auto-review: the pending call has no open step in the session log')#失败
+        raise Exception('自动审查：待处理调用在会话日志中没有未关闭步骤')
     当前根调用表=按作用域原生.get(作用域调用键(当前步骤,执行['rootCallId'])) or []#根
     if len(当前根调用表)!=1:#缺失或歧义
-        raise Exception('auto-review: the pending root call is missing or ambiguous in the session log')#失败
+        raise Exception('自动审查：待处理根调用在会话日志中缺失或有歧义')
     当前根调用=当前根调用表[0]#根
-    当前ptc开始=None if 执行.get('parent') is None else 按子调用开始.get(作用域调用键(当前步骤,执行['callId']))#内层
-    if 执行.get('parent') is not None and 当前ptc开始 is None:#缺失
-        raise Exception('auto-review: the pending PTC call is missing or ambiguous in the session log')#失败
+    当前ptc开始=None if 'parent' not in 执行 else 按子调用开始.get(作用域调用键(当前步骤,执行['callId']))#内层
+    if 'parent' in 执行 and 当前ptc开始 is None:#缺失
+        raise Exception('自动审查：待处理 PTC 调用在会话日志中缺失或有歧义')
     项目指令=[]#约束
     历史=[]#历史
     可见父键=set()#可见父
@@ -258,23 +256,23 @@ def 快照自动审查(智能体,执行):#冻结五段
             键=作用域调用键(消息步骤,块['id'])#键
             是当前根=是当前消息 and 块['id']==执行['rootCallId']#当前根
             if 是当前根 and 已过当前根:#歧义
-                raise Exception('auto-review: the pending root call is ambiguous in the current surface')#失败
+                raise Exception('自动审查：待处理根调用在当前界面上有歧义')
             调用表=按作用域原生.get(键) or []#调用
             if len(调用表)>1:#歧义
-                raise Exception('auto-review: a native call identity is ambiguous in the session log')#失败
+                raise Exception('自动审查：原生调用身份在会话日志中有歧义')
             调用=调用表[0] if len(调用表)==1 else None#调用
             该调用开始=按父开始.get(键) or []#PTC
             if 调用 is None:#未开始
                 if 是当前消息 and not 已过当前根:#缺日志
-                    raise Exception('auto-review: a visible call before the pending root is missing from the session log')#失败
+                    raise Exception('自动审查：待处理根之前的可见调用在会话日志中缺失')
                 if len(该调用开始)>0:#未开始却有 PTC
-                    raise Exception('auto-review: an unstarted visible call has logged PTC dispatches')#失败
+                    raise Exception('自动审查：未启动的可见调用已记下 PTC 分发')
                 见到未开始兄=True#记下
                 continue#下
             if 见到未开始兄:#前缀不整
-                raise Exception('auto-review: visible native call logs do not form a started prefix')#失败
+                raise Exception('自动审查：可见原生调用日志未形成已启动前缀')
             if 调用['data']['name']!=块['name'] or 调用['data']['arguments']!=块['arguments']:#不一致
-                raise Exception('auto-review: a visible tool call disagrees with its logged action')#失败
+                raise Exception('自动审查：可见工具调用与已记动作不一致')
             可见父键.add(键)#可见
             if 调用 is not 当前根调用 or 执行.get('parent') is not None:#非待审根
                 历史.append({'kind':'tool-call','role':'fact','mode':'native','name':调用['data']['name'],'arguments':调用['data']['arguments']})#事实
@@ -285,8 +283,8 @@ def 快照自动审查(智能体,执行):#冻结五段
             if 是当前根:#过根
                 已过当前根=True#记下
     if not 已过当前根:#表面缺根
-        raise Exception('auto-review: the pending root call is missing from the current surface')#失败
-    if 执行.get('parent') is None:#原生
+        raise Exception('自动审查：待处理根调用在当前界面上缺失')
+    if 'parent' not in 执行:#原生
         动作=原生动作(执行,头.get('tools'),当前根调用)#原生
     else:#PTC
         动作=ptc动作(执行,当前ptc开始,可见父键)#内层
@@ -323,10 +321,10 @@ def 解析决策(文本):#封闭 risk/decision
     """解析封闭的 risk/decision 协议及其固定安全组合。"""
     值=json.loads(文本)#对象
     if 值 is None or not isinstance(值,dict):#非对象
-        raise Exception('auto-review: reviewer output must be one JSON object')#失败
+        raise Exception('自动审查：审查输出必须是一个 JSON 对象')
     键表=list(值.keys())#键
     if 顶层成员数(文本)!=len(键表):#重复成员
-        raise Exception('auto-review: reviewer output repeats a JSON member')#失败
+        raise Exception('自动审查：审查输出重复了 JSON 成员')
     风险=值.get('risk')#风险
     决策=值.get('decision')#决策
     if len(键表)==2 and 决策=='allow' and (风险=='low' or 风险=='medium'):#允许
@@ -335,7 +333,7 @@ def 解析决策(文本):#封闭 risk/decision
         return {'risk':风险,'decision':决策}#拒绝
     if 决策=='deny' and (风险=='medium' or 风险=='high') and len(键表)==3 and 'reason' in 值 and isinstance(值['reason'],str):#带因
         return {'risk':风险,'decision':决策,'reason':值['reason']}#拒绝
-    raise Exception('auto-review: reviewer output does not match the risk/decision protocol')#失败
+    raise Exception('自动审查：审查输出不符合风险/决策协议')
 
 def 读决策(流):#推理块后恰好一块 JSON 文本再终止
     """消费零或多块推理、一块 JSON 文本与一次终止 stop。"""
@@ -343,23 +341,23 @@ def 读决策(流):#推理块后恰好一块 JSON 文本再终止
     已结束=False#终止
     for 块 in 流:#逐块
         if 已结束:#终止后再有数据
-            raise Exception('auto-review: reviewer emitted data after its terminal finish')#失败
+            raise Exception('自动审查：审查在终态结束之后仍发出数据')
         组装器.推入(块)#推
         if 块.get('type')=='finish':#终止
             已结束=True#记下
             if 块['reason'].get('kind')!='stop':#非 stop
-                raise Exception('auto-review: reviewer ended with '+str(块['reason'].get('kind')))#失败
+                raise Exception('自动审查：审查以 '+str(块['reason'].get('kind'))+' 结束')
     if not 已结束:#无终止
-        raise Exception('auto-review: reviewer emitted no terminal finish')#失败
+        raise Exception('自动审查：审查没有发出终态结束')
     块表=组装器.块列表()#块
     if len(块表)==0:#空
-        raise Exception('auto-review: reviewer must emit zero or more reasoning blocks followed by exactly one text block')#失败
+        raise Exception('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
     末=块表[-1]#末
     if 末.get('type')!='text':#非文本
-        raise Exception('auto-review: reviewer must emit zero or more reasoning blocks followed by exactly one text block')#失败
+        raise Exception('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
     for 块 in 块表[:-1]:#前缀
         if 块.get('type')!='reasoning':#非推理
-            raise Exception('auto-review: reviewer must emit zero or more reasoning blocks followed by exactly one text block')#失败
+            raise Exception('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
     return 解析决策(末['text'])#决策
 
 def 分类风险(上下文,智能体,执行,信号):#固定策略与当前路由
@@ -383,7 +381,7 @@ def 拒绝(执行,原因=None):#固定拒绝
     信息={'name':自动审查拒绝错误名,'code':自动审查拒绝码}#信息
     if 原因 is not None:#有因
         信息['reason']=原因#因
-    return {'kind':'deny','reason':'Auto review rejected tool "'+执行['name']+'"; its body was not executed','info':信息}#拒绝
+    return {'kind':'deny','reason':'自动审查拒绝了工具 "'+执行['name']+'"; 其体未被执行','info':信息}
 
 def 应用(上下文):#安装 Auto 与前置审查门
     """安装 Auto 预设及其前置的逐调用审查门。"""
@@ -392,13 +390,13 @@ def 应用(上下文):#安装 Auto 与前置审查门
     在途=set()#在途任务
     寿命=中止控制器()#寿命
     def 寿命体():#effect
-        """保留注入服务直到拆除。"""
+        """保留依赖服务直到拆除。"""
         def 预执行(执行,下一):#tools/pre-execute
             """每个受支持调用的 body 前审查一次。"""
             nonlocal 接纳中#改
-            智能体=执行.get('agent')#智能体
-            if 智能体 is None or (执行.get('parent') is None and 执行['name']==运行代码名):#外层传输
+            if 'agent' not in 执行 or ('parent' not in 执行 and 执行['name']==运行代码名):#外层传输
                 return 下一()#过
+            智能体=执行['agent']#智能体
             if 权限预设.当前(智能体.session.events)!=自动预设:#非 Auto
                 return 下一()#过
             if (not 接纳中) or 已中止(寿命.信号):#关闭
@@ -429,7 +427,7 @@ def 应用(上下文):#安装 Auto 与前置审查门
         def 准入():#登记 Auto
             """关闭中拒绝选择。"""
             if not 接纳中:#关闭
-                raise Exception('auto-review: integration is closing')#失败
+                raise Exception('自动审查：集成正在关闭')
         停贡献=权限预设.登记自动(准入)#贡献
         def 卸():#拆除
             """先关选择再迁 Full access，再等在途。"""
@@ -441,7 +439,7 @@ def 应用(上下文):#安装 Auto 与前置审查门
                         continue#下
                     权限预设.设(会话,'danger-full-access')#Full access
             finally:#中止在途
-                寿命.中止(Exception('auto-review integration disposed'))#中止
+                寿命.中止(Exception('自动审查集成已拆除'))
                 for 任务 in list(在途):#等
                     try:#结算
                         任务.等待()#等
@@ -452,8 +450,8 @@ def 应用(上下文):#安装 Auto 与前置审查门
             if callable(停贡献):#贡献
                 停贡献()#停
         return 卸#拆除器
-    上下文.副作用(寿命体,'auto-review lifecycle')#寿命
+    上下文.副作用(寿命体,'自动审查寿命')
 
-name=名称#框架槽
-inject=注入#框架槽
-apply=应用#框架槽
+name=名称
+inject=依赖
+apply=应用

@@ -64,7 +64,7 @@ class 终端体:#侧栏正文
         状态=自身.属性['useTerminal'](标签['id'])#状态
         if 状态 is None:#尚无
             return None#空
-        if 状态.get('issue') is None:#无 issue 键文案
+        if 'issue' not in 状态:#无 issue 键文案
             错误=状态['error'] if 'error' in 状态 and 状态['error'] is not None else None#error
             信息=状态['info'] if 'info' in 状态 else None#info
             if 错误 is None and 信息 is not None:#info.error

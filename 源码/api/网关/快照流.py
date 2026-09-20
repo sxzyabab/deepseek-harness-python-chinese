@@ -1,7 +1,4 @@
-"""叠在可重连 Remote 流上的基线加增量协议。
-
-对齐上游 `api/gateway/src/client/snapshot-stream.ts`。公开面仅中文名。
-"""
+"""叠在可重连 Remote 流上的基线加增量协议。"""
 import threading#消费线程
 from .网关 import 已中止#中止查询
 
@@ -13,7 +10,7 @@ def _协议违规(消息):
     错误=RuntimeError(消息)#错误
     错误.name='RemoteError'#名
     错误.code='gateway/internal'#码
-    return 错误#返回
+    return 错误
 
 
 class 远程快照流:
@@ -23,7 +20,7 @@ class 远程快照流:
         """选项：name / isSnapshot / replace / update / failed。流为远程流。"""
         自身._流=流#底层
         自身._选项=选项#选项
-        自身._已启动=False#启动
+        自身._已启动=False
         自身._已拆除=False#拆除
         自身._完成=threading.Event()#消费完成
 
@@ -33,29 +30,17 @@ class 远程快照流:
             return#空
         自身._已启动=True#标记
         线=threading.Thread(target=自身._消费,daemon=True,name='dsh-remote-snapshot')#泵
-        线.start()#启
-
-    def 启动(自身):
-        """中文别名。"""
-        自身.start()#委托
+        线.start()
 
     def restart(自身):
         """替换活动物理代际。"""
-        自身._流.restart()#重启
-
-    def 重启(自身):
-        """中文别名。"""
-        自身.restart()#委托
+        自身._流.restart()
 
     def dispose(自身):
         """永久停止并等待消费者静默。"""
         自身._已拆除=True#标记
         自身._流.dispose()#拆底层
-        自身._完成.wait(timeout=30)#等消费
-
-    def 拆除(自身):
-        """中文别名。"""
-        自身.dispose()#委托
+        自身._完成.wait(timeout=30)
 
     def _消费(自身):
         """消费循环。"""
@@ -78,6 +63,6 @@ class 远程快照流:
                 自身._选项['update'](项.value)#增量
         except BaseException as 错误:
             if not 自身._已拆除:#未拆
-                自身._选项['failed'](错误)#失败面
+                自身._选项['failed'](错误)
         finally:
             自身._完成.set()#结算

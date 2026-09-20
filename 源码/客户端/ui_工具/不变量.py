@@ -1,18 +1,18 @@
-from ...依赖 import cordis#外部依赖胶水
-包名='@deepseek-ai/dsh-client-ui-tool'#本包的不变量所有权名
-名称='client-ui-tool-invariant'#配套不变量插件名（字面量）
-注入=['invariants']#依赖 invariants 服务
+"""向 invariants 登记工具 UI 包检查（槽位所有权由 ui-slots 检查）。"""
+包名='@deepseek-ai/dsh-client-ui-tool'
+名称='client-ui-tool-invariant'
+依赖=['invariants']
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用']
 
-def 安装(上下文对象=None,失败=None):#空安装器
+def 安装(上下文=None,失败=None):
     """无运行时检查：工具组合仅在浏览器中运行；槽位所有权由 ui-slots 检查。"""
-    return#不挂监听
+    return
 
-def 应用(上下文对象):#注册本包不变量配套
-    """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#同步登记
+def 应用(上下文):
+    """向 invariants 登记本包检查，返回拆除器。"""
+    return 上下文.invariants.register(包名,安装)
 
-name=名称#框架槽
-inject=注入#框架槽
-apply=应用#框架槽
+name=名称
+inject=依赖
+apply=应用

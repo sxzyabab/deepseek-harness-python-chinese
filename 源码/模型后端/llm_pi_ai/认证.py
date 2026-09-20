@@ -1,6 +1,6 @@
 """pi-ai 认证模型与 harness 凭证平面之间的适配器。
 
-对齐上游 `llm-pi-ai/src/auth.ts`。公开面仅中文名。
+公开面仅中文名。
 `fileExists` 回答宿主进程文件系统（`~/.aws/credentials` 等），不是工作区 `ctx.fs`。
 """
 import os#主目录与路径

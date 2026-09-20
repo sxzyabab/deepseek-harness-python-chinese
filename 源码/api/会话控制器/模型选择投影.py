@@ -1,7 +1,4 @@
-"""持久模型选择意图与请求使用投影。
-
-对齐上游 `session-controller/src/model-selection-projection.ts`。公开面仅中文名。
-"""
+"""持久模型选择意图与请求使用投影。"""
 __all__=['安装模型选择投影']#仅中文公开名
 
 def 选择相同(左,右):
@@ -26,7 +23,7 @@ def 应用模型选择投影(状态,事件):
     if 种类!='request/header':#其它
         return 状态#不变
     头=事件['data']['header']#请求头
-    配置=头['config']#配置
+    配置=头['config']
     最近使用={'provider':配置['provider'],'model':配置['model']}#lastUsed
     if 'reasoningEffort' in 配置 and 配置['reasoningEffort'] is not None:#有推理
         最近使用['reasoningEffort']=str(配置['reasoningEffort'])#推理

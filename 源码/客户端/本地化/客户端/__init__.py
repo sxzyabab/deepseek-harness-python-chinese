@@ -5,14 +5,14 @@ from .设置存储 import 创建语言行存储#语言行存储
 from .语言行 import 语言行#语言行组件
 
 __all__=[#仅中文公开名
-    '注入','应用','语言运行时','回退语言','公共命名空间','设置命名空间',
+    '依赖','应用','语言运行时','回退语言','公共命名空间','设置命名空间',
     '创建语言行存储','语言行','本地化错误',
-]#公开面结束
+]
 
 回退语言='zh'#回退语言为中文
 公共命名空间='common'#公共命名空间
 设置命名空间='settings.locale'#设置行命名空间
-注入=['slots','connection','remote','settingsScope']#依赖槽位、连接、远端与设置作用域
+依赖=['slots','connection','remote','settingsScope']#依赖槽位、连接、远端与设置作用域
 
 语言定义表=(#冻结的可选语言表
     {'id':'zh','label':'中文'},#中文
@@ -71,7 +71,7 @@ class 语言运行时:
             自身.采纳(宿主)#先采纳当前选择
 
     def getLocale(自身):
-        """读取当前不可变语言快照。方法名对齐 LocaleFace。"""
+        """读取当前不可变语言快照。"""
         return 自身.快照#当前快照
 
     def getSnapshot(自身):
@@ -225,7 +225,7 @@ def 应用(上下文):
             快照['active'],#当前语言
             [{'id':项['id'],'label':项['label']} for 项 in 快照['locales']],#选项行
             快照['revision'],#修订号
-        )#结束 sync
+        )
 
     上下文.监听('locale/change',同步)#语言切换时同步仓库
 
@@ -250,5 +250,5 @@ def 应用(上下文):
         },语言行)#语言行组件
     上下文.slots.inject('settings.general.item',登记行)#等槽出现
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

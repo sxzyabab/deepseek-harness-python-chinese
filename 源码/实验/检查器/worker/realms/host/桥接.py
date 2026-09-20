@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/host/bridge.ts
-
 import threading#串行投递
 from ....共享.json import 检查器错误#包内错误
 
@@ -13,7 +11,7 @@ class Host检查器会话:#Host inspector会话
         自身._监听=set()#监听
         自身._已连接=False#是否已连接
         自身._失败=None#连接失败信息
-        自身._会话=None#原生会话占位（Python 侧由宿主注入）
+        自身._会话=None#原生会话占位（Python 侧由宿主写入）
 
     def 订阅(自身,监听):#订阅
         """订阅原生 inspector 通知。"""

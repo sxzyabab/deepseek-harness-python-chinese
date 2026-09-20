@@ -1,4 +1,4 @@
-"""启发式上下文构成投影的纯折叠。对齐上游 `token-meter/src/breakdown-projection.ts`。公开面仅中文名。"""
+"""启发式上下文构成投影的纯折叠。公开面仅中文名。"""
 from ...内核.会话 import 归一请求头,是否表面事件#规范请求头与表面判定
 from .类型 import 计量错误#计量异常
 from .计价 import 计价工具令牌#工具计价

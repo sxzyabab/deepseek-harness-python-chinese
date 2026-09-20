@@ -1,6 +1,6 @@
 """内容块结构辅助。
 
-对齐上游 `llm/src/content.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import json,math#引用字符串与 base64 长度
 from .永不 import 断言永不#穷尽断言
@@ -18,7 +18,7 @@ def 引用串(值):#JSON 引用字符串
 
 def 图片身份(引用):#图片身份文案
     """附件展示身份。"""
-    if 引用.get('name') is None:#无展示名
+    if 'name' not in 引用:#无展示名
         return str(引用['attachmentId'])#只用附件 id
     return f"{引用串(引用['name'])} ({引用['attachmentId']})"#名加 id
 
@@ -255,8 +255,8 @@ def 投影图片为仅文本(消息列表):#仅文本投影图片
 def 卸载图片前缀张数(长度表,政策):#计算卸载前缀张数
     """超出路由预算后按整张数与字节量子移除的最旧图片出现处张数。"""
     总计=sum(长度表)#总字节
-    超额张数=0 if 政策.get('maxImages') is None else max(0,len(长度表)-政策['maxImages'])#超额张数
-    超额字节=0 if 政策.get('maxBytes') is None else max(0,总计-政策['maxBytes'])#超额字节
+    超额张数=0 if 'maxImages' not in 政策 else max(0,len(长度表)-政策['maxImages'])#超额张数
+    超额字节=0 if 'maxBytes' not in 政策 else max(0,总计-政策['maxBytes'])#超额字节
     if 超额张数==0 and 超额字节==0:#未超预算
         return 0#零
     张数量子=政策.get('countQuantum') if 政策.get('countQuantum') is not None else 1#张数量子

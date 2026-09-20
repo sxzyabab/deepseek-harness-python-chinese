@@ -1,6 +1,5 @@
 """`file` 协议的资源元数据、导航参数、客户端错误码与变更供给通知。
 
-对齐上游 `workspace-files/src/client/types.ts`。公开面仅中文名。
 跨线 / 资源值为 dict；`file` 资源值即宿主 `WorkspaceFileStat`。
 """
 

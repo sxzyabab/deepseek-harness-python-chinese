@@ -1,16 +1,16 @@
 from .运行时 import 可观察,错误字段#可观察与错误
 
-__all__=[#仅中文公开名
+__all__=[
     '活动阶段','失败原因','同一请求','运行编排器','说明',
-]#公开面结束
+]
 
 说明='inFlight 串行；drive 收尾收敛；evaluate/Loader 真挂载仍欠 runner 硬缺口。'#说明
 
 活动阶段=('awaiting-approval','orchestrating')#阶段
 失败原因=('host-half-failed','client-half-failed')#失败半
 
-def 同一请求(左,右):#请求是否同一份
-    """对齐 sameRequest。"""
+def 同一请求(左,右):
+    """两份运行请求是否同一份。"""
     if 左 is None:#无左
         return False#否
     return (左.get('requestId')==右.get('requestId')
@@ -71,7 +71,7 @@ class 运行编排器:#CordisRunOrchestrator
         return 可观察(读)#图
 
     def open(自身,请求):#打开请求
-        """登记；已授权则立刻编排（对齐 void orchestrate().catch）。"""
+        """登记；已授权则立刻编排（失败只记日志）。"""
         自身.请求[请求['requestId']]=请求#记下
         if not 请求.get('requiresApproval'):#已授权
             计划={#立刻编排
@@ -81,7 +81,7 @@ class 运行编排器:#CordisRunOrchestrator
             }#计划
             try:#自动激活失败只记日志
                 自身._编排(计划)#串行
-            except Exception as 错误:#对齐 .catch(console.error)
+            except Exception as 错误:
                 print('[cordis-client-runner] automatic activation',请求['requestId'],'failed:',错误)#日志
             return#已启动
         现=自身.活动.get(请求['pluginId'])#当前
@@ -195,7 +195,7 @@ class 运行编排器:#CordisRunOrchestrator
         """同插件复用进行中 attempt；结束必清 inFlight + orchestrating。"""
         插件=计划['pluginId']#插件
         飞=自身.进行中.get(插件)#已在飞
-        if 飞 is not None:#对齐 return running
+        if 飞 is not None:
             return#复用同一次（不启第二趟）
         自身.进行中[插件]=True#记下进行中
         自身.活动[插件]={#标编排中
@@ -208,7 +208,7 @@ class 运行编排器:#CordisRunOrchestrator
         自身.commit()#通知
         try:#驱动两半
             自身._驱动(计划)#drive（void）
-        finally:#对齐 attempt.finally
+        finally:
             自身.进行中.pop(插件,None)#拿掉进行中
             自身.活动.pop(插件,None)#清 orchestrating
             自身.commit()#通知
@@ -226,10 +226,10 @@ class 运行编排器:#CordisRunOrchestrator
         """调用 host.runHostHalf；接缝抛错折成 {ok:false,...错误字段}。"""
         执行宿主半=自身._取宿主().get('runHostHalf')#动词
         try:#远程启动
-            return 执行宿主半(#对齐六参；无审批 id 传 None
+            return 执行宿主半(
                 计划['agentId'],计划['pluginId'],计划['packageId'],计划['mode'],
                 计划.get('requestId'),计划.get('approveFutureVersions',False),
-            )#结束
+            )
         except Exception as 错误:#接缝抛错（含缺动词）
             return {'ok':False,**错误字段(错误)}#折成失败
 
@@ -239,7 +239,7 @@ class 运行编排器:#CordisRunOrchestrator
         try:#远程落定
             落定(请求标识,决议)#应答
         except Exception as 错误:#失败只记日志
-            print('[cordis-client-runner] answering run request',请求标识,'failed:',错误)#日志
+            print('[cordis-client-runner] 回答运行请求',请求标识,'失败:',错误)
 
     def _落定面板(自身,计划,决议):#settleDirect
         """调用 host.settleUserRun；宿主拒绝或抛错记 client-half-failed。"""
@@ -253,9 +253,9 @@ class 运行编排器:#CordisRunOrchestrator
 
     def _客户端失败收尾(自身,计划,运行标识,本页启动,失败,原始错误=None):#finishClientFailure
         """记失败并按模型/面板路径回答或落定。"""
-        print(#对齐 console.error
-            '[cordis-client-runner] Client activation',
-            计划.get('pluginId'),'/',计划.get('packageId'),'(',运行标识,') failed:',
+        print(
+            '[cordis-client-runner] 客户端激活',
+            计划.get('pluginId'),'/',计划.get('packageId'),'(',运行标识,') 失败:',
             原始错误 if 原始错误 is not None else 失败,
         )#日志
         自身.fail(计划,'client-half-failed',失败)#页侧失败
@@ -270,7 +270,7 @@ class 运行编排器:#CordisRunOrchestrator
             自身._落定面板(计划,决议)#落定
 
     def _驱动(自身,计划):#drive：宿主 → 取码 → load → answer/settle；void
-        """对齐上游 drive；决议只走 answer/settle，不向外抛返回值当契约。"""
+        """决议只走 answer/settle，不向外抛返回值当契约。"""
         已启动=自身._启动宿主(计划)#先宿主半
         if not isinstance(已启动,dict) or not 已启动.get('ok'):#宿主半失败
             自身.fail(计划,'host-half-failed',已启动 if isinstance(已启动,dict) else 错误字段(已启动))#记下
@@ -280,7 +280,7 @@ class 运行编排器:#CordisRunOrchestrator
                 自身._回答(计划['requestId'],决议)#回答
             return#停
         if not 计划.get('hasClientHalf'):#仅宿主半
-            return#结束
+            return
         运行标识=已启动.get('pluginRunId')#精确激活
         本页启动=bool(已启动.get('startedHere'))#是否本页启动
         取码=自身._取宿主().get('getClientCode')#取浏览器半
@@ -291,7 +291,7 @@ class 运行编排器:#CordisRunOrchestrator
             return#停
         运行器=自身._取运行器()#页本地加载器
         try:#加载浏览器半
-            半边={#对齐 load 入参
+            半边={
                 'pluginId':源码.get('pluginId') if isinstance(源码,dict) else getattr(源码,'pluginId',None),
                 'packageId':源码.get('packageId') if isinstance(源码,dict) else getattr(源码,'packageId',None),
                 'pluginRunId':源码.get('pluginRunId') if isinstance(源码,dict) else getattr(源码,'pluginRunId',None),

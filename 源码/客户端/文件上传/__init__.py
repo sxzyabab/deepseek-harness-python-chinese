@@ -13,7 +13,7 @@ from .类型 import (#类型再导出
     文件上传结果字段,#结果字段
     文件附件引用字段,#文件引用字段
     若已中止则抛出,#取消
-)#类型导入结束
+)
 
 __all__=[#仅中文公开名
     '提示文件绑定',
@@ -29,12 +29,12 @@ __all__=[#仅中文公开名
     '文件附件引用字段',
     '处理文件上传http',
     '名称',
-    '注入',
+    '依赖',
     '应用',
-]#公开面结束
+]
 
 名称='file-upload'#Cordis 插件名
-注入=['agents','attachments','commands','connection']#硬依赖
+依赖=['agents','attachments','commands','connection']#硬依赖
 
 class 提示文件绑定守卫:#绑定守卫
     """Prompt 凭证绑定：除非投递提交，否则拆除时恢复先前拥有者。"""
@@ -47,7 +47,7 @@ class 提示文件绑定守卫:#绑定守卫
         """保持凭证绑定，直至队列或历史观察退休它们。"""
         自身._已结算=True#标记已结算
 
-    def 拆除(自身):#对齐 Symbol.dispose
+    def 拆除(自身):
         """未提交则回滚先前绑定。"""
         if 自身._已结算:#已提交则不回滚
             return#停
@@ -59,7 +59,7 @@ class 提示文件绑定守卫:#绑定守卫
         return 自身#守卫
 
     def __exit__(自身,类型,值,回溯):#离开 with
-        """对齐 Symbol.dispose。"""
+        """离开时拆除。"""
         自身.拆除()#拆除
         return False#不吞异常
 
@@ -67,7 +67,6 @@ class 提示文件绑定守卫:#绑定守卫
 
 class 文件上传服务(远程服务):#Host 文件上传服务
     """拥有上传存储与按 Agent 作用域暂存凭证的 Host 服务。"""
-    inject=注入#硬依赖
     def __init__(自身,上下文):#构造服务
         """携带 Agent、附件、命令与 Connection 服务的 Host 上下文。"""
         super().__init__(上下文,'fileUploads')#登记 Remote 服务名
@@ -90,7 +89,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
                 'methods':['POST'],#方法
                 'requestBody':'streaming',#流式正文
                 'fetch':处理请求,#处理函数
-            })#结束 register
+            })
         上下文.副作用(登记流式路由,'file-upload: streaming route')#connection effect
         def 观察事件(会话,事件):#观察会话事件
             """转交。"""
@@ -190,13 +189,13 @@ class 文件上传服务(远程服务):#Host 文件上传服务
                 'failed to store file upload: '+str(错误),#消息
                 {},#空细节
                 {'cause':错误},#因果
-            )#结束 RemoteError
+            )
         if 自身.ctx.agents.get(智能体.id) is not 智能体:#存盘期间 Agent 已拆除
             raise 远程错误(#会话不存在
-                'session/not-found',#码
+                'session/not-found',
                 'session "'+str(智能体.id)+'" was disposed before its file upload completed',#消息
                 {'sessionId':智能体.id},#细节
-            )#结束 RemoteError
+            )
         表=自身._暂存[智能体.session] if 智能体.session in 自身._暂存 else None#取或建暂存表
         if 表 is None:#尚无表
             表={}#新建
@@ -225,10 +224,10 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         自身._断言智能体作用域(智能体)#先查作用域
         if 智能体.session.header.origin=='subagent':#子智能体
             raise 远程错误(#子智能体附件非法
-                'subagent/attachment-invalid',#码
+                'subagent/attachment-invalid',
                 'subagent conversations do not accept file uploads',#消息
                 {'reason':'SUBAGENT_FILE_UNSUPPORTED'},#原因
-            )#结束 RemoteError
+            )
 
     def _观察会话事件(自身,会话,事件):#观察会话事件
         """用户消息带 rpcId 则退休凭证。"""
@@ -263,7 +262,7 @@ def 文件未暂存():#未暂存错误
         'session/attachment-invalid',#附件非法
         'File was not uploaded for this session.',#消息
         {'reason':'FILE_NOT_STAGED'},#原因
-    )#结束 RemoteError
+    )
 
 def 应用(上下文,配置=None):#安装 Host 插件
     """挂载文件上传 Host 服务。"""
@@ -271,6 +270,7 @@ def 应用(上下文,配置=None):#安装 Host 插件
     return None#无额外拆除
 
 name=名称#Cordis 插件名
-inject=注入#Cordis 依赖声明
+inject=依赖#Cordis 依赖声明
 apply=应用#Cordis 插件入口
 default=文件上传服务#默认导出
+文件上传服务.inject=依赖#框架槽

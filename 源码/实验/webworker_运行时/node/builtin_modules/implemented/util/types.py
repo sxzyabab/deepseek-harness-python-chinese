@@ -1,10 +1,10 @@
-from ..util import types#共享谓词实现
+from ..util import types
 
-__all__=['isPromise','isDate','isRegExp','isTypedArray','__esModule','default']#Node面
+__all__=['isPromise','isDate','isRegExp','isTypedArray','__esModule','default']
 
-isPromise=types['isPromise']#再导出谓词
-isDate=types['isDate']#Date
-isRegExp=types['isRegExp']#RegExp
-isTypedArray=types['isTypedArray']#TypedArray
-__esModule=True#CJS互操作
-default=types#默认导出谓词集
+isPromise=types['isPromise']
+isDate=types['isDate']
+isRegExp=types['isRegExp']
+isTypedArray=types['isTypedArray']
+__esModule=True
+default=types

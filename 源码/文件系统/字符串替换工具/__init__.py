@@ -1,13 +1,13 @@
-"""面向模型的 `str_replace_editor`，建立在 Harness 文件系统 seam 上。"""
+"""登记面向模型的字符串替换编辑工具。"""
 import os#绝对路径判断
-from functools import cmp_to_key#目录列举排序对齐上游比较器
+from functools import cmp_to_key#目录列举排序比较器
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义器
 from ..文件系统 import 文件系统错误#导入文件系统错误
 from ...沙盒.沙盒 import 沙箱拒绝标记#导入沙箱拒绝标记文案
 
 __all__=(#仅中文公开名
-    '名称','注入','截断消息','默认描述','配置',
+    '名称','依赖','截断消息','默认描述','配置',
     '或许截断','码点比较','匹配下标','下标行号','变更政策',
     '解析目标','状态已存在','命令必填','格式化文件视图','列举目录',
     '查看路径','创建文件','文件内替换','文件内插入',
@@ -15,11 +15,11 @@ __all__=(#仅中文公开名
 )#公开面结束
 
 名称='tool-str-replace-editor'#Cordis插件名
-注入=['tools','fs']#必需注入：工具与文件系统
+依赖=['tools','fs']#必需注入：工具与文件系统
 
 截断消息='<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>'#超长视图的截断标记
 
-默认描述=(#面向模型的默认工具描述（字面量保持上游英文）
+默认描述=(#面向模型的默认工具描述（英文线协议字面量）
     'Custom editing tool for viewing, creating and editing files\n'#工具总述
     '* State is persistent across command calls and discussions with the user\n'#跨调用持久
     '* If `path` is a file, `view` displays the result of applying `cat -n`. If `path` is a directory, `view` lists non-hidden files and directories up to 2 levels deep\n'#view行为
@@ -30,21 +30,21 @@ __all__=(#仅中文公开名
     '* The `old_str` parameter should match EXACTLY one or more consecutive lines from the original file. Be mindful of whitespaces!\n'#old_str须逐字
     '* If the `old_str` parameter is not unique in the file, the replacement will not be performed. Make sure to include enough context in `old_str` to make it unique\n'#须唯一
     '* The `new_str` parameter should contain the edited lines that should replace the `old_str`'#new_str为替换文
-)#去掉首尾空白由上游 trim；此处字面量已无首尾空白
+)#字面量已无首尾空白
 
 配置={#插件配置校验模式
     'maxOutputChars':数字字段(默认值=16_000),#视图字符上限
     'description':字符串字段(默认值=默认描述),#工具描述
 }#配置模式结束
 
-class 错误(Exception):#对齐上游 throw new Error 文案
-    """运行时错误，错误信息保持上游英文原文。"""
+class 错误(Exception):
+    """运行时错误；详情保持英文线协议原文。"""
 
 def 或许截断(内容,最大输出字节):#按UTF-8字节上限截断输出
     """超长输出按 UTF-8 字节截到上限并接上截断提示，切点落在字符边界。"""
-    数据=内容.encode('utf-8')#编码
-    if len(数据)<=最大输出字节:#未超长则原样
-        return 内容#完整文本
+    数据=内容.encode('utf-8')
+    if len(数据)<=最大输出字节:#未超长则原样返回
+        return 内容
     切=最大输出字节#拟定切点
     while 切>0 and (数据[切]&0xC0)==0x80:#续字节则回退
         切-=1#退到字符起点
@@ -353,7 +353,7 @@ def 文件内插入(上下文,政策,路径,插入行,新串,执行上下文):#�
     return 'The file '+目标['displayPath']+' has been edited successfully.'#面向模型的成功说明
 
 def 呈现编辑器调用(参数):#调用中的编辑器卡片
-    """调用中展示：`view`/`insert` 用通用卡片，`create`/`str_replace` 用 diff 卡片。"""
+    """调用中呈现：`view`/`insert` 用通用卡片，`create`/`str_replace` 用 diff 卡片。"""
     命令=参数['command']#当前命令
     路径=参数['path']#目标路径
     if 命令=='view':#查看
@@ -498,12 +498,12 @@ def 解析配置(配置值):#填入默认值并校验
     }#resolved结束
 
 def 应用(上下文,配置值=None):#注册str_replace_editor
-    """在 `ctx.fs` 上注册一个 `str_replace_editor` 工具。"""
+    """在文件系统上注册一个 str_replace_editor 工具。"""
     已解析=解析配置(配置值)#填入默认值
     登记字符串替换编辑器(上下文,已解析)#注册工具
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

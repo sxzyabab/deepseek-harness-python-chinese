@@ -1,26 +1,26 @@
-from ..node.未实现失败 import 运行时错误#本包错误
-import gzip#gzip解压
+from ..node.未实现失败 import 运行时错误
+import gzip
 
-__all__=['流式解压镜像','解压镜像']#仅中文公开名
+__all__=['流式解压镜像','解压镜像']
 
 gzip魔术=(0x1f,0x8b)#gzip成员识别字节（RFC 1952 §2.3.1）
 引用字节数=8#拒绝正文时引用的字节数
 
-def 十六进制预览(字节序列):#十六进制预览
+def 十六进制预览(字节序列):
     """前若干字节的十六进制预览。"""
-    return ' '.join(f'{字节:02x}' for 字节 in 字节序列[:引用字节数])#空格分隔
+    return ' '.join(f'{字节:02x}' for 字节 in 字节序列[:引用字节数])
 
-def 拒绝正文(来源,已读):#构造拒绝错误
+def 拒绝正文(来源,已读):
     """构造非 gzip 成员正文的拒绝错误。"""
-    读描述='an empty body' if len(已读)==0 else 十六进制预览(已读)#可读已读
-    return Exception(#拒绝文案
+    读描述='an empty body' if len(已读)==0 else 十六进制预览(已读)
+    return Exception(
         f'webworker image: {来源} is not the gzip-compressed tar this deployment serves as its image '
         f'(expected a member starting 1f 8b, read {读描述}); '
         'a host that answered with a Content-Encoding the transport already decoded, or a build that wrote '
         'the archive uncompressed, arrives exactly this way'
-    )#错误结束
+    )
 
-def 要求gzip成员(来源,块流):#校验并透传gzip头
+def 要求gzip成员(来源,块流):
     """拒绝非 gzip 成员正文的透传；跨块持有头直至可判定。
 
     参数:
@@ -29,24 +29,24 @@ def 要求gzip成员(来源,块流):#校验并透传gzip头
     产出:
         校验通过后的正文块。
     """
-    头=b''#已缓冲头
-    已判定=False#是否已判定
-    for 块 in 块流:#逐块
-        if 已判定:#已判定则透传
-            yield 块#转发
-            continue#下一块
-        头=头+块#合并缓冲
-        if len(头)<len(gzip魔术):#仍不够判定
-            continue#等待更多
-        if any(头[位置]!=字节 for 位置,字节 in enumerate(gzip魔术)):#魔术不匹配
-            raise 拒绝正文(来源,头)#拒绝
-        已判定=True#标记已判定
-        yield 头#放出完整头起缓冲
-        头=b''#清空
-    if not 已判定:#太短仍未判定
-        raise 拒绝正文(来源,头)#拒绝
+    头=b''
+    已判定=False
+    for 块 in 块流:
+        if 已判定:
+            yield 块
+            continue
+        头=头+块
+        if len(头)<len(gzip魔术):
+            continue
+        if any(头[位置]!=字节 for 位置,字节 in enumerate(gzip魔术)):
+            raise 拒绝正文(来源,头)
+        已判定=True
+        yield 头
+        头=b''
+    if not 已判定:
+        raise 拒绝正文(来源,头)
 
-def 流式解压镜像(正文流,来源):#流式解压
+def 流式解压镜像(正文流,来源):
     """边到达边 inflate 打包的 VFS 镜像。
 
     参数:
@@ -55,10 +55,10 @@ def 流式解压镜像(正文流,来源):#流式解压
     返回:
         镜像携带的 ustar 归档。
     """
-    已校验=b''.join(要求gzip成员(来源,正文流))#先校验魔术并收齐
-    return gzip.decompress(已校验)#gzip解压
+    已校验=b''.join(要求gzip成员(来源,正文流))
+    return gzip.decompress(已校验)
 
-def 解压镜像(字节序列,来源):#缓冲解压入口
+def 解压镜像(字节序列,来源):
     """inflate 驻于内存的打包 VFS 镜像。
 
     字节变成正文，使两个入口跑同一条流：一条解压路径、一次拒绝，
@@ -69,6 +69,6 @@ def 解压镜像(字节序列,来源):#缓冲解压入口
     返回:
         镜像携带的 ustar 归档。
     """
-    if 字节序列 is None or len(字节序列)==0:#无正文
-        raise 运行时错误(f'webworker image: {来源} produced no readable body')#无正文
-    return 流式解压镜像([bytes(字节序列)],来源)#走同一路径
+    if 字节序列 is None or len(字节序列)==0:
+        raise 运行时错误(f'webworker image: {来源} produced no readable body')
+    return 流式解压镜像([bytes(字节序列)],来源)

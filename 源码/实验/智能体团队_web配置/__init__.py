@@ -1,12 +1,12 @@
-__all__=['名称','注入','应用']#仅中文公开名
+__all__=['名称','依赖','应用']
 
-名称='agent-team-web-profile'#插件名
-注入=['agentTeam']#依赖
-name=名称#Cordis 名
-inject=注入#Cordis 注入
+名称='agent-team-web-profile'
+依赖=['agentTeam']
 
-def 应用(上下文=None,配置=None):#空模块入口
-    """运行时内容在 patch；本模块无宿主行为。"""
-    return None#空
+def 应用(上下文=None,配置=None):
+    """本模块无宿主行为。"""
+    return None
 
-apply=应用#入口
+name=名称
+inject=依赖
+apply=应用

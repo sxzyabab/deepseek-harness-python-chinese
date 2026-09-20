@@ -254,7 +254,7 @@ class 团队动作:#标题栏 Team 动作
         旧依赖=已编辑['blockedBy']#旧依赖
         if len(依赖)==len(旧依赖) and all(依赖[下标]==旧依赖[下标] for 下标 in range(len(依赖))):#依赖未变
             自身.编辑中=None#退出编辑
-            return#结束
+            return
         def 依赖操作():#再改依赖
             """改依赖 RPC。"""
             return 更新(自身.属性['sessionId'],{#改依赖

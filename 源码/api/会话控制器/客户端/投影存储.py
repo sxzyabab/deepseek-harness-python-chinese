@@ -1,6 +1,5 @@
 """通用 per-session 投影值存储（推送模型；更高 seq 胜出）。
 
-对齐上游 `session-controller/src/client/sessions/projection-store.ts`。公开面仅中文名。
 React `useProjection` 钩子面跳过（纯 React）；本模块交付存储与按键可观察面。
 """
 from .通知器 import 通知器#批处理通知
@@ -85,11 +84,3 @@ class 投影值存储:
         }#通道
         自身._通道[键]=通道#缓存
         return 通道#返回
-
-    faceOf=面#英文别名
-    get=取#英文别名
-    values=诸值#英文别名
-    apply=应用#英文别名
-    seed=播种#英文别名
-    clear=清空#英文别名
-    subscribeAny=订阅任意#英文别名

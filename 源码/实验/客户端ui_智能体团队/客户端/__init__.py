@@ -1,17 +1,17 @@
-from .挂载 import 注入,挂载智能体团队界面,登记界面#挂载
-from .团队动作 import 团队动作#UI
-from .文案 import 命名空间,中文,英文#词典
+from .挂载 import 依赖,挂载智能体团队界面,登记界面
+from .团队动作 import 团队动作
+from .文案 import 命名空间,中文,英文
 
-__all__=[#仅中文公开名
-    '注入','应用','挂载智能体团队界面','团队动作',
+__all__=[
+    '依赖','应用','挂载智能体团队界面','团队动作',
     '命名空间','中文','英文',
-]#公开面结束
+]
 
-def 应用(上下文,远程制品=None):#浏览器 apply
+def 应用(上下文,远程制品=None):
     """挂载生成的 Team Remote contribution 及其浏览器 UI。"""
-    if 远程制品 is None:#无制品则只登记 UI
-        return 登记界面(上下文)#仅 UI
-    return 挂载智能体团队界面(上下文,远程制品)#挂载 UI 与 Remote
+    if 远程制品 is None:
+        return 登记界面(上下文)
+    return 挂载智能体团队界面(上下文,远程制品)
 
-inject=注入#Cordis 别名
-apply=应用#入口
+inject=依赖
+apply=应用

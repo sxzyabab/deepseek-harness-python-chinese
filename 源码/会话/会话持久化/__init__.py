@@ -39,12 +39,6 @@ from .存储契约 import (#存储契约再导出
     断言连续,#连续 seq
 )#存储契约
 
-#把元数据词汇再导出，使消费方从 Service Definition 导入。
-会话持久化修订=会话持久化修订#再导出品牌函数
-
-#对齐上游：export type { SessionHeader } from '@deepseek-ai/dsh-session'
-会话头字段=会话头字段#再导出会话头字段键表（权威在 dsh-session / 内核.session）
-
 会话持久化快照字段=('header','revision','eventCount','sizeBytes')#不加载完整日志即可返回的轻量不可变源身份
 
 会话存储元数据字段=('meta','inheritedEventCount')#逻辑会话头与精确继承切口
@@ -53,15 +47,12 @@ from .存储契约 import (#存储契约再导出
 
 会话原样子产物字段=('meta','filename','content')#后端自己的、一个会话的原始产物文本，原样
 
-会话位置字段=('kind','path')#后端解析出的、每会话本地产物位置（绝对路径提示，绝不当授权令牌）
+会话位置字段=('kind','path')
+包名='@deepseek-ai/dsh-session-persistence'
+名称='session-persistence'
 
-持久化后端字段=持久化后端字段#再导出后端约定
-持久化协调器选项字段=持久化协调器选项字段#再导出协调器选项
-已存前缀字段=已存前缀字段#再导出已存前缀
-已存后缀字段=已存后缀字段#再导出已存后缀
-
-__all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '会话持久化修订','会话头字段','会话持久化快照字段','会话存储元数据字段','会话检查字段',
+__all__=[
+    '包名','名称','默认','会话持久化修订','会话头字段','会话持久化快照字段','会话存储元数据字段','会话检查字段',
     '会话原样子产物字段','会话位置字段','持久化后端字段','持久化协调器选项字段',
     '已存前缀字段','已存后缀字段','默认预备会话缓存大小','默认写批最大延迟毫秒',
     '写批延迟上限毫秒','持久化协调器','会话格式不支持错误','会话持久化损坏错误',
@@ -75,10 +66,10 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 
 class 会话持久化(服务):#会话持久化服务
     """经每会话句柄寻址的耐久仅追加会话存储。"""
-    def __init__(自身,上下文):#登记为ctx.sessionPersistence
-        """登记为 ctx.sessionPersistence。"""
+    def __init__(自身,上下文):
+        """以 sessionPersistence 名安装服务；抽象类不可直接实例化。"""
         if type(自身) is 会话持久化:#直接实例化抽象类
-            raise 持久化错误('@deepseek-ai/dsh-session-persistence 是抽象持久化接缝；请改加载后端实现')#必须加载实现
+            raise 持久化错误('@deepseek-ai/dsh-session-persistence 是抽象持久化服务；请改加载后端实现')#必须加载实现
         super().__init__(上下文,'sessionPersistence')#服务名
 
     def 创建(自身,头,选项=None):#创建并取写句柄
@@ -141,4 +132,6 @@ class 会话持久化(服务):#会话持久化服务
         """列出已物化会话及其廉价的每日志变更令牌。"""
         raise NotImplementedError('SessionPersistence.listSnapshots')#子类必须实现
 
-default=会话持久化#Cordis 默认导出槽
+默认=会话持久化
+name=名称#框架槽
+default=默认#框架槽

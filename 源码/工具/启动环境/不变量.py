@@ -1,15 +1,17 @@
-包名='@deepseek-ai/dsh-launch-environment'#本包的不变量所有权名
-名称='launch-environment-invariant'#配套不变量插件名
-注入=['invariants']#依赖invariants服务
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+包名='@deepseek-ai/dsh-launch-environment'
+名称='launch-environment-invariant'
+依赖=['invariants']
 
-def 安装(子上下文=None,失败=None):#空安装器
+__all__=['包名','名称','依赖','安装','应用']
+
+def 安装(子上下文=None,失败=None):
     """无运行时不变量：本包是纯工具，不拥有事件流或可变运行时数据。"""
-    return None#不挂运行时检查
+    return None
 
-def 应用(上下文对象):#注册本包不变量配套
+def 应用(上下文):
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献
+    return 上下文.invariants.register(包名,安装)
 
-apply=应用#Cordis插件入口
+name=名称
+inject=依赖
+apply=应用

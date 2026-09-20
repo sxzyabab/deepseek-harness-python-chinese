@@ -1,4 +1,4 @@
-"""共用的事件元数据与语义文档投影。对齐上游 `session-query/src/documents.ts`。"""
+"""共用的事件元数据与语义文档投影。"""
 from ....内核.会话 import 折叠表面#模型面折叠
 from ....内核.会话.表面 import 表面错误#面折叠失败
 from .配置 import 会话查询错误#检索错误

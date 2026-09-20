@@ -1,4 +1,4 @@
-from urllib.parse import urlencode#查询串
+from urllib.parse import urlencode as 编查询
 
 __all__=[#仅中文公开名
     '呈现打开路径',
@@ -37,7 +37,7 @@ def 是否已呈现文件(值):#校验文件声明
 
 def 已呈现文件网址(会话标识,序号,下标):#建造动作 URL
     """为已声明文件建造已认证坐标。"""
-    return 呈现打开路径+'?'+urlencode({'sessionId':会话标识,'seq':str(序号),'index':str(下标)})#查询串
+    return 呈现打开路径+'?'+编查询({'sessionId':会话标识,'seq':str(序号),'index':str(下标)})
 
 def 是否已呈现数据(值):#校验交付事件
     """在读取回合或文件声明前校验交付事件。值须为 dict。"""

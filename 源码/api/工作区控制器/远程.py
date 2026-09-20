@@ -1,14 +1,13 @@
-"""工作区控制器 Host-for-Client Remote 贡献（对齐上游 `./remote`）。
+"""工作区控制器的 Host-for-Client Remote 贡献。
 
-对照 `@Remote`：workspace 命名空间 create/rename/delete/insertBefore/
+注册 workspace 命名空间 create/rename/delete/insertBefore/
 insertSessionBefore/archiveSession/follow；directoryPicker 命名空间 pick/list/createDirectory。
 """
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
+__all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-api-workspace-controller'#上游包名
-工作区服务='workspaceController'#服务键
+包名='@deepseek-ai/dsh-api-workspace-controller'工作区服务='workspaceController'#服务键
 工作区命名空间='workspace'#命名空间
 目录服务='directoryPickerController'#目录服务键
 目录命名空间='directoryPicker'#目录命名空间
@@ -16,7 +15,7 @@ __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
 目录前=包名+'#DirectoryPickerController.'#目录 id 前缀
 流式={'kind':'direct','mode':'stream'}#流式调用
 
-TYPERT_REMOTE=远程贡献(包名,[#贡献
+远程贡献表=远程贡献(包名,[#贡献
     调用描述符(工作区前+'create',工作区服务,工作区命名空间,'create',
         [{'name':'request','wire':'request','source':'json','codec':严格编解码('WorkspaceCreateRequest')}],
         严格编解码('WorkspaceCreateValue'),{'file':'src/index.ts','line':57,'column':3}),
@@ -52,5 +51,5 @@ TYPERT_REMOTE=远程贡献(包名,[#贡献
         ],
         严格编解码('string'),{'file':'src/directory-picker.ts','line':87,'column':3}),
 ])#结束
-远程贡献对象=TYPERT_REMOTE#中文别名
-默认=TYPERT_REMOTE#default
+默认=远程贡献表
+TYPERT_REMOTE=远程贡献表#typert框架槽

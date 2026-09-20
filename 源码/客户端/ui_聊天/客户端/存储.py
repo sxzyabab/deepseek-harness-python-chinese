@@ -40,4 +40,4 @@ def 创建聊天存储():
     return {#句柄
         'getSnapshot':读快照,#快照
         'actions':{'select':选中,'setTurnProcessOpen':设回合过程展开},#动作
-    }#结束
+    }

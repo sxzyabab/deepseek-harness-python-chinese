@@ -1,9 +1,9 @@
-__all__=['是否终端','isatty','__esModule','default']#中文与Node面
+__all__=['isatty','__esModule','default']
 
-def 是否终端(描述符):#检测是否终端
+def 是否终端(描述符):
     """测试数字文件描述符是否指向终端；Worker 中恒为 false。"""
-    return False#Worker无终端fd
+    return False
 
-isatty=是否终端#Node面
-__esModule=True#CJS互操作
-default={'isatty':是否终端}#默认导出
+isatty=是否终端
+__esModule=True
+default={'isatty':是否终端}

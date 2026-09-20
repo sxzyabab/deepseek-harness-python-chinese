@@ -1,8 +1,8 @@
-"""在优先活会话语料上用 SQLite FTS5 做全文检索的具体会话检索服务。对齐上游 `@deepseek-ai/dsh-session-query-sqlite`。"""
+"""在优先活会话语料上用 SQLite FTS5 做全文检索的具体会话检索服务。"""
 import base64,hashlib,json,threading,uuid#编码、哈希、JSON、并发与实例 id
-from ...依赖 import cordis#Cordis
+from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字典字段,字符串字段,枚举字段,整数字段#配置
-服务=cordis.服务#Cordis服务基类
+服务=cordis.服务#框架服务基类
 from ...模型后端.llm import 结构化克隆#拆离克隆
 from ..会话查询 import (
     会话查询引擎,会话查询错误,会话查询默认持久检查并发,会话查询读取窗口上限,
@@ -23,15 +23,16 @@ from .查询 import (
 )#query
 from ..会话查询.配置 import 已中止,若已中止则抛出#中止
 
-名称='session-query-sqlite'#Cordis插件名
-注入=['sessions']#依赖会话服务
+包名='@deepseek-ai/dsh-session-query-sqlite'
+名称='session-query-sqlite'
+依赖=['sessions']
 会话查询sqlite路径键='launcherSessionQueryPath'#启动器索引路径键
 会话查询sqlite默认页限制=20#默认页大小
 会话查询sqlite最大页限制=100#最大页大小
 会话查询sqlite摘要码点=240#默认摘要码点数
 稳定观察尝试次数=2#稳定观察最多尝试次数
 
-配置模式=字典字段({
+配置模式=字典字段(字典结构={
     'path':字符串字段(),
     'openAt':枚举字段('startup','first-search','never',默认值='startup'),
     'journalMode':枚举字段(*日志模式,默认值='wal'),
@@ -43,16 +44,16 @@ from ..会话查询.配置 import 已中止,若已中止则抛出#中止
 })#配置模式
 
 __all__=[
-    '名称','注入','配置模式','应用',
+    '包名','名称','依赖','应用','默认','配置模式',
     'Sqlite会话查询引擎','会话查询sqlite路径键',
     '会话查询sqlite默认页限制',
     '会话查询sqlite最大页限制',
     '会话查询sqlite摘要码点',
     '会话查询sqlite应用标识',
     '会话查询sqlite模式版本',
-]#公开面
+]
 
-def 错误信息(错误):#错误消息
+def 错误详情(错误):#错误消息
     """错误消息。"""
     return 错误 if isinstance(错误,str) else (错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else 'unknown error')#消息
 
@@ -156,8 +157,10 @@ def 相同持久快照(前,后):#持久快照是否相同
     if len(前)!=len(后):#大小不同
         return False#不同
     for 标识,第一条 in 前.items():#逐条
-        第二条=后.get(标识)#对应
-        if 第二条 is None or 第一条['revision']!=第二条['revision'] or not 相同头(第一条['header'],第二条['header']):#不同
+        if 标识 not in 后:#不同
+            return False#不同
+        第二条=后[标识]#对应
+        if 第一条['revision']!=第二条['revision'] or not 相同头(第一条['header'],第二条['header']):#不同
             return False#不同
     return True#相同
 
@@ -302,7 +305,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         自身._本地世代=0#本地世代
         自身._已关闭=False#关闭标志
         自身._锁=threading.Lock()#串行化锁
-        def 持久化安装(子上下文):#可选注入持久化
+        def 持久化安装(子上下文):
             """记下当前持久化服务。"""
             服务=子上下文.sessionPersistence#取出
             绑定={'identity':object(),'service':服务}#新绑定
@@ -311,11 +314,11 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
                 if 自身._持久化绑定 is 绑定:#仍是本绑定
                     自身._持久化绑定={'identity':object(),'service':None}#清空
             子上下文.副作用(摘掉,'sessionQuerySqlite.persistenceBinding')#effect
-        纤程=上下文.依赖启动(['sessionPersistence'],持久化安装)#可选注入
+        纤程=上下文.依赖启动(['sessionPersistence'],持久化安装)
         def 拆除纤程():
             """拆除可选持久化 fiber。"""
             纤程.dispose()#拆除
-        上下文.副作用(拆除纤程,'sessionQuerySqlite.optionalPersistence')#拆 fiber
+        上下文.副作用(拆除纤程,'sessionQuerySqlite.optionalPersistence')
         def 关闭效果():
             """关闭索引。"""
             自身.关闭()#关闭
@@ -389,7 +392,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             if isinstance(错误,会话查询错误) and 错误.code=='SESSION_QUERY_ABORTED':#取消
                 raise 错误#原样
             raise 会话查询错误(
-                f'session-search SQLite index failed to open: {错误信息(错误)}',
+                f'session-search SQLite index failed to open: {错误详情(错误)}',
                 'SESSION_QUERY_INDEX_FAILED',
                 {'cause':错误},
             )#包装
@@ -512,7 +515,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         活变更=[
             条目 for 条目 in 观察['live'].values()
             if (
-                活按id.get(条目['header']['id']) is None
+                条目['header']['id'] not in 活按id
                 or 活按id[条目['header']['id']]['fingerprint']!=条目['fingerprint']
                 or 活按id[条目['header']['id']]['persisted']!=(1 if 条目['header']['id'] in 观察['persisted'] else 0)
             )
@@ -547,13 +550,13 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
                 for 批次 in 活替换:#写活
                     自身._替换活会话(批次['entry'],批次['generation'],批次['persisted'])#写
                 库.execute('COMMIT')#提交
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 try:#回滚
                     库.execute('ROLLBACK')#回滚
                 except BaseException:#双故障
                     pass#忽略
                 raise 会话查询错误(
-                    f'session-search reconciliation failed: {错误信息(错误)}',
+                    f'session-search reconciliation failed: {错误详情(错误)}',
                     'SESSION_QUERY_INDEX_FAILED',
                     {'cause':错误},
                 )#包装
@@ -608,7 +611,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
                     if isinstance(错误,会话查询错误):#已是检索错误
                         raise 错误#原样
                     raise 会话查询错误(
-                        f'session-search persistence observation failed: {错误信息(错误)}',
+                        f'session-search persistence observation failed: {错误详情(错误)}',
                         'SESSION_QUERY_PERSISTENCE_FAILED',
                         {'cause':错误},
                     )#包装
@@ -727,9 +730,10 @@ def 应用(上下文,配置):#安装 SQLite 检索后端
     """挂载 SQLite FTS5 会话检索实现。"""
     Sqlite会话查询引擎(上下文,配置)#构造服务
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置模式#Cordis Config 槽
-apply=应用#Cordis插件入口
-default=Sqlite会话查询引擎#Cordis 默认导出槽
-Sqlite会话查询引擎.inject=['sessions']#Cordis inject 槽
+默认=Sqlite会话查询引擎
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置模式#框架槽
+default=默认#框架槽
+Sqlite会话查询引擎.inject=依赖#框架槽

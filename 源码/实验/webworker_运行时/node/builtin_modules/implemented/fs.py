@@ -113,7 +113,7 @@ def 统计(路径,选项或回调=None,或许回调=None):#异步回调stat
         try: 结果=统计同步(路径,选项)#同步stat
         except 运行时错误 as 错误:#VFS 失败
             回调(错误)#回调错误
-            return#结束
+            return
         回调(None,结果)#成功回调
     if callable(微任务): 微任务(执行)#排队
     else: 执行()#同步兜底仅当无微任务API
@@ -142,7 +142,7 @@ def 真实路径(路径,回调):#异步回调realpath
         try: 结果=真实路径同步(路径)#同步realpath
         except 运行时错误 as 错误:#VFS 失败
             回调(错误)#回调错误
-            return#结束
+            return
         回调(None,结果)#成功回调
     if callable(微任务): 微任务(执行)#排队
     else: 执行()#同步兜底仅当无微任务API
@@ -170,7 +170,7 @@ def 建临时目录同步(前缀):#同步mkdtemp
     #不用 crypto.randomUUID：浏览器仅在安全上下文暴露它。
     字节=bytearray(3)#3字节
     globals()['crypto'].getRandomValues(字节)#填充随机
-    后缀=''.join(f'{b:02x}' for b in 字节)#六十六进制字符
+    后缀=''.join(f'{字节项:02x}' for 字节项 in 字节)#六十六进制字符
     目标=f'{前缀}{后缀}'#拼目标路径
     vfs().建目录同步(目标,{'recursive':True})#创建目录
     return 目标#返回路径
@@ -213,8 +213,8 @@ def 坏描述符(系统调用):#抛出EBADF
 
 def 取打开文件(fd,系统调用):#按fd取打开文件
     """按 fd 取打开文件。"""
-    文件=_打开文件表.get(fd)#查找
-    if 文件 is None: return 坏描述符(系统调用)#无效则抛
+    if fd not in _打开文件表: return 坏描述符(系统调用)#无效则抛
+    文件=_打开文件表[fd]#查找
     return 文件#返回
 
 def 读取同步(fd,缓冲,偏移=0,长度=None,位置=None):#同步read
@@ -254,7 +254,7 @@ def 硬链接同步(源路径,目标路径):#同步硬链
     vfs().硬链接同步(归一路径(源路径),归一路径(目标路径))#委托VFS
 
 def _兑现(值):#同步交回
-    """翻译后无 Promise 包装，原样交回同步值。"""
+    """原样交回同步值。"""
     return 值#同步值
 
 def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
@@ -366,16 +366,16 @@ class 读流(Readable):#可读文件流
         if 选项 is None: 选项={}#缺省
         super().__init__({#初始化可读基类
             'autoDestroy':流自动销毁(选项.get('autoClose')),#自动销毁
-            'emitClose':True if 选项.get('emitClose') is None else 选项.get('emitClose'),#默认发射close
-            'highWaterMark':64*1024 if 选项.get('highWaterMark') is None else 选项.get('highWaterMark'),#默认高水位
+            'emitClose':True if 'emitClose' not in 选项 else 选项['emitClose'],#默认发射close
+            'highWaterMark':64*1024 if 'highWaterMark' not in 选项 else 选项['highWaterMark'],#默认高水位
         })#超类参数结束
         自身.path=归一路径(路径)#保存路径
         自身.fd=None#描述符
         自身.pending=True#待打开
         自身.bytesRead=0#已读字节
-        自身._start=0 if 选项.get('start') is None else 选项.get('start')#起始
-        自身._end=float('inf') if 选项.get('end') is None else 选项.get('end')#结束
-        自身._flags='r' if 选项.get('flags') is None else 选项['flags']#??r，空串合法
+        自身._start=0 if 'start' not in 选项 else 选项['start']#起始
+        自身._end=float('inf') if 'end' not in 选项 else 选项['end']#结束
+        自身._flags='r' if 'flags' not in 选项 else 选项['flags']#??r，空串合法
         自身._position=自身._start#游标从起始
         自身._信号=选项['signal'] if 'signal' in 选项 else None#信号
         自身._中止回调=None#不再挂监听
@@ -440,15 +440,15 @@ class 写流(Writable):#可写文件流
         super().__init__({#初始化可写基类
             'autoDestroy':流自动销毁(选项.get('autoClose')),#自动销毁
             'decodeStrings':True,#解码字符串
-            'defaultEncoding':'utf8' if 选项.get('encoding') is None else 选项['encoding'],#??utf8，空串合法
-            'emitClose':True if 选项.get('emitClose') is None else 选项.get('emitClose'),#默认发射close
-            'highWaterMark':64*1024 if 选项.get('highWaterMark') is None else 选项.get('highWaterMark'),#默认高水位
+            'defaultEncoding':'utf8' if 'encoding' not in 选项 else 选项['encoding'],#??utf8，空串合法
+            'emitClose':True if 'emitClose' not in 选项 else 选项['emitClose'],#默认发射close
+            'highWaterMark':64*1024 if 'highWaterMark' not in 选项 else 选项['highWaterMark'],#默认高水位
         })#超类参数结束
         自身.path=归一路径(路径)#保存路径
         自身.fd=None#描述符
         自身.pending=True#待打开
         自身.bytesWritten=0#已写字节
-        自身._flags='w' if 选项.get('flags') is None else 选项['flags']#??w，空串合法
+        自身._flags='w' if 'flags' not in 选项 else 选项['flags']#??w，空串合法
         自身._mode=选项.get('mode')#模式
         自身._start=选项.get('start')#起始
         自身._信号=选项['signal'] if 'signal' in 选项 else None#信号

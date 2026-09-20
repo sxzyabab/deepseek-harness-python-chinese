@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/client/index.ts
-
 import uuid#随机id
 from ...inspection.realm import 检查器realm描述,检查器realm上下文#realm类型
 from .桥接 import 创建Client_realm桥#桥
@@ -9,7 +7,7 @@ from .源 import Client源后端#源
 from .脚本 import Client脚本身份#脚本身份
 from .调试器 import Client调试器能力#调试器
 
-__all__=['Client检查器realm']#仅中文公开名
+__all__=['Client检查器realm']
 
 Client_Runtime操作=(#Client Runtime操作
     'evaluate','get-properties','call-function','await-promise',#常用

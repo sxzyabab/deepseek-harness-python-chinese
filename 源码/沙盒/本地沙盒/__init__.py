@@ -38,7 +38,6 @@ class 本地沙箱错误(Exception):
     'runnerFailureSignatures':列表字段(字符串字段(),默认值=[]),#失败签名，默认空
     'probeTimeoutMs':自然数字段(默认值=5000),#探测超时默认 5 秒
 }#Config 模式结束
-Config=配置模式#Cordis 配置模式
 
 def 默认探测Bwrap(超时毫秒):#探测 bwrap
     """探测 `bwrap` 能否创建配置；提供方缓存有界结果。"""
@@ -133,11 +132,11 @@ def 规范平台(平台):#把 sys.platform 收到平台链表键
     return 平台#原样（darwin/win32/其他）
 
 class 本地沙箱提供方(沙箱提供方):#本地进程沙箱提供方
-    """本地进程沙箱提供方。注册为 `ctx.sandbox`。缓存链裁决，并在 windows-acl 档上缓存写入授权；一次性探测不再 spawn 别的东西。"""
+    """本地进程沙箱提供方。注册为 sandbox 服务。缓存链裁决，并在 windows-acl 档上缓存写入授权；一次性探测不再另启进程。"""
     Config=配置模式#静态配置模式
-    def __init__(自身,上下文对象,配置):#构造本地提供方
+    def __init__(自身,上下文,配置):#构造本地提供方
         """记下覆盖运行器与探测超时，并在拆除时撤销临时 ACL 授权。"""
-        super().__init__(上下文对象)#注册为 ctx.sandbox
+        super().__init__(上下文)#注册为 sandbox 服务
         运行器=配置['runnerCommand'] if 'runnerCommand' in 配置 else []#运行器覆盖
         if 运行器 is None:#缺席
             运行器=[]#空
@@ -168,7 +167,7 @@ class 本地沙箱提供方(沙箱提供方):#本地进程沙箱提供方
                 """提供方拆除时撤销临时 ACE。"""
                 自身.撤销ACL授权()#撤销 ACL 授权
             return 拆除#释放器
-        上下文对象.副作用(挂拆,'sandbox-local acl grant cleanup')#临时授权随提供方撤销
+        上下文.副作用(挂拆,'sandbox-local acl grant cleanup')#临时授权随提供方撤销
 
     def 隔离(自身,参数表,政策,信号=None):#包装为隔离 argv
         """按 `policy` 把 `argv` 包进所选运行器的调用——有已配置 `runnerCommand` 时用它（操作者的断言，不探测），否则用说自己配置方言的平台链运行器。"""
@@ -294,7 +293,7 @@ class 本地沙箱提供方(沙箱提供方):#本地进程沙箱提供方
         钩子删除=自身.internals['rmTempDir'] if 'rmTempDir' in 自身.internals else None#钩子
         if 钩子删除 is not None:#有钩子
             钩子删除(目录)#用钩子
-            return#结束
+            return
         shutil.rmtree(目录,ignore_errors=False)#递归删除
 
     def 选择运行器(自身,模式):#选择运行器

@@ -1,6 +1,6 @@
 """消息值类型、身份与不可变构造辅助。
 
-对齐上游 `llm/src/message.ts`。公开面仅中文名；角色／来源 kind／字段键保持上游 wire。
+公开面仅中文名；角色／来源 kind／字段键为线协议原样保留。
 无英文别名。
 """
 import uuid#新消息身份
@@ -49,7 +49,7 @@ def 创建助手消息(输入):#创建模型产出助手消息
 def 创建系统消息(文本,插件):#创建系统角色消息
     """创建并冻结一条已标识的系统角色消息，承载已渲染系统提示词。
 
-    返回形态收窄为 role=system 且 source.kind=plugin（对齐上游 SystemMessage）。
+    返回形态收窄为 role=system 且 source.kind=plugin。
     """
     return 创建消息({#交给通用工厂
         'role':'system',#固定系统角色

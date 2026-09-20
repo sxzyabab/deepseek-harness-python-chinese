@@ -1,4 +1,4 @@
-"""栅格检查：准入时全解码，已验证读取时仅头探测。对齐上游 attachment-local/src/image.ts。"""
+"""栅格检查：准入时全解码，已验证读取时仅头探测。"""
 from io import BytesIO#字节缓冲
 from PIL import ImageOps#EXIF 方向
 from ..附件.错误 import 附件错误#附件失败
@@ -37,9 +37,9 @@ def _色彩空间(模式):#映射色彩空间
 def _图像元数据(图像):#从已打开图像提取元数据
     """从已打开 PIL 图像提取内在元数据。"""
     格式=图像.format#容器格式
-    媒体类型=媒体类型表.get(格式)#映射 MIME
-    if 媒体类型 is None:#不支持
+    if 格式 not in 媒体类型表:#不支持
         raise 附件错误('Unsupported or malformed image data.','INVALID_IMAGE')#拒绝
+    媒体类型=媒体类型表[格式]#映射 MIME
     定向后=ImageOps.exif_transpose(图像)#应用 EXIF 方向
     宽,高=定向后.size#感知宽高
     帧数=getattr(图像,'n_frames',1)#动画帧数
@@ -70,8 +70,8 @@ def 探测图像(数据):#仅头探测
             return _图像元数据(图像)#元数据
     except 附件错误:#已是附件错误
         raise#原样
-    except Exception as 错误:#其他失败
-        raise 附件错误('Unsupported or malformed image data.','INVALID_IMAGE',{'cause':错误})#包装
+    except (OSError,ValueError,SyntaxError) as 错误:
+        raise 附件错误('Unsupported or malformed image data.','INVALID_IMAGE',{'cause':错误})
 
 def 检测图像(数据,限额=None):#全解码检测
     """全解码受支持栅格并返回内在元数据；可选维度准入。"""
@@ -81,8 +81,8 @@ def 检测图像(数据,限额=None):#全解码检测
             结果=_图像元数据(图像)#元数据
     except 附件错误:#已是附件错误
         raise#原样
-    except Exception as 错误:#解码失败
-        raise 附件错误('Unsupported or malformed image data.','INVALID_IMAGE',{'cause':错误})#包装
+    except (OSError,ValueError,SyntaxError) as 错误:
+        raise 附件错误('Unsupported or malformed image data.','INVALID_IMAGE',{'cause':错误})
     if 限额 is not None:#维度准入
         if 限额.get('maxPixels') is not None and 结果['width']*结果['height']>限额['maxPixels']:#像素过多
             raise 附件错误('Image exceeds the configured decoded-pixel limit.','IMAGE_TOO_MANY_PIXELS')#拒绝

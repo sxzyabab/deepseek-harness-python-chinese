@@ -33,9 +33,9 @@ def 运行节点主程序(流,最大消息字节,进程状态):#握手后跑一�
             已启动[0]=True#已启动
             if type(原始) is not dict or 原始.get('type')!='boot':#不是 boot
                 引导完成.拒绝(节点ptc错误('expected program boot frame'))#拒绝
-                return#结束
+                return
             引导完成.兑现(原始['data'])#引导数据
-            return#结束
+            return
         if 已发终态[0]:#终态后忽略回复
             return#忽略
         for 监听器 in 监听器表:#逐个

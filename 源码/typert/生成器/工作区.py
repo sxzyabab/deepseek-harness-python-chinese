@@ -15,7 +15,7 @@ def 相同导出(实际,期望):#比较 types/default 是否逐字相同
     return 实际['types']==期望['types'] and 实际['default']==期望['default']#两项相等
 
 def 校验制品导出(工作区根,制品):#核对该包 exports 与 files
-    """对齐 WorkspaceTypertGenerator.validateExport。"""
+    """核对该包 exports 与 files。"""
     清单路径=os.path.join(工作区根,制品['packageRoot'],'package.json')#清单绝对路径
     with open(清单路径,'r',encoding='utf-8') as 文件:#读清单
         清单=json.load(文件)#解析
@@ -33,14 +33,14 @@ def 校验制品导出(工作区根,制品):#核对该包 exports 与 files
         if 文件 not in 文件列表:#漏了
             raise Typert分析错误('typert('+制品['face']+'): '+制品['package']+' package files must include '+文件)#错误
     if 制品['face']!='host':#非宿主面
-        return#结束
+        return
     远程期望={'types':'./lib/typert.remote-client.d.ts','default':'./lib/typert.remote-client.js'}#Remote 约定
     远程实际=导出面['./remote'] if isinstance(导出面,dict) and './remote' in 导出面 else None#./remote
     远程文件列表=['lib/typert.remote-client.js','lib/typert.remote-client.d.ts']#必须列入
     if 'remote' not in 制品 or 制品['remote'] is None:#无 Remote 方法
         if 远程实际 is not None or any(文件 in 文件列表 for 文件 in 远程文件列表):#却发布了
             raise Typert分析错误('typert(host): '+制品['package']+' publishes Remote artifacts but has no Remote methods')#错误
-        return#结束
+        return
     if not 相同导出(远程实际,远程期望):#不一致
         raise Typert分析错误('typert(host): '+制品['package']+' must export ./remote as '+json.dumps(远程期望,ensure_ascii=False,separators=(',',':'),allow_nan=False))#错误
     for 文件 in 远程文件列表:#逐项
@@ -54,13 +54,13 @@ class 工作区Typert生成器:#工作区级发现、分析与代码输出
         自身.根=根#工作区根
 
     def discover(自身,faces=None):#发现公开包面
-        """对齐上游 discover → WorkspaceAnalyzer.discoverPackages；显式硬缺口。"""
+        """发现公开包面。依赖硬缺口 analyzer，不可落。"""
         raise NotImplementedError(#禁止假实现
             '工作区Typert生成器.discover: 依赖硬缺口 analyzer（WorkspaceAnalyzer.discoverPackages），不可落'
         )#结束
 
     def generate(自身,packages=None,faces=None):#生成全部或指定包
-        """对齐上游 generate → analyze + 发射；显式硬缺口。已有模型请用自模型生成。"""
+        """分析后发射。依赖硬缺口 analyzer；已有模型请用自模型生成。"""
         raise NotImplementedError(#禁止假实现
             '工作区Typert生成器.generate: 依赖硬缺口 analyzer（WorkspaceAnalyzer.analyze），不可落'
         )#结束

@@ -1,8 +1,8 @@
 from .流 import 原生目录流#无渲染原生选目录占用方
 
-__all__=['注入','应用','原生目录流']#仅中文公开名
+__all__=['依赖','应用','原生目录流']#仅中文公开名
 
-注入=['slots','uiWorkspace']#槽位注册表与工作区 UI
+依赖=['slots','uiWorkspace']#槽位注册表与工作区 UI
 
 def 应用(上下文):#安装原生选目录浏览器半边
     """经 slots.inject 把无渲染的原生流程登记进两个 directory-flow 洞。"""
@@ -28,5 +28,5 @@ def 应用(上下文):#安装原生选目录浏览器半边
         return 上下文.slots.inject('sidebar.workspaces.directoryFlow',两侧登记)#内层
     上下文.slots.inject('conversation.hero.workspace.directoryFlow',等侧栏)#外层
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

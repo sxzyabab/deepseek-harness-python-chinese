@@ -291,7 +291,7 @@ def 规范化遗留错误原因(原因,序号,会话id):#规范化遗留错误re
         'kind':'error',#kind
         'error':{#error对象
             'message':原因['message'],#消息
-            'code':原因['code'] if isinstance(原因.get('code'),str) else 'UNKNOWN',#码
+            'code':原因['code'] if isinstance(原因.get('code'),str) else 'UNKNOWN',
         },#error结束
     }#return结束
 

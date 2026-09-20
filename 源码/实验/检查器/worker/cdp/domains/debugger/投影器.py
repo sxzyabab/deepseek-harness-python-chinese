@@ -1,12 +1,10 @@
-#对齐上游 worker/cdp/domains/debugger/projector.ts
-
 from .脚本注册表 import cdp脚本id#脚本id转换
 
 __all__=['脚本已解析事件','调试器事件']#仅中文公开名
 
 def 脚本已解析事件(realm,脚本):#脚本已解析事件
     """将一个通用脚本描述符投影为 Debugger.scriptParsed。"""
-    上下文=脚本.get('executionContextId')#执行上下文
+    上下文=脚本['executionContextId'] if 'executionContextId' in 脚本 else None#执行上下文
     if 上下文 is None and realm.context.kind=='synthetic':#合成
         上下文=realm.context.id#取id
     if 上下文 is None:#仍无
@@ -20,7 +18,7 @@ def 脚本已解析事件(realm,脚本):#脚本已解析事件
         'endColumn':脚本['endColumn'],#结束列
         'executionContextId':上下文,#执行上下文
         'hash':脚本.get('hash',''),#哈希
-        'buildId':'' if 脚本.get('buildId') is None else 脚本['buildId'],#??空串，空构建 id 合法
+        'buildId':'' if 'buildId' not in 脚本 else 脚本['buildId'],#??空串，空构建 id 合法
     }#参数结束
     if 'sourceMapUrl' in 脚本:#源映射
         参数['sourceMapURL']=脚本['sourceMapUrl']#写入

@@ -1,4 +1,4 @@
-"""`sessionStats` 投影单元（对齐上游 session-stats/projection.ts）。"""
+"""`sessionStats` 投影单元。"""
 import math#有限数
 from ...模型后端.llm.助手流 import 助手流首令牌时间#嵌入流首 token
 

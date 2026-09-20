@@ -1,4 +1,4 @@
-"""线上 base64 图像上传准入。对齐上游 attachment/src/admission.ts。"""
+"""线上 base64 图像上传准入。"""
 import base64#base64 编解码
 from .错误 import 附件错误#附件失败
 __all__=['准入编码图像批次']#仅中文公开名
@@ -7,8 +7,8 @@ def _解码base64(数据):#解码并拒绝非规范 base64
     """解码一条上传载荷并拒绝非规范 base64 形式。"""
     try:#尝试解码
         解码字节=base64.b64decode(数据,validate=True)#严格 base64
-    except Exception:#解码失败
-        raise 附件错误('Image upload is not canonical base64.','INVALID_IMAGE_BASE64')#拒绝
+    except (ValueError,TypeError):
+        raise 附件错误('Image upload is not canonical base64.','INVALID_IMAGE_BASE64')
     重编码=base64.b64encode(解码字节).decode('ascii')#再编码比对
     if len(数据)==0 or 重编码!=数据:#空或非规范
         raise 附件错误('Image upload is not canonical base64.','INVALID_IMAGE_BASE64')#拒绝

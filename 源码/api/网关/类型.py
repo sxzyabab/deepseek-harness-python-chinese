@@ -1,7 +1,4 @@
-"""与载体无关的 Typert Gateway 请求、服务与错误约定。
-
-对齐上游 `api/gateway/src/types.ts`。公开面仅中文名。
-"""
+"""与载体无关的 Typert Gateway 请求、服务与错误约定。"""
 
 __all__=[#仅中文公开名
     '调用远程请求','网关错误码','Typert网关',

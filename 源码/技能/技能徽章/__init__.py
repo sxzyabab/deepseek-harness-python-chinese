@@ -1,16 +1,16 @@
 import os#资源路径解析
 from ..技能 import 捆绑技能排名#打包技能标准排名（与 dsh-skill 同源常量）
 
-__all__=['名称','注入','提供方名','应用']#仅中文公开名；Cordis 槽英文别名不入表
+__all__=['名称','依赖','提供方名','应用']#仅中文公开名；Cordis 槽英文别名不入表
 
-名称='skill-badge'#Cordis插件名（字面量不译）
-注入=['skills']#依赖技能注册表
-提供方名='dsh-badge'#在 ctx.skills 上的提供方名（字面量不译）
-资源目录=os.path.abspath(os.path.join(os.path.dirname(__file__),'资源'))#随包 assets 目录；上游 dsh-badge.png 未随译，缺图不造
+名称='skill-badge'#Cordis插件名
+依赖=['skills']#依赖技能注册表
+提供方名='dsh-badge'#在 ctx.skills 上的提供方名
+资源目录=os.path.abspath(os.path.join(os.path.dirname(__file__),'资源'))#随包 assets 目录；缺图不造
 技能正文路径=os.path.join(资源目录,'dsh-badge.md')#技能正文路径
 资源基址={'kind':'directory','path':资源目录}#随包资源目录基址
 调用策略={'modelInvocable':True,'userInvocable':True}#模型与用户均可调用
-描述='Add the official “powered by dsh” badge to documents, pull requests, merge requests, and other content produced with DeepSeek Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a dsh badge, powered-by-dsh attribution, or a reusable dsh badge asset or snippet.'#面向模型的描述（字面量不译）
+描述='Add the official “powered by dsh” badge to documents, pull requests, merge requests, and other content produced with DeepSeek Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a dsh badge, powered-by-dsh attribution, or a reusable dsh badge asset or snippet.'#面向模型的描述
 候选={#目录唯一候选
     'name':'dsh-badge',#技能名
     'description':描述,#描述
@@ -54,6 +54,6 @@ def 应用(上下文):
     上下文.skills.登记提供方(构造)#挂到技能注册表
 
 name=名称#Cordis插件名槽
-inject=注入#Cordis依赖声明槽
+inject=依赖#Cordis依赖声明槽
 apply=应用#Cordis插件入口槽
 default=应用#Cordis默认导出槽

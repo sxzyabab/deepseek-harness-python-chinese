@@ -1,7 +1,4 @@
-"""实时会话任务与投影控制流。
-
-对齐上游 `session-controller/src/control.ts`。公开面仅中文名。
-"""
+"""实时会话任务与投影控制流。"""
 import threading#流等待
 from ...工具.双端队列 import 双端队列#缓冲
 from .远程错误与并发 import 已中止#中止查询
@@ -19,7 +16,7 @@ def _任务视图(任务):
     }#基础
     if 'detail' in 任务 and 任务['detail'] is not None:#细节
         视图['detail']=任务['detail']#写入
-    if 'finishedAt' in 任务 and 任务['finishedAt'] is not None:#结束
+    if 'finishedAt' in 任务 and 任务['finishedAt'] is not None:
         视图['finishedAt']=任务['finishedAt']#写入
     return 视图#视图
 
@@ -29,7 +26,7 @@ class _控制队列:
         """建立空缓冲。"""
         自身._缓冲=双端队列()#帧
         自身._事件=threading.Event()#等待
-        自身._已结束=False#结束
+        自身._已结束=False
 
     def 推(自身,帧):
         """入队并唤醒。"""
@@ -89,7 +86,7 @@ class 会话控制控制器:
     def _拆除(自身):
         """结束全部代。"""
         for 流 in list(自身._流集合):#逐个
-            流.结束()#结束
+            流.结束()
         自身._流集合.clear()#清空
 
     def control(自身,信号):
@@ -103,7 +100,7 @@ class 会话控制控制器:
             yield from 队列.迭代(信号)#增量
         finally:
             自身._流集合.discard(队列)#移除
-            队列.结束()#结束
+            队列.结束()
 
     def _基线(自身):
         """同步读完整控制基线。"""
@@ -139,7 +136,7 @@ class 会话控制控制器:
         """广播 jobs 帧。"""
         if 所有者 is not None:#单所有者
             自身._广播({'type':'jobs','sessionId':所有者.id,'jobs':自身._任务用于(所有者)})#广播
-            return#结束
+            return
         取=getattr(自身._上下文.agents,'get',None)#英文 get
         for 会话 in 自身._上下文.sessions.list():#全量
             智能体=取(会话.id) if 取 is not None else 自身._上下文.agents.获取(会话.id)#智能体

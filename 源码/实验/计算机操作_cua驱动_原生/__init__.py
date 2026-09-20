@@ -3,14 +3,14 @@ from ...依赖.schemastery import 复合类型字段#空配置
 from ...计算机操作.计算机操作.标识构造 import 计算机操作提供方名#提供方名
 from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
 from ...内核.作用域 import 操作任务#在途结算
-from cua_driver import CuaDriver#上游 @trycua/cua-driver
+from cua_driver import CuaDriver
 
-__all__=['名称','注入','配置','应用']#仅中文公开名
+__all__=['名称','依赖','配置','应用']
 
-名称='experimental-computer-use-cua-driver-native'#插件名
-注入=['computerUse','tools','systemPrompt']#依赖
+名称='experimental-computer-use-cua-driver-native'
+依赖=['computerUse','tools','systemPrompt']
 配置=复合类型字段({})#无字段
-工具名模式=re.compile(r'^[A-Za-z0-9_-]{1,64}$')#函数名
+工具名模式=re.compile(r'^[A-Za-z0-9_-]{1,64}\Z',re.ASCII)#函数名
 指引=(#系统提示
     'Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window snapshot before acting. Use element_token from that snapshot, or coordinates from its screenshot. A new snapshot of that window invalidates its earlier element tokens. Select either target or the legacy pid/window_id fields; do not combine them.\n'
     '\n'
@@ -22,13 +22,13 @@ __all__=['名称','注入','配置','应用']#仅中文公开名
 def 解析目录(原始):#校验目录
     """解析 SDK 列出的工具目录。"""
     if not isinstance(原始,dict) or not isinstance(原始.get('tools'),list):#非法
-        raise Exception('Cua Driver tool catalog is invalid')#失败
+        raise Exception('Cua 驱动工具目录无效')
     工具表=[]#表
     for 工具 in 原始['tools']:#逐项
         if not isinstance(工具,dict) or not isinstance(工具.get('name'),str) or len(工具['name'])<1:#非法
-            raise Exception('Cua Driver tool catalog is invalid')#失败
+            raise Exception('Cua 驱动工具目录无效')
         if not isinstance(工具.get('inputSchema'),dict):#非法
-            raise Exception('Cua Driver tool catalog is invalid')#失败
+            raise Exception('Cua 驱动工具目录无效')
         项={'name':工具['name'],'inputSchema':工具['inputSchema']}#项
         if 工具.get('description') is not None:#描述
             项['description']=工具['description']#描述
@@ -42,9 +42,9 @@ def 应用(上下文,配置值=None):#占用并挂原生
     寿命=中止控制器()#寿命
     在途=set()#在途任务
     驱动箱={'驱动':None}#原生句柄
-    def 插件事件(光纤):#启动期拆除
-        """光纤拆除则中止寿命。"""
-        if 光纤 is getattr(上下文,'fiber',None) and getattr(光纤,'uid',True) is None:#本光纤
+    def 插件事件(纤程):#启动期拆除
+        """纤程拆除则中止寿命。"""
+        if 纤程 is getattr(上下文,'fiber',None) and getattr(纤程,'uid',True) is None:#本纤程
             寿命.中止()#中止
     上下文.on('internal/plugin',插件事件)#监听
     就绪=操作任务()#子就绪
@@ -72,7 +72,7 @@ def 应用(上下文,配置值=None):#占用并挂原生
                 驱动.shutdown()#关
                 if hasattr(驱动,'uniffiDestroy'):#销毁
                     驱动.uniffiDestroy()#销毁
-            if hasattr(子,'dispose'):#光纤
+            if hasattr(子,'dispose'):#纤程
                 子.dispose()#拆
             撤销()#放
         return 卸#拆除器
@@ -82,7 +82,7 @@ def 应用(上下文,配置值=None):#占用并挂原生
     except Exception as 错误:#失败
         if callable(拆除):#拆除
             拆除()#回滚
-        elif hasattr(拆除,'dispose'):#光纤
+        elif hasattr(拆除,'dispose'):#纤程
             拆除.dispose()#回滚
         raise 错误#原样
 
@@ -99,9 +99,9 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
         for 工具 in 目录['tools']:#逐工具
             公开名='cua_driver_native__'+工具['name']#公开名
             if not 工具名模式.fullmatch(公开名):#超格式
-                raise Exception('Cua Driver tool "'+工具['name']+'" exceeds the supported function-name format')#失败
+                raise Exception('Cua 驱动工具 "'+工具['name']+'" 超出支持的函数名格式')
             if 公开名 in 名集:#重名
-                raise Exception('Cua Driver listed tool "'+工具['name']+'" more than once')#失败
+                raise Exception('Cua 驱动目录中工具 "'+工具['name']+'" 出现了多次')
             名集.add(公开名)#记下
             def 调用(参数,执行=None,原始名=工具['name'],活动驱动=活动):#调用
                 """经原生 SDK 调工具。"""
@@ -119,7 +119,7 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
             """本提供方工具合成寿命信号。"""
             if 执行['name'] not in 名集:#他方
                 return 下一()#过
-            上游=执行.get('signal')#上游
+            上游=执行.get('signal')
             执行['signal']=合成信号(上游,寿命.信号)#合成
             任务=操作任务()#在途
             在途.add(任务)#记下
@@ -140,7 +140,7 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
         就绪.拒绝(错误)#拒绝
         raise 错误#原样
 
-name=名称#框架槽
-inject=注入#框架槽
-apply=应用#框架槽
-Config=配置#框架槽
+name=名称
+inject=依赖
+apply=应用
+Config=配置

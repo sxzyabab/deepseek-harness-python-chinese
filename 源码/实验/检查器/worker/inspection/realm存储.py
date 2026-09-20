@@ -1,5 +1,3 @@
-#对齐上游 worker/inspection/realm-store.ts
-
 from ..realms.client import Client检查器realm#Client realm
 
 __all__=['检查器realm注册表']#仅中文公开名

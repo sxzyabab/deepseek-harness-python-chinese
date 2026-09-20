@@ -1,60 +1,61 @@
-"""`@deepseek-ai/dsh-web-search-perplexity`：向 `ctx.web` 注册 Perplexity 后端的 `WebSearchProvider`。这是函数/命名空间插件（不是默认导出服务）：它注册进 seam 的提供方注册表，正如 `@deepseek-ai/dsh-llm-deepseek` 把适配器注册进 `ctx.llm`。"""
-from ...依赖.schemastery import 字符串字段,整数字段,枚举字段#配置字段
-from ...工具.启动环境 import 取启动环境#导入启动环境快照
+"""向 web 注册 Perplexity 搜索提供方。"""
+from ...依赖.schemastery import 字符串字段,整数字段,枚举字段
+from ...工具.启动环境 import 取启动环境
 from .提供方 import (
-    Perplexity搜索提供方,#Perplexity搜索提供方类
-    默认基址,#默认端点基址
-    默认最大令牌,#默认生成上限
-    默认模型,#默认模型名
-    提供方标识,#提供方稳定id
-    新近窗口,#新近窗口联合
-    映射Perplexity结果,#结果映射
-    映射Perplexity响应,#响应映射
-)#从提供方模块导入实现与默认值
+    Perplexity搜索提供方,
+    默认基址,
+    默认最大令牌,
+    默认模型,
+    提供方标识,
+    新近窗口,
+    映射Perplexity结果,
+    映射Perplexity响应,
+)
 
-__all__=['名称','注入','应用','Config','name','inject']#公开面
+__all__=['包名','名称','依赖','应用','默认']
 
-名称='web-search-perplexity'#loader 诊断所用的 Cordis 插件名
-注入=['web']#本提供方注册进去的 web seam
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-配置={#插件配置（全部可选——应用 填环境变量与常量默认值）
-    'apiKey':字符串字段(),#Perplexity API 密钥；回退到 $PERPLEXITY_API_KEY；空 → 不可用
-    'baseURL':字符串字段(),#端点基址；会接上 /chat/completions；默认是公开 API
+包名='@deepseek-ai/dsh-web-search-perplexity'
+名称='web-search-perplexity'
+依赖=['web']
+配置={
+    'apiKey':字符串字段(),#回退到 $PERPLEXITY_API_KEY；空串表示不可用
+    'baseURL':字符串字段(),#端点基址，会接上 /chat/completions
     'model':字符串字段(),#搜索模型名；默认 sonar
-    'maxTokens':整数字段(默认值=1024),#生成回答 token 上限；默认 1024
-    'searchRecency':枚举字段('day','week','month','year'),#作为 search_recency_filter 发送的新旧窗口；省略 = 无过滤
-}#配置模式结束
-Config=配置#Cordis配置模式
+    'maxTokens':整数字段(默认值=1024),#生成回答 token 上限
+    'searchRecency':枚举字段('day','week','month','year'),#作为 search_recency_filter；省略则无过滤
+}
 
-def 应用(上下文,配置值):#向 ctx.web 注册 Perplexity 搜索提供方
-    """向 `ctx.web` 注册 Perplexity 搜索提供方。配置值为 dict；启动环境条目为 dict。"""
-    密钥=配置值['apiKey'] if 'apiKey' in 配置值 else None#配置层密钥
-    if 密钥 is None:#配置未给
-        环境项=取启动环境(上下文).取('PERPLEXITY_API_KEY')#启动环境
-        if 环境项 is not None:#有环境项
-            密钥=环境项['value']#取值
-        else:#无环境
-            密钥=''#空 → 不可用
-    基址=配置值['baseURL'] if 'baseURL' in 配置值 else None#配置基址
-    if 基址 is None:#未给
-        基址=默认基址#公开 API
-    模型=配置值['model'] if 'model' in 配置值 else None#配置模型
-    if 模型 is None:#未给
-        模型=默认模型#默认 sonar
-    最大令牌=配置值['maxTokens'] if 'maxTokens' in 配置值 else None#配置生成上限
-    if 最大令牌 is None:#未给
-        最大令牌=默认最大令牌#默认 1024
-    选项={#已解析提供方选项
-        'apiKey':密钥,#密钥
-        'baseURL':基址,#基址
-        'model':模型,#模型
-        'maxTokens':最大令牌,#生成上限
-    }#选项骨架
-    if 'searchRecency' in 配置值 and 配置值['searchRecency'] is not None:#有新旧窗口才传入
-        选项['searchRecency']=配置值['searchRecency']#带上
-    上下文.web.注册搜索提供方(Perplexity搜索提供方(选项))#注册进搜索注册表
+def 应用(上下文,配置值):
+    """向 web 注册 Perplexity 搜索提供方。配置值为 dict。"""
+    密钥=配置值['apiKey'] if 'apiKey' in 配置值 else None
+    if 密钥 is None:
+        环境项=取启动环境(上下文).取('PERPLEXITY_API_KEY')
+        if 环境项 is not None:
+            密钥=环境项['value']
+        else:
+            密钥=''
+    基址=配置值['baseURL'] if 'baseURL' in 配置值 else None
+    if 基址 is None:
+        基址=默认基址
+    模型=配置值['model'] if 'model' in 配置值 else None
+    if 模型 is None:
+        模型=默认模型
+    最大令牌=配置值['maxTokens'] if 'maxTokens' in 配置值 else None
+    if 最大令牌 is None:
+        最大令牌=默认最大令牌
+    选项={
+        'apiKey':密钥,
+        'baseURL':基址,
+        'model':模型,
+        'maxTokens':最大令牌,
+    }
+    if 'searchRecency' in 配置值 and 配置值['searchRecency'] is not None:
+        选项['searchRecency']=配置值['searchRecency']
+    上下文.web.注册搜索提供方(Perplexity搜索提供方(选项))
 
-apply=应用#Cordis插件入口
-default=应用#默认导出
-默认=应用#中文默认导出
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=默认#框架槽

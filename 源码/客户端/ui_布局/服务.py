@@ -1,6 +1,9 @@
-import threading#导航中止
+import threading
 
-__all__=['布局控制器']#仅中文公开名
+__all__=['布局错误','布局控制器']
+
+class 布局错误(Exception):
+    """本包布局面板接线失败。"""
 
 class 布局控制器:#跨插件面板动作面
     """其它插件可触发的面板过渡。"""
@@ -13,7 +16,7 @@ class 布局控制器:#跨插件面板动作面
     def 选择面板(自身,面板标识):#选择主面板
         """未登记则抛错并保留当前选择。"""
         if 面板标识 is not None and not 自身.有主面板(面板标识):#未登记
-            raise Exception('layout.selectPanel: 主面板 "'+str(面板标识)+'" 未登记')#保留
+            raise 布局错误('主面板 "'+str(面板标识)+'" 未登记')
         自身.导航.set()#中止挂起导航
         自身.面板['selectPanel'](面板标识)#写入 store
 

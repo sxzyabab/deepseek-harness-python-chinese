@@ -1,12 +1,11 @@
 """`file` 协议提供方：工作区文件元数据作为 `RemoteResult` 帧流。
 
-对齐上游 `workspace-files/src/client/provider.ts`。公开面仅中文名。
 `session/...` 把绝对或相对路径原样交给宿主；`absolute/...` 无 Session 则失败。
 首帧为 `stat`；宿主写入更新版本；消失或失败后的写入会再 `stat`。
 失败以 `ok: false` 帧表达，不抛；编程异常不捕获。
 """
 import re#盘符段
-from urllib.parse import unquote,urlparse#地址语法
+from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
 from ..类型 import 远程错误,已中止#远程错误与中止
 
 __all__=['创建文件资源提供方']#仅中文公开名
@@ -25,7 +24,7 @@ def 创建文件资源提供方(远程,变更供给):
         """产出 RemoteResult 帧直至中止或结束。上下文为 dict，含 signal。"""
         信号=上下文['signal']#中止
         解析结果=_解析地址(地址)#解析
-        if not 解析结果['ok']:#失败
+        if not 解析结果['ok']:
             yield 解析结果#失败帧
             return#停
         宿主文件=解析结果['value']#HostFile dict
@@ -62,7 +61,7 @@ def 创建文件资源提供方(远程,变更供给):
                 再次=远程.workspaceFiles.stat(会话标识,路径,信号)#再 stat
                 if 已中止(信号):#取消
                     return#停
-                if not 再次['ok']:#失败
+                if not 再次['ok']:
                     当前=None#清除
                     yield 再次#失败帧
                     continue#下一条
@@ -79,7 +78,7 @@ def _解析地址(地址):
     """解析地址为宿主调用，或 unsupported-address / unknown-workspace 失败帧。"""
     解析=_解析文件地址(地址)#语法
     if 解析 is None:#非本语法
-        return {'ok':False,'error':_不支持地址(地址)}#失败
+        return {'ok':False,'error':_不支持地址(地址)}
     if 解析['scope']=='session':#会话作用域
         return {'ok':True,'value':{'sessionId':解析['sessionId'],'path':解析['path']}}#路径原样
     return {'ok':False,'error':_未知工作区(地址)}#绝对地址无 Session
@@ -109,7 +108,7 @@ def _解析文件地址(地址):
     语法归属 util/workspace-path；本包内嵌解析以免扩大移植面。
     """
     try:
-        网址=urlparse(地址)#解析 URI
+        网址=解析网址(地址)
         if 网址.scheme!='dsh-resource' or 网址.netloc!='file':#非本方案
             return None#拒绝
         段列表=网址.path.split('/')#['', scope, ...]
@@ -126,13 +125,13 @@ def _解析文件地址(地址):
                 return None#拒绝
             return {#会话地址
                 'scope':'session',
-                'sessionId':unquote(标识),
-                'path':'/'.join(unquote(段) for 段 in 路径段),
+                'sessionId':百分号解码(标识),
+                'path':'/'.join(百分号解码(段) for 段 in 路径段),
             }#结束
         if 作用域=='absolute':#绝对
             是UNC=len(其余)>1 and 其余[0]==''#UNC 标记
             有效=其余[1:] if 是UNC else 其余#有效段
-            解码=[unquote(段) for 段 in 有效]#解码
+            解码=[百分号解码(段) for 段 in 有效]
             if len(解码)==0 or 解码[0]=='':#无路径
                 return None#拒绝
             if 是UNC:#UNC

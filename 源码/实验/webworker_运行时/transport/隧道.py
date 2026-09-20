@@ -16,13 +16,13 @@ def 描述失败(原因):#渲染嵌套失败
     def 行走(值,深度):#深度遍历
         """递归展开错误。"""
         if 值 is None or id(值) in 已见 or 深度>6:#跳过空环过深
-            return#结束
+            return
         已见.add(id(值))#标记已见
         缩进='  '*深度#缩进
         if not isinstance(值,BaseException):#非Error
             渲染=值 if isinstance(值,str) else repr(值)#可读渲染
             行列表.append(f'{缩进}{渲染}')#记一行
-            return#结束
+            return
         行列表.append(f'{缩进}{type(值).__name__}: {值}')#记错误行
         内错误列表=getattr(值,'exceptions',None)#聚合错误列表
         if 内错误列表 is not None:#展开聚合
@@ -129,10 +129,10 @@ class 隧道服务器:#隧道服务器
                 if 请求['id']==帧['id']:#命中
                     自身._队列.pop(索引)#移除排队
                     break#停止
-            return#结束
+            return
         if 自身._失败 is not None:#已失败则拒绝
             自身._拒绝(帧,自身._失败)#拒绝
-            return#结束
+            return
         if 自身._缝合 is None:#尚未serve
             自身._队列.append(帧)#入队
             return#等待
@@ -163,7 +163,7 @@ class 隧道服务器:#隧道服务器
         """以流错误或 503 拒绝。"""
         if 帧['t']=='stream-open':#开流拒绝
             自身._发送({'t':'stream-error','id':帧['id'],'failure':{'kind':'carrier','message':消息}})#发流错误
-            return#结束
+            return
         正文=转可转移(消息.encode('utf-8'))#编码正文
         自身._发送({'t':'res','id':帧['id'],'status':503,'headers':{'content-type':'text/plain; charset=utf-8'},'body':正文,'message':消息},[正文])#发503
 
@@ -178,7 +178,7 @@ class 隧道服务器:#隧道服务器
         """打开并转发 Gateway Remote 流。"""
         if 自身._缝合 is None:#尚未就绪
             自身._拒绝(帧,'webworker tunnel: Remote stream requested before the host tree is serving')#拒绝
-            return#结束
+            return
         缝合=自身._缝合#锁定缝合
         已中止=[False]#取消标志
         def 中止():#中止
@@ -189,7 +189,7 @@ class 隧道服务器:#隧道服务器
             源=缝合['openStream'](帧['endpoint'],帧['payload'],{'aborted':False})#开源
             for 值 in 源:#逐项
                 if 已中止[0]:#已中止
-                    return#结束
+                    return
                 自身._发送({'t':'stream-item','id':帧['id'],'value':值})#发项
             if not 已中止[0]:#正常结束
                 自身._发送({'t':'stream-end','id':帧['id']})#结束帧
@@ -214,7 +214,7 @@ class 隧道服务器:#隧道服务器
             if 载荷 is None:#流式结束
                 自身._发送({'t':'res-end','id':标识})#结束帧
             else:#一元应答
-                正文=None if 载荷.get('body') is None else 转可转移(载荷['body'])#可选正文
+                正文=None if 'body' not in 载荷 else 转可转移(载荷['body'])#可选正文
                 自身._发送({'t':'res','id':标识,'status':载荷['status'],'headers':载荷['headers'],'body':正文},None if 正文 is None else [正文])#完整响应
             自身._进行中.pop(标识,None)#清理登记
         def 失败(消息):#失败
@@ -238,10 +238,10 @@ class 隧道服务器:#隧道服务器
             规范=自身._路径帧(帧)#规范化
             if 规范['path']=='/__boot__':#启动载荷
                 自身._服务boot(帧,汇)#boot
-                return#结束
+                return
             if 规范['path'].startswith(f'{api前缀}/'):#API
                 自身._服务api(帧,规范['frame'],规范['path'],汇)#API
-                return#结束
+                return
             自身._喂入(规范['frame'],汇)#其余走路由表
         except Exception as 原因:#路由/监听器/API 体什么都可能抛，契约未定所以收不窄
             汇['fail'](str(原因) if isinstance(原因,BaseException) else str(原因))#失败帧
@@ -273,7 +273,7 @@ class 隧道服务器:#隧道服务器
             raise 运行时错误('webworker tunnel: 宿主树尚未对外服务就请求了 boot 载荷')#拒绝
         if 帧['method']!='GET':#仅GET
             汇['end']({'status':405,'headers':{'allow':'GET'}})#方法不允许
-            return#结束
+            return
         正文=_json.dumps(自身._缝合['bootPayload'](),ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#序列化载荷
         汇['end']({'status':200,'headers':{'content-type':'application/json; charset=utf-8','cache-control':'no-store'},'body':正文})#200应答
 
@@ -282,18 +282,18 @@ class 隧道服务器:#隧道服务器
         方法=路径[len(api前缀)+1:]#方法名
         if 自身._一元api通道=='direct' or (自身._特权方法 is not None and 方法 in 自身._特权方法):#直达或特权
             自身._服务直达(原始,汇)#直达通道
-            return#结束
+            return
         缓冲=缓冲汇()#缓冲拒绝决策
         交换=自身._喂入(路径化,汇,缓冲.汇)#先走路由
         结果=缓冲._落定结果#落定结果
         中止面=交换['aborted']#中止
         已中止=中止面() if callable(中止面) else 中止面#是否中止
         if 结果 is None or 已中止:#已中止或未落定
-            return#结束
+            return
         if 结果['status'] in (401,403):#认证/信任拒绝
             print(f"webworker tunnel: route lane refused {方法} with {结果['status']}; answering on the direct lane")#调试
             自身._服务直达(原始,汇)#改直达
-            return#结束
+            return
         缓冲.冲刷到(汇)#接受则冲刷到页
 
     def _服务直达(自身,帧,汇):#直达fetch
@@ -306,16 +306,16 @@ class 隧道服务器:#隧道服务器
             已中止[0]=True#中止
         自身._进行中[帧['id']]={'abort':中止}#登记中止
         响应=自身._缝合['directFetch']({'method':帧['method'],'url':帧['url'],'headers':帧['headers'],'body':帧.get('body')})#直达调用
-        响应头=dict({} if 响应.get('headers') is None else 响应['headers'])#响应头字典，缺席才空表
+        响应头=dict({} if 'headers' not in 响应 else 响应['headers'])#响应头字典，缺席才空表
         类型=响应头.get('content-type','')#内容类型
         流式=响应.get('body') is not None and 类型.startswith('text/event-stream')#是否SSE
         if not 流式:#一元
             缓冲=响应.get('body')#正文
-            汇['end']({'status':200 if 响应.get('status') is None else 响应['status'],'headers':响应头,'body':None if 缓冲 is None or len(缓冲)==0 else 缓冲})#一帧答完，body 判的是 length
-            return#结束
+            汇['end']({'status':200 if 'status' not in 响应 else 响应['status'],'headers':响应头,'body':None if 缓冲 is None or len(缓冲)==0 else 缓冲})#一帧答完，body 判的是 length
+            return
         汇['head'](响应.get('status',200),响应头)#流式头
-        体=响应.get('body')#流式体
-        if 体 is None: 体=()#缺席才空迭代
+        if 'body' not in 响应: 体=()#缺席才空迭代
+        else: 体=响应['body']#流式体
         for 块 in 体:#泵流
             if 已中止[0]:#已中止
                 break#停止

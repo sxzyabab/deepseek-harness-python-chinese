@@ -82,15 +82,15 @@ class 模型选择:#composer 模型座位
             and 当前['provider']==选定['provider']
             and 当前['model']==选定['model']):#同
             自身.关闭()#关
-            return#结束
+            return
         自身.上次动作='select'#select
         提交=自身.属性['select'] if 'select' in 自身.属性 else None#提交
         if 提交 is None:#无
-            return#结束
+            return
         接受=提交(选定)#提交返回 bool
         if 接受:#成功
             自身.关闭()#关
-            return#结束
+            return
         失败快照=自身.读状态()#失败后快照
         错=失败快照['error'] if 'error' in 失败快照 else None#错误
         翻译=自身.属性['t'] if 't' in 自身.属性 else None#翻译
@@ -103,7 +103,7 @@ class 模型选择:#composer 模型座位
         状态=自身.读状态()#快照
         当前=状态['current'] if 'current' in 状态 else None#当前
         if 当前 is None:#无
-            return#结束
+            return
         选={'provider':当前['provider'],'model':当前['model']}#选定
         if 力度 is not None:#有力度
             选['reasoningEffort']=力度#带上

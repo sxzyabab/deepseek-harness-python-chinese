@@ -3,8 +3,8 @@ from ..服务 import 对话错误#发送失败
 
 __all__=['输入枢纽']#仅中文公开名
 
-class 即时任务:#已兑现的汇结局
-    """Promise.resolve 的同步任务面，只留等待。"""
+class 即时任务:
+    """立即返回已有值的任务，只留等待。"""
     def __init__(自身,值):
         """记下值。"""
         自身._值=值#值
@@ -22,7 +22,7 @@ class 输入枢纽:#会话输入门面注册表
         自身.外壳表={}#会话 id → 壳
 
     def 按作用域取门面(自身,作用域上下文):
-        """非会话作用域则抛。对应上游 for。"""
+        """非会话作用域则抛。"""
         标识=自身.取会话面().scopeOf(作用域上下文)#读会话 id
         if 标识 is None:
             raise 对话错误('conversation.input.for requires a session scope')#抛
@@ -56,7 +56,7 @@ class 输入枢纽:#会话输入门面注册表
             会话面=自身.根上下文.获取服务('conversation')#附件面
             if 会话面 is None:#已卸
                 return#停
-            for 附标识 in 标识列表:#各 id
+            for 附标识 in 标识列表:
                 会话面.releaseDraftAttachment(附标识)#释放
         def 不支持通知(令牌):
             """命令不接受附件。"""
@@ -99,7 +99,7 @@ class 输入枢纽:#会话输入门面注册表
                 作用域.监听('slash/input-insert-reference',插入引用),#插入引用
                 作用域.监听('slash/input-consume-token',消费令牌),#消费令牌
                 作用域.监听('slash/input-insert-text',插入文本),#插入文本
-            ]#结束
+            ]
             def 拆除():
                 """卸监听、丢壳、释放草稿附件。"""
                 for 退 in 退订列表:
@@ -164,7 +164,7 @@ class 输入枢纽:#会话输入门面注册表
             if 结果['ok'] is True:
                 continue#下一条
             错误=结果['error'] if 'error' in 结果 else {}#错误
-            码=错误['code'] if 'code' in 错误 else None#码
+            码=错误['code'] if 'code' in 错误 else None
             if 码 in ('session/steer-unavailable','session/queue-item-not-found'):
                 return#停
             壳.notify('error',自身.翻译('queue.steerFailed'))#通知

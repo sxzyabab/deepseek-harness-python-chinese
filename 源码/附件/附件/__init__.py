@@ -1,7 +1,7 @@
-"""耐久附件存储缝（`ctx.attachments`）。对齐上游 attachment/src/index.ts。"""
+"""抽象附件存储服务；须加载具体后端。"""
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+服务=cordis.服务#框架 服务基类
 from .标识构造 import 附件标识,图像变体标识#标识构造
 from .错误 import 附件错误,是否图像准入错误#错误面
 from .准入 import 准入编码图像批次#线上准入
@@ -21,8 +21,8 @@ __all__=[#仅中文公开名
     '附件存储',
 ]#公开面结束
 
-名称='attachment'#Cordis 插件名（字面量）
-注入=[]#抽象缝无依赖
+名称='attachment'#框架 插件名（字面量）
+依赖=[]#抽象缝无依赖
 
 class 操作任务:
     """单次操作 Future 包装，只留 等待。"""
@@ -50,8 +50,8 @@ class 操作任务:
 
 class 附件存储(服务):#不可变二进制附件服务
     """不可变二进制附件服务。实现方在发布引用前验证字节。"""
-    def __init__(自身,上下文对象):#登记 attachments 服务
-        super().__init__(上下文对象,'attachments')#以 attachments 名安装
+    def __init__(自身,上下文):#登记 attachments 服务
+        super().__init__(上下文,'attachments')#以 attachments 名安装
 
     @property
     def 图像限额(自身):
@@ -147,11 +147,11 @@ def 若已中止则抛出(信号):
     if 信号.is_set():#已中止
         raise 附件错误('aborted','ATTACHMENT_READ_FAILED')#取消
 
-def 应用(上下文对象):
-    """抽象缝不由本入口安装；加载具体后端实现。"""
-    raise 附件错误('@deepseek-ai/dsh-attachment is the abstract attachment seam; load a backend implementation instead','ATTACHMENT_PROJECTION_UNSUPPORTED')#必须加载实现
+def 应用(上下文):
+    """抽象服务不由本入口安装；须加载具体后端。"""
+    raise 附件错误('@deepseek-ai/dsh-attachment 是抽象附件服务；请改加载后端实现','ATTACHMENT_PROJECTION_UNSUPPORTED')#必须加载实现
 
-apply=应用#Cordis 插件入口
-name=名称#Cordis 插件名
-inject=注入#Cordis 依赖声明
-default=附件存储#Cordis 默认导出
+apply=应用#框架槽
+name=名称#框架槽
+inject=依赖#框架槽
+default=附件存储#框架槽

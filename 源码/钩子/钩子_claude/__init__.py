@@ -15,13 +15,13 @@ from ..钩子协议 import (
 from .配置 import 解析克劳德代码配置#导入配置解析
 
 名称='hooks-claude-code'#插件名
-注入=['shell']#执行钩子必须有 bash；其余经 上下文.获取服务 机会性读取
+依赖=['shell']#执行钩子必须有 bash；其余经 上下文.获取服务 机会性读取
 配置={#插件配置：CC 钩子配置所在位置以及替换根目录
     'configPath':字符串字段(),#hooks.json 路径，或 hooks 键里放配置的设置文件；必填
     'pluginRoot':字符串字段(),#替换命令字符串里的 ${CLAUDE_PLUGIN_ROOT}
     'projectDir':字符串字段(),#替换 ${CLAUDE_PROJECT_DIR} 并导出为钩子环境变量
     'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒
-    'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字节),#hook/result 里持久 stderr 摘要的字节上限；键名保持上游字符口径
+    'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字节),#hook/result 里持久 stderr 摘要的字节上限
 }#配置模式结束
 插件来源={'kind':'plugin','plugin':'hooks-claude-code'}#本桥注入的每条上下文都盖上的来源
 子智能体类型='general-purpose'#桥在 SubagentStart/Stop 上报的 agent_type；harness 无按种类标签
@@ -310,7 +310,7 @@ def 应用(上下文,配置值=None):
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=执行链,daemon=True).start()#启动
+        threading.Thread(target=执行链,daemon=True).start()
         分离.登记(后台)#纳入拆除排空
         后台.等待()#创建边等到跑完
     上下文.监听('agent/created',智能体已创建监听)#结束 created 监听
@@ -435,7 +435,7 @@ def 应用(上下文,配置值=None):
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=执行分离链,daemon=True).start()#启动
+        threading.Thread(target=执行分离链,daemon=True).start()
         分离.登记(后台)#登记分离链
     上下文.监听('subagent/start',子智能体开始监听)#结束 subagent/start 监听
 
@@ -462,13 +462,13 @@ def 应用(上下文,配置值=None):
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=执行分离链,daemon=True).start()#启动
+        threading.Thread(target=执行分离链,daemon=True).start()
         分离.登记(后台)#登记分离链
     上下文.监听('subagent/end',子智能体结束监听)#结束 subagent/end 监听
 
-__all__=['名称','注入','应用','配置','钩子claude错误']#仅中文公开名
+__all__=['名称','依赖','应用','配置','钩子claude错误']#仅中文公开名
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
 default=应用#Cordis默认导出

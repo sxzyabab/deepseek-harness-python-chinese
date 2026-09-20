@@ -1,4 +1,4 @@
-from .加载器状态 import 状态标签#光纤状态标签
+from .加载器状态 import 状态标签#纤程状态标签
 
 __all__=['网页错误','加载器插件','启动客户端','断言条目已激活']#仅中文公开名
 
@@ -17,17 +17,17 @@ def 启动客户端(选项):
     上下文.plugin(加载器插件)#挂加载器
     加载器=上下文.loader#取加载器服务
     加载器.internal=选项['modules']#注入模块系统
-    def 光纤状态(光纤):
+    def 纤程状态(纤程):
         """投影条目状态到启动页。"""
-        条目=光纤.entry#关联条目
+        条目=纤程.entry#关联条目
         if 条目 is None:#无条目
             return#跳过
-        if 条目.fiber is None:#无光纤
+        if 条目.fiber is None:#无纤程
             return#跳过
         if 汇报 is None:#无人渲染
             return#跳过
         汇报(条目.options.name,状态标签[条目.fiber.state])#投影
-    上下文.on('internal/status',光纤状态)#光纤状态变化
+    上下文.on('internal/status',纤程状态)#纤程状态变化
     行表=[行['id'] for 行 in 清单['plugins']]#全部插件 id
     for 名 in 行表:#标加载中
         if 汇报 is not None:#有汇报
@@ -53,7 +53,7 @@ def 断言条目已激活(上下文):
         if 态=='pending':#等服务
             缺失=[]#缺失服务
             for 服务名 in 条目.fiber.inject:#逐服务
-                if 上下文.get(服务名) is None:#缺席
+                if 服务名 not in 上下文:#缺席
                     缺失.append(服务名)#记下
             缺失文=', '.join(缺失) if len(缺失)>0 else '未知'#名单
             失败表.append(名+': pending（等待服务: '+缺失文+'）')#记 pending

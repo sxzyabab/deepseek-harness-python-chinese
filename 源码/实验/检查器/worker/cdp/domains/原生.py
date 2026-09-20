@@ -1,5 +1,3 @@
-#对齐上游 worker/cdp/domains/native.ts
-
 from ..协议 import 响应cdp请求#协议工具
 
 __all__=['Host原生域会话']#仅中文公开名

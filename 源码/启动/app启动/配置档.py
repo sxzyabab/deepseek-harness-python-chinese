@@ -1,7 +1,7 @@
 import os,json,copy#路径、JSON、克隆
 from ...依赖 import include#外部依赖胶水
 应用条目补丁=include.应用插件补丁#补丁应用
-from ...工具.工作区路径 import 解析主目录#主目录解析
+from ...工具.主目录路径 import 解析主目录#主目录解析
 
 __all__=[#仅中文公开名
     '配置目录名','配置补丁文件名','配置模板','默认组合包','可选组合包',
@@ -44,7 +44,7 @@ def 解析配置目录(名,主目录=None):#解析配置目录
     if 主目录 is None:#缺省
         主目录=解析主目录()#主目录
     if 名=='' or '/' in 名 or '\\' in 名 or 名 in ('.','..','node_modules'):#非法名
-        raise Exception('dsh: invalid profile name '+json.dumps(名))#拒绝
+        raise Exception('dsh: 非法配置档名 '+json.dumps(名,ensure_ascii=False))#拒绝
     return os.path.join(主目录,配置目录名,名)#拼目录
 
 def 初始化配置档(目录,组合包列表):#初始化配置
@@ -88,10 +88,10 @@ def 读配置清单(二进制名,目录):#读配置清单
         finally:#关
             文件.close()#关闭
     except OSError as 错误:#读失败
-        raise Exception(二进制名+': failed to read profile manifest '+路径+': '+str(错误))#包装
+        raise Exception(二进制名+': 读取配置档清单失败: '+str(错误))#包装
     解析=json.loads(原文)#解析
     if not isinstance(解析,dict) or 解析 is None:#非对象
-        raise Exception(二进制名+': profile manifest '+路径+' must hold a JSON object')#拒绝
+        raise Exception(二进制名+': 配置档清单必须是 JSON 对象')#拒绝
     return 解析#清单
 
 def 写配置清单(目录,清单):#写配置清单
@@ -145,8 +145,8 @@ def 解析组合包目录(二进制名,包名,安装锚点,配置目录):#解析
         if 目录 is not None:#命中
             return 目录#返回
     raise Exception(
-        二进制名+': cannot resolve profile bundle '+json.dumps(包名)+' from the dsh installation or '+配置目录+'; '
-        +"run 'dsh plugin --profile "+os.path.basename(配置目录)+" install' if its dependency is not installed"
+        二进制名+': 无法解析配置档组合包 '+json.dumps(包名,ensure_ascii=False)
+        +"；若依赖未安装，请运行 'dsh plugin --profile "+os.path.basename(配置目录)+" install'"
     )#错误
 
 def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#加载配置
@@ -158,9 +158,9 @@ def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#�
     from . import 加载覆盖补丁 as 加载覆盖#延迟导入避免环
     目录=解析配置目录(名,主目录)#解析目录
     if not os.path.exists(os.path.join(目录,'package.json')):#还不存在
-        模板=配置模板.get(名)#随附模板
-        if 模板 is None:#没有模板
-            raise Exception(二进制名+': profile '+json.dumps(名)+" does not exist; create it with 'dsh plugin --profile "+名+" add <package>'")#未知
+        if 名 not in 配置模板:#没有模板
+            raise Exception(二进制名+': 配置档 '+json.dumps(名,ensure_ascii=False)+" 不存在；请用 'dsh plugin --profile "+名+" add <package>' 创建")#未知
+        模板=配置模板[名]#随附模板
         初始化配置档(目录,模板['bundles'])#首次初始化
     清单=规范化随附配置(名,目录,读配置清单(二进制名,目录))#读并规范化
     配置段=((清单.get('dsh') or {}).get('profile') or {})#profile
@@ -171,7 +171,7 @@ def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#�
         包清单=json.loads(open(os.path.join(包目录,'package.json'),encoding='utf-8').read())#读组合包清单
         声明=((包清单.get('dsh') or {}).get('bundle') or {}).get('patch')#声明的补丁
         if 声明 is None:#没有
-            raise Exception(二进制名+': profile bundle '+json.dumps(包名)+' declares no dsh.bundle in its package.json')#错误配置
+            raise Exception(二进制名+': 配置档组合包 '+json.dumps(包名,ensure_ascii=False)+' 的 package.json 未声明 dsh.bundle')#错误配置
         补丁路径=os.path.join(包目录,声明)#绝对补丁
         层列表.append({'packageName':包名,'packageDir':包目录,'patchPath':补丁路径,'patches':加载覆盖(二进制名,补丁路径)})#已解析层
     补丁路径=os.path.join(目录,配置补丁文件名)#用户补丁
@@ -253,7 +253,7 @@ def 确保符号链接(链接,目标):#确保符号链接
     """确保 link 是指向 target 的符号链接。"""
     if os.path.lexists(链接):#已存在
         if not os.path.islink(链接):#不是符号链接
-            raise Exception('dsh: '+链接+' exists and is not a symlink; remove it so dsh can manage the installation fallback')#拒绝
+            raise Exception('dsh: 目标已存在且不是符号链接；请删掉后让 dsh 管理安装回退')#拒绝
         if os.readlink(链接)==目标:#已正确
             return#成功
         os.unlink(链接)#拆掉错误链接
@@ -330,7 +330,7 @@ def 加载配置目录(二进制名,目录,安装锚点,选项=None):
         包清单=json.loads(open(os.path.join(包目录,'package.json'),encoding='utf-8').read())#读组合包清单
         声明=((包清单.get('dsh') or {}).get('bundle') or {}).get('patch')#声明的补丁
         if 声明 is None:#没有
-            raise Exception(二进制名+': profile bundle '+json.dumps(包名)+' declares no dsh.bundle in its package.json')#错误配置
+            raise Exception(二进制名+': 配置档组合包 '+json.dumps(包名,ensure_ascii=False)+' 的 package.json 未声明 dsh.bundle')#错误配置
         补丁路径=os.path.join(包目录,声明)#绝对补丁
         层列表.append({'packageName':包名,'packageDir':包目录,'patchPath':补丁路径,'patches':加载覆盖(二进制名,补丁路径)})#已解析层
     补丁路径=os.path.join(目录,配置补丁文件名)#用户补丁

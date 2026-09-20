@@ -23,17 +23,17 @@ class 会话格式事件(TypedDict):#一条已解码逻辑会话事件
 会话格式产物字段=('header','inheritedEventCount','events')#一份分离的完整逻辑会话产物
 会话格式迁移字段=('name','fromVersion','toVersion','migrateHeader','createStage','validateTargetHeader')#一个独立维护的相邻流式迁移
 会话格式链选项字段=('currentVersion','migrations','restoreCurrentHeader')#编译唯一完整迁移链的输入
-会话格式链字段=('currentVersion','createStream','migrateHeader')#纯相邻规划器与流式迁移编译器（键名对齐上游）
+会话格式链字段=('currentVersion','createStream','migrateHeader')#纯相邻规划器与流式迁移编译器
 会话格式恢复策略=Literal['strict','recoverable']#一次恢复选定的物理行失败策略
 会话格式编解码器字段=('version','decodeHeader','createDecoder')#与一个已发布会话格式冻结的纯物理 JSON 编解码器
 会话格式当代编码器字段=('encodeHeader','encodeEvent')#已安装当代格式的无状态物理记录编码器
 会话格式目录选项字段=('currentVersion','migrations','restoreCurrentHeader','codecs','restoreCurrent','currentEncoder','restoreTransformedCurrent')#构建静态物理编解码器与迁移目录的输入
 会话格式恢复选项字段=('recovery','validation')#一次物理行恢复应用的策略
-会话格式目录字段=('currentVersion','readHeader','createRestore','encodeCurrentHeader','encodeCurrentEvent')#构建静态物理分发与相邻迁移目录（键名对齐上游）
+会话格式目录字段=('currentVersion','readHeader','createRestore','encodeCurrentHeader','encodeCurrentEvent')#构建静态物理分发与相邻迁移目录
 会话格式恢复字段=('header','decodeRow','finish')#调用方拥有的物理行恢复
 
 class 会话格式迁移(Protocol):#一个独立维护的相邻流式迁移
-    """命名的精确相邻转换；成员名对齐上游英文字段。"""
+    """命名的精确相邻转换。"""
     @property#名称
     def name(自身):#迁移名
         """迁移名。"""
@@ -57,7 +57,7 @@ class 会话格式迁移(Protocol):#一个独立维护的相邻流式迁移
         ...#协议桩
 
 class 会话格式编解码器(Protocol):#与一个已发布会话格式冻结的纯物理 JSON 编解码器
-    """格式特定物理 JSON 编解码器；成员名对齐上游。"""
+    """格式特定物理 JSON 编解码器。"""
     @property#版本
     def version(自身):#版本
         """版本。"""

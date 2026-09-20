@@ -45,7 +45,7 @@ class 操作任务:
         """阻塞等到结算；失败原样抛。"""
         if not 自身._完成.wait(超时):#超时未结算
             raise TimeoutError('operation timed out')#超时
-        if 自身._错误 is not None:#失败
+        if 自身._错误 is not None:
             raise 自身._错误#原样抛
         return 自身._值#成功值
 
@@ -105,7 +105,7 @@ def 观察排队取消(操作,信号,已开始=None):
                 若已中止则抛出(信号)#应抛中止错误
             except BaseException as 原因:#拿到原因
                 包装.拒绝(原因)#原样拒绝
-                return#结束
+                return
             包装.拒绝(中止错误('queued observation abort event lacked an aborted signal'))#无中止却收到取消
         完成(即时拒绝)#即时拒绝
     def 观察共享():
@@ -113,21 +113,21 @@ def 观察排队取消(操作,信号,已开始=None):
         try:
             值=操作.等待()#等待共享任务
             兑现包装(值)#成功
-        except BaseException as 原因:#失败
-            拒绝包装(原因)#失败
+        except BaseException as 原因:
+            拒绝包装(原因)
     def 转发中止():
         """等到来源置位后拒绝观察包装。"""
         信号._事件.wait()#阻塞到中止
         在取消()#转发取消
     线程=threading.Thread(target=观察共享)#后台
     线程.daemon=True#不挡退出
-    线程.start()#启动
+    线程.start()
     if 已中止(信号):#已经取消
         在取消()#立刻处理
     else:
         中止监视线程=threading.Thread(target=转发中止)#转发中止线程
         中止监视线程.daemon=True#不挡退出
-        中止监视线程.start()#启动
+        中止监视线程.start()
     return 包装#观察任务
 
 会话预备预留字段=('entry','source','state')#一份独占持有的预备源及其已提交持久化状态（所属条目、预备源、已提交状态）
@@ -237,7 +237,7 @@ class 会话预备池:
             return#无事
         if not 可复用:#不可复用
             自身.摘掉(条目)#摘掉
-            return#结束
+            return
         条目.pop('reservation',None)#清预留
         自身.标就绪(条目)#放回就绪
 
@@ -267,7 +267,7 @@ class 会话预备池:
     def 取走就绪(自身,标识):
         """为已经串行化的追加采纳移除一份完成条目。"""
         条目=自身.条目.get(标识)#查条目
-        if 条目 is None or 条目['phase']!='ready' or 条目.get('source') is None:#非就绪
+        if 条目 is None or 条目['phase']!='ready' or 'source' not in 条目:#非就绪
             return None#无就绪
         源=条目['source']#源
         自身.摘掉(条目)#摘掉
@@ -299,7 +299,7 @@ class 会话预备池:
                 延迟.拒绝(错误)#拒绝观察者
         线程=threading.Thread(target=观察加载)#后台加载
         线程.daemon=True#不挡退出
-        线程.start()#启动
+        线程.start()
         return 条目#返回条目
 
     def 标就绪(自身,条目):

@@ -1,6 +1,5 @@
 import base64,datetime,math,os,re,threading
 import traceback,types
-from collections import ChainMap as 链映射
 from urllib.parse import unquote,urlparse
 
 def 路径转文件url(路径):

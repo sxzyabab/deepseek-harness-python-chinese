@@ -1,23 +1,22 @@
-"""与工具无关的 shell 环境插件：拥有 `ctx.shellEnv` 注册表，存放面向模型的 shell 工具消费的受信任、按次执行 `DSH_*` 变量。
+"""与工具无关的 shell 环境插件：拥有环境注册表，存放面向模型的 shell 工具消费的受信任、按次执行 DSH_* 变量。
 
-对齐上游 `@deepseek-ai/dsh-shell-env`。公开面仅中文名。
-内置 shell 事实由注册表自身拥有，插件可以注册额外的、可枚举事实，并随 effect 拆除。
+内置 shell 事实由注册表自身拥有，插件可以注册额外的、可枚举事实，并随副作用拆除。
 """
 import re#环境键后缀校验
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段#配置字段
 服务=cordis.服务#Cordis服务基类
 from ..命令 import 托管环境前缀#DSH_前缀
-from ...工具.工作区路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
+from ...工具.主目录路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
 
 __all__=(
-    '名称','注入','配置',
+    '名称','依赖','配置',
     '主目录环境键','外壳键','会话ID键','会话JSONL键','保留环境键',
     '外壳环境注册表','应用',
 )#仅中文公开名
 
 名称='shell-env'#插件名
-注入=[]#无硬依赖
+依赖=[]#无硬依赖
 配置={#插件配置模式
     'dshHome':字符串字段(),#作为DSH_HOME暴露的家目录；默认$DSH_HOME或~/.dsh
 }#配置模式结束
@@ -25,7 +24,7 @@ __all__=(
 会话ID键=托管环境前缀+'SESSION_ID'#DSH_SESSION_ID键
 会话JSONL键=托管环境前缀+'SESSION_JSONL'#DSH_SESSION_JSONL键
 保留环境键=set((主目录环境键,外壳键,会话ID键))#注册表自留键
-环境键后缀模式=re.compile(r'^[A-Z][A-Z0-9_]*$',re.ASCII)#前缀之后的合法后缀
+环境键后缀模式=re.compile(r'^[A-Z][A-Z0-9_]*\Z',re.ASCII)#前缀之后的合法后缀
 
 class 外壳环境错误(Exception):#本包异常基类
     """shell 环境贡献方登记或收集失败。"""
@@ -46,10 +45,10 @@ def 按声明键排序(项):#列出结果的键函数
     return 项['key']#键
 
 class 外壳环境注册表(服务):#受信任按次执行DSH_*变量的注册表
-    """受信任、按次执行 `DSH_*` 变量的注册表（`ctx.shellEnv`）。命名空间为每次模型 shell 调用重建：执行器丢掉环境中的 `DSH_*` 值，然后注入注册表的当前快照。内置 shell 事实仍由注册表自身拥有，插件可以注册额外的、可枚举事实，并随 effect 拆除。"""
-    def __init__(自身,上下文对象,配置值=None):#安装shellEnv服务
-        """创建并安装 `ctx.shellEnv` 服务。"""
-        super().__init__(上下文对象,'shellEnv')#服务名shellEnv
+    """受信任、按次执行 DSH_* 变量的注册表。命名空间为每次模型 shell 调用重建：执行器丢掉环境中的 DSH_* 值，然后注入注册表的当前快照。内置 shell 事实仍由注册表自身拥有，插件可以注册额外的、可枚举事实，并随副作用拆除。"""
+    def __init__(自身,上下文,配置值=None):#安装shellEnv服务
+        """创建并安装环境注册表服务。"""
+        super().__init__(上下文,'shellEnv')#服务名shellEnv
         if 配置值 is None:#未传配置
             配置值={}#空配置
         自身.贡献方表={}#贡献方名到贡献方
@@ -116,7 +115,7 @@ class 外壳环境注册表(服务):#受信任按次执行DSH_*变量的注册�
         return dict(sorted(值表.items(),key=按键排序项))#按键排序后返回
 
     def 列出(自身):#枚举插件贡献的变量
-        """枚举插件贡献的变量，不执行其解析器。TODO(bash-env-list-builtins): 在诊断、提示词或UI把list()当作穷尽环境目录之前，把注册表自有内置也列进去。"""
+        """枚举插件贡献的变量，不执行其解析器。注意：list() 不含注册表自有的内置变量，在诊断、提示词或 UI 把它当作穷尽环境目录之前需补上。"""
         结果=[]#声明列表
         for 贡献方 in 自身.贡献方表.values():#所有贡献方
             名字=贡献方['name']#拥有者
@@ -132,17 +131,17 @@ class 外壳环境注册表(服务):#受信任按次执行DSH_*变量的注册�
         结果.sort(key=按声明键排序)#按键名排序
         return 结果#已排序声明
 
-def 应用(上下文对象,配置值=None):#加载shell-env插件
-    """加载 shell-env 插件：注册 `ctx.shellEnv` 服务与无关 shell 的持久化贡献方（`DSH_SESSION_JSONL`）。"""
+def 应用(上下文,配置值=None):#加载shell-env插件
+    """加载 shell-env 插件：注册环境注册表服务与无关 shell 的持久化贡献方（DSH_SESSION_JSONL）。"""
     if 配置值 is None:#未传配置
         配置值={}#空配置
-    注册表=外壳环境注册表(上下文对象,配置值)#安装注册表
+    注册表=外壳环境注册表(上下文,配置值)#安装注册表
     def 解析会话持久化(执行):#按次解析会话JSONL路径
         """为一次工具执行解析会话 JSONL 路径。"""
         智能体=执行['agent'] if 'agent' in 执行 else None#调用智能体
         if 智能体 is None:#没有智能体则不提供
             return {}#空贡献
-        持久化=上下文对象.获取服务('sessionPersistence',False)#询问持久化服务
+        持久化=上下文.获取服务('sessionPersistence',False)#询问持久化服务
         if 持久化 is None:#未组合持久化
             return {}#空贡献
         头=智能体.session.header#会话头
@@ -161,7 +160,7 @@ def 应用(上下文对象,配置值=None):#加载shell-env插件
     })#register结束
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

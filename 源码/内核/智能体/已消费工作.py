@@ -7,21 +7,9 @@ class 已消费工作账本(TypedDict):#一份智能体日志如何交代它已�
     end:NotRequired[object]#交代已消费工作的最近已关闭 turn/end；没有任何轮次因工作关闭时缺席
     droppedUnrun:bool#该轮次之后，已接受的工作是否被从收件箱取消且未运行
 
-def 读(对象,名):#从映射或对象读取字段
-    """从映射或对象读取字段。"""
-    if isinstance(对象,dict):#映射
-        return 对象[名]#映射键
-    return getattr(对象,名)#对象属性
-
-def 读可选(对象,名):#从映射或对象读取可选字段
-    """从映射或对象读取可选字段。"""
-    if isinstance(对象,dict):#映射
-        return 对象.get(名)#映射键
-    return getattr(对象,名,None)#对象属性
-
 def 交代领取(原因):#结束是否交代领取
     """消费了输入但从未到达步骤的轮次，其结束是否交代那份输入。"""
-    种类=读(原因,'kind')#结束种类
+    种类=原因['kind']#结束种类
     if 种类=='completed':#正常完成
         return False#不交代被改写走的领取
     if 种类=='blocked':#预步骤拒绝
@@ -42,28 +30,28 @@ def 折叠已消费工作(事件列表):#折叠已消费工作账本
     结束=None#最近交代用的 turn/end
     丢掉未运行=False#之后是否有未运行丢掉
     for 事件 in 事件列表:#扫描事件
-        类型=读(事件,'type')#事件类型
+        类型=事件['type']#事件类型
         if 类型=='turn/start':#轮次开始
-            打开=读(读(事件,'data'),'turn')#记下打开的轮次
+            打开=事件['data']['turn']#记下打开的轮次
             continue#处理完
         if 类型=='step/start':#步骤开始
-            已进入步骤.add(读(读(事件,'data'),'turn'))#该轮次已进入步骤
+            已进入步骤.add(事件['data']['turn'])#该轮次已进入步骤
             continue#处理完
         if 类型=='agent/inbox/spliced':#收件箱拼接
-            数据=读(事件,'data')#拼接字段
-            删除数=读可选(数据,'removedCount')#删除条数
-            if 删除数 is None:#纯插入
+            数据=事件['data']#拼接字段
+            if 'removedCount' not in 数据:#纯插入
                 continue#纯插入不改变领取账
-            插入=读(数据,'inserted')#插入列表
-            if 读可选(数据,'outcome')=='canceled':#取消
+            删除数=数据['removedCount']#删除条数
+            插入=数据['inserted']#插入列表
+            if 数据.get('outcome')=='canceled':#取消
                 if len(插入)==0:#空插入
                     丢掉未运行=True#空插入的取消才算丢掉
             elif 打开 is not None:#打开轮次内的删除
                 已领取.add(打开)#打开轮次内的删除记为领取
             continue#拼接处理完
         if 类型=='turn/end':#轮次结束
-            数据=读(事件,'data')#结束字段
-            轮次=读(数据,'turn')#结束轮次
+            数据=事件['data']#结束字段
+            轮次=数据['turn']#结束轮次
             打开=None#轮次已关
             步骤命中=轮次 in 已进入步骤#是否进入过步骤
             if 步骤命中:#从步骤账摘掉
@@ -73,7 +61,7 @@ def 折叠已消费工作(事件列表):#折叠已消费工作账本
                 领取命中=轮次 in 已领取#查领取账
                 if 领取命中:#从领取账摘掉
                     已领取.discard(轮次)#从领取账摘掉
-            if 步骤命中 or (领取命中 and 交代领取(读(数据,'reason'))):#该结束交代了工作
+            if 步骤命中 or (领取命中 and 交代领取(数据['reason'])):#该结束交代了工作
                 结束=事件#记下交代结束
                 丢掉未运行=False#本轮已交代此前丢掉
             continue#结束处理完

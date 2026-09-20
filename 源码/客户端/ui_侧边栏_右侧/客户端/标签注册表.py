@@ -1,7 +1,8 @@
-import fnmatch#通配
-from urllib.parse import urlparse#路径提取
+import fnmatch
+from urllib.parse import urlparse as 解析URL
+from .约定.槽位 import 右侧侧栏错误
 
-__all__=['右侧侧栏标签注册表','默认优先级带','优先级秩']#仅中文公开名
+__all__=['右侧侧栏标签注册表','默认优先级带','优先级秩']
 
 默认优先级带='extension'#未声明时的带
 优先级秩={'extension':3,'builtin':2,'fallback':1}#带秩
@@ -18,7 +19,7 @@ def _通知订阅者(监听者列表,标签,*参数):
 
 def _路径于(地址):
     """URI 路径；非绝对 URI 则无。"""
-    解析=urlparse(地址)#解析
+    解析=解析URL(地址)
     if 解析.scheme=='':#非 URI
         return None#无
     return 解析.path#路径
@@ -69,13 +70,13 @@ class 右侧侧栏标签注册表:#标签类型登记表
         入口表=定义['guide'] if 'guide' in 定义 and 定义['guide'] is not None else ()#入口
         入口标识表=[入口['id'] for 入口 in 入口表]#id
         if len(set(入口标识表))!=len(入口标识表):#重
-            raise Exception('sidebarRight: duplicate guide entry id in "'+标识+'"')
+            raise 右侧侧栏错误('引导入口标识在 "'+标识+'" 中重复')
         带=定义['priority'] if 'priority' in 定义 and 定义['priority'] is not None else 默认优先级带#带
         if 标识 in 自身.标识集:#撞 id
-            raise Exception('sidebarRight: tab type id "'+标识+'" is already registered')
+            raise 右侧侧栏错误('标签类型标识 "'+标识+'" 已登记')
         持=自身.种类表[种类] if 种类 in 自身.种类表 else None#已持
         if 持 is not None and not _可共存(持,带):#不可共存
-            raise Exception('sidebarRight: tab kind "'+种类+'" is already registered ('+持['inForce']['band']+')')
+            raise 右侧侧栏错误('标签种类 "'+种类+'" 已登记（'+持['inForce']['band']+'）')
         自身.登记序+=1#序
         模式列表=定义['patterns'] if 'patterns' in 定义 and 定义['patterns'] is not None else ()#模式
         条目={#已登记
@@ -172,14 +173,14 @@ class 右侧侧栏标签注册表:#标签类型登记表
         if 种类 is not None:#点名
             定义=自身.取(种类)#定义
             if 定义 is None:#无
-                raise Exception('sidebarRight: no tab type is registered as "'+种类+'"')
+                raise 右侧侧栏错误('没有登记为 "'+种类+'" 的标签类型')
             可开=定义['canOpen'] if 'canOpen' in 定义 else None#否决
             if 可开 is not None and not 可开(地址):#拒
-                raise Exception('sidebarRight: tab type "'+种类+'" refuses "'+地址+'"')
+                raise 右侧侧栏错误('标签类型 "'+种类+'" 拒绝 "'+地址+'"')
             return {'kind':种类,'contentId':地址,'title':定义['title'](地址)}#认领
         候选表=自身.候选(地址)#候选
         if len(候选表)==0:#无
-            raise Exception('sidebarRight: no registered tab type claims "'+地址+'"')
+            raise 右侧侧栏错误('没有已登记标签类型认领 "'+地址+'"')
         选=候选表[0]#优
         return {'kind':选['kind'],'contentId':地址,'title':选['title'](地址)}#认领
 

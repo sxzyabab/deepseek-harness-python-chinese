@@ -1,18 +1,18 @@
-"""`@deepseek-ai/dsh-invariants` 的本包拥有不变量配套。"""
-包名='@deepseek-ai/dsh-invariants'#本包的不变量所有权名
-名称='invariants-invariant'#配套不变量插件名
-注入=['invariants']#依赖 invariants 服务
+"""不变量注册表服务的自检配套。"""
+包名='@deepseek-ai/dsh-invariants'
+名称='invariants-invariant'
+依赖=['invariants']
 
-def 安装(子上下文=None,失败=None):#空安装器
+def 安装(子上下文=None,失败=None):
     """无运行时不变量：注册所有权与子生命周期就是服务自身的变更边界；从同一注册表观察它们只会重复实现。"""
-    return None#不挂运行时检查
+    return None
 
-def 应用(上下文对象):#注册本包不变量配套
+def 应用(上下文):
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献
+    return 上下文.invariants.register(包名,安装)
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+__all__=['包名','名称','依赖','安装','应用']
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=应用#框架槽

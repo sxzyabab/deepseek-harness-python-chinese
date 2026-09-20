@@ -73,14 +73,14 @@ def 全部结算(任务列表):#Promise.allSettled
 def 赛跑(函数列表):#Promise.race
     """先结算的一路获胜。"""
     完成=任务()#先到先得
-    def 跑(函数):#一路
+    def 在线程执行(函数):#一路
         """跑一路并尝试结算。"""
         try:#执行
             完成.兑现(函数())#成功
         except BaseException as 错误:#失败
             完成.拒绝(错误)#拒绝
     for 函数 in 函数列表:#每路一线程
-        工作=threading.Thread(target=跑,args=(函数,),daemon=True)#工作线程
+        工作=threading.Thread(target=在线线程执行,args=(函数,),daemon=True)#工作线程
         工作.start()#启动
     return 完成.等待()#先到
 
@@ -296,10 +296,10 @@ class 工作流执行:#隔离进程内的一次脚本执行
         for 块 in 块列表:#每块一路
             def 制作(一块):#钉住本块
                 """钉住一块。"""
-                def 跑():#一路
+                def 在线程执行():#一路
                     """跑一块。"""
                     return 跑一块(一块)#执行
-                return 跑#函数
+                return 在线程执行#函数
             函数列表.append(制作(块))#收下
         return 全部并发(函数列表)#并发
 
@@ -334,10 +334,10 @@ class 工作流执行:#隔离进程内的一次脚本执行
         for 项 in 原始条目:#每条目一路
             def 制作(一条目,一号):#钉住本条
                 """钉住一条。"""
-                def 跑():#一路
+                def 在线程执行():#一路
                     """跑一条流水线。"""
                     return 跑一条(一条目,一号)#执行
-                return 跑#函数
+                return 在线程执行#函数
             函数列表.append(制作(项,号))#收下
             号+=1#推进
         return 全部并发(函数列表)#并发

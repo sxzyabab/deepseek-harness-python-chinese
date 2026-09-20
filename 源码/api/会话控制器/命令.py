@@ -1,7 +1,4 @@
-"""会话命令：各 Remote 方法上的显式激活策略。
-
-对齐上游 `session-controller/src/commands.ts`。公开面仅中文名。
-"""
+"""会话命令：各 Remote 方法上的显式激活策略。"""
 import base64#附件字节
 import uuid#新会话 id
 from ...工具.时间 import 规范化客户端时区#客户端时区
@@ -158,7 +155,7 @@ def _引用图像(事件列表,附件标识):
         """匹配 attachmentId。"""
         return str(引用['attachmentId'] if 'attachmentId' in 引用 else '')==str(附件标识)#比较
     for 事件 in 事件列表:#逐事件
-        找到=_事件中的图(事件,谓词)#查找
+        找到=_事件中的图(事件,谓词)
         if 找到 is not None:#命中
             return 找到#返回
     return None#无
@@ -183,7 +180,7 @@ class 会话命令控制器:
         会话标识=请求['sessionId'] if 'sessionId' in 请求 and 请求['sessionId'] is not None else ('session-'+str(uuid.uuid4()))#id
         工作区=None#工作区
         if 'workspaceId' in 请求 and 请求['workspaceId'] is not None:#按工作区
-            工作区=自身._上下文.workspaceRegistry.get(请求['workspaceId'])#查找
+            工作区=自身._上下文.workspaceRegistry.get(请求['workspaceId'])
             if 工作区 is None:#未找到
                 raise 远程错误('workspace/not-found','workspace "'+str(请求['workspaceId'])+'" not found',{'workspaceId':请求['workspaceId']})#拒绝
         if 工作区 is not None:#工作区路径
@@ -198,7 +195,7 @@ class 会话命令控制器:
             try:
                 工作区.attachSession(会话标识)#attach
             except (OSError,ValueError,TypeError) as 错误:
-                raise 远程错误('session/workspace-attach-failed','session "'+str(会话标识)+'" was created but could not attach to workspace "'+str(工作区.id)+'": '+远程错误消息(错误),{'sessionId':会话标识,'workspaceId':工作区.id},原因=错误)#失败
+                raise 远程错误('session/workspace-attach-failed','session "'+str(会话标识)+'" was created but could not attach to workspace "'+str(工作区.id)+'": '+远程错误消息(错误),{'sessionId':会话标识,'workspaceId':工作区.id},原因=错误)
         预设=自身._智能体控制器.会话预设(采用.session)#预设
         结果={'sessionId':会话标识}#结果
         if 预设 is not None:#有预设
@@ -242,7 +239,7 @@ class 会话命令控制器:
         except 远程错误:
             raise#原样
         except BaseException as 错误:
-            if getattr(错误,'name',None)=='SessionTitleInvalidError' or 错误.__class__.__name__=='SessionTitleInvalidError':#无效标题按结构识别
+            if getattr(错误,'name',None)=='SessionTitleInvalidError':#无效标题按结构识别
                 raise 远程错误('session/title-invalid',str(错误),{'sessionId':请求['sessionId']})#映射
             raise 远程错误('gateway/internal','failed to rename session "'+str(请求['sessionId'])+'": '+远程错误消息(错误),{})#内部
 
@@ -315,7 +312,7 @@ class 会话命令控制器:
                         'session "'+str(子标识)+'" was forked but could not attach to workspace "'+str(工作区.id)+'": '+远程错误消息(错误),
                         {'sessionId':子标识,'workspaceId':工作区.id},
                         原因=错误,
-                    )#失败
+                    )
             return {'sessionId':子标识}#结果
         finally:
             if hasattr(观测,'close'):#可关
@@ -450,7 +447,7 @@ class 会话命令控制器:
         智能体=_活智能体(自身._上下文,请求['sessionId'])#先看活体
         if 智能体 is None:#冷则恢复
             结果=自身._智能体控制器.解析智能体(请求['sessionId'])#恢复
-            if isinstance(结果,dict) and 'error' in 结果:#失败
+            if isinstance(结果,dict) and 'error' in 结果:
                 错误=结果['error']#取出
                 if getattr(错误,'code',None)!='session/not-found':#其它失败
                     raise 错误#上抛
@@ -495,7 +492,7 @@ class 会话命令控制器:
 
     def cancel(自身,请求):
         """取消活动回合并保留收件箱。请求为 dict。"""
-        智能体=_活智能体(自身._上下文,请求['sessionId'])#查找
+        智能体=_活智能体(自身._上下文,请求['sessionId'])
         if 智能体 is None:#未附着
             raise 远程错误('session/not-found','session "'+str(请求['sessionId'])+'" not found (not attached)',{'sessionId':请求['sessionId']})#拒绝
         if 有子智能体所有者(自身._上下文,智能体.session.header,智能体):#子智能体
@@ -506,7 +503,7 @@ class 会话命令控制器:
     def _解析智能体(自身,会话标识):
         """把解析结果收成活智能体。"""
         结果=自身._智能体控制器.解析智能体(会话标识)#解析
-        if isinstance(结果,dict) and 'error' in 结果:#失败
+        if isinstance(结果,dict) and 'error' in 结果:
             raise 结果['error']#抛出
         return 结果['agent']#智能体
 
@@ -522,7 +519,7 @@ class 会话命令控制器:
         """解析 fork 工作区：直接附着或子智能体祖先。"""
         工作区列表=自身._上下文.workspaceRegistry.list()#全部
         直接=None#直接
-        for 工作区 in 工作区列表:#查找
+        for 工作区 in 工作区列表:
             标识列表=工作区.sessionIds if hasattr(工作区,'sessionIds') else []#会话集
             if 源头['id'] in 标识列表:#命中
                 直接=工作区#记下
@@ -532,7 +529,7 @@ class 会话命令控制器:
         谱系=自身._上下文.sessionQuery.追踪会话谱系(源头['id'])#追溯
         for 祖先 in 谱系['ancestors']:#祖先
             祖头=祖先['header'] if isinstance(祖先,dict) and 'header' in 祖先 else 祖先#头
-            for 工作区 in 工作区列表:#查找
+            for 工作区 in 工作区列表:
                 标识列表=工作区.sessionIds if hasattr(工作区,'sessionIds') else []#会话集
                 if 祖头['id'] in 标识列表:#命中
                     return 工作区#返回

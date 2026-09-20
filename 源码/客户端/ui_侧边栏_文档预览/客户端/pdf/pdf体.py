@@ -9,7 +9,7 @@ __all__=['pdf体','失败文案']#仅中文公开名
 
 def 失败文案(错误,翻译):
     """把结构化失败翻成可见行。"""
-    if isinstance(错误,pdf工作线程失败) or (isinstance(错误,Exception) and getattr(错误,'name',None)=='PdfWorkerFailure'):
+    if isinstance(错误,pdf工作线程失败):
         return 翻译('workerFailed')#工作线程
     if isinstance(错误,Exception) and getattr(错误,'name',None)=='PasswordException':
         return 翻译('password')#密码

@@ -17,7 +17,7 @@ class 远程应答错误(Exception):
         """记下原因与可选拒码。"""
         super().__init__(原因)#消息
         自身.原因=原因#原因
-        自身.码=码#码
+        自身.码=码
 
 def 是否安装待决(阶段):
     """安装是否仍由 Host 拥有。"""
@@ -34,7 +34,7 @@ def 包视图(组合包,插件表):
         入口=行['entryId'] if 'entryId' in 行 else None#入口
         存活=None#存活条目
         if 入口 is not None:#有入口
-            for 插件 in 插件表:#查找
+            for 插件 in 插件表:
                 if 插件['entryId']==入口:#命中
                     存活=插件#记下
                     break#停
@@ -63,7 +63,7 @@ def 排序包表(包表):
 def 失败构造(错误,种类,待允许=None):
     """对话框对失败变更的读法。"""
     结果={'reason':错误['diagnostic'] if 错误 is not None and 'diagnostic' in 错误 and 错误['diagnostic'] is not None else ''}#原因
-    if 错误 is not None and 'code' in 错误:结果['code']=错误['code']#码
+    if 错误 is not None and 'code' in 错误:结果['code']=错误['code']
     if 种类 is not None:结果['kind']=种类#种类
     if 待允许 is not None and len(待允许)>0:结果['pendingBuilds']=list(待允许)#待允许
     return 结果#失败
@@ -71,13 +71,13 @@ def 失败构造(错误,种类,待允许=None):
 def 原因串(错误):
     """抛出失败所说：拒绝原因或错误消息。"""
     if isinstance(错误,Exception):return str(错误)#消息
-    return str(错误)#串
+    return str(错误)
 
 def 失败提示(错误,主体,序号):
     """失败提示：拒绝保留码，其余保留原文。"""
-    码=错误.码 if isinstance(错误,远程应答错误) else None#码
+    码=错误.码 if isinstance(错误,远程应答错误) else None
     提示={'kind':'failed','reason':原因串(错误),'action':主体['action'],'seq':序号}#基础
-    if 码 is not None:提示['code']=码#码
+    if 码 is not None:提示['code']=码
     if 'packageName' in 主体:提示['packageName']=主体['packageName']#包名
     return 提示#提示
 
@@ -205,7 +205,7 @@ class 插件装载控制:#装载页状态拥有者
     def 清高亮(自身):
         """丢掉列表高亮。"""
         if 自身.取快照()['highlight'] is not None:#有亮
-            自身._补丁({'highlight':None})#清
+            自身._补丁({'highlight':None})
 
     def 设启用(自身,包名,启用):
         """把组合包放入或移出层列表。"""
@@ -235,8 +235,8 @@ class 插件装载控制:#装载页状态拥有者
 
     def 取消确认(自身):
         """取消确认。"""
-        自身.待确认=None#清
-        自身._补丁({'confirm':None})#清
+        自身.待确认=None
+        自身._补丁({'confirm':None})
 
     def 设行启用(自身,入口标识,启用):
         """启停组合包一行。"""
@@ -252,7 +252,7 @@ class 插件装载控制:#装载页状态拥有者
 
     def 关掉提示(自身):
         """关掉 toast。"""
-        自身._补丁({'notice':None})#清
+        自身._补丁({'notice':None})
 
     def 安装进度(自身,进度):
         """跟随 Host 对本对话框安装的取消窗口。"""
@@ -269,7 +269,7 @@ class 插件装载控制:#装载页状态拥有者
         安装=自身.取快照()['install']#安装
         if 块['requestId']!=安装.get('requestId'):#无关
             return#停
-        下标=-1#查找
+        下标=-1
         for 序,运行 in enumerate(安装['runs']):#遍历
             if 运行['jobId']==块['jobId']:#命中
                 下标=序#记下
@@ -303,7 +303,7 @@ class 插件装载控制:#装载页状态拥有者
             try:
                 自身._读取()#读
             finally:
-                自身.飞行中=None#清
+                自身.飞行中=None
                 事件.set()#完成
         threading.Thread(target=干活,daemon=True).start()#线程
         事件.wait()#阻塞至完成
@@ -311,7 +311,7 @@ class 插件装载控制:#装载页状态拥有者
     def _读取(自身):
         """合并重叠读取。"""
         while True:#循环
-            自身.再跑=False#清
+            自身.再跑=False
             自身.代次+=1#晋代
             代次=自身.代次#本代
             if 自身.取快照()['status']=='idle':#空闲
@@ -338,8 +338,8 @@ class 插件装载控制:#装载页状态拥有者
                 插件结果[0]=自身.上下文.remote.pluginManager.listPlugins().等待()#等
             线1=threading.Thread(target=拉组合,daemon=True)#线
             线2=threading.Thread(target=拉插件,daemon=True)#线
-            线1.start()#启动
-            线2.start()#启动
+            线1.start()
+            线2.start()
             线1.join()#等
             线2.join()#等
             if 代次!=自身.代次:#过期
@@ -357,8 +357,8 @@ class 插件装载控制:#装载页状态拥有者
     def _确认(自身):
         """执行待确认动作。"""
         待=自身.待确认#待
-        自身.待确认=None#清
-        自身._补丁({'confirm':None})#清
+        自身.待确认=None
+        自身._补丁({'confirm':None})
         if 待 is not None:#有
             待()#执行
 
@@ -366,7 +366,7 @@ class 插件装载控制:#装载页状态拥有者
         """丢弃飞行中的检查。"""
         if 自身.检查中止 is not None:#有
             自身.检查中止.set()#中止
-            自身.检查中止=None#清
+            自身.检查中止=None
 
     def _已过时(自身,信号):
         """结算是否太晚。"""
@@ -525,7 +525,7 @@ class 插件装载控制:#装载页状态拥有者
         if 应用=='failed':#失败
             错误=结果['error'] if 'error' in 结果 else None#错误
             诊断=错误['diagnostic'] if 错误 is not None and 'diagnostic' in 错误 else ''#诊断
-            码=错误['code'] if 错误 is not None and 'code' in 错误 else None#码
+            码=错误['code'] if 错误 is not None and 'code' in 错误 else None
             raise 远程应答错误(诊断,码)#抛
         if 应用=='cancelled':#取消
             自身.提示序号+=1#序号

@@ -1,4 +1,5 @@
 import threading#分叉后台观察
+from urllib.parse import quote as 百分编码#URI 段编码
 import 客户端.ui_侧边栏_文档预览.客户端 as _侧边栏文档预览#文档预览面：SidebarRightResourceParamsMap.file
 from ..聊天设置 import 聊天设置命名空间#Chat 设置段
 from .文案 import 命名空间,中文,英文#词典
@@ -8,18 +9,18 @@ from .约定.快照 import 空聊天快照#空快照
 from .聊天.用回合数据 import 用回合数据值#回合数据
 from .聊天.登记节点渲染器 import 登记聊天节点渲染器#节点渲染器
 from .聊天.聊天视图 import 聊天视图#Chat 视图
-from .聊天.统计行 import 统计行#统计（对齐 StatsPills）
+from .聊天.统计行 import 统计行#统计
 from .聊天.审批命令 import 审批命令#审批卡
 from .详情.详情面板 import 详情面板#详情
 from .设置.转录视图行 import 转录视图行#设置行
 from .会话节点 import 登记会话节点#会话节点
 from .会话节点.节点工厂 import 聊天错误#本包异常
 
-_=_侧边栏文档预览#保活侧效导入（对齐 documentpreview，非 textpreview）
+_=_侧边栏文档预览#保活侧效导入
 
-__all__=['注入','应用']#仅中文公开名
+__all__=['依赖','应用']#仅中文公开名
 
-注入=[#前置 inject
+依赖=[#前置 inject
     'slots','sessions','uiWorkspace','uiSession','uiConversation','layout','locale',
     'settingsScope','remote','remote.session','sidebarRight',
 ]#依赖
@@ -39,7 +40,6 @@ def 造回合数据(_标准,数据):
 
 def 编码段(段):
     """百分编码一段，冒号保持字面量。"""
-    from urllib.parse import quote as 百分编码#URI 段编码
     return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
 
 def 编码路径(路径):
@@ -136,7 +136,7 @@ def 应用(上下文):
             绑定=上下文.sessions.binding(会话标识)#绑定
             if 绑定 is None:#未知
                 raise 聊天错误('ui-chat: unknown session "'+str(会话标识)+'"')#抛
-            会话=绑定.session#会话对象
+            会话=绑定.session#会话
             聊天=聊天源(绑定)#源
             仓动作=动作 if 动作 is not None else 聊天存储#动作
             def 打开详情(目标):
@@ -148,7 +148,7 @@ def 应用(上下文):
                 上下文.layout.openDetails()#开
             def 存滚动(位置):
                 """null 清除。"""
-                if 位置 is None:#清
+                if 位置 is None:
                     滚动位置.pop(会话标识,None)#删
                 else:#记
                     滚动位置[会话标识]=位置#写
@@ -281,5 +281,5 @@ def 应用(上下文):
         },详情面板)#登记
     上下文.slots.inject('details',登记详情)#挂
 
-inject=注入#Cordis 依赖声明
+inject=依赖#Cordis 依赖声明
 apply=应用#Cordis 插件入口

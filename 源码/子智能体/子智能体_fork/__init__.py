@@ -1,11 +1,11 @@
 from ...依赖.schemastery import 字典字段,字符串字段#配置
 from ..子智能体_in_process_driver import 启动进程内运行#共享驱动
 
-__all__=['名称','注入','配置','应用']#公开面
+__all__=['名称','依赖','配置','应用']#公开面
 
 名称='subagent-fork-in-process'#Cordis 插件名
-注入=['subagents']#依赖
-配置=字典字段({'providerName':字符串字段(默认值='fork')})#配置
+依赖=['subagents']#依赖
+配置=字典字段(字典结构={'providerName':字符串字段(默认值='fork')})#配置
 
 def 已完成回合前缀(父):
     """父已完成回合前的事件前缀。事件为 dict。"""
@@ -46,7 +46,7 @@ def 应用(上下文,配置值):
     上下文.subagents.登记提供方(进程内分叉提供方(名))#登记
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
 default=应用#框架槽

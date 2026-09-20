@@ -1,8 +1,8 @@
 """本应用转发宿主事件白名单的唯一出处。
 
-对齐上游 `remotes/src/remote-events.ts`。公开面仅中文名。配置键、事件名字面量保持上游。
+配置键、事件名字面量保持线协议。
 """
-远程转发事件=(#宿主事件转发白名单；对齐上游 API_REMOTE_FORWARDED_EVENTS
+远程转发事件=(#宿主事件转发白名单
     'agent-preset/selected',#智能体预设已选定
     'approval/request',#审批请求瀑布
     'api-session/activity',#会话活动

@@ -1,24 +1,48 @@
-import threading#寿命中止与后台观察
-from datetime import datetime#创建时解析
-from ...存储 import 创建快照存储#主视图选中持久化
+import re,threading
+from datetime import datetime as 日期时间,timedelta as 时间增量,timezone as 固定时区
+from zoneinfo import ZoneInfo as 时区信息
+from ...存储 import 创建快照存储
 
-__all__=['目录浏览错误','工作区UI服务','最近工作区']#仅中文公开名
+__all__=['工作区错误','目录浏览错误','工作区UI服务','最近工作区']
 
+_创建时刻=re.compile(
+    r'^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(Z|([+-])([0-9]{2}):([0-9]{2}))\Z',
+    re.ASCII,
+)
+
+class 工作区错误(Exception):
+    """本包工作区浏览器失败。"""
 
 class 目录浏览错误(Exception):
     """目录浏览业务失败。"""
     def __init__(自身,rpc错误):
         """rpc错误为 RemoteFailure dict。"""
-        自身.rpcError=rpc错误#业务失败
-        码=rpc错误['code'] if isinstance(rpc错误,dict) and 'code' in rpc错误 else ''#码
-        文=rpc错误['message'] if isinstance(rpc错误,dict) and 'message' in rpc错误 else str(rpc错误)#文
-        super().__init__('directory browse failed: '+str(码)+': '+str(文))#消息原样英文
-        自身.name='DirectoryBrowseError'#错误名
-
+        自身.rpcError=rpc错误
+        码=rpc错误['code'] if isinstance(rpc错误,dict) and 'code' in rpc错误 else ''
+        文=rpc错误['message'] if isinstance(rpc错误,dict) and 'message' in rpc错误 else str(rpc错误)
+        super().__init__('目录浏览失败: '+str(码)+': '+str(文))
+        自身.name='DirectoryBrowseError'
 
 def _创建时毫秒(文):
     """工作区 createdAt 转纪元毫秒；失败则 0。"""
-    return int(datetime.fromisoformat(文.replace('Z','+00:00')).timestamp()*1000)#纪元毫秒
+    匹配=_创建时刻.match(文)
+    if 匹配 is None:
+        return 0
+    try:
+        年,月,日=int(匹配.group(1)),int(匹配.group(2)),int(匹配.group(3))
+        时,分,秒=int(匹配.group(4)),int(匹配.group(5)),int(匹配.group(6))
+        小数=匹配.group(7) if 匹配.group(7) is not None else ''
+        微秒=int((小数+'000000')[:6]) if 小数!='' else 0
+        if 匹配.group(8)=='Z':
+            区=时区信息('UTC')
+        else:
+            偏移=时间增量(hours=int(匹配.group(10)),minutes=int(匹配.group(11)))
+            if 匹配.group(9)=='-':
+                偏移=-偏移
+            区=固定时区(偏移)
+        return int(日期时间(年,月,日,时,分,秒,微秒,tzinfo=区).timestamp()*1000)
+    except ValueError:
+        return 0
 
 
 def 最近工作区(工作区表,会话表):
@@ -76,7 +100,7 @@ class 工作区UI服务:#跨控制器导航与目录
                 工作区=项#记
                 break#止
         if 工作区 is None:#未知
-            raise Exception('uiWorkspace.connectWorkspace: unknown workspace '+str(工作区标识))#抛
+            raise 工作区错误('未知工作区 '+str(工作区标识))
         if 工作区标识 in 自身.connecting:#飞行中
             return 自身.connecting[工作区标识].等待()#共享
         已归档=快['archivedSessionIds']#已归档
@@ -131,8 +155,8 @@ class 工作区UI服务:#跨控制器导航与目录
             return#止
         try:#打开
             自身.openWorkspace(目标)#打开
-        except BaseException as 原因:#失败
-            print('new session failed:',原因)#告警
+        except Exception as 原因:
+            print('新建会话失败:',原因)
 
     def archiveSession(自身,会话标识):
         """归档会话；若为当前则清选中。"""
@@ -148,7 +172,7 @@ class 工作区UI服务:#跨控制器导航与目录
         """打开宿主目录选择器。"""
         结果=自身.directoryPicker.pick().等待()#选
         if not 结果['ok']:#失败
-            raise Exception('directory picker failed: '+str(结果['error']['message']))#抛
+            raise 工作区错误('目录选择失败: '+str(结果['error']['message']))
         return 结果['value']#路径或 None
 
     def listDirectory(自身,路径=None,信号=None):
@@ -197,9 +221,9 @@ class 工作区UI服务:#跨控制器导航与目录
                         自身.sessions.refreshSubagents(已存['subagentAddress']['parentSessionId'])#刷新
                     自身.openSession(已存目标)#打开
                     初始[0]='done'#完成
-                except BaseException as 原因:#失败
-                    初始[0]='waiting'#回等待
-                    print('initial Session restoration failed:',原因)#告警
+                except Exception as 原因:
+                    初始[0]='waiting'
+                    print('初始会话恢复失败:',原因)
                 return#止
             目标=最近工作区(工作区['items'],会话['byId'])#最近
             if 目标 is None:#无
@@ -213,11 +237,11 @@ class 工作区UI服务:#跨控制器导航与目录
                     if 自身.mainReference is None:#仍无主
                         自身.openSession(会话标识)#打开
                     初始[0]='done'#完成
-                except BaseException as 原因:#失败
-                    if 自身.lifetime.is_set():#已中止
-                        return#止
-                    初始[0]='waiting'#回等待
-                    print('initial workspace selection failed:',原因)#告警
+                except Exception as 原因:
+                    if 自身.lifetime.is_set():
+                        return
+                    初始[0]='waiting'
+                    print('初始工作区选定失败:',原因)
             线=threading.Thread(target=观察)#线
             线.daemon=True#守护
             线.start()#启
@@ -254,28 +278,31 @@ class 工作区UI服务:#跨控制器导航与目录
 
     def 替换主视图(自身,目标,信号,打开前=None):
         """占用目标并换主引用。信号为 Event（set=已中止）。"""
-        if 信号.is_set():#已中止
-            raise Exception('aborted')#抛
+        if 信号.is_set():
+            raise 工作区错误('已中止')
         引用=自身.sessions.retain(目标,{'source':'mainView'})#占用
-        try:#准备
-            if 信号.is_set():#再检
-                raise Exception('aborted')#抛
-            if 打开前 is not None:#打开前
-                打开前(引用.sessionId)#回调
-            if 信号.is_set():#被取代
-                引用.release()#释放
-                return#止
-            if isinstance(目标,str):#会话 id
-                子地址=自身.sessions.subagentAddress(引用.sessionId)#反查
-            else:#本就是地址
-                子地址=目标#记下
-            选中={'sessionId':引用.sessionId}#持久化
-            if 子地址 is not None:#有地址
-                选中['subagentAddress']=子地址#带上
-            自身.selection.set(选中)#写
-        except BaseException:#失败
-            引用.release()#释放
-            raise#再抛
+        已交接=False
+        try:
+            if 信号.is_set():
+                raise 工作区错误('已中止')
+            if 打开前 is not None:
+                打开前(引用.sessionId)
+            if 信号.is_set():
+                return
+            if isinstance(目标,str):
+                子地址=自身.sessions.subagentAddress(引用.sessionId)
+            else:
+                子地址=目标
+            选中={'sessionId':引用.sessionId}
+            if 子地址 is not None:
+                选中['subagentAddress']=子地址
+            自身.selection.set(选中)
+            已交接=True
+        finally:
+            if not 已交接:
+                引用.release()
+        if not 已交接:
+            return
         旧=自身.mainReference#旧
         自身.mainReference=引用#换新
         if 旧 is not None:#有旧

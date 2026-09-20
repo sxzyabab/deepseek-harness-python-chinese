@@ -1,5 +1,5 @@
 import builtins,json,threading,time#全局、JSON、线程与轮询
-from urllib.parse import urlencode,urljoin#URL 拼装
+from urllib.parse import urlencode as 编查询,urljoin as 拼接URL
 import urllib.request as 请求库#标准库 HTTP
 from ....依赖 import cordis#Cordis
 服务=cordis.服务#服务基类
@@ -141,7 +141,7 @@ def 文件上传工作体(回传,创建请求=None,执行fetch=None):#Worker 语
                 return#Blob 支结束
             if not 是否流式正文(正文):#非法体
                 回传({'kind':'error','message':'background upload worker received an invalid body'})#回传错误
-                return#结束
+                return
             def 流进度(进度):#转发进度
                 """无总量。"""
                 回传({'kind':'progress','loaded':进度['loaded']})#报告
@@ -175,7 +175,7 @@ def 解析网址(路径):#相对路径解析为绝对 URL
         基='http://dsh.internal'#内部基
     else:#有源
         基=源#用页面源
-    return urljoin(基.rstrip('/')+'/',路径.lstrip('/') if 路径.startswith('/') else 路径)#解析
+    return 拼接URL(基.rstrip('/')+'/',路径.lstrip('/') if 路径.startswith('/') else 路径)
 
 def 自定义载体(自定义fetch):#页面自有载体
     """经页面 Fetch 钩子投递。"""
@@ -321,7 +321,7 @@ class 文件上传运行时(服务):#上传运行时
             查询={'sessionId':str(会话标识)}#会话查询
             if 名 is not None:#可选名
                 查询['name']=名#写入
-            路径=文件上传路径+'?'+urlencode(查询)#带查询路径
+            路径=文件上传路径+'?'+编查询(查询)
             请求={#经后台载体
                 'path':路径,#路径
                 'body':数据,#字节或流

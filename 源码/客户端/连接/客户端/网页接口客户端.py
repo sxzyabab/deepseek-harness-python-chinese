@@ -1,6 +1,6 @@
 import builtins,json,time#全局、JSON、短等
 import urllib.request as 请求库#标准库
-from urllib.parse import urljoin,urlparse,urlunparse#拼基址与改协议
+from urllib.parse import urljoin as 拼接URL,urlparse as 解析URL,urlunparse as 组合URL
 from ....host.apiproxy.接口.事件模式 import 宿主帧模式,复用帧模式#宿主/复用帧模式
 from ....host.apiproxy.接口.rpc模式 import 服务端请求模式#服务端请求模式
 from ..接口路径 import 宿主事件路径,复用事件路径#两条事件路径
@@ -36,9 +36,9 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
     def _读网页套接字(自身,路径,信号,帧模式,打开回调=None):#把一条仅下行 WebSocket 变成迭代
         """产出 RPC 信封；畸形帧丢掉。"""
         基=自身.resolveBase()#基址
-        解析=urlparse(urljoin(基.rstrip('/')+'/',路径.lstrip('/')))#相对当前页解析
-        协议='wss' if 解析.scheme=='https' else 'ws'#HTTP→WS，HTTPS→WSS
-        地址=urlunparse((协议,解析.netloc,解析.path,解析.params,解析.query,解析.fragment))#套接字 URL
+        解析=解析URL(拼接URL(基.rstrip('/')+'/',路径.lstrip('/')))
+        协议='wss' if 解析.scheme=='https' else 'ws'
+        地址=组合URL((协议,解析.netloc,解析.path,解析.params,解析.query,解析.fragment))
         收件箱=[]#已到未取的项
         结束旗={'done':False}#流结束
         套接字={'v':None}#稍后赋值

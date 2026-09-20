@@ -1,4 +1,4 @@
-"""持久提供方报告 token 用量与上下文占用的纯折叠。对齐上游 `token-meter/src/usage-projection.ts`。公开面仅中文名。"""
+"""持久提供方报告 token 用量与上下文占用的纯折叠。公开面仅中文名。"""
 from ..llm.助手流 import 末次助手流块#末次 usage 块
 from .类型 import 计量错误#计量异常
 from .表面投影 import 折叠表面投影#O(1)表面折叠

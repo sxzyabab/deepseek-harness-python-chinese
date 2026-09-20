@@ -1,20 +1,20 @@
-from ...未实现失败 import 未实现失败#导入未实现桩
+from ...未实现失败 import 未实现失败
 
-__all__=[#Node面
+__all__=[
     'Script','createContext','runInContext','runInNewContext','runInThisContext','isContext',
     '__esModule','default',
-]#公开结束
+]
 
-模块='node:vm'#模块说明符
-Script=未实现失败(模块,'Script')#Script拒绝桩
-createContext=未实现失败(模块,'createContext')#createContext拒绝桩
-runInContext=未实现失败(模块,'runInContext')#runInContext拒绝桩
-runInNewContext=未实现失败(模块,'runInNewContext')#runInNewContext拒绝桩
-runInThisContext=未实现失败(模块,'runInThisContext')#runInThisContext拒绝桩
-isContext=未实现失败(模块,'isContext')#isContext拒绝桩
-__esModule=True#CJS互操作标记
+模块='node:vm'
+Script=未实现失败(模块,'Script')
+createContext=未实现失败(模块,'createContext')
+runInContext=未实现失败(模块,'runInContext')
+runInNewContext=未实现失败(模块,'runInNewContext')
+runInThisContext=未实现失败(模块,'runInThisContext')
+isContext=未实现失败(模块,'isContext')
+__esModule=True
 
-default={#默认导出成员
-    'Script':Script,'createContext':createContext,'runInContext':runInContext,#求值
-    'runInNewContext':runInNewContext,'runInThisContext':runInThisContext,'isContext':isContext,#上下文
-}#默认导出结束
+default={
+    'Script':Script,'createContext':createContext,'runInContext':runInContext,
+    'runInNewContext':runInNewContext,'runInThisContext':runInThisContext,'isContext':isContext,
+}

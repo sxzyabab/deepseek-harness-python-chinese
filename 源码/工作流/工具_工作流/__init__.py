@@ -1,16 +1,16 @@
-"""面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值。它拥有面向模型的模式与运行生命周期；脚本解析、执行、上限与取消放在 `ctx.workflowEngine`（`@deepseek-ai/dsh-workflow`）后面，因此换上加固引擎不必改动模型所见。执行会等待运行结果并始终销毁运行；非 completed 原因变成工具错误，后台收集仍推迟。展示是仅依赖 args 的通用卡片，标题来自 `meta.name`。显式询问的用法指引登记为工具自己的提示词段落，而不是部署人设散文。"""
+"""面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值。它拥有面向模型的模式与运行生命周期；脚本解析、执行、上限与取消放在 `ctx.workflowEngine`（`@deepseek-ai/dsh-workflow`）后面，因此换上加固引擎不必改动模型所见。执行会等待运行结果并始终销毁运行；非 completed 原因变成工具错误，后台收集仍推迟。呈现是仅依赖 args 的通用卡片，标题来自 `meta.name`。显式询问的用法指引登记为工具自己的提示词段落，而不是部署人设散文。"""
 import json#结果 JSON 渲染
 from ...依赖.schemastery import 字符串字段,自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
 
 __all__=[#仅中文公开名；Cordis 英文槽不入表
-    '名称','注入','配置','描述','渲染记录错误',
+    '名称','依赖','配置','描述','渲染记录错误',
     '创建工作流记录器','呈现工作流调用','呈现工作流结果','停止原因错误',
     '渲染结果','解析配置','应用','工作流工具错误',
 ]#公开面结束
 
 名称='tool-workflow'#Cordis 插件名
-注入=['tools','workflowEngine','systemPrompt']#依赖工具、工作流引擎与系统提示词
+依赖=['tools','workflowEngine','systemPrompt']#依赖工具、工作流引擎与系统提示词
 配置={#插件配置：面向模型的工具名以及结果渲染上限
     'toolName':字符串字段(默认值='workflow'),#要登记的面向模型的工具名（默认 workflow）
     'maxResultChars':自然数字段(最小=1,默认值=50_000),#渲染结果的字符上限（默认 50000）
@@ -133,8 +133,8 @@ def 呈现工作流调用(参数):#渲染调用中卡片
 
 def 呈现工作流结果(参数,结果):#渲染完成后卡片
     """完成态卡片：保留进行中标题；结果内容原样渲染。"""
-    _=参数#展示不依赖参数
-    _=结果#展示不依赖结果内容
+    _=参数#呈现不依赖参数
+    _=结果#呈现不依赖结果内容
     return {'card':'generic'}#只声明仍用通用卡片
 
 def 停止原因错误(结果):#把停止原因映射为工具错误文案
@@ -162,7 +162,7 @@ def 渲染结果(名称值,已启动智能体数,返回值,最大字节):#把结
 def 解析配置(配置值):#取出已解析配置
     """schemastery 已填好带默认值的字段；此步骤记录该解析，不是隐藏回退。配置值是 dict。"""
     工具名=配置值['toolName'] if 'toolName' in 配置值 else 'workflow'#工具名
-    最大字节=配置值['maxResultChars'] if 'maxResultChars' in 配置值 else 50000#结果字节上限（字段名沿用上游）
+    最大字节=配置值['maxResultChars'] if 'maxResultChars' in 配置值 else 50000#结果字节上限
     return {'toolName':工具名,'maxResultChars':最大字节}#已解析
 
 def 应用(上下文,配置值=None):#登记工作流工具与用法段落
@@ -279,11 +279,11 @@ def 应用(上下文,配置值=None):#登记工作流工具与用法段落
             'render':渲染输出,#把结构化结果渲成文本块
         },#结束输出模式
         'execute':执行,#执行一次工作流工具调用
-        'presentCall':呈现工作流调用,#调用中展示
-        'presentResult':呈现工作流结果,#完成后展示
+        'presentCall':呈现工作流调用,#调用中呈现
+        'presentResult':呈现工作流结果,#完成后呈现
     }))#结束工具登记
 
 name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
+inject=依赖#Cordis 依赖槽
 Config=配置#Cordis 配置槽
 apply=应用#Cordis 入口槽

@@ -22,7 +22,7 @@ def 请求(目标,方法,参数=None,信号=None):#发一条
         中止时()#拒绝
     if 信号 is not None:#有信号
         threading.Thread(target=监视,daemon=True).start()#监视
-    def 收():#收应答
+    def 收取应答():#收应答
         """等应答。"""
         try:#收
             原始=应答箱.get()#应答
@@ -35,7 +35,7 @@ def 请求(目标,方法,参数=None,信号=None):#发一条
                 任务.拒绝(Exception(原始.get('error') if isinstance(原始.get('error'),str) else 'Stagehand Worker request canceled'))#拒绝
         except Exception as 错误:#失败
             任务.拒绝(错误)#拒绝
-    threading.Thread(target=收,daemon=True).start()#收
+    threading.Thread(target=收取应答,daemon=True).start()#收
     try:#投递
         目标.put({'method':方法,'args':参数,'reply':应答箱})#投递
     except Exception as 错误:#失败
@@ -45,12 +45,12 @@ def 请求(目标,方法,参数=None,信号=None):#发一条
 def 应答(原始,执行):#答一条
     """校验并应答一条请求。原始是 dict。"""
     if not isinstance(原始,dict):#非法
-        raise Exception('Stagehand Worker request')#失败
+        raise Exception('Stagehand 工作者请求')
     方法=原始.get('method')#方法
     参数=原始.get('args')#参数
     应答箱=原始.get('reply')#通道
     if not isinstance(方法,str) or 应答箱 is None:#非法
-        raise Exception('Stagehand Worker request')#失败
+        raise Exception('Stagehand 工作者请求')
     try:#执行
         值=执行(方法,参数)#执行
         应答箱.put({'ok':True,'value':值})#成功

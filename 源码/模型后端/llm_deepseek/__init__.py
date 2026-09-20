@@ -1,4 +1,4 @@
-"""在 ctx.llm 上为 deepseek-official 提供方路由注册 DeepSeek 适配器。"""
+"""向 llm 注册 deepseek-official 提供方适配器。"""
 from ..llm import (
     断言可用接口密钥,#密钥判定
     大模型错误,#LLM错误
@@ -67,7 +67,7 @@ from .协议.对话补全.类型 import (
 )#类型再导出结束
 
 __all__=(#仅中文公开名
-    '名称','注入','配置','应用','默认',
+    '名称','依赖','配置','应用','默认',
     '设置空间','公开基址','消息基址','解析适配器选项','深求配置错误',
     '默认上下文窗口','默认文件过期秒','默认文件配额清理批','默认文件刷新边距秒',
     '默认文件接口超时毫秒','默认图片卸载字节量子','默认图片卸载张数量子',
@@ -86,11 +86,11 @@ __all__=(#仅中文公开名
 )#公开面结束
 
 名称='llm-deepseek'#插件名
-注入=['llm']#依赖 llm 服务
+依赖=['llm']#依赖 llm 服务
 设置空间=设置命名空间('llm-deepseek')#设置命名空间
 提供方='deepseek-official'#官方路由名
 
-def 应用(上下文对象,原始配置=None):#加载插件
+def 应用(上下文,原始配置=None):#加载插件
     """加载插件：按请求解析连接事实并注册路由。"""
     if 原始配置 is None:#未传配置
         原始配置={}#空配置
@@ -107,7 +107,7 @@ def 应用(上下文对象,原始配置=None):#加载插件
         if 原始 is 上次原始 and 上次成功 is not None:#同一快照则复用
             return 上次成功#复用
         try:#解析
-            下一份=解析适配器选项(原始,取启动环境(上下文对象))#显式解析
+            下一份=解析适配器选项(原始,取启动环境(上下文))#显式解析
             上次原始=原始#记下原始
             上次成功=下一份#记下成功
             return 下一份#新事实
@@ -115,20 +115,20 @@ def 应用(上下文对象,原始配置=None):#加载插件
             if 上次成功 is None:#加载时没有上次成功则失败
                 raise 错误#失败
             上次原始=原始#记下坏快照以免每请求都报
-            上下文对象.日志.错误('llm-deepseek: keeping the last good configuration after an invalid settings section')#保留上次成功
-            上下文对象.日志.错误(错误)#附带错误
+            上下文.日志.错误('llm-deepseek: keeping the last good configuration after an invalid settings section')#保留上次成功
+            上下文.日志.错误(错误)#附带错误
             return 上次成功#继续用上次成功
     选项()#加载时先解析一次，失败则大声
     def 解析接口密钥(连接):#按快照解析密钥
         """按快照解析密钥。"""
         引用=连接['apiKeyEnv']#本快照的引用
-        凭证=上下文对象.获取服务('credentials')#可选凭证服务
-        if 凭证 is not None:#有seam
+        凭证=上下文.获取服务('credentials')#可选凭证服务
+        if 凭证 is not None:#优先走凭证服务
             命中=凭证.解析(引用)#解析引用
             if 命中 is not None:#命中
                 return 断言可用接口密钥(命中['value'],'llm-deepseek',引用)#命中则判定
-        else:#没有seam
-            环境项=取启动环境(上下文对象).取(引用)#环境层
+        else:#无凭证服务则读启动环境
+            环境项=取启动环境(上下文).取(引用)#环境层
             if 环境项 is not None and len(环境项['value'])>0:#有非空值
                 return 断言可用接口密钥(环境项['value'],'llm-deepseek',引用)#判定
         缺密钥文案='llm-deepseek: no API key for provider route "'+提供方+'"; store '+str(引用)+' through the credentials service (the web Models page writes it), or export '+str(引用)+' in the launching environment'#缺失凭证文案
@@ -142,10 +142,10 @@ def 应用(上下文对象,原始配置=None):#加载插件
         return 用户标识#匿名id
     def 解析附件():#当前附件仓
         """当前附件服务；缺席对纯文本合法。"""
-        return 上下文对象.获取服务('attachments')#仓
+        return 上下文.获取服务('attachments')#仓
     def 解析图片访问(附件仓,引用):#图片访问
         """把附件仓上的宿主路径桥进已挂载的工具执行世界。"""
-        文件系统=上下文对象.获取服务('fs')#可选 fs
+        文件系统=上下文.获取服务('fs')#可选 fs
         def 映射宿主路径(宿主路径):#映射
             """宿主对象位置到进程路径。"""
             if 文件系统 is None:#无 fs
@@ -154,7 +154,7 @@ def 应用(上下文对象,原始配置=None):#加载插件
         return 解析图片附件访问(附件仓,映射宿主路径,引用)#访问
     def 准备扩展(请求):#请求扩展
         """准备插件贡献字段。"""
-        扩展=上下文对象.获取服务('deepseekLlmApiExtensions')#注册表
+        扩展=上下文.获取服务('deepseekLlmApiExtensions')#注册表
         if 扩展 is None:#无
             def 接纳():#空
                 """无贡献。"""
@@ -163,7 +163,7 @@ def 应用(上下文对象,原始配置=None):#加载插件
         return 扩展.准备(请求)#准备
     def 回放降级(细节):#回放降级
         """报告不可用消息回放，不暴露耐久内容或签名。"""
-        上下文对象.日志.警告('llm-deepseek: unusable Messages replay state on assistant history for route "'+str(细节['provider'])+'/'+str(细节['model'])+'"; sending provider-neutral content ('+str(细节['reason'])+')')#警告
+        上下文.日志.警告('llm-deepseek: unusable Messages replay state on assistant history for route "'+str(细节['provider'])+'/'+str(细节['model'])+'"; sending provider-neutral content ('+str(细节['reason'])+')')#警告
     适配器=深求适配器({
         '选项':选项,#连接
         '解析接口密钥':解析接口密钥,#密钥
@@ -173,10 +173,10 @@ def 应用(上下文对象,原始配置=None):#加载插件
         '准备扩展':准备扩展,#扩展
         '回放降级':回放降级,#降级
     })#构造适配器
-    上下文对象.llm.注册可配置提供方([
+    上下文.llm.注册可配置提供方([
         {'provider':提供方,'displayName':'DeepSeek','settingsNs':设置空间,'settingsPath':[]},#官方路由
     ])#声明可配置提供方
-    登记=上下文对象.llm.注册适配器([提供方],适配器)#注册路由
+    登记=上下文.llm.注册适配器([提供方],适配器)#注册路由
     已登记政策=选项()['retryPolicy']#注册时捕获的政策
     def 确保登记事实():#政策变了则就地替换
         """政策变了则就地替换。"""
@@ -190,14 +190,14 @@ def 应用(上下文对象,原始配置=None):#加载插件
         """替换配置源。"""
         nonlocal 当前#配置源
         当前=源#此后选项()读设置
-    安装设置段(上下文对象,设置空间,配置,原始配置,{
-        'setSource':设源,#设置缝钩子字段字面量
+    安装设置段(上下文,设置空间,配置,原始配置,{
+        'setSource':设源,#设置段钩子字段字面量
         'onChange':确保登记事实,#变更时刷新注册捕获的政策
     })#安装设置段
 
-默认=应用#默认导出该插件入口
+默认=应用
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
 default=应用#框架槽

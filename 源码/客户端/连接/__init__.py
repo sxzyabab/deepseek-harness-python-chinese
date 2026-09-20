@@ -1,4 +1,4 @@
-from urllib.parse import urlparse#取路径
+from urllib.parse import urlparse as 解析URL
 from ...依赖.schemastery import 列表字段,字符串字段,自然数字段#配置字段
 from .接口路径 import 接口路径,复用事件路径,宿主事件路径#API 与事件路径常量
 from .http桥 import 桥接,默认最大请求正文字节#HTTP 桥与默认正文上限
@@ -9,7 +9,7 @@ from .rpc import 连接错误,连接权威_受信任宿主,连接权威_回环#�
 
 __all__=[#仅中文公开名
     '名称',
-    '注入',
+    '依赖',
     '配置',
     '应用',
     '宿主连接服务',
@@ -18,10 +18,10 @@ __all__=[#仅中文公开名
     '宿主事件路径',
     '连接权威_受信任宿主',
     '连接权威_回环',
-]#公开面结束
+]
 
 名称='client-connection'#插件名
-注入=['webServer']#只硬依赖 web 服务器
+依赖=['webServer']#只硬依赖 web 服务器
 请求信封余量字节=1024*1024#信封余量 1MiB
 配置={#连接插件配置
     'trustedHosts':列表字段(字符串字段(),默认值=[]),#默认无额外受信任 Host
@@ -56,9 +56,9 @@ def 断言图像正文容量(上下文,最大请求正文字节):#正文上限�
     if 最大请求正文字节<所需:#配置上限不够
         raise 连接错误('client-connection maxRequestBodyBytes ('+str(最大请求正文字节)+') must be at least '+str(所需)+' for the configured aggregate image limit')#加载期大声失败
 
-def 经网关fetch(网关,请求):#对齐上游 toFetchHandler(apiProxy).fetch
+def 经网关fetch(网关,请求):
     """把请求交给网关的 fetch 面。"""
-    from ...宿主.apiproxy import 转fetch处理#宿主网关 → fetch 面（对齐上游 toFetchHandler）
+    from ...宿主.apiproxy import 转fetch处理#宿主网关 → fetch 面
     return 转fetch处理(网关).fetch(请求)#派发
 
 def 应用(上下文,配置值=None):#安装连接插件
@@ -76,7 +76,7 @@ def 应用(上下文,配置值=None):#安装连接插件
     连接=宿主连接服务(上下文,受信任主机表)#宿主连接服务
     def 回退fetch(请求):#处理未命中 RPC 的 /api 请求
         """共享 fetch 回退。"""
-        路径名=urlparse(请求['url'] if 'url' in 请求 else '').path#取出路径
+        路径名=解析URL(请求['url'] if 'url' in 请求 else '').path
         方法名=None#方法名
         if 路径名.startswith(接口路径+'/'):#是否 /api/<method>
             方法名=路径名[len(接口路径)+1:]#切出方法名
@@ -134,6 +134,6 @@ def 应用(上下文,配置值=None):#安装连接插件
     上下文.依赖启动(['apiProxy'],挂下行)#等 apiProxy 出现
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽

@@ -1,51 +1,51 @@
-import os,json,errno,threading,time,io,yaml,queue#路径、JSON、错误码、线程、时间与内存流
-from concurrent.futures import Future as 原生结果#单次操作结果
-from ...依赖 import cordis#外部依赖胶水
-from ...依赖.schemastery import 字符串字段,布尔字段,数字字段#配置字段
-from ...工具.原子写入 import 带文件锁,原子写文件#跨进程写锁与原子替换
-from ...工具.工作区路径 import 规范化监视路径,解析主目录#监视路径与harness主目录
-from ..配置 import 设置提供方,json深度相等#设置服务基类与JSON深等
+import os,json,errno,threading,time,io,yaml,queue
+from concurrent.futures import Future as 原生结果
+from ...依赖 import cordis
+from ...依赖.schemastery import 字符串字段,布尔字段,数字字段
+from ...工具.原子写入 import 带文件锁,原子写文件
+from ...工具.主目录路径 import 规范化监视路径,解析主目录
+from ..配置 import 设置提供方,json深度相等
 
-格式表={#扩展名到格式
-    '.yaml':'yaml',#YAML
-    '.yml':'yaml',#YAML别名
-    '.json':'json',#JSON
-}#扩展名到格式
+格式表={
+    '.yaml':'yaml',
+    '.yml':'yaml',
+    '.json':'json',
+}
 
-配置模式={#插件配置字段
-    'path':字符串字段(),#文档路径
-    'dshHome':字符串字段(),#主目录
-    'watch':布尔字段(默认值=True),#默认监视
-    'debounceMs':数字字段(最小=0,默认值=100),#默认防抖
-}#插件配置模式
+配置模式={
+    'path':字符串字段(),
+    'dshHome':字符串字段(),
+    'watch':布尔字段(默认值=True),
+    'debounceMs':数字字段(最小=0,默认值=100),
+}
 
 class 配置文件错误(Exception):
     """文件设置提供方失败。"""
-    pass#消息在构造时传入
+    pass
 
 class 操作任务:
     """单次入队操作的 Future 包装。只留 等待。"""
     def __init__(自身):
         """构造未决任务。"""
-        自身.底层=原生结果()#底层 Future
+        自身.底层=原生结果()
 
     def 兑现(自身,值=None):
         """成功结算。"""
-        if not 自身.底层.done():#尚未结算
-            自身.底层.set_result(值)#写入结果
-        return 值#返回兑现值
+        if not 自身.底层.done():
+            自身.底层.set_result(值)
+        return 值
 
     def 拒绝(自身,错误):
         """失败结算。"""
-        if not 自身.底层.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.底层.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.底层.set_exception(配置文件错误(错误))#包装拒绝
+        if not 自身.底层.done():
+            if isinstance(错误,BaseException):
+                自身.底层.set_exception(错误)
+            else:
+                自身.底层.set_exception(配置文件错误(错误))
 
     def 等待(自身,超时=None):
         """阻塞等到结算。"""
-        return 自身.底层.result(timeout=超时)#取结果或抛错
+        return 自身.底层.result(timeout=超时)
 
 class 串行操作链:
     """单工作者线程串行跑文档操作。"""
@@ -53,7 +53,7 @@ class 串行操作链:
         """启动工作者线程。"""
         自身.队列=queue.Queue()#待跑操作
         自身.工作者=threading.Thread(target=自身.执行操作循环,daemon=True)#工作者
-        自身.工作者.start()#启动
+        自身.工作者.start()
 
     def 执行操作循环(自身):
         """逐项执行入队操作。"""
@@ -230,7 +230,7 @@ class 文档监视器:#轮询监视
         """启动轮询线程。"""
         自身.线程=threading.Thread(target=自身.执行监视循环)#工作线程
         自身.线程.daemon=True#不挡住退出
-        自身.线程.start()#启动
+        自身.线程.start()
 
     def 关闭(自身):#停止轮询
         """停止轮询并等待线程退出。"""
@@ -332,7 +332,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
                 自身.ctx.日志.错误(错误)#记原因
         观察=threading.Thread(target=收住)#后台观察
         观察.daemon=True#不挡住退出
-        观察.start()#启动
+        观察.start()
 
     def 准备文档(自身):#物化缺失文档
         """物化一份缺失的仅所有者文档，再返回其已解析路径。"""
@@ -482,7 +482,7 @@ class 文件设置提供方(设置提供方):#文件设置提供方
         if 文本 is None:#文件没了
             自身.文本=None#清缓存
             自身.发布({})#发布空文档
-            return#结束
+            return
         文档=自身.解析(文本)#解析
         自身.文本=文本#记下缓存
         自身.发布(文档)#发布段落
@@ -536,4 +536,4 @@ Config=配置模式#Cordis配置模式
 默认=文件设置提供方#中文默认导出
 default=文件设置提供方#Cordis默认导出
 
-__all__=['文件设置提供方','配置模式','Config','默认','default']#公开面
+__all__=['文件设置提供方','配置模式','默认']#公开面（框架槽Config/default不入）

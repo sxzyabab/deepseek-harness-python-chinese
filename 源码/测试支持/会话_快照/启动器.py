@@ -86,7 +86,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
     工作目录=选项['cwd']#工作目录
     选定配置=选项.get('configPath') or 智能体['configPath']#选定配置
     配置参数=(#配置参数
-        ['--config',选定配置] if 智能体.get('profile') is None
+        ['--config',选定配置] if 'profile' not in 智能体
         else 配置档参数(智能体['profile'],智能体['configPath'],选定配置,(选项.get('env') or {}).get('DSH_SNAPSHOT'),工作目录)
     )#参数结束
     启动覆盖={'sourceImport':'tsx/esm'} if 智能体.get('profile') is not None else {}#esm 钩子
@@ -237,14 +237,14 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
     def 关闭(信号名=None):#关闭
         """关闭进程并排空流。"""
         if not 仍在运行(子进程):#已停
-            return#结束
+            return
         if 信号名 is None:#优雅
             if 子进程.stdin:#关 stdin
                 子进程.stdin.close()#关闭
         else:#信号
             子进程.send_signal(getattr(__import__('signal'),信号名,getattr(__import__('signal'),'SIGTERM')))#发信号
         if 宽限内已退出(子进程,退出标记宽限毫秒/1000):#已退出
-            return#结束
+            return
         子进程.kill()#强制
         子进程.wait()#等
     return {#已启动句柄

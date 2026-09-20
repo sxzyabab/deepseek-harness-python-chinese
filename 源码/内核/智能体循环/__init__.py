@@ -1,9 +1,10 @@
 import uuid,threading#随机身份与工作线程
+from queue import Queue as 队列,Full as 队列已满#单次落定门与已满
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据,聚合错误#读事件总线内部成员；拆除失败聚合
 from ...依赖.schemastery import 字符串字段,整数字段,列表字段#配置字段
 服务=cordis.服务#服务基类
-光纤状态=cordis.纤程状态#光纤/纤程状态
+纤程状态=cordis.纤程状态#纤程/纤程状态
 from ...模型后端.llm import 错误链,结构化克隆#把未知错误链成日志串；深拷贝头
 from ...配置.配置 import 设置命名空间,安装设置段#设置段安装与命名空间
 from ..会话 import 会话标识,会话准备,中断轮次关闭器#会话 id、准备句柄与中断关闭器
@@ -19,9 +20,10 @@ from .中止与并发 import (
     包装中止错误,#包装创建中止
     循环错误,#本包异常基类
     中止错误,#中止异常
-    全部并发,#并发等全部
-    赛跑,#最先结算胜出
-    操作任务,#单次异步结果
+    全部等待,#并发等全部 Queue
+    赛跑取值,#最先落定胜出
+    放入成功,#成功写入 Queue(1)
+    放入失败,#失败写入 Queue(1)
     等待队列结果,#阻塞取出 Queue(1)
 )
 
@@ -34,7 +36,7 @@ __all__=(#仅中文公开名；Cordis 槽不入表
 )#公开面结束
 
 生成UUID=uuid.uuid4#随机 UUID
-不活动状态=frozenset((光纤状态.卸载中,光纤状态.已释放,光纤状态.失败))#不能拥有或服务新生命周期的光纤状态
+不活动状态=frozenset((纤程状态.卸载中,纤程状态.已拆除,纤程状态.失败))#不能拥有或服务新生命周期的纤程状态
 配置智能体身份键='configuredAgentIdentities'#启动器身份表键
 智能体循环设置命名空间=设置命名空间('agent-loop')#agent-loop 设置命名空间
 智能体循环设置模式={
@@ -82,12 +84,12 @@ def 轮次边界应用(状态,事件):
 
 class 工厂所有权:
     """工厂级所有权：在线 Agent 拆除，外加配置启动工作。"""
-    def __init__(自身,光纤):
-        """记下所属光纤。"""
-        自身.光纤=光纤#所属光纤
+    def __init__(自身,纤程):
+        """记下所属纤程。"""
+        自身.纤程=纤程#所属纤程
         自身.接受中=True#是否仍接受新工作
         自身.拆除控制器=中止控制器()#工厂拆除信号
-        自身.失活=操作任务()#拆除开始时兑现
+        自身.失活=队列(1)#拆除开始时写入
         自身.在线智能体=set()#在线 Agent 拆除器
         自身.启动任务=set()#配置启动任务
 
@@ -98,7 +100,7 @@ class 工厂所有权:
 
     def 是否活动(自身):
         """工厂是否仍可服务。"""
-        return 自身.接受中 and 自身.光纤.state not in 不活动状态#仍接受且光纤活动
+        return 自身.接受中 and 自身.纤程.state not in 不活动状态#仍接受且纤程活动
 
     def 跟踪(自身,拆除):
         """跟踪一个在线 Agent 的共享拆除，直到它跑完。"""
@@ -117,44 +119,44 @@ class 工厂所有权:
         def 收尾():
             """成败都忘掉。"""
             try:
-                任务.等待()#等待操作任务
+                等待队列结果(任务)#等待 Queue(1)
             except BaseException:
                 pass#失败也忘掉
             忘掉()#从集合删掉
         工作=threading.Thread(target=收尾)#收尾线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
 
     def 跟踪续体(自身,任务):
         """加入一次公开 create/resume 续体；工厂 dispose 等待它落定。"""
-        吞=操作任务()#吞结果只等落定
-        def 收():
+        吞=队列(1)#吞结果只等落定
+        def 吞掉续体结果():
             """吞掉成败。"""
             try:
-                任务.等待()#等待操作任务
+                等待队列结果(任务)#等待 Queue(1)
             except BaseException:
-                pass#吞失败
-            吞.兑现()#落定
-        工作=threading.Thread(target=收)#收尾线程
+                pass失败
+            放入成功(吞)#落定
+        工作=threading.Thread(target=吞掉续体结果)#收尾线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         自身.跟踪启动(吞)#登记启动任务
 
     def 活动期内等待(自身,任务):
         """等待任务兑现，或在工厂拆除开始时停止等待。"""
-        赛跑([任务,自身.失活])#任务或拆除，先到先停
+        赛跑取值([任务,自身.失活])#任务或拆除，先到先停
 
     def 拆除(自身):
         """拆除工厂。"""
         自身.接受中=False#不再接受新工作
         自身.拆除控制器.中止(循环错误('agent loop is not active'))#中止进行中的等待
-        自身.失活.兑现()#放开活动期内等待
+        放入成功(自身.失活)#放开活动期内等待
         任务列表=[]#并行排空
         for 拆除器 in list(自身.在线智能体):
             任务列表.append(拆除器())#每个在线 Agent
         for 启动 in list(自身.启动任务):
             任务列表.append(启动)#每个启动任务
-        全部并发(任务列表)#并行排空
+        全部等待(任务列表)#并行排空
 
 class 穿透配置:
     """已解析配置，并行上限每次从设置源读取。"""
@@ -251,9 +253,10 @@ def 拆除作用域(作用域对象):
 
 class 智能体循环(服务):
     """具体 Agent 工厂与驱动服务。"""
-    def __init__(自身,ctx,配置):
+    依赖=['agents','sessions','llm','tools','systemPrompt','sessionProjections']
+    def __init__(自身,上下文,配置):
         """构造工厂。"""
-        super().__init__(ctx,'agentLoop')#注册为 agentLoop
+        super().__init__(上下文,'agentLoop')#注册为 agentLoop
         入口={'maxParallelToolCalls':解析并行上限(配置['maxParallelToolCalls'] if 'maxParallelToolCalls' in 配置 else None)}#设置段初值
         def 读入口():
             """当前设置源。"""
@@ -272,29 +275,29 @@ class 智能体循环(服务):
         def 变更():
             """上限没有派生物。"""
             return#无派生，空操作
-        条目列表=叠启动器身份(配置['agents'] if 'agents' in 配置 and 配置['agents'] is not None else [],ctx.获取服务(配置智能体身份键))#叠启动器身份
+        条目列表=叠启动器身份(配置['agents'] if 'agents' in 配置 and 配置['agents'] is not None else [],上下文.获取服务(配置智能体身份键))#叠启动器身份
         自身.配置=穿透配置(配置,条目列表,读上限)#已解析配置
-        安装设置段(ctx,智能体循环设置命名空间,智能体循环设置模式,入口,{
+        安装设置段(上下文,智能体循环设置命名空间,智能体循环设置模式,入口,{
             'validate':校验,#校验新上限
             'setSource':设源,#切换设置源
             'onChange':变更,#无派生
         })#安装用户设置段
         校验配置智能体(自身.配置.智能体列表)#加载时拒绝身份冲突
-        ctx.sessionProjections.登记(轮次边界投影定义)#登记轮次边界投影
-        ctx.sessionProjections.登记(收件箱投影定义)#登记收件箱投影
-        自身.所有权=工厂所有权(ctx.纤程)#铸造所有权账本
-        自身.运行时={'ctx':ctx}#保住未追踪上下文
+        上下文.sessionProjections.登记(轮次边界投影定义)#登记轮次边界投影
+        上下文.sessionProjections.登记(收件箱投影定义)#登记收件箱投影
+        自身.所有权=工厂所有权(上下文.纤程)#铸造所有权账本
+        自身.运行时={'ctx':上下文}#保住未追踪上下文
         def 拆除工厂():
             """fiber 拆除时排空所有权。"""
             def 拆除():
                 """排空所有权。"""
                 自身.所有权.拆除()#拆除工厂
             return 拆除#拆除器
-        ctx.副作用(拆除工厂,'agentLoop.transactions()')#fiber 拆除时排空所有权
+        上下文.副作用(拆除工厂,'agentLoop.transactions()')#fiber 拆除时排空所有权
         def 登记工厂():
             """登记为本工厂。"""
-            return ctx.agents.设工厂(自身)#登记
-        ctx.副作用(登记工厂,'agentLoop.setFactory()')#登记为本工厂
+            return 上下文.agents.设工厂(自身)#登记
+        上下文.副作用(登记工厂,'agentLoop.setFactory()')#登记为本工厂
         def 提供方变量(上下文):
             """提示词变量：提供方。"""
             智能体=上下文['agent'] if 'agent' in 上下文 else None#当前 Agent
@@ -313,9 +316,9 @@ class 智能体循环(服务):
             if 智能体 is None:
                 return None#无 Agent
             return 智能体.session.header['cwd'] if 智能体.session.header is not None and 'cwd' in 智能体.session.header else None#工作目录
-        ctx.systemPrompt.变量('provider',提供方变量)#提示词变量：提供方
-        ctx.systemPrompt.变量('model',模型变量)#提示词变量：模型
-        ctx.systemPrompt.变量('cwd',工作目录变量)#提示词变量：工作目录
+        上下文.systemPrompt.变量('provider',提供方变量)#提示词变量：提供方
+        上下文.systemPrompt.变量('model',模型变量)#提示词变量：模型
+        上下文.systemPrompt.变量('cwd',工作目录变量)#提示词变量：工作目录
         for 条目 in 自身.配置.智能体列表:
             配置id=条目['id']#配置标签
             会话号=条目['sessionId'] if 'sessionId' in 条目 else None#精确会话 id
@@ -329,34 +332,34 @@ class 智能体循环(服务):
             元={} if 工作目录 is None else {'cwd':工作目录}#可选工作区
             if 恢复号 is None or 恢复号=='':
                 配置标识=会话号 if 会话号 is not None else 会话标识(str(配置id)+'-session-'+str(生成UUID()))#精确 id 或新鲜组合 id
-                持久化=None if 会话号 is None else ctx.获取服务('sessionPersistence')#有精确 id 才找持久化
+                持久化=None if 会话号 is None else 上下文.获取服务('sessionPersistence')#有精确 id 才找持久化
                 if 持久化 is None:
-                    启动=操作任务()#启动任务
+                    启动=队列(1)#启动任务
                     def 执行创建(标识=配置标识,循环选项=选项,元数据=元,标签=配置id):
                         """新鲜创建并收住失败。"""
                         try:
                             自身.创建(标识,循环选项,元数据)#新鲜创建
-                            启动.兑现()#成功
+                            放入成功(启动)#成功
                         except BaseException as 错误:
                             自身.报告配置启动失败(标签,'restore',标识,错误)#报告 restore 失败
-                            启动.兑现()#catch 后仍落定
+                            放入成功(启动)#catch 后仍落定
                     创建线程=threading.Thread(target=执行创建)#启动线程
                     创建线程.daemon=True#不挡住退出
-                    创建线程.start()#启动
+                    创建线程.start()
                     自身.所有权.跟踪启动(启动)#登记启动任务
                 else:
-                    启动=操作任务()#启动任务
+                    启动=队列(1)#启动任务
                     def 执行启动(持久化句柄=持久化,标识=配置标识,循环选项=选项,元数据=元,标签=配置id):
                         """再挂载恢复或首次创建。"""
                         try:
-                            自身.恢复或首次创建(ctx,持久化句柄,标识,循环选项,元数据)#启动
-                            启动.兑现()#成功
+                            自身.恢复或首次创建(上下文,持久化句柄,标识,循环选项,元数据)#启动
+                            放入成功(启动)#成功
                         except BaseException as 错误:
                             自身.报告配置启动失败(标签,'restore',标识,错误)#报告 restore 失败
-                            启动.兑现()#catch 后仍落定
+                            放入成功(启动)#catch 后仍落定
                     工作=threading.Thread(target=执行启动)#启动线程
                     工作.daemon=True#不挡住退出
-                    工作.start()#启动
+                    工作.start()
                     自身.所有权.跟踪启动(启动)#登记启动任务
                 continue#下一条
             def 恢复副作用(标签=配置id,恢复会话号=恢复号,循环选项=选项):
@@ -366,19 +369,19 @@ class 智能体循环(服务):
                     def 执行恢复():
                         """恢复并收住失败。"""
                         try:
-                            自身.经持久化恢复(ctx,子上下文.sessionPersistence,{
+                            等待队列结果(自身.经持久化恢复(上下文,子上下文.sessionPersistence,{
                                 'resumeSessionId':恢复会话号,#要恢复的会话
                                 'agentOptions':循环选项,#循环选项
-                            }).等待()#经显式句柄恢复
+                            }))#经显式句柄恢复
                         except BaseException as 错误:
                             自身.报告配置启动失败(标签,'resume',恢复会话号,错误)#报告 resume 失败
                     恢复线程=threading.Thread(target=执行恢复)#恢复线程
                     恢复线程.daemon=True#不挡住退出
-                    恢复线程.start()#启动
-                光纤=ctx.依赖启动(['sessionPersistence'],子回调)#注入持久化
-                光纤.等待()#启动失败则抛
-                return 光纤.拆除#effect 拆除即卸注入
-            ctx.副作用(恢复副作用,'agentLoop.resume('+str(配置id)+')')#effect 名
+                    恢复线程.start()
+                纤程=上下文.依赖启动(['sessionPersistence'],子回调)#注入持久化
+                纤程.等待()#启动失败则抛
+                return 纤程.拆除#effect 拆除即卸注入
+            上下文.副作用(恢复副作用,'agentLoop.resume('+str(配置id)+')')#effect 名
 
     def 报告配置启动失败(自身,配置id,动作,会话号,错误):
         """向身份绑定的消费方报告一次被收住的声明式启动失败。"""
@@ -399,10 +402,10 @@ class 智能体循环(服务):
         if not 自身.所有权.是否活动():
             return#拆除则停
         try:
-            自身.经持久化恢复(所有者上下文,持久化,{
+            等待队列结果(自身.经持久化恢复(所有者上下文,持久化,{
                 'resumeSessionId':会话号,#按精确 id 恢复
                 'agentOptions':智能体选项,#循环选项
-            }).等待()#按精确 id 恢复
+            }))#按精确 id 恢复
             return#恢复成功
         except BaseException as 错误:
             if not 自身.所有权.是否活动():
@@ -415,11 +418,14 @@ class 智能体循环(服务):
         """等待一个正在排空的同 id 生命周期完成注册表拆除。"""
         if 所有者上下文.agents.获取(会话号) is None and 所有者上下文.sessions.获取(会话号) is None:
             return#两边都空则无需等
-        已腾出=操作任务()#腾出时兑现
+        已腾出=队列(1)#腾出时写入
         def 检查(*位置参数):
             """检查是否已腾出。"""
             if 所有者上下文.agents.获取(会话号) is None and 所有者上下文.sessions.获取(会话号) is None:
-                已腾出.兑现()#兑现
+                try:
+                    已腾出.put_nowait(('ok',None))#已满则忽略重复
+                except 队列已满:
+                    pass#已落定
         卸智能体=所有者上下文.监听('agent/disposed',检查)#Agent 拆除时再查
         卸会话=所有者上下文.监听('session/disposed',检查)#会话拆除时再查
         try:
@@ -432,7 +438,7 @@ class 智能体循环(服务):
     def 准备(自身,所有者上下文,标识,选项,会话,调用方信号=None,写句柄=None,父智能体=None):
         """为一个新 Agent 构造驱动、作用域和一次记忆化反向拆除。"""
         断言智能体选项(选项)#校验选项
-        所有者上下文.纤程.断言活动()#所有者光纤必须活动
+        所有者上下文.纤程.断言活动()#所有者纤程必须活动
         if not 自身.所有权.是否活动():
             raise 循环错误('agent loop is not active')#工厂必须活动
         if 已中止(调用方信号):
@@ -452,23 +458,23 @@ class 智能体循环(服务):
         if 调用方信号 is not None:
             调用方线程=threading.Thread(target=转发调用方中止)#调用方线程
             调用方线程.daemon=True#不挡住退出
-            调用方线程.start()#启动
+            调用方线程.start()
         工厂线程=threading.Thread(target=转发工厂中止)#工厂线程
         工厂线程.daemon=True#不挡住退出
-        工厂线程.start()#启动
+        工厂线程.start()
         机器=[None]#循环驱动，铸造前为空
         脱离会话=[None]#会话脱离器
         脱离智能体=[None]#Agent 脱离器
         拆除中=[None]#记忆化拆除
         发表中=[None]#发表落定
-        驱动就绪=操作任务()#驱动已赋值或失败时兑现
+        驱动就绪=队列(1)#驱动已赋值或失败时写入
         取消跟随所有者=[None]#所有者 effect 拆除器
         忘掉=[None]#从工厂集合忘掉
         def 拆除(所有者触发=False):
             """反向拆除，记忆化。"""
             if 拆除中[0] is not None:
                 return 拆除中[0]#已有一次拆除
-            任务=操作任务()#本次拆除
+            任务=队列(1)#本次拆除
             拆除中[0]=任务#先挂上供竞态等待
             def 执行拆除():
                 """停状态机、关闭写句柄、离开注册表、拆除作用域。"""
@@ -476,9 +482,9 @@ class 智能体循环(服务):
                 融合.中止(循环错误('agent "'+str(标识)+'" lifecycle disposed'))#结束设置等待
                 try:
                     if 发表中[0] is not None:
-                        发表中[0].等待()#等发表监听器
+                        等待队列结果(发表中[0])#等发表监听器
                     if 机器[0] is None:
-                        驱动就绪.等待()#等铸造完成或失败
+                        等待队列结果(驱动就绪)#等铸造完成或失败
                     驱动=机器[0]#已铸造驱动
                     if 驱动 is not None:
                         驱动.取消(中止错误('已中止',种类='disposed'))#按拆除取消；种类码不译
@@ -502,15 +508,15 @@ class 智能体循环(服务):
                     if (not 所有者触发) and 取消跟随所有者[0] is not None:
                         取消跟随所有者[0]()#非所有者触发则卸所有者 effect
                 if len(失败列表)==1:
-                    任务.拒绝(失败列表[0])#单失败
-                    return#结束
+                    放入失败(任务,失败列表[0])#单失败
+                    return
                 if len(失败列表)>1:
-                    任务.拒绝(聚合错误(失败列表,'agent "'+str(标识)+'" disposal failed'))#多失败
-                    return#结束
-                任务.兑现()#拆除完成
+                    放入失败(任务,聚合错误(失败列表,'agent "'+str(标识)+'" disposal failed'))#多失败
+                    return
+                放入成功(任务)#拆除完成
             拆除线程=threading.Thread(target=执行拆除)#拆除线程
             拆除线程.daemon=True#不挡住退出
-            拆除线程.start()#启动
+            拆除线程.start()
             return 任务#记忆化拆除
         忘掉[0]=自身.所有权.跟踪(拆除)#发表前就向工厂登记拆除
         try:
@@ -533,11 +539,14 @@ class 智能体循环(服务):
         try:
             驱动=循环智能体(循环上下文,标识,选项,会话)#铸造驱动
             机器[0]=驱动#记下驱动
-            驱动就绪.兑现()#铸造完成
+            try:
+                驱动就绪.put_nowait(('ok',None))#铸造完成；失败路径也可能写入
+            except 队列已满:
+                pass#已落定
             断言仍活()#铸造后仍须活着
             def 发表(来源):
                 """进入注册表并宣布。"""
-                落定=操作任务()#发表落定
+                落定=队列(1)#发表落定
                 发表中[0]=落定#拆除等发表
                 try:
                     断言仍活()#进入前须活着
@@ -549,16 +558,19 @@ class 智能体循环(服务):
                     断言仍活()#宣布 Agent 后须活着
                     return 已发表句柄(驱动,拆除)#已发表句柄
                 finally:
-                    落定.兑现()#放开拆除等待
+                    放入成功(落定)#放开拆除等待
                     发表中[0]=None#发表结束
             return 已准备智能体(驱动,融合.信号,发表,拆除)#已准备面
         except BaseException as 错误:
-            驱动就绪.兑现()#放开拆除里对铸造的等待
+            try:
+                驱动就绪.put_nowait(('ok',None))#放开拆除里对铸造的等待
+            except 队列已满:
+                pass#已落定
             拆除()#回滚
             raise 错误#原错上抛
 
     def 创建(自身,标识,选项=None,元=None):
-        """在调用方供给的单一身份下创建 Agent 与会话，由访问光纤拥有。"""
+        """在调用方供给的单一身份下创建 Agent 与会话，由访问纤程拥有。"""
         if 选项 is None:
             选项={}#默认选项
         if 元 is None:
@@ -572,8 +584,8 @@ class 智能体循环(服务):
                 if 已存 is not None:
                     try:
                         已存['handle'].关闭()#准备失败则关闭
-                    except BaseException:
-                        pass#吞关闭失败
+                    except OSError:
+                        pass#关闭残留句柄失败
                 raise 错误#原错上抛
             def 初始化():
                 """刷新未存后缀并发表。"""
@@ -607,7 +619,7 @@ class 智能体循环(服务):
             准备选项['inheritedEventCount']=选项['inheritedEventCount']#可选继承条数
         准备=会话准备.创建(自身.运行时['ctx'].sessions.准备(选项['sessionId'],准备选项))#准备会话
         调用方信号=选项['signal'] if 'signal' in 选项 else None#可选取消
-        已发表=操作任务()#本续体
+        已发表=队列(1)#本续体
         def 执行创建并发表():
             """创建存储、设置并发表。"""
             已存=None#已存
@@ -625,10 +637,10 @@ class 智能体循环(服务):
                     已存=启动可中止操作(创建存储,调用方信号,选项['sessionId'],释放遗弃)#竞速创建
             except BaseException as 错误:
                 准备.拆除()#拆除准备
-                已发表.拒绝(错误)#失败
-                return#结束
+                放入失败(已发表,错误)#失败
+                return
             try:
-                句柄=自身.设置并发表(
+                句柄=等待队列结果(自身.设置并发表(
                     所有者上下文,#所有者
                     选项['sessionId'],#共享身份
                     准备,#已准备会话
@@ -638,13 +650,13 @@ class 智能体循环(服务):
                     'startup',#启动来源
                     已存,#已存句柄
                     选项['parentAgent'] if 'parentAgent' in 选项 else None,#运行时父
-                ).等待()#设置并发表
-                已发表.兑现(句柄)#已发表句柄
+                ))#设置并发表
+                放入成功(已发表,句柄)#已发表句柄
             except BaseException as 错误:
-                已发表.拒绝(错误)#失败
+                放入失败(已发表,错误)#失败
         工作=threading.Thread(target=执行创建并发表)#工作线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         自身.所有权.跟踪续体(已发表)#工厂拆除等待本续体
         return 已发表#已发表句柄
 
@@ -661,14 +673,14 @@ class 智能体循环(服务):
             return 等待队列结果(已准备.智能体.执行维护(维护任务))#维护结果
         except BaseException as 错误:
             try:
-                已准备.拆除().等待()#回滚
+                等待队列结果(已准备.拆除())#回滚
             except BaseException:
-                pass#吞拆除失败
+                pass拆除失败
             raise 错误#原错上抛
 
     def 设置并发表(自身,所有者上下文,标识,准备,智能体选项,设置,信号,来源,已存=None,父智能体=None):
         """在已获取的 Session 周围准备一个 Agent，跑设置，再发表它。"""
-        任务=操作任务()#本续体
+        任务=队列(1)#本续体
         写句柄=已存['handle'] if 已存 is not None and 'handle' in 已存 else None#可选写句柄
         def 执行设置并发表():
             """设置并发表。"""
@@ -680,8 +692,8 @@ class 智能体循环(服务):
                     if 写句柄 is not None:
                         try:
                             写句柄.关闭()#准备失败则关闭
-                        except BaseException:
-                            pass#吞关闭失败
+                        except OSError:
+                            pass#关闭残留句柄失败
                     raise 错误#原错上抛
                 def 初始化():
                     """跑设置、刷新后缀并发表。"""
@@ -695,15 +707,15 @@ class 智能体循环(服务):
                         设置提交.提交()#发表直前同步提交
                     自身.追加未存后缀(已存,会话)#发表前刷新构造后缀
                     return 已准备.发表(来源)#进入注册表并宣布
-                任务.兑现(自身.初始化智能体(已准备,初始化))#维护窗口内发表
+                放入成功(任务,自身.初始化智能体(已准备,初始化))#维护窗口内发表
             except BaseException as 错误:
-                任务.拒绝(错误)#失败
+                放入失败(任务,错误)#失败
             finally:
                 if 准备 is not None:
                     准备.拆除()#作用域结束时拆除准备
         工作=threading.Thread(target=执行设置并发表)#工作线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         return 任务#已发表句柄承诺
 
     def 追加未存后缀(自身,已存,会话):
@@ -726,7 +738,7 @@ class 智能体循环(服务):
     def 经持久化恢复(自身,所有者上下文,持久化,选项):
         """打开写句柄 → 冷读 eventState → sessions.准备；保留 parentAgent。"""
         标识=选项['resumeSessionId']#要加载的会话 id
-        已发表=操作任务()#加载、设置、发表
+        已发表=队列(1)#加载、设置、发表
         def 执行加载并发表():
             """加载、设置、发表。"""
             准备=None#加载得到的准备
@@ -783,7 +795,7 @@ class 智能体循环(服务):
                     raise 循环错误('agent loop is not active')#工厂仍须活动
                 移交=已存#移交所有权
                 写句柄=None#所有权交设置并发表/准备拆除
-                句柄=自身.设置并发表(
+                句柄=等待队列结果(自身.设置并发表(
                     所有者上下文,#所有者
                     标识,#身份
                     准备,#已加载会话
@@ -793,25 +805,25 @@ class 智能体循环(服务):
                     'resume',#恢复来源
                     移交,#已存句柄
                     选项['parentAgent'] if 'parentAgent' in 选项 else None,#运行时父
-                ).等待()#设置并发表
-                已发表.兑现(句柄)#已发表句柄
+                ))#设置并发表
+                放入成功(已发表,句柄)#已发表句柄
             except BaseException as 错误:
-                已发表.拒绝(错误)#失败
+                放入失败(已发表,错误)#失败
             finally:
                 if 准备 is not None:
                     准备.拆除()#setupAndPublish 的 using 已接管则此处为空操作
                 if 写句柄 is not None:
                     try:
                         写句柄.关闭()#关闭残留句柄
-                    except Exception:
-                        pass#吞关闭失败
+                    except OSError:
+                        pass#关闭残留句柄失败
         工作=threading.Thread(target=执行加载并发表)#工作线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         自身.所有权.跟踪续体(已发表)#工厂拆除等待本续体
         return 已发表#已发表句柄
 
-智能体循环.inject=['agents','sessions','llm','tools','systemPrompt','sessionProjections']#Cordis 依赖声明槽
+智能体循环.inject=智能体循环.依赖
 智能体循环.Config={
     'maxParallelToolCalls':整数字段(最小=1,默认值=默认最大并行工具调用),#并行上限
     'agents':列表字段(({

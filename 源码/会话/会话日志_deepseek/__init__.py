@@ -1,4 +1,4 @@
-"""增量会话日志贡献（对齐 upstream session-log-deepseek）。"""
+"""增量会话日志贡献。"""
 import weakref#按会话折叠接受水位
 from ...依赖.schemastery import 字典字段,布尔字段#配置
 from ...模型后端.llm import 品牌字符串#会话 id 品牌
@@ -7,10 +7,11 @@ from ...内核.会话 import 已知会话事件类型#已知事件类型
 class 会话日志错误(Exception):
     """会话日志 deepseek 包的异常基类。"""
 
-名称='session-log-deepseek'#配套插件名常量
-注入=['deepseekLlmApiExtensions','sessions']#依赖常量
-配置模式=字典字段({'enabled':布尔字段(默认值=False)})#配置模式
-__all__=['名称','注入','已接受至','应用','会话日志错误','线路头','线路事件']#公开面
+包名='@deepseek-ai/dsh-session-log-deepseek'
+名称='session-log-deepseek'
+依赖=['deepseekLlmApiExtensions','sessions']#依赖常量
+配置模式=字典字段(字典结构={'enabled':布尔字段(默认值=False)})#配置模式
+__all__=['包名','名称','依赖','应用','默认','已接受至','会话日志错误','线路头','线路事件']
 
 接受折叠表=weakref.WeakKeyDictionary()#Session→{scannedEvents,throughSeq}
 
@@ -73,11 +74,11 @@ def 线路事件(事件):#线路事件
 
 def 已接受至(会话):
     """本精确会话格式世代的最高已确认序号。"""
-    先前=接受折叠表.get(会话)#已有折叠
-    if 先前 is None:
+    if 会话 not in 接受折叠表:
         穿过=-1#水位
         起点=0#扫描起点
     else:
+        先前=接受折叠表[会话]#已有折叠
         穿过=先前['throughSeq']#水位
         起点=先前['scannedEvents']#扫描起点
     长度=会话.seq if hasattr(会话,'seq') else len(会话.events)#当前长度
@@ -142,7 +143,9 @@ def 应用(上下文,配置值):
         return {'value':值,'accept':接纳}#准备结果
     上下文.deepseekLlmApiExtensions.register('dsh_session_log',{'prepare':准备})#登记
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置模式#Cordis Config 槽
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置模式#框架槽
+default=默认#框架槽

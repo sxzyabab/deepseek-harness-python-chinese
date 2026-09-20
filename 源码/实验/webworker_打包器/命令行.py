@@ -13,10 +13,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 读标志(名,缺省=None):#读一对--flag value
-    """读一对 `--flag value`。
-
-    对齐上游 `flag`。
-    """
+    """读一对 `--flag value`。"""
     位置=None#找位置
     标志='--'+名#完整标志
     for 下标,参数 in enumerate(sys.argv):#扫argv

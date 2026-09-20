@@ -46,15 +46,10 @@ class 操作任务:
         return 自身._原生结果.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。信号为带 _事件 的中止通道或 threading.Event。"""
+    """信号是否已中止。无信号视为未中止。信号为中止通道（Event 形态）。"""
     if 信号 is None:#无信号
         return False#未中止
-    事件=getattr(信号,'_事件',None)#包装通道
-    if 事件 is not None:#本包中止信号
-        return 事件.is_set()#置位即中止
-    if hasattr(信号,'is_set'):#裸 Event
-        return 信号.is_set()#置位即中止
-    return False#未中止
+    return 信号.is_set()#置位即中止
 
 def 若已中止则抛出(信号):
     """已中止则抛出本包中止异常。原因由异常对象承载。"""
@@ -91,7 +86,7 @@ class 子智能体报告选项(TypedDict):#一个可续跑子体向其直接父�
 class 可续跑启动规格(TypedDict):#启动可续跑后台子体时调用方要的东西
     provider:str#其可续跑创建能力建立该子体的提供方
     label:str#初始委托的短 description，持久化为创建标签
-    request:object#委托请求（去掉由管理器拥有的 label/signal/outputSchema）
+    request:object#委托请求（去掉由续跑表拥有的 label/signal/outputSchema）
     signal:object#调用方取消（上游类型为 AbortSignal）
 
 class 可续跑启动(TypedDict):#可续跑子体接受其初始提示后返回的身份
@@ -191,11 +186,11 @@ class 激活池:#进程内槽位池
             自身._槽.discard(槽)#归还
         return 释放#释放器
 
-class 子智能体续跑管理器:#可续跑管理器
+class 子智能体续跑表:#可续跑表
     """ctx.subagents 背后的可续跑子智能体编排服务。工具模式与宿主适配器是本约定的消费方；前台一次性委托继续调用 ctx.subagents.start()，从不进入本生命周期。"""
-    def __init__(自身,上下文对象,宿主,装配注册表,最大活跃子体):#安装管理器
-        """安装管理器。最大活跃子体为 ()->int。"""
-        自身.ctx=上下文对象#服务上下文
+    def __init__(自身,上下文,宿主,装配注册表,最大活跃子体):#安装续跑表
+        """安装续跑表。最大活跃子体为 ()->int。"""
+        自身.ctx=上下文#服务上下文
         自身._宿主=宿主#宿主钩子
         自身._装配注册表=装配注册表#装配注册表
         自身._最大活跃子体=最大活跃子体#活子上限
@@ -206,13 +201,13 @@ class 子智能体续跑管理器:#可续跑管理器
         自身._锁=子体锁()#每子体锁
         自身._关闭作用域={}#作用域拆除根到成员（用 id 键，值存 Agent 集合）
         自身._关闭根代理={}#根 id → 精确 Agent 弱引用
-        自身._排空中=False#管理器是否正在排空
+        自身._排空中=False#续跑表是否正在排空
         # 普通 Cordis 所有者效果按登记反序拆除，表达不了动态子图。
         def 激活所有者插件(子上下文,配置=None):#私有所有者作用域插件
             """作为支撑 Activation 句柄的共享空操作插件。"""
             return#无注册
-        作用域=上下文对象.启动插件(激活所有者插件)#私有所有者作用域
-        自身._所有者上下文=作用域.所属上下文 if 作用域.所属上下文 is not None else 上下文对象#记下所有者上下文
+        作用域=上下文.启动插件(激活所有者插件)#私有所有者作用域
+        自身._所有者上下文=作用域.所属上下文 if 作用域.所属上下文 is not None else 上下文#记下所有者上下文
         def 根离开(载荷):#根离开注册表
             """根离开注册表时关掉其作用域截止。"""
             智能体=载荷['agent']#离开的智能体
@@ -220,7 +215,7 @@ class 子智能体续跑管理器:#可续跑管理器
             自身._关闭作用域.pop(键,None)#关掉
             自身._关闭根代理.pop(键,None)#摘掉
             自身._根池.pop(键,None)#清根池
-        上下文对象.监听('agent/disposed',根离开)#disposed监听
+        上下文.监听('agent/disposed',根离开)#disposed监听
         def 排空拆除():#先拆除：排空森林
             """结构拆除：先排空。"""
             自身.排空()#排空
@@ -235,7 +230,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 排空拆除()#先拆除：排空森林
                 作用域拆除()#后拆除：释放作用域
             return 拆除#拆除器
-        上下文对象.副作用(效果工厂,'subagents.continuations()')#结构拆除顺序
+        上下文.副作用(效果工厂,'subagents.continuations()')#结构拆除顺序
 
     def 启动可续跑(自身,规格):#启动可续跑
         """启动一个可续跑后台子体：预留其耐久身份，解析提供方的分离创建规格，经私有 activation-owner 作用域创建子 Agent，建立任何可续跑父所有权，并提交初始提示。"""
@@ -318,9 +313,9 @@ class 子智能体续跑管理器:#可续跑管理器
         while True:#拆除竞态则重试
             def 临界():#在子锁内投递
                 """驻留提交或冷恢复。"""
-                激活=自身._激活表.get(子标识)#活Activation
-                if 激活 is None:#缺席则冷恢复
+                if 子标识 not in 自身._激活表:#缺席则冷恢复
                     return 自身._冷恢复(父,子标识,内容,选项)#冷恢复
+                激活=自身._激活表[子标识]#活Activation
                 if 激活.get('disposal') is not None:#拆除已打开
                     激活['disposal'].等待()#等释放后重试
                     return None#重试
@@ -338,7 +333,7 @@ class 子智能体续跑管理器:#可续跑管理器
         种类=权威['kind']#权威种类
         if 种类=='ancestor':#祖先权威
             调用方=权威['agent']#出示的祖先
-            # 即使目标缺席也拒绝陈旧调用方，使替换的同 id Agent 永远不能探测本管理器状态。
+            # 即使目标缺席也拒绝陈旧调用方，使替换的同 id Agent 永远不能探测本续跑表状态。
             if 自身.ctx.agents.获取(调用方.id) is not 调用方:#不是注册表当前项
                 raise 子智能体错误(#拒绝陈旧祖先
                     '打断 "'+str(目标会话标识)+'" 需要精确的活祖先智能体',#文案
@@ -349,9 +344,9 @@ class 子智能体续跑管理器:#可续跑管理器
                     '智能体 "'+str(调用方.id)+'" 不能打断自己',#文案
                     'UNAUTHORIZED',#错误码
                 )#SubagentError结束
-        激活=自身._激活表.get(目标会话标识)#活目标
-        if 激活 is None:#缺席空操作
+        if 目标会话标识 not in 自身._激活表:#缺席空操作
             return#空操作
+        激活=自身._激活表[目标会话标识]#活目标
         if 种类=='user':#人类父地址
             父会话=激活['handle'].智能体.session.header#头
             if (父会话['parentSession'] if isinstance(父会话,dict) and 'parentSession' in 父会话 else None)!=权威['parentSessionId']:#不是直接父
@@ -360,8 +355,7 @@ class 子智能体续跑管理器:#可续跑管理器
                     'UNAUTHORIZED',#错误码
                 )#SubagentError结束
         else:#祖先权威
-            谱系=激活.get('ancestry')#活谱系弱集
-            if 谱系 is None or 权威['agent'] not in 谱系:#祖先不在活谱系
+            if 'ancestry' not in 激活 or 权威['agent'] not in 激活['ancestry']:#祖先不在活谱系
                 raise 子智能体错误(#拒绝
                     '子智能体 "'+str(目标会话标识)+'" 不是智能体 "'#文案前
                     +str(权威['agent'].id)+'" 的活后代',#文案后
@@ -562,7 +556,7 @@ class 子智能体续跑管理器:#可续跑管理器
         return None#准入开着
 
     def _断言准入(自身,智能体):#断言仍在准入
-        """一旦管理器或本精确父树开始排空就拒绝新准入。"""
+        """一旦续跑表或本精确父树开始排空就拒绝新准入。"""
         关闭=自身._关闭拆除于(智能体)#关闭拆除
         if 关闭 is None:#仍开着
             return#通过
@@ -654,10 +648,9 @@ class 子智能体续跑管理器:#可续跑管理器
         if 父激活 is not None and 父激活.get('pool') is not None:#继承父池
             return 父激活['pool']#池
         键=id(父)#根身份
-        池=自身._根池.get(键)#已有
-        if 池 is None:#新建
-            池=激活池()#池
-            自身._根池[键]=池#登记
+        if 键 not in 自身._根池:#新建
+            自身._根池[键]=激活池()#池
+        池=自身._根池[键]#已有
         return 池#池
 
     def _物化(自身,输入):#跟踪物化
@@ -753,13 +746,13 @@ class 子智能体续跑管理器:#可续跑管理器
             def 出队(载荷):#出队
                 """已接受 id 离开收件箱。"""
                 消息=载荷['message']#消息
-                if 消息.id in 激活['accepted']:#本管理器准入的
+                if 消息.id in 激活['accepted']:#本续跑表准入的
                     激活['accepted'].discard(消息.id)#清掉
                     自身._唤醒(激活)#重观察
             def 丢弃(载荷):#丢弃
                 """已接受 id 被丢弃。"""
                 消息=载荷['message']#消息
-                if 消息.id in 激活['accepted']:#本管理器准入的
+                if 消息.id in 激活['accepted']:#本续跑表准入的
                     激活['accepted'].discard(消息.id)#清掉
                     自身._唤醒(激活)#重观察
             智能体.ctx.监听('agent/inbox/claimed',出队)#出队
@@ -797,9 +790,9 @@ class 子智能体续跑管理器:#可续跑管理器
 
     def _获取所有权(自身,父,子标识):#登记父所有权
         """在子体能跑之前把它登记进可续跑管理父的已拥有集合。"""
-        父激活=自身._激活表.get(父.id)#父是否可续跑管理
-        if 父激活 is None:#非续跑父
+        if 父.id not in 自身._激活表:#非续跑父
             return#跳过
+        父激活=自身._激活表[父.id]#父是否可续跑管理
         if 父激活.get('disposal') is not None:#父正在拆
             raise 子智能体错误(#拒绝建立子体
                 '子智能体父 "'+str(父.id)+'" 正在拆除；子体未建立',#文案
@@ -901,7 +894,7 @@ class 子智能体续跑管理器:#可续跑管理器
                 except Exception:#观察失败
                     pass#继续
                 if 拆除于(激活) is not None:#拆除已接手
-                    return#结束
+                    return
                 def 锁内决定():#锁内决定
                     """重新检查结算并在同一临界区开始拆除。"""
                     if 拆除于(激活) is not None or 自身._状态于(激活)!='settled':#忙或已拆

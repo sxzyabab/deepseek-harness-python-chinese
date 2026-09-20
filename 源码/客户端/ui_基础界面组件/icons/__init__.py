@@ -129,9 +129,9 @@ def 规范化路径(项):#path 项 → 字典
 
 def 图标(名,属性=None,默认尺寸=None):#按名产出视图
     """未知名返回 None。透传 clipPath/mask/rects/widthFactor。"""
-    描=图标表.get(名)#描述
-    if 描 is None:#无
+    if 名 not in 图标表:#无
         return None#无
+    描=图标表[名]#描述
     尺=默认尺寸 if 默认尺寸 is not None else 描.get('defaultSize',16)#默认
     边=取尺寸(属性,尺)#边长
     宽因=描.get('widthFactor')#树拐角等非正方形

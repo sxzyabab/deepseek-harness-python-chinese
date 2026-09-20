@@ -20,7 +20,7 @@ def 要求表示(类型,有值,有不可序列化,有对象,期望值,期望不�
 
 def 校验远程对象(值):#校验远程对象表示
     """校验远程对象表示。"""
-    if 值.get('semanticReference') is not None and 值.get('object') is None:#语义引用须有对象
+    if 'semanticReference' in 值 and 'object' not in 值:#语义引用须有对象
         raise 检查器错误('inspector protocol: semanticReference requires a retained Client object')#英文诊断
     描述符=值['descriptor']#描述符
     if 描述符.get('subtype') is not None and 描述符.get('type')!='object':#仅object可有子类型
@@ -33,27 +33,27 @@ def 校验远程对象(值):#校验远程对象表示
     类型=描述符['type']#类型
     if 类型=='undefined':#undefined
         要求表示(类型,有值,有不可序列化,有对象,False,False,False)#无表示
-        return#结束
+        return
     if 类型=='string':#字符串
         要求表示(类型,isinstance(描述符.get('value'),str),有不可序列化,有对象,True,False,False)#仅值
-        return#结束
+        return
     if 类型=='boolean':#布尔
         要求表示(类型,isinstance(描述符.get('value'),bool),有不可序列化,有对象,True,False,False)#仅值
-        return#结束
+        return
     if 类型=='number':#数字
         数=描述符.get('value')#值
         有限=isinstance(数,(int,float)) and not isinstance(数,bool) and 数==数 and 数 not in (float('inf'),float('-inf'))#有限
         特殊=描述符.get('unserializableValue') in ('NaN','Infinity','-Infinity','-0')#特殊字面量
         if 有对象 or 有限==特殊:#恰一表示
             raise 检查器错误('inspector protocol: invalid number RemoteObject representation')#英文诊断
-        return#结束
+        return
     if 类型=='bigint':#大整数
         if 有值 or 有对象 or 大整数字面量.fullmatch(描述符['unserializableValue'] if 'unserializableValue' in 描述符 else '') is None:#须不可序列化
             raise 检查器错误('inspector protocol: invalid bigint RemoteObject representation')#英文诊断
-        return#结束
+        return
     if 类型 in ('symbol','function'):#符号或函数
         要求表示(类型,有值,有不可序列化,有对象,False,False,True)#仅对象
-        return#结束
+        return
     if 类型=='object':#对象
         if 描述符.get('subtype')=='null':#null子类型
             if 描述符.get('value') is not None or 有对象 or 有不可序列化:#须值为null —— TS要求 value===null
@@ -64,7 +64,7 @@ def 校验远程对象(值):#校验远程对象表示
             if 描述符.get('value') is not None or 有对象 or 有不可序列化:#非法表示
                 if not (描述符.get('value') is None and 'value' in 描述符 and not 有对象 and not 有不可序列化):#非合法null
                     raise 检查器错误('inspector protocol: invalid null RemoteObject representation')#英文诊断
-            return#结束
+            return
         if 有不可序列化 or 有值==有对象:#恰一值或对象
             raise 检查器错误('inspector protocol: object RemoteObject needs exactly one value or backend object')#英文诊断
 
@@ -118,7 +118,7 @@ def 解析客户端运行时远程对象(值):#解析远程对象
     """解码一个携带可选会话本地句柄的 Client Runtime 对象。"""
     记录=精确对象(值,['descriptor','object','semanticReference'],'Client Runtime object')#精确对象
     描述符=解析远程对象描述符(记录['descriptor'])#描述符
-    对象=None if 记录.get('object') is None else 精确对象(记录['object'],['handle'],'Client Runtime object reference')#引用对象
+    对象=None if 'object' not in 记录 else 精确对象(记录['object'],['handle'],'Client Runtime object reference')#引用对象
     远程={'descriptor':描述符}#远程对象
     if 对象 is not None:#可选句柄
         远程['object']={'handle':线上标识(对象['handle'],'handle')}#后端引用

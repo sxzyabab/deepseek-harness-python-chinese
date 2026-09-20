@@ -9,7 +9,7 @@ def 拆除条目纤程(条目):
     if 运行时 is not None:#有
         条目.ctx.registry.delete(运行时.callback)#摘登记
     while getattr(纤程,'inertia',None) is not None:#等惯性
-        纤程.inertia.wait() if hasattr(纤程.inertia,'wait') else None#阻塞
+        纤程.inertia.等待()
     if hasattr(条目,'fiber'):#有字段
         delattr(条目,'fiber')#清
 

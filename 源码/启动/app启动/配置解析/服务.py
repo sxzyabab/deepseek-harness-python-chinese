@@ -70,7 +70,7 @@ class 插件包表(服务):
     def 替换(自身,世代):
         """为本进程及随后创建的工作线程发布加性世代。"""
         if 自身._解析器 is None:#未安装运行时解析
-            raise Exception('plugin-packages: runtime resolution is not installed')#拒绝
+            raise Exception('plugin-packages: 运行时解析尚未安装')#拒绝
         自身._解析器.替换(世代)#替换
         自身._包表={}#清空缓存
         if 自身._拆除工作线程 is not None:#有旧登记

@@ -55,7 +55,7 @@ def 可中止睡眠(延迟毫秒,信号=None):#可中止睡眠
     """睡指定毫秒；信号中止则抛出。"""
     if 信号 is None:#无取消
         time.sleep(延迟毫秒/1000)#直接睡
-        return#结束
+        return
     截止=time.monotonic()+延迟毫秒/1000#截止时刻
     while time.monotonic()<截止:#未到
         若已中止则抛出(信号)#已中止则抛
@@ -187,7 +187,7 @@ def 清理Linux启动文件(文件):#清理 Linux 启动文件
     try:#尽力清理
         if os.path.islink(文件['directory']):#符号链接
             os.unlink(文件['directory'])#删链接
-            return#结束
+            return
         for 路径 in (文件['requestPath'],文件['startupErrorPath']):#私有文件
             try:#删文件
                 os.unlink(路径)#删
@@ -397,7 +397,7 @@ class Systemd范围所有者:#systemd scope 所有者
     def 发信号(自身,信号):#发信号
         """向受管范围发 SIGTERM/SIGKILL。"""
         if 自身.已停:#已停
-            return#结束
+            return
         自身.已请求终止=True#记下终止请求
         if 自身.直接.是否在运行():#在跑则记终止信号
             自身.启动.终止信号集.add(信号)#记终止信号
@@ -422,7 +422,7 @@ class Systemd范围所有者:#systemd scope 所有者
             if 信号=='SIGKILL':#清杀失败
                 自身.杀失败=None#清
                 自身.直接杀结算=None#清直接杀结算
-            return#结束
+            return
         if (not 需直接回退) and 自身.直接.是否在运行():#建立后回退
             直接已投递=自身.直接.发信号(信号)#回退
         if 信号=='SIGKILL':#KILL 失败
@@ -434,7 +434,7 @@ class Systemd范围所有者:#systemd scope 所有者
     def 为宿主退出终止(自身):#宿主退出终止
         """宿主退出期间同步强制最终终止。"""
         if 自身.已停:#已停
-            return#结束
+            return
         try:#直接杀
             if 自身.直接.是否在运行():#在跑
                 自身.直接.发信号('SIGKILL')#SIGKILL
@@ -544,13 +544,13 @@ class Systemd范围所有者:#systemd scope 所有者
     def 等待轮询(自身,延迟毫秒,代际):#等待轮询
         """睡或被唤醒；代际过期则立即返回。"""
         if 代际!=自身.唤醒代际:#代际过期
-            return#结束
+            return
         自身._唤醒事件.clear()#清事件
         自身._唤醒代际快照=代际#登记
         截止=time.monotonic()+延迟毫秒/1000#截止
         while time.monotonic()<截止:#未到
             if 自身.唤醒代际!=代际:#已唤醒
-                return#结束
+                return
             剩余=截止-time.monotonic()#剩余
             if 剩余<=0:#到点
                 break#结束
@@ -560,7 +560,7 @@ class Systemd范围所有者:#systemd scope 所有者
     def 等待退出(自身):#等待退出
         """等待受管范围变空。"""
         if 自身.已停:#已停
-            return#结束
+            return
         with 自身._观察锁:#单例观察
             if 自身._观察 is None:#未建
                 观察=操作任务()#观察任务

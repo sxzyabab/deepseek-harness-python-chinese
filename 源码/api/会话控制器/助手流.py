@@ -1,7 +1,4 @@
-"""为重连 Web 跟随者保留的进程内助手状态。
-
-对齐上游 `session-controller/src/assistant-stream.ts`。公开面仅中文名。
-"""
+"""为重连 Web 跟随者保留的进程内助手状态。"""
 from ...模型后端.llm import 助手流累加器#流累加器
 
 __all__=['会话助手流累加器','空助手流基线']#仅中文公开名
@@ -50,7 +47,7 @@ class 会话助手流累加器:
             else:#推入
                 尝试['stream'].推入({'time':帧['time'],'chunk':帧['chunk']})#推入
                 尝试['nextIndex']+=1#推进
-        elif 类型=='end':#结束
+        elif 类型=='end':
             自身._活动尝试=None#清空
         自身._脏=True#脏
 

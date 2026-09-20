@@ -1,4 +1,4 @@
-"""会话检索用的活/已持久逻辑语料解析。对齐上游 `session-query/src/corpus.ts`。"""
+"""会话检索用的活/已持久逻辑语料解析。"""
 import threading#并发持久检查工作线程
 from ....模型后端.llm import 结构化克隆#拆离克隆
 from ....会话.会话持久化 import 会话持久化损坏错误#持久化损坏
@@ -9,8 +9,8 @@ from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 class 会话语料库:
     """按此刻挂上的持久化服务解析优先活会话的语料。"""
     def __init__(自身,上下文,持久检查并发):
-        """可选注入 sessionPersistence，并记下持久检查并发。"""
-        自身._上下文=上下文#Cordis上下文
+        """可选依赖 sessionPersistence，并记下持久检查并发。"""
+        自身._上下文=上下文#框架上下文
         自身._持久化=None#当前可选持久化服务
         自身._持久检查并发=持久检查并发#并发上限
         def 持久化安装(子上下文):
@@ -22,7 +22,7 @@ class 会话语料库:
                 if 自身._持久化 is 服务:#仍是本服务
                     自身._持久化=None#清空
             子上下文.副作用(摘掉,'sessionQuery.persistenceBinding')#effect名
-        纤程=上下文.依赖启动(['sessionPersistence'],持久化安装)#可选注入
+        纤程=上下文.依赖启动(['sessionPersistence'],持久化安装)#可选依赖
         def 拆除纤程():
             """拆除可选持久化 fiber。"""
             纤程.dispose()#拆除
@@ -144,7 +144,7 @@ class 会话语料库:
                 若已中止则抛出(信号)#领任务前检查取消
                 with 锁:#领取
                     if 游标['值']>=len(未解析):#没有更多
-                        return#结束
+                        return
                     标识=未解析[游标['值']]#领取
                     游标['值']+=1#推进
                 解析持久(标识)#解析
@@ -152,7 +152,7 @@ class 会话语料库:
         if 工作线程数>0:#有工作线程
             线程表=[threading.Thread(target=工作线程体) for _ in range(工作线程数)]#启动工作线程
             for 线程 in 线程表:#等待
-                线程.start()#启动
+                线程.start()
             for 线程 in 线程表:#汇合
                 线程.join()#等待
         若已中止则抛出(信号)#返回前再检查取消

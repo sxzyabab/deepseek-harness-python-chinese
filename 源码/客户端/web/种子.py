@@ -2,7 +2,7 @@ from .启动客户端 import 网页错误#本包异常
 
 __all__=['平台说明符','静态模块表','绑定静态模块']#仅中文公开名
 
-平台说明符=(#与上游 PLATFORM_MODULES 对齐的说明符
+平台说明符=(#平台说明符
     'react','react/jsx-runtime','react-dom','react-dom/client',
     '@deepseek-ai/cordis','@deepseek-ai/dsh-client-store',
     '@deepseek-ai/dsh-client-ui-slots','@deepseek-ai/dsh-client-ui-primitives',

@@ -4,12 +4,12 @@ from .在应用中打开动作 import 在应用中打开动作#头部贡献
 from .文案 import 命名空间,中文,英文#词典
 
 __all__=[#仅中文公开名
-    '注入','应用',
+    '依赖','应用',
     '在应用中打开控制器','在应用中打开动作',
     '命名空间','中文','英文',
-]#公开面结束
+]
 
-注入=['sessions','slots','locale']#locale 登记与头部槽贡献所需服务
+依赖=['sessions','slots','locale']#locale 登记与头部槽贡献所需服务
 
 def 应用(上下文):#客户端插件体
     """登记词典与会话头部 utilities 分体按钮。"""
@@ -37,7 +37,7 @@ def 应用(上下文):#客户端插件体
                     'openInAppApps':控制器.应用表,#可用性
                     'openInAppChoice':控制器.选择,#上次选择
                 },#hooks 结束
-                'launch':启动,#启动
+                'launch':启动,
                 'choose':选定,#选定
                 'iconUrl':图标网址,#图标
             }#注入面结束
@@ -50,5 +50,5 @@ def 应用(上下文):#客户端插件体
         },在应用中打开动作)#组件
     上下文.slots.inject('conversation.session.header.utilities',挂头部)#等槽
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

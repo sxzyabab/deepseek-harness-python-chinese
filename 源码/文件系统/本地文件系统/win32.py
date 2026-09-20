@@ -11,7 +11,7 @@ DACL安全信息=0x00000004#请求 DACL 的安全信息标志
 绑定=None#惰性缓存的 Win32 绑定
 
 class Win32系统错误(Exception):#带 Win32 错误码的系统异常
-    """带 Win32 细节的系统异常，字段对齐 Node ErrnoException。"""
+    """带 Win32 细节的系统异常。"""
     def __init__(自身,系统调用,win32码,路径):#构造带 Win32 细节的系统异常
         """构造带 Win32 细节的系统异常。"""
         if win32码==错误文件未找到 or win32码==错误路径未找到:#文件或路径未找到
@@ -20,15 +20,15 @@ class Win32系统错误(Exception):#带 Win32 错误码的系统异常
             码='EACCES'#映射为 EACCES
         else:#其余错误
             码='EIO'#映射为 EIO
-        super().__init__(f'{系统调用} {码} (Win32 {win32码}): {路径}')#对齐上游错误文案
+        super().__init__(f'{系统调用} {码} (Win32 {win32码}): {路径}')
         自身.code=码#Node 错误码
         自身.errno=win32码#数字错误号
         自身.syscall=系统调用#系统调用名
         自身.path=路径#相关路径
         自身.win32Code=win32码#原始 Win32 码
 
-def 转命名空间路径(路径):#对齐 Node path.toNamespacedPath
-    """对齐 Node path.toNamespacedPath。"""
+def 转命名空间路径(路径):#映射到 Node path.toNamespacedPath
+    """映射到 Node path.toNamespacedPath。"""
     if os.name!='nt':#非 Windows 原样返回
         return 路径#非 Windows
     绝对=os.path.abspath(路径)#绝对路径
@@ -67,16 +67,16 @@ def 取win32绑定():#加载或返回已缓存的 Win32 绑定
         if 缓冲 is not None and isinstance(描述符,bytearray):#把读到的字节写回调用方
             取出=缓冲.raw[:长度]#取出原始字节
             描述符[:len(取出)]=取出#写回 bytearray
-        return 1 if 成功 else 0#对齐上游成功/失败整数
+        return 1 if 成功 else 0#成功/失败整数
     def 调用设文件安全(路径,安全信息,描述符):#SetFileSecurityW 包装
         """写入文件安全描述符。"""
         缓冲=ctypes.create_string_buffer(bytes(描述符),len(描述符))#描述符缓冲
         成功=设文件安全(路径,安全信息,缓冲)#调用 SetFileSecurityW
-        return 1 if 成功 else 0#对齐上游成功/失败整数
+        return 1 if 成功 else 0#成功/失败整数
     def 调用替换文件(被替换,替换,备份,标志,排除,保留):#ReplaceFileW 包装
         """调用 ReplaceFileW。"""
         成功=替换文件W(被替换,替换,备份,标志,排除,保留)#保留 ACL 替换
-        return 1 if 成功 else 0#对齐上游成功/失败整数
+        return 1 if 成功 else 0#成功/失败整数
     def 取最后错误():#GetLastError 包装
         """读取 ctypes 保存的 LastError。"""
         return ctypes.get_last_error()#最近 Win32 错误码

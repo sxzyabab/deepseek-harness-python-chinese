@@ -7,7 +7,7 @@ from ...内核.会话 import 快照json值#导入无损JSON快照
 可续跑描述符键=set(list(描述符公共键)+['agentProvider','agentModel','persona','toolFilter'])#可续跑允许键
 工具过滤键=set(['allow','deny'])#工具过滤允许键
 
-class 一次性子智能体描述符数据(TypedDict):#其跑结束后不能冷恢复的有会话子智能体
+class 一次性子智能体描述符(TypedDict):#其跑结束后不能冷恢复的有会话子智能体
     version:int#描述符格式版本
     mode:Literal['one-shot']#固定为一次性
     provider:str#建立该子体的 ctx.subagents 提供方名
@@ -23,7 +23,7 @@ class 可续跑子智能体描述符数据(TypedDict):#已声明组合支持冷�
     persona:NotRequired[str]#恢复时遮蔽部署人设的每子体人设
     toolFilter:NotRequired[object]#恢复时再应用的子工具作用域
 
-子智能体描述符数据=一次性子智能体描述符数据|可续跑子智能体描述符数据#受支持的耐久子智能体身份与可选续跑组合
+子智能体描述符数据=一次性子智能体描述符|可续跑子智能体描述符数据#受支持的耐久子智能体身份与可选续跑组合
 
 class 一次性子智能体描述符输入(TypedDict):#一次性子体耐久身份的输入
     mode:Literal['one-shot']#固定为一次性

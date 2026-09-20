@@ -37,12 +37,12 @@ class 计划芯片:#composer 计划席位组件
         except Exception as 原因:#回调拒绝；契约未定
             if not 自身.存活:#已死
                 return#丢弃
-            自身.离开中=False#结束
+            自身.离开中=False
             自身.错误=str(原因)#文案
-            return#结束
+            return
         if not 自身.存活:#已死
             return#丢弃
-        自身.离开中=False#结束
+        自身.离开中=False
         自身.错误=失败#失败行或 None
 
     def 视图(自身):#读视图模型
@@ -69,7 +69,7 @@ class 计划芯片:#composer 计划席位组件
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用；返回视图或 None。"""
+        """组件调用形；返回视图或 None。"""
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图

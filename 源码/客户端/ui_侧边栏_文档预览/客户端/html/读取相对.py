@@ -1,5 +1,5 @@
 import re#路径校验
-from urllib.parse import unquote#解码
+from urllib.parse import unquote as 百分号解码
 from ..远程过程调用 import 文档文件字节#字节解码
 from ..面 import 已中止#中止
 
@@ -20,7 +20,7 @@ def 创建读取超文本相对(关联读取,地址,寿命):
             切=问
         if 井>=0 and (切<0 or 井<切):#更靠前的片段
             切=井
-        路径=unquote(引用 if 切<0 else 引用[:切])#路径
+        路径=百分号解码(引用 if 切<0 else 引用[:切])
         if 路径=='' or _绝对路径.search(路径) is not None or '\0' in 路径 or '\\' in 路径:#非法
             raise ValueError('HTML 依赖必须使用相对文件路径')
         if 已中止(寿命) or 已中止(信号):#中止

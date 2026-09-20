@@ -11,5 +11,5 @@ __all__=[#仅中文公开名
 面板面动词=('onApprove','onDecline','onRun','onStop','onRemove','onRefresh')#面板动词
 
 def 业务视图键(插件标识,包标识):#守卫钉死的键
-    """对齐 Guard：self → pluginId.packageId。"""
+    """self → pluginId.packageId。"""
     return f'{插件标识}.{包标识}'#绑到本包

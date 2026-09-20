@@ -63,17 +63,17 @@ def 创建启动环境快照(各层):#从各层内容构建快照
         按来源[层['source']]=拷贝#后写的同层覆盖先写的
     return 启动环境快照(按来源)#冻结快照对象
 
-def 取启动环境(上下文对象):#读取或回退本次启动快照
+def 取启动环境(上下文):#读取或回退本次启动快照
     """返回启动器快照；宿主未提供时把继承环境当作唯一层。"""
-    取方法=getattr(上下文对象,'取',None)#中文宽松读取（Cordis 反射混入）
+    取方法=getattr(上下文,'取',None)#中文宽松读取（Cordis 反射混入）
     if callable(取方法):#有中文取
         已有=取方法(启动环境键,False)#启动器填入的快照，宽松读取
     else:#试英文 get
-        取英=getattr(上下文对象,'get',None)#英文 get（Cordis 反射混入）
+        取英=getattr(上下文,'get',None)#英文 get（Cordis 反射混入）
         if callable(取英):#有英文 get
             已有=取英(启动环境键,False)#宽松读取
         else:#无反射取则直接属性
-            已有=getattr(上下文对象,启动环境键,None)#可选启动环境属性
+            已有=getattr(上下文,启动环境键,None)#可选启动环境属性
     if 已有 is not None:#宿主已提供
         return 已有#用启动器快照
     return 创建启动环境快照([{'source':来源_进程,'values':dict(os.environ)}])#无快照则只用进程环境

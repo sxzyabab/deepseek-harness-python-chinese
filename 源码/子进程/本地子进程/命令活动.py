@@ -141,6 +141,6 @@ def 准备命令活动(规格,环境,平台):
         下一环境=dict(环境)#拷贝
         下一环境['ZDOTDIR']=目录#改目录
         return 命令活动(目录,参数表,下一环境)#Zsh
-    except Exception:#写失败
-        命令活动(目录,[],{}).拆除()#清理
-        raise#再抛
+    except (OSError,UnicodeError):
+        命令活动(目录,[],{}).拆除()
+        raise

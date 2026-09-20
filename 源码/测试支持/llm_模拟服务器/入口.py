@@ -12,7 +12,7 @@ def 主入口(参数向量=None):#进程入口
         解析=解析模拟LLM命令参数(参数向量)#解析 CLI
         if 解析['kind']=='help':#帮助
             sys.stdout.write(模拟LLM命令用法)#打印用法
-            return#结束
+            return
         配置=解析['config']#拆配置
         服务器选项=配置['server']#服务器选项
         监听延迟=配置['listenDelayMs']#监听延迟
@@ -41,7 +41,7 @@ def 主入口(参数向量=None):#进程入口
         def 关闭(码):#关闭并退出
             """幂等关闭服务器后退出。"""
             if 关闭中[0]:#幂等
-                return#结束
+                return
             关闭中[0]=True#标记关闭
             服务器['close']()#关闭
             raise SystemExit(码)#退出

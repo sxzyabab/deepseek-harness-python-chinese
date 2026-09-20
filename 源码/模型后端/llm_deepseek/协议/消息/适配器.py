@@ -1,9 +1,9 @@
 """直接消息协议传输，每次模型请求一条可取消寿命。"""
 import json#错误体
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as 超文本异常#HTTP
-from urllib.parse import urlparse as 解析网址#拆 URL
+from urllib.parse import urlparse as 解析网址
 from ....llm import 归属头,大模型适配器,大模型错误#归属、基类与错误
-from ....工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号#空闲看门狗与中止
+from .....工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号#空闲看门狗与中止
 from ...协议无关.模型信息 import 目录模型信息,模型信息#模型信息
 from ...协议无关.消息接口 import 消息文件测试版头 as 消息文件测试版,消息接口根#Messages API
 from ...协议无关.请求文件 import 文件解析失败,请求文件#Files
@@ -31,7 +31,7 @@ class 深求消息适配器(大模型适配器):
         """记下请求局部依赖。"""
         自身.依赖=依赖#依赖
 
-    def 提供方信息(自身,提供方):
+    def 提供方简介(自身,提供方):
         """提供方展示。"""
         return {'id':提供方,'name':'DeepSeek'}#展示
 
@@ -78,7 +78,7 @@ class 深求消息适配器(大模型适配器):
             while True:#逐步
                 结果=看门狗.下一步(迭代器)#下一步
                 if 结果['done']:#结束
-                    return#结束
+                    return
                 yield 结果['value']#让出
         except Exception as 错误:#失败
             if 取超时(看门狗.信号,空闲码) is not None:#空闲
@@ -148,7 +148,7 @@ class 深求消息适配器(大模型适配器):
             if 选项.get('purpose')=='compaction':#压缩
                 头['x-deepseek-harness-compact']='1'#压缩
             网址=消息接口根(连接['baseURL'])+'/messages'#Messages 端点
-            解析=解析网址(网址)#拆
+            解析=解析网址(网址)
             载荷=扩展['payload']#JSON
             if isinstance(载荷,str):#文本
                 载荷=载荷.encode('utf-8')#字节
@@ -161,7 +161,7 @@ class 深求消息适配器(大模型适配器):
                 if not 请求路径:#空
                     请求路径='/'#根
                 客户端.request('POST',请求路径,body=载荷,headers=头)#发
-                响应=客户端.getresponse()#收
+                响应=客户端.getresponse()
             except (OSError,超文本异常,RuntimeError) as 错误:#传输
                 if 信号 is not None and 信号.is_set():#中止
                     raise 错误#原样

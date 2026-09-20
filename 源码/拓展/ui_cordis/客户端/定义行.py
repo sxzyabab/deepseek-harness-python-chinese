@@ -53,7 +53,7 @@ class 定义行:
         自身.属性={} if 属性 is None else 属性#合成
         自身.已展开=False#展开
         自身.选中源='client'#源 Tab
-        自身.源面板标识='cordis-define-source'#对齐 useId 座
+        自身.源面板标识='cordis-define-source'
 
     def 更新(自身,属性):
         """刷新 props。"""
@@ -201,7 +201,7 @@ class 定义行:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        """结构树面。"""
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

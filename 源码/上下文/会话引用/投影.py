@@ -1,5 +1,5 @@
 """当前表面投影与按字节封顶的渲染。"""
-import math#ceil与floor
+import math#ceil
 from ...压缩.压缩 import 是否压缩检查点来源#导入压缩检查点来源判定
 from ...模型后端.llm import 断言永不#导入穷尽检查
 from ...工具.输出保留 import 文本保留器#导入头尾文本保留器
@@ -76,7 +76,7 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
                 最长字节=当前字节#记下长度
                 最长下标=下标#记下位置
         if 最长下标<0 or 最长字节==0:#没有可再截的文本则失败
-            return None#失败
+            return None
         溢出=尺寸()-最大字节#超出预算的字节
         目标=max(0,最长字节-溢出)#该条目标输出字节
         项=保留[最长下标]#取出最长项
@@ -84,7 +84,7 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
             raise 会话引用错误('session-reference retention selected a missing longest message','SESSION_REFERENCE_READ_FAILED')#最长项缺失
         缩短=附通知截断(项['originalText'],目标)#按目标截断并附省略通知
         if 缩短['text']==保留[最长下标]['text']:#截断没有变短则无法继续
-            return None#失败
+            return None
         下一=dict(项)#写回截断结果
         下一['text']=缩短['text']#截断文本
         下一['omittedBytes']=缩短['omittedBytes']#省略字节
@@ -122,9 +122,9 @@ def 附通知截断(文本,最大输出字节):#头尾截断并附省略通知
     上界=最大输出字节#二分上界
     最佳={'text':'','omittedBytes':字节长(文本)}#目前最佳候选，初始为全省略
     while 下界<=上界:#二分寻找最大可装下的头尾保留
-        保留字节=math.floor((下界+上界)/2)#本轮尝试的保留字节
+        保留字节=(下界+上界)//2#本轮尝试的保留字节
         头字节=math.ceil(保留字节/2)#头半
-        尾字节=math.floor(保留字节/2)#尾半
+        尾字节=保留字节//2#尾半
         保留器=文本保留器({'kind':'headTail','headBytes':头字节,'tailBytes':尾字节})#头尾保留器
         保留器.推入(文本)#推入完整原文
         结果=保留器.收尾()#结束并取出保留文本

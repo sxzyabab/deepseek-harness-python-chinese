@@ -1,15 +1,16 @@
 """本包拥有的持久时钟上下文不变量。"""
 import json,re#JSON片段与读数格式
-from datetime import datetime as 日期时间,timezone as 时区#解析渲染时间戳
+from datetime import datetime as 日期时间#解析渲染时间戳
+from zoneinfo import ZoneInfo as 时区
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
 from .时间戳 import 创建时间戳格式化器,格式化时间戳#时间戳格式化
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认']
 
 包名='@deepseek-ai/dsh-time-context'#本包的不变量所有权名
 来源名='time-context'#来源记录里的插件名
 名称='time-context-invariant'#配套不变量插件名
-注入=['invariants']#依赖invariants服务
+依赖=['invariants']
 安全整数上限=9007199254740991#外来 JSON 校验点
 读数格式=re.compile(#持久读数的整段格式
     r'^Time sampled while preparing turn ([0-9]+), step ([0-9]+): '#回合与步骤
@@ -44,11 +45,11 @@ def 准备位置(历史,失败):
             打开步骤=None#步骤一并关闭
             请求已开始=False#复位
     if 打开回合 is None:#必须在打开回合内
-        失败('time-context reading must be appended inside an open turn')#失败
+        失败('time-context reading must be appended inside an open turn')
     if 打开步骤 is None:#必须在step/start之后
-        失败('time-context reading must follow step/start')#失败
+        失败('time-context reading must follow step/start')
     if 请求已开始:#必须在request/header之前
-        失败('time-context reading must precede request/header')#失败
+        失败('time-context reading must precede request/header')
     return {'turn':打开回合,'step':打开步骤}#返回打开边界
 
 def 末次下标(历史,回合):
@@ -72,7 +73,7 @@ def 解析渲染时间(渲染):
     """按读数里写死的 ISO 形态解析为纪元毫秒；时区括号标签先剥掉再解析。"""
     去掉括号=re.sub(r'\[[^\]]+\]\Z','',渲染,count=1,flags=re.ASCII)#去掉时区括号标签
     if 去掉括号.endswith('Z'):#UTC 字面量
-        时刻=日期时间.strptime(去掉括号,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=时区.utc)#按 UTC 解析
+        时刻=日期时间.strptime(去掉括号,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=时区('UTC'))
     else:
         时刻=日期时间.strptime(去掉括号,'%Y-%m-%dT%H:%M:%S%z')#带偏移
     return int(时刻.timestamp()*1000)#纪元毫秒
@@ -169,39 +170,40 @@ def 校验会话(会话,失败):
             continue#跳过
         校验读数(事件列表[0:下标],事件,失败)#用该事件之前的历史校验
 
-def 安装(上下文对象,失败):
+def 安装(上下文,失败):
     """为已加载与新追加的上下文读数安装校验。"""
-    for 会话对象 in 上下文对象.sessions.list():#先校验现有会话
-        校验会话(会话对象,失败)#校验
+    for 会话 in 上下文.sessions.list():#先校验现有会话
+        校验会话(会话,失败)#校验
     def 会话已创建(会话,*其余):
         """新会话创建时校验。"""
         校验会话(会话,失败)#校验
     def 内部派发(_模式,事件名,参数,*其余):
         """提交前检查 session/event。"""
-        if 事件名!='session/event':#只看会话事件
-            return#放过
-        会话=参数[0]#会话
-        事件=参数[1]#事件
-        if 'data' not in 事件:#无载荷
-            continue#跳过
-        数据=事件['data']#载荷
-        if not isinstance(数据,dict) or 'source' not in 数据:#无来源
-            continue#跳过
-        来源=数据['source']#来源
-        if (事件['type']!='user/message'#非用户消息
-            or 来源['kind']!='plugin'#非插件
-            or 来源['plugin']!=来源名):#非本插件
-            return#放过
-        校验读数(会话.events,事件,失败)#追加时历史已含本事件，准备位置按此前边界计算
-    上下文对象.监听('session/created',会话已创建,{'全局':True})#新会话也校验
-    上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#全局监听
+        if 事件名!='session/event':
+            return
+        会话=参数[0]
+        事件=参数[1]
+        if 'data' not in 事件:
+            return
+        数据=事件['data']
+        if not isinstance(数据,dict) or 'source' not in 数据:
+            return
+        来源=数据['source']
+        if (事件['type']!='user/message'
+            or 来源['kind']!='plugin'
+            or 来源['plugin']!=来源名):
+            return
+        校验读数(会话.events,事件,失败)
+    上下文.监听('session/created',会话已创建,{'全局':True})#新会话也校验
+    上下文.监听('internal/dispatch',内部派发,{'全局':True})#全局监听
 
-def 应用(上下文对象):
+def 应用(上下文):
     """注册时钟上下文不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记本包不变量
+    return 上下文.invariants.register(包名,安装)#登记本包不变量
 
-安装.inject=['sessions']#安装前需要sessions
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-apply=应用#Cordis 插件入口
-default=应用#Cordis 默认导出槽
+安装.inject=['sessions']
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=默认#框架槽

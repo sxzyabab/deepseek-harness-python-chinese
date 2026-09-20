@@ -1,13 +1,13 @@
 import json#JSON 片段
 包名='@deepseek-ai/dsh-tool-todo'#本包的不变量所有权名
 名称='tool-todo-invariant'#配套不变量插件名（字面量）
-注入=['invariants']#依赖 invariants 服务
+依赖=['invariants']#依赖 invariants 服务
 待办状态集合=set(('pending','in_progress','completed'))#耐久允许的三态
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用']#仅中文公开名
 
-def 编码内容(值):#对齐 JSON.stringify 的报错片段
-    """把值编成 JSON 片段，对齐 TypeScript JSON.stringify。"""
+def 编码内容(值):#错误消息里的 JSON 片段
+    """把值编成紧凑 JSON 片段。"""
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON 片段
 
 def 校验待办列表(值,失败):#校验一整表快照
@@ -35,9 +35,9 @@ def 校验事件(事件,失败):#只认本包事件
     if 事件['type']=='todo/write':#整表写入
         校验待办列表(事件['data']['todos'],失败)#校验载荷
 
-def 安装(上下文对象,失败):#安装已加载与新追加校验
+def 安装(上下文,失败):#安装已加载与新追加校验
     """为已加载和新追加的整表待办快照安装校验。"""
-    for 会话 in 上下文对象.sessions.list():#已有会话
+    for 会话 in 上下文.sessions.list():#已有会话
         for 事件 in 会话.events:#日志
             校验事件(事件,失败)#先校验
     def 内部派发(_模式,事件名,参数,*其余):#提交前检查
@@ -46,14 +46,14 @@ def 安装(上下文对象,失败):#安装已加载与新追加校验
             return#放过
         事件=参数[1]#第二实参是事件
         校验事件(事件,失败)#校验
-    上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#全局监听
+    上下文.监听('internal/dispatch',内部派发,{'全局':True})#全局监听
 
 安装.inject=['sessions']#安装时还要 sessions
 
-def 应用(上下文对象):#注册本包不变量配套
+def 应用(上下文):#注册本包不变量配套
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献
+    return 上下文.invariants.register(包名,安装)#登记贡献
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 apply=应用#Cordis插件入口

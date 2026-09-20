@@ -26,8 +26,8 @@ class 打包器错误(Exception):#本包异常基类
 配置路径=镜像配置路径#已合成配置档在镜像中的路径
 契约字段='lowered'#运行时据以判定镜像的清单字段
 
-def 路径通配(模式表,选项=None):#对齐picomatch(patterns,{dot:true})
-    """对齐 picomatch([...], {dot: true})：返回路径谓词。"""
+def 路径通配(模式表,选项=None):
+    """返回路径谓词。"""
     模式列表=[str(模式).replace('\\','/') for 模式 in 模式表]#模式列表
     def 匹配(路径):#路径是否命中任一模式
         """正斜杠路径是否命中任一 glob 模式。"""
@@ -47,20 +47,14 @@ def 读json(文件):#读取并解析JSON
     return json.loads(open(文件,'r',encoding='utf-8').read())#解析为记录
 
 def 说明符包名(说明符):#模块说明符的包名
-    """模块说明符的包名（`@scope/pkg/sub` → `@scope/pkg`）。
-
-    对齐上游 `packageNameOf`。
-    """
+    """模块说明符的包名（`@scope/pkg/sub` → `@scope/pkg`）。"""
     段列表=说明符.split('/')#按斜杠拆分
     首=段列表[0] if len(段列表)>0 else 说明符#首段
     次=段列表[1] if len(段列表)>1 else ''#次段
     return (首+'/'+次) if 首.startswith('@') else 首#作用域包取两段否则一段
 
 def 收集模块名(行列表,名称集合):#从已解析入口行递归收集模块说明符
-    """从已解析的入口行递归收集模块说明符 `name` 字段。
-
-    对齐上游 `moduleNamesOf`。
-    """
+    """从已解析的入口行递归收集模块说明符 `name` 字段。"""
     if not isinstance(行列表,list):return#非数组直接返回
     for 行 in 行列表:#遍历每一行
         if not isinstance(行,dict) or 行 is None:continue#跳过非对象
@@ -71,19 +65,13 @@ def 收集模块名(行列表,名称集合):#从已解析入口行递归收集�
         收集模块名(配置,名称集合)#递归嵌套config
 
 def 配置名册(配置):#合成配置档所点名的包名
-    """合成配置档所点名的包名。
-
-    对齐上游 `rosterOf`。
-    """
+    """合成配置档所点名的包名。"""
     名称集合=set()#包名集合
     收集模块名(yaml.load(配置,Loader=条目列表读取器),名称集合)#解析并收集
     return list(名称集合)#展开为数组
 
 def 树名册(根):#一棵配置树下各合成所点名的包名
-    """一棵配置树下各合成所点名的包名。
-
-    对齐上游 `treeRosterOf`。
-    """
+    """一棵配置树下各合成所点名的包名。"""
     名称集合=set()#包名集合
     def 遍历(目录):#递归遍历目录
         for 名字 in os.listdir(目录):#读取目录项
@@ -97,10 +85,7 @@ def 树名册(根):#一棵配置树下各合成所点名的包名
     return list(名称集合)#展开为数组
 
 def 解析依赖(起始目录,名):#按Node方式解析一个依赖
-    """按 Node 方式解析一个依赖：从导入方向上游走。
-
-    对齐上游 `resolveDependency`。
-    """
+    """按 Node 方式解析一个依赖：从导入方向上游走。"""
     目录=起始目录#当前搜索目录
     while True:#向上循环
         候选=os.path.join(目录,'node_modules',名)#候选包路径
@@ -110,10 +95,7 @@ def 解析依赖(起始目录,名):#按Node方式解析一个依赖
         目录=父#继续向上
 
 def 收集树(根,目标,前缀,保留,保留目录=False):#收集一目录下的文件进镜像
-    """收集一目录下的文件。
-
-    对齐上游 `collectTree`。
-    """
+    """收集一目录下的文件。"""
     def 遍历(目录):#递归遍历
         for 名字 in os.listdir(目录):#读取目录项
             绝对=os.path.join(目录,名字)#绝对路径
@@ -128,10 +110,7 @@ def 收集树(根,目标,前缀,保留,保留目录=False):#收集一目录下�
     遍历(根)#从根开始走
 
 def 发布过滤器(模式表):#npm files白名单谓词
-    """npm `files` 白名单谓词，采用标准 glob 语义。
-
-    对齐上游 `publishedFilter`。
-    """
+    """npm `files` 白名单谓词，采用标准 glob 语义。"""
     字符串列表=[模式 for 模式 in 模式表 if isinstance(模式,str)]#仅保留字符串模式
     def 规范化(模式):#去掉./与尾斜杠
         return re.sub(r'/+\Z','',re.sub(r'^\./','',模式,count=1),count=1)#规范化
@@ -155,18 +134,12 @@ def 发布过滤器(模式表):#npm files白名单谓词
 js扩展=re.compile(r'\.[cm]?js\Z')#JS入口扩展名
 
 def 为调试器命名(字节,名,解码,编码):#为调试器命名一个JavaScript入口
-    """为调试器命名一个 JavaScript 入口：追加 sourceURL 魔法注释。
-
-    对齐上游 `nameForDebugger`。
-    """
+    """为调试器命名一个 JavaScript 入口：追加 sourceURL 魔法注释。"""
     源码=悬空源映射.sub('\n',解码(字节))#解码并剥悬空源映射
     return 编码(源码+'\n//# sourceURL='+名)#追加sourceURL并编码
 
 def 调试器命名器(工作区表,解析自):#构造从镜像键到入口调试器名的映射函数
-    """镜像入口的调试器名。
-
-    对齐上游 `debuggerNamer`。
-    """
+    """镜像入口的调试器名。"""
     仓库目录表={#包名到仓库相对目录
         名:os.path.relpath(目录,解析自).replace('\\','/') for 名,目录 in 工作区表.items()
     }#仓库目录表结束
@@ -180,10 +153,7 @@ def 调试器命名器(工作区表,解析自):#构造从镜像键到入口调�
     return 命名#映射函数
 
 def 扫描镜像(文件表,选项,根包列表,根):#只保留工作线程可达的JavaScript并在途中变换
-    """只保留工作线程可达的 JavaScript，并在途中变换。
-
-    对齐上游 `sweepImage`。
-    """
+    """只保留工作线程可达的 JavaScript，并在途中变换。"""
     def 解码(字节):#UTF-8解码
         return 字节.decode('utf-8')#解码
     def 编码(文本):#UTF-8编码
@@ -202,13 +172,13 @@ def 扫描镜像(文件表,选项,根包列表,根):#只保留工作线程可达
     })#加载器结束
     队列=[{'specifier':说明符,'from':根,'importer':'worker assembly entry'} for 说明符 in (选项['entries'] if 选项.get('entries') is not None else 镜像入口种子)]#入口种子入队
     for 名 in 根包列表:#每个工作区根包的导出面
-        清单字节=文件表.get('node_modules/'+名+'/package.json')#包清单字节
-        if 清单字节 is None:continue#materialize已在missing下报告
+        if 'node_modules/'+名+'/package.json' not in 文件表:continue#materialize已在missing下报告
+        清单字节=文件表['node_modules/'+名+'/package.json']#包清单字节
         try:#尝试解析清单
-            清单=json.loads(解码(清单字节))#解码并解析
-        except Exception:#json.loads 可能抛 JSONDecodeError/UnicodeDecodeError，契约未定所以收不窄
-            continue#跳过该包
-        if 清单.get('exports') is None:#无exports则整包
+            清单=json.loads(解码(清单字节))
+        except (json.JSONDecodeError,UnicodeDecodeError,TypeError,ValueError):
+            continue
+        if 'exports' not in 清单:#无exports则整包
             子路径列表=['.']#整包
         else:#有exports
             子路径列表=[键 for 键 in 清单['exports'].keys() if 键.startswith('.') and '*' not in 键]#过滤非通配面
@@ -238,8 +208,8 @@ def 扫描镜像(文件表,选项,根包列表,根):#只保留工作线程可达
         if 路径 in 已见:continue#已见则跳过
         已见.add(路径)#标记已见
         键=路径[len(根)+1:]#镜像相对键
-        字节=文件表.get(键)#候选字节
-        if 字节 is None:continue#候选中无此文件
+        if 键 not in 文件表:continue#候选中无此文件
+        字节=文件表[键]#候选字节
         if (not js扩展.search(键)) or 是页面资源(键):#非JS或页面资源
             已达[键]=字节#原样保留
             continue#下一队列项
@@ -266,10 +236,10 @@ def 扫描镜像(文件表,选项,根包列表,根):#只保留工作线程可达
             扫描后[名]=为调试器命名(字节,调试器名(名),解码,编码) if 是js else 字节#JS则命名否则原样
             if 是js:脚本入口数+=1#计入JS
             continue#下一文件
-        留下=已达.get(名)#是否可达
-        if 留下 is None:#不可达
+        if 名 not in 已达:#不可达
             丢弃+=1#计入丢弃
             continue#下一文件
+        留下=已达[名]#是否可达
         扫描后[名]=为调试器命名(留下,调试器名(名),解码,编码)#命名后写入
         脚本入口数+=1#计入JS
     return {#返回扫描结果
@@ -281,10 +251,7 @@ def 扫描镜像(文件表,选项,根包列表,根):#只保留工作线程可达
     }#return结束
 
 def 丢弃可执行脚本(文件表):#从镜像丢弃可执行脚本
-    """从镜像丢弃可执行脚本。
-
-    对齐上游 `dropExecutables`。
-    """
+    """从镜像丢弃可执行脚本。"""
     def 解码(字节):#解码器
         return 字节.decode('utf-8')#解码
     已丢=[]#已丢弃列表
@@ -297,10 +264,7 @@ def 丢弃可执行脚本(文件表):#从镜像丢弃可执行脚本
     return 已丢#返回丢弃列表
 
 def 物化(名册,选项):#将每个名册包的依赖闭包物化进镜像
-    """将每个名册包的依赖闭包物化进镜像。
-
-    对齐上游 `materialize`。
-    """
+    """将每个名册包的依赖闭包物化进镜像。"""
     文件表={}#镜像文件表
     包表={}#包文件计数
     缺失=[]#缺失列表
@@ -341,19 +305,13 @@ def 物化(名册,选项):#将每个名册包的依赖闭包物化进镜像
 压缩操作系统偏移=9#操作系统字段偏移
 
 def 压缩镜像(归档):#把归档压成逐字节相同的单个gzip成员
-    """把归档压成同一棵树总是逐字节相同的单个 gzip 成员。
-
-    对齐上游 `compressImage`。
-    """
+    """把归档压成同一棵树总是逐字节相同的单个 gzip 成员。"""
     压缩=bytearray(gzip.compress(归档,compresslevel=9))#最高级压缩
     压缩[压缩操作系统偏移]=压缩未知操作系统#抹平平台字节
     return bytes(压缩)#返回压缩字节
 
 def 打包虚拟文件系统镜像(选项):#打包一份VFS镜像
-    """打包一份 VFS 镜像。
-
-    对齐上游 `packVfsImage`。
-    """
+    """打包一份 VFS 镜像。"""
     根=选项['root'] if 选项.get('root') is not None else 默认根#虚拟根
     def 编码(文本):#编码器
         return 文本.encode('utf-8')#编码
@@ -405,10 +363,7 @@ def 打包虚拟文件系统镜像(选项):#打包一份VFS镜像
     }#return结束
 
 def 打包虚拟文件系统叠加(树列表):#把不透明数据树打成有序VFS叠加层
-    """把不透明数据树打成一份有序 VFS 叠加层。
-
-    对齐上游 `packVfsOverlay`。
-    """
+    """把不透明数据树打成一份有序 VFS 叠加层。"""
     文件表={}#叠加文件表
     for 树 in 树列表:#遍历每棵树
         if not os.path.exists(树['directory']):#目录缺失
@@ -419,7 +374,7 @@ def 打包虚拟文件系统叠加(树列表):#把不透明数据树打成有序
         if (挂载=='' or 首 is None or 首 not in 镜像覆盖目录列表#挂载合法性
             or any(段=='' or 段=='.' or 段=='..' for 段 in 段列表)):#禁空段与相对段
             raise 打包器错误(#非法挂载
-                'vfs overlay: mount '+json.dumps(树['mount'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' must stay under '+' or '.join(镜像覆盖目录列表),#错误信息
+                'vfs overlay: mount '+json.dumps(树['mount'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' must stay under '+' or '.join(镜像覆盖目录列表),#错误详情
             )#Error结束
         def 全保留(相对路径):#全量收集
             return True#保留

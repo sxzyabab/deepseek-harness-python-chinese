@@ -50,7 +50,7 @@ def 检查器工作者已停止():#已停止事件
 检查器工作者控制=dict#Worker控制联合
 
 class 检查器客户端引导:#Client引导
-    """由 Host 插件注入的浏览器引导数据。"""
+    """由 Host 插件写入的浏览器引导数据。"""
     def __init__(自身,endpoint,protocol,maxQueuedRecords,maxQueuedBytes,maxRecordsPerFrame,maxFrameBytes,reconnectBaseMs,reconnectMaxMs,queryTimeoutMs,maxRuntimeObjectsPerSession,maxRuntimePropertiesPerResult,maxClientSourceBytes,maxCordisNodes):#构造
         """保存 Client 引导字段。"""
         自身.endpoint=endpoint#WebSocket端点

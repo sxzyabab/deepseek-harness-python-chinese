@@ -1,7 +1,4 @@
-"""工作区命令实现与稳定 Remote 失败映射。
-
-对齐上游 `workspace-controller/src/commands.ts`。公开面仅中文名。
-"""
+"""工作区命令实现与稳定 Remote 失败映射。"""
 import threading#串行锁
 from .远程错误与中止 import 远程错误,远程错误消息#远程错误
 from .提要 import 工作区视图#投影
@@ -10,7 +7,7 @@ __all__=['工作区命令','工作区未找到']#仅中文公开名
 
 def 工作区未找到(工作区标识):#构造 not-found
     """稳定 workspace/not-found 失败。"""
-    return 远程错误('workspace/not-found','Workspace "'+str(工作区标识)+'" not found',{'workspaceId':工作区标识})#失败
+    return 远程错误('workspace/not-found','Workspace "'+str(工作区标识)+'" not found',{'workspaceId':工作区标识})
 
 class 工作区命令:#工作区变更实现
     """对权威注册表执行工作区变更。"""
@@ -30,9 +27,9 @@ class 工作区命令:#工作区变更实现
                     return {'workspace':工作区视图(已有),'created':False}#未创建
                 工作区=自身._上下文.workspaceRegistry.create(请求['path'])#新建
                 return {'workspace':工作区视图(工作区),'created':True}#已创建
-            except OSError as 错误:#失败
+            except OSError as 错误:
                 raise 远程错误('workspace/invalid-path','cannot create a Workspace at "'+str(请求['path'])+'": '+远程错误消息(错误),{'path':请求['path']},原因=错误)#映射
-            except ValueError as 错误:#失败
+            except ValueError as 错误:
                 raise 远程错误('workspace/invalid-path','cannot create a Workspace at "'+str(请求['path'])+'": '+远程错误消息(错误),{'path':请求['path']},原因=错误)#映射
 
     def rename(自身,请求):#重命名
@@ -67,7 +64,7 @@ class 工作区命令:#工作区变更实现
             return {'workspaceIds':list(标识列表)}#顺序
         except 远程错误:#已是 Remote
             raise#原样
-        except ValueError as 错误:#失败
+        except ValueError as 错误:
             工作区标识=错误.workspaceId if hasattr(错误,'workspaceId') else None#顺序错误携带 id
             if 工作区标识 is not None:#映射为 not-found
                 raise 工作区未找到(工作区标识)#转
@@ -79,7 +76,7 @@ class 工作区命令:#工作区变更实现
         锚=请求['beforeSessionId'] if 'beforeSessionId' in 请求 else None#锚点
         try:#移动
             工作区.insertSessionBefore(请求['sessionId'],锚)#调用
-        except ValueError as 错误:#失败
+        except ValueError as 错误:
             详情={'workspaceId':请求['workspaceId'],'sessionId':请求['sessionId']}#详情
             if 锚 is not None:#有锚点
                 详情['beforeSessionId']=锚#锚点
@@ -90,14 +87,14 @@ class 工作区命令:#工作区变更实现
         """把已知会话加入全局归档集。"""
         try:#归档
             自身._上下文.workspaceRegistry.archiveSession(请求['sessionId'])#调用
-        except ValueError as 错误:#失败
+        except ValueError as 错误:
             raise 远程错误('session/not-found',远程错误消息(错误),{'sessionId':请求['sessionId']},原因=错误)#映射
         归档=自身._上下文.workspaceRegistry.archivedSessionIds#归档集
         return {'archivedSessionIds':list(归档 if 归档 is not None else [])}#归档集
 
     def _要求工作区(自身,工作区标识):#要求存在
         """取工作区或抛 not-found。"""
-        工作区=自身._上下文.workspaceRegistry.get(自身._工作区标识(工作区标识))#查找
+        工作区=自身._上下文.workspaceRegistry.get(自身._工作区标识(工作区标识))
         if 工作区 is None:#缺失
             raise 工作区未找到(工作区标识)#拒绝
         return 工作区#实体

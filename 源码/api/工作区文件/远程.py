@@ -1,14 +1,13 @@
-"""工作区文件 Host-for-Client Remote 贡献（对齐上游 `./remote`）。
+"""工作区文件的 Host-for-Client Remote 贡献。
 
-对照 `@Remote`：read / readBytes / readAll / readRelated / stat / list / changes。
+注册 read / readBytes / readAll / readRelated / stat / list / changes。
 首参为 workspaceFileScope 查找。
 """
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
+__all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-api-workspace-files'#上游包名
-服务='workspaceFiles'#服务键
+包名='@deepseek-ai/dsh-api-workspace-files'服务='workspaceFiles'#服务键
 命名空间='workspaceFiles'#命名空间
 类前=包名+'#WorkspaceFiles.'#调用 id 前缀
 作用域参数={#workspaceFileScope lookup
@@ -17,7 +16,7 @@ __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
 }#结束
 流式={'kind':'direct','mode':'stream'}#流式
 
-TYPERT_REMOTE=远程贡献(包名,[#贡献
+远程贡献表=远程贡献(包名,[#贡献
     调用描述符(类前+'read',服务,命名空间,'read',
         [作用域参数,
          {'name':'path','wire':'path','source':'json','codec':严格编解码('string')},
@@ -52,5 +51,5 @@ TYPERT_REMOTE=远程贡献(包名,[#贡献
         [作用域参数],严格编解码('WorkspaceFileWatchFrame'),{'file':'src/index.ts','line':365,'column':3},
         调用=流式,取消={'parameter':'signal'}),
 ])#结束
-远程贡献对象=TYPERT_REMOTE#中文别名
-默认=TYPERT_REMOTE#default
+默认=远程贡献表
+TYPERT_REMOTE=远程贡献表#typert框架槽

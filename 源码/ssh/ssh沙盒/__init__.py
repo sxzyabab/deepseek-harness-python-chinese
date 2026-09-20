@@ -1,7 +1,11 @@
-from ...工具.超时 import 若已中止则抛出#中止
-from ...沙盒.沙盒 import 沙箱提供方,沙箱不可用错误#沙箱缝
+from ...工具.超时 import 若已中止则抛出
+from ...沙盒.沙盒 import 沙箱提供方,沙箱不可用错误
+from ..ssh.协议 import 远程操作错误
+from ..ssh.模式 import ssh错误
 
-__all__=['ssh沙盒错误','ssh沙盒提供方']#仅中文公开名
+__all__=['ssh沙盒错误','ssh沙盒提供方','依赖']
+
+依赖=['ssh']
 
 class ssh沙盒错误(Exception):#本包异常基类
     """SSH 沙箱应答非法。"""
@@ -21,7 +25,7 @@ def 事实模式(值):#sandbox 应答
 
 class ssh沙盒提供方(沙箱提供方):#远端 argv 包装
     """在同一主机解析隔离请求。"""
-    inject=['ssh']#依赖
+    inject=依赖
     def 隔离(自身,参数表,政策,信号=None):#远端 confine
         """把 argv 与政策交给辅助程序。政策是 dict。"""
         若已中止则抛出(信号)#中止
@@ -39,8 +43,9 @@ class ssh沙盒提供方(沙箱提供方):#远端 argv 包装
             结果=dict(已隔离)#拷
             结果['runnerFailureRules']=规则表#规范化
             return 结果#已隔离 argv
-        except Exception as 错误:#不可用
-            若已中止则抛出(信号)#中止优先
-            raise 沙箱不可用错误(政策['mode'],str(错误))#不可用
+        except (远程操作错误,ssh错误) as 错误:
+            若已中止则抛出(信号)
+            raise 沙箱不可用错误(政策['mode'],str(错误))
 
-default=ssh沙盒提供方#框架槽
+inject=依赖
+default=ssh沙盒提供方

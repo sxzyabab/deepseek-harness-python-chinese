@@ -3,7 +3,7 @@ from ...内核.作用域 import 弱身份表#按身份存取的弱表
 
 包名='@deepseek-ai/dsh-hook-protocol'#本包名
 名称='hook-protocol-invariant'#配套插件名
-注入=['invariants']#依赖不变量服务
+依赖=['invariants']#依赖不变量服务
 
 def 钩子键(数据):
     """一次调用与结果对共享的关联键。数据是事件载荷 dict。"""
@@ -47,7 +47,7 @@ def 应用钩子变迁(待配对,变迁):
     else:
         待配对[键]=下一#写入
 
-def 安装(上下文对象,失败):
+def 安装(上下文,失败):
     """安装调用与结果成对检查。"""
     踪迹表=弱身份表()#会话跟踪
     暂存表=弱身份表()#预提交暂存
@@ -71,7 +71,7 @@ def 安装(上下文对象,失败):
         if 已有 is None:#缺
             return 播种(会话)#播种
         return 已有#已有
-    for 会话 in 上下文对象.sessions.列出():#现有会话
+    for 会话 in 上下文.sessions.列出():#现有会话
         播种(会话)#播种
     def 会话已创建(会话,*位置参数):
         """创建时播种。"""
@@ -82,10 +82,10 @@ def 安装(上下文对象,失败):
         种类=事件['type']#类型
         if 种类=='turn/start':#开始
             踪迹['openTurn']=事件['data']['turn']#打开
-            return#结束
+            return
         if 种类=='turn/end':#结束
             踪迹['openTurn']=None#清空
-            return#结束
+            return
         if 种类!='hook/invoked' and 种类!='hook/result':#非本包
             return#忽略
         候选=暂存表.取(事件)#暂存
@@ -102,18 +102,18 @@ def 安装(上下文对象,失败):
         变迁=校验钩子事件(取踪迹(会话),事件,失败)#校验
         if 变迁 is not None:#有变迁
             暂存表.设(事件,{'session':会话,'transition':变迁})#暂存
-    上下文对象.监听('session/created',会话已创建,{'全局':True})#创建
-    上下文对象.监听('session/event',已提交事件,{'全局':True})#提交
-    上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#派发
+    上下文.监听('session/created',会话已创建,{'全局':True})#创建
+    上下文.监听('session/event',已提交事件,{'全局':True})#提交
+    上下文.监听('internal/dispatch',内部派发,{'全局':True})#派发
 
 安装.inject=['sessions']#还要 sessions
 
-def 应用(上下文对象):
+def 应用(上下文):
     """登记本包不变量配套。"""
-    return 上下文对象.invariants.register(包名,安装)#登记
+    return 上下文.invariants.register(包名,安装)#登记
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用']#仅中文公开名
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 apply=应用#Cordis插件入口
 default=应用#Cordis默认导出

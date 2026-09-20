@@ -1,45 +1,46 @@
-from .宿主.插件 import 应用 as 应用宿主,解析检查器选项,启动检查器#Host插件面
+from .宿主.插件 import 应用 as 应用宿主,解析检查器选项,启动检查器
 
-__all__=[#仅中文公开名
-    '名称','注入','配置','应用','解析检查器选项','启动检查器',
-]#公开面结束
+__all__=[
+    '名称','依赖','配置','应用','解析检查器选项','启动检查器',
+]
 
-名称='experimental-inspector'#插件名
-注入=['webServer']#Host依赖webServer
+名称='experimental-inspector'
+依赖=['webServer']
 
-库默认=解析检查器选项()#库默认选项
+库默认=解析检查器选项()
 
-配置={#Host插件配置默认（对齐 Config schema）
-    'host':'127.0.0.1',#监听主机
-    'port':9230,#起始端口
-    'clientOrigins':[],#额外origin
-    'captureFetch':True,#是否采集fetch
-    'maxRequestBodyBytes':库默认.maxRequestBodyBytes,#请求体上限
-    'maxResponseBodyBytes':库默认.maxResponseBodyBytes,#响应体上限
-    'maxBodyChunkBytes':库默认.maxBodyChunkBytes,#分块上限
-    'maxJournalBytes':库默认.maxJournalBytes,#日志总字节
-    'maxRetainedRequests':库默认.maxRetainedRequests,#保留请求数
-    'maxSourceFrameBytes':库默认.maxSourceFrameBytes,#帧字节上限
-    'maxSourceRecordsPerFrame':库默认.maxSourceRecordsPerFrame,#每帧记录数
-    'maxQueuedRecords':库默认.maxQueuedRecords,#队列记录上限
-    'maxQueuedBytes':库默认.maxQueuedBytes,#队列字节上限
-    'startupTimeoutMs':库默认.startupTimeoutMs,#启动超时
-    'stopTimeoutMs':库默认.stopTimeoutMs,#停止超时
-    'clientReconnectBaseMs':库默认.clientReconnectBaseMs,#重连基数
-    'clientReconnectMaxMs':库默认.clientReconnectMaxMs,#重连上限
-    'clientRuntimeTimeoutMs':库默认.clientRuntimeTimeoutMs,#Client运行时超时
-    'queryTimeoutMs':库默认.queryTimeoutMs,#查询超时
-    'maxClientRuntimeObjects':库默认.maxClientRuntimeObjects,#Client对象上限
-    'maxClientRuntimeProperties':库默认.maxClientRuntimeProperties,#属性上限
-    'maxClientSourceBytes':库默认.maxClientSourceBytes,#源字节上限
-    'maxCordisNodes':库默认.maxCordisNodes,#Cordis节点上限
-    'maxDisconnectedCordisTrees':库默认.maxDisconnectedCordisTrees,#断联树上限
-}#配置结束
+配置={
+    'host':'127.0.0.1',
+    'port':9230,
+    'clientOrigins':[],
+    'captureFetch':True,
+    'maxRequestBodyBytes':库默认.maxRequestBodyBytes,
+    'maxResponseBodyBytes':库默认.maxResponseBodyBytes,
+    'maxBodyChunkBytes':库默认.maxBodyChunkBytes,
+    'maxJournalBytes':库默认.maxJournalBytes,
+    'maxRetainedRequests':库默认.maxRetainedRequests,
+    'maxSourceFrameBytes':库默认.maxSourceFrameBytes,
+    'maxSourceRecordsPerFrame':库默认.maxSourceRecordsPerFrame,
+    'maxQueuedRecords':库默认.maxQueuedRecords,
+    'maxQueuedBytes':库默认.maxQueuedBytes,
+    'startupTimeoutMs':库默认.startupTimeoutMs,
+    'stopTimeoutMs':库默认.stopTimeoutMs,
+    'clientReconnectBaseMs':库默认.clientReconnectBaseMs,
+    'clientReconnectMaxMs':库默认.clientReconnectMaxMs,
+    'clientRuntimeTimeoutMs':库默认.clientRuntimeTimeoutMs,
+    'queryTimeoutMs':库默认.queryTimeoutMs,
+    'maxClientRuntimeObjects':库默认.maxClientRuntimeObjects,
+    'maxClientRuntimeProperties':库默认.maxClientRuntimeProperties,
+    'maxClientSourceBytes':库默认.maxClientSourceBytes,
+    'maxCordisNodes':库默认.maxCordisNodes,
+    'maxDisconnectedCordisTrees':库默认.maxDisconnectedCordisTrees,
+}
 
-def 应用(上下文,配置对象=None):#应用Host插件
+def 应用(上下文,配置对象=None):
     """从仓库标准包入口应用 Host 实现。"""
-    应用宿主(上下文,配置对象 if 配置对象 is not None else 配置)#委托Host
+    应用宿主(上下文,配置对象 if 配置对象 is not None else 配置)
 
-apply=应用#Cordis入口别名
-Config=配置#Cordis配置别名
-
+name=名称
+inject=依赖
+apply=应用
+Config=配置

@@ -50,16 +50,16 @@ def 成功状态(原因,选项):
 
 class 装备SDKJSONRPC服务端:
     """基于一份已启动的 harness 上下文与一条传输对等端的 SDK 服务端。构造时订阅会话、智能体与子智能体生命周期事件，直至关闭；不支持再次初始化。"""
-    def __init__(自身,上下文对象,传输,选项=None):
+    def __init__(自身,上下文,传输,选项=None):
         """记下上下文、传输与选项，并挂上生命周期订阅。选项为 dict。"""
-        自身.ctx=上下文对象#harness 上下文
+        自身.ctx=上下文#harness 上下文
         自身.传输=传输#JSON-RPC 对等端
         自身.选项=选项 if 选项 is not None else {}#部署选项，默认空
         自身.cwd=os.getcwd()#会话工作目录，默认进程 cwd
         自身.provider='deepseek-official'#提供方路由
         自身.model='deepseek-official'#模型名
         自身.maxTokens=None#可选输出 token 上限
-        自身.llm光纤=None#按需挂载的 DeepSeek 适配器光纤
+        自身.llm纤程=None#按需挂载的 DeepSeek 适配器纤程
         自身.会话表={}#已创建会话记录 sessionId → {handle}
         自身.会话创建中={}#进行中的会话创建
         自身.拆除列表=[]#事件订阅拆除函数
@@ -70,13 +70,13 @@ class 装备SDKJSONRPC服务端:
         def 会话事件(会话,事件):
             """向客户端发出会话事件。"""
             自身.传输.通知('session.event',{'sessionId':str(会话.id),'event':事件})#组装并发送
-        自身.拆除列表.append(上下文对象.监听('session/event',会话事件))#登记拆除
+        自身.拆除列表.append(上下文.监听('session/event',会话事件))#登记拆除
         def 智能体状态(载荷):
             """发出会话状态通知。载荷为 dict。"""
             智能体=载荷['agent'] if 'agent' in 载荷 else None#智能体
             状态=载荷['status'] if 'status' in 载荷 else None#状态
             自身.传输.通知('session.status',{'sessionId':str(智能体.session.id),'status':状态})#发出
-        自身.拆除列表.append(上下文对象.监听('agent/status',智能体状态))#登记拆除
+        自身.拆除列表.append(上下文.监听('agent/status',智能体状态))#登记拆除
         def 会话已创建(会话):
             """子智能体才有父会话。会话为对象，头为 dict。"""
             头=会话.header#会话头
@@ -87,7 +87,7 @@ class 装备SDKJSONRPC服务端:
                 'parentSessionId':str(父会话),#父会话 id
                 'childSessionId':str(会话.id),#子会话 id
             })#通知结束
-        自身.拆除列表.append(上下文对象.监听('session/created',会话已创建))#登记拆除
+        自身.拆除列表.append(上下文.监听('session/created',会话已创建))#登记拆除
         def 子智能体结束(载体,信息):
             """本协议只报告进程内子会话。信息为 dict。"""
             父=子智能体父(载体)#从作用域载体取父智能体
@@ -104,7 +104,7 @@ class 装备SDKJSONRPC服务端:
             if 'lastAssistantMessage' in 信息 and 信息['lastAssistantMessage'] is not None:#有末条
                 载荷['lastAssistantMessage']=信息['lastAssistantMessage']#附带
             传输.通知('subagent.finished',载荷)#发出
-        自身.拆除列表.append(上下文对象.监听('subagent/end',子智能体结束))#登记拆除
+        自身.拆除列表.append(上下文.监听('subagent/end',子智能体结束))#登记拆除
 
     def 初始化(自身,参数):
         """配置 SDK 路由；仅在尚无主时挂载 DeepSeek 回退适配器。参数为 dict。"""
@@ -118,10 +118,10 @@ class 装备SDKJSONRPC服务端:
         自身.maxTokens=上限#记下可选 token 上限
         if not 自身.有适配器(自身.provider):#上下文里还没有该提供方
             if 自身.provider!='deepseek-official':#非官方提供方缺失则失败
-                raise SDK服务端错误('没有为提供方 "'+str(自身.provider)+'" 登记适配器')#失败
-            光纤=自身.ctx.启动插件(llm_deepseek)#官方提供方则挂载 DeepSeek 回退
-            光纤.等待()#等到适配器已登记
-            自身.llm光纤=光纤#记下
+                raise SDK服务端错误('没有为提供方 "'+str(自身.provider)+'" 登记适配器')
+            纤程=自身.ctx.启动插件(llm_deepseek)#官方提供方则挂载 DeepSeek 回退
+            纤程.等待()#等到适配器已登记
+            自身.llm纤程=纤程#记下
         return {'serverInfo':{'name':'deepseek-harness-sdk-runtime','version':'0.0.1'}}#线稳定身份
 
     def 提示(自身,参数):
@@ -166,12 +166,12 @@ class 装备SDKJSONRPC服务端:
                 记录['handle'].拆除()#每个会话句柄 dispose
             except BaseException as 错误:
                 失败列表.append(错误)#记录
-        if 自身.llm光纤 is not None:#有挂载适配器
+        if 自身.llm纤程 is not None:#有挂载适配器
             try:
-                自身.llm光纤.拆除()#拆除
+                自身.llm纤程.拆除()#拆除
             except BaseException as 错误:
                 失败列表.append(错误)#记录
-            自身.llm光纤=None#丢掉引用
+            自身.llm纤程=None#丢掉引用
         if len(失败列表)==1:#恰好一次失败
             raise 失败列表[0]#原样抛出
         if len(失败列表)>1:#多次失败

@@ -5,8 +5,8 @@ from .资源 import (#注册表与地址协议
     已中止,
     若已中止则抛出,
     资源注册表,
-)#资源模块
-from .约定 import (#约定面
+)
+from .约定 import (
     资源状态_无,
     资源状态_加载中,
     资源状态_存活,
@@ -16,10 +16,10 @@ from .约定 import (#约定面
     资源提供方,
     资源服务协议,
     使用资源,
-)#约定模块
+)
 
-__all__=[#仅中文公开名
-    '注入',
+__all__=[
+    '依赖',
     '应用',
     '资源方案',
     '取协议',
@@ -36,26 +36,26 @@ __all__=[#仅中文公开名
     '资源提供方',
     '资源服务协议',
     '使用资源',
-]#公开面结束
+]
 
-注入=['slots']#硬依赖槽位服务
+依赖=['slots']#硬依赖槽位服务
 
-def 应用(上下文):#客户端插件体
-    """提供 `ctx.resources`，并贡献根 keyed hook `resource`。"""
-    注册表=资源注册表(上下文)#在 apply 顶层建造，供其它插件的 apply 登记
-    拆除服务=上下文.提供服务('resources',注册表)#服务面
-    def 服务面寿命():#先登记，拆除时最后卸，使面活过其上提供方
-        """拆除服务面。"""
-        def 拆除():#卸服务
+def 应用(上下文):
+    """向上下文提供 resources 服务，并贡献根 keyed hook resource。"""
+    注册表=资源注册表(上下文)#在应用顶层建造，供其它插件的应用阶段登记
+    拆除服务=上下文.提供服务('resources',注册表)
+    def 服务面寿命():
+        """先登记、拆除时最后卸，使服务面活过其上提供方。"""
+        def 拆除():
             """调用提供时返回的拆除器。"""
-            拆除服务()#卸
-        return 拆除#拆除器
-    上下文.副作用(服务面寿命,'client-resources: service face')#服务面寿命
-    上下文.slots.provideRoot({#根标准源贡献
-        'keyedHooks':{#按键钩子
-            'resource':lambda 地址:注册表.取源(地址),#对齐 useResource 背后的活源
-        },#结束 keyedHooks
-    })#结束 provideRoot
+            拆除服务()
+        return 拆除
+    上下文.副作用(服务面寿命,'client-resources: service face')
+    上下文.slots.provideRoot({
+        'keyedHooks':{
+            'resource':lambda 地址:注册表.取源(地址),
+        },
+    })
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

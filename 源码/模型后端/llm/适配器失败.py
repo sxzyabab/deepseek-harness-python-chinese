@@ -1,6 +1,6 @@
 """最终 LLM 适配器边界所抛值的归一化。
 
-对齐上游 `llm/src/adapter-failure.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import math#有限数判定
 from .错误 import 装备错误#导入装备错误基类

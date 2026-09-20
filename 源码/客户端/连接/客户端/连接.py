@@ -41,13 +41,13 @@ def 可取消睡眠(毫秒,信号):#可取消睡眠
     截止=time.monotonic()+毫秒/1000#到期时刻
     while time.monotonic()<截止:#未到期
         if 已中止(信号):#已取消
-            return#结束
+            return
         time.sleep(min(0.05,(截止-time.monotonic())))#短睡
 
 def 等待中止(信号):
     """等到信号置位。"""
     if 已中止(信号):#已中止
-        return#结束
+        return
     信号.wait()#阻塞
 
 def 等待就绪(就绪事件,就绪宿主,就绪错误,源丢失事件,源丢失错误,配置,信号):

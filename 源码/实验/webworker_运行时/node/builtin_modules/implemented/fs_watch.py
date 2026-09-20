@@ -191,9 +191,9 @@ class 统计监视器(事件发出器):#stat轮询监视器
         super().__init__()#初始化事件发出器
         自身.path=路径#路径
         表={} if 选项 is None else 选项#??空表，空字典合法
-        自身._引用=True if 表.get('persistent') is None else 表['persistent']#??True，False 合法
-        自身._间隔=5007 if 表.get('interval') is None else 表['interval']#??5007，interval=0 合法
-        自身._bigint=False if 表.get('bigint') is None else 表['bigint']#??False
+        自身._引用=True if 'persistent' not in 表 else 表['persistent']#??True，False 合法
+        自身._间隔=5007 if 'interval' not in 表 else 表['interval']#??5007，interval=0 合法
+        自身._bigint=False if 'bigint' not in 表 else 表['bigint']#??False
         自身._上次=统计或缺失(路径,自身._bigint)#初始stats
         自身._上下文=捕获异步上下文()#捕获上下文
         自身._定时器=None#轮询定时器
@@ -271,22 +271,23 @@ def 监视文件(路径,选项或监听器,或许监听器=None):#导出watchFil
     监听器=选项或监听器 if callable(选项或监听器) else 或许监听器#解析监听器
     if 监听器 is None: raise TypeError('"listener" 参数必须是函数')#必须有监听器
     目标=归一路径(路径)#归一路径
-    监视器=_统计监视表.get(目标)#查共享监视器
-    if 监视器 is None:#尚无共享实例
+    if 目标 not in _统计监视表:#尚无共享实例
         监视器=统计监视器(目标,选项)#新建
         _统计监视表[目标]=监视器#登记
         def 摘掉():#停止时移除共享表
             """从共享表删除本路径。"""
             _统计监视表.pop(目标,None)#移除
         监视器.一次('stop',摘掉)#停止时移除
+    else:
+        监视器=_统计监视表[目标]#查共享监视器
     监视器.监听('change',监听器)#挂接监听器
     return 监视器#返回共享监视器
 
 def 取消监视文件(路径,监听器=None):#取消文件监视
     """移除一条路径的一个或全部监听器。"""
     目标=归一路径(路径)#归一路径
-    监视器=_统计监视表.get(目标)#取监视器
-    if 监视器 is None: return#无则返回
+    if 目标 not in _统计监视表: return#无则返回
+    监视器=_统计监视表[目标]#取监视器
     if 监听器 is None: 监视器.移除全部监听器('change')#移除全部
     else: 监视器.移除监听器('change',监听器)#移除指定
     if 监视器.监听器数量('change')==0: 监视器.停止()#无监听则停止

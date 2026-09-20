@@ -230,22 +230,21 @@ class 内存vfs:#内存VFS
 
     def _加文件路径(自身,节点,路径):#添加路径索引
         """添加一个映射名，把罕见硬链接情况提升为集合。"""
-        路径索引=节点.get('paths')#当前
-        if 路径索引 is None:#空
+        if 'paths' not in 节点:#空
             节点['paths']=路径#单路径
-        elif isinstance(路径索引,str):#已有单路径
-            节点['paths']={路径索引,路径}#升为集合
+        elif isinstance(节点['paths'],str):#已有单路径
+            节点['paths']={节点['paths'],路径}#升为集合
         else:#已是集合
-            路径索引.add(路径)#加入
+            节点['paths'].add(路径)#加入
 
     def _删文件路径(自身,节点,路径):#移除路径索引
         """移除一个映射名，把剩余单链接收拢回字符串。"""
         路径索引=节点.get('paths')#当前
         if isinstance(路径索引,str):#单路径
             节点['paths']=None#清空
-            return#结束
+            return
         if 路径索引 is None:#已空
-            return#结束
+            return
         路径索引.discard(路径)#从集合删
         if len(路径索引)==1:#剩一个
             节点['paths']=next(iter(路径索引))#收拢为字符串
@@ -254,7 +253,7 @@ class 内存vfs:#内存VFS
         """设置一个文件映射条目，同时维护两节点的反向路径索引。"""
         旧=自身._文件表.get(路径)#旧节点
         if 旧 is 节点:#同节点无需
-            return#结束
+            return
         if 旧 is not None:#卸旧索引
             自身._删文件路径(旧,路径)#卸旧
         自身._文件表[路径]=节点#写入映射
@@ -280,9 +279,9 @@ class 内存vfs:#内存VFS
         路径索引=节点.get('paths')#路径
         if isinstance(路径索引,str):#单名
             自身._发布文件路径(节点,路径索引,追加起点)#发布一名
-            return#结束
+            return
         if 路径索引 is None:#无名
-            return#结束
+            return
         for 路径 in list(路径索引):#逐名发布
             自身._发布文件路径(节点,路径,追加起点)#发布
 
@@ -383,8 +382,8 @@ class 内存vfs:#内存VFS
         自身._目录集.add(目标)#登记目录
         自身._触碰目录(目标)#新目录mtime
         自身._触碰目录(父)#父mtime
-        权限位=选项.get('mode')#目录权限
-        if 权限位 is None: 权限位=默认目录权限#??默认目录权限，mode=0 合法
+        if 'mode' not in 选项: 权限位=默认目录权限#??默认目录权限，mode=0 合法
+        else: 权限位=选项['mode']#目录权限
         权限=权限位&0o777#权限位
         if 权限!=默认目录权限:#非默认则记
             自身._目录权限[目标]=权限#记下
@@ -400,13 +399,13 @@ class 内存vfs:#内存VFS
             失败('EISDIR','open',目标)#报错
         if 目录名(目标) not in 自身._目录集:#缺父
             失败('ENOENT','open',目标)#报错
-        标志=选项.get('flag')#打开标志
-        if 标志 is None: 标志='w'#??w，空串合法
+        if 'flag' not in 选项: 标志='w'#??w，空串合法
+        else: 标志=选项['flag']#打开标志
         if 标志.startswith('wx') and 目标 in 自身._文件表:#排他创建
             失败('EEXIST','open',目标)#报错
         if 标志.startswith('a'):#追加路径
             自身.追加文件同步(目标,数据)#追加
-            return#结束
+            return
         先前=自身._文件表.get(目标)#已有节点
         if 先前 is not None:#已存在
             权限=先前['mode']#保留权限
@@ -417,7 +416,7 @@ class 内存vfs:#内存VFS
         字节=数据.encode('utf-8') if isinstance(数据,str) else bytes(数据)#编码或原字节
         if 先前 is not None:#已存在
             自身._替换文件(先前,字节)#替换内容
-            return#结束
+            return
         节点={'bytes':字节,'mtimeMs':自身._触碰节点(),'mode':权限,'paths':None}#新节点
         自身._设文件(目标,节点)#挂映射
         自身._触碰目录(目录名(目标))#父mtime
@@ -430,7 +429,7 @@ class 内存vfs:#内存VFS
         追加=数据.encode('utf-8') if isinstance(数据,str) else bytes(数据)#追加字节
         if 已有 is None:#不存在则创建
             自身.写入文件同步(目标,追加)#创建
-            return#结束
+            return
         自身._写文件节点(已有,len(已有['bytes']),追加)#末尾写
 
     def 注水(自身,路径,数据,选项=None):#注水文件
@@ -443,7 +442,7 @@ class 内存vfs:#内存VFS
         自身._设文件(目标,{#挂文件节点
             'bytes':字节,#内容
             'mtimeMs':选项.get('mtimeMs') if 选项.get('mtimeMs') is not None else 自身._触碰节点(),#mtime
-            'mode':(默认文件权限 if 选项.get('mode') is None else 选项['mode'])&0o777,#??默认文件权限，mode=0 合法
+            'mode':(默认文件权限 if 'mode' not in 选项 else 选项['mode'])&0o777,#??默认文件权限，mode=0 合法
             'paths':None,#尚无反向索引
         })#setFile结束
         自身._触碰目录(目录名(目标))#父mtime
@@ -479,7 +478,7 @@ class 内存vfs:#内存VFS
         源=自身._键(源路径)#源键
         目标=自身._键(目标路径)#目标键
         if 源==目标:#同路径无事
-            return#结束
+            return
         节点=自身._文件表.get(源)#文件节点
         if 节点 is not None:#移动文件
             if 目标 in 自身._目录集:#目标是目录
@@ -487,7 +486,7 @@ class 内存vfs:#内存VFS
             if 目录名(目标) not in 自身._目录集:#缺父
                 失败('ENOENT','rename',目标)#报错
             if 自身._文件表.get(目标) is 节点:#硬链接自移
-                return#结束
+                return
             自身._删文件(源)#卸源名
             自身._设文件(目标,节点)#挂目标名
             自身._忘身份(源)#忘源身份
@@ -577,12 +576,12 @@ class 内存vfs:#内存VFS
             elif 路径索引 is not None:#多名
                 for 名 in list(路径索引):#逐名发
                     自身._发布({'kind':'chmod','path':名,'mode':节点['mode']})#发chmod
-            return#结束
+            return
         if 目标 in 自身._目录集:#目录
             位=权限&0o777#掩码
             自身._目录权限[目标]=位#记下
             自身._发布({'kind':'chmod','path':目标,'mode':位})#发chmod
-            return#结束
+            return
         失败('ENOENT','chmod',目标)#不存在
 
     def 取消链接同步(自身,路径):#同步删文件
@@ -603,7 +602,7 @@ class 内存vfs:#内存VFS
             自身._忘身份(目标)#忘身份
             自身._触碰目录(目录名(目标))#父mtime
             自身._发布({'kind':'remove','path':目标})#发移除
-            return#结束
+            return
         if 目标 in 自身._目录集:#是目录
             if 选项.get('recursive') is not True:#须递归
                 失败('ERR_FS_EISDIR','rm',目标)#报错
@@ -623,7 +622,7 @@ class 内存vfs:#内存VFS
             自身._忘身份(目标)#忘身份
             自身._触碰目录(目录名(目标))#父mtime
             自身._发布({'kind':'remove','path':目标})#发移除
-            return#结束
+            return
         if 选项.get('force') is not True:#非强制则报错
             失败('ENOENT','rm',目标)#报错
 

@@ -36,7 +36,7 @@ class 宿主检查器源(检查器源连接):#Host检查器源
             """入站消息。"""
             try:#解析分发
                 if 自身.查询实例.接收(值):#RPC已消费
-                    return#结束
+                    return
                 自身.接收帧(解析工作者源帧(值))#源帧
             except Exception:#json.loads 畸形控制帧可能抛 JSONDecodeError，契约未定所以收不窄
                 自身.关闭()#关闭源

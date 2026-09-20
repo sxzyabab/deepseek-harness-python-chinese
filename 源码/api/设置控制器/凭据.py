@@ -1,7 +1,4 @@
-"""`credentials` Remote 命名空间宿主拥有者。
-
-对齐上游 `settings-controller/src/credentials.ts`。公开面仅中文名。
-"""
+"""`credentials` Remote 命名空间宿主拥有者。"""
 import re#引用语法
 from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
 from ...凭据.凭据 import 凭证引用#品牌化引用
@@ -91,9 +88,9 @@ class 凭据控制器(远程服务):#凭据 Remote 服务
         """把 seam 拒绝映射为 credential/rejected。"""
         try:#写
             写入()#执行
-        except OSError as 错误:#失败
+        except OSError as 错误:
             raise 远程错误('credential/rejected',远程错误消息(错误),{'ref':引用},原因=错误)#拒绝
-        except ValueError as 错误:#失败
+        except ValueError as 错误:
             raise 远程错误('credential/rejected',远程错误消息(错误),{'ref':引用},原因=错误)#拒绝
-        except TypeError as 错误:#失败
+        except TypeError as 错误:
             raise 远程错误('credential/rejected',远程错误消息(错误),{'ref':引用},原因=错误)#拒绝

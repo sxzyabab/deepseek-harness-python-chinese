@@ -1,9 +1,0 @@
-{
-    "control":"控制",
-    "descriptor":"描述符",
-    "handle":"句柄",
-    "inherit":"继承",
-    "pipe":"管道",
-    "stdio":"标准流",
-    "subprocess":"子进程"
-}

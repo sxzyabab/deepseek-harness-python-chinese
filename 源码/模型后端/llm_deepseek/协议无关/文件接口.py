@@ -151,7 +151,7 @@ class 深求文件客户端:#Files 客户端
                 raise 原因#原样
             raise 大模型错误(str(原因) if 原因 is not None else 'aborted','ABORTED')#中止
         网址=自身.基址+路径#完整 URL
-        解析=解析网址(网址)#拆
+        解析=解析网址(网址)
         头=dict(归属头())#归属
         if 自身.协议=='messages':#消息认证
             头['x-api-key']=自身.接口密钥#密钥
@@ -170,7 +170,7 @@ class 深求文件客户端:#Files 客户端
             if not 请求路径:#空
                 请求路径='/'#根
             客户端.request(方法,请求路径,body=体,headers=头)#发
-            响应=客户端.getresponse()#收
+            响应=客户端.getresponse()
             原文=响应.read()#体
             状态=响应.status#状态
             客户端.close()#关

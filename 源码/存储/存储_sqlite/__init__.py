@@ -1,6 +1,6 @@
 """SQLite 存储后端：一个数据库文件托管所有被路由单元。
 
-对齐上游 `@deepseek-ai/dsh-storage-sqlite`。注册为后端 `sqlite`。
+注册为后端 `sqlite`。
 """
 from ..存储.错误 import 存储错误#存储错误
 from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
@@ -9,9 +9,9 @@ from .结构 import 打开数据库,记录表名,存储_SQLITE_结构版本,日�
 from .单元 import SqliteKv单元#KV 单元
 from ...依赖.schemastery import 字符串字段,字典字段#配置
 
-名称='storage-sqlite'#Cordis 插件名
-注入=['storage']#依赖 storage 枢纽
-配置模式=字典字段({
+名称='storage-sqlite'#框架 插件名
+依赖=['storage']#依赖 storage 枢纽
+配置模式=字典字段(字典结构={
     'path':字符串字段(),#数据库路径
     'journalMode':字符串字段(默认值='wal'),#journal 模式；打开时校验
 })#配置模式结束
@@ -73,33 +73,33 @@ class Sqlite存储后端(存储后端):#SQLite 后端
     def close(自身):#关闭后端
         """关闭全部单元并关库。"""
         if 自身._已关:#已关
-            return#结束
+            return
         自身._已关=True#标记
         for 单元 in list(自身._单元.values()):#关每个单元
             单元.close()#关单元
         自身._连接.close()#关库
 
-def 应用(上下文对象,配置值):#注册 sqlite 后端
+def 应用(上下文,配置值):#注册 sqlite 后端
     """在存储枢纽上注册 `sqlite` 后端。"""
     后端=Sqlite存储后端(配置值)#构造后端
     def 副作用():#注册 effect
         """挂到枢纽，拆除时注销并关后端。"""
-        注销=上下文对象.storage.backend.register('sqlite',后端)#挂到枢纽
+        注销=上下文.storage.backend.register('sqlite',后端)#挂到枢纽
         def 拆除():#插件拆除
             """先注销再关后端。"""
             注销()#先注销
             后端.close()#再关后端
         return 拆除#disposer
-    上下文对象.副作用(副作用,'storage-sqlite.registerBackend')#带标签登记
-    上下文对象.提供服务(存储后端服务键('sqlite'),后端)#提供生命周期服务
+    上下文.副作用(副作用,'storage-sqlite.registerBackend')#带标签登记
+    上下文.提供服务(存储后端服务键('sqlite'),后端)#提供生命周期服务
     return None#无额外返回
 
 __all__=[#仅中文公开名
     '存储_SQLITE_结构版本','日志模式','Sqlite存储后端',
-    '名称','注入','配置','配置模式','应用',
+    '名称','依赖','配置','配置模式','应用',
 ]#公开面结束
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-Config=配置模式#Cordis配置模式
-apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+name=名称#框架插件名
+inject=依赖#框架依赖声明
+Config=配置模式#框架配置模式
+apply=应用#框架插件入口
+default=应用#框架默认导出

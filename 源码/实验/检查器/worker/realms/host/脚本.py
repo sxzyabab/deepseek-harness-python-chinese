@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/host/scripts.ts
-
 __all__=['Host脚本键']#仅中文公开名
 
 def Host脚本键(值):#Host脚本键

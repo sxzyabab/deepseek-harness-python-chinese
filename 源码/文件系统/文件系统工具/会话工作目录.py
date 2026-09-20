@@ -1,4 +1,4 @@
-"""推导文件系统工具解析相对路径所用的工作目录：调用方 agent 的每会话 workspace（exec.agent.session.header.cwd），使每个会话的 read/write/edit 作用在它自己的 workspace 上，而不是服务器启动目录——镜像 dsh-tool-bash 把 bash workdir 默认到会话 cwd。非 agent 调用返回 None，把回退留给提供方，而不是在工具边界读 process.cwd()。对齐上游 tool-fs/src/session-cwd.ts。"""
+"""推导文件系统工具解析相对路径所用的工作目录：调用方 agent 的每会话 workspace（exec.agent.session.header.cwd），使每个会话的 read/write/edit 作用在它自己的 workspace 上，而不是服务器启动目录——镜像 dsh-tool-bash 把 bash workdir 默认到会话 cwd。非 agent 调用返回 None，把回退留给提供方，而不是在工具边界读 process.cwd()。"""
 import re#父目录段匹配
 from ...沙盒.沙盒 import 规范路径#导入规范路径
 

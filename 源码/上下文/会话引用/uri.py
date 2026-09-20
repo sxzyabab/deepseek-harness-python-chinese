@@ -4,7 +4,7 @@ from ...内核.会话 import 会话标识#导入会话id品牌
 from .配置 import 会话引用错误#导入会话引用错误
 
 会话引用方案='dsh-session:'#会话引用URI方案前缀
-载荷字符=re.compile(r'^[A-Za-z0-9_-]+$')#base64url字符集
+载荷字符=re.compile(r'^[A-Za-z0-9_-]+\Z',re.ASCII)#base64url字符集
 提及模式=re.compile(r'@\[((?:\\.|[^\\\]])*)\]\((dsh-session:[^\s)]*)\)|(dsh-session:[A-Za-z0-9_-]+)')#匹配Markdown提及或裸URI
 
 def 编码会话引用URI(会话号):#编码规范会话引用URI
@@ -28,10 +28,10 @@ def 解码会话引用URI(统一资源):#解码规范会话引用URI
         if 编码会话引用URI(会话号)!=统一资源:#须与规范编码完全一致
             raise TypeError('URI is not canonical')#非规范形
         return 会话号#返回已校验会话id
-    except 会话引用错误:#已是本包错误则原样抛
-        raise#不包装
-    except Exception as 错误:#解码、解析或规范检查失败
-        raise 非法URI(统一资源,错误)#统一包装为非法URI错误
+    except 会话引用错误:
+        raise
+    except (ValueError,TypeError,UnicodeDecodeError) as 错误:
+        raise 非法URI(统一资源,错误)
 
 def 格式化会话引用提及(引用):#格式化Markdown提及
     """渲染携带规范 URI 的宿主中立 Markdown 提及。"""

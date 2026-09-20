@@ -1,5 +1,5 @@
 from urllib.parse import quote as 百分编码,unquote as 百分解码#地址编解码
-import json as JSON#原生调用参数
+import json
 import re as 正则#标题与地址
 
 __all__=['已提交计划','计划地址','解析计划地址']#仅中文公开名
@@ -37,10 +37,10 @@ def 已提交计划(事件):
     if 种=='tool/call':#原生调用
         if not isinstance(参数,str):#须 JSON 串
             return None#无
-        try:#解析
-            参数=JSON.loads(参数)#对象
-        except Exception:#畸形
-            return None#无
+        try:
+            参数=json.loads(参数)
+        except (json.JSONDecodeError,TypeError):
+            return None
     if not 是记录(参数) or 'plan' not in 参数 or not isinstance(参数['plan'],str):#无 plan
         return None#无
     正文=参数['plan']#正文
@@ -64,10 +64,10 @@ def 解析计划地址(地址):
     命中=计划地址模式.match(地址)#匹配
     if 命中 is None:#不匹配
         return None#无
-    try:#解码
-        段表=[百分解码(段) for 段 in 命中.group(1).split('/')]#分段
-    except Exception:#百分编码无效
-        return None#无
+    try:
+        段表=[百分解码(段) for 段 in 命中.group(1).split('/')]
+    except (ValueError,UnicodeError):
+        return None
     if any(段=='' for 段 in 段表):#空段
         return None#无
     if len(段表)==2:#普通会话

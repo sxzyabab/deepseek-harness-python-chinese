@@ -105,8 +105,8 @@ def 码到rgb(码,是背景=False):#参数 → rgb 串
             n=int(片[2])#色号
             v=max(0,min(255,n))#夹
             return str(v)+','+str(v)+','+str(v)#灰
-        except Exception:#失败
-            return None#无
+        except ValueError:
+            return None
     if len(片)>=5 and 片[1]=='2':#真彩
         return 片[2]+','+片[3]+','+片[4]#rgb
     return None#无

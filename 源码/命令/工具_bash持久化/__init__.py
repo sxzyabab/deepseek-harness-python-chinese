@@ -1,6 +1,6 @@
-"""面向模型的持久 bash 工具，叠在按所有者隔离的 PTY 能力缝上。
+"""面向模型的持久 bash 工具，叠在按所有者隔离的 PTY 能力上。
 
-对齐上游 `@deepseek-ai/dsh-tool-bash-persistent`。公开面仅中文名。配置键与诊断英文字面量保持上游。
+配置键与诊断英文字面量保持英文。
 """
 import re,time,uuid,threading,weakref#正则、轮询休眠、随机标记、中止锁与弱表
 from concurrent.futures import Future as 原生结果#单次操作结果
@@ -8,7 +8,7 @@ from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 截止,取超时,中止控制器,合成信号,已中止,若已中止则抛出#命令截止与中止通道
 
-__all__=['名称','注入','配置','应用','或许截断','下一滚回偏移','保留滚回','追加状态标记','渲染已抽','渲染壳退出状态','暂停']#仅中文公开名
+__all__=['名称','依赖','配置','应用','或许截断','下一滚回偏移','保留滚回','追加状态标记','渲染已抽','渲染壳退出状态','暂停']#仅中文公开名
 
 截断说明='<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>'#截断后追加给模型的说明
 丢失前缀说明='<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'#滚回丢掉开头时的说明
@@ -19,13 +19,13 @@ __all__=['名称','注入','配置','应用','或许截断','下一滚回偏移'
 滚回页行数=1000#每次读取的滚回页行数
 轮询间隔毫秒=25#轮询间隔毫秒
 默认描述='Run commands in a persistent bash shell. State, including the current directory and exported environment variables, persists across calls for this agent.'#默认工具描述
-安全整数上限=9007199254740991#外来 JSON 校验点对齐 JS Number.MAX_SAFE_INTEGER
+安全整数上限=9007199254740991#外来 JSON 校验点
 名称='tool-bash-persistent'#Cordis插件名（字面量）
-注入=['tools','terminals']#依赖工具与终端
+依赖=['tools','terminals']#依赖工具与终端
 配置={#持久Bash工具配置
     'backendType':字符串字段(默认值='shell'),#默认shell后端
     'timeoutMs':数字字段(默认值=300000),#默认300秒
-    'maxOutputChars':数字字段(默认值=16000),#默认16000字节预算（配置键沿用上游）
+    'maxOutputChars':数字字段(默认值=16000),#默认16000字节预算（配置键为线协议英文）
     'description':字符串字段(默认值=默认描述),#默认工具描述
 }#配置模式结束
 退出码模式=re.compile(r'^([0-9]+)\r?\n',re.ASCII)#结束标记后的退出码
@@ -496,7 +496,7 @@ def 应用(上下文,配置值):#加载持久bash工具插件
     登记持久Bash(上下文,已解析)#注册工具
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

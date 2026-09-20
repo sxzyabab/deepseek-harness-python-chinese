@@ -2,16 +2,17 @@ import os,tempfile,threading,re#配置目录、进程与端点
 from ...子进程.子进程 import 擦洗父环境#擦洗环境
 from ...内核.作用域 import 操作任务#关闭结算
 from ...工具.超时 import 若已中止则抛出,已中止,等待中止#中止
-from puppeteer_browsers import Browser,ChromeReleaseChannel,CDP_WEBSOCKET_ENDPOINT_REGEX,computeSystemExecutablePath,launch#上游 @puppeteer/browsers
+from puppeteer_browsers import Browser,ChromeReleaseChannel,CDP_WEBSOCKET_ENDPOINT_REGEX,computeSystemExecutablePath,launch
 
 __all__=['启动chromium']#仅中文公开名
 
 def 启动chromium(配置,信号):#拥有 Chromium
     """用擦洗环境与操作系统分配的调试端口启动 Chromium。"""
     若已中止则抛出(信号)#中止
-    可执行=配置.get('executablePath')#路径
-    if 可执行 is None:#系统稳定版
+    if 'executablePath' not in 配置:#系统稳定版
         可执行=computeSystemExecutablePath({'browser':Browser.CHROME,'channel':ChromeReleaseChannel.STABLE})#稳定
+    else:
+        可执行=配置['executablePath']#路径
     配置目录=tempfile.mkdtemp(prefix='dsh-stagehand-chrome-')#配置
     浏览器=None#进程
     已关=操作任务()#close

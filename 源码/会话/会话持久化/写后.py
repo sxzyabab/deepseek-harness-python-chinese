@@ -56,7 +56,7 @@ class 会话写后:
                 屏障.拒绝(错误)#拒绝调用方
         线程=threading.Thread(target=后台排空)#后台排空
         线程.daemon=True#不挡退出
-        线程.start()#启动
+        线程.start()
         return 屏障#返回屏障
 
     def 取消自动等待(自身):
@@ -69,7 +69,7 @@ class 会话写后:
         延迟=自身.选项['maxDelayMs']/1000#秒
         自身.定时器=threading.Timer(延迟,自身.截止到期)#到期后写
         自身.定时器.daemon=True#不挡退出
-        自身.定时器.start()#启动
+        自身.定时器.start()
 
     def 取消定时器(自身):
         """取消任何挂起的自动截止。"""
@@ -121,7 +121,7 @@ class 会话写后:
         except BaseException as 错误:#耐久重试失败
             自身.屏障=None#拆屏障
             拒绝(错误)#拒绝调用方
-            return#结束
+            return
         自身.屏障=None#关闭准入
         兑现()#决议调用方
 
@@ -151,5 +151,5 @@ class 会话写后:
         线程=threading.Thread(target=后台写入)#后台写线程
         线程.daemon=True#不挡退出
         自身.活动=活动#记下活动写
-        线程.start()#启动
+        线程.start()
         return 活动#返回任务

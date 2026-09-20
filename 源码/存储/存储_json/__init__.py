@@ -1,6 +1,6 @@
 """JSON 存储后端：在配置根下以原子整文件重写发布人类可读文档。
 
-对齐上游 `@deepseek-ai/dsh-storage-json`。在存储枢纽上注册为后端 `json`。
+在存储枢纽上注册为后端 `json`。
 """
 import os#路径
 from ...依赖.schemastery import 字符串字段,字典字段#配置
@@ -10,9 +10,9 @@ from ..存储 import 存储后端服务键#生命周期键
 from .单单元 import 打开单单元#single 布局
 from .按记录单元 import 打开按记录单元#per-record 布局
 
-名称='storage-json'#Cordis 插件名
-注入=['storage']#依赖 storage 枢纽
-配置模式=字典字段({'root':字符串字段()})#必填根目录
+名称='storage-json'#框架 插件名
+依赖=['storage']#依赖 storage 枢纽
+配置模式=字典字段(字典结构={'root':字符串字段()})#必填根目录
 配置=配置模式#中文配置
 
 def 校验描述符(描述符):#校验单元与表名
@@ -75,24 +75,24 @@ class Json存储后端(存储后端):#JSON 存储后端
         for 单元 in list(自身._已打开.values()):#关每个单元
             单元.close()#关闭
 
-def 应用(上下文对象,配置值):#注册 json 后端
+def 应用(上下文,配置值):#注册 json 后端
     """在存储枢纽上注册 `json` 后端。"""
     后端=Json存储后端(配置值['root'])#构造后端
     def 副作用():#注册 effect
         """挂到枢纽，拆除时注销并关后端。"""
-        注销=上下文对象.storage.backend.register('json',后端)#挂到枢纽
+        注销=上下文.storage.backend.register('json',后端)#挂到枢纽
         def 拆除():#插件拆除
             """先注销再关后端。"""
             注销()#先注销
             后端.close()#再关后端
         return 拆除#disposer
-    上下文对象.副作用(副作用)#登记
-    上下文对象.提供服务(存储后端服务键('json'),后端)#提供生命周期服务
+    上下文.副作用(副作用)#登记
+    上下文.提供服务(存储后端服务键('json'),后端)#提供生命周期服务
     return None#无额外返回
 
-__all__=['Json存储后端','名称','注入','配置','配置模式','应用']#仅中文公开名
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-Config=配置模式#Cordis配置模式
-apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+__all__=['Json存储后端','名称','依赖','配置','配置模式','应用']#仅中文公开名
+name=名称#框架插件名
+inject=依赖#框架依赖声明
+Config=配置模式#框架配置模式
+apply=应用#框架插件入口
+default=应用#框架默认导出

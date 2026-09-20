@@ -1,6 +1,6 @@
 """把 harness 请求历史转换成 pi-ai 的 Context 词表。
 
-对齐上游 `llm-pi-ai/src/context.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 from ...依赖.工具 import 二进制#base64 编解码
 from .. import llm#语言模型服务

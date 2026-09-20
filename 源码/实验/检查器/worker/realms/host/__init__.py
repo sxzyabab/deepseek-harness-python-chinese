@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/host/index.ts
-
 import uuid#随机id
 from ...inspection.realm import 检查器realm描述,检查器realm上下文#realm类型
 from .桥接 import Host检查器会话#原生会话
@@ -8,7 +6,7 @@ from .控制台 import Host控制台后端#Console
 from .源 import Host源后端#源
 from .调试器 import Host调试器后端#调试器
 
-__all__=['Host检查器realm']#仅中文公开名
+__all__=['Host检查器realm']
 
 Host_Runtime操作=(#Host Runtime操作
     'evaluate','get-properties','call-function','await-promise',#常用

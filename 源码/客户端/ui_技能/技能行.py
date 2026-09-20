@@ -1,8 +1,8 @@
-import json#解析调用参数
+import json
 
-__all__=['技能错误','技能行','技能行模型','技能名','结果文本','首行','样式表']#仅中文公开名
+__all__=['技能错误','技能行','技能行模型','技能名','结果文本','首行','样式表']
 
-样式表='''#对齐 SkillRow.module.css
+样式表='''
 .card{display:flex;flex-direction:column}
 .row{position:relative;overflow:hidden;display:flex;align-items:center;height:24px;min-width:0}
 .row[data-expandable]{cursor:pointer}
@@ -28,128 +28,128 @@ __all__=['技能错误','技能行','技能行模型','技能名','结果文本'
 .inspectButton:hover{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary)}
 .visuallyHidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.card[data-state=running] .row::after{animation:none;display:none}.iconIdle,.chevronHover,.inspectButton{transition:none}}
-'''#样式表结束
+'''
 
 class 技能错误(Exception):
     """本包异常基类。"""
     def __init__(自身,消息):
-        """记下英文消息。"""
-        super().__init__(消息)#消息原样英文
+        """记下消息。"""
+        super().__init__(消息)
 
-def 首行(文本):#取第一物理行
+def 首行(文本):
     """折叠错误摘要与畸形参数回退用的第一物理行。"""
-    换行=文本.find('\n')#找换行
-    if 换行==-1:#无换行
-        return 文本#整段
-    return 文本[:换行]#切到换行前
+    换行=文本.find('\n')
+    if 换行==-1:
+        return 文本
+    return 文本[:换行]
 
-def 技能名(原始参数,调用标识):#从参数解析技能名
+def 技能名(原始参数,调用标识):
     """紧凑行唯一呈现的调用参数是技能名。"""
-    try:#尝试解析 JSON
-        解析=json.loads(原始参数)#解析
-        if isinstance(解析,dict) and 解析 is not None:#对象
-            名=解析['name'] if 'name' in 解析 else None#name 字段
-            if isinstance(名,str) and 名!='':#非空字符串
-                return 首行(名)#第一行
-    except (TypeError,ValueError,json.JSONDecodeError):#流式可能暴露截断 JSON 前缀
-        pass#仍用原文第一行
-    if 原始参数=='':#空参数
-        return 调用标识#回退 callId
-    return 首行(原始参数)#原文第一行
+    try:
+        解析=json.loads(原始参数)
+        if isinstance(解析,dict) and 解析 is not None:
+            名=解析['name'] if 'name' in 解析 else None
+            if isinstance(名,str) and 名!='':
+                return 首行(名)
+    except (TypeError,ValueError,json.JSONDecodeError):
+        pass
+    if 原始参数=='':
+        return 调用标识
+    return 首行(原始参数)
 
-def 结果文本(块):#压平耐久结果块
-    """压平耐久结果块；与 ui-tool 的 resultText 合同对齐。"""
-    if not isinstance(块,dict) or 'kind' not in 块:#未结算块无 kind
-        return None#无结果
-    内容=块['content'] if 'content' in 块 and 块['content'] is not None else []#内容块
-    错误=块['error'] if 'error' in 块 else None#错误
-    片段=[]#文本片段
-    for 项 in 内容:#逐项
-        if isinstance(项,dict) and 'type' in 项 and 项['type']=='text':#文本块
-            片段.append(项['text'] if 'text' in 项 and 项['text'] is not None else '')#文本
-        else:#其它块
-            片段.append(json.dumps(项,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2))#JSON
-    if len(片段)==0 and 错误 is not None:#无正文但有错误
-        错名=错误['name'] if isinstance(错误,dict) and 'name' in 错误 else None#名
-        错码=错误['code'] if isinstance(错误,dict) and 'code' in 错误 else None#码
-        片段.append(str(错名)+': '+str(错码))#错误摘要
-    接合='\n'.join(片段)#拼接
-    if 接合=='':#空
-        return None#无结果
-    return 接合#结果文本
+def 结果文本(块):
+    """压平耐久结果块；与 ui-tool 的 resultText 合同一致。"""
+    if not isinstance(块,dict) or 'kind' not in 块:
+        return None
+    内容=块['content'] if 'content' in 块 and 块['content'] is not None else []
+    错误=块['error'] if 'error' in 块 else None
+    片段=[]
+    for 项 in 内容:
+        if isinstance(项,dict) and 'type' in 项 and 项['type']=='text':
+            片段.append(项['text'] if 'text' in 项 and 项['text'] is not None else '')
+        else:
+            片段.append(json.dumps(项,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2))
+    if len(片段)==0 and 错误 is not None:
+        错名=错误['name'] if isinstance(错误,dict) and 'name' in 错误 else None
+        错码=错误['code'] if isinstance(错误,dict) and 'code' in 错误 else None
+        片段.append(str(错名)+': '+str(错码))
+    接合='\n'.join(片段)
+    if 接合=='':
+        return None
+    return 接合
 
-def 技能行模型(块):#派生展示模型
+def 技能行模型(块):
     """只从耐久 call 切片派生展示状态，不查活技能目录。"""
-    已结算=isinstance(块,dict) and 'kind' in 块#是否已结算
-    调用=块['call'] if 已结算 and 'call' in 块 else None#调用
-    原文=((调用['argsRaw'] if 调用 is not None and 'argsRaw' in 调用 else None) if 已结算 else (块['argsRaw'] if 'argsRaw' in 块 else None))#参数原文或缺席
-    原始参数='' if 原文 is None else 原文#?? 空串保留
-    调用标识=块['callId'] if 'callId' in 块 and 块['callId'] is not None else ''#调用 id
-    错误=块['error'] if 'error' in 块 else None#错误
-    是错=块['isError'] if 'isError' in 块 else False#是否错误
-    if not 已结算:#进行中
-        状态='running'#运行中
-    elif isinstance(错误,dict) and 'code' in 错误 and 错误['code']=='interrupted':#中止
-        状态='stopped'#已中止
-    elif 是错:#错误
-        状态='error'#失败
-    else:#成功
-        状态='ok'#完成
-    输出=结果文本(块)#结果文本
-    return {#紧凑回放稳定视图模型
-        'name':技能名(原始参数,调用标识),#技能名
-        'output':输出,#输出
-        'errorSummary':首行(输出) if 状态=='error' and 输出 is not None else None,#错误摘要
-        'state':状态,#生命周期
-    }#模型结束
+    已结算=isinstance(块,dict) and 'kind' in 块
+    调用=块['call'] if 已结算 and 'call' in 块 else None
+    原文=((调用['argsRaw'] if 调用 is not None and 'argsRaw' in 调用 else None) if 已结算 else (块['argsRaw'] if 'argsRaw' in 块 else None))
+    原始参数='' if 原文 is None else 原文
+    调用标识=块['callId'] if 'callId' in 块 and 块['callId'] is not None else ''
+    错误=块['error'] if 'error' in 块 else None
+    是错=块['isError'] if 'isError' in 块 else False
+    if not 已结算:
+        状态='running'
+    elif isinstance(错误,dict) and 'code' in 错误 and 错误['code']=='interrupted':
+        状态='stopped'
+    elif 是错:
+        状态='error'
+    else:
+        状态='ok'
+    输出=结果文本(块)
+    return {
+        'name':技能名(原始参数,调用标识),
+        'output':输出,
+        'errorSummary':首行(输出) if 状态=='error' and 输出 is not None else None,
+        'state':状态,
+    }
 
-class 技能行:#技能 toolview 组件
+class 技能行:
     """渲染一条 skill 工具调用为强调摘要与说明披露。"""
-    def __init__(自身,属性=None):#可选初始 props
+    def __init__(自身,属性=None):
         """记下 props 与折叠状态。"""
-        自身.属性={} if 属性 is None else 属性#缺席才空表；空 dict 保留
-        自身.已展开=False#折叠状态
+        自身.属性={} if 属性 is None else 属性
+        自身.已展开=False
 
-    def 更新(自身,属性):#刷新 props
+    def 更新(自身,属性):
         """刷新合成 props。"""
-        自身.属性=属性#新 props
+        自身.属性=属性
 
-    def 切换展开(自身):#切换折叠
+    def 切换展开(自身):
         """切换展开状态。"""
-        自身.已展开=not 自身.已展开#翻转
+        自身.已展开=not 自身.已展开
 
-    def 渲染(自身):#产出结构化视图
-        """产出与上游 JSX 同构的结构化视图描述。"""
-        块=自身.属性['block'] if 'block' in 自身.属性 else None#工具块
-        翻译=自身.属性['t'] if 't' in 自身.属性 else None#翻译座位
-        检查=自身.属性['inspect'] if 'inspect' in 自身.属性 else None#检查回调
-        模型=技能行模型(块)#视图模型
-        可展开=模型['output'] is not None#有输出才可展开
-        打开=自身.已展开 and 可展开#实际打开
-        if 模型['state']=='running':#运行中
-            状态文案=翻译('row.running') if 翻译 else None#运行文案
-        elif 模型['state']=='error':#失败
-            状态文案=翻译('row.failed') if 翻译 else None#失败文案
-        elif 模型['state']=='stopped':#中止
-            状态文案=翻译('row.stopped') if 翻译 else None#中止文案
-        else:#成功
-            状态文案=None#无状态文案
-        摘要=模型['errorSummary'] if 模型['errorSummary'] is not None else 模型['name']#摘要
-        return {#结构化视图
-            'type':'skill-row',#行类型
-            'state':模型['state'],#生命周期
-            'expandable':可展开,#可否展开
-            'open':打开,#是否打开
-            'status':状态文案,#无障碍状态文案
-            'summary':摘要,#摘要
-            'output':模型['output'] if 打开 else None,#打开时的说明
-            'instructionsLabel':翻译('row.instructions') if 翻译 and 打开 else None,#说明标签
-            'inspect':检查 if 打开 else None,#检查回调
-            'toggle':自身.切换展开,#切换折叠
-        }#视图结束
+    def 渲染(自身):
+        """产出结构化视图描述。"""
+        块=自身.属性['block'] if 'block' in 自身.属性 else None
+        翻译=自身.属性['t'] if 't' in 自身.属性 else None
+        检查=自身.属性['inspect'] if 'inspect' in 自身.属性 else None
+        模型=技能行模型(块)
+        可展开=模型['output'] is not None
+        打开=自身.已展开 and 可展开
+        if 模型['state']=='running':
+            状态文案=翻译('row.running') if 翻译 else None
+        elif 模型['state']=='error':
+            状态文案=翻译('row.failed') if 翻译 else None
+        elif 模型['state']=='stopped':
+            状态文案=翻译('row.stopped') if 翻译 else None
+        else:
+            状态文案=None
+        摘要=模型['errorSummary'] if 模型['errorSummary'] is not None else 模型['name']
+        return {
+            'type':'skill-row',
+            'state':模型['state'],
+            'expandable':可展开,
+            'open':打开,
+            'status':状态文案,
+            'summary':摘要,
+            'output':模型['output'] if 打开 else None,
+            'instructionsLabel':翻译('row.instructions') if 翻译 and 打开 else None,
+            'inspect':检查 if 打开 else None,
+            'toggle':自身.切换展开,
+        }
 
-    def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+    def __call__(自身,属性=None):
+        """有新属性则刷新后渲染。"""
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

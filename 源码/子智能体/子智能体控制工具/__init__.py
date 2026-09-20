@@ -3,9 +3,9 @@ from ...内核.会话 import 会话标识#导入会话id品牌
 from ..子智能体.错误 import 子智能体错误#缝内失败
 
 名称='tool-subagent-control'#Cordis插件名
-注入=['tools','subagents']#依赖工具与子智能体服务
+依赖=['tools','subagents']#依赖工具与子智能体服务
 
-__all__=['名称','注入','应用']#仅中文公开名
+__all__=['名称','依赖','应用']#仅中文公开名
 
 def 应用(上下文):
     """登记 `send_message` 与 `interrupt_agent` 工具。"""
@@ -102,6 +102,6 @@ def 应用(上下文):
     }))#interrupt_agent 登记结束
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 default=应用#框架槽

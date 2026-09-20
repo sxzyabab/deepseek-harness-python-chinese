@@ -65,7 +65,7 @@ class 目标条:#输入坞目标指示条
         """空草稿不提交。"""
         修剪=自身.草稿.strip()#修剪
         if 修剪=='':#空
-            return#结束
+            return
         编辑=自身.属性['onEdit'] if 'onEdit' in 自身.属性 else None#动词
         def 提交编辑():#带草稿的编辑
             """调用 onEdit。"""

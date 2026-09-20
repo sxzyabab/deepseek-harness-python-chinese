@@ -5,7 +5,7 @@ from ...模型后端.llm import 装备错误#Harness 错误基类
 from ...工具.超时 import 已中止#中止入口
 from .类型 import (#再导出线路安全问答类型
     询问用户问题选项,#可选答案
-    询问用户问题意图,#展示意图
+    询问用户问题意图,#呈现意图
     询问用户问题项,#一条问题
     询问用户问题答案项,#一条答案
     询问用户问题答案,#整份回答
@@ -71,7 +71,7 @@ class 用户提问服务(服务):#ctx.userQuestions：一个活动 UI 提供方�
             注册表=自身.ctx.获取服务('agents',False)#取智能体注册表
             if 注册表 is None or 注册表.获取(智能体.id) is not 智能体:#不是精确存活实例
                 raise 用户提问错误(#拒绝非存活调用方
-                    'human interaction requires the exact live calling agent when an agent is supplied',#须精确存活文案（字面量不译）
+                    'human interaction requires the exact live calling agent when an agent is supplied',#须精确存活
                     'CALLER_NOT_LIVE')#非存活码
             在根=False#是否运行时根
             for 根 in 注册表.诸根():#逐个根
@@ -80,11 +80,11 @@ class 用户提问服务(服务):#ctx.userQuestions：一个活动 UI 提供方�
                     break#停
             if not 在根:#被别的智能体拥有
                 raise 用户提问错误(#子智能体没有人类回答者
-                    'human interaction is unavailable while the calling agent is owned by another live agent; '#委托不可用文案前半（字面量不译）
-                    +"include the unresolved question or decision in the child agent's final result",#委托不可用文案后半（字面量不译）
+                    'human interaction is unavailable while the calling agent is owned by another live agent; '#委托不可用前半
+                    +"include the unresolved question or decision in the child agent's final result",#委托不可用后半
                     'DELEGATED_CALLER')#委托调用方码
         for 题目 in 问题列表:#逐题检查意图
-            意图=题目['intent'] if 'intent' in 题目 else None#可选展示意图
+            意图=题目['intent'] if 'intent' in 题目 else None#可选呈现意图
             if 意图 is None:#无意图则跳过
                 continue#跳过
             选项列表=题目['options'] if 'options' in 题目 else []#选项列表
@@ -96,13 +96,13 @@ class 用户提问服务(服务):#ctx.userQuestions：一个活动 UI 提供方�
                     break#停
             if not 命中:#批准标签不在选项里
                 raise 用户提问错误(#意图与选项对不上
-                    'question '+str(题目['id'])+' declares intent '+str(意图['kind'])#批准标签错位文案前半（字面量不译）
-                    +' whose approve label '+repr(批准)+' names none of its options',#批准标签错位文案后半（字面量不译）
+                    'question '+str(题目['id'])+' declares intent '+str(意图['kind'])#批准标签错位前半
+                    +' whose approve label '+repr(批准)+' names none of its options',#批准标签错位后半
                     'BAD_INTENT')#坏意图码
             if 'detail' not in 题目 or 题目['detail'] is None:#计划评审必须带细节
                 raise 用户提问错误(#缺评审对象
-                    'question '+str(题目['id'])+' declares intent '+str(意图['kind'])#缺评审细节文案前半（字面量不译）
-                    +' without the detail it reviews',#缺评审细节文案后半（字面量不译）
+                    'question '+str(题目['id'])+' declares intent '+str(意图['kind'])#缺评审细节前半
+                    +' without the detail it reviews',#缺评审细节后半
                     'BAD_INTENT')#坏意图码
         if 自身.提供方 is None:#没有 UI 提供方
             raise 用户提问错误('no user-questions provider is registered','NO_PROVIDER')#拒绝无提供方

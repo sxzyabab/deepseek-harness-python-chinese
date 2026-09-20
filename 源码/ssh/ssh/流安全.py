@@ -1,4 +1,5 @@
 import ssl,socket,threading#TLS-PSK、Unix 套接字与握手超时
+from ...工具.超时 import 若已中止则抛出,等待中止#中止
 from .模式 import ssh错误#本包基类
 
 __all__=['ssh流tls选项','套接字流','认证流']#仅中文公开名
@@ -120,9 +121,7 @@ def 认证流(套接字对象,能力,超时毫秒,信号=None):#TLS-PSK 认证�
     流=套接字对象 if isinstance(套接字对象,套接字流) else 套接字流(套接字对象)#统一面
     if 信号 is not None and 信号.is_set():#已中止
         流.destroy()#毁
-        if hasattr(信号,'若已中止则抛出'):#本包信号
-            信号.若已中止则抛出()#抛
-        raise ssh错误('The operation was aborted')#中止
+        若已中止则抛出(信号)#抛原因或已中止错误
     上下文=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)#客户 TLS
     上下文.minimum_version=ssl.TLSVersion.TLSv1_2#下限
     上下文.maximum_version=ssl.TLSVersion.TLSv1_2#上限
@@ -148,8 +147,7 @@ def 认证流(套接字对象,能力,超时毫秒,信号=None):#TLS-PSK 认证�
     if 信号 is not None:#有信号
         def 监视():#等中止
             """置位后毁掉。"""
-            if hasattr(信号,'wait'):#Event
-                信号.wait()#等
+            等待中止(信号)#等置位
             if not 完成.is_set():#仍在握手
                 中止时()#毁
         监视线程=threading.Thread(target=监视)#监视

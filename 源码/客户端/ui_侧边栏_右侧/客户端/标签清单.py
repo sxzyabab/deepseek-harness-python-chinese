@@ -15,32 +15,34 @@ class 侧栏标签清单:#标签清单
         if 存储 is None:#无存储
             return#空
         try:#扫描键
-            长度=存储.length if hasattr(存储,'length') else 0#键数
-            for 下标 in range(长度):#逐键
-                键=存储.key(下标) if hasattr(存储,'key') else None#键
-                if 键 is None or not 键.startswith(侧栏持久化前缀+'.'):#非本前缀
-                    continue#跳过
-                会话标识=键[len(侧栏持久化前缀)+1:]#会话 id
-                已存=读侧栏布局(会话标识,存储)#读布局
-                if 已存 is not None:#有
-                    标签表=已存['layout'].get('tabs') or {}#标签表
-                    自身.会话表[会话标识]=[{#元数据行
+            长度=存储.length
+            for 下标 in range(长度):
+                键=存储.key(下标)
+                if 键 is None or not 键.startswith(侧栏持久化前缀+'.'):
+                    continue
+                会话标识=键[len(侧栏持久化前缀)+1:]
+                已存=读侧栏布局(会话标识,存储)
+                if 已存 is not None:
+                    布局=已存['layout']
+                    原表=布局['tabs'] if 'tabs' in 布局 else None
+                    标签表={} if 原表 is None else 原表
+                    自身.会话表[会话标识]=[{
                         'sessionId':会话标识,
                         'tabId':标签['id'],
                         'kind':标签['kind'],
                         'contentId':标签['contentId'],
                     } for 标签 in 标签表.values()]
-            自身.发布()#发布
-        except Exception:#不可达
-            pass#内存布局仍可发布
+            自身.发布()
+        except (TypeError,AttributeError):
+            pass
 
     def 更新(自身,会话标识,标签表):
         """用窗口内权威存储替换成员关系。"""
         自身.会话表[会话标识]=[{#行
             'sessionId':会话标识,
-            'tabId':标签['id'] if isinstance(标签,dict) else 标签.id,
-            'kind':标签['kind'] if isinstance(标签,dict) else 标签.kind,
-            'contentId':标签['contentId'] if isinstance(标签,dict) else 标签.contentId,
+            'tabId':标签['id'],
+            'kind':标签['kind'],
+            'contentId':标签['contentId'],
         } for 标签 in 标签表]
         自身.发布()#发布
 

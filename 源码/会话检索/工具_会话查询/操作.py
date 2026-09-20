@@ -1,9 +1,9 @@
-"""盖在会话检索服务能力上的工具操作编排。对齐上游 `tool-session-query/src/operations.ts`。"""
+"""盖在会话检索服务能力上的工具操作编排。"""
 from ...模型后端.llm import 装备错误#Harness错误
 from ..会话查询 import 会话查询错误#检索错误
 from ..会话查询.配置 import 若已中止则抛出#中止
 from .入参 import 工具入参#参数归一化
-from .展示 import 展示#文本渲染
+from .呈现 import 呈现#文本渲染
 from .服务边界 import 服务边界#服务边界
 from .工作区访问 import 工作区访问#工作区授权
 
@@ -31,7 +31,7 @@ def 执行会话搜索(上下文,参数,执行上下文,最大结果数):
         if 'include_root_sessions' in 参数 and 参数['include_root_sessions'] is True:#包含根
             父值.append(None)#根会话
         if len(父值)==0:#全被滤掉
-            return 展示['formatEmptySessionSearch']()#空
+            return 呈现['formatEmptySessionSearch']()#空
         会话过滤器.append({'kind':'parent','values':父值})#加上父过滤
     会话过滤器.append({'kind':'cwd','values':[工作目录]})#强制本工作区
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
@@ -51,7 +51,7 @@ def 执行会话搜索(上下文,参数,执行上下文,最大结果数):
     父号列表=[命中['header']['parentSession'] for 命中 in 集合['items'] if 'parentSession' in 命中['header'] and 命中['header']['parentSession'] is not None]#父id
     已授权父集合=工作区访问['authorizeSessionIds'](上下文,调用方,父号列表,信号)#可见父
     标题表=工作区访问['readTitles'](上下文,调用方,[命中['header']['id'] for 命中 in 集合['items']],信号)#读标题
-    return 展示['formatSessionSearch'](集合,标题表,已授权父集合)#渲染
+    return 呈现['formatSessionSearch'](集合,标题表,已授权父集合)#渲染
 
 def 执行事件搜索(上下文,参数,执行上下文,最大结果数):
     """执行会话内事件检索。"""
@@ -73,7 +73,7 @@ def 执行事件搜索(上下文,参数,执行上下文,最大结果数):
         区间['to']=min(上限,步骤起点['seq']-1)#不搜当前步骤及之后
     标题=工作区访问['readTitle'](上下文,调用方,会话号,信号)#读标题
     if 'from' in 区间 and 'to' in 区间 and 区间['from']>区间['to']:#空区间
-        return 展示['formatEventSearch'](会话号,标题,{'items':[],'capped':False})#空结果
+        return 呈现['formatEventSearch'](会话号,标题,{'items':[],'capped':False})#空结果
     过滤器=工具入参['buildEventFilters']({
         'seqFrom':区间['from'] if 'from' in 区间 else None,
         'seqTo':区间['to'] if 'to' in 区间 else None,
@@ -97,7 +97,7 @@ def 执行事件搜索(上下文,参数,执行上下文,最大结果数):
         """事件页不过滤条目。"""
         return True#全收
     集合=收集页(最大结果数,信号,请求页,全收)#事件页
-    return 展示['formatEventSearch'](会话号,标题,集合)#渲染
+    return 呈现['formatEventSearch'](会话号,标题,集合)#渲染
 
 def 执行会话谱系(上下文,参数,执行上下文):
     """执行会话谱系追踪。"""
@@ -122,7 +122,7 @@ def 执行会话谱系(上下文,参数,执行上下文):
     后代列表=工作区访问['authorizeDescendants'](谱系['descendants'],调用方)#投影后代
     可见号列表=[谱系['target']['header']['id'],*[记录['header']['id'] for 记录 in 祖先列表],*工作区访问['descendantIds'](后代列表)]#要读标题
     标题表=工作区访问['readTitles'](上下文,调用方,可见号列表,信号)#批量读标题
-    return 展示['formatSessionTrace'](谱系,祖先列表,祖先边界,后代列表,标题表)#渲染
+    return 呈现['formatSessionTrace'](谱系,祖先列表,祖先边界,后代列表,标题表)#渲染
 
 def 执行事件追踪(上下文,参数,执行上下文):
     """执行事件关系追踪。"""
@@ -137,7 +137,7 @@ def 执行事件追踪(上下文,参数,执行上下文):
     追踪=服务边界['call'](上下文,信号,'event trace',执行追踪)#追踪
     工作区访问['assertObservedTargetAuthorized'](调用方,会话号,追踪['session'])#再验头
     标题=工作区访问['readTitle'](上下文,调用方,会话号,信号)#读标题
-    return 展示['formatEventTrace'](会话号,标题,追踪)#渲染
+    return 呈现['formatEventTrace'](会话号,标题,追踪)#渲染
 
 def 执行事件读取(上下文,参数,执行上下文):
     """执行带邻域的事件读取。"""
@@ -161,7 +161,7 @@ def 执行事件读取(上下文,参数,执行上下文):
     窗口=服务边界['call'](上下文,信号,'event read',执行读取)#读取
     工作区访问['assertObservedTargetAuthorized'](调用方,会话号,窗口['session'])#再验头
     标题=工作区访问['readTitle'](上下文,调用方,会话号,信号)#读标题
-    return 展示['formatEventRead'](会话号,标题,窗口)#渲染
+    return 呈现['formatEventRead'](会话号,标题,窗口)#渲染
 
 def 收集页(最大结果数,信号,请求,接受):
     """翻页收集直到上限或末页。"""

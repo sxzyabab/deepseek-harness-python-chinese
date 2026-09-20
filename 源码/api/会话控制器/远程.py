@@ -1,13 +1,12 @@
-"""会话控制器 Host-for-Client Remote 贡献（对齐上游 `./remote`）。
+"""会话控制器的 Host-for-Client Remote 贡献。
 
-对照 `@Remote`：session / skills / fileReferences 命名空间方法。
+注册 session / skills / fileReferences 命名空间方法。
 """
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
+__all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-api-session-controller'#上游包名
-会话服务='sessionController'#会话服务键
+包名='@deepseek-ai/dsh-api-session-controller'会话服务='sessionController'#会话服务键
 会话命名空间='session'#会话命名空间
 技能服务='sessionSkillCatalog'#技能服务键
 技能命名空间='skills'#技能命名空间
@@ -19,11 +18,11 @@ __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
 智能体参数={#agent lookup
     'name':'agent','wire':'agent','source':'lookup','lookup':'agent',
     'codec':严格编解码('Agent'),
-}#结束
+}
 作用域={'context':'agent','wire':'agent'}#agent scope
 流式={'kind':'direct','mode':'stream'}#流式
 
-TYPERT_REMOTE=远程贡献(包名,[#贡献
+远程贡献表=远程贡献(包名,[#贡献
     调用描述符(会话前+'list',会话服务,会话命名空间,'list',
         [{'name':'request','wire':'request','source':'json','codec':严格编解码('SessionListRequest')}],
         严格编解码('SessionListValue'),{'file':'src/index.ts','line':217,'column':3},
@@ -84,6 +83,6 @@ TYPERT_REMOTE=远程贡献(包名,[#贡献
         [智能体参数,{'name':'query','wire':'query','source':'json','codec':严格编解码('string')}],
         严格编解码('FileReferenceCandidate[]'),{'file':'src/file-references.ts','line':32,'column':3},
         作用域=作用域,取消={'parameter':'signal'}),
-])#结束
-远程贡献对象=TYPERT_REMOTE#中文别名
-默认=TYPERT_REMOTE#default
+])
+默认=远程贡献表
+TYPERT_REMOTE=远程贡献表#typert框架槽

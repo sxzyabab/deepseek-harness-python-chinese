@@ -1,4 +1,4 @@
-"""`turnOutline` 投影单元（对齐上游 session-turn-outline/projection.ts）。"""
+"""`turnOutline` 投影单元。"""
 提示预览上限=50#导航卡片一行预算
 回复预览上限=120#导航卡片至多三行预算
 空大纲={'turns':[],'draft':''}#折叠初始状态

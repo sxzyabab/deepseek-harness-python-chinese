@@ -1,27 +1,7 @@
-from .夹具 import 工作区快照#工作区快照工厂
+from .夹具 import 工作区快照
+from .会话 import 创建快照存储
 
-__all__=['测试工作区']#仅中文公开名
-
-def 创建快照存储(初值):#简易快照存储
-    """对齐 createSnapshotStore：getSnapshot/subscribe/update。"""
-    状态=[dict(初值)]#状态盒
-    监听者=set()#订阅者
-    def 取快照():#读快照
-        """返回当前状态。"""
-        return 状态[0]#状态
-    def 订阅(回调):#订阅
-        """登记变更。"""
-        监听者.add(回调)#加入
-        def 退订():#退订
-            """取消。"""
-            监听者.discard(回调)#删除
-        return 退订#退订器
-    def 更新(变换):#就地变换
-        """调用变换(state) 并通知。"""
-        变换(状态[0])#变换
-        for 回调 in list(监听者):#通知
-            回调()#触发
-    return {'getSnapshot':取快照,'subscribe':订阅,'update':更新}#存储面
+__all__=['测试工作区']
 
 class 测试工作区:#工作区测试替身
     """实现 IWorkspaces 面；动作记入 calls。"""

@@ -1,9 +1,0 @@
-{
-    "bundle":"组合包",
-    "dependency":"依赖",
-    "inventory":"清单",
-    "plugin":"插件",
-    "profile":"配置档",
-    "reconcile":"对账",
-    "write":"写"
-}

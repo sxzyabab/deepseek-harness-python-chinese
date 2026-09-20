@@ -7,8 +7,8 @@ __all__=['快照存储','设置作用域控制器','设置作用域绑定器','�
 class 设置错误(Exception):
     """本包设置作用域失败。"""
     def __init__(自身,消息):
-        """记下英文消息。"""
-        super().__init__(消息)#消息原样英文
+        """记下给人看的消息。"""
+        super().__init__(消息)
 
 class 快照存储:
     """行快照 + 订阅；对齐 createSnapshotStore。"""
@@ -165,7 +165,7 @@ class 设置作用域控制器:
                 态['status']='unavailable'#不可用
                 态['writable']=可写#记下可写
             自身.store.update(标不可用)#写入
-            return#结束
+            return
         解码=自身.解码(视图)#分区值
         def 写入快照(态):
             """更新修订层与可选值。"""
@@ -189,8 +189,8 @@ class 设置作用域控制器:
             return None#拒绝
         try:#再水合并校验
             失败=自身.模式.校验(自身.模式.再水合(视图['schema']),视图值)#校验
-        except Exception:#信封非法；schema 异常契约未定
-            return None#当作非法
+        except (KeyError,TypeError):
+            return None
         return 视图值 if 失败 is None else None#通过才返回
 
 class 设置作用域绑定器(服务):

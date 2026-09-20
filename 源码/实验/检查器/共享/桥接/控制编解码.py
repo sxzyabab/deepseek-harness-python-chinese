@@ -1,4 +1,4 @@
-from urllib.parse import urlparse as 解析网址#解析URL
+from urllib.parse import urlparse as 解析网址
 from ..json import 是否普通对象,检查器错误#普通对象|本包错误
 from ..校验 import 精确键,精确对象#精确校验
 
@@ -66,7 +66,7 @@ def 解析检查器工作者控制(值):#解析Worker控制
     raise 检查器错误('inspector protocol: unknown Worker control message')#英文诊断
 
 def 解析检查器客户端引导(值):#解析Client引导
-    """解码注入到浏览器全局的引导数据。"""
+    """解码写入浏览器全局的引导数据。"""
     记录=精确对象(值,[#精确对象
         'endpoint','protocol','maxQueuedRecords','maxQueuedBytes','maxRecordsPerFrame','maxFrameBytes',#字段1
         'reconnectBaseMs','reconnectMaxMs','queryTimeoutMs','maxRuntimeObjectsPerSession',#字段2
@@ -76,8 +76,8 @@ def 解析检查器客户端引导(值):#解析Client引导
         raise 检查器错误('inspector protocol: Client bootstrap endpoint and protocol must be strings')#英文诊断
     try:#解析端点
         端点=解析网址(记录['endpoint'])#绝对URL
-    except Exception:#json.loads 控制帧可能抛 JSONDecodeError/TypeError，契约未定所以收不窄
-        raise 检查器错误('inspector protocol: Client bootstrap endpoint must be an absolute URL')#英文诊断
+    except (ValueError,TypeError):
+        raise 检查器错误('inspector protocol: Client bootstrap endpoint must be an absolute URL')
     if 端点.scheme!='ws' or 端点.hostname!='127.0.0.1':#须本机ws
         raise 检查器错误('inspector protocol: Client bootstrap endpoint must use ws on 127.0.0.1')#英文诊断
     if len(记录['protocol'])==0 or len(记录['protocol'])>256:#协议名长度
@@ -92,7 +92,7 @@ def 解析检查器客户端引导(值):#解析Client引导
         'reconnectBaseMs':自然数(记录['reconnectBaseMs'],'reconnectBaseMs'),#重连基础
         'reconnectMaxMs':自然数(记录['reconnectMaxMs'],'reconnectMaxMs'),#重连最大
         'queryTimeoutMs':自然数(记录['queryTimeoutMs'],'queryTimeoutMs'),#查询超时
-        'maxRuntimeObjectsPerSession':自然数(记录['maxRuntimeObjectsPerSession'],'maxRuntimeObjectsPerSession'),#会话对象
+        'maxRuntimeObjectsPerSession':自然数(记录['maxRuntimeObjectsPerSession'],'maxRuntimeObjectsPerSession'),#会话
         'maxRuntimePropertiesPerResult':自然数(记录['maxRuntimePropertiesPerResult'],'maxRuntimePropertiesPerResult'),#结果属性
         'maxClientSourceBytes':自然数(记录['maxClientSourceBytes'],'maxClientSourceBytes'),#源字节
         'maxCordisNodes':自然数(记录['maxCordisNodes'],'maxCordisNodes'),#Cordis节点

@@ -1,5 +1,5 @@
 import json#JSON 结果
-from urllib.parse import parse_qs,urlparse#查询解析
+from urllib.parse import parse_qs as 解析查询,urlparse as 解析URL
 from ...工具.标识构造 import 标识构造#会话 id 标识
 from .类型 import 取远程错误#Remote 错误提取
 
@@ -43,8 +43,8 @@ def 处理文件上传http(服务,请求):#处理上传 HTTP
     if 媒体类型!='application/octet-stream':#类型不对
         return {'status':415,'headers':{},'body':b'content type must be application/octet-stream'}#不支持媒体类型
     网址=请求['url'] if 'url' in 请求 else ''#url
-    解析=urlparse(网址)#解析 URL
-    参数=parse_qs(解析.query)#查询
+    解析=解析URL(网址)
+    参数=解析查询(解析.query)
     会话列表=参数['sessionId'] if 'sessionId' in 参数 else []#会话 id 查询
     会话标识=会话列表[0] if len(会话列表)>0 else None#首值
     if 会话标识 is None or 会话标识=='':#缺会话 id
@@ -53,7 +53,7 @@ def 处理文件上传http(服务,请求):#处理上传 HTTP
     显示名=名列表[0] if len(名列表)>0 else None#首值或无
     try:#业务或内部错误
         流参数={#流式存盘参数
-            'sessionId':标识构造(会话标识),#品牌化会话 id
+            'sessionId':标识构造(会话标识),#标识构造会话 id
             'data':请求体分片(请求['body'] if 'body' in 请求 else None),#请求体分片
         }#基参
         if 'signal' in 请求:#有信号

@@ -37,9 +37,10 @@ def 解析选项(选项):#解析服务器选项
     分片延迟=有界整数('chunkDelayMs',选项.get('chunkDelayMs',25),0,模拟LLM定时器延迟上限毫秒)#分片延迟
     断开延迟=有界整数('disconnectDelayMs',选项.get('disconnectDelayMs',10),0,模拟LLM定时器延迟上限毫秒)#断开延迟
     重试等待=有界整数('retryAfterMs',选项.get('retryAfterMs',1_000),1,模拟LLM定时器延迟上限毫秒)#重试等待
-    种子源=选项.get('randomSeed')#随机种子
-    if 种子源 is None:#生成种子
+    if 'randomSeed' not in 选项:#生成种子
         种子源=int.from_bytes(os.urandom(4),'little')#4 字节种子
+    else:
+        种子源=选项['randomSeed']#随机种子
     随机种子=有界整数('randomSeed',种子源,0,0xffff_ffff)#种子
     成功文本=选项.get('successText') or 默认成功文本#成功文本
     部分文本=选项.get('partialText') or 默认部分文本#部分文本
@@ -58,10 +59,10 @@ def 解析选项(选项):#解析服务器选项
         raise Exception('llm-mock-server: successText/partialText/reasoningText/toolName 不能为空')#空文本
     if 选项.get('requestId')=='':#空请求 id
         raise Exception('llm-mock-server: requestId 不能为空')#空请求 id
-    try:#校验 JSON
-        json.loads(工具参数)#校验工具参数 JSON
-    except Exception:#解析失败
-        raise Exception('llm-mock-server: toolArguments 必须是合法 JSON')#JSON 非法
+    try:
+        json.loads(工具参数)
+    except json.JSONDecodeError:
+        raise Exception('llm-mock-server: toolArguments 必须是合法 JSON')
     配置权重=选项.get('randomWeights') or 默认模拟LLM随机权重#配置权重
     随机权重=[]#正权重列表
     for 行为,权重 in 配置权重.items():#逐项权重
@@ -91,9 +92,9 @@ def 解析选项(选项):#解析服务器选项
 
 def 发出(选项,事件):#发出遥测
     """通知观察者；观察者失败不改线上行为。"""
-    观察=选项.get('onEvent')#观察者
-    if 观察 is None:#无观察者
-        return#结束
+    if 'onEvent' not in 选项:#无观察者
+        return
+    观察=选项['onEvent']#观察者
     try:#观察者
         观察(事件)#通知
     except Exception:#观察者失败
@@ -260,7 +261,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             """完成文本流并结束。"""
             if not 自身._流文本(记录,已解析['successText'],延迟毫秒):#客户端关闭
                 结束记录(已解析,记录,'client_closed')#客户端关闭
-                return#结束
+                return
             写SSE(记录,自身._写出,终止分片(原因,len(list(已解析['successText']))))#终止分片
             写完成哨兵(记录,自身._写出)#DONE
             结束记录(已解析,记录,'completed')#完成
@@ -269,7 +270,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             """延迟后销毁连接。"""
             if not 可取消等待(已解析['disconnectDelayMs'],自身._已关闭):#等待中客户端已关
                 结束记录(已解析,记录,'client_closed')#客户端已关
-                return#结束
+                return
             结束记录(已解析,记录,'reset')#记重置
             自身.close_connection=True#标记关闭
             try:#销毁
@@ -311,7 +312,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             elif 行为=='partial_disconnect':#部分后断开
                 自身._开SSE()#开 SSE
                 if not 自身._流文本(记录,已解析['partialText'],已解析['chunkDelayMs']):#客户端已关
-                    return#结束
+                    return
                 自身._断开(记录)#部分后重置
             elif 行为=='stall':#停滞
                 自身._开SSE()#开 SSE
@@ -372,20 +373,20 @@ def 启动模拟LLM服务器(选项):#启动服务器
             if not 路径.endswith('/chat/completions'):#路径不符
                 自身.send_response(404)#路径不符
                 自身.end_headers()#结束
-                return#结束
+                return
             授权=自身.headers.get('Authorization')#授权头
             if 'apiKey' in 已解析 and 授权!=f"Bearer {已解析['apiKey']}":#鉴权失败
                 自身._写头(401,内容类型='application/json')#写 401 头
                 自身._写出(json.dumps({'error':{'message':'invalid mock bearer token','code':'invalid_api_key'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#鉴权失败
-                return#结束
+                return
             长度=int(自身.headers.get('Content-Length') or 0)#正文长度
             原始=自身.rfile.read(长度) if 长度>0 else b''#读正文
-            try:#解析 JSON
-                体=json.loads(原始.decode('utf-8')) if 原始 else None#解析
-            except Exception:#JSON 非法
-                自身._写头(400,内容类型='application/json')#写 400 头
-                自身._写出(json.dumps({'error':{'message':'request body must be valid JSON','code':'invalid_json'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#JSON 非法
-                return#结束
+            try:
+                体=json.loads(原始.decode('utf-8')) if 原始 else None
+            except (json.JSONDecodeError,UnicodeDecodeError):
+                自身._写头(400,内容类型='application/json')
+                自身._写出(json.dumps({'error':{'message':'request body must be valid JSON','code':'invalid_json'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))
+                return
             选中=选行为()#消费脚本
             记录={#新建记录
                 'attempt':len(请求列表)+1,'scriptBehavior':选中['scriptBehavior'],
@@ -401,12 +402,12 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 自身._执行行为(记录)#执行
             except Exception as 错误:#处理器失败
                 结束记录(已解析,记录,'server_error')#记服务器错误
-                if 自身.headers_sent:#头已发
-                    try:#销毁
-                        自身.connection.close()#销毁
-                    except Exception:#忽略
-                        return#忽略
-                    return#结束
+                if 自身.headers_sent:
+                    try:
+                        自身.connection.close()
+                    except OSError:
+                        return
+                    return
                 自身._写头(500,内容类型='application/json')#写 500 头
                 自身._写出(json.dumps({'error':{'message':'mock server handler failed','code':'MOCK_HANDLER_FAILED'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#处理器失败
                 raise 错误#再抛
@@ -423,14 +424,14 @@ def 启动模拟LLM服务器(选项):#启动服务器
         """停止接受并强制关闭停滞连接。"""
         with 关闭锁:#串行关闭
             if 已关闭[0]:#幂等
-                return#结束
+                return
             已关闭[0]=True#标记
             关闭门闩.set()#通知等待
-            for 连接 in list(活动连接):#强制关停滞
-                try:#关
-                    连接.connection.close()#关连接
-                except Exception:#忽略
-                    pass#忽略
+            for 连接 in list(活动连接):
+                try:
+                    连接.connection.close()
+                except OSError:
+                    pass
             活动连接.clear()#清空
             服务器.shutdown()#停接受
             服务器.server_close()#关套接字
@@ -444,7 +445,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
         'close':关闭,#关闭
     }#句柄结束
 
-def 应用(上下文对象):#测试支持入口
+def 应用(上下文):#测试支持入口
     """模拟服务器由 harness 直接调用，无 Cordis 挂载面。"""
     return#空 apply
 

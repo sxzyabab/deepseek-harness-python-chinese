@@ -23,7 +23,7 @@ def Office正文(属性):
     保留标签(标签['id'],标签.get('signal'))#保留
     if 视图 is not None and 视图.get('failure') is not None:#失败
         return {'kind':'office-failed','code':视图['failure']['code'],'message':视图['failure']['message'],'retry':翻译('retry')}#失败面
-    if 视图 is None or 视图.get('file') is None:#加载中
+    if 视图 is None or 'file' not in 视图:#加载中
         return {'kind':'office-loading','label':翻译('loading')}#加载
     文件=视图['file']#文件
     return {#成功面

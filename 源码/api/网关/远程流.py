@@ -1,8 +1,7 @@
 """单消费者 Remote 流的可重连生命周期。
 
-对齐上游 `api/gateway/src/client/remote-stream.ts`。
-用同步生成器对齐异步代际语义；连接代际源取
-`connection.generation` 或 `connection.hostDescription`。公开面仅中文名。
+用同步生成器表达代际语义；连接代际源取
+`connection.generation` 或 `connection.hostDescription`。
 """
 import threading#代际寿命与等待
 from .流载体 import 远程流载体错误#载体错误
@@ -36,12 +35,7 @@ class 远程流项:
 
     def accept(自身):
         """将该代际开口标为已接受。"""
-        自身._接受器()#回调
-
-    def 接受(自身):
-        """中文别名。"""
-        自身.accept()#委托
-
+        自身._接受器()
 
 class 远程流:
     """跨载体代际重开一条逻辑 Remote 流。"""
@@ -60,12 +54,7 @@ class 远程流:
     @property
     def signal(自身):
         """共享取消寿命。"""
-        return 自身._寿命.信号#信号
-
-    @property
-    def 信号(自身):
-        """中文别名。"""
-        return 自身.signal#信号
+        return 自身._寿命.信号
 
     def restart(自身):
         """中断当前代际并请求替换。"""
@@ -75,11 +64,7 @@ class 远程流:
             自身._修订+=1#推进
             代=自身._代际中止#当前
         if 代 is not None:#有代
-            代.中止(Exception(自身._选项['name']+' generation restarted'))#中止
-
-    def 重启(自身):
-        """中文别名。"""
-        自身.restart()#委托
+            代.中止(RuntimeError(自身._选项['name']+' generation restarted'))
 
     def dispose(自身):
         """永久停止本流。"""
@@ -87,16 +72,12 @@ class 远程流:
             return#已拆
         自身._关闭中=True#标记
         if not 已中止(自身._寿命.信号):#未中止
-            原因=Exception(自身._选项['name']+' disposed')#原因
+            原因=RuntimeError(自身._选项['name']+' disposed')#原因
             自身._寿命.中止(原因)#中止寿命
             with 自身._锁:#取代
                 代=自身._代际中止#当前
             if 代 is not None:#有
-                代.中止(原因)#中止代
-
-    def 拆除(自身):
-        """中文别名。"""
-        自身.dispose()#委托
+                代.中止(原因)
 
     def __iter__(自身):
         """单消费者同步迭代。"""
@@ -196,7 +177,7 @@ def _终端流失败(错误):
 def _等待远程流重试(连接,错误,尝试,信号):
     """Connection 拥有物理重试时机。"""
     if 已中止(信号):#已取消
-        raise Exception('Remote stream retry aborted')#中止
+        raise RuntimeError('Remote stream retry aborted')#中止
     代际=取连接代际源(连接)#代际源
     if 代际 is not None and 代际.getSnapshot() is not None:#已连接
         if 尝试==1:#首次丢包且宿主仍在
@@ -220,7 +201,7 @@ def _等待远程流重试(连接,错误,尝试,信号):
         """信号中止则失败。"""
         while not 完成.wait(0.05):#短等
             if 已中止(信号):#取消
-                失败[0]=Exception('Remote stream retry aborted')#失败
+                失败[0]=Exception('Remote stream retry aborted')
                 完成.set()#放行
                 return#停
 

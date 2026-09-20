@@ -229,7 +229,7 @@ class 装备客户端:
                 while True:#直到 EOF
                     块=子.stderr.read(4096)#一块
                     if not 块:#EOF
-                        break#结束
+                        break
                     if isinstance(块,bytes):#字节块
                         文本=块.decode('utf-8',errors='replace')#解码
                     else:#已是文本
@@ -412,7 +412,7 @@ class 装备客户端:
         with 自身.锁:#互斥
             列表=list(自身.订阅表.values())#快照
         for 订阅 in 列表:#逐个
-            订阅.失败(错误)#失败
+            订阅.失败(错误)
 
     def _落定流(自身):
         """落定或超时先到先得。"""
@@ -421,7 +421,7 @@ class 装备客户端:
             if 自身.流落定._未来.done():#已落定
                 break#停
             time.sleep(0.01)#小睡
-        return#结束
+        return
 
     def _关闭错误(自身,原因):
         """多段用换行拼。"""

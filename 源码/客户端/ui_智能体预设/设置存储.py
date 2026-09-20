@@ -120,12 +120,12 @@ class 预设设置控制器:#设置行控制器
         名册=读名册(自身.接口)#读
         if not 名册['ok']:#失败
             自身._合并({'status':'error','error':名册['error']})#错误
-            return#结束
+            return
         值=名册['value'] if 名册['value'] is not None else {}#值
         预设列表=值['presets'] if 'presets' in 值 and 值['presets'] is not None else []#列表
         if len(预设列表)==0:#空部署
             自身._合并({'status':'unavailable','options':[],'currentValue':''})#不可用
-            return#结束
+            return
         try:#问可写性
             描述=自身.接口.settings.describe({}).等待()#describe
             结果=描述['result'] if 'result' in 描述 else None#信封
@@ -148,10 +148,10 @@ class 预设设置控制器:#设置行控制器
         """已在跑的会话保持创建时组合。"""
         前=自身.存储.getSnapshot()#前
         if 前['status']=='saving' or 标识==前['currentValue']:#忽略
-            return#结束
+            return
         自身._合并({'status':'saving','error':None,'currentValue':标识})#乐观
         失败=写默认预设(自身.接口,标识)#写入
         if 失败 is not None:#失败
             自身._合并({'status':'ready','currentValue':前['currentValue'],'error':失败})#回滚
-            return#结束
+            return
         自身.load()#重读名册

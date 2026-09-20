@@ -48,10 +48,10 @@ def 折入结构化(输出,已解析,期望事件名=None):
     if 顶层原因 is not None:#有值则写入原因
         输出['reason']=顶层原因#写入
     if 'hookSpecificOutput' not in 已解析:#不存在则结束
-        return#结束
+        return
     专属=读对象(已解析['hookSpecificOutput'])#读取钩子专属输出
     if 专属 is None:#形状不对则结束
-        return#结束
+        return
     事件名=读字符串(专属,'hookEventName')#读取事件名判别标签
     if 事件名 is not None:#有事件名则记录
         输出['hookEventName']=事件名#始终露出判别标签
@@ -67,7 +67,7 @@ def 折入结构化(输出,已解析,期望事件名=None):
     if 附加 is not None:#有值则写入
         输出['additionalContext']=附加#写入
     if 'updatedInput' not in 专属:#无更新输入
-        return#结束
+        return
     更新输入=读对象(专属['updatedInput'])#读取更新后的输入
     if 更新输入 is not None:#有值则写入
         输出['updatedInput']=更新输入#写入

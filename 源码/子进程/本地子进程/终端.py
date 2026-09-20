@@ -60,11 +60,11 @@ class 贯通流:#对齐 node:stream PassThrough 的用户可见输出面
     def 取消监听(自身,事件,回调):#摘掉一次监听
         """摘掉一次监听；未挂过则忽略。"""
         if 事件 not in 自身.监听表:#没有该事件
-            return#结束
+            return
         try:#去掉这条
             自身.监听表[事件].remove(回调)#去掉
         except ValueError:#已不在列表
-            return#结束
+            return
 
     def 派发(自身,事件,*位置参数):#派发给当前监听者
         """派发给当前监听者的副本，避免回调里改表。"""
@@ -481,7 +481,7 @@ class 本地终端句柄:#本地 PTY 会话
         """TERM 再 KILL 顶层 PTY；仍活则抛错。"""
         if 自身.平台=='win32':#Windows 专用路径
             自身.停壳Windows()#走 taskkill/身份
-            return#结束
+            return
         if not 自身.已退出.is_set():#还没退
             try:#TERM 可能碰上已退出
                 自身.终端.kill('SIGTERM')#先 TERM
@@ -526,7 +526,7 @@ class 本地终端句柄:#本地 PTY 会话
         截止=time.time()+自身.宽限毫秒/1000.0#截止
         while (not 自身.已退出.is_set()) and time.time()<截止:#未退且未到期
             if 自身.根身份 is not None and (not 自身.检查器.是否存活(自身.根身份)):#身份死
-                return#结束
+                return
             延迟(min(25,max(1,(截止-time.time())*1000.0)))#短睡
 
     def 关闭一次(自身):#一次完整拆除
@@ -596,9 +596,9 @@ class 本地终端句柄:#本地 PTY 会话
     def 若已走则结算退出(自身):#Windows 缺 exit 时补结算
         """外部 taskkill 可能不触发 node-pty 退出通知。"""
         if 自身.平台!='win32':#仅 Windows
-            return#结束
+            return
         if 自身.已退出.is_set():#已有事件
-            return#结束
+            return
         if 自身.根身份 is not None and 自身.检查器.是否存活(自身.根身份):#仍活
             return#不结算
         自身.已退出.set()#补记

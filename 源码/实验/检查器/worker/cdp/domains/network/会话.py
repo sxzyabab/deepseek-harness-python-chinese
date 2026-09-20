@@ -1,11 +1,9 @@
-#对齐上游 worker/cdp/domains/network/session.ts
-
 import base64#正文编码
 import time#墙上时钟
 
 __all__=['网络域']#仅中文公开名
 
-_时间原点毫秒=time.time()*1000#对齐 performance.timeOrigin，模块加载即 Worker 启动
+_时间原点毫秒=time.time()*1000#模块加载即 Worker 启动
 
 class 网络域:#Network域
     """将已保留与实时网络观测投影为连接本地的 CDP 状态。"""
@@ -98,7 +96,7 @@ class 网络域:#Network域
 
     def _发送(自身,会话,事件):#发送事件
         """按类型投影 CDP 事件。"""
-        时间戳=(事件['timestampMs']-_时间原点毫秒)/1000#相对秒，对齐 timestampMs - performance.timeOrigin
+        时间戳=(事件['timestampMs']-_时间原点毫秒)/1000#相对秒
         类型=事件['type']#类型
         if 类型=='request-started':#开始
             自身._待发开始.get(id(会话),{})[事件['requestKey']]=事件#记待发

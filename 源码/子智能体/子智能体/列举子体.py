@@ -87,23 +87,23 @@ def 读子智能体身份(快照):
         return None#无身份
     return 值表['subagent']#身份
 
-def 准备列举(上下文对象,信号=None):
+def 准备列举(上下文,信号=None):
     """一次性解析列举服务并建造一份活优先会话语料。"""
-    投影=上下文对象.获取服务('sessionProjections')#投影注册表
+    投影=上下文.获取服务('sessionProjections')#投影注册表
     if 投影 is None:#未挂载投影
         raise 子智能体错误(#配置错误
             '列举子智能体需要 sessionProjections 注册表（请加载 @deepseek-ai/dsh-session-projection）',#文案
             'SUBAGENT_CONTROL_PROJECTIONS_UNAVAILABLE',#错误码
         )#结束
-    会话存储=上下文对象.获取服务('sessions')#会话存储
+    会话存储=上下文.获取服务('sessions')#会话存储
     if 会话存储 is None:#未挂载存储
         raise 子智能体错误(#配置错误
             '列举子智能体需要会话存储（请加载 @deepseek-ai/dsh-session）',#文案
             'SUBAGENT_CONTROL_SESSION_STORE_UNAVAILABLE',#错误码
         )#结束
     断言列举未取消(信号)#取消检查点
-    持久化=上下文对象.获取服务('sessionPersistence')#可选持久化
-    缓存=上下文对象.获取服务('sessionProjectionCache')#可选投影缓存
+    持久化=上下文.获取服务('sessionPersistence')#可选持久化
+    缓存=上下文.获取服务('sessionProjectionCache')#可选投影缓存
     持久头列表=[]#持久化头
     if 持久化 is not None:#有持久化
         try:#尝试列举持久化头
@@ -223,9 +223,9 @@ def 后代候选(语料,根会话标识):
             栈.append({'record':记录,'parentId':标识,'depth':位置['depth']+1})#更深一档
     return 定位#带位置候选
 
-def 列举子体(上下文对象,父会话标识,信号=None):
+def 列举子体(上下文,父会话标识,信号=None):
     """从 ctx.sessions 与可选会话持久化的活优先合并中，枚举一个父的按来源分类的直接子体。"""
-    列举=准备列举(上下文对象,信号)#准备运行时与语料
+    列举=准备列举(上下文,信号)#准备运行时与语料
     候选列表=[]#直接子
     for 记录 in 列举['corpus'].values():#扫描语料
         头=记录['header']#头
@@ -236,9 +236,9 @@ def 列举子体(上下文对象,父会话标识,信号=None):
     行列表=解析候选行(候选列表,列举,信号)#解析投影行
     return [行 for 行 in 行列表 if 行 is not None]#去掉省略项
 
-def 列举后代(上下文对象,根会话标识,信号=None):
+def 列举后代(上下文,根会话标识,信号=None):
     """以稳定前序枚举一个根下每个有会话的子智能体。"""
-    列举=准备列举(上下文对象,信号)#准备运行时与语料
+    列举=准备列举(上下文,信号)#准备运行时与语料
     定位=后代候选(列举['corpus'],根会话标识)#带位置的候选
     行列表=解析候选行([位置['record'] for 位置 in 定位],列举,信号)#解析投影行
     条目列表=[]#结果

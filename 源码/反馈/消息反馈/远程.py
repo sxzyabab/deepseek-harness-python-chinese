@@ -1,9 +1,8 @@
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
+__all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-message-feedback'#上游包名
-服务='messageFeedback'#服务键
+包名='@deepseek-ai/dsh-message-feedback'服务='messageFeedback'#服务键
 命名空间='messageFeedback'#命名空间
 类前=包名+'#MessageFeedbackService.'#调用 id 前缀
 
@@ -28,6 +27,6 @@ __all__=['TYPERT_REMOTE','默认','远程贡献对象']#公开面
     {'file':'src/index.ts','line':267,'column':3},
 )#结束
 
-TYPERT_REMOTE=远程贡献(包名,[列表描述符,写入描述符,删除描述符])#贡献
-远程贡献对象=TYPERT_REMOTE#中文别名
-默认=TYPERT_REMOTE#default
+远程贡献表=远程贡献(包名,[列表描述符,写入描述符,删除描述符])#贡献
+默认=远程贡献表
+TYPERT_REMOTE=远程贡献表#typert框架槽

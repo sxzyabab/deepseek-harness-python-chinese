@@ -4,7 +4,7 @@ from ...模型后端.llm import 断言永不#导入穷尽检查
 from ..子智能体.错误 import 子智能体错误#缝内失败
 
 名称='tool-subagent-list-agents'#Cordis插件名
-注入=['tools','subagents','agents']#依赖工具、子智能体与智能体注册表
+依赖=['tools','subagents','agents']#依赖工具、子智能体与智能体注册表
 
 列举智能体作用域=Literal['children','descendants']#列举作用域
 
@@ -32,7 +32,7 @@ class 列举智能体诊断行(TypedDict):#诊断行
 列举智能体条目=列举智能体子体行|列举智能体诊断行#面向模型的条目
 
 __all__=[#仅中文公开名
-    '名称','注入','应用',
+    '名称','依赖','应用',
     '列举智能体作用域','列举智能体请求','列举智能体规格',
     '列举智能体子体行','列举智能体诊断行','列举智能体条目',
     '解析列举智能体请求','状态于','投影',
@@ -178,6 +178,6 @@ def 应用(上下文):
     }))#defineTool 与 register 结束
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 default=应用#框架槽

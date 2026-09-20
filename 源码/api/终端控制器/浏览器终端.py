@@ -129,23 +129,23 @@ class 浏览器终端:#一路 PTY、有界仿真与可拆跟随者
         """终止进程并排空。"""
         if 自身._关闭中 is not None:#已开始
             自身._关闭中.等待()#等
-            return#结束
+            return
         任务=操作任务()#本轮
         自身._关闭中=任务#记下
-        def 跑():#线程
+        def 在线程执行():#线程
             """终止、排空、结束跟随、放屏幕。"""
             try:#关
                 自身.句柄.终止()#终止
                 自身._已排空.等待()#排空
                 for 跟随者 in list(自身.跟随者):#跟随
-                    跟随者.结束()#结束
+                    跟随者.结束()
                 自身.跟随者.clear()#清空
                 自身.屏幕.dispose()#放
                 任务.兑现(None)#完
-            except BaseException as 错误:#失败
+                    except BaseException as 错误:
                 自身._关闭中=None#可重试
                 任务.拒绝(错误)#唤醒等待
-        threading.Thread(target=跑).start()#关
+        threading.Thread(target=在线线程执行).start()#关
         任务.等待()#等
 
     def _要求控制(自身,标识):#可写附着
@@ -165,7 +165,7 @@ class 浏览器终端:#一路 PTY、有界仿真与可拆跟随者
         上一=自身._操作#前
         当前=操作任务()#本
         自身._操作=当前#链
-        def 跑():#线程
+        def 在线程执行():#线程
             """等前一个（忽略失败）再跑。"""
             try:#前
                 上一.等待()#等
@@ -174,9 +174,9 @@ class 浏览器终端:#一路 PTY、有界仿真与可拆跟随者
             try:#本
                 值=操作()#跑
                 当前.兑现(值)#完
-            except BaseException as 错误:#失败
+                    except BaseException as 错误:
                 当前.拒绝(错误)#拒绝
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
         return 当前.等待()#结果
 
     def _消费(自身):#读 PTY 输出
@@ -192,9 +192,9 @@ class 浏览器终端:#一路 PTY、有界仿真与可拆跟随者
             信息['state']='exited'#退出
             信息['exitCode']=结局['exitCode']#码
             自身.info=信息#写回
-        except BaseException as 错误:#失败
+                    except BaseException as 错误:
             信息=dict(自身.info)#拷
-            信息['state']='failed'#失败
+            信息['state']='failed'
             信息['error']=str(错误)#消息
             自身.info=信息#写回
         自身._广播({'type':'state','info':自身.info})#状态

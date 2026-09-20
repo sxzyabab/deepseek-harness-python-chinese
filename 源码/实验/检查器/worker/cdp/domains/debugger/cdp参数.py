@@ -1,5 +1,3 @@
-#对齐上游 worker/cdp/domains/debugger/cdp-params.ts
-
 __all__=['解析调用帧求值','取请求脚本id']#仅中文公开名
 
 def _精确键(参数,允许键,标签):#精确键校验

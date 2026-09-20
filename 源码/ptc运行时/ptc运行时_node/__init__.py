@@ -73,9 +73,9 @@ def 读管道(流,接纳,失败):#一路 UTF-8 管道
 
 class 节点ptc运行时(ptc运行时):#Node 提供方
     """直接文件效果与 Bash 共用同一沙箱服务。"""
-    def __init__(自身,上下文对象,配置):#记下配置并挂清理
+    def __init__(自身,上下文,配置):#记下配置并挂清理
         """校验正有限界限，缺省节点可执行为 node。"""
-        super().__init__(上下文对象)#登记 ptcRuntime
+        super().__init__(上下文)#登记 ptcRuntime
         已解析=dict(配置)#拷贝
         if 'nodeExecutable' not in 已解析 or 已解析['nodeExecutable'] is None or 已解析['nodeExecutable']=='':#缺省
             已解析['nodeExecutable']='node'#裸名
@@ -114,7 +114,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             for 运行 in 活动:#等完成
                 运行['完成'].等待()#等到
             return None#拆除完成
-        上下文对象.副作用(拆除,'Node ptc-runtime cleanup')#登记
+        上下文.副作用(拆除,'Node ptc-runtime cleanup')#登记
 
     def 语言(自身):#源语言
         """run 期望的小写语言标识。"""
@@ -252,13 +252,13 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 结局['sandbox']=dict(沙箱)#沙箱事实
                 结果任务.兑现(结局)#兑现
             工作=threading.Thread(target=清理,daemon=True)#清理线程
-            工作.start()#启动
+            工作.start()
             工作.join()#等到清理结束再返回路径继续
         def 因中止():#中止回调
             """超时或取消。"""
             if 已超时[0]:#墙钟
                 收尾({'kind':'timeout','message':'execution deadline reached ('+str(规格['timeoutMs'])+'ms)'})#超时
-                return#结束
+                return
             原因='The operation was aborted'#默认
             try:#取原因
                 若已中止则抛出(信号)#抛原因
@@ -270,7 +270,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             等待中止(信号)#等待
             因中止()#收尾
         中止线程=threading.Thread(target=监视中止,daemon=True)#监视
-        中止线程.start()#启动
+        中止线程.start()
         if 已中止(信号):#已经中止
             因中止()#立刻
             return 结果任务.等待()#已结算
@@ -353,41 +353,41 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                     return#忽略
                 if 已隔离 is not None and 分类运行器失败(结局['exitCode'],标准误[0],已隔离['runnerFailureRules']) is not None:#运行器
                     收尾({'kind':'sandbox-unavailable','message':标准误[0]})#沙箱
-                    return#结束
+                    return
                 收尾({'kind':'worker-exit','message':'Node process exited before completing ('+str(结局['exitCode'])+')'+(': '+标准误[0] if 标准误[0] else '')})#退出
             def 接收(原始,字节):#控制帧
                 """分派 ready/log/done/call。"""
                 if not 是否记录(原始):#非对象
                     协议失败('invalid control frame')#协议
-                    return#结束
+                    return
                 if not 已就绪[0]:#等 ready
                     if 原始.get('type')!='ready':#不是
                         协议失败('program frame arrived before bootstrap readiness')#协议
-                        return#结束
+                        return
                     已就绪[0]=True#就绪
                     try:#发 boot
                         通道.发送({'type':'boot','data':引导})#引导
                     except (节点ptc错误,OSError,ValueError) as 错误:#发送失败
                         协议失败(消息于(错误))#协议
-                    return#结束
+                    return
                 种类=原始.get('type')#帧类
                 if 种类=='log':#日志
                     if type(原始.get('text')) is not str:#必须字符串
                         协议失败('invalid log frame')#协议
-                        return#结束
+                        return
                     接纳(原始['text'])#接纳
-                    return#结束
+                    return
                 if 种类=='output-limit':#程序侧触顶
                     输出溢出[0]=True#标记
                     收尾()#无失败字段，走超限结果
-                    return#结束
+                    return
                 if 种类=='done':#终态
                     if 'error' in 原始 and 原始['error'] is not None:#失败
                         错=原始['error']#错误
                         if (not 是否记录(错) or type(错.get('message')) is not str
                                 or 错.get('kind') not in ('exception','invalid-output','output-limit')):#畸形
                             协议失败('invalid terminal error')#协议
-                            return#结束
+                            return
                         失败={'kind':错['kind'],'message':错['message']}#失败
                         if 已隔离 is not None:#拒绝签名
                             小写=失败['message'].lower()#小写
@@ -398,37 +398,37 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                         if 失败['kind']=='output-limit':#输出上限
                             输出溢出[0]=True#标记
                         收尾(失败)#失败
-                        return#结束
+                        return
                     if 'value' not in 原始 or 原始['value'] is None:#无完成值
                         收尾(None,None)#缺席完成
-                        return#结束
+                        return
                     值=解码ptcjson线(原始['value'])#重建
                     if 值 is None:#有损
                         收尾({'kind':'invalid-output','message':'program completion must be lossless JSON'})#有损
                     else:#无损
                         收尾(None,值)#成功
-                    return#结束
+                    return
                 if 种类=='call':#绑定调用
                     标识=原始.get('id')#调用 id
                     if (type(标识) is bool or type(标识) is not int or 标识!=下一标识[0]
                             or type(原始.get('global')) is not str or type(原始.get('name')) is not str):#身份
                         协议失败('invalid binding call identity')#协议
-                        return#结束
+                        return
                     下一标识[0]=标识+1#推进
                     函数表=绑定[原始['global']]['functions'] if 原始['global'] in 绑定 else None#函数
                     函数=函数表[原始['name']] if 函数表 is not None and 原始['name'] in 函数表 else None#取出
                     if not callable(函数):#未声明
                         协议失败('program requested an undeclared binding')#协议
-                        return#结束
+                        return
                     参数=解码ptcjson线(原始['args'])#参数
                     if 参数 is None:#有损
                         协议失败('binding arguments must be lossless JSON')#协议
-                        return#结束
+                        return
                     未决数[0]+=1#加一
                     未决字节[0]+=字节#加字节
                     if 未决数[0]>自身.配置['maxPendingCalls'] or 未决字节[0]>自身.配置['maxMessageBytes']:#超限
                         协议失败('pending binding calls exceed configured limits')#协议
-                        return#结束
+                        return
                     def 跑绑定(调用标识=标识,调用函数=函数,调用参数=参数,帧字节=字节):#一次绑定
                         """执行绑定并回复。"""
                         try:#调用
@@ -447,8 +447,8 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                         except (节点ptc错误,OSError,ValueError) as 错误:#回复失败
                             协议失败(消息于(错误))#协议
                     绑定线程=threading.Thread(target=跑绑定,daemon=True)#绑定线程
-                    绑定线程.start()#启动
-                    return#结束
+                    绑定线程.start()
+                    return
                 协议失败('unknown control message')#未知
             def 通道失败(错误,种类):#通道失败
                 """协议或传输。"""
@@ -474,7 +474,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                         收尾({'kind':'sandbox-unavailable','message':消息于(错误)})#沙箱
                     else:#普通
                         收尾({'kind':'worker-exit','message':消息于(错误)})#退出
-                    return#结束
+                    return
                 进程结束(结局)#分类
             threading.Thread(target=等进程,daemon=True).start()#监视退出
         except 沙箱不可用错误 as 错误:#沙箱不可用

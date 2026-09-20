@@ -1,6 +1,6 @@
-"""作用域工具：在所属 Session 中声明文件系统交付。
+"""作用域工具：在所属会话中声明文件系统交付。
 
-公开业务面仅中文名；Cordis 协议槽（name/inject/Config/apply/default）保留英文别名供加载器识别，不入 `__all__`。包名单 `tool-present`、工具名 `present`、事件 `deliverables/presented` 与配置键 `maxFiles` 保持英文。
+公开业务面仅中文名。工具名 present、事件 deliverables/presented 与配置键 maxFiles 保持英文线协议。
 """
 import weakref#待定交付弱映射
 from ...依赖.schemastery import 数字字段#配置字段
@@ -24,7 +24,7 @@ class 呈现错误(Exception):#本包异常基类
         super().__init__(消息)#英文消息
 
 def 应用(上下文,配置值):#登记 present 并在成功结果上追加交付事件
-    """在 ctx.tools 上登记 present；成功的 tools/result 追加 deliverables/presented。"""
+    """登记 present 工具；成功的 tools/result 追加 deliverables/presented。"""
     最大文件=配置值['maxFiles']#部署上限
     if isinstance(最大文件,bool) or not isinstance(最大文件,int) or 最大文件<1:#须为正整数
         raise 呈现错误('present requires a positive integer maxFiles')#加载失败
@@ -136,5 +136,5 @@ name=名称#Cordis插件名
 inject=注入#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-默认=应用#中文默认导出
-default=应用#Cordis默认导出
+默认=应用
+default=应用#框架槽

@@ -1,6 +1,6 @@
 """请求投影表面定价：用路由到模型的图片与文件表示替换附件块启发式。
 
-对齐上游 `token-meter/src/route-pricing.ts`。公开面仅中文名。
+公开面仅中文名。
 """
 from .类型 import 计量错误#计量异常
 from .计价 import 计价内容#内容计价

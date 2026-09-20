@@ -1,7 +1,6 @@
 """本包内嵌的 ACP 智能体侧 NDJSON JSON-RPC 最小线路。
 
-对齐上游对 `@agentclientprotocol/sdk` 的消费面（AgentSideConnection / ndJsonStream / RequestError / PROTOCOL_VERSION）。
-公开面仅中文名。方法名与错误码字面量保持 ACP 线约定。
+方法名与错误码字面量保持 ACP 线约定。
 """
 import json,threading#JSON 与读写线程
 from concurrent.futures import Future as 原生结果#单次操作结果
@@ -82,11 +81,11 @@ class 智能体侧连接:
         自身._关闭落定=False#是否已兑现关闭
         自身.智能体=铸造智能体(自身)#记下连接后铸造 ACP Agent
         自身._读线程=threading.Thread(target=自身._读循环,daemon=True)#后台读
-        自身._读线程.start()#启动
+        自身._读线程.start()
 
     @property
     def 已关闭承诺(自身):
-        """对齐上游 conn.closed。返回关闭任务。"""
+        """返回关闭任务。"""
         return 自身.已关闭#任务
 
     def 会话更新(自身,通知):
@@ -140,14 +139,14 @@ class 智能体侧连接:
                 if hasattr(读入,'readline'):#按行
                     行=读入.readline()#读一行
                     if 行=='' or 行 is None:#EOF
-                        break#结束
+                        break
                     if isinstance(行,bytes):#字节
                         行=行.decode('utf-8')#解码
                     自身._处理行(行.strip())#处理
                     continue#下一行
                 块=读入.read(65536)#一块
                 if not 块:#EOF
-                    break#结束
+                    break
                 if isinstance(块,bytes):#字节
                     块=块.decode('utf-8')#解码
                 缓冲+=块#拼
@@ -164,7 +163,7 @@ class 智能体侧连接:
                 自身._关闭(错误)#带错关闭
             else:#非异常
                 自身._关闭(ACP线路错误(str(错误)))#包装关闭
-            return#结束
+            return
         自身._关闭(None)#正常关闭
 
     def _处理行(自身,行):

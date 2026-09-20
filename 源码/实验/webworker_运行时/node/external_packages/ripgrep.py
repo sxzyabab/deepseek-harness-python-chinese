@@ -1,6 +1,6 @@
-__all__=['rgPath','__esModule','default']#Node面
+__all__=['rgPath','__esModule','default']
 
 rgPath='/dsh/bin/rg'#假二进制路径；搜索插件本会 spawn
-__esModule=True#CJS互操作
+__esModule=True
 
-default={'rgPath':rgPath}#默认导出
+default={'rgPath':rgPath}

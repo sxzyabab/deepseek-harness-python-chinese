@@ -135,7 +135,7 @@ class 芯片控制器:#主界面芯片控制器
     def introduced(自身):#清掉介绍提示
         """芯片播完介绍后确认。"""
         if not 自身.存储.getSnapshot()['introduce']:#本就没提示
-            return#结束
+            return
         自身.共享暂存['introduce']=False#清共享标记
         自身._合并({'introduce':False})#标记已播过
 
@@ -153,7 +153,7 @@ class 芯片控制器:#主界面芯片控制器
                 自身._合并({'current':当前})#跟上展示
             return#无暂存可套
         if 会话 is None:#没有会话可接
-            return#结束
+            return
         标识=会话['id'] if 'id' in 会话 else None#会话 id
         是否空白=会话['blank'] if 'blank' in 会话 else None#是否空白
         会话预设=取预设(会话)#会话预设
@@ -177,7 +177,7 @@ class 芯片控制器:#主界面芯片控制器
                 else:#其它
                     原因=str(错误体)#字符串化
                 自身._合并({'busy':False,'error':原因,'current':会话预设 if 会话预设 is not None else ''})#回退
-                return#结束本次套用
+                return
             应答值=结果['value'] if 'value' in 结果 and 结果['value'] is not None else {}#值
             已套用标识=应答值['agentPreset'] if isinstance(应答值,dict) and 'agentPreset' in 应答值 else 应答值#已套用的预设
             自身._合并({'busy':False,'current':已套用标识})#芯片跟上

@@ -48,7 +48,7 @@ class 测试远程:#Remote 测试替身
         """向订阅者投递一次转发的 host 事件。"""
         监听集合=自身._subscriptions.get(事件)#取订阅者
         if 监听集合 is None:#无订阅
-            return#结束
+            return
         for 监听 in list(监听集合):#派发
             监听(*参数)#调用
 

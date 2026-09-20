@@ -1,7 +1,6 @@
 """平台解析：把目录条目解析为本机已验证的启动器，并按看护窗口分离启动。
 
-对齐上游 `open-in-app/src/resolver.ts`。AbortSignal 翻成 threading.Event；异步一律同步。
-PATH 名经注入的 subprocess 能力解析；其余宿主命令经原生命令（argv，不经 shell）。
+中止用 threading.Event；异步一律同步。PATH 名经依赖的 subprocess 能力解析；其余宿主命令经原生命令（argv，不经 shell）。
 """
 import errno,os,re,subprocess,sys,threading#错误码、路径、正则、派生、平台与看护
 from dataclasses import dataclass#已解析启动与注册表视图
@@ -10,7 +9,7 @@ from ...工具.原生命令 import 运行原生命令,原生命令错误#无 she
 from ...子进程.子进程 import 擦洗父环境#凭证擦洗环境
 from .目录 import 在应用中打开目录,路径令牌,参数启动#目录数据与 argv 启动
 
-__all__=[#仅中文公开名
+__all__=[
     '在应用中打开错误','图标来源','已解析启动','已完成内部事实',
     '分离启动应用','补全内部事实','取命令输出','是否目录','是否普通文件',
     '展开候选','解析注册表转储','读Windows注册表视图','桌面条目',
@@ -20,13 +19,13 @@ __all__=[#仅中文公开名
 
 变量模式=re.compile(r'\$\{([^}]+)\}')#${VAR} 展开
 百分变量模式=re.compile(r'%([^%]+)%')#%VAR% 展开
-注册表值模式=re.compile(r'^\s+(.*?)\s+(REG_SZ|REG_EXPAND_SZ)\s+(.*)$')#reg.exe 值行
-键路径模式=re.compile(r'^HK')#注册表键路径行
-默认值名模式=re.compile(r'^\(.*\)$')#本地化默认值名
-执行首段引号模式=re.compile(r'^"([^"]+)"')#Exec 引号段
-执行首段裸名模式=re.compile(r'^\S+')#Exec 裸段
-自然分段模式=re.compile(r'([0-9]+)')#版本自然序分段
-图标后缀模式=re.compile(r',-?\d+$')#DisplayIcon 索引后缀
+注册表值模式=re.compile(r'^\s+(.*?)\s+(REG_SZ|REG_EXPAND_SZ)\s+(.*)\Z',re.ASCII)#reg.exe 值行
+键路径模式=re.compile(r'^HK',re.ASCII)#注册表键路径行
+默认值名模式=re.compile(r'^\(.*\)\Z',re.ASCII)#本地化默认值名
+执行首段引号模式=re.compile(r'^"([^"]+)"',re.ASCII)#Exec 引号段
+执行首段裸名模式=re.compile(r'^\S+',re.ASCII)#Exec 裸段
+自然分段模式=re.compile(r'([0-9]+)',re.ASCII)#版本自然序分段
+图标后缀模式=re.compile(r',-?[0-9]+\Z',re.ASCII)#DisplayIcon 索引后缀
 
 应用路径根列表=(#App Paths：用户巢优先
     r'HKCU\Software\Microsoft\Windows\CurrentVersion\App Paths',
@@ -55,7 +54,7 @@ class 已解析启动:#一条已验证启动
     图标:图标来源|None=None#可选图标来源
 
 @dataclass(frozen=True)
-class 已完成内部事实:#补全后的可注入事实
+class 已完成内部事实:#补全后的可覆盖事实
     """公开入口处一次性补全后的平台事实。"""
     平台:str#darwin/win32/linux/…
     ssh:bool#SSH 拉起
@@ -86,7 +85,7 @@ class 桌面条目:#XDG desktop 字段
     尝试执行:str|None=None#TryExec
     图标:str|None=None#Icon
 
-def 节点平台():#对齐 Node process.platform
+def 节点平台():
     """把 sys.platform 粗映射到 Node 平台名。"""
     名=sys.platform#本机
     if 名=='win32':#Windows
@@ -97,7 +96,7 @@ def 节点平台():#对齐 Node process.platform
         return 'linux'#Node 名
     return 名#原样
 
-def 限时信号(毫秒):#AbortSignal.timeout
+def 限时信号(毫秒):
     """在期限到时置位的中止事件。"""
     信号=threading.Event()#中止事件
     if isinstance(毫秒,(int,float)) and 毫秒>0:#有期限
@@ -115,9 +114,9 @@ def 是否WSL(平台,环境,内核发行=None):#区分 WSL 与桌面 Linux
     if 平台!='linux':#非 Linux
         return False#不是
     if 环境有值(环境.get('WSL_DISTRO_NAME') if isinstance(环境,dict) else None):#发行版名
-        return True#是
+        return True
     if 环境有值(环境.get('WSL_INTEROP') if isinstance(环境,dict) else None):#互通
-        return True#是
+        return True
     发行=内核发行 if 内核发行 is not None else (os.uname().release if hasattr(os,'uname') else '')#内核
     return 'microsoft' in str(发行).lower()#微软内核
 
@@ -194,7 +193,7 @@ def 分离启动应用(命令,参数列表,选项):#detached GUI 启动
         进程=subprocess.Popen([命令]+list(参数列表),**关键字)#派生
     except OSError as 错误:#启动失败
         if 错误.errno==errno.ENOENT:#缺失
-            错误.code='ENOENT'#与 Node 对齐
+            错误.code='ENOENT'
         raise#原样抛出
 
     def 结算(错误=None):#只结算一次
@@ -230,7 +229,7 @@ def 分离启动应用(命令,参数列表,选项):#detached GUI 启动
         raise 结果['错误']#抛出
 
 def 补全内部事实(内部):#resolveInternals
-    """相对运行宿主补全可注入事实；缺解析可执行则大声失败。"""
+    """相对运行宿主补全可覆盖事实；缺解析可执行则大声失败。"""
     内部={} if 内部 is None else 内部#默认空
     家目录=内部['家目录'] if '家目录' in 内部 else str(Path.home())#家目录
     if '解析可执行' not in 内部 or 内部['解析可执行'] is None:#必需
@@ -617,9 +616,9 @@ def 启动参数列表(参数列表,路径):#PATH_TOKEN 替换
 def 是否可执行缺失(错误):#ENOENT
     """启动拒绝是否表示可执行文件缺失。"""
     if isinstance(错误,OSError) and 错误.errno==errno.ENOENT:#系统 ENOENT
-        return True#是
+        return True
     码=getattr(错误,'code',None)#挂靠码
-    return 码=='ENOENT'#对齐 Node
+    return 码=='ENOENT'
 
 def 执行外壳打开(路径,看护毫秒,事实):#shell-open
     """在看护窗口下经 OS open verb 打开目录。"""
@@ -632,8 +631,8 @@ def 执行外壳打开(路径,看护毫秒,事实):#shell-open
         try:#打开
             打开原生路径(路径,信号,{'平台':事实.平台,'运行':事实.运行,'环境':事实.环境})#打开
             结局['值']='launched'#成功
-        except Exception as 错误:#失败
-            结局['值']='missing' if 是否可执行缺失(错误) else 'failed'#归类
+        except (OSError,原生命令错误,在应用中打开错误) as 错误:
+            结局['值']='missing' if 是否可执行缺失(错误) else 'failed'
         finally:#结算
             完成.set()#完成
 
@@ -656,8 +655,8 @@ def 执行启动器(启动,路径,看护毫秒,事实):#runLaunch
                 选项['隐藏窗口']=启动.隐藏窗口#叠入
             事实.启动(启动.命令,启动参数列表(启动.参数列表,路径),选项)#启动
             return 'launched'#成功
-        except Exception as 错误:#失败
-            return 'missing' if 是否可执行缺失(错误) else 'failed'#归类
+        except (OSError,原生命令错误,在应用中打开错误) as 错误:
+            return 'missing' if 是否可执行缺失(错误) else 'failed'
     return 断言穷尽(启动)#穷尽
 
 def 启动已解析(已解析,路径,看护毫秒,内部=None):#launchResolved

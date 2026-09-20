@@ -2,9 +2,9 @@ import re#正则
 
 __all__=['检测触发','词边界可']#仅中文公开名
 
-词字符=re.compile(r'[\w]',re.UNICODE)#上游 [\p{L}\p{N}_]/u：带 /u，UNICODE 下 \w 即字母+数字+_，与通常 JS \d 要加 re.ASCII 方向相反
-空白=re.compile(r'\s',re.UNICODE)#上游 /\s/u：带 /u，按 Unicode 空白而不是 ASCII
-非空白=re.compile(r'\S',re.ASCII)#对齐 TS draft.search(/\S/)，无 u 旗
+词字符=re.compile(r'[\w]',re.UNICODE)#带 /u：UNICODE 下 \w 即字母+数字+_，与 JS \d 要加 re.ASCII 方向相反
+空白=re.compile(r'\s',re.UNICODE)#带 /u：按 Unicode 空白而不是 ASCII
+非空白=re.compile(r'\S',re.ASCII)#无 u 旗，仅匹配 ASCII
 
 def 词边界可(草稿,下标,字符):#该位置的触发字符是否满足词边界
     """触发字符只在草稿开头、空白之后、或标点之后才打开。"""
@@ -44,5 +44,5 @@ def 检测触发(草稿,光标,守卫):#检测光标处的触发令牌
             'query':草稿[位置+1:光标],#触发到光标的切片
             'position':'leading' if 前导 else 'inline',#位置
             'span':{'start':位置,'end':光标,'draftRev':0},#跨度；draftRev 由外壳盖章
-        }#结束 return
+        }
     return None#扫到头仍无活触发

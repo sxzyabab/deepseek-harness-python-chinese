@@ -1,6 +1,6 @@
 import builtins,json#页面 location / localStorage 与 JSON
 import urllib.error#URL 失败
-from urllib.parse import urljoin#拼绝对 URL
+from urllib.parse import urljoin as 拼接URL
 import urllib.request as 请求库#默认同步 HTTP
 from ....宿主.在应用中打开.共享 import 应用列表路由,打开路由#线路径
 
@@ -98,7 +98,7 @@ class 快照存储:#本包自持快照存储
         存储=取本地存储()#可选
         if 存储 is None:#无
             自身._可持久化=False#关
-            return#结束
+            return
         try:#读
             原始=存储.getItem(自身.持久化名)#读串
             if 原始 is not None:#有值
@@ -114,7 +114,7 @@ class 快照存储:#本包自持快照存储
         存储=取本地存储()#可选
         if 存储 is None:#无
             自身._可持久化=False#关
-            return#结束
+            return
         try:#写
             存储.setItem(自身.持久化名,json.dumps(自身.状态,ensure_ascii=False,separators=(',',':'),allow_nan=False))#整值
         except (TypeError,ValueError,AttributeError,OSError) as 错误:#写失败
@@ -144,7 +144,7 @@ class 在应用中打开控制器:#页面生命周期控制器
     def 启动(自身,应用标识,路径):#启动已装应用打开工作区目录
         """宿主确认后返回；任失败抛 在应用中打开错误。"""
         体={'app':应用标识,'path':路径}#OpenInAppOpenPayload
-        网址=urljoin(宿主基址().rstrip('/')+'/',打开路由.lstrip('/'))#绝对 URL
+        网址=拼接URL(宿主基址().rstrip('/')+'/',打开路由.lstrip('/'))
         响应=自身.取数(网址,{#POST
             'method':'POST',#方法
             'headers':{'content-type':'application/json'},#头
@@ -157,7 +157,7 @@ class 在应用中打开控制器:#页面生命周期控制器
         """网络失败吞掉：不可达主机等同无应用。"""
         应用列表=[]#缺省空
         try:#读
-            网址=urljoin(宿主基址().rstrip('/')+'/',应用列表路由.lstrip('/'))#绝对 URL
+            网址=拼接URL(宿主基址().rstrip('/')+'/',应用列表路由.lstrip('/'))
             响应=自身.取数(网址,{#GET
                 'headers':{'accept':'application/json'},#头
             })#发出

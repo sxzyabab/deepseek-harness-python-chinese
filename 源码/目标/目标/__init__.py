@@ -11,13 +11,13 @@ from .折叠 import (
     解码目标变更,#严格解码器
     目标变更引用,#变更 → 引用
     折叠目标,#整日志折叠
+    目标折叠错误,#回放失败
 )#纯回放折叠
-from .运行时 import (
+from .运行时 import (#运行时构造
     目标变更版本,#载荷版本
     目标错误,#域边界错误
     目标标识,#目标 id 品牌函数
 )#运行时构造
-from .远程 import TYPERT_REMOTE#Host-for-Client Remote 贡献
 
 配置={#插件配置模式
     'defaultMaxGoalRounds':数字字段(默认值=256),#默认 256 轮
@@ -26,7 +26,7 @@ Config=配置#Cordis 配置模式
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
 阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z',re.ASCII)#小写短横线分类码
 
-def 此刻毫秒():#对齐 Date.now
+def 此刻毫秒():
     """当前纪元毫秒。"""
     return int(time.time()*1000)#纪元毫秒
 
@@ -47,7 +47,7 @@ def 投影状态从折叠(状态):#严格折叠 → 检查点
     当前=None#默认无当前
     if 状态['goal'] is not None:#有快照
         if 状态['createdAt'] is None or 状态['updatedAt'] is None:#缺时间戳
-            raise Exception('current goal fold lacks timestamps')#折叠坏了
+            raise 目标折叠错误('current goal fold lacks timestamps')#折叠坏了
         当前={#当前投影
             'goal':状态['goal'],#快照
             'roundsStarted':状态['roundsStarted'],#轮次
@@ -79,7 +79,7 @@ def 应用目标投影(状态,事件):#投影级折叠
     try:#严格步进
         应用目标事件(折叠,事件)#应用
         return 投影状态从折叠(折叠)#下一投影
-    except Exception as 错误:#严格失败
+    except 目标折叠错误 as 错误:#严格失败
         消息=str(错误)#诊断
         下一=dict(状态)#拆离
         下一['failure']='goal replay failed at session event '+str(事件['seq'])+': '+消息#记下
@@ -367,13 +367,13 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         """仅在实际变化时发布一条进程内武装边。"""
         运行时=自身.运行时状态(会话)#拿到或播种
         if 运行时['activation']==武装:#无变化
-            return#结束
+            return
         运行时['activation']=武装#写入
         投影=自身.ctx.sessionProjections.stateOf(会话,'goal')#检查点
         if 投影 is None:#静态注入要求登记表先于本服务
-            return#结束
+            return
         if 投影['failure'] is not None:#失败态不发视图
-            return#结束
+            return
         视图=自身.视图(投影['current'],运行时)#当前视图
         载荷={'sessionId':会话.id}#会话
         if 视图 is not None:#有目标才带精确武装

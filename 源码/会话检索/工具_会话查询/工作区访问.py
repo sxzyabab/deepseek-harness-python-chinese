@@ -1,4 +1,4 @@
-"""调用方身份、工作区授权，以及可见谱系投影。对齐上游 `tool-session-query/src/workspace-access.ts`。"""
+"""调用方身份、工作区授权，以及可见谱系投影。"""
 from ...模型后端.llm import 装备错误#Harness错误
 from .服务边界 import 服务边界#服务边界
 
@@ -81,7 +81,7 @@ def 读取标题表(上下文,调用方,号列表,信号):
         return 上下文.sessionQuery.批量读取标题快照(号列表,信号)#观察
     观察列表=服务边界['call'](上下文,信号,'title observation',执行观察)#观察
     for 观察 in 观察列表:#逐条
-        if 观察['status']=='rejected':#失败
+        if 观察['status']=='rejected':
             结果[观察['sessionId']]=不可用标题(上下文,观察['reason'])#不可用标题
             continue#下一项
         值=观察['value']#成功值

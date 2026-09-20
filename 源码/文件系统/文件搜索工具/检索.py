@@ -1,8 +1,8 @@
-"""面向模型的 `grep` 工具：用 ripgrep 正则搜索文件内容。执行通过子进程 seam 以普通 argv 向量直接拉起打包的 ripgrep 二进制，使用固定的面向行的 `rg --json` 命令，因此文件路径、行号与行文本无需按冒号拆分即可解析——本模块拥有面向模型的模式、参数校验、argv 构造、`--json` 记录解析、逐行预览保留、命中保留、分组与格式化；进程相关问题留在 `ctx.subprocess` 后面。"""
+"""面向模型的 grep 工具：用 ripgrep 正则搜索文件内容。执行通过子进程以普通 argv 向量直接拉起打包的 ripgrep 二进制，使用固定的面向行的 rg --json 命令，因此文件路径、行号与行文本无需按冒号拆分即可解析——本模块拥有面向模型的模式、参数校验、argv 构造、--json 记录解析、逐行预览保留、命中保留、分组与格式化；进程相关问题留在子进程层后面。"""
 import json#按行解析rg --json NDJSON
 from ...内核.工具 import 定义工具#导入工具定义器
 from .搜索管道 import 搜索错误,搜索工具错误,预览行,保留grep命中,执行ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与保留
-from .展示 import grep搜索元,搜索视图自元#导入卡片meta投影
+from .呈现 import grep搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择
 
 检索最大命中数=250#内联命中默认上限
@@ -153,13 +153,13 @@ def 格式化已保留检索(保留,溢出引用=None):#零命中与有命中的
     return 格式化检索输出(保留,溢出引用)#有命中则走完整格式化
 
 def 呈现检索调用(参数):#调用中的搜索卡片
-    """调用中展示：以 pattern（以及目标/include 过滤器）为标题的搜索卡片。"""
+    """调用中呈现：以 pattern（以及目标/include 过滤器）为标题的搜索卡片。"""
     何处=(' in '+参数['path']) if 'path' in 参数 else ''#有path则写入标题
     过滤=(' ('+参数['include']+')') if 'include' in 参数 else ''#有include则写入标题
     return {'card':'generic','title':'Grep '+参数['pattern']+何处+过滤,'kind':'search','rawInput':参数['pattern']}#通用搜索卡片
 
-def 呈现检索结果(参数,结果):#完成调用后的搜索卡片展示
-    """完成调用后的展示：从结果的 presentationMeta 投影搜索卡片。畸形或缺失的元数据回退到通用卡片。"""
+def 呈现检索结果(参数,结果):#完成调用后的搜索卡片呈现
+    """完成调用后的呈现：从结果的 presentationMeta 投影搜索卡片。畸形或缺失的元数据回退到通用卡片。"""
     _=参数#视图从结果推导，不使用参数
     if 'isError' in 结果 and 结果['isError']:#错误结果不投影搜索卡片
         return None#通用回退
@@ -192,7 +192,7 @@ def 应用检索工具(上下文,上限):#注册grep工具与系统提示
         else:#有命中
             命中列表=值['matches']#规范命中
         return [{'type':'text','text':格式化已保留检索(保留grep命中(命中列表,上限['maxMatches'],上限['maxLineBytes']))}]#按上限保留并格式化
-    def 展示元(参数,值):#投影搜索卡片meta
+    def 呈现元(参数,值):#投影搜索卡片meta
         """投影搜索卡片 meta。"""
         _=参数#meta不依赖原始参数
         if 'matches' not in 值 or 值['matches'] is None:#缺席或null当空
@@ -247,7 +247,7 @@ def 应用检索工具(上下文,上限):#注册grep工具与系统提示
                 },#schema.properties结束
             },#schema结束
             'render':渲染,#按上限渲染文本
-            'presentationMeta':展示元,#投影搜索卡片meta
+            'presentationMeta':呈现元,#投影搜索卡片meta
         },#output结束
         'execute':执行,#执行一次grep
         'presentCall':呈现检索调用,#调用中卡片

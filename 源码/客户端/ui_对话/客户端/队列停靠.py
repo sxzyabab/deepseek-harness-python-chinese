@@ -1,6 +1,7 @@
-from .服务 import 对话错误#本包异常
+from .服务 import 对话错误
+from .文案 import 命名空间
 
-__all__=['队列停靠','队列停靠条目']#仅中文公开名
+__all__=['队列停靠','队列停靠条目']
 
 def 恒等翻译(键,参数=None):
     """无文案表时返回键本身。"""
@@ -172,17 +173,16 @@ class 队列停靠:
 
 def 队列停靠条目():
     """对齐 queueDockEntry：独立激活边界的 plain registrant。"""
-    from .文案 import 命名空间#词典 NS
     def 应用(上下文):
         """终端 input-dock 条目（order 20）。"""
         def 注入(会话标识):
             """updateQueue + notify。"""
             作用域=上下文.sessions.scope(会话标识)#作用域
             if 作用域 is None:#无
-                raise 对话错误('queue dock: session "'+str(会话标识)+'" resolved no scope')#抛
+                raise 对话错误('排队停靠: 会话 "'+str(会话标识)+'" 没有作用域')
             会话=作用域.获取服务('conversation')#conversation
             if 会话 is None:#无
-                raise 对话错误('queue dock: conversation service unavailable')#抛
+                raise 对话错误('排队停靠: conversation 服务不可用')
             def 通知(级别,正文):
                 """input.for(actx).notify。"""
                 会话.input.按作用域取门面(作用域).notify(级别,正文)#通知

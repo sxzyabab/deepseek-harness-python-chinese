@@ -57,7 +57,7 @@ class 会话写租约:#会话写租约
                     return 会话写租约('posix',文件,路径)#返回POSIX租约
             except 会话已有写主错误:#争用
                 raise#继续抛出
-            except Exception:#加锁或校验失败
+            except OSError:#加锁或校验失败
                 文件.close()#关闭描述符
                 raise#继续抛出
             文件.close()#关闭后重试

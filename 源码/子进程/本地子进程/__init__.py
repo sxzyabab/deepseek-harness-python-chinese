@@ -1,5 +1,5 @@
 import atexit,os,threading#宿主退出收尾、路径解析与后台释放线程
-import node_pty as 伪终端库#node-pty 的 Python 面；缺失则模块加载失败
+from ...依赖 import node_pty as 伪终端库#node-pty 的 Python 面（依赖胶水，禁止顶层 import）
 from ...工具.超时 import 若已中止则抛出#中止入口；信号来自超时库
 from .命令活动 import 准备命令活动#shell 活动
 from .终端 import 本地子进程错误,本地终端句柄,贯通流#本包错误、PTY 句柄与输出流
@@ -44,7 +44,7 @@ def 环境键值(环境,键名):#按平台语义取 PATH/PATHEXT
     return None#未命中
 
 def 目标环境(规格):#物化并校验最终目标环境
-    """对齐 targetEnvironment：空字节校验后叠控制通道标记。"""
+    """空字节校验后叠控制通道标记。"""
     参数表=list(规格['argv']) if 'argv' in 规格 and 规格['argv'] is not None else []#argv
     for 下标,值 in enumerate(参数表):#逐参
         if '\0' in str(值):#空字节
@@ -66,8 +66,8 @@ def 拉起伪终端(程序,参数,选项):#分配本地 PTY
     """分配本地 PTY 会话。"""
     return 伪终端库.spawn(程序,list(参数),选项)#启动 PTY 进程
 
-def 探测Windows作业(内部=None):#Windows Job 路径；本树尚未迁入 windows-job
-    """对齐 probeWindowsJob：本地无 Win32 Job runner 时恒为 False。"""
+def 探测Windows作业(内部=None):#Windows Job 路径；本树未迁入 windows-job runner
+    """本地无 Win32 Job runner 时恒为 False。"""
     return False#未迁入则不可用
 
 class 本地子进程运行时(子进程运行时):#本地子进程服务
@@ -75,9 +75,9 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
 
     公开方法仅中文：解析可执行文件、终端环境、启动、启动终端。
     """
-    def __init__(自身,上下文对象):#用 Cordis 上下文构造本地提供方
-        """登记为 ctx.subprocess，并挂拆除与宿主退出收尾。"""
-        super().__init__(上下文对象)#登记为 subprocess 服务
+    def __init__(自身,上下文):#用 Cordis 上下文构造本地提供方
+        """登记为子进程服务，并挂拆除与宿主退出收尾。"""
+        super().__init__(上下文)#登记为 subprocess 服务
         自身.存活=set()#存活子进程句柄
         自身.终端表=set()#存活终端句柄
         自身.控制通道=set()#调用方控制端点
@@ -99,7 +99,7 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
                 except ValueError:#unregister 失败
                     pass#宿主退出收尾最多再跑一次空操作
             return None#拆除完成
-        上下文对象.副作用(拆除,'local subprocess teardown')#登记拆除
+        上下文.副作用(拆除,'local subprocess teardown')#登记拆除
 
     def 为宿主退出终止(自身):#宿主退出路径上同步强制停树
         """遍历存活集合，分别包含每个目标的失败。"""
@@ -168,7 +168,7 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
             try:#检查是否为可执行文件
                 if not os.path.isfile(候选):#不是文件
                     continue#试下一个
-                if not os.access(候选,os.X_OK):#需可执行（对齐 access X_OK）
+                if not os.access(候选,os.X_OK):#需可执行
                     continue#试下一个
                 若已中止则抛出(信号)#命中后再检查一次取消
                 return 候选#返回命中路径
@@ -387,4 +387,4 @@ class 本地子进程运行时(子进程运行时):#本地子进程服务
         工作.start()#启动
         return 句柄#返回存活终端句柄
 
-default=本地子进程运行时#Cordis默认导出
+default=本地子进程运行时#框架槽

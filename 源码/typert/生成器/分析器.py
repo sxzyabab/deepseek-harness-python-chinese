@@ -1,20 +1,20 @@
-__all__=[#公开面（与上游 index 再导出及本叶 export 对齐）
+__all__=[
     'Typert分析错误',
     '分析模式',
     '工作区分析器选项',
     '已发现Typert包',
     '工作区缓存',
     '工作区分析器',
-]#结束
+]
 
 class Typert分析错误(Exception):#带源码向诊断的分析失败
-    """对齐上游 TypertAnalysisError；工作区导出校验亦复用此类型。"""
+    """带源码向诊断的分析失败；工作区导出校验亦复用此类型。"""
     name='TypertAnalysisError'#错误名
 
 分析模式=frozenset(['check','write'])#公开业务边界上缺失注解的处理方式
 
 def 工作区分析器选项(**关键字参数):#构造选项字典（形状登记，不做校验）
-    """对齐 WorkspaceAnalyzerOptions 字段名；真分析仍硬缺口。"""
+    """选项字段名与 WorkspaceAnalyzerOptions 一致；真分析仍硬缺口。"""
     return dict(关键字参数)#原样字典
 
 def 已发现Typert包(包,根,面列表):#发现结果条目
@@ -67,15 +67,15 @@ class 工作区分析器:#把宿主与客户端当作独立 Program 来分析（
                 'mode':getattr(选项,'mode',None),#模式
                 'caches':getattr(选项,'caches',None),#缓存
             }#结束
-        根=选项.get('root')#工作区根
-        if 根 is None or 根=='':#缺根
+        if 'root' not in 选项 or 选项['root']=='':#缺根
             raise Typert分析错误('typert: WorkspaceAnalyzer requires root')#对齐失败声
+        根=选项['root']#工作区根
         自身.options={#解析后的选项（不读盘）
             'root':根,#工作区根
             'hostConfig':选项.get('hostConfig') or 'tsconfig.host.json',#宿主聚合默认名
             'clientConfig':选项.get('clientConfig') or 'tsconfig.client.json',#客户端聚合默认名
             'faces':选项.get('faces') or ['host','client'],#默认两面
-            'checkDiagnostics':True if 选项.get('checkDiagnostics') is None else 选项.get('checkDiagnostics'),#默认诊断
+            'checkDiagnostics':True if 'checkDiagnostics' not in 选项 else 选项['checkDiagnostics'],#默认诊断
             'mode':选项.get('mode') or 'check',#默认检查
         }#结束
         if 选项.get('packages') is not None:#有子集才写入

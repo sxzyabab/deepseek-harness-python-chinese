@@ -1,26 +1,26 @@
-from ...未实现失败 import 未实现失败#导入未实现桩
+from ...未实现失败 import 未实现失败
 
-__all__=[#Node面
+__all__=[
     'Worker','isMainThread','threadId','parentPort','workerData',
     'MessageChannel','MessagePort','markAsUntransferable','receiveMessageOnPort',
     '__esModule','default',
-]#公开结束
+]
 
-模块='node:worker_threads'#模块说明符
-Worker=未实现失败(模块,'Worker')#Worker拒绝桩
-isMainThread=True#主线程标记
-threadId=0#主线程id
-parentPort=None#无父端口
-workerData=None#无线程数据
-MessageChannel=未实现失败(模块,'MessageChannel')#MessageChannel拒绝桩
-MessagePort=未实现失败(模块,'MessagePort')#MessagePort拒绝桩
-markAsUntransferable=未实现失败(模块,'markAsUntransferable')#不可转移标记桩
-receiveMessageOnPort=未实现失败(模块,'receiveMessageOnPort')#端口收消息桩
-__esModule=True#CJS互操作标记
+模块='node:worker_threads'
+Worker=未实现失败(模块,'Worker')
+isMainThread=True
+threadId=0
+parentPort=None
+workerData=None
+MessageChannel=未实现失败(模块,'MessageChannel')
+MessagePort=未实现失败(模块,'MessagePort')
+markAsUntransferable=未实现失败(模块,'markAsUntransferable')
+receiveMessageOnPort=未实现失败(模块,'receiveMessageOnPort')
+__esModule=True
 
-default={#默认导出成员
-    'Worker':Worker,'isMainThread':isMainThread,'threadId':threadId,#线程身份
-    'parentPort':parentPort,'workerData':workerData,#端口与数据
-    'MessageChannel':MessageChannel,'MessagePort':MessagePort,#构造
-    'markAsUntransferable':markAsUntransferable,'receiveMessageOnPort':receiveMessageOnPort,#转移与收消息
-}#默认导出结束
+default={
+    'Worker':Worker,'isMainThread':isMainThread,'threadId':threadId,
+    'parentPort':parentPort,'workerData':workerData,
+    'MessageChannel':MessageChannel,'MessagePort':MessagePort,
+    'markAsUntransferable':markAsUntransferable,'receiveMessageOnPort':receiveMessageOnPort,
+}

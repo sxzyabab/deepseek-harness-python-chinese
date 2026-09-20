@@ -1,4 +1,4 @@
-"""面向模型的整文件写入。它从单策略槽取得可选意图，不经 stat 调用 ctx.fs.writeText，然后记录结果版本；没有策略表示无条件原子创建或覆盖。对齐上游 tool-fs/src/write.ts。"""
+"""面向模型的整文件写入。它从单策略槽取得可选意图，不经 stat 调用文件系统的写入文本，然后记录结果版本；没有策略表示无条件原子创建或覆盖。"""
 from ...内核.工具 import 定义工具#导入工具定义
 from .. import 文件系统 as fs#文件系统错误
 from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
@@ -44,8 +44,8 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
     def 渲染(参数,值):#模型可见确认信封
         """模型可见确认信封。"""
         return [{'type':'text','text':格式化写输出(值['path'],值)}]#确认信封
-    def 呈现元数据(参数,值):#结果展示用的 diff meta
-        """结果展示用的 diff meta。"""
+    def 呈现元数据(参数,值):#结果呈现用的 diff meta
+        """结果呈现用的 diff meta。"""
         if 'before' not in 值 or 值['before'] is None:#没有before则无hunk
             差异列表=[]#空diff列表
         else:#有基准文本
@@ -110,7 +110,7 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
                 },#properties结束
             },#schema结束
             'render':渲染,#模型可见确认信封
-            'presentationMeta':呈现元数据,#结果展示用的diff meta
+            'presentationMeta':呈现元数据,#结果呈现用的diff meta
         },#output结束
         'execute':执行,#执行写入
         'presentCall':呈现调用,#调用时diff卡片

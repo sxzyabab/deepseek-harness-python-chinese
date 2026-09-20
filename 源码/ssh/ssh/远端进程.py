@@ -68,7 +68,7 @@ class 收集输出转发:#合流尾更新，捕获独立于网络读者
             return#合并
         自身._运行=threading.Thread(target=自身._冲刷)#冲刷
         自身._运行.daemon=True#守护
-        自身._运行.start()#启动
+        自身._运行.start()
 
     def _冲刷(自身):#循环推快照
         """脏则推 snapshot 直到干净或停。"""
@@ -129,7 +129,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
             try:#释放
                 自身.释放(标识)#放
             except BaseException:#忽略
-                pass#吞
+                pass
         定时=threading.Timer(自身.准备毫秒/1000.0,到期)#超时
         定时.daemon=True#守护
         定时.start()#武装
@@ -142,7 +142,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 try:#准备
                     os.mkdir(目录,0o700)#私有目录
                     若已中止则抛出(记录['controller'].信号)#中止
-                    if 请求.get('terminal') is None:#普通
+                    if 'terminal' not in 请求:#普通
                         名表=['stdout','stderr']#默认
                         输入输出=请求.get('stdio')#stdio
                         if 输入输出 is not None and 输入输出.get('stdin')=='pipe':#stdin 管
@@ -158,7 +158,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 except BaseException as 错误:#失败
                     记录['preparing'].拒绝(错误)#拒绝
             线程=threading.Thread(target=做准备)#准备
-            线程.start()#启动
+            线程.start()
             记录['preparing'].等待()#等
             流表={}#坐标
             for 名,端点 in 记录['endpoints'].items():#逐路
@@ -184,10 +184,10 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 中止时()#中止
             监视线程=threading.Thread(target=监视)#监视
             监视线程.daemon=True#守护
-            监视线程.start()#启动
+            监视线程.start()
         记录['start']=操作任务()#启动任务
         try:#启动一次
-            自身._启动一次(标识,记录)#启动
+            自身._启动一次(标识,记录)
             记录['start'].兑现(None)#成功
         except BaseException as 错误:#失败
             失败=操作任务()#保留拒绝
@@ -205,14 +205,14 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         """所有数据通道认证后启动；关闭中则拒绝。"""
         for 端点 in 记录['endpoints'].values():#逐路
             端点['connected'].等待()#等认证
-        记录['expiry'].cancel()#清准备超时
+        记录['expiry'].cancel()准备超时
         if 自身._关闭中:#关闭中
             raise ssh错误('SSH helper is closing')#拒绝
         若已中止则抛出(记录['controller'].信号)#中止
         请求=记录['request']#请求
         工作目录=自身.上下文.fs.进程路径(自身.上下文.fs.解析(请求['cwd'],{'signal':记录['controller'].信号}))#cwd
         若已中止则抛出(记录['controller'].信号)#中止
-        环境={} if 请求.get('env') is None else {键:(None if 值 is None else 值) for 键,值 in 请求['env'].items()}#环境
+        环境={} if 'env' not in 请求 else {键:(None if 值 is None else 值) for 键,值 in 请求['env'].items()}#环境
         if 请求.get('terminal') is not None:#终端
             终端规格={
                 'argv':请求['argv'],#参数
@@ -222,7 +222,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 'signal':记录['controller'].信号,#中止
             }#规格
             终端规格.update(请求['terminal'])#尺寸与类型
-            终端=自身.上下文.subprocess.启动终端(终端规格)#启动
+            终端=自身.上下文.subprocess.启动终端(终端规格)
             记录['terminal']=终端#记下
             若已中止则抛出(记录['controller'].信号)#中止
             套接字对象=记录['endpoints']['terminal']['connected'].等待()#已认证
@@ -232,10 +232,10 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     for 块 in 终端.output:#逐块
                         套接字对象.write(块 if isinstance(块,bytes) else 块.encode('utf-8'))#写
                 except BaseException:#忽略
-                    pass#吞
+                    pass
             输出线程=threading.Thread(target=转发输出)#转发
             输出线程.daemon=True#守护
-            输出线程.start()#启动
+            输出线程.start()
             完成=操作任务()#完成
             def 等终端():#等退出
                 """收成完成观察。"""
@@ -253,7 +253,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     自身._失败收尾(标识,记录,完成)#收尾
             等线程=threading.Thread(target=等终端)#等
             等线程.daemon=True#守护
-            等线程.start()#启动
+            等线程.start()
             记录['done']=完成#记下
             return#终端路径结束
         输入输出=请求['stdio']#stdio
@@ -271,7 +271,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         }#规格
         if 输入输出.get('control') is not None:#fd7
             规格['stdio']['control']=输入输出['control']#control
-        普通=自身.上下文.subprocess.启动(规格)#启动
+        普通=自身.上下文.subprocess.启动(规格)
         记录['ordinary']=普通#记下
         控制=普通.control#fd7
         if 记录['endpoints'].get('control') is not None and 控制 is None:#未建立
@@ -302,14 +302,14 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     try:#读
                         while True:#循环
                             块=流.read(65536) if hasattr(流,'read') else None#读
-                            if not 块:#结束
+                            if not 块:
                                 break#停
-                            接收(块)#收
+                            接收(块)
                     except OSError:#失败
-                        pass#吞
+                        pass
                 读线程=threading.Thread(target=读收集)#读
                 读线程.daemon=True#守护
-                读线程.start()#启动
+                读线程.start()
                 def 停止(流=流,收集器=收集器):#停捕获
                     """摘读并封上。"""
                     if hasattr(流,'destroy'):#毁流
@@ -320,22 +320,22 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 def 管道(流=流,套接字对象=套接字对象,完成表=流转发):#转发
                     """管道直到结束。"""
                     完成=操作任务()#完成
-                    def 跑():#线程
+                    def 在线程执行():#线程
                         """复制。"""
                         try:#复制
                             while True:#循环
                                 块=流.read(65536) if hasattr(流,'read') else None#读
-                                if not 块:#结束
+                                if not 块:
                                     break#停
                                 套接字对象.write(块)#写
                             完成.兑现(None)#完
                         except BaseException:#忽略
                             完成.兑现(None)#仍结算
-                    线程=threading.Thread(target=跑)#转发
+                    线程=threading.Thread(target=在线线程执行)#转发
                     线程.daemon=True#守护
-                    线程.start()#启动
+                    线程.start()
                     完成表.append(完成)#登记
-                管道()#启动
+                管道()
         if 记录['endpoints'].get('stdin') is not None:#stdin
             套接字对象=记录['endpoints']['stdin']['connected'].等待()#已认证
             套接字对象.end()#半关写，读方向进进程
@@ -344,16 +344,16 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 try:#转
                     while True:#循环
                         块=套接字对象.read(65536)#读
-                        if not 块:#结束
+                        if not 块:
                             break#停
                         普通.stdin.write(块)#写
                     if hasattr(普通.stdin,'close'):#关
                         普通.stdin.close()#关
                 except OSError:#忽略
-                    pass#吞
+                    pass
             入线程=threading.Thread(target=转stdin)#转发
             入线程.daemon=True#守护
-            入线程.start()#启动
+            入线程.start()
         if 记录['endpoints'].get('control') is not None:#fd7
             通道=控制#双工
             套接字对象=记录['endpoints']['control']['connected'].等待()#已认证
@@ -364,7 +364,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     try:#复制
                         while True:#循环
                             块=套接字对象.read(65536)#读
-                            if not 块:#结束
+                            if not 块:
                                 break#停
                             通道.write(块)#写
                     except OSError:#失败
@@ -375,14 +375,14 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     try:#复制
                         while True:#循环
                             块=通道.read(65536) if hasattr(通道,'read') else None#读
-                            if not 块:#结束
+                            if not 块:
                                 break#停
                             套接字对象.write(块)#写
                     except OSError:#失败
                         套接字对象.destroy()#毁
                 threading.Thread(target=去进程,daemon=True).start()#去进程
                 threading.Thread(target=去套接字,daemon=True).start()#去套接字
-            双向()#启动
+            双向()
         完成=操作任务()#完成
         def 等普通():#等退出后收观察
             """停捕获、等流宽限、收 spill。"""
@@ -394,12 +394,12 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     转发完成.append(操作任务())#占位
                     def 结束一个(转发器=转发器,任务=转发完成[-1]):#闭包
                         """结束转发。"""
-                        try:#结束
-                            转发器.结束()#结束
+                        try:
+                            转发器.结束()
                             任务.兑现(None)#完
                         except BaseException:#忽略
                             任务.兑现(None)#仍结算
-                    threading.Thread(target=结束一个,daemon=True).start()#结束
+                    threading.Thread(target=结束一个,daemon=True).start()
                 宽限=threading.Event()#宽限到
                 定时=threading.Timer(请求['graceMs']/1000.0,宽限.set)#宽限
                 定时.daemon=True#守护
@@ -411,13 +411,13 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     宽限.set()#提前结束宽限
                 threading.Thread(target=等流,daemon=True).start()#等流
                 宽限.wait()#赛跑
-                定时.cancel()#清
+                定时.cancel()
                 溢出={}#spill
                 已收集={}#collected
                 for 名 in ('stdout','stderr'):#两路
-                    收集器=收集器表.get(名)#收集器
-                    if 收集器 is None:#无
+                    if 名 not in 收集器表:#无
                         continue#跳
+                    收集器=收集器表[名]#收集器
                     快照=收集器.快照()#尾
                     已收集[名]={'tail':base64.b64encode(快照['bytes']).decode('ascii'),'totalBytes':快照['totalBytes']}#快照
                     读=收集器.自偏移读取(0)#溢出路径
@@ -429,14 +429,14 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                     try:#等
                         项.等待()#等
                     except BaseException:#忽略
-                        pass#吞
+                        pass
                 自身._记住完成(标识,记录,完成)#记住
             except BaseException as 错误:#失败
                 完成.拒绝(错误)#拒绝
                 自身._失败收尾(标识,记录,完成)#收尾
         等线程=threading.Thread(target=等普通)#等
         等线程.daemon=True#守护
-        等线程.start()#启动
+        等线程.start()
         记录['done']=完成#记下
 
     def 完成(自身,标识):#直接结果，不声称子孙已退出
@@ -513,12 +513,12 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
             try:#释放
                 自身.释放(标识)#放
             except BaseException as 错误:#失败
-                失败.append(错误)#收
+                失败.append(错误)
         for 项 in list(自身.清理表):#清理
             try:#等
                 项.等待()#等
             except BaseException as 错误:#失败
-                失败.append(错误)#收
+                失败.append(错误)
         if len(失败)>0:#有
             raise 聚合错误(失败,'SSH remote process cleanup failed')#聚合
 
@@ -527,26 +527,26 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         记录=自身.取记录(标识)#记录
         if 记录['release'] is not None:#已释放
             记录['release'].等待()#等
-            return#结束
+            return
         记录['release']=自身._跟踪清理(lambda:自身._释放体(标识,记录))#跟踪
         记录['release'].等待()#等
 
     def _释放体(自身,标识,记录):#一次释放
         """清超时、中止、关端点、停进程、删目录。"""
-        记录['expiry'].cancel()#清超时
+        记录['expiry'].cancel()超时
         记录['controller'].中止(ssh错误('SSH process reservation closed'))#中止
         if 记录['preparing'] is not None:#准备中
             try:#等
                 记录['preparing'].等待()#等
             except BaseException:#忽略
-                pass#吞
+                pass
         for 端点 in 记录['endpoints'].values():#端点
             关闭端点(端点)#关
         if 记录['start'] is not None:#已启动
             try:#等
                 记录['start'].等待()#等
             except BaseException:#忽略
-                pass#吞
+                pass
         if 记录['ordinary'] is not None:#普通
             记录['ordinary'].终止()#终止
             记录['ordinary'].等待退出()#等
@@ -558,14 +558,14 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
 
     def 取记录(自身,标识):#查找
         """未知或过期则拒绝。"""
-        记录=自身.记录.get(标识)#查找
+        记录=自身.记录.get(标识)
         if 记录 is None:#无
             raise ssh错误('Unknown or expired SSH process handle')#拒绝
         return 记录#记录
 
     def _失败收尾(自身,标识,记录,结果):#启动失败后终止并记住
         """清超时、终止、记住完成。"""
-        记录['expiry'].cancel()#清
+        记录['expiry'].cancel()
         if 记录['ordinary'] is not None:#普通
             记录['ordinary'].终止()#终止
             记录['ordinary'].等待退出()#等
@@ -595,7 +595,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         """结束后从表摘掉。"""
         任务=操作任务()#任务
         自身.清理表.add(任务)#登记
-        def 跑():#线程
+        def 在线程执行():#线程
             """跑工作。"""
             try:#跑
                 工作()#工作
@@ -604,7 +604,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                 任务.拒绝(错误)#拒绝
             finally:#摘
                 自身.清理表.discard(任务)#摘
-        threading.Thread(target=跑).start()#启动
+        threading.Thread(target=在线线程执行).start()
         return 任务#任务
 
     def 端点(自身,路径):#私有 TLS 监听
@@ -652,7 +652,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
                             认证=套接字流(包装)#面
                             if 端点['socket'] is not None:#已有
                                 认证.destroy()#拒第二路
-                                return#结束
+                                return
                             认证.pause()#暂停
                             端点['socket']=认证#记下
                             try:#关听
@@ -677,7 +677,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         try:#启动听
             听线程=threading.Thread(target=接受循环)#听
             听线程.daemon=True#守护
-            听线程.start()#启动
+            听线程.start()
             return 端点#端点
         except BaseException:#失败
             关闭端点(端点)#关

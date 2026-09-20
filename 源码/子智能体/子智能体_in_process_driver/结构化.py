@@ -65,13 +65,13 @@ def 附着结构化运行时(子上下文,模式):#attachStructuredRuntime
             else:#PTC
                 if 已捕获 is None and 待定 is None:#首次
                     待定={'parent':执行对象['parent'],'value':项['value']}#待定
-            return#结束
+            return
         if 待定 is None:#无待定
             return#跳过
         if 执行对象['token']!=待定['parent']:#非父
             return#跳过
         项=待定#取待定
-        待定=None#清
+        待定=None
         if 'isError' in 结果 and 结果['isError']:#失败
             return#跳过
         if 已捕获 is None:#首次

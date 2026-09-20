@@ -1,5 +1,6 @@
-import fnmatch as 文件名匹配#名称glob（对齐picomatch）
-from datetime import datetime as 日期时间,timezone as 时区#修改时间
+import fnmatch as 文件名匹配
+from datetime import datetime as 日期时间#修改时间
+from zoneinfo import ZoneInfo#UTC
 from ...module_system.posix路径 import 基名,目录名,解析 as 解析路径#路径工具
 from ..文件系统访问 import 描述失败,在目录解析#FS辅助
 from .选项 import 解析选项#选项解析
@@ -10,7 +11,7 @@ def 长格式条目(统计,名):#长格式条目
     """按 `ls -l` 方式格式化一项，用 VFS 实际持有的事实。"""
     大小=str(0 if 统计 is None else 统计['size']).rjust(8)#对齐大小
     毫秒=0 if 统计 is None else 统计['mtimeMs']#修改时间毫秒
-    修改=日期时间.fromtimestamp(毫秒/1000,时区.utc).isoformat().replace('T',' ')[:16]#修改时间
+    修改=日期时间.fromtimestamp(毫秒/1000,ZoneInfo('UTC')).isoformat().replace('T',' ')[:16]#修改时间
     模式='drwxr-xr-x' if 统计 is not None and 统计['directory'] is True else '-rw-r--r--'#模式
     return f'{模式} {大小} {修改} {名}'#拼长行
 
@@ -76,7 +77,7 @@ def find程序(argv,io,state,fs):#find程序
         根列表.append(词)#搜索根
         索引+=1#推进
     def 名称匹配(显示):#名称匹配
-        """对齐 picomatch(namePattern, { dot: true })。"""
+        """基名是否命中名称模式。"""
         if 名称模式 is None:#无模式
             return True#全过
         return 文件名匹配.fnmatch(基名(显示),名称模式)#匹配基名
@@ -160,7 +161,7 @@ def 复制树(源,目标,fs):#复制树
     统计=fs['stat'](源)#源统计
     if 统计 is None or 统计['directory'] is not True:#文件
         fs['writeText'](目标,fs['readText'](源))#复制内容
-        return#结束
+        return
     fs['mkdir'](目标,True)#建目标目录
     for 条目 in fs['list'](源):#递归复制
         复制树(解析路径(源,条目['name']),解析路径(目标,条目['name']),fs)#递归
@@ -243,7 +244,7 @@ def stat程序(argv,io,state,fs):#stat程序
             状态=1#失败
             continue#下一路径
         种类='directory' if 统计['directory'] else 'file'#种类
-        时间=日期时间.fromtimestamp(统计['mtimeMs']/1000,时区.utc).isoformat().replace('+00:00','Z')#ISO
+        时间=日期时间.fromtimestamp(统计['mtimeMs']/1000,ZoneInfo('UTC')).isoformat().replace('+00:00','Z')#ISO
         io['out'](f"{路径} {种类} {统计['size']} {时间}\n")#打印事实
     return 状态#返回状态
 

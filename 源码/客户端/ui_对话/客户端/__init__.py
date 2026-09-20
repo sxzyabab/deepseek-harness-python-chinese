@@ -33,7 +33,7 @@ from .会话节点 import 登记会话节点#会话节点
 from .约定.槽 import 会话根子槽#根子槽表
 
 __all__=[#仅中文公开名
-    '注入','应用',
+    '依赖','应用',
     '命名空间','中文','英文',
     '创建聊天存储','阻断登记表','提交策略','默认忙碌回车行为',
     '会话控制器','不支持图片媒体类型','对话错误',
@@ -47,9 +47,9 @@ __all__=[#仅中文公开名
     '根工具调用','查找工具调用','登记聊天节点渲染器','队列停靠','队列停靠条目',
     '输入机','会话输入壳','输入枢纽','派生装饰','空输入状态','占位符',
     '登记会话节点',
-]#公开面结束
+]
 
-注入=[#会话插件所需服务
+依赖=[#会话插件所需服务
     'slots','sessions','fileUpload','uiSession','uiWorkspace','locale','settingsScope',
 ]#依赖
 
@@ -79,7 +79,7 @@ def 空词表快照():
 缺席菜单启动器={'getSnapshot':空快照,'subscribe':空订}#菜单启动器
 
 def 解析槽标签(标签):
-    """对齐 ui-slots resolveSlotLabel。字面量或零参 thunk。"""
+    """字面量或零参 thunk。"""
     if 标签 is None:#未声明
         return None#缺席
     if isinstance(标签,str):#字面量
@@ -172,7 +172,7 @@ def 应用(上下文):
     上下文.副作用(登记词典,'ui-conversation: dictionaries')#词典
     翻译=上下文.locale.bind(命名空间)#绑定翻译
     聊天翻译=上下文.locale.bind('chat')#聊天词典
-    聊天存储=创建聊天存储()#本光纤聊天存储
+    聊天存储=创建聊天存储()#本纤程聊天存储
     提交=提交策略(上下文.settingsScope.bind({'namespace':会话设置命名空间}))#提交策略
     聊天滚动={}#会话 id → 滚动位置
     阻断表=阻断登记表()#按会话阻断
@@ -313,7 +313,7 @@ def 应用(上下文):
                     'lexicon':缺席词表,#词表
                     'menuLauncher':缺席菜单启动器,#启动器
                 },#hooks 结束
-            }#结束
+            }
         控制器=具体会话(上下文)#控制器
         壳=枢纽.shell(会话标识)#壳
         触发=枢纽.inputTriggers(会话标识)#触发器
@@ -348,7 +348,7 @@ def 应用(上下文):
                 'query':'',#空查询
                 'position':'leading' if 前=='' else 'inline',#行首或行内
                 'span':{**选区,'draftRev':快['draftRev']},#跨度
-            })#结束
+            })
         def 停止():
             """失败不抛给 UI。"""
             try:#取消
@@ -464,7 +464,7 @@ def 应用(上下文):
             仓动作.setView('trajectory')#切视图
         def 存滚动(位置):
             """null 丢掉记忆。"""
-            if 位置 is None:#清
+            if 位置 is None:
                 聊天滚动.pop(会话标识,None)#删
             else:#记
                 聊天滚动[会话标识]=位置#写
@@ -538,5 +538,5 @@ def 应用(上下文):
         'inject':详情注入,#注入
     },详情面板)#详情
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

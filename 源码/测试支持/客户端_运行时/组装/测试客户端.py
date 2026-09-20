@@ -1,6 +1,6 @@
 import builtins,threading#页面全局与启动回合锁
 from ....依赖 import cordis#外部依赖胶水
-from ....客户端.热更新.客户端 import 拆除条目光纤#条目光纤拆除
+from ....客户端.模块.条目生命周期 import 拆除条目纤程#条目纤程拆除
 from ....客户端.连接.客户端 import 安装连接#连接安装
 from ....客户端.web.启动客户端 import 启动客户端#生产客户端启动
 from ....客户端.web.挂载 import 挂载客户端#生产客户端挂载
@@ -55,7 +55,7 @@ class 共享文档对象模型垫片:#共享 jsdom 垫片
             """最后一个持有者拆垫片。"""
             自身._持有-=1#减计数
             if 自身._持有>0:#仍有持有者
-                return#结束
+                return
             if 自身._拆垫片 is not None:#有垫片
                 自身._拆垫片()#拆垫片
                 自身._拆垫片=None#清空
@@ -113,12 +113,12 @@ def 等到已连接(上下文,模拟,超时毫秒):#等到已连接
     """等待 connection.state 为 connected。"""
     状态=取连接(上下文).state#连接状态
     if 状态.getSnapshot()=='connected':#已连接
-        return#结束
+        return
     完成=threading.Event()#完成事件
     def 订阅回调():#订阅
         """已连接则放行。"""
         if 状态.getSnapshot()!='connected':#未到
-            return#结束
+            return
         完成.set()#放行
     退订=状态.subscribe(订阅回调)#订阅
     if not 完成.wait(超时毫秒/1000):#超时
@@ -166,13 +166,13 @@ class 测试客户端:#测试客户端
                     if 页面定位 is not None:#有主机名
                         选项表['location']=页面定位#带上
                     安装连接(连接上下文,选项表)#安装
-                替换=dict(连接模块) if isinstance(连接模块,dict) else {#拷贝面
-                    'inject':getattr(连接模块,'inject',None),#注入
-                    'apply':应用连接,#覆盖 apply
-                    'name':getattr(连接模块,'name',None),#名
-                    'Config':getattr(连接模块,'Config',None),#配置
-                    'default':getattr(连接模块,'default',None),#默认
-                }#结束
+                替换=dict(连接模块) if isinstance(连接模块,dict) else {
+                    'inject':getattr(连接模块,'inject',None),
+                    'apply':应用连接,
+                    'name':getattr(连接模块,'name',None),
+                    'Config':getattr(连接模块,'Config',None),
+                    'default':getattr(连接模块,'default',None),
+                }
                 if isinstance(连接模块,dict):#字典形
                     替换['apply']=应用连接#覆盖
                 else:#对象形改成字典
@@ -226,7 +226,7 @@ class 测试客户端:#测试客户端
     def 重载(自身,名称):#重载
         """重建一个 Loader 条目。"""
         条目=自身._按名取条目(名称)#按名取条目
-        拆除条目光纤(条目)#拆旧光纤
+        拆除条目纤程(条目)#拆旧纤程
         条目.刷新()#刷新
         自身.ctx.loader.等待()#等加载器静止
 
@@ -250,7 +250,7 @@ class 测试客户端:#测试客户端
                 进行中=None#本线程执行
         if 进行中 is not None:#等待他人
             进行中.wait()#等到完成
-            return#结束
+            return
         try:#执行拆除
             自身._拆除实现()#拆除
         finally:#放行等待者
@@ -269,7 +269,7 @@ class 测试客户端:#测试客户端
         自身._还原()#还原垫片与挂载
         if 失败 is None:#树拆成功
             自身.模拟.断言无漏配()#检查漏配
-            return#结束
+            return
         try:#仍检查漏配
             自身.模拟.断言无漏配()#检查
         except Exception as 漏配:#漏配也失败

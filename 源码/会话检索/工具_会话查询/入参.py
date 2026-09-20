@@ -1,6 +1,7 @@
-"""模型参数模式、归一化与过滤器构造。对齐上游 `tool-session-query/src/input.ts`。"""
+"""模型参数模式、归一化与过滤器构造。"""
 import re#正则
-from datetime import datetime,timedelta,timezone#写死 ISO 解析
+from datetime import datetime,timedelta,timezone#写死 ISO 解析；timezone 仅固定偏移
+from zoneinfo import ZoneInfo#UTC
 from ..会话查询 import 会话查询错误#检索错误
 
 会话搜索参数={
@@ -127,7 +128,7 @@ def 解析iso时间戳(名,值):
         微秒文本=(小数+'000000')[:6]#微秒
         微秒=int(微秒文本) if 微秒文本!='' else 0#微秒
         if 匹配.group(8)=='Z':#UTC
-            区=timezone.utc#UTC
+            区=ZoneInfo('UTC')#UTC
         else:#数字偏移
             符号=匹配.group(9)#正负
             偏时=int(匹配.group(10))#时

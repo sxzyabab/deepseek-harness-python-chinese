@@ -1,7 +1,7 @@
 """对话调用配置与冻结工具。
 
-对齐上游 `llm/src/call-config.ts`。公开面仅中文名；无英文别名。
-配置字段键保持上游 wire。
+公开面仅中文名；无英文别名。
+配置字段键为线协议原样保留。
 """
 import weakref#弱集合
 from .类型 import 中止信号#中止通道；深冻结跳过
@@ -126,12 +126,6 @@ def 深冻结(值):#迭代深冻结
         if 编号 in 已见:#已访问则跳过
             continue#已访问则跳过
         已见.add(编号)#记下已访问
-        if isinstance(节点,dict) and not isinstance(节点,冻结映射):#就地换成冻结映射
-            #节点.__class__=冻结映射#就地换成冻结映射
-            pass
-        elif isinstance(节点,list) and not isinstance(节点,冻结列表):#就地换成冻结列表
-            ...
-            #节点.__class__=冻结列表#就地换成冻结列表
         if isinstance(节点,list):#列表子节点
             下标=len(节点)-1#逆序压栈
             while 下标>=0:#尚未压完

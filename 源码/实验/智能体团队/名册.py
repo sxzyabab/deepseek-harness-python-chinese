@@ -261,9 +261,9 @@ class 团队名册:#成员表
                 'signal':信号,#取消
             })#启动结束
             实际子标识=已启动['childId'] if 'childId' in 已启动 else 子标识#实际 id
-            if 实际子标识!=子标识:#上游自生成 id
-                成员={**成员,'id':实际子标识}#对齐
-                子标识=实际子标识#更新
+            if 实际子标识!=子标识:
+                成员={**成员,'id':实际子标识}
+                子标识=实际子标识
             自身._检查点初始提示(子标识,已启动['messageId'] if 'messageId' in 已启动 else None,信号)#等初始提示落盘
         except Exception as 错误:#启动子会话/检查点可能抛团队错误/持久化错误，契约未定所以收不窄
             自身._创建失败(根,名字,成员,子标识,错误)#失败结算
@@ -339,7 +339,7 @@ class 团队名册:#成员表
             while not 停止听.is_set():#尚未收尾
                 if 信号.is_set():#已中止
                     取消处理()#取消
-                    return#结束
+                    return
                 停止听.wait(0.05)#短等摘除
         try:#flush 检查
             if 信号 is not None:#有信号

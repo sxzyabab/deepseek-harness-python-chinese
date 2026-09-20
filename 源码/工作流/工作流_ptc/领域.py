@@ -28,7 +28,7 @@ def 有朴素原型(值):#普通数据对象原型链
     """原型为 None，或其原型的原型为 None（领域的 Object.prototype）。Date/Map/类实例链更长，拒绝。"""
     原型=type(值)#Python 无 JS 原型链；dict/list 为朴素
     if 原型 is dict or 原型 is list:#朴素容器
-        return True#是
+        return True
     return False#否
 
 def 从领域物化(值,根='value'):#拷到宿主 JSON

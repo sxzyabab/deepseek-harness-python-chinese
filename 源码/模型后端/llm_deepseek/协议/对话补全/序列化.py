@@ -25,7 +25,7 @@ def 解析思考(选项,默认):#解析思考/力度
     """解析一对合法的思考/力度，不把 off 暴露成线路力度。"""
     if 选项.get('purpose')=='session-title':#标题任务
         return {'thinking':'disabled'}#标题任务关掉思考
-    if 选项.get('reasoningEffort') is None:#未给力度
+    if 'reasoningEffort' not in 选项:#未给力度
         力度=默认.get('reasoningEffort')#用适配器默认
     else:#调用方力度
         力度=校验推理力度(选项['reasoningEffort'])#校验调用方力度
@@ -36,7 +36,7 @@ def 解析思考(选项,默认):#解析思考/力度
         return {'thinking':'disabled'}#off映射为关掉思考
     if 力度=='low' or 力度=='high' or 力度=='max':#打开思考
         return {'thinking':'enabled','reasoningEffort':力度}#打开思考并带线路力度
-    if 默认.get('thinking') is None:#无默认开关
+    if 'thinking' not in 默认:#无默认开关
         return {}#不放到线路上
     return {'thinking':默认['thinking']}#只带适配器思考开关
 

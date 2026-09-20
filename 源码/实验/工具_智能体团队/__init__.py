@@ -2,14 +2,13 @@ import json#紧凑JSON渲染
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
-#依赖：`..智能体团队` 空壳未导出 TeamTaskId；服务 API 未迁完时调用方仍需上游 agentTeams。
 
-__all__=[#仅中文公开名；Cordis 英文槽不入表
-    '名称','注入','配置','应用','团队任务标识','工具团队错误',
-]#公开面结束
+__all__=[
+    '名称','依赖','配置','应用','团队任务标识','工具团队错误',
+]
 
-名称='tool-agent-team'#Cordis插件名
-注入=['agents','agentTeams','tools','systemPrompt']#依赖智能体、团队、工具与系统提示
+名称='tool-agent-team'
+依赖=['agents','agentTeams','tools','systemPrompt']
 配置={#工具路由配置
     'freshProvider':字符串字段(默认值='spawn'),#新建 teammate 的可续跑 subagent provider
     'forkProvider':字符串字段(默认值='fork'),#fork teammate 的可续跑 subagent provider
@@ -106,7 +105,7 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 }#任务列表值模式结束
 
 def 团队任务标识(标识):#字符串→TeamTaskId 标识构造
-    """对齐上游 TeamTaskId(id)：同串标识构造。依赖包迁完后应改从 `..智能体团队` 导入。"""
+    """同串标识构造。"""
     return 标识#同串标识构造
 
 class 工具团队错误(Exception):#本包异常基类
@@ -449,8 +448,8 @@ def 应用(上下文,配置值=None):#在每个已有或随后发布的 Team 成
         return 拆除全部#拆除器
     上下文.副作用(作用域工具副作用,'tool-team.scopedTools()')#effect 标签
 
-apply=应用#Cordis插件入口
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-Config=配置#Cordis配置模式
-default=应用#默认导出
+name=名称
+inject=依赖
+apply=应用
+Config=配置
+default=应用

@@ -1,7 +1,4 @@
-"""单一、感知回放的 token 计量服务，用于请求与表面压力。对齐上游 `token-meter/src/index.ts`。公开面仅中文名。
-
-Cordis 槽 `Config` / `default` 可保留。配置键与诊断英文字面量保持上游。
-"""
+"""按会话回放计量 token，供请求预算与表面压力使用。"""
 from weakref import WeakKeyDictionary as 弱键字典#会话到回放状态
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
@@ -200,5 +197,5 @@ class 令牌计量(服务):#token 计量服务
             return 0#已知空流
         return 计价内容(提供方内容)+角色开销#计价
 
-默认=令牌计量#中文默认导出
-default=令牌计量#Cordis默认导出（协议槽）
+默认=令牌计量
+default=令牌计量#框架槽

@@ -1,18 +1,20 @@
-"""@deepseek-ai/dsh-session-projection 的本包拥有不变量配套。"""
-包名='@deepseek-ai/dsh-session-projection'#本包的不变量所有权名
-名称='session-projection-invariant'#配套不变量插件名
-注入=['invariants']#依赖 invariants 服务
+"""向 invariants 登记本包；无独立运行时检查。"""
+包名='@deepseek-ai/dsh-session-projection'
+名称='session-projection-invariant'
+依赖=['invariants']
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认']
 
 def 安装(*位置参数):
     """无运行时不变量：注册表在同步路径内强制重复键与 stateVersion 拒绝，并由规格证明。"""
-    return#不挂运行时检查
+    return
 
-def 应用(上下文对象):
+def 应用(上下文):
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记空贡献
+    return 上下文.invariants.register(包名,安装)
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=默认#框架槽

@@ -7,7 +7,7 @@ from ..子智能体 import 断言子智能体最大深度,结算运行#深度断
 from ..子智能体.错误 import 子智能体错误#缝内失败
 
 名称='tool-subagent'#Cordis插件名
-注入=['tools','subagents','systemPrompt','sessionProjections']#依赖工具、子智能体、提示词与投影
+依赖=['tools','subagents','systemPrompt','sessionProjections']#依赖工具、子智能体、提示词与投影
 子智能体段落顺序=116.5#可续接委托指引段落顺序
 配置入口上限=2**53-1#外来 JSON 配置的深度上限校验
 配置={#部署配置：委托到哪个提供方以及子体默认值
@@ -16,21 +16,21 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
     'modelSelectionSettings':布尔字段(默认值=False),#默认关闭模型选择设置
     'enableRunInBackground':布尔字段(默认值=True),#默认允许后台
     'backgroundMode':枚举字段('one-shot','continuable',默认值='one-shot'),#默认一次性
-    'agentOptions':字典字段({#智能体选项模式
+    'agentOptions':字典字段(字典结构={#智能体选项模式
         'provider':字符串字段(),#模型提供方
         'model':字符串字段(),#模型名
         'reasoningEffort':字符串字段(),#推理力度
         'maxTokens':整数字段(默认值=1),#正整数token上限
     },默认值=None),#省略时保持未定义
     'persona':字符串字段(),#可选人格字符串
-    'toolFilter':字典字段({#工具过滤模式
+    'toolFilter':字典字段(字典结构={#工具过滤模式
         'allow':列表字段(字符串字段(),默认值=None),#省略allow时不物化空数组
         'deny':列表字段(字符串字段(),默认值=None),#省略deny时不物化空数组
     },默认值=None),#省略整个过滤
     'maxDepth':复合类型字段(自然数字段(最大=配置入口上限),常量字段('provider-managed')),#无默认；省略读 Host 设置
 }#配置模式结束
 
-__all__=['名称','注入','配置','子智能体段落顺序','应用']#仅中文公开名
+__all__=['名称','依赖','配置','子智能体段落顺序','应用']#仅中文公开名
 
 class 操作任务:
     """单次操作的 Future 包装，只留 等待。"""
@@ -62,6 +62,10 @@ class 中止信号:
         """创建一条取消通道。"""
         自身._事件=threading.Event()#中止标志
         自身._异常=None#中止时抛出的异常
+
+    def is_set(自身):
+        """是否已中止（委托底层 Event）。"""
+        return 自身._事件.is_set()#Event 置位
 
     def 触发(自身,原因=None):
         """标记中止。"""
@@ -256,13 +260,13 @@ def 应用(上下文,配置值,会话=None):
             raise 子智能体错误(#挂载失败
                 'tool-subagent: provider "'+提供方.名称+'" cannot enforce maxDepth (no depthLimit capability) — '
                 +"set maxDepth: 'provider-managed' to leave the recursion budget to the provider",#文案
-                'UNSUPPORTED_CAPABILITY',#码
+                'UNSUPPORTED_CAPABILITY',
             )#结束
         措辞=提供方措辞(bool(提供方.继承父上下文))#按是否继承会话选措辞
         if 可续接 and not hasattr(提供方,'准备可续跑'):#可续接策略但提供方不能准备
             raise 子智能体错误(#挂载失败
                 'tool-subagent: provider "'+提供方.名称+'" does not support `backgroundMode: continuable`',#文案
-                'UNSUPPORTED_CAPABILITY',#码
+                'UNSUPPORTED_CAPABILITY',
             )#结束
         if 后台启用:#基础描述加上后台策略后缀
             if 可续接:#可续接后缀
@@ -436,7 +440,7 @@ def 应用(上下文,配置值,会话=None):
         })#section结束
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
 default=应用#框架槽

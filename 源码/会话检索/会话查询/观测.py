@@ -1,24 +1,19 @@
 """活优先会话观察：history/follow 与冷探测共用。
 
-对齐上游 `session-query/src/observation.ts`：活路径即时切口 + 冷路径
+活路径即时切口 + 冷路径
 按持久修订钉住的 prepared LRU 与投影水合。公开面仅中文名。
 """
-from .配置 import 会话查询错误,已中止 as _配置已中止,会话查询默认准备会话缓存大小#检索错误与默认缓存
+from .配置 import 会话查询错误,会话查询默认准备会话缓存大小#检索错误与默认缓存
 from .语料库 import 未找到#未找到工厂
 from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 
 __all__=['会话观测','会话观测读取器','观测已中止']#仅中文公开名
 
 def 观测已中止(信号):
-    """兼容 Event 与带 `_事件` 的中止信号。"""
+    """信号是否已中止。无信号视为未中止。"""
     if 信号 is None:#无
         return False#未中止
-    if hasattr(信号,'is_set') and callable(信号.is_set):#threading.Event
-        try:
-            return bool(信号.is_set())#置位
-        except TypeError:
-            pass#非无参 is_set
-    return _配置已中止(信号)#带 _事件 的信号
+    return bool(信号.is_set())#置位即中止
 
 def 若观测已中止则抛出(信号):
     """已取消则抛 SESSION_QUERY_ABORTED。"""
@@ -79,7 +74,7 @@ class 会话观测读取器:
 
     def __init__(自身,上下文,语料库,缓存容量=None):
         """保存上下文、语料与缓存容量。"""
-        自身._上下文=上下文#Cordis
+        自身._上下文=上下文#框架
         自身._语料库=语料库#语料（回退冷读）
         自身._缓存容量=会话查询默认准备会话缓存大小 if 缓存容量 is None else 缓存容量#容量
         自身._缓存={}#sessionId → PreparedEntry（插入序≈LRU：删后重插）

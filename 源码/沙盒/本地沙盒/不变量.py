@@ -1,18 +1,18 @@
-"""`@deepseek-ai/dsh-sandbox-local` 的本包拥有不变量配套。"""
-包名='@deepseek-ai/dsh-sandbox-local'#本包的不变量所有权名
-名称='sandbox-local-invariant'#配套不变量插件名
-注入=['invariants']#依赖 invariants 服务
+"""本地沙箱无运行时不变量配套。"""
+包名='@deepseek-ai/dsh-sandbox-local'
+名称='sandbox-local-invariant'
+依赖=['invariants']
 
 def 安装(*位置参数):
-    """无运行时不变量：除所属 seam 已强制的约定外，本包不暴露独立事件序列或可变数据关系。"""
-    return#不挂运行时检查
+    """无运行时不变量：除所属服务已强制的约定外，本包不暴露独立事件序列或可变数据关系。"""
+    return
 
-def 应用(上下文对象):
+def 应用(上下文):
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记空贡献并返回拆除器
+    return 上下文.invariants.register(包名,安装)
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
-name=名称#Cordis 插件名
-inject=注入#Cordis 依赖声明
-apply=应用#Cordis 插件入口
-default=应用#Cordis 默认导出
+__all__=['包名','名称','依赖','安装','应用']
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=应用#框架槽

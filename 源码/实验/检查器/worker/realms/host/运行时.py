@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/host/runtime.ts 段1
-
 from ....共享.json import 检查器错误#包内错误
 from .值 import 是否原生记录,可选原生字段,要求原生记录#值工具
 from .脚本 import Host脚本键#脚本键

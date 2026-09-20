@@ -6,7 +6,7 @@ def 文件名摘要(原文):#从参数 JSON 抽路径摘要
     """对齐 fileNames：解析失败则原样返回。"""
     try:#尝试解析
         参数=json.loads(原文)#解析
-    except Exception:#截断 JSON
+    except (json.JSONDecodeError,TypeError):
         return 原文#原样
     if not isinstance(参数,dict) or 'files' not in 参数 or not isinstance(参数['files'],list):#须有 files
         return 原文#原样

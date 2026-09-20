@@ -1,14 +1,14 @@
-import json#行载荷编解码
-import time#相对时间基准
+import json,time#行载荷编解码与相对时间基准
+from urllib.parse import quote as 百分编码#URI 段编码
 from ....上下文.文件引用.词法 import 格式化文件提及#文件 mention 格式化
 from .文案 import 命名空间,中文,英文#词典与键
 
 __all__=[#仅中文公开名
-    '注入','应用','面包屑','目录载荷','文件候选行','会话候选行','解析候选',
+    '依赖','应用','面包屑','目录载荷','文件候选行','会话候选行','解析候选',
     '相对时间','缩写家目录路径','命名空间','中文','英文','已中止','若已中止则抛出',
-]#公开面结束
+]
 
-注入=[#Cordis inject
+依赖=[#Cordis inject
     'inputTriggers','locale','sessions','remote','remote.fileReferences',#基础服务
     'remote.sessionReferenceResolver','sidebarRight',#会话引用解析与右侧边栏
 ]#inject 结束
@@ -56,7 +56,6 @@ def 缩写家目录路径(路径,家目录):
 
 def 编码段(段):
     """百分编码一段，冒号保持字面量。"""
-    from urllib.parse import quote as 百分编码#URI 段编码
     return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
 
 def 编码路径(路径):
@@ -318,5 +317,5 @@ def 应用(上下文):
         return 触发.registerSource(源)#登记源
     上下文.副作用(登记源,'ui-reference: @ source')#登记源
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

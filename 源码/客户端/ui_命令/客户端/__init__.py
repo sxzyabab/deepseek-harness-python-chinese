@@ -6,13 +6,13 @@ from .文案 import 中文,英文#中英文案
 from .服务 import 命令UI运行时#运行时
 
 __all__=[#仅中文公开名
-    '注入','应用',
+    '依赖','应用',
     '命令UI运行时','命令错误',
     '选定确认','选定选项','弹出选定规格','动作规格','命令UI规格',
     '命令贡献','命令装饰','命令UI约定',
-]#公开面结束
+]
 
-注入=['inputTriggers','sessions','remote','remote.commands','locale']#所需服务
+依赖=['inputTriggers','sessions','remote','remote.commands','locale']#所需服务
 命名空间='command'#文案命名空间
 
 
@@ -47,5 +47,5 @@ def 应用(上下文):
 
     上下文.inject(['slots','commandUi','sessions'],叠层就绪)#等齐
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

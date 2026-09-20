@@ -1,7 +1,4 @@
-"""冷安全会话列表与搜索投影。
-
-对齐上游 `session-controller/src/list.ts`。公开面仅中文名。
-"""
+"""冷安全会话列表与搜索投影。"""
 from .常量 import 会话搜索结果上限,会话搜索片段最大字节,会话搜索查询最大字节#常量
 from .远程错误与并发 import 远程错误,远程错误消息,已中止#远程错误与并发
 
@@ -94,7 +91,7 @@ class 会话列表:
         条目.update(自身._列表字段(会话.header))#头字段
         if 投影 is not None:#有投影
             条目['projections']=投影#投影
-        return 条目#结束
+        return 条目
 
     def 列表(自身,信号=None):
         """读可见附着与持久会话摘要。"""
@@ -145,7 +142,7 @@ class 会话列表:
                 if 已中止(信号):#取消
                     raise 远程错误('gateway/cancelled','session search was aborted',{})#取消
                 if 调用次数>=搜索提供方调用上限:#超预算
-                    raise 远程错误('gateway/internal','session search provider exceeded work budget',{})#失败
+                    raise 远程错误('gateway/internal','session search provider exceeded work budget',{})
                 调用次数+=1#计数
                 请求={'query':规范化,'eventFilters':[{'kind':'type','values':['user/message','assistant/message']},{'kind':'surface','values':['current']}],'limit':页上限}#请求
                 if 游标 is not None:#续页
@@ -164,7 +161,7 @@ class 会话列表:
                     已接受.add(头标识)#记下
                     授权.append({'sessionId':头标识,'snippet':截断utf8字节(最佳['snippet'],会话搜索片段最大字节)})#收录
                 游标=页['nextCursor'] if 'nextCursor' in 页 else None#下一游标
-                if len(授权)>会话搜索结果上限 or 游标 is None:#结束
+                if len(授权)>会话搜索结果上限 or 游标 is None:
                     break#退出
             return {'items':授权[:会话搜索结果上限],'hasMore':len(授权)>会话搜索结果上限}#结果
         except 远程错误:
@@ -210,7 +207,7 @@ class 会话列表:
         条目.update(自身._列表字段(头))#头字段
         if 投影 is not None:#有投影
             条目['projections']=投影#投影
-        return 条目#结束
+        return 条目
 
     def _探测小冷(自身,头,信号):
         """小工件全量观测。头为 dict。"""

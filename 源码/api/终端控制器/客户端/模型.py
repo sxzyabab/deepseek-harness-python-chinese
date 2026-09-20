@@ -29,7 +29,7 @@ class 快照存储:#getSnapshot / subscribe / set
         for 回调 in list(自身._监听):#派发
             try:#单回调
                 回调()#通知
-            except Exception as 错误:#失败
+            except Exception as 错误:
                 print('[terminal-controller] subscriber failed:',错误)#日志
 
 class 终端视图错误(远程错误):#本视图失败
@@ -40,7 +40,7 @@ class 终端视图错误(远程错误):#本视图失败
 
 def 取值(结果):#解开 Remote 信封
     """失败则抛出 error。"""
-    if not 结果['ok']:#失败
+    if not 结果['ok']:
         失败=结果['error']#载荷
         详情=失败['details'] if 'details' in 失败 else {}#详情
         raise 远程错误(失败['code'],失败['message'],详情)#包装
@@ -102,16 +102,16 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         """已列终端缺失时不得静默换壳。"""
         if 自身._创建中 is not None:#分配中
             自身._创建中.等待()#等
-            return#结束
+            return
         if 自身._加载 is not None:#刷新中
             自身._加载.等待()#等
-            return#结束
+            return
         if 自身._关闭中 is not None or 已中止(自身._寿命.信号):#停
             return#空
         自身._补丁({'phase':'loading','error':None,'issue':None})#加载
         任务=操作任务()#本轮
         自身._加载=任务#记下
-        def 跑():#线程
+        def 在线程执行():#线程
             """查环境与列表，创建或收养。"""
             try:#加载
                 环境盒={}#环境
@@ -121,13 +121,13 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                     """environment。"""
                     try:#调
                         环境盒['值']=取值(自身._远程.environment(自身._会话标识,自身._寿命.信号))#环境
-                    except BaseException as 错误:#失败
+                    except BaseException as 错误:
                         失败盒['错误']=错误#记下
                 def 取列表():#并行
                     """list。"""
                     try:#调
                         列表盒['值']=取值(自身._远程.list(自身._会话标识))#列表
-                    except BaseException as 错误:#失败
+                    except BaseException as 错误:
                         失败盒['错误']=错误#记下
                 线1=threading.Thread(target=取环境)#环境
                 线2=threading.Thread(target=取列表)#列表
@@ -141,10 +141,10 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                 可用=列表盒['值']#列表
                 if 自身._已停():#停
                     任务.兑现(None)#完
-                    return#结束
+                    return
                 自身._补丁({'environment':环境})#环境
                 信息=None#命中
-                for 项 in 可用:#查找
+                for 项 in 可用:
                     if 项['id']==自身.id:#命中
                         信息=项#记下
                         break#停
@@ -164,19 +164,19 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                             路径=壳列[0]['path']#第一
                     if 自身._已停():#停
                         任务.兑现(None)#完
-                        return#结束
+                        return
                     if 路径 is not None:#有壳
                         记住外壳(路径)#记下
                     自身._创建(环境,路径)#分配
                 else:#恢复失败
                     raise 终端视图错误('missingTerminal')#缺失
                 任务.兑现(None)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 自身._失败(错误)#发布
                 任务.兑现(None)#吞
             finally:#清
                 自身._加载=None#放
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
         任务.等待()#等
 
     def _已停(自身):#关闭或寿命尽
@@ -188,7 +188,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         自身._补丁({'phase':'creating','error':None,'issue':None})#创建中
         任务=操作任务()#本轮
         自身._创建中=任务#记下
-        def 跑():#线程
+        def 在线程执行():#线程
             """create 后收养。"""
             try:#创建
                 请求={'id':自身.id,'cols':min(80,环境['maxCols']),'rows':min(24,环境['maxRows'])}#请求
@@ -198,12 +198,12 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                 if not 已中止(自身._寿命.信号):#未取消
                     自身._收养(信息)#收养
                 任务.兑现(None)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 自身._失败(错误)#发布
                 任务.兑现(None)#吞
             finally:#清
                 自身._创建中=None#放
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
         任务.等待()#等
 
     def _收养(自身,信息):#已有 Host 终端
@@ -212,7 +212,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         if 自身._保持 is None:#无保持
             if 自身._已挂 and 自身._关闭中 is None:#可接
                 自身.连接()#接
-            return#结束
+            return
         def 后台():
             """等保持。"""
             try:
@@ -221,7 +221,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                     自身.连接()#接
             except BaseException as 错误:
                 if not 自身._已停():#仍活
-                    自身._失败(错误)#失败
+                    自身._失败(错误)
         threading.Thread(target=后台,daemon=True).start()#后台
 
     def 连接(自身):#新屏幕并夺回输入
@@ -242,7 +242,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
             return 自身._远程.follow(自身._会话标识,信息['id'],附着标识,信号)#跟随
         def 结束(已接受):#正常结束
             """附着结束。"""
-            return 终端视图错误('attachmentEnded')#结束
+            return 终端视图错误('attachmentEnded')
         def 载体失败(错误):#丢包
             """标断开。"""
             if 自身._流 is 盒['流']:#仍是本流
@@ -250,7 +250,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         流选项={
             'name':'Browser terminal output',#名
             'open':打开,#开口
-            'ended':结束,#结束
+            'ended':结束,
             'carrierFailed':载体失败,#载体
         }#选项
         流工厂=getattr(自身._网关,'$stream')#工厂
@@ -287,7 +287,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         上一=自身._写入#前
         当前=操作任务()#本
         自身._写入=当前#链
-        def 跑():#线程
+        def 在线程执行():#线程
             """等前一个再写。"""
             try:#前
                 上一.等待()#等
@@ -301,13 +301,13 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                     return#跳
                 取值(自身._远程.write(自身._会话标识,标识,附着标识,数据))#写
                 当前.兑现(None)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 if 自身._附着标识==附着标识:#仍本附着
                     自身._失败(错误)#发布
                 当前.拒绝(错误)#拒绝
             finally:#还账
                 自身._排队输入-=字节#还
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
 
     def 调整尺寸(自身,列,行):#仅可写视图
         """夹到环境限额。"""
@@ -327,7 +327,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         上一=自身._写入#前
         当前=操作任务()#本
         自身._写入=当前#链
-        def 跑():#线程
+        def 在线程执行():#线程
             """等前一个再调。"""
             try:#前
                 上一.等待()#等
@@ -341,11 +341,11 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                     return#跳
                 取值(自身._远程.resize(自身._会话标识,标识,附着标识,列,行))#调
                 当前.兑现(None)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 if 自身._附着标识==附着标识:#仍本附着
                     自身._失败(错误)#发布
                 当前.拒绝(错误)#拒绝
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
 
     def 重命名(自身,标题):#显示名
         """成功后立刻反映到视图。"""
@@ -364,19 +364,19 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                 拷['title']=去空白#标题
                 补丁['info']=拷#写回
             自身._补丁(补丁)#发布
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             自身._失败(错误)#发布
 
     def 关闭(自身):#显式杀进程范围
         """失败可重试。"""
         if 自身._关闭中 is not None:#已开始
             自身._关闭中.等待()#等
-            return#结束
+            return
         自身._补丁({'phase':'closing','writable':False,'error':None,'issue':None})#关闭中
         自身.拆除()#放流
         任务=操作任务()#本轮
         自身._关闭中=任务#记下
-        def 跑():#线程
+        def 在线程执行():#线程
             """等未完成创建再 close。"""
             try:#关
                 if 自身._创建中 is not None:#创建未完
@@ -385,11 +385,11 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                 自身.拆除()#再拆
                 自身._补丁({'phase':'closed','writable':False})#已关
                 任务.兑现(None)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 自身._关闭中=None#可重试
                 自身._失败(错误)#发布
                 任务.拒绝(错误)#拒绝
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
         任务.等待()#等
 
     def 释放(自身):#插件卸载，不关 Host
@@ -412,15 +412,15 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
             return#跳
         任务=操作任务()#拆除任务
         自身._拆除中.add(任务)#登记
-        def 跑():#线程
+        def 在线程执行():#线程
             """拆底层流。"""
             try:#拆
                 上一.拆除()#拆
                 任务.兑现(None)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 任务.拒绝(错误)#拒绝
             自身._拆除中.discard(任务)#摘
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
 
     def _消费(自身,流):#跟输出
         """代际必须先有 snapshot。"""
@@ -468,14 +468,14 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                     if 已中止(项.signal):#已取消
                         中止时()#立刻
                     完成.wait()#等 DOM
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             if 自身._流 is 流:#仍本流
                 快照=自身.状态.getSnapshot()#状态
                 信息=快照['info'] if 'info' in 快照 else None#信息
                 状态名=信息['state'] if 信息 is not None else None#态
                 if 状态名=='exited':#已退出
                     自身._补丁({'phase':'closed','writable':False})#关
-                else:#失败
+                else:
                     自身._失败(错误)#发布
 
     def _补丁(自身,补丁):#合并快照
@@ -492,7 +492,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         码=取码(错误)#码
         if 码=='terminal/control-unavailable':#只读或未运行
             自身._补丁({'writable':False,'error':None,'issue':None})#禁输入
-            return#结束
+            return
         问题=None#产品键
         if 码=='terminal/view':#本视图
             详情=取详情(错误)#详情

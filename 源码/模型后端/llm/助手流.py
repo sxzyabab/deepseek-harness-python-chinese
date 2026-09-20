@@ -1,6 +1,6 @@
 """一次模型流尝试的无损紧凑表示。
 
-对齐上游 `llm/src/assistant-stream.ts`。公开面仅中文名；记录 type、块 type 与字段键保持上游 wire。
+公开面仅中文名；记录 type、块 type 与字段键为线协议原样保留。
 无英文别名。
 """
 import math,re#负零与非空白检测

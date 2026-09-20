@@ -1,5 +1,5 @@
 from ..node.未实现失败 import 运行时错误#本包错误
-import fnmatch as 文件名匹配#glob段匹配（对齐 picomatch 用法）
+import fnmatch as 文件名匹配
 import math as 数学#整除
 import re as 正则#glob特征
 from ..module_system.posix路径 import 解析 as 解析路径#路径解析
@@ -50,7 +50,7 @@ def 算术(表达式,状态):#求算术
     raise 运行时错误(f'webworker shell: unknown arithmetic type {类型}')#未知
 
 def 段匹配器(段):#编译段匹配器
-    """对齐 picomatch(segment, { dot: segment.startsWith('.') })。"""
+    """按 glob 段匹配子项名；模式以点开头才匹配点文件。"""
     点文件=段.startswith('.')#模式以点开头则匹配点文件
     def 匹配(名称):#匹配函数
         """对照子项名。"""

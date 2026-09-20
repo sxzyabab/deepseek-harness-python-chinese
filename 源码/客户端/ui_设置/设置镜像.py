@@ -48,7 +48,7 @@ class 设置描述镜像:
             if 重入 is True:#store.set 同步重入
                 return#只标重跑，避免同线程自等
             完成.wait()#等结算
-            return#结束
+            return
         try:#执行读循环
             自身.运行()#跑
         finally:#飞行槽必须在观察到需重跑为假的同一同步段清除
@@ -76,7 +76,7 @@ class 设置描述镜像:
             if 重入 is True:#store.set 同步重入
                 return#已有飞行覆盖本次
             完成.wait()#等结算
-            return#结束
+            return
         if 要加载 is True:#空闲
             自身.加载()#启动读
 
@@ -88,7 +88,7 @@ class 设置描述镜像:
             if 自身.飞行中 is not None:#飞行中
                 自身.需重跑=True#重跑以免发布写提交前取到的文档
         if 先前['view'] is None:#无文档不发部分
-            return#结束
+            return
         空间表=先前['view']['namespaces']#原命名空间列表
         命中=False#是否已有同 ns
         for 行 in 空间表:#查找
@@ -153,4 +153,4 @@ class 设置描述镜像:
                 if 自身.需重跑 is True:#读中途又有加载
                     continue#再读
                 自身.飞行中=None#清飞行槽
-                return#结束
+                return

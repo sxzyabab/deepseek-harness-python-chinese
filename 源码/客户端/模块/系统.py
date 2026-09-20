@@ -8,7 +8,7 @@ from .条目生命周期 import 移除包拥有样式#拆除包拥有样式
 __all__=['客户端模块系统','认领样式']#仅中文公开名
 
 #常量
-客户端分块名=re.compile(r'^client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js$')#包内 chunk 文件名
+客户端分块名=re.compile(r'^client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js\Z',re.ASCII)#包内 chunk 文件名
 
 #工具
 def 认领样式(标识):

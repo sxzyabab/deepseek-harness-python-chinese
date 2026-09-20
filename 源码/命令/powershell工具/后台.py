@@ -1,6 +1,4 @@
-"""后台 pwsh 进程句柄的通用任务适配——与 `tool_bash` 后台适配同形、且与具体 shell 无关。
-
-对齐上游 `tool-pwsh/src/background.ts`。公开面仅中文名；无英文别名。
+"""后台 pwsh 进程句柄的通用任务适配——与 bash 后台适配同形、且与具体 shell 无关。
 """
 import threading#后台转发结算线程
 from concurrent.futures import Future as 原生Future#单次操作结果

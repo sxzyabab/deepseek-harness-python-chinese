@@ -38,13 +38,13 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
     客户={}#智能体 → 状态
     工具前缀='mcp__'+选项['name']+'__'#工具前缀
     资源工具={'list_mcp_resources','list_mcp_resource_templates','read_mcp_resource'}#共享资源工具
-    旗={'停止中':False,'刷新中':False}#卸载与刷新
+    停止与刷新标志={'停止中':False,'刷新中':False}#卸载与刷新
 
     def 刷新阻塞掩码():#挡住继承工具
         """忙附着时去掉本提供方工具。"""
-        if 旗['停止中'] or 旗['刷新中']:#重入
+        if 停止与刷新标志['停止中'] or 停止与刷新标志['刷新中']:#重入
             return#停
-        旗['刷新中']=True#进
+        停止与刷新标志['刷新中']=True#进
         try:#扫
             for 智能体,状态 in list(客户.items()):#逐个
                 if 状态['status']!='blocked':#非阻塞
@@ -55,11 +55,11 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
                         继承.append(工具)#记下
                 if len(继承)==0:#无
                     continue#下
-                if 状态.get('mask') is None:#尚未铸造
+                if 'mask' not in 状态:#尚未铸造
                     状态['mask']=创建作用域(上下文,智能体)#铸造
                 状态['mask'].上下文.tools.restrict({'deny':[工具['name'] for 工具 in 继承]})#拒绝
         finally:#出
-            旗['刷新中']=False#出
+            停止与刷新标志['刷新中']=False#出
 
     def 打开(智能体,信号):#获取作用域
         """在智能体作用域挂 MCP 客户端。"""
@@ -127,7 +127,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
         })#表
         def 卸():#卸载
             """先关服务器。"""
-            旗['停止中']=True#停
+            停止与刷新标志['停止中']=True#停
             箱['资源'].拆除()#拆
             客户.clear()#清
             撤销()#放登记
@@ -165,9 +165,9 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
         本资源=执行['name'] in 资源工具 and isinstance(参数,dict) and 参数.get('server')==选项['name']#资源工具
         if not 执行['name'].startswith(工具前缀) and not 本资源:#无关
             return 下一()#过
-        智能体=执行.get('agent')#调用方
-        if 智能体 is None or 智能体 not in 客户 or 客户[智能体]['status']!='ready':#非本
+        if 'agent' not in 执行 or 执行['agent'] not in 客户 or 客户[执行['agent']]['status']!='ready':#非本
             raise 浏览器操作运行时错误(选项['name']+': browser tool belongs to another Session')#他者
+        智能体=执行['agent']#调用方
         def 操作(_作用域,合成):#队列内
             """换 signal 再 next。"""
             原=执行.get('signal')#原信号

@@ -246,16 +246,16 @@ def 应用当前团队事件(状态,事件):#应用当前事件
     数据=事件['data']#载荷
     if 类型=='team/member':#成员
         _应用成员(状态,数据['member'])#成员
-        return#结束
+        return
     if 类型=='team/task':#任务
         _应用任务(状态,数据['task'])#任务
-        return#结束
+        return
     if 类型=='team/message/queued':#入队
         _应用入队(状态,数据['message'])#入队
-        return#结束
+        return
     if 类型=='team/message/delivered':#投递
         _应用投递(状态,数据)#投递
-        return#结束
+        return
 
 def _应用成员(状态,成员):#应用成员边
     """成员生命周期边。"""

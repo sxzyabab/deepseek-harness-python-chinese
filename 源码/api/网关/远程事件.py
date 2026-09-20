@@ -1,12 +1,11 @@
 """转发 Remote 事件订阅与投递的 Client 所有者。
 
-对齐上游 `api/gateway/src/client/remote-events.ts`。公开面仅中文名。
 异步代际改为线程泵送；受拥有 Context 在瀑布落定后拆除。
 """
 import threading#代际泵送
 import uuid#事件前缀
 from ...typert.协议.拥有值 import 是否协议拥有值#受拥有识别
-from .网关 import 中止控制器,中止信号#中止
+from .网关 import 中止控制器,中止信号,网关错误#中止与包异常
 
 __all__=['客户端远程事件']#仅中文公开名
 
@@ -25,8 +24,8 @@ def _投影拒绝(错误):
 
 
 def _转错误(原因,消息):
-    """转为 Error。"""
-    return 原因 if isinstance(原因,BaseException) else Exception(消息,原因)#错误
+    """转为包异常。"""
+    return 原因 if isinstance(原因,BaseException) else 网关错误('gateway/internal','$events',消息,{'cause':原因})#错误
 
 
 def _是否记录(值):
@@ -49,7 +48,7 @@ def _是否远程json(值,深度=0):
     if 深度>32:#过深
         return False#否
     if 值 is None or isinstance(值,(bool,int,float,str)):#标量
-        return True#是
+        return True
     if isinstance(值,list):#列表
         return all(_是否远程json(项,深度+1) for 项 in 值)#逐项
     if isinstance(值,dict):#对象
@@ -168,11 +167,11 @@ class 客户端远程事件:
     def _泵送(自身,信号,就绪):
         """经转发流泵送一代。"""
         客户端标识=None#id
-        失败控=中止控制器()#失败
+        失败控=中止控制器()
         代际信号=中止信号.任一([信号,失败控.信号]) if hasattr(中止信号,'任一') else 信号#合成
         活动={}#eventId → AbortController
         源=自身._开流(远程事件流端点,远程事件流载荷,代际信号)#流
-        流失败=False#失败
+        流失败=False
         流错误=None#错误
         try:
             for 值 in 源:#逐项
@@ -206,18 +205,18 @@ class 客户端远程事件:
                         活动.pop(帧本['eventId'],None)#摘
                 threading.Thread(target=应答,daemon=True).start()#后台
         except BaseException as 错误:
-            流失败=True#失败
+            流失败=True
             流错误=错误#记
         finally:
             for 控 in list(活动.values()):#中止挂起
-                控.中止(Exception('client api: Remote event generation ended'))#中止
+                控.中止(网关错误('gateway/internal',远程事件流端点,'client api: Remote event generation ended'))#中止
         if hasattr(失败控.信号,'事件') and 失败控.信号.事件.is_set():#结果失败
             raise _转错误(getattr(失败控.信号,'reason',None),'client api: Remote event result delivery failed')#抛
         if hasattr(信号,'事件') and 信号.事件.is_set():#代际取消
             return#静默
         if 流失败:#流失败
             raise 流错误#抛
-        raise Exception('client api: forwarded Remote event stream ended unexpectedly')#意外结束
+        raise 网关错误('gateway/internal',远程事件流端点,'client api: forwarded Remote event stream ended unexpectedly')#意外结束
 
     def _应答(自身,帧,客户端标识,信号):
         """瀑布应答并 HTTP 回报。"""
@@ -245,8 +244,9 @@ class 客户端远程事件:
                 结果结局={'kind':'result'}#去 value
             结果={'clientId':客户端标识,'eventId':帧['eventId'],'outcome':结果结局}#结果
             响应=自身._连接.rpc.call('/api',远程事件结果端点,{'args':结果},信号)#回报
-            if not 响应.get('ok',False):#失败
-                raise Exception(响应['error']['message'] if isinstance(响应.get('error'),dict) else 'result failed')#抛
+            if not 响应.get('ok',False):
+                错消息=响应['error']['message'] if isinstance(响应.get('error'),dict) and 'message' in 响应['error'] else 'result failed'#文案
+                raise 网关错误('gateway/internal',远程事件结果端点,错消息)#抛
         finally:
             if 拥有 is not None:#释放
                 拥有.拆除()#拆

@@ -120,12 +120,12 @@ class 模型列表编辑器:#模型列表 + 探询
             if 结果 is None or 结果['ok'] is not True:#失败
                 错=结果['error'] if 结果 is not None and 'error' in 结果 else None#错误
                 自身.失败=错['message'] if 错 is not None and 'message' in 错 else None#文案
-                return#结束
+                return
             值=结果['value'] if 'value' in 结果 else None#值
             找到=值['models'] if 值 is not None and 'models' in 值 and 值['models'] is not None else []#候选
             if len(找到)==0:#空
                 自身.失败=翻译('fetchEmpty')#空文案
-                return#结束
+                return
             已有=自身.属性['models'] if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#已配
             已知=set(文本自(模,'id') for 模 in 已有)#已配 id
             自身.候选=找到#挂候选
@@ -143,7 +143,7 @@ class 模型列表编辑器:#模型列表 + 探询
     def 采纳已选(自身):#把勾选并入列表
         """已配行保留用户容量。"""
         if 自身.候选 is None:#无
-            return#结束
+            return
         按标识={}#id→行
         已有=自身.属性['models'] if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#已有
         for 模型 in 已有:#已有

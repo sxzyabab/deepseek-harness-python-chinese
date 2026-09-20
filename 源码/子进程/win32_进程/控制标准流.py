@@ -1,4 +1,4 @@
-"""带一条继承控制管的 Node 载荷的 Windows CRT 启动描述符。"""
+"""带一条继承控制管的子进程载荷的 Windows CRT 启动描述符。"""
 import struct#句柄表打包
 
 __all__=('继承控制标准流',)#仅中文公开名
@@ -32,11 +32,11 @@ def 继承控制标准流(接口表,标准流):#编码 CRT 描述符表
         种类=取类型(句柄)#探测
         if 描述符==标准流['control']['fileDescriptor'] and 种类!=管道文件:#控制必须是管
             raise RuntimeError('subprocess control descriptor is not a Windows pipe')#不是管
-        旗=已打开#打开
+        打开标志=已打开#打开
         if 种类==管道文件:#管
-            旗=旗|是管道#FPIPE
+            打开标志=打开标志|是管道#FPIPE
         elif 种类==字符文件:#字符设备
-            旗=旗|是设备#FDEV
-        字节[4+描述符]=旗#标志字节
+            打开标志=打开标志|是设备#FDEV
+        字节[4+描述符]=打开标志#标志字节
         struct.pack_into('<Q',字节,句柄偏移+描述符*句柄字节,int(句柄))#句柄值
     return bytes(字节)#STARTUPINFO 保留 CRT 字段

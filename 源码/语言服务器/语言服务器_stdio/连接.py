@@ -72,7 +72,7 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
                 while True:#直到EOF
                     块=标准出.read(65536)#一块
                     if len(块)==0:#EOF；判的是空字节
-                        break#结束
+                        break
                     自身.处理标准出(块)#解码分派
             except BaseException as 错误:#管道错误视为致命
                 自身.失败(收成错误(错误))#记下
@@ -207,7 +207,7 @@ class 语言服务器连接:#一条stdio JSON-RPC连接
             """写入回调。"""
             if 错误 is None:#写入成功
                 结果.兑现(None)#兑现
-                return#结束
+                return
             自身.失败(收成错误(错误))#记下致命失败
             结果.拒绝(收成错误(错误))#拒绝本次写入
         try:#调用写入器

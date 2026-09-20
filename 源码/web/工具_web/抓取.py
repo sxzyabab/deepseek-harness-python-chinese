@@ -1,4 +1,4 @@
-"""面向模型的 `web_fetch` 工具。本模块负责 schema、校验与展示；`ctx.web` 负责检索。超时是部署策略，不是模型参数：配置写入 ToolDefinition.timeoutMs，由超时策略强制执行，本工具转发得到的 signal。提供方超时仍作为直接服务调用方的后盾。"""
+"""面向模型的 `web_fetch` 工具。本模块负责 schema、校验与呈现；`ctx.web` 负责检索。超时是部署策略，不是模型参数：配置写入 ToolDefinition.timeoutMs，由超时策略强制执行，本工具转发得到的 signal。提供方超时仍作为直接服务调用方的后盾。"""
 import html#解码实体
 import re#标签扫描
 from html.parser import HTMLParser#构建转换用的简易 DOM
@@ -356,12 +356,12 @@ def 格式化抓取输出(结果,最大输出字符):#对外的文本渲染入�
     return 渲染抓取输出(结果,最大输出字符)['text']#只取文本
 
 def 呈现抓取调用(参数):#进行中抓取卡片
-    """进行中调用的展示：一张以 URL 为标题的抓取卡片。参数为 dict。"""
+    """进行中调用的呈现：一张以 URL 为标题的抓取卡片。参数为 dict。"""
     网址=参数['url']#请求 URL
     return {'card':'generic','title':网址,'kind':'fetch','rawInput':网址}#标题与原始输入都是 url
 
-def 抓取元自值(值,最大输出字符):#从结果值抽出展示 meta
-    """把已校验的 `web_fetch` 输出值投影成可回放的展示 meta。truncated 是面向模型文本所反映的有效截断。值为 dict。"""
+def 抓取元自值(值,最大输出字符):#从结果值抽出呈现 meta
+    """把已校验的 `web_fetch` 输出值投影成可回放的呈现 meta。truncated 是面向模型文本所反映的有效截断。值为 dict。"""
     return {#meta 对象
         'url':值['url'],#最终 URL
         'statusCode':值['statusCode'],#HTTP 状态码
@@ -369,7 +369,7 @@ def 抓取元自值(值,最大输出字符):#从结果值抽出展示 meta
     }#对象结束
 
 def 抓取元自结果(元):#校验回放 meta
-    """把不透明的现场或回放结果元数据收窄为 WebFetchMeta。畸形元数据返回 None，展示可回退到通用卡片。元为 dict。"""
+    """把不透明的现场或回放结果元数据收窄为 WebFetchMeta。畸形元数据返回 None，呈现可回退到通用卡片。元为 dict。"""
     if 元 is None or not isinstance(元,dict):#非普通对象
         return None#畸形
     if 'url' not in 元 or 'statusCode' not in 元 or 'truncated' not in 元:#必填键
@@ -382,7 +382,7 @@ def 抓取元自结果(元):#校验回放 meta
     return {'url':网址,'statusCode':状态码,'truncated':截断}#收成 WebFetchMeta
 
 def 呈现抓取结果(参数,结果):#完成态抓取卡片
-    """已完成调用的展示：一张 `web` 抓取卡片，携带 `meta` 里的检索摘要。参数与结果为 dict。"""
+    """已完成调用的呈现：一张 `web` 抓取卡片，携带 `meta` 里的检索摘要。参数与结果为 dict。"""
     if 'isError' in 结果 and 结果['isError'] is True:#错误结果不画专用卡
         return None#通用卡
     元=抓取元自结果(结果['meta'] if 'meta' in 结果 else None)#校验 meta
@@ -416,9 +416,9 @@ def 应用网络抓取工具(上下文,超时毫秒,最大输出字符):#注册 
     def 渲染(参数,值):#面向模型的文本块
         """把结构化结果渲染成文本块。"""
         return [{'type':'text','text':格式化抓取输出(值,最大输出字符)}]#单个文本块
-    def 展示元(参数,值):#回放用 meta
-        """投影可回放展示 meta。"""
-        return 抓取元自值(值,最大输出字符)#展示元
+    def 呈现元(参数,值):#回放用 meta
+        """投影可回放呈现 meta。"""
+        return 抓取元自值(值,最大输出字符)#呈现元
     def 并发安全():#提供方读取不改变父 agent 状态
         """始终可并发。"""
         return True#安全
@@ -477,7 +477,7 @@ def 应用网络抓取工具(上下文,超时毫秒,最大输出字符):#注册 
                 },#properties 结束
             },#schema 结束
             'render':渲染,#面向模型的文本块
-            'presentationMeta':展示元,#回放用 meta
+            'presentationMeta':呈现元,#回放用 meta
         },#output 结束
         'timeoutMs':超时毫秒,#协作超时预算
         'isConcurrencySafe':并发安全,#提供方读取不改变父 agent 状态

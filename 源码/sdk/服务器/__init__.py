@@ -1,12 +1,13 @@
 import sys,threading#生产 stdio、退出与异步退出拍
-from ...依赖.schemastery import 布尔字段#配置字段
+from ...依赖.schemastery import 布尔字段
 from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输
 from .服务端 import 装备SDKJSONRPC服务端#SDK 运行时服务器
 
-__all__=['名称','注入','配置','应用','装备SDKJSONRPC服务端']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认','配置','装备SDKJSONRPC服务端']
 
-名称='sdk-jsonrpc-server'#Cordis插件名（字面量）
-注入=['agents']#只需智能体工厂；initialize 用 获取服务() 读取可选 LLM seam
+包名='@deepseek-ai/dsh-sdk-jsonrpc-server'
+名称='sdk-jsonrpc-server'
+依赖=['agents']#只需智能体工厂；initialize 用 获取服务() 读取可选 LLM seam
 
 配置={#可校验的插件配置模式
     'maxTokensAsSuccess':布尔字段(默认值=False),#默认不把 max-tokens 当成功
@@ -14,7 +15,7 @@ __all__=['名称','注入','配置','应用','装备SDKJSONRPC服务端']#仅中
 
 def 应用(上下文,配置值):
     """在已配置流上服务 SDK 请求。effect 拆除会关闭 SDK 创建的智能体并关闭传输。配置为 dict。"""
-    根光纤=上下文.根.纤程#抓住根纤程以便 shutdown 后拆除
+    根纤程=上下文.根.纤程#抓住根纤程以便 shutdown 后拆除
     输入=配置值['input'] if 'input' in 配置值 else None#可选测试输入
     if 输入 is None:#生产用标准输入
         输入=sys.stdin#stdin
@@ -44,7 +45,7 @@ def 应用(上下文,配置值):
         except OSError:
             pass#刷失败不阻断
         try:
-            根光纤.拆除()#再拆除根运行时
+            根纤程.拆除()#再拆除根运行时
         except BaseException:
             pass#拆失败不阻断退出
         退出函数(0)#以 0 退出进程
@@ -65,7 +66,9 @@ def 应用(上下文,配置值):
         return 拆除#拆除函数
     上下文.副作用(服务生命周期,'jsonrpc.serve')#副作用名
 
+默认=应用
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
+default=默认#框架槽

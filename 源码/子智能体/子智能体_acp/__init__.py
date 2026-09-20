@@ -3,19 +3,19 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
 from .运行 import 启动acp运行,默认处置eof宽限毫秒,默认处置宽限毫秒#运行
 
 名称='subagent-acp'#Cordis 插件名
-注入=['subagents','subprocess']#依赖
-配置=字典字段({
+依赖=['subagents','subprocess']#依赖
+配置=字典字段(字典结构={
     'providerName':字符串字段(默认值='acp'),
     'command':字符串字段(),#可执行文件必填
     'args':列表字段(字符串字段(),默认值=[]),
     'cwd':字符串字段(),
     'permission':字符串字段(默认值='reject'),
-    'env':字典字段[字符串字段(),字符串字段()](默认值={}),
+    'env':字典字段(键值结构=(字符串字段(),字符串字段()),默认值={}),
     'disposeEofGraceMs':数字字段(默认值=默认处置eof宽限毫秒),
     'disposeGraceMs':数字字段(默认值=默认处置宽限毫秒),
 })#配置
 
-__all__=['名称','注入','配置','应用']#公开面
+__all__=['名称','依赖','配置','应用']#公开面
 
 class acp提供方:
     """进程外 ACP 子体；不广告父侧启动能力。"""
@@ -49,7 +49,7 @@ def 应用(上下文,配置值):
     上下文.subagents.登记提供方(acp提供方(名,规格))#登记
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
 default=应用#框架槽

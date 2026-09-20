@@ -33,16 +33,16 @@ __all__=[#仅中文公开名
 元数据语句=re.compile(r'^\s*export\s+const\s+meta\b',re.ASCII)#Claude Code 风格 meta 头
 
 def 断言正文可解析(正文,名称值):#发布前同步拒绝非法 JS 头
-    """发布工作流运行前同步拒绝非法正文。宾客在自己的进程里编译同一异步包装。Python 宿主只拦 meta 头；JS 语法由宾客进程编译。"""
+    """发布工作流运行前同步拒绝非法正文。Node 宾客在自己的进程里编译包装；Python 宿主只拦 meta 头；JS 语法由宾客进程编译。"""
     if 元数据语句.search(正文) is not None:#正文里还有 export const meta
         raise 工作流错误('workflow meta rides the `meta` request field, not the script: remove the `export const meta = {...}` statement from the body','SCRIPT_PARSE')#解析
 
-def 解析子提供方(上下文对象,已配置,覆盖):#发布前解析提供方路由
+def 解析子提供方(上下文,已配置,覆盖):#发布前解析提供方路由
     """解析一次运行的子提供方路由。"""
     提供方=已配置 if 覆盖 is None else 覆盖#覆盖或配置
     if len(提供方)==0 or 提供方!=提供方.strip():#必须非空规范化
         raise 工作流错误('workflow subagentProvider must be a non-empty normalized string','INVALID_ARGUMENT')#参数
-    if 上下文对象.subagents.取提供方(提供方) is None:#未登记
+    if 上下文.subagents.取提供方(提供方) is None:#未登记
         raise 工作流错误('no subagent provider registered for "'+提供方+'"','AGENT_START')#启动
     return 提供方#路由
 
@@ -65,10 +65,10 @@ def 可用并行度():#availableParallelism
 
 class ptc工作流引擎(工作流引擎):#PTC 后端工作流引擎
     """start() 预先校验脚本（元数据 + 宿主侧正文检查）并返回结果永不拒绝的工作流运行。"""
-    def __init__(自身,上下文对象,配置):#记下已解析配置
+    def __init__(自身,上下文,配置):#记下已解析配置
         """加载时拒绝非 TypeScript 的 PTC 提供方。"""
-        super().__init__(上下文对象)#登记 workflowEngine
-        if 上下文对象.ptcRuntime.语言()!='typescript':#必须 Node TS
+        super().__init__(上下文)#登记 workflowEngine
+        if 上下文.ptcRuntime.语言()!='typescript':#必须 Node TS
             raise RuntimeError('workflow-ptc requires the Node TypeScript PTC runtime')#拒绝
         自身.配置=配置#schemastery 已填默认
 

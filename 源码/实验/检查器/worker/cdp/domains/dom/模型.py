@@ -108,11 +108,12 @@ class Cordis_Dom后端:#Cordis DOM后端
 
     def _节点(自身,键,名,属性,描述,对象=None):#创建可变节点
         """创建可变节点。"""
-        后端id=自身._键到后端id.get(键)#已有id
-        if 后端id is None:#新键
+        if 键 not in 自身._键到后端id:#新键
             后端id=cdp数字id(自身._下一后端节点id,'backendNodeId')#分配
             自身._下一后端节点id+=1#推进
             自身._键到后端id[键]=后端id#登记
+        else:
+            后端id=自身._键到后端id[键]#已有id
         节点={'backendNodeId':后端id,'key':键,'name':名,'attributes':list(属性),'description':描述,'children':[]}#节点
         if 对象 is not None:#有对象
             节点['object']=对象#写入
@@ -163,8 +164,8 @@ def 节点差分(先前,当前,变更):#节点差分
     新id=[子['backendNodeId'] for 子 in 当前['children']]#新子id
     旧集=set(旧id)#旧集
     新集=set(新id)#新集
-    保留前=[i for i in 旧id if i in 新集]#保留前序
-    保留后=[i for i in 新id if i in 旧集]#保留后序
+    保留前=[子号 for 子号 in 旧id if 子号 in 新集]#保留前序
+    保留后=[子号 for 子号 in 新id if 子号 in 旧集]#保留后序
     if 保留前!=保留后:#顺序变
         变更.append({'type':'children-replaced','parentBackendNodeId':当前['backendNodeId'],'children':list(当前['children'])})#整替换
         return True#可增量

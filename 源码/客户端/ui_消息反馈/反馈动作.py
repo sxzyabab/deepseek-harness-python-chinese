@@ -37,10 +37,10 @@ class 消息反馈动作:#一条消息的反馈控件
         """更新进行中与失败文案。"""
         if not 自身.存活:#已死
             return#丢弃
-        自身.进行中=False#结束
+        自身.进行中=False
         if 结果['ok']:#成功
-            自身.失败=None#清
-            return#结束
+            自身.失败=None
+            return
         翻译=自身.属性['t'] if 't' in 自身.属性 else 缺省翻译#文案
         错=结果['error'] if 'error' in 结果 else None#错误
         码=错['code'] if 错 is not None and 'code' in 错 else None#错误码
@@ -50,7 +50,7 @@ class 消息反馈动作:#一条消息的反馈控件
         """走 toggle。"""
         自身.播种()#确保已读
         自身.进行中=True#进行中
-        自身.失败=None#清
+        自身.失败=None
         自身.说明打开=False#关说明
         切换=自身.属性['toggle'] if 'toggle' in 自身.属性 else None#toggle
         消息标识=自身.属性['messageId']#消息 id
@@ -61,7 +61,7 @@ class 消息反馈动作:#一条消息的反馈控件
         """空草稿走 clearNote。"""
         修剪=自身.草稿.strip()#修剪
         自身.进行中=True#进行中
-        自身.失败=None#清
+        自身.失败=None
         消息标识=自身.属性['messageId']#消息 id
         if 修剪=='':#空
             结果=自身.属性['clearNote'](消息标识)#清说明；已等待
@@ -103,7 +103,7 @@ class 消息反馈动作:#一条消息的反馈控件
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用；返回视图。"""
+        """组件调用形；返回视图。"""
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图

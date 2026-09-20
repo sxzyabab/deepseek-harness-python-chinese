@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/client/debugger.ts
-
 __all__=['Client调试器能力']#仅中文公开名
 
 def Client调试器能力():#Client调试器能力

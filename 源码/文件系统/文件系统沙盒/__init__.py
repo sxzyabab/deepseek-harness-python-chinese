@@ -1,8 +1,4 @@
-"""`沙箱文件系统`（`SandboxedFileSystem`）：`@deepseek-ai/dsh-fs` 服务定义的沙箱强制实现。它扩展 `本地文件系统`（`LocalFileSystem`），因此全部文本存储机制——resolve、stat、读/流、列举、原子写以及读-匹配-写编辑临界区——都是本地实现的原文；本包只在两次变更上加每调用的策略围栏。读取原样穿过：每种模式都允许读。
-
-围栏是受信任代码里对模型控制路径的策略检查，不是内核边界——操作为 seam 自有（open、rename），只有目标路径不受信任，因此先规范化再做包含判定就是此面上的完整答案。不受信任代码的内核级隔离仍是 ctx.shell 的工作（bash-sandbox）。这与 code-runtime 立场一致：包含，不是安全边界。残余 TOCTOU（包含复查与系统调用之间祖先符号链接被替换）通过委托前立即再规范化收窄，并被此威胁模型接受。
-
-每调用策略：read-only 拒绝一切变更；workspace-write 仅当目标规范化后落在策略的 workspace 根或平台临时区之下才允许变更（与 Seatbelt 授予的同一可写根集合，由同一个 writableRoots 函数导出，避免 bash 与 fs 漂移）；danger-full-access 无围栏委托。拒绝抛出结构化的 FS_SANDBOX_DENIED——不需要文本推断（不像 bash 的内核 stderr），因为进程内围栏确切知道自己拒绝了什么。升级重试在工具层（tool-fs），与 bash 相同。"""
+"""沙箱强制文件系统：变更前做策略围栏。只读穿过；read-only 拒变更，workspace-write 仅允许工作区根或平台临时区，danger-full-access 无围栏；拒绝抛 FS_SANDBOX_DENIED。"""
 from ..本地文件系统 import 本地文件系统,配置模式#本地文件系统后端与配置
 from ..文件系统 import 文件系统错误#文件系统错误类
 from ...沙盒.沙盒 import 可写根#可写根计算
@@ -13,13 +9,13 @@ from .包含 import 是否路径位于下#路径包含判定
 __all__=['配置','沙箱文件系统']#仅中文公开名；Cordis 槽英文别名不入表
 
 class 沙箱文件系统(本地文件系统):#沙箱强制文件系统后端
-    """沙箱强制文件系统后端。注册为 ctx.fs（加载它以代替 fs-local，并配合 ctx.sandboxPolicy，就是全部替换——面向模型的工具不动）。其已配置默认模式是 sandboxMode 暴露的能力事实；tool-fs 把每个会话的模式与 cwd 解析成每次变更的策略，已批准的升级可为一次调用盖上严格更宽的模式。"""
-    def __init__(自身,上下文对象,配置对象):#用上下文与本地配置构造沙箱文件系统
-        """用上下文与本地配置构造沙箱文件系统。沙箱默认（模式 + workspace-write 回退根）不在这里——ctx.sandboxPolicy 为每个强制能力解析每次调用会话。"""
-        super().__init__(上下文对象,配置对象)#交给本地后端完成存储机制
-        自身.默认模式=上下文对象.sandboxPolicy.defaultMode#记下部署默认模式
+    """沙箱强制文件系统后端。加载它以代替本地文件系统，并配合沙盒策略，就是全部替换——面向模型的工具不动。其已配置默认模式是 sandboxMode 暴露的能力事实；工具层把每个会话的模式与 cwd 解析成每次变更的策略，已批准的升级可为一次调用盖上严格更宽的模式。"""
+    def __init__(自身,上下文,配置对象):#用上下文与本地配置构造沙箱文件系统
+        """用上下文与本地配置构造沙箱文件系统。沙箱默认（模式 + workspace-write 回退根）不在这里——沙盒策略为每个强制能力解析每次调用会话。"""
+        super().__init__(上下文,配置对象)#交给本地后端完成存储机制
+        自身.默认模式=上下文.sandboxPolicy.defaultMode#记下部署默认模式
 
-    @property#只读属性
+    @property
     def 沙箱模式(自身):#覆盖报告默认沙箱模式
         """部署默认模式——工具层读取以广告升级的能力事实。"""
         return 自身.默认模式#返回构造时记下的部署默认模式
@@ -54,4 +50,4 @@ class 沙箱文件系统(本地文件系统):#沙箱强制文件系统后端
 
 沙箱文件系统.inject=['sandboxPolicy']#构造前需要 sandboxPolicy 服务
 沙箱文件系统.Config=配置#Cordis 配置模式
-default=沙箱文件系统#Cordis 默认导出
+default=沙箱文件系统#框架槽

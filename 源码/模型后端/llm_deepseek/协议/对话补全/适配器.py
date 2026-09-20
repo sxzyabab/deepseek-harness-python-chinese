@@ -2,7 +2,7 @@
 import json,re,time#JSON、Retry-After 与时钟
 from email.utils import parsedate_to_datetime as 解析日期时间#HTTP 日期
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as 超文本异常#HTTP
-from urllib.parse import urlparse as 解析网址#拆 URL
+from urllib.parse import urlparse as 解析网址
 from ....llm import (
     归属头,#归属
     内容含图片,#含图
@@ -14,7 +14,7 @@ from ....llm import (
     配额耗尽码,#配额码
     提供方请求标识,#请求 id
 )#llm 词表
-from ....工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号#空闲看门狗与中止
+from .....工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号#空闲看门狗与中止
 from ...协议无关.文件仓 import 深求文件仓#文件仓
 from ...协议无关.请求定价 import 深求图片请求定价,解析请求图目标#定价与目标
 from ...协议无关.模型信息 import 目录模型信息,模型信息#模型信息
@@ -27,7 +27,7 @@ from .翻译 import 翻译#翻译
 __all__=('http错误码','对话补全适配器')#仅中文公开名
 
 流空闲超时码='LLM_STREAM_IDLE_TIMEOUT'#空闲码
-纯秒形=re.compile(r'^\d+$')#Retry-After 纯秒
+纯秒形=re.compile(r'^[0-9]+\Z',re.ASCII)#Retry-After 纯秒
 
 def 收集图片引用(内容,引用表):
     """收集未卸载图片引用。"""
@@ -103,7 +103,7 @@ class 对话补全适配器(大模型适配器):
         解析文件=配置.get('解析文件仓') if isinstance(配置,dict) else None#可选仓
         自身.文件仓=解析文件() if 解析文件 is not None else 深求文件仓()#解析或新建
 
-    def 提供方信息(自身,提供方):
+    def 提供方简介(自身,提供方):
         """提供方展示。"""
         return {'id':提供方,'name':'DeepSeek'}#展示
 
@@ -179,7 +179,7 @@ class 对话补全适配器(大模型适配器):
                 结果=看门狗.下一步(迭代器)#下一步
                 if 结果['done']:#结束
                     耗尽=True#记下
-                    return#结束
+                    return
                 yield 结果['value']#让出
         except Exception as 错误:#失败
             if 取超时(看门狗.信号,流空闲超时码) is not None:#空闲超时
@@ -273,7 +273,7 @@ class 对话补全适配器(大模型适配器):
                 扩展选项['purpose']=选项['purpose']#用途
             扩展=准备请求扩展(体,扩展选项,准备)#合并
             网址=连接['baseURL'].rstrip('/')+'/chat/completions'#端点
-            解析=解析网址(网址)#拆
+            解析=解析网址(网址)
             载荷=扩展['payload']#JSON 串
             if isinstance(载荷,str):#文本
                 载荷=载荷.encode('utf-8')#字节
@@ -286,7 +286,7 @@ class 对话补全适配器(大模型适配器):
                 if not 请求路径:#空
                     请求路径='/'#根
                 客户端.request('POST',请求路径,body=载荷,headers=头)#发
-                响应=客户端.getresponse()#收
+                响应=客户端.getresponse()
             except (OSError,超文本异常,RuntimeError) as 错误:#传输失败
                 if 信号 is not None and 信号.is_set():#中止
                     raise 错误#原样

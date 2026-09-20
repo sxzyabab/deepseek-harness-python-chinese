@@ -1,6 +1,7 @@
-from ...ui_停靠套件.引擎 import 查找标签窗格#找窗
+from ...ui_停靠套件.引擎 import 查找标签窗格
+from .约定.槽位 import 右侧侧栏错误
 
-__all__=['标签信息工厂','向导标签信息工厂']#仅中文公开名
+__all__=['标签信息工厂','向导标签信息工厂']
 
 
 def 标签信息工厂(标准,上下文):
@@ -19,7 +20,7 @@ def 标签信息工厂(标准,上下文):
         布局=用存储(lambda 态:态['bySession'][会话标识]['layout'] if 会话标识 in 态['bySession'] else None)#布局
         导航=用导航(标签标识)#导航
         if 布局 is None or 标签标识 not in 布局['tabs'] or 导航 is None:#未提交
-            raise Exception('sidebarRight: 标签 "'+str(标签标识)+'" 未在会话 "'+str(会话标识)+'" 中提交')#拒绝
+            raise 右侧侧栏错误('标签 "'+str(标签标识)+'" 未在会话 "'+str(会话标识)+'" 中提交')
         签=布局['tabs'][标签标识]#记录
         窗=查找标签窗格(布局,标签标识)#窗
         可见=窗['host']=='float' or (布局['expanded'] and (是标题 or 窗['activeTabId']==标签标识))#可见

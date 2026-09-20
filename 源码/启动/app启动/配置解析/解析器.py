@@ -58,7 +58,7 @@ def 起于(路径,根列表):
     """路径是否落在任一根前缀下。"""
     for 根 in 根列表:#逐根
         if 路径.startswith(根):#命中
-            return True#是
+            return True
     return False#否
 
 def 原生包目录(父,名):
@@ -76,7 +76,7 @@ def 原生包目录(父,名):
 def 同一解析(左,右):
     """两条路径或 file URL 是否同一条目。"""
     if 左==右:#字面相同
-        return True#是
+        return True
     左路径=左[5:] if 左.startswith('file:') else 左#去掉 scheme
     右路径=右[5:] if 右.startswith('file:') else 右#去掉 scheme
     if 左路径.startswith('///'):#三斜杠
@@ -98,21 +98,21 @@ class 解析路由:
         for 项 in 世代['entries']:#逐条
             条目[项['name']]=项#记下
         if 世代['profilesDir']!=自身.当前['profilesDir'] or 世代.get('profileDir')!=自身.当前['profileDir']:#作用域变
-            raise Exception('profile resolution: a generation cannot change its profile scope')#拒绝
+            raise Exception('配置解析: 一代不能改变其配置档作用域')#拒绝
         for 名,当前 in 自身.当前['entries'].items():#已有映射
             下一=条目.get(名)#下一代
             if (下一 is None or not 同一解析(当前['packageDir'],下一['packageDir'])
                     or not 同一解析(当前['declarer'],下一['declarer'])
                     or 当前.get('version')!=下一.get('version')
                     or 当前.get('scope')!=下一.get('scope')):#映射变
-                raise Exception('profile resolution: replacing '+json.dumps(名,ensure_ascii=False)+' requires a process restart')#需重启
+                raise Exception('配置解析: 替换 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
         本地=set(世代.get('localPackageNames') or [])#新本地
         for 名 in 自身.当前['localPackageNames']:#旧本地
             if 名 not in 本地:#删了本地包
-                raise Exception('profile resolution: removing local package '+json.dumps(名,ensure_ascii=False)+' requires a process restart')#需重启
+                raise Exception('配置解析: 移除本地包 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
         for 名 in 本地:#新本地
             if 名 not in 自身.当前['localPackageNames'] and 名 in 自身.当前['entries']:#用本地覆盖已有回退
-                raise Exception('profile resolution: overriding '+json.dumps(名,ensure_ascii=False)+' locally requires a process restart')#需重启
+                raise Exception('配置解析: 在本地覆盖 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
         自身.当前=编译世代(世代)#发布
 
     def 作用域路由(自身,请求,父路由,世代,风格):
@@ -258,8 +258,7 @@ def 断言等价(实际,期望,请求,父):
     if 同一解析(实际,期望):#相同
         return#通过
     raise Exception(
-        'profile resolution mismatch for '+json.dumps(请求,ensure_ascii=False)
-        +' from '+父+': disk resolved '+str(实际)+', generation resolved '+str(期望)
+        '配置解析不一致: 请求 '+json.dumps(请求,ensure_ascii=False)+' 的磁盘结果与世代结果不同'
     )#不一致
 
 class _配置查找器:
@@ -305,9 +304,7 @@ def 安装配置解析(世代,行为='enforce'):
         if 实际 is not None and 期望 is not None and 同一解析(实际,期望):#相同
             return 期望#通过
         raise Exception(
-            'profile resolution mismatch for '+json.dumps(说明符,ensure_ascii=False)
-            +' from '+父网址+': disk selected '+(实际 if 实际 is not None else 'nothing')
-            +', generation selected '+(期望 if 期望 is not None else 'nothing')
+            '配置解析不一致: 请求 '+json.dumps(说明符,ensure_ascii=False)+' 的磁盘选择与世代选择不同'
         )#不一致
 
     def 替换(下一):

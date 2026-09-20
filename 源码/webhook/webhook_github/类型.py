@@ -1,3 +1,3 @@
-"""GitHub event values projected after signature verification. 对齐上游 `webhook-github/src/types.ts`。"""
+"""签名校验后投影出的 GitHub 事件值。"""
 
 __all__=[]#类型面由消费方按结构使用

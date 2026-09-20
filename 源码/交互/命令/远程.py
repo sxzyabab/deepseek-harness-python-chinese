@@ -1,11 +1,10 @@
-"""命令包 Host-for-Client Remote 贡献（对齐上游 `./remote` = typert.remote-client）。
+"""向 typert 注册命令的远程列举与执行贡献。
 
-对照 `@Remote`：`list`、`execute`。无 TS 编译器时手写描述符；编解码用严格透传模式。
 服务键与命名空间均为 `commands`。
 """
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['TYPERT_REMOTE']#公开面
+__all__=[]#公开面空；TYPERT_REMOTE/default 为框架槽不入表
 
 智能体参数={#agent lookup 参数
     'name':'agent',#源码名
@@ -15,8 +14,7 @@ __all__=['TYPERT_REMOTE']#公开面
     'codec':严格编解码('Agent'),#编解码
 }#结束
 作用域={'context':'agent','wire':'agent'}#agent scope
-包名='@deepseek-ai/dsh-commands'#上游包名
-服务='commands'#服务键
+包名='@deepseek-ai/dsh-commands'服务='commands'#服务键
 命名空间='commands'#命名空间
 类前=包名+'#CommandRuntime.'#调用 id 前缀
 
@@ -42,5 +40,6 @@ __all__=['TYPERT_REMOTE']#公开面
     取消={'parameter':'signal'},#AbortSignal
 )#结束 execute
 
-TYPERT_REMOTE=远程贡献(包名,[列表描述符,执行描述符])#贡献
-default=TYPERT_REMOTE#Cordis默认导出
+远程贡献表=远程贡献(包名,[列表描述符,执行描述符])#贡献
+TYPERT_REMOTE=远程贡献表#typert框架槽
+default=远程贡献表#框架槽

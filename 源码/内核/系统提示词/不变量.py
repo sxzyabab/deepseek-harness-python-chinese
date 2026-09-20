@@ -1,12 +1,12 @@
 import json,re#json 与正则
 
 包名='@deepseek-ai/dsh-system-prompt'#本包名
-变量名规则=re.compile(r'^[a-z][a-z0-9_]*$',re.ASCII)#与根模块相同的合法变量名
+变量名规则=re.compile(r'^[a-z][a-z0-9_]*\Z',re.ASCII)#与根模块相同的合法变量名
 名称='system-prompt-invariant'#配套插件名
-注入=['invariants']#依赖 invariants 服务
+依赖=['invariants']
 
 def 是否合法变量名(名):
-    """对齐 /^[a-z][a-z0-9_]*$/.test：必须是字符串且整串匹配。"""
+    """必须是字符串且整串匹配小写变量名规则。"""
     if not isinstance(名,str):
         return False#非字符串非法
     return 变量名规则.fullmatch(名) is not None#整串合法
@@ -40,19 +40,19 @@ def 校验组装(组装,失败):
         if 值 is not None and not isinstance(值,str):
             失败('组装后的变量 '+json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 必须是字符串或未定义')#变量值须为字符串或缺省
 
-def 安装(上下文对象,失败):
+def 安装(上下文,失败):
     """在权威组装瀑布结果外包一层校验。"""
     def 监听(_载体,_组装,_上下文,下一步):
         """先得到组装结果再校验。"""
         已组装=下一步()#组装已是同步
         校验组装(已组装,失败)#校验结果
         return 已组装#原样交回
-    上下文对象.监听('system-prompt/assemble',监听,{'全局':True,'前置':True})#全局且前置
+    上下文.监听('system-prompt/assemble',监听,{'全局':True,'前置':True})#全局且前置
 
-def 应用(上下文对象):
+def 应用(上下文):
     """注册系统提示词不变量配套。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献并返回拆除器
+    return 上下文.invariants.register(包名,安装)#登记贡献并返回拆除器
 
 应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
+应用.inject=依赖
 default=应用#Cordis 默认导出槽

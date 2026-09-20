@@ -1,14 +1,14 @@
 import os,re,stat,weakref#路径、正则、文件状态与原因旁表
 import yaml#外部依赖胶水（PyYAML）
-from ...工具.工作区路径 import (#共用家目录与监视路径，禁止本包内联假实现
+from ...工具.主目录路径 import (#共用家目录与监视路径，禁止本包内联假实现
     规范化监视路径,#监视路径规范化
     解析主目录,#解析 dsh 家目录
     有错误码,#ENOENT/ENOTDIR 判定
     主目录名,#默认 .dsh 名
     主目录环境键,#DSH_HOME
-)#工作区路径权威实现
+)#主目录路径权威实现
 
-技能名正则=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$',re.ASCII)#公开技能名：kebab-case
+技能名正则=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\Z',re.ASCII)#公开技能名：kebab-case
 捆绑技能排名=600#打包技能提供方与本地捆绑根的标准优先排名
 项目dsh排名=100#项目 .dsh/skills 排名
 项目agents排名=200#项目 .agents/skills 排名
@@ -20,7 +20,7 @@ from ...工具.工作区路径 import (#共用家目录与监视路径，禁止�
 class 技能文件系统错误(Exception):
     """本包异常基类。"""
 
-中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在信号对象上
+中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在中止信号上
 
 def 已中止(信号):
     """信号是否已中止。无信号视为未中止。信号是本包中止信号。"""

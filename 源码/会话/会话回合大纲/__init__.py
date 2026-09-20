@@ -1,12 +1,18 @@
-"""注册 `turnOutline` 投影单元（对齐上游 session-turn-outline）。"""
-from .投影 import 轮次大纲投影定义#投影定义
-名称='session-turn-outline'#Cordis 插件名
-注入=['sessionProjections']#依赖投影注册表
-__all__=['名称','注入','应用','轮次大纲投影定义']#仅中文公开名
+"""注册 `turnOutline` 投影单元。"""
+from .投影 import 轮次大纲投影定义
+
+包名='@deepseek-ai/dsh-session-turn-outline'
+名称='session-turn-outline'
+依赖=['sessionProjections']
+
+__all__=['包名','名称','依赖','应用','默认','轮次大纲投影定义']
 
 def 应用(上下文):
-    """在 ctx.sessionProjections 上登记 turnOutline 单元。"""
-    上下文.sessionProjections.登记(轮次大纲投影定义)#登记
+    """向 sessionProjections 登记 turnOutline 单元。"""
+    上下文.sessionProjections.登记(轮次大纲投影定义)
 
-apply=应用#Cordis 插件入口
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=默认#框架槽

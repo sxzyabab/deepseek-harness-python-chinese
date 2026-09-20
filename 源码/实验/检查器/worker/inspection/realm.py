@@ -1,5 +1,3 @@
-#对齐上游 worker/inspection/realm.ts
-
 __all__=['检查器realm描述','检查器realm上下文','检查器realm会话','检查器realm']#仅中文公开名
 
 class 检查器realm描述:#realm描述

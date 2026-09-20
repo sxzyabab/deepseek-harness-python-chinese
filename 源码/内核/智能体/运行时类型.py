@@ -1,5 +1,5 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from ..会话 import 智能体取消原因#再导出取消原因，对齐上游 runtime-types 对 session 的再导出
+from ..会话 import 智能体取消原因#再导出取消原因
 
 __all__=(#仅中文公开名
     '智能体取消原因',
@@ -79,7 +79,7 @@ class 智能体句柄协议:#公开的在线智能体句柄协议；字段由实
         """为下一个预步骤排队面向模型的上下文，不唤醒驱动器。"""
         raise NotImplementedError('智能体句柄协议.注入')#由循环实现
 
-# 事件声明（仅文档；由注册表/循环经作用域载体派发；对齐上游 Cordis Events）：
+# 事件声明（仅文档；由注册表/循环经作用域载体派发）：
 # agent/created(payload) @mode emit：完全配置好的智能体与在线会话已发表；同步监听器失败否决发表。
 # agent/disposed(payload) @mode emit：智能体离开注册表。
 # agent/status(payload) @mode emit：状态 idle⇄running。

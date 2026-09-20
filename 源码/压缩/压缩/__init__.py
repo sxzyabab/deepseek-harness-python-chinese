@@ -1,5 +1,6 @@
+"""抽象压缩服务：把一段表面跨度替换成摘要节点，并串行化同会话压缩。"""
 from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis服务基类
+服务=cordis.服务#框架服务基类
 from .类型 import 压缩结果字段#再导出压缩结果词汇
 from .标识构造 import 压缩标识#再导出压缩事务 id
 from .工具配对 import 工具配对前平衡,工具配对后平衡#再导出工具配对边界检查
@@ -29,14 +30,14 @@ class 手动压缩错误(压缩错误):
         自身.message=消息#诊断消息
         自身.name='ManualCompactionError'#错误名
         if isinstance(选项,dict) and 'cause' in 选项 and 选项['cause'] is not None:#可选原始失败
-            自身.cause=选项['cause']#TS 风格 cause
+            自身.cause=选项['cause']#保留原始失败供诊断
             自身.__cause__=选项['cause']#Python 异常链
 
 class 压缩智能体上下文:
     """压缩所需的最小智能体上下文。"""
     def __init__(自身,会话,选项=None):
         """记下目标会话与路由选项。"""
-        自身.session=会话#目标会话（与内核智能体鸭子类型对齐）
+        自身.session=会话#目标会话（与内核智能体鸭子类型一致）
         if 选项 is not None:#给了选项
             自身.options=选项#路由选项
         else:#缺席
@@ -49,12 +50,12 @@ class 手动压缩智能体上下文(压缩智能体上下文):
         raise NotImplementedError('手动压缩智能体上下文.执行维护')#由智能体实现
 
 class 压缩引擎(服务):
-    """抽象压缩服务。实现方拥有触发策略、保留与摘要，并可消费独立的计量服务。成功一次运行会把一段表面跨度替换成一个摘要节点，并阻止同一会话的并发压缩。替换用户消息使用带事务身份的压缩检查点来源，以便消费方独立于后端识别并对齐。每个上下文加载一个实现为 ctx.compaction。"""
-    def __init__(自身,上下文对象):
-        """登记为 ctx.compaction。直接实例化抽象类会在加载时大声失败。"""
+    """抽象压缩服务。实现方拥有触发、保留与摘要；成功则用摘要节点替换一段表面跨度，并阻止同会话并发压缩。"""
+    def __init__(自身,上下文):
+        """以 compaction 名安装服务；抽象类不可直接实例化。"""
         if type(自身) is 压缩引擎:#直接实例化抽象类
-            raise 压缩错误('@deepseek-ai/dsh-compaction 是抽象压缩缝；请加载如 @deepseek-ai/dsh-compaction-basic 的实现')#必须加载实现
-        super().__init__(上下文对象,'compaction')#注册到上下文
+            raise 压缩错误('@deepseek-ai/dsh-compaction 是抽象压缩服务；请加载具体实现（如 compaction-basic）')#必须加载实现
+        super().__init__(上下文,'compaction')#注册到上下文
 
     def 按需压缩(自身,智能体,触发,信号):
         """按一次显式触发考虑自动压缩。压力策略使用最近一次耐久已路由请求，而上下文溢出策略即使低于常规阈值也可能强制一次有用的平衡缩减。没有可安全压缩的区间时返回 null。单个过大的保留单元或请求信封无法通过表面压缩修复。"""
@@ -65,7 +66,7 @@ class 压缩引擎(服务):
         raise NotImplementedError('CompactionEngine.compactNow')#子类必须实现
 
     def 压缩区间(自身,起点,终点,智能体,信号=None):
-        """强制把一段表面节点压缩成单个摘要节点。start 与 end 按表面位置命名闭区间，不是数值 seq 顺序；替换可使可见 seq 非单调。两端必须平衡，使助手工具调用仍与其结果成对。有模型后端的实现转发取消，并拒绝活动、缺失、反转或不平衡的区间。目标会话是 agent.session。其替换用户消息必须使用带本事务 CompactionId 的压缩检查点来源。边缘检查使用工具配对前/后平衡。"""
+        """强制把一段表面节点压缩成单个摘要节点。起点与终点按表面位置闭区间，不是数值 seq 顺序；替换可使可见 seq 非单调。两端必须平衡，使助手工具调用仍与其结果成对。有模型后端的实现转发取消，并拒绝活动、缺失、反转或不平衡的区间。替换用户消息必须带本事务压缩标识的检查点来源。"""
         raise NotImplementedError('CompactionEngine.compactRegion')#子类必须实现
 
-default=压缩引擎#Cordis默认导出
+default=压缩引擎#框架槽

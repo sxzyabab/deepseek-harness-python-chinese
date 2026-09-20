@@ -39,13 +39,13 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '转义文本','渲染技能内容','捆绑技能排名','技能注册表','技能错误',
 ]#公开面结束
 
-技能名模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$',re.ASCII)#公开技能名：kebab-case
+技能名模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\Z',re.ASCII)#公开技能名：kebab-case
 默认收集缓存条目=128#收集缓存默认上限
 最大收集尝试=2#收集遇修订冲突最多再试次数
 运行时提供方名='runtime'#运行时贡献占用的保留提供方名
 运行时排名=250#运行时条目在一层内的默认排名
 捆绑技能排名=600#打包技能提供方与本地捆绑根的标准优先排名
-中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在信号对象上
+中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在中止信号上
 
 class 技能错误(Exception):
     """本包异常基类。"""
@@ -446,7 +446,7 @@ class 技能注册表(服务):#技能注册表服务
     def 收集缓存键(自身,cwd,链,修订):#收集缓存键
         """收集缓存键。"""
         载荷={}#键对象
-        if cwd is not None:#有cwd才写入，对齐JSON省略undefined
+        if cwd is not None:#有cwd才写入
             载荷['cwd']=cwd#工作区根
         载荷['scopes']=[自身.作用域编号(键) for 键 in 链]#作用域id链
         载荷['revision']=修订#修订号

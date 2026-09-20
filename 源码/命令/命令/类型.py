@@ -1,7 +1,7 @@
-"""bash 执行器 seam 的执行类型。对齐上游 `shell/src/types.ts`。公开面仅中文名。
+"""bash 执行器的执行类型。
 
-后台作业语义属于 jobs；本 seam 只暴露进程句柄。托管环境与捕获输出词表由子进程 seam 拥有，
-并在此再导出同名常量，使 bash 消费方保持一个导入根。字段键字面量对齐上游载荷。
+后台作业语义属于通用任务层；本能力只暴露进程句柄。托管环境与捕获输出词表由子进程能力拥有，
+并在此再导出同名常量，使 bash 消费方保持一个导入根。字段键字面量保持英文载荷。
 """
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
@@ -14,7 +14,7 @@ __all__=[#仅中文公开名
     '增量读取字段','增量读取','后台进程字段','后台进程',
 ]#公开面结束
 
-托管环境前缀='DSH_'#预留给 Harness 管理的子环境事实的命名空间前缀（对齐 DSH_ENV_PREFIX）
+托管环境前缀='DSH_'#预留给 Harness 管理的子环境事实的命名空间前缀
 
 def 托管环境键(键):#品牌托管键
     """把字符串标成托管环境键（DSH_*），不做校验。"""
@@ -83,8 +83,7 @@ class 增量读取(TypedDict):#一次增量 readOutput 读取
 class 后台进程:#外壳执行器.启动 返回的后台进程句柄协议
     """唯一访问路径；缓冲输出在退出后仍可读。
 
-    数据字段名对齐上游 ShellProcess（status/exitCode/signal/done/sandbox）；
-    方法仅中文：读取输出、杀死。dict 形态句柄若仍带 readOutput/kill 键，属提供方迁移债。
+    数据字段为线协议载荷键（status/exitCode/signal/done/sandbox）；方法仅中文：读取输出、杀死。dict 形态句柄若仍带 readOutput/kill 键，属提供方迁移债。
     """
     status=None#生命周期（进程状态）
     exitCode=None#结束后的退出码（None = 被信号杀死 / 仍在运行）

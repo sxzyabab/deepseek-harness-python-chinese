@@ -147,7 +147,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
                     raise 检查器错误(f'inspector protocol: Worker frame exceeds {自身.引导["maxFrameBytes"]} bytes')#拒绝
                 值=json.loads(数据)#解析JSON
                 if 自身.查询实例.接收(值):#RPC已消费
-                    return#结束
+                    return
                 帧=解析工作者源帧(值)#校验源帧
                 if 帧['t']!='source/rejected' and (帧.get('sourceId')!=自身.领域源.sourceId or 帧.get('generation')!=代数):#身份
                     return#不匹配
@@ -237,10 +237,10 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.运行时请求[帧['requestId']]=操作#登记
         响应=自身.运行时.执行(帧,控制器.signal,True)#执行
         if 自身.运行时请求.get(帧['requestId']) is not 操作:#已取消
-            return#结束
+            return
         if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or 套接字.readyState!=1:#过期
             自身.取消运行时(帧['sessionId'],帧['requestId'])#清理
-            return#结束
+            return
         套接字.send(json.dumps(响应,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送响应
 
     def 确认运行时(自身,会话标识,请求标识):#确认Runtime

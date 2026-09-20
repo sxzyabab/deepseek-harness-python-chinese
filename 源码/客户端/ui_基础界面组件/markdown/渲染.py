@@ -10,23 +10,23 @@ __all__=[#仅中文公开名
 
 def 净化链接(网址):#协议白名单
     """http/https/mailto 放行；相对与其余方案空串。"""
-    try:#urlparse 对非串/畸形输入的失败形态未定
-        方案=解析URL(网址).scheme.lower()#方案
-    except Exception:#不可解析
-        return ''#拒
+    try:
+        方案=解析URL(网址).scheme.lower()
+    except (TypeError,ValueError,AttributeError):
+        return ''
     if 方案 in ('http','https','mailto'):#白名单
         return 网址#原样
     return ''#拒
 
 def 远端图片地址(网址):#图片仅绝对 HTTP(S)
     """非绝对或非 http(s) 则 None。"""
-    try:#urlparse 对非串/畸形输入的失败形态未定
-        方案=解析URL(网址).scheme.lower()#方案
-    except Exception:#失败
-        return None#拒
+    try:
+        方案=解析URL(网址).scheme.lower()
+    except (TypeError,ValueError,AttributeError):
+        return None
     return 网址 if 方案 in ('http','https') else None#放行或拒
 
-def 归一化URI(网址):#对齐 micromark normalizeUri 的常用臂
+def 归一化URI(网址):
     """空/空白原样；其余 strip。"""
     if 网址 is None:#缺
         return ''#空
@@ -310,10 +310,10 @@ def 行内代码Http地址(值):#整段是否绝对 HTTP(S)
     """有首尾空白则否。"""
     if 值.strip()!=值:#有空白
         return None#否
-    try:#urlparse 对非串/畸形输入的失败形态未定
-        方案=解析URL(值).scheme.lower()#方案
-    except Exception:#非 URL
-        return None#否
+    try:
+        方案=解析URL(值).scheme.lower()
+    except (TypeError,ValueError,AttributeError):
+        return None
     return 值 if 方案 in ('http','https') else None#放行
 
 def 渲染图(网址,替代,键):#img 或 alt span

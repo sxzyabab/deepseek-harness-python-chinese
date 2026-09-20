@@ -1,10 +1,9 @@
-
-__all__=['tryLockExclusive','__esModule','default']#Node面
+__all__=['tryLockExclusive','__esModule','default']
 
 def tryLockExclusive(_fd):
     """立即批准单进程 Worker 的排他锁请求。文件描述符未使用。"""
-    return None#同步兑现（async→同步）
+    return None
 
-__esModule=True#CJS互操作
+__esModule=True
 
-default={'tryLockExclusive':tryLockExclusive}#原生 flock API 面
+default={'tryLockExclusive':tryLockExclusive}

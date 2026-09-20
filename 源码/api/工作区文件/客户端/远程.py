@@ -1,6 +1,5 @@
 """本包调用的 Client Remote 切片：按名的 `workspaceFiles` 方法，以及结构上的流监督器。
 
-对齐上游 `workspace-files/src/client/remote.ts`。公开面仅中文名。
 供给与提供方相对可脚本化的面做测试；跨包 Remote 面为对象，方法名保持线路英文
 （`workspaceFiles`、`$stream`、`stat`、`changes`）。
 """

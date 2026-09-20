@@ -64,5 +64,5 @@ def 解析文件地址(地址):#解析文件地址
                 return {'scope':'absolute','path':'/'.join(路径段)}#盘符路径
             return {'scope':'absolute','path':'/'+'/'.join(路径段)}#POSIX
         return None#未知作用域
-    except Exception:#解码失败
+    except (TypeError,ValueError,AttributeError):
         return None#非文件地址

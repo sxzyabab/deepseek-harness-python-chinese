@@ -1,15 +1,15 @@
 """持久 DeepSeek 附件到文件 id 索引。"""
 import hashlib,json,os,re#哈希、JSON、路径与校验
 from ....工具.原子写入 import 带文件锁,原子写文件#文件锁与原子写
-from ....工具.工作区路径 import 解析主目录#DSH 主目录
+from ....工具.主目录路径 import 解析主目录#DSH 主目录
 from ....附件.附件 import 图像变体标识#变体 id
 from .文件标识 import 深求文件标识,深求文件作用域#文件 id 与作用域
 
 __all__=('深求文件作用域摘要','深求上传索引',)#仅中文公开名
 
-作用域形态=re.compile(r'^[0-9a-f]{64}$')#作用域摘要
-附件形态=re.compile(r'^sha256:[0-9a-f]{64}$')#附件 id
-变体形态=re.compile(r'^sha256:[0-9a-f]{64}$')#变体 id
+作用域形态=re.compile(r'^[0-9a-f]{64}\Z',re.ASCII)#作用域摘要
+附件形态=re.compile(r'^sha256:[0-9a-f]{64}\Z',re.ASCII)#附件 id
+变体形态=re.compile(r'^sha256:[0-9a-f]{64}\Z',re.ASCII)#变体 id
 
 class 非法上传索引错误(Exception):#非法上传索引
     """上传索引 JSON 形态非法。"""

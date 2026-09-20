@@ -4,7 +4,7 @@ __all__=[#仅中文公开名
     '侧栏目录流槽',
     '英雄目录流槽',
     '添加工作区令牌',
-]#公开面结束
+]
 
 英雄目录流槽='conversation.hero.workspace.directoryFlow'#会话空态目录流孔
 侧栏目录流槽='sidebar.workspaces.directoryFlow'#侧栏浏览区目录流孔

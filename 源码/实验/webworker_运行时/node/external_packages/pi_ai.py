@@ -1,50 +1,50 @@
-from ..未实现失败 import 未实现失败#未实现桩
+from ..未实现失败 import 未实现失败
 
-__all__=[#Node面
+__all__=[
     'createProvider','createModels','getSupportedThinkingLevels','isContextOverflow',
     'builtinProviders','getBuiltinProviders','getBuiltinModels',
     'anthropicMessagesApi','openAICompletionsApi','openAIResponsesApi',
     '__esModule','default',
-]#公开结束
+]
 
-模块='@earendil-works/pi-ai'#模块名
-createProvider=未实现失败(模块,'createProvider')#createProvider桩
-createModels=未实现失败(模块,'createModels')#createModels桩
-getSupportedThinkingLevels=未实现失败(模块,'getSupportedThinkingLevels')#思考级别桩
-isContextOverflow=未实现失败(模块,'isContextOverflow')#溢出谓词桩
+模块='@earendil-works/pi-ai'
+createProvider=未实现失败(模块,'createProvider')
+createModels=未实现失败(模块,'createModels')
+getSupportedThinkingLevels=未实现失败(模块,'getSupportedThinkingLevels')
+isContextOverflow=未实现失败(模块,'isContextOverflow')
 
-内置提供方标识列表=(#内置提供方id，按目录顺序
-    'amazon-bedrock','ant-ling','anthropic','azure-openai-responses','baseten','cerebras',#批次1
-    'cloudflare-ai-gateway','cloudflare-workers-ai','deepseek','fireworks','github-copilot',#批次2
-    'google','google-vertex','groq','huggingface','kimi-coding','minimax','minimax-cn',#批次3
-    'mistral','moonshotai','moonshotai-cn','nvidia','openai','openai-codex','opencode',#批次4
-    'opencode-go','openrouter','qwen-token-plan','qwen-token-plan-cn',#批次5
-    'qwen-token-plan-individual','together',#批次6
-    'vercel-ai-gateway','xai','xiaomi','xiaomi-token-plan-ams','xiaomi-token-plan-cn',#批次7
-    'xiaomi-token-plan-sgp','zai','zai-coding-cn',#批次8
-)#内置提供方标识列表结束
+内置提供方标识列表=(
+    'amazon-bedrock','ant-ling','anthropic','azure-openai-responses','baseten','cerebras',
+    'cloudflare-ai-gateway','cloudflare-workers-ai','deepseek','fireworks','github-copilot',
+    'google','google-vertex','groq','huggingface','kimi-coding','minimax','minimax-cn',
+    'mistral','moonshotai','moonshotai-cn','nvidia','openai','openai-codex','opencode',
+    'opencode-go','openrouter','qwen-token-plan','qwen-token-plan-cn',
+    'qwen-token-plan-individual','together',
+    'vercel-ai-gateway','xai','xiaomi','xiaomi-token-plan-ams','xiaomi-token-plan-cn',
+    'xiaomi-token-plan-sgp','zai','zai-coding-cn',
+)
 
-def builtinProviders():#目录提供方列表
+def builtinProviders():
     """已安装目录提供方，在 `llm-pi-ai` 激活时读取。"""
-    return [{'id':标识,'name':标识,'auth':{'apiKey':{'type':'api-key'}},'models':[]} for 标识 in 内置提供方标识列表]#映射条目
+    return [{'id':标识,'name':标识,'auth':{'apiKey':{'type':'api-key'}},'models':[]} for 标识 in 内置提供方标识列表]
 
-def getBuiltinProviders():#提供方id列表
+def getBuiltinProviders():
     """已安装目录的提供方路由 id。"""
-    return list(内置提供方标识列表)#拷贝数组
+    return list(内置提供方标识列表)
 
-def getBuiltinModels():#模型列表
+def getBuiltinModels():
     """某个已安装目录提供方的模型。"""
-    return []#恒空
+    return []
 
-anthropicMessagesApi=未实现失败(模块,'anthropicMessagesApi')#Anthropic绑定桩
-openAICompletionsApi=未实现失败(模块,'openAICompletionsApi')#completions绑定桩
-openAIResponsesApi=未实现失败(模块,'openAIResponsesApi')#responses绑定桩
-__esModule=True#CJS互操作
+anthropicMessagesApi=未实现失败(模块,'anthropicMessagesApi')
+openAICompletionsApi=未实现失败(模块,'openAICompletionsApi')
+openAIResponsesApi=未实现失败(模块,'openAIResponsesApi')
+__esModule=True
 
-default={#默认导出
-    'createProvider':createProvider,'createModels':createModels,#工厂
-    'getSupportedThinkingLevels':getSupportedThinkingLevels,'isContextOverflow':isContextOverflow,#谓词
-    'builtinProviders':builtinProviders,'getBuiltinModels':getBuiltinModels,#目录
-    'getBuiltinProviders':getBuiltinProviders,'anthropicMessagesApi':anthropicMessagesApi,#模型与API
-    'openAICompletionsApi':openAICompletionsApi,'openAIResponsesApi':openAIResponsesApi,#responses
-}#默认导出结束
+default={
+    'createProvider':createProvider,'createModels':createModels,
+    'getSupportedThinkingLevels':getSupportedThinkingLevels,'isContextOverflow':isContextOverflow,
+    'builtinProviders':builtinProviders,'getBuiltinModels':getBuiltinModels,
+    'getBuiltinProviders':getBuiltinProviders,'anthropicMessagesApi':anthropicMessagesApi,
+    'openAICompletionsApi':openAICompletionsApi,'openAIResponsesApi':openAIResponsesApi,
+}

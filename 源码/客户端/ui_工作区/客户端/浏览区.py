@@ -169,7 +169,7 @@ class 工作区浏览区:#侧栏浏览区
             return None#无
         return 存储.actions#存储对象的动作面
 
-    def 同步顺序账本(自身,列表,工作区列表,归档):#对齐上游 SessionTree/FlatList effect
+    def 同步顺序账本(自身,列表,工作区列表,归档):
         """按 orderBy 调和各账本顺序并写回 store。"""
         动作=自身.读动作()#动作
         if 动作 is None or 'syncSessionOrders' not in 动作:#无写口
@@ -218,7 +218,7 @@ class 工作区浏览区:#侧栏浏览区
             动作['syncSessionOrders'](快照,变更)#写回
 
     def 渲染查看选项(自身,分组方式,排序方式):#分组/排序菜单
-        """对齐上游 ViewOptionsMenu。"""
+        """查看选项菜单。"""
         return {#锚点 + 菜单
             'type':'fragment','children':[#子
                 {'type':'button','class':'iconButton wide','aria-label':自身.翻译('viewOptions.label'),'onClick':'view-toggle'},#锚点
@@ -301,8 +301,8 @@ class 工作区浏览区:#侧栏浏览区
         快照=自身.读快照()#查看态
         自身.同步顺序账本(列表,工作区列表,归档)#调和账本
         if 自身.删除已提交标识 is not None and not any(区['workspaceId']==自身.删除已提交标识 for 区 in 工作区列表):#删除投影已落地
-            自身.删除中=False#清
-            自身.删除已提交标识=None#清
+            自身.删除中=False
+            自身.删除已提交标识=None
             自身.删除目标=None#关
         用目录流=属性['useDirectoryFlow'] if 'useDirectoryFlow' in 属性 else None#占用钩
         def 选占用(占用):#占用态
@@ -479,20 +479,20 @@ class 工作区浏览区:#侧栏浏览区
             return#停
         自身.重命名目标={'workspaceId':工作区标识,'currentTitle':当前标题}#目标
         自身.重命名草稿=当前标题#草稿
-        自身.重命名错误=None#清错
+        自身.重命名错误=None错
 
     def 开删除(自身,工作区标识,标题):#打开删除确认
         """记下删除目标。"""
         if 工作区标识 is None:#未分组
             return#停
         自身.删除目标={'workspaceId':工作区标识,'title':标题}#目标
-        自身.删除错误=None#清错
+        自身.删除错误=None错
 
     def 开会话重命名(自身,会话标识,当前标题):#打开会话重命名
         """记下会话重命名目标。"""
         自身.会话重命名目标={'sessionId':会话标识,'currentTitle':当前标题}#目标
         自身.会话重命名草稿=当前标题#草稿
-        自身.会话重命名错误=None#清错
+        自身.会话重命名错误=None错
 
     def 归档会话(自身,会话标识):#无对话框归档
         """直接提交归档；失败只诊断。注入面已等待。"""
@@ -502,7 +502,7 @@ class 工作区浏览区:#侧栏浏览区
         try:#提交
             归档(会话标识)#调用；已等待
         except Exception:#失败；归档 RPC 异常契约未定，故不能换成更窄的 except
-            pass#与上游一样非致命
+            pass#非致命
 
     def 触发正文检索(自身):#防抖宿主检索
         """非空白查询经防抖调用 searchSessions。注入面已等待。"""
@@ -510,8 +510,8 @@ class 工作区浏览区:#侧栏浏览区
         搜索=自身.属性['searchSessions'] if 'searchSessions' in 自身.属性 else None#注入检索
         if 查询=='' or 搜索 is None:#无需
             自身.正文结果={'items':[],'hasMore':False}#清空
-            自身.检索警告=None#清警告
-            自身.检索中=False#清
+            自身.检索警告=None警告
+            自身.检索中=False
             return#停
         自身.检索中=True#标记
         try:#请求
@@ -544,7 +544,7 @@ class 工作区浏览区:#侧栏浏览区
             自身.检索展开=True#开
             return#已处理
         if 动作=='search-clear':#清除搜索
-            自身.查询=''#清
+            自身.查询=''
             自身.检索展开=False#收
             自身.触发正文检索()#清正文
             return#已处理
@@ -553,7 +553,7 @@ class 工作区浏览区:#侧栏浏览区
             自身.触发正文检索()#防抖检索
             return#已处理
         if 动作=='search-key' and 载荷=='Escape':#Escape
-            自身.查询=''#清
+            自身.查询=''
             自身.检索展开=False#收
             自身.触发正文检索()#清正文
             return#已处理
@@ -607,13 +607,13 @@ class 工作区浏览区:#侧栏浏览区
             return#已处理
         if 动作=='rename-draft':#重命名草稿
             自身.重命名草稿=载荷 if 载荷 is not None else ''#写
-            自身.重命名错误=None#清
+            自身.重命名错误=None
             return#已处理
         if 动作=='rename-close':#关重命名
             if 自身.重命名中:#进行中
                 return#拒
-            自身.重命名目标=None#清
-            自身.重命名错误=None#清
+            自身.重命名目标=None
+            自身.重命名错误=None
             return#已处理
         if 动作=='rename-confirm':#确认重命名
             if 自身.重命名目标 is None or 自身.重命名中:#无效
@@ -628,20 +628,20 @@ class 工作区浏览区:#侧栏浏览区
             try:#提交
                 改名(自身.重命名目标['workspaceId'],标题)#调用；已等待
                 自身.重命名目标=None#关
-                自身.重命名错误=None#清
+                自身.重命名错误=None
             except Exception as 原因:#失败；重命名 RPC 异常契约未定，故不能换成更窄的 except
                 自身.重命名错误=str(原因)#文案
             自身.重命名中=False#闲
             return#已处理
         if 动作=='session-rename-draft':#会话草稿
             自身.会话重命名草稿=载荷 if 载荷 is not None else ''#写
-            自身.会话重命名错误=None#清
+            自身.会话重命名错误=None
             return#已处理
         if 动作=='session-rename-close':#关会话重命名
             if 自身.会话重命名中:#忙
                 return#拒
-            自身.会话重命名目标=None#清
-            自身.会话重命名错误=None#清
+            自身.会话重命名目标=None
+            自身.会话重命名错误=None
             return#已处理
         if 动作=='session-rename-confirm':#确认会话重命名
             if 自身.会话重命名目标 is None or 自身.会话重命名中:#无效
@@ -656,7 +656,7 @@ class 工作区浏览区:#侧栏浏览区
             try:#提交
                 改名(自身.会话重命名目标['sessionId'],标题)#调用；已等待
                 自身.会话重命名目标=None#关
-                自身.会话重命名错误=None#清
+                自身.会话重命名错误=None
             except Exception as 原因:#失败；会话改名 RPC 异常契约未定，故不能换成更窄的 except
                 自身.会话重命名错误=str(原因)#文案
             自身.会话重命名中=False#闲
@@ -664,8 +664,8 @@ class 工作区浏览区:#侧栏浏览区
         if 动作=='delete-close':#关删除
             if 自身.删除中:#忙
                 return#拒
-            自身.删除目标=None#清
-            自身.删除错误=None#清
+            自身.删除目标=None
+            自身.删除错误=None
             return#已处理
         if 动作=='delete-confirm':#确认删除
             if 自身.删除目标 is None or 自身.删除中:#无效
@@ -674,7 +674,7 @@ class 工作区浏览区:#侧栏浏览区
             if 删除 is None:#无
                 return#停
             自身.删除中=True#忙
-            自身.删除错误=None#清
+            自身.删除错误=None
             try:#提交
                 删除(自身.删除目标['workspaceId'])#调用；已等待
                 自身.删除已提交标识=自身.删除目标['workspaceId']#等投影

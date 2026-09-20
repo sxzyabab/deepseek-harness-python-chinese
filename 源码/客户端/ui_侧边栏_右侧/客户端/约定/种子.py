@@ -1,4 +1,6 @@
-__all__=['向导种类','页面地址','默认种子']#仅中文公开名
+from .槽位 import 右侧侧栏错误
+
+__all__=['向导种类','页面地址','默认种子']
 
 向导种类='guide'#向导签种类（线路字面量）
 
@@ -15,6 +17,6 @@ def 默认种子(标签表):
     种类=入口[0]['kind'] if 唯一 else 向导种类#唯一则用其 kind
     定义=标签表.get(种类)#类型定义
     if 定义 is None:#未登记
-        raise Exception('sidebarRight: 默认标签种类 "'+种类+'" 未登记')#拒绝
+        raise 右侧侧栏错误('默认标签种类 "'+种类+'" 未登记')
     取标题=定义['title'] if isinstance(定义,dict) else 定义.title#标题 thunk
     return {'kind':种类,'title':取标题(页面地址(种类))}#种子

@@ -1,7 +1,4 @@
-"""冷会话历史分页与 live 事件源。
-
-对齐上游 `session-controller/src/history.ts`。公开面仅中文名。
-"""
+"""冷会话历史分页与 live 事件源。"""
 import threading#follow 等待
 from ...工具.双端队列 import 双端队列#缓冲
 from ...内核.会话.表面 import 是否追加表面事件#消息对齐分页
@@ -255,7 +252,7 @@ def 线上助手流帧(帧,耐久游标):
         结果=dict(帧)#拷
         结果['startedAfterSeq']=耐久游标#起始后序号
         return 结果#帧
-    if 帧['type']=='end':#结束
+    if 帧['type']=='end':
         return dict(帧)#原样
     结果=dict(帧)#分块
     结果['chunk']=帧['chunk']#载荷

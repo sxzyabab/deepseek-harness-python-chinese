@@ -1,8 +1,8 @@
-__all__=[#仅中文公开名
-    '服务键','混入助手','说明','默认时钟','客户端定时器服务','安装客户端定时器',
-]#公开面结束
+import time as 时间#节流用纪元秒
 
-说明='真实 ClientTimerService 需浏览器定时器 API 与 cordis Service/mixin；本类以可注入时钟跑同一调度算法。'#说明
+__all__=['服务键','混入助手','说明','默认时钟','客户端定时器服务','安装客户端定时器']
+
+说明='真实 ClientTimerService 需浏览器定时器 API 与 cordis Service/mixin；本类以可覆盖时钟跑同一调度算法。'
 
 服务键='timer'#ctx.timer
 混入助手=('超时','间隔','节流','防抖')#混入名
@@ -38,7 +38,7 @@ def 默认时钟():#无浏览器时的同步记账时钟
 class 客户端定时器服务:#ClientTimerService 算法面
     """超时/间隔/节流/防抖；经副作用挂接时由上下文提供拆除。"""
     def __init__(自身,上下文=None,时钟=None):#构造
-        """可选 ctx.副作用 与可注入时钟。"""
+        """可选 ctx.副作用 与可覆盖时钟。"""
         自身.所属上下文=上下文#ctx
         自身.时钟=时钟 or 默认时钟()#时钟
 
@@ -59,7 +59,7 @@ class 客户端定时器服务:#ClientTimerService 算法面
         if 回调 is not None:#回调形
             状态={'id':None,'done':False,'dispose':None}#态
             def 到期():#跑
-                """对齐上游：先拆 effect，再跑回调。"""
+                """先拆 effect，再跑回调。"""
                 if 状态['done']:#已拆
                     return#停
                 拆=状态.get('dispose')#拆除器
@@ -84,7 +84,7 @@ class 客户端定时器服务:#ClientTimerService 算法面
             自身.时钟['clearTimeout'](状态['id'])#清
             if not 状态['resolved']:#未兑
                 状态['rejected']=True#拒
-                状态['reason']=Exception('Context has been disposed')#因
+                状态['reason']=Exception('上下文已拆除')
         拆除=自身._挂effect('上下文.超时()',拆除体)#挂
         状态['id']=自身.时钟['setTimeout'](兑现,延迟)#排
         状态['dispose']=拆除#句柄
@@ -110,8 +110,8 @@ class 客户端定时器服务:#ClientTimerService 算法面
             """兑现挂起 next。"""
             兑=下一任务.get('resolve')#兑
             if callable(兑):#有
-                下一任务['resolve']=None#清
-                下一任务['reject']=None#清
+                下一任务['resolve']=None
+                下一任务['reject']=None
                 兑({'done':False,'value':None})#滴答
         def 拆除体():#拆
             """拒挂起 next。"""
@@ -119,11 +119,11 @@ class 客户端定时器服务:#ClientTimerService 算法面
             if 结束['kind'] is not None:#已结束
                 return#停
             结束['kind']='throw'#记
-            结束['reason']=Exception('Context has been disposed')#因
+            结束['reason']=Exception('上下文已拆除')
             拒=下一任务.get('reject')#拒
             if callable(拒):#有
-                下一任务['resolve']=None#清
-                下一任务['reject']=None#清
+                下一任务['resolve']=None
+                下一任务['reject']=None
                 拒(结束['reason'])#拒
         拆除=自身._挂effect('上下文.间隔()',拆除体)#挂
         状态['id']=自身.时钟['setInterval'](滴答,延迟)#排
@@ -131,14 +131,14 @@ class 客户端定时器服务:#ClientTimerService 算法面
             """等下一滴答或结束。"""
             if 结束['kind'] is None:#还在跑
                 盒={'result':None}#盒
-                def 兑(值):#兑
+                def 兑现(值):#兑
                     """写入。"""
                     盒['result']=('ok',值)#兑
-                def 拒(因):#拒
+                def 拒绝(因):#拒
                     """写入。"""
                     盒['result']=('err',因)#拒
-                下一任务['resolve']=兑#挂
-                下一任务['reject']=拒#挂
+                下一任务['resolve']=兑现#挂
+                下一任务['reject']=拒绝#挂
                 return 盒#待
             if 结束['kind']=='return':#已 return
                 return {'done':True,'value':结束['value']}#完成
@@ -150,8 +150,8 @@ class 客户端定时器服务:#ClientTimerService 算法面
                 结束['value']=值#值
             兑=下一任务.get('resolve')#兑
             if callable(兑):#有
-                下一任务['resolve']=None#清
-                下一任务['reject']=None#清
+                下一任务['resolve']=None
+                下一任务['reject']=None
                 兑({'done':True,'value':值})#醒
             拆除()#拆
             return {'done':True,'value':值}#完成
@@ -162,8 +162,8 @@ class 客户端定时器服务:#ClientTimerService 算法面
                 结束['reason']=因#因
             拒=下一任务.get('reject')#拒
             if callable(拒):#有
-                下一任务['resolve']=None#清
-                下一任务['reject']=None#清
+                下一任务['resolve']=None
+                下一任务['reject']=None
                 拒(因)#拒
             拆除()#拆
             return {'done':True,'value':None}#协议
@@ -186,8 +186,7 @@ class 客户端定时器服务:#ClientTimerService 算法面
 
     def 节流(自身,回调,延迟,无尾随=False):#节流
         """最小间隔；noTrailing 抑制尾随。"""
-        import time as 时间#时刻
-        上次={'-':float('-inf')}#上次执行
+        上次={'-':float('-inf')}#上次触发的纪元毫秒
         def 执行(*位置):#真正执行
             """记下时刻。"""
             上次['-']=时间.time()*1000#毫秒

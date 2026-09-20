@@ -41,10 +41,10 @@ Other:
 """#用法文案
 def 数值(选项,值):#解析有限数
     """解析有限数。"""
-    try:#解析
-        解析=float(值)#解析数字
-    except Exception:#失败
-        raise Exception(f'dsh-llm-mock-server: {选项} must be a finite number')#非有限
+    try:
+        解析=float(值)
+    except (TypeError,ValueError):
+        raise Exception(f'dsh-llm-mock-server: {选项} must be a finite number')
     if 解析!=解析 or 解析 in (float('inf'),float('-inf')):#非有限
         raise Exception(f'dsh-llm-mock-server: {选项} must be a finite number')#非有限
     return 解析#返回数值

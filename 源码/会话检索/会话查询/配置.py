@@ -1,4 +1,4 @@
-"""组合会话检索服务的公开配置与带类型失败。对齐上游 `session-query/src/config.ts`。"""
+"""组合会话检索服务的公开配置与带类型失败。"""
 from ...模型后端.llm import 装备错误#Harness错误基类
 
 会话查询读取窗口上限=50#`before`/`after` 原始事件窗口的默认上限

@@ -28,13 +28,13 @@ class 欢迎通知存储:
             def 写就绪(态):
                 """保留确认。"""
                 态['status']='ready'#就绪
-                态['error']=None#清错误
+                态['error']=None错误
             自身.存储.update(写就绪)#写入
-            return#结束
+            return
         def 标加载(态):
             """标 loading。"""
             态['status']='loading'#加载中
-            态['error']=None#清错误
+            态['error']=None错误
         自身.存储.update(标加载)#写入
         try:#describe
             应答=自身.接口.settings.describe({}).等待()#描述
@@ -57,7 +57,7 @@ class 欢迎通知存储:
                 """确认值是否等于当前文案版本。"""
                 态['status']='ready'#就绪
                 态['acknowledged']=确认值于(视图)==欢迎通知版本#已确认
-                态['error']=None#清错误
+                态['error']=None错误
             自身.存储.update(写结果)#写入
         except Exception as 错误:#失败；RPC 异常契约未定
             if 世代!=自身.世代:#过期
@@ -78,13 +78,13 @@ class 欢迎通知存储:
                 """本进程已确认。"""
                 态['status']='ready'#就绪
                 态['acknowledged']=True#确认
-                态['error']=None#清错误
+                态['error']=None错误
             自身.存储.update(写确认)#写入
             return True#接受
         def 标保存(态):
             """标 saving。"""
             态['status']='saving'#保存中
-            态['error']=None#清错误
+            态['error']=None错误
         自身.存储.update(标保存)#写入
         try:#mutate
             应答=自身.接口.settings.mutate({
@@ -100,7 +100,7 @@ class 欢迎通知存储:
                     """宿主接受。"""
                     态['status']='ready'#就绪
                     态['acknowledged']=True#确认
-                    态['error']=None#清错误
+                    态['error']=None错误
                 自身.存储.update(写成功)#写入
             return True#接受
         except Exception as 错误:#失败；RPC 异常契约未定

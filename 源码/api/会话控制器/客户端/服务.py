@@ -1,19 +1,23 @@
 """根 sessions 服务：列表存储、引用保留与作用域。
 
-公开面仅中文名。视图选择在 Controller 之外。
+视图选择在 Controller 之外。
 """
 import os#路径基名
 import re#分叉标题
-import threading#打开等待
+import threading
+from ....工具.超时 import 若已中止则抛出#中止
 from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
-from .管理器 import 会话管理器#管理器
+from .会话簇 import 会话簇#会话簇
 
 __all__=['会话创建错误','会话分叉错误','客户端会话服务','应用客户端会话']#仅中文公开名
 
-注入=['connection','fileUpload','typert','remote','remote.commands','remote.session','remote.subagents']#依赖
+依赖=['connection','fileUpload','typert','remote','remote.commands','remote.session','remote.subagents']
 
 空保留信息={'referenceCount':0,'retainedBy':{}}#空保留
+
+半角分叉标题=re.compile(r'^(.*?)\(([0-9]+)\)\Z',re.ASCII)#半角尾编号
+全角分叉标题=re.compile(r'^(.*?)（([0-9]+)）\Z')#全角尾编号
 
 class _快照存储:
     """getSnapshot / subscribe / set。"""
@@ -45,7 +49,7 @@ class 会话创建错误(Exception):
         消息=远程失败.message if hasattr(远程失败,'message') else 远程失败.get('message')#消息
         super().__init__('session create failed: '+str(码)+': '+str(消息))#文案
         自身.name='SessionCreateError'#名
-        自身.rpcError=远程失败#失败
+        自身.rpcError=远程失败
         自身.requestedSessionId=请求会话标识#请求 id
 
 class 会话分叉错误(Exception):
@@ -56,7 +60,7 @@ class 会话分叉错误(Exception):
         消息=远程失败.message if hasattr(远程失败,'message') else 远程失败.get('message')#消息
         super().__init__('session fork failed: '+str(码)+': '+str(消息))#文案
         自身.name='SessionForkError'#名
-        自身.rpcError=远程失败#失败
+        自身.rpcError=远程失败
         自身.sourceSessionId=源会话标识#源
 
 def _展示标题(标题,工作目录,标识):
@@ -71,10 +75,10 @@ def _展示标题(标题,工作目录,标识):
 
 def _递增分叉标题(标题):
     """递增尾部分叉编号。"""
-    ascii匹配=re.match(r'^(.*?)\((\d+)\)$',标题)#半角
+    ascii匹配=半角分叉标题.match(标题)#半角
     if ascii匹配 is not None:#命中
         return ascii匹配.group(1)+'('+str(int(ascii匹配.group(2))+1)+')'#递增
-    全角=re.match(r'^(.*?)（(\d+)）$',标题)#全角
+    全角=全角分叉标题.match(标题)#全角
     if 全角 is not None:#命中
         return 全角.group(1)+'（'+str(int(全角.group(2))+1)+'）'#递增
     return 标题+' (1)'#起始
@@ -94,23 +98,23 @@ class _会话引用:
         """共享绑定。"""
         if 自身._记录 is None or not 自身._记录.get('live'):#已释
             raise RuntimeError('Session reference "'+str(自身.sessionId)+'" is released')#拒绝
-        return 自身._记录['binding']#绑定
+        return 自身._记录['binding']
     @property
     def ready(自身):
         """等待初始打开。"""
         自身._就绪.wait()#等
-        if 自身._就绪错误 is not None:#失败
+        if 自身._就绪错误 is not None:
             raise 自身._就绪错误#抛
-        return 自身.binding#绑定
+        return 自身.binding
     def attachOpening(自身,打开任务,信号=None):
         """附着打开。"""
         def 后台():
             """等打开。"""
             try:
-                if 信号 is not None and hasattr(信号,'throwIfAborted'):#有信号
-                    信号.throwIfAborted()#已取消
+                if 信号 is not None:#有信号
+                    若已中止则抛出(信号)#已取消
                 if callable(打开任务):#可调用
-                    打开任务()#打开
+                    打开任务()
                 elif hasattr(打开任务,'result'):#Future
                     打开任务.result()#等
                 自身._就绪.set()#就绪
@@ -148,25 +152,25 @@ class 客户端会话服务:
         自身._上下文=上下文#根上下文
         自身._远程=远程#远程
         自身.searchResultLimit=会话搜索结果上限#上限
-        自身._管理器=会话管理器(远程)#管理器
+        自身._会话簇=会话簇(远程)#会话簇
         自身.list=_快照存储({'ids':[],'byId':{},'phase':'pending','subagentsByParent':{},'jobsBySession':{}})#列表
         自身._作用域表={}#作用域
         自身._保留观察={}#观察者
-        自身._已关=False#关闭
-        自身._管理器.订阅(自身._投影列表)#订阅
+        自身._已关=False
+        自身._会话簇.订阅(自身._投影列表)#订阅
 
     def retain(自身,目标,选项):
         """保留精确 Client 代并启动共享初始历史打开。"""
         源=选项['source']#源
         信号=选项.get('signal')#信号
-        if 信号 is not None and hasattr(信号,'throwIfAborted'):#有
-            信号.throwIfAborted()#已取消
+        if 信号 is not None:#有
+            若已中止则抛出(信号)#已取消
         if 自身._已关:#已关
             raise RuntimeError('Session Controller is disposed')#拒绝
-        标识=自身._管理器.resolveTarget(目标)#解析
+        标识=自身._会话簇.resolveTarget(目标)
         引用=自身._保留作用域(标识,源)#引用
         try:
-            引用.attachOpening(自身._管理器.get(标识).open,信号)#打开
+            引用.attachOpening(自身._会话簇.get(标识).open,信号)
             return 引用#引用
         except BaseException:
             引用.release()#释
@@ -184,7 +188,7 @@ class 客户端会话服务:
     def retainInfo(自身,标识):
         """观察本地引用计数。"""
         if 标识 not in 自身._保留观察:#新建
-            监听=set()#监听
+            监听=set()
             def 取快照():
                 """读。"""
                 return 自身._保留快照(标识)#快照
@@ -205,36 +209,36 @@ class 客户端会话服务:
         """创建或采纳会话。"""
         if 选项 is None:#缺省
             选项={}#空
-        结果=自身._管理器.create(选项)#创建
-        if not 结果.get('ok'):#失败
+        结果=自身._会话簇.create(选项)
+        if not 结果.get('ok'):
             raise 会话创建错误(结果['error'],选项.get('sessionId'))#抛
         自身._投影列表()#投影
         return 结果['value']['sessionId']#id
 
     def subagentAddress(自身,标识):
         """取子地址。"""
-        return 自身._管理器.subagentAddress(标识)#委托
+        return 自身._会话簇.subagentAddress(标识)#委托
 
     def setSubagentCatalogOpen(自身,父会话标识,打开):
         """目录打开态。"""
-        自身._管理器.setSubagentCatalogOpen(父会话标识,打开)#委托
+        自身._会话簇.setSubagentCatalogOpen(父会话标识,打开)#委托
 
     def refreshSubagents(自身,父会话标识):
         """刷新子目录。"""
-        自身._管理器.refreshSubagents(父会话标识)#委托
+        自身._会话簇.refreshSubagents(父会话标识)#委托
 
     def refresh(自身):
         """刷新列表。"""
-        自身._管理器.refreshList()#委托
+        自身._会话簇.refreshList()#委托
 
     def search(自身,查询,信号=None):
         """搜索。"""
-        return 自身._管理器.search(查询,信号)#委托
+        return 自身._会话簇.search(查询,信号)#委托
 
     def fork(自身,选项):
         """分叉；可选递增标题。"""
-        结果=自身._管理器.fork(选项)#分叉
-        if not 结果.get('ok'):#失败
+        结果=自身._会话簇.fork(选项)#分叉
+        if not 结果.get('ok'):
             raise 会话分叉错误(结果['error'],选项['sessionId'])#抛
         自身._投影列表()#投影
         子标识=结果['value']['sessionId']#子
@@ -273,35 +277,35 @@ class 客户端会话服务:
     def binding(自身,标识):
         """稳定会话绑定。"""
         记录=自身._作用域表[标识] if 标识 in 自身._作用域表 else None#记录
-        return None if 记录 is None else 记录['binding']#绑定
+        return None if 记录 is None else 记录['binding']
 
     def handleControlFrame(自身,帧):
         """控制帧入口。"""
-        自身._管理器.handleControlFrame(帧)#委托
+        自身._会话簇.handleControlFrame(帧)#委托
 
     def handleSessionAdded(自身,摘要):
         """列表新增。"""
-        自身._管理器.handleSessionAdded(摘要)#委托
+        自身._会话簇.handleSessionAdded(摘要)#委托
 
     def handleSessionRemoved(自身,会话标识):
         """列表移除。"""
-        自身._管理器.handleSessionRemoved(会话标识)#委托
+        自身._会话簇.handleSessionRemoved(会话标识)#委托
 
     def handleSessionStatus(自身,会话标识,运行中):
         """状态。"""
-        自身._管理器.handleSessionStatus(会话标识,运行中)#委托
+        自身._会话簇.handleSessionStatus(会话标识,运行中)#委托
 
     def handleSessionActivity(自身,会话标识,更新于):
         """活动。"""
-        自身._管理器.handleSessionActivity(会话标识,更新于)#委托
+        自身._会话簇.handleSessionActivity(会话标识,更新于)#委托
 
     def handleSessionError(自身,会话标识,消息):
         """错误。"""
-        自身._管理器.handleSessionError(会话标识,消息)#委托
+        自身._会话簇.handleSessionError(会话标识,消息)#委托
 
     def handleConnected(自身):
         """重连。"""
-        自身._管理器.handleConnected()#委托
+        自身._会话簇.handleConnected()#委托
 
     def dispose(自身):
         """拆除服务。"""
@@ -309,7 +313,7 @@ class 客户端会话服务:
         for 标识 in list(自身._作用域表.keys()):#全部作用域
             记录=自身._作用域表[标识]#记录
             自身._退役作用域(标识,记录)#拆
-        自身._管理器.dispose()#管理器
+        自身._会话簇.dispose()#会话簇
 
     def _保留作用域(自身,标识,源):
         """保留作用域。"""
@@ -370,19 +374,19 @@ class 客户端会话服务:
     def _物化作用域(自身,标识):
         """物化作用域。"""
         句柄=创建作用域(自身._上下文,标识)#铸造
-        实例=自身._管理器.get(标识)#实例
-        实例.绑定作用域(句柄['ctx'])#绑定
+        实例=自身._会话簇.get(标识)#实例
+        实例.绑定作用域(句柄['ctx'])
         绑定={
             'sessionId':标识,
             'session':实例,
             'eventSource':实例.eventSource,
             'ctx':句柄['ctx'],
-        }#绑定
+        }
         记录={'fiber':句柄['fiber'],'ctx':句柄['ctx'],'binding':绑定,'session':实例,'retention':空保留信息,'live':True}#记录
         自身._作用域表[标识]=记录#入表
         return 记录#记录
 
-    def _退役作用域(自身,标识,记录,拆除光纤=True):
+    def _退役作用域(自身,标识,记录,拆除纤程=True):
         """退役作用域。"""
         if not 记录.get('live'):#已死
             return#空
@@ -390,18 +394,18 @@ class 客户端会话服务:
         if 自身._作用域表.get(标识) is 记录:#本代
             自身._作用域表.pop(标识,None)#删
         记录['session'].解绑作用域()#解绑
-        自身._管理器.drop(标识,记录['session'])#丢
+        自身._会话簇.drop(标识,记录['session'])#丢
         自身._投影列表()#投影
         自身._发布保留(标识)#发布
-        if 拆除光纤:#拆光纤
-            光纤=记录['fiber']#光纤
-            if hasattr(光纤,'dispose'):#可拆
-                光纤.dispose()#拆
+        if 拆除纤程:#拆纤程
+            纤程=记录['fiber']#纤程
+            if hasattr(纤程,'dispose'):#可拆
+                纤程.dispose()#拆
 
     def _投影列表(自身):
-        """管理器快照 → SessionListState。"""
+        """会话簇快照 → SessionListState。"""
         先前=自身.list.getSnapshot()['byId']#先前
-        快照=自身._管理器.getListSnapshot()#快照
+        快照=自身._会话簇.getListSnapshot()#快照
         标识列表=[]#ids
         按标识={}#byId
         for 项 in 快照['items']:#逐行
@@ -426,7 +430,7 @@ class 客户端会话服务:
                     continue#跳过
                 子标识=子['id']#id
                 摘要=按标识.get(子标识)#摘要
-                投影值=(摘要.get('projectionValues') if 摘要 else None) or 自身._管理器.projectionValues(子标识)#投影
+                投影值=(摘要.get('projectionValues') if 摘要 else None) or 自身._会话簇.projectionValues(子标识)#投影
                 投影标题=投影值.get('title') if isinstance(投影值,dict) else None#标题
                 标题=投影标题 if isinstance(投影标题,str) and 投影标题!='' else None#标题
                 展示=标题 if 标题 is not None else (子.get('label') or 子标识)#展示
@@ -438,7 +442,7 @@ class 客户端会话服务:
                         **({} if 投影值 is None else {'projectionValues':投影值}),
                         **({} if 标题 is None else {'title':标题}),
                     }#行
-                elif 摘要.get('displayTitle')!=展示 or 摘要.get('projectionValues') is not 投影值:#更新
+                elif 摘要.get('displayTitle')!=展示 or 摘要.get('projectionValues') is not 投影值:
                     行=dict(摘要)#拷
                     行['displayTitle']=展示#展示
                     if 投影值 is not None:#投影
@@ -449,7 +453,7 @@ class 客户端会话服务:
                 continue#跳过
             先前行=先前.get(标识)#先前
             会话快照=记录['session'].getSnapshot()#快照
-            地址=自身._管理器.subagentAddress(标识)#地址
+            地址=自身._会话簇.subagentAddress(标识)#地址
             按标识[标识]={
                 **(先前行 if 先前行 is not None else {'id':标识,'displayTitle':标识,'updatedAt':0}),
                 'running':会话快照.get('running',False),
@@ -470,41 +474,40 @@ def 应用客户端会话(上下文):
     远程=上下文.remote#远程根
     服务=客户端会话服务(上下文,远程)#根服务
     if hasattr(上下文,'提供'):#有提供
-        上下文.提供('sessions',服务)#注入
+        上下文.提供('sessions',服务)#登记 sessions 依赖
     else:#直接挂
         上下文.sessions=服务#挂属性
-    def 加(摘要):
+    def 转发会话已添加(摘要):
         """added。"""
         服务.handleSessionAdded(摘要)#转发
-    def 减(会话标识):
+    def 转发会话已移除(会话标识):
         """removed。"""
         服务.handleSessionRemoved(会话标识)#转发
-    def 态(会话标识,运行中):
+    def 转发会话状态(会话标识,运行中):
         """status。"""
         服务.handleSessionStatus(会话标识,运行中)#转发
-    def 活(会话标识,更新于):
+    def 转发会话活动(会话标识,更新于):
         """activity。"""
         服务.handleSessionActivity(会话标识,更新于)#转发
-    def 错(会话标识,消息):
+    def 转发会话错误(会话标识,消息):
         """error。"""
         服务.handleSessionError(会话标识,消息)#转发
     if hasattr(远程,'$on'):#事件总线
-        远程.$on('api-session/added',加)#新增
-        远程.$on('api-session/removed',减)#移除
-        远程.$on('api-session/status',态)#状态
-        远程.$on('api-session/activity',活)#活动
-        远程.$on('api-session/error',错)#错误
+        远程.$on('api-session/added',转发会话已添加)#新增
+        远程.$on('api-session/removed',转发会话已移除)#移除
+        远程.$on('api-session/status',转发会话状态)#状态
+        远程.$on('api-session/activity',转发会话活动)#活动
+        远程.$on('api-session/error',转发会话错误)#错误
     控制=创建会话控制流(远程,{
         'accept':服务.handleControlFrame,
         'failed':lambda 错误:print('[session-controller] control stream failed:',错误),
     })#控制流
-    控制['启动']()#启动
+    控制.start()
     def 已连():
         """代际就绪。"""
         服务.handleConnected()#修复
-        if 'restart' in 控制:#可重启
-            控制['restart']()#重启
-        控制['启动']()#启动
+        控制.restart()#重启
+        控制.start()
     if hasattr(上下文,'connection') and hasattr(上下文.connection,'generation'):#代际
         上下文.connection.generation.subscribe(已连)#订阅
     已连()#立即
@@ -520,6 +523,6 @@ def 应用客户端会话(上下文):
         })#登记
     def 拆除():
         """卸载。"""
-        控制['拆除']()#拆控制
+        控制.dispose()#拆控制
         服务.dispose()#拆服务
     上下文.副作用(拆除,'session-controller.client.control')#拆除

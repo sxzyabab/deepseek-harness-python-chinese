@@ -38,7 +38,7 @@ def 详细提醒(工具名,次数,规范参数):
     )#返回详细提醒
 
 def 排序Json值(值):
-    """对已解析 JSON 值做深键排序，使仅属性顺序不同的两个参数对象规范化后相同。参数以循环的 JSON.parse 输出到达守卫（或畸形参数 JSON 的原始字符串回退），因此 JSON 的值域就是全部输入域——不处理 bigint、环或 undefined，因为没有任何输入路径能产生它们。"""
+    """对已解析 JSON 值做深键排序，使仅属性顺序不同的两个参数规范化后相同。参数以循环的 JSON.parse 输出到达守卫（或畸形参数 JSON 的原始字符串回退），因此 JSON 的值域就是全部输入域——不处理 bigint、环或 undefined，因为没有任何输入路径能产生它们。"""
     if isinstance(值,list):#数组逐项排序
         return [排序Json值(项) for 项 in 值]#递归排序
     if isinstance(值,dict):#普通对象
@@ -83,7 +83,7 @@ def 前置上下文(本提醒,下游列表):
     """前置本守卫的提醒，同时保留每条下游上下文的来源与元数据。"""
     return [本提醒]+list(下游列表 or [])#本提醒在前
 
-def 应用(上下文对象,配置):
+def 应用(上下文,配置):
     """安装守卫的监听器。`thresholds` 在此再按大声失败检查一遍。"""
     阈值列表=校验阈值(list(配置['thresholds'] if 'thresholds' in 配置 and 配置['thresholds'] is not None else []))#校验并排序阈值
     阈值集合=set(阈值列表)#阈值集合
@@ -138,7 +138,7 @@ def 应用(上下文对象,配置):
         合并['additionalContexts']=前置上下文(提醒,下游['additionalContexts'] if 'additionalContexts' in 下游 else None)#叠提醒
         return 合并#继续返回
 
-    上下文对象.监听('tools/post-execute',工具后臂)#安装后执行监听
+    上下文.监听('tools/post-execute',工具后臂)#安装后执行监听
 
     def 步进前臂(载荷,下一步,*剩余):
         """用户插话改变了上下文；跨过它的重复不是循环。纯重置钩：总是委托（既不附加也不否决）。"""
@@ -152,7 +152,7 @@ def 应用(上下文对象,配置):
             链表.pop(智能体,None)#删除该智能体链
         return 下一步()#始终委托
 
-    上下文对象.监听('agent/pre-step',步进前臂)#安装步进前监听
+    上下文.监听('agent/pre-step',步进前臂)#安装步进前监听
 
 应用.name=名称#Cordis name 槽
 应用.Config=配置模式#Cordis Config 槽

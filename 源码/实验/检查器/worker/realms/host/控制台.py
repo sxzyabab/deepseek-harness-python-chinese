@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/host/console.ts
-
 from .桥接 import Host通知通道#通知通道
 
 __all__=['Host控制台后端']#仅中文公开名

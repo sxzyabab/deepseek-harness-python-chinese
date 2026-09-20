@@ -9,16 +9,16 @@ from .原生 import 浏览器输入,stagehand模型模式,stagehand排空错误#
 from .工作者客户端 import 打开浏览器工作者#工作者
 from .启动 import 启动chromium#Chromium
 
-__all__=['名称','注入','配置','应用']#仅中文公开名
+__all__=['名称','依赖','配置','应用']
 
-名称='experimental-browser-use-stagehand-native'#插件名
-注入=['browserUse','agents','tools','systemPrompt']#依赖
+名称='experimental-browser-use-stagehand-native'
+依赖=['browserUse','agents','tools','systemPrompt']
 
 配置=复合类型字段({#浏览器与模型
     'model':复合类型字段({#模型凭据
         'modelName':字符串字段(),#名
         'apiKey':字符串字段(),#钥
-        'headers':字典字段[字符串字段(),字符串字段()](),#头
+        'headers':字典字段(键值结构=(字符串字段(),字符串字段())),#头
     }),#模型结束
     'mode':枚举字段('launch','attach',默认值='launch'),#模式
     'cdpEndpoint':字符串字段(),#端点
@@ -61,25 +61,25 @@ def 应用(上下文,配置值):#登记原生 Stagehand
     """浏览器启动惰性；附着为一名活智能体预留端点。"""
     配置值=dict(配置值)#副本
     配置值['model']=stagehand模型模式(配置值['model'])#校验模型
-    if 配置值.get('headless') is None:#缺省
+    if 'headless' not in 配置值:#缺省
         配置值['headless']=True#无窗
-    if 配置值.get('operationTimeoutMs') is None:#缺省
+    if 'operationTimeoutMs' not in 配置值:#缺省
         配置值['operationTimeoutMs']=30000#超时
-    if 配置值.get('shutdownGraceMs') is None:#缺省
+    if 'shutdownGraceMs' not in 配置值:#缺省
         配置值['shutdownGraceMs']=5000#宽限
-    if 配置值.get('mode') is None:#缺省
+    if 'mode' not in 配置值:#缺省
         配置值['mode']='launch'#启动
-    if 配置值['mode']=='attach' and (配置值.get('cdpEndpoint') is None or str(配置值.get('cdpEndpoint')).strip()==''):#缺端点
-        raise Exception('Stagehand attach mode requires cdpEndpoint')#失败
-    if 配置值['mode']=='launch' and (配置值.get('cdpEndpoint') is not None or 配置值.get('extensionId') is not None):#启动带附着字段
-        raise Exception('Stagehand cdpEndpoint and extensionId require attach mode')#失败
-    if 配置值['mode']=='attach' and 配置值.get('executablePath') is not None:#附着带可执行
-        raise Exception('Stagehand executablePath requires launch mode')#失败
+    if 配置值['mode']=='attach' and ('cdpEndpoint' not in 配置值 or str(配置值['cdpEndpoint']).strip()==''):#缺端点
+        raise Exception('Stagehand 附着模式需要 cdpEndpoint')
+    if 配置值['mode']=='launch' and ('cdpEndpoint' in 配置值 or 'extensionId' in 配置值):#启动带附着字段
+        raise Exception('Stagehand 的 cdpEndpoint 与 extensionId 需要附着模式')
+    if 配置值['mode']=='attach' and 'executablePath' in 配置值:#附着带可执行
+        raise Exception('Stagehand 的 executablePath 需要启动模式')
     if 配置值['mode']=='attach':#校验 URL
         端点=配置值['cdpEndpoint']#端点
         解析=urlparse(端点)#解析
         if 解析.scheme not in ('http','https','ws','wss') or ' ' in 端点 or '\t' in 端点:#非法
-            raise Exception('Expected an HTTP(S) or WS(S) endpoint')#失败
+            raise Exception('需要 HTTP(S) 或 WS(S) 端点')
     def 运行时寿命():#登记与资源
         """先放登记再拆资源。"""
         撤销=上下文.browserUse.登记(浏览器操作提供方名('stagehand-native'))#占用
@@ -163,7 +163,7 @@ def 应用(上下文,配置值):#登记原生 Stagehand
             try:#返回资源
                 若已中止则抛出(信号)#中止
                 空闲=中止控制器()#空闲
-                空闲.中止(Exception('Stagehand requires an active browser tool call'))#空闲中止
+                空闲.中止(Exception('Stagehand 需要一次活动的浏览器工具调用'))
                 return {'value':{'native':{'execute':执行,'close':关原生},'operationSignal':空闲.信号},'close':关}#资源
             except Exception as 错误:#失败
                 关()#回滚
@@ -175,7 +175,7 @@ def 应用(上下文,配置值):#登记原生 Stagehand
         子=上下文.启动插件({'name':'browser-use-stagehand-native-tools','inject':['tools','systemPrompt'],'apply':应用子})#子
         def 卸():#拆除
             """先子后资源后登记。"""
-            if hasattr(子,'dispose'):#光纤
+            if hasattr(子,'dispose'):#纤程
                 子.dispose()#拆
             资源.拆除()#资源
             撤销()#放
@@ -204,26 +204,25 @@ def 挂工具(上下文,资源):#登记工具
         """本提供方工具经资源队列执行。"""
         if 执行['name'] not in 名集:#他方
             return 下一()#过
-        智能体=执行.get('agent')#智能体
-        登记=上下文.get('agents')#表
-        if 智能体 is None or 登记 is None or 登记.get(智能体.id) is not 智能体:#非活
-            raise Exception('Stagehand browser tools require an exact live Agent')#失败
+        if 'agent' not in 执行 or 'agents' not in 上下文 or 上下文['agents'].get(执行['agent'].id) is not 执行['agent']:#非活
+            raise Exception('Stagehand 浏览器工具需要一个确切的活动智能体')
+        智能体=执行['agent']#智能体
         def 操作(句柄,活动信号):#队列体
             """换信号后跑体。"""
-            上游=执行.get('signal')#上游
+            上游=执行.get('signal')
             执行['signal']=活动信号#换
             句柄['operationSignal']=活动信号#换
             try:#跑
                 return 上下文.agents.withInitiator(智能体,下一)#跑
             finally:#还原
                 空闲=中止控制器()#空闲
-                空闲.中止(Exception('Stagehand requires an active browser tool call'))#空闲
+                空闲.中止(Exception('Stagehand 需要一次活动的浏览器工具调用'))
                 句柄['operationSignal']=空闲.信号#还原
                 执行['signal']=上游#还原
         return 资源.运行(智能体,执行.get('signal'),操作)#串行
     上下文.on('tools/execute',执行钩)#钩
 
-name=名称#框架槽
-inject=注入#框架槽
-apply=应用#框架槽
-Config=配置#框架槽
+name=名称
+inject=依赖
+apply=应用
+Config=配置

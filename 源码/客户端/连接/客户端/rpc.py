@@ -1,7 +1,7 @@
 import builtins,json,re#全局、JSON 与形态校验
 import urllib.request as 请求库#标准库 fetch 形
-from urllib.parse import urljoin#拼基址
-from ....host.apiproxy.接口 import Rpc标识#RPC id
+from urllib.parse import urljoin as 拼接URL
+from ..rpc import Rpc标识#RPC id
 from ..rpc import 连接错误#本包异常
 from .随机uuid import 随机uuid#浏览器 UUID
 
@@ -91,7 +91,7 @@ class 网页连接rpc:#浏览器 RPC 调用方
             'method':端点,#信封 method 必须等于路径端点
             'payload':载荷,#通道拥有的载荷
         }#结束信封
-        地址=urljoin(解析基址().rstrip('/')+'/',通道.strip('/')+'/'+端点)#通道/端点
+        地址=拼接URL(解析基址().rstrip('/')+'/',通道.strip('/')+'/'+端点)
         初始化={#fetch init
             'method':'POST',#方法
             'headers':{'content-type':'application/json'},#头

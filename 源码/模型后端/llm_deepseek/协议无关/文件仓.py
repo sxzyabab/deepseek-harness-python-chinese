@@ -109,7 +109,7 @@ class 深求文件仓:#文件存储
         with 自身.锁:#表锁
             活动=自身.飞行中.get(键)#飞行中
             if 活动 is not None and 活动['controller'].信号.is_set():#已中止共享
-                自身.飞行中.pop(键,None)#清
+                自身.飞行中.pop(键,None)
                 活动=None#重开
             if 活动 is None:#新建共享
                 控制器=_仓中止控制器()#新建

@@ -73,7 +73,7 @@ class 触发控制器:#每会话触发控制器
     def track(自身,草稿,光标,守卫,草稿修订):#跟踪草稿/光标
         """喂给触发检测并驱动菜单。"""
         if 自身.已拆除:#已拆除则忽略
-            return#结束
+            return
         启动中=自身.launcher.getSnapshot() is not None#是否经启动器打开
         自身._清启动器()#键入跟踪清掉启动器态
         原始=检测触发(草稿,光标,守卫)#光标处检测触发
@@ -115,7 +115,7 @@ class 触发控制器:#每会话触发控制器
                 and 前命['span']['end']==命中['span']['end'])#未变
         自身.命中=命中#写下权威命中
         if 同:#查询未变则不重拉
-            return#结束
+            return
         名册=自身.依赖['roster']['sources'](命中['trigger'])#该触发下的源
         if len(名册)==0:#该触发下没有源；length 语义
             自身._停拉取()#中止在飞拉取
@@ -129,7 +129,7 @@ class 触发控制器:#每会话触发控制器
     def toggleSource(自身,源名,命中):#切换单源菜单
         """再点同一源则关掉。"""
         if 自身.已拆除:#已拆除则忽略
-            return#结束
+            return
         if 自身.launcher.getSnapshot()==源名 and 自身.menu.getSnapshot()['open']:#同一源已展开
             自身.dismiss()#再点则关掉
             return#已关闭
@@ -248,7 +248,7 @@ class 触发控制器:#每会话触发控制器
     def dismiss(自身):#外部关掉菜单
         """例如指针点在 composer 区域外。"""
         if 自身.已拆除:#已拆除则忽略
-            return#结束
+            return
         自身._记下驳回()#记下驳回身份
         自身._停拉取()#中止在飞拉取
         自身._归约({'type':'close'})#关菜单
@@ -256,17 +256,17 @@ class 触发控制器:#每会话触发控制器
     def refreshOpenMenu(自身):#刷新开放菜单候选
         """不改命中与可见行，重新拉取当前开放菜单。"""
         if 自身.已拆除:#已拆除则忽略
-            return#结束
+            return
         态=自身.menu.getSnapshot()#菜单快照
         if 态 is None or not 态.get('open') or 自身.命中 is None:#无可刷新
-            return#结束
+            return
         启动=自身.launcher.getSnapshot()#启动器源名
         触发=自身.命中['trigger']#触发字符
         名册=自身.依赖['roster']['sources'](触发)#该触发下的源
         if 启动 is not None:#启动器收窄
             名册=[源 for 源 in 名册 if 源['name']==启动]#只留启动源
         if len(名册)==0:#无源
-            return#结束
+            return
         自身._拉候选(自身.命中,名册)#重拉候选
 
     def dispose(自身):#随作用域拆除
@@ -348,7 +348,7 @@ class 触发控制器:#每会话触发控制器
         词=源['lexicon'] if 'lexicon' in 源 else None#词表
         订=源['subscribeLexicon'] if 'subscribeLexicon' in 源 else None#订阅
         if 词 is None or 订 is None:#无钩子则不订
-            return#结束
+            return
         def 刷新词表():#失效回调
             """接到失效通道。"""
             自身._刷新词表()#刷新
@@ -392,7 +392,7 @@ class 触发控制器:#每会话触发控制器
         命中=自身.命中#权威命中
         if 命中 is None:#无
             自身.已驳回=None#清
-            return#结束
+            return
         自身.已驳回={#令牌身份
             'trigger':命中['trigger'],#触发
             'query':命中['query'],#查询

@@ -106,7 +106,7 @@ def 在线程执行(函数):
             任务.拒绝(错误)#拒绝
     工作=threading.Thread(target=执行并结算)#工作线程
     工作.daemon=True#不挡住退出
-    工作.start()#启动
+    工作.start()
     return 任务#操作任务
 
 def 全部结算(任务列表):
@@ -121,7 +121,7 @@ def 全部结算(任务列表):
     for 任务 in 任务列表:
         工作=threading.Thread(target=等待并吞错,args=(任务,))#工作线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         线程表.append(工作)#登记
     for 工作 in 线程表:
         工作.join()#等到结束
@@ -139,7 +139,7 @@ def 任一落定(任务集):
     for 任务 in list(任务集):
         工作=threading.Thread(target=等待一路落定,args=(任务,))#等待线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
     完成.wait()#阻塞到任一落定
 
 def 空结算任务():
@@ -162,13 +162,13 @@ typescript风味={
 python风味={
     'description':(
         'Execute a Python program against the available tools. Takes two required '
-        +'arguments: `code`, the BODY of an async function (top-level `await` and `return` '
-        +'work), and `description`, a short summary of what the program does. Call tools as '
-        +'`await tools.name(args)` per the declarations in the system prompt. Use '
-        +'`print(...)` and/or `return <value>` for program output — curate it. Image-bearing '
-        +'subtool results are attached after the run.'
+        +'arguments: `code`, the BODY of a Python function (`return` works), and '
+        +'`description`, a short summary of what the program does. Call tools as '
+        +'`tools.name(args)` per the declarations in the system prompt (synchronous; no '
+        +'`async`/`await`/`asyncio`). Use `print(...)` and/or `return <value>` for program '
+        +'output — curate it. Image-bearing subtool results are attached after the run.'
     ),#工具描述
-    'codeDescription':'The program: the body of an async Python function.',#代码参数描述
+    'codeDescription':'The program: the body of a Python function.',#代码参数描述
 }#Python 风味
 运行代码风味={
     'typescript':typescript风味,#TS
@@ -245,14 +245,14 @@ def json归一参数(值):
     except Exception as 错误:
         raise 代码模式错误('tool arguments must be lossless JSON: '+错误文本(错误))#参数必须无损
     if 快照 is None:
-        raise 代码模式错误('tool arguments must be lossless JSON (call the tool with an arguments object, e.g. `{}`)')#必须是参数对象
+        raise 代码模式错误('tool arguments must be lossless JSON (call the tool with an arguments object, e.g. `{}`)')#必须是参数
     已记=快照json值(快照)#再快照一份给日志
     if 已记 is None:
         raise 代码模式错误('tool arguments could not be detached for durable logging')#日志副本失败
     return {'dispatched':快照,'logged':已记}#派发用第一份，日志用第二份
 
 def 渲染json数字(值):
-    """对齐 JS String(number) 的十进制。"""
+    """把数字渲染成十进制文本，匹配 JS String(number) 的输出（布尔为 true/false）。"""
     if isinstance(值,bool):
         return 'true' if 值 else 'false'#布尔到不了这里
     if isinstance(值,int):
@@ -506,7 +506,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
     elif 外层信号 is not None:
         外层线程=threading.Thread(target=跟外层中止)#跟外层中止线程
         外层线程.daemon=True#不挡住退出
-        外层线程.start()#启动
+        外层线程.start()
     子调用序号=0#子调用序号
     未开始队列=[]#未开始队列
     在飞=set()#在飞体
@@ -582,7 +582,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                         在飞.add(飞行)#入池
                         等待线程=threading.Thread(target=等待飞行落定)#等待飞行线程
                         等待线程.daemon=True#不挡住退出
-                        等待线程.start()#启动
+                        等待线程.start()
             finally:
                 with 条件:
                     驾驶中=False#释放占位
@@ -664,7 +664,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 日志工作.add(日志任务)#跟踪副作用
                 日志线程=threading.Thread(target=等待日志落定)#等待日志线程
                 日志线程.daemon=True#不挡住退出
-                日志线程.start()#启动
+                日志线程.start()
             条目={
                 'flight':空结算任务(),#占位，start() 替换
                 'settled':False,#尚未停住
@@ -688,13 +688,13 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                     })#开始事件
                 已准备=调度器['prepare'](输入)#预执行/守卫
                 if 已准备['kind']=='dispatch':
-                    def 飞():
+                    def 启动派发体():
                         """启动体。"""
                         派发结局=调度器['dispatch'](已准备['exec'])#环绕+体
                         停住盒[0]={'kind':派发结局['kind'],'exec':已准备['exec'],'result':派发结局['result']}#停住
                         条目['settled']=True#允许提交
                         唤醒()#唤醒车道
-                    条目['flight']=在线程执行(飞)#体在飞
+                    条目['flight']=在线程执行(启动派发体)#体在飞
                     return#体在飞
                 停住盒[0]={'kind':已准备['kind'],'exec':已准备['exec'],'result':已准备['result']}#预落定
                 条目['settled']=True#可提交
@@ -768,10 +768,10 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
     if 运行结局.get('error'):
         错误=运行结局['error']#程序失败
         日志文本=('\nCaptured output:\n'+'\n'.join(运行结局['logs'])) if len(运行结局['logs'])>0 else ''#捕获输出
-        沙箱=运行结局.get('sandbox')#沙箱投影
-        if 沙箱 is None:
+        if 'sandbox' not in 运行结局:
             沙箱文本=''#无沙箱
         else:
+            沙箱=运行结局['sandbox']#沙箱投影
             强制=沙箱.get('enforcement')#强制程度
             沙箱文本=('\nFile sandbox: '+沙箱['mode']
                 +( '' if 强制 is None else '; enforcement: '+强制)

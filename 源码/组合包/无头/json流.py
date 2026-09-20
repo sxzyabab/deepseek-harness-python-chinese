@@ -165,13 +165,13 @@ def 投影json运行(上下文,智能体,汇,选项=None):
         数据=事件['data'] if 'data' in 事件 else {}#数据
         if 种类=='turn/start':#回合开始
             写出({'type':'status','phase':'turn_start','turn':数据['turn']})#状态
-            return#结束
+            return
         if 种类=='step/start':#步开始
             写出({'type':'status','phase':'step_start','turn':数据['turn'],'step':数据['step']})#状态
-            return#结束
+            return
         if 种类=='assistant/attempt':#尝试
             步用量=累加用量(步用量,流用量(数据['stream'] if 'stream' in 数据 else None))#累加
-            return#结束
+            return
         if 种类=='assistant/message':#已提交消息
             用量=数据['usage'] if 'usage' in 数据 else 流用量(数据['stream'] if 'stream' in 数据 else None)#优先消息用量
             步用量=累加用量(步用量,用量)#累加
@@ -181,7 +181,7 @@ def 投影json运行(上下文,智能体,汇,选项=None):
                     写出({'type':'thinking','text':块['text']})#思考
                 elif 块['type']=='text':#文本
                     写出({'type':'text','text':块['text']})#文本
-            return#结束
+            return
         if 种类=='step/end':#步结束
             用量=步用量['usage']#累计
             完整=步用量['complete']#是否完整
@@ -190,10 +190,10 @@ def 投影json运行(上下文,智能体,汇,选项=None):
             if 完整 and 用量 is not None:#完整才公布
                 载荷['usage']=用量#用量
             写出(载荷)#写出
-            return#结束
+            return
         if 种类=='turn/end':#回合结束
             写出({'type':'status','phase':'turn_end','turn':数据['turn'],'reason':数据['reason']})#状态
-            return#结束
+            return
         if 种类=='tool/call':#工具调用
             写出({#调用
                 'type':'tool_call',
@@ -201,7 +201,7 @@ def 投影json运行(上下文,智能体,汇,选项=None):
                 'tool':数据['name'],
                 'input':解析参数(数据['arguments']),
             })#写出
-            return#结束
+            return
         if 种类=='tool/result':#工具结果
             if 事件.get('surfaceOp')!='append':#压缩替换的历史
                 return#忽略
@@ -212,7 +212,7 @@ def 投影json运行(上下文,智能体,汇,选项=None):
                 'status':'error' if 块.get('isError') is True else 'completed',
                 'result':结果文本(块['content']),
             })#写出
-            return#结束
+            return
 
     写出({'type':'session','sessionId':智能体.id,'cwd':选项['cwd'] if 'cwd' in 选项 else os.getcwd()})#开场
     停止会话=上下文.on('session/event',会话事件)#订阅

@@ -5,9 +5,9 @@ from .命令输入 import 目标命令输入定义#节点定义
 from .命令输入视图 import 目标命令输入视图#聊天节点视图
 from .目标条 import 目标坞#坞组件
 
-__all__=['注入','应用','目标坞','目标命令输入视图','目标命令输入定义','命名空间','中文','英文']#仅中文公开名
+__all__=['依赖','应用','目标坞','目标命令输入视图','目标命令输入定义','命名空间','中文','英文']#仅中文公开名
 
-注入=['slots','sessions','remote','remote.goals','locale','uiConversation']#槽位、会话、远程、goals、文案、对话 UI
+依赖=['slots','sessions','remote','remote.goals','locale','uiConversation']#槽位、会话、远程、goals、文案、对话 UI
 
 def 应用(上下文):#安装目标界面浏览器半边
     """带变更动词与激活钩子的 GoalBar 坞条目。"""
@@ -64,7 +64,7 @@ def 应用(上下文):#安装目标界面浏览器半边
             'getGoal':读目标,#权威读
             'subscribeActivation':订阅激活,#激活
             'subscribeReset':订阅重置,#重置
-        })#结束创建
+        })
         def 编辑(陈述):#编辑目标陈述
             """无当前目标则失败结果。"""
             引用=引用于(会话标识)#CAS ref
@@ -92,7 +92,7 @@ def 应用(上下文):#安装目标界面浏览器半边
         return {#注入面
             'hooks':{'goalActivation':目标激活},#激活钩子
             'onEdit':编辑,'onPause':暂停,'onResume':恢复,'onClear':清除,#动词
-        }#结束 return
+        }
     def 登记坞():#登记 GoalBar 坞
         """conversation.input.dock 目标条目。"""
         return 上下文.slots.register({#等输入坞槽
@@ -104,5 +104,5 @@ def 应用(上下文):#安装目标界面浏览器半边
         },目标坞)#GoalBar 坞组件
     上下文.slots.inject('conversation.input.dock',登记坞)#坞
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

@@ -1,11 +1,10 @@
-"""目标包 Host-for-Client Remote 贡献（对齐上游 `./remote`）。
+"""向 typert 注册目标的远程增删改查贡献（创建、编辑、暂停、恢复、完成、清除）。
 
-对照 `@Remote`：`create`、`edit`、`pause`、`resume`、`complete`、`clear`。
-implementation 指向中文树宿主方法名；服务键与命名空间均为 `goals`。
+实现指向中文树宿主方法名；服务键与命名空间均为 `goals`。
 """
 from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
-__all__=['默认','远程贡献对象']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
+__all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
 智能体参数={#agent lookup
     'name':'agent','wire':'agent','source':'lookup','lookup':'agent',
@@ -13,8 +12,7 @@ __all__=['默认','远程贡献对象']#仅中文公开名；TYPERT_REMOTE 为 t
 }#结束
 引用参数={'name':'ref','wire':'ref','source':'json','codec':严格编解码('GoalRef')}#GoalRef
 作用域={'context':'agent','wire':'agent'}#agent scope
-包名='@deepseek-ai/dsh-goal'#上游包名
-服务='goals'#服务键
+包名='@deepseek-ai/dsh-goal'服务='goals'#服务键
 命名空间='goals'#命名空间
 类前=包名+'#GoalService.'#调用 id 前缀
 
@@ -56,8 +54,8 @@ __all__=['默认','远程贡献对象']#仅中文公开名；TYPERT_REMOTE 为 t
     {'file':'src/index.ts','line':366,'column':3},实现='清除',作用域=作用域,
 )#clear
 
-TYPERT_REMOTE=远程贡献(包名,[#贡献：create 在源码靠后，挂载序仍按 Remote 导出名常用序
+远程贡献表=远程贡献(包名,[#贡献
     创建描述符,编辑描述符,暂停描述符,恢复描述符,完成描述符,清除描述符,
 ])#结束
-远程贡献对象=TYPERT_REMOTE#中文别名
-默认=TYPERT_REMOTE#default
+默认=远程贡献表
+TYPERT_REMOTE=远程贡献表#typert框架槽

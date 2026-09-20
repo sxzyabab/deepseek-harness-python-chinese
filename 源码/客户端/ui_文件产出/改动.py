@@ -1,11 +1,11 @@
 """校验跨宿主路由的工作区改动记录，并寻址其摘要、对比与原生打开动作。"""
-from urllib.parse import quote as 百分号编码,urlencode as 编查询#URL
+from urllib.parse import quote as 百分号编码,unquote as 百分号解码,urlencode as 编查询#URL
 
 __all__=[#仅中文公开名
     '已改文件路径','改动对比路径','改动打开路径','改动审阅地址前缀',
     '是否已改文件','是否改动摘要','是否改动对比','是否改动事件',
     '改动摘要网址','改动对比网址','已改文件网址','改动审阅地址','解析改动审阅地址',
-]#公开面结束
+]
 
 已改文件路径='/api/changes.summary'#摘要 GET
 改动对比路径='/api/changes.diff'#对比 GET
@@ -14,7 +14,7 @@ __all__=[#仅中文公开名
 
 def _是否记录(值):#对象且非列表
     """窄化为 dict。"""
-    return isinstance(值,dict)#是
+    return isinstance(值,dict)
 
 def 是否已改文件(值):#校验一条已改文件
     """路径、展示名与行数齐全。"""
@@ -36,7 +36,7 @@ def 是否已改文件(值):#校验一条已改文件
         return False#否
     if 过大 is not None and 过大 is not True:#过大只能 true
         return False#否
-    return True#是
+    return True
 
 def 是否改动摘要(值):#校验摘要
     """回合、完整文件表、总数与行合计。"""
@@ -53,7 +53,7 @@ def 是否改动摘要(值):#校验摘要
         return False#否
     if not isinstance(文件,list) or not all(是否已改文件(项) for 项 in 文件):#文件表
         return False#否
-    return True#是
+    return True
 
 def _是否块(值):#校验一块
     """行号非负且行以 + - 空格起。"""
@@ -69,7 +69,7 @@ def _是否块(值):#校验一块
     for 行 in 行表:#每行
         if not isinstance(行,str) or len(行)==0 or 行[0] not in '+ -':#前缀
             return False#否
-    return True#是
+    return True
 
 def 是否改动对比(值):#校验对比
     """文本对比带块，或二进制/过大拒绝。"""
@@ -81,7 +81,7 @@ def 是否改动对比(值):#校验对比
     if not isinstance(路径,str) or len(路径)==0 or not isinstance(展示,str) or len(展示)==0:#坐标
         return False#否
     if 种 in ('binary','oversized'):#拒绝种
-        return True#是
+        return True
     if 种!='text':#非文本
         return False#否
     之前=值['before'] if 'before' in 值 else None#之前
@@ -92,7 +92,7 @@ def 是否改动对比(值):#校验对比
         return False#否
     if not isinstance(块表,list) or not all(_是否块(块) for 块 in 块表):#块
         return False#否
-    return True#是
+    return True
 
 def 是否改动事件(值):#校验 workspace/changes 数据
     """命名回合。"""
@@ -124,12 +124,8 @@ def 解析改动审阅地址(地址):#读回坐标
     段=地址[len(改动审阅地址前缀):].split('/')#三段
     if len(段)!=3:#形态
         return None#否
-    会话原文,序号文,回合文=段#拆
+    会话原文,序号文,回合文=段
     if 会话原文=='' or not 序号文.isdigit() or not (回合文.isdigit() and int(回合文)>=1):#形态
         return None#否
-    try:#解码
-        from urllib.parse import unquote as 百分号解码#解码
-        会话=百分号解码(会话原文)#会话
-    except Exception:#畸形百分号
-        return None#否
+    会话=百分号解码(会话原文)#会话
     return {'sessionId':会话,'seq':int(序号文),'turn':int(回合文)}#坐标

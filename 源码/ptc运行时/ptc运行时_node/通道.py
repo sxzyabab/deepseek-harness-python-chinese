@@ -105,7 +105,7 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
                 if not 块:#对端结束
                     if not 自身._已关:#尚未关
                         自身._失败(节点ptc错误('control channel ended before the program settled'),'io')#io 失败
-                    return#结束
+                    return
                 自身._喂入(块)#分帧
         except (OSError,ValueError) as 错误:#传输失败
             自身._结束写入(节点ptc错误(str(错误)))#拒绝排队

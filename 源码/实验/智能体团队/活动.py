@@ -1,100 +1,100 @@
-import threading#定时与事件
-from .生命周期 import 已中止#信号已中止
-from .错误 import 团队错误#领域错误
+import threading
+from .生命周期 import 已中止
+from .错误 import 团队错误
 
-__all__=['团队活动']#仅中文公开名
+__all__=['团队活动']
 
-class 团队活动:#团队活动等待器
+class 团队活动:
     """拥有当前 Team 变更等待者，每个最多释放一次。"""
-    def __init__(自身):#构造
+    def __init__(自身):
         """空等待表。"""
-        自身._等待者={}#按团队索引
-        自身._已关闭=False#是否已关闭准入
+        自身._等待者={}
+        自身._已关闭=False
 
-    def 等待(自身,标识,超时毫秒,信号):#等待变化
+    def 等待(自身,标识,超时毫秒,信号):
         """等待一次之后的 Team 域或成员状态变化。"""
         if (not isinstance(超时毫秒,int) or isinstance(超时毫秒,bool)
-                or 超时毫秒<10_000 or 超时毫秒>3_600_000):#非法超时
-            raise 团队错误('timeoutMs 必须是 10000 到 3600000 的整数','TEAM_INVALID_TIMEOUT')#非法
-        if 已中止(信号):#已取消
-            raise 团队错误('wait_agent 已中止','TEAM_WAIT_ABORTED')#包装
-        if 自身._已关闭:#已关闭视为已变化
-            return {'timedOut':False}#已变化
-        门=threading.Event()#结算门
-        结果盒={'changed':None,'error':None}#结果与错误
-        结算锁=threading.Lock()#竞态锁
-        已结算=[False]#是否已结算
-        等待集=自身._等待者[标识] if 标识 in 自身._等待者 else None#该团队等待集
-        if 等待集 is None:#无集合
-            等待集=set()#新建
-            自身._等待者[标识]=等待集#挂上
-        停止听=threading.Event()#摘中止监听
-        def 收尾(结算):#统一收尾
+                or 超时毫秒<10_000 or 超时毫秒>3_600_000):
+            raise 团队错误('timeoutMs 必须是 10000 到 3600000 的整数','TEAM_INVALID_TIMEOUT')
+        if 已中止(信号):
+            raise 团队错误('wait_agent 已中止','TEAM_WAIT_ABORTED')
+        if 自身._已关闭:
+            return {'timedOut':False}
+        门=threading.Event()
+        结果盒={'changed':None,'error':None}
+        结算锁=threading.Lock()
+        已结算=[False]
+        等待集=自身._等待者[标识] if 标识 in 自身._等待者 else None
+        if 等待集 is None:
+            等待集=set()
+            自身._等待者[标识]=等待集
+        停止听=threading.Event()
+        def 收尾(结算):
             """只结算一次。"""
-            with 结算锁:#竞态
-                if 已结算[0]:#已结算
-                    return#忽略
-                已结算[0]=True#标记
-            定时器.cancel()#清定时器
-            停止听.set()#停中止监视
-            等待集.discard(唤醒)#移出
-            if len(等待集)==0:#空则删键
-                自身._等待者.pop(标识,None)#删键
-            结算()#执行结算
-            门.set()#放行
-        def 取消结算():#拒绝
+            with 结算锁:
+                if 已结算[0]:
+                    return
+                已结算[0]=True
+            定时器.cancel()
+            停止听.set()
+            等待集.discard(唤醒)
+            if len(等待集)==0:
+                自身._等待者.pop(标识,None)
+            结算()
+            门.set()
+        def 取消结算():
             """包装取消。"""
-            结果盒['error']=团队错误('wait_agent 已中止','TEAM_WAIT_ABORTED')#包装
-        def 取消处理():#取消处理
+            结果盒['error']=团队错误('wait_agent 已中止','TEAM_WAIT_ABORTED')
+        def 取消处理():
             """收尾并拒绝。"""
-            收尾(取消结算)#收尾
-        def 已变化结算():#变化结算
+            收尾(取消结算)
+        def 已变化结算():
             """记下已变化。"""
-            结果盒['changed']=True#已变化
-        def 唤醒():#通知为已变化
+            结果盒['changed']=True
+        def 唤醒():
             """变化结算。"""
-            收尾(已变化结算)#已变化
-        def 未变化结算():#超时结算体
+            收尾(已变化结算)
+        def 未变化结算():
             """记下未变化。"""
-            结果盒['changed']=False#未变化
-        def 超时结算():#超时未变化
+            结果盒['changed']=False
+        def 超时结算():
             """超时结算。"""
-            收尾(未变化结算)#未变化
-        等待集.add(唤醒)#登记回调本身
-        定时器=threading.Timer(超时毫秒/1000,超时结算)#超时
-        定时器.daemon=True#守护
-        定时器.start()#启动
-        def 监视中止():#监视调用方事件
+            收尾(未变化结算)
+        等待集.add(唤醒)
+        定时器=threading.Timer(超时毫秒/1000,超时结算)
+        定时器.daemon=True
+        定时器.start()
+        def 监视中止():
             """信号置位则取消。"""
-            if 信号 is None:#无信号
-                return#返回
-            while not 停止听.is_set():#尚未收尾
-                if 信号.is_set():#已中止
-                    取消处理()#取消
-                    return#结束
-                停止听.wait(0.05)#短等摘除
-        if 信号 is not None:#有信号
-            threading.Thread(target=监视中止,daemon=True).start()#监视
-            if 信号.is_set():#同步间隙补检
-                取消处理()#补检
-        门.wait()#等结算
-        if 结果盒['error'] is not None:#取消
-            raise 结果盒['error']#抛出
-        return {'timedOut':not 结果盒['changed']}#反转为是否超时
+            if 信号 is None:
+                return
+            while not 停止听.is_set():
+                if 信号.is_set():
+                    取消处理()
+                    return
+                停止听.wait(0.05)
+        if 信号 is not None:
+            threading.Thread(target=监视中止,daemon=True).start()
+            if 信号.is_set():
+                取消处理()
+        门.wait()
+        if 结果盒['error'] is not None:
+            raise 结果盒['error']
+        return {'timedOut':not 结果盒['changed']}
 
-    def 通知(自身,标识):#通知变化
+    def 通知(自身,标识):
         """唤醒并移除一个团队的当前全部等待者。"""
-        等待集=自身._等待者[标识] if 标识 in 自身._等待者 else None#取集合
-        if 等待集 is None:#无人等待
-            return#返回
-        自身._等待者.pop(标识,None)#先摘下
-        for 唤醒 in list(等待集):#逐个唤醒
-            唤醒()#直接调用
+        等待集=自身._等待者[标识] if 标识 in 自身._等待者 else None
+        if 等待集 is None:
+            return
+        自身._等待者.pop(标识,None)
+        for 唤醒 in list(等待集):
+            唤醒()
 
-    def 关闭(自身):#关闭活动
+    def 关闭(自身):
         """关闭准入，并在运行时拆除期间唤醒全部当前等待者。"""
-        自身._已关闭=True#标记关闭
-        for 等待集 in list(自身._等待者.values()):#遍历团队
-            for 唤醒 in list(等待集):#唤醒全部
-                唤醒()#直接调用
-        自身._等待者.clear()#清空
+        自身._已关闭=True
+        for 等待集 in list(自身._等待者.values()):
+            for 唤醒 in list(等待集):
+                唤醒()
+        自身._等待者.clear()

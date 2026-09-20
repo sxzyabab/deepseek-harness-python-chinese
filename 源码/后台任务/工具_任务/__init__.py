@@ -1,4 +1,7 @@
-"""面向模型的 job_output、job_list、job_kill 工具，架在 ctx.jobs 上。加载本插件会挂接生产者所需的控制器。它还把未报告的完成投递给所属智能体：忙着的所有者注入其下一步，空闲的在默认 wakeup 投递下开一个回合，并按所有者设上限。"""
+"""面向模型的 job_output、job_list、job_kill 工具，架在 jobs 服务上。
+
+加载本插件会挂接生产者所需的控制器，并把未报告的完成投递给所属智能体：忙着的所有者注入其下一步，空闲的在默认 wakeup 投递下开一个回合，并按所有者设上限。
+"""
 import json,weakref#JSON片段与弱键字典
 from ...依赖.schemastery import 数字字段,枚举字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
@@ -152,7 +155,7 @@ def 校验任务号(值):#校验并品牌化任务id
     return 任务标识(值)#品牌化
 
 def 呈现任务调用(标题,种类,原始输入=None):#通用卡片
-    """三个通用任务控制共用的待决展示。"""
+    """三个通用任务控制共用的待决呈现。"""
     视图={'card':'generic','title':标题,'kind':种类}#标题与种类
     if 原始输入 is not None:#有原文
         视图['rawInput']=原始输入#带上原文
@@ -378,8 +381,8 @@ def 应用(上下文,配置值):#注册工具与完成投递
 __all__=[#仅中文公开名
     '公开任务模式','配置','完成投递','工具任务错误','应用',
 ]#公开面结束
-name='tool-jobs'#Cordis插件名
+name='tool-jobs'#框架插件名
 inject=['tools','jobs','systemPrompt']#依赖工具、任务、系统提示
-Config=配置#Cordis配置模式
-apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+Config=配置#框架配置模式
+apply=应用#框架插件入口
+default=应用#框架默认导出

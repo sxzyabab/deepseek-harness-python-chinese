@@ -1,8 +1,7 @@
 """面向 Gateway 拥有的 Remote 流生命周期的 Session 专用适配器。
 
-对齐上游 `session-controller/src/client/transport.ts`：
 经 remote.$stream 走 RemoteSnapshotStream / RemoteJournalStream；
-无 $stream 时回退直连 follow/control。公开面仅中文名。
+无 $stream 时回退直连 follow/control。
 """
 import threading#控制流泵线程
 from .会话线事件 import 断言会话线事件#线事件验收
@@ -36,14 +35,11 @@ def 转会话日志变更(变更):
 
 def _有流工厂(远程):
     """远程是否暴露 $stream。"""
-    return getattr(远程,'$stream',None) is not None or (isinstance(远程,dict) and '$stream' in 远程)#有
+    return getattr(远程,'$stream',None) is not None#有
 
 def _取流工厂(远程):
     """取 $stream 可调用。"""
-    工厂=getattr(远程,'$stream',None)#属性
-    if 工厂 is not None:#有
-        return 工厂#返回
-    return 远程['$stream']#下标
+    return getattr(远程,'$stream')#属性
 
 def 创建会话控制流(远程,选项):
     """创建 Host 范围会话控制快照流。
@@ -53,7 +49,7 @@ def 创建会话控制流(远程,选项):
     """
     if not _有流工厂(远程):#回退
         return _直连控制流(远程,选项)#直连
-    会话面=远程.session if hasattr(远程,'session') else 远程['session']#session
+    会话面=远程.session#session
     流选项={
         'name':'session control stream',
         'open':lambda 信号:会话面.control(信号),
@@ -70,27 +66,42 @@ def 创建会话控制流(远程,选项):
         'failed':选项['failed'],
     })#快照流
 
-def _直连控制流(远程,选项):
-    """无 $stream 时的直连 control。"""
-    状态={'closed':False}#状态
-    def 启动(信号=None):
+class _直连控制流句柄:
+    """无 $stream 时的直连 control 句柄。"""
+
+    def __init__(自身,远程,选项):
+        """记下远程与接收端。"""
+        自身._远程=远程#远程
+        自身._选项=选项#选项
+        自身._已关闭=False#状态
+        自身.name='session control stream'#名称
+
+    def start(自身,信号=None):
         """打开控制流并投递帧。"""
-        if 状态['closed']:#已拆
+        if 自身._已关闭:#已拆
             return#空
         try:
-            控制=远程.session.control if hasattr(远程,'session') else 远程['session'].control#控制方法
+            控制=自身._远程.session.control#控制方法
             for 帧 in 控制(信号):#迭代
-                if 状态['closed']:#已拆
+                if 自身._已关闭:#已拆
                     break#停
-                选项['accept'](帧)#接受
+                自身._选项['accept'](帧)#接受
         except BaseException as 错误:
-            if 状态['closed']:#拆除中
+            if 自身._已关闭:#拆除中
                 return#吞
-            选项['failed'](错误)#失败
-    def 拆除():
+            自身._选项['failed'](错误)
+
+    def dispose(自身):
         """标记关闭。"""
-        状态['closed']=True#关
-    return {'启动':启动,'start':启动,'拆除':拆除,'dispose':拆除,'name':'session control stream'}#句柄
+        自身._已关闭=True
+
+    def restart(自身):
+        """直连无监督代际，空操作。"""
+        return
+
+def _直连控制流(远程,选项):
+    """无 $stream 时的直连 control。"""
+    return _直连控制流句柄(远程,选项)#句柄
 
 class 会话事件流(远程日志流):
     """绑定到普通或直连子智能体会话地址的事件日志。"""
@@ -123,7 +134,7 @@ class 会话事件流(远程日志流):
     def 跟随(自身,请求,信号):
         """打开 follow，产出 opened/entry/notification。"""
         助手修订=None#助手修订
-        会话面=自身._远程.session if hasattr(自身._远程,'session') else 自身._远程['session']#session
+        会话面=自身._远程.session#session
         跟随请求={'address':自身._地址,'assistantStream':True}#跟随
         if 请求 is not None and 'maxMessages' in 请求 and 请求['maxMessages'] is not None:#上限
             跟随请求['maxMessages']=请求['maxMessages']#带上
@@ -159,7 +170,7 @@ class 会话事件流(远程日志流):
 
     def 读页(自身,请求,含末序号,信号=None):
         """读更早页。"""
-        会话面=自身._远程.session if hasattr(自身._远程,'session') else 自身._远程['session']#session
+        会话面=自身._远程.session#session
         页请求={'address':自身._地址,'throughSeq':含末序号}#页
         if 请求 is not None and 'maxMessages' in 请求 and 请求['maxMessages'] is not None:#上限
             页请求['maxMessages']=请求['maxMessages']#带上
@@ -167,7 +178,7 @@ class 会话事件流(远程日志流):
             页请求['beforeSeq']=请求['beforeSeq']#带上
         结果=会话面.page(页请求,信号)#读页
         if isinstance(结果,dict) and 'ok' in 结果:#信封
-            if not 结果['ok']:#失败
+            if not 结果['ok']:
                 raise 结果['error']#抛
             页=结果['value']#页
         else:#直接页
@@ -184,25 +195,17 @@ class 会话事件流(远程日志流):
 
     def open(自身,请求=None):
         """打开；直连路径走折叠泵。"""
-        if 自身._用直连:#直连
-            自身._直连.启动(请求)#启
-            return#空
-        super().open(请求)#网关
-
-    def 打开(自身,请求=None):
-        """中文别名。"""
-        自身.open(请求)#委托
+        if 自身._用直连:
+            自身._直连.start(请求)
+            return
+        super().open(请求)
 
     def dispose(自身):
         """拆除。"""
-        if 自身._用直连:#直连
-            自身._直连.拆除()#拆
-            return#空
-        super().dispose()#网关
-
-    def 拆除(自身):
-        """中文别名。"""
-        自身.dispose()#委托
+        if 自身._用直连:
+            自身._直连.dispose()
+            return
+        super().dispose()
 
     def prepend(自身,请求):
         """前置；直连走读更早页。"""
@@ -225,11 +228,11 @@ class _直连事件流:
         自身._远程=远程#远程
         自身._地址=地址#地址
         自身._选项=选项#选项
-        自身._助手流=客户端助手流()#展示折叠
+        自身._助手流=客户端助手流()#呈现折叠
         自身._已关闭=False#拆除
         自身._泵=None#泵线程
 
-    def 启动(自身,请求=None,信号=None):
+    def start(自身,请求=None,信号=None):
         """后台泵 follow。"""
         if 请求 is None:#缺省
             请求={}#空
@@ -242,7 +245,7 @@ class _直连事件流:
         """打开 follow 并把变更交给 publish。"""
         助手修订=None#助手修订
         try:
-            会话面=自身._远程.session if hasattr(自身._远程,'session') else 自身._远程['session']#session
+            会话面=自身._远程.session#session
             跟随请求={'address':自身._地址,'assistantStream':True}#跟随
             if 'maxMessages' in 请求 and 请求['maxMessages'] is not None:#有上限
                 跟随请求['maxMessages']=请求['maxMessages']#带上
@@ -283,11 +286,11 @@ class _直连事件流:
         except BaseException as 错误:
             if 自身._已关闭:#拆除中
                 return#吞
-            自身._选项['failed'](错误)#失败
+            自身._选项['failed'](错误)
 
     def 读更早页(自身,请求,含末序号,信号=None):
         """读更早页。"""
-        会话面=自身._远程.session if hasattr(自身._远程,'session') else 自身._远程['session']#session
+        会话面=自身._远程.session#session
         页请求={'address':自身._地址,'throughSeq':含末序号}#页
         if 请求 is not None and 'maxMessages' in 请求 and 请求['maxMessages'] is not None:#上限
             页请求['maxMessages']=请求['maxMessages']#带上
@@ -295,7 +298,7 @@ class _直连事件流:
             页请求['beforeSeq']=请求['beforeSeq']#带上
         结果=会话面.page(页请求,信号)#读页
         if isinstance(结果,dict) and 'ok' in 结果:#信封
-            if not 结果['ok']:#失败
+            if not 结果['ok']:
                 raise 结果['error']#抛
             页=结果['value']#页
         else:#直接页
@@ -304,7 +307,7 @@ class _直连事件流:
             断言会话线事件(记录['event'])#线事件
         return 页#页
 
-    def 拆除(自身):
+    def dispose(自身):
         """标记关闭。"""
         自身._已关闭=True#关
 
@@ -315,9 +318,9 @@ class _直连事件流:
         类型=决策['type']#类型
         if 类型=='publish' or 类型=='settlement' or 类型=='transient':#发布类
             自身._选项['publish']({'type':'append','entry':决策['entry']})#追加
-            return#结束
+            return
         if 类型=='rebaseline':#重基线
-            自身._选项['failed'](RuntimeError('session assistant stream requires rebaseline'))#失败
-            return#结束
+            自身._选项['failed'](RuntimeError('session assistant stream requires rebaseline'))
+            return
         if 类型=='abandonment':#放弃
             return#无可见条目

@@ -1,4 +1,4 @@
-"""标题文本归一化与 UTF-8 截断（对齐上游 normalize.ts）。"""
+"""标题文本归一化与 UTF-8 截断。"""
 import re#正则清洗
 
 class 会话标题错误(Exception):

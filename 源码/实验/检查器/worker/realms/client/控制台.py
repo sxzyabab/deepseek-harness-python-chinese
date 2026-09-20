@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/client/console.ts
-
 from .值 import Client控制台事件#Console转换
 
 __all__=['Client控制台后端']#仅中文公开名

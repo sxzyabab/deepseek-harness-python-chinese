@@ -1,8 +1,7 @@
-"""Client 侧 Workspace 状态模型，由 Remote 传输与 UI 投影共享。
-
-对齐上游 `workspace-controller/src/client/model.ts`。公开面仅中文名。
-"""
-from datetime import datetime#时刻比较
+"""Client 侧 Workspace 状态模型，由 Remote 传输与 UI 投影共享。"""
+import re#写死 ISO
+from datetime import datetime as 日期时间,timedelta as 时间差,timezone as 固定偏移
+from zoneinfo import ZoneInfo as 时区
 from ....客户端.存储 import 通知订阅者#安全通知
 
 __all__=[#仅中文公开名
@@ -10,14 +9,32 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 工作区列表阶段=('pending','ready')#列表阶段联合
+_时刻轮廓=re.compile(#ISO-8601：Z 或 ±HH:MM
+    r'^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(Z|([+-])([0-9]{2}):([0-9]{2}))\Z',
+    re.ASCII,
+)#写死轮廓
 
 def _解析时刻(值):
     """ISO-8601 → 可比较时间戳；失败为 0。"""
     if 值 is None:#空
         return 0#最旧
     文=str(值)#字符串
-    try:#标准解析
-        return datetime.fromisoformat(文.replace('Z','+00:00')).timestamp()#时刻
+    匹配=_时刻轮廓.match(文)#按轮廓
+    if 匹配 is None:#形态不对
+        return 0#最旧
+    try:#按捕获组构造
+        年,月,日=int(匹配.group(1)),int(匹配.group(2)),int(匹配.group(3))#日历
+        时,分,秒=int(匹配.group(4)),int(匹配.group(5)),int(匹配.group(6))#墙钟
+        小数=匹配.group(7) if 匹配.group(7) is not None else ''#小数秒
+        微秒=int((小数+'000000')[:6]) if 小数!='' else 0#微秒
+        if 匹配.group(8)=='Z':#UTC
+            区=时区('UTC')
+        else:#数字偏移
+            偏移=时间差(hours=int(匹配.group(10)),minutes=int(匹配.group(11)))
+            if 匹配.group(9)=='-':#西向
+                偏移=-偏移#取负
+            区=固定偏移(偏移)
+        return 日期时间(年,月,日,时,分,秒,微秒,tzinfo=区).timestamp()
     except (TypeError,ValueError):#非法
         return 0#最旧
 
@@ -235,7 +252,7 @@ class 客户端工作区模型:
         if len(行)==len(自身._行):#无变化
             if 立即:#立即通知
                 自身._失效(True)#通知
-            return#结束
+            return
         自身._行=行#安装
         自身._失效(立即)#通知
 
@@ -257,7 +274,7 @@ class 客户端工作区模型:
             自身._通知代+=1#作废已调度
             自身._已调度通知=False#清调度
             自身._冲刷()#立即派发
-            return#结束
+            return
         if 自身._已调度通知:#已调度则合并
             return#跳过
         自身._已调度通知=True#标记

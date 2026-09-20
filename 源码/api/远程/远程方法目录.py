@@ -1,25 +1,25 @@
-"""所选 Remote 贡献的方法目录与贡献对象（自上游 @Remote 清单与叶包抽出）。
+"""所选 Remote 贡献的方法目录与贡献对象。
 
-对齐 `api/remotes/src/client/index.ts` 挂载序：agentPresets → commands → settings →
+挂载序：agentPresets → commands → settings →
 goals → llm → dynamic → plugin-inventory → message-feedback → session-feedback →
 file-uploads → session-reference → subagents → session → workspace → workspaceFiles。
-公开面仅中文名。完整 InvocationDescriptor 见各叶包 `远程.py`。
+完整 InvocationDescriptor 见各叶包 `远程.py`。
 """
-from ...预设.智能体预设.远程 import TYPERT_REMOTE as 智能体预设远程#agent-presets
-from ...交互.命令.远程 import TYPERT_REMOTE as 命令远程#commands
-from ...api.设置控制器.远程 import TYPERT_REMOTE as 设置控制器远程#settings
-from ...目标.目标.远程 import TYPERT_REMOTE as 目标远程#goals
-from ...模型后端.llm.远程 import TYPERT_REMOTE as 大模型远程#llm
-from ...拓展.cordis服务端.远程 import 远程贡献对象 as 动态远程#dynamic
-from ...宿主.插件清单.远程 import TYPERT_REMOTE as 插件清单远程#plugin-inventory
-from ...反馈.消息反馈.远程 import TYPERT_REMOTE as 消息反馈远程#message-feedback
-from ...反馈.命令_反馈.远程 import TYPERT_REMOTE as 会话反馈远程#command-feedback
-from ...客户端.文件上传.远程 import TYPERT_REMOTE as 文件上传远程#file-upload
-from ...上下文.会话引用.远程 import TYPERT_REMOTE as 会话引用远程#session-reference
-from ...子智能体.子智能体.远程 import TYPERT_REMOTE as 子智能体远程#subagent
-from ...api.会话控制器.远程 import TYPERT_REMOTE as 会话远程#session
-from ...api.工作区控制器.远程 import TYPERT_REMOTE as 工作区远程#workspace
-from ...api.工作区文件.远程 import TYPERT_REMOTE as 工作区文件远程#workspace-files
+from ...预设.智能体预设.远程 import 远程贡献表 as 智能体预设远程#agent-presets
+from ...交互.命令.远程 import 远程贡献表 as 命令远程#commands
+from ...api.设置控制器.远程 import 远程贡献表 as 设置控制器远程#settings
+from ...目标.目标.远程 import 远程贡献表 as 目标远程#goals
+from ...模型后端.llm.远程 import 远程贡献表 as 大模型远程#llm
+from ...拓展.cordis服务端.远程 import 远程贡献表 as 动态远程#dynamic
+from ...宿主.插件清单.远程 import 远程贡献表 as 插件清单远程#plugin-inventory
+from ...反馈.消息反馈.远程 import 远程贡献表 as 消息反馈远程#message-feedback
+from ...反馈.命令_反馈.远程 import 远程贡献表 as 会话反馈远程#command-feedback
+from ...客户端.文件上传.远程 import 远程贡献表 as 文件上传远程#file-upload
+from ...上下文.会话引用.远程 import 远程贡献表 as 会话引用远程#session-reference
+from ...子智能体.子智能体.远程 import 远程贡献表 as 子智能体远程#subagent
+from ...api.会话控制器.远程 import 远程贡献表 as 会话远程#session
+from ...api.工作区控制器.远程 import 远程贡献表 as 工作区远程#workspace
+from ...api.工作区文件.远程 import 远程贡献表 as 工作区文件远程#workspace-files
 
 __all__=['所选远程目录','包名元组','导出名元组','所选远程贡献','核对目录与贡献']#仅中文公开名
 

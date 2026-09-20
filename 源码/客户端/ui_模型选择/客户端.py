@@ -3,9 +3,9 @@ from .服务 import 模型目录解析器#目录解析器
 from .模型选择 import 模型选择#座位组件
 from .目录 import 模型选择错误#本包异常
 
-__all__=['注入','应用','模型选择','模型目录解析器','命名空间','中文','英文','行键','描述于','选项于','选定于']#仅中文公开名
+__all__=['依赖','应用','模型选择','模型目录解析器','命名空间','中文','英文','行键','描述于','选项于','选定于']#仅中文公开名
 
-注入=['commandUi','connection','locale','sessions','slots','remote']#依赖
+依赖=['commandUi','connection','locale','sessions','slots','remote']#依赖
 
 def 行键(提供方,模型):#提供方/模型拼行键
     """不透明行键。"""
@@ -14,7 +14,7 @@ def 行键(提供方,模型):#提供方/模型拼行键
 内置描述键={#内置模型描述键
     'deepseek-official/deepseek-v4-flash':'option.deepseekV4Flash.description',#flash
     'deepseek-official/deepseek-v4-pro':'option.deepseekV4Pro.description',#pro
-}#结束
+}
 
 def 描述于(提供方,模型,翻译):#内置描述本地化
     """线上描述仍是英文权威文案时才本地化。"""
@@ -28,11 +28,11 @@ def 描述于(提供方,模型,翻译):#内置描述本地化
 def 选项于(目录,翻译):#目录 → 弹出选项
     """失败行列出但永不可选。"""
     行列表=[]#累积
-    组列表=目录['groups'] if 'groups' in 目录 and 目录['groups'] is not None else []#各组
-    for 组 in 组列表:#各组
-        模型列表=组['models'] if 'models' in 组 and 组['models'] is not None else []#各模型
+    组列表=目录['groups'] if 'groups' in 目录 and 目录['groups'] is not None else []
+    for 组 in 组列表:
+        模型列表=组['models'] if 'models' in 组 and 组['models'] is not None else []
         组名=组['name'] if 'name' in 组 else None#组名
-        for 模型 in 模型列表:#各模型
+        for 模型 in 模型列表:
             描述=描述于(组['id'],模型,翻译)#本地化描述
             详=组名#组名
             if 描述 is not None:#有描述
@@ -49,15 +49,15 @@ def 选项于(目录,翻译):#目录 → 弹出选项
             'id':'failure/'+str(失败['id'] if 'id' in 失败 else None),#失败键
             'label':失败['name'] if 'name' in 失败 else None,#名
             'detail':翻译('option.loadError',{'message':失败['message'] if 'message' in 失败 else None}),#错误文
-        })#结束
+        })
     return 行列表#全部
 
 def 选定于(状态,标识):#行键 → 模型选定
     """失败行或过期 id 则为 None。"""
-    组列表=状态['groups'] if 'groups' in 状态 and 状态['groups'] is not None else []#各组
-    for 组 in 组列表:#各组
-        模型列表=组['models'] if 'models' in 组 and 组['models'] is not None else []#各模型
-        for 模型 in 模型列表:#各模型
+    组列表=状态['groups'] if 'groups' in 状态 and 状态['groups'] is not None else []
+    for 组 in 组列表:
+        模型列表=组['models'] if 'models' in 组 and 组['models'] is not None else []
+        for 模型 in 模型列表:
             if 行键(组['id'],模型['id'])!=标识:#不匹配
                 continue#跳过
             当前=状态['current'] if 'current' in 状态 else None#当前
@@ -129,7 +129,7 @@ def 应用(上下文):#安装模型选择浏览器半边
                         try:#拉
                             目录.load()#加载
                         except 模型选择错误:#失败反映在 store
-                            pass#吞
+                            pass
                 def 选定(选):#提交选定
                     """可用才提交；成功 True。"""
                     if not 可用:#不可用
@@ -165,12 +165,12 @@ def _模型选定(模型目录,会话面,选项,会话,翻译):#选定一行
         raise 模型选择错误("this provider's catalog failed to load — pick a model from a loaded group")#须已加载
     结果=目录.select(选)#提交已等待，交回 RemoteResult 形
     if 'ok' in 结果 and 结果['ok']:#成功
-        return#结束
+        return
     错=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
     码=错['code'] if 'code' in 错 else None#错误码
     if 码=='session/writer-held':#会话占用
         raise 模型选择错误(翻译('error.sessionInUse'))#占用文案
     raise 模型选择错误(str(码)+': '+str(错['message'] if 'message' in 错 else None))#其它失败
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

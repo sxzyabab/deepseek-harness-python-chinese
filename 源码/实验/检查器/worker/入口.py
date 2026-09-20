@@ -1,5 +1,3 @@
-#对齐上游 worker/entry.ts
-
 from ..共享.json import 在线程执行,检查器错误#后台跑|包内错误
 from .服务器 import 启动检查器Worker#装配并启动
 

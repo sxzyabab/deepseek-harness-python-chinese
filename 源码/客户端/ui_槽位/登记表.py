@@ -9,7 +9,7 @@ class 槽位错误(Exception):
     pass#无额外字段
 
 def 解析槽标签(标签):
-    """读时解析 SlotLabel。上游 `export type SlotLabel = string | (() => string)`：字面量或零参 thunk。"""
+    """字面量或零参 thunk。"""
     if 标签 is None:#未声明
         return None#缺席
     if isinstance(标签,str):#字面量臂
@@ -17,16 +17,16 @@ def 解析槽标签(标签):
     return 标签()#thunk 臂
 
 def 是存储工厂(存储):
-    """对齐 SlotCore.register：`typeof store === 'function'` 的独占工厂臂。"""
+    """store 为可调用则视为独占工厂。"""
     return callable(存储)#工厂
 
 def 条目优先级(条目):
-    """options.priority；缺键为 0。上游 `?? 0`，0 是合法遮蔽秩不得被 || 吞掉。"""
+    """options.priority；缺键为 0。0 是合法遮蔽秩。"""
     形=条目['options']#形状
     return 形['priority'] if 'priority' in 形 else 0#缺键才 0
 
 def 条目顺序(条目):
-    """options.order；缺键为 0。上游 `?? 0`，0 是合法 display 序。"""
+    """options.order；缺键为 0。0 是合法显示序。"""
     形=条目['options']#形状
     return 形['order'] if 'order' in 形 else 0#缺键才 0
 
@@ -183,7 +183,7 @@ class 槽位登记表:#纯槽位登记表
             'version':0,#未变更
             'listeners':set(),#登记变更订阅
             'declarationListeners':set(),#声明寿命订阅
-        }#记录结束
+        }
         自身.记录表[键]=记#写入；永不删除
         return 记#返回
 
@@ -258,7 +258,7 @@ class 槽位登记表:#纯槽位登记表
         条目={#本条登记
             'component':组件,#组件
             'options':形状,#形状
-        }#条目结束
+        }
         条目['_id']=id(条目)#稳定身份（退位用）
         if 'select' in 选项:#链选择器
             条目['select']=选项['select']#select
@@ -401,7 +401,7 @@ class 槽位登记表:#纯槽位登记表
                 'scope':记['spec']['scope'],#作用域
                 'occupants':占用者,#占用者
                 'children':子节点,#子树
-            }#节点结束
+            }
             if 记['declaredBy'] is not None:#声明者
                 节点['declaredBy']=记['declaredBy']#带上
             return 节点#返回
@@ -424,7 +424,7 @@ class 槽位登记表:#纯槽位登记表
                 'name':名,#工厂名
                 'scope':定义['scope'],#作用域
                 'children':子节点,#子树
-            }#节点结束
+            }
             if 'registrant' in 定义:#登记方
                 节点['registrant']=定义['registrant']#带上
             return 节点#返回

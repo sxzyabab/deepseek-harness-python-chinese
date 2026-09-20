@@ -190,7 +190,7 @@ class 客户端条目表:
             自身.修订表.pop(标识,None)#摘修订
             while 纤程 is not None and getattr(纤程,'inertia',None) is not None:#等惯性
                 惯性=纤程.inertia#惯性
-                惯性.wait() if hasattr(惯性,'wait') else None#阻塞
+                惯性.等待()
         for 行 in 清单['modules']:#逐模块
             if not 自身.是否当前代(代次):#过期
                 break#停

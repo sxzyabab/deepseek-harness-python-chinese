@@ -173,9 +173,9 @@ class 检查器端点:#检查器端点
         协议列表=[项.strip() for 项 in 协议头.split(',')]#分割
         if _配置字段(自身._配置,'clientToken') not in 协议列表:#无令牌
             return False#拒绝
-        来源=请求头.get('Origin') or 请求头.get('origin')#Origin
-        if 来源 is None:#无Origin放行
+        if 'Origin' not in 请求头 and 'origin' not in 请求头:#无Origin放行
             return True#放行
+        来源=请求头.get('Origin') or 请求头.get('origin')#Origin
         允许=_配置字段(自身._配置,'clientOrigins')#白名单
         if 来源 in 允许:#白名单
             return True#放行

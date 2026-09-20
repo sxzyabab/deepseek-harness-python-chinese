@@ -17,7 +17,7 @@ from .协议 import (
 __all__=['python子进程ptc运行时','宿主帧解析上限','读进程启动','解析python可执行','分离残余',
     '检查完成值','编码json纯值','含非无损数字','含不安全整数词','日志截断标记','校验子帧']#仅中文公开名
 
-标识=re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')#标识符
+标识=re.compile(r'^[A-Za-z_][A-Za-z0-9_]*\Z',re.ASCII)#标识符
 python脚本=('bootstrap.py','protocol.py')#须物化
 帧解析上限字节=64*1024*1024#64 MiB
 最大待块=1024#块数
@@ -40,7 +40,7 @@ def 宿主帧解析上限(堆上限=None):#有效帧帽
     """协议帽与堆推导帽取小。"""
     if 堆上限 is None:#缺省
         堆上限=默认堆上限#4GiB
-    return min(帧解析上限字节,math.floor((堆上限-宿主解析基线字节)/宿主解析最坏倍数))#帽
+    return min(帧解析上限字节,(堆上限-宿主解析基线字节)//宿主解析最坏倍数)#帽
 
 def 消息于(错误):#安全渲染
     """未知抛值的英文消息。"""
@@ -97,16 +97,16 @@ def 校验python可执行(路径):#探测版本
     try:#探测
         输出=subprocess.check_output([路径,'-I','-c','import sys; print(sys.implementation.name, sys.version_info.major, sys.version_info.minor, sys.version_info.micro)'],env=python环境(),timeout=python探测超时毫秒/1000,stderr=subprocess.STDOUT).decode('utf-8').strip()#探测
     except Exception as 错误:#失败
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' failed the CPython version probe: '+消息于(错误))#失败
+        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 探测 CPython 版本失败: '+消息于(错误))
     匹配=re.fullmatch(r'(\S+) (\d+) (\d+) (\d+)',输出)#版本行
     if 匹配 is None:#畸形
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' did not report a CPython version')#失败
+        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 没有报告 CPython 版本')
     实现,主文,次文,补文=匹配.group(1),匹配.group(2),匹配.group(3),匹配.group(4)#拆
     主,次=int(主文),int(次文)#数
     if 实现!='cpython':#非 CPython
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' must be CPython, got '+实现)#失败
+        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython，实际是 '+实现)
     if 主<最低cpython[0] or (主==最低cpython[0] and 次<最低cpython[1]):#过低
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' must be CPython '+str(最低cpython[0])+'.'+str(最低cpython[1])+' or newer, got '+实现+' '+主文+'.'+次文+'.'+补文)#失败
+        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython '+str(最低cpython[0])+'.'+str(最低cpython[1])+' 或更新，实际是 '+实现+' '+主文+'.'+次文+'.'+补文)
 
 def 物化python脚本():#每跑一份
     """把 子/ 脚本拷到真实临时目录，返回入口路径。"""
@@ -231,15 +231,15 @@ def 截消息(消息,最大字节):#原始字节帽
 
 class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
     """每次请求一个全新 CPython 子进程；fd 3 JSON-lines。"""
-    Config=配置#框架槽
+    Config=配置
     def __init__(自身,上下文,配置值=None):#加载校验
         """Unix 平台；拒绝非法预算。"""
         super().__init__(上下文)#登记 ptcRuntime
         if sys.platform=='win32':#Windows
-            raise Exception('dsh-ptc-runtime-python: this backend requires a Unix platform (POSIX rlimits, fd-3 stdio, process-group signals); it cannot run on Windows')#失败
+            raise Exception('dsh-ptc-runtime-python: 此后端需要 Unix 平台（POSIX rlimit、fd-3 标准流、进程组信号）；不能在 Windows 上运行')
         值=dict(配置值 or {})#副本
         for 键,缺 in (('cpuSeconds',60),('maxWallMs',600000),('addressSpaceMb',512),('maxLogBytes',65536),('maxValueBytes',32768),('graceMs',3000),('pythonBin','python3')):#缺省
-            if 值.get(键) is None:#缺
+            if 键 not in 值:#缺
                 值[键]=缺#填
         自身.配置=值#记下
         for 键,项 in 值.items():#正数
@@ -313,14 +313,15 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
     def 解析(自身,请求):#填 cwd 与墙钟
         """不支持沙箱与逐次超时。"""
         if 请求.get('sandboxPolicy') is not None:#沙箱
-            raise Exception('dsh-ptc-runtime-python: sandbox policy is unsupported')#失败
+            raise Exception('dsh-ptc-runtime-python: 沙箱策略不受支持')
         if 请求.get('timeoutMs') is not None:#覆盖
-            raise Exception('dsh-ptc-runtime-python: per-call timeout is unsupported')#失败
-        目录=请求.get('cwd')#cwd
-        if 目录 is None:#缺
+            raise Exception('dsh-ptc-runtime-python: 单次调用超时不受支持')
+        if 'cwd' not in 请求:#缺
             目录=os.getcwd()#cwd
+        else:
+            目录=请求['cwd']#cwd
         if not os.path.isabs(目录):#相对
-            raise Exception('dsh-ptc-runtime-python: cwd must be absolute')#失败
+            raise Exception('dsh-ptc-runtime-python: cwd 必须是绝对路径')
         规格=dict(请求)#副本
         规格['cwd']=目录#绝对
         规格['timeoutMs']=自身.配置['maxWallMs']#墙钟
@@ -329,9 +330,9 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
     def 运行(自身,请求):#一次程序
         """无文件围栏。"""
         if 请求.get('sandboxPolicy') is not None or 请求.get('timeoutMs')!=自身.配置['maxWallMs']:#政策
-            raise Exception('dsh-ptc-runtime-python: unsupported execution policy or timeout')#失败
+            raise Exception('dsh-ptc-runtime-python: 不支持的执行策略或超时')
         if 自身.已拆:#已拆
-            raise Exception('dsh-ptc-runtime-python: run() after disposal')#失败
+            raise Exception('dsh-ptc-runtime-python: 拆除后仍调用 run()')
         绑定=自身.校验绑定(请求)#绑定
         if 已中止(请求.get('signal')):#已中止
             return {'logs':[],'error':{'kind':'abort','message':消息于(getattr(请求.get('signal'),'reason',None))}}#中止
@@ -344,20 +345,20 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
     def 校验绑定(自身,请求):#缝误用
         """拒绝非法命名空间。"""
         绑定={}#名 → 记录
-        注入=set()#已占全局
-        def 占全局(名,角色):#占
+        依赖名=set()
+        def 占全局(名,角色):
             """运行时槽与重复。"""
-            if 名 in 保留绑定全局:#槽
-                raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' collides with a runtime-owned global')#失败
-            if 名 in 注入:#重
-                raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' collides with another injected global')#失败
-            注入.add(名)#占
+            if 名 in 保留绑定全局:
+                raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与运行时占用的全局名冲突')
+            if 名 in 依赖名:
+                raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与另一处依赖写入的全局名冲突')
+            依赖名.add(名)
         for 空间 in 请求.get('bindings') or ():#逐空间
             全局=空间['global']#名
             if not 标识.fullmatch(全局) or 全局 in 可移植保留字:#非法
-                raise Exception('dsh-ptc-runtime-python: binding global '+json.dumps(全局)+' is not a usable Python identifier')#失败
+                raise Exception('dsh-ptc-runtime-python: 绑定全局名 '+json.dumps(全局)+' 不是可用的 Python 标识符')
             if 全局 in 绑定:#重复
-                raise Exception('dsh-ptc-runtime-python: duplicate binding global '+json.dumps(全局))#失败
+                raise Exception('dsh-ptc-runtime-python: 重复的绑定全局名 '+json.dumps(全局))
             占全局(全局,'binding global')#占
             错类=空间.get('errorClass')#错误类
             已校错=None#可选
@@ -365,11 +366,11 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 名=错类['name']#名
                 成员=错类['memberNameProperty']#成员
                 if not 标识.fullmatch(名) or 名 in 可移植保留字:#非法
-                    raise Exception('dsh-ptc-runtime-python: errorClass.name '+json.dumps(名)+' is not a usable Python identifier')#失败
+                    raise Exception('dsh-ptc-runtime-python: errorClass.name '+json.dumps(名)+' 不是可用的 Python 标识符')
                 if len(成员)==0:#空
-                    raise Exception('dsh-ptc-runtime-python: errorClass.memberNameProperty must be a non-empty attribute name')#失败
+                    raise Exception('dsh-ptc-runtime-python: errorClass.memberNameProperty 必须是非空属性名')
                 if 成员 in 保留错误成员 or 双下划线成员.match(成员):#保留
-                    raise Exception('dsh-ptc-runtime-python: errorClass.memberNameProperty '+json.dumps(成员)+' is a reserved error member and cannot be assigned')#失败
+                    raise Exception('dsh-ptc-runtime-python: errorClass.memberNameProperty '+json.dumps(成员)+' 是保留错误成员，不能赋值')
                 占全局(名,'errorClass.name')#占
                 已校错={'name':名,'memberNameProperty':成员}#记下
             函数={}#可调用快照
@@ -541,7 +542,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 os.killpg(子.pid,信号值)#杀
             except OSError:#ESRCH
                 pass#已死
-        def 杀():#升级
+        def 升级并杀掉():#升级
             """SIGTERM 再 SIGKILL。"""
             if 正在杀[0]:#已
                 return#停
@@ -614,7 +615,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             if 子.pid is None:#无 pid
                 结算(结果)#即结
                 return#停
-            杀()#升级
+            升级并杀掉()#升级
             def 到截止():#孤儿兜底
                 """拆流强制结算。"""
                 冲杂散(杂出)#冲
@@ -890,7 +891,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         def 结算失败(失败):#活运行 settle
             """把失败送进完成。"""
             完成({'error':失败})#完成
-        活={'kill':杀,'finished':完成任务,'settle':结算失败}#活运行
+        活={'kill':升级并杀掉,'finished':完成任务,'settle':结算失败}#活运行
         活项[0]=活#记下
         自身.在途.add(活)#挂
         空间表=[]#namespaces
@@ -933,8 +934,10 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         elif not 已兑现[0]:#尚未
             结算({'error':{'kind':'worker-exit','message':'python exited (code='+str(码)+', signal='+str(信号名)+') before completing'}})#结
 
-default=python子进程ptc运行时#框架槽
-Config=配置#框架槽
-name='experimental-ptc-runtime-python'#框架槽
-inject=[]#类即 ptcRuntime 服务
-apply=python子进程ptc运行时#框架槽
+名称='experimental-ptc-runtime-python'
+依赖=[]
+name=名称
+inject=依赖
+apply=python子进程ptc运行时
+Config=配置
+default=python子进程ptc运行时

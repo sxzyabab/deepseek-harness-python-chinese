@@ -11,7 +11,7 @@ from .控制派生 import 控制环境,控制管道#控制管装配
 
 __all__=('子环境','输出收集器','启动子进程','杀组','taskkill进程树','信号树','准备受管进程绑定')#仅中文公开名
 
-def 节点平台():#对齐Node process.platform
+def 节点平台():#把 sys.platform 粗映射到 Node 平台名
     """把 sys.platform 粗映射到 Node 平台名。"""
     名=sys.platform#本机
     if 名=='win32':#Windows
@@ -47,7 +47,7 @@ def 子环境(额外=None):#构造子环境
 
 def 短睡():#15ms一拍
     """树退出等待的存活轮询节拍。"""
-        time.sleep(0.015)#短睡
+    time.sleep(0.015)#短睡
 
 def 杀组(pid,信号名):#POSIX组信号
     """向分离的 POSIX 进程组发送信号。永不抛出；非正 pid 是空操作。"""
@@ -56,7 +56,7 @@ def 杀组(pid,信号名):#POSIX组信号
     try:#组可能已不在
         os.kill(-pid,getattr(signal,信号名))#负pid=整组
     except OSError:#投递失败；见上方约定
-        pass#吞掉
+        pass掉
 
 def taskkill进程树(pid):#Windows树终止
     """用 `taskkill /T /F` 终止一棵 Windows 进程树；失败可容忍。"""
@@ -68,7 +68,7 @@ def 信号树(平台,pid,信号名,孩子,taskkill):#平台分发
     """按平台正确语义向分离进程树发信号。"""
     if 平台=='win32':#Windows：taskkill整树
         taskkill(pid)#任何信号都强制
-        return#结束Windows
+        returnWindows
     if pid<=0:#无效pid
         return#空操作
     try:#先打组
@@ -80,7 +80,7 @@ def 信号树(平台,pid,信号名,孩子,taskkill):#平台分发
             else:#温和
                 孩子.terminate()#TERM
         except OSError:#直接孩子已退出；拆除仍幂等
-            pass#吞掉
+            pass掉
 
 def 是否收集模式(模式):#pipe/inherit以外即收集
     """输出模式是否为有界收集对象。"""
@@ -96,17 +96,17 @@ def 启动子进程(规格,内部=None):#本地spawn
     溢出目录=准备受管进程绑定(内部)['spillDir']#溢出根
     平台=内部['platform'] if 'platform' in 内部 else None#测试覆盖平台
     if 平台 is None:#缺省本机
-        平台=节点平台()#对齐Node
+        平台=节点平台()#本机平台
     taskkill=内部['taskkill'] if 'taskkill' in 内部 else None#测试覆盖taskkill
     if taskkill is None:#缺省真实taskkill
         taskkill=taskkill进程树#Windows终止
     组探针=内部['linuxProcessGroupHasLiveMembers'] if 'linuxProcessGroupHasLiveMembers' in 内部 else None#测试覆盖组探针
     if 组探针 is None:#缺省/proc检查
         组探针=组内有活成员#组探针
-    信号对象=规格['signal'] if 'signal' in 规格 else None#取消信号
-    if 已中止(信号对象):#spawn前已取消
+    中止信号=规格['signal'] if 'signal' in 规格 else None#取消信号
+    if 已中止(中止信号):#spawn前已取消
         try:#取出原因
-            若已中止则抛出(信号对象)#抛原因异常
+            若已中止则抛出(中止信号)#抛原因异常
             原因='aborted'#无抛出则占位
         except BaseException as 错误:#原因异常
             原因=str(错误)#带取消原因
@@ -201,7 +201,7 @@ def 启动子进程(规格,内部=None):#本地spawn
             状态['graceTimer']=None#摘掉
         工作=线程(target=轮询)#观察线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
 
     def 发信号(信号名):#向仍活的树发信号
         """以树存活为门向树发信号。"""
@@ -222,7 +222,7 @@ def 启动子进程(规格,内部=None):#本地spawn
             发信号('SIGKILL')#KILL
         定时=定时器(宽限/1000.0,升级)#宽限后KILL
         定时.daemon=True#保持承诺语义
-        定时.start()#启动
+        定时.start()
         状态['graceTimer']=定时#记下
 
     def 为宿主退出终止():#宿主退出：立刻KILL
@@ -230,10 +230,10 @@ def 启动子进程(规格,内部=None):#本地spawn
         发信号('SIGKILL')#不等宽限
 
     已摘中止=[False]#结算后不再响应取消
-    if 信号对象 is not None:#有取消信号
+    if 中止信号 is not None:#有取消信号
         def 盯中止():#等到中止再终止
             """等到信号中止再终止这棵树。"""
-            等待中止(信号对象)#阻塞到中止
+            等待中止(中止信号)#阻塞到中止
             if not 已摘中止[0]:#仍挂着才终止
                 终止()#终止
         盯线程=线程(target=盯中止)#监听线程
@@ -251,7 +251,7 @@ def 启动子进程(规格,内部=None):#本地spawn
             try:#尽量关
                 孩子.stdin.close()#关
             except OSError:#关失败
-                pass#吞掉
+                pass掉
 
     def 挂收集(流,收集器):#把管道读进收集器
         """后台读管道直到 EOF。"""
@@ -261,18 +261,18 @@ def 启动子进程(规格,内部=None):#本地spawn
                 while True:#直到EOF
                     块=流.read(65536)#一块
                     if not 块:#EOF
-                        break#结束
+                        break
                     收集器.推入(块)#推入
             except OSError:#管道被毁；结算路径会seal
-                pass#吞掉
+                pass掉
             finally:#确保关
                 try:#关管道
                     流.close()#关
                 except OSError:#已关
-                    pass#吞掉
+                    pass掉
         工作=线程(target=读)#收集线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         return 工作#返回线程
 
     出线程=挂收集(孩子.stdout,标准输出收集) if 标准输出收集 is not None else None#stdout收集线程
@@ -296,12 +296,12 @@ def 启动子进程(规格,内部=None):#本地spawn
             try:#destroy
                 孩子.stdout.close()#关
             except OSError:#已关
-                pass#吞掉
+                pass掉
         if 标准误收集 is not None and 孩子.stderr is not None:#同上
             try:#destroy
                 孩子.stderr.close()#关
             except OSError:#已关
-                pass#吞掉
+                pass掉
         if 标准输出收集 is not None:#封stdout溢出
             标准输出收集.封上()#封
         if 标准误收集 is not None:#封stderr溢出
@@ -326,7 +326,7 @@ def 启动子进程(规格,内部=None):#本地spawn
             结算(退出码,信号名)#结算
         定时=定时器(宽限/1000.0,强制结算)#与杀死同一宽限
         定时.daemon=True#不挡住退出
-        定时.start()#启动
+        定时.start()
         状态['pipeDrainTimer']=定时#记下
         if 出线程 is not None:#等stdout排空
             出线程.join()#等收集线程
@@ -336,7 +336,7 @@ def 启动子进程(规格,内部=None):#本地spawn
 
     盯线程=线程(target=盯退出)#退出监视线程
     盯线程.daemon=True#不挡住退出
-    盯线程.start()#启动
+    盯线程.start()
 
     def 等待结局():#等到直接孩子结局
         """阻塞到直接孩子退出，返回其退出事实。"""

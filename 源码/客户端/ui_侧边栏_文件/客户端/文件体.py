@@ -1,15 +1,15 @@
 import re#自然排序分段与地址编码
-from urllib.parse import quote#段编码
+from urllib.parse import quote as 百分号编码
 from .面 import 子路径#子路径键
 
 __all__=[#仅中文公开名
     '排序条目','失败行','工作区标题','文件资源地址','文件体','样式表',
-]#公开面结束
+]
 
 _数字段=re.compile(r'([0-9]+)',re.ASCII)#自然排序数字段
 _文件地址前缀='dsh-resource://file/'#文件资源地址前缀
 
-样式表='''#对齐 FilesBody.module.css
+样式表='''
 .root{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow:auto;padding:4px 0 8px;color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size-secondary, 13px);line-height:1.5}
 .header{display:flex;flex:0 0 auto;gap:6px;align-items:center;padding:4px 10px;color:var(--dsw-alias-label-secondary);font-weight:500}
 .level{margin:0;padding:0;list-style:none}
@@ -72,7 +72,7 @@ def 工作区标题(路径):
 
 def _编码段(段):
     """编码一段 id 或路径，保留 `:` 字面量。"""
-    return quote(段,safe=':')#段编码
+    return 百分号编码(段,safe=':')
 
 
 def _编码路径(路径):
@@ -294,7 +294,7 @@ class 文件体:#文件树正文视图模型
 
     def 渲染(自身):
         """产出正文结构树；无工作区或尚未播种时返回对应空态。"""
-        自身.确保已播种()#对齐 effect
+        自身.确保已播种()#播种
         属性=自身.属性#props
         翻译=属性['t']#文案
         工作目录=自身._读工作目录()#cwd

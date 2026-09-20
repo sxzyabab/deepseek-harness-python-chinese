@@ -1,4 +1,4 @@
-"""受守卫变更失败的面向模型补救。提供方的 FS_STALE_VERSION 与 FS_NOT_OBSERVED 消息只陈述条件，不给出唯一正确的恢复（重新读 / 先读文件），因此本包在模型边界追加补救；提供方消息保持面向机器且不变。对齐上游 tool-fs/src/error.ts。"""
+"""受守卫变更失败的面向模型补救。提供方的 FS_STALE_VERSION 与 FS_NOT_OBSERVED 消息只陈述条件，不给出唯一正确的恢复（重新读 / 先读文件），因此本包在模型边界追加补救；提供方消息保持面向机器且不变。"""
 from .. import 文件系统 as fs#文件系统服务定义
 
 class 工具文件系统错误(Exception):

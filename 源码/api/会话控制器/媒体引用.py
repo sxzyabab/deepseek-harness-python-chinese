@@ -1,13 +1,11 @@
 """经已组合文件系统 provider，对已认证的 GET/HEAD /api/file 读出有界文件响应。
 
 路径与 MIME 不限制访问；连接服务在本处理器之前完成认证。
-
-对齐上游 `session-controller/src/media-references.ts`。公开面仅中文名。
 响应为连接包惯用的字典形态（status/headers/body）。
 """
 import mimetypes#按扩展名查 MIME
 import os#绝对路径判定
-from urllib.parse import parse_qs,urlparse#查询 path
+from urllib.parse import parse_qs as 解析查询串,urlparse as 解析网址
 from ...文件系统.文件系统 import 文件系统错误#文件系统错误
 
 __all__=['会话媒体引用']#仅中文公开名
@@ -32,12 +30,12 @@ def _失败(请求,状态,文本):
     """失败响应；HEAD 无体。"""
     方法=请求['method'] if 'method' in 请求 else 'GET'#方法
     正文=None if 方法=='HEAD' else 文本.encode('utf-8')#体
-    return {'status':状态,'headers':dict(基础响应头),'body':正文}#失败
+    return {'status':状态,'headers':dict(基础响应头),'body':正文}
 
 def 提供文件(请求,文件系统,最大字节):
     """解析 path、读元数据或有界字节并回响应。请求为 dict。"""
     网址=请求['url'] if 'url' in 请求 else ''#url
-    参数=parse_qs(urlparse(网址).query)#查询
+    参数=解析查询串(解析网址(网址).query)
     路径列表=参数['path'] if 'path' in 参数 else []#path
     路径=路径列表[0] if len(路径列表)>0 else None#首值
     if 路径 is None or 路径=='':#缺路径
@@ -70,7 +68,7 @@ def 提供文件(请求,文件系统,最大字节):
         状态=错误状态表[错误.code] if 错误.code in 错误状态表 else 500#映射
         return _失败(请求,状态,错误.code)#映射失败
 
-注入=['connection','fs','attachments']#依赖连接、文件系统、附件
+依赖=['connection','fs','attachments']
 
 def 应用(上下文,配置=None):
     """挂载已认证 GET|HEAD /api/file。"""
@@ -85,7 +83,7 @@ def 应用(上下文,配置=None):
             'methods':['GET','HEAD'],#方法
             'requestBody':'buffered',#缓冲请求体
             'fetch':处理,#处理器
-        })#结束 register
+        })
     上下文.副作用(登记,'session-controller: /api/file')#效果名
 
 class _会话媒体引用插件:
@@ -93,5 +91,5 @@ class _会话媒体引用插件:
     pass
 
 会话媒体引用=_会话媒体引用插件()#对象插件（非类），Cordis 读 apply
-会话媒体引用.inject=注入#框架槽：依赖
-会话媒体引用.apply=应用#框架槽：安装
+会话媒体引用.inject=依赖
+会话媒体引用.apply=应用

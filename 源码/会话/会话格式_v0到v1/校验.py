@@ -137,7 +137,7 @@ def 断言已发布表面元数据(记录,序号,类型,助手出处):#断言表
             raise 会话格式错误(f'{类型} {序号} sourceEventSeqs must be non-empty')#错误
     操作=记录.get('surfaceOp')#表面操作
     if 操作 is None or 操作=='append':#无或追加
-        return#结束
+        return
     替换=已发布v0记录(操作,f'{类型} {序号} surfaceOp')#替换记录
     校验已发布v0键(替换,['op','start','end'],[],f'{类型} {序号} surfaceOp')#精确键
     if 替换['op']!='replace':#须替换

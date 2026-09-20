@@ -1,13 +1,13 @@
 """已解析应用的主机图标提取：macOS icns→PNG、Windows 关联图标、Linux hicolor/pixmaps。
 
-对齐上游 `open-in-app/src/icons.ts`。失败一律 None，图标路由答 404。
+失败一律 None，图标路由答 404。
 """
 import json,os,shutil,tempfile#plist JSON、路径、清理与临时目录
 from .解析器 import (#解析侧共用
     取命令输出,是否普通文件,补全内部事实,查找桌面条目,xdg数据目录列表,平台规格于,
 )#解析导入
 
-__all__=['应用图标','提取应用图标']#仅中文公开名
+__all__=['应用图标','提取应用图标']
 
 高色尺寸=('512x512','256x256','128x128','64x64','48x48','32x32')#hicolor 自大到小
 

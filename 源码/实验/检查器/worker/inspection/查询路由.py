@@ -1,12 +1,10 @@
-#对齐上游 worker/inspection/query-router.ts
-
 import json#查询帧序列化
 from ..共享.json import 检查器错误,在线程执行#包内错误|后台跑
 from .cordis查询 import 执行检查器查询#查询执行
 
 __all__=['检查器查询路由','检查器查询对端']#仅中文公开名
 
-检查器协议版本=1#协议版本占位
+检查器协议版本=1
 
 def _json字节长(值):#估计JSON字节
     """按线上 JSON 计 UTF-8 字节。"""

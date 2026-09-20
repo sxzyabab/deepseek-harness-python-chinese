@@ -1,4 +1,4 @@
-"""write 与 edit 工具共享的沙箱升级 API：每调用策略解析、广告的升级字段、拒绝标记映射。词汇与失败关闭的审批序列都委托给 sandbox（与 tool-bash 使用的相同零件），因此 bash 与 fs 以同一方式升级。插件应用时按 ctx.fs.sandboxMode 构造一次，由两个变更工具共享。对齐上游 tool-fs/src/sandbox.ts。"""
+"""write 与 edit 工具共享的沙箱升级 API：每调用策略解析、广告的升级字段、拒绝标记映射。词汇与失败关闭的审批序列都委托给沙盒（与 bash 工具使用的相同零件），因此 bash 与 fs 以同一方式升级。插件应用时按文件系统的 sandboxMode 构造一次，由两个变更工具共享。"""
 from ...沙盒.沙盒 import (#从 sandbox 导入升级 API（公开符号已是中文名）
     升级目标,#可广告的升级目标
     批准升级,#批准升级
@@ -35,7 +35,7 @@ class 文件系统沙箱控制器:#文件系统沙箱升级控制器
         }#字段结束
 
     def 解析政策(自身,工具名,参数,执行):#解析此次变更的沙箱策略
-        """盖到此次变更上的策略：已批准的升级授予（在任何执行之前经 ctx.approval 解析的严格更宽重试），否则为会话的常驻模式。调用会话的 cwd 始终作为 workspace 根携带。先校验升级参数配对。参数与执行都是 dict，智能体是对象。"""
+        """盖到此次变更上的策略：已批准的升级授予（在任何执行之前经审批层解析的严格更宽重试），否则为会话的常驻模式。调用会话的 cwd 始终作为 workspace 根携带。先校验升级参数配对。参数与执行都是 dict，智能体是对象。"""
         校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#先校验升级参数配对
         请求={}#常驻政策请求
         智能体=执行['agent'] if 'agent' in 执行 else None#调用方智能体

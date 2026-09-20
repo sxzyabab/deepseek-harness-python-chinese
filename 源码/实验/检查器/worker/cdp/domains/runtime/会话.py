@@ -310,7 +310,7 @@ class Runtime域会话:#Runtime域会话
         数字=参数.get(数字键)#数字
         if isinstance(数字,int) and not isinstance(数字,bool):#数字上下文
             return {'context':{'kind':'numeric','id':数字}}#数字上下文
-        if 参数.get('uniqueContextId') is None:#无唯一
+        if 'uniqueContextId' not in 参数:#无唯一
             return {}#空
         return {'context':{'kind':'unique','id':参数['uniqueContextId']}}#唯一上下文
 
@@ -381,12 +381,12 @@ class Runtime域会话:#Runtime域会话
         控制台=_能力(领域.console)#能力
         if 控制台['state']=='unsupported' or 领域.descriptor.realmId in 自身._控制台拆除器:#跳过
             return#返回
-        def 收(事件):#事件回调
+        def 转发运行时事件(事件):#事件回调
             """转发控制台事件。"""
             if not 自身._已启用:#未启用
                 return#返回
             自身.传输.发送(自身._对象.控制台事件(领域,事件))#发送
-        自身._控制台拆除器[领域.descriptor.realmId]=控制台['backend'].订阅(收)#订阅
+        自身._控制台拆除器[领域.descriptor.realmId]=控制台['backend'].订阅(转发运行时事件)#订阅
 
     def _公告(自身,领域):#公告上下文
         """公告合成上下文。"""

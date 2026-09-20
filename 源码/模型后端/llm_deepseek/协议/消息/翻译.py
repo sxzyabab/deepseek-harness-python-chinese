@@ -18,7 +18,7 @@ def 断言字符串(值):
     """解码提供方 JSON 的必需字符串。"""
     if not isinstance(值,str):#非串
         raise 大模型错误('DeepSeek Messages expected a string field','MALFORMED_RESPONSE')#畸形
-    return 值#串
+    return 值
 
 def 畸形(细节):
     """流畸形。"""

@@ -1,6 +1,6 @@
 """授权能力缝（`ctx.authorization`）服务定义。
 
-对齐上游 `@deepseek-ai/dsh-authorization`。公开面仅中文名。
+公开面仅中文名。
 """
 import threading#中止信号
 from ...依赖 import cordis#外部依赖胶水

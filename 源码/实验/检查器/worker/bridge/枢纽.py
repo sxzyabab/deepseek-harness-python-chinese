@@ -1,16 +1,15 @@
-#对齐上游 worker/bridge/hub.ts 段1
 import json#JSON
 
 __all__=['检查器源注册表']#仅中文公开名
 
-检查器协议版本=1#协议版本占位（共享层未迁时本地）
+检查器协议版本=1
 
 def _json字节长(值):#估计JSON字节
     """粗估帧字节。"""
     return len(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#字节
 
-def _解析源帧(值,每帧上限):#解析源帧占位
-    """委托共享解析；此处要求已是映射。"""
+def _解析源帧(值,每帧上限):
+    """要求已是映射并校验记录上限。"""
     if not isinstance(值,dict):#非对象
         raise ValueError('inspector 协议：源帧无效')#抛错
     记录=值.get('records')#记录
@@ -87,8 +86,10 @@ class 检查器源注册表:#源注册表
 
     def 发送(自身,源,帧):#发送控制帧
         """仅向仍活动的源代数发送类型化控制帧。"""
-        状态=自身._源表.get(源['sourceId'])#取状态
-        if 状态 is None or 状态['source']['generation']!=源['generation']:#代数不符
+        if 源['sourceId'] not in 自身._源表:#代数不符
+            return False#失败
+        状态=自身._源表[源['sourceId']]#取状态
+        if 状态['source']['generation']!=源['generation']:#代数不符
             return False#失败
         if _json字节长(帧)>自身._最大帧字节:#超字节
             raise ValueError(f'inspector protocol: Worker source frame exceeds {自身._最大帧字节} bytes')#抛错
@@ -139,7 +140,7 @@ class 检查器源注册表:#源注册表
 
     def _断言能力(自身,状态,种类,能力类型,标签):#断言能力
         """要求源种类与能力。"""
-        if 状态['source']['kind']!=种类 or not any(c['type']==能力类型 for c in 状态['source']['capabilities']):#无能力
+        if 状态['source']['kind']!=种类 or not any(能力['type']==能力类型 for 能力 in 状态['source']['capabilities']):#无能力
             raise ValueError(f'inspector protocol: source did not declare {标签}')#抛错
 
     def _替换记录(自身,状态,帧):#替换记录

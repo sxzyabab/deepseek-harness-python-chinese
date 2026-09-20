@@ -105,7 +105,7 @@ def 行状态文案(行,翻译):
 
 def 行点状态(行):
     """行旁状态点。"""
-    if not 行['enabled'] or 行.get('phase') is None:return 'idle'#空闲
+    if not 行['enabled'] or 'phase' not in 行:return 'idle'#空闲
     return 阶段点[行['phase']]#点
 
 def 失败文案(失败,翻译):
@@ -296,7 +296,7 @@ class 插件装载页:#插件装载页视图模型
                 'stateText':行状态文案(行,翻译),#状态句
                 'dotState':行点状态(行),#点
                 'busy':行.get('entryId') is not None and 行键(行['entryId']) in 状态['busy'],#忙碌
-                'locked':行.get('readOnlyReason') is not None or 行.get('entryId') is None,#锁定
+                'locked':'readOnlyReason' in 行 or 'entryId' not in 行,#锁定
                 'readOnlyReason':行.get('readOnlyReason'),#只读
                 'hasConfig':有配置,#配置
                 'actions':{#动作

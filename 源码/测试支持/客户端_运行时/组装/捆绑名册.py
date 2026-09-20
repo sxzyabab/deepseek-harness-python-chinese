@@ -42,9 +42,9 @@ def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
             continue#下一行
         if 禁用 is not None and not isinstance(禁用,bool):#!!js 表达式
             raise 客户端测试运行时错误('client-test-runtime: browser row '+包名+' has a `disabled` value this reader cannot evaluate (a !!js expression)')#英文诊断
-        注入=声明['inject'] if 'inject' in 声明 else []#注入边
-        立即='immediately' in 声明 and 声明['immediately'] is True#立即预取
-        行表.append(客户端名册行(包名,注入,立即))#收下
+        依赖=声明['inject'] if 'inject' in 声明 else []
+        立即='immediately' in 声明 and 声明['immediately'] is True
+        行表.append(客户端名册行(包名,依赖,立即))
     return 客户端名册.从行表(行表)#建造名册
 
 def 读一层(捆绑,锚点):#读一层捆绑

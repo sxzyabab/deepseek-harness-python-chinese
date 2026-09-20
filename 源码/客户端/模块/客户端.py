@@ -42,9 +42,9 @@ __all__=[#仅中文公开名
     '客户端模块记录',
     '客户端模块加载器',
     '客户端模块系统选项',
-]#公开面结束
+]
 
-注入=['loader']#所需服务：发布其内部模块系统的 Loader
+依赖=['loader']#所需服务：发布其内部模块系统的 Loader
 
 def 创建客户端模块系统(目标,启动模块,选项):
     """从 HTML 门面已物化的 modules 打包建造活模块系统。"""
@@ -66,5 +66,5 @@ def 应用(上下文):#安装浏览器半边
         raise 客户端模块错误('client-modules: the Loader has no client module system')#大声失败
     上下文.反射.提供服务('modules',模块)#提供 ctx.modules
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

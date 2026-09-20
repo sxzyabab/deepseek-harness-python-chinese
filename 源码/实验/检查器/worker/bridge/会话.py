@@ -1,5 +1,3 @@
-#对齐上游 worker/bridge/session.ts
-
 __all__=['发送Client会话关闭']#仅中文公开名
 
 def 发送Client会话关闭(源注册表,源,帧):#发送Client会话关闭

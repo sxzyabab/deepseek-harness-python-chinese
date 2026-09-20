@@ -59,8 +59,10 @@ class 会话资源:#每 Session 惰性一份资源
             return False#不可
         if 智能体 in 自身.已拆所有者:#已拆
             return False#不可
-        登记=自身.上下文.get('agents')#智能体表
-        if 登记 is None or 登记.get(智能体.id) is not 智能体:#不是活的
+        if 'agents' not in 自身.上下文:#不是活的
+            return False#不可
+        登记=自身.上下文['agents']#智能体表
+        if 登记.get(智能体.id) is not 智能体:#不是活的
             return False#不可
         if 智能体 in 自身.条目:#已有
             return True#可
@@ -167,16 +169,16 @@ class 会话资源:#每 Session 惰性一份资源
         if 智能体 not in 自身.所有者拆除:#尚未挂拆除
             def 会话拆除():#智能体作用域拆除
                 """关本条。"""
-                def 卸():#异步卸
+                def 拆除条目():#异步卸
                     """等 close。"""
                     自身.已拆所有者.add(智能体)#记下
                     if 智能体 in 自身.条目:#仍有
                         自身.关条目(智能体,自身.条目[智能体]).等待()#关
                     if 智能体 in 自身.所有者拆除:#摘
                         del 自身.所有者拆除[智能体]#摘
-                    return#结束
-                threading.Thread(target=卸).start()#卸
-                return 卸#拆除器
+                    return
+                threading.Thread(target=拆除条目).start()#卸
+                return 拆除条目#拆除器
             自身.所有者拆除[智能体]=智能体.ctx.副作用(会话拆除,自身.选项['label']+'.session')#挂
         控制器=中止控制器()#本条寿命
         就绪=操作任务()#获取

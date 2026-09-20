@@ -1,4 +1,4 @@
-"""内容寻址、仅所有者本地附件存储。对齐上游 attachment-local/src/store.ts。"""
+"""内容寻址、仅所有者本地附件存储。"""
 import hashlib,os,uuid#摘要、路径与临时名
 from ..附件 import 附件错误,附件标识,若已中止则抛出#附件缝
 from .图像 import 检测图像,探测图像#图像检查
@@ -93,7 +93,7 @@ def _确保耐久目录(路径,边界):#创建并同步祖先
         父=os.path.dirname(层级)#父目录
         _同步目录(父)#同步父项
         if 父==层级:#到根
-            return#结束
+            return
         层级=父#上移
 
 def _确保耐久主目录(路径):#证明主目录耐久

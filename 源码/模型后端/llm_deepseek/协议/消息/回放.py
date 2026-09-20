@@ -17,7 +17,7 @@ def 读取回放(消息,模型,降级=None):
     """校验原生回放，丢弃不可用元数据后再序列化耐久内容。"""
     try:#校验
         源=消息.get('source') or {}#来源
-        if 源.get('kind')!='model' or 源.get('replayState') is None:#无回放
+        if 源.get('kind')!='model' or 'replayState' not in 源:#无回放
             return None#缺席
         def 失败(细节):#失败
             """不可用回放状态。"""

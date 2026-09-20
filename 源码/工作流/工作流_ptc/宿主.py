@@ -116,9 +116,9 @@ def 工作流结果值(值):#WorkflowResult
 
 class ptc工作流运行:#持有者所有的工作流
     """取消立刻停程序；结算等待受管进程与每个已接纳子的启动/拆除。引擎卸载不使捕获的运行时或子智能体句柄失效。"""
-    def __init__(自身,上下文对象,子智能体,运行时,标识,元数据,父,初始化,提供方,政策,观察器,信号=None):#钉字段并开跑
+    def __init__(自身,上下文,子智能体,运行时,标识,元数据,父,初始化,提供方,政策,观察器,信号=None):#钉字段并开跑
         """记下捕获的服务句柄并在后台驱动。"""
-        自身.ctx=上下文对象#上下文
+        自身.ctx=上下文#上下文
         自身._子智能体=子智能体#子智能体服务
         自身._运行时=运行时#PTC 运行时
         自身.id=标识#运行标识
@@ -154,7 +154,7 @@ class ptc工作流运行:#持有者所有的工作流
         def 开跑():#后台驱动
             """驱动并兑现结果。"""
             自身.结果.兑现(自身._驱动())#永不拒绝
-        threading.Thread(target=开跑,daemon=True).start()#启动后才挂记录
+        threading.Thread(target=开跑,daemon=True).start()后才挂记录
 
     def 取消(自身,原因='workflow cancelled'):#停脚本并中止子
         """停脚本并中止待完成与已发布子。首次请求获胜。"""
@@ -190,7 +190,7 @@ class ptc工作流运行:#持有者所有的工作流
         """跑一路绑定并跟踪未决。函数无参。"""
         完成=任务()#本次
         自身._未决.append(完成)#登记
-        def 跑():#后台
+        def 在线程执行():#后台
             """执行并摘掉。"""
             try:#执行
                 完成.兑现(函数())#成功
@@ -198,7 +198,7 @@ class ptc工作流运行:#持有者所有的工作流
                 完成.拒绝(错误)#拒绝
             if 完成 in 自身._未决:#仍在
                 自身._未决.remove(完成)#摘掉
-        threading.Thread(target=跑,daemon=True).start()#启动
+        threading.Thread(target=在线线程执行,daemon=True).start()
         return 完成.等待()#等本路
 
     def _绑定(自身):#workflowHost 函数表
@@ -209,16 +209,16 @@ class ptc工作流运行:#持有者所有的工作流
             return json值(自身._初始化)#初始化
         def 启动子(值):#startChild
             """启动一个子。"""
-            def 跑():#本路
+            def 在线程执行():#本路
                 """启动子。"""
                 return 自身._启动子(子请求(值))#启动
-            return 自身._跟踪(跑)#跟踪
+            return 自身._跟踪(在线线程执行)#跟踪
         def 子结果绑定(值):#childResult
             """等一个子的结果。"""
-            def 跑():#本路
+            def 在线程执行():#本路
                 """等子结果。"""
                 return 自身._子结果(自身._子(值))#结果
-            return 自身._跟踪(跑)#跟踪
+            return 自身._跟踪(在线线程执行)#跟踪
         def 拆除子绑定(值):#disposeChild
             """拆除一个子。"""
             自身._拆除子(自身._子(值))#拆除
@@ -297,7 +297,7 @@ class ptc工作流运行:#持有者所有的工作流
             finally:#摘掉
                 自身._子表.pop(记录['callId'],None)#移除
                 完成.兑现()#完成
-        threading.Thread(target=跑拆除,daemon=True).start()#启动
+        threading.Thread(target=跑拆除,daemon=True).start()
         完成.等待()#等到
         return None#结束
 
@@ -307,17 +307,17 @@ class ptc工作流运行:#持有者所有的工作流
         种类=事件['type']#类型
         if 种类=='phase':#阶段
             自身._观察器.阶段(事件['title'])#阶段
-            return#结束
+            return
         if 种类=='log':#日志
             自身._观察器.日志(事件['message'])#日志
-            return#结束
+            return
         if 种类=='agent-start':#开始
             自身._活智能体[事件['info']['seq']]=事件['info']#记下
             自身._观察器.智能体开始(事件['info'])#开始
-            return#结束
+            return
         if 种类=='agent-end':#结束
             自身._结束智能体(事件['info'])#结束
-            return#结束
+            return
         断言永不(事件,'workflow progress')#封闭联合
 
     def _结束智能体(自身,信息):#agent-end
@@ -360,10 +360,10 @@ class ptc工作流运行:#持有者所有的工作流
             拆除表=list(自身._子表.values())#快照
             def 制作拆除(记录):#钉住记录
                 """钉住一条拆除。"""
-                def 跑():#一路
+                def 在线程执行():#一路
                     """拆除一路。"""
                     自身._拆除子(记录)#拆除
-                return 跑#函数
+                return 在线程执行#函数
             if len(拆除表)>0:#还有
                 全部并发([制作拆除(记录) for 记录 in 拆除表])#并发拆除
             自身._子表.clear()#清空

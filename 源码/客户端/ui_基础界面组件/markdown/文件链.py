@@ -1,6 +1,7 @@
-import re#正则
+import re
+from urllib.parse import unquote as 百分号解码
 
-__all__=['解析文件链']#仅中文公开名
+__all__=['解析文件链']
 
 控制字符=re.compile(r'[\u0000-\u001f\u007f]')#控制字符
 双斜杠=re.compile(r'^[\\/]{2}')#UNC
@@ -10,15 +11,14 @@ __all__=['解析文件链']#仅中文公开名
 
 def 解析文件链(值):
     """解码本地 Markdown 文件目标与可选 GitHub 行片段；非法则 None。"""
-    from urllib.parse import unquote as 解码#百分号解码
-    井=值.find('#')#片段
-    目标=值 if 井<0 else 值[:井]#目标
-    if '?' in 目标:#查询
-        return None#拒
-    try:#解码
-        路径=解码(目标)#路径
-    except Exception:#畸形
-        return None#拒
+    井=值.find('#')
+    目标=值 if 井<0 else 值[:井]
+    if '?' in 目标:
+        return None
+    try:
+        路径=百分号解码(目标)
+    except (UnicodeError,ValueError):
+        return None
     if 路径=='' or 控制字符.search(路径) is not None:#空或控制
         return None#拒
     if 双斜杠.search(路径) is not None:#双斜杠

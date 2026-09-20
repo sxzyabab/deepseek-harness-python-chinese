@@ -385,6 +385,6 @@ def 校验json模式值(模式,值,路径='value'):
     return 检查值(模式,值,路径)#走显式帧
 
 def 转json(值):
-    """对齐 JSON.stringify 的紧凑文本。"""
+    """把值编成紧凑 JSON 文本。"""
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
 

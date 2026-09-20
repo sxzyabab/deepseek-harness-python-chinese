@@ -27,14 +27,14 @@ class 终端跟随:#一路 Remote 流世代的有界输出队列
         if 自身._字节+字节>自身.最大字节:#超
             自身._失败=远程错误('terminal/view','Terminal output consumer exceeded its buffer; reconnect to recover the current screen',{'issue':'invalidOutput'})#超限
             自身.关闭()#关
-            return#结束
+            return
         自身._队列.尾推({'frame':帧,'bytes':字节})#入队
         自身._字节+=字节#记账
         自身._有项.set()#唤醒
 
     def 结束(自身):#交完队列含最终退出
         """标记结束并唤醒读者。"""
-        自身._已结束=True#结束
+        自身._已结束=True
         自身._有项.set()#唤醒
 
     def 关闭(自身):#停本跟随，不停终端
@@ -64,7 +64,7 @@ class 终端跟随:#一路 Remote 流世代的有界输出队列
                     自身._字节-=下['bytes']#还账
                     yield 下['frame']#帧
                 else:#空
-                    if 自身._已结束:#结束
+                    if 自身._已结束:
                         break#停
                     自身._有项.clear()#等
                     自身._有项.wait()#等推入

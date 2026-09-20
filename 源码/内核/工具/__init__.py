@@ -122,7 +122,7 @@ def 错误消息(错误):
             return 错误.message#属性 message
         return str(错误)#其余字符串化
     except Exception:
-        return '<unprintable thrown value>'#不可打印
+        return '<无法打印的抛出值>'#不可打印
 
 def 从内容取失败消息(内容):
     """从策略反馈导出一条失败消息，不改其已渲染块。"""
@@ -133,16 +133,16 @@ def 从内容取失败消息(内容):
         else:
             文本列表.append('['+str(块['type'])+' content]')#类型占位
     文本='\n'.join(文本列表)#换行连接
-    return 文本 if len(文本)>0 else 'tool result blocked by post-execute policy'#空则用默认句
+    return 文本 if len(文本)>0 else '工具结果被执行后策略拦截'#空则用默认句
 
 def 物化呈现(候选):
     """快照并冻结一份耐久工具结果投影，或拒绝有损数据。"""
     脱离=快照json值(候选)#脱离
     if 脱离 is None:
-        raise TypeError('tool result must be losslessly JSON-serializable')#必须无损
+        raise TypeError('工具结果必须能无损 JSON 序列化')#必须无损
     return 深冻结(脱离)#冻结
 
-def 错误信息(错误):
+def 错误详情(错误):
     """抛出的 HarnessError 的结构化 name/code，否则 None。"""
     try:
         if isinstance(错误,框架错误):
@@ -163,7 +163,7 @@ def 解析并行上限(值):
     else:
         是整数=False#其余非法
     if (not 是整数) or 上限<1:
-        raise 工具错误('maxParallelSubCalls must be a positive integer')#必须正整数
+        raise 工具错误('maxParallelSubCalls 必须是正整数')#必须正整数
     return 上限#已校验上限
 
 class 工具未找到错误(框架错误):
@@ -171,9 +171,9 @@ class 工具未找到错误(框架错误):
     def __init__(自身,工具名,可达路径=None):
         """用名字与可选替代路径构造。"""
         if 可达路径 is None:
-            消息='unknown tool "'+工具名+'"'#裸未知
+            消息='未知工具 "'+工具名+'"'
         else:
-            消息='unknown tool "'+工具名+'": '+可达路径#带路径
+            消息='未知工具 "'+工具名+'": '+可达路径
         super().__init__(消息,'UNKNOWN_TOOL')#错误码
         自身.name='ToolNotFoundError'#类名
 
@@ -181,20 +181,20 @@ class 工具输出错误(框架错误):
     """工具函数体或后策略值违反其声明输出时抛出。"""
     def __init__(自身,工具名,违规列表):
         """用违规构造；公开属性仅 违规列表。"""
-        super().__init__('tool "'+工具名+'" returned invalid output: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
+        super().__init__('工具 "'+工具名+'" 返回了非法输出: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
         自身.name='ToolOutputError'#错误名槽
         自身.违规列表=违规列表#违规诊断列表
 
 def 投影失败(工具名,投影器,错误):
     """把一次投影器异常转成规范的非法输出失败。"""
-    return 工具输出错误(工具名,['output.'+投影器+' failed: '+错误消息(错误)])#包成输出错误
+    return 工具输出错误(工具名,['output.'+投影器+' 失败: '+错误消息(错误)])#包成输出错误
 
 def 快照投影(工具名,投影器,候选):
     """在后续耐久结果物化之前快照一次投影器结果。"""
     try:
         脱离=快照json值(候选)#脱离
         if 脱离 is None:
-            raise 工具输出错误(工具名,['output.'+投影器+' returned non-lossless JSON'])#非无损 JSON
+            raise 工具输出错误(工具名,['output.'+投影器+' 返回了非无损 JSON'])#非无损 JSON
         return 脱离#已脱离投影
     except 工具输出错误:
         raise#已是输出错误则原样抛
@@ -206,12 +206,12 @@ def 快照工具值(工具名,候选):
     try:
         脱离=快照json值(候选)#脱离
         if 脱离 is None:
-            raise 工具输出错误(工具名,['value is not lossless JSON'])#非无损
+            raise 工具输出错误(工具名,['value 不是无损 JSON'])#非无损
         return 脱离#规范值
     except 工具输出错误:
         raise#已是输出错误
     except Exception as 错误:
-        raise 工具输出错误(工具名,['value snapshot failed: '+错误消息(错误)])#快照失败
+        raise 工具输出错误(工具名,['value 快照失败: '+错误消息(错误)])#快照失败
 
 def 铸造执行令牌():
     """铸造同进程关联令牌。"""
@@ -219,13 +219,13 @@ def 铸造执行令牌():
 
 def 工具错误结果(错误):
     """任意抛出值→失败结果。"""
-    信息=错误信息(错误)#结构化信息
+    信息=错误详情(错误)#结构化信息
     消息=错误消息(错误)#人类可读消息
     失败={'message':消息}#细节
     if 信息 is not None:
         失败['info']=信息#结构化
     return {
-        'content':[{'type':'text','text':'Error: '+消息}],#Native 信封
+        'content':[{'type':'text','text':'错误: '+消息}],#Native 信封
         'isError':True,#失败
         'error':失败,#细节
     }#失败结果
@@ -327,7 +327,7 @@ class 工具层:
 
 class 工具运行时(服务):
     """工具注册表与执行管线。"""
-    注入=['systemPrompt']#依赖系统提示词
+    依赖=['systemPrompt']
     配置={
         'mode':枚举字段('native','ptc','both',默认值='native'),#呈现默认 native
         'maxParallelSubCalls':自然数字段(最小=1,默认值=10),#并行上限默认 10
@@ -390,9 +390,9 @@ class 工具运行时(服务):
                 return ''#原生则空
             运行时=自身.要求代码运行时(呈现)#必需运行时
             语言=运行时.language#语言
-            渲染=sdk渲染器.get(语言)#查渲染器
-            if 渲染 is None:
+            if 语言 not in sdk渲染器:
                 raise 工具错误('dsh-tools: 没有 '+str(语言)+' 的 SDK 渲染器')#无渲染器
+            渲染=sdk渲染器[语言]#查渲染器
             return 渲染(自身.sdk模式(上下文['scope'] if 'scope' in 上下文 else None))#渲染 SDK
         return {'name':'tools:sdk','order':sdk段顺序,'interpolate':False,'text':文本}#段登记
 
@@ -798,25 +798,25 @@ class 工具运行时(服务):
 
     def 调用方已取消(自身,执行):
         """原始调用方信号当前是否已中止。"""
-        状态=自身.取消状态.get(执行)#取消状态
-        if 状态 is None:
+        if 执行 not in 自身.取消状态:
             raise 工具错误('工具注册表调度器不变量被破坏：缺少取消状态')#调度器不变量
+        状态=自身.取消状态[执行]#取消状态
         return 已中止(状态['callerSignal'])#原始信号
 
     def 取消结果(自身,执行,先前=None):
         """按工具函数体是否已开始选出的规范取消结局。"""
-        状态=自身.取消状态.get(执行)#取消状态
-        if 状态 is None:
+        if 执行 not in 自身.取消状态:
             raise 工具错误('工具注册表调度器不变量被破坏：缺少取消状态')#调度器不变量
+        状态=自身.取消状态[执行]#取消状态
         if 状态['bodyInvoked']:
             return 工具体后中止结果(先前)#体后中止
         return 工具体前中止结果(先前)#体前中止
 
     def 派发函数体(自身,执行):
         """用熔回任何环绕包装器替换的原始调用方信号派发已注册函数体。"""
-        状态=自身.取消状态.get(执行)#取消状态
-        if 状态 is None:
+        if 执行 not in 自身.取消状态:
             raise 工具错误('工具注册表调度器不变量被破坏：缺少取消状态')#调度器不变量
+        状态=自身.取消状态[执行]#取消状态
         包装器信号=执行['signal']#包装器信号
         熔合=熔合工具信号(状态['callerSignal'],包装器信号)#熔合调用方与包装器
         信号=熔合['signal']#熔合后信号
@@ -847,9 +847,9 @@ class 工具运行时(服务):
                 return 自身.派发函数体(执行)#跑体
             结果=自身.ctx.链式拦截(载体,'tools/execute',执行,最内层)#环绕执行瀑布
             已归一=自身.归一派发结果(执行,结果)#经输出约定归一
-            推迟=自身.推迟上下文.get(执行)#体推迟的上下文
-            if 推迟 is None:
+            if 执行 not in 自身.推迟上下文:
                 raise 工具错误('工具注册表调度器不变量被破坏：未准备的执行')#未准备
+            推迟=自身.推迟上下文[执行]#体推迟的上下文
             if len(推迟)==0:
                 带推迟=已归一#原样
             else:
@@ -891,9 +891,9 @@ class 工具运行时(服务):
 
     def 应用最终内容(自身,执行,结果):
         """应用已快照的工具自有内容变换。"""
-        最终化=自身.内容最终器.get(执行)#开始时快照
-        if 最终化 is None:
+        if 执行 not in 自身.内容最终器:
             return 结果#无变换
+        最终化=自身.内容最终器[执行]#开始时快照
         内容=最终化(执行,结果)#调用（不得抛）
         if 内容 is None:
             return 结果#undefined 保留
@@ -1070,6 +1070,6 @@ class 工具运行时(服务):
         合并['value']=结果['value']#再并入执行局部 value
         return 深冻结(合并)#冻结
 
-工具运行时.inject=工具运行时.注入#Cordis 依赖声明槽
+工具运行时.inject=工具运行时.依赖
 工具运行时.Config=工具运行时.配置#Cordis Config 槽
 default=工具运行时#Cordis 默认导出槽

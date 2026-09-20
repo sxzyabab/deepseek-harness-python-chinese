@@ -13,11 +13,11 @@ from ..技能 import (#技能 seam 公开符号
     渲染技能内容,#规范技能块
 )#技能 seam 导入结束
 __all__=[#仅中文公开名；Cordis 英文槽不入表
-    '名称','注入','目录描述默认最大长度','技能手势','配置','应用','工具技能错误',
+    '名称','依赖','目录描述默认最大长度','技能手势','配置','应用','工具技能错误',
 ]#公开面结束
 
 名称='tool-skill'#Cordis插件名
-注入=['agents','tools','skills']#依赖智能体、工具与技能服务
+依赖=['agents','tools','skills']#依赖智能体、工具与技能服务
 目录描述默认最大长度=500#目录描述默认最大长度
 技能手势=re.compile(r'(^|\s)/([a-z0-9]+(?:-[a-z0-9]+)*)(?=\s|\Z)',re.ASCII)#用户显式/name手势
 配置={#面向模型的技能目录配置
@@ -447,7 +447,7 @@ def 应用(上下文,配置值=None):
     上下文.监听('agent/pre-step',目录监听)#目录监听器
 
 name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
+inject=依赖#Cordis 依赖槽
 Config=配置#Cordis 配置槽
 apply=应用#Cordis 入口槽
 default=应用#Cordis 默认导出槽

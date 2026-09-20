@@ -105,7 +105,7 @@ class 在应用中打开动作:#会话头部 utilities 贡献
         """换上最新注入面。"""
         自身.属性=属性#最新
 
-    def 拆除(自身):#对齐 useEffect cleanup
+    def 拆除(自身):
         """清掉未触发的定时器。"""
         自身._清忙碌定时()#清忙碌
         自身._清错误定时()#清错误
@@ -278,10 +278,10 @@ class 在应用中打开动作:#会话头部 utilities 贡献
             'onToggle':自身.切换菜单,#箭头
             'onClose':自身.关菜单,#关菜单
             'onSelect':lambda 标识:自身.菜单选定(标识,工作目录),#菜单选定
-            'onDispose':自身.拆除,#对齐 effect cleanup
+            'onDispose':自身.拆除,#拆除回调
         }#视图结束
 
-    def __call__(自身,属性=None):#对齐 React 调用
+    def __call__(自身,属性=None):
         """刷新 props 后渲染。"""
         if 属性 is not None:#有新
             自身.更新(属性)#刷新

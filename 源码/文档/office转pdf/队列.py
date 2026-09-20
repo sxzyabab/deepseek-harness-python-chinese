@@ -266,7 +266,7 @@ class 转换队列:
                 自身._就绪.pop(键,None)#LRU
                 自身._就绪[键]=缓存#重插
                 自身._结算(任务,缓存)#交付
-                return#结束
+                return
             已有=自身._摘要表.get(键)#在途同摘要
             if 已有 is not None and not 已中止(已有.控制器.信号):#可并入
                 if 任务.优先级=='foreground':#提权

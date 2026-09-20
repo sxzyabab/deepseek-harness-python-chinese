@@ -5,7 +5,7 @@ from .分析器 import 分析器桥能力#Profiler
 from .运行时 import 运行时桥能力#Runtime
 from .源 import 源桥能力#Sources
 
-__all__=['桥能力']#仅中文公开名
+__all__=['桥能力']
 
 def 桥能力(来源,有源):#桥能力
     """描述需要 Worker→页面桥消息的 Client 操作。"""

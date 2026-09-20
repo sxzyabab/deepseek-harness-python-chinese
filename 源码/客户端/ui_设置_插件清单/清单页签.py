@@ -77,7 +77,7 @@ class 插件清单页签:#设置页签组件
             if not 自身.存活:#已死
                 return#丢弃
             自身.状态={'status':'error'}#错误
-            return#结束
+            return
         if not 自身.存活:#已死
             return#丢弃
         自身.状态={'status':'ready','snapshot':快照}#就绪
@@ -108,7 +108,7 @@ class 插件清单页签:#设置页签组件
     def 校正展开(自身):#展开项不在过滤结果则收起
         """过滤后展开项消失则清。"""
         if 自身.展开标识 is None:#无展开
-            return#结束
+            return
         if not any(('entryId' in 条目 and 条目['entryId']==自身.展开标识) for 条目 in 自身.过滤条目()):#不在
             自身.展开标识=None#收起
 

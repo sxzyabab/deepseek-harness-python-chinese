@@ -1,4 +1,4 @@
-"""ctx.web 的安全 HTTP(S) 检索：校验 URL、只跟随同源重定向、强制时间与体积上限、分类并解码文本，展示交给 tool-web。请求不携带浏览器 cookie 或环境凭证。未实现私有网络与 SSRF 防护；能碰到敏感内部目标的环境不要启用本提供方。"""
+"""ctx.web 的安全 HTTP(S) 检索：校验 URL、只跟随同源重定向、强制时间与体积上限、分类并解码文本，呈现交给 tool-web。请求不携带浏览器 cookie 或环境凭证。未实现私有网络与 SSRF 防护；能碰到敏感内部目标的环境不要启用本提供方。"""
 import threading#中止监视线程
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as HTTP异常#HTTP 客户端与传输异常
 from urllib.parse import urlunparse as 拼回网址#把解析结果拼回绝对串

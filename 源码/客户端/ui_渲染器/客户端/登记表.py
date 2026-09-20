@@ -201,7 +201,7 @@ class 槽登记表(服务):
             def 停用():
                 """失败调用方永久退役注入。"""
                 if 已停[0] is True:#已停
-                    return#结束
+                    return
                 已停[0]=True#标记停用
                 退订箱[0]()#退订声明
                 拆除=活跃[0]#当前 disposer
@@ -224,7 +224,7 @@ class 槽登记表(服务):
                 if 旧 is not None:#有旧
                     旧()#卸旧
                 if 规格 is None:#声明已去
-                    return#结束
+                    return
                 拆除效果=上下文.副作用(回调,'slots.inject('+repr(键)+'): declaration')#嵌套副作用
                 def 卸声明效果():
                     """卸嵌套 effect。"""
@@ -244,7 +244,7 @@ class 槽登记表(服务):
                         码=None#无
                     停用()#停用
                     if 码=='INACTIVE_EFFECT':#fiber 已死
-                        return#结束
+                        return
                     raise#异步再抛由宿主
 
             退订箱[0]=自身._core.订阅声明(键,变更)#订声明
@@ -414,7 +414,7 @@ class 槽登记表(服务):
         def 拆除器():
             """幂等卸核心并释引用。"""
             if 已卸[0] is True:#已卸
-                return#结束
+                return
             已卸[0]=True#标记
             拆除()#卸核心
             if 存储 is not None:#有
@@ -446,7 +446,7 @@ class 槽登记表(服务):
         def 拆除器():
             """幂等卸核心并释轴。"""
             if 已卸[0] is True:#已卸
-                return#结束
+                return
             已卸[0]=True#标记
             拆除()#卸核心
             自身._factoryStores.pop(定义,None)#删工厂轴
@@ -528,11 +528,8 @@ class 槽登记表(服务):
         if 记录 is None:#首遇
             句柄=声明()#铸造句柄
             规格=句柄.spec#规格
-            if isinstance(规格,dict):#dict 规格
-                if 'persist' in 规格:#独占不得持久
-                    raise 槽装配错误('exclusive store for factory "'+str(定义['name'])+'" cannot declare persistence')#装配失败
-            elif hasattr(规格,'persist'):#对象规格有 persist（对齐 !== undefined）
-                raise 槽装配错误('exclusive store for factory "'+str(定义['name'])+'" cannot declare persistence')#装配失败
+            if isinstance(规格,dict) and 'persist' in 规格:
+                raise 槽装配错误('exclusive store for factory "'+str(定义['name'])+'" cannot declare persistence')
             记录={'handle':句柄,'instances':{},'retainers':0}#新记录
             出现表[出现]=记录#写入
         实例表=记录['instances']#实例
@@ -561,11 +558,11 @@ class 槽登记表(服务):
         def 拆除器():
             """减保留；归零卸挂载。"""
             if 已释[0] is True:#已释
-                return#结束
+                return
             已释[0]=True#标记
             记录['retainers']-=1#减保留
             if 记录['retainers']!=0:#仍有持有
-                return#结束
+                return
             轴['mounted'].pop(出现,None)#卸挂载
         return 拆除器#返回
 
@@ -583,15 +580,15 @@ class 槽登记表(服务):
         """在轴上绑定（或再引用）句柄。"""
         if 句柄 not in 自身._stores:#新建
             自身._stores[句柄]={'scope':作用域,'refs':1,'instances':{}}#首引用
-            return#结束
+            return
         自身._stores[句柄]['refs']+=1#再引用
 
     def _拆除(自身,句柄):
         """最后持有者卸载丢掉记录。"""
         if 句柄 not in 自身._stores:#无记录
-            return#结束
+            return
         记录=自身._stores[句柄]#轴记录
         记录['refs']-=1#减引用
         if 记录['refs']!=0:#仍有持有者
-            return#结束
+            return
         del 自身._stores[句柄]#删记录

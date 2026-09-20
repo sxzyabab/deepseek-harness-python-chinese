@@ -1,6 +1,4 @@
 """浏览器安全的 `@file` 词法，终端与 Web 客户端共享。
-
-对齐上游 `file-reference/src/grammar.ts`。
 """
 import re#正则
 from .类型 import 文件引用候选字段#候选字段约定

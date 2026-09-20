@@ -1,4 +1,4 @@
-"""面向模型的字面量编辑，默认要求唯一匹配。它从单意图槽取得可选守卫，不经单独 stat 调用 ctx.fs.editText，然后记录观察到的版本；没有策略表示无条件原子编辑。对齐上游 tool-fs/src/edit.ts。"""
+"""面向模型的字面量编辑，默认要求唯一匹配。它从单意图槽取得可选守卫，不经单独 stat 调用文件系统的编辑文本，然后记录观察到的版本；没有策略表示无条件原子编辑。"""
 from ...内核.工具 import 定义工具#导入工具定义
 from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
 from .错误 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
@@ -59,8 +59,8 @@ def 应用编辑工具(上下文,沙箱):#注册 edit 工具
         if 替换全部 is None:#显式null当缺省
             替换全部=False#缺省否
         return [{'type':'text','text':格式化编辑输出(值['path'],替换全部)}]#确认句
-    def 呈现元数据(参数,值):#结果展示用的 diff meta
-        """结果展示用的 diff meta。"""
+    def 呈现元数据(参数,值):#结果呈现用的 diff meta
+        """结果呈现用的 diff meta。"""
         差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(参数['file_path'],值['before'],值['after'])]#只保留展示字段
         return {'diffs':差异列表}#diff meta
     def 无条件意图():#裸默认无条件编辑
@@ -121,7 +121,7 @@ def 应用编辑工具(上下文,沙箱):#注册 edit 工具
                 },#properties结束
             },#schema结束
             'render':渲染,#模型可见确认句
-            'presentationMeta':呈现元数据,#结果展示用的diff meta
+            'presentationMeta':呈现元数据,#结果呈现用的diff meta
         },#output结束
         'execute':执行,#执行编辑
         'presentCall':呈现调用,#调用时diff卡片

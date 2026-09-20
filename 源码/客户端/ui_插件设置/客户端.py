@@ -8,12 +8,12 @@ from .出厂卡片 import 终端卡片,智能体循环卡片,网页搜索卡片#
 from .字段 import 取值字段,密钥字段#字段控件
 
 __all__=[#仅中文公开名
-    '注入','应用','插件设置分区','可配置插件页签',
+    '依赖','应用','插件设置分区','可配置插件页签',
     '终端卡片','智能体循环卡片','网页搜索卡片','取值字段','密钥字段',
     '命名空间','中文','英文',
-]#公开面结束
+]
 
-注入=['slots','locale','connection','remote','settingsScope']#依赖
+依赖=['slots','locale','connection','remote','settingsScope']#依赖
 
 def 解析槽标签(标签):#解析槽位标签
     """字符串或 thunk。"""
@@ -21,7 +21,7 @@ def 解析槽标签(标签):#解析槽位标签
         return ''#空串
     if callable(标签):#thunk
         结果=标签()#调用
-    return 结果 if 结果 is not None else ''#空则空串
+        return 结果 if 结果 is not None else ''#空则空串
     return str(标签)#字符串
 
 def 应用(上下文):#安装插件设置浏览器半边
@@ -136,5 +136,5 @@ def 应用(上下文):#安装插件设置浏览器半边
         return 拆除#拆除器
     上下文.slots.inject('settings.plugin.item',登记出厂卡)#等卡片槽
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

@@ -2,11 +2,11 @@ from ...存储 import 通知订阅者#订阅者通知
 from .会话提供方 import 渲染会话区域#SessionProvider 渲染语义
 
 __all__=[#仅中文公开名
-    '注入','应用','会话界面','会话错误','待处理交互基座','标准钩子属性名',
+    '依赖','应用','会话界面','会话错误','待处理交互基座','标准钩子属性名',
     '内置源','相同待处理交互','相同会话状态',
-]#公开面结束
+]
 
-注入=['sessions','slots','remote']#所需的 Controller、渲染器与远程服务
+依赖=['sessions','slots','remote']#所需的 Controller、渲染器与远程服务
 
 def 标准钩子属性名(名称):#钩子到标准 prop 名
     """`session` → `useSession`。"""
@@ -195,7 +195,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
     def __init__(自身,上下文,会话面):#构造服务
         """登记服务名 uiSession。"""
         自身.ctx=上下文#Cordis 上下文
-        自身.sessions=会话面#会话对象层
+        自身.sessions=会话面#会话层
         自身.descriptors=[{**内置源,'resolve':内置解析}]#始终含内置源
         自身.bindings={}#按拥有方缓存物化绑定
         自身.absent=创建绑定源(自身.物化缺席())#先物化缺席源
@@ -534,5 +534,5 @@ def 应用(上下文):#浏览器侧安装入口
     })#根贡献结束
     上下文.slots.installScope('session',服务.adapter)#安装 session 作用域
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

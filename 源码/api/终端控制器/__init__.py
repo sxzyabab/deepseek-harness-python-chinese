@@ -1,15 +1,15 @@
 import re,threading#身份形态与拆除线程
-from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段,列表字段#配置
+from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段,列表字段
 from ...依赖.工具 import 聚合错误#拆除失败
 from ...内核.作用域 import 操作任务#分配任务
-from ...typert.协议 import 远程服务,远程 as _远程#Remote
+from ...typert.协议 import 远程服务,远程 as _远程
 from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
 from .外壳 import 发现外壳,解析外壳#壳
 from .浏览器终端 import 浏览器终端#PTY 视图
 from .保持 import 终端保持#保持与回收
 from .类型 import 远程错误#限额与身份
 
-__all__=['配置','终端控制器']#仅中文公开名
+__all__=['依赖','默认','配置','终端控制器']
 
 配置={#部署限额与可选壳剖面
     'shellCandidates':列表字段(字符串字段(最小长度=1),默认值=['zsh','bash','fish','pwsh','powershell','cmd']),#候选
@@ -23,9 +23,9 @@ __all__=['配置','终端控制器']#仅中文公开名
     'unattendedTimeoutMs':自然数字段(默认值=7200000),#无人值守超时
     'activityPollIntervalMs':正整数字段(默认值=30000),#活动轮询
     'cleanupRetryMs':正整数字段(默认值=60000),#清理重试
-}#配置结束
+}
 
-身份形态=re.compile(r'^[\w-]{1,128}$',re.ASCII)#终端/附着 id
+身份形态=re.compile(r'^[\w-]{1,128}\Z',re.ASCII)#终端/附着 id
 
 def _流方法(方法):#标流式 Remote
     """mode=stream。"""
@@ -35,12 +35,12 @@ def _流方法(方法):#标流式 Remote
 class 终端控制器(远程服务):#会话范围浏览器终端
     """类型化 Remote 控制短暂的会话终端进程。"""
     def __init__(自身,上下文,配置值):#构造
-        """挂拆除；不注入 sessionProjections。"""
+        """挂拆除；不依赖 sessionProjections。"""
         super().__init__(上下文,'terminalController',{'namespace':'terminal'})#登记
-        自身.配置值=配置值 if 配置值 is not None else {}#配置
+        自身.配置值=配置值 if 配置值 is not None else {}
         自身.拥有者={}#会话 id → 拥有
         自身.寿命=中止控制器()#寿命
-        def 拆除效果():#fiber
+        def 拆除效果():
             """拆全部拥有者。"""
             def 清理():#拆除器
                 """聚合失败。"""
@@ -49,7 +49,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                 for 标识,拥有 in list(自身.拥有者.items()):#逐个
                     try:#拆
                         自身._拆除拥有者(标识,拥有)#拆
-                    except BaseException as 错误:#失败
+                    except BaseException as 错误:
                         失败.append(错误)#收
                 if len(失败)>0:#有
                     raise 聚合错误(失败,'Browser terminal cleanup failed')#聚合
@@ -191,7 +191,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             try:#等
                 进行.等待()#等
             except BaseException:#创建失败仍拥有已分配进程
-                pass#吞
+                pass
         终端=拥有['terminals'].get(标识)#已提交
         if 终端 is not None:#有
             终端.关闭()#关
@@ -224,14 +224,14 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                     """委托。"""
                     自身._拆除拥有者(标识,持有)#拆
                 return 清理#拆除器
-            智能体.ctx.副作用(拆除效果,'terminal-controller.owner')#挂
-        return 拥有#拥有
+            智能体.ctx.副作用(拆除效果,'terminal-controller.owner')
+        return 拥有
 
     def _拆除拥有者(自身,标识,拥有):#一次
         """等进行中创建，关终端，杀残留。"""
         if 拥有['cleanup'] is not None:#已开始
             拥有['cleanup'].wait()#等
-            return#结束
+            return
         完成=threading.Event()#完成
         拥有['cleanup']=完成#记下
         拥有['lifetime'].中止(远程错误('gateway/internal','Terminal Session owner disposed',{}))#中止
@@ -240,17 +240,17 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                 try:#等
                     任务.等待()#等
                 except BaseException:#忽略
-                    pass#吞
+                    pass
             失败=[]#错误
             for 终端 in list(拥有['terminals'].values()):#终端
                 try:#关
                     终端.关闭()#关
-                except BaseException as 错误:#失败
+                except BaseException as 错误:
                     失败.append(错误)#收
             for 分配 in list(拥有['allocations'].values()):#残留
                 try:#拆除保持
                     分配['cleanup'].dispose()#拆
-                except BaseException as 错误:#失败
+                except BaseException as 错误:
                     失败.append(错误)#收
             if len(失败)>0:#有
                 拥有['cleanup']=None#可重试
@@ -285,7 +285,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             raise 远程错误('gateway/bad-request','Terminal dimensions exceed the configured limits',{})#拒绝
 
     def _执行环境(自身,智能体):#Agent 上下文上的提供方
-        """智能体上下文选择执行提供方，不注入消费服务。"""
+        """智能体上下文选择执行提供方，不依赖消费服务。"""
         子进程=智能体.ctx.获取服务('subprocess',False)#子进程
         沙箱政策=智能体.ctx.获取服务('sandboxPolicy',False)#政策
         if 子进程 is None or 沙箱政策 is None:#缺
@@ -295,26 +295,26 @@ class 终端控制器(远程服务):#会话范围浏览器终端
     def _分配任务(自身,智能体,拥有,请求,信号):#后台 spawn
         """返回可等待任务。"""
         任务=操作任务()#任务
-        def 跑():#线程
+        def 在线程执行():#线程
             """spawn。"""
             try:#分配
                 值=自身._生成(智能体,拥有,请求,信号)#终端
                 任务.兑现(值)#完
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 任务.拒绝(错误)#拒绝
-        threading.Thread(target=跑).start()#跑
+        threading.Thread(target=在线线程执行).start()#跑
         return 任务#任务
 
     def _生成(自身,智能体,拥有,请求,信号):#spawnTerminal
         """失败则经 TerminalRetention 清理并可能留下 allocations。"""
         环境=自身.environment(智能体,信号)#环境
         执行=自身._执行环境(智能体)#提供方
-        if 请求.get('shellPath') is None:#默认
-            壳=解析外壳(执行['subprocess'],自身.配置值.get('shell'),信号)#解析
+        if 'shellPath' not in 请求:#默认
+            壳=解析外壳(执行['subprocess'],自身.配置值.get('shell'),信号)
         else:#指定
             列表=自身.shells(智能体,信号)#发现
             壳=None#未命中
-            for 项 in 列表:#查找
+            for 项 in 列表:
                 if 项['path']==请求['shellPath']:#命中
                     壳=项#记下
                     break#停
@@ -344,7 +344,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         try:#提交
             若已中止则抛出(信号)#中止
             return 浏览器终端(句柄,信息,自身.配置值.get('scrollback',1000),自身.配置值.get('maxBufferedBytes',2*1024*1024))#终端
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             def 观察():
                 """活动。"""
                 return 句柄.检查活动() if hasattr(句柄,'检查活动') else 句柄.inspectActivity()#活动
@@ -358,15 +358,18 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                 print('Browser terminal allocation cleanup failed',清理错误)#日志
             清理=终端保持(自身.配置值,观察,终止,失败汇)#保持清理
             拥有['allocations'][请求['id']]={
-                'info':{**信息,'state':'failed','error':str(错误)},#失败信息
+                'info':{**信息,'state':'failed','error':str(错误)},
                 'cleanup':清理,#清理
             }#残留
             try:#关
                 清理.close()#关
-            except BaseException as 清理错误:#失败
+            except BaseException as 清理错误:
                 raise 聚合错误([错误,清理错误],'Terminal allocation cleanup failed')#聚合
             raise 错误#原样
 
-inject=['subprocess','sandboxPolicy','typert']#框架槽
+依赖=['subprocess','sandboxPolicy','typert']
+默认=终端控制器
 Config=配置#框架槽
-default=终端控制器#框架槽
+default=默认#框架槽
+inject=依赖#框架槽
+终端控制器.inject=依赖#框架槽

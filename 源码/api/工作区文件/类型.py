@@ -1,7 +1,7 @@
 """`workspaceFiles` Remote 命名空间的线路类型说明。
 
-对齐上游 `workspace-files/src/types.ts`。仅类型与错误码契约：运行时 Remote 错误类供宿主与客户端共用。
-跨线值为 dict；公开面仅中文名。
+仅类型与错误码契约：运行时 Remote 错误类供宿主与客户端共用。
+跨线值为 dict。
 
 两套路经词汇离开本包，每个方法只用其中一套：
 - `read` / `readBytes` / `stat` / `changes` 以文件系统执行世界的绝对路径命名文件；
@@ -38,7 +38,7 @@ __all__=[#仅中文公开名
 
 
 class 远程错误(Exception):
-    """对齐上游 RemoteError。附加信息做成属性；消息原样英文。"""
+    """远程错误。附加信息做成属性；消息原样英文。"""
 
     def __init__(自身,码,消息,详情=None,原因=None):
         """记下 code/message/details。"""

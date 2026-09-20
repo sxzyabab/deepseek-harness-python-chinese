@@ -1,8 +1,5 @@
-"""面向模型的 `lsp` 工具，叠在 `ctx.lsp` 之上。
-
-对齐上游 `@deepseek-ai/dsh-tool-lsp`。公开面仅中文名。
-"""
-from ...依赖.schemastery import 自然数字段#配置字段
+"""面向模型的 `lsp` 工具，叠在 `ctx.lsp` 之上。"""
+from ...依赖.schemastery import 自然数字段
 from ...内核.工具 import 定义工具#工具定义
 from ..语言服务器 import 语言服务器错误#LSP 错误
 from .呈现 import (#呈现与解析
@@ -10,8 +7,9 @@ from .呈现 import (#呈现与解析
     解析语言服务器参数,格式化位置列表,格式化悬停,呈现语言服务器调用,会话工作目录,
 )#呈现面
 
-名称='tool-lsp'#Cordis 插件名
-注入=['tools','lsp','systemPrompt']#依赖工具、LSP 与系统提示
+包名='@deepseek-ai/dsh-tool-lsp'
+名称='tool-lsp'
+依赖=['tools','lsp','systemPrompt']
 默认语言服务器工具超时毫秒=60000#默认工具超时
 语言服务器提示文本=('Use search/read for ordinary navigation. Use lsp when textual matches are ambiguous or before a change requires precise definitions, implementations, or references. '#提示前段
     +'Positions are one-based line and character (UTF-16) at the cursor; an off-symbol position may return no results. findReferences always includes the declaration.')#提示后段
@@ -19,11 +17,11 @@ from .呈现 import (#呈现与解析
     'maxLocations':自然数字段(最小=1,默认值=默认最大位置数),#位置上限
     'maxResultChars':自然数字段(最小=1,默认值=默认最大结果字符数),#结果字符上限
     'timeoutMs':自然数字段(最小=1,默认值=默认语言服务器工具超时毫秒),#超时预算
-}#配置结束
+}
 
-__all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '名称','注入','配置','默认语言服务器工具超时毫秒','语言服务器提示文本','应用',
-]#公开面结束
+__all__=[
+    '包名','名称','依赖','应用','默认','配置','默认语言服务器工具超时毫秒','语言服务器提示文本',
+]
 
 def 断言正整数(名称,值):
     """配置入口正整数校验，排除布尔。加载期大声失败。"""
@@ -38,7 +36,7 @@ def 应用(上下文,配置值=None):
         'maxLocations':配置值['maxLocations'] if 'maxLocations' in 配置值 else 默认最大位置数,#位置上限
         'maxResultChars':配置值['maxResultChars'] if 'maxResultChars' in 配置值 else 默认最大结果字符数,#字符上限
         'timeoutMs':配置值['timeoutMs'] if 'timeoutMs' in 配置值 else 默认语言服务器工具超时毫秒,#超时
-    }#配置结束
+    }
     断言正整数('maxLocations',已解析['maxLocations'])#校验
     断言正整数('maxResultChars',已解析['maxResultChars'])#校验
     断言正整数('timeoutMs',已解析['timeoutMs'])#校验
@@ -98,8 +96,9 @@ def 应用(上下文,配置值=None):
     })#defineTool 结束
     上下文.tools.登记(工具)#登记
 
-name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
-Config=配置#Cordis 配置槽
-apply=应用#Cordis 入口槽
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+Config=配置#框架槽
+apply=应用#框架槽
+default=默认#框架槽

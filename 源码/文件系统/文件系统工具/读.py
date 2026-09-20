@@ -1,4 +1,4 @@
-"""面向模型的 UTF-8 读取。它做一次提供方 stat 以取得类型、路由与观察版本，对流式大文件或大小未知的文件做流式读取，渲染有界窗口，然后发出观察。对齐上游 tool-fs/src/read.ts。"""
+"""面向模型的 UTF-8 读取。它做一次提供方 stat 以取得类型、路由与观察版本，对流式大文件或大小未知的文件做流式读取，渲染有界窗口，然后发出观察。"""
 import math,re#有限数判定与读信封正文提取
 from ...内核.工具 import 定义工具#导入工具定义
 from .读渲染 import 构建窗口,格式化读输出,路径语言,从元数据取读窗口#导入读窗口与展示
@@ -7,12 +7,12 @@ from .错误 import 工具文件系统错误#本包异常
 
 读行数上限=2000#默认读行数上限
 流最小字节数=10*1024*1024#默认10MiB起流式读取
-读信封正文=re.compile(r'^<path>[^\n]*</path>\n<type>file</type>\n<content>\n([\s\S]*)\n</content>\Z')#抽出信封内正文；行尾锚点对齐 JS $
+读信封正文=re.compile(r'^<path>[^\n]*</path>\n<type>file</type>\n<content>\n([\s\S]*)\n</content>\Z')#抽出信封内正文；\Z 不吃末尾换行
 读提示文本=(#把 read 定位为带行号检视的稳定系统提示词指引（字面量不翻译）
     'Use the read tool — not shell commands like cat — to inspect text files. Results include line numbers. Use offset and limit to continue reading large files.'#用read而不是cat，带行号与分页
 )#读提示文本结束
 def 解析正整数(值,名):#解析正整数参数
-    """把工具参数收成正整数。排除布尔，有限整值收成 int；消息键名保持上游英文。"""
+    """把工具参数收成正整数。排除布尔；消息键名保持英文线协议。"""
     if isinstance(值,bool):#布尔不是整数
         raise 工具文件系统错误(名+' must be a positive integer')#参数非法
     if isinstance(值,int) and 值>=1:#已经是正整数
@@ -57,8 +57,8 @@ def 应用读工具(上下文,上限):#注册 read 工具
         if 因字节截断:#字节截断
             结果['truncatedByBytes']=True#标记
         return [{'type':'text','text':格式化读输出(值['path'],结果)}]#单个文本块
-    def 呈现元数据(参数,值):#结果展示用的 read meta
-        """结果展示用的 read meta。"""
+    def 呈现元数据(参数,值):#结果呈现用的 read meta
+        """结果呈现用的 read meta。"""
         语言=路径语言(值['path'])#按扩展名推导高亮语言
         元数据={#meta载荷
             'path':值['path'],#路径
@@ -171,7 +171,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
                 },#properties结束
             },#schema结束
             'render':渲染,#渲染模型可见信封
-            'presentationMeta':呈现元数据,#结果展示用的read meta
+            'presentationMeta':呈现元数据,#结果呈现用的read meta
         },#output结束
         'isConcurrencySafe':并发安全,#读并发安全
         'execute':执行,#执行读取

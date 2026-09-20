@@ -1,6 +1,6 @@
 """构造一条已配置路由注册进适配器 Models 集合的 pi-ai Provider。
 
-对齐上游 `llm-pi-ai/src/provider.ts`。公开面仅中文名；无英文别名。
+公开面仅中文名；无英文别名。
 """
 import pi_ai#外部依赖胶水（pi-ai SDK）
 from .目录 import 目录提供方,目录错误#已安装目录提供方查找与目录错误
@@ -8,11 +8,18 @@ from .模型 import 创建提供方#静态提供方工厂
 
 __all__=('受支持协议','线束密钥认证','路由认证','复用目录提供方','构建提供方')#仅中文公开名
 
-# Python pi_ai 无 api/*.lazy 子路径；顶层工厂与上游惰性模块同为 createProvider 用的协议实现。
+def 协议工厂(协议名):
+    """调用时按 api 名取 ProviderStreams。"""
+    def 工厂():
+        """取出已注册协议实现。"""
+        return pi_ai.get_api_provider(协议名)#按 api 名取实现
+    return 工厂#可调用工厂
+
+# Python pi-py-ai 无 api/*.lazy；用 get_api_provider 充当 createProvider 用的协议实现。
 协议表={
-    'openai-completions':pi_ai.openAICompletionsApi,#OpenAI Completions
-    'openai-responses':pi_ai.openAIResponsesApi,#OpenAI Responses
-    'anthropic-messages':pi_ai.anthropicMessagesApi,#Anthropic Messages
+    'openai-completions':协议工厂('openai-completions'),#OpenAI Completions
+    'openai-responses':协议工厂('openai-responses'),#OpenAI Responses（本端未注册则构建时失败）
+    'anthropic-messages':协议工厂('anthropic-messages'),#Anthropic Messages
 }#可手声明的协议表
 
 def 受支持协议():
@@ -63,7 +70,7 @@ def 复用目录提供方(基,规格):
         return 基.stream(模型,上下文,选项)#委托流
     def 简化流(模型,上下文,选项):
         """委托目录提供方简化流。"""
-        return 基.streamSimple(模型,上下文,选项)#委托简化流
+        return 基.stream_simple(模型,上下文,选项)#委托简化流
     提供方={
         'id':规格['provider'],#路由键
         'name':规格['displayName'],#展示名
@@ -93,12 +100,20 @@ def 构建提供方(规格):
             'llm-pi-ai: provider "'+规格['provider']+'" names api "'+str(协议名)+'", which this build cannot serve;'
             +' supported protocols are '+', '.join(受支持协议()),
         )#无法服务；目录错误可被延迟校验收住
+    try:#取出协议实现
+        协议实现=工厂()#惰性加载的协议实现
+    except KeyError:#pi-py-ai 未注册该 api
+        协议名=规格['api'] if 'api' in 规格 else None#诊断用协议名
+        raise 目录错误(
+            'llm-pi-ai: provider "'+规格['provider']+'" names api "'+str(协议名)+'", which this build cannot serve;'
+            +' supported protocols are '+', '.join(受支持协议()),
+        )#无法服务
     构造={
         'id':规格['provider'],#路由键
         'name':规格['displayName'],#展示名
         'auth':路由认证(规格,目录),#解析后的认证；目录可能是 None
         'models':规格['models'],#已物化模型
-        'api':工厂(),#惰性加载的协议实现
+        'api':协议实现,#已取出的协议实现
     }#从协议表构建
     if 'baseURL' in 规格 and 规格['baseURL'] is not None:#有端点才写进构造，缺席让 createProvider 用协议默认
         构造['baseUrl']=规格['baseURL']#有端点才带上，不把 None 传给 SDK

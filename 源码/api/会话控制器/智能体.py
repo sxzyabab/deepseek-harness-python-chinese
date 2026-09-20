@@ -1,7 +1,4 @@
-"""API 会话智能体激活与模型选择策略。
-
-对齐上游 `session-controller/src/agent.ts`。公开面仅中文名。
-"""
+"""API 会话智能体激活与模型选择策略。"""
 import os#目录
 from threading import Event as 同步事件,Lock as 互斥锁#飞行结算与串行互斥
 from .远程错误与并发 import 远程错误,远程错误消息#远程错误
@@ -9,7 +6,7 @@ from .远程错误与并发 import 远程错误,远程错误消息#远程错误
 __all__=[#仅中文公开名
     '会话未找到','子智能体会话所有权','cwd冲突','预设冲突',
     '有子智能体所有者','子智能体所有权错误','检视会话','会话智能体控制器',
-]#结束
+]
 
 class 会话未找到(Exception):
     """冷会话未找到。"""
@@ -48,7 +45,7 @@ def 有子智能体所有者(上下文,头,智能体):
     父标识=头['parentSession'] if 'parentSession' in 头 else None#父会话
     if 父标识 is None or 智能体 is None:#无父或无智能体
         return False#否
-    父=上下文.agents.get(父标识) if hasattr(上下文.agents,'get') else 上下文.agents.获取(父标识)#父智能体
+    父=上下文.agents.获取(父标识)#父智能体
     if 父 is None:#无父
         return False#否
     拥有=getattr(上下文.agents,'isOwnedBy',None) or getattr(上下文.agents,'是否被拥有',None)#拥有查询
@@ -56,7 +53,7 @@ def 有子智能体所有者(上下文,头,智能体):
 
 def 子智能体所有权错误(会话标识):
     """构建 session/agent-busy 失败。"""
-    return 远程错误('session/agent-busy','session "'+str(会话标识)+'" is owned by subagent routing',{'reason':'use subagent delivery for this child session'})#失败
+    return 远程错误('session/agent-busy','session "'+str(会话标识)+'" is owned by subagent routing',{'reason':'use subagent delivery for this child session'})
 
 def 检视会话(上下文,会话标识,信号=None):
     """不修复、不恢复、不发布地检视冷会话。"""
@@ -102,7 +99,7 @@ class 会话智能体控制器:
     def _查找智能体(自身,会话标识):
         """typert agent lookup。"""
         结果=自身.解析智能体(会话标识)#解析
-        if isinstance(结果,dict) and 'error' in 结果:#失败
+        if isinstance(结果,dict) and 'error' in 结果:
             raise 结果['error']#抛出
         return 结果['agent']#智能体
 
@@ -141,7 +138,7 @@ class 会话智能体控制器:
                     if 自身._恢复中.get(会话标识) is 条目:#仍是本条目
                         自身._恢复中.pop(会话标识,None)#移除
         条目['完成'].wait()#等结算
-        if 条目['错误'] is not None:#失败
+        if 条目['错误'] is not None:
             错误=条目['错误']#取出
             if isinstance(错误,会话未找到):#未找到
                 return {'error':远程错误('session/not-found',str(错误),{'sessionId':会话标识})}#映射
@@ -153,7 +150,7 @@ class 会话智能体控制器:
             竞态会话=自身._上下文.sessions.get(会话标识)#附着竞态
             if 竞态会话 is not None and 有子智能体所有者(自身._上下文,竞态会话.header,None):#子智能体
                 return {'error':子智能体所有权错误(会话标识)}#拒绝
-            if getattr(错误,'name',None)=='SessionAlreadyOwnedError' or type(错误).__name__=='SessionAlreadyOwnedError':#写者占用
+            if getattr(错误,'name',None)=='SessionAlreadyOwnedError':#写者占用
                 return {'error':远程错误('session/writer-held',远程错误消息(错误),{'sessionId':会话标识})}#映射
             return {'error':远程错误('gateway/internal','resume failed for session "'+str(会话标识)+'": '+远程错误消息(错误),{})}#内部
         发布=自身._活智能体(会话标识)#共享恢复后再查存活所有权
@@ -186,7 +183,7 @@ class 会话智能体控制器:
                     if 自身._创建中.get(会话标识) is 条目:#仍是本条目
                         自身._创建中.pop(会话标识,None)#移除
         条目['完成'].wait()#等结算
-        if 条目['错误'] is not None:#失败
+        if 条目['错误'] is not None:
             raise 条目['错误']#原样抛
         智能体=条目['结果']#结果
         if 有子智能体所有者(自身._上下文,智能体.session.header,智能体):#子智能体
@@ -211,7 +208,7 @@ class 会话智能体控制器:
 
     def _活智能体(自身,会话标识):
         """若已附着则返回智能体或所有权错误。"""
-        智能体=自身._上下文.agents.get(会话标识)#查找
+        智能体=自身._上下文.agents.get(会话标识)
         if 智能体 is None:#无
             return None#无
         if 有子智能体所有者(自身._上下文,智能体.session.header,智能体):#子智能体

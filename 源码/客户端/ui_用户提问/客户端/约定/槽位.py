@@ -2,7 +2,7 @@ __all__=[#仅中文公开名
     '计划审阅于',
     '待答提问',
     '提问错误',
-]#公开面结束
+]
 
 def 计划审阅于(问题列表):#把请求收窄为可渲染的计划审阅
     """把请求收窄为可渲染的计划审阅，或返回 None 交给通用提问流。
@@ -15,9 +15,9 @@ def 计划审阅于(问题列表):#把请求收窄为可渲染的计划审阅
     if 问题列表 is None or len(问题列表)!=1:#必须恰好一条问题
         return None#交给通用流
     题目=问题列表[0]#唯一那条问题
-    if 'intent' not in 题目:#无展示意图
+    if 'intent' not in 题目:#无呈现意图
         return None#交给通用流
-    意图=题目['intent']#展示意图
+    意图=题目['intent']#呈现意图
     if 意图 is None or 意图['kind']!='plan-review' or 'detail' not in 题目 or 题目['detail'] is None:#非计划审阅或无 detail
         return None#交给通用流
     if 'multiSelect' in 题目 and 题目['multiSelect'] is True:#多选无法用两按钮表达

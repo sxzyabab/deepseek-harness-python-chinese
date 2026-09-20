@@ -9,7 +9,7 @@ from .权限 import 目标工具执行,要求直接人类,完成权限#执行时
 from .收尾 import 渲染收尾上下文#终态收尾指令
 
 名称='tool-goal'#Cordis插件名
-注入=['agents','goals','tools','systemPrompt','sessionProjections']#依赖智能体、目标、工具、系统提示与会话投影
+依赖=['agents','goals','tools','systemPrompt','sessionProjections']#依赖智能体、目标、工具、系统提示与会话投影
 更新动作=('edit','pause','resume','complete','blocked')#update_goal 的 action 枚举
 创建描述=(#create_goal 面向模型的说明
     'Create one persisted same-session completion goal when the current direct human request '#从人类请求推断长任务
@@ -159,7 +159,7 @@ def 渲染目标值(_参数,值):
 }#输出结束
 
 def 呈现(标题,种类,原文=None):
-    """目标工具共用的、只依赖 args 的挂起展示。"""
+    """目标工具共用的、只依赖 args 的挂起呈现。"""
     视图={'card':'generic','title':标题,'kind':种类}#通用卡片
     if 原文 is not None:#有原文
         视图['rawInput']=原文#可选原文
@@ -344,10 +344,10 @@ def 应用(上下文,配置值):
     }))#结束 update_goal
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
 default=应用#默认导出
 默认=应用#中文默认导出
 
-__all__=['名称','注入','应用','默认']#公开面
+__all__=['名称','依赖','应用','默认']#公开面

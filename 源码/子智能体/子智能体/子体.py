@@ -1,5 +1,6 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from .深度 import 委托深度于,断言子智能体最大深度#导入委托深度读取
+from ...内核.系统提示词 import 人设段落名,人设顺序#遮蔽部署人设须同名同序
+from .深度 import 委托深度于#导入委托深度读取
 
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
 
@@ -85,7 +86,7 @@ def 应用子体组合(子上下文,父,组合):
     子上下文.systemPrompt.context({'name':'subagent:delegation','order':120,'text':子智能体委托上下文})#登记委托声明
     人设=组合['persona'] if isinstance(组合,dict) and 'persona' in 组合 else None#每子体人设
     if 人设 is not None:#有每子体人设
-        子上下文.systemPrompt.section({'name':'deployment:persona','order':0,'text':人设})#遮蔽部署人设
+        子上下文.systemPrompt.section({'name':人设段落名,'order':人设顺序,'text':人设})#遮蔽部署人设
     工具过滤=组合['toolFilter'] if isinstance(组合,dict) and 'toolFilter' in 组合 else None#工具过滤
     if 工具过滤 is not None:#有工具限制
         子上下文.tools.restrict(工具过滤)#应用工具限制

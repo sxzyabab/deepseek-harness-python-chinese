@@ -2,12 +2,12 @@
 import json#元数据快照序列化
 包名='@deepseek-ai/dsh-workflow'#本包在不变量注册表中的名字
 名称='workflow-invariant'#配套插件名
-注入=['invariants']#依赖不变量服务
+依赖=['invariants']#依赖不变量服务
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','安装','应用']#仅中文公开名
 
 def 编码片段(值):#错误消息里的 JSON 片段
-    """把值编成 JSON 片段，对齐 TypeScript JSON.stringify。"""
+    """把值编成紧凑 JSON 片段。"""
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
 
 def 元数据快照(元数据):#把元数据打成可比较的 JSON 快照
@@ -54,10 +54,10 @@ def 校验工作流结束(追踪,结果,失败):#校验 workflow/end 与追踪�
     elif 'error' not in 结果 or (not isinstance(结果['error'],str)):#非完成必须带字符串 error
         失败('workflow/end error must be absent exactly for completed runs')#error 字段与停止原因不匹配
 
-def 安装(上下文对象,失败):#把工作流不变量装到上下文上
+def 安装(上下文,失败):#把工作流不变量装到上下文上
     """安装工作流 start/end 与子调用配对检查。"""
     追踪表={}#运行 id 到追踪的表
-    暂存开始=set()#dispatch 阶段暂存的 start 身份对象 id()（对齐上游 WeakSet；dict 不可弱引用）
+    暂存开始=set()#dispatch 阶段暂存的 start 身份对象 id()（替代 WeakSet；dict 不可弱引用）
     暂存智能体开始=set()#dispatch 阶段暂存的智能体开始对象 id()
     暂存智能体结束=set()#dispatch 阶段暂存的智能体结束对象 id()
     暂存结束=set()#dispatch 阶段暂存的运行结束对象 id()
@@ -102,7 +102,7 @@ def 安装(上下文对象,失败):#把工作流不变量装到上下文上
             结果=参数[1]#取出对外结果摘要
             校验工作流结束(追踪,结果,失败)#校验终态与追踪
             暂存结束.add(id(结果))#暂存以便正式监听提交
-    上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#全局监听派发
+    上下文.监听('internal/dispatch',内部派发,{'全局':True})#全局监听派发
 
     def 提交开始(信息,*其余):#提交运行开始追踪
         """正式监听：登记该运行的追踪。信息是 dict。"""
@@ -111,7 +111,7 @@ def 安装(上下文对象,失败):#把工作流不变量装到上下文上
             return#忽略
         暂存开始.discard(id(信息))#消费暂存
         追踪表[信息['id']]={'meta':元数据快照(信息['meta']),'agents':{},'starts':0}#登记该运行的追踪
-    上下文对象.监听('workflow/start',提交开始,{'全局':True})#全局监听运行开始
+    上下文.监听('workflow/start',提交开始,{'全局':True})#全局监听运行开始
 
     def 提交智能体开始(信息,智能体,*其余):#提交智能体开始
         """正式监听：记下尚未配对结束的调用。信息与智能体都是 dict。"""
@@ -122,7 +122,7 @@ def 安装(上下文对象,失败):#把工作流不变量装到上下文上
         追踪=取追踪(追踪表,信息,失败)#取出该运行追踪
         追踪['agents'][智能体['seq']]=智能体#记下尚未配对结束的调用
         追踪['starts']+=1#累计开始次数
-    上下文对象.监听('workflow/agent-start',提交智能体开始,{'全局':True})#全局监听智能体开始
+    上下文.监听('workflow/agent-start',提交智能体开始,{'全局':True})#全局监听智能体开始
 
     def 提交智能体结束(信息,智能体,*其余):#提交智能体结束
         """正式监听：配对完成后移除该调用。信息与智能体都是 dict。"""
@@ -131,7 +131,7 @@ def 安装(上下文对象,失败):#把工作流不变量装到上下文上
             return#忽略
         暂存智能体结束.discard(id(智能体))#消费暂存
         取追踪(追踪表,信息,失败)['agents'].pop(智能体['seq'],None)#配对完成后移除该调用
-    上下文对象.监听('workflow/agent-end',提交智能体结束,{'全局':True})#全局监听智能体结束
+    上下文.监听('workflow/agent-end',提交智能体结束,{'全局':True})#全局监听智能体结束
 
     def 提交结束(信息,结果,*其余):#提交运行结束
         """正式监听：运行结束后丢弃追踪。信息与结果都是 dict。"""
@@ -140,12 +140,12 @@ def 安装(上下文对象,失败):#把工作流不变量装到上下文上
             return#忽略
         暂存结束.discard(id(结果))#消费暂存
         追踪表.pop(信息['id'],None)#运行结束后丢弃追踪
-    上下文对象.监听('workflow/end',提交结束,{'全局':True})#全局监听运行结束
+    上下文.监听('workflow/end',提交结束,{'全局':True})#全局监听运行结束
 
-def 应用(上下文对象):#把本包不变量登记到上下文
+def 应用(上下文):#把本包不变量登记到上下文
     """注册工作流不变量配套。携带不变量服务的 Cordis 上下文。返回安装成功后该登记的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#同步登记
+    return 上下文.invariants.register(包名,安装)#同步登记
 
 name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
+inject=依赖#Cordis 依赖槽
 apply=应用#Cordis 入口槽

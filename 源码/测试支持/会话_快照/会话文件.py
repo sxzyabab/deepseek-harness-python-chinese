@@ -70,10 +70,10 @@ def 会话头版本(内容,标签):#读头版本
     行=next((候选 for 候选 in 内容.splitlines() if 候选.strip()!=''),None)#首非空行
     if 行 is None:#空
         raise Exception(f'{标签}: session fixture is empty')#空文件
-    try:#解析JSON
-        值=json.loads(行)#解析
-    except Exception as 错误:#非法JSON
-        raise Exception(f'{标签}: session header contains invalid JSON') from 错误#报错
+    try:
+        值=json.loads(行)
+    except json.JSONDecodeError as 错误:
+        raise Exception(f'{标签}: 会话头不是合法 JSON') from 错误
     if not isinstance(值,dict) or 值.get('type')!='session':#非session头
         raise Exception(f'{标签}: first record must be a Session header')#报错
     版本=值.get('version')#版本字段
@@ -88,10 +88,10 @@ def 断言会话夹具版本(名称,内容):#断言夹具版本
         raise Exception(f'not a session fixture name: {名称}')#非夹具
     首行=next((候选 for 候选 in 内容.splitlines() if 候选.strip()!=''),None)#首非空行
     if 首行 is not None:#有内容
-        try:#试解析
-            投影=json.loads(首行)#解析
-        except Exception:#非法则空
-            投影=None#放弃
+        try:
+            投影=json.loads(首行)
+        except json.JSONDecodeError:
+            投影=None
         if isinstance(投影,dict) and 投影.get('type')=='session' and 'version' not in 投影:#无version字段
             if 夹具['version']!=0:#文件名非v0
                 raise Exception(f'{名称}: a versionless projected Session header is format v0')#冲突

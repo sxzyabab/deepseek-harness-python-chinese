@@ -92,7 +92,7 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
         上下文=自身.上下文#当前
         自身.上下文=None#清空引用
         if 上下文 is not None:#有树
-            上下文.fiber.dispose().等待()#拆除插件树并等落定；cordis 光纤须显式等待
+            上下文.fiber.dispose().等待()#拆除插件树并等落定；cordis 纤程须显式等待
         自身.页.dispose()#拆除启动页
 
     def 预取立即层(自身):

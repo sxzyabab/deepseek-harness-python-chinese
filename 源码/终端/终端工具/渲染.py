@@ -4,8 +4,8 @@ from ...工具.输出保留 import 文本保留器#导入文本保留器
 截断标记='\n[output truncated]'#截断标记
 
 def 字节长(文本):#UTF-8字节长度
-    """对齐 TextEncoder.encode(...).byteLength。"""
-    return len(文本.encode('utf-8'))#按utf8计
+    """按 UTF-8 字节计长。"""
+    return len(文本.encode('utf-8'))
 
 def 保留(文本,最大字节,种类):#按头或尾保留
     """按 head 或 tail 策略压进字节上限。"""

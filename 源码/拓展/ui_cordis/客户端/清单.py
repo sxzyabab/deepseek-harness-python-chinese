@@ -1,6 +1,6 @@
 import threading#后台观察清单读取
 
-__all__=['创建清单源']#仅中文公开名
+__all__=['创建清单源']
 
 def 创建清单源(端口,报错):#创建清单源
     """行可观察对象 + refresh/retire/reset；读取单飞，reset 作废飞行中读取。"""
@@ -43,7 +43,7 @@ def 创建清单源(端口,报错):#创建清单源
             if 发出!=世代:#过期
                 return#丢
             报错(错误)#报告
-            文=str(错误) if 错误 else 'reading the cordis inventory failed'#文本
+            文=str(错误) if 错误 else '读取 Cordis 清单失败'
             发布({#失败快照
                 'rows':快照['rows'],'removed':快照['removed'],
                 'read':快照['read'],'error':文,

@@ -1,18 +1,18 @@
-"""`@deepseek-ai/dsh-terminal` 的本包拥有不变量配套。"""
+"""本包拥有的不变量配套。"""
 包名='@deepseek-ai/dsh-terminal'#本包的不变量所有权名
 名称='terminal-invariant'#配套不变量插件名
-注入=['invariants']#依赖invariants服务
+依赖=['invariants']#依赖invariants服务
 
 def 安装(子上下文=None,失败=None):#空安装器，不挂运行时检查
-    """无运行时不变量：后端与按所有者作用域的会话注册表是私有可变状态，服务既不暴露独立生命周期流，也不暴露无作用域快照。"""
-    return None#不挂运行时检查
+    """空安装：后端与按所有者作用域的会话注册表是私有可变状态，不暴露独立生命周期流或无作用域快照。"""
+    return None#登记约定传入子上下文与失败，此处忽略
 
-def 应用(上下文对象):#应用不变量配套插件
+def 应用(上下文):#应用不变量配套插件
     """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记贡献
+    return 上下文.invariants.register(包名,安装)#登记贡献
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
-apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+__all__=['包名','名称','依赖','安装','应用']
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=应用#框架槽

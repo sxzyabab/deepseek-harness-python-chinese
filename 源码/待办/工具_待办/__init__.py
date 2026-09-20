@@ -4,10 +4,10 @@ from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .类型 import 待办条目,待办状态#再导出类型面
 
-__all__=['名称','注入','配置','应用','待办条目','待办状态','待办错误']#仅中文公开名
+__all__=['名称','依赖','配置','应用','待办条目','待办状态','待办错误']#仅中文公开名
 
 名称='tool-todo'#Cordis插件名（字面量）
-注入=['tools']#依赖工具服务
+依赖=['tools']#依赖工具服务
 描述头='Record and update a structured task list for the current work. Send the ENTIRE list every call — it REPLACES the previous list (there are no partial updates, no per-item edits). Use it to plan multi-step work and show progress: add one todo per concrete step before you start. '#描述前段，字面量不翻译
 描述并行='Mark every todo being actively worked on `in_progress` — several at once when work genuinely runs in parallel (e.g. concurrent subagents or background commands), one for sequential work; while work remains, at least one task should be `in_progress`. '#并行政策句
 描述单活='Keep AT MOST ONE todo `in_progress` at a time; while work remains, exactly one active task should be `in_progress`. '#单活政策句
@@ -195,6 +195,6 @@ def 应用(上下文,配置值):#注册工具与可选投影单元
     上下文.tools.登记(待办工具)#挂到工具注册表
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口

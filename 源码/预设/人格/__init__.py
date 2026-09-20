@@ -2,7 +2,7 @@ from ...依赖.schemastery import 字符串字段,布尔字段#配置字段
 from ...内核.系统提示词 import 人设段落名,人设顺序#人设槽常量，与注册表同一出处
 
 名称='persona'#Cordis插件名（字面量）
-注入=['systemPrompt']#依赖系统提示词服务
+依赖=['systemPrompt']#依赖系统提示词服务
 配置={#人设行配置
     'text':字符串字段(可空=False),#必填人设正文
     'complete':布尔字段(默认值=False),#默认不独占
@@ -24,9 +24,9 @@ def 应用(上下文,配置值):
     if 纳入运行时 is False:#关闭运行时上下文
         上下文.systemPrompt.抑制运行时上下文()#压制动态快照
 
-__all__=['名称','注入','配置','应用','人设段落名','人设顺序']#仅中文公开名
+__all__=['名称','依赖','配置','应用','人设段落名','人设顺序']#仅中文公开名
 name=名称#Cordis 插件名
-inject=注入#Cordis 依赖声明
+inject=依赖#Cordis 依赖声明
 Config=配置#Cordis 配置模式
 apply=应用#Cordis 插件入口
 default=应用#Cordis 默认导出

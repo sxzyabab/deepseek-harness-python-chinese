@@ -2,10 +2,10 @@ import json,os,threading#JSON、路径与定时器
 from ...依赖.schemastery import 自然数字段#配置字段
 from .事件 import 插件事件帧,事件端点,热更新错误#再导出 SSE 帧、路径与本包错误
 
-__all__=['名称','注入','配置','应用','插件事件帧','事件端点','热更新错误']#仅中文公开名
+__all__=['名称','依赖','配置','应用','插件事件帧','事件端点','热更新错误']#仅中文公开名
 
 名称='client-hmr'#Cordis 插件名（字面量）
-注入=['clientModules','webServer']#依赖客户端模块与 web 服务器
+依赖=['clientModules','webServer']#依赖客户端模块与 web 服务器
 配置={#HMR 可校验配置
     'pollIntervalMs':自然数字段(最小=1,默认值=500),#至少 1 毫秒，默认 500
 }#配置模式结束
@@ -175,6 +175,6 @@ def 应用(上下文,配置值):
     上下文.副作用(通道效应,'client-hmr: /plugins/events channel')#通道生命周期
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽

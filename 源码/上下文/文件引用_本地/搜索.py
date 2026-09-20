@@ -1,6 +1,4 @@
 """工作区文件搜索索引，供 `@file` 补全使用。
-
-对齐上游 `file-reference-local/src/search.ts` 的核心行为。
 """
 import os,threading#路径与后台索引
 from concurrent.futures import Future as _原生Future#索引任务
@@ -131,7 +129,7 @@ class 工作区文件搜索:
                 if 代次!=自身._代次:#已失效
                     未来.set_result([])#空索引
                     自身._构建中=None#清在途
-                    return#结束
+                    return
                 自身._条目=条目列表#缓存
                 自身._构建中=None#清在途
                 未来.set_result(条目列表)#兑现

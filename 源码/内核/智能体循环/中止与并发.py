@@ -52,7 +52,7 @@ class 中止信号:
             if 信号 is None:#无信号
                 continue#跳过
             工作=线程(target=转发中止,args=(信号,),daemon=True)#转发线程
-            工作.start()#启动
+            工作.start()
         return 融合.信号#融合信号
 
 class 中止控制器:
@@ -104,7 +104,7 @@ def 放入失败(结果队列,错误):
     """失败写入 Queue(1)；非异常则包成循环错误。"""
     if isinstance(错误,BaseException):#已是异常
         结果队列.put(('err',错误))#原样
-        return#结束
+        return
     包装=循环错误('任务被拒绝')#包装拒绝
     包装.原因=错误#附加信息
     结果队列.put(('err',包装))#包装失败
@@ -119,7 +119,7 @@ def 在线程执行(函数):
         except BaseException as 错误:
             放入失败(结果队列,错误)#失败原样
     工作=线程(target=执行并放入,daemon=True)#工作线程
-    工作.start()#启动
+    工作.start()
     return 结果队列#Queue(1)
 
 def 等待队列结果(结果队列):
@@ -142,7 +142,7 @@ def 全部并发执行(函数列表):
     线程表=[]#工作线程
     for 下标,函数 in enumerate(函数列表):#每路一线程
         工作=线程(target=跑一路,args=(下标,函数),daemon=True)#工作线程
-        工作.start()#启动
+        工作.start()
         线程表.append(工作)#登记
     for 工作 in 线程表:#扇出 join
         工作.join()#等到结束
@@ -164,7 +164,7 @@ def 全部等待(队列列表):
     线程表=[]#工作线程
     for 下标,结果队列 in enumerate(队列列表):#每路一线程
         工作=线程(target=跑一路,args=(下标,结果队列),daemon=True)#工作线程
-        工作.start()#启动
+        工作.start()
         线程表.append(工作)#登记
     for 工作 in 线程表:#扇出 join
         工作.join()#等到结束
@@ -184,7 +184,7 @@ def 全部排空队列(队列列表):
     线程表=[]#工作线程
     for 结果队列 in 队列列表:#每路一线程
         工作=线程(target=等待并吞错,args=(结果队列,),daemon=True)#工作线程
-        工作.start()#启动
+        工作.start()
         线程表.append(工作)#登记
     for 工作 in 线程表:#等全部结束
         工作.join()#等到结束
@@ -201,16 +201,16 @@ def 赛跑取值(队列列表):
             if not 已取.is_set():#首路
                 已取.set()#占住
                 放入失败(胜出,错误)#失败胜出
-            return#结束
+            return
         if not 已取.is_set():#首路
             已取.set()#占住
             放入成功(胜出,值)#成功胜出
     for 结果队列 in 队列列表:#每路一线程
         工作=线程(target=等一路,args=(结果队列,),daemon=True)#等待线程
-        工作.start()#启动
+        工作.start()
     return 等待队列结果(胜出)#胜出值
 
-def 启动可中止操作(操作,信号,标识,拆除被弃=None):
+def 启动可中止操作(操作,信号,标识,回收已放弃结果=None):
     """在线程跑操作；与中止信号赛跑，中止胜出则抛。操作是同步回调。"""
     if 已中止(信号):#已经中止
         raise 包装中止错误(标识,信号._异常)#已经中止
@@ -224,17 +224,17 @@ def 启动可中止操作(操作,信号,标识,拆除被弃=None):
             if 已放弃.is_set():#调用方已走
                 return#不再投递
             放入失败(结果队列,错误)#失败
-            return#结束
+            return
         if 已放弃.is_set():#取消后仍跑完
-            if 拆除被弃 is not None:#需要回收
+            if 回收已放弃结果 is not None:#需要回收
                 try:
-                    拆除被弃(值)#兑现则拆除
+                    回收已放弃结果(值)#兑现则拆除
                 except BaseException:
                     pass#回收失败忽略
             return#不再投递
         放入成功(结果队列,值)#成功
     工作=线程(target=执行并放入,daemon=True)#工作线程
-    工作.start()#启动
+    工作.start()
     while True:#结果或中止
         if 已中止(信号):#中止胜出
             已放弃.set()#标记放弃

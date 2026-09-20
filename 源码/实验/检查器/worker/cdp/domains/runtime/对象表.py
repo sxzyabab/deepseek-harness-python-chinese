@@ -42,7 +42,7 @@ class Runtime对象表:#Runtime对象表
         """将一次 realm Console 事件投影为 CDP Runtime 通知。"""
         if 值['type']=='console-api':#API调用
             事件=值['event']#事件
-            上下文=事件.get('contextId')#上下文
+            上下文=事件['contextId'] if 'contextId' in 事件 else None#上下文
             if 上下文 is None and realm.context.kind=='synthetic':#或合成
                 上下文=realm.context.id#取id
             参数={'type':事件['type'],'args':[自身.远程(realm,项,'console') for 项 in 事件['arguments']],'timestamp':事件['timestamp']}#参数
@@ -52,7 +52,7 @@ class Runtime对象表:#Runtime对象表
                 参数['stackTrace']=cdp栈跟踪(事件['stackTrace'])#栈
             return {'method':'Runtime.consoleAPICalled','params':参数}#通知
         事件=值['event']#异常事件
-        上下文=事件.get('contextId')#上下文
+        上下文=事件['contextId'] if 'contextId' in 事件 else None#上下文
         if 上下文 is None and realm.context.kind=='synthetic':#或合成
             上下文=realm.context.id#取id
         详情={**自身._异常(realm,事件['details'],'console')}#异常详情
@@ -163,7 +163,7 @@ def cdp栈跟踪(栈):#栈投影
     """栈跟踪投影。"""
     结果={'callFrames':[{#调用帧
         'functionName':帧['functionName'],#函数名
-        'scriptId':'0' if 帧.get('scriptKey') is None else 帧['scriptKey'],#??0，空串合法
+        'scriptId':'0' if 'scriptKey' not in 帧 else 帧['scriptKey'],#??0，空串合法
         'url':帧['url'],#URL
         'lineNumber':帧['lineNumber'],#行
         'columnNumber':帧['columnNumber'],#列

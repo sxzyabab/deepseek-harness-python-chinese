@@ -46,38 +46,38 @@ def 分发桥帧(帧,处理器):#分发桥帧
     类型=帧.get('t')#类型
     if 类型=='source/accepted':#接受
         处理器.接纳(帧)#回调
-        return#结束
+        return
     if 类型=='source/append-acknowledged':#追加确认
         处理器.确认(帧)#回调
-        return#结束
+        return
     if 类型=='source/resnapshot':#重快照
         处理器.重快照(帧)#回调
-        return#结束
+        return
     if 类型=='source/rejected':#拒绝
         处理器.拒绝(帧)#回调
-        return#结束
+        return
     if 类型=='client-runtime/request':#Runtime请求
         处理器.运行时(帧)#回调
-        return#结束
+        return
     if 类型=='client-runtime/cancel':#取消
         处理器.运行时取消(帧)#回调
-        return#结束
+        return
     if 类型=='client-runtime/response-acknowledged':#响应确认
         处理器.运行时确认(帧)#回调
-        return#结束
+        return
     if 类型=='client-runtime/session-closed':#运行时会话关闭
         处理器.运行时关闭(帧)#回调
-        return#结束
+        return
     if 类型=='client-console/enable':#Console启用
         处理器.控制台启用(帧)#回调
-        return#结束
+        return
     if 类型=='client-console/disable':#Console禁用
         处理器.控制台禁用(帧)#回调
-        return#结束
+        return
     if 类型=='client-sources/request':#Sources请求
         处理器.源(帧)#回调
-        return#结束
+        return
     if 类型=='client-sources/session-closed':#Sources会话关闭
         处理器.源关闭(帧)#回调
-        return#结束
+        return
     raise 检查器错误(f'Unexpected Worker source frame: {类型!r}')#未知帧

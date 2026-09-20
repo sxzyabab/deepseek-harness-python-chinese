@@ -1,5 +1,5 @@
 from ...node.未实现失败 import 运行时错误#本包错误
-from ..解释 import 运行shell命令,运行shell程序#解释器入口
+from ..解释 import 运行shell命令,运行shell程序,壳中止信号#解释器入口与壳中止
 from ..文件系统访问 import 宿主文件系统#宿主FS
 from .子进程 import 运行shell进程#进程入口
 
@@ -7,7 +7,6 @@ __all__=['启动进程','运行shell进程']#仅中文公开名
 
 def 可派worker():#是否可派Worker
     """本线程能否启动真进程 worker。"""
-    # 对齐上游：typeof Worker === 'function' && self.location.href 为字符串
     Worker构造=globals().get('Worker')#浏览器Worker
     self对象=globals().get('self')#worker全局
     if not callable(Worker构造) or self对象 is None:#环境不具备
@@ -40,8 +39,8 @@ def 服务文件系统调用(文件系统,操作,参数列表):#服务FS调用
 
 def 启动worker进程(选项):#Worker进程
     """worker 支撑的进程：本束的第二份拷贝，运行一条命令。"""
-    文件系统=选项.get('fs')#可选 fs
-    if 文件系统 is None: 文件系统=宿主文件系统()#??宿主 fs
+    if 'fs' not in 选项: 文件系统=宿主文件系统()#??宿主 fs
+    else: 文件系统=选项['fs']#可选 fs
     Worker构造=globals()['Worker']#Worker
     self对象=globals()['self']#self
     worker=Worker构造(self对象.location.href,{'type':'module'})#同束新Worker
@@ -97,18 +96,9 @@ def 启动worker进程(选项):#Worker进程
 
 def 启动内联进程(选项):#内联进程
     """内联进程：本线程上的同一命令，只能通过请求停止。"""
-    中止={'aborted':False}#取消标志
-    def 加监听(类型,回调,选项面=None):#挂监听
-        """对齐 addEventListener。"""
-        中止.setdefault('_listeners',{}).setdefault(类型,[]).append(回调)#登记
-    def 卸监听(类型,回调):#卸监听
-        """对齐 removeEventListener。"""
-        列表=中止.get('_listeners',{}).get(类型,[])#列表
-        中止['_listeners'][类型]=[丙 for 丙 in 列表 if 丙 is not 回调]#过滤
-    中止['addEventListener']=加监听#挂面
-    中止['removeEventListener']=卸监听#挂面
-    文件系统=选项.get('fs')#可选 fs
-    if 文件系统 is None: 文件系统=宿主文件系统()#??宿主 fs
+    中止=壳中止信号()#取消通道
+    if 'fs' not in 选项: 文件系统=宿主文件系统()#??宿主 fs
+    else: 文件系统=选项['fs']#可选 fs
     运行选项={#运行选项
         'cwd':选项['cwd'],#目录
         'env':选项['env'],#环境
@@ -118,7 +108,7 @@ def 启动内联进程(选项):#内联进程
         'onOutput':选项['onOutput'],#输出
     }#runOptions结束
     try:#执行
-        if 选项.get('script') is None:#直接程序
+        if 'script' not in 选项:#直接程序
             结果=运行shell程序(选项['argv'],运行选项)#直接
         else:#脚本
             结果=运行shell命令(选项['script'],运行选项)#脚本
@@ -128,9 +118,7 @@ def 启动内联进程(选项):#内联进程
         选项['onExit'](1)#失败码
     def 停止():#请求停止
         """请求停止。"""
-        中止['aborted']=True#中止
-        for 回调 in list(中止.get('_listeners',{}).get('abort',[])):#通知
-            回调()#回调
+        中止.中止()#置位
     return {'interrupt':停止,'destroy':停止}#两者同为请求
 
 def 启动进程(选项):#启动进程

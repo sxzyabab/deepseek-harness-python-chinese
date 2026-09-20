@@ -40,7 +40,7 @@ def 已中止(信号):
     return 信号._事件.is_set()#Event 置位
 
 class sdk跑:
-    """持有者所有的 SDK 一次性跑。载荷字段 id/localAgent/result 对齐上游；拆除入口仅 销毁。"""
+    """持有者所有的 SDK 一次性跑。载荷字段 id/localAgent/result 为线协议键；拆除入口仅 销毁。"""
     def __init__(自身,标识,结果,拆除):
         """记下身份、结果任务与拆除闭包。"""
         自身.id=标识#父作用域跑 id

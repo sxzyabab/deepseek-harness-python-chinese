@@ -84,9 +84,9 @@ class 客户端对象存储:#Client对象存储
         对象=自身.对象.pop(句柄,None)#删除
         if 对象 is None:#幂等
             return#返回
-        组=对象.get('group')#组
-        if 组 is None:#无组
+        if 'group' not in 对象:#无组
             return#返回
+        组=对象['group']#组
         成员=自身.组.get(组)#组成员
         if 成员 is not None:#移除
             成员.discard(句柄)#移除

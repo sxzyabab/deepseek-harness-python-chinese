@@ -7,21 +7,14 @@ from ...ui_停靠套件.引擎 import (#树只读
     查找内容标签,
     取窗格,
 )#引擎
-from .约定.种子 import 页面地址#页面地址
-from .存储 import 可关闭标签#独一停靠向导不可关
-from .标签域 import 标签域#标签域
+from .约定.种子 import 页面地址
+from .约定.槽位 import 右侧侧栏错误
+from .存储 import 可关闭标签
+from .标签域 import 标签域
 
-__all__=['右侧侧栏错误','创建右侧侧栏控制器','右侧侧栏控制器','资源方案前缀']#仅中文公开名
+__all__=['右侧侧栏错误','创建右侧侧栏控制器','右侧侧栏控制器','资源方案前缀']
 
-资源方案前缀='dsh-resource://'#资源地址前缀
-
-
-class 右侧侧栏错误(Exception):
-    """本包右侧侧栏接线失败。"""
-
-    def __init__(自身,消息):
-        """记下英文消息。"""
-        super().__init__(消息)#消息原样英文
+资源方案前缀='dsh-resource://'
 
 
 def 创建右侧侧栏控制器(注册表,钉住):
@@ -66,7 +59,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
     def 登记关闭钩(自身,种类,钩):
         """显式移除前登记资源清理；失败则保留标签。返回拆除器。"""
         if 种类 in 自身.关闭钩表:#已登记
-            raise 右侧侧栏错误('sidebarRight: close handler already registered for '+种类)
+            raise 右侧侧栏错误('关闭钩已登记：'+种类)
         自身.关闭钩表[种类]=钩#挂上
 
         def 拆除():
@@ -142,7 +135,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
     def _在会话放置资源(自身,会话标识,动作,地址,选项):
         """认领并放置资源。"""
         if not 地址.startswith(资源方案前缀):#非资源
-            raise 右侧侧栏错误('sidebarRight: no registered tab type claims "'+地址+'"')
+            raise 右侧侧栏错误('没有已登记标签类型认领 "'+地址+'"')
         种类=选项['kind'] if 'kind' in 选项 else None#点名
         自身._放置(会话标识,动作,自身.注册表.认领(地址,种类),地址,选项,选项['params'] if 'params' in 选项 else None)#放
 
@@ -150,7 +143,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         """放置页面种类。"""
         定义=自身.注册表.取(种类)#定义
         if 定义 is None:#无
-            raise 右侧侧栏错误('sidebarRight: no tab type is registered as "'+种类+'"')
+            raise 右侧侧栏错误('没有登记为 "'+种类+'" 的标签类型')
         if 定义.get('multiple') is True:#每次独立内容
             地址=页面地址(种类)+'/'+str(生成随机UUID())#带 UUID
         else:#每窗一页
@@ -324,5 +317,5 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
     def _要求(自身):
         """须有挂载席。"""
         if 自身.绑定席 is None:#无
-            raise 右侧侧栏错误('sidebarRight: no session surface is mounted')
+            raise 右侧侧栏错误('尚未挂载会话表面')
         return 自身.绑定席#绑定

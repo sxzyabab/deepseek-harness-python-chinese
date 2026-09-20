@@ -4,14 +4,14 @@ from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
 from ...工具.超时 import 已中止#中止入口
 __all__=[#仅中文公开名；Cordis 英文槽不入表
-    '名称','注入','配置','拉尔夫元数据','拉尔夫脚本',
+    '名称','依赖','配置','拉尔夫元数据','拉尔夫脚本',
     '解析配置','解析轮数上限','要求全新提供方','是否记录','归一化文本','归一化列表',
     '读报告','读运行结果','停止原因错误','约束结果','渲染结果','渲染轮次失败',
-    '展示调用','展示结果','错误','应用',
+    '呈现调用','呈现结果','错误','应用',
 ]#公开面结束
 
 名称='tool-ralph'#Cordis 插件名
-注入=['tools','workflowEngine','subagents','systemPrompt']#依赖工具、工作流引擎、子智能体与系统提示词
+依赖=['tools','workflowEngine','subagents','systemPrompt']#依赖工具、工作流引擎、子智能体与系统提示词
 配置={#固定 Ralph 工作流的部署政策
     'subagentProvider':字符串字段(默认值='spawn'),#每轮使用的全新结构化输出提供方（默认 spawn）
     'maxRounds':整数字段(默认值=256),#一次调用轮数的默认值与部署上限（默认 256）
@@ -321,18 +321,18 @@ def 渲染轮次失败(结果,最大字节):#用最近一份耐久交接渲染�
         文本=头+'\nLast successful handoff:\n'+json.dumps(上一份,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#附上上一份交接
     return 约束结果(文本,最大字节)#按上限截断
 
-def 展示调用(参数):#渲染调用中卡片
+def 呈现调用(参数):#渲染调用中卡片
     """渲染调用中卡片。参数是 dict。"""
     return {'card':'generic','title':'ralph','rawInput':参数['objective']}#通用卡片，标题 ralph
 
-def 展示结果(参数,结果):#渲染完成后卡片
+def 呈现结果(参数,结果):#渲染完成后卡片
     """渲染完成后卡片。"""
-    _=参数#展示不依赖参数
-    _=结果#展示不依赖结果内容
+    _=参数#呈现不依赖参数
+    _=结果#呈现不依赖结果内容
     return {'card':'generic'}#只声明仍用通用卡片
 
-class 错误(Exception):#对齐上游 throw new Error 文案
-    """运行时错误，错误信息保持上游英文原文。"""
+class 错误(Exception):#英文文案
+    """运行时错误，详情保持英文原文。"""
     def __init__(自身,消息):#记下英文消息
         """用原样英文消息构造。"""
         Exception.__init__(自身,消息)#英文消息
@@ -414,13 +414,13 @@ def 应用(上下文,配置值=None):#登记固定 Ralph 工具及其显式询�
             'render':渲染输出,#把结构化结果渲成文本块
         },#结束输出模式
         'execute':执行,#执行一次 Ralph 工具调用
-        'presentCall':展示调用,#调用中展示
-        'presentResult':展示结果,#完成后展示
+        'presentCall':呈现调用,#调用中呈现
+        'presentResult':呈现结果,#完成后呈现
     }))#结束工具登记
     return None#插件 apply 无拆除器（登记经 上下文.副作用）
 
 name=名称#Cordis 插件名槽
-inject=注入#Cordis 依赖槽
+inject=依赖#Cordis 依赖槽
 Config=配置#Cordis 配置槽
 apply=应用#Cordis 入口槽
 

@@ -1,23 +1,18 @@
-"""`@deepseek-ai/dsh-llm-deepseek` 的本包拥有不变量配套。
+"""向 invariants 登记本包；无独立运行时检查（约定由适配器按次解析）。"""
+包名='@deepseek-ai/dsh-llm-deepseek'
+名称='llm-deepseek-invariant'
+依赖=['invariants']
 
-对齐上游 `llm-deepseek/src/invariant.ts`。公开面仅中文名；无英文别名。
+__all__=['包名','名称','依赖','安装','应用']
 
-无运行时不变量：除所属 seam 已强制的约定外，本包不暴露独立事件序列或可变数据关系。
-"""
-包名='@deepseek-ai/dsh-llm-deepseek'#本包的不变量所有权名
-名称='llm-deepseek-invariant'#配套不变量插件名
-注入=['invariants']#依赖 invariants 服务
-
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
-
-def 安装(上下文对象,失败):#空安装器
+def 安装(上下文,失败):
     """无运行时不变量：适配器在每次请求解析连接事实。"""
-    return#不挂运行时检查
+    return
 
-def 应用(上下文对象):#注册本包不变量配套
+def 应用(上下文):
     """注册本包的不变量配套，返回拆除器。"""
-    return 上下文对象.invariants.注册(包名,安装)#同步登记
+    return 上下文.invariants.register(包名,安装)
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

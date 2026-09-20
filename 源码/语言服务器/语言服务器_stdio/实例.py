@@ -191,7 +191,7 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
             """发出带id请求。"""
             try:#请求
                 发送.兑现(自身.连接.请求(请求方法(操作),参数))#响应
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 发送.拒绝(错误)#拒绝
         threading.Thread(target=执行发送,daemon=True).start()#发出
         if 信号 is None:#无取消则直接等待响应
@@ -265,7 +265,7 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
                         自身.拆除任务.兑现(None)#成功
                     except BaseException as 错误:#拆除失败
                         自身.拆除任务.拒绝(错误)#拒绝
-                threading.Thread(target=执行拆除事务,daemon=True).start()#启动
+                threading.Thread(target=执行拆除事务,daemon=True).start()
             任务对象=自身.拆除任务#共用
         return 任务对象.等待()#共用同一条静止边界
 
@@ -287,7 +287,7 @@ class 语言服务器实例:#一条已初始化的语言服务器实例
             """发送shutdown。"""
             try:#请求
                 关闭发送.兑现(自身.连接.请求('shutdown',None))#有界等待shutdown响应
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 关闭发送.拒绝(错误)#拒绝
         threading.Thread(target=执行关闭请求,daemon=True).start()#发出
         可中止等待(关闭发送,信号)#与关闭截止竞态

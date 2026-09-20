@@ -1,53 +1,52 @@
-from readable_stream import Stream#readable-stream包
+from readable_stream import Stream
 
-__all__=[#中文公开名与Node英文挂名
-    '是否数组缓冲视图',
+__all__=[
     'Duplex','PassThrough','Readable','Stream','Transform','Writable',
     'addAbortSignal','compose','destroy','finished','getDefaultHighWaterMark',
     '_isArrayBufferView','isDestroyed','isDisturbed','isErrored','isReadable',
     'isWritable','pipeline','promises','setDefaultHighWaterMark','__esModule','default',
-]#公开结束
+]
 
 #readable-stream 的命名空间静态不读 this；直接取成员。
-Duplex=Stream.Duplex#双工
-PassThrough=Stream.PassThrough#直通
-Readable=Stream.Readable#可读
-StreamBase=Stream.Stream#基类
-Transform=Stream.Transform#变换
-Writable=Stream.Writable#可写
-addAbortSignal=Stream.addAbortSignal#中止信号
-compose=Stream.compose#组合
-destroy=Stream.destroy#销毁
-finished=Stream.finished#完成
-isDisturbed=Stream.isDisturbed#扰动谓词
-isErrored=Stream.isErrored#错误谓词
-isReadable=Stream.isReadable#可读谓词
-pipeline=Stream.pipeline#管道
-promises=Stream.promises#Promise面
-getDefaultHighWaterMark=StreamBase.getDefaultHighWaterMark#读高水位
-isDestroyed=StreamBase.isDestroyed#销毁谓词
-isWritable=StreamBase.isWritable#可写谓词
-setDefaultHighWaterMark=StreamBase.setDefaultHighWaterMark#写高水位
+Duplex=Stream.Duplex
+PassThrough=Stream.PassThrough
+Readable=Stream.Readable
+StreamBase=Stream.Stream
+Transform=Stream.Transform
+Writable=Stream.Writable
+addAbortSignal=Stream.addAbortSignal
+compose=Stream.compose
+destroy=Stream.destroy
+finished=Stream.finished
+isDisturbed=Stream.isDisturbed
+isErrored=Stream.isErrored
+isReadable=Stream.isReadable
+pipeline=Stream.pipeline
+promises=Stream.promises
+getDefaultHighWaterMark=StreamBase.getDefaultHighWaterMark
+isDestroyed=StreamBase.isDestroyed
+isWritable=StreamBase.isWritable
+setDefaultHighWaterMark=StreamBase.setDefaultHighWaterMark
 
 #readable-stream 跟踪 Node 18 的 16 KiB 字节默认；本仓库运行 Node 22+，
 #其通用与文件流使用 64 KiB。
-if getDefaultHighWaterMark(False)!=64*1024: setDefaultHighWaterMark(False,64*1024)#对齐64KiB
+if getDefaultHighWaterMark(False)!=64*1024: setDefaultHighWaterMark(False,64*1024)
 
-def 是否数组缓冲视图(值):#视图谓词
+def 是否数组缓冲视图(值):
     """测试值是否为 ArrayBuffer 视图。"""
-    缓冲=globals().get('ArrayBuffer')#ArrayBuffer
-    if 缓冲 is None: return False#无
-    是视图=getattr(缓冲,'isView',None)#isView
-    return callable(是视图) and 是视图(值)#视图谓词
+    if 'ArrayBuffer' not in globals():
+        return False
+    是视图=getattr(globals()['ArrayBuffer'],'isView',None)
+    return callable(是视图) and 是视图(值)
 
-_isArrayBufferView=是否数组缓冲视图#Node私有面
-streamDefault=StreamBase#默认命名空间起点
-streamDefault._isArrayBufferView=是否数组缓冲视图#视图谓词
-streamDefault.getDefaultHighWaterMark=getDefaultHighWaterMark#读高水位
-streamDefault.isDestroyed=isDestroyed#销毁谓词
-streamDefault.isWritable=isWritable#可写谓词
-streamDefault.setDefaultHighWaterMark=setDefaultHighWaterMark#写高水位
+_isArrayBufferView=是否数组缓冲视图
+streamDefault=StreamBase
+streamDefault._isArrayBufferView=是否数组缓冲视图
+streamDefault.getDefaultHighWaterMark=getDefaultHighWaterMark
+streamDefault.isDestroyed=isDestroyed
+streamDefault.isWritable=isWritable
+streamDefault.setDefaultHighWaterMark=setDefaultHighWaterMark
 
-Stream=StreamBase#基类导出名
-__esModule=True#CJS互操作
-default=streamDefault#默认导出
+Stream=StreamBase
+__esModule=True
+default=streamDefault

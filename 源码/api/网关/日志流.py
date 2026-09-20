@@ -1,10 +1,6 @@
-"""可重连 Remote 流上的游标、分页与实时尾随协调。
-
-对齐上游 `api/gateway/src/client/journal-stream.ts` 的同步可移植子集。
-公开面仅中文名。
-"""
+"""可重连 Remote 流上的游标、分页与实时尾随协调。"""
 import threading#消费线程与页读竞态
-from concurrent.futures import Future,wait,FIRST_COMPLETED#页读与流项竞态
+from concurrent.futures import Future as 原生结果,wait as 等待完成,FIRST_COMPLETED as 先完成
 from .流载体 import 远程流载体错误#载体错误
 from .网关 import 已中止#中止查询
 
@@ -20,7 +16,7 @@ def _协议违规(消息):
     错误=RuntimeError(消息)#错误
     错误.name='RemoteError'#名
     错误.code='gateway/internal'#码
-    return 错误#返回
+    return 错误
 
 
 class 远程日志流:
@@ -38,8 +34,8 @@ class 远程日志流:
         自身._代际=0#代际
         自身._首游标=None#首
         自身._末游标=None#末
-        自身._已启动=False#启动
-        自身._已打开=False#打开
+        自身._已启动=False
+        自身._已打开=False
         自身._已拆除=False#拆除
         自身._完成=None#消费完成 Event
         自身._挂起下一步=None#单步挂起
@@ -68,25 +64,12 @@ class 远程日志流:
 
     def 修复请求(自身,初始):
         """子类：从初始导出无界尾请求。"""
-        raise NotImplementedError('RemoteJournalStream.repairRequest')#抽象
-
-    # 英文别名对齐上游抽象名
-    def follow(自身,请求,信号):
-        """英文别名。"""
-        return 自身.跟随(请求,信号)#委托
-
-    def readPage(自身,请求,含末,信号):
-        """英文别名。"""
-        return 自身.读页(请求,含末,信号)#委托
-
-    def repairRequest(自身,初始):
-        """英文别名。"""
-        return 自身.修复请求(初始)#委托
+        raise NotImplementedError('RemoteJournalStream.repairRequest')
 
     @property
     def signal(自身):
         """共享取消。"""
-        return 自身._流.signal#信号
+        return 自身._流.signal
 
     def open(自身,请求=None):
         """建立跟随并发布首帧开口快照。"""
@@ -97,20 +80,16 @@ class 远程日志流:
         自身._迭代器=iter(自身._流)#迭代
         try:
             首=自身._取得下一步()#首项
-            if 首 is None:#结束
+            if 首 is None:
                 raise _协议违规(自身._选项['name']+' ended before its opening cursor')#违规
             自身._替换代际(首,False)#开口
-            自身._已打开=True#打开
+            自身._已打开=True
             自身._完成=threading.Event()#完成旗
             线=threading.Thread(target=自身._消费,daemon=True,name='dsh-remote-journal')#泵
             线.start()#启
         except BaseException:
             自身._流.dispose()#拆
             raise#抛
-
-    def 打开(自身,请求=None):
-        """中文别名。"""
-        自身.open(请求)#委托
 
     def prepend(自身,请求):
         """前置更旧页。"""
@@ -140,17 +119,9 @@ class 远程日志流:
             'hasMore':自身._选项['hasMore'](页),
         })#发布
 
-    def 前置(自身,请求):
-        """中文别名。"""
-        自身.prepend(请求)#委托
-
     def restart(自身):
         """替换物理代际。"""
-        自身._流.restart()#重启
-
-    def 重启(自身):
-        """中文别名。"""
-        自身.restart()#委托
+        自身._流.restart()
 
     def dispose(自身):
         """永久停止。"""
@@ -159,18 +130,14 @@ class 远程日志流:
         自身._已拆除=True#标记
         自身._流.dispose()#拆底层
         if 自身._完成 is not None:#有消费
-            自身._完成.wait(timeout=30)#等
-
-    def 拆除(自身):
-        """中文别名。"""
-        自身.dispose()#委托
+            自身._完成.wait(timeout=30)
 
     def _消费(自身):
         """后台消费。"""
         try:
             while True:#循环
                 下=自身._取得下一步()#下一项
-                if 下 is None:#结束
+                if 下 is None:
                     return#停
                 if 下.generation!=自身._代际:#换代
                     自身._替换代际(下,True)#恢复替换
@@ -184,7 +151,7 @@ class 远程日志流:
                 自身._接受条目(帧['entry'],下)#条目
         except BaseException as 错误:
             if not 自身._已拆除:#未拆
-                自身._选项['failed'](错误)#失败
+                自身._选项['failed'](错误)
         finally:
             if 自身._完成 is not None:#有旗
                 自身._完成.set()#结算
@@ -236,7 +203,7 @@ class 远程日志流:
             取代=自身._经游标替换(请求,游标,项.generation,项.signal,[条目],[])#修复
             if 取代 is not None:#被新代取代
                 自身._替换代际(取代,True)#换代
-            return#结束
+            return
         if 自身._首游标 is None:#空窗首条
             自身._首游标=首#首
         自身._末游标=游标#推进
@@ -247,7 +214,7 @@ class 远程日志流:
         """缺口修复：跟随中读页（与流项竞态）并合并排队条目。"""
         读=自身._跟随中读页(请求,所需游标,代际,信号,排队,通知列表)#竞态读页
         if 读['type']=='superseded':#被新代取代
-            return 读['item']#返回取代项
+            return 读['item']
         页=读['page']#页
         自身._断言页截止(页,所需游标)#截止
         条目=自身._合并替换(页,排队)#合并
@@ -255,7 +222,7 @@ class 远程日志流:
         if 条目 is None or 自身._选项['compare'](自身._尾游标(条目),目标)<0:#不够
             读=自身._跟随中读页(自身.修复请求(自身._初始请求),目标,代际,信号,排队,通知列表)#再竞态读
             if 读['type']=='superseded':#被新代取代
-                return 读['item']#返回取代项
+                return 读['item']
             页=读['page']#页
             自身._断言页截止(页,目标)#截止
             条目=自身._合并替换(页,排队)#合并
@@ -277,7 +244,7 @@ class 远程日志流:
 
     def _跟随中读页(自身,请求,含末,代际,信号,排队,通知列表):
         """读页与流下一步竞态：同代条目入队，换代则 superseded。"""
-        页未来=Future()#页结算
+        页未来=原生结果()
         def 读页线程():
             """后台读页。"""
             try:
@@ -287,7 +254,7 @@ class 远程日志流:
         threading.Thread(target=读页线程,daemon=True,name='dsh-journal-page').start()#启页读
         while True:#直至页到或换代
             下未来=自身._下一步结果()#挂起或新建下一步
-            完成,_=wait((页未来,下未来),return_when=FIRST_COMPLETED)#谁先到
+            完成,_=等待完成((页未来,下未来),return_when=先完成)
             if 页未来 in 完成:#页先到（并列时优先页）
                 种类,载荷=页未来.result()#取页结果
                 if 种类=='page':#成功页
@@ -353,7 +320,7 @@ class 远程日志流:
             if 自身._选项['compare'](首,尾)<=0:#部分重叠
                 raise _协议违规(自身._选项['name']+' replacement contains a partially overlapping entry')#违规
             if not 自身._选项['follows'](尾,首):#缺口
-                return None#失败
+                return None
             条目.append(条目项)#追加
             尾=末#推进
         return 条目#合并结果
@@ -368,23 +335,23 @@ class 远程日志流:
         return 结果#最大
 
     def _下一步结果(自身):
-        """确保至多一个挂起的流下一步 Future（对齐 pendingNext）。"""
+        """确保至多一个挂起的流下一步。"""
         if 自身._挂起下一步 is not None:#已有挂起
             return 自身._挂起下一步#复用
-        未来=Future()#新建
+        未来=原生结果()
         def 取下线程():
             """阻塞取迭代器下一项。"""
             try:
                 try:
                     未来.set_result(('item',next(自身._迭代器)))#下一项
                 except StopIteration:
-                    未来.set_result(('done',None))#结束
+                    未来.set_result(('done',None))
             except BaseException as 错误:
                 if not 未来.done():#尚未结算
                     未来.set_exception(错误)#流错
         threading.Thread(target=取下线程,daemon=True,name='dsh-journal-next').start()#启
         自身._挂起下一步=未来#挂起
-        return 未来#返回
+        return 未来
 
     def _释放下一步(自身):
         """释放挂起下一步槽，使下次可再取。"""
@@ -394,10 +361,10 @@ class 远程日志流:
         """阻塞取下一项；结束返回 None。页读竞态未消费的挂起项在此复用。"""
         未来=自身._下一步结果()#挂起或新建
         try:
-            种类,载荷=未来.result()#等待
+            种类,载荷=未来.result()
         finally:
             自身._释放下一步()#释放槽
-        if 种类=='done':#结束
+        if 种类=='done':
             return None#无
         return 载荷#流项
 

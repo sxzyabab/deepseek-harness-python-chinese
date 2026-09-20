@@ -1,7 +1,7 @@
-from ..未实现失败 import 未实现失败#未实现桩
+from ..未实现失败 import 未实现失败
 
-__all__=['__esModule','default']#Node面
+__all__=['__esModule','default']
 
-sharp=未实现失败('sharp','default')#默认导出桩
-__esModule=True#CJS互操作
-default=sharp#默认导出
+sharp=未实现失败('sharp','default')
+__esModule=True
+default=sharp

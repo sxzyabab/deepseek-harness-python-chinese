@@ -67,9 +67,9 @@ def 身份串(值):#身份字符串
 def 是否eexist(错误):#是否 EEXIST
     """文件系统冲突是否表示目标已存在。"""
     if win32是否eexist(错误):#Win32
-        return True#是
+        return True
     if getattr(错误,'errno',None)==getattr(os,'EEXIST',17):#POSIX
-        return True#是
+        return True
     return isinstance(错误,FileExistsError)#FileExistsError
 
 def 读稳定jsonl文件(路径,信号=None):#读稳定修订
@@ -94,10 +94,7 @@ def _若已中止(信号):#取消检查
     """已中止则抛出。"""
     if 信号 is None:#无信号
         return#无事
-    if getattr(信号,'aborted',False) or getattr(信号,'已中止',False):#已中止
-        原因=getattr(信号,'reason',None) or getattr(信号,'原因',None)#原因
-        if isinstance(原因,BaseException):#已是异常
-            raise 原因#抛出
+    if 信号.is_set():#已中止
         raise InterruptedError('session migration preparation aborted')#包装
 
 def _已存版本(头):#取已存版本
@@ -112,9 +109,9 @@ def _已存版本(头):#取已存版本
 def _解析json(文本,主题):#解析 JSON
     """解析 JSON 文本。"""
     import json#JSON
-    try:#尝试
-        return json.loads(文本)#解析
-    except Exception as 错误:#失败
+    try:
+        return json.loads(文本)
+    except (json.JSONDecodeError,TypeError,ValueError) as 错误:
         raise Error(f'corrupt session log: {主题} is not valid JSON') from 错误#包装
 
 def _断言独立头帧(明文):#断言独立头帧
@@ -163,7 +160,7 @@ class 迁移中jsonl行:#迁移行解析
         while True:#找换行
             换行=块.find(b'\n',行起点)#换行
             if 换行<0:#无
-                break#结束
+                break
             片段=块[行起点:换行]#本行
             行=片段#默认
             if len(自身.碎片)>0:#有碎片
@@ -184,7 +181,7 @@ class 迁移中jsonl行:#迁移行解析
         if len(自身.碎片)>0:#尚有碎片
             raise Error('corrupt Zstandard session log: complete frame contains a torn JSONL record')#撕裂
 
-    def 完成(自身):#结束
+    def 完成(自身):
         """完成恢复器。"""
         return 自身.恢复器.finish()#产物
 
@@ -194,9 +191,9 @@ class 迁移中jsonl行:#迁移行解析
         自身.行下标+=1#递增
         try:#解析
             已解析=_解析json(行.decode('utf-8'),f'row {下标+1}')#JSON
-        except Exception as 错误:#失败
+        except (UnicodeDecodeError,Error) as 错误:
             if 自身.问题 is None:#首错
-                自身.问题=错误 if isinstance(错误,Exception) else Error(str(错误))#记录
+                自身.问题=错误
             return#跳过
         if 自身.问题 is not None:#恢复模式
             if isinstance(已解析,dict) and 已解析.get('type')=='turn/end':#遇 turn/end
@@ -211,7 +208,7 @@ def _流式解码迁移(字节,压缩,源版本,格式适配,校验历史头=Non
         头末=字节.find(b'\n')#头换行
         if 头末<0:#无头
             raise Error('empty or header-less session log')#损坏
-        解析器=_启动迁移流(字节[:头末+1],源版本,格式适配,校验历史头)#启动
+        解析器=_启动迁移流(字节[:头末+1],源版本,格式适配,校验历史头)
         _若已中止(信号)#取消
         体末=字节.rfind(b'\n')#体末
         if 体末>头末:#有体
@@ -230,7 +227,7 @@ def _流式解码迁移(字节,压缩,源版本,格式适配,校验历史头=Non
         except StopIteration:#无产出
             raise Error('empty or header-less Zstandard session log')#损坏
         _断言独立头帧(首)#断言头
-        解析器=_启动迁移流(首,源版本,格式适配,校验历史头)#启动
+        解析器=_启动迁移流(首,源版本,格式适配,校验历史头)
         _若已中止(信号)#取消
         _消费迁移字节(解析器,产出,信号)#其余帧
         解析器.断言完整帧落在记录边界()#记录边界
@@ -238,7 +235,7 @@ def _流式解码迁移(字节,压缩,源版本,格式适配,校验历史头=Non
             恢复=b''#恢复明文
             try:#解压前缀
                 恢复=解压zstd前缀(字节[撕裂:])#前缀
-            except Exception:#失败
+            except Exception:
                 _若已中止(信号)#优先中止
             _若已中止(信号)#取消
             换行=恢复.rfind(b'\n')#最后换行
@@ -367,7 +364,7 @@ def _写已同步临时(当代路径,后缀,压缩,产物,格式适配,信号=No
             continue#重试
     哈希=hashlib.sha256()#摘要
     字节数=0#已写
-    失败=None#失败
+    失败=None
     try:#写出
         def 写块(块):#写并哈希
             """写一块。"""
@@ -416,24 +413,24 @@ def _写已同步临时(当代路径,后缀,压缩,产物,格式适配,信号=No
         raise 失败#抛出
     return {'path':路径,'bytes':字节数,'digest':哈希.hexdigest()}#暂存
 
-def _独占发布当代(暂存,当代路径):#独占发布
+def _独占发布当代(暂存,当代路径):
     """Win32 写穿移动或 POSIX 硬链接+目录 fsync。"""
-    if sys.platform=='win32':#Windows
-        try:#发布
-            发布新文件win32(暂存,当代路径)#MoveFileEx
-            return True#本进程成功
-        except Exception as 错误:#失败
-            if 是否eexist(错误):#冲突
-                return False#他人已发布
-            raise#其它
-    try:#POSIX 硬链接
-        os.link(暂存,当代路径)#链接
-    except Exception as 错误:#失败
-        if 是否eexist(错误):#冲突
-            return False#他人
-        raise#其它
-    _同步目录(os.path.dirname(当代路径))#同步目录
-    return True#成功
+    if sys.platform=='win32':
+        try:
+            发布新文件win32(暂存,当代路径)
+            return True
+        except OSError as 错误:
+            if 是否eexist(错误):
+                return False
+            raise
+    try:
+        os.link(暂存,当代路径)
+    except OSError as 错误:
+        if 是否eexist(错误):
+            return False
+        raise
+    _同步目录(os.path.dirname(当代路径))
+    return True
 
 def _发布已准备迁移(选项,后缀,产物,源身份):#发布已准备迁移
     """编码、校验并独占发布一次。"""
@@ -481,7 +478,7 @@ def _发布已准备迁移(选项,后缀,产物,源身份):#发布已准备迁�
             except OSError:#忽略
                 pass#忽略
         return 赢家['identity']#身份
-    except BaseException as 错误:#失败
+    except BaseException as 错误:
         if 暂存.get('path'):#有暂存
             try:#清理
                 os.remove(暂存['path'])#删
@@ -504,7 +501,7 @@ def 准备jsonl迁移(选项):#准备迁移
     源=读稳定jsonl文件(源路径,信号)#读源
     try:#解码
         产物=_流式解码迁移(源['bytes'],压缩,源版本,格式,选项.get('validateHistoricalHeader'),信号)#解码
-    except Exception as 错误:#失败
+    except Exception as 错误:
         判定=格式.get('isUnsupportedMigrationError')#判定
         if 判定 is not None and 判定(错误):#不支持
             raise 代次不支持迁移错误(源版本,错误 if isinstance(错误,Exception) else Error(str(错误)))#包装
@@ -519,7 +516,7 @@ def 准备jsonl迁移(选项):#准备迁移
     def 发布():#幂等发布
         """编码、校验并独占发布；共享同一成功或失败。"""
         if 发布承诺[0] is None:#尚未启动
-            发布承诺[0]=_发布已准备迁移(选项,后缀,产物,源身份)#启动
+            发布承诺[0]=_发布已准备迁移(选项,后缀,产物,源身份)
         return 发布承诺[0]#共享结果
 
     return {'sourceIdentity':源身份,'artifact':产物,'publish':发布}#已准备

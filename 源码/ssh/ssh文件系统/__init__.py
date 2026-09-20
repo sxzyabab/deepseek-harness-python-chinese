@@ -11,9 +11,11 @@ from ..ssh.模式 import (#辅助 JSON 模式
     写结果模式,#写
     编辑结果模式,#编辑
 )#模式结束
-from ..ssh.协议 import 远程操作错误,ssh错误#远端错误
+from ..ssh.协议 import 远程操作错误,ssh错误
 
-__all__=['ssh文件系统']#仅中文公开名
+__all__=['ssh文件系统','依赖']
+
+依赖=['ssh','sandboxPolicy']
 
 错误码表={#可提升为文件系统错误的码
     'FS_NOT_FOUND':True,'FS_NOT_DIRECTORY':True,'FS_NOT_TEXT':True,'FS_NOT_REGULAR_FILE':True,
@@ -23,7 +25,7 @@ __all__=['ssh文件系统']#仅中文公开名
 
 class ssh文件系统(文件系统):#远端文件系统
     """与 SSH 子进程和沙箱提供方配对。"""
-    inject=['ssh','sandboxPolicy']#依赖
+    inject=依赖
     def 沙箱模式(自身):#部署默认
         """读 sandboxPolicy.defaultMode。"""
         return 自身.所属上下文.sandboxPolicy.defaultMode#默认模式
@@ -92,9 +94,9 @@ class ssh文件系统(文件系统):#远端文件系统
                         return 值#空
                     try:#关流
                         自身.调用('fs.streamClose',{'id':标识},空)#关
-                    except Exception:#源码忽略关流失败
-                        pass#忽略
-            return#结束
+                    except (远程操作错误,ssh错误,OSError):
+                        pass
+            return
         return 迭代()#迭代器
     def 读字节(自身,目标,信号,最大字节):#原始字节
         """base64 解码。"""
@@ -139,9 +141,9 @@ class ssh文件系统(文件系统):#远端文件系统
                 raise 文件系统错误(str(错误),错误.code,{'cause':错误})#提升
             码='FS_ABORTED' if 已中止(信号) else 'FS_IO_ERROR'#回落码
             raise 文件系统错误(str(错误),码,{'cause':错误})#包装
-        except Exception as 错误:#其余
-            码='FS_ABORTED' if 已中止(信号) else 'FS_IO_ERROR'#回落码
-            消息=str(错误)#英文
-            raise 文件系统错误(消息,码,{'cause':错误})#包装
+        except ssh错误 as 错误:
+            码='FS_ABORTED' if 已中止(信号) else 'FS_IO_ERROR'
+            raise 文件系统错误(str(错误),码,{'cause':错误})
 
-default=ssh文件系统#框架槽
+inject=依赖
+default=ssh文件系统

@@ -1,13 +1,13 @@
-import math#取整
+import math#向上取整
 import time#纪元毫秒
-from datetime import datetime#时刻
-from zoneinfo import ZoneInfo#时区
+from datetime import datetime as 日期时间
+from zoneinfo import ZoneInfo as 时区信息
 from .文案 import 命名空间#命名空间
 
 __all__=[#仅中文公开名
     '单位文案','格式化日程频率','格式化日程本地时间','格式化日程相对',
     '排序日程记录','日程目录动作','空记录','秒毫秒','单位秒表','解析日程时刻',
-]#公开面结束
+]
 
 空记录=()#无投影时的空表
 秒毫秒=1_000#一秒毫秒
@@ -19,11 +19,11 @@ __all__=[#仅中文公开名
     秒单位,#秒
 )#单位表结束
 日程时刻格式='%Y-%m-%dT%H:%M:%S.%fZ'#线协议 scheduledAt
-协调世界时=ZoneInfo('UTC')#UTC
+协调世界时=时区信息('UTC')
 
 def 解析日程时刻(原文):
     """把线协议 UTC 时刻翻成纪元毫秒。"""
-    时刻=datetime.strptime(原文,日程时刻格式).replace(tzinfo=协调世界时)#写死格式
+    时刻=日期时间.strptime(原文,日程时刻格式).replace(tzinfo=协调世界时)
     return int(时刻.timestamp()*1000)#纪元毫秒
 
 def 缺省翻译(键,_插值=None):
@@ -57,7 +57,7 @@ def 格式化日程频率(记录,翻译):
 
 def 格式化日程本地时间(计划于,区域=None):
     """按当地时区格式化持久 UTC 目标。"""
-    时刻=datetime.strptime(计划于,日程时刻格式).replace(tzinfo=协调世界时)#写死格式
+    时刻=日期时间.strptime(计划于,日程时刻格式).replace(tzinfo=协调世界时)
     本地=时刻.astimezone()#当地时区
     return 本地.strftime('%Y-%m-%d %H:%M')#中等日期+短时间近似
 
@@ -76,7 +76,7 @@ def 格式化日程相对(计划于,现在,翻译):
     if 差>0:
         值=max(1,math.ceil(绝对秒/选中['seconds']))#向上取整
     else:
-        值=max(1,math.floor(绝对秒/选中['seconds']))#向下取整
+        值=max(1,绝对秒//选中['seconds'])#向下取整
     单位=单位文案(选中['unit'],值,翻译)#单位词
     return 翻译('relative.future' if 差>0 else 'relative.overdue',{'value':值,'unit':单位})#相对句
 
@@ -167,7 +167,7 @@ class 日程目录动作:#页眉动作
         return 快照['openState'] if 'openState' in 快照 else None#打开态
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        """组件调用形；有属性则更新后渲染。"""
         if 属性 is not None:
             自身.更新(属性)#刷
         return 自身.渲染()#渲

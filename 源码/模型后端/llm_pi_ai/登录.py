@@ -24,47 +24,43 @@ def 登录方法(提供方):
     return 方法列表#方法
 
 def 中继(事件,会话):
-    """用 seam 词表重述一次 pi-ai 登录事件。"""
-    类型=getattr(事件,'type',None) or (事件.get('type') if isinstance(事件,dict) else None)#类型
+    """用服务词表重述一次 pi-ai 登录事件。"""
+    类型=getattr(事件,'type',None)#类型
     def 取(名,默认=None):
-        """属性或键。"""
-        if isinstance(事件,dict):#dict
-            return 事件[名] if 名 in 事件 else 默认#键
+        """属性。"""
         return getattr(事件,名,默认)#属性
     if 类型=='info':#信息
         链接列表=取('links') or []#链接
         链=链接列表[0] if len(链接列表)>0 else None#首链
         通知={'message':取('message')}#消息
         if 链 is not None:#有链
-            地址=链['url'] if isinstance(链,dict) else getattr(链,'url',None)#url
+            地址=getattr(链,'url',None)#url
             if 地址 is not None:#有
                 通知['url']=地址#url
         会话['notify'](通知)#通知
-        return#结束
+        return
     if 类型=='auth_url':#授权 URL
         会话['notify']({
             'message':取('instructions') or '打开此页面以继续登录。',
             'url':取('url'),
         })#通知
-        return#结束
+        return
     if 类型=='device_code':#设备码
         会话['notify']({
             'message':'在验证页输入此代码以完成登录。',
             'url':取('verificationUri'),
             'code':取('userCode'),
         })#通知
-        return#结束
+        return
     if 类型=='progress':#进度
         会话['notify']({'message':取('message')})#通知
-        return#结束
+        return
     会话['notify']({'message':'正在登录…'})#未知成员仍显示有事在发生
 
 def 重述(提示):
-    """用 seam 词表重述一次 pi-ai 提示。"""
+    """用服务词表重述一次 pi-ai 提示。"""
     def 取(名,默认=None):
-        """属性或键。"""
-        if isinstance(提示,dict):#dict
-            return 提示[名] if 名 in 提示 else 默认#键
+        """属性。"""
         return getattr(提示,名,默认)#属性
     信号=取('signal')#信号
     信号块={} if 信号 is None else {'signal':信号}#可选信号

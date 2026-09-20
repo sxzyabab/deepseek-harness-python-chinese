@@ -4,8 +4,8 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
 from .运行 import 启动sdk运行,默认关闭超时毫秒,默认处置eof宽限毫秒,默认处置宽限毫秒#运行
 
 名称='subagent-dsh-sdk'#Cordis 插件名
-注入=['subagents']#依赖
-配置=字典字段({
+依赖=['subagents']#依赖
+配置=字典字段(字典结构={
     'providerName':字符串字段(默认值='dsh-sdk'),
     'profile':字符串字段(默认值='sdk'),
     'patches':列表字段(字符串字段(),默认值=[]),
@@ -14,13 +14,13 @@ from .运行 import 启动sdk运行,默认关闭超时毫秒,默认处置eof宽�
     'provider':字符串字段(默认值='deepseek-official'),
     'model':字符串字段(默认值='deepseek-v4-flash'),
     'maxTokens':数字字段(),
-    'env':字典字段[字符串字段(),字符串字段()](默认值={}),
+    'env':字典字段(键值结构=(字符串字段(),字符串字段()),默认值={}),
     'shutdownTimeoutMs':数字字段(默认值=默认关闭超时毫秒),
     'disposeEofGraceMs':数字字段(默认值=默认处置eof宽限毫秒),
     'disposeGraceMs':数字字段(默认值=默认处置宽限毫秒),
 })#配置
 
-__all__=['名称','注入','配置','应用']#公开面
+__all__=['名称','依赖','配置','应用']#公开面
 
 class dshSdk提供方:
     """进程外 SDK 子体；不继承父对话。"""
@@ -48,7 +48,7 @@ def 应用(上下文,配置值):
     上下文.subagents.登记提供方(dshSdk提供方(名,规格))#登记
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
 default=应用#框架槽

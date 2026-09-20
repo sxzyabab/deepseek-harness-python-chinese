@@ -1,4 +1,4 @@
-"""实例拥有的原生图像变换并发上限。对齐上游 attachment-local/src/compression-limiter.ts。"""
+"""实例拥有的原生图像变换并发上限。"""
 import threading#线程与条件变量
 __all__=['压缩限流器']#仅中文公开名
 

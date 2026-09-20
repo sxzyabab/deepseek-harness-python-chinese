@@ -1,6 +1,6 @@
 import json,threading,uuid#帧编码、读线程与请求 id
 from ...内核.作用域 import 操作任务#未决请求
-from ...工具.超时 import 中止控制器,若已中止则抛出,已中止#中止
+from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,等待中止#中止
 from .模式 import ssh错误#本包基类
 
 __all__=['ssh协议版本','ssh进程句柄上限','ssh文本流上限','远程操作错误','ssh请求对等']#仅中文公开名
@@ -78,12 +78,10 @@ class ssh请求对等:#有界 JSON 帧对等
             """取消帧；远端清理未完成仍占额度。"""
             任务.拒绝(ssh错误('SSH operation cancelled; a completed remote mutation is not rolled back'))#拒绝
             自身.发送({'type':'cancel','id':标识})#取消帧
-        if 信号 is not None and hasattr(信号,'addEventListener'):#DOM 信号
-            信号.addEventListener('abort',中止时,{'once':True})#一次
-        elif 信号 is not None:# Event
+        if 信号 is not None:# Event
             def 监视():#等中止
                 """置位后取消。"""
-                信号.wait()#等待
+                等待中止(信号)#等待
                 if 标识 in 自身.未决:#仍未决
                     中止时()#取消
             threading.Thread(target=监视).start()#监视
@@ -152,8 +150,8 @@ class ssh请求对等:#有界 JSON 帧对等
             if len(缓冲)>0:#半帧
                 raise ssh错误('SSH helper disconnected during a frame; outcome is unknown')#半帧
             raise ssh错误('SSH helper disconnected; outcome is unknown')#干净断
-        except Exception as 错误:#读失败
-            自身.关闭(操作错误(错误))#关闭
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError,ValueError,KeyError,ssh错误) as 错误:
+            自身.关闭(操作错误(错误))
 
     def 收取(自身,帧):#分发一帧
         """结果、错误、取消或入站请求。"""
@@ -168,12 +166,12 @@ class ssh请求对等:#有界 JSON 帧对等
             else:#远端错误
                 错=帧['error'] if 'error' in 帧 else {}#错误
                 项['任务'].拒绝(远程操作错误(错['message'] if 'message' in 错 else '',错['code'] if 'code' in 错 else None))#拒绝
-            return#结束
+            return
         if 类型=='cancel':#取消入站
             活动=自身.活动.get(帧['id']) if 'id' in 帧 else None#活动
             if 活动 is not None:#有
                 活动['controller'].中止(ssh错误('SSH caller cancelled the operation'))#中止
-            return#结束
+            return
         方法=帧['method'] if 'method' in 帧 else ''#方法
         种类=请求分类(方法)#分类
         if 自身.处理 is None or 帧['id'] in 自身.活动 or 自身.已满(种类,自身.活动.values()):#意外

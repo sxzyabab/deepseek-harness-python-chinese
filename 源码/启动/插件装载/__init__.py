@@ -1,36 +1,36 @@
 """当前配置档的插件与组合包装载，复用共享 dsh 插件包操作。"""
-import os,re,json,copy,threading#路径、ANSI、JSON、克隆、并发
-from uuid import uuid4 as 生成uuid4#作业 id
-from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段#配置字段
-from ...工具.原子写入 import 带文件锁,原子写文件#清单锁与原子写
-from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出#中止原语
-from ...typert.协议 import 远程服务,远程#Typert 远程服务
-from ..app启动 import (#配置档 API
-    读配置清单,#读清单
-    解析组合包目录,#解析组合包目录
-    加载覆盖补丁,#加载覆盖
-    组合条目,#组合条目
-    加载可选补丁,#可选补丁
-    加载配置目录,#加载配置目录
-    启动包含表,#根 Include 表
-    未激活条目,#未激活收集
-    激活诊断,#诊断文本
-)#app启动结束
-from ..app启动.配置档 import 配置补丁文件名#用户补丁文件名
-from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包#包操作
-from .安装失败 import 分类安装失败#失败分类
-from .安装规格 import 非法安装规格错误,解析安装规格#规格解析
-from .补丁 import 写插件启用#启停补丁
-from .失败 import 装载失败#预期拒绝
-from .构建审批 import 批准构建,读待决构建#构建审批
-from . import 类型#类型面再导出
-from . import 安装失败 as 安装失败模块#失败分类再导出
-from . import 安装规格 as 安装规格模块#规格再导出
+import os,re,json,copy,threading
+from uuid import uuid4 as 生成uuid4
+from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段
+from ...工具.原子写入 import 带文件锁,原子写文件
+from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出
+from ...typert.协议 import 远程服务,远程
+from ..app启动 import (
+    读配置清单,
+    解析组合包目录,
+    加载覆盖补丁,
+    组合条目,
+    加载可选补丁,
+    加载配置目录,
+    启动包含表,
+    未激活条目,
+    激活诊断,
+)
+from ..app启动.配置档 import 配置补丁文件名
+from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包
+from .安装失败 import 分类安装失败
+from .安装规格 import 非法安装规格错误,解析安装规格
+from .补丁 import 写插件启用
+from .失败 import 装载失败
+from .构建审批 import 批准构建,读待决构建
+from . import 类型
+from . import 安装失败 as 安装失败模块
+from . import 安装规格 as 安装规格模块
 
-__all__=[#仅中文公开名
+__all__=[
     '装载服务','配置','分类安装失败','非法安装规格错误','解析安装规格',
     '类型','安装失败模块','安装规格模块',
-]#公开面结束
+]
 
 #常量
 受保护模块=set([#装载自身依赖的模块，不可经配置档补丁改
@@ -43,22 +43,22 @@ __all__=[#仅中文公开名
     '@deepseek-ai/cordis-plugin-timer','@deepseek-ai/dsh-client-connection',
     '@deepseek-ai/dsh-host-frontend-static','@deepseek-ai/dsh-tools',
     '@deepseek-ai/dsh-hmr',
-])#受保护模块结束
+])
 恢复文件=('package.json','pnpm-lock.yaml')#安装失败时恢复的文件
 ANSI序列=re.compile(r'\x1b\[[0-9;]*m',re.ASCII)#pnpm 色码
-#上游 OPTIONAL_BUNDLES；app启动尚未迁入时本包装同源字面量
+#app启动尚未迁入时本包装同源字面量
 可选组合包=[
     '@deepseek-ai/dsh-experimental-agent-team-profile',
     '@deepseek-ai/dsh-experimental-agent-team-web-profile',
-]#可选组合包结束
-遥测行编号='session-telemetry-otel'#遥测行 id
+]
+遥测行编号='session-telemetry-otel'
 
-配置={#部署配置；键为线协议
-    'pnpmCommand':字符串字段(默认值='pnpm'),#pnpm 可执行
-    'outputBytes':正整数字段(默认值=16384),#诊断字节上限
-    'lockWaitMs':自然数字段(默认值=120000),#锁等待毫秒
-    'inspectTimeoutMs':正整数字段(默认值=20000,最小=1000),#检查超时毫秒
-}#配置结束
+配置={
+    'pnpmCommand':字符串字段(默认值='pnpm'),
+    'outputBytes':正整数字段(默认值=16384),
+    'lockWaitMs':自然数字段(默认值=120000),
+    'inspectTimeoutMs':正整数字段(默认值=20000,最小=1000),
+}
 
 #工具
 def 展平行表(行表):
@@ -121,11 +121,11 @@ def 读插件清单(上下文):
         if 选项.get('group'):#组
             continue#跳过
         编号=配置.编号 if hasattr(配置,'编号') else 选项.get('id')#编号
-        光纤=配置.纤程 if hasattr(配置,'纤程') else None#光纤
+        纤程=配置.纤程 if hasattr(配置,'纤程') else None#纤程
         已禁用=配置.已禁用 if hasattr(配置,'已禁用') else bool(选项.get('disabled'))#禁用
-        相位=None#光纤相位
-        if 光纤 is not None:#有光纤
-            状态=光纤.状态#状态
+        相位=None#纤程相位
+        if 纤程 is not None:#有纤程
+            状态=纤程.状态#状态
             相位对照={0:'pending',1:'loading',2:'active',3:'failed',5:'unloading'}#对照
             相位=相位对照.get(状态)#相位；DISPOSED→null
         条目表.append({#清单条目
@@ -171,28 +171,28 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
     """应用一整代补丁并等待 Loader 激活诊断。"""
     if 必需编号 is None:#缺省
         必需编号=[]#空
-    条目=启动包含表.get(id(根上下文))#根 Include
-    if 条目 is None:#缺失
-        raise Exception(二进制名+': profile reload requires the root Include entry')#拒绝
+    if id(根上下文) not in 启动包含表:#缺失
+        raise Exception(二进制名+': 配置档重载需要根 Include 条目')
+    条目=启动包含表[id(根上下文)]#根 Include
     先前失败=[]#先前失败快照
     for 失败 in 未激活条目(根上下文):#收集
-        光纤=失败['entry'].纤程#光纤
+        纤程=失败['entry'].纤程#纤程
         先前失败.append({#快照
             'entry':失败['entry'],#条目
             'diagnostic':未激活诊断(失败),#诊断
-            'fiber':光纤,#光纤
+            'fiber':纤程,#纤程
             'options':json.dumps(失败['entry'].选项,ensure_ascii=False,separators=(',',':'),allow_nan=False),#选项
         })#快照结束
-    先前光纤=[]#先前光纤
+    先前纤程=[]#先前纤程
     for 配置 in 根上下文.loader.列出插件配置():#逐条
-        if 配置.纤程 is not None:#有光纤
-            先前光纤.append({'fiber':配置.纤程,'failed':配置.纤程.状态 in (3,4)})#FAILED/DISPOSED
+        if 配置.纤程 is not None:#有纤程
+            先前纤程.append({'fiber':配置.纤程,'failed':配置.纤程.状态 in (3,4)})#FAILED/DISPOSED
     旧配置=条目.选项.get('config') if hasattr(条目,'选项') else {}#Include 配置
     新配置=dict(旧配置) if isinstance(旧配置,dict) else {}#拷贝
     新配置['patches']=补丁#写入补丁
     条目.更新({'config':新配置})#更新 Include
     拒绝原因=[]#新抛出
-    for 项 in 先前光纤:#等旧光纤
+    for 项 in 先前纤程:#等旧纤程
         try:#等待
             项['fiber'].等待()#等待
         except Exception as 错误:#失败
@@ -215,15 +215,15 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
             引入.append(失败项)#收下
     if len(引入)>0:#有新失败
         raise Exception(激活诊断(二进制名,'warning',引入).rstrip())#与上游 activationDiagnostic 字面一致
-    if len(拒绝原因)>0:#旧光纤新抛
+    if len(拒绝原因)>0:#旧纤程新抛
         raise 拒绝原因[0]#抛首条
     return [未激活诊断(项) for 项 in 失败]#警告列表
 
 class 安装已取消错误(Exception):
     """调用方停止安装；文件已恢复后抛出。"""
     def __init__(自身):
-        """固定英文消息。"""
-        super().__init__('Installation cancelled')#英文
+        """固定消息。"""
+        super().__init__('安装已取消')
         自身.name='InstallCancelledError'#错误名
 
 class 装载服务(远程服务):
@@ -234,8 +234,8 @@ class 装载服务(远程服务):
     def __init__(自身,上下文,配置值):
         """登记 pluginManager 远程服务并记下配置档事实。"""
         super().__init__(上下文,'pluginManager')#服务键线协议
-        光纤=上下文.纤程#所属光纤
-        插件配置=光纤.插件配置 if 光纤 is not None else None#插件配置
+        纤程=上下文.纤程#所属纤程
+        插件配置=纤程.插件配置 if 纤程 is not None else None#插件配置
         自身.拥有条目标识=插件配置.编号 if 插件配置 is not None else None#拥有条目
         自身.拥有上下文=上下文#拥有上下文
         自身.配置档=上下文.profileContext#配置档事实（跨包 dict）
@@ -279,8 +279,8 @@ class 装载服务(远程服务):
             if 实际 is not None:#有活条目
                 父树=实际.父组.所属树 if hasattr(实际,'父组') and 实际.父组 is not None else None#父树
                 if 父树 is not None:#有树
-                    树光纤=父树.所属上下文.纤程#树光纤
-                    拥有=树光纤.插件配置 if 树光纤 is not None else None#拥有配置
+                    树纤程=父树.所属上下文.纤程#树纤程
+                    拥有=树纤程.插件配置 if 树纤程 is not None else None#拥有配置
                     拥有编号=拥有.编号 if 拥有 is not None else None#编号
             if (一条 is None or len(候选)>1 or 一条.get('name')!=条目['moduleName']
                     or 拥有编号!='include'):#不可寻址
@@ -355,11 +355,11 @@ class 装载服务(远程服务):
         if 种类=='tarball':#tarball
             路径=解析.get('path')#路径
             if 路径 is not None and not os.path.exists(路径):#不存在
-                return 拒绝检查('not-a-package','the tarball does not exist')#拒绝
+                return 拒绝检查('not-a-package','压缩包不存在')
             return {'status':'accepted','kind':'tarball','bundle':None}#接受
         if 种类=='path':#路径
             if not os.path.exists(解析['path']):#不存在
-                return 拒绝检查('not-a-package','the path does not exist')#拒绝
+                return 拒绝检查('not-a-package','路径不存在')
             try:#读 package.json
                 包文件=open(os.path.join(解析['path'],'package.json'),'r',encoding='utf-8')#打开
                 try:#读
@@ -367,18 +367,18 @@ class 装载服务(远程服务):
                 finally:#关
                     包文件.close()#关闭
             except Exception as 错误:#不可读
-                return 拒绝检查('not-a-package','no readable package.json at the path: '+错误消息(错误))#拒绝
+                return 拒绝检查('not-a-package','该路径没有可读的 package.json: '+错误消息(错误))
             检查=检查结果自清单('path',读出)#检查
             if 'name' not in 检查:#无名
-                return 拒绝检查('not-a-package','the package.json names no package')#拒绝
+                return 拒绝检查('not-a-package','package.json 没有包名')
             if 检查['name'] in 已知:#已装
-                return 拒绝检查('already-installed',检查['name']+' is already installed')#拒绝
+                return 拒绝检查('already-installed',检查['name']+' 已安装')
             if not 检查['bundle']:#非组合包
-                return 拒绝检查('not-a-bundle',检查['name']+' declares no dsh.bundle')#拒绝
+                return 拒绝检查('not-a-bundle',检查['name']+' 未声明 dsh.bundle')
             return 检查#接受
         if 种类=='registry':#注册表
             if 解析['name'] in 已知:#已装
-                return 拒绝检查('already-installed',解析['name']+' is already installed')#拒绝
+                return 拒绝检查('already-installed',解析['name']+' 已安装')
             包管理=自身.配置档.get('packageManager') or {'command':自身.pnpm命令}#包管理
             查看选项=dict(包管理)#选项
             查看选项['timeoutMs']=自身.检查超时毫秒#超时
@@ -392,22 +392,22 @@ class 装载服务(远程服务):
                 if 'cause' in 查看:#有原因
                     事实['cause']=查看['cause']#写入
                 失败种=分类安装失败(事实)#分类
-                理由=日志 or (查看.get('stdout') or '').strip() or ('pnpm view exited with '+str(查看.get('exitCode')))#理由
+                理由=日志 or (查看.get('stdout') or '').strip() or ('pnpm view 退出码 '+str(查看.get('exitCode')))
                 if 失败种 in ('not-found','no-matching-version'):#未找到
                     return 拒绝检查('not-found',理由)#拒绝
                 if 失败种=='network':#网络
                     return 拒绝检查('network',理由)#拒绝
                 if 查看.get('timedOut'):#超时
-                    return 拒绝检查('unknown','pnpm view timed out after '+str(自身.检查超时毫秒)+'ms')#拒绝
+                    return 拒绝检查('unknown','pnpm view 超时，毫秒 '+str(自身.检查超时毫秒))
                 return 拒绝检查('unknown',理由)#未知
             try:#解析 JSON
                 原文=ANSI序列.sub('',(查看.get('stdout') or '').strip()) or 'null'#去色
                 答复=json.loads(原文)#解析
             except Exception as 错误:#不可读
-                return 拒绝检查('unknown','unreadable pnpm view output: '+错误消息(错误))#拒绝
+                return 拒绝检查('unknown','无法阅读 pnpm view 输出: '+错误消息(错误))
             最新=答复[-1] if isinstance(答复,list) else 答复#最新版本
             if not isinstance(最新,dict) or 最新 is None:#无包
-                return 拒绝检查('unknown','pnpm view answered no package')#拒绝
+                return 拒绝检查('unknown','pnpm view 没有返回包')
             检查=检查结果自清单('registry',最新)#检查
             if 'name' not in 检查:#无名则用解析名
                 命名=dict(检查)#拷贝
@@ -415,9 +415,9 @@ class 装载服务(远程服务):
             else:#已有名
                 命名=检查#原样
             if not 命名['bundle']:#非组合包
-                return 拒绝检查('not-a-bundle',命名['name']+' declares no dsh.bundle')#拒绝
+                return 拒绝检查('not-a-bundle',命名['name']+' 未声明 dsh.bundle')
             return 命名#接受
-        raise Exception('unreachable install spec kind')#不可达
+        raise Exception('不可达的安装规格种类')
 
     @远程
     def 设置插件启用(自身,标识,启用):
@@ -497,7 +497,7 @@ class 装载服务(远程服务):
                     try:#读待决
                         结果['pendingBuilds']=读待决构建(自身.配置档['dir'])#待决
                     except Exception as 错误:#读失败
-                        自身.拥有上下文.日志.警告('Could not read pending build approvals after pnpm failed',错误)#警告
+                        自身.拥有上下文.日志.警告('pnpm 失败后无法读取待决构建审批',错误)
                     raise Exception(结果['packageResult']['output'])#带输出失败
                 之后=(读配置清单('dsh',自身.配置档['dir']).get('dependencies') or {})#装后
                 已装=[名 for 名 in 之后.keys() if 之前.get(名)!=之后[名]]#变化名
@@ -508,7 +508,7 @@ class 装载服务(远程服务):
                 名称=已装[0]#目标名
                 目录=解析组合包目录('dsh',名称,自身.配置档['installAnchor'],自身.配置档['dir'])#包目录
                 清单=组合包清单(名称,自身.配置档['dir'],自身.配置档['installAnchor'])#元数据
-                if (((清单 or {}).get('dsh') or {}).get('bundle') or {}).get('patch') is None:#无补丁
+                if 'patch' not in (((清单 or {}).get('dsh') or {}).get('bundle') or {}):#无补丁
                     raise 装载失败('not-bundle')#拒绝
                 加载覆盖补丁('dsh',os.path.join(目录,清单['dsh']['bundle']['patch']))#加载
             except Exception as 错误:#恢复
@@ -531,7 +531,7 @@ class 装载服务(远程服务):
             return 自身.配置事务(启用操作)#配置事务
         try:#跑变更
             return 自身.变更(作业,{'stage':'install','target':规格,'enabled':选项.get('enabled') is not False},'install')#变更
-        finally:#对齐上游 settled/finally
+        finally:
             控制['settled'].set()#已结算
             if 请求标识 is not None:#有 id
                 自身.安装表.pop(请求标识,None)#摘掉
@@ -539,9 +539,9 @@ class 装载服务(远程服务):
     @远程
     def 取消安装(自身,请求标识):
         """停止本服务拥有的安装并等到文件恢复。"""
-        控制=自身.安装表.get(请求标识)#控制
-        if 控制 is None:#无此 id
+        if 请求标识 not in 自身.安装表:#无此 id
             return {'status':'not-running'}#未运行
+        控制=自身.安装表[请求标识]#控制
         if 控制['phase']=='applying':#已应用
             return {'status':'too-late'}#太晚
         自身.拥有上下文.广播('plugin-manager/install-state',{'requestId':请求标识,'phase':'cancelling'})#通告
@@ -610,7 +610,7 @@ class 装载服务(远程服务):
         已声明=set(行['rowId'] for 行 in 行表)#已声明 id
         覆盖=[]#覆盖 id
         for 项 in 补丁列表:#逐补丁
-            if 项.get('insert') is None and isinstance(项.get('id'),str) and 项['id'] not in 已声明:#改写
+            if 'insert' not in 项 and isinstance(项.get('id'),str) and 项['id'] not in 已声明:#改写
                 if 项['id'] not in 覆盖:#去重
                     覆盖.append(项['id'])#收下
         return {'rows':行表,'overrides':覆盖}#声明
@@ -647,7 +647,7 @@ class 装载服务(远程服务):
         }#上下文结束
         try:#跑
             结果=跑配置档pnpm(上下文,参数列表,选项)#跑
-            退出=None if (信号 is not None and ((hasattr(信号,'已中止') and 信号.已中止()) or (hasattr(信号,'is_set') and 信号.is_set()))) else 结果['exitCode']#退出码
+            退出=None if (信号 is not None and 信号.is_set()) else 结果['exitCode']#退出码
             尾=dict(身份)#尾块
             尾.update({'jobId':作业标识,'argv':参数行,'cwd':工作目录,'stream':'stdout','text':'','exitCode':退出})#字段
             自身.拥有上下文.广播('plugin-manager/install-log',尾)#尾事件
@@ -717,7 +717,7 @@ class 装载服务(远程服务):
     def 组合包行(自身,名称):
         """组合包补丁展平后的条目选项行。"""
         信息=组合包清单(名称,自身.配置档['dir'],自身.配置档['installAnchor'])#元数据
-        if 信息 is None or (信息.get('dsh') or {}).get('bundle') is None:#无
+        if 信息 is None or 'bundle' not in (信息.get('dsh') or {}):#无
             return []#空
         目录=解析组合包目录('dsh',名称,自身.配置档['installAnchor'],自身.配置档['dir'])#目录
         return 展平行表(组合条目([加载覆盖补丁('dsh',os.path.join(目录,信息['dsh']['bundle']['patch']))]))#行
@@ -726,7 +726,7 @@ class 装载服务(远程服务):
         """该组合包是否贡献受保护模块或拥有条目。"""
         for 行 in 自身.组合包行(名称):#逐行
             if 行.get('name') in 受保护模块 or ('include:'+str(行.get('id')))==自身.拥有条目标识:#保护
-                return True#是
+                return True
         return False#否
 
     def 配置事务(自身,操作):

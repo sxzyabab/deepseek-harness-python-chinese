@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/client/bridge.ts
-
 __all__=['创建Client_realm桥']#仅中文公开名
 
 def 创建Client_realm桥(目标,运行时,源):#创建Client realm桥

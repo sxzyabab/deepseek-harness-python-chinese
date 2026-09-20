@@ -1,6 +1,5 @@
 """每 Session 一条宿主 `changes` 订阅，扇出到该 Session 已打开的文件。
 
-对齐上游 `workspace-files/src/client/change-feed.ts`。公开面仅中文名。
 宿主在一条流上报告 Session 内每次 Agent 写入；每个打开文件只要自己的。
 首个跟随者到达时打开 Session 流，末个离开时拆除；跟随者在 `stat` 给出宿主绝对路径前缓冲，
 随后按该路径过滤（`\\` 归一为 `/`）。
@@ -8,7 +7,7 @@
 import json#断言帧
 import threading#唤醒与结算
 from concurrent.futures import Future as 原生结果#就绪与拆除
-from ..类型 import 已中止#中止查询
+from ..类型 import 已中止,远程错误#中止查询与包异常
 
 __all__=['变更供给']#仅中文公开名
 
@@ -26,7 +25,7 @@ class _跟随者:
         自身._离开=离开#注销
         自身._待发=[]#待发 (key, notice)
         自身._事件=threading.Event()#唤醒
-        自身._已结束=False#结束
+        自身._已结束=False
         自身._宿主键=None#绑定后的绝对路径键
         自身._就绪结果=原生结果()#ready：True 已确认 / False 提前结束
 
@@ -69,7 +68,7 @@ class _跟随者:
                     if 自身._宿主键 is None or 键==自身._宿主键:#匹配或尚未绑定
                         yield 下一条['notice']#通知
                     continue#下一条
-                if 自身._已结束:#结束
+                if 自身._已结束:
                     return#停
                 自身._事件.clear()#清
                 if len(自身._待发)>0 or 自身._已结束:#竞态
@@ -111,7 +110,7 @@ class _会话供给:
             'ended':已结束,#终态分类
         })#流
         线=threading.Thread(target=自身._泵,daemon=True,name='dsh-workspace-files-feed')#泵线程
-        线.start()#启动
+        线.start()
 
     def 加入(自身,跟随者):
         """在宿主路径已知前登记跟随者。"""
@@ -143,7 +142,7 @@ class _会话供给:
                     for 跟随者 in list(自身._跟随者集合):#扇出
                         跟随者.推(通知,键)#推
                 else:#未知
-                    raise Exception('Unexpected workspace file watch frame: '+json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#拒绝
+                    raise 远程错误('gateway/internal','Unexpected workspace file watch frame: '+json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False),{})#拒绝
         except BaseException:
             pass#终态失败：跟随者在下方安静结束，元数据保留最后已知
         finally:
@@ -155,8 +154,8 @@ class _会话供给:
             return#停
         自身._已关闭=True#标记
         关闭任务=_包装拆除(自身._流.dispose)#包装 dispose
-        for 跟随者 in list(自身._跟随者集合):#结束
-            跟随者.结束()#结束
+        for 跟随者 in list(自身._跟随者集合):
+            跟随者.结束()
         自身._跟随者集合.clear()#清空
         自身._关闭后(关闭任务)#通知供给
         if not 自身._拆除结果.done():#本对象
@@ -172,9 +171,9 @@ def _包装拆除(拆除):
             拆除()#同步拆除
             任务.兑现()#成功
         except BaseException as 错误:
-            任务.拒绝(错误)#失败
+            任务.拒绝(错误)
     线=threading.Thread(target=后台拆除,daemon=True)#后台
-    线.start()#启动
+    线.start()
     return 任务#任务
 
 
@@ -253,7 +252,7 @@ class 变更供给:
                     return#停
 
         线=threading.Thread(target=盯中止,daemon=True,name='dsh-workspace-files-follow-abort')#盯中止
-        线.start()#启动
+        线.start()
         return 跟随者#订阅
 
     def 结算(自身):
@@ -286,7 +285,7 @@ class 变更供给:
                 追踪.兑现()#结
 
             线=threading.Thread(target=收尾,daemon=True)#收尾
-            线.start()#启动
+            线.start()
             自身._关闭中[会话标识]=追踪#记下
 
         供给=_会话供给(自身._远程,会话标识,前任,关闭后)#新建

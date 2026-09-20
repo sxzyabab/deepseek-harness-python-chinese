@@ -1,7 +1,8 @@
-import threading#中止标志
-from ...ui_停靠套件.引擎 import 查找标签窗格#找窗
+import threading
+from ...ui_停靠套件.引擎 import 查找标签窗格
+from .约定.槽位 import 右侧侧栏错误
 
-__all__=['标签域','快照仓']#仅中文公开名
+__all__=['标签域','快照仓']
 
 
 class 快照仓:#本包自持快照源
@@ -61,7 +62,7 @@ class 标签域:#每会话标签出现次
         签标识=标签['id'] if isinstance(标签,dict) else 标签#兼容
         次=自身.按会话[会话标识][签标识] if 会话标识 in 自身.按会话 and 签标识 in 自身.按会话[会话标识] else None#次
         if 次 is None:#无
-            raise Exception('sidebarRight: 标签 "'+str(签标识)+'" 在会话 "'+str(会话标识)+'" 中没有已提交出现')#拒绝
+            raise 右侧侧栏错误('标签 "'+str(签标识)+'" 在会话 "'+str(会话标识)+'" 中没有已提交出现')
         return {#对外出现次（只读面）
             'sessionId':次['sessionId'],
             'tabId':次['tabId'],

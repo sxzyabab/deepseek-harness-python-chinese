@@ -1,8 +1,8 @@
-"""JSONL 耐久会话持久化后端（代次文件 + 活写句柄；对齐 session-persistence-jsonl）。"""
+"""JSONL 会话持久化：代次文件加活写句柄。"""
 import os#路径
 import secrets#临时名
 import sys#平台
-from ...依赖.schemastery import 字典字段,字符串字段,布尔字段,数字字段#配置
+from ...依赖.schemastery import 字典字段,字符串字段,布尔字段,数字字段
 from ...内核.会话 import 会话格式版本#当代格式版本
 from ..会话格式目录 import 会话格式目录#格式目录
 from ..会话持久化 import (
@@ -20,6 +20,7 @@ from .格式 import (#格式工具
 from .租约 import 租约文件名,会话写租约,会话已有写主错误#写租约
 from .zstd编解码 import (#zstd
     压缩zstd帧,解压zstd帧,扫描zstd帧,解压zstd前缀,创建zstd帧解码器,
+    Error as zstd帧错误,
 )#zstd
 from .代次 import (#代次
     物理身份,身份串,读稳定jsonl文件,准备jsonl迁移,默认代次格式适配器,
@@ -29,18 +30,19 @@ from .迁移校验 import 进程内校验当代代#进程内校验
 from .存储 import jsonl会话句柄,jsonl后端跟踪器#存储句柄
 from .win32 import 发布新文件win32#Win32 发布
 
-名称='session-persistence-jsonl'#Cordis 插件名
-注入=['sessions']#依赖
-配置=字典字段({
+包名='@deepseek-ai/dsh-session-persistence-jsonl'
+名称='session-persistence-jsonl'
+依赖=['sessions']#依赖
+配置=字典字段(字典结构={
     'root':字符串字段(),#根目录必填
     'packChunks':布尔字段(默认值=False),#历史遗留；当代写入不打包（追踪已删 chunk-rows）
     'compression':字符串字段(默认值='zstd'),#压缩
     'preparedSessionCacheSize':数字字段(默认值=默认预备会话缓存大小),#预备缓存
     'writeBatchMaxDelayMs':数字字段(默认值=默认写批最大延迟毫秒),#写批延迟
-})#配置模式
-__all__=[#公开面
-    '名称','注入','配置','jsonl会话持久化','租约文件名','会话写租约','会话已有写主错误',
-]#公开面结束
+})
+__all__=[
+    '包名','名称','依赖','应用','默认','配置','jsonl会话持久化','租约文件名','会话写租约','会话已有写主错误',
+]
 
 def _断言zstd头帧(明文):#校验头帧
     """断言可独立解码的第一帧只含头记录。"""
@@ -84,7 +86,7 @@ class jsonl会话持久化(会话持久化):
             name=名称#诊断名
             def locate(自身,头):#定位
                 """定位当代产物。"""
-                选中=持有.查找日志(头['id'])#查找
+                选中=持有.查找日志(头['id'])
                 if 选中 is None:#缺席
                     return None#无
                 return {'kind':'jsonl','path':选中['sourcePath']}#位置
@@ -93,7 +95,7 @@ class jsonl会话持久化(会话持久化):
                 return 持有.加载已存日志(标识,信号)#委托
             def readStoredRevision(自身,标识,信号=None):#修订
                 """读已存修订指纹。"""
-                选中=持有.查找日志(标识,信号)#查找
+                选中=持有.查找日志(标识,信号)
                 if 选中 is None:#无
                     return None#无
                 return 会话持久化修订(身份串(物理身份(os.stat(选中['sourcePath']))))#修订
@@ -177,7 +179,7 @@ class jsonl会话持久化(会话持久化):
         自身.跟踪器.声明写(标识)#认领写
         租约=None#租约
         try:#写打开
-            选中=自身.查找日志(标识,信号)#查找
+            选中=自身.查找日志(标识,信号)
             if 选中 is None:#未找到
                 raise 会话持久化未找到错误(标识)#未找到
             租约=会话写租约.取得(os.path.dirname(选中['currentPath']),标识)#租约
@@ -198,12 +200,12 @@ class jsonl会话持久化(会话持久化):
             },租约))#带租约
             自身.协调器.登记活写句柄(句柄)#活写接到句柄
             return 句柄#返回
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             释错=None#释租失败
             try:#释租
                 if 租约 is not None:#有租约
                     租约.释放()#释放
-            except BaseException as 原始:#失败
+            except BaseException as 原始:
                 释错=原始#记下
             自身.跟踪器.释放声明(标识)#释放认领
             if 释错 is not None:#聚合
@@ -221,7 +223,7 @@ class jsonl会话持久化(会话持久化):
         挂起=自身.跟踪器.挂起项(标识)#挂起
         if 挂起 is not None:#未物化
             return {'header':挂起['header'],'revision':挂起['revision']}#快照
-        选中=自身.查找日志(标识,信号)#查找
+        选中=自身.查找日志(标识,信号)
         if 选中 is None:#无
             return None#缺席
         try:#stat
@@ -261,7 +263,7 @@ class jsonl会话持久化(会话持久化):
     def 解析当代日志(自身,标识,信号=None):#解析当代路径
         """解析当代代产物路径；历史未发布时为 None。"""
         若已中止则抛出(信号)#取消
-        选中=自身.查找日志(标识,信号)#查找
+        选中=自身.查找日志(标识,信号)
         if 选中 is None:#无
             return None#无
         if 选中['sourceVersion']==会话格式版本:#已是当代
@@ -323,7 +325,7 @@ class jsonl会话持久化(会话持久化):
 
     # --- 代次发现 / 读写 ---
 
-    def 查找日志(自身,标识,信号=None):#查找日志
+    def 查找日志(自身,标识,信号=None):
         """在根下按会话目录选出权威不可变代。"""
         若已中止则抛出(信号)#取消
         if not os.path.isdir(自身.根):#无根
@@ -341,7 +343,7 @@ class jsonl会话持久化(会话持久化):
                     continue#跳过
                 try:#读头 id
                     头=自身.读代次头行(选中['sourcePath'],信号)#头行
-                except Exception:#坏文件
+                except (持久化错误,OSError,UnicodeDecodeError,ValueError):
                     continue#跳过
                 if 头 is not None and 头.get('id')==标识:#匹配
                     return 选中#返回
@@ -358,7 +360,7 @@ class jsonl会话持久化(会话持久化):
         相反=[]#相反编码
         for 名 in 名称列表:#每项
             版本=解析代次日志文件名(名,自身.压缩)#本编码
-            if 版本 is not None:#是
+            if 版本 is not None:
                 代列表.append({'path':os.path.join(目录,名),'version':版本})#记下
                 continue#下一项
             if 解析代次日志文件名(名,自身.相反压缩()) is not None:#相反
@@ -420,7 +422,7 @@ class jsonl会话持久化(会话持久化):
                 首=帧列表[0]#首帧
                 try:#解压
                     明文=解压zstd帧(内容[首['start']:首['end']])#解压
-                except Exception as 错误:#失败
+                except zstd帧错误 as 错误:
                     raise 持久化错误('corrupt Zstandard session log: header frame failed validation') from 错误#损坏
                 _断言zstd头帧(明文)#断言
                 return 明文[:-1].decode('utf-8')#去换行
@@ -466,7 +468,7 @@ class jsonl会话持久化(会话持久化):
                 截断点=撕裂起点#截到完整帧末
                 try:#解压前缀
                     恢复=解压zstd前缀(缓冲[撕裂起点:])#前缀
-                except Exception:#失败
+                except zstd帧错误:
                     恢复=b''#空
                 换行=恢复.rfind(b'\n')#最后换行
                 if 换行>=0:#有完整行
@@ -489,7 +491,7 @@ class jsonl会话持久化(会话持久化):
 
     def 加载已存日志(自身,标识,信号=None):#加载已存
         """查找并解码；历史代走准备迁移（不发布）。"""
-        选中=自身.查找日志(标识,信号)#查找
+        选中=自身.查找日志(标识,信号)
         if 选中 is None:#无
             return None#无
         if 选中['sourceVersion']<会话格式版本:#历史
@@ -580,19 +582,19 @@ class jsonl会话持久化(会话持久化):
             临时=自身.写已同步临时(最终,内容)#临时
             try:#发布
                 发布新文件win32(临时,最终)#写穿
-            except BaseException:#失败
+            except BaseException:
                 try:#清理
                     os.remove(临时)#删
                 except OSError:#忽略
                     pass#忽略
                 raise#抛出
-            return#结束
+            return
         #POSIX：独占写临时、硬链接发布、fsync 目录
         os.makedirs(目录,mode=0o700,exist_ok=True)#建目录
         临时=自身.写已同步临时(最终,内容)#临时
         try:#链接
             os.link(临时,最终)#硬链接发布
-        except BaseException:#失败
+        except BaseException:
             try:#清理
                 os.remove(临时)#删
             except OSError:#忽略
@@ -641,7 +643,7 @@ class jsonl会话持久化(会话持久化):
                 文件.write(内容)#写
                 文件.flush()#刷
                 os.fsync(文件.fileno())#同步
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 try:#回滚
                     文件.truncate(之前)#截回
                     文件.flush()#刷
@@ -668,7 +670,7 @@ class jsonl会话持久化(会话持久化):
                     continue#跳过
                 try:#读头
                     头=自身.读代次头行(选中['sourcePath'],信号)#头
-                except Exception:#坏
+                except (持久化错误,OSError,UnicodeDecodeError,ValueError):
                     continue#跳过
                 if 头 is None:#无
                     continue#跳过
@@ -705,10 +707,11 @@ def 应用(上下文,配置值):#加载
     """加载 JSONL 会话持久化。"""
     jsonl会话持久化(上下文,配置值)#注册
 
-jsonl会话持久化.inject=注入#Cordis 注入
-jsonl会话持久化.name=名称#Cordis 插件名
-inject=注入#Cordis 槽
-name=名称#Cordis 槽
-Config=配置#Cordis 配置
-apply=应用#Cordis 插件入口
-default=jsonl会话持久化#Cordis 默认导出槽
+默认=jsonl会话持久化
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=默认#框架槽
+jsonl会话持久化.inject=依赖#框架槽
+jsonl会话持久化.name=名称#框架槽

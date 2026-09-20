@@ -59,9 +59,9 @@ def 序列化(选项,连接,历史,图片,访问,回放降级=None,文件标识=
                 continue#下一块
             if 块.get('type')!='image':#非图
                 不支持('user/tool-result content '+str(块.get('type')))#不支持
-            版本=图片.get(块['attachment']['attachmentId'])#版本
-            if 版本 is None:#缺失
+            if 块['attachment']['attachmentId'] not in 图片:#缺失
                 raise 大模型错误('DeepSeek Messages request image is missing','INVALID_REQUEST')#缺失
+            版本=图片[块['attachment']['attachmentId']]#版本
             文件号=文件标识.get(块['attachment']['attachmentId']) if 文件标识 is not None else None#文件 id
             if 文件标识 is not None and 文件号 is None:#缺 id
                 raise 大模型错误('DeepSeek Messages request file id is missing','INVALID_REQUEST')#缺失

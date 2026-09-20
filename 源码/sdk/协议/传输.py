@@ -134,24 +134,24 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
                     if hasattr(自身.输入,'readline'):#按行可读
                         行=自身.输入.readline()#读一行
                         if 行=='' or 行 is None:#EOF
-                            break#结束
+                            break
                         if isinstance(行,bytes):#字节行
                             行=行.decode('utf-8')#解码
                         自身._处理数据(行)#喂入
                         continue#下一行
                     块=自身.输入.read(65536)#一块
                     if not 块:#EOF
-                        break#结束
+                        break
                     if isinstance(块,bytes):#字节块
                         块=块.decode('utf-8')#解码
                     自身._处理数据(块)#喂入
             except BaseException as 错误:
                 包装=错误 if isinstance(错误,BaseException) else JSONRPC传输错误(str(错误))#归一
                 自身._失败未决(包装)#拒绝未决
-                return#结束读线程
+                return读线程
             自身._失败未决(JSONRPC传输错误('JSON-RPC 输入已关闭'))#输入关闭
         自身._读线程=threading.Thread(target=读循环,daemon=True)#后台线程
-        自身._读线程.start()#启动
+        自身._读线程.start()
 
     def 关闭(自身):
         """在启动之前调用也安全。不销毁流。"""
@@ -183,7 +183,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
             等待.拒绝(中止错误(信号._异常))#拒绝
         if 信号 is not None:#调用方给了放弃信号
             监视线程=threading.Thread(target=监视中止,daemon=True)#监视中止
-            监视线程.start()#启动
+            监视线程.start()
         def 兑现(值):
             """成功回调。"""
             等待.兑现(值)#把结果交给调用方

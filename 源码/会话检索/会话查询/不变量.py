@@ -1,18 +1,20 @@
-"""`@deepseek-ai/dsh-session-query` 的本包拥有不变量配套。对齐上游 `session-query/src/invariant.ts`。"""
-包名='@deepseek-ai/dsh-session-query'#本包的不变量所有权名
-名称='session-query-invariant'#配套不变量插件名（字面量）
-注入=['invariants']#依赖 invariants 服务
+"""向 invariants 登记本包；查询结果按次投影，无独立运行时检查。"""
+包名='@deepseek-ai/dsh-session-query'
+名称='session-query-invariant'
+依赖=['invariants']
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认']
 
-def 安装(_上下文对象,_失败):
+def 安装(_上下文,_失败):
     """无运行时不变量：查询结果是按次不可变投影，其谱系与事件关系在构建时校验。"""
-    return#空安装
+    return
 
-def 应用(上下文对象):
-    """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#登记
+def 应用(上下文):
+    """向 invariants 登记本包，返回拆除器。"""
+    return 上下文.invariants.register(包名,安装)
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+default=默认#框架槽

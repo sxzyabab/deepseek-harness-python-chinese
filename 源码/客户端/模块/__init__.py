@@ -1,5 +1,5 @@
 import hashlib,json,os,threading#哈希、JSON、路径与微任务近似
-from urllib.parse import unquote,urlparse#解码路径
+from urllib.parse import unquote as 百分号解码,urlparse as 解析URL
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .清单 import (#再导出启动清单类型
@@ -30,7 +30,7 @@ __all__=[#仅中文公开名
     '解析客户端声明',
     '精确包说明符',
     '剥客户端后缀',
-]#公开面结束
+]
 
 构建指示='run `pnpm run build` before launch'#构建指示（错误串，不改）
 
@@ -117,9 +117,9 @@ class 客户端模块注册表(服务):
         if 上下文.baseUrl is None:#没有配置树锚
             raise 客户端模块错误('client-modules: ctx.baseUrl is unset — the node half needs the config-tree anchor to resolve plugin packages')#缺锚
         自身.解析包json=自身.造解析器(上下文.baseUrl)#解析 package.json
-        def 光纤事件(光纤):
+        def 纤程事件(纤程):
             """把该 fiber 的条目名标脏。纤程持有 插件配置。"""
-            条目=光纤.插件配置#loader 条目
+            条目=纤程.插件配置#loader 条目
             if 条目 is None:#不是 loader 行
                 return#丢掉
             选项=条目.选项#配置文件 dict
@@ -138,7 +138,7 @@ class 客户端模块注册表(服务):
                     上下文.日志.警告(错误)#警告
                 自身.冲刷(警告)#冲刷
             threading.Timer(0,微任务冲刷).start()#近似 queueMicrotask
-        上下文.监听('internal/plugin',光纤事件)#订阅
+        上下文.监听('internal/plugin',纤程事件)#订阅
         for 条目 in 上下文.loader.列出插件配置():#播种当前条目
             选项=条目.选项#配置文件 dict
             if 'name' not in 选项:#无名
@@ -297,8 +297,8 @@ class 客户端模块注册表(服务):
             if 'name' not in 选项:#无名
                 continue#跳过
             名=选项['name']#名字
-            光纤=条目.纤程#光纤
-            if 名==条目名 and 光纤 is not None and 条目.已禁用 is not True:#同名、有光纤、未禁用
+            纤程=条目.纤程#纤程
+            if 名==条目名 and 纤程 is not None and 条目.已禁用 is not True:#同名、有纤程、未禁用
                 合格=True#合格
                 break#找到即可
         if not 合格:#不再合格
@@ -336,11 +336,11 @@ class 客户端模块注册表(服务):
         if 方法!='GET' and 方法!='HEAD':#只允许读
             响应.writeHead(405)#方法不允许
             响应.end()#空体
-            return#结束
+            return
         网址=请求.url#url
         if 网址 is None:#无
             网址='/'#回退根
-        路径名=unquote(urlparse(网址).path)#解码路径
+        路径名=百分号解码(解析URL(网址).path)
         前缀='/plugins/'#前缀
         映射后缀='/client.js.map'#源映射后缀
         包后缀='/client.js'#包后缀
@@ -353,7 +353,7 @@ class 客户端模块注册表(服务):
         if 路径 is None:#未知资源
             响应.writeHead(404)#未找到
             响应.end()#空体
-            return#结束
+            return
         try:#读文件
             with open(路径,'rb') as 文件:#读
                 体=文件.read()#字节

@@ -17,13 +17,13 @@ from .轨迹工具栏 import 轨迹工具栏,样式表 as 工具栏样式表,样
 from .轨迹格 import 轨迹格,种类标签,样式表 as 格样式表,样式文件 as 格样式文件#格
 from .轨迹轮次 import 轨迹轮次,轨迹轮次头,列标签,轮次样式表,轮次头样式表,轮次样式文件,轮次头样式文件#轮次
 from .轨迹表实现 import 轨迹表,样式表 as 表样式表,样式分块 as 表样式分块,种类样式类#权威实现
-from . import 轨迹表投影#纯投影面（上游 TrajectoryTable 非 DOM）
+from . import 轨迹表投影#纯投影面
 from .轨迹时间线 import 轨迹时间线,样式表 as 时间线样式表,样式文件 as 时间线样式文件#时间线视图+样式
 from .轨迹组头 import 轨迹组头,样式表 as 组头样式表,样式文件 as 组头样式文件#组头行
 from .轨迹预览 import 轨迹预览文本#有界预览
 
 __all__=[#仅中文公开名
-    '注入',
+    '依赖',
     '应用',
     '命名空间',
     '中文',
@@ -61,9 +61,9 @@ __all__=[#仅中文公开名
     '轨迹时间线',
     '时间线样式表',
     '时间线样式文件',
-]#公开面结束
+]
 
-注入=['slots','conversationEvents','conversationViews','sessions','locale']#槽位、会话事件、视图、会话、文案
+依赖=['slots','conversationEvents','conversationViews','sessions','locale']#槽位、会话事件、视图、会话、文案
 
 def 应用(上下文):#安装轨迹视图浏览器半边
     """登记轨迹视图标签、词表与各 Definition。"""
@@ -134,5 +134,5 @@ def 应用(上下文):#安装轨迹视图浏览器半边
         },轨迹视图)#结构树视图
     上下文.slots.inject('conversation.view',登记视图)#依赖槽位声明
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

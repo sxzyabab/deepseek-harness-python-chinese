@@ -1,6 +1,6 @@
 """共享 Files 解析、有界陈旧 id 恢复与归一化图诊断。"""
 import re#分类正则
-from ...工具.超时 import 截止#单次上传截止
+from ....工具.超时 import 截止#单次上传截止
 from ...llm import 大模型错误#LLM 错误
 
 __all__=('文件解析失败','请求文件')#仅中文公开名

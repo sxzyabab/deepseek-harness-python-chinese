@@ -178,14 +178,11 @@ def 选项标记(选项,已选):#生成单个选项的HTML
         f'  </label>'
     )#选项标签标记结束
 
-def 列出夹具选项(条目列表,清单网址):#清单条目转选项
+def 列出夹具选项(条目列表):
     """清单条目映射为选择器选项。"""
     结果=[]#选项列表
     for 条目 in 条目列表:#映射每个夹具条目
-        覆盖=[条目层 for 条目层 in (#相对清单解析叠加层
-            #上游：new URL(overlay, manifestUrl)；此处保留字符串解析约定
-            条目['overlays']
-        )]#overlays
+        覆盖=[条目层 for 条目层 in 条目['overlays']]
         结果.append({#选项
             'id':条目['id'],#夹具标识
             'label':条目['label'],#夹具标题
@@ -228,7 +225,7 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
             'description':'Load only the base runtime to verify first launch and workspace creation.',#空环境说明
             'overlays':[],#无叠加层
         },#空环境选项结束
-        *列出夹具选项(清单['fixtures'],清单网址),#展开夹具选项
+        *列出夹具选项(清单['fixtures']),
         {#WebFS选项
             'id':webfs源标识,#WebFS标识
             'label':'WebFS directory',#WebFS标题
@@ -274,8 +271,7 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     表单=选择器.querySelector('[data-preview-source-card]')#定位表单元素
     if 表单 is None:#表单未渲染
         raise 运行时错误('preview source chooser: 表单未渲染')#失败
-    #上游用Promise等待submit；Python侧由调用方在浏览器宿主接线提交回调。
-    #此处同步路径要求表单已带所选值（测试/宿主注入）。
+    #同步路径要求表单已带所选值。
     源标识=已选#默认所选
     所选=None#查找可用所选
     for 候选 in 选项列表:#查找

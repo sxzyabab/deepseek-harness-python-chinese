@@ -1,94 +1,94 @@
-import copy,math,re,threading#克隆、有限数、命名空间形态与观察线程
-from concurrent.futures import Future as 原生结果#单次操作结果
-from ...依赖 import cordis#外部依赖胶水
-from ...依赖.工具 import 获取内部数据#读事件总线内部成员
-服务=cordis.服务#Cordis 服务基类
-光纤状态=cordis.纤程状态#拆除态镜像
-from .类型 import 设置命名空间品牌,设置更新来源#再导出类型面
-from .脱敏 import 脱敏密钥#再导出脱敏
+import copy,math,re,threading
+from concurrent.futures import Future as 原生结果
+from ...依赖 import cordis
+from ...依赖.工具 import 获取内部数据
+服务=cordis.服务
+纤程状态=cordis.纤程状态
+from .类型 import 设置命名空间品牌,设置更新来源
+from .脱敏 import 脱敏密钥
 
 命名空间形态='^[a-z][a-z0-9-]*$'#小写 kebab-case，与插件短名相同
-命名空间模式=re.compile(命名空间形态)#命名空间正则
-光纤已释放=光纤状态.已释放#已拆除
-光纤卸载中=光纤状态.卸载中#正在拆除
-工作线程=threading.Thread#后台结算线程
+命名空间模式=re.compile(命名空间形态)
+纤程已拆除=纤程状态.已拆除
+纤程卸载中=纤程状态.卸载中
+工作线程=threading.Thread
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
 
 class 设置错误(Exception):
     """设置服务失败。"""
-    pass#消息在构造时传入
+    pass
 
 class 操作任务:
     """单次操作的 Future 包装。只留 等待。"""
     def __init__(自身):
         """构造未决任务。"""
-        自身.底层=原生结果()#底层 Future
+        自身.底层=原生结果()
 
     def 兑现(自身,值=None):
         """成功结算。"""
-        if not 自身.底层.done():#尚未结算
-            自身.底层.set_result(值)#写入结果
-        return 值#返回兑现值
+        if not 自身.底层.done():
+            自身.底层.set_result(值)
+        return 值
 
     def 拒绝(自身,错误):
         """失败结算。"""
-        if not 自身.底层.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.底层.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.底层.set_exception(设置错误(错误))#包装拒绝
+        if not 自身.底层.done():
+            if isinstance(错误,BaseException):
+                自身.底层.set_exception(错误)
+            else:
+                自身.底层.set_exception(设置错误(错误))
 
     def 等待(自身,超时=None):
         """阻塞等到结算。"""
-        return 自身.底层.result(timeout=超时)#取结果或抛错
+        return 自身.底层.result(timeout=超时)
 
 def 已结算任务(值=None):
     """立刻兑现的操作任务。"""
-    任务=操作任务()#新任务
-    任务.兑现(值)#立刻成功
-    return 任务#已完成
+    任务=操作任务()
+    任务.兑现(值)
+    return 任务
 
-def 设置命名空间(值):#品牌化
+def 设置命名空间(值):
     """把原始字符串打成设置命名空间。候选命名空间须为小写 kebab-case，与插件短名相同。"""
-    if 命名空间模式.fullmatch(值) is None:#非法短名
-        raise TypeError('settings namespace "'+值+'" must match /'+命名空间形态+'/')#加载/调用失败
-    return 值#通过则品牌化
+    if 命名空间模式.fullmatch(值) is None:
+        raise TypeError('settings namespace "'+值+'" must match /'+命名空间形态+'/')
+    return 值
 
-def json深度相等(甲,乙):#结构相等
+def json深度相等(甲,乙):
     """JSON 兼容数据（对象、数组、原语）上的深等——服务定义唯一的变更检测判断。"""
-    if 甲 is 乙:#同一引用
-        return True#相等
-    if 甲==乙 and type(甲) is type(乙) and not isinstance(甲,(dict,list)):#同一原语
-        return True#相等
-    if not isinstance(甲,(dict,list)) or not isinstance(乙,(dict,list)) or 甲 is None or 乙 is None:#一边不是对象
-        return False#不等
-    if isinstance(甲,list) or isinstance(乙,list):#至少一边是数组
-        if (not isinstance(甲,list)) or (not isinstance(乙,list)) or len(甲)!=len(乙):#类型或长度不同
-            return False#不等
-        下标=0#逐项
-        while 下标<len(甲):#逐项
-            if not json深度相等(甲[下标],乙[下标]):#子项不等
-                return False#不等
-            下标+=1#前进
-        return True#数组相等
-    if len(甲)!=len(乙):#键数不同
-        return False#不等
-    for 键 in 甲:#逐键
-        if 键 not in 乙:#右缺键
-            return False#不等
-        if not json深度相等(甲[键],乙[键]):#值不等
-            return False#不等
-    return True#对象相等
+    if 甲 is 乙:
+        return True
+    if 甲==乙 and type(甲) is type(乙) and not isinstance(甲,(dict,list)):
+        return True
+    if not isinstance(甲,(dict,list)) or not isinstance(乙,(dict,list)) or 甲 is None or 乙 is None:
+        return False
+    if isinstance(甲,list) or isinstance(乙,list):
+        if (not isinstance(甲,list)) or (not isinstance(乙,list)) or len(甲)!=len(乙):
+            return False
+        下标=0
+        while 下标<len(甲):
+            if not json深度相等(甲[下标],乙[下标]):
+                return False
+            下标+=1
+        return True
+    if len(甲)!=len(乙):
+        return False
+    for 键 in 甲:
+        if 键 not in 乙:
+            return False
+        if not json深度相等(甲[键],乙[键]):
+            return False
+    return True
 
-class 设置冲突错误(Exception):#乐观并发冲突
+class 设置冲突错误(Exception):
     """因命名空间在调用方读过之后发生了移动而被拒绝的写入。"""
-    def __init__(自身,命名空间,期望,实际):#钉字段
+    def __init__(自身,命名空间,期望,实际):
         """构造冲突错误。"""
         super().__init__('settings namespace "'+str(命名空间)+'" changed since it was read (expected revision '+str(期望)+', now '+str(实际)+')')#诊断原文不改
-        自身.name='SettingsConflictError'#与 class 名一致
-        自身.code='SETTINGS_CONFLICT'#稳定码
-        自身.expected=期望#期望
-        自身.actual=实际#实际
+        自身.name='SettingsConflictError'
+        自身.code='SETTINGS_CONFLICT'
+        自身.expected=期望
+        自身.actual=实际
 
 def 是否普通对象(值):#普通对象守卫
     """值是否为普通数据对象（不是数组、null 或类实例）。"""
@@ -147,12 +147,12 @@ def 克隆JSON形(根,拒绝):#写入前快照
             return 值#原样
         if isinstance(值,(int,float)) and not isinstance(值,bool):#数字
             if not math.isfinite(值):#NaN/Infinity 拒
-                raise 拒绝('a non-finite number',路径)#拒
+                raise 拒绝('a non-finite number',路径)
             return 值#有限数字
         if isinstance(值,list):#数组
             标识=id(值)#环键
             if 标识 in 访问中:#环
-                raise 拒绝('a circular reference',路径)#拒
+                raise 拒绝('a circular reference',路径)
             访问中.add(标识)#进入
             条目表=[]#新数组
             下标=0#下标
@@ -164,9 +164,9 @@ def 克隆JSON形(根,拒绝):#写入前快照
         if 是否普通对象(值):#普通对象
             标识=id(值)#环键
             if 标识 in 访问中:#环
-                raise 拒绝('a circular reference',路径)#拒
+                raise 拒绝('a circular reference',路径)
             访问中.add(标识)#进入
-            # TODO(settings-json-properties): 在此处和 mergeLayers 使用对属性安全的构造，使 "__proto__" 这类合法 JSON 键仍是自有数据。
+            # 在此处和 mergeLayers 使用对属性安全的构造，使 "__proto__" 这类合法 JSON 键仍是自有数据。
             出={}#新对象
             for 键,条目 in 值.items():#自有可枚举键
                 出[键]=克隆(条目,路径+'.'+键)#递归值（None 是 JSON null）
@@ -279,11 +279,11 @@ class 设置提供方(服务):#ctx.settings
         raise NotImplementedError('SettingsProvider.persist')#子类必须实现
 
     def 登记(自身,命名空间,模式对象,选项=None):#登记命名空间
-        """登记一个命名空间模式并收到其所有者作用域。登记是调用插件光纤上的 effect：拆除该光纤即去掉命名空间及其观察者。"""
+        """登记一个命名空间模式并收到其所有者作用域。登记是调用插件纤程上的 effect：拆除该纤程即去掉命名空间及其观察者。"""
         if 命名空间 in 自身._登记表:#重复
             raise 设置错误('settings namespace "'+str(命名空间)+'" is already registered')#大声失败
         if 选项 is None:#缺选项
-            选项={}#空
+            选项={}
         基线=选项['base'] if 'base' in 选项 else None#组合基线
         生效=选项['applies'] if 'applies' in 选项 else None#生效时机
         if 生效 is None:#默认立即生效
@@ -301,10 +301,10 @@ class 设置提供方(服务):#ctx.settings
             'watcher_list':[],#观察者列表
         }#结束 registration
         登记['resolved']=深冻结(自身.解析(模式对象,基线,自身.节(命名空间),校验))#登记时解析；失败则登记失败
-        def 挂上():#随调用方光纤拆除
+        def 挂上():#随调用方纤程拆除
             """挂上登记并在拆除时摘掉。"""
             自身._登记表[命名空间]=登记#挂上
-            # TODO(settings-registration-quiescence): 拆除时停用每个观察者并等待其尾巴，使回调不能活过登记方 fiber。
+            # 拆除时停用每个观察者并等待其尾巴，使回调不能活过登记方 fiber。
             def 摘掉():#fiber 拆除则摘掉
                 """摘掉命名空间登记。"""
                 自身._登记表.pop(命名空间,None)#摘掉
@@ -323,7 +323,7 @@ class 设置提供方(服务):#ctx.settings
                 用户=None#当作没有用户层
             基线=None if 登记['base'] is None else copy.deepcopy(登记['base'])#分离 base
             分离用户=None if 用户 is None else copy.deepcopy(用户)#分离 user
-            # TODO(settings-namespace-vocabulary): 把公开 API、提供方约定、实现、测试和消费方里的 `ns` 改名为 `namespace`。
+            # 把公开 API、提供方约定、实现、测试和消费方里的 `ns` 改名为 `namespace`。
             描述符={#原样描述符
                 'ns':登记['ns'],#短名
                 'schema':登记['schema'].toJsonSchema(),#JSON Schema
@@ -412,7 +412,7 @@ class 设置提供方(服务):#ctx.settings
                     pass#绕过
                 if 自身.是否已停():#排队期间被拆除
                     raise 设置错误('settings 服务在排队的 "'+str(命名空间)+'" '+动词+' 执行前已拆除')#不再执行
-                if 命名空间 not in 自身._登记表 or 自身._登记表[命名空间] is not 登记:#登记方光纤已拆
+                if 命名空间 not in 自身._登记表 or 自身._登记表[命名空间] is not 登记:#登记方纤程已拆
                     raise 设置错误('settings namespace "'+str(命名空间)+'" 登记在排队的 '+动词+' 执行前已拆除')#不再执行
                 当前=自身.节(命名空间)#当前用户节
                 if 当前 is None:#缺席
@@ -430,7 +430,7 @@ class 设置提供方(服务):#ctx.settings
                 下一=深冻结(自身.解析(登记['schema'],登记['base'],段落,登记['validate']))#解析；失败则不 persist
                 自身.持久化(命名空间,段落)#先落到存储
                 自身._文档[命名空间]=段落#更新内存文档
-                # TODO(settings-replacement-resync): 从这份已持久化的节重新解析任何替换登记，使旧的进行中写入不能让它过期。
+                # 从这份已持久化的节重新解析任何替换登记，使旧的进行中写入不能让它过期。
                 if 命名空间 in 自身._登记表 and 自身._登记表[命名空间] is 登记 and not 自身.是否已停():#仍是所有者且服务仍活
                     自身.推进修订(登记,当前,段落)#原始节变了才加修订
                     自身.提交(登记,下一,'update')#解析值变了才通知
@@ -439,7 +439,7 @@ class 设置提供方(服务):#ctx.settings
                 任务.拒绝(错误)#调用方看见拒绝
         工作=工作线程(target=执行排队写入)#工作线程
         工作.daemon=True#不挡住退出
-        工作.start()#启动
+        工作.start()
         自身._写队列[命名空间]=任务#钉成新尾巴
         return 任务#调用方等这次
 
@@ -540,7 +540,7 @@ class 设置提供方(服务):#ctx.settings
             自身._待排干.add(段)#拆除时等待
             线=工作线程(target=执行观察者回调)#后台
             线.daemon=True#不挡退出
-            线.start()#启动
+            线.start()
         不变量失败=None#延后的 INVARIANT
         参数=['settings/updated',登记['ns'],下一,上一,来源]#派发参数
         事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
@@ -566,12 +566,12 @@ class 设置提供方(服务):#ctx.settings
         自身.ctx.日志.警告('settings: a settings/updated listener for "%s" failed',命名空间)#命名空间
         自身.ctx.日志.警告(错误)#原因
 
-def 是否卸载中(上下文对象):#消费方卸载
-    """消费方自己的光纤是否正在拆除（不只是丢掉设置服务）。"""
-    状态=上下文对象.纤程.状态#光纤状态
-    return 状态==光纤卸载中 or 状态==光纤已释放#卸载或已拆
+def 是否卸载中(上下文):#消费方卸载
+    """消费方自己的纤程是否正在拆除（不只是丢掉设置服务）。"""
+    状态=上下文.纤程.状态#纤程状态
+    return 状态==纤程卸载中 or 状态==纤程已拆除#卸载或已拆
 
-def 安装设置段(上下文对象,命名空间,模式对象,入口,钩子):#可选设置接线
+def 安装设置段(上下文,命名空间,模式对象,入口,钩子):#可选设置接线
     """安装规范的可选设置消费方接线：在设置服务存在期间，用消费方的组合入口作为 base 层登记 ns，并把源 thunk 指向已解析作用域；服务消失时回退到入口。"""
     def 接线(子上下文):#有 settings 才跑
         """在 settings 可用时登记并接线。"""
@@ -588,7 +588,7 @@ def 安装设置段(上下文对象,命名空间,模式对象,入口,钩子):#�
             """设置提供方卸下时回退到组合入口；消费方自己卸载则什么也不做。"""
             def 拆除():#拆除器
                 """回退或跳过。"""
-                if 是否卸载中(上下文对象):#消费方自己卸载则什么也不做
+                if 是否卸载中(上下文):#消费方自己卸载则什么也不做
                     return#跳过
                 def 读入口():
                     """回退到组合入口。"""
@@ -600,11 +600,11 @@ def 安装设置段(上下文对象,命名空间,模式对象,入口,钩子):#�
         钩子['onChange']()#初次挂上
         def 已变更(下一=None,上一=None):#已提交变更
             """存档变更时重新判断；卸载中跳过。"""
-            if 是否卸载中(上下文对象):#卸载中跳过
+            if 是否卸载中(上下文):#卸载中跳过
                 return#跳过
             钩子['onChange']()#重新判断
         作用域.watch(已变更)#订阅
-    上下文对象.依赖启动(['settings'],接线)#有 settings 才跑
+    上下文.依赖启动(['settings'],接线)#有 settings 才跑
 
 默认=设置提供方#中文默认导出
 default=设置提供方#默认导出服务类

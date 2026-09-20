@@ -1,20 +1,21 @@
 """可选的请求时钟上下文。符合条件的步骤把带源归属的持久时间读数加进请求历史。"""
 import json,time#JSON诊断与纪元毫秒
 from zoneinfo import ZoneInfoNotFoundError as 时区未找到#时区解析失败
-from ...依赖.schemastery import 字符串字段,数字字段#配置字段
+from ...依赖.schemastery import 字符串字段,数字字段
 from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
 from .时间戳 import 创建时间戳格式化器,格式化时间戳,时间戳错误#时间戳格式化与错误
 
-__all__=['名称','注入','应用','配置']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认','配置']
 
-名称='time-context'#插件名，来源记录共用
-注入=['agents']#依赖agents服务
+包名='@deepseek-ai/dsh-time-context'
+名称='time-context'
+依赖=['agents']
 安全整数上限=9007199254740991#外来 JSON Number.MAX_SAFE_INTEGER
 配置={
     'timeZone':字符串字段(),#打开的回合没有唯一浏览器时区时的回退展示时区；省略则用进程时区
     'refreshIntervalMs':数字字段(),#同一会话两次持久注入之间的最小毫秒；省略或0则每个符合条件的步骤都注入
-}#配置模式结束
+}
 
 class 时间上下文错误(Exception):
     """时间上下文包的异常基类。"""
@@ -195,8 +196,9 @@ def 应用(上下文,配置值):
 
     上下文.监听('agent/pre-step',预步骤监听,{'前置':True})#前置，以便后续监听器看见已追加的读数
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置#Cordis Config 槽
-apply=应用#Cordis插件入口
-default=应用#Cordis 默认导出槽
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=默认#框架槽

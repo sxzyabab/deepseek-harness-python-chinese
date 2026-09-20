@@ -7,8 +7,6 @@ __all__=['触发服务']#仅中文公开名
 
 class 触发服务(服务):#ctx.inputTriggers 触发管线
     """根登记表 + 按会话绑定弱映射的控制器解析。"""
-    inject=['sessions']#依赖会话服务
-
     def __init__(自身,上下文):#挂到 inputTriggers
         """初始化源表与每会话控制器弱表。"""
         super().__init__(上下文,'inputTriggers')#以 inputTriggers 登记
@@ -79,3 +77,7 @@ class 触发服务(服务):#ctx.inputTriggers 触发管线
             return 清#拆除器
         绑定.ctx.副作用(拆除会话控制器,'slash: session controller')#登记
         return 控#新常驻控制器
+
+依赖=['sessions']
+inject=依赖#框架槽
+触发服务.inject=依赖#框架槽

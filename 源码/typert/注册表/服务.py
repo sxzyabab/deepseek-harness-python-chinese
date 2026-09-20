@@ -7,7 +7,7 @@ __all__=[#仅中文公开名
     '拼模式键','拼包面键','拼端点','Typert注册表',
 ]#公开面结束
 
-端点段模式=re.compile(r'^[A-Za-z0-9_$.-]+$')#RPC 端点段
+端点段模式=re.compile(r'^[A-Za-z0-9_$.-]+\Z',re.ASCII)#RPC 端点段
 
 def 拼模式键(包名,名):#组合包名与模式名
     """拼出一条生成模式的全局键 `<package>#<name>`。"""
@@ -64,9 +64,9 @@ def 校验调用(描述符):#校验一条调用描述符
             raise 注册表错误('typert: invocation "'+描述符['id']+'" repeats wire field "'+参数['wire']+'"')#拒绝
         线路集合.add(参数['wire'])#记下
         if 参数['source']=='lookup':#lookup 参数
-            if 参数.get('acceptsUndefined') is not None:#lookup 不能接受 undefined
+            if 'acceptsUndefined' in 参数:#lookup 不能接受 undefined
                 raise 注册表错误('typert: invocation "'+描述符['id']+'" lookup parameter "'+参数['name']+'" cannot accept undefined')#拒绝
-            if 参数.get('lookup') is None:#缺少 lookup 键
+            if 'lookup' not in 参数:#缺少 lookup 键
                 raise 注册表错误('typert: invocation "'+描述符['id']+'" lookup parameter "'+参数['name']+'" has no lookup key')#拒绝
             校验段('lookup key',参数['lookup'])#校验键
         elif 参数.get('lookup') is not None:#JSON 却带 lookup
@@ -105,10 +105,11 @@ def 匹配过滤(记录,过滤):#记录是否匹配过滤
 
 def 物化模式(记录):#首次调用 create 并缓存活模式
     """返回带活 schema 的模式记录。"""
-    模式=记录.get('value')#缓存
-    if 模式 is None:#尚未物化
+    if 'value' not in 记录:#尚未物化
         模式=记录['create']()#工厂
         记录['value']=模式#缓存
+    else:
+        模式=记录['value']#缓存
     return {'name':记录['name'],'schema':模式,'package':记录['package'],'face':记录['face'],'key':记录['key']}#活记录
 
 class 变更源:#注册表变更源

@@ -1,5 +1,5 @@
-from datetime import datetime#解析工作区创建时间
-from zoneinfo import ZoneInfo#UTC
+from datetime import datetime as 日期时间
+from zoneinfo import ZoneInfo as 时区信息
 import re as 正则#路径探测
 
 __all__=[#仅中文公开名
@@ -17,7 +17,7 @@ __all__=[#仅中文公开名
     '派生扁平',
     '派生检索结果',
     '相对时间',
-]#公开面结束
+]
 
 未分组键=''#未分组桶的空字符串键
 未分组标签='Ungrouped'#未分组桶的展示标签（运行时英文字面量）
@@ -75,7 +75,7 @@ def 解析创建毫秒(创建原文):#创建时间 → 毫秒
         return int(创建原文)#毫秒
     if not isinstance(创建原文,str):#非串
         return None#无
-    时刻=datetime.strptime(创建原文,创建时刻格式).replace(tzinfo=ZoneInfo('UTC'))#写死 ISO 毫秒零区
+    时刻=日期时间.strptime(创建原文,创建时刻格式).replace(tzinfo=时区信息('UTC'))
     return int(时刻.timestamp()*1000)#纪元毫秒
 
 def 会话可见(会话,当前,已归档):#会话是否出现在浏览器树

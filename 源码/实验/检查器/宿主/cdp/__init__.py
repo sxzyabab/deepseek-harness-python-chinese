@@ -5,7 +5,7 @@ from .分析器 import 分析器桥能力#Profiler能力
 from .运行时 import 运行时桥能力#Runtime能力
 from .源 import 源桥能力#Sources能力
 
-__all__=['桥能力']#仅中文公开名
+__all__=['桥能力']
 
 宿主桥能力=[#Host桥能力
     项 for 项 in (#过滤空

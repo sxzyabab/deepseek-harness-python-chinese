@@ -1,27 +1,27 @@
 """串行化的模块与配置档配置重载。"""
-import copy,json,os,re,sys,threading#路径、JSON、正则、线程与模块表
-from watchfiles import watch as 监视变化,Change as 变化种类#内核文件监视
-from ...依赖 import cordis#Cordis 运行时
-from ...依赖.schemastery import 字符串字段,列表字段,自然数字段#配置字段
-from ...依赖.工具 import 路径转文件url,文件url转路径#路径与 file URL 互转
-from .错误 import 处理错误#构建失败诊断
-from .监视配置 import 监视配置 as 精确监视配置#精确补丁路径监视
-from ..app启动 import (#应用启动面
-    读配置清单,配置补丁文件名,加载可选补丁,加载配置目录,#配置档读写
-    启动包含表,未激活条目,激活诊断,启动错误,组合条目,#根 Include 与诊断
-)#导入结束
+import copy,json,os,re,sys,threading
+from watchfiles import watch as 监视变化,Change as 变化种类
+from ...依赖 import cordis
+from ...依赖.schemastery import 字符串字段,列表字段,自然数字段
+from ...依赖.工具 import 路径转文件url,文件url转路径
+from .错误 import 处理错误
+from .监视配置 import 监视配置 as 精确监视配置
+from ..app启动 import (
+    读配置清单,配置补丁文件名,加载可选补丁,加载配置目录,
+    启动包含表,未激活条目,激活诊断,启动错误,组合条目,
+)
 
-服务=cordis.服务#服务基类
-__all__=['热更新','重载信息']#仅中文公开名；Cordis 槽英文别名不入表
+服务=cordis.服务
+__all__=['热更新','重载记录']
 
 #常量
 监视防抖毫秒=100#监视线程内防抖毫秒
-遥测行编号='session-telemetry-otel'#遥测行 id
+遥测行编号='session-telemetry-otel'
 事件对照={#watchfiles 变化种类到中文事件名
-    变化种类.added:'新增',#新增
-    变化种类.modified:'修改',#修改
-    变化种类.deleted:'删除',#删除
-}#对照结束
+    变化种类.added:'新增',
+    变化种类.modified:'修改',
+    变化种类.deleted:'删除',
+}
 
 #工具
 def 规范路径(文件名):
@@ -63,7 +63,7 @@ def 是否外部模块(网址):
     """内建模块与第三方包不参与热更新。"""
     return 网址.startswith('node:') or '/node_modules/' in 网址 or '/site-packages/' in 网址#外部
 
-class 重载信息:
+class 重载记录:
     """一个待热更新插件的入口网址与运行时。"""
     def __init__(自身,入口网址,运行时):
         """保存入口网址与它的插件运行时。"""
@@ -114,7 +114,7 @@ class 热更新(服务):
         自身.__dict__[服务.初始化]=自身.初始化#依赖就绪后再监视
         自身.内部加载器=getattr(自身.所属上下文.加载器,'内部加载器',None)#模块图
         if 自身.内部加载器 is None:#拿不到
-            raise RuntimeError('--expose-internals is required for HMR service')#拒绝
+            raise RuntimeError('HMR 服务需要 --expose-internals')
         基准=配置.get('base') if isinstance(配置,dict) else None#配置基准
         基准网址=getattr(上下文,'基准网址',None)#上下文基准
         if 基准网址:#有基准网址
@@ -141,10 +141,10 @@ class 热更新(服务):
     def 独占执行(自身,操作):
         """串行化调用方变更与自动重载路径；禁止嵌套。"""
         if getattr(自身.事务本地,'执行中',False):#嵌套
-            raise RuntimeError('HMR transactions cannot be nested')#拒绝
+            raise RuntimeError('HMR 事务不能嵌套')
         with 自身.队列锁:#串行
             if 自身.关闭中:#已拆除
-                raise RuntimeError('HMR is disposed')#拒绝
+                raise RuntimeError('HMR 已拆除')
             自身.事务本地.执行中=True#进入事务
             try:#执行
                 return 操作()#结果
@@ -153,12 +153,12 @@ class 热更新(服务):
 
     def 跑重载(自身,操作):
         """等应用就绪后再独占执行重载体。"""
-        def 体():
+        def 线程入口():
             """门闩通过才跑。"""
             自身.应用就绪事件.wait()#等待
             if 自身.应用就绪值:#允许
                 操作()#执行
-        return 自身.独占执行(体)#独占
+        return 自身.独占执行(线程入口)#独占
 
     def 事务中(自身):
         """当前线程是否正处于 HMR 事务内。"""
@@ -169,7 +169,7 @@ class 热更新(服务):
         解析=os.path.abspath(文件名)#绝对路径
         路径列表=[解析,规范路径(文件名)]#原路径与规范路径
         if any(路径 in 自身.配置路径集 for 路径 in 路径列表):#重复
-            raise RuntimeError('config path already registered: '+文件名)#拒绝
+            raise RuntimeError('配置路径已登记')
         for 路径 in 路径列表:#占用
             自身.配置路径集.add(路径)#登记
         try:#挂监视
@@ -209,7 +209,7 @@ class 热更新(服务):
         if 配置档 is not None:#有配置档
             就绪=自身.拥有上下文.获取服务('appReady',False)#应用就绪
             if 就绪 is None:#缺少
-                raise RuntimeError('Profile HMR requires application readiness')#拒绝
+                raise RuntimeError('配置档热更新需要应用就绪')
             自身.应用就绪值=False#等就绪
             自身.应用就绪事件.clear()#关门
             def 当就绪():
@@ -243,9 +243,9 @@ class 热更新(服务):
                 return 补丁#有序补丁
             def 应用补丁(补丁):
                 """经根 Include 更新补丁并等待激活诊断。"""
-                条目=启动包含表.get(id(自身.拥有上下文.根))#根 Include
-                if 条目 is None:#缺失
-                    raise 启动错误('dsh: profile reload requires the root Include entry')#拒绝
+                if id(自身.拥有上下文.根) not in 启动包含表:#缺失
+                    raise 启动错误('dsh: 配置档重载需要根 Include 条目')
+                条目=启动包含表[id(自身.拥有上下文.根)]#根 Include
                 旧配置=条目.选项.get('config') if hasattr(条目,'选项') else {}#原配置
                 非补丁={键:值 for 键,值 in (旧配置 or {}).items() if 键!='patches'}#去掉旧补丁
                 条目.更新({'config':{**非补丁,'patches':补丁}})#事务更新
@@ -253,10 +253,10 @@ class 热更新(服务):
                 if 加载器 is not None:#仍在
                     加载器.等待()#等结算
                     for 插件配置 in 加载器.列出插件配置():#每条
-                        光纤=插件配置.纤程#纤程
-                        if 光纤 is not None:#有
+                        纤程=插件配置.纤程#纤程
+                        if 纤程 is not None:#有
                             try:#收拒绝
-                                光纤.等待()#等待
+                                纤程.等待()#等待
                             except Exception:#不打断
                                 pass#继续
                 失败=未激活条目(自身.拥有上下文.根)#审计
@@ -366,7 +366,7 @@ class 热更新(服务):
 
     def 派发变更(自身,监视基准,批次):
         """把一批路径变更分类为 Include 刷新、模块暂存或整进程退出。"""
-        def 体():
+        def 线程入口():
             """独占体内处理。"""
             自身.应用就绪事件.wait()#等就绪
             if not 自身.应用就绪值:#已取消
@@ -401,10 +401,10 @@ class 热更新(服务):
                 else:#无处理器
                     自身.所属上下文.广播('hmr/change',网址)#广播
             if not 整重载 and len(包含集)==0 and len(自身.暂存集)==0:#无事
-                return#结束
+                return
             if 整重载:#框架变了
                 加载器.退出()#宿主重启
-                return#结束
+                return
             for 包含 in 包含集:#刷新 Include
                 包含.刷新()#读文件
             if len(自身.暂存集)>0:#有模块
@@ -414,7 +414,7 @@ class 热更新(服务):
                     自身.暂存集=set()#清空
             加载器.等待()#等树
         try:#独占
-            自身.独占执行(体)#执行
+            自身.独占执行(线程入口)#执行
         except Exception as 错误:#失败
             自身.所属上下文.日志.警告(错误)#警告
 
@@ -423,9 +423,9 @@ class 热更新(服务):
         加载缓存=getattr(自身.内部加载器,'loadCache',None)#缓存
         if 加载缓存 is None:#无图
             return []#空
-        任务=加载缓存.get(网址)#模块任务
-        if 任务 is None:#未加载
+        if 网址 not in 加载缓存:#未加载
             return []#空
+        任务=加载缓存[网址]#模块任务
         链接=getattr(任务,'linked',None)#子模块
         if 链接 is None:#无
             return []#空
@@ -441,7 +441,7 @@ class 热更新(服务):
             """跳过内建与第三方。"""
             网址=getattr(当前,'url',None)#网址
             if 网址 is None or 网址 in 已忽略 or 网址 in 依赖 or 是否外部模块(网址):#跳过
-                return#结束
+                return
             依赖.add(网址)#记入
             for 子网址 in 自身.取链接(网址):#子
                 加载缓存=getattr(自身.内部加载器,'loadCache',None)#缓存
@@ -521,7 +521,7 @@ class 热更新(服务):
         重载表=自身.收集待重载插件()#待重载
         if not 重载表:#无
             自身.暂存集=set()#清暂存
-            return#结束
+            return
         备份=缓存备份(自身.内部加载器)#备份
         for 网址 in 自身.接受集:#清缓存
             备份.清掉(网址)#逐个
@@ -566,7 +566,7 @@ class 热更新(服务):
                 continue#跳过
             基准=getattr(树.所属上下文,'基准网址',None)#基准
             if 基准 is None:#无
-                raise RuntimeError('HMR entry tree has no base URL')#拒绝
+                raise RuntimeError('HMR 入口树没有基准网址')
             分组.setdefault(基准,set()).add(插件配置.选项.get('name'))#登记名
         待检查={}#任务到插件
         加载缓存=getattr(自身.内部加载器,'loadCache',None)#缓存
@@ -597,7 +597,7 @@ class 热更新(服务):
             if not (依赖 & 自身.接受集):#无交集
                 continue#跳过
             自身.接受集.update(依赖)#整链接受
-            重载表[插件]=重载信息(任务.url,自身.所属上下文.注册表.取运行记录(插件))#记下
+            重载表[插件]=重载记录(任务.url,自身.所属上下文.注册表.取运行记录(插件))#记下
         return 重载表#待重载
 
     def 替换一个(自身,旧插件,信息,新插件):
@@ -609,13 +609,13 @@ class 热更新(服务):
         try:#拆除旧
             自身.所属上下文.注册表.删除(旧插件)#删除
         except Exception as 错误:#拆除失败
-            自身.所属上下文.日志.警告('failed to dispose plugin at %C',相对)#摘要
+            自身.所属上下文.日志.警告('拆除插件失败 %C',相对)
             自身.所属上下文.日志.警告(错误)#详情
         try:#重挂
             自身.重挂纤程(新插件,信息.运行时)#装新
-            自身.所属上下文.日志.信息('reload plugin at %C',相对)#成功
+            自身.所属上下文.日志.信息('已重载插件 %C',相对)
         except Exception as 错误:#失败
-            自身.所属上下文.日志.警告('failed to reload plugin at %C',相对)#摘要
+            自身.所属上下文.日志.警告('重载插件失败 %C',相对)
             自身.所属上下文.日志.警告(错误)#详情
             raise#触发回滚
 

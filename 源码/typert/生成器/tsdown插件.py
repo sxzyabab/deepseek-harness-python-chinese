@@ -50,7 +50,7 @@ def typert插件(插件选项=None):#创建装饰器降低与 typert 生成插�
     }#结束插件
 
 def 输出制品(包目录,制品列表):#把制品写到包的 lib/
-    """对齐上游 emitArtifacts：写 typert.<face> 与可选 remote-client，并清理陈旧 Remote。"""
+    """写 typert.<face> 与可选 remote-client，并清理陈旧 Remote。"""
     输出=os.path.join(包目录,'lib')#输出目录
     os.makedirs(输出,exist_ok=True)#确保目录存在
     是否已写远程=False#是否写过 remote-client 制品
@@ -105,6 +105,6 @@ def 工作区根(起点):#从输出目录向上找工作区根
     while not os.path.isfile(os.path.join(当前,'tsconfig.host.json')):#尚未见到宿主 tsconfig
         父=os.path.dirname(当前)#上一层
         if 父==当前:#到文件系统根仍没有
-            raise FileNotFoundError('typert-generator: 在 '+起点+' 之上找不到工作区根')#对齐上游文案
+            raise FileNotFoundError('typert-generator: 在 '+起点+' 之上找不到工作区根')
         当前=父#继续向上
     return 当前#含 tsconfig.host.json 的目录

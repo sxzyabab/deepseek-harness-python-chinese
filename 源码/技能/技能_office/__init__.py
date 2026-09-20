@@ -3,11 +3,11 @@ import os,re,yaml#路径、frontmatter 与 YAML
 from ...依赖.schemastery import 字符串字段#配置字段
 from ..技能 import 捆绑技能排名#打包技能标准排名
 
-__all__=['名称','注入','配置','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
+__all__=['名称','依赖','配置','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
 #常量
-名称='skill-office'#Cordis插件名（字面量不译）
-注入=['skills']#依赖 skills 服务
+名称='skill-office'#Cordis插件名
+依赖=['skills']#依赖 skills 服务
 配置={'assetRoot':字符串字段(最小长度=1)}#可选外部资源根；给出时至少一字
 技能名列表=('office-docx','office-pptx','office-xlsx')#三个随包 Office 技能名
 前栏模式=re.compile(r'^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)')#YAML frontmatter
@@ -83,7 +83,7 @@ def 应用(上下文,配置值=None):
     上下文.skills.登记提供方(构造)#挂到技能注册表
 
 name=名称#Cordis插件名槽
-inject=注入#Cordis依赖声明槽
+inject=依赖#Cordis依赖声明槽
 Config=配置#Cordis配置模式槽
 apply=应用#Cordis插件入口槽
 默认=应用#中文默认导出

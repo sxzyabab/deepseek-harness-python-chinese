@@ -44,12 +44,12 @@ def 拆除运行时进程(子进程,宽限,平台=None):
         except OSError:
             pass#关闭失败不阻断阶梯
     if 时限内退出(子进程,宽限['disposeEofGraceMs']):#EOF 宽限内退出
-        return#结束
+        return
     if 平台!='win32':#非 Windows 才发 SIGTERM
         try:
             子进程.terminate()#SIGTERM
         except ProcessLookupError:
-            return#结束
+            return
         if 时限内退出(子进程,宽限['disposeGraceMs']):#优雅窗口内退出
-            return#结束
+            return
     强制终止于时限(子进程,宽限['disposeGraceMs'])#最后一层

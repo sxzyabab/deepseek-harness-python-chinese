@@ -1,4 +1,4 @@
-"""ctx.fs 的宿主文件系统实现。由 realpath 推导的目标身份让别名共享过期守卫，经符号链接的写入更新其目标而不替换链接本身。"""
+"""宿主文件系统实现。由 realpath 推导的目标身份让别名共享过期守卫，经符号链接的写入更新其目标而不替换链接本身。"""
 import os#工作目录与路径判定
 import threading#每目标键互斥
 from urllib.request import pathname2url#路径转 file URL
@@ -28,12 +28,12 @@ class 内部钩子:#本地 IO 测试钩子
     """转发给文件读写的测试钩子，用于原子发布边界。"""
 
 class 本地文件系统错误(Exception):#本包配置非法
-    """本地文件系统配置非法；错误信息保持上游英文原文。"""
+    """本地文件系统配置非法；详情保持英文线协议原文。"""
     def __init__(自身,消息):#记下英文消息
         """用原样英文消息构造。"""
         super().__init__(消息)#英文消息
 
-def 路径转文件网址(路径):#对齐 Node pathToFileURL().href
+def 路径转文件网址(路径):
     """把进程路径编成 file URL。"""
     绝对=os.path.abspath(路径)#绝对路径
     网址路径=pathname2url(绝对)#编成 URL 路径
@@ -46,7 +46,7 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
     Config=配置模式#schemastery 配置模式
     def __init__(自身,ctx,配置):#用上下文与配置构造本地文件系统
         """用上下文与配置构造本地文件系统。"""
-        super().__init__(ctx)#注册为 ctx.fs
+        super().__init__(ctx)#注册为文件系统服务
         工作目录=配置['cwd']#基准目录
         上限=配置['diffBasisMaxBytes']#diff 上限
         if isinstance(上限,bool):#布尔不是整数
@@ -126,7 +126,7 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
             raise fs.文件系统错误('stat aborted','FS_ABORTED')#结构化中止
         if 信息 is None:#不存在
             return None#缺失
-        return {'version':信息['version'],'type':信息['type'],'size':信息['size']}#返回 seam 元数据
+        return {'version':信息['version'],'type':信息['type'],'size':信息['size']}#返回元数据
 
     def 链接状态(自身,路径,选项=None,信号=None):#不跟随末段链接的路径元数据
         """不跟随末段链接的路径元数据。"""
@@ -159,7 +159,7 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
     def 列目录(自身,目标,信号=None):#列举目录直接子项
         """列举目录直接子项。"""
         条目列表=文件读写.列目录({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写列举
-        结果=[]#收集 seam 目录条目
+        结果=[]#收集目录条目
         for 条目 in 条目列表:#逐项映射
             映射={'name':条目['name'],'type':条目['type'],'target':{'targetKey':条目['target']['targetKey'],'displayPath':条目['target']['displayPath']}}#基础字段
             if 'version' in 条目:#有版本则带上
@@ -233,4 +233,4 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
         return fs.版本令牌('missing:'+目标['targetKey'])#否则用缺失哨兵版本
 
 Config=配置模式#Cordis 配置模式
-default=本地文件系统#Cordis 默认导出
+default=本地文件系统#框架槽

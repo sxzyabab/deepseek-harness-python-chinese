@@ -1,5 +1,3 @@
-#对齐上游 worker/realms/host/sources.ts
-
 from ....共享.json import 检查器错误#包内错误
 from .脚本 import Host脚本键#脚本键
 

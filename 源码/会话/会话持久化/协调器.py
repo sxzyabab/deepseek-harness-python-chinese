@@ -243,11 +243,11 @@ def 迁移遗留回合结束事件(事件,标识):#迁移遗留回合结束
         if (not 外来安全整数(步骤)) or 步骤<0:#step非法
             return 畸形()#拒绝
         失败=当作记录(原因.get('failure'))#failure记录
-        if 失败 is not None and 仅有键(原因,['kind','step','failure']) and 仅有键(失败,['message','code'],['status','providerRetryAfterMs','requestId']) and isinstance(失败.get('message'),str) and isinstance(失败.get('code'),str) and (失败.get('status') is None or isinstance(失败.get('status'),(int,float))) and (失败.get('providerRetryAfterMs') is None or isinstance(失败.get('providerRetryAfterMs'),(int,float))) and (失败.get('requestId') is None or isinstance(失败.get('requestId'),str)):#带failure的旧形态
+        if 失败 is not None and 仅有键(原因,['kind','step','failure']) and 仅有键(失败,['message','code'],['status','providerRetryAfterMs','requestId']) and isinstance(失败.get('message'),str) and isinstance(失败.get('code'),str) and ('status' not in 失败 or isinstance(失败['status'],(int,float))) and ('providerRetryAfterMs' not in 失败 or isinstance(失败['providerRetryAfterMs'],(int,float))) and ('requestId' not in 失败 or isinstance(失败['requestId'],str)):#带failure的旧形态
             当前原因={'kind':'error','error':失败}#升到error字段
         else:#message形态
-            消息键=['kind','step','message'] if 原因.get('code') is None else ['kind','step','message','code']#按有无code选键
-            if (not 仅有键(原因,消息键)) or (not isinstance(原因.get('message'),str)) or (原因.get('code') is not None and not isinstance(原因.get('code'),str)):#键不对
+            消息键=['kind','step','message'] if 'code' not in 原因 else ['kind','step','message','code']#按有无code选键
+            if (not 仅有键(原因,消息键)) or (not isinstance(原因.get('message'),str)) or ('code' in 原因 and not isinstance(原因['code'],str)):#键不对
                 return 畸形()#拒绝
             当前原因={'kind':'error','error':{'message':原因['message'],'code':原因['code'] if isinstance(原因.get('code'),str) else 'UNKNOWN'}}#升到error对象
     else:#未知种类
@@ -411,9 +411,9 @@ class 持久化协调器:#持久化协调器
         if len(事件列表)==0:#空批无操作
             return#无事
         自身.预备池.断言可写(标识)#预备占用时不可写
-        状态=自身.状态表.get(标识)#已有状态
-        if 状态 is None:#未跟踪则从存储收养
-            状态=自身.收养(标识)#收养
+        if 标识 not in 自身.状态表:#未跟踪则从存储收养
+            自身.状态表[标识]=自身.收养(标识)#收养
+        状态=自身.状态表[标识]#已有状态
         下标=0#批次下标
         for 事件 in 事件列表:#检查每条
             期望=状态['cursor']+下标#期望seq
@@ -454,7 +454,7 @@ class 持久化协调器:#持久化协调器
                 源=预留['source']#预备源
                 状态=预留['state']#会话状态
                 活会话=源['session']#未发布会话
-                可复用=状态.get('owner') is None and len(活会话.events)==源['sessionLength']#无活拥有方且长度未变
+                可复用='owner' not in 状态 and len(活会话.events)==源['sessionLength']#无活拥有方且长度未变
                 自身.预备池.释放(预留,可复用)#还回预备池
             return 会话准备.创建(预留['source']['session'],{'release':释放回调})#包装预备
 
@@ -600,7 +600,7 @@ class 持久化协调器:#持久化协调器
 
     def 打开(自身,标识,访问,选项=None):#打开句柄
         """打开已存会话并返回写或读句柄。选项为 `{signal}` 或裸取消信号。"""
-        if isinstance(选项,dict):#Service Definition 选项
+        if isinstance(选项,dict):#服务定义选项
             信号=选项['signal'] if 'signal' in 选项 else None#可选取消
         else:#裸信号兼容
             信号=选项#信号或 None
@@ -719,9 +719,9 @@ class 持久化协调器:#持久化协调器
         """返回一份已经活着的 Session 的耐久不可变视图。"""
         事件列表=活会话.events#活事件数组
         自身.冲洗(活会话).等待()#先刷耐久
-        状态=自身.状态表.get(活会话.id)#刷后的状态
-        if 状态 is None:#丢状态
+        if 活会话.id not in 自身.状态表:#丢状态
             raise 持久化错误('会话 "'+str(活会话.id)+'" 在加载期间丢失了持久化状态')#丢状态
+        状态=自身.状态表[活会话.id]#刷后的状态
         if len(事件列表)==0:#空日志当找不到
             raise 持久化错误('会话 "'+str(活会话.id)+'" 未找到')#找不到
         if len(中断轮次关闭器(事件列表))>0:#活回合仍打开
@@ -734,12 +734,12 @@ class 持久化协调器:#持久化协调器
 
     def 等待退役(自身,标识,信号=None):#等待退役
         """带着调用方取消等待一个正在退役的生命周期。"""
-        退役=自身.退役表.get(标识)#可能的退役任务
-        if 退役 is None:#无退役
+        if 标识 not in 自身.退役表:#无退役
             return#已结束
+        退役=自身.退役表[标识]#可能的退役任务
         if 信号 is None:#无取消
             退役.等待()#直接等
-            return#结束
+            return
         观察排队取消(退役,信号).等待()#排队期间可取消
 
     def 串行化(自身,标识,操作,信号=None):#按id串行化
@@ -824,7 +824,7 @@ class 持久化协调器:#持久化协调器
                         with 自身.表锁:#快照在途
                             待等=list(自身.进行中)#拷贝
                         if len(待等)==0:#已空
-                            break#结束
+                            break
                         结算错误列表(待等)#等这批
                     if len(错误列表)>0:#有flush失败
                         raise 聚合错误(错误列表,名+' 拆除失败')#聚合拆除失败
@@ -893,7 +893,7 @@ class 持久化协调器:#持久化协调器
             try:#等退役
                 退役任务.等待()#成功
                 忘掉()#忘掉
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 警告失败(错误)#警告并忘掉
         threading.Thread(target=执行退役,daemon=True).start()#后台退役
         threading.Thread(target=观察退役结算,daemon=True).start()#观察结算
@@ -984,7 +984,7 @@ class 持久化协调器:#持久化协调器
         if 已跟踪 is not None:#情形1：已跟踪
             if 已跟踪.get('owner') is 活会话:#已是本会话则空操作
                 return#空操作
-            if 已跟踪.get('owner') is None:#无拥有方状态来自公开create()/load()
+            if 'owner' not in 已跟踪:#无拥有方状态来自公开create()/load()
                 已存工作目录=已跟踪['meta']['cwd'] if 'cwd' in 已跟踪['meta'] else None#已存cwd
                 活工作目录=活会话.header['cwd'] if 'cwd' in 活会话.header else None#活cwd
                 if 已存工作目录!=活工作目录:#cwd不一致
@@ -1060,7 +1060,7 @@ class 持久化协调器:#持久化协调器
                 if hasattr(句柄,'刷盘'):#有刷盘
                     句柄.刷盘()#刷盘
                 已完成.兑现(None)#成功
-            except BaseException as 错误:#失败
+            except BaseException as 错误:
                 已完成.拒绝(错误)#拒绝
             return 已完成#返回任务
         活=自身.取或建活控制器(活会话)#取得活控制器

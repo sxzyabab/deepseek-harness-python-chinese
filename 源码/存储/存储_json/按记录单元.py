@@ -46,7 +46,7 @@ def _引导遗留单元(描述符,目录,状态):#从 legacy 整文件引导
         with open(遗留路径,'r',encoding='utf-8') as 文件:#打开
             文本=文件.read()#读全文
     except FileNotFoundError:#无 legacy
-        return#结束
+        return
     try:#解析 legacy
         文档=json.loads(文本)#JSON
     except json.JSONDecodeError:#损坏
@@ -144,7 +144,7 @@ class 按记录Json单元:#per-record 布局；目录即状态
     def close(自身):#关闭
         """关闭单元；重复关闭为空操作。"""
         if 自身._已关:#重复
-            return#结束
+            return
         自身._已关=True#标记
         自身._关闭回调()#释放槽
 

@@ -1,7 +1,7 @@
 import sys,signal as 信号模块#参数与终止信号
 from ...工具.超时 import 中止控制器#进程寿命
 from .模式 import ssh错误#本包基类
-from .辅助进程 import 运行ssh辅助#辅助运行
+from .ssh侧车 import 运行ssh辅助#辅助运行
 from .流安全 import 套接字流#标准流入面
 
 __all__=['主入口']#仅中文公开名

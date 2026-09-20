@@ -1,6 +1,6 @@
-"""持久化投影缓存（对齐 upstream session-projection-cache）。"""
+"""持久化投影缓存。"""
 import threading,weakref#脏状态、定时写、会话身份
-from ...依赖 import cordis#Cordis
+from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字典字段,数字字段#配置
 服务=cordis.服务#服务基类
 from ...模型后端.llm import 结构化克隆#JSON 快照
@@ -10,13 +10,14 @@ from .规格 import 投影缓存域规格#域 spec
 class 投影缓存错误(Exception):
     """会话投影缓存包的异常基类。"""
 
-名称='session-projection-cache'#配套插件名常量
-注入=['storageDomain','sessionProjections','sessions']#依赖常量
-配置模式=字典字段({
+包名='@deepseek-ai/dsh-session-projection-cache'
+名称='session-projection-cache'
+依赖=['storageDomain','sessionProjections','sessions']#依赖常量
+配置模式=字典字段(字典结构={
     'writeEveryEvents':数字字段(默认值=50),#事件阈值
     'writeIntervalMs':数字字段(默认值=5000),#时间阈值
 })#配置模式
-__all__=['名称','注入','会话投影缓存','投影缓存错误']#公开面
+__all__=['包名','名称','依赖','应用','默认','会话投影缓存','投影缓存错误']
 
 def 身份于(头):
     """投影检查点记录绑定的生命周期身份。"""
@@ -87,9 +88,9 @@ class 会话投影缓存(服务):
             return 自身.ctx.sessionProjections.注水(会话,{},事件列表,0)#畸形缓存回退
 
     def 写(自身,会话):
-        """取注册表 cut 并写域。"""
-        行表=自身.ctx.sessionProjections.检查点(会话)#cut
-        自身._标干净(会话)#清脏
+        """取投影表面切口并写域；活会话先刷耐久屏障。"""
+        行表=自身.ctx.sessionProjections.检查点(会话)#表面切口
+        自身._标干净(会话)#写前摘掉脏标记与定时器
         if 自身.ctx.sessions.get(会话.id) is 会话:
             自身.ctx.sessions.flush(会话).等待()#耐久屏障
         自身._放(会话.id,身份于(会话.header),行表)#写行
@@ -111,7 +112,7 @@ class 会话投影缓存(服务):
             """session/event。"""
             if 事件['type']=='turn/end':
                 自身._软刷(会话,'turn/end')#刷
-                return#结束
+                return
             with 自身._锁:
                 状态=自身._脏.get(会话)#脏状态
                 if 状态 is None:
@@ -120,26 +121,26 @@ class 会话投影缓存(服务):
                 状态['pending']+=1#计数
                 if 状态['pending']>=自身.配置['writeEveryEvents']:
                     自身._软刷(会话,'count threshold')#刷
-                    return#结束
+                    return
                 if 状态['timer'] is None:
                     def 触发():
                         """间隔刷。"""
                         自身._软刷(会话,'interval')#间隔刷
                     状态['timer']=threading.Timer(自身.配置['writeIntervalMs']/1000.0,触发)#定时
                     状态['timer'].daemon=True#守护
-                    状态['timer'].start()#启动
-        自身.ctx.监听('session/event',收到事件)#挂
+                    状态['timer'].start()
+        自身.ctx.监听('session/event',收到事件)#会话事件触发软刷
         def 收到创建(会话):
             """session/created。"""
             自身._软刷(会话,'create')#强制点
-        自身.ctx.监听('session/created',收到创建)#挂
+        自身.ctx.监听('session/created',收到创建)#新建会话强制写
         def 收到拆除(会话):
             """session/disposed。"""
             自身._软刷(会话,'detach')#强制点
-            自身._标干净(会话)#清脏
+            自身._标干净(会话)#拆除前清脏
             with 自身._锁:
                 自身._脏.pop(会话,None)#移除
-        自身.ctx.监听('session/disposed',收到拆除)#挂
+        自身.ctx.监听('session/disposed',收到拆除)#拆除时刷并摘脏
         def 清定时器效果():
             """插件拆除。"""
             def 清定时器():
@@ -150,8 +151,8 @@ class 会话投影缓存(服务):
                         if 定时 is not None:
                             定时.cancel()#取消
                     自身._脏.clear()#清空
-            return 清定时器#拆除器
-        自身.ctx.副作用(清定时器效果,'sessionProjectionCache.timers')#effect
+            return 清定时器#副作用拆除回调
+        自身.ctx.副作用(清定时器效果,'sessionProjectionCache.timers')#插件寿命绑定定时器清理
 
     def _软刷(自身,会话,触发):
         """fail-soft 写。"""
@@ -165,7 +166,7 @@ class 会话投影缓存(服务):
         with 自身._锁:
             状态=自身._脏.get(会话)#脏状态
             if 状态 is None:
-                return#结束
+                return
             状态['pending']=0#清零
             定时=状态['timer'] if 'timer' in 状态 else None#定时器
             if 定时 is not None:
@@ -187,10 +188,12 @@ def 应用(上下文,配置值):
             raise 投影缓存错误('session-projection-cache: '+键+' must be a positive integer')#拒绝
     会话投影缓存(上下文,配置值)#构造即注册
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置模式#Cordis Config 槽
-会话投影缓存.inject=注入#类插件依赖
-会话投影缓存.Config=配置模式#类插件配置
-会话投影缓存.name=名称#类插件名
-default=会话投影缓存#Cordis 默认导出槽
+默认=会话投影缓存
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置模式#框架槽
+default=默认#框架槽
+会话投影缓存.inject=依赖#框架槽
+会话投影缓存.Config=配置模式#框架槽
+会话投影缓存.name=名称#框架槽

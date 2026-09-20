@@ -2,10 +2,10 @@ import json,math,random,threading,uuid#标准库
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .标识构造 import 重试身份#导入重试链身份
 
-__all__=('名称','注入','配置','应用','重试身份')#仅中文公开名
+__all__=('名称','依赖','配置','应用','重试身份')#仅中文公开名
 
 名称='llm-retry'#插件名
-注入=['agents']#依赖 agents 服务
+依赖=['agents']#依赖 agents 服务
 配置={}#空对象模式；本执行器无自有策略配置
 
 class 重试错误(Exception):
@@ -299,7 +299,7 @@ def 应用(上下文,配置值=None,内部=None):
     上下文.副作用(副作用体,'llm-retry: abort and drain active recovery')#副作用标签
 
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
 Config=配置#框架槽
 default=应用#框架槽

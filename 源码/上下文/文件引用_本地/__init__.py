@@ -1,27 +1,26 @@
-"""`ctx.fileReferences` 的本地文件系统实现。
-
-对齐上游 `@deepseek-ai/dsh-file-reference-local`。公开面仅中文名。
-"""
+"""`ctx.fileReferences` 的本地文件系统实现。"""
 import os#路径
-from ...依赖.schemastery import 自然数字段,列表字段,字符串字段#配置字段
+from ...依赖.schemastery import 自然数字段,列表字段,字符串字段
 from ..文件引用 import 文件引用服务,文件引用提示#基类与提示
 from ..文件引用.词法 import 光标处活动令牌,格式化文件提及#再导出词法
 from .搜索 import (#搜索默认值与实现
     默认最大结果数,默认最大条目数,默认排除目录,工作区文件搜索,文件引用本地错误,
 )#搜索面
 
-__all__=[#仅中文公开名
-    '配置模式','本地文件引用服务',
+__all__=[
+    '包名','名称','依赖','默认','配置模式','本地文件引用服务',
     '默认最大结果数','默认最大条目数','默认排除目录',
     '文件引用提示','光标处活动令牌','格式化文件提及','文件引用本地错误',
-]#公开面结束
+]
 
 配置模式={#插件配置
     'maxResults':自然数字段(最小=1,默认值=默认最大结果数),#单次最多候选
     'maxEntries':自然数字段(最小=1,默认值=默认最大条目数),#索引上限
     'excludedDirectories':列表字段(字符串字段(),默认值=list(默认排除目录)),#排除目录
-}#配置结束
-注入=['agents']#依赖智能体
+}
+包名='@deepseek-ai/dsh-file-reference-local'
+名称='file-reference-local'
+依赖=['agents']
 
 def 校验配置(配置):
     """非法配置让插件激活失败。"""
@@ -46,7 +45,7 @@ class 本地文件引用服务(文件引用服务):
             'maxResults':配置['maxResults'] if 'maxResults' in 配置 else 默认最大结果数,#结果上限
             'maxEntries':配置['maxEntries'] if 'maxEntries' in 配置 else 默认最大条目数,#索引上限
             'excludedDirectories':list(配置['excludedDirectories'] if 'excludedDirectories' in 配置 else 默认排除目录),#排除目录
-        }#配置结束
+        }
         校验配置(自身.配置)#启动前校验
         自身.搜索表={}#智能体→搜索索引
         自身.提示纤程={}#智能体→提示纤程
@@ -77,7 +76,7 @@ class 本地文件引用服务(文件引用服务):
                 return#跳过
             try:#拆除
                 纤程.拆除()#同步拆除
-            except Exception as 错误:#拆除失败不得阻断主流程
+            except (OSError,RuntimeError,AttributeError) as 错误:
                 上下文.日志.警告('file-reference-local: prompt cleanup failed: '+str(错误))#记日志
 
         def 智能体已创建(载荷,*_位置参数):
@@ -116,7 +115,7 @@ class 本地文件引用服务(文件引用服务):
                 for 纤程 in 纤程列表:#逐个拆除
                     try:#拆除
                         纤程.拆除()#同步拆除
-                    except Exception:#清理失败不得阻断卸载
+                    except (OSError,RuntimeError,AttributeError):
                         pass#吞掉
             return 拆#返回拆除器
         上下文.副作用(装寿命,'file-reference-local: search cache')#登记 effect
@@ -133,6 +132,9 @@ class 本地文件引用服务(文件引用服务):
             自身.搜索表[智能体]=搜索#缓存
         return 搜索.列举(查询,信号)#搜索
 
-本地文件引用服务.inject=注入#Cordis inject 槽
-本地文件引用服务.Config=配置模式#Cordis Config 槽
-default=本地文件引用服务#Cordis 默认导出
+默认=本地文件引用服务
+name=名称#框架槽
+inject=依赖#框架槽
+Config=配置模式#框架槽
+default=默认#框架槽
+本地文件引用服务.inject=依赖#框架槽

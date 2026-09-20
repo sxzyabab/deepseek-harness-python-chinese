@@ -14,7 +14,7 @@ from ...内核.会话.json值 import 冻结树#深冻结已存事件图
 头必填=('type','version','id','createdAt','isSeeded','delegationDepth')#头行必填键
 头可选=('cwd','parentSession','origin','agentPreset')#头行可选键
 头键=frozenset([*头必填,*头可选])#头行全部合法键
-安全码元=re.compile(r'^[A-Za-z0-9._-]$')#路径安全码元
+安全码元=re.compile(r'^[A-Za-z0-9._-]\Z',re.ASCII)#路径安全码元
 
 def 压缩后缀(压缩):#压缩后缀
     """zstd 为 `.zstd`，明文为空。"""
@@ -211,7 +211,7 @@ def 扫描日志(文本或字节,恢复='recoverable'):#扫描整份日志
     其余=缓冲[换行+1:]#其余字节
     try:#解析头JSON
         已解析=json.loads(头记录[:-1].decode('utf-8'))#去掉换行再解析
-    except Exception:#JSON失败
+    except json.JSONDecodeError:
         raise Error('corrupt session log: header line is not valid JSON')#头行非合法JSON
     if not isinstance(已解析,dict):#须为普通对象
         raise Error('corrupt session log: first line is not a JSON object')#首行非对象
@@ -221,7 +221,7 @@ def 扫描日志(文本或字节,恢复='recoverable'):#扫描整份日志
         raise Error('corrupt session log: first line is not a session header')#首行非会话头
     try:#创建恢复器
         恢复器=会话格式目录.创建恢复(已解析,{'recovery':恢复,'validation':'transformed'})#经目录创建
-    except Exception:#创建失败
+    except (会话格式不支持迁移错误,会话格式不支持错误,TypeError,KeyError,ValueError,AttributeError):
         raise Error('corrupt session log: first line is not a session header')#归类为非会话头
     元=头行转元数据(已解析)['meta']#逻辑头
     已提交=len(头记录)#已提交到头末
@@ -238,7 +238,7 @@ def 扫描日志(文本或字节,恢复='recoverable'):#扫描整份日志
         行末=len(头记录)+偏移#全局已提交末
         try:#解析行
             已解码=json.loads(行.decode('utf-8'))#解析
-        except Exception:#解析失败
+        except (json.JSONDecodeError,UnicodeDecodeError):
             问题=Error(f'corrupt session log: unparsable committed event at line {行号}')#构造错误
             if 恢复=='strict':#严格
                 raise 问题#立即抛
@@ -255,7 +255,7 @@ def 扫描日志(文本或字节,恢复='recoverable'):#扫描整份日志
             raise 会话格式不支持错误(str(错误))#映射
         except Error:#已是格式错误
             raise#原样
-        except Exception as 错误:#解码失败
+        except (TypeError,KeyError,ValueError,AttributeError) as 错误:
             问题=Error(f'corrupt session log: invalid committed event at line {行号}: {错误}')#构造
             if 恢复=='strict':#严格
                 raise 问题#立即抛

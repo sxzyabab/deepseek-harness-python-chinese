@@ -1,15 +1,16 @@
 """可选加入的请求准备 tmux 位置上下文。合格的 step 尝试会追加一条持久、带来源归属的上下文，点名本 agent 进程所在的 tmux 会话、窗口与窗格，以及该窗口的窗格树布局。插件每回合只拉一次状态，且仅针对第一次请求（step === 1）：经 ctx.shell 执行器服务跑一条 tmux display-message。它用窗格的 #{pane_tty} 对照本进程控制终端，确认本进程确实跑在 $TMUX_PANE 所指窗格里，因此只从 tmux 祖先继承了 $TMUX/$TMUX_PANE 的终端会读成「不在 tmux」。仅当渲染出的 tmux 状态相对上次注入有变化才再注入，并可选用 refreshIntervalMs 作为两次注入之间的下限。没有 tmux 环境、只有继承来的环境、没有 ctx.shell、或查询失败，都是空操作，从不报错：执行器拒绝会被收住并记成警告，回合继续。"""
 import json,os,time#JSON引号、本进程pid与纪元毫秒
-from ...依赖.schemastery import 数字字段#配置字段
+from ...依赖.schemastery import 数字字段
 from ...模型后端.llm import 创建用户消息#构造插件来源的用户消息
 
-__all__=['名称','注入','应用','配置']#仅中文公开名
+__all__=['包名','名称','依赖','应用','默认','配置']
 
-名称='tmux-context'#与事件来源 plugin 字段一致
-注入=['agents']#依赖 agents 服务
+包名='@deepseek-ai/dsh-tmux-context'
+名称='tmux-context'
+依赖=['agents']
 配置={#每回合的 tmux 位置调度；非法值使插件加载失败
     'refreshIntervalMs':数字字段(),#同一会话内两次持久注入之间的最小毫秒数；省略或 0 则每次合格变化都注入
-}#配置模式结束
+}
 取进程号=os.getpid#本 agent 进程 pid
 tmux字段表=(#display-message -p 字段，按查询顺序；有意排除窗格/窗口像素尺寸
     '#{session_name}',#会话名
@@ -161,8 +162,9 @@ def 应用(上下文,配置值=None):
         return {'kind':'enter','messages':消息列表}#继续循环并前置位置消息
     上下文.监听('agent/pre-step',预步骤监听,{'前置':True})#插到链头
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置#Cordis Config 槽
-apply=应用#Cordis插件入口
-default=应用#Cordis 默认导出
+默认=应用
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=默认#框架槽

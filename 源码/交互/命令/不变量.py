@@ -1,9 +1,9 @@
 """`@deepseek-ai/dsh-commands` 的包内不变量配套：命令生命周期事件在同一会话日志内按 commandId 配对。"""
 包名='@deepseek-ai/dsh-commands'#本包名，用于登记所有权
 名称='commands-invariant'#配套插件名
-注入=['invariants']#依赖不变量服务
+依赖=['invariants']
 
-def 安装(上下文对象,失败):#安装配对校验
+def 安装(上下文,失败):#安装配对校验
     """对已加载日志和新追加的生命周期事件安装配对校验。"""
     运行标识表={}#每会话已见的 run id；按会话身份弱关联用 id(session)
     def 校验事件(会话,事件):#校验单条生命周期事件
@@ -49,7 +49,7 @@ def 安装(上下文对象,失败):#安装配对校验
             or 源类型=='command/run'#不得指向命令生命周期
             or 源类型=='command/done'):#不得指向命令生命周期
             失败('command/done '+repr(配对)+' has invalid sourceEventSeq '+str(源序号))#报告非法源序号
-    for 会话 in 上下文对象.sessions.列出():#扫描已加载会话
+    for 会话 in 上下文.sessions.列出():#扫描已加载会话
         for 事件 in 会话.events:#回放历史事件
             校验事件(会话,事件)#校验
     def 内部派发(_模式,事件名,参数,*位置参数):#拦截新追加的会话事件
@@ -59,16 +59,16 @@ def 安装(上下文对象,失败):#安装配对校验
         会话=参数[0]#拆出会话
         事件=参数[1]#拆出事件
         校验事件(会话,事件)#校验新事件
-    上下文对象.监听('internal/dispatch',内部派发,{'全局':True})#全局监听
+    上下文.监听('internal/dispatch',内部派发,{'全局':True})#全局监听
 
 安装.inject=['sessions']#安装器还依赖 sessions
 
-def 应用(上下文对象):#对外导出配套入口
+def 应用(上下文):#对外导出配套入口
     """登记本包的不变量配套，返回安装成功后已登记项的拆除器。"""
-    return 上下文对象.invariants.register(包名,安装)#向不变量服务登记安装器
+    return 上下文.invariants.register(包名,安装)#向不变量服务登记安装器
 
-__all__=['包名','名称','注入','安装','应用']#仅中文公开名
-name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+__all__=['包名','名称','依赖','安装','应用']
+name=名称
+inject=依赖
 apply=应用#Cordis插件入口
 default=应用#Cordis默认导出

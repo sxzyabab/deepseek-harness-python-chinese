@@ -54,7 +54,7 @@ def 格式化搜索输出(结果):#拼面向模型的搜索文本
     return '\n\n'.join(段列表)#段与段空一行
 
 def 呈现搜索调用(参数):#进行中搜索卡片
-    """进行中调用的展示：一张以查询为标题的搜索卡片。参数为 dict。"""
+    """进行中调用的呈现：一张以查询为标题的搜索卡片。参数为 dict。"""
     查询=参数['query']#搜索查询
     return {'card':'generic','title':查询,'kind':'search','rawInput':查询}#标题与原始输入都是 query
 
@@ -69,8 +69,8 @@ def 投影来源(来源):#省略缺席可选字段的来源投影
         出['publishedAt']=来源['publishedAt']#日期
     return 出#投影对象
 
-def 搜索元自值(值):#从结果值抽出展示 meta
-    """把已校验的 `web_search` 输出值投影成可回放的展示 meta。值为 dict。"""
+def 搜索元自值(值):#从结果值抽出呈现 meta
+    """把已校验的 `web_search` 输出值投影成可回放的呈现 meta。值为 dict。"""
     投影列表=[]#投影后的来源
     for 来源 in 值['sources']:#逐条投影
         投影列表.append(投影来源(来源))#收下
@@ -100,7 +100,7 @@ def 是否网络来源(值):#校验一条来源
     return True#合法来源
 
 def 搜索元自结果(元):#校验回放 meta
-    """把不透明的现场或回放结果元数据收窄为 WebSearchMeta。畸形元数据返回 None，展示可回退到通用卡片。元为 dict。"""
+    """把不透明的现场或回放结果元数据收窄为 WebSearchMeta。畸形元数据返回 None，呈现可回退到通用卡片。元为 dict。"""
     if 元 is None or not isinstance(元,dict):#非普通对象
         return None#畸形
     if 'sources' not in 元 or 'truncated' not in 元:#必填键
@@ -122,7 +122,7 @@ def 搜索元自结果(元):#校验回放 meta
     return 出#WebSearchMeta
 
 def 呈现搜索结果(参数,结果):#完成态搜索卡片
-    """已完成调用的展示：一张 `web` 搜索卡片，携带 `meta` 里忠实的结构化来源。参数与结果为 dict。"""
+    """已完成调用的呈现：一张 `web` 搜索卡片，携带 `meta` 里忠实的结构化来源。参数与结果为 dict。"""
     if 'isError' in 结果 and 结果['isError'] is True:#错误结果不画专用卡
         return None#通用卡
     元=搜索元自结果(结果['meta'] if 'meta' in 结果 else None)#校验 meta
@@ -157,9 +157,9 @@ def 应用网络搜索工具(上下文,最大结果数,超时毫秒,抓取已启
     def 渲染(参数,值):#面向模型的文本块
         """把结构化结果渲染成文本块。"""
         return [{'type':'text','text':格式化搜索输出(值)}]#单个文本块
-    def 展示元(参数,值):#回放用 meta
-        """投影可回放展示 meta。"""
-        return 搜索元自值(值)#展示 meta
+    def 呈现元(参数,值):#回放用 meta
+        """投影可回放呈现 meta。"""
+        return 搜索元自值(值)#呈现 meta
     def 并发安全():#提供方读取不改变父 agent 状态
         """始终可并发。"""
         return True#安全
@@ -213,7 +213,7 @@ def 应用网络搜索工具(上下文,最大结果数,超时毫秒,抓取已启
                 },#properties 结束
             },#schema 结束
             'render':渲染,#面向模型的文本块
-            'presentationMeta':展示元,#回放用 meta
+            'presentationMeta':呈现元,#回放用 meta
         },#output 结束
         'timeoutMs':超时毫秒,#协作超时预算
         'isConcurrencySafe':并发安全,#提供方读取不改变父 agent 状态

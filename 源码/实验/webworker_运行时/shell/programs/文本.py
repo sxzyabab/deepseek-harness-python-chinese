@@ -332,7 +332,7 @@ def sed程序(argv,io,state,fs):#sed程序
         return 2#用法错
     结果=读各输入('sed',目标列表,io,state,fs)#读源
     def 转引用(匹配):#\\n → \\g<n>
-        """对齐 JS $$$1。"""
+        """把 JS 的 \\n 换成 Python 反向引用。"""
         return f'\\g<{匹配.group(1)}>'#Python反向引用
     js替换=正则.sub(r'\\(\d)',转引用,替换文)#转引用
     for 源 in 结果['sources']:#逐源

@@ -1,14 +1,13 @@
-from .定时器 import 安装客户端定时器#定时器
-from .巡检注册表 import 客户端巡检注册表,提供客户端巡检#巡检
-from .提供方 import 列出客户端巡检提供方#内置提供方
-from .编排器 import 运行编排器#编排
-from .运行时 import 包运行器记账#现场记账
-from .门面规则 import 动态上下文门面#再导出（对齐 upstream export）
+from .定时器 import 安装客户端定时器
+from .巡检注册表 import 客户端巡检注册表,提供客户端巡检
+from .编排器 import 运行编排器
+from .运行时 import 包运行器记账
+from .门面规则 import 动态上下文门面
 
-__all__=[#公开面
-    '说明','注入','插件名','调用失败文本','调用错误','线路失败文本','活动阶段','失败原因','加载失败阶段',
+__all__=[
+    '说明','依赖','插件名','调用失败文本','调用错误','线路失败文本','活动阶段','失败原因','加载失败阶段',
     '门面动词','装配客户端运行面','应用','动态上下文门面',
-]#结束
+]
 
 说明=('求值/加载/守卫 Proxy 需浏览器 Function、React、DOM、cordis Loader；'
       'Python 半承载门面契约、教学文案、装配接线与编排/巡检状态机。'
@@ -16,7 +15,7 @@ __all__=[#公开面
 
 插件名='cordis-client-runner'#Cordis 插件名
 
-注入=['loader','modules','slots','remote','remote.dynamicCordisRunner']#硬依赖
+依赖=['loader','modules','slots','remote','remote.dynamicCordisRunner']
 
 活动阶段=('awaiting-approval','orchestrating')#活动阶段
 
@@ -31,7 +30,7 @@ __all__=[#公开面
 )#结束
 
 def 调用失败文本(插件标识,方法,结果):#基础设施路由失败教学
-    """对齐 invokeFailure；结果须含 code。"""
+    """调用失败教学文案；结果须含 code。"""
     处=f'host.call("{方法}") on {插件标识}'#调用点
     码=结果.get('code') if isinstance(结果,dict) else None#码
     if 码=='plugin-not-running':#没在跑
@@ -44,7 +43,7 @@ def 调用失败文本(插件标识,方法,结果):#基础设施路由失败教�
     return f'{处} failed inside the host handler: {消息}'#处理内失败
 
 def 调用错误(插件标识,方法,结果):#保留宿主栈并加客户端调用点
-    """对齐 invokeError；结果可含 stack。"""
+    """保留宿主栈并加客户端调用点；结果可含 stack。"""
     错误=Exception(调用失败文本(插件标识,方法,结果))#教学消息
     栈=结果.get('stack') if isinstance(结果,dict) else None#宿主栈
     if isinstance(栈,str):#有
@@ -52,7 +51,7 @@ def 调用错误(插件标识,方法,结果):#保留宿主栈并加客户端调�
     return 错误#带栈
 
 def 线路失败文本(插件标识,方法,错误):#编解码/传输失败教学
-    """对齐 wireFailure。"""
+    """编解码或传输失败教学文案。"""
     消息=str(错误)#文本
     if isinstance(错误,BaseException):#异常
         消息=str(错误)#消息
@@ -62,7 +61,7 @@ def 线路失败文本(插件标识,方法,错误):#编解码/传输失败教学
         f'null — and answer from harness.handle("{方法}", fn) with JSON (`return null` when there is nothing to report).'
     )#结束
 
-def 装配客户端运行面(上下文):#对齐 apply 装配
+def 装配客户端运行面(上下文):
     """安装定时器、巡检、编排与门面；事件订阅挂 Remote。返回门面字典。"""
     安装客户端定时器(上下文)#定时器
     远端=getattr(getattr(上下文,'remote',None),'dynamicCordisRunner',None)#远端命名空间
@@ -120,9 +119,9 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
         try:#推
             答=远端.reportRenderFailure(会话,插件标识,运行标识,失败)#远程
             if isinstance(答,dict) and not 答.get('ok'):#载体
-                print('[cordis-client-runner] reporting a render failure of',插件标识,'failed:',答.get('error'))#日志
+                print('[cordis-client-runner] 报告',插件标识,'的渲染失败未送达:',答.get('error'))
         except Exception as 错误:#传输
-            print('[cordis-client-runner] reporting a render failure of',插件标识,'failed:',错误)#日志
+            print('[cordis-client-runner] 报告',插件标识,'的渲染失败未送达:',错误)
 
     def 报告门面失败(会话,插件标识,运行标识,失败):#即发即忘
         """门面拒绝报告。"""
@@ -131,16 +130,16 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
         try:#推
             答=远端.reportClientGuardFailure(会话,插件标识,运行标识,失败)#远程；方法名是线协议
             if isinstance(答,dict) and not 答.get('ok'):#载体
-                print('[cordis-client-runner] reporting a guard failure of',插件标识,'failed:',答.get('error'))#日志
+                print('[cordis-client-runner] 报告',插件标识,'的门面失败未送达:',答.get('error'))
         except Exception as 错误:#传输
-            print('[cordis-client-runner] reporting a guard failure of',插件标识,'failed:',错误)#日志
+            print('[cordis-client-runner] 报告',插件标识,'的门面失败未送达:',错误)
 
     def _取服务(名):#ctx.获取服务
         """读可选服务。"""
         return 上下文.获取服务(名)#服务
 
     槽服务=_取服务('slots')#槽位
-    记账=包运行器记账({#对齐 DynamicCordisRunnerEnv（mount 仍欠 Loader 硬缺口）
+    记账=包运行器记账({#mount 仍欠 Loader 硬缺口
         'ctx':上下文,#根上下文
         'loader':getattr(上下文,'loader',None),#loader
         'modules':_取服务('modules'),#模块表
@@ -197,7 +196,7 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
             raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
         return 答.get('value') if isinstance(答,dict) else 答#应答
 
-    编排=运行编排器({#对齐 CordisRunOrchestrator：runner + host（决议走 host.resolveRequestRun）
+    编排=运行编排器({#runner + host；决议走 host.resolveRequestRun
         'runner':记账,#页本地加载器
         'host':{#折好的宿主操作
             'runHostHalf':执行宿主半,#宿主半
@@ -223,7 +222,7 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
     上下文.提供服务('dynamicCordisRunner',门面)#提供
 
     def 卸载记账():
-        """对齐 runner.dispose。"""
+        """卸记账。"""
         def 拆除():
             """卸记账。"""
             记账.dispose()#卸
@@ -231,13 +230,13 @@ def 装配客户端运行面(上下文):#对齐 apply 装配
     上下文.副作用(卸载记账,'cordis-client-runner: dynamic package runner')#卸载
 
     def 巡检查询(请求):#inspect-query：失败只记日志
-        """对齐 void inspect.query.catch。"""
+        """巡检查询失败只记日志。"""
         try:#执行
             return 巡检.query(请求)#查询
         except Exception as 错误:#失败
             提供=请求.get('provider') if isinstance(请求,dict) else None#提供方
             方法=请求.get('method') if isinstance(请求,dict) else None#方法
-            print('[cordis-client-runner] inspect query',提供,'.',方法,'failed:',错误)#日志
+            print('[cordis-client-runner] 巡检查询',提供,'.',方法,'失败:',错误)
 
     if hasattr(上下文,'remote') and hasattr(上下文.remote,'$on'):#事件
         上下文.remote.$on('cordis/request-run',编排.open)#打开审批
@@ -251,4 +250,8 @@ def 应用(上下文=None):#插件体
     """有上下文则装配；无则空（宿主 Loader 行）。"""
     if 上下文 is None:#宿主侧空
         return#无贡献
-    return 装配客户端运行面(上下文)#浏览器半装配
+    return 装配客户端运行面(上下文)
+
+name=插件名
+inject=依赖
+apply=应用

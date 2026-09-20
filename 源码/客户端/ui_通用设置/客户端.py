@@ -7,11 +7,11 @@ from .文档动作 import 文档动作#文档动作
 from .桌面更新 import 桌面更新源#桌面更新源
 
 __all__=[#仅中文公开名
-    '注入','应用','设置根','触发器内容','页眉内容','关闭标签',
+    '依赖','应用','设置根','触发器内容','页眉内容','关闭标签',
     '常规条目分区','文档动作','设置文档存储','命名空间','中文','英文',
-]#公开面结束
+]
 
-注入=['slots','locale','connection','remote','remote.settings','settingsScope']#所需服务
+依赖=['slots','locale','connection','remote','remote.settings','settingsScope']#所需服务
 
 def 解析槽标签(标签):
     """字符串或 thunk。"""
@@ -45,7 +45,7 @@ def 应用(上下文):
         """拆卸桌面更新源。"""
         def 拆():
             """dispose。"""
-            桌面更新.dispose()#拆
+            桌面更新.dispose()
         return 拆#拆除器
     上下文.副作用(订桌面更新,'ui-settings-general: desktop update carrier')#桌面更新
     回环=上下文.remote.$host.isLoopback#本机回环
@@ -61,7 +61,7 @@ def 应用(上下文):
         def 拆():
             """dispose。"""
             if 文档控制器 is not None:#有
-                文档控制器.dispose()#拆
+                文档控制器.dispose()
         return 拆#拆除器
     上下文.副作用(订文档,'ui-settings-general: document action directory')#文档动作
     分区版本=-1#分区账本版本缓存
@@ -186,5 +186,5 @@ def 应用(上下文):
         },常规条目分区)#组件
     上下文.slots.inject('settings.section',登记常规条目分区)#常规条目分区
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

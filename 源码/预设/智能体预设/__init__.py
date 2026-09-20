@@ -4,7 +4,7 @@ from ...依赖.schemastery import 字符串字段,枚举字段,布尔字段,列�
 服务=cordis.服务#Cordis 服务基类
 from ...内核.作用域 import 绑定作用域父,创建作用域,获取作用域,弱身份表#作用域
 from ...配置.配置 import 设置命名空间#设置命名空间
-from ...工具.工作区路径 import 主目录路径#harness 主目录路径
+from ...工具.主目录路径 import 主目录路径#harness 主目录路径
 from .发现 import 组合文件,用户预设目录,发现预设,扫描根,条目列表问题#发现
 from .编写 import (#编写
     复制组合,删除组合,读组合,可写根,

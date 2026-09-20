@@ -1,23 +1,24 @@
-"""OpenTelemetry 会话遥测后端（对齐 upstream session-telemetry-otel）。"""
+"""OpenTelemetry 会话遥测后端。"""
 import threading#定时与并发
 from ...依赖.schemastery import 字典字段,字符串字段,任意字段,数字字段#配置
 from ...身份.匿名用户id import 获取或创建匿名用户id#用户 id
 from ...模型后端.llm import 应用身份#产品身份
 from ..会话遥测 import 会话遥测后端#基类
 from ..会话遥测.协调器 import 会话遥测协调器#协调器
-名称='session-telemetry-otel'#Cordis 插件名
-注入=['sessions']#依赖
+包名='@deepseek-ai/dsh-session-telemetry-otel'
+名称='session-telemetry-otel'
+依赖=['sessions']#依赖
 默认关闭超时毫秒=3000#默认 shutdown 上限
 最大定时器延迟毫秒=2147483647#Node 定时器上限
 禁用反馈警告='session telemetry is DISABLED; nothing will be shared and this feedback remains local'#禁用提示
 非规范反馈警告='session telemetry ignored a feedback event absent from the canonical session log'#非规范反馈
-配置=字典字段({
+配置=字典字段(字典结构={
     'mode':字符串字段(默认值='DISABLED'),#FULL/FEEDBACK_ONLY/DISABLED
     'exporter':任意字段(),#OTLP 导出器选项
     'processor':任意字段(),#批处理器选项
     'shutdownTimeoutMillis':数字字段(默认值=默认关闭超时毫秒),#关闭上限
 })#配置模式
-__all__=['名称','注入','配置','会话遥测模式','开放遥测会话后端','开放遥测错误']#公开面
+__all__=['包名','名称','依赖','应用','默认','配置','会话遥测模式','开放遥测会话后端','开放遥测错误']
 
 会话遥测模式=('FULL','FEEDBACK_ONLY','DISABLED')#模式枚举
 
@@ -52,7 +53,7 @@ class 开放遥测会话后端(会话遥测后端):
         自身._关闭超时=默认关闭超时毫秒#上限
         if 模式=='DISABLED':#禁用
             上下文.监听('session/event',自身._监听禁用反馈)#挂
-            return#结束
+            return
         导出器配置=配置值['exporter'] if 'exporter' in 配置值 else {}#导出器
         网址=导出器配置['url'] if isinstance(导出器配置,dict) and 'url' in 导出器配置 else None#端点
         if 网址 is None or len(str(网址))==0:#缺 url
@@ -90,7 +91,7 @@ class 开放遥测会话后端(会话遥测后端):
         接收={'发出':自身._入队,'关闭':自身.关闭}#协调器后端
         if 模式=='FULL':#全量
             会话遥测协调器(上下文,接收,'live')#实时
-            return#结束
+            return
         自身._协调=会话遥测协调器(上下文,接收,'on-demand')#按需
         上下文.监听('session/event',自身._反馈监听)#挂
 
@@ -143,7 +144,7 @@ class 开放遥测会话后端(会话遥测后端):
             错误箱.append(开放遥测错误('session-telemetry-otel: provider shutdown exceeded '+str(自身._关闭超时)+'ms'))#超时
         定时=threading.Timer(自身._关闭超时/1000.0,记下超时)#定时器
         定时.daemon=True#守护
-        定时.start()#启动
+        定时.start()
         try:#等待
             自身._提供者.shutdown()#同步关闭
         finally:#清定时器
@@ -155,8 +156,9 @@ def 应用(上下文,配置值):
     """加载 otel 后端。"""
     开放遥测会话后端(上下文,配置值)#注册
 
-应用.name=名称#Cordis name 槽
-应用.inject=注入#Cordis inject 槽
-应用.Config=配置#Cordis Config 槽
-apply=应用#Cordis 插件入口
-default=开放遥测会话后端#Cordis 默认导出槽
+默认=开放遥测会话后端
+name=名称#框架槽
+inject=依赖#框架槽
+apply=应用#框架槽
+Config=配置#框架槽
+default=默认#框架槽

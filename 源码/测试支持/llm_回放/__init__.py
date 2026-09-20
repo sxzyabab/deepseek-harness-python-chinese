@@ -9,13 +9,13 @@ from ...内核.会话 import 会话格式版本#当代版本
 from ...会话.会话格式目录 import 会话格式目录,会话格式不支持迁移错误#格式目录
 
 __all__=[#仅中文公开名
-    '名称','注入','应用','解析会话日志','解析会话头','派生回放脚本',
+    '名称','依赖','应用','解析会话日志','解析会话头','派生回放脚本',
     '解析脚本条目','加载回放脚本','加载会话脚本','安装LLM回放',
     '准备会话快照夹具供比较',
 ]#公开面结束
 
 名称='llm-replay'#插件名
-注入=['llm']#依赖
+依赖=['llm']
 打包块行类型=frozenset(['text-chunks','reasoning-chunks','tool-call-chunks'])#打包块行类型
 回放分片类型=frozenset([#合法分片类型
     'block-start','text-delta','reasoning-delta','tool-call-delta','block-end','usage','finish',
@@ -144,12 +144,12 @@ def 解析会话夹具(文本):#解析会话 fixture
     for 索引,行 in enumerate(文本.splitlines()):#逐行扫描
         if 行.strip()=='':#空行
             continue#跳过
-        try:#尝试 JSON 解析
-            值=json.loads(行)#解析本行
-        except Exception as 错误:#解析失败
-            raise Exception(f'session snapshot line {索引+1} contains invalid JSON') from 错误#无效 JSON
+        try:
+            值=json.loads(行)
+        except json.JSONDecodeError as 错误:
+            raise Exception(f'会话快照第 {索引+1} 行不是合法 JSON') from 错误
         if not isinstance(值,dict):#须为对象
-            raise Exception(f'session snapshot line {索引+1} must be a JSON object')#非对象
+            raise Exception(f'会话快照第 {索引+1} 行必须是 JSON 对象')
         行号=索引+1#行号
         if 恢复器 is None:#头行
             头行号=行号#记头行
@@ -265,7 +265,7 @@ def 派生回放脚本(事件列表):#派生回放脚本
         数据=事件.get('data') if isinstance(事件,dict) else getattr(事件,'data',None)#事件数据
         if 类型=='compaction/summary':#压缩摘要
             if isinstance(数据,dict) and 数据.get('llmStreamCall') is True:#LLM 流调用
-                if 数据.get('rawOutput') is None:#缺 rawOutput
+                if 'rawOutput' not in 数据:#缺 rawOutput
                     raise Exception('llm-replay: compaction/summary marks an LLM stream call without rawOutput')#缺 rawOutput
                 分片列表=[]#分片
                 for 索引,块 in enumerate(数据['rawOutput']):#逐块
@@ -290,11 +290,11 @@ def 收集字符串(值,输出):#收集字符串叶子
     """按遍历顺序收集 JSON 兼容值的每个字符串叶子。"""
     if isinstance(值,str):#字符串
         输出.append(值)#叶子
-        return#结束
+        return
     if isinstance(值,list):#数组
         for 项 in 值:#递归
             收集字符串(项,输出)#递归
-        return#结束
+        return
     if 是否记录(值):#对象
         for 项 in 值.values():#递归
             收集字符串(项,输出)#递归
@@ -302,10 +302,10 @@ def 收集字符串(值,输出):#收集字符串叶子
 def 解析请求占位(模式,语料):#对照请求语料解析占位
     """对照请求语料解析一个占位模式；最后一次匹配胜出。"""
     import re as 正则#编译模式
-    try:#编译
-        编译=正则.compile(模式)#编译模式
-    except Exception as 错误:#非法
-        raise Exception(f'llm-replay: fromRequest has an invalid pattern {模式!r}: {错误}')#非法模式
+    try:
+        编译=正则.compile(模式)
+    except 正则.error as 错误:
+        raise Exception(f'llm-replay: fromRequest 模式非法 {模式!r}: {错误}')
     末次=None#末次匹配
     for 匹配 in 编译.finditer(语料):#逐匹配
         末次=匹配#取末次
@@ -383,7 +383,7 @@ def 推断已启动子智能体(消息列表,实时会话标识列表):#推断�
                 continue#跳过
             索引=next((候选 for 候选,值 in enumerate(实时会话标识列表) if 候选>0 and 值 is None),-1)#下一空位子槽
             if 索引<0:#无槽
-                return#结束
+                return
             实时会话标识列表[索引]=标识#预填
 
 def 非法覆盖(文件,位置,细节):#覆盖非法
@@ -533,21 +533,21 @@ class 回放适配器(语言模型适配器):#回放适配器
         自身._providers={项['id']:项 for 项 in 提供方列表}#提供方映射
         自身._replay=回放#回放实现
 
-    def providerInfo(自身,提供方):#提供方信息
+    def providerInfo(自身,提供方):#提供方简介
         """咨询信息。"""
-        配置=自身._providers.get(提供方)#配置
-        if 配置 is None:#未知
+        if 提供方 not in 自身._providers:#未知
             return super().providerInfo(提供方)#基类
+        配置=自身._providers[提供方]#配置
         return {'id':提供方,'name':配置.get('name') or 提供方}#咨询信息
 
     def providerRetryPolicy(自身,提供方):#重试政策
         """可选提供方重试政策。"""
-        配置=自身._providers.get(提供方)#配置
-        if 配置 is None:#未知
+        if 提供方 not in 自身._providers:#未知
             return super().providerRetryPolicy(提供方)#基类
-        政策=配置.get('retryPolicy')#政策
-        if 政策 is None:#无
+        配置=自身._providers[提供方]#配置
+        if 'retryPolicy' not in 配置:#无
             return None#无
+        政策=配置['retryPolicy']#政策
         return 解析重试政策(政策,f'llm-replay: provider "{提供方}" retryPolicy')#解析
 
     def imageRequestPricing(自身,提供方,模型):#图像计价
@@ -577,9 +577,9 @@ class 回放适配器(语言模型适配器):#回放适配器
 
     def listModels(自身,提供方):#列模型
         """列出咨询模型。"""
-        配置=自身._providers.get(提供方)#配置
-        if 配置 is None:#未知
+        if 提供方 not in 自身._providers:#未知
             return []#空
+        配置=自身._providers[提供方]#配置
         结果=[]#结果
         for 模型 in 配置.get('models') or []:#逐模型
             项={'provider':提供方,'id':模型['id'],'name':模型.get('name') or 模型['id']}#基础
@@ -592,9 +592,9 @@ class 回放适配器(语言模型适配器):#回放适配器
 
     def resolveModel(自身,提供方,模型):#解析模型
         """解析模型元数据。"""
-        配置=自身._providers.get(提供方)#配置
-        if 配置 is None:#未知
+        if 提供方 not in 自身._providers:#未知
             return {'provider':提供方,'id':模型,'name':模型}#默认
+        配置=自身._providers[提供方]#配置
         命中=next((候 for 候 in (配置.get('models') or []) if 候.get('id')==模型),None)#命中
         结果={'provider':提供方,'id':模型,'name':(命中.get('name') if 命中 else None) or 模型}#基础
         if 命中 is not None:#有配置
@@ -622,7 +622,7 @@ class 回放适配器(语言模型适配器):#回放适配器
 def 节拍延迟(毫秒,信号):#节拍等待
     """等待毫秒；信号中止则抛 aborted。"""
     if 毫秒<=0:#无等待
-        return#结束
+        return
     截止=time.monotonic()+毫秒/1000#截止
     while time.monotonic()<截止:#等待
         if 信号 is not None and getattr(信号,'aborted',False):#中止
@@ -638,7 +638,7 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
                 raise Exception('aborted')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
-        return#结束
+        return
     if 种类=='throw':#抛错
         for 分片 in 条目['chunks']:#先发前缀
             if 信号 is not None and getattr(信号,'aborted',False):#中止
@@ -793,9 +793,10 @@ def 应用(上下文,配置=None):#Cordis 入口
     校验已配置模型(配置.get('providers'))#校验模型
     覆盖=配置.get('overrideFile') or os.environ.get('DSH_SNAPSHOT_OVERRIDE')#覆盖
     子环境=os.environ.get('DSH_SNAPSHOT_CHILD_FILES')#子环境
-    子文件=配置.get('childFiles')#子文件
-    if 子文件 is None:#从环境
+    if 'childFiles' not in 配置:#从环境
         子文件=子环境.split(os.pathsep) if 子环境 else []#分隔列表
+    else:
+        子文件=配置['childFiles']#子文件
     回放配置={'file':文件}#回放配置
     if 覆盖:#有覆盖
         回放配置['overrideFile']=覆盖#写入
@@ -807,6 +808,6 @@ def 应用(上下文,配置=None):#Cordis 入口
         回放配置['paceMs']=配置['paceMs']#写入
     安装LLM回放(上下文,回放配置)#安装回放
 
-apply=应用#入口
-name=名称#Cordis
-inject=注入#Cordis
+apply=应用
+name=名称
+inject=依赖

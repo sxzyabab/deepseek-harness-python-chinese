@@ -21,8 +21,8 @@ from .类型 import (
 )#再导出结构类型
 
 #部署人设前缀/后缀的段落名。导出是因为组合可以替换本槽——Agent 预设用自己的人设遮蔽部署人设——两边点名同一段落才让替换生效而不是重复。
-人设前缀段落名='deployment:persona-prefix'#部署人设前缀段落名（字面量不译）
-人设后缀段落名='deployment:persona-suffix'#部署人设后缀段落名（字面量不译）
+人设前缀段落名='deployment:persona-prefix'#部署人设前缀段落名
+人设后缀段落名='deployment:persona-suffix'#部署人设后缀段落名
 段落顺序表={
     'HARNESS_IDENTITY':-1000,#Harness 身份
     'DEPLOYMENT_PERSONA_PREFIX':0,#部署人设前缀
@@ -58,6 +58,9 @@ from .类型 import (
     'WEB_SURFACE':10100,#Web 面
     'DEPLOYMENT_PERSONA_SUFFIX':10200,#部署人设后缀
 }#中央段落顺序
+#预设/子体遮蔽的单槽人设 = 前缀槽；与上列同出处，勿另写字面量
+人设段落名=人设前缀段落名#遮蔽用段落名
+人设顺序=段落顺序表['DEPLOYMENT_PERSONA_PREFIX']#与前缀槽同序
 上下文顺序表={
     'SANDBOX_POLICY':110,#沙箱策略
     'APPROVAL_POLICY':115,#批准策略
@@ -65,8 +68,8 @@ from .类型 import (
 }#中央上下文顺序
 变量名规则=re.compile(r'^[a-z][a-z0-9_]*\Z',re.ASCII)#花括号之间的合法变量名
 引用组规则=re.compile(r'^\{\{([^{}]*)\}\}',re.ASCII)#扫描位置上完整的 {{...}} 引用组
-变量名规则文本='/'+变量名规则.pattern+'/'#对齐 JS String(正则) 的诊断展示
-工具顺序其余='<unlisted-tools>'#toolOrder 给未列出工具保留的标记（字面量不译）
+变量名规则文本='/'+变量名规则.pattern+'/'#诊断展示，按 /pattern/ 形态展示正则
+工具顺序其余='<unlisted-tools>'#toolOrder 给未列出工具保留的标记
 
 class 系统提示词错误(Exception):
     """内核系统提示词包的异常基类。"""
@@ -163,7 +166,7 @@ def 渲染上下文快照(组装):
     return 拼接上下文章节(渲染上下文章节(组装))#先分段再拼接
 
 def 拼接上下文章节(段落列表):
-    """已渲染段落列表的面向模型快照文本。也需要段落的调用方渲染一次再在此拼接，因此一次请求不会把每个上下文插值两遍。无正文时返回空串；信封字面量不译。"""
+    """已渲染段落列表的面向模型快照文本。也需要段落的调用方渲染一次再在此拼接，因此一次请求不会把每个上下文插值两遍。无正文时返回空串。"""
     正文='\n\n'.join(段['text'] for 段 in 段落列表)#空行拼接正文
     if len(正文)==0:#无正文
         return ''#无正文则空
@@ -201,7 +204,7 @@ def 插值(输入,变量表,种类):
             已知=', '.join(已登记) if len(已登记)>0 else '(none)'#列出或空
             raise 系统提示词错误('unknown prompt variable "{{'+名+'}}" in '+种类+' "'+输入['name']+'"; registered variables: '+已知)#未知变量
         值=变量表[名]#取值
-        if 值 is None:#本组装无值（对齐 JS undefined）
+        if 值 is None:#本组装无值
             raise 系统提示词错误('prompt variable "{{'+名+'}}" has no value for this assembly ('+种类+' "'+输入['name']+'")')#未定义
         结果+=文本[上次:开]+值#前缀加替换
         上次=开+len(匹配.group(0))#跳过整组
@@ -262,7 +265,7 @@ class 系统提示词(服务):#系统提示词服务
             自身.段落({
                 'name':'harness:identity',#段落名
                 'order':自身.获取段落顺序('HARNESS_IDENTITY'),#身份顺序
-                'text':'You are an AI agent powered by DeepSeek Harness.',#身份文本（字面量不译）
+                'text':'You are an AI agent powered by DeepSeek Harness.',#身份文本
             })#登记身份段
         人设前缀=配置['personaPrefix'] if 'personaPrefix' in 配置 else None#人设前缀
         if 人设前缀 is None:#缺省
@@ -433,12 +436,12 @@ class 系统提示词(服务):#系统提示词服务
             结果['contexts']=[]#抑制则清空
         return 结果#结果
 
-# 事件声明（仅文档；经作用域载体派发；对齐上游 Cordis Events）：
+# 事件声明（仅文档；经作用域载体派发）：
 # system-prompt/assemble(assembly, context, next) @mode waterfall：已组装段落、上下文、工具与变量上的专家瀑布。作用域过滤派发：作用域监听器只收到该作用域的组装。返回值是权威的。所给信号只控制这次显式组装请求。已登记的完整段落在本瀑布之后被还原。
 # system-prompt/change() @mode emit：任一提示词提供方变更时发出；不过滤。
 
 __all__=(
-    '人设前缀段落名','人设后缀段落名','工具顺序其余',
+    '人设前缀段落名','人设后缀段落名','人设段落名','人设顺序','工具顺序其余',
     '渲染提示词','渲染上下文快照','拼接上下文章节','渲染上下文章节',
     '系统提示词',
     '组装上下文','提示词段落','提示词上下文','已组装段落','已组装上下文',

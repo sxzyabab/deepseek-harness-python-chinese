@@ -5,7 +5,7 @@ from ...模型后端.llm import 创建用户消息#铸造用户消息
 from ..目标 import 目标错误#目标域边界错误
 
 名称='command-goal'#Cordis插件名
-注入=['commands','goals']#依赖命令注册表与目标服务
+依赖=['commands','goals']#依赖命令注册表与目标服务
 用法='Usage: /goal [<objective>|clear|edit <objective>|pause|resume]'#人类可读用法行
 
 def 断言永不可达(值,标签):
@@ -172,9 +172,9 @@ def 应用(上下文):
     })#结束注册
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 apply=应用#Cordis插件入口
 default=应用#默认导出
 默认=应用#中文默认导出
 
-__all__=['名称','注入','应用','默认']#公开面
+__all__=['名称','依赖','应用','默认']#公开面

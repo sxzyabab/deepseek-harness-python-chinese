@@ -11,9 +11,9 @@ def 纪元毫秒():
 def 是否组合事件(事件,近期组合):
     """keydown 可信任的组合态。keyCode 229 为无 isComposing 时的遗留 IME 信号。"""
     if 事件['isComposing'] is True:#引擎组合
-        return True#是
+        return True
     if 事件['keyCode']==229:#遗留信号
-        return True#是
+        return True
     return 近期组合() is True#宽限内
 
 def 登记作曲器键图(编辑器,处理器):

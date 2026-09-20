@@ -49,7 +49,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
         自身.步骤=None#开放步骤
         自身.头节点=None#受保护系统头节点
         自身.提示词=''#当前系统提示词
-        源头=_取(输入,'sourceHeader')#源头
+        源头=输入['sourceHeader']#源头
         断言已发布v2头(源头)#断言源头
         if not 源头['isSeeded']:#非种子
             自身.源切口=0#非种子切口为0
@@ -75,7 +75,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
         if 事件['type'] in 表面类型 and 自身.头节点 is None:#首步前的surface
             raise 会话格式不支持迁移错误('format v2 surface before first step cannot acquire a system head without changing chronology')#拒绝
         if 事件['type']=='session/end-seed' and 数据.get('inherited') is True:#继承结束种子
-            if not _取(自身.输入,'sourceHeader')['isSeeded']:#非种子却有标记
+            if not 自身.输入['sourceHeader']['isSeeded']:#非种子却有标记
                 raise 会话格式错误('format v2 unseeded Session contains an inherited end-seed marker')#错误
             自身.源切口=事件['seq']#源切口
             自身.目标切口=自身.目标序号#目标切口（插入前）
@@ -83,7 +83,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
             if 数据.get('sessionFormatVersion')==3:#拒绝对目标代声称
                 raise 会话格式错误('format v2 delivery marker claims target format v3')#错误
             if (数据.get('sessionFormatVersion')==2
-                and 数据.get('sessionId')!=_取(自身.输入,'sourceHeader')['id']):#记外部投递
+                and 数据.get('sessionId')!=自身.输入['sourceHeader']['id']):#记外部投递
                 自身.末次外部投递序号=事件['seq']#记下
         目标=重映射事件(源,自身.目标序号,自身.映射)#重映射引用
         自身.映射.append(自身.目标序号)#登记映射
@@ -104,10 +104,10 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
     def finish(自身,_上下文):#完成
         """校验切口与投递标记，返回目标继承事件数。"""
         切割=会话格式计数(自身.源切口,'format v2 inherited end-seed marker')#源切口
-        源继承=_取(自身.输入,'sourceInheritedEventCount')#输入切口
+        源继承=自身.输入['sourceInheritedEventCount']#输入切口
         if 源继承 is not None and 源继承!=切割:#与输入切口不符
             raise 会话格式错误('format v2 inherited end-seed marker disagrees with its source cut')#错误
-        源头=_取(自身.输入,'sourceHeader')#源头
+        源头=自身.输入['sourceHeader']#源头
         if (自身.末次外部投递序号 is not None
             and ('parentSession' not in 源头 or 自身.末次外部投递序号>=切割)):#非法外部投递
             raise 会话格式错误('current-generation delivery marker names the wrong Session')#错误
@@ -138,7 +138,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
         if 自身.步骤 is None:#无开放步骤
             raise 会话格式不支持迁移错误('format v2 changed request prompt outside an open step cannot retain source chronology')#拒绝
         身份材料=json.dumps(#合成身份材料
-            ['session-format-v2-to-v3',_取(自身.输入,'sourceHeader')['id'],锚点['seq'],锚点['type']],#材料
+            ['session-format-v2-to-v3',自身.输入['sourceHeader']['id'],锚点['seq'],锚点['type']],#材料
             separators=(',',':'),#紧凑
             ensure_ascii=False,#与 Node 一致
         )#dumps结束
@@ -201,8 +201,3 @@ def 重命名消息来源(消息):#重命名消息插件来源
         return 消息#原样
     return {**消息,'source':{**来源,'plugin':'tools-ptc'}}#改为tools-ptc
 
-def _取(对象,键):#取字段
-    """支持映射或属性风格的阶段输入。"""
-    if isinstance(对象,dict):#映射
-        return 对象[键]#键取
-    return getattr(对象,键)#属性取

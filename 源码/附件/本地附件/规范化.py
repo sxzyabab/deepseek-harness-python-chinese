@@ -1,4 +1,4 @@
-"""确定性提供者无关图像规范化。对齐上游 attachment-local/src/normalization.ts。"""
+"""确定性提供者无关图像规范化。"""
 from io import BytesIO#内存缓冲
 from PIL import ImageOps#图像定向
 from ..附件.错误 import 附件错误#附件失败
@@ -70,8 +70,8 @@ def 规范化图像(数据,已检测,策略):#产出持久规范化版本
         return _验证规范化图像(选中,期望alpha)#验证后返回
     except 附件错误:#已是附件错误
         raise#原样
-    except Exception as 错误:#转换失败
-        if 已检测['mediaType']=='image/png' and 已检测['depth']!='uchar':#高位深 PNG
+    except (OSError,ValueError,SyntaxError) as 错误:
+        if 已检测['mediaType']=='image/png' and 已检测['depth']!='uchar':
             源描述=f"{('16-bit' if 已检测['depth']=='ushort' else 已检测['depth'])} PNG"#描述
         else:#其他格式
             源描述=f"{已检测['depth']} {已检测['mediaType'].split('/',1)[1].upper()}"#描述

@@ -24,4 +24,4 @@ def 改动审阅定义(翻译):#登记定义
         'priority':'builtin',#优先级
         'canOpen':可打开,#可否
         'title':标题,#标题
-    }#结束
+    }

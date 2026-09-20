@@ -1,4 +1,4 @@
-"""六种面向模型的持久终端工具。所有者身份来自精确的工具执行智能体；通用 `ctx.jobs` 负责后台 id 与收集。"""
+"""登记六种面向模型的持久终端工具；所有者来自工具执行智能体，后台 id 与收集由任务层负责。"""
 import threading#后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 已中止#中止入口；信号来自超时库
@@ -15,7 +15,7 @@ from .渲染 import (#导入渲染与截断
 )#渲染模块结束
 
 名称='tool-terminal'#Cordis插件名
-注入=['terminals','tools','systemPrompt']#必需的能力、注册表与提示词服务
+依赖=['terminals','tools','systemPrompt']#必需的能力、注册表与提示词服务
 默认结果字节=256*1024#一次完整面向模型的终端结果的默认上限
 最小结果字节=64#能在截断回执里保住全部计数器签发的 PTY 与任务 id 的最小上限
 安全整数上限=9007199254740991#外来JSON校验点
@@ -227,7 +227,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             取消请求=[False]#是否已请求取消
             文本=参数['text'] if 'text' in 参数 and 参数['text'] is not None else ''#写入文本
             def 任务体():#任务体
-                """在 ctx.jobs 下拉起后台终端发送。"""
+                """在通用任务层下拉起后台终端发送。"""
                 操作=上下文.terminals.开始发送(所有者,标识,请求)#开始发送
                 结算=操作任务()#任务done
                 def 盯结算():#把发送结算映射成任务结局
@@ -271,7 +271,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
         else:#前台
             文本=渲染发送(值,结果字节)#前台视口
         return [{'type':'text','text':文本}]#文本块
-    def 发送展示元(_参数,值):#前台才给元数据
+    def 发送呈现元(_参数,值):#前台才给元数据
         """前台才给元数据；后台为 null。"""
         if 值['kind']!='foreground':#后台无元数据
             return None#无元数据
@@ -343,7 +343,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
                 ],#oneOf结束
             },#schema结束
             'render':渲染发送结果,#渲染发送结果
-            'presentationMeta':发送展示元,#展示元数据
+            'presentationMeta':发送呈现元,#呈现元数据
         },#output结束
         'execute':执行发送,#执行发送
         'presentCall':呈现发送,#调用卡片
@@ -504,9 +504,9 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
         'presentCall':呈现列表,#调用卡片
     }))#terminal_list结束
 
-__all__=['名称','注入','应用','配置']#公开面
+__all__=['名称','依赖','应用','配置']#公开面
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 Config=配置#Cordis配置模式
 apply=应用#Cordis插件入口
-default=应用#Cordis默认导出
+default=应用#框架槽

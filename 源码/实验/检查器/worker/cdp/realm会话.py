@@ -1,5 +1,3 @@
-#对齐上游 worker/cdp/realm-sessions.ts
-
 import uuid#随机UUID
 
 __all__=['检查器realm会话集']#仅中文公开名

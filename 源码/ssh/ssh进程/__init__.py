@@ -17,7 +17,9 @@ from ..ssh.模式 import (
 )#模式
 from ..ssh.协议 import ssh请求对等,远程操作错误#快照对等与远端错误
 
-__all__=['远端清理错误','ssh子进程运行时']#仅中文公开名
+__all__=['远端清理错误','ssh子进程运行时','依赖']
+
+依赖=['ssh']
 
 def 环境墓碑(环境):#None 编码墓碑
     """缺席则缺席；值 None 变 JSON null。"""
@@ -44,7 +46,7 @@ class 贯通管道:#分配期间可写的内存管道
     def __init__(自身):#构造
         """空队列。"""
         自身._队列=queue.Queue()#块
-        自身._结束=object()#EOF 哨兵
+        自身._结束=None#EOF 哨兵
         自身.destroyed=False#已毁
         自身.readableEnded=False#读结束
         自身._监听={'error':[],'close':[],'end':[],'data':[]}#事件
@@ -77,7 +79,7 @@ class 贯通管道:#分配期间可写的内存管道
     def read(自身,大小=65536):#读
         """出队；结束则空。"""
         项=自身._队列.get()#块
-        if 项 is 自身._结束:#EOF
+        if 项 is None:#EOF
             自身.readableEnded=True#结束
             自身._队列.put(自身._结束)#留给其他读者
             return b''#空
@@ -109,7 +111,7 @@ class 贯通管道:#分配期间可写的内存管道
                         break#停
                     目标.write(块)#写
             except BaseException:#忽略
-                pass#吞
+                pass
         threading.Thread(target=转发,daemon=True).start()#转发
         return 目标#链式
     def __iter__(自身):#可迭代
@@ -207,7 +209,7 @@ class 远端进程(句柄):#一路普通远端进程
                 return None#空
             自身._摘中止=摘#记下
         自身._已启动=操作任务()#启动
-        threading.Thread(target=自身._启动).start()#启动
+        threading.Thread(target=自身._启动).start()
         自身.streamsClosed=操作任务()#流关
         def 等流关():#等套接字关
             """启动失败则立刻完。"""
@@ -215,7 +217,7 @@ class 远端进程(句柄):#一路普通远端进程
                 自身._已启动.等待()#等
             except BaseException:#失败
                 自身.streamsClosed.兑现(None)#完
-                return#结束
+                return
             for 套接字对象 in 自身.套接字表:#逐个
                 if getattr(套接字对象,'closed',False):#已关
                     continue#跳
@@ -304,7 +306,7 @@ class 远端进程(句柄):#一路普通远端进程
                 try:#等
                     自身._终止任务.等待()#等
                 except BaseException:#忽略
-                    pass#吞
+                    pass
             for 套接字对象 in 自身.套接字表:#毁
                 套接字对象.destroy()#毁
             自身._已启动.拒绝(错误)#拒绝
@@ -317,7 +319,7 @@ class 远端进程(句柄):#一路普通远端进程
             自身.控制器.中止(ssh错误('SSH process terminated before launch acknowledgement'))#中止
         if 自身.id is not None:#有 id
             自身._终止任务=操作任务()#任务
-            def 跑():#线程
+            def 在线程执行():#线程
                 """terminate。"""
                 try:#请求
                     自身.ssh.请求('process.terminate',{'id':自身.id},空模式)#终止
@@ -327,7 +329,7 @@ class 远端进程(句柄):#一路普通远端进程
                 except BaseException as 错误:#失败
                     threading.Thread(target=自身.ssh.拆除,daemon=True).start()#放租期
                     自身._终止任务.拒绝(错误)#拒绝
-            threading.Thread(target=跑).start()#启动
+            threading.Thread(target=在线线程执行).start()
 
     def 关闭流(自身):#关掉公开流
         """毁套接字与贯通管。"""
@@ -378,7 +380,7 @@ class 远端进程(句柄):#一路普通远端进程
                 if not 完成.is_set():#还没
                     箱['值']=值#假
             except BaseException:#忽略
-                pass#吞
+                pass
             完成.set()#完
         threading.Thread(target=等观察).start()#观察
         threading.Thread(target=等取消).start()#取消
@@ -442,7 +444,7 @@ class 远端进程(句柄):#一路普通远端进程
 
 class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
     """远端辅助选择 POSIX 进程归属。"""
-    inject=['ssh']#框架槽：类级依赖
+    inject=依赖
     def __init__(自身,上下文):#构造
         """登记拆除。"""
         super().__init__(上下文)#subprocess
@@ -455,16 +457,16 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
             def 清理():#拆除器
                 """终止并确认。"""
                 自身.寿命.中止(ssh错误('SSH subprocess provider disposed'))#中止
-                for 句柄对象 in list(自身.存活):#普通
-                    句柄对象.终止()#终止
+                for 远端进程句柄 in list(自身.存活):#普通
+                    远端进程句柄.终止()#终止
                 失败=[]#错误
-                for 句柄对象 in list(自身.存活):#等退出
+                for 远端进程句柄 in list(自身.存活):#等退出
                     try:#等
-                        句柄对象.等待退出()#等
+                        远端进程句柄.等待退出()#等
                     except BaseException as 错误:#失败
                         失败.append(错误)#收
                     finally:#关流
-                        句柄对象.关闭流()#关
+                        远端进程句柄.关闭流()#关
                 for 任务 in list(自身.终端分配):#分配
                     try:#等
                         任务.等待()#等
@@ -472,9 +474,9 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
                         失败.append(错误)#收
                     except BaseException:#其它分配失败
                         pass#创建路径自己报
-                for 句柄对象 in list(自身.终端表):#终端
+                for 远端进程句柄 in list(自身.终端表):#终端
                     try:#终止
-                        句柄对象.终止()#终止
+                        远端进程句柄.终止()#终止
                     except BaseException as 错误:#失败
                         失败.append(错误)#收
                 if len(失败)>0:#有
@@ -507,28 +509,28 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
         """立即返回句柄。"""
         若已中止则抛出(自身.寿命.信号)#已拆
         若已中止则抛出(规格.get('signal'))#已中止
-        句柄对象=远端进程(自身.所属上下文.ssh,规格)#句柄
-        自身.存活.add(句柄对象)#登记
+        远端进程句柄=远端进程(自身.所属上下文.ssh,规格)#句柄
+        自身.存活.add(远端进程句柄)#登记
         def 收尾():#退出后摘
             """等 done、静止、流关。"""
             try:#等
-                句柄对象.done.等待()#退出
-                句柄对象.等待退出()#静止
-                句柄对象.streamsClosed.等待()#流关
+                远端进程句柄.done.等待()#退出
+                远端进程句柄.等待退出()#静止
+                远端进程句柄.streamsClosed.等待()#流关
             except BaseException:#忽略
-                pass#吞
-            自身.存活.discard(句柄对象)#摘
+                pass
+            自身.存活.discard(远端进程句柄)#摘
         threading.Thread(target=收尾,daemon=True).start()#收尾
-        return 句柄对象#句柄
+        return 远端进程句柄#句柄
 
     def 启动终端(自身,规格):#PTY
         """分配失败时尝试远端清理。"""
         若已中止则抛出(自身.寿命.信号)#已拆
-        信号=自身.寿命.信号 if 规格.get('signal') is None else 合成信号(规格['signal'],自身.寿命.信号)#融合
+        信号=自身.寿命.信号 if 'signal' not in 规格 else 合成信号(规格['signal'],自身.寿命.信号)#融合
         若已中止则抛出(信号)#已中止
         任务=操作任务()#分配
         自身.终端分配.add(任务)#登记
-        def 跑():#线程
+        def 在线程执行():#线程
             """分配。"""
             try:#分配
                 值=自身._创建终端(规格,信号)#句柄
@@ -537,7 +539,7 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
                 任务.拒绝(错误)#拒绝
             finally:#摘
                 自身.终端分配.discard(任务)#摘
-        threading.Thread(target=跑).start()#分配
+        threading.Thread(target=在线线程执行).start()#分配
         return 任务.等待()#句柄
 
     def _创建终端(自身,规格,信号):#prepare/connect/start
@@ -576,10 +578,10 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
                     完成.拒绝(错误)#拒绝
             threading.Thread(target=等done,daemon=True).start()#done
             关闭中={'任务':None}#terminate 合并
-            句柄对象=type('终端句柄',(),{})()#实例
-            句柄对象.pid=已启动['pid']#pid
-            句柄对象.output=输出#输出
-            句柄对象.done=完成#完成
+            远端进程句柄=type('终端句柄',(),{})()#实例
+            远端进程句柄.pid=已启动['pid']#pid
+            远端进程句柄.output=输出#输出
+            远端进程句柄.done=完成#完成
             def 调整尺寸(列,行):#resize
                 """远端尺寸。"""
                 ssh.请求('terminal.resize',{'id':标识,'cols':列,'rows':行},空模式)#调
@@ -604,32 +606,32 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
                 """合并进行中的终止。"""
                 if 关闭中['任务'] is not None:#已有
                     关闭中['任务'].等待()#等
-                    return#结束
+                    return
                 关闭中['任务']=操作任务()#任务
-                def 跑():#线程
+                def 在线程执行():#线程
                     """terminate 并摘。"""
                     try:#终止
                         ssh.请求('process.terminate',{'id':标识},空模式,None,True)#终止
                         if 套接字对象 is not None:#有
                             套接字对象.destroy()#毁
                         输出.destroy()#毁
-                        自身.终端表.discard(句柄对象)#摘
+                        自身.终端表.discard(远端进程句柄)#摘
                         关闭中['任务'].兑现(None)#完
                     except BaseException as 错误:#失败
                         关闭中['任务']=None#允许重试
                         raise 错误#原样
-                threading.Thread(target=跑).start()#终止
+                threading.Thread(target=在线线程执行).start()#终止
                 关闭中['任务'].等待()#等
-            句柄对象.调整尺寸=调整尺寸#方法
-            句柄对象.写入=写入#方法
-            句柄对象.检查前台=检查前台#方法
-            句柄对象.检查活动=检查活动#方法
-            句柄对象.发信号前台=发信号前台#方法
-            句柄对象.终止=终止#方法
+            远端进程句柄.调整尺寸=调整尺寸#方法
+            远端进程句柄.写入=写入#方法
+            远端进程句柄.检查前台=检查前台#方法
+            远端进程句柄.检查活动=检查活动#方法
+            远端进程句柄.发信号前台=发信号前台#方法
+            远端进程句柄.终止=终止#方法
             def 中止时():#信号
                 """终止；失败则拆连接。"""
                 try:#终止
-                    句柄对象.终止()#终止
+                    远端进程句柄.终止()#终止
                 except BaseException:#失败
                     threading.Thread(target=ssh.拆除,daemon=True).start()#拆
             if 信号 is not None:#有
@@ -638,8 +640,8 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
                     信号.wait()#等
                     中止时()#终止
                 threading.Thread(target=监视,daemon=True).start()#监视
-            自身.终端表.add(句柄对象)#登记
-            return 句柄对象#句柄
+            自身.终端表.add(远端进程句柄)#登记
+            return 远端进程句柄#句柄
         except BaseException as 错误:#失败
             if 套接字对象 is not None:#有
                 套接字对象.destroy()#毁
@@ -650,5 +652,5 @@ class ssh子进程运行时(子进程运行时):#与 SSH 文件系统配对
                 raise 远端清理错误([错误,清理错误],'SSH terminal allocation failed and remote cleanup is unknown')#聚合
             raise 错误#原样
 
-inject=['ssh']#框架槽
-default=ssh子进程运行时#框架槽
+inject=依赖
+default=ssh子进程运行时

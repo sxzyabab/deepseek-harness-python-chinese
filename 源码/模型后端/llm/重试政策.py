@@ -1,6 +1,6 @@
 """提供方拥有的请求重试政策配置与解析。
 
-对齐上游 `llm/src/retry-policy.ts`。公开面仅中文名；mode／字段键保持上游 wire。
+公开面仅中文名；mode／字段键为线协议原样保留。
 无英文别名。
 """
 import math#有限数判定
@@ -37,8 +37,7 @@ class 重试政策错误(Exception):
 始终政策模式={
     'mode':常量字段('always',可空=False),#必须是 always
     'backoff':退避模式,#嵌套退避
-}#始终政策模式
-#重试政策模式=复合类型字段(普通政策模式,始终政策模式)#政策配置联合模式
+}
 
 普通政策键=set(['mode','maxRetries','retryableCodes','backoff'])#普通政策允许的键
 始终政策键=set(['mode','backoff'])#始终政策允许的键
@@ -86,7 +85,7 @@ def 解析重试政策(配置,路径):#校验、填默认并拆离重试政策
         次数=配置['maxRetries'] if 'maxRetries' in 配置 else None#次数
         if 次数 is None:#缺省次数
             次数=默认最大重试次数#默认次数
-        码列表=配置['retryableCodes'] if 'retryableCodes' in 配置 else None#码
+        码列表=配置['retryableCodes'] if 'retryableCodes' in 配置 else None
         if 码列表 is None:#缺省码
             码列表=list(默认可重试码)#默认副本
         是安全整数=isinstance(次数,(int,float)) and not isinstance(次数,bool) and math.isfinite(次数) and 次数==int(次数) and abs(次数)<=9007199254740991#入口校验安全整数

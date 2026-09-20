@@ -1,33 +1,31 @@
-"""宿主工作区 Remote 拥有者：显式命令与重连安全状态。
+"""宿主工作区远程拥有者：显式命令与重连安全状态。"""
+from ...typert.协议 import 远程服务,远程 as _远程
+from .命令 import 工作区命令
+from .提要 import 工作区提要,工作区视图
+from .目录选择器 import 目录选择器控制器
+from .远程错误与中止 import 已中止
 
-对齐上游 `@deepseek-ai/dsh-api-workspace-controller`。公开面仅中文名。
-"""
-from ...typert.协议 import 远程服务,远程 as _远程#Remote 基类
-from .命令 import 工作区命令#命令实现
-from .提要 import 工作区提要,工作区视图#提要
-from .目录选择器 import 目录选择器控制器#目录选择
-from .远程错误与中止 import 已中止#中止查询
+__all__=['包名','名称','依赖','应用','默认','工作区控制器','目录选择器控制器','工作区视图']
 
-__all__=['名称','注入','工作区控制器','应用','目录选择器控制器','工作区视图']#仅中文公开名
-
-名称='workspace-controller'#插件名
-注入=['typert','workspaceRegistry']#依赖
+包名='@deepseek-ai/dsh-api-workspace-controller'
+名称='workspace-controller'
+依赖=['typert','workspaceRegistry']
 
 def _工作区标识(值):#品牌化工作区 id
     """尽力把字符串收成工作区标识。"""
-    return 值#上游 WorkspaceId 品牌在 workspace 包
+    return 值#标识品牌化由 workspace 包拥有
 
 def _工作区记录解析(值):#解析工作区记录
     """解析域记录；完整校验由 workspace 包拥有。"""
-    return 值 if isinstance(值,dict) else {}#映射
+    return 值 if isinstance(值,dict) else {}
 
 def _工作区域状态解析(值):#解析域全局状态
     """解析 workspace 域全局状态。"""
-    return 值 if isinstance(值,dict) else {}#映射
+    return 值 if isinstance(值,dict) else {}
 
 class 工作区控制器(远程服务):
-    """生成 ctx.remote.workspace 命名空间的宿主服务。"""
-    inject=['typert','workspaceRegistry']#框架槽：类级注入
+    """生成远程 workspace 命名空间的宿主服务。"""
+    inject=['typert','workspaceRegistry']
 
     def __init__(自身,上下文):#构造
         """挂载命令、提要与子目录选择器插件。"""
@@ -66,7 +64,7 @@ class 工作区控制器(远程服务):
         """从分组面隐藏会话。"""
         return 自身._命令.archiveSession(请求)#委托
 
-    @_远程({'mode':'stream'})
+    @_远程('follow')
     def follow(自身,信号):#流式 follow
         """产出基线后有序增量。"""
         if 已中止(信号):#已取消
@@ -77,6 +75,8 @@ def 应用(上下文):
     """挂载工作区 Remote 拥有者。"""
     工作区控制器(上下文)#构造即登记
 
+默认=应用
 name=名称#框架槽
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽
+default=默认#框架槽

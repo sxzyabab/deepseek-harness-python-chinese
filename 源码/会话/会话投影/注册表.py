@@ -1,6 +1,6 @@
 import weakref#按会话弱引用缓存单元
 from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+服务=cordis.服务#框架 服务基类
 from ...模型后端.llm import 结构化克隆#深拷贝检查点行
 
 class 会话投影错误(Exception):
@@ -64,7 +64,7 @@ class 会话投影注册表(服务):
             def 拆除():
                 """最后一个引用离开时删除键。"""
                 if 键 not in 自身._登记:#已删
-                    return#结束
+                    return
                 活=自身._登记[键]#当前登记
                 活['refs']-=1#减引用
                 if 活['refs']==0:#无人引用
@@ -267,7 +267,7 @@ class 会话投影注册表(服务):
     def _推进单元(自身,定义,单元,事件列表,直到序号):
         """把已有单元推进到连续前缀末端。"""
         if 单元['observedSeq']>=直到序号:#已够
-            return#结束
+            return
         for 序号 in range(单元['observedSeq']+1,直到序号+1):#逐 seq
             事件=事件列表[序号] if 序号<len(事件列表) else None#事件
             if 事件 is None or 事件['seq']!=序号:#缺口
@@ -311,12 +311,4 @@ class 会话投影注册表(服务):
         视图校验=wire['viewSchema'] if 'viewSchema' in wire else None#可选视图校验
         if 视图校验 is not None:#校验视图
             return 视图校验(视图)#解析
-        return 视图#原样
-
-    register=登记#英文别名
-    stateOf=状态#英文别名
-    onChanged=变更时#英文别名
-    snapshot=快照#英文别名
-    cachedSnapshot=缓存快照#英文别名
-
-default=会话投影注册表#Cordis 默认导出槽
+        return 视图

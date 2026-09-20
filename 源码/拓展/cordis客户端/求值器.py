@@ -1,4 +1,6 @@
-__all__=[#仅中文公开名
+import json
+
+__all__=[
     '定时器重定向','客户端重定向','闭包陷阱','harness陷阱','标记控制台',
     '动态样式','是否动态插件','校验求值返回','错误文本','闭包参数名','说明',
 ]#公开面结束
@@ -27,15 +29,15 @@ def 闭包陷阱():#可调用教学陷阱
     for 名,重定向 in 客户端重定向.items():#每条
         def 造(名称=名,文=重定向):#绑定
             """抛教学错误。"""
-            def 陷(*_位置,**_关键字):#陷阱
+            def 拦截调用(*_位置,**_关键字):#陷阱
                 """永不返回。"""
                 raise Exception(f'动态客户端半里没有 {名称} — {文}')#教学
-            return 陷#函数
+            return 拦截调用#函数
         陷阱[名]=造()#写入
     return 陷阱#表
 
 def harness陷阱():#harness 座位只在宿主侧
-    """任意属性访问抛平面拆分教学；对齐 harnessTrap Proxy。"""
+    """任意属性访问抛平面拆分教学。"""
     class _座位:#空靶
         """触碰即抛。"""
         def __getattr__(自身,属性):#读任何属性
@@ -43,22 +45,21 @@ def harness陷阱():#harness 座位只在宿主侧
             raise Exception(#教学
                 f'harness.{属性} 属于宿主半（`code`）：在那边用 harness.handle(method, fn) 登记处理函数；'
                 '浏览器半通过 host.call(method, args) 调用。'
-            )#抛
+            )
     return _座位()#实例
 
 def 错误文本(参数):#console 参数串
     """Error 用 message；否则 JSON 或占位。"""
     if isinstance(参数,Exception):#异常
         return str(参数)#消息
-    if isinstance(参数,str):#串
+    if isinstance(参数,str):
         return 参数#原样
-    if 参数 is None:#对齐上游 undefined 字面（非 Python repr）
+    if 参数 is None:#undefined 字面，非 Python repr
         return 'undefined'#镜像 errorText(undefined)
-    try:#JSON
-        import json#局部
-        return json.dumps(参数,ensure_ascii=False)#序列化
-    except Exception:#不可序列化
-        return '[unserializable console argument]'#占位
+    try:
+        return json.dumps(参数,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    except (TypeError,ValueError):
+        return '[unserializable console argument]'
 
 def 标记控制台(插件标识,记下错误=None):#带标记的直通控制台契约
     """返回 log/info/warn/error/debug；error 行额外镜像进加载报告（截 500 字）。"""
@@ -90,7 +91,7 @@ class 动态样式:#按包 style 标签记账（语义面，无 DOM）
     def 插入(自身,样式文本):#插入样式
         """需要 CSS 字符串；返回拆除器。"""
         if not isinstance(样式文本,str):#非串
-            raise Exception('styles.insert(css) 需要 CSS 字符串')#错
+            raise Exception('styles.insert(css) 需要 CSS 字符串')
         自身.标签列表.append(样式文本)#记账
         下标=len(自身.标签列表)-1#位置
         def 拆除():#拆除器
@@ -106,20 +107,20 @@ class 动态样式:#按包 style 标签记账（语义面，无 DOM）
 
     def 拆除全部(自身):#卸载路径
         """清空记账。"""
-        自身.标签列表.clear()#清
+        自身.标签列表.clear()
 
 def 是否动态插件(值):#是否可挂载
     """函数，或带 apply 的对象。"""
     if callable(值) and not isinstance(值,type):#函数
-        return True#是——注意 class 也 callable，上游以 typeof function
+        return True#注意 class 也 callable
     if isinstance(值,dict) and callable(值.get('apply')):#对象带 apply
-        return True#是
+        return True
     if 值 is not None and callable(getattr(值,'apply',None)):#对象属性
-        return True#是
-    return False#否
+        return True
+    return False
 
 def 校验求值返回(返回值):#收窄返回
-    """非插件抛教学错误（对齐 evaluateClientHalf 尾校验）。"""
+    """非插件抛教学错误。"""
     if 是否动态插件(返回值):#可挂
         return 返回值#原样
     if 返回值 is None:#忘了 return
@@ -127,5 +128,5 @@ def 校验求值返回(返回值):#收窄返回
             '客户端半返回了 `undefined` — 是不是忘了 `return`？\n'
             '  ✓ return (ctx) => { … }\n'
             "  ✓ return { name: '…', inject: ['slots'], apply(ctx) { … } }"
-        )#抛
+        )
     raise Exception('客户端半必须 `return` 一个插件：函数，或带 `apply(ctx)` 方法的对象')#形态

@@ -1,7 +1,4 @@
-"""把在线 LLM 注册表投影为浏览器模型目录。
-
-对齐上游 `session-controller/src/catalog.ts`。公开面仅中文名。
-"""
+"""把在线 LLM 注册表投影为浏览器模型目录。"""
 __all__=['构建模型目录']#仅中文公开名
 
 def 构建模型目录(上下文,默认选择=None):
@@ -46,15 +43,15 @@ def 构建模型目录(上下文,默认选择=None):
         if 力度 is not None:#有力度
             默认['reasoningEffort']=力度#写入
     组列表=[]#非空组
-    失败列表=[]#失败
+    失败列表=[]
     for 项 in 目录项:#分类
         if 项['kind']=='group' and len(项['group']['models'])>0:#非空组
             组列表.append(项['group'])#收下
-        if 项['kind']=='failure':#失败
+        if 项['kind']=='failure':
             失败列表.append(项['failure'])#收下
     return {#目录
         'default':默认,#默认
         'routableProviders':[项['id'] for 项 in 提供方列表],#可路由提供方
         'groups':组列表,#非空组
-        'failures':失败列表,#失败
-    }#结束
+        'failures':失败列表,
+    }

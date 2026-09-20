@@ -1,4 +1,4 @@
-"""token-meter 浏览器安全类型的客户端命名空间投影。对齐上游 `token-meter/src/client.ts`。公开面仅中文名。"""
+"""token-meter 浏览器安全类型的客户端命名空间投影。公开面仅中文名。"""
 from .投影 import 用量投影,压力投影,分解投影#再导出投影词表
 from .回合用量 import 派生回合令牌用量#回合用量折叠
 

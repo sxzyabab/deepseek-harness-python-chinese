@@ -12,9 +12,9 @@ from .审阅存储 import 创建审阅存储#审阅 store
 from .审阅标签 import 审阅标签#审阅体
 from .改动文件 import 改动文件#改动卡
 
-__all__=['注入','应用','产出文件行','产出清单','呈现行','选出交付物','收口产出','选出产出文件','交付物定义','命名空间','中文','英文','已呈现打开控制器','改动摘要存储','改动对比存储','审阅标签','改动文件']#仅中文公开名
+__all__=['依赖','应用','产出文件行','产出清单','呈现行','选出交付物','收口产出','选出产出文件','交付物定义','命名空间','中文','英文','已呈现打开控制器','改动摘要存储','改动对比存储','审阅标签','改动文件']#仅中文公开名
 
-注入=['slots','locale','uiConversation','remote','remote.session','sidebarRightTabs','sidebarRight']#槽位、文案、会话 UI、远程、右侧边栏
+依赖=['slots','locale','uiConversation','remote','remote.session','sidebarRightTabs','sidebarRight']#槽位、文案、会话 UI、远程、右侧边栏
 
 def 应用(上下文):#安装产出物浏览器半边
     """登记词表、打开控制器、摘要对比、回合尾与审阅标签。"""
@@ -135,5 +135,5 @@ def 应用(上下文):#安装产出物浏览器半边
         return 产出文件提及(合并,所有者['openFile'],打开标签)#匹配提及
     上下文.提供服务('chatFileMentions',{'forClosing':收口提及})#提供收口散文提及服务
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

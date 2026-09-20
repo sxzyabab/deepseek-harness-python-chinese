@@ -11,13 +11,13 @@ from .计划卡 import 计划卡,计划审阅打开#卡与审阅打开
 from .计划预览 import 计划预览,计划标题#预览与标题
 
 __all__=[#仅中文公开名
-    '注入','应用','计划芯片','命名空间','中文','英文',
+    '依赖','应用','计划芯片','命名空间','中文','英文',
     '计划定义','计划资源提供者','计划地址','解析计划地址',
     '审阅预览地址','是否审阅预览地址','创建计划审阅存储','计划失败行',
     '计划卡','计划审阅打开','计划预览','计划标题',
-]#公开面结束
+]
 
-注入=['slots','remote','remote.commands','remote.session','sessions','locale','uiConversation','resources','sidebarRight','sidebarRightTabs']#依赖
+依赖=['slots','remote','remote.commands','remote.session','sessions','locale','uiConversation','resources','sidebarRight','sidebarRightTabs']#依赖
 预览标识='@deepseek-ai/dsh-client-ui-plan'#侧栏类型 id
 
 def 应用(上下文):#安装计划控制浏览器半边
@@ -137,5 +137,5 @@ def 应用(上下文):#安装计划控制浏览器半边
         },计划芯片)#计划芯片
     上下文.slots.inject('conversation.input.plan',登记芯片)#等席位出现
 
-inject=注入#框架槽
+inject=依赖#框架槽
 apply=应用#框架槽

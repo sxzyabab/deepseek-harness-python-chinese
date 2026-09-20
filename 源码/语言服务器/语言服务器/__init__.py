@@ -1,17 +1,16 @@
-"""LSP 能力缝（`ctx.lsp`）服务定义。
-
-对齐上游 `@deepseek-ai/dsh-lsp`。公开面仅中文名。
-"""
+"""LSP 能力缝（`ctx.lsp`）服务定义。"""
 import re#扩展名文法
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
 from ...模型后端.llm import 装备错误 as 框架错误#Harness 风格错误
 
-__all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '语言服务器错误','语言服务器提供方标识','最终扩展名','语言服务器',
-]#公开面结束
+__all__=[
+    '包名','名称','默认','语言服务器错误','语言服务器提供方标识','最终扩展名','语言服务器',
+]
 
-扩展名模式=re.compile(r'^\.[^./\\]+$')#合法扩展名：点加非分隔符
+扩展名模式=re.compile(r'^\.[^./\\]+\Z',re.ASCII)
+包名='@deepseek-ai/dsh-lsp'
+名称='lsp'
 
 def 语言服务器提供方标识(标识):
     """品牌化提供方 id。注册时不校验内容，空串由注册表拒绝。"""
@@ -97,4 +96,6 @@ class 语言服务器(服务):
         提供方查询['languageId']=路由['languageId']#补上语言 id
         return 路由['provider'].查询(提供方查询,信号)#同步转发
 
-default=语言服务器#Cordis 默认导出槽
+默认=语言服务器
+name=名称#框架槽
+default=默认#框架槽

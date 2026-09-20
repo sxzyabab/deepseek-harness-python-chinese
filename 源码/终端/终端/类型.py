@@ -14,7 +14,7 @@ class 终端后端清理错误(聚合错误):#后端搭建与清理双失败
         自身.name='TerminalBackendCleanupError'#固定类名
 
 终端等待原因=('stdin_read','inferred_idle','timeout','session_exit')#读到输入、推断空闲、超时、会话退出
-终端信号=('SIGINT','SIGTERM','SIGKILL','SIGTSTP','SIGHUP')#允许的POSIX信号；与subprocess成员相同，无跨seam依赖
+终端信号=('SIGINT','SIGTERM','SIGKILL','SIGTSTP','SIGHUP')#允许的 POSIX 信号；与子进程侧成员相同
 终端会话状态种类=('running','exited')#顶层PTY进程状态种类；exited另带exitCode与signal
 终端创建请求字段=('type','name','cwd')#创建请求：后端类型，可选显示名与工作目录
 终端后端创建规格字段=('sessionId','owner','type','name','cwd','signal')#注册表交给后端的完全标识请求

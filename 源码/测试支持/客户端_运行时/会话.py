@@ -1,15 +1,16 @@
-import threading#中止信号
+import threading,weakref#中止信号与原因旁表
 from ...api.会话控制器.客户端 import (#会话控制器客户端面
     创建作用域,作用域标签,可变会话事件源,会话搜索结果上限,#作用域与事件源
 )#结束导入
 from .夹具 import 会话快照#会话快照工厂
 
-__all__=['夹具会话','测试会话']#仅中文公开名
+__all__=['夹具会话','测试会话','已中止','若已中止则抛出','创建快照存储']
 
 空保留信息={'referenceCount':0,'retainedBy':{}}#空保留
+_中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在信号上
 
 def 创建快照存储(初值):#简易快照存储
-    """对齐 createSnapshotStore：getSnapshot / subscribe / update / set。"""
+    """快照存储：getSnapshot / subscribe / update / set。"""
     状态=[dict(初值) if isinstance(初值,dict) else 初值]#状态盒
     监听者=set()#订阅者
     def 取快照():#读
@@ -32,87 +33,82 @@ def 创建快照存储(初值):#简易快照存储
     return {'getSnapshot':取快照,'subscribe':订阅,'update':更新,'set':设置}#面
 
 def 冻结保留源(计数):#冻结保留源计数
-    """对齐 freezeRetainedBy。"""
+    """冻结已保留集合。"""
     return dict(计数)#拷贝视图
 
-class 中止信号:#对齐 AbortSignal
-    """可监听的中止信号。"""
+def 已中止(信号):
+    """信号是否已中止。无信号视为未中止。"""
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号._事件.is_set()#Event 置位即中止
+
+def 若已中止则抛出(信号):
+    """已中止则抛出旁表原因异常。"""
+    if 信号 is None or not 已中止(信号):#无信号或未中止
+        return#放过
+    if 信号 in _中止原因表:#有原因
+        raise _中止原因表[信号]#抛出
+    raise Exception('aborted')#默认
+
+class 中止信号:
+    """可监听的中止信号；原因走旁表。"""
 
     def __init__(自身):#构造
         """未中止。"""
         自身._事件=threading.Event()#事件
-        自身._原因=None#原因
         自身._监听=[]#abort 监听
 
-    @property
-    def aborted(自身):#是否已中止
-        """是否已中止。"""
-        return 自身._事件.is_set()#已置位
-
-    @property
-    def reason(自身):#中止原因
-        """中止原因。"""
-        return 自身._原因#原因
-
-    def throwIfAborted(自身):#已中止则抛
-        """已中止则抛出原因。"""
-        if 自身._事件.is_set():#已中止
-            raise 自身._原因 if 自身._原因 is not None else Exception('aborted')#抛
-
-    def addEventListener(自身,类型,回调,选项=None):#加监听
-        """只认 abort。"""
-        if 类型!='abort':#其它
-            return#忽略
+    def 加监听(自身,回调):#加 abort 监听
+        """登记 abort 回调；已中止则立即触发。"""
         自身._监听.append(回调)#登记
         if 自身._事件.is_set():#已中止
             回调()#立即
 
-    def removeEventListener(自身,类型,回调):#移除监听
+    def 卸监听(自身,回调):#移除监听
         """移除 abort 监听。"""
-        if 类型!='abort':#其它
-            return#忽略
         try:#可能不在
             自身._监听.remove(回调)#移除
         except ValueError:#不在
             pass#忽略
 
     def 中止(自身,原因=None):#中止
-        """置位并通知。"""
+        """置位并通知；原因进旁表。"""
         if 自身._事件.is_set():#已中止
             return#幂等
-        自身._原因=原因#原因
+        if 原因 is not None:#有原因
+            _中止原因表[自身]=原因 if isinstance(原因,BaseException) else Exception(原因)#旁表
         自身._事件.set()#置位
         for 回调 in list(自身._监听):#通知
             回调()#触发
 
-class 中止控制器:#对齐 AbortController
+class 中止控制器:
     """中止控制器。"""
 
     def __init__(自身):#构造
         """新建信号。"""
-        自身.signal=中止信号()#信号
+        自身.信号=中止信号()#信号
 
-    def abort(自身,原因=None):#中止
+    def 中止(自身,原因=None):#中止
         """中止信号。"""
-        自身.signal.中止(原因)#中止
+        自身.信号.中止(原因)#中止
 
-def 合并中止信号(信号列表):#对齐 AbortSignal.any
+def 合并中止信号(信号列表):
     """任一中止则合成信号中止。"""
     合成=中止信号()#合成
     def 转发():#转发
         """把先到的原因带到合成信号。"""
         for 信号 in 信号列表:#找已中止
-            if 信号.aborted:#命中
-                合成.中止(信号.reason)#转发
-                return#结束
+            if 已中止(信号):#命中
+                合成.中止(_中止原因表.get(信号))#转发旁表原因
+                return
     for 信号 in 信号列表:#订各源
-        信号.addEventListener('abort',转发,{'once':True})#一次
-        if 信号.aborted:#已中止
+        信号.加监听(转发)#一次语义由转发幂等保证
+        if 已中止(信号):#已中止
             转发()#立即
             break#结束
     return 合成#合成
 
-class 解析器:#对齐 Promise.withResolvers
+class 解析器:
     """一次结算的解析器。"""
 
     def __init__(自身):#构造
@@ -147,7 +143,7 @@ class 解析器:#对齐 Promise.withResolvers
         return 自身._结果#结果
 
     def 吞未处理(自身):#吞拒绝
-        """对齐 void promise.catch(() => {})。"""
+        """吞掉未处理的拒绝。"""
         def 后台():#后台等
             """吞异常。"""
             try:#等
@@ -160,16 +156,17 @@ def 等待打开(打开,信号=None):#等待打开
     """带可选中止的打开等待。"""
     if 信号 is None:#无信号
         打开.等待()#直接等
-        return#结束
-    if 信号.aborted:#已中止
-        raise 信号.reason if 信号.reason is not None else Exception('aborted')#抛
+        return
+    if 已中止(信号):#已中止
+        若已中止则抛出(信号)#抛
     中止解析=解析器()#中止侧
     def 于中止():#中止回调
         """拒绝中止侧。"""
-        中止解析.reject(信号.reason if 信号.reason is not None else Exception('aborted'))#拒绝
-    信号.addEventListener('abort',于中止,{'once':True})#听一次
+        原因=_中止原因表.get(信号)#旁表
+        中止解析.reject(原因 if 原因 is not None else Exception('aborted'))#拒绝
+    信号.加监听(于中止)#听
     try:#竞态
-        if 信号.aborted:#再查
+        if 已中止(信号):#再查
             于中止()#拒绝
         打开完成=解析器()#打开侧
         def 跑打开():#跑打开
@@ -188,7 +185,7 @@ def 等待打开(打开,信号=None):#等待打开
             中止解析.等待()#抛中止
         打开完成.等待()#抛打开结果
     finally:#清理
-        信号.removeEventListener('abort',于中止)#移除
+        信号.卸监听(于中止)#移除
 
 class 夹具会话:#fixture 会话面
     """fixture 支撑的会话面。"""
@@ -266,7 +263,7 @@ class 夹具会话:#fixture 会话面
         raise Exception(f'test session "{自身.sessionId}": rename is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
 class 测试会话引用:#测试会话引用
-    """对齐 TestSessionReference。"""
+    """测试会话引用。"""
 
     def __init__(自身,会话标识,世代,释放回调):#构造
         """记下身份、世代与释放回调。"""
@@ -287,22 +284,22 @@ class 测试会话引用:#测试会话引用
 
     def attachOpening(自身,打开,信号=None):#附着打开
         """打开就绪后解析 binding。"""
-        等待信号=自身._已释放.signal if 信号 is None else 合并中止信号([自身._已释放.signal,信号])#合成
-        def 跑():#跑等待
+        等待信号=自身._已释放.信号 if 信号 is None else 合并中止信号([自身._已释放.信号,信号])#合成
+        def 在线程执行():#跑等待
             """成功解析或拒绝就绪。"""
             try:#等待打开
                 等待打开(打开,等待信号)#等待
-                等待信号.throwIfAborted()#检查中止
+                若已中止则抛出(等待信号)#检查中止
                 自身._就绪.resolve(自身.binding)#解析绑定
             except Exception as 错误:#失败
                 自身._就绪.reject(错误)#拒绝
-        threading.Thread(target=跑,daemon=True).start()#后台
+        threading.Thread(target=在线程执行,daemon=True).start()#后台
 
     def release(自身):#释放
         """释放引用。"""
         原因=Exception(f'Session reference "{自身.sessionId}" is released')#原因
         回调=自身._释放回调#回调
-        自身._已释放.abort(原因)#中止
+        自身._已释放.中止(原因)#中止
         自身._就绪.reject(原因)#拒绝就绪
         自身._世代=None#清空世代
         自身._释放回调=None#清空回调
@@ -347,7 +344,7 @@ class 测试会话:#会话测试替身
                 for 标识,世代 in list(自身._generations.items()):#逐世代
                     世代['live']=False#死
                     世代['retention']=dict(空保留信息)#清空保留
-                    世代['lifetime'].abort(Exception('test Session Controller is disposed'))#中止寿命
+                    世代['lifetime'].中止(Exception('test Session Controller is disposed'))#中止寿命
                     自身._发布保留(标识)#发布
                 自身._generations.clear()#清世代
                 自身._排空拆除()#排空拆除
@@ -484,7 +481,7 @@ class 测试会话:#会话测试替身
         源=选项['source'] if 'source' in 选项 else 'testFixture'#源
         信号=选项['signal'] if 'signal' in 选项 else None#信号
         if 信号 is not None:#有信号
-            信号.throwIfAborted()#已取消则抛
+            若已中止则抛出(信号)#已取消则抛
         if 自身._closed:#已关闭
             raise Exception('test Session Controller is disposed')#英文诊断
         标识=自身._解析目标(目标)#解析 id
@@ -633,7 +630,7 @@ class 测试会话:#会话测试替身
         def 释放回调():#释放回调
             """减引用；零则 drop。"""
             if not 世代['live']:#已死
-                return#结束
+                return
             计数=世代['retention']['referenceCount']-1#减一
             源表=dict(世代['retention']['retainedBy'])#拆源
             源计数=源表.pop(源,0)#该源
@@ -662,7 +659,7 @@ class 测试会话:#会话测试替身
         状态=自身.list['getSnapshot']()#列表态
         行=状态['byId'].get(标识)#行
         if 行 is None or 行.get('retainedBy') is 保留['retainedBy']:#无需
-            return#结束
+            return
         摘要={**行,'retainedBy':保留['retainedBy']}#新摘要
         记录=自身._records.get(标识)#记录
         if 记录 is not None:#有记录
@@ -673,7 +670,7 @@ class 测试会话:#会话测试替身
         """铸造作用域与世代面。"""
         句柄=创建作用域(自身._rootCtx,标识)#铸造作用域
         上下文=句柄['ctx'] if isinstance(句柄,dict) else 句柄.ctx#上下文
-        光纤=句柄['fiber'] if isinstance(句柄,dict) else 句柄.fiber#fiber
+        纤程=句柄['fiber'] if isinstance(句柄,dict) else 句柄.fiber#fiber
         快照=创建快照存储(记录['snapshot']['getSnapshot']())#世代快照
         会话=夹具会话(标识,快照,记录['overrides'])#世代面
         窗口=记录['session'].eventSource.getSnapshot()#事件窗
@@ -687,7 +684,7 @@ class 测试会话:#会话测试替身
             'binding':{'sessionId':标识,'session':会话,'eventSource':会话.eventSource,'ctx':上下文},#绑定
             'snapshot':快照,#快照
             'session':会话,#面
-            'fiber':光纤,#fiber
+            'fiber':纤程,#fiber
             'lifetime':寿命,#寿命
             'opening':打开,#打开
             'retention':dict(空保留信息),#空保留
@@ -704,14 +701,14 @@ class 测试会话:#会话测试替身
                     if 自身._generations.get(标识) is 世代:#仍是本世代
                         del 自身._generations[标识]#删登记
                     自身._发布保留(标识)#发布
-                寿命.abort(Exception(f'test Session generation "{标识}" is disposed'))#中止寿命
+                寿命.中止(Exception(f'test Session generation "{标识}" is disposed'))#中止寿命
                 try:#等打开
                     打开.等待()#等
                 except Exception:#吞
                     pass#忽略
             return 拆除#拆除器
         上下文.副作用(作用域拆除登记,'test sessions: exact generation')#挂
-        自身._启动打开(记录['initialOpen'],寿命.signal,打开)#启动打开
+        自身._启动打开(记录['initialOpen'],寿命.信号,打开)#启动打开
         return 世代#返回
 
     def _启动打开(自身,初始打开,信号,打开):#启动打开
@@ -719,40 +716,39 @@ class 测试会话:#会话测试替身
         try:#调用
             if 初始打开 is None:#无
                 打开.resolve()#立即就绪
-                return#结束
+                return
             结果=初始打开(信号)#可能同步抛
             if 结果 is None:#同步完成
                 打开.resolve()#就绪
-            else:#可等待
-                def 跑():#跑
+            else:#写死为本包解析器
+                def 在线程执行():#跑
                     """等结果。"""
                     try:#等
-                        if hasattr(结果,'等待'):#解析器
-                            结果.等待()#等
+                        结果.等待()#等
                         打开.resolve()#就绪
                     except Exception as 错误:#失败
                         打开.reject(错误)#拒绝
-                threading.Thread(target=跑,daemon=True).start()#后台
+                threading.Thread(target=在线程执行,daemon=True).start()#后台
         except Exception as 错误:#同步失败
             打开.reject(错误)#拒绝
 
     def _丢弃(自身,标识,世代):#丢弃世代
         """死世代并拆 fiber。"""
         if not 世代['live']:#已死
-            return#结束
+            return
         世代['live']=False#死
         世代['retention']=dict(空保留信息)#清保留
         if 自身._generations.get(标识) is 世代:#仍是本世代
             del 自身._generations[标识]#删登记
-        世代['lifetime'].abort(Exception(f'test Session generation "{标识}" is released'))#中止
+        世代['lifetime'].中止(Exception(f'test Session generation "{标识}" is released'))#中止
         自身._发布保留(标识)#发布
-        光纤=世代['fiber']#fiber
+        纤程=世代['fiber']#fiber
         def 拆():#拆 fiber
             """调用拆除。"""
-            if hasattr(光纤,'拆除'):#有拆除
-                光纤.拆除()#拆除
-            elif callable(光纤):#可调用
-                光纤()#拆除
+            if hasattr(纤程,'拆除'):#有拆除
+                纤程.拆除()#拆除
+            elif callable(纤程):#可调用
+                纤程()#拆除
         自身._pendingDrops.add(id(拆))#记待拆除
         try:#拆
             拆()#拆

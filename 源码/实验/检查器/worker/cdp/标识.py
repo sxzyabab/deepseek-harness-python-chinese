@@ -1,5 +1,3 @@
-#对齐上游 worker/cdp/ids.ts
-
 __all__=['cdp字符串id','cdp数字id']#仅中文公开名
 
 def cdp字符串id(值,标签):#字符串id打品牌

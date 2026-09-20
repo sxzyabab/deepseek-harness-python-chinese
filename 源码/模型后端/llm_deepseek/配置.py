@@ -1,6 +1,6 @@
 """DeepSeek 插件配置与完整请求局部解析。"""
 from math import isfinite as 是否有限#有限数判断
-from urllib.parse import urlparse as 解析网址#拆 URL
+from urllib.parse import urlparse as 解析网址
 from ...依赖.schemastery import 字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段#配置字段
 from ...凭据.凭据 import 凭证引用#凭证引用工厂
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
@@ -183,7 +183,7 @@ def 解析适配器选项(原始配置,环境=None):#解析连接事实
         else:#按协议默认
             基址=消息基址 if 协议=='messages' else 公开基址#协议默认
     if 协议=='messages':#消息根约束
-        解析=解析网址(基址)#拆
+            解析=解析网址(基址)
         if 解析.scheme not in ('http','https') or 解析.username or 解析.password or 解析.query or 解析.fragment:#非法
             raise 深求配置错误('llm-deepseek: Messages baseURL must be an HTTP(S) root without credentials, query, or fragment')#非法根
     return {

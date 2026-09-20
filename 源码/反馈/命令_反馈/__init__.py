@@ -1,17 +1,14 @@
-"""会话反馈事件、sessionFeedback Remote 与人类面向的 `/feedback` 生产者。
-
-对齐上游 `@deepseek-ai/dsh-command-feedback`。公开面仅中文名。
-"""
+"""记录会话反馈事件，并注册 `/feedback` 命令与 sessionFeedback 远程服务。"""
 from ...依赖 import cordis#外部依赖胶水
 from ...身份.匿名用户id import 获取或创建匿名用户id#匿名用户 id
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from .类型 import 反馈类别表#类别表
 
 名称='command-feedback'#Cordis插件名
-注入=['commands']#依赖命令注册表
+依赖=['commands']#依赖命令注册表
 用法='Usage: /feedback <text>'#用法提示
 
-__all__=['名称','注入','用法','反馈类别表','记录反馈','会话反馈服务','应用','默认']#仅中文公开名
+__all__=['名称','依赖','用法','反馈类别表','记录反馈','会话反馈服务','应用']#仅中文公开名
 
 def 记录反馈(会话,条目):#追加反馈记录事件
     """与任何 UI 触发器无关地记录。条目为 dict；空白正文记为缺席。"""
@@ -29,7 +26,7 @@ def 执行反馈命令(调用):#执行 /feedback
     if len(str(原文).strip())==0:#无正文
         return {'kind':'error','text':'Feedback text is required. '+用法}#用法错误
     智能体=调用['agent']#调用方智能体
-    会话=智能体.session#会话对象
+    会话=智能体.session#会话
     记录反馈(会话,{'text':原文})#记录
     匿名用户=获取或创建匿名用户id()#真实匿名 id
     return {#成功确认
@@ -48,9 +45,9 @@ class 会话反馈服务(cordis.服务):#sessionFeedback Remote
     def record(自身,请求):#记录一条评语
         """请求为 dict；返回结果 dict。"""
         会话标识=请求['sessionId'] if 'sessionId' in 请求 else None#会话 id
-        会话=自身.ctx.sessions.get(会话标识)#取会话
-        if 会话 is None:#缺席
+        if 会话标识 not in 自身.ctx.sessions:#缺席
             return {'ok':False,'error':{'code':'session-not-found','sessionId':会话标识}}#未找到
+        会话=自身.ctx.sessions[会话标识]#取会话
         记录反馈(会话,请求)#记录
         return {'ok':True,'value':{'recorded':True}}#已记录
 
@@ -70,7 +67,6 @@ def 应用(上下文):
     })#register结束
 
 name=名称#Cordis插件名
-inject=注入#Cordis依赖声明
+inject=依赖#Cordis依赖声明
 apply=应用#Cordis插件入口
-默认=应用#默认导出
 default=应用#Cordis默认导出

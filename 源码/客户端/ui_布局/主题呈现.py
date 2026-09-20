@@ -36,7 +36,7 @@ class 主题呈现器:#文档主题呈现器
             文档=None#无 DOM
         if 文档 is None:#无浏览器
             自身.已施加令牌=list(令牌.keys())#仅记名
-            return#结束
+            return
         根=文档.documentElement#根
         根.style.colorScheme=方案#根 color-scheme
         根.setAttribute(主题源属性,'system' if 偏好=='system' else 方案)#发布主题源

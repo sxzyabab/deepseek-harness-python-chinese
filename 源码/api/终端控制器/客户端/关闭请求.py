@@ -3,7 +3,7 @@ import json,re#解析与身份
 __all__=['终端关闭请求']#仅中文公开名
 
 前缀='dsh.terminal.close.v1.'#每身份一键
-身份形态=re.compile(r'^[\w-]{1,128}$',re.ASCII)#终端 id
+身份形态=re.compile(r'^[\w-]{1,128}\Z',re.ASCII)#终端 id
 本地存储=None#无浏览器存储
 
 def 是否请求(值):#校验关闭意图
@@ -56,15 +56,15 @@ class 终端关闭请求:#刷新后仍待 Host 确认的清理
             return#跳
         try:#删键
             本地存储.pop(前缀+标识,None)#删
-        except BaseException as 错误:#失败
+        except BaseException as 错误:
             print('Terminal cleanup persistence failed:',错误)#英文日志
 
     def _载入(自身,键):#一条存储
         """非法记录丢掉。"""
         try:#解析
-            原文=本地存储.get(键)#原文
-            if 原文 is None:#空
+            if 键 not in 本地存储:#空
                 return#跳
+            原文=本地存储[键]#原文
             解析=json.loads(原文)#对象
             if not 是否请求(解析) or 键!=前缀+解析['id']:#校验
                 raise ValueError('Invalid terminal cleanup request')#非法

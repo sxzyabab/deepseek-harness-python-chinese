@@ -1,7 +1,6 @@
 """已授权 Office 输入与完整 PDF 输出的线协议与包内约定。
 
 跨包结果为 dict。错误码、优先级、扩展名与 Remote 详情键保持英文。
-RemoteErrorDetailsMap：'document-render/failed' → {reason: 错误码}。
 """
 from .标识构造 import office源键,office转pdf世代,office转pdf键#再导出身份
 

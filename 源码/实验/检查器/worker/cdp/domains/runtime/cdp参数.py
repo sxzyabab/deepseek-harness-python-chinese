@@ -65,7 +65,7 @@ def 解析调函数(参数):#解析调函数
         raise 检查器错误('Runtime.callFunctionOn 的 functionDeclaration 必须是字符串')#抛错
     选择器=解析上下文选择器(参数,'executionContextId')#选择器
     对象id=可选对象id(参数.get('objectId'),'Runtime.callFunctionOn objectId')#对象id
-    if 对象id is None and 选择器.get('executionContextId') is None and 选择器.get('uniqueContextId') is None:#要求
+    if 对象id is None and 'executionContextId' not in 选择器 and 'uniqueContextId' not in 选择器:#要求
         raise 检查器错误('Runtime.callFunctionOn 需要 objectId 或执行上下文')#抛错
     if 对象id is not None and (选择器.get('executionContextId') is not None or 选择器.get('uniqueContextId') is not None):#互斥
         raise 检查器错误('Runtime.callFunctionOn 的 objectId 与执行上下文互斥')#抛错
