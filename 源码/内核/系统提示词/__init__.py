@@ -44,7 +44,6 @@ from .类型 import (
     'TOOL_LSP':2200,#lsp
     'TOOL_SESSION_QUERY':2300,#session query
     'TOOL_GOAL':2400,#goal
-    'TOOL_CORDIS':2500,#cordis
     'TOOL_WORKFLOW':2600,#workflow
     'TOOL_RALPH':2700,#ralph
     'TOOL_SUBAGENT':2800,#subagent
@@ -373,11 +372,10 @@ class 系统提示词(服务):#系统提示词服务
             结果=提供方(上下文)#求值
             模式列表=[]#投影模式
             for 工具 in 结果['schemas']:#可见模式
-                模式列表.append({
-                    'name':工具['name'],#工具名
-                    'description':工具['description'],#描述
-                    'parameters':克隆(工具['parameters']),#脱离参数
-                })#一条模式
+                模式={'name':工具['name'],'description':工具['description'],'parameters':克隆(工具['parameters'])}#脱离参数
+                if 工具.get('deferLoading') is True:#推迟装载
+                    模式['deferLoading']=True#带上
+                模式列表.append(模式)#一条模式
             已接受已知=结果['knownNames'] if 'knownNames' in 结果 else None#限制前名
             if 已接受已知 is None:#未给
                 已接受已知=[]#从可见模式收

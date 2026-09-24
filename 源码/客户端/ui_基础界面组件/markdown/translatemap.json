@@ -1,0 +1,11 @@
+{
+    "CodeBlock":"代码块",
+    "JsonBlock":"json块",
+    "MarkdownText":"Markdown文本",
+    "file-link":"文件链",
+    "highlight":"高亮",
+    "incremental":"增量",
+    "parse":"解析",
+    "plain-text":"纯文本",
+    "render":"渲染"
+}

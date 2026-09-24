@@ -225,7 +225,10 @@ class 派爱适配器(llm.大模型适配器):
         return 结果#建议目录
     def 解析模型(自身,提供方,模型,信号=None):
         """解析精确模型。"""
-        快照=自身.当前()#当前快照
+        return 自身.按快照解析模型(自身.当前(),提供方,模型)#现查快照
+
+    def 按快照解析模型(自身,快照,提供方,模型):
+        """在一份已捕获快照上解析精确模型。"""
         配置项=自身.配置于(快照,提供方)#已解析配置
         已解析模型=自身.模型于(快照,提供方,模型)#已配置模型
         默认档位=可描述思考档位(已解析模型,配置项['reasoning'] if 'reasoning' in 配置项 else None)#描述用默认档位
@@ -242,12 +245,24 @@ class 派爱适配器(llm.大模型适配器):
             信息['defaultMaxTokens']=配置上限#有配置上限才带上
         信息.update(推理信息(已解析模型,默认档位))#推理元数据
         return 信息#已解析信息
+
+    def 准备调用(自身,提供方,模型,信号=None):#把模型元数据与派发绑到同一代快照
+        """把精确模型元数据与最终派发绑到同一代适配器快照。"""
+        快照=自身.当前()#捕获本代
+        def 流出(选项):#本代流入口
+            """经捕获快照流出。"""
+            return 自身.带快照流出(选项,快照)#同一代
+        return {'model':自身.按快照解析模型(快照,提供方,模型),'stream':流出}#已准备
+
     def 流式(自身,选项):
         """流式调用。"""
+        return 自身.带快照流出(选项,自身.当前())#现查快照
+
+    def 带快照流出(自身,选项,快照):
+        """在一份已捕获快照下流式调用。"""
         停止=选项['stop'] if 'stop' in 选项 else None#停止序列
         if 停止 is not None:#本后端不支持 GenerateOptions.stop
             raise llm.大模型错误('llm-pi-ai does not support GenerateOptions.stop','UNSUPPORTED_OPTION')#不支持
-        快照=自身.当前()#本次快照
         提供方=选项['provider']#提供方
         模型标识=选项['model']#模型id
         配置项=自身.配置于(快照,提供方)#本次配置
@@ -269,7 +284,7 @@ class 派爱适配器(llm.大模型适配器):
             对话=选项['messages']#对话
             含图片=False#对话是否含图片
             for 消息 in 对话:#先扫一遍对话，决定要不要附件服务
-                内容=消息['content']#内容
+                内容=消息.get('content') or []#内容
                 if llm.内容含图片(内容):#见到图片即可停
                     含图片=True#含图片
                     break#已判定
@@ -284,10 +299,31 @@ class 派爱适配器(llm.大模型适配器):
                     附件=解析附件()#有图片才解析附件服务
             if 含图片 and 附件 is None:#需要图片却没有持久附件服务
                 raise llm.大模型错误('pi-ai image input requires the durable attachment service','UNSUPPORTED_CONTENT')#缺少附件服务
+            def 回放降级(原因):#不可用回放只警告
+                """把不可用回放降级通知插件。"""
+                钩子=自身.配置['onReplayDegrade'] if 'onReplayDegrade' in 自身.配置 else None#可选钩子
+                if 钩子 is not None:#有钩子
+                    钩子({'provider':提供方,'model':模型标识,'reason':原因})#带路由
             if 附件 is None:#没有附件则走同步纯文本转换
-                上下文=转派上下文(选项)#同步纯文本
+                上下文=转派上下文(选项,None,回放降级)#同步纯文本
             else:#有附件则解析图片
-                上下文=转派上下文(选项,附件)#解析图片
+                解析访问=自身.配置['resolveImageAccess'] if 'resolveImageAccess' in 自身.配置 else None#可选访问解析
+                def 访问引用(引用):#当前路径
+                    """解析一张图的执行世界访问。"""
+                    if 解析访问 is None:#没有钩子
+                        return None#无路径
+                    return 解析访问(附件,引用)#委托
+                图片上下文={
+                    'attachments':附件,#附件仓
+                    'resolveImageAccess':访问引用,#访问
+                    'maxRequestImageBytes':配置项['maxRequestImageBytes'],#请求级上限
+                    'requestImagePolicy':{
+                        'maxPixels':配置项['requestImagePixelBudget'],#像素预算
+                        'maxBytes':配置项['requestImageMaxBytes'],#单张字节
+                    },#路由预算
+                }#图片上下文
+                带信号={**选项,'signal':看门狗.信号}#把看门狗信号交给读图
+                上下文=转派上下文(带信号,图片上下文,回放降级)#解析图片
             流选项=配置流选项(配置项,推理,密钥)#配置旋钮
             温度=选项['temperature'] if 'temperature' in 选项 else None#温度
             if 温度 is not None:#请求给了温度才带上；0 是合法温度，不得当缺席
@@ -302,7 +338,7 @@ class 派爱适配器(llm.大模型适配器):
             流选项['headers']=请求头(配置项['headers'] if 'headers' in 配置项 else None)#合并头
             窗口=模型.contextWindow#窗口
             事件=快照['models'].streamSimple(模型,上下文,流选项)#打开pi-ai流
-            翻译=转流块(事件,窗口)#翻译后的生成器
+            翻译=转流块(事件,窗口,模型标识)#翻译后的生成器
             迭代器=iter(翻译)#翻译后的迭代器
             耗尽=False#是否正常耗尽
             try:#带空闲监视地消费翻译迭代器
@@ -313,7 +349,7 @@ class 派爱适配器(llm.大模型适配器):
                         raise 超时#超时则抛
                     if 结果['done']:#上游正常结束
                         耗尽=True#正常耗尽
-                        return生成器
+                        return
                     yield 结果['value']#让出一块
             finally:#生成器结束
                 if not 耗尽:#调用方提前停消费则中止上游
@@ -327,7 +363,7 @@ class 派爱适配器(llm.大模型适配器):
                 raise llm.大模型错误('pi-ai stream idle timeout after '+str(空闲超时毫秒)+'ms','TIMEOUT',{'cause':错误})#超时
             if 调用方信号 is not None and 已中止(调用方信号):#调用方中止
                 raise llm.大模型错误('pi-ai request aborted by caller','ABORTED',{'cause':错误})#中止
-            raise 错误#其余原样抛
+            raise 错误#其余原样抛出
         finally:#生成器结束
             消费方.中止('pi-ai stream consumer stopped')#中止消费方
             看门狗.释放()#释放看门狗定时器

@@ -4,7 +4,7 @@ from .任务图 import 断言任务图候选#图校验
 from .错误 import 团队错误#领域错误
 
 __all__=[#仅中文公开名
-    '空团队状态','是否团队事件','团队投影定义',
+    '空团队状态','是否团队事件','团队投影定义','团队投影视图','投影任务视图',
 ]#公开面结束
 
 核心内容块类型=frozenset(['text','reasoning','image','tool-call','tool-result'])#核心块
@@ -80,23 +80,42 @@ def 校验内容块(块):#内容块
             raise 团队错误('text required','TEAM_INVALID_ARGUMENT')#拒绝
         return dict(块)#通过
     if 类型=='image':#图片
+        if set(块.keys())-{'type','attachment'}:#多余键
+            raise 团队错误('strict content block','TEAM_INVALID_ARGUMENT')#拒绝
         if 'attachment' not in 块 or not isinstance(块['attachment'],dict):#须对象
             raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
-        return {'type':'image','attachment':dict(块['attachment'])}#通过
+        附件=块['attachment']#附件
+        for 键 in ('attachmentId','mediaType','bytes','width','height'):#必填
+            if 键 not in 附件:#缺
+                raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        if 附件['mediaType'] not in ('image/png','image/jpeg','image/webp','image/gif'):#媒体
+            raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        if set(附件.keys())-{'attachmentId','mediaType','bytes','width','height','name'}:#多余键
+            raise 团队错误('strict content block','TEAM_INVALID_ARGUMENT')#拒绝
+            raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        字节=附件['bytes']#字节
+        宽=附件['width']#宽
+        高=附件['height']#高
+        if (not isinstance(字节,int) or isinstance(字节,bool) or 字节<0 or 字节>安全整数上限):#字节
+            raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        if (not isinstance(宽,int) or isinstance(宽,bool) or 宽<1 or 宽>安全整数上限):#宽
+            raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        if (not isinstance(高,int) or isinstance(高,bool) or 高<1 or 高>安全整数上限):#高
+            raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        if not isinstance(附件['attachmentId'],str) or len(附件['attachmentId'])<1:#附件 id
+            raise 团队错误('image attachment required','TEAM_INVALID_ARGUMENT')#拒绝
+        return {'type':'image','attachment':dict(附件)}#通过
     if 类型=='tool-call':#工具调用
-        return dict(块)#保留
-    if 类型=='tool-result':#工具结果
-        if 'content' not in 块 or not isinstance(块['content'],list):#须数组
-            raise 团队错误('tool-result content required','TEAM_INVALID_ARGUMENT')#拒绝
-        结果={#规范化
-            'type':'tool-result',#类型
-            'toolCallId':块['toolCallId'] if 'toolCallId' in 块 else None,#调用 id
-            'content':[校验内容块(子) for 子 in 块['content']],#递归
-        }#骨架
-        if 'isError' in 块:#可选错误
-            结果['isError']=块['isError']#写入
-        return 结果#结束
-    if 类型 in 核心内容块类型:#已知类型字段不对
+        if set(块.keys())-{'type','id','name','arguments'}:#多余键
+            raise 团队错误('strict content block','TEAM_INVALID_ARGUMENT')#拒绝
+        if 'id' not in 块 or not isinstance(块['id'],str) or len(块['id'])<1:#须 id
+            raise 团队错误('tool-call id required','TEAM_INVALID_ARGUMENT')#拒绝
+        if 'name' not in 块 or not isinstance(块['name'],str):#须名
+            raise 团队错误('tool-call name required','TEAM_INVALID_ARGUMENT')#拒绝
+        if 'arguments' not in 块 or not isinstance(块['arguments'],str):#须参数串
+            raise 团队错误('tool-call arguments required','TEAM_INVALID_ARGUMENT')#拒绝
+        return dict(块)#通过
+    if 类型 in 核心内容块类型:#已知类型无声明变体（含已退役 tool-result）
         raise 团队错误('known content block types must match their declared fields','TEAM_INVALID_ARGUMENT')#拒绝
     return dict(块)#插件扩展块
 
@@ -298,7 +317,7 @@ def _应用任务(状态,任务):#应用任务边
     匹配=数字任务标识模式.match(任务['id'])#解析序号
     if 匹配 is not None:#有数字后缀
         号=int(匹配.group(1))#任务号
-        状态['nextTaskNumber']=max(状态['nextTaskNumber'],号+1)#推进
+        状态['nextTaskNumber']=max(状态['nextTaskNumber'],号 if 号==安全整数上限 else 号+1)#推进
     if 下标<0:#新建
         任务列表.append(任务)#追加
     else:#替换
@@ -344,10 +363,77 @@ def 初始化投影(头):#投影 init
     """按会话头初始化。"""
     return 空团队状态(头['id'])#空状态
 
+def 范围重叠(左,右):#写范围重叠
+    """两个规范化文件或目录前缀是否在路径分量上重叠。"""
+    return 左==右 or 左.startswith(右+'/') or 右.startswith(左+'/')#重叠
+
+def 任务就绪(状态,任务):#blocker 是否均完成
+    """当前全部 blocker 是否已完成。"""
+    for 标识 in 任务['blockedBy']:#逐 blocker
+        命中=None#查找
+        for 候选 in 状态['tasks']:#扫
+            if 候选['id']==标识:#命中
+                命中=候选#记下
+                break#结束
+        if 命中 is None or 命中['status']!='completed':#未完成
+            return False#未就绪
+    return True#就绪
+
+def 投影任务视图(状态,任务):#任务视图
+    """带 owner 名、就绪性与写范围重叠警告的任务视图。"""
+    所有者名=None#owner 名
+    所有者标识=任务['ownerId'] if 'ownerId' in 任务 else None#owner id
+    if 所有者标识 is not None:#有 owner
+        if 所有者标识==状态['id']:#Lead
+            所有者名='lead'#伪名
+        else:#teammate
+            for 成员 in 状态['members']:#扫
+                if 成员['id']==所有者标识:#命中
+                    所有者名=成员['name']#名字
+                    break#结束
+    警告=set()#写范围警告
+    for 其它 in 状态['tasks']:#扫其它进行中
+        if 其它['id']==任务['id'] or 其它['status']!='in_progress':#跳过
+            continue#下一
+        if any(范围重叠(左,右) for 左 in 任务['writeScopes'] for 右 in 其它['writeScopes']):#重叠
+            警告.add('write scopes overlap with '+其它['id'])#警告
+    视图={#视图体
+        'id':任务['id'],#身份
+        'revision':任务['revision'],#版本
+        'subject':任务['subject'],#标题
+        'description':任务['description'],#详情
+        'status':任务['status'],#状态
+        'blockedBy':list(任务['blockedBy']),#依赖
+        'writeScopes':list(任务['writeScopes']),#写范围
+        'ready':任务['status']=='pending' and 任务就绪(状态,任务),#就绪
+        'writeScopeWarnings':list(警告),#警告
+    }#视图骨架
+    if 所有者名 is not None:#有 owner 名
+        视图['ownerName']=所有者名#展开
+    return 视图#视图
+
+def 构建团队投影(状态):#耐久客户端视图
+    """Lead 伪行加 teammate 耐久生命周期，任务板去掉 tombstone。"""
+    成员=[{'id':状态['id'],'name':'lead','role':'lead','phase':'active'}]#Lead 行
+    for 项 in 状态['members']:#逐 teammate
+        行={'id':项['id'],'name':项['name'],'role':'teammate','phase':项['phase']}#行
+        if 'error' in 项:#可选错误
+            行['error']=项['error']#写入
+        成员.append(行)#追加
+    结果={'members':成员,'tasks':[投影任务视图(状态,任务) for 任务 in 状态['tasks'] if 任务['status']!='deleted']}#视图
+    if 'failure' in 状态:#终端失败
+        结果['failure']=状态['failure']#写入
+    return 结果#视图
+
+def 团队投影视图(状态):#投影 wire.view
+    """邮箱-only 变化复用同一视图对象语义；失败后停在失败视图。"""
+    return 构建团队投影(状态)#构建
+
 团队投影定义={#投影定义
     'key':'agentTeam',#投影键
-    'stateVersion':3,#状态版本
+    'stateVersion':4,#状态版本
     'stateSchema':None,#Python 侧不做 zod
     'init':初始化投影,#按头初始化
     'apply':应用投影,#增量应用
+    'wire':{'view':团队投影视图},#客户端耐久视图
 }#定义结束

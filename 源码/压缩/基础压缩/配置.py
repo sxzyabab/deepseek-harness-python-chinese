@@ -7,6 +7,7 @@ from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆�
 
 政策配置键=(#顶层默认值与精确目标覆盖共用的字段
     'thresholdRatio',#压力阈值比例
+    'headroomTokens',#压缩余量 token
     'retainRatio',#保留比例
     'retainTokens',#绝对保留 token
     'summarizationProvider',#摘要提供方
@@ -87,6 +88,7 @@ def 校验摘要成对(配置,名称):
 def 校验政策(配置,名称):
     """校验政策字段类型与互斥保留。"""
     阈值比例=配置['thresholdRatio'] if 'thresholdRatio' in 配置 else None#阈值比例
+    余量令牌=配置['headroomTokens'] if 'headroomTokens' in 配置 else None#压缩余量
     保留比例=配置['retainRatio'] if 'retainRatio' in 配置 else None#保留比例
     保留令牌=配置['retainTokens'] if 'retainTokens' in 配置 else None#绝对保留
     最大令牌=配置['maxTokens'] if 'maxTokens' in 配置 else None#生成上限
@@ -94,6 +96,8 @@ def 校验政策(配置,名称):
     溢出重试=配置['maxOverflowRetries'] if 'maxOverflowRetries' in 配置 else None#溢出重试
     if 阈值比例 is not None:#写了阈值
         校验比例(名称+'.thresholdRatio',阈值比例)#校验阈值比例
+    if 余量令牌 is not None:#写了余量
+        校验非负整数(名称+'.headroomTokens',余量令牌)#校验余量
     if 保留比例 is not None:#写了保留比例
         校验比例(名称+'.retainRatio',保留比例)#校验保留比例
     if 保留令牌 is not None:#写了绝对保留
@@ -163,11 +167,18 @@ def 解析配置(配置=None):
     自动=配置['auto'] if 'auto' in 配置 else None#auto 字段
     if 自动 is not None and (not isinstance(自动,bool)):#auto 类型不对
         raise 基础压缩错误('BasicCompactionConfig: auto must be a boolean')#auto 须为布尔
+    余量令牌=65536 if ('headroomTokens' not in 配置 or 配置['headroomTokens'] is None) else 配置['headroomTokens']#余量默认 65536
+    最大令牌=余量令牌 if ('maxTokens' not in 配置 or 配置['maxTokens'] is None) else 配置['maxTokens']#生成上限缺省取余量
+    校验正整数('BasicCompactionConfig.maxTokens (explicit or from headroomTokens)',最大令牌)#须为正整数
     阈值比例=默认阈值比例 if ('thresholdRatio' not in 配置 or 配置['thresholdRatio'] is None) else 配置['thresholdRatio']#解析阈值比例
     保留=解析保留(配置,{'retainRatio':默认保留比例})#解析保留形态
     校验比例保留(阈值比例,保留,'BasicCompactionConfig')#比例保留不得压过阈值
     模型政策列表=解析模型政策表(配置['modelPolicies'] if 'modelPolicies' in 配置 else None)#解析精确目标表
     for 下标,政策 in enumerate(模型政策列表):#逐条覆盖再校验保留
+        if ('maxTokens' not in 政策 or 政策['maxTokens'] is None) and ('maxTokens' not in 配置 or 配置['maxTokens'] is None) and ('headroomTokens' in 政策 and 政策['headroomTokens'] is not None):
+            政策['maxTokens']=政策['headroomTokens']#覆盖缺省生成上限
+        覆盖上限=政策['maxTokens'] if 'maxTokens' in 政策 and 政策['maxTokens'] is not None else 最大令牌
+        校验正整数('BasicCompactionConfig: modelPolicies['+str(下标)+'].maxTokens (explicit or from headroomTokens)',覆盖上限)
         覆盖阈值=阈值比例 if ('thresholdRatio' not in 政策 or 政策['thresholdRatio'] is None) else 政策['thresholdRatio']#覆盖或继承阈值
         校验比例保留(#覆盖后的阈值与保留
             覆盖阈值,#阈值
@@ -178,10 +189,11 @@ def 解析配置(配置=None):
     模型=配置['summarizationModel'] if 'summarizationModel' in 配置 else None#摘要模型
     已解析={#组装已解析配置
         'thresholdRatio':阈值比例,#阈值比例
+        'headroomTokens':余量令牌,#压缩余量
         **保留,#保留形态
         'summarizationProvider':'' if 提供方 is None else 提供方,#摘要提供方，空则继承对话目标
         'summarizationModel':'' if 模型 is None else 模型,#摘要模型，空则继承
-        'maxTokens':8192 if ('maxTokens' not in 配置 or 配置['maxTokens'] is None) else 配置['maxTokens'],#生成上限
+        'maxTokens':最大令牌,#生成上限
         'compactionRetries':1 if ('compactionRetries' not in 配置 or 配置['compactionRetries'] is None) else 配置['compactionRetries'],#压缩重试
         'maxOverflowRetries':1 if ('maxOverflowRetries' not in 配置 or 配置['maxOverflowRetries'] is None) else 配置['maxOverflowRetries'],#溢出重试
         'modelPolicies':模型政策列表,#精确目标表
@@ -205,6 +217,7 @@ def 解析目标政策(配置,目标):
     已合并={#冻结合并结果前组装
         'target':{'provider':目标['provider'],'model':目标['model']},#精确目标
         'thresholdRatio':配置['thresholdRatio'] if ('thresholdRatio' not in 源 or 源['thresholdRatio'] is None) else 源['thresholdRatio'],#覆盖或默认阈值
+        'headroomTokens':配置['headroomTokens'] if ('headroomTokens' not in 源 or 源['headroomTokens'] is None) else 源['headroomTokens'],#覆盖或默认余量
         **解析保留(源,继承保留),#覆盖或继承保留
         'summarizationProvider':配置['summarizationProvider'] if ('summarizationProvider' not in 源 or 源['summarizationProvider'] is None) else 源['summarizationProvider'],#摘要提供方
         'summarizationModel':配置['summarizationModel'] if ('summarizationModel' not in 源 or 源['summarizationModel'] is None) else 源['summarizationModel'],#摘要模型
@@ -214,7 +227,7 @@ def 解析目标政策(配置,目标):
     }#已合并结束
     return 深冻结(结构化克隆(已合并))#冻结合并结果
 
-def 解析压缩规格(政策,上下文窗口):
+def 解析压缩规格(政策,上下文窗口,预留补全令牌):
     """返回分离的不可变压力与保留预算。"""
     目标=政策['target']#精确目标
     目标键=str(目标['provider'])+'/'+str(目标['model'])#警告键
@@ -224,9 +237,27 @@ def 解析压缩规格(政策,上下文窗口):
             目标键,#目标键
             'BasicCompactionConfig: contextWindow ('+str(上下文窗口)+') must be a positive integer',#窗口须为正整数
         )#抛出结束
-    阈值令牌=int(上下文窗口*政策['thresholdRatio'])#阈值 token；对齐 Math.floor
+    预留是整数=(not isinstance(预留补全令牌,bool)) and (isinstance(预留补全令牌,int) or (isinstance(预留补全令牌,float) and 预留补全令牌.is_integer()))
+    if (not 预留是整数) or 预留补全令牌<0:
+        raise 目标压力配置错误(
+            目标键,
+            'BasicCompactionConfig: reservedCompletionTokens ('+str(预留补全令牌)+') must be a non-negative integer',
+        )
+    消息预算=上下文窗口-预留补全令牌
+    if 消息预算<=0:
+        raise 目标压力配置错误(
+            目标键,
+            'compaction-basic: '+目标键+' reserves '+str(预留补全令牌)+' completion tokens of its '+str(上下文窗口)+'-token context window, leaving no message budget; configure the adapter model\'s contextWindow above the effective request maxTokens',
+        )
+    压力预算=消息预算-政策['headroomTokens']
+    if 压力预算<=0:
+        raise 目标压力配置错误(
+            目标键,
+            'compaction-basic: '+目标键+' reserves '+str(预留补全令牌)+' completion tokens and '+str(政策['headroomTokens'])+' headroom tokens of its '+str(上下文窗口)+'-token context window, leaving no pressure budget; reduce the effective request maxTokens or compaction headroomTokens, or configure a larger adapter model contextWindow',
+        )
+    阈值令牌=int(min(上下文窗口*政策['thresholdRatio'],压力预算))#阈值 token；对齐 Math.floor(Math.min)
     if 'retainTokens' not in 政策 or 政策['retainTokens'] is None:#按比例
-        保留令牌=int(上下文窗口*政策['retainRatio'])#按比例取整
+        保留令牌=int(消息预算*政策['retainRatio'])#按消息预算比例取整
     else:#已是绝对预算
         保留令牌=政策['retainTokens']#绝对
     if 保留令牌>=阈值令牌:#保留不小于阈值则永远压不住

@@ -1,5 +1,5 @@
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#导入服务基类
+from ...typert.协议 import 远程服务,远程,远程错误#Remote 面
+from ...工具.时间 import 规范化客户端时区#浏览器时区
 from ...内核.作用域 import 作用域目标#导入作用域载体解析
 from ...内核.工具 import 断言对象json模式#导入对象JSON模式断言
 from .类型 import (
@@ -72,6 +72,8 @@ from .客户端 import (
     子智能体计时投影,#活动回合计时投影
     子智能体目录条目,#直接子发现行
 )
+from .归档准入 import 安装子智能体归档准入
+from .控制 import 校验控制请求,拒绝提示
 __all__=(
     '子智能体运行时',
     '子智能体运行标识','子智能体跑信息','子智能体跑结束信息','子智能体能力',
@@ -94,7 +96,7 @@ __all__=(
     '子智能体目录投影定义','建立目录子体',
 )
 
-class 子智能体运行时(服务):
+class 子智能体运行时(远程服务):
     """具名提供方注册表，含一次性跑、耐久发现与可续跑子体操作。"""
     配置模式={'maxDepth':1,'maxActiveSubagents':8}#缺省宿主配置
 
@@ -166,6 +168,7 @@ class 子智能体运行时(服务):
             投影上下文.sessionProjections.register(子智能体计时投影定义)#活动回合计时
             投影上下文.sessionProjections.register(子智能体身份投影定义)#模式/标签身份
         ctx.依赖启动(['sessionProjections'],挂投影)#投影注入门
+        安装子智能体归档准入(ctx)
 
     def 解析最大深度(自身,已配置=None):#解析深度策略
         """按当前用户设置解析委托工具的深度策略。"""
@@ -188,6 +191,83 @@ class 子智能体运行时(服务):
         if 自身._续跑 is not None:#有管理器才有 Activation
             自身._续跑.打断(目标会话标识,权威)#交给管理器
         # 无管理器：不可能拥有活 Activation，空操作
+
+    def 发送消息(自身,发送方,目标标识,内容,选项):
+        """把模型撰写的消息投到发送方的直接父或直接可续跑子。"""
+        return 自身._要求续跑().发送消息(发送方,目标标识,内容,选项)
+
+    def 排空可续跑子体(自身,父,子标识列表):
+        """释放一个精确活父之下选中的驻留可续跑直接子。"""
+        管理器=自身._续跑
+        if 管理器 is None:
+            return
+        return 管理器.排空子体(父,子标识列表)
+
+    def 投递提示(自身,父,子标识,内容,来源,信号,投递):
+        """把一条宿主协议消息投到直接可续跑子。"""
+        if 投递=='steer':
+            return 自身._要求续跑().转向提示(父,子标识,内容,来源,信号)
+        return 自身._要求续跑().排队提示(父,子标识,内容,来源,信号)
+
+    @远程('prompt')
+    def 提示(自身,请求,信号):
+        """经精确活直接父向可续跑子投递一条浏览器撰写的消息。"""
+        父会话标识=请求['parentSessionId']
+        子会话标识=请求['childSessionId']
+        客户端时区=请求['clientTimeZone'] if 'clientTimeZone' in 请求 else None
+        投递=请求['delivery']
+        校验控制请求('subagent.prompt',请求)
+        规范时区=None if 客户端时区 is None else 规范化客户端时区(客户端时区)
+        if 客户端时区 is not None and 规范时区 is None:
+            raise 远程错误(
+                'subagent/invalid-time-zone',
+                'clientTimeZone must be UTC or a valid IANA Area/Location name',
+                {'value':客户端时区},
+            )
+        智能体表=自身.ctx.获取服务('agents',False)
+        父=None if 智能体表 is None else 智能体表.获取(父会话标识)
+        if 父 is None:
+            raise 远程错误(
+                'subagent/parent-unavailable',
+                'parent session "'+str(父会话标识)+'" is not live',
+                {'parentSessionId':父会话标识},
+            )
+        来源={'kind':'user','rpcId':请求['requestId']}
+        if 规范时区 is not None:
+            来源['clientTimeZone']=规范时区
+        try:
+            内容块=请求['content']
+            if all(块['type']=='text' for 块 in 内容块):
+                内容=[{'type':'text','text':块['text']} for 块 in 内容块]
+            else:
+                附件存储=自身.ctx.获取服务('attachments',False)
+                if 附件存储 is None:
+                    raise Exception('subagent image prompt requires an attachment store')
+                内容=附件存储.准入提示内容(内容块)
+            return {'messageId':自身.投递提示(父,子会话标识,内容,来源,信号,投递)}
+        except Exception as 错误:
+            拒绝提示(错误,子会话标识,信号)
+
+    @远程('interruptByParent')
+    def 按父打断(自身,childSessionId,parentSessionId,mode):
+        """Remote 面的打断：只按活 Activation 授权耐久父地址。"""
+        校验控制请求('subagent.interrupt',{
+            'childSessionId':childSessionId,
+            'parentSessionId':parentSessionId,
+            'mode':mode,
+        })
+        try:
+            自身.打断(childSessionId,{'kind':'user','parentSessionId':parentSessionId})
+        except Exception as 错误:
+            if isinstance(错误,子智能体错误) and 错误.code=='UNAUTHORIZED':
+                raise 远程错误(
+                    'subagent/unauthorized',
+                    'subagent does not belong to this parent',
+                    {'childSessionId':childSessionId},
+                    错误,
+                )
+            raise 远程错误('gateway/internal','subagent interrupt failed',{},错误)
+        return {'accepted':True}
 
     def 自报告(自身,子,内容,选项):#子体向父报告
         """把一份选定内容从一个活可续跑子体投递到其耐久直接父。"""
@@ -316,6 +396,7 @@ class 子智能体运行时(服务):
         """拒绝提供方缺少的第一个被请求能力。"""
         能力=提供方.能力 if hasattr(提供方,'能力') else {}#能力广告
         需要=[
+            ('agentOptions' in 请求 and 请求['agentOptions'] is not None,'agentOptions'),#智能体选项
             ('outputSchema' in 请求 and 请求['outputSchema'] is not None,'outputSchema'),#输出模式
             ('maxDepth' in 请求 and 请求['maxDepth'] is not None,'depthLimit'),#深度上限
             ('toolFilter' in 请求 and 请求['toolFilter'] is not None,'toolFilter'),#工具过滤

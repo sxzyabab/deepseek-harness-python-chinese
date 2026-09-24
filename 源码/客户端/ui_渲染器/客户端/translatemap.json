@@ -1,0 +1,8 @@
+{
+    "app":"应用组装",
+    "bind":"绑定选择器",
+    "bindings":"绑定",
+    "registry":"登记表",
+    "scoped-slots":"作用域槽",
+    "use-sync-external-store.d":"同步外部存储声明"
+}

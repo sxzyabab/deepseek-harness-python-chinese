@@ -1,0 +1,13 @@
+{
+    "locales":"文案",
+    "error":"错误",
+    "format":"格式",
+    "model":"模型",
+    "convert":"转换",
+    "parse":"语法解析",
+    "worker":"工作者",
+    "delimited":"分隔文本",
+    "xls":"xls",
+    "xlsx":"xlsx",
+    "xlsx-archive":"xlsx归档"
+}

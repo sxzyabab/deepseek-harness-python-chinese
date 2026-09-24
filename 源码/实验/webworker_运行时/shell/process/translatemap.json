@@ -1,0 +1,7 @@
+{
+    "child":"子进程",
+    "virtual-executables":"虚拟可执行",
+    "host":"宿主",
+    "protocol":"协议",
+    "landlock":"地锁"
+}

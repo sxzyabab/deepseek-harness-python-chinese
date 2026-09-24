@@ -1,21 +1,20 @@
 """JSONL 会话持久化：代次文件加活写句柄。"""
-import os#路径
-import secrets#临时名
-import sys#平台
+import hashlib,json,os,secrets,sys#摘要、JSON、路径、临时名、平台
 from ...依赖.schemastery import 字典字段,字符串字段,布尔字段,数字字段
 from ...内核.会话 import 会话格式版本#当代格式版本
-from ..会话格式目录 import 会话格式目录#格式目录
+from ..会话格式目录 import 会话格式目录,创建带子项的会话格式目录#格式目录
+from .名录迁移 import 准备名录事实#名录事实
 from ..会话持久化 import (
     会话持久化,默认预备会话缓存大小,默认写批最大延迟毫秒,
     持久化协调器,持久化错误,若已中止则抛出,
     会话持久化未找到错误,会话已存在错误,
-    会话格式不支持错误,会话格式版本拒绝文案,
+    会话格式不支持错误,会话格式版本拒绝文案,会话持久化损坏错误,
 )#基座
 from ..会话持久化.存储契约 import 物化创建头,断言已存标识,断言版本,校验已存事件#存储契约
 from ..会话持久化.修订 import 会话持久化修订#修订
 from .格式 import (#格式工具
     代次日志文件名,解析代次日志文件名,代次日志路径,日志路径,
-    会话目录,项目目录,扫描日志,头转头行,事件行文本,默认压缩,
+    会话目录,项目目录,扫描日志,头转头行,事件行文本,默认压缩,断言无已退役头字段,
 )#格式
 from .租约 import 租约文件名,会话写租约,会话已有写主错误#写租约
 from .zstd编解码 import (#zstd
@@ -217,7 +216,7 @@ class jsonl会话持久化(会话持久化):
         return 自身.跟踪器.刷全部()#委托
 
     def 观察(自身,标识,选项=None):#轻量观察
-        """不取所有权观察；挂起或产物快照。"""
+        """不取所有权观察；不读事件日志。"""
         信号=选项.get('signal') if 选项 else None#信号
         若已中止则抛出(信号)#取消
         挂起=自身.跟踪器.挂起项(标识)#挂起
@@ -226,12 +225,16 @@ class jsonl会话持久化(会话持久化):
         选中=自身.查找日志(标识,信号)
         if 选中 is None:#无
             return None#缺席
+        头=自身.读代次头(选中,标识,信号)#头
+        if 头 is None:#坏
+            return None#缺席
         try:#stat
             身份=物理身份(os.stat(选中['sourcePath']))#身份
-            已存=自身.加载已存日志(标识,信号)#加载头
-            if 已存 is None:#坏
-                return None#缺席
-            return {'header':已存['meta'],'revision':会话持久化修订(身份串(身份)),'sizeBytes':身份['size'],'eventCount':len(已存['events'])}#快照
+            若已中止则抛出(信号)#取消
+            修订=会话持久化修订(身份串(身份))#修订
+            if 选中['sourceVersion']<会话格式版本:#历史
+                修订=会话持久化修订(身份串(身份)+':'+自身.历史语料修订(信号))#语料修订
+            return {'header':头,'revision':修订,'sizeBytes':身份['size']}#快照
         except FileNotFoundError:#消失
             return None#缺席
 
@@ -241,12 +244,21 @@ class jsonl会话持久化(会话持久化):
         快照列表=[]#结果
         已列=set()#已列 id
         挂起=list(自身.跟踪器.挂起条目())#挂起快照
-        for 产物 in 自身.列出产物(信号):#产物
+        产物列表=自身.列出产物(信号)#产物
+        语料修订=None#历史语料
+        for 产物 in 产物列表:#是否需要语料修订
+            if 产物.get('sourceVersion',会话格式版本)<会话格式版本:#历史
+                语料修订=自身.历史语料修订(信号)#语料
+                break#只需一次
+        for 产物 in 产物列表:#产物
             若已中止则抛出(信号)#取消
             try:#stat
                 身份=物理身份(os.stat(产物['path']))#身份
                 已列.add(产物['header']['id'])#记下
-                快照列表.append({'header':产物['header'],'revision':会话持久化修订(身份串(身份)),'sizeBytes':身份['size']})#追加
+                修订=会话持久化修订(身份串(身份))#修订
+                if 产物.get('sourceVersion',会话格式版本)<会话格式版本 and 语料修订 is not None:#历史
+                    修订=会话持久化修订(身份串(身份)+':'+语料修订)#语料修订
+                快照列表.append({'header':产物['header'],'revision':修订,'sizeBytes':身份['size']})#追加
             except FileNotFoundError:#消失
                 continue#跳过
         for 标识,条目 in 挂起:#挂起
@@ -516,19 +528,56 @@ class jsonl会话持久化(会话持久化):
 
     def 准备已存迁移(自身,标识,选中,信号=None):#准备迁移
         """解码历史代，不发布后继。"""
+        def 子列表():#父的直接子
+            """列出 origin=subagent 且 parentSession=本 id 的产物。"""
+            结果=[]#子
+            for 项 in 自身.列出产物(信号):#产物
+                头=项['header']#头
+                if 头.get('origin')=='subagent' and 头.get('parentSession')==标识:#直接子
+                    结果.append({'header':头,'path':项['path']})#记下
+            return 结果#子
+        源列表=子列表()#子源
+        相关=准备名录事实(标识,源列表,自身.压缩,信号)#名录事实
+        for 失败 in 相关['failures']:#子失败
+            if hasattr(自身.上下文,'日志'):#有日志
+                自身.上下文.日志.警告(f'{名称}: session "{标识}" catalog retained a child with unknown descriptor (raw log: {失败["path"]}): {失败["error"]}')#警告
+        成员=sorted(源['path'] for 源 in 源列表)#成员路径
+        def 校验相关源():#相关源再核
+            """成员集合与物理修订必须仍与准备时一致。"""
+            当前=sorted(源['path'] for 源 in 子列表())#当前成员
+            前=set(成员)#准备时
+            后=set(当前)#现在
+            变更=None#漂移路径
+            for 路径 in 当前:#新增
+                if 路径 not in 前:#新增
+                    变更=路径#记下
+                    break#停
+            if 变更 is None:#无新增
+                for 路径 in 成员:#删除
+                    if 路径 not in 后:#删除
+                        变更=路径#记下
+                        break#停
+            if 变更 is not None:#漂移
+                raise 代次源变更错误(os.path.basename(变更))#源已变
+            相关['validate']()#物理修订
+        带子项格式={#绑定子证据的格式适配
+            **自身.代次格式,#默认编码
+            'createRestore':lambda 头:创建带子项的会话格式目录(相关['facts']).创建恢复(头,{'recovery':'recoverable','validation':'transformed'}),#带子项恢复
+        }#格式结束
         try:#准备
             已准备=准备jsonl迁移({#选项
                 'sourcePath':选中['sourcePath'],#源
                 'sourceVersion':选中['sourceVersion'],#版本
                 'currentPath':选中['currentPath'],#当代
                 'compression':自身.压缩,#压缩
-                'format':自身.代次格式,#格式
+                'format':带子项格式,#带子项
+                'validateRelatedSources':校验相关源,#相关源
                 'verifyCurrentFile':进程内校验当代代,#进程内校验
                 'signal':信号,#取消
             })#准备
         except 代次不支持迁移错误 as 错误:#不支持
             raise 会话格式不支持错误(#映射
-                f'{错误}; source v{错误.fromVersion} artifact remains unchanged (raw log: {选中["sourcePath"]})',
+                f'{错误}; source v{错误.fromVersion} artifact remains unchanged (raw log: {os.path.basename(选中["sourcePath"])})',
                 {'kind':'jsonl','path':选中['sourcePath']},
             ) from 错误#cause
         产物=已准备['artifact']#产物
@@ -553,6 +602,7 @@ class jsonl会话持久化(会话持久化):
             'tornTruncateTo':None,#无撕裂
             'recoveredTail':[],#无恢复尾
             'revision':会话持久化修订(身份串(已准备['sourceIdentity'])),#源修订
+            'validateRelatedSources':校验相关源,#相关源
             'publication':{'source':选中,'value':已准备},#发布载荷
         }#返回
 
@@ -652,11 +702,11 @@ class jsonl会话持久化(会话持久化):
                     raise ExceptionGroup(f'failed to roll back append to "{路径}"',[错误,回滚])#聚合
                 raise#抛原错
 
-    def 列出产物(自身,信号=None):#列出产物
-        """扫描根下全部规范代产物。"""
-        结果=[]#产物
+    def 列出代次(自身,信号=None):#列出物理代
+        """枚举选出的物理代，不解读头或体。"""
+        源列表=[]#代
         if not os.path.isdir(自身.根):#无根
-            return 结果#空
+            return 源列表#空
         for 项目名 in os.listdir(自身.根):#项目
             项目路径=os.path.join(自身.根,项目名)#路径
             if not os.path.isdir(项目路径):#非目录
@@ -666,15 +716,91 @@ class jsonl会话持久化(会话持久化):
                 if not os.path.isdir(会话路径):#非目录
                     continue#跳过
                 选中=自身.解析目录内代(会话路径,信号)#解析
-                if 选中 is None:#无
-                    continue#跳过
-                try:#读头
-                    头=自身.读代次头行(选中['sourcePath'],信号)#头
-                except (持久化错误,OSError,UnicodeDecodeError,ValueError):
-                    continue#跳过
-                if 头 is None:#无
-                    continue#跳过
-                结果.append({'header':{'id':头['id'],'version':头.get('version'),'createdAt':头.get('createdAt'),'isSeeded':头.get('isSeeded',False),'delegationDepth':头.get('delegationDepth',0),**({k:头[k] for k in ('cwd','parentSession','origin','agentPreset') if k in 头})},'path':选中['sourcePath']})#产物
+                if 选中 is not None:#有代
+                    源列表.append(选中)#记下
+        return 源列表#返回
+
+    def 历史语料修订(自身,信号=None):#历史语料修订
+        """历史逻辑事件依赖整份语料，含头不可读成员。"""
+        路径列表=sorted(源['sourcePath'] for 源 in 自身.列出代次(信号))#路径
+        摘要=hashlib.sha256()#摘要
+        for 路径 in 路径列表:#逐路径
+            若已中止则抛出(信号)#取消
+            try:#stat
+                修订=身份串(物理身份(os.stat(路径)))#修订
+            except FileNotFoundError:#缺失
+                修订='missing'#缺失
+            摘要.update(json.dumps([路径,修订],ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#喂入
+        若已中止则抛出(信号)#取消
+        return 摘要.hexdigest()#十六进制
+
+    def 读代次头(自身,选中,期望标识=None,信号=None):#读代次头
+        """读并翻译一代头，不看事件行。"""
+        try:#读首行
+            if 自身.压缩=='zstd':#压缩
+                文本=自身.读首帧zstd行(选中['sourcePath'],信号)#头行
+            else:#明文
+                文本=自身.读明文首行(选中['sourcePath'],信号)#头行
+        except FileNotFoundError:
+            return None#缺席
+        若已中止则抛出(信号)#取消
+        if 文本 is None:#无
+            return None#无
+        try:#解析
+            值=json.loads(文本)#对象
+        except (ValueError,TypeError):
+            return None#畸形
+        断言无已退役头字段(值)#退役字段
+        结果=会话格式目录.读头(值)#分类
+        if 'storedVersion' in 结果 and 结果['storedVersion'] is not None and 结果['storedVersion']!=选中['sourceVersion']:
+            raise 持久化错误('session generation filename identifies v'+str(选中['sourceVersion'])+', but its header identifies v'+str(结果['storedVersion']))#版本不一致
+        if 结果['status']=='unsupported':#不支持
+            物理标识=''#id
+            if isinstance(值,dict) and 'id' in 值:
+                物理标识=str(值['id'])#物理 id
+            原因=结果['reason']#原因
+            if 结果.get('storedVersion') is not None and 结果['storedVersion']>会话格式版本:
+                原因=会话格式版本拒绝文案(物理标识,结果['storedVersion'])#未来版本
+            raise 会话格式不支持错误(原因)#不支持
+        if 结果['status']=='malformed':#畸形
+            return None#无
+        头=自身.当代头(结果['header'])#当代头
+        if 期望标识 is not None and 头['id']!=期望标识:
+            raise 持久化错误('stored session identity mismatch')#身份不符
+        return 头#头
+
+    def 当代头(自身,头):#当代头
+        """把目录字符串身份收成当代会话头。"""
+        if 头['version']!=会话格式版本:#非当代
+            raise 持久化错误('format catalog returned non-current logical header v'+str(头['version']))#拒绝
+        结果={'version':会话格式版本,'id':头['id'],'createdAt':头['createdAt'],'isSeeded':头['isSeeded'],'delegationDepth':头['delegationDepth']}#基
+        if 'cwd' in 头:#cwd
+            结果['cwd']=头['cwd']#cwd
+        if 'parentSession' in 头:#父
+            结果['parentSession']=头['parentSession']#父
+        if 'origin' in 头:#来源
+            结果['origin']=头['origin']#来源
+        if 'agentPreset' in 头:#预设
+            结果['agentPreset']=头['agentPreset']#预设
+        return 结果#头
+
+    def 列出产物(自身,信号=None):#列出产物
+        """扫描根下全部规范代产物。"""
+        若已中止则抛出(信号)#取消
+        结果=[]#产物
+        已见=set()#已见 id
+        for 选中 in 自身.列出代次(信号):#代
+            若已中止则抛出(信号)#取消
+            try:#读头
+                头=自身.读代次头(选中,None,信号)#头
+            except (会话格式不支持错误,会话持久化损坏错误):
+                continue#跳过
+            if 头 is None:#无
+                continue#跳过
+            if 头['id'] in 已见:#重复
+                raise 持久化错误('duplicate JSONL session id "'+str(头['id'])+'" appears in multiple project directories')#拒绝
+            已见.add(头['id'])#记下
+            结果.append({'header':头,'path':选中['sourcePath'],'sourceVersion':选中['sourceVersion']})#产物
         return 结果#返回
 
     # --- 遗留转发 ---

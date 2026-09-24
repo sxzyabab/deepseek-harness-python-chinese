@@ -33,5 +33,8 @@
     "vitest":"vitest",
     "vm":"虚拟机",
     "vocabulary":"词表",
-    "void":"无返回"
+    "void":"无返回",
+    "vad":"vad",
+    "voice":"语音输入",
+    "volatile":"易变"
 }

@@ -1,0 +1,21 @@
+{
+    "types":"类型",
+    "run-settlement":"运行结算",
+    "projection":"投影",
+    "projection-types":"投影类型",
+    "out-of-process":"进程外",
+    "list-children":"列举子体",
+    "lifecycle":"生命周期",
+    "child-agent":"子体",
+    "catalog":"目录",
+    "assistant-output":"助手输出",
+    "archive-admission":"归档准入",
+    "continuation-activation":"激活装配注册表",
+    "continuation":"续跑",
+    "continuation-messages":"描述符播种",
+    "descriptor":"描述符",
+    "error":"错误",
+    "depth":"深度",
+    "control":"控制",
+    "control-types":"控制类型"
+}

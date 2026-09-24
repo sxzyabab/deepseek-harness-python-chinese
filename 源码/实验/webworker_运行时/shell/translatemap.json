@@ -1,0 +1,7 @@
+{
+    "types":"类型",
+    "expand":"展开",
+    "interpret":"解释",
+    "ast":"抽象语法树",
+    "fs-access":"文件系统访问"
+}

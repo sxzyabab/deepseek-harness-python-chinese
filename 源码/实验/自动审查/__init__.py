@@ -1,7 +1,7 @@
 import json,re,threading#渲染、成员计数与在途审查
 from ...内核.作用域 import 操作任务#在途结算
 from ...内核.工具 import 运行代码名#外层传输名
-from ...模型后端.llm import 块组装器,创建用户消息,深冻结#审查流
+from ...模型后端.llm import 块组装器,深冻结#审查流
 from ...工具.超时 import 已中止,合成信号,中止控制器#中止
 
 __all__=['名称','依赖','应用']
@@ -76,7 +76,7 @@ def 是否项目指令(来源):#当前项目指令源
 
 def 是否检查点(来源):#压缩检查点
     """来源是否为压缩检查点。"""
-    return 来源.get('kind')=='plugin' and 来源.get('plugin')=='compact'#检查点
+    return 来源.get('kind')=='compact-checkpoint'#检查点
 
 def 是否直接父指令(来源,父会话):#子的直接父
     """消息是否耐久归属于子的直接父。"""
@@ -113,8 +113,6 @@ def 过滤用户条目(序号,来源,内容,初始提示序号,父会话):#按�
     """把一条可见用户角色消息分成带角色的保留块。"""
     留下=[]#条目
     for 块 in 内容:#逐块
-        if 块.get('type')=='tool-result':#结果
-            continue#丢
         角色=文本角色(来源,序号,初始提示序号,父会话) if 块.get('type')=='text' else 'fact'#角色
         留下.append({'kind':'user-message','role':角色,'source':来源,'content':[块]})#条目
     return 留下#条目
@@ -236,10 +234,7 @@ def 快照自动审查(智能体,执行):#冻结五段
             if 事件['data']['source'].get('kind')=='tool':#工具
                 continue#丢
             if 是否项目指令(事件['data']['source']):#项目
-                内容=[]#块
-                for 块 in 事件['data']['content']:#过滤
-                    if 块.get('type')!='tool-result':#非结果
-                        内容.append(块)#留下
+                内容=事件['data']['content']#块
                 if len(内容)>0:#有
                     项目指令.append({'kind':'user-message','role':'constraint','source':事件['data']['source'],'content':内容})#约束
             else:#历史用户
@@ -367,10 +362,10 @@ def 分类风险(上下文,智能体,执行,信号):#固定策略与当前路由
         'provider':快照['provider'],#提供方
         'model':快照['model'],#模型
         'system':审查策略,#策略
-        'messages':[创建用户消息({#用户
+        'messages':[{#用户
+            'role':'user',#角色
             'content':[{'type':'text','text':审查用户文本(快照)}],#文本
-            'source':{'kind':'plugin','plugin':'dsh-experimental-auto-review'},#来源
-        })],#消息
+        }],#消息
         'temperature':0,#温度
         'signal':信号,#中止
     })#选项
@@ -397,7 +392,7 @@ def 应用(上下文):#安装 Auto 与前置审查门
             if 'agent' not in 执行 or ('parent' not in 执行 and 执行['name']==运行代码名):#外层传输
                 return 下一()#过
             智能体=执行['agent']#智能体
-            if 权限预设.当前(智能体.session.events)!=自动预设:#非 Auto
+            if 权限预设.当前(智能体.session)!=自动预设:#非 Auto
                 return 下一()#过
             if (not 接纳中) or 已中止(寿命.信号):#关闭
                 return {'kind':'cancel'}#取消
@@ -435,7 +430,7 @@ def 应用(上下文):#安装 Auto 与前置审查门
             接纳中=False#关
             try:#迁移
                 for 会话 in 上下文.sessions.列出():#会话
-                    if 权限预设.当前(会话.events)!=自动预设:#非 Auto
+                    if 权限预设.当前(会话)!=自动预设:#非 Auto
                         continue#下
                     权限预设.设(会话,'danger-full-access')#Full access
             finally:#中止在途

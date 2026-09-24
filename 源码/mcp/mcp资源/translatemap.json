@@ -1,6 +1,4 @@
 {
-    "index.ts":"__init__.py",
-    "README.zh.md":"README.md",
-    "render.ts":"渲染.py",
-    "tools.ts":"工具.py"
+    "render":"渲染",
+    "tools":"资源工具登记"
 }

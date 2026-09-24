@@ -13,6 +13,7 @@ __all__=[#仅中文说明名；记录本身是 dict 形态
 #变更阶段：install | enable | remove
 #安装规格种类：registry | path | git | tarball
 #检查问题：invalid-spec | already-installed | not-found | not-a-package | not-a-bundle | network | unknown
+#规格检查可带 registry / registries / host
 #安装阶段：installing | cancelling | applying
 #取消状态：cancelled | too-late | not-running
 #变更原因：plugin | bundle | install | remove
@@ -21,3 +22,4 @@ __all__=[#仅中文说明名；记录本身是 dict 形态
 # plugin-manager/changed
 # plugin-manager/install-log
 # plugin-manager/install-state
+#注册表面：registry / fallbackRegistries / resolved

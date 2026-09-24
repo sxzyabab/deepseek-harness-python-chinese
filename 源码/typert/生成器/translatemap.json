@@ -1,0 +1,9 @@
+{
+    "analyzer":"分析器",
+    "cordis-catalog":"目录投影",
+    "emitter":"代码输出",
+    "model":"模型",
+    "renderer":"渲染器",
+    "tsdown-plugin":"tsdown插件",
+    "workspace":"工作区"
+}

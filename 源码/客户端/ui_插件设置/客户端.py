@@ -1,140 +1,78 @@
 from .文案 import 命名空间,中文,英文#词典
-from .卡片控制器 import (#三张出厂卡控制器
-    终端命名空间,智能体循环命名空间,网页搜索命名空间,#命名空间
-    终端卡片控制器,智能体循环卡片控制器,网页搜索卡片控制器,#控制器
-)#控制器结束
-from .分区视图 import 插件设置分区,可配置插件页签#分区与页签
-from .出厂卡片 import 终端卡片,智能体循环卡片,网页搜索卡片#出厂卡
-from .字段 import 取值字段,密钥字段#字段控件
+from .分区视图 import 插件设置分区#分区壳
 
-__all__=[#仅中文公开名
-    '依赖','应用','插件设置分区','可配置插件页签',
-    '终端卡片','智能体循环卡片','网页搜索卡片','取值字段','密钥字段',
-    '命名空间','中文','英文',
-]
+__all__=['依赖','应用','插件设置分区','命名空间','中文','英文']
 
-依赖=['slots','locale','connection','remote','settingsScope']#依赖
+依赖=['slots','locale']#槽位与文案
 
-def 解析槽标签(标签):#解析槽位标签
+def 解析槽标签(标签):
     """字符串或 thunk。"""
-    if 标签 is None:#空
-        return ''#空串
-    if callable(标签):#thunk
-        结果=标签()#调用
-        return 结果 if 结果 is not None else ''#空则空串
-    return str(标签)#字符串
+    if 标签 is None:
+        return ''
+    if callable(标签):
+        结果=标签()
+        return 结果 if 结果 is not None else ''
+    return str(标签)
 
-def 应用(上下文):#安装插件设置浏览器半边
-    """挂载插件配置分区以及本包装的卡片。"""
-    连接=上下文.获取服务('connection')#连接句柄
-    接口=连接.api#API
-    翻译=上下文.locale.bind(命名空间)#绑定词表
-    def 登记词典():#登记中英文案
+def 应用(上下文):
+    """挂载内置插件设置分区与页签壳。配置页由配套包装登记。"""
+    翻译=上下文.locale.bind(命名空间)
+    def 登记词典():
         """把插件设置词表写进 locale。"""
-        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
-    上下文.副作用(登记词典,'ui-settings-plugins: section dictionaries')#词典
-    终端=终端卡片控制器(上下文.settingsScope.bind({'namespace':终端命名空间}))#bash
-    循环=智能体循环卡片控制器(上下文.settingsScope.bind({'namespace':智能体循环命名空间}))#agent-loop
-    搜索=网页搜索卡片控制器(上下文.settingsScope.bind({'namespace':网页搜索命名空间}),接口)#web-search
-    def 凭证失效(引用):#凭证域推送
-        """刷新网页搜索卡监视的引用。"""
-        搜索.刷新凭证(引用)#重读
-    def 登记凭证失效():#订凭证更新
-        """Host 报告凭证变更。"""
-        return 上下文.remote.$on('credentials/updated',凭证失效)#订阅
-    上下文.副作用(登记凭证失效,'ui-settings-plugins: credential invalidations')#凭证失效
-    页签版本=-1#账本版本
-    语言修订=-1#语言修订
-    页签行=[]#缓存页签
-    def 分区注入():#分区注入面
+        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
+    上下文.副作用(登记词典,'ui-settings-plugins: section dictionaries')
+    页签版本=-1
+    语言修订=-1
+    页签行=[]
+    def 分区注入():
         """页签可观察源。"""
-        def 取快照():#账本或语言变了才重投影
-            """投影页签。"""
-            nonlocal 页签版本,语言修订,页签行#缓存
-            版本=上下文.slots.getVersion('settings.plugins.tab')#版本
-            快照=上下文.locale.getSnapshot()#语言快照
-            修订=快照['revision'] if 'revision' in 快照 else None#修订
-            if 版本!=页签版本 or 修订!=语言修订:#失效
-                页签版本=版本#记下
-                语言修订=修订#记下
-                页签行=[]#重建
-                for 条目 in 上下文.slots.entries('settings.plugins.tab'):#每条
-                    选项=条目['options'] if 'options' in 条目 else 条目#选项
-                    页签行.append({#页签行
-                        'id':选项['id'] if 'id' in 选项 else '',#id
-                        'order':选项['order'] if 'order' in 选项 else 0,#序
-                        'label':解析槽标签(选项['label'] if 'label' in 选项 else None),#标签
-                    })#行结束
-                def 页签序(行):#按 order
+        def 取快照():
+            """账本或语言变了才重投影。"""
+            nonlocal 页签版本,语言修订,页签行
+            版本=上下文.slots.getVersion('settings.plugins.tab')
+            快照=上下文.locale.getSnapshot()
+            修订=快照['revision'] if 'revision' in 快照 else None
+            if 版本!=页签版本 or 修订!=语言修订:
+                页签版本=版本
+                语言修订=修订
+                页签行=[]
+                for 条目 in 上下文.slots.entries('settings.plugins.tab'):
+                    选项=条目['options'] if 'options' in 条目 else 条目
+                    页签行.append({
+                        'id':选项['id'] if 'id' in 选项 else '',
+                        'order':选项['order'] if 'order' in 选项 else 0,
+                        'label':解析槽标签(选项['label'] if 'label' in 选项 else None),
+                    })
+                def 页签序(行):
                     """升序。"""
-                    return 行['order']#序
-                页签行.sort(key=页签序)#升序
-            return 页签行#缓存
-        def 订阅(监听):#订页签账本与语言
+                    return 行['order']
+                页签行.sort(key=页签序)
+            return 页签行
+        def 订阅(监听):
             """两路订阅。"""
-            拆账本=上下文.slots.subscribe('settings.plugins.tab',监听)#账本
-            拆语言=上下文.locale.subscribe(监听)#语言
-            def 拆除():#拆除
+            拆账本=上下文.slots.subscribe('settings.plugins.tab',监听)
+            拆语言=上下文.locale.subscribe(监听)
+            def 拆除():
                 """取消。"""
-                拆账本()#账本
-                拆语言()#语言
-            return 拆除#拆除器
-        return {'hooks':{'tabs':{'getSnapshot':取快照,'subscribe':订阅}}}#注入
-    def 导航标签():#分区导航
+                拆账本()
+                拆语言()
+            return 拆除
+        return {'hooks':{'tabs':{'getSnapshot':取快照,'subscribe':订阅}}}
+    def 导航标签():
         """插件设置导航标签。"""
-        return 翻译('nav')#标签
-    def 登记分区():#登记插件分区
+        return 翻译('nav')
+    def 登记分区():
         """登记 settings.section 条目。"""
-        return 上下文.slots.register({#插件分区
-            'name':'settings.section',#分区槽
-            'id':'plugins',#插件
-            'order':15,#模型之后
-            'label':导航标签,#导航
-            'locale':命名空间,#文案
-            'inject':分区注入,#注入
-            'children':{'settings.plugins.tab':{'kind':'list','scope':'root'}},#页签槽
-        },插件设置分区)#组件
-    上下文.slots.inject('settings.section',登记分区)#分区
-    def 可配置标签():#可配置页签标签
-        """可配置页签文案。"""
-        return 翻译('configurableTab')#标签
-    def 可配置注入():#可配置页签注入
-        """卡片数。"""
-        return {'cardCount':len(上下文.slots.entries('settings.plugin.item'))}#卡片数
-    def 登记可配置():#登记可配置页签
-        """登记 settings.plugins.tab 条目。"""
-        return 上下文.slots.register({#可配置页签
-            'name':'settings.plugins.tab',#页签槽
-            'id':'configurable',#可配置
-            'order':0,#最前
-            'label':可配置标签,#标签
-            'locale':命名空间,#文案
-            'inject':可配置注入,#卡片数
-            'children':{'settings.plugin.item':{'kind':'list','scope':'root'}},#卡片槽
-        },可配置插件页签)#组件
-    上下文.slots.inject('settings.plugins.tab',登记可配置)#页签
-    def 终端注入():#bash 卡注入
-        """终端卡片面孔。"""
-        return 终端.注入面孔()#面孔
-    def 循环注入():#循环卡注入
-        """智能体循环卡片面孔。"""
-        return 循环.注入面孔()#面孔
-    def 搜索注入():#搜索卡注入
-        """网页搜索卡片面孔。"""
-        return 搜索.注入面孔()#面孔
-    def 登记出厂卡():#登记三张出厂卡
-        """bash / agent-loop / web-search。"""
-        拆表=[#拆除器
-            上下文.slots.register({'name':'settings.plugin.item','id':'bash','order':0,'locale':命名空间,'inject':终端注入},终端卡片),#bash
-            上下文.slots.register({'name':'settings.plugin.item','id':'agent-loop','order':10,'locale':命名空间,'inject':循环注入},智能体循环卡片),#循环
-            上下文.slots.register({'name':'settings.plugin.item','id':'web-search','order':20,'locale':命名空间,'inject':搜索注入},网页搜索卡片),#搜索
-        ]#拆表结束
-        def 拆除():#拆除三卡
-            """逐个取消。"""
-            for 拆 in 拆表:#每个
-                拆()#取消
-        return 拆除#拆除器
-    上下文.slots.inject('settings.plugin.item',登记出厂卡)#等卡片槽
+        return 上下文.slots.register({
+            'name':'settings.section',
+            'id':'plugins',
+            'order':15,
+            'label':导航标签,
+            'locale':命名空间,
+            'inject':分区注入,
+            'children':{'settings.plugins.tab':{'kind':'list','scope':'root'}},
+        },插件设置分区)
+    上下文.slots.inject('settings.section',登记分区)
 
-inject=依赖#框架槽
-apply=应用#框架槽
+inject=依赖
+apply=应用

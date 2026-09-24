@@ -1,0 +1,11 @@
+{
+    "install-failure":"安装失败",
+    "install-spec":"安装规格",
+    "operations":"操作",
+    "registry":"注册表",
+    "tools":"装载工具",
+    "types":"类型",
+    "failure":"失败",
+    "patches":"补丁",
+    "build-approval":"构建审批"
+}

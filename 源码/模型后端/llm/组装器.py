@@ -4,7 +4,7 @@
 """
 from .标识构造 import 调用标识#导入调用标识构造
 from .永不 import 断言永不,永不错误#导入封闭联合穷尽辅助与组装违约
-from .消息 import 创建消息#导入消息工厂
+from .消息 import 创建助手消息#导入助手消息工厂
 
 __all__=('块组装器',)#仅中文公开名
 
@@ -87,7 +87,7 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
             if 名字 is None:#缺名字
                 名字=''#缺名字则空串
             return {'type':'tool-call','id':调用,'name':名字,'arguments':部分['toolCallArguments']}#工具调用
-            raise 永不错误('cannot assemble incomplete block of type "'+块类型+'"')#未知类型且未被 block-end 关闭
+        raise 永不错误('cannot assemble incomplete block of type "'+块类型+'"')#未知类型且未被 block-end 关闭
 
     def 必须取(自身,下标):#按下标取部分块
         """按下标取部分块；order 有而下表无则违约。"""
@@ -96,19 +96,43 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
             raise 永不错误('BlockAssembler invariant violated: no partial for index '+str(下标))#违约
         return 部分#部分块
 
-    def 块列表(自身):#按流顺序组装迄今见到的所有块
-        """按流顺序组装迄今见到的所有块。"""
-        块列表=[]#组装结果
+    def 已组装(自身):#共享保留/丢弃决定
+        """达到令牌上限时丢掉不能安全执行的工具调用；回放元数据与发出块同源。"""
+        全部=[]#全部组装块
         for 下标 in 自身.顺序:#按出现顺序
-            块列表.append(自身.组装一块(自身.必须取(下标),下标))#按出现顺序组装
+            全部.append(自身.组装一块(自身.必须取(下标),下标))#组装
         结束=自身.结束#结束原因
         if 结束['kind']=='max-tokens':#达到 token 上限
-            留下=[]#丢掉不完整工具调用
-            for 块 in 块列表:#筛选
-                if 块['type']!='tool-call':#非工具调用
-                    留下.append(块)#保留非工具调用
-            return 留下#截断后的块
-        return 块列表#原样
+            保留标记=[]#每块是否留下
+            for 块 in 全部:#筛选标记
+                保留标记.append(块['type']!='tool-call')#丢掉工具调用
+            块列表=[]#截断后的块
+            位置=0#下标
+            while 位置<len(全部):#逐块
+                if 保留标记[位置]:#留下
+                    块列表.append(全部[位置])#保留
+                位置+=1#下一步
+        else:#不截断
+            保留标记=None#无筛选
+            块列表=全部#原样
+        信封=自身._回放状态#终止块上的回放
+        if 信封 is None or 'blocks' not in 信封 or 信封['blocks'] is None:#无按块元数据
+            return {'blocks':块列表,'replay':信封}#原信封
+        if len(信封['blocks'])!=len(全部):#与发出块数不对齐
+            return {'blocks':块列表,'replay':None}#丢弃整份信封
+        if 保留标记 is None or len(块列表)==len(全部):#未截断
+            return {'blocks':块列表,'replay':信封}#原信封
+        回放块=[]#按同一标记筛选
+        位置=0#下标
+        while 位置<len(信封['blocks']):#逐条
+            if 保留标记[位置]:#留下
+                回放块.append(信封['blocks'][位置])#保留
+            位置+=1#下一步
+        return {'blocks':块列表,'replay':{'response':信封['response'],'blocks':回放块}}#对齐后的信封
+
+    def 块列表(自身):#按流顺序组装迄今见到的所有块
+        """按流顺序组装迄今见到的所有块。"""
+        return 自身.已组装()['blocks']#与回放同源的保留/丢弃
 
     def 中断块列表(自身):#中断时可定稿的块
         """组装中断流可安全定稿的前缀：非空白文本/推理；省略工具调用与未关闭未知块。"""
@@ -140,11 +164,9 @@ class 块组装器:#把原始流块增量组装成完整内容块与最终助手
 
     @property#回放状态
     def 回放状态(自身):#终止 finish 上的适配器私有回放状态
-        """终止 finish 块上的适配器私有回放状态。"""
-        return 自身._回放状态#可能为 None
+        """终止 finish 块上的适配器私有回放状态；按块条目与发出块同步剪枝。"""
+        return 自身.已组装()['replay']#可能为 None
 
-    def 消息(自身,来源=None):#已组装的助手消息
-        """已组装的助手消息。"""
-        if 来源 is None:#未传来源
-            来源={'kind':'plugin','plugin':'dsh-llm/assembler'}#默认归属本组装器
-        return 创建消息({'role':'assistant','content':自身.块列表(),'source':来源})#助手角色
+    def 消息(自身,来源):#已组装的助手消息
+        """已组装的助手消息。来源为不含 kind 的提供方/模型归属。"""
+        return 创建助手消息({'content':自身.块列表(),'source':来源})#助手角色

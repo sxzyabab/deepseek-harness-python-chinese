@@ -102,11 +102,31 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
     def 解析附件():#可选附件服务
         """可选附件服务。"""
         return 上下文.获取服务('attachments')#附件
+    def 解析图片访问(附件,引用):#当前路径解析
+        """把附件宿主路径桥进已挂载的工具执行世界。"""
+        def 映射宿主路径(宿主路径):#宿主到进程
+            """宿主对象位置到进程路径。"""
+            文件系统=上下文.获取服务('fs')#可选 fs
+            if 文件系统 is None:#无文件系统
+                return None#无映射
+            if hasattr(文件系统,'宿主路径转进程路径'):#中文面
+                return 文件系统.宿主路径转进程路径(宿主路径)#映射
+            return None#无映射
+        return llm.解析图片附件访问(附件,映射宿主路径,引用)#访问
+    def 回放降级(细节):#不可用回放只警告
+        """不可用回放降级为提供方中立内容。"""
+        上下文.日志.警告(
+            'llm-pi-ai: unusable replay state on assistant history for route "'
+            +细节['provider']+'/'+细节['model']+'"; sending that message as provider-neutral content ('
+            +细节['reason']+')',
+        )#警告
     认证面=建认证注入(上下文)#集合级认证：跨快照稳定
     适配器=派爱适配器({
         'profiles':配置表,#按请求解析配置
         'resolveApiKey':解析密钥,#按配置解析密钥
         'resolveAttachments':解析附件,#可选附件服务
+        'resolveImageAccess':解析图片访问,#当前路径
+        'onReplayDegrade':回放降级,#不可用回放警告
         'auth':认证面,#登录/刷新仓
     })#构造适配器
     def 挂授权(授权上下文):#有 authorization 才登记登录

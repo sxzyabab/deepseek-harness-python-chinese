@@ -189,6 +189,7 @@ class 右栏席:#rightbar 席视图模型
             'tabId':签['id'],
             'title':席名=='sidebar.right.pane.tab.title',
             'fullscreen':自身._全屏(),
+            'active':属性['active'] if 'active' in 属性 else True,
             'signal':出现['signal'],
             'actions':出现['tabActions'],
             'useStore':属性['useStore'],

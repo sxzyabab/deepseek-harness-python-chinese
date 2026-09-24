@@ -412,10 +412,11 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         自身.发布状态()#刷新状态
 
     def 协调状态(自身):#按列表协调运行态与未读
-        """就绪后清幽灵。"""
+        """子智能体目录行与已持留回退行不建立宿主运行态。就绪后清幽灵。"""
         列表=自身.sessions.list.getSnapshot()#列表快照
         在场=set(列表.get('byId',{}).keys())#在场 id
-        for 标识 in 在场:#逐在场
+        标识序=列表.get('ids',())#仅 ids 序建立运行态
+        for 标识 in 标识序:#逐主会话
             行=列表['byId'][标识]#行
             先前=自身.running[标识] if 标识 in 自身.running else None#先前运行态
             运行=行.get('running') if isinstance(行,dict) else getattr(行,'running',None)#行运行态
@@ -423,8 +424,8 @@ class 会话界面:#会话作用域源名册与渲染器适配器
                 自身.running[标识]=运行#写入
             elif 先前!=运行:#差异
                 自身.观察运行态(标识,运行)#观察
-            持有=行.get('retainedBy',{}) if isinstance(行,dict) else getattr(行,'retainedBy',{})#持有
-            if (持有.get('mainView',0) if isinstance(持有,dict) else 0)>0:#主视图
+        for 标识 in 在场:#在场清未读
+            if 自身.是主视图(标识):#主视图
                 自身.completionUnread.discard(标识)#清未读
         if 列表.get('phase')=='ready':#就绪后清幽灵
             for 标识 in list(自身.running.keys()):#逐运行态键

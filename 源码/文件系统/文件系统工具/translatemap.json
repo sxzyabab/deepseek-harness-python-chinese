@@ -1,0 +1,12 @@
+{
+    "diff":"差异",
+    "edit":"编辑",
+    "error":"错误",
+    "read":"读",
+    "read-image":"读图",
+    "read-render":"读渲染",
+    "read-target":"读目标",
+    "sandbox":"沙箱",
+    "session-cwd":"会话工作目录",
+    "write":"写"
+}

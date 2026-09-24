@@ -1,4 +1,4 @@
-/* 对齐上游 TrajectoryTable.module.css：分栏壳、历史加载、表头与行骨架 */
+/* 分栏壳、历史加载、表头与行骨架 */
 
 .split {
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);

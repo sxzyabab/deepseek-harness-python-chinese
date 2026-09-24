@@ -1,11 +1,11 @@
 """面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值。它拥有面向模型的模式与运行生命周期；脚本解析、执行、上限与取消放在 `ctx.workflowEngine`（`@deepseek-ai/dsh-workflow`）后面，因此换上加固引擎不必改动模型所见。执行会等待运行结果并始终销毁运行；非 completed 原因变成工具错误，后台收集仍推迟。呈现是仅依赖 args 的通用卡片，标题来自 `meta.name`。显式询问的用法指引登记为工具自己的提示词段落，而不是部署人设散文。"""
 import json#结果 JSON 渲染
-from ...依赖.schemastery import 字符串字段,自然数字段#配置字段
-from ...内核.工具 import 定义工具#导入工具定义辅助
+from ...依赖.schemastery import 字符串字段,自然数字段,布尔字段#配置字段
+from .记录 import 创建工作流记录镜像
 
 __all__=[#仅中文公开名；Cordis 英文槽不入表
     '名称','依赖','配置','描述','渲染记录错误',
-    '创建工作流记录器','呈现工作流调用','呈现工作流结果','停止原因错误',
+    '创建工作流记录器','创建工作流记录镜像','呈现工作流调用','呈现工作流结果','停止原因错误',
     '渲染结果','解析配置','应用','工作流工具错误',
 ]#公开面结束
 
@@ -14,6 +14,7 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 配置={#插件配置：面向模型的工具名以及结果渲染上限
     'toolName':字符串字段(默认值='workflow'),#要登记的面向模型的工具名（默认 workflow）
     'maxResultChars':自然数字段(最小=1,默认值=50_000),#渲染结果的字符上限（默认 50000）
+    'enableRunInBackground':布尔字段(默认值=True),#是否暴露 run_in_background
 }#配置模式结束
 
 class 工作流工具错误(Exception):#面向模型的工作流工具失败
@@ -32,8 +33,10 @@ class 工作流工具错误(Exception):#面向模型的工作流工具失败
     +'- `parallel(thunks): Promise<any[]>` — run zero-argument functions concurrently and await ALL of them (a barrier; use only when a stage genuinely needs every prior result together). A throwing thunk resolves to `null`.\n'#parallel 钩子：并发屏障
     +'- `phase(title)` — start a progress phase; `log(message)` — narrate progress; `args` — the tool call\'s `args` input, verbatim.\n\n'#phase/log/args 辅助钩子
     +'Misused hooks (bad arguments, unknown options, unsupported schemas, tripped caps) throw errors that ALWAYS kill the script — they never dissolve into a per-item `null`.\n\n'#误用钩子一律杀死脚本
-    +'Constraints: concurrency and total-agent caps apply; no filesystem, network, timers, or Node.js APIs are provided — the agents do the work, the script only coordinates them. The run executes in the foreground: this call returns when the whole script finishes.'#上限、无宿主 API、前台等待整脚本结束
+    +'Constraints: concurrency and total-agent caps apply; no filesystem, network, timers, or Node.js APIs are provided — the agents do the work, the script only coordinates them.'
 )#描述结束
+前台收尾=' The run executes in the foreground: this call returns when the whole script finishes.'
+后台收尾=' The run executes in the foreground by default: this call returns when the whole script finishes. Set `run_in_background: true` for a long run: the call returns a job id immediately, the run keeps orchestrating in the background, and its return value arrives with the job\'s completion notice (check on it with `job_output`, stop it with `job_kill`).'
 
 def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字符边界
     """按 UTF-8 字节上限截断，切点落在字符边界。返回截断后的文本与被丢掉的字节数。"""
@@ -159,76 +162,158 @@ def 渲染结果(名称值,已启动智能体数,返回值,最大字节):#把结
     复数='' if 已启动智能体数==1 else 's'#英文复数
     return 'workflow "'+名称值+'" completed ('+str(已启动智能体数)+' agent'+复数+').\nReturn value:\n'+已渲#拼出完成摘要
 
-def 解析配置(配置值):#取出已解析配置
+def 解析配置(配置值):
     """schemastery 已填好带默认值的字段；此步骤记录该解析，不是隐藏回退。配置值是 dict。"""
-    工具名=配置值['toolName'] if 'toolName' in 配置值 else 'workflow'#工具名
-    最大字节=配置值['maxResultChars'] if 'maxResultChars' in 配置值 else 50000#结果字节上限
-    return {'toolName':工具名,'maxResultChars':最大字节}#已解析
+    工具名=配置值['toolName'] if 'toolName' in 配置值 else 'workflow'
+    最大字节=配置值['maxResultChars'] if 'maxResultChars' in 配置值 else 50000
+    后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True
+    return {'toolName':工具名,'maxResultChars':最大字节,'enableRunInBackground':后台启用}
 
-def 应用(上下文,配置值=None):#登记工作流工具与用法段落
+def 任务结局于(结果,名称值,最大字节):
+    """把已结算后台运行映射到任务结局词表。"""
+    停止原因=结果['stopReason']
+    if 停止原因=='completed':
+        return {
+            'status':'completed',
+            'detail':str(结果['agentsStarted'])+' agent'+('' if 结果['agentsStarted']==1 else 's'),
+            'result':渲染结果(名称值,结果['agentsStarted'],结果['value'],最大字节),
+        }
+    if 停止原因=='cancelled':
+        return {'status':'killed'}
+    if 停止原因=='error':
+        return {'status':'failed','detail':结果['error'] if 'error' in 结果 else 'unknown error'}
+    return {'status':'failed','detail':'workflow run ended abnormally ('+str(停止原因)+')'}
+
+def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,最大字节):
+    """把一次运行登记为所属任务并立刻返回任务 id。"""
+    任务服务=上下文.获取服务('jobs',False)
+    if 任务服务 is None:
+        raise 工作流工具错误('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')
+    运行槽=[None]
+    def 任务体(任务):
+        """在任务启动器内拉起引擎运行。"""
+        启动请求={'script':参数['script'],'meta':参数['meta'],'parent':父智能体}
+        if 'args' in 参数 and 参数['args'] is not None:
+            启动请求['args']=参数['args']
+        运行=上下文.workflowEngine.启动(启动请求)
+        运行槽[0]=运行
+        镜像['开始'](运行.id,任务)
+        if 写记录:
+            记录器['开始'](父智能体.session,运行)
+        def 等待结局():
+            """销毁、停镜像，再把停止原因映射成任务结局。"""
+            try:
+                结果=运行.结果.等待()
+            finally:
+                try:
+                    运行.销毁()
+                except Exception as 错误:
+                    上下文.日志.警告('background workflow run '+str(运行.id)+' dispose failed: '+str(错误))
+                镜像['停止'](运行.id)
+                if 写记录:
+                    记录器['完成'](运行.id,结果['stopReason'] if 结果 is not None else 'error')
+                    记录器['放弃'](运行.id)
+            return 任务结局于(结果,参数['meta']['name'],最大字节)
+        def 取消(原因=None):
+            """取消后台工作流运行。"""
+            运行.取消(原因 if 原因 is not None else 'background workflow job killed')
+        from concurrent.futures import Future as 原生结果
+        from threading import Thread as 工作线程
+        结算=原生结果()
+        def 盯():
+            """后台等待运行结局。"""
+            try:
+                结算.set_result(等待结局())
+            except BaseException as 错误:
+                结算.set_exception(错误)
+        线=工作线程(target=盯,daemon=True)
+        线.start()
+        class 结局任务:
+            """给注册表 .等待 的结局包装。"""
+            def 等待(自身,超时=None):
+                """阻塞到任务结局。"""
+                return 结算.result(timeout=超时)
+        return {'cancel':取消,'done':结局任务()}
+    编号=任务服务.启动({
+        'kind':'workflow',
+        'label':参数['meta']['name'],
+        'owner':父智能体.id,
+        'run':任务体,
+    })
+    return {'kind':'background','jobId':编号,'runId':运行槽[0].id}
+
+def 应用(上下文,配置值=None):
     """登记面向模型的工作流工具与用法段落。配置值是 dict。"""
-    if 配置值 is None:#无配置
-        配置值={}#空配置
-    已解析=解析配置(配置值)#取出已解析配置
-    工具名=已解析['toolName']#工具名
-    最大字节=已解析['maxResultChars']#结果字节上限
-    记录器=创建工作流记录器(上下文)#创建会话记录器
+    if 配置值 is None:
+        配置值={}
+    已解析=解析配置(配置值)
+    工具名=已解析['toolName']
+    最大字节=已解析['maxResultChars']
+    后台启用=已解析['enableRunInBackground']
+    记录器=创建工作流记录器(上下文)
+    镜像=创建工作流记录镜像(上下文)
     上下文.systemPrompt.段落({#登记工具用法段落
         'name':'tool:'+工具名,#段落名跟工具名
-        'order':115,#段落顺序
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_WORKFLOW'),#中央段落顺序
         'text':'Use the '+工具名+' tool ONLY when the user explicitly asks for a workflow or for large multi-agent orchestration: you write a JavaScript script (the tool description documents the exact format) that fans work out across many subagents with phases and structured results. For one or two delegations, prefer plain subagent calls.',#仅在用户明确要求时使用
     })#结束段落登记
 
-    def 渲染输出(参数,值):#把结构化结果渲成文本块
-        """把结构化结果渲成文本块。参数与值都是 dict。"""
-        return [{#文本块数组
-            'type':'text',#文本块
-            'text':渲染结果(参数['meta']['name'],值['agentsStarted'],值['result'],最大字节),#按上限渲染
-        }]#结束文本块数组
+    def 渲染输出(参数,值):
+        """把结构化结果渲成文本块。"""
+        if 值.get('kind')=='background':
+            文本='workflow "'+str(参数['meta']['name'])+'" started in the background as job '+str(值['jobId'])+'. Its return value arrives with the completion notice; check on it with job_output, stop it with job_kill.'
+        else:
+            文本=渲染结果(参数['meta']['name'],值['agentsStarted'],值['result'],最大字节)
+        return [{'type':'text','text':文本}]
 
-    def 执行(参数,执行上下文):#执行一次工作流工具调用
-        """启动工作流运行并等待结算。参数与执行上下文都是 dict。"""
-        if 'agent' not in 执行上下文 or 执行上下文['agent'] is None:#没有调用方智能体
-            raise 工作流工具错误('workflow tool requires a calling agent (exec.agent was undefined)')#缺少父智能体则失败
-        父智能体=执行上下文['agent']#取出调用方智能体
-        信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#工具取消信号
-        启动请求={#启动工作流运行请求
-            'script':参数['script'],#脚本正文
-            'meta':参数['meta'],#身份块
-            'parent':父智能体,#父智能体
-            'signal':信号,#工具取消信号
-        }#结束基础请求
-        if 'args' in 参数 and 参数['args'] is not None:#有 args 才传入
-            启动请求['args']=参数['args']#脚本输入
-        运行=上下文.workflowEngine.启动(启动请求)#启动工作流运行
-        写记录=('parent' not in 执行上下文) or (执行上下文['parent'] is None)#仅顶层调用才写持久记录
-        if 写记录:#顶层调用开始记录
-            记录器['开始'](父智能体.session,运行)#开始记录
-        结果=None#结算结果，finally 里再读
-        try:#等待运行结算
-            结果=运行.结果.等待()#等待脚本结算
-            错误文案=停止原因错误(结果)#非干净结束则得到错误文案
-            if 错误文案 is not None:#需要报成工具错误
-                raise 工作流工具错误(错误文案)#抛出停止原因
-            return {#返回结构化成功结果
-                'runId':运行.id,#运行标识
-                'agentsStarted':结果['agentsStarted'],#智能体计数
-                'result':结果['value'],#脚本返回值
-            }#结束成功结果
-        finally:#无论成败都清理
-            try:#等待销毁并写结束记录
-                运行.销毁()#等待脚本与子运行静止
-                if 写记录:#顶层调用需要写结束记录
-                    if 结果 is None:#约定上结果必已赋值
-                        raise 工作流工具错误('workflow run settled without a result')#缺少结果
-                    记录器['完成'](运行.id,结果['stopReason'])#写入运行结束
-            finally:#销毁后再丢掉跟踪
-                if 写记录:#确保不再向已结束运行写事件
-                    记录器['放弃'](运行.id)#放弃跟踪
+    def 执行(参数,执行上下文):
+        """启动工作流运行并等待结算，或后台立刻返回任务 id。"""
+        if 'agent' not in 执行上下文 or 执行上下文['agent'] is None:
+            raise 工作流工具错误('workflow tool requires a calling agent (exec.agent was undefined)')
+        父智能体=执行上下文['agent']
+        写记录=('parent' not in 执行上下文) or (执行上下文['parent'] is None)
+        if 参数.get('run_in_background') is True:
+            if not 后台启用:
+                raise 工作流工具错误('run_in_background is disabled for this tool')
+            return 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,最大字节)
+        信号=执行上下文['signal'] if 'signal' in 执行上下文 else None
+        启动请求={
+            'script':参数['script'],
+            'meta':参数['meta'],
+            'parent':父智能体,
+            'signal':信号,
+        }
+        if 'args' in 参数 and 参数['args'] is not None:
+            启动请求['args']=参数['args']
+        运行=上下文.workflowEngine.启动(启动请求)
+        if 写记录:
+            记录器['开始'](父智能体.session,运行)
+        结果=None
+        try:
+            结果=运行.结果.等待()
+            错误文案=停止原因错误(结果)
+            if 错误文案 is not None:
+                raise 工作流工具错误(错误文案)
+            return {
+                'kind':'foreground',
+                'runId':运行.id,
+                'agentsStarted':结果['agentsStarted'],
+                'result':结果['value'],
+            }
+        finally:
+            try:
+                运行.销毁()
+                if 写记录:
+                    if 结果 is None:
+                        raise 工作流工具错误('workflow run settled without a result')
+                    记录器['完成'](运行.id,结果['stopReason'])
+            finally:
+                if 写记录:
+                    记录器['放弃'](运行.id)
 
     上下文.tools.register(定义工具({#登记面向模型的工作流工具
         'name':工具名,#工具名
-        'description':描述,#工具描述
+        'description':描述+(后台收尾 if 后台启用 else 前台收尾),
         'parameters':{#参数模式
             'script':{#脚本参数
                 'type':'string',#字符串
@@ -260,24 +345,42 @@ def 应用(上下文,配置值=None):#登记工作流工具与用法段落
                     },#结束阶段列表
                 },#结束身份字段
             },#结束身份参数
-            'args':{#脚本输入
-                'type':'object',#对象
-                'additionalProperties':True,#允许额外字段
-                'description':'Optional JSON input exposed to the script as the `args` global (wrap a bare list as a field, e.g. {"files": [...]}).',#args 说明
-            },#结束脚本输入
-        },#结束参数模式
-        'output':{#输出模式
-            'schema':{#结果 JSON 模式
-                'type':'object',#对象
-                'additionalProperties':False,#禁止额外字段
-                'properties':{#结果字段
-                    'runId':{'type':'string','required':True},#运行标识
-                    'agentsStarted':{'type':'integer','required':True},#智能体计数
-                    'result':{'type':'json','required':True},#脚本返回值
-                },#结束结果字段
-            },#结束结果模式
-            'render':渲染输出,#把结构化结果渲成文本块
-        },#结束输出模式
+            'args':{
+                'type':'object',
+                'additionalProperties':True,
+                'description':'Optional JSON input exposed to the script as the `args` global (wrap a bare list as a field, e.g. {"files": [...]}).',
+            },
+            **({'run_in_background':{
+                'type':'boolean',
+                'description':'Run as a background job: return a job id immediately instead of waiting; the return value arrives with the completion notice.',
+            }} if 后台启用 else {}),
+        },
+        'output':{
+            'schema':{
+                'oneOf':[
+                    {
+                        'type':'object',
+                        'additionalProperties':False,
+                        'properties':{
+                            'kind':{'type':'string','required':True,'const':'background'},
+                            'jobId':{'type':'string','required':True},
+                            'runId':{'type':'string','required':True},
+                        },
+                    },
+                    {
+                        'type':'object',
+                        'additionalProperties':False,
+                        'properties':{
+                            'kind':{'type':'string','required':True,'const':'foreground'},
+                            'runId':{'type':'string','required':True},
+                            'agentsStarted':{'type':'integer','required':True},
+                            'result':{'type':'json','required':True},
+                        },
+                    },
+                ],
+            },
+            'render':渲染输出,
+        },
         'execute':执行,#执行一次工作流工具调用
         'presentCall':呈现工作流调用,#调用中呈现
         'presentResult':呈现工作流结果,#完成后呈现

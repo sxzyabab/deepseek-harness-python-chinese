@@ -1,4 +1,5 @@
 """当前 Loader 插件条目的只读投影。"""
+from ...启动.app启动.包元 import 读插件元
 from .类型 import 插件条目标识
 
 __all__=['插件条目标识','读插件清单','名称','依赖','应用']
@@ -18,17 +19,23 @@ __all__=['插件条目标识','读插件清单','名称','依赖','应用']
 def 读插件清单(上下文):
     """读取当前 Loader 条目与可选预设组合；无单独运行时缓存。"""
     条目列表=[]#按 Loader 遍历顺序
+    包表=上下文.获取服务('pluginPackages')
     for 条目 in 上下文.loader.entries():
         if 条目.options.group:#group 不是清单行
             continue
         纤程=条目.fiber
         阶段=None if 纤程 is None else 纤程状态映射.get(纤程.state,None)
-        条目列表.append({
+        基础=条目.parent.tree.ctx.baseUrl
+        元=None if 基础 is None or 包表 is None else 读插件元(条目.options.name,基础)
+        行={
             'entryId':插件条目标识(条目.id),
             'moduleName':条目.options.name,
             'enabled':not 条目.disabled,
             'fiberPhase':阶段,
-        })
+        }
+        if 元 is not None:
+            行['meta']=元
+        条目列表.append(行)
     预设=上下文.获取服务('agentPresets')#可选预设名册
     管理={} if 上下文.获取服务('pluginManager') is None else {'managementAvailable':True}
     if 预设 is None:
@@ -49,7 +56,12 @@ def 读插件清单(上下文):
                     'enabled':getattr(行,'enabled',None),
                     **({} if getattr(行,'condition',None) is None else {'condition':行.condition}),
                 }
-            行列表.append({**其余,'fiberPhase':None if 纤程状态 is None else 纤程状态映射.get(纤程状态,None)})
+            模块名=其余['moduleName'] if 'moduleName' in 其余 else None
+            行元=None if 上下文.baseUrl is None or 包表 is None or not isinstance(模块名,str) else 读插件元(模块名,上下文.baseUrl)
+            投影={**其余,'fiberPhase':None if 纤程状态 is None else 纤程状态映射.get(纤程状态,None)}
+            if 行元 is not None:
+                投影['meta']=行元
+            行列表.append(投影)
         if isinstance(组合,dict):
             项={键:值 for 键,值 in 组合.items() if 键!='rows'}
         else:

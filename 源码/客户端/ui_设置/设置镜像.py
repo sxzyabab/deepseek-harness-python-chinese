@@ -1,5 +1,5 @@
 import threading
-from .设置作用域 import 快照存储#共享快照仓库
+from ...存储 import 创建快照存储#共享快照仓库
 
 __all__=['设置描述镜像']#仅中文公开名
 
@@ -9,7 +9,7 @@ class 设置描述镜像:
         """记下上下文与持久化；host 空闲，memory 不可用。"""
         自身.上下文=上下文#提供方插件上下文
         自身.持久化=持久化#host 走线上，memory 仅进程内
-        自身.store=快照存储({#初始快照
+        自身.store=创建快照存储({#初始快照
             'status':'idle' if 持久化=='host' else 'unavailable',#host 空闲
             'view':None,#尚无视图
             'error':None,#无错

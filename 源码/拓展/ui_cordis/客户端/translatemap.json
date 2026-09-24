@@ -1,0 +1,14 @@
+{
+    "inventory":"清单",
+    "CordisDefineRow":"定义行",
+    "CordisActionRow":"动作行",
+    "CordisRunRow":"运行行",
+    "slots":"槽位",
+    "CordisPanel":"面板",
+    "dynamic-port":"动态端口",
+    "locales":"文案",
+    "events":"事件",
+    "card-model":"卡片模型",
+    "run-card-index":"运行卡片索引",
+    "status":"状态"
+}

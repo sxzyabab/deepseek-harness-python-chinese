@@ -1,7 +1,6 @@
 {
-    "brand.ts":"标识构造.py",
-    "history.ts":"历史.py",
-    "index.ts":"__init__.py",
-    "invariant.ts":"不变量.py",
-    "types.ts":"类型.py"
+    "brand":"标识构造",
+    "history":"历史",
+    "invariant":"不变量",
+    "types":"类型"
 }

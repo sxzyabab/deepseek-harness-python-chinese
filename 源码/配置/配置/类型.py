@@ -1,10 +1,9 @@
-"""用户设置 seam 的客户端安全类型面：命名空间品牌、提交来源联合，以及 seam 的 Cordis 事件声明。仅类型——没有运行时代码，此处也不触及任何仅 Host 符号，因此 Client 编译面读到的签名与 Host 发出的完全一致。"""
+"""客户端安全的配置表单视图与变更通知。"""
 
 def 设置命名空间品牌(原始):
-    """把字符串打成设置命名空间品牌。一个已注册设置命名空间的名义 id。不做校验。"""
+    """把字符串打成设置命名空间品牌。一个配置档插件条目的名义 id。不做校验。"""
     return 原始
 
 设置更新来源=('update','provider')
 
-# 事件 settings/updated(ns, next, prev, source) @mode emit：一个已注册命名空间的解析值已提交变更。在提供方持久化（update）或发布（provider）该变更之后发出；解析值深相等时从不发出。监听器失败被包容并记录——同步抛错与异步拒绝一样——但带 INVARIANT 码的失败在每个监听器跑完后重新抛出；该再抛只有同步监听器能到达发出方，因此本事件上的不变量检查不得是异步函数。参数 ns 为解析值已变的命名空间，next/prev 为新/旧解析值，source 标明变更经 update() 还是提供方进入。
-# 事件 settings/document-updated(ns, revision) @mode emit：一个已注册命名空间的原始用户段已变，无论解析值是否变。settings/updated 是面向消费方的事件，仍受深相等门控；本事件给配置界面用，它们必须知道某字段从继承变成覆盖（解析值相同、含义不同），以及所持修订已过期。监听器包容与 settings/updated 相同。参数 ns 为已存储段已变的命名空间，revision 为该命名空间的新修订号。
+# 事件 settings/document-updated(ns, revision) @mode emit：一个配置档条目的表单值、可用性或页面策略已变。表单客户端再读其 schema、解析值与修订。参数 ns 为配置档条目 id，revision 为该条目新修订号。

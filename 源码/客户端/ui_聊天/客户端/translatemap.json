@@ -1,4 +1,14 @@
 {
-    "stores.ts":"存储.py",
-    "contract/store.ts":"约定/存储.py"
+    "stores":"存储",
+    "contract":"约定",
+    "apply":"应用",
+    "markdown-labels":"markdown标签",
+    "transcript-view":"转录视图",
+    "locale":"文案",
+    "chat":"聊天",
+    "conversation-nodes":"会话节点",
+    "model":"模型",
+    "settings":"设置",
+    "presentation-policy":"呈现策略",
+    "performance-usage":"性能用量"
 }

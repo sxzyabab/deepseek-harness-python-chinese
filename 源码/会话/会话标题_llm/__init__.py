@@ -1,7 +1,7 @@
 """模型会话标题共享策略。"""
 import json#消息 JSON 帧
 from ...依赖.schemastery import 字典字段,数字字段,字符串字段
-from ...模型后端.llm import 创建用户消息,深冻结#LLM 辅助
+from ...模型后端.llm import 创建用户消息,深冻结,块组装器#LLM 辅助
 from ...工具.超时 import 截止#截止
 from ..会话标题.归一 import 归一化会话标题#标题归一
 
@@ -10,6 +10,9 @@ class 会话标题llm错误(Exception):
 
 会话标题超时码='SESSION_TITLE_TIMEOUT'#超时原因码
 最大定时器延迟毫秒=2147483647#定时器延迟上限（毫秒）
+配置键=frozenset([#直接构造校验允许的键
+    'targetWords','targetCjkCharacters','maxInputBytes','maxOutputTokens','timeoutMs','provider','model',
+])#键集
 配置字段={
     'targetWords':数字字段(默认值=None),#非 CJK 目标词数（必填由加载器校验）
     'targetCjkCharacters':数字字段(默认值=None),#CJK 目标字符
@@ -32,29 +35,45 @@ def 若已中止则抛出(信号):
     if 已中止(信号):#已中止
         raise 会话标题llm错误('aborted')#取消
 
+def 断言正整数(名,值):
+    """校验一项正整数上限。"""
+    if isinstance(值,bool) or not isinstance(值,int) or 值<=0:#非法
+        raise 会话标题llm错误('session-title-llm: '+名+' must be a positive integer')#拒绝
+
 def 解析会话标题llm配置(配置):
     """校验并冻结模型标题策略。"""
     if 配置 is None or not isinstance(配置,dict):#非法
         raise 会话标题llm错误('session-title-llm: configuration is required')#拒绝
+    for 键 in 配置.keys():#未知键
+        if 键 not in 配置键:#未知
+            raise 会话标题llm错误('session-title-llm: unknown config key "'+str(键)+'"')#拒绝
     for 键 in ('targetWords','targetCjkCharacters','maxInputBytes','maxOutputTokens','timeoutMs'):#必填正整数
         if 键 not in 配置:#缺键
             raise 会话标题llm错误('session-title-llm: '+键+' must be a positive integer')#拒绝
-        值=配置[键]#读
-        if isinstance(值,bool) or not isinstance(值,int) or 值<=0:#非法
-            raise 会话标题llm错误('session-title-llm: '+键+' must be a positive integer')#拒绝
+        断言正整数(键,配置[键])#校验
     if 配置['timeoutMs']>最大定时器延迟毫秒:#超时过大
         raise 会话标题llm错误('session-title-llm: timeoutMs must not exceed '+str(最大定时器延迟毫秒))#拒绝
-    有提供方='provider' in 配置 and 配置['provider'] is not None#有提供方
-    有模型='model' in 配置 and 配置['model'] is not None#有模型
+    有提供方='provider' in 配置#有提供方
+    有模型='model' in 配置#有模型
     if 有提供方!=有模型:#必须成对
         raise 会话标题llm错误('session-title-llm: provider and model must be supplied together')#拒绝
+    if 有提供方 and (not isinstance(配置['provider'],str) or len(配置['provider'])==0 or not isinstance(配置['model'],str) or len(配置['model'])==0):#空串
+        raise 会话标题llm错误('session-title-llm: provider and model overrides must be non-empty strings')#拒绝
     return 深冻结(dict(配置))#冻结
+
+def 解析路由(配置,请求):
+    """显式成对覆盖，否则用 request/header 记下的路由。"""
+    if 'provider' in 配置 and 'model' in 配置:#显式路由
+        return {'provider':配置['provider'],'model':配置['model']}#覆盖
+    if 'route' not in 请求 or 请求['route'] is None:#无路由
+        raise 会话标题llm错误('session-title-llm: no logged request route is available; configure provider and model together')#拒绝
+    return 请求['route']#记下的路由
 
 def _系统提示(配置):
     """语言感知系统提示。"""
     return '\n'.join([
         'Create a concise title for an AI coding-assistant session from the supplied human messages.',
-        'Return only the title on one line, in plain text of natural language, with no quotes, prefix, explanation, Markdown, XML, or terminal control codes.',
+        'Return only the title on one line, **in plain text of natural language**, with no quotes, prefix, explanation, Markdown, XML, or terminal control codes. No code is allowed.',
         'Use the language of the messages.',
         'Aim for about '+str(配置['targetWords'])+' words in non-CJK languages or '+str(配置['targetCjkCharacters'])+' CJK characters.',
     ])#拼接
@@ -62,6 +81,24 @@ def _系统提示(配置):
 def _帧消息(消息列表):
     """把消息帧成 JSON。"""
     return 'Generate the session title from this JSON array of human messages:\n'+json.dumps(消息列表,ensure_ascii=False,separators=(',',':'),allow_nan=False)#帧
+
+def 结束错误(结束):
+    """把终止结束原因收成辅助调用失败。"""
+    种类=结束.get('kind') if isinstance(结束,dict) else None#种类
+    if 种类=='stop':#正常停
+        return None#无错
+    if 种类=='error' or 种类=='aborted':#失败或中止
+        故障=结束.get('failure') if isinstance(结束,dict) else None#故障
+        if not isinstance(故障,dict):#缺故障
+            故障={}#空
+        错误=会话标题llm错误(故障['message'] if 'message' in 故障 else '')#消息
+        错误.code=故障['code'] if 'code' in 故障 else None#码
+        return 错误#失败
+    if 种类=='max-tokens':#到上限
+        return 会话标题llm错误('session-title-llm: title output reached maxOutputTokens')#拒绝
+    if 种类=='tool-calls':#要工具
+        return 会话标题llm错误('session-title-llm: title model unexpectedly requested a tool')#拒绝
+    return 会话标题llm错误('session-title-llm: unsupported finish reason "'+str(种类)+'"')#未知
 
 def 登记会话标题llm提供方(上下文,配置,标识,自动模式,选消息):
     """通过共享策略登记一个模型标题提供方。"""
@@ -77,23 +114,30 @@ def 用llm生成会话标题(上下文,配置,请求,选中消息,标题提供�
     if len(选中消息)==0:#无消息
         raise 会话标题llm错误('session-title-llm: at least one source message is required')#拒绝
     帧=_帧消息(选中消息)#帧
-    if len(帧.encode('utf-8'))>配置['maxInputBytes']:#超长
-        raise 会话标题llm错误('session-title-llm: input exceeds maxInputBytes')#拒绝
-    路由=请求['route'] if 'route' in 请求 else None#路由
-    if 'provider' in 配置 and 配置['provider'] is not None:#显式路由
-        路由={'provider':配置['provider'],'model':配置['model']}#覆盖
-    elif 路由 is None:#无路由
-        raise 会话标题llm错误('session-title-llm: no logged request route is available; configure provider and model together')#拒绝
+    输入字节=len(帧.encode('utf-8'))#UTF-8 字节
+    if 输入字节>配置['maxInputBytes']:#超长
+        raise 会话标题llm错误('session-title-llm: input is '+str(输入字节)+' bytes, exceeding maxInputBytes '+str(配置['maxInputBytes']))#拒绝
+    路由=解析路由(配置,请求)#路由
+    消息=[创建用户消息({'content':[{'type':'text','text':帧}],'source':{'kind':'dsh-session-title-llm'}})]#用户消息
     系统=_系统提示(配置)#系统
-    消息=[创建用户消息({'content':[{'type':'text','text':帧}],'source':{'kind':'plugin','plugin':'dsh-session-title-llm'}})]#用户消息
     命令截止=截止(请求['signal'],配置['timeoutMs'],会话标题超时码)#截止
     选项=深冻结({'provider':路由['provider'],'model':路由['model'],'messages':消息,'system':系统,'maxTokens':配置['maxOutputTokens'],'sessionId':请求['session'].id,'purpose':'session-title','signal':命令截止.信号})#选项
     请求['session'].append('session/title-llm-request',{'titleProvider':标题提供方标识,'messageSeqs':[项['seq'] for 项 in 选中消息],'route':路由,'system':系统,'messages':消息,'maxTokens':配置['maxOutputTokens']})#日志
-    文本块=[]#累积文本
+    若已中止则抛出(命令截止.信号)#再取消
+    组装器=块组装器()#组装
     for 块 in 上下文.llm.stream(选项):#流式
-        if 块['type']=='text-delta':#文本增量
-            文本块.append(块['text'] if 'text' in 块 else '')#追加
-    标题=归一化会话标题(' '.join(文本块),2**31-1)#归一
+        若已中止则抛出(命令截止.信号)#取消
+        组装器.推入(块)#喂入
+    若已中止则抛出(命令截止.信号)#结束后取消
+    终端错误=结束错误(组装器.结束)#终止错
+    if 终端错误 is not None:#失败
+        raise 终端错误#抛出
+    块列表=组装器.块列表()#已组装块
+    for 块 in 块列表:#筛工具调用
+        if 块.get('type')=='tool-call':#含工具
+            raise 会话标题llm错误('session-title-llm: title output must contain text only')#拒绝
+    文本=' '.join(块['text'] for 块 in 块列表 if 块.get('type')=='text')#文本块
+    标题=归一化会话标题(文本,2**53-1)#归一
     if len(标题)==0:#空
         raise 会话标题llm错误('session-title-llm: title model produced no text')#拒绝
     return {'title':标题,'messageSeqs':[项['seq'] for 项 in 选中消息],'model':路由}#结果

@@ -1,0 +1,12 @@
+{
+    "cold-read":"冷读",
+    "config":"配置",
+    "corpus":"语料库",
+    "cursor":"游标",
+    "documents":"文档",
+    "extraction":"抽取",
+    "filters":"过滤",
+    "observation":"观测",
+    "sources":"来源",
+    "tracing":"追踪"
+}

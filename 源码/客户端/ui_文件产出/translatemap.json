@@ -1,0 +1,19 @@
+{
+    "ChangedFiles":"改动文件",
+    "Deliverables":"产出清单",
+    "FileDiff":"产出文件",
+    "PresentRow":"呈现行",
+    "PresentedFileCard":"已呈现文件卡",
+    "ReviewTab":"审阅标签",
+    "changes":"改动",
+    "changes-diff":"改动对比",
+    "changes-summary":"改动摘要",
+    "host-read-store":"宿主读存储",
+    "locales":"文案",
+    "present-open":"呈现打开",
+    "presented":"已呈现",
+    "review-definition":"审阅定义",
+    "review-store":"审阅存储",
+    "turn-deliverables":"回合产出",
+    "file-actions":"文件动作"
+}

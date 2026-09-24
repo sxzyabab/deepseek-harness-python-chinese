@@ -4,7 +4,6 @@
     "types":"类型",
     "output":"输出",
     "queue":"队列",
-    "index":"__init__",
     "OfficeToPdfError":"office转pdf错误",
     "OfficeSourceKey":"office源键",
     "OfficeToPdfGeneration":"office转pdf世代",

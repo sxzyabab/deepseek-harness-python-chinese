@@ -1,7 +1,6 @@
 {
-    "index.ts":"__init__.py",
-    "remote-mock.ts":"端点模拟.py",
-    "remote-proxy.ts":"命名空间代理.py",
-    "streams.ts":"流脚本.py",
-    "log.ts":"调用日志.py"
+    "remote-mock":"端点模拟",
+    "remote-proxy":"命名空间代理",
+    "streams":"流脚本",
+    "log":"调用日志"
 }

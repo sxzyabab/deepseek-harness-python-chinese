@@ -1,0 +1,7 @@
+{
+    "hub":"枢纽",
+    "session":"会话",
+    "runtime-rpc":"运行时rpc",
+    "source-rpc":"源rpc",
+    "endpoint":"端点"
+}

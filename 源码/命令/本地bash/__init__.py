@@ -103,7 +103,7 @@ def 取出已收集(句柄):#取出收集模式的两路读取器
 
 class 后台进程句柄:#外壳执行器.启动 返回的后台进程
     """后台进程句柄：方法仅中文读取输出与杀死。"""
-    def __init__(自身,运行中,收集,规格,宿主):#钉住子进程与收集器
+    def __init__(自身,运行中,收集,规格,宿主,分类函数):#钉住子进程与收集器
         """记下存活子进程、两路收集器、规格与宿主执行器。"""
         自身.status='running'#刚拉起，算在跑
         自身.exitCode=None#尚未退出
@@ -117,6 +117,28 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         自身.失败说明=None#待交付的启动失败说明
         自身.标准输出偏移=0#标准输出已读偏移
         自身.标准误偏移=0#标准误已读偏移
+        自身.投影=None#前台投影缓存
+        自身.提供方失败=None#基础设施失败
+        自身.分类函数=分类函数#到期分类
+        自身.observed={'stdout':收集['stdout'],'stderr':收集['stderr']}#非消费读取器
+
+    def 结果(自身):
+        """前台投影：进程关闭后给出运行结果；提供方失败则抛出。"""
+        if 自身.投影 is None:
+            自身.done.等待()
+            if 自身.提供方失败 is not None:
+                raise 自身.提供方失败
+            分类=自身.分类函数()
+            自身.投影={
+                'exitCode':自身.exitCode,
+                'signal':自身.signal,
+                'timedOut':分类['timedOut'],
+                'aborted':分类['aborted'],
+                'timeoutMs':自身.规格['timeoutMs'],
+                'stdout':最终输出(自身.收集['stdout']),
+                'stderr':最终输出(自身.收集['stderr']),
+            }
+        return 自身.投影
 
     def 消费启动失败(自身):#读走并清空启动失败说明
         """读走并清空启动失败说明。"""
@@ -186,6 +208,7 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
             except BaseException:#拒绝值本身不可打印
                 pass#提供方拥有的拒绝值不能让句柄 done 拒绝
             自身.失败说明='subprocess failed before reporting an outcome: '+细节#失败说明
+            自身.提供方失败=错误#前台投影拒绝
             自身.执行器.进程已结束(自身,自身.失败说明,True,错误)#通知子类这是启动失败
             自身.done.兑现()#句柄 done 仍决议，不拒绝
 
@@ -240,6 +263,7 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
             'command':请求['command'],#要跑的命令文本
             'workdir':工作目录,#工作目录
             'timeoutMs':超时毫秒,#夹取后的超时
+            'onExpiry':请求['onExpiry'] if 'onExpiry' in 请求 and 请求['onExpiry'] is not None else 'kill',#到期政策
             'stdoutMaxBytes':标准输出上限,#标准输出上限
             'sandboxPolicy':请求['sandboxPolicy'] if 'sandboxPolicy' in 请求 else None,#透传沙箱策略
         }#规格骨架
@@ -281,60 +305,97 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
             'env':调用环境,#模型友好覆盖再叠请求环境
         }#子进程启动规格
 
-    def 运行(自身,规格):#前台跑一条已解析规格
-        """前台跑一条已解析规格。"""
-        return 自身.按参数表运行(规格,['bash','-c',规格['command']])['result']#用bash -c前台跑，只回结果
+    def 执行(自身,规格):
+        """按已解析规格准备并派生 bash -c。"""
+        return 自身.按参数表执行(规格,['bash','-c',规格['command']])
 
-    def 按参数表运行(自身,规格,参数表或准备):#按给定argv或准备函数前台运行
-        """用本执行器的前台生命周期、环境、输出、超时与取消语义跑一条显式 argv。准备函数被同一截止取消。"""
-        截止对象=截止(规格['signal'] if 'signal' in 规格 else None,规格['timeoutMs'],'BASH_TIMEOUT')#为本次前台跑装上截止
-        try:#等到进程结束再拆定时器
-            if callable(参数表或准备):#准备函数与执行共用截止
-                try:#准备期间也可被超时取消
-                    若已中止则抛出(截止对象.信号)#准备前已中止则抛
-                    参数表=参数表或准备(截止对象.信号)#准备 argv
-                    若已中止则抛出(截止对象.信号)#准备后再查
-                except BaseException as 错误:#准备失败或中止
-                    if 取超时(截止对象.信号,'BASH_TIMEOUT') is None:#不是本执行器超时
-                        raise 错误#原样抛出
-                    return {'spawnRequested':False,'result':{
-                        'exitCode':None,'signal':None,'timedOut':True,'aborted':False,'timeoutMs':规格['timeoutMs'],
-                        'stdout':{'text':'','truncated':False},'stderr':{'text':'','truncated':False},
-                    }}#未派生，空结果
-            else:#已经是 argv
-                参数表=参数表或准备#直接用
-            句柄=自身.ctx.subprocess.启动(自身.拉起规格(规格,规格['stdoutMaxBytes'],截止对象.信号,参数表))#按规格启动子进程
-            结算=句柄.done.等待()#等到进程结束
-            收集=取出已收集(句柄)#取出两路收集读取器
-            已超时=取超时(截止对象.信号,'BASH_TIMEOUT') is not None#是否因本执行器超时结束
-            被中止=已中止(截止对象.信号) is True and not 已超时#中止但不是本执行器超时
-            return {'spawnRequested':True,'result':{
-                'exitCode':结算['exitCode'],#退出码
-                'signal':结算['signal'],#终止信号
-                'timedOut':已超时,#是否超时
-                'aborted':被中止,#是否中止
-                'timeoutMs':规格['timeoutMs'],#本次超时预算
-                'stdout':最终输出(收集['stdout']),#收成最终标准输出
-                'stderr':最终输出(收集['stderr']),#收成最终标准误
-            }}#已派生的前台运行结果
-        finally:#拆除时清掉定时器
-            截止对象.释放()#释放已武装定时器
-
-    def 启动(自身,规格):#后台拉起一条已解析规格
-        """后台拉起一条已解析规格。"""
-        return 自身.按参数表启动(规格,['bash','-c',规格['command']])#用bash -c后台拉起
-
-    def 按参数表启动(自身,规格,参数表):#按给定argv后台启动
-        """用本执行器的后台生命周期、环境、输出、取消与进程树所有权语义启动一条显式 argv。后台运行忽略 timeoutMs。"""
-        若已中止则抛出(规格['signal'] if 'signal' in 规格 else None)#后台启动前已中止则抛
-        当前=自身.配置#权威配置
-        运行中=自身.ctx.subprocess.启动(自身.拉起规格(规格,当前['maxOutputBytes'],规格['signal'] if 'signal' in 规格 else None,参数表))#按配置输出上限启动后台进程
-        收集=取出已收集(运行中)#取出两路收集读取器
-        进程=后台进程句柄(运行中,收集,规格,自身)#后台进程句柄
-        工作=threading.Thread(target=进程.盯退出)#后台结算线程
-        工作.daemon=True#不挡住退出
-        工作.start()#启动
-        return 进程#返回后台进程
+    def 按参数表执行(自身,规格,参数表或准备,已启动=None):
+        """用本执行器的生命周期、环境、输出、截止与取消语义跑一条显式 argv。"""
+        到期=规格['onExpiry'] if 'onExpiry' in 规格 and 规格['onExpiry'] is not None else 'kill'
+        截止对象=None
+        if 到期=='kill':
+            截止对象=截止(规格['signal'] if 'signal' in 规格 else None,规格['timeoutMs'],'BASH_TIMEOUT')
+            派生信号=截止对象.信号
+            def 分类():
+                """本执行器超时算 timedOut，其余中止算 aborted。"""
+                已超时=取超时(派生信号,'BASH_TIMEOUT') is not None
+                return {'timedOut':已超时,'aborted':已中止(派生信号) is True and not 已超时}
+            def 拆除截止():
+                """释放已武装定时器。"""
+                截止对象.释放()
+        else:
+            派生信号=规格['signal'] if 'signal' in 规格 else None
+            def 分类():
+                """无截止：只有调用方信号算 aborted。"""
+                return {'timedOut':False,'aborted':已中止(派生信号) is True}
+            def 拆除截止():
+                """无定时器。"""
+                return
+        准备超时=False
+        if callable(参数表或准备):
+            try:
+                若已中止则抛出(派生信号)
+                参数表=参数表或准备(派生信号)
+                若已中止则抛出(派生信号)
+            except BaseException as 错误:
+                if 分类()['timedOut'] is not True:
+                    拆除截止()
+                    raise 错误
+                准备超时=True
+                参数表=[]
+        else:
+            参数表=参数表或准备
+        运行中=None
+        同步错误=None
+        if 准备超时 is not True:
+            try:
+                运行中=自身.ctx.subprocess.启动(自身.拉起规格(规格,规格['stdoutMaxBytes'],派生信号,参数表))
+            except BaseException as 错误:
+                同步错误=错误
+        if 运行中 is not None:
+            收集=取出已收集(运行中)
+        else:
+            def 空读(起始字节):
+                """派生失败时的空读取器。"""
+                return {'text':'','lossy':False,'nextOffset':起始字节}
+            class 空读取器:
+                """无进程时的收集读取器。"""
+                def 自偏移读取(自身,起始字节):
+                    """始终空。"""
+                    return 空读(起始字节)
+            空=空读取器()
+            收集={'stdout':空,'stderr':空}
+        进程=后台进程句柄(运行中,收集,规格,自身,分类)
+        if 同步错误 is not None:
+            进程.status='killed'
+            细节='unprintable provider failure'
+            try:
+                细节=str(同步错误)
+            except BaseException:
+                pass
+            进程.失败说明='subprocess failed before reporting an outcome: '+细节
+            进程.提供方失败=同步错误
+            进程.执行器.进程已结束(进程,进程.失败说明,True,同步错误)
+            进程.done.兑现()
+            拆除截止()
+        elif 准备超时 is True:
+            进程.status='killed'
+            进程.exitCode=None
+            进程.signal=None
+            进程.执行器.进程已结束(进程,'',False)
+            进程.done.兑现()
+            拆除截止()
+        else:
+            def 盯完():
+                """结算后续拆除截止。"""
+                进程.盯退出()
+                拆除截止()
+            工作=threading.Thread(target=盯完)
+            工作.daemon=True
+            工作.start()
+        if 准备超时 is not True and 已启动 is not None:
+            已启动(进程)
+        return 进程
 
     def 进程已结束(自身,进程,标准误,启动失败,启动错误=None):#给子类的结算钩子
         """给子类往进程上贴执行事实的结算钩子。基类实现故意留空。"""

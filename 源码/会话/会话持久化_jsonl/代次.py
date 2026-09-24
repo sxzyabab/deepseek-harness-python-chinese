@@ -7,7 +7,9 @@ import time#让出近似
 from ...内核.会话 import 会话,会话标识#Session 重开
 from ...模型后端.llm import 块组装器,展开助手流#嵌入流回放
 from ...工具.值 import 深相等json#深相等
+from ..会话格式 import 会话格式错误#格式错误
 from ..会话格式目录 import 会话格式目录,会话格式不支持迁移错误#格式目录
+from ..会话格式目录.消息投影 import 当前会话消息投影表#当代消息投影
 from ..会话持久化.存储契约 import 校验已存事件#已存事件校验
 from .格式 import 代次日志文件名,日志后缀,扫描日志#格式辅助
 from .zstd编解码 import (#zstd 公开面
@@ -318,7 +320,7 @@ def 校验jsonl当代代(路径,压缩,期望标识,期望事件数,期望前缀
         raise Error(f'current session generation contains id "{代["meta"]["id"]}", expected "{期望标识}"')#错误
     if len(代['events'])!=期望事件数:#事件数不符
         raise Error(f'current session generation contains {len(代["events"])} events, expected {期望事件数}')#错误
-    会话.从恢复(会话标识(代['meta']['id']),代['events'],代['meta'],代.get('inheritedEventCount',0),'detached')#重开校验
+    会话.从恢复(会话标识(代['meta']['id']),代['events'],代['meta'],代.get('inheritedEventCount',0),'detached',当前会话消息投影表)#重开校验
     断言当代助手流(代['events'])#断言嵌入流
     return {#已校验
         'identity':之后,#身份
@@ -445,6 +447,9 @@ def _发布已准备迁移(选项,后缀,产物,源身份):#发布已准备迁�
         已校验=校验文件(暂存['path'],压缩,产物['header']['id'],事件数)#校验暂存
         if 已校验['bytes']!=暂存['bytes'] or 已校验['digest']!=暂存['digest']:#变更
             raise Error('staged session generation changed during verification')#错误
+        校验相关=选项.get('validateRelatedSources')#相关源
+        if 校验相关 is not None:#发布前再核
+            校验相关()#核
         发布前=物理身份(os.stat(源路径))#源 stat
         if 身份串(发布前)!=身份串(源身份):#源已变
             raise 代次源变更错误(源路径)#错误
@@ -511,6 +516,9 @@ def 准备jsonl迁移(选项):#准备迁移
     if 产物['header']['version']!=当代版本:#版本不对
         raise Error(f'format migration returned v{产物["header"]["version"]}, expected v{当代版本}')#错误
     源身份=源['identity']#源身份
+    校验相关=选项.get('validateRelatedSources')#相关源再校验
+    if 校验相关 is not None:#有相关源
+        校验相关()#解码后核一次
     发布承诺=[None]#单次发布槽
 
     def 发布():#幂等发布
@@ -520,6 +528,19 @@ def 准备jsonl迁移(选项):#准备迁移
         return 发布承诺[0]#共享结果
 
     return {'sourceIdentity':源身份,'artifact':产物,'publish':发布}#已准备
+
+def 读解码jsonl源(路径,版本,压缩,格式,信号=None):#读解码jsonl源
+    """经共享流式解析器读一份稳定源，不发布当代代。"""
+    源=读稳定jsonl文件(路径,信号)#稳定读
+    try:#解码
+        产物=_流式解码迁移(源['bytes'],压缩,版本,格式,None,信号)#解码
+    except BaseException as 错误:
+        if 信号 is not None and 信号.is_set():#取消
+            raise#原样
+        if isinstance(错误,会话格式错误):#格式
+            raise#原样
+        raise 会话格式错误(str(错误)) from 错误#包装
+    return {'artifact':产物,'identity':源['identity']}#产物与身份
 
 def 默认代次格式适配器():#默认格式适配器
     """用会话格式目录构造代格式适配器。"""
@@ -536,7 +557,7 @@ class Error(Exception):#代次辅助错误
 
 __all__=[#公开面
     '物理身份','身份串','读稳定jsonl文件','准备jsonl迁移','校验jsonl当代代',
-    '默认代次格式适配器','代次源变更错误','代次不支持迁移错误','代次目标冲突错误',
+    '读解码jsonl源','默认代次格式适配器','代次源变更错误','代次不支持迁移错误','代次目标冲突错误',
     '同步目录','_同步目录',
 ]#公开面结束
 

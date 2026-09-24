@@ -2,6 +2,7 @@ import threading#单飞拉取与预热等待
 from concurrent.futures import Future as 原生结果#单次操作结果
 from urllib.parse import quote as 百分编码#URI 段编码
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
+from ...ui_基础界面组件.按名排序 import 按名排序#按名与标签排序
 from ..技能行 import 技能行,技能错误#技能工具行与本包异常
 
 __all__=['依赖','应用']#仅中文公开名
@@ -128,10 +129,24 @@ def 应用(上下文):#安装技能引用浏览器半边
         条目={'任务':任务,'abort':中止拉取,'signal':中止器}#本键共享条目
         拉取表[会话标识]=条目#写入缓存
         def 执行拉取():#单飞拉取体
-            """只调一次 skills/list，成败结算共享任务。"""
+            """持留会话至历史打开后再调 skills/list。"""
             try:#拉取并解包
-                包装=技能接口.list({'sessionId':会话标识},中止器).等待()#唯一一次 list
-                技能列表=解包目录(包装)#业务解包
+                if 会话服务.binding(会话标识) is None:#未持留
+                    raise 技能错误('skill catalog requires a retained session "'+str(会话标识)+'"')
+                def 在持有内拉取(引用):#打开后拉目录
+                    """等历史打开再 RPC。"""
+                    若已中止则抛出(中止器)#拉取期间失效则抛
+                    状态=引用.binding.session.getSnapshot()#会话快照
+                    打开态=状态['openState'] if isinstance(状态,dict) else getattr(状态,'openState',None)
+                    if 打开态!='open':#未打开
+                        错误=状态['openError'] if isinstance(状态,dict) and 'openError' in 状态 else getattr(状态,'openError',None)
+                        if 错误 is not None:
+                            raise 错误
+                        raise 技能错误('session "'+str(会话标识)+'" is not open')
+                    包装=技能接口.list({'sessionId':会话标识},中止器).等待()#唯一一次 list
+                    若已中止则抛出(中止器)#RPC 后仍有效
+                    return 解包目录(包装)#业务解包
+                技能列表=会话服务.using(会话标识,{'source':'skillCatalog','signal':中止器},在持有内拉取)
                 条目['settled']=技能列表#同步词表快照
                 任务.兑现(技能列表)#交给等待方
                 通知词表(会话标识)#通知词表监听者
@@ -170,10 +185,8 @@ def 应用(上下文):#安装技能引用浏览器半边
         if 已中止(信号):#被取代的按键：共享拉取仍热着，本调用方让出
             return []#早退
         结果=[]#候选列表
-        for 技能 in 技能列表:#本地过滤
+        for 技能 in 按名排序(技能列表,查询):#前缀优先的有序子序列
             名=技能['name'] if 'name' in 技能 else ''#技能名
-            if not 名.startswith(查询):#前缀不匹配
-                continue#跳过
             描述=技能['description'] if 'description' in 技能 else ''#描述
             if 'modelInvocable' in 技能 and 技能['modelInvocable']:#模型可调则原文
                 次要=描述#原文

@@ -4,11 +4,11 @@ from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布�
 from ...内核.作用域 import 获取作用域
 from ...工具.超时 import 定时器延迟上限毫秒
 from .连接 import 默认最大指令字节,重连默认值,解析重连策略,启动连接
-from .工具桥接 import 公开工具名,同步工具,MCP结果
+from .工具桥接 import 公开工具名,同步工具,MCP结果,创建mcp工具定义
 from .传输 import MCP错误
 from .服务器上下文 import 登记服务器上下文
 
-__all__=['名称','依赖','配置','应用','公开工具名','同步工具','MCP结果','重连默认值','解析重连策略','启动连接']
+__all__=['名称','依赖','配置','应用','公开工具名','同步工具','MCP结果','创建mcp工具定义','重连默认值','解析重连策略','启动连接']
 
 名称='mcp-client'
 依赖=['tools']
@@ -20,7 +20,7 @@ __all__=['名称','依赖','配置','应用','公开工具名','同步工具','M
     'enabled':布尔字段(默认值=重连默认值['enabled']),
     'initialDelayMs':数字字段(最小=1,最大=定时器延迟上限毫秒,默认值=重连默认值['initialDelayMs']),
     'maxDelayMs':数字字段(最小=1,最大=定时器延迟上限毫秒,默认值=重连默认值['maxDelayMs']),
-    'maxAttempts':整数字段(最小=1,默认值=重连默认值['maxAttempts']),
+        'maxAttempts':整数字段(最小=1,最大=9007199254740991,默认值=重连默认值['maxAttempts']),
 }
 
 配置=复合类型字段(
@@ -72,12 +72,23 @@ def 应用(上下文,配置值):
     上下文.副作用(预留名,'mcp-client.serverName')
     连接=启动连接(上下文,配置值,重连)
     登记服务器上下文(上下文,服务器名,连接)
+    已拆除=False
+    def 拆除():
+        """拆除监督器；重复调用复用第一次。"""
+        nonlocal 已拆除
+        if 已拆除:
+            return
+        已拆除=True
+        连接['dispose']()
+    def 卸载时拆除(纤程对象):
+        """Cordis 在未完成的 apply 之前宣布卸载时先关传输。"""
+        if 纤程对象 is not 上下文.纤程 or 纤程对象.编号 is not None:
+            return
+        拆除()
+    上下文.监听('internal/plugin',卸载时拆除,{'全局':True})
     def 装连接():
         """注册连接拆除。"""
-        def 拆连接():
-            """拆除监督器。"""
-            连接['dispose']()
-        return 拆连接
+        return 拆除
     上下文.副作用(装连接,'mcp-client.connection')
     结果=连接['ready'].等待()
     if 'error' in 结果 and 结果['error'] is not None and 配置值['failOnStartupError']:

@@ -250,6 +250,7 @@ def 定义工具(选项):
     """定义带推断参数与严格执行校验的第一方工具。"""
     用户执行=选项['execute']#抽出执行体
     用户最终化内容=选项.get('finalizeContent')#抽出最终内容变换
+    用户投影内容=选项.get('projectContent')
     用户渲染=选项['output']['render']#抽出渲染
     用户呈现元数据=选项['output'].get('presentationMeta')#抽出呈现元数据
     用户呈现调用=选项.get('presentCall')#抽出待处理呈现
@@ -282,6 +283,8 @@ def 定义工具(选项):
         工具['output']['presentationMeta']=元数据包装#元数据包装
     if 超时毫秒 is not None:
         工具['timeoutMs']=超时毫秒#可选超时
+    if 选项.get('deferLoading') is True:
+        工具['deferLoading']=True
     def 执行包装(参数,执行上下文):
         """执行包装：先校验参数。"""
         违规=校验(参数)#先校验参数
@@ -289,6 +292,11 @@ def 定义工具(选项):
             raise 工具参数错误(违规)#非法参数
         return 用户执行(参数,执行上下文)#交给作者执行体
     工具['execute']=执行包装#执行包装
+    if 用户投影内容:
+        def 投影包装(执行,结果):
+            """执行前内容投影。"""
+            return 用户投影内容(执行,结果)
+        工具['projectContent']=投影包装
     if 用户最终化内容:
         def 最终化包装(执行,结果):
             """最终内容包装。"""

@@ -1,0 +1,8 @@
+{
+    "control":"控制",
+    "network":"网络",
+    "observation":"观察",
+    "query":"查询",
+    "sources":"源",
+    "runtime":"运行时"
+}

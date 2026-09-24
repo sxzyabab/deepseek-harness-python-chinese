@@ -1,8 +1,8 @@
 """已发布 v2 的冻结物理 JSON 编解码器。"""
-from ...内核.会话.序号范围 import 编码序号范围,解码序号范围#序号范围编解码
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
     会话格式计数,#格式计数
+    会话格式安全整数,#安全整数
     快照会话格式产物,#快照产物
     快照会话格式json,#快照JSON
 )#从会话格式导入
@@ -10,6 +10,9 @@ from .校验 import 断言已发布v2头,断言已发布v2物理产物#从校验
 
 头必填=('type','version','id','createdAt','isSeeded','delegationDepth')#头必填
 头可选=('cwd','parentSession','origin','agentPreset')#头可选
+事件必填=('type','seq','time','data')#事件必填
+事件可选=('ignorable','sourceEventSeqs','surfaceOp')#事件可选
+事件键=frozenset([*事件必填,*事件可选])#事件全部合法键
 
 def 解码物理头(值):#解码物理头
     """解码已发布 v2 物理头为逻辑头。"""
@@ -149,17 +152,24 @@ def 编码头实现(头,继承事件数):#编码头
 
 def 解码事件(值,行下标):#解码事件
     """解码一行物理事件，压缩出处时展开。"""
-    快照=快照会话格式json(值,f'released v2 row {行下标}')#快照
-    记录=json记录(快照,f'released v2 row {行下标}')#记录
+    记录=json记录(值,f'released v2 row {行下标}')#记录
+    for 键 in 事件必填:#缺键
+        if 键 not in 记录:#缺
+            raise 会话格式错误(f'released v2 row {行下标} lacks required field {键}')#缺键
+    for 键 in 记录.keys():#意外键
+        if 键 not in 事件键:#意外
+            raise 会话格式错误(f'released v2 row {行下标} has unexpected field {键}')#意外
+    if not isinstance(记录['type'],str):#类型非法
+        raise 会话格式错误(f'released v2 row {行下标} type must be a string')#类型
+    会话格式安全整数(记录['time'],f'released v2 row {行下标} time')#时间
+    if 'ignorable' in 记录 and 记录['ignorable'] is not True:#可忽略非法
+        raise 会话格式错误(f'released v2 row {行下标} ignorable must be true when present')#可忽略
     if 'sourceEventSeqs' not in 记录:#无出处
         return 记录#无出处
     序号=会话格式计数(记录['seq'],f'released v2 row {行下标} seq')#序号
     带出处=dict(记录)#展开
-    try:#内核解码
-        带出处['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'],序号)#解码范围
-    except TypeError as 错误:#转为格式错误
-        raise 会话格式错误(错误.args[0] if 错误.args else str(错误)) from 错误#包装
-    return 快照会话格式json(带出处,f'released v2 row {行下标} provenance')#断言事件
+    带出处['sourceEventSeqs']=解码序号范围(记录['sourceEventSeqs'],序号)#解码范围
+    return 带出处#事件
 
 def 推导继承事件数(头,事件列表):#推导继承数
     """从 inherited end-seed 标记推导继承切割。"""
@@ -198,8 +208,60 @@ def 编码出处(事件):#编码出处
     if 'sourceEventSeqs' not in 事件:#无出处
         return 事件#无出处
     带压缩=dict(事件)#展开
-    带压缩['sourceEventSeqs']=编码序号范围(事件['sourceEventSeqs'])#编码范围
+    带压缩['sourceEventSeqs']=编码出处范围(事件['sourceEventSeqs'])#编码范围
     return 快照会话格式json(带压缩,f"released v2 event {事件['seq']} provenance")#断言对象
+
+def 解码序号范围(值,最大条目):#解码序号范围
+    """把单点与 [start,end] 范围展开为唯一更早序号。"""
+    if not isinstance(值,list):#须为数组
+        raise 会话格式错误('sourceEventSeqs must be an array')#须为数组
+    输出=[]#输出
+    有范围=False#是否含范围
+    for 项 in 值:#遍历项
+        if not isinstance(项,list):#单点
+            输出.append(会话格式计数(项,'sourceEventSeqs member'))#推入
+            continue#继续
+        if len(项)!=2:#非二元组
+            raise 会话格式错误('sourceEventSeqs range must be a [start, end] pair')#错误
+        起点=会话格式计数(项[0],'sourceEventSeqs range start')#起点
+        终点=会话格式计数(项[1],'sourceEventSeqs range end')#终点
+        if 起点>终点 or 终点>=最大条目 or 终点-起点+1>最大条目-len(输出):#超限
+            raise 会话格式错误('sourceEventSeqs range exceeds its event seq')#错误
+        for 序号 in range(起点,终点+1):#展开
+            输出.append(序号)#推入
+        有范围=True#标记
+    已见=set()#去重
+    for 源 in 输出:#校验唯一更早
+        if 源>=最大条目 or 源 in 已见:#重复或越界
+            raise 会话格式错误('sourceEventSeqs ranges must contain unique earlier seqs')#错误
+        已见.add(源)#记下
+    if 有范围:#需校验递增
+        for 下标 in range(1,len(输出)):#非严格递增
+            if 输出[下标]<=输出[下标-1]:#非严格递增
+                raise 会话格式错误('sourceEventSeqs ranges must be strictly increasing')#错误
+    return 输出#返回
+
+def 编码出处范围(值列表):#编码序号范围
+    """把严格递增序号压缩为单点与长度≥3 的范围。"""
+    for 下标 in range(1,len(值列表)):#非递增原样
+        if 值列表[下标]<=值列表[下标-1]:#非递增
+            return list(值列表)#原样
+    输出=[]#输出
+    下标=0#扫描
+    while 下标<len(值列表):#扫描连续段
+        起点=值列表[下标]#起点
+        终点=起点#终点
+        while 下标+1<len(值列表) and 值列表[下标+1]==终点+1:#延伸
+            下标+=1#延伸
+            终点+=1#终点
+        if 终点-起点>=2:#压成范围
+            输出.append([起点,终点])#范围
+        else:#散点
+            输出.append(起点)#起点
+            if 终点-起点==1:#相邻两点
+                输出.append(终点)#终点
+        下标+=1#下一段
+    return 输出#返回
 
 def json记录(值,标签):#JSON记录
     """要求值为非 null 非数组对象。"""

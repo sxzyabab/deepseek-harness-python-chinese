@@ -1,4 +1,6 @@
 {
-    "store.ts":"存储.py",
-    "welcome-store.ts":"欢迎存储.py"
+    "store":"存储",
+    "welcome-store":"欢迎存储",
+    "protocol-label":"协议标注",
+    "onboarding-config":"上手引导配置"
 }

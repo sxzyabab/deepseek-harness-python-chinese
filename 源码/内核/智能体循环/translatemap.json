@@ -1,10 +1,9 @@
 {
-    "agent.ts":"智能体.py",
-    "assistant-stream.ts":"助手流.py",
-    "constants.ts":"常量.py",
-    "index.ts":"__init__.py",
-    "invariant.ts":"不变量.py",
-    "runtime-context.ts":"运行时上下文.py",
-    "tool-calls.ts":"工具调用.py",
-    "辅助.py":"中止与并发.py"
+    "agent":"智能体",
+    "assistant-stream":"助手流",
+    "constants":"常量",
+    "inbox":"收件箱",
+    "invariant":"不变量",
+    "runtime-context":"运行时上下文",
+    "tool-calls":"工具调用"
 }

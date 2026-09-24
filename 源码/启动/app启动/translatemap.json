@@ -1,0 +1,17 @@
+{
+    "invariant":"不变量",
+    "package-meta":"包元",
+    "profile":"配置档",
+    "config-schema":"配置数据架构",
+    "profile-resolution":"配置解析",
+    "legacy-links":"遗留链接",
+    "resolver":"解析器",
+    "service":"服务",
+    "worker-bootstrap":"工作线程引导",
+    "collect":"收集",
+    "document":"文档",
+    "native":"原生",
+    "pattern":"匹配模式",
+    "projector":"投影器",
+    "types":"类型"
+}

@@ -58,8 +58,11 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'welcomeContinue':'Continue',
     'welcomeError':'The acknowledgement could not be saved. Please try again.',
     'onboardingTitle':'Add an API key to get started','onboardingDescription':'Configure the official DeepSeek provider to start building.',
-    'onboardingLater':'Configure later','onboardingSave':'Save and continue','onboardingSaving':'Saving…',
+    'onboardingLater':'Configure later',    'onboardingSave':'Save and continue','onboardingSaving':'Saving…',
     'keyRequired':'Enter an API key to continue.',
+    'protocolOpenAiCompletions':'OpenAI Chat Completions',
+    'protocolOpenAiResponses':'OpenAI Responses',
+    'protocolAnthropicMessages':'Anthropic Messages',
 }#英文结束
 
 中文={#简体中文词条
@@ -117,6 +120,9 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'welcomeContinue':'继续',
     'welcomeError':'暂时无法保存确认状态，请重试。',
     'onboardingTitle':'添加一个 API Key 开始使用','onboardingDescription':'配置 DeepSeek 官方模型，即可开始使用。',
-    'onboardingLater':'稍后配置','onboardingSave':'保存并继续','onboardingSaving':'保存中…',
+    'onboardingLater':'稍后配置',    'onboardingSave':'保存并继续','onboardingSaving':'保存中…',
     'keyRequired':'请输入 API 密钥后继续。',
+    'protocolOpenAiCompletions':'OpenAI Chat Completions',
+    'protocolOpenAiResponses':'OpenAI Responses',
+    'protocolAnthropicMessages':'Anthropic Messages',
 }#中文结束

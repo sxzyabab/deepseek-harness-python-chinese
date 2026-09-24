@@ -1,3 +1,8 @@
 {
-    "stores.ts":"存储.py"
+    "AppFrame":"应用帧",
+    "DocumentTitle":"文档标题",
+    "columns":"列宽",
+    "service":"服务",
+    "stores":"存储",
+    "theme-presenter":"主题呈现"
 }

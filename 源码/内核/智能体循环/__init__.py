@@ -135,7 +135,7 @@ class 工厂所有权:
             try:
                 等待队列结果(任务)#等待 Queue(1)
             except BaseException:
-                pass失败
+                pass
             放入成功(吞)#落定
         工作=threading.Thread(target=吞掉续体结果)#收尾线程
         工作.daemon=True#不挡住退出
@@ -675,7 +675,7 @@ class 智能体循环(服务):
             try:
                 等待队列结果(已准备.拆除())#回滚
             except BaseException:
-                pass拆除失败
+                pass
             raise 错误#原错上抛
 
     def 设置并发表(自身,所有者上下文,标识,准备,智能体选项,设置,信号,来源,已存=None,父智能体=None):

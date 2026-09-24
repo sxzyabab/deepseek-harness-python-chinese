@@ -1,6 +1,5 @@
 """从 cordis.yml 启动 ACP stdio 服务器；用法是 dsh-acp-demo [--config path]，默认 ./cordis.yml。
 
-对齐上游 `示例/acp-demo/src/bin.ts`。公开面仅中文名。
 共享的 env 加载、Loader 守卫、快照配置选择与结算树启动都在 app_boot。
 EOF 拆除并 flush 快照运行；调用方自动化拥有进程寿命。stdout 留给 JSON-RPC，诊断只走 stderr。
 """

@@ -1,5 +1,7 @@
 from .文案 import 中文,英文,图像预览键#词典
 from .图像体 import 图像体,图像扩展名#正文
+from ..文档.标签寿命 import 保留文档标签
+from ..缩放.存储 import 创建缩放存储
 
 __all__=['图像体标识','图像扩展名','二进制图像扩展名','图像体定义','应用','图像体','中文','英文','图像预览键']#仅中文公开名
 
@@ -35,20 +37,24 @@ def 应用(上下文):
         return 上下文.documentPreviews.register(图像体定义(lambda:翻译('title')))#登记
 
     上下文.副作用(登记元数据,'document-image: metadata')#寿命
-
+    存储=创建缩放存储()
+    保留标签=保留文档标签(上下文)
     def 挂正文():
         """正文进文档子槽。"""
-
         def 登记正文():
             """登记图片正文。"""
+            def 注入(_会话标识,动作):
+                def 保留(标签标识,信号):
+                    保留标签(标签标识,信号,动作['forget'])
+                return {'retainTab':保留}
             return 上下文.slots.register({#席位
                 'name':'sidebar.right.tab.document',
                 'key':图像体标识,
                 'locale':'sidebarImage',
+                'store':存储,
+                'inject':注入,
             },图像体)#正文
-
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
-
     上下文.副作用(挂正文,'document-image: body')#寿命
 
 

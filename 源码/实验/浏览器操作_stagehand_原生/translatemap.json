@@ -1,9 +1,7 @@
 {
-    "index.ts":"__init__.py",
-    "native.ts":"原生.py",
-    "launch.ts":"启动.py",
-    "worker-rpc.ts":"工作者rpc.py",
-    "worker-client.ts":"工作者客户端.py",
-    "worker.ts":"工作者.py",
-    "README.zh.md":"README.md"
+    "native":"原生",
+    "launch":"启动",
+    "worker-rpc":"工作者rpc",
+    "worker-client":"工作者客户端",
+    "worker":"工作者"
 }

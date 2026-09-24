@@ -10,7 +10,7 @@ __all__=['包名','名称','依赖','应用','默认','配置']
 
 包名='@deepseek-ai/dsh-time-context'
 名称='time-context'
-依赖=['agents']
+依赖=['agents','sessionProjections']
 安全整数上限=9007199254740991#外来 JSON Number.MAX_SAFE_INTEGER
 配置={
     'timeZone':字符串字段(),#打开的回合没有唯一浏览器时区时的回退展示时区；省略则用进程时区
@@ -52,40 +52,6 @@ def 格式化时长(经过毫秒):
         片段.append(str(分钟)+'m')#分钟
     片段.append(str(秒)+'s')#秒始终出现
     return ' '.join(片段)#空格拼接
-
-def 前序消息时间(智能体):
-    """找最新的模型可见事件，排除本插件待追加的那条。"""
-    for 事件 in reversed(list(智能体.session.events)):#从新到旧
-        种类=事件['type']#事件类型
-        if 种类=='user/message' or 种类=='assistant/message' or 种类=='tool/result':#这三类算模型可见
-            return 事件['time']#可见消息时间
-    return None#没有更早的可见消息
-
-def 前序步骤上下文时间(智能体,回合):
-    """在打开的回合里找前一条 time-context 事件。"""
-    for 事件 in reversed(list(智能体.session.events)):#从新到旧
-        数据=事件['data'] if 'data' in 事件 else {}#载荷
-        if 事件['type']=='turn/start' and 数据['turn']==回合:#碰到本回合开始则没有更早的本插件注入
-            return None#本回合尚无注入
-        来源=数据['source'] if 'source' in 数据 else None#消息来源
-        if (事件['type']=='user/message'
-            and isinstance(来源,dict)
-            and 来源['kind']=='plugin'
-            and 来源['plugin']==名称):#本插件
-            return 事件['time']#前一次注入时间
-    return None#本回合没有前一次注入
-
-def 最新注入时间(智能体):
-    """找本插件最新的持久注入，包括被表面遮蔽的事件。"""
-    for 事件 in reversed(list(智能体.session.events)):#从新到旧扫原始事件
-        数据=事件['data'] if 'data' in 事件 else {}#载荷
-        来源=数据['source'] if 'source' in 数据 else None#消息来源
-        if (事件['type']=='user/message'
-            and isinstance(来源,dict)
-            and 来源['kind']=='plugin'
-            and 来源['plugin']==名称):#本插件
-            return 事件['time']#最新一次
-    return None#从未注入
 
 def 末次下标(序列,回合):
     """从后往前找本回合 turn/start 下标，没有则 -1。"""
@@ -159,6 +125,42 @@ def 应用(上下文,配置值):
         格式化器表[选中时区]=新建#写入缓存
         return 新建#返回
 
+    def 初始状态(头=None):
+        """投影初始读数。"""
+        return {'lastMessageTime':None,'lastInjectionTime':None,'lastTurnInjectionTime':None}
+
+    def 折叠状态(状态,事件):
+        """按事件推进时钟投影。"""
+        种类=事件['type']
+        if 种类=='turn/start' or 种类=='turn/end':
+            if 状态['lastTurnInjectionTime'] is None:
+                return 状态
+            下一=dict(状态)
+            下一['lastTurnInjectionTime']=None
+            return 下一
+        if 种类=='user/message':
+            出处=事件['data']['source'] if 'source' in 事件['data'] else None
+            本插件=isinstance(出处,dict) and 出处['kind']==名称
+            下一=状态 if 状态['lastMessageTime']==事件['time'] else dict(状态,lastMessageTime=事件['time'])
+            if not 本插件:
+                return 下一
+            下一=dict(下一)
+            下一['lastInjectionTime']=事件['time']
+            下一['lastTurnInjectionTime']=事件['time']
+            return 下一
+        if 种类=='assistant/message' or 种类=='tool/result':
+            if 状态['lastMessageTime']==事件['time']:
+                return 状态
+            return dict(状态,lastMessageTime=事件['time'])
+        return 状态
+
+    上下文.sessionProjections.登记({
+        'key':'timeContext',
+        'stateVersion':2,
+        'init':初始状态,
+        'apply':折叠状态,
+    })
+
     def 预步骤监听(载荷,下一步,*剩余):
         """先让后续监听器决定；进入且未取消时追加时钟读数。"""
         决策=下一步()#先让后续监听器决定
@@ -167,8 +169,11 @@ def 应用(上下文,配置值):
             return 决策#原样返回
         此刻=取时间毫秒()#采样时刻
         智能体=载荷['agent']#智能体
+        状态=上下文.sessionProjections.状态(智能体.session,'timeContext')
+        if 状态 is None:
+            状态=初始状态()
         if 刷新间隔毫秒 is not None and 刷新间隔毫秒>0:#启用了正间隔
-            上次注入=最新注入时间(智能体)#上次注入
+            上次注入=状态['lastInjectionTime']
             if (上次注入 is not None
                 and 此刻>=上次注入
                 and 此刻-上次注入<刷新间隔毫秒):#间隔未到则跳过
@@ -176,9 +181,9 @@ def 应用(上下文,配置值):
         步骤=载荷['step']#步骤号
         回合=载荷['turn']#回合号
         if 步骤==1:#首步
-            先前=前序消息时间(智能体)#相对上一条模型可见消息
+            先前=状态['lastMessageTime']
         else:#后续步
-            先前=前序步骤上下文时间(智能体,回合)#相对本回合前一次时钟上下文
+            先前=状态['lastTurnInjectionTime']
         拟议=决策['messages'] if 'messages' in 决策 and 决策['messages'] is not None else []#拟议
         消息列表=收集请求消息(智能体,回合,拟议)#本回合用户消息
         浏览器=推导浏览器时区上下文(消息列表)#推导浏览器时区
@@ -190,7 +195,7 @@ def 应用(上下文,配置值):
         消息列表=list(拟议)#原消息
         消息列表.append(创建用户消息({
             'content':[{'type':'text','text':文本}],#读数文本
-            'source':{'kind':'plugin','plugin':名称,'form':'snapshot','sections':[{'name':名称,'text':文本}]},#快照形态，不含请求权威
+            'source':{'kind':名称,'form':'snapshot','sections':[{'name':名称,'text':文本}]},#快照形态，不含请求权威
         }))#追加结束
         return {'kind':'enter','messages':消息列表}#进入并追加读数
 

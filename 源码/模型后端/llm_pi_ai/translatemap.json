@@ -1,0 +1,13 @@
+{
+    "adapter":"适配器",
+    "auth":"认证",
+    "catalog":"目录",
+    "config":"配置",
+    "context":"上下文",
+    "discovery":"发现",
+    "login":"登录",
+    "models":"模型",
+    "provider":"提供方",
+    "replay":"回放",
+    "stream":"流"
+}

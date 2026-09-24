@@ -1,7 +1,7 @@
 import threading
 from ...依赖.schemastery import 正整数字段,字典字段
 from ...依赖.工具 import 聚合错误
-from ...typert.协议 import 远程服务,远程 as _远程
+from ...typert.协议 import 远程服务
 from .活动 import 团队活动
 from .错误 import 团队错误,错误文案
 from .日志 import 团队日志
@@ -20,7 +20,7 @@ __all__=[
 名称='agent-team'
 依赖=['agents','sessions','sessionPersistence','sessionProjections','subagents']
 
-默认最大成员=8
+默认最大成员=16
 默认最大任务=256
 默认最大待投=64
 默认最大消息字节=65_536
@@ -84,10 +84,10 @@ class 团队服务(远程服务):
             """观察会话事件。"""
             自身.mailbox.观察会话事件(会话,事件)
         上下文.监听('session/event',观察事件)
-        def 会话启动(载荷,*_其余):
+        def 智能体已创建(载荷,*_其余):
             """调度恢复。"""
             自身._调度恢复(载荷['agent'])
-        上下文.监听('agent/session-start',会话启动)
+        上下文.监听('agent/created',智能体已创建)
         def 状态变化(载荷,*_其余):
             """通知等待者。"""
             关系=自身.roster.试成员关系(载荷['agent'])
@@ -152,29 +152,6 @@ class 团队服务(远程服务):
     def tryMembership(自身,智能体):
         """不抛错地解析调用方，供 scoped 工具安装与观察者使用。"""
         return 自身.roster.试成员关系(智能体)
-
-    @_远程('view')
-    def remoteView(自身,智能体):
-        """经生成的 Remote API 读取当前 roster 与未删除任务板。"""
-        return {'members':自身.listMembers(智能体),'tasks':自身.listTasks(智能体)}
-
-    @_远程('createTask')
-    def remoteCreateTask(自身,智能体,请求):
-        """经生成的 Remote API 创建一条共享任务。"""
-        return 自身._任务变更结果(自身.createTask(智能体,请求))
-
-    @_远程('updateTask')
-    def remoteUpdateTask(自身,智能体,请求):
-        """应用一次任务变更，并把 Team 拒绝保留为业务结果。"""
-        return 自身._任务变更结果(自身.updateTask(智能体,请求))
-
-    def _任务变更结果(自身,操作):
-        """保留 Team 任务拒绝，同时让意外失败仍拒绝 Remote 调用。"""
-        try:
-            return {'ok':True,'value':操作}
-        except 团队错误 as 错误:
-            码='team-task-conflict' if 错误.code=='TEAM_TASK_STALE_REVISION' else 'team-rejected'
-            return {'ok':False,'error':{'code':码,'message':错误.message}}
 
     def _调度恢复(自身,智能体):
         """在发布栈回退后排队一次受控恢复。"""

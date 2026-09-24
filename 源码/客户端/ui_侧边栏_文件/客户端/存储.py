@@ -1,84 +1,104 @@
+__all__=['文件树错误','创建文件存储']
 
-__all__=['文件树错误','创建文件存储']#仅中文公开名
-
-
-class 文件树错误(Exception):
-    """本包文件树存储失败。"""
-
-    def __init__(自身,消息):
-        """记下英文消息。"""
-        super().__init__(消息)#消息原样英文
-
-
+#工具
 def _分桶(状态,标签标识):
-    """取一 tab 的树桶；`start` 之后的写者都依赖它。状态为 dict。"""
-    按标签=状态['byTab']#分桶表
-    if 标签标识 not in 按标签:#尚未播种
-        raise 文件树错误('ui-sidebar-files: no tree for tab "'+str(标签标识)+'"')#拒绝
-    return 按标签[标签标识]#该 tab 的树
+    """`start` 之前没有桶。写者依赖这次播种。"""
+    按标签=状态['byTab']
+    if 标签标识 not in 按标签:
+        raise 文件树错误('ui-sidebar-files: no tree for tab "'+str(标签标识)+'"')
+    return 按标签[标签标识]
 
 
 def 初值():
-    """空分桶表。"""
-    return {'byTab':{}}#初态
+    return {'byTab':{}}
 
 
 def 启动(草稿,标签标识,根):
-    """在工作区根播种一 tab 的树，根默认展开。"""
-    草稿['byTab'][标签标识]={'root':根,'levels':{},'expanded':[根],'scrollTop':0}#播种
+    """根放进展开集，打开时不用再点一次。"""
+    草稿['byTab'][标签标识]={'root':根,'levels':{},'expanded':[根],'scrollTop':0,'autoRefresh':True}
 
+def 自动刷新(草稿,标签标识,启用):
+    _分桶(草稿,标签标识)['autoRefresh']=启用
 
 def 加载中(草稿,标签标识,路径):
-    """标记某目录正在列举。"""
-    _分桶(草稿,标签标识)['levels'][路径]={'kind':'loading'}#加载中
-
+    树=_分桶(草稿,标签标识)
+    现=树['levels'][路径] if 路径 in 树['levels'] else None
+    if 现 is None or ('kind' not in 现) or 现['kind']!='ready':
+        树['levels'][路径]={'kind':'loading'}
 
 def 已加载(草稿,标签标识,路径,层级):
-    """记下某目录的内容。层级为 dict：entries / truncated。"""
-    _分桶(草稿,标签标识)['levels'][路径]={'kind':'ready','level':层级}#就绪
-
+    """层级为 dict：entries / truncated。已就绪级会裁掉消失的子目录。"""
+    树=_分桶(草稿,标签标识)
+    先前=树['levels'][路径] if 路径 in 树['levels'] else None
+    if 先前 is not None and 'kind' in 先前 and 先前['kind']=='ready':
+        目录名=set()
+        for 项 in 层级['entries']:
+            if 'type' in 项 and 项['type']=='directory':
+                目录名.add(项['name'])
+        for 项 in 先前['level']['entries']:
+            if ('type' not in 项) or 项['type']!='directory' or 项['name'] in 目录名:
+                continue
+            已删=路径.rstrip('/\\')+'/'+项['name']
+            前缀=已删+'/'
+            树['expanded']=[值 for 值 in 树['expanded'] if 值!=已删 and not 值.startswith(前缀)]
+            树['levels']={键:值 for 键,值 in 树['levels'].items() if 键!=已删 and not 键.startswith(前缀)}
+    树['levels'][路径]={'kind':'ready','level':层级}
 
 def 已失败(草稿,标签标识,路径,失败):
-    """记下某目录列举失败原因。失败为跨包 RemoteFailure dict。"""
-    _分桶(草稿,标签标识)['levels'][路径]={'kind':'failed','failure':失败}#失败
+    """失败为跨包 RemoteFailure dict。已就绪级只叠 failure。"""
+    树=_分桶(草稿,标签标识)
+    级=树['levels'][路径] if 路径 in 树['levels'] else None
+    if 级 is not None and 'kind' in 级 and 级['kind']=='ready':
+        树['levels'][路径]={**级,'failure':失败}
+    else:
+        树['levels'][路径]={'kind':'failed','failure':失败}
 
 
 def 已切换(草稿,标签标识,路径):
-    """展开已折叠目录，或折叠已展开者；折叠级保留已加载内容。"""
-    树=_分桶(草稿,标签标识)#该桶
-    展开=树['expanded']#展开列表
-    if 路径 in 展开:#已展开则收起
-        树['expanded']=[项 for 项 in 展开 if 项!=路径]#去掉
-    else:#未展开则打开
-        展开.append(路径)#追加
+    """折叠后已加载的级仍留着。"""
+    树=_分桶(草稿,标签标识)
+    展开=树['expanded']
+    if 路径 in 展开:
+        树['expanded']=[项 for 项 in 展开 if 项!=路径]
+    else:
+        展开.append(路径)
 
 
 def 已滚动(草稿,标签标识,滚动顶):
-    """记下某 tab 体当前滚动偏移（px）。"""
-    _分桶(草稿,标签标识)['scrollTop']=滚动顶#滚动顶
+    """偏移单位是像素。"""
+    _分桶(草稿,标签标识)['scrollTop']=滚动顶
+
 
 def 重置(草稿,标签标识):
-    """丢掉全部已加载级，保留展开集合（重新读取的前半）。"""
-    _分桶(草稿,标签标识)['levels']={}#清空层级
+    """只清已加载级，不收起目录。"""
+    _分桶(草稿,标签标识)['levels']={}
 
 
 def 遗忘(草稿,标签标识):
-    """忘掉已消失 tab 记录的树。"""
-    草稿['byTab']={键:值 for 键,值 in 草稿['byTab'].items() if 键!=标签标识}#过滤
+    草稿['byTab']={键:值 for 键,值 in 草稿['byTab'].items() if 键!=标签标识}
+
+
+#
+class 文件树错误(Exception):
+    """消息保持英文，调用方按字符串比对。"""
+
+    def __init__(自身,消息):
+        super().__init__(消息)
 
 
 def 创建文件存储():
-    """声明文件树存储规格（init / actions），供登记收下；框架按会话铸造实例。"""
-    return {#规格进、句柄出（对齐 defineStore 入参）
-        'init':初值,#播种
-        'actions':{#动作写集合；每个动作点名所写 tab
-            'start':启动,#播种根
-            'loading':加载中,#标记加载
-            'loaded':已加载,#记下内容
-            'failed':已失败,#记下失败
-            'toggled':已切换,#展开/折叠
-            'scrolled':已滚动,#记下滚动
-            'reset':重置,#清层级
-            'forget':遗忘,#删桶
-        },#动作结束
-    }#规格结束
+    """框架按会话铸造。动作名是线协议。"""
+    return {
+        'init':初值,
+        'actions':{
+            'autoRefresh':自动刷新,
+            'start':启动,
+            'loading':加载中,
+            'loaded':已加载,
+            'failed':已失败,
+            'toggled':已切换,
+            'scrolled':已滚动,
+            'reset':重置,
+            'forget':遗忘,
+        },
+    }

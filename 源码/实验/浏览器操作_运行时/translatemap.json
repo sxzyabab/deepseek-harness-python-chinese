@@ -1,5 +1,3 @@
 {
-    "index.ts":"__init__.py",
-    "mcp.ts":"mcp.py",
-    "README.zh.md":"README.md"
+    "mcp":"mcp"
 }

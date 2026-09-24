@@ -13,6 +13,7 @@ from .渲染 import (#导入渲染与截断
     渲染发送读取,#渲染发送增量
     渲染打开,#渲染打开结果
 )#渲染模块结束
+from .后台 import 发送源
 
 名称='tool-terminal'#Cordis插件名
 依赖=['terminals','tools','systemPrompt']#必需的能力、注册表与提示词服务
@@ -161,7 +162,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
         return 文本结果(原文,结果字节)#能封顶则替换
     上下文.systemPrompt.段落({#写入系统提示
         'name':'tool:pty',#段落名
-        'order':106,#顺序
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_PTY'),#中央段落顺序
         'text':'Use a terminal session only when work needs persistent terminal state or interactive stdin; prefer shell/read/write/edit for bounded one-shot operations. Track every terminal session id and close sessions that no longer matter. An inferred_idle or timeout result does not prove the foreground command exited.',#用法说明
     })#系统提示结束
 
@@ -224,38 +225,37 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             任务服务=上下文.获取服务('jobs',False)#任务服务
             if 任务服务 is None:#缺任务服务
                 raise 终端工具错误('background terminal sends require @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')#缺任务服务
-            取消请求=[False]#是否已请求取消
-            文本=参数['text'] if 'text' in 参数 and 参数['text'] is not None else ''#写入文本
-            def 任务体():#任务体
+            取消请求=[False]
+            文本=参数['text'] if 'text' in 参数 and 参数['text'] is not None else ''
+            操作槽=[None]
+            def 任务体():
                 """在通用任务层下拉起后台终端发送。"""
-                操作=上下文.terminals.开始发送(所有者,标识,请求)#开始发送
-                结算=操作任务()#任务done
-                def 盯结算():#把发送结算映射成任务结局
-                    """把操作 done 映射成任务结果。"""
-                    try:#正常结算
-                        结果=操作.done.等待()#等到结算
-                        状态='killed' if 取消请求[0] else 'completed'#成功或被杀
-                        结算.兑现({'status':状态,'detail':发送详情(结果)})#兑现结局
-                    except BaseException as 错误:#失败
-                        结算.兑现({'status':'failed','detail':str(错误)})#失败结局
-                工作=threading.Thread(target=盯结算)#后台结算线程
-                工作.daemon=True#不挡住退出
-                工作.start()#启动
-                def 取消():#取消
+                操作=上下文.terminals.开始发送(所有者,标识,请求)
+                操作槽[0]=操作
+                结算=操作任务()
+                def 盯结算():
+                    """把发送结算映射成任务结局。"""
+                    try:
+                        结果=操作.done.等待()
+                        结算.兑现({'status':'killed' if 取消请求[0] else 'completed','detail':发送详情(结果)})
+                    except BaseException as 错误:
+                        结算.兑现({'status':'failed','detail':str(错误)})
+                工作=threading.Thread(target=盯结算)
+                工作.daemon=True
+                工作.start()
+                def 取消():
                     """请求打断后台发送。"""
-                    取消请求[0]=True#记下取消
-                    操作.取消()#打断发送
-                def 读输出():#增量输出
-                    """增量渲染后台发送输出。"""
-                    return 渲染发送读取(操作.读取输出())#增量输出
-                return {'cancel':取消,'done':结算,'readOutput':读输出}#交给任务收集器
-            编号=任务服务.启动({#启动后台任务
-                'kind':'pty-send',#任务种类
-                'label':str(标识)+': '+(文本 if len(文本)>0 else '(input)'),#标签
-                'owner':所有者,#所有者
-                'outputLimitBytes':结果字节,#输出上限
-                'run':任务体,#任务体
-            })#jobs.启动结束
+                    取消请求[0]=True
+                    操作.取消()
+                return {'cancel':取消,'done':结算}
+            编号=任务服务.启动({
+                'kind':'pty-send',
+                'label':str(标识)+': '+(文本 if len(文本)>0 else '(input)'),
+                'owner':所有者.id,
+                'outputLimitBytes':结果字节,
+                'output':[发送源(lambda:操作槽[0])],
+                'run':任务体,
+            })
             return {'kind':'background','jobId':编号}#立刻返回任务id
         前台请求=dict(请求)#拷贝请求
         前台请求['signal']=执行元数据.signal#前台发送带取消

@@ -7,11 +7,9 @@ __all__=[
     '命名空间','中文','英文',
 ]
 
-def 应用(上下文,远程制品=None):
-    """挂载生成的 Team Remote contribution 及其浏览器 UI。"""
-    if 远程制品 is None:
-        return 登记界面(上下文)
-    return 挂载智能体团队界面(上下文,远程制品)
+def 应用(上下文,_远程制品=None):
+    """登记词典与标题栏动作。"""
+    登记界面(上下文)
 
 inject=依赖
 apply=应用

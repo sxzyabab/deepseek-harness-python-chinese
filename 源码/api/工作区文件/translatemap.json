@@ -1,10 +1,4 @@
 {
-    "index.ts": "__init__.py",
-    "types.ts": "类型.py",
-    "changes.ts": "变更.py",
-    "client/index.ts": "客户端/__init__.py",
-    "client/types.ts": "客户端/类型.py",
-    "client/remote.ts": "客户端/远程.py",
-    "client/provider.ts": "客户端/提供方.py",
-    "client/change-feed.ts": "客户端/变更供给.py"
+    "types":"类型",
+    "changes":"变更"
 }

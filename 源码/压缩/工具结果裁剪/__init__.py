@@ -92,19 +92,16 @@ class 工具结果修剪器(服务):
             序号=候选['seq']#原文序号
             事件=候选['event']#工具结果事件
             数据=事件['data']#事件数据
-            消息=数据['message']#工具结果消息
-            结果=消息['content'][0]#第一条工具结果内容
-            内容=自身.修剪内容(结果['content'])#尝试修剪
+            原文=会话.派生事件消息(事件)#派生工具结果消息
+            内容=自身.修剪内容(原文['content'])#尝试修剪
             if 内容 is None:#未超预算则跳过
                 continue#下一条
-            修剪前=自身.测量码点数(结果['content'])#修剪前
+            修剪前=自身.测量码点数(原文['content'])#修剪前
             修剪后=自身.测量码点数(内容)#修剪后
-            新结果=dict(结果)#保留结果外壳
-            新结果['content']=内容#已修剪块
-            新消息=dict(消息)#其余字段原样
-            新消息['content']=[新结果]#只改内容，仍是单元素列表
+            新消息=dict(原文)#其余字段原样
+            新消息['content']=内容#已修剪块
             冻结后=冻结消息(新消息)#冻结替换消息
-            计价=自身.ctx.tokenMeter.计价消息(消息)#启发式价格
+            计价=自身.ctx.tokenMeter.计价消息(原文)#启发式价格
             会话.追加('compaction/prune',{#影子价格事件
                 'shadowedRange':{'start':序号,'end':序号},#单节点区间
                 'shadowedSeqs':[序号],#被遮蔽序号
@@ -116,7 +113,7 @@ class 工具结果修剪器(服务):
                 'surfaceOp':{'op':'replace','startSeq':序号,'endSeq':序号},#替换该节点
                 'sourceEventSeqs':[序号],#引用原文
             })#append结束
-            出处=消息['source'] if 'source' in 消息 else None#工具调用来源
+            出处=数据['message']['source'] if 'message' in 数据 and 'source' in 数据['message'] else None#工具调用来源
             已记账.append({#记下本条
                 'originalSeq':序号,#原文序号
                 'replacementSeq':替换['seq'],#替换序号

@@ -3,7 +3,7 @@ from pathlib import Path,PureWindowsPath
 from . import 运行原生命令,已中止,原生命令错误
 
 __all__=[
-    '可打开原生路径','原生文件管理器','揭示原生路径','打开原生路径','打开原生文本文件',
+    '可打开原生路径','原生文件管理器','揭示原生路径','打开原生路径','打开原生关联路径','打开原生文本文件',
 ]
 
 浏览器文档={'.html','.htm','.xhtml','.svg'}
@@ -21,10 +21,6 @@ def 是否WSL(内部=None):
         return True
     发行=内部['osRelease'] if 'osRelease' in 内部 else platform.release()
     return 'microsoft' in 发行.lower()
-
-def PowerShell字面量(路径):
-    """PowerShell 单引号字面量（内嵌引号加倍）。"""
-    return "'"+路径.replace("'","''")+"'"
 
 def 确保未中止(信号):
     """信号已置位则抛 ABORT。"""
@@ -60,9 +56,28 @@ def 用浏览器打开(路径,信号,系统,运行,环境):
         return True
     return False
 
+def 资源管理器目标(windows路径):
+    """编码 Explorer 能原样接收的目标。"""
+    href=PureWindowsPath(windows路径).as_uri()
+    def 解码非ascii(匹配):
+        """把一段非 ASCII 百分号转义还原为字面字符。"""
+        from urllib.parse import unquote as 解码百分号
+        return 解码百分号(匹配.group(0))
+    href=re.sub(r'(?:%[89A-Fa-f][0-9A-Fa-f])+',解码非ascii,href)
+    return href.replace(',','%2C').replace('=','%3D')
+
+def 跑资源管理器(参数列表,信号,运行):
+    """把目标交给 Explorer；退出码 1 视为委托交接。"""
+    try:
+        运行('explorer.exe',参数列表,信号)
+    except 原生命令错误 as 错误:
+        确保未中止(信号)
+        if 错误.code!=1:
+            raise 错误
+
 def 打开Windows路径(路径,信号,运行):
-    """经已注册桌面应用打开一条 Windows 可解析路径。"""
-    运行('powershell.exe',['-NoProfile','-Command','Invoke-Item -LiteralPath '+PowerShell字面量(路径)],信号)
+    """经 Explorer 打开一条 Windows 可解析路径。"""
+    跑资源管理器([资源管理器目标(路径)],信号,运行)
 
 def 打开WSL路径(路径,信号,运行):
     """交给 Windows 桌面前先翻译 WSL 路径。"""
@@ -149,13 +164,7 @@ def 揭示原生路径(路径,信号,内部=None):
             windows路径=re.sub(r'[\r\n]+$','',译['stdout'])
             if windows路径=='':
                 raise 原生命令错误('wslpath 没有返回 Windows 路径','EINVAL','','',None)
-        目标=PureWindowsPath(windows路径).as_uri().replace(',','%2C')#逗号必须写入 file URI
-        try:
-            运行('explorer.exe',['/select,',目标],信号)
-        except 原生命令错误 as 错误:
-            确保未中止(信号)#中止优先于退出码 1
-            if 错误.code!=1:
-                raise 错误
+        跑资源管理器(['/select,',资源管理器目标(windows路径)],信号,运行)
         return
     if 管理器=='directory':
         运行('xdg-open',[str(Path(路径).parent)],信号)
@@ -165,6 +174,10 @@ def 揭示原生路径(路径,信号,内部=None):
 def 打开原生路径(路径,信号,内部=None):
     """用操作系统默认应用打开文件系统路径。"""
     按意图打开原生路径(路径,信号,'default',内部)
+
+def 打开原生关联路径(路径,信号,内部=None):
+    """按文件类型关联打开路径，含 HTML 与 SVG。"""
+    按意图打开原生路径(路径,信号,'association',内部)
 
 def 打开原生文本文件(路径,信号,内部=None):
     """打开文本文档以供编辑。"""

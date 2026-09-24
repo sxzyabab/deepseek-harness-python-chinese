@@ -10,6 +10,7 @@ def 标签信息工厂(标准,上下文):
     标签标识=上下文['tabId']#签
     是标题=上下文['title']#是否标题席
     全屏=上下文['fullscreen']#全屏
+    活动=上下文['active'] if 'active' in 上下文 else True
     信号=上下文['signal']#寿命
     动作=上下文['actions']#自动作
     用存储=上下文['useStore']#存储选择
@@ -23,7 +24,7 @@ def 标签信息工厂(标准,上下文):
             raise 右侧侧栏错误('标签 "'+str(标签标识)+'" 未在会话 "'+str(会话标识)+'" 中提交')
         签=布局['tabs'][标签标识]#记录
         窗=查找标签窗格(布局,标签标识)#窗
-        可见=窗['host']=='float' or (布局['expanded'] and (是标题 or 窗['activeTabId']==标签标识))#可见
+        可见=活动 and (窗['host']=='float' or (布局['expanded'] and (是标题 or 窗['activeTabId']==标签标识)))#可见
         return {#标签信息
             'sidebar':{'expanded':布局['expanded'],'fullscreen':全屏},
             'panel':{'id':窗['id']},

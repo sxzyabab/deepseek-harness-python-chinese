@@ -4,7 +4,8 @@ from ...模型后端.llm import 装备错误#导入harness错误基类
 最大引用数=3#单条消息最多引用3个会话
 默认候选上限=50#宿主候选列表默认上限
 默认最大引用字节=65536#单个引用快照默认字节预算
-会话引用配置字段=('maxReferences','candidateLimit','maxReferenceBytes')#会话引用服务配置字段名
+默认引用上下文比例=0.2#无显式字节预算时按窗口比例取值
+会话引用配置字段=('maxReferences','candidateLimit','maxReferenceBytes','referenceContextFraction')#会话引用服务配置字段名
 会话引用错误码=(#会话引用稳定错误码
     'SESSION_REFERENCE_INVALID_CONFIG',#配置非法
     'SESSION_REFERENCE_INVALID_REFERENCE',#引用结构非法

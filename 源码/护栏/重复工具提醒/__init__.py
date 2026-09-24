@@ -13,7 +13,7 @@ __all__=['名称','配置模式','应用']#仅中文公开名；Cordis 槽英文
     'argumentsPreviewChars':数字字段(默认值=500),#DETAILED提醒里引用的规范参数最大字符数
 }#配置模式结束
 
-插件来源={'kind':'plugin','plugin':'repeat-tool-reminder'}#插件来源戳
+插件来源={'kind':'repeat-tool-reminder'}#提醒来源戳
 温和提醒=(#第一档温和提醒
     'You are repeating the exact same tool call with identical arguments. '#前半
     +'Carefully analyze the previous result before calling again: if the task is '#中段
@@ -156,5 +156,7 @@ def 应用(上下文,配置):
 
 应用.name=名称#Cordis name 槽
 应用.Config=配置模式#Cordis Config 槽
+name=名称#框架槽
+Config=配置模式#框架槽
 apply=应用#Cordis插件入口
 default=应用#Cordis 默认导出

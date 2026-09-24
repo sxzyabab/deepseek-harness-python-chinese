@@ -7,12 +7,11 @@ Host 转发循环与消费方 `$on` 键面读同一份声明。
 from typing import Literal,TypedDict#字面量真值与结构类型
 from .远程事件 import 远程转发事件#转发事件白名单常量
 
+远程转发事件名=tuple(项['event'] for 项 in 远程转发事件)#白名单事件名联合
+
 # ---------------------------------------------------------------------------
 # 白名单投影与席位合并（对齐 types.ts：仅类型，无运行时值）
 # ---------------------------------------------------------------------------
-
-# 上游：export type ApiRemoteForwardedEvent = typeof API_REMOTE_FORWARDED_EVENTS[number]
-远程转发事件名=远程转发事件#白名单元素联合投影；消费方与 Host 都读这一份
 
 # 上游 declare module '@deepseek-ai/dsh-typert-protocol' {
 #   interface TypertRemoteEventSelection extends Record<ApiRemoteForwardedEvent, true> {}
@@ -38,6 +37,10 @@ from .远程事件 import 远程转发事件#转发事件白名单常量
     'cordis/inspect-query':Literal[True],#动态包探查查询 → 已选
     'cordis/inspect-query-resolved':Literal[True],#动态包探查查询已决议 → 已选
     'llm/adapters-updated':Literal[True],#大模型适配器已更新 → 已选
+    'permission-presets/catalog-changed':Literal[True],#权限预设目录已变更 → 已选
+    'plugin-manager/changed':Literal[True],#插件装载已变更 → 已选
+    'plugin-manager/install-log':Literal[True],#插件安装日志 → 已选
+    'plugin-manager/install-state':Literal[True],#插件安装状态 → 已选
     'settings/document-updated':Literal[True],#设置文档已更新 → 已选
     'user-questions/request':Literal[True],#用户提问瀑布 → 已选
 })#席位合并结束：白名单每一键标为 true

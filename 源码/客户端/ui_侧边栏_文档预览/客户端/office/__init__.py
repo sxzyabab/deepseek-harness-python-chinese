@@ -7,11 +7,12 @@ from ..文档.约定 import 文档标签信息工厂#文档标签信息
 from .文案 import 中文,英文#文案
 from .缓存 import Office预览缓存#缓存
 from .存储 import 创建Office存储#存储
+from .面 import office面#读取面
 from ..pdf import 应用 as 登记pdf呈现#PDF 呈现登记占位
 
 __all__=['应用','转换错误键']#仅中文公开名
 
-扩展名=['doc','docx','xls','xlsx','ppt','pptx']#扩展名
+扩展名=['doc','docx','ppt','pptx']#扩展名
 实现键='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/office'#实现键
 
 def 转换错误键(代码):
@@ -64,15 +65,21 @@ def 应用(上下文,配置):
         if isinstance(失败信息,dict) and 'code' in 失败信息:#远程失败
             return 失败行(文档翻译,失败信息)#失败行
         return 文档翻译('error.unavailable',{'message':失败信息.get('message') if isinstance(失败信息,dict) else str(失败信息)})#通用
-    def 注入(_会话标识,动作):
+    面=office面(lambda 文件,信号:当前读[0](文件,信号),描述失败)
+    def 登记动作():
+        """挂缺字体动作。"""
+        return 上下文.slots.inject('sidebar.right.tab.document.action',lambda:上下文.slots.register({
+            'name':'sidebar.right.tab.document.action','key':实现键,'locale':'sidebarOffice','store':存储,
+        },'OfficeFontAction'))
+    上下文.副作用(登记动作)
+    def 注入(会话标识,动作):
         """正文注入。"""
+        基=面(会话标识,动作)
         def 保留(标签标识,信号):
             """保留至忘记。"""
             保留标签(标签标识,信号,动作['forget'])#保留
-        def 读(文件,信号):
-            """转当前读。"""
-            return 当前读[0](文件,信号)#读
-        return {'read':读,'describeFailure':描述失败,'retainTab':保留}#注入
+        基['retainTab']=保留
+        return 基
     def 登记正文():
         """挂 Office 正文槽。"""
         return 上下文.slots.inject('sidebar.right.tab.document',lambda:上下文.slots.register({#登记
@@ -80,6 +87,10 @@ def 应用(上下文,配置):
             'key':实现键,#键
             'locale':'sidebarOffice',#文案
             'store':存储,#存储
+            'children':{'sidebar.right.tab.document.office.pdf':{
+                'kind':'keyed','scope':'session',
+                'inject':{'hooks':{'tabInfo':文档标签信息工厂}},
+            }},
             'inject':注入,#注入
         },'OfficeBody'))#组件名占位
     上下文.副作用(登记正文)#寿命

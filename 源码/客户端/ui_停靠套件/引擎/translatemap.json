@@ -1,0 +1,10 @@
+{
+    "constraints":"约束",
+    "controller":"控制器",
+    "geometry":"几何",
+    "initial":"初值",
+    "operations":"操作",
+    "planner":"规划",
+    "sequence":"序列",
+    "tree":"树"
+}

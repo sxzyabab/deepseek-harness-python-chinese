@@ -1,7 +1,5 @@
 {
-    "image-offload.ts":"图片省略.py",
-    "index.ts":"__init__.py",
-    "project-message.ts":"投影消息.py",
-    "projection.ts":"投影.py",
-    "README.zh.md":"README.md"
+    "image-offload":"图片省略",
+    "project-message":"投影消息",
+    "projection":"投影"
 }

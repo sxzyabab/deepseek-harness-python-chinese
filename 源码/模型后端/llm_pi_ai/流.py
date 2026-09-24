@@ -84,7 +84,7 @@ def 映射停止原因(消息,上下文窗口=None):
         return {'kind':'error','failure':{'message':文本,'code':分类派爱错误(文本)}}#按文本分类
     return None#封闭联合之外
 
-def 转流块(事件列表,上下文窗口=None):
+def 转流块(事件列表,上下文窗口=None,请求模型=None):
     """把 pi-ai 事件流翻译成 StreamChunk。事件为 SDK 对象。"""
     工具标识={}#下标到调用id与名字
     已终止=False#是否见到终止事件
@@ -150,7 +150,7 @@ def 转流块(事件列表,上下文窗口=None):
         if 类型=='done':#正常终止：先发用量，再发 finish，并投影回放状态
             助手=事件.message#助手消息
             yield {'type':'usage','usage':映射用量(助手.usage)}#先发用量
-            yield {'type':'finish','reason':映射停止原因(助手,上下文窗口),'replayState':转派回放状态(助手)}#再发finish
+            yield {'type':'finish','reason':映射停止原因(助手,上下文窗口),'replayState':转派回放状态(助手,请求模型)}#再发finish
             已终止=True#见到终止
             return#翻译结束
         if 类型=='error':#流内错误：先发用量再发 finish，不带回放状态

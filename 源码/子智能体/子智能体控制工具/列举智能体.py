@@ -18,7 +18,7 @@ class 列举智能体子体行(TypedDict):#子体行
     kind:Literal['child']#子体
     id:str#会话id
     label:str#标签
-    status:Literal['running','idle','ready']#活注册表状态
+    status:Literal['running','inactive']#活注册表状态
     parent:NotRequired[str]#可选父id
     depth:NotRequired[int]#可选深度
 
@@ -45,13 +45,11 @@ def 解析列举智能体请求(请求):
     return {'scope':请求['scope']}#已解析规格
 
 def 状态于(智能体服务,标识):
-    """经活 Agent 注册表细化一个候选的状态：活动驱动为 `running`，回合之间驻留的 Agent（可能在等它启动的智能体）为 `idle`，没有活 Agent 时为 `ready`。"""
+    """经活 Agent 注册表报告回合活动：正在跑为 `running`，否则 `inactive`。"""
     智能体=智能体服务.获取(标识)#活智能体
-    if 智能体 is None:#只在存储里
-        return 'ready'#可恢复
-    if 智能体.status=='running':#活动驱动
+    if 智能体 is not None and 智能体.status=='running':#活动驱动
         return 'running'#正在工作
-    return 'idle'#驻留空闲
+    return 'inactive'#未在跑
 
 def 投影(智能体服务,条目,位置=None):
     """把一行服务条目投影成面向模型的条目，或省略一次性子体。条目与位置为 dict。"""
@@ -124,12 +122,13 @@ def 应用(上下文):
         'description':(#工具描述
             'List your continuable background subagents by durable id and label. Use it to recall which ones '
             +'you started, not to poll for completion — you are told when one finishes. Status comes from the live '
-            +'registry: running means the agent is working right now, idle means it is loaded but between turns '
-            +'(it may be waiting on agents it started), and ready means it exists only in storage — resumable, not '
-            +'terminal, and not a result waiting to be collected; a `send_message` starts a new turn on the same '
-            +'conversation, and a direct child remains a `send_message` candidate in every status. The snapshot is not a delivery '
+            +'registry: running means the agent is working right now; inactive means no turn is executing, whether '
+            +'the child is loaded or must be resumed. inactive does not describe task completion, success, failure, '
+            +'or waiting for other agents. A `send_message` steers a running child at its nearest step boundary '
+            +'or starts or resumes a turn for an inactive child, and a direct child remains a `send_message` '
+            +'candidate in every status. The snapshot is not a delivery '
             +'promise — `send_message` performs the authoritative check and may still fail. Children that could '
-            +'not be read are reported as diagnostics instead of being silently dropped. Scope `descendants` '
+            +'not be read are reported as diagnostics only in `descendants` scope. Scope `descendants` '
             +'walks the whole tree below you in stable pre-order, annotating each entry with its durable direct-parent '
             +'session id and depth. You may use `send_message` only for depth-1 entries; deeper entries are '
             +'candidates for `interrupt_agent` only.'
@@ -153,7 +152,7 @@ def 应用(上下文):
                                 'kind':{'type':'string','required':True,'enum':['child']},#子体判别
                                 'id':{'type':'string','required':True},#会话id
                                 'label':{'type':'string','required':True},#标签
-                                'status':{'type':'string','required':True,'enum':['running','idle','ready']},#活状态
+                                'status':{'type':'string','required':True,'enum':['running','inactive']},#活状态
                                 'parent':{'type':'string'},#可选父id
                                 'depth':{'type':'number'},#可选深度
                             },#properties 结束

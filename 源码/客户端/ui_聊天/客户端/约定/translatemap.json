@@ -1,3 +1,11 @@
 {
-    "store.ts":"存储.py"
+    "store":"存储",
+    "snapshot":"快照",
+    "turn-process":"回合过程",
+    "turn-metrics":"回合指标",
+    "slots":"槽",
+    "chat-nodes":"聊天节点",
+    "assistant-content":"助手内容",
+    "chat-visibility":"聊天可见性",
+    "process-groups":"过程组"
 }

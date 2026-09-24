@@ -1,7 +1,4 @@
 {
-    "index.ts":"__init__.py",
-    "protocol.ts":"协议.py",
-    "README.zh.md":"README.md",
-    "py/bootstrap.py":"子/bootstrap.py",
-    "py/protocol.py":"子/protocol.py"
+    "protocol":"协议",
+    "py":"子"
 }

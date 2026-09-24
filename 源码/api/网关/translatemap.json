@@ -1,0 +1,11 @@
+{
+    "journal-stream":"日志流",
+    "remote-events":"远程事件",
+    "remote-stream":"远程流",
+    "snapshot-stream":"快照流",
+    "types":"类型",
+    "stream-protocol":"流协议",
+    "remote-error-codes":"类型",
+    "stream-server":"网关",
+    "stream-client":"客户端"
+}

@@ -1,34 +1,35 @@
+__all__=['文件种类','文件标识','文件定义','文件夹页字形']
 
-__all__=['文件种类','文件标识','文件定义','文件夹页字形']#仅中文公开名
+#常量
+#线路字面量：tab 种类与正文登记键
+文件种类='files'
+文件标识='@deepseek-ai/dsh-client-ui-sidebar-files'
 
-文件种类='files'#本包拥有的 tab 种类（线路字面量）
-文件标识='@deepseek-ai/dsh-client-ui-sidebar-files'#实现身份，亦为正文登记键
-
-
+#工具
 def 文件夹页字形(属性=None):
-    """向导胶囊字形尺寸下的彩色文件夹页，与芯片标题所绘一致。"""
-    属性=属性 if 属性 is not None else {}#props
-    return {#文件类型图标
+    """向导胶囊与芯片标题共用的文件夹页字形。"""
+    属性=属性 if 属性 is not None else {}
+    return {
         'type':'FileTypeIcon',
         'props':{
-            'kind':'folder',#文件夹
+            'kind':'folder',
             'size':属性['size'] if 'size' in 属性 else None,
             'className':属性['className'] if 'className' in 属性 else None,
         },
-    }#图标结束
+    }
 
 
 def 文件定义(翻译):
-    """文件类型的注册表定义。翻译为命名空间绑定的可调用，每次取标签时新鲜读取。"""
-    return {#右侧侧栏 tab 定义
-        'id':文件标识,#实现身份
-        'kind':文件种类,#种类
-        'priority':'builtin',#内建优先级
-        'title':lambda:翻译('type.label'),#类型标题
-        'guide':[{#向导入口
-            'order':10,#排序
-            'title':lambda:翻译('guide.title'),#标题
-            'description':lambda:翻译('guide.description'),#描述
-            'icon':文件夹页字形,#文件夹字形
-        }],#向导结束
-    }#定义结束
+    """右侧侧栏的 files 类型。翻译每次取标签时重新读，不缓存文案。"""
+    return {
+        'id':文件标识,
+        'kind':文件种类,
+        'priority':'builtin',
+        'title':lambda:翻译('type.label'),
+        'guide':[{
+            'order':10,
+            'title':lambda:翻译('guide.title'),
+            'description':lambda:翻译('guide.description'),
+            'icon':文件夹页字形,
+        }],
+    }

@@ -15,7 +15,7 @@ from ..钩子协议 import (
 from .配置 import 解析克劳德代码配置#导入配置解析
 
 名称='hooks-claude-code'#插件名
-依赖=['shell']#执行钩子必须有 bash；其余经 上下文.获取服务 机会性读取
+依赖=['shell','sessionProjections']#执行钩子必须有 bash；轮次号来自会话投影
 配置={#插件配置：CC 钩子配置所在位置以及替换根目录
     'configPath':字符串字段(),#hooks.json 路径，或 hooks 键里放配置的设置文件；必填
     'pluginRoot':字符串字段(),#替换命令字符串里的 ${CLAUDE_PLUGIN_ROOT}
@@ -23,7 +23,7 @@ from .配置 import 解析克劳德代码配置#导入配置解析
     'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒
     'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字节),#hook/result 里持久 stderr 摘要的字节上限
 }#配置模式结束
-插件来源={'kind':'plugin','plugin':'hooks-claude-code'}#本桥注入的每条上下文都盖上的来源
+插件来源={'kind':'hooks-claude-code'}#本桥注入的每条上下文都盖上的来源
 子智能体类型='general-purpose'#桥在 SubagentStart/Stop 上报的 agent_type；harness 无按种类标签
 处理器计数=0#处理器计数，用于稳定 id
 
@@ -71,17 +71,12 @@ def 断言正整数(名字,值):
     if isinstance(值,bool) or (not isinstance(值,int)) or 值<1:#非正整数则失败
         raise TypeError('hooks-claude-code: '+名字+' 必须是正整数')#报告非法配置
 
-def 最后轮次(智能体):
-    """智能体日志里最后一个打开轮次号；没有智能体则为 0。智能体是对象。"""
+def 最后轮次(上下文,智能体):
+    """智能体日志里最后一个打开轮次号；没有智能体则为 0。"""
     if 智能体 is None:#没有智能体
         return 0#零
-    for 事件 in reversed(list(智能体.session.events)):#从后往前找轮次开始
-        if 事件['type']=='turn/start':#找到
-            数据=事件['data']#载荷
-            if 'turn' not in 数据 or 数据['turn'] is None:#无轮次
-                return 0#零
-            return 数据['turn']#用其轮次
-    return 0#否则零
+    边界=上下文.sessionProjections.stateOf(智能体.session,'turnBoundary')#回合边界投影
+    return 边界['lastTurn']#用其轮次
 
 def 拼接块文本(内容):
     """把内容块摊成钩子载荷携带的文本（常见情况）。内容是块 dict 列表。"""
@@ -105,14 +100,7 @@ def 共用载荷(上下文,智能体,事件):
             工作目录=头['cwd']#会话工作目录
         else:
             工作目录=os.getcwd()#进程 cwd
-        定位=None#持久化定位
-        持久化=上下文.获取服务('sessionPersistence',False)#可选会话持久化
-        if 持久化 is not None:#有服务
-            定位=持久化.定位(头)#定位文本记录，同步返回 dict 或 None
-        if 定位 is not None and 'path' in 定位 and 定位['path'] is not None:#有路径
-            文本记录路径=定位['path']#路径
-        else:
-            文本记录路径=''#路径或空
+        文本记录路径=''#持久化缝不暴露制品路径
     return {#组装公共字段
         'session_id':会话号,#会话 id
         'transcript_path':文本记录路径,#文本记录路径
@@ -352,7 +340,7 @@ def 应用(上下文,配置值=None):
     def 工具前监听(执行,下一步,*位置参数):
         """PreToolUse → PreToolDecision。匹配主体是工具名。执行是 dict。"""
         智能体=执行['agent'] if 'agent' in 执行 else None#智能体
-        轮次=最后轮次(智能体)#取当前打开轮次
+        轮次=最后轮次(上下文,智能体)#取当前打开轮次
         选项={'turn':轮次,'signal':执行['signal'] if 'signal' in 执行 else None}#运行选项
         if 智能体 is not None:#有智能体才传入
             选项['agent']=智能体#智能体
@@ -371,7 +359,7 @@ def 应用(上下文,配置值=None):
     def 工具后监听(执行,结果,下一步,*位置参数):
         """PostToolUse → PostToolDecision。匹配主体是工具名。执行与结果都是 dict。"""
         智能体=执行['agent'] if 'agent' in 执行 else None#智能体
-        轮次=最后轮次(智能体)#取当前打开轮次
+        轮次=最后轮次(上下文,智能体)#取当前打开轮次
         选项={'turn':轮次,'signal':执行['signal'] if 'signal' in 执行 else None}#运行选项
         if 智能体 is not None:#有智能体才传入
             选项['agent']=智能体#智能体

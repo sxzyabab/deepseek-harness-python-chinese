@@ -10,7 +10,7 @@ class 会话日志错误(Exception):
 包名='@deepseek-ai/dsh-session-log-deepseek'
 名称='session-log-deepseek'
 依赖=['deepseekLlmApiExtensions','sessions']#依赖常量
-配置模式=字典字段(字典结构={'enabled':布尔字段(默认值=False)})#配置模式
+配置模式=字典字段(字典结构={'enabled':布尔字段(默认值=True)})#配置模式
 __all__=['包名','名称','依赖','应用','默认','已接受至','会话日志错误','线路头','线路事件']
 
 接受折叠表=weakref.WeakKeyDictionary()#Session→{scannedEvents,throughSeq}
@@ -56,7 +56,7 @@ def 线路事件(事件):#线路事件
     if 'ignorable' in 事件:#可选可忽略
         公共['ignorable']=事件['ignorable']#带上
     类型=事件['type']#类型
-    if 类型 in ('system/message','user/message','tool/result'):#表面事件
+    if 类型 in ('developer/message','system/message','user/message','tool/result'):#表面事件
         结果={**公共,'type':类型,'surfaceOp':线路表面操作(事件['surfaceOp'])}#表面
         if 'sourceEventSeqs' in 事件:#源序号
             结果['sourceEventSeqs']=[int(序号) for 序号 in 事件['sourceEventSeqs']]#映射

@@ -1,6 +1,6 @@
 import uuid,weakref,threading#随机uuid、弱谱系与后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
-from typing import Literal,TypedDict#字面量与结构类型
+from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#多失败聚合
 from ...模型后端.llm import 创建用户消息,截上下文摘要,错误链#用户消息、摘要与错误链
@@ -107,6 +107,7 @@ class 子智能体跟进选项(TypedDict):
     """向一个可续跑子体跟进的选项。"""
     source:object#保留在已投递消息上的耐久归属；它不授予权威
     signal:object#调用方取消
+    delivery:NotRequired[Literal['queue','steer']]#排队下一回合或转向最近一步
 
 def 拆除于(激活):
     """读一次 Activation 当前的拆除事务。激活为 dict。"""
@@ -310,6 +311,7 @@ class 子智能体续跑表:#可续跑表
     def 跟进(自身,父,子标识,内容,选项):#跟进投递
         """把一条后续消息作为已知可续跑子体的下一 FIFO 回合投递。"""
         自身._断言准入(父)#准入必须开着
+        投递=选项['delivery'] if isinstance(选项,dict) and 'delivery' in 选项 else 'queue'
         while True:#拆除竞态则重试
             def 临界():#在子锁内投递
                 """驻留提交或冷恢复。"""
@@ -319,7 +321,7 @@ class 子智能体续跑表:#可续跑表
                 if 激活.get('disposal') is not None:#拆除已打开
                     激活['disposal'].等待()#等释放后重试
                     return None#重试
-                消息标识=自身._同步准入提交(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#驻留提交
+                消息标识=自身._同步准入提交(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None),投递)#驻留提交
                 激活['announced']=True#活跟进也对外宣布
                 return 消息标识#消息 id
             活=自身._锁.排队执行(子标识,临界)#在子锁内
@@ -366,7 +368,91 @@ class 子智能体续跑表:#可续跑表
             return#空操作
         智能体=激活['handle'].智能体#目标智能体
         原因={'kind':'user'} if 种类=='user' else {'kind':'parent'}#取消原因
-        智能体.取消(原因,{'keepInbox':True})#保留未认领收件箱
+                智能体.取消(原因,{'keepInbox':True})#保留未认领收件箱
+
+    def 发送消息(自身,发送方,目标标识,内容,选项):
+        """把模型撰写的消息投到发送方的直接父或直接可续跑子。"""
+        if 自身.ctx.agents.获取(发送方.id) is not 发送方:
+            raise 子智能体错误('message delivery requires the exact live sender agent','UNAUTHORIZED')
+        自身._断言准入(发送方)
+        发送方激活=自身._激活表.get(发送方.id)
+        信号=选项['signal'] if isinstance(选项,dict) and 'signal' in 选项 else None
+        if (发送方激活 is not None
+            and 发送方激活['handle'].智能体 is 发送方
+            and 发送方激活.get('parentSession')==目标标识):
+            若已中止则抛出(信号)
+            if 发送方激活.get('disposal') is not None:
+                raise 子智能体错误(
+                    'subagent "'+str(发送方.id)+'" activation is being disposed; the message was not delivered',
+                    'ACTIVATION_CLOSING',
+                )
+            父=自身.ctx.agents.获取(发送方激活['parentSession'])
+            if 父 is None:
+                raise 子智能体错误('direct parent is not live; the message was not delivered','PARENT_UNAVAILABLE')
+            消息=创建用户消息({
+                'content':内容,
+                'source':{'kind':'coordinator','form':'relay','senderSessionId':发送方.id},
+            })
+            try:
+                def 按状态发送():
+                    """空闲则开回合，忙则转向。"""
+                    if 父.status=='idle':
+                        父.后续(消息)
+                    else:
+                        父.转向(消息)
+                自身._唤醒发送(父,消息,按状态发送)
+            except Exception as 错误:
+                raise 子智能体错误(
+                    'direct parent is not live; the message was not delivered',
+                    'PARENT_UNAVAILABLE',
+                    {'cause':错误},
+                )
+            return 消息.id
+        头=发送方.session.header
+        父会话=头['parentSession'] if isinstance(头,dict) and 'parentSession' in 头 else None
+        if 父会话==目标标识:
+            raise 子智能体错误(
+                'agent "'+str(发送方.id)+'" is not a resident continuable child and cannot send to parent "'+str(目标标识)+'"',
+                'UNAUTHORIZED',
+            )
+        return 自身.跟进(发送方,目标标识,内容,{
+            'source':{'kind':'coordinator','form':'relay','senderSessionId':发送方.id},
+            'signal':信号,
+            'delivery':'steer',
+        })
+
+    def 排队提示(自身,父,子标识,内容,来源,信号):
+        """把一条人类提示作为直接子的独立回合排队。"""
+        return 自身.跟进(父,子标识,内容,{'source':来源,'signal':信号,'delivery':'queue'})
+
+    def 转向提示(自身,父,子标识,内容,来源,信号):
+        """把一条宿主提示转向直接可续跑子的最近一步。"""
+        return 自身.跟进(父,子标识,内容,{'source':来源,'signal':信号,'delivery':'steer'})
+
+    def 排空子体(自身,父,子标识列表):
+        """释放一个精确活父之下选中的驻留可续跑直接子。"""
+        if 自身.ctx.agents.获取(父.id) is not 父:
+            raise 子智能体错误(
+                'release of selected children requires the exact live parent agent',
+                'UNAUTHORIZED',
+            )
+        目标列表=[]
+        for 子标识 in 子标识列表:
+            激活=自身._激活表.get(子标识)
+            if 激活 is None:
+                continue
+            if 激活.get('parentSession')!=父.id:
+                raise 子智能体错误(
+                    'subagent "'+str(子标识)+'" belongs to another parent session',
+                    'UNAUTHORIZED',
+                )
+            目标列表.append(激活)
+        for 激活 in 目标列表:
+            自身._拆除(激活)
+        for 激活 in 目标列表:
+            拆除=激活.get('disposal')
+            if 拆除 is not None:
+                拆除.等待()
 
     def 自报告(自身,子,内容,选项):#子体向父报告
         """把一个驻留可续跑子体显式选定的内容投递到其耐久直接父。"""
@@ -622,12 +708,12 @@ class 子智能体续跑表:#可续跑表
             if isinstance(错误,子智能体错误):#已是缝错误则原样
                 raise 错误#原样
             raise 子智能体错误('子智能体 "'+str(子标识)+'" 不可用','NOT_RESUMABLE',{'cause':错误})#包装为不可恢复
-        return 自身._提交已物化(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None))#提交或回滚
+        return 自身._提交已物化(激活,内容,(选项['source'] if 'source' in 选项 else None),父,(选项['signal'] if 'signal' in 选项 else None),None,选项['delivery'] if 'delivery' in 选项 else 'queue')#提交或回滚
 
-    def _提交已物化(自身,激活,内容,来源,父,信号,提交=None):#提交或回滚
+    def _提交已物化(自身,激活,内容,来源,父,信号,提交=None,投递='queue'):#提交或回滚
         """向刚物化的 Activation 提交，或整份回滚；接受后可选目录提交。"""
         try:#尝试提交
-            消息标识=自身._同步准入提交(激活,内容,来源,父,信号)#同步准入提交
+            消息标识=自身._同步准入提交(激活,内容,来源,父,信号,投递)#同步准入提交
             if 提交 is not None:#有提交钩子
                 提交()#目录追加等
             激活['announced']=True#已向调用方公布
@@ -812,14 +898,17 @@ class 子智能体续跑表:#可续跑表
         激活['poke'].兑现()#放开当前等待
         激活['poke']=操作任务()#续订下一轮
 
-    def _提交(自身,激活,内容,来源,父):#提交已成帧消息
+    def _提交(自身,激活,内容,来源,父,投递='queue'):#提交已成帧消息
         """把一条消息作为子体的下一 FIFO 回合提交，并返回其已接受收件箱 id。"""
         # 源自父的投递通过所有权保持父活着。
         自身._获取所有权(父,激活['childId'])#登记父所有权
         消息=创建用户消息({'content':内容,'source':来源})#建造用户消息
         def 发送跟进():
-            """记账窗口内入队下一回合。"""
-            激活['handle'].智能体.后续(消息)#入队下一回合
+            """记账窗口内入队下一回合或转向最近一步。"""
+            if 投递=='steer':
+                激活['handle'].智能体.转向(消息)
+            else:
+                激活['handle'].智能体.后续(消息)#入队下一回合
         已接受=自身._准入唤醒(激活,消息.id,发送跟进)#admitWaking结束
         # announced 由 _提交已物化 在目录提交后置位；此处只返回已接受 id。
         return 已接受#消息id
@@ -837,7 +926,7 @@ class 子智能体续跑表:#可续跑表
         自身._唤醒(激活)#重观察静止
         return 消息标识#消息id
 
-    def _同步准入提交(自身,激活,内容,来源,父,信号):#同步准入提交
+    def _同步准入提交(自身,激活,内容,来源,父,信号,投递='queue'):#同步准入提交
         """越过最终准入截止并提交，不让出。"""
         若已中止则抛出(信号)#截止前取消
         自身._断言准入(父)#截止前准入
@@ -848,7 +937,7 @@ class 子智能体续跑表:#可续跑表
             )#SubagentError结束
         子头=激活['handle'].智能体.session.header#子会话头
         自身._授权谱系(父,激活['childId'],子头['parentSession'] if isinstance(子头,dict) and 'parentSession' in 子头 else None)#授权直接父
-        return 自身._提交(激活,内容,来源,父)#提交
+        return 自身._提交(激活,内容,来源,父,投递)#提交
 
     def _授权谱系(自身,父,子标识,父会话):#授权直接父
         """对照耐久直接父谱系授权一次操作。"""

@@ -1,3 +1,22 @@
 {
-    "common.ts":"节点工厂.py"
+    "common":"节点工厂",
+    "tool":"工具节点",
+    "request-prompt":"请求提示",
+    "assistant":"助手",
+    "turn-tail":"回合尾",
+    "turn-process":"回合过程",
+    "turn-process-presentation":"回合过程呈现",
+    "turn-navigation":"回合导航",
+    "message":"消息",
+    "inbox":"收件箱",
+    "event-projection":"事件投影",
+    "command":"命令",
+    "chat-snapshot-builder":"聊天快照构建器",
+    "turn-error":"回合错",
+    "retry":"重试",
+    "partial":"部分",
+    "fallback":"回退",
+    "compaction":"压缩",
+    "process-groups":"过程组",
+    "process-activity":"过程活动记录"
 }

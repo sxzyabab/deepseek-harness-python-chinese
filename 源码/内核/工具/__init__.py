@@ -345,6 +345,7 @@ class 工具运行时(服务):
         自身.终止执行=weakref.WeakSet()#终止本轮集合
         自身.取消状态=weakref.WeakKeyDictionary()#取消状态
         自身.内容最终器=weakref.WeakKeyDictionary()#最终化器
+        自身.内容投影器=weakref.WeakKeyDictionary()#执行前内容投影
         自身.规范结果=weakref.WeakKeyDictionary()#规范结果表
         def 建层(作用域):
             """建一层。"""
@@ -620,7 +621,10 @@ class 工具运行时(服务):
         脱离=快照json值(参数) if 脱离参数 else 参数#可选脱离
         if 脱离 is None:
             raise 工具错误('工具 "'+名+'" 的 parameters 在模式投影前必须是无损 JSON')#必须无损
-        return {'name':名,'description':描述,'parameters':脱离}#模型模式
+        模式={'name':名,'description':描述,'parameters':脱离}
+        if 定义.get('deferLoading') is True:
+            模式['deferLoading']=True
+        return 模式
 
     def 执行模式(自身,执行输入):
         """经调用方可见工具定义给待处理调用分类。"""
@@ -709,6 +713,9 @@ class 工具运行时(服务):
         捕获最终器=None#开始时快照
         if 可见 is not None and 'finalizeContent' in 可见 and 可见['finalizeContent'] is not None:
             捕获最终器=可见['finalizeContent']#快照回调
+        捕获投影器=None
+        if 可见 is not None and 'projectContent' in 可见 and 可见['projectContent'] is not None:
+            捕获投影器=可见['projectContent']
         def 最终器():
             """按折叠/中止决定是否保留。"""
             return None if 已折叠 and not 已中止(信号) else 捕获最终器#折叠且未中止则丢掉
@@ -721,6 +728,8 @@ class 工具运行时(服务):
             执行盒[0]=执行#供终止本轮键控
             自身.推迟上下文[执行]=推迟列表#挂推迟表
             自身.内容最终器[执行]=最终器()#挂最终化器
+            if not 已折叠:
+                自身.内容投影器[执行]=捕获投影器
             自身.取消状态[执行]={'callerSignal':信号,'bodyInvoked':False}#挂取消状态
             if 已折叠:
                 if 已中止(信号):
@@ -865,16 +874,27 @@ class 工具运行时(服务):
             return {'kind':'final-result','result':工具错误结果(错误)}#跳过后执行
 
     def 最终化调度执行(自身,执行,结果):
-        """跑有序后执行，再应用定义拥有的内容最终化。"""
+        """先装执行前内容投影，再跑有序后执行。"""
         try:
-            后结果=自身.后执行(执行,结果)#后策略
-            if 自身.调用方已取消(执行) and not 后结果['isError']:
-                候选=自身.取消结果(执行,后结果)#按体是否已调用选码
+            投影=None
+            if 执行 in 自身.内容投影器:
+                投影=自身.内容投影器[执行]
+                del 自身.内容投影器[执行]
+            内容=投影(执行,结果) if 投影 is not None else None
+            if 内容 is None:
+                已投影=结果
             else:
-                候选=后结果#原样
-            return 自身.收尾调度执行(执行,候选)#收尾
+                替换=dict(结果)
+                替换['content']=内容
+                已投影=自身.标记规范(执行,自身.物化最终结果(替换))
+            后结果=自身.后执行(执行,已投影)
+            if 自身.调用方已取消(执行) and not 后结果['isError']:
+                候选=自身.取消结果(执行,后结果)
+            else:
+                候选=后结果
+            return 自身.收尾调度执行(执行,候选)
         except Exception as 错误:
-            return 自身.收尾调度执行(执行,工具错误结果(错误))#仍收尾
+            return 自身.收尾调度执行(执行,工具错误结果(错误))
 
     def 收尾调度执行(自身,执行,结果):
         """物化候选，应用定义拥有的内容最终化，再物化并通知权威结果。"""
@@ -894,6 +914,8 @@ class 工具运行时(服务):
         if 执行 not in 自身.内容最终器:
             return 结果#无变换
         最终化=自身.内容最终器[执行]#开始时快照
+        if 最终化 is None:
+            return 结果
         内容=最终化(执行,结果)#调用（不得抛）
         if 内容 is None:
             return 结果#undefined 保留

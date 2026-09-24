@@ -27,7 +27,8 @@ from .表面 import (
 from .请求头 import 归一请求头,请求头是否相等,折叠请求头
 from .块行 import 解码存储记录,打包块游程#历史读；追踪已删 chunk-rows
 from .准备 import 会话准备
-from .修复 import 中断轮次关闭器,工具未启动,工具结局未知
+from .修复 import 打开轮次关闭器,中断轮次关闭器,工具未启动,工具结局未知
+from .分叉 import 构建分叉种子
 from .已知事件类型 import 已知会话事件类型,消息投影事件类型
 from .序号范围 import 编码序号范围,解码序号范围
 
@@ -41,7 +42,7 @@ __all__=[
     '事件派生消息','表面视图','折叠表面','是否表面事件','是否追加表面事件','是否替换表面事件','是否可进表面类型',
     '校验会话事件数据','校验表面元数据',
     '归一请求头','请求头是否相等','折叠请求头','解码存储记录','打包块游程',
-    '中断轮次关闭器','工具未启动','工具结局未知','已知会话事件类型','消息投影事件类型',
+    '打开轮次关闭器','中断轮次关闭器','工具未启动','工具结局未知','构建分叉种子','已知会话事件类型','消息投影事件类型',
     '编码序号范围','解码序号范围',
     '收养会话事件','快照会话事件','快照会话头','校验会话头','校验恢复会话头',
 ]
@@ -113,14 +114,16 @@ def 断言支持的请求头(类型,数据,位置):
 
 消息角色按类型={
     'system/message':'system',
+    'developer/message':'developer',
     'user/message':'user',
     'assistant/message':'assistant',
-    'tool/result':'user',#工具结果按用户
+    'tool/result':'tool',
 }
 
 def 是否消息事件类型(类型):
     """四种表面事件类型，其载荷携带已标识消息。"""
-    return 类型=='system/message' or 类型=='user/message' or 类型=='assistant/message' or 类型=='tool/result'
+    return (类型=='developer/message' or 类型=='system/message' or 类型=='user/message'
+        or 类型=='assistant/message' or 类型=='tool/result')
 
 def 断言消息事件形(事件,主题):
     """只校验安全回放一条消息所需的事件特有不变量。"""
@@ -146,9 +149,8 @@ def 断言消息事件形(事件,主题):
     if not isinstance(消息['content'] if 'content' in 消息 else None,list):
         raise 会话错误(主题+' 消息内容非法')
     if 类型=='system/message':
-        插件=来源['plugin'] if 'plugin' in 来源 else None
-        if 来源种!='plugin' or (not isinstance(插件,str)) or 插件=='':
-            raise 会话错误(主题+' 消息必须有插件来源')
+        if 来源种!='system-prompt':
+            raise 会话错误(主题+' 消息必须有 system-prompt 来源')
         return
     if 类型=='assistant/message':
         if 来源种!='model' or not 是否有提供方模型(来源):
@@ -159,13 +161,7 @@ def 断言消息事件形(事件,主题):
     调用号=来源['callId'] if 来源 is not None and 'callId' in 来源 else None
     if 来源种!='tool' or (not isinstance(调用号,str)) or 调用号=='':
         raise 会话错误(主题+' 消息必须有工具来源')
-    内容=消息['content'] if 'content' in 消息 else None
-    块=内容[0] if len(内容)>0 else None
-    if (len(内容)!=1 or (not 是否普通记录(块))
-        or 块['type']!='tool-result'
-        or (not isinstance(块['content'] if 'content' in 块 else None,list))):
-        raise 会话错误(主题+' 消息必须包含一块 tool-result')
-    if 块['toolCallId']!=调用号:
+    if 消息['toolCallId']!=调用号:
         raise 会话错误(主题+' 消息的工具调用 id 不一致')
 
 def 断言适配器默认(值,配置,下标,已给出):#校验适配器默认
@@ -245,7 +241,7 @@ def 断言会话事件信封(值,下标):#断言信封
         or ('ignorable' in 值 and 值['ignorable'] is not True)):#非法信封
         raise 会话错误('种子事件下标 '+str(下标)+' 的事件信封非法')#非法信封
     校验会话事件数据(值,'种子 '+str(类型)+' 下标 '+str(下标))#校验载荷
-    if (类型=='request/header' or 类型=='system/message' or 类型=='user/message'
+    if (类型=='request/header' or 类型=='developer/message' or 类型=='system/message' or 类型=='user/message'
         or 类型=='assistant/attempt' or 类型=='assistant/message' or 类型=='tool/result'):#需 LLM 形状
         断言当前llm形(值,下标)#当前 LLM 形
 
@@ -308,7 +304,7 @@ def 收养会话事件(事件):#就地收养事件
     类型=事件['type']#事件类型
     if 类型=='user/message':#用户消息
         冻结树(事件['data'])#整份 data 就是消息
-    elif 类型=='system/message' or 类型=='assistant/message' or 类型=='tool/result':#系统/助手/工具
+    elif 类型=='developer/message' or 类型=='system/message' or 类型=='assistant/message' or 类型=='tool/result':
         冻结树(事件['data']['message'])#冻结内嵌消息
     return 事件#同一对象
 
@@ -383,12 +379,20 @@ class 会话:#事件源会话
             raise 会话错误('未播种会话的继承事件条数必须为 0')#拒绝
         if 继承事件数>len(自身.日志):#继承超出日志
             raise 会话错误('会话继承事件条数超出其事件日志')#拒绝
-        if 模式=='snapshot' and 自身.header['isSeeded'] and 继承事件数!=len(自身.日志):#种子须等于继承前缀
-            raise 会话错误('已播种会话的构造种子必须等于其继承前缀')#拒绝
+        种子标记=自身.日志[继承事件数] if 继承事件数<len(自身.日志) else None
+        已标种子=(种子标记 is not None and 种子标记['type']=='session/end-seed'
+            and 是否普通记录(种子标记['data']) and 种子标记['data'].get('inherited') is True)
+        if 模式=='snapshot' and 自身.header['isSeeded'] and 继承事件数!=len(自身.日志) and not 已标种子:
+            raise 会话错误('已播种会话的构造种子必须等于其继承前缀或标出继承切断')
+        if 已标种子:
+            for 事件 in 自身.日志[继承事件数+1:]:
+                if 事件['type']=='session/end-seed' and 是否普通记录(事件['data']) and 事件['data'].get('inherited') is True:
+                    raise 会话错误('会话继承事件条数必须指向最后一条继承标记')
         自身.inheritedEventCount=继承事件数#保存继承条数
-        if 种子 is not None and 模式=='snapshot' and 自身.header['isSeeded']:#新鲜分叉
+        自身.firstLifecycleSeq=继承事件数 if 模式=='snapshot' and 自身.header['isSeeded'] else 自身.firstLiveSeq
+        if 种子 is not None and 模式=='snapshot' and 自身.header['isSeeded'] and not 已标种子:
             自身.追加('session/end-seed',{'inherited':True})#带继承标记
-        elif 种子 is not None:#需普通标记
+        elif 种子 is not None and not (模式=='snapshot' and 自身.header['isSeeded']):
             末=自身.日志[-1] if len(自身.日志)>0 else None#最后一条
             if 末 is None or ('type' not in 末) or 末['type']!='session/end-seed':#尚未以 end-seed 结尾
                 自身.追加('session/end-seed',{})#普通种子结束
@@ -765,58 +769,43 @@ class 会话存储(服务):#内存会话存储
         if 子会话号 is not None and 自身.获取(子会话号) is not None:#子 id 已被占用
             raise 会话分叉错误('会话 "'+str(子会话号)+'" 已存在','SESSION_ALREADY_EXISTS')#已存在
         在线源=自身._解析分叉源(源)#解析在线源
-        种子=自身._分叉种子(在线源,边界)#切稳定前缀
+        事件列表=在线源.events#不可变快照
+        边界=自身._分叉边界(在线源.id,事件列表,边界)#切稳定前缀
+        种子=[] if 边界 is None else 构建分叉种子(事件列表,边界)
         元={'parentSession':在线源.id,'isSeeded':True}#子头
         if 'cwd' in 在线源.header:#继承工作目录
             元['cwd']=在线源.header['cwd']#有则带
-        return 自身.创建(子会话号,{'seed':种子,'meta':元,'inheritedEventCount':len(种子)})#便捷创建子会话
+        继承条数=0 if 边界 is None else 边界+1
+        return 自身.创建(子会话号,{'seed':种子,'meta':元,'inheritedEventCount':继承条数})#便捷创建子会话
 
-    def _分叉种子(自身,会话,请求边界):#切分叉种子
-        """切含端稳定前缀；省略边界则切到当前末尾。"""
-        事件列表=会话.events#不可变快照
-        最后=事件列表[-1] if len(事件列表)>0 else None#当前最后一条
-        if 请求边界 is not None:#调用方指定
-            边界=请求边界#用指定值
-        else:#省略边界
-            if 最后 is None:#空源
-                return []#空源则空子
-            边界=最后['seq']#切到当前末尾
-        if (not 外来安全整数(边界)) or 边界<0:#必须是非负安全整数
+    def _分叉边界(自身,会话号,事件列表,请求边界):
+        """解析含端边界；打开尾交给构建分叉种子关闭。"""
+        最后=事件列表[-1] if len(事件列表)>0 else None
+        if 请求边界 is not None:
+            边界=请求边界
+        else:
+            if 最后 is None:
+                return None
+            边界=最后['seq']
+        if (not 外来安全整数(边界)) or 边界<0:
             raise 会话分叉错误(
-                '会话 "'+str(会话.id)+'" 的分叉边界必须是非负安全整数，实际为 '+str(边界),
+                '会话 "'+str(会话号)+'" 的分叉边界必须是非负安全整数，实际为 '+str(边界),
                 'INVALID_BOUNDARY',
-            )#非法边界
-        if 边界>=len(事件列表):#超出日志
-            最后序号=最后['seq'] if 最后 is not None else None#当前最后 seq
-            if 最后序号 is None:#无
-                最后文本='无'#无
-            else:#有
-                最后文本=str(最后序号)#有
+            )
+        if 边界>=len(事件列表):
+            最后序号=最后['seq'] if 最后 is not None else None
+            最后文本='无' if 最后序号 is None else str(最后序号)
             raise 会话分叉错误(
-                '分叉边界 '+str(边界)+' 在会话 "'+str(会话.id)+'" 中不存在（最后 seq: '+最后文本+'）',
+                '分叉边界 '+str(边界)+' 在会话 "'+str(会话号)+'" 中不存在（最后 seq: '+最后文本+'）',
                 'INVALID_BOUNDARY',
-            )#不存在的边界
-        边界事件=事件列表[边界]#边界上的事件
-        if 边界事件 is None or 边界事件['seq']!=边界:#必须贴合连续 seq
+            )
+        边界事件=事件列表[边界]
+        if 边界事件 is None or 边界事件['seq']!=边界:
             raise 会话分叉错误(
-                '分叉边界 '+str(边界)+' 与会话 "'+str(会话.id)+'" 中的连续事件 seq 不匹配',
+                '分叉边界 '+str(边界)+' 与会话 "'+str(会话号)+'" 中的连续事件 seq 不匹配',
                 'INVALID_BOUNDARY',
-            )#不连续
-        最后轮次=None#最后一轮边界
-        前缀=事件列表[:边界+1]#含端前缀
-        下标=len(前缀)-1#从后往前
-        while 下标>=0:#从后往前
-            种类=前缀[下标]['type']#事件类型
-            if 种类=='turn/start' or 种类=='turn/end':#轮次边界
-                最后轮次=前缀[下标]#命中
-                break#停止
-            下标-=1#继续往前
-        if 最后轮次 is not None and 最后轮次['type']=='turn/start':#结束在打开轮次内
-            raise 会话分叉错误(
-                '会话 "'+str(会话.id)+'" 的分叉边界 '+str(边界)+' 落在打开轮次 '+str(最后轮次['data']['turn'])+' 内',
-                'OPEN_TURN',
-            )#打开轮次
-        return list(事件列表[:边界+1])#含端前缀
+            )
+        return 边界
 
     def _解析分叉源(自身,源):#解析分叉源
         """解析分叉源：会话 id 字符串或本存储在线会话实例。"""

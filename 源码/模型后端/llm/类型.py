@@ -8,12 +8,12 @@ from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结�
 __all__=(#仅中文公开名；无英文别名
     '中止信号',
     '语言模型失败',
-    '文本块','推理块','图片块','文件块','工具调用块','工具结果块',
-    '插件消息来源','模型消息来源','工具消息来源','消息来源',
-    '消息','用户消息','助手消息','系统消息','工具结果消息',
+    '文本块','推理块','图片块','文件块','工具调用块','工具追加块','工具移除块',
+    '用户消息来源','模型消息来源','工具消息来源','系统提示词消息来源','消息来源',
+    '消息','用户消息','助手消息','系统消息','开发者消息','工具结果消息','请求用户输入',
     '文本模态','图片模态','模型模态',
     '正常停止','工具调用停止','达到令牌上限',
-    '令牌用量','提供方简介','可配置提供方',
+    '令牌用量','图片请求价格','提供方简介','可配置提供方',
     '模型发现请求','发现到的模型','模型信息','模型上下文',
     '推理力度信息','模型推理信息','已解析模型信息',
     '系统提示词更新','图片请求预算','回放信封','工具模式','生成选项',
@@ -73,17 +73,19 @@ class 工具调用块(TypedDict):#模型请求的一次工具调用
     name:str#工具名
     arguments:str#模型产出的原始 JSON 字符串
 
-class 工具结果块(TypedDict):#一次工具调用的结果
-    """一次工具调用的结果，送回模型。"""
-    type:Literal['tool-result']#工具结果标签
-    toolCallId:str#关联的调用 id
-    content:list#结果内容块列表
-    isError:NotRequired[bool]#是否失败
+class 工具追加块(TypedDict):#从历史请求头激活一条工具定义
+    """从开发者事件所引用请求头里激活一条工具定义。"""
+    type:Literal['tool-addition']#工具追加标签
+    toolName:str#历史头里恰好一条工具名
 
-class 插件消息来源(TypedDict):#插件产出的消息来源
-    """插件组装的消息来源。"""
-    kind:Literal['plugin']#插件
-    plugin:str#插件名
+class 工具移除块(TypedDict):#按会话本地名记录动态移除
+    """按会话本地名记录一次工具的动态移除。"""
+    type:Literal['tool-removal']#工具移除标签
+    toolName:str#工具名
+
+class 用户消息来源(TypedDict):#用户产出的消息来源
+    """用户产出的消息来源。"""
+    kind:Literal['user']#用户
 
 class 模型消息来源(TypedDict):#模型产出的消息来源
     """模型产出的消息来源。"""
@@ -97,7 +99,11 @@ class 工具消息来源(TypedDict):#工具产出的消息来源
     kind:Literal['tool']#工具
     callId:str#调用 id
 
-消息来源=插件消息来源|模型消息来源|工具消息来源#任一已知消息来源
+class 系统提示词消息来源(TypedDict):#系统提示词插件产出的来源
+    """系统角色消息的必需来源。"""
+    kind:Literal['system-prompt']#系统提示词
+
+消息来源=用户消息来源|模型消息来源|工具消息来源|系统提示词消息来源#任一已知消息来源
 
 class 消息(TypedDict):#共用消息表示
     """提供方中立的对话消息。"""
@@ -116,14 +122,27 @@ class 助手消息(消息):#助手角色特化
     source:模型消息来源#必须是模型来源
 
 class 系统消息(消息):#系统角色特化
-    """已渲染系统提示词，归属于组装它的插件；空 content 表示无系统提示词。"""
+    """已渲染系统提示词，归属于系统提示词生产者；空 content 表示无系统提示词。"""
     role:Literal['system']#系统角色
-    source:插件消息来源#必须是插件来源
+    source:系统提示词消息来源#必须是系统提示词来源
 
-class 工具结果消息(消息):#工具结果特化
-    """面向模型的块仍保留调用关联的工具结果特化。"""
-    role:Literal['user']#以用户角色回传
+class 开发者消息(消息):#开发者角色特化
+    """按对话顺序的增量会话变更，目前是工具追加与移除。"""
+    role:Literal['developer']#开发者角色
+
+class 工具结果消息(TypedDict):#工具角色特化
+    """一等工具角色消息，承载一次工具调用的结果。"""
+    id:str#稳定身份
+    role:Literal['tool']#工具角色
+    content:list#结果内容块
     source:工具消息来源#必须是工具来源
+    toolCallId:str#所回答的工具调用 id
+    isError:NotRequired[bool]#是否失败
+
+class 请求用户输入(TypedDict):#仅用于一次请求的用户输入
+    """一次请求的用户输入；没有持久会话身份或来源。"""
+    role:Literal['user']#用户角色
+    content:list#内容块
 
 文本模态='text'#文本模态字面量
 图片模态='image'#图片模态字面量
@@ -141,6 +160,11 @@ class 令牌用量(TypedDict):#一次模型调用的 token 记账
     cacheReadTokens:NotRequired[int]#缓存读取
     cacheWriteTokens:NotRequired[int]#缓存写入
     reasoningTokens:NotRequired[int]#推理
+
+class 图片请求价格(TypedDict):#一次有序图片出现的请求价格
+    """一条精确模型路由请求投影下，一次有序图片出现的请求价格。"""
+    visualTokens:int#保留请求图的提供方视觉 token；仅文本代表本次出现时为 0
+    text:str#为本出现发送的模型可见文本
 
 class 提供方简介(TypedDict):#已注册提供方路由的显示元数据
     """一条已注册提供方路由的显示元数据。"""
@@ -227,6 +251,7 @@ class 工具模式(TypedDict):#发给模型的工具 JSON Schema 描述
     name:str#工具名
     description:str#描述
     parameters:dict#参数的 JSON Schema 对象
+    deferLoading:NotRequired[Literal[True]]#请求把工具定义推迟载入模型上下文
 
 class 生成选项(TypedDict):#一次已完全组装的模型请求
     """一次已完全组装的模型请求。"""

@@ -336,6 +336,8 @@ class 槽登记表(服务):
         当前=自身._storeScopeOwners[键] if 键 in 自身._storeScopeOwners else None#当前拥有方
         if 当前 is 上下文:#同代次
             return#跳过
+        if 当前 is not None:#换代
+            自身.释放存储作用域(键)#先丢掉上一代内存实例
         自身._storeScopeOwners[键]=上下文#记下最新代
         def 寿命():
             """作用域死亡清理。"""

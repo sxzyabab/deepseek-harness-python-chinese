@@ -162,6 +162,10 @@ def 要求严格编解码(包名,值,主语):
     if 编解码.get('mode')!='strict':
         raise TypeError(f'typert-loader: {包名} {主语} must use a strict codec')
     要求字符串(包名,编解码,'typeSymbol',主语)
+    for 方法名 in ('decode','encode'):
+        项=编解码.get(方法名)
+        if 项 is not None and not callable(项):
+            raise TypeError(f'typert-loader: {包名} {主语} {方法名} must be a function')
     if not callable(编解码.get('create')):
         raise TypeError(f'typert-loader: {包名} {主语} has no create() factory')
 

@@ -1,0 +1,12 @@
+{
+    "object-reference":"对象引用",
+    "reader":"读取器",
+    "projector":"投影器",
+    "publisher":"发布器",
+    "snapshot":"快照",
+    "model":"模型",
+    "observer":"观察者",
+    "collector":"收集器",
+    "object-registry":"对象注册表",
+    "ids":"标识"
+}

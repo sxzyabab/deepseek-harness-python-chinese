@@ -6,7 +6,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'trigger':'设置',#打开设置触发器
     'desktop.update.available':'新版本',#有更新
     'desktop.update.checking':'正在检查更新…',#检查中
-    'desktop.update.progress':'{percent}%…',#下载进度
+    'desktop.update.progress':'{percent}%',#下载进度
     'desktop.update.verifying':'正在校验更新文件…',#校验中
     'desktop.update.installing':'正在准备重启…',#安装中
     'desktop.update.ready':'安装并重启',#就绪
@@ -27,6 +27,10 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'openDocument':'打开配置文件',#打开配置文件
     'openDocument.error':'无法打开配置文件',#打开配置文件失败
     'general.nav':'通用设置',#通用设置导航
+    'general.currentVersion':'当前版本：{version}',
+    'developerTools.title':'开发者工具',
+    'developerTools.error':'保存失败，请重试',
+    'developerTools.description':'显示用于调试和排查问题的工具与信息',
     'connection.error':'连接异常，刷新重试',#连接异常
     'connection.connecting':'重新连接中',#重连中
     'connection.connected':'连接成功',#已连接
@@ -38,7 +42,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'trigger':'Settings',#打开设置触发器
     'desktop.update.available':'Update',#有更新
     'desktop.update.checking':'Checking for updates…',#检查中
-    'desktop.update.progress':'{percent}%…',#下载进度
+    'desktop.update.progress':'{percent}%',#下载进度
     'desktop.update.verifying':'Verifying update files…',#校验中
     'desktop.update.installing':'Preparing to restart…',#安装中
     'desktop.update.ready':'Install and Restart',#就绪
@@ -59,6 +63,10 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'openDocument':'Open configuration file',#打开配置文件
     'openDocument.error':'Could not open configuration file',#打开配置文件失败
     'general.nav':'General',#通用设置导航
+    'general.currentVersion':'Current version: {version}',
+    'developerTools.title':'Developer tools',
+    'developerTools.error':'Could not save. Please try again.',
+    'developerTools.description':'Show tools and information for debugging and troubleshooting',
     'connection.error':'Disconnected',#连接异常
     'connection.connecting':'Reconnecting',#重连中
     'connection.connected':'Connected',#已连接

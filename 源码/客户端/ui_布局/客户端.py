@@ -45,11 +45,12 @@ def 应用(上下文):#安装布局界面浏览器半边
         拆登记=上下文.slots.register({#登记 root 帧
             'name':'root',#根槽
             'locale':'common',#共用词表
-            'children':{#四子槽
+            'children':{#五子槽
                 'sidebar':{'kind':'single','scope':'root'},#侧栏
                 'main':{'kind':'keyed','scope':'root'},#主槽
                 'rightbar':{'kind':'single','scope':'root'},#右侧栏
                 'shell.overlay':{'kind':'list','scope':'root'},#叠层
+                'shell.leading':{'kind':'single','scope':'root'},#窗框顶左
             },#子槽结束
             'store':存储,#共享布局存储
         },应用帧)#帧组件

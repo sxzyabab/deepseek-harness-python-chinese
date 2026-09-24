@@ -3,6 +3,7 @@
 
 压缩政策配置字段=(#默认政策与精确模型覆盖共用的政策字段
     'thresholdRatio',#在模型上下文窗口的此比例处压缩；默认 0.8
+    'headroomTokens',#压缩余量 token；默认 65536
     'retainRatio',#作为模型窗口比例保留的近期上下文；默认 0.16
     'retainTokens',#绝对近期上下文预算；与 retainRatio 互斥
     'summarizationProvider',#摘要提供方；与 summarizationModel 一起设置，或继承对话目标
@@ -26,6 +27,7 @@
 
 已解析政策字段说明=(#精确目标匹配前后共用的已校验政策字段
     'thresholdRatio',#压力阈值比例
+    'headroomTokens',#压缩余量 token
     'summarizationProvider',#摘要提供方
     'summarizationModel',#摘要模型
     'maxTokens',#摘要生成上限

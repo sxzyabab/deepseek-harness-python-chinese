@@ -1,0 +1,13 @@
+{
+    "invariant":"不变量",
+    "json-schema":"json模式",
+    "presentation":"呈现",
+    "ptc":"代码模式",
+    "py-types":"python类型",
+    "schema":"模式",
+    "testing":"测试",
+    "ts-types":"ts类型",
+    "types":"类型",
+    "projectContent":"投影内容",
+    "deferLoading":"推迟装载"
+}

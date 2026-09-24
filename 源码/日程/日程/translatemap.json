@@ -1,0 +1,9 @@
+{
+    "domain":"领域",
+    "invariant":"不变量",
+    "persistence":"持久化",
+    "runtime":"运行时",
+    "tools":"日程工具登记",
+    "transaction":"事务",
+    "types":"类型"
+}

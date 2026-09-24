@@ -1,6 +1,6 @@
 """默认的无执行器、无 UI 智能体主干。
 
-对齐上游 `@deepseek-ai/dsh-agent-spine-demo`。公开面仅中文名。捆绑公共服务、后台作业、可选持久化目标、具体循环、本地技能与 agent-instructions，以及面向模型的 shell/技能消费方。本包不提供默认导出（Loader 解包会丢掉 Config）。
+捆绑公共服务、后台作业、可选持久化目标、具体循环、本地技能与 agent-instructions，以及面向模型的 shell/技能消费方。本包不提供默认导出（Loader 解包会丢掉 Config）。
 """
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 布尔字段,字符串字段,整数字段,列表字段,复合类型字段,常量字段,字典字段#配置字段

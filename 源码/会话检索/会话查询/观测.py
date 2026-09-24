@@ -97,7 +97,7 @@ class 会话观测读取器:
             挂上=自身._上下文.sessions.get(会话标识)#stat 期间附着
             if 挂上 is not None:#改走活
                 return 自身._活(挂上,投影模式)#活
-            条目=自身._缓存条目(持久化,会话标识,快照['revision'])#查缓存
+            条目=自身._缓存条目(持久化.identity,会话标识,快照['revision'])#查缓存
             if 条目 is None:#无有效缓存
                 已加载=自身._加载源(持久化,会话标识,信号)#冷读
                 若观测已中止则抛出(信号)#加载后
@@ -121,7 +121,7 @@ class 会话观测读取器:
                         {'cause':错误},
                     )#损坏
                 条目={
-                    'persistence':持久化,
+                    'persistenceIdentity':持久化.identity,
                     'revision':快照['revision'],
                     'session':会话,
                     'events':tuple(种子),
@@ -141,13 +141,7 @@ class 会话观测读取器:
     def _统计源(自身,持久化,会话标识,信号):
         """轻量修订观察；映射缺席与后端失败。"""
         try:
-            if hasattr(持久化,'观察'):#jsonl 面
-                快照=持久化.观察(会话标识,{'signal':信号} if 信号 is not None else None)#观察
-            elif hasattr(持久化,'stat'):#上游名
-                快照=持久化.stat(会话标识,{'signal':信号} if 信号 is not None else None)#stat
-            else:#无轻量面：经语料加载后合成
-                已加载=自身._语料库.加载(会话标识,信号)#加载
-                return {'header':已加载['header'],'revision':None}#无修订钉住
+            快照=持久化.观察(会话标识,{'signal':信号} if 信号 is not None else None)#观察
         except BaseException as 错误:
             若观测已中止则抛出(信号)#优先取消
             raise _映射持久失败(会话标识,错误)#映射
@@ -177,12 +171,12 @@ class 会话观测读取器:
             若观测已中止则抛出(信号)#优先取消
             raise _映射持久失败(会话标识,错误)#映射
 
-    def _缓存条目(自身,持久化,会话标识,修订):
+    def _缓存条目(自身,持久化身份,会话标识,修订):
         """仍有效的缓存条目并标为最近使用。"""
         已缓存=自身._缓存.get(会话标识)#取
         if 已缓存 is None:#无
             return None#无
-        if 已缓存['persistence'] is not 持久化:#实例换了
+        if 已缓存.get('persistenceIdentity') is not 持久化身份:#实例换了
             return None#无效
         if 修订 is not None and 已缓存['revision']!=修订:#修订变
             return None#无效
@@ -251,11 +245,7 @@ class 会话观测读取器:
         投影=None#投影
         if 投影模式!='none':#需要
             注册表=自身._上下文.获取服务('sessionProjections')#投影服务
-            if 注册表 is not None and hasattr(注册表,'snapshot'):#有
-                快照=注册表.snapshot(会话)#快照
-                if 快照 is not None:#有块
-                    投影={'asOfSeq':快照['asOfSeq'],'values':快照['values']}#块
-            elif 注册表 is not None and hasattr(注册表,'快照'):#中文
+            if 注册表 is not None:#有
                 快照=注册表.快照(会话)#快照
                 if 快照 is not None:#有块
                     投影={'asOfSeq':快照['asOfSeq'],'values':快照['values']}#块
@@ -270,22 +260,9 @@ class 会话观测读取器:
         if 注册表 is None:#无
             return None#省略
         缓存=自身._上下文.获取服务('sessionProjectionCache')#缓存
-        会话=条目['session']#会话
-        事件列表=条目['events']#事件
-        if 缓存 is not None:#有缓存
-            if hasattr(缓存,'注水预备'):#中文
-                块=缓存.注水预备(会话,会话.header,事件列表)#注水
-            elif hasattr(缓存,'hydratePrepared'):#上游
-                块=缓存.hydratePrepared(会话,事件列表)#注水
-            else:#无注水
-                块=None#空
-            if 块 is not None:#有
-                return 块 if isinstance(块,dict) and 'values' in 块 else 块#块
-        if hasattr(注册表,'注水'):#直接注水
-            return 注册表.注水(会话,{},事件列表,0)#注水
-        if hasattr(注册表,'hydrate'):#上游
-            return 注册表.hydrate(会话,{},事件列表,0)#注水
-        return None#省略
+        if 缓存 is None:#无缓存
+            return 注册表.注水(条目['session'],{},条目['events'],0)#直接注水
+        return 缓存.注水预备(条目['session'],条目['events'])#缓存注水
 
 
 def _映射持久失败(会话标识,错误):

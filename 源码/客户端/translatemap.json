@@ -51,5 +51,12 @@
     "ui-trajectory":"ui_轨迹",
     "ui-user-questions":"ui_用户提问",
     "ui-workflow-run":"ui_工作流运行",
-    "ui-workspace":"ui_工作区"
+    "ui-workspace":"ui_工作区",
+    "ui-settings-account":"ui_账号设置",
+    "ui-settings-agent-loop":"ui_智能体循环设置",
+    "ui-settings-shell":"ui_命令设置",
+    "ui-settings-subagent":"ui_子智能体设置",
+    "ui-settings-web-search":"ui_web搜索设置",
+    "ui-sidebar-browser":"ui_侧边栏_浏览器",
+    "ui-plugin-manager":"ui_插件装载"
 }

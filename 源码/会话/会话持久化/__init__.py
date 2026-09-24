@@ -70,6 +70,7 @@ class 会话持久化(服务):#会话持久化服务
         """以 sessionPersistence 名安装服务；抽象类不可直接实例化。"""
         if type(自身) is 会话持久化:#直接实例化抽象类
             raise 持久化错误('@deepseek-ai/dsh-session-persistence 是抽象持久化服务；请改加载后端实现')#必须加载实现
+        自身.identity=object()#进程内实例身份，代理共享、替换后不同
         super().__init__(上下文,'sessionPersistence')#服务名
 
     def 创建(自身,头,选项=None):#创建并取写句柄

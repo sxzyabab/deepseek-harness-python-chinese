@@ -62,8 +62,6 @@ def 块文本(块):
         return [块['text'] if 'text' in 块 else '']#文本
     if 类型=='tool-call':#块内工具调用
         return [块['name'] if 'name' in 块 else '',块['arguments'] if 'arguments' in 块 else '']#名与参数
-    if 类型=='tool-result':#块内工具结果
-        return 内容文本(块['content'] if 'content' in 块 else [])#嵌套内容
     return []#推理与未知块不贡献
 
 def 拼接文本(片段列表):

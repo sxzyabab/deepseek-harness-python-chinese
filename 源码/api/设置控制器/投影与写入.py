@@ -7,6 +7,7 @@ def 命名空间视图(描述符):
     """逐字段投影设置描述符。描述符为 dict。"""
     视图={#基础字段
         'ns':str(描述符['ns']),#命名空间
+        'autoGenerate':描述符['autoGenerate'],#自动生成
         'schema':描述符['schema'],#schema
         'value':描述符['value'],#值
         'applies':描述符['applies'],#适用性

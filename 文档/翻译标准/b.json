@@ -41,7 +41,7 @@
     "binder":"绑定器",
     "binding":"绑定项",
     "bindings":"绑定表",
-    "bindingSource":"绑定源",
+    "bindingsource":"绑定源",
     "birthtime":"创建时间",
     "bit":"位",
     "bitset":"位集",
@@ -68,7 +68,7 @@
     "bracket":"括号",
     "brand":"标识构造",
     "branded":"已标识构造",
-    "brandString":"标识构造串",
+    "brandstring":"标识构造串",
     "breadcrumb":"面包屑",
     "break":"跳出",
     "breakdown":"分解",
@@ -92,5 +92,6 @@
     "bwrap":"bwrap",
     "by":"按",
     "byte":"字节",
-    "bytes":"字节序列"
+    "bytes":"字节序列",
+    "background":"后台"
 }

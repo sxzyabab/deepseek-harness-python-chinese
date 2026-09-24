@@ -21,6 +21,7 @@ class 子智能体跑结束信息(TypedDict):#已结算子智能体跑的只观�
     lastAssistantMessage:NotRequired[list]#最终助手输出；基础设施拒绝或子体未产出时缺席
 
 class 子智能体能力(TypedDict):#提供方支持哪些启动时功能；服务在委托 start 之前检查
+    agentOptions:bool#是否支持智能体选项
     outputSchema:bool#是否支持输出模式
     depthLimit:bool#是否支持深度上限
     toolFilter:bool#是否支持工具过滤
@@ -47,6 +48,9 @@ class 可续跑创建请求(TypedDict):#续跑管理器在物化一个可续跑�
 
 class 可续跑创建规格(TypedDict):#提供方对一个可续跑子体创建的分离贡献；这是数据，绝不是能力
     seed:NotRequired[list]#用来给子会话播种的父日志已完成回合前缀；全新子体则缺席
+
+class 子智能体发送消息选项(TypedDict):#相邻智能体之间一条模型撰写消息的选项
+    signal:object#调用方取消，只拥有到收件箱接受为止
 
 子智能体停止原因映射=TypedDict('子智能体停止原因映射',{#一次子智能体跑为何结束；可合并扩展（后端可加变体）；键含 max-tokens 故用函数式 TypedDict
     'completed':Literal['completed'],#子体正常结束其回合

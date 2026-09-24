@@ -3,8 +3,9 @@
     "zh":"中文",
     "zlib":"zlib",
     "zombie":"僵尸",
-    "zoneAt":"指定位置区域",
-    "zoneInRect":"矩形内区域",
-    "zoneSplit":"区域分割",
-    "zstd":"zstd"
+    "zoneat":"指定位置区域",
+    "zoneinrect":"矩形内区域",
+    "zonesplit":"区域分割",
+    "zstd":"zstd",
+    "zoom":"缩放"
 }

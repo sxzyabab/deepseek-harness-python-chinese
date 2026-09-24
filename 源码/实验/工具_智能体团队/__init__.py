@@ -18,7 +18,7 @@ __all__=[
     'Agent Teams is available in this session, but create teammates only when the user explicitly asks to use Agent Teams or teammates.\n\n'
     +'The Team Lead and all teammates share the same working directory and filesystem. Edits are immediately visible to every member. Split write work into disjoint scopes, record expected write scopes on shared tasks, and use task dependencies when work must be ordered. Write-scope overlap is advisory, not a lock.\n\n'
     +'Prefer read/edit/write for file changes. If a file operation returns FS_STALE_VERSION, read the current file, rebase your intended change onto the new content, and retry. Bash, formatters, code generators, and scripts are not fully protected by the filesystem version guard; coordinate them explicitly and have the Lead review the final diff and run tests.\n\n'
-    +'send_message steers a running target at its nearest step boundary, starts an idle target, and cold-resumes an inactive teammate. A delivered peer item starts with its stable message id and sender name. A successful send is already durable even when its result says queued; do not resend it. Shared-task workflow is list, get, claim with the current revision, perform the work, then complete. Task readiness never starts an owner. Before wait_agent, use list_agents and make sure another required member is running or provisioning; use send_message first when the required member is inactive. wait_agent observes only changes after that call starts, never wakes a member, and returns noProgress immediately when no other member can produce a change. Re-list after wakeup or timeout. The Lead must wait for required teammates before giving the final answer.'
+    +'Use the target returned by spawn_teammate or list_agents for send_message and interrupt_agent, or as owner when assigning or filtering shared tasks. send_message steers a running target at its nearest step boundary and starts or resumes an inactive target. inactive means no turn is executing; it does not describe task completion, success, failure, or waiting for other agents. provisioning means member creation is in progress; failed means member creation failed. A delivered peer item starts with its stable message id and sender name. A successful send is already durable even when its result says queued; do not resend it. Shared-task workflow is list, get, claim with the current revision, perform the work, then complete. Task readiness never starts an owner. Before wait_agent, use list_agents and make sure another required member is running or provisioning; use send_message first when the required member is inactive. wait_agent observes only changes after that call starts, never wakes a member, and returns noProgress immediately when no other member can produce a change. Re-list after wakeup or timeout. The Lead must wait for required teammates before giving the final answer.'
 )#策略结束
 活跃等待状态=frozenset(['running','provisioning'])#可等待的活跃成员状态
 无活跃同伴文案=(#无活跃同伴时 wait_agent 的提示（字面量不译）
@@ -26,14 +26,13 @@ __all__=[
     +'Re-list with list_agents and team_task_list, then use send_message to wake each required inactive teammate before waiting again.'
 )#无活跃同伴文案结束
 
-成员视图模式={#一行 roster，匹配 TeamMemberView
+成员视图模式={#一行 roster；Lead 伪行省略 teammate 专属供给字段
     'type':'object',#对象类型
     'additionalProperties':False,#禁止额外字段
     'properties':{#字段表
-        'id':{'type':'string','required':True},#成员id
-        'name':{'type':'string','required':True},#成员名
+        'target':{'type':'string','required':True},#面向模型的目标名
         'role':{'type':'string','required':True,'enum':['lead','teammate']},#角色枚举
-        'status':{'type':'string','required':True,'enum':['running','idle','inactive','provisioning','failed']},#状态枚举
+        'status':{'type':'string','required':True,'enum':['running','inactive','provisioning','failed']},#状态枚举
         'description':{'type':'string'},#职责描述
         'provider':{'type':'string'},#供应器名
         'context':{'type':'string','enum':['fresh','fork']},#上下文模式
@@ -92,7 +91,7 @@ __all__=[
     'type':'object',#对象类型
     'additionalProperties':False,#禁止额外字段
     'properties':{#字段表
-        'previousStatus':{'type':'string','required':True,'enum':['running','idle','inactive']},#中断前状态
+        'previousStatus':{'type':'string','required':True,'enum':['running','inactive']},#中断前状态
     },#properties结束
 }#中断值模式结束
 任务列表值模式={#任务列表结果 schema
@@ -115,6 +114,13 @@ class 工具团队错误(Exception):#本包异常基类
         super().__init__(消息)#基类
         自身.消息=消息#诊断
 
+def 模型成员(成员):
+    """把成员名暴露为面向模型的 target。"""
+    细节=dict(成员)#拷贝
+    名称=细节.pop('name')#成员名
+    细节.pop('id',None)#内部 id 不出站
+    return {'target':名称,**细节}#target 加其余字段
+
 def 紧凑JSON输出(模式):#声明规范输出并以紧凑 JSON 渲染
     """声明一份规范输出 schema，并以紧凑面向模型的 JSON 渲染。"""
     def 渲染(_参数,值):#序列化为 JSON 文本块
@@ -136,14 +142,10 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         """把拆除器追加到本作用域拆除表。"""
         拆除器列表.append(拆除器)#记下
     try:#注册工具与段落
-        def 策略文案():#动态策略段落
-            """拼固定策略与当前成员身份。"""
-            成员关系=上下文.agentTeams.membership(智能体)#解析成员关系
-            return 策略+'\n\nYour Team role is '+str(成员关系['role'])+'; your Team name is '+str(成员关系['name'])+'; Team id is '+str(成员关系['id'])+'.'#拼角色身份
         登记(作用域.systemPrompt.section({#注册策略系统提示段落
             'name':'team:policy',#段落名
             'order':作用域.systemPrompt.getSectionOrder('TEAM_POLICY'),#段落顺序
-            'text':策略文案,#动态文案
+            'text':策略,#固定文案
         }))#策略段落
 
         def 执行创建队友(参数,执行):#执行 spawn_teammate
@@ -153,14 +155,24 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
             if 上下文模式 is None:#缺省 fresh
                 上下文模式='fresh'#默认
             提供方=已解析配置['forkProvider'] if 上下文模式=='fork' else 已解析配置['freshProvider']#选 provider
-            return 上下文.agentTeams.spawnTeammate(调用方,{#调用团队服务创建，已同步
+            提醒=(#队友系统提醒
+                '<system-reminder>\n'
+                +'You are teammate "'+参数['name'].strip()+'".\n'
+                +'Your Team Lead is named "lead".\n'
+                +'Use list_agents({}) to find your teammates and their names.\n'
+                +'To message your Team Lead, use send_message({ target: "lead", message: "..." }).\n'
+                +'To message another teammate, use send_message({ target: "<teammate name>", message: "..." }).\n'
+                +'</system-reminder>\n\n'
+            )#提醒结束
+            结果=上下文.agentTeams.spawnTeammate(调用方,{#调用团队服务创建
                 'name':参数['name'],#成员名
                 'description':参数['description'],#职责描述
-                'prompt':[{'type':'text','text':参数['prompt']}],#初始提示块
+                'prompt':[{'type':'text','text':提醒},{'type':'text','text':参数['prompt']}],#提醒加初始任务
                 'context':上下文模式,#上下文模式
                 'provider':提供方,#选中的 provider
                 'signal':执行['signal'] if 'signal' in 执行 else None,#取消信号
             })#spawnTeammate结束
+            return {'member':模型成员(结果['member'])}#面向模型的成员行
         登记(作用域.tools.register(定义工具({#注册 spawn_teammate
             'name':'spawn_teammate',#工具名
             'description':'Create one named, durable teammate. Only the Team Lead may call this tool.',#工具说明
@@ -187,9 +199,9 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
             })#sendMessage结束
         登记(作用域.tools.register(定义工具({#注册 send_message
             'name':'send_message',#工具名
-            'description':'Send one durable message to another Team member. A running target receives it at the nearest step boundary; an idle target starts a turn; an inactive teammate cold-resumes.',#工具说明
+            'description':'Send one durable message to another Team member. A running target receives it at the nearest step boundary; an inactive target starts or resumes a turn.',#工具说明
             'parameters':{#参数 schema
-                'target':{'type':'string','required':True,'description':'Team member name, or lead.'},#目标名
+                'target':{'type':'string','required':True,'description':'Member target returned by spawn_teammate or list_agents, including lead.'},#目标名
                 'message':{'type':'string','required':True,'description':'Self-contained message for the target.'},#消息正文
             },#parameters结束
             'output':紧凑JSON输出(发消息值模式),#输出声明
@@ -198,10 +210,10 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
 
         def 执行列成员(_参数,执行):#执行 list_agents
             """列出 Lead 与每个耐久 teammate 的当前运行时状态。"""
-            return 上下文.agentTeams.listMembers(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'list_agents'))#返回成员列表
+            return [模型成员(成员) for 成员 in 上下文.agentTeams.listMembers(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'list_agents'))]#面向模型的成员行
         登记(作用域.tools.register(定义工具({#注册 list_agents
             'name':'list_agents',#工具名
-            'description':'List the Lead and every durable teammate with current runtime status.',#工具说明
+            'description':'List the Lead and every durable teammate with an addressable target and current availability. inactive means no turn is executing, not a task result. provisioning and failed describe member creation.',#工具说明
             'parameters':{},#无参数
             'output':紧凑JSON输出(成员列表值模式),#输出声明
             'execute':执行列成员,#执行列成员
@@ -253,7 +265,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
             'name':'interrupt_agent',#工具名
             'description':"Interrupt one teammate's current turn while preserving its pending inbox. Team Lead only.",#工具说明
             'parameters':{#参数 schema
-                'target':{'type':'string','required':True,'description':'Teammate name.'},#目标队友名
+                'target':{'type':'string','required':True,'description':'Teammate target returned by spawn_teammate or list_agents.'},#目标队友名
             },#parameters结束
             'output':紧凑JSON输出(中断值模式),#输出声明
             'execute':执行中断,#执行中断
@@ -329,7 +341,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
                     'enum':['pending','in_progress','completed'],#可选状态
                     'description':'Optional exact status filter.',#状态说明
                 },#status结束
-                'owner':{'type':'string','description':'Optional member-name filter; use unowned for tasks without an owner.'},#所有者过滤
+                'owner':{'type':'string','description':'Optional member target from spawn_teammate or list_agents, matching ownerName; use unowned for tasks without an owner.'},#所有者过滤
                 'ready':{'type':'boolean','description':'Optional readiness filter.'},#就绪过滤
                 'cursor':{'type':'integer','description':'Zero-based result offset. Defaults to 0.'},#偏移
                 'limit':{'type':'integer','description':'Number of rows, 1 through 100. Defaults to 50.'},#页大小
@@ -388,7 +400,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
                 'description':{'type':'string','description':'Replacement details for edit.'},#编辑详情
                 'blocked_by':{'type':'array','items':{'type':'string'},'description':'Complete blocker list for set_dependencies.'},#依赖列表
                 'write_scopes':{'type':'array','items':{'type':'string'},'description':'Replacement advisory write scopes for edit.'},#写范围
-                'owner':{'type':'string','description':'Member name for Lead-only reassign; omit to unassign.'},#再指派所有者
+                'owner':{'type':'string','description':'Member target from spawn_teammate or list_agents for Lead-only reassign; omit to unassign.'},#再指派所有者
             },#parameters结束
             'output':紧凑JSON输出(任务视图模式),#输出声明
             'execute':执行更新任务,#执行更新任务

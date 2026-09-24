@@ -57,5 +57,6 @@ class 系统提示词配置(TypedDict,total=False):#插件配置字段（与 Con
     """部署撰写的系统提示词片段；运行时模式见 系统提示词.Config。"""
     includeHarnessIdentity:bool#人设之前是否含固定 DeepSeek Harness 身份；缺省真
     includeRuntimeContext:bool#是否含动态运行时上下文快照；缺省真
-    persona:str#部署范围顺序 0 人设模板；空串渲染时删除该段
+    personaPrefix:str#部署范围人设前缀模板；空串渲染时删除该段
+    personaSuffix:str#部署范围人设后缀模板；空串渲染时删除该段
     toolOrder:list#面向模型的工具名顺序，须恰含一次 '<unlisted-tools>'；省略则字典序

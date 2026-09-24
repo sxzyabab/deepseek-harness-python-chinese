@@ -65,8 +65,9 @@ class 恢复会话选项(TypedDict):
     'error':{'kind':'error'},#轮次失败；另带结构化 error
     'max-tokens':{'kind':'max-tokens'},#至少一步到达输出 token 上限
     'interrupted':{'kind':'interrupted'},#持久化后端关闭崩溃孤儿轮次
+    'forked':{'kind':'forked'},#分叉种子关闭打开尾
 }
-轮次结束原因=Literal['completed','aborted','blocked','error','max-tokens','interrupted']
+轮次结束原因=Literal['completed','aborted','blocked','error','max-tokens','interrupted','forked']
 
 待办状态=('pending','in_progress','completed')#待办生命周期三态，无 id
 
@@ -94,11 +95,11 @@ class 工具结果错误(TypedDict):
 
 核心会话事件类型=Literal[
     'turn/start','turn/end','step/start','step/end',
-    'user/message','system/message','assistant/message','assistant/attempt',
+    'user/message','developer/message','system/message','assistant/message','assistant/attempt',
     'tool/call','tool/result','request/header','request/context','session/end-seed',
 ]
 
-表面事件类型=frozenset(['system/message','user/message','assistant/message','tool/result'])
+表面事件类型=frozenset(['system/message','developer/message','user/message','assistant/message','tool/result'])
 表面操作=Literal['append']|dict#追加，或 {op:'replace',startSeq,endSeq}
 表面意图=Literal['append','replace']
 

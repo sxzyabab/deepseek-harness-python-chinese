@@ -1,0 +1,18 @@
+{
+    "codec":"编解码",
+    "content":"内容",
+    "developer":"开发者",
+    "extension-identities":"扩展项身份",
+    "facts":"事实列表",
+    "fork-result":"分叉结果",
+    "message-sources":"消息源列表",
+    "migration":"迁移",
+    "references":"引用",
+    "relationships":"关系",
+    "retired-syntax":"已退役语法",
+    "sources":"源列表",
+    "system-message":"系统消息",
+    "testing":"测试中",
+    "tool-role":"工具角色",
+    "validation":"校验"
+}

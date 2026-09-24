@@ -174,7 +174,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
         )#批准升级结束
     上下文.systemPrompt.段落({#写入系统提示词段落
         'name':'tool:pwsh',#段落名
-        'order':105,#排序
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_PWSH'),#中央段落顺序
         'text':('Non-zero exits are reported as `[exit code: N]` markers; investigate failures before moving on. '#面向模型的用法
             +'On Windows a killed process settles as `[exit code: 1]` without a signal marker; treat a bare exit 1 after an interruption as a termination, not a command failure.'),#Windows强杀说明
     })#段落结束

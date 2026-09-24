@@ -1,9 +1,8 @@
 {
-    "admission.ts":"准入.py",
-    "brand.ts":"标识构造.py",
-    "error.ts":"错误.py",
-    "index.ts":"__init__.py",
-    "invariant.ts":"不变量.py",
-    "request-projection.ts":"请求投影.py",
-    "types.ts":"类型.py"
+    "admission":"准入",
+    "brand":"标识构造",
+    "error":"错误",
+    "invariant":"不变量",
+    "request-projection":"请求投影",
+    "types":"类型"
 }

@@ -15,6 +15,7 @@ __all__=['已知会话事件类型','消息投影事件类型']
     'compaction/start',#压缩开始
     'compaction/summary',#压缩摘要
     'deliverables/presented',#文件产出已呈现
+    'developer/message',#开发者消息
     'feedback/message-delete',#反馈删除
     'feedback/message-put',#反馈写入
     'feedback/record',#反馈记录

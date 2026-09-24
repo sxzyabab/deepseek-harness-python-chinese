@@ -50,12 +50,10 @@ __all__=['所选远程目录','包名元组','导出名元组','所选远程贡�
         'service':'settingsController','namespace':'settings',
         'methods':(
             {'export':'describe','invocation':'direct'},
-            {'export':'canOpenAgentPresetDirectory','invocation':'direct'},
             {'export':'update','invocation':'direct'},
             {'export':'replace','invocation':'direct'},
             {'export':'mutate','invocation':'direct'},
             {'export':'openSettingsDocument','invocation':'direct','cancellation':'signal'},
-            {'export':'openAgentPresetDirectory','invocation':'direct','cancellation':'signal'},
             {'export':'describe','invocation':'direct','namespace':'credentials'},
             {'export':'set','invocation':'direct','namespace':'credentials'},
             {'export':'unset','invocation':'direct','namespace':'credentials'},

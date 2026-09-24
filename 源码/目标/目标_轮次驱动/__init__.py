@@ -123,7 +123,7 @@ def 应用(上下文):#安装自动续跑
                 return
         尝试=状态['attempt']#预订
         if 尝试 is not None:#有已接纳工作
-            状态['attempt']=None掉
+            状态['attempt']=None#清预订
             状态['needsCheckpoint']=True#下次先落盘
             状态['requested']=True#再跑
             return
@@ -156,7 +156,7 @@ def 应用(上下文):#安装自动续跑
         try:#入队
             智能体.后续(消息)#下一轮并唤醒
         except Exception as 错误:#入队失败
-            状态['attempt']=None掉
+            状态['attempt']=None#清预订
             上下文.日志.警告('goal-round-driver: could not queue round '+str(轮次)+' for agent "'+str(智能体.id)+'": '+渲染抛出(错误))#警告
             最新=当前目标(状态)#再读
             if (最新 is not None and 最新['id']==目标['id'] and 最新['revision']==目标['revision']
@@ -190,10 +190,10 @@ def 应用(上下文):#安装自动续跑
                 上下文.日志.警告('goal-round-driver: could not start driver for agent "'+str(状态['agent'].id)+'": '+渲染抛出(错误))#警告
                 解除武装(状态)#解除
             finally:#退役
-                状态['run']=None掉线程
+                状态['run']=None#清线程
                 if 状态['requested'] and not 状态['stopping']:#还有请求
                     请求驱动(状态)#再开
-        工作=threading.Thread(target=在线线程执行)#驱动线程
+        工作=threading.Thread(target=在线程执行)#驱动线程
         工作.daemon=True#不挡住退出
         状态['run']=工作#记下
         工作.start()
@@ -211,7 +211,7 @@ def 应用(上下文):#安装自动续跑
         def 智能体已创建(载荷,*位置参数):#新生命周期
             """新生命周期不继承预订。"""
             状态=状态于(载荷['agent'])#状态
-            状态['attempt']=None预订
+            状态['attempt']=None#清预订
             状态['competingQueued']=False#无竞争
             状态['needsCheckpoint']=False#无检查点
         上下文.监听('agent/created',智能体已创建)#创建
@@ -229,7 +229,7 @@ def 应用(上下文):#安装自动续跑
                 and (尝试['phase']=='queued' or 尝试['phase']=='claimed' or 尝试['cancelled'])
                 and 目标 is not None and 目标['phase']=='active' and 目标['activation']=='armed'
                 and 尝试['goalId']==目标['id'] and 尝试['revision']==目标['revision']):#取消打到本修订
-                状态['attempt']=None掉
+                状态['attempt']=None#清预订
                 try:#暂停
                     上下文.goals.暂停(智能体,目标引用(目标))#暂停
                 except Exception as 错误:#失败
@@ -344,7 +344,7 @@ def 应用(上下文):#安装自动续跑
                 尝试=状态['attempt']#预订
                 if 尝试 is not None and 同一轮次(来源,尝试):#同一轮
                     尝试['stale']=True#过期
-                    状态['attempt']=None掉
+                    状态['attempt']=None#清预订
                 恢复其它已领取(智能体,消息列表,提交['id'])#保留其它
                 请求驱动(状态)#再跑
                 return {'kind':'reject'}#拒绝
@@ -353,7 +353,7 @@ def 应用(上下文):#安装自动续跑
             except Exception as 错误:#下游抛错
                 if 信号 is not None and 信号.is_set():#调用方中止
                     raise 错误#原样
-                状态['attempt']=None预订
+                状态['attempt']=None#清预订
                 请求驱动(状态)#再跑
                 raise 错误#再抛
             if 信号 is not None and 信号.is_set():#中止
@@ -361,7 +361,7 @@ def 应用(上下文):#安装自动续跑
                     恢复其它已领取(智能体,决定['messages'],提交['id'])#保留其它
                 return 决定#原决定
             if 决定['kind']=='reject':#下游拒绝
-                状态['attempt']=None掉
+                状态['attempt']=None#清预订
                 目标=当前目标(状态)#当前
                 if (目标 is not None and 目标['id']==来源['goalId'] and 目标['revision']==来源['revision']
                     and 目标['phase']=='active' and 目标['activation']=='armed'):#仍是这一份
@@ -377,7 +377,7 @@ def 应用(上下文):#安装自动续跑
                 解除武装(状态)#解除
                 有效=False#无效
             if not 有效:#无效
-                状态['attempt']=None掉
+                状态['attempt']=None#清预订
                 恢复其它已领取(智能体,决定['messages'],提交['id'])#保留其它
                 请求驱动(状态)#再跑
                 return {'kind':'reject'}#拒绝

@@ -27,11 +27,6 @@ def 省略消息图片(消息,下标列表):#把选中出现标为已省略
                     投影块['offloaded']=True#标已省略
                     已选+=1#前进选中
                 图片下标+=1#计数所有出现
-            elif 块['type']=='tool-result':#嵌套工具结果
-                内容=访问(块['content'])#递归
-                if 内容 is not 块['content']:#子树改了
-                    投影块=dict(块)#复制外壳
-                    投影块['content']=内容#写入
             if 投影块 is not 块:#本块改了
                 if 下一层 is None:#首次改写
                     下一层=list(块列表[0:下标])#拷贝前缀

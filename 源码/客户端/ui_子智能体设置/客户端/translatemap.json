@@ -1,0 +1,9 @@
+{
+    "locales":"文案",
+    "subagent-card-controller":"子智能体卡片控制器",
+    "subagent-limits-card-controller":"子智能体限额卡片控制器",
+    "subagent-model-selection-card-controller":"子智能体模型选择卡片控制器",
+    "SubagentCard":"子智能体卡片",
+    "SubagentLimitsFields":"子智能体限额字段",
+    "SubagentModelSelectionFields":"子智能体模型选择字段"
+}

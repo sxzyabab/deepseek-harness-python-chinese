@@ -9,8 +9,7 @@ def 严重度于(事件):
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 类型=='tool/result':#工具结果
         消息=数据['message'] if 'message' in 数据 else {}#消息
-        内容=消息['content'] if 'content' in 消息 else [{}]#内容块
-        if len(内容)>0 and isinstance(内容[0],dict) and 'isError' in 内容[0] and 内容[0]['isError'] is True:#错误
+        if 消息.get('isError') is True:#消息级错误
             return 'error'#错误
         return 'info'#正常
     if 类型=='turn/end':#回合结束
@@ -22,8 +21,8 @@ def 严重度于(事件):
 
 def 身份于(会话,事件):
     """最小身份属性。"""
-    属性={'session.id':str(会话.id),'event.type':str(事件['type']),'event.seq':事件['seq']}#基础
     头=会话.header#头
+    属性={'session.id':str(会话.id),'session.format_version':头['version'],'event.type':str(事件['type']),'event.seq':事件['seq']}#基础
     if 'cwd' in 头 and 头['cwd'] is not None:#cwd
         属性['session.cwd']=头['cwd']#cwd
     if 'parentSession' in 头 and 头['parentSession'] is not None:#父
@@ -48,11 +47,17 @@ def 原样记录(记录):
 
 class 会话遥测协调器:
     """把会话火hose 投影为逻辑记录并交给后端。后端是含 发出/关闭 的 dict。"""
-    def __init__(自身,上下文,后端,捕获='live'):
+    def __init__(自身,上下文,后端,选项=None):
         """安装捕获路径。"""
+        if 选项 is None:#缺省
+            选项={}#空
+        if isinstance(选项,str):#旧位置参数捕获模式
+            选项={'capture':选项}#包装
         自身._上下文=上下文#ctx
         自身._后端=后端#sink dict
+        自身._选项=选项#捕获与历史策略
         自身._已收养=weakref.WeakKeyDictionary()#活会话身份
+        捕获=选项['capture'] if 'capture' in 选项 else 'live'#捕获模式
         if 捕获=='live':#实时捕获
             上下文.监听('session/created',自身._收养)#创建
             上下文.监听('session/disposed',自身._会话已拆除)#拆除
@@ -68,10 +73,16 @@ class 会话遥测协调器:
 
     def 捕获会话(自身,会话,至序号=None):
         """按游标重放规范日志。"""
-        游标=交接游标[会话] if 会话 in 交接游标 else 会话.firstLiveSeq-1#起点
-        for 事件 in 会话.events:#逐事件
-            if 事件['seq']<=游标:#已交接
-                continue#跳过
+        起点=getattr(会话,'firstLifecycleSeq',getattr(会话,'firstLiveSeq',0))#本生命周期起点
+        含历史=自身._选项.get('includeHistory') is True#含继承历史
+        if 会话 in 交接游标:#已有游标
+            游标=交接游标[会话]#游标
+        elif 含历史 or 起点==0:#从头
+            游标=-1#从头
+        else:#本生命周期前
+            游标=起点-1#起点前
+        事件列表=会话.snapshotEvents(游标+1) if hasattr(会话,'snapshotEvents') else 会话.events#后缀
+        for 事件 in 事件列表:#逐事件
             if 至序号 is not None and 事件['seq']>至序号:#越界
                 break#停
             自身._包含(自身._捕获事件,会话,事件)#捕获

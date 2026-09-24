@@ -85,12 +85,40 @@ class 工作区命令:#工作区变更实现
 
     def archiveSession(自身,请求):#归档会话
         """把已知会话加入全局归档集。"""
+        选项={'stopActivity':True} if 请求.get('stopActivity') is True else {}
         try:#归档
-            自身._上下文.workspaceRegistry.archiveSession(请求['sessionId'])#调用
+            自身._上下文.workspaceRegistry.archiveSession(请求['sessionId'],选项)
         except ValueError as 错误:
+            活动=getattr(错误,'activity',None)
+            if 活动 is not None:
+                raise 远程错误('workspace/session-active',远程错误消息(错误),{'sessionId':请求['sessionId'],'activity':活动},原因=错误)
             raise 远程错误('session/not-found',远程错误消息(错误),{'sessionId':请求['sessionId']},原因=错误)#映射
         归档=自身._上下文.workspaceRegistry.archivedSessionIds#归档集
         return {'archivedSessionIds':list(归档 if 归档 is not None else [])}#归档集
+
+    def unarchiveSession(自身,请求):
+        """从全局归档集去掉会话；未归档则幂等。"""
+        自身._上下文.workspaceRegistry.unarchiveSession(请求['sessionId'])
+        归档=自身._上下文.workspaceRegistry.archivedSessionIds
+        return {'archivedSessionIds':list(归档 if 归档 is not None else [])}
+
+    def pinSession(自身,请求):
+        """把已知未归档会话加入全局钉住集。"""
+        try:
+            自身._上下文.workspaceRegistry.pinSession(请求['sessionId'])
+        except ValueError as 错误:
+            名=type(错误).__name__
+            if 'Archived' in 名 or 'Pin' in 名:
+                raise 远程错误('gateway/bad-request',远程错误消息(错误),{},原因=错误)
+            raise 远程错误('session/not-found',远程错误消息(错误),{'sessionId':请求['sessionId']},原因=错误)
+        钉住=自身._上下文.workspaceRegistry.pinnedSessionIds
+        return {'pinnedSessionIds':list(钉住 if 钉住 is not None else [])}
+
+    def unpinSession(自身,请求):
+        """从全局钉住集去掉会话；未钉则幂等。"""
+        自身._上下文.workspaceRegistry.unpinSession(请求['sessionId'])
+        钉住=自身._上下文.workspaceRegistry.pinnedSessionIds
+        return {'pinnedSessionIds':list(钉住 if 钉住 is not None else [])}
 
     def _要求工作区(自身,工作区标识):#要求存在
         """取工作区或抛 not-found。"""

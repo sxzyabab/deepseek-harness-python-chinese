@@ -1,0 +1,13 @@
+{
+    "locales":"文案",
+    "contact-url":"联系网址",
+    "authorize-url":"授权网址",
+    "formatBalance":"格式化余额",
+    "SignInDialog":"登录对话框",
+    "PlatformOverlay":"平台覆盖层",
+    "AccountSection":"账号分区",
+    "AccountMenu":"账号菜单",
+    "AccountAvatar":"账号头像",
+    "AccountOnboarding":"账号引导",
+    "LogoutIcon":"登出图标"
+}

@@ -13,6 +13,7 @@ from ...配置.配置 import json深度相等#深等比较
 
 __all__=(#仅中文公开名
     '默认流空闲超时毫秒','默认上下文窗口','默认最大输出','默认输入',
+    '默认最大请求图字节','默认请求图像素预算','默认请求图最大字节',
     '思考预算模式','兼容配置模式','推理力度模式','模型字段','模型配置模式','模型覆盖模式',
     '路由配置模式','配置模式','断言可服务','拒绝已删字段','解析配置表',
 )#公开面结束
@@ -21,6 +22,9 @@ __all__=(#仅中文公开名
 默认上下文窗口=262144#默认窗口
 默认最大输出=32768#默认输出上限
 默认输入=('text',)#默认仅文本
+默认最大请求图字节=20*1024*1024#默认请求级 base64 图载荷上限
+默认请求图像素预算=2048*2048#默认总像素预算
+默认请求图最大字节=1024*1024#默认单张请求图编码字节目标
 
 思考预算模式={
     'minimal':数字字段(),#最小
@@ -71,6 +75,9 @@ __all__=(#仅中文公开名
     'timeoutMs':自然数字段(),#超时
     'websocketConnectTimeoutMs':自然数字段(),#WebSocket超时
     'streamIdleTimeoutMs':数字字段(最小=5e-324,最大=定时器延迟上限毫秒,默认值=默认流空闲超时毫秒),#空闲超时
+    'maxRequestImageBytes':整数字段(最小=1,默认值=默认最大请求图字节),#请求级 base64 图上限
+    'requestImagePixelBudget':整数字段(最小=1,默认值=默认请求图像素预算),#总像素预算
+    'requestImageMaxBytes':整数字段(最小=1,默认值=默认请求图最大字节),#单张编码字节目标
     #'retryPolicy':llm.重试政策模式,#重试政策
 }#路由配置模式
 
@@ -124,6 +131,24 @@ def 解析配置表(提供方表,校验='strict'):#校验并拆离按路由键�
             raise 配置错误(
                 'llm-pi-ai: provider "'+提供方+'" streamIdleTimeoutMs must be a positive finite number no greater than '+str(定时器延迟上限毫秒),
             )#空闲超时非法
+        if 'maxRequestImageBytes' in 来源 and 来源['maxRequestImageBytes'] is not None:#??：显式 0 不得被默认值吞掉
+            最大请求图字节=来源['maxRequestImageBytes']#配置上限
+        else:#缺席用默认
+            最大请求图字节=默认最大请求图字节#默认上限
+        if (not isinstance(最大请求图字节,int) or isinstance(最大请求图字节,bool) or 最大请求图字节<=0):#必须正整数
+            raise 配置错误('llm-pi-ai: provider "'+提供方+'" maxRequestImageBytes must be a positive integer')#上限非法
+        if 'requestImagePixelBudget' in 来源 and 来源['requestImagePixelBudget'] is not None:#??：显式 0 不得被默认值吞掉
+            请求图像素预算=来源['requestImagePixelBudget']#配置像素
+        else:#缺席用默认
+            请求图像素预算=默认请求图像素预算#默认像素
+        if (not isinstance(请求图像素预算,int) or isinstance(请求图像素预算,bool) or 请求图像素预算<=0):#必须正整数
+            raise 配置错误('llm-pi-ai: provider "'+提供方+'" requestImagePixelBudget must be a positive safe integer')#像素非法
+        if 'requestImageMaxBytes' in 来源 and 来源['requestImageMaxBytes'] is not None:#??：显式 0 不得被默认值吞掉
+            请求图最大字节=来源['requestImageMaxBytes']#配置单张字节
+        else:#缺席用默认
+            请求图最大字节=默认请求图最大字节#默认单张字节
+        if (not isinstance(请求图最大字节,int) or isinstance(请求图最大字节,bool) or 请求图最大字节<=0):#必须正整数
+            raise 配置错误('llm-pi-ai: provider "'+提供方+'" requestImageMaxBytes must be a positive safe integer')#单张字节非法
         if 'defaultInput' in 来源 and 来源['defaultInput'] is not None:#??：空列表不得被默认模态吞掉，交给下面校验拒绝
             默认模态=list(来源['defaultInput'])#拆离默认模态
         else:#缺席用默认
@@ -175,7 +200,7 @@ def 解析配置表(提供方表,校验='strict'):#校验并拆离按路由键�
         其余.pop('retryPolicy',None)#待解析政策
         其余.pop('models',None)#已物化
         其余.pop('displayName',None)#已解析展示名
-        已解析={**其余,'provider':提供方,'displayName':展示名,'streamIdleTimeoutMs':空闲超时}#已校验配置
+        已解析={**其余,'provider':提供方,'displayName':展示名,'streamIdleTimeoutMs':空闲超时,'maxRequestImageBytes':最大请求图字节,'requestImagePixelBudget':请求图像素预算,'requestImageMaxBytes':请求图最大字节}#已校验配置
         if 密钥引用 is not None:#有引用才品牌化；省略则交还 pi-ai 环境发现
             已解析['apiKeyEnv']=凭证引用(密钥引用)#有引用才品牌化
         if 'retryPolicy' in 来源:#点名了政策才传入；缺席让解析器走默认

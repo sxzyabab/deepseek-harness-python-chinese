@@ -711,9 +711,9 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                     for 块 in (结果.get('content') or []):
                         if 块.get('type')=='image':
                             执行['deferContext'](创建用户消息({
-                                'content':结果['content'],#含子图
-                                'source':{'kind':'plugin','plugin':'tools-ptc'},#传输插件来源
-                            }))#推迟图片上下文
+                                'content':结果['content'],
+                                'source':{'kind':'ptc-mode'},
+                            }))
                             break#一块即可
                 for 上下文块 in (结果.get('additionalContexts') or []):
                     执行['deferContext'](上下文块)#渡到外层结果

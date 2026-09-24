@@ -7,7 +7,7 @@ __all__=['包名','名称','依赖','应用','默认','配置']
 
 包名='@deepseek-ai/dsh-tmux-context'
 名称='tmux-context'
-依赖=['agents']
+依赖=['agents','sessionProjections']
 配置={#每回合的 tmux 位置调度；非法值使插件加载失败
     'refreshIntervalMs':数字字段(),#同一会话内两次持久注入之间的最小毫秒数；省略或 0 则每次合格变化都注入
 }
@@ -91,25 +91,6 @@ def 渲染读数(位置,回合):
     """渲染完整持久读数，含易变的回合前导。"""
     return 读数前缀+str(回合)+'):\n'+渲染状态(位置)#前导 + 稳定块
 
-def 最近注入状态(智能体):
-    """本插件最近一次持久注入的稳定状态块；会话里还没有则为 None。扫描原始持久事件，因此调度能在压缩和进程恢复后存活。"""
-    事件列表=list(智能体.session.events)#原始事件拷贝
-    for 事件 in reversed(事件列表):#从新到旧扫
-        if 事件['type']!='user/message':#非用户消息
-            continue#下一
-        出处=事件['data']['source'] if 'source' in 事件['data'] else None#出处
-        if not isinstance(出处,dict) or 出处['kind']!='plugin' or 出处['plugin']!=名称:#非本插件
-            continue#下一
-        内容=事件['data']['content']#内容块列表
-        块=内容[0] if 内容 else None#第一块内容
-        if 块 is None or 块['type']!='text':#非文本则无法拆状态
-            return None#视为缺席
-        正文=块['text']#读数全文
-        换行=正文.find('\n')#前导与状态块的分界
-        状态='' if 换行==-1 else 正文[换行+1:]#去掉前导行
-        return {'state':状态,'time':事件['time']}#状态 + 注入时刻
-    return None#从未注入
-
 def 校验刷新间隔(刷新间隔毫秒):
     """拒绝无法表示精确已过毫秒数目的刷新间隔。"""
     if 刷新间隔毫秒 is None:#省略
@@ -131,6 +112,30 @@ def 应用(上下文,配置值=None):
         配置值={}#空配置
     刷新间隔毫秒=配置值['refreshIntervalMs'] if 'refreshIntervalMs' in 配置值 else None#调度下限
     校验刷新间隔(刷新间隔毫秒)#非法则加载失败
+    def 折叠状态(状态,事件):
+        """从本插件注入抽出稳定状态块。"""
+        if 事件['type']!='user/message':
+            return 状态
+        出处=事件['data']['source'] if 'source' in 事件['data'] else None
+        if not isinstance(出处,dict) or 出处['kind']!=名称:
+            return 状态
+        内容=事件['data']['content']
+        块=内容[0] if 内容 else None
+        if 块 is None or 块['type']!='text':
+            return 状态
+        正文=块['text']
+        换行=正文.find('\n')
+        稳定='' if 换行==-1 else 正文[换行+1:]
+        return {'state':稳定,'time':事件['time']}
+    def 初始状态(头=None):
+        """尚无注入。"""
+        return None
+    上下文.sessionProjections.登记({
+        'key':'tmuxContext',
+        'stateVersion':1,
+        'init':初始状态,
+        'apply':折叠状态,
+    })
     def 预步骤监听(载荷,下一步,*剩余):
         """瀑布 pre-step：先跑后续，再在合格首步注入 tmux 位置。"""
         决策=下一步()#先跑后续监听器
@@ -140,7 +145,7 @@ def 应用(上下文,配置值=None):
         if 外壳 is None:#没有 shell 则空操作
             return 决策#原样返回
         智能体=载荷['agent']#本步智能体
-        先前=最近注入状态(智能体)#上次注入
+        先前=上下文.sessionProjections.状态(智能体.session,'tmuxContext')
         if 刷新间隔毫秒 is not None and 刷新间隔毫秒>0 and 先前 is not None:#有下限且已注入过
             现在=int(time.time()*1000)#当前时刻毫秒
             if 现在>=先前['time'] and 现在-先前['time']<刷新间隔毫秒:#未到下限则跳过
@@ -156,7 +161,7 @@ def 应用(上下文,配置值=None):
         消息列表=[#插件快照插在已有消息前
             创建用户消息({#持久用户消息
                 'content':[{'type':'text','text':文本}],#读数正文
-                'source':{'kind':'plugin','plugin':名称,'form':'snapshot','sections':[{'name':名称,'text':文本}]},#来源归属
+                'source':{'kind':名称,'form':'snapshot','sections':[{'name':名称,'text':文本}]},#来源归属
             }),#结束 createUserMessage
         ]+list(下游消息 or [])#保留后续监听器的消息
         return {'kind':'enter','messages':消息列表}#继续循环并前置位置消息

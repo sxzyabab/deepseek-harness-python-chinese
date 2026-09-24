@@ -9,11 +9,13 @@ __all__=[#仅中文公开名
 
 # 稳定基础设施与边界失败码（字面量联合）
 网关错误码=(#错误码
-    'ambiguous-endpoint','arguments-invalid','binding-invalid','context-failed',
-    'context-not-found','context-unavailable','definition-unavailable','input-invalid',
-    'invocation-unavailable','lookup-failed','lookup-not-found','lookup-unavailable',
-    'method-unavailable','provider-mismatch','result-invalid','service-unavailable',
-    'signature-invalid',
+    'gateway/ambiguous-endpoint','gateway/arguments-invalid','gateway/binding-invalid',
+    'gateway/context-failed','gateway/context-not-found','gateway/context-unavailable',
+    'gateway/definition-unavailable','gateway/input-invalid','gateway/invocation-unavailable',
+    'gateway/lookup-failed','gateway/lookup-not-found','gateway/lookup-unavailable',
+    'gateway/method-unavailable','gateway/protocol','gateway/provider-mismatch',
+    'gateway/result-invalid','gateway/service-unavailable','gateway/signature-invalid',
+    'gateway/uplink-overflow',
 )#联合
 
 Typert网关=dict#invoke(request) 分发面

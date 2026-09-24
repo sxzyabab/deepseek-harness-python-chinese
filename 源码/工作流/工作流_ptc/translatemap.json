@@ -5,6 +5,8 @@
     "concurrent":"并发",
     "engine":"引擎",
     "guest":"宾客",
+    "guest-source":"宾客源码",
+    "guest-types":"宾客类型",
     "host":"宿主",
     "init":"初始化",
     "item":"条目",
@@ -21,5 +23,6 @@
     "runtime":"运行时",
     "self":"自身",
     "start":"启动",
+    "types":"类型",
     "workflow":"工作流"
 }

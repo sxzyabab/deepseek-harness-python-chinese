@@ -1,0 +1,12 @@
+{
+    "ids":"标识",
+    "capabilities":"能力",
+    "errors":"错误",
+    "property":"属性",
+    "remote-object":"远程对象",
+    "operations":"操作",
+    "console":"控制台",
+    "sources":"源",
+    "debugger":"调试器",
+    "realm":"领域"
+}

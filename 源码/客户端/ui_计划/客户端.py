@@ -1,4 +1,5 @@
 from uuid import uuid4 as 随机UUID#审阅窗身份
+from ...ui_基础界面组件.markdown.纯文本 import 抽取Markdown纯文本#审阅标题
 from .文案 import 命名空间,中文,英文#词表
 from .计划芯片 import 计划芯片#芯片组件
 from .计划定义 import 计划定义#对话定义
@@ -63,7 +64,7 @@ def 应用(上下文):#安装计划控制浏览器半边
             else:#子智能体
                 会话=dict(子)#拷贝
                 会话['kind']='subagent'#种
-            上下文.sidebarRight.openResourceIn(会话标识,计划地址({'session':会话,'callId':调用标识}))#打开
+            上下文.sidebarRight.openResource(计划地址({'session':会话,'callId':调用标识}))#打开
         return {'openPlan':打开计划}#注入
 
     审阅窗=str(随机UUID())#审阅窗
@@ -71,10 +72,25 @@ def 应用(上下文):#安装计划控制浏览器半边
 
     def 登记回合尾():#回合尾卡
         """登记计划卡。"""
-        return 上下文.slots.register({#登记
-            'name':'conversation.chat.turnTail','id':预览标识,'locale':命名空间,#元数据
-            'inject':打开计划面,#注入
-        },计划卡)#计划卡
+        def 注入(会话标识):
+            """绑定 Chat 目标后贡献 plans 源。"""
+            绑定=上下文.sessions.binding(会话标识)
+            if 绑定 is None:
+                raise RuntimeError('ui-plan: unknown session "'+str(会话标识)+'"')
+            聊天=上下文.uiConversation.binding(绑定).target('chat')
+            def 计划源(回合):
+                """submitted-plan 数据源。"""
+                快照=聊天.getSnapshot()
+                if 快照 is None:
+                    raise RuntimeError('ui-plan: Chat target is unavailable')
+                return 快照.nodes.turnDataSource(int(回合),'submitted-plan')
+            面=打开计划面(会话标识)
+            面['keyedHooks']={'plans':计划源}
+            return 面
+        return 上下文.slots.register({
+            'name':'conversation.chat.turnTail','id':预览标识,'locale':命名空间,
+            'inject':注入,
+        },计划卡)
     上下文.slots.inject('conversation.chat.turnTail',登记回合尾)#挂
 
     def 审阅注入(会话标识):#审阅动作注入
@@ -85,11 +101,14 @@ def 应用(上下文):#安装计划控制浏览器半边
                 打开计划面(会话标识)['openPlan'](审阅['callId'])#开计划
                 return#停
             正文=审阅['plan'] if 'plan' in 审阅 else ''#正文
-            标题=正文.strip().split('\n')[0].lstrip('#').strip() if 正文!='' else ''#首行标题
-            上下文.sidebarRight.openResourceIn(会话标识,审阅预览地址(会话标识,审阅窗+':'+请求键),{#临时
-                'params':{'planReview':{'markdown':正文,'title':标题}},#参数
-            })#打开
-        return {'openReview':打开审阅}#注入
+            标题=抽取Markdown纯文本(正文,{'mode':'first-line'})
+            上下文.sidebarRight.openResource(审阅预览地址(会话标识,审阅窗+':'+请求键),{
+                'params':{'planReview':{'markdown':正文,'title':标题}},
+            })
+        return {
+            'openReview':打开审阅,
+            'hooks':{'sidebarMounted':上下文.sidebarRight.mounted},
+        }
 
     def 登记审阅动作():#审阅动作
         """登记审阅打开。"""

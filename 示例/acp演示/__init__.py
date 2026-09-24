@@ -1,6 +1,5 @@
 """ACP 自动化服务器应用：默认智能体主干、JSONL 会话持久化，以及 ACP 桥。
 
-对齐上游 `@deepseek-ai/dsh-acp-demo`（`示例/acp-demo/src/index.ts`）。公开面仅中文名。
 应用经一条有序生命周期拥有这些插件，使 ACP 会话在持久化拆离前静止。它不向 stdout 写任何东西。
 必须用具名导出，Loader 才能保留本插件的 Config schema。
 """

@@ -6,6 +6,40 @@ def 恒等键(键,_缺省=None):#无翻译时返回键
     """无翻译函数时原样返回键。"""
     return 键#原样
 
+def 读团队投影(属性,会话标识):#读 agentTeam 投影
+    """从槽运行时 useSession/useSessions 读 Lead 的 agentTeam 投影。"""
+    用单会话=属性['useSession'] if 'useSession' in 属性 else None#单会话钩
+    用会话表=属性['useSessions'] if 'useSessions' in 属性 else None#会话表钩
+    领导=会话标识#默认当前会话即 Lead
+    if 用单会话 is not None:#有单会话钩
+        def 选父(快照):#选 parentSessionId
+            """子会话映射到 Lead。"""
+            if 快照 is None or 'subagent' not in 快照:#无子
+                return None#无
+            子=快照['subagent']#子智能体
+            if 子 is None or 'address' not in 子:#无地址
+                return None#无
+            地址=子['address']#地址
+            if 地址 is None or 'parentSessionId' not in 地址:#无父
+                return None#无
+            return 地址['parentSessionId']#父
+        父=用单会话(选父)#投影
+        if 父 is not None:#有 Lead
+            领导=父#改用 Lead
+    if 用会话表 is None:#无表钩
+        return None#无投影
+    def 选团队(状态):#选 agentTeam
+        """按 Lead 会话读投影。"""
+        if 状态 is None or 'projectionsBySession' not in 状态:#无表
+            return None#无
+        投影表=状态['projectionsBySession']#投影表
+        条目=投影表[领导] if 领导 in 投影表 else None#条目
+        if 条目 is None or 'values' not in 条目:#无值
+            return None#无
+        值=条目['values']#值
+        return 值['agentTeam'] if 'agentTeam' in 值 else None#投影
+    return 用会话表(选团队)#投影
+
 def 拆分项(值):#逗号拆分去重
     """逗号拆分去重。"""
     return list(dict.fromkeys(项.strip() for 项 in 值.split(',') if 项.strip()!=''))#拆分去重
@@ -142,16 +176,29 @@ class 团队动作:#标题栏 Team 动作
         代数=自身._刷新代数#本代
         自身.加载中=True#进入加载
         加载=自身.属性['load'] if 'load' in 自身.属性 else None#加载动作
-        结果=加载(会话) if 加载 is not None else {'ok':False,'error':{'code':'missing','message':'no load'}}#拉总览
+        if 加载 is not None:#仍有 RPC 则走 RPC
+            结果=加载(会话)#拉总览
+            if 自身._会话引用!=会话 or 自身._刷新代数!=代数:#过期
+                return False#过期
+            自身.加载中=False#结束加载
+            if 结果['ok'] is True:#成功
+                自身.视图=结果['value']#写入视图
+                自身.错误=None#清错误
+                return True#成功
+            自身.错误=失败文案(结果['error'])#写错误
+            return False#失败
+        投影=读团队投影(自身.属性,会话)#读投影
         if 自身._会话引用!=会话 or 自身._刷新代数!=代数:#过期
             return False#过期
         自身.加载中=False#结束加载
-        if 结果['ok'] is True:#成功
-            自身.视图=结果['value']#写入视图
+        自身.视图=投影#写入视图
+        if 投影 is None:#暂不可用
+            return False#无视图
+        if 'failure' in 投影 and 投影['failure'] is not None:#持久失败
+            自身.错误=自身._翻译()('failure').replace('{message}',str(投影['failure']))#失败文案
+        else:#无失败
             自身.错误=None#清错误
-            return True#成功
-        自身.错误=失败文案(结果['error'])#写错误
-        return False#失败
+        return True#成功
 
     def _使刷新失效(自身):#使在途刷新失效
         """推进代数并清加载。"""
@@ -209,7 +256,9 @@ class 团队动作:#标题栏 Team 动作
         if 标题=='' or 描述=='':#空则跳过
             return#跳过
         会话=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None#会话
-        创建=自身.属性['createTask']#创建动作
+        创建=自身.属性['createTask'] if 'createTask' in 自身.属性 else None#创建动作
+        if 创建 is None:#无 RPC
+            return#跳过
         def 操作():#操作
             """建任务 RPC。"""
             return 创建(会话,{#建任务
@@ -236,7 +285,9 @@ class 团队动作:#标题栏 Team 动作
 
     def 提交编辑(自身,任务):#提交编辑
         """先编辑文本，必要时再改依赖。"""
-        更新=自身.属性['updateTask']#更新动作
+        更新=自身.属性['updateTask'] if 'updateTask' in 自身.属性 else None#更新动作
+        if 更新 is None:#无 RPC
+            return#跳过
         def 编辑操作():#编辑文本
             """编辑 RPC。"""
             return 更新(自身.属性['sessionId'],{#编辑
@@ -351,7 +402,7 @@ class 团队动作:#标题栏 Team 动作
         if 打开 is None:#无动作
             return#返回
         try:#试开
-            打开(自身.属性['sessionId'],成员)#打开已同步
+            打开(自身.属性['sessionId'],成员['id'])#打开已同步
         except Exception as 错误:#写 inbox/会话可能抛持久化/校验错误，契约未定所以收不窄
             自身.错误=str(错误)#错误行
 
@@ -467,7 +518,9 @@ class 团队动作:#标题栏 Team 动作
     def _改派(自身,任务,所有者):#改派
         """改派或清空 owner。"""
         会话=自身.属性['sessionId']#会话
-        更新=自身.属性['updateTask']#更新
+        更新=自身.属性['updateTask'] if 'updateTask' in 自身.属性 else None#更新
+        if 更新 is None:#无 RPC
+            return#跳过
         def 操作():#操作
             """改派 RPC。"""
             请求={#请求
@@ -483,7 +536,9 @@ class 团队动作:#标题栏 Team 动作
     def _动作(自身,任务,动作):#简单动作
         """complete / reopen / delete。"""
         会话=自身.属性['sessionId']#会话
-        更新=自身.属性['updateTask']#更新
+        更新=自身.属性['updateTask'] if 'updateTask' in 自身.属性 else None#更新
+        if 更新 is None:#无 RPC
+            return#跳过
         def 操作():#操作
             """动作 RPC。"""
             return 更新(会话,{#更新

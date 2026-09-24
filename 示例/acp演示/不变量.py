@@ -1,6 +1,5 @@
 """`@deepseek-ai/dsh-acp-demo` 的本包拥有不变量配套。
 
-对齐上游 `示例/acp-demo/src/invariant.ts`。公开面仅中文名。
 无运行时不变量：本组合包不拥有独立事件流或可变数据；Loader 与已构建入口测试覆盖其接线。
 """
 from ...依赖 import cordis#外部依赖胶水

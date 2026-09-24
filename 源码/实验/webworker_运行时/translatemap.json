@@ -1,0 +1,6 @@
+{
+    "worker-host":"工作线程宿主",
+    "module-proxies":"模块代理",
+    "image-layout":"镜像布局",
+    "worker":"工作线程"
+}

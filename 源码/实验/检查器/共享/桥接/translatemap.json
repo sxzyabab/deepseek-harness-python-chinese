@@ -1,0 +1,9 @@
+{
+    "ids":"标识",
+    "version":"版本",
+    "control-codec":"控制编解码",
+    "query-reader":"查询读取器",
+    "publisher":"发布器",
+    "buffer":"缓冲",
+    "messages":"消息"
+}

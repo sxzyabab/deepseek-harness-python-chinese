@@ -19,18 +19,45 @@ class 投影缓存错误(Exception):
 })#配置模式
 __all__=['包名','名称','依赖','应用','默认','会话投影缓存','投影缓存错误']
 
-def 身份于(头):
-    """投影检查点记录绑定的生命周期身份。"""
-    身份={'createdAt':头['createdAt']}#创建时刻
-    if 'cwd' in 头 and 头['cwd'] is not None:
+前代标题键='title'#列表面仅暴露前代标题
+
+def 生命周期身份于(头):
+    """头单独能见证的生命周期身份。"""
+    身份={'formatVersion':头['version'],'createdAt':头['createdAt'],'isSeeded':头.get('isSeeded',False)}#基
+    if 'cwd' in 头:#有 cwd
         身份['cwd']=头['cwd']#带上
     return 身份#返回
 
-def 身份匹配(已存,期望):
-    """存储身份是否匹配期望。"""
+def 身份于(头,继承事件数=0):
+    """投影检查点记录绑定的完整折叠身份。"""
+    切点=0 if 继承事件数 is None else 继承事件数#切点
+    if not 头.get('isSeeded') and 切点!=0:#未播种却非零
+        raise 投影缓存错误('unseeded projection-cache identity inherited event count must be 0')#拒绝
+    return {**生命周期身份于(头),'inheritedEventCount':切点}#完整身份
+
+def 生命周期身份匹配(已存,期望):
+    """格式无关的生命周期字段是否匹配。"""
+    已存播种=已存['isSeeded'] if 'isSeeded' in 已存 else False#缺省未播种
+    期望播种=期望['isSeeded'] if 'isSeeded' in 期望 else False#期望
     已存目录=已存['cwd'] if 'cwd' in 已存 else None#已存 cwd
     期望目录=期望['cwd'] if 'cwd' in 期望 else None#期望 cwd
-    return 已存['createdAt']==期望['createdAt'] and 已存目录==期望目录#字段相等
+    return 已存['createdAt']==期望['createdAt'] and 已存目录==期望目录 and 已存播种==期望播种#字段相等
+
+def 当代生命周期匹配(已存,期望):
+    """是否在当代格式代下折叠自同一生命周期。"""
+    return 已存.get('formatVersion')==期望.get('formatVersion') and 生命周期身份匹配(已存,期望)#格式加生命周期
+
+def 身份匹配(已存,期望):
+    """存储身份是否可播种调用方折叠。"""
+    已存继承=已存['inheritedEventCount'] if 'inheritedEventCount' in 已存 else 0#缺省未播种切点
+    return 当代生命周期匹配(已存,期望) and 已存继承==期望.get('inheritedEventCount',0)#切点也要同
+
+def 前代身份匹配(已存,期望):
+    """前代缓存记录是否匹配权威列出的生命周期。"""
+    已存代=已存['formatVersion'] if 'formatVersion' in 已存 else None#已存代
+    期望代=期望.get('formatVersion')#期望代
+    前代=已存代 is None or (期望代 is not None and 已存代<期望代)#更早
+    return 前代 and 生命周期身份匹配(已存,期望)#生命周期仍同
 
 class 会话投影缓存(服务):
     """节流写后端的投影检查点缓存；读走域内存表。"""
@@ -68,18 +95,29 @@ class 会话投影缓存(服务):
 
     def 缓存快照(自身,头,键列表=None):
         """从存储行视图化检查点。"""
-        记录=自身._记录于(头['id'],身份于(头))#读记录
-        if 记录 is None:
-            return None#缺席
+        记录=自身._要求表().get(头['id'])#读行
+        if 记录 is None or not 当代生命周期匹配(记录['identity'],生命周期身份于(头)):
+            return None#缺席或非当代生命周期
+        return 自身._视图记录(记录,键列表)#视图
+
+    def 缓存前代标题(自身,头):
+        """只读前代检查点的标题作为列表面提示。"""
+        记录=自身._要求表().get(头['id'])#读行
+        if 记录 is None or not 前代身份匹配(记录['identity'],生命周期身份于(头)):
+            return None#非前代或无关
+        return 自身._视图记录(记录,[前代标题键])#仅标题
+
+    def _视图记录(自身,记录,键列表=None):
+        """把选中行收成最低水位块。"""
         值表=自身.ctx.sessionProjections.视图检查点(记录['rows'],键列表)#视图
         if len(值表)==0:
             return None#缺席
         水位=min(记录['rows'][键]['seq'] for 键 in 值表)#最低水位
         return {'asOfSeq':水位,'values':值表}#快照
 
-    def 注水预备(自身,会话,头,事件列表):
+    def 注水预备(自身,会话,事件列表):
         """为已预备会话安装恢复切面。"""
-        记录=自身._记录于(头['id'],身份于(头))#读记录
+        记录=自身._记录于(会话.id,身份于(会话.header,getattr(会话,'inheritedEventCount',0)))#读记录
         if 记录 is None:
             return 自身.ctx.sessionProjections.注水(会话,{},事件列表,0)#空种子
         try:
@@ -93,16 +131,17 @@ class 会话投影缓存(服务):
         自身._标干净(会话)#写前摘掉脏标记与定时器
         if 自身.ctx.sessions.get(会话.id) is 会话:
             自身.ctx.sessions.flush(会话).等待()#耐久屏障
-        自身._放(会话.id,身份于(会话.header),行表)#写行
+        自身._放(会话.id,身份于(会话.header,getattr(会话,'inheritedEventCount',0)),行表)#写行
 
-    def 冷快照(自身,头,事件列表):
+    def 冷快照(自身,头,继承事件数,事件列表):
         """从完整日志冷读并回写缓存。"""
-        种子=自身._记录于(头['id'],身份于(头))#读缓存
+        身份=身份于(头,继承事件数)#完整身份
+        种子=自身._记录于(头['id'],身份)#读缓存
         种子行={} if 种子 is None else 种子['rows']#行
-        已恢复=自身.ctx.sessionProjections.恢复(种子行,事件列表,0,头)#折叠
+        已恢复=自身.ctx.sessionProjections.恢复(种子行,事件列表,0,头,继承事件数)#折叠
         try:
-            自身._放(头['id'],身份于(头),已恢复['checkpoint'])#回写
-        except 投影缓存错误 as 错误:
+            自身._放(头['id'],身份,已恢复['checkpoint'])#回写
+        except Exception as 错误:
             自身.ctx.日志.警告('session projection cache: cold-read write-back for "'+str(头['id'])+'" failed (cache stays stale): '+str(错误))#警告
         return 已恢复['snapshot']#快照
 
@@ -158,7 +197,7 @@ class 会话投影缓存(服务):
         """fail-soft 写。"""
         try:
             自身.写(会话)#耐久
-        except 投影缓存错误 as 错误:
+        except Exception as 错误:
             自身.ctx.日志.警告('session projection cache: '+触发+' write for "'+str(会话.id)+'" failed (cache stays stale): '+str(错误))#警告
 
     def _标干净(自身,会话):
@@ -177,7 +216,7 @@ class 会话投影缓存(服务):
         """写一行。"""
         分离=结构化克隆(行表)#JSON 快照
         if 分离 is None:
-            raise TypeError('projection checkpoint is not losslessly JSON-serializable')#拒绝
+            raise TypeError('projection checkpoint is not losslessly JSON-serializable (a unit state violates the plain-JSON contract)')#拒绝
         自身._要求表().put(标识,{'identity':身份,'rows':分离})#写域
 
 def 应用(上下文,配置值):

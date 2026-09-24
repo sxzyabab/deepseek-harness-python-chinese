@@ -102,7 +102,7 @@ def 上次请求头处计划模式(事件列表):#上次请求组装时告诉模
 
 class 计划模式控制器(服务):#计划模式控制器服务
     """`ctx.planMode`：拥有已记录的计划状态，在步骤开始时应用并叙述所选状态，以及 `plan:policy` 段落、`/plan` 命令和稳定的退出工具。UI 通过 `session/event` 观察已提交的翻转；没有实时镜像。"""
-    依赖=['tools','systemPrompt']#注册工具与系统提示词段落所需
+    依赖=['tools','systemPrompt','sessionProjections']#注册工具、系统提示与会话投影
     inject=依赖
 
     def __init__(自身,上下文,配置=None):#加载插件：校验配置并挂生命周期
@@ -151,38 +151,45 @@ class 计划模式控制器(服务):#计划模式控制器服务
             if 未决 is not None:#有未决
                 激活=未决['active']#未决目标
             else:#无未决
-                激活=折叠计划模式(智能体.session.events)#日志折叠
+                激活=自身.已记录激活(智能体.session)#投影折叠
             if 激活:#激活才给指导
                 return 自身.段落#指导正文
             return ''#未激活则空
         上下文.systemPrompt.section({#注册 plan:policy 段落
             'name':'plan:policy',#段落名
-            'order':50,#排序
+            'order':上下文.systemPrompt.getSectionOrder('PLAN_POLICY'),#排序
             'text':政策文本,#按状态渲染
         })#结束 section 注册
         def 投影安装(投影上下文,*其余):#有投影注册表才挂单元
             """计划投影单元：纯双事件折叠，向客户端提供完整 {active, pending}。"""
             def 初始():#默认未激活、无未决
                 """默认未激活、无未决。"""
-                return {'active':False,'wanted':None}#内部状态
+                return {'active':False,'wanted':None,'running':None,'activeAtLastHeader':None}#内部状态
             def 折叠(状态,事件):#按事件折叠
                 """按事件折叠。"""
                 种类=事件['type']#事件类型
                 数据=事件['data'] if 'data' in 事件 else None#事件载荷
-                if 种类=='command/run' and 数据 is not None and 'name' in 数据 and 数据['name']=='plan':#已记录 /plan
-                    参数=数据['args'] if 'args' in 数据 else None#命令参数
-                    if 参数 is None:#无参则不变
+                if 种类=='command/run' and 数据 is not None and 数据.get('name')=='plan':#已记录 /plan
+                    if 'args' not in 数据 or 数据['args'] is None:#无参则不变
                         return 状态#不变
-                    想要=参数.strip()!='off'#off 以外都是进入
-                    if 想要==状态['wanted']:#目标未变则复用
-                        return 状态#复用
-                    return {'active':状态['active'],'wanted':想要}#记下目标
+                    想要=数据['args'].strip()!='off'#off 以外都是进入
+                    return {**状态,'running':{'commandId':数据['commandId'],'wanted':想要}}#记下在跑命令
+                if 种类=='command/done' and 数据 is not None and 状态.get('running') is not None and 数据.get('commandId')==状态['running']['commandId']:
+                    在跑=状态['running']#在跑命令
+                    if 数据.get('kind')=='success' and 在跑['wanted']!=状态['active']:
+                        想要=在跑['wanted']#成功且目标变了
+                    else:
+                        想要=None#否则清未决
+                    return {**状态,'wanted':想要,'running':None}#记下并清在跑
                 if 种类=='plan/mode':#已提交选择
-                    return {'active':数据['active'],'wanted':None}#记下并清除未决
+                    return {**状态,'active':数据['active'],'wanted':None}#记下并清除未决
+                if 种类=='request/header':#请求头
+                    return {**状态,'activeAtLastHeader':状态['active']}#记下头处状态
                 return 状态#其他事件忽略
             def 视图(状态):#内部状态 → 线上值
                 """内部状态 → 线上值。"""
-                想要=状态['wanted']#未决目标
+                在跑=状态.get('running')#在跑命令
+                想要=在跑['wanted'] if 在跑 is not None else 状态['wanted']#未决目标
                 激活=状态['active']#已提交
                 return {#线上值
                     'active':激活,#已提交
@@ -194,7 +201,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
                 'init':初始,#初始
                 'apply':折叠,#折叠
                 'view':视图,#视图
-                'stateVersion':1,#内部状态版本
+                'stateVersion':3,#内部状态版本
             })#登记结束
         上下文.依赖启动(['sessionProjections'],投影安装)#等到投影缝
         def 命令安装(命令上下文,*其余):#有命令注册表才挂 /plan

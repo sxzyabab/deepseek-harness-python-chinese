@@ -10,12 +10,14 @@ __all__=['插件条目标识','插件纤程阶段','插件清单条目','预设�
 class 插件清单条目(类型字典):#清单行
     entryId:str#Loader 树条目 id
     moduleName:str#插件模块名
+    meta:非必需[dict]#本地包展示元，与条目是否启用无关
     enabled:bool#有效启用
     fiberPhase:插件纤程阶段#根纤程阶段
 
 class 智能体预设插件行(类型字典):#预设组合行
     entryId:str|None#行 id，可空
     moduleName:str#模块名
+    meta:非必需[dict]#本地包展示元，与预设是否挂载无关
     enabled:预设插件启用#有效启用
     condition:非必需[str]#条件表达式
     fiberPhase:插件纤程阶段#纤程阶段

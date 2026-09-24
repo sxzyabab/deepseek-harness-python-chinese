@@ -53,6 +53,7 @@ from .消息 import (
     创建用户消息,#创建用户消息
     创建助手消息,#创建助手消息
     创建系统消息,#创建系统消息
+    创建开发者消息,#创建开发者消息
     创建工具结果消息,#创建工具结果消息
     是否词增量,#是否可见增量
 )
@@ -101,13 +102,14 @@ __all__=(#仅中文公开名；无英文别名
     '中止信号','内容含图片','内容含文件','仅文本图片文案','请求图片句柄文案','卸载图片文案',
     '文件句柄文案','投影文件为文本','投影图片为仅文本','投影卸载图片','必需图片卸载',
     '卸载图片前缀张数','按政策卸载请求图片','解析图片附件访问',
-    '语言模型失败','文本块','推理块','图片块','工具调用块','工具结果块',
+    '语言模型失败','文本块','推理块','图片块','工具调用块','工具追加块','工具移除块',
     '文本模态','图片模态','模型模态','正常停止','工具调用停止','达到令牌上限',
     '令牌用量','提供方简介','可配置提供方','模型发现请求','发现到的模型',
     '模型信息','模型上下文','推理力度信息','模型推理信息','已解析模型信息',
     '系统提示词更新','图片请求预算','回放信封','工具模式','生成选项',
+    '请求用户输入','图片请求价格',
     '上下文摘要最大字符','截上下文摘要','冻结消息',
-    '创建消息','创建用户消息','创建助手消息','创建系统消息','创建工具结果消息','是否词增量',
+    '创建消息','创建用户消息','创建助手消息','创建系统消息','创建开发者消息','创建工具结果消息','是否词增量',
     '解析重试政策','重试政策错误','重试政策模式','块组装器',
     '助手流累积器','助手流累加器','展开助手流','是否令牌增量','是否可见块','块是否含可见文本','块含可见文本',
     '游程首令牌时间','游程首可见时间','助手流首令牌时间','助手流是否有可见内容','助手流有可见内容',
@@ -532,6 +534,11 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         """按已捕获注册解析模型信息。"""
         提供方=注册['provider']['id']#注册的提供方 id
         已解析=注册['adapter'].解析模型(提供方,模型,信号)#解析模型已是同步，直取元数据
+        return 自身.规范化模型信息(注册,模型,已解析)#校验并拆离
+
+    def 规范化模型信息(自身,注册,模型,已解析):#校验并拆离一次适配器精确模型结果
+        """校验并拆离一次适配器返回的精确模型结果。"""
+        提供方=注册['provider']['id']#注册的提供方 id
         描述非法='description' in 已解析 and not isinstance(已解析['description'],str)#描述类型错
         if not isinstance(已解析.get('provider'),str) or 已解析.get('provider')!=提供方 or not isinstance(已解析.get('id'),str) or 已解析.get('id')!=模型 or not isinstance(已解析.get('name'),str) or len(已解析.get('name') or '')==0 or 描述非法:#身份非法
             raise 语言模型错误('adapter returned invalid exact model metadata for provider "'+提供方+'" model "'+模型+'"','INVALID_MODEL_INFO')#精确模型元数据非法
@@ -592,6 +599,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
     def 按注册解析调用(自身,注册,配置,信号=None):#按已捕获注册解析调用
         """按已捕获注册解析调用。"""
         信息=自身.按注册解析模型信息(注册,配置['model'],信号)#精确模型信息
+        return 自身.用信息解析调用(配置,信息)#对照已绑定模型结果
+
+    def 用信息解析调用(自身,配置,信息):#对照已绑定精确模型结果校验请求控件
+        """对照已绑定的精确模型结果校验请求控件。"""
         if 'maxTokens' not in 配置 and 'defaultMaxTokens' in 信息:#物化默认上限
             已默认=dict(配置)#物化默认上限
             已默认['maxTokens']=信息['defaultMaxTokens']#写入上限
@@ -625,7 +636,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
     def 准备调用(自身,配置,信号=None):#解析一次调用并返回一次性句柄
         """在其当前适配器注册下解析一次调用，返回一次性句柄。"""
         注册=自身.取注册(配置['provider'])#捕获当前注册
-        已解析=自身.按注册解析调用(注册,配置,信号)#解析配置
+        适配器调用=注册['adapter'].准备调用(配置['provider'],配置['model'],信号)#绑到同一代适配器
+        模型信息=自身.规范化模型信息(注册,配置['model'],适配器调用['model'])#校验本代模型
+        已解析=自身.用信息解析调用(配置,模型信息)#物化默认
         已解析配置=深冻结(结构化克隆(已解析['config']))#拆离并冻结配置
         if 'context' not in 已解析:#无上下文
             上下文=None#保持缺省
@@ -646,11 +659,15 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             if not 调用配置相等(选项,已解析配置):#配置已变
                 raise 语言模型错误('prepared LLM call config changed before adapter dispatch','INVALID_PREPARED_CALL')#分派前配置被改
             已分派=True#记下已分派
-            return 自身.带注册流出(选项,{'registration':注册,'config':已解析配置})#经捕获注册流出
+            return 自身.带注册流出(选项,{
+                'registration':注册,
+                'config':已解析配置,
+                'modelInfo':模型信息,
+                'dispatch':适配器调用['stream'],
+            })#经捕获注册与本代流入口流出
         句柄={'config':已解析配置,'retryPolicy':注册['retryPolicy'],'adapterDefaults':适配器默认,'stream':分派}#一次性句柄
         if 上下文 is not None:#有上下文
             句柄['context']=上下文#有上下文才带上
-        模型信息=已解析['modelInfo']#同一次解析的模型信息
         if 'inputModalities' in 模型信息:#有模态
             句柄['inputModalities']=tuple(模型信息['inputModalities'])#冻结模态
         if 'systemPromptUpdate' in 模型信息:#有更新模式
@@ -669,8 +686,11 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         消息列表=[]#过滤后的消息
         原消息=选项['messages']#原列表
         for 消息 in 原消息:#逐条消息
+            if 消息.get('role')!='assistant' or 'source' not in 消息:#无需过滤
+                消息列表.append(消息)#无需过滤
+                continue#下一条
             来源=消息['source']#来源
-            if 消息.get('role')!='assistant' or 来源.get('kind')!='model' or 'replayState' not in 来源:#无需过滤
+            if 来源.get('kind')!='model' or 'replayState' not in 来源:#无需过滤
                 消息列表.append(消息)#无需过滤
             elif 自身.适配器表.get(来源.get('provider'),{}).get('adapter') is 适配器:#同一适配器
                 消息列表.append(消息)#同一适配器实例则保留
@@ -702,10 +722,16 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 注册=自身.取注册(选项['provider'])#现查注册
             else:#已准备
                 注册=已准备['registration']#捕获的注册
-            if 已准备 is None:#现解析配置
-                已解析配置=自身.按注册解析调用(注册,选项,选项.get('signal'))['config']#现解析配置
-            else:#用准备好的配置
+            适配器=注册['adapter']#目标适配器
+            if 已准备 is None:#现解析并绑到本代
+                适配器调用=适配器.准备调用(选项['provider'],选项['model'],选项.get('signal'))#本代入口
+                模型信息=自身.规范化模型信息(注册,选项['model'],适配器调用['model'])#校验本代模型
+                已解析配置=自身.用信息解析调用(选项,模型信息)['config']#现解析配置
+                分派入口=适配器调用['stream']#本代流
+            else:#用准备好的绑定
+                模型信息=已准备['modelInfo']#本代模型
                 已解析配置=已准备['config']#用准备好的配置
+                分派入口=已准备['dispatch']#本代流
             if 已准备 is not None and not 调用配置相等(选项,已解析配置):#已准备但配置变了
                 raise 语言模型错误('prepared LLM call config changed before adapter dispatch','INVALID_PREPARED_CALL')#分派前配置被改
             if 调用配置相等(选项,已解析配置):#配置已一致
@@ -717,14 +743,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             else:#合并可变请求
                 已解析选项=dict(选项)#合并可变请求
                 已解析选项.update(已解析配置)#写入配置字段
-            适配器=注册['adapter']#目标适配器
             #文件永不原生分派：每条路由都收到句柄文本；仅文本路由再投影图片
             投影消息=已解析选项['messages']#消息
             if any(内容含文件(消息.get('content') or []) for 消息 in 投影消息):#含文件
                 投影消息=投影文件为文本(投影消息,lambda 引用:自身._文件读路径(引用))#文件投影
-            模型信息=None#可选已解析模型信息
-            if 已准备 is not None and 'modelInfo' in 已准备:#准备携带
-                模型信息=已准备['modelInfo']#模型信息
             模态=模型信息.get('inputModalities') if isinstance(模型信息,dict) else None#输入模态
             if (模态 is not None and 'image' not in 模态
                 and any(内容含图片(消息.get('content') or []) for 消息 in 投影消息)):#仅文本却含图
@@ -735,11 +757,11 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 分派选项=深冻结({**已解析选项,'messages':投影消息})#冻结投影
             else:#可变
                 分派选项={**已解析选项,'messages':投影消息}#可变投影
-            流=适配器.流式(自身.按适配器过滤(分派选项,适配器))#流式已是同步生成器，直取
+            流=分派入口(自身.按适配器过滤(分派选项,适配器))#经本代入口分派
             迭代器=iter(流)#取出迭代器
         except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块
             yield 适配器失败块(错误,选项.get('signal'))#变成终止失败块
-            return生成器
+            return
         已完成=False#迭代是否已正常结束
         try:#消费适配器迭代器
             while True:#直到 done
@@ -751,10 +773,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块
                     已完成=True#不再交还迭代器
                     yield 适配器失败块(错误,选项.get('signal'))#变成终止失败块
-                    return生成器
+                    return
                 if 项.get('done'):#适配器结束
                     已完成=True#正常完成
-                    return生成器
+                    return
                 yield 项['value']#让出一块
         finally:#生成器被提前关掉
             if not 已完成 and 迭代器 is not None:#迭代尚未完成

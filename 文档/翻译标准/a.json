@@ -13,9 +13,10 @@
     "accept":"接受",
     "accepted":"已接受",
     "accepting":"接受中",
-    "acceptView":"接纳视图",
+    "acceptview":"接纳视图",
     "access":"访问",
     "accessor":"访问器",
+    "account":"账号",
     "accumulate":"累加",
     "accumulator":"累加器",
     "ack":"应答",
@@ -28,7 +29,7 @@
     "activate":"激活",
     "activation":"激活操作",
     "active":"活动",
-    "activeDockPaneId":"活动停靠窗格标识",
+    "activedockpaneid":"活动停靠窗格标识",
     "activity":"活动记录",
     "actor":"执行者",
     "actual":"实际",
@@ -155,5 +156,10 @@
     "autofix":"自动修复",
     "auxiliary":"辅助",
     "availability":"可用性",
-    "available":"可用"
+    "available":"可用",
+    "amplitude":"振幅",
+    "audio":"音频",
+    "avatar":"头像",
+    "applications":"应用程序表",
+    "audit":"审计"
 }

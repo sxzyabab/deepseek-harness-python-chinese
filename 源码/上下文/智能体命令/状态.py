@@ -32,7 +32,7 @@ def 工作区上下文消息(文本):#构造基线工作区上下文消息
     """为已渲染基线构建用户角色消息。"""
     return 创建用户消息({#组装用户消息
         'content':[{'type':'text','text':文本}],#单文本块
-        'source':{'kind':'plugin','plugin':名称},#插件来源，不含变更清单
+        'source':{'kind':名称,'form':'instructions','changes':[]},#基线来源，不含变更清单
     })#createUserMessage结束
 
 def 是否工作区上下文来源(来源):#判断来源是否为带changes数组的工作区指令

@@ -22,7 +22,7 @@ from .配置 import 解析科德克斯配置#导入配置解析
     'defaultTimeoutMs':数字字段(默认值=默认钩子超时毫秒),#钩子自己没设超时时的默认超时毫秒（Codex 默认：600000）
     'stderrSummaryMaxChars':数字字段(默认值=默认stderr摘要最大字节),#hook/result 事件里持久 stderr 摘要的字节上限
 }#配置模式结束
-插件来源={'kind':'plugin','plugin':'hooks-codex'}#本桥注入的每条上下文都盖上的来源
+插件来源={'kind':'hooks-codex'}#本桥注入的每条上下文都盖上的来源
 处理器计数=0#处理器计数，用于稳定 id
 
 class 钩子codex错误(Exception):

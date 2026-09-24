@@ -1,0 +1,10 @@
+{
+    "workspaces":"工作区",
+    "sessions":"会话",
+    "fixtures":"夹具",
+    "config-form":"配置表单",
+    "remote":"远程",
+    "snapshot":"快照",
+    "translate":"翻译",
+    "locale-env":"语言环境"
+}

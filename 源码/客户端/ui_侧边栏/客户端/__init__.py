@@ -81,14 +81,14 @@ def 应用(上下文):#安装侧栏壳
             'inject':注入面,#注入
         },侧栏根)#根组件
     上下文.slots.inject('sidebar',挂槽)#注入登记
-    def 挂前置():#对话 header 前置席
+    def 挂前置():#窗框顶左席
         """macOS 折叠侧栏时的打开/新建控件。"""
         return 上下文.slots.register({#登记
-            'name':'conversation.session.header.leading',#前置席
+            'name':'shell.leading',#前置席
             'locale':命名空间,#文案
             'inject':注入面,#复用根注入
         },头部前置控件)#组件
-    上下文.slots.inject('conversation.session.header.leading',挂前置)#注入前置
+    上下文.slots.inject('shell.leading',挂前置)#注入前置
     同步面板()#首次同步面板列表
 
 inject=依赖#框架槽

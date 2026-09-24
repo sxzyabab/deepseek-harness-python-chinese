@@ -30,7 +30,7 @@ from .类型 import (#再导出配置词汇
 )#本包类型
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
-    '阈值比例模式','保留比例模式','保留令牌模式','摘要提供方模式','摘要模型模式',
+    '阈值比例模式','余量令牌模式','保留比例模式','保留令牌模式','摘要提供方模式','摘要模型模式',
     '最大令牌模式','压缩重试模式','溢出重试模式','模型政策模式',
     '已中止','若已中止则抛出','基础压缩引擎','基础压缩错误',
     '基础压缩配置字段','压缩政策配置字段','模型压缩政策配置字段',
@@ -40,6 +40,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 ]#公开面结束
 
 阈值比例模式=数字字段()#阈值比例模式
+余量令牌模式=整数字段(默认值=0)#压缩余量模式
 保留比例模式=数字字段()#保留比例模式
 保留令牌模式=整数字段(默认值=0)#绝对保留模式
 摘要提供方模式=字符串字段()#摘要提供方模式
@@ -52,6 +53,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     'provider':字符串字段(可空=False),#提供方必填
     'model':字符串字段(可空=False),#模型必填
     'thresholdRatio':阈值比例模式,#阈值比例
+    'headroomTokens':余量令牌模式,#压缩余量
     'retainRatio':保留比例模式,#保留比例
     'retainTokens':保留令牌模式,#绝对保留
     'summarizationProvider':摘要提供方模式,#摘要提供方
@@ -64,6 +66,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 依赖=['llm','tokenMeter','sessions']#依赖 llm、计量与会话协调器
 配置={#插件配置模式
     'thresholdRatio':阈值比例模式,#阈值比例
+    'headroomTokens':余量令牌模式,#压缩余量
     'retainRatio':保留比例模式,#保留比例
     'retainTokens':保留令牌模式,#绝对保留
     'summarizationProvider':摘要提供方模式,#摘要提供方
@@ -243,7 +246,15 @@ class 基础压缩引擎(压缩引擎):
                 'compaction-basic: no context capacity for '+目标键+'; '
                 +'configure contextWindow on that adapter model',#须配置窗口
             )#抛出结束
-        规格=解析压缩规格(政策,上下文容量['contextWindow'])#缩成 token 预算
+        默认最大=模型信息['defaultMaxTokens'] if 'defaultMaxTokens' in 模型信息 else None
+        请求头=智能体.session.请求头()
+        if 请求头 is not None and 'config' in 请求头 and 'maxTokens' in 请求头['config'] and 请求头['config']['maxTokens'] is not None:
+            预留=请求头['config']['maxTokens']
+        elif 默认最大 is not None:
+            预留=默认最大
+        else:
+            预留=0
+        规格=解析压缩规格(政策,上下文容量['contextWindow'],预留)#缩成 token 预算
         if 计量['totalTokens']<规格['thresholdTokens']:#未达压力阈值
             return None#无需摘要
         if 修剪 is not None:#压力够格后，先落地无模型遍再选摘要区间

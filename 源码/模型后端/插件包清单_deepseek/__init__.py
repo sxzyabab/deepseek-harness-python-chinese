@@ -59,54 +59,70 @@ def 身份排序键(项):
     """按 name 再 version 排序。"""
     return (项['name'],项['version'])#排序键
 
+def 裸包清单(包名,锚列表,包表):
+    """解析裸包而不要求它导出 ./package.json。锚列表为 str。"""
+    for 锚 in 锚列表:
+        if 包表 is not None:
+            包=包表.包属于(包名,锚)
+            if 包 is not None:
+                return 包['manifestPath']
+            continue
+        搜索根=os.path.dirname(锚.replace('file://','').replace('file:','')) if isinstance(锚,str) else None
+        if 搜索根 is not None and os.path.isdir(搜索根):
+            候选=os.path.join(搜索根,'node_modules',包名,'package.json')
+            if os.path.isfile(候选):
+                return 候选
+    return None
+
 class 包身份解析器:#带进程内缓存的解析器
     """按 Loader 入口解析 owning package。"""
-    def __init__(自身,宿主基础url):
+    def __init__(自身,宿主基础url,包表=None):
         """构造解析器。"""
-        自身.宿主基础url=宿主基础url#宿主 base
-        自身.缓存={}#manifest 缓存
+        自身.宿主基础url=宿主基础url
+        自身.包表=包表
+        自身.缓存={}
+        自身.本模块网址='file:///'+os.path.abspath(__file__).replace('\\','/')
 
     def 解析(自身,活动条目):
         """返回身份或 None（loose module）。活动条目为 dict，Loader 条目为对象。"""
-        条目=活动条目['entry']#Loader 条目
-        选项=条目.options#条目选项，配置为 dict
-        说明符=str(选项['name'])#模块说明符
-        树基础=条目.parent.tree.ctx#树 ctx
-        树基础url=树基础.baseUrl if 树基础 is not None else None#树 base
-        if 树基础url is None:#树未给基址
-            树基础url=自身.宿主基础url#回落宿主
-        锚列表=[]#搜索锚点
-        if 'bareBaseUrl' in 活动条目 and 活动条目['bareBaseUrl'] is not None:#有 bare base
-            锚列表.append(活动条目['bareBaseUrl'])#bare
-        锚列表.append(树基础url)#树
-        锚列表.append(自身.宿主基础url)#宿主
-        去重=[]#去重后的锚
-        已见=set()#已见锚
-        for 锚 in 锚列表:#逐个
-            if 锚 is None or 锚 in 已见:#空或重复
-                continue#跳过
-            已见.add(锚)#记下
-            去重.append(锚)#按出现顺序保留
-        锚列表=去重#用去重后的
-        键='\u0000'.join(锚列表)+'\u0000'+说明符#缓存键
-        if 键 in 自身.缓存:#命中缓存
-            return 自身.缓存[键]#返回
-        包名=裸包名(说明符)#bare 名
-        manifest=None#manifest 路径
-        if 包名 is not None:#bare package
-            for 锚 in 锚列表:#逐个锚点
-                搜索根=os.path.dirname(锚.replace('file://','').replace('file:','')) if isinstance(锚,str) else None#粗解析
-                if 搜索根 is not None and os.path.isdir(搜索根):#可搜索
-                    候选=os.path.join(搜索根,'node_modules',包名,'package.json')#node_modules 路径
-                    if os.path.isfile(候选):#存在
-                        manifest=候选#命中
-                        break#停止
-        elif not 说明符.startswith('cordis:'):#文件模块
-            模块路径=说明符 if os.path.isabs(说明符) else os.path.normpath(os.path.join(锚列表[0] if len(锚列表)>0 else '.',说明符))#解析路径
-            manifest=最近manifest(模块路径)#向上找
-        身份=None if manifest is None else 从manifest读身份(manifest,包名 is None)#读身份
-        自身.缓存[键]=身份#写缓存
-        return 身份#返回
+        条目=活动条目['entry']
+        选项=条目.options
+        说明符=str(选项['name'])
+        树基础=条目.parent.tree.ctx
+        树基础url=树基础.baseUrl if 树基础 is not None else None
+        if 树基础url is None:
+            树基础url=自身.宿主基础url
+        锚列表=[]
+        if 'bareBaseUrl' in 活动条目 and 活动条目['bareBaseUrl'] is not None:
+            锚列表.append(活动条目['bareBaseUrl'])
+        else:
+            锚列表.append(树基础url)
+        锚列表.append(树基础url)
+        锚列表.append(自身.宿主基础url)
+        锚列表.append(自身.本模块网址)
+        去重=[]
+        已见=set()
+        for 锚 in 锚列表:
+            if 锚 is None or 锚 in 已见:
+                continue
+            已见.add(锚)
+            去重.append(锚)
+        锚列表=去重
+        键='\u0000'.join(锚列表)+'\u0000'+说明符
+        if 键 in 自身.缓存:
+            return 自身.缓存[键]
+        包名=裸包名(说明符)
+        manifest=None
+        if 包名 is not None:
+            manifest=裸包清单(包名,锚列表,自身.包表)
+            if manifest is None:
+                raise 清单错误('plugin-package-inventory-deepseek: cannot resolve active package '+json.dumps(包名,ensure_ascii=False,separators=(',',':')))
+        elif not 说明符.startswith('cordis:'):
+            模块路径=说明符 if os.path.isabs(说明符) else os.path.normpath(os.path.join(锚列表[0] if len(锚列表)>0 else '.',说明符))
+            manifest=最近manifest(模块路径)
+        身份=None if manifest is None else 从manifest读身份(manifest,包名 is None)
+        自身.缓存[键]=身份
+        return 身份
 
 def 列出活动条目(树,根裸基础url=None):#枚举活动非 group 条目
     """只保留 ACTIVE 且未 disabled 的条目。树为对象。"""
@@ -157,7 +173,7 @@ def 应用(上下文,配置=None):#注册 dsh_plugin_packages 字段
     宿主基础url=上下文.baseUrl#宿主 base
     if 宿主基础url is None:#未给
         宿主基础url=''#空串
-    解析器=包身份解析器(宿主基础url)#解析器
+    解析器=包身份解析器(宿主基础url,上下文.获取服务('pluginPackages'))
     class 提供方:#扩展提供方
         """每次请求读取 Loader 真值。"""
         def prepare(自身,请求):

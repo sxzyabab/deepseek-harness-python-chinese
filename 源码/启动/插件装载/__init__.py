@@ -1,9 +1,10 @@
 """当前配置档的插件与组合包装载，复用共享 dsh 插件包操作。"""
 import os,re,json,copy,threading
 from uuid import uuid4 as 生成uuid4
-from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段
+from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段,列表字段
+from .注册表 import 规范化注册表,注册表计划,归因失败,npmmirror注册表
 from ...工具.原子写入 import 带文件锁,原子写文件
-from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出
+from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出,已中止
 from ...typert.协议 import 远程服务,远程
 from ..app启动 import (
     读配置清单,
@@ -17,7 +18,7 @@ from ..app启动 import (
     激活诊断,
 )
 from ..app启动.配置档 import 配置补丁文件名
-from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包
+from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包,读配置档注册表
 from .安装失败 import 分类安装失败
 from .安装规格 import 非法安装规格错误,解析安装规格
 from .补丁 import 写插件启用
@@ -58,6 +59,10 @@ ANSI序列=re.compile(r'\x1b\[[0-9;]*m',re.ASCII)#pnpm 色码
     'outputBytes':正整数字段(默认值=16384),
     'lockWaitMs':自然数字段(默认值=120000),
     'inspectTimeoutMs':正整数字段(默认值=20000,最小=1000),
+    'githubConnectionTimeoutMs':正整数字段(默认值=5000,最小=1000),
+    'idleTimeoutMs':正整数字段(默认值=600000,最小=1000),
+    'registry':字符串字段(可空=True),
+    'fallbackRegistries':列表字段(字符串字段(),默认值=[npmmirror注册表]),
 }
 
 #工具
@@ -85,7 +90,7 @@ def 字符串字段值(清单,字段):
     值=清单.get(字段) if isinstance(清单,dict) else None#取值
     return 值 if isinstance(值,str) else None#仅字符串
 
-def 检查结果自清单(种类,清单):
+def 检查结果自清单(种类,清单,注册表):
     """包清单所说：身份、一句话、是否组合包。"""
     dsh=清单.get('dsh') if isinstance(清单,dict) else None#dsh
     声明=dsh if isinstance(dsh,dict) else None#对象
@@ -93,7 +98,7 @@ def 检查结果自清单(种类,清单):
     名称=字符串字段值(清单,'name')#名
     版本=字符串字段值(清单,'version')#版本
     描述=字符串字段值(清单,'description')#描述
-    结果={'status':'accepted','kind':种类,'bundle':组合包}#基结果
+    结果={'status':'accepted','kind':种类,'bundle':组合包,'registry':注册表}#基结果
     if 名称 is not None:#有名
         结果['name']=名称#写入
     if 版本 is not None:#有版本
@@ -101,6 +106,18 @@ def 检查结果自清单(种类,清单):
     if 描述 is not None and 描述!='':#有描述
         结果['description']=描述#写入
     return 结果#检查结果
+
+def 印刷错误(印刷):
+    """pnpm 印在 stdout 的 {error:{code,message}} 合成一行。"""
+    try:
+        解析=json.loads(印刷 or 'null')
+    except Exception:
+        return ''
+    错误=解析.get('error') if isinstance(解析,dict) else None
+    if not isinstance(错误,dict):
+        return ''
+    段=[项 for 项 in (错误.get('code'),错误.get('message')) if isinstance(项,str)]
+    return '  '.join(段)
 
 def 拒绝检查(问题,理由):
     """构造拒绝检查。"""
@@ -242,7 +259,15 @@ class 装载服务(远程服务):
         自身.输出字节=配置值['outputBytes']#诊断上限
         自身.锁等待毫秒=配置值['lockWaitMs']#锁等待
         自身.检查超时毫秒=配置值['inspectTimeoutMs']#检查超时
+        自身.github连接超时毫秒=配置值['githubConnectionTimeoutMs']#GitHub 探测超时
+        自身.空闲超时毫秒=配置值['idleTimeoutMs']#包操作静默超时
         自身.pnpm命令=配置值['pnpmCommand']#pnpm
+        注册表值=配置值['registry'] if 'registry' in 配置值 else None#首选注册表
+        回退=配置值['fallbackRegistries'] if 'fallbackRegistries' in 配置值 else [npmmirror注册表]#回退
+        自身.已配置注册表={
+            'registry':None if 注册表值 is None else 规范化注册表(注册表值),
+            'fallbackRegistries':[规范化注册表(项) for 项 in 回退],
+        }
         自身.中止=中止控制器()#整服务中止
         自身.包操作集=set()#进行中的包操作事件
         自身.安装表={}#请求 id → 安装控制
@@ -336,87 +361,118 @@ class 装载服务(远程服务):
         return 组合包表#列表
 
     @远程
-    def 检查规格(自身,规格,信号=None):
+    def 列出注册表(自身):
+        """读本装载询问的注册表：配置首选、回退、以及 pnpm 自己配置命名的那份。"""
+        包管理=自身.配置档.get('packageManager') or {'command':自身.pnpm命令}#包管理
+        查看选项=dict(包管理)#选项
+        查看选项['timeoutMs']=自身.检查超时毫秒#超时
+        return {
+            'registry':自身.已配置注册表['registry'],
+            'fallbackRegistries':list(自身.已配置注册表['fallbackRegistries']),
+            'resolved':读配置档注册表(自身.配置档['dir'],查看选项),
+        }
+
+    @远程
+    def 检查规格(自身,规格,选项=None,信号=None):
         """安装前读出规格指向什么。"""
-        try:#解析
-            解析=解析安装规格(规格)#解析
-        except 非法安装规格错误 as 错误:#规格拒绝
-            return 拒绝检查('invalid-spec',错误.reason)#拒绝
-        清单=读配置清单('dsh',自身.配置档['dir'])#配置档
-        安装文件=open(自身.配置档['installAnchor'],'r',encoding='utf-8')#安装
-        try:#读
-            安装清单=json.loads(安装文件.read())#解析
-        finally:#关
-            安装文件.close()#关闭
-        已知=set(list(((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or [])+list((清单.get('dependencies') or {}).keys())+list((安装清单.get('dependencies') or {}).keys()))#已知名
-        种类=解析['kind']#形态
-        if 种类=='git':#git
-            return {'status':'accepted','kind':'git','bundle':None}#接受
-        if 种类=='tarball':#tarball
-            路径=解析.get('path')#路径
-            if 路径 is not None and not os.path.exists(路径):#不存在
+        if 选项 is None:
+            选项={}
+        try:
+            解析=解析安装规格(规格)
+        except 非法安装规格错误 as 错误:
+            return 拒绝检查('invalid-spec',错误.reason)
+        清单=读配置清单('dsh',自身.配置档['dir'])
+        安装文件=open(自身.配置档['installAnchor'],'r',encoding='utf-8')
+        try:
+            安装清单=json.loads(安装文件.read())
+        finally:
+            安装文件.close()
+        已知=set(list(((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or [])+list((清单.get('dependencies') or {}).keys())+list((安装清单.get('dependencies') or {}).keys()))
+        计划=注册表计划(选项.get('registry'),自身.列出注册表())
+        注册表=计划[0]
+        种类=解析['kind']
+        if 种类=='git':
+            出={'status':'accepted','kind':'git','bundle':None,'registry':注册表}
+            if 'host' in 解析:
+                出['host']=解析['host']
+            return 出
+        if 种类=='tarball':
+            路径=解析.get('path')
+            if 路径 is not None and not os.path.exists(路径):
                 return 拒绝检查('not-a-package','压缩包不存在')
-            return {'status':'accepted','kind':'tarball','bundle':None}#接受
-        if 种类=='path':#路径
-            if not os.path.exists(解析['path']):#不存在
+            出={'status':'accepted','kind':'tarball','bundle':None,'registry':注册表}
+            if 'host' in 解析:
+                出['host']=解析['host']
+            return 出
+        if 种类=='path':
+            if not os.path.exists(解析['path']):
                 return 拒绝检查('not-a-package','路径不存在')
-            try:#读 package.json
-                包文件=open(os.path.join(解析['path'],'package.json'),'r',encoding='utf-8')#打开
-                try:#读
-                    读出=json.loads(包文件.read())#解析
-                finally:#关
-                    包文件.close()#关闭
-            except Exception as 错误:#不可读
+            try:
+                包文件=open(os.path.join(解析['path'],'package.json'),'r',encoding='utf-8')
+                try:
+                    读出=json.loads(包文件.read())
+                finally:
+                    包文件.close()
+            except Exception as 错误:
                 return 拒绝检查('not-a-package','该路径没有可读的 package.json: '+错误消息(错误))
-            检查=检查结果自清单('path',读出)#检查
-            if 'name' not in 检查:#无名
+            检查=检查结果自清单('path',读出,注册表)
+            if 'name' not in 检查:
                 return 拒绝检查('not-a-package','package.json 没有包名')
-            if 检查['name'] in 已知:#已装
+            if 检查['name'] in 已知:
                 return 拒绝检查('already-installed',检查['name']+' 已安装')
-            if not 检查['bundle']:#非组合包
+            if not 检查['bundle']:
                 return 拒绝检查('not-a-bundle',检查['name']+' 未声明 dsh.bundle')
-            return 检查#接受
-        if 种类=='registry':#注册表
-            if 解析['name'] in 已知:#已装
+            return 检查
+        if 种类=='registry':
+            if 解析['name'] in 已知:
                 return 拒绝检查('already-installed',解析['name']+' 已安装')
-            包管理=自身.配置档.get('packageManager') or {'command':自身.pnpm命令}#包管理
-            查看选项=dict(包管理)#选项
-            查看选项['timeoutMs']=自身.检查超时毫秒#超时
-            if 信号 is not None:#有信号
-                查看选项['signal']=信号#写入
-            查看=查看配置档包(自身.配置档['dir'],规格.strip(),查看选项)#view
-            日志=(查看.get('stderr') or '')+((错误消息(查看['cause'])+'\n') if 'cause' in 查看 else '')#日志
-            日志=日志.strip()#修剪
-            if 查看.get('exitCode')!=0 or 'cause' in 查看 or 查看.get('timedOut'):#失败
-                事实={'log':日志,'timedOut':bool(查看.get('timedOut'))}#事实
-                if 'cause' in 查看:#有原因
-                    事实['cause']=查看['cause']#写入
-                失败种=分类安装失败(事实)#分类
-                理由=日志 or (查看.get('stdout') or '').strip() or ('pnpm view 退出码 '+str(查看.get('exitCode')))
-                if 失败种 in ('not-found','no-matching-version'):#未找到
-                    return 拒绝检查('not-found',理由)#拒绝
-                if 失败种=='network':#网络
-                    return 拒绝检查('network',理由)#拒绝
-                if 查看.get('timedOut'):#超时
-                    return 拒绝检查('unknown','pnpm view 超时，毫秒 '+str(自身.检查超时毫秒))
-                return 拒绝检查('unknown',理由)#未知
-            try:#解析 JSON
-                原文=ANSI序列.sub('',(查看.get('stdout') or '').strip()) or 'null'#去色
-                答复=json.loads(原文)#解析
-            except Exception as 错误:#不可读
-                return 拒绝检查('unknown','无法阅读 pnpm view 输出: '+错误消息(错误))
-            最新=答复[-1] if isinstance(答复,list) else 答复#最新版本
-            if not isinstance(最新,dict) or 最新 is None:#无包
-                return 拒绝检查('unknown','pnpm view 没有返回包')
-            检查=检查结果自清单('registry',最新)#检查
-            if 'name' not in 检查:#无名则用解析名
-                命名=dict(检查)#拷贝
-                命名['name']=解析['name']#补名
-            else:#已有名
-                命名=检查#原样
-            if not 命名['bundle']:#非组合包
-                return 拒绝检查('not-a-bundle',命名['name']+' 未声明 dsh.bundle')
-            return 命名#接受
+            已问=[]
+            def 带表拒绝(问题,理由):
+                """拒绝并带上已问注册表。"""
+                出=拒绝检查(问题,理由)
+                出['registries']=list(已问)
+                return 出
+            for 当前 in 计划:
+                已问.append(当前)
+                包管理=自身.配置档.get('packageManager') or {'command':自身.pnpm命令}
+                查看选项=dict(包管理)
+                查看选项['timeoutMs']=自身.检查超时毫秒
+                查看选项['registry']=当前
+                if 信号 is not None:
+                    查看选项['signal']=信号
+                查看=查看配置档包(自身.配置档['dir'],规格.strip(),查看选项)
+                印刷=ANSI序列.sub('',(查看.get('stdout') or '')).strip()
+                if 查看.get('exitCode')!=0 or 'cause' in 查看 or 查看.get('timedOut'):
+                    日志='\n'.join([项 for 项 in ((查看.get('stderr') or '').strip(),印刷错误(印刷),(错误消息(查看['cause']) if 'cause' in 查看 else '')) if 项])
+                    事实={'log':日志,'timedOut':bool(查看.get('timedOut'))}
+                    if 'cause' in 查看:
+                        事实['cause']=查看['cause']
+                    失败种=分类安装失败(事实)
+                    if len(已问)<len(计划) and not 已中止(信号) and 归因失败(失败种,日志,解析)=='registry':
+                        continue
+                    理由=('pnpm view 超时，毫秒 '+str(自身.检查超时毫秒)) if 查看.get('timedOut') else (日志 or 印刷 or ('pnpm view 退出码 '+str(查看.get('exitCode'))))
+                    if 失败种 in ('not-found','no-matching-version'):
+                        return 带表拒绝('not-found',理由)
+                    if 失败种 in ('network','timeout'):
+                        return 带表拒绝('network',理由)
+                    return 带表拒绝('unknown',理由)
+                try:
+                    原文=印刷 or 'null'
+                    答复=json.loads(原文)
+                except Exception as 错误:
+                    return 带表拒绝('unknown','无法阅读 pnpm view 输出: '+错误消息(错误))
+                最新=答复[-1] if isinstance(答复,list) else 答复
+                if not isinstance(最新,dict) or 最新 is None:
+                    return 带表拒绝('unknown','pnpm view 没有返回包')
+                检查=检查结果自清单('registry',最新,当前)
+                if 'name' not in 检查:
+                    命名=dict(检查)
+                    命名['name']=解析['name']
+                else:
+                    命名=检查
+                if not 命名['bundle']:
+                    return 带表拒绝('not-a-bundle',命名['name']+' 未声明 dsh.bundle')
+                return 命名
         raise Exception('不可达的安装规格种类')
 
     @远程
@@ -627,6 +683,7 @@ class 装载服务(远程服务):
         选项=dict(包管理)#选项
         选项['execution']='service'#服务执行
         选项['outputBytes']=自身.输出字节#字节上限
+        选项['idleTimeoutMs']=自身.空闲超时毫秒#静默超时
         选项['activateNewBundles']=False#不在此激活
         if 信号 is None:#无调用方信号
             选项['signal']=自身.中止.信号#仅服务中止

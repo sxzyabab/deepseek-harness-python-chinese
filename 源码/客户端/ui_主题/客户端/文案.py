@@ -1,19 +1,29 @@
-__all__=['设置命名空间','中文','英文','主题文案键']#仅中文公开名
+__all__=['设置命名空间','中文','英文','主题文案键']
 
-设置命名空间='settings.theme'#外观行文案命名空间
+设置命名空间='settings.theme'#外观行与字号行文案命名空间
 
-中文={#简体中文词条（键集合的权威源）
-    'appearance.title':'外观',#外观标题
-    'appearance.light':'浅色',#浅色主题
-    'appearance.dark':'深色',#深色主题
-    'appearance.system':'跟随系统',#跟随系统
-}#中文词典结束
+中文={
+    'appearance.title':'外观',
+    'appearance.light':'浅色',
+    'appearance.dark':'深色',
+    'appearance.system':'跟随系统',
+    'fontSize.title':'字号大小',
+    'fontSize.description':'仅影响会话内容的字号',
+    'fontSize.unit':'px',
+    'fontSize.increase':'增大字号',
+    'fontSize.decrease':'减小字号',
+}
 
-英文={#英文词条，键与中文权威源一致
-    'appearance.title':'Appearance',#外观标题
-    'appearance.light':'Light',#浅色主题
-    'appearance.dark':'Dark',#深色主题
-    'appearance.system':'System',#跟随系统
-}#英文词典结束
+英文={
+    'appearance.title':'Appearance',
+    'appearance.light':'Light',
+    'appearance.dark':'Dark',
+    'appearance.system':'System',
+    'fontSize.title':'Font size',
+    'fontSize.description':'Only affects conversation content',
+    'fontSize.unit':'px',
+    'fontSize.increase':'Increase font size',
+    'fontSize.decrease':'Decrease font size',
+}
 
-主题文案键=tuple(中文.keys())#由中文词典键推导的键域
+主题文案键=tuple(中文.keys())

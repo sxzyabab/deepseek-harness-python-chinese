@@ -70,22 +70,18 @@ def 卸载图片文案(引用,访问=None):#卸载图片占位
         return f'[{身份} No local normalized image path is available; ask the user to attach it again if needed.]'#无可读路径
     return f'[{身份}{归一化访问文案(引用,访问)}]'#带路径
 
-def 内容含图片(内容):#内容树是否含图片块
-    """有类型的模型内容是否含图片块，并走入嵌套的工具结果内容。"""
+def 内容含图片(内容):#内容是否含图片块
+    """有类型的模型内容是否含图片块。"""
     for 块 in 内容:#逐块
         if 块.get('type')=='image':#本块是图片
             return True#本块是图片
-        if 块.get('type')=='tool-result' and 内容含图片(块.get('content') or []):#工具结果里递归含图片
-            return True#工具结果里递归含图片
-    return False#整棵内容树都没有图片
+    return False#没有图片
 
-def 内容含文件(内容):#内容树是否含文件块
-    """有类型的模型内容是否含文件块，并走入嵌套的工具结果内容。"""
+def 内容含文件(内容):#内容是否含文件块
+    """有类型的模型内容是否含文件块。"""
     for 块 in 内容:#逐块
         if 块.get('type')=='file':#本块是文件
             return True#本块是文件
-        if 块.get('type')=='tool-result' and 内容含文件(块.get('content') or []):#工具结果里递归含文件
-            return True#工具结果里递归含文件
     return False#无文件
 
 def 文件句柄文案(引用,只读路径):#文件句柄文案
@@ -101,7 +97,7 @@ def 文件句柄文案(引用,只读路径):#文件句柄文案
     )#带路径句柄
 
 def 替换文件为句柄(块列表,解析路径):#替换文件为句柄
-    """把每个文件出现处（含嵌套工具结果）替换成句柄文本。"""
+    """把每个文件出现处替换成句柄文本。"""
     下一=None#惰性副本
     for 下标,块 in enumerate(块列表):#逐块
         if 块.get('type')=='file':#文件块
@@ -109,13 +105,6 @@ def 替换文件为句柄(块列表,解析路径):#替换文件为句柄
                 下一=list(块列表[:下标])#拷贝前缀
             下一.append({'type':'text','text':文件句柄文案(块['attachment'],解析路径(块['attachment']))})#句柄
             continue#下一块
-        if 块.get('type')=='tool-result':#工具结果
-            内容=替换文件为句柄(块.get('content') or [],解析路径)#递归
-            if 内容 is not 块.get('content'):#有变更
-                if 下一 is None:#拷贝前缀
-                    下一=list(块列表[:下标])#前缀
-                下一.append({**块,'content':内容})#新内容
-                continue#下一块
         if 下一 is not None:#已开副本
             下一.append(块)#原样压入
     return 块列表 if 下一 is None else 下一#无变更则原数组
@@ -138,7 +127,7 @@ def base64长度(字节):#算 base64 长度
     return math.ceil(字节/3)*4#按 3 字节一组
 
 def 收集图片长度(块列表,长度表,政策):#收集图片长度
-    """按请求与嵌套块顺序收集已表示图片长度。"""
+    """按请求块顺序收集已表示图片长度。"""
     for 块 in 块列表:#逐块
         if 块.get('type')=='image':#图片
             if 'byteLength' in 政策 and 政策['byteLength'] is not None:#自定义
@@ -146,8 +135,6 @@ def 收集图片长度(块列表,长度表,政策):#收集图片长度
             else:#归一化
                 字节=块['attachment']['bytes']#归一化字节
             长度表.append(base64长度(字节) if 政策.get('representation')=='base64' else 字节)#记账
-        elif 块.get('type')=='tool-result':#工具结果
-            收集图片长度(块.get('content') or [],长度表,政策)#递归
 
 def 替换最旧图片(块列表,剩余,占位):#替换最旧图片
     """替换前 remaining.count 个图片出现处。"""
@@ -159,13 +146,6 @@ def 替换最旧图片(块列表,剩余,占位):#替换最旧图片
                 下一=list(块列表[:下标])#前缀
             下一.append({'type':'text','text':占位(块['attachment'])})#占位
             continue#下一块
-        if 块.get('type')=='tool-result':#工具结果
-            内容=替换最旧图片(块.get('content') or [],剩余,占位)#递归
-            if 内容 is not 块.get('content'):#有变更
-                if 下一 is None:#拷贝前缀
-                    下一=list(块列表[:下标])#前缀
-                下一.append({**块,'content':内容})#新内容
-                continue#下一块
         if 下一 is not None:#已开副本
             下一.append(块)#原样
     return 块列表 if 下一 is None else 下一#结果
@@ -179,19 +159,12 @@ def 替换图片为仅文本(块列表):#仅文本替换图片
                 下一=list(块列表[:下标])#前缀
             下一.append({'type':'text','text':仅文本图片文案(块['attachment'])})#仅文本占位
             continue#下一块
-        if 块.get('type')=='tool-result':#工具结果
-            内容=替换图片为仅文本(块.get('content') or [])#递归
-            if 内容 is not 块.get('content'):#有变更
-                if 下一 is None:#拷贝前缀
-                    下一=list(块列表[:下标])#前缀
-                下一.append({**块,'content':内容})#新内容
-                continue#下一块
         if 下一 is not None:#已开副本
             下一.append(块)#原样
     return 块列表 if 下一 is None else 下一#结果
 
 def 替换卸载图片(块列表,占位):#替换已卸载图片
-    """把每个 offloaded 出现处（含嵌套工具结果）换成占位文本。"""
+    """把每个 offloaded 出现处换成占位文本。"""
     下一=None#惰性副本
     for 下标,块 in enumerate(块列表):#逐块
         if 块.get('type')=='image' and 块.get('offloaded') is True:#已卸载出现
@@ -199,13 +172,6 @@ def 替换卸载图片(块列表,占位):#替换已卸载图片
                 下一=list(块列表[:下标])#前缀
             下一.append({'type':'text','text':占位(块['attachment'])})#占位
             continue#下一块
-        if 块.get('type')=='tool-result':#工具结果
-            内容=替换卸载图片(块.get('content') or [],占位)#递归
-            if 内容 is not 块.get('content'):#有变更
-                if 下一 is None:#拷贝前缀
-                    下一=list(块列表[:下标])#前缀
-                下一.append({**块,'content':内容})#新内容
-                continue#下一块
         if 下一 is not None:#已开副本
             下一.append(块)#原样
     return 块列表 if 下一 is None else 下一#结果
@@ -222,15 +188,13 @@ def 投影卸载图片(消息列表,占位):#投影表面已卸载出现
     return 结果#投影后
 
 def 收集保留图片长度(块列表,长度表,政策,版本字节):#收集未卸载图片长度
-    """按请求与嵌套块顺序收集保留出现的已表示长度。"""
+    """按请求块顺序收集保留出现的已表示长度。"""
     for 块 in 块列表:#逐块
         if 块.get('type')=='image':#图片
             if 块.get('offloaded') is True:#已卸载不计
                 continue#跳过
             字节=版本字节(块)#精确请求版本字节
             长度表.append(base64长度(字节) if 政策.get('representation')=='base64' else 字节)#记账
-        elif 块.get('type')=='tool-result':#工具结果
-            收集保留图片长度(块.get('content') or [],长度表,政策,版本字节)#递归
 
 def 必需图片卸载(消息列表,政策,版本字节):#还需卸载的最旧张数
     """在精确表示字节下，路由预算还要求再卸载多少张最旧保留出现；零表示已能放下。"""

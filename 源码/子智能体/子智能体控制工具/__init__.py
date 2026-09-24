@@ -11,42 +11,41 @@ def 应用(上下文):
     """登记 `send_message` 与 `interrupt_agent` 工具。"""
     def 渲染投递(参数,_值):
         """渲染投递确认文本块。参数为 dict。"""
-        return [{'type':'text','text':'message queued as the next turn for subagent '+参数['subagent_id']}]#确认文案
+        return [{'type':'text','text':'message delivered to agent '+参数['agent_id']}]#确认文案
     def 执行投递(参数,执行元数据):
-        """把 message 包成文本块并向子体跟进投递；返回已接受的 messageId。参数与执行为 dict；父为智能体对象。"""
+        """把 message 包成文本块并经相邻投递；返回已接受的 messageId。"""
         if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#无活调用方
             raise 子智能体错误('send_message requires a calling agent (exec.agent was undefined)','NO_AGENT')#拒绝
-        父=执行元数据['agent']#调用方智能体
+        发送方=执行元数据['agent']#调用方智能体
         内容=[{'type':'text','text':参数['message']}]#包成文本块
-        选项={'source':{'kind':'coordinator','form':'relay','senderSessionId':父.id}}#投递选项
+        选项={}
         if 'signal' in 执行元数据:#有取消信号
             选项['signal']=执行元数据['signal']#写入
-        消息标识=上下文.subagents.跟进(#投递后续消息
-            父,#父权威
-            会话标识(参数['subagent_id']),#目标子id
-            内容,#正文
-            选项,#选项
-        )#跟进结束
+        消息标识=上下文.subagents.发送消息(
+            发送方,
+            会话标识(参数['agent_id']),
+            内容,
+            选项,
+        )
         return {'messageId':消息标识}#返回消息id
     上下文.tools.登记(定义工具({#登记 send_message
         'name':'send_message',#工具名
         'description':(#工具描述
-            'Send a message to a background subagent by its subagent id, continuing the same conversation. It '
-            +'becomes the subagent\'s next turn: if it is still working, the message waits until its current turn '
-            +'finishes, so it cannot redirect work already underway. This call returns no answer from the '
-            +'subagent — only confirmation that the message was delivered — so use it to give it more work. A '
-            +'failure means the message was NOT delivered.'
+            'Send a message to a direct continuable child by its agent id. If you are a resident continuable child, '
+            +'you may also target your direct parent. If the target is still working, the message steers its nearest step; '
+            +'if it is inactive, the message starts or resumes a turn. This call returns no answer from the agent — only confirmation '
+            +'that the message was delivered. A failure means the message was NOT delivered.'
         ),#描述结束
         'parameters':{#参数模式
-            'subagent_id':{#目标子id
+            'agent_id':{#目标 id
                 'type':'string',#字符串
                 'required':True,#必填
-                'description':'The subagent id returned when the background subagent was started.',#参数说明
-            },#subagent_id 结束
+                'description':'The agent id of your direct continuable child, or your direct parent when you are a resident continuable child.',#参数说明
+            },#agent_id 结束
             'message':{#投递正文
                 'type':'string',#字符串
                 'required':True,#必填
-                'description':'The message to deliver to the subagent.',#参数说明
+                'description':'The message to deliver to the agent.',#参数说明
             },#message 结束
         },#parameters 结束
         'output':{#成功返回

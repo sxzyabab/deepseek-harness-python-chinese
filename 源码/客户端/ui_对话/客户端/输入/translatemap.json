@@ -1,15 +1,14 @@
 {
-    "contract.ts":"约定.py",
-    "decorations.ts":"装饰.py",
-    "machine.ts":"输入机.py",
-    "facade.ts":"外壳.py",
-    "hub.ts":"枢纽.py",
-    "index.ts":"__init__.py",
-    "reference-activation.ts":"引用激活.py",
-    "claim-decor.ts":"认领装饰.py",
-    "keymap.ts":"键图.py",
-    "text-ref.ts":"文本引用.py",
-    "runtime.ts":"运行时.py",
-    "view-binding.ts":"视图绑定.py",
-    "projection.ts":"投影.py"
+    "contract":"约定",
+    "decorations":"装饰",
+    "machine":"输入机",
+    "facade":"外壳",
+    "hub":"枢纽",
+    "reference-activation":"引用激活",
+    "claim-decor":"认领装饰",
+    "keymap":"键图",
+    "text-ref":"文本引用",
+    "runtime":"运行时",
+    "view-binding":"视图绑定",
+    "projection":"投影"
 }

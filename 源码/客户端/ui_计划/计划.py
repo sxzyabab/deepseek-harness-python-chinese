@@ -72,6 +72,6 @@ def 解析计划地址(地址):
         return None#无
     if len(段表)==2:#普通会话
         return {'session':{'kind':'session','sessionId':段表[0]},'callId':段表[1]}#身份
-    if len(段表)==5 and 段表[0]=='subagent' and 段表[3] in ('one-shot','continuable'):#子智能体
+    if len(段表)==5 and 段表[0]=='subagent' and 段表[3] in ('one-shot','continuable','unknown'):#子智能体
         return {'session':{'kind':'subagent','parentSessionId':段表[1],'childSessionId':段表[2],'mode':段表[3]},'callId':段表[4]}#身份
     return None#其它

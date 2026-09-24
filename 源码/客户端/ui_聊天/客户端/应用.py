@@ -1,12 +1,15 @@
 import threading#分叉后台观察
 from urllib.parse import quote as 百分编码#URI 段编码
 import 客户端.ui_侧边栏_文档预览.客户端 as _侧边栏文档预览#文档预览面：SidebarRightResourceParamsMap.file
-from ..聊天设置 import 聊天设置命名空间#Chat 设置段
+from ..聊天设置 import 聊天设置命名空间,默认链接打开#Chat 设置段
 from .文案 import 命名空间,中文,英文#词典
 from .存储 import 创建聊天存储#选中存储
 from .转录视图 import 转录视图策略#呈现策略
+from .呈现策略 import 派生呈现策略
+from .性能用量 import 性能用量策略
 from .约定.快照 import 空聊天快照#空快照
 from .聊天.用回合数据 import 用回合数据值#回合数据
+from .聊天.用披露 import 绑定披露
 from .聊天.登记节点渲染器 import 登记聊天节点渲染器#节点渲染器
 from .聊天.聊天视图 import 聊天视图#Chat 视图
 from .聊天.统计行 import 统计行#统计
@@ -14,6 +17,7 @@ from .聊天.审批命令 import 审批命令#审批卡
 from .详情.详情面板 import 详情面板#详情
 from .设置.转录视图行 import 转录视图行#设置行
 from .会话节点 import 登记会话节点#会话节点
+from ...存储 import 创建快照存储
 from .会话节点.节点工厂 import 聊天错误#本包异常
 
 _=_侧边栏文档预览#保活侧效导入
@@ -32,9 +36,14 @@ def 造回合数据(_标准,数据):
         return 用回合数据值(数据,键)#值
     return 读键#工厂
 
+def 造披露(_标准,数据):
+    """到组件调用前不订阅。"""
+    return 绑定披露(数据['disclosureReset'])
+
 聊天节点注入={#CHAT_NODE_INJECT
     'hooks':{#钩子
         'turnData':造回合数据,#回合数据
+        'disclosure':造披露,#披露
     },#hooks 结束
 }#注入结束
 
@@ -100,7 +109,6 @@ def 应用(上下文):
         return 源#返
 
     登记会话节点(上下文)#会话节点
-    登记聊天节点渲染器(上下文)#渲染器
     def 解析聊天钩(绑定):
         """提供 chat 钩子。"""
         return {'hooks':{'chat':聊天源(绑定)}}#解析
@@ -116,7 +124,25 @@ def 应用(上下文):
     翻译=上下文.locale.bind(命名空间)#绑定
     聊天存储=创建聊天存储()#选中存储
     滚动位置={}#会话→滚动
-    转录=转录视图策略(上下文.settingsScope.bind({'namespace':聊天设置命名空间}))#呈现策略
+    设置宿主=上下文.settingsScope.bind({'namespace':聊天设置命名空间})
+    转录=转录视图策略(设置宿主)#呈现策略
+    性能=性能用量策略(设置宿主)
+    呈现=派生呈现策略(转录.mode)
+    链接打开=创建快照存储(默认链接打开)
+    def 采纳链接打开():
+        快照=设置宿主.getSnapshot()
+        段=快照['value'] if 快照 is not None and 'value' in 快照 else None
+        if 段 is not None and 'linkOpening' in 段:
+            链接打开.set(段['linkOpening'])
+    设置宿主.subscribe(采纳链接打开)
+    采纳链接打开()
+    登记聊天节点渲染器(上下文,性能.模式,呈现)
+    def 卸策略():
+        def 拆除():
+            转录.拆除()
+            性能.拆除()
+        return 拆除
+    上下文.副作用(卸策略,'ui-chat: presentation policies')
 
     def 转录注入():
         """hooks + setTranscriptView。"""
@@ -193,10 +219,10 @@ def 应用(上下文):
             def 打开外部链接(网址):#打开外部链接
                 """优先侧栏浏览器标签，否则系统新窗。"""
                 标签表=上下文.获取服务('sidebarRightTabs')#侧栏标签
-                if 标签表 is not None and 标签表.get('browser') is not None:#有浏览器
+                if 标签表 is not None and 标签表.get('browser') is not None and 链接打开.getSnapshot()=='sidebar':#侧栏浏览器
                     上下文.sidebarRight.openTab('browser',{'params':{'url':网址}})#侧栏打开
-                else:#无则新窗
-                    print('open external:',网址)#无浏览器时仅记日志
+                else:#新窗
+                    print('open external:',网址)#无浏览器或选择新窗时仅记日志
             def 加载更早():
                 """会话 loadOlder。"""
                 return 会话.loadOlder()#派
@@ -218,11 +244,20 @@ def 应用(上下文):
                 线=threading.Thread(target=观察)#线
                 线.daemon=True#守护
                 线.start()#启
+            def 取组源(键):
+                """grouped('chat').groupSource。"""
+                会话面=上下文.uiConversation.binding(绑定)
+                视=会话面.snapshot.getSnapshot()['views']
+                分组=视['grouped']('chat') if 'grouped' in 视 else None
+                if 分组 is None:
+                    return None
+                return 分组['groupSource'](键)
             return {#注入面
-                'hooks':{'transcriptView':转录.mode},#呈现
+                'hooks':{'presentation':呈现},#呈现策略
                 'keyedHooks':{#按键
                     'chatNode':取节点源,#节点
                     'chatNodeProcess':取过程源,#过程
+                    'chatGroup':取组源,#过程组
                 },#keyed 结束
                 'openDetails':打开详情,#详情
                 'fileMentions':关提及,#提及
@@ -255,6 +290,7 @@ def 应用(上下文):
         """统计停靠。"""
         return 上下文.slots.register({#统计停靠
             'name':'conversation.composer.dock','id':'stats','order':0,'locale':命名空间,#统计
+            'inject':lambda:{'hooks':{'performanceUsage':性能.模式}},
         },统计行)#登记
     上下文.slots.inject('conversation.composer.dock',登记统计)#挂
 

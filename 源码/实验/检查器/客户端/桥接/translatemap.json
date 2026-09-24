@@ -1,0 +1,7 @@
+{
+    "transport":"传输",
+    "dispatcher":"分发器",
+    "lifecycle":"生命周期",
+    "controller":"控制器",
+    "publisher":"发布器"
+}

@@ -1,7 +1,4 @@
 {
-    "credentials.ts":"凭据.py",
-    "index.ts":"__init__.py",
-    "types.ts":"类型.py",
-    "工具.py":"远程错误与中止.py",
-    "辅助.py":"投影与写入.py"
+    "credentials":"凭据",
+    "types":"类型"
 }

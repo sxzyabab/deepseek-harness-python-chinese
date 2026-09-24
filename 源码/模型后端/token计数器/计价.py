@@ -9,25 +9,26 @@ __all__=['每令牌字符数','块开销','角色开销','计价结构块','计�
 角色开销=4#角色开销
 
 def 计价结构块(块):
-    """一块在有类型计价臂之外的结构 JSON 价格。块为 dict。"""
-    return 块开销+上取整(len(编码(块,ensure_ascii=False,separators=(',',':'),allow_nan=False))/每令牌字符数)#结构开销加JSON密度
+    """一块在有类型计价臂之外的结构 JSON 价格。图像引用剥掉 offloaded。块为 dict。"""
+    计价块=块
+    if ('type' in 块) and 块['type']=='image':
+        计价块={键:值 for 键,值 in 块.items() if 键!='offloaded'}
+    return 块开销+上取整(len(编码(计价块,ensure_ascii=False,separators=(',',':'),allow_nan=False))/每令牌字符数)
 
 def 计价内容(块列表):
     """在固定密度启发式下递归计价内容块。块为 dict。"""
-    令牌数=0#累计令牌
-    for 块 in 块列表:#逐块
-        种类=块['type']#按块类型
-        if 种类=='text' or 种类=='reasoning':#文本或推理
-            令牌数+=上取整(len(块['text'])/每令牌字符数)+块开销#文本密度加结构开销
-        elif 种类=='tool-call':#工具调用
-            令牌数+=上取整(len(块['name'])/每令牌字符数)#工具名
-            令牌数+=上取整(len(块['arguments'])/每令牌字符数)#参数JSON
-            令牌数+=块开销#结构开销
-        elif 种类=='tool-result':#工具结果
-            令牌数+=计价内容(块['content'])+块开销#递归内容加结构开销
-        else:#未知块
-            令牌数+=计价结构块(块)#结构计价
-    return 令牌数#合计
+    令牌数=0
+    for 块 in 块列表:
+        种类=块['type']
+        if 种类=='text' or 种类=='reasoning':
+            令牌数+=上取整(len(块['text'])/每令牌字符数)+块开销
+        elif 种类=='tool-call':
+            令牌数+=上取整(len(块['name'])/每令牌字符数)
+            令牌数+=上取整(len(块['arguments'])/每令牌字符数)
+            令牌数+=块开销
+        else:
+            令牌数+=计价结构块(块)
+    return 令牌数
 
 def 计价系统消息(消息):
     """计价已渲染系统提示词：system/message 表面节点的文本。消息为 dict。"""

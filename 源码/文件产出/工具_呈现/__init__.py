@@ -86,10 +86,11 @@ def 应用(上下文,配置值):#登记 present 并在成功结果上追加交�
     呈现工具=定义工具({#面向模型的 present
         'name':'present',#工具名
         'description':(#面向模型描述，字面量不译
-            'Declare existing files accessible through the Session filesystem as final deliverables. '
-            +'When a file you create or update is an output the user asked to receive, you must call present after writing it and before your final response, including files created through Bash or code execution. '
-            +'Mentioning its path in your reply does not replace this call. The files must already exist. '
-            +'The user opens the current source files; their contents are not copied or preserved.'
+            'Declare selected existing files accessible through the Session filesystem as final deliverables. '
+            +'Use present when the user needs a separate file deliverable, especially Office documents, spreadsheets, and slide decks. '
+            +'Prefer showing results in your final response when that is sufficient; creating or editing a file does not by itself require present. '
+            +'Usually select the 1-2 most important deliverables; include more when needed, but at most 4 files in a single present call. '
+            +'The files must already exist. The user opens the current source files; their contents are not copied or preserved.'
         ),#描述结束
         'parameters':{#参数模式
             'files':{#文件列表

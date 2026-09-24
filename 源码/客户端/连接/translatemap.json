@@ -1,0 +1,8 @@
+{
+    "api-path":"接口路径",
+    "api-request-trust":"接口请求信任",
+    "http-bridge":"http桥",
+    "loopback-hostname":"回环主机名",
+    "rpc-host":"rpc宿主",
+    "operator-peer":"操作方对等"
+}

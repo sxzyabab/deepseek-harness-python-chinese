@@ -1,3 +1,23 @@
 {
-    "stores.ts":"存储.py"
+    "ContextMeter":"上下文仪表",
+    "ConversationContent":"会话体",
+    "ConversationPanel":"会话面板",
+    "ConversationRoot":"会话根",
+    "EmptyHero":"空白英雄",
+    "InputBar":"输入栏",
+    "QueueDock":"队列停靠",
+    "TodoPanel":"待办面板",
+    "contract":"约定",
+    "image-labels":"图像标签",
+    "input":"输入",
+    "locales":"文案",
+    "queue":"队列",
+    "service":"服务",
+    "skeleton":"骨架",
+    "settings":"设置",
+    "conversation-nodes":"会话节点",
+    "stores":"存储",
+    "conversation":"会话",
+    "submission-policy":"提交策略",
+    "conversation":"会话"
 }

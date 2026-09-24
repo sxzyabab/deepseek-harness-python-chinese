@@ -7,7 +7,7 @@ from ...沙盒.沙盒 import (
     沙箱拒绝标记,#沙箱拒绝标记
 )#导入升级提示与拒绝标记
 
-__all__=('渲染Pwsh结果','渲染Pwsh进程读取')#仅中文公开名
+__all__=('渲染Pwsh结果','渲染Pwsh晋升','渲染Pwsh任务读取')#仅中文公开名
 
 def 流文本(输出):#一路流的面向模型文本
     """把截断通知（含完整输出溢出路径）追加到某路流的文本。"""
@@ -39,6 +39,8 @@ def 渲染Pwsh结果(结果,升级模式=None):#渲染前台pwsh结果
             标记列表.append(升级提示标记('command'))#追加命令升级提示
     if 结果['timedOut'] is True:#超时
         标记列表.append('[timed out after '+str(结果['timeoutMs'])+'ms]')#超时标记
+    if 结果.get('stopped') is not None:
+        标记列表.append('[stopped: '+str(结果['stopped'])+']')
     信号=结果['signal']#终止信号
     if 信号 is not None:#被信号杀死
         标记列表.append('[killed by signal: '+str(信号)+']')#信号标记
@@ -50,37 +52,32 @@ def 渲染Pwsh结果(结果,升级模式=None):#渲染前台pwsh结果
         正文=正文+'\n'#补换行
     return 正文+'\n'.join(标记列表)#正文后接各标记
 
-def 渲染Pwsh进程读取(读取,沙箱=None,升级模式=None):#渲染后台进程增量
-    """把一次后台进程读取收成模型可见的 `job_output` 增量：增量正文，并在内存截断丢掉未读字节时附上有损读取通知（含完整流溢出路径）。"""
-    if 升级模式 is None:#缺省空表
-        升级模式=[]#无升级提示
-    通知列表=[]#附加通知
-    if 读取['lossy'] is True:#内存有损
-        路径列表=[]#溢出路径表
-        标准输出溢出=读取['stdoutSpillPath'] if 'stdoutSpillPath' in 读取 else None#标准输出溢出
-        标准误溢出=读取['stderrSpillPath'] if 'stderrSpillPath' in 读取 else None#标准错误溢出
-        if 标准输出溢出 is not None:#有标准输出溢出
-            路径列表.append(标准输出溢出)#收下
-        if 标准误溢出 is not None:#有标准错误溢出
-            路径列表.append(标准误溢出)#收下
-        if len(路径列表)>0:#有路径
-            路径文=', '.join(路径列表)#拼路径
-        else:#没有路径
-            路径文='(unavailable)'#不可用占位
-        通知列表.append('[some output was dropped from memory; full output: '+路径文+']')#有损读取通知
-    if 沙箱 is not None and 'runnerFailed' in 沙箱 and 沙箱['runnerFailed'] is True:#运行器自己失败
-        通知列表.append('[sandbox: the sandbox runner itself failed under '+str(沙箱['mode'])+' mode — the command did not run; this is a sandbox problem, not a command failure]')#运行器失败通知
-    elif 沙箱 is not None and 沙箱['denied'] is True:#沙箱拒绝
-        通知列表.append(沙箱拒绝标记(沙箱['mode']))#拒绝标记
-        if len(升级模式)>0:#有升级目标
-            通知列表.append(升级提示标记('command'))#命令升级提示
-    增量=读取['delta']#增量正文
-    if 增量 is None:#缺增量
-        增量=''#空串
-    if len(通知列表)==0:#无通知
-        return 增量#只返回增量
-    if len(增量)>0 and (not 增量.endswith('\n')):#增量非空且无结尾换行
-        分隔='\n'#插换行
-    else:#已换行或为空
-        分隔=''#不插
-    return 增量+分隔+'\n'.join(通知列表)#增量后接通知
+def 渲染Pwsh晋升(已晋升):
+    """前台调用停止等待后模型看见的文本：已捕获输出，然后仍在运行标记与任务交接说明。"""
+    输出=已晋升['output']
+    if len(输出)>0:
+        正文=输出 if 输出.endswith('\n') else 输出+'\n'
+    else:
+        正文=''
+    return (正文+'[still running after '+str(已晋升['timeoutMs'])+'ms; moved to background job '+str(已晋升['jobId'])+']\n'
+        +'The command keeps running in the background. You will be notified when it finishes; '
+        +'read newer output with job_output, stop it with job_kill.')
+
+def 渲染Pwsh任务读取(增量,有损,溢出路径,沙箱=None,升级模式=None):
+    """前台调用停止等待时嵌入结果的那一次消费型注册表读取。"""
+    if 升级模式 is None:
+        升级模式=[]
+    通知列表=[]
+    if 有损 is True:
+        路径文=', '.join(溢出路径) if len(溢出路径)>0 else '(unavailable)'
+        通知列表.append('[some output was dropped from memory; full output: '+路径文+']')
+    if 沙箱 is not None and 沙箱.get('runnerFailed') is True:
+        通知列表.append('[sandbox: the sandbox runner itself failed under '+str(沙箱['mode'])+' mode — the command did not run; this is a sandbox problem, not a command failure]')
+    elif 沙箱 is not None and 沙箱.get('denied') is True:
+        通知列表.append(沙箱拒绝标记(沙箱['mode']))
+        if len(升级模式)>0:
+            通知列表.append(升级提示标记('command'))
+    if len(通知列表)==0:
+        return 增量
+    分隔='\n' if len(增量)>0 and not 增量.endswith('\n') else ''
+    return 增量+分隔+'\n'.join(通知列表)

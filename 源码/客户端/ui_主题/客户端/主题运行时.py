@@ -1,4 +1,4 @@
-from ..主题设置 import 默认偏好,是否主题偏好,主题偏好字段,主题错误#偏好约定
+from ..主题设置 import 默认偏好,默认字号,是否主题偏好,主题偏好字段,字号字段,字号最小,字号最大,主题错误#偏好约定
 
 __all__=[#仅中文公开名
     '解析活动主题','合并令牌覆盖','主题运行时','内置主题','内置检视令牌','校验覆盖层',
@@ -20,6 +20,7 @@ __all__=[#仅中文公开名
     {'name':'--dsw-alias-label-primary','description':'Primary text color.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-alias-label-primary'},
     {'name':'--dsw-alias-label-secondary','description':'Secondary text color.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-alias-label-secondary'},
     {'name':'--dsw-alias-state-error-primary','description':'Primary error state color.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-alias-state-error-primary'},
+    {'name':'--dsw-alias-state-idle-primary','description':'Primary inactive state color.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-alias-state-idle-primary'},
     {'name':'--dsw-alias-state-success-primary','description':'Primary success state color.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-alias-state-success-primary'},
     {'name':'--dsw-alias-state-warn-primary','description':'Primary warning state color.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-alias-state-warn-primary'},
     {'name':'--dsw-specific-sidebar-fill','description':'Sidebar column and title-row background.','valueType':'CSS color','requiresLightAndDark':True,'cssVariable':'--dsw-specific-sidebar-fill'},
@@ -96,6 +97,7 @@ class 主题运行时:
         自身.宿主=宿主#settings scope
         自身.主题列表=[dict(t) for t in 内置主题]#登记表
         自身.偏好=默认偏好#偏好
+        自身.字号=默认字号#内容字号
         自身.修订=0#修订
         自身.覆盖层={}#source → {seq,tokens}
         自身.覆盖序号=0#下一 seq
@@ -145,6 +147,17 @@ class 主题运行时:
             自身.宿主.set(主题偏好字段,标识)#写
         自身.发布()#发布
 
+    def setFontSize(自身,像素):
+        """整数 px 越界抛错。方法名对齐注入面 setFontSize。"""
+        if type(像素) is bool or type(像素) is not int or 像素<字号最小 or 像素>字号最大:
+            raise 主题错误('font size '+str(像素)+' is outside '+str(字号最小)+'..'+str(字号最大))
+        if 自身.字号==像素:
+            return
+        自身.字号=像素
+        if 自身.宿主 is not None:
+            自身.宿主.set(字号字段,像素)
+        自身.发布()
+
     def 采纳(自身):
         """不写回。作用域快照与分区都是 dict。"""
         if 自身.宿主 is None:#无
@@ -155,12 +168,12 @@ class 主题运行时:
         值=段['value']#分区
         if 值 is None:#缺
             return#空
-        if 'preference' not in 值:#无显式
-            return#空
-        偏好=值['preference']#偏好
-        if 偏好 is None or 自身.偏好==偏好:#一致
-            return#空
-        自身.偏好=偏好#采纳
+        偏好=值['preference'] if 'preference' in 值 else 自身.偏好
+        字号=值['fontSize'] if 'fontSize' in 值 else 自身.字号
+        if 自身.偏好==偏好 and 自身.字号==字号:
+            return
+        自身.偏好=偏好
+        自身.字号=字号
         自身.发布()#发布
 
     def 登记(自身,定义):
@@ -219,6 +232,7 @@ class 主题运行时:
             raise 主题错误('theme registry lost "'+解析标识+'"')#错
         return {#快照
             'preference':自身.偏好,#偏好
+            'fontSize':自身.字号,#内容字号
             'active':自身.组合活动(活动),#组合
             'themes':[dict(t) for t in 自身.主题列表],#表
             'revision':自身.修订,#修订

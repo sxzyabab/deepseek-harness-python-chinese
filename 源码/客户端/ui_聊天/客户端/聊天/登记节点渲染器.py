@@ -7,8 +7,9 @@ from .助手节点视图 import 助手节点视图#助手
 from .命令节点视图 import 命令节点视图,手动压缩节点视图#命令
 from .回合过程节点视图 import 回合过程节点视图#过程
 from .回合尾节点视图 import 回合尾节点视图#回合尾
+from .回合触发 import 回合触发详情
 
-__all__=['登记聊天节点渲染器','未知节点视图','上下文消息节点视图','压缩节点视图','重试节点视图','回合错误节点视图','回合满令牌节点视图','系统提示节点视图']#仅中文公开名
+__all__=['登记聊天节点渲染器','未知节点视图','上下文消息节点视图','压缩节点视图','重试节点视图','回合错误节点视图','回合满令牌节点视图','系统提示节点视图','回合触发节点视图']
 
 def 恒等翻译(键,参数=None):
     """无文案表时返回键本身。"""
@@ -185,14 +186,49 @@ class 未知节点视图:
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
-def 登记聊天节点渲染器(上下文):
+class 回合触发节点视图:
+    """非人类回合唤醒通知。"""
+    def __init__(自身,属性=None):
+        """记下合成 props。"""
+        自身.属性=属性 if 属性 is not None else {}
+
+    def 更新(自身,属性):
+        """刷新 props。"""
+        自身.属性=属性 if 属性 is not None else {}
+
+    def 渲染(自身):
+        """标题键与源族图标。"""
+        属性=自身.属性
+        翻译=属性['t'] if 't' in 属性 else 恒等翻译
+        节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}
+        数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点
+        详情=回合触发详情(数据)
+        return {
+            'type':'turn-trigger',
+            'title':翻译(详情['title']),
+            'icon':详情['icon'],
+            'explanation':翻译('message.trigger.explanation'),
+            'content':数据['content'] if 'content' in 数据 else None,
+            'source':数据['source'] if 'source' in 数据 else None,
+            'time':数据['time'] if 'time' in 数据 else None,
+        }
+
+    def __call__(自身,属性=None):
+        """对齐。"""
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()
+
+def 登记聊天节点渲染器(上下文,性能用量=None,呈现=None):
     """inject 各 kind，含命令子席与回合尾列表/动作席。"""
     槽=上下文.slots#槽
-    def 挂(键,组件,子=None):
+    def 挂(键,组件,子=None,注入面=None):
         """inject+register。"""
         选项={'name':'conversation.chat.node','key':键,'locale':命名空间}#选项
         if 子 is not None:#有子席
             选项['children']=子#子
+        if 注入面 is not None:
+            选项['inject']=注入面
         def 注入(钉选项=选项,钉组件=组件):
             """register 本键。默认参钉死本次选项。"""
             return 槽.register(钉选项,钉组件)#挂
@@ -200,8 +236,12 @@ def 登记聊天节点渲染器(上下文):
     挂('user',用户消息行)#用户
     挂('steering',用户消息行)#插话
     挂('context',上下文消息节点视图)#上下文
+    挂('turn-trigger',回合触发节点视图)#唤醒
     挂('system-prompt',系统提示节点视图)#系统提示
-    挂('assistant-step',助手节点视图)#助手
+    def 助手注入():
+        """工作详情呈现策略。"""
+        return {'hooks':{'presentation':呈现}}
+    挂('assistant-step',助手节点视图,注入面=None if 呈现 is None else 助手注入)#助手
     挂('command',命令节点视图,{'conversation.chat.commandview':{'kind':'keyed','scope':'session'}})#命令
     挂('manual-compaction',手动压缩节点视图)#手动压缩
     挂('compaction',压缩节点视图)#压缩
@@ -209,8 +249,11 @@ def 登记聊天节点渲染器(上下文):
     挂('turn-error',回合错误节点视图)#错误
     挂('turn-max-tokens',回合满令牌节点视图)#满令牌
     挂('turn-process',回合过程节点视图)#过程
+    def 尾注入():
+        """用量明细偏好。"""
+        return {'hooks':{'performanceUsage':性能用量}}
     挂('turn-tail',回合尾节点视图,{#回合尾
         'conversation.chat.turnTail':{'kind':'list','scope':'session'},#尾列表
         'conversation.chat.assistant-actions':{'kind':'list','scope':'session'},#动作
-    })#尾
+    },None if 性能用量 is None else 尾注入)#尾
     挂('unknown',未知节点视图)#未知

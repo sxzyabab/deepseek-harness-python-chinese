@@ -1,0 +1,11 @@
+{
+    "fork":"分叉",
+    "invariant":"不变量",
+    "known-event-types":"已知事件类型",
+    "preparation":"准备",
+    "repair":"修复",
+    "request-header":"请求头",
+    "seq-ranges":"序号范围",
+    "surface":"表面",
+    "types":"类型"
+}

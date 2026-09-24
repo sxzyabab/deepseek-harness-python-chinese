@@ -1,3 +1,11 @@
 {
-    "core/contract.ts":"触发约定.py"
+    "MenuView":"菜单视图",
+    "controller":"控制器",
+    "detect":"探测",
+    "locales":"文案",
+    "menu":"菜单归约",
+    "service":"服务",
+    "slots":"槽",
+    "types":"类型",
+    "contract":"触发约定"
 }

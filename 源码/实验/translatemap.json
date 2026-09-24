@@ -14,5 +14,10 @@
     "ptc-runtime-python":"ptc运行时_python",
     "tool-agent-team":"工具_智能体团队",
     "webworker-packer":"webworker_打包器",
-    "webworker-runtime":"webworker_运行时"
+    "webworker-runtime":"webworker_运行时",
+    "api-speech-to-text":"api_语音转写",
+    "client-ui-voice-input":"客户端ui_语音输入",
+    "speech-to-text":"语音转写",
+    "speech-to-text-sensevoice":"语音转写_sensevoice",
+    "voice-input-bundle":"语音输入组合包"
 }

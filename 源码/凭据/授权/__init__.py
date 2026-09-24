@@ -40,7 +40,7 @@ class 授权服务(服务):
         """登记为 ctx.authorization。"""
         super().__init__(上下文,'authorization')#服务名
         自身.流程表={}#键→流程 dict
-        自身.运行表={}#键→在途 Event
+        自身.运行表={}#键→在途 dict
 
     def 注册流程(自身,流程):
         """同一键只能有一个流程；返回拆除器。流程为 dict。"""
@@ -54,7 +54,7 @@ class 授权服务(服务):
                 """流程离开则中止在途尝试。"""
                 自身.流程表.pop(键,None)#释放
                 在途=自身.运行表[键] if 键 in 自身.运行表 else None#在途
-                if 在途 is not None:#有在途
+                if 在途 is not None and (not 在途['提交中']):#有在途且未提交
                     在途['信号'].set()#中止
             return 拆#拆除器
         return 自身.ctx.副作用(装寿命,'authorization.registerFlow()')#登记副作用
@@ -78,7 +78,7 @@ class 授权服务(服务):
     def 取消(自身,键):
         """无在途则为空操作。"""
         在途=自身.运行表[键] if 键 in 自身.运行表 else None#查找
-        if 在途 is not None:#有在途
+        if 在途 is not None and (not 在途['提交中']):#有在途且未提交
             在途['信号'].set()#中止
 
     def 开始(自身,请求):
@@ -103,7 +103,7 @@ class 授权服务(服务):
         if 信号已中止(信号):#开始前已撤回
             return {'status':'cancelled'}#取消
         控制器=信号 if 信号 is not None else threading.Event()#本尝试中止旗
-        自身.运行表[键]={'信号':控制器}#占槽
+        自身.运行表[键]={'信号':控制器,'提交中':False}#占槽
         结算='failed'#默认失败
         try:#运行流程
             交互=请求['interaction'] if 'interaction' in 请求 else None#交互面
@@ -152,11 +152,28 @@ class 授权服务(服务):
                     已观察['declined']=True#记下
                     raise#继续抛
             def 通知包装(通知):
-                """转发通知。"""
-                交互.notify(通知)#通知
+                """转发通知；渲染失败不得打断尝试。"""
+                try:
+                    交互.notify(通知)
+                except Exception as 错误:
+                    自身.ctx.日志.警告('authorization: the interaction surface failed to render a notice')
+                    自身.ctx.日志.警告(错误)
+            def 提交记录(记录):
+                """本尝试内提交凭证记录。"""
+                if 信号已中止(信号):
+                    raise 授权错误('authorization attempt is no longer active','CANCELLED')
+                在途=自身.运行表[流程['key']] if 流程['key'] in 自身.运行表 else None
+                if 在途 is None or 在途['信号'] is not 信号:
+                    raise 授权错误('authorization attempt is no longer active','CANCELLED')
+                在途['提交中']=True
+                def 给出记录(当前):
+                    """忽略当前，写入本尝试记录。"""
+                    return 记录
+                自身.ctx.credentials.修改记录(流程['key'],给出记录)
             流程['run']({#会话面
                 'method':方法,#所选方法
                 'signal':信号,#取消信号
+                'commit':提交记录,#提交
                 'notify':通知包装,#通知
                 'prompt':提示包装,#提示
             })#run 调用已同步

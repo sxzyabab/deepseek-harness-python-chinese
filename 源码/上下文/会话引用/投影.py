@@ -28,7 +28,7 @@ def 投影会话对话(快照):#从表面快照投影对话
             文本=抽出文本(事件['data']['message']['content'])#抽出助手文本
             if 文本!='':#非空才入列
                 对话.append({'role':'assistant','text':文本,'checkpoint':False,'originalText':文本,'omittedBytes':0})#入列
-        elif 种类=='system/message' or 种类=='tool/result':#系统消息或工具结果
+        elif 种类=='system/message' or 种类=='developer/message' or 种类=='tool/result':#系统、开发者或工具结果
             pass#引用快照不纳入
         else:#不可达分支
             断言永不(事件,'session-reference surface event')#编译期穷尽检查
@@ -53,6 +53,7 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
     def 尺寸():#当前JSON的UTF-8字节
         """当前序列化对象的 UTF-8 字节。"""
         return 字节长(序列化标签安全JSON(数据()))#计字节
+    完整数据=数据()#截断前的完整投影
     while 尺寸()>最大字节:#先丢掉非检查点、非最新的整条消息
         最新下标=len(保留)-1#最新一条下标
         丢弃下标=-1#可丢下标
@@ -94,6 +95,7 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
     省略字节=截断省略字节+丢掉省略字节#截断加整条丢掉
     return {#组装成功结果
         'data':数据(),#最终序列化对象
+        'fullData':完整数据,#截断前完整投影
         'stats':{#保留统计
             'compacted':含压缩,#是否压缩过
             'originalMessages':len(原始),#投影前条数

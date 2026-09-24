@@ -34,8 +34,14 @@ def 空派用量():
         'cost':{'input':0,'output':0,'cacheRead':0,'cacheWrite':0,'total':0},#费用全零
     }#空用量
 
-def 转派回放状态(消息):
-    """把一次成功的派爱响应投影成最小持久回放状态。消息为 SDK 对象。"""
+def 转派回放状态(消息,请求模型=None):
+    """把一次成功的派爱响应投影成最小持久回放信封。消息为 SDK 对象。"""
+    if 请求模型 is None:#缺席用原生模型
+        请求模型=消息.model#请求身份默认原生模型
+    原生模型=消息.model#提供方回报模型
+    响应模型=消息.responseModel#可选响应模型
+    if 消息.api=='anthropic-messages' and 原生模型!=请求模型:#Anthropic 别名/回落记入 responseModel
+        响应模型=原生模型#用原生模型
     内容=消息.content#内容块
     块列表=[]#块级元数据
     for 块 in 内容:#逐块
@@ -61,22 +67,23 @@ def 转派回放状态(消息):
             if 签名 is not None:#有思考签名
                 投影['thoughtSignature']=签名#有思考签名才带上
             块列表.append(投影)#写入
-    状态={
+    响应={
         'kind':'pi-ai',#判别标签
-        'version':1,#状态版本
+        'version':2,#信封版本
         'api':消息.api,#线路协议
         'provider':消息.provider,#提供方
-        'model':消息.model,#模型
+        'model':请求模型,#请求身份
         'stopReason':消息.stopReason,#结束原因
-        'blocks':块列表,#块级元数据
-    }#最小投影
-    响应模型=消息.responseModel#响应模型
+    }#响应半边
     if 响应模型 is not None:#有响应模型
-        状态['responseModel']=响应模型#有响应模型才带上
+        响应['responseModel']=响应模型#有响应模型才带上
     响应标识=消息.responseId#响应id
     if 响应标识 is not None:#有响应id
-        状态['responseId']=响应标识#有响应id才带上
-    return 状态#回放状态
+        响应['responseId']=响应标识#有响应id才带上
+    力度=getattr(消息,'providerThinkingLevel',None)#提供方力度
+    if 力度 is not None:#有力度
+        响应['providerThinkingLevel']=力度#有力度才带上
+    return {'response':响应,'blocks':块列表}#信封
 
 def 非法回放(消息):
     """非法回放状态。"""
@@ -85,36 +92,41 @@ def 非法回放(消息):
 def 读回放状态(值):
     """在适配器私有状态到达 pi-ai 之前校验它。"""
     if not isinstance(值,dict):#根必须是普通对象，数组与原语一律拒绝
-        return 非法回放('expected an object')#必须是对象
-    if 值.get('kind')!='pi-ai':#判别标签钉死为本后端，其它判别标签不是本状态
+        return 非法回放('expected a replay envelope')#必须是信封
+    原始响应=值.get('response')#响应半边
+    if not isinstance(原始响应,dict):#响应必须是对象
+        return 非法回放('expected a response object')#必须是对象
+    if 原始响应.get('kind')!='pi-ai':#判别标签钉死为本后端
         return 非法回放('unknown state kind')#判别标签必须是pi-ai
-    if 值.get('version')!=1:#只认当前状态版本，未知版本不得静默放行
-        return 非法回放(f'unsupported version {值.get("version")}')#只认版本1
+    if 原始响应.get('version')!=2:#只认当前信封版本
+        return 非法回放(f'unsupported version {原始响应.get("version")}')#只认版本2
     for 键 in 必填字符串:#线路协议、提供方、模型三个字段逐个核对
-        字段=值.get(键)#字段值
+        字段=原始响应.get(键)#字段值
         if not isinstance(字段,str) or len(字段)==0:#缺席、非字符串、空串都算缺失
             return 非法回放(f'{键} must be a non-empty string')#必须非空
-    if str(值.get('stopReason')) not in 结束原因集合:#结束原因必须落在派爱封闭集合
+    if str(原始响应.get('stopReason')) not in 结束原因集合:#结束原因必须落在派爱封闭集合
         return 非法回放('unknown stopReason')#非法结束原因
-    if 值.get('responseModel') is not None and not isinstance(值.get('responseModel'),str):#可选响应模型有则必须是字符串
-        return 非法回放('responseModel must be a string')#可选响应模型必须是字符串
-    if 值.get('responseId') is not None and not isinstance(值.get('responseId'),str):#可选响应id有则必须是字符串
-        return 非法回放('responseId must be a string')#可选响应id必须是字符串
-    if not isinstance(值.get('blocks'),list):#块列必须是数组，对象或缺席都非法
+    if 原始响应.get('responseModel') is not None and not isinstance(原始响应.get('responseModel'),str):#可选响应模型
+        return 非法回放('responseModel must be a string')#必须是字符串
+    if 原始响应.get('responseId') is not None and not isinstance(原始响应.get('responseId'),str):#可选响应id
+        return 非法回放('responseId must be a string')#必须是字符串
+    if 原始响应.get('providerThinkingLevel') is not None and not isinstance(原始响应.get('providerThinkingLevel'),str):#可选力度
+        return 非法回放('providerThinkingLevel must be a string')#必须是字符串
+    if not isinstance(值.get('blocks'),list):#块列必须是数组
         return 非法回放('blocks must be an array')#块必须是数组
     下标=0#块下标
     for 块值 in 值['blocks']:#按出现顺序校验每一块元数据
-        if not isinstance(块值,dict):#单块必须是对象，不能是字符串或数组
+        if not isinstance(块值,dict):#单块必须是对象
             return 非法回放(f'block {下标} must be an object')#块必须是对象
-        if str(块值.get('type')) not in 块类型集合:#块类型必须是文本、推理或工具调用
+        if str(块值.get('type')) not in 块类型集合:#块类型必须已知
             return 非法回放(f'block {下标} has an unknown type')#类型必须已知
         for 签名 in 签名字段:#三种可选签名字段有则逐个校验
             if 块值.get(签名) is not None and not isinstance(块值.get(签名),str):#有签名则必须是字符串
                 return 非法回放(f'block {下标} {签名} must be a string')#有则必须是字符串
-        if 块值.get('redacted') is not None and not isinstance(块值.get('redacted'),bool):#有脱敏则必须是布尔，禁止用 0/1
+        if 块值.get('redacted') is not None and not isinstance(块值.get('redacted'),bool):#有脱敏则必须是布尔
             return 非法回放(f'block {下标} redacted must be boolean')#脱敏必须是布尔
         下标+=1#前进
-    return 值#通过校验
+    return {'response':原始响应,'blocks':值['blocks']}#通过校验
 
 def 外来助手(消息):
     """转换提供方中立块，不把它们当作同模型回放。"""
@@ -162,14 +174,15 @@ def 外来助手(消息):
 def 回放助手(消息,来源,原始状态):
     """把持久 harness 内容与已校验的派爱回放元数据重新组合。"""
     状态=读回放状态(原始状态)#先校验再重组；非法状态不得拼进派爱历史
+    响应=状态['response']#响应半边
     来源提供方=来源['provider']#助手来源上的提供方
     来源模型=来源['model']#助手来源上的模型
-    if 状态['provider']!=来源提供方:#回放元数据的提供方必须与助手来源同一路由，否则会把别家签名接到本路由历史上
+    if 响应['provider']!=来源提供方:#回放元数据的提供方必须与助手来源同一路由
         return 非法回放('provider does not match assistant source')#提供方必须匹配
-    if 状态['model']!=来源模型:#回放元数据的模型必须与助手来源同一模型，跨模型不能复用块签名
+    if 响应['model']!=来源模型:#回放元数据的模型必须与助手来源同一模型
         return 非法回放('model does not match assistant source')#模型必须匹配
     块列=消息['content']#harness 正文；回放只补签名
-    if len(状态['blocks'])!=len(块列):#块数必须一一对应，少一块或多一块都说明不是同一次响应
+    if len(状态['blocks'])!=len(块列):#块数必须一一对应
         return 非法回放('block count does not match assistant content')#块数必须匹配
     内容=[]#重组内容
     下标=0#块下标
@@ -203,27 +216,40 @@ def 回放助手(消息,来源,原始状态):
         else:#封闭联合之外的 harness 类型无法回放到派爱历史
             return 非法回放(f'block {下标} has an unsupported Harness type')#未知harness类型
         下标+=1#前进到下一块，与状态 blocks 下标保持同步
+    if 响应['api']=='anthropic-messages':#Anthropic 把别名/回落写在 model
+        模型=响应['responseModel'] if 响应.get('responseModel') is not None else 响应['model']#优先响应模型
+    else:#其余协议用请求身份
+        模型=响应['model']#请求身份
     结果={
         'role':'assistant',#助手
         'content':内容,#重组内容
-        'api':状态['api'],#原线路协议
-        'provider':状态['provider'],#提供方
-        'model':状态['model'],#模型
+        'api':响应['api'],#原线路协议
+        'provider':响应['provider'],#提供方
+        'model':模型,#线路模型
         'usage':空派用量(),#历史零用量
-        'stopReason':状态['stopReason'],#原结束原因，外来路径不读这一字段
+        'stopReason':响应['stopReason'],#原结束原因
         'timestamp':0,#历史时间戳
     }#回放助手消息
-    if 状态.get('responseModel') is not None:#状态里有响应模型才写回，缺席不加字段以免伪造
-        结果['responseModel']=状态['responseModel']#有响应模型才带上
-    if 状态.get('responseId') is not None:#状态里有响应 id 才写回，缺席不加字段
-        结果['responseId']=状态['responseId']#有响应id才带上
+    if 响应.get('responseModel') is not None:#有响应模型才写回
+        结果['responseModel']=响应['responseModel']#有响应模型才带上
+    if 响应.get('responseId') is not None:#有响应 id 才写回
+        结果['responseId']=响应['responseId']#有响应id才带上
+    if 响应.get('providerThinkingLevel') is not None:#有力度才写回
+        结果['providerThinkingLevel']=响应['providerThinkingLevel']#有力度才带上
     return 结果#回放助手
 
-def 转派助手(消息):
-    """把一条持久 harness 助手消息转换成派爱历史。"""
+def 转派助手(消息,降级=None):
+    """把一条持久 harness 助手消息转换成派爱历史。不可用的回放降级为提供方中立。"""
     来源=消息['source']#助手消息为 dict
     种类=来源['kind']#只有 model 才可能带同模型回放状态
     回放=来源['replayState'] if 'replayState' in 来源 else None#缺席不加字段
-    if 种类!='model' or 回放 is None:#同模型回放要求来源是模型且带 replayState；缺任一条件都走提供方中立转换
-        return 外来助手(消息)#外来：只转块类型，不读也不校验回放元数据
-    return 回放助手(消息,来源,回放)#同模型：先校验元数据再把正文与签名重新拼回去
+    if 种类!='model' or 回放 is None:#缺回放则走提供方中立转换
+        return 外来助手(消息)#外来
+    try:#校验并重组
+        return 回放助手(消息,来源,回放)#同模型
+    except llm.大模型错误 as 错误:#不可用回放
+        if 错误.code!='INVALID_REPLAY_STATE':#其它失败保持大声
+            raise 错误#原样抛出
+        if 降级 is not None:#通知调用方
+            降级(错误.message)#诊断
+        return 外来助手(消息)#降级为提供方中立

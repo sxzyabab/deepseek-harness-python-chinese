@@ -1,10 +1,9 @@
 {
-    "boot-client.ts":"启动客户端.py",
-    "mount.ts":"挂载.py",
-    "loader-status.ts":"加载器状态.py",
-    "boot-page.ts":"启动页.py",
-    "seed.ts":"种子.py",
-    "boot.ts":"启动.py",
-    "index.ts":"__init__.py",
-    "invariant.ts":"不变量.py"
+    "apply-injections":"应用注入",
+    "boot":"启动",
+    "boot-client":"启动客户端",
+    "boot-page":"启动页",
+    "loader-status":"加载器状态",
+    "mount":"挂载",
+    "seed":"种子"
 }

@@ -27,6 +27,12 @@ def 解析活跃成员(根,状态,原始名):#解析活跃成员
         raise 团队错误('active teammate "'+名字+'" not found','TEAM_MEMBER_NOT_FOUND')#未找到
     return {'id':成员['id'],'name':名字}#命中
 
+def 可用性(智能体):#运行时可用性
+    """轮次可用性与 Agent 是否已加载无关；非 running 一律 inactive。"""
+    if 智能体 is not None and 智能体.status=='running':#正在跑轮次
+        return 'running'#运行中
+    return 'inactive'#未运行
+
 def _父标识(智能体):#读父 Session
     """从 live Agent 的会话头读取父标识。"""
     头=智能体.session.header#会话头
@@ -80,7 +86,7 @@ class 团队名册:#成员表
             return None#非成员
         try:#探测
             return 自身._试成员关系体(智能体)#体
-        except 团队错误:#探测失败不否决
+        except Exception:#探测失败不否决无关生命周期边
             return None#失败
 
     def _试成员关系体(自身,智能体):#试解析体
@@ -111,7 +117,7 @@ class 团队名册:#成员表
             'id':根.id,#Lead id
             'name':'lead',#伪名
             'role':'lead',#角色
-            'status':根.status,#运行时状态
+            'status':可用性(根),#运行时状态
             'diagnostics':[],#无诊断
         }]#Lead 结束
         模型=_模型(根)#Lead 模型
@@ -132,7 +138,7 @@ class 团队名册:#成员表
         elif 成员['phase']=='provisioning':#供应中
             状态='provisioning'#供应
         else:#派生
-            状态=活.status if 活 is not None else 'inactive'#派生状态
+            状态=可用性(活)#派生状态
         行={#成员行
             'id':成员['id'],#id
             'name':成员['name'],#名
@@ -185,7 +191,7 @@ class 团队名册:#成员表
         活=自身.ctx.agents.get(目标['id'])#live
         if 活 is None:#未加载
             return {'previousStatus':'inactive'}#未加载
-        先前=活.status#采样
+        先前=可用性(活)#采样
         自身.ctx.subagents.打断(目标['id'],{'kind':'ancestor','agent':调用方})#祖先中断
         return {'previousStatus':先前}#返回
 
@@ -419,7 +425,7 @@ class 团队名册:#成员表
             'id':成员['id'],#id
             'name':成员['name'],#名
             'role':'teammate',#角色
-            'status':活.status if 活 is not None else 'inactive',#状态
+            'status':可用性(活),#状态
             'description':成员['description'],#描述
             'provider':成员['provider'],#provider
             'context':成员['context'],#上下文

@@ -4,7 +4,7 @@ from ...依赖 import cordis#外部依赖胶水
 from .词法 import 光标处活动令牌,格式化文件提及#再导出词法
 from .类型 import 文件引用候选字段#候选字段约定
 
-文件引用提示=('Tokens prefixed with @ are workspace paths the user explicitly referenced, relative to the workspace root. '#模型指引前段
+文件引用提示=('Tokens prefixed with @ are paths the user explicitly referenced. Relative paths resolve from the workspace root; absolute paths identify files or directories on the host. '#模型指引前段
     +'A trailing slash marks a directory: list it when its contents matter. Anything else is a file: use the read tool when its contents are needed, and do not claim to have inspected it before reading. @"..." quotes a path containing spaces.')#模型指引后段
 
 __all__=[

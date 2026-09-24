@@ -205,12 +205,12 @@ def 投影json运行(上下文,智能体,汇,选项=None):
         if 种类=='tool/result':#工具结果
             if 事件.get('surfaceOp')!='append':#压缩替换的历史
                 return#忽略
-            块=数据['message']['content'][0]#首块
+            消息=数据['message']#面向模型的结果消息
             写出({#结果
                 'type':'tool_result',
-                'callId':块['toolCallId'],
-                'status':'error' if 块.get('isError') is True else 'completed',
-                'result':结果文本(块['content']),
+                'callId':消息['toolCallId'],
+                'status':'error' if 消息.get('isError') is True else 'completed',
+                'result':结果文本(消息['content']),
             })#写出
             return
 

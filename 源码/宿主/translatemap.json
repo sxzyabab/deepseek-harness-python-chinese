@@ -6,5 +6,6 @@
     "frontend-static":"前端静态",
     "open-in-app":"在应用中打开",
     "plugin-inventory":"插件清单",
-    "webserver":"web服务器"
+    "webserver":"web服务器",
+    "product-telemetry-otel":"产品遥测_otel"
 }

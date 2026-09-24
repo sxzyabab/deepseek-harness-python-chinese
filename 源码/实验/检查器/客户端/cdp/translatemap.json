@@ -1,0 +1,12 @@
+{
+    "runtime":"运行时",
+    "objects":"对象",
+    "errors":"错误",
+    "debugger":"调试器",
+    "profiler":"分析器",
+    "heap-profiler":"堆分析器",
+    "stack":"栈",
+    "sources":"源",
+    "console":"控制台",
+    "properties":"属性"
+}

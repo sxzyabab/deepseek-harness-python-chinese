@@ -69,15 +69,16 @@
     "use":"使用",
     "used":"已使用",
     "useful":"有用",
-    "useGesture":"使用手势",
+    "usegesture":"使用手势",
     "user":"用户",
     "username":"用户名",
-    "useTabInfo":"使用标签页信息",
+    "usetabinfo":"使用标签页信息",
     "using":"借用",
     "ustar":"ustar",
     "utc":"utc",
     "utf":"utf",
     "util":"工具函数",
     "utility":"实用程序",
-    "uuid":"uuid"
+    "uuid":"uuid",
+    "updates":"更新列表"
 }

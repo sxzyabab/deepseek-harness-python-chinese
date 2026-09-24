@@ -1,167 +1,112 @@
 """配置域远程拥有者：settings 与并列的 credentials。"""
-import os
-from ...依赖.schemastery import 布尔字段
 from ...typert.协议 import 远程服务,远程 as _远程
 from .凭据 import 凭据控制器
 from .远程错误与中止 import 远程错误,远程错误消息,已中止
 from .投影与写入 import 命名空间视图,拒绝写入
+from .类型 import 设置文档打开值
 
-__all__=['包名','名称','依赖','应用','默认','配置','设置控制器','凭据控制器']
+__all__=['包名','名称','依赖','应用','默认','设置控制器','凭据控制器','设置文档打开值']
 
 包名='@deepseek-ai/dsh-api-settings-controller'
 名称='settings-controller'
 依赖=[]
 
-配置={
-    'nativeOpen':布尔字段(),#可覆盖桌面打开探测
-}
-
 class 设置控制器(远程服务):
     """生成 remote.settings 命名空间。"""
-    def __init__(自身,上下文,配置值=None,内部=None):
+    def __init__(自身,上下文,内部=None):
         """登记 settings 命名空间并挂载凭据子插件。"""
         super().__init__(上下文,'settingsController',{'namespace':'settings'})
-        if 配置值 is None:
-            配置值={}
         if 内部 is None:
             内部={}
-        自身._打开路径=内部['openPath'] if 'openPath' in 内部 else None
         自身._打开文本=内部['openTextFile'] if 'openTextFile' in 内部 else None
-        自身._能否打开=内部['canOpenPath'] if 'canOpenPath' in 内部 else None
-        if 自身._打开路径 is None:
-            from ...工具.原生命令 import openNativePath as 打开原生路径
-            自身._打开路径=打开原生路径
         if 自身._打开文本 is None:
             from ...工具.原生命令 import openNativeTextFile as 打开文本文档
             自身._打开文本=打开文本文档
-        if 自身._能否打开 is None:
-            def 缺省能否打开():
-                """配置覆盖或集成存在或平台支持。"""
-                if 'nativeOpen' in 配置值:
-                    return bool(配置值['nativeOpen'])
-                if 'openPath' in 内部:
-                    return True
-                from ...工具.原生命令 import canOpenNativePath as 能否打开原生路径
-                return bool(能否打开原生路径())
-            自身._能否打开=缺省能否打开
         上下文.启动插件(凭据控制器)
+
     @_远程
-    def describe(自身):#描述全部命名空间
+    def describe(自身):
         """红化描述全部注册命名空间。"""
-        设置=自身._提供方()#提供方
-        return {#描述面
-            'writable':设置.writable,#可写
-            'hasDocument':设置.documentPath is not None,#有本地文档
-            'namespaces':[命名空间视图(项) for 项 in 设置.describe({'redactSecrets':True})],#红化视图
-        }#结束
+        设置=自身._提供方()
+        return {
+            'writable':设置.writable,
+            'hasDocument':True,
+            'namespaces':[命名空间视图(项) for 项 in 设置.describe({'redactSecrets':True})],
+        }
 
     @_远程
-    def canOpenAgentPresetDirectory(自身):#能否打开预设目录
-        """报告能否原生打开智能体预设目录。"""
-        return bool(自身._能否打开())#探测
-
-    @_远程
-    def update(自身,命名空间,补丁,期望修订=None):#合并写入
+    def update(自身,命名空间,补丁,期望修订=None):
         """合并 user 段补丁。"""
-        return 自身._写入(命名空间,'update',补丁,期望修订)#写
+        return 自身._写入(命名空间,'update',补丁,期望修订)
 
     @_远程
-    def replace(自身,命名空间,整段,期望修订=None):#整段替换
+    def replace(自身,命名空间,整段,期望修订=None):
         """整段替换 user 段。"""
-        return 自身._写入(命名空间,'replace',整段,期望修订)#写
+        return 自身._写入(命名空间,'replace',整段,期望修订)
 
     @_远程
-    def mutate(自身,命名空间,操作列表,期望修订=None):#路径编辑
+    def mutate(自身,命名空间,操作列表,期望修订=None):
         """按路径编辑 user 段。"""
-        return 自身._写入(命名空间,'mutate',操作列表,期望修订)#写
+        return 自身._写入(命名空间,'mutate',操作列表,期望修订)
 
     @_远程
-    def openSettingsDocument(自身,信号):#打开设置文档
+    def openSettingsDocument(自身,信号):
         """物化并原生打开设置文档。"""
-        设置=自身._提供方()#提供方
-        if 已中止(信号):#已取消
-            raise 远程错误('gateway/cancelled','settings document open was aborted',{})#取消
-        try:#准备文档
-            路径=设置.prepareDocument()#准备
-        except OSError as 错误:
-            if 已中止(信号):#取消
-                raise 远程错误('gateway/cancelled','settings document preparation was aborted',{},原因=错误)#取消
-            raise 远程错误('gateway/internal','settings document preparation failed: '+远程错误消息(错误),{},原因=错误)#内部
-        if 路径 is None:#无文档
-            raise 远程错误('gateway/internal','settings provider has no local document to open',{})#拒绝
-        if 已中止(信号):#取消
-            raise 远程错误('gateway/cancelled','settings document open was aborted',{})#取消
-        try:#打开
-            自身._打开文本(路径,信号)#打开
-            return {'opened':True}#确认
-        except OSError as 错误:
-            if 已中止(信号):#取消
-                raise 远程错误('gateway/cancelled','settings document open was aborted',{},原因=错误)#取消
-            raise 远程错误('gateway/internal','path open failed: '+远程错误消息(错误),{},原因=错误)#内部
+        设置=自身._提供方()
+        if 已中止(信号):
+            raise 远程错误('gateway/cancelled','settings document open was aborted',{})
+        try:
+            路径=设置.prepareDocument()
+        except BaseException as 错误:
+            if 已中止(信号):
+                raise 远程错误('gateway/cancelled','settings document preparation was aborted',{},原因=错误)
+            raise 远程错误('gateway/internal','settings document preparation failed: '+远程错误消息(错误),{},原因=错误)
+        if 已中止(信号):
+            raise 远程错误('gateway/cancelled','settings document open was aborted',{})
+        try:
+            自身._打开文本(路径,信号)
+            return {'opened':True}
+        except BaseException as 错误:
+            if 已中止(信号):
+                raise 远程错误('gateway/cancelled','settings document open was aborted',{},原因=错误)
+            raise 远程错误('gateway/internal','path open failed: '+远程错误消息(错误),{},原因=错误)
 
-    @_远程
-    def openAgentPresetDirectory(自身,智能体预设,信号):#打开预设目录
-        """打开用户预设目录或仅返回路径。"""
-        if 智能体预设 is None or 智能体预设=='':#空 id
-            raise 远程错误('gateway/bad-request','agent preset id must not be empty',{})#拒绝
-        预设服务=自身.ctx.获取服务('agentPresets')#可选预设服务
-        if 预设服务 is None:#未组合
-            raise 远程错误('agent-preset/not-found','this deployment composes no agent presets',{'agentPreset':智能体预设,'available':[]})#拒绝
-        预设=预设服务.resolve(智能体预设)#解析
-        if 预设['trust']!='user':#只读
-            raise 远程错误('agent-preset/read-only','agent-presets: preset "'+str(预设['id'])+'" cannot be written: it ships with the deployment',{'agentPreset':预设['id'],'reason':'it ships with the deployment'})#拒绝
-        目录=os.path.dirname(str(预设['path']))#目录
-        if not 自身._能否打开():#不能原生打开
-            return {'opened':False,'path':目录}#仅返回路径
-        try:#打开
-            自身._打开路径(目录,信号)#打开
-            return {'opened':True}#确认
-        except OSError as 错误:
-            if 已中止(信号):#取消
-                raise 远程错误('gateway/cancelled','path open was aborted',{},原因=错误)#取消
-            raise 远程错误('gateway/internal','path open failed: '+远程错误消息(错误),{},原因=错误)#内部
-
-    def _写入(自身,命名空间,模式,输入,期望修订):#统一写入
+    def _写入(自身,命名空间,模式,输入,期望修订):
         """执行 update/replace/mutate 并返回红化视图。"""
-        if not isinstance(命名空间,str) or 命名空间=='':#非法 ns
-            raise 远程错误('gateway/bad-request','invalid payload for settings.'+模式,{'issues':[{'message':'ns invalid'}]})#拒绝
-        设置=自身._提供方()#提供方
-        try:#写
-            if 模式=='update':#合并
-                设置.update(命名空间,输入,期望修订)#update
-            elif 模式=='replace':#替换
-                设置.replace(命名空间,输入,期望修订)#replace
-            else:#路径
-                设置.mutate(命名空间,输入,期望修订)#mutate
-        except OSError as 错误:#拒绝
-            raise 拒绝写入(命名空间,错误)#分类
-        except ValueError as 错误:#拒绝
-            raise 拒绝写入(命名空间,错误)#分类
-        except TypeError as 错误:#拒绝
-            raise 拒绝写入(命名空间,错误)#分类
-        描述符=None#写后读
-        for 候选 in 设置.describe({'redactSecrets':True}):#扫描
-            if 候选['ns']==命名空间:#命中
-                描述符=候选#记下
+        if not isinstance(命名空间,str) or 命名空间=='':
+            raise 远程错误('gateway/bad-request','invalid payload for settings.'+模式,{'issues':[{'message':'ns invalid'}]})
+        设置=自身._提供方()
+        try:
+            if 模式=='update':
+                设置.update(命名空间,输入,期望修订)
+            elif 模式=='replace':
+                设置.replace(命名空间,输入,期望修订)
+            else:
+                设置.mutate(命名空间,输入,期望修订)
+        except BaseException as 错误:
+            raise 拒绝写入(命名空间,错误)
+        描述符=None
+        for 候选 in 设置.describe({'redactSecrets':True}):
+            if 候选['ns']==命名空间:
+                描述符=候选
                 break
-        if 描述符 is None:#写后消失
-            raise 远程错误('gateway/internal','settings namespace "'+命名空间+'" was disposed after the '+模式,{})#内部
-        return 命名空间视图(描述符)#红化视图
+        if 描述符 is None:
+            raise 远程错误('gateway/internal','settings namespace "'+命名空间+'" was disposed after the '+模式,{})
+        return 命名空间视图(描述符)
 
-    def _提供方(自身):#解析 settings 提供方
+    def _提供方(自身):
         """取 settings 提供方或报告如何挂载。"""
-        设置=自身.ctx.获取服务('settings')#可选
-        if 设置 is None:#缺席
-            raise 远程错误('gateway/internal','settings service is absent: this deployment does not mount a settings provider (e.g. @deepseek-ai/dsh-settings-file) in its composition',{})#拒绝
-        return 设置#提供方
+        设置=自身.ctx.获取服务('settings')
+        if 设置 is None:
+            raise 远程错误('gateway/internal','settings service is absent: mount @deepseek-ai/dsh-settings with @deepseek-ai/dsh-config-editor in the profile composition',{})
+        return 设置
 
 def 应用(上下文,配置值=None):
     """挂载 settings 与 credentials Remote 拥有者。"""
-    设置控制器(上下文,配置值)#构造即登记
+    设置控制器(上下文)
 
 默认=应用
-name=名称#框架槽
-inject=依赖#框架槽
-apply=应用#框架槽
-Config=配置#框架槽
-default=默认#框架槽
+name=名称
+inject=依赖
+apply=应用
+default=默认

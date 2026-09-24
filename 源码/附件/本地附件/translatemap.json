@@ -1,0 +1,9 @@
+{
+    "compression-limiter":"压缩限流",
+    "encoding":"编码",
+    "image":"图像",
+    "normalization":"规范化",
+    "request-image":"请求图像",
+    "sharp":"锐化",
+    "store":"存储"
+}

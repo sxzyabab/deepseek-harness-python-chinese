@@ -6,25 +6,34 @@ import inspect,re,threading#参数名、标识符与中止
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-from ...typert.协议 import 远程方法列表#Remote 标记
+from ...typert.协议 import 远程方法列表,远程错误,取远程错误,是否远程json值#Remote 标记与失败
+from uuid import uuid4 as 生成uuid4#事件关联标识
+from .流协议 import (
+    远程事件流端点,远程事件结果端点,
+    解析远程事件结果,投影远程事件请求,还原远程事件拒绝,
+    是否远程事件智能体标识,
+)
+from ...工具.双端队列 import 双端队列
 
 __all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','操作任务','中止信号','中止控制器']#仅中文公开名
 
 标识符模式=re.compile(r'^[$A-Z_a-z][$A-Za-z0-9_]*\Z')#SRC 参数名，ASCII 标识符，行尾对齐 JS $
 
-class 网关错误(Exception):
+class 网关错误(远程错误):
     """在被调业务方法之外产生的分发失败。"""
     def __init__(自身,码,端点,消息,选项=None):
         """消息中不嵌入边界值。选项为 dict。"""
         if 选项 is None:#无选项
             选项={}#空
+        if not 码.startswith('gateway/'):#线路码带 gateway/ 前缀
+            码='gateway/'+码#补前缀
         原因=选项['cause'] if 'cause' in 选项 else None#可选原因
+        细节={'endpoint':端点}#端点
+        if 'field' in 选项 and 选项['field'] is not None:#有字段
+            细节['field']=选项['field']#字段
         全文='typert gateway: '+端点+': '+消息#带端点前缀
-        super().__init__(全文)#构造
-        if 原因 is not None and isinstance(原因,BaseException):#有异常原因
-            自身.__cause__=原因#挂原因
+        super().__init__(码,全文,细节,原因=原因 if isinstance(原因,BaseException) else None)#构造
         自身.name='TypertGatewayError'#固定错误名
-        自身.code=码#失败类别
         自身.endpoint=端点#端点
         自身.field=选项['field'] if 'field' in 选项 else None#可选线字段
 
@@ -162,6 +171,9 @@ class Typert网关服务(服务):
         """向活动的 Typert 注册表登记网关。"""
         super().__init__(上下文,'typertGateway')#以 typertGateway 名注册
         自身.源声明=None#SRC 端点声明缓存
+        自身.远程事件登记=None#唯一转发事件源
+        自身.远程事件客户端={}#clientId → 客户端
+        自身.待决远程事件={}#eventId → 挂起瀑布
         def 服务变更(*位置参数,**关键字参数):
             """下次认领时重新收集。"""
             自身.源声明=None#清空
@@ -180,6 +192,8 @@ class Typert网关服务(服务):
 
     def 认领端点(自身,端点):
         """两端非空；严格定义/曾见或 SRC 声明命中则认领。"""
+        if 端点==远程事件结果端点:#事件结果
+            return True#认领
         段=端点.split('/')#拆
         if len(段)!=2 or 段[0]=='' or 段[1]=='':#非法
             return False#不认领
@@ -250,6 +264,13 @@ class Typert网关服务(服务):
     def 调用RPC(自身,端点,载荷,信号):
         """成功带 value；失败折成信封。"""
         try:
+            if 端点==远程事件结果端点:#事件结果
+                结果=解析远程事件结果载荷(载荷)#校验
+                客户端=自身.远程事件客户端.get(结果['clientId'])#代际
+                if 客户端 is None:#无代际
+                    raise Exception('typert gateway: Remote event result identifies no active event stream')
+                自身.收取远程事件结果(客户端,结果)#结算
+                return {'ok':True,'value':None}#无业务值
             段=端点.split('/')#拆端点
             if len(段)!=2 or 段[0]=='' or 段[1]=='':#非法
                 raise 网关错误('invocation-unavailable',端点,'invalid Remote endpoint')#端点无效
@@ -402,13 +423,279 @@ class Typert网关服务(服务):
             raise 网关错误('lookup-not-found',端点,'lookup provider '+repr(键)+' did not resolve the requested identity',{'field':参数['wire']})#抛出
         return 已解析#业务对象
 
+    def 登记远程事件(自身,源,宿主):
+        """登记本应用选定的转发事件源。源为 (信号)->迭代器。"""
+        if 自身.远程事件登记 is not None:#已有
+            raise Exception('typert gateway: forwarded Remote event source is already registered')
+        寿命=中止控制器()#源寿命
+        流=源(寿命.信号)#打开
+        完成=操作任务()#消费完成
+        def 消费():
+            """后台消费事件源。"""
+            try:
+                自身.消费远程事件(流,寿命.信号)#消费
+            except BaseException as 错误:
+                if 自身.远程事件登记 is None or 自身.远程事件登记['lifetime'] is not 寿命 or 已中止(寿命.信号):
+                    pass#已拆除或已中止
+                else:
+                    自身.关闭远程事件(错误)#关闭
+                    自身.远程事件登记=None#清空
+                    寿命.中止(错误)#中止寿命
+            finally:
+                完成.兑现(None)#完成
+        线=threading.Thread(target=消费,daemon=True)#消费线程
+        线.start()
+        登记={'lifetime':寿命,'done':完成,'host':{'home':宿主['home']}}#登记
+        自身.远程事件登记=登记#记下
+        def 拆除():
+            """去掉本源并取消活动流。"""
+            if 自身.远程事件登记 is 登记:#仍是本源
+                自身.远程事件登记=None#清空
+                错误=Exception('typert gateway: forwarded Remote event source was removed')
+                登记['lifetime'].中止(错误)#中止
+                自身.关闭远程事件(错误)#关闭
+            完成.等待()#等消费结束
+        return 拆除#拆除器
+
+    def 打开远程事件(自身,载荷,信号):
+        """打开一条转发事件流；载荷须为 {args:{}}。"""
+        if (not 是否对象(载荷) or not 是否普通对象(载荷) or list(载荷.keys())!=['args']
+                or not 是否对象(载荷['args']) or not 是否普通对象(载荷['args'])
+                or len(载荷['args'])!=0):
+            raise 网关错误('arguments-invalid',远程事件流端点,'forwarded Remote event stream requires an empty args object')
+        登记=自身.远程事件登记#当前源
+        if 登记 is None:#无源
+            raise 网关错误('service-unavailable',远程事件流端点,'forwarded Remote event source is unavailable')
+        寿命=中止信号.任一([信号,登记['lifetime'].信号])#合成寿命
+        客户端标识=str(生成uuid4())#代际标识
+        while 客户端标识 in 自身.远程事件客户端:#碰撞
+            客户端标识=str(生成uuid4())#再抽
+        客户端={'id':客户端标识,'queue':远程事件帧队列(),'deliveries':{}}#代际
+        自身.远程事件客户端[客户端标识]=客户端#登记
+        for 挂起 in list(自身.待决远程事件.values()):#已有瀑布
+            自身.投递远程事件(挂起,客户端)#补投
+        try:
+            yield {'type':'ready','clientId':客户端标识,'host':登记['host']}#就绪
+            yield from 客户端['queue'].迭代(寿命)#后续帧
+        finally:
+            自身.移除远程事件客户端(客户端)#摘掉
+
+    def 消费远程事件(自身,源,信号):
+        """消费应用事件源。"""
+        for 派发 in 源:#逐帧
+            if 已中止(信号):#中止
+                if isinstance(派发,dict) and 'context' in 派发:#瀑布
+                    派发['reject'](信号._异常)#拒绝
+                return#停
+            if isinstance(派发,dict) and 'context' in 派发:#瀑布
+                自身.启动远程事件(派发)#启动
+            else:
+                自身.广播远程事件(派发)#广播
+        if not 已中止(信号):#源自己结束
+            raise Exception('typert gateway: forwarded Remote event source ended unexpectedly')
+
+    def 广播远程事件(自身,帧):
+        """向所有代际推 emit。"""
+        断言远程事件帧(帧)#校验
+        线={'type':'emit','event':帧['event'],'args':帧['args']}#线帧
+        for 客户端 in 自身.远程事件客户端.values():#各代际
+            客户端['queue'].推入(线)#推
+
+    def 启动远程事件(自身,源):
+        """把一次瀑布投递给现有代际。"""
+        try:
+            断言远程事件名(源)#名
+            if not 是否远程事件智能体标识(源['context']['agentId']):#无身份
+                raise TypeError('typert gateway: scoped Remote events require a non-empty Agent identity')
+            投影=投影远程事件请求(源['request'],源['context']['subject'])#投影
+            标识=str(生成uuid4())#事件标识
+            while 标识 in 自身.待决远程事件:#碰撞
+                标识=str(生成uuid4())#再抽
+            try:
+                def 释放上下文工厂():
+                    """Context 拆除时取消。"""
+                    def 取消():
+                        """取消本瀑布。"""
+                        自身.取消远程事件(挂起,Exception('typert gateway: Remote event Agent Context was released'))
+                    return 取消
+                释放上下文=源['context']['value'].副作用(释放上下文工厂,'api-gateway: Remote event '+repr(源['event']))
+            except BaseException:
+                源['resolve']({'kind':'next'})#委托本地
+                return
+            信号集合=[]#取消信号
+            if 'signal' in 投影 and 投影['signal'] is not None:
+                信号集合.append(投影['signal'])
+            def 中止():
+                """信号置位则取消。"""
+                原因=None
+                for 项 in 信号集合:
+                    if 已中止(项):
+                        原因=项._异常
+                        break
+                自身.取消远程事件(挂起,原因 if isinstance(原因,BaseException) else Exception('typert gateway: Remote event was cancelled'))
+            挂起={
+                'id':标识,'source':源,
+                'frame':{
+                    'type':'waterfall','event':源['event'],'eventId':标识,
+                    'agentId':源['context']['agentId'],'request':投影['request'],
+                },
+                'deliveries':set(),
+                'releaseContext':释放上下文,
+                'releaseSignal':lambda: None,
+            }
+            监视=[]
+            def 监视信号(来源):
+                """等到来源置位。"""
+                来源._事件.wait()
+                中止()
+            for 项 in 信号集合:
+                线=threading.Thread(target=监视信号,args=(项,),daemon=True)
+                线.start()
+                监视.append(线)
+            def 释放信号():
+                """监视线程随取消自然结束。"""
+                return None
+            挂起['releaseSignal']=释放信号
+            自身.待决远程事件[标识]=挂起#记下
+            if any(已中止(项) for 项 in 信号集合):#已中止
+                中止()
+            else:
+                for 客户端 in 自身.远程事件客户端.values():#投递
+                    自身.投递远程事件(挂起,客户端)
+        except BaseException as 错误:
+            源['reject'](错误)#拒绝源
+
+    def 投递远程事件(自身,挂起,客户端):
+        """把瀑布帧推给一代。"""
+        挂起['deliveries'].add(id(客户端))
+        客户端['deliveries'][挂起['id']]=挂起
+        客户端['queue'].推入(挂起['frame'])
+
+    def 收取远程事件结果(自身,客户端,结果):
+        """结算一次客户端瀑布结果。"""
+        挂起=自身.待决远程事件.get(结果['eventId'])
+        if 挂起 is None or id(客户端) not in 挂起['deliveries']:
+            return
+        自身.移除远程事件投递(挂起,客户端)
+        结局=结果['outcome']
+        if 结局['kind']=='result':
+            自身.结算远程事件(挂起,{'kind':'result','value':结局.get('value')})
+        elif 结局['kind']=='rejected':
+            自身.取消远程事件(挂起,还原远程事件拒绝(结局['error']))
+        elif len(挂起['deliveries'])==0:
+            自身.结算远程事件(挂起,{'kind':'next'})
+
+    def 移除远程事件投递(自身,挂起,客户端):
+        """摘掉一代对某瀑布的投递。"""
+        挂起['deliveries'].discard(id(客户端))
+        客户端['deliveries'].pop(挂起['id'],None)
+
+    def 移除远程事件客户端(自身,客户端):
+        """代际结束。"""
+        自身.远程事件客户端.pop(客户端['id'],None)
+        for 挂起 in list(客户端['deliveries'].values()):
+            自身.移除远程事件投递(挂起,客户端)
+        客户端['queue'].结束()
+
+    def 结算远程事件(自身,挂起,结局):
+        """兑现源监听。"""
+        自身.结束远程事件(挂起)
+        挂起['source']['resolve'](结局)
+
+    def 取消远程事件(自身,挂起,原因):
+        """拒绝源监听。"""
+        if 自身.待决远程事件.get(挂起['id']) is not 挂起:
+            return
+        自身.结束远程事件(挂起)
+        挂起['source']['reject'](原因)
+
+    def 结束远程事件(自身,挂起):
+        """摘掉挂起并通知各代际取消。"""
+        自身.待决远程事件.pop(挂起['id'],None)
+        挂起['releaseSignal']()
+        挂起['releaseContext']()
+        客户端表=[]
+        for 客户端 in 自身.远程事件客户端.values():
+            if 挂起['id'] in 客户端['deliveries']:
+                客户端表.append(客户端)
+        for 客户端 in 客户端表:
+            自身.移除远程事件投递(挂起,客户端)
+        取消帧={'type':'cancel','eventId':挂起['id']}
+        for 客户端 in 客户端表:
+            客户端['queue'].推入(取消帧)
+
+    def 关闭远程事件(自身,原因):
+        """源拆除时拒绝全部挂起。"""
+        for 挂起 in list(自身.待决远程事件.values()):
+            自身.取消远程事件(挂起,原因)
+        for 客户端 in list(自身.远程事件客户端.values()):
+            客户端['queue'].结束()
+
 def RPC失败(错误):
     """把捕获错误折成 RPC 失败信封。控制流按 name/failure 结构识别。"""
+    远程=取远程错误(错误)
+    if 远程 is not None:
+        return {'ok':False,'error':{'code':远程.code,'message':远程.message,'details':远程.details}}
     if getattr(错误,'name',None)=='RemoteInvocationCancelled':#取消
-        return {'ok':False,'error':{'code':'cancelled','message':str(错误),'details':{}}}#取消信封
+        return {'ok':False,'error':{'code':'gateway/cancelled','message':str(错误),'details':{}}}#取消信封
     if getattr(错误,'name',None)=='TypertLookupFailure' and hasattr(错误,'failure'):#查找策略
         return {'ok':False,'error':错误.failure}#沿用
-    return {'ok':False,'error':{'code':'internal','message':str(错误),'details':{}}}#内部
+    return {'ok':False,'error':{'code':'gateway/internal','message':str(错误),'details':{}}}#内部
+
+class 远程事件帧队列:
+    """一代客户端的拉取队列。"""
+
+    def __init__(自身):
+        """空队列。"""
+        自身.帧=双端队列()
+        自身.等待事件=threading.Event()
+        自身.已关闭=False
+
+    def 推入(自身,帧):
+        """入队。"""
+        if 自身.已关闭:
+            return
+        自身.帧.尾推(帧)
+        自身.等待事件.set()
+
+    def 结束(自身):
+        """关闭。"""
+        if 自身.已关闭:
+            return
+        自身.已关闭=True
+        自身.等待事件.set()
+
+    def 迭代(自身,信号):
+        """拉取直至关闭或中止。"""
+        try:
+            while True:
+                while 自身.帧.大小>0:
+                    yield 自身.帧.头弹()
+                if 自身.已关闭 or 已中止(信号):
+                    return
+                自身.等待事件.clear()
+                while not 自身.已关闭 and not 已中止(信号) and 自身.帧.大小==0:
+                    自身.等待事件.wait(0.05)
+        finally:
+            pass
+
+def 断言远程事件帧(帧):
+    """校验 emit 帧。"""
+    断言远程事件名(帧)
+    if not isinstance(帧.get('args'),list) or not 是否远程json值(帧['args']):
+        raise TypeError('typert gateway: Remote event '+repr(帧.get('event'))+' arguments are not lossless JSON data')
+
+def 断言远程事件名(帧):
+    """事件名非空。"""
+    if not isinstance(帧.get('event'),str) or 帧.get('event')=='':
+        raise TypeError('typert gateway: Remote event name must be a nonempty string')
+
+def 解析远程事件结果载荷(载荷):
+    """载荷须恰好 args。"""
+    if (not 是否对象(载荷) or not 是否普通对象(载荷)
+            or list(载荷.keys())!=['args']):
+        raise Exception('typert gateway: Remote event result requires exactly one plain-object args field')
+    return 解析远程事件结果(载荷['args'])
 
 def 校验绑定(接收方,服务键,命名空间,端点):
     """返回绑定与原始对象。"""

@@ -41,13 +41,13 @@ def 应用(上下文):
         def 登记正文():
             """登记 HTML 正文。"""
             def 注入():
-                """绑定关联读取。"""
+                """绑定关联读取与交互预览开关。"""
                 def 关联读取(地址,相对路径,信号):
                     """经 Host 相对根 HTML 读取依赖。"""
                     文件=宿主文件(地址)#宿主文件
-                    return 上下文.remote.workspaceFiles.readRelated(文件['sessionId'],文件['path'],相对路径,信号)#结果
-
-                return {'readRelated':关联读取}#注入
+                    return 上下文.remote.workspaceFiles.readBytes(文件['sessionId'],相对路径,{'baseFile':文件['path']},信号)#结果
+                交互=上下文.configForms.developerTools.enabled
+                return {'hooks':{'interactivePreview':交互},'readRelated':关联读取}#注入
 
             return 上下文.slots.register({#席位
                 'name':'sidebar.right.tab.document',

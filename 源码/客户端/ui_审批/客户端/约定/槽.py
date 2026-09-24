@@ -66,7 +66,10 @@ class 待决审批:#可作答的待处理 Host waterfall 的 Client 呈现
         def 写入():
             """写入决定。"""
             自身._结果箱['value']=结果#成功结算
-        自身._收尾(写入)#一次结算
+        try:
+            自身._收尾(写入)#一次结算
+        except 审批错误 as 错误:
+            raise 审批错误('pending approval settlement failed') from 错误
 
     def delegate(自身):
         """把未作答请求委托给下一个 waterfall 监听器。"""

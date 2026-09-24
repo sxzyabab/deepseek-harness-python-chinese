@@ -20,7 +20,7 @@
     "emitted":"已发出",
     "emitter":"发出器",
     "empty":"空",
-    "emptyDockPane":"空停靠窗格",
+    "emptydockpane":"空停靠窗格",
     "en":"英文",
     "enable":"启用",
     "enabled":"已启用",
@@ -44,8 +44,8 @@
     "enter":"进入",
     "entity":"实体",
     "entries":"条目集",
-    "entriesOf":"条目对",
-    "entriesOfSlot":"槽位条目",
+    "entriesof":"条目对",
+    "entriesofslot":"槽位条目",
     "entry":"条目",
     "enum":"枚举",
     "enumerable":"可枚举",
@@ -135,5 +135,7 @@
     "extra":"多余",
     "extract":"抽取",
     "extracted":"已抽取",
-    "extraction":"抽取结果"
+    "extraction":"抽取结果",
+    "excel":"excel",
+    "electron":"electron"
 }

@@ -5,13 +5,14 @@ from .壳层 import 触发器内容,页眉内容,关闭标签#chrome
 from .常规条目分区 import 常规条目分区#常规条目分区
 from .文档动作 import 文档动作#文档动作
 from .桌面更新 import 桌面更新源#桌面更新源
+from .开发者工具行 import 开发者工具行#开发者工具行
 
 __all__=[#仅中文公开名
     '依赖','应用','设置根','触发器内容','页眉内容','关闭标签',
-    '常规条目分区','文档动作','设置文档存储','命名空间','中文','英文',
+    '常规条目分区','文档动作','设置文档存储','命名空间','中文','英文','开发者工具行',
 ]
 
-依赖=['slots','locale','connection','remote','remote.settings','settingsScope']#所需服务
+依赖=['slots','locale','connection','remote','remote.settings','configForms']#所需服务
 
 def 解析槽标签(标签):
     """字符串或 thunk。"""
@@ -30,6 +31,19 @@ def 按序(行):
 
 def 应用(上下文):
     """登记词表、chrome 与常规条目分区。"""
+    def 登记开发者工具():
+        """登记开发者工具行。"""
+        def 注入面():
+            """配置表单开关。"""
+            return {
+                'hooks':{'developerTools':上下文.configForms.developerTools.enabled},
+                'setEnabled':上下文.configForms.developerTools.setEnabled,
+            }
+        return 上下文.slots.register({
+            'name':'settings.general.item','id':'developer-tools','order':15,'locale':命名空间,
+            'inject':注入面,
+        },开发者工具行)
+    上下文.slots.inject('settings.general.item',登记开发者工具)
     def 登记词典():
         """登记外壳词典。"""
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
@@ -138,6 +152,7 @@ def 应用(上下文):
             'name':'sidebar.settings',#侧栏设置
             'locale':命名空间,#词表
             'children':{#本壳声明的设置槽
+                'settings.launcher':{'kind':'single','scope':'root'},#启动器
                 'settings.trigger':{'kind':'single','scope':'root'},#触发器
                 'settings.header':{'kind':'single','scope':'root'},#页眉
                 'settings.action':{'kind':'list','scope':'root'},#动作

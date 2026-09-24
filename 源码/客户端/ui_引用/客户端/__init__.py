@@ -188,18 +188,33 @@ def 应用(上下文):
     会话面=上下文.获取服务('sessions')#会话列表面
 
     def 列出候选(会话,请求):
-        """文件与会话并行；引号路径只搜文件。请求为线协议 dict。"""
+        """持留会话至历史打开后再发现。请求为线协议 dict。"""
         查询=请求['query'] if 'query' in 请求 else ''#查询
         引号=请求['quoted'] is True if 'quoted' in 请求 else False#引号
         已下钻=请求['drilled'] if 'drilled' in 请求 else False#下钻
         信号=请求['signal'] if 'signal' in 请求 else None#取消
-        文件结果=上下文.remote.fileReferences.list(会话.sessionId,查询,信号)#文件发现
-        文件项=文件结果['value'] if 文件结果['ok'] else []#失败静默为空
-        if 引号:
-            会话项=[]#空
-        else:
-            会话结果=上下文.remote.sessionReferenceResolver.candidates(会话.sessionId,查询,信号)#会话发现
-            会话项=会话结果['value'] if 会话结果['ok'] else []#失败静默为空
+        if 会话面.binding(会话.sessionId) is None:
+            raise 引用错误('reference candidates require a retained session "'+str(会话.sessionId)+'"')
+        def 在持有内拉取(引用):
+            """等历史打开再并行发现。"""
+            if 信号 is not None:
+                若已中止则抛出(信号)
+            状态=引用.binding.session.getSnapshot()
+            打开态=状态['openState'] if isinstance(状态,dict) else getattr(状态,'openState',None)
+            if 打开态!='open':
+                错误=状态['openError'] if isinstance(状态,dict) and 'openError' in 状态 else getattr(状态,'openError',None)
+                if 错误 is not None:
+                    raise 错误
+                raise 引用错误('session "'+str(会话.sessionId)+'" is not open')
+            文件结果=上下文.remote.fileReferences.list(会话.sessionId,查询,信号)#文件发现
+            文件项=文件结果['value'] if 文件结果['ok'] else []#失败静默为空
+            if 引号:
+                会话项=[]#空
+            else:
+                会话结果=上下文.remote.sessionReferenceResolver.candidates(会话.sessionId,查询,信号)#会话发现
+                会话项=会话结果['value'] if 会话结果['ok'] else []#失败静默为空
+            return 文件项,会话项
+        文件项,会话项=会话面.using(会话.sessionId,{'source':'referenceCandidates','signal':信号},在持有内拉取)
         if 信号 is not None and 已中止(信号):
             return []#空
         标位置=面包屑(查询,引号,已下钻,翻译) is None#是否行上标位置

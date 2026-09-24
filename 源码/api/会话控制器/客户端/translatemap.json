@@ -1,0 +1,17 @@
+{
+    "assistant-stream":"助手流",
+    "contract":"约定",
+    "history-records":"历史记录",
+    "lineage":"谱系",
+    "manager":"会话簇",
+    "notifier":"通知器",
+    "ordered-baseline":"有序基线",
+    "projection-store":"投影存储",
+    "remotes":"远程面",
+    "scope":"作用域",
+    "service":"服务",
+    "session":"会话",
+    "session-wire-event":"会话线事件",
+    "time-zone":"时区",
+    "transport":"传输"
+}

@@ -1,0 +1,10 @@
+{
+    "codec":"编解码",
+    "detached":"分离",
+    "events":"事件",
+    "invariant":"不变量",
+    "matcher":"匹配器",
+    "merge":"合并",
+    "runner":"运行器",
+    "types":"类型"
+}

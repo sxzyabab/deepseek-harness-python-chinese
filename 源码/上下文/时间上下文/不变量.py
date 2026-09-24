@@ -104,12 +104,12 @@ def 校验读数(历史,事件,失败):
     if 回合!=期望['turn'] or 步骤!=期望['step']:#读数自称的位置必须吻合
         失败('time-context reading names turn '+str(回合)+'/step '+str(步骤)+', expected turn '+str(期望['turn'])+'/step '+str(期望['step']))#位置不符
     来源=事件['data']['source']#消息来源
-    if 来源['kind']!='plugin' or 来源['plugin']!=来源名:#必须保留本包所有权
+    if 来源['kind']!=来源名:#必须保留本包所有权
         失败('time-context source must retain package ownership')#来源所有权丢失
     分段列表=来源['sections'] if 'sections' in 来源 else None#快照分段
     段值=分段列表[0] if isinstance(分段列表,list) and len(分段列表)>0 else None#第一段未知
     段=段值 if isinstance(段值,dict) else None#须为对象
-    if (len(来源)!=4#来源只有kind/plugin/form/sections
+    if (len(来源)!=3#来源只有kind/form/sections
         or 来源['form']!='snapshot'#必须是快照形态
         or not isinstance(分段列表,list)#sections必须是数组
         or len(分段列表)!=1#恰好一段
@@ -165,8 +165,7 @@ def 校验会话(会话,失败):
             continue#跳过
         来源=数据['source']#来源
         if (事件['type']!='user/message'#非用户消息
-            or 来源['kind']!='plugin'#非插件来源
-            or 来源['plugin']!=来源名):#非本插件
+            or 来源['kind']!=来源名):#非本插件
             continue#跳过
         校验读数(事件列表[0:下标],事件,失败)#用该事件之前的历史校验
 
@@ -190,8 +189,7 @@ def 安装(上下文,失败):
             return
         来源=数据['source']
         if (事件['type']!='user/message'
-            or 来源['kind']!='plugin'
-            or 来源['plugin']!=来源名):
+            or 来源['kind']!=来源名):
             return
         校验读数(会话.events,事件,失败)
     上下文.监听('session/created',会话已创建,{'全局':True})#新会话也校验

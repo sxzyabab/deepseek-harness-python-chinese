@@ -12,6 +12,7 @@ __all__=[#仅中文公开名
     '执行请求字段','执行请求','执行规格字段','执行规格',
     '运行结果字段','运行结果',
     '增量读取字段','增量读取','后台进程字段','后台进程',
+    '有效期策略','已观察流字段',
 ]#公开面结束
 
 托管环境前缀='DSH_'#预留给 Harness 管理的子环境事实的命名空间前缀
@@ -37,11 +38,16 @@ class 沙箱事实(TypedDict):#沙箱执行事实（仅当沙箱执行器处理�
     enforcement:NotRequired[str]#所选运行器对请求模式的强制完整程度
     runnerFailed:NotRequired[bool]#沙箱运行器是否在命令能运行之前就失败
 
-执行请求字段=('command','workdir','timeoutMs','stdoutMaxBytes','signal','stdin','env','dshEnv','sandboxPolicy')#调用方请求键
+有效期策略=('kill','none')#到期政策：kill 在超时杀死，none 不武装截止
+
+已观察流字段=('stdout','stderr')#非消费偏移读取器
+
+执行请求字段=('command','workdir','timeoutMs','onExpiry','stdoutMaxBytes','signal','stdin','env','dshEnv','sandboxPolicy')#调用方请求键
 class 执行请求(TypedDict):#调用方执行请求；省略字段由执行器解析填入
     command:str#命令
     workdir:NotRequired[str]#工作目录覆盖（默认：实现配置）
     timeoutMs:NotRequired[int]#超时覆盖，毫秒（实现会封顶）
+    onExpiry:NotRequired[str]#到期政策，默认 kill
     stdoutMaxBytes:NotRequired[int]#前台 stdout 捕获预算，字节；面向模型的工具不暴露
     signal:NotRequired[object]#中止信号——触发时实现杀死命令
     stdin:NotRequired[str]#写入命令 stdin 的字节，然后关闭；面向模型工具不暴露
@@ -49,11 +55,12 @@ class 执行请求(TypedDict):#调用方执行请求；省略字段由执行器�
     dshEnv:NotRequired[dict]#本次执行的 Harness 拥有 DSH_* 快照
     sandboxPolicy:NotRequired[object]#完全解析的按次沙箱政策
 
-执行规格字段=('command','workdir','timeoutMs','stdoutMaxBytes','signal','stdin','env','dshEnv','sandboxPolicy')#已解析规格键
-class 执行规格(TypedDict):#已解析执行规格；启动后台时忽略 timeoutMs
+执行规格字段=('command','workdir','timeoutMs','onExpiry','stdoutMaxBytes','signal','stdin','env','dshEnv','sandboxPolicy')#已解析规格键
+class 执行规格(TypedDict):#已解析执行规格
     command:str#命令
     workdir:str#工作目录
     timeoutMs:int#超时毫秒
+    onExpiry:str#到期政策
     stdoutMaxBytes:int#已解析前台 stdout 捕获预算
     signal:NotRequired[object]#中止信号
     stdin:NotRequired[str]#关闭前写入 stdin 的字节
@@ -79,17 +86,18 @@ class 增量读取(TypedDict):#一次增量 readOutput 读取
     stdoutSpillPath:NotRequired[str]#完整 stdout 溢出文件
     stderrSpillPath:NotRequired[str]#完整 stderr 溢出文件
 
-后台进程字段=('status','exitCode','signal','done','sandbox')#后台进程句柄数据键（载荷键字面量）
-class 后台进程:#外壳执行器.启动 返回的后台进程句柄协议
+后台进程字段=('status','exitCode','signal','done','sandbox','observed')#后台进程句柄数据键（载荷键字面量）
+class 后台进程:#外壳执行器.执行 返回的执行句柄协议
     """唯一访问路径；缓冲输出在退出后仍可读。
 
-    数据字段为线协议载荷键（status/exitCode/signal/done/sandbox）；方法仅中文：读取输出、杀死。dict 形态句柄若仍带 readOutput/kill 键，属提供方迁移债。
+    数据字段为线协议载荷键（status/exitCode/signal/done/sandbox/observed）；方法仅中文：读取输出、杀死、结果。
     """
     status=None#生命周期（进程状态）
     exitCode=None#结束后的退出码（None = 被信号杀死 / 仍在运行）
     signal=None#被信号杀死时的终止信号名
     done=None#底层进程关闭时决议的承诺（从不拒绝）
     sandbox=None#沙箱事实，隔离进程结算时盖章
+    observed=None#非消费偏移读取器
 
     def 读取输出(自身):#增量读取
         """读取自上次以来产出的输出（消费式——连续读取从不重投）。"""
@@ -98,3 +106,7 @@ class 后台进程:#外壳执行器.启动 返回的后台进程句柄协议
     def 杀死(自身):#杀死进程组
         """杀死进程组。已经结束时返回 False（空操作）；幂等。"""
         raise NotImplementedError('后台进程.杀死')#由提供方实现
+
+    def 结果(自身):
+        """前台投影：进程关闭时结算；仅基础设施失败拒绝。"""
+        raise NotImplementedError('后台进程.结果')#由提供方实现

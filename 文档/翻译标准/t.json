@@ -1,6 +1,6 @@
 {
     "tab":"标签页",
-    "tabInfoFactory":"标签页信息工厂",
+    "tabinfofactory":"标签页信息工厂",
     "table":"表",
     "tag":"标签",
     "tagged":"已打标签",
@@ -29,6 +29,7 @@
     "termination":"终止结果",
     "test":"测试",
     "tested":"已测试",
+    "testing":"测试中",
     "text":"文本",
     "theme":"主题",
     "then":"随后",
@@ -66,7 +67,7 @@
     "todo":"待办",
     "toggle":"切换",
     "toggled":"已切换",
-    "toggleExpanded":"切换展开状态",
+    "toggleexpanded":"切换展开状态",
     "token":"令牌",
     "tokenize":"分词",
     "tokens":"令牌列表",
@@ -80,7 +81,7 @@
     "top":"顶",
     "topic":"话题",
     "topics":"话题列表",
-    "topRightPaneId":"右上窗格标识",
+    "toprightpaneid":"右上窗格标识",
     "torn":"撕裂",
     "tort":"侵权",
     "total":"总数",
@@ -128,5 +129,6 @@
     "type":"类型",
     "typed":"带类型",
     "types":"类型列表",
-    "typing":"类型标注"
+    "typing":"类型标注",
+    "transcribe":"转写"
 }

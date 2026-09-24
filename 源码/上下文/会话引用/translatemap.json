@@ -1,0 +1,7 @@
+{
+    "config":"配置",
+    "projection":"投影",
+    "serialization":"序列化",
+    "spill":"溢出",
+    "types":"类型"
+}

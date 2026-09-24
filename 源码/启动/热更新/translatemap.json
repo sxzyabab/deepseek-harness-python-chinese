@@ -1,5 +1,4 @@
 {
-    "error.ts":"错误.py",
-    "watch-config.ts":"监视配置.py",
-    "index.ts":"__init__.py"
+    "error":"错误",
+    "watch-config":"监视配置"
 }

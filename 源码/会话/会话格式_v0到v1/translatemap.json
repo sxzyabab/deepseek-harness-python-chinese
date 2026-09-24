@@ -1,10 +1,9 @@
 {
-    "codec.ts":"编解码.py",
-    "dispositions.ts":"处置.py",
-    "index.ts":"__init__.py",
-    "migration.ts":"迁移.py",
-    "payload-validation.ts":"载荷校验.py",
-    "relationships.ts":"关系.py",
-    "validation-helpers.ts":"记录与精确键.py",
-    "validation.ts":"校验.py"
+    "codec":"编解码",
+    "dispositions":"处置",
+    "migration":"迁移",
+    "payload-validation":"载荷校验",
+    "relationships":"关系",
+    "validation-helpers":"记录与精确键",
+    "validation":"校验"
 }

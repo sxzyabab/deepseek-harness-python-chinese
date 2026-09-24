@@ -18,7 +18,7 @@
     "needed":"所需",
     "negative":"负",
     "neighbor":"邻居",
-    "neighbourTabId":"相邻标签页标识",
+    "neighbourtabid":"相邻标签页标识",
     "nest":"嵌套",
     "nested":"已嵌套",
     "nesting":"嵌套层级",
@@ -32,7 +32,7 @@
     "next":"下一",
     "no":"否",
     "node":"节点",
-    "nodeAtPath":"路径处节点",
+    "nodeatpath":"路径处节点",
     "nodejs":"nodejs",
     "nodes":"节点列表",
     "non":"非",
@@ -44,7 +44,7 @@
     "normalization":"规范化处理",
     "normalize":"规范化",
     "normalized":"已规范化",
-    "normalizeSizes":"规范化尺寸",
+    "normalizesizes":"规范化尺寸",
     "not":"未",
     "note":"说明",
     "notice":"须知",
@@ -60,5 +60,6 @@
     "nullish":"空值类",
     "number":"数字",
     "numeric":"数值",
-    "numstat":"numstat"
+    "numstat":"numstat",
+    "notes":"说明列表"
 }

@@ -1,9 +1,8 @@
 {
-    "presentation.ts":"呈现.py",
-    "resolution.ts":"解析.py",
-    "directory.ts":"目录.py",
-    "locales.ts":"文案.py",
-    "contract.ts":"约定.py",
-    "service.ts":"服务.py",
-    "index.ts":"__init__.py"
+    "service":"服务",
+    "contract":"约定",
+    "presentation":"呈现",
+    "resolution":"解析",
+    "directory":"目录",
+    "locales":"文案"
 }

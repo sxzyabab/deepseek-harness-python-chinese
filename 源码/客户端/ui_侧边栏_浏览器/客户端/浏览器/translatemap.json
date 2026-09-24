@@ -1,0 +1,10 @@
+{
+    "url":"地址",
+    "store":"存储",
+    "BrowserNavigation":"导航",
+    "BrowserController":"控制",
+    "BrowserFrame":"帧",
+    "BrowserPersistence":"浏览器持久化",
+    "IframeImpl":"内嵌帧实现",
+    "BrowserPage":"浏览器页"
+}

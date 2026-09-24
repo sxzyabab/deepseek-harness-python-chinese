@@ -146,7 +146,7 @@ class office转pdf(远程服务):
         结局=远程结局()
         自身._远程请求.add(结局)
         try:
-            threading.Thread(target=在线线程执行,daemon=True).start()
+            threading.Thread(target=在线程执行,daemon=True).start()
             return 结局.等待()
         finally:
             自身._远程请求.discard(结局)

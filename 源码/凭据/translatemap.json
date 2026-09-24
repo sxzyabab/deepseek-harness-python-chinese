@@ -1,5 +1,7 @@
 {
     "authorization":"授权",
     "credentials":"凭据",
-    "credentials-local":"本地凭据"
+    "credentials-local":"本地凭据",
+    "deepseek-account":"deepseek账号",
+    "deepseek-account-platform":"deepseek账号平台"
 }

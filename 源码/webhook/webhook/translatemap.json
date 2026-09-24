@@ -1,7 +1,6 @@
 {
-    "index.ts":"__init__.py",
-    "invariant.ts":"不变量.py",
-    "brand.ts":"标识构造.py",
-    "session.ts":"会话.py",
-    "types.ts":"类型.py"
+    "invariant":"不变量",
+    "brand":"标识构造",
+    "session":"会话",
+    "types":"类型"
 }

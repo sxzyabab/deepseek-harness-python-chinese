@@ -1,12 +1,13 @@
 """JSONL 会话持久化后端的磁盘格式辅助。"""
 import json,os,re#JSON、路径与正则
-from ...内核.会话 import 会话格式版本#本构建格式版本
+from ...内核.会话 import 会话格式版本,已知会话事件类型#本构建格式版本与已知类型
 from ..会话格式 import (#从会话格式导入
     会话格式日志文件名,#格式日志文件名
     解析会话格式日志文件名,#解析格式名
     会话格式不支持迁移错误,#不支持迁移
 )#格式工具
 from ..会话格式目录 import 会话格式目录#会话格式目录
+from ..会话格式_v3到v4 import 断言v4行准入,断言已发布v4关系#v4准入与关系
 from ..会话持久化 import 会话格式不支持错误,会话格式版本拒绝文案#持久化错误
 from ...内核.会话.json值 import 冻结树#深冻结已存事件图
 
@@ -79,8 +80,8 @@ def 是否头行(值):#是否为头行
     深度=值.get('delegationDepth')#delegationDepth
     if not isinstance(深度,int) or isinstance(深度,bool) or 深度<0:#非法
         return False#否
-    cwd=值.get('cwd')#cwd
-    if cwd is not None and (not isinstance(cwd,str) or not os.path.isabs(cwd)):#cwd非法
+    cwd=值['cwd'] if 'cwd' in 值 else None#cwd
+    if 'cwd' in 值 and (not isinstance(cwd,str) or not os.path.isabs(cwd)):#cwd非法
         return False#否
     父=值.get('parentSession')#parentSession
     if 父 is not None and not isinstance(父,str):#非法
@@ -245,11 +246,15 @@ def 扫描日志(文本或字节,恢复='recoverable'):#扫描整份日志
             if 延迟错误 is None:#可恢复
                 延迟错误=问题#记录
             continue#本行放弃
+        try:#当前代结构准入必须先于可恢复尾抑制
+            断言v4行准入(已解码,已知会话事件类型)#v4准入
+        except 会话格式不支持迁移错误 as 错误:#不支持
+            raise 会话格式不支持错误(str(错误))#映射
+        if 延迟错误 is not None:#已有延迟错误
+            if isinstance(已解码,dict) and 已解码.get('type')=='turn/end':#遇回合结束
+                raise 延迟错误#抛出
+            continue#否则继续吞行
         try:#经恢复器解码
-            if 延迟错误 is not None:#已有延迟错误
-                if isinstance(已解码,dict) and 已解码.get('type')=='turn/end':#遇回合结束
-                    raise 延迟错误#抛出
-                continue#否则继续吞行
             恢复器.decodeRow(已解码)#解码行
         except 会话格式不支持迁移错误 as 错误:#不支持
             raise 会话格式不支持错误(str(错误))#映射
@@ -265,6 +270,7 @@ def 扫描日志(文本或字节,恢复='recoverable'):#扫描整份日志
             continue#否则延迟
         已提交=行末#推进已提交字节
     产物=恢复器.finish()#完成恢复器
+    断言已发布v4关系(产物,已知会话事件类型)#v4关系
     事件列表=list(产物['events'])#事件前缀
     for 事件 in 事件列表:#建立不可变共享
         冻结树(事件)#深冻结单事件

@@ -1,0 +1,12 @@
+{
+    "config":"配置",
+    "download-error":"下载错误",
+    "input":"输入",
+    "runtime":"运行时准备",
+    "recognizer":"识别器",
+    "inference":"模型推断",
+    "process-server":"进程服务器",
+    "worker":"工作者",
+    "model-sources":"模型源列表",
+    "assets":"静态资产"
+}

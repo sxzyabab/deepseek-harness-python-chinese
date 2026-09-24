@@ -18,6 +18,7 @@ from .服务 import 创建右侧侧栏控制器,右侧侧栏控制器,资源方�
 from .标签注册表 import 右侧侧栏标签注册表,默认优先级带,优先级秩#注册表
 from .标签域 import 标签域,快照仓#标签域
 from .标签信息 import 标签信息工厂,向导标签信息工厂#标签信息
+from .会话视图集 import 侧栏会话视图集
 from .壳.右侧侧栏 import 右栏席,意图面,样式表 as 右栏样式表,窄视口全屏阈值#右栏席
 from .壳.右栏根 import 右栏根#右栏根
 from .壳.展开按钮 import 展开按钮,样式表 as 展开样式表#展开钮
@@ -36,22 +37,39 @@ __all__=[#仅中文公开名
     '右侧侧栏标签注册表','默认优先级带','优先级秩',
     '标签域','快照仓',
     '标签信息工厂','向导标签信息工厂',
+    '侧栏会话视图集',
     '右栏根','右栏席','意图面','右栏样式表','窄视口全屏阈值',
     '展开按钮','展开样式表',
     '向导标识','向导定义','向导体','向导标题','向导样式表',
 ]
 
 命名空间=右侧侧栏词表命名空间#文案命名空间（线路字面量）
-依赖=['slots','layout','locale','resources']#槽、布局、文案、资源
+依赖=['slots','layout','locale','resources','sessions','uiSession']#槽、布局、文案、资源、会话
 
 
 def 应用(上下文):
     """提供登记表与导航面，挂面板席与展开钮，经公开两段路径登记向导。"""
     翻译=上下文.locale.bind(命名空间)#绑定翻译
     注册表=右侧侧栏标签注册表(上下文)#类型表
+    视图集=侧栏会话视图集(上下文.sessions)
+    def 装视图():
+        """跟当前会话选择，保留后台视图。"""
+        当前=上下文.uiSession.adapter.current
+        def 同步():
+            快照=当前.getSnapshot()
+            键=快照['key'] if 快照 is not None and 'key' in 快照 else None
+            视图集.选择(键)
+        退订=当前.subscribe(同步)
+        同步()
+        def 拆除():
+            退订()
+            视图集.拆除()
+        return 拆除
+    上下文.副作用(装视图,'ui-sidebar-right: retained Session views')
     双件=创建右侧侧栏控制器(注册表,lambda 地址,信号:上下文.resources.钉住(地址,信号))#控制器
     控制器=双件['controller']#面
     认领=双件['adopt']#认领
+    遗忘=双件['forget']
     拆登记=上下文.反射.提供服务('sidebarRightTabs',注册表)#提供登记表
     拆服务=上下文.反射.提供服务('sidebarRight',控制器)#提供导航面
 
@@ -75,13 +93,26 @@ def 应用(上下文):
     def 挂席与向导():
         """一存储两席，加出厂向导。"""
         规格=创建右侧侧栏存储(lambda:默认种子(注册表))#规格：默认页面种子
-        认领表=[]#释放器
+        认领表={}#session → 释放器
 
         def 存储工厂(作用域键=None):
             """铸造并认领。"""
             实例=规格['create'](作用域键)#实例
             if 作用域键 is not None:#有会话
-                认领表.append(认领(作用域键,实例))#认领
+                旧=认领表[作用域键] if 作用域键 in 认领表 else None
+                if 旧 is not None:
+                    旧()
+                认领表[作用域键]=认领(作用域键,实例)#认领
+            原清=实例['clearPersisted'] if isinstance(实例,dict) and 'clearPersisted' in 实例 else None
+            def 清持久化():
+                if 原清 is not None:
+                    原清()
+                if 作用域键 is not None:
+                    遗忘(作用域键)
+            if isinstance(实例,dict):
+                包装=dict(实例)
+                包装['clearPersisted']=清持久化
+                return 包装
             return 实例#实例
 
         存储={'init':规格['init'],'actions':规格['actions'],'create':存储工厂}#包装
@@ -109,6 +140,10 @@ def 应用(上下文):
                 拆根=上下文.slots.register({#根
                     'name':'rightbar',
                     'children':{席名右栏会话:{'kind':'single','scope':'session'}},
+                    'inject':lambda:{
+                        'hooks':{'views':视图集.源},
+                        'mountView':视图集.挂载,
+                    },
                 },右栏根)#根组件
                 def 注入面(会话标识):
                     """按会话补钩。"""
@@ -186,8 +221,9 @@ def 应用(上下文):
             拆席()#席
             for 拆 in reversed(拆类型):#类型
                 拆()
-            for 释 in 认领表:#认领
+            for 释 in 认领表.values():#认领
                 释()#释
+            认领表.clear()
 
         return 拆除#拆除器
 

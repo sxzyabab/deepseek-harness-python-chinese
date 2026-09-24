@@ -7,11 +7,15 @@ __all__=[
 说明=('真实 dynamicCordisContext 需 cordis Context Proxy 与浏览器 slots/theme；'
       '本叶规则/主入口/槽认领已落地，Proxy·Reflect.apply 执行体为硬缺口。')
 
-上下文动词=frozenset([#允许的 ctx 动词
+上下文动词=frozenset([#允许的 ctx 动词；线协议原名
+    'effect','on','once','provide','timeout','interval','setTimeout','setInterval','throttle','debounce',
     '副作用','监听','监听一次','提供服务','超时','间隔','节流','防抖',
 ])#结束
 
-定时器动词=frozenset(['超时','间隔','节流','防抖'])#需 inject timer
+定时器动词=frozenset([
+    'timeout','interval','setTimeout','setInterval','throttle','debounce',
+    '超时','间隔','节流','防抖',
+])#需 inject timer
 
 槽账本行字段=('slot','priority')#账本行
 门面环境字段=('pkg','ledger','claim','allocatePriority','reportFailure')#环境
@@ -68,7 +72,7 @@ def 主题覆盖源(环境,源参数,令牌参数):#overrideTokens 参数规则
 
 def 门面可读(属性,已声明):#Proxy has 语义
     """门面键是否可见：get、白名单动词（定时器需已声明 timer）、或已声明服务。"""
-    if 属性=='获取服务':#可选查找
+    if 属性=='获取服务' or 属性=='get':#可选查找；线协议 get
         return True#可见
     if not isinstance(属性,str):#符号键
         return False#不可见
@@ -181,12 +185,19 @@ def 动态上下文门面(真实上下文,环境):#dynamicCordisContext 主入�
         if 动词 in 定时器动词 and 'timer' not in 已声明:
             拒绝未声明读取(环境,'timer',已声明,False)#抛
         方法=getattr(真实上下文,动词,None)#真实
+        if not callable(方法):#英文线协议名落到中文方法
+            对照={
+                'effect':'副作用','on':'监听','once':'监听一次','provide':'提供服务',
+                'timeout':'超时','interval':'间隔','setTimeout':'超时','setInterval':'间隔',
+                'throttle':'节流','debounce':'防抖',
+            }
+            方法=getattr(真实上下文,对照.get(动词,动词),None)
         if not callable(方法):#无
             拒绝未声明读取(环境,动词,已声明,False)#抛
         return 方法(*位置参数)#绑在真实 ctx（无 Reflect 硬缺口：普通调用）
     def 取属性(属性):
         """get / 动词 / 已声明服务。"""
-        if 属性=='获取服务':#可选查找
+        if 属性=='获取服务' or 属性=='get':#可选查找；线协议 get
             def 可选查找(名):
                 """不要求声明的查找。"""
                 return 获取(名,False)#查找

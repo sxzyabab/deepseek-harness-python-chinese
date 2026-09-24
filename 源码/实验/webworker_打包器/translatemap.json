@@ -1,8 +1,7 @@
 {
-    "bin.ts":"命令行.py",
-    "index.ts":"__init__.py",
-    "pack.ts":"打包.py",
-    "repository.ts":"存储.py",
-    "rules.ts":"规则.py",
-    "transform-image.ts":"变换镜像.py"
+    "pack":"打包",
+    "repository":"存储",
+    "rules":"规则",
+    "transform-image":"变换镜像",
+    "preview":"预览"
 }

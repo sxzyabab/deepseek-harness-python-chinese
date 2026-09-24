@@ -1,5 +1,5 @@
 """dsh plugin 与运行中装载服务共用的配置档包操作。"""
-import os,re,json,tempfile,threading,subprocess
+import os,re,json,tempfile,threading,subprocess,time
 from ...工具.原子写入 import 带文件锁,原子写文件
 from ...子进程.子进程 import 擦洗父环境
 from ..app启动 import (
@@ -14,6 +14,7 @@ from ..app启动 import (
 
 __all__=[
     '锚定路径规格','组合包清单','保存清单','跑配置档pnpm','跑插件命令','查看配置档包',
+    '读配置档注册表','注册表参数',
 ]
 
 相对路径规格=re.compile(r'^(?P<prefix>(?:file|link):)?(?P<path>\.{1,2}(?:[/\\].*)?)$')
@@ -97,6 +98,7 @@ def 收集流(流,种类,日志句柄,写出锁,状态,选项):
                 if len(状态['output'])>选项['outputBytes']:
                     状态['truncated']=True
                     状态['output']=状态['output'][-选项['outputBytes']:]
+                状态['lastOutput']=time.monotonic()
     except Exception:
         状态['streamError']=True
         raise
@@ -114,7 +116,7 @@ def 跑配置档pnpm(上下文,参数列表,选项):
         os.chmod(日志路径,0o600)
     except OSError:
         pass
-    状态={'output':b'','truncated':False,'streamError':False}
+    状态={'output':b'','truncated':False,'streamError':False,'lastOutput':time.monotonic(),'stalled':False}
     写出锁=threading.Lock()
     命令=选项.get('command') or 'pnpm'
     前缀=list(选项.get('args') or [])
@@ -144,6 +146,17 @@ def 跑配置档pnpm(上下文,参数列表,选项):
                 threading.Event().wait(0.05)
         监视=threading.Thread(target=监视中止,daemon=True)
         监视.start()
+    空闲毫秒=选项.get('idleTimeoutMs')
+    if 空闲毫秒 is not None:
+        def 监视空闲():
+            """静默过久则杀子进程。"""
+            while 子进程.poll() is None:
+                if time.monotonic()-状态['lastOutput']>=空闲毫秒/1000.0:
+                    状态['stalled']=True
+                    子进程.kill()
+                    return
+                threading.Event().wait(0.2)
+        threading.Thread(target=监视空闲,daemon=True).start()
     线程表=[]
     try:
         if 子进程.stdout is not None:
@@ -168,12 +181,15 @@ def 跑配置档pnpm(上下文,参数列表,选项):
             调和(之前,目录,上下文['installAnchor'],选项)
     finally:
         日志句柄.close()
-    return {
+    结果={
         'exitCode':退出码,
         'output':状态['output'].decode('utf-8',errors='replace'),
         'truncated':状态['truncated'],
         'logPath':日志路径,
     }
+    if 状态.get('stalled'):
+        结果['timedOut']=True
+    return 结果
 
 def 跑插件命令(上下文,参数列表,选项):
     """与服务共用写锁地初始化并跑 dsh plugin 命令。"""
@@ -190,6 +206,39 @@ def 跑插件命令(上下文,参数列表,选项):
         return 跑配置档pnpm(上下文,参数列表,选项)
     return 带文件锁(os.path.join(目录,'package.json'),持锁)
 
+def 注册表参数(注册表):
+    """把一次 pnpm 命令指向某注册表。None 表示用 pnpm 自己配置命名的那份。"""
+    if 注册表 is None:
+        return []
+    return ['--registry='+注册表]
+
+def 读配置档注册表(目录,选项):
+    """读 pnpm 在配置档里解析出的 registry。"""
+    命令=选项.get('command') or 'pnpm'
+    前缀=list(选项.get('args') or [])
+    环境=擦洗父环境()
+    if 选项.get('env') is not None:
+        环境.update(选项['env'])
+    超时秒=选项['timeoutMs']/1000.0
+    try:
+        完成=subprocess.run(
+            [命令]+前缀+['config','get','registry'],
+            cwd=目录,
+            env=环境,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=超时秒,
+            check=False,
+        )
+        文本=(完成.stdout or '').strip()
+        回答=文本.split('\n')[-1].strip() if 完成.returncode==0 else ''
+    except Exception:
+        回答=''
+    if re.match(r'^https?://\S+$',回答) is None:
+        return None
+    return 回答
+
 def 查看配置档包(目录,规格,选项):
     """经 pnpm view 询问注册表该规格指向什么；在配置档目录跑以继承注册表与代理。"""
     命令=选项.get('command') or 'pnpm'
@@ -199,9 +248,10 @@ def 查看配置档包(目录,规格,选项):
         环境.update(选项['env'])
     超时秒=选项['timeoutMs']/1000.0
     信号=选项.get('signal')
+    注册表=选项.get('registry') if 'registry' in 选项 else None
     try:
         完成=subprocess.run(
-            [命令]+前缀+['view',规格,'name','version','description','dsh','--json'],
+            [命令]+前缀+['view',规格,'name','version','description','dsh','--json']+注册表参数(注册表)+['--config.fetch-retries=0'],
             cwd=目录,
             env=环境,
             stdin=subprocess.DEVNULL,

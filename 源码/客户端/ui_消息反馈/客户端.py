@@ -29,6 +29,11 @@ def 应用(上下文):#安装消息反馈浏览器半边
         表面表.clear()#清空
     上下文.副作用(lambda:拆除表面,'ui-message-feedback: per-session surfaces')#寿命
 
+    def 打开会话(会话标识):
+        """打开该会话的反馈草稿。"""
+        表面于(会话标识).对话框.打开({'kind':'session'})
+    上下文.provide('feedbackUi',{'openSession':打开会话})#对外服务
+
     def 连接重置():#重连
         """只作废已经读过的。"""
         for 表面 in 表面表.values():#每个
@@ -99,7 +104,7 @@ def 应用(上下文):#安装消息反馈浏览器半边
             def 执行打开(会话):#打开
                 """打开会话级对话框。"""
                 标识=会话['sessionId'] if isinstance(会话,dict) else 会话.sessionId#会话 id
-                表面于(标识).对话框.打开({'kind':'session'})#打开
+                打开会话(标识)#打开
             return 子上下文.commandUi.decorate({#装饰
                 'name':'feedback',#命令名
                 'available':lambda:True,#始终可用

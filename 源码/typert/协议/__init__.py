@@ -3,14 +3,16 @@ from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 
 from .类型 import *#协议类型锚点
-from .远程制品 import 透传模式,严格编解码,调用描述符,远程贡献#手写 Remote 制品辅助
+from .远程制品 import 透传模式,严格编解码,调用描述符,远程贡献,远程错误,取远程错误#手写 Remote 制品辅助
 from .拥有值 import 协议拥有值标记,协议拥有值,是否协议拥有值,构造协议拥有值#调用拥有值
+from .json值 import 是否远程json值,是否远程上行项
 
 __all__=[#仅中文公开名
     '是否合法远程段','查找策略失败',
     '绑定远程网关','远程服务','远程','远程作用域','远程方法列表',
-    '透传模式','严格编解码','调用描述符','远程贡献',
+    '透传模式','严格编解码','调用描述符','远程贡献','远程错误','取远程错误',
     '协议拥有值标记','协议拥有值','是否协议拥有值','构造协议拥有值',
+    '是否远程json值','是否远程上行项',
 ]#公开面结束
 
 远程段模式=re.compile(r'^[A-Za-z0-9_$.-]+\Z',re.ASCII)#RPC 端点段合法字符
@@ -67,12 +69,20 @@ def 记下标记(原型,方法名,调用模式,导出名=None):#把一条标记�
     表[方法名]=标记#写入
 
 def 远程(方法或导出名=None):#直接 Remote 调用装饰器
-    """把一个公开实例方法标为直接 Remote 调用；可带不同导出方法名。"""
+    """把一个公开实例方法标为直接 Remote 调用；可带不同导出方法名或 stream 模式。"""
     if callable(方法或导出名):#直接装饰
         方法=方法或导出名#被装饰方法
         记下标记(方法.__globals__.get(方法.__qualname__.rsplit('.',1)[0],方法),方法.__name__,{'kind':'direct'})#尽力记下——见下
         记下标记到函数(方法,{'kind':'direct'})#挂到函数自身供类装饰后收集
         return 方法#原样返回
+    if isinstance(方法或导出名,dict):
+        if 方法或导出名.get('mode')!='stream' or len(方法或导出名)!=1:
+            raise TypeError('typert-protocol: Remote options must contain exactly mode: "stream"')
+        def 流装饰器(方法):
+            """记下直接调用的 stream 投递。"""
+            记下标记到函数(方法,{'kind':'direct'},None,'stream')
+            return 方法
+        return 流装饰器
     导出名=方法或导出名#工厂形式
     if 导出名 is not None:#有导出名
         校验段名('Remote export name',导出名)#校验
@@ -82,11 +92,13 @@ def 远程(方法或导出名=None):#直接 Remote 调用装饰器
         return 方法#原样
     return 装饰器#工厂
 
-def 记下标记到函数(方法,调用模式,导出名=None):#把标记挂在函数属性上
+def 记下标记到函数(方法,调用模式,导出名=None,模式=None):#把标记挂在函数属性上
     """类体执行时原型尚未就绪，先挂在函数上，由远程服务子类收集。"""
     标记={'invocation':dict(调用模式)}#标记
     if 导出名 is not None and 导出名!=方法.__name__:#不同导出名
         标记['exportName']=导出名#记下
+    if 模式 is not None:
+        标记['mode']=模式
     已有=getattr(方法,'_typert_remote_marker',None)#已有
     if 已有 is not None and 已有!=标记:#冲突
         raise Exception('typert-protocol: Remote 方法 "'+方法.__name__+'" 的调用标记冲突')#冲突
@@ -116,5 +128,7 @@ def 远程方法列表(服务实例):#读取实例上的 Remote 标记
             项={'method':名,'invocation':dict(标记['invocation'])}#展开
             if 'exportName' in 标记:#有导出名
                 项['exportName']=标记['exportName']#带上
+            if 'mode' in 标记:
+                项['mode']=标记['mode']
             结果.append(项)#收入
     return 结果#按声明顺序近似

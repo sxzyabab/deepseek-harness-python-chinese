@@ -1,7 +1,4 @@
-"""通用入口与封闭运行时 JSON-RPC 二进制共享的进程生命周期。
-
-对齐上游 `示例/jsonrpc-demo/src/runner.ts`。公开面仅中文名。
-"""
+"""通用入口与封闭运行时 JSON-RPC 二进制共享的进程生命周期。"""
 import os,sys,signal#路径存在、进程与信号
 from ...启动.app启动 import 启动,安装大声失败,加载环境,解析配置路径#启动粘合层
 

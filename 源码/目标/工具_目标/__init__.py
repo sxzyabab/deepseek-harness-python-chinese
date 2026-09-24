@@ -171,7 +171,7 @@ def 应用(上下文,配置值):
     阻塞阈值=已解析['blockedAfterConsecutiveRounds']#正数阈值
     上下文.systemPrompt.section({#策略段落
         'name':'tool:goal',#段落名
-        'order':114,#排序
+        'order':上下文.systemPrompt.getSectionOrder('TOOL_GOAL'),#排序
         'text':策略指导(阻塞阈值),#带阈值的指导
     })#结束段落
     def 执行读取(_参数,执行元数据):
@@ -290,9 +290,8 @@ def 应用(上下文,配置值):
                 收尾内容=渲染收尾上下文(目标['objective'],阻塞原因文本)#阻塞收尾
             执行元数据['deferContext'](创建用户消息({#延迟上下文，让模型还能说一次
                 'content':收尾内容,#收尾指令块
-                'source':{#插件通知来源
-                    'kind':'plugin',#插件
-                    'plugin':'tool-goal',#本包
+                'source':{#工具目标通知来源
+                    'kind':'tool-goal',#本包 kind
                     'form':'notice',#通知
                     'summary':截上下文摘要(动作+': '+目标['objective']),#摘要
                 },#结束 source

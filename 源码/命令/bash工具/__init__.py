@@ -1,5 +1,7 @@
 import json,math,os,threading#JSON片段、有限数、路径与后台结算线程
 from concurrent.futures import Future as 原生Future#单次操作结果
+from ...依赖 import cordis
+纤程状态=cordis.纤程状态
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
 from ...模型后端.llm import 装备错误#Harness错误
@@ -10,8 +12,8 @@ from ...沙盒.沙盒 import (
     规范路径,#规范路径
     校验升级参数,#校验升级参数配对
 )#导入沙箱升级与路径辅助
-from .后台 import 进程结果#后台结果映射
-from .渲染 import 解析退出状态,渲染结果,渲染进程读取#退出解析与渲染
+from .后台 import 进程结果,进程源列表,环增量,进程作业
+from .渲染 import 解析退出状态,渲染结果,渲染晋升,渲染任务读取
 
 __all__=['名称','依赖','配置','应用']#仅中文公开名
 
@@ -19,6 +21,7 @@ __all__=['名称','依赖','配置','应用']#仅中文公开名
 依赖=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
 配置={#bash工具部署配置
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
+    'promoteOnTimeout':布尔字段(默认值=True),#超时后晋升为后台任务
 }#配置模式结束
 后台输出字段={#后台输出字段
     'kind':{'type':'string','required':True,'const':'background'},#种类为background
@@ -69,10 +72,12 @@ def 校验Bash参数(参数):#校验参数值
         raise bash工具错误('非法 timeoutMs：需要正数，实际为 '+json.dumps(超时,ensure_ascii=False,separators=(',',':'),allow_nan=False))#拒绝非正超时
     校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
 
-def 拼Bash描述(后台启用,升级模式):#拼工具描述
+def 拼Bash描述(后台启用,升级模式,晋升超时):#拼工具描述
     """按组合拼面向模型的bash工具描述。"""
     if 后台启用 is True:#启用后台
         后台句='Set `run_in_background: true` for long-running commands: the call returns a job id immediately; read its output with `job_output` and stop it with `job_kill`.'#后台说明
+        if 晋升超时 is True:
+            后台句=后台句+' A foreground command that reaches its timeout is not killed: it moves to the background the same way, returning its job id and the output so far.'
     else:#无后台
         后台句='Background execution is not available; long-running commands must finish within the timeout.'#无后台说明
     基础=('Execute a bash command (`bash -c`) and return its stdout/stderr. '#基础描述
@@ -126,9 +131,11 @@ def 呈现Bash结果(参数,结果):#结果卡片
     if 块 is None or 块['type']!='text':#不是单文本块
         return None#不呈现
     原文=块['text']#正文
-    是后台='run_in_background' in 参数 and 参数['run_in_background'] is True#是否后台
-    if 是后台 is True or ('isError' in 结果 and 结果['isError'] is True):#后台或错误
-        return {'card':'generic','content':[{'type':'text','text':'```console\n'+原文.rstrip('\n')+'\n```'}]}#通用围栏
+    是后台=isinstance(参数,dict) and 参数.get('run_in_background') is True
+    值=结果.get('value')
+    是晋升=isinstance(值,dict) and 值.get('kind')=='promoted'
+    if 是后台 or 是晋升 or 结果.get('isError') is True:
+        return {'card':'generic','content':[{'type':'text','text':'```console\n'+原文.rstrip('\n')+'\n```'}]}
     解析=解析退出状态(原文)#拆正文与退出
     卡片={'card':'terminal','output':解析['body']}#终端输出
     if 'exitCode' in 解析:#有退出码键
@@ -194,206 +201,287 @@ def 应用(上下文,配置值=None):#加载bash工具插件
     """在 tools 服务上登记 bash；有隔离执行器时要求沙盒策略服务。"""
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
-    后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True#是否启用后台
-    默认模式=上下文.shell.沙箱模式#执行器默认沙箱模式
-    升级模式=[] if 默认模式 is None else list(升级目标)#有隔离才暴露升级
-    沙箱政策=None if 默认模式 is None else 上下文.获取服务('sandboxPolicy',False)#政策服务
-    if 默认模式 is not None and 沙箱政策 is None:#隔离却缺政策
-        raise bash工具错误('tool-bash: 已挂载的 bash 执行器会隔离，但缺少 ctx.sandboxPolicy')#加载时失败
-    def 解析沙箱政策(执行上下文):#解析常驻政策
+    后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True
+    晋升超时=(配置值['promoteOnTimeout'] if 'promoteOnTimeout' in 配置值 else True) and 后台启用
+    默认模式=上下文.shell.沙箱模式
+    升级模式=[] if 默认模式 is None else list(升级目标)
+    沙箱政策=None if 默认模式 is None else 上下文.获取服务('sandboxPolicy',False)
+    if 默认模式 is not None and 沙箱政策 is None:
+        raise bash工具错误('tool-bash: 已挂载的 bash 执行器会隔离，但缺少 ctx.sandboxPolicy')
+    def 解析沙箱政策(执行上下文):
         """挂上隔离执行器时，解析本次调用的完整常驻政策。"""
-        if 沙箱政策 is None:#无政策服务
-            return None#无
-        请求={}#常驻政策请求
-        智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用方智能体
-        if 智能体 is not None:#有智能体
-            请求['session']=智能体.session#带上会话
-        return 沙箱政策.resolve(请求)#按会话解析
-    def 审批Bash升级(模式,理由,执行上下文,常驻政策):#审批bash升级
+        if 沙箱政策 is None:
+            return None
+        请求={}
+        智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None
+        if 智能体 is not None:
+            请求['session']=智能体.session
+        return 沙箱政策.resolve(请求)
+    def 审批Bash升级(模式,理由,执行上下文,常驻政策):
         """在执行前经审批服务解析沙箱升级请求。"""
-        if len(升级模式)==0:#本组合没有升级
-            raise bash工具错误('本组合没有可升级的沙箱执行器，不能使用 sandbox_permissions')#拒绝
-        return 批准升级(#共用审批
-            {'requestedMode':模式,'justification':理由,'effectiveMode':常驻政策['mode'],'subject':'command'},#升级请求
-            {#审批上下文
-                'approver':上下文.获取服务('approval',False),#审批服务
-                'agent':执行上下文['agent'] if 'agent' in 执行上下文 else None,#智能体
-                'callId':执行上下文['callId'],#调用id
-                'toolName':'bash',#工具名
-                'signal':执行上下文['signal'] if 'signal' in 执行上下文 else None,#取消
-            },#上下文结束
-        )#批准升级结束
-    上下文.systemPrompt.段落({#写入系统提示词段落
-        'name':'tool:bash',#段落名
-        'order':105,#排序
-        'text':'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',#面向模型的用法
-    })#段落结束
-    def 渲染(参数,值):#按种类渲染
-        """把结构化结果渲染成模型可见文本。"""
-        if 值['kind']=='background':#后台
-            文本='started background job '+str(值['jobId'])#只报任务号
-        else:#前台
-            文本=渲染结果(值,升级模式)#前台渲染运行结果
-        return [{'type':'text','text':文本}]#单个文本块
-    def 执行(参数,执行上下文):#执行bash
-        """校验后前台run或后台jobs。"""
-        校验Bash参数(参数)#先校验参数
-        常驻政策=解析沙箱政策(执行上下文)#常驻政策
-        if ('sandbox_permissions' in 参数 and 参数['sandbox_permissions'] is not None and
-                'justification' in 参数 and 参数['justification'] is not None):#请求升级
-            批准模式=审批Bash升级(参数['sandbox_permissions'],参数['justification'],执行上下文,常驻政策)#先审批
-        else:#未请求升级
-            批准模式=None#无
-        if 批准模式 is None:#没有批准的更宽模式
-            政策=常驻政策#用常驻
-        else:#盖上已批准模式
-            政策=dict(常驻政策)#拷贝常驻
-            政策['mode']=批准模式#覆盖模式
-        工作目录=解析工作目录(参数['workdir'] if 'workdir' in 参数 else None,执行上下文,None if 常驻政策 is None else (常驻政策['workspaceRoot'] if 'workspaceRoot' in 常驻政策 else None))#解析工作目录
-        请求={#执行请求
-            'command':参数['command'],#命令
-            'dshEnv':上下文.shellEnv.收集(执行上下文),#托管环境
-        }#请求骨架
-        if 工作目录 is not None:#有workdir
-            请求['workdir']=工作目录#带上
-        if 'timeoutMs' in 参数 and 参数['timeoutMs'] is not None:#有超时
-            请求['timeoutMs']=参数['timeoutMs']#带上
-        if 政策 is not None:#有政策
-            请求['sandboxPolicy']=政策#带上
-        if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#走后台
-            if 后台启用 is not True:#配置关闭
-                raise bash工具错误('run_in_background 已对本部署关闭（enableRunInBackground: false）')#拒绝
-            任务服务=上下文.获取服务('jobs',False)#读取任务服务
-            if 任务服务 is None:#缺少任务服务
-                raise bash工具错误('后台任务不可用：请加载 @deepseek-ai/dsh-jobs 与 @deepseek-ai/dsh-tool-jobs')#拒绝
-            if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):#已取消
-                抛中止()#抛出中止
-            def 任务体():#任务体
-                """在任务服务下拉起后台 bash 进程。"""
-                进程=上下文.shell.启动(上下文.shell.解析(请求))#解析并后台启动
-                结算=操作任务()#任务done
-                def 监视结算():#等到进程关闭再映射结果
-                    """把进程done映射成任务结果。"""
-                    try:#正常结算
-                        进程.done.等待()#等到关闭
-                        结算.兑现(进程结果(进程))#映射并兑现
-                    except BaseException as 错误:#失败
-                        结算.拒绝(错误)#拒绝
-                工作=threading.Thread(target=监视结算)#后台结算线程
-                工作.daemon=True#不挡住退出
-                工作.start()#启动
-                def 取消():#取消则杀进程
-                    """请求杀掉后台进程。"""
-                    进程.杀死()#杀进程
-                def 读输出():#增量渲染
-                    """增量渲染后台输出。"""
-                    return 渲染进程读取(进程.读取输出(),进程.sandbox,升级模式)#增量渲染
-                return {'cancel':取消,'done':结算,'readOutput':读输出}#交给任务收集器
-            启动参数={#启动后台任务
-                'kind':'bash',#任务种类
-                'label':参数['command'],#标签是命令
-                'run':任务体,#任务体
-            }#启动参数骨架
-            智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用方智能体
-            if 智能体 is not None:#有智能体
-                启动参数['owner']=智能体#带所有者
-            编号=任务服务.start(启动参数)#启动
-            return {'kind':'background','jobId':编号}#立刻返回任务号
-        前台请求=dict(请求)#拷贝请求
-        前台请求['signal']=执行上下文['signal'] if 'signal' in 执行上下文 else None#跟取消信号
-        结果=上下文.shell.运行(上下文.shell.解析(前台请求))#前台跑
-        if 结果['aborted'] is True:#被中止
-            抛中止()#抛出中止
-        return 规范Bash结果(结果)#返回规范前台结果
-    参数表={#参数模式
-        'command':{'type':'string','required':True,'description':'The bash command to execute.'},#命令
-        'description':{#描述
-            'type':'string',#字符串
-            'required':True,#必填
-            'description':('Clear, concise description of what this command does in active voice, '#UI描述
-                +'5-10 words (shown in the UI). Examples: "ls" → "List files in current directory"; '#示例
-                +'"git status" → "Show working tree status"; "npm install" → "Install package dependencies".'),#更多示例
-        },#description结束
-        'timeoutMs':{'type':'number','description':'Timeout in milliseconds. The executor applies its configured default and cap, and kills the command on expiry.'},#超时
-        'workdir':{'type':'string','description':'Working directory for this command. Defaults to the session workspace; a relative path is resolved against it.'},#工作目录
-    }#参数骨架
-    if 后台启用 is True:#启用后台时暴露
-        参数表['run_in_background']={'type':'boolean','description':'Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies.'}#后台开关
-    if len(升级模式)>0:#有升级目标时暴露
-        参数表['sandbox_permissions']={#升级模式
-            'type':'string',#字符串
-            'enum':list(升级模式),#允许的更宽模式
-            'description':'The wider sandbox mode this command needs. Only valid as a one-shot retry of a command the sandbox just denied; requires justification and user approval.',#升级说明
-        }#sandbox_permissions结束
-        参数表['justification']={#升级理由
-            'type':'string',#字符串
-            'description':'Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access.',#理由说明
-        }#justification结束
-    上下文.tools.登记(定义工具({#注册bash工具
-        'name':'bash',#工具名
-        'description':拼Bash描述(后台启用,升级模式),#按组合拼描述
-        'parameters':参数表,#参数模式
-        'output':{#输出约定
-            'schema':{#输出模式
-                'oneOf':[#后台或前台
-                    {#后台
-                        'type':'object',#对象
-                        'additionalProperties':False,#禁止额外字段
-                        'properties':后台输出字段,#任务号
-                    },#后台分支结束
-                    {#前台
-                        'type':'object',#对象
-                        'additionalProperties':False,#禁止额外字段
-                        'properties':{#字段
-                            'kind':{'type':'string','required':True,'const':'foreground'},#种类为foreground
-                            'exitCode':{'required':True,'oneOf':[{'type':'integer'},{'type':'null'}]},#退出码
-                            'signal':{'required':True,'oneOf':[{'type':'string'},{'type':'null'}]},#信号
-                            'timedOut':{'type':'boolean','required':True},#是否超时
-                            'aborted':{'type':'boolean','required':True},#是否中止
-                            'timeoutMs':{'type':'number','required':True},#超时毫秒
-                            'stdout':{#标准输出
-                                'type':'object',#对象
-                                'additionalProperties':False,#禁止额外字段
-                                'required':True,#必填
-                                'properties':{#字段
-                                    'text':{'type':'string','required':True},#文本
-                                    'truncated':{'type':'boolean','required':True},#是否截断
-                                    'spillPath':{'type':'string'},#溢出路径
-                                },#stdout properties结束
-                            },#stdout结束
-                            'stderr':{#标准错误
-                                'type':'object',#对象
-                                'additionalProperties':False,#禁止额外字段
-                                'required':True,#必填
-                                'properties':{#字段
-                                    'text':{'type':'string','required':True},#文本
-                                    'truncated':{'type':'boolean','required':True},#是否截断
-                                    'spillPath':{'type':'string'},#溢出路径
-                                },#stderr properties结束
-                            },#stderr结束
-                            'sandbox':{#沙箱事实
-                                'type':'object',#对象
-                                'additionalProperties':False,#禁止额外字段
-                                'properties':{#字段
-                                    'mode':{'type':'string','required':True},#模式
-                                    'denied':{'type':'boolean','required':True},#是否拒绝
-                                    'enforcement':{'type':'string'},#强制程度
-                                    'runnerFailed':{'type':'boolean'},#运行器失败
-                                },#sandbox properties结束
-                            },#sandbox结束
-                        },#前台properties结束
-                    },#前台分支结束
-                ],#oneOf结束
-            },#schema结束
-            'render':渲染,#按种类渲染
-        },#output结束
-        'execute':执行,#执行bash
-        'presentCall':呈现Bash调用,#调用卡片
-        'presentResult':呈现Bash结果,#结果卡片
-    }))#bash工具结束
+        if len(升级模式)==0:
+            raise bash工具错误('本组合没有可升级的沙箱执行器，不能使用 sandbox_permissions')
+        return 批准升级(
+            {'requestedMode':模式,'justification':理由,'effectiveMode':常驻政策['mode'],'subject':'command'},
+            {
+                'approver':上下文.获取服务('approval',False),
+                'agent':执行上下文['agent'] if 'agent' in 执行上下文 else None,
+                'callId':执行上下文['callId'],
+                'toolName':'bash',
+                'signal':执行上下文['signal'] if 'signal' in 执行上下文 else None,
+            },
+        )
+    上下文.systemPrompt.段落({
+        'name':'tool:bash',
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_BASH'),
+        'text':'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',
+    })
+    def 做成bash工具(任务服务):
+        """按是否有任务注册表登记一种 bash。"""
+        后台=任务服务 is not None
+        晋升=后台 and 晋升超时
+        def 启动任务(注册表,参数,执行上下文,规格):
+            """登记命令为任务；进程在 starter 内、准入之后才 spawn。"""
+            进程箱=[None]
+            已停=[None]
+            def 取进程():
+                """已派生的活进程。"""
+                return 进程箱[0]
+            def 任务体():
+                """准入后启动进程作业。"""
+                def 拉起(信号):
+                    """带任务取消信号执行规格。"""
+                    下一=dict(规格)
+                    下一['signal']=信号
+                    进程箱[0]=上下文.shell.执行(下一)
+                    return 进程箱[0]
+                def 投影结局(已启动):
+                    """带升级模式映射任务结局。"""
+                    return 进程结果(已启动,升级模式)
+                钩子=进程作业(拉起,投影结局)
+                def 取消(原因=None):
+                    """外部杀死记下原因。"""
+                    已停[0]=原因
+                    钩子['cancel'](原因)
+                return {'done':钩子['done'],'cancel':取消}
+            启动参数={'kind':'bash','label':参数['command'],'output':进程源列表(取进程),'run':任务体}
+            智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None
+            if 智能体 is not None:
+                启动参数['owner']=智能体.id
+            编号=注册表.启动(启动参数)
+            return {'id':编号,'process':取进程,'stopped':lambda:已停[0]}
+        def 等待任务(注册表,已挂,执行上下文,规格):
+            """等到登记的前台命令结算或超时。"""
+            智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None
+            所有者=None if 智能体 is None else 智能体.id
+            超时毫秒=规格['timeoutMs']
+            def 停止(原因):
+                """由本调用停掉任务并等到结算，使模型从未见过的 id 随调用离开。"""
+                注册表.终止(已挂['id'],所有者,原因)
+                已结算=注册表.等待(已挂['id'],超时毫秒,所有者)
+                if 已结算['status']!='running' and 已结算['status']!='stopping':
+                    注册表.移除(已挂['id'],所有者)
+                return 已结算
+            try:
+                视图=注册表.等待(已挂['id'],超时毫秒,所有者,执行上下文['signal'] if 'signal' in 执行上下文 else None)
+            except BaseException:
+                停止('tool call aborted')
+                抛中止()
+            if (视图['status']=='running' or 视图['status']=='stopping') and 已挂['process']() is None:
+                停止('timed out during preparation')
+                空={'kind':'foreground','exitCode':None,'signal':None,'timedOut':True,'aborted':False,'timeoutMs':超时毫秒,
+                    'stdout':{'text':'','truncated':False},'stderr':{'text':'','truncated':False}}
+                if 'sandboxPolicy' in 规格 and 规格['sandboxPolicy'] is not None:
+                    空['sandbox']={'mode':规格['sandboxPolicy']['mode'],'denied':False}
+                return 空
+            if 视图['status']=='running' or 视图['status']=='stopping':
+                读=注册表.读取(已挂['id'],所有者)
+                溢出=读['job']['output'].get('spillPaths') if isinstance(读.get('job'),dict) and isinstance(读['job'].get('output'),dict) else []
+                if 溢出 is None:
+                    溢出=[]
+                活=已挂['process']()
+                return {'kind':'promoted','jobId':已挂['id'],'timeoutMs':超时毫秒,
+                    'output':渲染任务读取(环增量(读['chunks']),读['lossy'],溢出,None if 活 is None else getattr(活,'sandbox',None),升级模式)}
+            注册表.移除(已挂['id'],所有者)
+            进程=已挂['process']()
+            if 进程 is None:
+                raise bash工具错误(视图['detail'])
+            结果=进程.结果()
+            已停=已挂['stopped']()
+            收成=规范Bash结果(结果)
+            if 已停 is not None:
+                收成['stopped']=已停
+            return 收成
+        def 渲染(参数,值):
+            """按种类渲染。"""
+            if 值['kind']=='background':
+                文本='started background job '+str(值['jobId'])
+            elif 值['kind']=='promoted':
+                文本=渲染晋升(值)
+            else:
+                文本=渲染结果(值,升级模式)
+            return [{'type':'text','text':文本}]
+        def 执行(参数,执行上下文):
+            """校验后前台等待或后台登记。"""
+            常驻政策=解析沙箱政策(执行上下文)
+            校验Bash参数(参数)
+            if ('sandbox_permissions' in 参数 and 参数['sandbox_permissions'] is not None and
+                    'justification' in 参数 and 参数['justification'] is not None):
+                批准模式=审批Bash升级(参数['sandbox_permissions'],参数['justification'],执行上下文,常驻政策)
+            else:
+                批准模式=None
+            if 批准模式 is None:
+                政策=常驻政策
+            else:
+                政策=dict(常驻政策)
+                政策['mode']=批准模式
+            工作目录=解析工作目录(参数['workdir'] if 'workdir' in 参数 else None,执行上下文,None if 常驻政策 is None else (常驻政策['workspaceRoot'] if 'workspaceRoot' in 常驻政策 else None))
+            请求={'command':参数['command'],'dshEnv':上下文.shellEnv.收集(执行上下文)}
+            if 工作目录 is not None:
+                请求['workdir']=工作目录
+            if 'timeoutMs' in 参数 and 参数['timeoutMs'] is not None:
+                请求['timeoutMs']=参数['timeoutMs']
+            if 政策 is not None:
+                请求['sandboxPolicy']=政策
+            if 参数.get('run_in_background') is True:
+                if 后台启用 is not True:
+                    raise bash工具错误('run_in_background 已对本部署关闭（enableRunInBackground: false）')
+                if 任务服务 is None:
+                    raise bash工具错误('后台任务不可用：请加载 @deepseek-ai/dsh-jobs 与 @deepseek-ai/dsh-tool-jobs')
+                if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):
+                    抛中止()
+                请求['onExpiry']='none'
+                return {'kind':'background','jobId':启动任务(任务服务,参数,执行上下文,上下文.shell.解析(请求))['id']}
+            if 任务服务 is not None and 晋升:
+                规格=上下文.shell.解析(dict(请求,onExpiry='none'))
+                已挂=None
+                try:
+                    已挂=启动任务(任务服务,参数,执行上下文,规格)
+                except BaseException as 错误:
+                    上下文.日志.警告('bash: job registration refused, running in the foreground with the timeout kill instead: '+str(错误))
+                if 已挂 is not None:
+                    return 等待任务(任务服务,已挂,执行上下文,规格)
+            前台请求=dict(请求)
+            前台请求['signal']=执行上下文['signal'] if 'signal' in 执行上下文 else None
+            句柄=上下文.shell.执行(上下文.shell.解析(前台请求))
+            结果=句柄.结果()
+            if 结果['aborted'] is True:
+                抛中止()
+            return 规范Bash结果(结果)
+        超时说明=('Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed.'
+            if 晋升 else 'Timeout in milliseconds. The executor applies its configured default and cap, and kills the command on expiry.')
+        参数表={
+            'command':{'type':'string','required':True,'description':'The bash command to execute.'},
+            'description':{
+                'type':'string',
+                'required':True,
+                'description':('Clear, concise description of what this command does in active voice, '
+                    +'5-10 words (shown in the UI). Examples: "ls" → "List files in current directory"; '
+                    +'"git status" → "Show working tree status"; "npm install" → "Install package dependencies".'),
+            },
+            'timeoutMs':{'type':'number','description':超时说明},
+            'workdir':{'type':'string','description':'Working directory for this command. Defaults to the session workspace; a relative path is resolved against it.'},
+        }
+        if 后台:
+            参数表['run_in_background']={'type':'boolean','description':'Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies.'}
+        if len(升级模式)>0:
+            参数表['sandbox_permissions']={
+                'type':'string',
+                'enum':list(升级模式),
+                'description':'The wider sandbox mode this command needs. Only valid as a one-shot retry of a command the sandbox just denied; requires justification and user approval.',
+            }
+            参数表['justification']={
+                'type':'string',
+                'description':'Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access.',
+            }
+        晋升字段={
+            'kind':{'type':'string','required':True,'const':'promoted'},
+            'jobId':{'type':'string','required':True},
+            'timeoutMs':{'type':'number','required':True},
+            'output':{'type':'string','required':True},
+        }
+        前台字段={
+            'kind':{'type':'string','required':True,'const':'foreground'},
+            'exitCode':{'required':True,'oneOf':[{'type':'integer'},{'type':'null'}]},
+            'signal':{'required':True,'oneOf':[{'type':'string'},{'type':'null'}]},
+            'timedOut':{'type':'boolean','required':True},
+            'aborted':{'type':'boolean','required':True},
+            'stopped':{'type':'string'},
+            'timeoutMs':{'type':'number','required':True},
+            'stdout':{
+                'type':'object',
+                'additionalProperties':False,
+                'required':True,
+                'properties':{
+                    'text':{'type':'string','required':True},
+                    'truncated':{'type':'boolean','required':True},
+                    'spillPath':{'type':'string'},
+                },
+            },
+            'stderr':{
+                'type':'object',
+                'additionalProperties':False,
+                'required':True,
+                'properties':{
+                    'text':{'type':'string','required':True},
+                    'truncated':{'type':'boolean','required':True},
+                    'spillPath':{'type':'string'},
+                },
+            },
+            'sandbox':{
+                'type':'object',
+                'additionalProperties':False,
+                'properties':{
+                    'mode':{'type':'string','required':True},
+                    'denied':{'type':'boolean','required':True},
+                    'enforcement':{'type':'string'},
+                    'runnerFailed':{'type':'boolean'},
+                },
+            },
+        }
+        return 定义工具({
+            'name':'bash',
+            'description':拼Bash描述(后台,升级模式,晋升),
+            'parameters':参数表,
+            'output':{
+                'schema':{
+                    'oneOf':[
+                        {'type':'object','additionalProperties':False,'properties':后台输出字段},
+                        {'type':'object','additionalProperties':False,'properties':晋升字段},
+                        {'type':'object','additionalProperties':False,'properties':前台字段},
+                    ],
+                },
+                'render':渲染,
+            },
+            'execute':执行,
+            'presentCall':呈现Bash调用,
+            'presentResult':呈现Bash结果,
+        })
+    if 后台启用 is not True:
+        上下文.tools.登记(做成bash工具(None))
+        return
+    仅前台=None if 上下文.获取服务('jobs',False) is not None else 上下文.tools.登记(做成bash工具(None))
+    def 接线任务(子上下文):
+        """任务注册表在场时换成带任务的 bash。"""
+        nonlocal 仅前台
+        if 仅前台 is not None:
+            仅前台()
+            仅前台=None
+        拆除=上下文.tools.登记(做成bash工具(子上下文.jobs))
+        def 挂拆():
+            """注册表卸下且本插件仍活则回到仅前台。"""
+            def 拆除器():
+                """卸任务版，必要时再挂仅前台。"""
+                nonlocal 仅前台
+                拆除()
+                if 上下文.纤程.状态==纤程状态.已激活:
+                    仅前台=上下文.tools.登记(做成bash工具(None))
+            return 拆除器
+        子上下文.副作用(挂拆)
+    上下文.依赖启动(['jobs'],接线任务)
 
-name=名称#Cordis插件名
-inject=依赖#Cordis依赖声明
-Config=配置#Cordis配置模式
-apply=应用#Cordis插件入口
-default=应用#框架槽
+name=名称
+inject=依赖
+Config=配置
+apply=应用
+default=应用

@@ -12,15 +12,11 @@ def 收集投影附件(块列表,图片列表,文件列表):#收集投影附件
     for 块 in 块列表:#逐块
         种类=块.get('type')#类型
         if 种类=='image':#图片
-            图片列表.append(块['attachment'])#记下引用
+            图片列表.append(块)#记下整块，含 offloaded
             图片令牌+=计价结构块(块)#结构价格
         elif 种类=='file':#文件
             文件列表.append(块['attachment'])#记下引用
             文件令牌+=计价结构块(块)#结构价格
-        elif 种类=='tool-result':#工具结果
-            嵌套=收集投影附件(块.get('content') or [],图片列表,文件列表)#递归
-            图片令牌+=嵌套['imageTokens']#累加图片
-            文件令牌+=嵌套['fileTokens']#累加文件
     return {'imageTokens':图片令牌,'fileTokens':文件令牌}#结构合计
 
 def 分析节点(序号,消息):#分析节点
