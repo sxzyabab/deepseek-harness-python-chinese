@@ -1,3 +1,8 @@
 {
-    "derived":"派生"
+    "derived":"派生",
+    "PinSession":"置顶会话",
+    "ForkSession":"分叉会话",
+    "ArchiveSession":"归档会话",
+    "RenameSession":"重命名会话",
+    "RowActionToast":"行动作提示"
 }

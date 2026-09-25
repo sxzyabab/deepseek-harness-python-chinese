@@ -1,7 +1,6 @@
 {
     "agent-team":"智能体团队",
     "agent-team-profile":"智能体团队_配置",
-    "agent-team-web-profile":"智能体团队_web配置",
     "auto-review":"自动审查",
     "browser-use-chrome-devtools-mcp":"浏览器操作_chrome_devtools_mcp",
     "browser-use-playwright-mcp":"浏览器操作_playwright_mcp",

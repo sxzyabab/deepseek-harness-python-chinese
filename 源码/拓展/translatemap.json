@@ -2,14 +2,5 @@
     "cordis-client-runner":"cordis客户端",
     "cordis-host-runner":"cordis服务端",
     "tool-cordis":"cordis工具",
-    "ui-cordis":"ui_cordis",
-    "runHostHalf":"执行宿主半",
-    "跑宿主半":"执行宿主半",
-    "settleUserRun":"落定用户运行",
-    "落定用户跑":"落定用户运行",
-    "activeRunLocal":"当前运行",
-    "wasRunning":"曾在运行",
-    "曾在跑":"曾在运行",
-    "missingServices":"缺席列表",
-    "未跑":"缺席列表"
+    "ui-cordis":"ui_cordis"
 }

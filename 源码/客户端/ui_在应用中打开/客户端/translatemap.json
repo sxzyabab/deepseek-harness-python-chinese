@@ -1,4 +1,9 @@
 {
     "file-applications":"文件应用",
-    "open-path":"打开路径"
+    "open-path":"打开路径",
+    "OpenTargetButton":"打开目标按钮",
+    "open-failure-toast":"打开失败提示",
+    "OpenPathAction":"打开路径动作",
+    "OpenPathEmptyAction":"打开路径空动作",
+    "FileRouteAction":"文件路由动作"
 }

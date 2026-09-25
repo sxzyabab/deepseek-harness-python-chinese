@@ -35,14 +35,12 @@
     "ui-settings-general":"ui_通用设置",
     "ui-settings-models":"ui_模型设置",
     "ui-settings-plugin-inventory":"ui_设置_插件清单",
-    "ui-settings-unarchive-sessions":"ui_已归档会话设置",
     "ui-settings-plugins":"ui_插件设置",
     "ui-sidebar":"ui_侧边栏",
     "ui-sidebar-documentpreview":"ui_侧边栏_文档预览",
     "ui-sidebar-files":"ui_侧边栏_文件",
     "ui-sidebar-right":"ui_侧边栏_右侧",
     "ui-sidebar-terminal":"ui_侧边栏_终端",
-    "ui-sidebar-textpreview":"ui_侧边栏_文本预览",
     "ui-skill":"ui_技能",
     "ui-slots":"ui_槽位",
     "ui-subagent":"ui_子智能体",
@@ -50,6 +48,8 @@
     "ui-tool":"ui_工具",
     "ui-trajectory":"ui_轨迹",
     "ui-user-questions":"ui_用户提问",
+    "shortcuts":"快捷键",
+    "ui-shortcuts":"ui_快捷键",
     "ui-workflow-run":"ui_工作流运行",
     "ui-workspace":"ui_工作区",
     "ui-settings-account":"ui_账号设置",
@@ -58,5 +58,8 @@
     "ui-settings-subagent":"ui_子智能体设置",
     "ui-settings-web-search":"ui_web搜索设置",
     "ui-sidebar-browser":"ui_侧边栏_浏览器",
-    "ui-plugin-manager":"ui_插件装载"
+    "ui-plugin-manager":"ui_插件装载",
+    "web":"web",
+    "shortcuts":"快捷键",
+    "ui-shortcuts":"ui_快捷键"
 }

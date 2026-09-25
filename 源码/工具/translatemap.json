@@ -14,5 +14,6 @@
     "time":"时间",
     "timeout":"超时",
     "values":"值",
-    "workspace-path":"工作区路径"
+    "workspace-path":"工作区路径",
+    "code-language":"代码语言"
 }

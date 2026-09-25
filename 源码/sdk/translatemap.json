@@ -1,10 +1,5 @@
 {
     "protocol":"协议",
     "server":"服务器",
-    "watchAbort":"监视中止",
-    "盯中止":"监视中止",
-    "watchExit":"监视退出",
-    "盯退出":"监视退出",
-    "shouldCreate":"应执行创建",
-    "应跑":"应执行创建"
+    "client":"客户端"
 }

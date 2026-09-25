@@ -1,5 +1,6 @@
 {
     "SidebarRight":"右侧侧栏",
     "RightbarRoot":"右栏根",
-    "ExpandButton":"展开按钮"
+    "ExpandButton":"展开按钮",
+    "close-focus":"关闭焦点"
 }

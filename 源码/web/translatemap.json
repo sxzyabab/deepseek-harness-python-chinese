@@ -1,5 +1,6 @@
 {
     "tool-web":"工具_web",
+    "web":"web",
     "web-fetch-http":"http请求",
     "web-search-deepseek":"web搜索_deepseek",
     "web-search-exa":"web搜索_exa",

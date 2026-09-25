@@ -1,45 +1,8 @@
 import threading#忙碌/错误定时器
 from .文案 import 命名空间#locale 命名空间（inject 契约）
+from .应用列表 import 应用标签键#目录 id → 词典键
 
 __all__=['在应用中打开动作','应用图标','应用标签键','忙碌装扮延迟毫秒']#仅中文公开名
-
-# 目录 id → 词典键：浏览器只渲染能命名的 id；主机目录扩展若无匹配词条则保持不可见。
-应用标签键={#catalog id → OpenInAppKey
-    'finder':'app.finder',
-    'explorer':'app.explorer',
-    'filemanager':'app.filemanager',
-    'cursor':'app.cursor',
-    'vscode':'app.vscode',
-    'vscodeinsiders':'app.vscodeinsiders',
-    'windsurf':'app.windsurf',
-    'zed':'app.zed',
-    'sublimetext':'app.sublimetext',
-    'xcode':'app.xcode',
-    'androidstudio':'app.androidstudio',
-    'intellij':'app.intellij',
-    'pycharm':'app.pycharm',
-    'webstorm':'app.webstorm',
-    'phpstorm':'app.phpstorm',
-    'goland':'app.goland',
-    'rider':'app.rider',
-    'rustrover':'app.rustrover',
-    'fork':'app.fork',
-    'sourcetree':'app.sourcetree',
-    'github':'app.github',
-    'tower':'app.tower',
-    'gitkraken':'app.gitkraken',
-    'smartgit':'app.smartgit',
-    'sublimemerge':'app.sublimemerge',
-    'ghostty':'app.ghostty',
-    'warp':'app.warp',
-    'iterm':'app.iterm',
-    'kitty':'app.kitty',
-    'terminal':'app.terminal',
-    'windowsterminal':'app.windowsterminal',
-    'gitbash':'app.gitbash',
-    'gnometerminal':'app.gnometerminal',
-    'konsole':'app.konsole',
-}#标签键结束
 
 失败图标集=set()#本页图标已失败的应用 id；404 图标每页只取一次
 

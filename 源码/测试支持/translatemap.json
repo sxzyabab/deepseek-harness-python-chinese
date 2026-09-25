@@ -5,7 +5,5 @@
     "llm-replay":"llm_回放",
     "loader-smoke":"加载器_冒烟",
     "remote-mock":"远程模拟",
-    "session-snapshot":"会话_快照",
-    "runScript":"执行脚本",
-    "跑脚本":"执行脚本"
+    "session-snapshot":"会话_快照"
 }

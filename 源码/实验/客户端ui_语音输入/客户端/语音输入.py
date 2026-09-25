@@ -2,6 +2,7 @@ import threading
 from ....工具.超时 import 中止控制器
 from .音频 import 录制错误,音频base64
 from .波形图 import 波形图
+from .语音输入安装对话框 import 语音输入安装对话框
 
 __all__=['语音输入']
 
@@ -40,6 +41,23 @@ class 语音输入:
         自身.代=0
         自身.波形=波形图()
         自身.上次会话=属性.get('sessionId')
+        自身.引导开=False
+        自身.对话框=语音输入安装对话框({
+            'open':False,
+            'needsInstallation':False,
+            'onDismiss':自身.关引导,
+            'onOpenDetails':自身.开详情,
+            't':属性['t'],
+        })
+
+    def 关引导(自身):
+        """关掉安装/不可用模态。"""
+        自身.引导开=False
+
+    def 开详情(自身):
+        """关模态并打开语音 Bundle 详情。"""
+        自身.引导开=False
+        自身.属性['openSettings']()
 
     def 更新(自身,属性):
         """会话变了则作废在途采集。"""
@@ -100,6 +118,15 @@ class 语音输入:
         自身.待插入=''
         自身.消息=''
         自身.阶段='idle'
+        自身.引导开=False
+
+    def 点触发(自身):
+        """可用则开录，否则开引导模态。"""
+        就绪=读就绪(自身.属性)
+        if 自身.可用(就绪):
+            自身.开始()
+        else:
+            自身.引导开=True
 
     def 结束(自身):
         """停录并转写。"""
@@ -212,20 +239,33 @@ class 语音输入:
                     提供方=项
                     break
         可用=自身.可用(就绪)
+        if 可用:
+            自身.引导开=False
         锁定=bool(自身.属性.get('locked'))
         展开=自身.阶段!='idle'
         切活动=自身.属性.get('onActiveChange')
         if 切活动 is not None:
             切活动(展开)
+        需安装=(就绪.get('connected') and 提供方 is not None
+            and 提供方.get('location')=='host-local'
+            and (提供方.get('preparation') or {}).get('phase')=='unprepared')
         if not 展开:
             return {
                 'type':'voice-input',
                 'mode':'trigger',
                 'cssModule':'语音输入.module.css',
                 'tooltip':翻译('dictate' if 可用 else 'prepareRequired'),
-                'startLabel':翻译('start'),
-                'disabled':not 可用 or 锁定,
-                'onStart':自身.开始,
+                'startLabel':翻译('start' if 可用 else 'setupPrompt.trigger'),
+                'disabled':锁定,
+                'hasPopup':None if 可用 else 'dialog',
+                'onStart':自身.点触发,
+                'setup':自身.对话框({
+                    'open':自身.引导开 and not 可用,
+                    'needsInstallation':需安装,
+                    'onDismiss':自身.关引导,
+                    'onOpenDetails':自身.开详情,
+                    't':翻译,
+                }),
             }
         准备=None if 提供方 is None else (提供方.get('preparation') or {}).get('phase')
         if 自身.阶段=='feedback':

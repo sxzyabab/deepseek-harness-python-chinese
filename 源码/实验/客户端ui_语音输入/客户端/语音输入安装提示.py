@@ -1,3 +1,5 @@
+from .语音输入安装对话框 import 语音输入安装对话框
+
 __all__=['语音输入安装提示']
 
 def 读就绪(属性):
@@ -19,6 +21,13 @@ class 语音输入安装提示:
     def __init__(自身,属性):
         """记下 props。"""
         自身.属性=属性
+        自身.对话框=语音输入安装对话框({
+            'open':False,
+            'needsInstallation':True,
+            'onDismiss':属性['onDismiss'],
+            'onOpenDetails':属性['onOpenDetails'],
+            't':属性['t'],
+        })
 
     def 更新(自身,属性):
         """刷新。"""
@@ -43,17 +52,13 @@ class 语音输入安装提示:
         if 阶段 is not None and 阶段!='checking' and not 需安装:
             自身.属性['onDismiss']()
             return None
-        return {
-            'type':'voice-setup-prompt',
+        return 自身.对话框({
             'open':需安装,
-            'title':翻译('setupPrompt.title'),
-            'closeLabel':翻译('cancel'),
-            'body':翻译('setupPrompt.body'),
-            'later':翻译('setupPrompt.later'),
-            'openLabel':翻译('setupPrompt.open'),
+            'needsInstallation':True,
             'onDismiss':自身.属性['onDismiss'],
             'onOpenDetails':自身.属性['onOpenDetails'],
-        }
+            't':翻译,
+        })
 
     def __call__(自身,属性=None):
         """对齐 React 调用。"""

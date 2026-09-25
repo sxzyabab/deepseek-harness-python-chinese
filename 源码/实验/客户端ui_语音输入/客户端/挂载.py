@@ -7,7 +7,7 @@ from .语音输入安装提示 import 语音输入安装提示
 
 __all__=['依赖','挂载语音输入','登记界面']
 
-依赖=['remote','slots','locale']
+依赖=['remote','slots','locale','pluginNavigation']
 
 组合包名='@deepseek-ai/dsh-experimental-voice-input-bundle'
 
@@ -58,7 +58,11 @@ def 登记界面(上下文):
         结果=上下文.remote.speech.cancelPreparation(提供方标识).等待()
         if not 结果['ok']:
             raise 结果['error']
+    def 开设置():
+        """打开语音 Bundle 详情，不启动准备。"""
+        上下文.pluginNavigation.openBundle(组合包名)
     动作={
+        'openSettings':开设置,
         'hooks':{'speechReadiness':就绪['state']},
         'createRecording':建录制,
         'transcribe':转写,
@@ -99,7 +103,7 @@ def 登记界面(上下文):
 def 挂载语音输入(上下文,贡献):
     """挂实验 Remote，不加入稳定 API Remotes。"""
     卸远程=上下文.remote.$mount(贡献).等待()
-    界面=上下文.依赖启动(['remote.speech','slots','locale'],登记界面)
+    界面=上下文.依赖启动(['remote.speech','slots','locale','pluginNavigation'],登记界面)
     try:
         界面.等待()
     except Exception:
