@@ -1,75 +1,76 @@
-# AGENTS.md — 文档规范
+# AGENTS.md — The documentation standard
 
-本文件定义文档结构、Markdown 层级、写作规则和 `verify-doc-budgets` 上限。用 [文档标准](../.agents/skills/文档标准.md) 做放置与核验，用 [行文标准](../.agents/skills/行文标准/SKILL.md) 做所需覆盖和行文判断；理由由 [doc-tiers Agent Note](../.agents/notes/已实现/流程/2026-07-04-文档层级与字数预算.md) 拥有。
+This file defines document structure, Markdown tiers, writing rules, and `verify-doc-budgets` ceilings. Use [dsh-doc](../.agents/skills/dsh-doc/SKILL.md) for placement and validation, and [dsh-prose-standard](../.agents/skills/dsh-prose-standard/SKILL.md) for required coverage and editorial judgment; the [doc-tiers Agent Note](../.agents/notes/implemented/process/2026-07-04-doc-tiers-and-budgets.md) owns rationale.
 
-## 文档结构
+## Document structure
 
-这些规则适用于面向人的文档；[Agent Note](../.agents/notes/README.zh.md) 不在其范围内。[事故复盘](事故复盘/README.md) 是按事件限定的参考；时间顺序记录证据，不是教学序列。文档的主题和树位置固定其范围：以适当细节描述自身主题，直接子级只写目的、职责和高层行为；更低层细节链接到所属后代。文档类型不会扩大该范围。参考文档只允许对自己的主题穷尽。测试机制、fixture（测试前置数据）和 harness 属于最低所属层级；更高层文档链接到那里。
+These rules apply to human-facing documentation; [Agent Notes](../.agents/notes/README.md) remain outside their scope. A [postmortem](postmortem/README.md) is an incident-scoped reference; chronology records evidence, not a teaching sequence. A document's subject and tree position fix its scope: describe its own subject at appropriate detail and direct children only by purpose, responsibility, and high-level behavior; link to the owning descendant for lower-level detail. Document type does not widen that scope. A reference may be exhaustive only about its own subject. Testing mechanisms, fixtures, and harnesses belong at the lowest owning level; higher documents link there.
 
-把范围内的每一份文档分成教程或参考。教程沿有序路径走到一个结果，每一步只引入该步需要的内容。参考文档定义查找范围和当前行为，没有教学序列。把实质性的教程和参考内容分开；其中一方较小时给该节加标签。
+Classify every in-scope document as a tutorial or reference. Tutorials follow an ordered path to an outcome and introduce only what each step needs. References define a lookup scope and current behavior without a teaching sequence. Separate substantial tutorial and reference content; label a section when either part is small.
 
-写教程前，私下把读者的起点知识和每个概念分成初级、中级或高级。先建立前置再引入依赖概念，难度逐步升高，把不必要的高级材料挪到后续教程或参考。
+Before writing a tutorial, privately classify the reader's starting knowledge and each concept as beginner, intermediate, or advanced. Establish prerequisites before dependent concepts, increase difficulty gradually, and move unnecessary advanced material to a later tutorial or reference.
 
-按此顺序撰写：在树中定位该文档；设定允许的细节；选择教程或参考；若是教程，按前置和难度排列概念；迁出后代所属的细节；用指向所有者的链接替换更低层解释。
+Author in this order: locate the document in the tree; set its permitted detail; choose tutorial or reference; for a tutorial, order concepts by prerequisite and difficulty; relocate descendant-owned detail; replace lower-level explanations with links to their owners.
 
-## 层级分类体系：一事实一处
+## The tier taxonomy: one home per fact
 
-每个事实只有一处家：负责该工作的那一层；别处链接到那里。
+Each fact has one home: the tier whose job it is; elsewhere, link there.
 
-| 层级 | 职责 | 不属于这里的内容 |
+| Tier | Job | Does NOT belong there |
 |---|---|---|
-| 根 `AGENTS.md` | 常驻命令：agent 在每次会话上下文里都需要的规则，每条一到三行，并链接其家 | 故事、完整示例、情境性流程、从已链接的家复述的任何内容 |
-| 子树 `AGENTS.md`（`源码/`、`示例/`、`文档/`、`.agents/notes/`） | 该子树特有的命令 | 根文件已经承载的仓库级规则 |
-| [架构.md](架构.md) | 有序地图：组合、核心包、循环、seam、扩展点；改 `源码/` 前先读 | 类型定义（→ 子系统）、包级细节（→ 包 README）、决策理由（→ Agent Note）、实现状态标注 |
-| [子系统/](子系统/README.md) | 每个子系统一页参考：类型定义、语义和生成的 Cordis API | 行为叙述（→ 架构.md） |
-| [Agent Note](../.agents/notes/README.zh.md) | 现行决策记录：为什么、放弃了什么、所需核验；`已实现/` 的 note 用现在时描述已交付现实 | 决策已交付后的迁移计划、验收任务清单、fixture 走读，以及规范口吻（"should…"）；已归档 note 是冻结历史，绝不是当前权威 |
-| [事故复盘/](事故复盘/README.md) | 事件故事 — 唯一允许战事叙述的层级 | — |
-| [实操手册/](实操手册/添加包.md) | 带编号核验步骤的逐步操作 | 设计理由（→ 每份指南所链接的 Agent Note） |
-| [用户手册/](用户手册/index.md) | 文档网站发布的面向产品指南 | 生成的参考表、贡献者流程、决策历史 |
-| 包 README | 按包的约定：配置、语义、限制、扩展点，以及 [Model Experience](实操手册/添加包.md#4-write-the-package-readme) | JSDoc 复述、生成目录复述（事件/工具表）、其他包的关切 |
-| [开发指南.md](开发指南.md) | 贡献者环境、日常工作流和 CI 摘要；在 [翻译准则](翻译准则/README.md) 下的双语配对 | 运行时/版本理由（→ Agent Note）、会与 `package.json` 脚本漂移的逐项检查清单 |
-| 生成参考：[子系统/](子系统/README.md) 每页的 `cordis-surface` 区域、[Cordis 核心 API + 继承层](cordis-api/上下文.md)、[工具目录](工具目录.md)、[配置目录](配置目录.md)、[会话持久化](会话持久化.md)、[模块依赖关系图](模块依赖关系图.md) | 从源码重新生成并由新鲜度门禁的穷尽英文源；经审阅的中文对侧文件遵循[配对工作流](翻译准则/README.md) | 手工改生成的英文源或区域；中文对侧文件只通过配对更新 |
-| Skills（`.agents/skills/`） | 可复用工作流和专门决策标准 | 产品和运行时约定（→ 文档 或源码） |
+| Root `AGENTS.md` | Standing orders: rules an agent needs in context in every session, one to three lines each, linking its home | Stories, worked examples, situational procedures, anything restated from a linked home |
+| Subtree `AGENTS.md` (`packages/`, `docs/`, `.agents/notes/`) | Orders specific to that subtree | Repo-wide rules the root file already carries |
+| [architecture.md](architecture.md) | Ordered map: composition, core packages, loop, seams, extension points; read before changing `packages/` | Type definitions (→ subsystems), per-package detail (→ package READMEs), decision rationale (→ Agent Notes), implementation-status annotations |
+| [subsystems/](subsystems/README.md) | One reference page per subsystem: type definitions, semantics, and the generated Cordis API | Behavior narration (→ architecture.md) |
+| [Agent Notes](../.agents/notes/README.md) | Active decision records: the why, what-was-given-up, and required verification; `implemented/` notes describe shipped reality in present tense | Migration plans, acceptance-task checklists, fixture walkthroughs, and spec-speak ("should…") once the decision has shipped; archived notes are frozen history, never current authority |
+| [postmortem/](postmortem/README.md) | Incident stories — the only tier where war-story narrative belongs | — |
+| [Persistence history](persistence-changes/README.md) and [format references](persistence-changes/historical-formats/README.md) | Type-change acknowledgements, release comparisons, and complete historical format schemas | Behavior-only changes; current runtime contracts |
+| [cookbook/](cookbook/adding-a-package.md) | Step-by-step how-tos with numbered verify steps | Design rationale (→ the Agent Note each guide links) |
+| [user/](user/index.md) | Product-facing guides published by the documentation website | Generated reference tables, contributor procedures, decision history |
+| Package README | The per-package contract: config, semantics, limitations, extension points, and [Model Experience](cookbook/adding-a-package.md#4-write-the-package-readme) | JSDoc restatement, generated-catalog restatement (event/tool tables), other packages' concerns |
+| [development.md](development.md) | Contributor setup, daily workflow, and a summary of CI; a bilingual pair under the [i18n contract](i18n/README.md) | Runtime/version rationale (→ Agent Notes), check-by-check lists that drift from `package.json` scripts |
+| Generated reference: the per-page `cordis-surface` regions in [subsystems/](subsystems/README.md), the [Cordis core API + inherited tier](cordis-api/context.md), [tool-catalog](tool-catalog.md), [config-catalog](config-catalog.md), [persistence-catalog](persistence-catalog.md), [module-graph.md](module-graph.md) | Exhaustive English sources regenerated from source and freshness-gated; reviewed Chinese counterparts follow the [pairing workflow](i18n/README.md#scope-and-exclusions) | Hand edits to generated English sources or regions; Chinese counterparts update through pairing only |
+| Skills (`.agents/skills/`) | Reusable workflows and specialized decision standards | Product and runtime contracts (→ docs or source) |
 
-放置：缺陷 → 事故复盘；理由 → Agent Note；流程 → 实操手册；类型定义 → 子系统；包约定 → README；常驻命令 → 根 `AGENTS.md` 并带理由链接。
+Placement: bugs → postmortems; rationale → Agent Notes; procedures → cookbooks; type definitions → subsystems; package contracts → READMEs; standing orders → root `AGENTS.md` with a rationale link.
 
-## 写作规则
+## Writing rules
 
-- **记录当前状态，不是变更历史。** 持久行文避免 "previously/now/no longer"、PR、提交和 stack 位置；点名现行机制。把变更故事放进提交、PR、Agent Note 或事故复盘；后两者可以把已合并 PR 和 issue 当作证据引用。
-- **每一项非琐碎改动在同一 PR 里至少包含一份 Agent Note。** 更新所属 note 或新增一份；只有机械性/局部编辑可豁免（[范围](../.agents/notes/README.zh.md#何时需要写一份)）。
-- **每段一行**（`verify-md-wrap`）：用编辑器软换行。代码块、表格和列表结构保持其格式；代码注释遵守 linter 的列宽上限。
-- **围栏 `ts` 块必须能编译**（`doc-typecheck`）；粘贴的类型声明及其原始 JSDoc 用 ` ```ts type-equiv `，去掉函数体的公开类声明用 ` ```ts public-api `；两者都登记进清单，以免漂移（[机制](开发指南.md#逐字记录类型定义ts-type-equiv)）。
-- **所属 [子系统页](子系统/README.md) 与重塑已文档类型的改动同一批次更新。** `verify-type-equiv` 抓住已粘贴内容的漂移，抓不到从未文档化的新类型；类型文档化在其声明包组的页面上（[页面范围](../.agents/notes/已实现/流程/2026-08-03-以包锚定的子系统页面.md)）。
-- **配对一起更新：** [术语表引导](翻译准则/术语.md)的单次现行 agent 工作会重放首次出现括注、保住未改动的行文并重新记录；`dsh-translate-docs` 仍须用户显式调用（[约定](翻译准则/README.md)）。
-- **注释和 JSDoc 陈述完整约定，而不是推理过程记录。** 保留行为、失败、时机、所有权、情态、例外、后果和非显而易见的定向；删除叙述、测试走读、评审分析和代码复述。保住局部约定并链接其理由。细节见 [行文标准](../.agents/skills/行文标准/SKILL.md)。
-- 直接写：点名行动者和事实（[决策](../.agents/notes/已实现/流程/2026-08-09-具体行文命名行动方与已记录事实.md)）。`seam` 只留给已定义的能力。点名确切的检查、类型、API、操作或行为，而不是比喻性的 "gate"、"vocabulary" 或 "surface"。
+- **Document current state.** Keep history in commits, PRs, Agent Notes, postmortems, or scoped persistence records. Other prose names live mechanisms, not changes or stack positions. General Session-format prose links [version/status authority](session-format-status.md); retain numbers for version-specific contracts, examples, or evidence.
+- **Apply the Agent Note creation criteria.** Mechanical/local edits are exempt, including local UI changes; keep existing owning notes accurate ([scope](../.agents/notes/README.md#when-to-write-one)).
+- **One physical line per paragraph** (`verify-md-wrap`): use editor soft-wrap. Code blocks, tables, and list structure keep their formatting; code comments stay under the linter's column limit.
+- **Fenced `ts` blocks must compile** (`doc-typecheck`); a pasted type declaration and its original JSDoc use ` ```ts type-equiv `, while a body-stripped public class declaration uses ` ```ts public-api `; register either in the manifest so neither can drift ([mechanics](development.md#documenting-types-verbatim-ts-type-equiv)).
+- **The owning [subsystems page](subsystems/README.md) updates in the same change** that reshapes a documented type. `verify-type-equiv` catches drifted pastes, not never-documented new types; a type is documented on its declaring package group's page ([page scoping](../.agents/notes/implemented/process/2026-08-03-package-anchored-subsystem-pages.md)).
+- **Pairs update together**: [Terminology-guided](i18n/terminology.md), single-pass active-agent work repositions first-use annotations, preserves untouched prose, and re-records; `dsh-translate-docs` remains user-invoked ([contract](i18n/README.md)).
+- **Comments and JSDoc state complete contracts, not reasoning transcripts.** Preserve behavior, failure, timing, ownership, modality, exceptions, consequences, and non-obvious orientation; delete narration, test walkthroughs, review analysis, and code restatement. Keep the local contract and link its rationale. Use [dsh-prose-standard](../.agents/skills/dsh-prose-standard/SKILL.md) for details.
+- Write directly: name actors and facts ([decision](../.agents/notes/implemented/process/2026-08-09-concrete-prose-names-actors-and-recorded-facts.md)). Reserve `seam` for the defined capability. Name the exact check, type, API, operation, or behavior instead of metaphorical "gate", "vocabulary", or "surface".
 
-## 字数预算
+## Wordcount Budgets
 
-`scripts/doc-budgets.manifest.json` 设定常驻文档上限；`pnpm run verify-doc-budgets` 拒绝超额或缺失文件。
+[scripts/doc-budgets.manifest.json](../scripts/doc-budgets.manifest.json) sets standing-doc ceilings; `pnpm run verify-doc-budgets` rejects excess or missing files.
 
-门禁变红时：
+When the gate goes red:
 
-1. **迁出** 属于另一层的内容；需要时留一行链接。
-2. **压缩** 属于这里但可以更短的内容。
-3. **提高** 上限，仅当这些词确实需要篇幅；在 PR 里为清单 diff 说明理由。上限过低是预算缺陷。
+1. **Relocate** content that belongs in another tier; leave a one-line link if needed.
+2. **Condense** content that belongs here but can be shorter.
+3. **Raise** the ceiling only when the words need the space; justify the manifest diff in the PR. A too-low ceiling is a budget bug.
 
-上限是护栏，不是削减目标。达到或低于目标时，至少保留 5% 余量；高于目标时冻结上限，直到迁出或压缩把文档拉回目标以下。只有文档仍有余量时才降低上限；否则会删掉内容时就提高上限。目标：根 `AGENTS.md` ≤ 1,600 词；`架构.md` ≤ 1,800；子树 `AGENTS.md` ≤ 600，但 `源码/AGENTS.md` ≤ 650、本文件 ≤ 1,250；`源码` 包 README ≤ 600。未设预算的层级由评审约束。
+Ceilings are guardrails, not reduction targets. At or below target, retain at least 5% headroom; above target, freeze the ceiling until relocation or condensation brings the document under target. Lower a ceiling only when the document still has room. Targets: root `AGENTS.md` ≤ 1,950; `architecture.md` ≤ 2,400; subtree `AGENTS.md` ≤ 600, except `packages/AGENTS.md` ≤ 750 and this file ≤ 1,320; `packages/README.md` ≤ 994; plus `cordis-primer.md` 600, `defensive-patterns.md` 550, `testing.md` 1,300, `examples/AGENTS.md` 310. Review governs unbudgeted tiers.
 
-## 水分清单
+## The slop checklist
 
-在任何文档里搜这些；[文档标准](../.agents/skills/文档标准.md) 把本清单当审计跑：
+Hunt these in any doc; [dsh-doc](../.agents/skills/dsh-doc/SKILL.md) runs this list as an audit:
 
-- 同一条规则写在不止一处家。用有辨识度的短语 grep；留一处家，其余改链接。
-- 叙述历史或战事："previously"、"now"、"no longer"、"used to"、"renamed"、"was moved"、PR 或提交。陈述当前事实；需要时链接 Agent Note 或事故复盘。
-- 行文或图里的实现状态标注（"implemented!"、"future: …"）。状态会腐烂；由仓库布局和包清单承载。
-- 当源码或生成器才是权威时，手工复述目录、JSDoc，或测试、包和状态的清单。
-- 推理过程记录：逐步实现叙述、对显而易见分支的证明、测试走读，或被否决的局部备选。保住得到的约定或持久理由；删除推导路径。
-- 理由在兄弟方法旁重复，而不是在所属能力或辅助处写一次。
-- 段落墙：一段里塞几条规则和括号旁白。拆开，或把细节降到其家。
-- 强调通胀：到处加粗、大写或 "critically" 等于什么都不突出。强调只留给会改变行为的那一子句。
-- `已实现/` Agent Note 里的规范口吻："should"、迁移计划、验收清单。已实现 Agent Note 描述现状，见[已实现 note 说明](../.agents/notes/已实现/AGENTS.md)。
+- Duplicated rules: search a distinctive phrase; keep one home and link the rest.
+- History outside its permitted tier: state current facts and link the historical owner.
+- Implementation-status annotations in prose or diagrams ("implemented!", "future: …"). Status rots; the repo layout and package manifests carry it.
+- Hand-restated catalogs, JSDoc, or inventories of tests, packages, and status when source or a generator is authoritative.
+- Reasoning transcripts: step-by-step implementation narration, proof of obvious branches, test walkthroughs, or rejected local alternatives. Keep the resulting contract or durable rationale; delete the path used to derive it.
+- Rationale repeated beside sibling methods instead of once at the owning capability or helper.
+- Paragraph walls: one paragraph carrying several rules and parenthetical asides. Split it or demote the detail to its home.
+- Emphasis inflation: bold, CAPS, or "critically" everywhere means nothing stands out. Reserve emphasis for the clause that changes behavior.
+- Spec-speak in `implemented/` Agent Notes: "should", migration plans, acceptance checklists. An implemented Agent Note describes what is, per the [implemented-note instructions](../.agents/notes/implemented/AGENTS.md).
 
-## 交叉引用用可机械检查的链接，绝不用自由行文
+## Repository references
 
-用相对 Markdown 路径链接仓库引用，绝不用裸文件名或 Agent Note 编号。`verify-md-links` 拒绝缺失目标和失效的 `#fragment` 锚点（[理由](../.agents/notes/已实现/流程/2026-06-18-markdown交叉链接检查.md)）。
+Use relative Markdown links for current files and tags or PR numbers for historical references. `verify-md-links` checks local targets. [Reference validation](../scripts/verify-repository-references.ts) rejects actual commit identifiers and disallowed organization URLs in maintained files.

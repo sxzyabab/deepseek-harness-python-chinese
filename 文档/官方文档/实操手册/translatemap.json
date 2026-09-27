@@ -1,0 +1,13 @@
+{
+    "adding-a-package":"添加包",
+    "adding-a-remote-api":"添加远程API",
+    "adding-a-session-format-version":"添加会话格式版本",
+    "adding-a-settings-card":"在web对话中添加节点",
+    "adding-a-tool":"添加工具",
+    "adding-a-vendored-package":"添加依赖快照",
+    "adding-an-llm-adapter":"添加模型适配器",
+    "extension-cookbook":"拓展实操手册",
+    "maintaining-dsh-code-review":"维护代码审查skill",
+    "responding-to-pr-review-on-a-stack":"回复堆叠PR",
+    "reviewing-persistence-type-changes":"审阅持久化类型变更"
+}

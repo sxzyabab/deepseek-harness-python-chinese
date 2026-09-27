@@ -1,0 +1,7 @@
+{
+    "0001-acp-default-export-drops-inject":"0001-acp-默认导出丢失inject",
+    "0002-js-expression-disabled-filesystem-tools":"0002-js-文件系统工具被禁用",
+    "0003-web-agent-gui-feedback-loop":"0003-web-agent使用了错误的URL进行验收",
+    "0004-landlock-partial-notice-misclassified-child-failures":"0004-Landlock部分强制执行通知导致子进程失败被误归类",
+    "README":"README"
+}

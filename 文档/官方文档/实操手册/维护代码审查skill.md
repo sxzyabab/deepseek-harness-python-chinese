@@ -1,6 +1,8 @@
 # 维护 dsh-code-review skill
 
-[`代码评审`](../../.agents/skills/代码评审.md) skill（技能）由一名指定操作员通过私有的周期维护工具持续更新。本实操手册既是该操作员和接任者的入口，也帮助仓库贡献者理解为何 skill 更新会以小型周期 PR（Pull Request）的形式出现，而不是一次性审计。工作流本身由[人工评审 skill 维护 Agent Note](../../.agents/notes/提案/流程/2026-07-13-人工评审技能维护.md)规定。
+[English](maintaining-dsh-code-review.md) | 中文
+
+[`dsh-code-review`](../../.agents/skills/dsh-code-review/SKILL.md) skill（技能）由一名指定操作员通过私有的周期维护工具持续更新。本实操手册既是该操作员和接任者的入口，也帮助仓库贡献者理解为何 skill 更新会以小型周期 PR（Pull Request）的形式出现，而不是一次性审计。工作流本身由[人工评审 skill 维护 Agent Note](../../.agents/notes/proposed/process/2026-07-13-human-review-skill-maintenance.zh.md)规定。
 
 ## 维护者会收到什么
 

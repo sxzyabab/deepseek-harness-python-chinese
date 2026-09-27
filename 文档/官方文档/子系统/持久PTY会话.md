@@ -1,6 +1,8 @@
 # 持久 PTY 会话
 
-PTY 后端、`ctx.terminals` 与面向模型的消费方共享的类型。[持久 PTY Agent Note](../../.agents/notes/已实现/功能/2026-07-16-持久pty会话.md) 负责记录决策依据；本页记录来自 [`源码/终端/终端/src/types.ts`](../../源码/终端/终端/src/types.ts) 的跨包词汇。
+[English](terminal.md) | 中文
+
+PTY 后端、`ctx.terminals` 与面向模型的消费方共享的类型。[持久 PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.zh.md) 负责记录决策依据；本页记录来自 [`packages/terminal/terminal/src/types.ts`](../../packages/terminal/terminal/src/types.ts) 的跨包词汇。
 
 ## 标识与就绪
 
@@ -94,7 +96,7 @@ interface TerminalSendResult {
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — this section is byte-identical in both language sides of the page. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis入门.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/继承的Cordis-API.md](../cordis-api/继承的Cordis-API.md).
+Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxterminals--terminalsessionservice"></a>
 
@@ -176,7 +178,7 @@ async kill(owner: Agent, id: TerminalSessionId, reason: string = 'model request'
 list(owner: Agent): TerminalSessionSnapshot[]
 ```
 
-Types: [Agent](内核.md)
+Types: [Agent](core.zh.md)
 
-Source: [`源码/终端/终端/src/index.ts:105`](../../源码/终端/终端/src/index.ts)
+Source: [`packages/terminal/terminal/src/index.ts`](../../packages/terminal/terminal/src/index.ts)
 <!-- END GENERATED cordis-surface -->

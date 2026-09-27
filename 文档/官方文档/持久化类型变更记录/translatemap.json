@@ -1,0 +1,20 @@
+{
+    "2026-09-11-initial":"2026-09-11-初始",
+    "2026-09-11-initial.schema":"2026-09-11-初始.schema",
+    "2026-09-12-auto-review-error-metadata":"2026-09-12-自动审查错误元数据",
+    "2026-09-12-auto-review-error-metadata.schema":"2026-09-12-自动审查错误元数据.schema",
+    "2026-09-14-image-offload":"2026-09-14-图片卸载",
+    "2026-09-14-image-offload.schema":"2026-09-14-图片卸载.schema",
+    "2026-09-14-workspace-changes-event":"2026-09-14-工作区变更事件",
+    "2026-09-14-workspace-changes-event.schema":"2026-09-14-工作区变更事件.schema",
+    "2026-09-16-session-format-v4":"2026-09-16-会话格式v4",
+    "2026-09-16-session-format-v4.schema":"2026-09-16-会话格式v4.schema",
+    "2026-09-18-schedule-optional-title":"2026-09-18-schedule可选标题",
+    "2026-09-18-schedule-optional-title.schema":"2026-09-18-schedule可选标题.schema",
+    "2026-09-20-unknown-child-catalog":"2026-09-20-未知子会话目录",
+    "2026-09-20-unknown-child-catalog.schema":"2026-09-20-未知子会话目录.schema",
+    "README":"README",
+    "finalized":"定稿",
+    "historical-formats":"格式参考",
+    "releases":"预发行版本归档"
+}

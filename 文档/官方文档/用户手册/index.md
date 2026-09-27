@@ -7,3 +7,5 @@ head:
 ---
 
 # DeepSeek Harness
+
+[English](index.md) | 中文
