@@ -19,7 +19,7 @@ dependencies=[
 ]
 
 [project.scripts]
-pydsh="pydsh.__main__:main" #pydsh命令
+pydsh="pydsh.__main__:main"
 
 [tool.setuptools]
 include-package-data=true

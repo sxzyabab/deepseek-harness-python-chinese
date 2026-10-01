@@ -1,0 +1,11 @@
+{
+    "2026-06-11-api-extractor-reports":"2026-06-11-api-extractor报告",
+    "2026-06-11-architectural-conformance":"2026-06-11-架构一致性",
+    "2026-06-11-supply-chain-and-vendor-drift":"2026-06-11-供应链与vendor漂移",
+    "2026-06-20-discover-package-inventory":"2026-06-20-发现包清单",
+    "2026-07-13-human-review-skill-maintenance":"2026-07-13-人工评审技能维护",
+    "2026-07-26-remove-packed-session-fixture-migrator":"2026-07-26-移除打包会话fixture迁移器",
+    "2026-08-04-artifact-first-npm-baseline-publication":"2026-08-04-以产物优先的npm基线发布",
+    "2026-08-20-audience-first-documentation-quality":"2026-08-20-受众优先的文档质量",
+    "2026-08-27-port-tool-owned-render":"2026-08-27-移植工具自有渲染"
+}

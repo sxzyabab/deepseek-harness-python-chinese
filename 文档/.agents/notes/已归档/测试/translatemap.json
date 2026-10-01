@@ -1,0 +1,22 @@
+{
+    "2026-06-20-remove-redundant-snapshot-log-expected-output":"2026-06-20-移除冗余快照日志期望输出",
+    "2026-06-22-fork-snapshot-scenarios":"2026-06-22-fork快照场景",
+    "2026-07-04-hook-snapshot-matrix":"2026-07-04-hook快照矩阵",
+    "2026-07-04-single-source-acp-replay-config":"2026-07-04-单源acp回放配置",
+    "2026-07-06-pin-request-header-content-in-one-scenario":"2026-07-06-单场景钉死请求头内容",
+    "2026-07-08-shared-acp-snapshot-package":"2026-07-08-共享acp快照包",
+    "2026-07-18-tui-terminal-state-snapshots":"2026-07-18-tui终端状态快照",
+    "2026-07-26-execa-for-test-subprocess-plumbing":"2026-07-26-测试子进程管道用execa",
+    "2026-06-11-property-based-testing":"2026-06-11-基于属性的测试",
+    "2026-06-22-fork-child-replay-seed-boundary":"2026-06-22-fork子会话回放种子边界",
+    "2026-06-22-subagent-snapshot-replay":"2026-06-22-subagent快照回放",
+    "2026-07-22-cross-platform-test-fixtures":"2026-07-22-跨平台测试fixture",
+    "2026-07-25-scriptable-llm-wire-fault-server":"2026-07-25-可脚本化llm线路故障服务器",
+    "2026-07-30-vitest-jsdom-webstorage-ownership":"2026-07-30-vitest-jsdom的webstorage归属",
+    "2026-08-12-required-python-runtime-pull-request-ci":"2026-08-12-必选python运行时的pr-ci",
+    "2026-08-13-python-minimal-model-visible-snapshot":"2026-08-13-python最小模型可见快照",
+    "2026-08-18-session-snapshot-envelope-projection":"2026-08-18-会话快照信封投影",
+    "2026-08-27-translation-pairing-merge-budget":"2026-08-27-翻译配对合并预算",
+    "2026-08-28-ci-test-reliability-skill":"2026-08-28-ci测试可靠性skill",
+    "2026-08-29-windows-lane-hook-and-lefthook-budget":"2026-08-29-windows通道hook与lefthook预算"
+}

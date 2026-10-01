@@ -23,22 +23,16 @@ pip install -e .
 或下载源码后直接导入(使用`importlib`或改名为不含`-`的名称后导入)
 
 ## 文件导览
+[基准测试](基准测试/) #原benchmark/
+
 [示例](示例/)
 
 [文档](文档/)/
-    [官方文档](文档/官方文档/)
+    [.agents](文档/.agents/) #原.agents/
+    [翻译标准](文档/翻译标准/) #项目的汉化标准
+    [官方文档](文档/官方文档/) #原doc/
 
-[依赖快照](依赖快照/)/ #原vendor
-    [cordis](依赖快照/cordis/)
-    [loader](依赖快照/loader/)
-    [cosmokit.py](依赖快照/cosmokit.py)
-    [hmr.py](依赖快照/hmr.py)
-    [include.py](依赖快照/include.py)
-    [logger_console.py](依赖快照/logger_console.py)
-    [schemastery.py](依赖快照/schemastery.py)
-    [timer.py](依赖快照/timer.py)
-
-[源码](源码)/ #原package
+[源码](源码)/ #原packages/
 
 [web](web)/
     [静态资源](web/静态资源/)/
@@ -52,6 +46,7 @@ pip install -e .
 
 ## 较大修改
 
+* 将vendor并入packages
 * 删除 vendor/group
 * schemastery包改为手搓校验包
 
@@ -65,8 +60,10 @@ pip install -e .
 
 计划中(TODO):
 * 完成web端并成功启动
+* 完成桌面端打包链路
 * 兼容用ts写的插件
 * 为ts包写python更易用的版本
+* 对原有架构进行升级
 
 已完成:
 3.初步重构外部依赖(Cordis相关)

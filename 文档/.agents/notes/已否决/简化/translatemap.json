@@ -1,0 +1,14 @@
+{
+    "2026-06-20-drop-durable-step-boundaries":"2026-06-20-去掉持久化步骤边界",
+    "2026-06-20-fold-session-persistence-interface":"2026-06-20-折叠会话持久化接口",
+    "2026-06-20-truncate-interrupted-turns":"2026-06-20-截断被中断轮次",
+    "2026-07-12-prune-unused-skill-registry-api":"2026-07-12-裁剪未用skill注册表api",
+    "2026-07-19-fold-compaction-package-split":"2026-07-19-折叠compaction包拆分",
+    "2026-07-26-builtin-timer-promises-for-hand-rolled-sleeps":"2026-07-26-内置timer-promises替代手写休眠",
+    "2026-07-26-dependency-swaps-rejected-by-nih-audit":"2026-07-26-nih审计否决的依赖替换",
+    "2026-06-20-drop-bash-output-spill":"2026-06-20-去掉bash输出spill文件",
+    "2026-06-20-persist-assembled-assistant-only":"2026-06-20-仅组装assistant消息",
+    "2026-07-04-prune-dead-core-spine-api":"2026-07-04-裁剪无用核心主干api",
+    "2026-07-12-fold-workflow-into-foreground-core":"2026-07-12-折叠workflow至前台核心",
+    "2026-07-19-make-jsonrpc-directional":"2026-07-19-让jsonrpc单向化"
+}

@@ -1,6 +1,5 @@
 {
     "deepseek-llm-api-extensions":"deepseek_llm_api_扩展",
-    "llm":"llm",
     "llm-deepseek":"llm_deepseek",
     "llm-pi-ai":"llm_pi_ai",
     "llm-retry":"llm_retry",

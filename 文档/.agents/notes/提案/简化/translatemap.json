@@ -1,0 +1,14 @@
+{
+    "2026-07-04-prune-dead-core-spine-api":"2026-07-04-裁剪无用核心主干api",
+    "2026-07-19-make-jsonrpc-directional":"2026-07-19-让jsonrpc单向化",
+    "2026-09-17-defer-office-background-scheduling":"2026-09-17-推迟office后台调度",
+    "2026-09-19-config-only-hmr":"2026-09-19-仅配置hmr",
+    "2026-09-19-omit-fs-payload-invariant":"2026-09-19-省略fs载荷不变量",
+    "2026-09-19-provider-only-instruction-reads":"2026-09-19-仅提供方读取指令",
+    "2026-09-19-prune-stream-visibility-helpers":"2026-09-19-裁剪流可见性辅助",
+    "2026-09-19-python-sdk-directional-client":"2026-09-19-python-sdk有向客户端",
+    "2026-09-19-retire-app-bin-boot-helpers":"2026-09-19-退役应用二进制启动辅助",
+    "2026-09-19-retire-prompt-registry-change-event":"2026-09-19-退役提示词注册表变更事件",
+    "2026-09-19-shell-env-key-declarations":"2026-09-19-shell环境键声明",
+    "2026-09-19-trim-session-query-convenience-api":"2026-09-19-精简会话查询便利api"
+}

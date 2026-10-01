@@ -1,0 +1,19 @@
+{
+    "2026-06-16-typed-event-schemas":"2026-06-16-带类型事件模式",
+    "2026-07-19-required-cancellation-through-tool-capability-seams":"2026-07-19-经工具能力接缝强制取消",
+    "2026-07-24-domain-kv-storage-and-workspace":"2026-07-24-领域键值存储与工作区",
+    "2026-07-25-client-settings-locale-theme":"2026-07-25-客户端设置语言与主题",
+    "2026-07-27-session-projection-and-command-log":"2026-07-27-会话投影与命令日志",
+    "2026-07-28-storage-root-and-derived-medium-recovery":"2026-07-28-存储根与派生介质恢复",
+    "2026-07-29-durable-last-activity-index":"2026-07-29-持久化最近活动索引",
+    "2026-08-08-cordis-web-dynamic-packages":"2026-08-08-cordis-web动态包",
+    "2026-08-08-semantic-composer-chain-phases":"2026-08-08-语义编排器链阶段",
+    "2026-08-10-unary-apiproxy-remote-migration":"2026-08-10-一元apiproxy远程迁移",
+    "2026-09-06-logical-session-storage-rebuild":"2026-09-06-逻辑会话存储重建",
+    "2026-09-10-session-capability-protocols":"2026-09-10-会话能力协议",
+    "2026-09-10-session-data-compatibility":"2026-09-10-会话数据兼容",
+    "2026-09-10-session-developer-transition":"2026-09-10-会话开发者过渡",
+    "2026-09-10-session-refactor-faq":"2026-09-10-会话重构问答",
+    "2026-09-14-composer-model-and-draft-editor":"2026-09-14-撰写区模型与草稿编辑器",
+    "2026-09-19-timed-user-question-two-settlements":"2026-09-19-限时用户提问双结算"
+}

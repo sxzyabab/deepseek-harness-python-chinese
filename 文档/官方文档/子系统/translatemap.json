@@ -1,5 +1,4 @@
 {
-    "README":"README",
     "agent-team":"Agent团队",
     "approval":"用户审批",
     "attachment":"持久图片附件",
@@ -22,7 +21,6 @@
     "jobs":"后台任务运行时",
     "llm-streaming":"流式输出",
     "lsp":"LSP导航",
-    "mcp":"mcp",
     "office-to-pdf":"Office转PDF",
     "permission-presets":"权限预设",
     "persistence":"会话持久化",
