@@ -1,14 +1,16 @@
-"""解析 git diff-tree --numstat -z 输出。"""
+'解析 git diff-tree --numstat -z 输出'
 __all__=['解析行数统计']#仅中文公开名
 
 class 行数统计错误(Exception):#本模块异常
-    """行数统计输出畸形。"""
+    '行数统计输出畸形'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 def 解析行数统计(输出):#解析NUL终止的numstat
-    """解析 NUL 终止的 numstat 记录；重命名记录空路径后跟旧路径与新路径。输出须完整。"""
+    """解析 NUL 终止的 numstat 记录；重命名记录空路径后跟旧路径与新路径。
+    输出须完整
+    """
     队列=输出.split('\0')#按NUL切开
     if len(队列)==0 or 队列[-1]!='':#须以NUL收尾
         raise 行数统计错误('numstat output is not NUL-terminated')#截断或畸形

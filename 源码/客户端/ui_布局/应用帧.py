@@ -21,20 +21,20 @@ __all__=['应用帧','主面板','样式表']#仅中文公开名
 '''#样式表结束
 
 def 取布局信息(快照):
-    """选择 layoutInfo。"""
+    '选择 layoutInfo'
     return 快照['layoutInfo'] if 'layoutInfo' in 快照 else {}#列几何
 
 
 class 主面板:#中列主槽投影
-    """订阅活动面板键而不让列帧订阅每个面板 id。"""
+    '订阅活动面板键而不让列帧订阅每个面板 id'
 
     def __init__(自身,用面板信息,渲染槽):
-        """记下钩与渲染。"""
+        '记下钩与渲染'
         自身.用面板信息=用面板信息#usePanelInfo
         自身.渲染槽=渲染槽#renderSlot
 
     def 渲染(自身):
-        """按活动面板键渲染 main；缺省 conversation。"""
+        '按活动面板键渲染 main；缺省 conversation'
         面板标识=None#活动面板
         if 自身.用面板信息 is not None:#有钩
             面板标识=自身.用面板信息(lambda 信息:信息['activePanelId'] if 'activePanelId' in 信息 else None)#活动
@@ -45,10 +45,10 @@ class 主面板:#中列主槽投影
 
 
 class 应用帧:#三栏壳帧组件
-    """侧栏|中栏|右侧栏；拖拽柄与让步链。"""
+    '侧栏|中栏|右侧栏；拖拽柄与让步链'
 
     def __init__(自身,属性):
-        """记下 props 与拖拽基线。"""
+        '记下 props 与拖拽基线'
         自身.属性=属性 if 属性 is not None else {}#合成 props
         自身.拖拽中=False#是否拖拽
         自身.侧栏基线=0#拖拽起点侧栏宽
@@ -58,11 +58,11 @@ class 应用帧:#三栏壳帧组件
         自身._动作=None#当前动作
 
     def 更新(自身,属性):
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性 if 属性 is not None else {}#最新
 
     def 读布局信息(自身):
-        """经 useStore 取 layoutInfo。快照为 dict。"""
+        '经 useStore 取 layoutInfo。快照为 dict'
         用存储=自身.属性['useStore'] if 'useStore' in 自身.属性 else None#选择器
         if 用存储 is None:#无
             return {#默认列几何
@@ -79,36 +79,36 @@ class 应用帧:#三栏壳帧组件
         return 照 if 照 is not None else {}#空则空表
 
     def 侧栏拖开始(自身):
-        """冻结基线并标拖拽。"""
+        '冻结基线并标拖拽'
         列=自身._列#列
         自身.侧栏基线=列['sidebar'] if 列 is not None else 0#基线
         自身.拖拽中=True#拖
 
     def 右侧栏拖开始(自身):
-        """冻结基线并标拖拽。"""
+        '冻结基线并标拖拽'
         自身.右侧栏基线=自身._正常右栏#基线取正常几何宽
         自身.拖拽中=True#拖
 
     def 侧栏拖(自身,位移):
-        """基线+位移写入偏好。"""
+        '基线+位移写入偏好'
         动作=自身._动作#动作
         设=动作['setSidebar'] if 动作 is not None and 'setSidebar' in 动作 else None#动作
         if 设 is not None:#有
             设(自身.侧栏基线+位移)#写
 
     def 右侧栏拖(自身,位移):
-        """基线-位移写入偏好（反向）。"""
+        '基线-位移写入偏好（反向）'
         动作=自身._动作#动作
         设=动作['setRightbar'] if 动作 is not None and 'setRightbar' in 动作 else None#动作
         if 设 is not None:#有
             设(自身.右侧栏基线-位移)#写
 
     def 拖结束(自身):
-        """清拖拽标志。"""
+        '清拖拽标志'
         自身.拖拽中=False#结束
 
     def 渲染(自身):
-        """产出与上游 JSX 同构的结构化视图。"""
+        '产出与上游 JSX 同构的结构化视图'
         动作列=自身.属性['actions'] if 'actions' in 自身.属性 else None#面板动作
         动作=动作列 if 动作列 is not None else {}#空则空表
         自身._动作=动作#供拖回调
@@ -192,7 +192,7 @@ class 应用帧:#三栏壳帧组件
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

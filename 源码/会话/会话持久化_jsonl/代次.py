@@ -1,4 +1,4 @@
-"""JSONL 会话产物的耐久整代发布（对齐 generation.ts；迁移校验进程内完成）。"""
+'JSONL 会话产物的耐久整代发布（对齐 generation.ts；迁移校验进程内完成）'
 import hashlib#摘要
 import os#路径与 fs
 import secrets#随机令牌
@@ -25,17 +25,17 @@ from .win32 import 发布新文件win32,是否eexist as win32是否eexist#Win32 
 迁移写块字节=4*1024*1024#迁移写块
 
 class 代次源变更错误(Exception):#源变更
-    """历史源在解码与迁移遍之后发生了变更。"""
+    '历史源在解码与迁移遍之后发生了变更'
     def __init__(自身,路径):#构造
-        """记下修订已变的历史代。"""
+        '记下修订已变的历史代'
         自身.path=路径#路径
         自身.name='JsonlGenerationSourceChangedError'#错误名
         super().__init__(f'historical session generation changed during migration: "{路径}"')#消息
 
 class 代次不支持迁移错误(Exception):#不支持迁移
-    """历史产物完好，但格式边拒绝其内容。"""
+    '历史产物完好，但格式边拒绝其内容'
     def __init__(自身,来自版本,原因):#构造
-        """记下源版本与格式边拒绝。"""
+        '记下源版本与格式边拒绝'
         自身.fromVersion=来自版本#源版本
         自身.reason=原因#原因
         自身.name='JsonlGenerationUnsupportedMigrationError'#错误名
@@ -43,9 +43,9 @@ class 代次不支持迁移错误(Exception):#不支持迁移
         自身.__cause__=原因#cause
 
 class 代次目标冲突错误(Exception):#目标冲突
-    """当代文件名已指向不同或非法字节。"""
+    '当代文件名已指向不同或非法字节'
     def __init__(自身,路径,原因):#构造
-        """记下阻止独占发布的目标。"""
+        '记下阻止独占发布的目标'
         自身.path=路径#路径
         自身.reason=原因#原因
         自身.name='JsonlGenerationTargetConflictError'#错误名
@@ -53,7 +53,7 @@ class 代次目标冲突错误(Exception):#目标冲突
         自身.__cause__=原因#cause
 
 def 物理身份(状态):#从 os.stat_result 造身份
-    """与精确代字节一并捕获的 stat 身份。"""
+    '与精确代字节一并捕获的 stat 身份'
     return {#物理身份
         'dev':状态.st_dev,#设备
         'ino':状态.st_ino,#inode
@@ -63,11 +63,11 @@ def 物理身份(状态):#从 os.stat_result 造身份
     }#结束
 
 def 身份串(值):#身份字符串
-    """冒号拼接物理身份字段。"""
+    '冒号拼接物理身份字段'
     return ':'.join([str(值['dev']),str(值['ino']),str(值['size']),str(值['mtimeNs']),str(值['ctimeNs'])])#拼接
 
 def 是否eexist(错误):#是否 EEXIST
-    """文件系统冲突是否表示目标已存在。"""
+    '文件系统冲突是否表示目标已存在'
     if win32是否eexist(错误):#Win32
         return True
     if getattr(错误,'errno',None)==getattr(os,'EEXIST',17):#POSIX
@@ -75,7 +75,7 @@ def 是否eexist(错误):#是否 EEXIST
     return isinstance(错误,FileExistsError)#FileExistsError
 
 def 读稳定jsonl文件(路径,信号=None):#读稳定修订
-    """以单次重试读取稳定修订；持续写者重叠时返回已提交预读前缀。"""
+    '以单次重试读取稳定修订；持续写者重叠时返回已提交预读前缀'
     _若已中止(信号)#取消
     之前=物理身份(os.stat(路径))#读前
     尝试=0#尝试计数
@@ -93,14 +93,14 @@ def 读稳定jsonl文件(路径,信号=None):#读稳定修订
         尝试+=1#递增
 
 def _若已中止(信号):#取消检查
-    """已中止则抛出。"""
+    '已中止则抛出'
     if 信号 is None:#无信号
         return#无事
     if 信号.is_set():#已中止
         raise InterruptedError('session migration preparation aborted')#包装
 
 def _已存版本(头):#取已存版本
-    """解析版本判别式，不校验版本特定字段。"""
+    '解析版本判别式'
     if not isinstance(头,dict) or isinstance(头,list):#非对象
         raise Error('corrupt session log: first line is not a JSON object')#损坏
     版本=头.get('version')#version
@@ -109,7 +109,7 @@ def _已存版本(头):#取已存版本
     return 版本#返回
 
 def _解析json(文本,主题):#解析 JSON
-    """解析 JSON 文本。"""
+    '解析 JSON 文本'
     import json#JSON
     try:
         return json.loads(文本)
@@ -117,12 +117,12 @@ def _解析json(文本,主题):#解析 JSON
         raise Error(f'corrupt session log: {主题} is not valid JSON') from 错误#包装
 
 def _断言独立头帧(明文):#断言独立头帧
-    """第一帧须恰好一行头记录。"""
+    '第一帧须恰好一行头记录'
     if len(明文)==0 or 明文.find(b'\n')!=len(明文)-1:#非恰好一行
         raise Error('corrupt Zstandard session log: first frame is not exactly one header line')#损坏
 
 def _断言代次路径(源路径,源版本,当代路径,当代版本,压缩):#断言路径
-    """断言源与当代文件名/目录，返回后缀。"""
+    '断言源与当代文件名/目录，返回后缀'
     期望源=代次日志文件名(源版本,压缩)#期望源名
     期望当代=代次日志文件名(当代版本,压缩)#期望当代名
     if os.path.basename(源路径)!=期望源:#源名不符
@@ -134,7 +134,7 @@ def _断言代次路径(源路径,源版本,当代路径,当代版本,压缩):#�
     return 日志后缀(压缩)#后缀
 
 def _同步目录(路径):#同步目录项
-    """POSIX 下 fsync 父目录；Windows 跳过（写穿命名空间另担）。"""
+    'POSIX 下 fsync 父目录；Windows 跳过（写穿命名空间另担）'
     if sys.platform=='win32':#Windows
         return#跳过（MoveFileEx WRITE_THROUGH / 注明缺口）
     标志=os.O_RDONLY#只读
@@ -147,9 +147,9 @@ def _同步目录(路径):#同步目录项
         os.close(描述符)#关闭
 
 class 迁移中jsonl行:#迁移行解析
-    """仅保留跨帧记录碎片的增量 JSONL 解析器。"""
+    '仅保留跨帧记录碎片的增量 JSONL 解析器'
     def __init__(自身,恢复器):#构造
-        """持有格式恢复器。"""
+        '持有格式恢复器'
         自身.恢复器=恢复器#恢复器
         自身.碎片=[]#碎片
         自身.碎片字节=0#碎片字节
@@ -157,7 +157,7 @@ class 迁移中jsonl行:#迁移行解析
         自身.问题=None#延迟错误
 
     def 写入(自身,块):#写入块
-        """消费明文字节。"""
+        '消费明文字节'
         行起点=0#行起点
         while True:#找换行
             换行=块.find(b'\n',行起点)#换行
@@ -179,16 +179,16 @@ class 迁移中jsonl行:#迁移行解析
             自身.碎片字节+=len(片段)#累加
 
     def 断言完整帧落在记录边界(自身):#断言记录边界
-        """拒绝完整帧留下的记录碎片。"""
+        '拒绝完整帧留下的记录碎片'
         if len(自身.碎片)>0:#尚有碎片
             raise Error('corrupt Zstandard session log: complete frame contains a torn JSONL record')#撕裂
 
     def 完成(自身):
-        """完成恢复器。"""
+        '完成恢复器'
         return 自身.恢复器.finish()#产物
 
     def _消费(自身,行):#消费一行
-        """解析并喂入恢复器。"""
+        '解析并喂入恢复器'
         下标=自身.行下标#行号
         自身.行下标+=1#递增
         try:#解析
@@ -204,7 +204,7 @@ class 迁移中jsonl行:#迁移行解析
         自身.恢复器.decodeRow(已解析)#解码
 
 def _流式解码迁移(字节,压缩,源版本,格式适配,校验历史头=None,信号=None):#流式解码
-    """解码历史代为格式产物。"""
+    '解码历史代为格式产物'
     _若已中止(信号)#取消
     if 压缩=='none':#明文
         头末=字节.find(b'\n')#头换行
@@ -248,7 +248,7 @@ def _流式解码迁移(字节,压缩,源版本,格式适配,校验历史头=Non
         解码器.关闭()#关闭
 
 def _启动迁移流(头记录,源版本,格式适配,校验历史头):#启动迁移流
-    """解析头并创建行解析器。"""
+    '解析头并创建行解析器'
     值=_解析json(头记录[:-1].decode('utf-8'),'header line')#头
     版本=_已存版本(值)#版本
     if 版本!=源版本:#错配
@@ -259,7 +259,7 @@ def _启动迁移流(头记录,源版本,格式适配,校验历史头):#启动�
     return 迁移中jsonl行(恢复器)#解析器
 
 def _消费迁移字节(解析器,块序列,信号=None):#消费迁移字节
-    """按工作块喂入并周期性让出。"""
+    '按工作块喂入并周期性让出'
     _若已中止(信号)#取消
     截止=time.monotonic()+迁移解码让出间隔秒#让出截止
     for 字节 in 块序列:#每块
@@ -274,7 +274,7 @@ def _消费迁移字节(解析器,块序列,信号=None):#消费迁移字节
             截止=time.monotonic()+迁移解码让出间隔秒#重武装
 
 def _解码当代代(字节,压缩):#解码当代代
-    """严格解码完整当代代。"""
+    '严格解码完整当代代'
     if 压缩=='none':#明文
         结果=扫描日志(字节,'strict')#严格扫描
         if 结果.get('committedBytes',len(字节))!=len(字节):#有撕裂
@@ -300,7 +300,7 @@ def _解码当代代(字节,压缩):#解码当代代
         解码器.关闭()#关闭
 
 def 校验jsonl当代代(路径,压缩,期望标识,期望事件数,期望前缀=None):#校验当代代
-    """读取并校验一份完整当代代（或仅校验已迁移前缀）。"""
+    '读取并校验一份完整当代代（或仅校验已迁移前缀）'
     之前=物理身份(os.stat(路径))#读前
     with open(路径,'rb') as 文件:#读
         字节=文件.read()#字节
@@ -329,7 +329,7 @@ def 校验jsonl当代代(路径,压缩,期望标识,期望事件数,期望前缀
     }#返回
 
 def 断言当代助手流(事件列表):#断言当代助手流
-    """仅在隔离当代校验内完整回放嵌入流（对齐 assertCurrentAssistantStreams）。"""
+    '仅在隔离当代校验内完整回放嵌入流（对齐 assertCurrentAssistantStreams）'
     for 下标,事件 in enumerate(事件列表):#逐事件
         if 事件.get('type')!='assistant/message' and 事件.get('type')!='assistant/attempt':#非助手
             continue#跳过
@@ -354,7 +354,7 @@ def 断言当代助手流(事件列表):#断言当代助手流
             raise Error(f'seed assistant/message at index {下标} replay state disagrees with its embedded stream')#回放冲突
 
 def _写已同步临时(当代路径,后缀,压缩,产物,格式适配,信号=None):#写已同步临时
-    """直接编码进已同步暂存。"""
+    '直接编码进已同步暂存'
     _若已中止(信号)#取消
     目录=os.path.dirname(当代路径)#目录
     while True:#直至唯一名
@@ -369,7 +369,7 @@ def _写已同步临时(当代路径,后缀,压缩,产物,格式适配,信号=No
     失败=None
     try:#写出
         def 写块(块):#写并哈希
-            """写一块。"""
+            '写一块'
             nonlocal 字节数#累加
             if isinstance(块,str):#文本
                 块=块.encode('utf-8')#转字节
@@ -416,7 +416,7 @@ def _写已同步临时(当代路径,后缀,压缩,产物,格式适配,信号=No
     return {'path':路径,'bytes':字节数,'digest':哈希.hexdigest()}#暂存
 
 def _独占发布当代(暂存,当代路径):
-    """Win32 写穿移动或 POSIX 硬链接+目录 fsync。"""
+    'Win32 写穿移动或 POSIX 硬链接+目录 fsync'
     if sys.platform=='win32':
         try:
             发布新文件win32(暂存,当代路径)
@@ -435,7 +435,7 @@ def _独占发布当代(暂存,当代路径):
     return True
 
 def _发布已准备迁移(选项,后缀,产物,源身份):#发布已准备迁移
-    """编码、校验并独占发布一次。"""
+    '编码、校验并独占发布一次'
     time.sleep(0)#让出
     源路径=选项['sourcePath']#源
     当代路径=选项['currentPath']#当代
@@ -466,7 +466,7 @@ def _发布已准备迁移(选项,后缀,产物,源身份):#发布已准备迁�
             return 物理身份(os.stat(当代路径))#当代身份
         #他人已发布：校验赢家前缀
         def 检查赢家():#检查
-            """校验竞争胜者。"""
+            '校验竞争胜者'
             候选=校验文件(当代路径,压缩,产物['header']['id'],事件数,暂存)#前缀
             if 候选['bytes']!=暂存['bytes'] or 候选['digest']!=暂存['digest']:#不符
                 raise Error('target bytes differ from the migrated generation')#错误
@@ -492,7 +492,7 @@ def _发布已准备迁移(选项,后缀,产物,源身份):#发布已准备迁�
         raise#抛出
 
 def 准备jsonl迁移(选项):#准备迁移
-    """解码并迁移一份历史代，不写其后继；返回可幂等 publish。"""
+    '解码并迁移一份历史代，不写其后继；返回可幂等 publish'
     源路径=选项['sourcePath']#源
     源版本=选项['sourceVersion']#源版本
     当代路径=选项['currentPath']#当代
@@ -522,7 +522,7 @@ def 准备jsonl迁移(选项):#准备迁移
     发布承诺=[None]#单次发布槽
 
     def 发布():#幂等发布
-        """编码、校验并独占发布；共享同一成功或失败。"""
+        '编码、校验并独占发布；共享同一成功或失败'
         if 发布承诺[0] is None:#尚未启动
             发布承诺[0]=_发布已准备迁移(选项,后缀,产物,源身份)
         return 发布承诺[0]#共享结果
@@ -530,7 +530,7 @@ def 准备jsonl迁移(选项):#准备迁移
     return {'sourceIdentity':源身份,'artifact':产物,'publish':发布}#已准备
 
 def 读解码jsonl源(路径,版本,压缩,格式,信号=None):#读解码jsonl源
-    """经共享流式解析器读一份稳定源，不发布当代代。"""
+    '经共享流式解析器读一份稳定源，不发布当代代'
     源=读稳定jsonl文件(路径,信号)#稳定读
     try:#解码
         产物=_流式解码迁移(源['bytes'],压缩,版本,格式,None,信号)#解码
@@ -543,7 +543,7 @@ def 读解码jsonl源(路径,版本,压缩,格式,信号=None):#读解码jsonl�
     return {'artifact':产物,'identity':源['identity']}#产物与身份
 
 def 默认代次格式适配器():#默认格式适配器
-    """用会话格式目录构造代格式适配器。"""
+    '用会话格式目录构造代格式适配器'
     return {#适配器
         'currentVersion':会话格式目录.当前版本,#当代版本
         'createRestore':lambda 头:会话格式目录.创建恢复(头,{'recovery':'recoverable','validation':'transformed'}),#恢复器
@@ -553,7 +553,7 @@ def 默认代次格式适配器():#默认格式适配器
     }#结束
 
 class Error(Exception):#代次辅助错误
-    """代次模块抛出的 Error 风格异常。"""
+    '代次模块抛出的 Error 风格异常'
 
 __all__=[#公开面
     '物理身份','身份串','读稳定jsonl文件','准备jsonl迁移','校验jsonl当代代',

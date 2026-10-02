@@ -1,4 +1,5 @@
 from .文案 import 中文,英文,插件装载文案键#词典
+from ....基础设施.通用工具 import 获取内部数据
 from .配置账本 import 行配置键,配置账本源#账本
 from .装载存储 import 插件装载控制,是否安装待决,行键,包视图,排序包表#装载存储
 from .呈现 import 装载文案,短名,包文案,提示文案#呈现
@@ -19,9 +20,9 @@ __all__=[#仅中文公开名
 依赖=['slots','locale','remote','remote.pluginManager','remote.pluginInventory']#槽、文案、远程
 
 def 应用(上下文):
-    """贡献侧栏插件入口与主栏装载页，并跟随 Host 变更事件。"""
+    '贡献侧栏插件入口与主栏装载页，并跟随 Host 变更事件'
     def 登记词典():
-        """挂载中英文案。"""
+        '挂载中英文案'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
 
     上下文.副作用(登记词典,'ui-plugin-manager: dictionaries')#词典
@@ -29,28 +30,28 @@ def 应用(上下文):
     控制=插件装载控制(上下文)#控制器
 
     def 拆除控制():
-        """返回拆除控制器的拆除器。"""
+        '返回拆除控制器的拆除器'
         def 拆():
-            """拆除。"""
+            '拆除'
             控制.拆除()#拆除
         return 拆#拆除器
 
     上下文.副作用(拆除控制,'ui-plugin-manager: controller')#控制器寿命
 
     def 订失效():
-        """订阅 Host 变更与安装日志。"""
+        '订阅 Host 变更与安装日志'
         def 刷新():
-            """非 idle 则重读。"""
+            '非 idle 则重读'
             if 控制.取快照()['status']!='idle':#非空闲
                 控制.加载()#加载
         拆除表=[#订阅
-            上下文.remote.$on('plugin-manager/changed',刷新),#变更
-            上下文.remote.$on('plugin-manager/install-log',控制.追加日志),#日志
-            上下文.remote.$on('plugin-manager/install-state',控制.安装进度),#进度
+            获取内部数据(上下文.remote,'on')('plugin-manager/changed',刷新),#变更
+            获取内部数据(上下文.remote,'on')('plugin-manager/install-log',控制.追加日志),#日志
+            获取内部数据(上下文.remote,'on')('plugin-manager/install-state',控制.安装进度),#进度
             上下文.on('connection/reset',刷新),#重连
         ]#拆除表
         def 退订():
-            """退订全部。"""
+            '退订全部'
             for 拆 in 拆除表:#逐个
                 拆()#退
         return 退订#拆除器
@@ -59,7 +60,7 @@ def 应用(上下文):
     账本=配置账本源(上下文)#账本
 
     def 挂主栏():
-        """登记主面板装载页。"""
+        '登记主面板装载页'
         return 上下文.slots.register({#席位
             'name':'main',#主栏
             'key':面板标识,#键
@@ -75,7 +76,7 @@ def 应用(上下文):
     上下文.slots.inject('main',挂主栏)#主栏
 
     def 挂侧栏():
-        """登记侧栏入口。"""
+        '登记侧栏入口'
         return 上下文.slots.register({#席位
             'name':'sidebar.panellist',#面板列表
             'id':面板标识,#id

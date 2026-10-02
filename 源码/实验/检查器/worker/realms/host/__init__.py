@@ -14,9 +14,9 @@ Host_Runtime操作=(#Host Runtime操作
 )#常量
 
 class Host检查器realm:#Host检查器realm
-    """为每个 DevTools 连接打开一个原生 V8 会话的 Host realm 定义。"""
+    '为每个 DevTools 连接打开一个原生 V8 会话的 Host realm 定义'
     def __init__(自身,标签):#构造
-        """分配稳定描述与能力。"""
+        '分配稳定描述与能力'
         自身.descriptor=检查器realm描述(#描述
             realmId=str(uuid.uuid4()),#realm id
             sourceId='host-runtime',#源id
@@ -33,14 +33,14 @@ class Host检查器realm:#Host检查器realm
         }#capabilities结束
 
     def 打开会话(自身):#打开会话
-        """为一个 DevTools 连接打开原生 Host inspector 会话。"""
+        '为一个 DevTools 连接打开原生 Host inspector 会话'
         目标=Host检查器会话(自身.descriptor.label)#原生会话
         运行时=Host运行时后端(目标)#Runtime
         控制台=Host控制台后端(目标,运行时)#Console
         源=Host源后端(目标)#源
         调试=Host调试器后端(目标,运行时)#调试器
         def 关闭():#关闭
-            """按依赖逆序关闭。"""
+            '按依赖逆序关闭'
             源.关闭()#关源
             调试.关闭()#关调试
             控制台.关闭()#关Console

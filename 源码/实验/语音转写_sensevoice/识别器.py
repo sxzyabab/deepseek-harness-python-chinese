@@ -8,7 +8,7 @@ from .运行时准备 import 检查运行时,准备运行时
 __all__=['读就绪','读转写','sensevoice工作者']
 
 def 读就绪(句柄,上限,信号):
-    """读一条有界就绪帧；退出早于就绪则失败。"""
+    '读一条有界就绪帧；退出早于就绪则失败'
     若已中止则抛出(信号)
     标准输出=句柄.stdout
     if 标准输出 is None:
@@ -35,7 +35,7 @@ def 读就绪(句柄,上限,信号):
             return 端口
 
 def 读转写(应答,上限):
-    """有界 HTTP 响应；畸形输出使本次失败。"""
+    '有界 HTTP 响应；畸形输出使本次失败'
     体=应答.content
     if len(体)>上限:
         raise RuntimeError('Speech transcript exceeded its byte limit')
@@ -51,9 +51,9 @@ def 读转写(应答,上限):
     }
 
 class sensevoice工作者:
-    """一台串行工作者，请求拥有取消，空闲回收。"""
+    '一台串行工作者，请求拥有取消，空闲回收'
     def __init__(自身,上下文,配置):
-        """记下部署配置并初始化准备步骤。"""
+        '记下部署配置并初始化准备步骤'
         自身.上下文=上下文
         自身.配置=配置
         自身.工作者=None
@@ -87,19 +87,19 @@ class sensevoice工作者:
         自身.状态={'phase':'unprepared','steps':[{'kind':项,'status':'pending'} for 项 in 种类]}
 
     def snapshot(自身):
-        """当前 Host 拥有的准备态。"""
+        '当前 Host 拥有的准备态'
         return 自身.状态
 
     def subscribe(自身,监听):
-        """观察就绪。"""
+        '观察就绪'
         自身.监听者.add(监听)
         def 退订():
-            """取消。"""
+            '取消'
             自身.监听者.discard(监听)
         return 退订
 
     def 发布(自身,状态):
-        """合并步骤并节流下载进度。"""
+        '合并步骤并节流下载进度'
         if 自身.准备任务 is not None and 状态['phase'] in ('ready','standby','unprepared','failed','cancelled'):
             自身.准备任务['completed']=True
         先前=自身.状态
@@ -145,9 +145,9 @@ class sensevoice工作者:
             监听()
 
     def inspect(自身):
-        """启用时检查磁盘缓存，完整则进入 standby。"""
+        '启用时检查磁盘缓存，完整则进入 standby'
         def 跑(信号):
-            """检查。"""
+            '检查'
             句柄=截止(信号,自身.配置['prepareTimeoutMs'],'SPEECH_PREPARE_TIMEOUT')
             自身.发布({'phase':'checking','step':'check','startedAt':int(time.time()*1000)})
             运行时=检查运行时(自身.配置,句柄.信号)
@@ -162,7 +162,7 @@ class sensevoice工作者:
         自身.跑准备(跑)
 
     def prepare(自身,选项=None):
-        """启动或加入一次固定下载源的准备。"""
+        '启动或加入一次固定下载源的准备'
         if 选项 is None:
             选项={}
         源=选项.get('downloadSource')
@@ -170,12 +170,12 @@ class sensevoice工作者:
             raise RuntimeError('Speech download source is unavailable')
         配置=自身.配置 if 源 is None else {**自身.配置,'modelOrigin':源}
         def 跑(信号,用配置=配置):
-            """启动工作者。"""
+            '启动工作者'
             自身.启动(信号,用配置)
         自身.跑准备(跑,源)
 
     def 跑准备(自身,跑,下载源=None):
-        """同时只允许一个准备任务。"""
+        '同时只允许一个准备任务'
         if 自身.准备任务 is not None and 自身.准备任务['downloadSource']!=下载源:
             raise RuntimeError('Cancel preparation before changing its download source')
         if 自身.准备任务 is not None or 自身.工作者 is not None:
@@ -185,7 +185,7 @@ class sensevoice工作者:
         任务={'abort':中止,'completed':False,'downloadSource':下载源,'settled':threading.Event()}
         自身.准备任务=任务
         def 执行():
-            """入队准备。"""
+            '入队准备'
             try:
                 自身.入队(跑,中止.信号)
             except Exception as 错误:
@@ -204,7 +204,7 @@ class sensevoice工作者:
         threading.Thread(target=执行,daemon=True).start()
 
     def cancel(自身):
-        """取消未完成准备；已完成就绪保留。"""
+        '取消未完成准备；已完成就绪保留'
         任务=自身.准备任务
         if 任务 is None:
             return
@@ -214,14 +214,14 @@ class sensevoice工作者:
         任务['settled'].wait()
 
     def transcribe(自身,输入,信号):
-        """有界排队；取消后不等推理残留。"""
+        '有界排队；取消后不等推理残留'
         def 跑(合并):
-            """执行。"""
+            '执行'
             return 自身.执行(输入,合并)
         return 自身.入队(跑,信号)
 
     def 入队(自身,跑,信号):
-        """串行队列。"""
+        '串行队列'
         合并=合成信号(信号,自身.寿命.信号)
         若已中止则抛出(合并)
         if 自身.待处理>=自身.配置['maxPending']:
@@ -238,7 +238,7 @@ class sensevoice工作者:
             自身.待处理-=1
             if 自身.待处理==0 and not 已中止(自身.寿命.信号) and 自身.配置['idleTimeoutMs']>0:
                 def 空闲():
-                    """停工作者。"""
+                    '停工作者'
                     with 自身.串行:
                         自身.停止()
                 自身.空闲定时器=threading.Timer(自身.配置['idleTimeoutMs']/1000.0,空闲)
@@ -246,7 +246,7 @@ class sensevoice工作者:
                 自身.空闲定时器.start()
 
     def 启动(自身,信号,准备配置=None):
-        """唤醒或新建工作者。"""
+        '唤醒或新建工作者'
         if 准备配置 is None:
             准备配置=自身.配置
         if 自身.工作者 is not None and 自身.工作者['closed']:
@@ -277,12 +277,12 @@ class sensevoice工作者:
             自身.工作者=工作者
             自身.发布({'phase':'ready'})
             def 退出():
-                """进程退出进 standby。"""
+                '进程退出进 standby'
                 if not 工作者['closed']:
                     工作者['closed']=True
                     自身.发布({'phase':'standby'})
             def 等退出():
-                """等 done。"""
+                '等 done'
                 进程.done.等待() if hasattr(进程.done,'等待') else 进程.waitForExit()
                 退出()
             threading.Thread(target=等退出,daemon=True).start()
@@ -295,7 +295,7 @@ class sensevoice工作者:
             raise 错误
 
     def 执行(自身,输入,信号):
-        """就绪或待唤醒才转写。"""
+        '就绪或待唤醒才转写'
         阶段=自身.状态['phase']
         if 阶段 not in ('ready','standby'):
             raise RuntimeError('Prepare the local speech provider before recording')
@@ -324,7 +324,7 @@ class sensevoice工作者:
             raise 错误
 
     def 停止(自身):
-        """终止托管进程。"""
+        '终止托管进程'
         工作者=自身.工作者
         if 工作者 is None:
             return
@@ -335,7 +335,7 @@ class sensevoice工作者:
         自身.发布({'phase':'standby'})
 
     def dispose(自身):
-        """停识别器。"""
+        '停识别器'
         自身.监听者.clear()
         自身.寿命.中止(RuntimeError('SenseVoice provider disposed'))
         if 自身.空闲定时器 is not None:

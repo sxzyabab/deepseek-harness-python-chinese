@@ -4,18 +4,18 @@ from .按钮 import 按钮#动作按钮
 __all__=['风险确认']#仅中文公开名
 
 class 风险确认:#勾选门控确认
-    """属主控制 acknowledged；组合模态页脚。"""
+    '属主控制 acknowledged；组合模态页脚'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        """打开时出警告+勾选+双按钮。"""
+        '打开时出警告+勾选+双按钮'
         属性=自身.属性#props
         已认=属性['acknowledged'] is True if 'acknowledged' in 属性 else False#已勾选
         禁用=属性['disabled'] is True if 'disabled' in 属性 else False#禁用
@@ -58,7 +58,7 @@ class 风险确认:#勾选门控确认
         return 视图#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

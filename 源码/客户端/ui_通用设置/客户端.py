@@ -1,4 +1,5 @@
 from .文案 import 命名空间,中文,英文#词典
+from ...基础设施.通用工具 import 获取内部数据
 from .文档存储 import 设置文档存储#文档存储
 from .设置根 import 设置根#壳根
 from .壳层 import 触发器内容,页眉内容,关闭标签#chrome
@@ -15,7 +16,7 @@ __all__=[#仅中文公开名
 依赖=['slots','locale','connection','remote','remote.settings','configForms']#所需服务
 
 def 解析槽标签(标签):
-    """字符串或 thunk。"""
+    '字符串或 thunk'
     if 标签 is None:#空
         return ''#空串
     if callable(标签):#thunk
@@ -26,15 +27,15 @@ def 解析槽标签(标签):
     return str(标签)#字符串
 
 def 按序(行):
-    """导航行按 order 升序。"""
+    '导航行按 order 升序'
     return 行['order']#序
 
 def 应用(上下文):
-    """登记词表、chrome 与常规条目分区。"""
+    '登记词表、chrome 与常规条目分区'
     def 登记开发者工具():
-        """登记开发者工具行。"""
+        '登记开发者工具行'
         def 注入面():
-            """配置表单开关。"""
+            '配置表单开关'
             return {
                 'hooks':{'developerTools':上下文.configForms.developerTools.enabled},
                 'setEnabled':上下文.configForms.developerTools.setEnabled,
@@ -45,7 +46,7 @@ def 应用(上下文):
         },开发者工具行)
     上下文.slots.inject('settings.general.item',登记开发者工具)
     def 登记词典():
-        """登记外壳词典。"""
+        '登记外壳词典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
     上下文.副作用(登记词典,'ui-settings-general: dictionaries')#词典
     翻译=上下文.locale.bind(命名空间)#绑定词表
@@ -56,24 +57,24 @@ def 应用(上下文):
         桥=载体.get('updates')#桥
     桌面更新=桌面更新源(桥)#桌面更新源
     def 订桌面更新():
-        """拆卸桌面更新源。"""
+        '拆卸桌面更新源'
         def 拆():
-            """dispose。"""
+            'dispose'
             桌面更新.dispose()
         return 拆#拆除器
     上下文.副作用(订桌面更新,'ui-settings-general: desktop update carrier')#桌面更新
-    回环=上下文.remote.$host.isLoopback#本机回环
+    回环=获取内部数据(上下文.remote,'host').isLoopback#本机回环
     文档控制器=设置文档存储(连接.api) if 回环 else None#本机回环才有本地文档
     文档注入=None#文档动作注入
     if 文档控制器 is not None:#有仓库
         def 文档注入面():
-            """控制器 + 快照源。"""
+            '控制器 + 快照源'
             return {'controller':文档控制器,'hooks':{'snapshot':文档控制器.store}}#注入
         文档注入=文档注入面#工厂
     def 订文档():
-        """拆卸文档动作。"""
+        '拆卸文档动作'
         def 拆():
-            """dispose。"""
+            'dispose'
             if 文档控制器 is not None:#有
                 文档控制器.dispose()
         return 拆#拆除器
@@ -84,15 +85,15 @@ def 应用(上下文):
     引导版本=-1#引导账本版本
     引导步骤=[]#缓存引导步骤
     def 壳注入():
-        """桌面更新、连接与分区/引导可观察源。"""
+        '桌面更新、连接与分区/引导可观察源'
         def 打开桌面更新():
-            """请求壳层拥有的更新动作。"""
+            '请求壳层拥有的更新动作'
             桌面更新.open()#打开
         def 重连():
-            """立即重连。"""
+            '立即重连'
             连接.reconnect()#重连
         def 取分区快照():
-            """账本或语言变了才重投影。槽位条目是 dict。"""
+            '账本或语言变了才重投影。槽位条目是 dict'
             nonlocal 分区版本,语言修订,分区行#缓存
             版本=上下文.slots.getVersion('settings.section')#账本版本
             修订=上下文.locale.getSnapshot()['revision']#语言修订
@@ -110,16 +111,16 @@ def 应用(上下文):
                 分区行.sort(key=按序)#升序
             return 分区行#缓存
         def 订分区(监听):
-            """两路订阅。"""
+            '两路订阅'
             拆除账本=上下文.slots.subscribe('settings.section',监听)#账本
             拆除语言=上下文.locale.subscribe(监听)#语言
             def 拆除():
-                """取消。"""
+                '取消'
                 拆除账本()#账本
                 拆除语言()#语言
             return 拆除#拆除器
         def 取引导快照():
-            """账本变了才重投影。"""
+            '账本变了才重投影'
             nonlocal 引导版本,引导步骤#缓存
             版本=上下文.slots.getVersion('settings.onboarding')#版本
             if 版本!=引导版本:#失效
@@ -134,7 +135,7 @@ def 应用(上下文):
                 引导步骤.sort(key=按序)#升序
             return 引导步骤#缓存
         def 订引导(监听):
-            """订引导账本。"""
+            '订引导账本'
             return 上下文.slots.subscribe('settings.onboarding',监听)#引导
         return {#注入面
             'openDesktopUpdate':打开桌面更新,#打开更新
@@ -147,7 +148,7 @@ def 应用(上下文):
             },#hooks结束
         }#注入结束
     def 登记壳():
-        """等侧栏设置洞。"""
+        '等侧栏设置洞'
         return 上下文.slots.register({#登记
             'name':'sidebar.settings',#侧栏设置
             'locale':命名空间,#词表
@@ -164,16 +165,16 @@ def 应用(上下文):
         },设置根)#设置根
     上下文.slots.inject('sidebar.settings',登记壳)#等侧栏设置洞
     def 登记触发器():
-        """登记触发器。"""
+        '登记触发器'
         return 上下文.slots.register({'name':'settings.trigger','locale':命名空间},触发器内容)#触发器
     上下文.slots.inject('settings.trigger',登记触发器)#触发器
     def 登记页眉():
-        """登记页眉。"""
+        '登记页眉'
         return 上下文.slots.register({'name':'settings.header','locale':命名空间},页眉内容)#页眉
     上下文.slots.inject('settings.header',登记页眉)#页眉
     if 文档注入 is not None:#本机回环
         def 登记文档动作():
-            """登记打开配置文件动作。"""
+            '登记打开配置文件动作'
             return 上下文.slots.register({#文档动作
                 'name':'settings.action',#动作槽
                 'id':'open-document',#id
@@ -183,14 +184,14 @@ def 应用(上下文):
             },文档动作)#组件
         上下文.slots.inject('settings.action',登记文档动作)#文档动作
     def 登记关闭():
-        """登记关闭标签。"""
+        '登记关闭标签'
         return 上下文.slots.register({'name':'settings.close','locale':命名空间},关闭标签)#关闭
     上下文.slots.inject('settings.close',登记关闭)#关闭
     def 常规导航标签():
-        """常规分区导航标签。"""
+        '常规分区导航标签'
         return 翻译('general.nav')#标签
     def 登记常规条目分区():
-        """登记常规条目分区。"""
+        '登记常规条目分区'
         return 上下文.slots.register({#常规条目分区
             'name':'settings.section',#分区槽
             'id':'general',#常规

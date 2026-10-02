@@ -4,11 +4,11 @@ import time#倒计时
 __all__=['内容分片','重试秒数','模型重试行','回合错行','回合顶格行','待插话泡','用户消息行']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 内容分片(内容):
-    """用户消息内容分片。"""
+    '用户消息内容分片'
     文本列表=[]#文本
     图列表=[]#图
     其余=[]#其余
@@ -25,21 +25,21 @@ def 内容分片(内容):
     return {'text':''.join(文本列表),'images':图列表,'rest':其余}#分片
 
 def 重试秒数(毫秒):
-    """ceil(ms/1000) 下限 1。"""
+    'ceil(ms/1000) 下限 1'
     return max(1,math.ceil(毫秒/1000))#秒
 
 class 模型重试行:
-    """倒计时挂在首次渲染。"""
+    '倒计时挂在首次渲染'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         节点=自身.属性['node'] if 'node' in 自身.属性 and 自身.属性['node'] is not None else {}#节点
         延迟=节点['delayMs'] if 'delayMs' in 节点 and 节点['delayMs'] is not None else 0#延迟
         自身.截止=int(time.time()*1000)+int(延迟)#截止
 
     def 更新(自身,属性):
-        """刷新；delay/seq 变则重锚。"""
+        '刷新；delay/seq 变则重锚'
         旧=自身.属性['node'] if 'node' in 自身.属性 else None#旧
         自身.属性=属性 if 属性 is not None else {}#新
         新=自身.属性['node'] if 'node' in 自身.属性 else None#新
@@ -52,7 +52,7 @@ class 模型重试行:
             自身.截止=int(time.time()*1000)+int(延迟)#截止
 
     def 渲染(自身):
-        """重试 details。"""
+        '重试 details'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
         活跃=属性['active'] is True if 'active' in 属性 else False#活跃
@@ -86,24 +86,24 @@ class 模型重试行:
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 回合错行:
-    """终端失败反馈。"""
+    '终端失败反馈'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """错行。"""
+        '错行'
         节点=自身.属性['node'] if 'node' in 自身.属性 and 自身.属性['node'] is not None else {}#节点
         翻译=自身.属性['t'] if 't' in 自身.属性 else 恒等翻译#文案
         return {#错
@@ -116,24 +116,24 @@ class 回合错行:
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 回合顶格行:
-    """输出顶格提示。"""
+    '输出顶格提示'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """警告行。"""
+        '警告行'
         翻译=自身.属性['t'] if 't' in 自身.属性 else 恒等翻译#文案
         return {#顶格
             'type':'turn-max-tokens',#类型
@@ -144,24 +144,24 @@ class 回合顶格行:
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 待插话泡:
-    """进行中插话预览。"""
+    '进行中插话预览'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """右对齐泡。"""
+        '右对齐泡'
         内容=自身.属性['content'] if 'content' in 自身.属性 else None#内容
         分片=内容分片(内容)#分片
         return {#泡
@@ -173,24 +173,24 @@ class 待插话泡:
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 用户消息行:
-    """右对齐用户消息。"""
+    '右对齐用户消息'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """用户行。"""
+        '用户行'
         节点=自身.属性['node'] if 'node' in 自身.属性 and 自身.属性['node'] is not None else {}#节点
         内容=节点['content'] if 'content' in 节点 else None#内容
         分片=内容分片(内容)#分片
@@ -203,7 +203,7 @@ class 用户消息行:
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

@@ -5,29 +5,29 @@ from .图像标签 import 消息图像标签 as 消息图标签#图廊标签
 __all__=['助手Markdown']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 class 助手Markdown:
-    """流式/定稿/中断共用；仅 tool-call 时不画壳。"""
+    '流式/定稿/中断共用；仅 tool-call 时不画壳'
 
     def __init__(自身,属性=None):
-        """记下合成 props 与推理行缓存。"""
+        '记下合成 props 与推理行缓存'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.推理缓存={}#按块索引保展开态
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 取推理行(自身,索引):
-        """同索引复用，保住展开。"""
+        '同索引复用，保住展开'
         if 索引 not in 自身.推理缓存:#新
             自身.推理缓存[索引]=推理行()#建
         return 自身.推理缓存[索引]#行
 
     def 渲染(自身):
-        """按块 kind 分发。"""
+        '按块 kind 分发'
         属性=自身.属性#props
         块列表=属性['blocks'] if 'blocks' in 属性 and 属性['blocks'] is not None else []#块
         流式=属性['streaming'] is True if 'streaming' in 属性 else False#流式
@@ -36,12 +36,12 @@ class 助手Markdown:
         加载图=属性['loadImage'] if 'loadImage' in 属性 else None#图
         提及=属性['mentions'] if 'mentions' in 属性 else None#提及
         def 缺省加载(_标识):
-            """会话图服务不可用。"""
+            '会话图服务不可用'
             raise 对话错误(翻译('image.serviceUnavailable'))#拒
         图加载器=加载图 if 加载图 is not None else 缺省加载#加载器
         图标签=消息图标签(翻译)#标签
         def 截断标(总数,钉翻译=翻译):
-            """超界文案。"""
+            '超界文案'
             return 钉翻译('json.truncated',{'total':总数})#文
         有可见=流式 is True or 中断 is True#流式或中断必画
         if 有可见 is False:#尚无
@@ -114,7 +114,7 @@ class 助手Markdown:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

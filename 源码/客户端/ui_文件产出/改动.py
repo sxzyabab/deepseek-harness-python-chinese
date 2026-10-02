@@ -1,4 +1,4 @@
-"""校验跨宿主路由的工作区改动记录，并寻址其摘要、对比与原生打开动作。"""
+'校验跨宿主路由的工作区改动记录，并寻址其摘要、对比与原生打开动作'
 from urllib.parse import quote as 百分号编码,unquote as 百分号解码,urlencode as 编查询#URL
 
 __all__=[#仅中文公开名
@@ -13,11 +13,11 @@ __all__=[#仅中文公开名
 改动审阅地址前缀='dsh-resource://changes-review/session/'#审阅地址前缀
 
 def _是否记录(值):#对象且非列表
-    """窄化为 dict。"""
+    '窄化为 dict'
     return isinstance(值,dict)
 
 def 是否已改文件(值):#校验一条已改文件
-    """路径、展示名与行数齐全。"""
+    '路径、展示名与行数齐全'
     if not _是否记录(值):#非对象
         return False#否
     路径=值['path'] if 'path' in 值 else None#路径
@@ -39,7 +39,7 @@ def 是否已改文件(值):#校验一条已改文件
     return True
 
 def 是否改动摘要(值):#校验摘要
-    """回合、完整文件表、总数与行合计。"""
+    '回合、完整文件表、总数与行合计'
     if not _是否记录(值):#非对象
         return False#否
     回合=值['turn'] if 'turn' in 值 else None#回合
@@ -56,7 +56,7 @@ def 是否改动摘要(值):#校验摘要
     return True
 
 def _是否块(值):#校验一块
-    """行号非负且行以 + - 空格起。"""
+    '行号非负且行以 + - 空格起'
     if not _是否记录(值):#非对象
         return False#否
     for 键 in ('oldStart','oldLines','newStart','newLines'):#行号
@@ -72,7 +72,7 @@ def _是否块(值):#校验一块
     return True
 
 def 是否改动对比(值):#校验对比
-    """文本对比带块，或二进制/过大拒绝。"""
+    '文本对比带块，或二进制/过大拒绝'
     if not _是否记录(值):#非对象
         return False#否
     种=值['kind'] if 'kind' in 值 else None#种
@@ -95,30 +95,30 @@ def 是否改动对比(值):#校验对比
     return True
 
 def 是否改动事件(值):#校验 workspace/changes 数据
-    """命名回合。"""
+    '命名回合'
     if not _是否记录(值):#非对象
         return False#否
     回合=值['turn'] if 'turn' in 值 else None#回合
     return isinstance(回合,int) and 回合>=1#合法
 
 def 改动摘要网址(会话标识,序号):#摘要 URL
-    """同源摘要坐标。"""
+    '同源摘要坐标'
     return 已改文件路径+'?'+编查询({'sessionId':会话标识,'seq':str(序号)})#查询
 
 def 改动对比网址(会话标识,序号,下标):#对比 URL
-    """同源对比坐标。"""
+    '同源对比坐标'
     return 改动对比路径+'?'+编查询({'sessionId':会话标识,'seq':str(序号),'index':str(下标)})#查询
 
 def 已改文件网址(会话标识,序号,下标):#打开 URL
-    """同源打开坐标。"""
+    '同源打开坐标'
     return 改动打开路径+'?'+编查询({'sessionId':会话标识,'seq':str(序号),'index':str(下标)})#查询
 
 def 改动审阅地址(坐标):#审阅资源地址
-    """dsh-resource://changes-review/session/…。"""
+    'dsh-resource://changes-review/session/…'
     return 改动审阅地址前缀+百分号编码(坐标['sessionId'],safe='')+'/'+str(坐标['seq'])+'/'+str(坐标['turn'])#地址
 
 def 解析改动审阅地址(地址):#读回坐标
-    """非本包铸造则 None。"""
+    '非本包铸造则 None'
     if not isinstance(地址,str) or not 地址.startswith(改动审阅地址前缀):#前缀
         return None#否
     段=地址[len(改动审阅地址前缀):].split('/')#三段

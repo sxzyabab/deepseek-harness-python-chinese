@@ -5,7 +5,7 @@ from .轨迹预览 import 轨迹预览文本#Markdown 预览纯文本
 __all__=['轨迹搜索索引']#仅中文公开名
 
 def 可检索JSON(值):#任意值压成可检索 JSON 文本
-    """缺省或无法序列化则空串。"""
+    '缺省或无法序列化则空串'
     if 值 is None:#缺省
         return ''#空串
     try:#stringify 可能因循环引用失败
@@ -14,11 +14,11 @@ def 可检索JSON(值):#任意值压成可检索 JSON 文本
         return ''#失败则空串
 
 def 同源片段(左,右):#两边源片段是否逐项相同
-    """等长且每项相等。"""
+    '等长且每项相等'
     return len(左)==len(右) and all(甲==乙 for 甲,乙 in zip(左,右))#等长且每项相等
 
 def Markdown预览(单元格):#单元格 Markdown 预览拼进检索正文
-    """摘要与预览用间隔点拼接。"""
+    '摘要与预览用间隔点拼接'
     预览源=单元格['previewMarkdown'] if 'previewMarkdown' in 单元格 else None#预览 Markdown
     if 预览源 is None:#没有预览源
         return ''#空
@@ -29,14 +29,14 @@ def Markdown预览(单元格):#单元格 Markdown 预览拼进检索正文
     return 摘要 if 预览=='' else f'{摘要} · {预览}'#有摘要则与预览拼接
 
 def 结果预览(单元格):#工具结果侧纳入检索的文本
-    """结果预览 Markdown 或结果摘要。"""
+    '结果预览 Markdown 或结果摘要'
     结果Markdown=单元格['resultPreviewMarkdown'] if 'resultPreviewMarkdown' in 单元格 else None#结果预览
     if 结果Markdown is None:#没有结果预览 Markdown
         return 单元格['result'] if 'result' in 单元格 and 单元格['result'] is not None else ''#退回结果摘要或空串
     return 轨迹预览文本(结果Markdown)#抽有界纯文本
 
 def 记录源片段(回合,组标题,单元格):#从单元格抽出参与比对的源片段
-    """返回源片段列表。"""
+    '返回源片段列表'
     源块=list(单元格['sourceBlocks'] if 'sourceBlocks' in 单元格 and 单元格['sourceBlocks'] is not None else [])#源消息块
     输出块=list(单元格['outputBlocks'] if 'outputBlocks' in 单元格 and 单元格['outputBlocks'] is not None else [])#输出结果块
     块列表=源块+输出块#拼在一起
@@ -70,14 +70,14 @@ def 记录源片段(回合,组标题,单元格):#从单元格抽出参与比对�
     return 片段#源片段列表
 
 class 轨迹搜索索引:#轨迹搜索索引
-    """会话视图本地索引：仅当某条记录的源片段变化时才重解析 Markdown。"""
+    '会话视图本地索引：仅当某条记录的源片段变化时才重解析 Markdown'
     def __init__(自身):#空索引
-        """初始化条目表与布局引用。"""
+        '初始化条目表与布局引用'
         自身.条目={}#记录 id → 检索条目
         自身.布局列表=None#上次同步的布局切片引用
 
     def 更新(自身,布局列表):#同步布局到索引
-        """增量同步一份或多份当前轨迹布局切片；布局引用变化时返回真。"""
+        '增量同步一份或多份当前轨迹布局切片；布局引用变化时返回真'
         if 自身.布局列表 is 布局列表:#同一引用则无需重扫
             return False#无变化
         自身.布局列表=布局列表#记下当前布局引用
@@ -108,7 +108,7 @@ class 轨迹搜索索引:#轨迹搜索索引
         return True#布局引用已更新
 
     def 搜索(自身,查询):#按查询词匹配记录
-        """空格分隔、大小写不敏感；无查询词时为 None。"""
+        '空格分隔、大小写不敏感；无查询词时为 None'
         词列表=[词 for 词 in 查询.strip().lower().split() if 词]#切词、去空白、小写
         if len(词列表)==0:#没有有效词
             return None#不算检索

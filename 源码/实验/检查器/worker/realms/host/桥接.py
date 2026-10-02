@@ -4,9 +4,9 @@ from ....共享.json import 检查器错误#包内错误
 __all__=['Host检查器会话','Host通知通道']#仅中文公开名
 
 class Host检查器会话:#Host inspector会话
-    """Host V8 inspector 请求与通知的连接本地载体。"""
+    'Host V8 inspector 请求与通知的连接本地载体'
     def __init__(自身,上下文名):#构造
-        """创建会话并监听通知。"""
+        '创建会话并监听通知'
         自身.上下文名=上下文名#上下文名
         自身._监听=set()#监听
         自身._已连接=False#是否已连接
@@ -14,15 +14,15 @@ class Host检查器会话:#Host inspector会话
         自身._会话=None#原生会话占位（Python 侧由宿主写入）
 
     def 订阅(自身,监听):#订阅
-        """订阅原生 inspector 通知。"""
+        '订阅原生 inspector 通知'
         自身._监听.add(监听)#加入
         def 拆除():#取消订阅
-            """从监听集摘掉。"""
+            '从监听集摘掉'
             自身._监听.discard(监听)#拆除
         return 拆除#拆除器
 
     def 请求(自身,方法,参数):#请求
-        """为 Worker 拥有的复合 Runtime 操作执行一次 Host V8 请求。"""
+        '为 Worker 拥有的复合 Runtime 操作执行一次 Host V8 请求'
         失败=自身._连接()#确保连接
         if 失败 is not None:#连接失败
             raise 检查器错误(失败)#拒绝
@@ -31,7 +31,7 @@ class Host检查器会话:#Host inspector会话
         return 自身._会话.post(方法,参数)#投递
 
     def 关闭(自身):#关闭
-        """断开此 DevTools 客户端的 V8 会话。"""
+        '断开此 DevTools 客户端的 V8 会话'
         自身._监听.clear()#清监听
         if not 自身._已连接 or 自身._失败 is not None:#未连或已失败
             return#返回
@@ -43,7 +43,7 @@ class Host检查器会话:#Host inspector会话
             pass#底层 inspector 会话已断开
 
     def _连接(自身):#连接
-        """连接主线程 inspector。"""
+        '连接主线程 inspector'
         if 自身._已连接:#已连
             return 自身._失败#返回失败或None
         自身._已连接=True#置位
@@ -55,7 +55,7 @@ class Host检查器会话:#Host inspector会话
         return 自身._失败#返回失败或None
 
     def _改写上下文名(自身,消息):#改写上下文名
-        """默认上下文改名。"""
+        '默认上下文改名'
         if 消息.get('method')!='Runtime.executionContextCreated':#非创建
             return 消息#原样
         参数=消息['params'] if 'params' in 消息 else None#参数
@@ -70,7 +70,7 @@ class Host检查器会话:#Host inspector会话
         return {'method':消息['method'],'params':{**参数,'context':{**上下文,'name':自身.上下文名}}}#改写
 
     def _投递通知(自身,消息):#投递通知
-        """改写后隔离投递。"""
+        '改写后隔离投递'
         改写=自身._改写上下文名(消息)#改写上下文名
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
@@ -79,9 +79,9 @@ class Host检查器会话:#Host inspector会话
                 pass#一个域订阅者不能饿死兄弟域的通知
 
 class Host通知通道:#Host通知通道
-    """串行化已接受的原生通知并隔离兄弟消费者。"""
+    '串行化已接受的原生通知并隔离兄弟消费者'
     def __init__(自身,目标,接受,投影):#构造
-        """订阅并串行投递。"""
+        '订阅并串行投递'
         自身._接受=接受#是否接受
         自身._投影=投影#投影
         自身._监听=set()#监听
@@ -89,20 +89,20 @@ class Host通知通道:#Host通知通道
         自身._投递锁=threading.Lock()#串行锁
 
     def 订阅(自身,监听):#订阅
-        """订阅投影后的原生通知。"""
+        '订阅投影后的原生通知'
         自身._监听.add(监听)#加入
         def 拆除():#取消订阅
-            """从监听集摘掉。"""
+            '从监听集摘掉'
             自身._监听.discard(监听)#拆除
         return 拆除#拆除器
 
     def 关闭(自身):#关闭
-        """拆除原生通知订阅与全部消费者。"""
+        '拆除原生通知订阅与全部消费者'
         自身._取消订阅()#取消
         自身._监听.clear()#清空
 
     def _接收(自身,消息):#接收
-        """串行投影投递。"""
+        '串行投影投递'
         if not 自身._接受(消息):#不接受
             return#返回
         with 自身._投递锁:#串行

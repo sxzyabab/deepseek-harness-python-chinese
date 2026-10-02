@@ -1,9 +1,4 @@
-"""计划模式是按智能体记录的协作状态：激活时，每次模型请求都会带上部署方拥有的指导段落，`exit_plan_mode` 把完成的计划交给用户审阅，`/plan off` 则让用户直接离开。沙箱模式与审批策略各自独立执行限制，不读不写计划状态。
-
-当前生效状态由会话日志折叠而来（`plan/mode`，最后一条胜出），因此恢复与分叉无需实时镜像即可还原。用户选择保持待定，直到下一个被接受的回合内 pre-step。服务把所选状态纳入提议的步骤组装，再仅在步骤被接受时从 `agent/pre-step` 追加 `plan/mode`。同一步的请求重试复用其组装。
-
-退出工具在计划模式未激活时仍保持注册，因此进入或离开计划模式只改提示词段落，不改请求的工具目录。
-"""
+'计划模式是按智能体记录的协作状态：激活时，每次模型请求都会带上部署方拥有的指导段落，`exit_plan_mode` 把完成的计划交给用户审阅，`/plan off` 则让用户直接离开'
 import re,weakref#标题匹配与会话弱表
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
@@ -40,10 +35,10 @@ __all__=[#公开面
 }#模式结束
 
 class 计划模式错误(Exception):
-    """计划模式配置或运行时拒绝。"""
+    '计划模式配置或运行时拒绝'
 
 def 首条标题(计划):
-    """计划的第一条 markdown 标题（任意级别）；没有则 None。"""
+    '计划的第一条 markdown 标题（任意级别）；没有则 None'
     for 行 in 计划.split('\n'):#逐行扫
         匹配=标题行.match(行)#匹配 ATX 标题
         if 匹配 is not None:#命中
@@ -51,7 +46,7 @@ def 首条标题(计划):
     return None#没有标题
 
 def 解析配置(配置):#加载时校验配置
-    """校验部署方拥有的计划指导。缺失、空白、非字符串或未知字段在插件加载时失败，而不是被忽略。"""
+    '校验部署方拥有的计划指导。缺失、空白、非字符串或未知字段在插件加载时失败，而不是被忽略'
     段落=配置['section'] if 'section' in 配置 else None#可能缺席的 section
     if not isinstance(段落,str):#必须是字符串
         raise 计划模式错误('PlanModeConfig needs a string `section`')#缺或非字符串
@@ -63,7 +58,7 @@ def 解析配置(配置):#加载时校验配置
     return {'section':段落}#已校验的脱离副本
 
 def 折叠计划模式(事件列表,终点=None):#折叠已记录计划模式
-    """折叠 `events[0, end)` 之后计划模式是否激活。最后一条 `plan/mode` 胜出；前缀里一条都没有则为未激活。"""
+    '折叠 `events[0, end)` 之后计划模式是否激活。最后一条 `plan/mode` 胜出；前缀里一条都没有则为未激活'
     if 终点 is None:#默认整份日志
         终点=len(事件列表)#整份
     激活=False#第一条之前视为未激活
@@ -78,7 +73,7 @@ def 折叠计划模式(事件列表,终点=None):#折叠已记录计划模式
     return 激活#折叠结果
 
 def 有打开回合(事件列表):#空闲信号：有无打开回合
-    """日志是否持有一个尚未对应 `turn/end` 的已打开回合。"""
+    '日志是否持有一个尚未对应 `turn/end` 的已打开回合'
     打开=False#当前是否在回合内
     for 事件 in 事件列表:#按日志顺序
         种类=事件['type']#事件类型
@@ -89,7 +84,7 @@ def 有打开回合(事件列表):#空闲信号：有无打开回合
     return 打开#仍打开则为回合中
 
 def 上次请求头处计划模式(事件列表):#上次请求组装时告诉模型的模式
-    """最近一条已记录请求头处的计划状态；第一条头之前为 None。"""
+    '最近一条已记录请求头处的计划状态；第一条头之前为 None'
     最近头=-1#最近 request/header 下标
     下标=0#扫描下标
     for 事件 in 事件列表:#按日志顺序
@@ -101,12 +96,12 @@ def 上次请求头处计划模式(事件列表):#上次请求组装时告诉模
     return 折叠计划模式(事件列表,最近头+1)#头及之前的折叠结果
 
 class 计划模式控制器(服务):#计划模式控制器服务
-    """`ctx.planMode`：拥有已记录的计划状态，在步骤开始时应用并叙述所选状态，以及 `plan:policy` 段落、`/plan` 命令和稳定的退出工具。UI 通过 `session/event` 观察已提交的翻转；没有实时镜像。"""
+    '`ctx.planMode`：拥有已记录的计划状态，在步骤开始时应用并叙述所选状态，以及 `plan:policy` 段落、`/plan` 命令和稳定的退出工具。UI 通过 `session/event` 观察已提交的翻转；没有实时镜像'
     依赖=['tools','systemPrompt','sessionProjections']#注册工具、系统提示与会话投影
     inject=依赖
 
     def __init__(自身,上下文,配置=None):#加载插件：校验配置并挂生命周期
-        """加载插件：校验配置并挂生命周期。"""
+        '加载插件：校验配置并挂生命周期'
         if 配置 is None:#缺省空配置
             配置={'section':''}#空指导会在解析时失败
         super().__init__(上下文,'planMode')#以 planMode 名注册服务
@@ -114,7 +109,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
         自身.未决意图=weakref.WeakKeyDictionary()#会话 → 未决选择
         自身.已拆除=False#插件纤维是否已拆除
         def 步骤前(载荷,下一步):#步骤被接受时提交未决选择
-            """步骤被接受时提交未决选择；可附加叙述消息。"""
+            '步骤被接受时提交未决选择；可附加叙述消息'
             判定=下一步()#先让下游判定
             智能体=载荷['agent']#本步智能体
             信号=载荷['signal'] if 'signal' in 载荷 else None#取消信号
@@ -136,14 +131,14 @@ class 计划模式控制器(服务):#计划模式控制器服务
             return 下一判定#带叙述的判定
         上下文.监听('agent/pre-step',步骤前)#挂 pre-step
         def 装寿命():#拆除时标记 disposed
-            """拆除时标记 disposed。"""
+            '拆除时标记 disposed'
             def 拆寿命():#标记已拆除
-                """标记已拆除。"""
+                '标记已拆除'
                 自身.已拆除=True#已拆除
             return 拆寿命#拆除器
         上下文.副作用(装寿命,'dsh-plan-mode: close service lifetime')#拆除时标记 disposed
         def 政策文本(上下文块):#按当前（含未决）状态决定是否渲染
-            """按当前（含未决）状态决定是否渲染。"""
+            '按当前（含未决）状态决定是否渲染'
             智能体=上下文块['agent'] if 'agent' in 上下文块 else None#组装上下文里的智能体
             if 智能体 is None:#无智能体则空
                 return ''#空
@@ -161,12 +156,12 @@ class 计划模式控制器(服务):#计划模式控制器服务
             'text':政策文本,#按状态渲染
         })#结束 section 注册
         def 投影安装(投影上下文,*其余):#有投影注册表才挂单元
-            """计划投影单元：纯双事件折叠，向客户端提供完整 {active, pending}。"""
+            '计划投影单元：纯双事件折叠，向客户端提供完整 {active, pending}'
             def 初始():#默认未激活、无未决
-                """默认未激活、无未决。"""
+                '默认未激活、无未决'
                 return {'active':False,'wanted':None,'running':None,'activeAtLastHeader':None}#内部状态
             def 折叠(状态,事件):#按事件折叠
-                """按事件折叠。"""
+                '按事件折叠'
                 种类=事件['type']#事件类型
                 数据=事件['data'] if 'data' in 事件 else None#事件载荷
                 if 种类=='command/run' and 数据 is not None and 数据.get('name')=='plan':#已记录 /plan
@@ -187,7 +182,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
                     return {**状态,'activeAtLastHeader':状态['active']}#记下头处状态
                 return 状态#其他事件忽略
             def 视图(状态):#内部状态 → 线上值
-                """内部状态 → 线上值。"""
+                '内部状态 → 线上值'
                 在跑=状态.get('running')#在跑命令
                 想要=在跑['wanted'] if 在跑 is not None else 状态['wanted']#未决目标
                 激活=状态['active']#已提交
@@ -205,9 +200,9 @@ class 计划模式控制器(服务):#计划模式控制器服务
             })#登记结束
         上下文.依赖启动(['sessionProjections'],投影安装)#等到投影缝
         def 命令安装(命令上下文,*其余):#有命令注册表才挂 /plan
-            """仅当组合了命令注册表时命令子插件才激活。"""
+            '仅当组合了命令注册表时命令子插件才激活'
             def 处理(调用):#处理 /plan
-                """处理 /plan。"""
+                '处理 /plan'
                 智能体=调用['agent']#调用方智能体
                 原文=调用['rawInput'] if 'rawInput' in 调用 else ''#原始输入
                 if 原文 is None:#缺席
@@ -252,7 +247,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
             })#登记结束
         上下文.依赖启动(['commands'],命令安装)#等到命令缝
         def 执行(参数,执行上下文):#向用户审阅计划，批准则排队离开
-            """向用户审阅计划，批准则排队离开。"""
+            '向用户审阅计划，批准则排队离开'
             智能体=执行上下文['agent']#调用方智能体
             if 智能体 is None:#无会话无法切换
                 raise 计划模式错误(退出计划模式+' requires a calling agent (no session to switch)')#拒绝
@@ -267,7 +262,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
             if 交互 is None:#没有提问通道
                 raise 计划模式错误('no user-questions channel is available to review the plan; ask the user to switch the session mode instead')#让用户改用 /plan off
             def 问():#弹出审阅
-                """弹出审阅。"""
+                '弹出审阅'
                 return 交互.ask({#审阅请求
                     'questions':[{#一道审阅题
                         'id':审阅标识,#与答案回显的 id
@@ -309,7 +304,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
             自身.未决意图[智能体.session]={'active':False,'narrate':False}#排队离开且不重复叙述
             return {'approved':True}#结构化成功
         def 呈现调用(参数):#调用卡片：标题取计划首条标题
-            """调用卡片：标题取计划首条标题。"""
+            '调用卡片：标题取计划首条标题'
             计划=参数['plan']#计划正文
             标题=首条标题(计划) if 计划 is not None else None#首条标题
             if 标题 is None:#无标题
@@ -321,14 +316,14 @@ class 计划模式控制器(服务):#计划模式控制器服务
                 'content':[{'type':'text','text':计划}],#计划正文
             }#卡片结束
         def 呈现结果(_参数,结果):#结果卡片
-            """结果卡片。"""
+            '结果卡片'
             return {#通用卡片
                 'card':'generic',#通用卡片
                 'title':'Plan review',#审阅
                 'content':结果['content'] if 'content' in 结果 else None,#已渲染内容
             }#卡片结束
         def 渲染成功(*位置参数):#模型可见成功文案
-            """模型可见成功文案。"""
+            '模型可见成功文案'
             return [{'type':'text','text':'Plan approved — plan mode exited; carry out the plan starting with your next step.'}]#成功文案
         上下文.tools.登记(定义工具({#始终注册退出工具，目录不随模式变
             'name':退出计划模式,#工具名
@@ -352,7 +347,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
         }))#登记结束
 
     def 获取(自身,智能体):#读已记录 + 未决
-        """读取已记录的计划状态，以及等待下一个被接受的回合内 pre-step 的所选状态。"""
+        '读取已记录的计划状态，以及等待下一个被接受的回合内 pre-step 的所选状态'
         激活=折叠计划模式(智能体.session.events)#日志折叠
         未决=自身.未决意图.get(智能体.session)#内存未决
         if 未决 is None:#无未决则省略 pending
@@ -360,7 +355,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
         return {'active':激活,'pending':未决['active']}#带未决目标
 
     def 设置(自身,智能体,激活):#选择目标模式
-        """选择计划模式是否应激活。回合之间立刻追加变更；打开回合期间选择保持待定，直到下一个被接受的回合内 pre-step。重复选择当前或已待定状态是空操作。返回 `committed`、`queued`、`cancelled` 或 `noop`。"""
+        '选择计划模式是否应激活。回合之间立刻追加变更；打开回合期间选择保持待定，直到下一个被接受的回合内 pre-step。重复选择当前或已待定状态是空操作。返回 `committed`、`queued`、`cancelled` 或 `noop`'
         会话=智能体.session#本会话
         未决=自身.未决意图.get(会话)#现有未决
         if 未决 is not None:#有未决
@@ -385,7 +380,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
         return 'committed'#已提交
 
     def 在边界(自身,会话):#pre-step 边界提交
-        """在下一次请求组装之前追加一条未决选择。"""
+        '在下一次请求组装之前追加一条未决选择'
         未决=自身.未决意图.get(会话)#未决选择
         if 未决 is None:#没有则跳过
             return#跳过
@@ -397,7 +392,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
         自身.未决意图.pop(会话,None)#提交成功后清未决
 
     def 叙述(自身,会话,目标):#是否需要告诉模型模式变了
-        """当最近一条已记录请求头描述的是另一模式时，构造用户切换通知。"""
+        '当最近一条已记录请求头描述的是另一模式时，构造用户切换通知'
         已告=上次请求头处计划模式(会话.events)#上次请求头处的模式
         if 已告 is None or 已告==目标:#尚无请求头，或已经告诉过目标
             return None#无需通知

@@ -3,17 +3,17 @@ __all__=['团队动作','任务表单','拆分项','失败文案']#仅中文公�
 空草稿={'subject':'','description':'','blockers':'','scopes':''}#空草稿
 
 def 恒等键(键,_缺省=None):#无翻译时返回键
-    """无翻译函数时原样返回键。"""
+    '无翻译函数时原样返回键'
     return 键#原样
 
 def 读团队投影(属性,会话标识):#读 agentTeam 投影
-    """从槽运行时 useSession/useSessions 读 Lead 的 agentTeam 投影。"""
+    '从槽运行时 useSession/useSessions 读 Lead 的 agentTeam 投影'
     用单会话=属性['useSession'] if 'useSession' in 属性 else None#单会话钩
     用会话表=属性['useSessions'] if 'useSessions' in 属性 else None#会话表钩
     领导=会话标识#默认当前会话即 Lead
     if 用单会话 is not None:#有单会话钩
         def 选父(快照):#选 parentSessionId
-            """子会话映射到 Lead。"""
+            '子会话映射到 Lead'
             if 快照 is None or 'subagent' not in 快照:#无子
                 return None#无
             子=快照['subagent']#子智能体
@@ -29,7 +29,7 @@ def 读团队投影(属性,会话标识):#读 agentTeam 投影
     if 用会话表 is None:#无表钩
         return None#无投影
     def 选团队(状态):#选 agentTeam
-        """按 Lead 会话读投影。"""
+        '按 Lead 会话读投影'
         if 状态 is None or 'projectionsBySession' not in 状态:#无表
             return None#无
         投影表=状态['projectionsBySession']#投影表
@@ -41,15 +41,15 @@ def 读团队投影(属性,会话标识):#读 agentTeam 投影
     return 用会话表(选团队)#投影
 
 def 拆分项(值):#逗号拆分去重
-    """逗号拆分去重。"""
+    '逗号拆分去重'
     return list(dict.fromkeys(项.strip() for 项 in 值.split(',') if 项.strip()!=''))#拆分去重
 
 def 失败文案(错误):#失败文案
-    """RPC 错误 dict 的一行失败文案。"""
+    'RPC 错误 dict 的一行失败文案'
     return str(错误['message'])+' ('+str(错误['code'])+')'#拼接码
 
 def 任务状态键(状态):#任务状态键
-    """任务状态 → 文案键。"""
+    '任务状态 → 文案键'
     if 状态=='pending':#待处理
         return 'status.pending'#键
     if 状态=='in_progress':#进行中
@@ -59,7 +59,7 @@ def 任务状态键(状态):#任务状态键
     return 'status.completed'#删除当完成键
 
 def 成员状态键(状态):#成员状态键
-    """成员状态 → 文案键。"""
+    '成员状态 → 文案键'
     表={#映射
         'running':'memberStatus.running',#运行中
         'idle':'memberStatus.idle',#空闲
@@ -70,9 +70,9 @@ def 成员状态键(状态):#成员状态键
     return 表[状态] if 状态 in 表 else 状态#键
 
 class 任务表单:#任务表单结构树
-    """标题/详情/依赖/写范围四字段表单。"""
+    '标题/详情/依赖/写范围四字段表单'
     def __init__(自身,草稿,进行中,保存,取消,翻译):#构造
-        """记下草稿与回调。"""
+        '记下草稿与回调'
         自身.draft=草稿#草稿
         自身.pending=进行中#进行中
         自身.onSave=保存#保存
@@ -80,27 +80,27 @@ class 任务表单:#任务表单结构树
         自身.t=翻译#翻译
 
     def 改字段(自身,键,值):#改字段
-        """写回草稿字段。"""
+        '写回草稿字段'
         自身.draft[键]=值#写字段
 
     def 改标题(自身,值):#改标题
-        """写回标题。"""
+        '写回标题'
         自身.改字段('subject',值)#写标题
 
     def 改详情(自身,值):#改详情
-        """写回详情。"""
+        '写回详情'
         自身.改字段('description',值)#写详情
 
     def 改依赖(自身,值):#改依赖
-        """写回依赖串。"""
+        '写回依赖串'
         自身.改字段('blockers',值)#写依赖
 
     def 改范围(自身,值):#改写范围
-        """写回写范围串。"""
+        '写回写范围串'
         自身.改字段('scopes',值)#写范围
 
     def 渲染(自身):#结构树
-        """表单树。"""
+        '表单树'
         翻译=自身.t#文案
         禁用保存=自身.pending is True or 自身.draft['subject'].strip()=='' or 自身.draft['description'].strip()==''#禁用
         return {#表单
@@ -127,9 +127,9 @@ class 任务表单:#任务表单结构树
         }#视图结束
 
 class 团队动作:#标题栏 Team 动作
-    """渲染 live Team roster 与 compare-and-set 任务板。"""
+    '渲染 live Team roster 与 compare-and-set 任务板'
     def __init__(自身,属性=None):#构造
-        """记下 props 与初始状态。"""
+        '记下 props 与初始状态'
         自身.属性={} if 属性 is None else 属性#合成
         自身.打开=False#面板是否打开
         自身.加载中=False#加载中
@@ -144,7 +144,7 @@ class 团队动作:#标题栏 Team 动作
         自身._刷新代数=0#刷新代数
 
     def 更新(自身,属性):#刷新 props
-        """会话切换则重置面板状态。"""
+        '会话切换则重置面板状态'
         新会话=属性['sessionId'] if 属性 is not None and 'sessionId' in 属性 else None#新会话
         旧会话=自身._会话引用#旧会话
         自身.属性={} if 属性 is None else 属性#新 props
@@ -153,7 +153,7 @@ class 团队动作:#标题栏 Team 动作
             自身._重置状态()#重置
 
     def _重置状态(自身):#重置状态
-        """会话切换重置。"""
+        '会话切换重置'
         自身._刷新代数+=1#推进代
         自身.打开=False#关面板
         自身.加载中=False#清加载
@@ -166,11 +166,11 @@ class 团队动作:#标题栏 Team 动作
         自身.进行中任务=set()#清进行中
 
     def _翻译(自身):#取翻译
-        """取翻译函数。"""
+        '取翻译函数'
         return 自身.属性['t'] if 't' in 自身.属性 else 恒等键#文案
 
     def 刷新(自身):#刷新视图
-        """拉取总览；代数过期则丢弃。"""
+        '拉取总览；代数过期则丢弃'
         会话=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None#请求时会话
         自身._刷新代数+=1#推进代
         代数=自身._刷新代数#本代
@@ -201,12 +201,12 @@ class 团队动作:#标题栏 Team 动作
         return True#成功
 
     def _使刷新失效(自身):#使在途刷新失效
-        """推进代数并清加载。"""
+        '推进代数并清加载'
         自身._刷新代数+=1#推进代
         自身.加载中=False#清加载
 
     def 结算任务(自身,任务键,操作):#结算一次任务操作
-        """跑任务变更并处理冲突/拒绝。"""
+        '跑任务变更并处理冲突/拒绝'
         会话=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None#请求时会话
         自身._使刷新失效()#失效在途刷新
         自身.进行中任务=set(自身.进行中任务)#拷贝
@@ -220,7 +220,7 @@ class 团队动作:#标题栏 Team 动作
                 自身.进行中任务=下一#更新
 
     def _结算任务体(自身,会话,操作):#结算体
-        """结算任务操作主体。"""
+        '结算任务操作主体'
         结果=操作()#跑操作已同步
         if 自身._会话引用!=会话:#会话已变
             return None#空
@@ -237,7 +237,7 @@ class 团队动作:#标题栏 Team 动作
         return 值['value']#返回任务
 
     def _处理业务拒绝(自身,会话,值):#业务拒绝
-        """冲突则重载；其它拒绝写错误行。"""
+        '冲突则重载；其它拒绝写错误行'
         错误=值['error']#错误体
         if 错误['code']=='team-task-conflict':#冲突
             已重载=自身.刷新()#冲突则重载
@@ -250,7 +250,7 @@ class 团队动作:#标题栏 Team 动作
         return None#空
 
     def 提交创建(自身):#提交创建
-        """提交新建任务。"""
+        '提交新建任务'
         标题=自身.创建草稿['subject'].strip()#标题
         描述=自身.创建草稿['description'].strip()#描述
         if 标题=='' or 描述=='':#空则跳过
@@ -260,7 +260,7 @@ class 团队动作:#标题栏 Team 动作
         if 创建 is None:#无 RPC
             return#跳过
         def 操作():#操作
-            """建任务 RPC。"""
+            '建任务 RPC'
             return 创建(会话,{#建任务
                 'subject':标题,#标题
                 'description':描述,#描述
@@ -274,7 +274,7 @@ class 团队动作:#标题栏 Team 动作
         自身.创建中=False#退出创建
 
     def 开始编辑(自身,任务):#开始编辑
-        """填入编辑草稿。"""
+        '填入编辑草稿'
         自身.编辑中=任务['id']#编辑目标
         自身.编辑草稿={#填草稿
             'subject':任务['subject'],#标题
@@ -284,12 +284,12 @@ class 团队动作:#标题栏 Team 动作
         }#草稿结束
 
     def 提交编辑(自身,任务):#提交编辑
-        """先编辑文本，必要时再改依赖。"""
+        '先编辑文本，必要时再改依赖'
         更新=自身.属性['updateTask'] if 'updateTask' in 自身.属性 else None#更新动作
         if 更新 is None:#无 RPC
             return#跳过
         def 编辑操作():#编辑文本
-            """编辑 RPC。"""
+            '编辑 RPC'
             return 更新(自身.属性['sessionId'],{#编辑
                 'taskId':任务['id'],#任务 id
                 'expectedRevision':任务['revision'],#期望版本
@@ -307,7 +307,7 @@ class 团队动作:#标题栏 Team 动作
             自身.编辑中=None#退出编辑
             return
         def 依赖操作():#再改依赖
-            """改依赖 RPC。"""
+            '改依赖 RPC'
             return 更新(自身.属性['sessionId'],{#改依赖
                 'taskId':任务['id'],#任务 id
                 'expectedRevision':已编辑['revision'],#新版本
@@ -320,29 +320,29 @@ class 团队动作:#标题栏 Team 动作
         自身.编辑中=None#退出编辑
 
     def 切换面板(自身):#切换面板
-        """打开或关闭面板；打开时刷新。"""
+        '打开或关闭面板；打开时刷新'
         自身.打开=not 自身.打开#切换
         if 自身.打开 is True:#打开时刷新
             自身.刷新()#刷新
 
     def 关闭面板(自身):#关闭面板
-        """关闭面板。"""
+        '关闭面板'
         自身.打开=False#关闭
 
     def 开始创建(自身):#开始创建
-        """进入创建表单。"""
+        '进入创建表单'
         自身.创建中=True#开始创建
 
     def 取消创建(自身):#取消创建
-        """退出创建表单。"""
+        '退出创建表单'
         自身.创建中=False#取消
 
     def 取消编辑(自身):#取消编辑
-        """退出编辑表单。"""
+        '退出编辑表单'
         自身.编辑中=None#取消
 
     def 渲染(自身):#结构树
-        """Team 动作根树。"""
+        'Team 动作根树'
         翻译=自身._翻译()#文案
         视图=自身.视图#当前视图
         成员列表=视图['members'] if 视图 is not None else []#成员
@@ -358,7 +358,7 @@ class 团队动作:#标题栏 Team 动作
         }#根结束
 
     def _渲染面板(自身,翻译,视图,成员列表):#渲染面板
-        """对话框面板树。"""
+        '对话框面板树'
         return {#面板
             'type':'team-panel',#类型
             'title':翻译('trigger'),#标题
@@ -372,7 +372,7 @@ class 团队动作:#标题栏 Team 动作
         }#面板结束
 
     def _渲染正文(自身,翻译,视图,成员列表):#渲染正文
-        """roster + 任务板。"""
+        'roster + 任务板'
         可分配=[成员 for 成员 in 成员列表 if 成员['status'] not in ('failed','provisioning')]#可分配
         任务列表=视图['tasks']#任务
         return {#正文
@@ -387,7 +387,7 @@ class 团队动作:#标题栏 Team 动作
         }#正文结束
 
     def _创建表单(自身,翻译):#创建表单
-        """新建任务表单。"""
+        '新建任务表单'
         return 任务表单(#表单
             自身.创建草稿,#草稿
             'create' in 自身.进行中任务,#进行中
@@ -397,7 +397,7 @@ class 团队动作:#标题栏 Team 动作
         ).渲染()#渲染
 
     def _打开成员(自身,成员):#打开 teammate
-        """打开子会话。"""
+        '打开子会话'
         打开=自身.属性['openTeammate'] if 'openTeammate' in 自身.属性 else None#打开动作
         if 打开 is None:#无动作
             return#返回
@@ -407,7 +407,7 @@ class 团队动作:#标题栏 Team 动作
             自身.错误=str(错误)#错误行
 
     def _渲染成员(自身,翻译,成员):#渲染成员
-        """成员行。"""
+        '成员行'
         模型=成员['model'] if 'model' in 成员 else None#模型
         副文=翻译(成员状态键(成员['status']))#状态文案
         if 模型 is not None:#有模型
@@ -425,14 +425,14 @@ class 团队动作:#标题栏 Team 动作
         }#行结束
 
     def _打开成员绑定(自身,成员):#绑定打开
-        """返回打开该成员的回调。"""
+        '返回打开该成员的回调'
         def 点击():#打开 teammate
-            """打开子会话。"""
+            '打开子会话'
             自身._打开成员(成员)#打开
         return 点击#回调
 
     def _渲染任务(自身,翻译,任务,可分配):#渲染任务
-        """一条任务或编辑表单。"""
+        '一条任务或编辑表单'
         标识=任务['id']#任务 id
         if 自身.编辑中==标识:#编辑中
             return 任务表单(#表单
@@ -445,14 +445,14 @@ class 团队动作:#标题栏 Team 动作
         return 自身._任务卡片(翻译,任务,可分配)#卡片
 
     def _提交编辑绑定(自身,任务):#绑定提交编辑
-        """返回提交该任务编辑的回调。"""
+        '返回提交该任务编辑的回调'
         def 保存():#保存
-            """提交编辑。"""
+            '提交编辑'
             自身.提交编辑(任务)#提交
         return 保存#回调
 
     def _任务卡片(自身,翻译,任务,可分配):#任务卡片
-        """只读任务卡片与动作。"""
+        '只读任务卡片与动作'
         标识=任务['id']#任务 id
         状态=任务['status']#状态
         进行中=标识 in 自身.进行中任务#进行中
@@ -495,34 +495,34 @@ class 团队动作:#标题栏 Team 动作
         }#卡片结束
 
     def _改派绑定(自身,任务):#绑定改派
-        """返回改派回调。"""
+        '返回改派回调'
         def 改派(所有者):#改派
-            """改派或清空 owner。"""
+            '改派或清空 owner'
             自身._改派(任务,所有者)#改派
         return 改派#回调
 
     def _开始编辑绑定(自身,任务):#绑定开始编辑
-        """返回开始编辑回调。"""
+        '返回开始编辑回调'
         def 开始():#开始编辑
-            """填入编辑草稿。"""
+            '填入编辑草稿'
             自身.开始编辑(任务)#开始
         return 开始#回调
 
     def _动作绑定(自身,任务,动作):#绑定简单动作
-        """返回 complete / reopen / delete 回调。"""
+        '返回 complete / reopen / delete 回调'
         def 执行():#执行动作
-            """跑简单动作。"""
+            '跑简单动作'
             自身._动作(任务,动作)#动作
         return 执行#回调
 
     def _改派(自身,任务,所有者):#改派
-        """改派或清空 owner。"""
+        '改派或清空 owner'
         会话=自身.属性['sessionId']#会话
         更新=自身.属性['updateTask'] if 'updateTask' in 自身.属性 else None#更新
         if 更新 is None:#无 RPC
             return#跳过
         def 操作():#操作
-            """改派 RPC。"""
+            '改派 RPC'
             请求={#请求
                 'taskId':任务['id'],#任务 id
                 'expectedRevision':任务['revision'],#期望版本
@@ -534,13 +534,13 @@ class 团队动作:#标题栏 Team 动作
         自身.结算任务(任务['id'],操作)#结算
 
     def _动作(自身,任务,动作):#简单动作
-        """complete / reopen / delete。"""
+        'complete / reopen / delete'
         会话=自身.属性['sessionId']#会话
         更新=自身.属性['updateTask'] if 'updateTask' in 自身.属性 else None#更新
         if 更新 is None:#无 RPC
             return#跳过
         def 操作():#操作
-            """动作 RPC。"""
+            '动作 RPC'
             return 更新(会话,{#更新
                 'taskId':任务['id'],#任务 id
                 'expectedRevision':任务['revision'],#期望版本

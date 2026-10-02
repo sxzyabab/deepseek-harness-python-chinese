@@ -1,4 +1,4 @@
-"""快捷键速查插件；命令与入口共享一份已声明 store。"""
+'快捷键速查插件；命令与入口共享一份已声明 store'
 from types import SimpleNamespace as 简易命名空间
 from .存储 import 创建快捷键存储
 from .参考 import 快捷键速查,快捷键设置行
@@ -10,13 +10,13 @@ __all__=['依赖','应用','命名空间','中文','英文','创建快捷键存�
 依赖=['shortcuts','locale','slots']
 
 def 关闭顶层模态(文档):
-    """对齐 closeTopModal：关掉最前登记模态的 onClose。"""
+    '对齐 closeTopModal：关掉最前登记模态的 onClose'
     globals()['closeTopModal'](文档)
 
 def 应用(上下文):
-    """注册速查命令、设置行与单实例 shell 浮层。"""
+    '注册速查命令、设置行与单实例 shell 浮层'
     def 登记词典():
-        """登记 shortcuts 词典。"""
+        '登记 shortcuts 词典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
     上下文.副作用(登记词典,'shortcuts: dictionaries')
     翻译=上下文.locale.bind(命名空间)
@@ -24,21 +24,21 @@ def 应用(上下文):
     实例=句柄.create()
     存储=简易命名空间(spec=句柄.spec,create=lambda *_位置,_关键字=None:实例)
     def 编辑(*位置参数):
-        """转发 shortcuts.edit。"""
+        '转发 shortcuts.edit'
         return 上下文.shortcuts.edit(*位置参数)
     def 录键(开):
-        """转发 shortcuts.recording。"""
+        '转发 shortcuts.recording'
         return 上下文.shortcuts.recording(开)
     def 描述绑定(绑定):
-        """转发 shortcuts.describeBinding。"""
+        '转发 shortcuts.describeBinding'
         return 上下文.shortcuts.describeBinding(绑定)
     for 命令 in 固定命令(翻译):
         def 登记固定(项=命令):
-            """登记一条固定命令。"""
+            '登记一条固定命令'
             return 上下文.shortcuts.registerFixed(项)
         上下文.副作用(登记固定,'shortcuts: '+命令['id'])
     def 注入面():
-        """平台、运行时与目录钩。"""
+        '平台、运行时与目录钩'
         return {
             'platform':上下文.shortcuts.platform,
             'runtime':上下文.shortcuts.runtime,
@@ -52,7 +52,7 @@ def 应用(上下文):
             },
         }
     def 挂设置行():
-        """通用设置项。"""
+        '通用设置项'
         return 上下文.slots.register({
             'name':'settings.general.item',
             'id':'shortcuts',
@@ -63,21 +63,21 @@ def 应用(上下文):
         },快捷键设置行)
     上下文.slots.inject('settings.general.item',挂设置行)
     def 挂浮层():
-        """速查命令 + shell.overlay。"""
+        '速查命令 + shell.overlay'
         def 解析(面):
-            """开或关速查。"""
+            '开或关速查'
             模态=面['modal'] if isinstance(面,dict) else 面.modal
             if 模态 is not None and 模态!='settings' and 模态!='shortcuts':
                 return {'status':'blocked','reason':'modal'}
             def 跑():
-                """toggle。"""
+                'toggle'
                 if 模态=='shortcuts':
                     关闭顶层模态(globals()['document'])
                 else:
                     实例['actions']['open']()
             return {'status':'handled','run':跑}
         def 标签():
-            """命令标签。"""
+            '命令标签'
             return 翻译('open')
         卸命令=上下文.shortcuts.register({
             'id':'shortcuts.open',
@@ -103,7 +103,7 @@ def 应用(上下文):
             'inject':注入面,
         },快捷键速查)
         def 拆():
-            """卸命令与槽。"""
+            '卸命令与槽'
             卸命令()
             卸槽()
         return 拆

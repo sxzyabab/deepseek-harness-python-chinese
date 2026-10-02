@@ -1,18 +1,18 @@
-"""JSONL 持久化后端的 Zstandard 帧原语。"""
+'JSONL 持久化后端的 Zstandard 帧原语'
 from io import BytesIO#字节流
 import zstandard as zstd#zstd
 
 ZSTD魔数=0xFD2FB528#Zstandard 帧魔数（小端）
 
 def 压缩zstd帧(明文):#压缩一帧
-    """压缩一条可独立解码且带校验和的 Zstandard 帧。"""
+    '压缩一条可独立解码且带校验和的 Zstandard 帧'
     if isinstance(明文,str):#文本
         明文=明文.encode('utf-8')#转字节
     压缩器=zstd.ZstdCompressor(write_checksum=True)#带校验和
     return 压缩器.compress(明文)#单帧
 
 def 解压zstd帧(载荷):#解压一帧或拼接帧
-    """解压完整帧并校验；多帧拼接时读尽全部明文。"""
+    '解压完整帧并校验；多帧拼接时读尽全部明文'
     解压器=zstd.ZstdDecompressor()
     try:
         with 解压器.stream_reader(BytesIO(载荷)) as 阅读器:
@@ -21,7 +21,7 @@ def 解压zstd帧(载荷):#解压一帧或拼接帧
         raise Error('corrupt Zstandard session log: frame failed validation') from 错误
 
 def 扫描zstd帧(缓冲,最大帧数=None):#结构扫描帧
-    """在不解压的情况下定位完整帧；EOF 落在末帧内则返回撕裂起点。"""
+    '在不解压的情况下定位完整帧；EOF 落在末帧内则返回撕裂起点'
     if isinstance(缓冲,memoryview):#memoryview
         缓冲=bytes(缓冲)#转字节
     帧列表=[]#完整帧
@@ -77,7 +77,7 @@ def 扫描zstd帧(缓冲,最大帧数=None):#结构扫描帧
     return {'frames':帧列表}#全部完整
 
 def 解压zstd前缀(输入):#解压不完整前缀
-    """从不完整末帧的可用字节恢复明文；调用方须先确立撕裂边界。"""
+    '从不完整末帧的可用字节恢复明文；调用方须先确立撕裂边界'
     if isinstance(输入,str):#文本
         输入=输入.encode('utf-8')#转字节
     解压器=zstd.ZstdDecompressor()#解压器
@@ -97,19 +97,19 @@ def 解压zstd前缀(输入):#解压不完整前缀
     return b''.join(块列表)#拼接
 
 class Error(Exception):#zstd 辅助错误
-    """Zstandard 帧原语抛出的 Error 风格异常。"""
+    'Zstandard 帧原语抛出的 Error 风格异常'
 
 浮点无穷=float('inf')#正无穷（帧上限缺省）
 
 class 公开zstd帧解码器:#公开一次性 API 多帧适配器
-    """只用公开一次性解压做成的同步多帧解码器（不对齐 Node 私有 decoder）。"""
+    '只用公开一次性解压做成的同步多帧解码器（不对齐 Node 私有 decoder）'
     def __init__(自身):#构造
-        """初始化生命周期。"""
+        '初始化生命周期'
         自身._已启动=False#是否已开始
         自身._已关闭=False#是否已关闭
 
     def 解码(自身,源,帧列表):#按序解压
-        """按源顺序解码并校验完整帧；产出缓冲在推进前有效。"""
+        '按源顺序解码并校验完整帧；产出缓冲在推进前有效'
         if 自身._已启动:#禁止二次启动
             raise Error('Zstandard frame decoder was already started')#拒绝
         if 自身._已关闭:#已关闭
@@ -128,11 +128,11 @@ class 公开zstd帧解码器:#公开一次性 API 多帧适配器
             自身.关闭()#释放
 
     def 关闭(自身):#关闭
-        """释放资源；重复调用无害。"""
+        '释放资源；重复调用无害'
         自身._已关闭=True#标记
 
 def 创建zstd帧解码器():#创建帧解码器
-    """返回公开 API 帧解码器（Python 无 Node 私有 decoder）。"""
+    '返回公开 API 帧解码器（Python 无 Node 私有 decoder）'
     return 公开zstd帧解码器()#公开实现
 
 __all__=[#公开面

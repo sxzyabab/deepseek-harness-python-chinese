@@ -6,7 +6,7 @@ from .子进程 import 运行shell进程#进程入口
 __all__=['启动进程','运行shell进程']#仅中文公开名
 
 def 可派worker():#是否可派Worker
-    """本线程能否启动真进程 worker。"""
+    '本线程能否启动真进程 worker'
     Worker构造=globals().get('Worker')#浏览器Worker
     self对象=globals().get('self')#worker全局
     if not callable(Worker构造) or self对象 is None:#环境不具备
@@ -16,7 +16,7 @@ def 可派worker():#是否可派Worker
     return isinstance(href,str)#具备
 
 def 服务文件系统调用(文件系统,操作,参数列表):#服务FS调用
-    """为进程 worker 服务一次文件系统调用。"""
+    '为进程 worker 服务一次文件系统调用'
     if 操作=='stat':#stat
         return 文件系统['stat'](参数列表[0])#stat
     if 操作=='list':#list
@@ -38,7 +38,7 @@ def 服务文件系统调用(文件系统,操作,参数列表):#服务FS调用
     raise 运行时错误(f'webworker shell: unknown filesystem op {操作}')#拒绝未知
 
 def 启动worker进程(选项):#Worker进程
-    """worker 支撑的进程：本束的第二份拷贝，运行一条命令。"""
+    'worker 支撑的进程：本束的第二份拷贝，运行一条命令'
     if 'fs' not in 选项: 文件系统=宿主文件系统()#??宿主 fs
     else: 文件系统=选项['fs']#可选 fs
     Worker构造=globals()['Worker']#Worker
@@ -46,14 +46,14 @@ def 启动worker进程(选项):#Worker进程
     worker=Worker构造(self对象.location.href,{'type':'module'})#同束新Worker
     已落定=[False]#是否已落定
     def 落定(码):#落定一次
-        """落定一次。"""
+        '落定一次'
         if 已落定[0]:#已落定则忽略
             return#忽略
         已落定[0]=True#标记落定
         worker.terminate()#终止Worker
         选项['onExit'](码)#报告退出
     def 收消息(事件):#收进程帧
-        """处理出站帧。"""
+        '处理出站帧'
         帧=事件.data#MessageEvent 对象载荷
         if not isinstance(帧,dict):#非字典
             return#忽略
@@ -70,7 +70,7 @@ def 启动worker进程(选项):#Worker进程
             失败={'code':getattr(错误,'code',None),'message':str(错误)}#失败载荷
             worker.postMessage({'t':'fs-reply','id':帧['id'],'failure':失败})#失败回复
     def 收错误(事件):#Worker错误
-        """写诊断并失败落定。"""
+        '写诊断并失败落定'
         消息=getattr(事件,'message',str(事件))#消息
         选项['onOutput']('stderr',f'bash: process worker failed: {消息}\n')#写诊断
         落定(1)#失败落定
@@ -86,16 +86,16 @@ def 启动worker进程(选项):#Worker进程
     }#start结束
     worker.postMessage(启动)#发出启动
     def 软中断():#软中断
-        """请求停止。"""
+        '请求停止'
         if not 已落定[0]:#未落定
             worker.postMessage({'t':'shell-signal'})#发信号
     def 强制杀():#强制杀
-        """立刻停止。"""
+        '立刻停止'
         落定(130)#强制杀
     return {'interrupt':软中断,'destroy':强制杀}#返回句柄
 
 def 启动内联进程(选项):#内联进程
-    """内联进程：本线程上的同一命令，只能通过请求停止。"""
+    '内联进程：本线程上的同一命令，只能通过请求停止'
     中止=壳中止信号()#取消通道
     if 'fs' not in 选项: 文件系统=宿主文件系统()#??宿主 fs
     else: 文件系统=选项['fs']#可选 fs
@@ -117,10 +117,10 @@ def 启动内联进程(选项):#内联进程
         选项['onOutput']('stderr',f'bash: {错误}\n')#诊断
         选项['onExit'](1)#失败码
     def 停止():#请求停止
-        """请求停止。"""
+        '请求停止'
         中止.中止()#置位
     return {'interrupt':停止,'destroy':停止}#两者同为请求
 
 def 启动进程(选项):#启动进程
-    """启动一条命令。"""
+    '启动一条命令'
     return 启动worker进程(选项) if 可派worker() else 启动内联进程(选项)#选路径

@@ -3,7 +3,7 @@ from time import time as 墙钟
 __all__=['准备卡片','语音准备工作']
 
 def 读就绪(属性):
-    """注入面 hooks.speechReadiness。"""
+    '注入面 hooks.speechReadiness'
     钩=属性.get('hooks') or {}
     存储=钩.get('speechReadiness')
     if 存储 is not None:
@@ -11,20 +11,20 @@ def 读就绪(属性):
     取=属性.get('useSpeechReadiness')
     if 取 is not None:
         def 全量(快照):
-            """整份就绪快照。"""
+            '整份就绪快照'
             return 快照
         return 取(全量)
     return {'catalog':None,'connected':False,'error':None}
 
 def 填(翻译,键,表=None):
-    """词典插值。"""
+    '词典插值'
     文=翻译(键)
     if 表 is None:
         return 文
     return 文.format(**表)
 
 def 准备语气(态):
-    """步骤点颜色。"""
+    '步骤点颜色'
     阶段=态.get('phase')
     if 阶段 in ('ready','standby'):
         return 'done'
@@ -35,7 +35,7 @@ def 准备语气(态):
     return 'ongoing'
 
 def 字节文案(态,翻译):
-    """下载字节，不是安装百分比。"""
+    '下载字节，不是安装百分比'
     完成=态['completedBytes']/1000000
     总量=态.get('totalBytes')
     if 总量 is None:
@@ -48,7 +48,7 @@ def 字节文案(态,翻译):
     })
 
 def 失败视图(态,翻译):
-    """本地下载失败分类。"""
+    '本地下载失败分类'
     失败=态.get('download')
     if 失败 is None:
         return {
@@ -69,9 +69,9 @@ def 失败视图(态,翻译):
     }
 
 class 准备卡片:
-    """单个识别器的资源就绪与显式准备。"""
+    '单个识别器的资源就绪与显式准备'
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性
         自身.已展开=False
         自身.错误=''
@@ -79,19 +79,19 @@ class 准备卡片:
         自身.提交中=False
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性
 
     def 切展开(自身):
-        """展开或收起步骤。"""
+        '展开或收起步骤'
         自身.已展开=not 自身.已展开
 
     def 改源(自身,值):
-        """本次任务的下载源。"""
+        '本次任务的下载源'
         自身.源=值
 
     def 执行(自身,动作):
-        """串行跑一项。"""
+        '串行跑一项'
         自身.错误=''
         自身.提交中=True
         try:
@@ -101,30 +101,30 @@ class 准备卡片:
         自身.提交中=False
 
     def 开始准备(自身):
-        """按所选源启动或加入 Host 准备。"""
+        '按所选源启动或加入 Host 准备'
         提供方=自身.属性['provider']
         选=自身.所选源()
         if 选=='':
             def 无源():
-                """沿用提供方策略。"""
+                '沿用提供方策略'
                 自身.属性['prepare'](提供方['id'])
             自身.执行(无源)
         else:
             def 有源():
-                """只走指定源。"""
+                '只走指定源'
                 自身.属性['prepare'](提供方['id'],{'downloadSource':选})
             自身.执行(有源)
 
     def 取消准备(自身):
-        """显式取消。"""
+        '显式取消'
         提供方=自身.属性['provider']
         def 取消():
-            """交给注入面。"""
+            '交给注入面'
             自身.属性['cancelPreparation'](提供方['id'])
         自身.执行(取消)
 
     def 所选源(自身):
-        """合法源或单源默认。"""
+        '合法源或单源默认'
         源表=自身.属性['provider'].get('downloadSources') or []
         if 自身.源 in 源表:
             return 自身.源
@@ -133,7 +133,7 @@ class 准备卡片:
         return ''
 
     def 渲染(自身):
-        """估算、步骤与动作。"""
+        '估算、步骤与动作'
         翻译=自身.属性['t']
         提供方=自身.属性['provider']
         已连接=bool(自身.属性.get('connected'))
@@ -251,26 +251,26 @@ class 准备卡片:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()
 
 class 语音准备工作:
-    """识别偏好与准备卡片，插件详情与设置共用。"""
+    '识别偏好与准备卡片，插件详情与设置共用'
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性
         自身.保存中=False
         自身.错误=''
         自身.卡片表={}
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性
 
     def 配置(自身,补丁):
-        """持久化偏好。"""
+        '持久化偏好'
         自身.保存中=True
         自身.错误=''
         try:
@@ -280,15 +280,15 @@ class 语音准备工作:
         自身.保存中=False
 
     def 改提供方(自身,标识):
-        """写 providerId。"""
+        '写 providerId'
         自身.配置({'providerId':标识})
 
     def 改语言(自身,语言):
-        """写 language。"""
+        '写 language'
         自身.配置({'language':语言})
 
     def 卡片(自身,提供方,已连接):
-        """按 id 复用准备卡片。"""
+        '按 id 复用准备卡片'
         标识=提供方['id']
         面={
             'provider':提供方,
@@ -302,7 +302,7 @@ class 语音准备工作:
         return 自身.卡片表[标识](面)
 
     def 渲染(自身):
-        """偏好选择器与各提供方卡片。"""
+        '偏好选择器与各提供方卡片'
         翻译=自身.属性['t']
         就绪=读就绪(自身.属性)
         目录=就绪.get('catalog')
@@ -351,7 +351,7 @@ class 语音准备工作:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

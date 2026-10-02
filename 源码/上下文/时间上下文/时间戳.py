@@ -1,4 +1,4 @@
-"""生产与回放校验共用的、形如 ISO 的时钟上下文时间戳格式化。"""
+'生产与回放校验共用的、形如 ISO 的时钟上下文时间戳格式化'
 import os#读取进程TZ
 from datetime import datetime as 日期时间#纪元与字段拆分
 from types import SimpleNamespace as 简易命名空间#对齐resolvedOptions对象
@@ -7,10 +7,10 @@ from zoneinfo import ZoneInfo as 区时#IANA时区
 时间戳分段=('day','hour','minute','month','second','timeZoneName','year')#Intl分段名联合，仅作文档对齐
 
 class 时间戳错误(Exception):
-    """时间戳包的异常基类。"""
+    '时间戳包的异常基类'
 
 def 解析进程时区名():#省略显式时区时解析进程回退时区
-    """对齐 Node 省略 timeZone 时的进程时区解析，优先 TZ，其次本地 ZoneInfo.key。"""
+    '对齐 Node 省略 timeZone 时的进程时区解析，优先 TZ，其次本地 ZoneInfo.key'
     if 'TZ' in os.environ:#有TZ
         环境时区=os.environ['TZ']#进程TZ
         if isinstance(环境时区,str) and len(环境时区)>0:#非空
@@ -24,7 +24,7 @@ def 解析进程时区名():#省略显式时区时解析进程回退时区
     raise 时间戳错误('time-context: failed to resolve the system time zone')#无法解析系统时区
 
 def 创建时间戳格式化器(时区=None):#创建时钟读数格式化器
-    """创建持久时钟读数所用的精确格式化器。显式展示时区，或 None 表示进程回退时区。"""
+    '创建持久时钟读数所用的精确格式化器。显式展示时区，或 None 表示进程回退时区'
     if 时区 is None:#进程默认
         时区名=解析进程时区名()#解析进程时区
     else:#显式时区
@@ -32,7 +32,7 @@ def 创建时间戳格式化器(时区=None):#创建时钟读数格式化器
     return 时间戳格式化器(时区名)#带稳定数字本地字段与长数字偏移的格式化器
 
 def 格式化时间戳(此刻,格式化器,时区):#格式化纪元毫秒为持久时间戳
-    """把纪元毫秒格式化为带偏移与 IANA 时区的、形如 ISO 的时间戳。"""
+    '把纪元毫秒格式化为带偏移与 IANA 时区的、形如 ISO 的时间戳'
     时刻=日期时间.fromtimestamp(此刻/1000,tz=格式化器.时区对象)#按格式化器时区拆字段；此刻是纪元毫秒 int
     年=str(时刻.year).zfill(4)#四位年
     月=str(时刻.month).zfill(2)#两位月
@@ -56,12 +56,12 @@ def 格式化时间戳(此刻,格式化器,时区):#格式化纪元毫秒为持�
     return 年+'-'+月+'-'+日+'T'+时+':'+分+':'+秒+偏移+'['+时区+']'#ISO形时间戳加时区括号
 
 class 时间戳格式化器:#持久时钟读数格式化器
-    """带稳定数字本地字段与长数字偏移的格式化器，对齐 Intl.DateTimeFormat 的本包用法。"""
+    '带稳定数字本地字段与长数字偏移的格式化器，对齐 Intl.DateTimeFormat 的本包用法'
     def __init__(自身,时区名):#按规范时区名构造
-        """按规范 IANA 时区名构造。"""
+        '按规范 IANA 时区名构造'
         自身.时区名=时区名#括号与解析共用的规范名
         自身.时区对象=区时(时区名)#ZoneInfo实例
 
     def 解析选项(自身):#对齐resolvedOptions
-        """给出规范时区名。"""
+        '给出规范时区名'
         return 简易命名空间(timeZone=自身.时区名)#对象属性timeZone

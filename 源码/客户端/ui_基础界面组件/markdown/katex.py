@@ -6,7 +6,7 @@ _成串=None#宿主：TeX→HTML 字符串；(源文,展示模式,选项dict)→
 _HTML到树=None#宿主：HTML 字符串→子节点列表
 
 def 装载TeX渲染(成串=None,HTML到树=None):#注入 KaTeX 与 DOM 映射
-    """挂上 renderToString 与 DOMParser→树；两臂都要。"""
+    '挂上 renderToString 与 DOMParser→树；两臂都要'
     global _成串,_HTML到树#写
     if 成串 is not None:#有
         _成串=成串#记
@@ -14,7 +14,7 @@ def 装载TeX渲染(成串=None,HTML到树=None):#注入 KaTeX 与 DOM 映射
         _HTML到树=HTML到树#记
 
 def 样式对象(css文本):#内联 style 字符串→字典
-    """KaTeX 只发 kebab-case；转 camelCase。"""
+    'KaTeX 只发 kebab-case；转 camelCase'
     样式={}#结果
     for 声明 in css文本.split(';'):#逐条
         冒号=声明.find(':')#分隔
@@ -35,7 +35,7 @@ def 样式对象(css文本):#内联 style 字符串→字典
     return 样式#样式字典
 
 def 渲染TeX到树(源文,展示模式):#TeX→视图节点列表
-    """三臂：严格→strict ignore→错误 span。"""
+    '三臂：严格→strict ignore→错误 span'
     if _成串 is None or _HTML到树 is None:#未装
         raise 基础界面错误('ui-primitives: katex backend not loaded')#失败
     首错=None#第一臂错误

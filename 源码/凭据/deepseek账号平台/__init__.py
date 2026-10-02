@@ -39,7 +39,7 @@ __all__=['包名','名称','依赖','默认','配置','平台账号','平台认�
 }
 
 def 解析授予(载荷):
-    """version=1 的授予。"""
+    'version=1 的授予'
     if not isinstance(载荷,dict):
         return None
     if 载荷.get('version')!=1:
@@ -51,18 +51,18 @@ def 解析授予(载荷):
     return {'version':1,'token':令牌,'issuer':签发}
 
 class 静默交互:
-    """登录流程不走提示面。"""
+    '登录流程不走提示面'
     def notify(自身,通知):
-        """忽略。"""
+        '忽略'
         return
     def prompt(自身,提示):
-        """拒绝。"""
+        '拒绝'
         raise 平台认证错误('protocol')
 
 class 平台账号(deepseek账号):
-    """PKCE 账号提供方。"""
+    'PKCE 账号提供方'
     def __init__(自身,上下文,配置值=None):
-        """登记流程并监听记录变更。"""
+        '登记流程并监听记录变更'
         super().__init__(上下文)
         if 配置值 is None:
             配置值={}
@@ -98,7 +98,7 @@ class 平台账号(deepseek账号):
         自身._移除中=None
         自身.__dict__[服务.初始化]=自身._初始化
         def 运行流程(会话):
-            """授权流程体。"""
+            '授权流程体'
             尝试=自身._尝试
             if 尝试 is None:
                 raise 平台认证错误('protocol')
@@ -110,16 +110,16 @@ class 平台账号(deepseek账号):
             'run':运行流程,
         })
         def 记录已更新(键,*剩余):
-            """本键变更则作废细节。"""
+            '本键变更则作废细节'
             if 键!=授予键:
                 return
             自身._作废细节()
             自身._已变()
         上下文.监听('credentials/record-updated',记录已更新)
         def 拆除效果():
-            """关掉在途尝试与吊销。"""
+            '关掉在途尝试与吊销'
             def 清理():
-                """等待在途结束。"""
+                '等待在途结束'
                 自身._已关闭=True
                 自身._登出寿命.中止()
                 自身._作废细节()
@@ -137,7 +137,7 @@ class 平台账号(deepseek账号):
         上下文.副作用(拆除效果,'account: active attempt lifetime')
 
     def _初始化(自身):
-        """校验已存授予的签发方。"""
+        '校验已存授予的签发方'
         记录=自身.ctx.credentials.读记录(授予键)
         if 记录 is None:
             return
@@ -152,7 +152,7 @@ class 平台账号(deepseek账号):
         print('[deepseek-account] 已丢弃存储授予',{'reason':'issuer-mismatch'})
 
     def 获取状态(自身):
-        """已存账号与最近尝试。"""
+        '已存账号与最近尝试'
         记录=自身.ctx.credentials.读记录(授予键)
         if 记录 is not None and (记录.get('kind')!='grant' or 解析授予(记录.get('payload')) is None):
             raise 平台认证错误('storage')
@@ -167,7 +167,7 @@ class 平台账号(deepseek账号):
         }
 
     def 获取配置档(自身):
-        """独立查询配置档。"""
+        '独立查询配置档'
         寿命=自身._细节寿命
         结果=自身._取细节('profile')
         if 自身._细节寿命 is not 寿命:
@@ -179,11 +179,11 @@ class 平台账号(deepseek账号):
         return 结果
 
     def 获取平衡(自身):
-        """独立查询钱包。"""
+        '独立查询钱包'
         return 自身._取细节('balance')
 
     def _取细节(自身,字段):
-        """读一项平台字段。"""
+        '读一项平台字段'
         寿命=自身._细节寿命
         已存=自身._读当前授予(寿命)
         if 已存 is None or 已中止(寿命.信号):
@@ -203,7 +203,7 @@ class 平台账号(deepseek账号):
         return 细节
 
     def 获取平台会话(自身):
-        """宿主专用会话快照。"""
+        '宿主专用会话快照'
         寿命=自身._细节寿命
         已存=自身._读当前授予(寿命)
         if 已存 is None or 已中止(寿命.信号):
@@ -214,7 +214,7 @@ class 平台账号(deepseek账号):
         return 结果
 
     def _读当前授予(自身,寿命):
-        """匹配当前来源的授予。"""
+        '匹配当前来源的授予'
         if 自身._已关闭:
             return None
         记录=自身.ctx.credentials.读记录(授予键)
@@ -230,7 +230,7 @@ class 平台账号(deepseek账号):
         return 解析
 
     def 解析令牌(自身,网址):
-        """仅推理来源。"""
+        '仅推理来源'
         目的=urlparse(网址)
         目的来源=目的.scheme+'://'+目的.netloc
         if 目的来源!=自身._推理来源 or 目的.username or 目的.password:
@@ -255,7 +255,7 @@ class 平台账号(deepseek账号):
         return 结果['token']
 
     def 开始登录(自身,区域,回调来源,登录来源):
-        """加入在途或新开浏览器授权。"""
+        '加入在途或新开浏览器授权'
         if 自身._移除中 is not None:
             自身._移除中.wait()
         来源=规范化登录来源(回调来源)
@@ -281,7 +281,7 @@ class 平台账号(deepseek账号):
         }
         自身._尝试=尝试
         def 后台():
-            """跑完授权开始。"""
+            '跑完授权开始'
             try:
                 结果=自身.所属上下文.authorization.开始({
                     'key':授予键,
@@ -309,7 +309,7 @@ class 平台账号(deepseek账号):
         return 自身.获取状态()
 
     def 取消登录(自身,标识):
-        """取消指定尝试。"""
+        '取消指定尝试'
         尝试=自身._尝试
         if 尝试 is not None and 尝试['view']['id']==标识:
             if 尝试['view']['phase']!='committing':
@@ -319,7 +319,7 @@ class 平台账号(deepseek账号):
         return 自身.获取状态()
 
     def 登出(自身):
-        """去掉本地授予并后台吊销。"""
+        '去掉本地授予并后台吊销'
         if 自身._移除中 is not None:
             自身._移除中.wait()
             return 自身.获取状态()
@@ -349,11 +349,11 @@ class 平台账号(deepseek账号):
             完成.set()
 
     def 监视(自身,信号):
-        """含完整初值的快照流。"""
+        '含完整初值的快照流'
         已改=[True]
         唤醒=threading.Event()
         def 变更():
-            """标脏。"""
+            '标脏'
             已改[0]=True
             唤醒.set()
         自身._监听者.add(变更)
@@ -369,13 +369,13 @@ class 平台账号(deepseek账号):
             自身._监听者.discard(变更)
 
     def _吊销(自身,令牌):
-        """后台吊销。"""
+        '后台吊销'
         if 自身._已关闭:
             return
         完成=threading.Event()
         自身._吊销表.add(完成)
         def 跑():
-            """吊销结束即摘掉。"""
+            '吊销结束即摘掉'
             try:
                 吊销账号(自身._来源,令牌,自身._登出政策,自身._登出寿命.信号,{**自身._请求头,**自身._客户端头})
             finally:
@@ -384,18 +384,18 @@ class 平台账号(deepseek账号):
         threading.Thread(target=跑,daemon=True).start()
 
     def _作废细节(自身):
-        """换寿命。"""
+        '换寿命'
         自身._最近配置档=None
         自身._细节寿命.中止()
         自身._细节寿命=中止控制器()
 
     def _已变(自身):
-        """通知监视者。"""
+        '通知监视者'
         for 监听 in list(自身._监听者):
             监听()
 
     def _更新(自身,尝试,值):
-        """合并尝试视图；授权 URL 不保留到后续阶段。"""
+        '合并尝试视图；授权 URL 不保留到后续阶段'
         其余=dict(尝试['view'])
         其余.pop('authorizeUrl',None)
         其余.update(值)
@@ -403,7 +403,7 @@ class 平台账号(deepseek账号):
         自身._已变()
 
     def _运行(自身,会话,尝试):
-        """浏览器回调与换码。"""
+        '浏览器回调与换码'
         网页服务=自身.所属上下文.获取服务('webServer',False)
         if 网页服务 is None:
             raise 平台认证错误('protocol')
@@ -417,17 +417,17 @@ class 平台账号(deepseek账号):
         句柄=截止(会话['signal'],自身._尝试超时,'account-attempt')
         信号=句柄.信号
         def 中止码():
-            """过期则拒绝换码。"""
+            '过期则拒绝换码'
             码任务.拒绝(平台认证错误('expired'))
         def 看中止():
-            """上游中止时拒绝。"""
+            '上游中止时拒绝'
             while not 已中止(信号):
                 time.sleep(0.05)
             中止码()
         threading.Thread(target=看中止,daemon=True).start()
         try:
             def 处理(请求,响应):
-                """OAuth 回调。"""
+                'OAuth 回调'
                 原始=请求.url if hasattr(请求,'url') else (请求.get('url') if isinstance(请求,dict) else '/')
                 try:
                     解析=urlparse(原始 if '://' in str(原始) else 'http://127.0.0.1'+str(原始))
@@ -451,7 +451,7 @@ class 平台账号(deepseek账号):
                 尝试['callback']=响应
                 码任务.兑现(收到码)
             def 登记效果():
-                """挂精确回调路由。"""
+                '挂精确回调路由'
                 return 网页服务.register({'kind':'exact','path':'/oauth/callback','handler':处理})
             尝试['disposeCallback']=自身.所属上下文.副作用(登记效果,'account: browser callback')
             若已中止则抛出(信号)
@@ -483,7 +483,7 @@ class 平台账号(deepseek账号):
             若已中止则抛出(信号)
             自身._更新(尝试,{'phase':'exchanging'})
             def 设备变更(当前):
-                """没有设备记录则新建。"""
+                '没有设备记录则新建'
                 if 当前 is None:
                     return {'kind':'grant','payload':{'id':str(uuid.uuid4())}}
                 return None
@@ -528,7 +528,7 @@ class 平台账号(deepseek账号):
             自身._更新(尝试,{'phase':'committing'})
             try:
                 def 写入授予(当前):
-                    """提交授予记录。"""
+                    '提交授予记录'
                     return {'kind':'grant','payload':{'version':1,'token':换得['token'],'issuer':自身._来源}}
                 自身.ctx.credentials.修改记录(授予键,写入授予)
             except Exception:
@@ -543,18 +543,18 @@ class 平台账号(deepseek账号):
             句柄.释放()
 
     def _拒绝载荷(自身,阶段):
-        """载荷校验失败。"""
+        '载荷校验失败'
         print('[deepseek-account] 载荷已拒绝',{'stage':阶段})
         raise 平台认证错误('protocol')
 
     def _取消请求(自身,授权标识,校验器):
-        """后台取消远端授权。"""
+        '后台取消远端授权'
         if 自身._已关闭:
             return
         完成=threading.Event()
         自身._吊销表.add(完成)
         def 跑():
-            """失败不回滚本地取消。"""
+            '失败不回滚本地取消'
             try:
                 自身._请求('auth_cancel',{'authorize_id':授权标识,'code_verifier':校验器},自身._登出寿命.信号)
             except 平台认证错误:
@@ -565,7 +565,7 @@ class 平台账号(deepseek账号):
         threading.Thread(target=跑,daemon=True).start()
 
     def _请求(自身,方法,体,信号):
-        """带超时的平台请求。"""
+        '带超时的平台请求'
         句柄=截止(信号,自身._请求超时,'account-request')
         try:
             return 请求平台(自身._来源,方法,体,句柄.信号,{**自身._请求头,**自身._客户端头})
@@ -573,7 +573,7 @@ class 平台账号(deepseek账号):
             句柄.释放()
 
     def _失败回调(自身,尝试):
-        """失败页或 204。"""
+        '失败页或 204'
         回调=尝试.get('callback')
         if 回调 is None:
             return

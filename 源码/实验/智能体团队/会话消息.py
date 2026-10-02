@@ -1,7 +1,7 @@
 __all__=['消息已接受']#仅中文公开名
 
 def 待认领收件箱消息(事件列表):#待认领 inbox
-    """把持久 inbox 后缀折叠成仍等待 claim 的消息。"""
+    '把持久 inbox 后缀折叠成仍等待 claim 的消息'
     收件箱={'next-turn':[],'next-step':[]}#两目标
     for 事件 in 事件列表:#遍历事件
         if 'type' not in 事件 or 事件['type']!='agent/inbox/spliced':#非 inbox 事件
@@ -15,7 +15,7 @@ def 待认领收件箱消息(事件列表):#待认领 inbox
     return list(收件箱['next-turn'])+list(收件箱['next-step'])#合并
 
 def 消息已接受(事件列表,谓词):#消息是否已接受
-    """测试一条消息是否已对模型可见或仍持久待认领。"""
+    '测试一条消息是否已对模型可见或仍持久待认领'
     for 事件 in 事件列表:#历史命中
         if 'type' in 事件 and 事件['type']=='user/message' and 谓词(事件['data']):#历史
             return True#命中

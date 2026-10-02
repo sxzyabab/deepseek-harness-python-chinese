@@ -3,7 +3,7 @@ import json#解析参数
 __all__=['呈现行','文件名摘要']#仅中文公开名
 
 def 文件名摘要(原文):#从参数 JSON 抽路径摘要
-    """对齐 fileNames：解析失败则原样返回。"""
+    '对齐 fileNames：解析失败则原样返回'
     try:#尝试解析
         参数=json.loads(原文)#解析
     except (json.JSONDecodeError,TypeError):
@@ -17,31 +17,31 @@ def 文件名摘要(原文):#从参数 JSON 抽路径摘要
     return ', '.join(路径)#逗号连接
 
 def 恒等翻译(键,参数=None):#无文案表
-    """返回键本身。"""
+    '返回键本身'
     return 键#键即文案
 
 class 呈现行:#present 工具视图行
-    """状态点 + 披露行；展开体为定稿输出。"""
+    '状态点 + 披露行；展开体为定稿输出'
     def __init__(自身,属性=None):#构造
-        """记下 props 与展开。"""
+        '记下 props 与展开'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.展开=False#展开
         自身.存活=True#存活
 
     def 更新(自身,属性):#刷新
-        """记下最新 props。"""
+        '记下最新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 卸载(自身):#卸载
-        """标死。"""
+        '标死'
         自身.存活=False#死
 
     def 切换(自身):#翻转展开
-        """切换。"""
+        '切换'
         自身.展开=not 自身.展开#翻
 
     def 视图(自身):#读视图模型
-        """投影披露行。"""
+        '投影披露行'
         属性=自身.属性#props
         块=属性['block'] if 'block' in 属性 else {}#工具块
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
@@ -94,7 +94,7 @@ class 呈现行:#present 工具视图行
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.视图()#渲

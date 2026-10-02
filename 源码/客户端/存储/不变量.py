@@ -1,4 +1,4 @@
-"""向 invariants 登记存储包检查（实例归属由测试覆盖）。"""
+'向 invariants 登记存储包检查（实例归属由测试覆盖）'
 包名='@deepseek-ai/dsh-client-store'
 名称='client-store-invariant'
 依赖=['invariants']
@@ -6,11 +6,11 @@
 __all__=['包名','名称','依赖','安装','应用']
 
 def 安装(上下文,失败):
-    """无运行时检查：存储实例由归属测试覆盖。"""
+    '无运行时检查：存储实例由归属测试覆盖'
     return
 
 def 应用(上下文):
-    """向 invariants 登记本包检查，返回拆除器。"""
+    '向 invariants 登记本包检查，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 name=名称

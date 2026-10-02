@@ -8,15 +8,15 @@ __all__=['预设芯片','介绍文字延迟毫秒','介绍字符错开毫秒','�
 介绍字符淡入毫秒=400#单字淡入时长
 
 def 介绍错开毫秒(字数):
-    """短名按上限；长名压进同一揭开窗。"""
+    '短名按上限；长名压进同一揭开窗'
     if 字数<=1:#单字
         return 0#无错开
     return min(介绍字符错开毫秒,介绍文字揭开毫秒/(字数-1))#夹取
 
 class 预设芯片:
-    """部署无名册时返回 None。属性与快照都是 dict。"""
+    '部署无名册时返回 None。属性与快照都是 dict'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props 并拉名册。"""
+        '合并 props 并拉名册'
         自身.属性=dict(属性) if 属性 is not None else {}#基础
         自身.属性.update(关键字参数)#覆盖
         自身.打开=False#菜单
@@ -24,31 +24,31 @@ class 预设芯片:
         自身.属性['load']()#拉
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=dict(属性)#最新
 
     def 状态(自身):
-        """经 useAgentPresetSeat。"""
+        '经 useAgentPresetSeat'
         def 恒等(快照):
-            """整表。"""
+            '整表'
             return 快照#快照
         return 自身.属性['useAgentPresetSeat'](恒等)#快照
 
     def 选定(自身,标识):
-        """关菜单并 select。"""
+        '关菜单并 select'
         自身.打开=False#关
         自身.属性['select'](标识)#提交
 
     def 切换菜单(自身):
-        """翻转菜单开闭。"""
+        '翻转菜单开闭'
         自身.打开=not 自身.打开#翻转
 
     def 关闭菜单(自身):
-        """关菜单。"""
+        '关菜单'
         自身.打开=False#关
 
     def 开始介绍(自身,标签):
-        """减动效则立刻 acknowledge。"""
+        '减动效则立刻 acknowledge'
         态=自身.状态()#态
         if not 态['introduce']:#无提示
             return#跳过
@@ -66,7 +66,7 @@ class 预设芯片:
         自身.介绍完结=介绍完#回调
 
     def 渲染(自身):
-        """产出芯片+菜单；无名册则 None。"""
+        '产出芯片+菜单；无名册则 None'
         属性=自身.属性#props
         态=自身.状态()#态
         翻译=属性['t']#翻译
@@ -119,7 +119,7 @@ class 预设芯片:
         }#视图结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有
             合并=dict(属性) if 属性 is not None else {}#基
             合并.update(关键字参数)#覆

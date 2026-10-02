@@ -1,6 +1,6 @@
 import json,re,traceback
 from ...依赖.schemastery import 自然数字段
-from ...typert.协议 import 远程服务,远程 as _远程
+from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...模型后端.llm import 创建用户消息
 from ...内核.作用域 import 操作任务
 from .门面规则 import 宿主运行器错误,是否插件,规范化处理函数
@@ -27,38 +27,38 @@ __all__=[
 
 #工具
 def 动态插件标识(标识):
-    """宿主铸造的插件身份。"""
+    '宿主铸造的插件身份'
     return 标识
 
 def 动态包标识(标识):
-    """宿主铸造的包身份。"""
+    '宿主铸造的包身份'
     return 标识
 
 def 动态运行标识(标识):
-    """宿主铸造的一次激活身份。"""
+    '宿主铸造的一次激活身份'
     return 标识
 
 def 审批请求标识(标识):
-    """宿主铸造的审批请求身份。"""
+    '宿主铸造的审批请求身份'
     return 标识
 
 def 应用动态组(上下文,配置值=None):
-    """cordis-dynamic 组的空入口。"""
+    'cordis-dynamic 组的空入口'
     return
 应用动态组.name='cordis-dynamic'
 
 def 缺席于(上下文,运行):
-    """已结算纤程仍缺席的服务名。"""
+    '已结算纤程仍缺席的服务名'
     if 'fiber' not in 运行:
         return []
     return 缺席服务列表(上下文,运行['fiber'])
 
 def 缺席插件消息(标识):
-    """进程内找不到该动态插件。"""
+    '进程内找不到该动态插件'
     return f'本进程没有动态插件 "{标识}" —— 可能已被移除，或随 DSH 重启丢失'
 
 def 错误详情(错误):
-    """抽出 message/stack 供转向与回执使用。"""
+    '抽出 message/stack 供转向与回执使用'
     if isinstance(错误,BaseException):
         消息=str(错误)
         if 消息=='':
@@ -77,14 +77,14 @@ def 错误详情(错误):
     return {'message':str(错误)}
 
 def 格式化错误详情(失败):
-    """给人看的失败文本。"""
+    '给人看的失败文本'
     文='消息: '+失败['message']
     if 'stack' in 失败:
         文+='\n栈:\n'+失败['stack']
     return 文
 
 def 克隆尝试(尝试):
-    """快照用的尝试副本。"""
+    '快照用的尝试副本'
     出=dict(尝试)
     出['host']={**尝试['host'],'waitingFor':list(尝试['host']['waitingFor'])}
     出['client']={**尝试['client'],'waitingFor':list(尝试['client']['waitingFor'])}
@@ -94,9 +94,9 @@ def 克隆尝试(尝试):
 
 #
 class 动态cordis运行器(远程服务):
-    """动态插件注册表与宿主半生命周期。"""
+    '动态插件注册表与宿主半生命周期'
     def __init__(自身,上下文,配置值=None):
-        """登记 dynamicCordisRunner。"""
+        '登记 dynamicCordisRunner'
         super().__init__(上下文,'dynamicCordisRunner')
         if 配置值 is None:
             配置值={}
@@ -108,7 +108,7 @@ class 动态cordis运行器(远程服务):
         自身._组=None
 
     def 定义(自身,请求):
-        """登记新插件的第一包，或给已有插件追加一包。"""
+        '登记新插件的第一包，或给已有插件追加一包'
         名称值=请求['name'].strip()
         用途=请求['purpose'].strip()
         if 名称值=='':
@@ -160,7 +160,7 @@ class 动态cordis运行器(远程服务):
         }
 
     def 取消定义(自身,智能体,插件标识):
-        """移除插件、其活动运行与全部不可变包。"""
+        '移除插件、其活动运行与全部不可变包'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             return {'ok':False,'reason':'plugin-missing','message':缺席插件消息(插件标识)}
@@ -173,7 +173,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('undefineFromPanel')
     def 从面板取消定义(自身,智能体,插件标识):
-        """面板移除插件，并把状态变化注入模型下一步。"""
+        '面板移除插件，并把状态变化注入模型下一步'
         结果=自身.取消定义(智能体,插件标识)
         if 结果['ok']:
             自身._注入用户上下文(
@@ -183,7 +183,7 @@ class 动态cordis运行器(远程服务):
         return 结果
 
     def 运行(自身,智能体,插件标识,包标识,模式,信号=None):
-        """模型工具调用的启动或更新；未授权的客户端包等待审批。"""
+        '模型工具调用的启动或更新；未授权的客户端包等待审批'
         计划=自身._解析计划(智能体,插件标识,包标识,模式)
         if not 计划['ok']:
             return 计划['response']
@@ -250,7 +250,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('runHostHalf')
     def 执行宿主半(自身,智能体,插件标识,包标识,模式,请求标识,批准后续版本):
-        """为已批准请求或面板手势启动宿主代码。"""
+        '为已批准请求或面板手势启动宿主代码'
         计划=自身._解析计划(智能体,插件标识,包标识,模式,请求标识 is None)
         if not 计划['ok']:
             return {'ok':False,'message':计划['response']['message']}
@@ -305,7 +305,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('getClientCode')
     def 获取客户端代码(自身,智能体,插件标识,运行标识):
-        """读取精确活动运行的客户端源码。"""
+        '读取精确活动运行的客户端源码'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             raise 宿主运行器错误(缺席插件消息(插件标识))
@@ -325,7 +325,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('resolveRequestRun')
     def 结算请求运行(自身,请求标识,决议):
-        """结算一次模型驱动的客户端激活请求。"""
+        '结算一次模型驱动的客户端激活请求'
         待决=自身._注册表.窥视请求(请求标识)
         if 待决 is None:
             return {'accepted':False}
@@ -347,7 +347,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('settleUserRun')
     def 落定用户运行(自身,智能体,插件标识,决议):
-        """面板运行在本页加载或失败客户端半之后落定。"""
+        '面板运行在本页加载或失败客户端半之后落定'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             return {'ok':False,'reason':'plugin-missing','message':缺席插件消息(插件标识)}
@@ -356,7 +356,7 @@ class 动态cordis运行器(远程服务):
         return 已结算
 
     def 停止(自身,智能体,插件标识):
-        """停止活动运行，保留全部包版本。"""
+        '停止活动运行，保留全部包版本'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             return {'ok':False,'reason':'plugin-missing','message':缺席插件消息(插件标识)}
@@ -377,7 +377,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('stopFromPanel')
     def 从面板停止(自身,智能体,插件标识):
-        """面板停止插件，并把状态变化注入模型下一步。"""
+        '面板停止插件，并把状态变化注入模型下一步'
         结果=自身.停止(智能体,插件标识)
         if not 结果['ok']:
             return 结果
@@ -391,18 +391,18 @@ class 动态cordis运行器(远程服务):
 
     @_远程('syncInspectManifest')
     def 同步巡检清单(自身,提供方列表):
-        """替换客户端巡检提供方目录的宿主镜像。"""
+        '替换客户端巡检提供方目录的宿主镜像'
         自身._巡检.同步客户端清单(提供方列表)
         return None
 
     @_远程('resolveInspectQuery')
     def 结算巡检查询(自身,智能体,请求标识,决议):
-        """用现场结果认领一次待决客户端巡检查询。"""
+        '用现场结果认领一次待决客户端巡检查询'
         return 自身._巡检.结算客户端查询(智能体,请求标识,决议)
 
     @_远程('inventory')
     def 盘点(自身):
-        """全进程存货，一行一个稳定插件。"""
+        '全进程存货，一行一个稳定插件'
         行列表=[]
         for 插件 in 自身._注册表.全部():
             行={
@@ -431,7 +431,7 @@ class 动态cordis运行器(远程服务):
         return 行列表
 
     def 快照(自身,智能体):
-        """读一个会话的宿主侧状态，供巡检与结果渲染。"""
+        '读一个会话的宿主侧状态，供巡检与结果渲染'
         行列表=[]
         for 插件 in 自身._注册表.会话下(智能体.id):
             行={
@@ -465,7 +465,7 @@ class 动态cordis运行器(远程服务):
         return 行列表
 
     def 引用(自身,智能体,插件标识):
-        """显式 `@pluginId` 手势的无源码上下文。"""
+        '显式 `@pluginId` 手势的无源码上下文'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             return None
@@ -501,11 +501,11 @@ class 动态cordis运行器(远程服务):
         return 出
 
     def 列出插件(自身,智能体):
-        """一个会话拥有的无源码插件摘要，按创建顺序。"""
+        '一个会话拥有的无源码插件摘要，按创建顺序'
         return [自身.检视插件(智能体,插件['pluginId']) for 插件 in 自身._注册表.会话下(智能体.id)]
 
     def 检视插件(自身,智能体,插件标识):
-        """检视一个插件，不返回包源码。"""
+        '检视一个插件，不返回包源码'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             raise 宿主运行器错误(缺席插件消息(插件标识))
@@ -524,7 +524,7 @@ class 动态cordis运行器(远程服务):
         }
 
     def 检视包(自身,智能体,插件标识,包标识):
-        """读取一个不可变包及其宿主/客户端源码。"""
+        '读取一个不可变包及其宿主/客户端源码'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             raise 宿主运行器错误(缺席插件消息(插件标识))
@@ -558,7 +558,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('reportRenderFailure')
     def 报告渲染失败(自身,智能体,插件标识,运行标识,失败):
-        """记录精确活动运行的加载后渲染失败。"""
+        '记录精确活动运行的加载后渲染失败'
         插件=自身._属下(智能体,插件标识)
         if 插件 is not None and 'run' in 插件 and 插件['run']['pluginRunId']==运行标识:
             运行=插件['run']
@@ -580,7 +580,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('reportClientGuardFailure')
     def 报告客户端门面失败(自身,智能体,插件标识,运行标识,失败):
-        """报告包完成激活后的客户端门面拒绝。"""
+        '报告包完成激活后的客户端门面拒绝'
         插件=自身._属下(智能体,插件标识)
         if 插件 is not None and 'run' in 插件 and 插件['run']['pluginRunId']==运行标识:
             自身._转向门面失败(插件,插件['run'],'Client',失败)
@@ -588,7 +588,7 @@ class 动态cordis运行器(远程服务):
 
     @_远程('invoke')
     def 调用(自身,插件标识,运行标识,方法,参数):
-        """调用活动宿主方法，拒绝陈旧客户端运行。"""
+        '调用活动宿主方法，拒绝陈旧客户端运行'
         插件=自身._注册表.获取(插件标识)
         if 插件 is None or 'run' not in 插件:
             return {'ok':False,'code':'plugin-not-running','message':f'动态插件 "{插件标识}" 未在运行'}
@@ -610,7 +610,7 @@ class 动态cordis运行器(远程服务):
             return {'ok':False,'code':'handler-error',**失败}
 
     def _解析计划(自身,智能体,插件标识,包标识,模式,允许附着=False):
-        """解析一次激活目标，或给出可操作拒绝。"""
+        '解析一次激活目标，或给出可操作拒绝'
         插件=自身._属下(智能体,插件标识)
         if 插件 is None:
             return {
@@ -655,7 +655,7 @@ class 动态cordis运行器(远程服务):
         return {'ok':True,'plugin':插件,'definition':定义,'mode':模式}
 
     def _激活(自身,计划,请求标识,允许附着,尝试):
-        """同一插件的在途启动共用一个操作任务。"""
+        '同一插件的在途启动共用一个操作任务'
         插件标识=计划['plugin']['pluginId']
         在途=自身._启动中.get(插件标识)
         if 在途 is not None:
@@ -673,7 +673,7 @@ class 动态cordis运行器(远程服务):
             自身._启动中.pop(插件标识,None)
 
     def _新启(自身,计划,请求标识,允许附着,尝试):
-        """撤回旧运行并启动新的宿主半。"""
+        '撤回旧运行并启动新的宿主半'
         插件=计划['plugin']
         定义=计划['definition']
         模式=计划['mode']
@@ -739,13 +739,13 @@ class 动态cordis运行器(远程服务):
         }
 
     def _启动宿主(自身,插件,宿主码,运行):
-        """求值宿主半并挂到动态组下。"""
+        '求值宿主半并挂到动态组下'
         def 处理(方法,函数):
-            """登记 harness.handle。"""
+            '登记 harness.handle'
             规范化=规范化处理函数(方法,函数)
             运行['handlers'][规范化['method']]=规范化['handler']
             def 拆除():
-                """只摘掉仍是本条的处理函数。"""
+                '只摘掉仍是本条的处理函数'
                 if 运行['handlers'].get(规范化['method']) is 规范化['handler']:
                     运行['handlers'].pop(规范化['method'],None)
             运行['handlerDisposers'].append(拆除)
@@ -758,7 +758,7 @@ class 动态cordis运行器(远程服务):
                     raise 宿主运行器错误('宿主半返回了 `undefined` —— 是不是忘了 `return`？')
                 raise 宿主运行器错误('宿主半必须返回插件函数，或带 apply(ctx) 的对象')
             def 报告门面失败(错误):
-                """激活后门面拒绝。"""
+                '激活后门面拒绝'
                 自身._转向门面失败(插件,运行,'Host',错误详情(错误))
             运行['fiber']=启动宿主半(自身._需要组(),求值,报告门面失败)
             return None
@@ -769,7 +769,7 @@ class 动态cordis运行器(远程服务):
             return 错误详情(错误)
 
     def _结算激活(自身,插件,决议,请求标识=None):
-        """按客户端决议提交或回退一次激活。"""
+        '按客户端决议提交或回退一次激活'
         if 插件 is None:
             return {'ok':False,'reason':'plugin-missing','message':'动态插件在激活期间被移除'}
         尝试=插件['latestRun'] if 'latestRun' in 插件 else None
@@ -827,7 +827,7 @@ class 动态cordis运行器(远程服务):
         return 出
 
     def _提交激活(自身,插件,运行):
-        """把成功激活写成当前包。"""
+        '把成功激活写成当前包'
         插件['currentPackageId']=运行['packageId']
         插件.pop('nextPackageId',None)
         运行.pop('startedForRequest',None)
@@ -842,7 +842,7 @@ class 动态cordis运行器(远程服务):
             尝试.pop('error',None)
 
     def _运行回执(自身,插件,已启动):
-        """成功激活的模型回执。"""
+        '成功激活的模型回执'
         模式='run'
         if 'latestRun' in 插件 and 插件['latestRun']['pluginRunId']==已启动['pluginRunId']:
             模式=插件['latestRun']['mode']
@@ -858,7 +858,7 @@ class 动态cordis运行器(远程服务):
         }
 
     def _宣布已结算(自身,请求标识,决议,覆盖=None):
-        """广播请求已离开可作答状态。"""
+        '广播请求已离开可作答状态'
         if 覆盖 is not None:
             结局=覆盖
         elif 决议['ok']:
@@ -870,7 +870,7 @@ class 动态cordis运行器(远程服务):
         自身.ctx.广播('cordis/request-run-resolved',{'requestId':请求标识,'outcome':结局})
 
     def _转向运行结局(自身,待决,已结算):
-        """把运行结局转向所属会话。"""
+        '把运行结局转向所属会话'
         智能体表=自身._根上下文.获取服务('agents',False)
         if 智能体表 is None:
             return
@@ -907,7 +907,7 @@ class 动态cordis运行器(远程服务):
         }))
 
     def _转向渲染失败(自身,智能体,插件,定义,运行标识,失败):
-        """把客户端渲染失败转向所属会话。"""
+        '把客户端渲染失败转向所属会话'
         智能体.转向(创建用户消息({
             'content':[{
                 'type':'text',
@@ -923,7 +923,7 @@ class 动态cordis运行器(远程服务):
         }))
 
     def _转向宿主处理失败(自身,插件,运行,方法,失败):
-        """把宿主 handler 失败转向所属会话。"""
+        '把宿主 handler 失败转向所属会话'
         键='Host\u0000handler\u0000'+方法+'\u0000'+失败['message']
         if not 自身._认领运行时失败(插件,运行,键):
             return
@@ -949,7 +949,7 @@ class 动态cordis运行器(远程服务):
         }))
 
     def _转向门面失败(自身,插件,运行,平面,失败):
-        """把激活后门面拒绝转向所属会话。"""
+        '把激活后门面拒绝转向所属会话'
         键=平面+'\u0000guard\u0000'+失败['message']
         if not 自身._认领运行时失败(插件,运行,键):
             return
@@ -972,7 +972,7 @@ class 动态cordis运行器(远程服务):
         }))
 
     def _认领运行时失败(自身,插件,运行,键):
-        """同一激活同一失败只转向一次。"""
+        '同一激活同一失败只转向一次'
         尝试=插件['latestRun'] if 'latestRun' in 插件 else None
         if (
             'run' not in 插件 or 插件['run'] is not 运行
@@ -987,7 +987,7 @@ class 动态cordis运行器(远程服务):
         return True
 
     def _注入用户运行结局(自身,智能体,插件标识,已结算):
-        """把面板运行结局注入下一步。"""
+        '把面板运行结局注入下一步'
         插件=自身._属下(智能体,插件标识)
         if 已结算['ok']:
             文本=(
@@ -1010,7 +1010,7 @@ class 动态cordis运行器(远程服务):
         自身._注入用户上下文(智能体,文本)
 
     def _注入用户上下文(自身,智能体,文本):
-        """确认智能体仍在注册表后注入用户消息。"""
+        '确认智能体仍在注册表后注入用户消息'
         智能体表=自身._根上下文.获取服务('agents',False)
         if 智能体表 is None:
             return
@@ -1022,7 +1022,7 @@ class 动态cordis运行器(远程服务):
         }))
 
     def _取消待决(自身,插件标识,消息):
-        """取消该插件上仍可作答的运行请求。"""
+        '取消该插件上仍可作答的运行请求'
         请求标识=自身._注册表.待决请求(插件标识)
         if 请求标识 is None:
             return
@@ -1042,7 +1042,7 @@ class 动态cordis运行器(远程服务):
         自身._宣布已结算(请求标识,{'ok':False,'reason':'rejected'},'cancelled')
 
     def _创建尝试(自身,计划):
-        """铸造一次激活尝试。"""
+        '铸造一次激活尝试'
         return {
             'pluginRunId':动态运行标识(自身._注册表.铸造运行标识()),
             'packageId':计划['definition']['packageId'],
@@ -1059,7 +1059,7 @@ class 动态cordis运行器(远程服务):
         }
 
     def _失败尝试(自身,插件,尝试,阶段,失败):
-        """把尝试标为失败并写下诊断。"""
+        '把尝试标为失败并写下诊断'
         尝试['status']='failed'
         尝试['error']=自身._诊断(插件,尝试,阶段,失败)
         if 阶段.startswith('host'):
@@ -1068,7 +1068,7 @@ class 动态cordis运行器(远程服务):
             尝试['client']={'status':'failed','waitingFor':[],'error':失败['message']}
 
     def _诊断(自身,插件,尝试,阶段,失败):
-        """结构化失败诊断。"""
+        '结构化失败诊断'
         详情={'message':失败} if isinstance(失败,str) else 失败
         return {
             'phase':阶段,
@@ -1079,7 +1079,7 @@ class 动态cordis运行器(远程服务):
         }
 
     def _撤回(自身,插件):
-        """拆除活动运行的处理函数与纤程。"""
+        '拆除活动运行的处理函数与纤程'
         if 'run' not in 插件:
             return
         运行=插件.pop('run')
@@ -1096,14 +1096,14 @@ class 动态cordis运行器(远程服务):
         })
 
     def _属下(自身,智能体,插件标识):
-        """仅当会话拥有该插件时返回记录。"""
+        '仅当会话拥有该插件时返回记录'
         插件=自身._注册表.获取(插件标识)
         if 插件 is None or 插件['sessionId']!=智能体.id:
             return None
         return 插件
 
     def _需要组(自身):
-        """懒创建 cordis-dynamic 组纤程。"""
+        '懒创建 cordis-dynamic 组纤程'
         if 自身._组 is None:
             自身._组=自身._根上下文.启动插件(应用动态组)
         return 自身._组

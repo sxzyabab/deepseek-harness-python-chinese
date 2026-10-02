@@ -1,4 +1,4 @@
-"""盖在会话检索服务能力上的工具操作编排。"""
+'盖在会话检索服务能力上的工具操作编排'
 from ...模型后端.llm import 装备错误#Harness错误
 from ..会话查询 import 会话查询错误#检索错误
 from ..会话查询.配置 import 若已中止则抛出#中止
@@ -8,7 +8,7 @@ from .服务边界 import 服务边界#服务边界
 from .工作区访问 import 工作区访问#工作区授权
 
 def 执行会话搜索(上下文,参数,执行上下文,最大结果数):
-    """执行跨会话检索。"""
+    '执行跨会话检索'
     调用方=工作区访问['callerOf'](执行上下文)#取调用方
     工作目录=调用方['header']['cwd'] if 'cwd' in 调用方['header'] else None#工作区目录
     if 工作目录 is None:#无工作区
@@ -36,16 +36,16 @@ def 执行会话搜索(上下文,参数,执行上下文,最大结果数):
     会话过滤器.append({'kind':'cwd','values':[工作目录]})#强制本工作区
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
     def 请求页(游标):
-        """取一页会话检索。"""
+        '取一页会话检索'
         请求={'query':查询,'sessionFilters':会话过滤器,'eventFilters':事件过滤器}#请求
         if 游标 is not None:#续页
             请求['cursor']=游标#游标
         def 执行搜索():
-            """调用检索引擎。"""
+            '调用检索引擎'
             return 上下文.sessionQuery.搜索会话(请求,{'signal':信号})#搜索
         return 服务边界['call'](上下文,信号,'session search',执行搜索)#边界
     def 接受命中(命中):
-        """排除调用方且工作区授权。"""
+        '排除调用方且工作区授权'
         return 命中['header']['id']!=调用方['id'] and 工作区访问['recordAuthorized'](命中,调用方)#过滤
     集合=收集页(最大结果数,信号,请求页,接受命中)#翻页收集
     父号列表=[命中['header']['parentSession'] for 命中 in 集合['items'] if 'parentSession' in 命中['header'] and 命中['header']['parentSession'] is not None]#父id
@@ -54,7 +54,7 @@ def 执行会话搜索(上下文,参数,执行上下文,最大结果数):
     return 呈现['formatSessionSearch'](集合,标题表,已授权父集合)#渲染
 
 def 执行事件搜索(上下文,参数,执行上下文,最大结果数):
-    """执行会话内事件检索。"""
+    '执行会话内事件检索'
     调用方=工作区访问['callerOf'](执行上下文)#取调用方
     会话号=工作区访问['targetId'](参数,调用方)#解析目标
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
@@ -83,30 +83,30 @@ def 执行事件搜索(上下文,参数,执行上下文,最大结果数):
         'surfaces':参数['surfaces'] if 'surfaces' in 参数 else None,
     })#事件过滤
     def 请求页(游标):
-        """取一页事件检索。"""
+        '取一页事件检索'
         请求={'sessionId':会话号,'query':查询,'filters':过滤器}#请求
         if 游标 is not None:#续页
             请求['cursor']=游标#游标
         def 执行搜索():
-            """调用检索引擎。"""
+            '调用检索引擎'
             return 上下文.sessionQuery.搜索事件(请求,{'signal':信号})#搜索
         页=服务边界['call'](上下文,信号,'event search',执行搜索)#边界
         工作区访问['assertObservedTargetAuthorized'](调用方,会话号,页['session'])#再验头
         return 页#页
     def 全收(项):
-        """事件页不过滤条目。"""
+        '事件页不过滤条目'
         return True#全收
     集合=收集页(最大结果数,信号,请求页,全收)#事件页
     return 呈现['formatEventSearch'](会话号,标题,集合)#渲染
 
 def 执行会话谱系(上下文,参数,执行上下文):
-    """执行会话谱系追踪。"""
+    '执行会话谱系追踪'
     调用方=工作区访问['callerOf'](执行上下文)#取调用方
     会话号=工作区访问['targetId'](参数,调用方)#解析目标
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
     工作区访问['authorizeTarget'](上下文,调用方,会话号,信号)#授权
     def 执行追踪():
-        """追踪谱系。"""
+        '追踪谱系'
         return 上下文.sessionQuery.追踪会话谱系(会话号,信号)#追踪
     谱系=服务边界['call'](上下文,信号,'session lineage trace',执行追踪)#追踪
     工作区访问['assertObservedTargetAuthorized'](调用方,会话号,谱系['target']['header'])#再验头
@@ -125,14 +125,14 @@ def 执行会话谱系(上下文,参数,执行上下文):
     return 呈现['formatSessionTrace'](谱系,祖先列表,祖先边界,后代列表,标题表)#渲染
 
 def 执行事件追踪(上下文,参数,执行上下文):
-    """执行事件关系追踪。"""
+    '执行事件关系追踪'
     工具入参['assertNonNegativeSafeInteger']('seq',参数['seq'])#校验序号
     调用方=工作区访问['callerOf'](执行上下文)#取调用方
     会话号=工作区访问['targetId'](参数,调用方)#解析目标
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
     工作区访问['authorizeTarget'](上下文,调用方,会话号,信号)#授权
     def 执行追踪():
-        """追踪事件。"""
+        '追踪事件'
         return 上下文.sessionQuery.追踪事件关系({'sessionId':会话号,'seq':参数['seq']},信号)#追踪
     追踪=服务边界['call'](上下文,信号,'event trace',执行追踪)#追踪
     工作区访问['assertObservedTargetAuthorized'](调用方,会话号,追踪['session'])#再验头
@@ -140,7 +140,7 @@ def 执行事件追踪(上下文,参数,执行上下文):
     return 呈现['formatEventTrace'](会话号,标题,追踪)#渲染
 
 def 执行事件读取(上下文,参数,执行上下文):
-    """执行带邻域的事件读取。"""
+    '执行带邻域的事件读取'
     工具入参['assertNonNegativeSafeInteger']('seq',参数['seq'])#校验序号
     if 'before' in 参数 and 参数['before'] is not None:#前窗口
         工具入参['assertNonNegativeSafeInteger']('before',参数['before'])#校验
@@ -156,7 +156,7 @@ def 执行事件读取(上下文,参数,执行上下文):
     if 'after' in 参数 and 参数['after'] is not None:#后窗口
         请求['after']=参数['after']#后
     def 执行读取():
-        """读取事件窗口。"""
+        '读取事件窗口'
         return 上下文.sessionQuery.读取事件(请求,信号)#读取
     窗口=服务边界['call'](上下文,信号,'event read',执行读取)#读取
     工作区访问['assertObservedTargetAuthorized'](调用方,会话号,窗口['session'])#再验头
@@ -164,7 +164,7 @@ def 执行事件读取(上下文,参数,执行上下文):
     return 呈现['formatEventRead'](会话号,标题,窗口)#渲染
 
 def 收集页(最大结果数,信号,请求,接受):
-    """翻页收集直到上限或末页。"""
+    '翻页收集直到上限或末页'
     条目列表=[]#已收条目
     已见=set()#已见游标
     游标=None#当前续页

@@ -1,4 +1,5 @@
 import json,time#行载荷编解码与相对时间基准
+from ....基础设施.通用工具 import 获取内部数据
 from urllib.parse import quote as 百分编码#URI 段编码
 from ....上下文.文件引用.词法 import 格式化文件提及#文件 mention 格式化
 from .文案 import 命名空间,中文,英文#词典与键
@@ -14,22 +15,22 @@ __all__=[#仅中文公开名
 ]#inject 结束
 
 class 引用错误(Exception):
-    """本包引用源失败。"""
+    '本包引用源失败'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 def 已中止(信号):
-    """threading.Event 是否已置位。"""
+    'threading.Event 是否已置位'
     return 信号.is_set()#已置位
 
 def 若已中止则抛出(信号):
-    """已置位则抛引用中止。"""
+    '已置位则抛引用中止'
     if 已中止(信号):
         raise 引用错误('The operation was aborted.')#中止
 
 def 相对时间(更新于,现在):
-    """会话行的紧凑相对时间结构化桶。"""
+    '会话行的紧凑相对时间结构化桶'
     分=60_000#一分钟毫秒
     时=3_600_000#一小时
     日=86_400_000#一天
@@ -47,7 +48,7 @@ def 相对时间(更新于,现在):
     return {'unit':'years','n':差//(365*日)}#年
 
 def 缩写家目录路径(路径,家目录):
-    """家目录前缀换成 ~。"""
+    '家目录前缀换成 ~'
     if 路径 is None or 路径=='' or 家目录 is None or 家目录=='':
         return 路径#原样
     if 路径==家目录 or 路径.startswith(家目录.rstrip('/')+'/'):
@@ -55,15 +56,15 @@ def 缩写家目录路径(路径,家目录):
     return 路径#原样
 
 def 编码段(段):
-    """百分编码一段，冒号保持字面量。"""
+    '百分编码一段，冒号保持字面量'
     return 百分编码(段,safe='').replace('%3A',':').replace('%3a',':')#冒号原样
 
 def 编码路径(路径):
-    """按斜杠分段编码。"""
+    '按斜杠分段编码'
     return '/'.join(编码段(段) for 段 in 路径.split('/'))#分段
 
 def 是否绝对工作区路径(路径):
-    """POSIX 根、Windows 盘符或 UNC。"""
+    'POSIX 根、Windows 盘符或 UNC'
     if 路径.startswith('/'):
         return True#POSIX 绝对
     if 路径.startswith('\\\\'):
@@ -73,14 +74,14 @@ def 是否绝对工作区路径(路径):
     return False#相对
 
 def 会话文件地址(会话标识,路径):
-    """编成 dsh-resource://file/session/<id>/<path>。"""
+    '编成 dsh-resource://file/session/<id>/<path>'
     规范化=路径.replace('\\','/')#统一斜杠
     while 规范化.startswith('./'):
         规范化=规范化[2:]#剥前导 ./
     return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
 
 def 文件资源地址(会话标识,cwd,路径):
-    """相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址。"""
+    '相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址'
     规范化=路径.replace('\\','/')#统一斜杠
     if not 是否绝对工作区路径(规范化):
         return 会话文件地址(会话标识,规范化)#相对
@@ -92,12 +93,12 @@ def 文件资源地址(会话标识,cwd,路径):
     return 会话文件地址(会话标识,规范化)#工作区外仍会话作用域
 
 def 目录载荷(标签,提及):
-    """把一个目录目的地投影为 onPick 已理解的 drill 载荷。"""
+    '把一个目录目的地投影为 onPick 已理解的 drill 载荷'
     值={'kind':'file','fileKind':'directory','label':标签,'mention':提及}#目录载荷
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#行 value 序列化
 
 def 面包屑(查询,引号路径,已下钻,翻译):
-    """只有 drill 才产生；无法格式化则放弃页眉。"""
+    '只有 drill 才产生；无法格式化则放弃页眉'
     if 已下钻 is not True:
         return None#无页眉
     斜杠=查询.rfind('/')#末斜杠
@@ -120,7 +121,7 @@ def 面包屑(查询,引号路径,已下钻,翻译):
     return 屑#完整面包屑
 
 def 文件候选行(候选,保留引号,标位置,翻译):
-    """无法格式化则丢弃。候选为线协议 dict。"""
+    '无法格式化则丢弃。候选为线协议 dict'
     提及=格式化文件提及(候选,保留引号)#格式化 mention
     if 提及 is None:
         return []#丢弃
@@ -144,7 +145,7 @@ def 文件候选行(候选,保留引号,标位置,翻译):
     return [行]#行结束
 
 def 会话候选行(候选,标签,更新于,现在,家目录,分组,翻译):
-    """位置只在非当前工作区时才告知。候选为线协议 dict。"""
+    '位置只在非当前工作区时才告知。候选为线协议 dict'
     分档=相对时间(更新于,现在)#相对时间分档
     单位=分档['unit']#单位
     年龄=翻译('time.now') if 单位=='now' else 翻译(f'time.{单位}',{'n':分档['n']})#年龄文案
@@ -165,30 +166,30 @@ def 会话候选行(候选,标签,更新于,现在,家目录,分组,翻译):
     }#行结束
 
 def 解析候选(值):
-    """无值则 None。"""
+    '无值则 None'
     if 值 is None:
         return None#无
     return json.loads(值)#解析 JSON
 
 def 剪贴板文本(引用):
-    """剪贴板即 mention。"""
+    '剪贴板即 mention'
     return 引用#原样
 
 def 序列化引用(引用):
-    """序列化不重建身份。"""
+    '序列化不重建身份'
     return 引用#原样
 
 def 应用(上下文):
-    """登记组合的 @file / @session 源。"""
+    '登记组合的 @file / @session 源'
     def 登记词典():
-        """登记引用词典。"""
+        '登记引用词典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记词典
     上下文.副作用(登记词典,'ui-reference: dictionaries')#登记词典
     翻译=上下文.locale.bind(命名空间)#绑定翻译
     会话面=上下文.获取服务('sessions')#会话列表面
 
     def 列出候选(会话,请求):
-        """持留会话至历史打开后再发现。请求为线协议 dict。"""
+        '持留会话至历史打开后再发现。请求为线协议 dict'
         查询=请求['query'] if 'query' in 请求 else ''#查询
         引号=请求['quoted'] is True if 'quoted' in 请求 else False#引号
         已下钻=请求['drilled'] if 'drilled' in 请求 else False#下钻
@@ -196,7 +197,7 @@ def 应用(上下文):
         if 会话面.binding(会话.sessionId) is None:
             raise 引用错误('reference candidates require a retained session "'+str(会话.sessionId)+'"')
         def 在持有内拉取(引用):
-            """等历史打开再并行发现。"""
+            '等历史打开再并行发现'
             if 信号 is not None:
                 若已中止则抛出(信号)
             状态=引用.binding.session.getSnapshot()
@@ -219,7 +220,7 @@ def 应用(上下文):
             return []#空
         标位置=面包屑(查询,引号,已下钻,翻译) is None#是否行上标位置
         现在=int(time.time()*1000)#相对时间基准
-        家=上下文.remote.$host.home#宿主 home
+        家=获取内部数据(上下文.remote,'host').home#宿主 home
         列表=会话面.list.getSnapshot().byId#会话列表
         行列表=[]#合并候选行
         for 候选 in 文件项:
@@ -256,14 +257,14 @@ def 应用(上下文):
         return 行列表#候选结束
 
     def 页眉(_会话,请求):
-        """下钻面包屑。"""
+        '下钻面包屑'
         查询=请求['query'] if 'query' in 请求 else ''#查询
         引号=请求['quoted'] is True if 'quoted' in 请求 else False#引号
         已下钻=请求['drilled'] if 'drilled' in 请求 else False#下钻
         return 面包屑(查询,引号,已下钻,翻译)#面包屑
 
     def 选中(事件):
-        """落定插入或目录下钻。事件为线协议 dict。"""
+        '落定插入或目录下钻。事件为线协议 dict'
         候选=事件['candidate'] if 'candidate' in 事件 else None#候选
         动作=事件['action'] if 'action' in 事件 else None#动作
         if 候选 is None:
@@ -298,7 +299,7 @@ def 应用(上下文):
         return None#无法识别
 
     def 打开引用(会话,引用):#打开文件引用预览
-        """仅文件外观；剥 mention 后按会话 cwd 编址打开。"""
+        '仅文件外观；剥 mention 后按会话 cwd 编址打开'
         if 引用.get('appearance')!='file':
             return False#仅文件外观
         原文=引用['ref'] if 'ref' in 引用 else ''#mention
@@ -328,7 +329,7 @@ def 应用(上下文):
     }#source 结束
     触发=上下文.获取服务('inputTriggers')#触发服务
     def 登记源():
-        """登记 @ 引用源。"""
+        '登记 @ 引用源'
         return 触发.registerSource(源)#登记源
     上下文.副作用(登记源,'ui-reference: @ source')#登记源
 

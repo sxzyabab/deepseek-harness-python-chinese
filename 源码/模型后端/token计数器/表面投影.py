@@ -1,4 +1,4 @@
-"""token-meter 投影单元共用的 O(1) 表面 token 折叠。公开面仅中文名。"""
+'token-meter 投影单元共用的 O(1) 表面 token 折叠'
 from ...内核.会话 import 事件派生消息,是否表面事件#消息导出与表面判定
 from .类型 import 计量错误#计量异常
 from .计价 import 计价消息#消息计价
@@ -6,7 +6,7 @@ from .计价 import 计价消息#消息计价
 __all__=['折叠表面投影']#仅中文公开名
 
 def 折叠表面投影(声明,事件):#把一条已提交事件折到运行中的表面合计上
-    """把一条已提交事件折到运行中的表面 token 合计上。事件与声明均为 dict。"""
+    '把一条已提交事件折到运行中的表面 token 合计上。事件与声明均为 dict'
     种类=事件['type']#事件类型
     if 种类=='compaction/summary' or 种类=='compaction/prune':#影子价格事件
         数据=事件['data']#载荷

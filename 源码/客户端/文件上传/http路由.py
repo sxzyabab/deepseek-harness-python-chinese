@@ -6,7 +6,7 @@ from .类型 import 取远程错误#Remote 错误提取
 __all__=['处理文件上传http','请求体分片']#仅中文公开名
 
 def 取头(请求头表,名):#大小写不敏感取头
-    """读字符串头。请求头冻结为 dict。"""
+    '读字符串头。请求头冻结为 dict'
     if 请求头表 is None:#无头
         return None#无
     if 名 in 请求头表:#原样
@@ -18,7 +18,7 @@ def 取头(请求头表,名):#大小写不敏感取头
     return None#无
 
 def 请求体分片(正文):#请求体分片迭代
-    """把连接桥交付的正文变成有序字节块。"""
+    '把连接桥交付的正文变成有序字节块'
     if 正文 is None:#无体
         return#空生成器
     if isinstance(正文,(bytes,bytearray,memoryview)):#整段字节
@@ -33,7 +33,7 @@ def 请求体分片(正文):#请求体分片迭代
         yield bytes(块)#产出
 
 def 处理文件上传http(服务,请求):#处理上传 HTTP
-    """处理一次已认证原始字节上传；校验后恒返回 200 JSON 结果。"""
+    '处理一次已认证原始字节上传；校验后恒返回 200 JSON 结果'
     方法=请求['method'] if 'method' in 请求 else 'GET'#方法
     if 方法!='POST':#方法不对
         return {'status':405,'headers':{'allow':'POST'},'body':b''}#只允许 POST

@@ -1,4 +1,4 @@
-"""SQLite 存储后端的 schema 与打开时辅助。"""
+'SQLite 存储后端的 schema 与打开时辅助'
 import os,sqlite3#路径与 sqlite3
 from ..存储.错误 import 存储错误#存储错误
 __all__=['存储_SQLITE_结构版本','日志模式','打开数据库','记录表名']#仅中文公开名
@@ -7,7 +7,7 @@ __all__=['存储_SQLITE_结构版本','日志模式','打开数据库','记录�
 日志模式=('wal','delete','truncate','persist')#允许的 journal 模式
 
 def 创建数据库文件(路径):
-    """独占创建库文件；已存在则保留原 mode。"""
+    '独占创建库文件；已存在则保留原 mode'
     try:#wx 创建
         描述符=os.open(路径,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)#独占
         os.close(描述符)#关掉
@@ -18,7 +18,7 @@ def 创建数据库文件(路径):
             raise 错误#原样抛
 
 def 配置数据库(连接,路径,日志模式值):
-    """pragma、版本戳与元数据表。"""
+    'pragma、版本戳与元数据表'
     连接.execute('PRAGMA foreign_keys = ON')#外键
     连接.execute('PRAGMA journal_mode = '+日志模式值.upper())#journal
     行=连接.execute('PRAGMA user_version').fetchone()#读版本
@@ -43,7 +43,7 @@ def 配置数据库(连接,路径,日志模式值):
     连接.commit()#提交
 
 def 打开数据库(路径,日志模式值='wal'):
-    """打开 SQLite 库；`:memory:` 跳过文件系统准备。"""
+    '打开 SQLite 库；`:memory:` 跳过文件系统准备'
     if 日志模式值 not in 日志模式:#非法 journal
         raise 存储错误('malformed-medium','storage-sqlite: invalid journalMode '+repr(日志模式值))#配置错误
     实际=路径 if 路径==':memory:' else os.path.abspath(路径)#规范路径
@@ -59,5 +59,5 @@ def 打开数据库(路径,日志模式值='wal'):
         raise 错误#再抛
 
 def 记录表名(单元,表):
-    """物理记录表名。"""
+    '物理记录表名'
     return 'u_'+单元+'_'+表#u_<unit>_<table>

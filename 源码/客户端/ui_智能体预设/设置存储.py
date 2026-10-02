@@ -3,19 +3,19 @@ __all__=['设置命名空间','错误文','写智能体预设设置','写默认�
 设置命名空间='agent-presets'#宿主设置 ns
 
 class 智能体预设错误(Exception):
-    """本包预设线失败。"""
+    '本包预设线失败'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 def 错误文(错误):#拒绝值收成文案
-    """Error 取 message，其余 String。"""
+    'Error 取 message，其余 String'
     if isinstance(错误,BaseException) and len(错误.args)>0:#异常
         return str(错误.args[0])#消息
     return str(错误)#其它
 
 def 写智能体预设设置(接口,补丁):#统一写入 default / modeSelectionEnabled
-    """失败返回文案；成功返回 None。settings.update 返回任务。"""
+    '失败返回文案；成功返回 None。settings.update 返回任务'
     try:#调用 settings.update
         应答=接口.settings.update({'ns':设置命名空间,'patch':补丁}).等待()#写入
     except Exception as 错误:#传输拒绝；RPC 异常契约未定
@@ -29,17 +29,17 @@ def 写智能体预设设置(接口,补丁):#统一写入 default / modeSelectio
     return 错误体['message'] if 'message' in 错误体 else str(错误体)#业务错误
 
 def 写默认预设(接口,标识):#把预设写成后续会话默认
-    """失败返回文案；成功返回 None。"""
+    '失败返回文案；成功返回 None'
     return 写智能体预设设置(接口,{'default':标识})#只写 default
 
 def 写模式选择启用(接口,启用):#写出选择器开关
-    """失败返回文案；成功返回 None。"""
+    '失败返回文案；成功返回 None'
     return 写智能体预设设置(接口,{'modeSelectionEnabled':启用})#只写 modeSelectionEnabled
 
 空名册={'presets':[],'authorable':False,'modeSelectionEnabled':False}#无服务时等同空名册
 
 def 读名册(接口):#读名册并折叠拒绝
-    """成功 {ok,value} 或失败 {ok:False,error}。list 返回任务。"""
+    '成功 {ok,value} 或失败 {ok:False,error}。list 返回任务'
     try:#列表 RPC
         应答=接口.agentPresets.list({}).等待()#列预设
         if 'result' not in 应答:#无
@@ -56,7 +56,7 @@ def 读名册(接口):#读名册并折叠拒绝
         return {'ok':False,'error':错误文(错误)}#文案
 
 def 预设选项(预设列表):#名册 → 挑选器选项
-    """仅健康预设。"""
+    '仅健康预设'
     出=[]#结果
     列表=预设列表 if 预设列表 is not None else []#名册
     for 项 in 列表:#逐项
@@ -71,48 +71,48 @@ def 预设选项(预设列表):#名册 → 挑选器选项
     return 出#选项
 
 class 简易快照存储:#快照存储
-    """订阅 + set。"""
+    '订阅 + set'
     def __init__(自身,初始):#初始
-        """记下状态。"""
+        '记下状态'
         自身.状态=dict(初始)#可变
         自身.订阅列表=[]#监听
 
     def getSnapshot(自身):#读
-        """浅拷贝。"""
+        '浅拷贝'
         return dict(自身.状态)#拷贝
 
     def subscribe(自身,监听):#订阅
-        """返回拆除器。"""
+        '返回拆除器'
         自身.订阅列表.append(监听)#登记
         def 拆除订阅():#拆除
-            """去掉。"""
+            '去掉'
             if 监听 in 自身.订阅列表:#仍在
                 自身.订阅列表.remove(监听)#删
         return 拆除订阅#拆除器
 
     def set(自身,下一):#整表替换
-        """写快照并广播。"""
+        '写快照并广播'
         自身.状态=dict(下一)#替换
         for 监听 in list(自身.订阅列表):#广播
             监听()#回调
 
 class 预设设置控制器:#设置行控制器
-    """读取名册并持久化所选默认。"""
+    '读取名册并持久化所选默认'
     def __init__(自身,接口):#注入 API
-        """记下接口与初始存储。"""
+        '记下接口与初始存储'
         自身.接口=接口#API
         自身.存储=简易快照存储({#初始
             'status':'idle','error':None,'writable':True,'currentValue':'','options':[],
         })#存储结束
 
     def _合并(自身,补丁):#合并补丁
-        """浅合并后写入。"""
+        '浅合并后写入'
         现=自身.存储.getSnapshot()#现
         现.update(补丁)#合并
         自身.存储.set(现)#写
 
     def load(自身):#拉名册并填设置行
-        """空名册 → unavailable。describe 返回任务。"""
+        '空名册 → unavailable。describe 返回任务'
         前=自身.存储.getSnapshot()#前
         if 前['status']=='loading':#并发
             return#让出
@@ -145,7 +145,7 @@ class 预设设置控制器:#设置行控制器
             自身._合并({'status':'error','error':错误文(错误)})#错误
 
     def select(自身,标识):#写成后续会话默认
-        """已在跑的会话保持创建时组合。"""
+        '已在跑的会话保持创建时组合'
         前=自身.存储.getSnapshot()#前
         if 前['status']=='saving' or 标识==前['currentValue']:#忽略
             return

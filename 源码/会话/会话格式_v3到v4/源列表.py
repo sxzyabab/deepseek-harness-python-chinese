@@ -1,8 +1,8 @@
-"""已发布 V3 插件来源转换与已声明消息遍历。"""
+'已发布 V3 插件来源转换与已声明消息遍历'
 from ..会话格式 import 会话格式错误,是否会话格式json对象#从会话格式导入
 
 def 映射事件消息(事件,变换):#映射事件消息
-    """只走访第一方事件载荷携带的消息。"""
+    '只走访第一方事件载荷携带的消息'
     数据=事件['data']#载荷
     if not 是否会话格式json对象(数据):#非对象
         return 事件#原样
@@ -50,7 +50,7 @@ def 映射事件消息(事件,变换):#映射事件消息
 ])#已发布同名生产者结束
 
 def 生产者种类(插件,角色):#解析生产者种类
-    """解析一个已发布 V3 插件串的当前生产者种类。"""
+    '解析一个已发布 V3 插件串的当前生产者种类'
     if 插件=='@deepseek-ai/dsh-system-prompt' and 角色=='system':#系统提示词
         return 'system-prompt'#系统提示词种类
     if 插件 in 已重命名生产者:#已重命名
@@ -60,7 +60,7 @@ def 生产者种类(插件,角色):#解析生产者种类
     return 'plugin:'+插件#扩展命名空间
 
 def 改写插件来源(来源,序号,角色):#改写插件来源
-    """把已发布 V3 插件来源提升为当前生产者自有形态。"""
+    '把已发布 V3 插件来源提升为当前生产者自有形态'
     插件=来源.get('plugin')#插件串
     if not isinstance(插件,str):#须串
         raise 会话格式错误('plugin source at seq '+str(序号)+' is not canonical: plugin requires a string')#错误
@@ -70,7 +70,7 @@ def 改写插件来源(来源,序号,角色):#改写插件来源
     return {键:(种类 if 键=='kind' else 项) for 键,项 in 来源.items() if 键!='plugin'}#丢掉plugin
 
 def 改写v3消息来源(来源,序号,角色):#改写v3消息来源
-    """转换已发布插件包装，保留每个直接来源种类及其元数据。"""
+    '转换已发布插件包装，保留每个直接来源种类及其元数据'
     种类=来源.get('kind')#种类
     if not isinstance(种类,str) or len(种类)==0:#须非空
         raise 会话格式错误('message source at seq '+str(序号)+' requires a nonempty kind')#错误

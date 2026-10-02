@@ -1,4 +1,4 @@
-"""DeepSeek 支持的 Anthropic Messages 请求协议子集。线路键保持英文。"""
+'DeepSeek 支持的 Anthropic Messages 请求协议子集'
 from typing import Literal,NotRequired,TypedDict
 
 __all__=['线路文本输入','线路内联图输入','线路文件图输入','线路思考块','线路工具使用块','线路工具结果块','线路消息','线路请求']

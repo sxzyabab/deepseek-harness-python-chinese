@@ -8,7 +8,7 @@ __all__=['pdf体','失败文案']#仅中文公开名
 
 
 def 失败文案(错误,翻译):
-    """把结构化失败翻成可见行。"""
+    '把结构化失败翻成可见行'
     if isinstance(错误,pdf工作线程失败):
         return 翻译('workerFailed')#工作线程
     if isinstance(错误,Exception) and getattr(错误,'name',None)=='PasswordException':
@@ -18,7 +18,7 @@ def 失败文案(错误,翻译):
 
 
 def pdf体(内容,取标签信息,取存储,动作,保留标签,翻译):
-    """产出 PDF 读取器结构；打开态用 loading 图标位，页含文本层挂钩。"""
+    '产出 PDF 读取器结构；打开态用 loading 图标位，页含文本层挂钩'
     标签=取标签信息()['tab']#标签
     视图=取存储(lambda 状态:状态['byTab'][标签['id']] if 标签['id'] in 状态['byTab'] else 默认pdf视图)#视图
     数据=内容['data'] if 内容.get('kind')=='bytes' else None#字节

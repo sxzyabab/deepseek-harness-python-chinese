@@ -4,7 +4,7 @@ from .服务器 import 启动检查器Worker#装配并启动
 __all__=['主入口']#仅中文公开名
 
 def 主入口(控制端口,启动数据):#主入口
-    """在子进程/线程中校验启动数据并装配 Worker。"""
+    '在子进程/线程中校验启动数据并装配 Worker'
     if 控制端口 is None:#主线程误载
         raise RuntimeError('实验性检查器：Worker 入口被加载到了主线程')#主线程误载则抛错
     if not isinstance(启动数据,dict) or 'hostSourcePort' not in 启动数据:#启动数据无效
@@ -17,11 +17,11 @@ def 主入口(控制端口,启动数据):#主入口
     停止中=[None]#停止中的任务盒
 
     def 停止():#停止Worker
-        """惰性单次停止。"""
+        '惰性单次停止'
         if 停止中[0] is not None:#已停
             return 停止中[0].等待()#复用
         def 体():#停止体
-            """关闭运行时并通知。"""
+            '关闭运行时并通知'
             if 运行时[0] is not None:#有运行时
                 运行时[0]['close']()#关闭运行时
             控制端口.postMessage({'type':'stopped'})#通知已停
@@ -30,7 +30,7 @@ def 主入口(控制端口,启动数据):#主入口
         return 停止中[0].等待()#返回
 
     def 收控制(消息):#收到Host控制消息
-        """解析并停止。"""
+        '解析并停止'
         try:#解析并停止
             if not isinstance(消息,dict) or 消息.get('type')!='stop':#非法控制
                 raise ValueError('宿主控制帧无效')#校验控制帧
@@ -40,7 +40,7 @@ def 主入口(控制端口,启动数据):#主入口
 
     控制端口.on('message',收控制)#消息监听
     def 启动():#启动运行时
-        """装配并回传就绪。"""
+        '装配并回传就绪'
         try:#启动
             运行时[0]=启动检查器Worker(启动包)#装配并启动
             控制端口.postMessage({'type':'ready',**运行时[0]['endpoint']})#就绪

@@ -21,25 +21,25 @@ __all__=[#仅中文公开名
 检查器源种类=('host','client')#源种类
 
 def 源标识(值):#校验源标识
-    """校验源标识。"""
+    '校验源标识'
     if not isinstance(值,str):#须字符串
         raise 检查器错误('inspector protocol: sourceId must be a string')#英文诊断
     return 检查器id(值,'sourceId')#品牌化
 
 def 世代(值):#校验世代
-    """校验世代。"""
+    '校验世代'
     if not isinstance(值,str):#须字符串
         raise 检查器错误('inspector protocol: generation must be a string')#英文诊断
     return 检查器id(值,'generation')#品牌化
 
 def 自然数(值,标签):#非负安全整数
-    """非负安全整数。"""
+    '非负安全整数'
     if not isinstance(值,int) or isinstance(值,bool) or 值<0:#越界
         raise 检查器错误(f'inspector protocol: {标签} must be a non-negative safe integer')#英文诊断
     return 值#自然数
 
 def 解析记录(值):#解析观测记录
-    """解析观测记录。"""
+    '解析观测记录'
     if (not 是否普通对象(值) or not isinstance(值.get('monotonicMs'),(int,float)) or isinstance(值.get('monotonicMs'),bool)
         or not (值['monotonicMs']==值['monotonicMs']) or not isinstance(值.get('topic'),str)
         or len(值['topic'])==0 or len(值['topic'])>128 or not 是否json值(值.get('payload'))):#非法
@@ -48,7 +48,7 @@ def 解析记录(值):#解析观测记录
     return {'monotonicMs':值['monotonicMs'],'topic':值['topic'],'payload':值['payload']}#记录
 
 def 解析源能力(值):#解析源能力
-    """解析源能力。"""
+    '解析源能力'
     if not 是否普通对象(值) or not isinstance(值.get('type'),str):#须有type
         raise 检查器错误('inspector protocol: source capability must have a type')#英文诊断
     if 值['type']=='client-runtime':#Runtime能力
@@ -60,7 +60,7 @@ def 解析源能力(值):#解析源能力
     raise 检查器错误(f'inspector protocol: unknown source capability {值["type"]!r}')#英文诊断
 
 def 解析打开(值):#解析打开帧
-    """解析打开帧。"""
+    '解析打开帧'
     精确键(值,['v','t','source','topics'],'source/open frame')#精确字段
     if not 是否普通对象(值.get('source')) or not isinstance(值.get('topics'),list):#形状非法
         raise 检查器错误('inspector protocol: source/open needs source and topics')#英文诊断
@@ -91,7 +91,7 @@ def 解析打开(值):#解析打开帧
     return {'v':检查器协议版本,'t':'source/open','source':{'sourceId':源标识(源['sourceId']),'generation':世代(源['generation']),'kind':种类,'label':源['label'],'timeOriginMs':源['timeOriginMs'],'capabilities':能力列表},'topics':主题列表}#打开帧
 
 def 解析记录帧(值,最大记录,替换):#解析记录帧
-    """解析记录帧。"""
+    '解析记录帧'
     白名单=['v','t','sourceId','generation','nextSequence','records'] if 替换 else ['v','t','sourceId','generation','firstSequence','droppedBefore','records']#白名单
     精确键(值,白名单,'source/replace frame' if 替换 else 'source/append frame')#精确字段
     if not isinstance(值.get('records'),list) or len(值['records'])>最大记录:#记录超限
@@ -103,7 +103,7 @@ def 解析记录帧(值,最大记录,替换):#解析记录帧
     return {**公共,'t':'source/append','firstSequence':自然数(值['firstSequence'],'firstSequence'),'droppedBefore':自然数(值['droppedBefore'],'droppedBefore')}#追加帧
 
 def 解析工作者源帧(值):#解析Worker到源帧
-    """解析并重建源收到的一帧 Worker 控制。"""
+    '解析并重建源收到的一帧 Worker 控制'
     if not 是否json值(值) or not 是否普通对象(值) or 值.get('v')!=检查器协议版本 or not isinstance(值.get('t'),str):#信封非法
         raise 检查器错误('inspector protocol: invalid Worker source frame')#英文诊断
     if 值['t']=='source/rejected':#拒绝帧
@@ -138,7 +138,7 @@ def 解析工作者源帧(值):#解析Worker到源帧
     raise 检查器错误(f'inspector protocol: unknown Worker source frame {值["t"]!r}')#英文诊断
 
 def 解析源帧(值,最大记录):#解析源到Worker帧
-    """解析并重建在进程或网络边界收到的一帧源帧。"""
+    '解析并重建在进程或网络边界收到的一帧源帧'
     if not 是否json值(值) or not 是否普通对象(值):#须JSON对象
         raise 检查器错误('inspector protocol: source frame must be a lossless JSON object')#英文诊断
     if 值.get('v')!=检查器协议版本:#版本不支持

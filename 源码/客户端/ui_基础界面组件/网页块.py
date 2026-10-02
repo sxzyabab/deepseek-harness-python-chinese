@@ -2,7 +2,7 @@
 __all__=['网页块','安全链接','链接标签']#仅中文公开名
 
 def 安全链接(网址):
-    """仅 http(s)；否则 None 走纯文本。"""
+    '仅 http(s)；否则 None 走纯文本'
     if isinstance(网址,str) is False or 网址=='':#空
         return None#无
     低=网址.lower()#小写
@@ -13,7 +13,7 @@ def 安全链接(网址):
     return None#非 http
 
 def 链接标签(网址,标题):
-    """有标题用标题；否则主机名；再否则原文。"""
+    '有标题用标题；否则主机名；再否则原文'
     if isinstance(标题,str) and 标题!='':#有标题
         return 标题#标题
     余=网址.split('://',1)[-1]#去协议
@@ -21,18 +21,18 @@ def 链接标签(网址,标题):
     return 主机 if 主机!='' else 网址#主机或原文
 
 class 网页块:#web 卡
-    """kind=search|fetch。"""
+    'kind=search|fetch'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        """按 kind 产出。"""
+        '按 kind 产出'
         属性=自身.属性#props
         种=属性['kind'] if 'kind' in 属性 else None#种
         截断=属性['truncated'] is True if 'truncated' in 属性 else False#截断
@@ -75,7 +75,7 @@ class 网页块:#web 卡
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

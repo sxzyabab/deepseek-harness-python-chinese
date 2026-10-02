@@ -4,21 +4,21 @@ from .审阅预览 import 是否审阅预览地址#临时审阅
 __all__=['计划预览','计划标题']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键。"""
+    '无文案表时返回键'
     return 键#键
 
 class 计划预览:
-    """已记录或临时审阅的只读 Markdown 查看器。"""
+    '已记录或临时审阅的只读 Markdown 查看器'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """计划文档或加载/失败态。"""
+        '计划文档或加载/失败态'
         属性=自身.属性#props
         用标签=属性['useTabInfo'] if 'useTabInfo' in 属性 else None#标签
         用资源=属性['useResource'] if 'useResource' in 属性 else None#资源
@@ -55,23 +55,23 @@ class 计划预览:
         }#视图
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 计划标题:
-    """侧栏标签标题：图标 + 恢复标题。"""
+    '侧栏标签标题：图标 + 恢复标题'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """标题文本。"""
+        '标题文本'
         属性=自身.属性#props
         用标签=属性['useTabInfo'] if 'useTabInfo' in 属性 else None#标签
         用资源=属性['useResource'] if 'useResource' in 属性 else None#资源
@@ -90,7 +90,7 @@ class 计划标题:
         return {'type':'plan-title','title':标题,'cssModule':'计划预览.module.css'}#视图
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

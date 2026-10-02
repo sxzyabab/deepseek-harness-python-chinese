@@ -1,4 +1,4 @@
-"""提供改动摘要与对比，并打开经会话文件系统校验的已声明或已改动工作区文件。"""
+'提供改动摘要与对比，并打开经会话文件系统校验的已声明或已改动工作区文件'
 import re#坐标数字
 import threading#寿命中止
 from concurrent.futures import Future as _原生Future,wait as _等待全部#在飞任务
@@ -12,22 +12,22 @@ __all__=['登记呈现打开','呈现打开错误']#仅中文公开名
 _序号形态=re.compile(r'^\d+\Z')#仅数字
 
 class 呈现打开错误(Exception):
-    """呈现打开失败。"""
+    '呈现打开失败'
     def __init__(自身,消息):
-        """记下消息。"""
+        '记下消息'
         super().__init__(消息)#英文
 
 def 登记呈现打开(上下文):#登记交付物路由
-    """桌面元数据、改动摘要与对比、已声明与已改文件打开。"""
+    '桌面元数据、改动摘要与对比、已声明与已改文件打开'
     def 宿主应答():#桌面元数据
-        """GET present.host。"""
+        'GET present.host'
         桌面=上下文.sessionController.workspaceDesktop()#桌面
         return {'status':200,'headers':{'cache-control':'no-store'},'json':桌面}#JSON 应答
     上下文.connection.fetch.register({#登记宿主 GET
         'path':呈现宿主路径,'methods':['GET'],'requestBody':'buffered','fetch':宿主应答,
     })#HOST 结束
     def 摘要应答(请求):#改动摘要
-        """GET changes.summary。"""
+        'GET changes.summary'
         return _处理改动摘要(上下文,请求)#处理
     上下文.connection.fetch.register({#登记摘要 GET
         'path':已改文件路径,'methods':['GET'],'requestBody':'buffered','fetch':摘要应答,
@@ -36,20 +36,20 @@ def 登记呈现打开(上下文):#登记交付物路由
     在飞=set()#在飞 Future
 
     def 拆除():#拆除路由
-        """取消未完并等结算。"""
+        '取消未完并等结算'
         寿命.set()#中止
         if len(在飞)>0:#有在飞
             _等待全部(list(在飞))#等全部
 
     def 拆除工厂():#副作用拆除器
-        """返回拆除。"""
+        '返回拆除'
         return 拆除#拆除
     上下文.副作用(拆除工厂,'ui-deliverables: present-open lifetime')#寿命副作用
 
     def 包一层(处理):#在飞包装
-        """记下 Future。"""
+        '记下 Future'
         def 应答(请求):#处理
-            """带寿命。"""
+            '带寿命'
             if 寿命.is_set():#已拆除
                 return {'status':499,'body':'呈现打开已拆除。'}#拆除
             未来=_原生Future()#拆除时等待
@@ -75,14 +75,14 @@ def 登记呈现打开(上下文):#登记交付物路由
     })#对比结束
 
 def _坐标数(值):#安全整数坐标
-    """非纯数字则 None。"""
+    '非纯数字则 None'
     if 值 is None or not _序号形态.match(str(值)):#形态
         return None#否
     数=int(值)#转
     return 数 if abs(数)<2**53 else None#安全
 
 def _失败状态(错误):#失败→状态码
-    """缺失类 404，其余 500。"""
+    '缺失类 404，其余 500'
     码=None#错误码
     if hasattr(错误,'code'):#带码
         码=错误.code#码
@@ -95,7 +95,7 @@ def _失败状态(错误):#失败→状态码
     return 404 if 缺失 else 500#映射
 
 def _打开已校验(上下文,路径,动作,寿命):#打开已校验路径
-    """文件经会话文件系统校验；目录仅映射。"""
+    '文件经会话文件系统校验；目录仅映射'
     if 寿命.is_set():#中止
         raise 呈现打开错误('已中止')#中止
     映射=上下文.fs.processPathFromHostPath(路径)#宿主→进程
@@ -108,7 +108,7 @@ def _打开已校验(上下文,路径,动作,寿命):#打开已校验路径
     return {'status':204,'headers':{'cache-control':'no-store'},'body':None}#成功
 
 def _处理呈现打开(上下文,请求,寿命):#处理呈现打开
-    """校验坐标、读事件、校验宿主路径并打开。请求为 dict。"""
+    '校验坐标、读事件、校验宿主路径并打开。请求为 dict'
     查询=请求['query'] if 'query' in 请求 else {}#查询
     动作=查询['action'] if 'action' in 查询 else 'open'#默认打开
     if 动作 not in ('open','reveal'):#非法动作
@@ -150,7 +150,7 @@ def _处理呈现打开(上下文,请求,寿命):#处理呈现打开
         return {'status':_失败状态(错误),'body':'已呈现文件不可用。'}#按类
 
 def _处理改动摘要(上下文,请求):#改动摘要
-    """不含宿主工作目录；不再服务时 404。"""
+    '不含宿主工作目录；不再服务时 404'
     查询=请求['query'] if 'query' in 请求 else {}#查询
     标识=查询['sessionId'] if 'sessionId' in 查询 else None#会话
     序号=_坐标数(查询['seq'] if 'seq' in 查询 else None)#序号
@@ -165,7 +165,7 @@ def _处理改动摘要(上下文,请求):#改动摘要
     }}#JSON
 
 def _改动坐标(请求):#改动文件坐标
-    """合法则 dict，否则 400 应答。"""
+    '合法则 dict，否则 400 应答'
     查询=请求['query'] if 'query' in 请求 else {}#查询
     标识=查询['sessionId'] if 'sessionId' in 查询 else None#会话
     序号=_坐标数(查询['seq'] if 'seq' in 查询 else None)#序号
@@ -175,7 +175,7 @@ def _改动坐标(请求):#改动文件坐标
     return {'id':标识,'seq':序号,'index':下标}#坐标
 
 def _处理改动对比(上下文,请求,寿命):#改动对比
-    """列表中某一文件的对比。"""
+    '列表中某一文件的对比'
     坐标=_改动坐标(请求)#坐标
     if 'status' in 坐标:#400
         return 坐标#应答
@@ -194,7 +194,7 @@ def _处理改动对比(上下文,请求,寿命):#改动对比
         return {'status':_失败状态(错误),'body':'改动对比不可用。'}#按类
 
 def _处理改动打开(上下文,请求,寿命):#打开改动
-    """按摘要下标打开已改文件。"""
+    '按摘要下标打开已改文件'
     坐标=_改动坐标(请求)#坐标
     if 'status' in 坐标:#400
         return 坐标#应答

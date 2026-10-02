@@ -7,7 +7,7 @@ __all__=[#公开面
 ]#结束
 
 def 相同导出(实际,期望):#比较 types/default 是否逐字相同
-    """非普通对象则不同；两项都相等才通过。"""
+    '非普通对象则不同；两项都相等才通过'
     if not isinstance(实际,dict) or isinstance(实际,list):#非普通对象
         return False#不同
     if 'types' not in 实际 or 'default' not in 实际:#缺键
@@ -15,7 +15,7 @@ def 相同导出(实际,期望):#比较 types/default 是否逐字相同
     return 实际['types']==期望['types'] and 实际['default']==期望['default']#两项相等
 
 def 校验制品导出(工作区根,制品):#核对该包 exports 与 files
-    """核对该包 exports 与 files。"""
+    '核对该包 exports 与 files'
     清单路径=os.path.join(工作区根,制品['packageRoot'],'package.json')#清单绝对路径
     with open(清单路径,'r',encoding='utf-8') as 文件:#读清单
         清单=json.load(文件)#解析
@@ -48,25 +48,31 @@ def 校验制品导出(工作区根,制品):#核对该包 exports 与 files
             raise Typert分析错误('typert(host): '+制品['package']+' package files must include '+文件)#错误
 
 class 工作区Typert生成器:#工作区级发现、分析与代码输出
-    """发现/分析依赖硬缺口 analyzer；已有模型可直接发射。"""
+    '发现/分析依赖硬缺口 analyzer；已有模型可直接发射'
     def __init__(自身,根):#绑定工作区根
-        """含各面聚合 tsconfig 的目录。"""
+        '含各面聚合 tsconfig 的目录'
         自身.根=根#工作区根
 
     def discover(自身,faces=None):#发现公开包面
-        """发现公开包面。依赖硬缺口 analyzer，不可落。"""
+        """发现公开包面。
+        依赖硬缺口 analyzer，不可落
+        """
         raise NotImplementedError(#禁止假实现
             '工作区Typert生成器.discover: 依赖硬缺口 analyzer（WorkspaceAnalyzer.discoverPackages），不可落'
         )#结束
 
     def generate(自身,packages=None,faces=None):#生成全部或指定包
-        """分析后发射。依赖硬缺口 analyzer；已有模型请用自模型生成。"""
+        """分析后发射。
+        依赖硬缺口 analyzer；已有模型请用自模型生成
+        """
         raise NotImplementedError(#禁止假实现
             '工作区Typert生成器.generate: 依赖硬缺口 analyzer（WorkspaceAnalyzer.analyze），不可落'
         )#结束
 
     def 自模型生成(自身,工作区模型,校验导出=True):#从已分析 WorkspaceModel 发射
-        """每个包面一件制品；可选核对 package.json。不触 analyzer。"""
+        """每个包面一件制品；可选核对 package.json。
+        不触 analyzer
+        """
         制品列表=[]#累积
         for 面 in (工作区模型['faces'] if 'faces' in 工作区模型 and 工作区模型['faces'] is not None else []):#每个程序面
             输出器=面模型代码输出器(面)#按该面模型
@@ -78,5 +84,5 @@ class 工作区Typert生成器:#工作区级发现、分析与代码输出
         return 制品列表#每包一面一件
 
     def 校验导出(自身,制品):#单件校验
-        """委托校验制品导出。"""
+        '委托校验制品导出'
         校验制品导出(自身.根,制品)#校验

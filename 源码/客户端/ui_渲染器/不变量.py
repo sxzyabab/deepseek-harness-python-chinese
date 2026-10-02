@@ -1,4 +1,4 @@
-"""向 invariants 登记渲染器槽位变更约束。"""
+'向 invariants 登记渲染器槽位变更约束'
 包名='@deepseek-ai/dsh-client-ui-renderer'
 名称='client-ui-renderer-invariant'
 依赖=['invariants']
@@ -6,9 +6,9 @@
 __all__=['包名','名称','依赖','安装','应用']
 
 def 安装(上下文,失败):
-    """拦截 slots/changed：键非法或版本未 bump 则 fail。"""
+    '拦截 slots/changed：键非法或版本未 bump 则 fail'
     def 派发时(_模式,事件名,参数):
-        """只审计槽位变更事件。"""
+        '只审计槽位变更事件'
         if 事件名!='slots/changed':
             return
         键=参数[0] if 参数 is not None and len(参数)>0 else None
@@ -21,7 +21,7 @@ def 安装(上下文,失败):
     上下文.监听('internal/dispatch',派发时,{'global':True})
 
 def 应用(上下文):
-    """向 invariants 登记本包检查，返回拆除器。"""
+    '向 invariants 登记本包检查，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 name=名称

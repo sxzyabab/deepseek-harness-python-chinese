@@ -18,28 +18,28 @@ from .分发器 import 分发桥帧#帧分发
 __all__=['打开客户端套接字','客户端检查器源']#仅中文公开名
 
 def 打开客户端套接字(端点,协议):#打开WebSocket
-    """打开 Client ingest 套接字；需运行时绑定。"""
+    '打开 Client ingest 套接字；需运行时绑定'
     raise 检查器错误('inspector: Client WebSocket requires a runtime binding')#需绑定
 
 def 渲染错误(错误):#渲染错误
-    """渲染错误消息。"""
+    '渲染错误消息'
     return 错误.args[0] if isinstance(错误,Exception) and 错误.args else str(错误)#消息
 
 class _中止控制器:#中止控制器
-    """近似 AbortController。"""
+    '近似 AbortController'
     def __init__(自身):#构造
-        """创建事件。"""
+        '创建事件'
         自身.事件=threading.Event()#中止事件
         自身.signal=自身.事件#信号别名
 
     def abort(自身):#中止
-        """置位中止。"""
+        '置位中止'
         自身.事件.set()#置位
 
 class 客户端检查器源(检查器源连接):#Client检查器源
-    """重连 Client 源：有界队列永不阻塞页面工作。"""
+    '重连 Client 源：有界队列永不阻塞页面工作'
     def __init__(自身,引导,标签='Client',源目录=None,领域源=None):#构造
-        """构造并首次连接。"""
+        '构造并首次连接'
         super().__init__()#基类
         自身.引导=引导#引导
         自身.领域源=领域源 or 客户端领域源(标签)#realm源
@@ -57,7 +57,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             引导['maxRecordsPerFrame'],引导['maxFrameBytes'],#帧
         ),引导['maxQueuedBytes'])#缓冲上限
         def 脚本键(网址):#脚本键查找
-            """脚本键查找。"""
+            '脚本键查找'
             return None if 自身.源目录 is None else 自身.源目录.按网址取脚本键(网址)#委托
         自身.运行时=客户端运行时执行器(客户端运行时上限(#Runtime
             引导['maxRuntimeObjectsPerSession'],#对象上限
@@ -69,15 +69,15 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.连接()#首次连接
 
     def _发布器(自身):#状态发布器
-        """状态发布器。"""
+        '状态发布器'
         return 自身.发布器实例#发布器
 
     def _查询器(自身):#查询请求器
-        """查询请求器。"""
+        '查询请求器'
         return 自身.查询实例#查询
 
     def _投递控制台(自身,会话标识,事件):#Console回调
-        """投递 Console 事件帧。"""
+        '投递 Console 事件帧'
         套接字=自身.套接字#套接字
         代数=自身.代数#代数
         if 自身.已关闭 or not 自身.已接受 or 套接字 is None or 代数 is None:#不可发
@@ -93,7 +93,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             pass#套接字关闭路径会重置
 
     def 关闭(自身):#永久关闭
-        """永久停止重连并关闭活动 source 代数。"""
+        '永久停止重连并关闭活动 source 代数'
         if 自身.已关闭:#幂等
             return#返回
         自身.已关闭=True#置位
@@ -117,7 +117,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             自身.领域源.关闭()#拆除realm
 
     def 连接(自身):#连接或重连
-        """打开下一传输代数。"""
+        '打开下一传输代数'
         if 自身.已关闭:#已永久关闭
             return#返回
         自身.控制台.重置()#重置Console
@@ -132,13 +132,13 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.已接受=False#未接受
         自身.发布器实例.连接(套接字,源)#接通发布器
         def 打开(_事件=None):#打开
-            """发送 source/open。"""
+            '发送 source/open'
             if 自身.套接字 is not 套接字 or 自身.已关闭:#过期
                 return#返回
             帧={'v':检查器协议版本,'t':'source/open','source':源,'topics':['*',*网络主题]}#打开帧
             套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
         def 消息(事件):#消息
-            """解析并分发入站帧。"""
+            '解析并分发入站帧'
             数据=事件.data#MessageEvent 对象文本
             if 自身.套接字 is not 套接字 or not isinstance(数据,str):#过期或非文本
                 return#返回
@@ -156,7 +156,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
                 print(f'[inspector] invalid Worker control frame: {错误}')#记录
                 套接字.close(1008,'invalid Worker control frame')#关闭
         def 关闭(_事件=None):#关闭
-            """调度重连。"""
+            '调度重连'
             if 自身.套接字 is not 套接字 or 自身.已关闭:#过期或永久关闭
                 return#返回
             自身.套接字=None#清空
@@ -168,7 +168,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             自身.查询实例.断开('Inspector Client source disconnected')#断开查询
             自身.生命周期.重连(自身.连接)#调度重连
         def 忽略错误(_事件=None):#错误
-            """close 拥有重连。"""
+            'close 拥有重连'
             return#空
         套接字.addEventListener('open',打开)#打开
         套接字.addEventListener('message',消息)#消息
@@ -176,62 +176,62 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         套接字.addEventListener('error',忽略错误)#错误由close处理
 
     def _分发(自身,套接字,源,代数,帧):#分发处理器表
-        """绑定帧族处理器。"""
+        '绑定帧族处理器'
         class _处理器:#帧处理器
             def 接纳(内,_帧):#接受
-                """接受。"""
+                '接受'
                 自身.已接受=True#置位
                 自身.生命周期.已连接()#已连接
                 自身.查询实例.接通套接字(源,套接字)#接通查询
                 自身.发布器实例.接受(套接字)#接受发布
             def 确认(内,_帧):#确认空操作
-                """确认空操作。"""
+                '确认空操作'
                 return#空
             def 重快照(内,_帧):#重快照
-                """重快照。"""
+                '重快照'
                 自身.发布器实例.替换(套接字)#替换
             def 拒绝(内,拒绝帧):#拒绝
-                """拒绝。"""
+                '拒绝'
                 print(f'[inspector] Client source rejected: {拒绝帧.get("message")}')#记录
                 套接字.close(1008,'source rejected')#关闭
             def 运行时(内,请求):#Runtime请求
-                """Runtime请求。"""
+                'Runtime请求'
                 try:#执行
                     自身.执行运行时(套接字,代数,请求)#执行
                 except Exception as 错误:#执行运行时可能抛检查器错误/传输错误，契约未定所以收不窄
                     print(f'[inspector] Client Runtime transport failed: {错误}')#记录
                     套接字.close(1011,'Client Runtime transport failed')#关闭
             def 运行时取消(内,取消):#取消
-                """取消。"""
+                '取消'
                 自身.取消运行时(取消['sessionId'],取消['requestId'])#取消
             def 运行时确认(内,确认):#确认
-                """确认。"""
+                '确认'
                 自身.确认运行时(确认['sessionId'],确认['requestId'])#确认
             def 运行时关闭(内,关闭帧):#会话关闭
-                """会话关闭。"""
+                '会话关闭'
                 自身.取消运行时会话(关闭帧['sessionId'])#取消会话请求
                 自身.控制台.禁用(关闭帧['sessionId'])#禁用Console
                 自身.运行时.关闭会话(关闭帧['sessionId'])#关闭Runtime会话
             def 控制台启用(内,启用):#启用Console
-                """启用。"""
+                '启用'
                 自身.控制台.启用(启用['sessionId'])#启用
             def 控制台禁用(内,禁用):#禁用Console
-                """禁用。"""
+                '禁用'
                 自身.控制台.禁用(禁用['sessionId'])#禁用
             def 源(内,请求):#Sources请求
-                """Sources。"""
+                'Sources'
                 try:#执行
                     自身.执行源请求(套接字,代数,请求)#执行
                 except Exception as 错误:#执行源请求可能抛检查器错误/传输错误，契约未定所以收不窄
                     print(f'[inspector] Client Sources transport failed: {错误}')#记录
                     套接字.close(1011,'Client Sources transport failed')#关闭
             def 源关闭(内,_帧):#Sources会话关闭空操作
-                """Sources会话关闭空操作。"""
+                'Sources会话关闭空操作'
                 return#空
         分发桥帧(帧,_处理器())#分发
 
     def 执行运行时(自身,套接字,代数,帧):#执行Runtime请求
-        """执行一次 Runtime 请求并回写响应。"""
+        '执行一次 Runtime 请求并回写响应'
         控制器=_中止控制器()#中止
         操作={'controller':控制器,'sessionId':帧['sessionId']}#操作记录
         自身.运行时请求[帧['requestId']]=操作#登记
@@ -244,7 +244,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         套接字.send(json.dumps(响应,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送响应
 
     def 确认运行时(自身,会话标识,请求标识):#确认Runtime
-        """确认 Runtime 响应。"""
+        '确认 Runtime 响应'
         操作=自身.运行时请求.get(请求标识)#查找
         if 操作 is None or 操作['sessionId']!=会话标识:#不匹配
             return#返回
@@ -252,7 +252,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.运行时.确认(会话标识,请求标识)#通知执行器
 
     def 取消运行时(自身,会话标识,请求标识):#取消Runtime
-        """取消 Runtime 请求。"""
+        '取消 Runtime 请求'
         操作=自身.运行时请求.get(请求标识)#查找
         if 操作 is None or 操作['sessionId']!=会话标识:#不匹配
             return#返回
@@ -261,7 +261,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         自身.运行时.取消(会话标识,请求标识)#通知执行器
 
     def 取消运行时会话(自身,会话标识):#取消会话全部请求
-        """取消某会话全部请求。"""
+        '取消某会话全部请求'
         for 请求标识,操作 in list(自身.运行时请求.items()):#遍历
             if 操作['sessionId']!=会话标识:#跳过
                 continue#继续
@@ -270,14 +270,14 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             del 自身.运行时请求[请求标识]#移除
 
     def 取消全部运行时请求(自身):#取消全部请求
-        """取消全部请求。"""
+        '取消全部请求'
         for 请求标识,操作 in list(自身.运行时请求.items()):#遍历
             操作['controller'].abort()#中止
             自身.运行时.取消(操作['sessionId'],请求标识)#通知
         自身.运行时请求.clear()#清空
 
     def 执行源请求(自身,套接字,代数,帧):#执行Sources请求
-        """执行 Sources 请求并回写响应。"""
+        '执行 Sources 请求并回写响应'
         try:#执行目录
             if 自身.源目录 is None:#无目录
                 raise 客户端源目录错误('invalid-request','Client source catalog is unavailable')#拒绝

@@ -11,7 +11,7 @@ __all__=['内建程序']#仅中文公开名
 信号退出码=130#信号结束命令时报告的状态
 
 def cd程序(argv,io,state,fs):#cd程序
-    """切换工作目录。"""
+    '切换工作目录'
     目标=argv[1] if len(argv)>1 else state['environment'].get('HOME','/')#目标路径词
     if 目标=='-':#回到OLDPWD
         路径=state['variables'].get('OLDPWD',state['cwd'])#旧目录
@@ -32,12 +32,12 @@ def cd程序(argv,io,state,fs):#cd程序
     return 0#成功
 
 def pwd程序(argv,io,state,fs=None):#pwd程序
-    """打印工作目录。"""
+    '打印工作目录'
     io['out'](f"{state['cwd']}\n")#打印
     return 0#成功
 
 def export程序(argv,io,state,fs=None):#export程序
-    """导出环境变量。"""
+    '导出环境变量'
     选项=解析选项(argv)#解析选项
     if len(选项['operands'])==0:#无操作数则列出
         for 名,值 in sorted(state['environment'].items()):#打印环境
@@ -53,23 +53,23 @@ def export程序(argv,io,state,fs=None):#export程序
     return 0#成功
 
 def unset程序(argv,io,state,fs=None):#unset程序
-    """取消变量。"""
+    '取消变量'
     待删=set(argv[1:])#待删名集合
     def 过滤(源):#过滤函数
-        """去掉已删名。"""
+        '去掉已删名'
         return {名:值 for 名,值 in 源.items() if 名 not in 待删}#过滤
     state['environment']=过滤(state['environment'])#过滤环境
     state['variables']=过滤(state['variables'])#过滤变量
     return 0#成功
 
 def env程序(argv,io,state,fs=None):#env程序
-    """打印环境。"""
+    '打印环境'
     for 名,值 in sorted(state['environment'].items()):#打印
         io['out'](f'{名}={值}\n')#行
     return 0#成功
 
 def exit程序(argv,io,state,fs=None):#exit程序
-    """请求退出。"""
+    '请求退出'
     if len(argv)<2:#无参用上一状态
         状态=state['lastStatus']#上一
     else:#解析
@@ -81,16 +81,16 @@ def exit程序(argv,io,state,fs=None):#exit程序
     return 状态#返回该状态
 
 def test程序(argv,io,state,fs):#test程序
-    """`test` / `[`：生成命令行使用的文件与字符串谓词。"""
+    '`test` / `[`：生成命令行使用的文件与字符串谓词'
     if argv[0]=='[':#方括号形式
         词列表=list(argv[1:-1] if len(argv)>1 and argv[-1]==']' else argv[1:])#剥]
     else:#test形式
         词列表=list(argv[1:])#谓词词
     def 状态码(值):#布尔转退出码
-        """真0假1。"""
+        '真0假1'
         return 0 if 值 else 1#转换
     def 路径统计(操作数):#路径stat
-        """相对cwd查询。"""
+        '相对cwd查询'
         return fs['stat'](在目录解析(state['cwd'],操作数))#stat
     if len(词列表)==1:#单操作数非空
         return 状态码(词列表[0]!='')#非空
@@ -142,7 +142,7 @@ def test程序(argv,io,state,fs):#test程序
     return 2#用法错
 
 def sleep程序(argv,io,state,fs=None):#sleep程序
-    """睡眠；可被信号取消。"""
+    '睡眠；可被信号取消'
     try:#解析秒数
         秒数=float(argv[1] if len(argv)>1 else '')#间隔秒数
     except ValueError:#非法
@@ -154,7 +154,7 @@ def sleep程序(argv,io,state,fs=None):#sleep程序
     完成=线程.Event()#等待事件
     被杀=[False]#是否被杀
     def 中止():#中止回调
-        """信号到达。"""
+        '信号到达'
         被杀[0]=True#标记
         完成.set()#唤醒
     信号=state.get('signal')#取消信号
@@ -171,12 +171,12 @@ def sleep程序(argv,io,state,fs=None):#sleep程序
     return 信号退出码 if 被杀[0] or 已中止(信号) else 0#信号码或成功
 
 def date程序(argv,io,state=None,fs=None):#date程序
-    """打印ISO时间。"""
+    '打印ISO时间'
     io['out'](f"{日期时间.now(ZoneInfo('UTC')).isoformat().replace('+00:00','Z')}\n")#ISO时间
     return 0#成功
 
 def seq程序(argv,io,state=None,fs=None):#seq程序
-    """打印数字序列。"""
+    '打印数字序列'
     数字列表=[]#解析缓冲
     for 值 in argv[1:]:#逐参
         try:#整数
@@ -204,7 +204,7 @@ def seq程序(argv,io,state=None,fs=None):#seq程序
     return 0#成功
 
 def printenv程序(argv,io,state,fs=None):#printenv程序
-    """`printenv NAME`，脚本在名称是计算得出时更偏好它而非 `echo $NAME`。"""
+    '`printenv NAME`，脚本在名称是计算得出时更偏好它而非 `echo $NAME`'
     名=argv[1] if len(argv)>1 else None#变量名
     if 名 is None:#无名则列环境
         for 键,值 in sorted(state['environment'].items()):#打印
@@ -217,15 +217,15 @@ def printenv程序(argv,io,state,fs=None):#printenv程序
     return 0#成功
 
 def 恒真(argv=None,io=None,state=None,fs=None):#恒真
-    """true。"""
+    'true'
     return 0#成功
 
 def 恒假(argv=None,io=None,state=None,fs=None):#恒假
-    """false。"""
+    'false'
     return 1#失败
 
 def 空命令(argv=None,io=None,state=None,fs=None):#空命令
-    """冒号命令。"""
+    '冒号命令'
     return 0#成功
 
 内建程序={#内建表

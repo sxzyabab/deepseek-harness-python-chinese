@@ -1,7 +1,7 @@
 __all__=['取包','可见状态']#仅中文公开名
 
 def 取包(行,包标识):
-    """在插件行里定位不可变包。行与包均为 dict。"""
+    '在插件行里定位不可变包。行与包均为 dict'
     if 行 is None or 'packages' not in 行 or 行['packages'] is None:#没有包表
         return None#缺席
     for 包 in 行['packages']:#逐包
@@ -10,7 +10,7 @@ def 取包(行,包标识):
     return None#缺席
 
 def 可见状态(行,包标识,已加载):
-    """idle / client-pending / running。行、当前运行、包、活均为 dict。"""
+    'idle / client-pending / running。行、当前运行、包、活均为 dict'
     当前运行=行['activeRun'] if 行 is not None and 'activeRun' in 行 else None#当前激活
     if 当前运行 is None or 'packageId' not in 当前运行 or 当前运行['packageId']!=包标识:#没跑这个包
         return 'idle'#空闲

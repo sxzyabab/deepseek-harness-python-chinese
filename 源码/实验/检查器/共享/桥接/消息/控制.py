@@ -5,9 +5,9 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 class 检查器工作者配置:#Worker配置
-    """完全解析后的 Worker 配置。"""
+    '完全解析后的 Worker 配置'
     def __init__(自身,host,startPort,targetId,clientToken,clientOrigins,maxSourceFrameBytes,maxSourceRecordsPerFrame,maxRetainedRequests,maxJournalBytes,clientRuntimeTimeoutMs,maxClientSourceBytes,maxCordisNodes,maxDisconnectedCordisTrees):#构造
-        """保存 Worker 配置字段。"""
+        '保存 Worker 配置字段'
         自身.host=host#绑定主机
         自身.startPort=startPort#首选端口
         自身.targetId=targetId#目标标识
@@ -23,36 +23,36 @@ class 检查器工作者配置:#Worker配置
         自身.maxDisconnectedCordisTrees=maxDisconnectedCordisTrees#断开树保留上限
 
 class 检查器工作者启动:#Worker启动载荷
-    """用于启动 Inspector Worker 的结构化克隆载荷。"""
+    '用于启动 Inspector Worker 的结构化克隆载荷'
     def __init__(自身,config,hostSourcePort):#构造
-        """保存启动载荷。"""
+        '保存启动载荷'
         自身.config=config#已解析配置
         自身.hostSourcePort=hostSourcePort#Host源端口
 
 def 检查器工作者关闭():#关闭命令
-    """Host 请求停止接受流量并关闭 Worker 拥有的全部资源。"""
+    'Host 请求停止接受流量并关闭 Worker 拥有的全部资源'
     return {'type':'shutdown'}#关闭命令
 
 检查器宿主控制=dict#Host控制联合
 
 def 检查器工作者就绪(host,port,targetId):#就绪事件
-    """Worker 端点就绪。"""
+    'Worker 端点就绪'
     return {'type':'ready','host':host,'port':port,'targetId':targetId}#就绪
 
 def 检查器工作者失败(message):#失败事件
-    """Worker 启动或运行时失败。"""
+    'Worker 启动或运行时失败'
     return {'type':'failure','message':message}#失败
 
 def 检查器工作者已停止():#已停止事件
-    """Worker 完成优雅关闭。"""
+    'Worker 完成优雅关闭'
     return {'type':'stopped'}#停止
 
 检查器工作者控制=dict#Worker控制联合
 
 class 检查器客户端引导:#Client引导
-    """由 Host 插件写入的浏览器引导数据。"""
+    '由 Host 插件写入的浏览器引导数据'
     def __init__(自身,endpoint,protocol,maxQueuedRecords,maxQueuedBytes,maxRecordsPerFrame,maxFrameBytes,reconnectBaseMs,reconnectMaxMs,queryTimeoutMs,maxRuntimeObjectsPerSession,maxRuntimePropertiesPerResult,maxClientSourceBytes,maxCordisNodes):#构造
-        """保存 Client 引导字段。"""
+        '保存 Client 引导字段'
         自身.endpoint=endpoint#WebSocket端点
         自身.protocol=protocol#子协议名
         自身.maxQueuedRecords=maxQueuedRecords#最大排队记录

@@ -1,25 +1,25 @@
 __all__=['计划卡','计划审阅打开']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键。"""
+    '无文案表时返回键'
     return 键#键
 
 def 锚点序号(项):
-    """排序键。"""
+    '排序键'
     return 项['anchorSeq'] if 'anchorSeq' in 项 else 0
 
 class 计划卡:
-    """已完成回合的已提交计划卡列表。"""
+    '已完成回合的已提交计划卡列表'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """按调用序投影本回合 submitted-plan。"""
+        '按调用序投影本回合 submitted-plan'
         属性=自身.属性#props
         回合=属性['turn'] if 'turn' in 属性 else None#回合
         用聊天=属性['useChat'] if 'useChat' in 属性 else None#选择器
@@ -28,7 +28,7 @@ class 计划卡:
         if 用聊天 is None or 回合 is None:#缺
             return None#无
         def 选(快照):
-            """筛本回合计划。"""
+            '筛本回合计划'
             节点源=快照['nodes'] if 'nodes' in 快照 else None#节点源
             节点表=list(节点源.values()) if 节点源 is not None else []
             结果=[]
@@ -63,24 +63,24 @@ class 计划卡:
         return {'type':'plan-cards','cards':卡表,'cssModule':'计划预览.module.css'}#列表
 
     def __call__(自身,属性=None):
-        """有新属性则刷新后再渲染。"""
+        '有新属性则刷新后再渲染'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 计划审阅打开:
-    """待审计划自动打开与手动打开器。"""
+    '待审计划自动打开与手动打开器'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已自动=False#是否已自动开
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """自动打开一次，并返回手动打开按钮视图。"""
+        '自动打开一次，并返回手动打开按钮视图'
         属性=自身.属性#props
         审阅=属性['review'] if 'review' in 属性 else {}#审阅
         请求键=属性['requestKey'] if 'requestKey' in 属性 else ''#键
@@ -92,7 +92,7 @@ class 计划审阅打开:
         已开=False
         if 用存储 is not None:
             def 读已开(态):
-                """是否已标记打开。"""
+                '是否已标记打开'
                 已开表=态['opened'] if 'opened' in 态 else {}
                 return (已开表[身份] if 身份 in 已开表 else None) is True
             已开=用存储(读已开) is True
@@ -109,7 +109,7 @@ class 计划审阅打开:
         }#视图
 
     def __call__(自身,属性=None):
-        """有新属性则刷新后再渲染。"""
+        '有新属性则刷新后再渲染'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

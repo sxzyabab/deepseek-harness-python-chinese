@@ -1,4 +1,4 @@
-"""确定性工具结果修剪的配置解析。"""
+'确定性工具结果修剪的配置解析'
 from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆离克隆
 
 修剪标记='\n\n[... tool result middle pruned ...]\n\n'#替换每一段被删中间跨度的固定标记
@@ -10,26 +10,26 @@ from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆�
 配置键集合=frozenset(('thresholdChars','headChars','tailChars'))#允许的配置键
 
 class 工具结果裁剪错误(Exception):
-    """工具结果裁剪包的异常基类。"""
+    '工具结果裁剪包的异常基类'
 
 def 码点长度(文本):
-    """统计 Unicode 码点，不拆开代理对。"""
+    '统计 Unicode 码点，不拆开代理对'
     return len(文本)#Python3 字符串按码点计长
 
 def 校验正整数(名称,值):
-    """校验字段为正整数，否则抛错。"""
+    '校验字段为正整数，否则抛错'
     是整数=(not isinstance(值,bool)) and (isinstance(值,int) or (isinstance(值,float) and 值.is_integer()))#排除布尔
     if (not 是整数) or 值<=0:#非整数或非正
         raise 工具结果裁剪错误('ToolResultPruneConfig: '+名称+' ('+str(值)+') must be a positive integer')#字段名进入错误文案
 
 def 校验非负整数(名称,值):
-    """校验字段为非负整数，否则抛错。"""
+    '校验字段为非负整数，否则抛错'
     是整数=(not isinstance(值,bool)) and (isinstance(值,int) or (isinstance(值,float) and 值.is_integer()))#排除布尔
     if (not 是整数) or 值<0:#非整数或为负
         raise 工具结果裁剪错误('ToolResultPruneConfig: '+名称+' ('+str(值)+') must be a non-negative integer')#字段名进入错误文案
 
 def 解析配置(配置=None):
-    """解析并校验修剪预算，返回分离的深不可变配置。"""
+    '解析并校验修剪预算，返回分离的深不可变配置'
     if 配置 is None:#缺省空配置
         配置={}#空配置
     for 键 in 配置:#拒绝未知键，对齐 Object.keys

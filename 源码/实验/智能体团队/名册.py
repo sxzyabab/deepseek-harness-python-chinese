@@ -14,7 +14,7 @@ __all__=['解析活跃成员','团队名册']#仅中文公开名
 成员名模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\Z',re.ASCII)#小写 kebab 名字
 
 def 解析活跃成员(根,状态,原始名):#解析活跃成员
-    """按面向模型的名字解析一个活跃 Team 成员，含 Lead 伪行。"""
+    '按面向模型的名字解析一个活跃 Team 成员，含 Lead 伪行'
     名字=原始名.strip()#修剪
     if 名字=='lead':#Lead 伪行
         return {'id':根.id,'name':名字}#Lead
@@ -28,20 +28,20 @@ def 解析活跃成员(根,状态,原始名):#解析活跃成员
     return {'id':成员['id'],'name':名字}#命中
 
 def 可用性(智能体):#运行时可用性
-    """轮次可用性与 Agent 是否已加载无关；非 running 一律 inactive。"""
+    '轮次可用性与 Agent 是否已加载无关；非 running 一律 inactive'
     if 智能体 is not None and 智能体.status=='running':#正在跑轮次
         return 'running'#运行中
     return 'inactive'#未运行
 
 def _父标识(智能体):#读父 Session
-    """从 live Agent 的会话头读取父标识。"""
+    '从 live Agent 的会话头读取父标识'
     头=智能体.session.header#会话头
     if 'parentSession' not in 头:#无父键
         return None#无父
     return 头['parentSession']#父标识
 
 def _模型(智能体):#读模型
-    """从 live Agent 选项读取模型。"""
+    '从 live Agent 选项读取模型'
     if 智能体 is None:#无 agent
         return None#无
     选项=智能体.options#选项映射
@@ -50,23 +50,23 @@ def _模型(智能体):#读模型
     return 选项['model']#模型
 
 def _消息标识匹配(消息标识):#构造接受谓词
-    """匹配一条消息 id。"""
+    '匹配一条消息 id'
     def 谓词(消息):#谓词
-        """id 相等。"""
+        'id 相等'
         return 'id' in 消息 and 消息['id']==消息标识#匹配
     return 谓词#谓词
 
 def _初始用户消息(消息):#初始用户消息谓词
-    """来源 kind 为 user。"""
+    '来源 kind 为 user'
     if 'source' not in 消息:#无来源
         return False#否
     来源=消息['source']#来源
     return 'kind' in 来源 and 来源['kind']=='user'#匹配
 
 class 团队名册:#成员表
-    """拥有 Team 身份与 roster 可延续子代的生命周期。"""
+    '拥有 Team 身份与 roster 可延续子代的生命周期'
     def __init__(自身,上下文,日志,生命周期,最大成员数):#构造
-        """记下上下文、日志、生命周期与成员上限。"""
+        '记下上下文、日志、生命周期与成员上限'
         自身.ctx=上下文#服务上下文
         自身._日志=日志#日志
         自身._生命周期=生命周期#生命周期
@@ -74,14 +74,14 @@ class 团队名册:#成员表
         自身._飞行中创建=set()#飞行中创建
 
     def 成员关系(自身,智能体):#解析成员
-        """解析一个精确 live Agent 的 Team 角色。"""
+        '解析一个精确 live Agent 的 Team 角色'
         关系=自身.试成员关系(智能体)#试解析
         if 关系 is None:#非成员
             raise 团队错误('agent "'+str(智能体.id)+'" is not a member of an active Agent Team','TEAM_NOT_MEMBER')#非成员
         return 关系#命中
 
     def 试成员关系(自身,智能体):#试解析成员
-        """不抛错地解析调用方，供 scoped 安装与生命周期观察者使用。"""
+        '不抛错地解析调用方，供 scoped 安装与生命周期观察者使用'
         if 自身.ctx.agents.get(智能体.id) is not 智能体:#非精确 live
             return None#非成员
         try:#探测
@@ -90,7 +90,7 @@ class 团队名册:#成员表
             return None#失败
 
     def _试成员关系体(自身,智能体):#试解析体
-        """试成员关系的主体逻辑。"""
+        '试成员关系的主体逻辑'
         父标识=_父标识(智能体)#父 Session
         if 父标识 is not None:#有父
             根=自身.ctx.agents.get(父标识)#取 Lead
@@ -110,7 +110,7 @@ class 团队名册:#成员表
         return {'root':智能体,'id':团队标识(智能体.id),'role':'lead','name':'lead'}#隐式 Lead
 
     def 列表(自身,成员关系):#列 roster
-        """列出一个 Team 成员可见的、经运行时充实的 roster。"""
+        '列出一个 Team 成员可见的、经运行时充实的 roster'
         根=成员关系['root']#Lead
         状态=自身._日志.状态(根)#状态
         结果=[{#Lead 行
@@ -128,7 +128,7 @@ class 团队名册:#成员表
         return 结果#含 Lead
 
     def _充实成员行(自身,根,成员):#充实一行
-        """从持久快照派生运行时成员行。"""
+        '从持久快照派生运行时成员行'
         活=自身.ctx.agents.get(成员['id'])#live agent
         模型=_模型(活)#活模型
         if 模型 is None:#回退 Lead
@@ -154,7 +154,7 @@ class 团队名册:#成员表
         return 行#行
 
     def 创建(自身,调用方,请求):#创建 teammate
-        """创建一个具名、可延续的 Team Lead 直接子代。"""
+        '创建一个具名、可延续的 Team Lead 直接子代'
         if 自身._生命周期.已拆除:#已拆除
             raise 团队错误('Agent Teams service is disposing','TEAM_DISPOSED')#已拆除
         条目={'完成':同步事件(),'错误':None}#飞行条目
@@ -169,18 +169,18 @@ class 团队名册:#成员表
             自身._飞行中创建.discard(条目)#摘跟踪
 
     def 列出待创建(自身):#飞行中创建
-        """返回为有序拆除捕获的已准入创建操作。"""
+        '返回为有序拆除捕获的已准入创建操作'
         return list(自身._飞行中创建)#快照
 
     def 恢复(自身,智能体,信号):#恢复供应
-        """当一个 Team 成员 Session 启动时对账供应状态。"""
+        '当一个 Team 成员 Session 启动时对账供应状态'
         若已中止则抛出(信号)#已取消
         关系=自身.试成员关系(智能体)#试成员
         if 关系 is not None and 关系['role']=='lead':#Lead 对账
             自身._对账供应(关系['root'],信号)#对账
 
     def 中断(自身,调用方,目标名):#中断
-        """中断一个 live teammate 轮次，不清理其 pending inbox。"""
+        '中断一个 live teammate 轮次，不清理其 pending inbox'
         关系=自身.成员关系(调用方)#解析
         if 关系['role']!='lead':#仅 Lead
             raise 团队错误('only the Team Lead can interrupt teammates','TEAM_LEAD_REQUIRED')#仅 Lead
@@ -196,7 +196,7 @@ class 团队名册:#成员表
         return {'previousStatus':先前}#返回
 
     def 按根分组活子(自身):#按根分组子代
-        """按当前 Lead 分组精确 live roster 子代，供运行时拆除。"""
+        '按当前 Lead 分组精确 live roster 子代，供运行时拆除'
         团队表={}#结果
         for 智能体 in 自身.ctx.agents.list():#扫全部
             根标识=_父标识(智能体)#父
@@ -215,14 +215,14 @@ class 团队名册:#成员表
         return 团队表#分组
 
     def 停止队友(自身,根,子标识列表):#停 teammate
-        """经延续生命周期所有者拆除精确 teammate Activation。"""
+        '经延续生命周期所有者拆除精确 teammate Activation'
         def 排空():#有界排空
-            """排空可续跑后代。"""
+            '排空可续跑后代'
             return 自身.ctx.subagents.排空可续跑后代([根])#drain
         自身._生命周期.有界等待(排空)#有界 drain
 
     def _已准入创建(自身,调用方,请求):#已准入创建
-        """执行在 Team 运行时拆除截止前已准入的一次创建。"""
+        '执行在 Team 运行时拆除截止前已准入的一次创建'
         关系=自身.成员关系(调用方)#解析
         if 关系['role']!='lead':#仅 Lead
             raise 团队错误('only the Team Lead can create teammates','TEAM_LEAD_REQUIRED')#仅 Lead
@@ -244,9 +244,9 @@ class 团队名册:#成员表
         return 自身._启动并结算(根,名字,成员,请求,信号)#启动结算
 
     def _持久供应(自身,根,名字,成员):#持久供应边
-        """在 Lead 日志写入 provisioning 边。"""
+        '在 Lead 日志写入 provisioning 边'
         def 操作():#事务
-            """检查名占用与上限后追加。"""
+            '检查名占用与上限后追加'
             状态=自身._日志.状态(根)#状态
             if any(候选['name']==名字 for 候选 in 状态['members']):#名占用
                 raise 团队错误('teammate name "'+名字+'" was already used in this Team','TEAM_MEMBER_NAME_TAKEN')#占用
@@ -256,7 +256,7 @@ class 团队名册:#成员表
         自身._日志.事务(根.id,操作)#串行
 
     def _启动并结算(自身,根,名字,成员,请求,信号):#启动并结算
-        """启动可续跑子代并结算 active/failed。"""
+        '启动可续跑子代并结算 active/failed'
         子标识=成员['id']#子 id
         try:#启动
             已启动=自身.ctx.subagents.启动可续跑({#启动可续跑
@@ -289,7 +289,7 @@ class 团队名册:#成员表
         return {'member':自身._成员视图(活跃)}#返回视图
 
     def _创建失败(自身,根,名字,成员,子标识,错误):#创建失败结算
-        """创建失败时写 failed 边并清理。"""
+        '创建失败时写 failed 边并清理'
         失败={**成员,'phase':'failed','error':错误文案(错误)}#失败快照
         try:#结算
             阶段=自身._结算供应(根,失败)#结算
@@ -306,7 +306,7 @@ class 团队名册:#成员表
             raise 聚合错误([错误,记录错误],'teammate creation and durable failure recording both failed')#双失败
 
     def _检查点初始提示(自身,子标识,消息标识,信号):#检查点初始提示
-        """在 Lead 可提交 active 之前 flush 已接受的初始 inbox 项。"""
+        '在 Lead 可提交 active 之前 flush 已接受的初始 inbox 项'
         while True:#轮询直到接受
             若已中止则抛出(信号)#取消
             会话=自身.ctx.sessions.get(子标识)#live 会话
@@ -322,24 +322,24 @@ class 团队名册:#成员表
             自身._等会话推进(会话,子标识,消息标识,信号)#等推进或接受
 
     def _等会话推进(自身,会话,子标识,消息标识,信号):#等会话推进
-        """flush 后检查接受；否则等事件或拆除。"""
+        'flush 后检查接受；否则等事件或拆除'
         进度=操作任务()#进度门
         def 事件推进(候选,*_其余):#事件推进
-            """会话事件推进。"""
+            '会话事件推进'
             if 候选 is 会话:#同会话
                 进度.兑现()#推进
         def 拆除推进(候选,*_其余):#拆除推进
-            """会话拆除推进。"""
+            '会话拆除推进'
             if 候选 is 会话:#同会话
                 进度.兑现()#推进
         def 取消处理():#取消
-            """取消进度门。"""
+            '取消进度门'
             进度.拒绝(团队错误('teammate creation aborted','TEAM_DISPOSED'))#包装
         停事件=自身.ctx.监听('session/event',事件推进)#听事件
         停拆除=自身.ctx.监听('session/disposed',拆除推进)#听拆除
         停止听=threading.Event()#摘中止
         def 等待中止置位():#等待取消
-            """信号置位则拒绝进度门。"""
+            '信号置位则拒绝进度门'
             if 信号 is None:#无信号
                 return#返回
             while not 停止听.is_set():#尚未收尾
@@ -364,7 +364,7 @@ class 团队名册:#成员表
             停事件()#卸事件
 
     def _对账供应(自身,根,信号):#对账供应
-        """从各自独立持久的子 Session 结算仅供应中的成员。"""
+        '从各自独立持久的子 Session 结算仅供应中的成员'
         供应中=[成员 for 成员 in 自身._日志.状态(根)['members'] if 成员['phase']=='provisioning']#供应中
         for 成员 in 供应中:#逐成员
             若已中止则抛出(信号)#取消
@@ -375,7 +375,7 @@ class 团队名册:#成员表
             自身._写供应终态(根,成员,阶段,失败,信号)#写终态
 
     def _判定供应终态(自身,根,成员,信号):#判定供应终态
-        """读持久子 Session 判定 active/failed。"""
+        '读持久子 Session 判定 active/failed'
         阶段='failed'#默认失败
         失败='provisioning did not leave a resumable child Session'#默认文案
         try:#读子
@@ -396,9 +396,9 @@ class 团队名册:#成员表
         return 阶段,失败#结果
 
     def _写供应终态(自身,根,成员,阶段,失败,信号):#写供应终态
-        """若仍为 provisioning 则写终态边。"""
+        '若仍为 provisioning 则写终态边'
         def 操作():#事务
-            """条件写终态。"""
+            '条件写终态'
             若已中止则抛出(信号)#取消
             当前=None#当前行
             for 候选 in 自身._日志.状态(根)['members']:#扫
@@ -419,7 +419,7 @@ class 团队名册:#成员表
         自身._日志.事务(根.id,操作)#串行
 
     def _成员视图(自身,成员):#成员视图
-        """成功创建后构建一条运行时成员行。"""
+        '成功创建后构建一条运行时成员行'
         活=自身.ctx.agents.get(成员['id'])#live
         行={#视图
             'id':成员['id'],#id
@@ -437,7 +437,7 @@ class 团队名册:#成员表
         return 行#视图
 
     def _成员名(自身,值):#校验名字
-        """校验永不复用的、面向模型的 teammate 名。"""
+        '校验永不复用的、面向模型的 teammate 名'
         if 成员名模式.match(值) is None or len(值)>64 or 值=='lead':#非法名
             raise 团队错误(#非法名
                 'teammate name must be lower-kebab-case, at most 64 characters, and not "lead"',#文案
@@ -446,9 +446,9 @@ class 团队名册:#成员表
         return 值#通过
 
     def _结算供应(自身,根,终态):#结算供应
-        """追加一条终态供应边，除非恢复已先结算。"""
+        '追加一条终态供应边，除非恢复已先结算'
         def 操作():#事务
-            """条件写终态并返回阶段。"""
+            '条件写终态并返回阶段'
             当前=None#当前
             for 成员 in 自身._日志.状态(根)['members']:#扫
                 if 成员['id']==终态['id']:#命中
@@ -467,6 +467,6 @@ class 团队名册:#成员表
         return 自身._日志.事务(根.id,操作)#串行
 
     def _子智能体描述符(自身,智能体):#是否 subagent
-        """一个 Session 的自有后缀是否标识 provider 拥有的 subagent 子代。"""
+        '一个 Session 的自有后缀是否标识 provider 拥有的 subagent 子代'
         后缀=智能体.session.snapshotEvents(智能体.session.inheritedEventCount)#后缀
         return 折叠子智能体描述符(后缀) is not None#有描述符

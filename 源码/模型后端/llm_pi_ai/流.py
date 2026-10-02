@@ -1,7 +1,4 @@
-"""把 pi-ai 助手事件翻译成 harness 流式协议。
-
-公开面仅中文名；无英文别名。
-"""
+'把 pi-ai 助手事件翻译成 harness 流式协议'
 import json#JSON 序列化
 import re#正则
 from .. import llm#语言模型服务
@@ -11,7 +8,7 @@ from .回放 import 转派回放状态#回放状态投影
 __all__=('映射用量','分类派爱错误','映射停止原因','转流块')#仅中文公开名
 
 def 映射用量(用量):
-    """映射 pi-ai 用量（推理已被 pi-ai 折进输出）。"""
+    '映射 pi-ai 用量（推理已被 pi-ai 折进输出）'
     输入=用量.input#输入
     输出=用量.output#输出含推理
     缓存读=用量.cacheRead#缓存读
@@ -24,7 +21,7 @@ def 映射用量(用量):
     return 计数#用量
 
 def 分类派爱错误(消息):
-    """按文本分类派爱错误。"""
+    '按文本分类派爱错误'
     if re.search(r'\b(?:401|403)\b',消息,re.ASCII):#命中 401/403 则归认证失败
         return 'AUTH'#认证失败
     if llm.是否配额超出错误(消息):#配额措辞优先于其它 4xx
@@ -48,7 +45,7 @@ def 分类派爱错误(消息):
     return 'PI_AI_ERROR'#其余派爱错误
 
 def 映射停止原因(消息,上下文窗口=None):
-    """把终止派爱事件映射成 harness 结束原因。"""
+    '把终止派爱事件映射成 harness 结束原因'
     派溢出=pi_ai.isContextOverflow(消息,上下文窗口)#派爱溢出判定
     结束原因=消息.stopReason#结束原因
     错误消息=消息.errorMessage#错误消息，SDK 对象字段，缺席为 None
@@ -85,7 +82,7 @@ def 映射停止原因(消息,上下文窗口=None):
     return None#封闭联合之外
 
 def 转流块(事件列表,上下文窗口=None,请求模型=None):
-    """把 pi-ai 事件流翻译成 StreamChunk。事件为 SDK 对象。"""
+    '把 pi-ai 事件流翻译成 StreamChunk。事件为 SDK 对象'
     工具标识={}#下标到调用id与名字
     已终止=False#是否见到终止事件
     for 事件 in 事件列表:#按派爱事件顺序翻译；start 无 harness 块，done/error 终止

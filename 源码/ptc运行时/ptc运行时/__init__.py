@@ -40,43 +40,49 @@ __all__=[
 ])
 
 class ptc运行时错误(Exception):
-    """PTC 运行时约定误用。"""
+    'PTC 运行时约定误用'
     def __init__(自身,消息):
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)
 
 class ptc运行时(cordis.服务):
-    """登记一个 ptcRuntime 实现。程序、预算、中止与基底失败落在运行结果；仅约定误用才拒绝。"""
+    """登记一个 ptcRuntime 实现。
+    程序、预算、中止与基底失败落在运行结果；仅约定误用才拒绝
+    """
     def __init__(自身,上下文):
-        """登记为 ptcRuntime。"""
+        '登记为 ptcRuntime'
         super().__init__(上下文,'ptcRuntime')
 
     def 语言(自身):
-        """run 期望的小写语言标识。"""
+        'run 期望的小写语言标识'
         raise NotImplementedError('PtcRuntime.language')
 
     def 隔离(自身):
-        """小写执行基底标识。"""
+        '小写执行基底标识'
         raise NotImplementedError('PtcRuntime.isolation')
 
     def 执行说明(自身):
-        """提供方拥有的用法说明。"""
+        '提供方拥有的用法说明'
         return ''
 
     def 沙箱模式(自身):
-        """文件政策模式；无围栏则为空。"""
+        '文件政策模式；无围栏则为空'
         return None
 
     def 超时(自身):
-        """{defaultMs,maxMs}；不支持覆盖则为空。"""
+        '{defaultMs,maxMs}；不支持覆盖则为空'
         return None
 
     def 解析(自身,请求):
-        """验证支持的选项并填入目录与截止。请求是 dict。"""
+        """验证支持的选项并填入目录与截止。
+        请求是 dict
+        """
         raise NotImplementedError('PtcRuntime.resolve')
 
     def 运行(自身,规格):
-        """执行完整输入；程序结局为结果字段。规格是 dict。"""
+        """执行完整输入；程序结局为结果字段。
+        规格是 dict
+        """
         raise NotImplementedError('PtcRuntime.run')
 
 default=ptc运行时#框架槽

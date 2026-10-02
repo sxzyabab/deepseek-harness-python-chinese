@@ -1,4 +1,4 @@
-"""向 invariants 登记热更新包检查：监视器须在纤程拆除后归零。"""
+'向 invariants 登记热更新包检查：监视器须在纤程拆除后归零'
 包名='@deepseek-ai/dsh-client-hmr'
 名称='client-hmr-invariant'
 依赖=['invariants']
@@ -6,10 +6,10 @@
 __all__=['包名','名称','依赖','安装','应用']
 
 def 安装(上下文,失败):
-    """按基线差值检查：纤程创建时观察到的监视计数，必须在拆除排空后恢复。"""
+    '按基线差值检查：纤程创建时观察到的监视计数，必须在拆除排空后恢复'
     基线表={}
     def 内部插件(纤程):
-        """只审计本插件纤程。"""
+        '只审计本插件纤程'
         if 纤程.名称!='client-hmr':
             return
         身份=id(纤程)
@@ -27,7 +27,7 @@ def 安装(上下文,失败):
     上下文.事件.监听('internal/plugin',内部插件,{'全局':True})
 
 def 应用(上下文):
-    """向 invariants 登记本包检查，返回拆除器。"""
+    '向 invariants 登记本包检查，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 name=名称

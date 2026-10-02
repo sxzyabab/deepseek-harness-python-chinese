@@ -1,5 +1,5 @@
 def 最终文本(块列表):
-    """把子体最终输出块压成任务最终文本。块为 dict。"""
+    '把子体最终输出块压成任务最终文本。块为 dict'
     片段=[]#文本片段
     for 块 in 块列表:#逐块
         if 块['type']=='text':#只要文本块
@@ -7,7 +7,7 @@ def 最终文本(块列表):
     return ''.join(片段)#拼接
 
 def 映射结局(结果):
-    """把子结果映射成任务结局：completed 携带最终文本，aborted 是 killed，其余原因失败且不含部分输出。结果为 dict。"""
+    '把子结果映射成任务结局：completed 携带最终文本，aborted 是 killed，其余原因失败且不含部分输出。结果为 dict'
     停止原因=结果['stopReason']#停止原因
     if 停止原因=='completed':#正常完成
         输出=结果['output'] if 'output' in 结果 else []#输出块
@@ -19,7 +19,7 @@ def 映射结局(结果):
     return {'status':'failed','detail':str(停止原因)}#失败带原始细节
 
 def 结算运行(运行):
-    """等待子结果、拆除运行，然后返回其任务结局。结果与拆除失败都变成 failed；两者都失败时两边细节都存活。"""
+    '等待子结果、拆除运行，然后返回其任务结局。结果与拆除失败都变成 failed；两者都失败时两边细节都存活'
     try:#等待子结果
         结局=映射结局(运行.result.等待())#映射结局
     except Exception as 错误:#结果拒绝

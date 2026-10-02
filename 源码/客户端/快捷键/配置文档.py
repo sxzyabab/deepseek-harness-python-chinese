@@ -1,4 +1,4 @@
-"""已校验偏好文档与确定性冲突解析；无浏览器依赖。"""
+'已校验偏好文档与确定性冲突解析；无浏览器依赖'
 import json,re#文档解码与命令标识
 from .绑定 import 规范化绑定,绑定键,Web绑定是否准入#绑定协议
 
@@ -17,11 +17,11 @@ __all__=[#仅中文公开名
 主修饰剪贴码=frozenset(['KeyC','KeyV','KeyX','KeyZ','KeyY','KeyQ','KeyH'])#主修饰剪贴等
 
 def 是记录(值):
-    """非空对象且非数组。"""
+    '非空对象且非数组'
     return isinstance(值,dict)#映射即记录
 
 def 解析绑定(值):
-    """规范化前校验 JSON 绑定字段；拒绝未知字段以防有损重写。"""
+    '规范化前校验 JSON 绑定字段；拒绝未知字段以防有损重写'
     if 值 is None:#显式移除
         return None#解绑
     if not 是记录(值):#非对象
@@ -43,7 +43,7 @@ def 解析绑定(值):
     return 绑定#返回
 
 def 解析快捷键文档(原始):
-    """解码完整文档，保留休眠命令覆盖；失败返回 'invalid' 或 'future'。"""
+    '解码完整文档，保留休眠命令覆盖；失败返回 \'invalid\' 或 \'future\''
     if 原始 is None:#缺失文档
         return {'schemaVersion':1,'profiles':{}}#空文档
     try:#解析 JSON 与字段
@@ -76,7 +76,7 @@ def 解析快捷键文档(原始):
         return 'invalid'#保留原文档语义：调用方不改写
 
 def 绑定问题(绑定,运行时,平台):
-    """用展开后的物理修饰键检查系统/编辑器/浏览器预留；允许时为 None。"""
+    '用展开后的物理修饰键检查系统/编辑器/浏览器预留；允许时为 None'
     码=绑定['code']#物理码
     修饰=绑定['modifiers']#修饰列
     if 运行时=='desktop' and (平台=='windows' or 平台=='macos'):#桌面宽平台
@@ -109,11 +109,11 @@ def 绑定问题(绑定,运行时,平台):
     return None#通过
 
 def 解析快捷键默认(定义,运行时,平台):
-    """选取命令所有者对某一设备配置的显式默认。"""
+    '选取命令所有者对某一设备配置的显式默认'
     return 定义['defaults'].get(运行时+':'+平台)#配置键
 
 def 绑定重叠(左,右):
-    """检测相同组合，或单键是否落在双键和弦内。"""
+    '检测相同组合，或单键是否落在双键和弦内'
     if '+'.join(左['modifiers'])!='+'.join(右['modifiers']):#修饰不同
         return False#不重叠
     if 左.get('secondCode') is not None and 右.get('secondCode') is not None:#双方和弦
@@ -124,7 +124,7 @@ def 绑定重叠(左,右):
     return False#不重叠
 
 def 有效快捷键(定义表,文档,运行时,平台):
-    """与注册顺序无关地解析覆盖与冲突；显式覆盖挤掉默认。"""
+    '与注册顺序无关地解析覆盖与冲突；显式覆盖挤掉默认'
     覆盖=文档['profiles'].get(运行时+':'+平台) or {}#本配置覆盖
     #固定预留行
     固定行=[]#固定绑定行
@@ -188,7 +188,7 @@ def 有效快捷键(定义表,文档,运行时,平台):
     return 结果#全部活跃命令
 
 def 编辑快捷键文档(文档,编辑,运行时,平台):
-    """应用编辑，不改其他配置或休眠覆盖。"""
+    '应用编辑，不改其他配置或休眠覆盖'
     if 运行时=='desktop' and (平台=='macos' or 平台=='windows'):#桌面宽平台升 v2
         版本=2#schema v2
     else:#其余保留
@@ -209,7 +209,7 @@ def 编辑快捷键文档(文档,编辑,运行时,平台):
     return {'schemaVersion':版本,'profiles':配置表}#候选文档
 
 def 解析快捷键编辑(值):
-    """在 Desktop IPC 边界校验偏好编辑。"""
+    '在 Desktop IPC 边界校验偏好编辑'
     if not 是记录(值):#非对象
         raise ValueError('非法快捷键编辑')#拒绝
     if 值.get('type')=='reset-all' and len(值)==1:#全重置
@@ -223,7 +223,7 @@ def 解析快捷键编辑(值):
     raise ValueError('非法快捷键编辑')#拒绝
 
 def 解析快捷键定义(值):
-    """在 IPC 入口校验受信产品可序列化命令目录。"""
+    '在 IPC 入口校验受信产品可序列化命令目录'
     if not isinstance(值,list):#须数组
         raise ValueError('非法快捷键目录')#拒绝
     标识集=set()#已见 id

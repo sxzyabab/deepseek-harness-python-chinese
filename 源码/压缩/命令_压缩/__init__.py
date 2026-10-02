@@ -1,4 +1,4 @@
-"""面向人类的 /compact 命令，经压缩服务接口触发手动压缩。"""
+'面向人类的 /compact 命令，经压缩服务接口触发手动压缩'
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ..压缩 import 手动压缩错误#预期手动压缩失败
 
@@ -9,11 +9,11 @@ from ..压缩 import 手动压缩错误#预期手动压缩失败
 __all__=['名称','依赖','应用','默认']#仅中文公开名
 
 def 断言永不可达(值):
-    """本地封闭联合出现未处理成员时大声失败。"""
+    '本地封闭联合出现未处理成员时大声失败'
     raise TypeError('unknown manual compaction error code: '+str(值))#未知手动压缩错误码
 
 def 预期失败(错误):
-    """把预期的能力失败转成简短的仅人类结果。"""
+    '把预期的能力失败转成简短的仅人类结果'
     码=错误.code#失败类别
     if 码=='busy':#已有压缩在跑或智能体未空闲
         return {'kind':'error','text':'Compaction is unavailable because this process has an active compaction, or the agent is not idle.'}#忙碌
@@ -30,7 +30,8 @@ def 预期失败(错误):
     return 断言永不可达(码)#未来未知码穷尽失败
 
 def 执行压缩(上下文,调用):
-    """执行一次无参数的手动压缩请求。调用是 dict。"""
+    """执行一次无参数的手动压缩请求。
+    调用是 dict"""
     原文=调用['rawInput'] if 'rawInput' in 调用 else ''#原始输入
     if len(str(原文).strip())>0:#带了多余参数
         return {'kind':'error','text':用法}#用法错误
@@ -55,9 +56,9 @@ def 执行压缩(上下文,调用):
         raise 错误#非预期失败继续抛
 
 def 应用(上下文):
-    """为每个已组合的人类命令适配器注册 /compact。"""
+    '为每个已组合的人类命令适配器注册 /compact'
     def 处理(调用):
-        """处理一条 /compact。"""
+        '处理一条 /compact'
         return 执行压缩(上下文,调用)#同步执行
     上下文.commands.register({#注册 compact 命令
         'definitionId':命令定义标识('@deepseek-ai/dsh-command-compact'),#稳定定义身份

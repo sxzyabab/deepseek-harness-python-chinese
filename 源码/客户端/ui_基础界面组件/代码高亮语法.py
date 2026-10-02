@@ -43,14 +43,14 @@ for 语言,扩展表 in 语言扩展名.items():
 _后缀=re.compile(r'\.([^./]+)\Z',re.ASCII)
 
 def 路径语言(路径):
-    """按文件名后缀选共享语法；未登记则 None。"""
+    '按文件名后缀选共享语法；未登记则 None'
     命中=_后缀.search(路径.replace('\\','/'))
     if 命中 is None:
         return None
     return _扩展语言.get(命中.group(1).lower())
 
 def 使用代码高亮器(语言):
-    """绑到一份语法；未就绪时高亮返回 None。"""
+    '绑到一份语法；未就绪时高亮返回 None'
     语法加载计数()
     def 高亮(代码):
         return 高亮分行(代码,语言)

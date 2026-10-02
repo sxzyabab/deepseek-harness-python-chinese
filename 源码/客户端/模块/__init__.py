@@ -35,9 +35,9 @@ __all__=[#仅中文公开名
 构建指示='run `pnpm run build` before launch'#构建指示（错误串，不改）
 
 class 缺客户端包错误(客户端模块错误):
-    """缺失的已构建客户端导出。"""
+    '缺失的已构建客户端导出'
     def __init__(自身,包名,客户端路径,原因):
-        """拼结构化消息；路径只做属性，不进消息。"""
+        '拼结构化消息；路径只做属性，不进消息'
         消息='\n'.join([#行
             'client-modules: client bundle not found; '+构建指示+':',#缺包产物
             '  package: '+包名,#包名
@@ -48,9 +48,9 @@ class 缺客户端包错误(客户端模块错误):
         自身.__cause__=原因#保留原因
 
 class 客户端包组合错误(客户端模块错误):
-    """激活失败按可行动的包构建错误与无关失败分组。"""
+    '激活失败按可行动的包构建错误与无关失败分组'
     def __init__(自身,失败列表):
-        """分组拼消息。"""
+        '分组拼消息'
         缺包列表=[错误 for 错误 in 失败列表 if isinstance(错误,缺客户端包错误)]#缺包产物
         其余=[错误 for 错误 in 失败列表 if not isinstance(错误,缺客户端包错误)]#其余失败
         名词='package' if len(失败列表)==1 else 'packages'#单复数
@@ -67,7 +67,7 @@ class 客户端包组合错误(客户端模块错误):
         自身.失败列表=失败列表#原失败列表
 
 def 客户端导出路径(包名,导出字段):
-    """把 exports['./client'] 解析成相对路径。"""
+    '把 exports[\'./client\'] 解析成相对路径'
     if not isinstance(导出字段,dict):#没有 exports
         return None#无
     if './client' not in 导出字段:#没有该子路径
@@ -80,13 +80,13 @@ def 客户端导出路径(包名,导出字段):
     raise 客户端模块错误('client-modules: '+包名+' exports["./client"] must be a string or an object with a string default')#形态非法
 
 def 短哈希(输入):
-    """sha1 内容哈希截成 12 个十六进制字符。"""
+    'sha1 内容哈希截成 12 个十六进制字符'
     if isinstance(输入,str):#字符串
         输入=输入.encode('utf-8')#编码
     return hashlib.sha1(输入).hexdigest()[:12]#sha1 前 12
 
 def 图行(标识,修订,注入边,立即):
-    """一个包 rev 的图行。"""
+    '一个包 rev 的图行'
     行={'id':标识,'url':'/plugins/'+标识+'/client.js?rev='+修订,'rev':修订}#线入口
     if 注入边 is not None:#有注入
         行['inject']=注入边#注入边
@@ -95,7 +95,7 @@ def 图行(标识,修订,注入边,立即):
     return 行#入口
 
 def 注入启动清单(网页,图):
-    """把启动入口图注入 index.html。"""
+    '把启动入口图注入 index.html'
     正文=json.dumps(图,ensure_ascii=False,separators=(',',':'),allow_nan=False).replace('<','\\u003c')#转义 < 防冲出
     脚本='<script>window.__DSH_BOOT__ = '+正文+'</script>'#启动脚本
     头=网页.find('<head>')#head 起点
@@ -104,9 +104,9 @@ def 注入启动清单(网页,图):
     return 脚本+网页#没有 head 则前置
 
 class 客户端模块注册表(服务):
-    """网页插件表服务：增量 dsh.client 扫描 + 线组合 + 包路由 + index 挂钩。"""
+    '网页插件表服务：增量 dsh.client 扫描 + 线组合 + 包路由 + index 挂钩'
     def __init__(自身,上下文):
-        """建造服务：订阅、播种、并跑激活 flush。"""
+        '建造服务：订阅、播种、并跑激活 flush'
         super().__init__(上下文,'clientModules')#服务名 clientModules
         自身.表={}#已组合表
         自身.包元数据={}#包元数据缓存
@@ -118,7 +118,7 @@ class 客户端模块注册表(服务):
             raise 客户端模块错误('client-modules: ctx.baseUrl is unset — the node half needs the config-tree anchor to resolve plugin packages')#缺锚
         自身.解析包json=自身.造解析器(上下文.baseUrl)#解析 package.json
         def 纤程事件(纤程):
-            """把该 fiber 的条目名标脏。纤程持有 插件配置。"""
+            '把该 fiber 的条目名标脏。纤程持有 插件配置'
             条目=纤程.插件配置#loader 条目
             if 条目 is None:#不是 loader 行
                 return#丢掉
@@ -131,10 +131,10 @@ class 客户端模块注册表(服务):
                 return#幂等
             自身.已排冲刷=True#记下排期
             def 微任务冲刷():
-                """稳态只警告。"""
+                '稳态只警告'
                 自身.已排冲刷=False#清排期
                 def 警告(错误):
-                    """记警告。"""
+                    '记警告'
                     上下文.日志.警告(错误)#警告
                 自身.冲刷(警告)#冲刷
             threading.Timer(0,微任务冲刷).start()#近似 queueMicrotask
@@ -147,27 +147,27 @@ class 客户端模块注册表(服务):
         自身.已组合=自身.组合()#先有一份空图
         失败列表=[]#激活失败
         def 收集(错误):
-            """激活遍收集。"""
+            '激活遍收集'
             失败列表.append(错误)#追加
         自身.冲刷(收集)#同步 flush
         if len(失败列表)>0:#有失败
             raise 客户端包组合错误(失败列表)#聚合成一次大声抛
         def 包路由效应():
-            """登记前缀路由。"""
+            '登记前缀路由'
             return 上下文.webServer.register({'kind':'prefix','path':'/plugins','handler':自身.提供包})#登记
         上下文.副作用(包路由效应,'client-modules: bundle route')#包路由
         def 清单效应():
-            """挂钩 index。"""
+            '挂钩 index'
             def 钩子(网页):
-                """注入启动清单。"""
+                '注入启动清单'
                 return 注入启动清单(网页,自身.已组合)#注入
             return 上下文.webServer.tapIndex(钩子)#挂钩
         上下文.副作用(清单效应,'client-modules: boot manifest injection')#清单注入
 
     def 造解析器(自身,基址):
-        """从配置树锚解析包根。"""
+        '从配置树锚解析包根'
         def 解析(说明符):
-            """解析 package.json 绝对路径。"""
+            '解析 package.json 绝对路径'
             候选=os.path.join(基址,'node_modules',说明符,'package.json')#常见布局
             if os.path.isfile(候选):#存在
                 return 候选#路径
@@ -178,17 +178,17 @@ class 客户端模块注册表(服务):
         return 解析#解析器
 
     def graph(自身):
-        """当前已组合入口图。"""
+        '当前已组合入口图'
         return 自身.已组合#当前组合
 
     def clientPath(自身,标识):
-        """一条目客户端包的绝对路径。"""
+        '一条目客户端包的绝对路径'
         if 标识 not in 自身.表:#未知
             return None#无
         return 自身.表[标识]['clientPath']#路径
 
     def rebuilt(自身,标识):
-        """给一个包重新哈希。"""
+        '给一个包重新哈希'
         if 标识 not in 自身.表:#未知 id
             return None#无
         记录=自身.表[标识]#表行
@@ -210,28 +210,28 @@ class 客户端模块注册表(服务):
         return 修订#新 rev
 
     def onRebuilt(自身,监听):
-        """订阅包重建；仅在重哈希改变了 rev 时开火。"""
+        '订阅包重建；仅在重哈希改变了 rev 时开火'
         自身.重建监听.add(监听)#加入集
         def 退订():
-            """退订重建。"""
+            '退订重建'
             自身.重建监听.discard(监听)#删除
         return 退订#退订函数
 
     def onGraphChanged(自身,监听):
-        """任何重组合了图的 flush 之后开火。"""
+        '任何重组合了图的 flush 之后开火'
         自身.图监听.add(监听)#加入集
         def 退订():
-            """退订图变更。"""
+            '退订图变更'
             自身.图监听.discard(监听)#删除
         return 退订#退订函数
 
     def 组合(自身):
-        """组合当前入口图。"""
+        '组合当前入口图'
         入口列表=[记录['entry'] for 记录 in 自身.表.values()]#当前全部入口
         return {'rev':短哈希(json.dumps(入口列表,ensure_ascii=False,separators=(',',':'),allow_nan=False)),'entries':入口列表}#图
 
     def 通知图变更(自身):
-        """通知每个图监听器。"""
+        '通知每个图监听器'
         for 监听 in list(自身.图监听):#每个订阅者
             try:#单个订阅者
                 监听()#通知
@@ -239,7 +239,7 @@ class 客户端模块注册表(服务):
                 自身.所属上下文.日志.错误(错误)#只打日志
 
     def 解析元数据(自身,包名):
-        """解析包元数据；否定裁决缓存为 None。"""
+        '解析包元数据；否定裁决缓存为 None'
         if 包名 in 自身.包元数据:#命中（含否定）
             return 自身.包元数据[包名]#缓存
         try:#解析包根
@@ -280,7 +280,7 @@ class 客户端模块注册表(服务):
         return 元数据#返回元数据
 
     def 初始包修订(自身,包名,客户端路径):
-        """读激活时的包修订。"""
+        '读激活时的包修订'
         try:#读包
             with open(客户端路径,'rb') as 文件:#读
                 return 短哈希(文件.read())#内容短哈希
@@ -290,7 +290,7 @@ class 客户端模块注册表(服务):
             raise 缺客户端包错误(包名,客户端路径,错误)#结构化错误
 
     def 处理一行(自身,条目名):
-        """把一个条目名对照活着的 loader 条目对账。"""
+        '把一个条目名对照活着的 loader 条目对账'
         合格=False#是否仍是活着的客户端候选
         for 条目 in 自身.所属上下文.loader.列出插件配置():#活条目
             选项=条目.选项#配置文件 dict
@@ -317,7 +317,7 @@ class 客户端模块注册表(服务):
         return True#表变了
 
     def 冲刷(自身,遇错):
-        """冲脏集。"""
+        '冲脏集'
         变更=False#表是否变了
         for 条目名 in list(自身.脏集):#拷一份再迭代
             自身.脏集.discard(条目名)#先从脏集拿掉
@@ -331,7 +331,7 @@ class 客户端模块注册表(服务):
             自身.通知图变更()#通知
 
     def 提供包(自身,请求,响应):
-        """提供 /plugins/<id>/client.js 及其源映射。请求与响应是 webServer 对象。"""
+        '提供 /plugins/<id>/client.js 及其源映射。请求与响应是 webServer 对象'
         方法=请求.method#HTTP 方法
         if 方法!='GET' and 方法!='HEAD':#只允许读
             响应.writeHead(405)#方法不允许

@@ -2,7 +2,7 @@
 __all__=['创建目标激活源']#仅中文公开名
 
 def _同快照(左,右):
-    """按值比较两个空或已填充的激活快照。快照为 dict。"""
+    '按值比较两个空或已填充的激活快照。快照为 dict'
     return (
         (左['id'] if 'id' in 左 else None)==(右['id'] if 'id' in 右 else None)
         and (左['revision'] if 'revision' in 左 else None)==(右['revision'] if 'revision' in 右 else None)
@@ -10,7 +10,7 @@ def _同快照(左,右):
     )#三字段
 
 def _活跃引用(投影):
-    """返回当前活跃 CAS 引用；目标未激活时为 None。投影为 dict 或 None。"""
+    '返回当前活跃 CAS 引用；目标未激活时为 None。投影为 dict 或 None'
     if 投影 is None:#无投影
         return None#无
     目标=投影['goal'] if 'goal' in 投影 else None#目标
@@ -24,7 +24,7 @@ def 创建目标激活源(依赖):
     """创建登记方私有的激活源。仅在有框架钩子观察时订阅，卸载即释放。
 
     依赖为 dict：projection / session / getGoal / subscribeActivation / subscribeReset。
-    返回带 getSnapshot/subscribe 的可观察快照源。
+    返回带 getSnapshot/subscribe 的可观察快照源
     """
     快照={}#当前快照
     订阅计数=0#订阅计数
@@ -37,7 +37,7 @@ def 创建目标激活源(依赖):
     监听集合=set()#监听集合
 
     def 发布(下一):
-        """发布新快照。"""
+        '发布新快照'
         nonlocal 快照#可变
         if _同快照(快照,下一):#无变化
             return#跳过
@@ -46,7 +46,7 @@ def 创建目标激活源(依赖):
             监听()#回调
 
     def 发起权威读(引用):
-        """发起权威读。"""
+        '发起权威读'
         nonlocal 读取代次#可变
         if 引用 is None:#无引用
             return#跳过
@@ -67,7 +67,7 @@ def 创建目标激活源(依赖):
         发布({'id':目标['id'],'revision':目标['revision'],'activation':目标['activation']})#写入激活
 
     def 刷新投影():
-        """投影刷新。"""
+        '投影刷新'
         nonlocal 投影代次#可变
         投影代次=投影代次+1#代次
         引用=_活跃引用(依赖['projection'].getSnapshot())#活跃
@@ -80,7 +80,7 @@ def 创建目标激活源(依赖):
         发起权威读(引用)#再权威读
 
     def 激活边沿(目标):
-        """激活边沿。目标为 dict 或 None。"""
+        '激活边沿。目标为 dict 或 None'
         nonlocal 事件代次,读取代次#可变
         事件代次=事件代次+1#代次
         读取代次=读取代次+1#作废在途读
@@ -90,7 +90,7 @@ def 创建目标激活源(依赖):
             发布({'id':目标['id'],'revision':目标['revision'],'activation':目标['activation']})#写入
 
     def 运行翻转():
-        """running 翻转。"""
+        'running 翻转'
         nonlocal 运行中#可变
         下一=依赖['session'].getSnapshot()#会话
         下一运行=下一['running'] if 'running' in 下一 else False#running
@@ -100,14 +100,14 @@ def 创建目标激活源(依赖):
         发起权威读(_活跃引用(依赖['projection'].getSnapshot()))#重读
 
     def 连接重置():
-        """连接重置。"""
+        '连接重置'
         nonlocal 事件代次,投影代次#可变
         事件代次=事件代次+1#代次
         投影代次=投影代次+1#代次
         发起权威读(_活跃引用(依赖['projection'].getSnapshot()))#重读
 
     def 开始():
-        """开始订阅。"""
+        '开始订阅'
         nonlocal 拆除器列表,运行中#可变
         拆除器列表=[#四路
             依赖['projection'].subscribe(刷新投影),#投影
@@ -120,7 +120,7 @@ def 创建目标激活源(依赖):
         刷新投影()#首刷
 
     def 停止():
-        """停止订阅。"""
+        '停止订阅'
         nonlocal 拆除器列表,读取代次#可变
         for 拆除 in 拆除器列表:#逐个
             拆除()#拆
@@ -128,18 +128,18 @@ def 创建目标激活源(依赖):
         读取代次=读取代次+1#作废在途读
 
     def 取快照():
-        """读当前快照。"""
+        '读当前快照'
         return 快照#快照
 
     def 订阅(监听):
-        """订阅变更；首订阅启动，末订阅停止。"""
+        '订阅变更；首订阅启动，末订阅停止'
         nonlocal 订阅计数#可变
         监听集合.add(监听)#登记
         if 订阅计数==0:#首订阅
             开始()#启动
         订阅计数=订阅计数+1#计数
         def 拆除订阅():
-            """去掉监听。"""
+            '去掉监听'
             nonlocal 订阅计数#可变
             监听集合.discard(监听)#删
             订阅计数=订阅计数-1#减

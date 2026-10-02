@@ -7,11 +7,11 @@ gzip魔术=(0x1f,0x8b)#gzip成员识别字节（RFC 1952 §2.3.1）
 引用字节数=8#拒绝正文时引用的字节数
 
 def 十六进制预览(字节序列):
-    """前若干字节的十六进制预览。"""
+    '前若干字节的十六进制预览'
     return ' '.join(f'{字节:02x}' for 字节 in 字节序列[:引用字节数])
 
 def 拒绝正文(来源,已读):
-    """构造非 gzip 成员正文的拒绝错误。"""
+    '构造非 gzip 成员正文的拒绝错误'
     读描述='an empty body' if len(已读)==0 else 十六进制预览(已读)
     return Exception(
         f'webworker image: {来源} is not the gzip-compressed tar this deployment serves as its image '
@@ -27,7 +27,7 @@ def 要求gzip成员(来源,块流):
         来源: 镜像 URL，或字节如何到达；拒绝时点名。
         块流: 产出字节块的可迭代。
     产出:
-        校验通过后的正文块。
+        校验通过后的正文块
     """
     头=b''
     已判定=False
@@ -53,7 +53,7 @@ def 流式解压镜像(正文流,来源):
         正文流: 镜像正文块可迭代，直接来自 fetch 或包住字节。
         来源: 镜像 URL，或字节如何到达；拒绝时点名。
     返回:
-        镜像携带的 ustar 归档。
+        镜像携带的 ustar 归档
     """
     已校验=b''.join(要求gzip成员(来源,正文流))
     return gzip.decompress(已校验)
@@ -67,7 +67,7 @@ def 解压镜像(字节序列,来源):
     参数:
         字节序列: 镜像字节。
     返回:
-        镜像携带的 ustar 归档。
+        镜像携带的 ustar 归档
     """
     if 字节序列 is None or len(字节序列)==0:
         raise 运行时错误(f'webworker image: {来源} produced no readable body')

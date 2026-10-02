@@ -1,4 +1,5 @@
 from ...ui_基础界面组件.按名排序 import 按名排序#名与标签排序
+from ....基础设施.通用工具 import 获取内部数据
 from .约定 import 命令错误#本包异常
 from .目录 import 命令目录#按会话键目录
 from .呈现 import 内置行面,分区行#内置行面与分区
@@ -7,7 +8,7 @@ from .解析 import 认领令牌#菜单点选拼写
 __all__=['命令UI运行时']#仅中文公开名
 
 def 已提交命令名(行):
-    """从宿主确认已执行的一行取出命令名（去前导斜杠）。"""
+    '从宿主确认已执行的一行取出命令名（去前导斜杠）'
     修剪=行.strip()#去空白
     空=None#空白下标
     序=0#扫描
@@ -20,16 +21,16 @@ def 已提交命令名(行):
     return 段[1:] if 段.startswith('/') else 段#去斜杠
 
 class 弹出选定控制器:#每会话弹出控制器
-    """consume / focusComposer / open / dispose。完整选项壳在 popup.ts。"""
+    'consume / focusComposer / open / dispose。完整选项壳在 popup.ts'
     def __init__(自身,消费,聚焦):
-        """记下消费与聚焦回调。"""
+        '记下消费与聚焦回调'
         自身.consume=消费#消费令牌
         自身.focusComposer=聚焦#聚焦
         自身.已开=False#是否打开
         自身.命令=None#当前命令名
 
     def open(自身,名,规格,会话,片段):
-        """打开弹出；记下打开时载荷。"""
+        '打开弹出；记下打开时载荷'
         自身.已开=True#开
         自身.命令=名#名
         自身.规格=规格#规格
@@ -37,19 +38,19 @@ class 弹出选定控制器:#每会话弹出控制器
         自身.片段=片段#片段
 
     def dispose(自身):
-        """拆除。"""
+        '拆除'
         自身.已开=False#关
         自身.命令=None
 
     def dismiss(自身):
-        """关掉弹出，不消费草稿。"""
+        '关掉弹出，不消费草稿'
         自身.已开=False#关
         自身.命令=None
 
 class 命令UI运行时:#CommandUiRuntime
-    """命令面：目录 + 「/」源 + 贡献/装饰 + 每会话弹出。"""
+    '命令面：目录 + 「/」源 + 贡献/装饰 + 每会话弹出'
     def __init__(自身,上下文):
-        """挂上 commandUi 并登记斜杠源。"""
+        '挂上 commandUi 并登记斜杠源'
         自身.ctx=上下文#上下文
         上下文.provide('commandUi',自身)#提供
         if 'locale' not in 上下文:#无
@@ -61,7 +62,7 @@ class 命令UI运行时:#CommandUiRuntime
         自身.弹出={}#binding → 控制器
         自身.弹出值=set()#强持控制器
         def 拉目录(会话标识):
-            """RPC 列命令；子智能体会话空表。"""
+            'RPC 列命令；子智能体会话空表'
             if 自身.sessions().subagentAddress(会话标识) is not None:#子
                 return []#空
             结果=上下文.remote.commands.list(会话标识)#列
@@ -74,9 +75,9 @@ class 命令UI运行时:#CommandUiRuntime
             raise 命令错误('ui-commands: 斜杠服务不可用')#失败
         触发=上下文['inputTriggers']#斜杠
         def 登记源():
-            """登记 '/' 源。"""
+            '登记 \'/\' 源'
             def 预热(会话):
-                """预热该会话目录。会话为 dict。"""
+                '预热该会话目录。会话为 dict'
                 自身.目录.warm(会话['sessionId'])#预热
             return 触发.registerSource({#源
                 'trigger':'/',#触发
@@ -89,70 +90,70 @@ class 命令UI运行时:#CommandUiRuntime
             })#源结束
         上下文.副作用(登记源,'command: slash source')#挂源
         def 目录变更(*位置参数):
-            """宿主目录变更。"""
+            '宿主目录变更'
             自身.目录.invalidateAll()#软失效
         def 预设选定(标识,*位置参数):
-            """智能体预设切换。"""
+            '智能体预设切换'
             自身.目录.resetSession(标识)#重置该会话
         def 连接重置(*位置参数):
-            """重连硬重置。"""
+            '重连硬重置'
             自身.目录.resetConnected()#重置已连接
-        上下文.remote.$on('commands/change',目录变更)#目录变更
-        上下文.remote.$on('agent-preset/selected',预设选定)#预设
+        获取内部数据(上下文.remote,'on')('commands/change',目录变更)#目录变更
+        获取内部数据(上下文.remote,'on')('agent-preset/selected',预设选定)#预设
         上下文.on('connection/reset',连接重置)#重连
 
     def sessions(自身):
-        """取会话服务。"""
+        '取会话服务'
         会话=自身.ctx.get('sessions')#会话
         if 会话 is None:#无
             raise 命令错误('ui-commands: sessions 服务不可用')#失败
         return 会话#会话
 
     def register(自身,贡献):
-        """登记客户端贡献；重名抛。贡献为 dict。"""
+        '登记客户端贡献；重名抛。贡献为 dict'
         名=贡献['name']#名
         def 挂():
-            """挂上。"""
+            '挂上'
             if 名 in 自身.贡献:#重
                 raise 命令错误('ui-commands: 重复贡献 /'+名)#抛
             自身.贡献[名]=贡献#记
             def 摘贡献():
-                """摘掉该贡献。"""
+                '摘掉该贡献'
                 自身.贡献.pop(名,None)#摘
             return 摘贡献
         拆=自身.ctx.副作用(挂,'command.register()')#挂
         def 拆贡献():
-            """拆副作用。"""
+            '拆副作用'
             拆()
         return 拆贡献
 
     def decorate(自身,装饰):
-        """挂宿主装饰；重名抛。装饰为 dict。"""
+        '挂宿主装饰；重名抛。装饰为 dict'
         名=装饰['name']#名
         def 挂():
-            """挂上。"""
+            '挂上'
             if 名 in 自身.装饰:#重
                 raise 命令错误('ui-commands: 重复装饰 /'+名)#抛
             自身.装饰[名]=装饰#记
             def 摘装饰():
-                """摘掉该装饰。"""
+                '摘掉该装饰'
                 自身.装饰.pop(名,None)#摘
             return 摘装饰
         拆=自身.ctx.副作用(挂,'command.decorate()')#挂
         def 拆装饰():
-            """拆副作用。"""
+            '拆副作用'
             拆()
         return 拆装饰
 
     def 解散(自身,名):
-        """关掉该命令已打开的弹出，不消费草稿；还焦编写器。"""
+        '关掉该命令已打开的弹出，不消费草稿；还焦编写器'
         for 控制器 in list(自身.弹出值):#逐绑定值
             if 控制器.命令==名:#同名
                 控制器.dismiss()#关
                 控制器.focusComposer()#还焦
 
     def popupFor(自身,作用域):
-        """解析每会话弹出控制器；须保留会话代次。"""
+        '解析每会话弹出控制器；须保留会话代次'
         会话面=自身.sessions()#会话服务
         会话=会话面.sessionOf(作用域) if hasattr(会话面,'sessionOf') else None#会话
         if 会话 is None and hasattr(会话面,'scopeOf'):#回退 id
@@ -168,11 +169,11 @@ class 命令UI运行时:#CommandUiRuntime
             return 自身.弹出[键]#复用
         绑上下文=绑定['ctx'] if isinstance(绑定,dict) else 绑定.ctx#绑定 ctx
         def 消费(片段):
-            """消费打开时令牌。片段为 dict。"""
+            '消费打开时令牌。片段为 dict'
             守卫={'kind':'span','span':片段['span']} if 片段['via']=='menu' else {'kind':'bare-token','token':片段['token']}#守卫
             return 绑上下文.bail(绑上下文,'slash/input-consume-token',{'guard':守卫}) is True#成败
         def 聚焦():
-            """经对话输入面聚焦。"""
+            '经对话输入面聚焦'
             if 'conversation' not in 绑上下文:#无
                 return None#停
             对话=绑上下文['conversation']#对话
@@ -181,19 +182,19 @@ class 命令UI运行时:#CommandUiRuntime
         自身.弹出[键]=控制器#挂
         自身.弹出值.add(控制器)#强持
         def 拆会话():
-            """会话拆除。"""
+            '会话拆除'
             控制器.dispose()
             自身.弹出.pop(键,None)#摘
             自身.弹出值.discard(控制器)#摘值
             def 空拆():
-                """副作用约定的拆除器。"""
+                '副作用约定的拆除器'
                 return None#无事
             return 空拆#空
         绑上下文.副作用(拆会话,'command: session popup')#挂
         return 控制器#交
 
     def 候选(自身,会话,请求):
-        """菜单候选：宿主 + 贡献，内置行本地化；空查询分区。"""
+        '菜单候选：宿主 + 贡献，内置行本地化；空查询分区'
         表=自身.目录.ensureReady(会话['sessionId'],请求['signal'] if 'signal' in 请求 else None)#目录
         行=[]#行
         已见=set()#名
@@ -231,7 +232,7 @@ class 命令UI运行时:#CommandUiRuntime
         return 按名排序(可见,请求['query'])#名与标签排序
 
     def 派发(自身,点选):
-        """菜单点选：贡献 invoke 或宿主路径。点选为 dict。"""
+        '菜单点选：贡献 invoke 或宿主路径。点选为 dict'
         名=点选['candidate']['name']#命令名
         会话=点选['session']#会话
         if 名 in 自身.贡献 and 自身.贡献[名]['available'](会话):#贡献可用
@@ -250,7 +251,7 @@ class 命令UI运行时:#CommandUiRuntime
         return 'handled'#已处理
 
     def 匹配空格(自身,会话,令牌):
-        """空格裁决：只有宿主 leadingInput 认领。"""
+        '空格裁决：只有宿主 leadingInput 认领'
         if 令牌.startswith('/') is False:#非命令
             return None#无
         键入=令牌[1:]#名
@@ -262,7 +263,7 @@ class 命令UI运行时:#CommandUiRuntime
         return {'claim':自身.前缀认领(描,会话,键入)}#认领
 
     def 匹配回车(自身,会话,行,信号,信封):
-        """回车裁决；键入令牌经本地化拼写解析。"""
+        '回车裁决；键入令牌经本地化拼写解析'
         修剪=行.strip()#修剪
         if 修剪.startswith('/') is False:#非
             return None#无
@@ -280,7 +281,7 @@ class 命令UI运行时:#CommandUiRuntime
             return None#无
         附件数=信封['attachments'] if 'attachments' in 信封 else 0#附件
         def 拒附件():
-            """拒收附件提交。"""
+            '拒收附件提交'
             raise 命令错误(自身.t('notice.attachmentsUnsupported',command=键入名))#拒
         if 键入名 in 自身.贡献 and 自身.贡献[键入名]['available'](会话):#贡献可用
             if 裸 is False:#有参
@@ -315,7 +316,7 @@ class 命令UI运行时:#CommandUiRuntime
         return 'handled'#已处理
 
     def invoke(自身,名,规格,会话,片段):
-        """贡献/装饰裸调用：action 消费令牌并 run；否则开弹出。"""
+        '贡献/装饰裸调用：action 消费令牌并 run；否则开弹出'
         if 规格['kind']=='action':#动作
             自身.经片段消费(会话['sessionId'],片段)#消费
             规格['run'](会话)#跑
@@ -326,7 +327,7 @@ class 命令UI运行时:#CommandUiRuntime
         自身.popupFor(作用).open(名,规格,会话,片段)#开弹出
 
     def 前缀认领(自身,描,会话,展示):
-        """leadingInput 认领。展示为草稿拼写；提交用目录名。"""
+        'leadingInput 认领。展示为草稿拼写；提交用目录名'
         令牌='/'+展示+' '#展示令牌
         行='/'+描['name']+' '#提交行
         认领={'name':描['name'],'token':令牌}#面
@@ -336,13 +337,13 @@ class 命令UI运行时:#CommandUiRuntime
         if 输入 is not None and 'attachments' in 输入 and 输入['attachments'] is True:#附件
             认领['attachments']=True#接受
         def 提交(参数,_作用=None,附件=()):
-            """提交 execute。"""
+            '提交 execute'
             return 自身.执行(会话,行+参数,附件)#执行
         认领['submit']=提交#提交
         return 认领#认领
 
     def 执行(自身,会话,行,附件=()):
-        """command.execute 事务。"""
+        'command.execute 事务'
         标识=会话['sessionId']#id
         结果=自身.ctx.remote.commands.execute(标识,行,附件)#RPC
         if 结果['ok'] is not True:#拒
@@ -357,11 +358,11 @@ class 命令UI运行时:#CommandUiRuntime
         return {'kind':'success'}#成功
 
     def 通知已执行(自身,会话标识,名,结果):
-        """发布本地回执。"""
+        '发布本地回执'
         自身.ctx.emit('command/executed',会话标识,名,结果)#回执
 
     def 经片段消费(自身,标识,片段):
-        """消费打开时令牌。"""
+        '消费打开时令牌'
         作用=自身.sessions().scope(标识)#作用域
         if 作用 is None:#无
             return#止
@@ -369,7 +370,7 @@ class 命令UI运行时:#CommandUiRuntime
         作用.bail(作用,'slash/input-consume-token',{'guard':守卫})#消费
 
     def 分离执行(自身,描,会话,行):
-        """裸宿主命令分离执行。"""
+        '裸宿主命令分离执行'
         try:#跑
             结局=自身.执行(会话,行,())#执行
         except 命令错误 as 错误:#调用失败
@@ -380,7 +381,7 @@ class 命令UI运行时:#CommandUiRuntime
             自身.提示(会话['sessionId'],'error',文)#提示
 
     def 提示(自身,标识,级别,文本):
-        """编写器提示。"""
+        '编写器提示'
         作用=自身.sessions().scope(标识)#作用域
         if 作用 is None:#无
             return#止

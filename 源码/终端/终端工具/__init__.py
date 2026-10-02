@@ -1,4 +1,4 @@
-"""登记六种面向模型的持久终端工具；所有者来自工具执行智能体，后台 id 与收集由任务层负责。"""
+'登记六种面向模型的持久终端工具；所有者来自工具执行智能体，后台 id 与收集由任务层负责'
 import threading#后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 已中止#中止入口；信号来自超时库
@@ -26,25 +26,25 @@ from .后台 import 发送源
 }#配置模式结束
 
 class 终端工具错误(Exception):#本包校验与组合失败
-    """终端工具入参或组合非法。"""
+    '终端工具入参或组合非法'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
-    """单次操作的 Future 包装，只留等待。"""
+    '单次操作的 Future 包装，只留等待'
     def __init__(自身):#构造未决任务
-        """构造未决任务。"""
+        '构造未决任务'
         自身.未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
+        '成功结算'
         if not 自身.未来.done():#尚未结算
             自身.未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
+        '失败结算'
         if not 自身.未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身.未来.set_exception(错误)#原样拒绝
@@ -52,7 +52,7 @@ class 操作任务:#单次操作结果
                 自身.未来.set_exception(终端工具错误(错误))#包装拒绝
 
     def 等待(自身,超时=None):#阻塞等待
-        """阻塞到结算。"""
+        '阻塞到结算'
         return 自身.未来.result(timeout=超时)#取结果或抛错
 
 会话状态模式={#会话状态模式
@@ -100,24 +100,24 @@ class 操作任务:#单次操作结果
 }#BACKGROUND_TASK_OUTPUT_SCHEMA结束
 
 def 要求智能体(智能体):#工具执行必须有智能体
-    """终端工具要求发起智能体。"""
+    '终端工具要求发起智能体'
     if 智能体 is None:#缺智能体
         raise 终端工具错误('terminal tools require an initiating agent')#拒绝缺智能体
     return 智能体#已确认
 
 def 会话标识(参数):#品牌化会话id
-    """把参数里的 sessionId 打成 TerminalSessionId。"""
+    '把参数里的 sessionId 打成 TerminalSessionId'
     标识=参数['sessionId']#取出会话id
     if not isinstance(标识,str) or len(标识)==0:#空字符串或非字符串
         raise 终端工具错误('sessionId must be a non-empty string')#拒绝空id
     return 终端会话标识(标识)#打上品牌
 
 def 文本结果(文本,最大字节):#封顶后做成文本块
-    """封顶后做成单块文本 ContentBlock。"""
+    '封顶后做成单块文本 ContentBlock'
     return [{'type':'text','text':封顶终端文本(文本,最大字节)}]#单块文本
 
 def 原文单文本(内容):#取出唯一文本块
-    """从权威 JSON 块数组取出唯一文本块正文。"""
+    '从权威 JSON 块数组取出唯一文本块正文'
     if 内容 is None or len(内容)!=1:#不是单块则放弃
         return None#放弃
     块=内容[0]#第一块
@@ -126,7 +126,7 @@ def 原文单文本(内容):#取出唯一文本块
     return None#非文本
 
 def 发送详情(结果):#后台任务详情
-    """把发送结算映射成任务 detail 字符串。"""
+    '把发送结算映射成任务 detail 字符串'
     会话状态=结果['sessionStatus']#会话状态
     if 会话状态['kind']=='running':#仍在运行
         return 'wait: '+str(结果['waitReason'])#等待原因
@@ -136,7 +136,7 @@ def 发送详情(结果):#后台任务详情
     return 'session exited: '+str(原因)#退出信息
 
 def 是非负安全整数(值):#外来JSON整型校验
-    """外来 JSON 入口：非负且落在 JS 安全整数范围；布尔先排除。"""
+    '外来 JSON 入口：非负且落在 JS 安全整数范围；布尔先排除'
     if isinstance(值,bool):#布尔不是数字
         return False#非法
     if isinstance(值,int):#整数
@@ -146,7 +146,7 @@ def 是非负安全整数(值):#外来JSON整型校验
     return False#其它类型
 
 def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说明
-    """登记全部终端工具与最少用法说明。"""
+    '登记全部终端工具与最少用法说明'
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True#是否启用后台
@@ -155,7 +155,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
         raise 终端工具错误('tool-terminal: maxResultBytes must be a safe integer of at least '+str(最小结果字节))#拒绝
     结果字节=int(结果字节)#收窄为整型
     def 收口内容(_执行,结果):#执行后封顶文本
-        """执行后封顶文本内容。"""
+        '执行后封顶文本内容'
         原文=原文单文本(结果['content'] if 'content' in 结果 else None)#取出原文
         if 原文 is None:#不能封顶
             return None#透传
@@ -167,7 +167,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     })#系统提示结束
 
     def 执行打开(参数,执行元数据):#执行打开
-        """创建持久、所有者隔离的终端会话。"""
+        '创建持久、所有者隔离的终端会话'
         类型=参数['type']#后端类型
         if not isinstance(类型,str) or len(类型)==0:#拒绝空类型
             raise 终端工具错误('type must be a non-empty string')#拒绝空类型
@@ -182,12 +182,12 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             执行元数据.signal,#工具取消
         )#带上工具取消
     def 呈现打开(参数):#调用卡片
-        """打开终端的通用卡片。"""
+        '打开终端的通用卡片'
         显示名=参数['name'] if 'name' in 参数 else None#可选显示名
         标题后缀=显示名 if 显示名 is not None else 参数['type']#名或类型
         return {'card':'generic','title':'Open terminal '+str(标题后缀),'kind':'execute'}#通用卡片
     def 渲染打开结果(_参数,值):#渲染打开结果
-        """渲染打开结果文本块。"""
+        '渲染打开结果文本块'
         return [{'type':'text','text':渲染打开(值,结果字节)}]#渲染打开结果
     上下文.tools.登记(定义工具({#登记打开工具
         'name':'terminal_open',#工具名
@@ -214,7 +214,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     }))#terminal_open结束
 
     def 执行发送(参数,执行元数据):#执行发送
-        """前台等待结算，或后台立刻返回任务 id。"""
+        '前台等待结算，或后台立刻返回任务 id'
         所有者=要求智能体(执行元数据.agent)#所有者
         标识=会话标识(参数)#会话id
         提交=True if 'submit' not in 参数 or 参数['submit'] is None else 参数['submit']#缺席默认提交
@@ -229,12 +229,12 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             文本=参数['text'] if 'text' in 参数 and 参数['text'] is not None else ''
             操作槽=[None]
             def 任务体():
-                """在通用任务层下拉起后台终端发送。"""
+                '在通用任务层下拉起后台终端发送'
                 操作=上下文.terminals.开始发送(所有者,标识,请求)
                 操作槽[0]=操作
                 结算=操作任务()
                 def 盯结算():
-                    """把发送结算映射成任务结局。"""
+                    '把发送结算映射成任务结局'
                     try:
                         结果=操作.done.等待()
                         结算.兑现({'status':'killed' if 取消请求[0] else 'completed','detail':发送详情(结果)})
@@ -244,7 +244,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
                 工作.daemon=True
                 工作.start()
                 def 取消():
-                    """请求打断后台发送。"""
+                    '请求打断后台发送'
                     取消请求[0]=True
                     操作.取消()
                 return {'cancel':取消,'done':结算}
@@ -265,14 +265,14 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             raise 终端工具错误('terminal send aborted')#工具已取消
         return {'kind':'foreground',**结果}#前台结果
     def 渲染发送结果(_参数,值):#渲染发送结果
-        """后台报任务 id，前台渲染视口。"""
+        '后台报任务 id，前台渲染视口'
         if 值['kind']=='background':#后台
             文本='started background job '+str(值['jobId'])#任务id
         else:#前台
             文本=渲染发送(值,结果字节)#前台视口
         return [{'type':'text','text':文本}]#文本块
     def 发送呈现元(_参数,值):#前台才给元数据
-        """前台才给元数据；后台为 null。"""
+        '前台才给元数据；后台为 null'
         if 值['kind']!='foreground':#后台无元数据
             return None#无元数据
         return {#前台元数据
@@ -282,7 +282,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             'truncated':值['truncated'],#是否截断
         }#元数据结束
     def 呈现发送(参数):#调用卡片
-        """后台用通用卡，前台用终端卡。"""
+        '后台用通用卡，前台用终端卡'
         if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#后台
             return {#通用卡片
                 'card':'generic',#通用
@@ -297,7 +297,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             'description':'Terminal '+str(参数['sessionId']),#描述
         }#前台卡片结束
     def 呈现发送结果(参数,结果):#结果卡片
-        """后台或错误不渲染；否则终端输出卡。"""
+        '后台或错误不渲染；否则终端输出卡'
         if ('run_in_background' in 参数 and 参数['run_in_background'] is True) or ('isError' in 结果 and 结果['isError']):#后台或错误
             return None#不渲染
         原文=原文单文本(结果['content'] if 'content' in 结果 else None)#取出文本
@@ -351,7 +351,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     }))#terminal_send结束
 
     def 执行读取(参数,执行元数据):#执行读取
-        """读回滚页，不发送输入。"""
+        '读回滚页，不发送输入'
         请求={}#回滚请求
         if 'offset' in 参数 and 参数['offset'] is not None:#有偏移则带上
             偏移=参数['offset']#相对最新偏移
@@ -369,10 +369,10 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             请求,#回滚请求
         )#读取结束
     def 渲染读取结果(_参数,值):#渲染读取结果
-        """渲染读取结果文本块。"""
+        '渲染读取结果文本块'
         return [{'type':'text','text':渲染读取(值,结果字节)}]#渲染读取结果
     def 呈现读取(参数):#调用卡片
-        """读取终端的通用卡片。"""
+        '读取终端的通用卡片'
         return {'card':'generic','title':'Read terminal '+str(参数['sessionId']),'kind':'read','rawInput':参数}#调用卡片
     上下文.tools.登记(定义工具({#登记读取工具
         'name':'terminal_read',#工具名
@@ -402,17 +402,17 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     }))#terminal_read结束
 
     def 执行信号(参数,执行元数据):#执行发信号
-        """投递允许的信号到前台进程组。"""
+        '投递允许的信号到前台进程组'
         return 上下文.terminals.发信号(#交给注册表
             要求智能体(执行元数据.agent),#所有者
             会话标识(参数),#会话id
             参数['signal'],#信号名
         )#发信号结束
     def 渲染信号结果(参数,值):#渲染投递结果
-        """渲染信号投递结果。"""
+        '渲染信号投递结果'
         return [{'type':'text','text':'delivered '+str(参数['signal'])+' to foreground process group '+str(值['targetPgid'])}]#渲染投递结果
     def 呈现信号(参数):#调用卡片
-        """发信号的通用卡片。"""
+        '发信号的通用卡片'
         return {'card':'generic','title':'Signal terminal '+str(参数['sessionId']),'kind':'execute','rawInput':参数}#调用卡片
     上下文.tools.登记(定义工具({#登记信号工具
         'name':'terminal_signal',#工具名
@@ -438,7 +438,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     }))#terminal_signal结束
 
     def 执行关闭(参数,执行元数据):#执行关闭
-        """关闭一次已拥有会话并等待进程树消失。"""
+        '关闭一次已拥有会话并等待进程树消失'
         标识=会话标识(参数)#会话id
         已关闭=上下文.terminals.关闭(#关闭
             要求智能体(执行元数据.agent),#所有者
@@ -449,14 +449,14 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             'outcome':'closed' if 已关闭 else 'already-closing',#关闭结局
         }#返回结局
     def 渲染关闭结果(_参数,值):#渲染关闭结果
-        """渲染关闭结果文本块。"""
+        '渲染关闭结果文本块'
         if 值['outcome']=='closed':#新关闭
             文本='closed terminal session '+str(值['sessionId'])#已关闭
         else:#已在关闭
             文本='terminal session '+str(值['sessionId'])+' was already closing'#已在关闭
         return [{'type':'text','text':文本}]#文本块
     def 呈现关闭(参数):#调用卡片
-        """关闭终端的通用卡片。"""
+        '关闭终端的通用卡片'
         return {'card':'generic','title':'Close terminal '+str(参数['sessionId']),'kind':'delete'}#调用卡片
     上下文.tools.登记(定义工具({#登记关闭工具
         'name':'terminal_close',#工具名
@@ -481,15 +481,15 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
     }))#terminal_close结束
 
     def 执行列表(_参数,执行元数据):#执行列出
-        """列出本所有者快照。"""
+        '列出本所有者快照'
         return 上下文.terminals.列出(#本所有者快照
             要求智能体(执行元数据.agent),#所有者
         )#列出结束
     def 渲染列表结果(_参数,值):#渲染列表
-        """渲染会话列表文本块。"""
+        '渲染会话列表文本块'
         return [{'type':'text','text':渲染列表(值,结果字节)}]#渲染列表
     def 呈现列表():#调用卡片
-        """列出会话的通用卡片。"""
+        '列出会话的通用卡片'
         return {'card':'generic','title':'List terminal sessions','kind':'read'}#调用卡片
     上下文.tools.登记(定义工具({#登记列表工具
         'name':'terminal_list',#工具名

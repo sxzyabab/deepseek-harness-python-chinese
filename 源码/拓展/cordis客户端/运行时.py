@@ -17,11 +17,11 @@ __all__=[
 运行器环境字段=('ctx','loader','modules','slots','invoke','reportRenderFailure','reportGuardFailure')#RunnerEnv
 
 def 模块标识(插件标识):#模块/入口 id
-    """dyn/<pluginId>。"""
+    'dyn/<pluginId>'
     return f'dyn/{插件标识}'#前缀
 
 def 错误字段(错误):#抽取错误字段
-    """保住 message 与可选 stack。"""
+    '保住 message 与可选 stack'
     if not isinstance(错误,(dict,BaseException)) and not hasattr(错误,'message'):#非对象
         return {'message':str(错误)}#串
     if isinstance(错误,dict):#映射
@@ -39,7 +39,7 @@ def 错误字段(错误):#抽取错误字段
     return 出#字段
 
 def 渲染失败消息(槽,消息):#渲染崩溃教学
-    """槽加崩溃；点名被扣全局则追加重定向。"""
+    '槽加崩溃；点名被扣全局则追加重定向'
     重定向=None#文
     for 名,文 in 客户端重定向.items():#每条
         if 名 in 消息 and 文 not in 消息:#点名且未带
@@ -49,45 +49,45 @@ def 渲染失败消息(槽,消息):#渲染崩溃教学
     return 基 if 重定向 is None else 基+'\n'+重定向#拼
 
 def 成功结果(运行标识,等待=None):#成功加载
-    """已结算结果。"""
+    '已结算结果'
     出={'ok':True,'pluginRunId':运行标识}#成功
     if 等待:#停等
         出['waitingFor']=list(等待)#带
     return 出#结果
 
 def 可索引组件(组件):#能否当认领键
-    """对象实例可认领；标量不可。"""
+    '对象实例可认领；标量不可'
     return 组件 is not None and not isinstance(组件,(str,bytes,int,float,bool))#对象
 
 class 可观察:#快照源
-    """getSnapshot + subscribe。"""
+    'getSnapshot + subscribe'
     def __init__(自身,读快照):#构造
-        """记下读函数。"""
+        '记下读函数'
         自身._读=读快照#读
         自身._听=set()#订阅者
 
     def getSnapshot(自身):#读
-        """当前值。"""
+        '当前值'
         return 自身._读()#读
 
     def subscribe(自身,函数):#订阅
-        """返回退订。"""
+        '返回退订'
         自身._听.add(函数)#加
         def 退():#退订
-            """拿掉。"""
+            '拿掉'
             自身._听.discard(函数)#删
         return 退#拆除器
 
     def 通知(自身):#广播
-        """通知全部。"""
+        '通知全部'
         for 函数 in list(自身._听):#逐个
             函数()#唤
 
 class 现场包投影:#DynamicCordisLivePackage
-    """从记账投影只读行。"""
+    '从记账投影只读行'
     @staticmethod
     def 从记账(记账):#投影
-        """pkg + ledger + styles → 行。"""
+        'pkg + ledger + styles → 行'
         包=记账.get('pkg') or {}#包
         账本=记账.get('ledger') or []#账本
         样式=记账.get('styles')#样式
@@ -114,9 +114,9 @@ class 现场包投影:#DynamicCordisLivePackage
         }#结束
 
 class 包运行器记账:#页本地现场表（无 Loader mount）
-    """live/queues/failures/owners/priority；mount 本体仍需浏览器。"""
+    'live/queues/failures/owners/priority；mount 本体仍需浏览器'
     def __init__(自身,环境=None):#构造
-        """可选 env：挂载钩子 / 报告钩子。"""
+        '可选 env：挂载钩子 / 报告钩子'
         自身.环境=环境 or {}#环境
         自身.现场={}#pluginId → 记账
         自身.失败={}#pluginId → 渲染失败
@@ -128,31 +128,31 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         自身._失败缓存=None#失败快照缓存
 
     def subscribe(自身,函数):#订阅
-        """退订器。"""
+        '退订器'
         自身._听.add(函数)#加
         def 退():#退
-            """拿掉。"""
+            '拿掉'
             自身._听.discard(函数)#删
         return 退#器
 
     def _通知(自身):#广播
-        """清缓存并通知。"""
+        '清缓存并通知'
         自身._快照缓存=None#失效
         自身._失败缓存=None#失效
         for 函数 in list(自身._听):#逐个
             函数()#唤
 
     def 分配优先级(自身):
-        """后登记更前；先递减再返回（首调为 -1）。"""
+        '后登记更前；先递减再返回（首调为 -1）'
         自身.下一优先级-=1#递减
         return 自身.下一优先级#名次
 
     def _入队(自身,标识,操作):#enqueue：Promise 串队的同步等价
-        """接在该包先前操作之后；先前成败吞掉，不堵后续；链接可幂等重读。"""
+        '接在该包先前操作之后；先前成败吞掉，不堵后续；链接可幂等重读'
         上一=自身.队列尾.get(标识)#上一尾
         态={'done':False,'value':None,'error':None}#本环缓存
         def 链接():#一次包操作
-            """落定后可重入只回缓存。"""
+            '落定后可重入只回缓存'
             if 态['done']:#已跑
                 if 态['error'] is not None:#曾失败
                     raise 态['error']#原错
@@ -174,7 +174,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         return 链接()#启动本环
 
     def 认领(自身,组件,插件标识,运行标识,会话标识):#claim 组件
-        """身份即键；标量跳过。"""
+        '身份即键；标量跳过'
         if not 可索引组件(组件):#不可
             return#停
         自身.所有者[id(组件)]={#记所有者
@@ -184,7 +184,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         }#结束
 
     def 处理入口崩溃(自身,槽,入口,错误,信息):#onEntryError 半
-        """只报告本运行器认领过的组件。"""
+        '只报告本运行器认领过的组件'
         组件=(入口 or {}).get('component') if isinstance(入口,dict) else getattr(入口,'component',None)#组件
         主=自身.所有者.get(id(组件)) if 可索引组件(组件) else None#所有者
         if 主 is None:#不是我们的
@@ -204,17 +204,17 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         自身._通知()#通知
 
     def getSnapshot(自身):#现场快照
-        """投影行；两次变更间引用稳定。"""
+        '投影行；两次变更间引用稳定'
         if 自身._快照缓存 is None:#惰性
             自身._快照缓存=[现场包投影.从记账(记) for 记 in 自身.现场.values()]#投影
         return 自身._快照缓存#缓存
 
     def isLoaded(自身,插件标识):#是否已加载
-        """表里有。"""
+        '表里有'
         return 插件标识 in 自身.现场#有
 
     def _拆掉(自身,插件标识):#teardown 记账半（无 Loader）
-        """清现场、样式记账与失败。"""
+        '清现场、样式记账与失败'
         现=自身.现场.pop(插件标识,None)#拿掉
         自身.失败.pop(插件标识,None)#清崩溃
         if 现 is None:#无
@@ -224,7 +224,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
             样式.拆除全部()#清 CSS 记账
 
     def _加载体(自身,半边):#load 体（串队内）
-        """同一运行空操作；另一运行先拆；无 mount 钩则只登记骨架（非冒充 Loader）。"""
+        '同一运行空操作；另一运行先拆；无 mount 钩则只登记骨架（非冒充 Loader）'
         插件标识=半边['pluginId']#插件
         现=自身.现场.get(插件标识)#现有
         if 现 is not None:#已有
@@ -256,13 +256,13 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         return 成功结果(半边['pluginRunId'])#骨架成功
 
     def load(自身,半边):#加载：按插件串队
-        """排队加载；重入接尾而非抛。"""
+        '排队加载；重入接尾而非抛'
         return 自身._入队(半边['pluginId'],lambda:自身._加载体(半边))#串队
 
     def retract(自身,插件标识,运行标识):#收回：亦串队
-        """匹配运行则拆掉。"""
+        '匹配运行则拆掉'
         def 体():#串队内
-            """匹配则拆。"""
+            '匹配则拆'
             现=自身.现场.get(插件标识)#现有
             if 现 is None:#无
                 return#停
@@ -275,7 +275,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
 
 
     def dispose(自身):#拆除全部
-        """插件拆除路径。"""
+        '插件拆除路径'
         for 标识 in list(自身.现场.keys()):#每个
             自身._拆掉(标识)#拆
         自身.所有者.clear()#清认领
@@ -283,9 +283,9 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
 
     @property
     def renderFailures(自身):#渲染失败可观察
-        """可观察面。"""
+        '可观察面'
         def 读():#惰性快照
-            """失败图。"""
+            '失败图'
             if 自身._失败缓存 is None:#惰性
                 自身._失败缓存=dict(自身.失败)#拷
             return 自身._失败缓存#缓存

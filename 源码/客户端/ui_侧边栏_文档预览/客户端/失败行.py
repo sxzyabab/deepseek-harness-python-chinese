@@ -3,7 +3,7 @@ __all__=['人读字节','失败行']#仅中文公开名
 
 
 def 人读字节(字节数):
-    """按人可读方式渲染字节数。"""
+    '按人可读方式渲染字节数'
     if 字节数>=1024*1024:#兆
         return str(round(字节数/(1024*1024)))+' MB'
     if 字节数>=1024:#千
@@ -12,7 +12,7 @@ def 人读字节(字节数):
 
 
 def 失败行(翻译,失败):
-    """用文件口吻而非传输口吻说明出错原因。失败为跨包 RemoteFailure dict。"""
+    '用文件口吻而非传输口吻说明出错原因。失败为跨包 RemoteFailure dict'
     码=失败['code'] if 'code' in 失败 else None#错误码
     if 码=='workspace-file/not-found':#不存在
         return 翻译('error.notFound')

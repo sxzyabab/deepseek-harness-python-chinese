@@ -1,8 +1,8 @@
-"""原生 V4 开发者消息与推迟工具模式校验。"""
+'原生 V4 开发者消息与推迟工具模式校验'
 from ..会话格式 import 会话格式错误,是否会话格式json对象,会话格式计数#从会话格式导入
 
 def 断言工具变更(块,开发者):#断言工具增删块
-    """校验 tool-addition / tool-removal 块。"""
+    '校验 tool-addition / tool-removal 块'
     if not 是否会话格式json对象(块) or 块.get('type') not in ('tool-addition','tool-removal'):#非变更块
         return#返回
     if not 开发者:#须开发者角色
@@ -13,13 +13,13 @@ def 断言工具变更(块,开发者):#断言工具增删块
         raise 会话格式错误('format v4 tool-addition must omit inline tool definitions')#错误
 
 def 断言内容(值,开发者=False):#断言内容中的工具变更
-    """走访内容数组上的工具变更块。"""
+    '走访内容数组上的工具变更块'
     if isinstance(值,list):#数组
         for 块 in 值:#逐块
             断言工具变更(块,开发者)#断言
 
 def 断言开发者消息(消息):#断言开发者消息
-    """校验开发者消息身份、内容与生产者来源。"""
+    '校验开发者消息身份、内容与生产者来源'
     断言内容(消息.get('content'),True)#内容须开发者
     来源=消息.get('source')#来源
     if (not isinstance(消息.get('id'),str) or len(消息['id'])==0
@@ -28,7 +28,7 @@ def 断言开发者消息(消息):#断言开发者消息
         raise 会话格式错误('format v4 developer message requires id, role, content, and a producer-owned source')#错误
 
 def 断言普通消息(值):#断言普通消息
-    """普通消息损坏交给解码器；此处拒绝已识别的仅 V4 值。"""
+    '普通消息损坏交给解码器；此处拒绝已识别的仅 V4 值'
     if not 是否会话格式json对象(值):#非对象
         return#返回
     if 值.get('role')=='developer':#角色与事件类型须同时出现
@@ -36,7 +36,7 @@ def 断言普通消息(值):#断言普通消息
     断言内容(值.get('content'))#内容
 
 def 断言v4开发者数据(事件):#断言v4开发者数据
-    """校验原生 V4 开发者消息、工具变更块与推迟工具模式。"""
+    '校验原生 V4 开发者消息、工具变更块与推迟工具模式'
     数据=事件.get('data')#载荷
     if not 是否会话格式json对象(数据):#非对象
         if 事件.get('type')=='developer/message':#开发者须对象

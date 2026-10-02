@@ -1,4 +1,4 @@
-"""流式提升系统提示词，随后做规范 V3 信封转换。"""
+'流式提升系统提示词，随后做规范 V3 信封转换'
 import hashlib,json#哈希与身份材料
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
@@ -12,7 +12,7 @@ from .引用 import 重映射事件#从引用导入
 from .校验 import 断言已发布v3头#从校验导入
 
 def 迁移头(头):#迁移头
-    """把已发布 v2 头提升为 v3，并重命名 code 预设。"""
+    '把已发布 v2 头提升为 v3，并重命名 code 预设'
     断言已发布v2头(头)#断言v2头
     结果={**头,'version':3}#升版本
     if 头.get('agentPreset')=='code':#重命名预设
@@ -20,7 +20,7 @@ def 迁移头(头):#迁移头
     return 结果#返回
 
 def 创建阶段(输入):#创建阶段
-    """创建已发布 v2 到 v3 迁移阶段。"""
+    '创建已发布 v2 到 v3 迁移阶段'
     return 已发布v2到v3阶段(输入)#创建
 
 #提升系统提示词、重映射经审计的引用，并规范化信封与 PTC 词汇。
@@ -34,9 +34,9 @@ def 创建阶段(输入):#创建阶段
 })#会话格式v2到v3结束
 
 class 已发布v2到v3阶段:#已发布v2到v3阶段
-    """有状态体阶段：插入系统头、重映射引用、规范化信封。"""
+    '有状态体阶段：插入系统头、重映射引用、规范化信封'
     def __init__(自身,输入):#构造
-        """记下输入并初始化稠密序号与切口状态。"""
+        '记下输入并初始化稠密序号与切口状态'
         自身.输入=输入#输入
         自身.headerInheritedEventCount=None#头继承事件数
         自身.映射=[]#源到目标序号映射
@@ -57,7 +57,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
             自身.headerInheritedEventCount=0#非种子公开0
 
     def transformEvent(自身,事件,上下文):#转换事件
-        """转换一条源事件并同步发出已落定目标项。"""
+        '转换一条源事件并同步发出已落定目标项'
         if 事件['seq']!=len(自身.映射):#须稠密
             raise 会话格式错误('format v2 source events must be dense')#错误
         断言事件(事件,2)#断言源事件
@@ -97,12 +97,12 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
             自身.步骤=None#关闭步骤
 
     def transformRun(自身,游程,上下文):#转换游程
-        """展开游程并逐事件转换。"""
+        '展开游程并逐事件转换'
         for 事件 in 游程.expand():#展开逐事件转换
             自身.transformEvent(事件,上下文)#转换
 
     def finish(自身,_上下文):#完成
-        """校验切口与投递标记，返回目标继承事件数。"""
+        '校验切口与投递标记，返回目标继承事件数'
         切割=会话格式计数(自身.源切口,'format v2 inherited end-seed marker')#源切口
         源继承=自身.输入['sourceInheritedEventCount']#输入切口
         if 源继承 is not None and 源继承!=切割:#与输入切口不符
@@ -114,7 +114,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
         return 会话格式计数(自身.目标切口,'format v3 inherited event count')#返回目标切口
 
     def 观察消息标识(自身,事件):#观察消息标识
-        """登记源消息标识并拒绝与生成标识冲突。"""
+        '登记源消息标识并拒绝与生成标识冲突'
         数据=记录(事件['data'],事件['type'])#载荷
         if 事件['type']=='user/message':#用户消息
             消息列表=[数据]#单条
@@ -134,7 +134,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
             自身.源标识.add(标识)#记入源标识
 
     def 发出系统(自身,提示词,锚点,上下文):#发出系统消息
-        """在开放步骤内插入或替换系统头节点。"""
+        '在开放步骤内插入或替换系统头节点'
         if 自身.步骤 is None:#无开放步骤
             raise 会话格式不支持迁移错误('format v2 changed request prompt outside an open step cannot retain source chronology')#拒绝
         身份材料=json.dumps(#合成身份材料
@@ -169,7 +169,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
         自身.提示词=提示词#更新提示词
 
 def 重命名ptc事件(事件):#重命名PTC事件
-    """源准入先于重命名，因此这些载荷具有精确的经审计字段。"""
+    '源准入先于重命名，因此这些载荷具有精确的经审计字段'
     类型=事件['type']#类型
     if 类型=='agent-preset/selected':#预设选择
         数据=事件['data']#载荷
@@ -195,7 +195,7 @@ def 重命名ptc事件(事件):#重命名PTC事件
     return 事件#原样
 
 def 重命名消息来源(消息):#重命名消息插件来源
-    """把 tools-code-mode 插件来源改为 tools-ptc。"""
+    '把 tools-code-mode 插件来源改为 tools-ptc'
     来源=消息['source']#来源
     if 来源.get('kind')!='plugin' or 来源.get('plugin')!='tools-code-mode':#非目标插件
         return 消息#原样

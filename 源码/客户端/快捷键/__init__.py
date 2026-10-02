@@ -1,4 +1,4 @@
-"""窗口级键盘序列的 Host 配置注入。"""
+'窗口级键盘序列的 Host 配置注入'
 from ...依赖.schemastery import 自然数字段,字典字段
 from .协议 import (#协议再导出
     键名表,
@@ -38,16 +38,16 @@ __all__=[#仅中文公开名
 })
 
 def 解析快捷键配置(原始):
-    """收成带默认值的注入载荷。"""
+    '收成带默认值的注入载荷'
     表={} if 原始 is None else dict(原始)#表
     毫秒=表['stopSequenceMs'] if 'stopSequenceMs' in 表 and 表['stopSequenceMs'] is not None else 默认中止序列毫秒#间隔
     return {'stopSequenceMs':毫秒}#载荷
 
 def 应用(上下文,配置值=None):
-    """把已校验的键盘时序写入页面初始化表。"""
+    '把已校验的键盘时序写入页面初始化表'
     已解析=解析快捷键配置(配置值)#解析
     def 注入(表):
-        """追加一条全局注入。"""
+        '追加一条全局注入'
         表.append({'kind':'global','name':快捷键配置全局键,'value':已解析})#注入
     上下文.监听('webserver/index-inject',注入)#登记
 

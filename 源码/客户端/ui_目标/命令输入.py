@@ -1,20 +1,20 @@
 __all__=['目标错误','目标命令文本','目标命令输入定义']#仅中文公开名
 
 class 目标错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 def 目标命令文本(事件):#从 command/run 拼可见命令行
-    """去掉解析器尾随空白后的命令文本。"""
+    '去掉解析器尾随空白后的命令文本'
     数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#事件数据
     参数=数据['args'] if 'args' in 数据 and 数据['args'] is not None else ''#参数
     名=数据['name'] if 'name' in 数据 else None#命令名
     return f"/{名}{str(参数).rstrip()}"#斜杠+名+去尾空白参数
 
 def 匹配(事件):#是否认作 /goal 的 command/run
-    """对不上返回 None。"""
+    '对不上返回 None'
     if 事件['type']!='command/run':#非命令运行
         return None#忽略
     数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
@@ -23,7 +23,7 @@ def 匹配(事件):#是否认作 /goal 的 command/run
     return {'id':str(数据['commandId']),'role':'start'}#开节点
 
 def 起始(上下文,匹配结果):#用 command/run 建折叠状态
-    """开节点必须是 command/run。"""
+    '开节点必须是 command/run'
     事件=匹配结果['event'] if 'event' in 匹配结果 else None#事件
     if 事件 is None or 事件['type']!='command/run':#必须
         raise 目标错误('goal-command-input start requires command/run')#起始必须是 command/run
@@ -36,11 +36,11 @@ def 起始(上下文,匹配结果):#用 command/run 建折叠状态
     }#状态结束
 
 def 更新(上下文):#无后续事件
-    """状态原样返回。"""
+    '状态原样返回'
     return 上下文['state'] if 'state' in 上下文 else None#原样
 
 def 建视图节点(上下文):#投影聊天节点
-    """尚无状态则不发表。"""
+    '尚无状态则不发表'
     状态=上下文['state'] if 'state' in 上下文 else None#状态
     if 状态 is None:#无
         return None#不发表

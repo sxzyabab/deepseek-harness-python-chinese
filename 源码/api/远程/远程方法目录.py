@@ -1,10 +1,4 @@
-"""所选 Remote 贡献的方法目录与贡献对象。
-
-挂载序：agentPresets → commands → settings →
-goals → llm → dynamic → plugin-inventory → message-feedback → session-feedback →
-file-uploads → session-reference → subagents → session → workspace → workspaceFiles。
-完整 InvocationDescriptor 见各叶包 `远程.py`。
-"""
+'所选 Remote 贡献的方法目录与贡献对象'
 from ...预设.智能体预设.远程 import 远程贡献表 as 智能体预设远程#agent-presets
 from ...交互.命令.远程 import 远程贡献表 as 命令远程#commands
 from ...api.设置控制器.远程 import 远程贡献表 as 设置控制器远程#settings
@@ -225,7 +219,7 @@ __all__=['所选远程目录','包名元组','导出名元组','所选远程贡�
 )#贡献结束
 
 def 核对目录与贡献():#目录方法数与贡献描述符数对齐
-    """返回 [(package, 目录方法数, 描述符数), ...]；不一致时仍返回事实供调用方断言。"""
+    '返回 [(package, 目录方法数, 描述符数), ...]；不一致时仍返回事实供调用方断言'
     出=[]#结果
     for 项 in 所选远程目录:#逐包
         贡献=项['contribution']#贡献

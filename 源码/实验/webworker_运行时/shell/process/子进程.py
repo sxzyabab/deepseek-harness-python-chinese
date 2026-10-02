@@ -5,18 +5,18 @@ from ..文件系统访问 import 文件系统错误#FS错误构造
 __all__=['运行shell进程']#仅中文公开名
 
 def 运行shell进程(启动,作用域):#运行进程命令
-    """将运行一条命令作为本 worker 的全部用途，然后关闭。"""
+    '将运行一条命令作为本 worker 的全部用途，然后关闭'
     待回复={}#待回复调用
     终止=壳中止信号()#终止信号面
     下一调用=[0]#下一调用id
     锁=线程.Lock()#保护待回复
 
     def 中止(原因=None):#触发取消
-        """置位终止信号。"""
+        '置位终止信号'
         终止.中止()#置位
 
     def 收消息(事件):#监听宿主消息
-        """处理宿主帧。"""
+        '处理宿主帧'
         帧=事件.data#MessageEvent 对象载荷
         if not isinstance(帧,dict):#非字典
             return#忽略
@@ -40,7 +40,7 @@ def 运行shell进程(启动,作用域):#运行进程命令
     作用域['addEventListener']('message',收消息)#监听宿主消息
 
     def 调用(操作,参数):#发FS调用
-        """发调用并阻塞等回复。"""
+        '发调用并阻塞等回复'
         下一调用[0]+=1#分配id
         标识=下一调用[0]#本次id
         事件=线程.Event()#等待事件
@@ -54,25 +54,25 @@ def 运行shell进程(启动,作用域):#运行进程命令
         return 等待['result']#成功值
 
     def 远程stat(路径):#远程stat
-        """stat。"""
+        'stat'
         return 调用('stat',[路径])#调用
     def 远程list(路径):#远程list
-        """list。"""
+        'list'
         return 调用('list',[路径])#调用
     def 远程读文本(路径):#远程读文本
-        """读文本。"""
+        '读文本'
         return 调用('readText',[路径])#调用
     def 远程写文本(路径,文本,追加=False):#远程写
-        """写文本。"""
+        '写文本'
         调用('writeText',[路径,文本,追加])#调用
     def 远程mkdir(路径,递归):#远程mkdir
-        """mkdir。"""
+        'mkdir'
         调用('mkdir',[路径,递归])#调用
     def 远程remove(路径,选项):#远程remove
-        """remove。"""
+        'remove'
         调用('remove',[路径,选项])#调用
     def 远程rename(源,目标):#远程rename
-        """rename。"""
+        'rename'
         调用('rename',[源,目标])#调用
 
     文件系统={#消息后端FS
@@ -86,7 +86,7 @@ def 运行shell进程(启动,作用域):#运行进程命令
     }#fs结束
 
     def 输出回调(流,文本):#转发输出
-        """写入时即转发。"""
+        '写入时即转发'
         作用域['postMessage']({'t':'shell-out','stream':流,'text':文本})#转发
 
     选项={#运行选项

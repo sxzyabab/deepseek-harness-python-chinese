@@ -1,4 +1,4 @@
-"""工作区命令实现与稳定 Remote 失败映射。"""
+'工作区命令实现与稳定 Remote 失败映射'
 import threading#串行锁
 from .远程错误与中止 import 远程错误,远程错误消息#远程错误
 from .提要 import 工作区视图#投影
@@ -6,20 +6,20 @@ from .提要 import 工作区视图#投影
 __all__=['工作区命令','工作区未找到']#仅中文公开名
 
 def 工作区未找到(工作区标识):#构造 not-found
-    """稳定 workspace/not-found 失败。"""
+    '稳定 workspace/not-found 失败'
     return 远程错误('workspace/not-found','Workspace "'+str(工作区标识)+'" not found',{'workspaceId':工作区标识})
 
 class 工作区命令:#工作区变更实现
-    """对权威注册表执行工作区变更。"""
+    '对权威注册表执行工作区变更'
 
     def __init__(自身,上下文,工作区标识函数):#构造
-        """保存上下文与品牌化函数。"""
+        '保存上下文与品牌化函数'
         自身._上下文=上下文#Cordis
         自身._锁=threading.Lock()#串行锁
         自身._工作区标识=工作区标识函数#品牌化
 
     def create(自身,请求):#创建或解析
-        """在目录上创建或幂等解析工作区。请求为线协议 dict。"""
+        '在目录上创建或幂等解析工作区。请求为线协议 dict'
         with 自身._锁:#串行
             try:#解析或创建
                 已有=自身._上下文.workspaceRegistry.resolveByPath(请求['path'])#按路径
@@ -33,7 +33,7 @@ class 工作区命令:#工作区变更实现
                 raise 远程错误('workspace/invalid-path','cannot create a Workspace at "'+str(请求['path'])+'": '+远程错误消息(错误),{'path':请求['path']},原因=错误)#映射
 
     def rename(自身,请求):#重命名
-        """重命名工作区。"""
+        '重命名工作区'
         标题=str(请求['title'] if 'title' in 请求 and 请求['title'] is not None else '').strip()#去空白
         if 标题=='':#空白
             raise 远程错误('gateway/bad-request','Workspace rename requires a non-blank title',{})#拒绝
@@ -47,14 +47,14 @@ class 工作区命令:#工作区变更实现
             return {'workspace':工作区视图(工作区)}#返回
 
     def delete(自身,请求):#删除
-        """移除注册，不删目录与会话。"""
+        '移除注册，不删目录与会话'
         with 自身._锁:#串行
             if not 自身._上下文.workspaceRegistry.delete(自身._工作区标识(请求['workspaceId'])):#未找到
                 raise 工作区未找到(请求['workspaceId'])#拒绝
             return {'deleted':True}#确认
 
     def insertBefore(自身,请求):#调整工作区顺序
-        """移动工作区顺序。"""
+        '移动工作区顺序'
         try:#调用注册表
             锚=请求['beforeWorkspaceId'] if 'beforeWorkspaceId' in 请求 else None#锚点
             标识列表=自身._上下文.workspaceRegistry.insertBefore(
@@ -71,7 +71,7 @@ class 工作区命令:#工作区变更实现
             raise#原样
 
     def insertSessionBefore(自身,请求):#调整会话顺序
-        """移动工作区内会话顺序。"""
+        '移动工作区内会话顺序'
         工作区=自身._要求工作区(请求['workspaceId'])#必须存在
         锚=请求['beforeSessionId'] if 'beforeSessionId' in 请求 else None#锚点
         try:#移动
@@ -84,7 +84,7 @@ class 工作区命令:#工作区变更实现
         return {'workspace':工作区视图(工作区)}#返回
 
     def archiveSession(自身,请求):#归档会话
-        """把已知会话加入全局归档集。"""
+        '把已知会话加入全局归档集'
         选项={'stopActivity':True} if 请求.get('stopActivity') is True else {}
         try:#归档
             自身._上下文.workspaceRegistry.archiveSession(请求['sessionId'],选项)
@@ -97,13 +97,13 @@ class 工作区命令:#工作区变更实现
         return {'archivedSessionIds':list(归档 if 归档 is not None else [])}#归档集
 
     def unarchiveSession(自身,请求):
-        """从全局归档集去掉会话；未归档则幂等。"""
+        '从全局归档集去掉会话；未归档则幂等'
         自身._上下文.workspaceRegistry.unarchiveSession(请求['sessionId'])
         归档=自身._上下文.workspaceRegistry.archivedSessionIds
         return {'archivedSessionIds':list(归档 if 归档 is not None else [])}
 
     def pinSession(自身,请求):
-        """把已知未归档会话加入全局钉住集。"""
+        '把已知未归档会话加入全局钉住集'
         try:
             自身._上下文.workspaceRegistry.pinSession(请求['sessionId'])
         except ValueError as 错误:
@@ -115,13 +115,13 @@ class 工作区命令:#工作区变更实现
         return {'pinnedSessionIds':list(钉住 if 钉住 is not None else [])}
 
     def unpinSession(自身,请求):
-        """从全局钉住集去掉会话；未钉则幂等。"""
+        '从全局钉住集去掉会话；未钉则幂等'
         自身._上下文.workspaceRegistry.unpinSession(请求['sessionId'])
         钉住=自身._上下文.workspaceRegistry.pinnedSessionIds
         return {'pinnedSessionIds':list(钉住 if 钉住 is not None else [])}
 
     def _要求工作区(自身,工作区标识):#要求存在
-        """取工作区或抛 not-found。"""
+        '取工作区或抛 not-found'
         工作区=自身._上下文.workspaceRegistry.get(自身._工作区标识(工作区标识))
         if 工作区 is None:#缺失
             raise 工作区未找到(工作区标识)#拒绝

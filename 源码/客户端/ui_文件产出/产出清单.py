@@ -9,7 +9,7 @@ __all__=['折叠已呈现上限','选出交付物','产出清单']#仅中文公�
 折叠已呈现上限=4#折叠时最多展示张数
 
 def 选出交付物(所有者):#认领有改动公告或已呈现的收口
-    """对齐 selectDeliverables：两面皆空则 None。"""
+    '对齐 selectDeliverables：两面皆空则 None'
     改动=收口改动(所有者)#改动公告
     已呈现表=收口已呈现(所有者)#已呈现
     if 改动 is None and len(已呈现表)==0:#皆空
@@ -17,32 +17,32 @@ def 选出交付物(所有者):#认领有改动公告或已呈现的收口
     return {'changes':改动,'presented':已呈现表}#匹配
 
 class 产出清单:#回合尾交付物行
-    """渲染改动文件卡与已呈现文件卡；宿主态由注入面提供。"""
+    '渲染改动文件卡与已呈现文件卡；宿主态由注入面提供'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
         自身.展开=False#已呈现是否展开
         自身.改动展开=False#改动是否展开
         自身.存活=True#存活
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 卸载(自身):#卸载
-        """标死。"""
+        '标死'
         自身.存活=False#死
 
     def 切换展开(自身):#折叠/展开已呈现
-        """翻转已呈现展开。"""
+        '翻转已呈现展开'
         自身.展开=not 自身.展开#翻
 
     def 切换改动展开(自身):#折叠/展开改动
-        """翻转改动展开。"""
+        '翻转改动展开'
         自身.改动展开=not 自身.改动展开#翻
 
     def 视图(自身):#读视图模型
-        """投影交付物行。"""
+        '投影交付物行'
         匹配=自身.属性['matched'] if 'matched' in 自身.属性 else 选出交付物(自身.属性)#匹配
         if 匹配 is None:#无认领
             匹配={'changes':None,'presented':[]}#空
@@ -62,31 +62,31 @@ class 产出清单:#回合尾交付物行
         工作目录=None#cwd
         if 用会话 is not None and 会话标识 is not None:#有钩子
             def 取目录(态):#读 cwd
-                """byId[sessionId].cwd。"""
+                'byId[sessionId].cwd'
                 表=态['byId'] if 'byId' in 态 else {}#表
                 项=表[会话标识] if 会话标识 in 表 else None#项
                 return 项['cwd'] if 项 is not None and 'cwd' in 项 else None#cwd
             工作目录=用会话(取目录)#cwd
         def 取打开态(值):#打开态原样
-            """阶段图。"""
+            '阶段图'
             return 值#值
         打开态=用打开态(取打开态) if 用打开态 is not None else {}#阶段图
         def 取宿主(值):#宿主
-            """宿主。"""
+            '宿主'
             return 值#值
         宿主=用宿主(取宿主) if 用宿主 is not None else None#宿主
         改动面=None#改动卡
         if 公告 is not None and 会话标识 is not None and 用摘要 is not None:#有公告
             键=改动摘要网址(会话标识,公告['seq'])#键
             def 取摘要(值):#摘要态
-                """按键取。"""
+                '按键取'
                 return 值[键] if 键 in 值 else None#态
             摘要=用摘要(取摘要)#摘要
             if 摘要 is None and 加载摘要 is not None:#未加载
                 加载摘要(会话标识,公告['seq'])#触发
             if isinstance(摘要,dict) and 'files' in 摘要 and len(摘要['files'])>0:#有文件
                 def 开审阅(下标):#打开审阅
-                    """openChangesReview。"""
+                    'openChangesReview'
                     if 打开审阅 is not None:#有面
                         打开审阅({'sessionId':会话标识,'seq':公告['seq'],'turn':摘要['turn']},下标)#开
                 改动面=改动文件({#卡
@@ -104,10 +104,10 @@ class 产出清单:#回合尾交付物行
             网址=已呈现文件网址(会话标识,文件['seq'],文件['index']) if 会话标识 is not None else ''#坐标
             阶段=打开态[网址] if 网址 in 打开态 else None#阶段
             def 预览(路=文件['path']):#侧边栏预览
-                """openFile。"""
+                'openFile'
                 打开文件(路)#打开
             def 动作(动作名,序=文件['seq'],下=文件['index']):#原生动作
-                """openPresented。"""
+                'openPresented'
                 if 打开已呈现 is not None and 会话标识 is not None:#有面
                     打开已呈现(会话标识,序,下,动作名)#打开
             卡=已呈现文件卡({#卡 props
@@ -139,7 +139,7 @@ class 产出清单:#回合尾交付物行
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图

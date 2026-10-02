@@ -1,7 +1,7 @@
 __all__=['写剪贴板']#仅中文公开名
 
 def 写剪贴板(文本):#写入宿主剪贴板
-    """仅当宿主接受写入时为 True。"""
+    '仅当宿主接受写入时为 True'
     导航=globals().get('navigator')
     文档=globals().get('document')
     if 导航 is not None:#有 navigator

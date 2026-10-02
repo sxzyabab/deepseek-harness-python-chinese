@@ -6,18 +6,18 @@ from .文案 import 会话命名空间#词典席
 __all__=['读行','读工具视图']#仅中文公开名
 
 class 读行:#read 工具行
-    """图标+Read·路径；展开体为 read 卡。"""
+    '图标+Read·路径；展开体为 read 卡'
     def __init__(自身,属性=None):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=工具行()#外壳
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):#结构树
-        """派生后交给工具行。"""
+        '派生后交给工具行'
         属性=自身.属性#props dict
         工具名=属性['toolName'] if 'toolName' in 属性 else None#名
         块=属性['block'] if 'block' in 属性 else None#块
@@ -44,7 +44,7 @@ class 读行:#read 工具行
         return 自身.行.渲染()#渲
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

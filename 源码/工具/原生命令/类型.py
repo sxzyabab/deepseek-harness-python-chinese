@@ -1,10 +1,10 @@
-"""浏览器安全的原生文件关联元数据。"""
+'浏览器安全的原生文件关联元数据'
 import re
 
 图标形态=re.compile(r'^data:image/(?:png|svg\+xml);base64,[A-Za-z0-9+/=]+$')
 
 def 解析原生文件应用程序(值):
-    """校验从原生命令或已认证宿主收到的文件关联元数据。"""
+    '校验从原生命令或已认证宿主收到的文件关联元数据'
     if not isinstance(值,list):
         raise ValueError('Invalid native application list')
     应用程序表=[]

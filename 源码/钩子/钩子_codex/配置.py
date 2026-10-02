@@ -9,13 +9,13 @@ from ..钩子协议 import 匹配诊断#按方言校验匹配器
 )#只读事件名列表
 
 def 当作对象(值):
-    """普通对象（非 None、非列表），否则 None。"""
+    '普通对象（非 None、非列表），否则 None'
     if isinstance(值,dict):#映射即普通对象
         return 值#断言为普通对象
     return None#否则缺席
 
 def 解析科德克斯配置(原始):
-    """解析带包装或裸的 Codex 事件图。未知事件和畸形条目忽略而不让启动失败；不支持或异步的钩子放进 skipped。UserPromptSubmit 和 Stop 上的 matcher 字段会丢掉，因为那些事件没有匹配主体。带 matcher 的可跑组若正则非法会抛 SyntaxError，让桥在登记监听器之前拒绝整份配置。原始是 JSON dict。"""
+    '解析带包装或裸的 Codex 事件图。未知事件和畸形条目忽略而不让启动失败；不支持或异步的钩子放进 skipped。UserPromptSubmit 和 Stop 上的 matcher 字段会丢掉，因为那些事件没有匹配主体。带 matcher 的可跑组若正则非法会抛 SyntaxError，让桥在登记监听器之前拒绝整份配置。原始是 JSON dict'
     配置={}#可跑的按事件分组
     已跳过=[]#被跳过的钩子
     根=当作对象(原始)#把原始值当对象

@@ -1,4 +1,5 @@
 import threading#后台观察
+from ....基础设施.通用工具 import 获取内部数据
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
 from .导航 import 目录浏览错误,工作区错误,工作区UI服务,最近工作区
@@ -59,12 +60,12 @@ __all__=[#仅中文公开名
 命名空间='workspace'
 
 def 流占用源(上下文,洞名):
-    """目录流子洞已填时为真的可观察源。"""
+    '目录流子洞已填时为真的可观察源'
     def 快照():#条目数
-        """大于 0 即为占用。"""
+        '大于 0 即为占用'
         return len(上下文.slots.entries(洞名))>0#占用
     def 订阅(监听):#订阅
-        """该洞变化。"""
+        '该洞变化'
         return 上下文.slots.subscribe(洞名,监听)#订阅
     return {#宿主可观察源
         'getSnapshot':快照,#条目数大于 0 即为占用
@@ -72,7 +73,7 @@ def 流占用源(上下文,洞名):
     }#源结束
 
 def 应用(上下文):#注册浏览区与选择器
-    """槽位声明入账后注册浏览区与选择器。"""
+    '槽位声明入账后注册浏览区与选择器'
     工作区面=工作区UI服务(
         上下文,
         上下文.remote.directoryPicker,
@@ -82,12 +83,12 @@ def 应用(上下文):#注册浏览区与选择器
     if hasattr(上下文.slots,'provideRoot'):#提供根钩
         上下文.slots.provideRoot({'hooks':{'workspaces':上下文.workspaces.list}})#工作区列表
     def 登记词典():#挂载词典
-        """中英文字典。"""
+        '中英文字典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
     上下文.副作用(登记词典,'ui-workspace: dictionaries')#挂载中英文字典
 
     def 检索会话(查询,信号):#按查询检索会话
-        """转发会话检索；失败抛出错误详情。"""
+        '转发会话检索；失败抛出错误详情'
         结果=上下文.sessions.search(查询,信号).等待()#转发
         if not 结果['ok']:#失败
             错=结果['error'] if 'error' in 结果 else None#错误
@@ -98,10 +99,10 @@ def 应用(上下文):#注册浏览区与选择器
     侧栏流源=流占用源(上下文,侧栏目录流槽)#侧栏目录流占用源
     选择器流源=流占用源(上下文,英雄目录流槽)#选择器目录流占用源
     def 宿主快照():#当前宿主
-        """读 remote.$host。"""
-        return 上下文.remote.$host#宿主
+        '读 remote.$host'
+        return 获取内部数据(上下文.remote,'host')#宿主
     def 宿主订阅(监听):#连接重置
-        """订 connection/reset。"""
+        '订 connection/reset'
         return 上下文.on('connection/reset',监听)#订
     宿主源={#宿主事实
         'getSnapshot':宿主快照,#当前宿主
@@ -109,27 +110,27 @@ def 应用(上下文):#注册浏览区与选择器
     }#宿主源
 
     def 重命名工作区(标识,标题):#重命名工作区
-        """转发 rename。"""
+        '转发 rename'
         return 上下文.workspaces.rename(标识,标题).等待()#等
 
     def 删除工作区(标识):#删除工作区
-        """转发 delete。"""
+        '转发 delete'
         return 上下文.workspaces.delete(标识).等待()#等
 
     def 插入工作区前(标识,锚):#插到某工作区前
-        """转发 insertBefore。"""
+        '转发 insertBefore'
         return 上下文.workspaces.insertBefore(标识,锚).等待()#等
 
     def 创建工作区(输入):#创建
-        """create。"""
+        'create'
         return 上下文.workspaces.create(输入)#创建
 
     def 浏览区注入():#侧栏浏览区注入
-        """浏览区驱动的 Host 动作。"""
+        '浏览区驱动的 Host 动作'
         def 重命名会话(会话标识,标题):#按会话 id 改标题
-            """经引用占用改名。"""
+            '经引用占用改名'
             def 改名(引用):#占用回调
-                """绑定面改名。"""
+                '绑定面改名'
                 return 引用.binding.session.rename(标题)#改名
             结果=上下文.sessions.using(
                 会话标识,
@@ -141,9 +142,9 @@ def 应用(上下文):#注册浏览区与选择器
                 消息=错['message'] if 错 is not None and 'message' in 错 else None#文案
                 raise 工作区错误(消息)#抛出
         def 分叉会话(会话标识):#分叉会话
-            """经导航面分叉；失败保持当前选中。"""
+            '经导航面分叉；失败保持当前选中'
             def 观察():#观察
-                """吞失败。"""
+                '吞失败'
                 try:#成功
                     工作区面.forkSession(会话标识)#分叉打开
                 except BaseException:#失败
@@ -167,14 +168,14 @@ def 应用(上下文):#注册浏览区与选择器
         }#注入结束
 
     def 选择器注入():#会话英雄选择器注入
-        """挑选器私有注入份额。"""
+        '挑选器私有注入份额'
         return {#注入面
             'createWorkspace':创建工作区,#创建工作区
             'hooks':{'directoryFlow':选择器流源},#选择器目录流占用源
         }#注入结束
 
     def 登记浏览区():#侧栏工作区洞
-        """洞就绪后再注册。"""
+        '洞就绪后再注册'
         return 上下文.slots.register({#侧栏工作区洞就绪后再注册
             'name':'sidebar.workspaces',#侧栏工作区洞名
             'children':{侧栏目录流槽:{'kind':'single','scope':'root'}},#单例目录流子洞
@@ -185,7 +186,7 @@ def 应用(上下文):#注册浏览区与选择器
     上下文.slots.inject('sidebar.workspaces',登记浏览区)#浏览区
 
     def 登记选择器():#英雄工作区洞
-        """洞就绪后再注册。"""
+        '洞就绪后再注册'
         return 上下文.slots.register({#英雄工作区洞就绪后再注册
             'name':'conversation.hero.workspace',#会话英雄工作区洞名
             'children':{英雄目录流槽:{'kind':'single','scope':'root'}},#单例目录流子洞

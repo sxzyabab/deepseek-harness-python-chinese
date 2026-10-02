@@ -1,4 +1,4 @@
-"""compaction-basic 的加载时校验与路由模型政策解析。"""
+'compaction-basic 的加载时校验与路由模型政策解析'
 import math#有限数判定
 from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆离克隆
 
@@ -21,20 +21,20 @@ from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆�
 模型政策键集合=frozenset(('provider','model')+政策配置键)#完整的精确目标覆盖键集
 
 class 基础压缩错误(Exception):
-    """基础压缩包的异常基类。"""
+    '基础压缩包的异常基类'
 
 class 目标压力配置错误(基础压缩错误):
-    """目标特有压力配置失败，可抑制重复警告。"""
+    '目标特有压力配置失败，可抑制重复警告'
 
     def __init__(自身,目标键,消息):
-        """记下用作警告键的精确提供方/模型路由与可操作的配置失败细节。"""
+        '记下用作警告键的精确提供方/模型路由与可操作的配置失败细节'
         super().__init__(消息)#交给基类
         自身.targetKey=目标键#警告键
         自身.message=消息#诊断文案
         自身.name='TargetPressureConfigError'#错误名
 
 def 是否有限数(值):
-    """有限实数，排除布尔。"""
+    '有限实数，排除布尔'
     if isinstance(值,bool):#布尔不是数字
         return False#排除
     if isinstance(值,(int,float)):#数字
@@ -42,35 +42,35 @@ def 是否有限数(值):
     return False#其它
 
 def 校验非空字符串(名称,值):
-    """字段须为非空字符串。"""
+    '字段须为非空字符串'
     if (not isinstance(值,str)) or len(值)==0:#空或非字符串
         raise 基础压缩错误(名称+' must be a non-empty string')#须为非空字符串
 
 def 校验正整数(名称,值):
-    """字段须为正整数。"""
+    '字段须为正整数'
     是整数=(not isinstance(值,bool)) and (isinstance(值,int) or (isinstance(值,float) and 值.is_integer()))#排除布尔
     if (not 是整数) or 值<=0:#非正整数
         raise 基础压缩错误(名称+' ('+str(值)+') must be a positive integer')#须为正整数
 
 def 校验非负整数(名称,值):
-    """字段须为非负整数。"""
+    '字段须为非负整数'
     是整数=(not isinstance(值,bool)) and (isinstance(值,int) or (isinstance(值,float) and 值.is_integer()))#排除布尔
     if (not 是整数) or 值<0:#负或非整数
         raise 基础压缩错误(名称+' ('+str(值)+') must be a non-negative integer')#须为非负整数
 
 def 校验比例(名称,值):
-    """字段须为 (0, 1] 内的有限数。"""
+    '字段须为 (0, 1] 内的有限数'
     if (not 是否有限数(值)) or 值<=0 or 值>1:#越界或非有限
         raise 基础压缩错误(名称+' ('+str(值)+') must be a number in (0, 1]')#须在 (0,1]
 
 def 校验键集(配置,键集合,名称):
-    """拒绝未知键。"""
+    '拒绝未知键'
     for 键 in 配置:#枚举自有键
         if 键 not in 键集合:#未知键
             raise 基础压缩错误(名称+': unknown key "'+str(键)+'"')#未知键失败
 
 def 校验摘要成对(配置,名称):
-    """摘要提供方与模型须同为空或同为非空。"""
+    '摘要提供方与模型须同为空或同为非空'
     提供方=配置['summarizationProvider'] if 'summarizationProvider' in 配置 else None#摘要提供方
     模型=配置['summarizationModel'] if 'summarizationModel' in 配置 else None#摘要模型
     if 提供方 is not None and (not isinstance(提供方,str)):#类型不对
@@ -86,7 +86,7 @@ def 校验摘要成对(配置,名称):
         )#抛出结束
 
 def 校验政策(配置,名称):
-    """校验政策字段类型与互斥保留。"""
+    '校验政策字段类型与互斥保留'
     阈值比例=配置['thresholdRatio'] if 'thresholdRatio' in 配置 else None#阈值比例
     余量令牌=配置['headroomTokens'] if 'headroomTokens' in 配置 else None#压缩余量
     保留比例=配置['retainRatio'] if 'retainRatio' in 配置 else None#保留比例
@@ -113,7 +113,7 @@ def 校验政策(配置,名称):
     校验摘要成对(配置,名称)#摘要提供方与模型成对
 
 def 校验模型政策(源,名称):
-    """校验一条不受信任的精确目标覆盖。"""
+    '校验一条不受信任的精确目标覆盖'
     if not isinstance(源,dict):#须为对象
         raise 基础压缩错误(名称+' must be an object')#须为对象
     校验键集(源,模型政策键集合,名称)#拒绝未知键
@@ -122,7 +122,7 @@ def 校验模型政策(源,名称):
     校验政策(源,名称)#校验政策字段
 
 def 解析模型政策表(已配置):
-    """校验精确目标表。"""
+    '校验精确目标表'
     if 已配置 is None:#未配置则空表
         return []#空表
     if not isinstance(已配置,list):#类型不对
@@ -143,7 +143,7 @@ def 解析模型政策表(已配置):
     return 结果#已解析表
 
 def 解析保留(配置,回退):
-    """恰好一种保留形态。"""
+    '恰好一种保留形态'
     if 'retainTokens' in 配置 and 配置['retainTokens'] is not None:#绝对优先
         return {'retainTokens':配置['retainTokens']}#按绝对 token
     if 'retainRatio' in 配置 and 配置['retainRatio'] is not None:#否则比例
@@ -151,7 +151,7 @@ def 解析保留(配置,回退):
     return dict(回退)#都没写则继承
 
 def 校验比例保留(阈值比例,保留,名称):
-    """比例保留不得压过阈值。"""
+    '比例保留不得压过阈值'
     if 'retainRatio' in 保留 and 保留['retainRatio'] is not None and 保留['retainRatio']>=阈值比例:#比例保留压过阈值
         raise 基础压缩错误(#加载失败
             名称+': retainRatio ('+str(保留['retainRatio'])+') must be less than '
@@ -159,7 +159,7 @@ def 校验比例保留(阈值比例,保留,名称):
         )#抛出结束
 
 def 解析配置(配置=None):
-    """返回分离的不可变默认值与已校验精确目标覆盖。"""
+    '返回分离的不可变默认值与已校验精确目标覆盖'
     if 配置 is None:#缺省空配置
         配置={}#空配置
     校验键集(配置,基础压缩配置键集合,'BasicCompactionConfig')#拒绝未知键
@@ -202,7 +202,7 @@ def 解析配置(配置=None):
     return 深冻结(结构化克隆(已解析))#冻结已解析配置
 
 def 解析目标政策(配置,目标):
-    """返回模型容量缩放之前的分离不可变政策。"""
+    '返回模型容量缩放之前的分离不可变政策'
     覆盖=None#精确匹配覆盖
     政策列表=配置['modelPolicies'] if 'modelPolicies' in 配置 and 配置['modelPolicies'] is not None else []#精确目标表
     for 政策 in 政策列表:#找精确匹配
@@ -228,7 +228,7 @@ def 解析目标政策(配置,目标):
     return 深冻结(结构化克隆(已合并))#冻结合并结果
 
 def 解析压缩规格(政策,上下文窗口,预留补全令牌):
-    """返回分离的不可变压力与保留预算。"""
+    '返回分离的不可变压力与保留预算'
     目标=政策['target']#精确目标
     目标键=str(目标['provider'])+'/'+str(目标['model'])#警告键
     窗口是整数=(not isinstance(上下文窗口,bool)) and (isinstance(上下文窗口,int) or (isinstance(上下文窗口,float) and 上下文窗口.is_integer()))#排除布尔

@@ -1,8 +1,4 @@
-"""在应用中打开的主机半边：三条 webServer 路由提供已解析目录、图标与启动端点。
-
-安全围栏在本文件：每条路由先过信任围栏；open 路由再校验媒体类型、64 KiB 上限、可用目录 id
-与现存绝对目录路径。解析惰性、每插件生命一次。
-"""
+'在应用中打开的主机半边：三条 webServer 路由提供已解析目录、图标与启动端点'
 import json,os#JSON 与路径核验
 from urllib.parse import urlsplit#取 pathname
 from ...工具.启动环境 import 取启动环境,经ssh拉起#SSH 拉起事实
@@ -31,7 +27,7 @@ __all__=[
 ]
 
 def 发送json(响应,状态码,载荷):#JSON 应答
-    """application/json；no-store（可用性与启动结局是活事实）。"""
+    'application/json；no-store（可用性与启动结局是活事实）'
     正文=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False)#锁分隔与非 ASCII
     响应.writeHead(状态码,{#写头
         'content-type':'application/json; charset=utf-8',#类型
@@ -40,12 +36,12 @@ def 发送json(响应,状态码,载荷):#JSON 应答
     响应.end(正文)#正文
 
 def 发送方法不允许(响应,允许):#405
-    """405 并声明本路由唯一允许的方法。"""
+    '405 并声明本路由唯一允许的方法'
     响应.writeHead(405,{'allow':允许})#Allow
     响应.end()#空体
 
 def 读取有界正文(请求):#bounded body
-    """收集有界 UTF-8 正文；超限则排空流并返回 None。"""
+    '收集有界 UTF-8 正文；超限则排空流并返回 None'
     块列表=[]#块
     大小=0#累计
     while True:#读至 EOF
@@ -65,7 +61,7 @@ def 读取有界正文(请求):#bounded body
     return b''.join(块列表).decode('utf-8')#UTF-8 文本
 
 def 解析打开正文(文本):#open body
-    """校验 open 路由正文：JSON 对象且 app/path 为字符串。"""
+    '校验 open 路由正文：JSON 对象且 app/path 为字符串'
     try:#解析
         体=json.loads(文本)#JSON
     except json.JSONDecodeError:#非 JSON
@@ -80,19 +76,19 @@ def 解析打开正文(文本):#open body
     return None#拒绝
 
 def 请求路径名(请求):#pathname
-    """从请求 url 取出 pathname。"""
+    '从请求 url 取出 pathname'
     原始=str(getattr(请求,'url','') or '')#url
     if 原始.startswith('http://') or 原始.startswith('https://'):#绝对
         return urlsplit(原始).path#路径
     return urlsplit('http://localhost'+原始).path#相对补主机
 
 def 应用(上下文,配置值):#登记三条路由
-    """在 connection 信任围栏后登记 apps / icon / open 路由。"""
+    '在 connection 信任围栏后登记 apps / icon / open 路由'
     ssh=经ssh拉起(取启动环境(上下文))#SSH 拉起事实
     def 目录内部():#测试缝 + PATH 解析
-        """补上组合的 subprocess PATH 解析。"""
+        '补上组合的 subprocess PATH 解析'
         def 解析可执行(名):#检测用：找不到 → None
-            """找不到与不可用同义。"""
+            '找不到与不可用同义'
             try:#解析
                 return 上下文.subprocess.解析可执行文件(名)#命中路径
             except (OSError,LookupError,AttributeError):
@@ -105,7 +101,7 @@ def 应用(上下文,配置值):#登记三条路由
     解析映射=None#惰性权威
 
     def 可用性():#lazy once
-        """每插件生命解析一次。"""
+        '每插件生命解析一次'
         nonlocal 解析映射#可变
         if 解析映射 is None:#首次
             解析映射=解析在应用中打开应用(配置值['probeTimeoutMs'],目录内部())#解析
@@ -114,7 +110,7 @@ def 应用(上下文,配置值):#登记三条路由
     图标缓存={}#标识 → 应用图标|None
 
     def 图标于(应用条目,已解析):#per-app cache
-        """进程内缓存；None 表示已判定无图标。"""
+        '进程内缓存；None 表示已判定无图标'
         if 应用条目.标识 not in 图标缓存:#未提取
             图标缓存[应用条目.标识]=提取应用图标(#提取
                 应用条目,已解析,配置值['iconTimeoutMs'],目录内部(),
@@ -122,7 +118,7 @@ def 应用(上下文,配置值):#登记三条路由
         return 图标缓存[应用条目.标识]#结果
 
     def 刷新解析(应用条目):#ENOENT 后重解析一条
-        """替换或移除一条陈旧解析，并丢掉其图标缓存。"""
+        '替换或移除一条陈旧解析，并丢掉其图标缓存'
         映射=可用性()#当前权威
         新=解析启动(应用条目,配置值['probeTimeoutMs'],目录内部())#重解析
         图标缓存.pop(应用条目.标识,None)#丢图标
@@ -133,7 +129,7 @@ def 应用(上下文,配置值):#登记三条路由
         return 新#新启动
 
     def 已拒收(请求,响应):#信任围栏
-        """未认证/不受信则写状态码并结束；返回是否已拒。"""
+        '未认证/不受信则写状态码并结束；返回是否已拒'
         拒收=上下文.connection.requestRejection(请求)#401|403|None
         if 拒收 is None:#放行
             return False#未拒
@@ -142,7 +138,7 @@ def 应用(上下文,配置值):#登记三条路由
         return True#已拒
 
     def 应用列表处理(请求,响应):#GET apps
-        """返回已解析应用标识列表。"""
+        '返回已解析应用标识列表'
         if 已拒收(请求,响应):#围栏
             return
         if 请求.method!='GET':#方法
@@ -151,7 +147,7 @@ def 应用(上下文,配置值):#登记三条路由
         发送json(响应,200,{'apps':list(可用性().keys())})#菜单序 keys
 
     def 图标处理(请求,响应):#GET icon/<id>
-        """提供一条应用的提取图标。"""
+        '提供一条应用的提取图标'
         if 已拒收(请求,响应):#围栏
             return
         if 请求.method!='GET':#方法
@@ -160,7 +156,7 @@ def 应用(上下文,配置值):#登记三条路由
         路径名=请求路径名(请求)#pathname
         标识=路径名[len(图标前缀):].lstrip('/')#id
         def 无图标():#404
-            """无可提供图标。"""
+            '无可提供图标'
             发送json(响应,404,{'code':'not-found','message':'no icon for '+标识})#404
         应用条目=None
         for 条目 in 在应用中打开目录:#白名单
@@ -185,7 +181,7 @@ def 应用(上下文,配置值):#登记三条路由
         响应.end(图标.字节)#原始字节
 
     def 打开处理(请求,响应):#POST open
-        """校验正文后启动已验证启动器。"""
+        '校验正文后启动已验证启动器'
         if 已拒收(请求,响应):#围栏
             return
         if 请求.method!='POST':#方法
@@ -245,15 +241,15 @@ def 应用(上下文,配置值):#登记三条路由
             发送json(响应,502,{'code':'launch-failed','message':'failed to launch '+应用条目.标识})#502
 
     def 挂应用列表():#登记 apps
-        """精确 GET 应用列表。"""
+        '精确 GET 应用列表'
         return 上下文.webServer.register({'kind':'exact','path':应用列表路由,'handler':应用列表处理})#登记
 
     def 挂图标():#登记 icon
-        """前缀 GET 图标。"""
+        '前缀 GET 图标'
         return 上下文.webServer.register({'kind':'prefix','path':图标前缀,'handler':图标处理})#登记
 
     def 挂打开():#登记 open
-        """精确 POST 打开。"""
+        '精确 POST 打开'
         return 上下文.webServer.register({'kind':'exact','path':打开路由,'handler':打开处理})#登记
 
     上下文.副作用(挂应用列表,'open-in-app: GET '+应用列表路由)#效应

@@ -4,7 +4,7 @@ from .轨迹记录 import 轨迹错误#本包异常
 __all__=['登记轨迹消息定义']#仅中文公开名
 
 def 应用拼接(上一,拼接):#把拼接应用到上一状态
-    """更新后的收件箱状态。"""
+    '更新后的收件箱状态'
     上态=上一['state'] if 上一 is not None and 'state' in 上一 else None#上一状态
     待处理=list(上态['pending'] if 上态 is not None and 'pending' in 上态 else [])#复制待处理队列
     已认领=set(上态['claimed'] if 上态 is not None and 'claimed' in 上态 else [])#复制已认领集合
@@ -21,15 +21,15 @@ def 应用拼接(上一,拼接):#把拼接应用到上一状态
     return {'pending':待处理,'claimed':已认领}#新待处理与已认领
 
 def 上下文出处(来源):#出处最小实现
-    """运行时未迁完时的出处投影。"""
+    '运行时未迁完时的出处投影'
     return {'source':来源}#出处
 
 def 上下文表单(来源):#表单最小实现
-    """运行时未迁完时的表单投影。"""
+    '运行时未迁完时的表单投影'
     return 来源['form'] if 来源 is not None and 'form' in 来源 else None#表单字段
 
 def 收件箱匹配(事件):#只匹配 next-step 收件箱拼接
-    """以序号为 id 起步。"""
+    '以序号为 id 起步'
     if 事件['type']!='agent/inbox/spliced':#非拼接
         return None#忽略
     数据=事件['data'] if 'data' in 事件 else None#载荷
@@ -38,22 +38,22 @@ def 收件箱匹配(事件):#只匹配 next-step 收件箱拼接
     return {'id':str(事件['seq']),'role':'start'}#起步
 
 def 收件箱开始(_上下文,匹配,读取器):#从拼接事件播种状态
-    """起步必须是 inbox/spliced。"""
+    '起步必须是 inbox/spliced'
     事件=匹配['event'] if 'event' in 匹配 else None#本条事件
     if 事件 is None or 事件['type']!='agent/inbox/spliced':#角色与类型不一致
         raise 轨迹错误('trajectory-inbox-next-step start requires agent/inbox/spliced')#起步必须是 inbox/spliced
     return 应用拼接(读取器.previous('trajectory-inbox-next-step'),事件['data'] if 'data' in 事件 else None)#把本条拼接叠到上一状态
 
 def 收件箱更新(上下文,_匹配):#单事件节点
-    """状态原样。"""
+    '状态原样'
     return 上下文['state'] if 'state' in 上下文 else None#原样
 
 def 收件箱发布(_匹配):#不发布到视图
-    """收件箱只作分类器。"""
+    '收件箱只作分类器'
     return 'none'#不发布
 
 def 消息开始(_上下文,匹配,读取器):#从 user/message 播种消息节点
-    """起步必须是 user/message。"""
+    '起步必须是 user/message'
     事件=匹配['event'] if 'event' in 匹配 else None#本条用户消息事件
     if 事件 is None or 事件['type']!='user/message':#角色与类型不一致
         raise 轨迹错误('trajectory-input-message start requires user/message')#起步必须是 user/message
@@ -71,17 +71,17 @@ def 消息开始(_上下文,匹配,读取器):#从 user/message 播种消息节�
     return {'kind':'user','seq':事件['seq'],'time':事件['time'],'content':数据['content'] if 'content' in 数据 else None,'source':来源}#用户消息节点
 
 def 消息匹配(事件):#只匹配用户消息
-    """以序号为 id 起步。"""
+    '以序号为 id 起步'
     if 事件['type']=='user/message':#用户消息事件
         return {'id':str(事件['seq']),'role':'start'}#起步
     return None#不认其他事件
 
 def 消息更新(上下文,_匹配):#单事件节点
-    """状态原样。"""
+    '状态原样'
     return 上下文['state'] if 'state' in 上下文 else None#原样
 
 def 消息构建视图(上下文):#包进轨迹信封
-    """无状态则不产出。"""
+    '无状态则不产出'
     状态=上下文['state'] if 'state' in 上下文 else None#消息节点
     if 状态 is None:#无状态
         return None#不产出
@@ -105,6 +105,6 @@ def 消息构建视图(上下文):#包进轨迹信封
 }#定义结束
 
 def 登记轨迹消息定义(上下文):#登记收件箱与输入消息定义
-    """登记轨迹拥有的收件箱分类与消息记录。"""
+    '登记轨迹拥有的收件箱分类与消息记录'
     上下文.conversationEvents.register(轨迹收件箱定义)#登记收件箱定义
     上下文.conversationEvents.register(轨迹消息定义)#登记输入消息定义

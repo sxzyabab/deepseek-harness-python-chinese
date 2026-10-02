@@ -3,7 +3,7 @@
 钩子结果记录=dict#一次钩子结果记录字段
 
 def 按utf8字节截断(文本,最大字节):
-    """按 UTF-8 字节截断，切点落在字符边界。"""
+    '按 UTF-8 字节截断，切点落在字符边界'
     数据=文本.encode('utf-8')#编码
     if len(数据)<=最大字节:#未超
         return 文本#原文
@@ -13,7 +13,7 @@ def 按utf8字节截断(文本,最大字节):
     return 数据[0:切].decode('utf-8')#解码到边界
 
 def 摘要stderr(标准错误,最大字节):
-    """为 stderrSummary 按 UTF-8 字节截断钩子 stderr：先去空白，空则 None，超过上限则切开并加省略号。"""
+    '为 stderrSummary 按 UTF-8 字节截断钩子 stderr：先去空白，空则 None，超过上限则切开并加省略号'
     修剪=(标准错误 if 标准错误 is not None else '').strip()#去掉首尾空白
     if len(修剪)==0:#空白则无摘要
         return None#省略键
@@ -23,7 +23,7 @@ def 摘要stderr(标准错误,最大字节):
     return 修剪#原文
 
 def 追加钩子调用(会话,调用):
-    """向会话追加一条 hook/invoked 事件，写明处理器和钩子点。缺省的 matcher 不写入载荷。调用是 dict，会话是对象。"""
+    '向会话追加一条 hook/invoked 事件，写明处理器和钩子点。缺省的 matcher 不写入载荷。调用是 dict，会话是对象'
     载荷={#调用事件载荷
         'turn':调用['turn'],#所在轮次
         'point':调用['point'],#钩子点名
@@ -35,7 +35,7 @@ def 追加钩子调用(会话,调用):
     会话.追加('hook/invoked',载荷)#写入调用事件
 
 def 追加钩子结果(会话,记录):
-    """追加与 hook/invoked 成对的持久结果。记下的决策依次是已解析决策，再是 continue:false 时的 stop，否则 pass。记录与输出都是 dict。"""
+    '追加与 hook/invoked 成对的持久结果。记下的决策依次是已解析决策，再是 continue:false 时的 stop，否则 pass。记录与输出都是 dict'
     输出=记录['output']#取出解码结果
     标准错误=输出['stderr'] if 'stderr' in 输出 else ''#stderr 文本
     摘要=摘要stderr(标准错误,记录['stderrSummaryMaxChars'])#生成 stderr 摘要

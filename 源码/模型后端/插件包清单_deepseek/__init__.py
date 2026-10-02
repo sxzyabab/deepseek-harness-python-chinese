@@ -1,4 +1,4 @@
-"""向官方 DeepSeek 请求贡献 dsh_plugin_packages 字段。"""
+'向官方 DeepSeek 请求贡献 dsh_plugin_packages 字段'
 import json,os#读 manifest 与路径
 from json import JSONDecodeError#清单解析失败
 from ...依赖 import cordis#外部依赖胶水
@@ -12,10 +12,10 @@ from ...依赖.schemastery import 布尔字段#配置字段
 __all__=['清单错误','名称','依赖','配置模式','应用','默认']#仅中文公开名
 
 class 清单错误(Exception):
-    """插件包清单解析与校验失败。"""
+    '插件包清单解析与校验失败'
 
 def 裸包名(说明符):#解析 bare package 名
-    """相对路径、绝对路径与带协议说明符返回 None。"""
+    '相对路径、绝对路径与带协议说明符返回 None'
     if 说明符.startswith('.') or ':' in 说明符 or os.path.isabs(说明符):#非 bare
         return None#跳过
     段=说明符.split('/')#分段
@@ -26,7 +26,7 @@ def 裸包名(说明符):#解析 bare package 名
     return 段[0]#普通包名
 
 def 从manifest读身份(路径,允许匿名=False):#读 package.json 身份
-    """无效 manifest 抛错；匿名 loose module 可返回 None。清单为 dict。"""
+    '无效 manifest 抛错；匿名 loose module 可返回 None。清单为 dict'
     文本=open(路径,'r',encoding='utf-8').read()#读文件
     try:#解析
         清单=json.loads(文本)#解析
@@ -43,7 +43,7 @@ def 从manifest读身份(路径,允许匿名=False):#读 package.json 身份
     return {'name':名称值,'version':版本}#身份
 
 def 最近manifest(模块路径):#向上找 package.json
-    """找不到返回 None。"""
+    '找不到返回 None'
     当前=os.path.dirname(os.path.abspath(模块路径))#起始目录
     根=os.path.splitdrive(当前)[0]+os.sep+os.path.splitdrive(当前)[1].split(os.sep)[0]#盘根
     while True:#向上
@@ -56,11 +56,11 @@ def 最近manifest(模块路径):#向上找 package.json
         当前=父#上移
 
 def 身份排序键(项):
-    """按 name 再 version 排序。"""
+    '按 name 再 version 排序'
     return (项['name'],项['version'])#排序键
 
 def 裸包清单(包名,锚列表,包表):
-    """解析裸包而不要求它导出 ./package.json。锚列表为 str。"""
+    '解析裸包而不要求它导出 ./package.json。锚列表为 str'
     for 锚 in 锚列表:
         if 包表 is not None:
             包=包表.包属于(包名,锚)
@@ -75,16 +75,16 @@ def 裸包清单(包名,锚列表,包表):
     return None
 
 class 包身份解析器:#带进程内缓存的解析器
-    """按 Loader 入口解析 owning package。"""
+    '按 Loader 入口解析 owning package'
     def __init__(自身,宿主基础url,包表=None):
-        """构造解析器。"""
+        '构造解析器'
         自身.宿主基础url=宿主基础url
         自身.包表=包表
         自身.缓存={}
         自身.本模块网址='file:///'+os.path.abspath(__file__).replace('\\','/')
 
     def 解析(自身,活动条目):
-        """返回身份或 None（loose module）。活动条目为 dict，Loader 条目为对象。"""
+        '返回身份或 None（loose module）。活动条目为 dict，Loader 条目为对象'
         条目=活动条目['entry']
         选项=条目.options
         说明符=str(选项['name'])
@@ -125,7 +125,7 @@ class 包身份解析器:#带进程内缓存的解析器
         return 身份
 
 def 列出活动条目(树,根裸基础url=None):#枚举活动非 group 条目
-    """只保留 ACTIVE 且未 disabled 的条目。树为对象。"""
+    '只保留 ACTIVE 且未 disabled 的条目。树为对象'
     输出=[]#活动非 group 条目
     for 条目 in 树.entries():#遍历
         选项=条目.options#选项，配置为 dict
@@ -144,7 +144,7 @@ def 列出活动条目(树,根裸基础url=None):#枚举活动非 group 条目
     return 输出#仅活动条目
 
 def 收集活动插件包(上下文,解析器,宿主基础url,会话id=None):#收集一次请求的包集
-    """去重后按 name/version 排序。"""
+    '去重后按 name/version 排序'
     条目列表=列出活动条目(上下文.loader)#宿主 Loader
     if 会话id is not None and 上下文.获取服务('agentPresets') is not None:#可选 preset 树
         智能体=上下文.agents.get(会话id)#按会话找智能体
@@ -165,7 +165,7 @@ def 收集活动插件包(上下文,解析器,宿主基础url,会话id=None):#�
     return sorted(唯一.values(),key=身份排序键)#按 name 再 version 排序
 
 def 应用(上下文,配置=None):#注册 dsh_plugin_packages 字段
-    """默认开启；关闭时直接返回。配置为 dict。"""
+    '默认开启；关闭时直接返回。配置为 dict'
     if 配置 is None:#未传配置
         配置={}#空配置
     if 'enabled' in 配置 and 配置['enabled'] is False:#显式关闭
@@ -175,9 +175,9 @@ def 应用(上下文,配置=None):#注册 dsh_plugin_packages 字段
         宿主基础url=''#空串
     解析器=包身份解析器(宿主基础url,上下文.获取服务('pluginPackages'))
     class 提供方:#扩展提供方
-        """每次请求读取 Loader 真值。"""
+        '每次请求读取 Loader 真值'
         def prepare(自身,请求):
-            """组装 version=1 的包清单。请求为 dict。"""
+            '组装 version=1 的包清单。请求为 dict'
             会话号=请求['sessionId'] if 'sessionId' in 请求 else None#可选会话
             值={'version':1,'packages':收集活动插件包(上下文,解析器,宿主基础url,会话号)}#扩展体
             return {'value':值}#返回

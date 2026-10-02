@@ -1,7 +1,4 @@
-"""对应 npm 包 `@deepseek-ai/node-addon-system/landlock-run` 的 Python 入口面：解析启动器路径、构建授权 argv、跑功能探测。
-
-本模块拥有启动器 CLI 约定，使消费方不必自行拼写标志或解析启动器输出。政策（沙箱模式）仍属消费方：本包只知道哪些路径被授予读或写。本树尚未迁入 native/landlock-run，因此入口缝落在 sandbox_local 内；日后独立包迁入后可由该包替换。
-"""
+'对应 npm 包 `@deepseek-ai/node-addon-system/landlock-run` 的 Python 入口面：解析启动器路径、构建授权 argv、跑功能探测'
 import os,re,subprocess,sys#路径、探测报告正则、同步探测与平台/架构
 
 启动器二进制名='landlock-run'#平台包 bin/ 下的启动器文件名
@@ -9,7 +6,7 @@ import os,re,subprocess,sys#路径、探测报告正则、同步探测与平台/
 部分强制报告=re.compile(r'partially enforced')#探测 stdout 上的部分强制标记
 
 def _架构():
-    """把 Python 机器名收成 npm cpu 词表（x64 / arm64）。"""
+    '把 Python 机器名收成 npm cpu 词表（x64 / arm64）'
     机=''#机型
     if hasattr(os,'uname'):#POSIX 才有 uname
         try:
@@ -26,7 +23,9 @@ def _架构():
     return 低 if 低!='' else 'unknown'#原样或未知
 
 def 启动器路径(解析包清单=None):
-    """解析本宿主的 landlock-run 绝对路径。故意不检查是否存在；探测才是可用性信号。"""
+    """解析本宿主的 landlock-run 绝对路径。
+    故意不检查是否存在；探测才是可用性信号
+    """
     平台=sys.platform#宿主平台
     if 平台.startswith('linux'):#Linux 族收成 linux
         平台='linux'#npm os
@@ -41,7 +40,9 @@ def 启动器路径(解析包清单=None):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)),'node_modules',平台包,'bin',启动器二进制名)#可能不存在
 
 def 授权参数(授权):
-    """为一组文件系统授权构建启动器参数（`--` 分隔符之前）。授权是 dict。"""
+    """为一组文件系统授权构建启动器参数（`--` 分隔符之前）。
+    授权是 dict
+    """
     只读=授权['readOnly'] if 'readOnly' in 授权 else None#只读根
     读写=授权['readWrite'] if 'readWrite' in 授权 else None#可写根
     参数=[]#累积 argv
@@ -54,7 +55,10 @@ def 授权参数(授权):
     return 参数#授权参数表
 
 def 探测(启动器=None,选项=None):
-    """跑 `landlock-run --probe`：仅当内核真正强制时退出 0。返回 `'full' | 'partial' | 'unusable'`。选项是 dict。"""
+    """跑 `landlock-run --probe`：仅当内核真正强制时退出 0。
+    返回 'full' | 'partial' | 'unusable'。
+    选项是 dict
+    """
     if 启动器 is None:#默认解析本宿主路径
         启动器=启动器路径()#已解析路径
     if 选项 is None:#默认选项

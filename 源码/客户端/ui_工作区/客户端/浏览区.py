@@ -42,7 +42,7 @@ __all__=[#仅中文公开名
 '''#样式表结束
 
 def 消毒检索查询(值):#守住 session.search 线路契约
-    """去掉 NUL，截到 500 个 UTF-16 码元且不拆代理对。"""
+    '去掉 NUL，截到 500 个 UTF-16 码元且不拆代理对'
     无空=值.replace('\0','')#去 NUL
     if len(无空)<=检索查询最大码元:#未超
         return 无空#原样
@@ -54,13 +54,13 @@ def 消毒检索查询(值):#守住 session.search 线路契约
     return 无空[:末]#截断
 
 def 切换成员(列表,键):#不可变成员切换
-    """展开数组的成员开关。"""
+    '展开数组的成员开关'
     if 键 in 列表:#已有则去掉
         return [项 for 项 in 列表 if 项!=键]#去掉
     return list(列表)+[键]#追加
 
 def 调和会话顺序(会话标识列表,已存):#调和已存顺序与当前账本
-    """接受已存顺序，未知键跳过，新成员追加到末尾。"""
+    '接受已存顺序，未知键跳过，新成员追加到末尾'
     if 已存 is None:#无已存
         return list(会话标识列表)#原样拷贝
     有序=[]#结果
@@ -78,16 +78,16 @@ def 调和会话顺序(会话标识列表,已存):#调和已存顺序与当前�
     return 有序#调和后顺序
 
 def 近因标识键(按标识,标识):#近因排序键
-    """(-updatedAt, id)；摘要必在表内。"""
+    '(-updatedAt, id)；摘要必在表内'
     时=按标识[标识]['updatedAt'] if 标识 in 按标识 else 0#纪元毫秒
     return (-时,标识)#新的在前
 
 def 下一会话顺序账本(会话标识列表,先前顺序,先前更新时间,列表,排序方式,按近因排序):#调和并套提升政策
-    """调和一份可编辑顺序账本并套用活动提升政策。"""
+    '调和一份可编辑顺序账本并套用活动提升政策'
     顺序=调和会话顺序(会话标识列表,先前顺序)#先调和
     按标识=列表['byId'] if 'byId' in 列表 and 列表['byId'] is not None else {}#摘要表
     def 标识近因(标识):#近因键
-        """闭包按标识。"""
+        '闭包按标识'
         return 近因标识键(按标识,标识)#键
     if 按近因排序:#进入最近更新时全量时间排序
         顺序=sorted(顺序,key=标识近因)#近因
@@ -114,9 +114,9 @@ def 下一会话顺序账本(会话标识列表,先前顺序,先前更新时间,
     return {'order':顺序,'updatedAt':更新时间,'changed':顺序变 or 时间变}#账本结果
 
 class 工作区浏览区:#侧栏浏览区
-    """宽态完整浏览器；轨道态两枚区头控件请求外壳展开。"""
+    '宽态完整浏览器；轨道态两枚区头控件请求外壳展开'
     def __init__(自身,属性):#浏览区 props
-        """记下注入动作、store、文案与外壳份额。"""
+        '记下注入动作、store、文案与外壳份额'
         自身.属性=属性#完整 props
         自身.翻译=属性['t']#文案
         自身.查询=''#搜索框
@@ -142,16 +142,16 @@ class 工作区浏览区:#侧栏浏览区
         自身.先前排序方式=None#进入 updated 时全量近因排序判定
 
     def 清洗查询(自身):#当前清洗后查询
-        """返回线路安全查询。"""
+        '返回线路安全查询'
         return 消毒检索查询(自身.查询)#清洗
 
     def 读快照(自身):#浏览 store 快照
-        """读 useStore 或 store 快照。"""
+        '读 useStore 或 store 快照'
         属性=自身.属性#props
         读=属性['useStore'] if 'useStore' in 属性 else None#钩
         if 读 is not None:#有钩
             def 原样(状态):#选择器身份
-                """整表。"""
+                '整表'
                 return 状态#快照
             return 读(原样)#快照
         存储=属性['store'] if 'store' in 属性 else None#句柄
@@ -160,7 +160,7 @@ class 工作区浏览区:#侧栏浏览区
         return 存储.getSnapshot()#读
 
     def 读动作(自身):#store 动作
-        """优先 props.actions，其次 store.actions。"""
+        '优先 props.actions，其次 store.actions'
         属性=自身.属性#props
         if 'actions' in 属性 and 属性['actions'] is not None:#直接注入
             return 属性['actions']#返回
@@ -170,7 +170,7 @@ class 工作区浏览区:#侧栏浏览区
         return 存储.actions#存储对象的动作面
 
     def 同步顺序账本(自身,列表,工作区列表,归档):
-        """按 orderBy 调和各账本顺序并写回 store。"""
+        '按 orderBy 调和各账本顺序并写回 store'
         动作=自身.读动作()#动作
         if 动作 is None or 'syncSessionOrders' not in 动作:#无写口
             return#停
@@ -218,7 +218,7 @@ class 工作区浏览区:#侧栏浏览区
             动作['syncSessionOrders'](快照,变更)#写回
 
     def 渲染查看选项(自身,分组方式,排序方式):#分组/排序菜单
-        """查看选项菜单。"""
+        '查看选项菜单'
         return {#锚点 + 菜单
             'type':'fragment','children':[#子
                 {'type':'button','class':'iconButton wide','aria-label':自身.翻译('viewOptions.label'),'onClick':'view-toggle'},#锚点
@@ -239,7 +239,7 @@ class 工作区浏览区:#侧栏浏览区
         }#片段结束
 
     def 渲染对话框(自身):#重命名/删除
-        """浏览器自有对话框，避免行卸载带走确认态。"""
+        '浏览器自有对话框，避免行卸载带走确认态'
         当前标题=自身.重命名目标['currentTitle'] if 自身.重命名目标 is not None else None#当前标题
         重命名阻=自身.重命名中 or 自身.重命名草稿.strip()=='' or 自身.重命名目标 is None or 自身.重命名草稿.strip()==当前标题#阻塞
         会话阻=自身.会话重命名中 or 自身.会话重命名草稿.strip()=='' or 自身.会话重命名目标 is None#会话阻塞（允许确认当前标题）
@@ -251,48 +251,48 @@ class 工作区浏览区:#侧栏浏览区
         ]#列表结束
 
     def 渲目录流(自身,主人):#侧栏目录流孔
-        """sidebar.workspaces.directoryFlow。"""
+        'sidebar.workspaces.directoryFlow'
         渲=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None#槽
         if 渲 is None:#无
             return None#无
         return 渲('sidebar.workspaces.directoryFlow',主人)#孔
 
     def 挑中添加(自身,标识):#挑中后开会话
-        """关弹出并开会话。"""
+        '关弹出并开会话'
         自身.添加开=False#关
         自身.属性['startSession'](标识)#开
 
     def 关添加(自身):#关闭添加流
-        """关弹出。"""
+        '关弹出'
         自身.添加开=False#关
 
     def 造打开会话(自身,标识):#打开该会话
-        """闭包。"""
+        '闭包'
         def 打开():#点击
-            """open。"""
+            'open'
             自身.属性['open'](标识)#打开
         return 打开#回调
 
     def 造会话动作(自身,项):#行菜单
-        """重命名/归档/分叉。"""
+        '重命名/归档/分叉'
         标识=项['id']#id
         标题=项['title']#标题
         def 重命名():#重命名
-            """开会话重命名。"""
+            '开会话重命名'
             自身.开会话重命名(标识,标题)#开
         def 归档():#归档
-            """归档会话。"""
+            '归档会话'
             自身.归档会话(标识)#归档
         return {'rename':重命名,'archive':归档,'fork':自身.属性['forkSession'] if 'forkSession' in 自身.属性 else None}#动作
 
     def 渲染(自身):#结构树
-        """返回浏览区结构树。"""
+        '返回浏览区结构树'
         属性=自身.属性#props
         宽=bool(属性['wide']) if 'wide' in 属性 else True#宽态
         用会话=属性['useSessions'] if 'useSessions' in 属性 else None#会话钩
         用工作区=属性['useWorkspaces'] if 'useWorkspaces' in 属性 else None#工作区钩
         def 原样(状态):#选择器身份
-            """整表。"""
+            '整表'
             return 状态#快照
         列表=用会话(原样) if 用会话 is not None else {'ids':[],'byId':{},'current':None}#会话列表
         工作区快照=用工作区(原样) if 用工作区 is not None else {'items':[],'archivedSessionIds':[]}#工作区
@@ -306,7 +306,7 @@ class 工作区浏览区:#侧栏浏览区
             自身.删除目标=None#关
         用目录流=属性['useDirectoryFlow'] if 'useDirectoryFlow' in 属性 else None#占用钩
         def 选占用(占用):#占用态
-            """原样。"""
+            '原样'
             return 占用#占用
         目录流可用=用目录流(选占用) if 用目录流 is not None else False#添加入口
         if not 宽:#轨态
@@ -379,15 +379,15 @@ class 工作区浏览区:#侧栏浏览区
             for 组 in 组列表:#逐组
                 键=组['key']#组键
                 def 造切换(组键):#切换展开
-                    """闭包。"""
+                    '闭包'
                     def 切换():#点击
-                        """翻转。"""
+                        '翻转'
                         自身.切换分组(组键)#翻转
                     return 切换#回调
                 def 造创建(组键,工作区标识):#新建会话
-                    """闭包。"""
+                    '闭包'
                     def 创建():#点击
-                        """展开并开会话。"""
+                        '展开并开会话'
                         自身.设分组展开(组键,True)#展开
                         自身.属性['startSession'](工作区标识)#开
                     return 创建#回调
@@ -396,15 +396,15 @@ class 工作区浏览区:#侧栏浏览区
                     区标识=组['workspaceId']#id
                     区标签=组['label']#标签
                     def 造重命名(某标识,某标题):#重命名
-                        """闭包。"""
+                        '闭包'
                         def 重命名():#点击
-                            """开重命名。"""
+                            '开重命名'
                             自身.开重命名(某标识,某标题)#开
                         return 重命名#回调
                     def 造删除(某标识,某标题):#删除
-                        """闭包。"""
+                        '闭包'
                         def 删除():#点击
-                            """开删除。"""
+                            '开删除'
                             自身.开删除(某标识,某标题)#开
                         return 删除#回调
                     组动作={'rename':造重命名(区标识,区标签),'delete':造删除(区标识,区标签)}#动作
@@ -455,14 +455,14 @@ class 工作区浏览区:#侧栏浏览区
         }#根结束
 
     def 设分组展开(自身,键,展开):#写 groupExpansion
-        """写 store 的分组展开。"""
+        '写 store 的分组展开'
         动作=自身.读动作()#动作
         if 动作 is None or 'setGroupExpanded' not in 动作:#无
             return#停
         动作['setGroupExpanded'](自身.读快照(),键,展开)#写入
 
     def 切换分组(自身,键):#翻转分组展开
-        """写回 store 的 groupExpansion。"""
+        '写回 store 的 groupExpansion'
         快照=自身.读快照()#当前
         展开表=快照['groupExpansion'] if 'groupExpansion' in 快照 and 快照['groupExpansion'] is not None else {}#展开
         当前=bool(展开表[键]) if 键 in 展开表 else False#当前展开
@@ -474,7 +474,7 @@ class 工作区浏览区:#侧栏浏览区
         动作['setGroupExpanded'](快照,键,not 当前)#翻转
 
     def 开重命名(自身,工作区标识,当前标题):#打开工作区重命名
-        """记下重命名目标。"""
+        '记下重命名目标'
         if 工作区标识 is None:#未分组
             return#停
         自身.重命名目标={'workspaceId':工作区标识,'currentTitle':当前标题}#目标
@@ -482,20 +482,20 @@ class 工作区浏览区:#侧栏浏览区
         自身.重命名错误=None错
 
     def 开删除(自身,工作区标识,标题):#打开删除确认
-        """记下删除目标。"""
+        '记下删除目标'
         if 工作区标识 is None:#未分组
             return#停
         自身.删除目标={'workspaceId':工作区标识,'title':标题}#目标
         自身.删除错误=None错
 
     def 开会话重命名(自身,会话标识,当前标题):#打开会话重命名
-        """记下会话重命名目标。"""
+        '记下会话重命名目标'
         自身.会话重命名目标={'sessionId':会话标识,'currentTitle':当前标题}#目标
         自身.会话重命名草稿=当前标题#草稿
         自身.会话重命名错误=None错
 
     def 归档会话(自身,会话标识):#无对话框归档
-        """直接提交归档；失败只诊断。注入面已等待。"""
+        '直接提交归档；失败只诊断。注入面已等待'
         归档=自身.属性['archiveSession'] if 'archiveSession' in 自身.属性 else None#注入
         if 归档 is None:#无
             return#停
@@ -505,7 +505,7 @@ class 工作区浏览区:#侧栏浏览区
             pass#非致命
 
     def 触发正文检索(自身):#防抖宿主检索
-        """非空白查询经防抖调用 searchSessions。注入面已等待。"""
+        '非空白查询经防抖调用 searchSessions。注入面已等待'
         查询=自身.清洗查询().strip()#查询
         搜索=自身.属性['searchSessions'] if 'searchSessions' in 自身.属性 else None#注入检索
         if 查询=='' or 搜索 is None:#无需
@@ -524,7 +524,7 @@ class 工作区浏览区:#侧栏浏览区
         自身.检索中=False#结束
 
     def 处理动作(自身,动作,载荷=None):#分发交互
-        """搜索、添加、查看选项、对话框与溢出。"""
+        '搜索、添加、查看选项、对话框与溢出'
         属性=自身.属性#props
         动作集=自身.读动作()#store 动作
         if 动作=='rail-search':#轨搜索
@@ -574,7 +574,7 @@ class 工作区浏览区:#侧栏浏览区
                 用会话=属性['useSessions'] if 'useSessions' in 属性 else None#会话钩
                 用工作区=属性['useWorkspaces'] if 'useWorkspaces' in 属性 else None#工作区钩
                 def 原样(状态):#选择器身份
-                    """整表。"""
+                    '整表'
                     return 状态#快照
                 列表=用会话(原样) if 用会话 is not None else {'ids':[],'byId':{},'current':None}#会话
                 工作区快照=用工作区(原样) if 用工作区 is not None else {'items':[],'archivedSessionIds':[]}#工作区

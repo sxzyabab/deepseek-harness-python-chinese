@@ -7,9 +7,9 @@ __all__=['深色属性','主题源属性','内容字号变量','主题呈现器'
 内容字号变量='--dsh-content-font-size'#内容字号 CSS 变量
 
 class 主题呈现器:#文档主题呈现器
-    """纯写入面；无 document 时只缓存快照。自有 theme-color meta。"""
+    '纯写入面；无 document 时只缓存快照。自有 theme-color meta'
     def __init__(自身):
-        """记下已施加令牌名，预创建 theme-color meta。"""
+        '记下已施加令牌名，预创建 theme-color meta'
         自身.已施加令牌=[]#收回集合
         自身.最近快照=None#最近快照
         自身.主题色元=None#自有 meta；有 DOM 时铸造
@@ -22,7 +22,7 @@ class 主题呈现器:#文档主题呈现器
         自身.主题色元=元#记下
 
     def 施加(自身,快照):
-        """有 DOM 则写 color-scheme / 主题源 / 调色板 / 字号 / 令牌 / theme-color；否则只记快照。"""
+        '有 DOM 则写 color-scheme / 主题源 / 调色板 / 字号 / 令牌 / theme-color；否则只记快照'
         自身.最近快照=快照#缓存
         活动=快照['active'] if 快照 is not None and 'active' in 快照 else None#活动主题
         活动=活动 if 活动 is not None else {}#空则空表
@@ -59,7 +59,7 @@ class 主题呈现器:#文档主题呈现器
                 文档.head.append(自身.主题色元)#插入 head
 
     def 拆除(自身):
-        """清根 color-scheme、主题源、调色板属性、字号轴、令牌与自有 meta。"""
+        '清根 color-scheme、主题源、调色板属性、字号轴、令牌与自有 meta'
         自身.最近快照=None#清快照
         try:#探测 DOM
             文档=builtins.document#浏览器 document

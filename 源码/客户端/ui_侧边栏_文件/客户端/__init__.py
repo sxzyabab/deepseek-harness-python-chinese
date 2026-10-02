@@ -44,17 +44,17 @@ __all__=[
 
 #
 def 应用(上下文):
-    """登记类型与词典，再挂正文和芯片标题。存储按会话铸造，不在这里实例化。"""
+    '登记类型与词典，再挂正文和芯片标题。存储按会话铸造，不在这里实例化'
     翻译=上下文.locale.bind(命名空间)
 
     def 登记类型():
-        """把 files 类型挂进右侧侧栏注册表。"""
+        '把 files 类型挂进右侧侧栏注册表'
         return 上下文.sidebarRightTabs.register(文件定义(翻译))
 
     上下文.副作用(登记类型,'ui-sidebar-files: files type')
 
     def 登记词典():
-        """挂载中英文案。"""
+        '挂载中英文案'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
 
     上下文.副作用(登记词典,'ui-sidebar-files: dictionaries')
@@ -63,9 +63,9 @@ def 应用(上下文):
     注入面=文件面(创建列举(上下文.remote))
 
     def 挂正文():
-        """正文进带键席位，等洞就绪再登记。"""
+        '正文进带键席位，等洞就绪再登记'
         def 登记正文():
-            """登记 files 正文。"""
+            '登记 files 正文'
             return 上下文.slots.register({
                 'name':'sidebar.right.pane.tab',
                 'key':文件标识,
@@ -78,9 +78,9 @@ def 应用(上下文):
     上下文.副作用(挂正文,'ui-sidebar-files: files tab body')
 
     def 挂标题():
-        """芯片标题进带键席位。"""
+        '芯片标题进带键席位'
         def 登记标题():
-            """登记 files 芯片标题。"""
+            '登记 files 芯片标题'
             return 上下文.slots.register({
                 'name':'sidebar.right.pane.tab.title',
                 'key':文件标识,

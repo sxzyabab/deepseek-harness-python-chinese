@@ -1,4 +1,4 @@
-"""目标域的宿主侧词汇：实时视图、持久变更载荷、消息归因、回放折叠，以及作用域内的 goal/changed 事件。"""
+'目标域的宿主侧词汇：实时视图、持久变更载荷、消息归因、回放折叠，以及作用域内的 goal/changed 事件'
 from typing import Literal,TypedDict,NotRequired,Union#字面量、结构类型与联合
 from .类型 import 目标标识,目标引用,目标快照,目标视图#身份、引用、快照与视图
 

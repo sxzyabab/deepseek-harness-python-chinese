@@ -1,4 +1,4 @@
-"""`ctx.fileReferences` 的本地文件系统实现。"""
+'`ctx.fileReferences` 的本地文件系统实现'
 import os#路径
 from ...依赖.schemastery import 自然数字段,列表字段,字符串字段
 from ..文件引用 import 文件引用服务,文件引用提示#基类与提示
@@ -23,7 +23,7 @@ __all__=[
 依赖=['agents']
 
 def 校验配置(配置):
-    """非法配置让插件激活失败。"""
+    '非法配置让插件激活失败'
     最大结果=配置['maxResults'] if 'maxResults' in 配置 else 默认最大结果数#结果上限
     最大条目=配置['maxEntries'] if 'maxEntries' in 配置 else 默认最大条目数#索引上限
     if 最大结果<=0 or 最大条目<=0:#非正
@@ -34,10 +34,10 @@ def 校验配置(配置):
             raise 文件引用本地错误('file-reference-local: excludedDirectories entries must be non-empty directory basenames')#拒绝
 
 class 本地文件引用服务(文件引用服务):
-    """按智能体会话 cwd 索引工作区并提供 @ 补全。"""
+    '按智能体会话 cwd 索引工作区并提供 @ 补全'
 
     def __init__(自身,上下文,配置=None):
-        """为每个智能体懒建索引，并在工具结果后失效。"""
+        '为每个智能体懒建索引，并在工具结果后失效'
         super().__init__(上下文)#登记 fileReferences
         if 配置 is None:#默认空
             配置={}#空配置
@@ -52,14 +52,14 @@ class 本地文件引用服务(文件引用服务):
         自身.提示拆除器表=set()#在途提示拆除
 
         def 安装提示(智能体):
-            """read 工具存在时才注入文件引用指引。"""
+            'read 工具存在时才注入文件引用指引'
             if 智能体 in 自身.提示纤程:#已安装
                 return#跳过
             def 挂段(作用域):
-                """按工具可用性决定是否展示指引。"""
+                '按工具可用性决定是否展示指引'
                 有读=作用域.tools.获取('read',智能体) is not None#是否有 read
                 def 提示正文():
-                    """read 工具存在时才给出指引。"""
+                    'read 工具存在时才给出指引'
                     return 文件引用提示 if 有读 else ''#动态正文
                 作用域.systemPrompt.section({#挂段
                     'name':'context:file-reference',#段名
@@ -70,7 +70,7 @@ class 本地文件引用服务(文件引用服务):
             自身.提示纤程[智能体]=纤程#记住
 
         def 拆除提示(智能体):
-            """失败只记日志，不阻断主流程。"""
+            '失败只记日志，不阻断主流程'
             纤程=自身.提示纤程.pop(智能体,None)#取出
             if 纤程 is None:#无纤程
                 return#跳过
@@ -80,11 +80,11 @@ class 本地文件引用服务(文件引用服务):
                 上下文.日志.警告('file-reference-local: prompt cleanup failed: '+str(错误))#记日志
 
         def 智能体已创建(载荷,*_位置参数):
-            """新建智能体时挂提示。"""
+            '新建智能体时挂提示'
             安装提示(载荷['agent'])#安装
 
         def 智能体已拆除(载荷,*_位置参数):
-            """销毁智能体时清索引与提示。"""
+            '销毁智能体时清索引与提示'
             智能体=载荷['agent']#被拆智能体
             自身.搜索表.pop(智能体,None)#清索引
             拆除提示(智能体)#拆提示
@@ -94,7 +94,7 @@ class 本地文件引用服务(文件引用服务):
         上下文.监听('agent/created',智能体已创建)#新建
         上下文.监听('agent/disposed',智能体已拆除)#销毁
         def 会话事件(会话,事件,*_位置参数):
-            """文件系统变更后让索引过时。"""
+            '文件系统变更后让索引过时'
             if 事件['type']!='tool/result':#只看工具结果
                 return#放过
             智能体=上下文.agents.获取(会话.id)#按会话找智能体
@@ -104,9 +104,9 @@ class 本地文件引用服务(文件引用服务):
                     搜索.失效()#失效
         上下文.监听('session/event',会话事件)#监听会话事件
         def 装寿命():
-            """拆除时释放全部索引与提示纤程。"""
+            '拆除时释放全部索引与提示纤程'
             def 拆():
-                """清空搜索与提示。"""
+                '清空搜索与提示'
                 for 搜索 in 自身.搜索表.values():#逐个索引
                     搜索.拆除()#拆索引
                 自身.搜索表.clear()#清表
@@ -121,7 +121,7 @@ class 本地文件引用服务(文件引用服务):
         上下文.副作用(装寿命,'file-reference-local: search cache')#登记 effect
 
     def 列举(自身,智能体,查询,信号):
-        """按智能体 cwd 根建索引并搜索。"""
+        '按智能体 cwd 根建索引并搜索'
         搜索=自身.搜索表.get(智能体)#已有索引
         if 搜索 is None:#首次
             头=智能体.session.header#会话头

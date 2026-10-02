@@ -1,4 +1,4 @@
-"""强制的原生 V4 关系；不完整尾部保留其开放事务。"""
+'强制的原生 V4 关系；不完整尾部保留其开放事务'
 import json,re#重试键与未启动标识后缀
 from ..会话格式 import 会话格式错误,是否会话格式json对象,会话格式计数#从会话格式导入
 
@@ -15,34 +15,34 @@ from ..会话格式 import 会话格式错误,是否会话格式json对象,会�
 未启动文本='The tool call was interrupted before the Harness recorded it as started. Retry it if it is still needed.'#未启动修复文本
 
 def 记录(值,主语):#记录对象
-    """要求值为对象。"""
+    '要求值为对象'
     if not 是否会话格式json对象(值):#须对象
         raise 会话格式错误(主语+' requires an object')#错误
     return 值#返回
 
 def 文本(值,主语):#非空字符串
-    """要求非空字符串。"""
+    '要求非空字符串'
     if not isinstance(值,str) or len(值)==0:#非法
         raise 会话格式错误(主语+' requires a nonempty string')#错误
     return 值#返回
 
 def 数组(值,主语):#数组
-    """要求值为数组。"""
+    '要求值为数组'
     if not isinstance(值,list):#须数组
         raise 会话格式错误(主语+' requires an array')#错误
     return 值#返回
 
 def 更早(值,序号,主语):#更早序号
-    """要求引用更早事件。"""
+    '要求引用更早事件'
     坐标=会话格式计数(值,主语)#计数
     if 坐标>=序号:#须更早
         raise 会话格式错误(主语+' must name an earlier event')#错误
     return 坐标#返回
 
 class 关系状态:#关系状态
-    """一份原生产物的生命周期状态；各次读取互不保留。"""
+    '一份原生产物的生命周期状态；各次读取互不保留'
     def __init__(自身,产物,已知事件类型):#构造
-        """记下产物并预计算被结束种子切断的压缩。"""
+        '记下产物并预计算被结束种子切断的压缩'
         自身.产物=产物#产物
         自身.已知事件类型=已知事件类型#已知类型
         自身.回合=None#开放回合
@@ -73,23 +73,23 @@ class 关系状态:#关系状态
                 起点=None#关闭
 
     def 要求回合(自身,类型):#要求开放回合
-        """当前须有开放回合。"""
+        '当前须有开放回合'
         if 自身.回合 is None:#无回合
             raise 会话格式错误(类型+' is outside an open turn')#错误
 
     def 要求步骤(自身,事件,数据):#要求开放步骤
-        """事件须匹配当前开放回合与步骤。"""
+        '事件须匹配当前开放回合与步骤'
         if 自身.回合 is None or 自身.步骤 is None or 数据.get('turn')!=自身.回合 or 数据.get('step')!=自身.步骤:#不符
             raise 会话格式错误(事件['type']+' does not match an open turn and step')#错误
 
     def 关闭工具(自身,类型):#关闭未结算工具
-        """步骤或回合结束时不得留下未结算工具调用。"""
+        '步骤或回合结束时不得留下未结算工具调用'
         if len(自身.工具)!=0:#还有未结算
             raise 会话格式错误(类型+' leaves unresolved tool call '+str(next(iter(自身.工具))))#错误
         自身.工具.clear()#清空
 
     def 开发者(自身,事件,数据):#开发者关系
-        """校验 tool-addition 指向先前请求头中恰好一条完整工具定义。"""
+        '校验 tool-addition 指向先前请求头中恰好一条完整工具定义'
         if 'headerSeq' not in 数据:#无头引用
             return#返回
         头序号=更早(数据['headerSeq'],事件['seq'],'developer/message headerSeq')#头序号
@@ -112,7 +112,7 @@ class 关系状态:#关系状态
                 raise 会话格式错误('developer/message tool-addition "'+str(工具名)+'" requires a complete tool definition in headerSeq '+str(头序号))#错误
 
     def 折叠表面(自身,事件):#折叠表面
-        """按 append/replace 维护当前表面。"""
+        '按 append/replace 维护当前表面'
         if 事件['type'] not in 表面类型:#非表面
             return#返回
         if 事件['type']=='system/message' and len(自身.表面)>0 and 自身.受保护头 is None:#需受保护头
@@ -140,7 +140,7 @@ class 关系状态:#关系状态
         自身.表面[起:止+1]=[事件['seq']]#替换为当前
 
     def 工具(自身,事件,数据):#工具生命周期
-        """校验 tool-call / tool/result 与已公布调用的对应。"""
+        '校验 tool-call / tool/result 与已公布调用的对应'
         if 事件['type']=='tool/result' and 事件.get('surfaceOp')!='append':#替换结果只要求回合
             自身.要求回合(事件['type'])#要求回合
             return#返回
@@ -171,7 +171,7 @@ class 关系状态:#关系状态
             del 自身.工具[标识]#结算
 
     def 派发(自身,事件,数据):#PTC派发
-        """校验 PTC 分发起止与根/父调用标识。"""
+        '校验 PTC 分发起止与根/父调用标识'
         自身.要求回合(事件['type'])#要求回合
         标识=文本(数据.get('subCallId'),'PTC subCallId')#子调用
         根=文本(数据.get('rootCallId'),'PTC rootCallId')#根调用
@@ -196,7 +196,7 @@ class 关系状态:#关系状态
         已有['settled']=True#已结算
 
     def 重试关系(自身,事件,数据):#llm重试
-        """校验调度与已启动重试的坐标与序号。"""
+        '校验调度与已启动重试的坐标与序号'
         标识=文本(数据.get('retryId'),'retryId')#重试标识
         次数=会话格式计数(数据.get('retry'),'retry')#次数
         if 事件['type']=='llm/retry-started':#已启动
@@ -231,7 +231,7 @@ class 关系状态:#关系状态
         自身.重试.append(数据)#登记
 
     def 压缩关系(自身,事件,数据):#压缩关系
-        """校验压缩起止、摘要与遮蔽跨度。"""
+        '校验压缩起止、摘要与遮蔽跨度'
         if 事件['type']=='compaction/prune' or 事件['type']=='compaction/summary':#遮蔽
             自身.跨度(事件,数据)#跨度
         if 事件['type']=='compaction/prune':#裁剪至此
@@ -260,13 +260,13 @@ class 关系状态:#关系状态
             自身.压缩=None#关闭
 
     def 压缩所有者(自身,数据,主语):#压缩所有者
-        """要求存在匹配的 compaction/start。"""
+        '要求存在匹配的 compaction/start'
         if 自身.压缩 is None or 自身.压缩['id']!=数据.get('compactionId') or 自身.压缩['command']!=数据.get('sourceCommandId'):#不匹配
             raise 会话格式错误(主语+' has no matching compaction/start')#错误
         return 自身.压缩#返回
 
     def 跨度(自身,事件,数据):#压缩遮蔽跨度
-        """遮蔽序号须恰好为当前表面一段。"""
+        '遮蔽序号须恰好为当前表面一段'
         范围=记录(数据.get('shadowedRange'),'compaction shadowedRange')#范围
         起序号=更早(范围.get('start'),事件['seq'],'compaction range start')#起点序号
         止序号=更早(范围.get('end'),事件['seq'],'compaction range end')#终点序号
@@ -279,7 +279,7 @@ class 关系状态:#关系状态
             raise 会话格式错误('compaction cannot shadow the protected system head')#错误
 
     def 接纳(自身,事件):#接纳事件
-        """按类型折叠生命周期事实。"""
+        '按类型折叠生命周期事实'
         if 事件['type'] not in 自身.已知事件类型 or 事件['type'] not in 关系类型:#不解释
             return#返回
         数据=记录(事件.get('data'),事件['type'])#载荷
@@ -348,7 +348,7 @@ class 关系状态:#关系状态
             自身.压缩=None#关闭压缩
 
 def 未启动修复(事件,数据,消息,调用标识):#未启动修复
-    """识别规范的 TOOL_NOT_STARTED 修复。"""
+    '识别规范的 TOOL_NOT_STARTED 修复'
     错误=记录(数据.get('error'),'not-started error')#错误
     if 错误.get('name')!='ToolNotStartedError' or 错误.get('code')!='TOOL_NOT_STARTED' or 消息.get('isError') is not True or 'sourceEventSeqs' in 事件:#非该修复
         return False#否
@@ -365,7 +365,7 @@ def 未启动修复(事件,数据,消息,调用标识):#未启动修复
         and 块.get('text')==未启动文本)#规范修复
 
 def 标题来源(事件列表,事件,数据,已知事件类型):#标题来源
-    """标题消息序号须引用更早的人类 user/message。"""
+    '标题消息序号须引用更早的人类 user/message'
     引用=数组(数据.get('messageSeqs'),'title messageSeqs')#引用
     if 事件['type']=='session/title' and (len(引用)==0)!=(记录(数据.get('source'),'title source').get('kind')=='user'):#用户标题须空引用
         raise 会话格式错误('session/title messageSeqs must be empty exactly for a user title')#错误
@@ -389,7 +389,7 @@ def 标题来源(事件列表,事件,数据,已知事件类型):#标题来源
         raise 会话格式错误('session/title-llm-request messages do not represent messageSeqs')#错误
 
 def 断言v4生命周期关系(产物,已知事件类型):#断言v4生命周期关系
-    """校验原生 V4 生命周期与归属事实，不改写任何事件。"""
+    '校验原生 V4 生命周期与归属事实，不改写任何事件'
     状态=关系状态(产物,已知事件类型)#状态
     for 事件 in 产物['events']:#逐事件
         状态.接纳(事件)#接纳

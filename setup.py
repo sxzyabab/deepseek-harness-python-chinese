@@ -8,12 +8,9 @@ from setuptools.command.build_py import build_py
 
 根目录=Path(__file__).resolve().parent
 源码目录=根目录/"源码"
-依赖目录=根目录/"依赖快照"
 
 if not 源码目录.is_dir():
     raise RuntimeError("源码目录不存在")
-if not 依赖目录.is_dir():
-    raise RuntimeError("依赖快照目录不存在")
 
 def 复制文件树(源:Path,目标:Path)->None:
     if 目标.exists():

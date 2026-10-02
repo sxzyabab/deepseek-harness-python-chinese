@@ -9,37 +9,37 @@ __all__=['工作者子进程','启动','启动同步','执行','执行文件']#�
 模块='node:child_process'#模块说明符
 
 class 工作者可读(事件发出器):#可读管道半
-    """管道可读半：携带 Buffer 的 data 事件、end，以及停止交付的 destroy。"""
+    '管道可读半：携带 Buffer 的 data 事件、end，以及停止交付的 destroy'
 
     def __init__(自身):#构造
-        """空可读半。"""
+        '空可读半'
         super().__init__()#初始化
         自身._已毁=False#是否已销毁
 
     def 设编码(自身,*位置参数):#接受编码空操作
-        """接受编码（块始终为以 Buffer 承载的 UTF-8 文本）。"""
+        '接受编码（块始终为以 Buffer 承载的 UTF-8 文本）'
         return 自身#链式
 
     def 暂停(自身):#暂停空操作
-        """接受流控请求。"""
+        '接受流控请求'
         return 自身#链式
 
     def 恢复(自身):#恢复空操作
-        """恢复。"""
+        '恢复'
         return 自身#链式
 
     def 推送(自身,文本):#推送一块
-        """向 data 监听器交付一块。"""
+        '向 data 监听器交付一块'
         if 自身._已毁 or 文本=='': return#已毁或空则跳过
         自身.发出('data',Buffer.from(文本,'utf8'))#发data事件
 
     def 结束流(自身):#结束流
-        """发信号流结束。"""
+        '发信号流结束'
         if 自身._已毁: return#已毁则跳过
         自身.发出('end')#发end
 
     def 销毁(自身):#销毁流
-        """停止交付。"""
+        '停止交付'
         自身._已毁=True#标记销毁
         自身.发出('close')#发close
 
@@ -51,25 +51,25 @@ class 工作者可读(事件发出器):#可读管道半
     destroy=销毁#Node面
 
 class 工作者可写(事件发出器):#可写管道半
-    """stdin 的可写半：子进程服务执行的批量写。"""
+    'stdin 的可写半：子进程服务执行的批量写'
 
     def __init__(自身):#构造
-        """空缓冲。"""
+        '空缓冲'
         super().__init__()#初始化
         自身._文本=''#已缓冲文本
 
     def 写入(自身,块):#缓冲写入
-        """缓冲一次写。"""
+        '缓冲一次写'
         自身._文本+=块 if isinstance(块,str) else Buffer.from(块).toString('utf8')#追加文本
         return True#无背压
 
     def 结束(自身,块=None):#结束stdin
-        """结束标准输入。"""
+        '结束标准输入'
         if 块 is not None: 自身.写入(块)#可选最终写
         自身.发出('finish')#发finish
 
     def 内容(自身):#取缓冲内容
-        """迄今写入的一切。"""
+        '迄今写入的一切'
         return 自身._文本#返回文本
 
     write=写入#Node面
@@ -77,10 +77,10 @@ class 工作者可写(事件发出器):#可写管道半
     contents=内容#内部面
 
 class 工作者子进程(事件发出器):#子进程句柄
-    """一条运行中的命令，穿着其消费者读取的 ChildProcess 部分。"""
+    '一条运行中的命令，穿着其消费者读取的 ChildProcess 部分'
 
     def __init__(自身,pid,stdio):#构造句柄
-        """按 stdio 处置构造管道。"""
+        '按 stdio 处置构造管道'
         super().__init__()#初始化发出器
         自身.pid=pid#记下pid
         自身.stdin=工作者可写() if stdio[0]=='pipe' else None#stdin管道
@@ -90,7 +90,7 @@ class 工作者子进程(事件发出器):#子进程句柄
         自身.signalCode=None#信号码
 
     def 杀死(自身,信号='SIGTERM'):#发信号
-        """向本命令投递信号。"""
+        '向本命令投递信号'
         return 信号进程(自身.pid,信号)#委托进程表
 
     kill=杀死#Node面
@@ -98,7 +98,7 @@ class 工作者子进程(事件发出器):#子进程句柄
 WorkerChildProcess=工作者子进程#Node面别名
 
 def 规范化stdio(选项):#规范化stdio
-    """将 stdio 选项规范为本 shim 读取的三元形式。"""
+    '将 stdio 选项规范为本 shim 读取的三元形式'
     if isinstance(选项,str): return [选项,选项,选项]#三流同值
     if 选项 is None: return ['pipe','pipe','pipe']#默认全管道
     return [选项[0] if len(选项)>0 and 选项[0] is not None else 'pipe',#stdin
@@ -106,7 +106,7 @@ def 规范化stdio(选项):#规范化stdio
         选项[2] if len(选项)>2 and 选项[2] is not None else 'pipe']#stderr
 
 def 规范化环境(选项):#规范化环境
-    """命令运行时环境。"""
+    '命令运行时环境'
     进程=globals().get('process')#process
     继承={}#继承环境
     if 进程 is not None:#有process
@@ -116,7 +116,7 @@ def 规范化环境(选项):#规范化环境
     return {键:值 for 键,值 in 源.items() if 值 is not None}#去掉None
 
 def 构造enoent(程序):#构造ENOENT
-    """缺失程序按 Node 失败缺失二进制的方式失败。"""
+    '缺失程序按 Node 失败缺失二进制的方式失败'
     错误=运行时错误(f'spawn {程序} ENOENT')#基错误
     错误.code='ENOENT'#错误码
     错误.errno=-2#errno
@@ -125,7 +125,7 @@ def 构造enoent(程序):#构造ENOENT
     return 错误#返回
 
 def 识别shell脚本(argv):#识别shell -c脚本
-    """此 argv 是否为解释器应解析脚本的 shell 调用。"""
+    '此 argv 是否为解释器应解析脚本的 shell 调用'
     if len(argv)<2: return None#过短
     程序=argv[0]#程序
     标志=argv[1]#标志
@@ -133,7 +133,7 @@ def 识别shell脚本(argv):#识别shell -c脚本
     return argv[2] if len(argv)>2 else ''#脚本或空串
 
 def _载入shell面():#惰性载入shell依赖
-    """shell 层尚未全量汉化时按约定路径导入。"""
+    'shell 层尚未全量汉化时按约定路径导入'
     from ....shell.process.宿主 import 启动进程#进程启动
     from ....shell.文件系统访问 import 宿主文件系统#宿主文件系统
     from ....shell.process.虚拟可执行 import 虚拟可执行#虚拟可执行
@@ -141,7 +141,7 @@ def _载入shell面():#惰性载入shell依赖
     return 启动进程,宿主文件系统,虚拟可执行,标准程序#交回
 
 def 启动(程序,参数=None,选项=None):#异步启动命令
-    """在 worker 中运行一条命令。"""
+    '在 worker 中运行一条命令'
     if 参数 is None: 参数=[]#缺省参数
     if 选项 is None: 选项={}#缺省选项
     if not isinstance(程序,str) or 程序=='':#非法程序名
@@ -155,7 +155,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
     已结算=[False]#是否已结算
 
     def 投递(流,文本):#输出投递
-        """管道或继承流输出。"""
+        '管道或继承流输出'
         if 文本=='': return#空跳过
         管道=子.stdout if 流=='stdout' else 子.stderr#取管道
         if 管道 is not None:#有管道
@@ -166,7 +166,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
             print(文本[:-1] if 文本.endswith('\n') else 文本)#打到控制台
 
     def 结算(退出码):#正常结算
-        """正常结算。"""
+        '正常结算'
         if 已结算[0]: return#防重入
         已结算[0]=True#标记结算
         释放进程(表项['pid'])#释放表项
@@ -179,7 +179,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
         子.发出('close',子.exitCode,信号)#发close
 
     def 启动失败(错误):#启动失败
-        """启动失败。"""
+        '启动失败'
         if 已结算[0]: return#防重入
         已结算[0]=True#标记结算
         释放进程(表项['pid'])#释放表项
@@ -188,7 +188,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
     微任务=globals().get('queueMicrotask')#微任务
 
     def 启动体():#微任务启动体
-        """异步启动命令。"""
+        '异步启动命令'
         try:#尝试
             启动进程,宿主文件系统,虚拟可执行,标准程序=_载入shell面()#载入shell
             cwd=选项['cwd'] if 选项.get('cwd') is not None else dsh根#缺席用虚拟根，空串合法
@@ -199,7 +199,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
             if 可执行 is not None:
                 准备=可执行.prepare(参数,{'cwd':cwd,'filesystem':宿主文件系统()})
                 def 处理准备(prepared):#处理准备结果
-                    """处理虚拟包装准备结果。"""
+                    '处理虚拟包装准备结果'
                     nonlocal 命令argv,文件系统,缺失可执行#外层
                     种类=prepared['kind'] if 'kind' in prepared else None#种类
                     if 种类=='exit':#立即退出
@@ -212,7 +212,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
                     缺失可执行=prepared['missingExecutable'] if 'missingExecutable' in prepared else None#缺失
                     继续启动()#继续
                 def 继续启动():#已知性检查与启动
-                    """已知性检查与启动。"""
+                    '已知性检查与启动'
                     命令=命令argv[0]#命令名
                     脚本=识别shell脚本(命令argv)#shell脚本
                     已知=脚本 is not None or 命令 in 标准程序()#是否已知
@@ -263,7 +263,7 @@ def 启动(程序,参数=None,选项=None):#异步启动命令
     return 子#立即返回句柄
 
 def 启动同步(程序,参数=None):#同步spawn
-    """报告命令无法同步运行（或虚拟可执行的同步探测结果）。"""
+    '报告命令无法同步运行（或虚拟可执行的同步探测结果）'
     if 参数 is None: 参数=[]#缺省
     空=Buffer.alloc(0) if hasattr(Buffer,'alloc') else b''#空缓冲
     try:#尝试载入shell
@@ -288,33 +288,33 @@ def 启动同步(程序,参数=None):#同步spawn
     return {'pid':-1,'status':None,'signal':None,'stdout':空,'stderr':空,'output':[None,空,空],'error':错误}#失败结果
 
 def 拆分执行参数(选项,回调):#拆分选项与回调
-    """将可选选项参数与回调分开。"""
+    '将可选选项参数与回调分开'
     if callable(选项): return {'options':{},'callback':选项}#选项实为回调
     return {'options':{} if 选项 is None else 选项,'callback':回调}#??空选项，空字典合法
 
 def 共享执行(argv,选项,回调):#共享执行体
-    """exec 与 execFile 的共享体。"""
+    'exec 与 execFile 的共享体'
     子=启动(argv[0],list(argv[1:]),{**选项,'stdio':'pipe'})#强制管道spawn
     stdout=['']#收集stdout
     stderr=['']#收集stderr
     def 累加出(块):#累加 stdout
-        """把一块 stdout 文本接到缓冲。"""
+        '把一块 stdout 文本接到缓冲'
         stdout[0]=stdout[0]+str(块)#累加
     def 累加错(块):#累加 stderr
-        """把一块 stderr 文本接到缓冲。"""
+        '把一块 stderr 文本接到缓冲'
         stderr[0]=stderr[0]+str(块)#累加
     if 子.stdout is not None:#有 stdout
         子.stdout.监听('data',累加出)#累加stdout
     if 子.stderr is not None:#有 stderr
         子.stderr.监听('data',累加错)#累加stderr
     def 出错时(错误):#错误回调
-        """错误优先回调。"""
+        '错误优先回调'
         if 回调 is None:#无回调
             return#忽略
         回调(错误 if isinstance(错误,运行时错误) else 运行时错误(str(错误)),stdout[0],stderr[0])#回调
     子.监听('error',出错时)#错误回调
     def 关闭时(码,*其余):#关闭回调
-        """关闭回调。"""
+        '关闭回调'
         if 回调 is None: return#无回调
         状态=码 if isinstance(码,int) else 1#状态码
         回调(None if 状态==0 else 运行时错误(f"Command failed: {' '.join(argv)}"),stdout[0],stderr[0])#成功或失败
@@ -322,12 +322,12 @@ def 共享执行(argv,选项,回调):#共享执行体
     return 子#返回句柄
 
 def 执行(命令,选项=None,回调=None):#运行命令行
-    """运行命令行并经回调报告其输出。"""
+    '运行命令行并经回调报告其输出'
     已拆=拆分执行参数(选项,回调)#拆分参数
     return 共享执行(['bash','-c',命令],已拆['options'],已拆['callback'])#经bash -c
 
 def 执行文件(程序,参数=None,选项=None,回调=None):#运行显式argv
-    """以显式 argv 运行一程序并经回调报告其输出。"""
+    '以显式 argv 运行一程序并经回调报告其输出'
     if isinstance(参数,(list,tuple)):#显式参数
         argv=[程序,*参数]#拼argv
         移位=选项#选项

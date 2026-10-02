@@ -1,4 +1,5 @@
 from .文案 import 命名空间,中文,英文#词表
+from ...基础设施.通用工具 import 获取内部数据
 from .槽位 import 无当前目标结果#失败结果
 from .激活源 import 创建目标激活源#激活源
 from .命令输入 import 目标命令输入定义#节点定义
@@ -10,14 +11,14 @@ __all__=['依赖','应用','目标坞','目标命令输入视图','目标命令�
 依赖=['slots','sessions','remote','remote.goals','locale','uiConversation']#槽位、会话、远程、goals、文案、对话 UI
 
 def 应用(上下文):#安装目标界面浏览器半边
-    """带变更动词与激活钩子的 GoalBar 坞条目。"""
+    '带变更动词与激活钩子的 GoalBar 坞条目'
     上下文.uiConversation.events.register(目标命令输入定义)#登记命令输入会话节点定义
     def 登记词典():#登记中英文案
-        """把目标词表写进 locale。"""
+        '把目标词表写进 locale'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记词表
     上下文.副作用(登记词典,'ui-goal: dictionaries')#登记词表
     def 登记命令节点():#登记命令输入节点视图
-        """conversation.chat.node 命令输入条目。"""
+        'conversation.chat.node 命令输入条目'
         return 上下文.slots.register({#等聊天节点槽
             'name':'conversation.chat.node',#聊天节点槽名
             'key':'command-input',#命令输入条目键
@@ -26,7 +27,7 @@ def 应用(上下文):#安装目标界面浏览器半边
     上下文.slots.inject('conversation.chat.node',登记命令节点)#节点
     会话服务=上下文.sessions#会话服务
     def 引用于(会话标识):#按会话取出当前目标的 CAS ref
-        """没有投影则没有 ref。"""
+        '没有投影则没有 ref'
         绑定=会话服务.binding(会话标识) if 会话服务 is not None else None#绑定
         会话=绑定.session if 绑定 is not None else None#会话
         投影表=会话.projections if 会话 is not None else None#投影表
@@ -41,22 +42,22 @@ def 应用(上下文):#安装目标界面浏览器半边
             return None#无 ref
         return {'id':目标['id'],'revision':目标['revision']}#CAS ref
     def 注入面(会话标识):#按会话解析 GoalBar 注入面
-        """激活源加四个变更动词。"""
+        '激活源加四个变更动词'
         绑定=会话服务.binding(会话标识)#该会话绑定
         if 绑定 is None:#不可用
             raise RuntimeError('ui-goal: 会话 "'+str(会话标识)+'" 不可用')#抬错
         def 读目标():#权威读
-            """调用时读取当前现场目标。"""
+            '调用时读取当前现场目标'
             return 上下文.remote.goals.get(会话标识)#读
         def 订阅激活(监听):#订阅激活边沿
-            """本会话才转发。"""
+            '本会话才转发'
             def 转发(事件):#过滤本会话
-                """sessionId 匹配才回调。"""
+                'sessionId 匹配才回调'
                 if 事件['sessionId']==会话标识:#本会话
                     监听(事件['goal'])#转发
-            return 上下文.remote.$on('goal/activation-changed',转发)#订阅
+            return 获取内部数据(上下文.remote,'on')('goal/activation-changed',转发)#订阅
         def 订阅重置(监听):#连接重置
-            """连接代次重置后刷新。"""
+            '连接代次重置后刷新'
             return 上下文.on('connection/reset',监听)#订阅
         目标激活=创建目标激活源({#登记方私有激活源
             'projection':绑定.session.projections.faceOf('goal'),#投影
@@ -66,25 +67,25 @@ def 应用(上下文):#安装目标界面浏览器半边
             'subscribeReset':订阅重置,#重置
         })
         def 编辑(陈述):#编辑目标陈述
-            """无当前目标则失败结果。"""
+            '无当前目标则失败结果'
             引用=引用于(会话标识)#CAS ref
             if 引用 is None:#无
                 return 无当前目标结果#失败
             return 上下文.remote.goals.edit(会话标识,引用,{'objective':陈述}).等待()#编辑
         def 暂停():#暂停目标
-            """无当前目标则失败结果。"""
+            '无当前目标则失败结果'
             引用=引用于(会话标识)#CAS ref
             if 引用 is None:#无
                 return 无当前目标结果#失败
             return 上下文.remote.goals.pause(会话标识,引用).等待()#暂停
         def 恢复():#恢复目标
-            """无当前目标则失败结果。"""
+            '无当前目标则失败结果'
             引用=引用于(会话标识)#CAS ref
             if 引用 is None:#无
                 return 无当前目标结果#失败
             return 上下文.remote.goals.resume(会话标识,引用).等待()#恢复
         def 清除():#清除目标
-            """无当前目标则失败结果。"""
+            '无当前目标则失败结果'
             引用=引用于(会话标识)#CAS ref
             if 引用 is None:#无
                 return 无当前目标结果#失败
@@ -94,7 +95,7 @@ def 应用(上下文):#安装目标界面浏览器半边
             'onEdit':编辑,'onPause':暂停,'onResume':恢复,'onClear':清除,#动词
         }
     def 登记坞():#登记 GoalBar 坞
-        """conversation.input.dock 目标条目。"""
+        'conversation.input.dock 目标条目'
         return 上下文.slots.register({#等输入坞槽
             'name':'conversation.input.dock',#输入坞槽名
             'id':'goal',#条目 id

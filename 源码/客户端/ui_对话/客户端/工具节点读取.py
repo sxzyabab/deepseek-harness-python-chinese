@@ -2,11 +2,11 @@
 __all__=['根工具调用','查找工具调用','工具节点']#仅中文公开名
 
 def 工具上下文键(种,标识):
-    """对齐 conversationContextKey。"""
+    '对齐 conversationContextKey'
     return f'{种}:{标识}'#种:id
 
 def 工具节点(节点):
-    """仅 kind 为 tool-call 时返回。"""
+    '仅 kind 为 tool-call 时返回'
     if 节点 is None:#空
         return None#无
     if 'kind' in 节点 and 节点['kind']=='tool-call':#匹配
@@ -14,7 +14,7 @@ def 工具节点(节点):
     return None#否
 
 def 根工具调用(快照,根调用标识):
-    """当前窗口已物化则返回根块。"""
+    '当前窗口已物化则返回根块'
     聊天=快照['chat'] if 快照 is not None and 'chat' in 快照 else None#聊天面
     节点表=聊天['nodes'] if 聊天 is not None and 'nodes' in 聊天 else None#节点仓
     if 节点表 is None:#无仓
@@ -27,9 +27,9 @@ def 根工具调用(快照,根调用标识):
     return 数据['root'] if 数据 is not None and 'root' in 数据 else None#根生命周期
 
 def 查找工具调用(快照,调用标识):
-    """深度优先走子调用树。"""
+    '深度优先走子调用树'
     def 访问(块):
-        """命中本块或子树。"""
+        '命中本块或子树'
         标识=块['callId'] if 'callId' in 块 else None#callId
         if 标识==调用标识:#命中
             return 块#本块

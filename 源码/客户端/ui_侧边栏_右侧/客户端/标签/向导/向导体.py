@@ -18,23 +18,23 @@ __all__=['向导体','样式表','最多带说明入口数']#仅中文公开名
 
 
 class 向导体:#向导正文视图模型
-    """链席回退为出厂向导：罗盘水印与入口胶囊。"""
+    '链席回退为出厂向导：罗盘水印与入口胶囊'
 
     def __init__(自身,属性):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#props
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#最新
 
     def 点选入口(自身,条目):
-        """入口打开对应种类并替换本签。"""
+        '入口打开对应种类并替换本签'
         信息=自身.属性['useTabInfo']()#标签信息
         信息['tab']['actions']['openTab'](条目['kind'],{'replaceTab':True})#开
 
     def 入口节点(自身,条目,带说明):
-        """一枚入口胶囊。"""
+        '一枚入口胶囊'
         图标=条目['icon'] if 'icon' in 条目 else None#图标
         说明=None#说明
         if 带说明:#短列表
@@ -61,7 +61,7 @@ class 向导体:#向导正文视图模型
         }#按钮结束
 
     def 出厂树(自身):
-        """出厂向导结构树：罗盘 + 入口列。"""
+        '出厂向导结构树：罗盘 + 入口列'
         属性=自身.属性#props
         用入口=属性['useGuideEntries'] if 'useGuideEntries' in 属性 else None#入口钩
         条目表=用入口(lambda 表:表) if 用入口 is not None else ()#条目
@@ -78,7 +78,7 @@ class 向导体:#向导正文视图模型
         }#树结束
 
     def 渲染(自身):
-        """经链席；无替换则出厂树。"""
+        '经链席；无替换则出厂树'
         属性=自身.属性#props
         链=属性['renderSlotChain'] if 'renderSlotChain' in 属性 else None#链
         回退=自身.出厂树()#回退

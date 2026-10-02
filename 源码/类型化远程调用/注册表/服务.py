@@ -10,37 +10,37 @@ __all__=[#仅中文公开名
 端点段模式=re.compile(r'^[A-Za-z0-9_$.-]+\Z',re.ASCII)#RPC 端点段
 
 def 拼模式键(包名,名):#组合包名与模式名
-    """拼出一条生成模式的全局键 `<package>#<name>`。"""
+    '拼出一条生成模式的全局键 `<package>#<name>`'
     return 包名+'#'+名#全局模式键
 
 def 拼包面键(包名,面):#组合包名与面
-    """拼出一份包-面模型的身份 `<package>#<face>`。"""
+    '拼出一份包-面模型的身份 `<package>#<face>`'
     return 包名+'#'+面#包-面键
 
 def 拼端点(描述符):#组合命名空间与方法
-    """拼出本地与 Remote 调用注册表使用的端点键 `<namespace>/<method>`。"""
+    '拼出本地与 Remote 调用注册表使用的端点键 `<namespace>/<method>`'
     return 描述符['namespace']+'/'+描述符['method']#端点键
 
 class 注册表错误(Exception):
-    """Typert 注册表拒绝非法贡献或重复登记。"""
+    'Typert 注册表拒绝非法贡献或重复登记'
 
 def 校验非空(主语,值):#校验非空字符串
-    """空串则抛。"""
+    '空串则抛'
     if len(值)==0:#空
         raise 注册表错误('typert: invalid '+主语+' — must be nonempty')#拒绝
 
 def 校验段(主语,值):#校验非空且不含 #
-    """空或含 # 则抛。"""
+    '空或含 # 则抛'
     if len(值)==0 or '#' in 值:#非法
         raise 注册表错误('typert: invalid '+主语+' "'+值+'" — must be nonempty and must not contain "#"')#拒绝
 
 def 校验线路名(主语,值):#校验 RPC 端点段字符
-    """点段或非法字符则抛。"""
+    '点段或非法字符则抛'
     if 值=='.' or 值=='..' or 端点段模式.match(值) is None:#非法
         raise 注册表错误('typert: invalid '+主语+' "'+值+'" — must contain only RPC endpoint segment characters')#拒绝
 
 def 校验编解码(编解码,主语):#校验一条编解码声明
-    """弱 JSON 模式直接通过；严格模式要有类型符号与 create。"""
+    '弱 JSON 模式直接通过；严格模式要有类型符号与 create'
     if 编解码.get('mode')=='src-json':#弱模式
         return#通过
     校验非空(主语+' type symbol',编解码.get('typeSymbol') or '')#类型符号
@@ -48,7 +48,7 @@ def 校验编解码(编解码,主语):#校验一条编解码声明
         raise 注册表错误('typert: '+主语+' strict codec has no create() factory')#拒绝
 
 def 校验调用(描述符):#校验一条调用描述符
-    """校验 id/服务/命名空间/方法/参数/作用域/接收方。"""
+    '校验 id/服务/命名空间/方法/参数/作用域/接收方'
     校验非空('invocation id',描述符['id'])#调用 id
     校验段('invocation service key',描述符['service'])#服务键
     校验线路名('invocation namespace',描述符['namespace'])#命名空间
@@ -92,11 +92,11 @@ def 校验调用(描述符):#校验一条调用描述符
         校验编解码(描述符['invocation']['codec'],描述符['id']+' Context')#身份编解码
 
 def 查找声明相等(左,右):#比较两条 lookup 线路声明
-    """四字段全等。"""
+    '四字段全等'
     return 左['parameter']==右['parameter'] and 左['wire']==右['wire'] and 左['hostTypeSymbol']==右['hostTypeSymbol'] and 左['wireTypeSymbol']==右['wireTypeSymbol']#全等
 
 def 匹配过滤(记录,过滤):#记录是否匹配过滤
-    """未指定包/面则放行。"""
+    '未指定包/面则放行'
     if 过滤.get('package') is not None and 记录['package']!=过滤['package']:#包不匹配
         return False#否
     if 过滤.get('face') is not None and 记录['face']!=过滤['face']:#面不匹配
@@ -104,7 +104,7 @@ def 匹配过滤(记录,过滤):#记录是否匹配过滤
     return True#是
 
 def 物化模式(记录):#首次调用 create 并缓存活模式
-    """返回带活 schema 的模式记录。"""
+    '返回带活 schema 的模式记录'
     if 'value' not in 记录:#尚未物化
         模式=记录['create']()#工厂
         记录['value']=模式#缓存
@@ -113,26 +113,26 @@ def 物化模式(记录):#首次调用 create 并缓存活模式
     return {'name':记录['name'],'schema':模式,'package':记录['package'],'face':记录['face'],'key':记录['key']}#活记录
 
 class 变更源:#注册表变更源
-    """向当前监听器广播变更。"""
+    '向当前监听器广播变更'
     def __init__(自身,报告):#记下观察者失败报告函数
-        """构造。"""
+        '构造'
         自身.报告=报告#报告函数
         自身.监听器集合=set()#当前订阅者
 
     def 订阅(自身,上下文,监听器):#按调用方 fiber 订阅
-        """用 effect 绑定订阅生命周期。"""
+        '用 effect 绑定订阅生命周期'
         监听器集合=自身.监听器集合#集合
         def 生命周期():#effect 体
-            """加入并在拆除时移除。"""
+            '加入并在拆除时移除'
             监听器集合.add(监听器)#加入
             def 摘掉():
-                """从监听集合去掉本监听器。"""
+                '从监听集合去掉本监听器'
                 监听器集合.discard(监听器)#拆除
             yield 摘掉#拆除
         return 上下文.副作用(生命周期,'typert registry subscription')#登记
 
     def 发出(自身,变更):#向当前监听器广播
-        """隔离单个监听器失败。"""
+        '隔离单个监听器失败'
         for 监听器 in list(自身.监听器集合):#快照迭代
             try:#隔离
                 监听器(变更)#投递
@@ -140,9 +140,9 @@ class 变更源:#注册表变更源
                 自身.报告(变更,错误)#报告
 
 class 描述符仓:#本地或 Remote 描述符存储
-    """按端点与调用 id 存放描述符。"""
+    '按端点与调用 id 存放描述符'
     def __init__(自身,种类,报告):#构造
-        """创建变更源。"""
+        '创建变更源'
         自身.种类=种类#local|remote
         自身.条目={}#端点 → 条目
         自身.标识表={}#调用 id → 条目
@@ -150,7 +150,7 @@ class 描述符仓:#本地或 Remote 描述符存储
         自身.变更=变更源(报告)#变更源
 
     def 校验(自身,描述符列表):#校验一批可否提交
-        """端点与 id 不得与本批或已注册冲突。"""
+        '端点与 id 不得与本批或已注册冲突'
         端点集合=set()#本批端点
         标识集合=set()#本批 id
         for 描述符 in 描述符列表:#逐条
@@ -164,7 +164,7 @@ class 描述符仓:#本地或 Remote 描述符存储
             标识集合.add(描述符['id'])#记下
 
     def 提交(自身,拥有者,描述符列表):#提交一批
-        """先写入再广播。"""
+        '先写入再广播'
         for 描述符 in 描述符列表:#写入
             条目={'descriptor':描述符,'owner':拥有者}#条目
             端点=拼端点(描述符)#端点
@@ -175,7 +175,7 @@ class 描述符仓:#本地或 Remote 描述符存储
             自身.变更.发出({'kind':自身.种类,'key':拼端点(描述符)})#按端点
 
     def 撤回(自身,拥有者,描述符列表):#按拥有者撤回
-        """非本拥有者则跳过。"""
+        '非本拥有者则跳过'
         已移除=[]#实际移除的端点
         for 描述符 in 描述符列表:#逐条
             端点=拼端点(描述符)#端点
@@ -190,36 +190,36 @@ class 描述符仓:#本地或 Remote 描述符存储
             自身.变更.发出({'kind':自身.种类,'key':端点})#变更
 
     def 取(自身,端点):#按端点取描述符
-        """缺席为 None。"""
+        '缺席为 None'
         条目=自身.条目.get(端点)#条目
         return None if 条目 is None else 条目['descriptor']#描述符
 
     def 曾见(自身,端点):#本生命周期是否见过
-        """即使已撤回也返回 True。"""
+        '即使已撤回也返回 True'
         return 端点 in 自身.历史#曾见
 
     def 列出(自身):#按注册顺序快照
-        """抽出描述符。"""
+        '抽出描述符'
         return [条目['descriptor'] for 条目 in 自身.条目.values()]#列表
 
     def 订阅(自身,上下文,监听器):#订阅描述符变更
-        """委托给变更源。"""
+        '委托给变更源'
         return 自身.变更.订阅(上下文,监听器)#订阅
 
 class 远程仓:#Remote 贡献存储
-    """按包名登记 Remote 贡献。"""
+    '按包名登记 Remote 贡献'
     def __init__(自身,描述符仓实例):#持有描述符仓
-        """构造。"""
+        '构造'
         自身.描述符仓=描述符仓实例#描述符仓
         自身.包表={}#包名 → 拥有者
 
     def 视图(自身,上下文):#绑定到调用方 fiber 的注册表面
-        """组装 Remote 注册表视图。"""
+        '组装 Remote 注册表视图'
         def 登记贡献(贡献):
-            """按 fiber 登记一份 Remote 贡献。"""
+            '按 fiber 登记一份 Remote 贡献'
             return 自身.登记(上下文,贡献)#登记
         def 订阅描述符(监听器):
-            """订阅描述符变更。"""
+            '订阅描述符变更'
             return 自身.描述符仓.订阅(上下文,监听器)#订阅
         return {#视图
             'register':登记贡献,#登记
@@ -229,7 +229,7 @@ class 远程仓:#Remote 贡献存储
         }#视图
 
     def 登记(自身,上下文,贡献):#按 fiber 登记一份 Remote 贡献
-        """同包已登记则拒绝。"""
+        '同包已登记则拒绝'
         校验段('Remote package name',贡献['package'])#包名
         if 贡献['package'] in 自身.包表:#已登记
             raise 注册表错误('typert: Remote package "'+贡献['package']+'" is already registered')#拒绝
@@ -240,11 +240,11 @@ class 远程仓:#Remote 贡献存储
         包名=贡献['package']#包名
         描述符列表=贡献['descriptors']#描述符
         def 生命周期():#effect
-            """提交并在拆除时撤回。"""
+            '提交并在拆除时撤回'
             包表[包名]=拥有者#记下
             描述符仓.提交(拥有者,描述符列表)#提交
             def 拆除():#拆除
-                """按拥有者删包并撤回。"""
+                '按拥有者删包并撤回'
                 if 包表.get(包名) is 拥有者:#仍是本拥有者
                     del 包表[包名]#删包
                 描述符仓.撤回(拥有者,描述符列表)#撤回
@@ -252,30 +252,30 @@ class 远程仓:#Remote 贡献存储
         return 上下文.副作用(生命周期,'typert.remotes.register('+repr(包名)+')')#登记
 
 class 查找仓:#lookup 提供方存储
-    """lookup 提供方与覆盖解析器。"""
+    'lookup 提供方与覆盖解析器'
     def __init__(自身,报告):#构造
-        """创建变更源。"""
+        '创建变更源'
         自身.提供方表={}#键 → 条目
         自身.解析器表={}#键 → 覆盖条目
         自身.声明表={}#键 → 稳定线路声明
         自身.变更=变更源(报告)#变更源
 
     def 视图(自身,上下文):#绑定到调用方 fiber
-        """组装 lookup 面。"""
+        '组装 lookup 面'
         def 登记提供方(键,提供方):
-            """登记 lookup 提供方。"""
+            '登记 lookup 提供方'
             return 自身.登记(上下文,键,提供方)#登记
         def 配置解析器(键,解析器):
-            """安装覆盖解析器。"""
+            '安装覆盖解析器'
             return 自身.配置(上下文,键,解析器)#覆盖
         def 列出声明():
-            """当前声明列表。"""
+            '当前声明列表'
             return list(自身.声明表.values())#声明
         def 列出键():
-            """当前提供方键。"""
+            '当前提供方键'
             return list(自身.提供方表.keys())#键
         def 订阅变更(监听器):
-            """订阅 lookup 变更。"""
+            '订阅 lookup 变更'
             return 自身.变更.订阅(上下文,监听器)#订阅
         return {#视图
             'register':登记提供方,#登记
@@ -287,7 +287,7 @@ class 查找仓:#lookup 提供方存储
         }#视图
 
     def 取(自身,键):#按键取提供方，可能套上覆盖
-        """无提供方则 None。"""
+        '无提供方则 None'
         条目=自身.提供方表.get(键)#默认
         if 条目 is None:#无
             return None#缺席
@@ -304,23 +304,23 @@ class 查找仓:#lookup 提供方存储
         }#视图
 
     def 配置(自身,上下文,键,解析器):#安装覆盖解析器
-        """重复配置则拒绝。"""
+        '重复配置则拒绝'
         校验段('lookup key',键)#键
         if 键 in 自身.解析器表:#已配置
             raise 注册表错误('typert: lookup "'+键+'" resolver is already configured')#拒绝
         拥有者={}#身份
         def 解析标识(标识):
-            """覆盖解析，同步。"""
+            '覆盖解析，同步'
             return 解析器(标识)#同步
         条目={'provider':{'resolve':解析标识},'owner':拥有者}#覆盖条目
         解析器表=自身.解析器表#闭包
         变更=自身.变更#闭包
         def 生命周期():#effect
-            """写入覆盖并在拆除时恢复。"""
+            '写入覆盖并在拆除时恢复'
             解析器表[键]=条目#写入
             变更.发出({'kind':'lookup','key':键})#广播
             def 拆除():#拆除
-                """恢复默认。"""
+                '恢复默认'
                 if 解析器表.get(键) is not 条目:#不是本条目
                     return#不拆
                 del 解析器表[键]#删除
@@ -329,7 +329,7 @@ class 查找仓:#lookup 提供方存储
         return 上下文.副作用(生命周期,'typert.lookups.configure('+repr(键)+')')#登记
 
     def 登记(自身,上下文,键,提供方):#登记 lookup 提供方
-        """声明在本生命周期内必须稳定。"""
+        '声明在本生命周期内必须稳定'
         校验段('lookup key',键)#键
         校验段('lookup parameter',提供方['parameter'])#源参数名
         校验线路名('lookup wire field',提供方['wire'])#线路字段
@@ -347,12 +347,12 @@ class 查找仓:#lookup 提供方存储
         提供方表=自身.提供方表#闭包
         变更=自身.变更#闭包
         def 生命周期():#effect
-            """写入提供方；拆除时撤回提供方，声明保留。"""
+            '写入提供方；拆除时撤回提供方，声明保留'
             声明表[键]=声明#记下声明
             提供方表[键]=条目#写入
             变更.发出({'kind':'lookup','key':键})#广播
             def 拆除():#拆除
-                """撤回提供方。"""
+                '撤回提供方'
                 if 提供方表.get(键) is not 条目:#不是本条目
                     return#不拆
                 del 提供方表[键]#删除
@@ -361,32 +361,32 @@ class 查找仓:#lookup 提供方存储
         return 上下文.副作用(生命周期,'typert.lookups.register('+repr(键)+')')#登记
 
 class 上下文仓:#宿主 Context 提供方与客户端绑定器存储
-    """宿主与客户端 Context 注册。"""
+    '宿主与客户端 Context 注册'
     def __init__(自身,报告):#构造
-        """创建变更源。"""
+        '创建变更源'
         自身.宿主表={}#键 → 宿主提供方
         自身.宿主解析器表={}#键 → 覆盖
         自身.客户端表={}#键 → 客户端绑定器
         自身.变更=变更源(报告)#变更源
 
     def 视图(自身,上下文):#绑定到调用方 fiber
-        """组装 Context 面。"""
+        '组装 Context 面'
         def 登记宿主提供方(键,提供方):
-            """登记宿主 Context 提供方。"""
+            '登记宿主 Context 提供方'
             return 自身.登记宿主(上下文,键,提供方)#宿主
         def 配置宿主解析器(键,解析器):
-            """安装宿主覆盖解析器。"""
+            '安装宿主覆盖解析器'
             return 自身.配置宿主(上下文,键,解析器)#覆盖宿主
         def 登记客户端绑定器(键,绑定器):
-            """登记客户端 Context 绑定器。"""
+            '登记客户端 Context 绑定器'
             return 自身.登记客户端(上下文,键,绑定器)#客户端
         def 取客户端(键):
-            """按键取客户端绑定器。"""
+            '按键取客户端绑定器'
             if 键 not in 自身.客户端表:#缺席
                 return None#无
             return 自身.客户端表[键]['provider']#绑定器
         def 订阅上下文变更(监听器):
-            """订阅 Context 变更。"""
+            '订阅 Context 变更'
             return 自身.变更.订阅(上下文,监听器)#订阅
         return {#视图
             'registerHost':登记宿主提供方,#宿主
@@ -398,7 +398,7 @@ class 上下文仓:#宿主 Context 提供方与客户端绑定器存储
         }#视图
 
     def 取宿主(自身,键):#按键取宿主提供方
-        """可能套上覆盖解析器。"""
+        '可能套上覆盖解析器'
         条目=自身.宿主表.get(键)#默认
         if 条目 is None:#无
             return None#缺席
@@ -409,22 +409,22 @@ class 上下文仓:#宿主 Context 提供方与客户端绑定器存储
         return {'wire':提供方['wire'],'wireTypeSymbol':提供方['wireTypeSymbol'],'resolve':覆盖['provider']['resolve']}#覆盖视图
 
     def 配置宿主(自身,上下文,键,解析器):#安装宿主覆盖解析器
-        """重复配置则拒绝。"""
+        '重复配置则拒绝'
         校验段('Context key',键)#键
         if 键 in 自身.宿主解析器表:#已配置
             raise 注册表错误('typert: host-context "'+键+'" resolver is already configured')#拒绝
         def 解析标识(标识):
-            """覆盖解析，同步。"""
+            '覆盖解析，同步'
             return 解析器(标识)#同步
         条目={'provider':{'resolve':解析标识},'owner':{}}#覆盖条目
         宿主解析器表=自身.宿主解析器表#闭包
         变更=自身.变更#闭包
         def 生命周期():#effect
-            """写入覆盖。"""
+            '写入覆盖'
             宿主解析器表[键]=条目#写入
             变更.发出({'kind':'host-context','key':键})#广播
             def 拆除():#拆除
-                """恢复默认。"""
+                '恢复默认'
                 if 宿主解析器表.get(键) is not 条目:#不是本条目
                     return#不拆
                 del 宿主解析器表[键]#删除
@@ -433,29 +433,29 @@ class 上下文仓:#宿主 Context 提供方与客户端绑定器存储
         return 上下文.副作用(生命周期,'typert.contexts.configureHost('+repr(键)+')')#登记
 
     def 登记宿主(自身,上下文,键,提供方):#登记宿主 Context 提供方
-        """校验线路后写入宿主表。"""
+        '校验线路后写入宿主表'
         校验段('Context key',键)#键
         校验线路名('Context wire field',提供方['wire'])#线路
         校验非空('Context wire type symbol',提供方['wireTypeSymbol'])#类型符号
         return 自身.登记提供方(上下文,自身.宿主表,'host-context',键,提供方)#写入
 
     def 登记客户端(自身,上下文,键,绑定器):#登记客户端 Context 绑定器
-        """写入客户端表。"""
+        '写入客户端表'
         校验段('Context key',键)#键
         return 自身.登记提供方(上下文,自身.客户端表,'client-context',键,绑定器)#写入
 
     def 登记提供方(自身,上下文,表,种类,键,提供方):#把提供方按 fiber 写入指定表
-        """重复则拒绝。"""
+        '重复则拒绝'
         if 键 in 表:#已登记
             raise 注册表错误('typert: '+种类+' provider "'+键+'" is already registered')#拒绝
         条目={'provider':提供方,'owner':{}}#条目
         变更=自身.变更#闭包
         def 生命周期():#effect
-            """写入并在拆除时撤回。"""
+            '写入并在拆除时撤回'
             表[键]=条目#写入
             变更.发出({'kind':种类,'key':键})#广播
             def 拆除():#拆除
-                """撤回。"""
+                '撤回'
                 if 表.get(键) is not 条目:#不是本条目
                     return#不拆
                 del 表[键]#删除
@@ -464,12 +464,12 @@ class 上下文仓:#宿主 Context 提供方与客户端绑定器存储
         return 上下文.副作用(生命周期,'typert.contexts.register('+repr(键)+')')#登记
 
 class Typert注册表(服务):#Typert 运行时注册表服务
-    """生成模式、包反射、调用定义与 Remote 依赖提供方的注册表。"""
+    '生成模式、包反射、调用定义与 Remote 依赖提供方的注册表'
     def __init__(自身,上下文):#在给定上下文上注册 typert 服务
-        """构造各仓。"""
+        '构造各仓'
         super().__init__(上下文,'typert')#以 typert 名注册
         def 报告(变更,错误):#观察者失败时写警告
-            """警告哪个键的观察者失败。"""
+            '警告哪个键的观察者失败'
             上下文.日志.警告('typert: '+变更['kind']+' observer for "'+变更['key']+'" failed')#警告
             上下文.日志.警告(错误)#原始错误
         自身.模式表={}#全局键 → 模式记录
@@ -481,10 +481,10 @@ class Typert注册表(服务):#Typert 运行时注册表服务
 
     @property
     def local(自身):#本地调用注册表面
-        """当前环境的调用定义。"""
+        '当前环境的调用定义'
         上下文=自身.所属上下文#捕获
         def 订阅本地(监听器):
-            """订阅本地描述符变更。"""
+            '订阅本地描述符变更'
             return 自身.本地仓.订阅(上下文,监听器)#订阅
         return {#视图
             'get':自身.本地仓.取,#按端点
@@ -495,21 +495,21 @@ class Typert注册表(服务):#Typert 运行时注册表服务
 
     @property
     def remotes(自身):#Remote 注册表面
-        """消费方选定的 Remote 定义。"""
+        '消费方选定的 Remote 定义'
         return 自身.远程仓.视图(自身.所属上下文)#绑定
 
     @property
     def lookups(自身):#lookup 注册表面
-        """宿主对象 lookup 提供方。"""
+        '宿主对象 lookup 提供方'
         return 自身.查找仓.视图(自身.所属上下文)#绑定
 
     @property
     def contexts(自身):#Context 注册表面
-        """宿主 Context 提供方与客户端 Context 绑定器。"""
+        '宿主 Context 提供方与客户端 Context 绑定器'
         return 自身.上下文仓.视图(自身.所属上下文)#绑定
 
     def register(自身,贡献):#原子登记一份贡献
-        """重复的包-面身份、模式、调用 id 或端点会使整批拒绝。"""
+        '重复的包-面身份、模式、调用 id 或端点会使整批拒绝'
         包记录=自身.校验包(贡献)#包记录
         模式记录列表=自身.校验模式(贡献)#模式记录
         调用列表=贡献['invocations']#宿主调用
@@ -519,13 +519,13 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         包表=自身.包表#闭包
         本地仓=自身.本地仓#闭包
         def 生命周期():#effect
-            """写入整批并在拆除时撤回。"""
+            '写入整批并在拆除时撤回'
             包表[包记录['key']]=包记录#写包
             for 记录 in 模式记录列表:#写模式
                 模式表[记录['key']]=记录#写入
             本地仓.提交(拥有者,调用列表)#提交调用
             def 拆除():#拆除
-                """整批撤回。"""
+                '整批撤回'
                 if 包表.get(包记录['key']) is 包记录:#仍是本拥有者
                     del 包表[包记录['key']]#删包
                 for 记录 in 模式记录列表:#删模式
@@ -536,12 +536,12 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         return 自身.所属上下文.副作用(生命周期,'typert.register()')#登记
 
     def get(自身,键):#按全局键取模式记录
-        """缺席为 None。"""
+        '缺席为 None'
         记录=自身.模式表.get(键)#工厂记录
         return None if 记录 is None else 物化模式(记录)#活记录
 
     def resolve(自身,键):#解析必需模式，缺席则抛
-        """键畸形、包面缺席、或该模式未被贡献时抛出。"""
+        '键畸形、包面缺席、或该模式未被贡献时抛出'
         记录=自身.模式表.get(键)#查找
         if 记录 is not None:#命中
             return 物化模式(记录)#活记录
@@ -554,23 +554,23 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         raise 注册表错误('typert: cannot resolve "'+键+'" — package "'+包名+'" has no registered contribution')#包未登记
 
     def list(自身,过滤=None):#按可选过滤列出模式
-        """按注册顺序枚举活模式。"""
+        '按注册顺序枚举活模式'
         if 过滤 is None:#缺省
             过滤={}#空
         return [物化模式(记录) for 记录 in 自身.模式表.values() if 匹配过滤(记录,过滤)]#过滤并物化
 
     def getPackage(自身,包名,面='host'):#按包名与面取包记录
-        """缺席为 None。"""
+        '缺席为 None'
         return 自身.包表.get(拼包面键(包名,面))#记录
 
     def listPackages(自身,过滤=None):#按可选过滤列出包记录
-        """按注册顺序枚举。"""
+        '按注册顺序枚举'
         if 过滤 is None:#缺省
             过滤={}#空
         return [记录 for 记录 in 自身.包表.values() if 匹配过滤(记录,过滤)]#过滤
 
     def toJSONSchema(自身,键,参数=None):#按键投影 JSON Schema
-        """把一条活模式投影为 JSON Schema；若模式无 toJSONSchema 则抛。"""
+        '把一条活模式投影为 JSON Schema；若模式无 toJSONSchema 则抛'
         记录=自身.resolve(键)#解析
         模式=记录['schema']#模式实例
         投影=getattr(模式,'toJSONSchema',None)#投影方法
@@ -579,7 +579,7 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         return 投影(参数) if 参数 is not None else 投影()#投影
 
     def 校验包(自身,贡献):#校验贡献并构造包记录
-        """面必须是 host 或 client。"""
+        '面必须是 host 或 client'
         校验段('package name',贡献['package'])#包名
         面=贡献['face']#面
         if 面!='host' and 面!='client':#非法面
@@ -590,7 +590,7 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         return {'package':贡献['package'],'face':面,'key':键,'model':贡献['model']}#包记录
 
     def 校验模式(自身,贡献):#校验贡献中的模式并构造记录
-        """本批或已登记冲突则拒绝。"""
+        '本批或已登记冲突则拒绝'
         记录列表=[]#本批
         本批=set()#本批键
         for 模式 in 贡献['schemas']:#逐条

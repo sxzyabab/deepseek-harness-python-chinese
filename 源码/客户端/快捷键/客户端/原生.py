@@ -1,4 +1,4 @@
-"""Desktop 手势使用实时焦点、模态状态与已验证嵌入所有权。"""
+'Desktop 手势使用实时焦点、模态状态与已验证嵌入所有权'
 from .dom import 模态选择器#模态选择器
 
 __all__=['安装原生键盘']#仅中文公开名
@@ -8,9 +8,9 @@ __all__=['安装原生键盘']#仅中文公开名
 侧栏框架='iframe[data-sidebar-browser-frame], iframe[data-html-preview]'#侧栏 iframe
 
 def 安装原生键盘(窗口,键盘,注册表,取快照,重置=None):
-    """把原生菜单、主 frame 与嵌入 frame 输入接到共享命令注册表。"""
+    '把原生菜单、主 frame 与嵌入 frame 输入接到共享命令注册表'
     def 处理(输入):
-        """一条已验证原生输入。"""
+        '一条已验证原生输入'
         if 输入['revision']!=取快照()['revision']:#修订不符
             return#丢弃
         if 重置 is not None:#清固定序列
@@ -60,7 +60,7 @@ def 安装原生键盘(窗口,键盘,注册表,取快照,重置=None):
         if 输入.get('secondCode') is not None:#次码
             手势['secondCode']=输入['secondCode']#写入
         def 空消费():
-            """原生侧已消费。"""
+            '原生侧已消费'
             return None#无事
         if 种类=='keyboard':#主 frame 键盘
             注册表.dispatch(手势,上下文,空消费)#分发

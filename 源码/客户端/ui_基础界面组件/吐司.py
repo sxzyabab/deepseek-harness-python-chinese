@@ -4,22 +4,22 @@ __all__=['吐司','保持毫秒','淡出毫秒']#仅中文公开名
 淡出毫秒=1000#淡出时长
 
 class 吐司:#顶栏公告
-    """滑入-保持-淡出；业主在 onDone 卸载。"""
+    '滑入-保持-淡出；业主在 onDone 卸载'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 总时长(自身):
-        """保持+淡出。"""
+        '保持+淡出'
         return 保持毫秒+淡出毫秒#毫秒
 
     def 渲染(自身):
-        """公告条视图。"""
+        '公告条视图'
         属性=自身.属性#props
         return {#吐司
             'type':'toast',#类型
@@ -33,7 +33,7 @@ class 吐司:#顶栏公告
         }#视图结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

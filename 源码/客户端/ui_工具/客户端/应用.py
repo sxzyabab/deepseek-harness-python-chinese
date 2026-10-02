@@ -1,4 +1,6 @@
 from .文案 import 会话命名空间#会话文案命名空间
+from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据
 from .工具调用树 import 工具调用树#工具调用树组件
 from .工具详情 import 工具详情#工具详情渲染器
 from .提问行 import 提问工具视图#提问原子视图
@@ -15,11 +17,11 @@ __all__=['依赖','应用']#仅中文公开名
 依赖=['slots','remote']#槽登记表与宿主事实面
 
 def 绑定工具调用参数前缀(_标准,钩上下文):
-    """到组件调用前不订阅；只读本调用的参数原文前缀。"""
+    '到组件调用前不订阅；只读本调用的参数原文前缀'
     助手=钩上下文['assistant'] if 'assistant' in 钩上下文 else None
     调用标识=钩上下文['callId']
     def 取前缀():
-        """preparing 阶段的 argsRaw；其余阶段空串。"""
+        'preparing 阶段的 argsRaw；其余阶段空串'
         if 助手 is None:
             return ''
         快照=助手['getSnapshot']()
@@ -33,18 +35,18 @@ def 绑定工具调用参数前缀(_标准,钩上下文):
     return 取前缀
 
 def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
-    """登记调用树、详情与内置 toolview 插件。"""
+    '登记调用树、详情与内置 toolview 插件'
     命名空间=会话命名空间#词典席
     def 取宿主():
-        return 上下文.remote.$host
+        return 获取内部数据(上下文.remote,'host')
     def 订宿主(监听):
         return 上下文.on('connection/reset',监听)
     宿主信息={'getSnapshot':取宿主,'subscribe':订宿主}
     def 工具注入():
-        """注入宿主事实钩。"""
+        '注入宿主事实钩'
         return {'hooks':{'hostInfo':宿主信息}}
     def 登记调用树():#等聊天节点槽再登记
-        """按 tool-call 键分发调用树。"""
+        '按 tool-call 键分发调用树'
         return 上下文.slots.register({#节点登记
             'name':槽名聊天节点,#聊天节点槽名
             'key':'tool-call',#按 tool-call 键分发
@@ -59,7 +61,7 @@ def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
         },工具调用树)#组件
     上下文.slots.inject(槽名聊天节点,登记调用树)#等槽
     def 登记详情():#等详情槽再登记
-        """登记工具详情。"""
+        '登记工具详情'
         return 上下文.slots.register({#详情登记
             'name':槽名详情工具,#工具详情槽名
             'locale':命名空间,#会话文案
@@ -83,7 +85,7 @@ def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
                 if 键 is None or 组件 is None:#缺
                     continue#跳
                 def 登记(键=键,组件=组件):#闭包保键
-                    """登记一键。"""
+                    '登记一键'
                     return 上下文.slots.register({#按键条目
                         'name':槽名工具调用视图,'key':键,'locale':命名空间,#选项
                     },组件)#组件

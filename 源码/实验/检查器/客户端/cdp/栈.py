@@ -6,11 +6,11 @@ __all__=['捕获客户端控制台栈','客户端错误栈','解析客户端栈'
 火狐规则=re.compile(r'^(.*?)@(.+):(\d+):(\d+)\Z',re.ASCII)#Firefox格式
 
 def 空解析脚本(_网址):#空脚本键
-    """无源目录时不解析脚本键。"""
+    '无源目录时不解析脚本键'
     return None#无键
 
 def 解析帧(行,解析脚本):#解析单行帧
-    """解析单行帧。"""
+    '解析单行帧'
     匹配=铬规则.match(行) or 火狐规则.match(行)#匹配
     if 匹配 is None:#不识别
         return None#无
@@ -26,7 +26,7 @@ def 解析帧(行,解析脚本):#解析单行帧
     return 帧#返回
 
 def 解析客户端栈(栈,解析脚本,跳过帧):#解析Client栈
-    """将 V8 与 Firefox 风格文本帧解析为公共栈模型。"""
+    '将 V8 与 Firefox 风格文本帧解析为公共栈模型'
     if 栈 is None:#无栈
         return None#无
     帧列表=[]#帧列表
@@ -38,12 +38,12 @@ def 解析客户端栈(栈,解析脚本,跳过帧):#解析Client栈
     return None if len(调用帧)==0 else {'callFrames':调用帧}#有则返回
 
 def 捕获客户端控制台栈(解析脚本):#捕获Console栈
-    """捕获被包装的 Client Console 方法的调用方栈。"""
+    '捕获被包装的 Client Console 方法的调用方栈'
     import traceback#栈文本
     return 解析客户端栈(''.join(traceback.format_stack()),解析脚本,3)#跳过观察器帧
 
 def 客户端错误栈(值,解析脚本=None):#错误栈
-    """在可用时解析附着于未捕获 Client 值的栈。"""
+    '在可用时解析附着于未捕获 Client 值的栈'
     if 解析脚本 is None:#缺省
         解析脚本=空解析脚本#空解析
     if not isinstance(值,object) or 值 is None:#非对象

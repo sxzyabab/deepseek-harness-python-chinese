@@ -1,18 +1,20 @@
-"""把脚本 VM 值物化为普通 JSON，并渲染抛出值。获取器与代理陷阱可能在隔离 Node 进程内执行；进程隔离与取消属于 PTC，不属于 VM。"""
+'把脚本 VM 值物化为普通 JSON，并渲染抛出值'
 import math#有限数判定
 __all__=['物化错误','渲染抛出','从领域物化']#仅中文公开名
 
 class 物化错误(Exception):#从领域物化失败
-    """由从领域物化抛出；调用方再包成对应工作流错误码。"""
+    '由从领域物化抛出；调用方再包成对应工作流错误码'
     def __init__(自身,路径,原因):#记下路径与原因
-        """路径是出错位置，原因是英文说明。"""
+        '路径是出错位置，原因是英文说明'
         super().__init__(路径+': '+原因)#拼消息
         自身.name='MaterializeError'#固定错误名
         自身.路径=路径#出错路径
         自身.原因=原因#原因
 
 def 渲染抛出(错误):#把抛出值收成失败文本
-    """永不抛：优先 stack，其次 message，再 String()。读这些属性可能跑脚本代码；若那代码自己抛，返回固定标签。"""
+    """永不抛：优先 stack，其次 message，再 String()。
+    读这些属性可能跑脚本代码；若那代码自己抛，返回固定标签
+    """
     try:#优先栈
         栈=getattr(错误,'stack',None)#栈
         if type(栈) is str and len(栈)>0:#有栈
@@ -25,14 +27,18 @@ def 渲染抛出(错误):#把抛出值收成失败文本
         return '[unrenderable thrown value]'#固定标签
 
 def 有朴素原型(值):#普通数据对象原型链
-    """原型为 None，或其原型的原型为 None（领域的 Object.prototype）。Date/Map/类实例链更长，拒绝。"""
+    """原型为 None，或其原型的原型为 None（领域的 Object.prototype）。
+    Date/Map/类实例链更长，拒绝
+    """
     原型=type(值)#Python 无 JS 原型链；dict/list 为朴素
     if 原型 is dict or 原型 is list:#朴素容器
         return True
     return False#否
 
 def 从领域物化(值,根='value'):#拷到宿主 JSON
-    """把值（通常来自 vm 领域）拷成普通宿主 JSON。根 undefined 原样返回；嵌套 undefined 与 JSON 不能无损表示的值按出错路径失败。"""
+    """把值（通常来自 vm 领域）拷成普通宿主 JSON。
+    根 undefined 原样返回；嵌套 undefined 与 JSON 不能无损表示的值按出错路径失败
+    """
     if 值 is None:#Python 无 undefined；None 当 JSON null
         return None#null
     try:#物化
@@ -43,7 +49,7 @@ def 从领域物化(值,根='value'):#拷到宿主 JSON
         raise 物化错误(根,'reading the value threw: '+渲染抛出(错误))#包成物化错误
 
 def 物化(值,路径,已见):#一值
-    """按类型物化一个值。"""
+    '按类型物化一个值'
     种类=type(值)#运行时类型
     if 种类 is bool or 种类 is str:#布尔或字符串
         return 值#原样
@@ -69,7 +75,7 @@ def 物化(值,路径,已见):#一值
         已见.discard(标识)#离开
 
 def 物化数组(值,路径,已见):#稠密数组
-    """拒绝稀疏与非下标自有属性。"""
+    '拒绝稀疏与非下标自有属性'
     结果=[]#拷贝
     下标=0#从 0
     while 下标<len(值):#逐项
@@ -78,7 +84,7 @@ def 物化数组(值,路径,已见):#稠密数组
     return 结果#数组
 
 def 物化对象(值,路径,已见):#普通对象
-    """只接受朴素 dict；用 define 语义写下自有键，含 __proto__。"""
+    '只接受朴素 dict；用 define 语义写下自有键，含 __proto__'
     if not 有朴素原型(值):#奇异原型
         raise 物化错误(路径,'only plain objects and arrays are JSON data (exotic prototype)')#拒绝
     结果={}#拷贝

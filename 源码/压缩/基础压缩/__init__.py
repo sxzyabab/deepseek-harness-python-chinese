@@ -1,4 +1,4 @@
-"""轻量压缩后端：用 token 计量做压力、保留与摘要收敛计价；summarize 为唯一子类钩子。"""
+'轻量压缩后端：用 token 计量做压力、保留与摘要收敛计价；summarize 为唯一子类钩子'
 import weakref#每智能体溢出计数与会话→智能体弱映射
 from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布尔字段,列表字段#配置字段
 from ..压缩 import 压缩引擎,手动压缩错误#导入压缩引擎与手动失败
@@ -79,7 +79,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 }#Config 结束
 
 def 已路由目标(会话):
-    """返回精确路由或 None。"""
+    '返回精确路由或 None'
     请求头=会话.请求头()#最近请求头
     配置值=请求头['config'] if 请求头 is not None and 'config' in 请求头 else None#最近请求配置
     if 配置值 is None or len(配置值['provider'] if 'provider' in 配置值 and 配置值['provider'] is not None else '')==0 or len(配置值['model'] if 'model' in 配置值 and 配置值['model'] is not None else '')==0:#没有完整路由
@@ -87,7 +87,7 @@ def 已路由目标(会话):
     return {'provider':配置值['provider'],'model':配置值['model']}#精确目标
 
 def 对话目标(智能体):
-    """返回精确路由或 None。"""
+    '返回精确路由或 None'
     已路由=已路由目标(智能体.session)#优先已路由请求
     if 已路由 is not None:#有则用
         return 已路由#已路由
@@ -99,10 +99,10 @@ def 对话目标(智能体):
     return {'provider':提供方,'model':模型}#用智能体选项
 
 class 基础压缩引擎(压缩引擎):
-    """轻量压缩后端：用 token 计量做压力、保留、被引用源事件与摘要收敛计价；summarize 为唯一子类定制钩子。"""
+    '轻量压缩后端：用 token 计量做压力、保留、被引用源事件与摘要收敛计价；summarize 为唯一子类定制钩子'
 
     def __init__(自身,上下文,配置值=None):
-        """以 compaction 名安装，解析并冻结配置；auto 时挂自动监听。"""
+        '以 compaction 名安装，解析并冻结配置；auto 时挂自动监听'
         if 配置值 is None:#缺省空配置
             配置值={}#空配置
         super().__init__(上下文)#绑定 compaction 服务
@@ -114,10 +114,10 @@ class 基础压缩引擎(压缩引擎):
             自身._登记自动压缩()#挂监听
 
     def _登记自动压缩(自身):
-        """compactIfNeeded 保持动态分发，以便子类覆盖在事件时生效。"""
+        'compactIfNeeded 保持动态分发，以便子类覆盖在事件时生效'
         上下文=自身.ctx#本插件上下文
         def 记结果(结果,触发):
-            """信息级遮蔽节点与估算 token。"""
+            '信息级遮蔽节点与估算 token'
             区间=结果['shadowedRange']#被遮蔽区间
             上下文.日志.信息(#信息级
                 'compaction ('+触发+'): shadowed '+str(len(结果['shadowedSeqs'] if 'shadowedSeqs' in 结果 and 结果['shadowedSeqs'] is not None else []))
@@ -125,7 +125,7 @@ class 基础压缩引擎(压缩引擎):
                 +', ~'+str(结果['shadowedTokenCount'])+' tokens)'#遮蔽节点与估算 token
             )#info 结束
         def 步进前(载荷,下一步):
-            """跑压力压缩后委托下一环。"""
+            '跑压力压缩后委托下一环'
             智能体=载荷['agent']#智能体
             信号=载荷['signal'] if 'signal' in 载荷 else None#取消
             if not 已中止(信号):#尚未取消
@@ -143,7 +143,7 @@ class 基础压缩引擎(压缩引擎):
             return 下一步()#委托下一环
         上下文.监听('agent/pre-step',步进前)#pre-step 结束
         def 状态监听(载荷,*其余):
-            """空闲则清溢出计数。"""
+            '空闲则清溢出计数'
             智能体=载荷['agent']#智能体
             状态=载荷['status']#状态
             if 状态=='idle':#空闲
@@ -153,7 +153,7 @@ class 基础压缩引擎(压缩引擎):
                     pass#放过
         上下文.监听('agent/status',状态监听)#status 结束
         def 会话事件(会话,事件,*其余):
-            """只看助手消息；成功响应清计数。"""
+            '只看助手消息；成功响应清计数'
             if 事件['type']!='assistant/message':#只看助手消息
                 return#放过
             智能体=自身.溢出智能体表.get(会话)#该会话的溢出智能体
@@ -164,7 +164,7 @@ class 基础压缩引擎(压缩引擎):
                     pass#放过
         上下文.监听('session/event',会话事件)#session/event 结束
         def 请求错误(载荷,下一步):
-            """溢出则尝试压缩并重试；否则原样委托。"""
+            '溢出则尝试压缩并重试；否则原样委托'
             智能体=载荷['agent']#智能体
             失败=载荷['failure']#失败
             信号=载荷['signal'] if 'signal' in 载荷 else None#取消
@@ -205,7 +205,7 @@ class 基础压缩引擎(压缩引擎):
         上下文.监听('agent/request-error',请求错误)#request-error 结束
 
     def 摘要(自身,输入,智能体,信号=None):
-        """经 llm.stream 摘要重放对话区间；覆盖本钩子可换成模板或远程摘要器。"""
+        '经 llm.stream 摘要重放对话区间；覆盖本钩子可换成模板或远程摘要器'
         目标=对话目标(智能体)#对话目标
         if 目标 is None:#没有精确目标
             配置值=自身.配置#用服务默认
@@ -214,7 +214,7 @@ class 基础压缩引擎(压缩引擎):
         return 经语言模型摘要(自身.ctx,配置值,输入,智能体,信号)#默认 LLM 一次性摘要
 
     def 按需压缩(自身,智能体,触发,信号):
-        """两种触发都为最近一次耐久已路由请求信封计价；溢出绕过常规阈值与保留尾政策。"""
+        '两种触发都为最近一次耐久已路由请求信封计价；溢出绕过常规阈值与保留尾政策'
         目标=已路由目标(智能体.session)#须有已路由目标
         if 目标 is None:#没有则无法选政策
             return None#无需摘要
@@ -280,7 +280,7 @@ class 基础压缩引擎(压缩引擎):
         )#抛出结束
 
     def 压缩区间(自身,起点,终点,智能体,信号=None):
-        """返回成功的耐久压缩结果。"""
+        '返回成功的耐久压缩结果'
         return 压缩表面区间(#跑共享事务
             自身.区间依赖(),#计量与摘要钩子
             智能体.session,#目标会话
@@ -292,11 +292,11 @@ class 基础压缩引擎(压缩引擎):
         )#事务结束
 
     def 立即压缩(自身,智能体,信号,来源命令标识=None):
-        """仅在其独立标记对耐久检查点之后才决议；没有可安全有用区间时为 None。"""
+        '仅在其独立标记对耐久检查点之后才决议；没有可安全有用区间时为 None'
         若已中止则抛出(信号)#入口即检查取消
         try:#同步启动空闲任务
             def 维护任务(智能体信号):
-                """跑区间事务；智能体取消映射为 cancelled。"""
+                '跑区间事务；智能体取消映射为 cancelled'
                 操作信号=合成信号(智能体信号,信号)#智能体取消或请求取消
                 try:#跑区间事务
                     若已中止则抛出(操作信号)#进入前再检查
@@ -308,7 +308,7 @@ class 基础压缩引擎(压缩引擎):
                     if 区间 is None:#没有可压缩区间
                         return None#无可压缩
                     def 刷盘():
-                        """刷盘会话。"""
+                        '刷盘会话'
                         return 自身.ctx.sessions.flush(智能体.session)#刷盘
                     选项={#独立括号选项
                         'owner':None,#回合之间的独立事务
@@ -346,15 +346,15 @@ class 基础压缩引擎(压缩引擎):
             )#抛出结束
 
     def 区间依赖(自身):
-        """返回区间事务依赖。"""
+        '返回区间事务依赖'
         def 摘要钩子(输入,所有者,中止=None):
-            """转给自身.摘要。"""
+            '转给自身.摘要'
             return 自身.摘要(输入,所有者,中止)#动态分发
         def 无法恢复(*位置参数):
-            """瀑布落到内建则无法恢复。"""
+            '瀑布落到内建则无法恢复'
             return False#无法恢复
         def 恢复(错误,智能体,源事件序号,信号=None):
-            """把摘要失败交给 compaction/summary-error 瀑布。"""
+            '把摘要失败交给 compaction/summary-error 瀑布'
             载荷={'session':智能体.session,'sourceEventSeqs':源事件序号,'error':错误}#恢复载荷
             if 信号 is not None:#可选取消
                 载荷['signal']=信号#取消信号

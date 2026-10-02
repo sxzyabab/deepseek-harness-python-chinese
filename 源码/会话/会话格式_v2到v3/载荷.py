@@ -1,4 +1,4 @@
-"""经审计的 V2 迁移准入与 V3 载荷校验，独立于已安装的核心会话类型。"""
+'经审计的 V2 迁移准入与 V3 载荷校验，独立于已安装的核心会话类型'
 import json,re#JSON诊断与修复标识后缀
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
@@ -16,13 +16,13 @@ from ..会话格式_v1到v2 import 已发布v2事件处置#从v1到v2导入
 内容种类=frozenset(['text','reasoning','image','file','tool-call','tool-result'])#内容种类
 
 def 记录(值,标签):#记录对象
-    """在持久输入边界要求 JSON 对象。"""
+    '在持久输入边界要求 JSON 对象'
     if not 是否会话格式json对象(值):#须对象
         raise 会话格式错误(标签+' must be an object')#错误
     return 值#返回
 
 def 精确键(值,必填,可选,标签):#精确键
-    """拒绝缺失与未经审计的成员，而非猜测它们是否含坐标。"""
+    '拒绝缺失与未经审计的成员，而非猜测它们是否含坐标'
     缺=None#缺必填
     for 键 in 必填:#找缺
         if 键 not in 值:#缺
@@ -39,7 +39,7 @@ def 精确键(值,必填,可选,标签):#精确键
         raise 会话格式错误(标签+' has unexpected field '+意外)#错误
 
 def 断言事件(事件,版本):#断言事件
-    """在迁移前校验已分类载荷，或校验原生 V3 的 system/header 载荷。"""
+    '在迁移前校验已分类载荷，或校验原生 V3 的 system/header 载荷'
     if 版本==3:#目标代
         断言v3事件(事件)#委托v3
         return#返回
@@ -89,7 +89,7 @@ def 断言事件(事件,版本):#断言事件
             断言来源(消息)#来源
 
 def 是否修复标识(标识,调用标识):#是否修复标识
-    """识别稳定的生成修复标识，且不把其历史后缀解释为当前坐标。"""
+    '识别稳定的生成修复标识，且不把其历史后缀解释为当前坐标'
     if not isinstance(调用标识,str):#callId须串
         return False#否
     前缀='interrupted-tool-result-'+调用标识+'-'#前缀
@@ -102,7 +102,7 @@ def 是否修复标识(标识,调用标识):#是否修复标识
     return abs(数值)<=9007199254740991#十进制安全整数
 
 def 断言来源(消息):#断言消息来源
-    """断言消息来源种类与智能体中继字段。"""
+    '断言消息来源种类与智能体中继字段'
     来源=记录(消息['source'],'message source')#来源对象
     if not isinstance(来源.get('kind'),str) or 来源['kind'] not in 来源种类:#未知种类
         raise 会话格式不支持迁移错误('cannot safely transform unclassified message source')#拒绝
@@ -113,13 +113,13 @@ def 断言来源(消息):#断言消息来源
             raise 会话格式错误('agent-message source requires relay form and senderSessionId')#错误
 
 def 内容数组(值,标签):#内容数组
-    """要求内容为数组。"""
+    '要求内容为数组'
     if not isinstance(值,list):#须数组
         raise 会话格式错误(标签+': content must be an array')#错误
     return 值#断言
 
 def 断言自有内容(事件,数据):#断言自有内容
-    """按事件类型审计自有内容块。"""
+    '按事件类型审计自有内容块'
     标签='format v2 '+事件['type']+' at seq '+str(事件['seq'])+' data'#路径前缀
     类型=事件['type']#类型
     if 类型=='user/message' or 类型=='tool/code-dispatch':#用户消息或代码分发
@@ -149,17 +149,17 @@ def 断言自有内容(事件,数据):#断言自有内容
                 断言内容种类(块.get('blockType'),路径+'.chunk.blockType')#断言
 
 def 断言内容种类(种类,标签):#断言内容种类
-    """断言单个内容种类名。"""
+    '断言单个内容种类名'
     if not isinstance(种类,str) or 种类 not in 内容种类:#未知种类
         raise 会话格式不支持迁移错误(标签+': cannot safely transform unclassified message content kind '+_json串(种类))#拒绝
 
 def 断言内容种类列表(内容,标签):#断言内容数组
-    """断言内容数组中每一块。"""
+    '断言内容数组中每一块'
     for 下标,值 in enumerate(内容数组(内容,标签)):#逐块
         断言内容块(值,标签+'['+str(下标)+']')#断言
 
 def 断言内容块(值,标签):#断言内容块
-    """断言单个内容块及其文件/工具结果特例。"""
+    '断言单个内容块及其文件/工具结果特例'
     块=记录(值,标签)#块对象
     断言内容种类(块.get('type'),标签)#种类
     if 块.get('type')=='tool-result':#工具结果块
@@ -187,7 +187,7 @@ def 断言内容块(值,标签):#断言内容块
         raise 会话格式错误(标签+': invalid message content kind '+_json串(块.get('type'))+': '+str(错误))#包装错误
 
 def 断言v3结构行(值):#断言v3结构行
-    """即使越过可恢复的物理行失败，也拒绝 V3 结构载荷违规。"""
+    '即使越过可恢复的物理行失败，也拒绝 V3 结构载荷违规'
     if not isinstance(值,dict):#非对象行跳过
         return#返回
     行=值#行对象
@@ -200,7 +200,7 @@ def 断言v3结构行(值):#断言v3结构行
         断言系统({'type':'system/message','seq':0,'time':0,'data':数据},数据)#断言系统载荷
 
 def 断言系统(事件,数据):#断言系统载荷
-    """断言系统消息载荷字段。"""
+    '断言系统消息载荷字段'
     精确键(数据,['turn','step','message'],[],'system/message data')#精确键
     for 坐标 in ('turn','step'):#坐标
         if 会话格式计数(数据[坐标],坐标)==0:#须为正
@@ -217,7 +217,7 @@ def 断言系统(事件,数据):#断言系统载荷
     断言已发布载荷语义({**事件,'type':'user/message','data':{**消息,'role':'user'}},3)#按用户消息语义探测
 
 def 断言反馈(类型,数据):#断言反馈载荷
-    """断言反馈 put/delete 载荷。"""
+    '断言反馈 put/delete 载荷'
     精确键(数据,['sessionId','item'] if 类型=='feedback/message-put' else ['sessionId','messageId'],[],类型)#精确键
     if not isinstance(数据.get('sessionId'),str):#sessionId须串
         raise 会话格式错误('feedback sessionId must be a string')#错误
@@ -238,7 +238,7 @@ def 断言反馈(类型,数据):#断言反馈载荷
     会话格式计数(条目['updatedAt'],'feedback updatedAt')#更新时间
 
 def 断言v3事件(事件,已知事件类型=None):#断言v3事件
-    """校验一条规范 V3 事件，且不解释插件自有载荷或日志关系。"""
+    '校验一条规范 V3 事件，且不解释插件自有载荷或日志关系'
     值=记录(事件,'format v3 event')#事件对象
     主语=f"format v3 {事件['type']} at seq {事件['seq']}"#诊断主语
     过时=事件['type']=='tool/code-dispatch-start' or 事件['type']=='tool/code-dispatch'#前代PTC
@@ -284,7 +284,7 @@ def 断言v3事件(事件,已知事件类型=None):#断言v3事件
     断言规范载荷(事件)#规范载荷
 
 def 断言规范载荷(事件):#断言规范载荷
-    """断言请求头空可选与工具错误结果一致性。"""
+    '断言请求头空可选与工具错误结果一致性'
     主语=f"format v3 {事件['type']} at seq {事件['seq']}"#诊断主语
     if 事件['type']=='request/header':#请求头
         数据=记录(事件['data'],f'{主语} data')#载荷
@@ -304,7 +304,7 @@ def 断言规范载荷(事件):#断言规范载荷
         raise 会话格式错误(f'{主语} carries error metadata for a non-error tool result')#错误
 
 def 规范化已转换事件(事件):#规范化已转换事件
-    """规范化结构已转换的事件，且不改变其目标坐标。"""
+    '规范化结构已转换的事件，且不改变其目标坐标'
     目标=事件#目标
     操作=事件.get('surfaceOp')#表面操作
     if 操作 is not None and 操作!='append':#替换
@@ -332,5 +332,5 @@ def 规范化已转换事件(事件):#规范化已转换事件
     return 目标#返回
 
 def _json串(值):#JSON诊断串
-    """用 JSON 渲染诊断值。"""
+    '用 JSON 渲染诊断值'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#渲染

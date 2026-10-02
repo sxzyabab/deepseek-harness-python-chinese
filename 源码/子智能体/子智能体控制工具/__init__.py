@@ -8,12 +8,12 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
 __all__=['名称','依赖','应用']#仅中文公开名
 
 def 应用(上下文):
-    """登记 `send_message` 与 `interrupt_agent` 工具。"""
+    '登记 `send_message` 与 `interrupt_agent` 工具'
     def 渲染投递(参数,_值):
-        """渲染投递确认文本块。参数为 dict。"""
+        '渲染投递确认文本块。参数为 dict'
         return [{'type':'text','text':'message delivered to agent '+参数['agent_id']}]#确认文案
     def 执行投递(参数,执行元数据):
-        """把 message 包成文本块并经相邻投递；返回已接受的 messageId。"""
+        '把 message 包成文本块并经相邻投递；返回已接受的 messageId'
         if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#无活调用方
             raise 子智能体错误('send_message requires a calling agent (exec.agent was undefined)','NO_AGENT')#拒绝
         发送方=执行元数据['agent']#调用方智能体
@@ -61,10 +61,10 @@ def 应用(上下文):
         'execute':执行投递,#执行投递
     }))#send_message 登记结束
     def 渲染打断(参数,_值):
-        """渲染中断确认文本块。参数为 dict。"""
+        '渲染中断确认文本块。参数为 dict'
         return [{'type':'text','text':'interrupt requested for agent '+参数['agent_id']}]#确认文案
     def 执行打断(参数,执行元数据):
-        """在祖先权威下请求打断目标当前回合；立即返回 accepted。参数与执行为 dict；调用方为智能体对象。"""
+        '在祖先权威下请求打断目标当前回合；立即返回 accepted。参数与执行为 dict；调用方为智能体对象'
         if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#无活调用方
             raise 子智能体错误('interrupt_agent requires a calling agent (exec.agent was undefined)','NO_AGENT')#拒绝
         调用方=执行元数据['agent']#调用方智能体

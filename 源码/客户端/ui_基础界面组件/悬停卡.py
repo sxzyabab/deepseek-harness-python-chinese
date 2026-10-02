@@ -6,9 +6,9 @@ __all__=['悬停卡','默认打开延迟毫秒']#仅中文公开名
 默认打开延迟毫秒=500#悬停驻留
 
 class 悬停卡:#悬停预览
-    """状态机：打开延迟、宽限关闭、可选点卡复制。"""
+    '状态机：打开延迟、宽限关闭、可选点卡复制'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props 与本地态。"""
+        '合并 props 与本地态'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.已打开=False#卡是否开
@@ -17,7 +17,7 @@ class 悬停卡:#悬停预览
         自身.宽限=指针宽限(自身.关闭)#离开宽限
 
     def 更新(自身,属性):
-        """刷新 props；禁用则立即关。"""
+        '刷新 props；禁用则立即关'
         自身.属性=dict(属性)#最新
         禁用=自身.属性['disabled'] is True if 'disabled' in 自身.属性 else False#禁用
         if 禁用 is True:#禁用
@@ -25,17 +25,17 @@ class 悬停卡:#悬停预览
             自身.关闭()#关
 
     def 关闭(自身):
-        """清复制反馈并关。"""
+        '清复制反馈并关'
         自身.已复制=False#清反馈
         自身.已打开=False#关
         自身.位置=None#清位
 
     def 打开卡(自身):
-        """置开；宿主再量锚定位。"""
+        '置开；宿主再量锚定位'
         自身.已打开=True#开
 
     def 复制(自身):
-        """有 copyText 且未在反馈中才写。"""
+        '有 copyText 且未在反馈中才写'
         文本=自身.属性['copyText'] if 'copyText' in 自身.属性 else None#可复制值
         if 文本 is None or 自身.已复制 is True:#无或反馈中
             return False#跳
@@ -45,7 +45,7 @@ class 悬停卡:#悬停预览
         return True#成功
 
     def 渲染(自身):
-        """锚+条件传送卡。"""
+        '锚+条件传送卡'
         属性=自身.属性#props
         可复制=('copyText' in 属性) and 属性['copyText'] is not None#可复制
         延迟=属性['openDelayMs'] if 'openDelayMs' in 属性 else 默认打开延迟毫秒#驻留
@@ -72,7 +72,7 @@ class 悬停卡:#悬停预览
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

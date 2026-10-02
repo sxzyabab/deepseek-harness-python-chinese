@@ -8,13 +8,13 @@ __all__=['ssh沙盒错误','ssh沙盒提供方','依赖']
 依赖=['ssh']
 
 class ssh沙盒错误(Exception):#本包异常基类
-    """SSH 沙箱应答非法。"""
+    'SSH 沙箱应答非法'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 def 事实模式(值):#sandbox 应答
-    """argv/enforcement/denialSignatures/runnerFailureRules。"""
+    'argv/enforcement/denialSignatures/runnerFailureRules'
     if not isinstance(值,dict):#非对象
         raise ssh沙盒错误('expected sandbox facts object')#失败
     if 'argv' not in 值 or not isinstance(值['argv'],list) or len(值['argv'])<1:#argv
@@ -24,10 +24,12 @@ def 事实模式(值):#sandbox 应答
     return 值#事实
 
 class ssh沙盒提供方(沙箱提供方):#远端 argv 包装
-    """在同一主机解析隔离请求。"""
+    '在同一主机解析隔离请求'
     inject=依赖
     def 隔离(自身,参数表,政策,信号=None):#远端 confine
-        """把 argv 与政策交给辅助程序。政策是 dict。"""
+        """把 argv 与政策交给辅助程序。
+        政策是 dict
+        """
         若已中止则抛出(信号)#中止
         try:#请求
             已隔离=自身.所属上下文.ssh.请求('sandbox',{'argv':list(参数表),'policy':政策},事实模式,信号)#事实

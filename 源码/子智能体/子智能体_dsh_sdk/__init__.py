@@ -23,20 +23,20 @@ from .运行 import 启动sdk运行,默认关闭超时毫秒,默认处置eof宽�
 __all__=['名称','依赖','配置','应用']#公开面
 
 class dshSdk提供方:
-    """进程外 SDK 子体；不继承父对话。"""
+    '进程外 SDK 子体；不继承父对话'
     def __init__(自身,名,规格):
-        """记下提供方名、能力与运行规格。规格为 dict。"""
+        '记下提供方名、能力与运行规格。规格为 dict'
         自身.名称=名#名
         自身.能力={'agentOptions':True}#部分能力
         自身.继承父上下文=False#契约
         自身._规格=规格#规格
 
     def 启动(自身,请求):
-        """启动 SDK 一次性跑。请求为 dict。"""
+        '启动 SDK 一次性跑。请求为 dict'
         return 启动sdk运行(请求,自身._规格)#跑
 
 def 应用(上下文,配置值):
-    """加载 SDK 提供方。配置为 dict。"""
+    '加载 SDK 提供方。配置为 dict'
     家=str(配置值['dshHome'] if 'dshHome' in 配置值 else '').strip()#DSH_HOME
     if len(家)==0:#空
         raise 子智能体错误('subagent-dsh-sdk: dshHome is required','INVALID_CONFIG')#拒绝

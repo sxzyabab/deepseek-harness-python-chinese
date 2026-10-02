@@ -1,8 +1,4 @@
-"""作用域工具：在所属会话中声明文件系统交付。
-
-公开业务面仅中文名。工具名 present、事件 deliverables/presented 与配置键 maxFiles 保持英文线协议。
-"""
-import weakref#待定交付弱映射
+'作用域工具：在所属会话中声明文件系统交付'import weakref#待定交付弱映射
 from ...依赖.schemastery import 数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 若已中止则抛出#取消信号
@@ -18,25 +14,25 @@ __all__=['名称','注入','配置','应用','默认','已呈现文件字段','�
 }#配置模式结束
 
 class 呈现错误(Exception):#本包异常基类
-    """呈现工具入参或执行失败。"""
+    '呈现工具入参或执行失败'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 def 应用(上下文,配置值):#登记 present 并在成功结果上追加交付事件
-    """登记 present 工具；成功的 tools/result 追加 deliverables/presented。"""
+    '登记 present 工具；成功的 tools/result 追加 deliverables/presented'
     最大文件=配置值['maxFiles']#部署上限
     if isinstance(最大文件,bool) or not isinstance(最大文件,int) or 最大文件<1:#须为正整数
         raise 呈现错误('present requires a positive integer maxFiles')#加载失败
     待定=weakref.WeakKeyDictionary()#执行 → 待发表交付
     def 渲染(参数,值):#模型看到路径摘要
-        """把结构化结果渲染成 Presented 路径行。"""
+        '把结构化结果渲染成 Presented 路径行'
         行表=[]#摘要行
         for 文件 in 值['files']:#逐文件
             行表.append('Presented '+文件['path'])#英文摘要字面量
         return [{'type':'text','text':'\n'.join(行表)}]#单个文本块
     def 执行(参数,执行上下文):#校验并暂存交付
-        """校验普通文件后暂存，等 tools/result 成功再发表。"""
+        '校验普通文件后暂存，等 tools/result 成功再发表'
         智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用方智能体
         if 智能体 is None:#非智能体
             raise 呈现错误('present requires an agent Session')#拒绝
@@ -74,7 +70,7 @@ def 应用(上下文,配置值):#登记 present 并在成功结果上追加交�
         待定[执行上下文]={'session':智能体.session,'turn':边界['lastTurn'],'files':文件表}#记下待定
         return {'turn':边界['lastTurn'],'files':文件表}#结构化结果
     def 工具结果(执行上下文,结果):#成功才追加事件
-        """成功的最终结果才追加 deliverables/presented。"""
+        '成功的最终结果才追加 deliverables/presented'
         交付=待定.pop(执行上下文,None)#取出并清除
         if 交付 is None or 结果['isError']:#无交付或失败
             return#不发表

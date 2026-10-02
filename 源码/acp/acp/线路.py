@@ -1,7 +1,4 @@
-"""本包内嵌的 ACP 智能体侧 NDJSON JSON-RPC 最小线路。
-
-方法名与错误码字面量保持 ACP 线约定。
-"""
+'本包内嵌的 ACP 智能体侧 NDJSON JSON-RPC 最小线路'
 import json,threading#JSON 与读写线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 
@@ -12,22 +9,22 @@ __all__=[#仅中文公开名
 协议版本=1#ACP 协议版本常量（与 SDK PROTOCOL_VERSION 对齐的本桥接钉值）
 
 class ACP线路错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._未来.done():#尚未结算
             自身._未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身._未来.set_exception(错误)#原样拒绝
@@ -35,13 +32,13 @@ class 操作任务:
                 自身._未来.set_exception(ACP线路错误(str(错误)))#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
 
 class 请求错误(ACP线路错误):
-    """ACP 线路错误，保留 code 与可选 data。"""
+    'ACP 线路错误，保留 code 与可选 data'
     def __init__(自身,码,消息,数据=None):
-        """记下错误码、消息与可选载荷。"""
+        '记下错误码、消息与可选载荷'
         super().__init__(消息)#消息
         自身.code=码#错误码
         自身.message=消息#消息
@@ -50,29 +47,29 @@ class 请求错误(ACP线路错误):
 
     @staticmethod
     def 非法参数(数据,细节):
-        """把非法参数细节保留在线路错误消息里。"""
+        '把非法参数细节保留在线路错误消息里'
         return 请求错误(-32602,细节,数据)#invalid params
 
     @staticmethod
     def 内部错误(数据,细节):
-        """把失败细节保留为内部错误。"""
+        '把失败细节保留为内部错误'
         return 请求错误(-32603,细节,数据)#internal error
 
 class NDJSON流:
-    """可读/可写字节或文本流对，供智能体侧连接使用。"""
+    '可读/可写字节或文本流对，供智能体侧连接使用'
     def __init__(自身,写出流,读入流):
-        """记下写出与读入。"""
+        '记下写出与读入'
         自身.写出=写出流#出站
         自身.读入=读入流#入站
 
 def 创建NDJSON流(写出流,读入流):
-    """测试覆盖或 stdio NDJSON。"""
+    '测试覆盖或 stdio NDJSON'
     return NDJSON流(写出流,读入流)#包装
 
 class 智能体侧连接:
-    """打开智能体侧连接：入站方法派发到 makeAgent 返回的处理器，出站 sessionUpdate / requestPermission。"""
+    '打开智能体侧连接：入站方法派发到 makeAgent 返回的处理器，出站 sessionUpdate / requestPermission'
     def __init__(自身,铸造智能体,流):
-        """铸造处理器并开始读帧。"""
+        '铸造处理器并开始读帧'
         自身.流=流#传输流
         自身.写锁=threading.Lock()#写出互斥
         自身.未决={}#出站请求 id → 任务
@@ -85,23 +82,29 @@ class 智能体侧连接:
 
     @property
     def 已关闭承诺(自身):
-        """返回关闭任务。"""
+        '返回关闭任务'
         return 自身.已关闭#任务
 
     def 会话更新(自身,通知):
-        """发送协议更新通知。同步返回。"""
+        """发送协议更新通知。
+        同步返回
+        """
         自身._通知('session/update',通知)#出站通知
 
     def 请求许可(自身,参数):
-        """session/request_permission。同步返回结果。"""
+        """session/request_permission。
+        同步返回结果
+        """
         return 自身._请求('session/request_permission',参数)#出站请求
 
     def _通知(自身,方法,参数):
-        """省略响应。"""
+        '省略响应'
         自身._写出({'jsonrpc':'2.0','method':方法,'params':参数})#通知帧
 
     def _请求(自身,方法,参数):
-        """等待响应。同步返回结果。"""
+        """等待响应。
+        同步返回结果
+        """
         等待=操作任务()#结果
         with 自身.写锁:#互斥取 id
             标识=自身.下一标识#分配
@@ -118,7 +121,7 @@ class 智能体侧连接:
         return 等待.等待()#同步交出
 
     def _写出(自身,消息):
-        """序列化后加换行。"""
+        '序列化后加换行'
         行=json.dumps(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n'#紧凑行
         with 自身.写锁:#写出互斥
             写出=自身.流.写出#出站流
@@ -131,7 +134,7 @@ class 智能体侧连接:
                 写出.flush()#刷新
 
     def _读循环(自身):
-        """派发请求/响应/通知。"""
+        '派发请求/响应/通知'
         缓冲=''#行缓冲
         读入=自身.流.读入#入站
         try:
@@ -167,7 +170,7 @@ class 智能体侧连接:
         自身._关闭(None)#正常关闭
 
     def _处理行(自身,行):
-        """畸形 JSON 忽略。"""
+        '畸形 JSON 忽略'
         try:
             消息=json.loads(行)#JSON
         except json.JSONDecodeError:
@@ -196,7 +199,9 @@ class 智能体侧连接:
             threading.Thread(target=自身._派发入站,args=(标识,方法,参数),daemon=True).start()#异步派发
 
     def _派发入站(自身,标识,方法,参数):
-        """有 id 则回写响应。控制流错误按 name 字段识别。"""
+        """有 id 则回写响应。
+        控制流错误按 name 字段识别
+        """
         处理映射={#ACP 方法到智能体处理器
             'initialize':'initialize',#握手
             'authenticate':'authenticate',#认证
@@ -226,7 +231,7 @@ class 智能体侧连接:
                 自身._写出({'jsonrpc':'2.0','id':标识,'error':{'code':-32603,'message':str(错误)}})#内部错误
 
     def _关闭(自身,错误):
-        """只落定一次。"""
+        '只落定一次'
         if 自身._关闭落定:#已关闭
             return#忽略
         自身._关闭落定=True#标记

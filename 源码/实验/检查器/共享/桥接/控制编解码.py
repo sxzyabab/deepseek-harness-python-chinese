@@ -7,7 +7,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 解析检查器工作者配置(值):#解析Worker配置
-    """解码结构化克隆的 Worker 配置。"""
+    '解码结构化克隆的 Worker 配置'
     记录=精确对象(值,[#精确对象
         'host','startPort','targetId','clientToken','clientOrigins','maxSourceFrameBytes',#字段1
         'maxSourceRecordsPerFrame','maxRetainedRequests','maxJournalBytes','clientRuntimeTimeoutMs','maxCordisNodes',#字段2
@@ -41,14 +41,14 @@ def 解析检查器工作者配置(值):#解析Worker配置
     }#返回结束
 
 def 解析检查器宿主控制(值):#解析Host控制
-    """解码一条 Host-到-Worker 生命周期命令。"""
+    '解码一条 Host-到-Worker 生命周期命令'
     记录=精确对象(值,['type'],'Host control message')#精确对象
     if 记录['type']!='shutdown':#仅shutdown
         raise 检查器错误('inspector protocol: unknown Host control message')#英文诊断
     return {'type':'shutdown'}#关闭命令
 
 def 解析检查器工作者控制(值):#解析Worker控制
-    """解码一条 Worker-到-Host 生命周期事件。"""
+    '解码一条 Worker-到-Host 生命周期事件'
     记录=按类型取对象(值,'Worker control message')#按type取对象
     if 记录['type']=='ready':#就绪
         精确键(记录,['type','host','port','targetId'],'Worker ready message')#精确字段
@@ -66,7 +66,7 @@ def 解析检查器工作者控制(值):#解析Worker控制
     raise 检查器错误('inspector protocol: unknown Worker control message')#英文诊断
 
 def 解析检查器客户端引导(值):#解析Client引导
-    """解码写入浏览器全局的引导数据。"""
+    '解码写入浏览器全局的引导数据'
     记录=精确对象(值,[#精确对象
         'endpoint','protocol','maxQueuedRecords','maxQueuedBytes','maxRecordsPerFrame','maxFrameBytes',#字段1
         'reconnectBaseMs','reconnectMaxMs','queryTimeoutMs','maxRuntimeObjectsPerSession',#字段2
@@ -102,13 +102,13 @@ def 解析检查器客户端引导(值):#解析Client引导
     return 引导#引导
 
 def 按类型取对象(值,标签):#按type取对象
-    """要求带 type 字符串的普通对象。"""
+    '要求带 type 字符串的普通对象'
     if not 是否普通对象(值) or not isinstance(值.get('type'),str):#须有type
         raise 检查器错误(f'inspector protocol: {标签} must have a type')#英文诊断
     return 值#普通对象
 
 def 自然数(值,标签,允许零=False):#自然数校验
-    """安全整数自然数校验。"""
+    '安全整数自然数校验'
     下限=0 if 允许零 else 1#下限
     if not isinstance(值,int) or isinstance(值,bool) or 值<下限 or 值>9007199254740991:#非安全整数或越界
         raise 检查器错误(f'inspector protocol: {标签} must be {"a non-negative" if 允许零 else "a positive"} safe integer')#英文诊断

@@ -101,22 +101,22 @@ __all__=[#仅中文公开名
 )#结束
 
 def 钳制详情宽(宽度,分栏宽):#钳制详情面板宽
-    """把详情宽钳在分栏可用区间。"""
+    '把详情宽钳在分栏可用区间'
     最大=max(详情最小宽,min(详情最大宽,分栏宽-表最小宽))#可用上界
     return round(min(max(宽度,详情最小宽),最大))#钳制
 
 def 默认工具请求宽(分栏宽):#默认工具请求栏宽
-    """按默认占比推导工具请求栏宽。"""
+    '按默认占比推导工具请求栏宽'
     return min(max(分栏宽*默认工具请求占比-默认工具请求偏移,工具请求最小宽),工具请求最大宽)#钳制
 
 def 格式化时长毫秒(毫秒):#时长标签
-    """毫秒时长人类标签。"""
+    '毫秒时长人类标签'
     if 毫秒<1000:#亚秒
         return f'{round(毫秒)} ms'#整毫秒
     return f'{(毫秒/1000):.{2 if 毫秒<10000 else 1}f} s'#秒
 
 def 格式化开始时刻(时间戳):#本地时间标签
-    """有限时间戳格式化为本地日时；否则不可用。"""
+    '有限时间戳格式化为本地日时；否则不可用'
     if 时间戳 is None:#空
         return 'Not available'#不可用
     try:#有限判定
@@ -130,7 +130,7 @@ def 格式化开始时刻(时间戳):#本地时间标签
     return 时刻.strftime('%Y-%m-%d %H:%M:%S.')+f'{int(时刻.microsecond/1000):03d}'#日时.毫秒
 
 def 总耗时文案(指标):#总耗时
-    """助手指标总耗时。"""
+    '助手指标总耗时'
     if not (指标['timingRecorded'] if 'timingRecorded' in 指标 else None):#未记
         return 'Not recorded'#未记
     if ('stepStartTime' not in 指标) or 指标['stepStartTime'] is None:#无起点
@@ -140,7 +140,7 @@ def 总耗时文案(指标):#总耗时
     return 格式化时长毫秒(max(0,指标['completedTime']-指标['stepStartTime']))#差
 
 def 首字耗时文案(指标):#TTFT
-    """首字耗时。"""
+    '首字耗时'
     if not (指标['timingRecorded'] if 'timingRecorded' in 指标 else None):#未记
         return 'Not recorded'#未记
     if ('stepStartTime' not in 指标) or 指标['stepStartTime'] is None:#无起点
@@ -150,7 +150,7 @@ def 首字耗时文案(指标):#TTFT
     return 格式化时长毫秒(max(0,指标['firstTokenTime']-指标['stepStartTime']))#差
 
 def 生成耗时文案(指标):#生成段
-    """首字到完成。"""
+    '首字到完成'
     if not (指标['timingRecorded'] if 'timingRecorded' in 指标 else None) or ('firstTokenTime' not in 指标) or 指标['firstTokenTime'] is None:#无首字
         return 'First token unavailable'#无首字
     if ('completedTime' not in 指标) or 指标['completedTime'] is None:#未完
@@ -158,7 +158,7 @@ def 生成耗时文案(指标):#生成段
     return 格式化时长毫秒(max(0,指标['completedTime']-指标['firstTokenTime']))#差
 
 def 吞吐文案(指标):#吞吐
-    """输出 token/s。"""
+    '输出 token/s'
     if not (指标['usageProvided'] if 'usageProvided' in 指标 else None):#无用量
         return 'Usage unavailable'#无用量
     if ('outputTokens' not in 指标) or 指标['outputTokens'] is None:#无输出
@@ -173,7 +173,7 @@ def 吞吐文案(指标):#吞吐
     return f'{指标["outputTokens"]/生成秒:.1f} tok/s'#吞吐
 
 def 展平记录(轮次列表):#轮次→表记录
-    """按展示顺序展平轮次组为表记录。"""
+    '按展示顺序展平轮次组为表记录'
     表=[] if 轮次列表 is None else 轮次列表#?? []；TS 必填数组，缺席当空表，空表保留
     结果=[]#输出
     for 段下标,轮 in enumerate(表):#各轮
@@ -200,7 +200,7 @@ def 展平记录(轮次列表):#轮次→表记录
     return 结果#全部
 
 def 过滤记录(记录列表,匹配集):#按搜索匹配过滤
-    """只保留匹配下标，并重算组/轮边界。"""
+    '只保留匹配下标，并重算组/轮边界'
     过滤=[dict(记录,groupStart=False,turnStart=False,turnEnd=False) for 记录 in 记录列表 if (记录['cell']['requestOnly'] if 'requestOnly' in 记录['cell'] else None) is not True and 记录['cell']['index'] in 匹配集]#过滤
     已起段=set()#已起段
     for 下标,记录 in enumerate(过滤):#重算
@@ -215,7 +215,7 @@ def 过滤记录(记录列表,匹配集):#按搜索匹配过滤
     return 过滤#结果
 
 def 请求步号(组名):#Step N → 步号
-    """解析 Step N 组名。"""
+    '解析 Step N 组名'
     if not isinstance(组名,str) or not 组名.startswith('Step '):#非步
         return None#无
     try:#整步
@@ -225,11 +225,11 @@ def 请求步号(组名):#Step N → 步号
     return 值 if 值>0 else None#正整
 
 def 请求键(轮次,组名):#请求稳定键
-    """轮次+组名复合键。"""
+    '轮次+组名复合键'
     return f'{轮次}\u0000{组名}'#复合
 
 def 索引请求边界(记录列表):#请求边界下标
-    """每个请求组第一条可见边界记录下标。"""
+    '每个请求组第一条可见边界记录下标'
     边界={}#键→下标
     for 记录 in 记录列表:#逐条
         键=请求键(记录['turn'],记录['group'])#键
@@ -246,15 +246,15 @@ def 索引请求边界(记录列表):#请求边界下标
     return 边界#映射
 
 def 段落标签(轮次):#段标签
-    """轮次或轮间标签。"""
+    '轮次或轮间标签'
     return 'Between turns' if 轮次 is None else f'Turn {轮次}'#标签
 
 def 记录格下标(记录):#记录格子展示下标
-    """排序用。"""
+    '排序用'
     return 记录['cell']['index']#下标
 
 def 索引请求编号(记录列表,会话编号,边界):#请求编号表
-    """会话编号优先，缺省按边界递增。"""
+    '会话编号优先，缺省按边界递增'
     编号={}#键→号
     for 请求 in 会话编号 or ():#会话号
         编号[请求键(请求['turn'],请求['group'])]=请求['number']#写入
@@ -271,7 +271,7 @@ def 索引请求编号(记录列表,会话编号,边界):#请求编号表
     return 编号#表
 
 def 索引请求边界游程(记录列表):#边界游程下标
-    """仅请求分隔符的游程偏移。"""
+    '仅请求分隔符的游程偏移'
     索引={}#下标→游程
     游程=0#当前
     for 记录 in 记录列表:#逐条
@@ -286,7 +286,7 @@ def 索引请求边界游程(记录列表):#边界游程下标
     return 索引#映射
 
 def 摘要轮次(记录列表):#折叠轮次摘要
-    """步数与工具调用摘要。"""
+    '步数与工具调用摘要'
     步数=len({记录['group'] for 记录 in 记录列表 if isinstance(记录['group'],str) and 记录['group'].startswith('Step ')})#步
     工具数=sum(1 for 记录 in 记录列表 if 记录['cell']['kind'] in ('tool','subtool'))#工具
     步文=f'{步数} {"step" if 步数==1 else "steps"}'#步文
@@ -294,7 +294,7 @@ def 摘要轮次(记录列表):#折叠轮次摘要
     return f'{步文} · {工具文}'#合成
 
 def 折叠轮次记录(记录列表,折叠轮次):#折叠轮次
-    """折叠轮次内容为摘要行。"""
+    '折叠轮次内容为摘要行'
     按轮={}#轮→记录
     for 记录 in 记录列表:#分组
         轮=记录['turn']#轮
@@ -324,7 +324,7 @@ def 折叠轮次记录(记录列表,折叠轮次):#折叠轮次
     return 输出#结果
 
 def 助手工具调用(记录列表,助手下标):#助手后工具链
-    """助手消息后连续 tool/subtool。"""
+    '助手消息后连续 tool/subtool'
     位=-1#位置
     for 下标,记录 in enumerate(记录列表):#找
         if 记录['cell']['index']==助手下标:#命中
@@ -341,7 +341,7 @@ def 助手工具调用(记录列表,助手下标):#助手后工具链
     return 调用#链
 
 def 摘要助手工具(记录列表):#助手工具摘要
-    """工具调用数与名。"""
+    '工具调用数与名'
     名列表=[]#去重名
     for 记录 in 记录列表:#各调用
         文本=(记录['cell']['text'] if 'text' in 记录['cell'] else None) or ''#文
@@ -354,7 +354,7 @@ def 摘要助手工具(记录列表):#助手工具摘要
     return f'{摘要} · {", ".join(名列表)}' if 名列表 else 摘要#带名
 
 def 折叠助手记录(记录列表,折叠助手):#折叠助手工具
-    """折叠助手下工具调用为摘要。"""
+    '折叠助手下工具调用为摘要'
     输出=[]#结果
     下标=0#游标
     while 下标<len(记录列表):#扫描
@@ -385,7 +385,7 @@ def 折叠助手记录(记录列表,折叠助手):#折叠助手工具
     return 输出#结果
 
 def 记录状态(记录):#complete/running/error
-    """记录运行态。"""
+    '记录运行态'
     格=记录['cell']#格
     if 格['isError'] if 'isError' in 格 else None:#错
         return 'error'#错
@@ -396,7 +396,7 @@ def 记录状态(记录):#complete/running/error
     return 'complete'#完
 
 def 状态标签(状态):#状态文案
-    """状态人类标签。"""
+    '状态人类标签'
     if 状态=='error':#错
         return 'Failed'#失败
     if 状态=='running':#跑
@@ -404,7 +404,7 @@ def 状态标签(状态):#状态文案
     return 'Completed'#完成
 
 def 输入合计(用量):#输入桶合计
-    """input+cacheRead+cacheWrite。"""
+    'input+cacheRead+cacheWrite'
     if 用量 is None:#空
         return None#无
     入=用量['input'] if 'input' in 用量 else None#入
@@ -415,7 +415,7 @@ def 输入合计(用量):#输入桶合计
     return (入 or 0)+(读 or 0)+(写 or 0)#和
 
 def 消息来源标签(来源):#消息来源
-    """messageSource 人类标签。"""
+    'messageSource 人类标签'
     if not isinstance(来源,dict):#非对象
         return 'Unknown'#未知
     种=来源['kind'] if 'kind' in 来源 else None#种
@@ -432,7 +432,7 @@ def 消息来源标签(来源):#消息来源
     return 种[:1].upper()+种[1:]#首字母大写
 
 def 父级记录(记录列表,记录):#工具父级
-    """tool/subtool 的父消息与父工具。"""
+    'tool/subtool 的父消息与父工具'
     种类=记录['cell']['kind']#种类
     if 种类 not in ('tool','subtool'):#非工具
         return {}#空
@@ -473,11 +473,11 @@ def 父级记录(记录列表,记录):#工具父级
     return 结果#父级
 
 def 是否Markdown记录(记录):#是否 Markdown 类
-    """user/context/message。"""
+    'user/context/message'
     return 记录['cell']['kind'] in ('user','context','message')#判定
 
 def Markdown源(记录):#Markdown 源文本
-    """详情 Markdown 源。"""
+    '详情 Markdown 源'
     格=记录['cell']#格
     种类=格['kind']#种类
     if 种类 in ('user','context'):#入
@@ -487,7 +487,7 @@ def Markdown源(记录):#Markdown 源文本
     return None#无
 
 def 详情标签页(记录):#详情标签页列表
-    """按记录种类给出标签页。"""
+    '按记录种类给出标签页'
     格=记录['cell']#格
     种类=格['kind']#种类
     if 种类=='system':#系统
@@ -509,11 +509,11 @@ def 详情标签页(记录):#详情标签页列表
     return 页#页
 
 def 是否仅工具调用(格):#Tool call only
-    """助手仅工具调用占位。"""
+    '助手仅工具调用占位'
     return 格['kind']=='message' and not (格['outputDetail'] if 'outputDetail' in 格 else None) and not (格['thinkingDetail'] if 'thinkingDetail' in 格 else None) and (格['text'] if 'text' in 格 else None)=='Tool call only'#判定
 
 def 记录展示文案(格):#行内展示
-    """列表主文案。"""
+    '列表主文案'
     if 是否仅工具调用(格):#仅工具
         return ''#空
     预览Markdown=格['previewMarkdown'] if 'previewMarkdown' in 格 else None#预览 MD
@@ -538,12 +538,12 @@ def 记录展示文案(格):#行内展示
     return '' if Markdown is None else 轨迹预览文本(Markdown)#预览
 
 def 记录结果文案(格):#行内结果
-    """结果预览文案。"""
+    '结果预览文案'
     预览=格['resultPreviewMarkdown'] if 'resultPreviewMarkdown' in 格 else None#结果 MD
     return (格['result'] if 'result' in 格 else None) if 预览 is None else 轨迹预览文本(预览)#结果
 
 def 工具调用文案部件(种类,文本):#工具名/参数
-    """拆 tool/subtool 文案。"""
+    '拆 tool/subtool 文案'
     if 种类 not in ('tool','subtool'):#非工具
         return None#无
     分隔=(文本 or '').find(' · ')#分隔
@@ -552,7 +552,7 @@ def 工具调用文案部件(种类,文本):#工具名/参数
     return {'name':文本[:分隔],'args':文本[分隔+3:]}#名参
 
 def 记录呈现(格):#列表呈现值
-    """displayText / listDisplayText / resultText / toolCall*。"""
+    'displayText / listDisplayText / resultText / toolCall*'
     展示=记录展示文案(格)#展示
     结果=记录结果文案(格)#结果
     仅工具=是否仅工具调用(格)#仅工具
@@ -572,7 +572,7 @@ def 记录呈现(格):#列表呈现值
     }#结束
 
 def 解析工具Schema(值):#解析工具 Schema
-    """JSON Schema 容器。"""
+    'JSON Schema 容器'
     try:#解析
         解析=json.loads(值)#JSON
     except (TypeError,ValueError,json.JSONDecodeError):#失败
@@ -587,7 +587,7 @@ def 解析工具Schema(值):#解析工具 Schema
     return {'name':名,'description':描述,'parameters':参数}#Schema
 
 def 解析JSON容器(值):#解析 JSON 对象/数组
-    """成功则返回容器，否则 None。"""
+    '成功则返回容器，否则 None'
     try:#解析
         解析=json.loads(值)#JSON
     except (TypeError,ValueError,json.JSONDecodeError):#失败
@@ -595,7 +595,7 @@ def 解析JSON容器(值):#解析 JSON 对象/数组
     return 解析 if isinstance(解析,(dict,list)) else None#容器
 
 def 提示词差分行(之前,之后):#统一差分行
-    """system/tools 文本差分行（meta/context/added/removed）。"""
+    'system/tools 文本差分行（meta/context/added/removed）'
     行列表=[]#输出
     统一=list(difflib.unified_diff((之前 or '').splitlines(),(之后 or '').splitlines(),lineterm='',n=3))#差分
     for 行 in 统一:#逐行

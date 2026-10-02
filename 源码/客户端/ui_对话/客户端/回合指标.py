@@ -2,7 +2,7 @@
 __all__=['助手步骤读数','派生回合指标']#仅中文公开名
 
 def 用量产出令牌(用量):
-    """从用量取产出 token。用量为 dict。"""
+    '从用量取产出 token。用量为 dict'
     if 用量 is None:#空
         return None#未记录
     if 'outputTokens' not in 用量:#缺席
@@ -15,7 +15,7 @@ def 用量产出令牌(用量):
     return None#未记录
 
 def 助手步骤读数(节点):
-    """读一步 TTFT、解码墙时与产出 token。节点为 dict。"""
+    '读一步 TTFT、解码墙时与产出 token。节点为 dict'
     计时=节点['timing'] if 'timing' in 节点 else None#计时
     首令牌延迟=None#缺
     解码=None#缺
@@ -31,7 +31,7 @@ def 助手步骤读数(节点):
     return {'ttftMs':首令牌延迟,'decodeMs':解码,'outputTokens':用量产出令牌(用量)}#三读数
 
 def 派生回合指标(节点列表):
-    """TTFT 取最小步；吞吐=产出/解码秒。节点列表为 dict 列表。"""
+    'TTFT 取最小步；吞吐=产出/解码秒。节点列表为 dict 列表'
     折叠表={}#回合→折叠
     for 节点 in 节点列表:#遍历
         if ('kind' not in 节点) or 节点['kind']!='assistant':#非助手

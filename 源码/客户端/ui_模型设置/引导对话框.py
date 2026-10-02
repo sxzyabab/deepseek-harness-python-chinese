@@ -5,18 +5,18 @@ from .提供方编辑器 import 提供方编辑器#密钥编辑器
 __all__=['欢迎通知','官方引导对话框']#仅中文公开名
 
 class 欢迎通知:#产品级版本化内测声明
-    """未确认当前文案版本前渲染；已确认则 complete。"""
+    '未确认当前文案版本前渲染；已确认则 complete'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
         自身.已结束=False#是否已 complete
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 读状态(自身):#读欢迎快照
-        """经 hooks.welcome 存储。"""
+        '经 hooks.welcome 存储'
         钩=自身.属性['hooks'] if 'hooks' in 自身.属性 and 自身.属性['hooks'] is not None else {}#hooks
         存储=钩['welcome'] if 'welcome' in 钩 else None#存储
         if 存储 is not None:#有
@@ -25,7 +25,7 @@ class 欢迎通知:#产品级版本化内测声明
         return 控制器.存储.getSnapshot() if 控制器 is not None else {'status':'idle','acknowledged':False}#默认
 
     def 结束(自身):#完成本步
-        """幂等 complete。"""
+        '幂等 complete'
         if 自身.已结束:#已结束
             return#跳过
         自身.已结束=True#标记
@@ -34,7 +34,7 @@ class 欢迎通知:#产品级版本化内测声明
             完成()#移交
 
     def 渲染(自身):#结构化视图
-        """idle/loading/已确认返回 None。"""
+        'idle/loading/已确认返回 None'
         翻译=自身.属性['t']#文案
         控制器=自身.属性['controller'] if 'controller' in 自身.属性 else None#控制器
         状态=自身.读状态()#状态
@@ -50,7 +50,7 @@ class 欢迎通知:#产品级版本化内测声明
         if 态名 in ('idle','loading') or 已确认:#仍决定中
             return None#不渲染
         def 确认():#点继续
-            """写入确认后 complete。"""
+            '写入确认后 complete'
             if 控制器 is not None and 控制器.acknowledge():#接受
                 自身.结束()#移交
         段落=翻译('welcomeBody').split('\n\n')#分段
@@ -67,24 +67,24 @@ class 欢迎通知:#产品级版本化内测声明
         return 引导模态({'title':翻译('welcomeTitle'),'focusTitle':True,'children':正文})()#经模态
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
 
 class 官方引导对话框:#官方 DeepSeek 首次引导
-    """无可用提供方且官方路由缺密钥时提示。"""
+    '无可用提供方且官方路由缺密钥时提示'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
         自身.编辑器=None#内嵌编辑器
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 读状态(自身):#读模型拼合快照
-        """经 hooks.models 存储。"""
+        '经 hooks.models 存储'
         钩=自身.属性['hooks'] if 'hooks' in 自身.属性 and 自身.属性['hooks'] is not None else {}#hooks
         存储=钩['models'] if 'models' in 钩 else None#存储
         if 存储 is not None:#有
@@ -93,7 +93,7 @@ class 官方引导对话框:#官方 DeepSeek 首次引导
         return 控制器.存储.getSnapshot() if 控制器 is not None else {'status':'idle','rows':[]}#默认
 
     def 渲染(自身):#结构化视图
-        """按就绪度决定是否渲染；缺密钥时嵌提供方编辑器。"""
+        '按就绪度决定是否渲染；缺密钥时嵌提供方编辑器'
         翻译=自身.属性['t']#文案
         控制器=自身.属性['controller'] if 'controller' in 自身.属性 else None#控制器
         完成=自身.属性['complete'] if 'complete' in 自身.属性 else None#协调器
@@ -129,7 +129,7 @@ class 官方引导对话框:#官方 DeepSeek 首次引导
             return None#不渲染
         条目=官方['entry'] if 'entry' in 官方 and 官方['entry'] is not None else {}#条目
         def 结束密钥(已变):#编辑器关闭
-            """未变更则 complete；变更则 reload。"""
+            '未变更则 complete；变更则 reload'
             if not 已变:#稍后
                 if 完成 is not None:#有
                     完成()#移交
@@ -162,7 +162,7 @@ class 官方引导对话框:#官方 DeepSeek 首次引导
         return 引导模态({'title':翻译('onboardingTitle'),'children':正文})()#经模态
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

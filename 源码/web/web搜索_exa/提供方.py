@@ -1,4 +1,4 @@
-"""`ExaSearchProvider`：由 Exa 搜索 API 支持的 `WebSearchProvider`（`POST /search`，带 highlight 内容）。把第一条非空白 highlight 映射为 `snippet`，把 `publishedDate` 映射为 `publishedAt`，丢掉没有摘要的条目，并省略 `content`，因为 Exa 不返回生成的回答。"""
+'`ExaSearchProvider`：由 Exa 搜索 API 支持的 `WebSearchProvider`（`POST /search`，带 highlight 内容）'
 import json,threading#JSON编解码与中止监视线程
 from json import JSONDecodeError as JSON解码错误#线协议 JSON 解析失败
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as HTTP异常#HTTP客户端
@@ -13,17 +13,19 @@ from ..web.类型 import 网络错误#web能力错误
 线程=threading.Thread#工作线程
 
 def 已中止(信号):#调用方 Event 是否已置位
-    """调用方中止信号是否已置位。信号是 threading.Event，缺席视为未中止。"""
+    """调用方中止信号是否已置位。
+    信号是 threading.Event，缺席视为未中止"""
     if 信号 is None:#没有信号
         return False#未中止
     return 信号.is_set()#Event 置位即中止
 
 def 等待信号(信号):#阻塞到信号中止
-    """阻塞到 threading.Event 置位。"""
+    '阻塞到 threading.Event 置位'
     信号.wait()#标准库 Event.wait
 
 def 映射Exa结果(结果):#一条 Exa 结果投影为规范化来源
-    """把一条 Exa 结果映射成规范化来源；没有可移植摘要时为 None。结果为 dict。"""
+    """把一条 Exa 结果映射成规范化来源；没有可移植摘要时为 None。
+    结果为 dict"""
     高亮列表=结果['highlights'] if 'highlights' in 结果 else None#可选高亮句子
     摘要=None#第一条非空白 highlight
     if 高亮列表 is not None:#有高亮列表
@@ -45,7 +47,8 @@ def 映射Exa结果(结果):#一条 Exa 结果投影为规范化来源
     return 来源#规范化来源
 
 def 映射Exa响应(响应):#信封映射成缝结果
-    """把 Exa 响应信封映射成规范化搜索结果；无摘要的条目已丢掉。响应为 dict。"""
+    """把 Exa 响应信封映射成规范化搜索结果；无摘要的条目已丢掉。
+    响应为 dict"""
     原始=响应['results'] if 'results' in 响应 else []#扁平结果列表，缺席当空
     if 原始 is None:#显式 null 当空数组
         原始=[]#空
@@ -57,21 +60,25 @@ def 映射Exa响应(响应):#信封映射成缝结果
     return {'sources':来源列表,'truncated':False}#Exa 不返回生成回答，故省略 content
 
 def 基址合法(基址):#基址是否可解析为绝对 URL
-    """`baseURL` 能解析为绝对 URL 则为真。urlparse 对字串不抛。"""
+    """`baseURL` 能解析为绝对 URL 则为真。
+    urlparse 对字串不抛"""
     if not isinstance(基址,str) or len(基址)==0:#判 length：空串非法
         return False#非法
     解析=解析网址(基址)#拆 URL
     return len(解析.scheme)>0 and len(解析.netloc)>0#有协议与主机
 
 class Exa搜索提供方:#Exa 支持的搜索提供方；HTTP 重定向以 WEB_PROVIDER_ERROR 失败
-    """Exa 支持的搜索提供方。选项与请求为 dict。协议槽 available/search/id 按字面量留给缝读取。"""
+    """Exa 支持的搜索提供方。
+    选项与请求为 dict。
+    协议槽 available/search/id 按字面量留给缝读取"""
     def __init__(自身,选项):#保存已解析选项
-        """收下已解析的提供方选项（插件的 apply 提供环境变量与常量默认值）。"""
+        '收下已解析的提供方选项（插件的 apply 提供环境变量与常量默认值）'
         自身.选项=选项#已解析选项
         自身.id=提供方标识#协议槽 id
 
     def available(自身):#当前选项是否足以发起搜索
-        """当前选项是否足以发起搜索。正整数校验写在本入口，先排除 bool。"""
+        """当前选项是否足以发起搜索。
+        正整数校验写在本入口，先排除 bool"""
         密钥=自身.选项['apiKey']#API 密钥
         if not isinstance(密钥,str) or len(密钥)==0:#判 length：空密钥
             return False#不可用
@@ -87,7 +94,8 @@ class Exa搜索提供方:#Exa 支持的搜索提供方；HTTP 重定向以 WEB_P
         return True#可用
 
     def search(自身,请求,信号=None):#执行一次搜索
-        """执行一次搜索；请求层 maxResults 优先于配置默认 numResults；二者都可以缺席。请求为 dict。"""
+        """执行一次搜索；请求层 maxResults 优先于配置默认 numResults；二者都可以缺席。
+        请求为 dict"""
         if 'maxResults' in 请求:#请求层优先
             条数=请求['maxResults']#每次请求的上限
         elif 'numResults' in 自身.选项:#配置默认
@@ -117,7 +125,7 @@ class Exa搜索提供方:#Exa 支持的搜索提供方；HTTP 重定向以 WEB_P
                 客户端=明文连接(解析.hostname,解析.port)#明文连接
             if 信号 is not None:#有取消信号
                 def 监视中止():#信号中止时关掉套接字
-                    """信号中止时关掉套接字。"""
+                    '信号中止时关掉套接字'
                     等待信号(信号)#阻塞到中止
                     客户端.close()#拆传输
                 线程(target=监视中止,daemon=True).start()#监视中止

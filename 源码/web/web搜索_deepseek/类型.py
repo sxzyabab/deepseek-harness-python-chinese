@@ -1,4 +1,4 @@
-"""DeepSeek Anthropic 兼容 Messages API 的提供方私有线路类型。可引用结果项与引用摘录分块到达；提供方按 URL 拼接。这些类型不依赖 ctx.llm。"""
+'DeepSeek Anthropic 兼容 Messages API 的提供方私有线路类型'
 
 搜索结果项字段=('type','url','title','page_age')#web_search_tool_result 块里的一条 web_search_result：类型标签、URL、可选标题、页面新旧（映射到 publishedAt）
 工具结果块字段=('type','content')#web_search_tool_result 内容块：固定 type，可选可引用结果项列表

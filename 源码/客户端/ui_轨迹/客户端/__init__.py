@@ -66,9 +66,9 @@ __all__=[#仅中文公开名
 依赖=['slots','conversationEvents','conversationViews','sessions','locale']#槽位、会话事件、视图、会话、文案
 
 def 应用(上下文):#安装轨迹视图浏览器半边
-    """登记轨迹视图标签、词表与各 Definition。"""
+    '登记轨迹视图标签、词表与各 Definition'
     def 登记词典():#登记中英文案
-        """把轨迹词表写进 locale。"""
+        '把轨迹词表写进 locale'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记中英文案
     上下文.副作用(登记词典,'ui-trajectory: dictionaries')#登记中英文案
     翻译=上下文.locale.bind(命名空间)#绑定本命名空间的翻译
@@ -81,15 +81,15 @@ def 应用(上下文):#安装轨迹视图浏览器半边
     登记轨迹压缩定义(上下文)#登记压缩块定义
     登记轨迹会话视图(上下文)#登记会话轨迹视图投影
     def 登记视图():#等会话视图槽出现再登记轨迹标签
-        """登记 conversation.view 轨迹贡献。"""
+        '登记 conversation.view 轨迹贡献'
         def 注入面(会话标识):#按会话组装轨迹视图注入面
-            """会话不可用则硬失败。"""
+            '会话不可用则硬失败'
             绑定=上下文.sessions.binding(会话标识)#取出该会话绑定
             会话=绑定.session if 绑定 is not None else None#会话面
             if 会话 is None:#会话不可用则硬失败
                 raise 轨迹错误(f'ui-trajectory: session "{会话标识}" is unavailable')#会话绑定缺失
             def 加载更早():#再向更早分页
-                """是否真的多出轨迹。"""
+                '是否真的多出轨迹'
                 快照=会话.getSnapshot()#当前快照
                 视图=快照['views'] if 'views' in 快照 else None#视图表
                 之前=视图['trajectory'] if 视图 is not None and 'trajectory' in 视图 else None#分页前
@@ -99,7 +99,7 @@ def 应用(上下文):#安装轨迹视图浏览器半边
                 之后=之后视图['trajectory'] if 之后视图 is not None and 'trajectory' in 之后视图 else None#分页后轨迹
                 return 之后 is not 之前#轨迹视图是否因分页而变
             def 设实测时长(值):#记下实测时长
-                """写入时长偏好句柄。"""
+                '写入时长偏好句柄'
                 时长['set'](值)#写入
             return {#组装注入面
                 'hooks':{'duration':时长},#把时长句柄注入视图钩子
@@ -122,7 +122,7 @@ def 应用(上下文):#安装轨迹视图浏览器半边
                 'virtualRecordKey':轨迹虚拟记录键,#虚拟行键
             }#注入面结束
         def 视图标签():#页签文案
-            """轨迹视图标签。"""
+            '轨迹视图标签'
             return 翻译('view.trajectory')#标签
         return 上下文.slots.register({#登记
             'name':'conversation.view',#槽名

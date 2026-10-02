@@ -12,7 +12,7 @@ __all__=[#仅中文公开名
 安全整数上限=9007199254740991#外来 JSON 校验上限
 
 def 空团队状态(根标识):#空状态
-    """为一个 Team 身份构造空状态。"""
+    '为一个 Team 身份构造空状态'
     return {#可变空状态
         'id':团队标识(根标识),#团队 id
         'members':[],#无成员
@@ -23,7 +23,7 @@ def 空团队状态(根标识):#空状态
     }#结束
 
 def 是否团队事件(事件):#是否 Team 事件
-    """测试一条 Session 事件是否属于 Team 域。"""
+    '测试一条 Session 事件是否属于 Team 域'
     if 事件 is None or 'type' not in 事件:#无类型
         return False#否
     return 事件['type'] in (#Team 域类型
@@ -31,7 +31,7 @@ def 是否团队事件(事件):#是否 Team 事件
     )#联合结束
 
 def 解析持久(类型,解析器,值):#解析持久载荷
-    """解码一个持久 Team 值，并把失败保留为 cause。"""
+    '解码一个持久 Team 值，并把失败保留为 cause'
     try:#试解析
         return 解析器(值)#解析
     except Exception as 错误:#解析器可能抛 TypeError/KeyError/团队错误，契约未定所以收不窄
@@ -40,17 +40,17 @@ def 解析持久(类型,解析器,值):#解析持久载荷
         raise 包装#抛出
 
 def 校验会话标识(值):#SessionId
-    """非空字符串 SessionId。"""
+    '非空字符串 SessionId'
     if not isinstance(值,str) or len(值)<1:#非法
         raise 团队错误('invalid session id','TEAM_INVALID_ARGUMENT')#拒绝
     return 值#通过
 
 def 校验团队标识(值):#TeamId
-    """非空字符串 TeamId。"""
+    '非空字符串 TeamId'
     return 团队标识(校验会话标识(值))#烙印
 
 def 校验任务标识(值):#TeamTaskId
-    """任务 id；数字后缀须安全整数。"""
+    '任务 id；数字后缀须安全整数'
     if not isinstance(值,str) or len(值)<1:#非法
         raise 团队错误('invalid task id','TEAM_INVALID_ARGUMENT')#拒绝
     匹配=数字任务标识模式.match(值)#匹配后缀
@@ -61,11 +61,11 @@ def 校验任务标识(值):#TeamTaskId
     return 团队任务标识(值)#烙印
 
 def 校验消息标识(值):#TeamMessageId
-    """非空消息 id。"""
+    '非空消息 id'
     return 团队消息标识(校验会话标识(值))#烙印
 
 def 校验内容块(块):#内容块
-    """校验一个内容块；核心变体精确，其它保留 type 标签。"""
+    '校验一个内容块；核心变体精确，其它保留 type 标签'
     if not isinstance(块,dict):#须映射
         raise 团队错误('content block must be object','TEAM_INVALID_ARGUMENT')#拒绝
     if 'type' not in 块:#缺类型
@@ -120,7 +120,7 @@ def 校验内容块(块):#内容块
     return dict(块)#插件扩展块
 
 def 校验成员快照(值):#成员快照
-    """校验成员快照。"""
+    '校验成员快照'
     if not isinstance(值,dict):#须映射
         raise 团队错误('member snapshot required','TEAM_INVALID_ARGUMENT')#拒绝
     结果={#规范化
@@ -140,7 +140,7 @@ def 校验成员快照(值):#成员快照
     return 结果#通过
 
 def 校验任务快照(值):#任务快照
-    """校验任务快照。"""
+    '校验任务快照'
     if not isinstance(值,dict):#须映射
         raise 团队错误('task snapshot required','TEAM_INVALID_ARGUMENT')#拒绝
     if 'revision' not in 值:#缺版本
@@ -165,7 +165,7 @@ def 校验任务快照(值):#任务快照
     return 结果#通过
 
 def 校验消息快照(值):#消息快照
-    """校验消息快照。"""
+    '校验消息快照'
     if not isinstance(值,dict):#须映射
         raise 团队错误('message snapshot required','TEAM_INVALID_ARGUMENT')#拒绝
     return {#规范化
@@ -177,7 +177,7 @@ def 校验消息快照(值):#消息快照
     }#结束
 
 def 校验成员事件(数据):#成员事件
-    """version=2 成员事件。"""
+    'version=2 成员事件'
     if 'version' not in 数据 or 数据['version']!=2:#版本
         raise 团队错误('unsupported member event version','TEAM_INVALID_ARGUMENT')#拒绝
     return {#规范化
@@ -187,7 +187,7 @@ def 校验成员事件(数据):#成员事件
     }#结束
 
 def 校验任务事件(数据):#任务事件
-    """version=2 任务事件。"""
+    'version=2 任务事件'
     if 'version' not in 数据 or 数据['version']!=2:#版本
         raise 团队错误('unsupported task event version','TEAM_INVALID_ARGUMENT')#拒绝
     return {#规范化
@@ -197,7 +197,7 @@ def 校验任务事件(数据):#任务事件
     }#结束
 
 def 校验入队事件(数据):#入队事件
-    """version=2 入队事件。"""
+    'version=2 入队事件'
     if 'version' not in 数据 or 数据['version']!=2:#版本
         raise 团队错误('unsupported queued event version','TEAM_INVALID_ARGUMENT')#拒绝
     return {#规范化
@@ -207,7 +207,7 @@ def 校验入队事件(数据):#入队事件
     }#结束
 
 def 校验投递事件(数据):#投递事件
-    """version=2 投递事件。"""
+    'version=2 投递事件'
     if 'version' not in 数据 or 数据['version']!=2:#版本
         raise 团队错误('unsupported delivered event version','TEAM_INVALID_ARGUMENT')#拒绝
     return {#规范化
@@ -218,7 +218,7 @@ def 校验投递事件(数据):#投递事件
     }#结束
 
 def 解析当前团队事件(事件):#解码当前事件
-    """按 Team 事件类型解码完整当前版本载荷。"""
+    '按 Team 事件类型解码完整当前版本载荷'
     类型=事件['type']#类型
     数据=事件['data']#载荷
     if 类型=='team/member':#成员
@@ -232,11 +232,11 @@ def 解析当前团队事件(事件):#解码当前事件
     return 事件#穷尽兜底
 
 def _事件壳(事件):#事件浅壳
-    """保留事件元字段。"""
+    '保留事件元字段'
     return dict(事件)#拷贝
 
 def 应用投影事件(状态,事件):#应用投影事件
-    """增量应用一条 Session 事件。"""
+    '增量应用一条 Session 事件'
     if 'failure' in 状态:#已失败则停
         return#停
     if not 是否团队事件(事件):#非 Team 事件
@@ -252,7 +252,7 @@ def 应用投影事件(状态,事件):#应用投影事件
         状态['failure']=str(错误)#记失败
 
 def _校验选择器(数据):#事件选择器
-    """version+teamId 选择器。"""
+    'version+teamId 选择器'
     版本=数据['version'] if 'version' in 数据 else None#版本
     if (not isinstance(版本,int) or isinstance(版本,bool) or 版本<0
             or 版本>安全整数上限):#非法
@@ -260,7 +260,7 @@ def _校验选择器(数据):#事件选择器
     return {'version':int(版本),'teamId':校验团队标识(数据['teamId'])}#通过
 
 def 应用当前团队事件(状态,事件):#应用当前事件
-    """应用已解码的当前版本 Team 事件。"""
+    '应用已解码的当前版本 Team 事件'
     类型=事件['type']#类型
     数据=事件['data']#载荷
     if 类型=='team/member':#成员
@@ -277,7 +277,7 @@ def 应用当前团队事件(状态,事件):#应用当前事件
         return
 
 def _应用成员(状态,成员):#应用成员边
-    """成员生命周期边。"""
+    '成员生命周期边'
     成员列表=状态['members']#成员表
     下标=下一索引(成员列表,成员['id'])#按 id 找
     先前=成员列表[下标] if 下标>=0 else None#先前
@@ -305,7 +305,7 @@ def _应用成员(状态,成员):#应用成员边
         成员列表[下标]=成员#替换
 
 def _应用任务(状态,任务):#应用任务边
-    """任务快照边。"""
+    '任务快照边'
     任务列表=状态['tasks']#任务表
     下标=下一索引(任务列表,任务['id'])#按 id 找
     先前=任务列表[下标] if 下标>=0 else None#先前
@@ -324,14 +324,14 @@ def _应用任务(状态,任务):#应用任务边
         任务列表[下标]=任务#替换
 
 def _应用入队(状态,消息):#应用入队
-    """邮箱入队边。"""
+    '邮箱入队边'
     for 候选 in 状态['messages']:#查重
         if 候选['id']==消息['id']:#重复
             raise 团队错误('team message "'+消息['id']+'" was queued twice','TEAM_INVALID_ARGUMENT')#重复
     状态['messages'].append(消息)#追加
 
 def _应用投递(状态,数据):#应用投递
-    """邮箱投递确认边。"""
+    '邮箱投递确认边'
     消息标识=数据['messageId']#消息 id
     目标标识=数据['targetId']#目标
     已入队=None#找入队
@@ -348,27 +348,27 @@ def _应用投递(状态,数据):#应用投递
     状态['delivered'].append(消息标识)#记投递
 
 def 下一索引(表,标识):#按 id 找下标
-    """在快照表中按 id 找下标。"""
+    '在快照表中按 id 找下标'
     for 下标,项 in enumerate(表):#扫
         if 项['id']==标识:#命中
             return 下标#下标
     return -1#未找到
 
 def 应用投影(状态,事件):#投影 apply
-    """投影定义的 apply 入口。"""
+    '投影定义的 apply 入口'
     应用投影事件(状态,事件)#增量应用
     return 状态#返回同对象
 
 def 初始化投影(头):#投影 init
-    """按会话头初始化。"""
+    '按会话头初始化'
     return 空团队状态(头['id'])#空状态
 
 def 范围重叠(左,右):#写范围重叠
-    """两个规范化文件或目录前缀是否在路径分量上重叠。"""
+    '两个规范化文件或目录前缀是否在路径分量上重叠'
     return 左==右 or 左.startswith(右+'/') or 右.startswith(左+'/')#重叠
 
 def 任务就绪(状态,任务):#blocker 是否均完成
-    """当前全部 blocker 是否已完成。"""
+    '当前全部 blocker 是否已完成'
     for 标识 in 任务['blockedBy']:#逐 blocker
         命中=None#查找
         for 候选 in 状态['tasks']:#扫
@@ -380,7 +380,7 @@ def 任务就绪(状态,任务):#blocker 是否均完成
     return True#就绪
 
 def 投影任务视图(状态,任务):#任务视图
-    """带 owner 名、就绪性与写范围重叠警告的任务视图。"""
+    '带 owner 名、就绪性与写范围重叠警告的任务视图'
     所有者名=None#owner 名
     所有者标识=任务['ownerId'] if 'ownerId' in 任务 else None#owner id
     if 所有者标识 is not None:#有 owner
@@ -413,7 +413,7 @@ def 投影任务视图(状态,任务):#任务视图
     return 视图#视图
 
 def 构建团队投影(状态):#耐久客户端视图
-    """Lead 伪行加 teammate 耐久生命周期，任务板去掉 tombstone。"""
+    'Lead 伪行加 teammate 耐久生命周期，任务板去掉 tombstone'
     成员=[{'id':状态['id'],'name':'lead','role':'lead','phase':'active'}]#Lead 行
     for 项 in 状态['members']:#逐 teammate
         行={'id':项['id'],'name':项['name'],'role':'teammate','phase':项['phase']}#行
@@ -426,7 +426,7 @@ def 构建团队投影(状态):#耐久客户端视图
     return 结果#视图
 
 def 团队投影视图(状态):#投影 wire.view
-    """邮箱-only 变化复用同一视图对象语义；失败后停在失败视图。"""
+    '邮箱-only 变化复用同一视图对象语义；失败后停在失败视图'
     return 构建团队投影(状态)#构建
 
 团队投影定义={#投影定义

@@ -12,7 +12,7 @@ __all__=['创建网页连接rpc']#仅中文公开名
 端点段规则=re.compile(r'^[A-Za-z0-9_$.-]+\Z')#端点每一段允许的字符
 
 def 解析基址():#解析 fetch 基址
-    """有真 origin 用它，不透明 origin 用内部基址。"""
+    '有真 origin 用它，不透明 origin 用内部基址'
     try:#宿主可选 location
         定位=builtins.location#页面
     except AttributeError:#非浏览器
@@ -23,7 +23,7 @@ def 解析基址():#解析 fetch 基址
     return 内部基址#假权威
 
 def 断言目标(通道,端点):#校验通道与端点
-    """通道名与端点各段必须合法。"""
+    '通道名与端点各段必须合法'
     段列表=端点.split('/')#端点按段切开
     目标=通道+'/'+端点#拼
     if not 通道规则.fullmatch(通道):#通道名非法
@@ -33,11 +33,11 @@ def 断言目标(通道,端点):#校验通道与端点
             raise 连接错误('connection: invalid RPC target '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
 
 def 是否记录(值):
-    """普通对象记录。"""
+    '普通对象记录'
     return isinstance(值,dict)#dict
 
 def 解析连接响应(值):
-    """校验 server-response 信封并交出 rpcId 与业务结果。"""
+    '校验 server-response 信封并交出 rpcId 与业务结果'
     if not 是否记录(值) or ('type' not in 值) or 值['type']!='server-response' or ('rpcId' not in 值) or type(值['rpcId']) is not str:#信封
         raise TypeError('connection: invalid server-response envelope')#失败
     结果=值['result'] if 'result' in 值 else None#结果
@@ -53,19 +53,19 @@ def 解析连接响应(值):
     return {'rpcId':Rpc标识(值['rpcId']),'result':{'ok':False,'error':{'code':错误['code'],'message':错误['message'],'details':错误['details']}}}#失败槽
 
 class 网页响应:#标准库 POST 的响应面
-    """对齐 fetch Response 的 ok/status/json。"""
+    '对齐 fetch Response 的 ok/status/json'
     def __init__(自身,状态,正文):
-        """记下状态与正文。"""
+        '记下状态与正文'
         自身.status=状态#HTTP 状态
         自身.ok=状态>=200 and 状态<300#成功
         自身._正文=正文#正文
 
     def json(自身):
-        """解析 JSON 正文。"""
+        '解析 JSON 正文'
         return json.loads(自身._正文)#对象
 
 def 默认发送(地址,初始化):
-    """页面缺省 unary：标准库 POST。"""
+    '页面缺省 unary：标准库 POST'
     正文=初始化['body'] if 'body' in 初始化 else ''#正文
     头=初始化['headers'] if 'headers' in 初始化 else {}#头
     请求=请求库.Request(地址,data=正文.encode('utf-8') if type(正文) is str else 正文,headers=头,method=初始化['method'] if 'method' in 初始化 else 'POST')#构造
@@ -76,13 +76,13 @@ def 默认发送(地址,初始化):
         raise 连接错误('transport failure: '+str(错误)) from 错误#包一层
 
 class 网页连接rpc:#浏览器 RPC 调用方
-    """拥有请求关联与响应信封校验的调用方。"""
+    '拥有请求关联与响应信封校验的调用方'
     def __init__(自身,发送):
-        """绑定 unary 发送。"""
+        '绑定 unary 发送'
         自身.发送=发送#fetch 形
 
     def call(自身,通道,端点,载荷,信号=None):#经 HTTP POST 发一元 RPC
-        """断言目标后 POST，校验回显 rpcId，交出业务结果。"""
+        '断言目标后 POST，校验回显 rpcId，交出业务结果'
         断言目标(通道,端点)#通道与端点形态必须合法
         rpc标识=Rpc标识(随机uuid())#本请求关联 id
         消息={#客户端请求信封
@@ -109,11 +109,11 @@ class 网页连接rpc:#浏览器 RPC 调用方
         return 完整['result']#交出业务结果
 
 def 创建网页连接rpc(执行fetch=None,打开流=None):#浏览器 RPC 调用方
-    """创建拥有请求关联与响应信封校验的调用方。可选覆盖 fetch 与 worker 流载体。"""
+    '创建拥有请求关联与响应信封校验的调用方。可选覆盖 fetch 与 worker 流载体'
     调用方=网页连接rpc(执行fetch if 执行fetch is not None else 默认发送)#实例
     if 打开流 is not None:#worker 本地流
         def 打开(通道,端点,载荷,信号=None):#打开流
-            """worker 本地 Gateway 流。"""
+            'worker 本地 Gateway 流'
             断言目标(通道,端点)#形态
             if 通道!='/api':#通道必须是 /api
                 raise 连接错误('connection: worker-local streams require the /api channel, got '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False))#抛

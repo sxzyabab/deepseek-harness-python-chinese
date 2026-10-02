@@ -1,4 +1,4 @@
-"""模型会话标题共享策略。"""
+'模型会话标题共享策略'
 import json#消息 JSON 帧
 from ...依赖.schemastery import 字典字段,数字字段,字符串字段
 from ...模型后端.llm import 创建用户消息,深冻结,块组装器#LLM 辅助
@@ -6,7 +6,7 @@ from ...工具.超时 import 截止#截止
 from ..会话标题.归一 import 归一化会话标题#标题归一
 
 class 会话标题llm错误(Exception):
-    """模型标题策略包的异常基类。"""
+    '模型标题策略包的异常基类'
 
 会话标题超时码='SESSION_TITLE_TIMEOUT'#超时原因码
 最大定时器延迟毫秒=2147483647#定时器延迟上限（毫秒）
@@ -25,23 +25,25 @@ class 会话标题llm错误(Exception):
 会话标题llm配置模式=字典字段(字典结构=配置字段)#配置模式
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    """信号是否已中止。
+    无信号视为未中止
+    """
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
-    """已中止则抛 aborted。"""
+    '已中止则抛 aborted'
     if 已中止(信号):#已中止
         raise 会话标题llm错误('aborted')#取消
 
 def 断言正整数(名,值):
-    """校验一项正整数上限。"""
+    '校验一项正整数上限'
     if isinstance(值,bool) or not isinstance(值,int) or 值<=0:#非法
         raise 会话标题llm错误('session-title-llm: '+名+' must be a positive integer')#拒绝
 
 def 解析会话标题llm配置(配置):
-    """校验并冻结模型标题策略。"""
+    '校验并冻结模型标题策略'
     if 配置 is None or not isinstance(配置,dict):#非法
         raise 会话标题llm错误('session-title-llm: configuration is required')#拒绝
     for 键 in 配置.keys():#未知键
@@ -62,7 +64,7 @@ def 解析会话标题llm配置(配置):
     return 深冻结(dict(配置))#冻结
 
 def 解析路由(配置,请求):
-    """显式成对覆盖，否则用 request/header 记下的路由。"""
+    '显式成对覆盖，否则用 request/header 记下的路由'
     if 'provider' in 配置 and 'model' in 配置:#显式路由
         return {'provider':配置['provider'],'model':配置['model']}#覆盖
     if 'route' not in 请求 or 请求['route'] is None:#无路由
@@ -70,7 +72,7 @@ def 解析路由(配置,请求):
     return 请求['route']#记下的路由
 
 def _系统提示(配置):
-    """语言感知系统提示。"""
+    '语言感知系统提示'
     return '\n'.join([
         'Create a concise title for an AI coding-assistant session from the supplied human messages.',
         'Return only the title on one line, **in plain text of natural language**, with no quotes, prefix, explanation, Markdown, XML, or terminal control codes. No code is allowed.',
@@ -79,11 +81,11 @@ def _系统提示(配置):
     ])#拼接
 
 def _帧消息(消息列表):
-    """把消息帧成 JSON。"""
+    '把消息帧成 JSON'
     return 'Generate the session title from this JSON array of human messages:\n'+json.dumps(消息列表,ensure_ascii=False,separators=(',',':'),allow_nan=False)#帧
 
 def 结束错误(结束):
-    """把终止结束原因收成辅助调用失败。"""
+    '把终止结束原因收成辅助调用失败'
     种类=结束.get('kind') if isinstance(结束,dict) else None#种类
     if 种类=='stop':#正常停
         return None#无错
@@ -101,15 +103,15 @@ def 结束错误(结束):
     return 会话标题llm错误('session-title-llm: unsupported finish reason "'+str(种类)+'"')#未知
 
 def 登记会话标题llm提供方(上下文,配置,标识,自动模式,选消息):
-    """通过共享策略登记一个模型标题提供方。"""
+    '通过共享策略登记一个模型标题提供方'
     已解析=解析会话标题llm配置(配置)#解析
     def 生成(请求):
-        """调用 LLM 生成标题。"""
+        '调用 LLM 生成标题'
         return 用llm生成会话标题(上下文,已解析,请求,选消息(请求['messages']),标识)#生成
     上下文.sessionTitle.登记提供方({'id':标识,'automatic':自动模式,'generate':生成})#登记
 
 def 用llm生成会话标题(上下文,配置,请求,选中消息,标题提供方标识):
-    """共享辅助 LLM 调用。"""
+    '共享辅助 LLM 调用'
     若已中止则抛出(请求['signal'])#已取消
     if len(选中消息)==0:#无消息
         raise 会话标题llm错误('session-title-llm: at least one source message is required')#拒绝

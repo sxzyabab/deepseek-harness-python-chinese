@@ -33,19 +33,19 @@ from ..子智能体.错误 import 子智能体错误#缝内失败
 __all__=['名称','依赖','配置','子智能体段落顺序','应用']#仅中文公开名
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._原生结果=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._原生结果.done():#尚未结算
             自身._原生结果.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._原生结果.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身._原生结果.set_exception(错误)#原样拒绝
@@ -53,22 +53,22 @@ class 操作任务:
                 自身._原生结果.set_exception(子智能体错误(str(错误),'ERROR'))#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._原生结果.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
-    """threading.Event 取消通道。"""
+    'threading.Event 取消通道'
     def __init__(自身):
-        """创建一条取消通道。"""
+        '创建一条取消通道'
         自身._事件=threading.Event()#中止标志
         自身._异常=None#中止时抛出的异常
 
     def is_set(自身):
-        """是否已中止（委托底层 Event）。"""
+        '是否已中止（委托底层 Event）'
         return 自身._事件.is_set()#Event 置位
 
     def 触发(自身,原因=None):
-        """标记中止。"""
+        '标记中止'
         if 自身._事件.is_set():#只触发一次
             return#已触发
         if isinstance(原因,BaseException):#已是异常
@@ -80,30 +80,30 @@ class 中止信号:
         自身._事件.set()#置位
 
 class 中止控制器:
-    """发出中止的控制器。"""
+    '发出中止的控制器'
     def __init__(自身):
-        """创建配套信号。"""
+        '创建配套信号'
         自身.信号=中止信号()#本控制器的信号
 
     def 中止(自身,原因=None):
-        """中止配套信号。"""
+        '中止配套信号'
         自身.信号.触发(原因)#触发一次
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位
 
 def 单路结算(动作):
-    """等一路落定并收成 fulfilled/rejected 观察。"""
+    '等一路落定并收成 fulfilled/rejected 观察'
     try:#等待成功
         return {'status':'fulfilled','value':动作()}#兑现观察
     except BaseException as 错误:#失败
         return {'status':'rejected','reason':错误}#拒绝观察
 
 def 输出值文本(值列表):
-    """从权威JSON块数组渲染文本块，不信任任意值。块为 dict。"""
+    '从权威JSON块数组渲染文本块，不信任任意值。块为 dict'
     文本列表=[]#收集文本
     for 值 in 值列表:#逐块
         if not isinstance(值,dict):#必须是对象
@@ -115,10 +115,10 @@ def 输出值文本(值列表):
     return ''.join(文本列表)#拼接
 
 def 结算启动(启动,信号):
-    """结算尚未完成的启动，且不破坏任务生产者约定。启动为跑对象。"""
+    '结算尚未完成的启动，且不破坏任务生产者约定。启动为跑对象'
     结局任务=操作任务()#任务done
     def 监视结算():
-        """把启动收成任务结局。"""
+        '把启动收成任务结局'
         try:#正常结算
             结局任务.兑现(结算运行(启动))#先得到运行再结算
         except BaseException as 错误:#启动失败
@@ -131,7 +131,7 @@ def 结算启动(启动,信号):
     return 结局任务#交给任务收集器
 
 def 停止原因错误(结果):
-    """非 `completed` 的停止原因表示子体没有干净结束。结果为 dict。"""
+    '非 `completed` 的停止原因表示子体没有干净结束。结果为 dict'
     原因=结果['stopReason']#停止原因
     if 原因=='completed':#正常完成
         return None#不是错误
@@ -146,7 +146,7 @@ def 停止原因错误(结果):
     return 'subagent run ended abnormally ('+str(原因)+')'#异常结束文案
 
 def 附带诊断与部分文本(错误,结果):
-    """把提供方诊断与子体保留的部分回答追加到停止原因错误上。结果为 dict。"""
+    '把提供方诊断与子体保留的部分回答追加到停止原因错误上。结果为 dict'
     if 'diagnostic' not in 结果 or 结果['diagnostic'] is None:#无诊断
         诊断=''#空诊断
     else:#有诊断
@@ -164,9 +164,9 @@ def 附带诊断与部分文本(错误,结果):
     return 错误+诊断+部分#标题、诊断与部分文本
 
 def 结算前台运行(运行):
-    """收集并释放一次前台运行，不让拆除替换一次独立的结果失败。运行为对象。"""
+    '收集并释放一次前台运行，不让拆除替换一次独立的结果失败。运行为对象'
     def 映射结果():
-        """把子结果收成前台成功值或抛错。"""
+        '把子结果收成前台成功值或抛错'
         结果=运行.result.等待()#等待结果
         错误=停止原因错误(结果)#非完成则得到错误文案
         if 错误 is not None:#非干净完成
@@ -190,7 +190,7 @@ def 结算前台运行(运行):
     return 执行['value']#返回前台成功值
 
 def 提供方措辞(继承会话):
-    """由提供方的会话历史描述符得到面向模型的措辞。"""
+    '由提供方的会话历史描述符得到面向模型的措辞'
     if 继承会话:#分叉/继承会话
         return {#继承会话措辞
             'description':(#工具描述
@@ -220,7 +220,7 @@ def 提供方措辞(继承会话):
     }#全新分支结束
 
 def 解析委托运行(请求,选项):
-    """把模型可选的调度请求解析成一条执行路线。请求与选项为 dict。"""
+    '把模型可选的调度请求解析成一条执行路线。请求与选项为 dict'
     if not 选项['backgroundEnabled']:#本实例关闭后台
         if 'run_in_background' in 请求 and 请求['run_in_background'] is True:#强制后台
             raise 子智能体错误('run_in_background is disabled for this tool instance (enableRunInBackground: false)','BACKGROUND_DISABLED')#拒绝强制后台
@@ -235,7 +235,7 @@ def 应用(上下文,配置值,会话=None):
     """安装委托工具：镜像提供方生命周期登记工具，并在可续接后台时挂指引。
 
     配置为 dict。会话为直接 Agent 装配供给的未发布 Session（常驻组合省略）；
-    本 Python 面尚未移植 modelSelectionSettings 路径，会话参数保留签名对齐。
+    本 Python 面尚未移植 modelSelectionSettings 路径，会话参数保留签名对齐
     """
     _=会话#签名对齐；模型选择设置路径未移植时未使用
     最大深度=配置值['maxDepth'] if 'maxDepth' in 配置值 else None#读深度配置
@@ -253,7 +253,7 @@ def 应用(上下文,配置值,会话=None):
     提供方名=配置值['provider']#提供方名
     拆除工具=[None]#已登记工具的拆除
     def 挂载(提供方):
-        """提供方出现时登记面向模型的委托工具。提供方为对象。"""
+        '提供方出现时登记面向模型的委托工具。提供方为对象'
         能力=提供方.能力 if 提供方.能力 is not None else {}#提供方能力
         解析深度=上下文.subagents.解析最大深度(配置值['maxDepth'] if 'maxDepth' in 配置值 else None)#按设置解析
         if 解析深度 is not None and ('depthLimit' not in 能力 or not 能力['depthLimit']):#解析后需强制但无能力
@@ -297,7 +297,7 @@ def 应用(上下文,配置值,会话=None):
                 'description':后台说明,#按策略写说明
             }#run_in_background结束
         def 渲染(_参数,值):
-            """按种类渲染委托结果。值为 dict。"""
+            '按种类渲染委托结果。值为 dict'
             种类=值['kind']#结果种类
             if 种类=='background':#一次性后台
                 文本='started background subagent job '+str(值['jobId'])#一次性后台
@@ -307,10 +307,10 @@ def 应用(上下文,配置值,会话=None):
                 文本=输出值文本(值['output'] if 'output' in 值 and 值['output'] is not None else [])#前台文本
             return [{'type':'text','text':文本}]#单个文本块
         def 可并行():
-            """子体从不改父会话；唯一的父拥有写入是同步可交换插入。"""
+            '子体从不改父会话；唯一的父拥有写入是同步可交换插入'
             return True#可并行
         def 执行(参数,执行元数据):
-            """按解析路线前台等待、一次性后台登记任务，或可续接立刻返回子体 id。参数与执行为 dict；父为智能体对象。"""
+            '按解析路线前台等待、一次性后台登记任务，或可续接立刻返回子体 id。参数与执行为 dict；父为智能体对象'
             if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#没有调用方
                 raise 子智能体错误('subagent tool requires a calling agent (exec.agent was undefined)','NO_AGENT')#缺父失败
             父=执行元数据['agent']#调用方智能体
@@ -344,13 +344,13 @@ def 应用(上下文,配置值,会话=None):
                 if 任务服务 is None:#未装任务能力
                     raise 子智能体错误('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs','JOBS_UNAVAILABLE')#缺任务运行时
                 def 任务体():
-                    """在 ctx.jobs 下拉起一次性后台子体。"""
+                    '在 ctx.jobs 下拉起一次性后台子体'
                     控制器=中止控制器()#任务拥有的中止
                     启动请求=dict(请求)#复制启动请求
                     启动请求['signal']=控制器.信号#任务信号
                     启动=上下文.subagents.启动(提供方名,启动请求)#启动子运行
                     def 取消(原因=None):
-                        """中止启动/运行。"""
+                        '中止启动/运行'
                         控制器.中止(原因 if 原因 is not None else 'background subagent task killed')#中止
                     return {#任务句柄
                         'cancel':取消,#取消
@@ -408,11 +408,11 @@ def 应用(上下文,配置值,会话=None):
             'execute':执行,#执行委托
         }))#register结束
     def 提供方出现(提供方):
-        """本提供方且尚未挂载则挂载。提供方为对象。"""
+        '本提供方且尚未挂载则挂载。提供方为对象'
         if 提供方.名称==提供方名 and 拆除工具[0] is None:#本提供方且尚未挂载
             挂载(提供方)#挂载
     def 提供方消失(名):
-        """不是本提供方或未挂载则忽略。"""
+        '不是本提供方或未挂载则忽略'
         if 名!=提供方名 or 拆除工具[0] is None:#不是本提供方或未挂载
             return#忽略
         拆除工具[0]()#拆除工具
@@ -426,7 +426,7 @@ def 应用(上下文,配置值,会话=None):
         上下文.日志.信息('subagent provider "'+提供方名+'" not registered yet; the "'+工具名+'" tool will register when it appears')#等待提供方
     if 后台启用 and 可续接:#可续接且允许后台才挂指引
         def 段落文本(上下文元):
-            """工具未挂或当前作用域看不见则空文本。上下文元为 dict。"""
+            '工具未挂或当前作用域看不见则空文本。上下文元为 dict'
             if 拆除工具[0] is None:#工具未挂
                 return ''#空文本，渲染时省略
             作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域

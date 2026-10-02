@@ -8,15 +8,15 @@ __all__=['聊天视图','跟随阈值','运行回合起始','回合状态']#仅�
 跟随阈值=24#贴底阈值像素
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 def 运行回合起始(时间线):
-    """开着的回合 start.time。多开回合取最新。时间线为 dict。"""
+    '开着的回合 start.time。多开回合取最新。时间线为 dict'
     if 时间线 is None:#无
         return None#无
     回合表=时间线['turns'] if 'turns' in 时间线 else None#表
@@ -31,7 +31,7 @@ def 运行回合起始(时间线):
     return 最新#最新
 
 def 回合状态(起始时,翻译,现在=None):
-    """满 15s 显示时钟。"""
+    '满 15s 显示时钟'
     if 现在 is None:#缺省
         现在=int(时间模块.time()*1000)#毫秒
     锚=起始时 if 起始时 is not None else 现在#锚
@@ -46,55 +46,55 @@ def 回合状态(起始时,翻译,现在=None):
     }#结束
 
 def 取聊天序(快照):
-    """chat.order。快照为 dict。"""
+    'chat.order。快照为 dict'
     聊天=快照['chat'] if 'chat' in 快照 else None#聊天
     序=聊天['order'] if 聊天 is not None and 'order' in 聊天 else None#序
     return 序 if 序 is not None else []#空则空表
 
 def 取节点表(快照):
-    """chat.nodes。"""
+    'chat.nodes'
     聊天=快照['chat'] if 'chat' in 快照 else None#聊天
     return 聊天['nodes'] if 聊天 is not None and 'nodes' in 聊天 else None#表
 
 def 取时间线(快照):
-    """chat.timeline。"""
+    'chat.timeline'
     聊天=快照['chat'] if 'chat' in 快照 else None#聊天
     return 聊天['timeline'] if 聊天 is not None and 'timeline' in 聊天 else None#线
 
 def 取队列(快照):
-    """queue。"""
+    'queue'
     列=快照['queue'] if 'queue' in 快照 else None#队列
     return 列 if 列 is not None else []#空则空表
 
 def 取运行(快照):
-    """running。"""
+    'running'
     return 快照['running'] if 'running' in 快照 else False#运行
 
 def 取打开态(快照):
-    """openState。"""
+    'openState'
     return 快照['openState'] if 'openState' in 快照 else 'cold'#打开
 
 def 取打开错(快照):
-    """openError。"""
+    'openError'
     return 快照['openError'] if 'openError' in 快照 else None#错
 
 def 取还有更早(快照):
-    """hasMore。"""
+    'hasMore'
     return 快照['hasMore'] if 'hasMore' in 快照 else False#更早
 
 def 取加载更早中(快照):
-    """loadingOlder。"""
+    'loadingOlder'
     return 快照['loadingOlder'] if 'loadingOlder' in 快照 else False#加载中
 
 def 取选中调用(态):
-    """selection.callId。态为 dict。"""
+    'selection.callId。态为 dict'
     选=态['selection'] if 'selection' in 态 else None#选
     return 选['callId'] if 选 is not None and 'callId' in 选 else None#callId
 
 class 聊天视图:#conversation.view chat 条目
-    """有序 Node 列表 + 滚动语义面。"""
+    '有序 Node 列表 + 滚动语义面'
     def __init__(自身,属性=None):
-        """记下 props 与滚动态。"""
+        '记下 props 与滚动态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.贴底=True#跟随
         自身.已打开=False#首开跳底
@@ -106,11 +106,11 @@ class 聊天视图:#conversation.view chat 条目
         自身.跟随签名=None#跟随签名
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 滚到底(自身):
-        """清锚并标记贴底。"""
+        '清锚并标记贴底'
         自身.分页锚=None#清
         自身.贴底=True#贴
         滚=自身.属性['chatScroll'] if 'chatScroll' in 自身.属性 else None#滚
@@ -119,13 +119,13 @@ class 聊天视图:#conversation.view chat 条目
             存(None)#清记忆
 
     def 加载更早锚定(自身):
-        """记下当前可见锚后调 loadOlder。"""
+        '记下当前可见锚后调 loadOlder'
         加载=自身.属性['loadOlder'] if 'loadOlder' in 自身.属性 else None#加载
         if 加载 is not None:#有
             加载()#派发
 
     def 渲染(自身):
-        """列表行 + 状态 + steering + 回底钮。"""
+        '列表行 + 状态 + steering + 回底钮'
         属性=自身.属性#props
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话
         取会话列表=属性['useSessions'] if 'useSessions' in 属性 else None#列表
@@ -144,7 +144,7 @@ class 聊天视图:#conversation.view chat 条目
         工作目录=None#cwd
         if 取会话列表 is not None:#有列表
             def 取cwd(表):
-                """byId[sessionId].cwd。表为 dict。"""
+                'byId[sessionId].cwd。表为 dict'
                 册=表['byId'] if 'byId' in 表 else None#byId
                 摘要=册[会话标识] if 册 is not None and 会话标识 in 册 else None#摘要
                 return 摘要['cwd'] if 摘要 is not None and 'cwd' in 摘要 else None#cwd
@@ -203,7 +203,7 @@ class 聊天视图:#conversation.view chat 条目
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

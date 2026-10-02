@@ -9,7 +9,7 @@ __all__=[
 def 宿主文件(地址):
     """一个 `dsh-resource://file/…` 地址所命名的会话与路径。
 
-    返回 dict：sessionId / path。非会话地址抛错。
+    返回 dict：sessionId / path。非会话地址抛错
     """
     前缀='dsh-resource://file/session/'#会话前缀
     if not 地址.startswith(前缀):#非会话
@@ -22,10 +22,10 @@ def 宿主文件(地址):
 
 
 def 创建分页读(远程):
-    """把分页读取绑到一份 Remote 面。页长是 Host 配置上限，因此不传 limit。"""
+    '把分页读取绑到一份 Remote 面。页长是 Host 配置上限，因此不传 limit'
 
     def 读取(会话标识,路径,偏移,信号):
-        """调用 workspaceFiles.read；结果原样透传。"""
+        '调用 workspaceFiles.read；结果原样透传'
         return 远程.workspaceFiles.read(会话标识,路径,{'offset':偏移},信号)#RemoteResult
 
     return 读取#绑定
@@ -34,7 +34,7 @@ def 创建分页读(远程):
 def 文档文件字节(文件):
     """为文档渲染器解码一次成功的 Remote 字节结果。
 
-    文件为跨包 WorkspaceFileBytes dict；返回同结构但 data 为 bytes。
+    文件为跨包 WorkspaceFileBytes dict；返回同结构但 data 为 bytes
     """
     解码=base64.b64decode(文件['data'])#原生字节
     结果=dict(文件)#浅拷

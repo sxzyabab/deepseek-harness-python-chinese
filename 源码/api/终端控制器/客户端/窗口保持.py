@@ -1,19 +1,20 @@
-"""一条可重连窗口保持，由终端的全部出现共享。"""
+'一条可重连窗口保持，由终端的全部出现共享'
 import threading#等待者
+from ....基础设施.通用工具 import 获取内部数据
 from ..类型 import 远程错误#不可用
 from ...工具.超时 import 若已中止则抛出#中止
 
 __all__=['终端窗口保持']#仅中文公开名
 
 class 终端窗口保持:
-    """流确认门控每个物理连接的输出附着。"""
+    '流确认门控每个物理连接的输出附着'
 
     def __init__(自身,网关,远程,会话标识,终端标识):
-        """打开保持流并开始消费。"""
+        '打开保持流并开始消费'
         自身._等待者=set()#等待者
         自身._代际=None#当前信号
         自身._失败=None
-        自身._流=getattr(网关,'$stream')({#打开流
+        自身._流=获取内部数据(网关,'stream')({#打开流
             'name':'Browser terminal window hold',#名称
             'open':lambda 信号:远程.retain(会话标识,终端标识,信号),#打开
             'ended':lambda:远程错误('terminal/unavailable','Terminal hold ended',{}),
@@ -24,11 +25,11 @@ class 终端窗口保持:
 
     @property
     def 已失败(自身):
-        """是否因终端域失败结束。"""
+        '是否因终端域失败结束'
         return 自身._失败 is not None
 
     def 就绪(自身,信号):
-        """在跟随屏幕前等待当前物理保持已被确认。"""
+        '在跟随屏幕前等待当前物理保持已被确认'
         若已中止则抛出(信号)#已取消
         if 自身._失败 is not None:#已失败
             raise 自身._失败#抛出
@@ -37,10 +38,10 @@ class 终端窗口保持:
         完成=threading.Event()#门
         箱={'错误':None}#错误箱
         def 解决():
-            """唤醒。"""
+            '唤醒'
             完成.set()#唤醒
         def 拒绝(错误):
-            """拒绝。"""
+            '拒绝'
             箱['错误']=错误#记下
             完成.set()#唤醒
         等待者={'resolve':解决,'reject':拒绝}#等待者
@@ -53,12 +54,12 @@ class 终端窗口保持:
             raise 箱['错误']#抛出
 
     def dispose(自身):
-        """释放本窗口流与全部确认等待者。"""
+        '释放本窗口流与全部确认等待者'
         自身._拒绝(远程错误('gateway/internal','Terminal window hold released',{}))#拒绝
         自身._流.dispose()#关流
 
     def _消费(自身):
-        """消费保持流。"""
+        '消费保持流'
         try:
             for 项 in 自身._流:#逐项
                 项.accept()#接受
@@ -70,7 +71,7 @@ class 终端窗口保持:
             自身._拒绝(错误)#拒绝
 
     def _拒绝(自身,错误):
-        """拒绝全部等待者。"""
+        '拒绝全部等待者'
         自身._失败=错误 if isinstance(错误,BaseException) else 远程错误('gateway/internal','Terminal window hold failed',{})#记下
         自身._代际=None#清代际
         for 等待者 in list(自身._等待者):#拒绝

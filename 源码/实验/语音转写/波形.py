@@ -1,19 +1,19 @@
 __all__=['校验波形']
 
 def 读无符号32(数据,偏移):
-    """小端 4 字节。"""
+    '小端 4 字节'
     return int.from_bytes(数据[偏移:偏移+4],'little')
 
 def 读无符号16(数据,偏移):
-    """小端 2 字节。"""
+    '小端 2 字节'
     return int.from_bytes(数据[偏移:偏移+2],'little')
 
 def 读ascii(数据,起,止):
-    """固定区间 ASCII。"""
+    '固定区间 ASCII'
     return bytes(数据[起:止]).decode('ascii')
 
 def 校验波形(音频,最长秒):
-    """读规范 16 kHz 单声道 PCM16 WAV，长度不一致则拒绝。"""
+    '读规范 16 kHz 单声道 PCM16 WAV，长度不一致则拒绝'
     数据=bytes(音频)
     if (
         len(数据)<46

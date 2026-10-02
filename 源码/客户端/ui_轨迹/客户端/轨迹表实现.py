@@ -63,7 +63,7 @@ _样式分块文件=(#拼装顺序与 轨迹表.module.css 一致
 )#分块清单
 
 def _读样式(文件名):#读真实 CSS
-    """从同目录读取样式正文。"""
+    '从同目录读取样式正文'
     路径=os.path.join(_本目录,文件名)#绝对路径
     with open(路径,'r',encoding='utf-8') as 文件:#读文件
         return 文件.read()#全文
@@ -77,10 +77,10 @@ def _读样式(文件名):#读真实 CSS
 }#结束
 
 class 轨迹表:#账本 + 详情检查器
-    """消费轮次模型，产出分栏账本与可选详情面板结构树。"""
+    '消费轮次模型，产出分栏账本与可选详情面板结构树'
 
     def __init__(自身,属性=None):#可选 props
-        """记下 props 与检查器局部状态。"""
+        '记下 props 与检查器局部状态'
         自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身.选中记录身份=None#检查器记录 id
         自身.选中请求=None#检查器请求
@@ -97,14 +97,14 @@ class 轨迹表:#账本 + 详情检查器
         自身.已应用记录焦点=None#外部焦点句柄
 
     def 更新(自身,属性):#刷新 props
-        """刷新 props 并消化外部选择/焦点/巡检。"""
+        '刷新 props 并消化外部选择/焦点/巡检'
         自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身._消化外部选择()#选择
         自身._消化外部焦点()#焦点
         自身._消化巡检调用()#巡检
 
     def _消化外部选择(自身):#外部 recordSelection
-        """一次性外部选中。"""
+        '一次性外部选中'
         选择=(自身.属性['recordSelection'] if 'recordSelection' in 自身.属性 else None)#选择
         if 选择 is None or 选择 is 自身.已应用记录选择:#无/已用
             return#停
@@ -115,7 +115,7 @@ class 轨迹表:#账本 + 详情检查器
         自身.待滚记录身份=None if 记录 is None else 轨迹记录身份(记录['cell'])#待滚
 
     def _消化外部焦点(自身):#外部 recordFocus
-        """一次性外部焦点（不改检查器选中）。"""
+        '一次性外部焦点（不改检查器选中）'
         焦点=(自身.属性['recordFocus'] if 'recordFocus' in 自身.属性 else None)#焦点
         if 焦点 is None or 焦点 is 自身.已应用记录焦点:#无/已用
             return#停
@@ -125,7 +125,7 @@ class 轨迹表:#账本 + 详情检查器
         自身.待滚记录身份=None if 记录 is None else 轨迹记录身份(记录['cell'])#待滚
 
     def _消化巡检调用(自身):#inspectCallId
-        """跨视图巡检：打开调用摘要。"""
+        '跨视图巡检：打开调用摘要'
         调用=(自身.属性['inspectCallId'] if 'inspectCallId' in 自身.属性 else None)#调用
         if 调用 is None:#无
             return#停
@@ -140,22 +140,22 @@ class 轨迹表:#账本 + 详情检查器
             应答()#应答
 
     def _全部记录(自身):#当前展平
-        """当前 turns 展平。"""
+        '当前 turns 展平'
         return 展平记录(自身.属性['turns'] if 'turns' in 自身.属性 else None)#展平；缺席由 展平记录 按 ?? [] 收
 
     def _流式格表(自身):#流式格按 index
-        """streamingCells → index 映射。"""
+        'streamingCells → index 映射'
         格列表=自身.属性['streamingCells'] if 'streamingCells' in 自身.属性 else None#可选；TS 默认 []
         return {格['index']:格 for 格 in ([] if 格列表 is None else 格列表)}#?? []；空表保留
 
     def _当前记录(自身,记录):#叠流式格
-        """用流式格替换结构格。"""
+        '用流式格替换结构格'
         流式表=自身._流式格表()#流式表
         流式=流式表[记录['cell']['index']] if 记录['cell']['index'] in 流式表 else None#流式
         return 记录 if 流式 is None else dict(记录,cell=流式)#叠
 
     def _可见记录(自身):#搜索/折叠后
-        """过滤或折叠后的账本记录。"""
+        '过滤或折叠后的账本记录'
         全部=自身._全部记录()#全部
         匹配=(自身.属性['searchMatchIndexes'] if 'searchMatchIndexes' in 自身.属性 else None)#搜索
         if 匹配 is not None:#搜索态
@@ -166,26 +166,26 @@ class 轨迹表:#账本 + 详情检查器
         return 轮记录 if len(折叠助)==0 else 折叠助手记录(轮记录,折叠助)#折助
 
     def 激活标签(自身,标签):#切换详情标签
-        """写入活动标签并刷新近用历史。"""
+        '写入活动标签并刷新近用历史'
         if 标签 in 自身.标签历史:#已有
             自身.标签历史.remove(标签)#挪
         自身.标签历史.append(标签)#末
         自身.活动标签=标签#活动
 
     def 清空检查器(自身):#清检查器选中
-        """清记录与请求选中。"""
+        '清记录与请求选中'
         自身.选中记录身份=None#清记录
         自身.选中请求=None#清请求
 
     def 清空全部选中(自身):#清宿主+检查器
-        """清检查器并通知宿主。"""
+        '清检查器并通知宿主'
         自身.清空检查器()#检查器
         回调=(自身.属性['onClearSelection'] if 'onClearSelection' in 自身.属性 else None)#宿主
         if callable(回调):#有
             回调()#回调
 
     def 选中记录(自身,下标):#按 index 选记录
-        """选中账本记录并挑可用标签。"""
+        '选中账本记录并挑可用标签'
         全部=自身._全部记录()#全部
         记录=next((候 for 候 in 全部 if 候['cell']['index']==下标),None)#找
         回调=(自身.属性['onRecordSelect'] if 'onRecordSelect' in 自身.属性 else None)#回调
@@ -204,13 +204,13 @@ class 轨迹表:#账本 + 详情检查器
             变(下标)#通知
 
     def 选择请求(自身,请求,标签='overview'):#选请求
-        """打开请求检查器。"""
+        '打开请求检查器'
         自身.选中记录身份=None#清记录
         自身.选中请求=请求#请求
         自身.激活标签(标签)#标签
 
     def 打开记录摘要(自身,目标):#打开摘要并展开折叠
-        """必要时展开轮次/助手后打开 overview。"""
+        '必要时展开轮次/助手后打开 overview'
         全部=自身._全部记录()#全部
         位=next((下标 for 下标,候 in enumerate(全部) if 候['cell']['index']==目标['cell']['index']),-1)#位
         折轮=(自身.属性['collapsedTurns'] if 'collapsedTurns' in 自身.属性 else None) or set()#折轮
@@ -235,13 +235,13 @@ class 轨迹表:#账本 + 详情检查器
         自身.激活标签('overview')#概览
 
     def 打开调用摘要(自身,调用标识):#按 callId
-        """解析 callId 后打开摘要。"""
+        '解析 callId 后打开摘要'
         目标=next((候 for 候 in 自身._全部记录() if (候['cell']['callId'] if 'callId' in 候['cell'] else None)==调用标识),None)#找
         if 目标 is not None:#有
             自身.打开记录摘要(目标)#开
 
     def 处理动作(自身,动作,载荷=None):#动作分发
-        """结构树交互：选中、折叠、加载更早、标签、拖拽宽。"""
+        '结构树交互：选中、折叠、加载更早、标签、拖拽宽'
         载荷={} if 载荷 is None else 载荷#?? {}；缺席才空表，空 dict 保留
         if 动作=='select-record':#选记录
             自身.选中记录((载荷['index'] if 'index' in 载荷 else None))#选
@@ -335,7 +335,7 @@ class 轨迹表:#账本 + 详情检查器
         return None#未识别
 
     def _助手计时面板(自身,指标):#助手计时
-        """助手指标计时结构。"""
+        '助手指标计时结构'
         return {#面板
             'type':'assistant-timing','class':'overview',#类型
             'rows':[#行
@@ -348,7 +348,7 @@ class 轨迹表:#账本 + 详情检查器
         }#结束
 
     def _用量行(自身,用量):#用量行
-        """单次用量结构。"""
+        '单次用量结构'
         if 用量 is None:#空
             return {'type':'no-payload','text':'Usage not reported'}#无
         总入=输入合计(用量)#入合计
@@ -373,13 +373,13 @@ class 轨迹表:#账本 + 详情检查器
         return {'type':'usage-rows','class':'overview','rows':行}#行
 
     def _请求选项(自身,选项,预览=False):#请求选项
-        """选项 JSON 树。"""
+        '选项 JSON 树'
         if 选项 is None:#无
             return {'type':'no-payload','text':'Options not recorded'}#无
         return {'type':'json-tree','data':选项,'label':'Request options JSON','preview':预览}#树
 
     def _记录载荷(自身,记录,方向,预览=False):#入/出载荷
-        """RecordPayload 结构。"""
+        'RecordPayload 结构'
         格=记录['cell']#格
         值=(格['inputDetail'] if 'inputDetail' in 格 else None) if 方向=='input' else (格['outputDetail'] if 'outputDetail' in 格 else None)#值
         缺='No payload captured' if 方向=='input' else 'No result captured'#缺
@@ -401,7 +401,7 @@ class 轨迹表:#账本 + 详情检查器
         return {'type':'pre','text':值,'preview':预览,'error':错,'noOutput':值=='No output'}#原文
 
     def _记录Schema(自身,记录,预览=False):#Schema
-        """RecordSchema 结构。"""
+        'RecordSchema 结构'
         详=(记录['cell']['schemaDetail'] if 'schemaDetail' in 记录['cell'] else None)#详
         if not 详:#无
             return {'type':'no-payload','text':'Schema unavailable'}#无
@@ -411,7 +411,7 @@ class 轨迹表:#账本 + 详情检查器
         return {'type':'pre','text':详,'preview':预览}#原文
 
     def _记录计时(自身,记录):#记录计时
-        """RecordTiming 结构。"""
+        'RecordTiming 结构'
         格=记录['cell']#格
         if 格['kind']=='message' and (格['assistantMetrics'] if 'assistantMetrics' in 格 else None) is not None:#助手
             return 自身._助手计时面板((格['assistantMetrics'] if 'assistantMetrics' in 格 else None))#助手
@@ -426,7 +426,7 @@ class 轨迹表:#账本 + 详情检查器
         }#结束
 
     def _请求计时(自身,助手,锚点,请求):#请求计时
-        """RequestTiming 结构。"""
+        'RequestTiming 结构'
         if 助手 is not None:#有助手
             return 自身._记录计时(助手)#助手
         if 请求 is not None and (请求['startedAt'] if 'startedAt' in 请求 else None) is not None:#请求时戳
@@ -449,7 +449,7 @@ class 轨迹表:#账本 + 详情检查器
         }#结束
 
     def _Markdown记录内容(自身,记录,已渲染,预览=False):#Markdown 内容
-        """MarkdownRecordContent 结构。"""
+        'MarkdownRecordContent 结构'
         格=记录['cell']#格
         块列表=(格['sourceBlocks'] if 'sourceBlocks' in 格 and 格['sourceBlocks'] is not None else [])#块
         if not 已渲染 and 块列表:#源块
@@ -486,7 +486,7 @@ class 轨迹表:#账本 + 详情检查器
         }#结束
 
     def _系统提示差分(自身,之前,之后):#系统差分
-        """SystemPromptDiff 结构。"""
+        'SystemPromptDiff 结构'
         段=[]#段
         if (之前['system'] if 'system' in 之前 else None)!=(之后['system'] if 'system' in 之后 else None):#系统变
             段.append({'title':'System Prompt','lines':提示词差分行((之前['system'] if 'system' in 之前 and 之前['system'] is not None else ''),(之后['system'] if 'system' in 之后 and 之后['system'] is not None else ''))})#系统
@@ -497,13 +497,13 @@ class 轨迹表:#账本 + 详情检查器
         return {'type':'prompt-diff','sections':段}#差分
 
     def _工具目录(自身,工具列表):#工具目录
-        """ToolCatalog 结构。"""
+        'ToolCatalog 结构'
         if not 工具列表:#空
             return {'type':'no-payload','text':'No tools in this request'}#空
         return {'type':'tool-catalog','tools':[{'name':(工['name'] if 'name' in 工 else None),'description':(工['description'] if 'description' in 工 else None),'parameters':(工['parameters'] if 'parameters' in 工 else None)} for 工 in 工具列表]}#目录
 
     def _渲染行(自身,记录,位置,末端边界,全部,边界,编号,游程,会话编号,活动轮,活动段,选中下标,折轮):#单行
-        """一条账本行结构。"""
+        '一条账本行结构'
         格=记录['cell']#格
         呈现=记录呈现(格)#呈现
         折叠摘要=(记录['collapsedSummary'] if 'collapsedSummary' in 记录 else None)#摘要
@@ -558,7 +558,7 @@ class 轨迹表:#账本 + 详情检查器
         }#结束
 
     def _详情体(自身,选中,选中状态,提示选中,选中提示,选中前提示,选中请求记录,选中请求助手,选中请求锚,选中请求信息,选中请求状态,选中请求号,选中请求用量,选中请求累计,选中请求选项,选中请求结果,选中请求工具数,选中请求子工具数,父消息,父工具,助手请求目标,助手请求号,有层级):#详情体
-        """详情 tabpanel 内容结构。"""
+        '详情 tabpanel 内容结构'
         标签=自身.活动标签#活动
         if 自身.选中请求 is not None and 选中请求状态 is not None and 标签=='overview':#请求概览
             行=[#概览行
@@ -677,7 +677,7 @@ class 轨迹表:#账本 + 详情检查器
         return {'mode':'empty'}#空
 
     def 渲染(自身):#结构树
-        """产出分栏账本 + 可选详情结构树。"""
+        '产出分栏账本 + 可选详情结构树'
         属性=自身.属性#props
         全部=自身._全部记录()#全部
         边界=索引请求边界(全部)#边界
@@ -818,7 +818,7 @@ class 轨迹表:#账本 + 详情检查器
         }#根结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

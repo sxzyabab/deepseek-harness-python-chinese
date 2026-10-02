@@ -1,4 +1,4 @@
-"""跨事件关系校验：构造一份当代 Session 所需的已发布关系。"""
+'跨事件关系校验：构造一份当代 Session 所需的已发布关系'
 import json#诊断序列化
 from ...工具.值 import 深相等json#深相等JSON
 from ..会话格式 import 会话格式错误#格式错误
@@ -8,7 +8,7 @@ from .处置 import 已发布v0事件处置表#处置表
 表面类型=frozenset(['user/message','assistant/message','tool/result'])#表面类型
 
 def 断言已发布产物关系(产物,扩展=None):#断言已发布产物关系
-    """校验跨事件关系，保证可安全构造一份当代 Session。"""
+    '校验跨事件关系，保证可安全构造一份当代 Session'
     if 扩展 is None:#默认无扩展
         扩展={}#空扩展
     打开回合=None#打开回合
@@ -232,7 +232,7 @@ def 断言已发布产物关系(产物,扩展=None):#断言已发布产物关系
             打开压缩=None#结束源生命周期
 
 def 继承孤儿压缩起点(事件列表):#继承孤儿压缩起点
-    """收集被 session/end-seed 截断的压缩起点。"""
+    '收集被 session/end-seed 截断的压缩起点'
     陈旧=set()#陈旧
     打开=None#打开序号
     for 事件 in 事件列表:#遍历
@@ -247,7 +247,7 @@ def 继承孤儿压缩起点(事件列表):#继承孤儿压缩起点
     return 陈旧#返回
 
 def 断言重试链(重试列表,数据):#断言重试链
-    """校验同策略链上的重试序号与 retryId。"""
+    '校验同策略链上的重试序号与 retryId'
     先前=None#先前
     for 候选 in reversed(重试列表):#逆序找
         值=候选['data']#数据
@@ -265,18 +265,18 @@ def 断言重试链(重试列表,数据):#断言重试链
                 raise 会话格式错误(f'llm/retry reuses retryId {json.dumps(数据["retryId"],ensure_ascii=False)} across policy chains')#错误
 
 def 要求打开步骤(事件,数据,打开回合,打开步骤):#要求打开步骤
-    """要求事件落在打开的回合与步骤内。"""
+    '要求事件落在打开的回合与步骤内'
     if 数据['turn']!=打开回合 or 数据['step']!=打开步骤 or 打开回合 is None or 打开步骤 is None:#不符
         raise 会话格式错误(f'{事件["type"]} does not match an open turn and step')#错误
 
 def 断言无未解决工具(生命周期表,边界):#断言无未解决工具
-    """边界处不得留下未解决工具调用。"""
+    '边界处不得留下未解决工具调用'
     未解决=next(iter(生命周期表.keys()),None)#首个未解决
     if 未解决 is not None:#有未解决
         raise 会话格式错误(f'{边界} leaves unresolved tool call {未解决}')#错误
 
 def 是精确工具未开始修复(事件,内容,错误):#是精确工具未开始修复
-    """判定是否为精确 TOOL_NOT_STARTED 修复。"""
+    '判定是否为精确 TOOL_NOT_STARTED 修复'
     数据=事件['data']#数据
     消息=数据['message']#消息
     源=消息['source']#源
@@ -299,7 +299,7 @@ def 是精确工具未开始修复(事件,内容,错误):#是精确工具未开�
     )#判定结束
 
 def 应用表面(表面,事件):#应用表面
-    """按 surfaceOp 更新当前表面序号列表。"""
+    '按 surfaceOp 更新当前表面序号列表'
     操作=事件.get('surfaceOp')#表面操作
     if 操作 is None:#缺标记
         raise 会话格式错误(f'{事件["type"]} requires a surfaceOp marker')#错误
@@ -318,7 +318,7 @@ def 应用表面(表面,事件):#应用表面
     return [*表面[:起点],事件['seq'],*表面[终点+1:]]#替换
 
 def 断言标题出处(事件列表,事件,数据,校验框定文本):#断言标题出处
-    """校验标题事件对人类用户消息的引用。"""
+    '校验标题事件对人类用户消息的引用'
     序号列表=数据['messageSeqs']#消息序号
     if 事件['type']=='session/title':#会话标题
         标题源=已发布v0记录(数据['source'],f'session/title {事件["seq"]} source')#标题源
@@ -350,17 +350,17 @@ def 断言标题出处(事件列表,事件,数据,校验框定文本):#断言标
             raise 会话格式错误('session/title-llm-request messages do not represent messageSeqs')#错误
 
 def 断言压缩所有者(打开,数据,类型):#断言压缩所有者
-    """压缩事件必须匹配打开的 compaction/start。"""
+    '压缩事件必须匹配打开的 compaction/start'
     if 打开 is None or 数据.get('compactionId')!=打开.get('id') or 数据.get('sourceCommandId')!=打开.get('sourceCommandId'):#不符
         raise 会话格式错误(f'{类型} has no matching compaction/start')#错误
 
 def 断言压缩回合(所有者,打开回合,类型):#断言压缩回合
-    """压缩所有者回合必须匹配打开回合。"""
+    '压缩所有者回合必须匹配打开回合'
     if (打开回合 is not None) if 所有者 is None else (所有者!=打开回合):#不符
         raise 会话格式错误(f'{类型} does not match the open turn')#错误
 
 def 断言当前表面跨度(表面,数据,类型):#断言当前表面跨度
-    """shadowedSeqs 必须精确命名当前表面跨度。"""
+    'shadowedSeqs 必须精确命名当前表面跨度'
     范围=数据['shadowedRange']#范围
     序号列表=数据['shadowedSeqs']#序号
     起点=表面.index(范围['start']) if 范围['start'] in 表面 else -1#起点

@@ -10,7 +10,7 @@ __all__=['名称','依赖','配置','应用']
 依赖=['speechToText','subprocess']
 
 def 应用(上下文,配置值=None):
-    """登记本地识别器；启用时只检查磁盘缓存。"""
+    '登记本地识别器；启用时只检查磁盘缓存'
     配置对象=应用配置(配置值)
     for 路径 in (配置对象['dataRoot'],配置对象['modelDirectory'],配置对象['vadModelPath']):
         if 路径 is not None and not os.path.isabs(路径):
@@ -21,9 +21,9 @@ def 应用(上下文,配置值=None):
     工作者=sensevoice工作者(上下文,配置对象)
     估算字节=1000000000 if 配置对象['precision']=='int8' else 2000000000
     def 挂():
-        """登记提供方。"""
+        '登记提供方'
         def 转写(输入,信号):
-            """交给工作者。"""
+            '交给工作者'
             return 工作者.transcribe(输入,信号)
         卸=上下文.speechToText.登记({
             'info':{
@@ -49,7 +49,7 @@ def 应用(上下文,配置值=None):
         })
         工作者.inspect()
         def 拆():
-            """先卸注册再停工作者。"""
+            '先卸注册再停工作者'
             卸()
             工作者.dispose()
         return 拆

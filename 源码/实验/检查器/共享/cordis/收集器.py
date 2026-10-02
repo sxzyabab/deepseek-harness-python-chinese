@@ -7,30 +7,30 @@ __all__=['cordis树上限','cordis树收集器']#仅中文公开名
 阴影标记='cordis.shadow'#Cordis阴影标记
 
 class cordis树上限:#树上限
-    """快照进入源帧之前施加的边界。"""
+    '快照进入源帧之前施加的边界'
     def __init__(自身,maxNodes,maxBytes):#构造
-        """保存上限。"""
+        '保存上限'
         自身.maxNodes=maxNodes#最大节点数
         自身.maxBytes=maxBytes#最大编码字节
 
 class cordis树收集器:#树收集器
-    """带当前活对象表的界域本地收集器。"""
+    '带当前活对象表的界域本地收集器'
     def __init__(自身,根,上限):#根与上限
-        """保存根与上限并建对象表。"""
+        '保存根与上限并建对象表'
         自身.根=根#根Context
         自身.上限=上限#上限
         自身.objects=领域对象注册表()#对象注册表
         自身.修订=0#修订计数
 
     def 快照(自身):#捕获快照
-        """捕获当前可达的 Context/Fiber 树。"""
+        '捕获当前可达的 Context/Fiber 树'
         收集=收集上下文图(自身.根)#收集可达Context
         树=收集['root']#根信息
         对象表=自身.objects.开始()#开启世代
         状态={'nodeCount':0,'truncated':收集['truncated']}#节点计数与截断
 
         def 上下文节点(信息):#投影Context
-            """投影 Context。"""
+            '投影 Context'
             if 状态['nodeCount']>=自身.上限.maxNodes:#触节点上限
                 状态['truncated']=True#记截断
                 return None#放弃本节点
@@ -48,7 +48,7 @@ class cordis树收集器:#树收集器
             return 节点#Context节点
 
         def 纤程节点(纤程,拥有):#投影Fiber
-            """投影 Fiber。"""
+            '投影 Fiber'
             if getattr(纤程,'uid',None) is None:#无uid则跳过
                 return None#跳过
             if 状态['nodeCount']+2>自身.上限.maxNodes:#Fiber+Context会超限
@@ -76,16 +76,16 @@ class cordis树收集器:#树收集器
         return 快照#快照
 
     def 关闭(自身):#关闭收集器
-        """拆除界域全局解析器与每一个保留对象。"""
+        '拆除界域全局解析器与每一个保留对象'
         自身.objects.关闭()#关闭注册表
 
 def 收集上下文图(根):#收集可达Context
-    """收集可达 Context。"""
+    '收集可达 Context'
     上下文图={}#已见Context
     截断={'v':False}#是否因深度截断
 
     def 确保(候选,深度=0):#确保入图
-        """确保入图。"""
+        '确保入图'
         if 深度>100:#深度保护
             截断['v']=True#记截断
             return None#放弃
@@ -123,11 +123,11 @@ def 收集上下文图(根):#收集可达Context
     return {'root':根信息,'truncated':截断['v']}#收集结果
 
 def 描述上下文(值):#描述单个Context
-    """描述单个 Context。"""
+    '描述单个 Context'
     return {'value':值,'children':[],'fiber':getattr(值,'纤程',None)}#初始信息
 
 def 去阴影(值):#剥Cordis阴影包装
-    """剥 Cordis 阴影包装。"""
+    '剥 Cordis 阴影包装'
     当前=值#当前值
     while isinstance(当前,dict) and 阴影标记 in 当前:#有阴影标记
         当前=当前.get('__proto__',当前)#上溯近似
@@ -135,11 +135,11 @@ def 去阴影(值):#剥Cordis阴影包装
     return 当前#裸值
 
 def _是上下文(值):#是否Context
-    """是否 Context。"""
+    '是否 Context'
     return 值 is not None and hasattr(值,'注册表')#启发式
 
 def 剪最末(上下文):#剪最末叶子并返回释放句柄
-    """剪最末叶子并返回释放句柄。"""
+    '剪最末叶子并返回释放句柄'
     子节点列表=上下文.get('children')#子节点列表
     if 子节点列表 is None or len(子节点列表)==0:#无子可剪，判的是 length
         return []#空

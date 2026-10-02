@@ -1,7 +1,7 @@
 __all__=['是否darwin桌面']#仅中文公开名
 
 def 是否darwin桌面():
-    """客户端是否跑在 macOS Electron 壳：读 html 的 data-platform。"""
+    '客户端是否跑在 macOS Electron 壳：读 html 的 data-platform'
     文档=globals().get('document')#document
     if 文档 is None:#无 DOM
         return False#非桌面壳

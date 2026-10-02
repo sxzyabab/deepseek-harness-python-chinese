@@ -3,35 +3,35 @@ import json#解析干净退出时的结构化 stdout
 阻断退出码=2#发出阻断错误的退出码
 
 def 读字符串(对象,键):
-    """从 dict 读字符串字段；缺席或类型不对则返回 None。"""
+    '从 dict 读字符串字段；缺席或类型不对则返回 None'
     if 键 not in 对象:#键不存在
         return None#缺席
     值=对象[键]#取出
     return 值 if isinstance(值,str) else None#是字符串才返回
 
 def 读布尔(对象,键):
-    """从 dict 读布尔字段；缺席或类型不对则返回 None。"""
+    '从 dict 读布尔字段；缺席或类型不对则返回 None'
     if 键 not in 对象:#键不存在
         return None#缺席
     值=对象[键]#取出
     return 值 if isinstance(值,bool) else None#是布尔才返回
 
 def 读对象(值):
-    """普通对象（非 None、非列表），否则 None。"""
+    '普通对象（非 None、非列表），否则 None'
     if isinstance(值,dict):#映射即普通对象
         return 值#断言为普通对象
     return None#否则缺席
 
 def 顶层判定(值):
-    """遗留顶层 decision 只允许 approve/block。"""
+    '遗留顶层 decision 只允许 approve/block'
     return 值 if 值=='approve' or 值=='block' else None#仅批准或阻断有效
 
 def 专属判定(值):
-    """permissionDecision 只允许 allow/deny/ask。"""
+    'permissionDecision 只允许 allow/deny/ask'
     return 值 if 值=='allow' or 值=='deny' or 值=='ask' else None#仅允许拒绝询问有效
 
 def 折入结构化(输出,已解析,期望事件名=None):
-    """把已解析的结构化 stdout 对象折入输出（原地修改）。输出与已解析都是 dict。"""
+    '把已解析的结构化 stdout 对象折入输出（原地修改）。输出与已解析都是 dict'
     继续=读布尔(已解析,'continue')#读取是否继续
     if 继续 is not None:#有值则写入
         输出['continue']=继续#写入
@@ -73,7 +73,7 @@ def 折入结构化(输出,已解析,期望事件名=None):
         输出['updatedInput']=更新输入#写入
 
 def 解析钩子输出(退出码,标准输出,标准错误,期望事件名=None):
-    """将进程输出解码为方言无关的钩子结果。畸形 JSON 仍当作纯 stdout。"""
+    '将进程输出解码为方言无关的钩子结果。畸形 JSON 仍当作纯 stdout'
     修剪错误=(标准错误 if 标准错误 is not None else '').strip()#去掉 stderr 两端空白
     修剪输出=(标准输出 if 标准输出 is not None else '').strip()#去掉 stdout 两端空白
     输出={'exitCode':退出码,'stderr':修剪错误,'stdout':修剪输出}#组装基础输出

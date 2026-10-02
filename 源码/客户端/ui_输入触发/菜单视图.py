@@ -12,25 +12,25 @@ __all__=['菜单视图','选项标识','样式表']#仅中文公开名
 '''#样式表结束
 
 def 选项标识(来源,下标):#DOM id
-    """aria-activedescendant 目标。"""
+    'aria-activedescendant 目标'
     return 'dsh-slash-option-'+来源+'-'+str(下标)#拼 id
 
 def 缺省翻译(键,_插值=None):#无文案函数
-    """原样返回键。"""
+    '原样返回键'
     return 键#键
 
 class 菜单视图:#候选菜单叠层组件
-    """打开时渲染分组；关闭返回 None。"""
+    '打开时渲染分组；关闭返回 None'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成
 
     def 更新(自身,属性):#刷新
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性#最新
 
     def 渲染(自身):#结构化视图
-        """产出与上游 JSX 同构的结构化视图。"""
+        '产出与上游 JSX 同构的结构化视图'
         菜单=自身.属性['menu'] if 'menu' in 自身.属性 else None#菜单仓
         翻译=自身.属性['t'] if 't' in 自身.属性 else 缺省翻译#翻译
         点选=自身.属性['onPick'] if 'onPick' in 自身.属性 else None#点选
@@ -52,9 +52,9 @@ class 菜单视图:#候选菜单叠层组件
                 for 号,项 in enumerate(组['items']):#逐项
                     活=高亮 is not None and 高亮['source']==组['source'] and 高亮['index']==号#是否高亮
                     def 造点选(来源,下标):#闭包点选
-                        """点该项。"""
+                        '点该项'
                         def 点该项():#点击
-                            """转发 onPick。"""
+                            '转发 onPick'
                             if 点选 is not None:#有
                                 点选(来源,下标)#点选
                         return 点该项#回调
@@ -84,7 +84,7 @@ class 菜单视图:#候选菜单叠层组件
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

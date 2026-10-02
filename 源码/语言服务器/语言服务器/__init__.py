@@ -1,4 +1,4 @@
-"""LSP 能力缝（`ctx.lsp`）服务定义。"""
+'LSP 能力缝（`ctx.lsp`）服务定义'
 import re#扩展名文法
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
@@ -13,14 +13,16 @@ __all__=[
 名称='lsp'
 
 def 语言服务器提供方标识(标识):
-    """品牌化提供方 id。注册时不校验内容，空串由注册表拒绝。"""
+    """品牌化提供方 id。
+    空串由注册表拒绝
+    """
     return 标识#opaque id
 
 class 语言服务器错误(框架错误):
-    """带稳定 code 的 LSP 错误。"""
+    '带稳定 code 的 LSP 错误'
 
 def 最终扩展名(文件路径):
-    """`Foo.TS`→`.ts`；无扩展名或点开头的 dotfile 返回空串。"""
+    '`Foo.TS`→`.ts`；无扩展名或点开头的 dotfile 返回空串'
     最后斜杠=max(文件路径.rfind('/'),文件路径.rfind('\\'))#最后分隔符
     基名=文件路径[最后斜杠+1:] if 最后斜杠>=0 else 文件路径#文件名
     点=基名.rfind('.')#最后点
@@ -29,22 +31,24 @@ def 最终扩展名(文件路径):
     return 基名[点:].lower()#小写扩展
 
 def 规范化扩展名(扩展):
-    """把原始扩展名规范成路由键。"""
+    '把原始扩展名规范成路由键'
     小写=扩展.lower()#小写
     if 小写.startswith('.'):#已有点
         return 小写#原样
     return '.'+小写#补点
 
 class 语言服务器(服务):
-    """按文件扩展名选择提供方并执行四种语义查询。"""
+    '按文件扩展名选择提供方并执行四种语义查询'
     def __init__(自身,上下文):
-        """登记为 ctx.lsp。"""
+        '登记为 ctx.lsp'
         super().__init__(上下文,'lsp')#服务名
         自身.提供方标识集合=set()#已占 id
         自身.路由表={}#扩展→{provider,languageId}
 
     def 注册提供方(自身,提供方):
-        """校验通过前不发布任何路由；返回同步拆除器。提供方以 查询 为协议方法。"""
+        """校验通过前不发布任何路由；返回同步拆除器。
+        提供方以 查询 为协议方法
+        """
         标识=提供方.id#提供方 id
         if str(标识).strip()=='':#空 id
             raise 语言服务器错误('an LSP provider id must be a non-empty string','LSP_INVALID_PROVIDER')#非法
@@ -67,12 +71,12 @@ class 语言服务器(服务):
             if 扩展 in 自身.路由表:#已被占用
                 raise 语言服务器错误('extension "'+扩展+'" is already handled by another LSP provider','LSP_CONFLICT')#冲突
         def 装寿命():
-            """一次性发布 id 与全部扩展路由。"""
+            '一次性发布 id 与全部扩展路由'
             自身.提供方标识集合.add(标识)#占 id
             for 扩展,路由 in 待定.items():#发布
                 自身.路由表[扩展]=路由#写入路由
             def 拆():
-                """同步释放全部 reservation。"""
+                '同步释放全部 reservation'
                 自身.提供方标识集合.discard(标识)#释 id
                 for 扩展 in 待定:#释扩展
                     if 扩展 in 自身.路由表:#仍在
@@ -80,14 +84,16 @@ class 语言服务器(服务):
             return 拆#拆除器
         拆除=自身.ctx.副作用(装寿命,'lsp.registerProvider()')#登记
         def 同步拆除():
-            """同步拆除登记。"""
+            '同步拆除登记'
             if 拆除 is None:#无拆除器
                 return#无事
             拆除()#拆除
         return 同步拆除#同步拆除器
 
     def 查询(自身,请求,信号=None):
-        """无匹配扩展时抛 LSP_UNAVAILABLE。请求是跨包 dict。"""
+        """无匹配扩展时抛 LSP_UNAVAILABLE。
+        请求是跨包 dict
+        """
         扩展=最终扩展名(请求['filePath'])#按扩展找路由
         if 扩展 not in 自身.路由表:#无提供方
             raise 语言服务器错误('no LSP provider handles "'+str(请求['filePath'])+'"','LSP_UNAVAILABLE')#不可用

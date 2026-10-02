@@ -1,7 +1,4 @@
-"""在应用中打开的应用目录：编译期白名单表，按平台声明按序尝试的启动器来源。
-
-解析在 解析器，图标在 图标。平台无声明时解析为空目录。定位器种类与应用标识字面量保持英文（目录数据/线协议）。
-"""
+'在应用中打开的应用目录：编译期白名单表，按平台声明按序尝试的启动器来源'
 from dataclasses import dataclass#不可变目录条目
 
 __all__=[
@@ -12,7 +9,7 @@ __all__=[
 
 @dataclass(frozen=True)
 class 参数启动:#argv 分离派生
-    """以 argv 分离派生启动器；可选环境叠在擦洗父环境上。"""
+    '以 argv 分离派生启动器；可选环境叠在擦洗父环境上'
     命令:str#可执行路径或 PATH 名
     参数列表:tuple#argv 其余段
     环境:dict|None=None#显式环境条目
@@ -21,30 +18,30 @@ class 参数启动:#argv 分离派生
 
 @dataclass(frozen=True)
 class 外壳打开启动:#经 OS shell open verb
-    """把目录交给操作系统 shell 的 open verb。"""
+    '把目录交给操作系统 shell 的 open verb'
     种类:str='shell-open'#判别种类（英文字面量）
 
 @dataclass(frozen=True)
 class 固定定位:#随 OS 出货
-    """随操作系统出货的固定启动。"""
+    '随操作系统出货的固定启动'
     启动:object#参数启动或外壳打开启动
     图标路径:str#图标来源模板
     种类:str='fixed'#判别种类
 
 @dataclass(frozen=True)
 class 应用包定位:#macOS .app 目录
-    """在已知应用目录中查找命名 bundle。"""
+    '在已知应用目录中查找命名 bundle'
     文件系统名列表:tuple#bundle 文件名
     种类:str='app'#判别种类
 
 @dataclass(frozen=True)
 class Xcode定位:#跟随 xcode-select
-    """经 xcode-select -p 解析 Xcode。"""
+    '经 xcode-select -p 解析 Xcode'
     种类:str='xcode'#判别种类
 
 @dataclass(frozen=True)
 class 命令行定位:#PATH 名
-    """进程内解析 PATH 名后启动。"""
+    '进程内解析 PATH 名后启动'
     名称:str#PATH 名
     参数列表:tuple#启动参数
     需要桌面:bool|None=None#无桌面会话则不提供
@@ -52,14 +49,14 @@ class 命令行定位:#PATH 名
 
 @dataclass(frozen=True)
 class 文件定位:#首个存在的候选
-    """取第一个存在的展开候选文件。"""
+    '取第一个存在的展开候选文件'
     候选列表:tuple#路径模板
     参数列表:tuple#启动参数
     种类:str='file'#判别种类
 
 @dataclass(frozen=True)
 class 扫描定位:#版本化安装目录
-    """在根下挑最新匹配前缀的版本目录。"""
+    '在根下挑最新匹配前缀的版本目录'
     根:str#根路径模板
     名称前缀:str#版本目录名前缀
     相对启动器:str#版本目录内相对启动器
@@ -68,14 +65,14 @@ class 扫描定位:#版本化安装目录
 
 @dataclass(frozen=True)
 class 应用路径定位:#Windows App Paths
-    """读 Windows App Paths 注册表。"""
+    '读 Windows App Paths 注册表'
     可执行名:str#注册的 exe 名
     参数列表:tuple#启动参数
     种类:str='app-paths'#判别种类
 
 @dataclass(frozen=True)
 class 安装记录定位:#Windows Uninstall
-    """读 Windows Uninstall 记录并核验可执行文件。"""
+    '读 Windows Uninstall 记录并核验可执行文件'
     显示名前缀:str#DisplayName 前缀
     参数列表:tuple#启动参数
     相对启动器:str|None=None#InstallLocation 下的相对路径
@@ -83,63 +80,63 @@ class 安装记录定位:#Windows Uninstall
 
 @dataclass(frozen=True)
 class GitHub桌面定位:#GitHub Desktop 版本化布局
-    """同时解析 GitHub Desktop 可执行文件与随包 cli.js。"""
+    '同时解析 GitHub Desktop 可执行文件与随包 cli.js'
     根:str#安装根模板
     种类:str='github-desktop'#判别种类
 
 @dataclass(frozen=True)
 class 桌面条目定位:#Linux XDG desktop
-    """读 XDG desktop 条目并核验 TryExec/Exec。"""
+    '读 XDG desktop 条目并核验 TryExec/Exec'
     桌面标识:str#不含 .desktop 后缀
     参数列表:tuple#启动参数
     种类:str='desktop'#判别种类
 
 @dataclass(frozen=True)
 class 平台规格:#一平台的定位链
-    """一平台的定位器链；Linux 可挂拥有图标的 desktop 标识。"""
+    '一平台的定位器链；Linux 可挂拥有图标的 desktop 标识'
     定位器列表:tuple#按序尝试
     桌面标识:str|None=None#Linux 图标所属 desktop id
 
 @dataclass(frozen=True)
 class 应用条目:#一条可启动应用
-    """一条可启动应用及其平台规格。"""
+    '一条可启动应用及其平台规格'
     标识:str#目录 id（英文字面量，进线协议）
     平台表:dict#平台名 → 平台规格
 
 def 苹果应用(*文件系统名):#macOS 已知目录查 bundle
-    """在 /Applications 与 ~/Applications 中查找命名 bundle。"""
+    '在 /Applications 与 ~/Applications 中查找命名 bundle'
     return 平台规格(定位器列表=(应用包定位(文件系统名列表=文件系统名),))#仅 app 定位
 
 def 规格(*定位器):#无图标 desktop 的规格
-    """由定位器链构成的平台规格。"""
+    '由定位器链构成的平台规格'
     return 平台规格(定位器列表=定位器)#无 desktopId
 
 def 桌面规格(桌面标识,*定位器):#带 Linux 图标归属
-    """定位器链加上拥有图标的 desktop 标识。"""
+    '定位器链加上拥有图标的 desktop 标识'
     return 平台规格(定位器列表=定位器,桌面标识=桌面标识)#带 desktopId
 
 def 命令行(名称,*参数):#PATH 定位
-    """进程内 PATH 名定位。"""
+    '进程内 PATH 名定位'
     return 命令行定位(名称=名称,参数列表=参数)#普通 CLI
 
 def 桌面命令行(名称,*参数):#需桌面会话的 PATH 定位
-    """仅在有桌面会话时有意义的 PATH 定位。"""
+    '仅在有桌面会话时有意义的 PATH 定位'
     return 命令行定位(名称=名称,参数列表=参数,需要桌面=True)#requiresDesktop
 
 def 文件(候选列表,*参数):#首个存在文件
-    """首个存在文件定位。"""
+    '首个存在文件定位'
     return 文件定位(候选列表=tuple(候选列表),参数列表=参数)#file
 
 def 应用路径(可执行名,*参数):#App Paths
-    """Windows App Paths 定位。"""
+    'Windows App Paths 定位'
     return 应用路径定位(可执行名=可执行名,参数列表=参数)#app-paths
 
 def 安装记录(显示名前缀,相对启动器=None,*参数):#Uninstall 记录
-    """Windows Uninstall 记录定位。"""
+    'Windows Uninstall 记录定位'
     return 安装记录定位(显示名前缀=显示名前缀,相对启动器=相对启动器,参数列表=参数)#install-record
 
 def jetbrains产品(标识,产品名,命令行名,窗口可执行,苹果名列表):#JetBrains 产品条目
-    """JetBrains 产品：macOS bundle、Windows 扫描/卸载记录、Linux PATH/Toolbox 脚本。"""
+    'JetBrains 产品：macOS bundle、Windows 扫描/卸载记录、Linux PATH/Toolbox 脚本'
     return 应用条目(标识=标识,平台表={#三平台
         'darwin':苹果应用(*苹果名列表),#macOS bundles
         'win32':规格(#Windows

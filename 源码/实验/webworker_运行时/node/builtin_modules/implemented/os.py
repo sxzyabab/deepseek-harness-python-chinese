@@ -8,45 +8,45 @@ __all__=[
 EOL='\n'
 
 def 临时目录():
-    """返回 VFS 临时路径。"""
+    '返回 VFS 临时路径'
     return dsh临时
 
 def 主目录():
-    """返回 VFS 主目录。"""
+    '返回 VFS 主目录'
     return dsh主目录
 
 def 平台():
-    """始终为 'linux'。"""
+    '始终为 \'linux\''
     return 'linux'
 
 def 类型():
-    """始终为 'Linux'。"""
+    '始终为 \'Linux\''
     return 'Linux'
 
 def 架构():
-    """始终为 'x64'。"""
+    '始终为 \'x64\''
     return 'x64'
 
 def 发行():
-    """合成的发行字符串。"""
+    '合成的发行字符串'
     return '0.0.0-dsh-worker'
 
 def 主机名():
-    """合成名称。"""
+    '合成名称'
     return 'dsh-worker'
 
 def 可用并行度():
-    """浏览器硬件并发，至少为 1。"""
+    '浏览器硬件并发，至少为 1'
     导航=globals()['navigator'] if 'navigator' in globals() else None
     并发=getattr(导航,'hardwareConcurrency',1) if 导航 is not None else 1
     return max(1,并发)
 
 def 列出处理器():
-    """空列表（worker 内无逐核事实）。"""
+    '空列表（worker 内无逐核事实）'
     return []
 
 def 网络接口():
-    """空记录——worker webserver 绑定回环字面量。"""
+    '空记录——worker webserver 绑定回环字面量'
     return {}
 
 tmpdir=临时目录

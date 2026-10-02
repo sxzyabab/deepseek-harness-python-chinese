@@ -4,7 +4,7 @@ from ...模型后端.llm import 创建用户消息#构造用户消息
 __all__=['驱动夹具轮次','累加用量','助手文本']#仅中文公开名
 
 def 累加用量(合计,步进):#累加 token 用量
-    """把一步用量累加进合计。"""
+    '把一步用量累加进合计'
     下一={#合计
         'inputTokens':(合计 or {}).get('inputTokens',0)+步进.get('inputTokens',0),#累加输入
         'outputTokens':(合计 or {}).get('outputTokens',0)+步进.get('outputTokens',0),#累加输出
@@ -15,7 +15,7 @@ def 累加用量(合计,步进):#累加 token 用量
     return 下一#返回合计用量
 
 def 助手文本(事件):#提取助手文本
-    """从 assistant/message 事件拼接文本块。"""
+    '从 assistant/message 事件拼接文本块'
     数据=事件.get('data') if isinstance(事件,dict) else getattr(事件,'data',None)#事件数据
     消息=数据.get('message') if isinstance(数据,dict) else getattr(数据,'message',None)#消息
     内容=消息.get('content') if isinstance(消息,dict) else getattr(消息,'content',None)#内容
@@ -27,7 +27,7 @@ def 助手文本(事件):#提取助手文本
     return ''.join((块.get('text') if isinstance(块,dict) else 块.text) for 块 in 块列表)#拼接文本
 
 def 唯一根智能体(上下文):#取得唯一根智能体
-    """要求恰好一个已配置根智能体。"""
+    '要求恰好一个已配置根智能体'
     注册表=上下文.获取服务('agents')#智能体注册表
     if 注册表 is None:#无注册表
         raise Exception('夹具轮次需要恰好一个顶层 agent，实际为 0')#无注册表
@@ -35,7 +35,7 @@ def 唯一根智能体(上下文):#取得唯一根智能体
     if len(根列表)==0:#尚无根
         已发布=事件()#首次发布门闩
         def 已创建(_智能体):#创建回调
-            """首次发布时放行。"""
+            '首次发布时放行'
             解除()#解除监听
             已发布.set()#放行
         解除=上下文.监听('agent/created',已创建)#监听创建
@@ -46,7 +46,7 @@ def 唯一根智能体(上下文):#取得唯一根智能体
     return 根列表[0]#返回唯一根智能体
 
 def 驱动夹具轮次(上下文,选项):#驱动一轮
-    """从持久收件箱回执驱动一次任务直至整智能体空闲。"""
+    '从持久收件箱回执驱动一次任务直至整智能体空闲'
     智能体=唯一根智能体(上下文)#取得唯一根智能体
     智能体.whenIdle()#等待空闲
     消息=创建用户消息({#构造用户消息
@@ -57,7 +57,7 @@ def 驱动夹具轮次(上下文,选项):#驱动一轮
     输出=['']#助手输出（可变盒）
     用量按步={}#按 turn/step 记用量
     def 监听会话事件(会话,事件):#监听会话事件
-        """转发观察者并收集输出与用量。"""
+        '转发观察者并收集输出与用量'
         if 会话 is not 智能体.session:#非本会话
             return#忽略
         类型=事件.get('type') if isinstance(事件,dict) else getattr(事件,'type',None)#事件类型

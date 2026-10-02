@@ -1,9 +1,10 @@
-"""向 typert 注册会话引用的远程候选查询贡献。"""
-from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
+'向 typert 注册会话引用的远程候选查询贡献'
+from ...类型化远程调用.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-session-reference'服务='sessionReferenceResolver'#服务键
+包名='@deepseek-ai/dsh-session-reference'
+服务='sessionReferenceResolver'#服务键
 命名空间='sessionReferenceResolver'#命名空间
 类前=包名+'#SessionReferenceResolver.'#调用 id 前缀
 智能体参数={#agent lookup

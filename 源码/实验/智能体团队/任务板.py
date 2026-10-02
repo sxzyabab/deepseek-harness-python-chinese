@@ -14,21 +14,21 @@ __all__=['团队任务板']#仅中文公开名
 }#映射结束
 
 def 范围重叠(左,右):#范围是否重叠
-    """两个规范化文件或目录前缀是否在路径分量上重叠。"""
+    '两个规范化文件或目录前缀是否在路径分量上重叠'
     return 左==右 or 左.startswith(右+'/') or 右.startswith(左+'/')#重叠
 
 class 团队任务板:#任务板
-    """拥有 Team 任务限制、授权、转换与派生视图。"""
+    '拥有 Team 任务限制、授权、转换与派生视图'
     def __init__(自身,日志,最大任务数):#构造
-        """记下日志与任务上限。"""
+        '记下日志与任务上限'
         自身._日志=日志#日志
         自身._最大任务数=最大任务数#任务上限
 
     def 创建(自身,成员关系,请求):#建任务
-        """在 Team Lead 日志中创建一条无主 pending 任务。"""
+        '在 Team Lead 日志中创建一条无主 pending 任务'
         根=成员关系['root']#Lead
         def 操作():#事务体
-            """创建事务。"""
+            '创建事务'
             状态=自身._日志.状态(根)#状态
             活动数=len([任务 for 任务 in 状态['tasks'] if 任务['status']!='deleted'])#活动数
             if 活动数>=自身._最大任务数:#上限
@@ -51,7 +51,7 @@ class 团队任务板:#任务板
         return 自身._日志.事务(根.id,操作)#串行
 
     def 获取(自身,成员关系,标识):#取任务
-        """返回一条任务，含已删除 tombstone。"""
+        '返回一条任务，含已删除 tombstone'
         根=成员关系['root']#Lead
         状态=自身._日志.状态(根)#状态
         任务=None#查找
@@ -64,16 +64,16 @@ class 团队任务板:#任务板
         return 自身._任务视图(根,状态,任务)#视图
 
     def 列表(自身,成员关系):#列任务
-        """按数字创建顺序列出当前未删除任务。"""
+        '按数字创建顺序列出当前未删除任务'
         根=成员关系['root']#Lead
         状态=自身._日志.状态(根)#状态
         return [自身._任务视图(根,状态,任务) for 任务 in 状态['tasks'] if 任务['status']!='deleted']#视图列表
 
     def 更新(自身,调用方,成员关系,请求):#更新任务
-        """compare-and-set 一次已授权的任务转换。"""
+        'compare-and-set 一次已授权的任务转换'
         根=成员关系['root']#Lead
         def 操作():#事务体
-            """更新事务。"""
+            '更新事务'
             状态=自身._日志.状态(根)#状态
             当前=None#查找
             for 任务 in 状态['tasks']:#扫
@@ -98,11 +98,11 @@ class 团队任务板:#任务板
         return 自身._日志.事务(根.id,操作)#串行
 
     def _下一快照(自身,调用方,成员关系,状态,当前,请求):#动作转换
-        """按动作计算下一快照（不含 revision）。"""
+        '按动作计算下一快照（不含 revision）'
         是领导=成员关系['role']=='lead'#是否 Lead
         是所有者='ownerId' in 当前 and 当前['ownerId']==调用方.id#是否 owner
         def 授权所有者():#owner 或 Lead
-            """任务变更授权。"""
+            '任务变更授权'
             if not 是领导 and not 是所有者:#未授权
                 raise 团队错误('task mutation requires its owner or Team Lead','TEAM_TASK_UNAUTHORIZED')#未授权
         动作=请求['action']#动作
@@ -139,7 +139,7 @@ class 团队任务板:#任务板
         raise 团队错误('unsupported task action '+str(动作),'TEAM_INVALID_ARGUMENT')#未知动作
 
     def _认领(自身,调用方,状态,当前):#认领
-        """认领一条就绪 pending 任务。"""
+        '认领一条就绪 pending 任务'
         所有者=当前['ownerId'] if 'ownerId' in 当前 else None#当前 owner
         if 所有者 is not None and 所有者!=调用方.id:#已被他人认领
             raise 团队错误('team task "'+当前['id']+'" is owned by another member','TEAM_TASK_ALREADY_CLAIMED')#已认领
@@ -148,7 +148,7 @@ class 团队任务板:#任务板
         return {**当前,'status':'in_progress','ownerId':调用方.id}#认领
 
     def _编辑(自身,当前,请求):#编辑
-        """编辑标题、详情或写范围。"""
+        '编辑标题、详情或写范围'
         if ('subject' not in 请求 and 'description' not in 请求
                 and 'writeScopes' not in 请求):#空编辑
             raise 团队错误('task edit requires subject, description, or write_scopes','TEAM_INVALID_ARGUMENT')#空编辑
@@ -162,7 +162,7 @@ class 团队任务板:#任务板
         return 下一#编辑结果
 
     def _改派(自身,成员关系,状态,当前,请求,是领导):#改派
-        """Lead 改派或清空 owner。"""
+        'Lead 改派或清空 owner'
         if not 是领导:#仅 Lead
             raise 团队错误('only the Team Lead can reassign tasks','TEAM_LEAD_REQUIRED')#仅 Lead
         if 当前['status'] not in ('pending','in_progress'):#非法状态
@@ -176,14 +176,14 @@ class 团队任务板:#任务板
         return {**当前,'status':'in_progress','ownerId':受派['id']}#改派
 
     def _删除(自身,状态,当前):#删除
-        """删除无依赖者的任务。"""
+        '删除无依赖者的任务'
         for 任务 in 状态['tasks']:#查依赖者
             if 任务['status']!='deleted' and 任务['id']!=当前['id'] and 当前['id'] in 任务['blockedBy']:#仍阻塞
                 raise 团队错误('team task "'+当前['id']+'" still blocks "'+任务['id']+'"','TEAM_TASK_HAS_DEPENDENTS')#有依赖者
         return {**当前,'status':'deleted'}#删除
 
     def _依赖(自身,值列表,状态,自身标识=None):#规范化依赖
-        """对照当前任务图校验并去重依赖 id。"""
+        '对照当前任务图校验并去重依赖 id'
         已见=set()#已见
         结果=[]#结果
         for 标识 in 值列表:#逐依赖
@@ -203,18 +203,18 @@ class 团队任务板:#任务板
         return 结果#依赖表
 
     def 规范化写范围(自身,值列表):#写范围
-        """规范化并去重任务写范围。"""
+        '规范化并去重任务写范围'
         return list(dict.fromkeys(写范围(值) for 值 in 值列表))#去重保序
 
     def _断言任务图(自身,状态,候选):#断言图
-        """把共享任务图校验映射到稳定命令错误码。"""
+        '把共享任务图校验映射到稳定命令错误码'
         try:#试校验
             断言任务图候选(状态['tasks'],候选)#图校验
         except 任务图错误 as 错误:#映射
             raise 团队错误(str(错误),任务图错误码[错误.违例],{'cause':错误})#映射
 
     def _任务就绪(自身,状态,任务):#是否就绪
-        """当前全部 blocker 是否已完成。"""
+        '当前全部 blocker 是否已完成'
         for 标识 in 任务['blockedBy']:#逐 blocker
             命中=None#查找
             for 候选 in 状态['tasks']:#扫
@@ -226,13 +226,13 @@ class 团队任务板:#任务板
         return True#就绪
 
     def _去所有者(自身,任务):#去 owner
-        """移除可选 owner 字段。"""
+        '移除可选 owner 字段'
         下一=dict(任务)#拷贝
         下一.pop('ownerId',None)#去掉
         return 下一#无 owner
 
     def _任务视图(自身,根,状态,任务):#任务视图
-        """构建带 owner 名、就绪性与写范围重叠警告的任务视图。"""
+        '构建带 owner 名、就绪性与写范围重叠警告的任务视图'
         所有者名=None#owner 名
         所有者标识=任务['ownerId'] if 'ownerId' in 任务 else None#owner id
         if 所有者标识 is not None:#有 owner

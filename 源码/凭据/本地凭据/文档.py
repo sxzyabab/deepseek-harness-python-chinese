@@ -1,12 +1,4 @@
-"""凭证 YAML 文档的解析、渲染与仅所有者权限检查。
-
-versioned `refs` + `records` 布局（DOCUMENT_VERSION=1）。
-公开面仅中文名。
-
-注释往返：上游用 `yaml` 包的 CST/`parseDocument` 保注释编辑；本包 `pyproject.toml` 仅依赖
-`pyyaml>=6`、未引入 `ruamel.yaml`，故保持 PyYAML `safe_load`/`safe_dump`——编辑以结构正确为先，
-不保留手写注释与未触碰条目的版式。若日后显式加入 `ruamel.yaml`，可将渲染改为 round-trip。
-"""
+'凭证 YAML 文档的解析、渲染与仅所有者权限检查'
 import os,errno,io,copy#路径、错误码、文本流与深拷贝
 import yaml#PyYAML
 from ..凭据 import 凭证引用,解析凭证键#引用与记录键
@@ -25,7 +17,7 @@ __all__=[#仅中文公开名
 
 
 def 补错误码(错误):
-    """给逃出的 OSError 补上 Node 风格 `code`。"""
+    '给逃出的 OSError 补上 Node 风格 `code`'
     if isinstance(错误,OSError) and getattr(错误,'code',None) is None:#尚无 code
         表={
             errno.ENOENT:'ENOENT',
@@ -39,14 +31,14 @@ def 补错误码(错误):
 
 
 def 是否缺席(错误):
-    """判定缺席错误。"""
+    '判定缺席错误'
     if getattr(错误,'code',None)=='ENOENT':#已带码
         return True#缺席
     return isinstance(错误,OSError) and 错误.errno==errno.ENOENT#按 errno
 
 
 def 断言无空字节(文件名):
-    """空字节在到达操作系统之前拒绝。"""
+    '空字节在到达操作系统之前拒绝'
     if '\0' in 文件名:#含空字节
         错误=ValueError("The argument 'path' must be a string or Uint8Array without null bytes. Received "+repr(文件名))#对齐 Node
         错误.code='ERR_INVALID_ARG_VALUE'#码
@@ -54,7 +46,7 @@ def 断言无空字节(文件名):
 
 
 def 描述yaml错误(错误):
-    """描述一次 YAML 解析失败，且不引用源文。"""
+    '描述一次 YAML 解析失败，且不引用源文'
     标记=getattr(错误,'problem_mark',None)#行列
     if 标记 is None:#无
         位置=''#空
@@ -65,7 +57,8 @@ def 描述yaml错误(错误):
 
 
 def 解析凭证文档(文本,文件名):
-    """解析 versioned 凭证文档为 {refs, records}。空文档是空存储。"""
+    """解析 versioned 凭证文档为 {refs, records}。
+    空文档是空存储"""
     try:
         根=yaml.safe_load(文本)#解析
     except yaml.YAMLError as 错误:
@@ -99,7 +92,7 @@ def 解析凭证文档(文本,文件名):
 
 
 def 渲染扁平迁移(文本):
-    """识别预发布扁平布局并渲染 version-1；否则 None。"""
+    '识别预发布扁平布局并渲染 version-1；否则 None'
     try:
         根=yaml.safe_load(文本)#解析
     except yaml.YAMLError:
@@ -127,7 +120,7 @@ def 渲染扁平迁移(文本):
 
 
 def _节为映射(节,名,文件名):
-    """节为普通映射；缺席与 null 都表示空。"""
+    '节为普通映射；缺席与 null 都表示空'
     if 节 is None:#缺席
         return {}#空
     if not isinstance(节,dict) or isinstance(节,list):#非映射
@@ -136,7 +129,7 @@ def _节为映射(节,名,文件名):
 
 
 def _解析引用节(节,文件名):
-    """接纳 refs。"""
+    '接纳 refs'
     条目={}#结果
     for 键,值 in _节为映射(节,'refs',文件名).items():#逐项
         文字键=键 if isinstance(键,str) else str(键)#键
@@ -150,7 +143,7 @@ def _解析引用节(节,文件名):
 
 
 def _解析记录节(节,文件名):
-    """接纳 records。"""
+    '接纳 records'
     条目={}#结果
     for 键,值 in _节为映射(节,'records',文件名).items():#逐项
         文字键=键 if isinstance(键,str) else str(键)#键
@@ -160,7 +153,7 @@ def _解析记录节(节,文件名):
 
 
 def _解析记录(键,值,文件名):
-    """接纳一条记录。"""
+    '接纳一条记录'
     if not isinstance(值,dict) or isinstance(值,list):#非映射
         raise TypeError('credentials-local: record "'+键+'" in '+文件名+' must be a mapping')#拒绝
     种类=值.get('kind')#种类
@@ -188,14 +181,14 @@ def _解析记录(键,值,文件名):
 
 
 def _断言字段(键,字段,允许,文件名):
-    """拒绝未知字段。"""
+    '拒绝未知字段'
     for 名 in 字段.keys():#逐字段
         if 名 not in 允许:#越界
             raise Exception('credentials-local: record "'+键+'" in '+文件名+' has unknown field "'+str(名)+'"')#拒绝
 
 
 def _解析记录环境(键,环境,文件名):
-    """api-key 的 env 映射。"""
+    'api-key 的 env 映射'
     if 环境 is None:#缺席
         return None#无
     if not isinstance(环境,dict) or isinstance(环境,list):#非映射
@@ -211,7 +204,7 @@ def _解析记录环境(键,环境,文件名):
 
 
 def 断言可存api密钥(键,记录):
-    """写前拒绝读路径不会接纳的 api-key。"""
+    '写前拒绝读路径不会接纳的 api-key'
     if 'key' in 记录 and 记录['key'] is not None and len(记录['key'])==0:#空密钥
         raise TypeError('credentials-local: record "'+键+'" has an empty key; omit the field instead')#拒绝
     for 名,值 in (记录.get('env') or {}).items():#环境
@@ -221,7 +214,7 @@ def 断言可存api密钥(键,记录):
 
 
 def 断言json值(何处,值,已见):
-    """拒绝无法 JSON 往返的载荷。"""
+    '拒绝无法 JSON 往返的载荷'
     if 值 is None or isinstance(值,(str,bool)):#标量
         return#OK
     if isinstance(值,int) and not isinstance(值,bool):#整数
@@ -249,7 +242,7 @@ def 断言json值(何处,值,已见):
 
 
 def _可编辑根(文本):
-    """从缓存文本建可编辑根；盖版本戳。"""
+    '从缓存文本建可编辑根；盖版本戳'
     if 文本 is None:#缺席
         根={'version':文档版本}#新
     else:
@@ -261,7 +254,7 @@ def _可编辑根(文本):
 
 
 def _序列化(根):
-    """序列化根映射。"""
+    '序列化根映射'
     if 根.keys()=={'version'} or (len(根)==1 and 'version' in 根 and 'refs' not in 根 and 'records' not in 根):#仅版本
         # 空存储：保留 version 以便下一启动走 versioned 路径；无 refs/records 节
         pass#保持
@@ -277,7 +270,7 @@ def _序列化(根):
 
 
 def 渲染引用(文本,引用,值):
-    """设置或删除一条引用。"""
+    '设置或删除一条引用'
     根=_可编辑根(文本)#根
     if 'refs' not in 根 or not isinstance(根.get('refs'),dict):#无节
         根['refs']={}#建
@@ -289,7 +282,7 @@ def 渲染引用(文本,引用,值):
 
 
 def 渲染记录(文本,键,记录):
-    """写入或删除一条记录。"""
+    '写入或删除一条记录'
     根=_可编辑根(文本)#根
     if 'records' not in 根 or not isinstance(根.get('records'),dict):#无节
         根['records']={}#建
@@ -301,7 +294,7 @@ def 渲染记录(文本,键,记录):
 
 
 def 读文档文本(文件名):
-    """按 utf8 读文档。"""
+    '按 utf8 读文档'
     断言无空字节(文件名)#空字节
     try:
         with open(文件名,'r',encoding='utf-8',newline='') as 文件:#打开
@@ -311,7 +304,7 @@ def 读文档文本(文件名):
 
 
 def 断言仅所有者(文件名):
-    """拒绝其他 OS 用户也能读的凭证文档。"""
+    '拒绝其他 OS 用户也能读的凭证文档'
     断言无空字节(文件名)#空字节
     try:
         模式=os.stat(文件名).st_mode#mode
@@ -331,7 +324,7 @@ def 断言仅所有者(文件名):
 
 
 def 同json值(左,右):
-    """两个已接纳 JSON 值的结构相等。"""
+    '两个已接纳 JSON 值的结构相等'
     if 左 is 右:#同一
         return True#等
     if type(左)!=type(右):#类型

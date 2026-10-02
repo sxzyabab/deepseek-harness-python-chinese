@@ -1,13 +1,13 @@
 __all__=['图像尺寸文案','附件错误文案','灯箱标签','消息图像标签','拖放覆盖层标签','附件栏标签']#仅中文公开名
 
 def 图像尺寸文案(字节数):
-    """整数原样，否则一位小数，后接 MB。"""
+    '整数原样，否则一位小数，后接 MB'
     兆=字节数/(1024*1024)#转兆
     文=str(兆) if 兆==int(兆) else f'{兆:.1f}'#整数或一位
     return f'{文}MB'#文案
 
 def 附件错误文案(翻译,原因,限额=None):
-    """按 reason 码分发；用户无法操作则 sendFailed。"""
+    '按 reason 码分发；用户无法操作则 sendFailed'
     if 原因=='MODEL_DOES_NOT_SUPPORT_IMAGES':#模型不支持
         return 翻译('image.modelUnsupported')#文案
     if 原因=='SUBAGENT_IMAGE_UNSUPPORTED':#子智能体
@@ -28,17 +28,17 @@ def 附件错误文案(翻译,原因,限额=None):
     return 翻译('image.sendFailed',{'reason':原因})#发送失败
 
 def 灯箱标签(翻译):
-    """对话框与关闭。"""
+    '对话框与关闭'
     return {'dialog':翻译('image.preview'),'close':翻译('image.closePreview')}#标签
 
 def 打开带名(翻译,标签):
-    """带文件名打开原图。"""
+    '带文件名打开原图'
     return 翻译('image.openOriginalLabel',{'label':标签})#文案
 
 def 消息图像标签(翻译):
-    """含转发灯箱。"""
+    '含转发灯箱'
     def 打开(标签,钉翻译=翻译):
-        """闭包钉死本次翻译。"""
+        '闭包钉死本次翻译'
         return 打开带名(钉翻译,标签)#带名
     return {#消息图
         'image':翻译('image.label'),#无障碍
@@ -50,14 +50,14 @@ def 消息图像标签(翻译):
     }#结束
 
 def 拖放覆盖层标签(翻译,接受中,限额=None):
-    """不接受只报拦截；接受时可附限额说明。"""
+    '不接受只报拦截；接受时可附限额说明'
     if 接受中 is not True:#拦截
         return {'title':翻译('image.dropBlocked')}#标题
     说明=None if 限额 is None else 翻译('image.dropDesc',{'count':限额['count'],'size':限额['size']})#说明
     return {'title':翻译('image.dropTitle'),'desc':说明}#接受
 
 def 附件栏标签(翻译):
-    """分组与翻页。"""
+    '分组与翻页'
     return {#栏
         'group':翻译('image.pending'),#待发
         'open':翻译('image.openOriginal'),#打开

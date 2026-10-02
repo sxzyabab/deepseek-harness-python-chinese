@@ -5,7 +5,7 @@ from .rpc import 连接错误#本包异常
 __all__=['断言受信任权威','是否受信任接口请求']#仅中文公开名
 
 def 取头(请求头表,名):#读单个头
-    """从 dict 头映射读单个头；不要数组。"""
+    '从 dict 头映射读单个头；不要数组'
     if 请求头表 is None:#无头
         return None#缺席
     if 名 in 请求头表:#原名
@@ -20,14 +20,14 @@ def 取头(请求头表,名):#读单个头
     return None#不要数组
 
 def 解析权威(权威):#权威字符串 → 解析结果
-    """Host 头权威的归一化；无法解析则为 None。"""
+    'Host 头权威的归一化；无法解析则为 None'
     解析=解析URL('http://'+权威)
     if not 解析.hostname:#无主机名
         return None#不当权威
     return 解析#解析结果
 
 def 规范权威(条目,解析):#权威 → 规范 host 或 host:port
-    """已解析权威的规范形态：没写端口时是 hostname，否则 hostname:port。"""
+    '已解析权威的规范形态：没写端口时是 hostname，否则 hostname:port'
     端口=解析.port#显式或默认
     if 解析.port is None:#http 默认 80 时改用 https 看是否写了 443
         端口=解析URL('https://'+条目).port
@@ -36,14 +36,14 @@ def 规范权威(条目,解析):#权威 → 规范 host 或 host:port
     return (解析.hostname or '').lower()+':'+str(端口)#hostname:port
 
 def 断言受信任权威(条目):#加载时校验 trustedHosts 条目
-    """断言一条配置的 trustedHosts 条目是规范形态的裸权威（host 或 host:port）。"""
+    '断言一条配置的 trustedHosts 条目是规范形态的裸权威（host 或 host:port）'
     解析=解析权威(条目)#尝试当权威解析
     if 解析 is not None and 规范权威(条目,解析)==条目.lower():#规范形态则通过
         return#通过
     raise 连接错误('client-connection: trustedHosts entry '+repr(条目)+' is not a bare host[:port] authority')#否则加载失败
 
 def 是否受信任权威(主机解析,受信任表):#Host 是否在名单
-    """请求权威是否匹配某条 trustedHosts 条目。"""
+    '请求权威是否匹配某条 trustedHosts 条目'
     for 条目 in 受信任表:#任一条匹配即可
         条目解析=解析权威(条目)#解析条目
         if 条目解析 is None:#加载期已拒绝畸形，这里防守
@@ -60,7 +60,7 @@ def 是否受信任权威(主机解析,受信任表):#Host 是否在名单
     return False#无一匹配
 
 def 是否受信任接口请求(请求,受信任表):#/api 信任判定
-    """决定一条 /api 请求能否到达 RPC 桥。请求冻结为 dict。"""
+    '决定一条 /api 请求能否到达 RPC 桥。请求冻结为 dict'
     请求头表=请求['headers'] if 'headers' in 请求 else None#头
     主机=取头(请求头表,'host')#Host 头
     if 主机 is None:#没有 Host 拒绝

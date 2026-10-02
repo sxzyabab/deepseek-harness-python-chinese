@@ -1,7 +1,4 @@
-"""pi-ai 适配器的配置模式与提供方配置校验。
-
-公开面仅中文名；无英文别名。
-"""
+'pi-ai 适配器的配置模式与提供方配置校验'
 import math#有限数判断
 from .. import llm#语言模型服务
 from ...依赖.schemastery import 字符串字段,整数字段,列表字段,复合类型字段,常量字段,字典字段,布尔字段,枚举字段,自然数字段,数字字段#配置字段
@@ -86,7 +83,7 @@ __all__=(#仅中文公开名
 }#插件配置模式；中文名，无英文 Config 别名
 
 def 断言可服务(配置,先前=None):#拒绝新增或变更且无法服务的设置段
-    """拒绝新增或变更且无法服务的提供方配置。未变的已存配置不阻塞编辑另一提供方。"""
+    '拒绝新增或变更且无法服务的提供方配置。未变的已存配置不阻塞编辑另一提供方'
     提供方表=配置['providers'] if 'providers' in 配置 else {}#当前
     先前表=(先前['providers'] if 先前 is not None and 'providers' in 先前 else {}) if 先前 is not None else {}#先前
     变更={}#仅变更
@@ -97,7 +94,7 @@ def 断言可服务(配置,先前=None):#拒绝新增或变更且无法服务的
     解析配置表(变更)#严格解析变更集
 
 def 拒绝已删字段(提供方,来源):#拒绝已删除的预发布配置字段
-    """拒绝已删除的预发布配置字段并点名其替换。来源为单条路由 dict。"""
+    '拒绝已删除的预发布配置字段并点名其替换。来源为单条路由 dict'
     if 'provider' in 来源:#预发布曾把路由写在条目里，现已迁到 providers 字典键
         raise 配置错误('llm-pi-ai: provider "'+提供方+'" sets "provider", which moved to the providers dict key')#已迁到字典键
     if 'maxRetries' in 来源 or 'maxRetryDelayMs' in 来源:#旧重试字段已删除，应改用 dsh-llm-retry
@@ -107,7 +104,7 @@ def 拒绝已删字段(提供方,来源):#拒绝已删除的预发布配置字�
         )#已删除
 
 def 解析配置表(提供方表,校验='strict'):#校验并拆离按路由键控的配置映射
-    """解析标量默认并物化每路由可服务模型。校验为 strict 或 deferred。"""
+    '解析标量默认并物化每路由可服务模型。校验为 strict 或 deferred'
     if isinstance(提供方表,list):#旧数组形态已废除，必须是按路由键控的字典
         raise 配置错误('llm-pi-ai: providers is now a dict keyed by provider route, not an array of profiles')#必须是字典
     if 提供方表 is None:#缺席当空表；空 dict 仍按空表迭代，不走 or 以免与 JS 真值分叉

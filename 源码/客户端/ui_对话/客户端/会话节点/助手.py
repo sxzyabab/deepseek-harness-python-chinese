@@ -5,7 +5,7 @@ from .事件面 import 是追加面事件,空助手块,转助手块,转助手块
 __all__=['助手定义','登记助手会话节点']#仅中文公开名
 
 def 初态(回合,步):
-    """初始字段。"""
+    '初始字段'
     return {#初态
         'turn':回合,'step':步,'blocks':[],#坐标与块
         'firstVisibleSeq':None,'firstVisibleTime':None,'firstTokenTime':None,#边界
@@ -13,11 +13,11 @@ def 初态(回合,步):
     }#结束
 
 def 压实块(块列表):
-    """丢掉空洞。"""
+    '丢掉空洞'
     return [块 for 块 in 块列表 if 块 is not None]#非空
 
 def 有可见内容(块列表):
-    """工具调用不算可见正文。"""
+    '工具调用不算可见正文'
     for 块 in 块列表:#逐块
         种=块['kind'] if 'kind' in 块 else None#种
         if 种=='tool-call':#工具
@@ -31,7 +31,7 @@ def 有可见内容(块列表):
     return False#无
 
 def 有打断证据(块列表):
-    """任一非空块即算。"""
+    '任一非空块即算'
     for 块 in 块列表:#逐块
         种=块['kind'] if 'kind' in 块 else None#种
         if 种 in ('text','reasoning'):#文本/推理
@@ -43,14 +43,14 @@ def 有打断证据(块列表):
     return False#无
 
 def 重试重置(态):
-    """首 token 跨重试保留。"""
+    '首 token 跨重试保留'
     下=初态(态['turn'],态['step'])#空
     下['firstTokenTime']=态['firstTokenTime'] if 'firstTokenTime' in 态 else None#保留
     下['hidden']=True#隐藏
     return 下#重试态
 
 def 折流块(态,匹配项):
-    """按流块判别标签更新稀疏块。"""
+    '按流块判别标签更新稀疏块'
     事件=匹配项['event']#事件
     if 事件['type']!='assistant/live-chunk':#非
         return 态#原样
@@ -112,7 +112,7 @@ def 折流块(态,匹配项):
     return 下#更新态
 
 def 关闭边界(位置):
-    """步骤或回合关闭边界。"""
+    '步骤或回合关闭边界'
     种=位置['kind'] if 'kind' in 位置 else None#种
     if 种=='step':#步骤
         步=位置['step'] if 'step' in 位置 and 位置['step'] is not None else {}#步
@@ -125,7 +125,7 @@ def 关闭边界(位置):
     return None#仍开放
 
 def 定稿节点(态,上下文):
-    """有定稿消息优先；否则关闭边界+证据合成打断。"""
+    '有定稿消息优先；否则关闭边界+证据合成打断'
     终=态['final'] if 'final' in 态 else None#定稿匹配
     终事件=终['event'] if 终 is not None and 'event' in 终 else None#事件
     if 终事件 is not None and 终事件['type']=='assistant/message':#定稿
@@ -169,7 +169,7 @@ def 定稿节点(态,上下文):
     }#结束
 
 def 回放状态(上下文):
-    """按匹配顺序折。"""
+    '按匹配顺序折'
     态=None#累加
     for 匹配项 in (上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []):#遍历
         事件=匹配项['event']#事件
@@ -192,7 +192,7 @@ def 回放状态(上下文):
     return 态#结果
 
 def 投影助手(上下文):
-    """增量状态或重放。"""
+    '增量状态或重放'
     态=上下文['state'] if 'state' in 上下文 else None#增量
     if 态 is None:#无
         态=回放状态(上下文)#重放
@@ -222,7 +222,7 @@ def 投影助手(上下文):
     return {'data':数据,'anchorSeq':锚,'visible':可见,'settled':已结}#投影
 
 def 助手匹配(事件):
-    """step/start 开；chunk/message/retry 更新。"""
+    'step/start 开；chunk/message/retry 更新'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='step/start':#步骤开始
@@ -234,7 +234,7 @@ def 助手匹配(事件):
     return None#不认领
 
 def 助手开始(_上下文,匹配项):
-    """必须是步骤开始。"""
+    '必须是步骤开始'
     事件=匹配项['event']#事件
     if 事件['type']!='step/start':#必须
         raise 对话错误('assistant-step start requires step/start')#硬失败
@@ -242,7 +242,7 @@ def 助手开始(_上下文,匹配项):
     return 初态(数据['turn'] if 'turn' in 数据 else None,数据['step'] if 'step' in 数据 else None)#空状态
 
 def 助手更新(上下文,匹配项):
-    """chunk / message / retry。"""
+    'chunk / message / retry'
     事件=匹配项['event']#事件
     种=事件['type']#种
     态=上下文['state']#态
@@ -257,7 +257,7 @@ def 助手更新(上下文,匹配项):
     return 态#不改
 
 def 助手发布(匹配项):
-    """start 不发；chunk 跟动画帧；用量/结束不发。"""
+    'start 不发；chunk 跟动画帧；用量/结束不发'
     事件=匹配项['event']#事件
     种=事件['type']#种
     if 种=='step/start':#开始
@@ -270,7 +270,7 @@ def 助手发布(匹配项):
     return 'none' if 块种 in ('usage','finish') else 'animation-frame'#动画帧
 
 def 助手位置数据(上下文,作用域):
-    """只给步骤作用域。"""
+    '只给步骤作用域'
     if 作用域!='step':#非
         return None#无
     投影=投影助手(上下文)#投影
@@ -280,7 +280,7 @@ def 助手位置数据(上下文,作用域):
     return {'kind':'step','turn':数据['turn'],'step':数据['step'],'key':'assistant-step','value':数据}#条目
 
 def 助手建视图(上下文):
-    """运行中无可见正文时的空行纪律。"""
+    '运行中无可见正文时的空行纪律'
     投影=投影助手(上下文)#投影
     if 投影 is None:#无
         return None#无
@@ -307,5 +307,5 @@ def 助手建视图(上下文):
 }#结束
 
 def 登记助手会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(助手定义)#登记

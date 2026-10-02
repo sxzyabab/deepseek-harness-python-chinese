@@ -7,19 +7,19 @@ __all__=['终端块','默认终端最大行','默认标签','提示标签','状�
 默认终端最大行=16#输出预算
 
 def 信号文案(信号):
-    """信号胶囊。"""
+    '信号胶囊'
     return '信号 '+str(信号)#文
 
 def 退出码文案(码):
-    """退出码胶囊。"""
+    '退出码胶囊'
     return '退出码 '+str(码)#文
 
 def 展开其余无障碍(隐):
-    """展开其余 N 行 aria。"""
+    '展开其余 N 行 aria'
     return '展开其余 '+str(隐)+' 行输出'#文
 
 def 展开其余标(隐):
-    """展开其余 N 行。"""
+    '展开其余 N 行'
     return '… 其余 '+str(隐)+' 行'#文
 
 默认标签={#内置文案
@@ -33,18 +33,18 @@ def 展开其余标(隐):
 }#标签结束
 
 def 剥尾分隔(路径):
-    """/\\ 尾。"""
+    '/\\ 尾'
     if isinstance(路径,str) is False:#非串
         return ''#空
     return 路径.rstrip('/\\')#剥
 
 def 切末段(路径):
-    """两分隔都认。"""
+    '两分隔都认'
     片=路径.replace('\\','/').split('/')#统一
     return 片[-1] if len(片)>0 else ''#末；判 length
 
 def 提示标签(工作目录,家目录):
-    """家目录坍成 ~；否则末段。"""
+    '家目录坍成 ~；否则末段'
     修=剥尾分隔(工作目录)#修
     if 家目录 is not None and 修==剥尾分隔(家目录):#家
         return '~'#波浪
@@ -52,7 +52,7 @@ def 提示标签(工作目录,家目录):
     return 工作目录 if 段=='' else 段#回退整路径
 
 def 状态文案(退出码,信号,标签):
-    """干净退出 None。标签.signal/exitCode 为函数。"""
+    '干净退出 None。标签.signal/exitCode 为函数'
     if 信号 is not None:#信号优先
         return 标签['signal'](信号)#信号
     if 退出码 is not None and 退出码!=0:#非零
@@ -60,7 +60,7 @@ def 状态文案(退出码,信号,标签):
     return None#干净
 
 def 运行态(运行中,退出码,信号,标签):
-    """ongoing/error/done。"""
+    'ongoing/error/done'
     if 运行中 is True:#跑
         return {'state':'ongoing','label':标签['running']}#跑
     if 状态文案(退出码,信号,标签) is not None:#失败
@@ -68,28 +68,28 @@ def 运行态(运行中,退出码,信号,标签):
     return {'state':'done','label':标签['done']}#成
 
 def 段文(段):
-    """span.text，缺则空串。段为 dict。"""
+    'span.text，缺则空串。段为 dict'
     return 段['text'] if 'text' in 段 and 段['text'] is not None else ''#文
 
 class 终端块:#终端卡
-    """本地展开；复制写原始 output。"""
+    '本地展开；复制写原始 output'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.已展开=False#展开
         自身.反馈=复制反馈()#复制
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 切换展开(自身):
-        """封顶。"""
+        '封顶'
         自身.已展开=not 自身.已展开#翻
 
     def 渲染(自身):
-        """解析 ANSI 并封顶。"""
+        '解析 ANSI 并封顶'
         属性=自身.属性#props
         标签=dict(默认标签)#默认
         覆=属性['labels'] if 'labels' in 属性 else None#覆盖
@@ -152,7 +152,7 @@ class 终端块:#终端卡
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

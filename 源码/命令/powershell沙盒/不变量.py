@@ -1,4 +1,4 @@
-"""本包拥有的不变量配套（中文名包）。"""
+'本包拥有的不变量配套（中文名包）'
 from importlib import import_module as 导入模块#带连字符目录需经 importlib
 源模块=导入模块('..沙盒powershell.不变量',__name__)#旧包不变量
 __all__=['包名','名称','依赖','安装','应用']

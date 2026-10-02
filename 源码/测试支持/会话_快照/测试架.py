@@ -10,7 +10,7 @@ __all__=['快照溢出根','运行场景']
 轮询间隔毫秒=10
 
 def 等待直到(谓词,超时毫秒=默认等待超时毫秒,间隔毫秒=轮询间隔毫秒):#轮询等待
-    """超时前反复调用谓词直至不抛。"""
+    '超时前反复调用谓词直至不抛'
     截止=time.monotonic()+超时毫秒/1000#截止
     末次=None#末次错误
     while time.monotonic()<截止:#轮询
@@ -23,7 +23,7 @@ def 等待直到(谓词,超时毫秒=默认等待超时毫秒,间隔毫秒=轮�
     raise 末次 or Exception('等待超时')#超时
 
 def 快照溢出根(夹具文件,平台=None):#溢出定位前缀
-    """推导稳定定长逻辑溢出前缀；绝不在此分配文件。"""
+    '推导稳定定长逻辑溢出前缀；绝不在此分配文件'
     if 平台 is None:#缺省
         平台=os.name#平台
     场景=os.path.basename(os.path.dirname(夹具文件))#场景名
@@ -32,7 +32,7 @@ def 快照溢出根(夹具文件,平台=None):#溢出定位前缀
     return f'{根}/dsh-acp-snap-{键}'#溢出目录
 
 def 收获会话日志(根):#收获会话日志
-    """收获会话根下每个最高世代持久化日志，主优先。"""
+    '收获会话根下每个最高世代持久化日志，主优先'
     日志列表=[]#日志
     if not os.path.isdir(根):#无根
         return 日志列表#空
@@ -55,24 +55,24 @@ def 收获会话日志(根):#收获会话日志
     return 日志列表#返回
 
 def 最新回合已关闭(内容):#最新回合是否关闭
-    """最新完整原始 JSONL 回合边界是否关闭。"""
+    '最新完整原始 JSONL 回合边界是否关闭'
     完整=内容[:内容.rfind('\n')+1] if '\n' in 内容 else 内容#完整前缀
     return 完整.rfind('\n{"type":"turn/end",')>完整.rfind('\n{"type":"turn/start",')#关闭晚于开始
 
 def 最新标题跟在回合结束后(内容):#标题是否跟在回合结束后
-    """最新完整标题是否出现在最新完整回合结束之后。"""
+    '最新完整标题是否出现在最新完整回合结束之后'
     完整=内容[:内容.rfind('\n')+1] if '\n' in 内容 else 内容#完整前缀
     回合结束=完整.rfind('\n{"type":"turn/end",')#回合结束
     return 回合结束>=0 and 完整.rfind('\n{"type":"session/title",')>回合结束#标题更晚
 
 def 最新事件跟在回合结束后(内容,类型):#事件是否跟在回合结束后
-    """type 的完整记录是否出现在最新完整回合结束之后。"""
+    'type 的完整记录是否出现在最新完整回合结束之后'
     完整=内容[:内容.rfind('\n')+1] if '\n' in 内容 else 内容#完整前缀
     回合结束=完整.rfind('\n{"type":"turn/end",')#回合结束
     return 回合结束>=0 and 完整.rfind(f'\n{{"type":"{类型}",')>回合结束#事件更晚
 
 def 最新打开回合(内容):#最新打开回合号
-    """返回最新打开回合号。"""
+    '返回最新打开回合号'
     完整=内容[:内容.rfind('\n')+1] if '\n' in 内容 else 内容#完整前缀
     开始=完整.rfind('\n{"type":"turn/start",')#开始
     if 开始<=完整.rfind('\n{"type":"turn/end",'):#已关闭
@@ -85,7 +85,7 @@ def 最新打开回合(内容):#最新打开回合号
     return 回合#返回
 
 def 有关闭回合(内容,回合):#是否含关闭回合
-    """原始会话日志是否含请求的关闭回合。"""
+    '原始会话日志是否含请求的关闭回合'
     for 行 in 内容.split('\n'):#逐行
         if not 行:#空
             continue#跳过
@@ -95,7 +95,7 @@ def 有关闭回合(内容,回合):#是否含关闭回合
     return False#无
 
 def 描述符后有请求头(内容):#描述符后是否有请求头
-    """子日志是否在自有描述符事件后含模型工作。"""
+    '子日志是否在自有描述符事件后含模型工作'
     行列表=[行 for 行 in 内容.split('\n') if 行]#非空行
     事件列表=[json.loads(行) for 行 in 行列表]#事件
     描述符=-1#索引
@@ -105,7 +105,7 @@ def 描述符后有请求头(内容):#描述符后是否有请求头
     return 描述符>=0 and any(事件.get('type')=='request/header' for 事件 in 事件列表[描述符+1:])#其后有头
 
 def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会话标识,等回合开始,等回合结束,等子回合结束,等目标阶段,等收件箱,等标题,等事件后):#驱动一步
-    """经客户端连接驱动一步输入。"""
+    '经客户端连接驱动一步输入'
     操作=步骤.get('op')#操作
     if 操作=='initialize':#初始化
         客户端['initialize']({'protocolVersion':1,'clientCapabilities':{}})#初始化
@@ -143,7 +143,7 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
             raise Exception('snapshot-harness: 在 newSession 之前调用 promptAndWaitForAgentMessage')#未建
         等待文本=步骤['waitForText']#等待文本
         def 匹配(更新):#匹配更新
-            """精确文本块。"""
+            '精确文本块'
             return 更新.get('sessionUpdate')=='agent_message_chunk' and 更新.get('content',{}).get('type')=='text' and 更新.get('content',{}).get('text')==等待文本#匹配
         完成=threading.Thread(target=lambda:等更新(匹配),daemon=True)#武装等待
         完成.start()#启动
@@ -167,7 +167,7 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
             raise Exception('snapshot-harness: 在 newSession 之前调用 promptAndCancel')#未建
         结果盒={}#结果
         def 派发():#后台提示
-            """不阻塞取消路径。"""
+            '不阻塞取消路径'
             try:#提示
                 结果盒['ok']=客户端['prompt']({'sessionId':标识,'prompt':[{'type':'text','text':步骤['text']}]})#提示
             except Exception as 错误:#失败
@@ -234,22 +234,22 @@ def 运行步骤(客户端,步骤,工作目录,等更新,取会话标识,设会�
     raise Exception(f'snapshot-harness: unknown input op {步骤!r}')#未知操作
 
 def sys_exc():#取当前异常
-    """返回当前异常实例。"""
+    '返回当前异常实例'
     return __import__('sys').exc_info()[1]#当前异常
 
 def 等待工作区文件(工作目录,路径,超时毫秒=None):#等 cwd 相对标记
-    """等待证明外部动作到达就绪的 cwd 相对标记。"""
+    '等待证明外部动作到达就绪的 cwd 相对标记'
     if 超时毫秒 is None:#缺省
         超时毫秒=默认等待超时毫秒#默认
     目标=os.path.join(工作目录,路径)#目标
     def 检查():#检查存在
-        """文件必须出现。"""
+        '文件必须出现'
         if not os.path.exists(目标):#未出现
             raise Exception(f'snapshot-harness: workspace file "{路径}" did not appear within {超时毫秒}ms')#未出现
     等待直到(检查,超时毫秒)#等待
 
 def 运行场景(输入,选项):#运行场景
-    """对新鲜 spawn 的子进程端到端运行场景。"""
+    '对新鲜 spawn 的子进程端到端运行场景'
     父=选项.get('workspaceParent') or tempfile.gettempdir()#父目录
     工作目录=tempfile.mkdtemp(prefix='acp-snap-cwd-',dir=父)#生成 cwd
     别名=list({os.path.realpath(工作目录)})#cwd 别名
@@ -293,7 +293,7 @@ def 运行场景(输入,选项):#运行场景
         权限队列=list(输入.get('permissionAnswers') or [])#权限队列
         脚本错误=[None]#脚本错误
         def 请求权限(参数):#权限回调
-            """FIFO 消费权限答案。"""
+            'FIFO 消费权限答案'
             if not 权限队列:#耗尽
                 return {'outcome':{'outcome':'cancelled'}}#取消
             答案=权限队列.pop(0)#取答案
@@ -312,13 +312,13 @@ def 运行场景(输入,选项):#运行场景
         已启动=启动ACP测试智能体(启动选项)#启动
         客户端=已启动['client']#客户端
         def 设标识(标识):#设会话 id
-            """写入会话标识。"""
+            '写入会话标识'
             nonlocal 会话标识#可变
             会话标识=标识#写入
         def 等回合开始(标识,超时=None,最小=None):#等回合开始
-            """等待持久化打开回合。"""
+            '等待持久化打开回合'
             def 检查():#检查
-                """打开回合就绪。"""
+                '打开回合就绪'
                 日志=next((项 for 项 in 收获会话日志(会话根) if 项['id']==标识),None)#日志
                 打开=None if 日志 is None else 最新打开回合(日志['content'])#打开回合
                 if 打开 is None or (最小 is not None and 打开<最小):#未就绪
@@ -326,18 +326,18 @@ def 运行场景(输入,选项):#运行场景
                     raise Exception(f'snapshot-harness: session "{标识}" did not persist {细节} within {超时 or 默认等待超时毫秒}ms')#未就绪
             等待直到(检查,超时 or 默认等待超时毫秒)#等待
         def 等回合结束(标识,超时=None):#等回合结束
-            """等待关闭回合。"""
+            '等待关闭回合'
             def 检查():#检查
-                """关闭回合就绪。"""
+                '关闭回合就绪'
                 日志=next((项 for 项 in 收获会话日志(会话根) if 项['id']==标识),None)#日志
                 if 日志 is None or not 最新回合已关闭(日志['content']):#未关闭
                     raise Exception(f'snapshot-harness: session "{标识}" did not persist turn/end within {超时 or 默认等待超时毫秒}ms')#未关闭
             等待直到(检查,超时 or 默认等待超时毫秒)#等待
         def 等子回合结束(子,超时=None,最小=1):#等子回合结束
-            """等待第 N 个子会话关闭回合。"""
+            '等待第 N 个子会话关闭回合'
             消息=f'snapshot-harness: subagent child #{子} did not persist closed turn {最小 or 1} within {超时 or 默认等待超时毫秒}ms'#统一消息
             def 检查():#检查
-                """子回合关闭。"""
+                '子回合关闭'
                 日志列表=收获会话日志(会话根)#日志
                 日志=日志列表[子] if 子<len(日志列表) else None#子日志
                 if 日志 is None or not 最新回合已关闭(日志['content']) or not 描述符后有请求头(日志['content']) or not 有关闭回合(日志['content'],最小 or 1):#未就绪
@@ -347,9 +347,9 @@ def 运行场景(输入,选项):#运行场景
             except Exception as 原因:#截止或校验失败
                 raise Exception(消息) from 原因#保留 cause
         def 等目标阶段(标识,阶段,超时=None):#等目标阶段
-            """等待目标阶段。"""
+            '等待目标阶段'
             def 检查():#检查
-                """阶段到达。"""
+                '阶段到达'
                 内容=next((项['content'] for 项 in 收获会话日志(会话根) if 项['id']==标识),None)#内容
                 命中=False#命中
                 if 内容:#有内容
@@ -364,9 +364,9 @@ def 运行场景(输入,选项):#运行场景
                     raise Exception(f'snapshot-harness: session "{标识}" did not persist goal phase "{阶段}" within {超时 or 默认等待超时毫秒}ms')#未命中
             等待直到(检查,超时 or 默认等待超时毫秒)#等待
         def 等收件箱(标识,文本,超时=None):#等收件箱
-            """等待收件箱文本。"""
+            '等待收件箱文本'
             def 检查():#检查
-                """收件箱含文本。"""
+                '收件箱含文本'
                 日志=next((项 for 项 in 收获会话日志(会话根) if 项['id']==标识),None)#日志
                 命中=False#命中
                 if 日志:#有日志
@@ -384,17 +384,17 @@ def 运行场景(输入,选项):#运行场景
                     raise Exception(f'snapshot-harness: session "{标识}" did not persist expected inbox message within {超时 or 默认等待超时毫秒}ms')#未命中
             等待直到(检查,超时 or 默认等待超时毫秒)#等待
         def 等标题(标识,超时=None):#等标题
-            """等待标题跟在回合结束后。"""
+            '等待标题跟在回合结束后'
             def 检查():#检查
-                """标题就绪。"""
+                '标题就绪'
                 日志=next((项 for 项 in 收获会话日志(会话根) if 项['id']==标识),None)#日志
                 if 日志 is None or not 最新标题跟在回合结束后(日志['content']):#未就绪
                     raise Exception(f'snapshot-harness: session "{标识}" did not persist session/title after turn/end within {超时 or 默认等待超时毫秒}ms')#未就绪
             等待直到(检查,超时 or 默认等待超时毫秒)#等待
         def 等事件后(标识,类型,超时=None):#等事件后
-            """等待事件跟在回合结束后。"""
+            '等待事件跟在回合结束后'
             def 检查():#检查
-                """事件就绪。"""
+                '事件就绪'
                 日志=next((项 for 项 in 收获会话日志(会话根) if 项['id']==标识),None)#日志
                 if 日志 is None or not 最新事件跟在回合结束后(日志['content'],类型):#未就绪
                     raise Exception(f'snapshot-harness: session "{标识}" did not persist {类型} after turn/end within {超时 or 默认等待超时毫秒}ms')#未就绪

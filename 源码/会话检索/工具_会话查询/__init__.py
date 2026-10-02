@@ -1,4 +1,4 @@
-"""面向模型、且经工作区授权的会话历史检索与读取工具。"""
+'面向模型、且经工作区授权的会话历史检索与读取工具'
 from ...依赖.schemastery import 整数字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
@@ -25,7 +25,7 @@ from .呈现 import 呈现#工具呈现
 )#系统提示词段落
 
 def 渲染文本输出(参数,值):
-    """字符串工具输出。"""
+    '字符串工具输出'
     return [{'type':'text','text':值}]#文本块
 
 文本输出={'schema':{'type':'string'},'render':渲染文本输出}#字符串输出
@@ -33,7 +33,7 @@ def 渲染文本输出(参数,值):
 __all__=['包名','名称','依赖','应用','默认','配置','默认最大搜索结果数','默认搜索超时毫秒']
 
 def 解析配置(配置值):
-    """解析运行时配置。"""
+    '解析运行时配置'
     最大结果数=配置值['maxSearchResults'] if 'maxSearchResults' in 配置值 else 默认最大搜索结果数#命中上限
     超时毫秒=配置值['searchTimeoutMs'] if 'searchTimeoutMs' in 配置值 else 默认搜索超时毫秒#超时
     if isinstance(最大结果数,bool) or (not isinstance(最大结果数,int)) or 最大结果数<1:#非法命中
@@ -43,33 +43,33 @@ def 解析配置(配置值):
     return {'maxSearchResults':最大结果数,'searchTimeoutMs':超时毫秒}#解析结果
 
 def 并发安全():
-    """只读工具并发安全。"""
+    '只读工具并发安全'
     return True#安全
 
 def 应用(上下文,配置值):
-    """登记全部五个工具及其共享的模型指引。"""
+    '登记全部五个工具及其共享的模型指引'
     已解析=解析配置(配置值)#解析配置
     上下文.systemPrompt.section({'name':'tool:session-query','order':113,'text':提示词文本})#系统提示词
     def 执行会话搜索(参数,执行):
-        """session_search。"""
+        'session_search'
         return 操作['executeSessionSearch'](上下文,参数,执行,已解析['maxSearchResults'])#执行
     def 执行事件搜索(参数,执行):
-        """session_event_search。"""
+        'session_event_search'
         return 操作['executeEventSearch'](上下文,参数,执行,已解析['maxSearchResults'])#执行
     def 执行谱系(参数,执行):
-        """session_trace。"""
+        'session_trace'
         return 操作['executeSessionTrace'](上下文,参数,执行)#执行
     def 执行事件追踪(参数,执行):
-        """session_event_trace。"""
+        'session_event_trace'
         return 操作['executeEventTrace'](上下文,参数,执行)#执行
     def 呈现事件追踪(参数):
-        """追踪卡。"""
+        '追踪卡'
         return 呈现['presentEventTargetCall']('Trace event',参数)#卡
     def 执行事件读取(参数,执行):
-        """session_event_read。"""
+        'session_event_read'
         return 操作['executeEventRead'](上下文,参数,执行)#执行
     def 呈现事件读取(参数):
-        """读取卡。"""
+        '读取卡'
         return 呈现['presentEventTargetCall']('Read event',参数)#卡
     上下文.tools.register(定义工具({
         'name':'session_search','description':'Search prior sessions in the caller workspace and return the strongest matching event from each session.',

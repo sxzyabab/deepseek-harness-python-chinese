@@ -27,17 +27,17 @@ _整名类型={#整名 → 分类
 }#整名结束
 
 def _路径末段(路径):#取末段
-    """正斜杠或反斜杠分隔的末段。"""
+    '正斜杠或反斜杠分隔的末段'
     return 路径[max(路径.rfind('/'),路径.rfind('\\'))+1:]#末段
 
 def 文件扩展名(路径):#取后缀
-    """对齐 fileExtension：末段最后一点之后；无或尾点则空串。"""
+    '对齐 fileExtension：末段最后一点之后；无或尾点则空串'
     名=_路径末段(路径)#末段
     点=名.rfind('.')#末点
     return '' if 点<0 else 名[点+1:]#后缀
 
 def 分类文件类型(路径,上下文=None):#分类呈现类别
-    """对齐 classifyFileType：代码规则优先，未知回落 other。不含 folder。"""
+    '对齐 classifyFileType：代码规则优先，未知回落 other。不含 folder'
     名=_路径末段(路径).lower()#小写末段
     扩展=文件扩展名(名).lower()#小写扩展
     代码=分类代码文件类型(名,扩展,上下文)#代码分类
@@ -50,17 +50,17 @@ def 分类文件类型(路径,上下文=None):#分类呈现类别
     return 'other'#回落
 
 class 文件类型图标:#装饰文件类型字形
-    """按 path 或 kind 解析类别；宿主按 kind 画 SVG。"""
+    '按 path 或 kind 解析类别；宿主按 kind 画 SVG'
     def __init__(自身,属性=None):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):#刷新
-        """记下最新。"""
+        '记下最新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 视图(自身):#读视图模型
-        """解析类别与尺寸。"""
+        '解析类别与尺寸'
         属性=自身.属性#props
         尺寸=属性['size'] if 'size' in 属性 and 属性['size'] is not None else 28#默认 28
         类名=属性['className'] if 'className' in 属性 else None#类
@@ -80,7 +80,7 @@ class 文件类型图标:#装饰文件类型字形
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.视图()#渲

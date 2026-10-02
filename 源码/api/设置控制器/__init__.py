@@ -1,5 +1,5 @@
-"""配置域远程拥有者：settings 与并列的 credentials。"""
-from ...typert.协议 import 远程服务,远程 as _远程
+'配置域远程拥有者：settings 与并列的 credentials'
+from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .凭据 import 凭据控制器
 from .远程错误与中止 import 远程错误,远程错误消息,已中止
 from .投影与写入 import 命名空间视图,拒绝写入
@@ -12,9 +12,9 @@ __all__=['包名','名称','依赖','应用','默认','设置控制器','凭据�
 依赖=[]
 
 class 设置控制器(远程服务):
-    """生成 remote.settings 命名空间。"""
+    '生成 remote.settings 命名空间'
     def __init__(自身,上下文,内部=None):
-        """登记 settings 命名空间并挂载凭据子插件。"""
+        '登记 settings 命名空间并挂载凭据子插件'
         super().__init__(上下文,'settingsController',{'namespace':'settings'})
         if 内部 is None:
             内部={}
@@ -26,7 +26,7 @@ class 设置控制器(远程服务):
 
     @_远程
     def describe(自身):
-        """红化描述全部注册命名空间。"""
+        '红化描述全部注册命名空间'
         设置=自身._提供方()
         return {
             'writable':设置.writable,
@@ -36,22 +36,22 @@ class 设置控制器(远程服务):
 
     @_远程
     def update(自身,命名空间,补丁,期望修订=None):
-        """合并 user 段补丁。"""
+        '合并 user 段补丁'
         return 自身._写入(命名空间,'update',补丁,期望修订)
 
     @_远程
     def replace(自身,命名空间,整段,期望修订=None):
-        """整段替换 user 段。"""
+        '整段替换 user 段'
         return 自身._写入(命名空间,'replace',整段,期望修订)
 
     @_远程
     def mutate(自身,命名空间,操作列表,期望修订=None):
-        """按路径编辑 user 段。"""
+        '按路径编辑 user 段'
         return 自身._写入(命名空间,'mutate',操作列表,期望修订)
 
     @_远程
     def openSettingsDocument(自身,信号):
-        """物化并原生打开设置文档。"""
+        '物化并原生打开设置文档'
         设置=自身._提供方()
         if 已中止(信号):
             raise 远程错误('gateway/cancelled','settings document open was aborted',{})
@@ -72,7 +72,7 @@ class 设置控制器(远程服务):
             raise 远程错误('gateway/internal','path open failed: '+远程错误消息(错误),{},原因=错误)
 
     def _写入(自身,命名空间,模式,输入,期望修订):
-        """执行 update/replace/mutate 并返回红化视图。"""
+        '执行 update/replace/mutate 并返回红化视图'
         if not isinstance(命名空间,str) or 命名空间=='':
             raise 远程错误('gateway/bad-request','invalid payload for settings.'+模式,{'issues':[{'message':'ns invalid'}]})
         设置=自身._提供方()
@@ -95,14 +95,14 @@ class 设置控制器(远程服务):
         return 命名空间视图(描述符)
 
     def _提供方(自身):
-        """取 settings 提供方或报告如何挂载。"""
+        '取 settings 提供方或报告如何挂载'
         设置=自身.ctx.获取服务('settings')
         if 设置 is None:
             raise 远程错误('gateway/internal','settings service is absent: mount @deepseek-ai/dsh-settings with @deepseek-ai/dsh-config-editor in the profile composition',{})
         return 设置
 
 def 应用(上下文,配置值=None):
-    """挂载 settings 与 credentials Remote 拥有者。"""
+    '挂载 settings 与 credentials Remote 拥有者'
     设置控制器(上下文)
 
 默认=应用

@@ -6,7 +6,7 @@ from .终端卡模型 import 终端块文案#终端文案
 __all__=['工具行','前导态','状态文案']#仅中文公开名
 
 def 前导态(状态,图标):#前导槽状态替换
-    """错误/中止换状态点；其余保留工具图标（名或节点）。"""
+    '错误/中止换状态点；其余保留工具图标（名或节点）'
     if 状态=='error':#失败
         return {'type':'state-dot','state':'error'}#红点
     if 状态=='stopped':#中止
@@ -14,7 +14,7 @@ def 前导态(状态,图标):#前导槽状态替换
     return 图标#工具图标
 
 def 状态文案(状态,翻译):#无障碍运行态文案
-    """ok 态为 None；其余给辅助技术。"""
+    'ok 态为 None；其余给辅助技术'
     if 状态=='running':#运行中
         return 翻译('row.running') if callable(翻译) else 'row.running'#运行
     if 状态=='error':#失败
@@ -24,25 +24,25 @@ def 状态文案(状态,翻译):#无障碍运行态文案
     return None#ok
 
 class 工具行:#单行工具摘要
-    """渲染一行工具调用摘要与可选展开体。"""
+    '渲染一行工具调用摘要与可选展开体'
 
     def __init__(自身,属性=None):#记下 props
-        """记下合成 props 与本地展开。"""
+        '记下合成 props 与本地展开'
         自身.属性={} if 属性 is None else 属性#合成
         自身.已展开=False#本地展开
 
     def 更新(自身,属性):#刷新 props
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#新
 
     def 切换展开(自身):#整行切换
-        """有体/出/卡才可展开。"""
+        '有体/出/卡才可展开'
         if not 自身.可展开():#不可
             return#不动
         自身.已展开=not 自身.已展开#翻转
 
     def 可展开(自身):#是否可展开
-        """有 body/output/卡材料则可。"""
+        '有 body/output/卡材料则可'
         属性=自身.属性#props
         卡=(
             ('terminal' in 属性 and 属性['terminal'] is not None)
@@ -54,7 +54,7 @@ class 工具行:#单行工具摘要
         return ('body' in 属性 and 属性['body'] is not None) or ('output' in 属性 and 属性['output'] is not None) or 卡#可展
 
     def 建展开体(自身):#展开体结构树
-        """卡优先；否则 code+IN/OUT。"""
+        '卡优先；否则 code+IN/OUT'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else None#文案
         变体=属性['variant'] if 'variant' in 属性 else None#变体
@@ -121,7 +121,7 @@ class 工具行:#单行工具摘要
         return {'kind':'composite','parts':片} if 片 else None#复合或空
 
     def 渲染(自身):#结构树
-        """与上游 JSX 同构。"""
+        '与上游 JSX 同构'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else None#文案
         状态=属性['state'] if 'state' in 属性 and 属性['state'] else 'ok'#行态
@@ -156,7 +156,7 @@ class 工具行:#单行工具摘要
         }#结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

@@ -1,4 +1,4 @@
-"""线路安全的问答类型，不含 cordis/服务导入，好让浏览器类型链（apiproxy api → client）消费它们而不加载本包的 Context 扩增。"""
+'线路安全的问答类型，不含 cordis/服务导入，好让浏览器类型链（apiproxy api → client）消费它们而不加载本包的 Context 扩增'
 from typing import Literal,TypedDict,NotRequired#字面量、结构类型与可选字段
 
 class 询问用户问题选项(TypedDict):#提供给用户的一条可选答案

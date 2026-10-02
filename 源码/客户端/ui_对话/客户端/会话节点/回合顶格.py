@@ -4,7 +4,7 @@ from ..服务 import 对话错误#本包异常
 __all__=['回合顶格定义','登记回合顶格会话节点']#仅中文公开名
 
 def 读位置(上下文):
-    """起点或首匹配的位置。"""
+    '起点或首匹配的位置'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     if 起点 is not None and 'location' in 起点:
         return 起点['location']#起点位置
@@ -14,7 +14,7 @@ def 读位置(上下文):
     return None#无
 
 def 末步(上下文):
-    """所属回合最后一步的步骤号。"""
+    '所属回合最后一步的步骤号'
     位置=读位置(上下文)#位置
     if 位置 is None or 位置['kind'] not in ('turn','step'):
         return 0#零
@@ -26,7 +26,7 @@ def 末步(上下文):
     return 末['step'] if 'step' in 末 else 0#末步号
 
 def 通知锚(上下文,序号):
-    """有收束助手则夹在助手与回合尾之间。"""
+    '有收束助手则夹在助手与回合尾之间'
     位置=读位置(上下文)#位置
     if 位置 is None or 位置['kind'] not in ('turn','step'):
         return 序号#用 turn/end
@@ -44,7 +44,7 @@ def 通知锚(上下文,序号):
     return 锚+聊天合成序号偏移['maxTokensNotice']#夹中间
 
 def 自匹配取态(匹配项):
-    """从 max-tokens 的 turn/end 取状态。"""
+    '从 max-tokens 的 turn/end 取状态'
     事件=匹配项['event']#事件
     if 事件['type']!='turn/end':
         return None#无
@@ -55,7 +55,7 @@ def 自匹配取态(匹配项):
     return {'turn':数据['turn'],'seq':事件['seq'],'time':事件['time']}#态
 
 def 回合顶格匹配(事件):
-    """max-tokens 的 turn/end。"""
+    'max-tokens 的 turn/end'
     if 事件['type']!='turn/end':
         return None#其余
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -65,18 +65,18 @@ def 回合顶格匹配(事件):
     return {'id':str(数据['turn']),'role':'start'}#开
 
 def 回合顶格开始(_上下文,匹配项):
-    """用 max-tokens 的 turn/end 开节点。"""
+    '用 max-tokens 的 turn/end 开节点'
     态=自匹配取态(匹配项)#取
     if 态 is None:
         raise 对话错误('turn-max-tokens start requires a max-tokens turn/end')#硬失败
     return 态#记下
 
 def 回合顶格更新(上下文,_匹配项=None):
-    """后续不改。"""
+    '后续不改'
     return 上下文['state'] if 'state' in 上下文 else None#态
 
 def 回合顶格建视图(上下文):
-    """无状态则不渲染。"""
+    '无状态则不渲染'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None:
         return None#不渲染
@@ -89,5 +89,5 @@ def 回合顶格建视图(上下文):
 }#结束
 
 def 登记回合顶格会话节点(上下文):
-    """注册截断通知贡献。"""
+    '注册截断通知贡献'
     上下文.conversationEvents.register(回合顶格定义)#登记

@@ -1,15 +1,15 @@
-"""把 Loader 条目/补丁结构与发现的插件输入模式合成一份 JSON Schema 文档。"""
+'把 Loader 条目/补丁结构与发现的插件输入模式合成一份 JSON Schema 文档'
 from .投影器 import 创建配置投影器,装载器表达式数据架构
 from .类型 import 配置json数据架构网址,配置数据架构补丁引用
 
 __all__=['构建配置数据架构文档']
 
 def 引用(名):
-    """$defs 引用。"""
+    '$defs 引用'
     return {'$ref':'#/$defs/'+名}
 
 def 元数据():
-    """条目元字段模式。"""
+    '条目元字段模式'
     return {
         'id':{'type':'string','description':'Entry id. Loader generates an id when an entry omits it; patches use the configured id.'},
         'name':{'type':'string','description':'Plugin module specifier. Inserted relative plugin paths are anchored beside their patch file.'},
@@ -22,7 +22,7 @@ def 元数据():
     }
 
 def 补丁结构():
-    """根树补丁对象。"""
+    '根树补丁对象'
     return {
         'type':'object',
         'allOf':[引用('entryMetadata')],
@@ -31,7 +31,7 @@ def 补丁结构():
     }
 
 def 构建配置数据架构文档(配置档,已收集,目标表,初始诊断):
-    """为组合条目列表与可单独寻址的根树补丁列表建模式。"""
+    '为组合条目列表与可单独寻址的根树补丁列表建模式'
     投影=创建配置投影器()
     诊断=list(初始诊断)
     定义={
@@ -147,6 +147,6 @@ def 构建配置数据架构文档(配置档,已收集,目标表,初始诊断):
     }
 
 def json_dumps(值):
-    """诊断用 JSON。"""
+    '诊断用 JSON'
     import json
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)

@@ -1,4 +1,4 @@
-"""可选的请求时钟上下文。符合条件的步骤把带源归属的持久时间读数加进请求历史。"""
+'可选的请求时钟上下文'
 import json,time#JSON诊断与纪元毫秒
 from zoneinfo import ZoneInfoNotFoundError as 时区未找到#时区解析失败
 from ...依赖.schemastery import 字符串字段,数字字段
@@ -18,24 +18,24 @@ __all__=['包名','名称','依赖','应用','默认','配置']
 }
 
 class 时间上下文错误(Exception):
-    """时间上下文包的异常基类。"""
+    '时间上下文包的异常基类'
 
 def 编码(值):
-    """诊断用紧凑 JSON。"""
+    '诊断用紧凑 JSON'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
 
 def 取时间毫秒():
-    """当前纪元毫秒。"""
+    '当前纪元毫秒'
     return int(time.time()*1000)#纪元毫秒
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位即中止
 
 def 格式化时长(经过毫秒):
-    """把非负经过毫秒格式化为紧凑的整秒单位。"""
+    '把非负经过毫秒格式化为紧凑的整秒单位'
     秒=int(max(0,经过毫秒)//1000)#先收成非负整秒
     天=秒//86400#整天
     秒%=86400#去掉天
@@ -54,7 +54,7 @@ def 格式化时长(经过毫秒):
     return ' '.join(片段)#空格拼接
 
 def 末次下标(序列,回合):
-    """从后往前找本回合 turn/start 下标，没有则 -1。"""
+    '从后往前找本回合 turn/start 下标，没有则 -1'
     for 下标 in range(len(序列)-1,-1,-1):#从末尾往前
         事件=序列[下标]#当前事件
         数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -63,7 +63,7 @@ def 末次下标(序列,回合):
     return -1#未找到
 
 def 收集请求消息(智能体,回合,拟议):
-    """收集属于一轮打开回合的、已进入与拟议用户消息。"""
+    '收集属于一轮打开回合的、已进入与拟议用户消息'
     事件列表=list(智能体.session.events)#会话事件
     起点=末次下标(事件列表,回合)#本回合开始
     if 起点<0:#没有回合开始
@@ -76,7 +76,7 @@ def 收集请求消息(智能体,回合,拟议):
     return list(已进入)+list(拟议)#已进入加本步拟议
 
 def 渲染文本(此刻,回合,步骤,先前,格式化器,时区,浏览器上下文):
-    """持久读数文本。"""
+    '持久读数文本'
     经过='unavailable' if 先前 is None else 格式化时长(此刻-先前)#没有基线则不可用
     基线='model-visible message' if 步骤==1 else 'step context'#首步用模型可见消息，其后用步骤上下文
     浏览器文本=渲染浏览器时区上下文(浏览器上下文)#时区策略行
@@ -85,7 +85,7 @@ def 渲染文本(此刻,回合,步骤,先前,格式化器,时区,浏览器上下
         +'Elapsed since the preceding '+基线+': '+经过+'.')#经过时长行
 
 def 校验刷新间隔(刷新间隔毫秒):
-    """拒绝无法表示精确经过毫秒差值的刷新间隔。"""
+    '拒绝无法表示精确经过毫秒差值的刷新间隔'
     if 刷新间隔毫秒 is None:#省略
         return#通过
     if isinstance(刷新间隔毫秒,bool):#布尔不是整数
@@ -100,7 +100,7 @@ def 校验刷新间隔(刷新间隔毫秒):
         raise TypeError('time-context: refreshIntervalMs must be a non-negative safe integer, got '+str(刷新间隔毫秒))#加载失败
 
 def 应用(上下文,配置值):
-    """在 ctx 的生命周期内注册一条前置的预步骤监听器。"""
+    '在 ctx 的生命周期内注册一条前置的预步骤监听器'
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     时区=配置值['timeZone'] if 'timeZone' in 配置值 else None#可选回退时区
@@ -118,7 +118,7 @@ def 应用(上下文,配置值):
     格式化器表={回退时区:回退格式化器}#按时区缓存格式化器
 
     def 取格式化器(选中时区):
-        """解析并缓存一个请求本地的时间戳格式化器。"""
+        '解析并缓存一个请求本地的时间戳格式化器'
         if 选中时区 in 格式化器表:#缓存命中
             return 格式化器表[选中时区]#直接用
         新建=创建时间戳格式化器(选中时区)#新建
@@ -126,11 +126,11 @@ def 应用(上下文,配置值):
         return 新建#返回
 
     def 初始状态(头=None):
-        """投影初始读数。"""
+        '投影初始读数'
         return {'lastMessageTime':None,'lastInjectionTime':None,'lastTurnInjectionTime':None}
 
     def 折叠状态(状态,事件):
-        """按事件推进时钟投影。"""
+        '按事件推进时钟投影'
         种类=事件['type']
         if 种类=='turn/start' or 种类=='turn/end':
             if 状态['lastTurnInjectionTime'] is None:
@@ -162,7 +162,7 @@ def 应用(上下文,配置值):
     })
 
     def 预步骤监听(载荷,下一步,*剩余):
-        """先让后续监听器决定；进入且未取消时追加时钟读数。"""
+        '先让后续监听器决定；进入且未取消时追加时钟读数'
         决策=下一步()#先让后续监听器决定
         信号=载荷['signal'] if 'signal' in 载荷 else None#取消信号
         if 决策['kind']=='reject' or 已中止(信号):#拒绝或已取消则不注入

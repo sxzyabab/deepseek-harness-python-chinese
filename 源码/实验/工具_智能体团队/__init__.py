@@ -104,42 +104,42 @@ __all__=[
 }#任务列表值模式结束
 
 def 团队任务标识(标识):#字符串→TeamTaskId 标识构造
-    """同串标识构造。"""
+    '同串标识构造'
     return 标识#同串标识构造
 
 class 工具团队错误(Exception):#本包异常基类
-    """面向模型的 Agent Teams 工具包错误。"""
+    '面向模型的 Agent Teams 工具包错误'
     def __init__(自身,消息):#构造
-        """记下英文诊断。"""
+        '记下英文诊断'
         super().__init__(消息)#基类
         自身.消息=消息#诊断
 
 def 模型成员(成员):
-    """把成员名暴露为面向模型的 target。"""
+    '把成员名暴露为面向模型的 target'
     细节=dict(成员)#拷贝
     名称=细节.pop('name')#成员名
     细节.pop('id',None)#内部 id 不出站
     return {'target':名称,**细节}#target 加其余字段
 
 def 紧凑JSON输出(模式):#声明规范输出并以紧凑 JSON 渲染
-    """声明一份规范输出 schema，并以紧凑面向模型的 JSON 渲染。"""
+    '声明一份规范输出 schema，并以紧凑面向模型的 JSON 渲染'
     def 渲染(_参数,值):#序列化为 JSON 文本块
-        """把结构化结果渲染成紧凑 JSON 文本块。"""
+        '把结构化结果渲染成紧凑 JSON 文本块'
         return [{'type':'text','text':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)}]#紧凑 JSON
     return {'schema':模式,'render':渲染}#output 声明
 
 def 调用方智能体(智能体,工具名):#取调用方 Agent
-    """找回 Agent 作用域工具发现所保证的精确调用方。"""
+    '找回 Agent 作用域工具发现所保证的精确调用方'
     if 智能体 is None:#缺调用方
         raise 工具团队错误(工具名+' requires a calling Agent')#缺调用方则报错
     return 智能体#返回调用方
 
 def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域中注册完整 Team 工具集
-    """在一个精确 Agent 作用域中注册完整 Team 工具集，返回拆除函数。"""
+    '在一个精确 Agent 作用域中注册完整 Team 工具集，返回拆除函数'
     作用域=智能体.ctx#成员作用域
     拆除器列表=[]#拆除回调
     def 登记(拆除器):#登记拆除
-        """把拆除器追加到本作用域拆除表。"""
+        '把拆除器追加到本作用域拆除表'
         拆除器列表.append(拆除器)#记下
     try:#注册工具与段落
         登记(作用域.systemPrompt.section({#注册策略系统提示段落
@@ -149,7 +149,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         }))#策略段落
 
         def 执行创建队友(参数,执行):#执行 spawn_teammate
-            """创建具名耐久 teammate；仅 Lead 可调（由服务侧校验）。"""
+            '创建具名耐久 teammate；仅 Lead 可调（由服务侧校验）'
             调用方=调用方智能体(执行['agent'] if 'agent' in 执行 else None,'spawn_teammate')#调用方
             上下文模式=参数['context'] if 'context' in 参数 else None#上下文模式
             if 上下文模式 is None:#缺省 fresh
@@ -191,7 +191,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#spawn_teammate
 
         def 执行发消息(参数,执行):#执行 send_message
-            """向另一 Team 成员投递一条耐久消息。"""
+            '向另一 Team 成员投递一条耐久消息'
             return 上下文.agentTeams.sendMessage(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'send_message'),{#投递消息，已同步
                 'target':参数['target'],#目标成员
                 'content':[{'type':'text','text':参数['message']}],#消息内容块
@@ -209,7 +209,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#send_message
 
         def 执行列成员(_参数,执行):#执行 list_agents
-            """列出 Lead 与每个耐久 teammate 的当前运行时状态。"""
+            '列出 Lead 与每个耐久 teammate 的当前运行时状态'
             return [模型成员(成员) for 成员 in 上下文.agentTeams.listMembers(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'list_agents'))]#面向模型的成员行
         登记(作用域.tools.register(定义工具({#注册 list_agents
             'name':'list_agents',#工具名
@@ -220,7 +220,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#list_agents
 
         def 执行等待(参数,执行):#执行 wait_agent
-            """等待本调用开始之后的下一次 teammate 状态、邮箱或共享任务变更。"""
+            '等待本调用开始之后的下一次 teammate 状态、邮箱或共享任务变更'
             调用方=调用方智能体(执行['agent'] if 'agent' in 执行 else None,'wait_agent')#调用方
             超时毫秒=参数['timeout_ms'] if 'timeout_ms' in 参数 else None#等待毫秒
             if 超时毫秒 is None:#缺省 30s
@@ -256,7 +256,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#wait_agent
 
         def 执行中断(参数,执行):#执行 interrupt_agent
-            """中断一名 teammate 的当前轮次并保留其待处理收件箱；仅 Lead。"""
+            '中断一名 teammate 的当前轮次并保留其待处理收件箱；仅 Lead'
             return 上下文.agentTeams.interrupt(#中断指定队友，已同步
                 调用方智能体(执行['agent'] if 'agent' in 执行 else None,'interrupt_agent'),#调用方
                 参数['target'],#目标名
@@ -272,7 +272,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#interrupt_agent
 
         def 执行创建任务(参数,执行):#执行 team_task_create
-            """在共享 Team 任务板上创建一条无主 pending 任务。"""
+            '在共享 Team 任务板上创建一条无主 pending 任务'
             请求={#创建请求
                 'subject':参数['subject'],#标题
                 'description':参数['description'],#详情
@@ -300,7 +300,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#team_task_create
 
         def 执行列任务(参数,执行):#执行 team_task_list
-            """列出共享任务，含就绪、所有者、修订、阻塞与写范围警告。"""
+            '列出共享任务，含就绪、所有者、修订、阻塞与写范围警告'
             状态=参数['status'] if 'status' in 参数 else None#状态过滤
             所有者过滤=参数['owner'] if 'owner' in 参数 else None#所有者过滤
             就绪过滤=参数['ready'] if 'ready' in 参数 else None#就绪过滤
@@ -351,7 +351,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#team_task_list
 
         def 执行取任务(参数,执行):#执行 team_task_get
-            """读取一条共享任务的完整最新值。"""
+            '读取一条共享任务的完整最新值'
             return 上下文.agentTeams.getTask(#取最新任务视图，已同步
                 调用方智能体(执行['agent'] if 'agent' in 执行 else None,'team_task_get'),#调用方
                 团队任务标识(参数['task_id']),#规范化任务id
@@ -367,7 +367,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
         })))#team_task_get
 
         def 执行更新任务(参数,执行):#执行 team_task_update
-            """用 team_task_get/list 拿到的最新修订做共享任务的比较交换动作。"""
+            '用 team_task_get/list 拿到的最新修订做共享任务的比较交换动作'
             请求={#CAS 更新请求
                 'taskId':团队任务标识(参数['task_id']),#任务id
                 'expectedRevision':参数['expected_revision'],#期望修订号
@@ -410,13 +410,13 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
             拆除()#拆除
         raise#继续抛出
     def 拆除作用域():#正常拆除
-        """逆序拆除本作用域已登记的工具与段落。"""
+        '逆序拆除本作用域已登记的工具与段落'
         for 拆除 in reversed(拆除器列表):#逆序拆除
             拆除()#拆除
     return 拆除作用域#返回拆除函数
 
 def 应用(上下文,配置值=None):#在每个已有或随后发布的 Team 成员作用域中安装 Team 工具
-    """在每个已有或随后发布的 Team 成员作用域中安装 Team 工具。"""
+    '在每个已有或随后发布的 Team 成员作用域中安装 Team 工具'
     if 配置值 is None:#缺省配置
         配置值={}#空映射
     新建提供方=配置值['freshProvider'] if 'freshProvider' in 配置值 else None#新建 provider
@@ -428,7 +428,7 @@ def 应用(上下文,配置值=None):#在每个已有或随后发布的 Team 成
     已解析={'freshProvider':新建提供方,'forkProvider':分叉提供方}#补全默认配置
     已安装={}#id(智能体)→拆除，身份表不用对象当键
     def 或许安装(智能体):#尝试为成员安装
-        """已安装或非 Team 成员则跳过。"""
+        '已安装或非 Team 成员则跳过'
         键=id(智能体)#对象身份
         if 键 in 已安装:#已安装
             return#跳过
@@ -438,10 +438,10 @@ def 应用(上下文,配置值=None):#在每个已有或随后发布的 Team 成
     for 智能体 in 上下文.agents.list():#现有 Agent
         或许安装(智能体)#尝试安装
     def 智能体已创建(事件):#新建时安装
-        """agent/created 时尝试安装。"""
+        'agent/created 时尝试安装'
         或许安装(事件['agent'])#安装
     def 智能体已销毁(事件):#Agent 销毁时拆除
-        """agent/disposed 时拆除作用域工具。"""
+        'agent/disposed 时拆除作用域工具'
         智能体=事件['agent']#取出 Agent
         键=id(智能体)#对象身份
         if 键 not in 已安装:#无拆除器
@@ -451,9 +451,9 @@ def 应用(上下文,配置值=None):#在每个已有或随后发布的 Team 成
     上下文.监听('agent/created',智能体已创建)#新建时安装
     上下文.监听('agent/disposed',智能体已销毁)#销毁时拆除
     def 作用域工具副作用():#插件卸载副作用
-        """插件卸载时拆除全部已安装作用域工具。"""
+        '插件卸载时拆除全部已安装作用域工具'
         def 拆除全部():#拆除全部
-            """拆除全部并清空表。"""
+            '拆除全部并清空表'
             for 拆除 in list(已安装.values()):#逐个拆除
                 拆除()#拆除
             已安装.clear()#清空表

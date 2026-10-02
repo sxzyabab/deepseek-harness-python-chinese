@@ -1,4 +1,4 @@
-"""历史子身份，收缩为父名录所需字段。"""
+'历史子身份，收缩为父名录所需字段'
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
     会话格式不支持迁移错误,#不支持迁移
@@ -7,7 +7,7 @@ from ..会话格式 import (#从会话格式导入
 )#从会话格式导入
 
 def 历史子名录源(产物):#历史子名录源
-    """收集子自身描述符，不要求在读父名录前就具备。"""
+    '收集子自身描述符，不要求在读父名录前就具备'
     头=产物['header']#头
     if 头.get('origin')!='subagent' or 'parentSession' not in 头:#须为带子父的子智能体
         raise 会话格式不支持迁移错误('catalog migration requires a subagent child with a direct parent')#拒绝
@@ -21,7 +21,7 @@ def 历史子名录源(产物):#历史子名录源
     return 源#返回
 
 def 子名录源(值):#子名录源
-    """校验经迁移 JSON 接口供给的补充子证据。"""
+    '校验经迁移 JSON 接口供给的补充子证据'
     if (not 是否会话格式json对象(值) or not isinstance(值.get('childId'),str)
         or 'descriptor' not in 值):#须身份与描述符键
         raise 会话格式不支持迁移错误('catalog migration requires historical child identity and descriptor evidence')#拒绝
@@ -30,7 +30,7 @@ def 子名录源(值):#子名录源
     return 值#返回
 
 def 子名录事实(源):#子名录事实
-    """只解释已知历史描述符的发现字段。"""
+    '只解释已知历史描述符的发现字段'
     标识=源['childId']#子标识
     描述符=源.get('descriptor')#描述符
     计数=源['descriptorCount']#计数
@@ -48,7 +48,7 @@ def 子名录事实(源):#子名录事实
     return 名录事实(事实,子名录主语(源))#再经名录校验
 
 def 名录事实(值,主语='subagent/catalog'):#名录事实
-    """校验名录成员所用的历史字段，不解释扩展。"""
+    '校验名录成员所用的历史字段，不解释扩展'
     if (not 是否会话格式json对象(值) or 值.get('version') not in (0,1)
         or not isinstance(值.get('childId'),str)
         or 值.get('mode') not in ('continuable','one-shot','unknown')
@@ -60,5 +60,5 @@ def 名录事实(值,主语='subagent/catalog'):#名录事实
     return 值#返回
 
 def 子名录主语(源):#子名录主语
-    """在迁移诊断中命名该子。"""
+    '在迁移诊断中命名该子'
     return 'Session '+str(源['childId'])#仅用子标识，不回显路径

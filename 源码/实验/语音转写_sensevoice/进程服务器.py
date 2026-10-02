@@ -7,15 +7,15 @@ from .输入 import 语音输入错误
 __all__=['启动识别服务器']
 
 def 启动识别服务器(令牌,最大音频字节,转写):
-    """绑定临时环回监听；模型加载完成后再公布就绪。"""
+    '绑定临时环回监听；模型加载完成后再公布就绪'
     期望=('Bearer '+令牌).encode('utf-8')
     class 处理(BaseHTTPRequestHandler):
-        """私有认证转写入口。"""
+        '私有认证转写入口'
         def log_message(自身,*位置参数):
-            """不向 stderr 打访问日志。"""
+            '不向 stderr 打访问日志'
             return
         def 回复(自身,状态,值):
-            """JSON 应答。"""
+            'JSON 应答'
             体=json.dumps(值).encode('utf-8')
             自身.send_response(状态)
             自身.send_header('content-type','application/json')
@@ -23,7 +23,7 @@ def 启动识别服务器(令牌,最大音频字节,转写):
             自身.end_headers()
             自身.wfile.write(体)
         def do_POST(自身):
-            """只接受 /transcribe。"""
+            '只接受 /transcribe'
             授权=(自身.headers.get('authorization') or '').encode('utf-8')
             if len(授权)!=len(期望) or not compare_digest(授权,期望):
                 自身.回复(401,{'error':'Unauthorized'})
@@ -50,7 +50,7 @@ def 启动识别服务器(令牌,最大音频字节,转写):
             except Exception as 错误:
                 自身.回复(500,{'error':str(错误)})
         def do_GET(自身):
-            """未知。"""
+            '未知'
             自身.回复(404,{'error':'Unknown endpoint'})
     服务器=ThreadingHTTPServer(('127.0.0.1',0),处理)
     return {'server':服务器,'port':服务器.server_address[1]}

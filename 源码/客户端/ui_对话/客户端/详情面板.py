@@ -2,30 +2,30 @@
 __all__=['详情面板']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 def 取选中(快照):
-    """仓 selection。"""
+    '仓 selection'
     return 快照['selection'] if 快照 is not None and 'selection' in 快照 else None#选中
 
 class 详情面板:
-    """标题+关闭+工具席或空态。"""
+    '标题+关闭+工具席或空态'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """详情结构。"""
+        '详情结构'
         属性=自身.属性#props
         用存储=属性['useStore'] if 'useStore' in 属性 else None#存储
         渲染槽=属性['renderSlot'] if 'renderSlot' in 属性 else 空渲染槽#槽
@@ -49,7 +49,7 @@ class 详情面板:
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

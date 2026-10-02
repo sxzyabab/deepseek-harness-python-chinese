@@ -8,14 +8,14 @@ __all__=[#仅中文公开名
 依赖=['slots','locale']#本地化登记与页眉槽贡献所需服务
 
 def 应用(上下文):
-    """登记词典与 Session 页眉目录动作。"""
+    '登记词典与 Session 页眉目录动作'
     def 登记词典():
-        """登记日程词典。"""
+        '登记日程词典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记词典
     上下文.副作用(登记词典,'ui-schedule: dictionaries')#登记词典
 
     def 登记目录():
-        """登记页眉目录动作。"""
+        '登记页眉目录动作'
         return 上下文.slots.register({#登记目录动作
             'name':'conversation.session.header.actions',#槽名
             'id':'schedule-catalog',#条目稳定 id

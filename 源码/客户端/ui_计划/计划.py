@@ -8,11 +8,11 @@ __all__=['已提交计划','计划地址','解析计划地址']#仅中文公开�
 计划地址模式=正则.compile(r'^dsh-resource://plan/([^?#]+)$')#计划地址
 
 def 是记录(值):
-    """普通对象且非列表。"""
+    '普通对象且非列表'
     return isinstance(值,dict)#dict
 
 def 已提交计划(事件):
-    """从不可信已记录参数读出完整计划；无关或畸形则 None。"""
+    '从不可信已记录参数读出完整计划；无关或畸形则 None'
     种=事件['type']#事件种
     if 种 not in ('tool/call','tool/ptc-dispatch-start','tool/ptc-dispatch'):#无关
         return None#无
@@ -50,7 +50,7 @@ def 已提交计划(事件):
     return {'callId':调用标识,'markdown':正文,'title':命中.group(1)}#已提交
 
 def 计划地址(目标):
-    """编码计划耐久身份。"""
+    '编码计划耐久身份'
     会话=目标['session']#会话地址
     调用=目标['callId']#调用
     if 会话['kind']=='session':#普通
@@ -60,7 +60,7 @@ def 计划地址(目标):
     return 'dsh-resource://plan/'+'/'.join(百分编码(段,safe='') for 段 in 段表)#地址
 
 def 解析计划地址(地址):
-    """校验计划资源地址；不支持则 None。"""
+    '校验计划资源地址；不支持则 None'
     命中=计划地址模式.match(地址)#匹配
     if 命中 is None:#不匹配
         return None#无

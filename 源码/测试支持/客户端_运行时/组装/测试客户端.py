@@ -15,44 +15,44 @@ __all__=['测试客户端']#仅中文公开名
 默认连接超时毫秒=5000#默认连接超时毫秒
 
 class 事件源桩:#事件源桩
-    """jsdom 缺少的 EventSource 惰性替身。"""
+    'jsdom 缺少的 EventSource 惰性替身'
 
     def addEventListener(自身,*位置参数):#空监听
-        """空监听。"""
+        '空监听'
         return#无操作
 
     def close(自身):#空关闭
-        """空关闭。"""
+        '空关闭'
         return#无操作
 
 class 尺寸观察桩:#尺寸观察桩
-    """jsdom 缺少的 ResizeObserver 惰性替身。"""
+    'jsdom 缺少的 ResizeObserver 惰性替身'
 
     def observe(自身,*位置参数):#空观察
-        """空观察。"""
+        '空观察'
         return#无操作
 
     def disconnect(自身):#空断开
-        """空断开。"""
+        '空断开'
         return#无操作
 
 文档对象模型补桩={'EventSource':事件源桩,'ResizeObserver':尺寸观察桩}#jsdom 垫片
 
 class 共享文档对象模型垫片:#共享 jsdom 垫片
-    """本进程每个活客户端共享的垫片；首持有者安装，末释放者拆除。"""
+    '本进程每个活客户端共享的垫片；首持有者安装，末释放者拆除'
 
     def __init__(自身):#构造
-        """空持有。"""
+        '空持有'
         自身._持有=0#持有计数
         自身._拆垫片=None#垫片拆除
 
     def 获取(自身):#获取持有
-        """持有垫片，返回本持有者的释放器。"""
+        '持有垫片，返回本持有者的释放器'
         if 自身._持有==0:#第一个持有者
             自身._拆垫片=安装文档对象模型垫片()#装垫片
         自身._持有+=1#计数
         def 释放():#释放
-            """最后一个持有者拆垫片。"""
+            '最后一个持有者拆垫片'
             自身._持有-=1#减计数
             if 自身._持有>0:#仍有持有者
                 return
@@ -64,36 +64,36 @@ class 共享文档对象模型垫片:#共享 jsdom 垫片
 共享垫片单例=共享文档对象模型垫片()#进程内共享垫片
 
 def 安装文档对象模型垫片():#安装 jsdom 垫片
-    """为每个缺席全局安装垫片；拆除器只删除那些装上的。"""
+    '为每个缺席全局安装垫片；拆除器只删除那些装上的'
     已装=[名 for 名 in 文档对象模型补桩 if getattr(builtins,名,None) is None]#缺席者
     for 名 in 已装:#安装
         setattr(builtins,名,文档对象模型补桩[名])#安装
     def 拆除():#只拆装上的
-        """删除本次装上的全局。"""
+        '删除本次装上的全局'
         for 名 in 已装:#逐个
             if hasattr(builtins,名):#仍在
                 delattr(builtins,名)#删除
     return 拆除#拆除器
 
 def 收成错误(错误):#收成 Error
-    """抛出值所代表的异常：自身，或其字符串形式包一层。"""
+    '抛出值所代表的异常：自身，或其字符串形式包一层'
     if isinstance(错误,Exception):#已是
         return 错误#原样
     return 客户端测试运行时错误(str(错误))#包一层
 
 def 取消息(错误):#取消息
-    """异常消息。"""
+    '异常消息'
     return str(收成错误(错误))#消息
 
 def 取连接(上下文):#取连接
-    """名册的 Connection 服务；未提供则抛。"""
+    '名册的 Connection 服务；未提供则抛'
     连接=上下文.获取服务('connection')#取服务
     if 连接 is None:#无连接
         raise 客户端测试运行时错误('client-test-runtime: the roster provides no `connection` service')#英文诊断
     return 连接#返回
 
 def 解析挂载点(挂载):#解析挂载点
-    """解析挂载选项。"""
+    '解析挂载选项'
     if 挂载 is None or 挂载 is False:#不挂载
         return {'element':None,'owned':False}#空
     文档=getattr(builtins,'document',None)#页面文档
@@ -106,17 +106,17 @@ def 解析挂载点(挂载):#解析挂载点
     return {'element':挂载,'owned':False}#调用方节点
 
 def 安定(函数):#安定
-    """有 DOM 时本应包 React act；Python 无 act，直接跑。"""
+    '有 DOM 时本应包 React act；Python 无 act，直接跑'
     函数()#直接跑
 
 def 等到已连接(上下文,模拟,超时毫秒):#等到已连接
-    """等待 connection.state 为 connected。"""
+    '等待 connection.state 为 connected'
     状态=取连接(上下文).state#连接状态
     if 状态.getSnapshot()=='connected':#已连接
         return
     完成=threading.Event()#完成事件
     def 订阅回调():#订阅
-        """已连接则放行。"""
+        '已连接则放行'
         if 状态.getSnapshot()!='connected':#未到
             return
         完成.set()#放行
@@ -129,11 +129,11 @@ def 等到已连接(上下文,模拟,超时毫秒):#等到已连接
     退订()#退订
 
 class 测试客户端:#测试客户端
-    """测试下已启动的客户端。"""
+    '测试下已启动的客户端'
 
     @staticmethod
     def 启动(计划,模拟,选项=None):#启动
-        """装入名册模块，绑定本客户端模拟到 Connection 行，持有垫片并走生产启动。"""
+        '装入名册模块，绑定本客户端模拟到 Connection 行，持有垫片并走生产启动'
         if 选项 is None:#缺省
             选项={}#空
         断言计划(计划)#校验计划
@@ -150,7 +150,7 @@ class 测试客户端:#测试客户端
         挂载点={'element':None,'owned':False}#挂载点
         释放=None#垫片释放
         def 还原():#还原
-            """移除自有节点并释放垫片。"""
+            '移除自有节点并释放垫片'
             if 挂载点['owned'] and 挂载点['element'] is not None:#自有
                 挂载点['element'].remove()#移除
             if 释放 is not None:#有释放器
@@ -161,7 +161,7 @@ class 测试客户端:#测试客户端
             连接模块=模块表.get(连接包名)#连接行
             if 连接模块 is not None and (提供表 is None or 连接包名 not in 提供表):#替换连接 apply
                 def 应用连接(连接上下文):#安装模拟载体
-                    """经 installConnection 挂上本客户端模拟。"""
+                    '经 installConnection 挂上本客户端模拟'
                     选项表={'transport':{'rpc':模拟.rpc}}#传输
                     if 页面定位 is not None:#有主机名
                         选项表['location']=页面定位#带上
@@ -193,7 +193,7 @@ class 测试客户端:#测试客户端
         except Exception:#失败
             try:#尽力拆除
                 def 拆树():#拆树
-                    """安定内拆除根纤程。"""
+                    '安定内拆除根纤程'
                     上下文.纤程.拆除()#拆树
                 安定(拆树)#安定
             except Exception:#拆除失败
@@ -203,7 +203,7 @@ class 测试客户端:#测试客户端
         return 测试客户端(上下文,模拟,挂载点['element'],还原)#返回
 
     def __init__(自身,上下文,模拟,容器,还原):#私有构造经 启动
-        """记下上下文、模拟、容器与还原器。"""
+        '记下上下文、模拟、容器与还原器'
         自身.ctx=上下文#根上下文
         自身.模拟=模拟#模拟
         自身.容器=容器#容器
@@ -213,25 +213,25 @@ class 测试客户端:#测试客户端
 
     @property
     def 连接(自身):#连接
-        """名册的 Connection 服务；未提供则抛。"""
+        '名册的 Connection 服务；未提供则抛'
         return 取连接(自身.ctx)#取连接
 
     def 冲刷(自身):#冲刷
-        """冲刷挂起工作。"""
+        '冲刷挂起工作'
         def 空趟():#空安定趟
-            """空安定趟。"""
+            '空安定趟'
             return#无操作
         安定(空趟)#空安定趟
 
     def 重载(自身,名称):#重载
-        """重建一个 Loader 条目。"""
+        '重建一个 Loader 条目'
         条目=自身._按名取条目(名称)#按名取条目
         拆除条目纤程(条目)#拆旧纤程
         条目.刷新()#刷新
         自身.ctx.loader.等待()#等加载器静止
 
     def 卸下行(自身,名称):#卸下行
-        """移除一个 Loader 条目并等待其插件清理。"""
+        '移除一个 Loader 条目并等待其插件清理'
         条目=自身._按名取条目(名称)#按名取条目
         纤程=getattr(条目,'fiber',None)#条目纤程
         拆除=纤程.拆除 if 纤程 is not None and hasattr(纤程,'拆除') else None#拆除器
@@ -240,7 +240,7 @@ class 测试客户端:#测试客户端
             拆除()#等待清理
 
     def 拆除(自身):#拆除
-        """拆除插件树，还原垫片，最后检查漏配；并发调用等待同一次拆除。"""
+        '拆除插件树，还原垫片，最后检查漏配；并发调用等待同一次拆除'
         with 自身._拆除锁:#串行领取
             if 自身._拆除中 is not None:#已有拆除
                 进行中=自身._拆除中#同一次
@@ -257,11 +257,11 @@ class 测试客户端:#测试客户端
             完成.set()#完成
 
     def _拆除实现(自身):#拆除实现
-        """拆树、还原、检查漏配。"""
+        '拆树、还原、检查漏配'
         失败=None#树拆除失败
         try:#拆树
             def 拆树():#拆树
-                """安定内拆除根纤程。"""
+                '安定内拆除根纤程'
                 自身.ctx.纤程.拆除()#拆除
             安定(拆树)#安定
         except Exception as 错误:#拆树失败
@@ -278,7 +278,7 @@ class 测试客户端:#测试客户端
         raise 失败#只报树失败
 
     def _按名取条目(自身,名称):#按名取条目
-        """按包名找 Loader 条目。"""
+        '按包名找 Loader 条目'
         条目列表=list(自身.ctx.loader.列出插件配置())#全部条目
         条目=None#命中
         for 候选 in 条目列表:#逐个

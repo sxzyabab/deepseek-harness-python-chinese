@@ -3,55 +3,55 @@ from .代际目录 import 代际目录#共享 Host 代际目录
 __all__=['模型目录','空目录状态','模型选择错误','选定投影']#仅中文公开名
 
 class 模型选择错误(Exception):
-    """模型目录或选定失败。"""
+    '模型目录或选定失败'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 def 空目录状态():#冷启动快照
-    """无选定、无分组、空闲。"""
+    '无选定、无分组、空闲'
     return {'current':None,'routable':None,'groups':[],'failures':[],'status':'idle','error':None}#冷启动
 
 def 选定投影(值):#未知值 → 选定投影
-    """undefined 原样，其余当作投影。"""
+    'undefined 原样，其余当作投影'
     return None if 值 is None else 值#None 原样
 
 class 简易快照存储:#对 uSES 安全的浅存储
-    """订阅 + 可变快照。"""
+    '订阅 + 可变快照'
     def __init__(自身,初始):#初始快照
-        """记下状态与订阅表。"""
+        '记下状态与订阅表'
         自身.状态=dict(初始)#可变
         自身.订阅列表=[]#监听
 
     def getSnapshot(自身):#读快照
-        """返回浅拷贝。"""
+        '返回浅拷贝'
         return dict(自身.状态)#拷贝
 
     def subscribe(自身,监听器):#订阅
-        """返回拆除器。"""
+        '返回拆除器'
         自身.订阅列表.append(监听器)#登记
         def 拆除订阅():#拆除
-            """去掉监听。"""
+            '去掉监听'
             if 监听器 in 自身.订阅列表:#仍在
                 自身.订阅列表.remove(监听器)#删
         return 拆除订阅#拆除器
 
     def update(自身,改):#改快照
-        """改函数就地改状态后广播。"""
+        '改函数就地改状态后广播'
         改(自身.状态)#改
         for 监听器 in list(自身.订阅列表):#广播
             监听器()#回调
 
     def set(自身,下一快照):#整表替换
-        """写快照并广播。"""
+        '写快照并广播'
         自身.状态=dict(下一快照)#替换
         for 监听器 in list(自身.订阅列表):#广播
             监听器()#回调
 
 class 模型目录:#每会话模型目录控制器
-    """两条入口共享 Host 代际目录与持久选定投影，经同一次 selectModel 提交。"""
+    '两条入口共享 Host 代际目录与持久选定投影，经同一次 selectModel 提交'
     def __init__(自身,会话线,会话标识,可用,目录账本,投影源):#注入
-        """记下会话线、身份、可用性、共享目录与投影。"""
+        '记下会话线、身份、可用性、共享目录与投影'
         自身.会话线=会话线#仅 selectModel
         自身.会话标识=会话标识#会话 id
         自身.可用=可用#可用性工厂
@@ -66,24 +66,24 @@ class 模型目录:#每会话模型目录控制器
         自身._同步输入()#立刻同步一次
 
     def 断言可用(自身):#本会话必须可用模型 RPC
-        """子智能体会话不可用。"""
+        '子智能体会话不可用'
         if not 自身.可用():#不可用
             raise 模型选择错误('model selection is unavailable for addressed subagent sessions')#拒绝
 
     def load(自身):#确保共享目录已加载
-        """按新目录重算快照并交出。"""
+        '按新目录重算快照并交出'
         自身.断言可用()#守卫
         自身.目录账本.load()#拉共享目录
         自身._同步输入()#按新目录重算
         return 自身.存储.getSnapshot()#当前快照
 
     def select(自身,选定):#提交完整选定
-        """成功则就绪；失败写 store 并返回 RemoteResult 形 dict。"""
+        '成功则就绪；失败写 store 并返回 RemoteResult 形 dict'
         自身.断言可用()#守卫
         自身.世代+=1#世代
         本轮=自身.世代#本轮
         def 标选定(态):#selecting
-            """标 selecting。"""
+            '标 selecting'
             态['status']='selecting'#选定中
             态['error']=None#清错
         自身.存储.update(标选定)#selecting
@@ -98,13 +98,13 @@ class 模型目录:#每会话模型目录控制器
             错=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
             文=str(错['code'] if 'code' in 错 else None)+': '+str(错['message'] if 'message' in 错 else None)#文案
             def 写错(态):#写错误
-                """标 error。"""
+                '标 error'
                 态['status']='error'#失败
                 态['error']=文#文案
             自身.存储.update(写错)#写
             return 结果#交回失败
         def 写好(态):#就绪
-            """标就绪并清错。"""
+            '标就绪并清错'
             态['status']='ready'#就绪
             态['error']=None#清错
         自身.存储.update(写好)#写
@@ -112,12 +112,12 @@ class 模型目录:#每会话模型目录控制器
         return {'ok':True,'value':None}#成功
 
     def resetConnected(自身):#重连后作废在飞选定
-        """作废在飞并按当前目录与投影重算。"""
+        '作废在飞并按当前目录与投影重算'
         if 自身.已拆除:#已拆
             return
         自身.世代+=1#作废
         def 清选定中(态):#清选定中状态
-            """选定中回空闲。"""
+            '选定中回空闲'
             if 态['status']=='selecting':#选定中
                 态['status']='idle'#回空闲
             态['error']=None#清错
@@ -125,13 +125,13 @@ class 模型目录:#每会话模型目录控制器
         自身._同步输入()#重算
 
     def dispose(自身):#拆除
-        """迟到结算失去写权限。"""
+        '迟到结算失去写权限'
         自身.已拆除=True#标死
         自身.卸投影()#卸投影订阅
         自身.卸目录()#卸目录订阅
 
     def _同步输入(自身):#按目录与投影重算共享快照
-        """输入未齐则 loading/error；齐则就绪。"""
+        '输入未齐则 loading/error；齐则就绪'
         if 自身.已拆除:#已拆
             return#不再写
         目录态=自身.目录账本.存储.getSnapshot()#共享目录快照
@@ -140,7 +140,7 @@ class 模型目录:#每会话模型目录控制器
             if 自身.已解析:#曾经解析过
                 if 目录态['status']=='error':#目录失败则映到本 store
                     def 映错(态):#映错误
-                        """标 error。"""
+                        '标 error'
                         态['status']='error'#错误态
                         态['error']=目录态['error']#共享错误文案
                     自身.存储.update(映错)#写

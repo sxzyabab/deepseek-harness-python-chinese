@@ -12,7 +12,7 @@ __all__=['待办详情','详情卡片模型']
 日程状态=frozenset(['scheduled','overdue'])
 
 def 解析工具调用(块):
-    """解析调用头的 JSON 对象参数；准备中或非法则 None。块为 dict。"""
+    '解析调用头的 JSON 对象参数；准备中或非法则 None。块为 dict'
     if 'kind' not in 块 and 块['phase']=='preparing':
         return None
     调用=块['call'] if 'kind' in 块 else 块
@@ -27,7 +27,7 @@ def 解析工具调用(块):
     return {'name':调用['name'],'args':值}
 
 def 单结果文本(块):
-    """仅一块文本的已结算结果。"""
+    '仅一块文本的已结算结果'
     内容=块['content'] if 'content' in 块 else []
     if len(内容)!=1:
         return None
@@ -37,18 +37,18 @@ def 单结果文本(块):
     return 仅['text'] if 'text' in 仅 else None
 
 def 非负整数(值):
-    """入口校验：非负安全整数。"""
+    '入口校验：非负安全整数'
     return isinstance(值,int) and not isinstance(值,bool) and 值>=0
 
 def 格式化日期(时刻,语言,回退):
-    """当地时区短日期；失败回退。"""
+    '当地时区短日期；失败回退'
     try:
         return 时刻.astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
     except (OSError,ValueError,OverflowError):
         return 回退
 
 def 待办详情(参数,翻译):
-    """从 todo_write 参数派生紧凑待办列表。"""
+    '从 todo_write 参数派生紧凑待办列表'
     if 'todos' not in 参数 or not isinstance(参数['todos'],list):
         return None
     条目=[]
@@ -67,7 +67,7 @@ def 待办详情(参数,翻译):
     return {'items':条目,'empty':翻译('detail.todo.empty')}
 
 def 目标详情(值,翻译):
-    """create/get/update_goal 结果。"""
+    'create/get/update_goal 结果'
     if not 详情记录(值):
         return None
     if 'goal' in 值 and 值['goal'] is None:
@@ -102,7 +102,7 @@ def 目标详情(值,翻译):
     return {'items':[{'title':目标['objective'],'fields':字段}]}
 
 def 间隔文案(秒,翻译):
-    """把秒数收成日/时/分/秒文案。"""
+    '把秒数收成日/时/分/秒文案'
     if 秒%86400==0:
         return 翻译('detail.days',{'count':秒//86400})
     if 秒%3600==0:
@@ -112,7 +112,7 @@ def 间隔文案(秒,翻译):
     return 翻译('detail.seconds',{'count':秒})
 
 def 解析计划时刻(文本):
-    """报文 ISO-8601 毫秒 Z 时刻。"""
+    '报文 ISO-8601 毫秒 Z 时刻'
     try:
         时刻=日期时间.strptime(文本,'%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=时区.utc)
     except ValueError:
@@ -123,7 +123,7 @@ def 解析计划时刻(文本):
     return 时刻
 
 def 日程条目(值,翻译,语言):
-    """一条 session-local 日程。"""
+    '一条 session-local 日程'
     if not 详情记录(值) or not 非空文本(值['id'] if 'id' in 值 else None) or not 非空文本(值['prompt'] if 'prompt' in 值 else None):
         return None
     if 'scheduledAt' not in 值 or not isinstance(值['scheduledAt'],str):
@@ -162,7 +162,7 @@ def 日程条目(值,翻译,语言):
     }
 
 def 详情卡片模型(块,翻译,语言):
-    """已支持的成功结果；未知或畸形保留通用输出。块为 dict。"""
+    '已支持的成功结果；未知或畸形保留通用输出。块为 dict'
     if 'kind' not in 块 or ('isError' in 块 and 块['isError']):
         return None
     调用=解析工具调用(块)

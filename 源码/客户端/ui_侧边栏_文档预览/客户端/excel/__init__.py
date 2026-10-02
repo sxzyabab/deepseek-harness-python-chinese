@@ -5,7 +5,7 @@ __all__=['应用']
 实现键='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/excel'
 
 def 应用(上下文,上限):
-    """登记浏览器表格预览及其寿命所属槽。"""
+    '登记浏览器表格预览及其寿命所属槽'
     def 登记词典():
         return 上下文.locale.register('sidebarExcel',{'zh':中文,'en':英文})
     上下文.副作用(登记词典)

@@ -3,27 +3,27 @@ __all__=['菜单关闭','铺分组','菜单归约','精确匹配']#仅中文公�
 菜单关闭={'open':False,'hit':None,'generation':0,'groups':[],'highlight':None}#关闭静息态
 
 def 铺分组(状态,源列表):#按源名铺 pending 组
-    """外壳在新开菜单、派发 hit 之前走的一步。"""
+    '外壳在新开菜单、派发 hit 之前走的一步'
     下一=dict(状态)#浅拷
     下一['groups']=[{'source':源,'status':'pending','items':[]} for 源 in 源列表]#替换名册
     下一['highlight']=None#清高亮
     return 下一#带着新 pending 名册
 
 def _关闭(状态):#关菜单，保留世代
-    """使在飞结算仍可丢弃。"""
+    '使在飞结算仍可丢弃'
     if 状态['open'] or 状态['hit'] is not None or len(状态['groups'])>0 or 状态['highlight'] is not None:#开着或有内容
         return {'open':False,'hit':None,'generation':状态['generation'],'groups':[],'highlight':None}#关但保留世代
     return 状态#已是关态则原引用
 
 def _首高亮(组列表):#默认高亮
-    """第一个非空就绪组的第一项，否则 None。"""
+    '第一个非空就绪组的第一项，否则 None'
     for 组 in 组列表:#按组顺序
         if 组['status']=='ready' and len(组['items'])>0:#有项；length 语义
             return {'source':组['source'],'index':0}#取该组第一项
     return None#没有可高亮项
 
 def _有效高亮(高亮,组列表):#校验高亮是否仍有效
-    """高亮仍指向就绪项时原样返回，否则 None。"""
+    '高亮仍指向就绪项时原样返回，否则 None'
     if 高亮 is None:#无高亮
         return None#无
     组=next((x for x in 组列表 if x['source']==高亮['source']),None)#按源名找组
@@ -32,7 +32,7 @@ def _有效高亮(高亮,组列表):#校验高亮是否仍有效
     return None#失效
 
 def _位置表(组列表):#就绪项位置表
-    """按组顺序把就绪项展成 (source, index) 位置表。"""
+    '按组顺序把就绪项展成 (source, index) 位置表'
     出=[]#累计位置
     for 组 in 组列表:#按组顺序
         if 组['status']!='ready':#未就绪则跳过
@@ -42,11 +42,11 @@ def _位置表(组列表):#就绪项位置表
     return 出#展平后的位置表
 
 def _全就绪空(组列表):#是否全部就绪且空
-    """自动关闭条件。"""
+    '自动关闭条件'
     return all(g['status']=='ready' and len(g['items'])==0 for g in 组列表)#每组 ready 且无候选
 
 def 菜单归约(状态,事件):#按事件归约菜单
-    """过期或空操作时返回同一引用语义（此处返回原 dict）。"""
+    '过期或空操作时返回同一引用语义（此处返回原 dict）'
     类型=事件['type']#事件类型
     if 类型=='hit':#命中：开新世代或关闭
         命中=事件['hit'] if 'hit' in 事件 else None#本次命中
@@ -117,7 +117,7 @@ def 菜单归约(状态,事件):#按事件归约菜单
     return 状态#未知事件原样
 
 def 精确匹配(组列表,源,名):#按源与精确名取候选
-    """组缺席、未就绪或没有该名时为 None。"""
+    '组缺席、未就绪或没有该名时为 None'
     组=next((g for g in 组列表 if g['source']==源),None)#按源名找组
     if 组 is None or 组['status']!='ready':#缺组或未就绪
         return None#无

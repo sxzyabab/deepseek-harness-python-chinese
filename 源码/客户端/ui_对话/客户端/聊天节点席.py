@@ -1,26 +1,26 @@
 __all__=['聊天节点席']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 class 聊天节点席:
-    """订阅一 Node 键；兄弟更新不重挂。"""
+    '订阅一 Node 键；兄弟更新不重挂'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """锚点包装 + 槽分发或 JSON 回退。"""
+        '锚点包装 + 槽分发或 JSON 回退'
         属性=自身.属性#props
         节点键=属性['nodeKey'] if 'nodeKey' in 属性 else None#键
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话
@@ -29,7 +29,7 @@ class 聊天节点席:
         节点=None#节点
         if 用会话 is not None and 节点键 is not None:#可读
             def 选(快照,钉键=节点键):
-                """chat.nodes.get。"""
+                'chat.nodes.get'
                 聊天=快照['chat'] if 快照 is not None and 'chat' in 快照 else None#聊天
                 表=聊天['nodes'] if 聊天 is not None and 'nodes' in 聊天 else None#仓
                 if 表 is None:#无
@@ -52,7 +52,7 @@ class 聊天节点席:
         载荷=节点['data'] if 'data' in 节点 else None#载荷
         锚=节点['key'] if 'key' in 节点 else None#锚
         def 截断标(总,钉翻译=翻译):
-            """截断文案。"""
+            '截断文案'
             return 钉翻译('json.truncated',{'total':总})#标
         回退={#未知表面
             'type':'json-block',#JSON
@@ -70,7 +70,7 @@ class 聊天节点席:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

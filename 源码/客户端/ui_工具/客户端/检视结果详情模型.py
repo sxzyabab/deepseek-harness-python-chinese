@@ -27,7 +27,7 @@ __all__=['检视结果详情']
 终结报告分隔='\nFinal report:\n'
 
 def 日期文本(值,语言):
-    """把时刻或原文格式化为当地短日期。"""
+    '把时刻或原文格式化为当地短日期'
     if isinstance(值,bool):
         return str(值)
     if isinstance(值,(int,float)):
@@ -48,7 +48,7 @@ def 日期文本(值,语言):
         return str(值)
 
 def cordis详情(名称,参数,值,翻译):
-    """运行时检视 JSON。"""
+    '运行时检视 JSON'
     if not 详情记录(值):
         return None
     if 名称=='cordis_inspect_list':
@@ -67,7 +67,7 @@ def cordis详情(名称,参数,值,翻译):
     return None
 
 def 工作流详情(名称,参数,文本,翻译):
-    """workflow / ralph 文本报告。"""
+    'workflow / ralph 文本报告'
     if 名称=='workflow':
         匹配=工作流完成.match(文本)
         if 匹配 is None:
@@ -124,7 +124,7 @@ def 工作流详情(名称,参数,文本,翻译):
     return 详情列表([项],报告['summary'],翻译)
 
 def 文本字段(文本,翻译,语言):
-    """追踪报告里已识别的字段行。"""
+    '追踪报告里已识别的字段行'
     字段=[]
     for 行 in 文本.split('\n'):
         匹配=字段行.match(行)
@@ -144,7 +144,7 @@ def 文本字段(文本,翻译,语言):
     return 字段
 
 def 检索详情(名称,文本,翻译,语言):
-    """会话或事件检索结果。"""
+    '会话或事件检索结果'
     if 文本=='No prior session matches found.' or 文本.endswith('\n\nNo prior event matches found.'):
         return 详情列表([],翻译('detail.matches.count',{'count':0}),翻译)
     块表=[块 for 块 in 检索块切.split(文本) if 检索块头.match(块) is not None]
@@ -174,7 +174,7 @@ def 检索详情(名称,文本,翻译,语言):
     return 模型
 
 def 事件阅读详情(文本,翻译,语言):
-    """session_event_read 文本。"""
+    'session_event_read 文本'
     匹配=事件阅读.match(文本)
     if 匹配 is None:
         return None
@@ -197,7 +197,7 @@ def 事件阅读详情(文本,翻译,语言):
     return 详情列表(列表,事件['type']+' · #'+匹配.group(3),翻译)
 
 def 追踪详情(名称,文本,翻译,语言):
-    """session_trace / session_event_trace。"""
+    'session_trace / session_event_trace'
     匹配=追踪头.match(文本)
     if 匹配 is None:
         return None
@@ -225,7 +225,7 @@ def 追踪详情(名称,文本,翻译,语言):
     return 详情列表(条目,匹配.group(2),翻译)
 
 def 检视结果详情(名称,参数,文本,json值,翻译,语言):
-    """把成功的检视、查询与工作流文本呈现为具名记录。"""
+    '把成功的检视、查询与工作流文本呈现为具名记录'
     if 含溢出须知(文本):
         return None
     if 名称=='cordis_inspect_list' or 名称=='cordis_inspect_query' or 名称=='cordis_inspect_self':

@@ -31,19 +31,19 @@ __all__=['品牌字标','字标元素']#仅中文公开名
 ]#元素结束
 
 class 品牌字标:#字标 SVG 视图
-    """aria-hidden 装饰品牌艺术。"""
+    'aria-hidden 装饰品牌艺术'
 
     def __init__(自身,属性=None,**关键字参数):#构造
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 or {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):#结构树
-        """产出 svg 描述。"""
+        '产出 svg 描述'
         高=取尺寸(自身.属性,24)#高
         return {#视图
             'type':'brand-wordmark',#类型
@@ -55,7 +55,7 @@ class 品牌字标:#字标 SVG 视图
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or 关键字参数:#有
             合并=dict(属性 or {})#基
             合并.update(关键字参数)#覆

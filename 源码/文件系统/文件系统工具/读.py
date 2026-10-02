@@ -1,4 +1,4 @@
-"""面向模型的 UTF-8 读取。它做一次提供方 stat 以取得类型、路由与观察版本，对流式大文件或大小未知的文件做流式读取，渲染有界窗口，然后发出观察。"""
+'面向模型的 UTF-8 读取'
 import math,re#有限数判定与读信封正文提取
 from ...内核.工具 import 定义工具#导入工具定义
 from .读渲染 import 构建窗口,格式化读输出,路径语言,从元数据取读窗口#导入读窗口与展示
@@ -12,7 +12,9 @@ from .错误 import 工具文件系统错误#本包异常
     'Use the read tool — not shell commands like cat — to inspect text files. Results include line numbers. Use offset and limit to continue reading large files.'#用read而不是cat，带行号与分页
 )#读提示文本结束
 def 解析正整数(值,名):#解析正整数参数
-    """把工具参数收成正整数。排除布尔；消息键名保持英文线协议。"""
+    """把工具参数收成正整数。
+    排除布尔；消息键名保持英文线协议
+    """
     if isinstance(值,bool):#布尔不是整数
         raise 工具文件系统错误(名+' must be a positive integer')#参数非法
     if isinstance(值,int) and 值>=1:#已经是正整数
@@ -22,7 +24,10 @@ def 解析正整数(值,名):#解析正整数参数
     raise 工具文件系统错误(名+' must be a positive integer')#参数非法
 
 def 解析读参数(参数,最大行数):#校验读工具参数
-    """校验 schema DSL 表达不了的值约束。offset 缺省为 1，limit 缺省为 maxLimit。参数是 dict。"""
+    """校验 schema DSL 表达不了的值约束。
+    offset 缺省为 1，limit 缺省为 maxLimit。
+    参数是 dict
+    """
     if len(参数['file_path'].strip())==0:#路径不得为空
         raise 工具文件系统错误('file_path must be a non-empty string')#路径不得为空
     偏移=1 if 'offset' not in 参数 or 参数['offset'] is None else 解析正整数(参数['offset'],'offset')#缺席或null从第1行
@@ -32,9 +37,9 @@ def 解析读参数(参数,最大行数):#校验读工具参数
     return {'路径':参数['file_path'],'偏移':偏移,'行数':行数}#内部输入
 
 def 应用读工具(上下文,上限):#注册 read 工具
-    """注册 read 工具及其系统提示词指引。"""
+    '注册 read 工具及其系统提示词指引'
     def 段落文本(上下文元):#按作用域
-        """本作用域无 read 则空。"""
+        '本作用域无 read 则空'
         作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域
         if 上下文.tools.获取('read',作用域) is None:#看不见
             return ''#空
@@ -45,7 +50,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
         'text':段落文本,#动态指引
     })#系统提示词结束
     def 渲染(参数,值):#渲染模型可见信封
-        """渲染模型可见信封。"""
+        '渲染模型可见信封'
         输入=解析读参数(参数,上限['行数'])#还原请求窗口
         窗口行=值['lines']#窗口行
         if len(窗口行)>0:#有窗口行；判 length
@@ -58,7 +63,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
             结果['truncatedByBytes']=True#标记
         return [{'type':'text','text':格式化读输出(值['path'],结果)}]#单个文本块
     def 呈现元数据(参数,值):#结果呈现用的 read meta
-        """结果呈现用的 read meta。"""
+        '结果呈现用的 read meta'
         语言=路径语言(值['path'])#按扩展名推导高亮语言
         元数据={#meta载荷
             'path':值['path'],#路径
@@ -70,7 +75,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
             元数据['lang']=语言#带上
         return 元数据#meta
     def 执行(参数,执行上下文):#执行读取
-        """执行读取。"""
+        '执行读取'
         输入=解析读参数(参数,上限['行数'])#校验参数
         已解析=解析普通读目标(上下文,执行上下文,输入['路径'])#解析普通文件目标
         目标=已解析['target']#目标
@@ -95,7 +100,9 @@ def 应用读工具(上下文,上限):#注册 read 工具
         上下文.广播('fs/observed',目标,{'kind':'present','version':信息['version']},执行上下文)#记录观察
         return 结局#返回结构化结果
     def 呈现结果(参数,结果):#结果时 read 卡片
-        """结果时 read 卡片。畸形或缺失 meta 降为 None。"""
+        """结果时 read 卡片。
+        畸形或缺失 meta 降为 None
+        """
         if 'isError' in 结果 and 结果['isError']:#错误结果
             return None#不展示read卡片
         元数据=从元数据取读窗口(结果['meta'] if 'meta' in 结果 else None)#从meta收窄窗口
@@ -121,7 +128,9 @@ def 应用读工具(上下文,上限):#注册 read 工具
             卡片['lang']=元数据['lang']#带上
         return 卡片#卡片
     def 呈现调用(参数):#调用时通用卡片
-        """调用时通用卡片。窗口反映原始参数。"""
+        """调用时通用卡片。
+        窗口反映原始参数
+        """
         偏移=参数['offset'] if 'offset' in 参数 else None#起始行
         行数=参数['limit'] if 'limit' in 参数 else None#行数上限
         if 行数 is not None and 行数>0:#给出了正limit
@@ -138,7 +147,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
             'locations':[{'path':参数['file_path'],'line':1 if 偏移 is None else 偏移}],#跟随到起始行
         }#卡片结束
     def 并发安全(参数):#读并发安全
-        """读并发安全。"""
+        '读并发安全'
         return True#读并发安全
     上下文.tools.登记(定义工具({#注册read工具
         'name':'read',#工具名

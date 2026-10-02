@@ -11,17 +11,17 @@ __all__=['槽登记表','槽宿主面','标准钩子属性名','根实例键','�
 根拥有方属性=dict#禁止 children 透传的根拥有方份额形状
 
 def 标准钩子属性名(名称):
-    """`session` → `useSession`。"""
+    '`session` → `useSession`'
     if 名称=='':#空
         return 'use'#仅前缀
     return 'use'+名称[0].upper()+名称[1:]#首字母大写加 use
 
 def 恒等属性名(名):
-    """prop 名原样。"""
+    'prop 名原样'
     return 名#原样
 
 def 拷贝唯一(种类,目标,值表,最终属性,属性名映射):
-    """重名则抛。值表为 dict。"""
+    '重名则抛。值表为 dict'
     if 值表 is None:#无来源
         return#跳过
     for 名称,值 in 值表.items():#逐项
@@ -32,57 +32,57 @@ def 拷贝唯一(种类,目标,值表,最终属性,属性名映射):
         目标[名称]=值#写入
 
 def 要求作用域键(定义,绑定):
-    """非根工厂 store 解析必须有会话键。定义为 dict。"""
+    '非根工厂 store 解析必须有会话键。定义为 dict'
     if 绑定 is None:#缺绑定
         raise 槽组装错误(str(定义['scope'])+' factory store resolution requires a session id')#抛错
     return 绑定['key']#返回键
 
 def 空拆除():
-    """空 disposer。"""
+    '空 disposer'
     return None#无
 
 class 槽宿主面:
-    """域中立宿主 API；locale / 适配器经登记表活读。"""
+    '域中立宿主 API；locale / 适配器经登记表活读'
     def __init__(自身,登记表):
-        """记下登记表。"""
+        '记下登记表'
         自身._登记表=登记表#服务
         自身.root=登记表._rootSource#根源 dict
         自身.scopeRevision=登记表._scopeRevisionSource#版本源 dict
 
     def subscribe(自身,键,回调):
-        """订变更。"""
+        '订变更'
         return 自身._登记表._core.订阅(键,回调)#订
 
     def getVersion(自身,键):
-        """读版本。"""
+        '读版本'
         return 自身._登记表._core.版本(键)#版本
 
     def entriesOf(自身,键):
-        """条目快照。"""
+        '条目快照'
         return 自身._登记表._core.取条目列表(键)#条目
 
     def entriesOfSlot(自身,键):
-        """胜出条目。"""
+        '胜出条目'
         return 自身._登记表._core.取槽位条目(键)#胜出
 
     def reportEntryError(自身,键,条目,错误,信息):
-        """报告崩溃。"""
+        '报告崩溃'
         自身._登记表._core.报告条目错误(键,条目,错误,信息)#报告
 
     def reportFactoryError(自身,名,登记,错误):
-        """报告工厂崩溃。"""
+        '报告工厂崩溃'
         自身._登记表._core.报告工厂错误(名,登记,错误)#报告
 
     def specOf(自身,键):
-        """动态规范。"""
+        '动态规范'
         return 自身._登记表._core.动态规格(键)#规格
 
     def isLive(自身,条目):
-        """条目是否仍在台账。"""
+        '条目是否仍在台账'
         return 自身._登记表._core.仍存活(条目)#活
 
     def storeOf(自身,条目,作用域绑定):
-        """解析条目 store。条目为 dict。"""
+        '解析条目 store。条目为 dict'
         if 'store' not in 条目:#无
             return None#无
         存储=条目['store']#句柄
@@ -91,43 +91,43 @@ class 槽宿主面:
         return 自身._登记表.解析存储(存储,作用域绑定)#解析
 
     def factoryStoreOf(自身,定义,作用域绑定,出现):
-        """解析工厂 store。定义为 dict。"""
+        '解析工厂 store。定义为 dict'
         return 自身._登记表.解析工厂存储(定义,作用域绑定,出现)#解析
 
     def retainFactoryOccurrence(自身,定义,出现):
-        """保留工厂出现。定义为 dict。"""
+        '保留工厂出现。定义为 dict'
         return 自身._登记表.保留工厂出现(定义,出现)#保留
 
     def subscribeFactory(自身,名,回调):
-        """订工厂定义寿命。"""
+        '订工厂定义寿命'
         return 自身._登记表._core.订阅工厂(名,回调)#订
 
     def getFactoryVersion(自身,名):
-        """工厂版本。"""
+        '工厂版本'
         return 自身._登记表._core.工厂版本(名)#版本
 
     def factoryOf(自身,名):
-        """取工厂定义。"""
+        '取工厂定义'
         return 自身._登记表._core.取工厂(名)#定义
 
     def isFactoryLive(自身,定义):
-        """工厂定义是否仍登记。定义为 dict。"""
+        '工厂定义是否仍登记。定义为 dict'
         return 自身._登记表._core.工厂仍存活(定义)#活
 
     def scope(自身,作用域):
-        """取已安装适配器。session-maybe 与 session 共用。"""
+        '取已安装适配器。session-maybe 与 session 共用'
         名='session' if 作用域=='session-maybe' else 作用域#名
         表=自身._登记表._scopes#适配器表
         return 表[名] if 名 in 表 else None#适配器
 
     def locale(自身):
-        """已安装 locale 面；未装为 None。"""
+        '已安装 locale 面；未装为 None'
         return 自身._登记表._locale#面
 
 class 槽登记表(服务):
-    """与 SlotCore 的分工见模块文档。"""
+    '与 SlotCore 的分工见模块文档'
     def __init__(自身,上下文):
-        """服务名 slots；桥接变更事件。"""
+        '服务名 slots；桥接变更事件'
         super().__init__(上下文,'slots')#服务名 slots
         自身._core=槽位登记表()#纯登记表
         自身._stores={}#句柄轴
@@ -140,66 +140,66 @@ class 槽登记表(服务):
         自身._rootListeners=set()#根绑定订阅者
         自身._rootBinding={'key':None,'hooks':{},'keyedHooks':{},'props':{}}#当前根绑定
         def 取根快照():
-            """读根绑定。"""
+            '读根绑定'
             return 自身._rootBinding#快照
         自身._rootSource=可观察源(取根快照,自身._订根)#根可观察源
         自身._scopes={}#严格作用域适配器
         自身._scopeRevision=0#作用域名册版本
         自身._scopeListeners=set()#作用域订阅者
         def 取作用域修订():
-            """读版本。"""
+            '读版本'
             return 自身._scopeRevision#版本
         自身._scopeRevisionSource=可观察源(取作用域修订,自身._订作用域修订)#版本可观察源
         def 桥接变更(键):
-            """转发 slots/changed。"""
+            '转发 slots/changed'
             上下文.广播('slots/changed',键)#桥
         自身._core.变更时(桥接变更)#桥接变更事件
 
     def _订根(自身,监听):
-        """返回退订。"""
+        '返回退订'
         自身._rootListeners.add(监听)#登记
         def 退订():
-            """拿掉监听。"""
+            '拿掉监听'
             自身._rootListeners.discard(监听)#退
         return 退订#退订
 
     def _订作用域修订(自身,监听):
-        """返回退订。"""
+        '返回退订'
         自身._scopeListeners.add(监听)#登记
         def 退订():
-            """拿掉监听。"""
+            '拿掉监听'
             自身._scopeListeners.discard(监听)#退
         return 退订#退订
 
     def register(自身,选项,组件):
-        """经调用方副作用拆除。选项为 dict。"""
+        '经调用方副作用拆除。选项为 dict'
         def 寿命():
-            """登记并交 fiber 拆除。"""
+            '登记并交 fiber 拆除'
             return 自身._登记(选项,组件)#拆除器
         return 自身.ctx.副作用(寿命,'slots.register()')#经纤程拆除
 
     def registerFactory(自身,选项,组件):
-        """经调用方副作用拆除。选项为 dict。"""
+        '经调用方副作用拆除。选项为 dict'
         def 寿命():
-            """登记工厂并交 fiber 拆除。"""
+            '登记工厂并交 fiber 拆除'
             return 自身._登记工厂(选项,组件)#拆除器
         return 自身.ctx.副作用(寿命,'slots.registerFactory()')#经纤程拆除
 
     def inject(自身,键,回调):
-        """声明已存在时回调同步跑；否则等声明后跑。"""
+        '声明已存在时回调同步跑；否则等声明后跑'
         上下文=自身.ctx#调用方上下文
         def 空退订():
-            """声明订阅占位。"""
+            '声明订阅占位'
             return None#无
         def 控制器寿命():
-            """对齐声明代次；失败永久停用。"""
+            '对齐声明代次；失败永久停用'
             活跃=[None]#当前声明寿命 disposer
             活跃代=[None]#对应声明代次
             已停=[False]#永久停用
             退订箱=[空退订]#声明订阅退订
 
             def 停用():
-                """失败调用方永久退役注入。"""
+                '失败调用方永久退役注入'
                 if 已停[0] is True:#已停
                     return
                 已停[0]=True#标记停用
@@ -211,7 +211,7 @@ class 槽登记表(服务):
                     拆除()#执行清理
 
             def 对齐():
-                """同代次复用。"""
+                '同代次复用'
                 if 已停[0] is True:#已停
                     return#跳过
                 规格=自身._core.动态规格(键)#动态规范
@@ -227,13 +227,13 @@ class 槽登记表(服务):
                     return
                 拆除效果=上下文.副作用(回调,'slots.inject('+repr(键)+'): declaration')#嵌套副作用
                 def 卸声明效果():
-                    """卸嵌套 effect。"""
+                    '卸嵌套 effect'
                     拆除效果()#卸
                 活跃[0]=卸声明效果#包装 disposer
                 活跃代[0]=代次#记下代次
 
             def 变更():
-                """尝试对齐；失败停用。"""
+                '尝试对齐；失败停用'
                 try:#尝试对齐
                     对齐()#对齐
                 except Exception as 错误:#fiber/注入失败形态含 INACTIVE_EFFECT
@@ -256,42 +256,42 @@ class 槽登记表(服务):
             return 停用#控制器 disposer
         拆除控制器=上下文.副作用(控制器寿命,'slots.inject('+repr(键)+')')#诊断名
         def 对外拆除():
-            """卸控制器。"""
+            '卸控制器'
             拆除控制器()#卸
         return 对外拆除#对外 disposer
 
     def install(自身,渲染器):
-        """启动一次：二次安装抛错。渲染器为对象。"""
+        '启动一次：二次安装抛错。渲染器为对象'
         if 自身._renderer is not None:#已装
             raise 槽组装错误('slot renderer already installed (install() is boot-once)')#禁止二次
         def 寿命():
-            """挂上；拆卸仅卸自己。"""
+            '挂上；拆卸仅卸自己'
             自身._renderer=渲染器#挂上
             def 拆卸():
-                """仅卸本实例。"""
+                '仅卸本实例'
                 if 自身._renderer is 渲染器:#仍是自己
                     自身._renderer=None#卸
             return 拆卸#拆卸
         自身.ctx.副作用(寿命,'slots.install()')#诊断名
 
     def installLocale(自身,面):
-        """与渲染器安装同为启动一次纪律。面为对象。"""
+        '与渲染器安装同为启动一次纪律。面为对象'
         if 自身._locale is not None:#已装
             raise 槽组装错误('locale face already installed (installLocale() is boot-once)')#禁止二次
         def 寿命():
-            """挂上；拆卸仅卸自己。"""
+            '挂上；拆卸仅卸自己'
             自身._locale=面#挂上
             def 拆卸():
-                """仅卸本实例。"""
+                '仅卸本实例'
                 if 自身._locale is 面:#仍是自己
                     自身._locale=None#卸
             return 拆卸#拆卸
         自身.ctx.副作用(寿命,'slots.installLocale()')#诊断名
 
     def provideRoot(自身,贡献):
-        """钩子名必须全局唯一。贡献为 dict。"""
+        '钩子名必须全局唯一。贡献为 dict'
         def 寿命():
-            """挂上后重建；失败回滚。"""
+            '挂上后重建；失败回滚'
             自身._rootContributions.append(贡献)#挂上
             try:#重建
                 自身.重建根绑定()#重发根绑定
@@ -299,7 +299,7 @@ class 槽登记表(服务):
                 自身._rootContributions.pop()#弹出
                 raise#上抛
             def 拆卸():
-                """卸下再重建。"""
+                '卸下再重建'
                 try:#定位
                     索引=自身._rootContributions.index(贡献)#定位
                 except ValueError:#已不在
@@ -309,20 +309,20 @@ class 槽登记表(服务):
             return 拆卸#返回拆卸
         拆除=自身.ctx.副作用(寿命,'slots.provideRoot()')#诊断名
         def 对外拆除():
-            """卸贡献。"""
+            '卸贡献'
             拆除()#卸
         return 对外拆除#对外 disposer
 
     def installScope(自身,作用域,适配器):
-        """严格作用域；可选对偶经同一适配器解析。适配器为 dict。"""
+        '严格作用域；可选对偶经同一适配器解析。适配器为 dict'
         if 作用域 in 自身._scopes:#已有
             raise 槽组装错误("slot scope '"+str(作用域)+"' already has an adapter")#禁止二次
         def 寿命():
-            """挂上并发版本。"""
+            '挂上并发版本'
             自身._scopes[作用域]=适配器#挂上
             自身.发布作用域修订()#发版本
             def 拆卸():
-                """仍是自己则卸下。"""
+                '仍是自己则卸下'
                 if 作用域 in 自身._scopes and 自身._scopes[作用域] is 适配器:#仍是自己
                     del 自身._scopes[作用域]#卸下
                     自身.发布作用域修订()#发版本
@@ -330,7 +330,7 @@ class 槽登记表(服务):
         自身.ctx.副作用(寿命,'slots.installScope('+repr(作用域)+')')#诊断名
 
     def bindStoreScope(自身,绑定):
-        """清理只丢内存实例；持久属作用域键。绑定为 dict。"""
+        '清理只丢内存实例；持久属作用域键。绑定为 dict'
         键=绑定['key']#作用域键
         上下文=绑定['ctx']#拥有 Context
         当前=自身._storeScopeOwners[键] if 键 in 自身._storeScopeOwners else None#当前拥有方
@@ -340,9 +340,9 @@ class 槽登记表(服务):
             自身.释放存储作用域(键)#先丢掉上一代内存实例
         自身._storeScopeOwners[键]=上下文#记下最新代
         def 寿命():
-            """作用域死亡清理。"""
+            '作用域死亡清理'
             def 清理():
-                """清拥有方并释放实例。"""
+                '清拥有方并释放实例'
                 if 键 not in 自身._storeScopeOwners:#无
                     return#忽略
                 if 自身._storeScopeOwners[键] is not 上下文:#已被更新代接管
@@ -353,7 +353,7 @@ class 槽登记表(服务):
         上下文.副作用(寿命,'slots: store scope '+str(键))#诊断名
 
     def renderSlot(自身,键,拥有方):
-        """仅渲染 root；三道守卫响亮失败。"""
+        '仅渲染 root；三道守卫响亮失败'
         if 键!='root':#非 root
             raise 槽组装错误('ctx-level renderSlot only renders \'root\' (got "'+str(键)+'"); child slots render through the component props face')#抛错
         if 自身._renderer is None:#未安装
@@ -363,35 +363,35 @@ class 槽登记表(服务):
         return 自身._renderer.renderRoot(自身.宿主面(),拥有方)#渲染根
 
     def entries(自身,键):
-        """委托核心。"""
+        '委托核心'
         return 自身._core.取条目列表(键)#委托核心
 
     def entriesOfSlot(自身,键):
-        """委托核心。"""
+        '委托核心'
         return 自身._core.取槽位条目(键)#委托核心
 
     def snapshot(自身,根=None):
-        """委托核心。"""
+        '委托核心'
         return 自身._core.快照(根)#委托核心
 
     def onEntryError(自身,回调):
-        """委托核心；登记可为条目或工厂。"""
+        '委托核心；登记可为条目或工厂'
         return 自身._core.条目错误时(回调)#委托核心
 
     def spec(自身,键):
-        """查规范。"""
+        '查规范'
         return 自身._core.规格(键)#委托核心
 
     def subscribe(自身,键,回调):
-        """订变更。"""
+        '订变更'
         return 自身._core.订阅(键,回调)#委托核心
 
     def getVersion(自身,键):
-        """读版本。"""
+        '读版本'
         return 自身._core.版本(键)#委托核心
 
     def _登记(自身,选项,组件):
-        """工厂铸造 + registrant 戳 + 核心写入 + 实例轴记账。选项为 dict。"""
+        '工厂铸造 + registrant 戳 + 核心写入 + 实例轴记账。选项为 dict'
         存储=选项['store'] if 'store' in 选项 else None#store
         if 存储 is not None and callable(存储):#工厂；上游 typeof === 'function'
             存储=存储()#铸造
@@ -414,7 +414,7 @@ class 槽登记表(服务):
             自身._获取(存储,作用域)#轴记账
         已卸=[False]#幂等门闩
         def 拆除器():
-            """幂等卸核心并释引用。"""
+            '幂等卸核心并释引用'
             if 已卸[0] is True:#已卸
                 return
             已卸[0]=True#标记
@@ -424,7 +424,7 @@ class 槽登记表(服务):
         return 拆除器#返回
 
     def _登记工厂(自身,选项,组件):
-        """核心写入 + 共享轴或工厂轴记账。选项为 dict。"""
+        '核心写入 + 共享轴或工厂轴记账。选项为 dict'
         登记方=None#登记方戳
         try:#可选 fiber 诊断戳
             纤=自身.ctx.纤程#纤程
@@ -446,7 +446,7 @@ class 槽登记表(服务):
             自身._factoryStores[定义]={'occurrences':{},'mounted':{}}#建工厂轴
         已卸=[False]#幂等门闩
         def 拆除器():
-            """幂等卸核心并释轴。"""
+            '幂等卸核心并释轴'
             if 已卸[0] is True:#已卸
                 return
             已卸[0]=True#标记
@@ -457,14 +457,14 @@ class 槽登记表(服务):
         return 拆除器#返回
 
     def 宿主面(自身):
-        """构建一次域中立宿主面。"""
+        '构建一次域中立宿主面'
         if 自身._host is not None:#复用
             return 自身._host#缓存
         自身._host=槽宿主面(自身)#对象面
         return 自身._host#返回
 
     def 重建根绑定(自身):
-        """校验并原子发布当前根贡献名册。"""
+        '校验并原子发布当前根贡献名册'
         钩子={}#钩子表
         键控={}#键控表
         属性={}#prop 表
@@ -481,7 +481,7 @@ class 槽登记表(服务):
                 print('根标准源订阅者失败:',错误)#打印
 
     def 发布作用域修订(自身):
-        """在映射已权威后发布一次已安装作用域名册过渡。"""
+        '在映射已权威后发布一次已安装作用域名册过渡'
         自身._scopeRevision+=1#递增
         for 监听 in list(自身._scopeListeners):#通知
             try:#隔离失败
@@ -490,7 +490,7 @@ class 槽登记表(服务):
                 print('作用域适配器订阅者失败:',错误)#打印
 
     def 解析存储(自身,句柄,作用域绑定):
-        """解析（创建或复用）已登记句柄的 store 实例。句柄为对象。"""
+        '解析（创建或复用）已登记句柄的 store 实例。句柄为对象'
         记录=自身._stores[句柄] if 句柄 in 自身._stores else None#轴记录
         if 记录 is None:#未登记
             raise 槽组装错误('store handle is not registered (entry unloaded, or the handle never went through register)')#未登记
@@ -510,7 +510,7 @@ class 槽登记表(服务):
         return 实例#返回
 
     def 解析工厂存储(自身,定义,作用域绑定,出现):
-        """按出现解析工厂 store。定义为 dict。"""
+        '按出现解析工厂 store。定义为 dict'
         if 自身._core.工厂仍存活(定义) is False:#已死
             raise 过期授权错误('slot factory "'+str(定义['name'])+'" is not registered')#过期授权
         声明=定义['store'] if 'store' in 定义 else None#store 声明
@@ -546,7 +546,7 @@ class 槽登记表(服务):
         return 实例#返回
 
     def 保留工厂出现(自身,定义,出现):
-        """提交可枚举出现；返回拆除器。定义为 dict。"""
+        '提交可枚举出现；返回拆除器。定义为 dict'
         if 自身._core.工厂仍存活(定义) is False:#死
             return 空拆除#空
         存储=定义['store'] if 'store' in 定义 else None#store
@@ -558,7 +558,7 @@ class 槽登记表(服务):
         轴['mounted'][出现]=记录#提交可枚举
         已释=[False]#幂等门闩
         def 拆除器():
-            """减保留；归零卸挂载。"""
+            '减保留；归零卸挂载'
             if 已释[0] is True:#已释
                 return
             已释[0]=True#标记
@@ -569,7 +569,7 @@ class 槽登记表(服务):
         return 拆除器#返回
 
     def 释放存储作用域(自身,键):
-        """丢掉已物化的非根实例；不 clearPersisted。"""
+        '丢掉已物化的非根实例；不 clearPersisted'
         for 记录 in list(自身._stores.values()):#逐句柄
             if 记录['scope']=='root':#根跳过
                 continue#跳过
@@ -579,14 +579,14 @@ class 槽登记表(服务):
                 记录['instances'].pop(键,None)#删出现实例
 
     def _获取(自身,句柄,作用域):
-        """在轴上绑定（或再引用）句柄。"""
+        '在轴上绑定（或再引用）句柄'
         if 句柄 not in 自身._stores:#新建
             自身._stores[句柄]={'scope':作用域,'refs':1,'instances':{}}#首引用
             return
         自身._stores[句柄]['refs']+=1#再引用
 
     def _拆除(自身,句柄):
-        """最后持有者卸载丢掉记录。"""
+        '最后持有者卸载丢掉记录'
         if 句柄 not in 自身._stores:#无记录
             return
         记录=自身._stores[句柄]#轴记录

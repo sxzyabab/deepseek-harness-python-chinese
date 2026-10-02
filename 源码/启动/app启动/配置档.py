@@ -40,7 +40,7 @@ autoInstallPeers: false
 '''#pnpm 工作区
 
 def 解析配置目录(名,主目录=None):#解析配置目录
-    """在 Harness 主目录下解析一个配置的目录。"""
+    '在 Harness 主目录下解析一个配置的目录'
     if 主目录 is None:#缺省
         主目录=解析主目录()#主目录
     if 名=='' or '/' in 名 or '\\' in 名 or 名 in ('.','..','node_modules'):#非法名
@@ -48,7 +48,7 @@ def 解析配置目录(名,主目录=None):#解析配置目录
     return os.path.join(主目录,配置目录名,名)#拼目录
 
 def 初始化配置档(目录,组合包列表):#初始化配置
-    """初始化一个配置目录。"""
+    '初始化一个配置目录'
     os.makedirs(目录,exist_ok=True)#确保目录
     清单路径=os.path.join(目录,'package.json')#清单
     if not os.path.exists(清单路径):#没有清单
@@ -79,7 +79,7 @@ def 初始化配置档(目录,组合包列表):#初始化配置
             文件.close()#关闭
 
 def 读配置清单(二进制名,目录):#读配置清单
-    """读一个配置的清单。"""
+    '读一个配置的清单'
     路径=os.path.join(目录,'package.json')#清单路径
     try:#读
         文件=open(路径,'r',encoding='utf-8')#打开
@@ -95,7 +95,7 @@ def 读配置清单(二进制名,目录):#读配置清单
     return 解析#清单
 
 def 写配置清单(目录,清单):#写配置清单
-    """把配置清单写回。"""
+    '把配置清单写回'
     文件=open(os.path.join(目录,'package.json'),'w',encoding='utf-8')#打开
     try:#写
         文件.write(json.dumps(清单,ensure_ascii=False,indent=2)+'\n')#写
@@ -103,11 +103,11 @@ def 写配置清单(目录,清单):#写配置清单
         文件.close()#关闭
 
 def 同组合包(左,右):#列表是否相同
-    """两个组合包列表是否同值同序。"""
+    '两个组合包列表是否同值同序'
     return len(左)==len(右) and all(左[下标]==右[下标] for 下标 in range(len(左)))#比较
 
 def 规范化随附配置(名,目录,清单):#规范化随附配置
-    """把恰好是安装拥有的组合包元组规范化到其随附模板。"""
+    '把恰好是安装拥有的组合包元组规范化到其随附模板'
     拥有=安装拥有元组.get(名)#安装拥有
     当前=配置模板.get(名)#当前模板
     组合包=((清单.get('dsh') or {}).get('profile') or {}).get('bundles')#当前列表
@@ -126,7 +126,7 @@ def 规范化随附配置(名,目录,清单):#规范化随附配置
     return 规范化#返回
 
 def 从锚点解析包目录(锚点,包名):#从锚点解析包目录
-    """探测 node_modules 查找顺序。"""
+    '探测 node_modules 查找顺序'
     当前=os.path.dirname(锚点)#从锚点目录起
     while True:#向上
         候选=os.path.join(当前,'node_modules',包名)#候选
@@ -139,7 +139,7 @@ def 从锚点解析包目录(锚点,包名):#从锚点解析包目录
     return None#未解析到
 
 def 解析组合包目录(二进制名,包名,安装锚点,配置目录):#解析组合包目录
-    """安装锚点优先，然后是配置目录。"""
+    '安装锚点优先，然后是配置目录'
     for 锚点 in (安装锚点,os.path.join(配置目录,'package.json')):#两个锚点
         目录=从锚点解析包目录(锚点,包名)#尝试
         if 目录 is not None:#命中
@@ -150,7 +150,7 @@ def 解析组合包目录(二进制名,包名,安装锚点,配置目录):#解析
     )#错误
 
 def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#加载配置
-    """加载一个配置：解析每个组合包层并解析用户补丁。"""
+    '加载一个配置：解析每个组合包层并解析用户补丁'
     if 主目录 is None:#缺省
         主目录=解析主目录()#主目录
     if 选项 is None:#缺省
@@ -180,15 +180,15 @@ def 加载配置档(二进制名,名,安装锚点,主目录=None,选项=None):#�
     return {'name':名,'dir':目录,'layers':层列表,'patchPath':补丁路径,'patches':补丁}#已加载配置
 
 def 组合条目(各层,警告=None):#组合条目
-    """在空根上把补丁层组合成有效条目列表。"""
+    '在空根上把补丁层组合成有效条目列表'
     if 警告 is None:#缺省
         警告=lambda 消息:None#静默
     def 记警告(消息,*参数):#警告
-        """展开 %C。"""
+        '展开 %C'
         import re,json as 杰#正则与 JSON
         下标=[0]#游标
         def 替(_):#替换
-            """取下一参数。"""
+            '取下一参数'
             值=参数[下标[0]] if 下标[0]<len(参数) else None#参数
             下标[0]=下标[0]+1#推进
             return 杰.dumps(值,ensure_ascii=False)#JSON
@@ -197,7 +197,7 @@ def 组合条目(各层,警告=None):#组合条目
     return 应用条目补丁([],展平,记警告)#应用
 
 def 愈合模块回退(安装锚点,主目录=None,物化=True):#愈合模块回退
-    """维护扁平模块回退 $DSH_HOME/profiles/node_modules。物化为 False 时只计算世代。"""
+    '维护扁平模块回退 $DSH_HOME/profiles/node_modules。物化为 False 时只计算世代'
     if 主目录 is None:#缺省
         主目录=解析主目录()#主目录
     配置根=os.path.join(主目录,配置目录名)#配置根
@@ -250,7 +250,7 @@ def 愈合模块回退(安装锚点,主目录=None,物化=True):#愈合模块回
     }#结束
 
 def 确保符号链接(链接,目标):#确保符号链接
-    """确保 link 是指向 target 的符号链接。"""
+    '确保 link 是指向 target 的符号链接'
     if os.path.lexists(链接):#已存在
         if not os.path.islink(链接):#不是符号链接
             raise Exception('dsh: 目标已存在且不是符号链接；请删掉后让 dsh 管理安装回退')#拒绝
@@ -264,12 +264,12 @@ def 确保符号链接(链接,目标):#确保符号链接
             raise#失败
 
 def 创建配置解析世代(选项):
-    """不物化链接或代理即计算一代配置解析表。选项为 dict。"""
+    '不物化链接或代理即计算一代配置解析表。选项为 dict'
     主目录=选项['home'] if 'home' in 选项 else None#可选主目录
     return 愈合模块回退(选项['installAnchor'],主目录,False)#只计算
 
 def 愈合隔离配置模块回退(选项):
-    """应用自有配置：从安装与所选组合包供给文件系统包，不写共享主目录。选项为 dict。"""
+    '应用自有配置：从安装与所选组合包供给文件系统包，不写共享主目录。选项为 dict'
     安装世代=愈合模块回退(选项['installAnchor'],None,False)#安装条目
     安装链接={条['name']:条['packageDir'] for 条 in 安装世代['entries']}#名→目录
     安装名=set(安装链接.keys())#安装包名
@@ -294,7 +294,7 @@ def 愈合隔离配置模块回退(选项):
             确保符号链接(投影,拥有链接)#投影
 
 def 拆开配置模块回退(配置目录):
-    """在包管理器变更前拆掉本配置的回退链接。"""
+    '在包管理器变更前拆掉本配置的回退链接'
     拥有=os.path.join(配置目录,'.dsh-module-fallback','node_modules')#拥有目录
     if not os.path.exists(拥有):#无
         return#空
@@ -317,7 +317,7 @@ def 拆开配置模块回退(配置目录):
                 pass#忽略
 
 def 加载配置目录(二进制名,目录,安装锚点,选项=None):
-    """加载已经初始化的配置目录，不经共享主目录解析。"""
+    '加载已经初始化的配置目录，不经共享主目录解析'
     if 选项 is None:#缺省
         选项={}#空
     from . import 加载覆盖补丁 as 加载覆盖#延迟导入避免环

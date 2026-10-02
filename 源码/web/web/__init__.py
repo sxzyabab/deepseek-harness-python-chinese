@@ -1,4 +1,4 @@
-"""web 访问服务：搜索与抓取注册表，及按提供方选择的执行。"""
+'web 访问服务：搜索与抓取注册表，及按提供方选择的执行'
 import os
 from ...依赖.schemastery import 字符串字段
 from ...依赖 import cordis
@@ -30,7 +30,8 @@ __all__=[
 名称='web'
 
 def 解析提供方(选择):
-    """解析出选定提供方，或抛出对应的网络错误。选择从不依赖注册顺序。"""
+    """解析出选定提供方，或抛出对应的网络错误。
+    选择从不依赖注册顺序"""
     配置标识=选择['configuredId'] if 'configuredId' in 选择 else None
     注册表=选择['providers']
     if 配置标识 is not None:
@@ -52,7 +53,7 @@ def 解析提供方(选择):
     return 可用列表[0]
 
 def 截断来源(结果,上限):
-    """对搜索结果强制 maxResults：截断 sources[] 并打标记。"""
+    '对搜索结果强制 maxResults：截断 sources[] 并打标记'
     来源列表=list(结果['sources'])
     if 上限 is None or len(来源列表)<=上限:
         return 结果
@@ -78,7 +79,8 @@ class 网络运行时(服务):
     }
 
     def __init__(自身,ctx,配置=None):
-        """以 web 名注册服务。环境变量 DSH_WEB_*_PROVIDER 与配置字段等价，不是隐藏优先级链。"""
+        """以 web 名注册服务。
+        环境变量 DSH_WEB_*_PROVIDER 与配置字段等价，不是隐藏优先级链"""
         super().__init__(ctx,'web')
         if 配置 is None:
             配置={}
@@ -94,33 +96,38 @@ class 网络运行时(服务):
         自身.抓取提供方表={}
 
     def 注册搜索提供方(自身,提供方):
-        """注册搜索提供方。id 已占用则抛 WEB_DUPLICATE_PROVIDER。返回拆除器。"""
+        """注册搜索提供方。
+        id 已占用则抛 WEB_DUPLICATE_PROVIDER。
+        返回拆除器"""
         return 自身.注册提供方(自身.搜索提供方表,提供方)
 
     def 注册抓取提供方(自身,提供方):
-        """注册抓取提供方。id 已占用则抛 WEB_DUPLICATE_PROVIDER。返回拆除器。"""
+        """注册抓取提供方。
+        id 已占用则抛 WEB_DUPLICATE_PROVIDER。
+        返回拆除器"""
         return 自身.注册提供方(自身.抓取提供方表,提供方)
 
     def 注册提供方(自身,表,提供方):
-        """写入一张提供方注册表。id 已占用则拒绝；纤程销毁时注销。"""
+        """写入一张提供方注册表。
+        id 已占用则拒绝；纤程销毁时注销"""
         标识=提供方.id
         if 标识 in 表:
             raise 网络错误('a web provider with id "'+str(标识)+'" is already registered','WEB_DUPLICATE_PROVIDER')
         def 挂上():
-            """写入注册表并在拆除时删除。"""
+            '写入注册表并在拆除时删除'
             表[标识]=提供方
             def 摘掉():
-                """销毁时从注册表删除。"""
+                '销毁时从注册表删除'
                 表.pop(标识,None)
             return 摘掉
         释放=自身.ctx.副作用(挂上,'web.registerProvider()')
         def 同步拆除():
-            """丢掉副作用返回值的同步拆除。"""
+            '丢掉副作用返回值的同步拆除'
             释放()
         return 同步拆除
 
     def 搜索(自身,请求,信号=None):
-        """经选定提供方跑一次搜索；强制 request.maxResults，多返回则截断 sources[] 并置 truncated。"""
+        '经选定提供方跑一次搜索；强制 request.maxResults，多返回则截断 sources[] 并置 truncated'
         选择={'providers':自身.搜索提供方表}
         if 自身.搜索提供方标识 is not None:
             选择['configuredId']=自身.搜索提供方标识
@@ -129,7 +136,8 @@ class 网络运行时(服务):
         return 截断来源(结果,请求['maxResults'] if 'maxResults' in 请求 else None)
 
     def 抓取(自身,请求,信号=None):
-        """经选定提供方检索一个 URL。非 2xx 响应是结果，不是抛错。"""
+        """经选定提供方检索一个 URL。
+        非 2xx 响应是结果，不是抛错"""
         选择={'providers':自身.抓取提供方表}
         if 自身.抓取提供方标识 is not None:
             选择['configuredId']=自身.抓取提供方标识

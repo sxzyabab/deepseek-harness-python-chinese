@@ -17,7 +17,7 @@ def 安装工作线程入口(
     执行shell进程=None,
     自身=None,
 ):
-    """安装消息入口：init 前排队，shell 角色分派，装配后根上下文派发。"""
+    '安装消息入口：init 前排队，shell 角色分派，装配后根上下文派发'
     if 安装异步上下文钩子 is not None:#在timer全局之前
         安装异步上下文钩子()
     if 安装定时器全局 is not None:
@@ -30,7 +30,7 @@ def 安装工作线程入口(
     作用域=自身 if 自身 is not None else globals()
 
     def 收消息(事件):
-        """按角色与 init 帧分派。"""
+        '按角色与 init 帧分派'
         数据=事件.data#MessageEvent 对象载荷
         if 宿主[0] is None and 是否shell启动帧 is not None and 是否shell启动帧(数据):
             shell角色[0]=True
@@ -58,7 +58,7 @@ def 安装工作线程入口(
             宿主[0]=创建
             for 已排 in 排队:
                 def 冲刷已排(消=已排,主=创建):
-                    """把排队消息交给宿主句柄。"""
+                    '把排队消息交给宿主句柄'
                     主['handleMessage'](消)
                 if callable(在异步上下文根运行):
                     在异步上下文根运行(冲刷已排)
@@ -74,7 +74,7 @@ def 安装工作线程入口(
             return
         就绪=宿主[0]
         def 派发():
-            """派发消息。"""
+            '派发消息'
             就绪['handleMessage'](数据)
         if callable(在异步上下文根运行):
             在异步上下文根运行(派发)

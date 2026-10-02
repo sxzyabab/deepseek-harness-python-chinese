@@ -1,27 +1,29 @@
 import base64,threading#编码与并发
 from ...共享.json import 检查器错误#本包错误
-from ...共享.桥接.消息.网络 import 请求主题列表#fetch主题常量
 
 __all__=['网络主题','请求采集选项','请求观察器','安装请求观察器']#仅中文公开名
 
-网络主题=请求主题列表#网络主题
+网络主题=(#fetch主题列表
+    'fetch/start','fetch/request-body-chunk','fetch/request-body-end',#请求侧
+    'fetch/response','fetch/response-body-chunk','fetch/end','fetch/error',#响应侧
+)#与桥接消息网络里的请求主题列表相同
 
 class 请求采集选项:#fetch采集选项
-    """请求与响应 clone 采集的字节上限。"""
+    '请求与响应 clone 采集的字节上限'
     def __init__(自身,maxRequestBodyBytes,maxResponseBodyBytes,maxChunkBytes):#构造
-        """保存上限。"""
+        '保存上限'
         自身.maxRequestBodyBytes=maxRequestBodyBytes#请求体上限
         自身.maxResponseBodyBytes=maxResponseBodyBytes#响应体上限
         自身.maxChunkBytes=maxChunkBytes#分块上限
 
 class 请求观察器:#fetch观察器
-    """活动的全局 fetch 包装。"""
+    '活动的全局 fetch 包装'
     def 停止(自身):#停止
-        """恢复先前的 fetch 实现，取消 clone 读取器，并等待它们结算。"""
+        '恢复先前的 fetch 实现，取消 clone 读取器，并等待它们结算'
         raise NotImplementedError#子类实现
 
 def 渲染错误(错误):#渲染错误
-    """渲染错误。"""
+    '渲染错误'
     if isinstance(错误,Exception):#标准错误
         return f'{type(错误).__name__}: {错误}'#标准错误
     try:#字符串化
@@ -30,20 +32,20 @@ def 渲染错误(错误):#渲染错误
         return 'unrenderable fetch error'#兜底文案
 
 def 头条目(头):#头条目
-    """头条目。"""
+    '头条目'
     if hasattr(头,'items'):#映射
         return list(头.items())#展开
     return list(头)#展开
 
 def 压缩结果(请求标识,结果):#压缩结果
-    """压缩结果。"""
+    '压缩结果'
     载荷={'requestId':请求标识,'capturedBytes':结果['capturedBytes'],'truncated':结果['truncated']}#载荷
     if 结果.get('captureError') is not None:#可选错误
         载荷['captureError']=结果['captureError']#错误
     return 载荷#返回
 
 def 采集体(体,上限,分块上限,中止事件,发射):#采集body
-    """采集 body。"""
+    '采集 body'
     if 体 is None:#无体
         return {'capturedBytes':0,'truncated':False}#无体
     已采=0#已采
@@ -68,7 +70,7 @@ def 采集体(体,上限,分块上限,中止事件,发射):#采集body
         return {'capturedBytes':已采,'truncated':True,'captureError':渲染错误(错误)}#错误结果
 
 def 安装请求观察器(发布器,选项):#安装fetch观察器
-    """为之后经全局 fetch 的每次调用安装完整 fetch 采集。"""
+    '为之后经全局 fetch 的每次调用安装完整 fetch 采集'
     import builtins#全局
     原始=getattr(builtins,'fetch',None)#原fetch
     if not callable(原始):#不可用
@@ -81,22 +83,22 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
     已停止={'p':None}#停止去重
 
     def 跟踪(任务):#跟踪挂起
-        """跟踪挂起。"""
+        '跟踪挂起'
         挂起.add(任务)#加入
         def 收尾(_=None):#结算后移除
-            """结算后移除。"""
+            '结算后移除'
             挂起.discard(任务)#移除
         if hasattr(任务,'add_done_callback'):#Future
             任务.add_done_callback(收尾)#回调
         else:#线程
             def 近似收尾():#非 Future 的近似收尾
-                """保留任务引用后立即收尾。"""
+                '保留任务引用后立即收尾'
                 任务#保留引用
                 收尾()#收尾
             threading.Thread(target=近似收尾,daemon=True).start()#近似
 
     def 观察请求(输入,初始化=None):#包装fetch
-        """包装 fetch。"""
+        '包装 fetch'
         序号['n']+=1#递增
         请求标识=f'fetch-{序号["n"]}'#请求id
         方法=getattr(输入,'method',None)#Request.method
@@ -137,11 +139,11 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
 
     class _观察器(请求观察器):#观察器
         def 停止(自身):#停止
-            """停止采集。"""
+            '停止采集'
             if 已停止['p'] is not None:#复用
                 return 已停止['p']#复用
             def 执行():#一次停止
-                """一次停止。"""
+                '一次停止'
                 if getattr(builtins,'fetch',None) is 观察请求:#仍是我们的
                     setattr(builtins,'fetch',原始)#恢复
                 中止.set()#中止采集

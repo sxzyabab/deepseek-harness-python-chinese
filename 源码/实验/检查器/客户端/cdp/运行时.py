@@ -10,50 +10,50 @@ __all__=['运行时桥能力','客户端运行时上限','客户端运行时执�
 最大运行时错误消息长度=2048#错误消息上限
 
 def 运行时桥能力(来源):#Runtime桥能力
-    """描述浏览器侧 Runtime 执行。"""
+    '描述浏览器侧 Runtime 执行'
     return {'type':'client-runtime','origin':来源}#能力
 
 class 客户端运行时上限:#Client运行时上限
-    """Host 部署写入的 Client 侧上限。"""
+    'Host 部署写入的 Client 侧上限'
     def __init__(自身,maxObjectsPerSession,maxPropertiesPerResult,maxResponseBytes):#构造
-        """保存上限。"""
+        '保存上限'
         自身.maxObjectsPerSession=maxObjectsPerSession#每会话上限
         自身.maxPropertiesPerResult=maxPropertiesPerResult#每结果属性上限
         自身.maxResponseBytes=maxResponseBytes#响应字节上限
 
 def 响应帧(帧,结果封装):#构响应帧
-    """构响应帧。"""
+    '构响应帧'
     return {'v':检查器协议版本,'t':'client-runtime/response','sourceId':帧['sourceId'],'generation':帧['generation'],'sessionId':帧['sessionId'],'requestId':帧['requestId'],'outcome':结果封装}#响应
 
 def 运行时错误(错误):#规范化错误
-    """规范化错误。"""
+    '规范化错误'
     if isinstance(错误,客户端运行时执行错误):#类型化
         return {'code':错误.code,'message':错误.message[:最大运行时错误消息长度]}#错误
     消息=str(错误)#转串
     return {'code':'internal-error','message':消息[:最大运行时错误消息长度]}#内部错误
 
 class 客户端运行时会话:#Client Runtime会话
-    """按 DevTools 会话隔离对象句柄。"""
+    '按 DevTools 会话隔离对象句柄'
     def __init__(自身,最大对象,最大属性,解析脚本):#构造
-        """创建对象存储。"""
+        '创建对象存储'
         自身.对象=客户端对象存储(最大对象)#对象存储
         自身.最大属性=最大属性#属性上限
         自身.解析脚本=解析脚本#脚本键
 
     def 开始分配(自身):#开始分配
-        """开始分配。"""
+        '开始分配'
         return 自身.对象.开始分配()#委托
 
     def 提交分配(自身,分配):#提交分配
-        """提交分配。"""
+        '提交分配'
         自身.对象.提交分配(分配)#委托
 
     def 回滚(自身,分配):#回滚分配
-        """回滚分配。"""
+        '回滚分配'
         自身.对象.回滚(分配)#委托
 
     def 执行(自身,命令,分配,信号=None):#执行命令
-        """执行命令。"""
+        '执行命令'
         操作=命令.get('op')#操作
         if 操作=='evaluate':#求值
             return {'op':操作,'completion':自身.求值(命令,分配,信号)}#完成
@@ -75,44 +75,44 @@ class 客户端运行时会话:#Client Runtime会话
         raise 检查器错误(f'未预期的 Client Runtime 命令：{操作!r}')#未知
 
     def 关闭(自身):#关闭
-        """关闭。"""
+        '关闭'
         自身.对象.清空()#清空对象
 
     def 释放对象组(自身,组):#释放对象组
-        """释放对象组。"""
+        '释放对象组'
         自身.对象.释放组(组)#委托
 
     def 全部序列化(自身,值列表,组,分配):#全部序列化
-        """全部序列化。"""
+        '全部序列化'
         return [自身.对象.序列化(值,{'group':组},分配) for 值 in 值列表]#参数
 
     def 描述异常(自身,错误,组,栈,分配):#描述异常
-        """描述异常。"""
+        '描述异常'
         return {'text':str(错误),'lineNumber':0,'columnNumber':0,'stackTrace':栈 or 客户端错误栈(错误,自身.解析脚本),'exception':自身.对象.序列化(错误,{'group':组},分配)}#详情
 
     def 求值(自身,命令,分配,信号=None):#求值
-        """求值。"""
+        '求值'
         raise 客户端运行时执行错误('unsupported','客户端 evaluate 需要浏览器 JS realm 绑定')#需浏览器绑定
 
     def 调函数(自身,命令,分配,信号=None):#调函数
-        """调函数。"""
+        '调函数'
         raise 客户端运行时执行错误('unsupported','客户端 call-function 需要浏览器 JS realm 绑定')#需浏览器绑定
 
     def 等待承诺(自身,命令,分配,信号=None):#等待Promise
-        """等待 Promise。"""
+        '等待 Promise'
         raise 客户端运行时执行错误('unsupported','客户端 await-promise 需要浏览器 JS realm 绑定')#需浏览器绑定
 
 class 客户端运行时执行器:#Client Runtime执行器
-    """执行 Runtime 请求，同时按 DevTools 会话隔离对象句柄。"""
+    '执行 Runtime 请求，同时按 DevTools 会话隔离对象句柄'
     def __init__(自身,上限,解析脚本=None):#构造
-        """保存上限与脚本解析。"""
+        '保存上限与脚本解析'
         自身.上限=上限 if hasattr(上限,'maxObjectsPerSession') else 客户端运行时上限(**上限)#上限
         自身.解析脚本=解析脚本 or 空解析脚本#脚本键
         自身.会话表={}#会话表
         自身.响应分配={}#响应表
 
     def 执行(自身,帧,信号=None,延迟对象提交=False):#执行
-        """执行一次请求并保留其源、代数、会话与请求身份。"""
+        '执行一次请求并保留其源、代数、会话与请求身份'
         会话=自身.取会话(帧['sessionId'])#会话
         分配=会话.开始分配()#分配
         try:#执行体
@@ -134,7 +134,7 @@ class 客户端运行时执行器:#Client Runtime执行器
             return 响应帧(帧,{'ok':False,'error':运行时错误(错误)})#错误响应
 
     def 确认(自身,会话标识,请求标识):#确认
-        """Worker 接受一次 Runtime 响应后提交句柄。"""
+        'Worker 接受一次 Runtime 响应后提交句柄'
         挂起=自身.响应分配.get(请求标识)#挂起
         if 挂起 is None or 挂起['sessionId']!=会话标识:#不匹配
             return#返回
@@ -142,7 +142,7 @@ class 客户端运行时执行器:#Client Runtime执行器
         挂起['session'].提交分配(挂起['allocation'])#提交
 
     def 取消(自身,会话标识,请求标识):#取消
-        """回滚来自已取消或以其他方式未接受的 Runtime 响应的句柄。"""
+        '回滚来自已取消或以其他方式未接受的 Runtime 响应的句柄'
         挂起=自身.响应分配.get(请求标识)#挂起
         if 挂起 is None or 挂起['sessionId']!=会话标识:#不匹配
             return#返回
@@ -150,7 +150,7 @@ class 客户端运行时执行器:#Client Runtime执行器
         挂起['session'].回滚(挂起['allocation'])#回滚
 
     def 关闭会话(自身,会话标识):#关闭会话
-        """拆除为一个已关闭 DevTools 连接保留的全部值。"""
+        '拆除为一个已关闭 DevTools 连接保留的全部值'
         for 请求标识,挂起 in list(自身.响应分配.items()):#清挂起
             if 挂起['sessionId']==会话标识:#匹配
                 自身.响应分配.pop(请求标识,None)#删除
@@ -160,13 +160,13 @@ class 客户端运行时执行器:#Client Runtime执行器
         自身.会话表.pop(会话标识,None)#删表
 
     def 释放对象组(自身,会话标识,组):#释放对象组
-        """在不关闭外围 Runtime 会话的前提下释放一个对象组。"""
+        '在不关闭外围 Runtime 会话的前提下释放一个对象组'
         会话=自身.会话表.get(会话标识)#会话
         if 会话 is not None:#委托
             会话.释放对象组(组)#委托
 
     def 控制台事件(自身,会话标识,类型,值列表,时间戳,栈=None):#Console事件
-        """为特定 DevTools Runtime 会话序列化一次 Console 调用。"""
+        '为特定 DevTools Runtime 会话序列化一次 Console 调用'
         会话=自身.取会话(会话标识)#会话
         分配=会话.开始分配()#分配
         try:#序列化
@@ -183,7 +183,7 @@ class 客户端运行时执行器:#Client Runtime执行器
             raise#继续抛
 
     def 异常事件(自身,会话标识,错误,时间戳,栈=None):#异常事件
-        """为 DevTools Runtime 会话序列化一次未捕获 Client 异常。"""
+        '为 DevTools Runtime 会话序列化一次未捕获 Client 异常'
         会话=自身.取会话(会话标识)#会话
         分配=会话.开始分配()#分配
         try:#序列化
@@ -198,14 +198,14 @@ class 客户端运行时执行器:#Client Runtime执行器
             raise#继续抛
 
     def 重置(自身):#重置
-        """源代数结束或重连时释放全部会话。"""
+        '源代数结束或重连时释放全部会话'
         自身.响应分配.clear()#清挂起
         for 会话 in 自身.会话表.values():#关会话
             会话.关闭()#关
         自身.会话表.clear()#清表
 
     def 取会话(自身,会话标识):#取或建会话
-        """取或建会话。"""
+        '取或建会话'
         if 会话标识 not in 自身.会话表:#新建
             自身.会话表[会话标识]=客户端运行时会话(自身.上限.maxObjectsPerSession,自身.上限.maxPropertiesPerResult,自身.解析脚本)#会话
         会话=自身.会话表[会话标识]#已有

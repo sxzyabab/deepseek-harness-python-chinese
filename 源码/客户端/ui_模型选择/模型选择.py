@@ -13,9 +13,9 @@ __all__=['模型选择','样式表']#仅中文公开名
 '''#样式表结束
 
 class 模型选择:#composer 模型座位
-    """两级下拉：根行钻入模型表或力度表。"""
+    '两级下拉：根行钻入模型表或力度表'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成
         自身.打开=False#菜单开
         自身.面板='root'#root/model/effort
@@ -24,22 +24,22 @@ class 模型选择:#composer 模型座位
         自身.吐司序号=0#吐司序号
 
     def 更新(自身,属性):#刷新
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性#最新
 
     def 切面板(自身,面):#切面板
-        """记下当前面板。"""
+        '记下当前面板'
         自身.面板=面#覆盖
 
     def 读状态(自身):#目录快照
-        """经 directory store。"""
+        '经 directory store'
         目录存储=自身.属性['directory'] if 'directory' in 自身.属性 else None#存储
         if 目录存储 is None:#无
             return {'current':None,'groups':[],'failures':[],'status':'idle','error':None}#空
         return 目录存储.getSnapshot()#快照
 
     def 展平行(自身,状态):#分组展平为选择行
-        """group+model+selection。"""
+        'group+model+selection'
         行列表=[]#累积
         组列表=状态['groups'] if 'groups' in 状态 and 状态['groups'] is not None else []#各组
         for 组 in 组列表:#各组
@@ -54,12 +54,12 @@ class 模型选择:#composer 模型座位
         return 行列表#全部
 
     def 关闭(自身):#关菜单
-        """回到根面板。"""
+        '回到根面板'
         自身.打开=False#关
         自身.面板='root'#根
 
     def 打开菜单(自身):#开菜单并刷新
-        """根面板并 load。"""
+        '根面板并 load'
         自身.面板='root'#根
         自身.打开=True#开
         自身.上次动作='load'#load
@@ -68,14 +68,14 @@ class 模型选择:#composer 模型座位
             加载()#拉
 
     def 重载(自身):#菜单内重载
-        """标 load 再拉。"""
+        '标 load 再拉'
         自身.上次动作='load'#load
         加载=自身.属性['load'] if 'load' in 自身.属性 else None#加载
         if 加载 is not None:#有
             加载()#拉
 
     def 选定模型(自身,选定):#选模型
-        """同路由则关；否则 select。"""
+        '同路由则关；否则 select'
         状态=自身.读状态()#快照
         当前=状态['current'] if 'current' in 状态 else None#当前
         if (当前 is not None
@@ -99,7 +99,7 @@ class 模型选择:#composer 模型座位
             自身.吐司={'seq':自身.吐司序号,'text':翻译('error.action',{'message':错})}#吐司
 
     def 选定力度(自身,力度):#选推理力度
-        """改当前选定的 reasoningEffort。"""
+        '改当前选定的 reasoningEffort'
         状态=自身.读状态()#快照
         当前=状态['current'] if 'current' in 状态 else None#当前
         if 当前 is None:#无
@@ -110,7 +110,7 @@ class 模型选择:#composer 模型座位
         自身.选定模型(选)#走同一提交
 
     def 渲染(自身):#结构化视图
-        """产出与上游 JSX 同构的结构化视图。"""
+        '产出与上游 JSX 同构的结构化视图'
         可用=自身.属性['available'] if 'available' in 自身.属性 else None#可用
         if 可用 is not True:#不可用
             return None#不渲染
@@ -172,7 +172,7 @@ class 模型选择:#composer 模型座位
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

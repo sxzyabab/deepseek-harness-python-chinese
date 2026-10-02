@@ -1,6 +1,6 @@
-"""经导出资源读取插件展示文案与图标，不求值插件代码。"""
+'经导出资源读取插件展示文案与图标，不求值插件代码'
 import os,re,base64,json
-from ..配置解析.解析器 import 裸包名
+from .配置解析.解析器 import 裸包名
 from ...依赖.loader.内部 import 模块加载器
 
 __all__=['解析插件资源','读插件元']
@@ -13,7 +13,7 @@ __all__=['解析插件资源','读插件元']
 }
 
 def 文本于(值,字段):
-    """非空字符串或省略。"""
+    '非空字符串或省略'
     if 值 is None:
         return None
     if not isinstance(值,str) or 值.strip()=='':
@@ -21,13 +21,13 @@ def 文本于(值,字段):
     return 值
 
 def 对象于(值,字段):
-    """必须是对象。"""
+    '必须是对象'
     if not isinstance(值,dict):
         raise Exception(字段+' must be an object')
     return 值
 
 def 读对象(文件):
-    """读 JSON 对象。"""
+    '读 JSON 对象'
     try:
         文件对象=open(文件,'r',encoding='utf-8')
         try:
@@ -39,11 +39,11 @@ def 读对象(文件):
     return 对象于(内容,'resource')
 
 def 回退文本(值):
-    """非空字符串回退。"""
+    '非空字符串回退'
     return 值 if isinstance(值,str) and 值.strip()!='' else None
 
 def 图标于(值,清单目录):
-    """清单相对图标，失败不带路径。"""
+    '清单相对图标，失败不带路径'
     图标=文本于(值,'icon')
     if 图标 is None:
         return None
@@ -72,7 +72,7 @@ def 图标于(值,清单目录):
     return 'data:'+媒体+';base64,'+base64.b64encode(字节).decode('ascii')
 
 def 解析插件资源(说明符,父网址):
-    """经活动模块解析器解析插件资源，不把路径写入错误。"""
+    '经活动模块解析器解析插件资源，不把路径写入错误'
     加载器=模块加载器.从内部()
     if 加载器 is None:
         raise Exception('Plugin metadata requires the module resolver')
@@ -83,13 +83,13 @@ def 解析插件资源(说明符,父网址):
     return 路径
 
 def 缺席资源(错误):
-    """解析失败是否表示资源不存在。"""
+    '解析失败是否表示资源不存在'
     码=getattr(错误,'code',None) or getattr(错误,'errno',None)
     名=type(错误).__name__
     return 码 in ('ERR_PACKAGE_PATH_NOT_EXPORTED','ERR_MODULE_NOT_FOUND','MODULE_NOT_FOUND','ENOENT','ENOTDIR',2) or 名 in ('ModuleNotFoundError','FileNotFoundError')
 
 def 可选资源路径(说明符,父网址):
-    """缺席则省略。"""
+    '缺席则省略'
     try:
         return 解析插件资源(说明符,父网址)
     except Exception as 错误:
@@ -98,7 +98,7 @@ def 可选资源路径(说明符,父网址):
         raise 错误
 
 def 词典表(英文路径,说明符,父网址):
-    """同目录语言文件。"""
+    '同目录语言文件'
     词典={}
     目录=os.path.dirname(英文路径)
     for 名 in os.listdir(目录):
@@ -123,7 +123,7 @@ def 词典表(英文路径,说明符,父网址):
     return 词典
 
 def 本地化文本(字段,词典,回退,最终回退):
-    """合成 LocalizedText。"""
+    '合成 LocalizedText'
     条目=[]
     for 语言,字段表 in 词典.items():
         值=字段表.get(字段)
@@ -137,7 +137,7 @@ def 本地化文本(字段,词典,回退,最终回退):
     return 结果
 
 def 读插件元(说明符,父网址):
-    """读插件导出清单里的本地化展示文案与图标。"""
+    '读插件导出清单里的本地化展示文案与图标'
     if 裸包名(说明符) is None:
         return None
     try:

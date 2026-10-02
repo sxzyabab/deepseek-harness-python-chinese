@@ -6,7 +6,7 @@ __all__=['依赖','挂载智能体团队界面','登记界面']
 依赖=['sessions','uiWorkspace','slots','locale']
 
 def 领导会话标识(会话服务,会话标识):
-    """把当前会话映射到 Team Lead 会话。"""
+    '把当前会话映射到 Team Lead 会话'
     绑定=会话服务.binding(会话标识)
     if 绑定 is None:
         return 会话标识
@@ -28,15 +28,15 @@ def 领导会话标识(会话服务,会话标识):
     return 会话标识
 
 def 登记界面(上下文):
-    """登记词典与标题栏动作槽；面板读 Lead 的 agentTeam 投影，不做 Team RPC。"""
+    '登记词典与标题栏动作槽；面板读 Lead 的 agentTeam 投影，不做 Team RPC'
     def 卸词典():
-        """登记词典并返回拆除器。"""
+        '登记词典并返回拆除器'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
     上下文.副作用(卸词典,'client-ui-agent-team: dictionaries')
     会话服务=上下文.sessions
 
     def 打开队友(会话标识,子会话标识):
-        """从当前对话打开 roster 会话。"""
+        '从当前对话打开 roster 会话'
         父会话=领导会话标识(会话服务,会话标识)
         持有=会话服务.retainInfo(会话标识).getSnapshot()
         主视图=持有['retainedBy']['mainView'] if 'retainedBy' in 持有 and 'mainView' in 持有['retainedBy'] else 0
@@ -53,10 +53,10 @@ def 登记界面(上下文):
 
     动作={'openTeammate':打开队友}
     def 注入动作():
-        """槽注入 Team 动作。"""
+        '槽注入 Team 动作'
         return 动作
     def 依赖动作():
-        """登记标题栏动作槽。"""
+        '登记标题栏动作槽'
         return 上下文.slots.register({
             'name':'conversation.session.header.actions',
             'id':'agent-team',
@@ -67,5 +67,5 @@ def 登记界面(上下文):
     上下文.slots.inject('conversation.session.header.actions',依赖动作)
 
 def 挂载智能体团队界面(上下文,_贡献=None):
-    """登记浏览器 UI；Team 行为在投影域，不再挂载 Team Remote。"""
+    '登记浏览器 UI；Team 行为在投影域，不再挂载 Team Remote'
     登记界面(上下文)

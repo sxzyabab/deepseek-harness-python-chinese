@@ -4,7 +4,7 @@ from .工作者rpc import 应答#RPC
 __all__=['运行工作者']#仅中文公开名
 
 def 运行工作者(配置,收件箱):#隔离工作者
-    """在隔离线程里持有 Stagehand SDK。收件箱是队列。"""
+    '在隔离线程里持有 Stagehand SDK。收件箱是队列'
     模式=配置.get('mode')#模式
     if 模式 not in ('launch','attach'):#非法
         raise Exception('Stagehand 浏览器操作')
@@ -22,7 +22,7 @@ def 运行工作者(配置,收件箱):#隔离工作者
     })#打开
     方法集=frozenset(浏览器输入.keys())#封闭方法
     def 执行(方法,参数):#一次
-        """就绪、关闭或一次浏览器操作。"""
+        '就绪、关闭或一次浏览器操作'
         运行时=打开#SDK
         if 方法=='ready':#就绪
             return None#空

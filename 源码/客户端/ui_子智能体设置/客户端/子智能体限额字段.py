@@ -3,31 +3,31 @@ from ...ui_插件设置.字段 import 取值字段
 __all__=['子智能体限额字段']
 
 class 子智能体限额字段:
-    """深度与容量两个可复位字段。"""
+    '深度与容量两个可复位字段'
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性
 
     def 渲染(自身):
-        """两列限额。"""
+        '两列限额'
         翻译=自身.属性['t']
         状态=自身.属性['state']
         禁用=not 状态['writable'] or 状态['saving']
         def 改深度(文):
-            """改深度草稿。"""
+            '改深度草稿'
             自身.属性['edit']('maxDepth',文)
         def 复深度():
-            """恢复深度默认。"""
+            '恢复深度默认'
             自身.属性['resetField']('maxDepth')
         def 改容量(文):
-            """改容量草稿。"""
+            '改容量草稿'
             自身.属性['edit']('maxActiveSubagents',文)
         def 复容量():
-            """恢复容量默认。"""
+            '恢复容量默认'
             自身.属性['resetField']('maxActiveSubagents')
         return {
             'type':'subagent-limits-fields',
@@ -73,7 +73,7 @@ class 子智能体限额字段:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

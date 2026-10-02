@@ -27,11 +27,11 @@ __all__=['配置','ssh连接']#仅中文公开名
 哈希形态=re.compile(r'^[0-9a-f]{64}\Z',re.ASCII)#SHA-256
 
 def 单引号(值):#远端 argv 引用
-    """POSIX 单引号。"""
+    'POSIX 单引号'
     return "'"+值.replace("'","'\\''")+"'"#引用
 
 def 包装管道(文件):#Popen 管道面
-    """给请求对等用的文件流。"""
+    '给请求对等用的文件流'
     流=套接字流.__new__(套接字流)#不调套接字构造
     流._套接字=None#无套接字
     流._文件=文件#管道
@@ -40,16 +40,16 @@ def 包装管道(文件):#Popen 管道面
     流._暂停事件=threading.Event()#pause
     流._暂停事件.set()#可读
     def 写(字节):#写
-        """写入管道。"""
+        '写入管道'
         文件.write(字节)#写
         文件.flush()#立刻
         return True#接受
     def 读(大小):#读
-        """读管道。"""
+        '读管道'
         流._暂停事件.wait()#pause
         return 文件.read(大小)#读
     def 关闭流(错误=None):#关
-        """关管道。"""
+        '关管道'
         if 流.closed:#已关
             return#忽略
         流.closed=True#记下
@@ -69,10 +69,10 @@ def 包装管道(文件):#Popen 管道面
     return 流#面
 
 class ssh连接(cordis.服务):
-    """一局不重连的 SSH 会话。丢失会使全部活动操作失效。"""
+    '一局不重连的 SSH 会话。丢失会使全部活动操作失效'
     Config=配置#框架槽：类级配置
     def __init__(自身,上下文,配置值):#构造
-        """校验配置并启动主连接。"""
+        '校验配置并启动主连接'
         super().__init__(上下文,'ssh')#登记
         平台=sys.platform#平台
         if 平台!='linux' and not 平台.startswith('linux') and 平台!='darwin':#非 POSIX
@@ -93,7 +93,7 @@ class ssh连接(cordis.服务):
         自身.远端=None#握手
         自身.就绪=操作任务()#hello
         def 启动线程():#后台启动
-            """启动失败写入就绪。"""
+            '启动失败写入就绪'
             try:#启动
                 值=自身._启动()#hello
                 自身.就绪.兑现(值)#就绪
@@ -102,19 +102,19 @@ class ssh连接(cordis.服务):
                 自身.就绪.拒绝(错误)#拒绝
         threading.Thread(target=启动线程).start()
         def 拆除效果():#fiber
-            """拆除连接。"""
+            '拆除连接'
             def 清理():#拆除器
-                """关连接。"""
+                '关连接'
                 自身.拆除()
             return 清理#拆除器
         上下文.副作用(拆除效果,'ssh.connection')#登记
 
     def 初始化(自身):#插件就绪
-        """等到远端身份与辅助摘要验证完。"""
+        '等到远端身份与辅助摘要验证完'
         自身.就绪.等待()#等
 
     def _校验配置(自身,配置值):#构造期校验
-        """主机别名、绝对路径与成对引导字段。"""
+        '主机别名、绝对路径与成对引导字段'
         if not isinstance(配置值,dict):#非对象
             raise ssh错误('expected ssh config object')#失败
         主机=配置值.get('host')#别名
@@ -148,20 +148,20 @@ class ssh连接(cordis.服务):
 
     @property#只读
     def 节点可执行文件(自身):#已验证远端 Node
-        """配对 PTC 运行时用。"""
+        '配对 PTC 运行时用'
         if 自身.远端 is None:#未就绪
             raise ssh错误('SSH helper is not ready')#拒绝
         return 自身.远端['node']#路径
 
     @property#只读
     def 引导路径(自身):#已验证 PTC 入口
-        """未配置则在程序执行前拒绝。"""
+        '未配置则在程序执行前拒绝'
         if 自身.远端 is None or 'bootstrapPath' not in 自身.配置值:#未配
             raise ssh错误('SSH PTC requires a verified bootstrapPath and bootstrapHash')#拒绝
         return 自身.配置值['bootstrapPath']#路径
 
     def 请求(自身,方法,参数,结果模式,信号=None,等待=False):#辅助操作
-        """取消从不重放含糊变更。等待=True 时观察可超过管理截止。"""
+        '取消从不重放含糊变更。等待=True 时观察可超过管理截止'
         自身._断言开着()#开着
         自身.就绪.等待()#就绪
         自身._断言开着()#再检查
@@ -176,11 +176,11 @@ class ssh连接(cordis.服务):
         return 自身.对等.请求(方法,参数,结果模式,有界)#请求
 
     def 连接流(自身,端点,信号=None):#独立通道转发
-        """返回已暂停套接字；消费方挂上后再恢复。"""
+        '返回已暂停套接字；消费方挂上后再恢复'
         任务=操作任务()#操作
         自身.操作表.add(任务)#跟踪
         def 在线程执行():#线程
-            """建立流。"""
+            '建立流'
             try:#建立
                 值=自身._建立流(端点,信号)#流
                 任务.兑现(值)#完
@@ -192,7 +192,7 @@ class ssh连接(cordis.服务):
         return 任务.等待()#流
 
     def _建立流(自身,端点,信号=None):#转发并认证
-        """校验路径后 OpenSSH -L 转发，再 TLS-PSK。"""
+        '校验路径后 OpenSSH -L 转发，再 TLS-PSK'
         握手=自身.就绪.等待()#hello
         自身._断言开着()#开着
         if 信号 is None:#无调用方
@@ -208,7 +208,7 @@ class ssh连接(cordis.服务):
         自身.下一套接字+=1#序号
         转发=本地+':'+远端# -L
         def 取消转发():#取消 -L
-            """主控不可用则监听已没。"""
+            '主控不可用则监听已没'
             if not 自身._已关:#仍开
                 try:#取消
                     自身._控制命令(['-O','cancel','-L',转发])#取消
@@ -230,31 +230,31 @@ class ssh连接(cordis.服务):
         套接字对象=套接字流(连接)#面
         自身.套接字表.add(套接字对象)#登记
         def 已关():#close
-            """取消转发。"""
+            '取消转发'
             自身.套接字表.discard(套接字对象)#摘
             threading.Thread(target=取消转发,daemon=True).start()#取消
         套接字对象.once('close',已关)#关时取消
         认证=认证流(套接字对象,端点['capability'],自身.配置值['requestTimeoutMs'],信号)#TLS
         自身.套接字表.add(认证)#登记认证流
         def 流出错(错误=None):#error
-            """毁掉认证流。"""
+            '毁掉认证流'
             认证.destroy()#毁
         认证.on('error',流出错)#错误则毁
         def 认证关():#close
-            """从表摘掉。"""
+            '从表摘掉'
             自身.套接字表.discard(认证)#摘
         认证.once('close',认证关)#摘
         return 认证#已暂停认证流
 
     def 拆除(自身):#先拆远端托管再放主控
-        """只跑一次。"""
+        '只跑一次'
         if 自身._拆除任务 is not None:#已开始
             自身._拆除任务.wait()#等
             return
         完成=threading.Event()#完成
         自身._拆除任务=完成#记下
         def 在线程执行():#一次
-            """拆除体。"""
+            '拆除体'
             try:#拆
                 自身._拆除一次()#拆
             finally:#广播
@@ -263,7 +263,7 @@ class ssh连接(cordis.服务):
         完成.wait()#等
 
     def _拆除一次(自身):#一次拆除
-        """关心跳、发 close、毁套接字、杀 ssh、删目录。"""
+        '关心跳、发 close、毁套接字、杀 ssh、删目录'
         自身._已关=True#记下
         自身.寿命.中止(ssh错误('SSH connection is closing'))#中止
         if 自身.心跳 is not None:#心跳
@@ -275,7 +275,7 @@ class ssh连接(cordis.服务):
                 pass
             if 自身.失败 is None and 自身.对等 is not None:#健康
                 def 空(值):#z.null
-                    """空。"""
+                    '空'
                     return 值#空
                 句柄=截止(None,自身.配置值['requestTimeoutMs'],'ssh-close')#截止
                 自身.对等.请求('close',{},空,句柄.信号)#close
@@ -302,18 +302,18 @@ class ssh连接(cordis.服务):
                 shutil.rmtree(自身.目录,ignore_errors=True)#删
 
     def _控制路径(自身):#主控套接字
-        """master 路径。"""
+        'master 路径'
         return os.path.join(自身.目录,'master')#路径
 
     def _断言开着(自身):#未关且未失败
-        """已关或失败则抛。"""
+        '已关或失败则抛'
         if 自身._已关:#关
             raise ssh错误('SSH connection is closed')#拒绝
         if 自身.失败 is not None:#失败
             raise 自身.失败#原样
 
     def _控制命令(自身,参数,信号=None):#ssh -S master ...
-        """管理转发。"""
+        '管理转发'
         信号表=[自身.寿命.信号]#寿命
         句柄=截止(None,自身.配置值['requestTimeoutMs'],'ssh-control')#截止
         信号表.append(句柄.信号)#截止
@@ -327,7 +327,7 @@ class ssh连接(cordis.服务):
         进程=subprocess.Popen(命令,stdout=subprocess.PIPE,stderr=subprocess.PIPE)#跑
         完成=操作任务()#结果
         def 等():#等退出
-            """退出码。"""
+            '退出码'
             try:#等
                 码=进程.wait()#等
                 if 码==0:#成功
@@ -338,7 +338,7 @@ class ssh连接(cordis.服务):
                 完成.拒绝(错误)#拒绝
         threading.Thread(target=等).start()#等
         def 升级():#中止则 KILL
-            """宽限后 KILL。"""
+            '宽限后 KILL'
             强制=threading.Timer(自身.配置值['requestTimeoutMs']/1000.0,进程.kill)#KILL
             强制.daemon=True#守护
             强制.start()#武装
@@ -346,7 +346,7 @@ class ssh连接(cordis.服务):
             升级()#立刻
         else:#监视
             def 监视():#等中止
-                """中止后升级。"""
+                '中止后升级'
                 融合.wait()#等
                 升级()#KILL
             threading.Thread(target=监视,daemon=True).start()#监视
@@ -356,7 +356,7 @@ class ssh连接(cordis.服务):
             进程.wait()#收尸
 
     def _失败(自身,错误):#只记一次
-        """中止寿命、关对等、毁套接字、TERM 子进程。"""
+        '中止寿命、关对等、毁套接字、TERM 子进程'
         if 自身.失败 is not None:#已有
             return#忽略
         自身.失败=错误#记下
@@ -371,7 +371,7 @@ class ssh连接(cordis.服务):
             自身.子进程.terminate()#TERM
 
     def _启动(自身):#主连接与 hello
-        """临时目录、ControlMaster、hello、心跳。"""
+        '临时目录、ControlMaster、hello、心跳'
         自身.目录=tempfile.mkdtemp(prefix='dsh-ssh-',dir='/tmp')#临时
         if 自身._已关:#已关
             raise ssh错误('SSH connection closed before startup')#拒绝
@@ -384,13 +384,13 @@ class ssh连接(cordis.服务):
         子=subprocess.Popen(argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)#ssh
         自身.子进程=子#记下
         def 等关():#close
-            """子进程退出。"""
+            '子进程退出'
             子.wait()#等
             自身.子进程已关.兑现(None)#广播
             自身._失败(ssh错误('SSH helper disconnected; remote outcomes and cleanup are unknown'))#失败
         threading.Thread(target=等关,daemon=True).start()#等关
         def 丢弃错误():#stderr
-            """消费诊断以免堵管。"""
+            '消费诊断以免堵管'
             try:#读
                 while True:#循环
                     块=子.stderr.read(65536)#读
@@ -402,7 +402,7 @@ class ssh连接(cordis.服务):
         对等=ssh请求对等(包装管道(子.stdout),包装管道(子.stdin),自身.配置值['maxFrameBytes'],自身.配置值['maxPending'])#对等
         自身.对等=对等#记下
         def 对等关(错误=None):#closed
-            """失败。"""
+            '失败'
             自身._失败(错误 if isinstance(错误,BaseException) else ssh错误(str(错误)))#失败
         对等.关闭回调.append(对等关)#监听
         参数={
@@ -421,14 +421,14 @@ class ssh连接(cordis.服务):
         自身.远端=握手#记下
         心跳未决={'任务':None}#一次一心跳
         def 心跳一次():#心跳
-            """lease/2 截止。"""
+            'lease/2 截止'
             if 心跳未决['任务'] is not None:#已有
                 return#跳
             def 在线程执行():#线程
-                """heartbeat。"""
+                'heartbeat'
                 try:#请求
                     def 空(值):#null
-                        """空。"""
+                        '空'
                         return 值#空
                     心=截止(None,自身.配置值['leaseMs']/2,'ssh-heartbeat')#截止
                     对等.请求('heartbeat',{},空,心.信号)#心跳
@@ -441,7 +441,7 @@ class ssh连接(cordis.服务):
             心跳未决['任务'].start()
         间隔=自身.配置值['leaseMs']//3#间隔
         def 心跳循环():#循环
-            """按间隔心跳直到关闭。"""
+            '按间隔心跳直到关闭'
             while not 自身._已关 and 自身.失败 is None:#仍开
                 time.sleep(间隔/1000.0)#等
                 if 自身._已关 or 自身.失败 is not None:#停

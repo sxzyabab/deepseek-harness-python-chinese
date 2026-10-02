@@ -1,4 +1,4 @@
-"""SSE 分帧；JSON 错误仍是提供方失败。"""
+'SSE 分帧；JSON 错误仍是提供方失败'
 import json
 from ..llm import 大模型错误
 from .回放 import 对象
@@ -7,7 +7,7 @@ from .传输 import 提供方错误
 __all__=['解析sse']
 
 def 解析sse(响应,活动):
-    """解码完整 SSE 帧，未终止尾不当成事件。"""
+    '解码完整 SSE 帧，未终止尾不当成事件'
     数据行=[]
     事件类型=None
     for 原始 in 响应.iter_lines(decode_unicode=True):

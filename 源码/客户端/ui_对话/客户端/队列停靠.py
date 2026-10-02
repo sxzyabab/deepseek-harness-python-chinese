@@ -4,20 +4,20 @@ from .文案 import 命名空间
 __all__=['队列停靠','队列停靠条目']
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 取队列(快照):
-    """会话 queue 字段。"""
+    '会话 queue 字段'
     队列=快照['queue'] if 快照 is not None and 'queue' in 快照 else None#队列
     return 队列 if 队列 is not None else []#空容器仍返回
 
 def 取可改(快照):
-    """无 subagent 才可改。"""
+    '无 subagent 才可改'
     return 快照 is None or 'subagent' not in 快照 or 快照['subagent'] is None#可改
 
 def 取文本(内容):
-    """从 content 块拼文本。"""
+    '从 content 块拼文本'
     if isinstance(内容,str):#已是串
         return 内容#串
     if not isinstance(内容,(list,tuple)):#非列表
@@ -31,39 +31,39 @@ def 取文本(内容):
     return ''.join(段)#拼
 
 class 队列停靠:
-    """单条直出；多条默认可折叠计数头。"""
+    '单条直出；多条默认可折叠计数头'
 
     def __init__(自身,属性=None):
-        """记下 props 与本地态。"""
+        '记下 props 与本地态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.折叠=True#折叠
         自身.编辑=None#编辑 {id,text}
         自身.忙碌=None#忙碌 id
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 开编(自身,标识,正文,可改):
-        """开始编辑一行。"""
+        '开始编辑一行'
         if 可改 is True:#可
             自身.编辑={'id':标识,'text':正文}#开
 
     def 取消编(自身):
-        """取消编辑。"""
+        '取消编辑'
         自身.编辑=None#清
 
     def 改编(自身,标识,文):
-        """改编辑正文。"""
+        '改编辑正文'
         自身.编辑={'id':标识,'text':文}#改
 
     def 切换折叠(自身,交互中):
-        """非交互才翻转。"""
+        '非交互才翻转'
         if 交互中 is False:#闲
             自身.折叠=not 自身.折叠#翻
 
     def 渲染(自身):
-        """空队列返回 None。"""
+        '空队列返回 None'
         属性=自身.属性#props
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话
         更新队列=属性['updateQueue'] if 'updateQueue' in 属性 else None#更新
@@ -95,19 +95,19 @@ class 队列停靠:
             在编=自身.编辑 is not None and 编标识==标识#编辑中
             编文=自身.编辑['text'] if 在编 is True and 'text' in 自身.编辑 else None#编文
             def 开编(钉标识=标识,钉正文=正文,钉可改=可改):
-                """开编本行。"""
+                '开编本行'
                 自身.开编(钉标识,钉正文,钉可改)#开
             def 改编(文,钉标识=标识):
-                """改本行。"""
+                '改本行'
                 自身.改编(钉标识,文)#改
             def 存编(钉标识=标识,钉更新=更新队列,钉通知=通知,钉翻译=翻译):
-                """存本行。"""
+                '存本行'
                 自身._存编辑(钉标识,钉更新,钉通知,钉翻译)#存
             def 发送(钉标识=标识,钉更新=更新队列,钉通知=通知,钉翻译=翻译):
-                """发本行。"""
+                '发本行'
                 自身._动作(钉标识,{'kind':'send'},钉翻译('queue.sendFailed'),钉更新,钉通知)#发
             def 删除(钉标识=标识,钉更新=更新队列,钉通知=通知,钉翻译=翻译):
-                """删本行。"""
+                '删本行'
                 自身._动作(钉标识,{'kind':'delete'},钉翻译('queue.deleteFailed'),钉更新,钉通知)#删
             行视图.append({#行
                 'id':标识,#id
@@ -124,7 +124,7 @@ class 队列停靠:
                 'onDelete':删除,#删
             })#行结束
         def 折切():
-            """折切。"""
+            '折切'
             自身.切换折叠(交互中)#翻
         return {#停靠
             'type':'queue-dock',#类型
@@ -141,7 +141,7 @@ class 队列停靠:
         }#视图结束
 
     def _动作(自身,标识,动作,失败文,更新队列,通知):
-        """忙态围栏。"""
+        '忙态围栏'
         自身.忙碌=标识#忙
         try:#派
             if 更新队列 is not None:#有
@@ -156,7 +156,7 @@ class 队列停靠:
                 自身.忙碌=None#清
 
     def _存编辑(自身,标识,更新队列,通知,翻译):
-        """写 edit 动作。"""
+        '写 edit 动作'
         if 自身.编辑 is None:#无
             return#停
         文=自身.编辑['text'] if 'text' in 自身.编辑 else ''#文
@@ -166,17 +166,17 @@ class 队列停靠:
             自身.编辑=None#清
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 def 队列停靠条目():
-    """对齐 queueDockEntry：独立激活边界的 plain registrant。"""
+    '对齐 queueDockEntry：独立激活边界的 plain registrant'
     def 应用(上下文):
-        """终端 input-dock 条目（order 20）。"""
+        '终端 input-dock 条目（order 20）'
         def 注入(会话标识):
-            """updateQueue + notify。"""
+            'updateQueue + notify'
             作用域=上下文.sessions.scope(会话标识)#作用域
             if 作用域 is None:#无
                 raise 对话错误('排队停靠: 会话 "'+str(会话标识)+'" 没有作用域')
@@ -184,17 +184,17 @@ def 队列停靠条目():
             if 会话 is None:#无
                 raise 对话错误('排队停靠: conversation 服务不可用')
             def 通知(级别,正文):
-                """input.for(actx).notify。"""
+                'input.for(actx).notify'
                 会话.input.按作用域取门面(作用域).notify(级别,正文)#通知
             def 改队列(项标识,动作):
-                """改队列。"""
+                '改队列'
                 return 会话.updateQueue(项标识,动作)#改
             return {#注入面
                 'updateQueue':改队列,#改队列
                 'notify':通知,#通知
             }#结束
         def 登记():
-            """register。"""
+            'register'
             return 上下文.slots.register({#条目
                 'name':'conversation.input.dock',#停靠
                 'id':'queue',#id

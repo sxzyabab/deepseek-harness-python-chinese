@@ -8,9 +8,9 @@ __all__=['客户端对象分配','客户端运行时对象选项','客户端对�
 最大类原型深度=32#类名原型遍历上限
 
 class 客户端对象存储:#Client对象存储
-    """每个 DevTools 会话拥有的全部存活 Client 对象引用。"""
+    '每个 DevTools 会话拥有的全部存活 Client 对象引用'
     def __init__(自身,最大对象):#构造
-        """保存上限。"""
+        '保存上限'
         自身.最大对象=最大对象#上限
         自身.对象={}#对象表
         自身.组={}#组表
@@ -18,37 +18,37 @@ class 客户端对象存储:#Client对象存储
         自身.下一序号=1#下一序号
 
     def 开始分配(自身):#开始分配
-        """开始跟踪一次独立结算操作分配的句柄。"""
+        '开始跟踪一次独立结算操作分配的句柄'
         分配=object()#身份
         自身.分配[id(分配)]=set()#登记
         return 分配#返回
 
     def 提交分配(自身,分配):#提交分配
-        """保留操作的句柄并释放其分配簿记。"""
+        '保留操作的句柄并释放其分配簿记'
         自身.分配.pop(id(分配),None)#删除簿记
 
     def 回滚(自身,分配):#回滚分配
-        """精确丢弃一次失败操作分配的句柄。"""
+        '精确丢弃一次失败操作分配的句柄'
         句柄集合=自身.分配.pop(id(分配),set())#取出
         for 句柄 in 句柄集合:#释放
             自身.释放(句柄)#释放
 
     def 获取(自身,句柄):#获取
-        """解析一个句柄。"""
+        '解析一个句柄'
         对象=自身.对象.get(句柄)#查表
         if 对象 is None:#已释放
             raise 客户端运行时执行错误('object-not-found','Client RemoteObject was released')#已释放
         return 对象['value']#返回值
 
     def 取组(自身,句柄):#取组
-        """读取经一个句柄到达的值所继承的对象组。"""
+        '读取经一个句柄到达的值所继承的对象组'
         对象=自身.对象.get(句柄)#查表
         if 对象 is None:#已释放
             raise 客户端运行时执行错误('object-not-found','Client RemoteObject was released')#已释放
         return 对象.get('group')#返回组
 
     def 登记(自身,值,组=None,分配=None):#登记句柄
-        """登记句柄。"""
+        '登记句柄'
         if len(自身.对象)>=自身.最大对象:#超限
             raise 客户端运行时执行错误('result-too-large','Client Runtime object table is full')#超限
         句柄=客户端远程对象句柄(f'object-{自身.下一序号}')#句柄
@@ -61,7 +61,7 @@ class 客户端对象存储:#Client对象存储
         return 句柄#返回
 
     def 序列化(自身,值,选项=None,分配=None):#序列化
-        """将存活值转换为 JSON 安全的 RemoteObject 协议。"""
+        '将存活值转换为 JSON 安全的 RemoteObject 协议'
         if 选项 is None:#缺省
             选项={}#空
         原始=序列化原始(值)#尝试原始
@@ -80,7 +80,7 @@ class 客户端对象存储:#Client对象存储
         return 结果#返回
 
     def 释放(自身,句柄):#释放
-        """精确释放一个句柄。"""
+        '精确释放一个句柄'
         对象=自身.对象.pop(句柄,None)#删除
         if 对象 is None:#幂等
             return#返回
@@ -94,7 +94,7 @@ class 客户端对象存储:#Client对象存储
                 自身.组.pop(组,None)#空组删除
 
     def 释放组(自身,组):#释放组
-        """释放一个 DevTools 对象组中的每个句柄。"""
+        '释放一个 DevTools 对象组中的每个句柄'
         成员=自身.组.pop(组,None)#成员
         if 成员 is None:#无
             return#返回
@@ -102,13 +102,13 @@ class 客户端对象存储:#Client对象存储
             自身.对象.pop(句柄,None)#删对象
 
     def 清空(自身):#清空
-        """清空全部对象。"""
+        '清空全部对象'
         自身.对象.clear()#清对象
         自身.组.clear()#清组
         自身.分配.clear()#清分配
 
 def 序列化原始(值):#尝试原始
-    """尝试原始。"""
+    '尝试原始'
     if 值 is None:#null
         return {'descriptor':{'type':'object','subtype':'null','value':None}}#null
     if isinstance(值,bool):#布尔
@@ -126,24 +126,24 @@ def 序列化原始(值):#尝试原始
     return None#非原始
 
 def 按值序列化(值):#按值
-    """按值。"""
+    '按值'
     if 是否json值(值):#JSON
         return 值#原样
     return str(值)#转串
 
 def 描述(值):#描述
-    """描述。"""
+    '描述'
     try:#转串
         return str(值)#转串
     except Exception:#对象预览/序列化可能抛自定义 getter，契约未定所以收不窄
         return type(值).__name__#类名
 
 def 类名(值):#类名
-    """类名。"""
+    '类名'
     return type(值).__name__#类名
 
 def 子类型Of(值):#子类型
-    """子类型。"""
+    '子类型'
     if isinstance(值,list):#数组
         return 'array'#数组
     if isinstance(值,dict):#映射

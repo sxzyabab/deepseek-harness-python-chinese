@@ -1,25 +1,25 @@
 __all__=['目标命令输入视图']#仅中文公开名
 
 def 缺省翻译(键,_插值=None):#无文案函数
-    """原样返回键。"""
+    '原样返回键'
     return 键#键
 
 class 目标命令输入视图:#聊天节点视图
-    """渲染 command-input 节点的文本气泡。"""
+    '渲染 command-input 节点的文本气泡'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 卸载(自身):#卸载
-        """无状态。"""
+        '无状态'
         return#空
 
     def 视图(自身):#读视图模型
-        """投影气泡。"""
+        '投影气泡'
         节点=自身.属性['node'] if 'node' in 自身.属性 and 自身.属性['node'] is not None else {}#节点
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else {}#载荷
         翻译=自身.属性['t'] if 't' in 自身.属性 and 自身.属性['t'] is not None else 缺省翻译#文案
@@ -31,7 +31,7 @@ class 目标命令输入视图:#聊天节点视图
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图

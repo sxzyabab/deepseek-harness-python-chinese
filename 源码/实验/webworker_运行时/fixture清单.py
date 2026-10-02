@@ -10,7 +10,7 @@ __all__=[#仅中文公开名
 标识形态=re.compile(r'^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\Z')#fixture id形态
 
 def 收窄记录(值):#对象收窄为普通字典
-    """把未知值收窄为普通对象记录，否则返回 None。"""
+    '把未知值收窄为普通对象记录，否则返回 None'
     if isinstance(值,dict) and not isinstance(值,list):#是否普通对象
         return 值#收窄为记录
     return None#非对象
@@ -21,7 +21,7 @@ def 解析预览fixture清单(值):#解析并校验
     参数:
         值: 已解析的 JSON 响应。
     返回:
-        带唯一 id 与非空 overlay 列表的分离 manifest。
+        带唯一 id 与非空 overlay 列表的分离 manifest
     """
     记录=收窄记录(值)#顶层记录
     if 记录 is None or 记录.get('version')!=预览fixture清单版本 or not isinstance(记录.get('fixtures'),list):#版本或列表非法

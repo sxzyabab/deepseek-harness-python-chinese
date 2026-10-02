@@ -6,23 +6,23 @@ from .轨迹记录 import 格式化已用秒数#时长格式化
 __all__=['派生轨迹布局','追加轨迹流式布局']#仅中文公开名
 
 def 有限时间(时间):#收窄为有限毫秒
-    """可用作绝对时间的纪元毫秒，否则 None。"""
+    '可用作绝对时间的纪元毫秒，否则 None'
     return 时间 if (not isinstance(时间,bool)) and isinstance(时间,(int,float)) and math.isfinite(时间) else None#非有限则 None
 
 def 时长秒(较晚,较早):#自身时长秒
-    """两个纪元毫秒之差得到自身秒数；任一不可用则为 None。"""
+    '两个纪元毫秒之差得到自身秒数；任一不可用则为 None'
     if 较早 is None or not math.isfinite(较晚) or not math.isfinite(较早):#缺一端
         return None#缺一端
     return max(0,(较晚-较早)/1000)#毫秒差转秒，下限 0
 
 def 条目排序键(条目):#条目排序键
-    """初始系统提示排最前，其余按 seq。排序键用元组，seq 字段保持 int。"""
+    '初始系统提示排最前，其余按 seq。排序键用元组，seq 字段保持 int'
     if 条目['kind']=='system' and 'change' in 条目 and 条目['change'] is not None and 条目['change']['kind']=='initial':#初始系统提示
         return (0,0)#排最前
     return (1,条目['seq'])#其余按 seq
 
 def 源块(值):#未知值转源块
-    """把内容块或任意值转成轨迹源块。"""
+    '把内容块或任意值转成轨迹源块'
     if not isinstance(值,dict):#非对象
         return {'type':'unknown','content':stringify源值(值)}#未知类型
     类型值=值['type'] if 'type' in 值 else None#类型字段
@@ -49,7 +49,7 @@ def 源块(值):#未知值转源块
     return 结果#源块
 
 def stringify源值(值):#源值转展示字符串
-    """缩进 JSON；失败退回 str。"""
+    '缩进 JSON；失败退回 str'
     try:#序列化
         文本=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#缩进 JSON
         return 文本 if 文本 else str(值)#JSON 空则退回 str
@@ -57,7 +57,7 @@ def stringify源值(值):#源值转展示字符串
         return str(值)#退回
 
 def 抽图片源(块):#从块里抽安全图片 URL
-    """类型含 image 才尝试。"""
+    '类型含 image 才尝试'
     类型=块['type'] if 'type' in 块 else None#类型
     if not isinstance(类型,str) or 'image' not in 类型.lower():#类型不含 image
         return None#无
@@ -90,7 +90,7 @@ def 抽图片源(块):#从块里抽安全图片 URL
     return 安全图片源(f'data:{MIME};base64,{源数据}')#拼 data URL
 
 def 安全图片源(值):#只放行安全图片源
-    """data:image、blob、http(s) 直通。"""
+    'data:image、blob、http(s) 直通'
     if 值.startswith('data:image/') or 值.startswith('blob:'):#直通
         return 值#放行
     try:#解析 URL 协议
@@ -100,7 +100,7 @@ def 安全图片源(值):#只放行安全图片源
         return None#丢弃
 
 def 助手源块(块):#助手块转源块
-    """按块种类转换。"""
+    '按块种类转换'
     种类=块['kind']#块种类
     if 种类=='text':#文本
         return {'type':'text','content':'' if ('text' not in 块 or 块['text'] is None) else 块['text']}#文本；?? 空串保留
@@ -113,15 +113,15 @@ def 助手源块(块):#助手块转源块
     return 源块(块['block'] if 'block' in 块 else None)#其它块走通用转换
 
 def 图片块数(内容):#数 type=image 的块
-    """内容里的图片块个数。"""
+    '内容里的图片块个数'
     return sum(1 for 块 in 内容 if isinstance(块,dict) and 块.get('type')=='image')#计数
 
 def 文件块数(内容):#数 type=file 的块
-    """内容里的文件块个数。"""
+    '内容里的文件块个数'
     return sum(1 for 块 in 内容 if isinstance(块,dict) and 块.get('type')=='file')#计数
 
 def 挂用量(单元格,用量):#挂用量字段
-    """有提供方用量时拷到 Message 单元格。"""
+    '有提供方用量时拷到 Message 单元格'
     if 用量 is None:#无用量
         return#无
     if 用量['inputTokens'] is not None:#输入
@@ -136,14 +136,14 @@ def 挂用量(单元格,用量):#挂用量字段
         单元格['think']=用量['reasoningTokens']#写入
 
 def 摘要调用(名称,参数原文):#调用名 + 参数预览
-    """名作 text，非空参数作预览。"""
+    '名作 text，非空参数作预览'
     结果={'text':名称}#工具名
     if 参数原文!='':#有参数
         结果['previewMarkdown']=参数原文#预览
     return 结果#展示字段
 
 def 摘要结果(节点):#结果预览字段
-    """错误码或首段文本或 No output。"""
+    '错误码或首段文本或 No output'
     if 节点['isError']:#错误结果
         错误=节点['error']#错误对象
         return {'result':错误['code'] if 错误 is not None and 'code' in 错误 else 'error'}#错误码
@@ -154,7 +154,7 @@ def 摘要结果(节点):#结果预览字段
     return {'result':'No output'}#无输出
 
 def 结果当文本(结果):#结果预览改写成 text/preview
-    """result → text，预览 Markdown 原样。"""
+    'result → text，预览 Markdown 原样'
     if 结果 is None:#无结果
         return {'text':''}#空
     字段={'text':结果['result'] if 'result' in 结果 and 结果['result'] is not None else ''}#结果短文
@@ -164,7 +164,7 @@ def 结果当文本(结果):#结果预览改写成 text/preview
     return 字段#文本展示
 
 def 详情结果(节点):#结果详情全文
-    """错误名:码，或文本块，或 JSON。"""
+    '错误名:码，或文本块，或 JSON'
     if 节点['isError']:#错误
         错误=节点['error']#错误对象
         if 错误 is None:#无错误对象
@@ -179,27 +179,27 @@ def 详情结果(节点):#结果详情全文
     return json.dumps(内容,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#整份内容 JSON
 
 def 详情内容(内容):#文本块详情
-    """拼接 type=text 的 text。"""
+    '拼接 type=text 的 text'
     return '\n'.join(('' if ('text' not in 块 or 块['text'] is None) else 块['text']) for 块 in 内容 if 块['type']=='text' and isinstance(块['text'] if 'text' in 块 else None,str))#换行拼接；?? 空串保留
 
 def 详情推理(内容):#推理块详情
-    """拼接 type=reasoning 的 text。"""
+    '拼接 type=reasoning 的 text'
     return '\n'.join(('' if ('text' not in 块 or 块['text'] is None) else 块['text']) for 块 in 内容 if 块['type']=='reasoning' and isinstance(块['text'] if 'text' in 块 else None,str))#换行拼接；?? 空串保留
 
 def 预览内容(内容):#首段文本预览
-    """首段 text 或 None。"""
+    '首段 text 或 None'
     for 块 in 内容:#找第一段文本
         if 块['type']=='text' and isinstance(块['text'],str):#命中
             return 块['text']#返回
     return None#没有
 
 def 预览内容属性(内容):#有预览则包成 previewMarkdown 字段
-    """无则空字典。"""
+    '无则空字典'
     预览=预览内容(内容)#首段文本
     return {} if 预览 is None else {'previewMarkdown':预览}#无则空
 
 def 输入单元格详情(节点):#输入单元格共用字段
-    """用户/转向/上下文共用字段；有图/文件时填附件摘要。"""
+    '用户/转向/上下文共用字段；有图/文件时填附件摘要'
     内容=节点['content'] if 'content' in 节点 and 节点['content'] is not None else []#内容块；空列表保留
     预览=预览内容(内容)#首段文本预览
     预览Markdown=None if 预览=='' else 预览#空串当无预览
@@ -224,7 +224,7 @@ def 输入单元格详情(节点):#输入单元格共用字段
     return 字段#共用字段
 
 def 索引结果(节点列表):#callId → 结果节点
-    """扫描 tool-result 节点。"""
+    '扫描 tool-result 节点'
     表={}#结果表
     for 节点 in 节点列表:#扫描
         if 节点['kind']=='tool-result':#结果
@@ -232,7 +232,7 @@ def 索引结果(节点列表):#callId → 结果节点
     return 表#结果表
 
 def 索引助手调用标识(节点列表):#助手已发出的 callId
-    """扫描助手 tool-call 块。"""
+    '扫描助手 tool-call 块'
     标识集合=set()#id 集合
     for 节点 in 节点列表:#扫描助手
         if 节点['kind']!='assistant':#非助手
@@ -243,7 +243,7 @@ def 索引助手调用标识(节点列表):#助手已发出的 callId
     return 标识集合#集合
 
 def 索引后续助手(节点列表):#每个下标 → 其后最近助手
-    """与 nodes 等长。"""
+    '与 nodes 等长'
     后续=[None]*len(节点列表)#结果数组
     助手=None#自后向前记住的助手
     for 下标 in range(len(节点列表)-1,-1,-1):#倒序
@@ -254,7 +254,7 @@ def 索引后续助手(节点列表):#每个下标 → 其后最近助手
     return 后续#等长映射
 
 def 收集调用标识(轮次桶):#布局里出现过的 callId
-    """各轮各组各格。"""
+    '各轮各组各格'
     标识集合=set()#收集器
     for 桶 in 轮次桶.values():#各轮
         for 组 in 桶['groups']:#各组
@@ -264,7 +264,7 @@ def 收集调用标识(轮次桶):#布局里出现过的 callId
     return 标识集合#集合
 
 def 挂工具模式(已铺,调用模式表):#按 callId 把 schema 挂到单元格
-    """就地写入 schemaDetail。"""
+    '就地写入 schemaDetail'
     if 'callId' not in 已铺 or 已铺['callId'] is None or 调用模式表 is None:#无 id 或无表
         return#无
     模式=调用模式表[已铺['callId']] if 已铺['callId'] in 调用模式表 else None#该调用 schema
@@ -273,7 +273,7 @@ def 挂工具模式(已铺,调用模式表):#按 callId 把 schema 挂到单元�
     已铺['cell']['schemaDetail']=json.dumps(模式,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#缩进 JSON
 
 def 组描述(已铺列表):#组描述文案
-    """墙钟跨度 + 工具直方图。"""
+    '墙钟跨度 + 工具直方图'
     片段=[]#时长与工具片段
     时间点=[]#墙钟采样点
     for 项 in 已铺列表:#每格贡献时间点
@@ -312,7 +312,7 @@ def 组描述(已铺列表):#组描述文案
     return None if len(片段)==0 else ' '.join(片段)#空则无描述
 
 def 转轮次模型(回合号,桶):#桶转成对外轮次模型
-    """组转模型并挂描述。"""
+    '组转模型并挂描述'
     组列表=[]#组列表
     for 组 in 桶['groups']:#各组
         描述=组描述(组['laid'])#墙钟+工具直方图
@@ -323,7 +323,7 @@ def 转轮次模型(回合号,桶):#桶转成对外轮次模型
     return {'turn':回合号,'groups':组列表}#轮次模型
 
 def 首格下标(轮次):#该轮最小单元格下标
-    """用折叠时单调分配的单元格下标。"""
+    '用折叠时单调分配的单元格下标'
     组列表=轮次['groups'] if 'groups' in 轮次 and 轮次['groups'] is not None else []#各组；空列表保留
     下标列表=[单元格['index'] for 组 in 组列表 for 单元格 in (组['cells'] if 'cells' in 组 and 组['cells'] is not None else [])]#所有格下标
     if len(下标列表)==0:#空轮排后
@@ -331,7 +331,7 @@ def 首格下标(轮次):#该轮最小单元格下标
     return (0,min(下标列表))#有格按最小下标
 
 def 提示变更标签(变更):#提示变更标签
-    """initial / system / tools / both。"""
+    'initial / system / tools / both'
     种类=变更['kind']#变更种类
     if 种类=='initial':#初始
         return 'Initial System Prompt'#初始系统提示
@@ -342,14 +342,14 @@ def 提示变更标签(变更):#提示变更标签
     return 'System Prompt and Tools Updated'#系统提示与工具都更新
 
 def 助手活动摘要(块列表):#无正文时的活动摘要
-    """有工具调用则 Tool call only。"""
+    '有工具调用则 Tool call only'
     for 块 in 块列表:#只统计调用块
         if 块['kind']=='tool-call':#有调用
             return 'Tool call only'#仅工具调用
     return ''#无活动文案
 
 def 包围用户轮次(后续助手,流式,最近助手轮):#用户消息归入哪一轮
-    """下一助手轮，否则 partial，否则最后助手+1 或 1。"""
+    '下一助手轮，否则 partial，否则最后助手+1 或 1'
     if 后续助手 is not None:#有后续助手
         return 后续助手['turn']#用其轮
     if 流式 is not None:#否则用进行中轮
@@ -359,7 +359,7 @@ def 包围用户轮次(后续助手,流式,最近助手轮):#用户消息归入�
     return 1#默认第 1 轮
 
 def 转向安放(后续助手,流式,最近助手轮,位置):#转向消息安放位置
-    """轮次与可选 Step。"""
+    '轮次与可选 Step'
     if 位置 is None:#无位置
         钉轮=None#无钉
     elif 位置['kind']=='step':#位置钉在某 Step
@@ -381,21 +381,21 @@ def 转向安放(后续助手,流式,最近助手轮,位置):#转向消息安放
     return {'turn':最近助手轮 if 最近助手轮 is not None else 1}#否则最近助手轮或 1
 
 def 包围提示轮次(节点列表,序号,流式):#提示变更包进哪一轮
-    """其后第一个 Step 助手，否则 partial 或 1。"""
+    '其后第一个 Step 助手，否则 partial 或 1'
     for 节点 in 节点列表:#找后续 Step 助手
         if 节点['seq']>序号 and 节点['kind']=='assistant' and 节点['step']>0:#命中
             return 节点['turn']#用其轮
     return 流式['turn'] if 流式 is not None else 1#否则进行中轮或 1
 
 def 最早可见轮次(节点列表,流式):#最早可见轮次
-    """所选轨迹分支里最早出现的原始轮次。"""
+    '所选轨迹分支里最早出现的原始轮次'
     轮次列表=[节点['turn'] for 节点 in 节点列表 if 节点['kind']=='assistant' and 节点['turn']>0]#助手正数轮
     if 流式 is not None and 流式['turn']>0:#进行中正数轮
         轮次列表.append(流式['turn'])#收下
     return 1 if len(轮次列表)==0 else min(轮次列表)#空则 1，否则最小轮
 
 def 展开子调用(子调用列表,起始下标):#展开一层子调用（递归）
-    """一次 run_code 父调用的子分派格。"""
+    '一次 run_code 父调用的子分派格'
     if 子调用列表 is None or len(子调用列表)==0:#无子调用
         return []#空
     输出=[]#子格列表
@@ -441,7 +441,7 @@ def 展开子调用(子调用列表,起始下标):#展开一层子调用（递�
     return 输出#全部子格
 
 def 插入子调用(已铺列表):#插入子调用并重编号
-    """把每个工具格的嵌套子调用插到它后面。"""
+    '把每个工具格的嵌套子调用插到它后面'
     if not any(('subCalls' in 项 and 项['subCalls']) for 项 in 已铺列表):#无子调用
         return 已铺列表#原样
     输出=[]#输出
@@ -457,7 +457,7 @@ def 插入子调用(已铺列表):#插入子调用并重编号
     return 输出#重编号列表
 
 def 展开助手(节点,起始下标,上一绝对,结果表,开始表,调用表,流式=False):#把助手节点展开成 Message + Tool 格
-    """展开助手块并挂用量。"""
+    '展开助手块并挂用量'
     块列表=节点['blocks'] if 'blocks' in 节点 and 节点['blocks'] is not None else []#块列表
     if 流式 and len(块列表)==0:#流式空块
         return []#不产出
@@ -528,7 +528,7 @@ def 展开助手(节点,起始下标,上一绝对,结果表,开始表,调用表,
     return 输出#Message + Tool
 
 def 派生轨迹布局(输入):#折叠整份轨迹
-    """把快照折成 turn → Message/Step 组，并展开单元格。"""
+    '把快照折成 turn → Message/Step 组，并展开单元格'
     节点列表=输入['nodes'] if 'nodes' in 输入 and 输入['nodes'] is not None else []#会话节点
     事件位置=输入['eventLocations'] if 'eventLocations' in 输入 else None#事件序号→位置
     流式=输入['partial'] if 'partial' in 输入 else None#进行中助手
@@ -558,13 +558,13 @@ def 派生轨迹布局(输入):#折叠整份轨迹
     最近助手轮=None#最近一次助手轮次
 
     def 取桶(回合):#取或建该轮桶
-        """取或建该轮桶。"""
+        '取或建该轮桶'
         if 回合 not in 轮次桶:#尚未建
             轮次桶[回合]={'groups':[]}#空组
         return 轮次桶[回合]#该轮桶
 
     def 推进消息(回合,已铺):#把单元格推进 Message 组
-        """追加到末 Message 组或新开。"""
+        '追加到末 Message 组或新开'
         组列表=取桶(回合)['groups']#该轮组
         if len(组列表)>0 and 组列表[-1]['title']=='Message':#已有 Message；判的是 length
             组列表[-1]['laid'].append(已铺)#并入
@@ -572,7 +572,7 @@ def 派生轨迹布局(输入):#折叠整份轨迹
         组列表.append({'title':'Message','laid':[已铺]})#新开
 
     def 推进步骤(回合,步,已铺列表):#把单元格推进 Step 组
-        """追加到同名 Step 或新开。"""
+        '追加到同名 Step 或新开'
         if len(已铺列表)==0:#空；判的是 length
             return#不入组
         组列表=取桶(回合)['groups']#该轮组
@@ -584,7 +584,7 @@ def 派生轨迹布局(输入):#折叠整份轨迹
         组列表.append({'title':标题,'laid':list(已铺列表)})#新开
 
     def 推进步骤输入(回合,步,已铺列表):#把输入插到 Step 组请求单元格前
-        """插到 requestOnly 前或追加。"""
+        '插到 requestOnly 前或追加'
         if len(已铺列表)==0:#空；判的是 length
             return#不入组
         组列表=取桶(回合)['groups']#该轮组
@@ -795,7 +795,7 @@ def 派生轨迹布局(输入):#折叠整份轨迹
     return 结果#按首次出现顺序
 
 def 追加轨迹流式布局(轮次列表,流式,最后下标):#把流式助手接到定稿布局
-    """把变化中的 in-flight 助手单元格接到已定稿布局上。"""
+    '把变化中的 in-flight 助手单元格接到已定稿布局上'
     if 流式 is None:#无进行中
         return 轮次列表#原样
     部分轮=派生轨迹布局({'nodes':[],'partial':流式,'runningCalls':[]})#只折 partial

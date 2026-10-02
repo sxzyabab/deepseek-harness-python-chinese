@@ -4,20 +4,20 @@ from ....工具.超时 import 中止控制器,若已中止则抛出
 __all__=['录制错误','编码波形','音频base64','录制']
 
 class 录制错误(Exception):
-    """采集失败，文案键由调用方按 kind 翻译。"""
+    '采集失败，文案键由调用方按 kind 翻译'
     def __init__(自身,kind):
-        """kind 为 unavailable / permission / empty / cancelled / interrupted。"""
+        'kind 为 unavailable / permission / empty / cancelled / interrupted'
         super().__init__(kind)
         自身.kind=kind
         自身.name='RecordingError'
 
 def 编码波形(采样):
-    """把 16 kHz 单声道浮点采样编成 Host 接受的 PCM16 WAV。"""
+    '把 16 kHz 单声道浮点采样编成 Host 接受的 PCM16 WAV'
     数量=len(采样)
     总长=44+数量*2
     缓冲=bytearray(总长)
     def 写文本(位置,值):
-        """按 ASCII 写入四字符块。"""
+        '按 ASCII 写入四字符块'
         for 下标,字符 in enumerate(值):
             缓冲[位置+下标]=ord(字符)
     写文本(0,'RIFF')
@@ -41,13 +41,13 @@ def 编码波形(采样):
     return bytes(缓冲)
 
 def 音频base64(字节):
-    """规范 base64，无 data URL 前缀。"""
+    '规范 base64，无 data URL 前缀'
     return base64.b64encode(字节).decode('ascii')
 
 class 录制:
-    """一次麦克风采集；权限对话框可能在取消之后才落下。"""
+    '一次麦克风采集；权限对话框可能在取消之后才落下'
     def __init__(自身,拆除回调):
-        """记下拆除回调。"""
+        '记下拆除回调'
         自身.流=None
         自身.记录器=None
         自身.上下文=None
@@ -59,7 +59,7 @@ class 录制:
         自身.拆除回调=拆除回调
 
     def start(自身,出错=None):
-        """取得麦克风；已取消的授权立刻停轨。"""
+        '取得麦克风；已取消的授权立刻停轨'
         导航=globals().get('navigator')
         记录器类=globals().get('MediaRecorder')
         音频上下文类=globals().get('AudioContext')
@@ -85,11 +85,11 @@ class 录制:
             自身.上下文.createMediaStreamSource(流).connect(自身.分析器)
             自身.记录器=记录器类(流)
             def 收到数据(事件):
-                """累积未中止且非空的数据块。"""
+                '累积未中止且非空的数据块'
                 if not 自身.寿命.信号.已中止() and 事件.data.size>0:
                     自身.块表.append(事件.data)
             def 记录失败(*位置参数):
-                """采集中断则拆除并回调。"""
+                '采集中断则拆除并回调'
                 if 自身.寿命.信号.已中止():
                     return
                 try:
@@ -109,7 +109,7 @@ class 录制:
             raise
 
     def 振幅(自身):
-        """当前 RMS；未采集时为 0。"""
+        '当前 RMS；未采集时为 0'
         if 自身.分析器 is None:
             return 0
         自身.分析器.getFloatTimeDomainData(自身.采样)
@@ -119,7 +119,7 @@ class 录制:
         return math.sqrt(平方和/len(自身.采样))
 
     def stop(自身,最长秒):
-        """结束采集并重采样到 16 kHz 单声道 WAV。"""
+        '结束采集并重采样到 16 kHz 单声道 WAV'
         记录器=自身.记录器
         上下文=自身.上下文
         if 记录器 is None or 上下文 is None or 记录器.state!='recording':
@@ -129,10 +129,10 @@ class 录制:
             完成=threading.Event()
             失败=[None]
             def 已停(*位置参数):
-                """最后一块到达。"""
+                '最后一块到达'
                 完成.set()
             def 停失败(*位置参数):
-                """停录失败。"""
+                '停录失败'
                 失败[0]=录制错误('empty')
                 完成.set()
             记录器.onstop=已停
@@ -165,7 +165,7 @@ class 录制:
             自身.拆除()
 
     def 拆除(自身):
-        """释放本采集并作废未决授权。"""
+        '释放本采集并作废未决授权'
         if 自身.拆除完成 is None:
             自身.拆除完成=threading.Event()
             try:
@@ -175,7 +175,7 @@ class 录制:
         自身.拆除完成.wait()
 
     def 释放(自身):
-        """停轨并关闭 AudioContext。"""
+        '停轨并关闭 AudioContext'
         自身.寿命.中止(录制错误('cancelled'))
         if 自身.记录器 is not None and 自身.记录器.state=='recording':
             自身.记录器.stop()

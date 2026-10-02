@@ -27,7 +27,7 @@ __all__=[#仅中文公开名
 )#结束
 
 def 解析活动主题(偏好,主题列表,系统色板='light'):
-    """system 经系统色板解析；返回活动主题定义。主题是 dict。"""
+    'system 经系统色板解析；返回活动主题定义。主题是 dict'
     if not 是否主题偏好(偏好):#非法
         偏好=默认偏好#默认
     if 偏好=='system':#跟随
@@ -42,7 +42,7 @@ def 解析活动主题(偏好,主题列表,系统色板='light'):
     return {'id':'default','colorScheme':目标,'tokens':{}}#空表占位
 
 def 合并令牌覆盖(基础令牌,覆盖层列表,色板):
-    """按 seq 顺序，后层按令牌胜出；每个值按当前色板选取。覆盖值是 {light,dark} dict。"""
+    '按 seq 顺序，后层按令牌胜出；每个值按当前色板选取。覆盖值是 {light,dark} dict'
     if 基础令牌 is None:#无基础
         结果={}#空
     else:#有基础
@@ -60,7 +60,7 @@ def 合并令牌覆盖(基础令牌,覆盖层列表,色板):
     return 结果#合并后
 
 def 校验覆盖层(来源,令牌表):
-    """裸字符串抛教学错误；必须 {light,dark} 字符串对。"""
+    '裸字符串抛教学错误；必须 {light,dark} 字符串对'
     if 令牌表 is None:#无
         return {}#空
     已校={}#防御拷贝
@@ -75,24 +75,24 @@ def 校验覆盖层(来源,令牌表):
     return 已校#已校
 
 def 动态令牌(名):
-    """检视描述。"""
+    '检视描述'
     项={'name':名,'description':'Theme token registered by the current Client composition.','valueType':'CSS value','requiresLightAndDark':True}#基
     if 名.startswith('--'):#CSS 变量
         项['cssVariable']=名#带上
     return 项#描述
 
 def 按令牌名(项):
-    """检视目录按 name 排序。"""
+    '检视目录按 name 排序'
     return 项['name']#名
 
 def 按序号(层):
-    """覆盖层按 seq 排序。"""
+    '覆盖层按 seq 排序'
     return 层['seq']#序号
 
 class 主题运行时:
-    """light/dark 内置；第三方登记别名层覆盖。读取 getTheme；写入 setTheme。"""
+    'light/dark 内置；第三方登记别名层覆盖。读取 getTheme；写入 setTheme'
     def __init__(自身,发出=None,宿主=None,系统深色=False):
-        """记下事件发出、设置作用域与初始系统色板。"""
+        '记下事件发出、设置作用域与初始系统色板'
         自身.发出=发出#theme/change
         自身.宿主=宿主#settings scope
         自身.主题列表=[dict(t) for t in 内置主题]#登记表
@@ -108,17 +108,17 @@ class 主题运行时:
         自身.采纳()#立刻采纳
 
     def 设系统深色(自身,深色):
-        """偏好为 system 时重发。"""
+        '偏好为 system 时重发'
         自身.系统深色=bool(深色)#写入
         if 自身.偏好=='system':#跟随
             自身.发布()#重发
 
     def getTheme(自身):
-        """当前不可变快照。方法名对齐 ThemeRuntime，ui_布局 按此读取。"""
+        '当前不可变快照。方法名对齐 ThemeRuntime，ui_布局 按此读取'
         return 自身.快照#稳定引用
 
     def 导出检视令牌(自身):
-        """稳定可 JSON 化的令牌描述。"""
+        '稳定可 JSON 化的令牌描述'
         表={t['name']:dict(t) for t in 内置检视令牌}#内置
         for 主题 in 自身.主题列表:#主题令牌
             令牌=主题['tokens'] if 'tokens' in 主题 else {}#名
@@ -132,7 +132,7 @@ class 主题运行时:
         return sorted(表.values(),key=按令牌名)#按名
 
     def setTheme(自身,标识):
-        """未知 id 抛错；可持久偏好写作用域。方法名对齐注入面 setTheme。"""
+        '未知 id 抛错；可持久偏好写作用域。方法名对齐注入面 setTheme'
         已登记=False#是否登记
         for t in 自身.主题列表:#查表
             if t['id']==标识:#命中
@@ -148,7 +148,7 @@ class 主题运行时:
         自身.发布()#发布
 
     def setFontSize(自身,像素):
-        """整数 px 越界抛错。方法名对齐注入面 setFontSize。"""
+        '整数 px 越界抛错。方法名对齐注入面 setFontSize'
         if type(像素) is bool or type(像素) is not int or 像素<字号最小 or 像素>字号最大:
             raise 主题错误('font size '+str(像素)+' is outside '+str(字号最小)+'..'+str(字号最大))
         if 自身.字号==像素:
@@ -159,7 +159,7 @@ class 主题运行时:
         自身.发布()
 
     def 采纳(自身):
-        """不写回。作用域快照与分区都是 dict。"""
+        '不写回。作用域快照与分区都是 dict'
         if 自身.宿主 is None:#无
             return#空
         段=自身.宿主.getSnapshot()#快照
@@ -177,7 +177,7 @@ class 主题运行时:
         自身.发布()#发布
 
     def 登记(自身,定义):
-        """重复 id 抛错；返回拆除器。定义是 dict。"""
+        '重复 id 抛错；返回拆除器。定义是 dict'
         标识=定义['id']#id
         if 标识=='system':#不可登
             raise 主题错误('"system" is a preference, not a registrable theme id')#错
@@ -187,7 +187,7 @@ class 主题运行时:
         自身.主题列表=自身.主题列表+[dict(定义)]#追加
         自身.发布()#发布
         def 拆除():
-            """从表拿掉；若活动偏好被拆则回默认。"""
+            '从表拿掉；若活动偏好被拆则回默认'
             仍在=False#是否仍在
             for t in 自身.主题列表:#查
                 if t['id']==标识:#仍在
@@ -202,13 +202,13 @@ class 主题运行时:
         return 拆除#拆除器
 
     def 覆盖令牌(自身,来源,令牌表):
-        """同 source 再调整层替换重叠顶。"""
+        '同 source 再调整层替换重叠顶'
         层={'seq':自身.覆盖序号,'tokens':校验覆盖层(来源,令牌表)}#层
         自身.覆盖序号+=1#加序号
         自身.覆盖层[来源]=层#记下
         自身.发布()#发布
         def 拆除():
-            """源已被重覆盖则空操作。"""
+            '源已被重覆盖则空操作'
             if 来源 not in 自身.覆盖层:#已无
                 return#空
             if 自身.覆盖层[来源] is not 层:#已换
@@ -218,7 +218,7 @@ class 主题运行时:
         return 拆除#拆除器
 
     def 编快照(自身):
-        """按偏好与注册表编不可变快照。"""
+        '按偏好与注册表编不可变快照'
         if 自身.偏好=='system':#跟随
             解析标识='dark' if 自身.系统深色 else 'light'#系统
         else:#显式
@@ -239,7 +239,7 @@ class 主题运行时:
         }#结束
 
     def 组合活动(自身,活动):
-        """无层则原样。"""
+        '无层则原样'
         if len(自身.覆盖层)==0:#无
             return dict(活动)#原样
         令牌=dict(活动['tokens'] if 'tokens' in 活动 else {})#拷
@@ -252,7 +252,7 @@ class 主题运行时:
         return 结果#定义
 
     def 发布(自身):
-        """递增修订并广播。"""
+        '递增修订并广播'
         自身.修订+=1#加一
         自身.快照=自身.编快照()#新快照
         if 自身.发出 is not None:#有

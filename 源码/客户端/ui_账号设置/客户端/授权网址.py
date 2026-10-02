@@ -3,7 +3,7 @@ from urllib.parse import parse_qsl,urlencode,urlparse,urlunparse
 __all__=['带主题的授权网址']
 
 def 带主题的授权网址(授权网址,配色):
-    """把 Desktop 已解析配色写进授权链接，不丢掉 Host 已放上的参数。"""
+    '把 Desktop 已解析配色写进授权链接，不丢掉 Host 已放上的参数'
     解析=urlparse(授权网址)
     查询=list(parse_qsl(解析.query,keep_blank_values=True))
     余=[]

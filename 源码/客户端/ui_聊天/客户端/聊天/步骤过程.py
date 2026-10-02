@@ -1,13 +1,13 @@
 __all__=['过程标题']
 
 def 过程标题(摘要,翻译):
-    """闭合组用前三类活动拼本地化标题，不含计数。摘要为 dict。"""
+    '闭合组用前三类活动拼本地化标题，不含计数。摘要为 dict'
     标签表=[翻译('message.stepProcess.done.'+项['kind']) for 项 in 摘要['counts'][:3]]
     if len(标签表)==0:
         return 翻译('message.stepProcess.done.thinking')
     首=标签表[0]
     def 续写(标签):
-        """首字母小写以接入并列。"""
+        '首字母小写以接入并列'
         if 标签=='':
             return 标签
         return 标签[0].lower()+标签[1:]

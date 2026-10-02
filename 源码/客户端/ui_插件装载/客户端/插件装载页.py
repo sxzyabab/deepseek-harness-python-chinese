@@ -78,11 +78,11 @@ __all__=['插件装载页','高亮毫秒','行筛选阈值']#仅中文公开名
 )#引导结束
 
 def 轻提示毫秒(文本):
-    """toast 停留时长。"""
+    'toast 停留时长'
     return min(8000,max(3000,len(文本.encode('utf-8'))*80))#按字节预算
 
 def 部件摘要(行表,翻译):
-    """组件计数行。"""
+    '组件计数行'
     失败=len([行 for 行 in 行表 if 行.get('phase')=='failed'])#失败数
     关闭=len([行 for 行 in 行表 if not 行['enabled']])#关闭数
     运行=len([行 for 行 in 行表 if 行['enabled'] and 行.get('phase')=='active'])#运行数
@@ -93,23 +93,23 @@ def 部件摘要(行表,翻译):
     return ' · '.join(段)#连接
 
 def 包状态(包):
-    """卡片状态：运行/关闭/异常。"""
+    '卡片状态：运行/关闭/异常'
     if 'error' in 包 and 包['error'] is not None:return 'problem'#异常
     return 'running' if 包['enabled'] else 'disabled'#启停
 
 def 行状态文案(行,翻译):
-    """行状态句。"""
+    '行状态句'
     if not 行['enabled']:return 翻译('partOff')#关闭
     阶段=行.get('phase')#阶段
     return 翻译('rowStateIdle') if 阶段 is None else 翻译(阶段键[阶段])#阶段
 
 def 行点状态(行):
-    """行旁状态点。"""
+    '行旁状态点'
     if not 行['enabled'] or 'phase' not in 行:return 'idle'#空闲
     return 阶段点[行['phase']]#点
 
 def 失败文案(失败,翻译):
-    """失败屏一句。"""
+    '失败屏一句'
     if 失败 is None:return 翻译('installFailureGeneric')#通用
     待=失败['pendingBuilds'] if 'pendingBuilds' in 失败 else None#待允许
     if 失败.get('kind')=='build-blocked' and (待 is None or len(待)==0):
@@ -122,9 +122,9 @@ def 失败文案(失败,翻译):
     return 翻译('installFailureGeneric') if 原因=='' else 原因#原样
 
 class 插件装载页:#插件装载页视图模型
-    """官方与已安装组合包、详情、安装对话框与卸载确认。"""
+    '官方与已安装组合包、详情、安装对话框与卸载确认'
     def __init__(自身,属性):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性#props
         自身.页态={'kind':'list'}#当前页
         自身.行筛选=''#行筛选
@@ -132,39 +132,39 @@ class 插件装载页:#插件装载页视图模型
         自身.已确保=False#已首读
 
     def 更新(自身,属性):
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#最新
 
     def 开包(自身,名):
-        """打开组合包页。"""
+        '打开组合包页'
         自身.页态={'kind':'package','name':名}#包页
 
     def 开条目(自身,身份):
-        """打开官方插件页。"""
+        '打开官方插件页'
         自身.页态={'kind':'item','id':身份}#条目页
 
     def 开行(自身,名,行标识):
-        """打开行配置页。"""
+        '打开行配置页'
         自身.页态={'kind':'row','name':名,'rowId':行标识}#行页
 
     def 回列表(自身):
-        """回卡片列表。"""
+        '回卡片列表'
         自身.页态={'kind':'list'}#列表
 
     def 回包(自身,名):
-        """回组合包页。"""
+        '回组合包页'
         自身.页态={'kind':'package','name':名}#包页
 
     def 设行筛选(自身,文本):
-        """改行筛选。"""
+        '改行筛选'
         自身.行筛选=文本#筛选
 
     def 切换引导(自身):
-        """翻转安装引导。"""
+        '翻转安装引导'
         自身.引导开=not 自身.引导开#翻转
 
     def 视图(自身):
-        """投影整页视图模型。"""
+        '投影整页视图模型'
         属性=自身.属性#props
         翻译=属性['t']#文案
         if not 自身.已确保:#首读
@@ -248,7 +248,7 @@ class 插件装载页:#插件装载页视图模型
         return 结果#视图
 
     def _包卡(自身,包,翻译,状态):
-        """组合包卡片。"""
+        '组合包卡片'
         文=包文案(包,翻译)#文案
         return {#卡
             'kind':'package-card',#种类
@@ -269,7 +269,7 @@ class 插件装载页:#插件装载页视图模型
         }#卡结束
 
     def _条目卡(自身,项,翻译,属性):
-        """官方插件卡片。"""
+        '官方插件卡片'
         return {#卡
             'kind':'item-card',#种类
             'id':项['id'],#id
@@ -279,7 +279,7 @@ class 插件装载页:#插件装载页视图模型
         }#卡结束
 
     def _包详情(自身,包,翻译,状态,账本,属性):
-        """组合包详情页。"""
+        '组合包详情页'
         文=包文案(包,翻译)#文案
         查询=自身.行筛选.strip().lower()#筛选
         行表=包['rows'] if 查询=='' else [行 for 行 in 包['rows'] if 查询 in 行['rowId'].lower()]#过滤
@@ -351,7 +351,7 @@ class 插件装载页:#插件装载页视图模型
         }#详情结束
 
     def _行详情(自身,包,行,翻译,属性):
-        """行配置详情。"""
+        '行配置详情'
         文=包文案(包,翻译)#文案
         键=行配置键(包['name'],行['rowId'])#键
         return {#详情
@@ -369,7 +369,7 @@ class 插件装载页:#插件装载页视图模型
         }#详情结束
 
     def _条目详情(自身,项,翻译,属性):
-        """官方插件详情。"""
+        '官方插件详情'
         return {#详情
             'kind':'item-detail',#种类
             'id':项['id'],#id
@@ -381,7 +381,7 @@ class 插件装载页:#插件装载页视图模型
         }#详情结束
 
     def _安装视图(自身,安装,翻译):
-        """安装对话框视图。"""
+        '安装对话框视图'
         阶段=安装['phase']#阶段
         结果={#基础
             'open':安装['open'],#开
@@ -471,7 +471,7 @@ class 插件装载页:#插件装载页视图模型
         return 结果#安装视图
 
     def _确认视图(自身,确认,翻译):
-        """卸载确认视图。"""
+        '卸载确认视图'
         if 确认 is None:return None#无
         文=包文案({'name':确认['packageName']},翻译)#文案
         return {#确认

@@ -7,7 +7,7 @@ __all__=['DOM快照序列化器','注册DOM快照序列化器','折叠类名值'
 序列化器登记表=[]#可挂接的序列化器表
 
 def 折叠类名值(值):#折叠类名
-    """折叠一个 class 属性值中的作用域令牌。"""
+    '折叠一个 class 属性值中的作用域令牌'
     return ' '.join(#空格接合
         作用域类模式.sub(r'\1',令牌)#折回 local
         for 令牌 in 值.split()#按空白拆
@@ -15,7 +15,7 @@ def 折叠类名值(值):#折叠类名
     )#返回
 
 def 计算指纹(标记):#计算指纹
-    """svg 标记上的 FNV-1a 32 位。"""
+    'svg 标记上的 FNV-1a 32 位'
     哈希=0x811c9dc5#FNV 偏移基
     for 字符 in 标记:#逐字符
         哈希^=ord(字符)#异或
@@ -23,7 +23,7 @@ def 计算指纹(标记):#计算指纹
     return f'{哈希:08x}'#十六进制
 
 def 收集SVG(根):#收集 svg
-    """子树的 svg 元素列表；无 DOM 时返回空。"""
+    '子树的 svg 元素列表；无 DOM 时返回空'
     if not hasattr(根,'querySelectorAll'):#无 DOM
         return []#空
     列表=list(根.querySelectorAll('svg'))#后代 svg
@@ -33,7 +33,7 @@ def 收集SVG(根):#收集 svg
     return 列表#返回列表
 
 def 需要归一化(根):#是否需归一化
-    """序列化该子树是否需要归一化克隆。"""
+    '序列化该子树是否需要归一化克隆'
     if not hasattr(根,'querySelectorAll'):#无 DOM
         return False#不需要
     节点列表=[根,*根.querySelectorAll('[class]')]#带 class 节点
@@ -44,11 +44,11 @@ def 需要归一化(根):#是否需归一化
     return any(len(getattr(svg,'childNodes',[]))>0 for svg in 收集SVG(根))#或有 svg 子节点
 
 def 测试序列化值(值):#是否匹配
-    """是否为需归一化的 DOM 元素。"""
+    '是否为需归一化的 DOM 元素'
     return hasattr(值,'querySelectorAll') and 需要归一化(值)#需归一化则匹配
 
 def 序列化值(值,_配置=None,_缩进=None,_深度=None,_引用=None,打印机=None):#序列化
-    """归一化克隆后交回打印机。"""
+    '归一化克隆后交回打印机'
     克隆=值.cloneNode(True) if hasattr(值,'cloneNode') else 值#克隆
     if hasattr(克隆,'querySelectorAll'):#有 DOM
         for 元素 in [克隆,*克隆.querySelectorAll('[class]')]:#遍历带 class 节点
@@ -70,7 +70,7 @@ def 序列化值(值,_配置=None,_缩进=None,_深度=None,_引用=None,打印�
 DOM快照序列化器={'test':测试序列化值,'serialize':序列化值}#DOM 快照序列化器
 
 def 注册DOM快照序列化器():#注册序列化器
-    """向序列化器登记表注册（幂等）。"""
+    '向序列化器登记表注册（幂等）'
     if 已注册[0]:#幂等
         return
     已注册[0]=True#标记已注册

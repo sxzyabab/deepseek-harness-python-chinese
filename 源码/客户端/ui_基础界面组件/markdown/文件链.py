@@ -10,7 +10,7 @@ __all__=['解析文件链']
 行片段=re.compile(r'^L([1-9]\d*)(?:-L([1-9]\d*))?\Z')#L起[-L止]
 
 def 解析文件链(值):
-    """解码本地 Markdown 文件目标与可选 GitHub 行片段；非法则 None。"""
+    '解码本地 Markdown 文件目标与可选 GitHub 行片段；非法则 None'
     井=值.find('#')
     目标=值 if 井<0 else 值[:井]
     if '?' in 目标:

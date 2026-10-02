@@ -2,7 +2,7 @@
 __all__=['用量输出令牌','助手步骤读数','推导回合指标']#仅中文公开名
 
 def 用量输出令牌(用量):
-    """从用量取输出 token。用量为 dict。"""
+    '从用量取输出 token。用量为 dict'
     if 用量 is None:#空
         return None#无
     if 'outputTokens' not in 用量:#缺席
@@ -15,7 +15,7 @@ def 用量输出令牌(用量):
     return None#否则
 
 def 助手步骤读数(节点):
-    """读一个 Assistant 节点的 TTFT、解码墙时与输出 token。节点为 dict。"""
+    '读一个 Assistant 节点的 TTFT、解码墙时与输出 token。节点为 dict'
     时序=节点['timing'] if 'timing' in 节点 else None#时序块
     ttftMs=None#缺
     decodeMs=None#缺
@@ -31,7 +31,7 @@ def 助手步骤读数(节点):
     return {'ttftMs':ttftMs,'decodeMs':decodeMs,'outputTokens':用量输出令牌(用量)}#读数
 
 def 推导回合指标(节点列表):
-    """把 Assistant 节点折成每轮页脚指标。"""
+    '把 Assistant 节点折成每轮页脚指标'
     折叠={}#按轮累加
     for 节点 in 节点列表:#遍历
         if ('kind' not in 节点) or 节点['kind']!='assistant':#仅 Assistant

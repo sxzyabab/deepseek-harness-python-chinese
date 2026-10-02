@@ -3,16 +3,16 @@ from .解析 import 解析GFM#流式 GFM 解析
 __all__=['抽取Markdown纯文本','内联文本','块文本']#仅中文公开名
 
 def 节点值(节点):
-    """value，缺则空串。"""
+    'value，缺则空串'
     return 节点['value'] if 'value' in 节点 and 节点['value'] is not None else ''#值
 
 def 列出子节点(节点):
-    """children，缺则空表。"""
+    'children，缺则空表'
     列=节点['children'] if 'children' in 节点 else None#子
     return 列 if 列 is not None else []#空则空表
 
 def 内联文本(节点):
-    """链接取标签、图片取 alt、代码取源。节点为 dict。"""
+    '链接取标签、图片取 alt、代码取源。节点为 dict'
     类型=节点['type'] if 'type' in 节点 else None#类型
     if 类型 in ('text','inlineCode','code'):#字面
         return 节点值(节点)#值
@@ -28,7 +28,7 @@ def 内联文本(节点):
     return 出#拼接
 
 def 压紧内联(文本):
-    """连续空白→单空格，再 trim。"""
+    '连续空白→单空格，再 trim'
     出=[]#段
     空白=False#是否在空白
     for 字 in 文本:#逐字
@@ -42,7 +42,7 @@ def 压紧内联(文本):
     return ''.join(出).strip()#去首尾
 
 def 块文本(节点):
-    """块之间空行、列表项换行、表单元格制表符。"""
+    '块之间空行、列表项换行、表单元格制表符'
     类型=节点['type'] if 'type' in 节点 else None#类型
     子=列出子节点(节点)#子
     if 类型 in ('root','blockquote'):#根/引用
@@ -91,7 +91,7 @@ def 块文本(节点):
     return 压紧内联(内联文本(节点))#当内联
 
 def 找首段(节点):
-    """深度优先找首个非空段落。"""
+    '深度优先找首个非空段落'
     if ('type' in 节点) and 节点['type']=='paragraph':#本节点段落
         文=压紧内联(内联文本(节点))#压紧
         if 文!='':#非空
@@ -103,7 +103,7 @@ def 找首段(节点):
     return None#没有
 
 def 整篇文本(根):
-    """去行首尾空白、连续空行压成一段、再 trim。"""
+    '去行首尾空白、连续空行压成一段、再 trim'
     行列表=[]#行
     for 行 in 块文本(根).split('\n'):#切
         行列表.append(行.strip())#去行空白
@@ -113,7 +113,7 @@ def 整篇文本(根):
     return 拼.strip()#去首尾
 
 def 抽取Markdown纯文本(源文,选项=None):
-    """整篇、首条可见行、或首个语义段落。选项为 dict。"""
+    '整篇、首条可见行、或首个语义段落。选项为 dict'
     选项=选项 if 选项 is not None else {}#选项
     模式=选项['mode'] if 'mode' in 选项 else 'all'#边界
     根=解析GFM(源文)#流式树

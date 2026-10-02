@@ -1,20 +1,20 @@
-"""最小原生思考元数据；耐久 Harness 块拥有全部响应文本。"""
+'最小原生思考元数据；耐久 Harness 块拥有全部响应文本'
 from ..llm import 大模型错误
 
 __all__=['对象','回放状态','读回放']
 
 def 对象(值,码='MALFORMED_RESPONSE'):
-    """在提供方与耐久读取处拒绝畸形 JSON 对象。"""
+    '在提供方与耐久读取处拒绝畸形 JSON 对象'
     if not isinstance(值,dict):
         raise 大模型错误('DeepSeek Messages expected a JSON object',码)
     return 值
 
 def 回放状态(模型,块列表):
-    """构造响应元数据，不复制助手文本。"""
+    '构造响应元数据，不复制助手文本'
     return {'response':{'kind':'deepseek-messages','version':1,'model':模型},'blocks':块列表}
 
 def 读回放(消息,模型,降级=None):
-    """校验原生回放，序列化耐久内容前丢掉不可用元数据。"""
+    '校验原生回放，序列化耐久内容前丢掉不可用元数据'
     try:
         return 校验回放(消息,模型)
     except 大模型错误 as 错误:
@@ -25,12 +25,12 @@ def 读回放(消息,模型,降级=None):
         return None
 
 def 校验回放(消息,模型):
-    """校验耐久回放信封。"""
+    '校验耐久回放信封'
     来源=消息['source']
     if 来源.get('kind')!='model' or 'replayState' not in 来源 or 来源['replayState'] is None:
         return None
     def 失败(细节):
-        """不可用回放。"""
+        '不可用回放'
         raise 大模型错误('DeepSeek Messages replay: '+细节,'INVALID_REPLAY_STATE')
     信封=对象(来源['replayState'],'INVALID_REPLAY_STATE')
     响应=对象(信封.get('response'),'INVALID_REPLAY_STATE')

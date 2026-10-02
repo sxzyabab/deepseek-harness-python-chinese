@@ -14,12 +14,12 @@ __all__=[#仅中文公开名
 远程子类型集合=set(运行时远程对象子类型)#远程对象子类型
 
 def 要求表示(类型,有值,有不可序列化,有对象,期望值,期望不可序列化,期望对象):#要求表示形态
-    """要求表示形态。"""
+    '要求表示形态'
     if 有值!=期望值 or 有不可序列化!=期望不可序列化 or 有对象!=期望对象:#不匹配
         raise 检查器错误(f'inspector protocol: invalid {类型} RemoteObject representation')#英文诊断
 
 def 校验远程对象(值):#校验远程对象表示
-    """校验远程对象表示。"""
+    '校验远程对象表示'
     if 'semanticReference' in 值 and 'object' not in 值:#语义引用须有对象
         raise 检查器错误('inspector protocol: semanticReference requires a retained Client object')#英文诊断
     描述符=值['descriptor']#描述符
@@ -69,7 +69,7 @@ def 校验远程对象(值):#校验远程对象表示
             raise 检查器错误('inspector protocol: object RemoteObject needs exactly one value or backend object')#英文诊断
 
 def 解析属性预览(值):#解析属性预览
-    """解析属性预览。"""
+    '解析属性预览'
     记录=精确对象(值,['name','type','value','valuePreview','subtype'],'property preview')#精确对象
     if not isinstance(记录.get('name'),str) or (记录.get('type')!='accessor' and 记录.get('type') not in 远程类型集合) or (记录.get('subtype') is not None and 记录.get('subtype') not in 远程子类型集合):#非法
         raise 检查器错误('inspector protocol: invalid property preview')#英文诊断
@@ -82,7 +82,7 @@ def 解析属性预览(值):#解析属性预览
     return 结果#返回
 
 def 解析对象预览(值):#解析对象预览
-    """解析对象预览。"""
+    '解析对象预览'
     记录=精确对象(值,['type','subtype','description','overflow','properties'],'object preview')#精确对象
     if 记录.get('type') not in 远程类型集合 or (记录.get('subtype') is not None and 记录.get('subtype') not in 远程子类型集合) or not isinstance(记录.get('overflow'),bool) or not isinstance(记录.get('properties'),list):#非法
         raise 检查器错误('inspector protocol: invalid object preview')#英文诊断
@@ -93,7 +93,7 @@ def 解析对象预览(值):#解析对象预览
     return 结果#返回
 
 def 解析远程对象描述符(值):#解析远程对象描述符
-    """解析远程对象描述符。"""
+    '解析远程对象描述符'
     记录=精确对象(值,['type','subtype','className','value','unserializableValue','description','preview'],'Runtime object descriptor')#精确对象
     if 记录.get('type') not in 远程类型集合:#类型非法
         raise 检查器错误('inspector protocol: invalid Client RemoteObject type')#英文诊断
@@ -115,7 +115,7 @@ def 解析远程对象描述符(值):#解析远程对象描述符
     return 结果#返回
 
 def 解析客户端运行时远程对象(值):#解析远程对象
-    """解码一个携带可选会话本地句柄的 Client Runtime 对象。"""
+    '解码一个携带可选会话本地句柄的 Client Runtime 对象'
     记录=精确对象(值,['descriptor','object','semanticReference'],'Client Runtime object')#精确对象
     描述符=解析远程对象描述符(记录['descriptor'])#描述符
     对象=None if 'object' not in 记录 else 精确对象(记录['object'],['handle'],'Client Runtime object reference')#引用对象
@@ -128,7 +128,7 @@ def 解析客户端运行时远程对象(值):#解析远程对象
     return 远程#远程对象
 
 def 解析调用帧(值):#解析调用帧
-    """解析调用帧。"""
+    '解析调用帧'
     记录=精确对象(值,['functionName','scriptKey','url','lineNumber','columnNumber'],'stack call frame')#精确对象
     if not isinstance(记录.get('functionName'),str) or not isinstance(记录.get('url'),str) or not isinstance(记录.get('lineNumber'),int) or isinstance(记录.get('lineNumber'),bool) or not isinstance(记录.get('columnNumber'),int) or isinstance(记录.get('columnNumber'),bool):#非法
         raise 检查器错误('inspector protocol: invalid stack call frame')#英文诊断
@@ -138,7 +138,7 @@ def 解析调用帧(值):#解析调用帧
     return 结果#返回
 
 def 解析客户端运行时栈跟踪(值):#解析栈跟踪
-    """解码 Client Runtime 或 Console 帧携带的栈追踪。"""
+    '解码 Client Runtime 或 Console 帧携带的栈追踪'
     记录=精确对象(值,['description','callFrames','parent'],'stack trace')#精确对象
     if not isinstance(记录.get('callFrames'),list):#须数组
         raise 检查器错误('inspector protocol: stack callFrames must be an array')#英文诊断
@@ -149,7 +149,7 @@ def 解析客户端运行时栈跟踪(值):#解析栈跟踪
     return 结果#返回
 
 def 解析客户端运行时异常详情(值):#解析异常详情
-    """解码命令结果与事件所用的 Client 异常详情。"""
+    '解码命令结果与事件所用的 Client 异常详情'
     记录=精确对象(值,['text','lineNumber','columnNumber','url','stackTrace','exception'],'exception details')#精确对象
     if not isinstance(记录.get('text'),str) or not isinstance(记录.get('lineNumber'),int) or isinstance(记录.get('lineNumber'),bool) or 记录['lineNumber']<0 or not isinstance(记录.get('columnNumber'),int) or isinstance(记录.get('columnNumber'),bool) or 记录['columnNumber']<0:#非法
         raise 检查器错误('inspector protocol: invalid exception details')#英文诊断
@@ -162,7 +162,7 @@ def 解析客户端运行时异常详情(值):#解析异常详情
     return 结果#返回
 
 def 解析属性描述符(值):#解析属性描述符
-    """解析属性描述符。"""
+    '解析属性描述符'
     记录=精确对象(值,['name','value','writable','get','set','configurable','enumerable','wasThrown','isOwn','symbol'],'property descriptor')#精确对象
     if not isinstance(记录.get('name'),str) or not isinstance(记录.get('configurable'),bool) or not isinstance(记录.get('enumerable'),bool):#形状非法
         raise 检查器错误('inspector protocol: invalid property descriptor')#英文诊断
@@ -185,7 +185,7 @@ def 解析属性描述符(值):#解析属性描述符
     return 结果#返回
 
 def 解析内部属性描述符(值):#解析内部属性
-    """解析内部属性。"""
+    '解析内部属性'
     记录=精确对象(值,['name','value'],'internal property descriptor')#精确对象
     if not isinstance(记录.get('name'),str):#名须字符串
         raise 检查器错误('inspector protocol: invalid internal property descriptor')#英文诊断
@@ -195,7 +195,7 @@ def 解析内部属性描述符(值):#解析内部属性
     return 结果#返回
 
 def 解析完成(值):#解析完成结果
-    """解析完成结果。"""
+    '解析完成结果'
     记录=精确对象(值,['result','exceptionDetails'],'Client Runtime completion')#精确对象
     结果={'result':解析客户端运行时远程对象(记录['result'])}#完成结果
     if 记录.get('exceptionDetails') is not None:#可选异常
@@ -203,7 +203,7 @@ def 解析完成(值):#解析完成结果
     return 结果#返回
 
 def 解析客户端运行时结果(值):#解析Runtime结果
-    """解析并重建一次成功的 Client Runtime 结果。"""
+    '解析并重建一次成功的 Client Runtime 结果'
     if not 是否普通对象(值) or not isinstance(值.get('op'),str):#须有op
         raise 检查器错误('inspector protocol: Client Runtime result must have an op')#英文诊断
     操作=值['op']#操作

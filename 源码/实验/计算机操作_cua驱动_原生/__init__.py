@@ -3,7 +3,6 @@ from ...依赖.schemastery import 复合类型字段#空配置
 from ...计算机操作.计算机操作.标识构造 import 计算机操作提供方名#提供方名
 from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
 from ...内核.作用域 import 操作任务#在途结算
-from cua_driver import CuaDriver
 
 __all__=['名称','依赖','配置','应用']
 
@@ -20,7 +19,7 @@ __all__=['名称','依赖','配置','应用']
 )#指引结束
 
 def 解析目录(原始):#校验目录
-    """解析 SDK 列出的工具目录。"""
+    '解析 SDK 列出的工具目录'
     if not isinstance(原始,dict) or not isinstance(原始.get('tools'),list):#非法
         raise Exception('Cua 驱动工具目录无效')
     工具表=[]#表
@@ -38,25 +37,25 @@ def 解析目录(原始):#校验目录
     return {'tools':工具表}#目录
 
 def 应用(上下文,配置值=None):#占用并挂原生
-    """启动失败回滚全部登记。"""
+    '启动失败回滚全部登记'
     寿命=中止控制器()#寿命
     在途=set()#在途任务
     驱动箱={'驱动':None}#原生句柄
     def 插件事件(纤程):#启动期拆除
-        """纤程拆除则中止寿命。"""
+        '纤程拆除则中止寿命'
         if 纤程 is getattr(上下文,'fiber',None) and getattr(纤程,'uid',True) is None:#本纤程
             寿命.中止()#中止
     上下文.on('internal/plugin',插件事件)#监听
     就绪=操作任务()#子就绪
     def 运行时寿命():#登记与拆除
-        """先放登记再关原生。"""
+        '先放登记再关原生'
         撤销=上下文.computerUse.登记(计算机操作提供方名('cua-driver-native'))#占用
         def 应用子(内):#挂运行时
-            """子插件拥有目录与工具。"""
+            '子插件拥有目录与工具'
             挂运行时(内,寿命,在途,驱动箱,就绪)#挂
         子=上下文.启动插件({'name':'computer-use-cua-driver-native-runtime','inject':['tools','systemPrompt'],'apply':应用子})#子
         def 卸():#拆除
-            """中止、等在途、关 SDK、放登记。"""
+            '中止、等在途、关 SDK、放登记'
             寿命.中止()#中止
             try:#等就绪失败
                 就绪.等待()#等
@@ -87,9 +86,10 @@ def 应用(上下文,配置值=None):#占用并挂原生
         raise 错误#原样
 
 def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
-    """导入 SDK、建运行时、发现工具。"""
+    '导入 SDK、建运行时、发现工具'
     try:#启动
         若已中止则抛出(寿命.信号)#中止
+        from cua_driver import CuaDriver#原生驱动
         活动=CuaDriver.create(None)#创建
         驱动箱['驱动']=活动#记下
         选项={'signal':寿命.信号}#中止
@@ -104,7 +104,7 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
                 raise Exception('Cua 驱动目录中工具 "'+工具['name']+'" 出现了多次')
             名集.add(公开名)#记下
             def 调用(参数,执行=None,原始名=工具['name'],活动驱动=活动):#调用
-                """经原生 SDK 调工具。"""
+                '经原生 SDK 调工具'
                 合成=合成信号(执行['signal'] if isinstance(执行,dict) else None,寿命.信号)#合成
                 若已中止则抛出(合成)#中止
                 结果=活动驱动.callTool(原始名,json.dumps(参数,ensure_ascii=False),{'signal':合成})#调用
@@ -116,7 +116,7 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
                 定义['output']=工具['outputSchema']#输出
             内.tools.登记(定义)#登记
         def 执行钩(执行,下一):#在途跟踪
-            """本提供方工具合成寿命信号。"""
+            '本提供方工具合成寿命信号'
             if 执行['name'] not in 名集:#他方
                 return 下一()#过
             上游=执行.get('signal')

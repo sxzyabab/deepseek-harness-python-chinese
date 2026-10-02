@@ -6,7 +6,7 @@ __all__=['检索块','默认检索最大行','复制文本','显示计数','摘�
 默认检索最大行=16#与终端同预算
 
 def 复制文本(属性):
-    """不受封顶/折叠影响。属性为 dict。"""
+    '不受封顶/折叠影响。属性为 dict'
     if ('kind' in 属性) and 属性['kind']=='paths':#路径形
         路径=属性['paths'] if 'paths' in 属性 and 属性['paths'] is not None else []#路径
         return '\n'.join(路径)#路径
@@ -23,7 +23,7 @@ def 复制文本(属性):
     return '\n\n'.join(块)#拼
 
 def 显示计数(属性):
-    """matches=匹配行总和；paths=路径数。"""
+    'matches=匹配行总和；paths=路径数'
     if ('kind' in 属性) and 属性['kind']=='paths':#路径
         路径=属性['paths'] if 'paths' in 属性 and 属性['paths'] is not None else []#路径
         return len(路径)#数
@@ -35,7 +35,7 @@ def 显示计数(属性):
     return 总#数
 
 def 摘要文案(属性,显示,截断,总计):
-    """截断时 显示 X / 共 N。"""
+    '截断时 显示 X / 共 N'
     计数=('显示 '+str(显示)+' / 共 '+str(总计)) if 截断 is True else str(显示)#计数子句
     if ('kind' in 属性) and 属性['kind']=='paths':#路径
         return 计数+' 个路径'#路径单位
@@ -43,7 +43,7 @@ def 摘要文案(属性,显示,截断,总计):
     return 计数+' 处匹配 · '+str(len(文件列表))+' 个文件'#匹配单位
 
 def 展平行(属性,已折叠):
-    """折叠文件组丢掉其 match 行。"""
+    '折叠文件组丢掉其 match 行'
     if ('kind' in 属性) and 属性['kind']=='paths':#路径形
         路径=属性['paths'] if 'paths' in 属性 and 属性['paths'] is not None else []#路径
         出=[]#行
@@ -64,7 +64,7 @@ def 展平行(属性,已折叠):
     return 行列表#扁
 
 def 行键(行):
-    """类型前缀防撞。"""
+    '类型前缀防撞'
     种=行['type']#种
     if 种=='match':#匹配
         return 'match:'+行['key']#键
@@ -73,9 +73,9 @@ def 行键(行):
     return 'path:'+行['path']#路径
 
 class 检索块:#检索卡
-    """kind=matches|paths；本地展开与文件折叠集。"""
+    'kind=matches|paths；本地展开与文件折叠集'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.已展开=False#展开
@@ -83,22 +83,22 @@ class 检索块:#检索卡
         自身.反馈=复制反馈()#复制
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 切换展开(自身):
-        """翻转。"""
+        '翻转'
         自身.已展开=not 自身.已展开#翻
 
     def 切换文件(自身,索引):
-        """翻转一组。"""
+        '翻转一组'
         if 索引 in 自身.已折叠:#已折
             自身.已折叠.discard(索引)#开
         else:#未折
             自身.已折叠.add(索引)#折
 
     def 渲染(自身):
-        """展平+封顶+摘要。"""
+        '展平+封顶+摘要'
         属性=自身.属性#props
         截断=属性['truncated'] is True if 'truncated' in 属性 else False#截断
         总计=属性['total'] if 'total' in 属性 else 0#总计
@@ -146,7 +146,7 @@ class 检索块:#检索卡
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

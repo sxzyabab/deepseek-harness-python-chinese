@@ -19,24 +19,24 @@ __all__=[#仅中文公开名
 标记表=weakref.WeakKeyDictionary()#原型 → 方法名 → 标记
 
 def 是否合法远程段(值):#判断是否为合法 Remote 段
-    """用 Connection 端点语法测试一个生成的 Remote 名。"""
+    '用 Connection 端点语法测试一个生成的 Remote 名'
     return 值!='.' and 值!='..' and 远程段模式.match(值) is not None#排除点段并匹配字符集
 
 class 查找策略失败(Exception):#lookup 策略拒绝错误
-    """lookup 策略拒绝，其带类型的载荷属于当前边界适配器。"""
+    'lookup 策略拒绝，其带类型的载荷属于当前边界适配器'
     def __init__(自身,失败载荷):#用适配器失败构造
-        """包装一次适配器失败，不暴露被拒绝的身份。"""
+        '包装一次适配器失败，不暴露被拒绝的身份'
         super().__init__('Typert lookup policy rejected the requested identity')#固定英文消息
         自身.name='TypertLookupFailure'#错误名
         自身.failure=失败载荷#适配器失败载荷
 
 def 校验段名(主语,值):#校验 Remote 段名
-    """非法端点段则抛。"""
+    '非法端点段则抛'
     if not 是否合法远程段(值):#非法
         raise TypeError('typert-protocol: '+主语+' 只能包含 RPC 端点段字符')#拒绝
 
 def 绑定远程网关(服务实例,服务键,选项=None):#显式 Service→网关绑定
-    """把一个可见 Service 字段绑定到 Cordis 键与 Remote 命名空间。"""
+    '把一个可见 Service 字段绑定到 Cordis 键与 Remote 命名空间'
     if 选项 is None:#缺省选项
         选项={}#空
     校验段名('service key',服务键)#校验服务键
@@ -45,14 +45,14 @@ def 绑定远程网关(服务实例,服务键,选项=None):#显式 Service→网
     return {'service':服务实例,'serviceKey':服务键,'namespace':命名空间}#冻结形字典
 
 class 远程服务(服务):#可导出的 Remote 服务基类
-    """通过 Typert 网关暴露其注册名的 Cordis Service 基类。"""
+    '通过 Typert 网关暴露其注册名的 Cordis Service 基类'
     def __init__(自身,上下文,服务键,选项=None):#构造并绑定
-        """注册该 Service，并把同一键绑定到 Typert 网关。"""
+        '注册该 Service，并把同一键绑定到 Typert 网关'
         super().__init__(上下文,服务键)#以服务键注册
         自身.typertRemote=绑定远程网关(自身,自身.name,选项 or {})#用注册名做网关绑定
 
 def 记下标记(原型,方法名,调用模式,导出名=None):#把一条标记写入原型表
-    """冲突则失败；相同则幂等忽略。"""
+    '冲突则失败；相同则幂等忽略'
     if 原型 not in 标记表:#尚无表
         表={}#新建
         标记表[原型]=表#挂上
@@ -69,7 +69,7 @@ def 记下标记(原型,方法名,调用模式,导出名=None):#把一条标记�
     表[方法名]=标记#写入
 
 def 远程(方法或导出名=None):#直接 Remote 调用装饰器
-    """把一个公开实例方法标为直接 Remote 调用；可带不同导出方法名或 stream 模式。"""
+    '把一个公开实例方法标为直接 Remote 调用；可带不同导出方法名或 stream 模式'
     if callable(方法或导出名):#直接装饰
         方法=方法或导出名#被装饰方法
         记下标记(方法.__globals__.get(方法.__qualname__.rsplit('.',1)[0],方法),方法.__name__,{'kind':'direct'})#尽力记下——见下
@@ -79,7 +79,7 @@ def 远程(方法或导出名=None):#直接 Remote 调用装饰器
         if 方法或导出名.get('mode')!='stream' or len(方法或导出名)!=1:
             raise TypeError('typert-protocol: Remote options must contain exactly mode: "stream"')
         def 流装饰器(方法):
-            """记下直接调用的 stream 投递。"""
+            '记下直接调用的 stream 投递'
             记下标记到函数(方法,{'kind':'direct'},None,'stream')
             return 方法
         return 流装饰器
@@ -87,13 +87,13 @@ def 远程(方法或导出名=None):#直接 Remote 调用装饰器
     if 导出名 is not None:#有导出名
         校验段名('Remote export name',导出名)#校验
     def 装饰器(方法):#返回的方法装饰器
-        """记下直接调用与可选导出名。"""
+        '记下直接调用与可选导出名'
         记下标记到函数(方法,{'kind':'direct'},导出名)#挂到函数
         return 方法#原样
     return 装饰器#工厂
 
 def 记下标记到函数(方法,调用模式,导出名=None,模式=None):#把标记挂在函数属性上
-    """类体执行时原型尚未就绪，先挂在函数上，由远程服务子类收集。"""
+    '类体执行时原型尚未就绪，先挂在函数上，由远程服务子类收集'
     标记={'invocation':dict(调用模式)}#标记
     if 导出名 is not None and 导出名!=方法.__name__:#不同导出名
         标记['exportName']=导出名#记下
@@ -105,18 +105,18 @@ def 记下标记到函数(方法,调用模式,导出名=None,模式=None):#把�
     方法._typert_remote_marker=标记#挂上
 
 def 远程作用域(键,导出名=None):#作用域 Remote 装饰器工厂
-    """为从某一个 Remote Scope 解析的方法创建装饰器。"""
+    '为从某一个 Remote Scope 解析的方法创建装饰器'
     校验段名('Scope key',键)#校验作用域键
     if 导出名 is not None:#有导出名
         校验段名('Remote export name',导出名)#校验
     def 装饰器(方法):#方法装饰器
-        """记下 Context 调用与可选导出名。"""
+        '记下 Context 调用与可选导出名'
         记下标记到函数(方法,{'kind':'context','context':键},导出名)#挂上
         return 方法#原样
     return 装饰器#工厂
 
 def 远程方法列表(服务实例):#读取实例上的 Remote 标记
-    """读取装饰器附着在活 Service 上的 Remote 标记。"""
+    '读取装饰器附着在活 Service 上的 Remote 标记'
     结果=[]#标记列表
     for 类 in type(服务实例).__mro__:#沿 MRO
         for 名,成员 in list(类.__dict__.items()):#类自有成员

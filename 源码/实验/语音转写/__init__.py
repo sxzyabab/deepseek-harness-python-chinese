@@ -14,15 +14,15 @@ __all__=['应用','配置','语音转写','依赖']
 })
 
 def 读易失(字段):
-    """插件配置易失字段；有 get 则调，否则当值。"""
+    '插件配置易失字段；有 get 则调，否则当值'
     if hasattr(字段,'get') and callable(字段.get):
         return 字段.get()
     return 字段
 
 class 语音转写(服务):
-    """具名识别器注册表，消费者先解析再执行。"""
+    '具名识别器注册表，消费者先解析再执行'
     def __init__(自身,上下文,配置值=None):
-        """登记服务并监听易失配置更新。"""
+        '登记服务并监听易失配置更新'
         super().__init__(上下文,'speechToText')
         自身.上下文=上下文
         自身.配置=配置值 if 配置值 is not None else {}
@@ -38,9 +38,9 @@ class 语音转写(服务):
             自身.条目标识=None if 选项 is None else getattr(选项,'id',None)
         上下文.监听('loader/volatile-update',自身.已变)
         def 拆服务():
-            """中止寿命并卸掉全部注册。"""
+            '中止寿命并卸掉全部注册'
             def 拆():
-                """join 已接收工作。"""
+                'join 已接收工作'
                 自身.寿命.中止(RuntimeError('Speech service disposed'))
                 for 注册 in list(自身.提供方表.values()):
                     自身.移除(注册)
@@ -49,7 +49,7 @@ class 语音转写(服务):
         上下文.副作用(拆服务)
 
     def 登记(自身,提供方):
-        """重复 id 失败且不替换原注册。"""
+        '重复 id 失败且不替换原注册'
         若已中止则抛出(自身.寿命.信号)
         信息=提供方['info']
         标识=信息['id']
@@ -58,7 +58,7 @@ class 语音转写(服务):
         准备=提供方.get('preparation')
         if 准备 is None:
             def 空退订():
-                """无准备订阅。"""
+                '无准备订阅'
                 return
             退订=空退订
         else:
@@ -72,12 +72,12 @@ class 语音转写(服务):
         自身.提供方表[标识]=注册
         自身.已变()
         def 卸():
-            """拒绝新请求并 join 已接收工作。"""
+            '拒绝新请求并 join 已接收工作'
             自身.移除(注册)
         return 卸
 
     def 移除(自身,注册):
-        """幂等卸掉一条注册。"""
+        '幂等卸掉一条注册'
         信息=注册['provider']['info']
         if 自身.提供方表.get(信息['id']) is not 注册:
             return
@@ -89,27 +89,27 @@ class 语音转写(服务):
             完成.wait()
 
     def 列出提供方(自身):
-        """按登记顺序给出公开事实。"""
+        '按登记顺序给出公开事实'
         return [注册['provider']['info'] for 注册 in 自身.提供方表.values()]
 
     def 已变(自身):
-        """通知快照观察者。"""
+        '通知快照观察者'
         for 监听 in list(自身.监听者):
             监听()
 
     def 跟随(自身,调用方):
-        """完整就绪快照；慢读者合并中间进度。"""
+        '完整就绪快照；慢读者合并中间进度'
         信号=合成信号(调用方,自身.寿命.信号)
         若已中止则抛出(信号)
         醒=threading.Event()
         已改=[True]
         def 通知():
-            """标脏并叫醒。"""
+            '标脏并叫醒'
             已改[0]=True
             醒.set()
         自身.监听者.add(通知)
         def 桥():
-            """调用方或寿命中止时叫醒。"""
+            '调用方或寿命中止时叫醒'
             等待中止(信号)
             通知()
         threading.Thread(target=桥,daemon=True).start()
@@ -126,7 +126,7 @@ class 语音转写(服务):
             自身.监听者.discard(通知)
 
     def 快照(自身):
-        """提供方就绪与当前偏好。"""
+        '提供方就绪与当前偏好'
         视图=[]
         for 注册 in 自身.提供方表.values():
             提供方=注册['provider']
@@ -142,7 +142,7 @@ class 语音转写(服务):
         }
 
     def 配置选择(自身,补丁):
-        """把传入字段写入本插件 profile 条目。"""
+        '把传入字段写入本插件 profile 条目'
         设置=自身.上下文.获取服务('settings')
         条目=自身.条目标识
         if 设置 is None or 条目 is None:
@@ -158,7 +158,7 @@ class 语音转写(服务):
         设置.update(条目,更新)
 
     def 选定提供方(自身,标识,语言):
-        """缺失或不支持语言则明确失败。"""
+        '缺失或不支持语言则明确失败'
         注册=自身.提供方表.get(标识)
         if 注册 is None:
             raise RuntimeError('Speech provider is unavailable: '+str(标识))
@@ -167,7 +167,7 @@ class 语音转写(服务):
         return 注册['provider']
 
     def 准备(自身,标识,选项=None):
-        """启动或加入提供方拥有的准备任务。"""
+        '启动或加入提供方拥有的准备任务'
         注册=自身.提供方表.get(标识)
         if 注册 is None:
             raise RuntimeError('Speech provider is unavailable: '+str(标识))
@@ -176,7 +176,7 @@ class 语音转写(服务):
             准备['prepare'](选项)
 
     def 取消准备(自身,标识):
-        """显式取消准备。"""
+        '显式取消准备'
         注册=自身.提供方表.get(标识)
         if 注册 is None:
             raise RuntimeError('Speech provider is unavailable: '+str(标识))
@@ -185,7 +185,7 @@ class 语音转写(服务):
             准备['cancel']()
 
     def 解析(自身,请求):
-        """套组合默认并钉死已登记提供方。"""
+        '套组合默认并钉死已登记提供方'
         标识=请求['providerId'] if 'providerId' in 请求 and 请求['providerId'] is not None else 语音提供方标识(读易失(自身.配置['defaultProvider']))
         语言=请求['language'] if 'language' in 请求 and 请求['language'] is not None else 读易失(自身.配置['language'])
         return {
@@ -195,7 +195,7 @@ class 语音转写(服务):
         }
 
     def 转写(自身,规格,信号):
-        """只走已解析提供方，不回退。"""
+        '只走已解析提供方，不回退'
         若已中止则抛出(信号)
         提供方=规格['provider']
         标识=提供方['info']['id']
@@ -215,7 +215,7 @@ class 语音转写(服务):
             注册['pending'].discard(完成)
 
 def 应用(上下文,配置值=None):
-    """挂上语音转写服务。"""
+    '挂上语音转写服务'
     return 语音转写(上下文,配置值)
 
 name='speechToText'

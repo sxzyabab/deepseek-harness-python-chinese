@@ -1,4 +1,4 @@
-"""校验 webhook 来源消息已属于其 cwd 工作区。"""
+'校验 webhook 来源消息已属于其 cwd 工作区'
 包名='@deepseek-ai/dsh-webhook'
 名称='webhook-invariant'
 依赖=['invariants']
@@ -6,9 +6,9 @@
 __all__=['包名','名称','依赖','应用','默认']
 
 def 安装(上下文,失败):
-    """校验 webhook 来源消息已属于其 cwd 工作区。"""
+    '校验 webhook 来源消息已属于其 cwd 工作区'
     def 内部派发(_模式,事件名,参数,*位置参数):
-        """提交前检查 session/event。"""
+        '提交前检查 session/event'
         if 事件名!='session/event':
             return
         会话,事件=参数[0],参数[1]
@@ -38,7 +38,7 @@ def 安装(上下文,失败):
 安装.inject=安装.依赖
 
 def 应用(上下文):
-    """注册本包的不变量配套，返回拆除器。"""
+    '注册本包的不变量配套，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 默认=应用

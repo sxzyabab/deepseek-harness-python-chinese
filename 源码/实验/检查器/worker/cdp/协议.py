@@ -3,11 +3,11 @@ from ...共享.json import 在线程执行#后台跑
 __all__=['解析cdp请求','cdp错误','发送cdp失败','响应cdp请求']#仅中文公开名
 
 def 是否普通对象(值):#普通对象判定
-    """映射且非空。"""
+    '映射且非空'
     return isinstance(值,dict)#字典即普通对象
 
 def 解析cdp请求(值):#解析CDP请求
-    """在路由前解析一条 DevTools 请求。"""
+    '在路由前解析一条 DevTools 请求'
     if not 是否普通对象(值):#非对象
         raise ValueError('inspector CDP: 请求无效')#抛错
     请求id=值.get('id')#id
@@ -24,18 +24,18 @@ def 解析cdp请求(值):#解析CDP请求
     return {'id':请求id,'method':方法,'params':参数 if 参数 is not None else {}}#请求对象
 
 def cdp错误(请求id,码,信息):#构造错误响应
-    """构造稳定的 CDP 错误响应。"""
+    '构造稳定的 CDP 错误响应'
     return {'id':请求id,'error':{'code':码,'message':信息}}#错误信封
 
 def 发送cdp失败(传输,请求,错误):#发送失败
-    """使用域错误码发送一次失败的 CDP 操作。"""
+    '使用域错误码发送一次失败的 CDP 操作'
     信息=str(错误)#错误详情
     传输.发送(cdp错误(请求['id'],-32000,信息))#发送
 
 def 响应cdp请求(传输,请求,操作):#响应CDP请求
-    """通过一条传输结算一次 CDP 操作。"""
+    '通过一条传输结算一次 CDP 操作'
     def 结算():#结算体
-        """等待操作并回写。"""
+        '等待操作并回写'
         try:#执行
             结果=操作()#同步执行
             传输.发送({'id':请求['id'],'result':结果})#成功

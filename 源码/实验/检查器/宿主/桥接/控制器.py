@@ -32,48 +32,48 @@ __all__=[#仅中文公开名
 默认最大断联cordis树=8#默认断联树上限
 
 def 自然数(值,名,允许零=False):#校验自然数
-    """校验自然数。"""
+    '校验自然数'
     if not isinstance(值,int) or isinstance(值,bool) or 值<(0 if 允许零 else 1):#非法
         raise 检查器错误(f'inspector: {名} must be {"a non-negative" if 允许零 else "a positive"} safe integer')#拒绝
     return 值#返回
 
 class 检查器选项:#检查器选项
-    """面向用户的 Host 选项；每个内存与生命周期边界均可配置。"""
+    '面向用户的 Host 选项；每个内存与生命周期边界均可配置'
     def __init__(自身,**字段):#构造
-        """保存部分配置。"""
+        '保存部分配置'
         for 键,值 in 字段.items():#逐字段
             setattr(自身,键,值)#写入
 
 class 检查器规格:#已解析规格
-    """一次运行中的 Inspector 使用的完整已解析选项。"""
+    '一次运行中的 Inspector 使用的完整已解析选项'
     def __init__(自身,**字段):#构造
-        """保存完整配置。"""
+        '保存完整配置'
         for 键,值 in 字段.items():#逐字段
             setattr(自身,键,值)#写入
 
 class 检查器端点:#检查器端点
-    """一个已绑定 Worker 的地址与浏览器 bootstrap。"""
+    '一个已绑定 Worker 的地址与浏览器 bootstrap'
     def __init__(自身,httpUrl,webSocketDebuggerUrl,devtoolsFrontendUrl,client):#构造
-        """保存端点字段。"""
+        '保存端点字段'
         自身.httpUrl=httpUrl#HTTP地址
         自身.webSocketDebuggerUrl=webSocketDebuggerUrl#调试WebSocket
         自身.devtoolsFrontendUrl=devtoolsFrontendUrl#DevTools前端
         自身.client=client#Client引导
 
 class 检查器句柄:#检查器句柄
-    """运行中的 Host 侧 Inspector 所有者。"""
+    '运行中的 Host 侧 Inspector 所有者'
     def __init__(自身,endpoint,source,关闭):#构造
-        """保存端点、源与关闭器。"""
+        '保存端点、源与关闭器'
         自身.endpoint=endpoint#端点
         自身.source=source#观测连接
         自身.关闭=关闭#关闭函数
 
 def 解析检查器选项(选项=None):#解析选项
-    """解析并校验全部随部署变化的 Inspector 选择。"""
+    '解析并校验全部随部署变化的 Inspector 选择'
     if 选项 is None:#缺省
         选项={}#空
     def 取(键,缺省):#取dict字段
-        """选项是 dict。"""
+        '选项是 dict'
         return 选项[键] if 键 in 选项 else 缺省#键
     规格=检查器规格(#组装规格
         host=取('host','127.0.0.1'),#主机
@@ -117,11 +117,11 @@ def 解析检查器选项(选项=None):#解析选项
     return 规格#返回规格
 
 def 派生工作者(引导):#派生Worker
-    """派生 Worker；具体运行时由宿主环境提供 MessageChannel/Worker。"""
+    '派生 Worker；具体运行时由宿主环境提供 MessageChannel/Worker'
     raise 检查器错误('inspector: Worker spawn binding is environment-specific')#需运行时绑定
 
 def 关闭检查器(生命周期,源,请求观察,超时毫秒):#关闭检查器
-    """关闭检查器。"""
+    '关闭检查器'
     失败列表=[]#失败收集
     try:#停止采集
         if 请求观察 is not None:#有观察器
@@ -140,7 +140,7 @@ def 关闭检查器(生命周期,源,请求观察,超时毫秒):#关闭检查器
         raise 检查器错误('inspector: shutdown failed') from 失败列表[0]#汇总
 
 def 启动检查器(选项=None):#启动检查器
-    """启动 Worker、创建 Host source，并默认安装完整 fetch 采集。"""
+    '启动 Worker、创建 Host source，并默认安装完整 fetch 采集'
     规格=解析检查器选项(选项)#解析规格
     客户端协议=f'dsh-inspector-v{检查器协议版本}-{secrets.token_urlsafe(32)}'#鉴权子协议
     配置={#Worker配置
@@ -191,7 +191,7 @@ def 启动检查器(选项=None):#启动检查器
     )#端点结束
     请求观察=安装请求观察器(源,type('采',(),{'maxRequestBodyBytes':规格.maxRequestBodyBytes,'maxResponseBodyBytes':规格.maxResponseBodyBytes,'maxChunkBytes':规格.maxBodyChunkBytes})()) if 规格.captureFetch else None#安装采集
     def 意外(错误):#标记运行并挂钩意外停止
-        """意外停止清理。"""
+        '意外停止清理'
         try:#关闭源
             源.关闭()#尽力关闭
         except Exception as 关闭错误:#源.关闭 在意外路径上可能抛传输错误，契约未定所以收不窄
@@ -205,7 +205,7 @@ def 启动检查器(选项=None):#启动检查器
     生命周期.标记运行(意外)#markRunning
     关闭中={'p':None}#关闭去重
     def 关闭():#关闭
-        """关闭。"""
+        '关闭'
         if 关闭中['p'] is None:#首次关闭
             关闭中['p']=关闭检查器(生命周期,源,请求观察,规格.stopTimeoutMs)#首次关闭
         return 关闭中['p']#复用

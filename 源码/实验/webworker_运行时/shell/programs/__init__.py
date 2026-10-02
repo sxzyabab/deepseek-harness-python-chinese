@@ -7,7 +7,7 @@ __all__=['标准程序','标准程序表']
 _命令表=None
 
 def which程序(argv,io,state=None,fs=None):
-    """报告所请求名称中本 shell 能运行的那些。"""
+    '报告所请求名称中本 shell 能运行的那些'
     已知=标准程序()
     状态=0
     for 名 in argv[1:]:
@@ -20,7 +20,7 @@ def which程序(argv,io,state=None,fs=None):
     return 状态
 
 def 标准程序():
-    """标准命令表，构建一次并由每一行命令共享。"""
+    '标准命令表，构建一次并由每一行命令共享'
     global _命令表
     if _命令表 is None:
         表=dict(内建程序)

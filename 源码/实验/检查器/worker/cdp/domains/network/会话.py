@@ -6,9 +6,9 @@ __all__=['网络域']#仅中文公开名
 _时间原点毫秒=time.time()*1000#模块加载即 Worker 启动
 
 class 网络域:#Network域
-    """将已保留与实时网络观测投影为连接本地的 CDP 状态。"""
+    '将已保留与实时网络观测投影为连接本地的 CDP 状态'
     def __init__(自身,存储):#构造
-        """订阅存储。"""
+        '订阅存储'
         自身._存储=存储#网络存储
         自身._已启用=set()#已启用会话
         自身._流式请求={}#流式请求
@@ -17,7 +17,7 @@ class 网络域:#Network域
         自身._取消订阅=存储.订阅(自身._接收)#订阅存储
 
     def 启用(自身,会话):#启用
-        """为一个 DevTools 连接启用 Network，并回放已保留的生命周期事件。"""
+        '为一个 DevTools 连接启用 Network，并回放已保留的生命周期事件'
         if 会话 in 自身._已启用:#已启用
             return#返回
         自身._已启用.add(会话)#加入
@@ -27,18 +27,18 @@ class 网络域:#Network域
             自身._发送(会话,事件)#回放
 
     def 禁用(自身,会话):#禁用
-        """停止某个 DevTools 连接的 Network 事件。"""
+        '停止某个 DevTools 连接的 Network 事件'
         自身._已启用.discard(会话)#移除启用
         自身._流式请求.pop(id(会话),None)#清流式
         自身._待发开始.pop(id(会话),None)#清待发
         自身._请求类型.pop(id(会话),None)#清类型
 
     def 分离(自身,会话):#分离
-        """忘记一个已关闭的 DevTools 连接。"""
+        '忘记一个已关闭的 DevTools 连接'
         自身.禁用(会话)#禁用
 
     def 关闭(自身):#关闭
-        """拆除仓库订阅与全部连接本地状态。"""
+        '拆除仓库订阅与全部连接本地状态'
         自身._取消订阅()#取消订阅
         自身._已启用.clear()#清空启用
         自身._流式请求.clear()#清空流式
@@ -46,7 +46,7 @@ class 网络域:#Network域
         自身._请求类型.clear()#清空类型
 
     def 处理(自身,方法,参数,会话):#处理方法
-        """处理一个 Worker 本地 Network 方法。"""
+        '处理一个 Worker 本地 Network 方法'
         if 方法=='Network.enable':#启用
             自身.启用(会话)#启用会话
             return {}#空结果
@@ -79,7 +79,7 @@ class 网络域:#Network域
         raise RuntimeError(f'不支持的 Network 方法 {方法}')#抛错
 
     def _接收(自身,事件):#接收存储事件
-        """广播或清理逐出。"""
+        '广播或清理逐出'
         if 事件['type']=='request-evicted':#逐出
             键=事件['requestKey']#键
             for 会话键,请求集合 in list(自身._流式请求.items()):#扫流式
@@ -95,7 +95,7 @@ class 网络域:#Network域
             自身._发送(会话,事件)#发送
 
     def _发送(自身,会话,事件):#发送事件
-        """按类型投影 CDP 事件。"""
+        '按类型投影 CDP 事件'
         时间戳=(事件['timestampMs']-_时间原点毫秒)/1000#相对秒
         类型=事件['type']#类型
         if 类型=='request-started':#开始
@@ -145,7 +145,7 @@ class 网络域:#Network域
             自身._停止请求(会话,事件['requestKey'])#停止跟踪
 
     def _发送请求开始(自身,会话,请求键,资源类型):#发送请求开始
-        """冲刷待发 requestWillBeSent。"""
+        '冲刷待发 requestWillBeSent'
         待发=自身._待发开始.get(id(会话))#待发表
         事件=None if 待发 is None else 待发.pop(请求键,None)#事件
         if 事件 is None:#无待发
@@ -160,7 +160,7 @@ class 网络域:#Network域
         })#sendEvent结束
 
     def _停止请求(自身,会话,请求键):#停止请求跟踪
-        """清理会话本地跟踪。"""
+        '清理会话本地跟踪'
         流式=自身._流式请求.get(id(会话))#流式集
         if 流式 is not None:#有
             流式.discard(请求键)#删除
@@ -174,7 +174,7 @@ class 网络域:#Network域
             类型表.pop(请求键,None)#删除
 
 def _cdp头(条目列表):#头转CDP
-    """合并同名头。"""
+    '合并同名头'
     头={}#空对象
     for 名,值 in 条目列表:#扫头
         头[名]=值 if 名 not in 头 else f'{头[名]}\n{值}'#合并同名

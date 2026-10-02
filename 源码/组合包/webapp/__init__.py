@@ -1,7 +1,4 @@
-"""浏览器表面组合包的运行时粘合插件。
-
-依赖 `host_frontend_static`、`webServer` 等宿主包；缺包时激活会失败。
-"""
+'浏览器表面组合包的运行时粘合插件'
 import os,socket,webbrowser
 from ...依赖.schemastery import 布尔字段,列表字段,字符串字段
 from ...启动.app启动 import 添加源码段落,审计启动条目,启动错误
@@ -28,10 +25,10 @@ __all__=['名称','依赖','配置','应用','解析局域网信任','内部','�
 网页启动服务键='webStartup'#供补丁与启动模块共用
 
 class 网页错误(Exception):
-    """Web 应用组合包失败。"""
+    'Web 应用组合包失败'
 
 def 列举局域网地址():
-    """采样本机非内部 IPv4 字面量。"""
+    '采样本机非内部 IPv4 字面量'
     地址列表=[]
     try:
         for 信息 in socket.getaddrinfo(socket.gethostname(),None):
@@ -46,12 +43,12 @@ def 列举局域网地址():
     return 地址列表
 
 def 解析局域网信任(绑定主机,额外):
-    """从活动服务器绑定解析一份局域网信任快照。"""
+    '从活动服务器绑定解析一份局域网信任快照'
     局域网=列举局域网地址() if 绑定主机==全接口主机 else []#全接口才采样
     return {'lanAddresses':局域网,'trustedHosts':list(局域网)+list(额外)}#局域网后接显式权威
 
 def 网页表面提示词(网页地址):
-    """经 dsh web 创建的会话的模型可见定向与接受边界。"""
+    '经 dsh web 创建的会话的模型可见定向与接受边界'
     更新约定=('The client-plugin HMR receiver is active, but client-plugin changes reload without a refresh only while '
         +'`pnpm run dev:web` is also running from this same checkout to rebuild their bundles; verify that watcher before promising automatic updates. '
         +'Every other change — the apps/web shell and plain packages — requires rebuilding the affected Web artifacts and verifying this existing URL after a page refresh. ')
@@ -64,14 +61,14 @@ def 网页表面提示词(网页地址):
         +'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.')
 
 def 本地网页地址(上下文):
-    """从活动 Web 服务器解析规范回环 URL。"""
+    '从活动 Web 服务器解析规范回环 URL'
     服务器=上下文.获取服务('webServer')
     if 服务器 is None:
         raise 网页错误('web-app: 解析 Web 运行时时缺少 webServer 服务')
     return 'http://'+回环主机+':'+str(服务器.port)
 
 def 解析前端入口():
-    """dist 位置是本组合包的工作区知识。"""
+    'dist 位置是本组合包的工作区知识'
     try:
         import web_frontend
         路径=web_frontend.前端入口
@@ -84,7 +81,7 @@ def 解析前端入口():
 内部={'resolveDistIndex':解析前端入口,'openBrowser':webbrowser.open}
 
 def 应用(上下文,配置值):
-    """挂载 Web 运行时：dist 服务、表面提示词、bash 运行时变量，以及 URL 行。"""
+    '挂载 Web 运行时：dist 服务、表面提示词、bash 运行时变量，以及 URL 行'
     服务器=上下文.webServer
     额外=配置值['trustedHosts'] if 'trustedHosts' in 配置值 else []
     运行时=解析局域网信任(服务器.host,额外)
@@ -100,7 +97,7 @@ def 应用(上下文,配置值):
         raise 网页错误('web-app: 缺少 host_frontend_static 包') from 错误
     if 'surfaceContext' in 配置值 and 配置值['surfaceContext']:
         def 提示词接线(提示上下文,*其余):
-            """登记 harness 源码段与 web 表面段。"""
+            '登记 harness 源码段与 web 表面段'
             添加源码段落(提示上下文,源码根)
             def 文本():
                 return 网页表面提示词(本地网页地址(提示上下文))
@@ -111,7 +108,7 @@ def 应用(上下文,配置值):
             })
         上下文.依赖启动(['systemPrompt'],提示词接线)
         def 环境接线(运行时上下文,*其余):
-            """登记 DSH_WEB_URL。"""
+            '登记 DSH_WEB_URL'
             def 解析环境():
                 return {网页地址环境键:本地网页地址(运行时上下文)}
             运行时上下文.shellEnv.登记({
@@ -124,7 +121,7 @@ def 应用(上下文,配置值):
         上下文.依赖启动(['shellEnv'],环境接线)
     if ('printUrl' in 配置值 and 配置值['printUrl']) or 交出浏览器:
         def 打印地址():
-            """打印回环与可选局域网，并按配置打开默认浏览器。"""
+            '打印回环与可选局域网，并按配置打开默认浏览器'
             根键=id(上下文.根)
             if 根键 in 已宣告根:
                 return
@@ -152,9 +149,9 @@ def 应用(上下文,配置值):
             打印地址()
         else:
             def 结算后():
-                """服务仍在才打印。"""
+                '服务仍在才打印'
                 def 吞警告(行):
-                    """审计可选失败不印到标准错误。"""
+                    '审计可选失败不印到标准错误'
                     return
                 try:
                     审计启动条目(上下文.根,'dsh web',吞警告)

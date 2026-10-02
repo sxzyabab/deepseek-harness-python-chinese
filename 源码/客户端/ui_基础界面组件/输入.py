@@ -1,18 +1,18 @@
 __all__=['输入']#仅中文公开名
 
 class 输入:#文本输入
-    """可选前导图标的单行输入。"""
+    '可选前导图标的单行输入'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        """包装+原生 input 属性透传。"""
+        '包装+原生 input 属性透传'
         属性=自身.属性#props
         透传={}#透传
         for 键,值 in 属性.items():#扫
@@ -27,7 +27,7 @@ class 输入:#文本输入
         }#视图结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

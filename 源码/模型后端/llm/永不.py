@@ -1,16 +1,13 @@
-"""封闭核心联合的穷尽性辅助。
-
-公开面仅中文名；无英文别名。
-"""
+'封闭核心联合的穷尽性辅助'
 import json#JSON 渲染
 
 __all__=('永不错误','断言永不')#仅中文公开名
 
 class 永不错误(Exception):
-    """封闭联合穷尽失败。"""
+    '封闭联合穷尽失败'
 
 def 断言永不(值,现场=None):#封闭联合的不可达分支
-    """标记不可达的封闭联合分支，总是抛出。"""
+    '标记不可达的封闭联合分支，总是抛出'
     try:#JSON.stringify 对不可序列化会失败
         渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#优先 JSON
     except (TypeError,ValueError):#不可序列化或非法数值

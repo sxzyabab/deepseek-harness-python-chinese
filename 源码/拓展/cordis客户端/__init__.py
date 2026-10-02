@@ -35,7 +35,7 @@ __all__=[
 依赖=['loader','modules','slots','remote','remote.dynamicCordisRunner']
 
 def 应用():
-    """宿主侧无贡献；浏览器半在客户端门面。"""
+    '宿主侧无贡献；浏览器半在客户端门面'
     return
 
 name=名称

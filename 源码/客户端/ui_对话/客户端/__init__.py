@@ -58,19 +58,19 @@ __all__=[#仅中文公开名
 空词表={}#空 / @ 词表
 
 def 空拆除():
-    """空订阅无可拆。"""
+    '空订阅无可拆'
     return None#无事
 
 def 空快照():
-    """缺席源快照恒为 None。"""
+    '缺席源快照恒为 None'
     return None#无
 
 def 空订(*位置参数):
-    """缺席源不通知。"""
+    '缺席源不通知'
     return 空拆除#拆除器
 
 def 空词表快照():
-    """缺席词表恒为空表。"""
+    '缺席词表恒为空表'
     return 空词表#空
 
 缺席通知={'getSnapshot':空快照,'subscribe':空订}#通知
@@ -79,7 +79,7 @@ def 空词表快照():
 缺席菜单启动器={'getSnapshot':空快照,'subscribe':空订}#菜单启动器
 
 def 解析槽标签(标签):
-    """字面量或零参 thunk。"""
+    '字面量或零参 thunk'
     if 标签 is None:#未声明
         return None#缺席
     if isinstance(标签,str):#字面量
@@ -87,7 +87,7 @@ def 解析槽标签(标签):
     return 标签()#thunk
 
 def 解析工作区路径(工作目录,路径):
-    """已是绝对/UNC 或无根则原样。"""
+    '已是绝对/UNC 或无根则原样'
     if 路径.startswith('/') or 绝对路径.match(路径) is not None:#绝对
         return 路径#原样
     if 工作目录 is None or 工作目录=='':#无根
@@ -97,20 +97,20 @@ def 解析工作区路径(工作目录,路径):
     return 基+'/'+相对#POSIX 拼
 
 def 选聊天(快照):
-    """快照.chat。快照为 dict。"""
+    '快照.chat。快照为 dict'
     return 快照['chat'] if 'chat' in 快照 else None#聊天
 
 def 造聊天节点回合注入():
-    """按节点键读回合数据的钩子工厂。节点仓为契约 dict。"""
+    '按节点键读回合数据的钩子工厂。节点仓为契约 dict'
     def 回合数据工厂(运行时,节点键):
-        """绑定 useSession。运行时为槽 props dict。"""
+        '绑定 useSession。运行时为槽 props dict'
         用会话=运行时['useSession'] if 'useSession' in 运行时 else None#钩
         def 用回合数据(键):
-            """缺席则 None。"""
+            '缺席则 None'
             if 用会话 is None:#无钩
                 return None#无
             def 选(快照):
-                """回合/步骤位置才有 data。"""
+                '回合/步骤位置才有 data'
                 聊天=快照['chat'] if 'chat' in 快照 else None#聊天
                 节点表=聊天['nodes'] if 聊天 is not None and 'nodes' in 聊天 else None#节点表
                 if 节点表 is None:#无表
@@ -132,7 +132,7 @@ def 造聊天节点回合注入():
     return {'hooks':{'turnData':回合数据工厂}}#注入
 
 def 作用域会话(会话面,标识):
-    """没有作用域或服务则大声抛。"""
+    '没有作用域或服务则大声抛'
     作用域=会话面.scope(标识)#作用域
     if 作用域 is None:#无
         raise 对话错误('ui-conversation: session "'+str(标识)+'" resolved no scope')#抛
@@ -142,14 +142,14 @@ def 作用域会话(会话面,标识):
     return 会话#面
 
 def 具体会话(上下文):
-    """公开登记转型为控制器。"""
+    '公开登记转型为控制器'
     会话=上下文.获取服务('conversation')#公开面
     if 会话 is None:#未挂载
         raise 对话错误('ui-conversation: conversation service unavailable')#抛
     return 会话#控制器
 
 def 选审批(链属性):
-    """纯函数 — 只用 owner props。链属性为 dict。"""
+    '纯函数 — 只用 owner props。链属性为 dict'
     交互=链属性['interactions'] if 'interactions' in 链属性 else None#交互
     列=交互 if 交互 is not None else []#空则空表
     for 项 in 列:#交互
@@ -158,7 +158,7 @@ def 选审批(链属性):
     return None#无
 
 def 应用(上下文):
-    """登记词典、回车行、骨架/聊天/输入栏/统计/队列/节点键，完整依赖启动。"""
+    '登记词典、回车行、骨架/聊天/输入栏/统计/队列/节点键，完整依赖启动'
     会话面=上下文.sessions#会话面
     工作区面=上下文.workspaces#工作区面
     工作区导航=上下文.获取服务('uiWorkspace')#工作区 UI 导航（openSession）
@@ -167,7 +167,7 @@ def 应用(上下文):
     登记会话节点(上下文)#登记会话节点构建器
     登记聊天节点渲染器(上下文)#登记聊天节点渲染器
     def 登记词典():
-        """登记本包词典。"""
+        '登记本包词典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
     上下文.副作用(登记词典,'ui-conversation: dictionaries')#词典
     翻译=上下文.locale.bind(命名空间)#绑定翻译
@@ -179,18 +179,18 @@ def 应用(上下文):
     枢纽=输入枢纽(上下文,翻译)#每会话输入枢纽
     节点注入=造聊天节点回合注入()#节点回合数据注入
     def 登记文件动作(作用域):
-        """等 commandUi 后登记 file 动作。"""
+        '等 commandUi 后登记 file 动作'
         命令=作用域.get('commandUi')#命令面
         def 挂文件():
-            """登记 /file 动作。"""
+            '登记 /file 动作'
             def 标题():
-                """本地化文件标题。"""
+                '本地化文件标题'
                 return 翻译('input.file')#标题
             def 可用(会话):
-                """作曲器是否接受文件。会话为 dict。"""
+                '作曲器是否接受文件。会话为 dict'
                 return 枢纽.canPickFiles(会话['sessionId'])#可用性
             def 执行打开(会话):
-                """打开文件选择。会话为 dict。"""
+                '打开文件选择。会话为 dict'
                 枢纽.pickFiles(会话['sessionId'])#打开
             return 命令.register({#贡献
                 'name':'file',#命令名
@@ -202,10 +202,10 @@ def 应用(上下文):
         作用域.副作用(挂文件,'ui-conversation: File action')#挂
     上下文.inject(['commandUi'],登记文件动作)#等 commandUi
     def 回车注入():
-        """hooks + setBusyEnter。"""
+        'hooks + setBusyEnter'
         return {'hooks':{'busyEnter':提交.busyEnter},'setBusyEnter':提交.setBusyEnter}#注入
     def 登记回车行():
-        """忙碌 Enter 行。"""
+        '忙碌 Enter 行'
         return 上下文.slots.register({#登记回车行
             'name':'settings.general.item',#通用条目
             'id':'composer-enter',#本项
@@ -215,7 +215,7 @@ def 应用(上下文):
         },回车行为行)#组件
     上下文.slots.inject('settings.general.item',登记回车行)#挂
     def 视图页签():
-        """id + 解析后的标签。条目为 dict。"""
+        'id + 解析后的标签。条目为 dict'
         页列表=[]#累积
         for 条目 in 槽.entries('conversation.view'):#每个已登记视图
             选项=条目['options'] if 'options' in 条目 else 条目#选项
@@ -226,10 +226,10 @@ def 应用(上下文):
             页列表.append({'id':标识,'label':标签 if 标签 is not None else 标识})#页签
         return 页列表#列表
     def 订视图(回调):
-        """订 conversation.view。"""
+        '订 conversation.view'
         return 槽.subscribe('conversation.view',回调)#订阅
     def 视图版本():
-        """conversation.view 版本。"""
+        'conversation.view 版本'
         return 槽.getVersion('conversation.view')#版本
     视图面={#视图环面
         'list':视图页签,#当前页签
@@ -237,19 +237,19 @@ def 应用(上下文):
         'version':视图版本,#版本
     }#面结束
     def 提供输入():
-        """向会话作用域提供 input 标准套件。"""
+        '向会话作用域提供 input 标准套件'
         def 解析(绑定):
-            """该会话输入壳。"""
+            '该会话输入壳'
             壳=枢纽.shellFor(绑定)#壳
             return {'hooks':{'input':壳.state},'props':{'inputActions':壳.actions}}#套件
         return 会话面.provide({'hooks':['conversation','input'],'props':['inputActions'],'resolve':解析})#提供
     上下文.副作用(提供输入,'ui-conversation: input standard-kit provider')#挂
     def 根注入(会话标识):
-        """阻断源 + 选定工作区（经 openWorkspace，打开前迁移草稿）。"""
+        '阻断源 + 选定工作区（经 openWorkspace，打开前迁移草稿）'
         def 选定工作区(工作区标识):
-            """空白草稿随行；openWorkspace 在打开前调用 beforeOpen。"""
+            '空白草稿随行；openWorkspace 在打开前调用 beforeOpen'
             def 打开前(下一标识):
-                """跨会话迁移草稿与附件。"""
+                '跨会话迁移草稿与附件'
                 if 会话标识 is None or 下一标识==会话标识:#同会话
                     return#无需
                 旧=枢纽.shell(会话标识)#旧壳
@@ -275,13 +275,13 @@ def 应用(上下文):
         阻断源=缺席阻断 if 会话标识 is None else 阻断表.storeFor(会话标识)#阻断
         return {'hooks':{'composerBlock':阻断源},'selectWorkspace':选定工作区}#注入
     def 体注入(会话标识,_动作=None):
-        """视图环 + 释放图 + 草稿镜像。"""
+        '视图环 + 释放图 + 草稿镜像'
         控制器=具体会话(上下文)#控制器
         def 释放图(标识):
-            """释放该会话草稿图。"""
+            '释放该会话草稿图'
             return 控制器.releaseSessionImages(标识)#释放图
         def 绑镜像(写出):
-            """草稿镜像到仓。"""
+            '草稿镜像到仓'
             return 枢纽.shell(会话标识).bindMirror(写出)#镜像
         return {#体面
             'views':视图面,#视图
@@ -289,15 +289,15 @@ def 应用(上下文):
             'bindDraftMirror':绑镜像,#镜像
         }#返回
     def 打开会话(标识):
-        """经工作区 UI 打开会话。"""
+        '经工作区 UI 打开会话'
         if 工作区导航 is not None:#有 uiWorkspace
             return 工作区导航.openSession(标识)#导航打开
         return 会话面.open(标识)#回退会话面
     def 页眉注入(_会话标识=None,_动作=None):
-        """视图环 + 打开会话。"""
+        '视图环 + 打开会话'
         return {'views':视图面,'open':打开会话}#注入
     def 栏注入(会话标识):
-        """无会话则静态空源；hooks 含 busyEnter。"""
+        '无会话则静态空源；hooks 含 busyEnter'
         if 会话标识 is None:#无会话
             return {#静态空
                 'keyboard':None,#无键盘
@@ -318,7 +318,7 @@ def 应用(上下文):
         壳=枢纽.shell(会话标识)#壳
         触发=枢纽.inputTriggers(会话标识)#触发器
         def 加图(文件列表):
-            """不支持类型返回文案。"""
+            '不支持类型返回文案'
             try:#铸造
                 图列表=控制器.createDraftImages(文件列表)#铸造
                 标识列表=[]#id
@@ -334,11 +334,11 @@ def 应用(上下文):
             except Exception as 错:#RPC/宿主未定契约，收不窄
                 return str(错)#信息
         def 摘图(标识):
-            """释放附件并从壳去掉。"""
+            '释放附件并从壳去掉'
             控制器.releaseDraftImage(标识)#释放
             壳.removeImage(标识)#去掉
         def 切命令菜单(选区):
-            """先关弹层再 toggle command 源。选区为 dict。"""
+            '先关弹层再 toggle command 源。选区为 dict'
             壳.dismissPopup()#关弹层
             快=壳.snapshot#快照
             起点=选区['start'] if 'start' in 选区 else 0#光标
@@ -350,13 +350,13 @@ def 应用(上下文):
                 'span':{**选区,'draftRev':快['draftRev']},#跨度
             })
         def 停止():
-            """失败不抛给 UI。"""
+            '失败不抛给 UI'
             try:#取消
                 作用域会话(会话面,会话标识).cancel()#取消
             except 对话错误:#本包失败
                 pass#经 promptError 露出
         def 命令(行):
-            """成功且命中才 True。command 返回任务。"""
+            '成功且命中才 True。command 返回任务'
             绑定=会话面.binding(会话标识)#绑定
             会话=绑定.session if 绑定 is not None else None#会话
             if 会话 is None:#无
@@ -367,7 +367,7 @@ def 应用(上下文):
             值=结果['value'] if 'value' in 结果 else None#值
             return 值 is not None and ('matched' in 值) and 值['matched'] is True#命中
         def 读草稿图(标识列表):
-            """读草稿图。"""
+            '读草稿图'
             return 控制器.draftImages(标识列表)#读
         启动器=触发.launcher if 触发 is not None else None#启动器
         return {#有会话栏面
@@ -386,7 +386,7 @@ def 应用(上下文):
             },#hooks 结束
         }#返回
     def 挂主与会话壳():
-        """等 main 洞就绪后登记会话面板与子槽。"""
+        '等 main 洞就绪后登记会话面板与子槽'
         拆面板=槽.register({#主面板占位
             'name':'main',#主洞
             'key':'conversation',#本实现键
@@ -425,7 +425,7 @@ def 应用(上下文):
             'inject':栏注入,#注入
         },输入栏)#栏组件
         def 拆():
-            """逆序拆。"""
+            '逆序拆'
             拆栏()#栏
             拆页眉()#页眉
             拆体()#体
@@ -440,16 +440,16 @@ def 应用(上下文):
         'locale':命名空间,#文案
     },审批面板)#审批
     def 聊天注入(会话标识,动作):
-        """详情/文件/历史/检查/滚动/分叉。"""
+        '详情/文件/历史/检查/滚动/分叉'
         控制器=具体会话(上下文)#控制器
         作用域面=作用域会话(会话面,会话标识)#作用域 conversation
         仓动作=动作 if 动作 is not None else 聊天存储#动作面
         def 打开详情(目标):
-            """选定并打开详情栏。"""
+            '选定并打开详情栏'
             仓动作.select(目标)#选定
             布局.openDetails()#打开
         def 打开文件(路径):
-            """宿主打开失败静默。"""
+            '宿主打开失败静默'
             列表=会话面.list.getSnapshot()#列表
             册=列表['byId'] if 列表 is not None and 'byId' in 列表 else None#byId
             摘要=册[会话标识] if 册 is not None and 会话标识 in 册 else None#摘要
@@ -459,36 +459,36 @@ def 应用(上下文):
             except Exception:#RPC/宿主未定契约，收不窄
                 pass#静默
         def 检视调用(调用标识):
-            """未登记 trajectory 则环回退。"""
+            '未登记 trajectory 则环回退'
             仓动作.setInspect({'callId':调用标识})#记下
             仓动作.setView('trajectory')#切视图
         def 存滚动(位置):
-            """null 丢掉记忆。"""
+            'null 丢掉记忆'
             if 位置 is None:
                 聊天滚动.pop(会话标识,None)#删
             else:#记
                 聊天滚动[会话标识]=位置#写
         def 读滚动():
-            """没有则 None。"""
+            '没有则 None'
             return 聊天滚动[会话标识] if 会话标识 in 聊天滚动 else None#位置
         def 分叉(序号):
-            """失败保持源视图。fork 返回任务。"""
+            '失败保持源视图。fork 返回任务'
             try:#分叉
                 子标识=会话面.fork({'sessionId':会话标识,'atSeq':序号,'increaseTitle':True}).等待()#子 id
                 会话面.open(子标识)#打开
             except Exception:#RPC/宿主未定契约，收不窄
                 pass#不动
         def 文件提及(属主):
-            """可选 chatFileMentions 服务。"""
+            '可选 chatFileMentions 服务'
             服务=上下文.获取服务('chatFileMentions')#服务
             if 服务 is None:#缺席
                 return None#无
             return 服务.forClosing(属主)#词表
         def 加载更早():
-            """更早历史。"""
+            '更早历史'
             return 作用域面.loadOlder()#更早
         def 加载图(附件):
-            """历史图。"""
+            '历史图'
             return 控制器.resolveImage(会话标识,附件)#图
         return {#聊天视图片
             'openDetails':打开详情,#详情
@@ -501,7 +501,7 @@ def 应用(上下文):
             'forkAt':分叉,#分叉
         }#返回
     def 聊天标签():
-        """视图标签。"""
+        '视图标签'
         return 聊天翻译('view.chat')#聊天词典标签
     槽.register({#登记聊天视图
         'name':'conversation.view',#视图
@@ -525,10 +525,10 @@ def 应用(上下文):
     上下文.启动插件(待办停靠条目)#计划停靠
     上下文.启动插件(队列停靠条目)#队列停靠
     def 关详情():
-        """关闭详情栏。"""
+        '关闭详情栏'
         return 布局.closeDetails()#关
     def 详情注入(_会话标识=None,_动作=None):
-        """关闭详情栏。"""
+        '关闭详情栏'
         return {'closeDetails':关详情}#注入
     槽.register({#登记详情
         'name':'details',#详情

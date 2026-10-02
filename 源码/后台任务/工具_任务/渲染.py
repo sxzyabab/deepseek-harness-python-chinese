@@ -1,7 +1,7 @@
-"""模型可见的注册表读取渲染：消费增量、[status: …] 行，以及工具模式暴露的公开任务投影。"""
+'模型可见的注册表读取渲染：消费增量、[status: …] 行，以及工具模式暴露的公开任务投影'
 
 def 任务细节(任务):
-    """模型读到的一行限定语：运行中用进度，结算后用终态原因。"""
+    '模型读到的一行限定语：运行中用进度，结算后用终态原因'
     if 'progress' in 任务 and 任务['progress'] is not None:
         return 任务['progress']
     if 'detail' in 任务 and 任务['detail'] is not None:
@@ -9,7 +9,7 @@ def 任务细节(任务):
     return None
 
 def 公开任务(任务):
-    """去掉所有权、偏移与上限。"""
+    '去掉所有权、偏移与上限'
     细节=任务细节(任务)
     结果={
         'id':任务['id'],
@@ -25,13 +25,13 @@ def 公开任务(任务):
     return 结果
 
 def 状态行(快照):
-    """带可选细节的方括号状态行。"""
+    '带可选细节的方括号状态行'
     if 'detail' in 快照 and 快照['detail'] is not None:
         return '[status: '+str(快照['status'])+', '+str(快照['detail'])+']'
     return '[status: '+str(快照['status'])+']'
 
 def 渲染模型增量(分块列表,有损,溢出路径列表):
-    """stdout 与无标签分块按序，stderr 收进一段 [stderr]；log 分块不达模型。"""
+    'stdout 与无标签分块按序，stderr 收进一段 [stderr]；log 分块不达模型'
     可见=[块 for 块 in 分块列表 if 块.get('channel')!='log']
     出=''.join(块['text'] for 块 in 可见 if 块.get('channel')!='stderr')
     错=''.join(块['text'] for 块 in 可见 if 块.get('channel')=='stderr')

@@ -1,13 +1,13 @@
-"""设置值的结构密钥擦除。`角色=secret` 字段在值越过线路边界之前被移除。"""
+'设置值的结构密钥擦除'
 
 缺席=object()
 
 def 是否记录(值):
-    """值是否为 walker 可以递归进入的普通数据对象。"""
+    '值是否为 walker 可以递归进入的普通数据对象'
     return isinstance(值,dict) and type(值) is dict
 
 def 行走(节点,值,路径,密钥列表):
-    """按 schemastery 节点走值并擦除密钥。"""
+    '按 schemastery 节点走值并擦除密钥'
     if 节点 is None:
         return 值
     元=getattr(节点,'meta',None) or {}
@@ -62,7 +62,7 @@ def 行走(节点,值,路径,密钥列表):
     return 值
 
 def 脱敏密钥(模式对象,值):
-    """从值中移除 schema 声明的每个 secret 字段。"""
+    '从值中移除 schema 声明的每个 secret 字段'
     密钥列表=[]
     剥掉=行走(模式对象,值 if 值 is not None else 缺席,[],密钥列表)
     位置={}

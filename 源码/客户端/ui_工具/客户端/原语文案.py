@@ -1,7 +1,7 @@
 __all__=['代码工具条文案','标记文案','差异块文案','读块文案','检索块文案','网页块文案']
 
 def 代码工具条文案(翻译):
-    """共享代码卡工具条。"""
+    '共享代码卡工具条'
     return {
         'codeLabel':翻译('codeBlock.title'),
         'wrapLabel':翻译('codeBlock.wrap'),
@@ -9,7 +9,7 @@ def 代码工具条文案(翻译):
     }
 
 def 标记文案(翻译):
-    """Markdown 铬文案。"""
+    'Markdown 铬文案'
     return {
         'code':{
             'copyLabel':翻译('copy'),
@@ -20,7 +20,7 @@ def 标记文案(翻译):
     }
 
 def 差异块文案(翻译):
-    """diff 卡铬文案。"""
+    'diff 卡铬文案'
     工具条=代码工具条文案(翻译)
     def 展开无障碍(数量):
         return 翻译('diff.expandAria',{'count':数量})
@@ -39,7 +39,7 @@ def 差异块文案(翻译):
     }
 
 def 读块文案(翻译):
-    """读卡铬文案。"""
+    '读卡铬文案'
     工具条=代码工具条文案(翻译)
     def 窗口摘要(已示,总数):
         return 翻译('read.window',{'shown':已示,'total':总数})
@@ -61,7 +61,7 @@ def 读块文案(翻译):
     }
 
 def 检索块文案(翻译):
-    """搜索卡铬文案。"""
+    '搜索卡铬文案'
     def 路径摘要(已示,总数,截断):
         键='search.paths.truncated' if 截断 else 'search.paths'
         return 翻译(键,{'shown':已示,'total':总数})
@@ -89,7 +89,7 @@ def 检索块文案(翻译):
     }
 
 def 网页块文案(翻译):
-    """web 卡铬文案。"""
+    'web 卡铬文案'
     return {
         'noResults':翻译('web.noResults'),
         'sourcesTruncated':翻译('web.sourcesTruncated'),

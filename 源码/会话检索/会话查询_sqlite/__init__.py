@@ -1,4 +1,4 @@
-"""在优先活会话语料上用 SQLite FTS5 做全文检索的具体会话检索服务。"""
+'在优先活会话语料上用 SQLite FTS5 做全文检索的具体会话检索服务'
 import base64,hashlib,json,threading,uuid#编码、哈希、JSON、并发与实例 id
 from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字典字段,字符串字段,枚举字段,整数字段#配置
@@ -54,23 +54,23 @@ __all__=[
 ]
 
 def 错误详情(错误):#错误消息
-    """错误消息。"""
+    '错误消息'
     return 错误 if isinstance(错误,str) else (错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else 'unknown error')#消息
 
 def 配置非法(细节):#非法配置
-    """非法配置。"""
+    '非法配置'
     return 会话查询错误(f'session-search SQLite config: {细节}','SESSION_QUERY_INVALID_CONFIG')#拒绝
 
 def 索引已关闭():#索引已关闭
-    """索引已关闭。"""
+    '索引已关闭'
     return 会话查询错误('session-search SQLite index is closed','SESSION_QUERY_INDEX_FAILED')#拒绝
 
 def 非法游标(原因):#非法游标
-    """非法游标。"""
+    '非法游标'
     return 会话查询错误('session-search cursor is invalid','SESSION_QUERY_INVALID_CURSOR',{'cause':原因})#拒绝
 
 def 解析配置(配置):#解析运行时配置
-    """解析并校验运行时配置。"""
+    '解析并校验运行时配置'
     已解析={
         'path':配置['path'] if 'path' in 配置 else None,
         'openAt':配置['openAt'] if 'openAt' in 配置 else 'startup',
@@ -102,7 +102,7 @@ def 解析配置(配置):#解析运行时配置
     return 已解析#解析结果
 
 def 头绑定(头,继承事件数):#会话头 INSERT 绑定
-    """会话头 INSERT 绑定顺序；仅 isSeeded 时把 inheritedEventCount 写入 seed_length 列。"""
+    '会话头 INSERT 绑定顺序；仅 isSeeded 时把 inheritedEventCount 写入 seed_length 列'
     return [
         头['id'],头['version'],头['createdAt'],
         头['cwd'] if 'cwd' in 头 else None,头['parentSession'] if 'parentSession' in 头 else None,
@@ -111,7 +111,7 @@ def 头绑定(头,继承事件数):#会话头 INSERT 绑定
     ]#绑定列表
 
 def 行头(行):#行→会话头
-    """SQLite 行转会话头。"""
+    'SQLite 行转会话头'
     头={'version':行['version'],'id':行['session_id'],'createdAt':行['created_at'],'isSeeded':行['seed_length'] is not None}#基础：seed_length 非空即种子
     if 行['cwd'] is not None:#cwd
         头['cwd']=行['cwd']#带上
@@ -124,7 +124,7 @@ def 行头(行):#行→会话头
     return 头#会话头
 
 def 观察会话(头,继承事件数,事件列表):#观察一条会话
-    """观察一条会话并生成指纹。"""
+    '观察一条会话并生成指纹'
     分离头=结构化克隆(头)#拆离头
     分离事件=[结构化克隆(事件) for 事件 in 事件列表]#拆离事件
     文档列表=构建会话事件搜索文档(分离头['id'],分离事件)#建文档
@@ -134,11 +134,11 @@ def 观察会话(头,继承事件数,事件列表):#观察一条会话
     return {'header':分离头,'inheritedEventCount':继承事件数,'documents':文档列表,'fingerprint':指纹}#观察
 
 def 观察活会话(会话):#观察活会话
-    """观察活会话。"""
+    '观察活会话'
     return 观察会话(会话.header,getattr(会话,'inheritedEventCount',0),会话.events)#委托
 
 def 物化持久快照(快照列表):#快照→映射
-    """物化持久快照映射。"""
+    '物化持久快照映射'
     if not isinstance(快照列表,list):#非数组
         raise 会话查询错误('persistence snapshots must be an array','SESSION_QUERY_PERSISTENCE_FAILED')#拒绝
     结果={}#id→条目
@@ -153,7 +153,7 @@ def 物化持久快照(快照列表):#快照→映射
     return 结果#映射
 
 def 相同持久快照(前,后):#持久快照是否相同
-    """持久快照映射是否相同。"""
+    '持久快照映射是否相同'
     if len(前)!=len(后):#大小不同
         return False#不同
     for 标识,第一条 in 前.items():#逐条
@@ -165,7 +165,7 @@ def 相同持久快照(前,后):#持久快照是否相同
     return True#相同
 
 def 相同会话id集(前,后):#活会话 id 集是否相同
-    """活会话 id 集是否相同。"""
+    '活会话 id 集是否相同'
     if len(前)!=len(后):#大小不同
         return False#不同
     for 标识 in 前:#逐 id
@@ -174,7 +174,7 @@ def 相同会话id集(前,后):#活会话 id 集是否相同
     return True#相同
 
 def 相同头(左,右):#会话头是否相同
-    """会话头字段是否相同。"""
+    '会话头字段是否相同'
     return (
         左['version']==右['version']
         and 左['id']==右['id']
@@ -187,7 +187,7 @@ def 相同头(左,右):#会话头是否相同
     )#全等
 
 def 分页(行列表,限制,转换,下一游标,偏移):#分页包装
-    """分页包装。"""
+    '分页包装'
     还有更多=len(行列表)>限制#是否还有
     结果={'items':[转换(行) for 行 in 行列表[:限制]]}#当前页
     if 还有更多:#还有下一页
@@ -195,12 +195,12 @@ def 分页(行列表,限制,转换,下一游标,偏移):#分页包装
     return 结果#页
 
 def 编码游标(载荷):#编码游标
-    """编码不透明游标。"""
+    '编码不透明游标'
     文本=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#JSON
     return 会话搜索游标(base64.urlsafe_b64encode(文本.encode('utf-8')).decode('ascii').rstrip('='))#base64url
 
 def 解码游标(游标,实例,范围,指纹,世代,偏移期望=None):#解码游标
-    """解码并校验游标。"""
+    '解码并校验游标'
     try:#解析
         填充=游标+'='*((4-len(游标)%4)%4)#补齐
         载荷=json.loads(base64.urlsafe_b64decode(填充.encode('ascii')).decode('utf-8'))#解码
@@ -223,7 +223,7 @@ def 解码游标(游标,实例,范围,指纹,世代,偏移期望=None):#解码�
     return 载荷['offset']#偏移
 
 def 选中文档sql():#FTS 候选 CTE
-    """选中文档 SQL CTE。"""
+    '选中文档 SQL CTE'
     return '''WITH candidates AS (
       SELECT
         pd.session_id AS session_id,
@@ -278,7 +278,7 @@ def 选中文档sql():#FTS 候选 CTE
     )'''#CTE
 
 def 选中文档参数(查询,持久可见):#FTS 绑定参数
-    """选中文档绑定参数。"""
+    '选中文档绑定参数'
     表达式=引用Fts数据(查询)#短语
     可见=1 if 持久可见 else 0#可见标志
     标记字节=len(FTS高亮开始.encode('utf-8'))#标记字节长
@@ -289,9 +289,9 @@ def 选中文档参数(查询,持久可见):#FTS 绑定参数
     ]#参数
 
 class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
-    """在优先活会话语料上用 SQLite FTS5 做全文检索。"""
+    '在优先活会话语料上用 SQLite FTS5 做全文检索'
     def __init__(自身,上下文,配置):#构造并替换 sessionQuery
-        """构造 SQLite 检索后端。"""
+        '构造 SQLite 检索后端'
         已解析=解析配置(配置)#先解析配置
         super().__init__(上下文,已解析)#登记基类服务
         自身.配置=已解析#记下配置
@@ -306,7 +306,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         自身._已关闭=False#关闭标志
         自身._锁=threading.Lock()#串行化锁
         def 持久化安装(子上下文):
-            """记下当前持久化服务。"""
+            '记下当前持久化服务'
             服务=子上下文.sessionPersistence#取出
             绑定={'identity':object(),'service':服务}#新绑定
             自身._持久化绑定=绑定#换上
@@ -316,42 +316,42 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             子上下文.副作用(摘掉,'sessionQuerySqlite.persistenceBinding')#effect
         纤程=上下文.依赖启动(['sessionPersistence'],持久化安装)
         def 拆除纤程():
-            """拆除可选持久化 fiber。"""
+            '拆除可选持久化 fiber'
             纤程.dispose()#拆除
         上下文.副作用(拆除纤程,'sessionQuerySqlite.optionalPersistence')
         def 关闭效果():
-            """关闭索引。"""
+            '关闭索引'
             自身.关闭()#关闭
         上下文.副作用(关闭效果,'sessionQuerySqlite.close')#关闭
         自身.__dict__[服务.初始化]=自身._初始化#Service.init
 
     def _初始化(自身):#Service.init
-        """启动时按 openAt 打开索引。"""
+        '启动时按 openAt 打开索引'
         if 自身.配置['openAt']=='startup':#启动打开
             自身._确保就绪(None)#打开
 
     def 搜索会话(自身,请求,执行上下文=None):#全文搜索会话
-        """跨会话 FTS 检索。"""
+        '跨会话 FTS 检索'
         自身._校验检索已启用()#openAt never 则拒绝
         已归一=归一化会话请求(请求,自身.配置)#归一化
         信号=执行上下文['signal'] if 执行上下文 is not None and 'signal' in 执行上下文 else None#取消信号
         def 搜索会话页():
-            """执行一页会话检索。"""
+            '执行一页会话检索'
             return 自身._搜索会话页(已归一,信号)#页
         return 自身._串行化(信号,搜索会话页)#串行
 
     def 搜索事件(自身,请求,执行上下文=None):#全文搜索单会话事件
-        """单会话 FTS 检索。"""
+        '单会话 FTS 检索'
         自身._校验检索已启用()#openAt never 则拒绝
         已归一=归一化事件请求(请求,自身.配置)#归一化
         信号=执行上下文['signal'] if 执行上下文 is not None and 'signal' in 执行上下文 else None#取消信号
         def 搜索事件页():
-            """执行一页事件检索。"""
+            '执行一页事件检索'
             return 自身._搜索事件页(已归一,信号)#页
         return 自身._串行化(信号,搜索事件页)#串行
 
     def 关闭(自身):#关闭索引
-        """关闭索引。"""
+        '关闭索引'
         with 自身._锁:#串行
             自身._已关闭=True#标记关闭
             if 自身._库 is not None:#有库
@@ -360,7 +360,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         return None#完成
 
     def _断言检索已启用(自身):#openAt never 检查
-        """openAt never 时拒绝全文检索。"""
+        'openAt never 时拒绝全文检索'
         if 自身.配置['openAt']!='never':#已启用
             return#通过
         raise 会话查询错误(
@@ -369,7 +369,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         )#禁用
 
     def _串行化(自身,信号,操作):#串行执行
-        """串行执行检索操作。"""
+        '串行执行检索操作'
         if 自身._已关闭:#已关
             raise 索引已关闭()#拒绝
         with 自身._锁:#加锁
@@ -379,7 +379,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             return 操作()#执行
 
     def _确保就绪(自身,信号):#打开索引
-        """惰性打开索引。"""
+        '惰性打开索引'
         if 自身._就绪:#已开
             return#通过
         try:#打开
@@ -399,7 +399,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         若已中止则抛出(信号)#打开后检查取消
 
     def _搜索会话页(自身,已归一,信号):#执行会话检索页
-        """执行一页会话检索。"""
+        '执行一页会话检索'
         自身._确保就绪(信号)#打开
         持久化绑定=自身._对账(信号)#对账索引
         若已中止则抛出(信号)#对账后检查
@@ -409,7 +409,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         偏移=0 if 游标 is None else 解码游标(游标,自身._实例,'sessions',指纹,世代)#游标偏移
         行列表=自身._查询会话(已归一,偏移,持久化绑定)#查行
         def 会话下一游标(游标偏移):
-            """编码会话续页游标。"""
+            '编码会话续页游标'
             return 编码游标({
                 'version':1,'instance':自身._实例,'scope':'sessions',
                 'fingerprint':指纹,'generation':世代,'offset':游标偏移,
@@ -417,7 +417,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         return 分页(行列表,已归一['limit'],自身._会话命中,会话下一游标,偏移)#分页
 
     def _搜索事件页(自身,已归一,信号):#执行事件检索页
-        """执行一页事件检索。"""
+        '执行一页事件检索'
         自身._确保就绪(信号)#打开
         持久化绑定=自身._对账(信号)#对账索引
         若已中止则抛出(信号)#对账后检查
@@ -427,7 +427,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         偏移=0 if 游标 is None else 解码游标(游标,自身._实例,'events',指纹,目标['generation'])#游标偏移
         行列表=自身._查询事件(已归一,偏移,持久化绑定)#查行
         def 事件下一游标(游标偏移):
-            """编码事件续页游标。"""
+            '编码事件续页游标'
             return 编码游标({
                 'version':1,'instance':自身._实例,'scope':'events',
                 'fingerprint':指纹,'generation':目标['generation'],'offset':游标偏移,
@@ -437,18 +437,18 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         return 页#返回
 
     def _要求库(自身):#取已打开库
-        """取已打开库。"""
+        '取已打开库'
         if 自身._库 is None:#未开
             raise 索引已关闭()#拒绝
         return 自身._库#连接
 
     def _主世代(自身):#读全局世代
-        """读全局世代。"""
+        '读全局世代'
         行=自身._要求库().execute('SELECT global_generation FROM search_state WHERE singleton = 1').fetchone()#读
         return 行['global_generation']#世代
 
     def _删除会话(自身,来源,标识):#删索引会话
-        """从持久或活索引删会话。"""
+        '从持久或活索引删会话'
         库=自身._要求库()#连接
         if 来源=='persisted':#持久
             库.execute('DELETE FROM persisted_docs WHERE session_id = ?',(标识,))#删文档
@@ -458,7 +458,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             库.execute('DELETE FROM temp.live_sessions WHERE id = ?',(标识,))#删头
 
     def _替换持久会话(自身,条目,修订,世代):#写持久会话
-        """写持久会话与文档。"""
+        '写持久会话与文档'
         自身._删除会话('persisted',条目['header']['id'])#先删
         库=自身._要求库()#连接
         库.execute('''
@@ -477,7 +477,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         库.commit()#提交
 
     def _替换活会话(自身,条目,世代,已持久):#写活会话
-        """写活会话与文档。"""
+        '写活会话与文档'
         自身._删除会话('live',条目['header']['id'])#先删
         库=自身._要求库()#连接
         库.execute('''
@@ -496,7 +496,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         库.commit()#提交
 
     def _对账(自身,信号):#索引与语料对账
-        """把索引与当前语料对账。"""
+        '把索引与当前语料对账'
         若已中止则抛出(信号)#入口检查
         库=自身._要求库()#连接
         持久行列表=库.execute('SELECT id, revision, generation FROM persisted_sessions').fetchall()#持久索引
@@ -507,7 +507,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         若已中止则抛出(信号)#观察后检查
         持久服务=观察['persistenceBinding']['service']#持久化服务
         持久变更=[] if 持久服务 is None else [
-            条目 for 条目 in 观察['persisted'].values() if 条目['loaded'] if 'loaded' in 条目 else None is not None
+            条目 for 条目 in 观察['persisted'].values() if 'loaded' in 条目
         ]#要写的持久
         持久删除=[] if 持久服务 is None else [
             行 for 行 in 持久行列表 if 行['id'] not in 观察['persisted']
@@ -569,7 +569,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         return 观察['persistenceBinding']#返回绑定
 
     def _观察稳定(自身,已索引,信号):#稳定观察语料
-        """稳定观察活/持久语料。"""
+        '稳定观察活/持久语料'
         for 尝试 in range(稳定观察尝试次数):#最多两次
             若已中止则抛出(信号)#入口检查
             持久化绑定=自身._持久化绑定#快照绑定
@@ -631,7 +631,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         )#未稳定
 
     def _查询会话(自身,请求,偏移,持久化绑定):#查会话命中行
-        """查会话命中行。"""
+        '查会话命中行'
         选中=选中文档sql()#CTE
         会话where=构建会话Where(请求['sessionFilters'])#会话谓词
         事件where=构建事件Where(请求['eventFilters'])#事件谓词
@@ -664,7 +664,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         return 自身._要求库().execute(语句,绑定).fetchall()#查行
 
     def _查询事件(自身,请求,偏移,持久化绑定):#查事件命中行
-        """查事件命中行。"""
+        '查事件命中行'
         选中=选中文档sql()#CTE
         事件where=构建事件Where(请求['filters'])#事件谓词
         校验Fts5外层谓词数(1+事件where['predicateCount'])#预算
@@ -686,7 +686,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         return 自身._要求库().execute(语句,绑定).fetchall()#查行
 
     def _目标观察(自身,会话号,持久化绑定):#目标会话世代
-        """取目标会话头与游标世代。"""
+        '取目标会话头与游标世代'
         库=自身._要求库()#连接
         活行=库.execute('''
             SELECT id AS session_id, version, created_at, cwd, parent_session, seed_length, delegation_depth, agent_preset, generation
@@ -707,7 +707,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         raise 会话查询错误(f'session "{会话号}" not found','SESSION_QUERY_SESSION_NOT_FOUND')#未找到
 
     def _会话命中(自身,行):#行→会话命中
-        """行→会话命中。"""
+        '行→会话命中'
         return {
             'header':行头(行),
             'live':行['live']==1,
@@ -716,7 +716,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         }#命中
 
     def _事件命中(自身,行):#行→事件命中
-        """行→事件命中。"""
+        '行→事件命中'
         return {
             'sessionId':行['session_id'],
             'seq':行['seq'],
@@ -727,7 +727,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
         }#命中
 
 def 应用(上下文,配置):#安装 SQLite 检索后端
-    """挂载 SQLite FTS5 会话检索实现。"""
+    '挂载 SQLite FTS5 会话检索实现'
     Sqlite会话查询引擎(上下文,配置)#构造服务
 
 默认=Sqlite会话查询引擎

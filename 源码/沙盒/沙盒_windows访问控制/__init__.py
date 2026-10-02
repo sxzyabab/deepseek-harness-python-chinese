@@ -1,11 +1,4 @@
-"""DeepSeek Harness 沙箱 seam 的 Windows ACL 写入限制沙箱后端。镜像 github.com/huoyaoyuan/windows-acl-restrict-poc @ 10e4dfb（钉死修订）的机制：一个 WRITE_RESTRICTED 令牌，其限制 SID 包含本沙箱加到其拥有目录 DACL 上的、彼此不同的工作区与临时写入 SID——交集检查于是恰好在任一能力有 Write ACE 的地方允许写入，就那些 SID 而言别无他处（该检查还继承其他限制 SID 的环境写入 ACE——保活组登录 SID + Everyone；Authenticated Users、INTERACTIVE 与 LOCAL 两份列表里都没有——完整边界见 sandbox_local 的 seam 双列表约定与本包 README 的 Modes 节）。写入 SID 是按工作区身份（workspaceWriteSid）：从规范工作区路径确定性推导，因此工作区根 ACE 在每台机器每个工作区只物化一次，每次后续供给都命中精确 ACE 跳过。每个私有临时目录改收自己的 SID，因此共享工作区的兄弟会话不能进入彼此的临时树。与 POC 不同，每次 API 失败都带 API 名与精确 Win32 码抛出；子进程永远不会未受限地被 spawn。
-
-已知边界（受限令牌固有，不是本移植）：
- - 写入受限制；读取、网络与进程可见性不受限（WRITE_RESTRICTED 只交集写入访问）；
- - 控制台隔离不可用——子进程共享宿主控制台（CREATE_NO_WINDOW / CREATE_NEW_CONSOLE 子进程在该限制下以 STATUS_DLL_INIT_FAILED 死去）；
- - 私有临时目录与每个可写目录必须由调用方拥有（所有者隐式 WRITE_DAC）；
- - 授权是对真实目录的常驻 ACE 变更。工作区授权故意永不撤销——ACE 是跨会话复用缓存。临时授权可撤销：dispose() 去掉它们。环境临时根从不被隐式授予。manageDacls: false 时调用方拥有 DACL：init()/dispose() 完全跳过授予/撤销。
-"""
+'DeepSeek Harness 沙箱 seam 的 Windows ACL 写入限制沙箱后端'
 import os#存在判定与路径
 
 from .acl import 授予写入,撤销写入#授予与撤销写入ACE
@@ -19,7 +12,7 @@ from .工作区sid import 临时写入SID,工作区写入SID#SID推导
 from .授权 import ACL写入授权,聚合错误#写入授权与聚合错误
 
 def 尽力释放SID(接口,sid指针,标签,失败列表):#尽力释放SID
-    """释放一个可选 SID，同时为尽力的兄弟清理保留失败。"""
+    '释放一个可选 SID，同时为尽力的兄弟清理保留失败'
     if sid指针 is None:#没有指针
         return#跳过
     try:#LocalFree
@@ -30,9 +23,12 @@ def 尽力释放SID(接口,sid指针,标签,失败列表):#尽力释放SID
         失败列表.append(错误)#记下
 
 class ACL沙箱:#ACL沙箱实例
-    """一个写入受限沙箱实例：令牌 + 写入 SID 授权 + spawn。init() 失败即关闭——任何 Win32 失败都撤销可撤销（临时）授权并抛出；dispose() 撤销临时授权，留下常驻工作区 ACE（跨实例复用缓存），释放每个分配，并报告每次清理失败。manageDacls: false 时调用方拥有授权：init() 不应用任何，dispose() 不撤销任何。"""
+    """一个写入受限沙箱实例：令牌 + 写入 SID 授权 + spawn。
+    init() 失败即关闭——任何 Win32 失败都撤销可撤销（临时）授权并抛出；dispose() 撤销临时授权，留下常驻工作区 ACE（跨实例复用缓存），释放每个分配，并报告每次清理失败。
+    manageDacls: false 时调用方拥有授权：init() 不应用任何，dispose() 不撤销任何
+    """
     def __init__(自身,选项):#校验并保存选项
-        """校验并保存构造选项。"""
+        '校验并保存构造选项'
         自身.mode=选项['mode']#记下模式
         自身._manageDacls=True if 'manageDacls' not in 选项 else 选项['manageDacls']#缺键则自己管理DACL
         自身.writableDirs=[]#可写目录
@@ -70,13 +66,15 @@ class ACL沙箱:#ACL沙箱实例
 
     @property#只读
     def tempDir(自身):#已解析临时目录
-        """已解析临时目录（init 之后可用；关掉临时授予时为 null）。"""
+        '已解析临时目录（init 之后可用；关掉临时授予时为 null）'
         if 自身._tempDirUnset:#尚未init
             return None#与TS undefined等价，对外用None
         return 自身._tempDirResolved#init后的值
 
     def 初始化(自身):#初始化沙箱
-        """创建受限令牌并应用能力 SID 授权。非幂等安全：每个实例一次。"""
+        """创建受限令牌并应用能力 SID 授权。
+        非幂等安全：每个实例一次
+        """
         if 自身._api is not None:#已初始化
             raise 访问控制错误('AclSandbox is already initialized')#不得重复init
         接口=解析绑定()#惰性加载绑定
@@ -151,7 +149,9 @@ class ACL沙箱:#ACL沙箱实例
             raise 错误#原错误
 
     def 生成(自身,选项):#隔离spawn
-        """在受限令牌下 spawn 一个进程。失败即关闭。"""
+        """在受限令牌下 spawn 一个进程。
+        失败即关闭
+        """
         接口=自身._api#已加载绑定
         令牌=自身._token#受限令牌
         if 接口 is None or 令牌 is None:#未初始化
@@ -184,7 +184,7 @@ class ACL沙箱:#ACL沙箱实例
         return {'pid':原生['pid'],'wait':等待}#运行中的子进程
 
     def 拆除(自身):#拆除沙箱
-        """撤销可撤销（临时）授权，释放 SID，关闭令牌；常驻工作区 ACE 留下。"""
+        '撤销可撤销（临时）授权，释放 SID，关闭令牌；常驻工作区 ACE 留下'
         接口=自身._api#已加载绑定
         if 接口 is None:#尚未init
             return#跳过

@@ -29,7 +29,7 @@ __all__=['装载文案','短名','包文案','提示文案']#仅中文公开名
 }#失败结束
 
 def 装载文案(错误,翻译):
-    """管理错误读作：码对应句，或操作错误时 Host 诊断原样。"""
+    '管理错误读作：码对应句，或操作错误时 Host 诊断原样'
     if 错误['code']!='operation-error':#非操作错误
         return 翻译(拒码键[错误['code']])#码句
     诊断=错误['diagnostic'] if 'diagnostic' in 错误 else None#诊断
@@ -38,7 +38,7 @@ def 装载文案(错误,翻译):
     return 诊断#原样
 
 def 短名(名称):
-    """压缩包名为人读短名。"""
+    '压缩包名为人读短名'
     去作用域=名称[名称.index('/')+1:] if 名称.startswith('@') else 名称#去作用域
     if 去作用域.startswith('dsh-host-'):#宿主前缀
         return 去作用域[9:]#去
@@ -49,7 +49,7 @@ def 短名(名称):
     return 去作用域#原样
 
 def 包文案(包,翻译):
-    """渲染时按精确 npm 名本地化已知官方包。"""
+    '渲染时按精确 npm 名本地化已知官方包'
     键=内置文案[包['name']] if 包['name'] in 内置文案 else None#键
     if 键 is None:#未知
         描述=包['description'] if 'description' in 包 else None#描述
@@ -57,7 +57,7 @@ def 包文案(包,翻译):
     return {'title':翻译(键['title']),'description':翻译(键['description']),'beta':键['beta']}#本地化
 
 def 提示文案(提示,翻译):
-    """一条提示读作的句子。"""
+    '一条提示读作的句子'
     种=提示['kind']#种类
     if 种=='restart':#重启
         return 翻译('restartNotice')#句

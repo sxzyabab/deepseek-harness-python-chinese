@@ -1,4 +1,4 @@
-"""命令注册、规范化默认绑定与同步分发。"""
+'命令注册、规范化默认绑定与同步分发'
 from ...存储 import 创建快照存储#可观察快照
 from ..协议 import (#协议
     绑定问题,
@@ -15,9 +15,9 @@ from ..协议 import (#协议
 __all__=['快捷键注册表']#仅中文公开名
 
 class 快捷键注册表:
-    """应用命令注册表；适配器拥有监听器，功能插件拥有动作。"""
+    '应用命令注册表；适配器拥有监听器，功能插件拥有动作'
     def __init__(自身,运行时,平台,配置=None):
-        """播种可观察目录与配置。"""
+        '播种可观察目录与配置'
         自身.runtime=运行时#壳
         自身.platform=平台#设备
         if 配置 is None:#缺省就绪空配置
@@ -32,7 +32,7 @@ class 快捷键注册表:
         自身.fixedCatalog=创建快照存储([])#固定目录
 
     def definitions(自身):
-        """供存储校验的可序列化活跃目录（无回调与本地化标签）。"""
+        '供存储校验的可序列化活跃目录（无回调与本地化标签）'
         表=[]#定义表
         for 命令 in 自身.命令表.values():#可编辑
             表.append({'id':命令['id'],'defaults':命令['defaults']})#定义
@@ -41,7 +41,7 @@ class 快捷键注册表:
         return 表#目录
 
     def registerFixed(自身,命令):
-        """注册只读输入动作，其键不可分配给可编辑命令。"""
+        '注册只读输入动作，其键不可分配给可编辑命令'
         标识=命令['id']#id
         if 标识 in 自身.固定表 or 标识 in 自身.命令表:#重复
             raise ValueError('重复快捷键命令: '+标识)#拒绝
@@ -50,7 +50,7 @@ class 快捷键注册表:
         自身.固定表[标识]=命令#登记
         自身.refreshLabels()#刷新
         def 拆除():
-            """幂等拆除。"""
+            '幂等拆除'
             if 自身.固定表.get(标识) is not 命令:#已换代
                 return#跳过
             del 自身.固定表[标识]#删除
@@ -58,7 +58,7 @@ class 快捷键注册表:
         return 拆除#拆除器
 
     def 刷新固定标签(自身):
-        """重算固定目录行。"""
+        '重算固定目录行'
         行表=[]#固定行
         for 命令 in 自身.固定表.values():#逐固定
             行表.append({#行
@@ -71,7 +71,7 @@ class 快捷键注册表:
         自身.fixedCatalog.set(行表)#发布
 
     def configure(自身,配置):
-        """原子发布已接受偏好与全部派生标签。"""
+        '原子发布已接受偏好与全部派生标签'
         当前=自身.config.getSnapshot()#当前
         if (配置['revision']==当前['revision']
             and 配置['status']==当前['status']
@@ -80,7 +80,7 @@ class 快捷键注册表:
         自身.refreshLabels(配置)#刷新
 
     def register(自身,命令):
-        """在检查各平台/壳默认后原子注册。"""
+        '在检查各平台/壳默认后原子注册'
         标识=命令['id']#id
         if 标识 in 自身.命令表 or 标识 in 自身.固定表:#重复
             raise ValueError('重复快捷键命令: '+标识)#拒绝
@@ -103,7 +103,7 @@ class 快捷键注册表:
         自身.命令表[标识]=命令#登记
         自身.refreshLabels()#刷新
         def 拆除():
-            """幂等拆除。"""
+            '幂等拆除'
             if 自身.命令表.get(标识) is not 命令:#已换代
                 return#跳过
             del 自身.命令表[标识]#删除
@@ -111,7 +111,7 @@ class 快捷键注册表:
         return 拆除#拆除器
 
     def refreshLabels(自身,配置=None):
-        """偏好、命令或语言变化时重算有效绑定。"""
+        '偏好、命令或语言变化时重算有效绑定'
         if 配置 is None:#缺省当前
             配置=自身.config.getSnapshot()#当前
         自身.绑定表.clear()#清匹配
@@ -142,7 +142,7 @@ class 快捷键注册表:
         自身.刷新固定标签()#固定
 
     def invoke(自身,标识,上下文):
-        """调用原生菜单选择，独立于可选键绑定。"""
+        '调用原生菜单选择，独立于可选键绑定'
         命令=自身.命令表.get(标识)#命令
         if 命令 is None:#未登记
             return#跳过
@@ -154,7 +154,7 @@ class 快捷键注册表:
             结果['run']()#执行
 
     def dispatch(自身,手势,上下文,消费):
-        """Windows/macOS Desktop 绑定覆盖局部区域与模态控件，与配置来源无关。"""
+        'Windows/macOS Desktop 绑定覆盖局部区域与模态控件，与配置来源无关'
         if 手势['defaultPrevented'] or 手势['composing']:#已消费或组合
             return {'status':'pass'}#放过
         修饰=[项 for 项 in ('control','alt','shift','meta') if 手势[项]]#按下的修饰
@@ -195,8 +195,8 @@ class 快捷键注册表:
         return {'status':'handled','commandId':命令['id']}#已处理
 
 class 类型观察:
-    """只读 getSnapshot + subscribe 面。"""
+    '只读 getSnapshot + subscribe 面'
     def __init__(自身,取快照,订阅):
-        """记下取快照与订阅。"""
+        '记下取快照与订阅'
         自身.getSnapshot=取快照#快照
         自身.subscribe=订阅#订阅

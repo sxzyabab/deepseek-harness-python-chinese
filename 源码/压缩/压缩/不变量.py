@@ -1,4 +1,4 @@
-"""本包拥有的压缩日志流不变量。"""
+'本包拥有的压缩日志流不变量'
 import weakref#会话与事件弱表
 from ...内核.会话 import 是否替换表面事件
 from ...内核.会话.表面 import 表面视图
@@ -12,12 +12,12 @@ from .检查点 import 是否压缩检查点来源
 __all__=['包名','名称','依赖','安装','应用']
 
 def 校验标识(值,标签,失败):
-    """要求耐久不透明身份为非空字符串。"""
+    '要求耐久不透明身份为非空字符串'
     if not isinstance(值,str) or len(值)==0:
         失败(标签+' must be a non-empty string')
 
 def 校验序号(值,标签,失败):
-    """在本包事件边界校验耐久事件序号身份。"""
+    '在本包事件边界校验耐久事件序号身份'
     if isinstance(值,bool) or not isinstance(值,(int,float)):
         失败(标签+' must be a non-negative safe integer event seq')
         return 0#占位
@@ -32,7 +32,7 @@ def 校验序号(值,标签,失败):
     return 值
 
 def 校验遮蔽序号(跟踪,事件,失败):
-    """校验一段被遮蔽表面跨度及其完整有序身份列表。"""
+    '校验一段被遮蔽表面跨度及其完整有序身份列表'
     事件类型=事件['type']
     数据=事件['data']
     区间=数据['shadowedRange'] if 'shadowedRange' in 数据 and 数据['shadowedRange'] is not None else {}
@@ -61,14 +61,14 @@ def 校验遮蔽序号(跟踪,事件,失败):
         失败(事件类型+' shadowedSeqs must list every node in the current surface span')
 
 def 校验来源命令标识(事件类型,值,期望,失败):
-    """保持可选发起命令身份在同一事务内稳定。"""
+    '保持可选发起命令身份在同一事务内稳定'
     if 值 is not None:
         校验标识(值,事件类型+' sourceCommandId',失败)
     if 值!=期望:
         失败(事件类型+' sourceCommandId '+str(值)+' does not match compaction/start sourceCommandId '+str(期望))
 
 def 校验检查点(跟踪,事件,失败):
-    """相对未结束压缩事务校验一次替换检查点。"""
+    '相对未结束压缩事务校验一次替换检查点'
     出处=事件['data']['source']
     校验标识(出处['compactionId'],'compaction checkpoint compactionId',失败)
     检查点命令=出处['sourceCommandId'] if 'sourceCommandId' in 出处 else None
@@ -83,7 +83,7 @@ def 校验检查点(跟踪,事件,失败):
     校验来源命令标识('compaction checkpoint',检查点命令,未结束['sourceCommandId'] if 'sourceCommandId' in 未结束 else None,失败)
 
 def 继承孤儿开始序号列表(事件列表):
-    """后续种子边界已使未配对压缩 start 过期。"""
+    '后续种子边界已使未配对压缩 start 过期'
     过期=set()
     未结束开始=None
     for 事件 in 事件列表:
@@ -99,7 +99,7 @@ def 继承孤儿开始序号列表(事件列表):
     return 过期
 
 def 校验回合边界(跟踪,事件,失败):
-    """每个回合边界两侧不得跨过未结束的压缩括号。"""
+    '每个回合边界两侧不得跨过未结束的压缩括号'
     类型=事件['type']
     if (类型!='turn/start' and 类型!='turn/end') or 跟踪['compaction'] is None:
         return
@@ -108,7 +108,7 @@ def 校验回合边界(跟踪,事件,失败):
     失败(类型+' cannot cross an open '+所有者)
 
 def 应用回合边界(跟踪,事件):
-    """边界已被接受后推进已提交的回合光标。"""
+    '边界已被接受后推进已提交的回合光标'
     类型=事件['type']
     if 类型=='turn/start':
         跟踪['openTurn']=事件['data']['turn']
@@ -119,7 +119,7 @@ def 应用回合边界(跟踪,事件):
     return False
 
 def 校验所有者(所有者,未结束回合,事件类型,失败):
-    """要求有编号括号落在其确切回合内，或独立括号落在回合之间。"""
+    '要求有编号括号落在其确切回合内，或独立括号落在回合之间'
     if 所有者 is None:
         if 未结束回合 is not None:
             失败(事件类型+' is standalone but turn '+str(未结束回合)+' is open')
@@ -131,7 +131,8 @@ def 校验所有者(所有者,未结束回合,事件类型,失败):
         失败(事件类型+' names turn '+str(所有者)+' but open turn is '+str(未结束回合))
 
 def 校验压缩事件(跟踪,事件,失败):
-    """校验一次压缩事件，不推进已提交跟踪状态。返回待提交迁移或 None。"""
+    """校验一次压缩事件，不推进已提交跟踪状态。
+    返回待提交迁移或 None"""
     类型=事件['type']
     if 类型=='session/end-seed':
         return {'kind':'end-seed'}
@@ -202,7 +203,8 @@ def 校验压缩事件(跟踪,事件,失败):
     return {'kind':'end'}
 
 def 应用压缩迁移(迁移):
-    """应用一次已提交的压缩迁移。返回新跟踪或 None（清掉括号）。"""
+    """应用一次已提交的压缩迁移。
+    返回新跟踪或 None（清掉括号）"""
     种类=迁移['kind']
     if 种类=='start':
         return {
@@ -223,12 +225,13 @@ def 应用压缩迁移(迁移):
     return None
 
 def 安装(上下文,失败):
-    """安装压缩 start/summary/end 检查。事件所有者把预提交暂存留在本地，避免词汇表进入中央辅助。"""
+    """安装压缩 start/summary/end 检查。
+    事件所有者把预提交暂存留在本地，避免词汇表进入中央辅助"""
     跟踪表=weakref.WeakKeyDictionary()#会话 → 跟踪
     暂存={}#事件 id → 预提交暂存
 
     def 种子(会话):
-        """回放该会话已有事件并记下已提交跟踪。"""
+        '回放该会话已有事件并记下已提交跟踪'
         表面事件=[]
         跟踪={
             'openTurn':None,
@@ -250,7 +253,7 @@ def 安装(上下文,失败):
         return 跟踪
 
     def 取跟踪(会话):
-        """已有则用，否则补种子。"""
+        '已有则用，否则补种子'
         if 会话 in 跟踪表:
             return 跟踪表[会话]
         return 种子(会话)
@@ -258,11 +261,11 @@ def 安装(上下文,失败):
     for 会话 in 上下文.sessions.列出():
         种子(会话)
     def 会话已创建(会话,*其余):
-        """新会话创建时再种子。"""
+        '新会话创建时再种子'
         种子(会话)
     上下文.监听('session/created',会话已创建,{'全局':True})
     def 会话事件(会话,事件,*其余):
-        """事件真正发布后再提交压缩迁移。"""
+        '事件真正发布后再提交压缩迁移'
         跟踪=取跟踪(会话)
         校验回合边界(跟踪,事件,失败)
         改了回合=应用回合边界(跟踪,事件)
@@ -283,7 +286,7 @@ def 安装(上下文,失败):
         跟踪['surfaceEvents'].append(事件)
     上下文.监听('session/event',会话事件,{'全局':True})
     def 内部派发(_模式,事件名,参数,*其余):
-        """提交前检查 session/event。"""
+        '提交前检查 session/event'
         if 事件名!='session/event':
             return
         会话=参数[0]
@@ -299,7 +302,7 @@ def 安装(上下文,失败):
 安装.inject=['sessions']
 
 def 应用(上下文):
-    """向 invariants 登记本包，返回拆除器。"""
+    '向 invariants 登记本包，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 name=名称

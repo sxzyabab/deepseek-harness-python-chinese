@@ -42,9 +42,9 @@ __all__=[#仅中文公开名
 无效描述符值=0xFFFFFFFFFFFFFFFE#UV_INVALID_FILE_DESCRIPTOR
 
 class Win32错误(Exception):#Win32 调用失败
-    """Win32 调用失败，携带 API 名与错误码。"""
+    'Win32 调用失败，携带 API 名与错误码'
     def __init__(自身,接口,win32码,细节=None):#记下失败上下文
-        """记下失败 API、Win32 码与可选细节。"""
+        '记下失败 API、Win32 码与可选细节'
         后缀='' if 细节 is None else ': '+细节#细节后缀
         super().__init__(接口+' failed (Win32 '+str(win32码)+')'+后缀)#英文诊断
         自身.name='Win32Error'#错误名
@@ -52,11 +52,11 @@ class Win32错误(Exception):#Win32 调用失败
         自身.win32Code=win32码#Win32 码
 
 def 是否空指针(值):#指针是否为空
-    """指针是否为 null、未定义或地址零。"""
+    '指针是否为 null、未定义或地址零'
     return 值 is None or 值==0#空指针
 
 def 取绑定():#惰性加载 Win32 绑定
-    """惰性加载 kernel32/advapi32 绑定表。"""
+    '惰性加载 kernel32/advapi32 绑定表'
     if os.name!='nt':#非 Windows
         raise Win32错误('platform',0,'win32-process requires Windows')#平台不支持
     return {'kernel32':ctypes.windll.kernel32,'advapi32':ctypes.windll.advapi32}#共享上下文
@@ -65,46 +65,46 @@ def 取绑定():#惰性加载 Win32 绑定
 缓存进程表=None#缓存进程 API 表
 
 def 绑定():#获取缓存绑定
-    """获取缓存的 Win32 绑定表。"""
+    '获取缓存的 Win32 绑定表'
     global 缓存绑定#模块缓存
     if 缓存绑定 is None:#尚未加载
         缓存绑定=取绑定()#加载
     return 缓存绑定#返回
 
 def 分配指针槽():#分配指针大小 out 参数
-    """分配一个指针大小的 out 参数槽。"""
+    '分配一个指针大小的 out 参数槽'
     return ctypes.c_void_p()#指针槽
 
 def 分配uint32():#分配 uint32 out 参数
-    """分配一个 uint32 out 参数槽。"""
+    '分配一个 uint32 out 参数槽'
     return ctypes.c_uint32()#uint32 槽
 
 def 解码指针(槽):#解码指针 out 参数
-    """解码指针 out 参数；地址零视为 null。"""
+    '解码指针 out 参数；地址零视为 null'
     值=槽.value#读值
     return None if 是否空指针(值) else 值#空则 null
 
 def 解码uint32(槽):#解码 uint32 out 参数
-    """解码 uint32 out 参数。"""
+    '解码 uint32 out 参数'
     return int(槽.value)#无符号值
 
 def 错误文本(接口表,win32码):#格式化 Win32 错误
-    """通过 FormatMessageW 格式化 Win32 错误文本。"""
+    '通过 FormatMessageW 格式化 Win32 错误文本'
     缓冲=ctypes.create_unicode_buffer(512)#消息缓冲
     长度=接口表['formatMessageW'](格式化系统消息|格式化忽略插入,None,win32码,0,缓冲,512,None)#取系统消息
     return 缓冲.value.strip() if 长度 else ''#去空白
 
 def 抛上次错误(接口表,名称,细节=None):#抛 GetLastError
-    """抛出当前 GetLastError 值。"""
+    '抛出当前 GetLastError 值'
     码=接口表['getLastError']()#最后错误
     raise Win32错误(名称,码,细节 if 细节 is not None else 错误文本(接口表,码))#抛出
 
 def 抛win32错误(接口表,名称,win32码,细节=None):#抛显式 Win32 码
-    """抛出显式捕获的 Win32 错误码。"""
+    '抛出显式捕获的 Win32 错误码'
     raise Win32错误(名称,win32码,细节 if 细节 is not None else 错误文本(接口表,win32码))#抛出
 
 def 进程绑定():#构建基础进程绑定
-    """构建基础 Win32 进程绑定表。"""
+    '构建基础 Win32 进程绑定表'
     global 缓存进程表#模块缓存
     if 缓存进程表 is not None:#已缓存
         return 缓存进程表#直接返回
@@ -133,13 +133,13 @@ def 进程绑定():#构建基础进程绑定
     return 缓存进程表#返回
 
 def 扩展win32进程绑定(创建扩展):#扩展共享绑定表
-    """用调用方拥有的 Win32 API 族扩展共享进程表。"""
+    '用调用方拥有的 Win32 API 族扩展共享进程表'
     表=dict(进程绑定())#复制基础表
     表.update(创建扩展(绑定()))#合并扩展
     return 表#合并后的表
 
 def 引用参数(参数):#按 CommandLineToArgvW 规则引用一个参数
-    """按 CommandLineToArgvW 规则引用一个 argv 项。"""
+    '按 CommandLineToArgvW 规则引用一个 argv 项'
     if 参数=='':#空串
         return '""'#空引号
     if not any(字符 in 参数 for 字符 in ' \t\n\r"'):#无需引用
@@ -158,16 +158,16 @@ def 引用参数(参数):#按 CommandLineToArgvW 规则引用一个参数
     return 引用+'"'#闭合
 
 def 构建命令行(程序,参数列表):#构建 CreateProcess 命令行
-    """构建 CreateProcessAsUserW 可接受的命令行。"""
+    '构建 CreateProcessAsUserW 可接受的命令行'
     return ' '.join([引用参数(程序),*[引用参数(项) for 项 in 参数列表]])#拼接
 
 def 尽力关闭(接口表,句柄):#尽力关闭句柄
-    """尽力关闭句柄，忽略空句柄。"""
+    '尽力关闭句柄，忽略空句柄'
     if not 是否空指针(句柄):#有句柄
         接口表['closeHandle'](句柄)#关闭
 
 def 创建管道(接口表,拥有):#创建匿名管道对
-    """创建匿名管道对并登记所有权。"""
+    '创建匿名管道对并登记所有权'
     读槽=分配指针槽();写槽=分配指针槽()#out 参数
     if 接口表['createPipe'](ctypes.byref(读槽),ctypes.byref(写槽),None,0)==0:#创建失败
         抛上次错误(接口表,'CreatePipe')#抛出
@@ -179,7 +179,7 @@ def 创建管道(接口表,拥有):#创建匿名管道对
     return {'read':读,'write':写}#管道对
 
 def 编码启动信息(标准输入,标准输出,标准错误,保留2长度=None,保留2指针=None):#编码 STARTUPINFOW
-    """编码带 stdio 的 x64 STARTUPINFOW；可选 CRT 保留描述符表；隐藏控制台窗口。"""
+    '编码带 stdio 的 x64 STARTUPINFOW；可选 CRT 保留描述符表；隐藏控制台窗口'
     缓冲=bytearray(启动信息w大小)#零缓冲
     struct.pack_into('I',缓冲,0,启动信息w大小)#cb
     struct.pack_into('I',缓冲,启动旗标偏移,使用标准句柄|使用显示窗口)#dwFlags：标准句柄并隐藏窗口
@@ -193,7 +193,7 @@ def 编码启动信息(标准输入,标准输出,标准错误,保留2长度=None
     return 缓冲#结构缓冲
 
 def 描述符句柄(描述符,标签):#CRT fd 转 OS 句柄
-    """用 msvcrt._get_osfhandle 把 runner CRT 描述符换成 OS 句柄。"""
+    '用 msvcrt._get_osfhandle 把 runner CRT 描述符换成 OS 句柄'
     运行时=ctypes.cdll.msvcrt#CRT
     句柄=运行时._get_osfhandle(描述符)#fd 转句柄
     if 是否空指针(句柄) or 句柄==无效句柄值 or 句柄==无效描述符值 or 句柄==-1:#无效
@@ -201,7 +201,7 @@ def 描述符句柄(描述符,标签):#CRT fd 转 OS 句柄
     return 句柄#OS 句柄
 
 def 继承控制stdio(接口表,标准输入,标准输出,标准错误,控制描述符,控制句柄):#编码 CRT 描述符表
-    """在子运行时分配描述符前编码带控制管的 CRT 启动表。"""
+    '在子运行时分配描述符前编码带控制管的 CRT 启动表'
     计数=控制描述符+1#含 fd 0..control
     句柄偏移=4+计数#旗标后句柄区
     字节=bytearray(句柄偏移+计数*句柄字节)#整块
@@ -222,11 +222,11 @@ def 继承控制stdio(接口表,标准输入,标准输出,标准错误,控制描
     return bytes(字节)#CRT 块
 
 def 创建受限进程(接口表,选项,命令行,创建标志,启动信息,进程信息):#CreateProcessAsUserW 包装
-    """受限令牌创建进程；显式环境块在 ctypes 下会触发 ERROR_INVALID_PARAMETER，因此 lpEnvironment 保持 NULL。"""
+    '受限令牌创建进程；显式环境块在 ctypes 下会触发 ERROR_INVALID_PARAMETER，因此 lpEnvironment 保持 NULL'
     return 接口表['createProcessAsUserW'](选项['token'],None,命令行,None,None,1,创建标志,None,选项['cwd'],启动信息,进程信息)#创建
 
 def 生成管道进程(接口表,选项):#生成带管道 stdout/stderr 的进程
-    """用匿名管道 stdout/stderr 与立即 stdin EOF 生成进程。"""
+    '用匿名管道 stdout/stderr 与立即 stdin EOF 生成进程'
     拥有=set()#拥有句柄
     try:#创建管道与进程
         标准输入=创建管道(接口表,拥有);标准输出=创建管道(接口表,拥有);标准错误=创建管道(接口表,拥有)#三组管道
@@ -252,7 +252,7 @@ def 生成管道进程(接口表,选项):#生成带管道 stdout/stderr 的进�
         raise#再抛
 
 def 排空管道(接口表,句柄):#排空一条匿名管道
-    """排空匿名管道直到写端关闭；总是关闭读端。"""
+    '排空匿名管道直到写端关闭；总是关闭读端'
     块列表=[];计数槽=分配uint32()#缓冲与计数
     try:#读直到 EOF
         while True:#循环窥视/读取
@@ -272,7 +272,7 @@ def 排空管道(接口表,句柄):#排空一条匿名管道
         尽力关闭(接口表,句柄)#关闭读端
 
 def 等待进程退出(接口表,进程):#等待进程并关闭句柄
-    """等待进程退出并总是关闭其句柄。"""
+    '等待进程退出并总是关闭其句柄'
     退出槽=分配uint32()#退出码槽
     try:#等待并取码
         if 接口表['waitForSingleObject'](进程,无限等待)==0xFFFFFFFF:#等待失败
@@ -284,7 +284,7 @@ def 等待进程退出(接口表,进程):#等待进程并关闭句柄
         尽力关闭(接口表,进程)#关闭进程句柄
 
 def 创建关闭即杀作业(接口表):#创建 kill-on-close 作业
-    """创建 kill-on-close 作业对象。"""
+    '创建 kill-on-close 作业对象'
     作业=接口表['createJobObjectW'](None,None)#匿名作业
     if 是否空指针(作业):抛上次错误(接口表,'CreateJobObjectW')#失败
     信息=bytearray(作业扩展限制大小)#扩展限制
@@ -295,7 +295,7 @@ def 创建关闭即杀作业(接口表):#创建 kill-on-close 作业
     return 作业#作业句柄
 
 def 生成继承作业进程(接口表,选项):#挂起创建、加入作业、再恢复
-    """挂起创建子进程，分配到 kill-on-close 作业，再恢复运行。可选控制管走同一 CRT 描述符。"""
+    '挂起创建子进程，分配到 kill-on-close 作业，再恢复运行。可选控制管走同一 CRT 描述符'
     作业=创建关闭即杀作业(接口表)#作业
     def 取标准句柄(选择器,标签):#取标准句柄
         句柄=接口表['getStdHandle'](选择器)#系统标准句柄

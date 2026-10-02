@@ -7,11 +7,11 @@ __all__=['动作结果成功','动作结果失败','端口动词','清单行说�
 清单行说明='与 Remote 清单行同形；面板按 agentId/pluginId/packages/activeRun/latestRun 消费。'#行说明
 
 def 动作结果失败(消息):#失败形
-    """带消息失败。"""
+    '带消息失败'
     return {'ok':False,'message':消息}#败
 
 def 规范化动作结果(值):#折成动作结果
-    """成功或带消息失败。"""
+    '成功或带消息失败'
     if 值 is True or (isinstance(值,dict) and 值.get('ok') is True):#成功
         return {'ok':True}#成
     if isinstance(值,dict):#映射

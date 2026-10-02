@@ -5,7 +5,7 @@ from .账号头像 import 账号头像
 __all__=['账号菜单']
 
 def 读账号(属性):
-    """注入面 hooks.account 快照。"""
+    '注入面 hooks.account 快照'
     钩=属性.get('hooks') or {}
     存储=钩.get('account')
     if 存储 is not None:
@@ -13,13 +13,13 @@ def 读账号(属性):
     取=属性.get('useAccount')
     if 取 is not None:
         def 全量(快照):
-            """整份账号快照。"""
+            '整份账号快照'
             return 快照
         return 取(全量)
     return {'view':None,'details':None,'failed':False}
 
 def 读主题(属性):
-    """注入面 hooks.theme 快照。"""
+    '注入面 hooks.theme 快照'
     钩=属性.get('hooks') or {}
     存储=钩.get('theme')
     if 存储 is not None:
@@ -27,15 +27,15 @@ def 读主题(属性):
     取=属性.get('useTheme')
     if 取 is not None:
         def 全量(快照):
-            """整份主题快照。"""
+            '整份主题快照'
             return 快照
         return 取(全量)
     return {'active':{'colorScheme':'light'}}
 
 class 账号菜单:
-    """侧栏账号入口与本机权威退出登录。"""
+    '侧栏账号入口与本机权威退出登录'
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性
         自身.已打开=False
         自身.忙碌=False
@@ -44,19 +44,19 @@ class 账号菜单:
         自身.对话框=None
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性
 
     def 关菜单(自身):
-        """收起菜单。"""
+        '收起菜单'
         自身.已打开=False
 
     def 切菜单(自身):
-        """开或关。"""
+        '开或关'
         自身.已打开=not 自身.已打开
 
     def 退出(自身):
-        """退出已存凭证。"""
+        '退出已存凭证'
         自身.忙碌=True
         自身.退出失败=False
         try:
@@ -67,7 +67,7 @@ class 账号菜单:
         自身.忙碌=False
 
     def 开始登录(自身):
-        """关菜单后发起；失败由弹窗呈现。"""
+        '关菜单后发起；失败由弹窗呈现'
         自身.已打开=False
         try:
             自身.属性['start']()
@@ -75,7 +75,7 @@ class 账号菜单:
             return
 
     def 选中(自身,标识):
-        """菜单项。"""
+        '菜单项'
         if 标识=='settings':
             自身.已打开=False
             自身.属性['openSettings']()
@@ -88,7 +88,7 @@ class 账号菜单:
             自身.退出()
 
     def 渲染(自身):
-        """入口、菜单项与可选登录弹窗。"""
+        '入口、菜单项与可选登录弹窗'
         翻译=自身.属性['t']
         账号=读账号(自身.属性)
         主题=读主题(自身.属性)
@@ -116,10 +116,10 @@ class 账号菜单:
         弹窗=None
         if 账号.get('loginVisible') and not 账号.get('onboarding'):
             def 关弹窗():
-                """关掉登录。"""
+                '关掉登录'
                 自身.属性['showLogin'](False)
             def 改走密钥():
-                """关掉登录并打开官方引导。"""
+                '关掉登录并打开官方引导'
                 自身.属性['showLogin'](False)
                 自身.属性['openOnboarding']('deepseek-official')
             面={
@@ -152,7 +152,7 @@ class 账号菜单:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

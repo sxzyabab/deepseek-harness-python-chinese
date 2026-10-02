@@ -1,20 +1,20 @@
 __all__=['插话历史']#仅中文公开名
 
 class 插话历史:
-    """增量识别从 next-step 收件箱认领的 user/message。"""
+    '增量识别从 next-step 收件箱认领的 user/message'
     def __init__(自身):
-        """空队列与认领集。"""
+        '空队列与认领集'
         自身.收件箱={'next-turn':[],'next-step':[]}#各目标
         自身.已认领下一步=set()#认领集
 
     def 重置(自身):
-        """重建历史窗口前清空。"""
+        '重建历史窗口前清空'
         自身.收件箱['next-turn']=[]#清
         自身.收件箱['next-step']=[]#清
         自身.已认领下一步.clear()#清
 
     def 应用(自身,事件):
-        """仅当用户来源消息先前从 next-step 认领时为 True。事件为 dict。"""
+        '仅当用户来源消息先前从 next-step 认领时为 True。事件为 dict'
         种=事件['type'] if 'type' in 事件 else None#种
         if 种=='agent/inbox/spliced':#拼接
             数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#载荷
@@ -32,7 +32,7 @@ class 插话历史:
         return 来种=='user'#须用户来源
 
     def _应用拼接(自身,拼接):
-        """重放主机校验过的收件箱拼接。拼接为 dict。"""
+        '重放主机校验过的收件箱拼接。拼接为 dict'
         目标=拼接['target'] if 'target' in 拼接 else None#目标
         起=拼接['start'] if 'start' in 拼接 else 0#起
         删=拼接['removedCount'] if 'removedCount' in 拼接 and 拼接['removedCount'] is not None else 0#删

@@ -4,26 +4,26 @@ from json import JSONDecodeError#JSON 解析失败
 __all__=['首行','定义卡片','运行卡片','动作卡片','调用状态']#仅中文公开名
 
 def 首行(文本):
-    """折叠错误摘要用。"""
+    '折叠错误摘要用'
     换行=文本.find('\n')#找换行
     return 文本 if 换行==-1 else 文本[:换行]#切
 
 def 串字段(源,键):
-    """从 dict 读非空串，否则 None。"""
+    '从 dict 读非空串，否则 None'
     if 源 is None or 键 not in 源:#缺席
         return None#缺席
     值=源[键]#值
     return 值 if isinstance(值,str) and len(值)>0 else None#空当缺席
 
 def 对象字段(源,键):
-    """从 dict 读对象字段。"""
+    '从 dict 读对象字段'
     if 源 is None or 键 not in 源:#缺席
         return None#缺席
     值=源[键]#值
     return 值 if isinstance(值,dict) else None#非对象缺席
 
 def 解析参数(原文):
-    """截断 JSON 当缺席。"""
+    '截断 JSON 当缺席'
     try:#可能截断
         解析=json.loads(原文)#解析
         return 解析 if isinstance(解析,dict) else None#须对象
@@ -31,7 +31,7 @@ def 解析参数(原文):
         return None#缺席
 
 def 结果文本(块):
-    """压平 content；否则错误名:码。块为工具调用 dict。"""
+    '压平 content；否则错误名:码。块为工具调用 dict'
     if 'content' in 块 and 块['content'] is not None:#有内容表
         内容=块['content']#块表
     else:#缺席当空
@@ -55,7 +55,7 @@ def 结果文本(块):
     return 名+': '+码#名:码
 
 def 调用状态(块):
-    """running / ok / error / stopped。块为 dict。"""
+    'running / ok / error / stopped。块为 dict'
     if 'kind' not in 块:#无 kind 则未落定
         return 'running'#进行中
     错=块['error'] if 'error' in 块 else None#错
@@ -66,7 +66,7 @@ def 调用状态(块):
     return 'ok'#成功
 
 def 元对象(块):
-    """未落定/出错/非对象则 None。"""
+    '未落定/出错/非对象则 None'
     if 'kind' not in 块:#未落定
         return None#无
     if 'isError' in 块 and 块['isError']:#出错
@@ -75,7 +75,7 @@ def 元对象(块):
     return 元 if isinstance(元,dict) else None#对象
 
 def 定义卡片(块):
-    """从调用/结果块推导定义卡。块为 dict。"""
+    '从调用/结果块推导定义卡。块为 dict'
     已落定='kind' in 块#落定
     if 已落定 and 'call' in 块 and 块['call'] is not None and 'argsRaw' in 块['call']:#落定后从 call 取
         原文=块['call']['argsRaw']#call
@@ -105,7 +105,7 @@ def 定义卡片(块):
     }#结束
 
 def 运行卡片(块):
-    """推导运行卡。块为 dict。"""
+    '推导运行卡。块为 dict'
     已落定='kind' in 块#落定
     if 已落定 and 'call' in 块 and 块['call'] is not None and 'argsRaw' in 块['call']:#落定后从 call 取
         原文=块['call']['argsRaw']#call
@@ -136,7 +136,7 @@ def 运行卡片(块):
     }#结束
 
 def 动作卡片(块):
-    """推导停止或移除卡。块为 dict。"""
+    '推导停止或移除卡。块为 dict'
     已落定='kind' in 块#落定
     if 已落定 and 'call' in 块 and 块['call'] is not None and 'argsRaw' in 块['call']:#落定后从 call 取
         原文=块['call']['argsRaw']#call

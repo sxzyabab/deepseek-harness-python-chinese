@@ -1,4 +1,4 @@
-"""模型安全的会话检索调用与错误翻译边界。"""
+'模型安全的会话检索调用与错误翻译边界'
 from ...模型后端.llm import 装备错误,错误链#Harness错误与错误链
 from ..会话查询 import 会话查询错误#检索错误
 from ..会话查询.配置 import 已中止,若已中止则抛出#中止
@@ -26,11 +26,11 @@ from ..会话查询.配置 import 已中止,若已中止则抛出#中止
 }#安全失败表
 
 def 未授权目标():
-    """工作区外目标的稳定未授权错误。"""
+    '工作区外目标的稳定未授权错误'
     return 装备错误('session target is outside the caller workspace','SESSION_QUERY_TOOL_UNAUTHORIZED')#未授权
 
 def 调用(上下文,信号,操作名,执行):
-    """内含一次服务调用并消毒错误。"""
+    '内含一次服务调用并消毒错误'
     若已中止则抛出(信号)#已取消
     try:#执行服务
         值=执行()#同步结果
@@ -42,7 +42,7 @@ def 调用(上下文,信号,操作名,执行):
         raise 消毒错误(上下文,操作名,错误)#抛出模型安全错误
 
 def 消毒错误(上下文,操作名,错误):
-    """把任意失败收成模型安全 Harness 错误。"""
+    '把任意失败收成模型安全 Harness 错误'
     通用=通用失败()#通用失败
     try:#记日志并翻译
         上下文.日志.警告('tool-session-query: '+操作名+' failed: '+完整错误(错误))#宿主日志
@@ -58,18 +58,18 @@ def 消毒错误(上下文,操作名,错误):
     return 通用#其余一律通用
 
 def 通用失败():
-    """通用工具失败。"""
+    '通用工具失败'
     return 装备错误('session query operation failed','SESSION_QUERY_TOOL_FAILED')#通用工具失败
 
 def 完整错误(错误):
-    """渲染错误及 cause 链。"""
+    '渲染错误及 cause 链'
     try:#尝试渲染
         return 渲染完整错误(错误)#含cause链
     except (TypeError,ValueError,AttributeError):#渲染失败
         return 不可打印服务错误#占位
 
 def 渲染完整错误(错误):
-    """渲染 Error 及 cause 链。"""
+    '渲染 Error 及 cause 链'
     if not isinstance(错误,BaseException):#非异常
         return str(错误)#字符串化
     诊断=[错误链(错误)]#栈或消息

@@ -1,8 +1,8 @@
-"""跨会话快照准备。宿主把提及时记号适配成结构化引用；本服务负责精确读取、投影、预算与持久上下文。"""
+'跨会话快照准备'
 import json,weakref#自引用诊断与按智能体弱表
 from ...依赖.schemastery import 整数字段,数字字段
 from ...模型后端.llm import 创建用户消息,冻结消息,结构化克隆
-from ...typert.协议 import 远程服务,远程 as _远程
+from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .配置 import (
     最大引用数,
     默认候选上限,
@@ -57,13 +57,13 @@ __all__=[
 }#Config校验结束
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
-    """已中止则抛出承载原因的异常。"""
+    '已中止则抛出承载原因的异常'
     if 信号 is None:#无信号
         return#无信号
     if not 信号._事件.is_set():#仍活着
@@ -73,10 +73,10 @@ def 若已中止则抛出(信号):
     raise 会话引用错误('aborted','SESSION_REFERENCE_CANCELLED')#默认中止
 
 class 会话引用解析器(远程服务):
-    """精确读取消费方：准备不可变的跨会话消息上下文。注册为 `ctx.sessionReferenceResolver`。"""
+    '精确读取消费方：准备不可变的跨会话消息上下文。注册为 `ctx.sessionReferenceResolver`'
 
     def __init__(自身,上下文,配置值=None):
-        """以 sessionReferenceResolver 名注册服务，并补全运行时配置。"""
+        '以 sessionReferenceResolver 名注册服务，并补全运行时配置'
         super().__init__(上下文,'sessionReferenceResolver')#注册服务名
         if 配置值 is None:#缺省空配置
             配置值={}#空配置
@@ -99,7 +99,7 @@ class 会话引用解析器(远程服务):
             raise 会话引用错误('session-reference: referenceContextFraction must be between zero and one','SESSION_REFERENCE_INVALID_CONFIG')
         自身.组装路由=weakref.WeakKeyDictionary()
         def 组装系统提示(_装配,上下文载荷,下一步):
-            """记下组装完成后的路由。"""
+            '记下组装完成后的路由'
             装配=下一步()
             if 'agent' in 上下文载荷 and 上下文载荷['agent'] is not None:
                 变量=装配['variables'] if 'variables' in 装配 else {}
@@ -107,7 +107,7 @@ class 会话引用解析器(远程服务):
             return 装配
         上下文.监听('system-prompt/assemble',组装系统提示,{'前置':True})
         def 预步骤(载荷,下一步):
-            """把直接用户消息里的引用换成快照。"""
+            '把直接用户消息里的引用换成快照'
             决策=下一步()
             if 决策['kind']=='reject':
                 return 决策
@@ -117,7 +117,7 @@ class 会话引用解析器(远程服务):
         上下文.监听('agent/pre-step',预步骤,{'前置':True})
 
     def 列出候选(自身,智能体,查询='',上限=None,信号=None):
-        """列出引用候选，按工作目录亲和排序。用最新标题标记；缺标题时用会话 id。"""
+        '列出引用候选，按工作目录亲和排序。用最新标题标记；缺标题时用会话 id'
         if 上限 is None:#缺省用配置
             上限=自身.配置['candidateLimit']#结果上限
         if isinstance(上限,bool) or (not isinstance(上限,int)) or 上限<=0 or 上限>安全整数上限:#上限非法
@@ -152,7 +152,7 @@ class 会话引用解析器(远程服务):
             elif 针 in 行['displayTitle'].lower():#展示标题包含
                 已滤.append(行)#留下
         def 亲和键2(行):
-            """再按亲和排序。"""
+            '再按亲和排序'
             头=行['record']['header']#会话头
             return (候选排序(头['cwd'] if 'cwd' in 头 else None,目标目录),行['index'])#排序键
         已滤=sorted(已滤,key=亲和键2)[:上限]#再按亲和排序并最终截断
@@ -168,7 +168,7 @@ class 会话引用解析器(远程服务):
         return 候选列表#候选列表
 
     def 投影标签(自身,记录):
-        """会话投影在不读日志时能回答的提及标签与展示标题。"""
+        '会话投影在不读日志时能回答的提及标签与展示标题'
         头=记录['header']#会话头
         附着=None#在线附着
         会话表=自身.ctx.get('sessions') if hasattr(自身.ctx,'get') else None#会话表
@@ -195,7 +195,7 @@ class 会话引用解析器(远程服务):
         return {'label':标签,'displayTitle':展示}#标签组
 
     def 准备直接消息(自身,智能体,消息列表,信号):
-        """把规范提及时记号换成快照并紧跟在引用它的消息后。"""
+        '把规范提及时记号换成快照并紧跟在引用它的消息后'
         结果=[]
         for 消息 in 消息列表:
             出处=消息['source'] if 'source' in 消息 else None
@@ -224,7 +224,7 @@ class 会话引用解析器(远程服务):
 
     @_远程('candidates')
     def 远程导出候选(自身,智能体,查询,信号):
-        """Remote 导出名 candidates：带规范提及的候选。"""
+        'Remote 导出名 candidates：带规范提及的候选'
         候选列表=自身.列出候选(智能体,查询,自身.配置['candidateLimit'],信号)
         结果=[]
         for 候选 in 候选列表:
@@ -235,7 +235,7 @@ class 会话引用解析器(远程服务):
         return 结果
 
     def 准备(自身,智能体,内容,引用列表,信号=None):
-        """入队前快照全部引用，并返回一份聚合的持久上下文。"""
+        '入队前快照全部引用，并返回一份聚合的持久上下文'
         接受内容=结构化克隆(内容)#深拷贝，与引用快照分离
         输入列表=规范化引用(智能体.id,引用列表,自身.配置['maxReferences'])#校验、去重、补标签
         if len(输入列表)==0:#无引用则只返回内容
@@ -287,7 +287,7 @@ class 会话引用解析器(远程服务):
         return {'content':接受内容,'additionalContext':附加上下文}#内容与附加上下文
 
     def 引用预算(自身,智能体,信号):
-        """显式预算优先；否则按组装路由或智能体选项的窗口比例。"""
+        '显式预算优先；否则按组装路由或智能体选项的窗口比例'
         if 自身.配置['maxReferenceBytes'] is not None:
             return 自身.配置['maxReferenceBytes']
         路由=自身.组装路由.get(智能体) if 智能体 in 自身.组装路由 else None
@@ -309,7 +309,7 @@ class 会话引用解析器(远程服务):
         return max(默认最大引用字节,int(上下文容量['contextWindow']*4*自身.配置['referenceContextFraction']))
 
     def 渲染诸源(自身,诸源,最大引用字节):
-        """按字节预算渲染各源。"""
+        '按字节预算渲染各源'
         已渲染=[]#收集成功渲染
         for 源 in 诸源:#逐个源
             保留=保留引用会话(源['snapshot'],源['input']['label'],最大引用字节)#按预算保留
@@ -320,7 +320,7 @@ class 会话引用解析器(远程服务):
         return 已渲染#全部成功
 
 def 规范化引用(目标标识,引用列表,最大引用):
-    """校验、去重并补全标签。"""
+    '校验、去重并补全标签'
     已见=set()#已见源id
     规范=[]#去重结果
     for 候选 in 引用列表:#按协议边界校验未知项
@@ -341,11 +341,11 @@ def 规范化引用(目标标识,引用列表,最大引用):
     return 规范#合法引用
 
 def 渲染提示词(载荷列表):
-    """把快照数据包进不可信信封。"""
+    '把快照数据包进不可信信封'
     return 提示词前缀+序列化标签安全JSON(载荷列表)+提示词后缀#前缀+标签安全JSON+后缀
 
 def 候选排序(候选目录,目标目录):
-    """工作目录亲和：越小越靠前。"""
+    '工作目录亲和：越小越靠前'
     if 候选目录 is not None and 目标目录 is not None and 候选目录==目标目录:#同目录最亲
         return 0#最亲
     if 候选目录 is None:#无cwd次之

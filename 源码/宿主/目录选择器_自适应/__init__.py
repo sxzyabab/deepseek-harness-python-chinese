@@ -1,4 +1,4 @@
-"""启动时按宿主处境采样一次，挂上 native 或 browse 交互两面。"""
+'启动时按宿主处境采样一次，挂上 native 或 browse 交互两面'
 import os,sys#环境与平台
 from ...工具.启动环境 import 取启动环境,经ssh拉起#SSH 拉起事实
 from .探测 import 能否执行,有Linux选择器二进制#PATH 探测
@@ -20,7 +20,7 @@ from .解析 import 解析目录选择后端#按宿主事实解析后端
 __all__=['名称','依赖','后端包','界面包','应用','能否执行','有Linux选择器二进制','解析目录选择后端']
 
 def _节点平台():
-    """把 sys.platform 粗映射为 win32/darwin/linux。"""
+    '把 sys.platform 粗映射为 win32/darwin/linux'
     名=sys.platform
     if 名=='win32':
         return 'win32'
@@ -31,7 +31,7 @@ def _节点平台():
     return 名#未识别平台原样返回
 
 def 应用(上下文):
-    """按启动时一次采样解析交互，并把后端与界面挂为加载器条目。"""
+    '按启动时一次采样解析交互，并把后端与界面挂为加载器条目'
     网页服务=上下文.webServer#绑定主机来源
     后端=解析目录选择后端({#按当前宿主事实
         'bindHost':getattr(网页服务,'host',None) if 网页服务 is not None else None,#有效绑定主机
@@ -44,13 +44,13 @@ def 应用(上下文):
         'linuxChooser':有Linux选择器二进制(os.environ.get('PATH'),能否执行),#Linux 是否有原生选择器
     })
     def 挂载():
-        """把解析出的交互两面挂进加载器根树；失败则倒序卸掉已挂条目。"""
+        '把解析出的交互两面挂进加载器根树；失败则倒序卸掉已挂条目'
         加载器=上下文.加载器
         if 加载器 is None:
             raise RuntimeError('directory-picker-auto: loader service is missing')
         标识列表=[]#本插件本趟创建的条目 id
         def 卸载():
-            """倒序卸掉本插件挂上的全部条目。"""
+            '倒序卸掉本插件挂上的全部条目'
             for 标识 in reversed(list(标识列表)):#后挂先卸
                 try:#可能已被摘
                     加载器.移除(标识)#停纤程并从树上摘掉

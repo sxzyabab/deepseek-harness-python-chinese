@@ -1,8 +1,4 @@
-"""经已组合文件系统 provider，对已认证的 GET/HEAD /api/file 读出有界文件响应。
-
-路径与 MIME 不限制访问；连接服务在本处理器之前完成认证。
-响应为连接包惯用的字典形态（status/headers/body）。
-"""
+'经已组合文件系统 provider，对已认证的 GET/HEAD /api/file 读出有界文件响应'
 import mimetypes#按扩展名查 MIME
 import os#绝对路径判定
 from urllib.parse import parse_qs as 解析查询串,urlparse as 解析网址
@@ -27,13 +23,13 @@ __all__=['会话媒体引用']#仅中文公开名
 }#错误状态表结束
 
 def _失败(请求,状态,文本):
-    """失败响应；HEAD 无体。"""
+    '失败响应；HEAD 无体'
     方法=请求['method'] if 'method' in 请求 else 'GET'#方法
     正文=None if 方法=='HEAD' else 文本.encode('utf-8')#体
     return {'status':状态,'headers':dict(基础响应头),'body':正文}
 
 def 提供文件(请求,文件系统,最大字节):
-    """解析 path、读元数据或有界字节并回响应。请求为 dict。"""
+    '解析 path、读元数据或有界字节并回响应。请求为 dict'
     网址=请求['url'] if 'url' in 请求 else ''#url
     参数=解析查询串(解析网址(网址).query)
     路径列表=参数['path'] if 'path' in 参数 else []#path
@@ -71,12 +67,12 @@ def 提供文件(请求,文件系统,最大字节):
 依赖=['connection','fs','attachments']
 
 def 应用(上下文,配置=None):
-    """挂载已认证 GET|HEAD /api/file。"""
+    '挂载已认证 GET|HEAD /api/file'
     最大字节=上下文.attachments.imageLimits['maxImageBytes']#字节上限
     def 登记():
-        """登记 fetch 路由。"""
+        '登记 fetch 路由'
         def 处理(请求):
-            """转交提供文件。"""
+            '转交提供文件'
             return 提供文件(请求,上下文.fs,最大字节)#处理器
         return 上下文.connection.fetch.register({#登记
             'path':'/api/file',#文件 API
@@ -87,7 +83,7 @@ def 应用(上下文,配置=None):
     上下文.副作用(登记,'session-controller: /api/file')#效果名
 
 class _会话媒体引用插件:
-    """文件展示贡献。连接服务负责认证；ctx.fs 提供执行世界的路径、读取与访问策略。"""
+    '文件展示贡献。连接服务负责认证；ctx.fs 提供执行世界的路径、读取与访问策略'
     pass
 
 会话媒体引用=_会话媒体引用插件()#对象插件（非类），Cordis 读 apply

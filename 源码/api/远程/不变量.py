@@ -1,4 +1,4 @@
-"""api remotes 无运行时不变量配套：被观察的关系由 Typert 以及 Agent/Session 注册表拥有。"""
+'api remotes 无运行时不变量配套：被观察的关系由 Typert 以及 Agent/Session 注册表拥有'
 包名='@deepseek-ai/dsh-api-remotes'
 名称='api-remotes-invariant'
 依赖=['invariants']
@@ -6,11 +6,11 @@
 __all__=['包名','名称','依赖','应用','默认']
 
 def 安装(上下文,失败):
-    """无运行时检查：关系由 Typert 与智能体/会话注册表拥有。"""
+    '无运行时检查：关系由 Typert 与智能体/会话注册表拥有'
     return
 
 def 应用(上下文):
-    """注册本包的不变量配套，返回拆除器。"""
+    '注册本包的不变量配套，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 默认=应用

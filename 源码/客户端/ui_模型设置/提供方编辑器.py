@@ -11,7 +11,7 @@ __all__=['公开DeepSeek基址','路径操作','布局自','引用自','提供�
 公开DeepSeek基址='https://api.deepseek.com'#DeepSeek 公开端点占位
 
 def 草稿于(命名空间,路径):#用户层子树作草稿
-    """缺席或非对象→空对象。"""
+    '缺席或非对象→空对象'
     用户层=命名空间['user'] if 命名空间 is not None and 'user' in 命名空间 else None#用户层
     子树=取路径(用户层,路径)#用户层
     if not isinstance(子树,dict):#非对象
@@ -19,7 +19,7 @@ def 草稿于(命名空间,路径):#用户层子树作草稿
     return copy.deepcopy(子树)#深拷
 
 def 路径操作(基路径,之前,之后):#最小路径 ops
-    """只点名卡片可见字段；两侧皆无则无 op。"""
+    '只点名卡片可见字段；两侧皆无则无 op'
     旧=之前 if 之前 is not None else {}#之前；缺席当空 dict
     操作=[]#ops
     for 键,值 in 之后.items():#新键
@@ -33,7 +33,7 @@ def 路径操作(基路径,之前,之后):#最小路径 ops
     return 操作#ops
 
 def 布局自(命名空间名):#适配器族布局
-    """未知 ns 仅提示。"""
+    '未知 ns 仅提示'
     if 命名空间名=='llm-deepseek':#DeepSeek
         return 'deepseek'#族
     if 命名空间名=='llm-pi-ai':#pi-ai
@@ -41,7 +41,7 @@ def 布局自(命名空间名):#适配器族布局
     return 'unknown'#未知
 
 def 引用自(命名空间,路径,提供方):#档案解析的凭证引用
-    """有 apiKeyEnv 用其值，否则推导。"""
+    '有 apiKeyEnv 用其值，否则推导'
     解析值=命名空间['value'] if 命名空间 is not None and 'value' in 命名空间 else None#已解析
     档=取路径(解析值,路径)#已解析档
     if 档 is None or 'apiKeyEnv' not in 档:#无档或无字段
@@ -50,9 +50,9 @@ def 引用自(命名空间,路径,提供方):#档案解析的凭证引用
     return 命名 if isinstance(命名,str) and len(命名)>0 else 推导密钥引用(提供方)#引用
 
 class 提供方编辑器:#提供方编辑卡片
-    """密钥 + 自定义区 + 页脚提交。"""
+    '密钥 + 自定义区 + 页脚提交'
     def __init__(自身,属性):#构造
-        """播种草稿与在飞态。"""
+        '播种草稿与在飞态'
         自身.属性=属性#合成 props
         命名空间=属性['namespace'] if 'namespace' in 属性 else None#ns 视图
         路径=list(属性['settingsPath']) if 'settingsPath' in 属性 and 属性['settingsPath'] is not None else []#设置路径
@@ -69,26 +69,26 @@ class 提供方编辑器:#提供方编辑卡片
         自身.页脚=None#页脚
 
     def 更新(自身,属性):#props 变更
-        """刷新 props（草稿保留，避免推送冲掉键入）。"""
+        '刷新 props（草稿保留，避免推送冲掉键入）'
         自身.属性=属性#最新
 
     def 改密钥草稿(自身,文):#密钥键入
-        """写入只写密钥草稿。"""
+        '写入只写密钥草稿'
         自身.密钥草稿=文#覆盖
 
     def 点取消(自身):#取消
-        """关闭且未变更。"""
+        '关闭且未变更'
         关闭=自身.属性['onClose'] if 'onClose' in 自身.属性 else None#关闭
         if 关闭 is not None:#有
             关闭(False)#未变更
 
     def 字符串于(自身,源,键):#非空字符串字段
-        """空白视作缺席。"""
+        '空白视作缺席'
         值=取路径(源,[键])#取值
         return 值 if isinstance(值,str) and len(值.strip())>0 else None#字符串
 
     def 设字段(自身,键,下一):#改草稿字段
-        """纯空白清空而非存空格。"""
+        '纯空白清空而非存空格'
         值=None if 下一 is None or len(下一.strip())==0 else 下一#归一
         if 值 is None:#清
             自身.草稿=删路径(自身.草稿,[键])#删
@@ -96,7 +96,7 @@ class 提供方编辑器:#提供方编辑卡片
             自身.草稿=设路径(自身.草稿,[键],值)#设
 
     def 拉密钥态(自身):#describe 密钥提示
-        """失败静默，不挡编辑。"""
+        '失败静默，不挡编辑'
         if 自身.已拉密钥:#已拉
             return#跳过
         自身.已拉密钥=True#标记
@@ -116,7 +116,7 @@ class 提供方编辑器:#提供方编辑卡片
             return#静默
 
     def 继承模型(自身,根,节点,路径):#目录下方基线
-        """优先 composition 钉住，否则 schema 默认。"""
+        '优先 composition 钉住，否则 schema 默认'
         命名空间=自身.属性['namespace']#ns
         基层=命名空间['base'] if 命名空间 is not None and 'base' in 命名空间 else None#基层
         钉住=取路径(基层,list(路径)+['models'])#base 层
@@ -128,7 +128,7 @@ class 提供方编辑器:#提供方编辑卡片
         return 模型节点['default'] if 'default' in 模型节点 else None#JSON Schema 默认
 
     def 应用一次(自身):#写线一次
-        """返回失败文案或 None。"""
+        '返回失败文案或 None'
         命名空间=自身.属性['namespace']#ns
         路径=list(自身.属性['settingsPath']) if 'settingsPath' in 自身.属性 and 自身.属性['settingsPath'] is not None else []#路径
         接口=自身.属性['api']#API
@@ -181,7 +181,7 @@ class 提供方编辑器:#提供方编辑卡片
         return None#成功
 
     def 应用(自身):#提交
-        """成功则 onClose(True)。"""
+        '成功则 onClose(True)'
         自身.忙=True#在飞
         自身.失败=None#清错
         try:#写线
@@ -198,7 +198,7 @@ class 提供方编辑器:#提供方编辑卡片
             自身.忙=False#闲
 
     def 渲染策展(自身,族):#已知族字段
-        """密钥 + 折叠自定义区。"""
+        '密钥 + 折叠自定义区'
         翻译=自身.属性['t']#文案
         命名空间=自身.属性['namespace']#ns
         路径=list(自身.属性['settingsPath']) if 'settingsPath' in 自身.属性 and 自身.属性['settingsPath'] is not None else []#路径
@@ -227,10 +227,10 @@ class 提供方编辑器:#提供方编辑卡片
         else:#DeepSeek
             密钥占位=翻译('keyPlaceholder')#普通占位
         def 改模型(下一):#目录变更
-            """写入 models。"""
+            '写入 models'
             自身.草稿=设路径(自身.草稿,['models'],下一)#设
         def 复位模型():#回继承
-            """删 models 覆盖。"""
+            '删 models 覆盖'
             自身.草稿=删路径(自身.草稿,['models'])#删
         目录属性={#目录共用
             'models':模型列表,'overridden':模型覆盖,'t':翻译,'disabled':禁用,
@@ -286,7 +286,7 @@ class 提供方编辑器:#提供方编辑卡片
         }#策展结束
 
     def 所示密钥失败(自身):#密钥门闩键
-        """必填空白优先。"""
+        '必填空白优先'
         密钥值=自身.密钥草稿.strip()#去空白
         必填='credentialRequired' in 自身.属性 and 自身.属性['credentialRequired'] is True#必填
         if 必填 and len(自身.密钥草稿)>0 and len(密钥值)==0:#必填空白
@@ -294,7 +294,7 @@ class 提供方编辑器:#提供方编辑卡片
         return 密钥失败(自身.密钥草稿)#普通判定
 
     def 渲染(自身):#结构化视图
-        """整卡投影。"""
+        '整卡投影'
         自身.拉密钥态()#首渲拉密钥提示
         翻译=自身.属性['t']#文案
         命名空间=自身.属性['namespace']#ns
@@ -351,7 +351,7 @@ class 提供方编辑器:#提供方编辑卡片
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

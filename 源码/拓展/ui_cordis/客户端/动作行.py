@@ -4,7 +4,7 @@ from .运行行 import 样式表#共用样式
 __all__=['动作行','样式表','前导图标']#仅中文公开名
 
 def 前导图标(态,移除):
-    """error/stopped 用 StateDot；否则 Trash 或 Stop。"""
+    'error/stopped 用 StateDot；否则 Trash 或 Stop'
     if 态=='error':#失败
         return {'type':'StateDot','state':'error'}#红点
     if 态=='stopped':#中断
@@ -14,26 +14,26 @@ def 前导图标(态,移除):
     return {'type':'IconStopFill16','size':14}#停止
 
 def 去掉空子节点(子节点列表):
-    """去掉 None 子节点。"""
+    '去掉 None 子节点'
     return [子 for 子 in 子节点列表 if 子 is not None]#过滤
 
 def 原样键(键):
-    """无翻译函数时返回键本身。"""
+    '无翻译函数时返回键本身'
     return 键#原样
 
 class 动作行:
-    """组装停止或移除卡嵌套 JSX 树。属性为 dict。"""
+    '组装停止或移除卡嵌套 JSX 树。属性为 dict'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性={} if 属性 is None else 属性#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性={} if 属性 is None else 属性#新
 
     def 渲染(自身):
-        """与上游 JSX 同构。"""
+        '与上游 JSX 同构'
         p=自身.属性#props dict
         块=p['block'] if 'block' in p else None#调用块
         卡=动作卡片(块)#卡
@@ -72,7 +72,7 @@ class 动作行:
         }#结束
 
     def __call__(自身,属性=None):
-        """结构树面。"""
+        '结构树面'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

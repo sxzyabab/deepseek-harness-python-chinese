@@ -4,7 +4,7 @@ from ..检视.领域 import 客户端领域源#realm源
 __all__=['启动检查器客户端']#仅中文公开名
 
 def 启动检查器客户端(引导):#启动Client检查器
-    """为一个已校验的 Host bootstrap 启动浏览器 source 传输。"""
+    '为一个已校验的 Host bootstrap 启动浏览器 source 传输'
     标签='Client'#标签；浏览器可用 document.title
     try:#取标题
         import builtins#全局

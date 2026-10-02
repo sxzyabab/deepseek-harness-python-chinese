@@ -7,7 +7,7 @@ _复合=(0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1)
 _biff版本=(0x00,0x02,0x04,0x08)
 
 def 转换xls(字节,上限):
-    """拒绝改名文本或 HTML；无 BIFF 表时按无效失败。"""
+    '拒绝改名文本或 HTML；无 BIFF 表时按无效失败'
     复合=len(字节)>=8 and all(字节[下标]==_复合[下标] for 下标 in range(8))
     biff版本=字节[1] if len(字节)>1 else None
     biff=len(字节)>0 and 字节[0]==0x09 and biff版本 in _biff版本
@@ -16,7 +16,7 @@ def 转换xls(字节,上限):
     raise 表格预览错误('invalid')
 
 def 映射xls工作簿(工作簿,上限):
-    """把已解析的遗留工作簿映到显示格。"""
+    '把已解析的遗留工作簿映到显示格'
     面积=0
     缺结果=0
     名表=工作簿['SheetNames']

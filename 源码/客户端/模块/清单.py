@@ -20,43 +20,43 @@ __all__=[#仅中文公开名
 ]
 
 class 客户端模块错误(Exception):
-    """本包模块系统失败。"""
+    '本包模块系统失败'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 class 网页启动入口(dict):#启动图行
-    """宿主推来的一条已组合客户端条目。键：id、url、rev；可选 inject、immediately、external。"""
+    '宿主推来的一条已组合客户端条目。键：id、url、rev；可选 inject、immediately、external'
 
 class 网页启动图(dict):#启动图
-    """宿主作为 window.__DSH_BOOT__ 注入的已组合客户端条目图。键：rev、entries、batches。"""
+    '宿主作为 window.__DSH_BOOT__ 注入的已组合客户端条目图。键：rev、entries、batches'
 
 class 启动模块行(dict):#模块表行
-    """一条启动行的 npm 包视图。键：id、url、initialUrl、rev、inject、external。"""
+    '一条启动行的 npm 包视图。键：id、url、initialUrl、rev、inject、external'
 
 class 启动插件行(dict):#插件行
-    """一条启动行的 cordis 插件视图。键：id、inject、immediately。"""
+    '一条启动行的 cordis 插件视图。键：id、inject、immediately'
 
 class 启动清单(dict):#启动清单
-    """解析后的启动清单：一条线，两种消费方视图。键：rev、modules、plugins。"""
+    '解析后的启动清单：一条线，两种消费方视图。键：rev、modules、plugins'
 
 class 客户端插件交接(dict):#打包登记
-    """经 window.__ModuleLoader__.load 提交的一个客户端打包工厂登记。键：id、factory；可选 chunk。"""
+    '经 window.__ModuleLoader__.load 提交的一个客户端打包工厂登记。键：id、factory；可选 chunk'
 
 class 客户端窗口(dict):#窗口协议
-    """Web 启动协议的 Window API。键：__DSH_BOOT__、__ModuleLoader__。"""
+    'Web 启动协议的 Window API。键：__DSH_BOOT__、__ModuleLoader__'
 
 class 客户端模块记录(dict):#模块记录
-    """已物化模块账本。键：id、exports、styles、edges。"""
+    '已物化模块账本。键：id、exports、styles、edges'
 
 class 客户端模块加载器:#客户端模块 loader 约定
-    """内嵌 Loader 与客户端 HMR 插件消费的内部约定子集。含 version、manifest、entries、loadCache、import、prefetch、invalidate。"""
+    '内嵌 Loader 与客户端 HMR 插件消费的内部约定子集。含 version、manifest、entries、loadCache、import、prefetch、invalidate'
 
 class 客户端模块系统选项(dict):#模块系统选项
-    """ClientModuleSystem 的选项。键：manifest、staticModules、registrationTarget、bootstrapModule；可选 loadBundle。"""
+    'ClientModuleSystem 的选项。键：manifest、staticModules、registrationTarget、bootstrapModule；可选 loadBundle'
 
 def 可选字符串数组(主语,字段,值):#可选字符串数组
-    """校验从 dsh.client 声明或启动线读出的可选字符串数组字段。"""
+    '校验从 dsh.client 声明或启动线读出的可选字符串数组字段'
     if 值 is None:#缺席
         return None#无
     if not isinstance(值,list) or any(not isinstance(项,str) for 项 in 值):#必须是字符串数组
@@ -64,7 +64,7 @@ def 可选字符串数组(主语,字段,值):#可选字符串数组
     return list(值)#已校验
 
 def 解析客户端声明(包名,值):#解析 dsh.client
-    """把未知已解析 JSON 收窄为 dsh.client 声明。"""
+    '把未知已解析 JSON 收窄为 dsh.client 声明'
     if 值 is None:#缺席
         return None#无声明
     if not isinstance(值,dict):#必须是对象
@@ -85,7 +85,7 @@ def 解析客户端声明(包名,值):#解析 dsh.client
     return 声明#声明
 
 def 精确包说明符(说明符):#精确包说明符
-    """说明符点名的裸包根；子路径、路径或任何带 scheme 的说明符则为 None。"""
+    '说明符点名的裸包根；子路径、路径或任何带 scheme 的说明符则为 None'
     if 说明符.startswith('@'):#作用域包
         段列表=说明符.split('/')#按斜杠切
         if len(段列表)==2 and all(段列表):#恰好两段且非空
@@ -96,13 +96,13 @@ def 精确包说明符(说明符):#精确包说明符
     return None#子路径或 scheme
 
 def 剥客户端后缀(说明符):#剥 /client 后缀
-    """把模块说明符归一到拥有它的图行。"""
+    '把模块说明符归一到拥有它的图行'
     if 说明符.endswith('/client'):#有后缀
         return 说明符[:-len('/client')]#切掉
     return 说明符#原样
 
 def 解析启动清单(线值):#解析启动清单
-    """把 window.__DSH_BOOT__ 解析成两种消费方视图；缺失或畸形抛错。"""
+    '把 window.__DSH_BOOT__ 解析成两种消费方视图；缺失或畸形抛错'
     if not isinstance(线值,dict):#必须是对象
         raise 客户端模块错误('client-modules: window.__DSH_BOOT__ is missing or not an object')#缺失或非对象
     if 'rev' not in 线值 or not isinstance(线值['rev'],str):#rev 必须是字符串

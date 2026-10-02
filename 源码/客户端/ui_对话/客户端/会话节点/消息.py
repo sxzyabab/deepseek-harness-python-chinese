@@ -5,7 +5,7 @@ from .事件面 import 是追加面事件,是替换面事件,上下文出处,上
 __all__=['消息定义','登记消息会话节点']#仅中文公开名
 
 def 是压缩检查点(事件):
-    """user/message + 替换面 + compact 插件。"""
+    'user/message + 替换面 + compact 插件'
     if 事件['type']!='user/message' or not 是替换面事件(事件):#非
         return False#否
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -18,7 +18,7 @@ def 是压缩检查点(事件):
 }#骨架；函数下挂
 
 def 消息匹配(事件):
-    """追加面 user/message，排除 compact 检查点。"""
+    '追加面 user/message，排除 compact 检查点'
     if 事件['type']!='user/message':#非
         return None#不认领
     if not 是追加面事件(事件):#非追加
@@ -29,7 +29,7 @@ def 消息匹配(事件):
     return {'id':str(数据['id']),'role':'start'}#以消息 id 开
 
 def 消息开始(_上下文,匹配项,读取器):
-    """非用户 → context；已认领 → steering；否则 user。"""
+    '非用户 → context；已认领 → steering；否则 user'
     事件=匹配项['event']#事件
     if 事件['type']!='user/message':#必须
         raise 对话错误('input-message start requires user/message')#硬失败
@@ -69,11 +69,11 @@ def 消息开始(_上下文,匹配项,读取器):
     }#结束
 
 def 消息更新(上下文,_匹配项=None):
-    """原样。"""
+    '原样'
     return 上下文['state']#态
 
 def 消息建视图(上下文):
-    """尚无状态则不渲染。"""
+    '尚无状态则不渲染'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None:#无
         return None#不渲染
@@ -85,5 +85,5 @@ def 消息建视图(上下文):
 消息定义['buildViewNode']=消息建视图#挂
 
 def 登记消息会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(消息定义)#登记

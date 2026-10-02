@@ -7,19 +7,19 @@ from .工具桥接 import 同步工具#工具同步
 __all__=['重连默认值','默认最大指令字节','解析重连策略','启动连接']
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._未来.done():#尚未结算
             自身._未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身._未来.set_exception(错误)#原样拒绝
@@ -29,7 +29,7 @@ class 操作任务:
                 自身._未来.set_exception(包装)#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
 
 重连默认值={#冻结语义的重连默认值
@@ -43,7 +43,7 @@ class 操作任务:
 默认最大指令字节=32768#归属服务器指令的 UTF-8 字节上限
 
 def 解析重连策略(配置,路径):
-    """从原始重连配置到监督器实际运行策略的唯一切确解析步骤。配置为 dict。"""
+    '从原始重连配置到监督器实际运行策略的唯一切确解析步骤。配置为 dict'
     if 配置 is not None:#调用方给出了重连配置
         for 键 in 配置.keys():#遍历调用方给出的键
             if 键 not in 重连默认值:#未知键则拒绝
@@ -63,7 +63,7 @@ def 解析重连策略(配置,路径):
     return {'enabled':启用,'initialDelayMs':初始,'maxDelayMs':上限,'maxAttempts':次数}#已解析策略
 
 def 启动连接(上下文,配置,策略):
-    """为一台 MCP 服务器启动受监督连接，并按重连策略保持存活。配置为 dict。"""
+    '为一台 MCP 服务器启动受监督连接，并按重连策略保持存活。配置为 dict'
     标签='mcp-client('+配置['serverName']+')'#日志前缀
     拆除不完整消息=标签+': transport closure could not be confirmed during disposal — server shutdown may be incomplete'#拆除诊断
     最大指令字节=配置['maxInstructionBytes'] if 'maxInstructionBytes' in 配置 else 默认最大指令字节#指令上限
@@ -93,11 +93,11 @@ def 启动连接(上下文,配置,策略):
     就绪=操作任务()#初次尝试结算
 
     def 仍是当前(世代):
-        """一个世代仅在它仍是存活插件上的当前世代时才可行动。"""
+        '一个世代仅在它仍是存活插件上的当前世代时才可行动'
         return (not 状态['disposed']) and 状态['client'] is 世代#仍是当前
 
     def 排队同步(世代,同步选项=None):
-        """序列化每一次同步工具调用。"""
+        '序列化每一次同步工具调用'
         if 同步选项 is None:#缺省用普通选项
             同步选项=选项#普通选项
         链尾=状态['syncChain']#当前链尾
@@ -105,7 +105,7 @@ def 启动连接(上下文,配置,策略):
         新链=操作任务()#新链尾
         状态['syncChain']=新链#先挂上新链尾
         def 执行同步链():
-            """先前成败都继续；本次落定后放行新链。"""
+            '先前成败都继续；本次落定后放行新链'
             try:#等先前
                 try:#先前失败也继续
                     if 链尾 is not None:#有链尾
@@ -126,7 +126,7 @@ def 启动连接(上下文,配置,策略):
         return 本次#把本次运行交给调用方
 
     def 世代断开(世代):
-        """每个世代一次断开判定。"""
+        '每个世代一次断开判定'
         if not 仍是当前(世代):#过时信号忽略
             return#忽略
         状态['client']=None#清除当前客户端
@@ -134,23 +134,23 @@ def 启动连接(上下文,配置,策略):
         安排重连()#安排重连
 
     def 等待关闭(关闭任务):
-        """等待传输拥有的关闭信号，不让损坏的传输永远卡住拆除。"""
+        '等待传输拥有的关闭信号，不让损坏的传输永远卡住拆除'
         结果=操作任务()#超时或关闭二者先到
         锁=threading.Lock()#只结算一次
         def 结算(值):
-            """只结算一次。"""
+            '只结算一次'
             with 锁:#互斥
                 if 结果._未来.done():#已结算
                     return#忽略
                 结果.兑现(值)#写入
         def 超时():
-            """超时则失败关闭。"""
+            '超时则失败关闭'
             结算(False)#失败关闭
         定时=threading.Timer(世代关闭超时毫秒/1000,超时)#超时定时器
         定时.daemon=True#不独自撑住进程
         定时.start()
         def 等待关闭到达():
-            """关闭到达则取消超时并报告正常关闭。"""
+            '关闭到达则取消超时并报告正常关闭'
             try:#等待
                 关闭任务.等待()#等关闭
             except MCP错误:#关闭失败也算观察到
@@ -161,7 +161,7 @@ def 启动连接(上下文,配置,策略):
         return 结果.等待()#阻塞等到结果
 
     def 安排重连():
-        """按策略安排下一次连接尝试。"""
+        '按策略安排下一次连接尝试'
         曾连通=状态['connectedAt'] is not None#是否曾建立过连接
         if not 策略['enabled']:#重连已关闭
             if 曾连通:#曾连通后丢失
@@ -176,13 +176,13 @@ def 启动连接(上下文,配置,策略):
         状态['failedAttempts']+=1#计入本次失败
         if 状态['failedAttempts']>策略['maxAttempts']:#预算耗尽
             def 放弃拆除():
-                """注销全部工具。"""
+                '注销全部工具'
                 for 注销 in 状态['disposers'].values():#注销全部工具
                     注销()#注销
                 状态['disposers']={}#清空 disposer
                 状态['serverInstructions']=''#清空指令
             def 执行放弃拆除():
-                """等链尾后拆除。"""
+                '等链尾后拆除'
                 try:#等链
                     if 状态['syncChain'] is not None:#有链尾
                         状态['syncChain'].等待()#等链尾
@@ -196,7 +196,7 @@ def 启动连接(上下文,配置,策略):
         动作='connection lost; reconnecting' if 曾连通 else 'connection failed; retrying'#日志动词
         上下文.日志.警告(标签+': '+动作+' in '+str(延迟)+'ms (attempt '+str(状态['failedAttempts'])+'/'+str(策略['maxAttempts'])+')')#预告下次尝试
         def 到期():
-            """非启动路径的连接尝试。"""
+            '非启动路径的连接尝试'
             状态['reconnectTimer']=None#定时器已触发
             状态['settling']=连接世代(False)#非启动路径
         定时=threading.Timer(延迟/1000,到期)#延迟毫秒
@@ -205,7 +205,7 @@ def 启动连接(上下文,配置,策略):
         定时.start()#武装
 
     def 连接世代(启动):
-        """一次连接尝试：全新传输 + 客户端，连接，然后排队初次工具同步。"""
+        '一次连接尝试：全新传输 + 客户端，连接，然后排队初次工具同步'
         from mcp import ClientSession#MCP 客户端会话
         传输=创建传输(配置)#按配置创建传输
         关闭=操作任务()#本代关闭栅栏
@@ -225,7 +225,7 @@ def 启动连接(上下文,配置,策略):
             世代容器['session']=会话#记下会话
             世代容器['cm']=上下文管理器#记下管理器
             def 发请求(载荷,选项=None):
-                """把 JSON-RPC 方法名落到 SDK 调用，结果收成 dict。"""
+                '把 JSON-RPC 方法名落到 SDK 调用，结果收成 dict'
                 方法=载荷['method']#方法名
                 if 方法=='tools/call':#调用工具
                     参数=载荷['params']#参数
@@ -286,7 +286,7 @@ def 启动连接(上下文,配置,策略):
             上下文.日志.信息(标签+': reconnected and re-synced tools (attempt '+str(状态['failedAttempts'])+'/'+str(策略['maxAttempts'])+')')#重连成功
 
     def 关闭世代(世代容器):
-        """尽力关闭会话与传输。世代容器为 dict。"""
+        '尽力关闭会话与传输。世代容器为 dict'
         会话=世代容器['session']#会话
         管理器=世代容器['cm']#上下文管理器
         if 会话 is not None:#有会话
@@ -299,7 +299,7 @@ def 启动连接(上下文,配置,策略):
 
     状态['settling']=连接世代#先记下函数；下面立刻跑启动尝试
     def 执行启动尝试():
-        """插件激活时的那一次尝试。"""
+        '插件激活时的那一次尝试'
         try:#连接
             连接世代(True)#启动路径
         finally:#无论成败结算就绪
@@ -311,7 +311,7 @@ def 启动连接(上下文,配置,策略):
     threading.Thread(target=执行启动尝试,daemon=True).start()#后台启动，避免阻塞 apply 登记 effect
 
     def 拆除():
-        """停止重连，关闭存活客户端，等待静默，然后注销本服务器仍拥有的全部工具。"""
+        '停止重连，关闭存活客户端，等待静默，然后注销本服务器仍拥有的全部工具'
         状态['disposed']=True#标记已拆除
         状态['serverInstructions']=''#清空指令
         定时=状态['reconnectTimer']#已武装定时器
@@ -336,11 +336,11 @@ def 启动连接(上下文,配置,策略):
         状态['disposers']={}#清空 disposer
 
     def 读指令():
-        """读最近一次成功连通的服务器指令。"""
+        '读最近一次成功连通的服务器指令'
         return 状态['serverInstructions']#快照
 
     def 资源请求(请求,执行):
-        """经当前世代转发 MCP 资源请求。请求为 dict。"""
+        '经当前世代转发 MCP 资源请求。请求为 dict'
         世代=状态['client']#当前世代
         if 世代 is None or 状态['connectedAt'] is None:#未连通
             raise MCP错误(标签+': server is disconnected')#拒绝

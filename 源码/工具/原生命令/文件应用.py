@@ -1,4 +1,4 @@
-"""从拥有该路径的桌面查询原生文件关联。"""
+'从拥有该路径的桌面查询原生文件关联'
 import json,os,re
 from . import 运行原生命令,已中止
 from .文件应用_linux import linux文件应用程序
@@ -46,16 +46,16 @@ MAC应用程序脚本=(
 )
 
 def 确保未中止(信号):
-    """信号已置位则抛。"""
+    '信号已置位则抛'
     if 已中止(信号):
         raise RuntimeError('The operation was aborted')
 
 def 原生文件应用程序(路径,信号,内部=None):
-    """按操作系统偏好顺序列出已注册处理程序。"""
+    '按操作系统偏好顺序列出已注册处理程序'
     return 查询文件应用程序(路径,信号,内部 or {},True)
 
 def 查询文件应用程序(路径,信号,内部,展示):
-    """查询处理程序元数据。"""
+    '查询处理程序元数据'
     确保未中止(信号)
     目标=桌面目标(路径,信号,内部)
     运行=内部['run'] if 'run' in 内部 else 运行原生命令
@@ -71,7 +71,7 @@ def 查询文件应用程序(路径,信号,内部,展示):
     return 解析原生文件应用程序(json.loads(标准输出))
 
 def mac字段(字段值):
-    """校验可选字符串字段；缺席、None 与空串读作 None。"""
+    '校验可选字符串字段；缺席、None 与空串读作 None'
     if 字段值 is None:
         return None
     if not isinstance(字段值,str):
@@ -79,7 +79,7 @@ def mac字段(字段值):
     return None if len(字段值)==0 else 字段值
 
 def 解析mac应用程序(值):
-    """校验 macOS 查询输出的每一条。"""
+    '校验 macOS 查询输出的每一条'
     if not isinstance(值,list):
         raise ValueError('Invalid native application list')
     结果=[]
@@ -96,7 +96,7 @@ def 解析mac应用程序(值):
     return 结果
 
 def 比较版本(左,右):
-    """按点分数字比较版本；非数字段作 0，缺席版本最低。"""
+    '按点分数字比较版本；非数字段作 0，缺席版本最低'
     if 左 is None or 右 is None:
         return 0 if 左 is 右 else (-1 if 左 is None else 1)
     甲=左.split('.')
@@ -113,7 +113,7 @@ def 比较版本(左,右):
     return 0
 
 def 去重mac应用程序(应用程序表):
-    """展示查询时合并同包同名副本。"""
+    '展示查询时合并同包同名副本'
     顺序=[]
     分组={}
     for 应用 in 应用程序表:
@@ -134,7 +134,7 @@ def 去重mac应用程序(应用程序表):
     return [{'id':项['id'],'name':项['name'],'default':项['default'],'icon':项['icon']} for 项 in 顺序]
 
 def 打开原生文件应用程序(路径,应用程序,信号,内部=None):
-    """在当前已注册处理程序中打开文件。"""
+    '在当前已注册处理程序中打开文件'
     if 内部 is None:
         内部={}
     目标=桌面目标(路径,信号,内部)
@@ -151,7 +151,7 @@ def 打开原生文件应用程序(路径,应用程序,信号,内部=None):
         运行('open',['-a',应用程序,路径],信号)
 
 def 桌面目标(路径,信号,内部):
-    """解析拥有该文件的桌面，含从 WSL 到达的 Windows 应用。"""
+    '解析拥有该文件的桌面，含从 WSL 到达的 Windows 应用'
     确保未中止(信号)
     系统=内部['platform'] if 'platform' in 内部 else ('win32' if os.name=='nt' else __import__('platform').system().lower())
     if 系统=='windows':

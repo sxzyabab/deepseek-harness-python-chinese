@@ -5,7 +5,7 @@ from . import 启动模拟LLM服务器#服务器启动
 __all__=['主入口']#仅中文公开名
 
 def 主入口(参数向量=None):#进程入口
-    """解析 CLI 并启动或打印帮助。"""
+    '解析 CLI 并启动或打印帮助'
     if 参数向量 is None:#缺省 argv
         参数向量=sys.argv[1:]#去掉程序名
     try:#主路径
@@ -27,7 +27,7 @@ def 主入口(参数向量=None):#进程入口
             },ensure_ascii=False)+'\n')#宣布不可用窗口
             time.sleep(监听延迟/1000)#延迟绑定
         def 写事件(事件):#事件写 stdout
-            """把遥测写成 JSONL。"""
+            '把遥测写成 JSONL'
             sys.stdout.write(json.dumps(事件,ensure_ascii=False)+'\n')#写行
             sys.stdout.flush()#冲刷
         服务器=启动模拟LLM服务器({**服务器选项,'onEvent':写事件})#启动服务器
@@ -39,7 +39,7 @@ def 主入口(参数向量=None):#进程入口
         sys.stdout.flush()#冲刷
         关闭中=[False]#是否正在关闭
         def 关闭(码):#关闭并退出
-            """幂等关闭服务器后退出。"""
+            '幂等关闭服务器后退出'
             if 关闭中[0]:#幂等
                 return
             关闭中[0]=True#标记关闭

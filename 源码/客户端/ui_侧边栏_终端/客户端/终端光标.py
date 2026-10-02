@@ -4,13 +4,13 @@ __all__=['观察终端光标']#仅中文公开名
 通道模式=re.compile(r'[0-9.]+')#sRGB 数字
 
 def 颜色通道(颜色):#拆 r,g,b[,a]
-    """井号六位或 rgb() 通道。"""
+    '井号六位或 rgb() 通道'
     if 颜色.startswith('#'):#井号
         return [int(颜色[1:3],16),int(颜色[3:5],16),int(颜色[5:7],16)]#三通道
     return [float(项) for 项 in 通道模式.findall(颜色)]#rgb 数字
 
 def 亮度(颜色):#相对亮度
-    """sRGB 相对亮度。"""
+    'sRGB 相对亮度'
     通道=颜色通道(颜色)#原始
     线性=[]#线性通道
     for 项 in 通道[:3]:#仅 rgb
@@ -22,7 +22,7 @@ def 亮度(颜色):#相对亮度
     return 0.2126*线性[0]+0.7152*线性[1]+0.0722*线性[2]#加权
 
 def 不透明色(颜色,背景):#去掉 alpha
-    """有 alpha 时与背景合成。"""
+    '有 alpha 时与背景合成'
     通道=颜色通道(颜色)#含可能的 alpha
     透明=通道[3] if len(通道)>3 else 1#默认不透明
     if 透明==1:#已不透明
@@ -34,9 +34,9 @@ def 不透明色(颜色,背景):#去掉 alpha
     return 'rgb('+str(红)+', '+str(绿)+', '+str(蓝)+')'#合成色
 
 def 观察终端光标(终端,节点,优先光标):#对比度光标
-    """按单元格背景保持光标可见。"""
+    '按单元格背景保持光标可见'
     def 渲染后():#onRender
-        """测量单元格色并写 CSS 变量。"""
+        '测量单元格色并写 CSS 变量'
         光标=节点.querySelector('.xterm-cursor')#光标节点
         if 光标 is None:#尚未绘制
             return#跳过
@@ -45,14 +45,14 @@ def 观察终端光标(终端,节点,优先光标):#对比度光标
             样式=节点.ownerDocument.defaultView.getComputedStyle(光标)#计算样式
             前景=样式.color#字色
             def 滚动底():#视口底
-                """取滚动层背景。"""
+                '取滚动层背景'
                 滚动=节点.querySelector('.xterm-scrollable-element')#滚动层
                 return 节点.ownerDocument.defaultView.getComputedStyle(滚动).backgroundColor#底色
             背景=不透明色(样式.backgroundColor,滚动底)#不透明底
         finally:#恢复标记
             光标.classList.add('xterm-cursor')#加回
         def 取底():#回落底
-            """优先光标合成用底。"""
+            '优先光标合成用底'
             return 背景#单元格底
         优先=不透明色(优先光标(),取底)#优先色
         底亮=亮度(背景)#底亮度

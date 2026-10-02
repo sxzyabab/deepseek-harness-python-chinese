@@ -4,27 +4,27 @@ from .回合助手 import 助手文本#闭包正文
 __all__=['回合尾节点视图']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 class 回合尾节点视图:
-    """turnTail 链 + 可选消息动作。"""
+    'turnTail 链 + 可选消息动作'
 
     def __init__(自身,属性=None):
-        """记下 props 与动作行。"""
+        '记下 props 与动作行'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.动作=消息图标动作()#动作
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """无 turn 返回 None。"""
+        '无 turn 返回 None'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 else None#节点
         数据=节点['data'] if 节点 is not None and 'data' in 节点 else None#数据
@@ -44,7 +44,7 @@ class 回合尾节点视图:
         节点键=节点['key'] if 节点 is not None and 'key' in 节点 else None#键
         if 用会话 is not None:#有
             def 判后(快照,钉回合=数据回合,钉键=节点键):
-                """本回合末键是否本节点。locations 为契约 dict。"""
+                '本回合末键是否本节点。locations 为契约 dict'
                 聊天=快照['chat'] if 快照 is not None and 'chat' in 快照 else None#聊天
                 位表=聊天['locations'] if 聊天 is not None and 'locations' in 聊天 else None#位
                 if 位表 is None:#无
@@ -75,7 +75,7 @@ class 回合尾节点视图:
         助手动作=None if 消息标识 is None else 渲染槽('conversation.chat.assistant-actions',{'messageId':消息标识})#动作槽
         定稿序号=终节['seq'] if 终节 is not None and 'seq' in 终节 else None#分支点
         def 分支(钉分叉=分叉,钉序号=定稿序号):
-            """分叉到定稿序号。"""
+            '分叉到定稿序号'
             if 钉分叉 is not None:#有
                 钉分叉(钉序号)#叉
         块列表=收尾['blocks'] if 'blocks' in 收尾 else None#块
@@ -107,7 +107,7 @@ class 回合尾节点视图:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

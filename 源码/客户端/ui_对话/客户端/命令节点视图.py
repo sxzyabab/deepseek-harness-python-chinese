@@ -4,23 +4,23 @@ from .压缩命令卡 import 压缩命令卡#手动压缩
 __all__=['命令节点视图','手动压缩节点视图']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 class 命令节点视图:
-    """renderSlot commandview；缺登记走回退卡。"""
+    'renderSlot commandview；缺登记走回退卡'
 
     def __init__(自身,属性=None):
-        """记下 props 与回退卡。"""
+        '记下 props 与回退卡'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.回退=回退命令卡()#回退
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """callRow 包一层。"""
+        'callRow 包一层'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 else None#ChatNode
         命令=节点['data'] if 节点 is not None and 'data' in 节点 else None#命令数据
@@ -39,25 +39,25 @@ class 命令节点视图:
         return {'type':'command-node-view','className':'callRow','child':视图,'cssModule':'聊天视图.module.css'}#行
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 手动压缩节点视图:
-    """集成 /compact 与压缩事务。"""
+    '集成 /compact 与压缩事务'
 
     def __init__(自身,属性=None):
-        """记下 props 与卡。"""
+        '记下 props 与卡'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.卡=压缩命令卡()#卡
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """callRow + 压缩命令卡。"""
+        'callRow + 压缩命令卡'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 else None#节点
         数据=节点['data'] if 节点 is not None and 'data' in 节点 else None#数据
@@ -75,7 +75,7 @@ class 手动压缩节点视图:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

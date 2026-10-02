@@ -1,4 +1,4 @@
-"""本包拥有的后台任务事件协议不变量。"""
+'本包拥有的后台任务事件协议不变量'
 包名='@deepseek-ai/dsh-jobs'
 名称='jobs-invariant'
 依赖=['invariants']
@@ -7,14 +7,14 @@
 __all__=['包名','名称','依赖','安装','应用']
 
 def 回读(上下文,标识,所有者):
-    """注册表对 id 的当前投影；记录已消失则为 None。"""
+    '注册表对 id 的当前投影；记录已消失则为 None'
     try:
         return 上下文.jobs.获取(标识,所有者)
     except (TypeError,KeyError,ValueError,RuntimeError):
         return None
 
 def 检查宣布(已读,宣布,处,失败):
-    """宣布的投影必须与注册表自己的读取一致。"""
+    '宣布的投影必须与注册表自己的读取一致'
     标识=str(宣布['id'])
     for 键 in ('kind','label','owner','startedAt'):
         宣布值=宣布[键] if 键 in 宣布 else None
@@ -27,11 +27,11 @@ def 检查宣布(已读,宣布,处,失败):
         失败(处+' for job '+标识+' announces output total '+str(宣布总量)+' ahead of the registry\'s '+str(已读总量))
 
 def 安装(上下文,失败):
-    """安装逐任务协议以及事件对照读取的检查。"""
+    '安装逐任务协议以及事件对照读取的检查'
     阶段表={}
 
     def 收事件(事件):
-        """对照注册表检查一次宣布。"""
+        '对照注册表检查一次宣布'
         if 事件['type']=='output':
             标识=str(事件['id'])
             已读=回读(上下文,事件['id'],事件['owner'] if 'owner' in 事件 else None)
@@ -98,7 +98,7 @@ def 安装(上下文,失败):
 安装.inject=['jobs']
 
 def 应用(上下文):
-    """向 invariants 登记本包，返回拆除器。"""
+    '向 invariants 登记本包，返回拆除器'
     return 上下文.invariants.register(包名,安装)
 
 name=名称

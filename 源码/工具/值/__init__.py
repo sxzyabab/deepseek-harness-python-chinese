@@ -2,12 +2,12 @@ import json,math,weakref
 __all__=['断言永不','快照json值','是否json值','深相等json','深冻结','带值弱映射','值错误']
 
 class 值错误(Exception):
-    """值辅助失败。"""
+    '值辅助失败'
     def __init__(自身,消息):
         super().__init__(消息)
 
 def 断言永不(值,上下文=None):
-    """标记封闭联合的不可达分支；运行时逃出的值一律抛错。"""
+    '标记封闭联合的不可达分支；运行时逃出的值一律抛错'
     try:
         渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
     except (TypeError,ValueError):
@@ -16,15 +16,15 @@ def 断言永不(值,上下文=None):
     raise 值错误('不可达变体'+标签+': '+渲染)
 
 def _有朴素数组原型(值):
-    """是否朴素 list，而不是子类。"""
+    '是否朴素 list，而不是子类'
     return type(值) is list#只要内建 list
 
 def _有朴素对象原型(值):
-    """是否朴素 dict。"""
+    '是否朴素 dict'
     return type(值) is dict#只要内建 dict
 
 def _可枚举字符串键(值):
-    """返回每个 JSON 可见对象键，否则拒绝自有但 JSON 会丢的数据。"""
+    '返回每个 JSON 可见对象键，否则拒绝自有但 JSON 会丢的数据'
     键列表=list(值.keys())
     for 键 in 键列表:
         if not isinstance(键,str):
@@ -32,7 +32,7 @@ def _可枚举字符串键(值):
     return 键列表
 
 def _写入目的(目的,项,状态):
-    """把项写入分离目标槽。"""
+    '把项写入分离目标槽'
     if 目的 is None:
         return
     if 目的=='root':
@@ -43,7 +43,7 @@ def _写入目的(目的,项,状态):
         目的[1][目的[2]]=项
 
 def _遍历json值(值,分离):
-    """迭代校验无损 JSON，可选物化分离快照。"""
+    '迭代校验无损 JSON，可选物化分离快照'
     祖先=set()
     状态={'root':None}
     任务=[('visit',值,'root' if 分离 else None)]
@@ -111,15 +111,15 @@ def _遍历json值(值,分离):
     return True
 
 def 快照json值(值):
-    """一次读取每个属性，校验并分离无损 JSON。"""
+    '一次读取每个属性，校验并分离无损 JSON'
     return _遍历json值(值,True)
 
 def 是否json值(值):
-    """测试与快照json值相同的无损 JSON 规则，但不分离值。"""
+    '测试与快照json值相同的无损 JSON 规则，但不分离值'
     return _遍历json值(值,False) is True
 
 def 深相等json(左,右):
-    """结构比较 JSON 兼容值。"""
+    '结构比较 JSON 兼容值'
     if 左 is 右:
         return True
     if type(左) is not type(右):
@@ -137,7 +137,7 @@ def 深相等json(左,右):
     return 左==右
 
 def 深冻结(值):
-    """原地深冻结对象图，同时保留 live AbortSignal 对象可变。"""
+    '原地深冻结对象图，同时保留 live AbortSignal 对象可变'
     已见=set()
     待办=[值]
     while len(待办)>0:
@@ -159,27 +159,28 @@ def 深冻结(值):
     return 值
 
 class 带值弱映射:
-    """弱键查找，并强保留关联值的可迭代集合。每个值只能属于一个键；不做自动清理。"""
+    """弱键查找，并强保留关联值的可迭代集合。
+    每个值只能属于一个键；不做自动清理"""
     def __init__(自身):
-        """构造空弱映射。"""
+        '构造空弱映射'
         自身._键表=weakref.WeakKeyDictionary()
         自身._值集=[]
 
     @property
     def values(自身):
-        """按插入顺序的活强保留值。"""
+        '按插入顺序的活强保留值'
         return tuple(自身._值集)
 
     def get(自身,键):
-        """读键关联的值；缺席为 None。"""
+        '读键关联的值；缺席为 None'
         return 自身._键表.get(键)
 
     def has(自身,键):
-        """键是否有关联。"""
+        '键是否有关联'
         return 键 in 自身._键表
 
     def set(自身,键,值):
-        """把一个键与一个调用方唯一值关联。"""
+        '把一个键与一个调用方唯一值关联'
         if 键 in 自身._键表:
             旧值=自身._键表[键]
             if 旧值 is 值:
@@ -191,7 +192,7 @@ class 带值弱映射:
         return 自身
 
     def delete(自身,键):
-        """移除一个关联及其强保留值。"""
+        '移除一个关联及其强保留值'
         if 键 not in 自身._键表:
             return False
         值=自身._键表.pop(键)
@@ -200,6 +201,6 @@ class 带值弱映射:
         return True
 
     def clear(自身):
-        """移除每个关联与强保留值。"""
+        '移除每个关联与强保留值'
         自身._键表=weakref.WeakKeyDictionary()
         自身._值集.clear()

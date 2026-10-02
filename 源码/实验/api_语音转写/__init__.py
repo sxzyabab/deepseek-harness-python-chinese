@@ -1,5 +1,5 @@
 import base64,math
-from ...typert.协议 import 远程服务,远程
+from ...类型化远程调用.协议 import 远程服务,远程
 from ...依赖.schemastery import 自然数字段,数字字段,字典字段
 from ...工具.超时 import 若已中止则抛出
 from ..语音转写.波形 import 校验波形
@@ -15,58 +15,58 @@ __all__=['依赖','配置','应用','语音转写控制器','远程贡献']
 })
 
 def 取配置(配置值,键,缺省):
-    """配置映射缺席用缺省。"""
+    '配置映射缺席用缺省'
     if 配置值 is None or 键 not in 配置值:
         return 缺省
     return 配置值[键]
 
 def 远程流(方法):
-    """标为流式 Remote。"""
+    '标为流式 Remote'
     方法._typert_remote_marker={'invocation':{'kind':'direct','mode':'stream'}}
     return 方法
 
 class 语音转写控制器(远程服务):
-    """带认证、可取消的语音能力 Client 入口。"""
+    '带认证、可取消的语音能力 Client 入口'
     def __init__(自身,上下文,配置值=None):
-        """登记 speech Remote。"""
+        '登记 speech Remote'
         super().__init__(上下文,'speechController',{'namespace':'speech'})
         自身.上下文=上下文
         自身.maxAudioBytes=取配置(配置值,'maxAudioBytes',4*1024*1024)
         自身.maxDurationSeconds=取配置(配置值,'maxDurationSeconds',120)
 
     def 限制(自身):
-        """录音接收上限。"""
+        '录音接收上限'
         return {'maxAudioBytes':自身.maxAudioBytes,'maxDurationSeconds':自身.maxDurationSeconds}
 
     @远程
     def catalog(自身):
-        """读提供方选择，不准备识别器。"""
+        '读提供方选择，不准备识别器'
         return {**自身.上下文.speechToText.快照(),**自身.限制()}
 
     @远程流
     def follow(自身,signal):
-        """独立于 Session 与准备寿命的就绪流。"""
+        '独立于 Session 与准备寿命的就绪流'
         for 快照 in 自身.上下文.speechToText.跟随(signal):
             yield {**快照,**自身.限制()}
 
     @远程
     def configure(自身,patch):
-        """持久化识别偏好。"""
+        '持久化识别偏好'
         return 自身.上下文.speechToText.配置选择(patch)
 
     @远程
     def prepare(自身,providerId,options=None):
-        """启动或加入 Host 准备任务。"""
+        '启动或加入 Host 准备任务'
         自身.上下文.speechToText.准备(providerId,options)
 
     @远程
     def cancelPreparation(自身,providerId):
-        """显式取消准备。"""
+        '显式取消准备'
         return 自身.上下文.speechToText.取消准备(providerId)
 
     @远程
     def transcribe(自身,request,signal):
-        """校验规范 base64 WAV 后走指定提供方。"""
+        '校验规范 base64 WAV 后走指定提供方'
         若已中止则抛出(signal)
         编码=request['audioBase64']
         上限=math.ceil(自身.maxAudioBytes/3)*4
@@ -99,7 +99,7 @@ class 语音转写控制器(远程服务):
 }
 
 def 应用(上下文,配置值=None):
-    """挂上 speech Remote 控制器。"""
+    '挂上 speech Remote 控制器'
     return 语音转写控制器(上下文,配置值)
 
 inject=依赖

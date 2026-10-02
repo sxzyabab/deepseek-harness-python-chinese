@@ -8,7 +8,7 @@ def 解析入站帧(数据):#校验入站帧
     参数:
         数据: worker 收到的消息数据。
     返回:
-        该帧。
+        该帧
     """
     if not isinstance(数据,dict):#非对象
         raise 运行时错误(f'webworker tunnel: message is not a frame: {数据}')#拒绝

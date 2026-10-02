@@ -1,4 +1,4 @@
-"""JSONL 后端的 Windows 耐久命名空间辅助（ctypes 最小 MoveFileEx）。"""
+'JSONL 后端的 Windows 耐久命名空间辅助（ctypes 最小 MoveFileEx）'
 import ctypes#Win32
 import os#路径
 import sys#平台
@@ -9,7 +9,7 @@ ERROR_FILE_EXISTS=80#文件已存在
 ERROR_ALREADY_EXISTS=183#已存在
 
 def _映射errno(win32码):#Win32 码映射 errno 名
-    """把常见 Win32 错误码映射成 errno 风格字符串。"""
+    '把常见 Win32 错误码映射成 errno 风格字符串'
     if win32码 in (2,3):#未找到
         return 'ENOENT'#ENOENT
     if win32码==5:#访问拒绝
@@ -25,7 +25,7 @@ def _映射errno(win32码):#Win32 码映射 errno 名
     return 'EIO'#其余
 
 def _扩展路径(路径):#\\?\ 扩展路径
-    """为长路径准备 Win32 宽字符路径。"""
+    '为长路径准备 Win32 宽字符路径'
     绝对=os.path.abspath(路径)#绝对
     if 绝对.startswith('\\\\?\\'):#已扩展
         return 绝对#原样
@@ -34,7 +34,7 @@ def _扩展路径(路径):#\\?\ 扩展路径
     return '\\\\?\\'+绝对#盘符扩展
 
 def 发布新文件win32(已有,替换):#写穿发布新文件
-    """以 MOVEFILE_WRITE_THROUGH 把已同步暂存发布到最终名；目标不得已存在。"""
+    '以 MOVEFILE_WRITE_THROUGH 把已同步暂存发布到最终名；目标不得已存在'
     if sys.platform!='win32':#非 Windows
         raise OSError('publishNewFileWin32 is only available on win32')#拒绝
     内核=ctypes.WinDLL('kernel32',use_last_error=True)#kernel32
@@ -57,7 +57,7 @@ def 发布新文件win32(已有,替换):#写穿发布新文件
     raise 错误#抛出
 
 def 是否eexist(错误):#是否 EEXIST
-    """文件系统冲突是否表示目标已存在。"""
+    '文件系统冲突是否表示目标已存在'
     码=getattr(错误,'code',None)#自定义码
     if 码=='EEXIST':#已映射
         return True

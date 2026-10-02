@@ -3,17 +3,17 @@ from .投影消息 import 图片省略错误,省略消息图片#本包异常与�
 __all__=['图片省略错误','省略消息图片','图片省略投影']#仅中文公开名
 
 def 是否记录(值):#是否 JSON 对象
-    """耐久值是否为 JSON 对象。"""
+    '耐久值是否为 JSON 对象'
     return isinstance(值,dict)#朴素对象
 
 def 是否序号(值):#是否规范序号
-    """耐久出现下标或事件序号是否为非负整数。"""
+    '耐久出现下标或事件序号是否为非负整数'
     if isinstance(值,bool) or not isinstance(值,int):#布尔或非整数
         return False#拒绝
     return 值>=0#非负
 
 def 投影(事件,上下文):#校验并重建选中消息
-    """原子校验并重建，供实时会话与离线回放共用。"""
+    '原子校验并重建，供实时会话与离线回放共用'
     数据=事件['data'] if 'data' in 事件 else None#事件数据
     if (not 是否记录(数据) or len(数据)!=1 or 'targets' not in 数据#必须只有 targets
             or not isinstance(数据['targets'],list) or len(数据['targets'])==0):#非空数组

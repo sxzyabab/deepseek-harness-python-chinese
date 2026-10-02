@@ -3,16 +3,16 @@ from .类型 import 安全整数上限
 __all__=['编码序号范围','解码序号范围']
 
 def _严格递增(值列表):
-    """内存侧序号是否严格递增。"""
+    '内存侧序号是否严格递增'
     return all(索引==0 or 值列表[索引]>值列表[索引-1] for 索引 in range(len(值列表)))
 
 def _断言序号(值):
-    """校验 sourceEventSeqs 成员。"""
+    '校验 sourceEventSeqs 成员'
     if isinstance(值,bool) or not isinstance(值,int) or 值<0 or abs(值)>安全整数上限:
         raise TypeError('sourceEventSeqs 必须包含非负安全整数')
 
 def 编码序号范围(值列表):
-    """把有利可图的连续段压成闭区间对；非严格递增则原样拷贝。"""
+    '把有利可图的连续段压成闭区间对；非严格递增则原样拷贝'
     if not _严格递增(值列表):
         return list(值列表)
     编码=[]
@@ -30,7 +30,7 @@ def 编码序号范围(值列表):
     return 编码
 
 def 解码序号范围(值,最大条目=安全整数上限):
-    """展开 JSON 存储形态的 sourceEventSeqs。"""
+    '展开 JSON 存储形态的 sourceEventSeqs'
     if not isinstance(值,list):
         raise TypeError('sourceEventSeqs 必须是数组')
     解码=[]

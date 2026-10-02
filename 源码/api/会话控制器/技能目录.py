@@ -1,19 +1,19 @@
-"""会话寻址、冷可读技能目录 Remote。"""
-from ...typert.协议 import 远程服务,远程 as _远程
+'会话寻址、冷可读技能目录 Remote'
+from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .远程错误与并发 import 远程错误,远程错误消息
 
 __all__=['会话技能目录']
 
 class 会话技能目录(远程服务):
-    """在不激活冷智能体的情况下列出技能。"""
+    '在不激活冷智能体的情况下列出技能'
 
     def __init__(自身,上下文):
-        """登记 sessionSkillCatalog 服务。"""
+        '登记 sessionSkillCatalog 服务'
         super().__init__(上下文,'sessionSkillCatalog',{'namespace':'skills'})#注册
 
     @_远程
     def list(自身,请求,信号):
-        """列出会话可见的用户可调用技能。请求为 dict。"""
+        '列出会话可见的用户可调用技能。请求为 dict'
         会话标识=请求['sessionId']#会话 id
         工作目录=None#cwd
         预设=None#预设
@@ -63,7 +63,7 @@ class 会话技能目录(远程服务):
             raise 远程错误('gateway/internal','skill listing failed: '+远程错误消息(错误),{})#内部
 
     def _作用域(自身,会话标识,智能体预设):
-        """解析活或站立预设作用域，不创建智能体。"""
+        '解析活或站立预设作用域，不创建智能体'
         活跃=自身.ctx.agents.get(会话标识)#活智能体
         if 活跃 is not None:#有活智能体
             return 活跃#作用域载体

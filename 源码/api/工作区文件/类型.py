@@ -1,12 +1,4 @@
-"""`workspaceFiles` Remote 命名空间的线路类型说明。
-
-仅类型与错误码契约：运行时 Remote 错误类供宿主与客户端共用。
-跨线值为 dict。
-
-两套路经词汇离开本包，每个方法只用其中一套：
-- `read` / `readBytes` / `stat` / `changes` 以文件系统执行世界的绝对路径命名文件；
-- `list` 使用工作区相对路径（根自身为空串）。
-"""
+'`workspaceFiles` Remote 命名空间的线路类型说明'
 
 __all__=[#仅中文公开名
     '远程错误','远程错误消息','已中止','若已中止则抛出',
@@ -38,10 +30,10 @@ __all__=[#仅中文公开名
 
 
 class 远程错误(Exception):
-    """远程错误。附加信息做成属性；消息原样英文。"""
+    '远程错误。附加信息做成属性；消息原样英文'
 
     def __init__(自身,码,消息,详情=None,原因=None):
-        """记下 code/message/details。"""
+        '记下 code/message/details'
         super().__init__(消息)#消息
         自身.code=码#错误码
         自身.message=消息#消息
@@ -51,18 +43,18 @@ class 远程错误(Exception):
 
 
 def 远程错误消息(错误):
-    """把错误收成字符串。"""
+    '把错误收成字符串'
     return str(错误)#消息
 
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。信号为 threading.Event。"""
+    '信号是否已中止。无信号视为未中止。信号为 threading.Event'
     if 信号 is None:#无
         return False#未中止
     return 信号.is_set()#Event 置位
 
 
 def 若已中止则抛出(信号):
-    """已中止则抛出取消。"""
+    '已中止则抛出取消'
     if 已中止(信号):#已中止
         raise 远程错误('gateway/cancelled','aborted',{})#取消

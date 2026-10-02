@@ -1,4 +1,4 @@
-"""只读取私有任务目录内有界、普通的 PDF。"""
+'只读取私有任务目录内有界、普通的 PDF'
 import os,re,stat#路径打开、PDF 头尾校验、文件类型
 from ...工具.超时 import 若已中止则抛出#中止入口
 from .异常 import office转pdf错误#分类失败
@@ -9,7 +9,7 @@ __all__=['读取pdf']#仅中文公开名
 pdf头模式=re.compile(rb'^%PDF-\d\.\d',re.ASCII)#PDF 魔数
 
 def 读取pdf(路径,上限,信号):
-    """拒绝缺失、链接形、超限、截断与非 PDF 输出；返回独立于临时文件的完整字节。"""
+    '拒绝缺失、链接形、超限、截断与非 PDF 输出；返回独立于临时文件的完整字节'
     若已中止则抛出(信号)#入口检查
     条目=os.lstat(路径)#不跟随链接
     if not stat.S_ISREG(条目.st_mode):#非普通文件

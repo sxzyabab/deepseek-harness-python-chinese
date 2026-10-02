@@ -5,7 +5,7 @@ __all__=['聊天读最大行数','读卡模型']#仅中文公开名
 聊天读最大行数=8#聊天行驻留读正文折叠前行数上限
 
 def 读卡模型(块,会话工作区=None):#从调用块派生读卡道具
-    """进行中或非读卡返回 None。"""
+    '进行中或非读卡返回 None'
     if 'kind' not in 块:#进行中
         return None#通用路径
     结果视图=块['resultView'] if 'resultView' in 块 else None#结果视图

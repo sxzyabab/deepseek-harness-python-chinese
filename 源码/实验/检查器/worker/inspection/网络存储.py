@@ -9,9 +9,9 @@ __all__=['网络存储']#仅中文公开名
 规范base64=re.compile(r'(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z')#规范 base64
 
 class 网络存储:#网络存储
-    """与 CDP 连接状态无关的已校验 Network 观测存储。"""
+    '与 CDP 连接状态无关的已校验 Network 观测存储'
     def __init__(自身,选项):#构造
-        """保存选项。"""
+        '保存选项'
         自身.选项=选项#选项
         自身.topics=set(抓取主题)#主题
         自身._请求={}#请求表
@@ -21,12 +21,12 @@ class 网络存储:#网络存储
         自身._日志字节=0#日志字节
 
     def 替换(自身,源,记录列表):#替换
-        """先关旧再追加。"""
+        '先关旧再追加'
         自身.关闭(源,'source state replaced')#先关旧
         自身.追加(源,记录列表)#再追加
 
     def 追加(自身,源,记录列表):#追加
-        """摄入主题匹配记录。"""
+        '摄入主题匹配记录'
         for 记录 in 记录列表:#扫记录
             if 记录.get('topic') not in 自身.topics:#非主题
                 continue#跳过
@@ -36,7 +36,7 @@ class 网络存储:#网络存储
                 pass#畸形域载荷仅丢失该次观测
 
     def 关闭(自身,源,原因):#关闭源
-        """未完成请求记失败。"""
+        '未完成请求记失败'
         for 请求 in list(自身._请求.values()):#扫请求
             if 请求['sourceId']!=源['sourceId'] or 请求['completed']:#跳过
                 continue#跳过
@@ -49,31 +49,31 @@ class 网络存储:#网络存储
         自身._强制保留()#强制保留
 
     def 回放(自身):#回放日志
-        """读取保留的请求生命周期事件。"""
+        '读取保留的请求生命周期事件'
         return list(自身._日志)#日志
 
     def 订阅(自身,监听):#订阅
-        """订阅实时请求变更与逐出。"""
+        '订阅实时请求变更与逐出'
         自身._监听.add(监听)#加入
         def 拆除():#拆除本监听
-            """取消本监听。"""
+            '取消本监听'
             自身._监听.discard(监听)#摘掉
         return 拆除#拆除器
 
     def 请求体(自身,请求id):#请求体
-        """读取一个保留的请求体。"""
+        '读取一个保留的请求体'
         请求=自身._按id取请求(请求id)#取请求
         return _组装正文(请求['requestBody'],请求['requestBodyTruncated'],请求.get('requestCaptureError'),请求['completed'])#组装
 
     def 响应体(自身,请求id):#响应体
-        """在响应头到达后读取一个保留的响应体。"""
+        '在响应头到达后读取一个保留的响应体'
         请求=自身._按id取请求(请求id)#取请求
         if not 请求['responseSeen']:#未见响应
             raise RuntimeError('响应头尚未到达')#未见响应
         return _组装正文(请求['responseBody'],请求['responseBodyTruncated'],请求.get('responseCaptureError'),请求['completed'])#组装
 
     def 拆除(自身):#拆除
-        """拆除订阅者与全部保留请求数据。"""
+        '拆除订阅者与全部保留请求数据'
         自身._监听.clear()#清监听
         自身._请求.clear()#清请求
         自身._日志.clear()#清日志
@@ -81,7 +81,7 @@ class 网络存储:#网络存储
         自身._日志字节=0#清字节
 
     def _摄入(自身,源,记录):#摄入记录
-        """按主题更新请求。"""
+        '按主题更新请求'
         载荷=_要求载荷(记录.get('payload'))#载荷
         本地id=_字符串字段(载荷,'requestId')#本地id
         键=f"{源['sourceId']}:{源['generation']}:{本地id}"#复合键
@@ -112,7 +112,7 @@ class 网络存储:#网络存储
         自身._按主题继续(源,记录,载荷,键,请求,时间戳)#继续
 
     def _按主题继续(自身,源,记录,载荷,键,请求,时间戳):#按主题继续
-        """处理非 start 主题。"""
+        '处理非 start 主题'
         主题=记录['topic']#主题
         if 主题=='fetch/request-body-chunk':#请求体块
             自身._追加正文(请求,'request',_字符串字段(载荷,'data'))#追加
@@ -161,7 +161,7 @@ class 网络存储:#网络存储
             })#complete结束
 
     def _追加正文(自身,请求,侧,编码):#追加正文
-        """解码并保留正文块。"""
+        '解码并保留正文块'
         字节=_解码base64(编码)#解码
         自身._为新字节逐出已完成(len(字节),请求['key'])#为新字节腾空间
         可留=字节[:max(0,自身.选项['maxJournalBytes']-自身._日志字节)]#可保留
@@ -180,7 +180,7 @@ class 网络存储:#网络存储
         return 字节#返回原字节
 
     def _完成(自身,请求,事件):#完成请求
-        """幂等完成。"""
+        '幂等完成'
         if 请求['completed']:#幂等
             return#返回
         请求['completed']=True#置位
@@ -189,12 +189,12 @@ class 网络存储:#网络存储
         自身._强制保留()#保留
 
     def _发布(自身,事件):#发布到日志
-        """入日志并发出。"""
+        '入日志并发出'
         自身._日志.append(事件)#入日志
         自身._发出(事件)#发出
 
     def _发出(自身,事件):#发出事件
-        """隔离监听。"""
+        '隔离监听'
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调
@@ -202,7 +202,7 @@ class 网络存储:#网络存储
                 pass#一个展示适配器不能中断仓库摄入
 
     def _强制保留(自身):#强制保留上限
-        """超限则逐出。"""
+        '超限则逐出'
         while len(自身._请求)>自身.选项['maxRetainedRequests'] or 自身._日志字节>自身.选项['maxJournalBytes']:#超限
             键=自身._已完成.pop(0) if 自身._已完成 else next(iter(自身._请求))#逐出键
             请求=自身._请求[键]#取请求
@@ -215,7 +215,7 @@ class 网络存储:#网络存储
             自身._逐出(请求)#逐出
 
     def _为新字节逐出已完成(自身,字节数,保护键):#为新字节逐出已完成
-        """腾出日志字节。"""
+        '腾出日志字节'
         while 自身._日志字节+字节数>自身.选项['maxJournalBytes']:#仍超
             索引=next((序号 for 序号,项 in enumerate(自身._已完成) if 项!=保护键),-1)#找可逐
             if 索引<0:#无可逐
@@ -224,14 +224,14 @@ class 网络存储:#网络存储
             自身._逐出(自身._请求[键])#逐出
 
     def _逐出(自身,请求):#逐出请求
-        """删除请求与日志条目。"""
+        '删除请求与日志条目'
         自身._日志字节-=请求['requestBodyBytes']+请求['responseBodyBytes']#减字节
         自身._请求.pop(请求['key'],None)#删请求
         自身._日志=[项 for 项 in 自身._日志 if 项.get('requestKey')!=请求['key']]#删条目
         自身._发出({'type':'request-evicted','requestKey':请求['key']})#逐出事件
 
     def _按id取请求(自身,值):#按id取请求
-        """公开请求 id 查找。"""
+        '公开请求 id 查找'
         if not isinstance(值,str):#类型
             raise ValueError('Network requestId 必须是字符串')#类型
         for 请求 in 自身._请求.values():#查找
@@ -240,14 +240,14 @@ class 网络存储:#网络存储
         raise RuntimeError(f'没有这个标识的资源：{值}')#未找到
 
 def _组装正文(块列表,截断,捕获错,完整):#组装捕获正文
-    """合并块。"""
+    '合并块'
     结果={'bytes':b''.join(块列表),'truncated':截断,'complete':完整}#对象
     if 捕获错 is not None:#可选错误
         结果['captureError']=捕获错#写入
     return 结果#返回
 
 def _解码base64(值):#解码base64
-    """规范 base64。"""
+    '规范 base64'
     if 值=='' or len(值)%4!=0 or 规范base64.fullmatch(值) is None:#非规范
         raise ValueError('fetch 载荷 body 块必须是规范 base64')#抛错
     字节=base64.b64decode(值)#解码
@@ -256,41 +256,41 @@ def _解码base64(值):#解码base64
     return 字节#返回
 
 def _要求载荷(值):#要求载荷对象
-    """必须为映射。"""
+    '必须为映射'
     if not isinstance(值,dict):#非对象
         raise ValueError('fetch 载荷必须是对象')#非对象
     return 值#返回
 
 def _字符串字段(值,名):#字符串字段
-    """要求字符串。"""
+    '要求字符串'
     字段=值.get(名)#取值
     if not isinstance(字段,str):#类型
         raise ValueError(f'fetch payload {名} must be a string')#类型
     return 字段#返回
 
 def _可选字符串字段(值,名):#可选字符串
-    """可选字符串。"""
+    '可选字符串'
     字段=值.get(名)#取值
     if 字段 is not None and not isinstance(字段,str):#类型
         raise ValueError(f'fetch payload {名} must be a string')#类型
     return 字段#返回
 
 def _数字字段(值,名):#数字字段
-    """有限数字。"""
+    '有限数字'
     字段=值.get(名)#取值
     if not isinstance(字段,(int,float)) or isinstance(字段,bool) or 字段!=字段:#类型
         raise ValueError(f'fetch payload {名} must be finite')#类型
     return 字段#返回
 
 def _布尔字段(值,名):#布尔字段
-    """要求布尔。"""
+    '要求布尔'
     字段=值.get(名)#取值
     if not isinstance(字段,bool):#类型
         raise ValueError(f'fetch payload {名} must be boolean')#类型
     return 字段#返回
 
 def _头字段(值,名):#头字段
-    """头列表。"""
+    '头列表'
     字段=值.get(名)#取值
     if not isinstance(字段,list):#类型
         raise ValueError(f'fetch payload {名} must be a header list')#类型

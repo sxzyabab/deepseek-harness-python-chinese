@@ -8,18 +8,18 @@ __all__=['网页行','网页工具视图','网页标题表']#仅中文公开名
 网页标题表={'web_search':'Search','web_fetch':'Fetch'}#figma 字面
 
 class 网页行:#web 工具行
-    """按 toolName 选图标/标题；卡在 web 材料。"""
+    '按 toolName 选图标/标题；卡在 web 材料'
     def __init__(自身,属性=None):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=工具行()#外壳
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):#结构树
-        """派生后交给工具行。"""
+        '派生后交给工具行'
         属性=自身.属性#props dict
         工具名=属性['toolName'] if 'toolName' in 属性 else None#名
         块=属性['block'] if 'block' in 属性 else None#块
@@ -47,7 +47,7 @@ class 网页行:#web 工具行
         return 自身.行.渲染()#渲
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

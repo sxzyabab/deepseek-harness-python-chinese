@@ -1,12 +1,9 @@
-"""会话控制器的 Host-for-Client Remote 贡献。
-
-注册 session / skills / fileReferences 命名空间方法。
-"""
-from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
+from ...类型化远程调用.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-api-session-controller'会话服务='sessionController'#会话服务键
+包名='@deepseek-ai/dsh-api-session-controller'
+会话服务='sessionController'#会话服务键
 会话命名空间='session'#会话命名空间
 技能服务='sessionSkillCatalog'#技能服务键
 技能命名空间='skills'#技能命名空间

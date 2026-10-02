@@ -4,7 +4,7 @@ from ...模型后端.llm import 结构化克隆#深拷贝
 交接游标=weakref.WeakKeyDictionary()#Session→最高已交接 seq
 
 def 严重度于(事件):
-    """把事件自身结果映射到 info/warn/error。"""
+    '把事件自身结果映射到 info/warn/error'
     类型=事件['type']#类型
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 类型=='tool/result':#工具结果
@@ -20,7 +20,7 @@ def 严重度于(事件):
     return 'info'#默认
 
 def 身份于(会话,事件):
-    """最小身份属性。"""
+    '最小身份属性'
     头=会话.header#头
     属性={'session.id':str(会话.id),'session.format_version':头['version'],'event.type':str(事件['type']),'event.seq':事件['seq']}#基础
     if 'cwd' in 头 and 头['cwd'] is not None:#cwd
@@ -32,23 +32,23 @@ def 身份于(会话,事件):
     return 属性#返回
 
 def 关闭记录(会话):
-    """拆除时的 ops 关闭记录。"""
+    '拆除时的 ops 关闭记录'
     return {'channel':'ops','time':int(time.time()*1000),'severity':'info','attributes':{'telemetry.op':'shutdown','session.id':str(会话.id)},'body':{'op':'shutdown'}}#记录
 
 def 错误细节(错误):
-    """归一化错误细节。"""
+    '归一化错误细节'
     if isinstance(错误,BaseException):#异常
         return {'name':type(错误).__name__,'message':str(错误)}#细节
     return {'name':'Error','message':str(错误)}#包装
 
 def 原样记录(记录):
-    """瀑布缺席时的原记录。"""
+    '瀑布缺席时的原记录'
     return 记录#原样
 
 class 会话遥测协调器:
-    """把会话火hose 投影为逻辑记录并交给后端。后端是含 发出/关闭 的 dict。"""
+    '把会话火hose 投影为逻辑记录并交给后端。后端是含 发出/关闭 的 dict'
     def __init__(自身,上下文,后端,选项=None):
-        """安装捕获路径。"""
+        '安装捕获路径'
         if 选项 is None:#缺省
             选项={}#空
         if isinstance(选项,str):#旧位置参数捕获模式
@@ -67,12 +67,12 @@ class 会话遥测协调器:
             for 会话 in 上下文.sessions.list():#热重载扫活会话
                 自身._收养(会话)#收养
         def 拆除效果():
-            """协调器拆除。"""
+            '协调器拆除'
             return 自身._拆除#拆除器
         上下文.副作用(拆除效果,'telemetry capture')#effect
 
     def 捕获会话(自身,会话,至序号=None):
-        """按游标重放规范日志。"""
+        '按游标重放规范日志'
         起点=getattr(会话,'firstLifecycleSeq',getattr(会话,'firstLiveSeq',0))#本生命周期起点
         含历史=自身._选项.get('includeHistory') is True#含继承历史
         if 会话 in 交接游标:#已有游标
@@ -88,28 +88,28 @@ class 会话遥测协调器:
             自身._包含(自身._捕获事件,会话,事件)#捕获
 
     def _收养(自身,会话):
-        """收养活会话。"""
+        '收养活会话'
         if 会话 in 自身._已收养:#重复
             return#跳过
         自身._已收养[会话]=True#登记
         自身.捕获会话(会话)#重放
 
     def _会话已拆除(自身,会话):
-        """会话拆除。"""
+        '会话拆除'
         if 会话 not in 自身._已收养:#未知
             return#跳过
         del 自身._已收养[会话]#退役
         自身._递交(会话,{'record':自身._脱敏(关闭记录(会话))})#shutdown
 
     def _捕获事件(自身,会话,事件):
-        """单事件捕获。"""
+        '单事件捕获'
         自身._递交(会话,{'record':自身._脱敏({
             'channel':'ledger','time':事件['time'],'severity':严重度于(事件),
             'attributes':身份于(会话,事件),'body':结构化克隆(事件['data'] if 'data' in 事件 else None),
         }),'seq':事件['seq']})#递交
 
     def _转发智能体错误(自身,载荷):
-        """转发 agent/error。"""
+        '转发 agent/error'
         智能体=载荷['agent']#智能体
         细节=错误细节(载荷['error'])#错误
         自身._递交(智能体.session,{'record':自身._脱敏({
@@ -122,45 +122,45 @@ class 会话遥测协调器:
         })})#递交
 
     def _提示冲刷(自身,会话):
-        """flush 提示。"""
+        'flush 提示'
         if 会话 in 自身._已收养 and '冲刷' in 自身._后端:#已收养且有冲刷
             自身._后端['冲刷']()#调用
 
     def _脱敏(自身,记录):
-        """瀑布脱敏。"""
+        '瀑布脱敏'
         return 自身._上下文.链式拦截('session-telemetry/record',记录,原样记录)#瀑布
 
     def _递交(自身,会话,待定):
-        """交给后端并推进游标。"""
+        '交给后端并推进游标'
         自身._后端['发出'](待定['record'])#发出
         if 'seq' in 待定:#推进游标
             交接游标[会话]=待定['seq']#记下
 
     def _包含(自身,步骤,*位置参数):
-        """捕获步失败不得打断会话火hose。"""
+        '捕获步失败不得打断会话火hose'
         try:#执行
             步骤(*位置参数)#执行
         except Exception as 错误:#捕获步任意失败都 warn；上游 catch 未定更窄契约
             自身._上下文.日志.警告('telemetry: 捕获步失败: '+str(错误))#警告
 
     def _事件入口(自身,会话,事件):
-        """session/event。"""
+        'session/event'
         自身._包含(自身._捕获事件,会话,事件)#包含
 
     def _冲刷入口(自身,会话):
-        """session/flush。"""
+        'session/flush'
         自身._包含(自身._提示冲刷,会话)#包含
 
     def _错误入口(自身,载荷):
-        """agent/error。"""
+        'agent/error'
         自身._包含(自身._转发智能体错误,载荷)#包含
 
     def _递交关闭(自身,会话):
-        """拆除时递交 shutdown 记录。"""
+        '拆除时递交 shutdown 记录'
         自身._递交(会话,{'record':自身._脱敏(关闭记录(会话))})#shutdown
 
     def _拆除(自身):
-        """拆除时递交关闭并关后端。"""
+        '拆除时递交关闭并关后端'
         for 会话 in list(自身._已收养.keys()):#仍活
             自身._包含(自身._递交关闭,会话)#shutdown
         try:#后端关闭

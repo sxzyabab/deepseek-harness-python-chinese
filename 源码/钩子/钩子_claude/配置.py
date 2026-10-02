@@ -11,13 +11,13 @@ from ..钩子协议 import 匹配诊断#按方言校验匹配器
 )#只读事件名列表
 
 def 当作对象(值):
-    """普通对象（非 None、非列表），否则 None。"""
+    '普通对象（非 None、非列表），否则 None'
     if isinstance(值,dict):#映射即普通对象
         return 值#断言为普通对象
     return None#否则缺席
 
 def 替换命令(命令,变量=None):
-    """对命令字符串做 `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PROJECT_DIR}` 替换。变量未设置的记号保持原文。变量是 dict。"""
+    '对命令字符串做 `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PROJECT_DIR}` 替换。变量未设置的记号保持原文。变量是 dict'
     if 变量 is None:#缺省无替换
         变量={}#空变量
     输出=命令#从原文开始
@@ -28,7 +28,7 @@ def 替换命令(命令,变量=None):
     return 输出#返回替换后的命令
 
 def 解析克劳德代码配置(原始,变量=None):
-    """解析设置里的 `hooks` 值，或一份裸的 `hooks.json` 事件图。畸形条目忽略而不让启动失败；不支持的事件在解析其组之前忽略；非命令钩子放进 skipped；替换应用到每条留下来的命令。UserPromptSubmit 和 Stop 上的 matcher 字段会丢掉，因为那些事件没有匹配主体。带 matcher 的受支持可跑组若正则非法会抛 SyntaxError，让桥在登记监听器之前拒绝整份配置。原始是 JSON dict。"""
+    '解析设置里的 `hooks` 值，或一份裸的 `hooks.json` 事件图。畸形条目忽略而不让启动失败；不支持的事件在解析其组之前忽略；非命令钩子放进 skipped；替换应用到每条留下来的命令。UserPromptSubmit 和 Stop 上的 matcher 字段会丢掉，因为那些事件没有匹配主体。带 matcher 的受支持可跑组若正则非法会抛 SyntaxError，让桥在登记监听器之前拒绝整份配置。原始是 JSON dict'
     if 变量 is None:#缺省无替换
         变量={}#空变量
     配置={}#可跑的按事件分组

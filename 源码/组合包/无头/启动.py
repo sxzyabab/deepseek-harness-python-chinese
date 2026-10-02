@@ -1,4 +1,4 @@
-"""一次性应用的命令行提供方：解析任务位置参数、`--session-id`、`--json` 与 `--help`。"""
+'一次性应用的命令行提供方：解析任务位置参数、`--session-id`、`--json` 与 `--help`'
 from ...启动.命令行 import 命令,解析命令行,命令错误
 from .json流 import 约束json行
 from .启动内部 import 内部流
@@ -10,7 +10,7 @@ __all__=['名称','依赖','无头启动服务键','应用']
 无头启动服务键='headlessStartup'
 
 def 无头命令():
-    """本应用的命令：任务位置参数、选项与帮助文本。"""
+    '本应用的命令：任务位置参数、选项与帮助文本'
     return (命令()
         .name('dsh --profile headless')
         .description('回答一项任务后退出；答案走标准输出，诊断走标准错误。')
@@ -28,7 +28,9 @@ def 无头命令():
     )
 
 def 请求了json(参数列表):
-    """原始调用是否点名机器可读流。遇 `--` 停止，跳过 `--session-id` 的值。"""
+    """原始调用是否点名机器可读流。
+    遇 `--` 停止，跳过 `--session-id` 的值
+    """
     下标=0
     while 下标<len(参数列表):
         参数=参数列表[下标]
@@ -42,20 +44,20 @@ def 请求了json(参数列表):
     return False
 
 def 应用(上下文):
-    """把一次性任务解析并作为普通 Cordis 服务提供。"""
+    '把一次性任务解析并作为普通 Cordis 服务提供'
     程序=无头命令()
     参数服务=上下文.获取服务('cmdlineArgs',False)
     原始=[] if 参数服务 is None else 参数服务.取()
     if 请求了json(原始):
         def 错误覆盖(消息,错误选项=None):
-            """写出 JSON 错误事件再抛控制流错误。"""
+            '写出 JSON 错误事件再抛控制流错误'
             正文=消息[7:] if 消息.startswith('error: ') else 消息
             内部流['stdout'].write(约束json行({'type':'error','message':正文})+'\n')
             码='commander.error' if 错误选项 is None or 'code' not in 错误选项 else 错误选项['code']
             raise 命令错误(消息,1,码)
         程序.error=错误覆盖
     def 动作():
-        """发布任务、会话标识与 JSON 旗。"""
+        '发布任务、会话标识与 JSON 旗'
         if len(程序.args)>1 and '-' in 程序.args:
             程序.error('error: `-` 必须是唯一的任务参数')
         拼接=' '.join(程序.args)

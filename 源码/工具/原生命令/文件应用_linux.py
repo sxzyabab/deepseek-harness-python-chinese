@@ -1,9 +1,9 @@
-"""GIO 查询的 Linux 文件关联，配合共享 XDG 元数据与图标查找。"""
+'GIO 查询的 Linux 文件关联，配合共享 XDG 元数据与图标查找'
 import os,re
 from .桌面条目 import 桌面应用程序图标,桌面数据目录,桌面条目字段
 
 def 桌面文件(根,标识,目录=None):
-    """查找桌面 id，含从嵌套应用目录派生的 id。"""
+    '查找桌面 id，含从嵌套应用目录派生的 id'
     if 目录 is None:
         目录=根
     try:
@@ -27,7 +27,7 @@ def 桌面文件(根,标识,目录=None):
     return None
 
 def linux文件应用程序(路径,信号,运行,环境):
-    """从 GIO 查询全部已注册文件处理程序，不执行桌面条目命令文本。"""
+    '从 GIO 查询全部已注册文件处理程序，不执行桌面条目命令文本'
     from . import 已中止
     信息=运行('gio',['info','-a','standard::content-type',路径],信号)
     mime匹配=re.search(r'standard::content-type:\s*(\S+)',信息['stdout'])

@@ -1,24 +1,24 @@
-"""原生系统消息字段，在物理恢复丢弃该行之前检查。"""
+'原生系统消息字段，在物理恢复丢弃该行之前检查'
 from ..会话格式 import 会话格式错误,是否会话格式json对象,会话格式计数#从会话格式导入
 
 def 记录(值,主语):#记录对象
-    """要求值为对象。"""
+    '要求值为对象'
     if not 是否会话格式json对象(值):#须对象
         raise 会话格式错误('format v4 '+主语+' requires an object')#错误
     return 值#返回
 
 def 字符串(值,主语,非空=False):#断言字符串
-    """要求值为字符串，可选非空。"""
+    '要求值为字符串，可选非空'
     if not isinstance(值,str) or (非空 and len(值)==0):#非法
         raise 会话格式错误('format v4 '+主语+' requires a string'+(' with content' if 非空 else ''))#错误
 
 def 正数(值,主语):#断言正计数
-    """要求值为正计数。"""
+    '要求值为正计数'
     if 会话格式计数(值,主语)==0:#须为正
         raise 会话格式错误('format v4 '+主语+' must be positive')#错误
 
 def 图像(值):#断言系统图像附件
-    """校验系统图像附件字段。"""
+    '校验系统图像附件字段'
     附件=记录(值,'system image attachment')#附件
     字符串(附件.get('attachmentId'),'system image attachmentId',True)#附件标识
     if 附件.get('mediaType') not in ('image/png','image/jpeg','image/webp','image/gif'):#媒体类型
@@ -34,7 +34,7 @@ def 图像(值):#断言系统图像附件
         正数(原始.get('height'),'system image original height')#高
 
 def 断言v4系统消息字段(行):#断言v4系统消息字段
-    """独立于历史消息表示校验系统字段，额外 JSON 字段予以保留。"""
+    '独立于历史消息表示校验系统字段，额外 JSON 字段予以保留'
     if not 是否会话格式json对象(行) or 行.get('type')!='system/message':#非系统消息
         return#返回
     数据=记录(行.get('data'),'system/message data')#载荷

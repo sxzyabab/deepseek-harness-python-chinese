@@ -17,7 +17,7 @@ def 建面板回调(
     饰条窗格标识=None,饰条=None,
     阻断时隐藏分割=False,可否关闭标签=None,水平投放=False,
 ):
-    """装配窗格回调 dict（键与标签面板/窗格树约定一致，含上游形 on* 键）。"""
+    '装配窗格回调 dict（键与标签面板/窗格树约定一致，含上游形 on* 键）'
     return {#回调
         'onFocusTab':聚焦标签,
         'onFocusPane':聚焦窗格,

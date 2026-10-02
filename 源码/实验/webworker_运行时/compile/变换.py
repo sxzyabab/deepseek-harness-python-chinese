@@ -17,10 +17,10 @@ als标识='__als'
 _缓存={}
 
 class 变换器:
-    """把模块源变成给 worker 包装器用的体。"""
+    '把模块源变成给 worker 包装器用的体'
 
     def __init__(自身,源,路径):
-        """去掉 shebang 或原样。"""
+        '去掉 shebang 或原样'
         自身._源=f'//{源[2:]}' if 源.startswith('#!') else 源
         自身._路径=路径
         自身._辅助=set()
@@ -28,20 +28,20 @@ class 变换器:
         自身._元解析请求=set()
 
     def _失败(自身,细节,索引):
-        """带路径行号抛错。"""
+        '带路径行号抛错'
         行=自身._源[:索引].count('\n')+1
         raise 运行时错误(f'webworker transform: {细节} ({自身._路径}:{行})')
 
     def 列出请求(自身):
-        """正文发出的静态模块请求，按首次出现顺序。"""
+        '正文发出的静态模块请求，按首次出现顺序'
         return list(自身._模块请求)
 
     def 列出元请求(自身):
-        """字面量 import.meta.resolve() 请求。"""
+        '字面量 import.meta.resolve() 请求'
         return list(自身._元解析请求)
 
     def 运行(自身):
-        """解析、遍历、拼序言与编辑。"""
+        '解析、遍历、拼序言与编辑'
         if f'{als标识}.pause(' in 自身._源 or '__als$' in 自身._源:
             自身._失败('the module is already lowered; check the image manifest wiring',0)
         源=自身._源
@@ -61,7 +61,7 @@ class 变换器:
         return ''.join(序言)+源
 
 def 详细变换(源,路径):
-    """把一个模块变换成给 worker 包装器用的体；按源文本缓存。"""
+    '把一个模块变换成给 worker 包装器用的体；按源文本缓存'
     if 源 in _缓存:
         return _缓存[源]
     变换=变换器(源,路径)
@@ -75,7 +75,7 @@ def 降低模块源(选项):
     参数:
         选项: 含 filename 与 source。
     返回:
-        要打包的代码以及是否改过。
+        要打包的代码以及是否改过
     """
     详细=详细变换(选项['source'],选项['filename'])
     return {

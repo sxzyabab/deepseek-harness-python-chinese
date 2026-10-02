@@ -1,5 +1,9 @@
-"""面向模型的 web_search 与 web_fetch 工具：负责 schema、校验、提示词与呈现，不实现提供方。"""
+'面向模型的 web_search 与 web_fetch 工具'
 from ...依赖.schemastery import 布尔字段,数字字段
+
+class 网页工具错误(Exception):
+    'tool-web 加载或参数校验失败'
+
 from .搜索 import (
     网络搜索最大结果数,
     应用网络搜索工具,
@@ -19,9 +23,6 @@ from .抓取 import (
     抓取元自值,
     抓取元自结果,
 )
-
-class 网页工具错误(Exception):
-    """tool-web 加载或参数校验失败。"""
 
 __all__=[
     '包名','名称','依赖','应用','默认','配置模式',
@@ -48,7 +49,7 @@ __all__=[
 }
 
 def 断言正整数(名称字,值):
-    """配置的条数、超时和字符上限必须是正整数。"""
+    '配置的条数、超时和字符上限必须是正整数'
     if isinstance(值,bool):
         raise 网页工具错误('tool-web: '+名称字+' must be a positive integer')
     if isinstance(值,int):
@@ -60,7 +61,8 @@ def 断言正整数(名称字,值):
     raise 网页工具错误('tool-web: '+名称字+' must be a positive integer')
 
 def 应用(上下文,配置):
-    """注册已启用的 web 工具。协作超时预算写入 ToolDefinition.timeoutMs，由超时策略强制执行。"""
+    """注册已启用的 web 工具。
+    协作超时预算写入 ToolDefinition.timeoutMs，由超时策略强制执行"""
     已解析=配置
     断言正整数('searchMaxResults',已解析['searchMaxResults'])
     断言正整数('fetchTimeoutMs',已解析['fetchTimeoutMs'])

@@ -8,7 +8,7 @@ __all__=['超文本体标识','超文本体定义','应用','超文本体','中�
 
 
 def 超文本体定义(标题):
-    """描述内置 HTML 渲染器的文件类型与加载模式。"""
+    '描述内置 HTML 渲染器的文件类型与加载模式'
     return {#元数据
         'id':超文本体标识,
         'extensions':['html','htm'],
@@ -20,30 +20,30 @@ def 超文本体定义(标题):
 
 
 def 应用(上下文):
-    """登记 HTML 词典、元数据与正文。"""
+    '登记 HTML 词典、元数据与正文'
     翻译=上下文.locale.bind('documentHtml')#绑定
 
     def 登记词典():
-        """挂 HTML 词典。"""
+        '挂 HTML 词典'
         return 上下文.locale.register('documentHtml',{'zh':中文,'en':英文})#登记
 
     上下文.副作用(登记词典)#寿命
 
     def 登记元数据():
-        """挂 HTML 元数据。"""
+        '挂 HTML 元数据'
         return 上下文.documentPreviews.register(超文本体定义(lambda:翻译('title')))#登记
 
     上下文.副作用(登记元数据)#寿命
 
     def 挂正文():
-        """正文进文档子槽。"""
+        '正文进文档子槽'
 
         def 登记正文():
-            """登记 HTML 正文。"""
+            '登记 HTML 正文'
             def 注入():
-                """绑定关联读取与交互预览开关。"""
+                '绑定关联读取与交互预览开关'
                 def 关联读取(地址,相对路径,信号):
-                    """经 Host 相对根 HTML 读取依赖。"""
+                    '经 Host 相对根 HTML 读取依赖'
                     文件=宿主文件(地址)#宿主文件
                     return 上下文.remote.workspaceFiles.readBytes(文件['sessionId'],相对路径,{'baseFile':文件['path']},信号)#结果
                 交互=上下文.configForms.developerTools.enabled

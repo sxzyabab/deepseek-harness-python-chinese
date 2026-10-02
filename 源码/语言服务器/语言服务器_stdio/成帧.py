@@ -1,4 +1,4 @@
-"""LSP 基础协议成帧：字节流上按 Content-Length 分隔的 JSON-RPC。编码器产出一帧缓冲；解码器缓冲入站字节并产出完整消息体，同时限制头与整消息大小，使敌意或损坏的服务器无法耗尽内存。"""
+'LSP 基础协议成帧：字节流上按 Content-Length 分隔的 JSON-RPC'
 import json#JSON正文编解码
 from ..语言服务器 import 语言服务器错误#本缝异常基类
 
@@ -6,20 +6,23 @@ from ..语言服务器 import 语言服务器错误#本缝异常基类
 头段上限字节=1<<16#头段最大字节数
 
 def 编码消息(消息):
-    """把一条 JSON-RPC 消息编码成成帧的 LSP 缓冲（Content-Length: N\\r\\n\\r\\n<utf-8 json>）。"""
+    '把一条 JSON-RPC 消息编码成成帧的 LSP 缓冲（Content-Length: N\\r\\n\\r\\n<utf-8 json>）'
     正文=json.dumps(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#把消息序列化为UTF-8正文
     头=('Content-Length: '+str(len(正文))+'\r\n\r\n').encode('ascii')#按正文字节数写Content-Length头
     return 头+正文#头与体拼接成一帧
 
 class 消息解码器:
-    """Content-Length 成帧 JSON-RPC 的流式解码器。喂入 stdout 分块；返回此刻已完整的消息体。只解析 Content-Length 头，忽略其他头（例如 Content-Type），与基础协议一致。"""
+    """Content-Length 成帧 JSON-RPC 的流式解码器。
+    喂入 stdout 分块；返回此刻已完整的消息体。
+    只解析 Content-Length 头，忽略其他头（例如 Content-Type），与基础协议一致
+    """
     def __init__(自身,最大消息字节):
-        """记下单条成帧正文上限。"""
+        '记下单条成帧正文上限'
         自身.缓冲=b''#尚未消费的入站字节
         自身.最大消息字节=最大消息字节#单条消息体上限
 
     def 推入(自身,块):
-        """追加一块数据，并返回此刻已完整的每一条消息体。"""
+        '追加一块数据，并返回此刻已完整的每一条消息体'
         if isinstance(块,str):#文本则按utf-8
             块=块.encode('utf-8')#转字节
         elif isinstance(块,(bytes,bytearray)) is False:#memoryview等
@@ -34,7 +37,7 @@ class 消息解码器:
         return 消息列表#返回本轮全部完整消息
 
     def 下一条(自身):
-        """解析并消费下一条完整消息，或报告还需要更多字节。"""
+        '解析并消费下一条完整消息，或报告还需要更多字节'
         分隔=自身.缓冲.find(头体分隔符.encode('ascii'))#查找头体分隔符
         if 分隔<0:#尚未看到分隔符
             if len(自身.缓冲)>头段上限字节:#头已超过上限
@@ -58,7 +61,7 @@ class 消息解码器:
             raise 语言服务器错误('LSP message body was not valid JSON: '+str(错误),'LSP_PROTOCOL')#包装成LSP正文错误
 
 def 解析内容长度(头文本):
-    """读取 Content-Length 头值（大小写不敏感），缺失或非数字则拒绝。"""
+    '读取 Content-Length 头值（大小写不敏感），缺失或非数字则拒绝'
     for 行 in 头文本.split('\r\n'):#逐行扫描头
         冒号=行.find(':')#找冒号
         if 冒号<0:#没有冒号则跳过

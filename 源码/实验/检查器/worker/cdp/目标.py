@@ -3,7 +3,7 @@ __all__=['cdp方法未处理','处理脚手架']#仅中文公开名
 cdp方法未处理=None#未处理哨兵
 
 def 处理脚手架(请求,目标):#处理脚手架方法
-    """处理一条 Worker 本地身份或页面脚手架方法。"""
+    '处理一条 Worker 本地身份或页面脚手架方法'
     帧={#合成帧
         'id':'dsh-inspector-host-frame',#帧id
         'loaderId':'dsh-inspector-loader',#加载器id

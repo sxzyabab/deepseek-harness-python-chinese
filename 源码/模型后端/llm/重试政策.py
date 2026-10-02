@@ -1,8 +1,4 @@
-"""提供方拥有的请求重试政策配置与解析。
-
-公开面仅中文名；mode／字段键为线协议原样保留。
-无英文别名。
-"""
+'提供方拥有的请求重试政策配置与解析'
 import math#有限数判定
 from ...依赖.schemastery import 字符串字段,数字字段,整数字段,列表字段,复合类型字段,常量字段#配置字段
 from .错误 import 空响应码#导入空响应失败码
@@ -14,7 +10,7 @@ __all__=(#仅中文公开名
 )#公开面结束
 
 class 重试政策错误(Exception):
-    """重试政策配置校验失败。"""
+    '重试政策配置校验失败'
 
 默认最大重试次数=2#默认最多再试 2 次
 默认初始延迟毫秒=500#默认初始延迟毫秒
@@ -44,13 +40,13 @@ class 重试政策错误(Exception):
 退避键=set(['initialDelayMs','maxDelayMs','jitterRatio'])#退避允许的键
 
 def 校验键(值,允许,路径):#拒绝未知键
-    """拒绝未知键。"""
+    '拒绝未知键'
     for 键 in 值.keys():#逐键
         if 键 not in 允许:#未知键
             raise 重试政策错误(路径+': unknown key "'+键+'"')#未知键则失败
 
 def 解析退避(配置,路径):#解析并校验退避
-    """解析并校验退避。"""
+    '解析并校验退避'
     if 配置 is not None:#有配置
         校验键(配置,退避键,路径)#有配置则先拒未知键
     初始=配置['initialDelayMs'] if 配置 is not None and 'initialDelayMs' in 配置 else None#初始延迟
@@ -73,7 +69,7 @@ def 解析退避(配置,路径):#解析并校验退避
     return 深冻结({'initialDelayMs':初始,'maxDelayMs':最大,'jitterRatio':抖动})#冻结已解析退避
 
 def 解析重试政策(配置,路径):#校验、填默认并拆离重试政策
-    """校验、填默认并拆离一份提供方拥有的重试政策。"""
+    '校验、填默认并拆离一份提供方拥有的重试政策'
     if 配置 is None:#缺省普通政策
         退避=解析退避(None,路径+'.backoff')#默认退避
         政策={'mode':'normal','maxRetries':默认最大重试次数,'retryableCodes':默认可重试码}#普通默认

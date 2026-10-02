@@ -4,7 +4,7 @@ from .轨迹记录 import 轨迹错误#本包异常
 __all__=['登记轨迹压缩定义']#仅中文公开名
 
 def 检查点标识(事件):#从用户消息里抽出 compact 插件写入的 compactionId
-    """有合法 id 则返回，否则 None。"""
+    '有合法 id 则返回，否则 None'
     if 事件['type']!='user/message':#非用户消息
         return None#不是 checkpoint
     数据=事件['data'] if 'data' in 事件 else None#载荷
@@ -16,7 +16,7 @@ def 检查点标识(事件):#从用户消息里抽出 compact 插件写入的 co
     return None#否则不是 checkpoint
 
 def 事件压缩标识(事件):#从压缩生命周期事件上读 compactionId
-    """有合法 id 则返回，否则 None。"""
+    '有合法 id 则返回，否则 None'
     种类=事件['type']#事件类型
     if 种类 not in ('compaction/start','compaction/summary','compaction/end'):#无关
         return None#无关
@@ -25,7 +25,7 @@ def 事件压缩标识(事件):#从压缩生命周期事件上读 compactionId
     return 值 if isinstance(值,str) and 值!='' else None#非空字符串才算合法
 
 def 状态转请求(状态):#把累积状态投影成 compaction RequestView
-    """start 合法才返回视图。"""
+    'start 合法才返回视图'
     开始命中=状态['start'] if 'start' in 状态 else None#start 命中
     开始事件=开始命中['event'] if 开始命中 is not None and 'event' in 开始命中 else None#取出 start 命中上的事件
     if 开始事件 is None or 开始事件['type']!='compaction/start':#start 不是压缩开始
@@ -69,7 +69,7 @@ def 状态转请求(状态):#把累积状态投影成 compaction RequestView
     return 请求#RequestView
 
 def 压缩匹配(事件):#按 compactionId 或 checkpoint id 命中同一节点
-    """start 开节点，其余更新。"""
+    'start 开节点，其余更新'
     压缩标识=事件压缩标识(事件)#先从压缩生命周期事件取 id
     if 压缩标识 is not None:#命中压缩事件
         return {'id':压缩标识,'role':'start' if 事件['type']=='compaction/start' else 'update'}#start 或 update
@@ -77,14 +77,14 @@ def 压缩匹配(事件):#按 compactionId 或 checkpoint id 命中同一节点
     return None if 检查点 is None else {'id':检查点,'role':'update'}#有则作为更新
 
 def 压缩开始(_上下文,匹配):#用 compaction/start 命中初始化状态
-    """起点必须是压缩开始。"""
+    '起点必须是压缩开始'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     if 事件 is None or 事件['type']!='compaction/start':#起点必须是压缩开始
         raise 轨迹错误('trajectory-compaction start requires compaction/start')#运行时错误字符串保持英文
     return {'start':匹配}#记下 start 命中
 
 def 压缩更新(上下文,匹配):#把后续命中并入状态
-    """summary / end / checkpoint。"""
+    'summary / end / checkpoint'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     种类=事件['type'] if 事件 is not None else None#事件类型
     状态=上下文['state'] if 'state' in 上下文 else None#当前状态
@@ -97,7 +97,7 @@ def 压缩更新(上下文,匹配):#把后续命中并入状态
     return {**状态,'checkpoint':匹配}#记下替换用户消息
 
 def 压缩构建视图(上下文):#把状态投影成轨迹视图节点
-    """投影失败则不贡献。"""
+    '投影失败则不贡献'
     状态=上下文['state'] if 'state' in 上下文 else None#累积状态
     if 状态 is None:#尚无状态
         return None#不贡献
@@ -107,22 +107,22 @@ def 压缩构建视图(上下文):#把状态投影成轨迹视图节点
     return 轨迹节点(上下文,请求['startSeq'] if 'startSeq' in 请求 else None,{'kind':'compaction','request':请求})#包成压缩贡献信封
 
 def 会话结束匹配(事件):#只匹配会话结束种子
-    """以序号为 id 起步。"""
+    '以序号为 id 起步'
     if 事件['type']=='session/end-seed':#会话结束种子
         return {'id':str(事件['seq']),'role':'start'}#起步
     return None#忽略
 
 def 会话结束开始(_上下文,匹配):#记下序号与时间
-    """无后续字段。"""
+    '无后续字段'
     事件=匹配['event']#事件
     return {'seq':事件['seq'],'time':事件['time']}#状态
 
 def 会话结束更新(上下文,_匹配):#无后续更新
-    """状态原样。"""
+    '状态原样'
     return 上下文['state'] if 'state' in 上下文 else None#原样
 
 def 会话结束构建视图(上下文):#包成会话结束贡献
-    """无状态则不贡献。"""
+    '无状态则不贡献'
     状态=上下文['state'] if 'state' in 上下文 else None#状态
     if 状态 is None:#无
         return None#不贡献
@@ -147,6 +147,6 @@ def 会话结束构建视图(上下文):#包成会话结束贡献
 }#定义结束
 
 def 登记轨迹压缩定义(上下文):#向会话事件注册两则 Definition
-    """注册轨迹压缩请求与会话边界的 ConversationNode Definition。"""
+    '注册轨迹压缩请求与会话边界的 ConversationNode Definition'
     上下文.conversationEvents.register(轨迹压缩定义)#注册压缩请求节点
     上下文.conversationEvents.register(会话结束定义)#注册会话结束节点

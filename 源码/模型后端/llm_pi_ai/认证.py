@@ -1,8 +1,4 @@
-"""pi-ai 认证模型与 harness 凭证平面之间的适配器。
-
-公开面仅中文名。
-`fileExists` 回答宿主进程文件系统（`~/.aws/credentials` 等），不是工作区 `ctx.fs`。
-"""
+'pi-ai 认证模型与 harness 凭证平面之间的适配器'
 import os#主目录与路径
 from types import SimpleNamespace as 简名空间#属性面
 from ...凭据.凭据 import (#凭证键辅助
@@ -16,11 +12,11 @@ __all__=['记录作用域','记录键于','从上下文建凭证仓','从上下�
 记录作用域='llm-pi-ai'#记录作用域
 
 def 记录键于(提供方标识):
-    """一个 pi-ai 提供方 id 的记录地址。"""
+    '一个 pi-ai 提供方 id 的记录地址'
     return 凭证键(记录作用域,提供方标识)#键
 
 def json映像(值):
-    """JSON 映像：数组项原样递归；普通 dict 丢掉 None 成员。"""
+    'JSON 映像：数组项原样递归；普通 dict 丢掉 None 成员'
     if isinstance(值,list):#数组
         return [None if 项 is None else json映像(项) for 项 in 值]#映射
     if isinstance(值,dict) and type(值) is dict:#普通对象
@@ -32,7 +28,7 @@ def json映像(值):
     return 值#标量
 
 def 转派爱凭证(记录):
-    """把已存记录翻译成 pi-ai 期望的凭证。"""
+    '把已存记录翻译成 pi-ai 期望的凭证'
     if 记录 is None:#缺席
         return None#无
     if 记录.get('kind')=='api-key':#api-key
@@ -45,7 +41,7 @@ def 转派爱凭证(记录):
     return 记录['payload']#grant 原样
 
 def 转记录(凭证):
-    """把 pi-ai 凭证翻译成要存的记录。"""
+    '把 pi-ai 凭证翻译成要存的记录'
     if isinstance(凭证,dict) and 凭证.get('type')=='api_key':#api-key
         记录={'kind':'api-key'}#结构
         if 'key' in 凭证 and 凭证['key'] is not None:#有密钥
@@ -67,7 +63,7 @@ def 转记录(凭证):
     return {'kind':'grant','payload':json映像(载荷)}#grant
 
 def 可写仓(上下文):
-    """凭证服务，或点名缺什么的失败。"""
+    '凭证服务，或点名缺什么的失败'
     凭证=上下文.获取服务('credentials')#可选
     if 凭证 is None:#无
         raise llm.大模型错误(
@@ -78,9 +74,9 @@ def 可写仓(上下文):
     return 凭证#仓
 
 def 从上下文建凭证仓(上下文):
-    """盖在 harness 凭证记录上的 pi-ai CredentialStore（属性面）。"""
+    '盖在 harness 凭证记录上的 pi-ai CredentialStore（属性面）'
     def 读(提供方标识):
-        """读提供方凭证。"""
+        '读提供方凭证'
         凭证=上下文.获取服务('credentials')#可选
         if 凭证 is None:#无
             return None#无存储
@@ -88,7 +84,7 @@ def 从上下文建凭证仓(上下文):
             return None#无
         return 转派爱凭证(凭证.读记录(记录键于(提供方标识)))#转
     def 列举():
-        """列出本作用域记录。"""
+        '列出本作用域记录'
         凭证=上下文.获取服务('credentials')#可选
         已存=凭证.列举记录() if 凭证 is not None else []#列表
         我的=[]#结果
@@ -101,7 +97,7 @@ def 从上下文建凭证仓(上下文):
             })#条目
         return 我的#列表
     def 修改(提供方标识,变更):
-        """串行读改写。"""
+        '串行读改写'
         if not 是否凭证键段(提供方标识):#非法
             raise llm.大模型错误(
                 'llm-pi-ai: provider id "'+提供方标识+'" cannot address a stored credential record (a record id is a'
@@ -110,22 +106,22 @@ def 从上下文建凭证仓(上下文):
                 'UNSTORABLE_PROVIDER_ID',
             )#不可存
         def 变(当前):
-            """把 pi 变更接到记录。"""
+            '把 pi 变更接到记录'
             下一=变更(转派爱凭证(当前))#决策
             return None if 下一 is None else 转记录(下一)#转回
         已存=可写仓(上下文).修改记录(记录键于(提供方标识),变)#写
         return 转派爱凭证(已存)#转
     def 删除(提供方标识):
-        """删除记录。"""
+        '删除记录'
         if not 是否凭证键段(提供方标识):#非法
             return#空
         可写仓(上下文).删除记录(记录键于(提供方标识))#删
     return 简名空间(read=读,list=列举,modify=修改,delete=删除)#仓
 
 def 从上下文建认证上下文(上下文):
-    """盖在 harness 凭证平面与宿主文件系统上的 pi-ai AuthContext。"""
+    '盖在 harness 凭证平面与宿主文件系统上的 pi-ai AuthContext'
     def 环境(名):
-        """先凭证引用，再启动环境。"""
+        '先凭证引用，再启动环境'
         if 是否凭证引用名(名):#合法引用名
             凭证=上下文.获取服务('credentials')#可选
             if 凭证 is not None:#有
@@ -135,7 +131,7 @@ def 从上下文建认证上下文(上下文):
         项=取启动环境(上下文).取(名)#启动环境
         return 项['value'] if 项 is not None else None#值或无
     def 文件存在(路径):
-        """宿主进程文件系统。"""
+        '宿主进程文件系统'
         if 路径.startswith('~/') or 路径=='~':#家目录
             展开=os.path.join(os.path.expanduser('~'),路径[1:].lstrip('/\\'))#展开
         else:#原路径
@@ -147,7 +143,7 @@ def 从上下文建认证上下文(上下文):
     return 简名空间(env=环境,fileExists=文件存在)#认证上下文
 
 def 建认证注入(上下文):
-    """交给 createModels 的 {credentials, authContext}。"""
+    '交给 createModels 的 {credentials, authContext}'
     return 简名空间(
         credentials=从上下文建凭证仓(上下文),
         authContext=从上下文建认证上下文(上下文),

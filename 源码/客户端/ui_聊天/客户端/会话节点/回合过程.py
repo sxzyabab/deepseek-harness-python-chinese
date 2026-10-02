@@ -7,17 +7,17 @@ from .事件面 import 是追加面事件#面辅助
 __all__=['回合过程定义','登记回合过程']#仅中文公开名
 
 def 事件回合(事件):#从事件取轮次
-    """数字轮次或缺席。"""
+    '数字轮次或缺席'
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     回合=数据['turn'] if 'turn' in 数据 else None#轮次
     return 回合 if isinstance(回合,int) and not isinstance(回合,bool) else None#整数
 
 def 是块行事件(事件):#是否 chunk 行事件
-    """三种 chunkrow。"""
+    '三种 chunkrow'
     return 事件['type'] in ('chunkrow/text-chunks','chunkrow/reasoning-chunks','chunkrow/tool-call-chunks')#三种
 
 def 可见助手事件(事件):#是否可见 Assistant 事件
-    """流式或定稿可见正文。"""
+    '流式或定稿可见正文'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='assistant/live-chunk':#流式
@@ -45,7 +45,7 @@ def 可见助手事件(事件):#是否可见 Assistant 事件
     return False#否
 
 def 过程证据(事件):#从事件取过程证据
-    """assistant 或 other。"""
+    'assistant 或 other'
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 是块行事件(事件):#chunk 行
         if 事件['type']=='chunkrow/tool-call-chunks':#工具行
@@ -67,7 +67,7 @@ def 过程证据(事件):#从事件取过程证据
     return None#无
 
 def 更新过程状态(态,事件):#更新过程状态
-    """消息/工具计数与证据锚点。"""
+    '消息/工具计数与证据锚点'
     当前=态#累计
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -111,7 +111,7 @@ def 更新过程状态(态,事件):#更新过程状态
     }#结束
 
 def 回合过程匹配(事件):#匹配事件
-    """turn/start 开；过程相关更新。"""
+    'turn/start 开；过程相关更新'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='turn/start':#开始
@@ -124,7 +124,7 @@ def 回合过程匹配(事件):#匹配事件
     return None#否
 
 def 回合过程开始(_上下文,匹配项):#起始状态
-    """turn/start。"""
+    'turn/start'
     事件=匹配项['event']#事件
     if 事件['type']!='turn/start':#必须
         raise 聊天错误('turn-process start requires turn/start')#硬失败
@@ -137,12 +137,12 @@ def 回合过程开始(_上下文,匹配项):#起始状态
     }#结束
 
 def 回合过程更新(上下文,匹配项):#折事件
-    """更新过程状态。"""
+    '更新过程状态'
     态=上下文['state'] if 'state' in 上下文 else {}#态
     return 更新过程状态(态 if 态 is not None else {},匹配项['event'])#折
 
 def 回合过程建视图(上下文):#造过程控件节点
-    """无控件锚则不渲染。"""
+    '无控件锚则不渲染'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None or 'controlAnchorSeq' not in 态 or 态['controlAnchorSeq'] is None:#无锚
         return None#无
@@ -162,5 +162,5 @@ def 回合过程建视图(上下文):#造过程控件节点
 }#结束
 
 def 登记回合过程(上下文):#登记轮次过程
-    """挂到 uiConversation.events。"""
+    '挂到 uiConversation.events'
     上下文.uiConversation.events.register(回合过程定义)#登记

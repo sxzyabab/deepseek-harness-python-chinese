@@ -1,8 +1,5 @@
-"""向 typert 注册目标的远程增删改查贡献（创建、编辑、暂停、恢复、完成、清除）。
-
-实现指向中文树宿主方法名；服务键与命名空间均为 `goals`。
-"""
-from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
+'向 typert 注册目标的远程增删改查贡献（创建、编辑、暂停、恢复、完成、清除）'
+from ...类型化远程调用.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
@@ -12,7 +9,8 @@ __all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 type
 }#结束
 引用参数={'name':'ref','wire':'ref','source':'json','codec':严格编解码('GoalRef')}#GoalRef
 作用域={'context':'agent','wire':'agent'}#agent scope
-包名='@deepseek-ai/dsh-goal'服务='goals'#服务键
+包名='@deepseek-ai/dsh-goal'
+服务='goals'#服务键
 命名空间='goals'#命名空间
 类前=包名+'#GoalService.'#调用 id 前缀
 

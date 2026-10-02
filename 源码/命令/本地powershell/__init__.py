@@ -1,9 +1,4 @@
-"""本地 PowerShell 服务提供方。
-
-每条命令经子进程拉起受管进程，以 pwsh -NoLogo -NoProfile -NonInteractive -Command 运行；
-执行器负责命令缺省、截止与原因分类、面向模型的终端环境，以及后台读取时面向模型的 stdout/stderr 合并。
-命令字符串作为 -Command 的一个 argv 元素传入：由 PowerShell 自己解析文本，中间没有 shell。
-"""
+'本地 PowerShell 服务提供方'
 import os,math,threading#工作目录、有限数与后台结算线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
@@ -39,25 +34,25 @@ __all__=(#仅中文公开名
 }#插件配置模式结束
 
 class 本地powershell错误(Exception):#本包异常基类
-    """本地 PowerShell 执行器入参、配置或组合失败。"""
+    '本地 PowerShell 执行器入参、配置或组合失败'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
-    """单次操作的 Future 包装，只留等待。"""
+    '单次操作的 Future 包装，只留等待'
     def __init__(自身):#构造未决任务
-        """构造未决任务。"""
+        '构造未决任务'
         自身.未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
+        '成功结算'
         if not 自身.未来.done():#尚未结算
             自身.未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
+        '失败结算'
         if not 自身.未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身.未来.set_exception(错误)#原样拒绝
@@ -65,17 +60,19 @@ class 操作任务:#单次操作结果
                 自身.未来.set_exception(本地powershell错误(错误))#包装拒绝
 
     def 等待(自身,超时=None):#阻塞等待
-        """阻塞到结算。"""
+        '阻塞到结算'
         return 自身.未来.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):#读中止事实
-    """信号按 Event 定死。无信号视为未中止。"""
+    """信号按 Event 定死。
+    无信号视为未中止
+    """
     if 信号 is None:#无信号
         return False#未中止
     return 信号.is_set()#事件已置位
 
 def 最终输出(读取器):#把已结算的收集模式读取器投影成最终收集输出
-    """把已结算的收集模式读取器投影成最终的已收集输出。"""
+    '把已结算的收集模式读取器投影成最终的已收集输出'
     读出=读取器.自偏移读取(0)#从开头读完整收集
     结果={'text':读出['text'],'truncated':读出['lossy']}#文本与是否丢失
     if 'spillPath' in 读出:#有溢出路径键
@@ -83,12 +80,14 @@ def 最终输出(读取器):#把已结算的收集模式读取器投影成最终
     return 结果#最终输出
 
 def 断言正有限(名称,值):#断言值为正有限数
-    """断言值为正有限数；布尔先排除。"""
+    '断言值为正有限数；布尔先排除'
     if isinstance(值,bool) or not isinstance(值,(int,float)) or not math.isfinite(值) or 值<=0:#不是正有限数
         raise 本地powershell错误('pwsh-local: '+名称+' must be a positive finite number')#用字段名报配置不可用
 
 def 断言可用Pwsh配置(配置):#断言配置能拿来跑
-    """拒绝本执行器没法拿来跑的已解析设置段。模式既不表达正且有限，也不表达 graceMs 必须装进的定时器上限，所以在写入处拒绝存进去的值。"""
+    """拒绝本执行器没法拿来跑的已解析设置段。
+    模式既不表达正且有限，也不表达 graceMs 必须装进的定时器上限，所以在写入处拒绝存进去的值
+    """
     断言正有限('timeoutMs',配置['timeoutMs'])#检查默认超时
     断言正有限('maxTimeoutMs',配置['maxTimeoutMs'])#检查超时上限
     断言正有限('maxOutputBytes',配置['maxOutputBytes'])#检查内存输出上限
@@ -99,7 +98,7 @@ def 断言可用Pwsh配置(配置):#断言配置能拿来跑
         raise 本地powershell错误('pwsh-local: graceMs must be no greater than '+str(定时器延迟上限毫秒))#拒绝过大的宽限
 
 def 取出已收集(句柄):#取出收集模式的两路读取器
-    """执行器自己请求的收集模式读取器（按构造即存在）。"""
+    '执行器自己请求的收集模式读取器（按构造即存在）'
     已收集输出=句柄.collected#收集输出集合
     标准输出=已收集输出['stdout'] if 'stdout' in 已收集输出 else None#标准输出读取器
     标准误=已收集输出['stderr'] if 'stderr' in 已收集输出 else None#标准误读取器
@@ -108,9 +107,8 @@ def 取出已收集(句柄):#取出收集模式的两路读取器
     return {'stdout':标准输出,'stderr':标准误}#两路读取器
 
 class 后台进程句柄:#外壳执行器.启动 返回的后台进程
-    """后台进程句柄：方法仅中文读取输出与杀死。"""
     def __init__(自身,运行中,收集,规格,宿主,分类函数):#钉住子进程与收集器
-        """记下存活子进程、两路收集器、规格与宿主执行器。"""
+        '记下存活子进程、两路收集器、规格与宿主执行器'
         自身.status='running'#刚拉起，算在跑
         自身.exitCode=None#尚未退出
         自身.signal=None#尚未被信号打死
@@ -128,7 +126,7 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         自身.分类函数=分类函数#到期分类
 
     def 结果(自身):
-        """前台投影：进程关闭后给出运行结果；提供方失败则抛出。"""
+        '前台投影：进程关闭后给出运行结果；提供方失败则抛出'
         if 自身.投影 is None:
             自身.done.等待()
             if 自身.提供方失败 is not None:
@@ -146,13 +144,13 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         return 自身.投影
 
     def 消费启动失败(自身):#读走并清空启动失败说明
-        """读走并清空启动失败说明。"""
+        '读走并清空启动失败说明'
         说明='' if 自身.失败说明 is None else 自身.失败说明#没有说明则给空串
         自身.失败说明=None#只交付一次
         return 说明#返回本次说明
 
     def 读取输出(自身):#读出上次以来的新输出
-        """读出上次以来的新输出（消费式）。"""
+        '读出上次以来的新输出（消费式）'
         标准输出读取=自身.收集['stdout'].自偏移读取(自身.标准输出偏移)#从上次偏移读标准输出
         标准误读取=自身.收集['stderr'].自偏移读取(自身.标准误偏移)#从上次偏移读标准误
         自身.标准输出偏移=标准输出读取['nextOffset']#推进标准输出偏移
@@ -177,7 +175,9 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         return 读取#本次读取
 
     def 杀死(自身):#请求杀掉后台进程
-        """请求杀掉后台进程。已经结束时返回 False。"""
+        """请求杀掉后台进程。
+        已经结束时返回 False
+        """
         if 自身.status!='running':#已经不在跑
             return False#杀不动
         自身.status='killed'#先标成已杀
@@ -185,7 +185,7 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         return True#发出了终止
 
     def 盯退出(自身):#正常结算或启动拒绝
-        """把子进程 done 投影到后台句柄。"""
+        '把子进程 done 投影到后台句柄'
         try:#正常结算
             结算=自身.运行中.done.等待()#等到关闭
             if 自身.status=='running':#还没被杀死标过
@@ -215,27 +215,26 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
 class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
     """架在子进程能力上的本地 PowerShell 执行器。
 
-    有界输出、溢出文件和进程树终止是子进程服务的机制；本执行器在每次启动时提供它们的配置预算。
-    公开方法仅中文：解析、运行、启动、按参数表运行/启动、参数表、进程已结束。
+    有界输出、溢出文件和进程树终止是子进程服务的机制；本执行器在每次启动时提供它们的配置预算
     """
     依赖=['subprocess']
     inject=依赖
     Config=配置模式
     def __init__(自身,上下文,配置):#用上下文和配置构造执行器
-        """用上下文和配置构造执行器；入口配置必须能拿来跑，并解析 pwsh 可执行文件。"""
+        '用上下文和配置构造执行器；入口配置必须能拿来跑，并解析 pwsh 可执行文件'
         super().__init__(上下文)#交给 shell 执行器基类
         断言可用Pwsh配置(配置)#入口配置必须能拿来跑
         def 读入口():#组合入口配置源
-            """组合入口配置源。"""
+            '组合入口配置源'
             return 配置#入口配置
         自身.源=读入口#先把配置源钉成这份入口
         自身.已声明Pwsh路径=配置['pwshPath'] if 'pwshPath' in 配置 else None#记下声明的 pwsh 路径（可缺席）
         自身.已解析Pwsh路径=解析Pwsh路径(自身.已声明Pwsh路径)#按声明解析出可执行文件
         def 设源(当前):#切换权威配置源
-            """切换权威配置源。"""
+            '切换权威配置源'
             自身.源=当前#之后都从设置段读
         def 变更时():#声明路径变了就重新解析
-            """探测文件系统是从源派生出的唯一事实：其余字段每次命令都经配置/pwsh路径读。"""
+            '探测文件系统是从源派生出的唯一事实：其余字段每次命令都经配置/pwsh路径读'
             当前=自身.源()#权威配置
             声明=当前['pwshPath'] if 'pwshPath' in 当前 else None#读出当前声明的 pwsh 路径
             if 声明==自身.已声明Pwsh路径:#声明没变
@@ -250,16 +249,16 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
 
     @property
     def 配置(自身):#读取当前权威配置
-        """当前权威配置：设置段，或组合入口。"""
+        '当前权威配置：设置段，或组合入口'
         return 自身.源()#调用当前配置源
 
     @property
     def pwsh路径(自身):#读取解析后的pwsh路径
-        """每条命令都经这个 pwsh 可执行文件运行。"""
+        '每条命令都经这个 pwsh 可执行文件运行'
         return 自身.已解析Pwsh路径#返回当前解析结果
 
     def 解析(自身,请求):#把请求解析成完整规格
-        """把请求解析成完整规格：workdir 从 config.cwd 填（否则进程 cwd），timeoutMs 从 config.timeoutMs 填，并夹在 config.maxTimeoutMs 内。"""
+        '把请求解析成完整规格：workdir 从 config.cwd 填（否则进程 cwd），timeoutMs 从 config.timeoutMs 填，并夹在 config.maxTimeoutMs 内'
         当前=自身.配置#权威配置
         超时毫秒=夹取超时(请求['timeoutMs'] if 'timeoutMs' in 请求 else None,当前['timeoutMs'],当前['maxTimeoutMs'],'pwsh-local: request.timeoutMs')#夹取本次超时
         标准输出上限=请求['stdoutMaxBytes'] if 'stdoutMaxBytes' in 请求 else None#请求里的标准输出上限
@@ -289,14 +288,14 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         return 规格#完整规格
 
     def 参数表(自身,规格):#拼出本次pwsh调用argv
-        """一条已解析规格对应的 pwsh 调用 argv——隔离子类经沙盒包装的 argv 级接口。"""
+        '一条已解析规格对应的 pwsh 调用 argv——隔离子类经沙盒包装的 argv 级接口'
         return [自身.pwsh路径,'-NoLogo','-NoProfile','-NonInteractive','-Command',编码前导+规格['command']]#pwsh加编码钉住语句再跟命令
 
     def 拉起规格(自身,规格,标准输出上限,信号,参数表):#把规格和argv映射成子进程启动规格
-        """把一条已解析规格加上它的 argv 映射成完整的子进程启动规格。"""
+        '把一条已解析规格加上它的 argv 映射成完整的子进程启动规格'
         当前=自身.配置#权威配置
         def 收集(最大字节):#按字节上限构造收集配置
-            """按字节上限构造收集配置。"""
+            '按字节上限构造收集配置'
             return {'maxBytes':最大字节,'spill':{'maxBytes':当前['maxSpillBytes']}}#内存上限加溢出文件上限
         if 'stdin' in 规格 and 规格['stdin'] is not None:#有stdin就喂数据
             输入处置={'data':规格['stdin']}#写入后关闭
@@ -321,23 +320,23 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         }#子进程启动规格
 
     def 运行(自身,规格):#前台跑一条已解析规格
-        """前台跑一条已解析规格。"""
+        '前台跑一条已解析规格'
         return 自身.执行(规格).结果()#经统一执行句柄取前台投影
 
     def 执行(自身,规格):
-        """按已解析规格准备并派生 pwsh。"""
+        '按已解析规格准备并派生 pwsh'
         return 自身.按参数表执行(规格,自身.参数表(规格))
 
     def 按参数表执行(自身,规格,参数表或准备,已启动=None):
-        """用本执行器的生命周期、环境、输出、截止与取消语义跑一条显式 argv。"""
+        '用本执行器的生命周期、环境、输出、截止与取消语义跑一条显式 argv'
         截止对象=截止(规格['signal'] if 'signal' in 规格 else None,规格['timeoutMs'],'BASH_TIMEOUT')
         派生信号=截止对象.信号
         def 分类():
-            """本执行器超时算 timedOut，其余中止算 aborted。"""
+            '本执行器超时算 timedOut，其余中止算 aborted'
             已超时=取超时(派生信号,'BASH_TIMEOUT') is not None
             return {'timedOut':已超时,'aborted':已中止(派生信号) is True and not 已超时}
         def 拆除截止():
-            """释放已武装定时器。"""
+            '释放已武装定时器'
             截止对象.释放()
         准备超时=False
         if callable(参数表或准备):
@@ -364,12 +363,12 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
             收集=取出已收集(运行中)
         else:
             def 空读(起始字节):
-                """派生失败时的空读取器。"""
+                '派生失败时的空读取器'
                 return {'text':'','lossy':False,'nextOffset':起始字节}
             class 空读取器:
-                """无进程时的收集读取器。"""
+                '无进程时的收集读取器'
                 def 自偏移读取(自身,起始字节):
-                    """始终空。"""
+                    '始终空'
                     return 空读(起始字节)
             空=空读取器()
             收集={'stdout':空,'stderr':空}
@@ -395,7 +394,7 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
             拆除截止()
         else:
             def 盯完():
-                """结算后续拆除截止。"""
+                '结算后续拆除截止'
                 进程.盯退出()
                 拆除截止()
             工作=threading.Thread(target=盯完)
@@ -406,20 +405,22 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         return 进程
 
     def 按参数表运行(自身,规格,参数表):#按给定argv前台运行
-        """用精确 argv 做前台运行（隔离子类会重新包装它）。"""
+        '用精确 argv 做前台运行（隔离子类会重新包装它）'
         return 自身.按参数表执行(规格,参数表).结果()
 
     def 启动(自身,规格):#后台拉起一条已解析规格
-        """后台拉起一条已解析规格。"""
+        '后台拉起一条已解析规格'
         return 自身.按参数表启动(规格,自身.参数表(规格))#用本执行器拼出的argv后台拉起
 
     def 按参数表启动(自身,规格,参数表,已启动=None):#按给定argv后台启动
-        """用精确 argv 做后台启动（隔离子类会重新包装它）。后台运行忽略 timeoutMs。"""
+        """用精确 argv 做后台启动（隔离子类会重新包装它）。
+        后台运行忽略 timeoutMs
+        """
         当前=自身.配置#权威配置
         运行中=自身.ctx.subprocess.启动(自身.拉起规格(规格,当前['maxOutputBytes'],规格['signal'] if 'signal' in 规格 else None,参数表))#按配置输出上限启动后台进程
         收集=取出已收集(运行中)#取出两路收集读取器
         def 分类():
-            """后台无截止：只有调用方信号算 aborted。"""
+            '后台无截止：只有调用方信号算 aborted'
             派生信号=规格['signal'] if 'signal' in 规格 else None
             return {'timedOut':False,'aborted':已中止(派生信号) is True}
         进程=后台进程句柄(运行中,收集,规格,自身,分类)#后台进程句柄
@@ -431,7 +432,9 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         return 进程#返回后台进程
 
     def 进程已结束(自身,进程,标准误,启动失败,启动错误=None):#给子类的结算钩子
-        """给子类往进程上贴执行事实的结算钩子。基类实现故意留空；pwsh 隔离消费方是 pwsh_sandbox。"""
+        """给子类往进程上贴执行事实的结算钩子。
+        基类实现故意留空；pwsh 隔离消费方是 pwsh_sandbox
+        """
         return#基类故意留空
 
 default=本地PowerShell执行器#框架槽

@@ -12,26 +12,26 @@ __all__=[#仅中文公开名
 查询错误码集合=set(查询错误码)#查询错误码集合
 
 def 检查器查询帧身份(sourceId,generation,requestId):#查询帧身份
-    """在接受查询体之前可恢复的关联字段。"""
+    '在接受查询体之前可恢复的关联字段'
     return {'sourceId':sourceId,'generation':generation,'requestId':requestId}#身份
 
 def 是否检查器查询请求信封(值):#是否查询请求信封
-    """测试解码后的载体值是否属于查询请求协议。"""
+    '测试解码后的载体值是否属于查询请求协议'
     return 是否普通对象(值) and 值.get('t')=='query/request'#类型匹配
 
 def 是否检查器查询响应信封(值):#是否查询响应信封
-    """测试解码后的载体值是否属于查询响应协议。"""
+    '测试解码后的载体值是否属于查询响应协议'
     return 是否普通对象(值) and 值.get('t')=='query/response'#类型匹配
 
 def 解析查询(值):#解析查询
-    """解析查询。"""
+    '解析查询'
     记录=精确对象(值,['op'],'Inspector query')#精确对象
     if 记录['op']!='cordis-tree/get':#未知操作
         raise 检查器错误(f'inspector protocol: unknown query operation {记录["op"]!r}')#英文诊断
     return {'op':'cordis-tree/get'}#取树查询
 
 def 解析结果(值):#解析结果
-    """解析结果。"""
+    '解析结果'
     if not 是否普通对象(值) or not isinstance(值.get('op'),str):#须有op
         raise 检查器错误('inspector protocol: query result must have an op')#英文诊断
     if 值['op']=='cordis-tree/get':#取树
@@ -40,7 +40,7 @@ def 解析结果(值):#解析结果
     raise 检查器错误(f'inspector protocol: unknown query result {值["op"]!r}')#英文诊断
 
 def 解析结果封装(值):#解析结果封装
-    """解析结果封装。"""
+    '解析结果封装'
     if not 是否普通对象(值) or not isinstance(值.get('ok'),bool):#须有ok
         raise 检查器错误('inspector protocol: invalid query outcome')#英文诊断
     if 值['ok']:#成功
@@ -53,7 +53,7 @@ def 解析结果封装(值):#解析结果封装
     return {'ok':False,'error':{'code':错误['code'],'message':错误['message']}}#失败结果
 
 def 解析检查器查询请求帧(值):#解析查询请求
-    """解码一帧源-到-Worker 查询请求。"""
+    '解码一帧源-到-Worker 查询请求'
     记录=精确对象(值,['v','t','sourceId','generation','requestId','query'],'query request')#精确对象
     if 记录['v']!=检查器协议版本 or 记录['t']!='query/request':#信封非法
         raise 检查器错误('inspector protocol: invalid query request envelope')#英文诊断
@@ -67,7 +67,7 @@ def 解析检查器查询请求帧(值):#解析查询请求
     }#返回结束
 
 def 解析检查器查询帧身份(值):#解析帧身份
-    """解码用于拒绝畸形请求、且不让调用方超时的关联字段。"""
+    '解码用于拒绝畸形请求、且不让调用方超时的关联字段'
     if not 是否普通对象(值) or 值.get('v')!=检查器协议版本 or 值.get('t')!='query/request':#信封非法
         raise 检查器错误('inspector protocol: invalid query request envelope')#英文诊断
     return {#身份
@@ -77,7 +77,7 @@ def 解析检查器查询帧身份(值):#解析帧身份
     }#返回结束
 
 def 解析检查器查询响应帧(值):#解析查询响应
-    """解码一帧 Worker-到-源 查询响应。"""
+    '解码一帧 Worker-到-源 查询响应'
     记录=精确对象(值,['v','t','sourceId','generation','requestId','outcome'],'query response')#精确对象
     if 记录['v']!=检查器协议版本 or 记录['t']!='query/response':#信封非法
         raise 检查器错误('inspector protocol: invalid query response envelope')#英文诊断

@@ -1,4 +1,4 @@
-"""向 invariants 登记本包；无独立运行时检查。"""
+'向 invariants 登记本包；无独立运行时检查'
 包名='@deepseek-ai/dsh-session-title'
 名称='session-title-invariant'
 依赖=['invariants','sessions']
@@ -6,9 +6,9 @@
 __all__=['包名','名称','依赖','应用','默认']
 
 def 安装(子上下文=None,失败=None):
-    """校验 session/title 的 messageSeqs 与 source.kind 关系。"""
+    '校验 session/title 的 messageSeqs 与 source.kind 关系'
     def 收到派发(模式,事件名,参数):
-        """拦截即将提交的 session/title。"""
+        '拦截即将提交的 session/title'
         if 事件名!='session/event':
             return
         if len(参数)<2:
@@ -26,7 +26,7 @@ def 安装(子上下文=None,失败=None):
     子上下文.监听('internal/dispatch',收到派发,{'全局':True})
 
 def 应用(上下文):
-    """注册不变量配套。"""
+    '注册不变量配套'
     return 上下文.invariants.register(包名,安装)
 
 默认=应用

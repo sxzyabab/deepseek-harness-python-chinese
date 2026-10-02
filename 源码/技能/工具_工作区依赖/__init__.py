@@ -13,7 +13,7 @@ __all__=['名称','依赖','配置','应用','默认','语法解析主运行时'
 }
 
 class 工作区依赖错误(Exception):
-    """主运行时载荷无效或不可用。"""
+    '主运行时载荷无效或不可用'
 
 版本形态=re.compile(r'^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$',re.ASCII)
 平台表=('win32','darwin','linux')
@@ -22,15 +22,15 @@ class 工作区依赖错误(Exception):
 摘要形态=re.compile(r'^[a-f0-9]{64}$',re.ASCII)
 
 def 是否记录(值):
-    """非空 dict。"""
+    '非空 dict'
     return isinstance(值,dict)
 
 def 是否版本(值):
-    """发行版本串。"""
+    '发行版本串'
     return isinstance(值,str) and 版本形态.search(值) is not None
 
 def 是否发行表(值):
-    """发行名到版本。"""
+    '发行名到版本'
     if not 是否记录(值):
         return False
     for 名,版本 in 值.items():
@@ -39,7 +39,7 @@ def 是否发行表(值):
     return True
 
 def 当前架构():
-    """x64 或 arm64。"""
+    'x64 或 arm64'
     机=platform.machine().lower()
     if 机 in ('x86_64','amd64'):
         return 'x64'
@@ -48,7 +48,7 @@ def 当前架构():
     return 机
 
 def 语法解析主运行时(值):
-    """校验 runtime.json 并规范化遗留 components。"""
+    '校验 runtime.json 并规范化遗留 components'
     if not 是否记录(值):
         raise 工作区依赖错误('主运行时: 元数据无效')
     遗留='components' in 值
@@ -104,7 +104,7 @@ def 语法解析主运行时(值):
     return 结果
 
 def 读主运行时(根):
-    """读并规范化构建元数据，不改源文件。"""
+    '读并规范化构建元数据，不改源文件'
     文件=open(os.path.join(根,'runtime.json'),'r',encoding='utf-8')
     try:
         文本=文件.read()
@@ -113,7 +113,7 @@ def 读主运行时(根):
     return 语法解析主运行时(json.loads(文本))
 
 def 工作区依赖路径(根,清单):
-    """按平台解析解释器与库位置。"""
+    '按平台解析解释器与库位置'
     依赖=os.path.join(根,'dependencies')
     视窗=清单['platform']=='win32'
     结果={
@@ -131,7 +131,7 @@ def 工作区依赖路径(根,清单):
     return 结果
 
 def 校验载荷条目(路径表):
-    """确认文件与目录存在且类型正确。"""
+    '确认文件与目录存在且类型正确'
     项表=[
         (路径表.get('python'),'file'),
         (路径表.get('node'),'file'),
@@ -151,7 +151,7 @@ def 校验载荷条目(路径表):
             raise 工作区依赖错误('主运行时: 期望目录条目')
 
 def 存在路径(路径):
-    """路径存在且不是符号链接。"""
+    '路径存在且不是符号链接'
     try:
         信息=os.lstat(路径)
     except FileNotFoundError:
@@ -161,7 +161,7 @@ def 存在路径(路径):
     return True
 
 def 兼容清单(来源):
-    """读清单并核对本机。"""
+    '读清单并核对本机'
     清单=读主运行时(来源)
     本平台='win32' if sys.platform=='win32' else sys.platform
     if 清单['platform']!=本平台 or 清单['arch']!=当前架构():
@@ -169,13 +169,13 @@ def 兼容清单(来源):
     return 清单
 
 def 解析主运行时(来源):
-    """就地使用载荷，不拷贝。"""
+    '就地使用载荷，不拷贝'
     路径表=工作区依赖路径(来源,兼容清单(来源))
     校验载荷条目(路径表)
     return 路径表
 
 def 安装主运行时(来源,根):
-    """拷贝到本地安装目录；失败时保留完整旧树。"""
+    '拷贝到本地安装目录；失败时保留完整旧树'
     清单=兼容清单(来源)
     os.makedirs(os.path.dirname(根),exist_ok=True)
     先前=根+'.previous'
@@ -208,7 +208,7 @@ def 安装主运行时(来源,根):
     return 工作区依赖路径(根,清单)
 
 def 应用(上下文,配置值=None):
-    """登记只读路径查询；首次调用准备载荷。"""
+    '登记只读路径查询；首次调用准备载荷'
     if 配置值 is None:
         配置值={}
     来源=配置值['source']
@@ -218,9 +218,9 @@ def 应用(上下文,配置值=None):
     准备=[None]
     锁=threading.Lock()
     def 拆除效果():
-        """只等文件系统工作结束。"""
+        '只等文件系统工作结束'
         def 清理():
-            """忽略准备失败。"""
+            '忽略准备失败'
             with 锁:
                 任务=准备[0]
             if 任务 is None:
@@ -232,17 +232,17 @@ def 应用(上下文,配置值=None):
         return 清理
     上下文.副作用(拆除效果)
     def 渲染(参数,值):
-        """缩进 JSON。"""
+        '缩进 JSON'
         return [{'type':'text','text':json.dumps(值,ensure_ascii=False,indent=2,allow_nan=False)}]
     def 执行(参数,执行上下文):
-        """首次调用准备载荷。"""
+        '首次调用准备载荷'
         from ...内核.作用域 import 操作任务 as 任务类
         with 锁:
             if 准备[0] is None:
                 任务=任务类()
                 准备[0]=任务
                 def 跑():
-                    """准备或校验。"""
+                    '准备或校验'
                     try:
                         if 根 is None:
                             值=解析主运行时(来源)
@@ -257,7 +257,7 @@ def 应用(上下文,配置值=None):
             当前=准备[0]
         return 当前.等待()
     def 呈现调用(参数):
-        """通用读卡片。"""
+        '通用读卡片'
         return {'card':'generic','title':'Load workspace dependencies','kind':'read'}
     上下文.tools.登记(定义工具({
         'name':'load_workspace_dependencies',

@@ -8,29 +8,29 @@ __all__=[
 ]
 
 def 检查器源标识(值):
-    """一个逻辑观测源的稳定身份。"""
+    '一个逻辑观测源的稳定身份'
     return 检查器标识(值)
 
 def 检查器源世代(值):
-    """一个源连接世代的身份。"""
+    '一个源连接世代的身份'
     return 检查器标识(值)
 
 def 客户端运行时会话标识(值):
-    """一个 DevTools 连接的 Client Runtime 状态身份。"""
+    '一个 DevTools 连接的 Client Runtime 状态身份'
     return 检查器标识(值)
 
 def 客户端运行时请求标识(值):
-    """一次进行中的 Worker→Client Runtime 操作身份。"""
+    '一次进行中的 Worker→Client Runtime 操作身份'
     return 检查器标识(值)
 
 def 客户端源会话标识(值):
-    """一个 DevTools 连接的 Client 源目录会话身份。"""
+    '一个 DevTools 连接的 Client 源目录会话身份'
     return 检查器标识(值)
 
 def 客户端源请求标识(值):
-    """一次进行中的 Worker→Client 源操作身份。"""
+    '一次进行中的 Worker→Client 源操作身份'
     return 检查器标识(值)
 
 def 客户端远程对象句柄(值):
-    """一个 Client Runtime 会话内所保留对象的不透明引用。"""
+    '一个 Client Runtime 会话内所保留对象的不透明引用'
     return 检查器标识(值)

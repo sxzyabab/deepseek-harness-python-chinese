@@ -1,4 +1,4 @@
-"""工作流宾客输入，以及其 VM 钩子消费的子回调。PTC 把初始化数据、请求与结果当无损 JSON 传输。"""
+'工作流宾客输入，以及其 VM 钩子消费的子回调'
 from typing import NotRequired,TypedDict#可选字段与结构类型
 from ...工作流.工作流.类型 import 工作流元数据#已校验元数据
 
@@ -39,16 +39,21 @@ class 子结果(TypedDict):#子结果的 JSON 投影；缝的 stopReason 联合�
     stopReason:str#子运行为何结束（运行时只对 completed 分支）
 
 class 子句柄:#已发布子的宾客句柄，缩到 VM 钩子要用的部分
-    """已发布子的宾客句柄。id 与 result 为载荷字段；拆除入口仅 销毁。"""
+    """已发布子的宾客句柄。
+    id 与 result 为载荷字段；拆除入口仅 销毁
+    """
     id=None#子智能体 id（宿主侧由子智能体缝铸造）
     result=None#子终态结果任务；仅宿主报告基础设施故障时拒绝
 
     def 销毁(自身):#请宿主拆除该子
-        """请宿主拆除该子；宿主确认后返回。"""
+        '请宿主拆除该子；宿主确认后返回'
         raise NotImplementedError('ChildHandle.dispose')#由提供方实现
 
 class 子端口:#与 PTC 传输无关的子回调
-    """与 PTC 传输无关的子回调。"""
+    '与 PTC 传输无关的子回调'
     def 启动智能体(自身,请求):#启动一个子智能体
-        """在宿主上启动一个子智能体（agent() 钩子的启动半边）。请求是提示词与已校验选项。返回已发布子句柄；同步启动或提供方异步启动失败则抛。"""
+        """在宿主上启动一个子智能体（agent() 钩子的启动半边）。
+        请求是提示词与已校验选项。
+        返回已发布子句柄；同步启动或提供方异步启动失败则抛
+        """
         raise NotImplementedError('ChildPort.startAgent')#由提供方实现

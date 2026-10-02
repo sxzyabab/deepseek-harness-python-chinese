@@ -40,13 +40,13 @@ __all__=['配置','应用配置']
 缺省源=['https://huggingface.co','https://hf-mirror.com']
 
 def 取(配置值,键,缺省):
-    """配置映射缺席用缺省。"""
+    '配置映射缺席用缺省'
     if 配置值 is None or 键 not in 配置值 or 配置值[键] is None:
         return 缺省
     return 配置值[键]
 
 def 应用配置(配置值):
-    """部署期运行时选择。"""
+    '部署期运行时选择'
     return {
         'providerId':取(配置值,'providerId','sensevoice-local'),
         'dataRoot':配置值['dataRoot'],

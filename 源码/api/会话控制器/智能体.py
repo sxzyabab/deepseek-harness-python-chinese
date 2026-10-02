@@ -1,4 +1,4 @@
-"""API 会话智能体激活与模型选择策略。"""
+'API 会话智能体激活与模型选择策略'
 import os#目录
 from threading import Event as 同步事件,Lock as 互斥锁#飞行结算与串行互斥
 from .远程错误与并发 import 远程错误,远程错误消息#远程错误
@@ -9,35 +9,35 @@ __all__=[#仅中文公开名
 ]
 
 class 会话未找到(Exception):
-    """冷会话未找到。"""
+    '冷会话未找到'
 
 class 子智能体会话所有权(Exception):
-    """子智能体所有权围栏。"""
+    '子智能体所有权围栏'
     def __init__(自身,会话标识):
-        """记下会话标识。"""
+        '记下会话标识'
         super().__init__('session "'+str(会话标识)+'" is a subagent session; use subagent delivery')#消息
         自身.sessionId=会话标识#id
 
 class cwd冲突(Exception):
-    """cwd 冲突。"""
+    'cwd 冲突'
     def __init__(自身,会话标识,请求cwd,已有cwd):
-        """记下冲突 cwd。"""
+        '记下冲突 cwd'
         super().__init__('session cwd conflict')#消息
         自身.sessionId=会话标识#id
         自身.requestedCwd=请求cwd#请求
         自身.existingCwd=已有cwd#已有
 
 class 预设冲突(Exception):
-    """预设冲突。"""
+    '预设冲突'
     def __init__(自身,会话标识,请求预设,已有预设):
-        """记下冲突预设。"""
+        '记下冲突预设'
         super().__init__('session preset conflict')#消息
         自身.sessionId=会话标识#id
         自身.requestedPreset=请求预设#请求
         自身.existingPreset=已有预设#已有
 
 def 有子智能体所有者(上下文,头,智能体):
-    """普通会话路由是否应让给子智能体。头为会话头 dict。"""
+    '普通会话路由是否应让给子智能体。头为会话头 dict'
     if 头 is None:#无头
         return False#否
     if 'origin' in 头 and 头['origin']=='subagent':#子智能体来源
@@ -52,11 +52,11 @@ def 有子智能体所有者(上下文,头,智能体):
     return 拥有 is not None and 拥有(智能体.id,父)#拥有
 
 def 子智能体所有权错误(会话标识):
-    """构建 session/agent-busy 失败。"""
+    '构建 session/agent-busy 失败'
     return 远程错误('session/agent-busy','session "'+str(会话标识)+'" is owned by subagent routing',{'reason':'use subagent delivery for this child session'})
 
 def 检视会话(上下文,会话标识,信号=None):
-    """不修复、不恢复、不发布地检视冷会话。"""
+    '不修复、不恢复、不发布地检视冷会话'
     选项={'projectionMode':'none'}#不投影
     if 信号 is not None:#有信号
         选项['signal']=信号#带上
@@ -80,10 +80,10 @@ def 检视会话(上下文,会话标识,信号=None):
         raise#原样
 
 class 会话智能体控制器:
-    """拥有创建、恢复与会话本地模型选择。"""
+    '拥有创建、恢复与会话本地模型选择'
 
     def __init__(自身,上下文):
-        """配置 typert lookup 与 host context。"""
+        '配置 typert lookup 与 host context'
         自身._上下文=上下文#Cordis
         自身._恢复锁=互斥锁()#恢复飞行表互斥
         自身._恢复中={}#去重恢复：会话标识→{完成,结果,错误}
@@ -97,22 +97,22 @@ class 会话智能体控制器:
         上下文.typert.contexts.configureHost('agent',自身._查找智能体上下文)#host ctx
 
     def _查找智能体(自身,会话标识):
-        """typert agent lookup。"""
+        'typert agent lookup'
         结果=自身.解析智能体(会话标识)#解析
         if isinstance(结果,dict) and 'error' in 结果:
             raise 结果['error']#抛出
         return 结果['agent']#智能体
 
     def _查找会话(自身,会话标识):
-        """typert session lookup。"""
+        'typert session lookup'
         return 自身._查找智能体(会话标识).session#会话
 
     def _查找智能体上下文(自身,会话标识):
-        """typert host agent context。"""
+        'typert host agent context'
         return 自身._查找智能体(会话标识).ctx#上下文
 
     def 解析智能体(自身,会话标识):
-        """解析或恢复普通会话。"""
+        '解析或恢复普通会话'
         活=自身._活智能体(会话标识)#先看活的
         if 活 is not None:#有
             return 活#返回
@@ -159,11 +159,11 @@ class 会话智能体控制器:
         return {'agent':条目['结果']}#成功
 
     def 解析观测智能体(自身,观测):
-        """从已保留观测解析智能体。观测有 header。"""
+        '从已保留观测解析智能体。观测有 header'
         return 自身.解析智能体(观测.header['id'])#委托
 
     def 确保会话(自身,会话标识,工作目录,检查持久身份,预设标识=None):
-        """解析请求的身份，必要时创建或恢复一次。"""
+        '解析请求的身份，必要时创建或恢复一次'
         with 自身._创建锁:#飞行去重
             if 会话标识 in 自身._创建中:#共享在途
                 条目=自身._创建中[会话标识]#同条目
@@ -196,18 +196,18 @@ class 会话智能体控制器:
         return 智能体#返回
 
     def 会话预设(自身,会话):
-        """从投影读当前预设。"""
+        '从投影读当前预设'
         return 自身._上下文.sessionProjections.stateOf(会话,'agentPreset')#状态
 
     def 消费选择(自身,智能体,提供方,模型,推理力度):
-        """匹配请求头时消费 pending 选择。"""
+        '匹配请求头时消费 pending 选择'
         键=id(智能体)#键
         if 键 not in 自身._选择表:#无
             return False#未消费
         return 自身._选择表[键].consume(提供方,模型,推理力度)#消费
 
     def _活智能体(自身,会话标识):
-        """若已附着则返回智能体或所有权错误。"""
+        '若已附着则返回智能体或所有权错误'
         智能体=自身._上下文.agents.get(会话标识)
         if 智能体 is None:#无
             return None#无
@@ -216,7 +216,7 @@ class 会话智能体控制器:
         return {'agent':智能体}#成功
 
     def _恢复(自身,会话标识,观测=None):
-        """从冷或观测恢复。"""
+        '从冷或观测恢复'
         if 观测 is not None:#有观测
             return 自身._从观测恢复(会话标识,观测)#观测恢复
         观测=自身._上下文.sessionQuery.observeSession(会话标识)#观测
@@ -227,7 +227,7 @@ class 会话智能体控制器:
                 观测.close()#关
 
     def _从观测恢复(自身,会话标识,观测):
-        """用观测恢复智能体。"""
+        '用观测恢复智能体'
         头=观测.header#头 dict
         if 头['id']!=会话标识 or 'cwd' not in 头 or 头['cwd'] is None:#无效
             raise 会话未找到('session "'+str(会话标识)+'" not found')#未找到
@@ -242,7 +242,7 @@ class 会话智能体控制器:
         return 句柄.agent#智能体
 
     def _创建或采用(自身,会话标识,工作目录,检查持久身份,预设标识):
-        """创建新会话或采用持久身份。"""
+        '创建新会话或采用持久身份'
         附着=自身._上下文.sessions.get(会话标识)#附着
         活=自身._上下文.agents.get(会话标识)#活
         if 附着 is not None and 有子智能体所有者(自身._上下文,附着.header,活):#子智能体
@@ -282,31 +282,31 @@ class 会话智能体控制器:
         }).agent#智能体
 
     def 组合智能体(自身,预设标识):
-        """解析预设并返回 setup。"""
+        '解析预设并返回 setup'
         预设服务=自身._上下文.获取服务('agentPresets')#预设服务
         if 预设服务 is None:#无
             def 仅选择(_智能体上下文,智能体):
-                """只安装选择；第二参为工厂传入的智能体。"""
+                '只安装选择；第二参为工厂传入的智能体'
                 自身._安装选择(智能体)#选择
             return {'setup':仅选择}#仅选择
         解析标识=预设服务.resolve(预设标识).id#解析 id
         def 设置(智能体上下文,智能体):
-            """安装选择并挂载预设。"""
+            '安装选择并挂载预设'
             自身._安装选择(智能体)#选择
             预设服务.mount(智能体上下文,解析标识)#挂载
         return {'agentPreset':解析标识,'setup':设置}#组合
 
     def _智能体选项(自身):
-        """当前默认模型选择。"""
+        '当前默认模型选择'
         选择=自身._上下文.agentDefaultModel.currentSelection()#选择 dict
         return {'provider':选择['provider'],'model':选择['model']}#选项
 
     def _安装选择(自身,智能体):
-        """在智能体上安装 selection。"""
+        '在智能体上安装 selection'
         自身.选择用于(智能体)#安装
 
     def 选择用于(自身,智能体):
-        """安装或返回会话本地模型选择引用。"""
+        '安装或返回会话本地模型选择引用'
         键=id(智能体)#键
         if 键 in 自身._选择表:#已有
             return 自身._选择表[键]#返回
@@ -316,21 +316,21 @@ class 会话智能体控制器:
         箱={'picked':状态['pending'] if 'pending' in 状态 else None}#可变 pending
         默认=自身._上下文.agentDefaultModel#默认
         class 已安装选择:
-            """可变 current 与 consume。"""
+            '可变 current 与 consume'
             @property
             def current(选择自身):
-                """读当前选择。"""
+                '读当前选择'
                 if 箱['picked'] is not None:#有 pending
                     return 箱['picked']#返回
                 return 默认.currentSelection()#默认
 
             @current.setter
             def current(选择自身,值):
-                """写 current。"""
+                '写 current'
                 箱['picked']=值#写入
 
             def consume(选择自身,提供方,模型,推理):
-                """匹配时清空 pending。"""
+                '匹配时清空 pending'
                 当前=箱['picked']#pending
                 if 当前 is None:#无
                     return False#未消费
@@ -346,12 +346,12 @@ class 会话智能体控制器:
         return 选择#返回
 
     def 选择下次请求(自身,智能体,选择):
-        """提交并缓存下一次提示组装的已验证选择。"""
+        '提交并缓存下一次提示组装的已验证选择'
         智能体.session.追加('model/selection',选择)#记录
         自身.选择用于(智能体).current=选择#安装
 
     def 串行图像准入(自身,智能体,操作):
-        """串行化同一智能体的图片准入与模型选择。操作为无参可调用，返回其结果。"""
+        '串行化同一智能体的图片准入与模型选择。操作为无参可调用，返回其结果'
         键=id(智能体)#键
         with 自身._图像锁表总锁:#取或建该智能体锁
             if 键 not in 自身._图像准入锁表:#尚无
@@ -361,13 +361,13 @@ class 会话智能体控制器:
             return 操作()#直接执行
 
     def _观测预设(自身,观测):
-        """从全投影观测读 agentPreset。"""
+        '从全投影观测读 agentPreset'
         if 观测.projections is None:#缺投影
             raise 远程错误('gateway/internal','api-session: Agent activation requires a projected Session observation',{})#拒绝
         return 观测.projections['values']['agentPreset']#预设
 
     def _断言预设未变(自身,会话标识,请求,已有):
-        """显式创建时预设不得漂移。"""
+        '显式创建时预设不得漂移'
         if 请求 is None or 请求==已有:#可接受
             return#通过
         raise 预设冲突(会话标识,请求,已有)#冲突

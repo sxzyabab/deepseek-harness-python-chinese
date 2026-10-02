@@ -1,8 +1,8 @@
-"""共享的 XDG 桌面条目字段与图标查找。"""
+'共享的 XDG 桌面条目字段与图标查找'
 import os
 
 def 桌面条目字段(文本):
-    """读取主桌面条目节，不解释可执行命令。"""
+    '读取主桌面条目节，不解释可执行命令'
     主节=False
     字段={}
     for 行 in 文本.splitlines():
@@ -18,7 +18,7 @@ def 桌面条目字段(文本):
     return 字段
 
 def 桌面数据目录(家目录,环境):
-    """按桌面优先级解析 XDG 应用与图标根。"""
+    '按桌面优先级解析 XDG 应用与图标根'
     数据家=环境.get('XDG_DATA_HOME')
     if 数据家 is None or 数据家=='':
         数据家=os.path.join(家目录,'.local','share')
@@ -28,7 +28,7 @@ def 桌面数据目录(家目录,环境):
     return [数据家]+[段 for 段 in 系统目录.split(':') if 段]
 
 def 读图标(路径):
-    """读取已安装的 PNG 或 SVG 图标；缺席路径与目录没有像素。"""
+    '读取已安装的 PNG 或 SVG 图标；缺席路径与目录没有像素'
     if 路径.endswith('.png'):
         内容类型='image/png'
     elif 路径.endswith('.svg'):
@@ -44,7 +44,7 @@ def 读图标(路径):
         return None
 
 def 桌面应用程序图标(名称,目录列表):
-    """解析绝对图标路径或已安装的 hicolor/pixmaps 图标名。"""
+    '解析绝对图标路径或已安装的 hicolor/pixmaps 图标名'
     if os.path.isabs(名称):
         return 读图标(名称)
     尺寸表=['512x512','256x256','128x128','64x64','48x48','32x32']

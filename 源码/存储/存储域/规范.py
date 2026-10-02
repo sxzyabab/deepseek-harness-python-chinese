@@ -1,14 +1,14 @@
-"""域声明词汇。spec 是域身份、布局与记录 schema 的唯一来源。"""
+'域声明词汇。spec 是域身份、布局与记录 schema 的唯一来源'
 from ..存储.后端 import 单元名正则,键值单元描述符#单元名与描述符
 from .错误 import 域错误#域声明失败
 __all__=['定义域','域表','描述符投影']#仅中文公开名
 
 def 域表(schema):
-    """声明一张表，值由 schema 在持久边界校验。"""
+    '声明一张表，值由 schema 在持久边界校验'
     return {'valueSchema':schema}#表声明
 
 def 模式接受空(模式):
-    """判断 schema 是否接受 None。None 是介质从未写入哨兵，全局槽不得接受。"""
+    '判断 schema 是否接受 None。None 是介质从未写入哨兵，全局槽不得接受'
     try:#试解析空
         模式.parse(None)#schemastery 边界
         return True#接受
@@ -16,7 +16,7 @@ def 模式接受空(模式):
         return False#不接受
 
 def 定义域(spec):
-    """校验域声明字段；错误配置在模块加载时大声失败。spec 是 dict。"""
+    '校验域声明字段；错误配置在模块加载时大声失败。spec 是 dict'
     名称=spec['name']#域名
     if 单元名正则.fullmatch(名称) is None:#域名不合法
         raise 域错误('malformed-medium',"domain name '"+名称+"' must match "+单元名正则.pattern)#域名失败
@@ -40,7 +40,7 @@ def 定义域(spec):
     return spec#原样返回
 
 def 描述符投影(spec):
-    """把域 spec 投影成 `KvFacet.open` 用的描述符。spec 是 dict。"""
+    '把域 spec 投影成 `KvFacet.open` 用的描述符。spec 是 dict'
     布局=spec['layout'] if 'layout' in spec else None#可选布局
     return 键值单元描述符(
         spec['name'],

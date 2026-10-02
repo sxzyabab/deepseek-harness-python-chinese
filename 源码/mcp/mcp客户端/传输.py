@@ -1,22 +1,19 @@
-"""传输工厂：按插件已解析配置创建对应的 MCP 传输。
-
-stdio 派生子进程并擦洗凭证；streamable-http 连到 URL。
-"""
+'传输工厂：按插件已解析配置创建对应的 MCP 传输'
 from ...子进程.子进程 import 擦洗父环境#已擦洗的父进程环境
 
 __all__=['创建传输','合并子环境','MCP错误']
 
 class MCP错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
 
 def 合并子环境(额外):
-    """已擦洗的父进程环境，再叠加上配置里显式给出的环境项。"""
+    '已擦洗的父进程环境，再叠加上配置里显式给出的环境项'
     环境=擦洗父环境()
     环境.update(额外)
     return 环境
 
 def 创建传输(配置):
-    """从已解析的插件配置创建 MCP 传输（stdio 或 streamable-http）。配置为 dict。"""
+    '从已解析的插件配置创建 MCP 传输（stdio 或 streamable-http）。配置为 dict'
     种类=配置['transport']
     if 种类=='stdio':
         from mcp.client.stdio import StdioServerParameters,stdio_client

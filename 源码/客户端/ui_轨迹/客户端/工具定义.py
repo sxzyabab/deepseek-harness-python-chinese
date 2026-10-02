@@ -7,7 +7,7 @@ __all__=['登记轨迹工具定义']#仅中文公开名
 最大深度=256#调用树允许的最大深度
 
 def 根调用(匹配):#从 tool/call 命中抽出进行中的根调用
-    """起点必须是工具调用。"""
+    '起点必须是工具调用'
     事件=匹配['event']#事件
     if 事件['type']!='tool/call':#起点必须是工具调用
         raise 轨迹错误('trajectory-tool-call start requires tool/call')#类型收窄失败则抛
@@ -25,7 +25,7 @@ def 根调用(匹配):#从 tool/call 命中抽出进行中的根调用
     }#结束
 
 def 根结果(匹配,先前=None):#从 tool/result 命中抽出根结果节点
-    """类型不对则 None。"""
+    '类型不对则 None'
     事件=匹配['event']#事件
     if 事件['type']!='tool/result':#非工具结果
         return None#无法投影
@@ -54,7 +54,7 @@ def 根结果(匹配,先前=None):#从 tool/result 命中抽出根结果节点
     return 节点#根结果
 
 def 位置回合(匹配):#从匹配位置读回合号
-    """未解析位置则记 0。"""
+    '未解析位置则记 0'
     位置=匹配['location'] if 'location' in 匹配 else None#位置
     if 位置 is not None and 'kind' in 位置 and 位置['kind'] in ('step','turn'):#位置挂在步或回合上
         回合=位置['turn'] if 'turn' in 位置 else None#回合对象
@@ -62,7 +62,7 @@ def 位置回合(匹配):#从匹配位置读回合号
     return 0#未解析
 
 def 位置步号(匹配):#从匹配位置读步号
-    """仅 step 位置有步号。"""
+    '仅 step 位置有步号'
     位置=匹配['location'] if 'location' in 匹配 else None#位置
     if 位置 is None or ('kind' not in 位置) or 位置['kind']!='step':#非步
         return 0#无步号
@@ -70,7 +70,7 @@ def 位置步号(匹配):#从匹配位置读步号
     return 步['step'] if 步 is not None and 'step' in 步 else 0#步号
 
 def 子调用(匹配,数据):#从 dispatch-start 抽出进行中的子调用
-    """组装进行中的子调用。"""
+    '组装进行中的子调用'
     事件=匹配['event']#事件
     参数=数据['arguments'] if 'arguments' in 数据 else None#参数
     return {#子调用
@@ -85,7 +85,7 @@ def 子调用(匹配,数据):#从 dispatch-start 抽出进行中的子调用
     }#结束
 
 def 子结果(匹配,数据,先前=None):#从 ptc-dispatch 抽出子调用结果节点
-    """返回子调用结果节点。"""
+    '返回子调用结果节点'
     事件=匹配['event']#事件
     参数=数据['arguments'] if 'arguments' in 数据 else None#参数
     进行中=先前 is not None and not ('kind' in 先前)#先前是进行中调用
@@ -104,7 +104,7 @@ def 子结果(匹配,数据,先前=None):#从 ptc-dispatch 抽出子调用结果
     }#结束
 
 def 接受边(状态,父,子):#父→子边是否可加入调用树
-    """自环、已有父、成环或超深则拒绝。"""
+    '自环、已有父、成环或超深则拒绝'
     父表=状态['parents'] if 'parents' in 状态 else {}#父表
     if 父==子 or 子 in 父表:#自环或子已有父
         return False#拒绝
@@ -135,7 +135,7 @@ def 接受边(状态,父,子):#父→子边是否可加入调用树
     return 父深度+子树深度<=最大深度#合并后不超过最大深度
 
 def 更新分派(状态,匹配):#把一条 dispatch 事件并入调用树
-    """非 dispatch 事件状态不变。"""
+    '非 dispatch 事件状态不变'
     事件=匹配['event']#本条事件
     种类=事件['type']#类型
     if 种类 not in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#非 dispatch
@@ -165,7 +165,7 @@ def 更新分派(状态,匹配):#把一条 dispatch 事件并入调用树
     return {**状态,'calls':调用表,'children':子表,'parents':父表}#更新后的调用树
 
 def 打断点(上下文):#读出本节点所属步/回合已闭合时的打断点
-    """有闭合边界才返回序号与时间。"""
+    '有闭合边界才返回序号与时间'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     位置=起点['location'] if 起点 is not None and 'location' in 起点 else None#起点位置
     if 位置 is None:#无位置
@@ -181,7 +181,7 @@ def 打断点(上下文):#读出本节点所属步/回合已闭合时的打断�
     return None#尚未闭合
 
 def 投影调用(状态,调用标识,打断于,已见=None,深度=1):#把调用树投影成带嵌套 subCalls 的块
-    """无此调用则 None。"""
+    '无此调用则 None'
     if 已见 is None:#默认空集
         已见=set()#空
     调用表=状态['calls'] if 'calls' in 状态 else {}#调用表
@@ -217,7 +217,7 @@ def 投影调用(状态,调用标识,打断于,已见=None,深度=1):#把调用�
     }#结束
 
 def 回放状态(上下文):#回放缺 start 时从结果重建状态
-    """无根结果则 None。"""
+    '无根结果则 None'
     结果匹配=None#第一条工具结果命中
     命中列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#命中
     for 匹配 in 命中列表:#找
@@ -234,7 +234,7 @@ def 回放状态(上下文):#回放缺 start 时从结果重建状态
     return 状态#回放得到的调用树
 
 def 工具匹配(事件):#按事件类型归入本根调用
-    """start / update / null。"""
+    'start / update / null'
     种类=事件['type']#事件类型
     数据=事件['data'] if 'data' in 事件 else None#载荷
     if 种类=='tool/call':#工具调用
@@ -249,12 +249,12 @@ def 工具匹配(事件):#按事件类型归入本根调用
     return None#无关事件
 
 def 工具开始(_上下文,匹配):#从 tool/call 播种调用树
-    """以根调用播种状态。"""
+    '以根调用播种状态'
     根=根调用(匹配)#抽出进行中的根调用
     return {'rootId':根['callId'],'calls':{根['callId']:根},'children':{},'parents':{}}#初始状态
 
 def 工具更新(上下文,匹配):#按后续事件推进调用树
-    """根结果或 dispatch。"""
+    '根结果或 dispatch'
     事件=匹配['event']#事件
     if 事件['type']!='tool/result':#非根结果则当 dispatch 并入
         return 更新分派(上下文['state'],匹配)#dispatch
@@ -271,7 +271,7 @@ def 工具更新(上下文,匹配):#按后续事件推进调用树
     return {**状态,'calls':调用表}#更新后的状态
 
 def 工具构建视图(上下文):#把调用树投影成轨迹视图节点
-    """根块缺失则不产出。"""
+    '根块缺失则不产出'
     状态=上下文['state'] if 'state' in 上下文 else None#有 start 用状态
     if 状态 is None:#否则回放
         状态=回放状态(上下文)#回放
@@ -300,5 +300,5 @@ def 工具构建视图(上下文):#把调用树投影成轨迹视图节点
 }#定义结束
 
 def 登记轨迹工具定义(上下文):#向会话事件登记根工具 Definition
-    """登记轨迹根工具生命周期 Definition。"""
+    '登记轨迹根工具生命周期 Definition'
     上下文.conversationEvents.register(轨迹工具定义)#登记根工具生命周期

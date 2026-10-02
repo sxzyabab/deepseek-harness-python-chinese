@@ -1,4 +1,4 @@
-"""ctx.web 的安全 HTTP(S) 检索：校验 URL、只跟随同源重定向、强制时间与体积上限、分类并解码文本，呈现交给 tool-web。请求不携带浏览器 cookie 或环境凭证。未实现私有网络与 SSRF 防护；能碰到敏感内部目标的环境不要启用本提供方。"""
+'ctx.web 的安全 HTTP(S) 检索：校验 URL、只跟随同源重定向、强制时间与体积上限、分类并解码文本，呈现交给 tool-web'
 import threading#中止监视线程
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as HTTP异常#HTTP 客户端与传输异常
 from urllib.parse import urlunparse as 拼回网址#把解析结果拼回绝对串
@@ -17,32 +17,34 @@ from .策略 import (
 本地抓取提供方标识='http'#本提供方注册所用的稳定 id
 HTTP抓取上限字段=('maxUrlLength','maxResponseBytes','maxBodyChars','timeoutMs','maxRedirects','userAgent')#已解析的提供方上限字段
 def 已中止(信号):#调用方 Event 是否已置位
-    """调用方中止信号是否已置位。信号是 threading.Event，缺席视为未中止。"""
+    """调用方中止信号是否已置位。
+    信号是 threading.Event，缺席视为未中止"""
     if 信号 is None:#没有信号
         return False#未中止
     return 信号.is_set()#Event 置位即中止
 
 def 等待信号(信号):#阻塞到信号中止
-    """阻塞到 threading.Event 置位。"""
+    '阻塞到 threading.Event 置位'
     信号.wait()#标准库 Event.wait
 
 def 网址绝对串(网址):#解析结果拼回绝对 URL 串
-    """把 urlparse 结果拼回绝对 URL 字符串。"""
+    '把 urlparse 结果拼回绝对 URL 字符串'
     return 拼回网址(网址)#拼回
 
 def 是否重定向状态(状态):#是否重定向
-    """带 Location 的 HTTP 重定向状态码。"""
+    '带 Location 的 HTTP 重定向状态码'
     return 状态==301 or 状态==302 or 状态==303 or 状态==307 or 状态==308#常见 3xx
 
 def 解析重定向(位置,基址):#解析下一跳
-    """把（可能相对的）Location 相对当前 URL 解析。"""
+    '把（可能相对的）Location 相对当前 URL 解析'
     try:#相对或绝对 Location
         return 解析重定向目标(位置,基址)#相对 base 解析
     except (ValueError,TypeError) as 错误:#Location 非法；urllib 相对解析抛这两类
         raise 网络错误('invalid redirect Location "'+位置+'"','WEB_PROVIDER_ERROR',{'cause':错误})#包装成提供方错误
 
 def 翻译中止或网络(错误,信号):#把原始错误收成网络错误
-    """把抛出的 fetch/流错误翻译成网络错误，按截止期信号分类而不是按抛出值分类。取超时(信号,'WEB_FETCH_TIMEOUT') 找回我们的原因表示本超时触发；其它中止是 WEB_ABORTED；信号未中止却抛错则是传输/网络失败。"""
+    """把抛出的 fetch/流错误翻译成网络错误，按截止期信号分类而不是按抛出值分类。
+    取超时(信号,'WEB_FETCH_TIMEOUT') 找回我们的原因表示本超时触发；其它中止是 WEB_ABORTED；信号未中止却抛错则是传输/网络失败"""
     超时=取超时(信号,'WEB_FETCH_TIMEOUT')#是否本提供方超时
     if 超时 is not None:#本超时
         return 网络错误('web fetch timed out','WEB_FETCH_TIMEOUT',{'cause':超时})#本超时
@@ -51,7 +53,7 @@ def 翻译中止或网络(错误,信号):#把原始错误收成网络错误
     return 网络错误('web fetch failed: '+str(错误),'WEB_PROVIDER_ERROR',{'cause':错误})#网络失败
 
 def 取消响应正文(响应包装):#丢掉正文以免漏套接字
-    """取消可能仍在流的正文，以免漏套接字。"""
+    '取消可能仍在流的正文，以免漏套接字'
     if 响应包装 is None:#无响应
         return#空操作
     try:#关掉响应与连接
@@ -65,20 +67,20 @@ def 取消响应正文(响应包装):#丢掉正文以免漏套接字
         pass#尽力清理
 
 class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
-    """匿名的公开 HTTP(S) 抓取提供方。"""
+    '匿名的公开 HTTP(S) 抓取提供方'
     def __init__(自身,上限):#保存已解析上限
-        """收下已解析上限（插件的 schemastery Config 提供默认值）。"""
+        '收下已解析上限（插件的 schemastery Config 提供默认值）'
         自身.上限=上限#已解析上限
         自身.id=本地抓取提供方标识#协议槽 id
 
     def 可用(自身):#是否可用
-        """无需检查凭证——匿名公开抓取器始终可用。"""
+        '无需检查凭证——匿名公开抓取器始终可用'
         return True#始终可用
 
     available=可用#协议字段
 
     def 抓取(自身,请求,信号=None):#执行一次抓取
-        """执行一次抓取；用信号接受取消。"""
+        '执行一次抓取；用信号接受取消'
         if 已中止(信号):#调用方已取消
             raise 网络错误('web fetch aborted','WEB_ABORTED')#已取消
         句柄=截止(信号,自身.上限['timeoutMs'],'WEB_FETCH_TIMEOUT')#一个信号同时停请求和读正文
@@ -90,7 +92,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
     fetch=抓取#协议字段
 
     def 跟随并读取(自身,起始网址,信号):#重定向循环
-        """跟随同源重定向直到跳数上限，然后读最终响应。"""
+        '跟随同源重定向直到跳数上限，然后读最终响应'
         当前=校验抓取网址(起始网址,自身.上限['maxUrlLength'])#校验并规范化起始 URL
         已跟随=0#已跟随跳数
         while True:#直到返回或抛错
@@ -121,7 +123,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
             return 自身.读正文(响应,当前,信号)#读最终正文
 
     def 请求一次(自身,网址,信号):#单次 GET
-        """发一次 GET，不自动跟随重定向。"""
+        '发一次 GET，不自动跟随重定向'
         try:#发请求
             主机=网址.hostname#主机名
             端口=网址.port#显式端口或 None
@@ -131,7 +133,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
                 客户端=明文连接(主机,端口)#明文连接
             if 信号 is not None:#有取消信号
                 def 监视中止():#信号中止时关掉套接字
-                    """信号中止时关掉套接字。"""
+                    '信号中止时关掉套接字'
                     等待信号(信号)#阻塞到中止
                     客户端.close()#拆传输
                 线程(target=监视中止,daemon=True).start()#监视中止
@@ -157,7 +159,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
             raise 翻译中止或网络(错误,信号)#分类成网络错误
 
     def 读正文(自身,响应,最终网址,信号):#处理最终响应
-        """读取、按字节封顶、分类并解码最终响应正文。"""
+        '读取、按字节封顶、分类并解码最终响应正文'
         内容类型=响应['headers']['content-type'] if 'content-type' in 响应['headers'] else None#读 Content-Type
         种类=分类内容类型(内容类型)#html / text / 不支持
         if 种类 is None:#不支持的类型
@@ -184,7 +186,8 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
         }#结果结束
 
     def 有界读取(自身,响应,信号):#有界读取
-        """把响应流读到 maxResponseBytes。Content-Length 超过上限立即以 WEB_FETCH_TOO_LARGE 拒绝；流增长超过上限则截短（truncatedByBytes）而不是拒绝，这样少报长度的服务器仍能给出有界可用正文。"""
+        """把响应流读到 maxResponseBytes。
+        Content-Length 超过上限立即以 WEB_FETCH_TOO_LARGE 拒绝；流增长超过上限则截短（truncatedByBytes）而不是拒绝，这样少报长度的服务器仍能给出有界可用正文"""
         声明=响应['headers']['content-length'] if 'content-length' in 响应['headers'] else None#声明长度
         if 声明 is not None:#有 Content-Length
             try:#转成数字

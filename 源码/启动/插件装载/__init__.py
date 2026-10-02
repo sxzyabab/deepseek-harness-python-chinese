@@ -1,11 +1,11 @@
-"""当前配置档的插件与组合包装载，复用共享 dsh 插件包操作。"""
+'当前配置档的插件与组合包装载，复用共享 dsh 插件包操作'
 import os,re,json,copy,threading
 from uuid import uuid4 as 生成uuid4
 from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段,列表字段
 from .注册表 import 规范化注册表,注册表计划,归因失败,npmmirror注册表
 from ...工具.原子写入 import 带文件锁,原子写文件
 from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出,已中止
-from ...typert.协议 import 远程服务,远程
+from ...类型化远程调用.协议 import 远程服务,远程
 from ..app启动 import (
     读配置清单,
     解析组合包目录,
@@ -67,7 +67,7 @@ ANSI序列=re.compile(r'\x1b\[[0-9;]*m',re.ASCII)#pnpm 色码
 
 #工具
 def 展平行表(行表):
-    """只展平配置档补丁组合器可寻址的组。"""
+    '只展平配置档补丁组合器可寻址的组'
     结果=[]#扁平行
     for 行 in 行表:#逐行
         结果.append(行)#自身
@@ -76,22 +76,22 @@ def 展平行表(行表):
     return 结果#扁平
 
 def 错误消息(错误):
-    """保留确切诊断，含非 Exception 失败。"""
+    '保留确切诊断，含非 Exception 失败'
     return 错误.args[0] if isinstance(错误,Exception) and len(错误.args)>0 else str(错误)#消息
 
 def 装载错误(错误):
-    """预期拒绝保留码；其它变为 operation-error 并携带确切诊断。"""
+    '预期拒绝保留码；其它变为 operation-error 并携带确切诊断'
     if isinstance(错误,装载失败):#预期
         return {'code':错误.code}#仅码
     return {'code':'operation-error','diagnostic':错误消息(错误)}#操作错误
 
 def 字符串字段值(清单,字段):
-    """清单上的字符串字段，有则返回。"""
+    '清单上的字符串字段，有则返回'
     值=清单.get(字段) if isinstance(清单,dict) else None#取值
     return 值 if isinstance(值,str) else None#仅字符串
 
 def 检查结果自清单(种类,清单,注册表):
-    """包清单所说：身份、一句话、是否组合包。"""
+    '包清单所说：身份、一句话、是否组合包'
     dsh=清单.get('dsh') if isinstance(清单,dict) else None#dsh
     声明=dsh if isinstance(dsh,dict) else None#对象
     组合包=声明 is not None and isinstance(声明.get('bundle'),dict)#是否声明组合包
@@ -108,7 +108,7 @@ def 检查结果自清单(种类,清单,注册表):
     return 结果#检查结果
 
 def 印刷错误(印刷):
-    """pnpm 印在 stdout 的 {error:{code,message}} 合成一行。"""
+    'pnpm 印在 stdout 的 {error:{code,message}} 合成一行'
     try:
         解析=json.loads(印刷 or 'null')
     except Exception:
@@ -120,15 +120,15 @@ def 印刷错误(印刷):
     return '  '.join(段)
 
 def 拒绝检查(问题,理由):
-    """构造拒绝检查。"""
+    '构造拒绝检查'
     return {'status':'refused','problem':问题,'reason':理由}#拒绝
 
 def 插件条目标识(值):
-    """Loader 树条目 id 在清单边界的品牌（恒等）。"""
+    'Loader 树条目 id 在清单边界的品牌（恒等）'
     return 值#原样
 
 def 读插件清单(上下文):
-    """直接读 Loader 当前非组条目；对齐宿主插件清单投影。"""
+    '直接读 Loader 当前非组条目；对齐宿主插件清单投影'
     加载器=上下文.loader#加载器服务
     列举=getattr(加载器,'列出插件配置',None)#中文列举
     条目表=[]#条目
@@ -157,13 +157,13 @@ def 读插件清单(上下文):
     return 结果#快照
 
 def 解析遥测补丁(禁用环境,有行):
-    """遥测退出开关→启动补丁。"""
+    '遥测退出开关→启动补丁'
     if (禁用环境 or '')=='' or not 有行:#无需
         return None#无补丁
     return {'id':遥测行编号,'disabled':True}#禁用遥测行
 
 def 读配置补丁(二进制名,配置档,初始配置=None):
-    """读当前组合包与用户层并叠启动时 overlay。"""
+    '读当前组合包与用户层并叠启动时 overlay'
     if 初始配置 is not None:#已加载
         配置=初始配置#用给定
     else:#读盘
@@ -181,11 +181,11 @@ def 读配置补丁(二进制名,配置档,初始配置=None):
     return 补丁#有序补丁
 
 def 未激活诊断(失败项):
-    """单条未激活诊断文本。"""
+    '单条未激活诊断文本'
     return 失败项['diagnostic']#诊断
 
 def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
-    """应用一整代补丁并等待 Loader 激活诊断。"""
+    '应用一整代补丁并等待 Loader 激活诊断'
     if 必需编号 is None:#缺省
         必需编号=[]#空
     if id(根上下文) not in 启动包含表:#缺失
@@ -237,19 +237,19 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
     return [未激活诊断(项) for 项 in 失败]#警告列表
 
 class 安装已取消错误(Exception):
-    """调用方停止安装；文件已恢复后抛出。"""
+    '调用方停止安装；文件已恢复后抛出'
     def __init__(自身):
-        """固定消息。"""
+        '固定消息'
         super().__init__('安装已取消')
         自身.name='InstallCancelledError'#错误名
 
 class 装载服务(远程服务):
-    """管理配置档文件并应用其声明的重载生命周期。"""
+    '管理配置档文件并应用其声明的重载生命周期'
     inject=['loader','profileContext']#框架依赖槽
     Config=配置#框架配置槽
 
     def __init__(自身,上下文,配置值):
-        """登记 pluginManager 远程服务并记下配置档事实。"""
+        '登记 pluginManager 远程服务并记下配置档事实'
         super().__init__(上下文,'pluginManager')#服务键线协议
         纤程=上下文.纤程#所属纤程
         插件配置=纤程.插件配置 if 纤程 is not None else None#插件配置
@@ -272,9 +272,9 @@ class 装载服务(远程服务):
         自身.包操作集=set()#进行中的包操作事件
         自身.安装表={}#请求 id → 安装控制
         def 拆除工厂():
-            """包取消拆除工厂。"""
+            '包取消拆除工厂'
             def 拆除():
-                """中止并等包操作结束。"""
+                '中止并等包操作结束'
                 自身.中止.中止()#中止
                 for 事件 in list(自身.包操作集):#逐个
                     事件.wait()#等待结束
@@ -283,7 +283,7 @@ class 装载服务(远程服务):
 
     @远程
     def 列出插件(自身):
-        """读当前插件，含为何不能经配置档补丁改动。"""
+        '读当前插件，含为何不能经配置档补丁改动'
         行表=展平行表(组合条目([读配置补丁('dsh',自身.配置档)]))#补丁行
         快照=读插件清单(自身.ctx)#清单
         结果=[]#插件信息
@@ -320,7 +320,7 @@ class 装载服务(远程服务):
 
     @远程
     def 列出组合包(自身):
-        """读已装组合包、安装提供的组合包，及已选却非组合包的名字。"""
+        '读已装组合包、安装提供的组合包，及已选却非组合包的名字'
         清单=读配置清单('dsh',自身.配置档['dir'])#配置档清单
         已选=list(((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or [])#已选
         依赖=list((清单.get('dependencies') or {}).keys())#依赖
@@ -362,7 +362,7 @@ class 装载服务(远程服务):
 
     @远程
     def 列出注册表(自身):
-        """读本装载询问的注册表：配置首选、回退、以及 pnpm 自己配置命名的那份。"""
+        '读本装载询问的注册表：配置首选、回退、以及 pnpm 自己配置命名的那份'
         包管理=自身.配置档.get('packageManager') or {'command':自身.pnpm命令}#包管理
         查看选项=dict(包管理)#选项
         查看选项['timeoutMs']=自身.检查超时毫秒#超时
@@ -374,7 +374,7 @@ class 装载服务(远程服务):
 
     @远程
     def 检查规格(自身,规格,选项=None,信号=None):
-        """安装前读出规格指向什么。"""
+        '安装前读出规格指向什么'
         if 选项 is None:
             选项={}
         try:
@@ -428,7 +428,7 @@ class 装载服务(远程服务):
                 return 拒绝检查('already-installed',解析['name']+' 已安装')
             已问=[]
             def 带表拒绝(问题,理由):
-                """拒绝并带上已问注册表。"""
+                '拒绝并带上已问注册表'
                 出=拒绝检查(问题,理由)
                 出['registries']=list(已问)
                 return 出
@@ -477,11 +477,11 @@ class 装载服务(远程服务):
 
     @远程
     def 设置插件启用(自身,标识,启用):
-        """持久化插件条目启停并在现场配置档上应用。"""
+        '持久化插件条目启停并在现场配置档上应用'
         def 作业(结果):
-            """变更体。"""
+            '变更体'
             def 操作():
-                """配置事务体。"""
+                '配置事务体'
                 行=None#当前行
                 for 项 in 自身.列出插件():#查找
                     if 项['entryId']==标识:#命中
@@ -506,11 +506,11 @@ class 装载服务(远程服务):
 
     @远程
     def 设置组合包启用(自身,名称,启用):
-        """选择或去掉组合包层，保留已装依赖。"""
+        '选择或去掉组合包层，保留已装依赖'
         def 作业(结果):
-            """变更体。"""
+            '变更体'
             def 操作():
-                """配置事务体。"""
+                '配置事务体'
                 自身.选择组合包(名称,启用)#选入/去掉
                 结果['warnings']=自身.重载([行.get('id') for 行 in 自身.组合包行(名称)] if 启用 else [])#重载
             return 自身.配置事务(操作)#经 HMR
@@ -518,22 +518,22 @@ class 装载服务(远程服务):
 
     @远程
     def 安装组合包(自身,规格,选项=None):
-        """用与 dsh plugin 相同的 pnpm 路径安装包；失败或取消恢复 package.json 与 pnpm-lock.yaml。"""
+        '用与 dsh plugin 相同的 pnpm 路径安装包；失败或取消恢复 package.json 与 pnpm-lock.yaml'
         if 选项 is None:#缺省
             选项={}#空
         请求标识=选项.get('requestId')#请求 id
         控制={'abort':中止控制器(),'phase':'installing','settled':threading.Event()}#安装控制
         def 已停():
-            """是否已取消。"""
+            '是否已取消'
             return 控制['abort'].信号.已中止()#已中止
         if 请求标识 is not None:#有 id
             自身.安装表[请求标识]=控制#登记
         def 通告(阶段):
-            """通告安装阶段。"""
+            '通告安装阶段'
             if 请求标识 is not None:#有 id
                 自身.拥有上下文.广播('plugin-manager/install-state',{'requestId':请求标识,'phase':阶段})#事件
         def 作业(结果):
-            """安装变更体。"""
+            '安装变更体'
             if 规格.strip()=='' or 规格.startswith('-'):#非法规格
                 raise 装载失败('invalid-spec')#拒绝
             if 已停():#已取消
@@ -576,7 +576,7 @@ class 装载服务(远程服务):
             结果['target']=名称#目标
             结果['stage']='enable'#阶段
             def 启用操作():
-                """选入并重载。"""
+                '选入并重载'
                 if 选项.get('enabled') is not False:#默认启用
                     自身.选择组合包(名称,True)#选入
                 if 名称 in 之前:#替换已有
@@ -594,7 +594,7 @@ class 装载服务(远程服务):
 
     @远程
     def 取消安装(自身,请求标识):
-        """停止本服务拥有的安装并等到文件恢复。"""
+        '停止本服务拥有的安装并等到文件恢复'
         if 请求标识 not in 自身.安装表:#无此 id
             return {'status':'not-running'}#未运行
         控制=自身.安装表[请求标识]#控制
@@ -607,11 +607,11 @@ class 装载服务(远程服务):
 
     @远程
     def 移除组合包(自身,名称):
-        """经 dsh plugin 的 pnpm 路径卸载并移除配置档拥有的组合包依赖。"""
+        '经 dsh plugin 的 pnpm 路径卸载并移除配置档拥有的组合包依赖'
         def 作业(结果):
-            """移除变更体。"""
+            '移除变更体'
             def 操作():
-                """配置事务体。"""
+                '配置事务体'
                 组合=None#目标
                 for 项 in 自身.列出组合包():#查找
                     if 项['name']==名称:#命中
@@ -644,7 +644,7 @@ class 装载服务(远程服务):
         return 自身.变更(作业,{'stage':'remove','target':名称},'remove')#变更
 
     def 声明行(自身,名称,信息):
-        """组合包补丁插入的行与其改写的已有行；不可读补丁则抛。"""
+        '组合包补丁插入的行与其改写的已有行；不可读补丁则抛'
         补丁路径=((信息.get('dsh') or {}).get('bundle') or {}).get('patch')#补丁相对路径
         if 补丁路径 is None:#无
             return {'rows':[],'overrides':[]}#空
@@ -672,7 +672,7 @@ class 装载服务(远程服务):
         return {'rows':行表,'overrides':覆盖}#声明
 
     def 跑pnpm(自身,参数列表,信号=None,请求标识=None):
-        """在配置档内跑一条 pnpm，并把输出流式发为 install-log 块。"""
+        '在配置档内跑一条 pnpm，并把输出流式发为 install-log 块'
         作业标识=str(生成uuid4())#作业 id
         参数行=['pnpm']+list(参数列表)#argv
         工作目录=自身.配置档['dir']#cwd
@@ -690,7 +690,7 @@ class 装载服务(远程服务):
         else:#融合
             选项['signal']=合成信号(自身.中止.信号,信号)#合成
         def 输出回调(文本,流名):
-            """转发日志块。"""
+            '转发日志块'
             块=dict(身份)#基
             块.update({'jobId':作业标识,'argv':参数行,'cwd':工作目录,'stream':流名,'text':文本})#字段
             自身.拥有上下文.广播('plugin-manager/install-log',块)#事件
@@ -723,7 +723,7 @@ class 装载服务(远程服务):
             自身.包操作集.discard(完成)#摘掉
 
     def 读恢复文件(自身):
-        """安装可能改写的配置档文件当前内容；缺失为 None。"""
+        '安装可能改写的配置档文件当前内容；缺失为 None'
         文件表={}#路径→内容
         for 名 in 恢复文件:#逐文件
             路径=os.path.join(自身.配置档['dir'],名)#路径
@@ -738,7 +738,7 @@ class 装载服务(远程服务):
         return 文件表#快照
 
     def 恢复文件(自身,文件表):
-        """把配置档文件放回；pnpm 已退出后调用。"""
+        '把配置档文件放回；pnpm 已退出后调用'
         for 路径,内容 in 文件表.items():#逐文件
             if 内容 is None:#本不存在
                 try:#删
@@ -749,7 +749,7 @@ class 装载服务(远程服务):
                 原子写文件(路径,内容,{'mode':0o600})#原子写
 
     def 选择组合包(自身,名称,启用):
-        """改写 dsh.profile.bundles 有序列表。"""
+        '改写 dsh.profile.bundles 有序列表'
         清单=读配置清单('dsh',自身.配置档['dir'])#清单
         先前=list(((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or [])#先前
         if (启用 or 名称 not in 先前) and 组合包清单(名称,自身.配置档['dir'],自身.配置档['installAnchor']) is None:#须是组合包
@@ -772,7 +772,7 @@ class 装载服务(远程服务):
         保存清单(自身.配置档['dir'],清单)#保存
 
     def 组合包行(自身,名称):
-        """组合包补丁展平后的条目选项行。"""
+        '组合包补丁展平后的条目选项行'
         信息=组合包清单(名称,自身.配置档['dir'],自身.配置档['installAnchor'])#元数据
         if 信息 is None or 'bundle' not in (信息.get('dsh') or {}):#无
             return []#空
@@ -780,17 +780,17 @@ class 装载服务(远程服务):
         return 展平行表(组合条目([加载覆盖补丁('dsh',os.path.join(目录,信息['dsh']['bundle']['patch']))]))#行
 
     def 保护装载(自身,名称):
-        """该组合包是否贡献受保护模块或拥有条目。"""
+        '该组合包是否贡献受保护模块或拥有条目'
         for 行 in 自身.组合包行(名称):#逐行
             if 行.get('name') in 受保护模块 or ('include:'+str(行.get('id')))==自身.拥有条目标识:#保护
                 return True
         return False#否
 
     def 配置事务(自身,操作):
-        """有 HMR 则经独占队列跑配置变更。"""
+        '有 HMR 则经独占队列跑配置变更'
         热=getattr(自身.拥有上下文,'hmr',None)#HMR
         def 执行():
-            """跑前检查中止。"""
+            '跑前检查中止'
             若已中止则抛出(自身.中止.信号)#中止则抛
             return 操作()#跑
         if 热 is None:#无 HMR
@@ -801,7 +801,7 @@ class 装载服务(远程服务):
         return 独占(执行)#串行
 
     def 重载(自身,必需编号=None):
-        """调和配置档补丁；无 HMR 则空警告。"""
+        '调和配置档补丁；无 HMR 则空警告'
         if 必需编号 is None:#缺省
             必需编号=[]#空
         if getattr(自身.拥有上下文,'hmr',None) is None:#无 HMR
@@ -809,9 +809,9 @@ class 装载服务(远程服务):
         return 调和配置补丁(自身.拥有上下文.根,读配置补丁('dsh',自身.配置档),'dsh',必需编号)#调和
 
     def 变更(自身,操作,请求,原因):
-        """持配置档清单锁跑一次变更并发 plugin-manager/changed。"""
+        '持配置档清单锁跑一次变更并发 plugin-manager/changed'
         def 持锁():
-            """持锁体。"""
+            '持锁体'
             若已中止则抛出(自身.中止.信号)#中止则抛
             之前=自身.磁盘状态()#装前磁盘
             结果=dict(请求)#基结果
@@ -832,7 +832,7 @@ class 装载服务(远程服务):
         return 带文件锁(os.path.join(自身.配置档['dir'],'package.json'),持锁)#持锁
 
     def 磁盘状态(自身):
-        """配置档关键文件拼接快照。"""
+        '配置档关键文件拼接快照'
         块表=[]#块
         for 文件 in ('package.json','cordis.patch.yml','pnpm-workspace.yaml'):#逐文件
             路径=os.path.join(自身.配置档['dir'],文件)#路径

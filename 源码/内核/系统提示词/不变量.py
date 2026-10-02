@@ -6,13 +6,13 @@ import json,re#json 与正则
 依赖=['invariants']
 
 def 是否合法变量名(名):
-    """必须是字符串且整串匹配小写变量名规则。"""
+    '必须是字符串且整串匹配小写变量名规则'
     if not isinstance(名,str):
         return False#非字符串非法
     return 变量名规则.fullmatch(名) is not None#整串合法
 
 def 校验组装(组装,失败):
-    """校验瀑布链返回的权威组装结果。"""
+    '校验瀑布链返回的权威组装结果'
     已见段落=set()#已见段落名
     for 段 in 组装['sections']:
         if len(段['name'])==0:
@@ -41,16 +41,16 @@ def 校验组装(组装,失败):
             失败('组装后的变量 '+json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 必须是字符串或未定义')#变量值须为字符串或缺省
 
 def 安装(上下文,失败):
-    """在权威组装瀑布结果外包一层校验。"""
+    '在权威组装瀑布结果外包一层校验'
     def 监听(_载体,_组装,_上下文,下一步):
-        """先得到组装结果再校验。"""
+        '先得到组装结果再校验'
         已组装=下一步()#组装已是同步
         校验组装(已组装,失败)#校验结果
         return 已组装#原样交回
     上下文.监听('system-prompt/assemble',监听,{'全局':True,'前置':True})#全局且前置
 
 def 应用(上下文):
-    """注册系统提示词不变量配套。"""
+    '注册系统提示词不变量配套'
     return 上下文.invariants.register(包名,安装)#登记贡献并返回拆除器
 
 应用.name=名称#Cordis name 槽

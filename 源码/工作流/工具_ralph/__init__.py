@@ -1,4 +1,4 @@
-"""面向模型的前台 Ralph 循环，叠在工作流与子智能体缝上。一份固定脚本每轮启动一个全新的结构化输出子运行，只在它们之间携带不可变目标与有界交接。"""
+'面向模型的前台 Ralph 循环，叠在工作流与子智能体缝上'
 import json#结果与交接 JSON 序列化
 from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
@@ -128,7 +128,7 @@ return { status: 'budget-limited', roundsStarted: args.maxRounds, report: previo
     'result':{'type':'json','required':True},#终态 JSON
 }#推断为只读字段表
 def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字符边界
-    """按 UTF-8 字节上限截断，切点落在字符边界。"""
+    '按 UTF-8 字节上限截断，切点落在字符边界'
     数据=文本.encode('utf-8')#UTF-8 字节
     if len(数据)<=最大字节:#未超预算；判 length
         return 文本#原样
@@ -140,7 +140,10 @@ def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字
     return 切片.decode('utf-8')#截断文本
 
 def 解析配置(配置值):#即便调用方不经 Loader 归一化就调 apply()，也要校验默认值
-    """解析并校验部署配置。配置值是 dict。外来 JSON 在此校验安全整数。"""
+    """解析并校验部署配置。
+    配置值是 dict。
+    外来 JSON 在此校验安全整数
+    """
     提供方=配置值['subagentProvider'] if 'subagentProvider' in 配置值 else 'spawn'#读提供方
     轮数上限=配置值['maxRounds'] if 'maxRounds' in 配置值 else 256#读轮数上限
     交接上限=配置值['maxHandoffChars'] if 'maxHandoffChars' in 配置值 else 16384#读交接上限
@@ -161,7 +164,9 @@ def 解析配置(配置值):#即便调用方不经 Loader 归一化就调 apply(
     }#结束已解析配置
 
 def 解析轮数上限(请求值,天花板):#把模型选的上限对上部署天花板
-    """解析本次轮数上限。工具参数是外来 JSON。"""
+    """解析本次轮数上限。
+    工具参数是外来 JSON
+    """
     值=天花板 if 请求值 is None else 请求值#未请求则用部署上限
     if isinstance(值,bool):#布尔不是整数
         raise 错误('Ralph maxRounds must be a positive safe integer')#轮数无效
@@ -174,7 +179,7 @@ def 解析轮数上限(请求值,天花板):#把模型选的上限对上部署�
     return 值#返回请求值
 
 def 要求全新提供方(上下文,提供方名):#要求配置的路由真的是全新的结构化子运行
-    """校验全新结构化提供方。"""
+    '校验全新结构化提供方'
     提供方=上下文.subagents.取提供方(提供方名)#按名查找提供方
     if 提供方 is None:#未登记
         raise 错误('Ralph subagent provider "'+提供方名+'" is not registered')#找不到提供方
@@ -186,19 +191,22 @@ def 要求全新提供方(上下文,提供方名):#要求配置的路由真的�
     return 提供方#返回已校验提供方
 
 def 是否记录(值):#判断是否为普通对象
-    """判断是否为非 null 非数组的映射。"""
+    '判断是否为非 null 非数组的映射'
     return isinstance(值,dict)#Python 侧以 dict 表示普通对象
 
 def 归一化文本(值):#判断是否为非空且已 trim 的字符串
-    """判断是否为非空且已 trim 的字符串。"""
+    '判断是否为非空且已 trim 的字符串'
     return isinstance(值,str) and len(值)>0 and 值==值.strip()#非空且首尾无空白
 
 def 归一化列表(值):#判断是否为归一化字符串数组
-    """判断是否为归一化字符串数组。"""
+    '判断是否为归一化字符串数组'
     return isinstance(值,list) and all(归一化文本(项) for 项 in 值)#每项都是归一化文本
 
 def 读报告(值,期望状态,最大字节):#跨提供方边界防御性解码固定脚本的报告
-    """把未知值校成单轮报告。值是 dict。上限按 UTF-8 字节。"""
+    """把未知值校成单轮报告。
+    值是 dict。
+    上限按 UTF-8 字节
+    """
     键集=','.join(sorted(值.keys())) if isinstance(值,dict) else ''#字段集排序拼接
     if (not isinstance(值,dict)#不是普通对象
         or 键集!='blocker,evidence,nextSteps,status,summary'#字段集必须恰好这些
@@ -228,7 +236,9 @@ def 读报告(值,期望状态,最大字节):#跨提供方边界防御性解码�
     return 报告#返回已校验报告
 
 def 读运行结果(值,轮数上限,交接上限):#防御性解码固定脚本的终态值
-    """把未知值校成终态结果。值是 dict。"""
+    """把未知值校成终态结果。
+    值是 dict
+    """
     if not isinstance(值,dict):#不是普通对象
         raise 错误('Ralph workflow returned a malformed terminal result')#终态形态失败
     已启动=值['roundsStarted'] if 'roundsStarted' in 值 else None#已启动轮数
@@ -272,7 +282,9 @@ def 读运行结果(值,轮数上限,交接上限):#防御性解码固定脚本�
     raise 错误('Ralph workflow returned an unknown terminal status')#未知状态
 
 def 停止原因错误(结果):#非干净的工作流结束是错误，绝不是部分 Ralph 成功
-    """把停止原因映射为工具错误文案。结果是 dict。"""
+    """把停止原因映射为工具错误文案。
+    结果是 dict
+    """
     原因=结果['stopReason']#按停止原因分支
     if 原因=='completed':#干净完成
         return None#不报错
@@ -285,7 +297,7 @@ def 停止原因错误(结果):#非干净的工作流结束是错误，绝不是
     return 'Ralph workflow ended abnormally ('+str(原因)+')'#未知停止原因
 
 def 约束结果(文本,最大字节):#约束面向父方的完整文本，含信封与截断标记
-    """按 UTF-8 字节上限截断结果文本。"""
+    '按 UTF-8 字节上限截断结果文本'
     标记字节=截断标记.encode('utf-8')#截断标记字节
     数据=文本.encode('utf-8')#文本字节
     if len(数据)<=最大字节:#未超限则原样；判 length
@@ -296,7 +308,10 @@ def 约束结果(文本,最大字节):#约束面向父方的完整文本，含�
     return 正文+截断标记#截断并附标记
 
 def 渲染结果(结果,最大字节):#渲染固定终态信封，不把自我报告当成认证
-    """把干净终态渲成模型可见文本。结果是 dict。上限按 UTF-8 字节。"""
+    """把干净终态渲成模型可见文本。
+    结果是 dict。
+    上限按 UTF-8 字节
+    """
     已启动=结果['roundsStarted']#已启动轮数
     轮数=str(已启动)+(' round' if 已启动==1 else ' rounds')#轮数展示
     状态=结果['status']#运行状态
@@ -312,7 +327,9 @@ def 渲染结果(结果,最大字节):#渲染固定终态信封，不把自我�
     return 约束结果(文本,最大字节)#按上限截断
 
 def 渲染轮次失败(结果,最大字节):#用最近一份耐久交接渲染普通子失败
-    """把轮次失败渲成错误文本。结果是 dict。"""
+    """把轮次失败渲成错误文本。
+    结果是 dict
+    """
     头='Ralph round '+str(结果['roundsStarted'])+' child failed before producing a structured report.'#失败头
     上一份=结果['lastReport'] if 'lastReport' in 结果 else None#有没有上一份交接
     if 上一份 is None:#第一轮失败
@@ -322,23 +339,27 @@ def 渲染轮次失败(结果,最大字节):#用最近一份耐久交接渲染�
     return 约束结果(文本,最大字节)#按上限截断
 
 def 呈现调用(参数):#渲染调用中卡片
-    """渲染调用中卡片。参数是 dict。"""
+    """渲染调用中卡片。
+    参数是 dict
+    """
     return {'card':'generic','title':'ralph','rawInput':参数['objective']}#通用卡片，标题 ralph
 
 def 呈现结果(参数,结果):#渲染完成后卡片
-    """渲染完成后卡片。"""
+    '渲染完成后卡片'
     _=参数#呈现不依赖参数
     _=结果#呈现不依赖结果内容
     return {'card':'generic'}#只声明仍用通用卡片
 
 class 错误(Exception):#英文文案
-    """运行时错误，详情保持英文原文。"""
+    '运行时错误，详情保持英文原文'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         Exception.__init__(自身,消息)#英文消息
 
 def 应用(上下文,配置值=None):#登记固定 Ralph 工具及其显式询问的用法政策
-    """登记 Ralph 工具与用法段落。配置值是 dict。"""
+    """登记 Ralph 工具与用法段落。
+    配置值是 dict
+    """
     if 配置值 is None:#缺省配置
         配置值={}#空映射
     已解析=解析配置(配置值)#解析部署配置
@@ -349,12 +370,16 @@ def 应用(上下文,配置值=None):#登记固定 Ralph 工具及其显式询�
     })#结束段落登记
 
     def 渲染输出(参数,值):#把结构化结果渲成文本块
-        """把结构化结果渲成文本块。值是 dict。"""
+        """把结构化结果渲成文本块。
+        值是 dict
+        """
         _=参数#渲染不读参数
         return [{'type':'text','text':渲染结果(值['result'],已解析['maxResultChars'])}]#按上限渲染
 
     def 执行(参数,执行上下文):#执行一次 Ralph 工具调用
-        """执行一次 Ralph 工具调用。参数与执行上下文都是 dict。"""
+        """执行一次 Ralph 工具调用。
+        参数与执行上下文都是 dict
+        """
         if 'agent' not in 执行上下文 or 执行上下文['agent'] is None:#没有调用方智能体
             raise 错误('Ralph tool requires a calling agent (exec.agent was undefined)')#缺少父智能体则失败
         父方=执行上下文['agent']#取出调用方智能体

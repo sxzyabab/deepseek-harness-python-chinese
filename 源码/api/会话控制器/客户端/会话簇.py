@@ -1,7 +1,4 @@
-"""会话簇：实例簇、帧分发与列表状态。
-
-无选择轴、无队列缓存、无完成提醒。
-"""
+'会话簇：实例簇、帧分发与列表状态'
 import threading#防抖
 import time#活动时间
 from .有序基线 import 合并有序基线#有序合并
@@ -13,22 +10,22 @@ from .会话 import 会话#会话类
 __all__=['会话簇']#仅中文公开名
 
 def _规范游标(值):
-    """规范投影游标。"""
+    '规范投影游标'
     return -1 if 值==-1 else 值#游标
 
 def _目录可用性(父可用):
-    """可选父可用性字段。"""
+    '可选父可用性字段'
     return {} if 父可用 is None else {'parentAvailable':父可用}#字段
 
 def _工作区附着会话标识(错误):
-    """从附着失败细节取已发布会话 id。"""
+    '从附着失败细节取已发布会话 id'
     细节=错误.details if hasattr(错误,'details') else (错误['details'] if isinstance(错误,dict) and 'details' in 错误 else None)#细节
     if not isinstance(细节,dict):#无
         return None#无
     return 细节['sessionId'] if 'sessionId' in 细节 else None#id
 
 def _应用变更(摘要列表,变更):
-    """应用一条列表变更。"""
+    '应用一条列表变更'
     种类=变更['kind']#种类
     if 种类=='upsert':#插入或更新
         摘要=变更['summary']#摘要
@@ -89,7 +86,7 @@ def _应用变更(摘要列表,变更):
     return list(摘要列表)#未知
 
 def _调用远程(方法,*参数,信号=None):
-    """归一远程结果。"""
+    '归一远程结果'
     try:
         if 信号 is not None:#有信号
             原始=方法(*参数,信号)#调用
@@ -102,10 +99,10 @@ def _调用远程(方法,*参数,信号=None):
         return {'ok':False,'error':错误}
 
 class 会话簇:
-    """实例簇 + 帧入口 + session 列表。"""
+    '实例簇 + 帧入口 + session 列表'
 
     def __init__(自身,远程):
-        """构造。"""
+        '构造'
         自身._远程=远程#远程
         自身._会话表={}#实例簇
         自身._处置中=set()#处置
@@ -129,7 +126,7 @@ class 会话簇:
         自身._列表快照=自身._构建列表快照()#首快照
 
     def resolveTarget(自身,目标):
-        """解析获取目标而不物化 Session。"""
+        '解析获取目标而不物化 Session'
         if isinstance(目标,str):#身份
             标识=目标#id
             地址=自身.navigationAddress(标识)#导航
@@ -149,11 +146,11 @@ class 会话簇:
         return 标识#id
 
     def subagentAddress(自身,会话标识):
-        """返回保留的子地址。"""
+        '返回保留的子地址'
         return 自身.navigationAddress(会话标识)#委托
 
     def navigationAddress(自身,会话标识):
-        """解析面包屑导航地址。"""
+        '解析面包屑导航地址'
         if 会话标识 in 自身._地址表:#保留
             return 自身._地址表[会话标识]#命中
         for 父标识,目录 in 自身._目录表.items():#扫目录
@@ -163,7 +160,7 @@ class 会话簇:
         return None#无
 
     def drop(自身,会话标识,期望=None):
-        """丢弃精确实例。"""
+        '丢弃精确实例'
         实例=自身._会话表[会话标识] if 会话标识 in 自身._会话表 else None#实例
         if 期望 is not None and 实例 is not 期望:#替换
             return#空
@@ -174,7 +171,7 @@ class 会话簇:
         自身._启动处置(实例)#处置
 
     def dispose(自身):
-        """停止计时器与全部实例。"""
+        '停止计时器与全部实例'
         for 定时器 in list(自身._目录防抖.values()):#清防抖
             定时器.cancel()#取消
         自身._目录防抖.clear()#清空
@@ -189,7 +186,7 @@ class 会话簇:
             time.sleep(0.01)#短等
 
     def get(自身,会话标识):
-        """惰性构建：返回已有或新建实例。"""
+        '惰性构建：返回已有或新建实例'
         if 会话标识 in 自身._会话表:#已有
             return 自身._会话表[会话标识]#实例
         实例=自身._创建会话(会话标识)#新建
@@ -213,7 +210,7 @@ class 会话簇:
         return 实例#实例
 
     def refreshSubagents(自身,父会话标识):
-        """刷新直接子目录（single-flight）。"""
+        '刷新直接子目录（single-flight）'
         if 父会话标识 in 自身._目录飞行:#复用
             return#空
         先前=自身._目录表[父会话标识] if 父会话标识 in 自身._目录表 else None#先前
@@ -229,7 +226,7 @@ class 会话簇:
         飞行={'expandableRows':可展开,'activityRows':活动行,'parentAvailableOverride':None}#飞行态
         自身._目录飞行[父会话标识]=飞行#登记
         def 后台刷新目录():
-            """拉目录。"""
+            '拉目录'
             try:
                 子面=自身._远程.subagents#subagents
                 结果=_调用远程(子面.list,父会话标识)#列表
@@ -266,7 +263,7 @@ class 会话簇:
         线.start()#启
 
     def setSubagentCatalogOpen(自身,父会话标识,打开):
-        """目录打开态。"""
+        '目录打开态'
         if 打开:#打开
             自身._打开目录.add(父会话标识)#登记
             自身.refreshSubagents(父会话标识)#刷新
@@ -277,7 +274,7 @@ class 会话簇:
                 定时器.cancel()#取消
 
     def refreshList(自身):
-        """全量刷新列表。"""
+        '全量刷新列表'
         if 自身._列表飞行 is not None:#复用
             return#空
         自身._列表状态='loading'#加载
@@ -288,7 +285,7 @@ class 会话簇:
         自身._通知器.标脏()#脏
         自身._列表飞行=True#飞行
         def 后台刷新列表():
-            """拉列表。"""
+            '拉列表'
             try:
                 会话面=自身._远程.session#session
                 结果=_调用远程(会话面.list,{})#列表
@@ -331,7 +328,7 @@ class 会话簇:
         线.start()#启
 
     def search(自身,查询,信号=None):
-        """搜索。"""
+        '搜索'
         会话面=自身._远程.session#session
         结果=_调用远程(会话面.search,{'query':查询},信号=信号)#搜索
         if not 结果.get('ok'):
@@ -340,7 +337,7 @@ class 会话簇:
         return {'ok':True,'value':{'items':list(值.get('items',[])),'hasMore':值.get('hasMore',False)}}#结果
 
     def create(自身,选项=None):
-        """创建会话。"""
+        '创建会话'
         if 选项 is None:#缺省
             选项={}#空
         共享={} if 'sessionId' not in 选项 else {'sessionId':选项['sessionId']}#共享
@@ -365,7 +362,7 @@ class 会话簇:
         return 结果#结果
 
     def fork(自身,选项):
-        """分叉会话。"""
+        '分叉会话'
         源=None#源
         for 项 in 自身._摘要列表:#找
             if 项['sessionId']==选项['sessionId']:#命中
@@ -386,21 +383,21 @@ class 会话簇:
         return 结果#结果
 
     def 订阅(自身,监听者):
-        """订阅列表。"""
+        '订阅列表'
         return 自身._通知器.订阅(监听者)#取消
 
     def getListSnapshot(自身):
-        """取列表快照。"""
+        '取列表快照'
         自身._通知器.确保新鲜()#新鲜
         return 自身._列表快照#快照
 
     def projectionValues(自身,会话标识):
-        """读投影值。"""
+        '读投影值'
         存储=自身._投影存储表[会话标识] if 会话标识 in 自身._投影存储表 else None#存储
         return None if 存储 is None else 存储.诸值()#值
 
     def handleControlFrame(自身,帧):
-        """控制帧。"""
+        '控制帧'
         类型=帧.get('type') if isinstance(帧,dict) else getattr(帧,'type',None)#类型
         if 类型=='baseline':#基线
             自身._替换控制基线(帧['value'] if isinstance(帧,dict) else 帧.value)#替换
@@ -422,7 +419,7 @@ class 会话簇:
         自身._通知器.标脏()#脏
 
     def handleSessionAdded(自身,摘要):
-        """列表新增。"""
+        '列表新增'
         自身._记录变更({'kind':'upsert','summary':摘要})#合并
         if 摘要['sessionId'] in 自身._会话表:#已实例
             自身._会话表[摘要['sessionId']].handleBlank(摘要.get('blank',True))#空白
@@ -437,7 +434,7 @@ class 会话簇:
             自身._调度目录刷新(摘要['parentSessionId'])#防抖
 
     def handleSessionRemoved(自身,会话标识):
-        """列表移除。"""
+        '列表移除'
         摘要=None#摘要
         for 项 in 自身._摘要列表:#找
             if 项['sessionId']==会话标识:#命中
@@ -466,23 +463,23 @@ class 会话簇:
                 自身._会话表[子标识].handleSubagentParentAvailable(False)#父不可用
 
     def handleSessionStatus(自身,会话标识,运行中):
-        """状态。"""
+        '状态'
         自身._记录变更({'kind':'status','sessionId':会话标识,'running':运行中})#变更
         if 会话标识 in 自身._会话表:#已实例
             自身._会话表[会话标识].handleRunning(运行中)#转发
         自身._更新目录活动(会话标识,运行中)#目录
 
     def handleSessionActivity(自身,会话标识,更新于):
-        """活动。"""
+        '活动'
         自身._记录变更({'kind':'activity','sessionId':会话标识,'updatedAt':更新于})#变更
 
     def handleSessionError(自身,会话标识,消息):
-        """错误。"""
+        '错误'
         if 会话标识 in 自身._会话表:#已实例
             自身._会话表[会话标识].handleAgentError(消息)#转发
 
     def handleConnected(自身):
-        """重连。"""
+        '重连'
         for 存储 in 自身._投影存储表.values():#清空投影
             存储.清空()#清
         自身._列表变更=None#清
@@ -497,7 +494,7 @@ class 会话簇:
             自身.refreshSubagents(父)#刷
 
     def _创建会话(自身,会话标识):
-        """新建会话。"""
+        '新建会话'
         地址=自身._地址表[会话标识] if 会话标识 in 自身._地址表 else None#地址
         父可用=None if 地址 is None else (自身._目录表[地址['parentSessionId']].get('parentAvailable') if 地址['parentSessionId'] in 自身._目录表 else None)#父
         选项={}#选项
@@ -505,14 +502,14 @@ class 会话簇:
             选项['address']=地址#地址
             选项.update(_目录可用性(父可用))#父
         def 已接入(接入会话):
-            """首次接入。"""
+            '首次接入'
             自身._记录变更({'kind':'engaged','sessionId':接入会话.sessionId})#变更
         选项['onEngaged']=已接入#回调
         选项['projections']=自身._投影存储(会话标识)#投影
         return 会话(会话标识,自身._远程,选项)#实例
 
     def _投影存储(自身,会话标识):
-        """按需投影存储。"""
+        '按需投影存储'
         if 会话标识 in 自身._投影存储表:#已有
             return 自身._投影存储表[会话标识]#存储
         存储=投影值存储()#新建
@@ -521,10 +518,10 @@ class 会话簇:
         return 存储#存储
 
     def _启动处置(自身,实例):
-        """启动处置。"""
+        '启动处置'
         自身._处置中.add(实例)#登记
         def 后台():
-            """处置。"""
+            '处置'
             try:
                 实例.dispose()#拆
             finally:
@@ -534,14 +531,14 @@ class 会话簇:
         线.start()#启
 
     def _记录变更(自身,变更):
-        """记录并应用变更。"""
+        '记录并应用变更'
         if 自身._列表变更 is not None:#飞行
             自身._列表变更.append(变更)#日志
         自身._摘要列表=_应用变更(自身._摘要列表,变更)#应用
         自身._通知器.标脏()#脏
 
     def _替换控制基线(自身,基线):
-        """替换控制基线。"""
+        '替换控制基线'
         自身._任务表.clear()#清作业
         for 会话标识,作业 in (基线.get('jobs') or {}).items():#作业
             if len(作业)>0:#有
@@ -553,11 +550,11 @@ class 会话簇:
         自身._通知器.标脏()#脏
 
     def _调度目录刷新(自身,父会话标识):
-        """目录防抖刷新。"""
+        '目录防抖刷新'
         if 父会话标识 in 自身._目录防抖:#已有
             return#空
         def 到期():
-            """到期回调。"""
+            '到期回调'
             自身._目录防抖.pop(父会话标识,None)#清
             if 父会话标识 in 自身._目录飞行:#飞行
                 自身._目录陈旧.add(父会话标识)#陈旧
@@ -569,7 +566,7 @@ class 会话簇:
         定时器.start()#启
 
     def _更新目录活动(自身,子会话标识,运行中):
-        """目录活动。"""
+        '目录活动'
         活动='running' if 运行中 else 'inactive'#活动
         for 飞行 in 自身._目录飞行.values():#飞行
             飞行['activityRows'][子会话标识]=活动#记
@@ -593,13 +590,13 @@ class 会话簇:
             自身._通知器.标脏()#脏
 
     def _标记目录父可展开(自身,父会话标识):
-        """可展开提示。"""
+        '可展开提示'
         自身._应用目录父可展开(父会话标识)#应用
         for 飞行 in 自身._目录飞行.values():#飞行
             飞行['expandableRows'].add(父会话标识)#记
 
     def _应用目录父可展开(自身,父会话标识):
-        """应用可展开。"""
+        '应用可展开'
         变了=False#变
         for 目录父,目录 in list(自身._目录表.items()):#目录
             if not any(条目.get('kind')=='child' and 条目.get('id')==父会话标识 and not 条目.get('hasChildren') for 条目 in 目录['entries']):#无
@@ -620,7 +617,7 @@ class 会话簇:
             自身._通知器.标脏()#脏
 
     def _带目录变更(自身,条目,可展开,活动行):
-        """折叠目录变更。"""
+        '折叠目录变更'
         结果=[]#行
         for 条目项 in 条目:#逐条
             if 条目项.get('kind')!='child':#非子
@@ -639,11 +636,11 @@ class 会话簇:
         return 结果#结果
 
     def _重建列表快照(自身):
-        """通知器回调。"""
+        '通知器回调'
         自身._列表快照=自身._构建列表快照()#重建
 
     def _构建列表快照(自身):
-        """构建列表快照。"""
+        '构建列表快照'
         合并=[]#带标题
         for 摘要 in 自身._摘要列表:#逐行
             存储=自身._投影存储表[摘要['sessionId']] if 摘要['sessionId'] in 自身._投影存储表 else None#存储

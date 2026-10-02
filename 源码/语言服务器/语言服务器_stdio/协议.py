@@ -1,4 +1,4 @@
-"""本通用宿主读写的 LSP 线协议类型子集：initialize 能力、四种请求结果（Location、LocationLink、Hover），以及用来判定瞬时打开支持的 textDocumentSync 形态。仅词汇。真实服务器载荷中缺席的字段保持可选；翻译层把它们归一成 seam 的封闭联合。"""
+'本通用宿主读写的 LSP 线协议类型子集：initialize 能力、四种请求结果（Location、LocationLink、Hover），以及用来判定瞬时打开支持的 textDocumentSync 形态'
 
 线协议位置字段=('line','character')#线上的零基 UTF-16 位置（协议的 Position）
 线协议范围字段=('start','end')#线协议范围（Range）

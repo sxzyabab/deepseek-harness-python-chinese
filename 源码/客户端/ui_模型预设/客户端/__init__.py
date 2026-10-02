@@ -14,13 +14,13 @@ __all__=['依赖','应用','权限目录','预设错误','权限行','权限选�
 ]#依赖结束
 
 def 选取于(会话):
-    """读会话 permissions 投影；能力缺席则 None。"""
+    '读会话 permissions 投影；能力缺席则 None'
     if 会话 is None:#无
         return None#缺席
     return 会话.projections.faceOf('permissions').getSnapshot()#选取
 
 def 选项于(目录,当前值,翻译):
-    """进程目录叠当前会话值。"""
+    '进程目录叠当前会话值'
     表=[]#选项
     for 项 in 目录['options']:
         值=项['value']#机值
@@ -49,20 +49,20 @@ def 选项于(目录,当前值,翻译):
     return 表#选项
 
 def 应用(上下文):
-    """登记 /permission 弹出装饰、设置行与进程目录。"""
+    '登记 /permission 弹出装饰、设置行与进程目录'
     命令=上下文.获取服务('commandUi')#命令面
     会话面=上下文.sessions#会话
     def 登记访问词典():
-        """当前会话词典。"""
+        '当前会话词典'
         return 上下文.locale.register(权限访问命名空间,{'zh':访问中文,'en':访问英文})#词典
     上下文.副作用(登记访问词典,'ui-permission: current-session dictionaries')#挂
     翻译=上下文.locale.bind(权限访问命名空间)#绑定
     def 会话于(会话上下文):
-        """按 sessionId 取会话面。"""
+        '按 sessionId 取会话面'
         绑定=会话面.binding(会话上下文.sessionId)#绑定
         return 绑定.session if 绑定 is not None else None#面
     def 提交(会话标识,预设):
-        """经 /permission 命令切换。"""
+        '经 /permission 命令切换'
         绑定=会话面.binding(会话标识)#绑定
         活=绑定.session if 绑定 is not None else None#面
         if 活 is None:#未物化
@@ -77,36 +77,36 @@ def 应用(上下文):
         return True#成功
     目录=权限目录(上下文)#进程目录
     def 拆目录():
-        """拆除目录。"""
+        '拆除目录'
         def 拆():
-            """dispose。"""
+            'dispose'
             目录.dispose()
         return 拆#拆除器
     上下文.副作用(拆目录,'ui-permission: process catalog directory')#挂拆除
     def 订失效():
-        """失效则关掉过期斜杠选项。"""
+        '失效则关掉过期斜杠选项'
         def 关掉():
-            """解散 permission 弹出。"""
+            '解散 permission 弹出'
             命令.dismiss('permission')#关
         return 目录.invalidations.subscribe(关掉)#退订
     上下文.副作用(订失效,'ui-permission: dismiss stale slash choices')#挂
     def 登记设置词典():
-        """设置行词典。"""
+        '设置行词典'
         return 上下文.locale.register('settings.permission',{'zh':中文,'en':英文})#词典
     上下文.副作用(登记设置词典,'ui-permission: settings row dictionaries')#挂
     控制器=权限预设设置控制器(上下文.settingsScope.describe(),上下文,上下文.settingsSchema)#镜像面、上下文、模式
     def 行注入():
-        """通用设置行注入面。"""
+        '通用设置行注入面'
         return {'hooks':{'permission':控制器.store},'load':控制器.加载,'select':控制器.选定}#行注入
     def 拆控制器():
-        """拆除设置行控制器。"""
+        '拆除设置行控制器'
         def 拆():
-            """dispose。"""
+            'dispose'
             控制器.dispose()
         return 拆#拆除器
     上下文.副作用(拆控制器,'ui-permission: settings row directory')#挂拆除
     def 登记设置行():
-        """等通用设置条目槽出现再登记。"""
+        '等通用设置条目槽出现再登记'
         return 上下文.slots.register({#登记
             'name':'settings.general.item',#通用设置条目槽
             'id':'permission',#条目 id
@@ -116,13 +116,13 @@ def 应用(上下文):
         },权限行)#行组件
     上下文.slots.inject('settings.general.item',登记设置行)#等席出现
     def 权限注入(会话标识):
-        """进程目录叠当前会话提交。"""
+        '进程目录叠当前会话提交'
         def 选定(预设):
-            """经 /permission 命令切换。"""
+            '经 /permission 命令切换'
             return 提交(会话标识,预设)#提交
         return {'hooks':{'permissionCatalog':目录.store},'select':选定}#注入
     def 登记权限席():
-        """撰写器当前会话权限席。"""
+        '撰写器当前会话权限席'
         return 上下文.slots.register({#登记
             'name':'conversation.input.permission',#席名
             'locale':权限访问命名空间,#词典
@@ -130,20 +130,20 @@ def 应用(上下文):
         },权限选择)#选择组件
     上下文.slots.inject('conversation.input.permission',登记权限席)#等席出现
     def 可用(会话上下文):
-        """当前值在才可用。"""
+        '当前值在才可用'
         return 选取于(会话于(会话上下文)) is not None#可用
     def 选项(会话上下文):
-        """弹出选项。"""
+        '弹出选项'
         选取=选取于(会话于(会话上下文))#选取
         if 选取 is None:#无能力
             raise 预设错误('permission presets are not available on this host')#抛
         return 选项于(目录.加载(),选取['currentValue'],翻译)#选项
     def 选中(选项项,会话上下文):
-        """提交切换。"""
+        '提交切换'
         提交(会话上下文.sessionId,选项项['id'])#提交
         return None#无额外
     def 挂装饰():
-        """装饰 /permission。"""
+        '装饰 /permission'
         return 命令.decorate({#装饰
             'name':'permission',#名
             'available':可用,#可用性

@@ -1,4 +1,4 @@
-"""冷安全会话列表与搜索投影。"""
+'冷安全会话列表与搜索投影'
 from .常量 import 会话搜索结果上限,会话搜索片段最大字节,会话搜索查询最大字节#常量
 from .远程错误与并发 import 远程错误,远程错误消息,已中止#远程错误与并发
 
@@ -9,7 +9,7 @@ __all__=['应用会话列表元数据','截断utf8字节','会话列表']#仅中
 消息类型=set(['user/message','assistant/message'])#可搜索类型
 
 def 应用会话列表元数据(状态,事件):
-    """按事件推进 sessionListMetadata。状态与事件为 dict。"""
+    '按事件推进 sessionListMetadata。状态与事件为 dict'
     空白=状态['blank'] and 事件['type']!='turn/start'#仍空白
     最近提示=状态['lastPromptAt'] if 'lastPromptAt' in 状态 else None#原值
     源=事件['data']['source'] if 'data' in 事件 and isinstance(事件['data'],dict) and 'source' in 事件['data'] else None#来源
@@ -21,7 +21,7 @@ def 应用会话列表元数据(状态,事件):
     return {'blank':空白,'lastPromptAt':最近提示}#新状态
 
 def 截断utf8字节(文本,最大字节):
-    """按 UTF-8 字节截断，切点落在字符边界。"""
+    '按 UTF-8 字节截断，切点落在字符边界'
     数据=文本.encode('utf-8')#字节
     if len(数据)<=最大字节:#未超
         return 文本#原样
@@ -31,26 +31,26 @@ def 截断utf8字节(文本,最大字节):
     return 数据[:切].decode('utf-8')#解码
 
 def 初值列表元数据():
-    """sessionListMetadata 初值。"""
+    'sessionListMetadata 初值'
     return {'blank':True,'lastPromptAt':None}#初值
 
 def 直通视图(状态):
-    """线上直通。"""
+    '线上直通'
     return 状态#原样
 
 def 不变折叠(状态,_事件):
-    """imageLimits 状态不变。"""
+    'imageLimits 状态不变'
     return 状态#不变
 
 def 按更新时间(项):
-    """列表排序键。项为 dict。"""
+    '列表排序键。项为 dict'
     return 项['updatedAt']#活动时间
 
 class 会话列表:
-    """拥有列表投影注册、冷摘要与授权搜索。"""
+    '拥有列表投影注册、冷摘要与授权搜索'
 
     def __init__(自身,上下文,冷空白探测最大字节):
-        """注册 sessionListMetadata 列。"""
+        '注册 sessionListMetadata 列'
         自身._上下文=上下文#Cordis
         自身._冷上限=冷空白探测最大字节#冷探测上限
         上下文.sessionProjections.register({#列表元数据列
@@ -61,12 +61,12 @@ class 会话列表:
             'stateVersion':1,#版本
         })#register
         def 挂附件(附件上下文):
-            """注册 imageLimits 列。"""
+            '注册 imageLimits 列'
             def 视图图像上限(_状态):
-                """读附件上限。"""
+                '读附件上限'
                 return 附件上下文.attachments.imageLimits#视图
             def 初值图像上限():
-                """无状态。"""
+                '无状态'
                 return None#状态
             上下文.sessionProjections.register({#imageLimits
                 'key':'imageLimits',#键
@@ -78,7 +78,7 @@ class 会话列表:
         上下文.依赖启动(['attachments'],挂附件)#依赖启动
 
     def 摘要(自身,会话):
-        """构建当前附着会话摘要。"""
+        '构建当前附着会话摘要'
         投影=自身._投影(会话.header,会话)#投影
         元数据=投影['values']['sessionListMetadata'] if 投影 is not None and 'values' in 投影 and 'sessionListMetadata' in 投影['values'] else None#元数据
         智能体=自身._上下文.agents.get(会话.id)#智能体
@@ -94,7 +94,7 @@ class 会话列表:
         return 条目
 
     def 列表(自身,信号=None):
-        """读可见附着与持久会话摘要。"""
+        '读可见附着与持久会话摘要'
         if 信号 is not None and 已中止(信号):#取消
             raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
         记录列表=自身._上下文.sessionQuery.listSessions(信号)#列持久
@@ -117,7 +117,7 @@ class 会话列表:
         return 条目#列表
 
     def 搜索(自身,查询,信号):
-        """搜索可见消息内容。"""
+        '搜索可见消息内容'
         规范化=自身._规范化查询(查询)#规范化
         if 已中止(信号):#取消
             raise 远程错误('gateway/cancelled','session search was aborted',{})#取消
@@ -172,7 +172,7 @@ class 会话列表:
             raise 远程错误('gateway/internal','session search failed: '+远程错误消息(错误),{})#内部
 
     def _规范化查询(自身,查询):
-        """修剪并校验搜索查询。"""
+        '修剪并校验搜索查询'
         规范化=str(查询 if 查询 is not None else '').strip()#修剪，?? 语义保留空串
         if 规范化=='':#空
             raise 远程错误('gateway/bad-request','session search query must not be empty',{})#拒绝
@@ -183,7 +183,7 @@ class 会话列表:
         return 规范化#返回
 
     def _冷摘要(自身,头,信号):
-        """为冷会话构建摘要。头为 dict。"""
+        '为冷会话构建摘要。头为 dict'
         缓存=自身._投影(头,None)#缓存投影
         投影=缓存#默认
         元数据=None#默认
@@ -210,7 +210,7 @@ class 会话列表:
         return 条目
 
     def _探测小冷(自身,头,信号):
-        """小工件全量观测。头为 dict。"""
+        '小工件全量观测。头为 dict'
         if 自身._冷上限==0:#禁用
             return None#跳过
         持久=自身._上下文.获取服务('sessionPersistence')#持久
@@ -233,7 +233,7 @@ class 会话列表:
             return None#可见但未知
 
     def _投影(自身,头,会话):
-        """读列表提示投影块。头为 dict。"""
+        '读列表提示投影块。头为 dict'
         try:
             if 会话 is None:#冷
                 缓存=自身._上下文.获取服务('sessionProjectionCache')#缓存服务
@@ -250,7 +250,7 @@ class 会话列表:
             return None#无列
 
     def _更新时间(自身,头,元数据):
-        """取列表排序时间。头与元数据为 dict。"""
+        '取列表排序时间。头与元数据为 dict'
         最近=0#默认
         if 元数据 is not None and 'lastPromptAt' in 元数据 and 元数据['lastPromptAt'] is not None:#有最近提示
             最近=元数据['lastPromptAt']#最近提示
@@ -258,7 +258,7 @@ class 会话列表:
         return max(创建,最近)#最大
 
     def _列表字段(自身,头):
-        """投影头中的列表字段。头为 dict。"""
+        '投影头中的列表字段。头为 dict'
         结果={}#结果
         if 'parentSession' in 头 and 头['parentSession'] is not None:#父会话
             结果['parentSessionId']=头['parentSession']#父

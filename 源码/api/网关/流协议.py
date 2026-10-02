@@ -1,6 +1,6 @@
-"""网关自有 Remote 流与事件结果 RPC 的线协议报文。"""
+'网关自有 Remote 流与事件结果 RPC 的线协议报文'
 import json
-from ...typert.协议 import 是否远程json值
+from ...类型化远程调用.协议 import 是否远程json值
 
 __all__=[
     '远程流复用路径','远程事件流端点','远程事件结果端点','远程事件流载荷','远程事件流就绪',
@@ -16,48 +16,48 @@ __all__=[
 远程事件流就绪={'type':'ready'}#就绪判别
 
 def 是否记录(值):
-    """非数组对象。"""
+    '非数组对象'
     return isinstance(值,dict)
 
 def 是否普通记录(值):
-    """普通 dict。"""
+    '普通 dict'
     return isinstance(值,dict)
 
 def 精确键(值,期望):
-    """自有键恰好等于期望。"""
+    '自有键恰好等于期望'
     键列表=list(值.keys())
     return len(键列表)==len(期望) and all(键 in 值 for 键 in 期望)
 
 def 仅含键(值,必需,可选):
-    """含全部必需键，且无其它键。"""
+    '含全部必需键，且无其它键'
     键列表=list(值.keys())
     return all(键 in 值 for 键 in 必需) and all(键 in 必需 or 键 in 可选 for 键 in 键列表)
 
 def 合法标识(值):
-    """非空字符串。"""
+    '非空字符串'
     return isinstance(值,str) and len(值)>0
 
 def 是否远程事件标识(值):
-    """非空事件关联标识。"""
+    '非空事件关联标识'
     return 合法标识(值)
 
 def 是否远程事件客户端标识(值):
-    """非空事件流代际标识。"""
+    '非空事件流代际标识'
     return 合法标识(值)
 
 def 是否远程事件智能体标识(值):
-    """非空智能体标识。"""
+    '非空智能体标识'
     return 合法标识(值)
 
 def 字符串属性(值,键):
-    """对象上的字符串属性。"""
+    '对象上的字符串属性'
     if 值 is None:
         return None
     候选=值.get(键) if isinstance(值,dict) else getattr(值,键,None)
     return 候选 if isinstance(候选,str) else None
 
 def 解析远程事件拒绝(值):
-    """校验拒绝字段。"""
+    '校验拒绝字段'
     if (not 是否记录(值) or not 仅含键(值,['name','message'],['code','details'])
             or not isinstance(值.get('name'),str) or 值.get('name')==''
             or not isinstance(值.get('message'),str)
@@ -72,7 +72,7 @@ def 解析远程事件拒绝(值):
     return 出
 
 def 解析远程事件结果(值):
-    """解析 `$events/result` 载荷。"""
+    '解析 `$events/result` 载荷'
     if (not 是否记录(值) or not 精确键(值,['clientId','eventId','outcome'])
             or not 是否远程事件客户端标识(值.get('clientId'))
             or not 是否远程事件标识(值.get('eventId'))
@@ -96,7 +96,7 @@ def 解析远程事件结果(值):
     raise Exception('api gateway: invalid Remote event result')
 
 def 投影远程事件请求(值,主体):
-    """去掉 waterfall 请求上的 agent 与 signal。"""
+    '去掉 waterfall 请求上的 agent 与 signal'
     if not 是否普通记录(值) or 'agent' not in 值 or 值['agent'] is not 主体:
         raise TypeError('api gateway: Remote event request must carry its scoped Agent directly')
     信号=值.get('signal') if 'signal' in 值 else None
@@ -117,7 +117,7 @@ def 投影远程事件请求(值,主体):
     return 出
 
 def 投影远程事件拒绝(原因):
-    """投影为稳定 JSON 拒绝字段。"""
+    '投影为稳定 JSON 拒绝字段'
     记录=原因 if isinstance(原因,dict) else (原因 if isinstance(原因,BaseException) else None)
     名=None
     消息=None
@@ -145,7 +145,7 @@ def 投影远程事件拒绝(原因):
     return 出
 
 def 还原远程事件拒绝(拒绝):
-    """把线拒绝还原为异常。"""
+    '把线拒绝还原为异常'
     错误=Exception(拒绝['message'])
     错误.name=拒绝['name']
     if 'code' in 拒绝:
@@ -155,7 +155,7 @@ def 还原远程事件拒绝(拒绝):
     return 错误
 
 def 解析报文(文本,校验):
-    """解析一条 JSON 对象报文。"""
+    '解析一条 JSON 对象报文'
     try:
         解码=json.loads(文本)
     except Exception as 原因:
@@ -167,9 +167,9 @@ def 解析报文(文本,校验):
     return 校验(解码)
 
 def 解析远程流客户端报文(文本):
-    """解析浏览器到宿主的一条文本报文。"""
+    '解析浏览器到宿主的一条文本报文'
     def 校验(值):
-        """校验客户端报文。"""
+        '校验客户端报文'
         if ((值.get('type')=='cancel' or 值.get('type')=='end')
                 and 精确键(值,['type','streamId']) and 合法标识(值.get('streamId'))):
             return 值
@@ -187,9 +187,9 @@ def 解析远程流客户端报文(文本):
     return 解析报文(文本,校验)
 
 def 解析远程流服务端报文(文本):
-    """解析宿主到浏览器的一条文本报文。"""
+    '解析宿主到浏览器的一条文本报文'
     def 校验(值):
-        """校验服务端报文。"""
+        '校验服务端报文'
         if (值.get('type')=='item'
                 and (精确键(值,['type','streamId']) or 精确键(值,['type','streamId','value']))
                 and 合法标识(值.get('streamId'))):

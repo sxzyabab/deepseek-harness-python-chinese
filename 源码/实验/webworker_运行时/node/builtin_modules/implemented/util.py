@@ -9,7 +9,7 @@ __all__=[
 ]
 
 def 对象同(左,右):
-    """结构相等前的同值判定。"""
+    '结构相等前的同值判定'
     if 左 is 右: return True
     if isinstance(左,float) and isinstance(右,float):
         if math.isnan(左) and math.isnan(右): return True
@@ -19,12 +19,12 @@ def 对象同(左,右):
     return False
 
 def 承诺化(函数):
-    """将错误优先回调函数包装为同步返回结果的函数。"""
+    '将错误优先回调函数包装为同步返回结果的函数'
     def 包装(*参数):
-        """追加错误优先回调并同步交出结果。"""
+        '追加错误优先回调并同步交出结果'
         结算={'值':None,'错误':None}
         def 回调(错误,值=None):
-            """有错记下错误，否则记下值。"""
+            '有错记下错误，否则记下值'
             if 错误 is not None:
                 结算['错误']=错误
             else:
@@ -39,9 +39,9 @@ def 承诺化(函数):
     return 包装
 
 def 回调化(函数):
-    """将同步返回结果的函数包装为错误优先回调函数。"""
+    '将同步返回结果的函数包装为错误优先回调函数'
     def 包装(*参数):
-        """末参为回调，前面为实参。"""
+        '末参为回调，前面为实参'
         回调=参数[-1]
         其余=参数[:-1]
         try:
@@ -53,7 +53,7 @@ def 回调化(函数):
     return 包装
 
 def 检视(值):
-    """值的诊断渲染。"""
+    '值的诊断渲染'
     if isinstance(值,str): return f"'{值}'"
     if isinstance(值,BaseException):
         栈=getattr(值,'stack',None)
@@ -68,13 +68,13 @@ def 检视(值):
         return str(值)
 
 def 格式化(模板,*实参):
-    """Node 支持的 `%s`/`%d`/`%j`/`%o` 占位符的 printf 风格格式化。"""
+    'Node 支持的 `%s`/`%d`/`%j`/`%o` 占位符的 printf 风格格式化'
     if not isinstance(模板,str):
         return ' '.join(检视(项) for 项 in (模板,*实参))
     下标=[0]
 
     def 替换(匹配):
-        """替换一个占位符。"""
+        '替换一个占位符'
         记号=匹配.group(0)
         if 记号=='%%': return '%'
         if 下标[0]>=len(实参): return 记号
@@ -90,7 +90,7 @@ def 格式化(模板,*实参):
     return f"{已替换} {' '.join(检视(项) for 项 in 剩余)}"
 
 def 深严格相等(左,右):
-    """结构深相等，如 `isDeepStrictEqual` 对普通数据所定义。"""
+    '结构深相等，如 `isDeepStrictEqual` 对普通数据所定义'
     if 对象同(左,右): return True
     if not isinstance(左,(dict,list)) or not isinstance(右,(dict,list)): return False
     if isinstance(左,list)!=isinstance(右,list): return False
@@ -103,25 +103,25 @@ def 深严格相等(左,右):
     return all(键 in 右 and 深严格相等(左[键],右[键]) for 键 in 左键)
 
 def 是承诺(值):
-    """是否为本宿主 Promise 实例。"""
+    '是否为本宿主 Promise 实例'
     if 'Promise' not in globals():
         return False
     return isinstance(值,globals()['Promise'])
 
 def 是日期(值):
-    """是否 Date。"""
+    '是否 Date'
     if 'Date' not in globals():
         return False
     return isinstance(值,globals()['Date'])
 
 def 是正则(值):
-    """是否 RegExp。"""
+    '是否 RegExp'
     if 'RegExp' in globals() and isinstance(值,globals()['RegExp']):
         return True
     return isinstance(值,re.Pattern)
 
 def 是类型化数组(值):
-    """Node 只计整数与浮点视图，故 DataView 给出 false。"""
+    'Node 只计整数与浮点视图，故 DataView 给出 false'
     if 'ArrayBuffer' not in globals():
         return False
     缓冲=globals()['ArrayBuffer']
@@ -140,11 +140,11 @@ types={
 }
 
 def 解析参数(*位置参数,**关键字参数):
-    """CLI 参数解析在 worker 主机内无调用方。"""
+    'CLI 参数解析在 worker 主机内无调用方'
     raise 运行时错误('web-preview: worker 宿主里没有 node:util.parseArgs')
 
 def 弃用(函数):
-    """弃用包装器原样传过函数。"""
+    '弃用包装器原样传过函数'
     return 函数
 
 promisify=承诺化

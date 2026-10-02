@@ -1,4 +1,4 @@
-"""主文档键盘适配器；局部控件在窗口冒泡前仲裁。"""
+'主文档键盘适配器；局部控件在窗口冒泡前仲裁'
 import re#平台探测
 
 __all__=['模态选择器','探测环境','安装键盘']#仅中文公开名
@@ -8,7 +8,7 @@ __all__=['模态选择器','探测环境','安装键盘']#仅中文公开名
 窗口设备=re.compile(r'win',re.IGNORECASE)#Windows
 
 def 探测环境(文档,导航):
-    """检测访问设备，而非服务器操作系统。"""
+    '检测访问设备，而非服务器操作系统'
     根=文档.documentElement#html
     桌面标记=None#data-platform
     集=getattr(根,'dataset',None)#dataset
@@ -25,31 +25,31 @@ def 探测环境(文档,导航):
     return {'runtime':运行时,'platform':平台}#环境
 
 def 安装键盘(窗口,快捷键,固定=None,原生=False):
-    """安装文档输入法组合跟踪，并在局部处理器之后做应用分发。"""
+    '安装文档输入法组合跟踪，并在局部处理器之后做应用分发'
     文档=窗口.document#文档
     #组合态：对齐 observeComposition
     组合中=False#compositionstart
     刚结束=False#compositionend 至 keyup
     def 组合开始():
-        """进入组合。"""
+        '进入组合'
         nonlocal 组合中#写
         组合中=True#开
     def 组合结束():
-        """结束组合，记刚结束。"""
+        '结束组合，记刚结束'
         nonlocal 组合中,刚结束#写
         组合中=False#关
         刚结束=True#刚结束
     def 组合释放():
-        """keyup 清刚结束。"""
+        'keyup 清刚结束'
         nonlocal 刚结束#写
         刚结束=False#清
     def 组合失焦():
-        """失焦清组合。"""
+        '失焦清组合'
         nonlocal 组合中,刚结束#写
         组合中=False#关
         刚结束=False#清
     def 组合守卫(事件):
-        """是否应视为组合中。"""
+        '是否应视为组合中'
         nonlocal 刚结束#写
         键码=getattr(事件,'keyCode',None)#旧键码
         守卫=组合中 or 刚结束 or getattr(事件,'isComposing',False) or 键码==229#IME
@@ -64,17 +64,17 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     待定=False#捕获后待定重置
     待定时器=None#setTimeout 句柄
     def 重置():
-        """使固定序列失效。"""
+        '使固定序列失效'
         if 固定 is not None:#有消费者
             固定({'type':'reset'})#重置
     死键=False#Dead 键残留
     def 失焦():
-        """窗口失焦清死键并重置。"""
+        '窗口失焦清死键并重置'
         nonlocal 死键#写
         死键=False#清
         重置()#重置
     def 含模态(节点):
-        """节点自身或子孙是否模态。"""
+        '节点自身或子孙是否模态'
         匹配=getattr(节点,'matches',None)#matches
         查询=getattr(节点,'querySelector',None)#querySelector
         if not callable(匹配):#非元素
@@ -85,7 +85,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
             return True#是
         return False#否
     def 模态变更(记录表):
-        """模态增删或属性变则重置。"""
+        '模态增删或属性变则重置'
         for 记录 in 记录表:#逐记录
             if 记录.type=='attributes':#属性
                 if 记录.oldValue in ('dialog','true') or 含模态(记录.target):#相关
@@ -113,7 +113,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
                 'attributeOldValue':True,
             })#观察结束
     def 捕获(_事件=None):
-        """捕获阶段：安排微任务式重置。"""
+        '捕获阶段：安排微任务式重置'
         nonlocal 待定,待定时器#写
         if 待定:#已有待定
             重置()#立即重置
@@ -122,14 +122,14 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
             模态变更(观察者.takeRecords())#冲刷
         待定=True#待定
         def 到期():
-            """零延迟后重置。"""
+            '零延迟后重置'
             nonlocal 待定,待定时器#写
             待定=False#清
             待定时器=None#清
             重置()#重置
         待定时器=窗口.setTimeout(到期,0)#排队
     def 按下(事件):
-        """冒泡阶段分发。"""
+        '冒泡阶段分发'
         nonlocal 待定,待定时器,死键#写
         窗口.clearTimeout(待定时器)#清待定
         待定时器=None#清
@@ -178,7 +178,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
             'defaultPrevented':事件.defaultPrevented,
         }#手势结束
         def 消费():
-            """preventDefault；特例清死键。"""
+            'preventDefault；特例清死键'
             nonlocal 死键#写
             事件.preventDefault()#消费
             if 命令死键:#特例
@@ -201,7 +201,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     窗口.addEventListener('keydown',按下)#冒泡
     窗口.addEventListener('blur',失焦)#失焦
     def 拆除():
-        """释放全部监听。"""
+        '释放全部监听'
         nonlocal 待定,待定时器#写
         待定=False#清
         窗口.clearTimeout(待定时器)#清时器

@@ -1,8 +1,5 @@
-"""向 typert 注册命令的远程列举与执行贡献。
-
-服务键与命名空间均为 `commands`。
-"""
-from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
+'向 typert 注册命令的远程列举与执行贡献'
+from ...类型化远程调用.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=[]#公开面空；TYPERT_REMOTE/default 为框架槽不入表
 
@@ -14,7 +11,8 @@ __all__=[]#公开面空；TYPERT_REMOTE/default 为框架槽不入表
     'codec':严格编解码('Agent'),#编解码
 }#结束
 作用域={'context':'agent','wire':'agent'}#agent scope
-包名='@deepseek-ai/dsh-commands'服务='commands'#服务键
+包名='@deepseek-ai/dsh-commands'
+服务='commands'#服务键
 命名空间='commands'#命名空间
 类前=包名+'#CommandRuntime.'#调用 id 前缀
 

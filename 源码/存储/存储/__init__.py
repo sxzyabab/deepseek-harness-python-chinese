@@ -1,7 +1,4 @@
-"""存储枢纽：具名后端注册表与已挂载的数据形态。
-
-枢纽自身不做 IO——后端拥有介质，数据形态拥有语义。
-"""
+'存储枢纽：具名后端注册表与已挂载的数据形态'
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#框架 服务基类
 from .错误 import 存储错误,存储错误码#存储错误与码表
@@ -14,18 +11,18 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 存储后端服务键(名称):#推导后端生命周期服务键
-    """推导一个具名后端插件提供的 Cordis 生命周期服务键。"""
+    '推导一个具名后端插件提供的 Cordis 生命周期服务键'
     return f'storage.backend.{名称}'#按后端名拼服务键
 
 class 存储(服务):#存储枢纽
-    """存储枢纽服务。后端在 `backend` 下注册；数据形态挂在各自的形态键下。"""
+    '存储枢纽服务。后端在 `backend` 下注册；数据形态挂在各自的形态键下'
     def __init__(自身,上下文):
         super().__init__(上下文,'storage')#登记服务名
         自身.backend=后端注册表()#具名后端表
         自身._形态={}#已挂载形态
 
     def mount(自身,形态,设施):#挂载一个数据形态设施
-        """在枢纽上挂载一个数据形态设施。挂载是 effect：返回的 disposer 卸载该形态。"""
+        '在枢纽上挂载一个数据形态设施。挂载是 effect：返回的 disposer 卸载该形态'
         if 形态 in 自身._形态:#该形态已挂载
             raise 存储错误('duplicate-mount',f"storage form '{形态}' is already mounted")#重复挂载
         自身._形态[形态]=设施#记下设施
@@ -35,14 +32,14 @@ class 存储(服务):#存储枢纽
         return 卸载#返回 disposer
 
     def form(自身,形态):#解析一个已挂载的数据形态
-        """解析一个已挂载的数据形态。"""
+        '解析一个已挂载的数据形态'
         if 形态 not in 自身._形态:#未挂载
             raise 存储错误('form-not-mounted',f"storage form '{形态}' is not mounted")#未挂载
         return 自身._形态[形态]#返回设施
 
     @property
     def domain(自身):#便捷访问 domain 形态
-        """域数据形态；域层插件加载后才存在。"""
+        '域数据形态；域层插件加载后才存在'
         return 自身.form('domain')#按 domain 键解析
 
 default=存储#框架槽

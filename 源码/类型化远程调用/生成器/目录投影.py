@@ -21,36 +21,36 @@ __all__=[#公开面
 区域闭='<!-- END GENERATED cordis-surface -->'#闭标记
 
 def 属于派发模式(模式):#是否五种派发模式之一
-    """收窄。"""
+    '收窄'
     return 模式 in 派发模式#合法
 
 def 指针(位置):#源位置格式化成 file:line
-    """文件:行号。"""
+    '文件:行号'
     文件=位置['file'] if 位置 is not None and 'file' in 位置 else None#文件
     行号=位置['line'] if 位置 is not None and 'line' in 位置 else None#行号
     return str(文件)+':'+str(行号)#指针
 
 def 引号(值):#单引号转义
-    """反斜杠、引号、换行。"""
+    '反斜杠、引号、换行'
     return "'"+str(值).replace('\\','\\\\').replace("'","\\'").replace('\n','\\n')+"'"#字面量
 
 def 引号列表(值列表):#字符串数组字面量
-    """逐项 quote。"""
+    '逐项 quote'
     return '['+', '.join(引号(项) for 项 in 值列表)+']'#数组
 
 def 渲染参数文档(参数表):#参数文档数组
-    """{ name, description }。"""
+    '{ name, description }'
     项列表=['{ name: '+引号(名)+', description: '+引号(描述)+' }' for 名,描述 in 参数表.items()]#项
     return '['+', '.join(项列表)+']'#数组
 
 def 首句(文档):#取说明的第一句
-    """到句号/问号/叹号。"""
+    '到句号/问号/叹号'
     行=(文档.split('\n',1)[0] if 文档 else '')#第一行
     命中=re.match(r'^(.*?[.!?])(?:\s|$)',行)#句子
     return ((命中.group(1) if 命中 else 行) or '').strip()#句子或整行
 
 def 检查类型链接(定位,名字列表,策略,违规列表):#按名字检查类型是否已分类
-    """追加未分类项。"""
+    '追加未分类项'
     链页=(策略['linkedTypePages'] if 策略 is not None and 'linkedTypePages' in 策略 else None) or {}#文档页
     基础=(策略['foundationTypeNames'] if 策略 is not None and 'foundationTypeNames' in 策略 else None) or set()#基础类型
     豁免=(策略['typeLinkExemptions'] if 策略 is not None and 'typeLinkExemptions' in 策略 else None) or {}#豁免
@@ -64,19 +64,19 @@ def 检查类型链接(定位,名字列表,策略,违规列表):#按名字检查
         )#结束
 
 def 报告类型链接违规(门禁,违规列表):#有违规则抛聚合错误
-    """聚合全部类型链接违规。"""
+    '聚合全部类型链接违规'
     if len(违规列表)==0:#无
         return#静默
     raise Exception(门禁+': '+str(len(违规列表))+' signature type-link coverage violation(s):\n'+'\n'.join('  '+项 for 项 in 违规列表))#抛
 
 def 报告违规(门禁,违规列表):#JSDoc 完整性门禁
-    """聚合全部 JSDoc 违规。"""
+    '聚合全部 JSDoc 违规'
     if len(违规列表)==0:#无
         return#静默
     raise Exception(门禁+': '+str(len(违规列表))+' JSDoc completeness violation(s) (see AGENTS.md):\n'+'\n'.join('  '+项 for 项 in 违规列表))#抛
 
 def 解析JsDoc(原文):#把原始 JSDoc 拆成散文与标签
-    """doc / params / returns / throws / deprecated。"""
+    'doc / params / returns / throws / deprecated'
     行列表=[]#去围栏后按行
     去头=re.sub(r'^/\*\*', '', 原文 or '')#去掉开头 /**
     去尾=re.sub(r'\*/$', '', 去头)#去掉结尾 */
@@ -183,7 +183,7 @@ def 解析JsDoc(原文):#把原始 JSDoc 拆成散文与标签
     return {'doc':散文,'params':参数表,'returns':返回,'throws':抛错列表,'deprecated':已弃用}#解析结果
 
 def 检查参数(定位,api种类,参数列表,标签表,是否豁免,违规列表):#校验 @param 与形参一一对应
-    """绑定模式禁止；豁免不要求。"""
+    '绑定模式禁止；豁免不要求'
     for 参数 in 参数列表:#逐形参
         绑定=参数['binding'] if 参数 is not None and 'binding' in 参数 else None#绑定
         名=参数['name'] if 参数 is not None and 'name' in 参数 else None#形参名
@@ -207,7 +207,7 @@ def 检查参数(定位,api种类,参数列表,标签表,是否豁免,违规列�
             违规列表.append(定位+': @param '+标签+' does not match any parameter (stale tag?).')#陈旧
 
 def 检查返回(定位,签名,返回,渲染器,违规列表):#非 void 返回必须有 @returns
-    """void / Promise<void> 不要求。"""
+    'void / Promise<void> 不要求'
     类型=渲染器.renderType(签名['returns'] if 签名 is not None and 'returns' in 签名 else None)#返回类型文本
     if 类型 in ('void','Promise<void>'):#void
         return#不要求
@@ -217,12 +217,12 @@ def 检查返回(定位,签名,返回,渲染器,违规列表):#非 void 返回�
         违规列表.append(定位+': @returns has an empty description.')#空
 
 def 收集签名类型名(渲染器,签名):#收集签名引用的类型名
-    """去重排序。"""
+    '去重排序'
     名字=set()#去重
     已访=set()#防环
 
     def 访问签名(当前):#走访一条签名
-        """走访一条签名。"""
+        '走访一条签名'
         for 参数 in (当前['typeParameters'] if 当前 is not None and 'typeParameters' in 当前 else None) or []:#类型参数
             约束=参数['constraint'] if 参数 is not None and 'constraint' in 参数 else None#约束
             if 约束 is not None:#约束
@@ -235,14 +235,14 @@ def 收集签名类型名(渲染器,签名):#收集签名引用的类型名
         访问(当前['returns'] if 当前 is not None and 'returns' in 当前 else None)#返回
 
     def 访问成员(成员):#走访对象成员
-        """走访对象成员。"""
+        '走访对象成员'
         if (成员['kind'] if 成员 is not None and 'kind' in 成员 else None)=='property':#属性
             访问(成员['type'] if 成员 is not None and 'type' in 成员 else None)#类型
         else:#方法
             访问签名((成员['signature'] if 成员 is not None and 'signature' in 成员 else None) or {})#签名
 
     def 访问(标识):#走访一个类型节点
-        """走访一个类型节点。"""
+        '走访一个类型节点'
         if 标识 in 已访:#已走访
             return#跳过
         已访.add(标识)#标记
@@ -265,7 +265,7 @@ def 收集签名类型名(渲染器,签名):#收集签名引用的类型名
     return sorted(名字)#排序
 
 def 引用类型闭包(种子列表,声明表):#从种子签名收集传递引用的类型
-    """词边界匹配名字。"""
+    '词边界匹配名字'
     已纳={}#名字 → 声明
     前沿=list(种子列表)#本轮种子
     while len(前沿)>0:#直到没有新引用
@@ -279,25 +279,25 @@ def 引用类型闭包(种子列表,声明表):#从种子签名收集传递引�
                 下一轮.append(声明)#声明再作种子
         前沿=下一轮#进入下一轮
     def 按名(项):#按 name 字段排序
-        """按 name 字段排序。"""
+        '按 name 字段排序'
         return 项['name']#名
     return sorted(({'name':名,'declaration':声明} for 名,声明 in 已纳.items()),key=按名)#按名排序
 
 class Cordis目录投影器:#Cordis 目录投影器
-    """对一个 Typert 面做仓库特有的 Cordis 校验与投影。"""
+    '对一个 Typert 面做仓库特有的 Cordis 校验与投影'
     def __init__(自身,面,源声明列表,策略):#保存面、声明与策略
-        """按该面类型图构造渲染器。"""
+        '按该面类型图构造渲染器'
         自身.面=面#面模型
         自身.源声明列表=list(源声明列表 or [])#源声明
         自身.策略=策略#策略
         自身.渲染器=类型图渲染器(面['graph'] if 面 is not None and 'graph' in 面 else None)#渲染器
 
     def 投影(自身):#校验并投影
-        """全部已校验服务与事件。"""
+        '全部已校验服务与事件'
         return {'events':自身.收集事件(),'services':自身.收集服务()}#目录模型
 
     def 渲染运行时Api(自身,模型):#渲染运行时目录源
-        """面向模型的 TypeScript 目录源码。"""
+        '面向模型的 TypeScript 目录源码'
         服务列表=list((模型['services'] if 模型 is not None and 'services' in 模型 else None) or [])+list((自身.策略['runtimeServices'] if 自身.策略 is not None and 'runtimeServices' in 自身.策略 else None) or [])#合并
         排除=(自身.策略['runtimeServiceExclusions'] if 自身.策略 is not None and 'runtimeServiceExclusions' in 自身.策略 else None) or set()#排除键
         可见=[]#过滤后
@@ -305,7 +305,7 @@ class Cordis目录投影器:#Cordis 目录投影器
             if (项['key'] if 项 is not None and 'key' in 项 else None) not in 排除:#保留
                 可见.append(项)#收下
         def 按键(项):#按服务键排序
-            """按服务键排序。"""
+            '按服务键排序'
             return (项['key'] if 项 is not None and 'key' in 项 else None) or ''#键
         可见.sort(key=按键)#按键排序
         事件列表=(模型['events'] if 模型 is not None and 'events' in 模型 else None) or []#事件
@@ -317,7 +317,7 @@ class Cordis目录投影器:#Cordis 目录投影器
         )#结束
 
     def 收集事件(自身):#收集并校验全部事件
-        """通过校验的事件。"""
+        '通过校验的事件'
         条目表=[]#通过
         违规列表=[]#JSDoc
         类型违规=[]#类型链接
@@ -349,7 +349,7 @@ class Cordis目录投影器:#Cordis 目录投影器
                 if 解析['doc']=='':#无说明
                     违规列表.append(定位+' has no description prose. Say what happened / what a listener may do, above the block tags.')#缺描述
                 def 事件参数豁免(参数,末形参=末,带next=是否带next):#接收者或 waterfall 的 next 不要求 @param
-                    """接收者或 waterfall 的 next 不要求 @param。"""
+                    '接收者或 waterfall 的 next 不要求 @param'
                     接收者=参数['receiver'] if 参数 is not None and 'receiver' in 参数 else None#接收者
                     return 接收者 or (带next and 参数 is 末形参)#豁免
                 检查参数(#校验 @param
@@ -373,7 +373,7 @@ class Cordis目录投影器:#Cordis 目录投影器
         return 条目表#已校验事件
 
     def 选出可渲染服务(自身):#选出可渲染的 ctx 服务
-        """类胜出；声明须落在包 src 下。"""
+        '类胜出；声明须落在包 src 下'
         已选={}#键 → 胜出
         for 包 in (自身.面['packages'] if 自身.面 is not None and 'packages' in 自身.面 else None) or []:#逐包
             for 服务 in (包['services'] if 包 is not None and 'services' in 包 else None) or []:#逐服务
@@ -406,7 +406,7 @@ class Cordis目录投影器:#Cordis 目录投影器
         return list(已选.values())#胜出
 
     def 收集服务(自身):#收集并校验全部服务
-        """按键排序。"""
+        '按键排序'
         条目表=[]#通过
         违规列表=[]#JSDoc
         类型违规=[]#类型链接
@@ -448,7 +448,7 @@ class Cordis目录投影器:#Cordis 目录投影器
                 if 解析['doc']=='':#缺说明
                     违规列表.append(定位+' has no description prose above its block tags.')#缺
                 def 服务参数豁免(参数):#接收者不要求 @param
-                    """接收者不要求 @param。"""
+                    '接收者不要求 @param'
                     return 参数['receiver'] if 参数 is not None and 'receiver' in 参数 else None#接收者
                 检查参数(定位,'service',(成员签名['parameters'] if 成员签名 is not None and 'parameters' in 成员签名 else None) or [],解析['params'],服务参数豁免,违规列表)#@param
                 检查返回(定位,成员签名,解析['returns'],自身.渲染器,违规列表)#@returns
@@ -463,13 +463,13 @@ class Cordis目录投影器:#Cordis 目录投影器
         报告违规('gen-cordis-catalog',违规列表)#JSDoc
         报告类型链接违规('gen-cordis-catalog',类型违规)#类型链接
         def 按键(项):#按服务键排序
-            """按服务键排序。"""
+            '按服务键排序'
             return (项['key'] if 项 is not None and 'key' in 项 else None) or ''#键
         条目表.sort(key=按键)#按键排序
         return 条目表#服务
 
     def 运行时类型(自身,服务列表,事件列表):#收集签名引用的类型声明
-        """名字与声明文本。"""
+        '名字与声明文本'
         声明表={}#名字 → 声明文本
         歧义=set()#跨文件重名
         面名=自身.面['face'] if 自身.面 is not None and 'face' in 自身.面 else None#本面
@@ -506,19 +506,19 @@ class Cordis目录投影器:#Cordis 目录投影器
         return 引用类型闭包(种子,声明表)#闭包
 
 def 投影Cordis目录(扫描根,策略,目标面='host'):#分析一次工作区并投影
-    """投影 Cordis 目录。必须 WorkspaceAnalyzer。"""
+    '投影 Cordis 目录。必须 WorkspaceAnalyzer'
     raise NotImplementedError('投影Cordis目录: '+分析器硬缺口)#硬缺口
 
 def 收集事件(扫描根,策略):#收集全部已建模事件
-    """收集全部已建模事件；委托投影Cordis目录。"""
+    '收集全部已建模事件；委托投影Cordis目录'
     raise NotImplementedError('收集事件: '+分析器硬缺口)#硬缺口
 
 def 收集服务(扫描根,策略):#收集全部已建模服务
-    """收集全部已建模服务；委托投影Cordis目录。"""
+    '收集全部已建模服务；委托投影Cordis目录'
     raise NotImplementedError('收集服务: '+分析器硬缺口)#硬缺口
 
 def 渲染运行时Api(服务列表,事件列表,类型列表,继承服务列表):#生成 tool-cordis 消费的目录源
-    """生成 tool-cordis 消费的目录源：常量表 + 查询辅助（不依赖分析器）。"""
+    '生成 tool-cordis 消费的目录源：常量表 + 查询辅助（不依赖分析器）'
     行列表=[#表头
         '/**',
         ' * Generated by scripts/gen-cordis-api.ts — do not edit by hand; run',
@@ -635,7 +635,7 @@ def 渲染运行时Api(服务列表,事件列表,类型列表,继承服务列表
         'export const EVENT_API: readonly EventApiEntry[] = [',
     ])#结束
     def 按事件名(项):#按事件名排序
-        """按事件名排序。"""
+        '按事件名排序'
         return (项['name'] if 项 is not None and 'name' in 项 else None) or ''#名
     for 事件 in sorted(事件列表,key=按事件名):#按名
         约定=解析JsDoc((事件['jsDoc'] if 事件 is not None and 'jsDoc' in 事件 else None) or '')#解析
@@ -763,17 +763,17 @@ def 渲染运行时Api(服务列表,事件列表,类型列表,继承服务列表
     return '\n'.join(行列表)#完整源
 
 def 生成Github锚(标题):#GitHub 标题 slug
-    """小写；只留字母数字空格连字符；空格变连字符（Unicode 字母数字）。"""
+    '小写；只留字母数字空格连字符；空格变连字符（Unicode 字母数字）'
     小写=标题.lower()#小写
     保留=''.join(字符 for 字符 in 小写 if 字符.isalnum() or 字符 in ' -')#字母数字空格连字符
     return 保留.replace(' ','-')#空格变连字符
 
 def 锚行(标题文本):#显式 <a id> 与空行
-    """锚 + 空行。"""
+    '锚 + 空行'
     return ['<a id="'+生成Github锚(标题文本)+'"></a>', '']#锚
 
 def 类型链接行(签名,本页,链页):#签名类型交叉链接行
-    """Types: 行；无则空串。"""
+    'Types: 行；无则空串'
     见到=set()#出现过的类型名
     for 名 in (链页 or {}):#逐个可链接
         if re.search(r'\b'+re.escape(名)+r'\b',签名 or ''):#词边界命中
@@ -782,12 +782,12 @@ def 类型链接行(签名,本页,链页):#签名类型交叉链接行
     return '' if len(链接列表)==0 else 'Types: '+' · '.join(链接列表)#Types 行
 
 def 源链(源):#渲染 file:line 为仅文件链接
-    """展示与链接都只用文件路径。"""
+    '展示与链接都只用文件路径'
     文件=(源.split(':')[0] if 源 else '')#去掉行号
     return '[`'+文件+'`](../../'+文件+')'#文件链
 
 def 渲染事件(事件,本页,链页):#渲染一条事件 Markdown
-    """锚、标题、围栏、源链。"""
+    '锚、标题、围栏、源链'
     名=事件['name'] if 事件 is not None and 'name' in 事件 else None#事件名
     模式=事件['mode'] if 事件 is not None and 'mode' in 事件 else None#模式
     出=锚行(str(名)+' — '+str(模式))#锚
@@ -804,7 +804,7 @@ def 渲染事件(事件,本页,链页):#渲染一条事件 Markdown
     return 出#行
 
 def 渲染服务(服务,本页,链页):#渲染一条服务 Markdown
-    """锚、标题、方法围栏、源链。"""
+    '锚、标题、方法围栏、源链'
     键=服务['key'] if 服务 is not None and 'key' in 服务 else None#键
     类型=服务['type'] if 服务 is not None and 'type' in 服务 else None#类型
     种=' (abstract seam)' if (服务['abstract'] if 服务 is not None and 'abstract' in 服务 else None) else ''#抽象缝
@@ -836,7 +836,7 @@ def 渲染服务(服务,本页,链页):#渲染一条服务 Markdown
     return 出#行
 
 def 渲染页区域(页,服务列表,事件列表,策略):#渲染一页生成区
-    """标记定界区域文本。"""
+    '标记定界区域文本'
     链页=(策略['linkedTypePages'] if 策略 is not None and 'linkedTypePages' in 策略 else None) or {}#类型链接
     行列表=[#区域头
         区域开,'','<a id="cordis-surface"></a>','','## Cordis API','',
@@ -850,7 +850,7 @@ def 渲染页区域(页,服务列表,事件列表,策略):#渲染一页生成区
         作用域集.add(事件['scope'] if 事件 is not None and 'scope' in 事件 else None)#记下
     作用域列表=sorted(作用域集)#排序
     def 按事件名(项):#按事件名排序
-        """按事件名排序。"""
+        '按事件名排序'
         return (项['name'] if 项 is not None and 'name' in 项 else None) or ''#名
     for 作用域 in 作用域列表:#逐 scope
         行列表.extend(锚行(作用域+'/* events'))#锚
@@ -867,7 +867,7 @@ def 渲染页区域(页,服务列表,事件列表,策略):#渲染一页生成区
     return '\n'.join(行列表)#区域文本
 
 def 渲染继承页(策略):#渲染继承 API 页
-    """完整生成的 Markdown。"""
+    '完整生成的 Markdown'
     门禁='This file is GENERATED from source (`scripts/gen-cordis-catalog.ts`) and verified fresh by `pnpm run verify-cordis-catalog` (part of `doc-sync`) — do not edit it by hand. Signature blocks use a `ts cordis-catalog` fence and include the original source JSDoc immediately before each event or service method. doc-typecheck skips these bare declaration fragments; type names in a signature link to the page that documents them.'#门禁说明
     行列表=[#页头
         '<!-- Generated by scripts/gen-cordis-catalog.ts — do not edit by hand.',

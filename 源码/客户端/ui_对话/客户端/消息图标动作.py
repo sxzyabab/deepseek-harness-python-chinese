@@ -4,37 +4,37 @@ import time as 时间模块,threading#墙钟与后台观察
 __all__=['消息图标动作','日历日']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 日历日(现在=None):
-    """对齐 useCalendarDay 的当前值面（无定时器）。"""
+    '对齐 useCalendarDay 的当前值面（无定时器）'
     if 现在 is None:#缺省
         现在=int(时间模块.time()*1000)#毫秒
     return 本地日起点(现在)#午夜
 
 class 消息图标动作:
-    """共享用户与助手铬。"""
+    '共享用户与助手铬'
 
     def __init__(自身,属性=None):
-        """记下 props 与复制态。"""
+        '记下 props 与复制态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已复制=False#成功铬
         自身.复制中=False#防重入
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 复制(自身):
-        """成功则短时勾。"""
+        '成功则短时勾'
         if 自身.已复制 is True or 自身.复制中 is True:#忙
             return#停
         文本=自身.属性['text'] if 'text' in 自身.属性 and 自身.属性['text'] is not None else ''#文本
         写=自身.属性['writeClipboard'] if 'writeClipboard' in 自身.属性 else None#宿主写
         自身.复制中=True#闩
         def 完成(成功):
-            """成功亮勾。"""
+            '成功亮勾'
             自身.复制中=False#清
             if 成功 is True:#成
                 自身.已复制=True#勾
@@ -43,7 +43,7 @@ class 消息图标动作:
             return#停
         结果=写(文本)#写
         def 观察():
-            """等待剪贴板任务。"""
+            '等待剪贴板任务'
             成功=False#默认失败
             try:#等待
                 成功=结果.等待() is True#结算
@@ -52,11 +52,11 @@ class 消息图标动作:
         threading.Thread(target=观察,daemon=True).start()#挂观察
 
     def 清除复制铬(自身):
-        """1s 窗后调用。"""
+        '1s 窗后调用'
         自身.已复制=False#清
 
     def 渲染(自身):
-        """时钟位 + 复制 + 额外 + 分支。"""
+        '时钟位 + 复制 + 额外 + 分支'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         时间=属性['time'] if 'time' in 属性 else None#时刻
@@ -100,7 +100,7 @@ class 消息图标动作:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

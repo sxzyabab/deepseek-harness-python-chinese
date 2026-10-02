@@ -8,7 +8,7 @@ __all__=['聊天合成序号偏移','上下文位置','聊天节点','坐标']#�
 }#偏移结束
 
 def 上下文位置(上下文):
-    """从上下文取当前最佳事件位置。"""
+    '从上下文取当前最佳事件位置'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     if 起点 is not None and 'location' in 起点 and 起点['location'] is not None:
         return 起点['location']#用起点
@@ -18,7 +18,7 @@ def 上下文位置(上下文):
     return {'kind':'unresolved'}#未解析
 
 def 聊天节点(上下文,种类,锚点序号,数据,选项=None):
-    """用引擎持有的稳定键。"""
+    '用引擎持有的稳定键'
     选项={} if 选项 is None else 选项#缺省
     if 'location' in 选项 and 选项['location'] is not None:
         位置=选项['location']#显式位置
@@ -37,7 +37,7 @@ def 聊天节点(上下文,种类,锚点序号,数据,选项=None):
     }#结束
 
 def 坐标(值):
-    """有限非负整数坐标。bool 先排除。"""
+    '有限非负整数坐标。bool 先排除'
     if isinstance(值,bool):
         return None#拒
     if isinstance(值,int) and 值>=0:

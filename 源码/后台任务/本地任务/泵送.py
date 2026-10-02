@@ -1,9 +1,9 @@
-"""注册表自有的拉取泵：按有界节拍把任务的输出源拷进环，生产者结算后再抽干一次。"""
+'注册表自有的拉取泵：按有界节拍把任务的输出源拷进环，生产者结算后再抽干一次'
 import math,threading
 from concurrent.futures import Future as 原生结果
 
 def 启动泵送(源列表,汇,轮询毫秒,直到):
-    """按数组顺序抽干每个源，睡 pollMs 或等到 until 结算，再抽最后一次。"""
+    '按数组顺序抽干每个源，睡 pollMs 或等到 until 结算，再抽最后一次'
     if (isinstance(轮询毫秒,bool) or not isinstance(轮询毫秒,(int,float))
         or not math.isfinite(轮询毫秒) or 轮询毫秒<=0):
         raise ValueError('invalid pump pollMs: expected a positive finite number of milliseconds, got '+repr(轮询毫秒))
@@ -12,7 +12,7 @@ def 启动泵送(源列表,汇,轮询毫秒,直到):
     完成=原生结果()
 
     def 抽干():
-        """按源顺序读增量并写入汇。"""
+        '按源顺序读增量并写入汇'
         下标=0
         while 下标<len(状态列表):
             状态=状态列表[下标]
@@ -39,7 +39,7 @@ def 启动泵送(源列表,汇,轮询毫秒,直到):
             下标+=1
 
     def 循环():
-        """轮询直到结算再最后抽一次。"""
+        '轮询直到结算再最后抽一次'
         try:
             while not 已结算.is_set():
                 抽干()
@@ -51,7 +51,7 @@ def 启动泵送(源列表,汇,轮询毫秒,直到):
                 完成.set_exception(错误)
 
     def 等到结算():
-        """until 结算（兑现或拒绝都算）后结束轮询。"""
+        'until 结算（兑现或拒绝都算）后结束轮询'
         try:
             if hasattr(直到,'等待'):
                 直到.等待()
@@ -67,9 +67,9 @@ def 启动泵送(源列表,汇,轮询毫秒,直到):
     监视线程.start()
 
     class 泵送句柄:
-        """一次泵运行；done.等待 在最后一次抽干后返回。"""
+        '一次泵运行；done.等待 在最后一次抽干后返回'
         def 等待(自身,超时=None):
-            """阻塞到泵结束。"""
+            '阻塞到泵结束'
             return 完成.result(timeout=超时)
 
     句柄=泵送句柄()

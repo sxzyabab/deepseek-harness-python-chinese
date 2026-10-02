@@ -1,4 +1,4 @@
-"""按配置路由能力把系统快照与对话轮次映射到 Messages。"""
+'按配置路由能力把系统快照与对话轮次映射到 Messages'
 import json,base64
 from ..llm import 大模型错误,请求图片句柄文案
 from .回放 import 读回放
@@ -6,11 +6,11 @@ from .回放 import 读回放
 __all__=['序列化']
 
 def 不支持(类型):
-    """无法表示的内容。"""
+    '无法表示的内容'
     raise 大模型错误('DeepSeek Messages cannot represent '+类型,'UNSUPPORTED_CONTENT')
 
 def 工具输入(原始):
-    """Messages 无法表示的历史参数用空对象；耐久内容不变。"""
+    'Messages 无法表示的历史参数用空对象；耐久内容不变'
     try:
         值=json.loads(原始)
     except Exception:
@@ -20,7 +20,7 @@ def 工具输入(原始):
     return {}
 
 def 助手(消息,模型,回放降级=None):
-    """助手块转线路块。"""
+    '助手块转线路块'
     回放=读回放(消息,模型,回放降级)
     结果=[]
     下标=0
@@ -44,7 +44,7 @@ def 助手(消息,模型,回放降级=None):
     return 结果
 
 def 序列化(选项,连接,历史,图片表,访问,回放降级=None,文件标识表=None):
-    """用已准备的图片字节序列化一次完整请求。"""
+    '用已准备的图片字节序列化一次完整请求'
     模型=None
     for 条目 in 连接['models']:
         if 条目['id']==选项['model']:
@@ -52,7 +52,7 @@ def 序列化(选项,连接,历史,图片表,访问,回放降级=None,文件标�
             break
     历史内=模型 is not None and 模型.get('systemPromptUpdate')=='in-history'
     def 输入(块列表):
-        """用户与工具结果内容。"""
+        '用户与工具结果内容'
         结果=[]
         for 块 in 块列表:
             种类=块['type']
@@ -80,7 +80,7 @@ def 序列化(选项,连接,历史,图片表,访问,回放降级=None,文件标�
     历史系统=None
     系统更新=[]
     def 冲刷系统更新():
-        """系统更新必须跟在用户或工具结果轮次后。"""
+        '系统更新必须跟在用户或工具结果轮次后'
         if len(系统更新)==0:
             return
         if len(消息列表)==0 or 消息列表[-1]['role']!='user':

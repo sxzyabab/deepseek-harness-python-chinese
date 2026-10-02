@@ -1,4 +1,4 @@
-"""行内物理键录制与修订感知的命令编辑。"""
+'行内物理键录制与修订感知的命令编辑'
 import re
 from .反馈 import 快捷键失败,快捷键读取失败
 
@@ -8,9 +8,9 @@ __all__=['快捷键编辑器']
 元键模式=re.compile(r'^Meta(Left|Right)$')
 
 class 快捷键编辑器:
-    """对着用户核对过的配置保存松开的物理组合；失败保留草稿可再录。"""
+    '对着用户核对过的配置保存松开的物理组合；失败保留草稿可再录'
     def __init__(自身,属性):
-        """记下 props 与录键态。"""
+        '记下 props 与录键态'
         自身.属性=属性
         自身.修订=None
         自身.候选=None
@@ -29,14 +29,14 @@ class 快捷键编辑器:
         自身.录键卸=None
 
     def 更新(自身,属性):
-        """刷新 props；修订未播种时从配置取。"""
+        '刷新 props；修订未播种时从配置取'
         自身.属性=属性
         if 自身.修订 is None:
             配置=自身.读配置()
             自身.修订=配置.get('revision')
 
     def 读配置(自身):
-        """hooks.config 或 useConfig。"""
+        'hooks.config 或 useConfig'
         钩=自身.属性.get('hooks') or {}
         存=钩.get('config')
         if 存 is not None:
@@ -47,7 +47,7 @@ class 快捷键编辑器:
         return {'revision':None,'status':'loading'}
 
     def 读目录(自身):
-        """可编辑命令目录。"""
+        '可编辑命令目录'
         钩=自身.属性.get('hooks') or {}
         存=钩.get('catalog')
         if 存 is not None:
@@ -58,7 +58,7 @@ class 快捷键编辑器:
         return []
 
     def 读固定(自身):
-        """固定目录。"""
+        '固定目录'
         钩=自身.属性.get('hooks') or {}
         存=钩.get('fixedCatalog')
         if 存 is not None:
@@ -69,20 +69,20 @@ class 快捷键编辑器:
         return []
 
     def 桌面和弦(自身):
-        """桌面 mac/win 走和弦录制。"""
+        '桌面 mac/win 走和弦录制'
         return 自身.属性.get('runtime')=='desktop' and 自身.属性.get('platform') in ('macos','windows')
 
     def 过期(自身):
-        """草稿修订落后于配置。"""
+        '草稿修订落后于配置'
         return 自身.修订!=自身.读配置().get('revision')
 
     def 报告(自身,文本):
-        """写消息并上抛。"""
+        '写消息并上抛'
         自身.消息=文本
         自身.属性['onError'](文本)
 
     def 保存(自身,操作,已核修订=None):
-        """串行写偏好。"""
+        '串行写偏好'
         if 自身.写入中:
             return
         自身.写入中=True
@@ -101,7 +101,7 @@ class 快捷键编辑器:
             自身.报告(快捷键失败(结果,合并,自身.属性['t'],自身.属性['runtime']))
 
     def 捕获(自身,绑定,标识):
-        """校验冲突后保存。"""
+        '校验冲突后保存'
         自身.候选=绑定
         自身.已捕获=True
         自身.重试=None
@@ -137,14 +137,14 @@ class 快捷键编辑器:
         自身.保存({'type':'set','id':标识,'binding':绑定})
 
     def 重置缓冲(自身):
-        """清和弦缓冲。"""
+        '清和弦缓冲'
         自身.待定=None
         自身.按住.clear()
         自身.已拦=False
         自身.已死=False
 
     def 按下(自身,事件):
-        """keydown 捕获阶段逻辑。"""
+        'keydown 捕获阶段逻辑'
         文档=globals().get('document')
         合成观察=getattr(自身,'_合成',None)
         if 合成观察 is not None and 合成观察.guards(事件):
@@ -217,7 +217,7 @@ class 快捷键编辑器:
             自身.报告(自身.属性['t']('unsupported-key'))
 
     def 抬起(自身,事件):
-        """keyup 捕获阶段逻辑。"""
+        'keyup 捕获阶段逻辑'
         文档=globals().get('document')
         录钮=getattr(自身,'_录钮',None)
         自身.按住.discard(事件.code)
@@ -242,14 +242,14 @@ class 快捷键编辑器:
         自身.捕获(绑定,自身.属性['target']['id'])
 
     def 失焦(自身):
-        """窗口/合成失焦清缓冲。"""
+        '窗口/合成失焦清缓冲'
         自身.重置缓冲()
         if 自身.桌面和弦():
             自身.候选=None
             自身.已捕获=False
 
     def 启用录键(自身,录钮=None,合成观察=None):
-        """挂 document 监听并开原生录键保护。"""
+        '挂 document 监听并开原生录键保护'
         自身._录钮=录钮
         自身._合成=合成观察
         自身.已挂=True
@@ -257,10 +257,10 @@ class 快捷键编辑器:
         窗=globals().get('window')
         录制=自身.属性['recording']
         def 成():
-            """原生保护就绪。"""
+            '原生保护就绪'
             自身.原生就绪=True
         def 败(_错误=None):
-            """原生保护失败。"""
+            '原生保护失败'
             自身.报告(自身.属性['t']('native-failed'))
         结果=录制(True)
         if hasattr(结果,'then'):
@@ -269,7 +269,7 @@ class 快捷键编辑器:
             成()
         自身.重置录=自身.重置缓冲
         def 焦(_事件=None):
-            """焦点离开录钮则等同失焦。"""
+            '焦点离开录钮则等同失焦'
             if 文档 is not None and 文档.activeElement is not 自身._录钮:
                 自身.失焦()
         if 文档 is not None:
@@ -281,7 +281,7 @@ class 快捷键编辑器:
         if 窗 is not None:
             窗.addEventListener('blur',自身.失焦)
         def 卸():
-            """拆监听并关录键保护。"""
+            '拆监听并关录键保护'
             自身.已挂=False
             if 合成观察 is not None:
                 合成观察.dispose()
@@ -299,31 +299,31 @@ class 快捷键编辑器:
         return 卸
 
     def 拆除录键(自身):
-        """幂等拆。"""
+        '幂等拆'
         if 自身.录键卸 is not None:
             自身.录键卸()
             自身.录键卸=None
 
     def 恢复默认(自身):
-        """写 reset。"""
+        '写 reset'
         自身.保存({'type':'reset','id':自身.属性['target']['id']})
 
     def 清除绑定(自身):
-        """写 set null。"""
+        '写 set null'
         自身.保存({'type':'set','id':自身.属性['target']['id'],'binding':None})
 
     def 核对修订(自身):
-        """接受当前配置修订。"""
+        '接受当前配置修订'
         自身.修订=自身.读配置().get('revision')
         自身.消息=''
 
     def 重试保存(自身):
-        """对重试绑定再捕获。"""
+        '对重试绑定再捕获'
         if 自身.重试 is not None:
             自身.捕获(自身.重试,自身.属性['target']['id'])
 
     def 点录钮(自身):
-        """清空后准备再录。"""
+        '清空后准备再录'
         if not 自身.写入中:
             自身.重置录()
             自身.已捕获=False
@@ -331,7 +331,7 @@ class 快捷键编辑器:
             自身.重试=None
 
     def 帮助键(自身):
-        """无错误时的帮助文案键。"""
+        '无错误时的帮助文案键'
         if 自身.桌面和弦():
             return ''
         if 自身.属性.get('runtime')=='web':
@@ -344,7 +344,7 @@ class 快捷键编辑器:
         return 'record-help'
 
     def 渲染(自身):
-        """行内控件树。"""
+        '行内控件树'
         翻译=自身.属性['t']
         目标=自身.属性['target']
         配置=自身.读配置()
@@ -386,7 +386,7 @@ class 快捷键编辑器:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

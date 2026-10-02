@@ -1,4 +1,4 @@
-"""解析宿主账户文档目录，供首次使用工作区创建。"""
+'解析宿主账户文档目录，供首次使用工作区创建'
 import os,sys,re
 from pathlib import PurePosixPath,PureWindowsPath
 from ...工具.原生命令 import 运行原生命令,已中止
@@ -8,15 +8,15 @@ __all__=['校验文档目录','默认工作区目录']
 换行尾=re.compile(r'[\r\n]+\Z',re.ASCII)
 
 class 文档目录错误(Exception):
-    """文档目录解析失败。"""
+    '文档目录解析失败'
 
 def 若已中止则抛出(信号):
-    """信号已置位则抛出。"""
+    '信号已置位则抛出'
     if 已中止(信号):
         raise 文档目录错误('Documents directory lookup was aborted')
 
 def 校验文档目录(目录,平台=None):
-    """校验已配置或系统返回的文档路径，不相对 cwd 解析。"""
+    '校验已配置或系统返回的文档路径，不相对 cwd 解析'
     if 平台 is None:
         平台=sys.platform
     路径=PureWindowsPath if 平台=='win32' else PurePosixPath
@@ -27,7 +27,7 @@ def 校验文档目录(目录,平台=None):
     return str(解析)
 
 def 默认工作区目录(目录名,文档目录,信号,内部=None):
-    """解析首次使用目录，不创建文件。内部可替换平台与命令运行器。"""
+    '解析首次使用目录，不创建文件。内部可替换平台与命令运行器'
     if 内部 is None:
         内部={}
     平台=内部['platform'] if 'platform' in 内部 else sys.platform

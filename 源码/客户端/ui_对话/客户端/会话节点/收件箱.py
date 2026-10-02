@@ -3,7 +3,7 @@ from ..服务 import 对话错误#本包异常
 __all__=['下一回合收件箱定义','下一步收件箱定义','登记收件箱会话节点','应用拼接']#仅中文公开名
 
 def 应用拼接(上一,拼接):
-    """新的待处理列表与已认领集。"""
+    '新的待处理列表与已认领集'
     if 上一 is not None:#有上一
         态=上一['state'] if 'state' in 上一 and 上一['state'] is not None else {}#态
         待处理=list(态['pending'] if 'pending' in 态 and 态['pending'] is not None else [])#待处理
@@ -25,10 +25,10 @@ def 应用拼接(上一,拼接):
     return {'pending':待处理,'claimed':已认领}#新状态
 
 def 收件箱定义(目标):
-    """inbox-next-turn 或 inbox-next-step。"""
+    'inbox-next-turn 或 inbox-next-step'
     种类='inbox-'+目标#kind
     def 匹配(事件):
-        """agent/inbox/spliced 且目标匹配。"""
+        'agent/inbox/spliced 且目标匹配'
         if 事件['type']!='agent/inbox/spliced':#非拼接
             return None#不认领
         数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -36,17 +36,17 @@ def 收件箱定义(目标):
             return None#不认领
         return {'id':str(事件['seq']),'role':'start'}#以序号开
     def 开始(_上下文,匹配项,读取器):
-        """叠到同 kind 上一状态。"""
+        '叠到同 kind 上一状态'
         事件=匹配项['event']#事件
         if 事件['type']!='agent/inbox/spliced':#必须
             raise 对话错误(种类+' start requires agent/inbox/spliced')#硬失败
         上一=读取器.previous(种类)#上一
         return 应用拼接(上一,事件['data'] if 'data' in 事件 else {})#叠
     def 更新(上下文,_匹配项=None):
-        """原样返回。"""
+        '原样返回'
         return 上下文['state']#态
     def 发布(_匹配项=None):
-        """none。"""
+        'none'
         return 'none'#不发布
     return {'kind':种类,'match':匹配,'start':开始,'update':更新,'publication':发布}#定义
 
@@ -54,6 +54,6 @@ def 收件箱定义(目标):
 下一步收件箱定义=收件箱定义('next-step')#下一步；claimed 供 message 分类
 
 def 登记收件箱会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(下一回合收件箱定义)#下一回合
     上下文.conversationEvents.register(下一步收件箱定义)#下一步

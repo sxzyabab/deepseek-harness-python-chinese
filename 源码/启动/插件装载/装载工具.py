@@ -1,4 +1,4 @@
-"""智能体侧当前配置档装载工具；与 Web 控件共用同一服务。"""
+'智能体侧当前配置档装载工具；与 Web 控件共用同一服务'
 import json
 from ...模型后端.llm import 断言永不
 from ...内核.工具 import 定义工具
@@ -10,12 +10,12 @@ __all__=['依赖','应用']
 依赖=['tools','pluginManager','sandboxPolicy']
 
 def 应用(上下文):
-    """登记一条装载工具：发现与四种持久动作。"""
+    '登记一条装载工具：发现与四种持久动作'
     def 渲染(_参数,值):
-        """文本块渲染。"""
+        '文本块渲染'
         return [{'type':'text','text':值}]
     def 执行(参数,执行上下文):
-        """经危险完全放开审批后执行装载动作。"""
+        '经危险完全放开审批后执行装载动作'
         智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None
         会话={} if 智能体 is None else {'session':智能体.session}
         策略=上下文.sandboxPolicy.解析(会话)
@@ -68,7 +68,7 @@ def 应用(上下文):
             return json.dumps(装载.移除组合包(参数['target']),ensure_ascii=False,separators=(',',':'),allow_nan=False)
         return 断言永不(动作,'plugin_manager action')
     def 呈现调用(参数):
-        """调用卡片。"""
+        '调用卡片'
         种类='read' if 参数['action'].startswith('list_') else 'other'
         return {'card':'generic','title':'Manage profile plugins','kind':种类,'rawInput':参数}
     上下文.tools.登记(定义工具({

@@ -21,11 +21,11 @@ with open(os.path.join(_本目录,'面板.module.css'),'r',encoding='utf-8') as 
 }#结束
 
 def 去掉空子节点(子节点列表):#去掉 None
-    """保留真值子节点。"""
+    '保留真值子节点'
     return [子 for 子 in 子节点列表 if 子 is not None]#过滤
 
 def 动作图标(种):#RowAction 子图标
-    """各动作按钮内图标。"""
+    '各动作按钮内图标'
     if 种=='approveOnce':#仅此版
         return {'type':'IconCheckOutline16','size':14}#勾
     if 种=='approvePlugin':#后续
@@ -43,7 +43,7 @@ def 动作图标(种):#RowAction 子图标
     return None#未知
 
 def 选定包标识(视图,已选):#解析当前选中包
-    """已选仍在列表则用已选，否则 next/current/末包/活动包。"""
+    '已选仍在列表则用已选，否则 next/current/末包/活动包'
     插件=视图['pluginId'] if 'pluginId' in 视图 else None#插件
     列=视图['listed'] if 'listed' in 视图 else None#清单行
     活动=视图['activity'] if 'activity' in 视图 else None#活动
@@ -65,7 +65,7 @@ def 选定包标识(视图,已选):#解析当前选中包
     return 活动['packageId'] if 活动 is not None and 'packageId' in 活动 else None#仅活动
 
 def 面板可见状态(视图,选中包,已加载):#面板状态
-    """含 awaiting-approval / failed。"""
+    '含 awaiting-approval / failed'
     列=视图['listed'] if 'listed' in 视图 else None#清单
     活动=视图['activity'] if 'activity' in 视图 else None#活动
     最近=列['latestRun'] if 列 is not None and 'latestRun' in 列 else None#最近
@@ -82,7 +82,7 @@ def 面板可见状态(视图,选中包,已加载):#面板状态
     return 可见状态(列,激活['packageId'] if 'packageId' in 激活 else None,已加载)#三态
 
 def 阻塞优先(行列表):#审批行置顶
-    """awaiting-approval 在前。"""
+    'awaiting-approval 在前'
     前=[]#审批
     后=[]#其余
     for 行 in 行列表:#逐行
@@ -95,7 +95,7 @@ def 阻塞优先(行列表):#审批行置顶
     return 前+后#合并
 
 def 组装行树(视,选中包,已加载,翻译,忙碌,失败图,渲染失败图,动作错误图):#一行 li 树
-    """各行嵌套结构。"""
+    '各行嵌套结构'
     列=视['listed'] if 'listed' in 视 else None#清单
     活动=视['activity'] if 'activity' in 视 else None#活动
     插件=视['pluginId'] if 'pluginId' in 视 else None#id
@@ -241,9 +241,9 @@ def 组装行树(视,选中包,已加载,翻译,忙碌,失败图,渲染失败图
     }#结束
 
 class 面板:#Cordis 侧栏面板
-    """组装可见行与触发器嵌套 JSX 树。"""
+    '组装可见行与触发器嵌套 JSX 树'
     def __init__(自身,属性=None):#可选 props
-        """记下 props 与开合。"""
+        '记下 props 与开合'
         自身.属性=属性 or {}#合成
         自身.打开=False#面板开
         自身.已选={}#插件 → 包
@@ -252,28 +252,28 @@ class 面板:#Cordis 侧栏面板
         自身.已见表批=set()#见过的审批 id
 
     def 更新(自身,属性):#刷新
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 or {}#新
 
     def 选版本(自身,插件,包):#改选
-        """写入已选。"""
+        '写入已选'
         自身.已选={**自身.已选,插件:包}#合并
 
     def 切换(自身):#开合
-        """翻转面板。"""
+        '翻转面板'
         自身.打开=not 自身.打开#翻
         刷新=自身.属性['onRefresh'] if 'onRefresh' in 自身.属性 else None#刷新
         if 自身.打开 and callable(刷新):#开时
             刷新()#拉清单
 
     def 渲染(自身):#结构树
-        """产出面板嵌套 JSX 树。"""
+        '产出面板嵌套 JSX 树'
         p=自身.属性#props
         def 原样(键,**_参数):
-            """缺翻译器时原样返回键。"""
+            '缺翻译器时原样返回键'
             return 键#键
         def 翻译(键,**参数):#文案
-            """带插值。"""
+            '带插值'
             译=p['t'] if 't' in p else None#翻译器
             if 译 is None:#无
                 基=原样(键)#取句
@@ -286,7 +286,7 @@ class 面板:#Cordis 侧栏面板
                 出=出.replace('{'+名+'}',str(值))#替换
             return 出#句
         def 原样快照(快照):
-            """钩子选择器：整份快照。"""
+            '钩子选择器：整份快照'
             return 快照#原样
         宽=bool(p['wide'] if 'wide' in p else True)#宽
         清单钩=p['useInventory'] if 'useInventory' in p else None#清单
@@ -357,7 +357,7 @@ class 面板:#Cordis 侧栏面板
         失败映射=失败图 if isinstance(失败图,dict) else dict(失败图) if hasattr(失败图,'items') else {}#图
         渲映射=渲图 if isinstance(渲图,dict) else dict(渲图) if hasattr(渲图,'items') else {}#图
         def 渲组(行列表):#组内 li 列表
-            """组装行树列表。"""
+            '组装行树列表'
             树列表=[]#列表
             for 视 in 行列表:#逐行
                 树列表.append(组装行树(#li
@@ -414,7 +414,7 @@ class 面板:#Cordis 侧栏面板
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """结构树面。"""
+        '结构树面'
         if 属性 is not None:#有
             自身.更新(属性)#刷新
         return 自身.渲染()#渲

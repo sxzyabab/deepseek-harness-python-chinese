@@ -15,9 +15,9 @@ __all__=[#仅中文公开名
 )#子类型结束
 
 class 运行时属性预览:#属性预览
-    """DevTools 内联渲染的浅属性。"""
+    'DevTools 内联渲染的浅属性'
     def __init__(自身,name,type,value=None,valuePreview=None,subtype=None):#构造
-        """保存属性预览字段。"""
+        '保存属性预览字段'
         自身.name=name#属性名
         自身.type=type#值类型或访问器
         自身.value=value#展示字符串
@@ -25,9 +25,9 @@ class 运行时属性预览:#属性预览
         自身.subtype=subtype#子类型
 
 class 运行时对象预览:#对象预览
-    """从不携带活对象引用的浅对象渲染。"""
+    '从不携带活对象引用的浅对象渲染'
     def __init__(自身,type,overflow,properties,subtype=None,description=None):#构造
-        """保存对象预览字段。"""
+        '保存对象预览字段'
         自身.type=type#值类型
         自身.subtype=subtype#子类型
         自身.description=description#描述
@@ -35,9 +35,9 @@ class 运行时对象预览:#对象预览
         自身.properties=tuple(properties)#属性预览
 
 class 运行时远程对象描述符:#远程对象描述符
-    """一个 JavaScript 值的与引擎无关的描述。"""
+    '一个 JavaScript 值的与引擎无关的描述'
     def __init__(自身,type,subtype=None,className=None,value=None,unserializableValue=None,description=None,preview=None):#构造
-        """保存远程对象描述符字段。"""
+        '保存远程对象描述符字段'
         自身.type=type#值类型
         自身.subtype=subtype#子类型
         自身.className=className#类名
@@ -47,15 +47,15 @@ class 运行时远程对象描述符:#远程对象描述符
         自身.preview=preview#预览
 
 class 运行时后端对象引用:#后端对象引用
-    """一个界域会话中后端拥有的、对保留对象的引用。"""
+    '一个界域会话中后端拥有的、对保留对象的引用'
     def __init__(自身,handle):#构造
-        """保存后端句柄。"""
+        '保存后端句柄'
         自身.handle=handle#后端句柄
 
 class 运行时远程对象:#远程对象
-    """与界域无关的值，加上可选的后端与 Cordis 身份。"""
+    '与界域无关的值，加上可选的后端与 Cordis 身份'
     def __init__(自身,descriptor,object=None,semanticReference=None):#构造
-        """保存远程对象字段。"""
+        '保存远程对象字段'
         自身.descriptor=descriptor#值描述符
         自身.object=object#后端引用
         自身.semanticReference=semanticReference#Cordis语义引用

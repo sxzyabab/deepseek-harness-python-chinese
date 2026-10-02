@@ -1,11 +1,11 @@
 __all__=['工作区标签','工作区芯片','英雄辉光','英雄壳']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 工作区标签(工作目录):
-    """分隔符-only 路径回显原 cwd。"""
+    '分隔符-only 路径回显原 cwd'
     if 工作目录 is None or 工作目录=='':#空
         return 工作目录#原样
     段=工作目录.replace('\\','/').rstrip('/').split('/')#分段
@@ -13,18 +13,18 @@ def 工作区标签(工作目录):
     return 基 if 基!='' else 工作目录#空则原路径
 
 class 工作区芯片:
-    """无标签时占位「选择工作区」。"""
+    '无标签时占位「选择工作区」'
 
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """始终可点。"""
+        '始终可点'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         标签=属性['label'] if 'label' in 属性 else None#标签
@@ -42,15 +42,15 @@ class 工作区芯片:
         }#结束芯片
 
 class 英雄辉光:
-    """属主 className 供位；滤镜 id 防碰撞。"""
+    '属主 className 供位；滤镜 id 防碰撞'
 
     def __init__(自身,类名=None,滤镜标识=None):
-        """记下定位类与滤镜 id。"""
+        '记下定位类与滤镜 id'
         自身.类名=类名#定位
         自身.滤镜标识=滤镜标识 if 滤镜标识 not in (None,'') else 'empty-glow'#滤镜
 
     def 渲染(自身):
-        """1051×468 椭圆，opacity 0.08。"""
+        '1051×468 椭圆，opacity 0.08'
         return {#辉光
             'className':自身.类名,#定位类
             'viewBox':'0 0 1051 468',#视口
@@ -61,18 +61,18 @@ class 英雄辉光:
         }#结束辉光
 
 class 英雄壳:
-    """无辉光、无 composer、无工作区行。"""
+    '无辉光、无 composer、无工作区行'
 
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """鱼标+标题+预览徽。"""
+        '鱼标+标题+预览徽'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         子=属性['children'] if 'children' in 属性 else None#覆盖层

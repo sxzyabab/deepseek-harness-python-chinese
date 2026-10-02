@@ -1,7 +1,4 @@
-"""对原始 Session 日志响应做事件局部验收；载荷仍由所有者定义的 JSON。
-
-替换表面操作用 startSeq/endSeq（与追踪 surface 一致）；内核导出同名校验前在此内联。
-"""
+'对原始 Session 日志响应做事件局部验收；载荷仍由所有者定义的 JSON'
 import math#负零判定
 from ....内核.会话.类型 import 安全整数上限#外来 JSON 安全整数
 from ....内核.会话.表面 import 是否可进表面类型#表面类型词表
@@ -13,14 +10,14 @@ __all__=['断言会话线事件','会话线事件错误']#仅中文公开名
 })#接纳键结束
 
 class 会话线事件错误(Exception):
-    """会话线事件验收失败。"""
+    '会话线事件验收失败'
 
 def _是记录(值):#是否普通对象
-    """运行时值是否为非数组对象记录。"""
+    '运行时值是否为非数组对象记录'
     return isinstance(值,dict)#仅 dict
 
 def _是安全整数(值):#对齐 Number.isSafeInteger
-    """运行时值是否为安全整数（布尔排除；整值浮点可）。"""
+    '运行时值是否为安全整数（布尔排除；整值浮点可）'
     if isinstance(值,bool):#布尔不是整数
         return False#布尔
     if isinstance(值,int):#整数
@@ -30,7 +27,7 @@ def _是安全整数(值):#对齐 Number.isSafeInteger
     return False#其它
 
 def _是非负安全序号(值):#seq：非负安全整数且拒 -0
-    """对齐线信封 seq：安全整数、非负、且 Object.is(seq, -0) 拒绝。"""
+    '对齐线信封 seq：安全整数、非负、且 Object.is(seq, -0) 拒绝'
     if not _是安全整数(值):#非安全整数
         return False#拒绝
     if isinstance(值,float) and math.copysign(1.0,值)<0:#浮点负零
@@ -38,11 +35,11 @@ def _是非负安全序号(值):#seq：非负安全整数且拒 -0
     return 值>=0#非负
 
 def _是事件序号(值):#对齐表面 isEventSeq
-    """运行时值是否为非负安全事件序号（拒 -0）。"""
+    '运行时值是否为非负安全事件序号（拒 -0）'
     return _是非负安全序号(值)#与线 seq 同规则
 
 def _是否替换操作(值):#是否替换操作（追踪字段）
-    """运行时值是否正好是位置替换形态（op + startSeq + endSeq）。"""
+    '运行时值是否正好是位置替换形态（op + startSeq + endSeq）'
     if not isinstance(值,dict):#必须是记录
         return False#必须是记录
     if len(值)!=3:#恰好三键
@@ -54,7 +51,7 @@ def _是否替换操作(值):#是否替换操作（追踪字段）
     return _是事件序号(值['startSeq']) and _是事件序号(值['endSeq'])#起止序号合法
 
 def _取出表面操作(事件):#取出表面操作（事件局部）
-    """校验事件本地的表面资格并返回其操作；替换键为 startSeq/endSeq。"""
+    '校验事件本地的表面资格并返回其操作；替换键为 startSeq/endSeq'
     类型=事件['type'] if 'type' in 事件 else None#事件类型
     if not 是否可进表面类型(类型):#类型不可进表面
         if 'surfaceOp' in 事件:#却带了表面操作
@@ -76,7 +73,7 @@ def _取出表面操作(事件):#取出表面操作（事件局部）
     return 操作#合法替换
 
 def _断言出处(事件,被遮蔽序号):#校验出处（事件局部空遮蔽）
-    """按替换区间校验引用的源事件序号；线路径仅传空遮蔽。"""
+    '按替换区间校验引用的源事件序号；线路径仅传空遮蔽'
     原始=事件['sourceEventSeqs'] if 'sourceEventSeqs' in 事件 else None#原始源序号
     if 事件.get('type')=='assistant/message' and 原始 is not None:#助手消息不得带源序号
         raise 会话线事件错误('assistant/message embeds its source stream and cannot carry sourceEventSeqs')#禁止
@@ -106,7 +103,7 @@ def _断言出处(事件,被遮蔽序号):#校验出处（事件局部空遮蔽�
         raise 会话线事件错误('surface replace: sourceEventSeqs must include every shadowed surface node; missing '+缺文)#必须覆盖每个被遮蔽节点
 
 def 校验会话事件数据(事件,主语):#校验事件载荷局部
-    """拒绝非规范请求头字段与自相矛盾的工具失败元数据；不校验完整载荷或内嵌提供方流。"""
+    '拒绝非规范请求头字段与自相矛盾的工具失败元数据'
     数据=事件['data'] if 'data' in 事件 else None#载荷
     类型=事件['type'] if 'type' in 事件 else None#事件名
     if 类型=='request/header':#请求头
@@ -135,7 +132,7 @@ def 校验会话事件数据(事件,主语):#校验事件载荷局部
             raise 会话线事件错误(主语+' error requires message content[0].isError === true')#矛盾
 
 def 校验表面元数据(事件):#事件局部表面元数据
-    """校验一条事件的表面元数据，不查日志或表面成员资格。替换引用 startSeq/endSeq。"""
+    '校验一条事件的表面元数据，不查日志或表面成员资格。替换引用 startSeq/endSeq'
     操作=_取出表面操作(事件)#资格与标记
     if 操作 is not None and 操作!='append' and (操作['startSeq']>=事件['seq'] or 操作['endSeq']>=事件['seq']):#替换须更早
         raise 会话线事件错误('surface replace at seq '+str(事件['seq'])+': startSeq and endSeq must reference earlier events')#起止须更早
@@ -148,7 +145,7 @@ def 断言会话线事件(值):#断言线协议事件
 
     区间成员与出处存在性依赖耐久日志，仍属 Host。
     值：follow 帧或历史页中收到的一条事件。
-    信封或当前事件局部元数据无效时抛出。
+    信封或当前事件局部元数据无效时抛出
     """
     主语='session wire event'#诊断主语（线协议文案原样英文）
     if not _是记录(值):#须对象

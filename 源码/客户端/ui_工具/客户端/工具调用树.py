@@ -3,7 +3,7 @@ from .回退工具卡 import 回退工具卡#回退卡
 __all__=['工具调用树','工具调用枝','工具调用','调用名']#仅中文公开名
 
 def 调用名(节点):#线名
-    """从生命周期任一侧解析工具名。"""
+    '从生命周期任一侧解析工具名'
     if 'kind' in 节点:#已结算
         调用=节点['call'] if 'call' in 节点 else None#调用头
         名=调用['name'] if 调用 is not None and 'name' in 调用 else None#name
@@ -12,18 +12,18 @@ def 调用名(节点):#线名
     return 名 if 名 else ''#空则空串
 
 class 工具调用:#单原子调用行
-    """经 tool.call.toolview 洞派发；无登记则回退卡。"""
+    '经 tool.call.toolview 洞派发；无登记则回退卡'
 
     def __init__(自身,属性=None):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性={} if 属性 is None else 属性#合成
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """派发槽或回退。"""
+        '派发槽或回退'
         属性=自身.属性#props
         调用标识=属性['callId'] if 'callId' in 属性 else None#callId
         工具名=属性['toolName'] if 'toolName' in 属性 else None#名
@@ -36,7 +36,7 @@ class 工具调用:#单原子调用行
         选中=bool(属性['selected']) if 'selected' in 属性 else False#选中
         子列表=属性['children'] if 'children' in 属性 else None#子
         def 检查本调用():#本行检查
-            """转调 inspectCall(callId)。"""
+            '转调 inspectCall(callId)'
             return 检查调用(调用标识)#检查
         所有者={#owner props
             'callId':调用标识,#id
@@ -65,24 +65,24 @@ class 工具调用:#单原子调用行
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 工具调用枝:#递归枝
-    """一块调用及其 subCalls。"""
+    '一块调用及其 subCalls'
 
     def __init__(自身,属性=None):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性={} if 属性 is None else 属性#合成
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """递归渲子调用。"""
+        '递归渲子调用'
         属性=自身.属性#props
         块=属性['block']#块
         选中标识=属性['selectedCallId'] if 'selectedCallId' in 属性 else None#选中
@@ -120,24 +120,24 @@ class 工具调用枝:#递归枝
         })#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 工具调用树:#根树
-    """渲一根工具调用及其递归子。"""
+    '渲一根工具调用及其递归子'
 
     def __init__(自身,属性=None):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性={} if 属性 is None else 属性#合成
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """取 node.data.root 交给枝。"""
+        '取 node.data.root 交给枝'
         属性=自身.属性#props
         节点=属性['node']#节点
         数据=节点['data'] if 'data' in 节点 else None#data
@@ -158,7 +158,7 @@ class 工具调用树:#根树
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

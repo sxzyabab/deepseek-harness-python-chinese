@@ -1,8 +1,4 @@
-"""活优先会话观察：history/follow 与冷探测共用。
-
-活路径即时切口 + 冷路径
-按持久修订钉住的 prepared LRU 与投影水合。公开面仅中文名。
-"""
+'活优先会话观察：history/follow 与冷探测共用'
 from .配置 import 会话查询错误,会话查询默认准备会话缓存大小#检索错误与默认缓存
 from .语料库 import 未找到#未找到工厂
 from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
@@ -10,21 +6,21 @@ from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 __all__=['会话观测','会话观测读取器','观测已中止']#仅中文公开名
 
 def 观测已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无
         return False#未中止
     return bool(信号.is_set())#置位即中止
 
 def 若观测已中止则抛出(信号):
-    """已取消则抛 SESSION_QUERY_ABORTED。"""
+    '已取消则抛 SESSION_QUERY_ABORTED'
     if 观测已中止(信号):#已中止
         raise 会话查询错误('session observation was aborted','SESSION_QUERY_ABORTED')#取消
 
 class 会话观测:
-    """一次精确不可变会话切口。"""
+    '一次精确不可变会话切口'
 
     def __init__(自身,来源,头,继承事件数,事件列表,游标,投影=None,修订=None,保留工厂=None,关闭器=None):
-        """记下切口字段。"""
+        '记下切口字段'
         自身.source=来源#live|prepared
         自身.header=头#头
         自身.inheritedEventCount=继承事件数#继承
@@ -38,11 +34,11 @@ class 会话观测:
 
     @property
     def events(自身):
-        """切口事件前缀。"""
+        '切口事件前缀'
         return 自身._事件列表#事件
 
     def retain(自身):
-        """为另一所有者再租一份。"""
+        '为另一所有者再租一份'
         if 自身._已关闭:#已处置
             raise RuntimeError('session observation "'+str(自身.header.get('id'))+'" is disposed')#已处置
         if 自身._保留工厂 is None:#无工厂则浅拷
@@ -53,7 +49,7 @@ class 会话观测:
         return 自身._保留工厂()#新租约
 
     def close(自身):
-        """释放租约。"""
+        '释放租约'
         if 自身._已关闭:#幂等
             return#已关
         自身._已关闭=True#标记
@@ -61,26 +57,26 @@ class 会话观测:
             自身._关闭器()#关
 
     def __enter__(自身):
-        """上下文管理。"""
+        '上下文管理'
         return 自身#自身
 
     def __exit__(自身,类型,值,回溯):
-        """退出时关闭。"""
+        '退出时关闭'
         自身.close()#关
         return False#不吞异常
 
 class 会话观测读取器:
-    """构建点观察；冷路径按修订钉住 prepared LRU。"""
+    '构建点观察；冷路径按修订钉住 prepared LRU'
 
     def __init__(自身,上下文,语料库,缓存容量=None):
-        """保存上下文、语料与缓存容量。"""
+        '保存上下文、语料与缓存容量'
         自身._上下文=上下文#框架
         自身._语料库=语料库#语料（回退冷读）
         自身._缓存容量=会话查询默认准备会话缓存大小 if 缓存容量 is None else 缓存容量#容量
         自身._缓存={}#sessionId → PreparedEntry（插入序≈LRU：删后重插）
 
     def 读(自身,会话标识,选项=None):
-        """观察一个活优先会话。选项为 dict。"""
+        '观察一个活优先会话。选项为 dict'
         if 选项 is None:#缺省
             选项={}#空
         信号=选项['signal'] if 'signal' in 选项 else None#取消
@@ -139,7 +135,7 @@ class 会话观测读取器:
             return 自身._准备租约(会话标识,条目,投影)#租约
 
     def _统计源(自身,持久化,会话标识,信号):
-        """轻量修订观察；映射缺席与后端失败。"""
+        '轻量修订观察；映射缺席与后端失败'
         try:
             快照=持久化.观察(会话标识,{'signal':信号} if 信号 is not None else None)#观察
         except BaseException as 错误:
@@ -156,7 +152,7 @@ class 会话观测读取器:
         return 快照#快照
 
     def _加载源(自身,持久化,会话标识,信号):
-        """完整平衡冷日志（已存 + 中断末回合内存闭合）。"""
+        '完整平衡冷日志（已存 + 中断末回合内存闭合）'
         try:
             冷=读冷会话日志(持久化,会话标识,信号)#句柄冷读
             return {
@@ -172,7 +168,7 @@ class 会话观测读取器:
             raise _映射持久失败(会话标识,错误)#映射
 
     def _缓存条目(自身,持久化身份,会话标识,修订):
-        """仍有效的缓存条目并标为最近使用。"""
+        '仍有效的缓存条目并标为最近使用'
         已缓存=自身._缓存.get(会话标识)#取
         if 已缓存 is None:#无
             return None#无
@@ -186,13 +182,13 @@ class 会话观测读取器:
         return 已缓存#返回
 
     def _入库(自身,会话标识,条目):
-        """插入或替换，再驱逐超容量。"""
+        '插入或替换，再驱逐超容量'
         自身._缓存.pop(会话标识,None)#删旧
         自身._缓存[会话标识]=条目#插新
         自身._驱逐超容量(条目)#驱逐
 
     def _驱逐超容量(自身,保留=None):
-        """驱逐最旧未钉条目直至合容量。"""
+        '驱逐最旧未钉条目直至合容量'
         if len(自身._缓存)<=自身._缓存容量:#未超
             return#空
         for 标识 in list(自身._缓存.keys()):#插入序
@@ -204,22 +200,22 @@ class 会话观测读取器:
                 return#停
 
     def _准备租约(自身,会话标识,条目,投影):
-        """在缓存条目上构建可处置租约。"""
+        '在缓存条目上构建可处置租约'
         条目['refs']+=1#钉住
 
         def 租约():
-            """新租约。"""
+            '新租约'
             已处置=[False]#旗
 
             def 保留():
-                """再钉。"""
+                '再钉'
                 if 已处置[0]:#已处置
                     raise RuntimeError('session observation "'+str(会话标识)+'" is disposed')#已处置
                 条目['refs']+=1#再钉
                 return 租约()#新
 
             def 关闭():
-                """解钉。"""
+                '解钉'
                 if 已处置[0]:#幂等
                     return#空
                 已处置[0]=True#标记
@@ -238,7 +234,7 @@ class 会话观测读取器:
         return 租约()#首租约
 
     def _活(自身,会话,投影模式):
-        """活会话切口。"""
+        '活会话切口'
         序号=会话.seq#记下长度
         事件列表=list(会话.snapshotEvents(0,序号))#前缀
         游标=-1 if 序号==0 else 序号-1#游标
@@ -255,7 +251,7 @@ class 会话观测读取器:
         )#活观察
 
     def _准备投影(自身,条目):
-        """准备投影：优先投影缓存注水。"""
+        '准备投影：优先投影缓存注水'
         注册表=自身._上下文.获取服务('sessionProjections')#注册表
         if 注册表 is None:#无
             return None#省略
@@ -266,7 +262,7 @@ class 会话观测读取器:
 
 
 def _映射持久失败(会话标识,错误):
-    """映射持久化失败到查询分类。"""
+    '映射持久化失败到查询分类'
     名=getattr(错误,'name',None) or type(错误).__name__#名
     if 名 in ('SessionPersistenceNotFoundError','会话持久化未找到错误') or getattr(错误,'code',None)=='SESSION_PERSISTENCE_NOT_FOUND':#未找到
         return 未找到(会话标识)#映射

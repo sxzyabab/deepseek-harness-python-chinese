@@ -2,7 +2,7 @@ import threading,weakref#互斥与弱表
 链尾=weakref.WeakKeyDictionary()#每个智能体当前事务链尾锁
 
 def 执行日程事务(智能体,操作):#按智能体串行执行事务
-    """在其精确智能体的前一事务之后执行完一次完整日程事务。"""
+    '在其精确智能体的前一事务之后执行完一次完整日程事务'
     锁=链尾.get(智能体)#取出已有锁
     if 锁 is None:#尚未有锁
         锁=threading.Lock()#新建互斥

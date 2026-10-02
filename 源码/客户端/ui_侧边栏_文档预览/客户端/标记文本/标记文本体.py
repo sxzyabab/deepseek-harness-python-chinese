@@ -3,7 +3,7 @@ __all__=['标记文本体']#仅中文公开名
 
 
 def 标记文本体(内容,翻译):
-    """产出 Markdown 结构，或非文本交付时无。"""
+    '产出 Markdown 结构，或非文本交付时无'
     if 内容.get('kind')!='text':#非文本
         return None#无
     return {#结构

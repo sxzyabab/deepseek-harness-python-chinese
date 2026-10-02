@@ -107,42 +107,42 @@ __all__=[#仅中文公开名
 }#注入形结束
 
 class 对话错误(Exception):
-    """审批回执与槽面失败。"""
+    '审批回执与槽面失败'
     def __init__(自身,消息,原因=None):
-        """记下英文消息与可选结构原因。"""
+        '记下英文消息与可选结构原因'
         super().__init__(消息)#消息原样英文
         自身.reason=原因#结构原因
 
 class 待决审批:
-    """渲染身份与问题材料透明转发；answer 拥有线上编码。载体为跨包 dict。"""
+    '渲染身份与问题材料透明转发；answer 拥有线上编码。载体为跨包 dict'
     def __init__(自身,等待):
-        """记下一次待决审批的运行时载体。"""
+        '记下一次待决审批的运行时载体'
         自身.等待=等待#载体
 
     @property#只读
     def key(自身):
-        """不透明渲染键，从载体转发。"""
+        '不透明渲染键，从载体转发'
         return 自身.等待['key']#key
 
     @property#只读
     def toolName(自身):
-        """问题所涉工具，从载荷转发。"""
+        '问题所涉工具，从载荷转发'
         return 自身.等待['payload']['toolName']#toolName
 
     @property#只读
     def reason(自身):
-        """人类可读 WHY，从载荷转发。"""
+        '人类可读 WHY，从载荷转发'
         载荷=自身.等待['payload']#载荷
         return 载荷['reason'] if 'reason' in 载荷 else None#reason
 
     @property#只读
     def callId(自身):
-        """命令行查找键，从载荷转发。"""
+        '命令行查找键，从载荷转发'
         载荷=自身.等待['payload']#载荷
         return 载荷['callId'] if 'callId' in 载荷 else None#callId
 
     def answer(自身,结果):
-        """被拒绝的载体回执会抛。respond 返回任务。"""
+        '被拒绝的载体回执会抛。respond 返回任务'
         回执=自身.等待.respond({#投递审批响应
             'ok':True,#成功路径
             'value':{#会话、审批 id 与结果

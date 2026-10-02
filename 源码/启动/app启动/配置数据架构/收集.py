@@ -1,4 +1,4 @@
-"""用配置档模块解析、不启动插件地检查已声明 Config 模式。"""
+'用配置档模块解析、不启动插件地检查已声明 Config 模式'
 import os,json,yaml
 from ...依赖.loader import 组,是组插件,模块加载器
 from ...依赖.include import 包含,应用插件补丁,插件列表读取器
@@ -12,19 +12,19 @@ __all__=['收集配置数据架构']
 内建={'group':组,'include':包含}
 
 def 像对象(值):
-    """对象或函数。"""
+    '对象或函数'
     return 值 is not None and (isinstance(值,dict) or callable(值) or hasattr(值,'Config'))
 
 def 是记录(值):
-    """非数组对象。"""
+    '非数组对象'
     return isinstance(值,dict)
 
 def 配置于(插件):
-    """读 Config 槽。"""
+    '读 Config 槽'
     return getattr(插件,'Config',None) if 像对象(插件) else None
 
 def 解包(导出):
-    """取出默认导出。"""
+    '取出默认导出'
     if 导出 is None:
         return None
     if hasattr(导出,'default'):
@@ -32,7 +32,7 @@ def 解包(导出):
     return 导出
 
 def 校验元数据(行):
-    """id/name 必须字面字符串。"""
+    'id/name 必须字面字符串'
     for 键 in ('id','name'):
         值=行.get(键)
         if 值 is not None and not isinstance(值,str):
@@ -42,13 +42,13 @@ def 校验元数据(行):
         raise Exception('group must be a literal boolean or null')
 
 def 校验条目(值):
-    """条目必须带字面插件名。"""
+    '条目必须带字面插件名'
     if not 是记录(值) or not isinstance(值.get('name'),str):
         raise Exception('each entry must be a mapping with a literal plugin name')
     校验元数据(值)
 
 def 条目列表(值):
-    """字面条目列表。"""
+    '字面条目列表'
     if 值 is None:
         raise Exception('entry list config is missing')
     if not isinstance(值,list):
@@ -56,7 +56,7 @@ def 条目列表(值):
     return 值
 
 def 包含补丁(值):
-    """字面补丁列表。"""
+    '字面补丁列表'
     if 值 is None:
         return None
     if not isinstance(值,list):
@@ -70,7 +70,7 @@ def 包含补丁(值):
     return 值
 
 def 收集配置数据架构(配置档,条目,解析,诊断=None):
-    """从已解析条目行与根树补丁生成 JSON Schema，不应用插件、不求值表达式。"""
+    '从已解析条目行与根树补丁生成 JSON Schema，不应用插件、不求值表达式'
     if 诊断 is None:
         诊断=[]
     结果={'entries':[],'diagnostics':list(诊断)}
@@ -82,7 +82,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
             raise Exception('config schema dump requires the module loader used by profile resolution')
         原生载体={}
         def 载体(插件,基址):
-            """识别 group/include 载体。"""
+            '识别 group/include 载体'
             if 插件 is 组:
                 return 'group'
             if 插件 is 包含:
@@ -110,16 +110,16 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
             raise Exception('unrecognized Loader tree carrier; use cordis:group or cordis:include for native child collection')
         祖先=set()
         def 报告(路径,错误):
-            """记下错误诊断，不含绝对路径。"""
+            '记下错误诊断，不含绝对路径'
             消息=错误 if isinstance(错误,str) else str(错误)
             结果['diagnostics'].append({'level':'error','path':路径,'message':消息})
         def 警告(路径):
-            """带路径的警告函数。"""
+            '带路径的警告函数'
             def 记(消息,*参数):
-                """展开 %C。"""
+                '展开 %C'
                 下标=[0]
                 def 替(_):
-                    """下一参数。"""
+                    '下一参数'
                     值=参数[下标[0]] if 下标[0]<len(参数) else None
                     下标[0]+=1
                     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
@@ -127,7 +127,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                 结果['diagnostics'].append({'level':'warning','path':路径,'message':re.sub(r'%C',替,消息)})
             return 记
         def 走包含(配置,基址,路径):
-            """走 include 子树。"""
+            '走 include 子树'
             if 配置 is None:
                 raise Exception('include config is missing')
             if not 是记录(配置) or 是否表达式节点(配置):
@@ -181,7 +181,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
             finally:
                 祖先.discard(规范)
         def 走(行表,基址,前缀):
-            """走条目行。"""
+            '走条目行'
             for 下标,值 in enumerate(行表):
                 路径=前缀+'/'+str(下标)
                 身份=值 if 是记录(值) else None
@@ -236,7 +236,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
         走(条目,路径转文件url(os.path.join(配置档['dir'],'cordis.yml')),'')
         目标={}
         def 索引目标(行表):
-            """last-id-wins 补丁目标。"""
+            'last-id-wins 补丁目标'
             for 行 in 行表:
                 if not 是记录(行):
                     continue

@@ -1,9 +1,4 @@
-"""每个 harness 主目录共享的匿名用户 id，供遥测与反馈使用。
-
-id 是随机 UUID，以裸行写入主目录下 `.anonymous-user-id` 文件；从不从主机名、网络地址、git 远程或其它识别源推导。作用域是 harness 主目录而非机器：共享同一 `$DSH_HOME` 的进程报告同一 id，删除文件后下次启动会铸造新身份。
-
-读写同步以便启动时与命令消费方使用同一 API。结果按已解析文件路径记忆：单进程只触盘一次，运行中删除文件仍保留本进程 id 直到下次启动。
-"""
+'每个 harness 主目录共享的匿名用户 id，供遥测与反馈使用'
 import os,re#路径、读写与 UUID 形态
 from uuid import uuid4 as 随机uuid#UUID 生成
 from ...工具.标识构造 import 标识构造#名义类型
@@ -17,7 +12,7 @@ UUID形态=re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 记忆={}#按文件路径的过程记忆
 
 def 读取持久id(文件):#读有效持久 id
-    """从文件读取有效持久 id；缺席或损坏为 None。"""
+    '从文件读取有效持久 id；缺席或损坏为 None'
     try:#读文件
         文本=open(文件,'r',encoding='utf-8').read()#读全文
     except OSError:#缺席或不可读
@@ -28,7 +23,7 @@ def 读取持久id(文件):#读有效持久 id
     return 标识构造(值)#品牌化
 
 def 获取或创建匿名用户id(选项=None):#获取或创建 id
-    """返回 harness 主目录的匿名用户 id，首次使用时创建并尽力持久化。"""
+    '返回 harness 主目录的匿名用户 id，首次使用时创建并尽力持久化'
     if 选项 is None:#默认选项
         选项={}#空映射
     环境=选项['env'] if 'env' in 选项 and 选项['env'] is not None else os.environ#环境映射

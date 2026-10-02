@@ -10,15 +10,15 @@ __all__=['聊天视图','跟随阈值','运行回合起始','回合状态']#仅�
 跟随阈值=24#贴底阈值像素
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 def 运行回合起始(时间线):
-    """开着的回合 start.time。多开回合取最新。时间线为 dict。"""
+    '开着的回合 start.time。多开回合取最新。时间线为 dict'
     if 时间线 is None:#无
         return None#无
     回合表=时间线['turns'] if 'turns' in 时间线 else None#表
@@ -34,7 +34,7 @@ def 运行回合起始(时间线):
     return 最新#最新
 
 def 回合状态(起始时,翻译,现在=None):
-    """满 15s 显示时钟。"""
+    '满 15s 显示时钟'
     if 现在 is None:#缺省
         现在=int(时间模块.time()*1000)#毫秒
     锚=起始时 if 起始时 is not None else 现在#锚
@@ -43,48 +43,48 @@ def 回合状态(起始时,翻译,现在=None):
     return {'type':'turn-status','label':翻译('chat.deepDiving'),'showClock':满,'clock':格式化运行时长(经过,翻译) if 满 is True else None,'cssModule':'聊天视图.module.css'}#态
 
 def 取序(快照):
-    """快照 order。"""
+    '快照 order'
     序=快照['order'] if 'order' in 快照 else None#序
     return 序 if 序 is not None else []#空则空表
 
 def 取时间线(快照):
-    """快照 timeline。"""
+    '快照 timeline'
     return 快照['timeline'] if 'timeline' in 快照 else None#线
 
 def 取导航(快照):
-    """已加载轨。"""
+    '已加载轨'
     项=快照['turnNavigation'] if 'turnNavigation' in 快照 else None#项
     return 项 if 项 is not None else []#空则空表
 
 def 取运行(快照):
-    """快照 running。"""
+    '快照 running'
     return 快照['running'] if 'running' in 快照 else None#运行
 
 def 取打开态(快照):
-    """快照 openState。"""
+    '快照 openState'
     return 快照['openState'] if 'openState' in 快照 else None#打开
 
 def 取打开错(快照):
-    """快照 openError。"""
+    '快照 openError'
     return 快照['openError'] if 'openError' in 快照 else None#错
 
 def 取还有更早(快照):
-    """快照 hasMore。"""
+    '快照 hasMore'
     return 快照['hasMore'] if 'hasMore' in 快照 else None#更早
 
 def 取加载更早中(快照):
-    """快照 loadingOlder。"""
+    '快照 loadingOlder'
     return 快照['loadingOlder'] if 'loadingOlder' in 快照 else None#加载中
 
 def 取选中调用(态):
-    """selection.callId。态为 dict。"""
+    'selection.callId。态为 dict'
     选=态['selection'] if 'selection' in 态 else None#选
     return 选['callId'] if 选 is not None and 'callId' in 选 else None#callId
 
 class 聊天视图:
-    """有序 Node 列表 + 滚动语义面 + 回合轨。"""
+    '有序 Node 列表 + 滚动语义面 + 回合轨'
     def __init__(自身,属性=None):
-        """记下 props 与滚动态。"""
+        '记下 props 与滚动态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.贴底=True#跟随
         自身.活动回合=None#活动
@@ -92,11 +92,11 @@ class 聊天视图:
         自身.导航=回合导航器()#轨
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 滚到底(自身):
-        """清锚并标记贴底。"""
+        '清锚并标记贴底'
         自身.贴底=True#贴
         滚=自身.属性['chatScroll'] if 'chatScroll' in 自身.属性 else None#滚
         存=滚['save'] if 滚 is not None and 'save' in 滚 else None#存
@@ -104,22 +104,22 @@ class 聊天视图:
             存(None)#清记忆
 
     def 加载更早(自身):
-        """调 loadOlder。"""
+        '调 loadOlder'
         加载=自身.属性['loadOlder'] if 'loadOlder' in 自身.属性 else None#加载
         if 加载 is not None:#有
             加载()#派发
 
     def 渲染(自身):
-        """列表行 + 轨 + 状态 + steering。"""
+        '列表行 + 轨 + 状态 + steering'
         属性=自身.属性#props
         用聊天=属性['useChat'] if 'useChat' in 属性 else None#聊天快照
         用过程=属性['useChatNodeProcess'] if 'useChatNodeProcess' in 属性 else None#过程
         用节点=属性['useChatNode'] if 'useChatNode' in 属性 else None#节点
         if 用节点 is None and 用聊天 is not None:#钩缺席则自建
             def 按键读节点(键):
-                """chat.nodes.get。仓库为契约 dict。"""
+                'chat.nodes.get。仓库为契约 dict'
                 def 取节点(快照):
-                    """仓库 get。"""
+                    '仓库 get'
                     仓=快照['nodes']#仓
                     return 仓['get'](键)#节点
                 return 用聊天(取节点)#节点
@@ -129,7 +129,7 @@ class 聊天视图:
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         待插=属性['pendingSteering'] if 'pendingSteering' in 属性 else None#待插
         def 取收件(快照):
-            """queue，缺则 pendingSteering。空列表保留。"""
+            'queue，缺则 pendingSteering。空列表保留'
             if 'queue' in 快照 and 快照['queue'] is not None:#有队列
                 return 快照['queue']#队列
             return 待插 if 待插 is not None else []#待插
@@ -170,7 +170,7 @@ class 聊天视图:
                 转向行.append({'id':标识,'view':待插话泡({'content':内容,'loadImage':加载图,'t':翻译})()})#行
         运行起始=运行回合起始(时间线)#起始
         def 导航到(项):
-            """已加载滚锚，未加载翻页。"""
+            '已加载滚锚，未加载翻页'
             跳=属性['onNavigateTurn'] if 'onNavigateTurn' in 属性 else None#跳
             if 跳 is not None:#有
                 跳(项)#派
@@ -184,7 +184,7 @@ class 聊天视图:
         return {'type':'chat-view','openState':打开态,'loadingHint':加载提示,'openError':错文,'hasMore':还有更早,'loadingOlder':加载更早中,'loadOlderLabel':翻译('chat.loadOlder'),'onLoadOlder':自身.加载更早,'seats':席列表,'navigator':自身.导航({'items':轨项,'activeTurn':自身.活动回合,'busyTurn':自身.忙回合,'onNavigate':导航到,'t':翻译}),'turnStatus':回合态,'pendingSteering':转向行,'atBottom':自身.贴底,'toBottomLabel':翻译('chat.toBottom'),'onToBottom':自身.滚到底,'cssModule':'聊天视图.module.css'}#视图
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

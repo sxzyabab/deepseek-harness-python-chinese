@@ -1,4 +1,4 @@
-"""DeepSeek 插件配置与完整请求局部解析。"""
+'DeepSeek 插件配置与完整请求局部解析'
 from math import isfinite as 是否有限
 from urllib.parse import urlparse as 解析网址
 from ...依赖.schemastery import 字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段,复合类型字段
@@ -26,7 +26,7 @@ __all__=(
 基址环境='DEEPSEEK_BASE_URL'
 
 class 深求配置错误(Exception):
-    """llm-deepseek 配置校验失败。"""
+    'llm-deepseek 配置校验失败'
 
 目录模型={
     'id':字符串字段(可空=False),
@@ -62,7 +62,7 @@ class 深求配置错误(Exception):
 }
 
 def 朴素选项(配置值):
-    """读出已校验配置后面的当前值。"""
+    '读出已校验配置后面的当前值'
     结果={}
     for 键,值 in 配置值.items():
         if hasattr(值,'get') and callable(值.get):
@@ -72,15 +72,15 @@ def 朴素选项(配置值):
     return 结果
 
 def 是否正整数(值):
-    """排除 bool 的正整数。"""
+    '排除 bool 的正整数'
     return not isinstance(值,bool) and isinstance(值,(int,float)) and 值==int(值) and 值>0
 
 def 是否正安全整数(值):
-    """排除 bool 的正安全整数。"""
+    '排除 bool 的正安全整数'
     return 是否正整数(值) and abs(值)<=最大安全整数
 
 def 解析模型目录(模型列表):
-    """解析、校验并拆离建议模型目录。"""
+    '解析、校验并拆离建议模型目录'
     已见=set()
     结果=[]
     for 模型 in (模型列表 if 模型列表 is not None else 默认模型列表):
@@ -134,7 +134,7 @@ def 解析模型目录(模型列表):
     return 结果
 
 def 解析适配器选项(原始配置,环境=None):
-    """从原始配置到已校验连接事实的那一次显式解析步骤。"""
+    '从原始配置到已校验连接事实的那一次显式解析步骤'
     if 'protocol' in 原始配置:
         raise 深求配置错误('llm-deepseek: protocol is not configurable; remove it and use a Messages-compatible baseURL')
     思考=原始配置['thinking'] if 'thinking' in 原始配置 else None

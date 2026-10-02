@@ -1,24 +1,24 @@
-"""已退役原生语法即使在可恢复的物理行失败之后仍硬性拒绝。"""
+'已退役原生语法即使在可恢复的物理行失败之后仍硬性拒绝'
 from ..会话格式 import 会话格式错误,会话格式不支持迁移错误,是否会话格式json对象#从会话格式导入
 
 def 断言块(块,主语):#断言内容块
-    """拒绝已发布 tool-result 包装。"""
+    '拒绝已发布 tool-result 包装'
     if 是否会话格式json对象(块) and 块.get('type')=='tool-result':#退役包装
         raise 会话格式错误(主语+' must not contain a released tool-result wrapper')#错误
 
 def 断言内容(内容,主语):#断言内容数组
-    """断言内容数组中每一块。"""
+    '断言内容数组中每一块'
     if isinstance(内容,list):#数组
         for 块 in 内容:#逐块
             断言块(块,主语)#断言
 
 def 断言消息内容(消息,主语):#断言嵌套消息内容
-    """断言消息对象上的内容。"""
+    '断言消息对象上的内容'
     if 是否会话格式json对象(消息):#对象
         断言内容(消息.get('content'),主语)#内容
 
 def 断言v4已退役语法(行):#断言v4已退役语法
-    """拒绝已退役头、PTC 标签，以及解释槽里的 tool-result 块。"""
+    '拒绝已退役头、PTC 标签，以及解释槽里的 tool-result 块'
     if not 是否会话格式json对象(行):#非对象
         return#返回
     if (行.get('type')=='tool/code-dispatch-start' or 行.get('type')=='tool/code-dispatch') and 行.get('ignorable') is not True:#必需前代PTC

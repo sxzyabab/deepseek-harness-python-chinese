@@ -6,13 +6,13 @@ __all__=['浏览器体','网页沙箱令牌']#仅中文公开名
 _初帧={'document':None,'sandboxed':True,'loadFailed':False}#缺省帧态
 
 def 失败文案(原因,翻译):
-    """把解析拒因翻成展示句，不在逻辑里匹配展示串。"""
+    '把解析拒因翻成展示句，不在逻辑里匹配展示串'
     return 翻译(f'error.{原因}')#文案键
 
 class 浏览器体:#浏览器正文视图模型
-    """控制器拥有的 URL 状态与 Web iframe 载体的标签渲染。"""
+    '控制器拥有的 URL 状态与 Web iframe 载体的标签渲染'
     def __init__(自身,属性):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性#props
         自身.草稿=None#地址草稿
         自身.草稿修订=None#草稿绑定修订
@@ -21,16 +21,16 @@ class 浏览器体:#浏览器正文视图模型
         自身.初址=None#可选初始 URL
 
     def 更新(自身,属性):
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#最新
 
     def 视图(自身):
-        """投影浏览器体视图模型。"""
+        '投影浏览器体视图模型'
         属性=自身.属性#props
         翻译=属性['t']#文案
         标签=属性['useTabInfo']()['tab']#标签
         def 选标签桶(快照):
-            """按标签取持久化桶。"""
+            '按标签取持久化桶'
             if 标签['id'] not in 快照['byTab']:#无
                 return None#空
             return 快照['byTab'][标签['id']]#桶
@@ -58,22 +58,22 @@ class 浏览器体:#浏览器正文视图模型
         失败=None if 状态['failure'] is None else 失败文案(状态['failure']['reason'],翻译)#失败句
         占位=翻译('start') if 当前 is None else 翻译('loading')#占位
         def 后退():
-            """后退。"""
+            '后退'
             属性['goBack'](标签['id'])#退
         def 前进():
-            """前进。"""
+            '前进'
             属性['goForward'](标签['id'])#进
         def 刷新():
-            """刷新。"""
+            '刷新'
             属性['reload'](标签['id'])#刷
         def 切换沙箱():
-            """切换沙箱。"""
+            '切换沙箱'
             属性['toggleSandbox'](标签['id'])#沙箱
         def 报告已加载():
-            """报告已加载。"""
+            '报告已加载'
             if 文档 is not None:属性['reportLoaded'](标签['id'],文档['revision'])#已加载
         def 报告加载失败():
-            """报告加载失败。"""
+            '报告加载失败'
             if 文档 is not None:属性['reportLoadFailed'](标签['id'],文档['revision'])#失败
         return {#视图
             'kind':'browser-body',#种类
@@ -116,11 +116,11 @@ class 浏览器体:#浏览器正文视图模型
         }#视图结束
 
     def 设草稿(自身,文本):
-        """更新地址草稿。"""
+        '更新地址草稿'
         属性=自身.属性#props
         标签=属性['useTabInfo']()['tab']#标签
         def 选标签桶(快照):
-            """按标签取持久化桶。"""
+            '按标签取持久化桶'
             if 标签['id'] not in 快照['byTab']:#无
                 return None#空
             return 快照['byTab'][标签['id']]#桶
@@ -131,14 +131,14 @@ class 浏览器体:#浏览器正文视图模型
         自身.草稿=文本#草稿
 
     def 提交(自身):
-        """提交地址栏。"""
+        '提交地址栏'
         属性=自身.属性#props
         标签=属性['useTabInfo']()['tab']#标签
         视图=自身.视图()#当前
         属性['loadUrl'](标签['id'],视图['draft'])#加载
 
     def 确保挂载(自身):
-        """首次渲染时挂载控制器并按初态恢复。"""
+        '首次渲染时挂载控制器并按初态恢复'
         属性=自身.属性#props
         标签=属性['useTabInfo']()['tab']#标签
         if 自身.挂载次数==0:#首次

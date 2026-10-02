@@ -17,14 +17,14 @@ __all__=['控制详情']
 终端信号=re.compile(r'^delivered (\S+) to foreground process group ([0-9]+)\Z',re.ASCII)
 
 def 参数串(参数,键):
-    """取字符串参数。"""
+    '取字符串参数'
     if 键 not in 参数:
         return ''
     值=参数[键]
     return 值 if isinstance(值,str) else ''
 
 def 回执(标题,徽章,翻译,字段=None,说明=None):
-    """带展开摘要的回执模型。"""
+    '带展开摘要的回执模型'
     if 字段 is None:
         字段=[]
     项={'title':标题,'badge':徽章,'fields':字段}
@@ -35,7 +35,7 @@ def 回执(标题,徽章,翻译,字段=None,说明=None):
     return 模型
 
 def 智能体列表(文本,json值,翻译):
-    """list_agents 文本或 JSON。"""
+    'list_agents 文本或 JSON'
     if isinstance(json值,list):
         return 详情列表(检视条目(json值,翻译),翻译('detail.agents.count',{'count':len(json值)}),翻译)
     if 文本=='(no subagents)':
@@ -62,7 +62,7 @@ def 智能体列表(文本,json值,翻译):
     return 详情列表(条目,翻译('detail.agents.count',{'count':len(条目)}),翻译)
 
 def 后台列表(文本,翻译):
-    """job_list 文本。"""
+    'job_list 文本'
     if 文本=='(no background jobs)':
         return 详情列表([],翻译('detail.jobs.count',{'count':0}),翻译)
     条目=[]
@@ -78,7 +78,7 @@ def 后台列表(文本,翻译):
     return 详情列表(条目,翻译('detail.jobs.count',{'count':len(条目)}),翻译)
 
 def 终端列表(文本,翻译):
-    """terminal_list 文本。"""
+    'terminal_list 文本'
     if 文本=='(no terminal sessions)':
         return 详情列表([],翻译('detail.terminals.count',{'count':0}),翻译)
     条目=[]
@@ -111,7 +111,7 @@ def 终端列表(文本,翻译):
     return 详情列表(条目,翻译('detail.terminals.count',{'count':len(条目)}),翻译)
 
 def 语言服务详情(参数,文本,翻译):
-    """lsp 悬停或位置列表。"""
+    'lsp 悬停或位置列表'
     文件=参数串(参数,'file_path')
     操作=参数串(参数,'operation')
     行号=参数['line'] if 'line' in 参数 else None
@@ -146,7 +146,7 @@ def 语言服务详情(参数,文本,翻译):
     return 详情列表(条目,文件+' · '+翻译('detail.locations.count',{'count':计数}),翻译)
 
 def 控制详情(名称,参数,文本,json值,翻译):
-    """从已记录输出格式派生实体列表与操作回执。"""
+    '从已记录输出格式派生实体列表与操作回执'
     目标=参数串(参数,'target') or 参数串(参数,'agent_id') or 参数串(参数,'sessionId') or 参数串(参数,'job_id')
     if 名称=='list_agents':
         return 智能体列表(文本,json值,翻译)

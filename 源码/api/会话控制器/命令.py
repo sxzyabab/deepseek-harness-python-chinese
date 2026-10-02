@@ -1,4 +1,4 @@
-"""会话命令：各 Remote 方法上的显式激活策略。"""
+'会话命令：各 Remote 方法上的显式激活策略'
 import base64#附件字节
 import uuid#新会话 id
 from ...工具.时间 import 规范化客户端时区#客户端时区
@@ -13,14 +13,14 @@ from .智能体 import (#智能体面
 __all__=['会话命令控制器']#仅中文公开名
 
 def _活智能体(上下文,会话标识):
-    """取在线智能体：兼容英文 get 与中文 获取。"""
+    '取在线智能体：兼容英文 get 与中文 获取'
     取=getattr(上下文.agents,'get',None)#英文
     if 取 is not None:#有英文
         return 取(会话标识)#取
     return 上下文.agents.获取(会话标识)#中文
 
 def _有提示内容(内容):
-    """是否含非空白文本或附件块。内容为 list。"""
+    '是否含非空白文本或附件块。内容为 list'
     if not isinstance(内容,list):#非列表
         return False#空
     for 块 in 内容:#逐块
@@ -35,14 +35,14 @@ def _有提示内容(内容):
     return False#全空
 
 def _提供方已服务(上下文,提供方):
-    """提供方是否有适配器。"""
+    '提供方是否有适配器'
     for 条目 in 上下文.llm.列出提供方():#逐提供方
         if 条目['id']==提供方:#命中
             return True#有
     return False#无
 
 def _解析提示文件回执(内容,解析暂存):
-    """把 file 块上的 receiptId 换成持久文件引用。返回 content 与 receiptIds。"""
+    '把 file 块上的 receiptId 换成持久文件引用。返回 content 与 receiptIds'
     回执集合=set()#回执
     已解析=[]#块
     for 块 in 内容:#逐块
@@ -62,7 +62,7 @@ def _解析提示文件回执(内容,解析暂存):
     return {'content':已解析,'receiptIds':list(回执集合)}#结果
 
 def _准入提示内容(附件服务,内容):
-    """对齐 attachments.admitPromptContent：无图直通，有图则批次准入。"""
+    '对齐 attachments.admitPromptContent：无图直通，有图则批次准入'
     if all((not isinstance(块,dict)) or 块.get('type')!='image' for 块 in 内容):#无图
         结果=[]#块
         for 块 in 内容:#逐块
@@ -90,9 +90,9 @@ def _准入提示内容(附件服务,内容):
     return 结果#已准入
 
 def _有同请求提示(智能体,请求标识):
-    """收件箱或日志是否已有同 rpcId 的用户消息。"""
+    '收件箱或日志是否已有同 rpcId 的用户消息'
     def 匹配(消息):
-        """是否同请求。"""
+        '是否同请求'
         源=消息['source'] if isinstance(消息,dict) and 'source' in 消息 else None#来源
         return isinstance(源,dict) and 源.get('kind')=='user' and 源.get('rpcId')==请求标识#匹配
     if any(匹配(消息) for 消息 in 智能体.inbox.下一轮队列):#下一轮
@@ -108,7 +108,7 @@ def _有同请求提示(智能体,请求标识):
     return False#无
 
 def _内容块中的图(内容,谓词):
-    """在内容块树中找匹配的图像引用。"""
+    '在内容块树中找匹配的图像引用'
     if not isinstance(内容,list):#非列表
         return None#无
     for 值 in 内容:#逐块
@@ -125,7 +125,7 @@ def _内容块中的图(内容,谓词):
     return None#无
 
 def _事件中的图(事件,谓词):
-    """在会话事件载荷中找图像引用。"""
+    '在会话事件载荷中找图像引用'
     数据=事件['data'] if 'data' in 事件 and isinstance(事件['data'],dict) else {}#载荷
     直接=_内容块中的图(数据['content'] if 'content' in 数据 else None,谓词)#直接
     if 直接 is not None:#命中
@@ -150,9 +150,9 @@ def _事件中的图(事件,谓词):
     return None#无
 
 def _引用图像(事件列表,附件标识):
-    """按附件 id 在事件前缀中找图像引用。"""
+    '按附件 id 在事件前缀中找图像引用'
     def 谓词(引用):
-        """匹配 attachmentId。"""
+        '匹配 attachmentId'
         return str(引用['attachmentId'] if 'attachmentId' in 引用 else '')==str(附件标识)#比较
     for 事件 in 事件列表:#逐事件
         找到=_事件中的图(事件,谓词)
@@ -161,20 +161,20 @@ def _引用图像(事件列表,附件标识):
     return None#无
 
 def _自有序号(会话,序号):
-    """对齐 Session.isOwnSeq：落在继承切口与下一 seq 之间。"""
+    '对齐 Session.isOwnSeq：落在继承切口与下一 seq 之间'
     return 序号>=getattr(会话,'inheritedEventCount',0) and 序号<会话.seq#区间
 
 class 会话命令控制器:
-    """实现会话控制器委托的业务命令。"""
+    '实现会话控制器委托的业务命令'
 
     def __init__(自身,上下文,智能体控制器,默认cwd):
-        """保存依赖。"""
+        '保存依赖'
         自身._上下文=上下文#Cordis
         自身._智能体控制器=智能体控制器#智能体控制器
         自身._默认cwd=默认cwd#默认 cwd
 
     def create(自身,请求):
-        """创建或幂等采用普通会话。请求为 dict。"""
+        '创建或幂等采用普通会话。请求为 dict'
         if ('workspaceId' in 请求 and 请求['workspaceId'] is not None) and ('cwd' in 请求 and 请求['cwd'] is not None):#互斥
             raise 远程错误('gateway/bad-request','session.create accepts workspaceId or cwd, not both',{})#拒绝
         会话标识=请求['sessionId'] if 'sessionId' in 请求 and 请求['sessionId'] is not None else ('session-'+str(uuid.uuid4()))#id
@@ -203,10 +203,10 @@ class 会话命令控制器:
         return 结果#结果
 
     def selectModel(自身,请求):
-        """校验并安装会话本地模型选择。请求为 dict。"""
+        '校验并安装会话本地模型选择。请求为 dict'
         智能体=自身._解析智能体(请求['sessionId'])#解析
         def 准入():
-            """串行区内安装选择。"""
+            '串行区内安装选择'
             try:
                 调用={'provider':请求['provider'],'model':请求['model']}#解析调用
                 if 'reasoningEffort' in 请求 and 请求['reasoningEffort'] is not None:#有推理
@@ -228,7 +228,7 @@ class 会话命令控制器:
         return 自身._智能体控制器.串行图像准入(智能体,准入)#串行
 
     def rename(自身,请求):
-        """追加用户拥有的会话标题。请求为 dict。"""
+        '追加用户拥有的会话标题。请求为 dict'
         智能体=自身._解析智能体(请求['sessionId'])#解析
         标题服务=自身._上下文.获取服务('sessionTitle')#标题服务
         if 标题服务 is None:#缺席
@@ -244,7 +244,7 @@ class 会话命令控制器:
             raise 远程错误('gateway/internal','failed to rename session "'+str(请求['sessionId'])+'": '+远程错误消息(错误),{})#内部
 
     def fork(自身,请求):
-        """从已完成回合前缀分叉新会话。请求为 dict。"""
+        '从已完成回合前缀分叉新会话。请求为 dict'
         锚点=请求['atSeq'] if 'atSeq' in 请求 else None#可选锚点
         if 锚点 is not None:#有锚点
             if isinstance(锚点,bool) or (not isinstance(锚点,int)) or 锚点<0:#非法
@@ -319,7 +319,7 @@ class 会话命令控制器:
                 观测.close()#关
 
     def prompt(自身,请求):
-        """显式恢复后投入提示。请求为 dict。"""
+        '显式恢复后投入提示。请求为 dict'
         内容=请求['content'] if 'content' in 请求 else None#提示内容
         if not _有提示内容(内容):#空或仅空白
             raise 远程错误(
@@ -351,7 +351,7 @@ class 会话命令控制器:
             来源['clientTimeZone']=客户端时区#写入
         有图=any(isinstance(块,dict) and 块.get('type')=='image' for 块 in 内容)#是否含图
         def 准入():
-            """执行准入。"""
+            '执行准入'
             try:
                 if 有图:#校验模态
                     当前=自身._智能体控制器.选择用于(智能体).current#当前
@@ -395,7 +395,7 @@ class 会话命令控制器:
         return 准入()#直接
 
     def attachment(自身,请求):
-        """读取会话日志引用的图像。请求为 dict。"""
+        '读取会话日志引用的图像。请求为 dict'
         try:
             源=自身._读会话状态(请求['sessionId'])#读取
         except 会话未找到 as 错误:
@@ -428,7 +428,7 @@ class 会话命令控制器:
             raise 远程错误('gateway/internal','Unable to read image attachment.',{})#内部
 
     def updateQueue(自身,请求):
-        """变更仍待处理的收件箱出现，必要时恢复冷 Agent。请求为 dict。"""
+        '变更仍待处理的收件箱出现，必要时恢复冷 Agent。请求为 dict'
         动作=请求['action'] if 'action' in 请求 else None#动作
         if isinstance(动作,dict) and 动作.get('kind')=='edit':#编辑
             内容=动作['content'] if 'content' in 动作 else None#编辑内容
@@ -491,7 +491,7 @@ class 会话命令控制器:
         return {'accepted':True}#确认
 
     def cancel(自身,请求):
-        """取消活动回合并保留收件箱。请求为 dict。"""
+        '取消活动回合并保留收件箱。请求为 dict'
         智能体=_活智能体(自身._上下文,请求['sessionId'])
         if 智能体 is None:#未附着
             raise 远程错误('session/not-found','session "'+str(请求['sessionId'])+'" not found (not attached)',{'sessionId':请求['sessionId']})#拒绝
@@ -501,14 +501,14 @@ class 会话命令控制器:
         return {'accepted':True}#确认
 
     def _解析智能体(自身,会话标识):
-        """把解析结果收成活智能体。"""
+        '把解析结果收成活智能体'
         结果=自身._智能体控制器.解析智能体(会话标识)#解析
         if isinstance(结果,dict) and 'error' in 结果:
             raise 结果['error']#抛出
         return 结果['agent']#智能体
 
     def _读会话状态(自身,会话标识):
-        """读附着或冷检视状态。"""
+        '读附着或冷检视状态'
         附着=自身._上下文.sessions.get(会话标识)#附着
         if 附着 is not None:#附着
             return {'id':附着.id,'header':附着.header,'events':list(附着.snapshotEvents())}#即时
@@ -516,7 +516,7 @@ class 会话命令控制器:
         return {'id':检视['meta']['id'],'header':检视['meta'],'events':list(检视['events'])}#冷
 
     def _分叉工作区(自身,源头):
-        """解析 fork 工作区：直接附着或子智能体祖先。"""
+        '解析 fork 工作区：直接附着或子智能体祖先'
         工作区列表=自身._上下文.workspaceRegistry.list()#全部
         直接=None#直接
         for 工作区 in 工作区列表:
@@ -536,7 +536,7 @@ class 会话命令控制器:
         return None#无
 
     def _拒绝创建(自身,会话标识,错误):
-        """把创建错误映射为 Remote 失败。"""
+        '把创建错误映射为 Remote 失败'
         if isinstance(错误,远程错误):#已是
             raise 错误#原样
         if isinstance(错误,预设冲突):#预设

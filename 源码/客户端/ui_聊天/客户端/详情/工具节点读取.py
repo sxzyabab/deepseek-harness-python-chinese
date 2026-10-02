@@ -2,7 +2,7 @@
 __all__=['查找工具调用']#仅中文公开名
 
 def 工具节点(节点):
-    """非工具则 None。节点为 dict。"""
+    '非工具则 None。节点为 dict'
     if 节点 is None:#空
         return None#无
     if 'kind' in 节点 and 节点['kind']=='tool-call':#工具
@@ -10,9 +10,9 @@ def 工具节点(节点):
     return None#非
 
 def 查找工具调用(快照,调用标识):
-    """已在加载窗口物化时的当前工具生命周期。"""
+    '已在加载窗口物化时的当前工具生命周期'
     def 访问(块):
-        """命中本块或子树。块为 dict。"""
+        '命中本块或子树。块为 dict'
         标识=块['callId'] if 'callId' in 块 else None#callId
         if 标识==调用标识:#命中
             return 块#返

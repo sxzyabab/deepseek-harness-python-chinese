@@ -1,4 +1,4 @@
-"""持久目标变更的纯回放折叠与严格解码器。"""
+'持久目标变更的纯回放折叠与严格解码器'
 import json,math,re#JSON 片段、安全整数、阻塞码正则
 
 from .运行时 import 目标变更版本,目标标识#载荷版本与目标 id 品牌
@@ -9,10 +9,12 @@ from .运行时 import 目标变更版本,目标标识#载荷版本与目标 id 
 安全整数上界=9007199254740991#JSON 入口安全整数上界
 
 class 目标折叠错误(Exception):
-    """持久目标变更解码或回放失败。"""
+    '持久目标变更解码或回放失败'
 
 def 空目标折叠状态():
-    """构造空的回放累加器。没有当前目标或先前引用的可变状态。"""
+    """构造空的回放累加器。
+    没有当前目标或先前引用的可变状态
+    """
     return {#全缺席
         'goal':None,#尚无当前目标
         'roundsStarted':0,#轮次从零计
@@ -23,11 +25,11 @@ def 空目标折叠状态():
     }#结束空状态
 
 def 是记录(值):
-    """值是否为 JSON 记录而非数组。"""
+    '值是否为 JSON 记录而非数组'
     return isinstance(值,dict)#映射即记录
 
 def 正整数(值,字段):
-    """数据入口：要求一个正安全整数。"""
+    '数据入口：要求一个正安全整数'
     if isinstance(值,bool):#布尔不是数字
         raise 目标折叠错误('goal change '+字段+' must be a positive safe integer')#按字段名失败
     if isinstance(值,int):#整数
@@ -41,7 +43,7 @@ def 正整数(值,字段):
     return int(值)#已校验正数
 
 def 非负整数(值,字段):
-    """数据入口：要求一个非负安全整数。"""
+    '数据入口：要求一个非负安全整数'
     if isinstance(值,bool):#布尔不是数字
         raise 目标折叠错误('goal change '+字段+' must be a non-negative safe integer')#按字段名失败
     if isinstance(值,int):#整数
@@ -55,7 +57,7 @@ def 非负整数(值,字段):
     return int(值)#已校验非负
 
 def 解码阻塞原因(值):
-    """解码一条规范阻塞说明。"""
+    '解码一条规范阻塞说明'
     if (not 是记录(值)) or ','.join(sorted(值.keys()))!='code,message':#键必须恰好这两个
         raise 目标折叠错误('goal change goal.blockedReason must have exactly code and message fields')#键集不对
     码=值['code']#分类码
@@ -67,7 +69,7 @@ def 解码阻塞原因(值):
     return {'code':码,'message':说明}#已校验原因
 
 def 解码快照(值):
-    """解码并校验一份快照。"""
+    '解码并校验一份快照'
     if not 是记录(值):#必须是记录
         raise 目标折叠错误('goal change goal must be a record')#必须是记录
     标识=值['id'] if 'id' in 值 else None#id
@@ -97,7 +99,7 @@ def 解码快照(值):
     return 快照#已校验快照
 
 def 解码引用(值):
-    """解码并校验一份引用。"""
+    '解码并校验一份引用'
     if (not 是记录(值)) or ','.join(sorted(值.keys()))!='id,revision':#恰好两键
         raise 目标折叠错误('goal clear tombstone must have exactly id and revision fields')#键集不对
     标识=值['id'] if 'id' in 值 else None#id
@@ -106,7 +108,9 @@ def 解码引用(值):
     return {'id':目标标识(值['id']),'revision':正整数(值['revision'],'cleared.revision')}#品牌加正数修订
 
 def 解码目标变更(值):
-    """解码自称目标变更的值。无关值返回 None；畸形目标变更让回放大声失败。"""
+    """解码自称目标变更的值。
+    无关值返回 None；畸形目标变更让回放大声失败
+    """
     if (not 是记录(值)) or ('kind' not in 值) or 值['kind']!='goal/change':#不是本事件
         return None#放过
     版本=值['version'] if 'version' in 值 else None#版本
@@ -144,7 +148,9 @@ def 解码目标变更(值):
     }#结束快照变更
 
 def 目标来源(来源):
-    """把模型归因收窄成合法目标来源。来源是 dict 或 None。"""
+    """把模型归因收窄成合法目标来源。
+    来源是 dict 或 None
+    """
     if 来源 is None:#缺席
         return None#放过
     种类=来源['kind'] if 'kind' in 来源 else None#种类
@@ -163,17 +169,17 @@ def 目标来源(来源):
     return {'kind':'goal','goalId':目标号,'revision':已修订,'round':已轮次}#已收窄
 
 def 要求同一定义(当前,下一,操作):
-    """要求两份快照保留只有 edit 才能替换的字段。"""
+    '要求两份快照保留只有 edit 才能替换的字段'
     if 下一['objective']!=当前['objective'] or 下一['maxGoalRounds']!=当前['maxGoalRounds']:#被改了
         raise 目标折叠错误('goal '+操作+' cannot change objective or maxGoalRounds')#非 edit 禁止改定义
 
 def 要求下一修订(当前,下一,操作):
-    """要求恰好是当前目标的下一修订。"""
+    '要求恰好是当前目标的下一修订'
     if 下一['id']!=当前['id'] or 下一['revision']!=当前['revision']+1:#身份或步进不对
         raise 目标折叠错误('goal '+操作+' must advance the current goal by one revision')#比较交换失败
 
 def 校验快照迁移(状态,变更,当前):
-    """用前一投影校验一次非创建快照操作。"""
+    '用前一投影校验一次非创建快照操作'
     下一=变更['goal']#下一快照
     要求下一修订(当前,下一,变更['operation'])#修订必须 +1
     if 状态['updatedAt'] is None:#缺时间戳
@@ -213,13 +219,13 @@ def 校验快照迁移(状态,变更,当前):
     raise 目标折叠错误('unknown goal snapshot operation')#运行时兜底
 
 def 目标变更引用(变更):
-    """返回快照或墓碑携带的修订身份。"""
+    '返回快照或墓碑携带的修订身份'
     if 变更['operation']=='clear':#墓碑用 cleared
         return 变更['cleared']#清除引用
     return {'id':变更['goal']['id'],'revision':变更['goal']['revision']}#快照引用
 
 def 应用目标变更(状态,变更):
-    """校验并把一条已解码变更应用到可变累加器。"""
+    '校验并把一条已解码变更应用到可变累加器'
     引用=目标变更引用(变更)#本条引用
     if 变更['operation']=='clear':#清除
         当前=状态['goal']#必须有当前目标
@@ -252,7 +258,9 @@ def 应用目标变更(状态,变更):
     状态['lastRef']=引用#记下本条引用
 
 def 应用目标事件(状态,事件):
-    """把一条会话事件应用到严格持久目标折叠。事件是 dict。"""
+    """把一条会话事件应用到严格持久目标折叠。
+    事件是 dict
+    """
     种类=事件['type'] if 'type' in 事件 else None#事件类型
     if 种类=='goal/change':#域自有变更
         数据=事件['data'] if 'data' in 事件 else None#载荷
@@ -275,7 +283,9 @@ def 应用目标事件(状态,事件):
         状态['roundsStarted']=来源['round']#接纳本轮
 
 def 折叠目标(事件列表):
-    """从一段连续会话事件日志折叠当前目标状态。故意不含武装。"""
+    """从一段连续会话事件日志折叠当前目标状态。
+    故意不含武装
+    """
     状态=空目标折叠状态()#空累加器
     for 事件 in 事件列表:#按序应用
         应用目标事件(状态,事件)#按序步进

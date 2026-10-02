@@ -6,7 +6,7 @@ from ..面 import 已中止
 __all__=['解析excel']
 
 def 解析excel(字节,格式,上限,信号):
-    """在一次性线程里解析，拷贝保留的预览缓冲。"""
+    '在一次性线程里解析，拷贝保留的预览缓冲'
     if 已中止(信号):
         raise RuntimeError('已中止')
     if len(字节)>上限['maxBytes']:

@@ -1,4 +1,4 @@
-"""Host 侧会话日志下载：把逻辑日志与引用附件打成 ZIP。"""
+'Host 侧会话日志下载：把逻辑日志与引用附件打成 ZIP'
 import io,json,re,zipfile#缓冲、JSON、净化、ZIP
 from ...内核.会话 import 会话格式版本#当代格式版本
 from ...会话.会话格式 import 会话格式日志文件名#规范日志文件名
@@ -12,7 +12,7 @@ from ...会话.会话持久化 import 会话持久化未找到错误#缺席
 文件名非法=re.compile(r'[\\/\x00-\x1f\x7f]')#附件名非法码元
 
 def 会话日志导出依赖(上下文):#解析导出服务
-    """解析导出所需的持久化、检索与附件服务。"""
+    '解析导出所需的持久化、检索与附件服务'
     return {#依赖
         'sessionQuery':上下文.获取服务('sessionQuery') if hasattr(上下文,'获取服务') else getattr(上下文,'sessionQuery',None),#检索
         'sessionPersistence':上下文.获取服务('sessionPersistence') if hasattr(上下文,'获取服务') else getattr(上下文,'sessionPersistence',None),#持久化
@@ -21,7 +21,7 @@ def 会话日志导出依赖(上下文):#解析导出服务
     }#结束
 
 def 冲刷活会话日志(依赖,标识,信号=None):#冲刷活会话
-    """读前经会话库耐久屏障冲刷一条仍活的会话。"""
+    '读前经会话库耐久屏障冲刷一条仍活的会话'
     _若已中止(信号)#取消
     会话库=依赖.get('sessions') if isinstance(依赖,dict) else None#会话库
     if 会话库 is None:#无
@@ -35,7 +35,7 @@ def 冲刷活会话日志(依赖,标识,信号=None):#冲刷活会话
 会话日志文件名=会话格式日志文件名(会话格式版本)#当代规范文件名
 
 def 序列化会话日志(头,事件列表):#序列化逻辑日志
-    """把头与事件编成规范 JSONL 文本。"""
+    '把头与事件编成规范 JSONL 文本'
     行={'type':'session','version':头['version'],'id':头['id'],'createdAt':头['createdAt'],
         'isSeeded':头['isSeeded'],'delegationDepth':头['delegationDepth'] if 'delegationDepth' in 头 else 0}#物理头
     if 'cwd' in 头:#cwd
@@ -52,7 +52,7 @@ def 序列化会话日志(头,事件列表):#序列化逻辑日志
     return '\n'.join(行列表)+'\n'#尾换行
 
 def 读会话日志文本(持久化,标识,信号=None):#读完整逻辑日志
-    """经读句柄读取并序列化；缺席返回 None。"""
+    '经读句柄读取并序列化；缺席返回 None'
     选项={} if 信号 is None else {'signal':信号}#选项
     try:#打开
         句柄=持久化.打开(标识,'read',选项) if hasattr(持久化,'打开') else 持久化.open(标识,'read',选项)#读句柄
@@ -70,7 +70,7 @@ def 读会话日志文本(持久化,标识,信号=None):#读完整逻辑日志
             句柄.close()#关
 
 def 收集附件引用(内容,图片表,文件表):#收集内容块附件
-    """从已声明 V4 内容数组收集直接附件块。"""
+    '从已声明 V4 内容数组收集直接附件块'
     if not isinstance(内容,list):#非数组
         return#跳过
     for 值 in 内容:#逐块
@@ -83,7 +83,7 @@ def 收集附件引用(内容,图片表,文件表):#收集内容块附件
             文件表[str(附件.get('attachmentId'))+'\0'+str(附件.get('name'))]=附件#去重
 
 def 收集事件附件引用(事件,图片表,文件表):#收集事件附件
-    """只从已声明第一方内容字段与完成助手块收集引用。"""
+    '只从已声明第一方内容字段与完成助手块收集引用'
     if not isinstance(事件,dict):#非对象
         return#跳过
     数据=事件.get('data')#载荷
@@ -123,7 +123,7 @@ def 收集事件附件引用(事件,图片表,文件表):#收集事件附件
                     收集附件引用([块.get('block')],图片表,文件表)#块
 
 def 产物内附件引用(文本):#扫描产物文本
-    """从已存产物文本收集去重附件引用。"""
+    '从已存产物文本收集去重附件引用'
     图片表={}#图片
     文件表={}#文件
     for 行 in 文本.split('\n'):#逐行
@@ -137,32 +137,32 @@ def 产物内附件引用(文本):#扫描产物文本
     return {'images':图片表,'files':文件表}#去重表
 
 def 安全会话标识段(标识):#安全路径段
-    """把未校验会话 id 收成单个 ZIP 路径段。"""
+    '把未校验会话 id 收成单个 ZIP 路径段'
     return 安全段正则.sub('_',str(标识))#净化
 
 def 会话日志zip文件名(会话标识):#归档文件名
-    """根会话导出归档文件名。"""
+    '根会话导出归档文件名'
     return f'dsh-session-{安全会话标识段(会话标识)}.zip'#文件名
 
 def 媒体条目路径(引用):#媒体路径
-    """内容寻址的媒体 ZIP 路径。"""
+    '内容寻址的媒体 ZIP 路径'
     扩展=媒体类型扩展.get(引用.get('mediaType'),'bin')#扩展
     return f"media/{引用.get('attachmentId')}.{扩展}"#路径
 
 def 文件条目路径(引用):#文件路径
-    """保留摘要与文件名的 ZIP 路径。"""
+    '保留摘要与文件名的 ZIP 路径'
     摘要=str(引用.get('attachmentId','')).replace('sha256:','')#去前缀
     名=文件名非法.sub('_',str(引用.get('name','')))#净化名
     安全名='file' if 名 in ('.','..','') else 名#避免点段
     return f'files/{摘要[:2]}/{摘要}/{安全名}'#路径
 
 def 会话日志zip条目(依赖,根内容,会话标识,含后代,信号=None):#ZIP 条目
-    """按 ZIP 顺序产出根日志、后代日志与附件。"""
+    '按 ZIP 顺序产出根日志、后代日志与附件'
     条目列表=[]#条目
     图片表={}#图片去重
     文件表={}#文件去重
     def 记下附件(文本):#合并引用
-        """把一份日志中的附件并入去重表。"""
+        '把一份日志中的附件并入去重表'
         引用=产物内附件引用(文本)#扫描
         图片表.update(引用['images'])#图片
         文件表.update(引用['files'])#文件
@@ -174,7 +174,7 @@ def 会话日志zip条目(依赖,根内容,会话标识,含后代,信号=None):#
         谱系=检索.追踪会话谱系(会话标识,信号) if hasattr(检索,'追踪会话谱系') else 检索.traceSession(会话标识,信号)#谱系
         后代=谱系['descendants'] if isinstance(谱系,dict) else getattr(谱系,'descendants',())#后代
         def 收集(节点列表):#递归后代
-            """按谱系顺序收集子智能体日志。"""
+            '按谱系顺序收集子智能体日志'
             for 节点 in 节点列表:#逐节点
                 _若已中止(信号)#取消
                 会话=节点['session'] if isinstance(节点,dict) else 节点.session#会话记录
@@ -206,7 +206,7 @@ def 会话日志zip条目(依赖,根内容,会话标识,含后代,信号=None):#
     return 条目列表#条目
 
 def 流式会话日志zip(依赖,根内容,会话标识,含后代,压缩级别,信号=None):#同步 ZIP 字节
-    """把导出条目打成一份完整 ZIP 字节缓冲。"""
+    '把导出条目打成一份完整 ZIP 字节缓冲'
     缓冲=io.BytesIO()#内存
     with zipfile.ZipFile(缓冲,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=压缩级别) as 归档:#写
         for 条目 in 会话日志zip条目(依赖,根内容,会话标识,含后代,信号):#逐条目
@@ -225,7 +225,7 @@ def 流式会话日志zip(依赖,根内容,会话标识,含后代,压缩级别,�
     return 缓冲.getvalue()#ZIP 字节
 
 def _若已中止(信号):#取消
-    """已中止则抛出。"""
+    '已中止则抛出'
     if 信号 is None:#无
         return#无事
     if hasattr(信号,'is_set') and 信号.is_set():#Event

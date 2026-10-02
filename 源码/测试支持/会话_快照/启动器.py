@@ -7,15 +7,15 @@ __all__=['启动ACP测试智能体','物化配置档补丁']#仅中文公开名
 
 退出标记宽限毫秒=250#退出标记宽限
 def 仍在运行(子进程):#是否仍运行
-    """子进程是否仍缺少任一 OS 终止标记。"""
+    '子进程是否仍缺少任一 OS 终止标记'
     return 子进程.poll() is None#无退出码
 
 def 等退出(子进程):#等退出
-    """运行中子进程退出时返回。"""
+    '运行中子进程退出时返回'
     子进程.wait()#等 exit
 
 def 宽限内已退出(子进程,超时秒):#宽限内是否退出
-    """给已接受的终止请求一个有界窗口。"""
+    '给已接受的终止请求一个有界窗口'
     截止=time.monotonic()+超时秒#截止
     while time.monotonic()<截止:#等待
         if not 仍在运行(子进程):#已退出
@@ -24,32 +24,32 @@ def 宽限内已退出(子进程,超时秒):#宽限内是否退出
     return not 仍在运行(子进程)#最终检查
 
 def 回放补丁路径(源):#回放补丁路径
-    """推导仅回放兄弟补丁。"""
+    '推导仅回放兄弟补丁'
     基=os.path.basename(源)#基名
     回放名=基.replace('cordis.yml','cordis.snapshot.yml').replace('cordis.yaml','cordis.snapshot.yml')#回放名
     return os.path.join(os.path.dirname(源),回放名)#绝对路径
 
 def 裸包名(说明符):#解析裸包名
-    """把裸包或子路径说明符解析为包名。"""
+    '把裸包或子路径说明符解析为包名'
     if 说明符.startswith('.') or 说明符.startswith('/') or ':' in 说明符:#非裸包
         return None#非裸包
     段=说明符.split('/')#拆段
     return f'{段[0]}/{段[1]}' if 说明符.startswith('@') and len(段)>=2 else 段[0]#作用域或普通
 
 def 物化配置档补丁(源,工作目录,目标目录,索引):#物化配置补丁
-    """把手写补丁拷进启动 cwd，并把相对插件名改成绝对。"""
+    '把手写补丁拷进启动 cwd，并把相对插件名改成绝对'
     with open(源,'r',encoding='utf-8') as 句柄:#读补丁
         解析=yaml.safe_load(句柄.read())#解析 YAML
     if not isinstance(解析,list):#必须数组
         raise Exception(f'snapshot profile patch must be a top-level array: {源}')#必须数组
     基目录=os.path.dirname(源)#基础目录
     def 解析名(值):#解析模块名
-        """相对路径转 file URL；裸包保留。"""
+        '相对路径转 file URL；裸包保留'
         if 值.startswith('./') or 值.startswith('../'):#相对
             return 'file://'+os.path.abspath(os.path.join(基目录,值)).replace('\\','/')#绝对 file URL
         return 值#原样
     def 访问条目(条目):#访问条目
-        """递归解析 name。"""
+        '递归解析 name'
         if isinstance(条目,dict) and isinstance(条目.get('name'),str):#有名
             条目['name']=解析名(条目['name'])#解析名
             if 条目.get('group') is True and isinstance(条目.get('config'),list):#分组
@@ -67,7 +67,7 @@ def 物化配置档补丁(源,工作目录,目标目录,索引):#物化配置补
     return 目标#返回路径
 
 def 配置档参数(配置档,基础补丁,选定补丁,快照模式,工作目录):#构建配置档参数
-    """从基础与可选场景补丁构建一次 dsh 配置档调用。"""
+    '从基础与可选场景补丁构建一次 dsh 配置档调用'
     基础=os.path.abspath(os.path.join(工作目录,基础补丁))#基础补丁
     选定=os.path.abspath(os.path.join(工作目录,选定补丁))#选定补丁
     补丁列表=[基础,回放补丁路径(选定)] if 快照模式=='replay' else list(dict.fromkeys([基础,选定]))#补丁列表
@@ -81,7 +81,7 @@ def 配置档参数(配置档,基础补丁,选定补丁,快照模式,工作目�
     return 参数#返回
 
 def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
-    """启动 ACP 智能体子进程，并把 JSON-RPC 客户端接到其 stdio。"""
+    '启动 ACP 智能体子进程，并把 JSON-RPC 客户端接到其 stdio'
     智能体=选项['agent']#待测智能体
     工作目录=选项['cwd']#工作目录
     选定配置=选项.get('configPath') or 智能体['configPath']#选定配置
@@ -121,14 +121,14 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
     下一标识=[1]#JSON-RPC id
     挂起={}#飞行中请求
     def 读标准错():#读 stderr
-        """收集 stderr。"""
+        '收集 stderr'
         while True:#循环
             块=子进程.stderr.read(4096) if 子进程.stderr else b''#读
             if not 块:#结束
                 break#停
             标准错块.append(块.decode('utf-8',errors='replace'))#追加
     def 读标准出():#读 stdout
-        """分流 stdout 到缓冲与 JSON-RPC。"""
+        '分流 stdout 到缓冲与 JSON-RPC'
         缓冲=b''#行缓冲
         while True:#循环
             块=子进程.stdout.read(4096) if 子进程.stdout else b''#读
@@ -178,7 +178,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
     threading.Thread(target=读标准错,daemon=True).start()#stderr 线程
     threading.Thread(target=读标准出,daemon=True).start()#stdout 线程
     def 请求(方法,参数):#JSON-RPC 请求
-        """发请求并等响应。"""
+        '发请求并等响应'
         事件=threading.Event()#等待门闩
         盒={}#结果盒
         with 锁:#分配 id
@@ -194,7 +194,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
             raise Exception(json.dumps(响应['error'],ensure_ascii=False))#拒绝
         return 响应.get('result')#结果
     def 通知(方法,参数):#JSON-RPC 通知
-        """发通知。"""
+        '发通知'
         帧={'jsonrpc':'2.0','method':方法,'params':参数}#通知帧
         子进程.stdin.write((json.dumps(帧,ensure_ascii=False)+'\n').encode('utf-8'))#写
         子进程.stdin.flush()#冲刷
@@ -209,17 +209,17 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
         'cancel':lambda 参数:通知('session/cancel',参数),#取消
     }#客户端结束
     def 等更新(匹配):#等更新
-        """未来某次会话更新匹配谓词时返回。"""
+        '未来某次会话更新匹配谓词时返回'
         if 更新流失败[0] is not None:#已失败
             raise 更新流失败[0]#拒绝
         事件=threading.Event()#门闩
         盒={}#结果
         def 兑现(更新):#兑现
-            """写入并放行。"""
+            '写入并放行'
             盒['update']=更新#写入
             事件.set()#放行
         def 拒绝(原因):#拒绝
-            """写入错误并放行。"""
+            '写入错误并放行'
             盒['error']=原因#写入
             事件.set()#放行
         with 锁:#登记
@@ -235,7 +235,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
             raise 盒['error']#拒绝
         return 盒['update']#返回
     def 关闭(信号名=None):#关闭
-        """关闭进程并排空流。"""
+        '关闭进程并排空流'
         if not 仍在运行(子进程):#已停
             return
         if 信号名 is None:#优雅

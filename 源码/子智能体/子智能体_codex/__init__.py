@@ -12,20 +12,20 @@ from .运行 import 启动codex运行,默认处置宽限毫秒#运行
 __all__=['名称','依赖','配置','应用']#公开面
 
 class codex提供方:
-    """进程外 Codex 子体；不广告父侧启动能力。"""
+    '进程外 Codex 子体；不广告父侧启动能力'
     def __init__(自身,名,规格):
-        """记下提供方名、能力与运行规格。规格为 dict。"""
+        '记下提供方名、能力与运行规格。规格为 dict'
         自身.名称=名#名
         自身.能力={}#无启动能力
         自身.继承父上下文=False#契约
         自身._规格=规格#规格
 
     def 启动(自身,请求):
-        """启动 Codex 一次性跑。请求为 dict。"""
+        '启动 Codex 一次性跑。请求为 dict'
         return 启动codex运行(请求,自身._规格)#跑
 
 def 应用(上下文,配置值):
-    """加载 Codex 提供方。配置为 dict。"""
+    '加载 Codex 提供方。配置为 dict'
     名=配置值['providerName'] if 'providerName' in 配置值 else 'codex'#名
     规格={#运行规格
         'permissionMode':配置值['permissionMode'] if 'permissionMode' in 配置值 else 'never',#权限模式

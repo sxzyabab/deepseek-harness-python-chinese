@@ -3,7 +3,7 @@ from urllib.parse import parse_qsl,urlencode,urlparse,urlunparse
 __all__=['联系网址']
 
 def 联系网址(配置,上下文):
-    """拼出不含认证凭据的问卷地址，并按 Platform Web 票字段预填环境。"""
+    '拼出不含认证凭据的问卷地址，并按 Platform Web 票字段预填环境'
     解析=urlparse(配置['contactFormUrl'])
     查询=list(parse_qsl(解析.query,keep_blank_values=True))
     比例=上下文['pixelRatio']
@@ -22,7 +22,7 @@ def 联系网址(配置,上下文):
         'screen_resolution':分辨率,
     }
     def 删(名):
-        """去掉已有同名查询项。"""
+        '去掉已有同名查询项'
         余=[]
         for 键,值 in 查询:
             if 键!=名:
@@ -30,7 +30,7 @@ def 联系网址(配置,上下文):
         查询.clear()
         查询.extend(余)
     def 设(名,值):
-        """覆盖或追加一条查询。"""
+        '覆盖或追加一条查询'
         删(名)
         查询.append((名,值))
     for 名,值 in 字段.items():

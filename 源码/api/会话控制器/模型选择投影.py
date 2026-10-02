@@ -1,8 +1,8 @@
-"""持久模型选择意图与请求使用投影。"""
+'持久模型选择意图与请求使用投影'
 __all__=['安装模型选择投影']#仅中文公开名
 
 def 选择相同(左,右):
-    """两条模型选择是否相同。左、右为 dict 或 None。"""
+    '两条模型选择是否相同。左、右为 dict 或 None'
     if 左 is 右:#同引用
         return True#相同
     if 左 is None or 右 is None:#一方为空
@@ -12,7 +12,7 @@ def 选择相同(左,右):
     return 左['provider']==右['provider'] and 左['model']==右['model'] and 左力度==右力度#字段
 
 def 应用模型选择投影(状态,事件):
-    """按事件推进 durable modelSelection 状态。状态与事件为 dict。"""
+    '按事件推进 durable modelSelection 状态。状态与事件为 dict'
     种类=事件['type']#事件类型
     if 种类=='model/selection':#用户选择
         数据=事件['data']#载荷
@@ -36,17 +36,17 @@ def 应用模型选择投影(状态,事件):
     return {'lastUsed':最近使用,'pending':待定}#新状态
 
 def 初值模型选择():
-    """投影初值。"""
+    '投影初值'
     return {'lastUsed':None,'pending':None}#初值
 
 def 视图模型选择(状态):
-    """线上视图：next 回退 pending 否则 lastUsed。状态为 dict。"""
+    '线上视图：next 回退 pending 否则 lastUsed。状态为 dict'
     待定=状态['pending'] if 'pending' in 状态 else None#pending
     已用=状态['lastUsed'] if 'lastUsed' in 状态 else None#lastUsed
     return {'lastUsed':已用,'next':待定 if 待定 is not None else 已用}#next 回退
 
 def 安装模型选择投影(上下文):
-    """在 sessionProjections 注册 modelSelection 列。"""
+    '在 sessionProjections 注册 modelSelection 列'
     上下文.sessionProjections.register({#注册定义
         'key':'modelSelection',#键
         'init':初值模型选择,#初值

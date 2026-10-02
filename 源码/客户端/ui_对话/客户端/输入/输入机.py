@@ -5,15 +5,15 @@ from ..服务 import 对话错误#本包异常
 __all__=['输入机','已中止','若已中止则抛出','中止控制器']#仅中文公开名
 
 def 不可达(值):
-    """封闭输入事件的穷尽性兜底。"""
+    '封闭输入事件的穷尽性兜底'
     raise 对话错误('unreachable input event: '+repr(值))#不可能到达
 
 def 仍持认领(草稿,令牌):
-    """完整命令名可单独站住；参数需要令牌的分隔。"""
+    '完整命令名可单独站住；参数需要令牌的分隔'
     return 草稿.startswith(令牌) or 草稿==令牌.rstrip()#完整令牌或去尾空白的裸名
 
 def 令牌后参数(草稿,令牌):
-    """从提交时草稿剥掉认领命令令牌。"""
+    '从提交时草稿剥掉认领命令令牌'
     文本=草稿.lstrip()#去掉前导空白
     if 文本.startswith(令牌):#完整令牌命中
         return 文本[len(令牌):]#切掉令牌
@@ -24,28 +24,28 @@ def 令牌后参数(草稿,令牌):
     return ''#对不上则空参数
 
 def 已中止(信号):
-    """Event 已置位。"""
+    'Event 已置位'
     return 信号.is_set()#已中止
 
 def 若已中止则抛出(信号):
-    """已置位则抛本包异常。"""
+    '已置位则抛本包异常'
     if 已中止(信号):#已中止
         raise 对话错误('The operation was aborted.')#中止
 
 class 中止控制器:#取消控制器
-    """对齐 AbortController；机在进入时铸造。信号为 threading.Event。"""
+    '对齐 AbortController；机在进入时铸造。信号为 threading.Event'
     def __init__(自身):
-        """绑定 Event。"""
+        '绑定 Event'
         自身.signal=threading.Event()#信号
 
     def abort(自身):
-        """置位 Event。"""
+        '置位 Event'
         自身.signal.set()#是
 
 class 输入机:#纯提交平面状态机
-    """事件进、效应出；零副作用。相位、认领与尝试属主。"""
+    '事件进、效应出；零副作用。相位、认领与尝试属主'
     def __init__(自身):
-        """明文相位、无认领、无飞行。"""
+        '明文相位、无认领、无飞行'
         自身.相位='plain'#当前相位
         自身.认领=None#活认领
         自身.序号=0#尝试序号
@@ -54,7 +54,7 @@ class 输入机:#纯提交平面状态机
 
     @property
     def state(自身):
-        """提交平面只读切片。"""
+        '提交平面只读切片'
         快照={'phase':自身.相位}#相位
         if 自身.认领 is not None:#有认领
             认领快照={'name':自身.认领['name'] if 'name' in 自身.认领 else '','token':自身.认领['token']}#目录名与令牌
@@ -66,7 +66,7 @@ class 输入机:#纯提交平面状态机
         return 快照#快照
 
     def dispatch(自身,事件):
-        """按事件判别标签分发。"""
+        '按事件判别标签分发'
         种类=事件['type']#标签
         if 种类=='draft-changed':#草稿已变
             return 自身.草稿已变(事件['draft'])#派发
@@ -90,14 +90,14 @@ class 输入机:#纯提交平面状态机
         return 不可达(事件)#漏分支
 
     def 草稿已变(自身,草稿):
-        """完整命令名在有无参数分隔时都保住认领。"""
+        '完整命令名在有无参数分隔时都保住认领'
         if 自身.相位=='claimed' and 自身.认领 is not None and 仍持认领(草稿,自身.认领['token']) is False:#丢掉认领
             自身.相位='plain'#明文
             自身.认领=None
         return []#无效应
 
     def 认领命令(自身,认领):
-        """编辑器已替换令牌；忙碌相位拒绝再认领。"""
+        '编辑器已替换令牌；忙碌相位拒绝再认领'
         if 自身.相位!='plain' and 自身.相位!='claimed':#忙碌
             return []#空
         自身.认领=认领#记下
@@ -105,20 +105,20 @@ class 输入机:#纯提交平面状态机
         return []#无效应
 
     def 铸造尝试(自身,模式,草稿):
-        """铸造尝试与控制器，不指定生命周期属主。"""
+        '铸造尝试与控制器，不指定生命周期属主'
         控制器=中止控制器()#取消
         自身.序号+=1#前进
         尝试={'seq':自身.序号,'signal':控制器.signal,'draftSnapshot':草稿,'mode':模式}#尝试
         return {'attempt':尝试,'controller':控制器}#飞行件
 
     def 开始尝试(自身,模式,草稿):
-        """铸造冻结的命令/裁决尝试。"""
+        '铸造冻结的命令/裁决尝试'
         飞行=自身.铸造尝试(模式,草稿)#铸造
         自身.飞行=飞行#占槽
         return 飞行['attempt']#尝试
 
     def 开始脱离(自身,模式,草稿):
-        """铸造普通发送，相位回到明文。"""
+        '铸造普通发送，相位回到明文'
         飞行=自身.铸造尝试(模式,草稿)#铸造
         自身.脱离表[飞行['attempt']['seq']]=飞行['controller']#脱离
         自身.认领=None认领
@@ -126,11 +126,11 @@ class 输入机:#纯提交平面状态机
         return 飞行['attempt']#尝试
 
     def 脱离效应(自身,尝试):
-        """默认发送效应在编辑器提交前捕获汇入。"""
+        '默认发送效应在编辑器提交前捕获汇入'
         return [{'type':'default-sink','attempt':尝试,'draft':尝试['draftSnapshot'],'mode':尝试['mode']},{'type':'commit-draft','retainSuffixOf':尝试['draftSnapshot']}]#汇+清草稿
 
     def 回车(自身,模式,草稿):
-        """认领走冻结提交；斜杠行走裁决；其余脱离发送。"""
+        '认领走冻结提交；斜杠行走裁决；其余脱离发送'
         if 自身.相位=='adjudicating' or 自身.相位=='submitting':#忙碌
             return []#空
         if 自身.相位=='claimed' and 自身.认领 is not None:#已认领
@@ -147,7 +147,7 @@ class 输入机:#纯提交平面状态机
         return 自身.脱离效应(自身.开始脱离(模式,草稿))#脱离发送
 
     def 已裁决(自身,尝试,结局):
-        """裁决命中认领则提交；无结局则改脱离发送。"""
+        '裁决命中认领则提交；无结局则改脱离发送'
         飞行=自身.飞行#飞行槽
         if 自身.相位!='adjudicating' or 飞行 is None or 飞行['attempt']['seq']!=尝试['seq']:#过期
             return []#空
@@ -163,7 +163,7 @@ class 输入机:#纯提交平面状态机
         return 自身.脱离效应(尝试)#脱离发送
 
     def 裁决失败(自身,尝试,消息):
-        """裁决失败：通知并留草稿。"""
+        '裁决失败：通知并留草稿'
         if 自身.相位!='adjudicating' or 自身.飞行 is None or 自身.飞行['attempt']['seq']!=尝试['seq']:#过期
             return []#空
         自身.飞行=None槽
@@ -171,7 +171,7 @@ class 输入机:#纯提交平面状态机
         return [{'type':'notice','level':'error','text':消息}]#通知
 
     def 提交已结算(自身,事件):
-        """已认领命令结算，保留冻结事务语义。"""
+        '已认领命令结算，保留冻结事务语义'
         飞行=自身.飞行#飞行槽
         if 自身.相位!='submitting' or 飞行 is None or 飞行['attempt']['seq']!=事件['attempt']['seq']:#过期
             return []#空
@@ -198,7 +198,7 @@ class 输入机:#纯提交平面状态机
         return [] if 消息 is None else [{'type':'notice','level':'error','text':消息}]#通知
 
     def 汇已结算(自身,事件):
-        """普通发送独立于当前相位与其他脱离发送结算。"""
+        '普通发送独立于当前相位与其他脱离发送结算'
         序号=事件['attempt']['seq']#序号
         if 序号 not in 自身.脱离表:#不是本机脱离
             return []#空
@@ -213,14 +213,14 @@ class 输入机:#纯提交平面状态机
         return [{'type':'notice','level':'info' if 成功 is True else 'error','text':消息}]#通知
 
     def 发送已提交(自身):
-        """附件直送已接受；无正文后缀可留。"""
+        '附件直送已接受；无正文后缀可留'
         if 自身.相位!='plain':#非明文
             return []#空
         自身.认领=None
         return [{'type':'commit-draft','retainSuffixOf':None}]#整根清空
 
     def 释放(自身):
-        """拆除：中止飞行与脱离发送。"""
+        '拆除：中止飞行与脱离发送'
         if 自身.飞行 is not None:#有冻结
             自身.飞行['controller'].abort()#中止
             自身.飞行=None

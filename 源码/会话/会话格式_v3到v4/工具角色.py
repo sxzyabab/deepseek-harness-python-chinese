@@ -1,15 +1,15 @@
-"""V4 表示中的一等工具角色消息。"""
+'V4 表示中的一等工具角色消息'
 from ..会话格式 import 会话格式错误,会话格式不支持迁移错误,是否会话格式json对象#从会话格式导入
 
 包装字段=frozenset(['type','toolCallId','content','isError'])#包装自有字段
 消息字段=frozenset(['id','role','source','content'])#消息自有字段
 
 def 扩展字段(值,字段集,所有者):#扩展字段
-    """保留未知字段，且不合并其原始消息与结果所有者。"""
+    '保留未知字段，且不合并其原始消息与结果所有者'
     return {'plugin:'+所有者+':'+键:字段 for 键,字段 in 值.items() if 键 not in 字段集}#加前缀
 
 def 结果内容(值,主语):#结果内容数组
-    """要求工具结果内容为数组且不含嵌套 tool-result。"""
+    '要求工具结果内容为数组且不含嵌套 tool-result'
     if not isinstance(值,list):#须数组
         raise 会话格式错误(主语+' tool-result content must be an array')#错误
     for 块 in 值:#查嵌套
@@ -18,7 +18,7 @@ def 结果内容(值,主语):#结果内容数组
     return 值#返回
 
 def 提升工具结果(事件):#提升工具结果
-    """把已发布 V3 包装 tool/result 行提升为一等 V4 消息。"""
+    '把已发布 V3 包装 tool/result 行提升为一等 V4 消息'
     if 事件['type']!='tool/result' or not 是否会话格式json对象(事件.get('data')):#非目标
         return 事件#原样
     数据=事件['data']#载荷
@@ -53,7 +53,7 @@ def 提升工具结果(事件):#提升工具结果
     return {**事件,'data':{**数据,'message':目标消息}}#写回
 
 def 断言v4工具结果消息(事件):#断言v4工具结果消息
-    """校验一条 tool/result 行的原生 V4 一等工具角色消息。"""
+    '校验一条 tool/result 行的原生 V4 一等工具角色消息'
     if 事件['type']!='tool/result':#非工具结果
         return#返回
     主语='format v4 '+事件['type']+' at seq '+str(事件['seq'])#诊断主语

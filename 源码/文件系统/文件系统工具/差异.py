@@ -1,10 +1,13 @@
-"""写与编辑的结果时上下文 diff 呈现。存储返回 before/after 文本；此面向模型的层为每个已应用 hunk 推导一张三行上下文卡片。"""
+'写与编辑的结果时上下文 diff 呈现'
 import difflib#标准库行差异
 
 差异上下文=3#每个已应用 hunk 两侧展示的上下文行数
 
 def 计算块差异(路径,之前,之后):#按hunk计算上下文diff
-    """在 before 与 after 之间为每个 hunk 计算一个文件差异，各自携带已应用变更加上差异上下文行。纯插入使用 oldText 为 None，仅属于补丁的无换行标记被省略，分散的替换保持为独立 hunk。文本相同时为空列表。"""
+    """在 before 与 after 之间为每个 hunk 计算一个文件差异，各自携带已应用变更加上差异上下文行。
+    纯插入使用 oldText 为 None，仅属于补丁的无换行标记被省略，分散的替换保持为独立 hunk。
+    文本相同时为空列表
+    """
     旧行=之前.splitlines()#旧侧行
     新行=之后.splitlines()#新侧行
     匹配=difflib.SequenceMatcher(a=旧行,b=新行,autojunk=False)#按行求差异
@@ -31,7 +34,7 @@ def 计算块差异(路径,之前,之后):#按hunk计算上下文diff
     return 差异列表#按文件顺序返回
 
 def 是否文件差异(值):#收窄为文件差异
-    """value 是否为合法文件差异（从不透明 meta 做防御性收窄）。"""
+    'value 是否为合法文件差异（从不透明 meta 做防御性收窄）'
     if not isinstance(值,dict):#必须是普通对象
         return False#不是对象
     路径=值['path'] if 'path' in 值 else None#路径
@@ -40,7 +43,9 @@ def 是否文件差异(值):#收窄为文件差异
     return isinstance(路径,str) and (旧文本 is None or isinstance(旧文本,str)) and isinstance(新文本,str)#字段类型
 
 def 从元数据取差异(元数据):#从结果meta收窄出diff列表
-    """把不透明的现场或回放结果元数据收窄为非空文件 diff。畸形元数据返回 None，以便呈现回退，而不是在回放时抛错。"""
+    """把不透明的现场或回放结果元数据收窄为非空文件 diff。
+    畸形元数据返回 None，以便呈现回退，而不是在回放时抛错
+    """
     if not isinstance(元数据,dict):#必须是普通对象
         return None#畸形
     差异列表=元数据['diffs'] if 'diffs' in 元数据 else None#取出diffs字段

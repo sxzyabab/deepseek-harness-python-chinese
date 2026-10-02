@@ -1,4 +1,4 @@
-"""模型参数模式、归一化与过滤器构造。"""
+'模型参数模式、归一化与过滤器构造'
 import re#正则
 from datetime import datetime,timedelta,timezone#写死 ISO 解析；timezone 仅固定偏移
 from zoneinfo import ZoneInfo#UTC
@@ -36,7 +36,7 @@ from ..会话查询 import 会话查询错误#检索错误
 ISO时间戳=re.compile(r'^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2})(?::([0-9]{2})(?:\.([0-9]+))?)?(Z|([+-])([0-9]{2}):([0-9]{2}))\Z',re.ASCII)#ISO形态
 
 def 构建会话过滤器(参数):
-    """从模型参数构建会话过滤器。"""
+    '从模型参数构建会话过滤器'
     过滤器列表=[]#收集子句
     if 'session_ids' in 参数 and 参数['session_ids'] is not None:#给了会话id
         校验非空数组('session_ids',参数['session_ids'])#不得空数组
@@ -50,14 +50,14 @@ def 构建会话过滤器(参数):
     return 过滤器列表#返回子句
 
 def 物化父会话号列表(值列表):
-    """物化并去重父会话 id。"""
+    '物化并去重父会话 id'
     if 值列表 is None:#缺省则无
         return None#无
     校验非空数组('parent_session_ids',值列表)#不得空数组
     return list(dict.fromkeys(值列表))#去重
 
 def 构建事件过滤器(输入):
-    """从入参构建事件过滤器。"""
+    '从入参构建事件过滤器'
     过滤器列表=[]#收集子句
     序号=序号区间(输入['seqFrom'] if 'seqFrom' in 输入 else None,输入['seqTo'] if 'seqTo' in 输入 else None)#序号区间
     if ('from' in 序号) or ('to' in 序号):#有端点
@@ -74,7 +74,7 @@ def 构建事件过滤器(输入):
     return 过滤器列表#返回子句
 
 def 规范化查询(值):
-    """规范化查询文本。"""
+    '规范化查询文本'
     查询=空白.sub(' ',值.strip(),count=0)#压空白
     if len(查询)==0:#不能只剩空白
         raise 会话查询错误('session-search query must contain non-whitespace text','SESSION_QUERY_INVALID_QUERY')#拒绝
@@ -83,7 +83,7 @@ def 规范化查询(值):
     return 查询#返回规范化查询
 
 def 序号区间(下界,上界):
-    """规范化序号区间。"""
+    '规范化序号区间'
     if 下界 is not None:#有下界
         校验非负安全整数('sequence lower bound',下界)#校验
     if 上界 is not None:#有上界
@@ -98,7 +98,7 @@ def 序号区间(下界,上界):
     return 结果#返回区间
 
 def 时间戳区间(名,下界文本,上界文本):
-    """解析 ISO 8601 时间区间。"""
+    '解析 ISO 8601 时间区间'
     if 下界文本 is None and 上界文本 is None:#两端都缺
         return None#无区间
     下界=None if 下界文本 is None else 解析iso时间戳(名+'_from',下界文本)#下界
@@ -113,7 +113,7 @@ def 时间戳区间(名,下界文本,上界文本):
     return 结果#返回区间
 
 def 解析iso时间戳(名,值):
-    """解析带时区 ISO 8601 时间；格式在翻译时写死，不用 fromisoformat。"""
+    '解析带时区 ISO 8601 时间；格式在翻译时写死，不用 fromisoformat'
     匹配=ISO时间戳.match(值)#匹配
     if 匹配 is None:#形态不对
         raise 非法区间(名,'must be an ISO 8601 timestamp with Z or a numeric offset')#拒绝
@@ -145,7 +145,7 @@ def 解析iso时间戳(名,值):
     return {'millisecond':毫秒,'remainder':余数}#精确时间
 
 def 比较时间戳(左,右):
-    """比较两份精确时间。"""
+    '比较两份精确时间'
     if 左['millisecond']!=右['millisecond']:#毫秒不同
         return (左['millisecond']>右['millisecond'])-(左['millisecond']<右['millisecond'])#比较
     长度=max(len(左['remainder']),len(右['remainder']))#对齐长度
@@ -157,24 +157,24 @@ def 比较时间戳(左,右):
     return 0#相等
 
 def 时间戳下界(时间戳):
-    """闭区间下界毫秒。"""
+    '闭区间下界毫秒'
     return 时间戳['millisecond'] if 时间戳['remainder']=='' else 时间戳['millisecond']+1#闭区间下界
 
 def 时间戳上界(时间戳):
-    """闭区间上界毫秒。"""
+    '闭区间上界毫秒'
     return 时间戳['millisecond']#闭区间上界
 
 def 非法区间(名,细节):
-    """包装区间错误。"""
+    '包装区间错误'
     return 会话查询错误('session '+名+' range '+细节,'SESSION_QUERY_INVALID_FILTER')#包装区间错误
 
 def 校验非负安全整数(名,值):
-    """断言非负整数；外来 JSON 入口排除布尔。"""
+    '断言非负整数；外来 JSON 入口排除布尔'
     if isinstance(值,bool) or (not isinstance(值,int)) or 值<0:#非法
         raise 会话查询错误(名+' must be a non-negative safe integer','SESSION_QUERY_INVALID_FILTER')#拒绝
 
 def 校验非空数组(名,值列表):
-    """校验非空数组。"""
+    '校验非空数组'
     if not isinstance(值列表,list) or len(值列表)==0:#空数组
         raise 会话查询错误(名+' must contain at least one value when supplied','SESSION_QUERY_INVALID_FILTER')#拒绝
 

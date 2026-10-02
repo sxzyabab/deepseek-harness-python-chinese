@@ -1,4 +1,4 @@
-"""浏览器 Preview 数据叠加的 Node 侧会话准备。"""
+'浏览器 Preview 数据叠加的 Node 侧会话准备'
 import json,os,re,tempfile,shutil
 from ...会话.会话格式 import 是否会话格式json对象,解析会话格式日志文件名,会话格式日志文件名
 from ...会话.会话格式目录 import 创建带子项的会话格式目录,既往会话格式目录,会话格式目录
@@ -6,7 +6,7 @@ from ...会话.会话格式_v3到v4 import 历史子名录源
 from .打包 import 打包虚拟文件系统叠加
 
 def 打包预览夹具(树列表):
-    """打包 Preview 数据：已提交源字节留在叠加层，只恢复每会话最新规范原始代。"""
+    '打包 Preview 数据：已提交源字节留在叠加层，只恢复每会话最新规范原始代'
     原始=打包虚拟文件系统叠加(树列表)
     后继={}
     来源表=选中会话(原始['files'])
@@ -73,7 +73,7 @@ def 打包预览夹具(树列表):
         shutil.rmtree(目录,ignore_errors=True)
 
 def 选中会话(文件表):
-    """每个会话目录只保留最新规范原始代。"""
+    '每个会话目录只保留最新规范原始代'
     选中={}
     形态=re.compile(r'^home/sessions/[^/]+/([^/]+)/(session(?:\..*)?\.jsonl(?:\.zstd)?)$')
     for 路径,字节 in 文件表.items():

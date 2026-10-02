@@ -13,39 +13,39 @@ __all__=[#仅中文公开名
 cordis运行时树模式版本=0#运行时树模式版本
 
 def cordis运行时源标识(值):#运行时源标识
-    """一个被检查 Cordis 运行时对消费者可见的身份。"""
+    '一个被检查 Cordis 运行时对消费者可见的身份'
     return 值#烙印
 
 cordis运行时源种类=('host','client')#运行时源种类
 
 def cordis运行时连接(状态,reason=None):#连接状态联合
-    """保留树所代表界域的可用性。"""
+    '保留树所代表界域的可用性'
     if 状态=='connected':#已连接
         return {'state':'connected'}#已连接态
     return {'state':'disconnected','reason':reason}#已断开态
 
 class cordis运行时源:#运行时源
-    """一个 Cordis 界域对消费者可见的身份。"""
+    '一个 Cordis 界域对消费者可见的身份'
     def __init__(自身,sourceId,kind,label):#构造
-        """保存运行时源字段。"""
+        '保存运行时源字段'
         自身.sourceId=sourceId#源标识
         自身.kind=kind#源种类
         自身.label=label#展示标签
 
 def cordis运行时上下文(children):#Context节点
-    """对消费者中立的 Cordis 树中的一个 Context。"""
+    '对消费者中立的 Cordis 树中的一个 Context'
     return {'kind':'context','children':tuple(children)}#Context节点
 
 def cordis运行时纤程(uid,children):#Fiber节点
-    """对消费者中立的 Cordis 树中的一个 Fiber 及其拥有的 Context。"""
+    '对消费者中立的 Cordis 树中的一个 Fiber 及其拥有的 Context'
     return {'kind':'fiber','uid':uid,'children':tuple(children)}#Fiber节点
 
 cordis运行时节点=dict#运行时节点联合
 
 class cordis运行时领域:#运行时界域
-    """一个 Cordis 界域最新保留的拓扑与可用性。"""
+    '一个 Cordis 界域最新保留的拓扑与可用性'
     def __init__(自身,source,connection,revision,truncated,root):#构造
-        """保存运行时界域字段。"""
+        '保存运行时界域字段'
         自身.source=source#源身份
         自身.connection=connection#连接状态
         自身.revision=revision#修订号
@@ -53,15 +53,15 @@ class cordis运行时领域:#运行时界域
         自身.root=root#根Context
 
 class cordis运行时树:#运行时树
-    """最新 Host 与 Client Cordis 拓扑，不含路由或 CDP 标识。"""
+    '最新 Host 与 Client Cordis 拓扑，不含路由或 CDP 标识'
     def __init__(自身,schemaVersion,host,clients):#构造
-        """保存运行时树字段。"""
+        '保存运行时树字段'
         自身.schemaVersion=schemaVersion#模式版本
         自身.host=host#Host界域
         自身.clients=tuple(clients)#Client界域列表
 
 def 解析连接(值):#解析连接状态
-    """解析连接状态。"""
+    '解析连接状态'
     if not 是否普通对象(值):#须为对象
         raise 检查器错误('inspector protocol: Cordis runtime connection must be an object')#英文诊断
     if 值.get('state')=='connected':#已连接
@@ -73,7 +73,7 @@ def 解析连接(值):#解析连接状态
     raise 检查器错误('inspector protocol: invalid Cordis runtime connection')#英文诊断
 
 def 解析节点(值,状态,深度):#解析树节点
-    """解析树节点。"""
+    '解析树节点'
     if 深度>cordis树最大深度:#超深
         raise 检查器错误('inspector protocol: Cordis runtime tree exceeds the depth limit')#英文诊断
     if not 是否普通对象(值) or 值.get('kind') not in ('context','fiber'):#种类未知
@@ -96,7 +96,7 @@ def 解析节点(值,状态,深度):#解析树节点
     return {'kind':'fiber','uid':uid,'children':[上下文]}#Fiber节点
 
 def 解析领域(值,种类):#解析单个界域
-    """解析单个界域。"""
+    '解析单个界域'
     记录=精确对象(值,['source','connection','revision','truncated','root'],'Cordis runtime realm')#精确对象
     源=精确对象(记录['source'],['sourceId','kind','label'],'Cordis runtime source')#源对象
     标签=源.get('label')#标签
@@ -117,7 +117,7 @@ def 解析领域(值,种类):#解析单个界域
     )#返回结束
 
 def 解析cordis运行时树(值):#解析运行时树
-    """解码经检查器传输收到的、对消费者中立的树。"""
+    '解码经检查器传输收到的、对消费者中立的树'
     记录=精确对象(值,['schemaVersion','host','clients'],'Cordis runtime tree')#精确对象
     if 记录['schemaVersion']!=cordis运行时树模式版本 or not isinstance(记录.get('clients'),list):#头非法
         raise 检查器错误('inspector protocol: invalid Cordis runtime tree')#英文诊断
@@ -131,5 +131,5 @@ def 解析cordis运行时树(值):#解析运行时树
     return cordis运行时树(cordis运行时树模式版本,宿主,客户端列表)#树对象
 
 def cordis运行时源标识化(值):#投影源标识
-    """把被检查源标识投影到消费者可见的 Cordis 身份命名空间。"""
+    '把被检查源标识投影到消费者可见的 Cordis 身份命名空间'
     return 检查器id(值,'sourceId')#品牌化

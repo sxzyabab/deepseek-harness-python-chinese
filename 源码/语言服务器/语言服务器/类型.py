@@ -1,4 +1,4 @@
-"""LSP 能力缝词汇与品牌类型。"""
+'LSP 能力缝词汇与品牌类型'
 语言服务器操作=('goToDefinition','findReferences','goToImplementation','hover')#四种语义查询
 语言服务器位置字段=('line','character')#零基 UTF-16 光标
 语言服务器范围字段=('start','end')#半开区间

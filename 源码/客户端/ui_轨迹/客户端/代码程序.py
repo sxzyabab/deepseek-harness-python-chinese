@@ -7,13 +7,13 @@ __all__=['编程工具调用名','代码程序']#仅中文公开名
 python提示=re.compile(r'\bPython\b',re.ASCII|re.IGNORECASE)#schema 里的 Python
 
 def 记录对象(值):
-    """对象记录；数组与标量不是。"""
+    '对象记录；数组与标量不是'
     if isinstance(值,dict):#映射
         return 值#记录
     return None#非记录
 
 def 解析记录(原文):
-    """把 JSON 对象串解析成记录。"""
+    '把 JSON 对象串解析成记录'
     if 原文 is None:#缺席
         return None#无
     try:#入口校验
@@ -22,7 +22,7 @@ def 解析记录(原文):
         return None#无
 
 def 已记录语言(schema原文):
-    """从调用时可见的 schema 读语言提示；源码与当前运行时不猜。"""
+    '从调用时可见的 schema 读语言提示；源码与当前运行时不猜'
     schema=解析记录(schema原文)#schema 对象
     参数=None#parameters
     if schema is not None and 'parameters' in schema:#有 parameters
@@ -45,7 +45,7 @@ def 已记录语言(schema原文):
     return 'typescript' if 类型脚本 else 'python'#线协议语言值
 
 def 代码程序(单元格):
-    """从已记录工具参数与 schema 取出可回放的 PTC 程序。其它工具或非法参数则无。"""
+    '从已记录工具参数与 schema 取出可回放的 PTC 程序。其它工具或非法参数则无'
     种类=单元格['kind'] if 'kind' in 单元格 else None#格种类
     if 种类!='tool' and 种类!='subtool':#非工具格
         return None#无

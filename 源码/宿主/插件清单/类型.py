@@ -1,4 +1,4 @@
-"""插件清单线载荷形态。"""
+'插件清单线载荷形态'
 from typing import Literal as 字面量,NotRequired as 非必需,TypedDict as 类型字典
 
 __all__=['插件条目标识','插件纤程阶段','插件清单条目','预设插件启用','智能体预设插件行','智能体预设插件组','插件清单快照']
@@ -36,5 +36,5 @@ class 插件清单快照(类型字典):#一次 list 投影
     agentPresets:非必需[list]#可选预设组合
 
 def 插件条目标识(值):
-    """把条目 id 标成清单条目 id。"""
+    '把条目 id 标成清单条目 id'
     return 值

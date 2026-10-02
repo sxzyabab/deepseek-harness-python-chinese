@@ -3,7 +3,7 @@ from ..面 import 已中止
 __all__=['office面']
 
 def office面(读取,描述失败):
-    """把 Office 读取绑到存储动作，不把 Remote 交给组件。"""
+    '把 Office 读取绑到存储动作，不把 Remote 交给组件'
     def 工厂(_会话标识,动作):
         def 加载(标签标识,修订,文件,信号,已载,失败):
             if 已中止(信号):

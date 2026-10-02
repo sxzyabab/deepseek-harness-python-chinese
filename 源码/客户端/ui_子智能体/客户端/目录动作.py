@@ -30,9 +30,9 @@ __all__=[#仅中文公开名
 '''#样式表结束
 
 def 格式化令牌(值):#紧凑令牌数
-    """与会话统计条同形的紧凑令牌数。"""
+    '与会话统计条同形的紧凑令牌数'
     def 缩放(下):#一位小数或整
-        """>=100 取整，否则一位小数。"""
+        '>=100 取整，否则一位小数'
         if 下>=100:#整
             return str(round(下))#整
         return str(round(下*10)/10)#一位
@@ -43,7 +43,7 @@ def 格式化令牌(值):#紧凑令牌数
     return 缩放(值/1000000)+'M'#M
 
 def 拆时长(毫秒):#拆时长部件
-    """拆成秒分时天与合计。"""
+    '拆成秒分时天与合计'
     总秒=int(max(0,毫秒)//1000)#整秒
     总分=总秒//60#整分
     总时=总分//60#整时
@@ -53,7 +53,7 @@ def 拆时长(毫秒):#拆时长部件
     }#结束
 
 def 格式化时长(毫秒,翻译):#递减精度时长
-    """随尺度降低视觉精度。"""
+    '随尺度降低视觉精度'
     部=拆时长(毫秒)#部件
     天=部['days']#天
     if 天>=365:#年
@@ -79,14 +79,14 @@ def 格式化时长(毫秒,翻译):#递减精度时长
     return 翻译('duration.seconds',{'seconds':部['seconds']})#秒
 
 def 格式化精确时长(毫秒,翻译):#悬停精确时长
-    """保留整秒；跨天走 exactDays。"""
+    '保留整秒；跨天走 exactDays'
     部=拆时长(毫秒)#部件
     if 部['days']==0:#未跨天
         return 格式化时长(毫秒,翻译)#同紧凑
     return 翻译('duration.exactDays',{'days':部['days'],'hours':str(部['hours']).zfill(2),'minutes':str(部['minutes']).zfill(2),'seconds':str(部['seconds']).zfill(2)})#精确
 
 def 令牌合计(用量):#四桶合计
-    """未缓存入+出+读缓存+写缓存。"""
+    '未缓存入+出+读缓存+写缓存'
     if 用量 is None:#无
         return None#缺席
     未缓存=用量['uncachedInputTokens'] if 'uncachedInputTokens' in 用量 and 用量['uncachedInputTokens'] is not None else 0#未缓存入
@@ -96,7 +96,7 @@ def 令牌合计(用量):#四桶合计
     return 未缓存+输出+读缓存+写缓存#合计
 
 def 活动时长毫秒(摘要,活动,现在):#行活跃时长
-    """整秒活跃时长；无 timing 则缺席。"""
+    '整秒活跃时长；无 timing 则缺席'
     if 摘要 is None:#无
         return None#缺席
     投影=摘要['projectionValues'] if 'projectionValues' in 摘要 and 摘要['projectionValues'] is not None else {}#投影
@@ -116,7 +116,7 @@ def 活动时长毫秒(摘要,活动,现在):#行活跃时长
     return 已结+max(0,止值-起点)#合计
 
 def 诊断原因(条目,翻译):#诊断文案
-    """corrupt/unsupported/unavailable。"""
+    'corrupt/unsupported/unavailable'
     原因=条目['reason'] if 'reason' in 条目 else None#原因
     if 原因=='corrupt':#损坏
         return 翻译('diagnostic.corrupt')#损坏
@@ -125,9 +125,9 @@ def 诊断原因(条目,翻译):#诊断文案
     return 翻译('diagnostic.unavailable')#不可用
 
 class 目录动作:#会话头目录
-    """当前会话直接目录与懒展开后代；无可见证据时渲染空。"""
+    '当前会话直接目录与懒展开后代；无可见证据时渲染空'
     def __init__(自身,属性=None):#可选 props
-        """记下 props 与开合态。"""
+        '记下 props 与开合态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.打开=False#菜单开
         自身.现在=int(time.time()*1000)#纪元毫秒
@@ -135,11 +135,11 @@ class 目录动作:#会话头目录
         自身.观察中=set()#已 observe 的父
 
     def 更新(自身,属性):#刷新
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 切换开合(自身):#触发器
-        """翻转菜单；开时刷新时钟并 observe。"""
+        '翻转菜单；开时刷新时钟并 observe'
         下一=not 自身.打开#下一态
         自身.打开=下一#写入
         设开=自身.属性['setCatalogOpen'] if 'setCatalogOpen' in 自身.属性 else None#注入
@@ -153,7 +153,7 @@ class 目录动作:#会话头目录
             自身.关闭全部()#关
 
     def 关闭全部(自身):#关全部观察
-        """关掉已观察目录并清空展开。"""
+        '关掉已观察目录并清空展开'
         设开=自身.属性['setCatalogOpen'] if 'setCatalogOpen' in 自身.属性 else None#注入
         for 父 in list(自身.观察中):#逐个
             if 设开 is not None:#有
@@ -163,7 +163,7 @@ class 目录动作:#会话头目录
         自身.打开=False#关菜单
 
     def 切换枝(自身,子标识):#展开/收起枝
-        """展开则 observe；收起则关整枝。"""
+        '展开则 observe；收起则关整枝'
         设开=自身.属性['setCatalogOpen'] if 'setCatalogOpen' in 自身.属性 else None#注入
         if 子标识 in 自身.已展开:#已展
             自身.已展开.discard(子标识)#收
@@ -177,7 +177,7 @@ class 目录动作:#会话头目录
             自身.观察中.add(子标识)#记
 
     def 渲行(自身,目录,目录表,摘要表,层级,翻译):#渲一层
-        """返回本层节点结构表。"""
+        '返回本层节点结构表'
         节点列表=[]#节点
         条目表=目录['entries'] if 目录 is not None and 'entries' in 目录 and 目录['entries'] is not None else []#条目；空列表保留
         态=目录['state'] if 目录 is not None and 'state' in 目录 else None#态
@@ -243,15 +243,15 @@ class 目录动作:#会话头目录
         return 节点列表#节点表
 
     def 取目录表(自身,态):#从会话快照取目录图
-        """subagentsByParent；缺键当空 dict。"""
+        'subagentsByParent；缺键当空 dict'
         return 态['subagentsByParent'] if 'subagentsByParent' in 态 and 态['subagentsByParent'] is not None else {}#目录图
 
     def 取摘要表(自身,态):#从会话快照取摘要图
-        """byId；缺键当空 dict。"""
+        'byId；缺键当空 dict'
         return 态['byId'] if 'byId' in 态 and 态['byId'] is not None else {}#摘要图
 
     def 渲染(自身):#结构树
-        """无可见证据则 None。"""
+        '无可见证据则 None'
         属性=自身.属性#props
         会话=属性['sessionId'] if 'sessionId' in 属性 else None#会话
         用会话=属性['useSessions'] if 'useSessions' in 属性 else None#选择器
@@ -296,7 +296,7 @@ class 目录动作:#会话头目录
         }#结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有
             自身.更新(属性)#刷新
         return 自身.渲染()#渲

@@ -3,13 +3,13 @@ from .事件投影 import 空助手块,转助手块#块转换
 __all__=['是可见助手块','部分累加器']#仅中文公开名
 
 def 是可见助手块(类型):#是否可见 Assistant chunk
-    """发布累计部分是否可能改变可见快照。"""
+    '发布累计部分是否可能改变可见快照'
     return 类型 in ('block-start','text-delta','reasoning-delta','tool-call-delta','block-end')#可见类型
 
 class 部分累加器:#部分累加器
-    """assistant/live-chunk 累加器：块级不可变。"""
+    'assistant/live-chunk 累加器：块级不可变'
     def __init__(自身,回合,步,初始块=None):#构造
-        """记下回合步骤与初始块。"""
+        '记下回合步骤与初始块'
         自身.回合=回合#轮次
         自身.步=步#步骤
         自身.块列表=list(初始块 if 初始块 is not None else [])#稀疏块表
@@ -17,7 +17,7 @@ class 部分累加器:#部分累加器
         自身.快照={'turn':回合,'step':步,'blocks':list(初始块 if 初始块 is not None else [])}#缓存
 
     def push(自身,块):#折入 chunk
-        """usage/finish 返回 False。"""
+        'usage/finish 返回 False'
         种=块['type'] if 'type' in 块 else None#类型
         下标=块['index'] if 'index' in 块 else 0#下标
         while len(自身.块列表)<=下标:#扩容
@@ -73,7 +73,7 @@ class 部分累加器:#部分累加器
         return False#usage/finish
 
     def toPartial(自身):#取部分快照
-        """块数组引用仅在变更后更换。"""
+        '块数组引用仅在变更后更换'
         if 自身.已变:#需重建
             自身.快照={'turn':自身.回合,'step':自身.步,'blocks':[块 for 块 in 自身.块列表 if 块 is not None]}#压缩
             自身.已变=False#清

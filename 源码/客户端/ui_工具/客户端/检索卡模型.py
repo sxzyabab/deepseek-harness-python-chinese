@@ -3,7 +3,7 @@ __all__=['聊天检索最大行数','检索卡模型']#仅中文公开名
 聊天检索最大行数=8#聊天行 search 正文折叠前最大行数
 
 def 合法文件列表(文件列表):#files 是否为合法 SearchFileGroup 数组
-    """须是数组且每个分组都合法。"""
+    '须是数组且每个分组都合法'
     if not isinstance(文件列表,list):#非数组
         return False#非法
     for 文件 in 文件列表:#每个分组
@@ -25,7 +25,7 @@ def 合法文件列表(文件列表):#files 是否为合法 SearchFileGroup 数�
     return True#合法
 
 def 展平内容(内容):#把内容块展平为文本
-    """空则 None。"""
+    '空则 None'
     段列表=[]#文本
     块列表=内容 if 内容 is not None else []#块
     for 块 in 块列表:#块
@@ -35,7 +35,7 @@ def 展平内容(内容):#把内容块展平为文本
     return None if 文本=='' else 文本#空当缺席
 
 def 检索卡模型(块):#从工具调用派生 search 卡片
-    """非 search 则 None。"""
+    '非 search 则 None'
     if 'kind' not in 块:#运行中
         return None#通用路径
     结果视图=块['resultView'] if 'resultView' in 块 else None#结果视图

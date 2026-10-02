@@ -35,10 +35,10 @@ __all__=['包名','名称','依赖','默认','配置','产品遥测']
 }
 
 class 产品遥测错误(Exception):
-    """产品遥测配置或导出失败。"""
+    '产品遥测配置或导出失败'
 
 def 属性项(键,值):
-    """OTLP 属性。"""
+    'OTLP 属性'
     if isinstance(值,bool):
         return {'key':键,'value':{'boolValue':值}}
     if isinstance(值,int) and not isinstance(值,bool):
@@ -48,7 +48,7 @@ def 属性项(键,值):
     return {'key':键,'value':{'stringValue':str(值)}}
 
 def 铺属性(属性表):
-    """标量或一层对象。"""
+    '标量或一层对象'
     if 属性表 is None:
         return []
     结果=[]
@@ -63,9 +63,9 @@ def 铺属性(属性表):
     return 结果
 
 class 产品遥测(服务):
-    """显式产品用量事件，经 OTLP/HTTP JSON 送出。"""
+    '显式产品用量事件，经 OTLP/HTTP JSON 送出'
     def __init__(自身,上下文,配置值):
-        """校验路由并挂卸载刷出。"""
+        '校验路由并挂卸载刷出'
         端点=配置值['endpoint'] if 'endpoint' in 配置值 else 'https://dsh-otel-collector.deepseeksvc.com/v1/logs'
         频道=配置值['channel'] if 'channel' in 配置值 else 'dsh_otel_report'
         try:
@@ -97,13 +97,13 @@ class 产品遥测(服务):
         自身._关闭=False
         自身._定时器=None
         def 拆除效果():
-            """卸载时刷出队列。"""
+            '卸载时刷出队列'
             def 清理():
-                """与关闭截止赛跑。"""
+                '与关闭截止赛跑'
                 自身._关闭=True
                 完成=threading.Event()
                 def 刷出():
-                    """尽量送出剩余。"""
+                    '尽量送出剩余'
                     自身._刷出全部()
                     完成.set()
                 线=threading.Thread(target=刷出,daemon=True)
@@ -114,7 +114,7 @@ class 产品遥测(服务):
         上下文.副作用(拆除效果)
 
     def 发出(自身,记录):
-        """入队一条选定事件，不等待网络。"""
+        '入队一条选定事件，不等待网络'
         级别=记录['severityNumber'] if 'severityNumber' in 记录 else 信息级
         条目={
             'eventName':记录['eventName'],
@@ -139,7 +139,7 @@ class 产品遥测(服务):
         自身._导出(批次)
 
     def _武装定时(自身):
-        """部分批次延迟送出。"""
+        '部分批次延迟送出'
         if 自身._定时器 is not None:
             return
         定时器=threading.Timer(自身._调度毫秒/1000.0,自身._到期)
@@ -148,14 +148,14 @@ class 产品遥测(服务):
         定时器.start()
 
     def _取消定时(自身):
-        """拆掉未到期定时器。"""
+        '拆掉未到期定时器'
         定时器=自身._定时器
         自身._定时器=None
         if 定时器 is not None:
             定时器.cancel()
 
     def _到期(自身):
-        """定时送出当前队列。"""
+        '定时送出当前队列'
         with 自身._锁:
             自身._定时器=None
             批次=自身._队列
@@ -164,7 +164,7 @@ class 产品遥测(服务):
             自身._导出(批次)
 
     def _刷出全部(自身):
-        """同步送出队列剩余。"""
+        '同步送出队列剩余'
         自身._取消定时()
         with 自身._锁:
             批次=自身._队列
@@ -173,7 +173,7 @@ class 产品遥测(服务):
             自身._导出(批次)
 
     def _导出(自身,批次):
-        """POST 一批日志。"""
+        'POST 一批日志'
         记录=[]
         for 条目 in 批次:
             记录.append({

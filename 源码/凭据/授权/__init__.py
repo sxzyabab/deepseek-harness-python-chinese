@@ -1,7 +1,4 @@
-"""授权能力缝（`ctx.authorization`）服务定义。
-
-公开面仅中文名。
-"""
+'授权能力缝（`ctx.authorization`）服务定义'
 import threading#中止信号
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
@@ -13,45 +10,47 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 信号已中止(信号):
-    """信号是否已中止。信号为 threading.Event。"""
+    """信号是否已中止。
+    信号为 threading.Event"""
     if 信号 is None:#无信号
         return False#未中止
     return 信号.is_set()#已中止
 
 class 授权错误(框架错误):
-    """授权失败的结构化错误。"""
+    '授权失败的结构化错误'
     def __init__(自身,消息,码,选项=None):
-        """记下消息与稳定码。"""
+        '记下消息与稳定码'
         super().__init__(消息,码,选项)#基类
         自身.name='AuthorizationError'#错误名
 
 class 授权拒绝错误(授权错误):
-    """提示被人类拒绝时使用。"""
+    '提示被人类拒绝时使用'
     def __init__(自身,消息='the authorization prompt was declined'):
-        """DECLINED 码。"""
+        'DECLINED 码'
         super().__init__(消息,'DECLINED')#基类
         自身.name='AuthorizationDeclinedError'#错误名
 
 class 授权服务(服务):
-    """每个凭证键同时只允许一次授权尝试。"""
+    '每个凭证键同时只允许一次授权尝试'
     inject=['credentials']#框架槽
 
     def __init__(自身,上下文):
-        """登记为 ctx.authorization。"""
+        '登记为 ctx.authorization'
         super().__init__(上下文,'authorization')#服务名
         自身.流程表={}#键→流程 dict
         自身.运行表={}#键→在途 dict
 
     def 注册流程(自身,流程):
-        """同一键只能有一个流程；返回拆除器。流程为 dict。"""
+        """同一键只能有一个流程；返回拆除器。
+        流程为 dict"""
         def 装寿命():
-            """登记并在拆除时撤回在途尝试。"""
+            '登记并在拆除时撤回在途尝试'
             键=流程['key']#凭证键
             if 键 in 自身.流程表:#重复
                 raise 授权错误('an authorization flow for "'+str(键)+'" is already registered','DUPLICATE_FLOW')#冲突
             自身.流程表[键]=流程#占住
             def 拆():
-                """流程离开则中止在途尝试。"""
+                '流程离开则中止在途尝试'
                 自身.流程表.pop(键,None)#释放
                 在途=自身.运行表[键] if 键 in 自身.运行表 else None#在途
                 if 在途 is not None and (not 在途['提交中']):#有在途且未提交
@@ -60,29 +59,31 @@ class 授权服务(服务):
         return 自身.ctx.副作用(装寿命,'authorization.registerFlow()')#登记副作用
 
     def 列举(自身):
-        """按注册顺序返回公开条目。"""
+        '按注册顺序返回公开条目'
         return [自身.条目(流程) for 流程 in 自身.流程表.values()]#映射
 
     def 描述(自身,键):
-        """未知键返回 None。"""
+        '未知键返回 None'
         流程=自身.流程表[键] if 键 in 自身.流程表 else None#查找
         if 流程 is None:#未注册
             return None#缺席
         return 自身.条目(流程)#公开视图
 
     def 条目(自身,流程):
-        """附带 inFlight 标记。流程为 dict。"""
+        """附带 inFlight 标记。
+        流程为 dict"""
         键=流程['key']#凭证键
         return {'key':键,'label':流程['label'],'methods':流程['methods'],'inFlight':键 in 自身.运行表}#条目
 
     def 取消(自身,键):
-        """无在途则为空操作。"""
+        '无在途则为空操作'
         在途=自身.运行表[键] if 键 in 自身.运行表 else None#查找
         if 在途 is not None and (not 在途['提交中']):#有在途且未提交
             在途['信号'].set()#中止
 
     def 开始(自身,请求):
-        """成功返回 authorized，人类拒绝或撤回返回 cancelled。请求为 dict。"""
+        """成功返回 authorized，人类拒绝或撤回返回 cancelled。
+        请求为 dict"""
         键=请求['key']#目标键
         流程=自身.流程表[键] if 键 in 自身.流程表 else None#查找流程
         if 流程 is None:#无流程
@@ -115,7 +116,7 @@ class 授权服务(服务):
             自身.结算(键,结算)#事件扇出
 
     def 结算(自身,键,结算):
-        """监听器失败记日志；INVARIANT 失败重抛。"""
+        '监听器失败记日志；INVARIANT 失败重抛'
         不变量失败=None#收集不变量失败
         事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳
         监听器列表=获取内部数据(事件总线,'解析监听器')(事件总线,'emit',['authorization/settled',键,结算])#取监听器
@@ -134,10 +135,11 @@ class 授权服务(服务):
             raise 不变量失败#重抛
 
     def 尝试(自身,流程,方法,信号,交互):
-        """流程必须在本尝试内提交凭证记录。流程为 dict。"""
+        """流程必须在本尝试内提交凭证记录。
+        流程为 dict"""
         已观察={'declined':False,'committed':False}#观察状态
         def 记录更新(键,*其余):
-            """记下本键是否在本尝试内提交。"""
+            '记下本键是否在本尝试内提交'
             if 键==流程['key']:#本键
                 已观察['committed']=True#已提交
         取消监听=自身.ctx.监听('credentials/record-updated',记录更新)#挂监听
@@ -145,21 +147,21 @@ class 授权服务(服务):
             if 信号已中止(信号):#已撤回
                 return {'status':'cancelled'}#取消
             def 提示包装(提示):
-                """区分人类拒绝与其它失败。"""
+                '区分人类拒绝与其它失败'
                 try:#转发
                     return 交互.prompt(提示)#同步提示
                 except 授权拒绝错误:#人类拒绝
                     已观察['declined']=True#记下
                     raise#继续抛
             def 通知包装(通知):
-                """转发通知；渲染失败不得打断尝试。"""
+                '转发通知；渲染失败不得打断尝试'
                 try:
                     交互.notify(通知)
                 except Exception as 错误:
                     自身.ctx.日志.警告('authorization: the interaction surface failed to render a notice')
                     自身.ctx.日志.警告(错误)
             def 提交记录(记录):
-                """本尝试内提交凭证记录。"""
+                '本尝试内提交凭证记录'
                 if 信号已中止(信号):
                     raise 授权错误('authorization attempt is no longer active','CANCELLED')
                 在途=自身.运行表[流程['key']] if 流程['key'] in 自身.运行表 else None
@@ -167,7 +169,7 @@ class 授权服务(服务):
                     raise 授权错误('authorization attempt is no longer active','CANCELLED')
                 在途['提交中']=True
                 def 给出记录(当前):
-                    """忽略当前，写入本尝试记录。"""
+                    '忽略当前，写入本尝试记录'
                     return 记录
                 自身.ctx.credentials.修改记录(流程['key'],给出记录)
             流程['run']({#会话面

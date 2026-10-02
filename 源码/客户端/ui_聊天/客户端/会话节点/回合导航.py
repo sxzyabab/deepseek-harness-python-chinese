@@ -4,7 +4,7 @@ __all__=['同回合导航项','回合导航项','提示预览上限','回复预�
 回复预览上限=120#回复预览上限
 
 def 预览(片段列表,上限):#有界预览文本
-    """折叠空白；超限省略。展示宽度按码点，不是线协议字节预算。"""
+    '折叠空白；超限省略。展示宽度按码点，不是线协议字节预算'
     文=''#累计
     未读=False#未读
     for 片 in 片段列表:#遍历
@@ -23,7 +23,7 @@ def 预览(片段列表,上限):#有界预览文本
     return 规+'…' if 未读 else 规#未读省略
 
 def 提示文本(节点):#节点提示词预览
-    """仅 user。"""
+    '仅 user'
     if 节点['kind']!='user':#非
         return ''#空
     数据=节点['data'] if 'data' in 节点 else None#数据
@@ -31,7 +31,7 @@ def 提示文本(节点):#节点提示词预览
     return 预览((块['text'] for 块 in 内容 if 'type' in 块 and 块['type']=='text' and 'text' in 块),提示预览上限)#预览
 
 def 回复文本(节点):#节点回复预览
-    """仅 assistant-step。"""
+    '仅 assistant-step'
     if 节点['kind']!='assistant-step':#非
         return ''#空
     数据=节点['data'] if 'data' in 节点 else None#数据
@@ -39,7 +39,7 @@ def 回复文本(节点):#节点回复预览
     return 预览((块['text'] for 块 in 块列表 if 'kind' in 块 and 块['kind']=='text' and 'text' in 块),回复预览上限)#预览
 
 def 同回合导航项(左,右):#导航项相等
-    """双侧字段。"""
+    '双侧字段'
     if 左 is None or 右 is None:#单侧
         return 左 is 右#同缺席
     return (#字段
@@ -50,7 +50,7 @@ def 同回合导航项(左,右):#导航项相等
     )#结束
 
 def 回合导航项(回合,位置索引,节点表):#投影导航项
-    """无可见节点则缺席。位置与仓为本包可变对象。"""
+    '无可见节点则缺席。位置与仓为本包可变对象'
     键列表=位置索引.getTurn(回合)#轮内键
     已载=[]#可见
     for 键 in 键列表:#扫

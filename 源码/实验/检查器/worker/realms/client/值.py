@@ -4,15 +4,15 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def Client句柄(值):#Client句柄
-    """将公共后端句柄重标记为拥有它的 Client 传输角色。"""
+    '将公共后端句柄重标记为拥有它的 Client 传输角色'
     return 值#包装
 
 def _后端句柄(值):#后端句柄
-    """后端中立句柄。"""
+    '后端中立句柄'
     return 值#包装
 
 def Client远程对象(值):#Client远程对象
-    """将 Client RemoteObject 转换到后端中立句柄槽。"""
+    '将 Client RemoteObject 转换到后端中立句柄槽'
     结果={'descriptor':值['descriptor']}#结果
     if 'object' in 值 and 值['object'] is not None:#对象
         结果['object']={'handle':_后端句柄(值['object']['handle'])}#句柄
@@ -21,7 +21,7 @@ def Client远程对象(值):#Client远程对象
     return 结果#返回
 
 def Client栈(值,映射脚本键):#Client栈
-    """递归转换栈跟踪。"""
+    '递归转换栈跟踪'
     结果={}#栈
     if 'description' in 值:#描述
         结果['description']=值['description']#写入
@@ -34,7 +34,7 @@ def Client栈(值,映射脚本键):#Client栈
     return 结果#返回
 
 def Client异常(值,映射脚本键):#Client异常
-    """转换 Client 异常详情及其可选对象。"""
+    '转换 Client 异常详情及其可选对象'
     异常=值.get('exception')#异常对象
     详情={键:项 for 键,项 in 值.items() if 键 not in ('exception',)}#其余
     if 'stackTrace' in 值:#栈
@@ -44,7 +44,7 @@ def Client异常(值,映射脚本键):#Client异常
     return 详情#返回
 
 def Client完成(结果,映射脚本键):#Client完成
-    """转换一次 Client 完成及其全部嵌套对象。"""
+    '转换一次 Client 完成及其全部嵌套对象'
     完成=结果['completion']#完成体
     输出={'result':Client远程对象(完成['result'])}#结果对象
     if 'exceptionDetails' in 完成:#异常
@@ -52,7 +52,7 @@ def Client完成(结果,映射脚本键):#Client完成
     return 输出#返回
 
 def Client属性(值):#Client属性
-    """转换一个 Client 属性描述符及其全部嵌套对象。"""
+    '转换一个 Client 属性描述符及其全部嵌套对象'
     结果={键:项 for 键,项 in 值.items() if 键 not in ('value','get','set','symbol')}#其余
     if 'value' in 值:#值
         结果['value']=Client远程对象(值['value'])#转换
@@ -65,14 +65,14 @@ def Client属性(值):#Client属性
     return 结果#返回
 
 def Client内部属性(值):#Client内部属性
-    """转换一个 Client 内部属性描述符。"""
+    '转换一个 Client 内部属性描述符'
     结果={'name':值['name']}#名
     if 'value' in 值:#值
         结果['value']=Client远程对象(值['value'])#转换
     return 结果#返回
 
 def Client控制台事件(值,映射脚本键):#Client Console事件
-    """递归转换一个 Client Console 事件。"""
+    '递归转换一个 Client Console 事件'
     if 值['type']=='console-api':#API事件
         事件={**值['event'],'arguments':[Client远程对象(项) for 项 in 值['event']['arguments']]}#载荷
         if 'stackTrace' in 值['event']:#栈

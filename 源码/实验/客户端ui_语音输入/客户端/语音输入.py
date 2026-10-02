@@ -9,7 +9,7 @@ __all__=['语音输入']
 可用阶段=('ready','standby','waking')
 
 def 读就绪(属性):
-    """注入面 hooks.speechReadiness。"""
+    '注入面 hooks.speechReadiness'
     钩=属性.get('hooks') or {}
     存储=钩.get('speechReadiness')
     if 存储 is not None:
@@ -17,22 +17,22 @@ def 读就绪(属性):
     取=属性.get('useSpeechReadiness')
     if 取 is not None:
         def 全量(快照):
-            """整份就绪快照。"""
+            '整份就绪快照'
             return 快照
         return 取(全量)
     return {'catalog':None,'connected':False,'error':None}
 
 def 填(翻译,键,表=None):
-    """词典插值。"""
+    '词典插值'
     文=翻译(键)
     if 表 is None:
         return 文
     return 文.format(**表)
 
 class 语音输入:
-    """点按录音的输入栏活动；转写文字仍落在原会话草稿。"""
+    '点按录音的输入栏活动；转写文字仍落在原会话草稿'
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性
         自身.阶段='idle'
         自身.消息=''
@@ -51,16 +51,16 @@ class 语音输入:
         })
 
     def 关引导(自身):
-        """关掉安装/不可用模态。"""
+        '关掉安装/不可用模态'
         自身.引导开=False
 
     def 开详情(自身):
-        """关模态并打开语音 Bundle 详情。"""
+        '关模态并打开语音 Bundle 详情'
         自身.引导开=False
         自身.属性['openSettings']()
 
     def 更新(自身,属性):
-        """会话变了则作废在途采集。"""
+        '会话变了则作废在途采集'
         自身.属性=属性
         会话=属性.get('sessionId')
         if 会话!=自身.上次会话:
@@ -68,7 +68,7 @@ class 语音输入:
             自身.取消()
 
     def 可用(自身,就绪):
-        """已连接且所选提供方处于可录阶段。"""
+        '已连接且所选提供方处于可录阶段'
         目录=就绪.get('catalog')
         if not 就绪.get('connected') or 目录 is None:
             return False
@@ -83,7 +83,7 @@ class 语音输入:
         return (提供方.get('preparation') or {}).get('phase') in 可用阶段
 
     def 失败文(自身,失败):
-        """录制错误走 kind 键，其余走 failed。"""
+        '录制错误走 kind 键，其余走 failed'
         翻译=自身.属性['t']
         if isinstance(失败,录制错误):
             return 翻译(失败.kind)
@@ -93,19 +93,19 @@ class 语音输入:
         return 填(翻译,'failed',{'message':消息})
 
     def 反馈(自身,文本):
-        """工具栏内提示。"""
+        '工具栏内提示'
         自身.消息=文本
         自身.阶段='feedback'
 
     def 拆录音(自身,采集):
-        """关闭失败不得盖住结果。"""
+        '关闭失败不得盖住结果'
         try:
             采集.拆除()
         except Exception:
             return
 
     def 取消(自身):
-        """作废在途采集。"""
+        '作废在途采集'
         自身.代+=1
         活动=自身.当前
         自身.当前=None
@@ -121,7 +121,7 @@ class 语音输入:
         自身.引导开=False
 
     def 点触发(自身):
-        """可用则开录，否则开引导模态。"""
+        '可用则开录，否则开引导模态'
         就绪=读就绪(自身.属性)
         if 自身.可用(就绪):
             自身.开始()
@@ -129,7 +129,7 @@ class 语音输入:
             自身.引导开=True
 
     def 结束(自身):
-        """停录并转写。"""
+        '停录并转写'
         活动=自身.当前
         if 活动 is None or 活动['phase']!='recording':
             return
@@ -170,7 +170,7 @@ class 语音输入:
             自身.当前=None
 
     def 开始(自身):
-        """取得麦克风并开始采集。"""
+        '取得麦克风并开始采集'
         就绪=读就绪(自身.属性)
         目录=就绪.get('catalog')
         if 目录 is None or not 自身.可用(就绪) or 自身.属性.get('locked') or 自身.当前 is not None:
@@ -193,7 +193,7 @@ class 语音输入:
         自身.待插入=''
         自身.阶段='requesting'
         def 采集出错(失败):
-            """采集中断立刻进反馈。"""
+            '采集中断立刻进反馈'
             if 代!=自身.代 or 自身.当前 is not 活动 or 活动['phase']=='transcribing':
                 return
             自身.当前=None
@@ -220,14 +220,14 @@ class 语音输入:
                 自身.反馈(自身.失败文(失败))
 
     def 插入待定(自身):
-        """草稿冲突后显式插入。"""
+        '草稿冲突后显式插入'
         动作=自身.属性['inputActions']
         if 动作.insertText(自身.待插入,动作.captureInsertion()):
             自身.待插入=''
             自身.阶段='idle'
 
     def 渲染(自身):
-        """折叠麦克风或展开的采集行。"""
+        '折叠麦克风或展开的采集行'
         翻译=自身.属性['t']
         就绪=读就绪(自身.属性)
         目录=就绪.get('catalog')
@@ -300,7 +300,7 @@ class 语音输入:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

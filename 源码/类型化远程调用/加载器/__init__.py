@@ -1,4 +1,4 @@
-"""加载器：为已挂载的插件包自动登记 Typert 清单。"""
+'加载器：为已挂载的插件包自动登记 Typert 清单'
 from json import dumps as 编码json,loads as 解码json
 from os.path import dirname as 目录名,join as 拼接路径
 from pathlib import Path as 路径
@@ -12,7 +12,7 @@ from ..注册表.类型 import Typert贡献 as 贡献#贡献字典构造（dict 
 配置={'packages':[]}#默认配置
 
 def 校验清单(包名,导出):
-    """校验动态导入模块的 TYPERT 导出。"""
+    '校验动态导入模块的 TYPERT 导出'
     if not isinstance(导出,dict):
         raise TypeError(f'typert-loader: {包名} exports "{宿主导出}" but its module has no TYPERT manifest object')
     if 导出.get('package')!=包名:
@@ -58,32 +58,32 @@ def 校验清单(包名,导出):
     return 导出
 
 def 要求对象(包名,值,主语):
-    """要求值为对象。"""
+    '要求值为对象'
     if not isinstance(值,dict):
         raise TypeError(f'typert-loader: {包名} {主语} must be an object')
     return 值
 
 def 要求数组(包名,值,主语):
-    """要求值为数组。"""
+    '要求值为数组'
     if not isinstance(值,list):
         raise TypeError(f'typert-loader: {包名} {主语} must be an array')
     return 值
 
 def 要求字符串(包名,值,键,主语):
-    """要求字段为非空字符串。"""
+    '要求字段为非空字符串'
     字段=值.get(键)
     if not isinstance(字段,str) or 字段=='':
         raise TypeError(f'typert-loader: {包名} {主语} has a missing or empty {键}')
 
 def 要求文档(包名,值,主语):
-    """要求文档字段形态。"""
+    '要求文档字段形态'
     要求数组(包名,值.get('tags'),f'{主语}.tags')
     for 键 in ('description','summary','jsDoc'):
         if 值.get(键) is not None and not isinstance(值.get(键),str):
             raise TypeError(f'typert-loader: {包名} {主语}.{键} must be a string')
 
 def 要求成员(包名,值,主语):
-    """要求成员列表形态。"""
+    '要求成员列表形态'
     for 一项 in 要求数组(包名,值,f'{主语}.members'):
         成员=要求对象(包名,一项,f'{主语} member')
         要求字符串(包名,成员,'name',f'{主语} member')
@@ -92,14 +92,14 @@ def 要求成员(包名,值,主语):
             raise TypeError(f'typert-loader: {包名} {主语} member "{成员.get("name")}" has invalid kind')
 
 def 要求类型(包名,值,主语):
-    """要求类型列表形态。"""
+    '要求类型列表形态'
     for 一项 in 要求数组(包名,值,f'{主语}.types'):
         类型项=要求对象(包名,一项,f'{主语} type')
         要求字符串(包名,类型项,'name',f'{主语} type')
         要求字符串(包名,类型项,'declaration',f'{主语} type')
 
 def 要求调用(包名,值):
-    """要求调用清单形态。"""
+    '要求调用清单形态'
     调用=要求对象(包名,值,'invocation')
     for 键 in ('id','service','namespace','method'):
         要求字符串(包名,调用,键,'invocation')
@@ -157,7 +157,7 @@ def 要求调用(包名,值):
                 raise TypeError(f'typert-loader: {包名} invocation "{标识}" sourceLocation.{键} must be a positive integer')
 
 def 要求严格编解码(包名,值,主语):
-    """要求严格编解码形态。"""
+    '要求严格编解码形态'
     编解码=要求对象(包名,值,主语)
     if 编解码.get('mode')!='strict':
         raise TypeError(f'typert-loader: {包名} {主语} must use a strict codec')
@@ -170,7 +170,7 @@ def 要求严格编解码(包名,值,主语):
         raise TypeError(f'typert-loader: {包名} {主语} has no create() factory')
 
 def 导出键(包名,导出字段):
-    """解析 ./typert 导出路径。"""
+    '解析 ./typert 导出路径'
     if not isinstance(导出字段,dict):
         return None
     if 宿主导出 not in 导出字段:
@@ -185,11 +185,11 @@ def 导出键(包名,导出字段):
     raise TypeError(f'typert-loader: {包名} exports["{宿主导出}"] must be a string or an object with a string default')
 
 def 转错误(错误):
-    """把任意失败规范成异常。"""
+    '把任意失败规范成异常'
     return 错误 if isinstance(错误,BaseException) else RuntimeError(str(错误))
 
 def 应用(上下文,配置=None):
-    """扫描当前加载器条目，并在生命周期内跟随挂载与卸载。"""
+    '扫描当前加载器条目，并在生命周期内跟随挂载与卸载'
     实际配置=配置 or {}
     基础地址=getattr(上下文,'基础地址',None) or getattr(上下文,'baseUrl',None)
     if 基础地址 is None:
@@ -204,7 +204,7 @@ def 应用(上下文,配置=None):
     活动=True
 
     def 解析制品(包名):
-        """解析包的 typert 制品。"""
+        '解析包的 typert 制品'
         if 包名 in 制品路径:
             return 制品路径[包名]
         第一斜杠=包名.find('/')
@@ -249,7 +249,7 @@ def 应用(上下文,配置=None):
         return 已解析
 
     def 加载清单(包名,路径文本):
-        """导入并校验清单。"""
+        '导入并校验清单'
         if 包名 in 清单缓存:
             return 清单缓存[包名]
         模块=路径(路径文本)
@@ -259,7 +259,7 @@ def 应用(上下文,配置=None):
         return 结果
 
     def 合格(条目名):
-        """判断条目是否仍应登记。"""
+        '判断条目是否仍应登记'
         if 条目名 in 已配置:
             return True
         加载器=getattr(上下文,'加载器',None) or getattr(上下文,'loader',None)
@@ -278,7 +278,7 @@ def 应用(上下文,配置=None):
         return False
 
     def 处理一项(条目名):
-        """对单个条目做一次调和。"""
+        '对单个条目做一次调和'
         if not 合格(条目名):
             释放=已登记.pop(条目名,None)
             if 释放 is not None:
@@ -305,7 +305,7 @@ def 应用(上下文,配置=None):
         return None
 
     def 刷新(出错回调):
-        """冲刷脏条目。"""
+        '冲刷脏条目'
         任务列表=[]
         for 条目名 in list(脏名):
             脏名.discard(条目名)

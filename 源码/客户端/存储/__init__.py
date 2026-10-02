@@ -1,8 +1,4 @@
-"""客户端快照存储引擎。
-
-浅相等、创建快照存储、声明存储。
-供各 UI 包 `from ...存储 import ...`。
-"""
+'客户端快照存储引擎'
 import builtins,json#localStorage 与 JSON
 from types import SimpleNamespace as 简易命名空间#声明句柄
 
@@ -15,7 +11,7 @@ __all__=[#仅中文公开名
 ]
 
 def 浅相等(甲,乙):
-    """引用相同，或同形对象/数组逐项 is 比较。"""
+    '引用相同，或同形对象/数组逐项 is 比较'
     if 甲 is 乙:#同引用
         return True#相等
     if isinstance(甲,dict) and isinstance(乙,dict):#两边对象
@@ -35,16 +31,16 @@ def 浅相等(甲,乙):
     return False#其余不等
 
 def _取本地存储():
-    """可选 builtins.localStorage；非浏览器则无。"""
+    '可选 builtins.localStorage；非浏览器则无'
     try:#可选
         return builtins.localStorage#存储
     except AttributeError:#未注入
         return None#无
 
 class 快照存储面:
-    """可写快照：getSnapshot / subscribe / update / set；可选 localStorage 持久化。"""
+    '可写快照：getSnapshot / subscribe / update / set；可选 localStorage 持久化'
     def __init__(自身,初值,选项=None):
-        """记下初值与可选 flush/persist。"""
+        '记下初值与可选 flush/persist'
         选项=选项 or {}#缺省
         自身._状态=初值#当前值
         自身._监听者=set()#订阅者
@@ -61,19 +57,19 @@ class 快照存储面:
             自身._再水合()#读回
 
     def getSnapshot(自身):
-        """返回当前状态引用。"""
+        '返回当前状态引用'
         return 自身._状态#状态
 
     def subscribe(自身,回调):
-        """登记变更回调，返回退订。"""
+        '登记变更回调，返回退订'
         自身._监听者.add(回调)#加入
         def 退订():
-            """取消。"""
+            '取消'
             自身._监听者.discard(回调)#删除
         return 退订#退订器
 
     def update(自身,变换):
-        """经草稿变换写状态；dict 就地改，其余把返回值当下一态。"""
+        '经草稿变换写状态；dict 就地改，其余把返回值当下一态'
         当前=自身._状态#当前
         if isinstance(当前,dict):#可就地
             变换(当前)#草稿变换
@@ -85,17 +81,17 @@ class 快照存储面:
         自身._调度通知()#通知
 
     def set(自身,下一):
-        """整值替换。"""
+        '整值替换'
         自身._状态=下一#替换
         自身._写出()#持久化
         自身._调度通知()#通知
 
     def __getitem__(自身,键):
-        """兼容 dict 面：store['getSnapshot']。"""
+        '兼容 dict 面：store[\'getSnapshot\']'
         return getattr(自身,键)#方法
 
     def _调度通知(自身):
-        """sync 立即扇出；raf 合并到下一拍（无 RAF 时退化为 sync）。"""
+        'sync 立即扇出；raf 合并到下一拍（无 RAF 时退化为 sync）'
         if 自身._flush!='raf':#同步
             自身._扇出()#立即
             return
@@ -103,7 +99,7 @@ class 快照存储面:
             return#合并
         自身._待通知=True#记下
         def 冲刷():
-            """一拍后扇出。"""
+            '一拍后扇出'
             自身._待通知=False
             自身._扇出()#扇出
         调度=getattr(builtins,'requestAnimationFrame',None)#浏览器 RAF
@@ -113,11 +109,11 @@ class 快照存储面:
             冲刷()#立即
 
     def _扇出(自身):
-        """通知全部订阅者；单回调失败不饿死其余。"""
+        '通知全部订阅者；单回调失败不饿死其余'
         通知订阅者(自身._监听者,'快照存储')#扇出
 
     def _再水合(自身):
-        """从 localStorage 读回；失败只关掉持久化。"""
+        '从 localStorage 读回；失败只关掉持久化'
         存储=_取本地存储()#可选
         if 存储 is None:#无
             自身._可持久化=False#关
@@ -131,7 +127,7 @@ class 快照存储面:
             自身._可持久化=False#关
 
     def _写出(自身):
-        """写入 localStorage；配额失败只关掉持久化。"""
+        '写入 localStorage；配额失败只关掉持久化'
         if not 自身._可持久化:#已关
             return#跳过
         存储=_取本地存储()#可选
@@ -145,7 +141,7 @@ class 快照存储面:
             自身._可持久化=False#关
 
     def clearPersisted(自身):
-        """清掉持久化条目；内存态保留。"""
+        '清掉持久化条目；内存态保留'
         if 自身._持久名 is None:#无键
             return
         存储=_取本地存储()#可选
@@ -157,11 +153,11 @@ class 快照存储面:
             pass
 
 def 创建快照存储(初值,选项=None):
-    """铸造可写快照存储面。"""
+    '铸造可写快照存储面'
     return 快照存储面(初值,选项)#面
 
 def 声明存储(声明):
-    """init / persist / actions → 带 create 的句柄。"""
+    'init / persist / actions → 带 create 的句柄'
     if not isinstance(声明,dict):#须为规格表
         raise TypeError('声明存储: 声明必须是字典')
     if 'init' not in 声明 or not callable(声明['init']):#须有播种
@@ -176,7 +172,7 @@ def 声明存储(声明):
         选项['persist']=持久#透传
 
     def 创建(作用域键=None):
-        """铸造引擎实例；作用域键拼进持久化名以隔离会话。"""
+        '铸造引擎实例；作用域键拼进持久化名以隔离会话'
         初=声明['init']()#每实例新种子
         本选项=dict(选项)#拷贝
         if 'persist' in 本选项 and 作用域键 is not None:#会话作用域
@@ -184,11 +180,11 @@ def 声明存储(声明):
             本选项['persist']={'name':名+':'+str(作用域键)}#按作用域隔离
         仓=创建快照存储(初,本选项 if 本选项 else None)#底层仓
         def 绑(名,函):
-            """把草稿变换烤成动作。"""
+            '把草稿变换烤成动作'
             def 调用(*位置参数):
-                """写草稿并通知。"""
+                '写草稿并通知'
                 def 变换(草稿):
-                    """调用声明的变换。"""
+                    '调用声明的变换'
                     函(草稿,*位置参数)#写
                 仓.update(变换)#经引擎
             return 调用#绑定
@@ -206,7 +202,7 @@ def 声明存储(声明):
     return 简易命名空间(spec=声明,create=创建)#句柄：.spec / .create
 
 def 通知订阅者(监听者列表,标签,*参数):
-    """逐个通知，单个回调失败不饿死其余。"""
+    '逐个通知，单个回调失败不饿死其余'
     for 监听 in list(监听者列表):#复制后派发
         try:#单回调
             监听(*参数)#调用
@@ -214,7 +210,7 @@ def 通知订阅者(监听者列表,标签,*参数):
             print(标签+' 订阅者失败:',错误)#打出
 
 def 应用():
-    """本包导出库引擎，无宿主侧行为。"""
+    '本包导出库引擎，无宿主侧行为'
     return#空 apply
 
 apply=应用#框架槽

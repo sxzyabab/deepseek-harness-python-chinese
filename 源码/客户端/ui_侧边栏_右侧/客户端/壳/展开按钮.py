@@ -10,23 +10,23 @@ __all__=['展开按钮','样式表']#仅中文公开名
 
 
 class 展开按钮:#头栏角席展开控件
-    """收起时按钮；展开时同尺寸占位。"""
+    '收起时按钮；展开时同尺寸占位'
 
     def __init__(自身,属性):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#props
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#最新
 
     def _已展开(自身):
-        """当前会话是否展开。"""
+        '当前会话是否展开'
         属性=自身.属性#props
         会话=属性['sessionId']#会话
         用存储=属性['useStore']#选择器
         def 选(态):
-            """读展开。"""
+            '读展开'
             表=态['bySession'] if 'bySession' in 态 else {}#表
             表面=表[会话] if 会话 in 表 else None#表面
             if 表面 is None:#尚未物化
@@ -35,12 +35,12 @@ class 展开按钮:#头栏角席展开控件
         return 用存储(选) is True#布尔
 
     def 展开(自身):
-        """请求展开。"""
+        '请求展开'
         属性=自身.属性#props
         属性['actions']['setExpanded'](属性['sessionId'],True)#展开
 
     def 渲染(自身):
-        """结构树。"""
+        '结构树'
         if 自身._已展开():#已开
             return {'type':'span','className':'placeholder','props':{'aria-hidden':True,'data-sidebar-right-expand-placeholder':True}}#占位
         翻译=自身.属性['t']#文案

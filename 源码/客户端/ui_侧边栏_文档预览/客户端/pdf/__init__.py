@@ -9,7 +9,7 @@ pdf体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/pdf'#实现 id
 
 
 def pdf体定义(标题):
-    """描述内置 PDF 渲染器。"""
+    '描述内置 PDF 渲染器'
     return {#元数据
         'id':pdf体标识,
         'extensions':['pdf'],
@@ -22,14 +22,14 @@ def pdf体定义(标题):
 
 
 def pdf体登记(上下文):
-    """在文档条目的标签寿命内保留 PDF 查看状态。"""
+    '在文档条目的标签寿命内保留 PDF 查看状态'
     存储=创建pdf存储()#视图存储
     保留标签=保留文档标签(上下文)#保留
 
     def 注入(_会话标识,动作):
-        """共享注入。"""
+        '共享注入'
         def 保留(标签标识,信号):
-            """保留至 forget。"""
+            '保留至 forget'
             保留标签(标签标识,信号,动作['forget'])#登记
         return {'retainTab':保留}#注入
 
@@ -37,27 +37,27 @@ def pdf体登记(上下文):
 
 
 def 应用(上下文):
-    """登记 PDF 词典、元数据与正文。"""
+    '登记 PDF 词典、元数据与正文'
 
     def 登记词典():
-        """挂 PDF 词典。"""
+        '挂 PDF 词典'
         return 上下文.locale.register('sidebarPdf',{'zh':中文,'en':英文})#登记
 
     上下文.副作用(登记词典)#寿命
     翻译=上下文.locale.bind('sidebarPdf')#绑定
 
     def 登记元数据():
-        """挂 PDF 元数据。"""
+        '挂 PDF 元数据'
         return 上下文.documentPreviews.register(pdf体定义(lambda:翻译('title')))#登记
 
     上下文.副作用(登记元数据)#寿命
     呈现=pdf体登记(上下文)#呈现
 
     def 挂正文():
-        """正文进文档子槽。"""
+        '正文进文档子槽'
 
         def 登记正文():
-            """登记 PDF 正文。"""
+            '登记 PDF 正文'
             return 上下文.slots.register({#席位
                 'name':'sidebar.right.tab.document',
                 'key':pdf体标识,

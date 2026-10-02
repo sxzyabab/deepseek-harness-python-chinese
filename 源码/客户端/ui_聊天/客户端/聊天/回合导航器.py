@@ -6,38 +6,38 @@ __all__=['回合导航器','标记间距','轨内边','淡出带']#仅中文公�
 淡出带=24#端蒙版淡出
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 项位样式(索引):
-    """自然位置 px。"""
+    '自然位置 px'
     return {'--turn-natural-position':f'{索引*标记间距}px'}#位
 
 def 框样式(数量,滚动顶):
-    """自然高与滚动。"""
+    '自然高与滚动'
     return {'--turn-natural-height':f'{(max(0,数量-1)*标记间距)+2*轨内边}px','--turn-rail-inset':f'{轨内边}px','--turn-scroll-top':f'{滚动顶}px'}#框
 
 def 造跳转(导航,目标):
-    """闭包固定该项。"""
+    '闭包固定该项'
     def 跳转():
-        """跳到该项。"""
+        '跳到该项'
         导航(目标)#跳
     return 跳转#回调
 
 class 回合导航器:
-    """标记列表 + 预览 + 导航回调。"""
+    '标记列表 + 预览 + 导航回调'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.预览回合=None#预览
         自身.滚动顶=0#顶
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """轨。"""
+        '轨'
         属性=自身.属性#props
         原始=属性['items'] if 'items' in 属性 and 属性['items'] is not None else []#项
         项列表=list(原始)#项
@@ -58,7 +58,7 @@ class 回合导航器:
         return {'type':'turn-navigator','label':翻译('chat.turnNavigation.label'),'frameStyle':框样式(len(项列表),自身.滚动顶),'marks':标记,'previewTurn':自身.预览回合,'cssModule':'回合导航器.module.css'}#轨
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

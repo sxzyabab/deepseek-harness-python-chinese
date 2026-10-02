@@ -1,4 +1,4 @@
-"""DeepSeek Files API 上传复用、作废与配额恢复。"""
+'DeepSeek Files API 上传复用、作废与配额恢复'
 import threading,time
 from ..llm import 大模型错误
 from .文件接口 import 深求文件客户端,是否文件配额错误
@@ -12,11 +12,11 @@ __all__=['最大图片字节','深求文件仓']
 自有文件前缀='dsh-'
 
 def 文件作用域(连接):
-    """Files 资源父 URL 标识上传命名空间。"""
+    'Files 资源父 URL 标识上传命名空间'
     return 深求文件作用域摘要(消息接口根(连接['baseURL']),连接['apiKey'])
 
 def 扩展名(媒体类型):
-    """媒体类型到文件扩展名。"""
+    '媒体类型到文件扩展名'
     if 媒体类型=='image/png':
         return 'png'
     if 媒体类型=='image/jpeg':
@@ -26,15 +26,15 @@ def 扩展名(媒体类型):
     return 'gif'
 
 def 文件名(版本):
-    """自有文件名。"""
+    '自有文件名'
     附件=str(版本['attachment']['attachmentId'])[len('sha256:'):len('sha256:')+16]
     变体=str(版本['variantId'])[len('sha256:'):len('sha256:')+8]
     return 自有文件前缀+附件+'-'+变体+'.'+扩展名(版本['mediaType'])
 
 class 深求文件仓:
-    """用户作用域耐久文件标识复用。"""
+    '用户作用域耐久文件标识复用'
     def __init__(自身,选项=None):
-        """可注入索引、时钟与传输。"""
+        '可注入索引、时钟与传输'
         if 选项 is None:
             选项={}
         自身.索引=选项['index'] if 'index' in 选项 else 深求上传索引()
@@ -43,7 +43,7 @@ class 深求文件仓:
         自身.锁=threading.Lock()
 
     def 客户端(自身,连接):
-        """按连接快照构造 Files 客户端。"""
+        '按连接快照构造 Files 客户端'
         选项={'baseURL':连接['baseURL'],'apiKey':连接['apiKey']}
         if 连接.get('accountCredential') is not None:
             选项['accountCredential']=连接['accountCredential']
@@ -52,13 +52,13 @@ class 深求文件仓:
         return 深求文件客户端(选项)
 
     def 确保已上传(自身,版本,连接,政策,信号=None):
-        """解析或上传一张确定性请求图。"""
+        '解析或上传一张确定性请求图'
         若已中止则抛出(信号)
         with 自身.锁:
             return 自身.确保一次(版本,连接,政策,信号)
 
     def 确保一次(自身,版本,连接,政策,信号):
-        """单次上传或命中缓存。"""
+        '单次上传或命中缓存'
         if 版本['bytes']>最大图片字节:
             raise 大模型错误('DeepSeek image exceeds the 32 MiB per-image limit.','INVALID_REQUEST')
         作用域=文件作用域(连接)
@@ -69,7 +69,7 @@ class 深求文件仓:
             return {'record':缓存,'uploaded':False}
         客户端=自身.客户端(连接)
         def 上传():
-            """提交字节并校验响应长度。"""
+            '提交字节并校验响应长度'
             远程=客户端.上传({
                 'data':版本['data'],
                 'mediaType':版本['mediaType'],
@@ -106,11 +106,11 @@ class 深求文件仓:
         return {'record':提交['record'],'uploaded':提交['accepted']}
 
     def 作废(自身,版本,文件号,连接):
-        """模型请求拒远程 id 后作废精确本地映射。"""
+        '模型请求拒远程 id 后作废精确本地映射'
         自身.索引.移除(文件作用域(连接),版本['variantId'],文件号)
 
     def 释放(自身,版本,连接,政策,信号=None):
-        """删除索引中的远程文件并去掉本地映射。"""
+        '删除索引中的远程文件并去掉本地映射'
         作用域=文件作用域(连接)
         记录=自身.索引.取(作用域,版本['variantId'],自身.现在(),政策['refreshMarginSeconds']*1000)
         if 记录 is None:
@@ -120,7 +120,7 @@ class 深求文件仓:
         return True
 
     def 回收最旧自有(自身,连接,数量,信号=None):
-        """删除文件名标识为 harness 自有的最旧提供方文件。"""
+        '删除文件名标识为 harness 自有的最旧提供方文件'
         客户端=自身.客户端(连接)
         之后=None
         自有=[]
@@ -146,7 +146,7 @@ class 深求文件仓:
         return len(自有)
 
     def 释放全部(自身,连接,信号=None):
-        """删除活动密钥命名空间内全部自有远程文件并清空索引。"""
+        '删除活动密钥命名空间内全部自有远程文件并清空索引'
         合计=0
         while True:
             已删=自身.回收最旧自有(连接,1000,信号)

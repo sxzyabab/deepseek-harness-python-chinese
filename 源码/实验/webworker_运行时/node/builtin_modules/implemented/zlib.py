@@ -26,11 +26,9 @@ zstdCompress=未实现失败(模块,'zstdCompress')
 zstdDecompress=未实现失败(模块,'zstdDecompress')
 
 def 创建zstd解压(*位置参数,**关键字参数):
-    """流式 Zstandard 解码器占位：返回对象故意缺少 Node 的私有
-    `_handle`/`_writeState` 成员。
-    """
+    '流式 Zstandard 解码器占位：返回对象故意缺少 Node 的私有 `_handle`/`_writeState` 成员'
     def 关闭():
-        """尚未打开任何句柄。"""
+        '尚未打开任何句柄'
         pass
     return {'close':关闭}
 

@@ -1,7 +1,4 @@
-"""客户端会话：事件窗口、生命周期与可观察快照。
-
-React 绑定留在本数据层之外。
-"""
+'客户端会话：事件窗口、生命周期与可观察快照'
 import base64#附件解码
 import threading#帧调度
 import time#挂钟
@@ -20,7 +17,7 @@ __all__=['页消息数','跳转页消息数','会话']#仅中文公开名
 跳转页消息数=200#跳转页消息数
 
 def _是否远程失败(错误):
-    """结构识别远程失败。"""
+    '结构识别远程失败'
     if isinstance(错误,远程错误):#本包
         return True
     if isinstance(错误,dict) and 'code' in 错误 and 'message' in 错误:#信封
@@ -28,13 +25,13 @@ def _是否远程失败(错误):
     return getattr(错误,'isDSHRemoteError',False) is True#标记
 
 def _调度帧(回调):
-    """下一宏任务运行回调。"""
+    '下一宏任务运行回调'
     定时器=threading.Timer(0,回调)#宏任务
     定时器.daemon=True#守护
     定时器.start()#启
 
 def _内容附件引用(内容):
-    """内容块中的附件引用。"""
+    '内容块中的附件引用'
     if not isinstance(内容,list):#非列表
         return []#空
     引用列表=[]#结果
@@ -46,7 +43,7 @@ def _内容附件引用(内容):
     return 引用列表#引用
 
 def _调用远程(方法,*参数,信号=None):
-    """调用可能返回信封或抛错的远程方法，归一为 {ok,value|error}。"""
+    '调用可能返回信封或抛错的远程方法，归一为 {ok,value|error}'
     try:
         if 信号 is not None:#带信号
             原始=方法(*参数,信号)
@@ -64,10 +61,10 @@ def _调用远程(方法,*参数,信号=None):
         raise#其它
 
 class 会话:
-    """拥有会话的事件窗口、生命周期状态与可观察快照。"""
+    '拥有会话的事件窗口、生命周期状态与可观察快照'
 
     def __init__(自身,会话标识,远程,选项=None):
-        """构造。选项可含 address／parentAvailable／onEngaged／projections。"""
+        '构造。选项可含 address／parentAvailable／onEngaged／projections'
         if 选项 is None:#缺省
             选项={}#空
         自身.sessionId=会话标识#身份
@@ -103,17 +100,17 @@ class 会话:
         自身._停观察收件箱=自身.projections.面('inbox').subscribe(自身._观察提交收件箱)#收件箱
 
     def 绑定作用域(自身,作用域上下文):
-        """绑定 ClientSessions 铸造的 Agent 作用域上下文（单次）。"""
+        '绑定 ClientSessions 铸造的 Agent 作用域上下文（单次）'
         if 自身._作用域上下文 is not None:#已绑
             raise RuntimeError('session '+str(自身.sessionId)+' already has a bound scope')#错误
         自身._作用域上下文=作用域上下文#写入
 
     def 解绑作用域(自身):
-        """修剪时释放已绑定作用域。"""
+        '修剪时释放已绑定作用域'
         自身._作用域上下文=None
 
     def beginSubmission(自身,输入):
-        """登记本地提交回声。"""
+        '登记本地提交回声'
         请求标识=str(uuid.uuid4())#铸造
         if 自身._运行中:#运行中
             放置='steering' if 输入.get('mode')=='steer' else 'queued'#放置
@@ -132,7 +129,7 @@ class 会话:
         return {'requestId':请求标识,'abandon':lambda:自身._失败退役提交(请求标识)}#句柄
 
     def prompt(自身,内容,模式,信号=None,请求标识=None):
-        """发送提示。"""
+        '发送提示'
         自身._提示错误=None
         自身._最近智能体错误=None
         自身._提示已尝试=True#尝试
@@ -177,7 +174,7 @@ class 会话:
         return 结果#成功
 
     def readAttachment(自身,附件标识):
-        """读持久图片为字节。"""
+        '读持久图片为字节'
         会话面=自身._远程.session#session
         结果=_调用远程(会话面.attachment,{'sessionId':自身.sessionId,'attachmentId':附件标识})#读
         if not 结果.get('ok'):
@@ -187,12 +184,12 @@ class 会话:
         return {'ok':True,'value':{'attachment':值['attachment'],'data':二进制}}#结果
 
     def updateQueue(自身,项标识,动作):
-        """更新队列。"""
+        '更新队列'
         会话面=自身._远程.session#session
         return _调用远程(会话面.updateQueue,{'sessionId':自身.sessionId,'itemId':项标识,'action':动作})
 
     def cancel(自身):
-        """取消活跃回合。"""
+        '取消活跃回合'
         if 自身._地址 is not None:#子智能体
             子面=自身._远程.subagents#subagents
             结果=_调用远程(子面.interruptByParent,自身._地址['childSessionId'],自身._地址['parentSessionId'],'continuable')#中断
@@ -205,7 +202,7 @@ class 会话:
         return 结果#结果
 
     def rename(自身,标题):
-        """重命名并乐观安装 title 投影。"""
+        '重命名并乐观安装 title 投影'
         会话面=自身._远程.session#session
         结果=_调用远程(会话面.rename,{'sessionId':自身.sessionId,'title':标题})#重命名
         if not 结果.get('ok'):
@@ -215,7 +212,7 @@ class 会话:
         return {'ok':True,'value':{'title':值['title'],'seq':值['seq']}}#结果
 
     def command(自身,行):
-        """斜杠命令。"""
+        '斜杠命令'
         命令面=自身._远程.commands#commands
         结果=_调用远程(命令面.execute,自身.sessionId,行,[])#执行
         if not 结果.get('ok'):
@@ -223,7 +220,7 @@ class 会话:
         return {'ok':True,'value':{'matched':结果['value'] is not None}}#匹配
 
     def open(自身):
-        """首次打开：拉尾页（幂等）。"""
+        '首次打开：拉尾页（幂等）'
         if 自身._打开状态=='open':#已开
             return#空
         if 自身._打开承诺 is not None:#飞行中
@@ -233,7 +230,7 @@ class 会话:
         任务=_操作任务()#承诺
         自身._打开承诺=任务#登记
         def 后台打开():
-            """执行打开。"""
+            '执行打开'
             try:
                 自身._执行打开(代)
                 任务.兑现(None)#成功
@@ -246,7 +243,7 @@ class 会话:
         任务.等待()#同步等待（对齐阻塞切片）
 
     def loadOlder(自身):
-        """向上翻页。"""
+        '向上翻页'
         if 自身._打开状态!='open' or (not 自身._还有更多) or 自身._加载更早:#不可
             return#空
         流=自身._事件流#流
@@ -264,7 +261,7 @@ class 会话:
             自身._通知器.标脏()#脏
 
     def loadThrough(自身,序号):
-        """跳转加载至序号。"""
+        '跳转加载至序号'
         if 自身._打开状态!='open' or (not 自身._还有更多) or 自身._基序号<=序号:#已覆盖
             return#空
         if 自身._跳转承诺 is not None:#重定向
@@ -280,7 +277,7 @@ class 会话:
         任务=_操作任务()#承诺
         自身._跳转承诺=任务#登记
         def 后台跳转():
-            """跳转循环。"""
+            '跳转循环'
             try:
                 while 自身._还有更多 and 自身._跳转目标 is not None and 自身._基序号>自身._跳转目标:#未覆盖
                     if 代!=自身._打开代:#陈旧
@@ -305,7 +302,7 @@ class 会话:
         任务.等待()#等
 
     def resync(自身):
-        """地址替换后重建已打开历史源。"""
+        '地址替换后重建已打开历史源'
         if 自身._打开状态=='cold':#从未打开
             return#空
         自身._打开代+=1#升代
@@ -321,16 +318,16 @@ class 会话:
         自身.open()#重开
 
     def 订阅(自身,监听者):
-        """uSES 订阅。"""
+        'uSES 订阅'
         return 自身._通知器.订阅(监听者)#取消函数
 
     def getSnapshot(自身):
-        """缓存会话快照。"""
+        '缓存会话快照'
         自身._通知器.确保新鲜()#新鲜
         return 自身._快照#快照
 
     def handleRunning(自身,运行中):
-        """运行位中继。"""
+        '运行位中继'
         if 运行中 and 自身._空白:#首条落地
             自身._空白=False#非空白
             自身._通知器.标脏()#脏
@@ -342,7 +339,7 @@ class 会话:
         自身._通知器.标脏()#脏
 
     def configureSubagent(自身,地址,父可用=None):
-        """安装或清除目录发现的传输地址。"""
+        '安装或清除目录发现的传输地址'
         相同=(
             (自身._地址 is None and 地址 is None)
             or (
@@ -360,14 +357,14 @@ class 会话:
             自身._通知器.标脏()#脏
 
     def handleSubagentParentAvailable(自身,可用):
-        """更新父可用性提示。"""
+        '更新父可用性提示'
         if 自身._父可用==可用:#无变
             return#空
         自身._父可用=可用#写入
         自身._通知器.标脏()#脏
 
     def handleBlank(自身,空白):
-        """空白位中继（单调下降）。"""
+        '空白位中继（单调下降）'
         if 空白==自身._空白:#无变
             return#空
         if 空白 and (自身._提示已尝试 or 自身._运行中):#不得回升
@@ -376,17 +373,17 @@ class 会话:
         自身._通知器.标脏()#脏
 
     def handleRemoved(自身):
-        """标记移除。"""
+        '标记移除'
         自身._已移除=True#标记
         自身._通知器.标脏()#脏
 
     def handleAgentError(自身,消息):
-        """存活失败出口。"""
+        '存活失败出口'
         自身._最近智能体错误=消息#写入
         自身._通知器.标脏()#脏
 
     def dispose(自身):
-        """停止存活 Remote 源。"""
+        '停止存活 Remote 源'
         if hasattr(自身,'_停观察收件箱') and callable(自身._停观察收件箱):#有
             自身._停观察收件箱()#停
         for 请求标识 in list(自身._提交结算.keys()):#未结算
@@ -398,18 +395,18 @@ class 会话:
             流.拆除()
 
     def _执行打开(自身,代):
-        """执行打开。"""
+        '执行打开'
         自身._打开状态='loading'#加载
         自身._打开错误=None
         自身._通知器.标脏()#脏
         箱={'流':None}#闭包箱
         def 发布(变更):
-            """接受变更。"""
+            '接受变更'
             if 代!=自身._打开代 or 自身._事件流 is not 箱['流']:#陈旧
                 return#忽略
             自身._接受事件变更(变更)#接受
         def 失败(错误):
-            """流失败。"""
+            '流失败'
             自身._事件流失败(箱['流'],代,错误)
         流=会话事件流(自身._远程,自身._会话地址(),{'publish':发布,'failed':失败})#流
         箱['流']=流#写入箱
@@ -432,7 +429,7 @@ class 会话:
                 自身._通知器.标脏()#脏
 
     def _接受事件变更(自身,变更):
-        """应用连续日志更新。"""
+        '应用连续日志更新'
         类型=变更['type']#类型
         if 类型=='replace':#整窗
             投影=变更['page']['projections'] if isinstance(变更.get('page'),dict) and 'projections' in 变更['page'] else None#投影
@@ -449,7 +446,7 @@ class 会话:
             自身._发布助手条目(自身._助手流.接受帧(变更['frame']))#发布
 
     def _安装窗口(自身,条目列表,还有更多,投影=None,助手流=None):
-        """替换完整连续窗口。"""
+        '替换完整连续窗口'
         可见=自身._助手流.替换(条目列表,助手流)#可见
         自身._基序号=条目列表[0]['event']['seq'] if len(条目列表)>0 else 0#首序号
         自身._还有更多=还有更多#更多
@@ -463,14 +460,14 @@ class 会话:
         自身._通知器.标脏()#脏
 
     def _发布助手条目(自身,决策):
-        """发布助手流决策。"""
+        '发布助手流决策'
         if 决策 is None:#无
             return#空
         类型=决策['type']#类型
         if 类型=='rebaseline':#重基线
             流=自身._事件流#流
             def 重启():
-                """重启流。"""
+                '重启流'
                 if 流 is not None and 自身._事件流 is 流 and hasattr(流,'restart'):#可重启
                     流.restart()#重启
             _调度帧(重启)#调度
@@ -492,14 +489,14 @@ class 会话:
             自身._通知器.标脏()#脏
 
     def _前置窗口(自身,条目列表,还有更多):
-        """前置历史页。"""
+        '前置历史页'
         if len(条目列表)>0:#有
             自身._基序号=条目列表[0]['event']['seq']#首序号
         自身._还有更多=还有更多#更多
         自身.eventSource.前置(条目列表,还有更多)#前置
 
     def _追加存活(自身,条目):
-        """追加存活事件。返回是否需标脏。"""
+        '追加存活事件。返回是否需标脏'
         事件=条目['event']#事件
         曾等待=自身._等待首轮#曾
         if 事件.get('type')=='turn/start':#回合开始
@@ -509,7 +506,7 @@ class 会话:
         return 曾等待!=自身._等待首轮#脏否
 
     def _观察提交事件(自身,事件):
-        """即使插入与认领共享一次投影通知，也观察持久接受。"""
+        '即使插入与认领共享一次投影通知，也观察持久接受'
         if len(自身._提交结算)==0:#无
             return#空
         if 事件.get('type')=='agent/inbox/spliced':#收件箱拼接
@@ -528,7 +525,7 @@ class 会话:
         自身._调度已观察退役(源['rpcId'],_内容附件引用(数据.get('content') if 数据 else None))#调度
 
     def _观察提交收件箱(自身):
-        """Inbox 投影出现时退役回声。"""
+        'Inbox 投影出现时退役回声'
         if len(自身._提交结算)==0:#无
             return#空
         收件箱=自身.projections.取('inbox')#投影
@@ -541,7 +538,7 @@ class 会话:
                     自身._调度已观察退役(源['rpcId'],_内容附件引用(消息.get('content')))#调度
 
     def _调度已观察退役(自身,请求标识,附件列表):
-        """闩住并延后完成。"""
+        '闩住并延后完成'
         结算=自身._提交结算[请求标识] if 请求标识 in 自身._提交结算 else None#结算
         if 结算 is None or 结算['retiring']:#无或已闩
             return#空
@@ -549,7 +546,7 @@ class 会话:
         _调度帧(lambda:自身._完成提交(请求标识,{'reason':'observed','attachments':附件列表}))#帧后
 
     def _失败退役提交(自身,请求标识):
-        """立即失败退役。"""
+        '立即失败退役'
         结算=自身._提交结算[请求标识] if 请求标识 in 自身._提交结算 else None#结算
         if 结算 is None or 结算['retiring']:#无或已闩
             return#空
@@ -557,7 +554,7 @@ class 会话:
         自身._完成提交(请求标识,{'reason':'failed'})#完成
 
     def _完成提交(自身,请求标识,退役):
-        """单一移除点。"""
+        '单一移除点'
         结算=自身._提交结算.pop(请求标识,None)#取出
         if 结算 is None:#无
             return#空
@@ -567,7 +564,7 @@ class 会话:
             结算['onRetire'](退役)#通知所有者
 
     def _事件流失败(自身,流,代,错误):
-        """终端后台失败。"""
+        '终端后台失败'
         if 代!=自身._打开代 or 自身._事件流 is not 流:#陈旧
             return#忽略
         if not _是否远程失败(错误):#非远程
@@ -581,11 +578,11 @@ class 会话:
         自身._通知器.标脏()#脏
 
     def _重建快照(自身):
-        """通知器重建入口。"""
+        '通知器重建入口'
         自身._快照=自身._构建快照()#重建
 
     def _构建快照(自身):
-        """构造快照 dict。"""
+        '构造快照 dict'
         if 自身._地址 is None:#普通
             子=None#无
         else:#子智能体
@@ -610,7 +607,7 @@ class 会话:
         }#快照
 
     def _会话地址(自身):
-        """传输地址。"""
+        '传输地址'
         if 自身._地址 is None:#普通
             return {'kind':'session','sessionId':自身.sessionId}#会话
         地址=dict(自身._地址)#拷
@@ -618,22 +615,22 @@ class 会话:
         return 地址#子智能体
 
 class _操作任务:
-    """简易同步任务。"""
+    '简易同步任务'
     def __init__(自身):
-        """未决。"""
+        '未决'
         自身._事件=threading.Event()#事件
         自身._值=None#值
         自身._错误=None#错误
     def 兑现(自身,值=None):
-        """成功。"""
+        '成功'
         自身._值=值#值
         自身._事件.set()#唤醒
     def 拒绝(自身,错误):
-        """失败。"""
+        '失败'
         自身._错误=错误#错误
         自身._事件.set()#唤醒
     def 等待(自身):
-        """阻塞。"""
+        '阻塞'
         自身._事件.wait()#等
         if 自身._错误 is not None:
             raise 自身._错误#抛

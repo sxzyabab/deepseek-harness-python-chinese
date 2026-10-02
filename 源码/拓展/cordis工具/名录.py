@@ -9,7 +9,7 @@ __all__=[
 标识形态=re.compile(r'^[A-Za-z_][A-Za-z0-9_]*\Z',re.ASCII)
 
 def 方法(签名,说明,参数表=None,返回=None,抛出=None):
-    """组装一条公开方法契约。"""
+    '组装一条公开方法契约'
     项={'signature':签名,'description':说明,'parameters':[] if 参数表 is None else 参数表}
     if 返回 is not None:
         项['returns']=返回
@@ -18,7 +18,7 @@ def 方法(签名,说明,参数表=None,返回=None,抛出=None):
     return 项
 
 def 参(名,说明):
-    """一条具名参数。"""
+    '一条具名参数'
     return {'name':名,'description':说明}
 
 #服务
@@ -1042,7 +1042,7 @@ def 参(名,说明):
 ]
 
 def 事件(名,模式,签名,摘要,说明,参数表=None):
-    """组装一条事件契约。"""
+    '组装一条事件契约'
     return {'name':名,'mode':模式,'signature':签名,'summary':摘要,'description':说明,'parameters':[] if 参数表 is None else 参数表}
 
 事件目录=[
@@ -1126,7 +1126,7 @@ def 事件(名,模式,签名,摘要,说明,参数表=None):
 ]
 
 def 类型(名,声明):
-    """组装一条被签名引用的类型声明。"""
+    '组装一条被签名引用的类型声明'
     return {'name':名,'declaration':声明}
 
 类型目录=[
@@ -1363,7 +1363,7 @@ for 条目 in 类型目录:
     类型名形态[条目['name']]=re.compile(r'\b'+re.escape(条目['name'])+r'\b')
 
 def 引用类型闭包(种子):
-    """从签名种子收集被引用类型及其传递闭包。"""
+    '从签名种子收集被引用类型及其传递闭包'
     已含=set()
     前沿=list(种子)
     while len(前沿)>0:
@@ -1385,13 +1385,13 @@ def 引用类型闭包(种子):
     return [条目 for 条目 in 类型目录 if 条目['name'] in 已含]
 
 def 上下文属性(键):
-    """硬依赖访问表达式。"""
+    '硬依赖访问表达式'
     if 标识形态.search(键) is not None:
         return '上下文.'+键
     return '上下文['+json.dumps(键,ensure_ascii=False,separators=(',',':'),allow_nan=False)+']'
 
 def 查询服务目录(键=None,服务表=None):
-    """把服务目录投影为压缩目录或一份精确编码契约。"""
+    '把服务目录投影为压缩目录或一份精确编码契约'
     if 服务表 is None:
         服务表=服务目录
     if 键 is None:
@@ -1428,7 +1428,7 @@ def 查询服务目录(键=None,服务表=None):
     }
 
 def 查询事件目录(名=None,事件表=None):
-    """把事件目录投影为压缩目录或一份精确监听契约。"""
+    '把事件目录投影为压缩目录或一份精确监听契约'
     if 事件表 is None:
         事件表=事件目录
     if 名 is None:

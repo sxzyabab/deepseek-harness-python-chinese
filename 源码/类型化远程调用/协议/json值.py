@@ -1,16 +1,16 @@
-"""远程载体共用的无损 JSON 检查。"""
+'远程载体共用的无损 JSON 检查'
 import math
 
 def 是否远程json值(值):
-    """值能否在 JSON 传输上不强制转换、不省略。"""
+    '值能否在 JSON 传输上不强制转换、不省略'
     return 走访json值(值,set())
 
 def 是否远程上行项(值):
-    """值可否作为一条上行项：无损 JSON，或顶层 None（对应 TS undefined）。"""
+    '值可否作为一条上行项：无损 JSON，或顶层 None（对应 TS undefined）'
     return 值 is None or 是否远程json值(值)
 
 def 走访json值(值,祖先):
-    """递归检查无损 JSON。"""
+    '递归检查无损 JSON'
     if 值 is None or isinstance(值,str) or isinstance(值,bool):
         return True
     if isinstance(值,float):

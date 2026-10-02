@@ -1,7 +1,7 @@
 __all__=['终端体','终端屏幕','适配屏幕']#仅中文公开名
 
 def 适配屏幕(仿真,适配,状态,模型):#测量后 resize
-    """按视口与环境上限调整列行。"""
+    '按视口与环境上限调整列行'
     尺寸=适配.proposeDimensions()#提议
     环境=状态['environment'] if 'environment' in 状态 else None#环境
     if 尺寸 is None or 环境 is None:#缺
@@ -14,18 +14,18 @@ def 适配屏幕(仿真,适配,状态,模型):#测量后 resize
     模型.resize(列,行)#模型
 
 class 终端屏幕:#xterm 画面
-    """挂载仿真器并跟随主题与画面修订。"""
+    '挂载仿真器并跟随主题与画面修订'
     def __init__(自身,属性):#记下合成 props
-        """记下 state/model/visible/label/theme。"""
+        '记下 state/model/visible/label/theme'
         自身.属性=属性#合成
         自身.修订=0#已应用修订
 
     def 更新(自身,属性):#props 变更
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#最新
 
     def 视图(自身):#投影屏幕节点
-        """屏幕根节点。"""
+        '屏幕根节点'
         return {#屏
             'tag':'div',#根
             'className':'screen',#类
@@ -33,31 +33,31 @@ class 终端屏幕:#xterm 画面
         }#结束
 
     def __call__(自身,属性=None):#组件调用
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图
 
 class 终端体:#侧栏正文
-    """保留终端加主题与状态条。"""
+    '保留终端加主题与状态条'
     def __init__(自身,属性):#记下合成 props
-        """记下 props 并挂载模型。"""
+        '记下 props 并挂载模型'
         自身.属性=属性#合成
         标签=属性['useTabInfo']()['tab']#页签
         属性['view'](标签['id']).mount()#挂载
 
     def 更新(自身,属性):#props 变更
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#最新
         标签=属性['useTabInfo']()['tab']#页签
         属性['view'](标签['id']).mount()#挂载
 
     def 视图(自身):#投影正文
-        """状态条、屏幕与错误。"""
+        '状态条、屏幕与错误'
         翻译=自身.属性['t']#文案
         标签=自身.属性['useTabInfo']()['tab']#页签
         def 取主题(值):#主题钩
-            """交还原快照。"""
+            '交还原快照'
             return 值#快照
         主题=自身.属性['useTheme'](取主题)#主题
         模型=自身.属性['view'](标签['id'])#模型
@@ -128,7 +128,7 @@ class 终端体:#侧栏正文
         }#结束
 
     def __call__(自身,属性=None):#组件调用
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图

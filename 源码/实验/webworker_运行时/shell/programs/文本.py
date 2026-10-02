@@ -5,7 +5,7 @@ from .选项 import 数值选项,解析选项,拆成行#选项工具
 __all__=['文本程序']#仅中文公开名
 
 def 读各输入(程序,操作数,io,state,fs):#读各输入源
-    """将每个操作数读为文件，报告失败者。"""
+    '将每个操作数读为文件，报告失败者'
     if len(操作数)==0:#空则stdin
         return {'sources':[{'name':'-','text':io['stdin']}],'status':0}#stdin
     源列表=[]#源缓冲
@@ -23,23 +23,23 @@ def 读各输入(程序,操作数,io,state,fs):#读各输入源
     return {'sources':源列表,'status':状态}#返回
 
 def 确保尾换行(文本):#确保尾换行
-    """追加尾随换行，除非文本已以换行结尾。"""
+    '追加尾随换行，除非文本已以换行结尾'
     return 文本 if 文本=='' or 文本.endswith('\n') else f'{文本}\n'#补换行
 
 def echo程序(argv,io,state=None,fs=None):#echo程序
-    """打印参数。"""
+    '打印参数'
     抑制换行=len(argv)>1 and argv[1]=='-n'#是否-n
     词列表=argv[2 if 抑制换行 else 1:]#输出词
     io['out'](f"{' '.join(词列表)}{'' if 抑制换行 else chr(10)}")#打印
     return 0#成功
 
 def printf程序(argv,io,state=None,fs=None):#printf程序
-    """格式化打印。"""
+    '格式化打印'
     格式=argv[1] if len(argv)>1 else ''#格式串
     操作数=argv[2:]#操作数
     游标=[0]#消费游标
     def 替换(匹配):#替换转换
-        """shell 脚本现实会用到的转换。"""
+        'shell 脚本现实会用到的转换'
         记号=匹配.group(0)#匹配文本
         if 记号=='%%':#百分号
             return '%'#百分号
@@ -57,7 +57,7 @@ def printf程序(argv,io,state=None,fs=None):#printf程序
     return 0#成功
 
 def cat程序(argv,io,state,fs):#cat程序
-    """连接文件。"""
+    '连接文件'
     选项=解析选项(argv)#解析选项
     结果=读各输入('cat',选项['operands'],io,state,fs)#读源
     行号=1#行号
@@ -71,7 +71,7 @@ def cat程序(argv,io,state,fs):#cat程序
     return 结果['status']#返回状态
 
 def head程序(argv,io,state,fs):#head程序
-    """前N行。"""
+    '前N行'
     选项=解析选项(argv,{'n'})#解析带n
     行数=数值选项(选项,'n',10)#行数
     结果=读各输入('head',选项['operands'],io,state,fs)#读源
@@ -82,7 +82,7 @@ def head程序(argv,io,state,fs):#head程序
     return 结果['status']#返回状态
 
 def tail程序(argv,io,state,fs):#tail程序
-    """后N行。"""
+    '后N行'
     选项=解析选项(argv,{'n'})#解析带n
     行数=数值选项(选项,'n',10)#行数
     结果=读各输入('tail',选项['operands'],io,state,fs)#读源
@@ -93,7 +93,7 @@ def tail程序(argv,io,state,fs):#tail程序
     return 结果['status']#返回状态
 
 def wc程序(argv,io,state,fs):#wc程序
-    """计行词字符。"""
+    '计行词字符'
     选项=解析选项(argv)#解析选项
     结果=读各输入('wc',选项['operands'],io,state,fs)#读源
     所选=[旗 for 旗 in ('l','w','c') if 旗 in 选项['flags']]#所选列
@@ -110,7 +110,7 @@ def wc程序(argv,io,state,fs):#wc程序
     return 结果['status']#返回状态
 
 def 遍历文件(路径,显示,收集,fs):#递归收集文件
-    """收集一个目录下的每个文件，供 `grep -r`。"""
+    '收集一个目录下的每个文件，供 `grep -r`'
     for 条目 in fs['list'](路径):#逐条目
         子=f"{路径 if 路径.endswith('/') else 路径+'/'}{条目['name']}"#子路径
         示=f"{显示 if 显示.endswith('/') else 显示+'/'}{条目['name']}"#显示名
@@ -120,7 +120,7 @@ def 遍历文件(路径,显示,收集,fs):#递归收集文件
             收集.append({'path':子,'display':示})#收录
 
 def grep程序(argv,io,state,fs):#grep程序
-    """搜索文本。"""
+    '搜索文本'
     选项=解析选项(argv,{'e'})#解析带e
     模式=选项['values'].get('e',选项['operands'][0] if len(选项['operands'])>0 else None)#模式
     目标列表=选项['operands'] if 'e' in 选项['values'] else 选项['operands'][1:]#目标
@@ -181,7 +181,7 @@ def grep程序(argv,io,state,fs):#grep程序
     return 状态码 if 状态码!=0 else (0 if 有匹配 else 1)#错误或匹配结果
 
 def sort程序(argv,io,state,fs):#sort程序
-    """排序行。"""
+    '排序行'
     选项=解析选项(argv)#解析选项
     结果=读各输入('sort',选项['operands'],io,state,fs)#读源
     行列表=[]#合并行
@@ -189,7 +189,7 @@ def sort程序(argv,io,state,fs):#sort程序
         行列表.extend(拆成行(源['text']))#合并
     if 'n' in 选项['flags']:#数值排序
         def 数值键(行):#键
-            """解析浮点。"""
+            '解析浮点'
             try:#解析
                 return float(行)#浮点
             except ValueError:#非法
@@ -209,7 +209,7 @@ def sort程序(argv,io,state,fs):#sort程序
     return 结果['status']#返回状态
 
 def uniq程序(argv,io,state,fs):#uniq程序
-    """相邻去重。"""
+    '相邻去重'
     选项=解析选项(argv)#解析选项
     结果=读各输入('uniq',选项['operands'],io,state,fs)#读源
     行列表=[]#合并行
@@ -233,7 +233,7 @@ def uniq程序(argv,io,state,fs):#uniq程序
     return 结果['status']#返回状态
 
 def cut程序(argv,io,state,fs):#cut程序
-    """切字段或字符。"""
+    '切字段或字符'
     选项=解析选项(argv,{'d','f','c'})#解析带值标志
     分隔=选项['values'].get('d','\t')#分隔符
     字段列表=[]#字段号
@@ -269,7 +269,7 @@ def cut程序(argv,io,state,fs):#cut程序
     return 结果['status']#返回状态
 
 def 字符集(集合):#展开字符集
-    """展开一个 `tr` 集合：`a-z` 变成该范围内的每个字符。"""
+    '展开一个 `tr` 集合：`a-z` 变成该范围内的每个字符'
     字符列表=list(集合)#码点列表
     展开=[]#展开缓冲
     索引=0#游标
@@ -286,7 +286,7 @@ def 字符集(集合):#展开字符集
     return 展开#返回集合
 
 def tr程序(argv,io,state=None,fs=None):#tr程序
-    """翻译或删除字符。"""
+    '翻译或删除字符'
     选项=解析选项(argv)#解析选项
     源集文=选项['operands'][0] if len(选项['operands'])>0 else None#源集
     目标集文=选项['operands'][1] if len(选项['operands'])>1 else None#目标集
@@ -312,7 +312,7 @@ def tr程序(argv,io,state=None,fs=None):#tr程序
     return 0#成功
 
 def sed程序(argv,io,state,fs):#sed程序
-    """`sed` 仅接受替换命令；其他一切被报告，而非猜测。"""
+    '`sed` 仅接受替换命令；其他一切被报告，而非猜测'
     选项=解析选项(argv,{'e'})#解析带e
     脚本=选项['values'].get('e',选项['operands'][0] if len(选项['operands'])>0 else None)#脚本
     目标列表=选项['operands'] if 'e' in 选项['values'] else 选项['operands'][1:]#目标
@@ -332,7 +332,7 @@ def sed程序(argv,io,state,fs):#sed程序
         return 2#用法错
     结果=读各输入('sed',目标列表,io,state,fs)#读源
     def 转引用(匹配):#\\n → \\g<n>
-        """把 JS 的 \\n 换成 Python 反向引用。"""
+        '把 JS 的 \\n 换成 Python 反向引用'
         return f'\\g<{匹配.group(1)}>'#Python反向引用
     js替换=正则.sub(r'\\(\d)',转引用,替换文)#转引用
     for 源 in 结果['sources']:#逐源
@@ -341,7 +341,7 @@ def sed程序(argv,io,state,fs):#sed程序
     return 结果['status']#返回状态
 
 def tee程序(argv,io,state,fs):#tee程序
-    """透传并写文件。"""
+    '透传并写文件'
     选项=解析选项(argv)#解析选项
     io['out'](io['stdin'])#透传stdout
     for 操作数 in 选项['operands']:#逐文件

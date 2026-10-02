@@ -5,28 +5,28 @@ from .回合用量面板 import 回合用量面板,回合时间面板#胶囊
 __all__=['回合尾节点视图']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 class 回合尾节点视图:
-    """turnTail 链 + 可选消息动作。"""
+    'turnTail 链 + 可选消息动作'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.动作=消息图标动作()#动作
         自身.用量=回合用量面板()#用量
         自身.时间=回合时间面板()#时间
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """无 turn 返回 None。"""
+        '无 turn 返回 None'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 else None#节点
         数据=节点['data'] if 节点 is not None and 'data' in 节点 else None#数据
@@ -47,13 +47,13 @@ class 回合尾节点视图:
         节点键=节点['key'] if 节点 is not None and 'key' in 节点 else None#键
         if 用聊天 is not None:#有
             def 判后(快照):
-                """本回合末键是否本节点。locations 为契约 dict。"""
+                '本回合末键是否本节点。locations 为契约 dict'
                 列=快照['locations']['getTurn'](数据回合)#列
                 列=列 if 列 is not None else []#列；判 length
                 末键=列[-1] if len(列)>0 else None#末
                 return 末键!=节点键#后
             def 判最新(快照):
-                """timeline.turnOrder 末。"""
+                'timeline.turnOrder 末'
                 线=快照['timeline'] if 'timeline' in 快照 else None#线
                 序=线['turnOrder'] if 线 is not None and 'turnOrder' in 线 and 线['turnOrder'] is not None else []#序
                 return len(序)>0 and 序[-1]==数据回合#末；判 length
@@ -80,7 +80,7 @@ class 回合尾节点视图:
         助手动作=None if 消息标识 is None else 渲染槽('conversation.chat.assistant-actions',{'messageId':消息标识})#动作槽
         定稿序号=终节['seq'] if 终节 is not None and 'seq' in 终节 else None#分支点
         def 分支():
-            """分叉到定稿序号。"""
+            '分叉到定稿序号'
             if 分叉 is not None:#有
                 分叉(定稿序号)#叉
         用量动作=[]#胶囊
@@ -98,7 +98,7 @@ class 回合尾节点视图:
         return {'type':'turn-tail','className':'root','turn':数据回合,'actionsReveal':揭示,'tail':尾,'actions':动作视图,'cssModule':'回合尾节点视图.module.css'}#尾
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

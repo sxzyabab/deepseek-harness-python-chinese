@@ -1,4 +1,4 @@
-"""经授权 Host 渲染与既有 PDF 正文支撑的 Office 预览登记。"""
+'经授权 Host 渲染与既有 PDF 正文支撑的 Office 预览登记'
 from .....工具.超时 import 若已中止则抛出#中止
 from ..文档.标签寿命 import 保留文档标签#标签寿命
 from ..远程过程调用 import 文档文件字节#文档字节
@@ -16,7 +16,7 @@ __all__=['应用','转换错误键']#仅中文公开名
 实现键='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/office'#实现键
 
 def 转换错误键(代码):
-    """Host 转换错误码映射文案键。"""
+    'Host 转换错误码映射文案键'
     if 代码 in ('input-too-large','output-too-large'):#过大
         return 'tooLarge'#过大
     if 代码 in ('invalid-document','unsupported-format'):#无效
@@ -32,21 +32,21 @@ def 转换错误键(代码):
     return 'failed'#通用
 
 def 应用(上下文,配置):
-    """以版本化 PDF 复用与缺字体提示登记 Office 预览。配置含缓存上限。"""
+    '以版本化 PDF 复用与缺字体提示登记 Office 预览。配置含缓存上限'
     def 登记词典():
-        """挂 Office 词典。"""
+        '挂 Office 词典'
         return 上下文.locale.register('sidebarOffice',{'zh':中文,'en':英文})#登记
     上下文.副作用(登记词典)#寿命
     翻译=上下文.locale.bind('sidebarOffice')#翻译
     def 不可用读(文件,信号):
-        """不可用时拒绝。"""
+        '不可用时拒绝'
         文件#源
         if 信号 is not None:#有信号
             若已中止则抛出(信号)#已中止则抛
         raise RuntimeError(翻译('unavailable'))#拒绝
     当前读=[不可用读]#可变读
     def 登记类型():
-        """挂预览类型。"""
+        '挂预览类型'
         return 上下文.documentPreviews.register({#登记
             'id':实现键,#键
             'extensions':扩展名,#扩展
@@ -61,27 +61,27 @@ def 应用(上下文,配置):
     保留标签=保留文档标签(上下文)#保留
     文档翻译=上下文.locale.bind('sidebarDocumentPreview')#文档文案
     def 描述失败(失败信息):
-        """本地化失败。"""
+        '本地化失败'
         if isinstance(失败信息,dict) and 'code' in 失败信息:#远程失败
             return 失败行(文档翻译,失败信息)#失败行
         return 文档翻译('error.unavailable',{'message':失败信息.get('message') if isinstance(失败信息,dict) else str(失败信息)})#通用
     面=office面(lambda 文件,信号:当前读[0](文件,信号),描述失败)
     def 登记动作():
-        """挂缺字体动作。"""
+        '挂缺字体动作'
         return 上下文.slots.inject('sidebar.right.tab.document.action',lambda:上下文.slots.register({
             'name':'sidebar.right.tab.document.action','key':实现键,'locale':'sidebarOffice','store':存储,
         },'OfficeFontAction'))
     上下文.副作用(登记动作)
     def 注入(会话标识,动作):
-        """正文注入。"""
+        '正文注入'
         基=面(会话标识,动作)
         def 保留(标签标识,信号):
-            """保留至忘记。"""
+            '保留至忘记'
             保留标签(标签标识,信号,动作['forget'])#保留
         基['retainTab']=保留
         return 基
     def 登记正文():
-        """挂 Office 正文槽。"""
+        '挂 Office 正文槽'
         return 上下文.slots.inject('sidebar.right.tab.document',lambda:上下文.slots.register({#登记
             'name':'sidebar.right.tab.document',#名
             'key':实现键,#键

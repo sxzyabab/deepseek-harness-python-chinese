@@ -1,10 +1,10 @@
-"""改动文件卡视图工厂。"""
+'改动文件卡视图工厂'
 __all__=['折叠改动行数','改动文件']#仅中文公开名
 
 折叠改动行数=3#折叠前行数
 
 def 改动文件(属性):#视图
-    """抬头与按行打开审阅。"""
+    '抬头与按行打开审阅'
     改动=属性['changes']#摘要+seq
     翻译=属性['t']#文案
     打开审阅=属性['openReview']#打开
@@ -17,7 +17,7 @@ def 改动文件(属性):#视图
     行视图=[]#行
     for 下标,文件 in enumerate(行表):#每行
         def 点行(序=下标):#打开该行
-            """openReview(index)。"""
+            'openReview(index)'
             打开审阅(序)#开
         计数=翻译('changes.binary') if 'binary' in 文件 and 文件['binary'] is True else (#二进制
             翻译('changes.oversized') if 'oversized' in 文件 and 文件['oversized'] is True else {#过大
@@ -33,7 +33,7 @@ def 改动文件(属性):#视图
             'onClick':点行,#点击
         })#行结束
     def 点抬头():#开第一文件
-        """openReview(0)。"""
+        'openReview(0)'
         打开审阅(0)#开
     return {#视图
         'type':'changed-files',#类型

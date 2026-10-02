@@ -1,4 +1,5 @@
 import threading
+from ...基础设施.通用工具 import 获取内部数据
 from .模式 import 设置模式服务
 from .设置镜像 import 设置描述镜像
 from .配置表单 import 配置表单集
@@ -11,22 +12,22 @@ __all__=['依赖','应用','设置模式服务','设置描述镜像','配置表�
 依赖=['remote','remote.settings']#远程与远程设置
 
 def 应用(上下文):
-    """在一份共享 describe 镜像上提供配置表单服务。"""
+    '在一份共享 describe 镜像上提供配置表单服务'
     模式=设置模式服务(上下文)#构造模式服务
-    持久化='host' if 上下文.remote.$host.isLoopback is True else 'memory'#回环走宿主，否则内存
+    持久化='host' if 获取内部数据(上下文.remote,'host').isLoopback is True else 'memory'#回环走宿主，否则内存
     镜像=设置描述镜像(上下文,持久化)#构造共享镜像
     def 挂失效():
-        """订两路失效并确保首读。"""
+        '订两路失效并确保首读'
         def 重载():
-            """文档更新或重连时后台重读。"""
+            '文档更新或重连时后台重读'
             threading.Thread(target=镜像.加载,daemon=True).start()
         拆表=[
-            上下文.remote.$on('settings/document-updated',重载),
+            获取内部数据(上下文.remote,'on')('settings/document-updated',重载),
             上下文.监听('connection/reset',重载),
         ]
         threading.Thread(target=镜像.确保,daemon=True).start()
         def 拆除():
-            """取消订阅。"""
+            '取消订阅'
             for 拆 in 拆表:
                 拆()
         return 拆除

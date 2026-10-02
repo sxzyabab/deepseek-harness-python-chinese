@@ -1,7 +1,7 @@
 默认处置宽限毫秒=3000
 
 def 启动claude运行(请求,规格):
-    """驱动官方 Claude Agent SDK。Python 侧待 anthropic SDK 绑定。"""
+    '驱动官方 Claude Agent SDK。Python 侧待 anthropic SDK 绑定'
     try:
         import anthropic
     except ImportError as 错误:

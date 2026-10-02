@@ -7,9 +7,9 @@ from ...共享.cordis.投影器 import (#投影面
 __all__=['Cordis树存储']#仅中文公开名
 
 class Cordis树存储:#Cordis树存储
-    """经校验的最新值存储，由 CDP 与查询适配器独立消费。"""
+    '经校验的最新值存储，由 CDP 与查询适配器独立消费'
     def __init__(自身,选项):#构造
-        """保存选项并初始化表。"""
+        '保存选项并初始化表'
         自身.选项=选项#选项
         自身.topics={cordis树主题}#主题
         自身._树表={}#树表
@@ -18,20 +18,20 @@ class Cordis树存储:#Cordis树存储
         自身._监听=set()#监听
 
     def 替换(自身,源,记录列表):#替换
-        """替换一个源代数的全部保留状态。"""
+        '替换一个源代数的全部保留状态'
         下一=自身._最新(源,记录列表)#最新快照
         变更=自身._移除(源['sourceId']) if 下一 is None else 自身._安装(源,下一)#移除或安装
         if 变更:#有变更
             自身._发出({'type':'snapshot-changed','source':源})#变更事件
 
     def 追加(自身,源,记录列表):#追加
-        """应用后续状态替换，忽略无关观测主题。"""
+        '应用后续状态替换，忽略无关观测主题'
         下一=自身._最新(源,记录列表)#最新
         if 下一 is not None and 自身._安装(源,下一):#变更
             自身._发出({'type':'snapshot-changed','source':源})#变更
 
     def 关闭(自身,源,原因):#关闭源
-        """冻结已关闭源代数的最后一棵树并使其对象路由失效。"""
+        '冻结已关闭源代数的最后一棵树并使其对象路由失效'
         当前=自身._树表.get(源['sourceId'])#当前树
         if 当前 is None or 当前['source']['generation']!=源['generation'] or 当前['connection']['state']=='disconnected':#已断或不符
             return#返回
@@ -48,25 +48,25 @@ class Cordis树存储:#Cordis树存储
         自身._发出({'type':'source-disconnected','source':源})#断开事件
 
     def 列出快照(自身):#快照列表
-        """列出各源当前快照。"""
+        '列出各源当前快照'
         return [{'source':树['source'],'snapshot':树['snapshot'],'connection':树['connection']} for 树 in 自身._树表.values()]#投影
-        """读取全部当前 realm 快照，不含 CDP 标识。"""
+        '读取全部当前 realm 快照，不含 CDP 标识'
         return [{'source':树['source'],'snapshot':树['snapshot'],'connection':树['connection']} for 树 in 自身._树表.values()]#投影
 
     def 树(自身):#检查树
-        """将公共 realm 模型合成到 Host 与 Client 槽位。"""
+        '将公共 realm 模型合成到 Host 与 Client 槽位'
         快照列表=自身.列出快照()#全部快照
         Host=next((项 for 项 in 快照列表 if _源种类(项['source'])=='host'),None)#Host
         Clients=[项 for 项 in 快照列表 if _源种类(项['source'])=='client']#Clients
         return {'host':Host,'clients':Clients}#合成（完整源描述，供DOM）
 
     def 读树(自身):#读语义树
-        """读取不含对象路由或 CDP 标识的游离语义树。"""
+        '读取不含对象路由或 CDP 标识的游离语义树'
         原始=自身.树()#原始槽位
         return 投影cordis运行时树(cordis检查树(_包装源快照(原始['host']),[_包装源快照(项) for 项 in 原始['clients']]))#投影
 
     def 解析对象(自身,源,引用):#解析对象
-        """将源本地对象引用解析为其语义树节点。"""
+        '将源本地对象引用解析为其语义树节点'
         树=自身._树表.get(源['sourceId'])#取树
         if 树 is None or 树['source']['generation']!=源['generation'] or 树['connection']['state']=='disconnected':#不可用
             return None#无
@@ -74,7 +74,7 @@ class Cordis树存储:#Cordis树存储
         return None if 节点 is None else 自身._路由(树,节点)#路由
 
     def 解析对象身份(自身,sourceId,generation,引用):#按身份解析
-        """在不需要源展示字段时解析源本地对象。"""
+        '在不需要源展示字段时解析源本地对象'
         树=自身._树表.get(sourceId)#取树
         if 树 is None or 树['source']['generation']!=generation or 树['connection']['state']=='disconnected':#不可用
             return None#无
@@ -82,7 +82,7 @@ class Cordis树存储:#Cordis树存储
         return None if 节点 is None else 自身._路由(树,节点)#路由
 
     def 按种类解析对象(自身,kind,引用):#按种类解析
-        """仅知源 realm 种类时解析活动引用。"""
+        '仅知源 realm 种类时解析活动引用'
         for 树 in 自身._树表.values():#扫树
             if 树['source']['kind']!=kind or 树['connection']['state']=='disconnected':#跳过
                 continue#跳过
@@ -92,15 +92,15 @@ class Cordis树存储:#Cordis树存储
         return None#未找到
 
     def 订阅(自身,监听):#订阅
-        """订阅已接受的树替换与源可用性变更。"""
+        '订阅已接受的树替换与源可用性变更'
         自身._监听.add(监听)#加入
         def 拆除():#拆除本监听
-            """取消本监听。"""
+            '取消本监听'
             自身._监听.discard(监听)#摘掉
         return 拆除#拆除器
 
     def _最新(自身,源,记录列表):#取最新快照
-        """从记录中取最新主题快照。"""
+        '从记录中取最新主题快照'
         快照=None#候选
         for 记录 in 记录列表:#扫记录
             if 记录.get('topic')!=cordis树主题:#非主题
@@ -116,7 +116,7 @@ class Cordis树存储:#Cordis树存储
         return 快照#返回新
 
     def _安装(自身,源,快照):#安装快照
-        """安装已连接快照。"""
+        '安装已连接快照'
         当前=自身._树表.get(源['sourceId'])#当前
         if 当前 is not None and 当前['source']['generation']==源['generation'] and 当前['snapshot'] is 快照 and 当前['connection']['state']=='connected':#无变更
             return False#无变更
@@ -131,18 +131,18 @@ class Cordis树存储:#Cordis树存储
         return True#已变更
 
     def _移除(自身,sourceId):#移除树
-        """移除树。"""
+        '移除树'
         自身._断开.discard(sourceId)#断开集
         if sourceId in 自身._断开序:#序
             自身._断开序.remove(sourceId)#移除
         return 自身._树表.pop(sourceId,None) is not None#删除
 
     def _路由(自身,树,节点):#构造路由
-        """构造对象路由。"""
+        '构造对象路由'
         return {'source':树['source'],'snapshot':树['snapshot'],'connection':树['connection'],'node':节点}#路由对象
 
     def _发出(自身,事件):#发出事件
-        """隔离回调故障。"""
+        '隔离回调故障'
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调
@@ -150,15 +150,15 @@ class Cordis树存储:#Cordis树存储
                 pass#一个查询适配器不能阻止后续仓库观察者更新
 
 def _源种类(源):#取源种类
-    """源是线上 dict。"""
+    '源是线上 dict'
     return 源['kind']#种类
 
 def _源字段(源,名):#取源字段
-    """源是线上 dict。"""
+    '源是线上 dict'
     return 源[名]#字段
 
 def _包装源快照(项):#包装为投影面
-    """把仓库行包装为 cordis树源快照。"""
+    '把仓库行包装为 cordis树源快照'
     if 项 is None:#空
         return None#无
     源=项['source']#源
@@ -166,13 +166,13 @@ def _包装源快照(项):#包装为投影面
     return cordis树源快照(源面,项['snapshot'],项['connection'])#源快照
 
 def 对象键(引用):#对象键
-    """注册表+句柄。"""
+    '注册表+句柄'
     注册表=引用['registryId']#注册表
     句柄=引用['handle']#句柄
     return f'{注册表}\0{句柄}'#注册表+句柄
 
 def 展平树节点(根):#展平树节点
-    """深度优先展平。"""
+    '深度优先展平'
     节点列表=[]#结果
     待定=[根]#栈
     while 待定:#深度优先

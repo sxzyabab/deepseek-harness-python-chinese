@@ -5,7 +5,7 @@ from ..会话 import 是否替换表面事件
 已清空='Current runtime context: none. Earlier runtime-context snapshots no longer apply.'#清空标记文案
 
 def 创建系统消息(文本,插件):
-    """创建并冻结一条已标识系统角色消息；空串表示无系统提示。"""
+    '创建并冻结一条已标识系统角色消息；空串表示无系统提示'
     return 创建消息({
         'role':'system',#系统角色
         'content':[] if len(文本)==0 else [{'type':'text','text':文本}],#空则无块
@@ -13,14 +13,15 @@ def 创建系统消息(文本,插件):
     })#创建结束
 
 def 是否本源(消息):
-    """消息是否由本投影插件拥有。"""
+    '消息是否由本投影插件拥有'
     来源=消息['source'] if 'source' in 消息 else None#消息来源
     if 来源 is None:
         return False#无来源
     return 来源['kind']=='plugin' and 来源['plugin']==源#插件源且插件名匹配
 
 def 取文本(消息):
-    """取出单文本块消息的文本；否则缺省。空内容视为空串。"""
+    """取出单文本块消息的文本；否则缺省。
+    空内容视为空串"""
     内容=消息['content'] if 'content' in 消息 and 消息['content'] is not None else []#内容块
     if len(内容)==0:
         return ''#空内容视为空串
@@ -32,17 +33,17 @@ def 取文本(消息):
     return 块['text']#文本
 
 def 事件最新优先(会话):
-    """从最新往回的已提交事件。"""
+    '从最新往回的已提交事件'
     return list(reversed(list(会话.events)))#倒序
 
 class 系统提示投影:
-    """决定已渲染系统提示如何到达表面，但不拥有提交。"""
+    '决定已渲染系统提示如何到达表面，但不拥有提交'
     def __init__(自身,会话):
-        """持有目标会话。"""
+        '持有目标会话'
         自身.会话=会话#会话
 
     def _系统节点(自身):
-        """按表面顺序仍存活的 system/message 节点。"""
+        '按表面顺序仍存活的 system/message 节点'
         节点列表=[]#收集
         事件列表=自身.会话.events#权威日志
         for 序号 in 自身.会话.surface.nodes:#扫表面
@@ -55,14 +56,14 @@ class 系统提示投影:
         return 节点列表#返回
 
     def _替换(自身,序号,文本):
-        """替换单节点的未提交项。"""
+        '替换单节点的未提交项'
         return {
             'message':创建系统消息(文本,源),#系统消息
             'intent':{'surfaceOp':{'op':'replace','startSeq':序号,'endSeq':序号},'sourceEventSeqs':[序号]},#替换意图
         }#提交项
 
     def 投影(自身,已渲染,输入):
-        """按准备好的路由与系列调和有效文本与保留节点。"""
+        '按准备好的路由与系列调和有效文本与保留节点'
         节点列表=自身._系统节点()#当前系统节点
         if len(节点列表)==0:#尚无系统节点
             return [{'message':创建系统消息(已渲染,源),'intent':{'surfaceOp':'append'}}]#追加占位
@@ -87,9 +88,9 @@ class 系统提示投影:
         return [{'message':创建系统消息(已渲染,源),'intent':{'surfaceOp':'append'}}]#历史内追加
 
 class 运行时上下文投影:
-    """跟踪上次保留的运行时上下文快照，但不拥有其提交。"""
+    '跟踪上次保留的运行时上下文快照，但不拥有其提交'
     def __init__(自身,上下文,会话):
-        """先一次性恢复投影状态，再跟随权威会话事件。"""
+        '先一次性恢复投影状态，再跟随权威会话事件'
         自身.保留=None#尚未扫描；见过后可为 None 表示未保留
         自身._已见本源=False#是否见过本源消息
         表面=set(会话.surface.nodes)#当前表面节点
@@ -102,7 +103,7 @@ class 运行时上下文投影:
                 自身.保留={'seq':事件['seq'],'text':取文本(事件['data'])}#记下该快照
                 break#已找到最近保留
         def 跟随(主题,事件):
-            """跟随本会话事件。"""
+            '跟随本会话事件'
             if 主题 is not 会话:
                 return#只看本会话
             if 事件['type']=='user/message' and 是否本源(事件['data']):
@@ -115,7 +116,7 @@ class 运行时上下文投影:
         上下文.监听('session/event',跟随)#跟随会话事件
 
     def 投影(自身,当前,段落列表):
-        """仅当保留值与当前渲染不同时才创建未提交快照。"""
+        '仅当保留值与当前渲染不同时才创建未提交快照'
         从未有过=not 自身._已见本源 and 自身.保留 is None#从未有过快照
         if 从未有过 and len(当前)==0:
             return None#从未有过且当前为空则无需

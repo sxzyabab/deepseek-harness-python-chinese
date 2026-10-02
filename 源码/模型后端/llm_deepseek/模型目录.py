@@ -1,4 +1,4 @@
-"""默认 DeepSeek 模型目录。"""
+'默认 DeepSeek 模型目录'
 from .默认值 import 默认上下文窗口
 
 __all__=['默认模型列表']

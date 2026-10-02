@@ -12,10 +12,12 @@ __all__=[#仅中文公开名
 成员可见性=frozenset(['public','protected','private'])#类成员可见性
 
 class 模型错误(Exception):
-    """未覆盖的类型图变体。"""
+    '未覆盖的类型图变体'
 
 def 子类型节点标识列表(节点):
-    """返回一个节点所拥有的直接类型表达式边的图内 id。节点是 dict。"""
+    """返回一个节点所拥有的直接类型表达式边的图内 id。
+    节点是 dict
+    """
     种类=节点['kind'] if 'kind' in 节点 else None#节点种类
     if 种类 in ('parenthesized','operator'):#括号或运算符
         return [节点['type'] if 'type' in 节点 else None]#作用的类型

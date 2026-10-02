@@ -3,7 +3,7 @@ __all__=['不支持特性表','初始选区','格式化单元格']
 不支持特性表=('charts','images','shapes','conditionalFormatting')
 
 def 初始选区(配置):
-    """保留可寻址 A1 选区，含 A1 合并。"""
+    '保留可寻址 A1 选区，含 A1 合并'
     合并=None
     if isinstance(配置,dict):
         并=配置.get('merge')
@@ -14,7 +14,7 @@ def 初始选区(配置):
     return [{'row':[0,行跨-1],'column':[0,列跨-1],'row_focus':0,'column_focus':0}]
 
 def 格式化单元格(单元格,数字格式):
-    """套数字格式与默认对齐，不计算公式。"""
+    '套数字格式与默认对齐，不计算公式'
     值=单元格.get('v') if isinstance(单元格,dict) else None
     if 'ht' not in 单元格:
         if type(值) is bool:

@@ -5,7 +5,7 @@ __all__=['字节转base64','随机uuid']#仅中文公开名
 字节转base64=二进制.转base64#依赖版 base64 编码
 
 def 随机uuid():#随机 v4 UUID
-    """用密码学随机字节铸造 RFC 9562 v4 UUID 字符串。"""
+    '用密码学随机字节铸造 RFC 9562 v4 UUID 字符串'
     字节=secrets.token_bytes(16)#16 字节随机
     钉=[(字节[索引] if 索引 not in (6,8) else ((字节[6]&0x0f)|0x40) if 索引==6 else ((字节[8]&0x3f)|0x80)) for 索引 in range(16)]#版本 4 与变体位
     十六=[format(值,'02x') for 值 in 钉]#两位十六进制

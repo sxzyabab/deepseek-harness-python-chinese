@@ -1,16 +1,18 @@
-"""GitHub 签名校验用的有界 HTTP 正文读取。"""
+'GitHub 签名校验用的有界 HTTP 正文读取'
 
 __all__=['WebhookHttp错误','内容长度','读取有界utf8正文']
 
 class WebhookHttp错误(Exception):
-    """消息可原样回写、不含请求数据的 HTTP 拒绝。"""
+    '消息可原样回写、不含请求数据的 HTTP 拒绝'
     def __init__(自身,状态码,消息):
-        """记下 HTTP 状态码与安全消息。"""
+        '记下 HTTP 状态码与安全消息'
         super().__init__(消息)
         自身.status=状态码#HTTP 状态码
 
 def 内容长度(请求):
-    """解析十进制 Content-Length；歧义头或越界值直接拒绝。请求为 webServer 对象。"""
+    """解析十进制 Content-Length；歧义头或越界值直接拒绝。
+    请求为 webServer 对象
+    """
     头表=请求.headers
     if 'content-length' not in 头表:
         return None
@@ -28,7 +30,7 @@ def 内容长度(请求):
     return 长度
 
 def 读取有界utf8正文(请求,最大字节):
-    """读取一次请求正文为精确、有界的 UTF-8 文本。"""
+    '读取一次请求正文为精确、有界的 UTF-8 文本'
     声明长度=内容长度(请求)
     if 声明长度 is not None and 声明长度>最大字节:
         raise WebhookHttp错误(413,'request body is too large')

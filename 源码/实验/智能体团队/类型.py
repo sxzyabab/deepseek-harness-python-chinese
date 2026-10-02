@@ -4,15 +4,15 @@ __all__=[
 ]
 
 def 团队标识(标识):
-    """把根 Session 身份烙成隐式 Team 身份。"""
+    '把根 Session 身份烙成隐式 Team 身份'
     return 标识
 
 def 团队任务标识(标识):
-    """烙印已校验的任务 id。"""
+    '烙印已校验的任务 id'
     return 标识
 
 def 团队消息标识(标识):
-    """烙印已生成的 peer 消息 id。"""
+    '烙印已生成的 peer 消息 id'
     return 标识
 
 团队成员阶段=('provisioning','active','failed')

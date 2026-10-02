@@ -3,19 +3,19 @@ from .助手Markdown import 助手Markdown#块体
 __all__=['助手节点视图']#仅中文公开名
 
 class 助手节点视图:
-    """块经助手 Markdown；收尾才挂文件提及。"""
+    '块经助手 Markdown；收尾才挂文件提及'
 
     def __init__(自身,属性=None):
-        """记下合成 props 与块体实例。"""
+        '记下合成 props 与块体实例'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.块体=助手Markdown()#保推理展开
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """派生回合尾属主与提及。"""
+        '派生回合尾属主与提及'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 else None#节点
         数据=节点['data'] if 节点 is not None and 'data' in 节点 else None#数据
@@ -51,7 +51,7 @@ class 助手节点视图:
         })#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

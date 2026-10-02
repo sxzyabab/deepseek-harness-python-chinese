@@ -9,19 +9,19 @@ __all__=[#公开面
 最大条目=200#列表界
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 为记录(值):
-    """非对象或数组则 None。"""
+    '非对象或数组则 None'
     return 值 if isinstance(值,dict) else None#记
 
 def 是数(值):
-    """整数排除 bool。"""
+    '整数排除 bool'
     return (isinstance(值,int) and not isinstance(值,bool)) or isinstance(值,float)#数
 
 def 有界文本(文本,翻译):
-    """超界附 truncated 标；按 UTF-8 字节截。"""
+    '超界附 truncated 标；按 UTF-8 字节截'
     字节=文本.encode('utf-8')#预算
     if len(字节)<=最大字节:#未超
         return 文本#原文
@@ -31,7 +31,7 @@ def 有界文本(文本,翻译):
     return f"{截.decode('utf-8')}\n{翻译('json.truncated',{'total':len(字节)})}"#截
 
 def 字段值(值,翻译):
-    """串/数/布尔原文；其余 JSON。"""
+    '串/数/布尔原文；其余 JSON'
     if isinstance(值,str):#串
         文=值#文
     elif isinstance(值,bool) or 是数(值):#标量
@@ -41,7 +41,7 @@ def 字段值(值,翻译):
     return 有界文本(文,翻译)#界
 
 def 内容游程(内容):
-    """相邻 text 合并；未知块打断。"""
+    '相邻 text 合并；未知块打断'
     游程=[]#游
     序列=内容 if 内容 is not None else []#缺则空
     for 块 in 序列:#逐块
@@ -57,11 +57,11 @@ def 内容游程(内容):
     return 游程#序
 
 def 收集未知块(内容):
-    """抽 block 游程。"""
+    '抽 block 游程'
     return [游['block'] for 游 in 内容游程(内容) if 'block' in 游]#块
 
 def 模型面内容(内容,翻译):
-    """text pre + 未知 JsonBlock。"""
+    'text pre + 未知 JsonBlock'
     段=[]#段
     for 索引,游 in enumerate(内容游程(内容)):#逐游
         if 'text' in 游:#正文
@@ -75,13 +75,13 @@ def 模型面内容(内容,翻译):
     return 段#段
 
 def 未知块视图(块列表,翻译):
-    """每块一个 JsonBlock。"""
+    '每块一个 JsonBlock'
     return [{#块
         'type':'JsonBlock','label':翻译('message.unknownBlock'),'payload':块,
     } for 块 in 块列表]#表
 
 def 源字段(源,已渲染表单,翻译):
-    """kind 恒隐；专属体再隐 form。"""
+    'kind 恒隐；专属体再隐 form'
     记录=为记录(源)#记
     if 记录 is None:#无
         return None#空
@@ -95,11 +95,11 @@ def 源字段(源,已渲染表单,翻译):
     }#结束
 
 def 不透明体(内容,源,翻译):
-    """模型面 + 源字段（保留 form）。"""
+    '模型面 + 源字段（保留 form）'
     return {'type':'opaque-body','content':模型面内容(内容,翻译),'fields':源字段(源,False,翻译)}#体
 
 def 指令变更(源):
-    """全有或全无。"""
+    '全有或全无'
     记录=为记录(源)#记
     列表=记录['changes'] if 记录 is not None and 'changes' in 记录 else None#表
     if not isinstance(列表,list):#非表
@@ -127,7 +127,7 @@ def 指令变更(源):
     return None if len(变更)==0 else 变更#出
 
 def 指令动作键(动作,基线):
-    """remove / loaded / added / updated。"""
+    'remove / loaded / added / updated'
     if 动作=='remove':#删
         return 'message.context.instructions.removed'#删
     if 基线 is True:#基线
@@ -135,7 +135,7 @@ def 指令动作键(动作,基线):
     return 'message.context.instructions.added' if 动作=='set' else 'message.context.instructions.updated'#增改
 
 def 指令体(内容,源,翻译):
-    """文件表 + 模型面。"""
+    '文件表 + 模型面'
     变更=指令变更(源)#变
     if 变更 is None:#不可读
         return 不透明体(内容,源,翻译)#回退
@@ -153,7 +153,7 @@ def 指令体(内容,源,翻译):
     }#结束
 
 def 目录条目(源):
-    """空表仍是真目录；不可读才 None。"""
+    '空表仍是真目录；不可读才 None'
     记录=为记录(源)#记
     列表=记录['entries'] if 记录 is not None and 'entries' in 记录 else None#表
     if not isinstance(列表,list):#非
@@ -171,7 +171,7 @@ def 目录条目(源):
     return 出#可空表
 
 def 目录体(内容,源,翻译):
-    """条目表；超界摘要。"""
+    '条目表；超界摘要'
     条目=目录条目(源)#条
     if 条目 is None:#不可读
         return 不透明体(内容,源,翻译)#回退
@@ -189,7 +189,7 @@ def 目录体(内容,源,翻译):
     }#结束
 
 def 快照段(源):
-    """全有或全无。"""
+    '全有或全无'
     记录=为记录(源)#记
     列表=记录['sections'] if 记录 is not None and 'sections' in 记录 else None#表
     if not isinstance(列表,list):#非
@@ -207,7 +207,7 @@ def 快照段(源):
     return None if len(出)==0 else 出#出
 
 def 快照体(内容,源,翻译):
-    """取代告示 + 分段。"""
+    '取代告示 + 分段'
     段列表=快照段(源)#段
     if 段列表 is None:#不可读
         return 不透明体(内容,源,翻译)#回退
@@ -218,23 +218,23 @@ def 快照体(内容,源,翻译):
     }#结束
 
 def 通知摘要(源):
-    """折叠行一文。"""
+    '折叠行一文'
     记录=为记录(源)#记
     摘要=记录['summary'] if 记录 is not None and 'summary' in 记录 else None#摘要
     return 摘要 if isinstance(摘要,str) and 摘要!='' else None#出
 
 def 通知体(内容,翻译):
-    """仅模型面。"""
+    '仅模型面'
     return {'type':'notice-body','content':模型面内容(内容,翻译)}#体
 
 def 中继发送方(源):
-    """senderSessionId。"""
+    'senderSessionId'
     记录=为记录(源)#记
     发=记录['senderSessionId'] if 记录 is not None and 'senderSessionId' in 记录 else None#发
     return 发 if isinstance(发,str) and 发!='' else None#出
 
 def 中继体(内容,源,翻译):
-    """发送方 + 模型面。"""
+    '发送方 + 模型面'
     发=中继发送方(源)#发
     if 发 is None:#不可读
         return 不透明体(内容,源,翻译)#回退
@@ -245,7 +245,7 @@ def 中继体(内容,源,翻译):
     }#结束
 
 def 召回会话(源):
-    """全有或全无。"""
+    '全有或全无'
     记录=为记录(源)#记
     列表=记录['references'] if 记录 is not None and 'references' in 记录 else None#表
     if not isinstance(列表,list):#非
@@ -265,7 +265,7 @@ def 召回会话(源):
     return None if len(出)==0 else 出#出
 
 def 召回体(内容,源,翻译):
-    """会话完整度 + 模型面。"""
+    '会话完整度 + 模型面'
     会话列表=召回会话(源)#会
     if 会话列表 is None:#不可读
         return 不透明体(内容,源,翻译)#回退
@@ -278,7 +278,7 @@ def 召回体(内容,源,翻译):
     return {'type':'recall-body','sessions':行,'content':模型面内容(内容,翻译)}#体
 
 def 选上下文体(表单,内容,源,翻译):
-    """返回 rendered/summary/body；不可读回退 opaque。"""
+    '返回 rendered/summary/body；不可读回退 opaque'
     不透={'rendered':None,'summary':None,'body':不透明体(内容,源,翻译)}#opaque
     if 表单=='instructions':#指令
         return 不透 if 指令变更(源) is None else {'rendered':'instructions','summary':None,'body':指令体(内容,源,翻译)}#出
@@ -298,18 +298,18 @@ def 选上下文体(表单,内容,源,翻译):
     raise ValueError(f'不可达上下文形态: {表单}')#闭联合
 
 class 上下文体:
-    """读节点 form 后选体。"""
+    '读节点 form 后选体'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """选体包装。"""
+        '选体包装'
         属性=自身.属性#props
         内容=属性['content'] if 'content' in 属性 and 属性['content'] is not None else []#内容
         源=属性['source'] if 'source' in 属性 else None#源
@@ -325,7 +325,7 @@ class 上下文体:
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

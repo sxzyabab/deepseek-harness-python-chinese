@@ -25,14 +25,8 @@ __all__=[#仅中文公开名
 工具令牌='{{tools}}'#工具 schema 令牌
 工作目录令牌模式=re.compile(r'^\{\{cwd\}\}(?:/|$)')#cwd 令牌
 
-if 会话格式目录.当前版本!=会话格式版本:#目录版本须与会话包一致
-    raise Exception(#抛出版本不匹配
-        f'llm-replay: format catalog v{会话格式目录.当前版本} '
-        +f'does not match Session v{会话格式版本}',
-    )#版本检查结束
-
 def 规范化投影头(头):#规范化投影头
-    """在物理校验前物化仅 fixture 的头省略与令牌。"""
+    '在物理校验前物化仅 fixture 的头省略与令牌'
     归一=dict(头)#浅拷贝
     if 头.get('version')==0 and 'delegationDepth' not in 头:#v0 缺深度
         归一['delegationDepth']=0#补零
@@ -42,7 +36,7 @@ def 规范化投影头(头):#规范化投影头
     return 归一#返回头
 
 def 规范化投影行(源):#规范化投影行
-    """省略精确请求工具伴随令牌，并为校验物化投影工具名。"""
+    '省略精确请求工具伴随令牌，并为校验物化投影工具名'
     记录=dict(源)#浅拷贝
     if 记录.get('type')!='request/header':#非请求头
         return 记录#原样
@@ -64,7 +58,7 @@ def 规范化投影行(源):#规范化投影行
     return 记录#返回记录
 
 def 恢复投影请求头(目标,源):#恢复投影请求头
-    """恢复仅为满足已发布格式校验而物化的 fixture 令牌。"""
+    '恢复仅为满足已发布格式校验而物化的 fixture 令牌'
     目标数据=目标.get('data') if isinstance(目标.get('data'),dict) else {}#目标 data
     源数据=源.get('data') if isinstance(源.get('data'),dict) else {}#源 data
     目标头=目标数据.get('header') if isinstance(目标数据.get('header'),dict) else {}#目标 header
@@ -81,7 +75,7 @@ def 恢复投影请求头(目标,源):#恢复投影请求头
     }#返回结束
 
 def 物理行基数(行):#物理行基数
-    """返回一个物理行对确定性序号补全贡献多少逻辑事件。"""
+    '返回一个物理行对确定性序号补全贡献多少逻辑事件'
     if 行.get('type') not in 打包块行类型:#非打包为 1
         return 1#1
     数据=行.get('data')#data
@@ -91,7 +85,7 @@ def 物理行基数(行):#物理行基数
     return len(载荷) if isinstance(载荷,list) and len(载荷)>0 else 1#按长度
 
 def 夹具格式错误(错误,头行,行号表,事件行号,物理行=None):#fixture 格式错误
-    """附加最近物理源行，同时保留不支持迁移的分类。"""
+    '附加最近物理源行，同时保留不支持迁移的分类'
     细节=错误.args[0] if isinstance(错误,BaseException) and 错误.args else str(错误)#详情
     原因=getattr(错误,'__cause__',None)#原因
     定位=原因.args[0] if isinstance(原因,BaseException) and 原因.args else 细节#定位串
@@ -113,13 +107,13 @@ def 夹具格式错误(错误,头行,行号表,事件行号,物理行=None):#fix
     return _带原因异常(消息,错误)#普通错误
 
 def _带原因异常(消息,原因):#包装异常并保留 cause
-    """创建 Exception 并挂上 __cause__。"""
+    '创建 Exception 并挂上 __cause__'
     错误=Exception(消息)#普通错误
     错误.__cause__=原因#原因
     return 错误#返回
 
 def 物化解析会话夹具(制品,源头):#物化解析视图
-    """从已迁移制品物化公共回放视图。"""
+    '从已迁移制品物化公共回放视图'
     头=制品['header'] if isinstance(制品,dict) else getattr(制品,'header',{})#头
     继承=制品['inheritedEventCount'] if isinstance(制品,dict) else getattr(制品,'inheritedEventCount',0)#继承数
     事件=制品['events'] if isinstance(制品,dict) else getattr(制品,'events',())#事件
@@ -133,7 +127,7 @@ def 物化解析会话夹具(制品,源头):#物化解析视图
     }#对象结束
 
 def 解析会话夹具(文本):#解析会话 fixture
-    """解析、补全、解码并迁移一个投影快照制品，不写回其源。"""
+    '解析、补全、解码并迁移一个投影快照制品，不写回其源'
     头行号=None#头行号
     源头=None#源头
     恢复器=None#恢复器
@@ -190,7 +184,7 @@ def 解析会话夹具(文本):#解析会话 fixture
         raise 夹具格式错误(错误,头行号,行号表,事件行号)#带行号抛错
 
 def 编码当前会话快照夹具(文本,已解析):#编码当前快照
-    """编码一个已迁移 fixture 同时保留投影 cwd 与请求工具令牌。"""
+    '编码一个已迁移 fixture 同时保留投影 cwd 与请求工具令牌'
     制品=已解析['artifact']#制品
     头字段=制品['header'] if isinstance(制品,dict) else getattr(制品,'header')#头
     继承=制品['inheritedEventCount'] if isinstance(制品,dict) else getattr(制品,'inheritedEventCount')#继承
@@ -216,28 +210,27 @@ def 编码当前会话快照夹具(文本,已解析):#编码当前快照
     return 输出+('\n' if 文本.endswith('\n') else '')#保留尾换行
 
 def 准备会话快照夹具供比较(文本):#准备快照比较
-    """在内存中把一个持久或投影快照 fixture 转为当前物理格式，供期望输出比较。"""
+    '在内存中把一个持久或投影快照 fixture 转为当前物理格式，供期望输出比较'
     已解析=解析会话夹具(文本)#解析 fixture
     return 编码当前会话快照夹具(文本,已解析)#编码当前格式
 
 def 请求图像句柄文本(引用,版本,访问=None):#请求图像句柄文本
-    """兼容旧名；权威实现见 模型后端.llm.内容.请求图片句柄文案。"""
     return 请求图片句柄文案(引用,版本,访问)#委托
 
 def 是否记录(值):#是否字典
-    """值是否为非数组对象。"""
+    '值是否为非数组对象'
     return isinstance(值,dict)#字典
 
 def 恰好这些键(值,键列表):#精确键集
-    """精确键检查。"""
+    '精确键检查'
     return len(值)==len(键列表) and all(键 in 值 for 键 in 键列表)#匹配
 
 def 解析会话日志(文本):#解析会话日志
-    """将会话 .jsonl 缓冲解析为事件列表（经格式目录 createRestore 迁移）。"""
+    '将会话 .jsonl 缓冲解析为事件列表（经格式目录 createRestore 迁移）'
     return 解析会话夹具(文本)['events']#返回事件
 
 def 解析会话头(文本):#解析会话头
-    """从 JSONL 头读取回放身份与排序事实。"""
+    '从 JSONL 头读取回放身份与排序事实'
     已解析=解析会话夹具(文本)#解析 fixture
     return {#返回
         'id':已解析['id'],#会话 id
@@ -246,10 +239,10 @@ def 解析会话头(文本):#解析会话头
     }#返回结束
 
 def 派生回放脚本(事件列表):#派生回放脚本
-    """从已记录会话日志重建每 stream() 回放脚本。"""
+    '从已记录会话日志重建每 stream() 回放脚本'
     脚本=[]#脚本
     def 关闭(键,分片列表):#关闭一次模型调用
-        """压入分片条目或拒绝缺 finish。"""
+        '压入分片条目或拒绝缺 finish'
         if len(分片列表)==0:#空则跳过
             return#跳过
         末=分片列表[-1]#末分片
@@ -287,7 +280,7 @@ def 派生回放脚本(事件列表):#派生回放脚本
     return 脚本#返回脚本
 
 def 收集字符串(值,输出):#收集字符串叶子
-    """按遍历顺序收集 JSON 兼容值的每个字符串叶子。"""
+    '按遍历顺序收集 JSON 兼容值的每个字符串叶子'
     if isinstance(值,str):#字符串
         输出.append(值)#叶子
         return
@@ -300,7 +293,7 @@ def 收集字符串(值,输出):#收集字符串叶子
             收集字符串(项,输出)#递归
 
 def 解析请求占位(模式,语料):#对照请求语料解析占位
-    """对照请求语料解析一个占位模式；最后一次匹配胜出。"""
+    '对照请求语料解析一个占位模式；最后一次匹配胜出'
     import re as 正则#编译模式
     try:
         编译=正则.compile(模式)
@@ -314,7 +307,7 @@ def 解析请求占位(模式,语料):#对照请求语料解析占位
     return 末次.group(1) if 末次.lastindex else 末次.group(0)#首捕获或整匹配
 
 def 替换字符串占位(文本,语料):#替换占位
-    """替换脚本字符串中的每个 {{fromRequest:<pattern>}}。"""
+    '替换脚本字符串中的每个 {{fromRequest:<pattern>}}'
     结果=''#输出
     游标=0#游标
     while True:#扫描
@@ -331,7 +324,7 @@ def 替换字符串占位(文本,语料):#替换占位
         游标=闭+len(请求占位闭)#推进
 
 def 替换值占位(值,语料):#深拷贝并解析占位
-    """深拷贝 JSON 兼容值并解析脚本占位。"""
+    '深拷贝 JSON 兼容值并解析脚本占位'
     if isinstance(值,str):#字符串
         return 替换字符串占位(值,语料) if 请求占位开 in 值 else 值#替换或原样
     if isinstance(值,list):#数组
@@ -341,7 +334,7 @@ def 替换值占位(值,语料):#深拷贝并解析占位
     return 值#原样
 
 def 解析脚本条目(条目,消息列表):#解析脚本占位
-    """对照实时请求解析 {{fromRequest:<regex>}} 占位。"""
+    '对照实时请求解析 {{fromRequest:<regex>}} 占位'
     if 请求占位开 not in json.dumps(条目,ensure_ascii=False):#无占位
         return 条目#原样
     叶子=[]#叶子
@@ -349,15 +342,15 @@ def 解析脚本条目(条目,消息列表):#解析脚本占位
     return 替换值占位(条目,'\n'.join(叶子))#解析
 
 def 物化会话令牌(条目,实时会话标识列表):#物化会话令牌
-    """用实时会话 id 替换 {{session:N}}。"""
+    '用实时会话 id 替换 {{session:N}}'
     if '{{session:' not in json.dumps(条目,ensure_ascii=False):#无会话令牌
         return 条目#原样
     import re as 正则#替换
     def 替换(值):#递归替换
-        """替换字符串中的会话令牌。"""
+        '替换字符串中的会话令牌'
         if isinstance(值,str):#字符串
             def 一次(匹配):#单次
-                """按序取实时 id。"""
+                '按序取实时 id'
                 序=int(匹配.group(1))#序号
                 实时=实时会话标识列表[序-1] if 序-1<len(实时会话标识列表) else None#实时 id
                 if 实时 is None:#未绑定
@@ -372,7 +365,7 @@ def 物化会话令牌(条目,实时会话标识列表):#物化会话令牌
     return 替换(条目)#返回
 
 def 推断已启动子智能体(消息列表,实时会话标识列表):#推断子 id
-    """从工具结果文本学习子 id。"""
+    '从工具结果文本学习子 id'
     import re as 正则#匹配
     叶子=[]#叶子
     收集字符串(消息列表,叶子)#收集
@@ -387,11 +380,11 @@ def 推断已启动子智能体(消息列表,实时会话标识列表):#推断�
             实时会话标识列表[索引]=标识#预填
 
 def 非法覆盖(文件,位置,细节):#覆盖非法
-    """抛出覆盖非法。"""
+    '抛出覆盖非法'
     raise Exception(f'llm-replay: invalid override {文件}: {位置} {细节}')#覆盖非法
 
 def 读取分片列表(值,文件,位置):#读分片数组
-    """校验 StreamChunk 数组。"""
+    '校验 StreamChunk 数组'
     if not isinstance(值,list):#必须数组
         非法覆盖(文件,位置,'chunks must be an array')#必须数组
     for 索引,分片 in enumerate(值):#逐项
@@ -400,7 +393,7 @@ def 读取分片列表(值,文件,位置):#读分片数组
     return 值#断言分片数组
 
 def 读回放条目(值,文件,位置):#读回放条目
-    """解析一个 ReplayEntry。"""
+    '解析一个 ReplayEntry'
     if not 是否记录(值):#必须对象
         非法覆盖(文件,位置,'must be an object')#必须对象
     种类=值.get('kind')#种类
@@ -434,7 +427,7 @@ def 读回放条目(值,文件,位置):#读回放条目
     非法覆盖(文件,位置,f'has unknown kind {种类!r}')#未知 kind
 
 def 读覆盖文档(值,文件):#读覆盖文档
-    """解析覆盖伴随文档。"""
+    '解析覆盖伴随文档'
     if isinstance(值,list):#整脚本替换
         return [读回放条目(条目,文件,f'entry {索引}') for 索引,条目 in enumerate(值)]#整替换
     if not 是否记录(值) or not 恰好这些键(值,['patches']) or not isinstance(值.get('patches'),list):#形态非法
@@ -451,7 +444,7 @@ def 读覆盖文档(值,文件):#读覆盖文档
     return {'patches':补丁列表}#增补形态
 
 def 读主夹具(配置):#读主 JSONL，整脚本覆盖占用同路径时跳过
-    """主 JSONL 存在且不是覆盖文件时解析。"""
+    '主 JSONL 存在且不是覆盖文件时解析'
     文件=配置['file']#主路径
     if not os.path.exists(文件) or 文件==配置.get('overrideFile'):#缺失或同路径覆盖
         return None#跳过
@@ -459,13 +452,13 @@ def 读主夹具(配置):#读主 JSONL，整脚本覆盖占用同路径时跳过
         return 解析会话夹具(句柄.read())#夹具
 
 def 从夹具派生脚本(文件,夹具):#已迁移夹具派生
-    """夹具缺席则失败。"""
+    '夹具缺席则失败'
     if 夹具 is None:#缺失
         raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
     return 派生回放脚本(夹具['events'])#派生
 
 def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
-    """有覆盖则整替换或按索引补丁。"""
+    '有覆盖则整替换或按索引补丁'
     覆盖=配置.get('overrideFile')#覆盖路径
     if 覆盖 is not None and os.path.exists(覆盖):#有覆盖
         with open(覆盖,'r',encoding='utf-8') as 句柄:#读覆盖
@@ -492,22 +485,22 @@ def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
     return 从夹具派生脚本(配置['file'],夹具)#无覆盖则派生
 
 def 从文件派生脚本(文件):#从 JSONL 派生
-    """从会话 JSONL 派生主脚本。"""
+    '从会话 JSONL 派生主脚本'
     if not os.path.exists(文件):#缺失
         raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
     with open(文件,'r',encoding='utf-8') as 句柄:#读文件
         return 派生回放脚本(解析会话日志(句柄.read()))#解析并派生
 
 def 加载回放脚本(配置):#加载主回放脚本
-    """加载主会话的回放脚本。"""
+    '加载主会话的回放脚本'
     return 解析回放脚本(配置,读主夹具(配置))#主脚本
 
 def 子脚本排序键(项):
-    """按创建时刻与录制 id 排序。"""
+    '按创建时刻与录制 id 排序'
     return (项['createdAt'],项['recordedId'])
 
 def 加载会话脚本(配置):#加载主与子脚本
-    """按绑定顺序加载主与子脚本。"""
+    '按绑定顺序加载主与子脚本'
     主夹具=读主夹具(配置)#主夹具
     主条目=解析回放脚本(配置,主夹具)#主条目
     主头=主夹具 if 主夹具 is not None else {'id':'','createdAt':0}#无头则默认
@@ -525,23 +518,23 @@ def 加载会话脚本(配置):#加载主与子脚本
     return [主,*子项列表]#主在前
 
 class 回放适配器(语言模型适配器):#回放适配器
-    """使已配置提供方目录可发现、且无提供方 I/O 的回放适配器。"""
+    '使已配置提供方目录可发现、且无提供方 I/O 的回放适配器'
 
     def __init__(自身,提供方列表,回放):#构造
-        """记下提供方映射与回放实现。"""
+        '记下提供方映射与回放实现'
         super().__init__()#基类
         自身._providers={项['id']:项 for 项 in 提供方列表}#提供方映射
         自身._replay=回放#回放实现
 
     def providerInfo(自身,提供方):#提供方简介
-        """咨询信息。"""
+        '咨询信息'
         if 提供方 not in 自身._providers:#未知
             return super().providerInfo(提供方)#基类
         配置=自身._providers[提供方]#配置
         return {'id':提供方,'name':配置.get('name') or 提供方}#咨询信息
 
     def providerRetryPolicy(自身,提供方):#重试政策
-        """可选提供方重试政策。"""
+        '可选提供方重试政策'
         if 提供方 not in 自身._providers:#未知
             return super().providerRetryPolicy(提供方)#基类
         配置=自身._providers[提供方]#配置
@@ -551,7 +544,7 @@ class 回放适配器(语言模型适配器):#回放适配器
         return 解析重试政策(政策,f'llm-replay: provider "{提供方}" retryPolicy')#解析
 
     def imageRequestPricing(自身,提供方,模型):#图像计价
-        """可选平坦视觉 token 价。"""
+        '可选平坦视觉 token 价'
         配置=自身._providers.get(提供方)#配置
         模型列表=配置.get('models') if 配置 else None#模型列表
         命中=next((候 for 候 in (模型列表 or []) if 候.get('id')==模型),None)#命中模型
@@ -559,7 +552,7 @@ class 回放适配器(语言模型适配器):#回放适配器
         if 视觉 is None:#无
             return None#无
         def 计价(图像列表):#计价函数
-            """按出现计价；卸载图视觉 token 为 0。"""
+            '按出现计价；卸载图视觉 token 为 0'
             结果=[]#行
             for 项 in 图像列表:#逐项
                 if isinstance(项,dict):#带附件与卸载标记
@@ -576,7 +569,7 @@ class 回放适配器(语言模型适配器):#回放适配器
         return {'priceImages':计价}#图像计价
 
     def listModels(自身,提供方):#列模型
-        """列出咨询模型。"""
+        '列出咨询模型'
         if 提供方 not in 自身._providers:#未知
             return []#空
         配置=自身._providers[提供方]#配置
@@ -591,7 +584,7 @@ class 回放适配器(语言模型适配器):#回放适配器
         return 结果#列模型
 
     def resolveModel(自身,提供方,模型):#解析模型
-        """解析模型元数据。"""
+        '解析模型元数据'
         if 提供方 not in 自身._providers:#未知
             return {'provider':提供方,'id':模型,'name':模型}#默认
         配置=自身._providers[提供方]#配置
@@ -616,11 +609,11 @@ class 回放适配器(语言模型适配器):#回放适配器
         return 结果#解析模型
 
     def stream(自身,选项):#流式回放
-        """委托回放实现。"""
+        '委托回放实现'
         return 自身._replay(选项)#委托回放
 
 def 节拍延迟(毫秒,信号):#节拍等待
-    """等待毫秒；信号中止则抛 aborted。"""
+    '等待毫秒；信号中止则抛 aborted'
     if 毫秒<=0:#无等待
         return
     截止=time.monotonic()+毫秒/1000#截止
@@ -630,7 +623,7 @@ def 节拍延迟(毫秒,信号):#节拍等待
         time.sleep(0.01)#短睡
 
 def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
-    """回吐已记录流，像真实适配器一样遵守中止。"""
+    '回吐已记录流，像真实适配器一样遵守中止'
     种类=条目['kind']#种类
     if 种类=='chunks':#分片
         for 分片 in 条目['chunks']:#逐分片
@@ -654,7 +647,7 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
                 句柄.write('')#就绪标记
         门闩=threading.Event()#挂起门闩
         def 中止回调():#中止
-            """放行拒绝。"""
+            '放行拒绝'
             门闩.set()#放行
         if 信号 is not None:#有信号
             if getattr(信号,'aborted',False):#已中止
@@ -668,7 +661,7 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
     断言永不(条目,'llm-replay replay entry')#穷尽
 
 def 提供方已接受(条目):#是否到达 2xx 后提交点
-    """脚本化提供方调用是否到达在线适配器的 2xx 后提交点。"""
+    '脚本化提供方调用是否到达在线适配器的 2xx 后提交点'
     种类=条目['kind']#种类
     if 种类 in ('chunks','hang'):#成功类
         return True#接受
@@ -677,7 +670,12 @@ def 提供方已接受(条目):#是否到达 2xx 后提交点
     return 断言永不(条目,'llm-replay acceptance entry')#穷尽
 
 def 安装LLM回放(上下文,配置):#安装回放
-    """安装每会话位置回放。"""
+    '安装每会话位置回放'
+    if 会话格式目录.当前版本!=会话格式版本:#目录版本须与会话包一致
+        raise Exception(#抛出版本不匹配
+            f'llm-replay: format catalog v{会话格式目录.当前版本} '
+            +f'does not match Session v{会话格式版本}',
+        )#版本检查结束
     节拍=配置.get('paceMs') or 0#节拍
     if not isinstance(节拍,int) or isinstance(节拍,bool) or 节拍<0:#非法
         raise Exception(f"llm-replay: paceMs must be a non-negative integer, got {配置.get('paceMs')!r}")#非法
@@ -687,7 +685,7 @@ def 安装LLM回放(上下文,配置):#安装回放
     下一脚本=[0]#下一脚本索引
     匿名='\0anon\0'#无 sessionId 调用的键
     def 回放(选项):#回放实现
-        """按会话推进游标并产出流。"""
+        '按会话推进游标并产出流'
         键=选项.get('sessionId') or 匿名#绑定键
         状态=绑定.get(键)#已绑定
         未记录=False#是否未记录会话
@@ -708,7 +706,7 @@ def 安装LLM回放(上下文,配置):#安装回放
         状态['cursor']=索引+1#推进游标
         条目=状态['entries'][索引] if 索引<len(状态['entries']) else None#条目
         def 生成():#生成器
-            """产出回放分片。"""
+            '产出回放分片'
             if 未记录:#未记录会话
                 raise Exception(#未记录
                     f'llm-replay: a model call arrived from an unrecorded session (#{已见+1}); '
@@ -739,11 +737,11 @@ def 安装LLM回放(上下文,配置):#安装回放
         拆除=上下文.llm.registerAdapter([项['id'] for 项 in 提供方列表],回放适配器(提供方列表,回放))#注册
     else:#catch-all 瀑布
         def 回放流(选项,下一):
-            """用回放脚本代替下游流。"""
+            '用回放脚本代替下游流'
             return 回放(选项)#回放
         拆除=上下文.监听('llm/stream',回放流)#瀑布
     def 断言已消费():#断言已消费
-        """拆除时消费检查。"""
+        '拆除时消费检查'
         问题=[]#问题
         if 下一脚本[0]<len(脚本列表):#未绑定
             问题.append(f'{len(脚本列表)-下一脚本[0]} recorded script(s) never bound to a live session')#未绑定
@@ -756,7 +754,7 @@ def 安装LLM回放(上下文,配置):#安装回放
     return {'dispose':拆除,'assertConsumed':断言已消费}#句柄
 
 def 校验已配置模型(提供方列表):#校验模型配置
-    """校验 inputModalities 与 imageRequestTokens。"""
+    '校验 inputModalities 与 imageRequestTokens'
     for 提供方 in 提供方列表 or []:#逐提供方
         for 模型 in 提供方.get('models') or []:#逐模型
             模态=模型.get('inputModalities')#模态
@@ -784,7 +782,7 @@ def 校验已配置模型(提供方列表):#校验模型配置
                 )#非法更新策略
 
 def 应用(上下文,配置=None):#Cordis 入口
-    """从配置或环境安装回放。"""
+    '从配置或环境安装回放'
     if 配置 is None:#缺省
         配置={}#空
     文件=配置.get('file') or os.environ.get('DSH_SNAPSHOT_FILE')#主 fixture

@@ -5,11 +5,11 @@ __all__=['json块','最大字节','默认截断标签']#仅中文公开名
 最大字节=20000#UTF-8 字节封顶
 
 def 默认截断标签(总计):
-    """超出封顶时的脚。"""
+    '超出封顶时的脚'
     return '… 已截断，共 '+str(总计)+' 字节'#文案
 
 def 按字节截(串,上限):
-    """UTF-8 字节截断，切点落在字符边界。"""
+    'UTF-8 字节截断，切点落在字符边界'
     编码=串.encode('utf-8')#字节
     if len(编码)<=上限:#未超；判 length
         return 串#全
@@ -22,23 +22,23 @@ def 按字节截(串,上限):
     return ''#空
 
 class json块:#可折叠 JSON
-    """打开时 stringify；超封顶截断。"""
+    '打开时 stringify；超封顶截断'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.已打开=自身.属性['defaultOpen'] is True if 'defaultOpen' in 自身.属性 else False#默认开
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 切换(自身):
-        """开合。"""
+        '开合'
         自身.已打开=not 自身.已打开#翻
 
     def 渲染(自身):
-        """产出 toggle+可选 body。"""
+        '产出 toggle+可选 body'
         属性=自身.属性#props
         截断标=属性['truncatedLabel'] if 'truncatedLabel' in 属性 else 默认截断标签#脚格式
         体=''#体
@@ -65,7 +65,7 @@ class json块:#可折叠 JSON
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

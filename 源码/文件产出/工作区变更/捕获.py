@@ -1,4 +1,4 @@
-"""文件工具编辑前后的整文件捕获：首次变更前与轮次结束时各存一份，按字节 SHA-1 内容寻址。"""
+'文件工具编辑前后的整文件捕获：首次变更前与轮次结束时各存一份，按字节 SHA-1 内容寻址'
 import hashlib,os,stat#哈希、文件与类型位
 __all__=['捕获文件','相同捕获','变更路径']#仅中文公开名
 
@@ -6,19 +6,19 @@ __all__=['捕获文件','相同捕获','变更路径']#仅中文公开名
 二进制探测字节=8000#git探测NUL的前缀字节数
 
 class 捕获错误(Exception):#本模块异常
-    """捕获读写失败。"""
+    '捕获读写失败'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 def 是否不存在错误(错误):#是否ENOENT
-    """文件系统错误是否表示路径不存在。"""
+    '文件系统错误是否表示路径不存在'
     if isinstance(错误,FileNotFoundError):#Python专用
         return True#缺失
     return isinstance(错误,OSError) and 错误.errno==2#ENOENT
 
 def 捕获文件(绝对路径,目录,最大字节):#读入并按哈希落盘
-    """把路径当前内容存进内容寻址目录；最多读 maxBytes+1；非缺失且非普通文件返回 None。"""
+    '把路径当前内容存进内容寻址目录；最多读 maxBytes+1；非缺失且非普通文件返回 None'
     try:#打开只读
         句柄=open(绝对路径,'rb')#二进制读
     except OSError as 错误:#打开失败
@@ -53,17 +53,17 @@ def 捕获文件(绝对路径,目录,最大字节):#读入并按哈希落盘
     return {'kind':'file','file':文件,'binary':二进制}#已存侧
 
 def 相同捕获(甲,乙):#两侧是否已知相同
-    """两侧是否已知内容相同；超限侧永不匹配。"""
+    '两侧是否已知内容相同；超限侧永不匹配'
     if 甲['kind']=='absent' or 乙['kind']=='absent':#任一缺失
         return 甲['kind']==乙['kind']#同为缺失
     return 甲['kind']=='file' and 乙['kind']=='file' and 甲['file']==乙['file']#同哈希文件
 
 def 文本路径(值):#非空白字符串
-    """非空白字符串，否则 None。"""
+    '非空白字符串，否则 None'
     return 值 if isinstance(值,str) and 值.strip()!='' else None#有效路径
 
 def 变更路径(名称,参数):#文件工具将改的路径
-    """write/edit/变更型 str_replace_editor 将改的模型侧路径；其余返回 None。"""
+    'write/edit/变更型 str_replace_editor 将改的模型侧路径；其余返回 None'
     if not isinstance(参数,dict):#须对象
         return None#无法解析
     if 名称=='write':#写入工具

@@ -4,16 +4,16 @@ from .轨迹记录 import 轨迹错误#本包异常
 __all__=['登记轨迹请求头定义']#仅中文公开名
 
 def 轨迹系统消息定义(检视):#系统消息定义工厂
-    """inspect 由 uiConversation.inspectSystemPrompt 提供。"""
+    'inspect 由 uiConversation.inspectSystemPrompt 提供'
     def 匹配(事件):#认领系统消息或非 append 表面
-        """system/message 或位置替换。"""
+        'system/message 或位置替换'
         if 事件['type']=='system/message':#系统
             return {'id':str(事件['seq']),'role':'start'}#开
         if 'surfaceOp' in 事件 and 事件['surfaceOp']!='append':#非 append
             return {'id':str(事件['seq']),'role':'start'}#开
         return None#不匹配
     def 开始(_上下文,匹配项,读取器):#起始
-        """解释并可选合成请求头。"""
+        '解释并可选合成请求头'
         先前项=读取器.previous('trajectory-system-message')#先前
         先前=先前项['state'] if 先前项 is not None and 'state' in 先前项 else None#态
         态=检视(先前,匹配项['event'])#解释
@@ -54,10 +54,10 @@ def 轨迹系统消息定义(检视):#系统消息定义工厂
             },#头结束
         }#结束
     def 更新(上下文,_匹配项=None):#原样
-        """状态不变。"""
+        '状态不变'
         return 上下文['state'] if 'state' in 上下文 else None#态
     def 建视图(上下文):#构建视图
-        """合成头或 append 引入渲卡。"""
+        '合成头或 append 引入渲卡'
         态=上下文['state'] if 'state' in 上下文 else None#态
         起始=上下文['start'] if 'start' in 上下文 else None#起始
         事件=起始['event'] if 起始 is not None and 'event' in 起始 else None#事件
@@ -73,14 +73,14 @@ def 轨迹系统消息定义(检视):#系统消息定义工厂
     }#结束
 
 def 轨迹请求头定义(检视):#请求头定义工厂
-    """inspect 由 uiConversation.inspectRequestPrompt 提供。"""
+    'inspect 由 uiConversation.inspectRequestPrompt 提供'
     def 匹配(事件):#只匹配请求头
-        """用序号当节点 id。"""
+        '用序号当节点 id'
         if 事件['type']=='request/header':#请求头
             return {'id':str(事件['seq']),'role':'start'}#起步
         return None#其余不匹配
     def 开始(_上下文,匹配项,读取器):#初始化
-        """对照系统节点检视。"""
+        '对照系统节点检视'
         事件=匹配项['event']#事件
         if 事件['type']!='request/header':#必须
             raise 轨迹错误('trajectory-request-header start requires request/header')#抬错
@@ -104,10 +104,10 @@ def 轨迹请求头定义(检视):#请求头定义工厂
             事实['change']=变更#变更
         return 事实#请求头事实
     def 更新(上下文,_匹配项=None):#原样
-        """状态不变。"""
+        '状态不变'
         return 上下文['state'] if 'state' in 上下文 else None#态
     def 建视图(上下文):#构建视图
-        """尚无状态则不贡献。"""
+        '尚无状态则不贡献'
         状态=上下文['state'] if 'state' in 上下文 else None#事实
         if 状态 is None:#无
             return None#不贡献
@@ -118,12 +118,12 @@ def 轨迹请求头定义(检视):#请求头定义工厂
     }#结束
 
 def 登记轨迹请求头定义(上下文):#向会话事件注册
-    """注册轨迹系统提示节点与请求头事实。"""
+    '注册轨迹系统提示节点与请求头事实'
     def 检视系统(先前,事件):#系统检视
-        """委托服务。"""
+        '委托服务'
         return 上下文.uiConversation.inspectSystemPrompt(先前,事件)#结果
     def 检视请求(先前,事件,系统):#请求检视
-        """委托服务。"""
+        '委托服务'
         return 上下文.uiConversation.inspectRequestPrompt(先前,事件,系统)#结果
     上下文.uiConversation.events.register(轨迹系统消息定义(检视系统))#系统
     上下文.uiConversation.events.register(轨迹请求头定义(检视请求))#请求头

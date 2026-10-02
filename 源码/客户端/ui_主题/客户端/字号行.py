@@ -19,33 +19,33 @@ __all__=['字号行','样式表']
 '''
 
 class 字号行:
-    """通用区字号行；显示已持久化字号。"""
+    '通用区字号行；显示已持久化字号'
     def __init__(自身,属性):
-        """记下翻译、写字号与 store 钩。"""
+        '记下翻译、写字号与 store 钩'
         自身.属性=属性
 
     def 更新(自身,属性):
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性
 
     def 当前字号(自身):
-        """从 useStore 选 fontSize。"""
+        '从 useStore 选 fontSize'
         用存储=自身.属性['useStore']
         def 选字号(快照):
-            """fontSize。"""
+            'fontSize'
             return 快照['fontSize']
         return 用存储(选字号)
 
     def 渲染(自身):
-        """与上游 JSX 同构。"""
+        '与上游 JSX 同构'
         翻译=自身.属性['t']
         设字号=自身.属性['setFontSize']
         字号=自身.当前字号()
         def 增大():
-            """加一。"""
+            '加一'
             设字号(字号+1)
         def 减小():
-            """减一。"""
+            '减一'
             设字号(字号-1)
         return {
             'type':'font-size-row',
@@ -63,7 +63,7 @@ class 字号行:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

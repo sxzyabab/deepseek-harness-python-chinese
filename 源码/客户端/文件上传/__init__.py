@@ -1,7 +1,7 @@
 import weakref#会话 → 暂存表
 from ...内核.作用域 import 获取作用域#作用域标签
 from ...工具.加密 import 随机uuid#铸造凭证
-from ...typert.协议 import 远程,远程服务#Remote 装饰与服务基类
+from ...类型化远程调用.协议 import 远程,远程服务#Remote 装饰与服务基类
 from .http路由 import 处理文件上传http#HTTP 路由处理
 from .协议 import 文件上传路径#上传路径
 from .类型 import (#类型再导出
@@ -37,52 +37,52 @@ __all__=[#仅中文公开名
 依赖=['agents','attachments','commands','connection']#硬依赖
 
 class 提示文件绑定守卫:#绑定守卫
-    """Prompt 凭证绑定：除非投递提交，否则拆除时恢复先前拥有者。"""
+    'Prompt 凭证绑定：除非投递提交，否则拆除时恢复先前拥有者'
     def __init__(自身,回滚):#记下回滚
-        """登记回滚闭包。"""
+        '登记回滚闭包'
         自身._回滚=回滚#回滚
         自身._已结算=False#是否已结算
 
     def 提交(自身):#提交绑定
-        """保持凭证绑定，直至队列或历史观察退休它们。"""
+        '保持凭证绑定，直至队列或历史观察退休它们'
         自身._已结算=True#标记已结算
 
     def 拆除(自身):
-        """未提交则回滚先前绑定。"""
+        '未提交则回滚先前绑定'
         if 自身._已结算:#已提交则不回滚
             return#停
         自身._已结算=True#标记已结算
         自身._回滚()#恢复先前绑定
 
     def __enter__(自身):#进入 with
-        """返回自身。"""
+        '返回自身'
         return 自身#守卫
 
     def __exit__(自身,类型,值,回溯):#离开 with
-        """离开时拆除。"""
+        '离开时拆除'
         自身.拆除()#拆除
         return False#不吞异常
 
 提示文件绑定=提示文件绑定守卫#协议名
 
 class 文件上传服务(远程服务):#Host 文件上传服务
-    """拥有上传存储与按 Agent 作用域暂存凭证的 Host 服务。"""
+    '拥有上传存储与按 Agent 作用域暂存凭证的 Host 服务'
     def __init__(自身,上下文):#构造服务
-        """携带 Agent、附件、命令与 Connection 服务的 Host 上下文。"""
+        '携带 Agent、附件、命令与 Connection 服务的 Host 上下文'
         super().__init__(上下文,'fileUploads')#登记 Remote 服务名
         自身._暂存=weakref.WeakKeyDictionary()#会话 → 暂存表
         自身._智能体解析器=None#冷会话解析器
         def 解析凭证(智能体,凭证标识):#命令凭证解析
-            """转交 resolve。"""
+            '转交 resolve'
             return 自身.解析(智能体,凭证标识)#解析
         def 登记命令解析器():#登记命令解析器
-            """挂到 commands。"""
+            '挂到 commands'
             return 上下文.commands.registerFileReceiptResolver(解析凭证)#登记
         上下文.副作用(登记命令解析器,'file-upload: command file receipt resolver')#commands effect
         def 登记流式路由():#登记流式路由
-            """挂到 connection.fetch。"""
+            '挂到 connection.fetch'
             def 处理请求(请求):#处理函数
-                """转交 HTTP 路由。"""
+                '转交 HTTP 路由'
                 return 处理文件上传http(自身,请求)#处理
             return 上下文.connection.fetch.register({#登记
                 'path':文件上传路径,#路径
@@ -92,39 +92,39 @@ class 文件上传服务(远程服务):#Host 文件上传服务
             })
         上下文.副作用(登记流式路由,'file-upload: streaming route')#connection effect
         def 观察事件(会话,事件):#观察会话事件
-            """转交。"""
+            '转交'
             自身._观察会话事件(会话,事件)#观察
         def 会话拆除(会话):#会话拆除
-            """清暂存表。"""
+            '清暂存表'
             自身._暂存.pop(会话,None)#清表
         上下文.监听('session/event',观察事件)#观察会话事件
         上下文.监听('session/disposed',会话拆除)#会话拆除清表
 
     def 登记智能体解析器(自身,解析器):#登记 Agent 解析器
-        """登记原始上传寻址冷 Session 时用的普通 Session 解析器。"""
+        '登记原始上传寻址冷 Session 时用的普通 Session 解析器'
         if 自身._智能体解析器 is not None:#只许一个
             raise 文件上传错误('file-upload: Agent resolver is already registered')#拒绝
         自身._智能体解析器=解析器#记下
         def 拆除():#卸本实例
-            """仅卸本解析器。"""
+            '仅卸本解析器'
             if 自身._智能体解析器 is 解析器:#仍是本实例
                 自身._智能体解析器=None#清空
         return 拆除#disposer
 
     @远程('upload')
     def 上传(自身,智能体,请求,信号=None):#编码上传
-        """持久化一次编码上传，并按 Typert 选定的 Agent 接收方暂存。"""
+        '持久化一次编码上传，并按 Typert 选定的 Agent 接收方暂存'
         若已中止则抛出(信号)#已取消则抛
         参数={'data':请求['data']}#base64 数据
         if 'name' in 请求:#有名
             参数['name']=请求['name']#写入
         def 存盘():#准入编码文件
-            """同步准入。"""
+            '同步准入'
             return 自身.ctx.attachments.admitEncodedFile(参数)#准入
         return 自身._提交(智能体,存盘)#提交
 
     def 流式上传(自身,请求):#流式上传
-        """为一个 Session 持久化原始分片，不聚合整次上传。"""
+        '为一个 Session 持久化原始分片，不聚合整次上传'
         智能体=自身._解析智能体(请求['sessionId'])#解析接收 Agent
         参数={'data':请求['data']}#字节流
         if 'signal' in 请求:#有信号
@@ -132,12 +132,12 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         if 'name' in 请求:#有名
             参数['name']=请求['name']#写入
         def 存盘():#流式存盘
-            """同步存盘。"""
+            '同步存盘'
             return 自身.ctx.attachments.saveFileStream(参数)#流式存盘
         return 自身._提交(智能体,存盘)#提交
 
     def 解析(自身,智能体,凭证标识):#解析凭证
-        """在其接收 Agent 作用域内解析一条暂存凭证。"""
+        '在其接收 Agent 作用域内解析一条暂存凭证'
         自身._断言智能体作用域(智能体)#必须在 Agent 自身作用域
         表=自身._暂存[智能体.session] if 智能体.session in 自身._暂存 else None#本会话暂存表
         if 表 is None:#无表
@@ -148,7 +148,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         return 项['file']#持久文件引用
 
     def 绑定提示(自身,智能体,凭证标识列表,请求标识):#绑定 prompt 凭证
-        """在一条 prompt 进入 Agent 收件箱时绑定凭证。"""
+        '在一条 prompt 进入 Agent 收件箱时绑定凭证'
         自身._断言智能体作用域(智能体)#必须在 Agent 自身作用域
         表=自身._暂存[智能体.session] if 智能体.session in 自身._暂存 else None#本会话暂存表
         已绑=[]#先前绑定记录
@@ -161,7 +161,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         for 项 in 已绑:#写入新绑定
             项['upload']['requestId']=请求标识#写入
         def 回滚():#回滚守卫
-            """恢复先前绑定。"""
+            '恢复先前绑定'
             for 项 in 已绑:#逐项恢复
                 上传项=项['upload']#暂存项
                 先前=项['previous']#先前 requestId
@@ -172,12 +172,12 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         return 提示文件绑定守卫(回滚)#回滚守卫
 
     def 退休提示(自身,智能体,请求标识):#退休 prompt 凭证
-        """退休被一条已移除队列出现接受的全部凭证。"""
+        '退休被一条已移除队列出现接受的全部凭证'
         自身._断言智能体作用域(智能体)#必须在 Agent 自身作用域
         自身._退休(智能体.session,请求标识)#按请求 id 退休
 
     def _提交(自身,智能体,存盘):#存盘并暂存
-        """执行存盘并铸造凭证。"""
+        '执行存盘并铸造凭证'
         自身._断言普通智能体(智能体)#普通 Agent 才接受上传
         try:#存盘
             文件=存盘()#执行存盘
@@ -205,7 +205,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         return {'receiptId':凭证标识,'file':文件}#返回结果
 
     def _解析智能体(自身,会话标识):#解析接收 Agent
-        """存活或冷解析。"""
+        '存活或冷解析'
         存活=自身.ctx.agents.get(会话标识)#存活 Agent
         if 存活 is not None:#直接返回
             return 存活#存活
@@ -215,12 +215,12 @@ class 文件上传服务(远程服务):#Host 文件上传服务
         return 解析器(会话标识)#恢复或解析
 
     def _断言智能体作用域(自身,智能体):#断言 Agent 自身作用域
-        """必须在 Agent 自身作用域。"""
+        '必须在 Agent 自身作用域'
         if 获取作用域(智能体.ctx) is not 智能体:#作用域不对
             raise 文件上传错误("file-upload: operation requires the Agent's own scope")#拒绝
 
     def _断言普通智能体(自身,智能体):#断言普通 Agent
-        """子智能体不接受文件上传。"""
+        '子智能体不接受文件上传'
         自身._断言智能体作用域(智能体)#先查作用域
         if 智能体.session.header.origin=='subagent':#子智能体
             raise 远程错误(#子智能体附件非法
@@ -230,7 +230,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
             )
 
     def _观察会话事件(自身,会话,事件):#观察会话事件
-        """用户消息带 rpcId 则退休凭证。"""
+        '用户消息带 rpcId 则退休凭证'
         if 事件['type']!='user/message':#非用户消息
             return#忽略
         源=事件['data']['source']#来源
@@ -243,7 +243,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
             自身._退休(会话,rpc标识)#按 rpcId 退休
 
     def _退休(自身,会话,请求标识):#按请求 id 退休凭证
-        """匹配 requestId 的凭证删除。"""
+        '匹配 requestId 的凭证删除'
         表=自身._暂存[会话] if 会话 in 自身._暂存 else None#暂存表
         if 表 is None:#无表
             return#停
@@ -257,7 +257,7 @@ class 文件上传服务(远程服务):#Host 文件上传服务
             自身._暂存.pop(会话,None)#卸下
 
 def 文件未暂存():#未暂存错误
-    """File was not uploaded for this session."""
+    'File was not uploaded for this session'
     return 远程错误(#未暂存
         'session/attachment-invalid',#附件非法
         'File was not uploaded for this session.',#消息
@@ -265,7 +265,7 @@ def 文件未暂存():#未暂存错误
     )
 
 def 应用(上下文,配置=None):#安装 Host 插件
-    """挂载文件上传 Host 服务。"""
+    '挂载文件上传 Host 服务'
     文件上传服务(上下文)#构造并登记
     return None#无额外拆除
 

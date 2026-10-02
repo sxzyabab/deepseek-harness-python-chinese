@@ -1,4 +1,4 @@
-"""原生 V4 元数据与本代次自有关系校验。"""
+'原生 V4 元数据与本代次自有关系校验'
 import json#未知类型诊断
 from os.path import isabs as 是否绝对路径#cwd须为绝对路径
 from ..会话格式 import (#从会话格式导入
@@ -17,7 +17,7 @@ from .分叉结果 import 断言v4分叉结果#分叉结果
 from .工具角色 import 断言v4工具结果消息#工具结果消息
 
 def 断言已发布v4头(头):#断言v4头
-    """校验精确的原生 V4 逻辑头。"""
+    '校验精确的原生 V4 逻辑头'
     if not 是否会话格式json对象(头) or 头.get('version')!=4:#须为v4对象
         raise 会话格式错误('expected format v4 header')#错误
     必填=['version','id','createdAt','isSeeded','delegationDepth']#必填键
@@ -51,7 +51,7 @@ def 断言已发布v4头(头):#断言v4头
         raise 会话格式错误('format v4 header origin must be "subagent"')#错误
 
 def 恢复已发布v4产物(产物,已知事件类型):#恢复v4产物
-    """校验 V4 继承、词表、原生消息准入与生命周期归属。"""
+    '校验 V4 继承、词表、原生消息准入与生命周期归属'
     断言已发布v4头(产物['header'])#断言头
     切割=会话格式计数(产物['inheritedEventCount'],'format v4 inherited event count')#继承切口
     if 切割>len(产物['events']):#切口越界
@@ -84,7 +84,7 @@ def 恢复已发布v4产物(产物,已知事件类型):#恢复v4产物
     return 产物#返回原产物
 
 def 校验投递已接受(事件,当前版本):#校验投递已接受
-    """在评估归属前校验投递代次与活动代次坐标。"""
+    '在评估归属前校验投递代次与活动代次坐标'
     if 事件['type']!='session-log-deepseek/delivery-accepted':#非投递
         return None#无
     数据=事件['data']#载荷
@@ -102,7 +102,7 @@ def 校验投递已接受(事件,当前版本):#校验投递已接受
     return 标识#返回
 
 def 断言已发布v4关系(产物,已知事件类型):#断言已发布v4关系
-    """校验原生开发者字段、消息来源、生命周期、名录与投递关系。"""
+    '校验原生开发者字段、消息来源、生命周期、名录与投递关系'
     标识集=set()#名录子标识
     for 事件 in 产物['events']:#逐事件
         if 事件['type'] not in 已知事件类型:#未知不解释

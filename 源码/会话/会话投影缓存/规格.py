@@ -1,4 +1,4 @@
-"""session_projcache 域声明。"""
+'session_projcache 域声明'
 from ...依赖.schemastery import 字典字段,数字字段,字符串字段,任意字段,布尔字段#schema
 from ...存储.存储域 import 定义域,域表#域工厂
 

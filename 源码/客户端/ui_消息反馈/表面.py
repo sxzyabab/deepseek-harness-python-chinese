@@ -4,21 +4,21 @@ from .对话框 import 反馈对话框控制器#对话框
 __all__=['反馈表面']#仅中文公开名
 
 class 反馈表面:#按会话成对体
-    """支撑一个会话每个入口。"""
+    '支撑一个会话每个入口'
     def __init__(自身,上下文,会话标识):
-        """注入浏览器插件上下文与会话身份。"""
+        '注入浏览器插件上下文与会话身份'
         自身._上下文=上下文#上下文
         自身._会话标识=会话标识#会话
         自身.反馈=消息反馈控制器(上下文.remote.messageFeedback,会话标识)#消息层
         def 路由(目标,条目):#按目标路由提交
-            """消息目标走所选评分；会话目标走 sessionFeedback。"""
+            '消息目标走所选评分；会话目标走 sessionFeedback'
             if 'kind' in 目标 and 目标['kind']=='message':#消息
                 return 自身.反馈.rate(目标['messageId'],目标['rating'],条目)#所选评判
             return 自身._记录会话(条目)#会话级
         自身.对话框=反馈对话框控制器(路由)#对话框
 
     def _记录会话(自身,条目):#记录会话反馈
-        """经 sessionFeedback Remote 记录。条目为 dict。"""
+        '经 sessionFeedback Remote 记录。条目为 dict'
         请求={'sessionId':自身._会话标识}#请求
         请求.update(条目)#展开条目
         载体=自身._上下文.remote.sessionFeedback.record(请求)#远程
@@ -33,6 +33,6 @@ class 反馈表面:#按会话成对体
         return {'ok':False,'error':{'code':码,'message':描述失败(码)}}#业务失败
 
     def 拆除(自身):#拆除
-        """丢掉两个控制器。"""
+        '丢掉两个控制器'
         自身.反馈.dispose()#消息层
         自身.对话框.拆除()#对话框

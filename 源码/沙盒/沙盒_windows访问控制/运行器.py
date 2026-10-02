@@ -1,19 +1,4 @@
-"""windows-acl 隔离运行器：沙箱 seam 用来代替调用方命令生成的 argv 前缀包装。它用工作区写入 SID 允许列表创建 WRITE_RESTRICTED 令牌，在其下生成被包装的 argv，并继承调用方的 stdio（字节直通），镜像子进程退出码，退出时撤销其临时授权（工作区 ACE 作为复用缓存保持常驻）。
-
-稳定 argv 约定（seam 构建它；原生 exe 替换会保持同一约定）：
-  [python, 运行器.py, '--workspace', <dir>, '--temp', <dir>,
-   '--mode', <read-only|workspace-write>,
-   ['--write-sid', <S-1-4-…>,
-    '--temp-write-sid', <S-1-4-…>], '--', <argv...>]
-
-模式：
- - workspace-write：工作区与临时目录携带不同的能力 SID 写入授权；其余 ACL 可寻址写入被拒绝，除已文档化的 Everyone 与硬链接边界。
- - read-only：没有能力 SID 授权；限制列表不携带能力 SID，因此更早 workspace-write 期留下的常驻授权 ACE 保持惰性。两种模式都丢掉 Authenticated Users 以及 INTERACTIVE/LOCAL；两份列表共享保活组（登录 SID、EVERYONE），只在能力上不同。
-
-`--write-sid` + `--temp-write-sid`：seam 的授权约定——调用方已经物化了不同的工作区与私有临时 ACE 并拥有其撤销，因此运行器既不授予也不撤销（manageDacls: false）。没有这一对时，workspace-write 把 `--temp` 当根，创建随机私有子目录，推导自己的临时 SID，子进程退出后删掉该目录。两条流里运行器都在生成之前把自身环境的 TMP/TEMP 改写成私有目录。
-
-失败约定：每次运行器侧失败向 stderr 打印 `windows-acl-run: <detail>` 并以 127 退出——seam 的 RUNNER_FAILURE_RULES 匹配该签名。子进程从不在未受限状态下生成。
-"""
+'windows-acl 隔离运行器：沙箱 seam 用来代替调用方命令生成的 argv 前缀包装'
 import os,sys,tempfile,shutil#目录、参数、临时目录与删除
 
 from .ffi import 解析绑定#惰性Win32绑定
@@ -24,16 +9,16 @@ from .工作区sid import 临时写入SID,工作区写入SID#临时与工作区S
 运行器失败退出=127#运行器失败退出码
 
 class 运行器失败(Exception):#已打印过签名的失败
-    """已向 stderr 打印签名行的运行器失败。"""
+    '已向 stderr 打印签名行的运行器失败'
     pass#无额外字段
 
 def 失败(细节):#打印并抛出
-    """打印运行器失败签名行并展开。"""
+    '打印运行器失败签名行并展开'
     sys.stderr.write(运行器签名+': '+细节+'\n')#签名行
     raise 运行器失败(细节)#已打印，外层不再重复
 
 def 解析参数(原始):#解析运行器argv
-    """解析运行器 argv 为工作区/临时/模式/SID/命令。"""
+    '解析运行器 argv 为工作区/临时/模式/SID/命令'
     工作区=None#工作区
     临时=None#临时
     模式=None#模式
@@ -74,12 +59,12 @@ def 解析参数(原始):#解析运行器argv
     return {'workspace':工作区,'temp':临时,'mode':模式,'writeSid':写入SID,'tempWriteSid':解析临时写入SID,'command':参数表[0],'args':参数表[1:]}#已解析
 
 def 要求目录(标签,路径):#要求已存在目录
-    """要求路径是已存在目录。"""
+    '要求路径是已存在目录'
     if not os.path.exists(路径) or not os.path.isdir(路径):#不是目录
         失败(标签+' is not an existing directory')#边界失败
 
 def 主():#运行器入口
-    """解析参数、物化沙箱、生成隔离子进程并镜像退出码。"""
+    '解析参数、物化沙箱、生成隔离子进程并镜像退出码'
     解析=解析参数(sys.argv[1:])#解析参数
     要求目录('--workspace',解析['workspace'])#工作区必须存在
     要求目录('--temp',解析['temp'])#临时必须存在

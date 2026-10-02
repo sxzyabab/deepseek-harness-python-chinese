@@ -1,13 +1,9 @@
-"""工作区控制器的 Host-for-Client Remote 贡献。
-
-注册 workspace 命名空间 create/rename/delete/insertBefore/
-insertSessionBefore/archiveSession/follow；directoryPicker 命名空间 pick/list/createDirectory。
-"""
-from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
+from ...类型化远程调用.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 
-包名='@deepseek-ai/dsh-api-workspace-controller'工作区服务='workspaceController'#服务键
+包名='@deepseek-ai/dsh-api-workspace-controller'
+工作区服务='workspaceController'#服务键
 工作区命名空间='workspace'#命名空间
 目录服务='directoryPickerController'#目录服务键
 目录命名空间='directoryPicker'#目录命名空间

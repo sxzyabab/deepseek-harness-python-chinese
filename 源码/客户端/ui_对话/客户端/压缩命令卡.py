@@ -4,24 +4,24 @@ from .回退命令卡 import 回退命令卡#回退卡
 __all__=['压缩命令卡']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 class 压缩命令卡:
-    """有 compaction 则压缩项；否则回退卡。"""
+    '有 compaction 则压缩项；否则回退卡'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.压缩视图=压缩项()#检查点
         自身.回退视图=回退命令卡()#回退
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """按是否有检查点分发。"""
+        '按是否有检查点分发'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 else None#命令
         压缩=属性['compaction'] if 'compaction' in 属性 else None#检查点
@@ -45,7 +45,7 @@ class 压缩命令卡:
         })#渲
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

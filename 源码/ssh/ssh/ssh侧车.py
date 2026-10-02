@@ -30,29 +30,29 @@ __all__=['运行ssh辅助']#仅中文公开名
 最大文本字节=8*1024*1024#整文上限
 
 def 空对象(值):#z.object({}).strict()
-    """空对象。"""
+    '空对象'
     if not isinstance(值,dict) or len(值)>0:#非空
         raise ssh错误('expected empty object')#失败
     return 值#空
 
 def 进程标识请求(值):#{id}
-    """只含 id。"""
+    '只含 id'
     if not isinstance(值,dict) or 'id' not in 值:#缺
         raise ssh错误('expected process id')#失败
     return {'id':进程标识模式(值['id'])}#id
 
 def 文本流标识请求(值):#{id}
-    """只含流 id。"""
+    '只含流 id'
     if not isinstance(值,dict) or 'id' not in 值:#缺
         raise ssh错误('expected text stream id')#失败
     return {'id':文本流标识模式(值['id'])}#id
 
 def 装服务():#本地提供方
-    """挂投影、政策、沙箱 fs、本地进程与本地沙箱。"""
+    '挂投影、政策、沙箱 fs、本地进程与本地沙箱'
     上下文=cordis.上下文()#根
     纤程表=[]#拆除序
     def 挂(插件,配置=None):#启动并等待
-        """启动插件并记下纤程。"""
+        '启动插件并记下纤程'
         纤程=上下文.启动插件(插件,配置)#启动
         纤程.等待()#启动失败则抛
         纤程表.append(纤程)#记下
@@ -62,14 +62,14 @@ def 装服务():#本地提供方
     挂(本地子进程运行时)#进程
     挂(本地沙箱提供方)#沙箱
     def 关闭():#逆序拆除
-        """逆序拆除纤程。"""
+        '逆序拆除纤程'
         for 纤程 in reversed(纤程表):#逆序
             if 纤程.拆除 is not None:#有拆除器
                 纤程.拆除()#拆
     return {'ctx':上下文,'close':关闭}#运行时
 
 def 运行ssh辅助(传输):#跑到通道关闭或租期到期
-    """传输含 input/output/entryPath/signal。"""
+    '传输含 input/output/entryPath/signal'
     平台=sys.platform#平台
     if 平台!='linux' and not 平台.startswith('linux') and 平台!='darwin':#非 POSIX
         raise ssh错误('SSH helper requires a POSIX host')#拒绝
@@ -87,14 +87,14 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
     清理任务={'值':None}#只跑一次
 
     def 关闭():#关闭辅助
-        """停租期、中止迭代器、关进程、拆服务、删根。"""
+        '停租期、中止迭代器、关进程、拆服务、删根'
         if 清理任务['值'] is not None:#已开始
             清理任务['值'].wait()#等
             return
         完成=threading.Event()#完成
         清理任务['值']=完成#记下
         def 在线程执行():#线程
-            """一次清理。"""
+            '一次清理'
             nonlocal 租期定时#改
             try:#清理
                 if 租期定时 is not None:#有定时
@@ -122,19 +122,19 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
         完成.wait()#等
 
     def 续租():#重置租期
-        """到期则关闭对等。"""
+        '到期则关闭对等'
         nonlocal 租期定时#改
         if 租期定时 is not None:#旧
             租期定时.cancel()#清
         def 到期():#租期到
-            """关闭对等。"""
+            '关闭对等'
             对等.关闭(ssh错误('SSH helper client lease expired'))#关
         租期定时=threading.Timer(租期毫秒/1000.0,到期)#定时
         租期定时.daemon=True#守护
         租期定时.start()#武装
 
     def 解析政策(原始,信号):#政策
-        """规范化 workspaceRoot。"""
+        '规范化 workspaceRoot'
         已解析=政策模式(原始)#校验
         目标=上下文.fs.解析(已解析['workspaceRoot'],{'signal':信号})#解析
         结果=dict(已解析)#拷
@@ -142,11 +142,11 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
         return 结果#政策
 
     def 作目标(原始):#目标
-        """校验目标。"""
+        '校验目标'
         return 目标模式(原始)#目标
 
     def 处理(方法,原始,请求信号):#入站
-        """hello 之后的私有操作。"""
+        'hello 之后的私有操作'
         信号=合成信号(请求信号,寿命.信号)#融合
         if 方法=='hello':#握手
             if 已握手:#重复
@@ -342,19 +342,19 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
     对等=ssh请求对等(传输['input'],传输['output'],最大帧字节,128,处理)#对等
     已关闭=threading.Event()#通道关闭
     def 对等已关(错误=None):#closed
-        """启动清理。"""
+        '启动清理'
         threading.Thread(target=关闭).start()#清理
         已关闭.set()#广播
     对等.关闭回调.append(对等已关)#监听
     def 传输中止():#transport abort
-        """关对等。"""
+        '关对等'
         对等.关闭(ssh错误('SSH helper transport was terminated'))#关
     信号=传输['signal']#寿命
     if 已中止(信号):#已中止
         传输中止()#立刻
     else:#监视
         def 监视():#等
-            """置位后关。"""
+            '置位后关'
             if hasattr(信号,'wait'):#Event
                 信号.wait()#等
             传输中止()#关

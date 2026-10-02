@@ -1,4 +1,4 @@
-"""面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值。它拥有面向模型的模式与运行生命周期；脚本解析、执行、上限与取消放在 `ctx.workflowEngine`（`@deepseek-ai/dsh-workflow`）后面，因此换上加固引擎不必改动模型所见。执行会等待运行结果并始终销毁运行；非 completed 原因变成工具错误，后台收集仍推迟。呈现是仅依赖 args 的通用卡片，标题来自 `meta.name`。显式询问的用法指引登记为工具自己的提示词段落，而不是部署人设散文。"""
+'面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值'
 import json#结果 JSON 渲染
 from ...依赖.schemastery import 字符串字段,自然数字段,布尔字段#配置字段
 from .记录 import 创建工作流记录镜像
@@ -18,9 +18,9 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 }#配置模式结束
 
 class 工作流工具错误(Exception):#面向模型的工作流工具失败
-    """面向模型的工作流工具失败。"""
+    '面向模型的工作流工具失败'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         Exception.__init__(自身,消息)#英文消息
 
 # 脚本编写约定，嵌在工具描述里。这就是面向模型的规格：meta 块、钩子及其精确语义、以及受支持的模式子集。字面量保持原文。
@@ -39,7 +39,9 @@ class 工作流工具错误(Exception):#面向模型的工作流工具失败
 后台收尾=' The run executes in the foreground by default: this call returns when the whole script finishes. Set `run_in_background: true` for a long run: the call returns a job id immediately, the run keeps orchestrating in the background, and its return value arrives with the job\'s completion notice (check on it with `job_output`, stop it with `job_kill`).'
 
 def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字符边界
-    """按 UTF-8 字节上限截断，切点落在字符边界。返回截断后的文本与被丢掉的字节数。"""
+    """按 UTF-8 字节上限截断，切点落在字符边界。
+    返回截断后的文本与被丢掉的字节数
+    """
     数据=文本.encode('utf-8')#UTF-8 字节
     if len(数据)<=最大字节:#未超预算；判 length
         return 文本,0#原样
@@ -51,18 +53,20 @@ def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字
     return 切片.decode('utf-8'),len(数据)-len(切片)#截断文本与丢掉的字节数
 
 def 渲染记录错误(错误):#把记录失败渲染成可记录字符串
-    """渲染被收容的记录失败，不信任抛出值。"""
+    '渲染被收容的记录失败，不信任抛出值'
     try:#尝试强制转为字符串
         return str(错误)#返回字符串形式
     except Exception:#str() 对任意抛出值没有收窄契约
         return '[unrenderable thrown value]'#转换失败时返回固定标签
 
 def 创建工作流记录器(上下文):#创建会话记录器
-    """把活跃的顶层工作流运行投影进其父 Session，且不让记录失败影响工具执行。"""
+    '把活跃的顶层工作流运行投影进其父 Session，且不让记录失败影响工具执行'
     活跃={}#运行 id 到父会话
 
     def 追加(会话,类型,数据):#向会话追加一条本包记录事件
-        """成功追加返回真。会话是对象，数据是 dict。"""
+        """成功追加返回真。
+        会话是对象，数据是 dict
+        """
         try:#尝试写入会话日志
             会话.追加(类型,数据)#追加记录事件
             return True#写入成功
@@ -71,7 +75,9 @@ def 创建工作流记录器(上下文):#创建会话记录器
             return False#写入失败
 
     def 智能体开始(信息,智能体,*其余):#把智能体开始投影为会话记录
-        """投影 workflow/agent-start。信息与智能体都是 dict。"""
+        """投影 workflow/agent-start。
+        信息与智能体都是 dict
+        """
         _=其余#额外参数不用
         会话=活跃[信息['id']] if 信息['id'] in 活跃 else None#查找该运行的父会话
         if 会话 is None:#未在记录的运行直接跳过
@@ -88,7 +94,9 @@ def 创建工作流记录器(上下文):#创建会话记录器
             活跃.pop(信息['id'],None)#停止跟踪该运行
 
     def 智能体结束(信息,智能体,*其余):#把智能体结束投影为会话记录
-        """投影 workflow/agent-end。信息与智能体都是 dict。"""
+        """投影 workflow/agent-end。
+        信息与智能体都是 dict
+        """
         _=其余#额外参数不用
         会话=活跃[信息['id']] if 信息['id'] in 活跃 else None#查找该运行的父会话
         if 会话 is None:#未在记录的运行直接跳过
@@ -105,19 +113,21 @@ def 创建工作流记录器(上下文):#创建会话记录器
     上下文.监听('workflow/agent-end',智能体结束)#把智能体结束投影为会话记录
 
     def 开始(会话,运行):#开始跟踪一次运行
-        """开始跟踪一次运行。运行是对象。"""
+        """开始跟踪一次运行。
+        运行是对象
+        """
         if 追加(会话,'tool-workflow/run-start',{'runId':运行.id,'name':运行.meta['name']}):#先写运行开始记录
             活跃[运行.id]=会话#成功后登记父会话
 
     def 完成(运行号,停止原因):#写运行结束并停止跟踪
-        """写运行结束并停止跟踪。"""
+        '写运行结束并停止跟踪'
         会话=活跃[运行号] if 运行号 in 活跃 else None#查找父会话
         if 会话 is not None:#仍在跟踪
             追加(会话,'tool-workflow/run-end',{'runId':运行号,'stopReason':停止原因})#写结束记录
         活跃.pop(运行号,None)#无论是否写入都停止跟踪
 
     def 放弃(运行号):#丢弃跟踪，不再写结束
-        """丢弃跟踪，不再写结束。"""
+        '丢弃跟踪，不再写结束'
         活跃.pop(运行号,None)#丢掉跟踪
 
     return {#返回记录器三方法
@@ -127,7 +137,9 @@ def 创建工作流记录器(上下文):#创建会话记录器
     }#结束记录器对象
 
 def 呈现工作流调用(参数):#渲染调用中卡片
-    """进行中卡片：按工作流 meta 名标题的通用卡片。参数是 dict。"""
+    """进行中卡片：按工作流 meta 名标题的通用卡片。
+    参数是 dict
+    """
     return {#返回通用卡片视图
         'card':'generic',#通用卡片
         'title':'workflow: '+str(参数['meta']['name']),#标题带工作流名
@@ -135,13 +147,15 @@ def 呈现工作流调用(参数):#渲染调用中卡片
     }#结束调用视图
 
 def 呈现工作流结果(参数,结果):#渲染完成后卡片
-    """完成态卡片：保留进行中标题；结果内容原样渲染。"""
+    '完成态卡片：保留进行中标题；结果内容原样渲染'
     _=参数#呈现不依赖参数
     _=结果#呈现不依赖结果内容
     return {'card':'generic'}#只声明仍用通用卡片
 
 def 停止原因错误(结果):#把停止原因映射为工具错误文案
-    """非 `completed` 的停止原因表示脚本没有干净结束。结果是 dict。"""
+    """非 `completed` 的停止原因表示脚本没有干净结束。
+    结果是 dict
+    """
     停止原因=结果['stopReason']#取出停止原因
     if 停止原因=='completed':#干净完成
         return None#不报错
@@ -154,7 +168,9 @@ def 停止原因错误(结果):#把停止原因映射为工具错误文案
     return 'workflow run ended abnormally ('+str(停止原因)+')'#未知停止原因
 
 def 渲染结果(名称值,已启动智能体数,返回值,最大字节):#把结果格式化成模型可见文本
-    """渲染运行结局文本：meta 名、智能体计数、以及（有上限的）JSON 值。上限按 UTF-8 字节。"""
+    """渲染运行结局文本：meta 名、智能体计数、以及（有上限的）JSON 值。
+    上限按 UTF-8 字节
+    """
     已渲=json.dumps(返回值,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#把返回值格式化成缩进 JSON
     已渲,丢掉=按utf8字节截断(已渲,最大字节)#按字节截断
     if 丢掉>0:#超限
@@ -163,14 +179,16 @@ def 渲染结果(名称值,已启动智能体数,返回值,最大字节):#把结
     return 'workflow "'+名称值+'" completed ('+str(已启动智能体数)+' agent'+复数+').\nReturn value:\n'+已渲#拼出完成摘要
 
 def 解析配置(配置值):
-    """schemastery 已填好带默认值的字段；此步骤记录该解析，不是隐藏回退。配置值是 dict。"""
+    """schemastery 已填好带默认值的字段；此步骤记录该解析，不是隐藏回退。
+    配置值是 dict
+    """
     工具名=配置值['toolName'] if 'toolName' in 配置值 else 'workflow'
     最大字节=配置值['maxResultChars'] if 'maxResultChars' in 配置值 else 50000
     后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True
     return {'toolName':工具名,'maxResultChars':最大字节,'enableRunInBackground':后台启用}
 
 def 任务结局于(结果,名称值,最大字节):
-    """把已结算后台运行映射到任务结局词表。"""
+    '把已结算后台运行映射到任务结局词表'
     停止原因=结果['stopReason']
     if 停止原因=='completed':
         return {
@@ -185,13 +203,13 @@ def 任务结局于(结果,名称值,最大字节):
     return {'status':'failed','detail':'workflow run ended abnormally ('+str(停止原因)+')'}
 
 def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,最大字节):
-    """把一次运行登记为所属任务并立刻返回任务 id。"""
+    '把一次运行登记为所属任务并立刻返回任务 id'
     任务服务=上下文.获取服务('jobs',False)
     if 任务服务 is None:
         raise 工作流工具错误('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')
     运行槽=[None]
     def 任务体(任务):
-        """在任务启动器内拉起引擎运行。"""
+        '在任务启动器内拉起引擎运行'
         启动请求={'script':参数['script'],'meta':参数['meta'],'parent':父智能体}
         if 'args' in 参数 and 参数['args'] is not None:
             启动请求['args']=参数['args']
@@ -201,7 +219,7 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
         if 写记录:
             记录器['开始'](父智能体.session,运行)
         def 等待结局():
-            """销毁、停镜像，再把停止原因映射成任务结局。"""
+            '销毁、停镜像，再把停止原因映射成任务结局'
             try:
                 结果=运行.结果.等待()
             finally:
@@ -215,13 +233,13 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
                     记录器['放弃'](运行.id)
             return 任务结局于(结果,参数['meta']['name'],最大字节)
         def 取消(原因=None):
-            """取消后台工作流运行。"""
+            '取消后台工作流运行'
             运行.取消(原因 if 原因 is not None else 'background workflow job killed')
         from concurrent.futures import Future as 原生结果
         from threading import Thread as 工作线程
         结算=原生结果()
         def 盯():
-            """后台等待运行结局。"""
+            '后台等待运行结局'
             try:
                 结算.set_result(等待结局())
             except BaseException as 错误:
@@ -229,9 +247,9 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
         线=工作线程(target=盯,daemon=True)
         线.start()
         class 结局任务:
-            """给注册表 .等待 的结局包装。"""
+            '给注册表 .等待 的结局包装'
             def 等待(自身,超时=None):
-                """阻塞到任务结局。"""
+                '阻塞到任务结局'
                 return 结算.result(timeout=超时)
         return {'cancel':取消,'done':结局任务()}
     编号=任务服务.启动({
@@ -243,7 +261,9 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
     return {'kind':'background','jobId':编号,'runId':运行槽[0].id}
 
 def 应用(上下文,配置值=None):
-    """登记面向模型的工作流工具与用法段落。配置值是 dict。"""
+    """登记面向模型的工作流工具与用法段落。
+    配置值是 dict
+    """
     if 配置值 is None:
         配置值={}
     已解析=解析配置(配置值)
@@ -259,7 +279,7 @@ def 应用(上下文,配置值=None):
     })#结束段落登记
 
     def 渲染输出(参数,值):
-        """把结构化结果渲成文本块。"""
+        '把结构化结果渲成文本块'
         if 值.get('kind')=='background':
             文本='workflow "'+str(参数['meta']['name'])+'" started in the background as job '+str(值['jobId'])+'. Its return value arrives with the completion notice; check on it with job_output, stop it with job_kill.'
         else:
@@ -267,7 +287,7 @@ def 应用(上下文,配置值=None):
         return [{'type':'text','text':文本}]
 
     def 执行(参数,执行上下文):
-        """启动工作流运行并等待结算，或后台立刻返回任务 id。"""
+        '启动工作流运行并等待结算，或后台立刻返回任务 id'
         if 'agent' not in 执行上下文 or 执行上下文['agent'] is None:
             raise 工作流工具错误('workflow tool requires a calling agent (exec.agent was undefined)')
         父智能体=执行上下文['agent']

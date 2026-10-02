@@ -1,9 +1,9 @@
-"""直接移除与行内改键共用的本地化失败文案。"""
+'直接移除与行内改键共用的本地化失败文案'
 
 __all__=['快捷键读取失败','快捷键失败']
 
 def 快捷键读取失败(配置,运行时,翻译):
-    """标明不可读偏好、恢复路径，以及仍在使用的绑定。"""
+    '标明不可读偏好、恢复路径，以及仍在使用的绑定'
     位置=翻译('desktop-document' if 运行时=='desktop' else 'web-document')
     重载=翻译('desktop-reload' if 运行时=='desktop' else 'web-reload')
     错误键=配置['error'] if 配置.get('error') is not None else 'read'
@@ -11,7 +11,7 @@ def 快捷键读取失败(配置,运行时,翻译):
     return 翻译(错误键,{'location':位置,'reload':重载})+' '+翻译(使用键)
 
 def 快捷键失败(结果,目录,翻译,运行时):
-    """描述未成功的偏好写入，不丢失命令名。"""
+    '描述未成功的偏好写入，不丢失命令名'
     if 结果['status']=='unreadable':
         return 快捷键读取失败(结果['snapshot'],运行时,翻译)
     议题=结果.get('issue')

@@ -9,7 +9,7 @@ _带方案=re.compile(r'^[a-z][a-z\d+.-]*:',re.IGNORECASE|re.ASCII)
 _控制=re.compile(r'[\u0000-\u001f\u007f]')
 
 def 标记文本图片网址(基址,文档路径,目的地):
-    """相对目的地解析到预览文件旁，再走鉴权文件路由。"""
+    '相对目的地解析到预览文件旁，再走鉴权文件路由'
     缀=re.search(r'[?#]',目的地)
     原=目的地 if 缀 is None else 目的地[:缀.start()]
     try:

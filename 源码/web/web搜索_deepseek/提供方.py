@@ -1,4 +1,4 @@
-"""通过 Anthropic 兼容的 Messages 模型调用，使用原生 web_search_20250305 服务端工具做 DeepSeek 搜索。每次搜索消耗一轮模型，但返回结构化结果块；没有这些块是错误，而不是去刮散文的退路。线上格式和原生 HTTP 客户端是提供方私有的，不使用 ctx.llm。"""
+'通过 Anthropic 兼容的 Messages 模型调用，使用原生 web_search_20250305 服务端工具做 DeepSeek 搜索'
 import json#JSON 编解码
 from json import JSONDecodeError as JSON解码错误#线协议 JSON 解析失败
 from urllib.error import URLError as 网址错误#urlopen 网络失败
@@ -20,15 +20,15 @@ from ..web import 网络错误#web 能力错误
 用户代理='deepseek-harness/0.0.1'#每个请求发送的归属头；随包版本递增
 
 class 禁止重定向(HTTP重定向处理器):#HTTP 重定向以提供方错误失败，不跟随
-    """redirect:error：不跟随重定向，把 3xx 原样交给上层按非 ok 处理。"""
+    'redirect:error：不跟随重定向，把 3xx 原样交给上层按非 ok 处理'
     def redirect_request(自身,请求,文件句柄,码,消息,头,新网址):#拒绝跟随
-        """返回 None 使 urlopen 交出 3xx 响应本身。"""
+        '返回 None 使 urlopen 交出 3xx 响应本身'
         return None#不跟随
 
 class 保留非成功(HTTP错误处理器):#对齐 fetch：非 2xx 不抛，读 status 与正文
-    """不把非 2xx 抬成异常，留给调用方读状态码与错误体。"""
+    '不把非 2xx 抬成异常，留给调用方读状态码与错误体'
     def http_response(自身,请求,响应):#HTTP 响应原样返回
-        """HTTP 路径原样返回响应。"""
+        'HTTP 路径原样返回响应'
         return 响应#不抛
 
     https_response=http_response#HTTPS 同路径
@@ -36,31 +36,36 @@ class 保留非成功(HTTP错误处理器):#对齐 fetch：非 2xx 不抛，读 
 打开器=构建打开器(禁止重定向,保留非成功)#禁止重定向且保留非成功体
 
 def 已中止(信号):#调用方 Event 是否已置位
-    """调用方中止信号是否已置位。信号是 threading.Event，缺席视为未中止。"""
+    """调用方中止信号是否已置位。
+    信号是 threading.Event，缺席视为未中止"""
     if 信号 is None:#没有信号
         return False#未中止
     return 信号.is_set()#Event 置位即中止
 
 def 可解析网址(文字):#对齐 URL.canParse
-    """基址可解析则为真（须有 scheme 与 netloc）。urlparse 对字串不抛。"""
+    """基址可解析则为真（须有 scheme 与 netloc）。
+    urlparse 对字串不抛"""
     if not isinstance(文字,str) or len(文字)==0:#判 length：空或非串
         return False#不可解析
     结果=解析网址(文字)#拆 URL
     return len(结果.scheme)>0 and len(结果.netloc)>0#有协议与主机
 
 def 搜索已取消(回退=None):#构造提供方稳定的取消错误
-    """构造提供方稳定的取消错误。中止原因用异常对象承载，不在信号上挂字段。"""
+    """构造提供方稳定的取消错误。
+    中止原因用异常对象承载，不在信号上挂字段"""
     if 回退 is None:#没有原因
         return 网络错误('DeepSeek search aborted','WEB_ABORTED')#稳定消息与码
     return 网络错误('DeepSeek search aborted','WEB_ABORTED',{'cause':回退})#带原因
 
 def 若已中止则抛出(信号=None):#已取消则抛稳定错误
-    """调用方已经中止时，抛出提供方稳定的取消错误。"""
+    '调用方已经中止时，抛出提供方稳定的取消错误'
     if 已中止(信号):#已中止
         raise 搜索已取消()#稳定 WEB_ABORTED
 
 def 引用摘要映射(块列表):#从每个 text 块的 citations[] 建 url→cited_text
-    """从每个 text 块的 citations[] 建 url → cited_text 映射。响应块为 dict。摘录在 text 块的 citation 里，按 url 键控（先出现的赢）。"""
+    """从每个 text 块的 citations[] 建 url → cited_text 映射。
+    响应块为 dict。
+    摘录在 text 块的 citation 里，按 url 键控（先出现的赢）"""
     映射={}#url 到 cited_text
     if 块列表 is None:#缺 content
         return 映射#空映射
@@ -76,7 +81,9 @@ def 引用摘要映射(块列表):#从每个 text 块的 citations[] 建 url→c
     return 映射#摘要映射
 
 def 映射人机响应(响应):#把 Messages 响应映射成规范化搜索结果
-    """把 DeepSeek Anthropic Messages 响应映射成规范化搜索结果。响应为 dict。web 服务拥有最终的 maxResults 截断，因此这里的 truncated 始终为 false。"""
+    """把 DeepSeek Anthropic Messages 响应映射成规范化搜索结果。
+    响应为 dict。
+    web 服务拥有最终的 maxResults 截断，因此这里的 truncated 始终为 false"""
     块列表=响应['content'] if 'content' in 响应 else []#内容块，缺席当空列表
     结果块列表=[]#只留搜索工具结果块
     for 块 in 块列表:#过滤
@@ -116,14 +123,18 @@ def 映射人机响应(响应):#把 Messages 响应映射成规范化搜索结�
     return {'sources':来源列表,'truncated':False}#截断由 web 服务做
 
 class DeepSeek搜索提供方:#DeepSeek 支持的搜索提供方；HTTP 重定向以 WEB_PROVIDER_ERROR 失败
-    """DeepSeek 搜索提供方。选项与请求为 dict。协议槽 available/search/id 按字面量留给缝读取。"""
+    """DeepSeek 搜索提供方。
+    选项与请求为 dict。
+    协议槽 available/search/id 按字面量留给缝读取"""
     def __init__(自身,解析选项):#保存选项解析器
-        """收下下一次操作的选项 thunk。"""
+        '收下下一次操作的选项 thunk'
         自身.解析选项=解析选项#选项解析器
         自身.id=提供方标识#协议槽 id
 
     def available(自身):#当前快照是否足以发起搜索
-        """廉价的本地可用性检查；不得发起网络调用。选项为 dict。正整数校验写在本入口，先排除 bool。"""
+        """廉价的本地可用性检查；不得发起网络调用。
+        选项为 dict。
+        正整数校验写在本入口，先排除 bool"""
         选项=自身.解析选项()#读当前选项
         字面量=选项['apiKey'] if 'apiKey' in 选项 else None#字面量密钥
         有密钥=((字面量 is not None and len(字面量)>0) or ('resolveApiKey' in 选项 and 选项['resolveApiKey'] is not None))#判 length：有字面量或解析器
@@ -134,7 +145,9 @@ class DeepSeek搜索提供方:#DeepSeek 支持的搜索提供方；HTTP 重定�
         return 有密钥 and 可解析网址(选项['baseURL'] if 'baseURL' in 选项 else None) and 令牌合格 and 次数合格#四条件
 
     def search(自身,请求,信号=None):#执行一次搜索
-        """跑一次搜索；用信号接受取消。请求与选项为 dict。整次操作一份快照。"""
+        """跑一次搜索；用信号接受取消。
+        请求与选项为 dict。
+        整次操作一份快照"""
         选项=自身.解析选项()#操作入口快照
         密钥=自身.取密钥(选项,信号)#解析密钥，不留在提供方上
         若已中止则抛出(信号)#解析后若已取消则停
@@ -224,7 +237,9 @@ class DeepSeek搜索提供方:#DeepSeek 支持的搜索提供方；HTTP 重定�
                 pass#映射路径已拥有结果或错误
 
     def 取密钥(自身,选项,信号=None):#解析一次操作的凭证，不把它留在提供方上
-        """解析一次操作的凭证。调用方快照使密钥与发往的端点来自同一段配置。解析器已是同步。"""
+        """解析一次操作的凭证。
+        调用方快照使密钥与发往的端点来自同一段配置。
+        解析器已是同步"""
         若已中止则抛出(信号)#已取消则停
         字面量=选项['apiKey'] if 'apiKey' in 选项 else None#字面量密钥
         if 字面量 is not None and len(字面量)>0:#判 length：字面量优先

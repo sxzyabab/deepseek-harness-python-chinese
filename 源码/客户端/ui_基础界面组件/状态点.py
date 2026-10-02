@@ -4,18 +4,18 @@ __all__=['状态点','状态表','矩阵格']#仅中文公开名
 矩阵格=((0,0),(4,0),(8,0),(8,4),(8,8),(4,8),(0,8),(0,4))#顺时针外圈
 
 class 状态点:#状态指示
-    """aria-hidden；旁配文案。"""
+    'aria-hidden；旁配文案'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        """点或矩阵。"""
+        '点或矩阵'
         属性=自身.属性#props
         态=属性['state'] if 'state' in 属性 else 'done'#态
         if 态 not in 状态表:#非法
@@ -45,7 +45,7 @@ class 状态点:#状态指示
         }#视图结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

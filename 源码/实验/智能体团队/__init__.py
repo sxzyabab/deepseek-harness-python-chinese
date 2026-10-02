@@ -1,7 +1,7 @@
 import threading
 from ...依赖.schemastery import 正整数字段,字典字段
 from ...依赖.工具 import 聚合错误
-from ...typert.协议 import 远程服务
+from ...类型化远程调用.协议 import 远程服务
 from .活动 import 团队活动
 from .错误 import 团队错误,错误文案
 from .日志 import 团队日志
@@ -35,21 +35,21 @@ __all__=[
 })
 
 def 正限制(名,值):
-    """校验一个正整数部署限制。"""
+    '校验一个正整数部署限制'
     if not isinstance(值,int) or isinstance(值,bool) or 值<1:
         raise 团队错误(名+' must be a positive safe integer','TEAM_INVALID_CONFIG')
     return int(值)
 
 def _配置项(配置值,键,缺省):
-    """从配置映射读键，缺席用缺省。"""
+    '从配置映射读键，缺席用缺省'
     if 配置值 is None or 键 not in 配置值:
         return 缺省
     return 配置值[键]
 
 class 团队服务(远程服务):
-    """以精确 live Lead Session 日志为后台的 Agent Teams 服务。"""
+    '以精确 live Lead Session 日志为后台的 Agent Teams 服务'
     def __init__(自身,上下文,配置值=None):
-        """构造并接线活动、生命周期、日志、名册、邮箱与任务板。"""
+        '构造并接线活动、生命周期、日志、名册、邮箱与任务板'
         super().__init__(上下文,'agentTeams')
         自身.config={
             'maxMembers':正限制('maxMembers',_配置项(配置值,'maxMembers',默认最大成员)),
@@ -67,7 +67,7 @@ class 团队服务(远程服务):
         自身.activity=团队活动()
         自身.lifecycle=团队运行时生命周期(自身.config['disposalTimeoutMs'])
         def 提交时(根):
-            """通知等待者。"""
+            '通知等待者'
             自身.activity.通知(团队标识(根.id))
         自身.journal=团队日志(上下文,提交时)
         自身.roster=团队名册(上下文,自身.journal,自身.lifecycle,自身.config['maxMembers'])
@@ -79,26 +79,26 @@ class 团队服务(远程服务):
         自身._接线监听(上下文)
 
     def _接线监听(自身,上下文):
-        """挂会话事件、恢复与运行时拆除。"""
+        '挂会话事件、恢复与运行时拆除'
         def 观察事件(会话,事件,*_其余):
-            """观察会话事件。"""
+            '观察会话事件'
             自身.mailbox.观察会话事件(会话,事件)
         上下文.监听('session/event',观察事件)
         def 智能体已创建(载荷,*_其余):
-            """调度恢复。"""
+            '调度恢复'
             自身._调度恢复(载荷['agent'])
         上下文.监听('agent/created',智能体已创建)
         def 状态变化(载荷,*_其余):
-            """通知等待者。"""
+            '通知等待者'
             关系=自身.roster.试成员关系(载荷['agent'])
             if 关系 is not None:
                 自身.activity.通知(关系['id'])
         上下文.监听('agent/status',状态变化)
         def 寿命效果():
-            """注册投影并在拆除时拆除运行时。"""
+            '注册投影并在拆除时拆除运行时'
             卸投影=上下文.根.sessionProjections.register(团队投影定义)
             def 卸除():
-                """先拆除运行时再卸投影。"""
+                '先拆除运行时再卸投影'
                 try:
                     自身._拆除运行时()
                 finally:
@@ -109,54 +109,54 @@ class 团队服务(远程服务):
             自身._调度恢复(智能体)
 
     def membership(自身,智能体):
-        """解析一个精确 live Agent 的 Team 角色。"""
+        '解析一个精确 live Agent 的 Team 角色'
         return 自身.roster.成员关系(智能体)
 
     def listMembers(自身,智能体):
-        """列出一个 Team 成员可见的、经运行时充实的 roster。"""
+        '列出一个 Team 成员可见的、经运行时充实的 roster'
         return 自身.roster.列表(自身.roster.成员关系(智能体))
 
     def spawnTeammate(自身,调用方,请求):
-        """创建一个具名、可延续的 Team Lead 直接子代。"""
+        '创建一个具名、可延续的 Team Lead 直接子代'
         return 自身.roster.创建(调用方,请求)
 
     def sendMessage(自身,调用方,请求):
-        """排队一条持久 peer 消息，再尝试即时投递。"""
+        '排队一条持久 peer 消息，再尝试即时投递'
         return 自身.mailbox.发送(调用方,请求)
 
     def createTask(自身,调用方,请求):
-        """在 Team Lead 日志中创建一条无主 pending 任务。"""
+        '在 Team Lead 日志中创建一条无主 pending 任务'
         return 自身.tasks.创建(自身.roster.成员关系(调用方),请求)
 
     def getTask(自身,调用方,标识):
-        """返回一条任务，含已删除 tombstone。"""
+        '返回一条任务，含已删除 tombstone'
         return 自身.tasks.获取(自身.roster.成员关系(调用方),标识)
 
     def listTasks(自身,调用方):
-        """按数字创建顺序列出当前未删除任务。"""
+        '按数字创建顺序列出当前未删除任务'
         return 自身.tasks.列表(自身.roster.成员关系(调用方))
 
     def updateTask(自身,调用方,请求):
-        """compare-and-set 一次已授权的任务转换。"""
+        'compare-and-set 一次已授权的任务转换'
         return 自身.tasks.更新(调用方,自身.roster.成员关系(调用方),请求)
 
     def waitForChange(自身,调用方,超时毫秒,信号):
-        """等待下一次 Team 域或成员状态变化。"""
+        '等待下一次 Team 域或成员状态变化'
         关系=自身.roster.成员关系(调用方)
         return 自身.activity.等待(关系['id'],超时毫秒,信号)
 
     def interrupt(自身,调用方,目标名):
-        """中断一个 live teammate 轮次，不清理其 pending inbox。"""
+        '中断一个 live teammate 轮次，不清理其 pending inbox'
         return 自身.roster.中断(调用方,目标名)
 
     def tryMembership(自身,智能体):
-        """不抛错地解析调用方，供 scoped 工具安装与观察者使用。"""
+        '不抛错地解析调用方，供 scoped 工具安装与观察者使用'
         return 自身.roster.试成员关系(智能体)
 
     def _调度恢复(自身,智能体):
-        """在发布栈回退后排队一次受控恢复。"""
+        '在发布栈回退后排队一次受控恢复'
         def 微任务():
-            """执行恢复。"""
+            '执行恢复'
             if 自身.lifecycle.已拆除:
                 return
             try:
@@ -168,12 +168,12 @@ class 团队服务(远程服务):
         threading.Thread(target=微任务,daemon=True).start()
 
     def _执行恢复(自身,智能体):
-        """先对账 roster provisioning，再重试该成员的 pending mailbox。"""
+        '先对账 roster provisioning，再重试该成员的 pending mailbox'
         自身.roster.恢复(智能体,自身.lifecycle.信号)
         自身.mailbox.恢复(智能体,自身.lifecycle.信号)
 
     def _拆除运行时(自身):
-        """在服务拆除完成前停止 Team 拥有的 live 分支并拆除每一个等待者。"""
+        '在服务拆除完成前停止 Team 拥有的 live 分支并拆除每一个等待者'
         自身.lifecycle.关闭()
         自身.activity.关闭()
         失败列表=[]
@@ -188,7 +188,7 @@ class 团队服务(远程服务):
             raise 聚合错误(失败列表,'智能体团队运行时拆除失败')
 
 def 应用(上下文,配置值=None):
-    """构造并登记团队服务。"""
+    '构造并登记团队服务'
     团队服务(上下文,配置值)
 
 name=名称

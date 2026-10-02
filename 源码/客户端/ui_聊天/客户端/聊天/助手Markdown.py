@@ -3,28 +3,28 @@ from .推理行 import 推理行#Think 披露
 __all__=['助手Markdown']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 class 助手Markdown:
-    """流式/定稿/中断共用；仅 tool-call 时不画壳。"""
+    '流式/定稿/中断共用；仅 tool-call 时不画壳'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.推理缓存={}#按块索引
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 取推理行(自身,索引):
-        """同索引复用。"""
+        '同索引复用'
         if 索引 not in 自身.推理缓存:#新
             自身.推理缓存[索引]=推理行()#建
         return 自身.推理缓存[索引]#行
 
     def 渲染(自身):
-        """按块 kind 分发。"""
+        '按块 kind 分发'
         属性=自身.属性#props
         块列表=属性['blocks'] if 'blocks' in 属性 and 属性['blocks'] is not None else []#块
         流式=属性['streaming'] if 'streaming' in 属性 else False#流式
@@ -59,7 +59,7 @@ class 助手Markdown:
         return {'type':'assistant-markdown','interrupted':中断,'streaming':流式,'children':渲染列表,'cssModule':'助手Markdown.module.css'}#壳
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

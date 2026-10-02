@@ -7,19 +7,19 @@ __all__=['解析客户端源命令','解析客户端源结果']#仅中文公开�
 基64规则=re.compile(r'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z')#Base64校验
 
 def 自然数(值,标签,允许零):#自然数
-    """自然数校验。"""
+    '自然数校验'
     if not isinstance(值,int) or isinstance(值,bool) or 值<(0 if 允许零 else 1):#越界
         raise 检查器错误(f'inspector protocol: {标签} must be {"a non-negative" if 允许零 else "a positive"} integer')#英文诊断
     return 值#自然数
 
 def 内容种类(值):#内容种类
-    """内容种类。"""
+    '内容种类'
     if 值 not in ('source','source-map'):#非法种类
         raise 检查器错误('inspector protocol: invalid Client source content kind')#英文诊断
     return 值#种类
 
 def 解析脚本(值):#解析脚本描述
-    """解析脚本描述。"""
+    '解析脚本描述'
     记录=精确对象(值,['scriptKey','url','hash','buildId','sourceMapUrl','startLine','startColumn','endLine','endColumn','isModule','length'],'Client script descriptor')#精确对象
     if not isinstance(记录.get('url'),str) or len(记录['url'])>8192 or not isinstance(记录.get('hash'),str):#身份非法
         raise 检查器错误('inspector protocol: invalid Client script identity')#英文诊断
@@ -36,7 +36,7 @@ def 解析脚本(值):#解析脚本描述
     return 结果#脚本描述
 
 def 解析客户端源命令(值):#解析源命令
-    """解析一条 Worker-到-Client 源命令。"""
+    '解析一条 Worker-到-Client 源命令'
     if not 是否普通对象(值) or not isinstance(值.get('op'),str):#须有op
         raise 检查器错误('inspector protocol: Client source command must have an op')#英文诊断
     if 值['op']=='list-scripts':#列脚本
@@ -48,7 +48,7 @@ def 解析客户端源命令(值):#解析源命令
     return {'op':'get-content-chunk','scriptKey':线上标识(值['scriptKey'],'scriptKey'),'content':内容种类(值['content']),'offset':自然数(值['offset'],'offset',True),'maxBytes':自然数(值['maxBytes'],'maxBytes',False)}#分片命令
 
 def 解析客户端源结果(值):#解析源结果
-    """解析一次成功的 Client 源结果。"""
+    '解析一次成功的 Client 源结果'
     if not 是否普通对象(值) or not isinstance(值.get('op'),str):#须有op
         raise 检查器错误('inspector protocol: Client source result must have an op')#英文诊断
     if 值['op']=='list-scripts':#列表结果

@@ -4,30 +4,30 @@ from .分区存储 import 草稿阻挡#客户端阻挡
 __all__=['预设分区']#仅中文公开名
 
 class 预设分区:
-    """部署无名册时返回 None。属性与快照都是 dict。"""
+    '部署无名册时返回 None。属性与快照都是 dict'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props 并拉名册。"""
+        '合并 props 并拉名册'
         自身.属性=dict(属性) if 属性 is not None else {}#基础
         自身.属性.update(关键字参数)#覆盖
         自身.属性['load']()#拉
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=dict(属性)#最新
 
     def 状态(自身):
-        """经 useAgentPresetSection。"""
+        '经 useAgentPresetSection'
         def 恒等(快照):
-            """整表。"""
+            '整表'
             return 快照#快照
         return 自身.属性['useAgentPresetSection'](恒等)#快照
 
     def 取消删除(自身):
-        """关掉删除确认。"""
+        '关掉删除确认'
         自身.属性['confirmDelete'](None)#取消
 
     def 渲染(自身):
-        """产出分区；unavailable 则 None。"""
+        '产出分区；unavailable 则 None'
         属性=自身.属性#props
         态=自身.状态()#态
         翻译=属性['t']#翻译
@@ -71,7 +71,7 @@ class 预设分区:
                     启=属性['startCreatorDraft']#启动
                     关=属性['close'] if 'close' in 属性 else None#关设置
                     def 点编写(启动=启,关闭=关):
-                        """暂存并关设置。"""
+                        '暂存并关设置'
                         启动()#启动
                         if 关闭 is not None:#有关
                             关闭()#关设置
@@ -155,7 +155,7 @@ class 预设分区:
         }#视图结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有
             合并=dict(属性) if 属性 is not None else {}#基
             合并.update(关键字参数)#覆

@@ -3,7 +3,7 @@ from ...依赖.工具 import 是否表达式节点
 from .脱敏 import 脱敏密钥
 
 def 朴素配置(值):
-    """从配置快照去掉运行时引用，得到可脱敏与填表的普通值。"""
+    '从配置快照去掉运行时引用，得到可脱敏与填表的普通值'
     取=getattr(值,'get',None)
     if callable(取) and not isinstance(值,(dict,list,str,bytes,int,float,bool,type(None))):
         return 朴素配置(值.get())
@@ -14,11 +14,11 @@ def 朴素配置(值):
     return 值
 
 def 朴素模式(模式):
-    """去掉易变标记，并对密钥缺省做脱敏。"""
+    '去掉易变标记，并对密钥缺省做脱敏'
     根=字段() if not isinstance(模式,字段) else 模式
     结果=type(模式)(模式.toJSON()) if hasattr(模式,'toJSON') else 模式
     def 行走(节点):
-        """递归剥易变与密钥缺省。"""
+        '递归剥易变与密钥缺省'
         元=getattr(节点,'meta',None)
         if isinstance(元,dict):
             元.pop('volatile',None)
@@ -40,7 +40,7 @@ def 朴素模式(模式):
     return 结果
 
 def 易变表单(模式):
-    """选出最近易变祖先使其可不重挂即编辑的字段。"""
+    '选出最近易变祖先使其可不重挂即编辑的字段'
     元=getattr(模式,'meta',None) or {}
     if 元.get('volatile'):
         return 朴素模式(模式)
@@ -56,7 +56,7 @@ def 易变表单(模式):
     return None
 
 def 投影表单(模式,值):
-    """只投影模式声明字段，排除普通配置。"""
+    '只投影模式声明字段，排除普通配置'
     if getattr(模式,'type',None)=='object' and isinstance(值,dict) and not 是否表达式节点(值):
         结果={}
         for 键,孩子 in (getattr(模式,'dict',None) or {}).items():
@@ -67,7 +67,7 @@ def 投影表单(模式,值):
     return 值
 
 def 是否易变路径(模式,路径):
-    """字段路径是否落在已声明易变节点之下。"""
+    '字段路径是否落在已声明易变节点之下'
     元=getattr(模式,'meta',None) or {}
     if 元.get('volatile'):
         return True

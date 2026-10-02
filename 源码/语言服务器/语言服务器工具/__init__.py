@@ -1,4 +1,4 @@
-"""面向模型的 `lsp` 工具，叠在 `ctx.lsp` 之上。"""
+'面向模型的 `lsp` 工具，叠在 `ctx.lsp` 之上'
 from ...依赖.schemastery import 自然数字段
 from ...内核.工具 import 定义工具#工具定义
 from ..语言服务器 import 语言服务器错误#LSP 错误
@@ -24,12 +24,12 @@ __all__=[
 ]
 
 def 断言正整数(名称,值):
-    """配置入口正整数校验，排除布尔。加载期大声失败。"""
+    '配置入口正整数校验，排除布尔。加载期大声失败'
     if isinstance(值,bool) or isinstance(值,int) is False or 值<1:#非法
         raise 语言服务器错误('tool-lsp: '+名称+' must be a positive integer','LSP_INVALID_ARGUMENT')#拒绝
 
 def 应用(上下文,配置值=None):
-    """向工具注册表登记 `lsp`。"""
+    '向工具注册表登记 `lsp`'
     if 配置值 is None:#默认空
         配置值={}#空配置
     已解析={#解析后配置
@@ -46,12 +46,12 @@ def 应用(上下文,配置值=None):
         'text':语言服务器提示文本,#正文
     })#段落结束
     def 渲染(_参数,值):
-        """按 kind 选择格式化器。值是工具结果 dict。"""
+        '按 kind 选择格式化器。值是工具结果 dict'
         if 值['kind']=='locations':#位置结果
             return [{'type':'text','text':格式化位置列表(值['locations'],值['resolvedWorkspaceUri'],已解析['maxLocations'],已解析['maxResultChars'])}]#文本块
         return [{'type':'text','text':格式化悬停(值['hover'],已解析['maxResultChars'])}]#悬停块
     def 执行(参数,执行上下文):
-        """要求会话 cwd，并把一基坐标转成缝的零基坐标。参数与执行上下文是 dict。"""
+        '要求会话 cwd，并把一基坐标转成缝的零基坐标。参数与执行上下文是 dict'
         输入=解析语言服务器参数(参数)#校验参数
         工作区根=会话工作目录(执行上下文)#会话 cwd
         if 工作区根 is None:#无工作区

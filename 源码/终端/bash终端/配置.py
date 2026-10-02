@@ -1,12 +1,12 @@
-"""本地 PTY 后端经过校验的配置。"""
+'本地 PTY 后端经过校验的配置'
 from ...依赖.schemastery import 字符串字段,数字字段,列表字段#配置字段
 
 安全整数上限=9007199254740991#外来JSON校验点：JS Number.MAX_SAFE_INTEGER
 
 class 终端bash错误(Exception):#本包配置与搭建失败
-    """本地 bash 终端配置或搭建非法。"""
+    '本地 bash 终端配置或搭建非法'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 配置={#对外插件配置模式
@@ -32,7 +32,7 @@ class 终端bash错误(Exception):#本包配置与搭建失败
 )#数值字段结束
 
 def 校验配置(配置值):#断言每个数值配置字段都是正的安全整数，且上下限能组合
-    """断言每个数值配置字段都是正的安全整数，且上下限能组合；把输入收窄为已完全解析的配置。"""
+    '断言每个数值配置字段都是正的安全整数，且上下限能组合；把输入收窄为已完全解析的配置'
     if len(配置值['backendType'])==0:#空后端类型
         raise 终端bash错误('terminal-bash: backendType must be non-empty')#拒绝空后端类型
     if len(配置值['shellPath'])==0:#空shell路径

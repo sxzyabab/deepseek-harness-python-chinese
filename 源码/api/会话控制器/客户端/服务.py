@@ -1,10 +1,9 @@
-"""根 sessions 服务：列表存储、引用保留与作用域。
-
-视图选择在 Controller 之外。
-"""
+'根 sessions 服务：列表存储、引用保留与作用域'
 import os#路径基名
 import re#分叉标题
 import threading
+from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据
 from ....工具.超时 import 若已中止则抛出#中止
 from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
@@ -20,20 +19,20 @@ __all__=['会话创建错误','会话分叉错误','客户端会话服务','应�
 全角分叉标题=re.compile(r'^(.*?)（([0-9]+)）\Z')#全角尾编号
 
 class _快照存储:
-    """getSnapshot / subscribe / set。"""
+    'getSnapshot / subscribe / set'
     def __init__(自身,初值):
-        """初值。"""
+        '初值'
         自身._状态=初值#状态
         自身._监听=set()#订阅者
     def getSnapshot(自身):
-        """读。"""
+        '读'
         return 自身._状态#状态
     def subscribe(自身,监听):
-        """订。"""
+        '订'
         自身._监听.add(监听)#登记
         return lambda:自身._监听.discard(监听)#取消
     def set(自身,下一):
-        """写并广播。"""
+        '写并广播'
         自身._状态=下一#写
         for 回调 in list(自身._监听):#派发
             try:
@@ -42,9 +41,9 @@ class _快照存储:
                 print('[session-controller] list store subscriber failed:',错误)#日志
 
 class 会话创建错误(Exception):
-    """结构化 session 创建失败。"""
+    '结构化 session 创建失败'
     def __init__(自身,远程失败,请求会话标识=None):
-        """记下失败。"""
+        '记下失败'
         码=远程失败.code if hasattr(远程失败,'code') else 远程失败.get('code')#码
         消息=远程失败.message if hasattr(远程失败,'message') else 远程失败.get('message')#消息
         super().__init__('session create failed: '+str(码)+': '+str(消息))#文案
@@ -53,9 +52,9 @@ class 会话创建错误(Exception):
         自身.requestedSessionId=请求会话标识#请求 id
 
 class 会话分叉错误(Exception):
-    """结构化 session 分叉失败。"""
+    '结构化 session 分叉失败'
     def __init__(自身,远程失败,源会话标识):
-        """记下失败。"""
+        '记下失败'
         码=远程失败.code if hasattr(远程失败,'code') else 远程失败.get('code')#码
         消息=远程失败.message if hasattr(远程失败,'message') else 远程失败.get('message')#消息
         super().__init__('session fork failed: '+str(码)+': '+str(消息))#文案
@@ -64,7 +63,7 @@ class 会话分叉错误(Exception):
         自身.sourceSessionId=源会话标识#源
 
 def _展示标题(标题,工作目录,标识):
-    """持久标题、项目基名，然后 id。"""
+    '持久标题、项目基名，然后 id'
     if 标题 is not None and 标题!='':#有标题
         return 标题#标题
     if 工作目录 is not None and 工作目录!='':#有 cwd
@@ -74,7 +73,7 @@ def _展示标题(标题,工作目录,标识):
     return 标识#id
 
 def _递增分叉标题(标题):
-    """递增尾部分叉编号。"""
+    '递增尾部分叉编号'
     ascii匹配=半角分叉标题.match(标题)#半角
     if ascii匹配 is not None:#命中
         return ascii匹配.group(1)+'('+str(int(ascii匹配.group(2))+1)+')'#递增
@@ -84,9 +83,9 @@ def _递增分叉标题(标题):
     return 标题+' (1)'#起始
 
 class _会话引用:
-    """一次独立使用的精确 Client 代引用。"""
+    '一次独立使用的精确 Client 代引用'
     def __init__(自身,会话标识,记录,释放引用):
-        """记下。"""
+        '记下'
         自身.sessionId=会话标识#id
         自身._记录=记录#记录
         自身._释放引用=释放引用#释放
@@ -95,21 +94,21 @@ class _会话引用:
         自身._已释=False#已释
     @property
     def binding(自身):
-        """共享绑定。"""
+        '共享绑定'
         if 自身._记录 is None or not 自身._记录.get('live'):#已释
             raise RuntimeError('Session reference "'+str(自身.sessionId)+'" is released')#拒绝
         return 自身._记录['binding']
     @property
     def ready(自身):
-        """等待初始打开。"""
+        '等待初始打开'
         自身._就绪.wait()#等
         if 自身._就绪错误 is not None:
             raise 自身._就绪错误#抛
         return 自身.binding
     def attachOpening(自身,打开任务,信号=None):
-        """附着打开。"""
+        '附着打开'
         def 后台():
-            """等打开。"""
+            '等打开'
             try:
                 if 信号 is not None:#有信号
                     若已中止则抛出(信号)#已取消
@@ -125,7 +124,7 @@ class _会话引用:
         线.daemon=True#守护
         线.start()#启
     def release(自身):
-        """释放一次。"""
+        '释放一次'
         if 自身._已释:#已
             return#空
         自身._已释=True#标记
@@ -137,18 +136,18 @@ class _会话引用:
         if 释放 is not None:#有
             释放()#释
     def __enter__(自身):
-        """with 进入。"""
+        'with 进入'
         return 自身#自身
     def __exit__(自身,_类型,_值,_回溯):
-        """with 退出。"""
+        'with 退出'
         自身.release()#释
         return False#不吞
 
 class 客户端会话服务:
-    """根 sessions 服务。"""
+    '根 sessions 服务'
 
     def __init__(自身,上下文,远程):
-        """构造并接线。"""
+        '构造并接线'
         自身._上下文=上下文#根上下文
         自身._远程=远程#远程
         自身.searchResultLimit=会话搜索结果上限#上限
@@ -160,7 +159,7 @@ class 客户端会话服务:
         自身._会话簇.订阅(自身._投影列表)#订阅
 
     def retain(自身,目标,选项):
-        """保留精确 Client 代并启动共享初始历史打开。"""
+        '保留精确 Client 代并启动共享初始历史打开'
         源=选项['source']#源
         信号=选项.get('signal')#信号
         if 信号 is not None:#有
@@ -177,7 +176,7 @@ class 客户端会话服务:
             raise#抛
 
     def using(自身,目标,选项,操作):
-        """经回调落定持有一次引用。"""
+        '经回调落定持有一次引用'
         引用=自身.retain(目标,选项)#保留
         try:
             引用.ready#等就绪
@@ -186,27 +185,27 @@ class 客户端会话服务:
             引用.release()#释
 
     def retainInfo(自身,标识):
-        """观察本地引用计数。"""
+        '观察本地引用计数'
         if 标识 not in 自身._保留观察:#新建
             监听=set()
             def 取快照():
-                """读。"""
+                '读'
                 return 自身._保留快照(标识)#快照
             def 订阅(回调):
-                """订。"""
+                '订'
                 监听.add(回调)#登记
                 return lambda:监听.discard(回调)#取消
             自身._保留观察[标识]={'listeners':监听,'published':自身._保留快照(标识),'source':{'getSnapshot':取快照,'subscribe':订阅}}#观察
         return 自身._保留观察[标识]['source']#源
 
     def retainAgentScope(自身,标识):
-        """网关同步保留，无历史 I/O。"""
+        '网关同步保留，无历史 I/O'
         if 自身._已关:#已关
             raise RuntimeError('Session Controller is disposed')#拒绝
         return 自身._保留作用域(标识,'gateway')#引用
 
     def create(自身,选项=None):
-        """创建或采纳会话。"""
+        '创建或采纳会话'
         if 选项 is None:#缺省
             选项={}#空
         结果=自身._会话簇.create(选项)
@@ -216,27 +215,27 @@ class 客户端会话服务:
         return 结果['value']['sessionId']#id
 
     def subagentAddress(自身,标识):
-        """取子地址。"""
+        '取子地址'
         return 自身._会话簇.subagentAddress(标识)#委托
 
     def setSubagentCatalogOpen(自身,父会话标识,打开):
-        """目录打开态。"""
+        '目录打开态'
         自身._会话簇.setSubagentCatalogOpen(父会话标识,打开)#委托
 
     def refreshSubagents(自身,父会话标识):
-        """刷新子目录。"""
+        '刷新子目录'
         自身._会话簇.refreshSubagents(父会话标识)#委托
 
     def refresh(自身):
-        """刷新列表。"""
+        '刷新列表'
         自身._会话簇.refreshList()#委托
 
     def search(自身,查询,信号=None):
-        """搜索。"""
+        '搜索'
         return 自身._会话簇.search(查询,信号)#委托
 
     def fork(自身,选项):
-        """分叉；可选递增标题。"""
+        '分叉；可选递增标题'
         结果=自身._会话簇.fork(选项)#分叉
         if not 结果.get('ok'):
             raise 会话分叉错误(结果['error'],选项['sessionId'])#抛
@@ -254,16 +253,16 @@ class 客户端会话服务:
         return 子标识#id
 
     def scope(自身,标识):
-        """取作用域上下文。"""
+        '取作用域上下文'
         记录=自身._作用域表[标识] if 标识 in 自身._作用域表 else None#记录
         return None if 记录 is None else 记录['ctx']#上下文
 
     def scopeOf(自身,上下文):
-        """读作用域标签。"""
+        '读作用域标签'
         return 作用域标签(上下文)#标签
 
     def sessionOf(自身,上下文):
-        """从作用域上下文取会话面。"""
+        '从作用域上下文取会话面'
         标识=作用域标签(上下文)#标签
         if 标识 is None:#无
             return None#无
@@ -275,40 +274,40 @@ class 客户端会话服务:
         return 记录['binding']['session']#面
 
     def binding(自身,标识):
-        """稳定会话绑定。"""
+        '稳定会话绑定'
         记录=自身._作用域表[标识] if 标识 in 自身._作用域表 else None#记录
         return None if 记录 is None else 记录['binding']
 
     def handleControlFrame(自身,帧):
-        """控制帧入口。"""
+        '控制帧入口'
         自身._会话簇.handleControlFrame(帧)#委托
 
     def handleSessionAdded(自身,摘要):
-        """列表新增。"""
+        '列表新增'
         自身._会话簇.handleSessionAdded(摘要)#委托
 
     def handleSessionRemoved(自身,会话标识):
-        """列表移除。"""
+        '列表移除'
         自身._会话簇.handleSessionRemoved(会话标识)#委托
 
     def handleSessionStatus(自身,会话标识,运行中):
-        """状态。"""
+        '状态'
         自身._会话簇.handleSessionStatus(会话标识,运行中)#委托
 
     def handleSessionActivity(自身,会话标识,更新于):
-        """活动。"""
+        '活动'
         自身._会话簇.handleSessionActivity(会话标识,更新于)#委托
 
     def handleSessionError(自身,会话标识,消息):
-        """错误。"""
+        '错误'
         自身._会话簇.handleSessionError(会话标识,消息)#委托
 
     def handleConnected(自身):
-        """重连。"""
+        '重连'
         自身._会话簇.handleConnected()#委托
 
     def dispose(自身):
-        """拆除服务。"""
+        '拆除服务'
         自身._已关=True#关
         for 标识 in list(自身._作用域表.keys()):#全部作用域
             记录=自身._作用域表[标识]#记录
@@ -316,14 +315,14 @@ class 客户端会话服务:
         自身._会话簇.dispose()#会话簇
 
     def _保留作用域(自身,标识,源):
-        """保留作用域。"""
+        '保留作用域'
         记录=自身._作用域表[标识] if 标识 in 自身._作用域表 else 自身._物化作用域(标识)#记录
         先前=记录['retention']#先前
         按源=dict(先前.get('retainedBy',{}))#拷
         按源[源]=按源.get(源,0)+1#加
         记录['retention']={'referenceCount':先前.get('referenceCount',0)+1,'retainedBy':按源}#写
         def 释放():
-            """释放一次。"""
+            '释放一次'
             if not 记录.get('live'):#已死
                 return#空
             计数=记录['retention']['referenceCount']-1#减
@@ -345,12 +344,12 @@ class 客户端会话服务:
         return 引用#引用
 
     def _保留快照(自身,标识):
-        """保留快照。"""
+        '保留快照'
         记录=自身._作用域表[标识] if 标识 in 自身._作用域表 else None#记录
         return 空保留信息 if 记录 is None else 记录['retention']#快照
 
     def _发布保留(自身,标识):
-        """发布保留计数。"""
+        '发布保留计数'
         状态=自身.list.getSnapshot()#状态
         行=状态['byId'].get(标识)#行
         按源=自身._保留快照(标识)['retainedBy']#按源
@@ -372,7 +371,7 @@ class 客户端会话服务:
                 print('[session-controller] reference sources',错误)#日志
 
     def _物化作用域(自身,标识):
-        """物化作用域。"""
+        '物化作用域'
         句柄=创建作用域(自身._上下文,标识)#铸造
         实例=自身._会话簇.get(标识)#实例
         实例.绑定作用域(句柄['ctx'])
@@ -387,7 +386,7 @@ class 客户端会话服务:
         return 记录#记录
 
     def _退役作用域(自身,标识,记录,拆除纤程=True):
-        """退役作用域。"""
+        '退役作用域'
         if not 记录.get('live'):#已死
             return#空
         记录['live']=False#死
@@ -403,7 +402,7 @@ class 客户端会话服务:
                 纤程.dispose()#拆
 
     def _投影列表(自身):
-        """会话簇快照 → SessionListState。"""
+        '会话簇快照 → SessionListState'
         先前=自身.list.getSnapshot()['byId']#先前
         快照=自身._会话簇.getListSnapshot()#快照
         标识列表=[]#ids
@@ -470,7 +469,7 @@ class 客户端会话服务:
         })#写
 
 def 应用客户端会话(上下文):
-    """安装 Client Session 状态及其可重连控制流。"""
+    '安装 Client Session 状态及其可重连控制流'
     远程=上下文.remote#远程根
     服务=客户端会话服务(上下文,远程)#根服务
     if hasattr(上下文,'提供'):#有提供
@@ -478,33 +477,33 @@ def 应用客户端会话(上下文):
     else:#直接挂
         上下文.sessions=服务#挂属性
     def 转发会话已添加(摘要):
-        """added。"""
+        'added'
         服务.handleSessionAdded(摘要)#转发
     def 转发会话已移除(会话标识):
-        """removed。"""
+        'removed'
         服务.handleSessionRemoved(会话标识)#转发
     def 转发会话状态(会话标识,运行中):
-        """status。"""
+        'status'
         服务.handleSessionStatus(会话标识,运行中)#转发
     def 转发会话活动(会话标识,更新于):
-        """activity。"""
+        'activity'
         服务.handleSessionActivity(会话标识,更新于)#转发
     def 转发会话错误(会话标识,消息):
-        """error。"""
+        'error'
         服务.handleSessionError(会话标识,消息)#转发
-    if hasattr(远程,'$on'):#事件总线
-        远程.$on('api-session/added',转发会话已添加)#新增
-        远程.$on('api-session/removed',转发会话已移除)#移除
-        远程.$on('api-session/status',转发会话状态)#状态
-        远程.$on('api-session/activity',转发会话活动)#活动
-        远程.$on('api-session/error',转发会话错误)#错误
+    if 获取内部数据(远程,'on',None) is not None:#事件总线
+        获取内部数据(远程,'on')('api-session/added',转发会话已添加)#新增
+        获取内部数据(远程,'on')('api-session/removed',转发会话已移除)#移除
+        获取内部数据(远程,'on')('api-session/status',转发会话状态)#状态
+        获取内部数据(远程,'on')('api-session/activity',转发会话活动)#活动
+        获取内部数据(远程,'on')('api-session/error',转发会话错误)#错误
     控制=创建会话控制流(远程,{
         'accept':服务.handleControlFrame,
         'failed':lambda 错误:print('[session-controller] control stream failed:',错误),
     })#控制流
     控制.start()
     def 已连():
-        """代际就绪。"""
+        '代际就绪'
         服务.handleConnected()#修复
         控制.restart()#重启
         控制.start()
@@ -513,7 +512,7 @@ def 应用客户端会话(上下文):
     已连()#立即
     if hasattr(上下文,'typert') and hasattr(上下文.typert,'contexts'):#typert
         def 解析(会话标识):
-            """解析作用域为受拥有值。"""
+            '解析作用域为受拥有值'
             引用=服务.retainAgentScope(会话标识)#保留
             类={'value':引用.binding['ctx'],'dispose':引用.release}#包装
             return 类#受拥有
@@ -522,7 +521,7 @@ def 应用客户端会话(上下文):
             'resolve':解析,
         })#登记
     def 拆除():
-        """卸载。"""
+        '卸载'
         控制.dispose()#拆控制
         服务.dispose()#拆服务
     上下文.副作用(拆除,'session-controller.client.control')#拆除

@@ -40,7 +40,7 @@ Other:
   --help
 """#用法文案
 def 数值(选项,值):#解析有限数
-    """解析有限数。"""
+    '解析有限数'
     try:
         解析=float(值)
     except (TypeError,ValueError):
@@ -50,14 +50,14 @@ def 数值(选项,值):#解析有限数
     return 解析#返回数值
 
 def 有界整数(选项,值,最小,最大):#解析有界整数
-    """解析有界整数。"""
+    '解析有界整数'
     解析=数值(选项,值)#先解析
     if 解析!=int(解析) or 解析<最小 or 解析>最大:#越界
         raise Exception(f'dsh-llm-mock-server: {选项} must be an integer between {最小} and {最大}')#越界
     return int(解析)#返回有界整数
 
 def 解析序列(原始):#解析行为序列
-    """解析行为序列，允许首项 connection_refused。"""
+    '解析行为序列，允许首项 connection_refused'
     条目=[项.strip() for 项 in 原始.split(',')]#拆分条目
     if any(项=='' for 项 in 条目):#空条目
         raise Exception('dsh-llm-mock-server: --sequence 必须包含非空的逗号分隔行为')#空条目
@@ -73,7 +73,7 @@ def 解析序列(原始):#解析行为序列
     return {'startsUnavailable':先不可用,'sequence':请求条目}#返回解析结果
 
 def 解析随机权重(原始):#解析随机权重
-    """解析 behavior=weight 逗号表。"""
+    '解析 behavior=weight 逗号表'
     权重={}#权重表
     for 项 in 原始.split(','):#逐项
         段=项.split('=')#拆行为与权重
@@ -88,7 +88,7 @@ def 解析随机权重(原始):#解析随机权重
     return 权重#返回权重
 
 def 解析模拟LLM命令参数(参数向量):#解析 CLI 参数
-    """解析独立服务器参数，不启动进程或监听器。"""
+    '解析独立服务器参数，不启动进程或监听器'
     if '--help' in 参数向量:#帮助
         return {'kind':'help'}#帮助
     解析器=argparse.ArgumentParser(add_help=False)#严格解析器

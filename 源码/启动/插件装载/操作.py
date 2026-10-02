@@ -1,4 +1,4 @@
-"""dsh plugin 与运行中装载服务共用的配置档包操作。"""
+'dsh plugin 与运行中装载服务共用的配置档包操作'
 import os,re,json,tempfile,threading,subprocess,time
 from ...工具.原子写入 import 带文件锁,原子写文件
 from ...子进程.子进程 import 擦洗父环境
@@ -20,7 +20,7 @@ __all__=[
 相对路径规格=re.compile(r'^(?P<prefix>(?:file|link):)?(?P<path>\.{1,2}(?:[/\\].*)?)$')
 
 def 锚定路径规格(参数,工作目录):
-    """相对包规格锚定到调用方目录，从不相对配置档目录。"""
+    '相对包规格锚定到调用方目录，从不相对配置档目录'
     匹配=相对路径规格.match(参数)
     if 匹配 is None or 匹配.group('path') is None:
         return 参数
@@ -28,23 +28,23 @@ def 锚定路径规格(参数,工作目录):
     return 前缀+os.path.abspath(os.path.join(工作目录,匹配.group('path')))
 
 def 组合包清单(名称,目录,锚点):
-    """读组合包元数据而不加载其 JavaScript；无组合包元数据则返回 None。"""
+    '读组合包元数据而不加载其 JavaScript；无组合包元数据则返回 None'
     包目录=解析组合包目录('dsh',名称,锚点,目录)
     清单=读配置清单('dsh',包目录)
     补丁=((清单.get('dsh') or {}).get('bundle') or {}).get('patch')
     return None if 补丁 is None else 清单
 
 def 保存清单(目录,清单):
-    """原子保存配置档清单并保留无关字段。"""
+    '原子保存配置档清单并保留无关字段'
     文本=json_dumps_清单(清单)
     原子写文件(os.path.join(目录,'package.json'),文本,{'mode':0o600})
 
 def json_dumps_清单(清单):
-    """缩进两空格的 JSON 加换行。"""
+    '缩进两空格的 JSON 加换行'
     return json.dumps(清单,ensure_ascii=False,indent=2,allow_nan=False)+'\n'
 
 def 调和(之前,目录,锚点,选项):
-    """调和包删除与新装组合包，不重开保留依赖。"""
+    '调和包删除与新装组合包，不重开保留依赖'
     之后=读配置清单('dsh',目录)
     依赖=list((之后.get('dependencies') or {}).keys())
     之前依赖=set((之前.get('dependencies') or {}).keys())
@@ -80,7 +80,7 @@ def 调和(之前,目录,锚点,选项):
     保存清单(目录,之后)
 
 def 收集流(流,种类,日志句柄,写出锁,状态,选项):
-    """同步读子进程流并写入日志与有界输出。"""
+    '同步读子进程流并写入日志与有界输出'
     try:
         while True:
             块=流.read(4096)
@@ -104,7 +104,7 @@ def 收集流(流,种类,日志句柄,写出锁,状态,选项):
         raise
 
 def 跑配置档pnpm(上下文,参数列表,选项):
-    """在调用方已持有配置档写锁的前提下于配置档内执行 pnpm。"""
+    '在调用方已持有配置档写锁的前提下于配置档内执行 pnpm'
     目录=上下文['dir'] if 上下文.get('dir') is not None else 解析配置目录(上下文['profile'],上下文.get('home'))
     之前=读配置清单('dsh',目录)
     日志根=os.path.join(目录,'.plugin-manager','logs')
@@ -138,7 +138,7 @@ def 跑配置档pnpm(上下文,参数列表,选项):
     监视=None
     if 信号 is not None:
         def 监视中止():
-            """信号置位则杀子进程。"""
+            '信号置位则杀子进程'
             while 子进程.poll() is None:
                 if 信号.is_set():
                     子进程.kill()
@@ -149,7 +149,7 @@ def 跑配置档pnpm(上下文,参数列表,选项):
     空闲毫秒=选项.get('idleTimeoutMs')
     if 空闲毫秒 is not None:
         def 监视空闲():
-            """静默过久则杀子进程。"""
+            '静默过久则杀子进程'
             while 子进程.poll() is None:
                 if time.monotonic()-状态['lastOutput']>=空闲毫秒/1000.0:
                     状态['stalled']=True
@@ -192,11 +192,11 @@ def 跑配置档pnpm(上下文,参数列表,选项):
     return 结果
 
 def 跑插件命令(上下文,参数列表,选项):
-    """与服务共用写锁地初始化并跑 dsh plugin 命令。"""
+    '与服务共用写锁地初始化并跑 dsh plugin 命令'
     目录=上下文['dir'] if 上下文.get('dir') is not None else 解析配置目录(上下文['profile'],上下文.get('home'))
     os.makedirs(目录,exist_ok=True)
     def 持锁():
-        """持锁体。"""
+        '持锁体'
         if not os.path.exists(os.path.join(目录,'package.json')):
             模板=配置模板.get(上下文['profile'])
             初始化配置档(目录,(模板['bundles'] if 模板 is not None else 默认组合包))
@@ -207,13 +207,13 @@ def 跑插件命令(上下文,参数列表,选项):
     return 带文件锁(os.path.join(目录,'package.json'),持锁)
 
 def 注册表参数(注册表):
-    """把一次 pnpm 命令指向某注册表。None 表示用 pnpm 自己配置命名的那份。"""
+    '把一次 pnpm 命令指向某注册表。None 表示用 pnpm 自己配置命名的那份'
     if 注册表 is None:
         return []
     return ['--registry='+注册表]
 
 def 读配置档注册表(目录,选项):
-    """读 pnpm 在配置档里解析出的 registry。"""
+    '读 pnpm 在配置档里解析出的 registry'
     命令=选项.get('command') or 'pnpm'
     前缀=list(选项.get('args') or [])
     环境=擦洗父环境()
@@ -240,7 +240,7 @@ def 读配置档注册表(目录,选项):
     return 回答
 
 def 查看配置档包(目录,规格,选项):
-    """经 pnpm view 询问注册表该规格指向什么；在配置档目录跑以继承注册表与代理。"""
+    '经 pnpm view 询问注册表该规格指向什么；在配置档目录跑以继承注册表与代理'
     命令=选项.get('command') or 'pnpm'
     前缀=list(选项.get('args') or [])
     环境=擦洗父环境()

@@ -6,7 +6,7 @@ __all__=['投影配置档','读账号细节']
 钱包形态=re.compile(r'^-?\d+(?:\.\d+)?$',re.ASCII)
 
 def 投影配置档(值):
-    """投影平台用户数据，不保留凭证。"""
+    '投影平台用户数据，不保留凭证'
     if not isinstance(值,dict):
         raise 平台认证错误('protocol')
     标识=值.get('id')
@@ -36,7 +36,7 @@ def 投影配置档(值):
     }
 
 def 解析钱包表(值):
-    """校验钱包列表。"""
+    '校验钱包列表'
     if not isinstance(值,list):
         raise 平台认证错误('protocol')
     结果=[]
@@ -51,16 +51,16 @@ def 解析钱包表(值):
     return 结果
 
 def 读账号细节(字段,来源,令牌,信号,头):
-    """读配置档或钱包；失败永不变成零余额。"""
+    '读配置档或钱包；失败永不变成零余额'
     if 字段=='profile':
         路径='/auth-api/v0/users/current'
         def 解析(值):
-            """配置档。"""
+            '配置档'
             return {'status':'ready','value':投影配置档(值)}
     else:
         路径='/api/v0/users/get_user_summary'
         def 解析(值):
-            """钱包。"""
+            '钱包'
             if not isinstance(值,dict):
                 raise 平台认证错误('protocol')
             return {

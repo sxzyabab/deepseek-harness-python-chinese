@@ -7,7 +7,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 解析求值(参数):#解析求值
-    """解析按 realm 路由的 Runtime.evaluate 参数。"""
+    '解析按 realm 路由的 Runtime.evaluate 参数'
     精确键(参数,[#精确键
         'expression','objectGroup','includeCommandLineAPI','silent','contextId','returnByValue',#常用
         'generatePreview','userGesture','awaitPromise','throwOnSideEffect','timeout','disableBreaks',#更多
@@ -39,7 +39,7 @@ def 解析求值(参数):#解析求值
     return {**选择器,'request':请求}#返回结束
 
 def 解析取属性(参数):#解析取属性
-    """解析按 realm 路由的 Runtime.getProperties 参数。"""
+    '解析按 realm 路由的 Runtime.getProperties 参数'
     精确键(参数,[#精确键
         'objectId','ownProperties','accessorPropertiesOnly','generatePreview','nonIndexedPropertiesOnly',#字段
     ],'Runtime.getProperties 参数')#标签
@@ -56,7 +56,7 @@ def 解析取属性(参数):#解析取属性
     }#返回结束
 
 def 解析调函数(参数):#解析调函数
-    """解析按 Client 路由的 Runtime.callFunctionOn 参数。"""
+    '解析按 Client 路由的 Runtime.callFunctionOn 参数'
     精确键(参数,[#精确键
         'functionDeclaration','objectId','arguments','silent','returnByValue','generatePreview','userGesture',#常用
         'awaitPromise','executionContextId','objectGroup','throwOnSideEffect','uniqueContextId','serializationOptions',#其余
@@ -90,7 +90,7 @@ def 解析调函数(参数):#解析调函数
     return 结果#返回
 
 def 解析等Promise(参数):#解析等Promise
-    """解析按 Client 路由的 Runtime.awaitPromise 参数。"""
+    '解析按 Client 路由的 Runtime.awaitPromise 参数'
     精确键(参数,['promiseObjectId','returnByValue','generatePreview'],'Runtime.awaitPromise 参数')#键
     if not isinstance(参数.get('promiseObjectId'),str):#类型
         raise 检查器错误('Runtime.awaitPromise 的 promiseObjectId 必须是字符串')#抛错
@@ -103,26 +103,26 @@ def 解析等Promise(参数):#解析等Promise
     }#返回结束
 
 def 解析释放对象(参数):#解析释放对象
-    """解析一个必需的对象 id。"""
+    '解析一个必需的对象 id'
     精确键(参数,['objectId'],'Runtime.releaseObject 参数')#键
     if not isinstance(参数.get('objectId'),str):#类型
         raise 检查器错误('Runtime.releaseObject 的 objectId 必须是字符串')#抛错
     return 参数['objectId']#返回
 
 def 解析释放对象组(参数):#解析释放组
-    """解析一个必需的对象组名。"""
+    '解析一个必需的对象组名'
     精确键(参数,['objectGroup'],'Runtime.releaseObjectGroup 参数')#键
     if not isinstance(参数.get('objectGroup'),str):#类型
         raise 检查器错误('Runtime.releaseObjectGroup 的 objectGroup 必须是字符串')#抛错
     return 参数['objectGroup']#返回
 
 def 解析全局词法作用域名(参数):#解析词法名
-    """解析 Runtime.globalLexicalScopeNames 的上下文选择。"""
+    '解析 Runtime.globalLexicalScopeNames 的上下文选择'
     精确键(参数,['executionContextId'],'Runtime.globalLexicalScopeNames 参数')#键
     return 解析上下文选择器(参数,'executionContextId')#选择器
 
 def 解析调用参数(值):#解析调用参数
-    """解析 callFunctionOn 参数项。"""
+    '解析 callFunctionOn 参数项'
     if not 是否普通对象(值):#非对象
         raise 检查器错误('Runtime.callFunctionOn 的参数必须是对象')#抛错
     精确键(值,['value','unserializableValue','objectId'],'Runtime.callFunctionOn 参数项')#键
@@ -144,7 +144,7 @@ def 解析调用参数(值):#解析调用参数
     return {'kind':'object','objectId':值['objectId']}#对象
 
 def 解析上下文选择器(参数,数字键):#解析上下文选择器
-    """解析数字或唯一上下文选择器。"""
+    '解析数字或唯一上下文选择器'
     数字=参数.get(数字键)#数字值
     唯一=参数.get('uniqueContextId')#唯一值
     if 数字 is not None and (not isinstance(数字,int) or isinstance(数字,bool) or abs(数字)>9007199254740991):#非安全整数
@@ -161,7 +161,7 @@ def 解析上下文选择器(参数,数字键):#解析上下文选择器
     return 结果#返回
 
 def 可选对象id(值,标签):#可选对象id
-    """可选对象 id。"""
+    '可选对象 id'
     if 值 is None:#缺省
         return None#无
     if not isinstance(值,str):#类型
@@ -169,7 +169,7 @@ def 可选对象id(值,标签):#可选对象id
     return 值#返回
 
 def 可选json对象(值,键):#可选JSON对象字段
-    """可选 JSON 对象字段。"""
+    '可选 JSON 对象字段'
     if 键 not in 值:#缺省
         return {}#空
     项=值[键]#取值

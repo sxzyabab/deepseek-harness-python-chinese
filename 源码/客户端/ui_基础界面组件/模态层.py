@@ -1,6 +1,4 @@
-"""共享模态键盘归属与焦点生命周期：栈顶层独占 Escape / Tab，
-关闭后把焦点还回打开前的控件（或下一层模态）。
-"""
+'共享模态键盘归属与焦点生命周期：栈顶层独占 Escape / Tab，关闭后把焦点还回打开前的控件（或下一层模态）'
 from weakref import WeakKeyDictionary as 弱键字典#文档 → 模态栈
 from .键盘合成 import 观察合成#IME 守卫
 from .焦点 import 无轮廓聚焦#无轮廓自动聚焦
@@ -12,9 +10,7 @@ __all__=['模态选择器','关栈顶模态','是否在模态后','使用模态�
 可聚焦='button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]'#可聚焦控件
 
 def 关栈顶模态(文档):
-    """用当前 onClose 请求关闭已登记的前景模态。
-    未登记对话框会挡住后方模态的关闭。
-    """
+    '用当前 onClose 请求关闭已登记的前景模态。未登记对话框会挡住后方模态的关闭'
     栈=层表.get(文档)#已登记栈
     if 栈 is None or len(栈)==0:#无栈
         return#停
@@ -25,9 +21,7 @@ def 关栈顶模态(文档):
         顶['close']()#关
 
 def 是否在模态后(锚点):
-    """锚点是否在当前模态后方，因而必须让出键盘输入。
-    锚点为拥有输入处理器的本地控件；另有模态占前景时为 True。
-    """
+    '锚点是否在当前模态后方，因而必须让出键盘输入。锚点为拥有输入处理器的本地控件；另有模态占前景时为 True'
     if 锚点 is None:#无锚点
         return False#不算后方
     栈=层表.get(锚点.ownerDocument)#该文档栈
@@ -37,13 +31,10 @@ def 是否在模态后(锚点):
     return not 顶['element'].contains(锚点)#有栈顶且锚点不在其内
 
 def 使用模态层(对话框,打开,关闭):
-    """仅给栈顶模态 Escape 与 Tab 归属，关闭后恢复先前焦点。
-    对话框为已挂载元素；打开为本层是否激活；关闭为栈顶 Escape 或应用层关闭。
-    返回拆除器；未开或未挂载时返回空拆除。
-    """
+    '仅给栈顶模态 Escape 与 Tab 归属，关闭后恢复先前焦点。对话框为已挂载元素；打开为本层是否激活；关闭为栈顶 Escape 或应用层关闭。返回拆除器；未开或未挂载时返回空拆除'
     if not 打开 or 对话框 is None:#未开或未挂载
         def 空拆():
-            """无可拆。"""
+            '无可拆'
             return None#无事
         return 空拆#空拆除
     文档=对话框.ownerDocument#所属文档
@@ -55,7 +46,7 @@ def 使用模态层(对话框,打开,关闭):
         层表[文档]=栈#登记
     关闭箱={'current':关闭}#最新关闭，避免抖动
     def 调关闭():
-        """调最新关闭。"""
+        '调最新关闭'
         关闭箱['current']()#关
     层={'element':对话框,'close':调关闭}#本层登记
     栈.append(层)#入栈
@@ -68,7 +59,7 @@ def 使用模态层(对话框,打开,关闭):
     if 活跃 is None or not 对话框.contains(活跃):#层外才自动聚焦
         无轮廓聚焦(初焦)#无轮廓
     def 按键(事件):
-        """仅栈顶层处理 Escape / Tab；合成与修饰键直接放过。"""
+        '仅栈顶层处理 Escape / Tab；合成与修饰键直接放过'
         if 栈[-1] is not 层:#非本层
             return#放行
         if getattr(事件,'defaultPrevented',False) or 合成['guards'](事件):#已处理或 IME
@@ -100,7 +91,7 @@ def 使用模态层(对话框,打开,关闭):
             目标.focus()#折回
     文档.addEventListener('keydown',按键)#冒泡登记
     def 拆除():
-        """出栈并可能归还焦点。"""
+        '出栈并可能归还焦点'
         关闭箱['current']=关闭#刷新最新
         合成['dispose']()#卸 IME
         是顶=len(栈)>0 and 栈[-1] is 层#出栈前是否栈顶

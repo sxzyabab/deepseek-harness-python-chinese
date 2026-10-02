@@ -9,7 +9,7 @@ __all__=['过程状态','过程组定义']
 独立种类=frozenset(['user','steering','turn-trigger','model-retry','turn-error','turn-max-tokens','turn-tail'])
 
 def 回合于(节点):
-    """turn 或 step 位置上的回合号。节点为 dict。"""
+    'turn 或 step 位置上的回合号。节点为 dict'
     位置=节点['location']
     种=位置['kind'] if 'kind' in 位置 else None
     if 种=='turn' or 种=='step':
@@ -17,7 +17,7 @@ def 回合于(节点):
     return None
 
 def 有推理(节点):
-    """助手步骤是否含非空推理块。"""
+    '助手步骤是否含非空推理块'
     if 节点['kind']!='assistant-step':
         return False
     for 块 in 节点['data']['blocks']:
@@ -26,11 +26,11 @@ def 有推理(节点):
     return False
 
 def 有回复(节点):
-    """助手步骤是否含可见回复。"""
+    '助手步骤是否含可见回复'
     return 节点['kind']=='assistant-step' and 有助手回复内容(节点['data']['blocks'])
 
 def 同摘要(左,右):
-    """运行态与计数字段全等。"""
+    '运行态与计数字段全等'
     if 左['running']!=右['running'] or 左['runningDetail']!=右['runningDetail']:
         return False
     左备=左['preparing'] if 'preparing' in 左 else None
@@ -49,7 +49,7 @@ def 同摘要(左,右):
     return True
 
 def 同成员(左,右):
-    """成员键与组分全等。"""
+    '成员键与组分全等'
     if len(左)!=len(右):
         return False
     下标=0
@@ -64,7 +64,7 @@ def 同成员(左,右):
     return True
 
 def 结构已变(先前,当前):
-    """种类、回合、可见性或推理/回复边界变化。"""
+    '种类、回合、可见性或推理/回复边界变化'
     if not 是可见聊天节点(当前) and (先前 is None or not 是可见聊天节点(先前)):
         return False
     if 先前 is None:
@@ -75,30 +75,30 @@ def 结构已变(先前,当前):
         or 有推理(先前)!=有推理(当前) or 有回复(先前)!=有回复(当前))
 
 def 读节点(输入,键):
-    """当前目标节点；缺失则失败。输入为 dict。"""
+    '当前目标节点；缺失则失败。输入为 dict'
     节点=输入['readNode'](键)
     if 节点 is None:
         raise 聊天错误('Chat grouping input is missing Node '+str(键))
     return 节点
 
 def 读位置(输入,键):
-    """可见位置；缺失则失败。"""
+    '可见位置；缺失则失败'
     位置=输入['readPosition'](键)
     if 位置 is None:
         raise 聊天错误('Chat grouping order is missing position for Node '+str(键))
     return 位置
 
 def 回合已关(输入,回合):
-    """时间线该回合是否 closed。"""
+    '时间线该回合是否 closed'
     回合表=输入['timeline']['turns']
     if 回合 not in 回合表:
         return False
     return 回合表[回合]['status']=='closed'
 
 class 过程组:
-    """一组的成员与缓存摘要；内容变则一起刷新。"""
+    '一组的成员与缓存摘要；内容变则一起刷新'
     def __init__(自身,键,回合,成员列表):
-        """空摘要起步。"""
+        '空摘要起步'
         自身.键=键
         自身.回合=回合
         自身.成员列表=成员列表
@@ -106,7 +106,7 @@ class 过程组:
         自身.快照={'key':键,'members':成员列表,'data':{'turn':回合,'closed':False,'summary':{'counts':(),'running':None,'runningDetail':''}}}
 
     def 刷新(自身,输入,已闭合):
-        """按当前成员重算摘要。"""
+        '按当前成员重算摘要'
         节点列表=tuple(读节点(输入,成员['key']) for 成员 in 自身.成员列表)
         未变=len(节点列表)==len(自身.节点列表)
         if 未变:
@@ -124,24 +124,24 @@ class 过程组:
             自身.快照={'key':自身.键,'members':自身.成员列表,'data':{'turn':自身.回合,'closed':已闭合,'summary':摘要}}
 
 class 回合分组:
-    """一轮的分组结果与成员查找。"""
+    '一轮的分组结果与成员查找'
     def __init__(自身,回合):
-        """空表。"""
+        '空表'
         自身.回合=回合
         自身.组表={}
         自身.归属={}
         自身.根表={}
 
     def 引用表(自身,键):
-        """该节点根引用。"""
+        '该节点根引用'
         return 自身.根表[键] if 键 in 自身.根表 else ()
 
     def 快照表(自身):
-        """各组当前快照。"""
+        '各组当前快照'
         return [组.快照 for 组 in 自身.组表.values()]
 
     def 刷新(自身,输入,已变):
-        """只重算内容变化的组。"""
+        '只重算内容变化的组'
         脏=set()
         for 节点键 in 已变:
             if 节点键 in 自身.归属:
@@ -161,19 +161,19 @@ class 回合分组:
         return 写入
 
     def 重建(自身,输入,新增):
-        """按当前回合可见序重切分组。"""
+        '按当前回合可见序重切分组'
         根表={}
         组表={}
         归属={}
         待发=[]
         写入=[]
         def 发出(键,条目):
-            """追加该节点的根引用。"""
+            '追加该节点的根引用'
             已有=list(根表[键]) if 键 in 根表 else []
             已有.append(条目)
             根表[键]=tuple(已有)
         def 冲刷(已闭合):
-            """把待发成员收成一组。"""
+            '把待发成员收成一组'
             nonlocal 待发
             if len(待发)==0:
                 return
@@ -226,7 +226,7 @@ class 回合分组:
         return {'upserts':写入,'removes':移除}
 
     def 延伸组(自身,成员列表,新增):
-        """仅当完整旧组仍夹在新可见成员之间时复用身份。"""
+        '仅当完整旧组仍夹在新可见成员之间时复用身份'
         偏移=0
         命中=False
         while 偏移<len(成员列表):
@@ -258,15 +258,15 @@ class 回合分组:
         return 先前
 
 class 过程状态:
-    """会话内各回合结果；普通更新不读其他回合节点内容。"""
+    '会话内各回合结果；普通更新不读其他回合节点内容'
     def __init__(自身):
-        """空序。"""
+        '空序'
         自身.回合表={}
         自身.顺序=()
         自身.待发=None
 
     def 接受(自身,输入):
-        """消费一次同步构建器输入，不保留其读取器。输入为 dict。"""
+        '消费一次同步构建器输入，不保留其读取器。输入为 dict'
         if 输入['kind']=='replace':
             旧键=set(自身.顺序)
             新增=set()
@@ -292,7 +292,7 @@ class 过程状态:
         新增=set()
         已变={}
         def 触及(回合):
-            """取出该回合已变键集。"""
+            '取出该回合已变键集'
             if 回合 not in 已变:
                 已变[回合]=set()
             return 已变[回合]
@@ -338,7 +338,7 @@ class 过程状态:
             自身.待发=None
 
     def 根条目(自身,输入):
-        """按目标序展开各组根引用。"""
+        '按目标序展开各组根引用'
         结果=[]
         for 键 in 输入['order']:
             回合=读位置(输入,键)['turn']
@@ -351,20 +351,20 @@ class 过程状态:
         return 结果
 
     def 输出(自身):
-        """读待发输出，不推进状态。"""
+        '读待发输出，不推进状态'
         return 自身.待发
 
 def 创建过程状态():
-    """会话局部过程状态。"""
+    '会话局部过程状态'
     return 过程状态()
 
 def 更新过程组(上下文,输入):
-    """消费输入并交回同一状态。上下文为 dict。"""
+    '消费输入并交回同一状态。上下文为 dict'
     上下文['state'].接受(输入)
     return 上下文['state']
 
 def 构建过程组(上下文):
-    """物化待发分组。"""
+    '物化待发分组'
     return 上下文['state'].输出()
 
 过程组定义={

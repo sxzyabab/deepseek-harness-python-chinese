@@ -14,7 +14,7 @@ __all__=['宿主连接服务']#仅中文公开名
 无效请求标识='invalid-request'#信封无效时的占位 rpcId
 
 def 路径切端点(通道,路径名):#路径切相对端点
-    """从绝对路径切出通道相对端点。"""
+    '从绝对路径切出通道相对端点'
     前缀=通道+'/'#通道前缀
     if not 路径名.startswith(前缀):#不是该通道前缀
         return None#不当端点
@@ -26,23 +26,23 @@ def 路径切端点(通道,路径名):#路径切相对端点
     return 端点#合法相对端点
 
 def 断言通道(通道):#独占通道名必须合法且不得占用 /api
-    """拒绝 /api 与畸形通道名。"""
+    '拒绝 /api 与畸形通道名'
     if 通道规则.fullmatch(通道) is None or 通道=='/api':#畸形或保留名
         raise 连接错误('connection: invalid or reserved RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False))#加载/登记时失败
 
 def 完整响应(rpc标识,结果):#成功或失败都写成 server-response
-    """包成 server-response JSON 响应。"""
+    '包成 server-response JSON 响应'
     体={'type':'server-response','rpcId':rpc标识,'result':结果}#标准信封
     return {'status':200,'headers':{'content-type':'application/json; charset=utf-8'},'body':json.dumps(体,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')}#JSON 响应
 
 def 错误响应(rpc标识,错误):#失败结果包成 HTTP JSON
-    """失败结果。"""
+    '失败结果'
     return 完整响应(rpc标识,{'ok':False,'error':错误})#ok:false 加 error
 
 def rpcFetch处理(通道,处理函数):#把 RPC handler 适配成 FetchHandler
-    """解码信封并调 handler。"""
+    '解码信封并调 handler'
     def fetch(请求):#处理一条 POST
-        """处理一条标准 Fetch 请求。"""
+        '处理一条标准 Fetch 请求'
         网址=请求['url'] if 'url' in 请求 else ''#url
         路径名=解析URL(网址).path
         端点=路径切端点(通道,路径名)#路径 → 端点
@@ -85,29 +85,29 @@ def rpcFetch处理(通道,处理函数):#把 RPC handler 适配成 FetchHandler
     return {'fetch':fetch}#处理器对象
 
 class 宿主连接服务(服务):#提供 ctx.connection
-    """宿主 Connection 服务，通道登记属于调用方纤程。"""
+    '宿主 Connection 服务，通道登记属于调用方纤程'
     def __init__(自身,上下文,受信任主机表):#绑定上下文与受信任 Host
-        """在活动 HTTP 服务器上提供宿主半边。"""
+        '在活动 HTTP 服务器上提供宿主半边'
         super().__init__(上下文,'connection')#服务名 connection
         自身.受信任主机表=list(受信任主机表)#部署权威
         自身.拦截器表={}#共享通道 → 拦截器
 
     @property#登记面
     def rpc(自身):#每次取都闭包当前 ctx
-        """作用域落在读取本服务的 Context 上的通用通道注册表。"""
+        '作用域落在读取本服务的 Context 上的通用通道注册表'
         拥有=自身.ctx#调用方纤程上下文
         def 独占(通道,处理,选项):#独占通道
-            """登记绝对通道。"""
+            '登记绝对通道'
             return 自身.登记(拥有,通道,处理,选项)#登记
         def 拦截(通道,匹配,处理,选项):#共享通道拦截
-            """登记拦截器。"""
+            '登记拦截器'
             return 自身.登记拦截器(拥有,通道,匹配,处理,选项)#登记
         return {'handle':独占,'intercept':拦截}#登记面
 
     def createSharedFetchHandler(自身,通道,回退):#组合共享通道
-        """由拦截器与回退组成一条共享通道的 Fetch 处理器。"""
+        '由拦截器与回退组成一条共享通道的 Fetch 处理器'
         def fetch(请求):#按路径选拦截器或回退
-            """每条请求恰好选一个目标。"""
+            '每条请求恰好选一个目标'
             路径名=解析URL(请求['url'] if 'url' in 请求 else '').path
             端点=路径切端点(通道,路径名)#切出相对端点
             拦截器=自身.拦截器表[通道] if 通道 in 自身.拦截器表 else None#该通道的拦截器
@@ -120,13 +120,13 @@ class 宿主连接服务(服务):#提供 ctx.connection
         return {'fetch':fetch}#处理器
 
     def 登记(自身,拥有,通道,处理函数,选项):#登记一条独占 RPC 通道
-        """登记绝对通道前缀及其信任政策。"""
+        '登记绝对通道前缀及其信任政策'
         断言通道(通道)#拒绝 /api 与畸形通道名
         权威=选项['authority'] if 选项 is not None and 'authority' in 选项 else None#信任级别
         受信任= [] if 权威==连接权威_回环 else 自身.受信任主机表#回环则空名单
         fetch处理=rpcFetch处理(通道,处理函数)#解码信封并调 handler
         def 路由处理(请求,响应):#每条该前缀请求
-            """信任闸后桥接。"""
+            '信任闸后桥接'
             桥请求={'headers':请求.headers,'url':请求.url,'method':请求.method}#Node 请求归一成 dict
             if not 是否受信任接口请求(桥请求,受信任):#未过信任围栏
                 响应.writeHead(403)#禁止
@@ -135,12 +135,12 @@ class 宿主连接服务(服务):#提供 ctx.connection
             桥接(请求,响应,fetch处理)#Node HTTP → fetch
         路由={'kind':'prefix','path':通道,'handler':路由处理}#HTTP 前缀路由
         def 登记路由():#登记 HTTP 前缀
-            """把路由交给 web 服务器。"""
+            '把路由交给 web 服务器'
             return 拥有.webServer.register(路由)#登记
         return 拥有.副作用(登记路由,'client-connection: '+通道+' rpc channel')#登记归调用方纤程
 
     def 登记拦截器(自身,拥有,通道,匹配,处理函数,选项):#在共享通道上登记拦截器
-        """在共享 /api 通道的回退之前拦截所拥有的端点。"""
+        '在共享 /api 通道的回退之前拦截所拥有的端点'
         if 通道!=接口路径:#只允许保留的共享通道
             raise 连接错误('connection: invalid shared RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False))#其它通道名失败
         拦截器={#组装拦截器
@@ -149,12 +149,12 @@ class 宿主连接服务(服务):#提供 ctx.connection
             'options':选项,#信任政策
         }#结束拦截器
         def 效应():#归调用方纤程
-            """写入表；拆除时删除。"""
+            '写入表；拆除时删除'
             if 通道 in 自身.拦截器表:#同一通道只能有一个拦截器
                 raise 连接错误('connection: shared RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' already has an interceptor')#重复登记失败
             自身.拦截器表[通道]=拦截器#写入表
             def 拆除():#拆除
-                """从表删除。"""
+                '从表删除'
                 自身.拦截器表.pop(通道,None)#删除
             return 拆除#拆除器
         return 拥有.副作用(效应,'client-connection: '+通道+' rpc interceptor')#副作用名

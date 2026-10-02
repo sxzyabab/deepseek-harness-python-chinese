@@ -3,9 +3,9 @@ from ...标识 import cdp数字id#后端节点id
 __all__=['Cordis_Dom后端']#仅中文公开名
 
 class Cordis_Dom后端:#Cordis DOM后端
-    """分配持久后端 id，并投影最新的源快照。"""
+    '分配持久后端 id，并投影最新的源快照'
     def __init__(自身,trees):#构造
-        """订阅树存储并初建文档。"""
+        '订阅树存储并初建文档'
         自身._树表=trees#树存储
         自身._键到后端id={}#键到后端id
         自身._监听=set()#监听
@@ -16,40 +16,40 @@ class Cordis_Dom后端:#Cordis DOM后端
         自身._取消订阅=trees.订阅(自身._收树)#订阅树
 
     def 文档(自身):#取文档
-        """读取最新的连接中立语义文档。"""
+        '读取最新的连接中立语义文档'
         return 自身._文档#当前
 
     def 订阅(自身,监听):#订阅
-        """订阅完整文档替换与就地 realm 状态变化。"""
+        '订阅完整文档替换与就地 realm 状态变化'
         自身._监听.add(监听)#加入
         def 拆除():#拆除本监听
-            """取消本监听。"""
+            '取消本监听'
             自身._监听.discard(监听)#摘掉
         return 拆除#拆除器
 
     def 关闭(自身):#关闭
-        """在 Worker 关闭时拆除仓库订阅。"""
+        '在 Worker 关闭时拆除仓库订阅'
         自身._取消订阅()#取消
         自身._监听.clear()#清监听
 
     def 按对象取节点(自身,源,引用):#按对象取节点
-        """将一个源本地对象引用解析为其当前投影节点。"""
+        '将一个源本地对象引用解析为其当前投影节点'
         return 自身._对象到节点.get(对象键(源,引用))#查找
 
     def 按种类取节点(自身,kind,引用):#按种类
-        """当 Runtime 路由仅标识 Host 或 Client 所有权时解析引用。"""
+        '当 Runtime 路由仅标识 Host 或 Client 所有权时解析引用'
         路由=自身._树表.按种类解析对象(kind,引用)#路由
         return None if 路由 is None else 自身.按对象取节点(路由['source'],引用)#节点
 
     def 按realm取节点(自身,realm,引用):#按realm
-        """将一个与 realm 无关的 Runtime 引用解析为其当前投影节点。"""
+        '将一个与 realm 无关的 Runtime 引用解析为其当前投影节点'
         if realm.kind=='host':#Host
             return 自身.按种类取节点('host',引用)#Host
         路由=自身._树表.解析对象身份(realm.sourceId,realm.generation,引用)#按身份
         return None if 路由 is None else 自身.按对象取节点(路由['source'],引用)#节点
 
     def _收树(自身,事件):#收树事件
-        """重建文档并差分。"""
+        '重建文档并差分'
         先前=自身._文档#旧文档
         自身._文档=自身._构建()#重建
         if 事件['type']=='source-disconnected':#断开
@@ -59,7 +59,7 @@ class Cordis_Dom后端:#Cordis DOM后端
             自身._发出({'type':'tree-mutated','mutations':变更})#发出
 
     def _构建(自身):#构建文档
-        """构建不可变文档。"""
+        '构建不可变文档'
         按后端id={}#按id
         父按后端id={}#父
         自身._对象到节点.clear()#清对象索引
@@ -76,7 +76,7 @@ class Cordis_Dom后端:#Cordis DOM后端
         根['children'].extend([Host槽,Clients槽])#挂根
         保留键=set()#保留键
         def 冻结(节点,父=None):#冻结
-            """递归冻结。"""
+            '递归冻结'
             子=[冻结(项,节点) for 项 in 节点['children']]#递归
             值={**节点,'children':子}#冻结节点
             保留键.add(值['key'])#记键
@@ -96,7 +96,7 @@ class Cordis_Dom后端:#Cordis DOM后端
         return {'revision':修订,'root':冻结根,'byBackendId':按后端id,'parentByBackendId':父按后端id}#文档
 
     def _实体(自身,树,节点):#实体节点
-        """投影实体节点。"""
+        '投影实体节点'
         源=树['source']#源
         快照=树['snapshot']#快照
         键=f"entity:{对象键(源,{'registryId':快照.objectRegistryId,'handle':节点['objectHandle']})}"#键
@@ -107,7 +107,7 @@ class Cordis_Dom后端:#Cordis DOM后端
         return 投影#返回
 
     def _节点(自身,键,名,属性,描述,对象=None):#创建可变节点
-        """创建可变节点。"""
+        '创建可变节点'
         if 键 not in 自身._键到后端id:#新键
             后端id=cdp数字id(自身._下一后端节点id,'backendNodeId')#分配
             自身._下一后端节点id+=1#推进
@@ -120,7 +120,7 @@ class Cordis_Dom后端:#Cordis DOM后端
         return 节点#返回
 
     def _发出(自身,变更):#发出变更
-        """隔离回调故障。"""
+        '隔离回调故障'
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(变更)#回调
@@ -128,27 +128,27 @@ class Cordis_Dom后端:#Cordis DOM后端
                 pass#一个已关闭的 CDP 连接不能阻止兄弟会话接收文档变更
 
 def _源字段(源,名):#取源字段
-    """源是线上 dict。"""
+    '源是线上 dict'
     return 源[名]#字段
 
 def 元素描述(名,属性):#元素描述
-    """标签形描述。"""
+    '标签形描述'
     渲染=' '.join(键 if 值=='' else f'{键}={值!r}' for 键,值 in 属性)#属性串
     return f'<{名}>' if 渲染=='' else f'<{名} {渲染}>'#标签形
 
 def 对象键(源,引用):#对象键
-    """复合键。"""
+    '复合键'
     注册表=引用['registryId']#注册表
     句柄=引用['handle']#句柄
     return f"{_源字段(源,'sourceId')}\0{_源字段(源,'generation')}\0{注册表}\0{句柄}"#复合键
 
 def 文档差分(先前,当前):#文档差分
-    """文档差分。"""
+    '文档差分'
     变更=[]#变更列表
     return 变更 if 节点差分(先前['root'],当前['root'],变更) else [{'type':'document-updated'}]#增量或整更
 
 def 节点差分(先前,当前,变更):#节点差分
-    """节点差分。"""
+    '节点差分'
     if 先前['backendNodeId']!=当前['backendNodeId'] or 先前['name']!=当前['name']:#身份变
         return False#需整更
     旧属性=dict(先前['attributes'])#旧属性

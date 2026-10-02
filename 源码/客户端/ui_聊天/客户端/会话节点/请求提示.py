@@ -3,7 +3,7 @@ from .节点工厂 import 聊天错误,聊天节点#节点工厂
 __all__=['系统消息定义','请求提示定义','登记请求提示会话节点']#仅中文公开名
 
 def 请求提示锚(匹配项,先前,是初始):#计算提示词锚点
-    """把一次请求的系统提示放在其可见消息序列起点。"""
+    '把一次请求的系统提示放在其可见消息序列起点'
     位置=匹配项['location'] if 'location' in 匹配项 else {}#位置
     事件=匹配项['event'] if 'event' in 匹配项 else {}#事件
     if 'kind' not in 位置 or 位置['kind']!='step':#非步骤
@@ -28,7 +28,7 @@ def 请求提示锚(匹配项,先前,是初始):#计算提示词锚点
     return 步起 if 步起 is not None else 事件['seq']#步起
 
 def 稳定请求提示锚(上下文,匹配项,先前,是初始):#稳定锚点
-    """已渲染的提示词保持其页生命周期呈现锚点。"""
+    '已渲染的提示词保持其页生命周期呈现锚点'
     取=上下文['current'] if 'current' in 上下文 else None#current
     当前=取['chat'] if 取 is not None and 'chat' in 取 else None#聊天
     if 当前 is not None and 'kind' in 当前 and 当前['kind']=='system-prompt':#已有系统提示
@@ -36,24 +36,24 @@ def 稳定请求提示锚(上下文,匹配项,先前,是初始):#稳定锚点
     return 请求提示锚(匹配项,先前,是初始)#重算
 
 def 系统消息定义(检视):#系统消息定义工厂
-    """inspect 由 uiConversation.inspectSystemPrompt 提供。"""
+    'inspect 由 uiConversation.inspectSystemPrompt 提供'
     def 匹配(事件):#认领系统消息或非 append 表面操作
-        """system/message 或位置替换。"""
+        'system/message 或位置替换'
         if 事件['type']=='system/message':#系统消息
             return {'id':str(事件['seq']),'role':'start'}#开
         if 'surfaceOp' in 事件 and 事件['surfaceOp']!='append':#非 append
             return {'id':str(事件['seq']),'role':'start'}#开
         return None#不匹配
     def 开始(_上下文,匹配项,读取器):#起始状态
-        """解释表面。"""
+        '解释表面'
         先前项=读取器.previous('system-message')#先前
         先前=先前项['state'] if 先前项 is not None and 'state' in 先前项 else None#态
         return 检视(先前,匹配项['event'])#解释
     def 更新(上下文,_匹配项=None):#状态不变
-        """原样。"""
+        '原样'
         return 上下文['state'] if 'state' in 上下文 else None#态
     def 建视图(上下文):#构造视图节点
-        """仅非空 append 引入渲卡。"""
+        '仅非空 append 引入渲卡'
         态=上下文['state'] if 'state' in 上下文 else None#态
         引入=态['introduced'] if 态 is not None and 'introduced' in 态 else None#引入
         if 引入 is None or 引入.get('text','')=='':#无或空
@@ -73,14 +73,14 @@ def 系统消息定义(检视):#系统消息定义工厂
     }#结束
 
 def 请求提示定义(检视):#请求提示词定义工厂
-    """inspect 由 uiConversation.inspectRequestPrompt 提供。"""
+    'inspect 由 uiConversation.inspectRequestPrompt 提供'
     def 匹配(事件):#认领请求头
-        """request/header。"""
+        'request/header'
         if 事件['type']=='request/header':#头
             return {'id':str(事件['seq']),'role':'start'}#开
         return None#不匹配
     def 开始(上下文,匹配项,读取器):#起始状态
-        """检视提示词并决定是否显示行。"""
+        '检视提示词并决定是否显示行'
         事件=匹配项['event']#事件
         if 事件['type']!='request/header':#必须
             raise 聊天错误('request-prompt start requires request/header')#硬失败
@@ -120,10 +120,10 @@ def 请求提示定义(检视):#请求提示词定义工厂
             **检视结果,#检视
         }#结束
     def 更新(上下文,_匹配项=None):#状态不变
-        """原样。"""
+        '原样'
         return 上下文['state'] if 'state' in 上下文 else None#态
     def 建视图(上下文):#构造视图节点
-        """无显示或空 system 则隐藏；无当前系统提示节点则不渲染。"""
+        '无显示或空 system 则隐藏；无当前系统提示节点则不渲染'
         态=上下文['state'] if 'state' in 上下文 else None#态
         if 态 is None:#无
             return None#无
@@ -141,12 +141,12 @@ def 请求提示定义(检视):#请求提示词定义工厂
     }#结束
 
 def 登记请求提示会话节点(上下文):#登记系统消息与请求提示词
-    """委托 uiConversation.inspectSystemPrompt / inspectRequestPrompt。"""
+    '委托 uiConversation.inspectSystemPrompt / inspectRequestPrompt'
     def 检视系统(先前,事件):#系统检视
-        """服务检视。"""
+        '服务检视'
         return 上下文.uiConversation.inspectSystemPrompt(先前,事件)#结果
     def 检视请求(先前,事件,系统):#请求检视
-        """服务检视。"""
+        '服务检视'
         return 上下文.uiConversation.inspectRequestPrompt(先前,事件,系统)#结果
     上下文.uiConversation.events.register(系统消息定义(检视系统))#登记系统
     上下文.uiConversation.events.register(请求提示定义(检视请求))#登记请求

@@ -47,7 +47,7 @@ __all__=[#仅中文公开名
 依赖=['loader']#所需服务：发布其内部模块系统的 Loader
 
 def 创建客户端模块系统(目标,启动模块,选项):
-    """从 HTML 门面已物化的 modules 打包建造活模块系统。"""
+    '从 HTML 门面已物化的 modules 打包建造活模块系统'
     系统选项={#构造选项
         'manifest':解析启动清单(选项['boot']),#解析启动图
         'staticModules':选项['staticModules'] if 'staticModules' in 选项 else None,#平台种子
@@ -59,7 +59,7 @@ def 创建客户端模块系统(目标,启动模块,选项):
     return 客户端模块系统(系统选项)#构造系统
 
 def 应用(上下文):#安装浏览器半边
-    """把内核建成的模块系统登记为 ctx.modules。"""
+    '把内核建成的模块系统登记为 ctx.modules'
     加载器=上下文.loader#取 Loader
     模块=加载器.internal#内部模块系统
     if 模块 is None or getattr(模块,'version',None)!='client':#不是客户端模块系统

@@ -4,22 +4,22 @@ from concurrent.futures import Future as 原生结果#单次操作结果
 __all__=['JSONRPC响应错误','JSONRPC传输对等端','换行JSONRPC传输','操作任务','已中止','中止信号','中止控制器']#仅中文公开名
 
 class JSONRPC传输错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._未来.done():#尚未结算
             自身._未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身._未来.set_exception(错误)#原样拒绝
@@ -29,13 +29,13 @@ class 操作任务:
                 自身._未来.set_exception(包装)#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
-    """threading.Event 取消通道。"""
+    'threading.Event 取消通道'
     def __init__(自身,已中止标志=False):
-        """创建一条取消通道。"""
+        '创建一条取消通道'
         自身._事件=threading.Event()#中止标志
         自身._异常=None#中止时抛出的异常
         if 已中止标志:#创建时已中止
@@ -43,7 +43,7 @@ class 中止信号:
             自身._异常=JSONRPC传输错误('JSON-RPC 请求已中止')#默认
 
     def 触发(自身,原因=None):
-        """标记中止。"""
+        '标记中止'
         if 自身._事件.is_set():#只触发一次
             return#已触发
         if isinstance(原因,BaseException):#已是异常
@@ -56,41 +56,41 @@ class 中止信号:
         自身._事件.set()#置位
 
 class 中止控制器:
-    """发出中止的控制器。"""
+    '发出中止的控制器'
     def __init__(自身):
-        """创建配套信号。"""
+        '创建配套信号'
         自身.信号=中止信号()#本控制器的信号
 
     def 中止(自身,原因=None):
-        """中止配套信号。"""
+        '中止配套信号'
         自身.信号.触发(原因)#触发一次
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位
 
 def 对象参数(参数):
-    """把 JSON-RPC params 归一成普通对象。空 dict 在 JS 为真，这里只认 dict。"""
+    '把 JSON-RPC params 归一成普通对象。空 dict 在 JS 为真，这里只认 dict'
     if isinstance(参数,dict):#普通对象
         return 参数#原样
     return {}#非普通对象则空对象
 
 def 中止错误(原因):
-    """把中止原因归一成拒绝用的异常。"""
+    '把中止原因归一成拒绝用的异常'
     if isinstance(原因,BaseException):#已是异常
         return 原因#原样
     return JSONRPC传输错误('JSON-RPC 请求已中止：'+str(原因))#包一层消息
 
 def 错误消息(错误):
-    """取出错误消息。"""
+    '取出错误消息'
     return str(错误)#字符串化
 
 class JSONRPC响应错误(JSONRPC传输错误):
-    """JSON-RPC 错误响应，保留线上 code 与可选 data。"""
+    'JSON-RPC 错误响应，保留线上 code 与可选 data'
     def __init__(自身,码,消息,数据=None):
-        """记下线上错误码、消息与可选载荷。"""
+        '记下线上错误码、消息与可选载荷'
         super().__init__(消息)#用线上消息构造
         自身.code=码#线上错误码；对端未给时为 None
         自身.message=消息#线上错误消息
@@ -98,19 +98,19 @@ class JSONRPC响应错误(JSONRPC传输错误):
         自身.name='JsonRpcResponseError'#固定错误名
 
 class JSONRPC传输对等端:
-    """运行时服务端与 SDK 客户端共用的出站请求与通知面。"""
+    '运行时服务端与 SDK 客户端共用的出站请求与通知面'
     def 请求(自身,方法,参数):
-        """发送请求并等待响应。"""
+        '发送请求并等待响应'
         raise NotImplementedError#子类实现
 
     def 通知(自身,方法,参数=None):
-        """发送通知；省略 params 则不写 params 成员。"""
+        '发送通知；省略 params 则不写 params 成员'
         raise NotImplementedError#子类实现
 
 class 换行JSONRPC传输(JSONRPC传输对等端):
-    """基于调用方拥有的流的按行端点。启动挂上监听；关闭卸掉监听并拒绝未完成请求，不销毁流。"""
+    '基于调用方拥有的流的按行端点。启动挂上监听；关闭卸掉监听并拒绝未完成请求，不销毁流'
     def __init__(自身,输入流,输出流):
-        """记下入站与出站流。"""
+        '记下入站与出站流'
         自身.输入=输入流#入站字节/文本流
         自身.输出=输出流#出站字节/文本流
         自身.缓冲=''#尚未凑成完整行的文本缓冲
@@ -123,12 +123,12 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
         自身._写锁=threading.Lock()#写出互斥
 
     def 启动(自身):
-        """幂等。"""
+        '幂等'
         if 自身.已启动:#已启动
             return#不再挂监听
         自身.已启动=True#标记已启动
         def 读循环():
-            """读到 EOF 或出错为止。"""
+            '读到 EOF 或出错为止'
             try:
                 while True:#直到 EOF
                     if hasattr(自身.输入,'readline'):#按行可读
@@ -154,19 +154,19 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
         自身._读线程.start()
 
     def 关闭(自身):
-        """在启动之前调用也安全。不销毁流。"""
+        '在启动之前调用也安全。不销毁流'
         自身._失败未决(JSONRPC传输错误('JSON-RPC 传输已关闭'))#拒绝所有未完成请求
 
     def 当请求(自身,处理函数):
-        """安装请求处理函数，替换先前的处理函数。"""
+        '安装请求处理函数，替换先前的处理函数'
         自身.请求处理=处理函数#替换
 
     def 当通知(自身,处理函数):
-        """安装通知处理函数，替换先前的处理函数。"""
+        '安装通知处理函数，替换先前的处理函数'
         自身.通知处理=处理函数#替换
 
     def 请求(自身,方法,参数,信号=None):
-        """发送请求并等待响应；可选中止信号。同步返回结果。"""
+        '发送请求并等待响应；可选中止信号。同步返回结果'
         标识='req_'+uuid.uuid4().hex#无连字符请求 id
         消息={'jsonrpc':'2.0','id':标识,'method':方法,'params':参数}#组装请求帧
         等待=操作任务()#为本 id 挂起
@@ -174,7 +174,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
             等待.拒绝(中止错误(信号._异常 if 信号 is not None else None))#立刻拒绝
             return 等待.等待()#抛出
         def 监视中止():
-            """中止时清 pending 并拒绝。"""
+            '中止时清 pending 并拒绝'
             if 信号 is None:#无信号
                 return#无需
             信号._事件.wait()#等到中止
@@ -185,10 +185,10 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
             监视线程=threading.Thread(target=监视中止,daemon=True)#监视中止
             监视线程.start()
         def 兑现(值):
-            """成功回调。"""
+            '成功回调'
             等待.兑现(值)#把结果交给调用方
         def 拒绝(错误):
-            """失败回调。"""
+            '失败回调'
             等待.拒绝(错误)#把错误交给调用方
         with 自身.锁:#互斥
             自身.未决[标识]={'兑现':兑现,'拒绝':拒绝}#登记未完成请求
@@ -201,24 +201,24 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
         return 等待.等待()#同步交出结果
 
     def 通知(自身,方法,参数=None):
-        """省略 params 则不写该成员。"""
+        '省略 params 则不写该成员'
         if 参数 is None:#无 params
             自身._写出({'jsonrpc':'2.0','method':方法})#省略 params
         else:#有 params
             自身._写出({'jsonrpc':'2.0','method':方法,'params':参数})#带 params
 
     def 刷出(自身):
-        """等待此前帧写出落定。空屏障不发出字节。同步返回。"""
+        '等待此前帧写出落定。空屏障不发出字节。同步返回'
         if hasattr(自身.输出,'flush'):#可刷新
             自身.输出.flush()#刷新
 
     def _处理数据(自身,块):
-        """拼缓冲并切行。"""
+        '拼缓冲并切行'
         自身.缓冲+=块#拼进缓冲
         自身._切行()#尽量切出完整行
 
     def _切行(自身):
-        """直到没有完整换行。"""
+        '直到没有完整换行'
         while True:#切行循环
             换行=自身.缓冲.find('\n')#找下一个换行
             if 换行<0:#没有完整行
@@ -230,7 +230,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
             threading.Thread(target=自身._处理行,args=(行,),daemon=True).start()#异步处理该行
 
     def _处理行(自身,行):
-        """畸形 JSON 忽略。"""
+        '畸形 JSON 忽略'
         try:
             消息=json.loads(行)#解析帧
         except json.JSONDecodeError:
@@ -254,7 +254,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
                 处理(方法,对象参数(参数))#调用
 
     def _处理入站请求(自身,标识,方法,参数):
-        """未安装处理函数返回 -32601；处理失败返回 -32603。"""
+        '未安装处理函数返回 -32601；处理失败返回 -32603'
         处理=自身.请求处理#当前请求处理函数
         if 处理 is None:#未安装处理函数
             自身._写出错误(标识,-32601,'找不到方法：'+str(方法))#方法未找到
@@ -266,7 +266,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
             自身._写出错误(标识,-32603,错误消息(错误))#内部错误
 
     def _处理入站响应(自身,标识,帧):
-        """未知 id 忽略。帧为 dict。"""
+        '未知 id 忽略。帧为 dict'
         with 自身.锁:#互斥
             未决=自身.未决.pop(标识,None)#按 id 查找并认领
         if 未决 is None:#未知 id
@@ -284,11 +284,11 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
         未决['兑现'](结果)#成功则兑现 result
 
     def _写出错误(自身,标识,码,消息):
-        """标准 JSON-RPC 错误对象。"""
+        '标准 JSON-RPC 错误对象'
         自身._写出({'jsonrpc':'2.0','id':标识,'error':{'code':码,'message':消息}})#写出
 
     def _写出(自身,消息):
-        """序列化后加换行写出。"""
+        '序列化后加换行写出'
         行=json.dumps(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n'#紧凑 JSON 行
         with 自身._写锁:#写出互斥
             编码=getattr(自身.输出,'encoding',None)#文本流编码
@@ -300,7 +300,7 @@ class 换行JSONRPC传输(JSONRPC传输对等端):
                 自身.输出.flush()#刷新
 
     def _失败未决(自身,错误):
-        """快照后清空，避免重复拒绝。"""
+        '快照后清空，避免重复拒绝'
         with 自身.锁:#互斥
             等待者=list(自身.未决.values())#先快照
             自身.未决.clear()#立刻清空

@@ -1,4 +1,4 @@
-"""冷会话历史分页与 live 事件源。"""
+'冷会话历史分页与 live 事件源'
 import threading#follow 等待
 from ...工具.双端队列 import 双端队列#缓冲
 from ...内核.会话.表面 import 是否追加表面事件#消息对齐分页
@@ -11,16 +11,16 @@ __all__=['会话历史控制器']#仅中文公开名
 消息类型=frozenset(['user/message','assistant/message'])#消息类型
 
 class 会话历史控制器:
-    """实现冷安全 history 操作。"""
+    '实现冷安全 history 操作'
 
     def __init__(自身,上下文,晋升):
-        """保存晋升回调并订阅助手流。"""
+        '保存晋升回调并订阅助手流'
         自身._上下文=上下文#Cordis
         自身._晋升=晋升#晋升
         自身._关闭关注者集合=set()#follow 关闭器
         自身._助手流表={}#会话 id → 累加器
         def 助手流帧(*参数):
-            """订阅 agent/assistant-stream；作用域派发为 (载体, 载荷)。"""
+            '订阅 agent/assistant-stream；作用域派发为 (载体, 载荷)'
             载荷=参数[-1] if 参数 else None#末参即载荷
             if not isinstance(载荷,dict):#非 dict
                 return#忽略
@@ -36,7 +36,7 @@ class 会话历史控制器:
                 自身._助手流表[标识]=流#登记
             流.接受(帧,下一序号前游标(会话.seq))#接受
         def 智能体拆除(*参数):
-            """清理累加器；作用域派发为 (载体, 载荷)。"""
+            '清理累加器；作用域派发为 (载体, 载荷)'
             载荷=参数[-1] if 参数 else None#末参
             if not isinstance(载荷,dict):#非 dict
                 return#忽略
@@ -45,20 +45,20 @@ class 会话历史控制器:
                 return#忽略
             自身._助手流表.pop(智能体.session.id,None)#删除
         def 拆除历史():
-            """拆除 follow。"""
+            '拆除 follow'
             自身._拆除()#委托
         上下文.监听('agent/assistant-stream',助手流帧)#全局助手流
         上下文.监听('agent/disposed',智能体拆除)#拆除
         上下文.副作用(拆除历史,'session-controller.history')#拆除
 
     def _拆除(自身):
-        """关闭全部 follower。"""
+        '关闭全部 follower'
         for 关闭 in list(自身._关闭关注者集合):#逐个
             关闭()#关
         自身._关闭关注者集合.clear()#清空
 
     def page(自身,请求,信号):
-        """读一页消息对齐历史。请求为 dict。"""
+        '读一页消息对齐历史。请求为 dict'
         校验分页请求(请求)#校验
         if 已中止(信号):#取消
             raise 远程错误('gateway/cancelled','session page was aborted',{})#取消
@@ -90,7 +90,7 @@ class 会话历史控制器:
             源.close()#关观测
 
     def follow(自身,请求,信号):
-        """跟随追加事件。请求为 dict。"""
+        '跟随追加事件。请求为 dict'
         校验跟随请求(请求)#校验
         if 已中止(信号):#取消
             return#空
@@ -102,18 +102,18 @@ class 会话历史控制器:
         唤醒=threading.Event()#等待
         关注者={'closed':False}#状态
         def 关闭():
-            """关闭本 follower。"""
+            '关闭本 follower'
             关注者['closed']=True#关
             唤醒.set()#唤醒
         自身._关闭关注者集合.add(关闭)#登记
         def 会话事件(会话,事件):
-            """缓冲匹配会话事件。"""
+            '缓冲匹配会话事件'
             if 会话.id!=目标:#非目标
                 return#忽略
             缓冲.尾推({'type':'event','event':事件})#缓冲
             唤醒.set()#唤醒
         def 会话创建(会话):
-            """构造期种子后缀。"""
+            '构造期种子后缀'
             if 会话.id!=目标:#非目标
                 return#忽略
             起点=会话.firstLiveSeq if 快照游标 is None else 快照游标+1#后缀起点
@@ -122,7 +122,7 @@ class 会话历史控制器:
                 缓冲.头推({'type':'event','event':后缀[下标]})#头推
             唤醒.set()#唤醒
         def 助手流(*参数):
-            """缓冲助手流帧；作用域派发为 (载体, 载荷)。"""
+            '缓冲助手流帧；作用域派发为 (载体, 载荷)'
             nonlocal 助手流序数#序数
             载荷=参数[-1] if 参数 else None#末参
             if not isinstance(载荷,dict):#非 dict
@@ -214,7 +214,7 @@ class 会话历史控制器:
                 卸助手()#卸
 
     def _取源(自身,地址,信号,带投影):
-        """按地址取观测。"""
+        '按地址取观测'
         会话标识=地址标识(地址)#id
         投影模式='all' if 带投影 or 地址.get('kind')=='subagent' else 'none'#投影
         try:
@@ -243,11 +243,11 @@ class 会话历史控制器:
         return 观测#观测
 
 def 下一序号前游标(下一序号):
-    """下一序号前的游标。"""
+    '下一序号前的游标'
     return -1 if 下一序号==0 else 下一序号-1#游标
 
 def 线上助手流帧(帧,耐久游标):
-    """助手流转线上。帧为 dict。"""
+    '助手流转线上。帧为 dict'
     if 帧['type']=='start':#开始
         结果=dict(帧)#拷
         结果['startedAfterSeq']=耐久游标#起始后序号
@@ -259,11 +259,11 @@ def 线上助手流帧(帧,耐久游标):
     return 结果#帧
 
 def 投影块(快照):
-    """投影块。快照为 dict。"""
+    '投影块。快照为 dict'
     return {'asOfSeq':快照['asOfSeq'],'values':快照['values']}#块
 
 def 校验分页请求(请求):
-    """校验分页请求。"""
+    '校验分页请求'
     含末=请求['throughSeq'] if 'throughSeq' in 请求 else None#含末
     if not _是安全整数(含末) or 含末<-1 or (isinstance(含末,float) and 含末==0 and str(含末).startswith('-')):#非法
         raise 远程错误('gateway/bad-request','throughSeq must be an integer greater than or equal to -1',{})#坏请求
@@ -275,17 +275,17 @@ def 校验分页请求(请求):
         raise 远程错误('gateway/bad-request','maxMessages must be a positive safe integer',{})#坏请求
 
 def 校验跟随请求(请求):
-    """校验跟随请求。"""
+    '校验跟随请求'
     最大=请求['maxMessages'] if 'maxMessages' in 请求 else None#最大
     if 最大 is not None and (not _是安全整数(最大) or 最大<=0):#非法
         raise 远程错误('gateway/bad-request','maxMessages must be a positive safe integer',{})#坏请求
 
 def 地址标识(地址):
-    """地址到会话 id。"""
+    '地址到会话 id'
     return 地址['sessionId'] if 地址.get('kind')=='session' else 地址['childSessionId']#id
 
 def 校验地址(地址,头,继承事件数,投影):
-    """校验地址与头一致。"""
+    '校验地址与头一致'
     if 地址.get('kind')=='session':#普通
         if 头.get('origin')=='subagent':#子智能体
             raise 远程错误('session/agent-busy','subagent Sessions require their durable parent address',{
@@ -318,7 +318,7 @@ def 校验地址(地址,头,继承事件数,投影):
         })#未授权
 
 def 拒绝未找到(地址):
-    """未找到映射。"""
+    '未找到映射'
     if 地址.get('kind')=='session':#普通
         raise 远程错误('session/not-found','session "'+str(地址.get('sessionId'))+'" not found',{
             'sessionId':地址.get('sessionId'),
@@ -329,7 +329,7 @@ def 拒绝未找到(地址):
     })#未找到
 
 def 分页(事件列表,向前序号,最大消息数,含末游标=None):
-    """消息对齐分页。"""
+    '消息对齐分页'
     if 含末游标 is None:#默认末
         含末游标=事件列表[-1]['seq'] if len(事件列表)>0 else -1#末
     终点=min(含末游标+1,向前序号 if 向前序号 is not None else 含末游标+1)#终点
@@ -354,15 +354,15 @@ def 分页(事件列表,向前序号,最大消息数,含末游标=None):
     return {'events':事件列表[切口:终点],'hasMore':切口>0}#页
 
 def 条目于(事件):
-    """事件转条目。"""
+    '事件转条目'
     return {'type':'event','event':事件}#条目
 
 def 页记录(事件列表):
-    """编码一页有界逻辑页。"""
+    '编码一页有界逻辑页'
     return [条目于(事件) for 事件 in 事件列表]#记录
 
 def _是安全整数(值):
-    """是否安全整数（拒布尔）。"""
+    '是否安全整数（拒布尔）'
     if isinstance(值,bool):#布尔
         return False#拒
     if isinstance(值,int):#整数

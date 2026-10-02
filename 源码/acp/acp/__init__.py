@@ -1,7 +1,4 @@
-"""仅用于自动化的 Agent Client Protocol 服务器，经 JSON-RPC stdio 承载。
-
-本桥接向受信任的程序化客户端暴露新铸造的 harness 会话。保持具名插件导出且无默认导出。
-"""
+'仅用于自动化的 Agent Client Protocol 服务器，经 JSON-RPC stdio 承载'
 import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#多失败聚合
@@ -23,15 +20,17 @@ __all__=['包名','名称','依赖','应用','默认','配置']
 }
 
 def 非法参数(细节):
-    """把非法参数细节保留在 SDK 线路错误消息里。"""
+    '把非法参数细节保留在 SDK 线路错误消息里'
     return 请求错误.非法参数(None,细节)#无数据载荷
 
 def 内部错误(细节):
-    """把失败回合细节保留为内部错误。"""
+    '把失败回合细节保留为内部错误'
     return 请求错误.内部错误(None,细节)#无数据载荷
 
 def 智能体选项(配置值):
-    """不写入缺席的可选字段。配置为 dict。"""
+    """不写入缺席的可选字段。
+    配置为 dict
+    """
     选项={}#稀疏选项
     if 'provider' in 配置值 and 配置值['provider'] is not None:#有提供方
         选项['provider']=配置值['provider']#写入
@@ -40,7 +39,9 @@ def 智能体选项(配置值):
     return 选项#仅已配置字段
 
 def 校验会话参数(参数):
-    """拒绝自动化约定之外的会话特性。参数为 dict。"""
+    """拒绝自动化约定之外的会话特性。
+    参数为 dict
+    """
     cwd=参数['cwd'] if 'cwd' in 参数 else None#工作目录
     if not os.path.isabs(cwd):#必须绝对路径
         raise 非法参数('cwd must be an absolute path: '+str(cwd))#拒绝
@@ -57,19 +58,21 @@ def 校验会话参数(参数):
         raise 非法参数('mcpServers is not supported')#不支持
 
 class 智能体代理:
-    """把字典处理器暴露为属性。"""
+    '把字典处理器暴露为属性'
     def __init__(自身,表):
-        """记下方法表。"""
+        '记下方法表'
         自身._表=表#方法表
 
     def __getattr__(自身,名):
-        """缺席则 AttributeError。"""
+        '缺席则 AttributeError'
         if 名 in 自身._表:#有
             return 自身._表[名]#方法
         raise AttributeError(名)#缺席
 
 def 应用(上下文,配置值):
-    """挂载仅自动化 ACP 服务器。配置为 dict。"""
+    """挂载仅自动化 ACP 服务器。
+    配置为 dict
+    """
     智能体服务=上下文.agents#智能体工厂
     日志器=上下文.日志#本插件日志器
     会话表={}#会话 id 到桥接记录
@@ -78,33 +81,33 @@ def 应用(上下文,配置值):
     静止盒={'task':None}#进行中的静止任务
 
     def 拥有记录(智能体):
-        """同 id 冒充者一律拒绝。"""
+        '同 id 冒充者一律拒绝'
         记录=会话表[智能体.session.id] if 智能体.session.id in 会话表 else None#按会话 id 查找
         if 记录 is not None and 记录['agent'] is 智能体:#必须是同一智能体实例
             return 记录#拥有
         return None#非拥有
 
     def 断言开放():
-        """已拆除则内部错误。"""
+        '已拆除则内部错误'
         if 已关闭标志['v']:#已拆除
             raise 内部错误('the ACP bridge has been disposed')#内部错误
 
     def 要求会话(会话号):
-        """未知会话抛非法参数。"""
+        '未知会话抛非法参数'
         记录=会话表[会话号] if 会话号 in 会话表 else None#按 id 查找
         if 记录 is None:#未知
             raise 非法参数('unknown session: '+str(会话号))#未知会话
         return 记录#已拥有的记录
 
     def 通知(通知载荷):
-        """不让已断开的客户端把智能体回合打失败。"""
+        '不让已断开的客户端把智能体回合打失败'
         try:
             连接盒['conn'].会话更新(通知载荷)#写更新
         except BaseException as 错误:
             日志器.警告('acp: session/update failed: '+str(错误))#传输写失败
 
     def 结算提示(记录,原因):
-        """无进行中提示则忽略。"""
+        '无进行中提示则忽略'
         飞行=记录['inflight'] if 'inflight' in 记录 else None#取出进行中槽
         if 飞行 is None:#无槽
             return#忽略
@@ -112,7 +115,9 @@ def 应用(上下文,配置值):
         飞行['resolve'](原因)#决议 prompt
 
     def 因错误拒绝(飞行,原因):
-        """细节进内部错误。原因为 dict。"""
+        """细节进内部错误。
+        原因为 dict
+        """
         错=原因['error'] if isinstance(原因,dict) and 'error' in 原因 else None#错误对象
         if isinstance(错,dict) and 'message' in 错:#有消息字段
             文案=str(错['message'])#消息
@@ -121,7 +126,9 @@ def 应用(上下文,配置值):
         飞行['reject'](内部错误('turn failed: '+文案))#拒绝
 
     def 会话事件(会话,事件):
-        """只发出已提交的助手文本。会话为对象，事件为 dict。"""
+        """只发出已提交的助手文本。
+        会话为对象，事件为 dict
+        """
         头=会话.header#会话头
         头标识=头['id'] if isinstance(头,dict) and 'id' in 头 else 会话.id#按会话头 id
         记录=会话表[头标识] if 头标识 in 会话表 else None#查找记录
@@ -178,7 +185,9 @@ def 应用(上下文,配置值):
     上下文.监听('session/event',会话事件)#挂监听
 
     def 收件箱认领(载荷):
-        """同一消息则记下回合。载荷为 dict。"""
+        """同一消息则记下回合。
+        载荷为 dict
+        """
         记录=拥有记录(载荷['agent'] if 'agent' in 载荷 else None)#必须是桥接拥有的智能体
         飞行=记录['inflight'] if 记录 is not None and 'inflight' in 记录 else None#进行中提示
         消息=载荷['message'] if 'message' in 载荷 else None#消息
@@ -189,7 +198,9 @@ def 应用(上下文,配置值):
     上下文.监听('agent/inbox/claimed',收件箱认领)#挂监听
 
     def 智能体错误(载荷):
-        """其他回合的错误仍拒绝 prompt。载荷为 dict。"""
+        """其他回合的错误仍拒绝 prompt。
+        载荷为 dict
+        """
         记录=拥有记录(载荷['agent'] if 'agent' in 载荷 else None)#必须是桥接拥有的智能体
         飞行=记录['inflight'] if 记录 is not None and 'inflight' in 记录 else None#进行中提示
         回合=载荷['turn'] if 'turn' in 载荷 else None#回合
@@ -201,7 +212,9 @@ def 应用(上下文,配置值):
     上下文.监听('agent/error',智能体错误)#挂监听
 
     def 审批请求(请求,下一步):
-        """只提供一次性选项。请求为 dict。"""
+        """只提供一次性选项。
+        请求为 dict
+        """
         记录=拥有记录(请求['agent'] if 'agent' in 请求 else None)#必须是桥接拥有的智能体
         if 记录 is None or 'callId' not in 请求 or 请求['callId'] is None:#非本桥接或无 callId
             return 下一步()#委托下游
@@ -223,10 +236,10 @@ def 应用(上下文,配置值):
     上下文.监听('approval/request',审批请求)#挂监听
 
     def 铸造方法表(连接):
-        """记下连接，供 notify 与权限请求使用。"""
+        '记下连接，供 notify 与权限请求使用'
         连接盒['conn']=连接#记下连接
         def 初始化(_参数):
-            """单版本智能体。"""
+            '单版本智能体'
             return {#初始化响应
                 'protocolVersion':协议版本,#本服务器协议版本
                 'agentInfo':{'name':'deepseek-harness-acp','version':'0.0.1'},#智能体名与版本
@@ -236,10 +249,12 @@ def 应用(上下文,配置值):
                 'authMethods':[],#无认证方法
             }#响应结束
         def 认证(_参数):
-            """空操作成功。"""
+            '空操作成功'
             return None#成功
         def 新建会话(参数):
-            """以绝对路径作为主 cwd 创建新 agent。参数为 dict。"""
+            """以绝对路径作为主 cwd 创建新 agent。
+            参数为 dict
+            """
             断言开放()#已拆除则拒绝
             校验会话参数(参数)#拒绝自动化约定外的会话特性
             会话号=会话标识(str(uuid.uuid4()))#铸造新会话 id
@@ -252,7 +267,7 @@ def 应用(上下文,配置值):
                 句柄.拆除()#丢掉刚创建的智能体
                 raise 内部错误('connection closed during session/new')#报告创建期间关闭
             def 拆本会话():
-                """拆除本句柄。"""
+                '拆除本句柄'
                 return 句柄.拆除()#委托
             会话表[会话号]={#登记桥接记录
                 'agent':句柄.智能体,#拥有的智能体
@@ -261,7 +276,9 @@ def 应用(上下文,配置值):
             }#记录结束
             return {'sessionId':会话号}#把会话 id 交给客户端
         def 提示(参数):
-            """每个会话只允许一个正在处理的请求。参数为 dict。"""
+            """每个会话只允许一个正在处理的请求。
+            参数为 dict
+            """
             断言开放()#已拆除则拒绝
             记录=要求会话(会话标识(参数['sessionId'] if 'sessionId' in 参数 else None))#取本桥接会话
             if 记录['inflight'] is not None:#已有进行中提示
@@ -291,7 +308,7 @@ def 应用(上下文,配置值):
                 记录['inflight']=None#释放槽位
                 raise 内部错误('prompt was not queued: '+str(错误))#报告未能入队
             def 空闲结算():
-                """关联的 turn/end 武装 endReason；无回合的槽保持 cancelled。"""
+                '关联的 turn/end 武装 endReason；无回合的槽保持 cancelled'
                 try:
                     记录['agent'].等到空闲()#整智能体空闲
                 except BaseException:
@@ -309,7 +326,9 @@ def 应用(上下文,配置值):
             threading.Thread(target=空闲结算,daemon=True).start()#后台等空闲
             return {'stopReason':等待.等待()}#ACP 提示响应
         def 取消(参数):
-            """未知 id 为空操作。参数为 dict。"""
+            """未知 id 为空操作。
+            参数为 dict
+            """
             会话号=会话标识(参数['sessionId'] if 'sessionId' in 参数 else None)#会话
             记录=会话表[会话号] if 会话号 in 会话表 else None#按 id 查找
             if 记录 is None:#未知会话
@@ -326,7 +345,7 @@ def 应用(上下文,配置值):
         }#表结束
 
     def 铸造包装(连接):
-        """记下连接后返回代理。"""
+        '记下连接后返回代理'
         return 智能体代理(铸造方法表(连接))#代理
 
     流覆盖=配置值['stream'] if 'stream' in 配置值 else None#可选测试传输
@@ -338,7 +357,7 @@ def 应用(上下文,配置值):
     连接盒['conn']=连接#确保已赋值
 
     def 静止():
-        """客户端断开与 Cordis 释放共用同一个记忆化清理流程。"""
+        '客户端断开与 Cordis 释放共用同一个记忆化清理流程'
         if 静止盒['task'] is not None:#已在静止
             return 静止盒['task'].等待()#复用
         任务=操作任务()#本轮静止
@@ -371,7 +390,7 @@ def 应用(上下文,配置值):
         return 任务.等待()#把同一结果交给调用方
 
     def 连接关闭后():
-        """无论成败都拆除会话。"""
+        '无论成败都拆除会话'
         try:
             连接.已关闭.等待()#关闭边沿
         except BaseException as 错误:
@@ -383,9 +402,9 @@ def 应用(上下文,配置值):
     threading.Thread(target=连接关闭后,daemon=True).start()#后台盯关闭
 
     def 生命周期():
-        """返回拆除函数。"""
+        '返回拆除函数'
         def 拆除():
-            """记忆化清理。"""
+            '记忆化清理'
             静止()#静止
         return 拆除#拆除器
     上下文.副作用(生命周期,'acp.connection')#副作用名

@@ -29,40 +29,40 @@ __all__=['名称','依赖','配置','应用']#仅中文公开名
 }#后台输出字段结束
 
 class bash工具错误(Exception):#本包校验与组合失败
-    """bash工具入参或组合非法。"""
+    'bash工具入参或组合非法'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
-    """任务对象只留等待。"""
+    '任务对象只留等待'
     def __init__(自身):#构造未决任务
-        """构造未决任务。"""
+        '构造未决任务'
         自身.未来=原生Future()#底层Future
     def 兑现(自身,值=None):#成功结算
-        """成功结算。"""
+        '成功结算'
         if not 自身.未来.done():#尚未结算
             自身.未来.set_result(值)#写入结果
         return 值#返回兑现值
     def 拒绝(自身,错误):#失败结算
-        """失败结算。"""
+        '失败结算'
         if not 自身.未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身.未来.set_exception(错误)#原样拒绝
             else:#非异常
                 自身.未来.set_exception(bash工具错误(错误))#包装拒绝
     def 等待(自身,超时=None):#阻塞等待
-        """阻塞到结算。"""
+        '阻塞到结算'
         return 自身.未来.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):#读中止事实
-    """信号按Event定死。"""
+    '信号按Event定死'
     if 信号 is None:#无信号
         return False#未中止
     return 信号.is_set()#事件已置位
 
 def 校验Bash参数(参数):#校验参数值
-    """已解析工具参数；execute校验ParameterSchemaSpec没有的值约束。"""
+    '已解析工具参数；execute校验ParameterSchemaSpec没有的值约束'
     if len(参数['command'].strip())==0:#命令为空
         raise bash工具错误('非法 command：需要非空字符串')#拒绝空命令
     if len(参数['description'].strip())==0:#描述为空
@@ -73,7 +73,7 @@ def 校验Bash参数(参数):#校验参数值
     校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
 
 def 拼Bash描述(后台启用,升级模式,晋升超时):#拼工具描述
-    """按组合拼面向模型的bash工具描述。"""
+    '按组合拼面向模型的bash工具描述'
     if 后台启用 is True:#启用后台
         后台句='Set `run_in_background: true` for long-running commands: the call returns a job id immediately; read its output with `job_output` and stop it with `job_kill`.'#后台说明
         if 晋升超时 is True:
@@ -102,7 +102,9 @@ def 拼Bash描述(后台启用,升级模式,晋升超时):#拼工具描述
         +'it — but it does not forbid attempting or escalating other commands later.')#不影响其他命令
 
 def 呈现Bash调用(参数):#调用卡片
-    """前台调用呈现为终端，后台启动呈现为通用卡片。两条路径标题都是命令；前台cwd传给桥去解析，后台描述留在卡片内容里。"""
+    """前台调用呈现为终端，后台启动呈现为通用卡片。
+    两条路径标题都是命令；前台cwd传给桥去解析，后台描述留在卡片内容里
+    """
     if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#后台
         return {#通用执行卡片
             'card':'generic',#通用卡
@@ -121,7 +123,7 @@ def 呈现Bash调用(参数):#调用卡片
     return 卡片#前台卡片
 
 def 呈现Bash结果(参数,结果):#结果卡片
-    """已完成前台输出呈现为终端；后台确认与执行错误用通用围栏输出，没有退出状态药丸。"""
+    '已完成前台输出呈现为终端；后台确认与执行错误用通用围栏输出，没有退出状态药丸'
     if 'content' not in 结果:#无内容
         return None#不呈现
     内容=结果['content']#内容块
@@ -145,7 +147,9 @@ def 呈现Bash结果(参数,结果):#结果卡片
     return 卡片#终端加药丸
 
 def 解析工作目录(模型工作目录,执行上下文,政策工作区根=None):#解析工作目录
-    """先解析显式workdir，相对路径相对会话工作区；否则用会话cwd的文件系统身份，并把执行器默认当作回退。已解析的沙箱政策根赢，因此workdir与隔离使用完全相同的按次身份。"""
+    """先解析显式workdir，相对路径相对会话工作区；否则用会话cwd的文件系统身份，并把执行器默认当作回退。
+    已解析的沙箱政策根赢，因此workdir与隔离使用完全相同的按次身份
+    """
     头=执行上下文['agent'].session.header#会话头；执行上下文是dict，智能体是对象
     头cwd=头['cwd'] if 'cwd' in 头 else None#会话头cwd
     if 政策工作区根 is not None:#政策根优先
@@ -161,9 +165,9 @@ def 解析工作目录(模型工作目录,执行上下文,政策工作区根=Non
     return 模型工作目录#绝对或无会话则原样
 
 def 规范Bash结果(结果):#规范化前台结果
-    """把执行器DTO从只读Service Definition类型拆成普通JSON数据。"""
+    '把执行器DTO从只读Service Definition类型拆成普通JSON数据'
     def 一路输出(流):#一路输出
-        """投影一路收集输出。"""
+        '投影一路收集输出'
         出={'text':流['text'],'truncated':流['truncated']}#文本与截断
         if 'spillPath' in 流 and 流['spillPath'] is not None:#有溢出路径
             出['spillPath']=流['spillPath']#带上
@@ -192,13 +196,13 @@ def 规范Bash结果(结果):#规范化前台结果
     return 收成#规范结果
 
 def 抛中止():#抛出工具调用中止
-    """抛出带AbortError名的体后中止。"""
+    '抛出带AbortError名的体后中止'
     错误=装备错误('工具调用已中止',工具体后中止)#中止错误
     错误.name='AbortError'#名字
     raise 错误#抛出
 
 def 应用(上下文,配置值=None):#加载bash工具插件
-    """在 tools 服务上登记 bash；有隔离执行器时要求沙盒策略服务。"""
+    '在 tools 服务上登记 bash；有隔离执行器时要求沙盒策略服务'
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True
@@ -209,7 +213,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
     if 默认模式 is not None and 沙箱政策 is None:
         raise bash工具错误('tool-bash: 已挂载的 bash 执行器会隔离，但缺少 ctx.sandboxPolicy')
     def 解析沙箱政策(执行上下文):
-        """挂上隔离执行器时，解析本次调用的完整常驻政策。"""
+        '挂上隔离执行器时，解析本次调用的完整常驻政策'
         if 沙箱政策 is None:
             return None
         请求={}
@@ -218,7 +222,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             请求['session']=智能体.session
         return 沙箱政策.resolve(请求)
     def 审批Bash升级(模式,理由,执行上下文,常驻政策):
-        """在执行前经审批服务解析沙箱升级请求。"""
+        '在执行前经审批服务解析沙箱升级请求'
         if len(升级模式)==0:
             raise bash工具错误('本组合没有可升级的沙箱执行器，不能使用 sandbox_permissions')
         return 批准升级(
@@ -237,30 +241,30 @@ def 应用(上下文,配置值=None):#加载bash工具插件
         'text':'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',
     })
     def 做成bash工具(任务服务):
-        """按是否有任务注册表登记一种 bash。"""
+        '按是否有任务注册表登记一种 bash'
         后台=任务服务 is not None
         晋升=后台 and 晋升超时
         def 启动任务(注册表,参数,执行上下文,规格):
-            """登记命令为任务；进程在 starter 内、准入之后才 spawn。"""
+            '登记命令为任务；进程在 starter 内、准入之后才 spawn'
             进程箱=[None]
             已停=[None]
             def 取进程():
-                """已派生的活进程。"""
+                '已派生的活进程'
                 return 进程箱[0]
             def 任务体():
-                """准入后启动进程作业。"""
+                '准入后启动进程作业'
                 def 拉起(信号):
-                    """带任务取消信号执行规格。"""
+                    '带任务取消信号执行规格'
                     下一=dict(规格)
                     下一['signal']=信号
                     进程箱[0]=上下文.shell.执行(下一)
                     return 进程箱[0]
                 def 投影结局(已启动):
-                    """带升级模式映射任务结局。"""
+                    '带升级模式映射任务结局'
                     return 进程结果(已启动,升级模式)
                 钩子=进程作业(拉起,投影结局)
                 def 取消(原因=None):
-                    """外部杀死记下原因。"""
+                    '外部杀死记下原因'
                     已停[0]=原因
                     钩子['cancel'](原因)
                 return {'done':钩子['done'],'cancel':取消}
@@ -271,12 +275,12 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             编号=注册表.启动(启动参数)
             return {'id':编号,'process':取进程,'stopped':lambda:已停[0]}
         def 等待任务(注册表,已挂,执行上下文,规格):
-            """等到登记的前台命令结算或超时。"""
+            '等到登记的前台命令结算或超时'
             智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None
             所有者=None if 智能体 is None else 智能体.id
             超时毫秒=规格['timeoutMs']
             def 停止(原因):
-                """由本调用停掉任务并等到结算，使模型从未见过的 id 随调用离开。"""
+                '由本调用停掉任务并等到结算，使模型从未见过的 id 随调用离开'
                 注册表.终止(已挂['id'],所有者,原因)
                 已结算=注册表.等待(已挂['id'],超时毫秒,所有者)
                 if 已结算['status']!='running' and 已结算['status']!='stopping':
@@ -313,7 +317,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
                 收成['stopped']=已停
             return 收成
         def 渲染(参数,值):
-            """按种类渲染。"""
+            '按种类渲染'
             if 值['kind']=='background':
                 文本='started background job '+str(值['jobId'])
             elif 值['kind']=='promoted':
@@ -322,7 +326,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
                 文本=渲染结果(值,升级模式)
             return [{'type':'text','text':文本}]
         def 执行(参数,执行上下文):
-            """校验后前台等待或后台登记。"""
+            '校验后前台等待或后台登记'
             常驻政策=解析沙箱政策(执行上下文)
             校验Bash参数(参数)
             if ('sandbox_permissions' in 参数 and 参数['sandbox_permissions'] is not None and
@@ -462,16 +466,16 @@ def 应用(上下文,配置值=None):#加载bash工具插件
         return
     仅前台=None if 上下文.获取服务('jobs',False) is not None else 上下文.tools.登记(做成bash工具(None))
     def 接线任务(子上下文):
-        """任务注册表在场时换成带任务的 bash。"""
+        '任务注册表在场时换成带任务的 bash'
         nonlocal 仅前台
         if 仅前台 is not None:
             仅前台()
             仅前台=None
         拆除=上下文.tools.登记(做成bash工具(子上下文.jobs))
         def 挂拆():
-            """注册表卸下且本插件仍活则回到仅前台。"""
+            '注册表卸下且本插件仍活则回到仅前台'
             def 拆除器():
-                """卸任务版，必要时再挂仅前台。"""
+                '卸任务版，必要时再挂仅前台'
                 nonlocal 仅前台
                 拆除()
                 if 上下文.纤程.状态==纤程状态.已激活:

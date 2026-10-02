@@ -24,7 +24,7 @@ __all__=['浏览器mcp配置','校验浏览器mcp配置','挂会话mcp']#仅中�
 )#配置结束
 
 def 校验浏览器mcp配置(配置):#激活前校验端点
-    """附着模式须为合法 HTTP(S)/WS(S) URL。配置是 dict。"""
+    '附着模式须为合法 HTTP(S)/WS(S) URL。配置是 dict'
     if 配置['mode']!='attach':#启动
         return#过
     端点=配置['endpoint']#原文
@@ -33,7 +33,7 @@ def 校验浏览器mcp配置(配置):#激活前校验端点
         raise 浏览器操作运行时错误('browser endpoint must be a valid HTTP(S) or WS(S) URL without whitespace')#失败
 
 def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
-    """等未来智能体创建时接入一台 MCP 客户端。选项是 dict。"""
+    '等未来智能体创建时接入一台 MCP 客户端。选项是 dict'
     箱={'资源':None}#延迟赋值
     客户={}#智能体 → 状态
     工具前缀='mcp__'+选项['name']+'__'#工具前缀
@@ -41,7 +41,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
     停止与刷新标志={'停止中':False,'刷新中':False}#卸载与刷新
 
     def 刷新阻塞掩码():#挡住继承工具
-        """忙附着时去掉本提供方工具。"""
+        '忙附着时去掉本提供方工具'
         if 停止与刷新标志['停止中'] or 停止与刷新标志['刷新中']:#重入
             return#停
         停止与刷新标志['刷新中']=True#进
@@ -62,16 +62,16 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
             停止与刷新标志['刷新中']=False#出
 
     def 打开(智能体,信号):#获取作用域
-        """在智能体作用域挂 MCP 客户端。"""
+        '在智能体作用域挂 MCP 客户端'
         已铸=创建作用域(上下文,智能体)#铸造
         已取消=False#信号是否已拆
         def 取消时():#信号
-            """拆除作用域。"""
+            '拆除作用域'
             nonlocal 已取消#改
             已取消=True#记下
             已铸.原始拆除()#拆除
         def 监视():#等中止
-            """置位后取消。"""
+            '置位后取消'
             if hasattr(信号,'wait'):#Event
                 信号.wait()#等待
                 取消时()#拆
@@ -80,7 +80,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
         try:#挂客户端
             若已中止则抛出(信号)#中止
             def 执行守卫(执行,下一):#tools/execute
-                """工具必须属于本 Session。"""
+                '工具必须属于本 Session'
                 if not 执行['name'].startswith(工具前缀):#外
                     return 下一()#过
                 if 执行.get('agent') is not 智能体:#他者
@@ -107,7 +107,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
             已铸.上下文.启动插件(mcp客户端,连接)#挂客户端
             若已中止则抛出(信号)#中止
             def 关():#关作用域
-                """摘客户表。"""
+                '摘客户表'
                 if 智能体 in 客户:#有
                     del 客户[智能体]#摘
                 return 已铸.原始拆除()#拆除
@@ -118,7 +118,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
             raise 错误#原样
 
     def 会话寿命():#登记提供方与资源
-        """卸载先关服务器再放登记。"""
+        '卸载先关服务器再放登记'
         撤销=上下文.browserUse.登记(浏览器操作提供方名(选项['name']))#占用
         箱['资源']=会话资源(上下文,{#资源表
             'label':选项['name'],#诊断名
@@ -126,7 +126,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
             'open':打开,#获取
         })#表
         def 卸():#卸载
-            """先关服务器。"""
+            '先关服务器'
             停止与刷新标志['停止中']=True#停
             箱['资源'].拆除()#拆
             客户.clear()#清
@@ -135,14 +135,14 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
     上下文.副作用(会话寿命,选项['name']+'.sessions')#会话寿命
 
     def 智能体已创建(载荷):#agent/created
-        """prepend：忙则挡，否则获取。"""
+        'prepend：忙则挡，否则获取'
         智能体=载荷['agent']#智能体
         信号=载荷['signal'] if 'signal' in 载荷 else None#信号
         状态={'status':'ready' if 箱['资源'].可用(智能体) else 'blocked'}#状态
         def 激活拆除():#作用域拆除
-            """摘客户并拆掩码。"""
+            '摘客户并拆掩码'
             def 卸():#卸
-                """dispose mask。"""
+                'dispose mask'
                 if 智能体 in 客户:#有
                     del 客户[智能体]#摘
                 掩=状态.get('mask')#掩码
@@ -160,7 +160,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
     上下文.on('tools/change',刷新阻塞掩码)#工具变更
 
     def 执行包装(执行,下一):#tools/execute
-        """本前缀或本服务器资源工具走资源队列。"""
+        '本前缀或本服务器资源工具走资源队列'
         参数=执行['arguments'] if 'arguments' in 执行 else None#参数
         本资源=执行['name'] in 资源工具 and isinstance(参数,dict) and 参数.get('server')==选项['name']#资源工具
         if not 执行['name'].startswith(工具前缀) and not 本资源:#无关
@@ -169,7 +169,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
             raise 浏览器操作运行时错误(选项['name']+': browser tool belongs to another Session')#他者
         智能体=执行['agent']#调用方
         def 操作(_作用域,合成):#队列内
-            """换 signal 再 next。"""
+            '换 signal 再 next'
             原=执行.get('signal')#原信号
             执行['signal']=合成#合成
             try:#下一
@@ -180,7 +180,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
     上下文.on('tools/execute',执行包装)#包装
 
     def 组装提示(_组装,选项包,下一):#system-prompt/assemble
-        """非 ready 去掉 mcp: 段。"""
+        '非 ready 去掉 mcp: 段'
         结果=下一()#下游
         智能体=选项包.get('agent') if isinstance(选项包,dict) else None#智能体
         if 智能体 is None or (智能体 in 客户 and 客户[智能体]['status']=='ready'):#可见

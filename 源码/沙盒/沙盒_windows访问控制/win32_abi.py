@@ -1,4 +1,4 @@
-"""ACL 沙箱后端的 Windows ABI 常量。每个值都对照本机实际 MinGW Windows 头验证，并由 verify/abi-probe.cpp 在运行时交叉核对。本移植故意排除原 POC 的控制台登录 SID 与控制台隔离。"""
+'ACL 沙箱后端的 Windows ABI 常量'
 
 令牌指派主=0x0001#TOKEN_ASSIGN_PRIMARY
 令牌复制=0x0002#TOKEN_DUPLICATE

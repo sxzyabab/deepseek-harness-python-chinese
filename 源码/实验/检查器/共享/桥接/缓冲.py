@@ -6,9 +6,9 @@ __all__=['检查器源缓冲选项','检查器源缓冲']#仅中文公开名
 源帧开销字节=4096#源帧开销字节估算
 
 class 检查器源缓冲选项:#源缓冲选项
-    """两种源传输共用的上限与声明主题。"""
+    '两种源传输共用的上限与声明主题'
     def __init__(自身,topics,maxQueuedRecords,maxQueuedBytes,maxRecordsPerFrame,maxFrameBytes):#构造
-        """保存缓冲选项。"""
+        '保存缓冲选项'
         自身.topics=tuple(topics)#声明主题
         自身.maxQueuedRecords=maxQueuedRecords#最大排队记录数
         自身.maxQueuedBytes=maxQueuedBytes#最大排队字节
@@ -16,9 +16,9 @@ class 检查器源缓冲选项:#源缓冲选项
         自身.maxFrameBytes=maxFrameBytes#每帧最大字节
 
 class 检查器源缓冲:#源缓冲
-    """拥有保留状态、排队事件与源本地序号。"""
+    '拥有保留状态、排队事件与源本地序号'
     def __init__(自身,选项):#缓冲选项
-        """初始化队列与状态。"""
+        '初始化队列与状态'
         自身.选项=选项#缓冲选项
         自身._队列=[]#排队队列
         自身._状态={}#保留状态
@@ -28,15 +28,15 @@ class 检查器源缓冲:#源缓冲
 
     @property
     def 有待发(自身):#是否有待发
-        """是否至少有一条观测在等待传输。"""
+        '是否至少有一条观测在等待传输'
         return len(自身._队列)>0#队列非空
 
     def 发布(自身,topic,payload,monotonicMs):#发布观测
-        """校验并入队一条观测，必要时丢掉最旧前缀。"""
+        '校验并入队一条观测，必要时丢掉最旧前缀'
         自身._入队(自身._记录(topic,payload,monotonicMs))#入队
 
     def 设置状态(自身,topic,payload,monotonicMs):#设置状态
-        """替换一个保留主题，并把同一观测入队供实时投递。"""
+        '替换一个保留主题，并把同一观测入队供实时投递'
         记录=自身._记录(topic,payload,monotonicMs)#构造记录
         先前=自身._状态.get(topic)#先前状态
         自身._状态[topic]=记录#写入状态
@@ -49,7 +49,7 @@ class 检查器源缓冲:#源缓冲
         自身._入队(记录)#入队实时投递
 
     def 替换帧(自身,sourceId,generation):#构造替换帧
-        """构造完整状态替换，并吸收此前每一次队列丢弃。"""
+        '构造完整状态替换，并吸收此前每一次队列丢弃'
         下一序号=自身._队列[0]['sequence'] if 自身._队列 else 自身._下一序号#下一追加序号
         自身._期望序号=下一序号#对齐期望
         return {#替换帧
@@ -62,7 +62,7 @@ class 检查器源缓冲:#源缓冲
         }#返回结束
 
     def 取一批(自身,sourceId,generation):#取一批
-        """取出并编号下一批传输大小的观测。"""
+        '取出并编号下一批传输大小的观测'
         if len(自身._队列)==0:#空队列
             return None#无
         批次=[]#本批
@@ -92,12 +92,12 @@ class 检查器源缓冲:#源缓冲
         return 帧#追加帧
 
     def 丢弃待发(自身):#丢弃待发
-        """丢弃尚未进入传输帧的观测。"""
+        '丢弃尚未进入传输帧的观测'
         自身._队列.clear()#清空队列
         自身._排队字节=0#清字节
 
     def _记录(自身,topic,payload,monotonicMs):#构造记录
-        """校验并构造观测记录。"""
+        '校验并构造观测记录'
         if len(topic)==0 or len(topic)>128:#主题长度非法
             raise 检查器错误('inspector: topic must contain 1 to 128 characters')#英文诊断
         if '*' not in 自身.选项.topics and topic not in 自身.选项.topics:#未声明主题
@@ -109,7 +109,7 @@ class 检查器源缓冲:#源缓冲
         return {'monotonicMs':monotonicMs,'topic':topic,'payload':payload}#记录
 
     def _入队(自身,记录):#入队并约束上限
-        """入队并裁剪排队上限。"""
+        '入队并裁剪排队上限'
         字节=json字节长度(记录)#记录字节
         序号=自身._下一序号#分配序号
         自身._下一序号+=1#推进
@@ -122,5 +122,5 @@ class 检查器源缓冲:#源缓冲
             自身._排队字节-=丢掉['bytes']#扣字节
 
     def _状态装得下(自身):#状态是否装得进一帧
-        """状态加开销不超帧。"""
+        '状态加开销不超帧'
         return json字节长度(list(自身._状态.values()))+源帧开销字节<=自身.选项.maxFrameBytes#状态加开销不超帧

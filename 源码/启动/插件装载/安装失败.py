@@ -1,4 +1,4 @@
-"""按退出方式与输出尾部分类一次失败的 pnpm 运行。"""
+'按退出方式与输出尾部分类一次失败的 pnpm 运行'
 import re
 
 __all__=['分类安装失败']
@@ -15,7 +15,7 @@ __all__=['分类安装失败']
 ]
 
 def 分类安装失败(事实):
-    """分类一次失败运行；事实是 dict，含 log 与可选 cause、timedOut。"""
+    '分类一次失败运行；事实是 dict，含 log 与可选 cause、timedOut'
     if 事实.get('timedOut') is True:
         return 'timeout'
     原因=事实.get('cause')

@@ -7,9 +7,9 @@ from ...共享.json import 检查器错误#本包错误
 __all__=['检查器端点']#仅中文公开名
 
 class 检查器端点:#检查器端点
-    """Worker 拥有的网络端点。"""
+    'Worker 拥有的网络端点'
     def __init__(自身,配置,源注册表,网络,realms,cordisDom,cordis树,查询路由):#构造
-        """保存依赖。"""
+        '保存依赖'
         自身._配置=配置#配置
         自身._源注册表=源注册表#源注册表
         自身._网络=网络#网络域
@@ -23,7 +23,7 @@ class 检查器端点:#检查器端点
         自身._升级处理器={}#升级路径→处理器
 
     def 启动(自身):#启动
-        """绑定回环端点。"""
+        '绑定回环端点'
         候选=_配置字段(自身._配置,'startPort')#候选端口
         主机=_配置字段(自身._配置,'host')#主机
         while True:#找可用端口
@@ -42,7 +42,7 @@ class 检查器端点:#检查器端点
                 候选+=1#下一端口
 
     def 关闭(自身):#关闭
-        """停止准入、释放 CDP 会话、终止套接字并等待服务器关闭。"""
+        '停止准入、释放 CDP 会话、终止套接字并等待服务器关闭'
         服务器=自身._要求服务器()#要求已启动
         for 套接字,会话 in list(自身._cdp会话.items()):#扫CDP
             会话.关闭()#关会话
@@ -63,7 +63,7 @@ class 检查器端点:#检查器端点
         自身._服务器=None#清空
 
     def _处理http(自身,处理器):#处理HTTP
-        """处理发现端点。"""
+        '处理发现端点'
         路径=解析网址(处理器.path).path#路径
         if 路径 in ('/json','/json/list'):#列表
             自身._写json(处理器,[自身._目标()])#返回目标
@@ -77,7 +77,7 @@ class 检查器端点:#检查器端点
         处理器.wfile.write(b'not found')#结束
 
     def _处理升级(自身,路径,请求头,套接字):#处理升级
-        """处理 WebSocket 升级路径登记。"""
+        '处理 WebSocket 升级路径登记'
         目标id=_配置字段(自身._配置,'targetId')#目标id
         if 路径==f'/devtools/page/{目标id}':#CDP路径
             自身._接受cdp(套接字,请求头)#接受CDP
@@ -92,17 +92,17 @@ class 检查器端点:#检查器端点
         return False#未知路径
 
     def _接受cdp(自身,套接字,请求头):#接受CDP
-        """接受 CDP WebSocket（由外部升级层投递已握手套接字）。"""
+        '接受 CDP WebSocket（由外部升级层投递已握手套接字）'
         class _传输:#CDP传输
             def 发送(传,载荷):#发送
-                """发送 JSON 载荷。"""
+                '发送 JSON 载荷'
                 数据=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#编码
                 try:#发送
                     套接字.sendall(数据)#发
                 except OSError:#套接字已断
                     pass#忽略
             def 关闭(传):#关闭
-                """关闭套接字。"""
+                '关闭套接字'
                 try:#关
                     套接字.close()#关
                 except OSError:#套接字已断
@@ -110,7 +110,7 @@ class 检查器端点:#检查器端点
         会话=Cdp会话(_传输(),{'targetId':_配置字段(自身._配置,'targetId'),'title':'DeepSeek Harness Host'},自身._源注册表,自身._网络,自身._realms,自身._cordisDom,自身._cordis树)#CDP会话
         自身._cdp会话[套接字]=会话#登记
         def 收消息(文本):#消息
-            """解析并交给会话。"""
+            '解析并交给会话'
             try:#解析
                 会话.接收(json.loads(文本))#交给会话
             except (json.JSONDecodeError,ValueError,检查器错误):#畸形帧或会话拒绝
@@ -118,26 +118,26 @@ class 检查器端点:#检查器端点
         自身._升级处理器[套接字]={'onmessage':收消息,'onsession':会话,'kind':'cdp'}#登记处理器
 
     def _接受摄入(自身,套接字,请求头):#接受摄入
-        """接受 Client 摄入 WebSocket。"""
+        '接受 Client 摄入 WebSocket'
         class _查询传输:#查询传输
             def __init__(传):#构造
-                """占位。"""
+                '占位'
                 pass#无状态
             def send(传,帧):#发送
-                """发送查询帧。"""
+                '发送查询帧'
                 try:#发送
                     套接字.sendall(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#发
                 except OSError:#套接字已断
                     pass#忽略
             def close(传,码=1000,原因=''):#关闭
-                """关闭套接字。"""
+                '关闭套接字'
                 try:#关
                     套接字.close()#关
                 except OSError:#套接字已断
                     pass#忽略
         查询对端=自身._查询路由.打开(_查询传输())#查询对端
         def 发送(帧):#发送
-            """发往 Client。"""
+            '发往 Client'
             try:#发送
                 套接字.sendall(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#发
             except OSError:#套接字已断
@@ -145,7 +145,7 @@ class 检查器端点:#检查器端点
             if 帧.get('t')=='source/accepted':#接受后登记
                 查询对端.接受(帧['sourceId'],帧['generation'])#登记
         def 关闭(码=1000,原因=''):#关闭
-            """关闭截断原因。"""
+            '关闭截断原因'
             try:#关
                 套接字.close()#关
             except OSError:#套接字已断
@@ -153,7 +153,7 @@ class 检查器端点:#检查器端点
         连接={'kind':'client','send':发送,'close':关闭}#源连接
         自身._摄入连接[套接字]=连接#登记
         def 收消息(文本):#消息
-            """查询未吃则交源。"""
+            '查询未吃则交源'
             try:#解析
                 值=json.loads(文本)#解码
                 if not 查询对端.接收(值):#查询未吃
@@ -161,14 +161,14 @@ class 检查器端点:#检查器端点
             except (json.JSONDecodeError,ValueError,检查器错误):#畸形帧或会话拒绝
                 连接['close'](1008,'source frame must be JSON')#关闭
         def 收关闭():#关闭
-            """清理。"""
+            '清理'
             自身._摄入连接.pop(套接字,None)#移除
             查询对端.关闭()#关查询
             自身._源注册表.断开(连接,'Client source disconnected')#断源
         自身._升级处理器[套接字]={'onmessage':收消息,'onclose':收关闭,'kind':'ingest'}#登记
 
     def _已授权客户端(自身,请求头):#Client是否授权
-        """校验子协议与 Origin。"""
+        '校验子协议与 Origin'
         协议头=请求头.get('Sec-WebSocket-Protocol') or 请求头.get('sec-websocket-protocol') or ''#|| 语义，空串当假才试另一大小写
         协议列表=[项.strip() for 项 in 协议头.split(',')]#分割
         if _配置字段(自身._配置,'clientToken') not in 协议列表:#无令牌
@@ -186,7 +186,7 @@ class 检查器端点:#检查器端点
             return False#拒绝
 
     def _目标(自身):#目标描述
-        """目标对象。"""
+        '目标对象'
         主机=_配置字段(自身._配置,'host')#主机
         目标id=_配置字段(自身._配置,'targetId')#id
         端口=自身._已绑定端口()#端口
@@ -201,21 +201,21 @@ class 检查器端点:#检查器端点
         }#return结束
 
     def _cdp网址(自身):#CDP WebSocket URL
-        """拼 CDP URL。"""
+        '拼 CDP URL'
         return f"ws://{_配置字段(自身._配置,'host')}:{自身._已绑定端口()}/devtools/page/{_配置字段(自身._配置,'targetId')}"#拼URL
 
     def _已绑定端口(自身):#已绑定端口
-        """已绑定端口。"""
+        '已绑定端口'
         return 自身._要求服务器().server_address[1]#端口
 
     def _要求服务器(自身):#要求已启动
-        """要求已启动。"""
+        '要求已启动'
         if 自身._服务器 is None:#未启动
             raise 检查器错误('inspector: endpoint is not started')#未启动
         return 自身._服务器#返回
 
     def _写json(自身,处理器,值):#写JSON响应
-        """写 JSON 响应。"""
+        '写 JSON 响应'
         体=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#体
         处理器.send_response(200)#头
         处理器.send_header('content-type','application/json; charset=utf-8')#类型
@@ -224,22 +224,22 @@ class 检查器端点:#检查器端点
         处理器.wfile.write(体)#体
 
 def _配置字段(配置,名):#读配置字段
-    """配置是 dict。"""
+    '配置是 dict'
     return 配置[名]#字段
 
 def _创建服务器(端点,端口,主机):#创建HTTP服务器
-    """创建线程化 HTTP 服务器。"""
+    '创建线程化 HTTP 服务器'
     class _处理器(BaseHTTPRequestHandler):#请求处理器
         def do_GET(自身):#GET
-            """发现端点。"""
+            '发现端点'
             端点._处理http(自身)#委托
         def log_message(自身,*位置参数):#禁用默认日志
-            """静默。"""
+            '静默'
             return#静默
     服务器=ThreadingHTTPServer((主机,端口),_处理器)#HTTP
     服务器.端点=端点#挂回
     return 服务器#返回
 
 def 地址占用(错误):#是否地址占用
-    """是否 EADDRINUSE。"""
+    '是否 EADDRINUSE'
     return isinstance(错误,OSError) and getattr(错误,'errno',None) in (getattr(socket,'EADDRINUSE',98),10048)#EADDRINUSE

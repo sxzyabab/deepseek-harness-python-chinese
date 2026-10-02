@@ -37,14 +37,14 @@ __all__=['名称','依赖','应用']
 )#策略结束
 
 def 转json(值):#一份不可变日志值
-    """一份不可变日志值的 JSON 文本。"""
+    '一份不可变日志值的 JSON 文本'
     渲染=json.dumps(值,ensure_ascii=False,indent=2)#缩进
     if 渲染 is None:#不可序列化
         raise Exception('自动审查：必填值无法 JSON 序列化')
     return 渲染#文本
 
 def 解析已记参数(原文):#原生调用原始参数
-    """复现智能体循环对已记原始参数的解析。"""
+    '复现智能体循环对已记原始参数的解析'
     if 原文=='':#空
         return {}#空对象
     try:#JSON
@@ -53,37 +53,37 @@ def 解析已记参数(原文):#原生调用原始参数
         return 原文
 
 def 同一json(左,右):#无损 JSON 比较
-    """比较两份无损 JSON 值且不保留别名。"""
+    '比较两份无损 JSON 值且不保留别名'
     return json.dumps(左,ensure_ascii=False,separators=(',',':'),allow_nan=False)==json.dumps(右,ensure_ascii=False,separators=(',',':'),allow_nan=False)#相等
 
 def 是否记录(值):#对象记录而非 null/数组
-    """已记 JSON 值是否为对象记录。"""
+    '已记 JSON 值是否为对象记录'
     return 值 is not None and isinstance(值,dict)#记录
 
 def 已记模式(值,期望名,模式):#校验待审 schema
-    """校验已记待审动作必须具备的 schema 字段。"""
+    '校验已记待审动作必须具备的 schema 字段'
     if not isinstance(值.get('description'),str) or not 是否记录(值.get('parameters')):#不完整
         raise Exception('自动审查：待处理 '+模式+' 工具模式不完整')
     return {'name':期望名,'description':值['description'],'parameters':值['parameters']}#模式
 
 def 是否人类指令(来源):#已发运 Web 人类指令
-    """可见消息是否为耐久已发运 Web 人类指令。"""
+    '可见消息是否为耐久已发运 Web 人类指令'
     return 来源.get('kind')=='user' and isinstance(来源.get('rpcId'),str)#人类
 
 def 是否项目指令(来源):#当前项目指令源
-    """可见上下文是否为当前项目指令源。"""
+    '可见上下文是否为当前项目指令源'
     return 来源.get('kind')=='agent-instructions'#项目
 
 def 是否检查点(来源):#压缩检查点
-    """来源是否为压缩检查点。"""
+    '来源是否为压缩检查点'
     return 来源.get('kind')=='compact-checkpoint'#检查点
 
 def 是否直接父指令(来源,父会话):#子的直接父
-    """消息是否耐久归属于子的直接父。"""
+    '消息是否耐久归属于子的直接父'
     return 父会话 is not None and 来源.get('kind')=='agent-message' and 来源.get('senderSessionId')==父会话#直接父
 
 def 直接父初始提示序号(智能体,事件表):#创建提示序号
-    """进程内子创建提示在可见角色上的身份。"""
+    '进程内子创建提示在可见角色上的身份'
     会话=智能体.session#会话
     头=会话.header#头
     if 头.get('origin')!='subagent' or 'parentSession' not in 头:#非子
@@ -100,7 +100,7 @@ def 直接父初始提示序号(智能体,事件表):#创建提示序号
     return None#无
 
 def 文本角色(来源,序号,初始提示序号,父会话):#指令/约束/摘要/事实
-    """给一块保留文本固定角色。"""
+    '给一块保留文本固定角色'
     if 是否人类指令(来源):#人类
         return 'human-instruction'#人类
     if 序号==初始提示序号 or 是否直接父指令(来源,父会话):#直接父
@@ -110,7 +110,7 @@ def 文本角色(来源,序号,初始提示序号,父会话):#指令/约束/摘�
     return 'fact'#事实
 
 def 过滤用户条目(序号,来源,内容,初始提示序号,父会话):#按角色保留
-    """把一条可见用户角色消息分成带角色的保留块。"""
+    '把一条可见用户角色消息分成带角色的保留块'
     留下=[]#条目
     for 块 in 内容:#逐块
         角色=文本角色(来源,序号,初始提示序号,父会话) if 块.get('type')=='text' else 'fact'#角色
@@ -118,19 +118,19 @@ def 过滤用户条目(序号,来源,内容,初始提示序号,父会话):#按�
     return 留下#条目
 
 def 步骤身份(数据):#回合与步骤
-    """复制一条核心执行事件携带的回合与步骤。"""
+    '复制一条核心执行事件携带的回合与步骤'
     return {'turn':数据['turn'],'step':数据['step']}#身份
 
 def 同一步骤(左,右):#比较身份
-    """比较两份回合与步骤身份。"""
+    '比较两份回合与步骤身份'
     return 左['turn']==右['turn'] and 左['step']==右['step']#相等
 
 def 作用域调用键(步骤,调用id):#步骤内调用
-    """在拥有其寿命的步骤内键入一次调用 id。"""
+    '在拥有其寿命的步骤内键入一次调用 id'
     return str(步骤['turn'])+'\0'+str(步骤['step'])+'\0'+str(调用id)#键
 
 def 划定ptc开始(事件表):#把 PTC 开始划到当时打开的步骤
-    """把每次 PTC 开始划到记录时打开的步骤。"""
+    '把每次 PTC 开始划到记录时打开的步骤'
     开始表=[]#开始
     打开步骤=None#当前步骤
     for 事件 in 事件表:#逐条
@@ -151,7 +151,7 @@ def 划定ptc开始(事件表):#把 PTC 开始划到当时打开的步骤
     return {'starts':开始表,'openStep':打开步骤}#划定
 
 def 原生动作(执行,头工具,已记):#从可见调用与请求头解析
-    """从可见调用与最新请求头解析一次原生动作。"""
+    '从可见调用与最新请求头解析一次原生动作'
     if 已记['data']['name']!=执行['name'] or not 同一json(解析已记参数(已记['data']['arguments']),执行['arguments']):#不一致
         raise Exception('自动审查：待处理原生调用与已记动作不一致')
     候选表=头工具 if isinstance(头工具,list) else []#候选
@@ -165,7 +165,7 @@ def 原生动作(执行,头工具,已记):#从可见调用与请求头解析
     return {'mode':'native','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
 
 def ptc动作(执行,开始,可见父键):#从绑定 schema 与已记身份解析
-    """从绑定 schema 与已记身份解析一次 PTC 内层动作。"""
+    '从绑定 schema 与已记身份解析一次 PTC 内层动作'
     事件=开始['event']#开始事件
     if (作用域调用键(开始['step'],事件['data']['parentCallId']) not in 可见父键
             or 事件['data']['rootCallId']!=执行['rootCallId']
@@ -179,7 +179,7 @@ def ptc动作(执行,开始,可见父键):#从绑定 schema 与已记身份解�
     return {'mode':'ptc-inner','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
 
 def 快照自动审查(智能体,执行):#冻结五段
-    """从一份会话与待执行冻结审查员的五段。"""
+    '从一份会话与待执行冻结审查员的五段'
     会话=智能体.session#会话
     事件表=会话.snapshotEvents()#全历史
     节点表=list(会话.surface.nodes)#表面
@@ -286,7 +286,7 @@ def 快照自动审查(智能体,执行):#冻结五段
     return 深冻结({'provider':头['config']['provider'],'model':头['config']['model'],'cwd':工作目录,'projectInstructions':项目指令,'history':历史,'action':动作})#快照
 
 def 审查用户文本(快照):#四段数据
-    """渲染与固定策略段配对的四段数据。"""
+    '渲染与固定策略段配对的四段数据'
     return '\n\n'.join([#段
         'ENVIRONMENT',#环境
         转json({'cwd':快照['cwd']}),#cwd
@@ -299,7 +299,7 @@ def 审查用户文本(快照):#四段数据
     ])#拼接
 
 def 顶层成员数(文本):#原始顶层成员
-    """统计原始顶层 JSON 对象成员数。"""
+    '统计原始顶层 JSON 对象成员数'
     语法=re.sub(r'"(?:\\.|[^"\\])*"','',文本)#去字符串
     深度=0#深度
     计数=0#成员
@@ -313,7 +313,7 @@ def 顶层成员数(文本):#原始顶层成员
     return 计数#数
 
 def 解析决策(文本):#封闭 risk/decision
-    """解析封闭的 risk/decision 协议及其固定安全组合。"""
+    '解析封闭的 risk/decision 协议及其固定安全组合'
     值=json.loads(文本)#对象
     if 值 is None or not isinstance(值,dict):#非对象
         raise Exception('自动审查：审查输出必须是一个 JSON 对象')
@@ -331,7 +331,7 @@ def 解析决策(文本):#封闭 risk/decision
     raise Exception('自动审查：审查输出不符合风险/决策协议')
 
 def 读决策(流):#推理块后恰好一块 JSON 文本再终止
-    """消费零或多块推理、一块 JSON 文本与一次终止 stop。"""
+    '消费零或多块推理、一块 JSON 文本与一次终止 stop'
     组装器=块组装器()#组装
     已结束=False#终止
     for 块 in 流:#逐块
@@ -356,7 +356,7 @@ def 读决策(流):#推理块后恰好一块 JSON 文本再终止
     return 解析决策(末['text'])#决策
 
 def 分类风险(上下文,智能体,执行,信号):#固定策略与当前路由
-    """用固定策略与当前 LLM 路由审查一次冻结待审动作。"""
+    '用固定策略与当前 LLM 路由审查一次冻结待审动作'
     快照=快照自动审查(智能体,执行)#快照
     选项=深冻结({#生成
         'provider':快照['provider'],#提供方
@@ -372,22 +372,22 @@ def 分类风险(上下文,智能体,执行,信号):#固定策略与当前路由
     return 读决策(上下文.llm.流式(选项))#决策
 
 def 拒绝(执行,原因=None):#固定拒绝
-    """物化面向模型的 Auto 拒绝与可选 UI 详情。"""
+    '物化面向模型的 Auto 拒绝与可选 UI 详情'
     信息={'name':自动审查拒绝错误名,'code':自动审查拒绝码}#信息
     if 原因 is not None:#有因
         信息['reason']=原因#因
     return {'kind':'deny','reason':'自动审查拒绝了工具 "'+执行['name']+'"; 其体未被执行','info':信息}
 
 def 应用(上下文):#安装 Auto 与前置审查门
-    """安装 Auto 预设及其前置的逐调用审查门。"""
+    '安装 Auto 预设及其前置的逐调用审查门'
     权限预设=上下文.permissionPresets#服务
     接纳中=True#接纳
     在途=set()#在途任务
     寿命=中止控制器()#寿命
     def 寿命体():#effect
-        """保留依赖服务直到拆除。"""
+        '保留依赖服务直到拆除'
         def 预执行(执行,下一):#tools/pre-execute
-            """每个受支持调用的 body 前审查一次。"""
+            '每个受支持调用的 body 前审查一次'
             nonlocal 接纳中#改
             if 'agent' not in 执行 or ('parent' not in 执行 and 执行['name']==运行代码名):#外层传输
                 return 下一()#过
@@ -420,12 +420,12 @@ def 应用(上下文):#安装 Auto 与前置审查门
                 完成.兑现(None)#兑现
         停监听=上下文.on('tools/pre-execute',预执行,{'prepend':True})#前置
         def 准入():#登记 Auto
-            """关闭中拒绝选择。"""
+            '关闭中拒绝选择'
             if not 接纳中:#关闭
                 raise Exception('自动审查：集成正在关闭')
         停贡献=权限预设.登记自动(准入)#贡献
         def 卸():#拆除
-            """先关选择再迁 Full access，再等在途。"""
+            '先关选择再迁 Full access，再等在途'
             nonlocal 接纳中#改
             接纳中=False#关
             try:#迁移

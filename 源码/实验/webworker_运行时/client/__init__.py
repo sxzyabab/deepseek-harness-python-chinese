@@ -16,19 +16,19 @@ __all__=[
 ]
 
 class 操作任务:
-    """本文件内单次操作结果，只留兑现、拒绝、等待。"""
+    '本文件内单次操作结果，只留兑现、拒绝、等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._结果=原生结果()
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._结果.done():
             自身._结果.set_result(值)
         return 值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._结果.done():
             if isinstance(错误,BaseException):
                 自身._结果.set_exception(错误)
@@ -36,11 +36,11 @@ class 操作任务:
                 自身._结果.set_exception(Exception(str(错误)))
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._结果.result(timeout=超时)
 
 def boot就绪屏障():
-    """与客户端入口共享的 boot 就绪任务。"""
+    '与客户端入口共享的 boot 就绪任务'
     全局=globals()
     键='__DSH_BOOT_READY__'
     if 键 not in 全局 or 全局[键] is None:
@@ -48,7 +48,7 @@ def boot就绪屏障():
     return 全局[键]
 
 def 扣住工作线程宿主boot():
-    """在来源选择器等待用户输入之前安装页面 boot 屏障。"""
+    '在来源选择器等待用户输入之前安装页面 boot 屏障'
     boot就绪屏障()
 
 def 选择工作线程宿主源(选项=None):
@@ -57,7 +57,7 @@ def 选择工作线程宿主源(选项=None):
     参数:
         选项: 基础镜像与可选 fixture 目录位置。
     返回:
-        用户选定的有序 overlays。
+        用户选定的有序 overlays
     """
     if 选项 is None:
         选项={}
@@ -78,7 +78,7 @@ def 连接工作线程宿主(工作线程,选项=None):
         工作线程: 宿主 worker。
         选项: 基础镜像与 overlay 位置覆盖。
     返回:
-        连接；把 loadBundle 交给壳入口的 boot 缝。
+        连接；把 loadBundle 交给壳入口的 boot 缝
     """
     if 选项 is None:
         选项={}

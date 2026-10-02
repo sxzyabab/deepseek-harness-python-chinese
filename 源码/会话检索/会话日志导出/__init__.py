@@ -1,4 +1,4 @@
-"""登记 export 命令与已认证 ZIP 下载路由。"""
+'登记 export 命令与已认证 ZIP 下载路由'
 from ...依赖.schemastery import 字典字段,数字字段#配置
 from ...交互.命令.标识构造 import 命令定义标识#命令标识
 from .归档 import (#归档
@@ -32,7 +32,7 @@ __all__=[#公开面
 ]#结束
 
 def 处理导出(调用):#命令处理
-    """无参数才请求下载。"""
+    '无参数才请求下载'
     原始输入=调用['rawInput'] if 'rawInput' in 调用 else ''#输入
     原始=原始输入.strip() if isinstance(原始输入,str) else ''#修剪
     if 原始=='':#无路径
@@ -40,7 +40,7 @@ def 处理导出(调用):#命令处理
     return 路径拒绝#拒绝路径
 
 def 会话日志导出响应(上下文,请求,压缩级别):#路由响应
-    """读根日志并返回 ZIP 字节或错误状态。"""
+    '读根日志并返回 ZIP 字节或错误状态'
     查询=请求.get('query') if isinstance(请求,dict) else {}#查询
     会话标识值=查询.get('sessionId') if isinstance(查询,dict) else None#id
     后代值=查询.get('includeDescendants') if isinstance(查询,dict) else None#后代
@@ -68,18 +68,18 @@ def 会话日志导出响应(上下文,请求,压缩级别):#路由响应
     return {'status':200,'headers':头,'body':字节}#ZIP
 
 def 应用(上下文,配置值=None):#加载
-    """登记仅 Web 的 `/export` 命令与 ZIP 下载路由。"""
+    '登记仅 Web 的 `/export` 命令与 ZIP 下载路由'
     if 配置值 is None:#缺省
         配置值={}#空
     压缩=配置值['compressionLevel'] if 'compressionLevel' in 配置值 else 默认会话日志压缩级别#级别
     def 挂命令():#登记命令
-        """登记 export 命令并在拆除时注销。"""
+        '登记 export 命令并在拆除时注销'
         return 上下文.commands.register({'definitionId':命令定义标识('@deepseek-ai/dsh-session-log-export'),'name':'export','description':'把本会话日志下载为 ZIP 归档','handler':处理导出})
     上下文.副作用(挂命令,'session-log-download: command')#命令
     连接=getattr(上下文,'connection',None)#连接
     if 连接 is not None and hasattr(连接,'fetch') and hasattr(连接.fetch,'register'):#有 fetch
         def 处理请求(请求):#路由处理
-            """转发到导出响应。"""
+            '转发到导出响应'
             return 会话日志导出响应(上下文,请求,压缩)#响应
         连接.fetch.register({#登记
             'path':会话日志导出路径,#路径

@@ -25,15 +25,15 @@ isContextOverflow=未实现失败(模块,'isContextOverflow')
 )
 
 def builtinProviders():
-    """已安装目录提供方，在 `llm-pi-ai` 激活时读取。"""
+    '已安装目录提供方，在 `llm-pi-ai` 激活时读取'
     return [{'id':标识,'name':标识,'auth':{'apiKey':{'type':'api-key'}},'models':[]} for 标识 in 内置提供方标识列表]
 
 def getBuiltinProviders():
-    """已安装目录的提供方路由 id。"""
+    '已安装目录的提供方路由 id'
     return list(内置提供方标识列表)
 
 def getBuiltinModels():
-    """某个已安装目录提供方的模型。"""
+    '某个已安装目录提供方的模型'
     return []
 
 anthropicMessagesApi=未实现失败(模块,'anthropicMessagesApi')

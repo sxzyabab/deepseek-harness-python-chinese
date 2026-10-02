@@ -26,22 +26,22 @@ from .配置 import 解析科德克斯配置#导入配置解析
 处理器计数=0#处理器计数，用于稳定 id
 
 class 钩子codex错误(Exception):
-    """Codex 钩子桥包的异常基类。"""
+    'Codex 钩子桥包的异常基类'
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身.原生结果=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身.原生结果.done():#尚未结算
             自身.原生结果.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身.原生结果.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身.原生结果.set_exception(错误)#原样拒绝
@@ -51,26 +51,26 @@ class 操作任务:
                 自身.原生结果.set_exception(包装)#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身.原生结果.result(timeout=超时)#取结果或抛错
 
 def 取单调纳秒():
-    """单调时钟纳秒，供钩子时长计量。"""
+    '单调时钟纳秒，供钩子时长计量'
     return time.perf_counter_ns()#单调纳秒
 
 def 下一条处理器标识(钩子点):
-    """每个处理器的稳定 id，用来在日志里把调用/结果对上。"""
+    '每个处理器的稳定 id，用来在日志里把调用/结果对上'
     global 处理器计数#共享计数
     处理器计数+=1#递增
     return 'codex:'+钩子点+':'+str(处理器计数)#方言、钩子点、序号
 
 def 断言正整数(名字,值):
-    """摘要上限约束的是持久事件字段——必须是正整数，否则切片会静默失常。"""
+    '摘要上限约束的是持久事件字段——必须是正整数，否则切片会静默失常'
     if isinstance(值,bool) or (not isinstance(值,int)) or 值<1:#非正整数则失败
         raise TypeError('hooks-codex: '+名字+' 必须是正整数')#报告非法配置
 
 def 最后轮次(智能体):
-    """智能体日志里最后一个打开轮次号；没有智能体则为 0。智能体是对象。"""
+    '智能体日志里最后一个打开轮次号；没有智能体则为 0。智能体是对象'
     if 智能体 is None:#没有智能体
         return 0#零
     for 事件 in reversed(list(智能体.session.events)):#从后往前找轮次开始
@@ -82,7 +82,7 @@ def 最后轮次(智能体):
     return 0#否则零
 
 def 拼接块文本(内容):
-    """把内容块摊成钩子载荷携带的文本（常见情况）。内容是块 dict 列表。"""
+    '把内容块摊成钩子载荷携带的文本（常见情况）。内容是块 dict 列表'
     文本列表=[]#只留文本块
     块列表=内容 if 内容 is not None else []#缺席当空列表
     for 块 in 块列表:#逐块
@@ -91,7 +91,7 @@ def 拼接块文本(内容):
     return ''.join(文本列表)#拼接
 
 def 共用载荷(上下文,智能体,事件,模型):
-    """每份 Codex 载荷上的公共字段（没有 turn_id）。智能体是对象或 None。"""
+    '每份 Codex 载荷上的公共字段（没有 turn_id）。智能体是对象或 None'
     if 智能体 is None:#没有智能体则空路径用 null
         文本记录路径=None#空路径用 null，保留 Codex string|null 形状
         会话号=''#空会话
@@ -121,19 +121,19 @@ def 共用载荷(上下文,智能体,事件,模型):
     }#公共字段对象
 
 def 轮次共用载荷(上下文,智能体,事件,模型):
-    """公共字段加 turn_id，给轮次作用域事件（PreToolUse/PostToolUse/UserPromptSubmit/Stop）。"""
+    '公共字段加 turn_id，给轮次作用域事件（PreToolUse/PostToolUse/UserPromptSubmit/Stop）'
     载荷=共用载荷(上下文,智能体,事件,模型)#公共字段
     载荷['turn_id']=str(最后轮次(智能体))#加上当前打开轮次
     return 载荷#带轮次 id 的公共字段
 
 def 命令参数(参数):
-    """从工具调用的已解析参数 dict 里取出 command 字符串，否则 ''。"""
+    '从工具调用的已解析参数 dict 里取出 command 字符串，否则 \'\''
     if isinstance(参数,dict) and 'command' in 参数 and isinstance(参数['command'],str):#有 command 字符串
         return 参数['command']#命令串
     return ''#否则空串
 
 def 工具前载荷(上下文,执行,模型):
-    """PreToolUse 方言载荷；tool_name 与匹配主体一致，tool_input 保持 Codex 的 { command } 形状。执行是 dict。"""
+    'PreToolUse 方言载荷；tool_name 与匹配主体一致，tool_input 保持 Codex 的 { command } 形状。执行是 dict'
     智能体=执行['agent'] if 'agent' in 执行 else None#智能体
     载荷=轮次共用载荷(上下文,智能体,'PreToolUse',模型)#带轮次公共字段
     载荷['tool_name']=执行['name']#真正的工具名
@@ -142,7 +142,7 @@ def 工具前载荷(上下文,执行,模型):
     return 载荷#载荷
 
 def 工具后载荷(上下文,执行,结果,模型):
-    """PostToolUse 方言载荷；再加上工具响应文本。执行与结果都是 dict。"""
+    'PostToolUse 方言载荷；再加上工具响应文本。执行与结果都是 dict'
     智能体=执行['agent'] if 'agent' in 执行 else None#智能体
     载荷=轮次共用载荷(上下文,智能体,'PostToolUse',模型)#带轮次公共字段
     载荷['tool_name']=执行['name']#工具名
@@ -152,7 +152,7 @@ def 工具后载荷(上下文,执行,结果,模型):
     return 载荷#载荷
 
 def 应用(上下文,配置值=None):
-    """在 ctx 生命周期内登记 Codex 钩子桥监听器。读或解析失败只记日志，不登记任何钩子。配置值是 dict。"""
+    '在 ctx 生命周期内登记 Codex 钩子桥监听器。读或解析失败只记日志，不登记任何钩子。配置值是 dict'
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     if 'stderrSummaryMaxChars' in 配置值:#配置给了上限
@@ -182,12 +182,12 @@ def 应用(上下文,配置值=None):
         模型=''#默认空串
     分离=创建分离运行()#分离运行跟踪器
     def 取得排空():
-        """登记拆除时排空分离钩子运行。"""
+        '登记拆除时排空分离钩子运行'
         return 分离.排空#清理器即排空
     上下文.副作用(取得排空,'hooks-codex: drain detached hook runs')#拆除时排空分离运行
 
     def 执行钩子点(钩子点,匹配主体,载荷,选项):
-        """跑并折合一个已配置的 Codex 钩子点。传入轮次时，在该未关闭轮次里记录钩子调用/结果对。分离生命周期点省略这对事件。选项是 dict。"""
+        '跑并折合一个已配置的 Codex 钩子点。传入轮次时，在该未关闭轮次里记录钩子调用/结果对。分离生命周期点省略这对事件。选项是 dict'
         组列表=已解析[钩子点] if 钩子点 in 已解析 else []#该点的匹配组
         输出列表=[]#各条钩子的解码输出
         智能体=选项['agent'] if 'agent' in 选项 else None#可选智能体
@@ -251,7 +251,7 @@ def 应用(上下文,配置值=None):
         return 合并钩子输出(输出列表)#按最严格规则折合
 
     def 从合并取上下文(合并):
-        """从钩子输出组装附加模型上下文；空则返回 None。合并是 dict。"""
+        '从钩子输出组装附加模型上下文；空则返回 None。合并是 dict'
         附加=合并['additionalContext'] if 'additionalContext' in 合并 else []#附加上下文列表
         if 附加 is None:#缺席
             return None#省略
@@ -261,12 +261,12 @@ def 应用(上下文,配置值=None):
         return 创建用户消息({'content':内容,'source':插件来源})#盖上本桥来源
 
     def 前置上下文(本桥,下游列表):
-        """前置一条上下文，不压平来源字段或其他下游元数据。"""
+        '前置一条上下文，不压平来源字段或其他下游元数据'
         后列=下游列表 if 下游列表 is not None else []#缺席当空
         return [本桥]+list(后列)#本桥在前，下游原有在后
 
     def 智能体已创建监听(载荷,*位置参数):
-        """智能体创建时跑 SessionStart 并等完。载荷是 dict。"""
+        '智能体创建时跑 SessionStart 并等完。载荷是 dict'
         智能体=载荷['agent']#智能体
         来源=载荷['source']#会话来源
         创建信号=载荷['signal'] if 'signal' in 载荷 else None#创建边取消信号
@@ -277,7 +277,7 @@ def 应用(上下文,配置值=None):
             if 分离.信号.is_set():#拆除已触发
                 拥有信号.set()#一并取消
         def 任务():
-            """跑 SessionStart 并注入。"""
+            '跑 SessionStart 并注入'
             try:
                 会话载荷=共用载荷(上下文,智能体,'SessionStart',模型)#公共字段
                 会话载荷['source']=来源#加上来源
@@ -293,7 +293,7 @@ def 应用(上下文,配置值=None):
                 上下文.日志.警告('hooks-codex: SessionStart hook failed: '+str(错误))#记录失败
         后台=操作任务()#本条创建边任务
         def 执行链():
-            """执行并结算。"""
+            '执行并结算'
             try:
                 任务()#执行
                 后台.兑现(None)#成功
@@ -305,7 +305,7 @@ def 应用(上下文,配置值=None):
     上下文.监听('agent/created',智能体已创建监听)#结束 created 监听
 
     def 预步骤监听(载荷,下一步,*位置参数):
-        """UserPromptSubmit → PreStepDecision。Codex 支持拒绝，不支持改写或询问。载荷是 dict。"""
+        'UserPromptSubmit → PreStepDecision。Codex 支持拒绝，不支持改写或询问。载荷是 dict'
         消息列表=载荷['messages'] if 'messages' in 载荷 else []#步进消息
         if 消息列表 is None:#缺席
             消息列表=[]#空列表
@@ -343,7 +343,7 @@ def 应用(上下文,配置值=None):
     上下文.监听('agent/pre-step',预步骤监听)#结束 pre-step 监听
 
     def 工具前监听(执行,下一步,*位置参数):
-        """PreToolUse → PreToolDecision。Codex 只阻断（不兑现 allow/ask）。执行是 dict。"""
+        'PreToolUse → PreToolDecision。Codex 只阻断（不兑现 allow/ask）。执行是 dict'
         智能体=执行['agent'] if 'agent' in 执行 else None#智能体
         轮次=最后轮次(智能体)#取当前打开轮次
         选项={'turn':轮次,'signal':执行['signal'] if 'signal' in 执行 else None}#运行选项
@@ -357,7 +357,7 @@ def 应用(上下文,配置值=None):
     上下文.监听('tools/pre-execute',工具前监听)#结束 pre-execute 监听
 
     def 工具后监听(执行,结果,下一步,*位置参数):
-        """PostToolUse → PostToolDecision（带反馈阻断，或附上上下文）。执行与结果都是 dict。"""
+        'PostToolUse → PostToolDecision（带反馈阻断，或附上上下文）。执行与结果都是 dict'
         智能体=执行['agent'] if 'agent' in 执行 else None#智能体
         轮次=最后轮次(智能体)#取当前打开轮次
         选项={'turn':轮次,'signal':执行['signal'] if 'signal' in 执行 else None}#运行选项
@@ -384,7 +384,7 @@ def 应用(上下文,配置值=None):
     上下文.监听('tools/post-execute',工具后监听)#结束 post-execute 监听
 
     def 轮次将停监听(载荷,*位置参数):
-        """阻断型 Stop 钩子在停止边界转向，让状态机看到待处理输入再跑一步。载荷是 dict。"""
+        '阻断型 Stop 钩子在停止边界转向，让状态机看到待处理输入再跑一步。载荷是 dict'
         智能体=载荷['agent']#智能体
         停止载荷体=轮次共用载荷(上下文,智能体,'Stop',模型)#带轮次公共字段
         停止载荷体['stop_hook_active']=False#循环守卫标志恒为假

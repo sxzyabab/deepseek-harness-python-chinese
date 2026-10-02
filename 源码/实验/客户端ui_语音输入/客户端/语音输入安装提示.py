@@ -3,7 +3,7 @@ from .语音输入安装对话框 import 语音输入安装对话框
 __all__=['语音输入安装提示']
 
 def 读就绪(属性):
-    """注入面 hooks.speechReadiness。"""
+    '注入面 hooks.speechReadiness'
     钩=属性.get('hooks') or {}
     存储=钩.get('speechReadiness')
     if 存储 is not None:
@@ -11,15 +11,15 @@ def 读就绪(属性):
     取=属性.get('useSpeechReadiness')
     if 取 is not None:
         def 全量(快照):
-            """整份就绪快照。"""
+            '整份就绪快照'
             return 快照
         return 取(全量)
     return {'catalog':None,'connected':False,'error':None}
 
 class 语音输入安装提示:
-    """首次启用后、缓存检查完成时，只引导去安装、不开始下载。"""
+    '首次启用后、缓存检查完成时，只引导去安装、不开始下载'
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性
         自身.对话框=语音输入安装对话框({
             'open':False,
@@ -30,11 +30,11 @@ class 语音输入安装提示:
         })
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性
 
     def 渲染(自身):
-        """仅所选本地提供方仍需准备时显示。"""
+        '仅所选本地提供方仍需准备时显示'
         翻译=自身.属性['t']
         就绪=读就绪(自身.属性)
         目录=就绪.get('catalog')
@@ -61,7 +61,7 @@ class 语音输入安装提示:
         })
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

@@ -1,4 +1,4 @@
-"""单次打开的请求回合所用的浏览器时区推导与面向模型的策略文本。"""
+'单次打开的请求回合所用的浏览器时区推导与面向模型的策略文本'
 import json,re#JSON诊断片段与IANA形态校验
 from zoneinfo import ZoneInfo as 区时,ZoneInfoNotFoundError as 时区未找到#Intl等价的规范时区解析
 from ...模型后端.llm import 断言永不#导入穷尽检查
@@ -6,11 +6,11 @@ from ...模型后端.llm import 断言永不#导入穷尽检查
 IANA时区形态=re.compile(r'^[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)+\Z',re.ASCII)#IANA Area/Location形态
 
 def 编码(值):
-    """诊断用紧凑 JSON。"""
+    '诊断用紧凑 JSON'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
 
 def 浏览器时区(消息):
-    """从一条普通 user-rpc 消息读取并校验宿主已规范化的浏览器时区。"""
+    '从一条普通 user-rpc 消息读取并校验宿主已规范化的浏览器时区'
     if 'source' not in 消息:#无来源
         return None#缺席
     来源=消息['source']#消息来源
@@ -34,7 +34,7 @@ def 浏览器时区(消息):
     return 值#返回已校验的规范时区
 
 def 推导浏览器时区上下文(消息列表):
-    """推导一轮打开回合的唯一、混合或缺失浏览器时区。"""
+    '推导一轮打开回合的唯一、混合或缺失浏览器时区'
     时区表=[]#收集时区
     for 消息 in 消息列表:#逐条
         时区=浏览器时区(消息)#抽取该消息时区
@@ -48,7 +48,7 @@ def 推导浏览器时区上下文(消息列表):
     return {'kind':'mixed','timeZones':时区列表}#多个互异时区
 
 def 渲染浏览器时区上下文(上下文):
-    """渲染一种浏览器时区上下文对应的模型指令，返回一条持久策略行。"""
+    '渲染一种浏览器时区上下文对应的模型指令，返回一条持久策略行'
     种类=上下文['kind']#三态标签
     if 种类=='resolved':#唯一时区
         return ('Browser time zone for this request: '+上下文['timeZone']+'. '

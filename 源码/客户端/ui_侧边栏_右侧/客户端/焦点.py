@@ -1,6 +1,4 @@
-"""停靠与浮动侧栏页的活 DOM 归属。
-焦点从当前挂载会话的 markup 捕获；节点被换掉时尽量保焦点与选区。
-"""
+'停靠与浮动侧栏页的活 DOM 归属'
 import builtins#页面全局
 
 __all__=['从元素取右侧侧栏目标','可见侧栏窗格','观察侧栏焦点']#仅中文公开名
@@ -13,7 +11,7 @@ def 从元素取右侧侧栏目标(元素,会话标识,布局,出现次):
     """从活拥有方 markup 读窗格与页签身份，含嵌入 iframe。
     元素为产品文档里聚焦或指针激活的元素；会话标识为侧栏当前绘制的会话；
     布局为该会话当前已提交布局；出现次为已提交页签的当前 occurrence 查找。
-    返回捕获的页；陈旧、隐藏或域外元素为 None。
+    返回捕获的页；陈旧、隐藏或域外元素为 None
     """
     if 元素 is None or not 元素.isConnected:#无效
         return None#无
@@ -63,7 +61,7 @@ def 可见侧栏窗格(文档,会话标识,窗格标识):
     """找某会话的可见窗格，优先请求窗格，再回退活动窗格。
     文档含停靠与浮动窗格；会话标识为可能接收焦点的会话；
     窗格标识为操作改布局前偏好的窗格。
-    返回仍存活的可见窗格；会话无窗格时为 None。
+    返回仍存活的可见窗格；会话无窗格时为 None
     """
     窗表=[]#可见窗
     for 窗 in 文档.querySelectorAll('[data-dockkit-pane], [data-dockkit-float]'):#全窗
@@ -85,12 +83,12 @@ def 可见侧栏窗格(文档,会话标识,窗格标识):
 def 观察侧栏焦点(文档):
     """观察窗格焦点；DOM 节点被替换时保留焦点，尽量保住文本选区。
     文档为侧栏拥有监听生命周期的产品文档。
-    返回全部 document/window 监听的拆除器。
+    返回全部 document/window 监听的拆除器
     """
     活跃=[True]#寿命开关
     已焦=[None]#{element,sessionId,paneId,occurrence}
     def 移除回调(_记录):
-        """节点被卸时把焦点挪到同 occurrence 的新窗格。"""
+        '节点被卸时把焦点挪到同 occurrence 的新窗格'
         焦=已焦[0]#当前
         if 焦 is None or 焦['element'].isConnected:#仍连通
             return#止
@@ -113,7 +111,7 @@ def 观察侧栏焦点(文档):
             目标窗.focus({'preventScroll':True})#聚焦
     移除=变动观察(移除回调)#移除观察
     def 捕获(_事件=None):
-        """记下当前焦点归属并观察拥有方移除。"""
+        '记下当前焦点归属并观察拥有方移除'
         移除.disconnect()#先停
         已焦[0]=None#清
         元素=文档.activeElement#焦点
@@ -146,13 +144,13 @@ def 观察侧栏焦点(文档):
         if 拥有方.parentElement is not None:#有父
             移除.observe(拥有方.parentElement,{'childList':True})#观察父
     def 焦点离开(事件):
-        """相关目标空且原元素仍连通则清跟踪。"""
+        '相关目标空且原元素仍连通则清跟踪'
         焦=已焦[0]#当前
         if 事件.relatedTarget is None and 焦 is not None and 焦['element'].isConnected:#丢焦点
             已焦[0]=None#清
             移除.disconnect()#停
     def 指针按下(事件):
-        """点击窗格空白时把焦点落到窗格。"""
+        '点击窗格空白时把焦点落到窗格'
         元素=None#命中元素
         for 值 in 事件.composedPath():#路径
             if isinstance(值,元素类型):#元素
@@ -168,9 +166,9 @@ def 观察侧栏焦点(文档):
         if 窗 is not None and (控件 is None or 控件 is 窗):#空白点窗
             窗.focus({'preventScroll':True})#聚焦窗
     def 失焦(_事件=None):
-        """窗口失焦后微任务再捕获。"""
+        '窗口失焦后微任务再捕获'
         def 再捕():
-            """仍活跃才捕获。"""
+            '仍活跃才捕获'
             if 活跃[0]:#活跃
                 捕获()#捕获
         微任务(再捕)#微任务
@@ -183,7 +181,7 @@ def 观察侧栏焦点(文档):
         视窗.addEventListener('focus',捕获)#窗获焦
     捕获()#初捕
     def 拆除():
-        """卸全部监听与观察。"""
+        '卸全部监听与观察'
         活跃[0]=False#停
         移除.disconnect()#停观察
         文档.removeEventListener('focusin',捕获)#卸

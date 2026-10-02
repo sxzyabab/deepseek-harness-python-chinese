@@ -1,12 +1,12 @@
-"""向 invariants 登记本包；无独立运行时检查。"""
+'向 invariants 登记本包；无独立运行时检查'
 包名='@deepseek-ai/dsh-storage-domain'
 名称='storage-domain-invariant'
 依赖=['invariants']
 
 def 安装(上下文,失败):
-    """每条 `domain/changed` 必须与发出该事件的域的权威内存状态一致。"""
+    '每条 `domain/changed` 必须与发出该事件的域的权威内存状态一致'
     def 监听变更(变更):
-        """核对一条域变更事件与内存状态。变更是 dict。"""
+        '核对一条域变更事件与内存状态。变更是 dict'
         域=上下文.storage.form('domain').get(变更['domain'])
         if 域 is None:
             失败("domain/changed for '"+变更['domain']+"' emitted while that domain is not open")
@@ -26,7 +26,7 @@ def 安装(上下文,失败):
 安装.inject=['storage']
 
 def 应用(上下文):
-    """注册本包的不变量配套，返回安装成功后已登记贡献的拆除器。"""
+    '注册本包的不变量配套，返回安装成功后已登记贡献的拆除器'
     return 上下文.invariants.register(包名,安装)
 
 __all__=['包名','名称','依赖','安装','应用']

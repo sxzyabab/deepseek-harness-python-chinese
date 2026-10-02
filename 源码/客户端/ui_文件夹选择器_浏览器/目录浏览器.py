@@ -11,7 +11,7 @@ __all__=[#仅中文公开名
 草稿预览防抖毫秒=250#草稿预览防抖
 
 def 失败文案(错误):#失败文本
-    """Host 业务消息优先，否则 throw 文本。错误是异常对象。"""
+    'Host 业务消息优先，否则 throw 文本。错误是异常对象'
     槽=vars(错误) if isinstance(错误,Exception) else None#异常槽
     if 槽 is not None and 'rpcError' in 槽 and 槽['rpcError'] is not None:#DirectoryBrowseError 形
         rpc=槽['rpcError']#业务错误
@@ -20,7 +20,7 @@ def 失败文案(错误):#失败文本
     return str(错误)#throw 文本
 
 def 展示面包屑(列举,主目录标签):#展示用面包屑
-    """主目录子树内以本地化 Home 起链；外则全谱系。"""
+    '主目录子树内以本地化 Home 起链；外则全谱系'
     屑=列举['crumbs'] if 列举 is not None and 'crumbs' in 列举 and 列举['crumbs'] is not None else []#屑；空列表保留
     家=列举['home'] if 列举 is not None and 'home' in 列举 else None#主目录
     家下标=-1#家在屑中的下标
@@ -34,18 +34,18 @@ def 展示面包屑(列举,主目录标签):#展示用面包屑
     return [{'name':主目录标签,'path':家,'hidden':False}]+list(尾)#Home + 尾
 
 def 分隔符于(列举):#平台分隔符
-    """从 home 路径推断；反斜杠则 Windows。"""
+    '从 home 路径推断；反斜杠则 Windows'
     家=列举['home'] if 列举 is not None and 'home' in 列举 and 列举['home'] is not None else ''#主目录
     return '\\' if '\\' in 家 else '/'#分隔符
 
 def 层级目录(列举):#当前层作为目录部分
-    """自身路径，以分隔符结尾（根已是）。"""
+    '自身路径，以分隔符结尾（根已是）'
     分隔=分隔符于(列举)#分隔符
     路径=列举['path'] if 列举 is not None and 'path' in 列举 and 列举['path'] is not None else ''#路径
     return 路径 if 路径.endswith(分隔) else 路径+分隔#补分隔符
 
 def 草稿目录(列举,草稿):#草稿的目录部分
-    """到最后分隔符为止；无分隔符则 None。"""
+    '到最后分隔符为止；无分隔符则 None'
     if 分隔符于(列举)=='\\':#Windows：正斜杠也分隔
         切=max(草稿.rfind('\\'),草稿.rfind('/'))#最后分隔
     else:#POSIX：反斜杠是合法名字符
@@ -55,7 +55,7 @@ def 草稿目录(列举,草稿):#草稿的目录部分
     return 草稿[:切+1]#含分隔符
 
 def 读草稿(列举,草稿,已扫描):#草稿相对一层的读法
-    """目录部分 + 过滤尾（仅当本层应答该目录）。"""
+    '目录部分 + 过滤尾（仅当本层应答该目录）'
     目录=草稿目录(列举,草稿)#目录部分
     if 目录 is None:#无分隔
         return {'directory':None,'tail':None}#空
@@ -68,17 +68,17 @@ def 读草稿(列举,草稿,已扫描):#草稿相对一层的读法
     return {'directory':目录,'tail':草稿[len(目录):] if 应答 else None}#尾或 None
 
 def 可显示(条目,显示隐藏,针):#隐藏过滤
-    """点前缀显式点出隐藏项。"""
+    '点前缀显式点出隐藏项'
     隐藏=条目['hidden'] is True if 'hidden' in 条目 else False#隐藏
     return 显示隐藏 or not 隐藏 or 针.startswith('.')#显示条件
 
 def 匹配前缀(条目,显示隐藏,针):#前缀匹配
-    """可显示且名前缀命中。"""
+    '可显示且名前缀命中'
     名=条目['name'] if 'name' in 条目 and 条目['name'] is not None else ''#名
     return 可显示(条目,显示隐藏,针) and str(名).lower().startswith(针)#匹配
 
 def 可见条目(条目表,选中路径,显示隐藏,过滤前缀):#一列可见行
-    """选中豁免一切过滤；前缀无人匹配则整层显示。"""
+    '选中豁免一切过滤；前缀无人匹配则整层显示'
     针=(过滤前缀 if 过滤前缀 is not None else '').lower()#小写针
     收窄=针!='' and any(匹配前缀(项,显示隐藏,针) for 项 in 条目表)#有人匹配才收窄
     结果=[]#可见
@@ -95,9 +95,9 @@ def 可见条目(条目表,选中路径,显示隐藏,过滤前缀):#一列可见
     return 结果#可见列表
 
 class 目录浏览器:#应用内目录浏览器状态机
-    """Miller 视图 + 路径编辑 + 新建文件夹；关闭时返回 None。"""
+    'Miller 视图 + 路径编辑 + 新建文件夹；关闭时返回 None'
     def __init__(自身,属性):#按 props 构造
-        """播种状态；打开则立刻导航到主目录。"""
+        '播种状态；打开则立刻导航到主目录'
         自身.属性=属性#props
         自身.父层=None#左列列举
         自身.选中=None#选中行
@@ -120,7 +120,7 @@ class 目录浏览器:#应用内目录浏览器状态机
             自身.导航()#主目录
 
     def 更新(自身,属性):#props 变更
-        """同步 props；处理 open 边沿。"""
+        '同步 props；处理 open 边沿'
         打开=属性['open'] is True if 'open' in 属性 else False#当前 open
         自身.属性=属性#最新
         if 打开 and not 自身._打开边:#上升沿
@@ -142,14 +142,14 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身._打开边=打开#记下边
 
     def 翻译(自身,键,参数=None):#文案
-        """绑定的 t。"""
+        '绑定的 t'
         函数=自身.属性['t']#翻译
         if 参数 is None:#无参
             return 函数(键)#键
         return 函数(键,参数)#带参
 
     def 取代(自身):#作废在飞扫描
-        """抬序号并中止控制器。"""
+        '抬序号并中止控制器'
         if 自身.扫描控制器 is not None:#有中止旗
             自身.扫描控制器.set()#中止
             自身.扫描控制器=None
@@ -157,7 +157,7 @@ class 目录浏览器:#应用内目录浏览器状态机
         return 自身.请求序号#新序号
 
     def 启动列举(自身,路径):#发起一次列举
-        """新 Event；返回序号与扫描任务。"""
+        '新 Event；返回序号与扫描任务'
         序号=自身.取代()#作废旧的
         信号=threading.Event()#中止旗
         自身.扫描控制器=信号#记下
@@ -170,11 +170,11 @@ class 目录浏览器:#应用内目录浏览器状态机
         return {'seq':序号,'scan':任务,'controller':信号}#任务包
 
     def 结算扫描(自身,扫描):#结算扫描
-        """工作区列举返回任务对象，调用 等待。"""
+        '工作区列举返回任务对象，调用 等待'
         return 扫描.等待()#等待
 
     def 着陆(自身,路径,关编辑,宣告):#整视图着陆
-        """选中锚定；远离显示根则两栏。"""
+        '选中锚定；远离显示根则两栏'
         包=自身.启动列举(路径)#发起
         序号=包['seq']#序号
         自身.加载中=True#加载
@@ -194,7 +194,7 @@ class 目录浏览器:#应用内目录浏览器状态机
         if not 关编辑 and 路径 is not None:#草稿扫描记下着陆
             自身.已扫描={'directory':路径,'landed':目标['path'] if 'path' in 目标 else None}#扫描记录
         def 单栏():#单栏着陆
-            """目标独占。"""
+            '目标独占'
             自身.父层=目标#左列
             自身.选中=None#无选中
             自身.子层=None#无右列
@@ -220,7 +220,7 @@ class 目录浏览器:#应用内目录浏览器状态机
                 return#丢弃
             分隔=分隔符于(父层)#分隔符
             def 折(值):#大小写折叠
-                """Windows 忽略大小写。"""
+                'Windows 忽略大小写'
                 return 值.lower() if 分隔=='\\' else 值#折叠
             匹配=None#父层中的目标条目
             父条目=父层['entries'] if 'entries' in 父层 and 父层['entries'] is not None else []#条目；空列表保留
@@ -245,11 +245,11 @@ class 目录浏览器:#应用内目录浏览器状态机
             单栏()#单栏回退
 
     def 导航(自身,路径=None):#提交路径导航
-        """编辑器关闭，失败宣告。"""
+        '编辑器关闭，失败宣告'
         自身.着陆(路径,True,True)#关编辑+宣告
 
     def 选定(自身,条目):#选中一行并预览子层
-        """立即反映选中；子层异步到达。"""
+        '立即反映选中；子层异步到达'
         包=自身.启动列举(条目['path'] if 'path' in 条目 else None)#拉子层
         序号=包['seq']#序号
         if 自身.路径草稿 is not None:#编辑中选定
@@ -273,14 +273,14 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身.加载中=False#结束
 
     def 前进(自身,条目):#右列选定推进一层
-        """子层变左列。"""
+        '子层变左列'
         if 自身.子层 is None:#无右列
             return#跳过
         自身.父层=自身.子层#推进
         自身.选定(条目)#再选
 
     def 取消路径编辑(自身):#放弃路径编辑
-        """作废在飞并恢复面包屑。"""
+        '作废在飞并恢复面包屑'
         自身.取代()#作废
         自身.加载中=False#清加载
         自身.路径草稿=None#关编辑
@@ -291,7 +291,7 @@ class 目录浏览器:#应用内目录浏览器状态机
             自身.导航()#重开主目录
 
     def 确认打开(自身):#Open 按钮
-        """采纳选中或当前层。"""
+        '采纳选中或当前层'
         if 自身.选中 is not None:#有选中
             目标=自身.选中['path'] if 'path' in 自身.选中 else None#选中路径
         elif 自身.父层 is not None:#当前层
@@ -305,7 +305,7 @@ class 目录浏览器:#应用内目录浏览器状态机
             打开(目标)#采纳
 
     def 确认创建(自身):#创建文件夹
-        """在目标下建子目录并选中。"""
+        '在目标下建子目录并选中'
         if 自身.选中 is not None:#有选中
             目标路径=自身.选中['path'] if 'path' in 自身.选中 else None#选中路径
         elif 自身.父层 is not None:#当前层
@@ -352,7 +352,7 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身.选定({'name':名,'path':已建,'hidden':False})#选中新建
 
     def 视图(自身):#读视图模型
-        """关闭返回 None。"""
+        '关闭返回 None'
         if not ('open' in 自身.属性 and 自身.属性['open'] is True):#关闭
             return None#不渲染
         屑源=自身.子层 if 自身.子层 is not None else 自身.父层#当前层
@@ -421,7 +421,7 @@ class 目录浏览器:#应用内目录浏览器状态机
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用；返回视图或 None。"""
+        '对齐 React 组件调用；返回视图或 None'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
         return 自身.视图()#视图

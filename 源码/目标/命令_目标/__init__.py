@@ -1,4 +1,4 @@
-"""面向人的 /goal 命令，叠在同会话持久目标域之上。"""
+'面向人的 /goal 命令，叠在同会话持久目标域之上'
 import re#解析 edit 后跟替换陈述
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...模型后端.llm import 创建用户消息#铸造用户消息
@@ -9,11 +9,11 @@ from ..目标 import 目标错误#目标域边界错误
 用法='Usage: /goal [<objective>|clear|edit <objective>|pause|resume]'#人类可读用法行
 
 def 断言永不可达(值,标签):
-    """本地封闭联合多出未处理成员时大声失败。"""
+    '本地封闭联合多出未处理成员时大声失败'
     raise TypeError('unknown '+标签+': '+str(值))#带标签的未知值
 
 def 解析目标命令(原始输入):
-    """只解析 /goal 自己拥有的语法；其余任意输入都当作目标陈述。"""
+    '只解析 /goal 自己拥有的语法；其余任意输入都当作目标陈述'
     输入=原始输入.strip()#去掉首尾空白
     if len(输入)==0:#空输入：展示
         return {'kind':'show'}#展示当前目标
@@ -31,7 +31,7 @@ def 解析目标命令(原始输入):
     return {'kind':'create','objective':输入}#其余整段当作创建陈述
 
 def 阶段标签(阶段):
-    """一条持久目标阶段的人类标签。"""
+    '一条持久目标阶段的人类标签'
     if 阶段=='active':#活跃
         return 'active'#活跃
     if 阶段=='paused':#已暂停
@@ -43,7 +43,9 @@ def 阶段标签(阶段):
     return 断言永不可达(阶段,'goal phase')#未处理成员
 
 def 命令提示(目标):
-    """从某一精确实时状态出发仍有意义的命令提示。目标是 dict。"""
+    """从某一精确实时状态出发仍有意义的命令提示。
+    目标是 dict
+    """
     阶段=目标['phase']#持久阶段
     if 阶段=='active':#活跃：武装与解除武装提示不同
         if 目标['activation']=='armed':#已武装则提示暂停
@@ -56,7 +58,9 @@ def 命令提示(目标):
     return 断言永不可达(阶段,'goal phase')#未处理成员
 
 def 渲染目标(标题,目标):
-    """渲染直接 UI 输出，不暴露比较交换内部。目标是 dict。"""
+    """渲染直接 UI 输出，不暴露比较交换内部。
+    目标是 dict
+    """
     阶段=目标['phase']#阶段
     原因=目标['blockedReason'] if 阶段=='blocked' and 'blockedReason' in 目标 else None#仅阻塞阶段带原因
     if 阶段=='blocked' and 原因 is None:#缺原因则数据坏了
@@ -78,18 +82,22 @@ def 渲染目标(标题,目标):
     return {'kind':'success','text':'\n'.join(行)}#成功结果
 
 def 目标引用(目标):
-    """当前精确的比较交换引用。目标是 dict。"""
+    """当前精确的比较交换引用。
+    目标是 dict
+    """
     return {'id':目标['id'],'revision':目标['revision']}#身份加修订
 
 def 缺少目标(动作):
-    """需要当前目标的操作在缺失时的直接错误。"""
+    '需要当前目标的操作在缺失时的直接错误'
     return {#错误结果
         'kind':'error',#命令失败
         'text':'No goal is currently set; /goal '+动作+' requires one. '+用法,#指出需要先有目标
     }#结束错误结果
 
 def 提交目标附件(调用):
-    """把调用已接纳的作曲器附件作为一条模型可见用户消息提交到目标下一轮之前。调用是 dict。"""
+    """把调用已接纳的作曲器附件作为一条模型可见用户消息提交到目标下一轮之前。
+    调用是 dict
+    """
     附件=调用['attachments'] if 'attachments' in 调用 else ()#已准入附件
     if 附件 is None or len(附件)==0:#无附件则跳过
         return#跳过
@@ -99,7 +107,9 @@ def 提交目标附件(调用):
     }))#followup结束
 
 def 执行目标命令(上下文,调用):
-    """把一条已解析的人类命令交给拥有持久化的域执行。调用是 dict。"""
+    """把一条已解析的人类命令交给拥有持久化的域执行。
+    调用是 dict
+    """
     原文=调用['rawInput'] if 'rawInput' in 调用 else ''#本命令语法
     命令=解析目标命令(原文)#解析
     附件=调用['attachments'] if 'attachments' in 调用 else ()#已准入附件
@@ -159,9 +169,9 @@ def 执行目标命令(上下文,调用):
         }#结束域拒绝
 
 def 应用(上下文):
-    """为每个已组合的命令适配器注册 Codex 形 /goal 命令。"""
+    '为每个已组合的命令适配器注册 Codex 形 /goal 命令'
     def 处理(调用):
-        """把调用交给本解析器。"""
+        '把调用交给本解析器'
         return 执行目标命令(上下文,调用)#解析并分发
     上下文.commands.register({#挂到命令注册表
         'definitionId':命令定义标识('@deepseek-ai/dsh-command-goal'),#稳定定义身份

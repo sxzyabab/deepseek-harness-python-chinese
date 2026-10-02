@@ -9,7 +9,7 @@ __all__=[#仅中文公开名
 密钥引用清洗=re.compile(r'[^A-Z0-9]+',re.ASCII)#非常量字符
 
 def 拼合提供方目录(已注册,目录):#拼合在线路由与可配置声明
-    """声明行在前，其后补无声明的在线路由；可选带上 declared/error。"""
+    '声明行在前，其后补无声明的在线路由；可选带上 declared/error'
     活跃=set()#在线 id
     for 提供方 in 已注册:#每条在线
         if 'id' in 提供方:#有 id
@@ -46,21 +46,21 @@ def 拼合提供方目录(已注册,目录):#拼合在线路由与可配置声�
     return 行表#拼合结果
 
 class 模型设置错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 def 错误文案(错误):#拒绝值收成可展示文案
-    """Error 取其 message。"""
+    'Error 取其 message'
     return str(错误)#文案
 
 def 推导密钥引用(提供方):#由提供方路由推导凭证引用名
-    """大写后非常量字符换成 _，再加 _API_KEY。"""
+    '大写后非常量字符换成 _，再加 _API_KEY'
     return 密钥引用清洗.sub('_',提供方.upper(),count=0)+'_API_KEY'#推导
 
 def 协议选项(命名空间):#从所属命名空间 schema 读出协议选项
-    """schema 没有则空列表。"""
+    'schema 没有则空列表'
     if 命名空间 is None:#无
         return []#空
     模式=命名空间['schema'] if 'schema' in 命名空间 else None#schema
@@ -82,7 +82,7 @@ def 协议选项(命名空间):#从所属命名空间 schema 读出协议选项
     return 结果#选项
 
 def 密钥引用于(命名空间,路径):#从已解析 profile 取出 apiKeyEnv
-    """非空字符串才算引用。"""
+    '非空字符串才算引用'
     if 命名空间 is None:#无
         return None#无
     值=命名空间['value'] if 'value' in 命名空间 else None#已解析值
@@ -93,34 +93,34 @@ def 密钥引用于(命名空间,路径):#从已解析 profile 取出 apiKeyEnv
     return 引用 if isinstance(引用,str) and len(引用)>0 else None#引用
 
 class 快照存储:#简易快照存储
-    """页面快照 + 订阅。"""
+    '页面快照 + 订阅'
     def __init__(自身,初值):#播种
-        """记下初值。"""
+        '记下初值'
         自身.状态=dict(初值)#状态
         自身.监听者=set()#订阅者
 
     def getSnapshot(自身):#读快照
-        """返回当前状态。"""
+        '返回当前状态'
         return 自身.状态#状态
 
     def subscribe(自身,回调):#订阅
-        """登记变更回调。"""
+        '登记变更回调'
         自身.监听者.add(回调)#加入
         def 退订():#退订
-            """取消。"""
+            '取消'
             自身.监听者.discard(回调)#删除
         return 退订#退订器
 
     def update(自身,变换):#就地变换并通知
-        """调用变换(state)。"""
+        '调用变换(state)'
         变换(自身.状态)#变换
         for 回调 in list(自身.监听者):#通知
             回调()#触发
 
 class 模型设置存储:#模型设置页控制器
-    """拼合提供方目录、设置命名空间与所引用凭证。"""
+    '拼合提供方目录、设置命名空间与所引用凭证'
     def __init__(自身,接口):#注入 API
-        """空闲快照。"""
+        '空闲快照'
         自身.接口=接口#settings/credentials/llm
         自身.存储=快照存储({#页面快照
             'status':'idle','error':None,'credentialError':None,'writable':False,'rows':[],'namespaces':{},
@@ -128,11 +128,11 @@ class 模型设置存储:#模型设置页控制器
         自身.世代=0#在飞请求世代
 
     def load(自身):#刷新整页快照
-        """目录与命名空间并行拉取，再批量凭证 describe。"""
+        '目录与命名空间并行拉取，再批量凭证 describe'
         自身.世代+=1#抬世代
         世代=自身.世代#本请求
         def 标加载(态):#loading
-            """标 loading。"""
+            '标 loading'
             态['status']='loading'#加载中
             态['error']=None#清错误
         自身.存储.update(标加载)#写入
@@ -156,7 +156,7 @@ class 模型设置存储:#模型设置页控制器
             if 世代!=自身.世代:#过期
                 return#丢弃
             def 写错误(态):#整页错误
-                """保留上次好行。"""
+                '保留上次好行'
                 态['status']='error'#错误
                 态['error']=错误文案(错误)#文案
             自身.存储.update(写错误)#写入
@@ -197,7 +197,7 @@ class 模型设置存储:#模型设置页控制器
         if 世代!=自身.世代:#过期
             return#丢弃
         def 写就绪(态):#就绪快照
-            """补进凭证。"""
+            '补进凭证'
             态['status']='ready'#就绪
             态['error']=None#清错误
             态['credentialError']=凭证错误#补全文案
@@ -214,7 +214,7 @@ class 模型设置存储:#模型设置页控制器
         自身.存储.update(写就绪)#写入
 
 def 提供方可用(行):#一行当前能否承接模型请求
-    """未激活不可用；无凭证引用则走自有路径。"""
+    '未激活不可用；无凭证引用则走自有路径'
     条目=行['entry'] if 'entry' in 行 and 行['entry'] is not None else {}#条目
     if 'active' not in 条目 or 条目['active'] is not True:#未激活
         return False#不可用
@@ -224,7 +224,7 @@ def 提供方可用(行):#一行当前能否承接模型请求
     return 凭证 is not None and 'configured' in 凭证 and 凭证['configured'] is True#须已存凭证
 
 def 引导就绪度(状态):#从模型拼合投影首次引导就绪度
-    """任一可用提供方即结束；否则看官方 DeepSeek 路由。"""
+    '任一可用提供方即结束；否则看官方 DeepSeek 路由'
     行表=状态['rows'] if 'rows' in 状态 and 状态['rows'] is not None else []#行
     状态名=状态['status'] if 'status' in 状态 else None#状态
     if (状态名=='idle' or 状态名=='loading') and len(行表)==0:#尚未拉到
@@ -259,7 +259,7 @@ def 引导就绪度(状态):#从模型拼合投影首次引导就绪度
     return {'kind':'credential-missing'}#缺密钥
 
 def 已加载则刷新(控制器):#已打开过才重拉
-    """idle 则跳过。"""
+    'idle 则跳过'
     if 控制器.存储.getSnapshot()['status']=='idle':#尚未打开
         return#跳过
     控制器.load()#刷新

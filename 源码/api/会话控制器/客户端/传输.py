@@ -1,9 +1,6 @@
-"""面向 Gateway 拥有的 Remote 流生命周期的 Session 专用适配器。
-
-经 remote.$stream 走 RemoteSnapshotStream / RemoteJournalStream；
-无 $stream 时回退直连 follow/control。
-"""
+'面向 Gateway 拥有的 Remote 流生命周期的 Session 专用适配器'
 import threading#控制流泵线程
+from ....基础设施.通用工具 import 获取内部数据
 from .会话线事件 import 断言会话线事件#线事件验收
 from .历史记录 import 历史条目,历史记录首序号,历史记录末序号#历史辅助
 from .助手流 import 客户端助手流#帧→live-chunk（直连回退用）
@@ -21,7 +18,7 @@ __all__=[#仅中文公开名
 会话搜索摘要最大码点=120#摘要码点上限
 
 def 转会话日志变更(变更):
-    """远程变更转会话变更。变更为 dict。"""
+    '远程变更转会话变更。变更为 dict'
     类型=变更['type']#类型
     if 类型=='replace' or 类型=='prepend':#整窗
         结果=dict(变更)#拷
@@ -34,18 +31,18 @@ def 转会话日志变更(变更):
     return 变更#原样
 
 def _有流工厂(远程):
-    """远程是否暴露 $stream。"""
-    return getattr(远程,'$stream',None) is not None#有
+    '远程是否暴露 $stream'
+    return 获取内部数据(远程,'stream',None) is not None#有
 
 def _取流工厂(远程):
-    """取 $stream 可调用。"""
-    return getattr(远程,'$stream')#属性
+    '取 $stream 可调用'
+    return 获取内部数据(远程,'stream')#开流
 
 def 创建会话控制流(远程,选项):
     """创建 Host 范围会话控制快照流。
 
     选项：accept / failed / carrierFailed?。
-    有 $stream 时返回远程快照流；否则直连 control 迭代器句柄。
+    有 $stream 时返回远程快照流；否则直连 control 迭代器句柄
     """
     if not _有流工厂(远程):#回退
         return _直连控制流(远程,选项)#直连
@@ -67,17 +64,17 @@ def 创建会话控制流(远程,选项):
     })#快照流
 
 class _直连控制流句柄:
-    """无 $stream 时的直连 control 句柄。"""
+    '无 $stream 时的直连 control 句柄'
 
     def __init__(自身,远程,选项):
-        """记下远程与接收端。"""
+        '记下远程与接收端'
         自身._远程=远程#远程
         自身._选项=选项#选项
         自身._已关闭=False#状态
         自身.name='session control stream'#名称
 
     def start(自身,信号=None):
-        """打开控制流并投递帧。"""
+        '打开控制流并投递帧'
         if 自身._已关闭:#已拆
             return#空
         try:
@@ -92,22 +89,22 @@ class _直连控制流句柄:
             自身._选项['failed'](错误)
 
     def dispose(自身):
-        """标记关闭。"""
+        '标记关闭'
         自身._已关闭=True
 
     def restart(自身):
-        """直连无监督代际，空操作。"""
+        '直连无监督代际，空操作'
         return
 
 def _直连控制流(远程,选项):
-    """无 $stream 时的直连 control。"""
+    '无 $stream 时的直连 control'
     return _直连控制流句柄(远程,选项)#句柄
 
 class 会话事件流(远程日志流):
-    """绑定到普通或直连子智能体会话地址的事件日志。"""
+    '绑定到普通或直连子智能体会话地址的事件日志'
 
     def __init__(自身,远程,地址,选项):
-        """保存远程面、地址与接收端。选项含 publish/failed/carrierFailed?。"""
+        '保存远程面、地址与接收端。选项含 publish/failed/carrierFailed?'
         if not _有流工厂(远程):#无工厂则薄包装直连
             自身._直连=_直连事件流(远程,地址,选项)#直连
             自身._用直连=True#旗
@@ -132,7 +129,7 @@ class 会话事件流(远程日志流):
         super().__init__(远程,日志选项)#基类
 
     def 跟随(自身,请求,信号):
-        """打开 follow，产出 opened/entry/notification。"""
+        '打开 follow，产出 opened/entry/notification'
         助手修订=None#助手修订
         会话面=自身._远程.session#session
         跟随请求={'address':自身._地址,'assistantStream':True}#跟随
@@ -169,7 +166,7 @@ class 会话事件流(远程日志流):
             yield {'type':'entry','entry':帧}#条目
 
     def 读页(自身,请求,含末序号,信号=None):
-        """读更早页。"""
+        '读更早页'
         会话面=自身._远程.session#session
         页请求={'address':自身._地址,'throughSeq':含末序号}#页
         if 请求 is not None and 'maxMessages' in 请求 and 请求['maxMessages'] is not None:#上限
@@ -188,43 +185,43 @@ class 会话事件流(远程日志流):
         return 页#页
 
     def 修复请求(自身,初始):
-        """保留 maxMessages。"""
+        '保留 maxMessages'
         if 初始 is None or 'maxMessages' not in 初始 or 初始['maxMessages'] is None:#无
             return {}#空
         return {'maxMessages':初始['maxMessages']}#保留
 
     def open(自身,请求=None):
-        """打开；直连路径走折叠泵。"""
+        '打开；直连路径走折叠泵'
         if 自身._用直连:
             自身._直连.start(请求)
             return
         super().open(请求)
 
     def dispose(自身):
-        """拆除。"""
+        '拆除'
         if 自身._用直连:
             自身._直连.dispose()
             return
         super().dispose()
 
     def prepend(自身,请求):
-        """前置；直连走读更早页。"""
+        '前置；直连走读更早页'
         if 自身._用直连:#直连
             raise RuntimeError('session event stream direct mode does not support prepend via journal')#拒绝
         super().prepend(请求)#网关
 
     def 读更早页(自身,请求,含末序号,信号=None):
-        """兼容旧调用面。"""
+        '兼容旧调用面'
         if 自身._用直连:#直连
             return 自身._直连.读更早页(请求,含末序号,信号)#委托
         return 自身.读页(请求,含末序号,信号)#网关
 
 
 class _直连事件流:
-    """无 $stream 时的直连 follow（保留助手流折叠）。"""
+    '无 $stream 时的直连 follow（保留助手流折叠）'
 
     def __init__(自身,远程,地址,选项):
-        """保存远程面、地址与接收端。"""
+        '保存远程面、地址与接收端'
         自身._远程=远程#远程
         自身._地址=地址#地址
         自身._选项=选项#选项
@@ -233,7 +230,7 @@ class _直连事件流:
         自身._泵=None#泵线程
 
     def start(自身,请求=None,信号=None):
-        """后台泵 follow。"""
+        '后台泵 follow'
         if 请求 is None:#缺省
             请求={}#空
         if 自身._已关闭:#已拆
@@ -242,7 +239,7 @@ class _直连事件流:
         自身._泵.start()#启
 
     def _执行跟随泵(自身,请求,信号):
-        """打开 follow 并把变更交给 publish。"""
+        '打开 follow 并把变更交给 publish'
         助手修订=None#助手修订
         try:
             会话面=自身._远程.session#session
@@ -289,7 +286,7 @@ class _直连事件流:
             自身._选项['failed'](错误)
 
     def 读更早页(自身,请求,含末序号,信号=None):
-        """读更早页。"""
+        '读更早页'
         会话面=自身._远程.session#session
         页请求={'address':自身._地址,'throughSeq':含末序号}#页
         if 请求 is not None and 'maxMessages' in 请求 and 请求['maxMessages'] is not None:#上限
@@ -308,11 +305,11 @@ class _直连事件流:
         return 页#页
 
     def dispose(自身):
-        """标记关闭。"""
+        '标记关闭'
         自身._已关闭=True#关
 
     def _应用决策(自身,决策):
-        """把助手流决策变成日志变更。"""
+        '把助手流决策变成日志变更'
         if 决策 is None:#无可见
             return#空
         类型=决策['type']#类型

@@ -24,22 +24,22 @@ __all__=[
 }
 
 def 读易失(字段):
-    """插件配置易失字段；有 get 则调，否则当值。"""
+    '插件配置易失字段；有 get 则调，否则当值'
     if hasattr(字段,'get') and callable(字段.get):
         return 字段.get()
     return 字段
 
 def 应用(上下文,配置对象=None):
-    """关掉设置自动呈现，并把当前易失偏好注入 index。"""
+    '关掉设置自动呈现，并把当前易失偏好注入 index'
     def 接线(子上下文):
-        """有 settings 才关掉自动呈现。"""
+        '有 settings 才关掉自动呈现'
         def 挂():
-            """auto:false 绑到本纤程。"""
+            'auto:false 绑到本纤程'
             return 子上下文.settings.configure({'auto':False},上下文.纤程)
         子上下文.副作用(挂)
     上下文.依赖启动(['settings'],接线)
     def 注入索引(表):
-        """把启动主题行推入注入表。"""
+        '把启动主题行推入注入表'
         源=配置 if 配置对象 is None else 配置对象
         偏好=读易失(源['preference'])
         字号=读易失(源['fontSize'])

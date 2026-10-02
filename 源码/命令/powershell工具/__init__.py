@@ -1,7 +1,4 @@
-"""面向模型的 PowerShell 消费方。
-
-用于 Windows 组合，由 PowerShell 执行器支撑外壳能力；工具约定是 PowerShell 方言：原生 C:\\... 路径与 $env:NAME 变量。行为与 bash 工具逐调用镜像。
-"""
+'面向模型的 PowerShell 消费方'
 import json,math,os#JSON片段、有限数与路径
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
@@ -12,8 +9,8 @@ from ...沙盒.沙盒 import (
     批准升级,#批准升级
     校验升级参数,#校验升级参数配对
 )#沙箱升级面
-from .后台 import 做成任务完成#后台done映射为任务结果
-from .渲染 import 渲染Pwsh结果,渲染Pwsh进程读取#pwsh渲染
+from .后台 import 进程结果,进程作业#后台进程映射为任务结果
+from .渲染 import 渲染Pwsh结果#pwsh渲染
 
 __all__=['名称','依赖','配置','应用']#仅中文公开名
 
@@ -28,19 +25,19 @@ __all__=['名称','依赖','配置','应用']#仅中文公开名
 }#后台输出字段结束
 
 class pwsh工具错误(Exception):#本包校验与组合失败
-    """pwsh 工具入参或组合非法。"""
+    'pwsh 工具入参或组合非法'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 def 已中止(信号):#读中止事实
-    """信号按 Event 定死。"""
+    '信号按 Event 定死'
     if 信号 is None:#无信号
         return False#未中止
     return 信号.is_set()#事件已置位
 
 def 校验Pwsh参数(参数):#校验参数值
-    """已解析工具参数；校验 ParameterSchemaSpec 没有的值约束。"""
+    '已解析工具参数；校验 ParameterSchemaSpec 没有的值约束'
     if len(参数['command'].strip())==0:#命令为空
         raise pwsh工具错误('invalid command: expected a non-empty string')#拒绝空命令
     if len(参数['description'].strip())==0:#描述为空
@@ -51,7 +48,7 @@ def 校验Pwsh参数(参数):#校验参数值
     校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
 
 def pwsh描述(启用后台,升级模式):#拼工具描述
-    """按组合拼面向模型的 pwsh 工具描述；升级目标非空时追加 Windows 沙箱语言模式与同轮升级指引。"""
+    '按组合拼面向模型的 pwsh 工具描述；升级目标非空时追加 Windows 沙箱语言模式与同轮升级指引'
     if 启用后台 is True:#启用后台
         后台段='Set `run_in_background: true` for long-running commands: the call returns a job id immediately; read its output with `job_output` and stop it with `job_kill`.'#后台说明
     else:#无后台
@@ -91,7 +88,7 @@ def pwsh描述(启用后台,升级模式):#拼工具描述
         +'it — but it does not forbid attempting or escalating other commands later.')#不影响其他命令
 
 def 解析工作目录(模型工作目录,执行):#解析工作目录
-    """先解析显式 workdir，相对路径相对会话工作区；否则用会话头 cwd，并把执行器默认当作回退。"""
+    '先解析显式 workdir，相对路径相对会话工作区；否则用会话头 cwd，并把执行器默认当作回退'
     智能体=执行['agent'] if 'agent' in 执行 else None#调用智能体；执行是dict
     会话=智能体.session if 智能体 is not None else None#所属会话
     头=会话.header if 会话 is not None else None#会话头
@@ -103,9 +100,9 @@ def 解析工作目录(模型工作目录,执行):#解析工作目录
     return 模型工作目录#绝对或无会话则原样
 
 def 规范Pwsh结果(结果):#规范化前台结果
-    """把执行器 DTO 从只读 Service Definition 类型拆成普通 JSON 数据。"""
+    '把执行器 DTO 从只读 Service Definition 类型拆成普通 JSON 数据'
     def 一路输出(流):#一路输出
-        """投影一路收集输出。"""
+        '投影一路收集输出'
         输出={'text':流['text'],'truncated':流['truncated']}#文本与截断
         if 'spillPath' in 流 and 流['spillPath'] is not None:#有溢出路径
             输出['spillPath']=流['spillPath']#带上
@@ -134,13 +131,13 @@ def 规范Pwsh结果(结果):#规范化前台结果
     return 规范#规范前台结果
 
 def 抛中止():#抛出工具调用中止
-    """抛出体后中止的 AbortError。"""
+    '抛出体后中止的 AbortError'
     错误=装备错误('tool call aborted',工具体后中止)#中止错误
     错误.name='AbortError'#名字
     raise 错误#抛出
 
 def 应用(上下文,配置值=None):#加载pwsh工具插件
-    """注册面向模型的 pwsh 工具、系统提示词段落，以及按组合广告的后台/升级参数面。"""
+    '注册面向模型的 pwsh 工具、系统提示词段落，以及按组合广告的后台/升级参数面'
     if 配置值 is None:#未传配置
         配置值={}#空配置
     启用后台=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True#是否启用后台
@@ -150,7 +147,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
     if 默认模式 is not None and 沙箱政策服务 is None:#隔离却缺政策
         raise pwsh工具错误('tool-pwsh: the mounted bash executor confines but ctx.sandboxPolicy is missing')#加载时失败
     def 解析沙箱政策(执行):#解析常驻政策
-        """挂上隔离执行器时，解析本次调用的完整常驻政策。"""
+        '挂上隔离执行器时，解析本次调用的完整常驻政策'
         if 沙箱政策服务 is None:#无政策服务
             return None#无政策
         请求={}#常驻政策请求
@@ -159,7 +156,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             请求['session']=智能体.session#按会话
         return 沙箱政策服务.resolve(请求)#解析常驻政策
     def 批准Pwsh升级(模式,理由,执行,常驻政策):#审批pwsh升级
-        """在任何东西执行之前，经审批层解析沙箱升级请求。"""
+        '在任何东西执行之前，经审批层解析沙箱升级请求'
         if len(升级模式)==0:#本组合没有升级
             raise pwsh工具错误('sandbox_permissions is not available in this composition (no sandboxing executor to escalate)')#拒绝
         return 批准升级(#共用审批
@@ -203,14 +200,14 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             'description':'Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access.',#理由说明
         }#justification结束
     def 渲染(参数,值):#按种类渲染
-        """后台只报任务号；前台渲染运行结果。"""
+        '后台只报任务号；前台渲染运行结果'
         if 值['kind']=='background':#后台
             文本='started background job '+str(值['jobId'])#只报任务号
         else:#前台
             文本=渲染Pwsh结果(值,升级模式)#前台渲染
         return [{'type':'text','text':文本}]#单个文本块
     def 执行(参数,执行上下文):#执行pwsh
-        """校验后前台运行或登记后台任务。"""
+        '校验后前台运行或登记后台任务'
         校验Pwsh参数(参数)#先校验参数
         常驻政策=解析沙箱政策(执行上下文)#常驻政策
         if ('sandbox_permissions' in 参数 and 参数['sandbox_permissions'] is not None and
@@ -243,15 +240,16 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):#已取消
                 抛中止()#抛出中止
             def 任务体():#任务体
-                """在通用任务层下拉起后台 pwsh 进程。"""
-                进程=上下文.shell.启动(上下文.shell.解析(请求))#解析并后台启动
-                def 取消():#取消则杀进程
-                    """请求杀掉后台进程。"""
-                    进程.杀死()#杀进程
-                def 读输出():#增量渲染
-                    """增量渲染后台输出。"""
-                    return 渲染Pwsh进程读取(进程.读取输出(),进程.sandbox,升级模式)#增量渲染
-                return {'cancel':取消,'done':做成任务完成(进程),'readOutput':读输出}#交给任务收集器
+                '准入后把 pwsh 进程交给进程作业'
+                def 拉起(信号):#带取消信号启动
+                    '带任务取消信号启动'
+                    下一=dict(请求)#拷贝请求
+                    下一['signal']=信号#任务取消
+                    return 上下文.shell.启动(上下文.shell.解析(下一))#解析并启动
+                def 投影(已启动):#映射结局
+                    '映射为任务结局'
+                    return 进程结果(已启动,升级模式)#带升级模式
+                return 进程作业(拉起,投影)#交给任务收集器
             启动参数={#启动参数
                 'kind':'pwsh',#任务种类
                 'label':参数['command'],#标签是命令
@@ -269,7 +267,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             抛中止()#抛出中止
         return 规范Pwsh结果(结果)#返回规范前台结果
     def 呈现调用(参数):#调用卡片
-        """后台确认不带终端退出状态；通用卡片镜像 bash 工具的后台呈现。"""
+        '后台确认不带终端退出状态；通用卡片镜像 bash 工具的后台呈现'
         if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#后台
             return {#通用执行卡片
                 'card':'generic',#通用卡
@@ -287,7 +285,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             卡片['cwd']=参数['workdir']#带上
         return 卡片#前台卡片
     def 呈现结果(参数,结果):#结果卡片
-        """已完成前台输出呈现为终端；后台确认与执行错误用通用围栏输出。"""
+        '已完成前台输出呈现为终端；后台确认与执行错误用通用围栏输出'
         if 'content' not in 结果:#无内容
             return None#不认
         内容=结果['content']#内容块列表

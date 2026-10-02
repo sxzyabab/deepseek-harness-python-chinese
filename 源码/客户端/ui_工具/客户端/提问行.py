@@ -5,11 +5,11 @@ from .工具行 import 工具行#摘要行外壳
 __all__=['提问行','提问工具视图','已答摘要','是否答案条目']#仅中文公开名
 
 def 是否答案条目(值):#形检查一条答案
-    """跨线 result JSON 的答案条目。"""
+    '跨线 result JSON 的答案条目'
     return isinstance(值,dict)#普通对象
 
 def 已答摘要(文本,翻译):#从结果 JSON 派生已答计数摘要
-    """跳过题 selected 空且无 custom；字段非法时 None。"""
+    '跳过题 selected 空且无 custom；字段非法时 None'
     try:#解析
         解析=json.loads(文本)#JSON
     except (TypeError,ValueError,json.JSONDecodeError):#非 JSON
@@ -28,19 +28,19 @@ def 已答摘要(文本,翻译):#从结果 JSON 派生已答计数摘要
     return 翻译('ask.answered',{'answered':已答,'total':len(答案列表)})#摘要
 
 class 提问行:#问句交互行
-    """整行切换调用的 Input/Output；ToolRow 统一展开。"""
+    '整行切换调用的 Input/Output；ToolRow 统一展开'
 
     def __init__(自身,属性):#记下 props
-        """记下合成 props；内嵌工具行。"""
+        '记下合成 props；内嵌工具行'
         自身.属性=属性#合成
         自身.行=工具行()#外壳
 
     def 更新(自身,属性):#刷新
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """派生摘要/态后交给工具行。"""
+        '派生摘要/态后交给工具行'
         属性=自身.属性#props
         工具名=属性['toolName'] if 'toolName' in 属性 and 属性['toolName'] else 'ask_user_question'#工具名
         块=属性['block']#工具块
@@ -81,7 +81,7 @@ class 提问行:#问句交互行
         return 自身.行(行属性)#渲染外壳
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
@@ -92,9 +92,9 @@ class 提问行:#问句交互行
 }#插件描述
 
 def 应用提问工具视图(上下文):#登记提问行
-    """把提问行写入 Tool 拥有的按键视图槽。"""
+    '把提问行写入 Tool 拥有的按键视图槽'
     def 登记():#等槽出现再登记
-        """登记 ask_user_question 键。"""
+        '登记 ask_user_question 键'
         return 上下文.slots.register({#按键条目
             'name':'tool.call.toolview','key':'ask_user_question',#选项
         },提问行)#组件

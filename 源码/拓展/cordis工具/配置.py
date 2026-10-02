@@ -9,7 +9,7 @@ __all__=['查询现场配置']
 最大页大小=100
 
 def 是否整数(值):
-    """排除布尔的整数判定。"""
+    '排除布尔的整数判定'
     if isinstance(值,bool):
         return False
     if isinstance(值,int):
@@ -17,7 +17,7 @@ def 是否整数(值):
     return isinstance(值,float) and 值.is_integer()
 
 def 现场配置(条目):
-    """从一条加载器插件配置投影目录行。"""
+    '从一条加载器插件配置投影目录行'
     列出={'id':条目.编号,'patchId':条目.选项['id'],'name':条目.选项['name']}
     if 条目.子组 is not None or 条目.子树 is not None:
         列出['status']='tree'
@@ -39,14 +39,14 @@ def 现场配置(条目):
     return 列出
 
 def 目录行(现场):
-    """去掉原生图，只留目录字段。"""
+    '去掉原生图，只留目录字段'
     return {'id':现场['id'],'patchId':现场['patchId'],'name':现场['name'],'status':现场['status']}
 
 def 解析查询(输入):
-    """读取模型给出的查询字段。"""
+    '读取模型给出的查询字段'
     字段=输入 if isinstance(输入,dict) else {}
     def 文本(键):
-        """非空字符串或省略。"""
+        '非空字符串或省略'
         if 键 not in 字段:
             return None
         值=字段[键]
@@ -64,7 +64,7 @@ def 解析查询(输入):
     return {'entry':文本('entry'),'name':文本('name'),'offset':偏移,'limit':限额}
 
 def 包目录(上下文,条目):
-    """经配置档包查找解析插件名对应的包目录。"""
+    '经配置档包查找解析插件名对应的包目录'
     基准网址=条目.父组.所属树.所属上下文.基准网址
     目录=None
     if 基准网址 is not None:
@@ -78,11 +78,11 @@ def 包目录(上下文,条目):
     return {'packageDir':目录}
 
 def 转json(值):
-    """投影输出按 JSON 构造。"""
+    '投影输出按 JSON 构造'
     return json.loads(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False))
 
 def 查询现场配置(上下文,输入=None):
-    """回答 Config.listConfigs：一页目录，或一条目的投影模式。"""
+    '回答 Config.listConfigs：一页目录，或一条目的投影模式'
     加载器=上下文.获取服务('加载器',False)
     if 加载器 is None:
         raise 巡检错误('Config 巡检需要挂载本配置档的加载器；本宿主组合没有加载器')

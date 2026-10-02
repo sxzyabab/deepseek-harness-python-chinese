@@ -19,5 +19,5 @@ __all__=['桥能力']
 ]#常量集
 
 def 桥能力(_来源, _有源):#桥能力
-    """收集 Host source-bridge 能力。"""
+    '收集 Host source-bridge 能力'
     return tuple(宿主桥能力)#返回常量集

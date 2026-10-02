@@ -1,8 +1,4 @@
-"""LLM Host-for-Client Remote 贡献。
-
-对照 `@Remote`：listProviders / listConfigurableProviders / discoverModels。
-"""
-from ...typert.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
+from ...类型化远程调用.协议 import 严格编解码,调用描述符,远程贡献#制品辅助
 
 __all__=['默认','远程贡献表']#仅中文公开名；TYPERT_REMOTE 为 typert 框架槽不入表
 

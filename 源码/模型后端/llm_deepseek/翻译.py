@@ -1,4 +1,4 @@
-"""翻译 Messages 事件，保住块顺序与累计用量。"""
+'翻译 Messages 事件，保住块顺序与累计用量'
 import json
 from ..llm import 大模型错误
 from ..llm.标识构造 import 调用标识
@@ -14,24 +14,24 @@ __all__=['字符串','翻译']
 }
 
 def 字符串(值):
-    """从提供方 JSON 解码必填字符串。"""
+    '从提供方 JSON 解码必填字符串'
     if not isinstance(值,str):
         raise 大模型错误('DeepSeek Messages expected a string field','MALFORMED_RESPONSE')
     return 值
 
 def 畸形(细节):
-    """流畸形。"""
+    '流畸形'
     raise 大模型错误('DeepSeek Messages stream: '+细节,'MALFORMED_RESPONSE')
 
 def 取下标(事件):
-    """块下标。"""
+    '块下标'
     下标=事件.get('index')
     if (not isinstance(下标,int)) or isinstance(下标,bool) or 下标<0:
         畸形('invalid block index')
     return 下标
 
 def 更新用量(用量,原始):
-    """累加用量字段。"""
+    '累加用量字段'
     字段=对象(原始)
     for 线路,本地 in 用量键.items():
         值=字段.get(线路)
@@ -42,7 +42,7 @@ def 更新用量(用量,原始):
         用量[本地]=值
 
 def 开始块(事件,下标):
-    """content_block_start。"""
+    'content_block_start'
     原生=对象(事件.get('content_block'))
     种类=原生.get('type')
     if 种类=='text':
@@ -63,7 +63,7 @@ def 开始块(事件,下标):
     return {'index':下标,'content':内容,'replay':回放,'closed':False,'json':''}
 
 def 增量块(块,原始):
-    """content_block_delta。"""
+    'content_block_delta'
     增量=对象(原始)
     内容=块['content']
     种类=增量.get('type')
@@ -85,7 +85,7 @@ def 增量块(块,原始):
     畸形('unsupported delta '+str(种类)+' for '+内容['type'])
 
 def 停止原因(原始):
-    """finish reason。"""
+    'finish reason'
     if 原始=='end_turn' or 原始=='stop_sequence':
         return {'kind':'stop'}
     if 原始=='tool_use':
@@ -95,7 +95,7 @@ def 停止原因(原始):
     畸形('unsupported stop reason '+str(原始))
 
 def 翻译(事件流,模型):
-    """把已分帧解码的 SSE 数据译成 Harness 流协议。"""
+    '把已分帧解码的 SSE 数据译成 Harness 流协议'
     块表={}
     用量={'inputTokens':0,'outputTokens':0}
     已开始=False

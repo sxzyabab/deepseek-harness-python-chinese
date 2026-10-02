@@ -18,24 +18,24 @@ __all__=[#仅中文公开名
 表面事件类型=frozenset({'user/message','assistant/message','tool/result'})#可进表面的事件类型
 
 class 交付物错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
 
 def 是否追加面事件(事件):#表面且操作为追加
-    """表面且操作为追加。"""
+    '表面且操作为追加'
     if 事件['type'] not in 表面事件类型:#类型不对
         return False#否
     return 事件['surfaceOp']=='append' if 'surfaceOp' in 事件 else False#追加
 
 def _是否记录(值):#对象且非列表
-    """窄化为 dict。"""
+    '窄化为 dict'
     return isinstance(值,dict)
 
 def _路径值(值):#非空白路径
-    """保留工具收到的精确拼写。"""
+    '保留工具收到的精确拼写'
     return 值 if isinstance(值,str) and len(值.strip())>0 else None#有效
 
 def _合法编辑参数(参数):#edit 字段
-    """old/new 字符串且不同。"""
+    'old/new 字符串且不同'
     if 'old_string' not in 参数 or not isinstance(参数['old_string'],str) or len(参数['old_string'])==0:
         return False
     if 'new_string' not in 参数 or not isinstance(参数['new_string'],str):
@@ -46,7 +46,7 @@ def _合法编辑参数(参数):#edit 字段
     return 全替 is None or isinstance(全替,bool)#合法
 
 def _编辑器变更路径(参数):#str_replace_editor
-    """仅完整变更命令。"""
+    '仅完整变更命令'
     路径=_路径值(参数['path'] if 'path' in 参数 else None)#路径
     if 路径 is None:#空
         return None#否
@@ -70,7 +70,7 @@ def _编辑器变更路径(参数):#str_replace_editor
     return None#其它
 
 def _变更路径(名,参数原文):#从工具参数取路径
-    """受支持第一方变更才返回路径。"""
+    '受支持第一方变更才返回路径'
     try:#解析
         参数=_json.loads(参数原文)
     except _json.JSONDecodeError:
@@ -86,7 +86,7 @@ def _变更路径(名,参数原文):#从工具参数取路径
     return None#其它
 
 def 收口产出(数据,序号=None):#读一个回合收口时应列出的产出路径
-    """按首次出现顺序；没写过则为空。序号为 None 不过滤更晚结算。"""
+    '按首次出现顺序；没写过则为空。序号为 None 不过滤更晚结算'
     if 数据 is None:#尚未发布
         return []#无产出
     产出列表=数据['produced'] if 'produced' in 数据 and 数据['produced'] is not None else []#产出项
@@ -103,7 +103,7 @@ def 收口产出(数据,序号=None):#读一个回合收口时应列出的产出
     return 路径表#路径
 
 def 选出产出文件(所有者):#有产出才认领回合尾链
-    """没有产出则 null（此处 None）。属主为 dict。"""
+    '没有产出则 null（此处 None）。属主为 dict'
     回合=所有者['turn'] if 'turn' in 所有者 else None#回合
     数据面=回合['data'] if 回合 is not None and 'data' in 回合 else None#数据面 dict
     if 数据面 is None:
@@ -117,7 +117,7 @@ def 选出产出文件(所有者):#有产出才认领回合尾链
     return 路径表#路径
 
 def _交付数据(所有者):#读 deliverables 回合数据
-    """属主 turn.data。"""
+    '属主 turn.data'
     回合=所有者['turn'] if 'turn' in 所有者 else None#回合
     数据面=回合['data'] if 回合 is not None and 'data' in 回合 else None#数据面
     if 数据面 is None:
@@ -125,7 +125,7 @@ def _交付数据(所有者):#读 deliverables 回合数据
     return 数据面['deliverables'] if 'deliverables' in 数据面 else None
 
 def 收口已呈现(所有者):#收口前每条路径的最新声明
-    """按首次出现路径顺序的可回放交付。属主为 dict。"""
+    '按首次出现路径顺序的可回放交付。属主为 dict'
     数据=_交付数据(所有者)#产出数据
     序号=所有者['seq'] if 'seq' in 所有者 else None#收口序号
     已呈现列表=数据['presented'] if 数据 is not None and 'presented' in 数据 and 数据['presented'] is not None else []#已呈现
@@ -137,14 +137,14 @@ def 收口已呈现(所有者):#收口前每条路径的最新声明
     return list(文件表.values())#保序值
 
 def 收口改动(所有者):#回合最新改动公告
-    """宿主未记录则为 None。"""
+    '宿主未记录则为 None'
     数据=_交付数据(所有者)#数据
     if 数据 is None or 'changes' not in 数据 or 数据['changes'] is None:#无
         return None#空
     return 数据['changes']#改动
 
 def 匹配(事件):#判定事件是否属于本节点
-    """turn/start 开节点；tool/call、presented、workspace/changes 与追加面 tool/result 为 update。"""
+    'turn/start 开节点；tool/call、presented、workspace/changes 与追加面 tool/result 为 update'
     类型=事件['type']#类型
     数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
     if 类型=='turn/start':#回合开始
@@ -164,7 +164,7 @@ def 匹配(事件):#判定事件是否属于本节点
     return None#忽略
 
 def 起始(上下文,匹配结果):#用 turn/start 建折叠状态
-    """开节点必须是 turn/start。"""
+    '开节点必须是 turn/start'
     事件=匹配结果['event']#事件
     if 事件['type']!='turn/start':#必须
         raise 交付物错误('deliverables start requires turn/start')#开节点必须是 turn/start
@@ -172,7 +172,7 @@ def 起始(上下文,匹配结果):#用 turn/start 建折叠状态
     return {'turn':数据['turn'] if 'turn' in 数据 else None,'calls':{},'produced':[]}#空表
 
 def 更新(上下文,匹配结果):#按调用与结果累积产出路径
-    """调用记下变更路径；成功结果追加；已呈现与改动事件写入。"""
+    '调用记下变更路径；成功结果追加；已呈现与改动事件写入'
     状态=上下文['state'] if 'state' in 上下文 and 上下文['state'] is not None else {}#状态
     事件=匹配结果['event']#事件
     类型=事件['type']#类型
@@ -227,7 +227,7 @@ def 更新(上下文,匹配结果):#按调用与结果累积产出路径
     return 新状态#返回
 
 def 建位置数据(上下文,范围,先前=None):#写回合位置数据
-    """非回合范围或尚无状态则 null；未变则复用先前。"""
+    '非回合范围或尚无状态则 null；未变则复用先前'
     状态=上下文['state'] if 'state' in 上下文 else None#状态
     if 范围!='turn' or 状态 is None:#不写
         return None#null
@@ -262,23 +262,23 @@ def 建位置数据(上下文,范围,先前=None):#写回合位置数据
 }#定义结束
 
 def 路径末段(路径):#取路径末段
-    """最后一段；没有分隔符则整串。"""
+    '最后一段；没有分隔符则整串'
     return _已呈现路径末段(路径)#与已呈现模块同算法
 
 def 唯一末段路径(路径表,值):#末段恰好等于 value 的那一条
-    """对不上或多于一条则为 None。"""
+    '对不上或多于一条则为 None'
     命中=[路径 for 路径 in 路径表 if 路径末段(路径)==值]#末段匹配
     return 命中[0] if len(命中)==1 else None#恰好一条
 
 def 产出文件提及(路径表,打开文件,标签):#给收口正文一套产出路径提及词表
-    """MarkdownText 消费的解析器。"""
+    'MarkdownText 消费的解析器'
     def 解析(值):#把行内记号解析成可打开路径
-        """先精确路径，否则唯一末段。"""
+        '先精确路径，否则唯一末段'
         路径=值 if 值 in 路径表 else 唯一末段路径(路径表,值)#解析
         if 路径 is None:#对不上
             return None#惰性
         def 打开():#打开该路径
-            """转调打开文件。"""
+            '转调打开文件'
             打开文件(路径)#打开
             return None#无返回
         return {'open':打开,'label':标签(路径),'title':路径}#打开面

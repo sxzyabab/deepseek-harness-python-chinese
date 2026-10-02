@@ -1,4 +1,4 @@
-"""请求归一化、参数化谓词与结果呈现。"""
+'请求归一化、参数化谓词与结果呈现'
 import json,re#JSON 与空白正则
 from ..会话查询 import 会话查询错误,物化会话结果过滤器,物化会话事件结果过滤器#共享检索工具
 __all__=[
@@ -20,7 +20,7 @@ SQLITE_FTS5外层谓词上限=14#FTS5 外层谓词预算
 单空白=re.compile(r'\s',re.ASCII)#单空白
 
 def 校验可移植绑定数(计数):
-    """拒绝超出可移植绑定上限。"""
+    '拒绝超出可移植绑定上限'
     if 计数>SQLITE可移植变量上限:#超限
         raise 会话查询错误(
             "session-search request exceeds SQLite's portable "+str(SQLITE可移植变量上限)+"-variable limit; reduce filter values",
@@ -28,7 +28,7 @@ def 校验可移植绑定数(计数):
         )#拒绝
 
 def 校验Fts5外层谓词数(计数):
-    """拒绝超出 FTS5 外层谓词预算。"""
+    '拒绝超出 FTS5 外层谓词预算'
     if 计数>SQLITE_FTS5外层谓词上限:#超限
         raise 会话查询错误(
             'session-search request exceeds the supported SQLite FTS5 outer-predicate budget of '+str(SQLITE_FTS5外层谓词上限)+'; reduce filters',
@@ -36,7 +36,7 @@ def 校验Fts5外层谓词数(计数):
         )#拒绝
 
 def 归一化查询(值):
-    """校验并清洗查询文本。"""
+    '校验并清洗查询文本'
     if not isinstance(值,str):#非文本
         raise 会话查询错误('session-search query must be text','SESSION_QUERY_INVALID_QUERY')#拒绝
     查询=值.strip()#去首尾空白
@@ -48,7 +48,7 @@ def 归一化查询(值):
     return 清洗Fts文本(查询)#清洗保留字符
 
 def 物化游标(游标):
-    """物化可选游标。"""
+    '物化可选游标'
     if 游标 is None:#无游标
         return None#缺席
     if not isinstance(游标,str):#非文本
@@ -56,7 +56,7 @@ def 物化游标(游标):
     return 游标#原样
 
 def 归一化限制(值,限制):
-    """归一化页大小。"""
+    '归一化页大小'
     限制值=限制['defaultLimit'] if 值 is None else 值#默认
     最大限制=min(限制['maxLimit'],SQLITE最大页限制)#封顶
     if isinstance(限制值,bool) or (not isinstance(限制值,int)) or 限制值<1 or 限制值>最大限制:#非法
@@ -67,7 +67,7 @@ def 归一化限制(值,限制):
     return 限制值#合法限制
 
 def 物化元数据过滤器(过滤器列表):
-    """物化事件元数据过滤器并拒绝 text 子句。"""
+    '物化事件元数据过滤器并拒绝 text 子句'
     if not isinstance(过滤器列表,list):#非数组
         raise 会话查询错误('session-search filters must be an array','SESSION_QUERY_INVALID_FILTER')#拒绝
     for 子句 in 过滤器列表:#逐子句
@@ -83,7 +83,7 @@ def 物化元数据过滤器(过滤器列表):
     return 物化会话事件结果过滤器(过滤器列表)#物化
 
 def 归一化会话请求(请求,限制):
-    """校验并规范化跨会话请求。"""
+    '校验并规范化跨会话请求'
     会话过滤器=物化会话结果过滤器(请求['sessionFilters'] if 'sessionFilters' in 请求 and 请求['sessionFilters'] is not None else [])#物化会话过滤
     事件过滤器=物化元数据过滤器(请求['eventFilters'] if 'eventFilters' in 请求 and 请求['eventFilters'] is not None else [])#物化事件过滤
     游标=物化游标(请求['cursor'] if 'cursor' in 请求 else None)#游标
@@ -98,7 +98,7 @@ def 归一化会话请求(请求,限制):
     return 结果#返回
 
 def 归一化事件请求(请求,限制):
-    """校验并规范化单会话请求。"""
+    '校验并规范化单会话请求'
     if 'sessionId' not in 请求 or not isinstance(请求['sessionId'],str):#非法会话 id
         raise 会话查询错误('session-search session id must be text','SESSION_QUERY_INVALID_FILTER')#拒绝
     过滤器列表=物化元数据过滤器(请求['filters'] if 'filters' in 请求 and 请求['filters'] is not None else [])#物化过滤
@@ -114,21 +114,21 @@ def 归一化事件请求(请求,限制):
     return 结果#返回
 
 def 追加列表绑定(参数列表,值列表):
-    """追加 IN 列表绑定并返回占位符串。"""
+    '追加 IN 列表绑定并返回占位符串'
     校验可移植绑定数(len(参数列表)+len(值列表))#检查上限
     for 值 in 值列表:#逐值
         参数列表.append(值)#追加
     return ','.join(['?']*len(值列表))#占位符
 
 def 追加列表(子句列表,参数列表,列,值列表):
-    """追加等值 IN 子句。"""
+    '追加等值 IN 子句'
     if len(值列表)==0:#空列表
         子句列表.append('0')#永假
         return
     子句列表.append(列+' IN ('+追加列表绑定(参数列表,值列表)+')')#IN 子句
 
 def 追加可空列表(子句列表,参数列表,列,值列表):
-    """追加可空 IN 子句。"""
+    '追加可空 IN 子句'
     if len(值列表)==0:#空列表
         子句列表.append('0')#永假
         return
@@ -141,7 +141,7 @@ def 追加可空列表(子句列表,参数列表,列,值列表):
     子句列表.append('('+' OR '.join(部分)+')')#包起来
 
 def 追加区间(子句列表,参数列表,列,区间):
-    """追加数值区间子句。"""
+    '追加数值区间子句'
     起点=区间['from'] if 'from' in 区间 else None#下界
     终点=区间['to'] if 'to' in 区间 else None#上界
     if 起点 is not None:#有下界
@@ -154,7 +154,7 @@ def 追加区间(子句列表,参数列表,列,区间):
         参数列表.append(终点)#绑定
 
 def 构建会话Where(过滤器列表):
-    """编译逻辑会话谓词。"""
+    '编译逻辑会话谓词'
     子句列表=[]#SQL 子句
     参数列表=[]#绑定
     for 过滤器 in 过滤器列表:#逐过滤器
@@ -185,7 +185,7 @@ def 构建会话Where(过滤器列表):
     return {'sql':' AND '.join(子句列表),'params':参数列表,'predicateCount':len(子句列表)}#片段
 
 def 构建事件Where(过滤器列表):
-    """编译事件元数据谓词。"""
+    '编译事件元数据谓词'
     子句列表=[]#SQL 子句
     参数列表=[]#绑定
     for 过滤器 in 过滤器列表:#逐过滤器
@@ -204,19 +204,19 @@ def 构建事件Where(过滤器列表):
     return {'sql':' AND '.join(子句列表),'params':参数列表,'predicateCount':len(子句列表)}#片段
 
 def 引用Fts数据(查询):
-    """把调用方文本引用成单个 FTS5 短语。"""
+    '把调用方文本引用成单个 FTS5 短语'
     return '"'+查询.replace(chr(34),chr(34)+chr(34))+'"'#双引号转义
 
 def 清洗Fts文本(文本):
-    """去掉保留标记碰撞。"""
+    '去掉保留标记碰撞'
     return 文本.replace('\0','\uFFFD').replace(FTS高亮开始,'\uFFFD').replace(FTS高亮结束,'\uFFFD')#替换
 
 def 过滤器指纹键(项):
-    """过滤器稳定排序键。"""
+    '过滤器稳定排序键'
     return json.dumps(项,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#键
 
 def 规范过滤器(过滤器列表):
-    """规范过滤器排序用于指纹。"""
+    '规范过滤器排序用于指纹'
     规范=[]#输出
     for 过滤器 in 过滤器列表:#逐过滤器
         if 'values' in 过滤器:#列表型
@@ -230,11 +230,11 @@ def 规范过滤器(过滤器列表):
     return sorted(规范,key=过滤器指纹键)#稳定排序
 
 def 比较可空键(值):
-    """可空字符串排序键：None 最小。"""
+    '可空字符串排序键：None 最小'
     return (值 is not None,值 if 值 is not None else '')#None 在前
 
 def 请求指纹(请求):
-    """生成游标绑定的稳定请求身份。"""
+    '生成游标绑定的稳定请求身份'
     if 'sessionId' in 请求:#事件范围
         return json.dumps({
             'scope':'events','sessionId':请求['sessionId'],
@@ -249,7 +249,7 @@ def 请求指纹(请求):
     },ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#会话指纹
 
 def 规范化标记文本(标记文本):
-    """去掉 FTS 标记并折叠空白。"""
+    '去掉 FTS 标记并折叠空白'
     字符列表=[]#输出字符
     匹配起点=None#首个匹配位置
     for 字符 in 标记文本:#逐字符
@@ -270,7 +270,7 @@ def 规范化标记文本(标记文本):
     return {'text':文本,'matchStart':匹配起点 if 匹配起点 is not None else 0}#结果
 
 def 按字节截取(文本,起点字节,长度字节):
-    """按 UTF-8 字节窗口截取，切点落在字符边界。"""
+    '按 UTF-8 字节窗口截取，切点落在字符边界'
     已用=0#已用字节
     跳过=0#跳过字节
     输出=''#结果
@@ -286,7 +286,7 @@ def 按字节截取(文本,起点字节,长度字节):
     return 输出#片段
 
 def 生成摘要(标记文本,最大字节):
-    """生成不超过最大 UTF-8 字节的摘要。"""
+    '生成不超过最大 UTF-8 字节的摘要'
     清洗=规范化标记文本(标记文本)#去标记
     干净文本=清洗['text']#纯文本
     匹配起点=清洗['matchStart']#匹配起点字节
@@ -316,14 +316,14 @@ def 生成摘要(标记文本,最大字节):
     return 前缀+按字节截取(干净文本,起点,终点-起点)+后缀#拼摘要
 
 def 未知可用性(值):
-    """未知可用性值。"""
+    '未知可用性值'
     raise 会话查询错误(
         'session availability filter contains unknown value "'+str(值)+'"',
         'SESSION_QUERY_INVALID_FILTER',
     )#拒绝
 
 def 未知过滤器(过滤器):
-    """未知过滤器种类。"""
+    '未知过滤器种类'
     种类=过滤器['kind'] if 'kind' in 过滤器 else None#种类
     描述='"'+种类+'"' if isinstance(种类,str) else '(missing)'#描述
     raise 会话查询错误(

@@ -11,7 +11,7 @@ __all__=[#仅中文公开名
 }#空对话结束
 
 def 会话快照(会话标识):#静止会话快照
-    """一份完整静止的 Session Controller 快照。"""
+    '一份完整静止的 Session Controller 快照'
     return {#返回快照
         'sessionId':会话标识,#会话 id
         'pendingSubmissions':[],#待提交
@@ -30,15 +30,15 @@ def 会话快照(会话标识):#静止会话快照
     }#静止会话快照
 
 def 对话快照(覆盖=None):#对话快照
-    """目标无关的 Conversation 快照。"""
+    '目标无关的 Conversation 快照'
     return {**空对话快照,**(覆盖 or {})}#对话快照
 
 def 聊天快照(覆盖=None):#聊天快照
-    """Chat 目标快照。"""
+    'Chat 目标快照'
     return {**空聊天快照,**(覆盖 or {})}#聊天快照
 
 def 工作区快照():#空工作区快照
-    """无 Workspace 行的就绪 Workspace Controller 快照。"""
+    '无 Workspace 行的就绪 Workspace Controller 快照'
     return {#返回快照
         'items':[],#无行
         'archivedSessionIds':[],#无归档
@@ -48,5 +48,5 @@ def 工作区快照():#空工作区快照
     }#空工作区快照
 
 def 稳定器(函数):#默认同步稳定器
-    """同步执行变更函数。"""
+    '同步执行变更函数'
     return 函数()#直接执行

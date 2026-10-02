@@ -5,24 +5,24 @@ from .脚本 import Host脚本键#脚本键
 __all__=['Host运行时后端']#仅中文公开名
 
 class Host运行时后端:#Host Runtime后端
-    """在公共值背后保留原生 V8 语义的 Host Runtime 适配器。"""
+    '在公共值背后保留原生 V8 语义的 Host Runtime 适配器'
     def __init__(自身,目标):#构造
-        """观察上下文。"""
+        '观察上下文'
         自身.目标=目标#会话
         自身._默认上下文id=None#默认上下文id
         自身._取消订阅=目标.订阅(自身._观察上下文)#观察上下文
 
     def 启用(自身):#启用
-        """Runtime.enable。"""
+        'Runtime.enable'
         自身.目标.请求('Runtime.enable',{})#请求
 
     def 禁用(自身):#禁用
-        """Runtime.disable。"""
+        'Runtime.disable'
         自身.目标.请求('Runtime.disable',{})#请求
         自身._默认上下文id=None#清空默认
 
     def 求值(自身,请求):#求值
-        """Runtime.evaluate。"""
+        'Runtime.evaluate'
         原生=_原生上下文(请求['context'] if 'context' in 请求 else None,'contextId')#原生上下文或 None
         return 自身.完成(自身.目标.请求('Runtime.evaluate',{#完成
             'expression':请求['expression'],#表达式
@@ -43,7 +43,7 @@ class Host运行时后端:#Host Runtime后端
         }))#completion结束
 
     def 取属性(自身,请求):#取属性
-        """Runtime.getProperties。"""
+        'Runtime.getProperties'
         响应=自身.目标.请求('Runtime.getProperties',{#请求
             'objectId':请求['handle'],#对象id
             **可选原生字段('ownProperties',请求['ownProperties'] if 'ownProperties' in 请求 else None),#自有
@@ -54,7 +54,7 @@ class Host运行时后端:#Host Runtime后端
         return 自身._属性集(响应)#转换
 
     def 调函数(自身,请求):#调函数
-        """Runtime.callFunctionOn。"""
+        'Runtime.callFunctionOn'
         接收者=请求['receiver'] if 'receiver' in 请求 else None#接收者
         if 接收者 is not None:#有接收者
             上下文=None#不附上下文
@@ -80,7 +80,7 @@ class Host运行时后端:#Host Runtime后端
         return 自身.完成(自身.目标.请求('Runtime.callFunctionOn',参数))#完成
 
     def 等Promise(自身,请求):#等Promise
-        """Runtime.awaitPromise。"""
+        'Runtime.awaitPromise'
         return 自身.完成(自身.目标.请求('Runtime.awaitPromise',{#完成
             'promiseObjectId':请求['promise'],#Promise id
             **可选原生字段('returnByValue',请求['returnByValue'] if 'returnByValue' in 请求 else None),#按值
@@ -88,7 +88,7 @@ class Host运行时后端:#Host Runtime后端
         }))#completion结束
 
     def 全局词法名(自身,上下文=None):#全局词法名
-        """Runtime.globalLexicalScopeNames。"""
+        'Runtime.globalLexicalScopeNames'
         所选=上下文 if 上下文 is not None else _默认上下文(自身._默认上下文id)#所选上下文
         原生=_原生上下文(所选,'executionContextId')#原生上下文或 None
         响应=自身.目标.请求('Runtime.globalLexicalScopeNames',{#请求
@@ -100,26 +100,26 @@ class Host运行时后端:#Host Runtime后端
         return 名字#名字
 
     def 释放对象(自身,句柄):#释放对象
-        """Runtime.releaseObject。"""
+        'Runtime.releaseObject'
         自身.目标.请求('Runtime.releaseObject',{'objectId':句柄})#请求
 
     def 释放对象组(自身,组):#释放对象组
-        """Runtime.releaseObjectGroup。"""
+        'Runtime.releaseObjectGroup'
         自身.目标.请求('Runtime.releaseObjectGroup',{'objectGroup':组})#请求
 
     def 关闭(自身):#关闭
-        """拆除本后端拥有的原生上下文观察者。"""
+        '拆除本后端拥有的原生上下文观察者'
         自身._取消订阅()#取消订阅
 
     def 完成(自身,值):#完成
-        """转换原生 Runtime 完成。"""
+        '转换原生 Runtime 完成'
         输出={'result':自身.远程对象(值['result'] if 'result' in 值 else None)}#结果
         if 'exceptionDetails' in 值 and 值['exceptionDetails'] is not None:#异常
             输出['exceptionDetails']=自身.异常详情(值['exceptionDetails'])#含异常
         return 输出#返回
 
     def _属性集(自身,值):#属性集
-        """转换属性结果。"""
+        '转换属性结果'
         if 'result' not in 值 or not isinstance(值['result'],list):#无效
             raise 检查器错误('Host Runtime 返回了无效的属性')#无效
         输出={'properties':[自身._属性(项) for 项 in 值['result']]}#属性
@@ -132,7 +132,7 @@ class Host运行时后端:#Host Runtime后端
         return 输出#返回
 
     def _属性(自身,值):#属性描述符
-        """转换属性描述符。"""
+        '转换属性描述符'
         记录=要求原生记录(值,'Host Runtime property descriptor')#记录
         if not isinstance(记录.get('name'),str) or not isinstance(记录.get('configurable'),bool) or not isinstance(记录.get('enumerable'),bool):#无效
             raise 检查器错误('Host Runtime 返回了无效的属性描述符')#无效
@@ -148,7 +148,7 @@ class Host运行时后端:#Host Runtime后端
         return 描述符#返回
 
     def _内部属性(自身,值):#内部属性
-        """转换内部属性列表。"""
+        '转换内部属性列表'
         if not isinstance(值,list):#无效
             raise 检查器错误('Host Runtime 返回了无效的内部属性')#无效
         结果=[]#列表
@@ -163,7 +163,7 @@ class Host运行时后端:#Host Runtime后端
         return 结果#返回
 
     def _私有属性(自身,值):#私有属性
-        """转换私有属性列表。"""
+        '转换私有属性列表'
         if not isinstance(值,list):#无效
             raise 检查器错误('Host Runtime 返回了无效的私有属性')#无效
         结果=[]#列表
@@ -182,7 +182,7 @@ class Host运行时后端:#Host Runtime后端
         return 结果#返回
 
     def 异常详情(自身,值):#异常详情
-        """转换原生异常详情。"""
+        '转换原生异常详情'
         记录=要求原生记录(值,'Host Runtime exception details')#记录
         行号=记录['lineNumber'] if 'lineNumber' in 记录 else None#行号
         列号=记录['columnNumber'] if 'columnNumber' in 记录 else None#列号
@@ -196,7 +196,7 @@ class Host运行时后端:#Host Runtime后端
         return 详情#返回
 
     def 远程对象(自身,值):#远程对象
-        """转换原生 V8 RemoteObject。"""
+        '转换原生 V8 RemoteObject'
         记录=要求原生记录(值,'Host Runtime RemoteObject')#记录
         if not isinstance(记录.get('type'),str):#无效
             raise 检查器错误('Host Runtime 返回了无效的 RemoteObject')#无效
@@ -211,7 +211,7 @@ class Host运行时后端:#Host Runtime后端
         return 输出#返回
 
     def 栈跟踪(自身,值):#栈跟踪
-        """转换原生栈跟踪。"""
+        '转换原生栈跟踪'
         记录=要求原生记录(值,'Host Runtime stack trace')#记录
         if 'callFrames' not in 记录 or not isinstance(记录['callFrames'],list):#无效
             raise 检查器错误('Host Runtime 返回了无效的栈跟踪')#无效
@@ -234,7 +234,7 @@ class Host运行时后端:#Host Runtime后端
         return 栈#返回
 
     def _观察上下文(自身,消息):#观察上下文
-        """跟踪默认执行上下文。"""
+        '跟踪默认执行上下文'
         if 消息.get('method')=='Runtime.executionContextCreated':#创建
             参数=消息['params'] if 'params' in 消息 else None#参数
             上下文=参数['context'] if isinstance(参数,dict) and 'context' in 参数 else None#上下文
@@ -252,7 +252,7 @@ class Host运行时后端:#Host Runtime后端
             自身._默认上下文id=None#清空
 
     def _识别对象(自身,对象id):#识别对象
-        """可选语义识别。"""
+        '可选语义识别'
         try:#可选语义
             响应=自身.目标.请求('Runtime.callFunctionOn',{#调用识别函数
                 'objectId':对象id,#对象
@@ -267,17 +267,17 @@ class Host运行时后端:#Host Runtime后端
             return None#无
 
 def _默认上下文(上下文id):#默认上下文
-    """数字上下文。"""
+    '数字上下文'
     return None if 上下文id is None else {'kind':'numeric','id':上下文id}#数字上下文
 
 def _原生上下文(上下文,数字键):#原生上下文参数
-    """按种类构造上下文参数。"""
+    '按种类构造上下文参数'
     if 上下文 is None:#无
         return None#无
     return {数字键:上下文['id']} if 上下文.get('kind')=='numeric' else {'uniqueContextId':上下文['id']}#按种类
 
 def _转原生参数(值):#转原生参数
-    """按种类转换调用参数。"""
+    '按种类转换调用参数'
     种类=值['kind']#种类
     if 种类=='value':#值
         return {'value':值['value']}#值

@@ -1,4 +1,4 @@
-"""面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上。"""
+'面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上'
 import json,math#紧凑 JSON 渲染与入口整数判定
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 整数字段#配置字段
@@ -74,7 +74,7 @@ from .收尾 import 渲染收尾上下文#终态收尾指令
 安全整数上界=9007199254740991#JSON 入口安全整数上界
 
 def 是正安全整数(值):
-    """数据入口：正安全整数，排除布尔。"""
+    '数据入口：正安全整数，排除布尔'
     if isinstance(值,bool):#布尔不是数字
         return False#否
     if isinstance(值,int):#整数
@@ -84,7 +84,7 @@ def 是正安全整数(值):
     return False#其它
 
 def 策略指导(阻塞轮次):
-    """用部署选定的阻塞阈值渲染策略指导。"""
+    '用部署选定的阻塞阈值渲染策略指导'
     return (#系统提示段落
         'Use goal tools for one long-running completion objective in the current session. '#只用于长任务
         +'create_goal may infer goal intent from a direct human request in any language; do not '#可从任意语言推断
@@ -98,22 +98,24 @@ def 策略指导(阻塞轮次):
     )#指导结束
 
 def 解析配置(配置值):
-    """解析阻塞阈值；非法则加载时失败。配置值是 dict。"""
+    """解析阻塞阈值；非法则加载时失败。
+    配置值是 dict
+    """
     阻塞轮次=配置值['blockedAfterConsecutiveRounds'] if 'blockedAfterConsecutiveRounds' in 配置值 else 3#读配置
     if not 是正安全整数(阻塞轮次):#非正安全整数
         raise TypeError('blockedAfterConsecutiveRounds must be a positive safe integer')#加载时失败
     return {'blockedAfterConsecutiveRounds':int(阻塞轮次)}#已解析
 
 def 有文本(值):
-    """可选文本是否有意义，而不是严格模式的空填充。"""
+    '可选文本是否有意义，而不是严格模式的空填充'
     return 值 is not None and 值!=''#缺席或空串都不算
 
 def 有轮次上限(值):
-    """可选轮次上限是否有意义，而不是严格模式的零填充。"""
+    '可选轮次上限是否有意义，而不是严格模式的零填充'
     return 值 is not None and 值!=0#缺席或 0 都不算
 
 def 目标引用(标识,修订):
-    """从模型参数构造精确比较交换引用。"""
+    '从模型参数构造精确比较交换引用'
     if len(标识)==0 or 标识!=标识.strip():#id 必须非空且已规范化
         raise 装备错误(#参数非法
             'goal_id must be non-empty and revision must be a positive safe integer',#人类可读
@@ -127,7 +129,9 @@ def 目标引用(标识,修订):
     return {'id':目标标识(标识),'revision':int(修订)}#打成品牌
 
 def 目标工具值(目标):
-    """稳定紧凑的模型结果；武装是观察值，不是回放状态。目标是 dict 快照或 None。"""
+    """稳定紧凑的模型结果；武装是观察值，不是回放状态。
+    目标是 dict 快照或 None
+    """
     if 目标 is None:#没有当前目标
         return {'goal':None}#空
     快照={#快照出站
@@ -150,7 +154,7 @@ def 目标工具值(目标):
     }#有目标结束
 
 def 渲染目标值(_参数,值):
-    """把结构化结果渲染成紧凑 JSON 文本。"""
+    '把结构化结果渲染成紧凑 JSON 文本'
     return [{'type':'text','text':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)}]#紧凑 JSON
 
 目标输出={#三个目标控件共用的规范输出声明
@@ -159,14 +163,14 @@ def 渲染目标值(_参数,值):
 }#输出结束
 
 def 呈现(标题,种类,原文=None):
-    """目标工具共用的、只依赖 args 的挂起呈现。"""
+    '目标工具共用的、只依赖 args 的挂起呈现'
     视图={'card':'generic','title':标题,'kind':种类}#通用卡片
     if 原文 is not None:#有原文
         视图['rawInput']=原文#可选原文
     return 视图#卡片结束
 
 def 应用(上下文,配置值):
-    """注册三个目标控件与共用策略段落。"""
+    '注册三个目标控件与共用策略段落'
     已解析=解析配置(配置值)#解析阈值
     阻塞阈值=已解析['blockedAfterConsecutiveRounds']#正数阈值
     上下文.systemPrompt.section({#策略段落
@@ -175,11 +179,11 @@ def 应用(上下文,配置值):
         'text':策略指导(阻塞阈值),#带阈值的指导
     })#结束段落
     def 执行读取(_参数,执行元数据):
-        """认证调用方后返回当前视图或 null。"""
+        '认证调用方后返回当前视图或 null'
         执行=目标工具执行(上下文,执行元数据)#认证调用方
         return 目标工具值(上下文.goals.get(执行['agent']))#当前视图或 null
     def 呈现读取():
-        """调用时读卡片。"""
+        '调用时读卡片'
         return 呈现('Read current goal','read')#读卡片
     上下文.tools.register(定义工具({#get_goal
         'name':'get_goal',#工具名
@@ -190,7 +194,9 @@ def 应用(上下文,配置值):
         'presentCall':呈现读取,#读卡片
     }))#结束 get_goal
     def 执行创建(参数,执行元数据):
-        """必须是根智能体人类回合；走域创建后返回视图。参数是 dict。"""
+        """必须是根智能体人类回合；走域创建后返回视图。
+        参数是 dict
+        """
         执行=目标工具执行(上下文,执行元数据)#认证调用方
         要求直接人类(上下文,执行)#必须是根智能体人类回合
         请求={'objective':参数['objective']}#陈述
@@ -199,7 +205,9 @@ def 应用(上下文,配置值):
         目标=上下文.goals.create(执行['agent'],请求)#走域创建
         return 目标工具值(目标)#创建后视图
     def 呈现创建(参数):
-        """调用时创建卡片。参数是 dict。"""
+        """调用时创建卡片。
+        参数是 dict
+        """
         return 呈现('Create goal','other',参数['objective'] if 'objective' in 参数 else None)#用陈述作原文
     上下文.tools.register(定义工具({#create_goal
         'name':'create_goal',#工具名
@@ -220,7 +228,9 @@ def 应用(上下文,配置值):
         'presentCall':呈现创建,#用陈述作原文
     }))#结束 create_goal
     def 执行更新(参数,执行元数据):
-        """按 action 分发 edit/pause/resume/complete/blocked。参数与执行元数据是 dict。"""
+        """按 action 分发 edit/pause/resume/complete/blocked。
+        参数与执行元数据是 dict
+        """
         执行=目标工具执行(上下文,执行元数据)#认证调用方
         引用=目标引用(参数['goal_id'],参数['revision'])#比较交换引用
         替换={}#edit 替换字段
@@ -298,7 +308,9 @@ def 应用(上下文,配置值):
             }))#结束 deferContext
         return 目标工具值(目标)#终态视图
     def 呈现更新(参数):
-        """调用时变更卡片。参数是 dict。"""
+        """调用时变更卡片。
+        参数是 dict
+        """
         动作=参数['action'] if 'action' in 参数 else ''#动词
         if 动作=='blocked':#阻塞用 Mark
             标题='Mark goal'#Mark goal

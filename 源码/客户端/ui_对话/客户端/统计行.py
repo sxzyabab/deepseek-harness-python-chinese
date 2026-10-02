@@ -4,11 +4,11 @@ from .回合指标 import 助手步骤读数#步骤读数
 __all__=['派生统计','格式化令牌','格式化时长','缓存命中百分','计费输入令牌','上下文占用','统计行']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 派生统计(节点列表):
-    """无 sessionStats 投影时用。"""
+    '无 sessionStats 投影时用'
     回合集=set()#回合
     步数=0#步
     模型毫秒=0#LLM
@@ -47,9 +47,9 @@ def 派生统计(节点列表):
     }#结束
 
 def 格式化令牌(数):
-    """517 / 12.2K / 1.2M。"""
+    '517 / 12.2K / 1.2M'
     def 缩(值):
-        """百以上整。"""
+        '百以上整'
         return str(round(值)) if 值>=100 else str(round(值*10)/10)#缩
     if 数<1000:#原样
         return str(数)#数
@@ -58,7 +58,7 @@ def 格式化令牌(数):
     return f'{缩(数/1000000)}M'#M
 
 def 格式化时长(毫秒):
-    """45.2s / 2m42s。"""
+    '45.2s / 2m42s'
     秒=毫秒/1000#秒
     if 秒<60:#亚分
         return f'{round(秒*10)/10}s'#秒
@@ -66,14 +66,14 @@ def 格式化时长(毫秒):
     return f'{整//60}m{整%60}s'#分秒
 
 def 计费输入令牌(用量):
-    """uncached+cacheRead+cacheWrite。"""
+    'uncached+cacheRead+cacheWrite'
     未=用量['uncachedInputTokens'] if 'uncachedInputTokens' in 用量 and 用量['uncachedInputTokens'] is not None else 0#未缓存
     读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 and 用量['cacheReadTokens'] is not None else 0#读
     写=用量['cacheWriteTokens'] if 'cacheWriteTokens' in 用量 and 用量['cacheWriteTokens'] is not None else 0#写
     return 未+读+写#和
 
 def 缓存命中百分(用量):
-    """无输入则 None。"""
+    '无输入则 None'
     分母=计费输入令牌(用量)#分母
     if 分母==0:#无
         return None#无
@@ -81,7 +81,7 @@ def 缓存命中百分(用量):
     return round(读/分母*100)#百分
 
 def 上下文占用(压力):
-    """projectedTokens 优先；缺容量返回 None。"""
+    'projectedTokens 优先；缺容量返回 None'
     if 压力 is None:#无
         return None#无
     已用=压力['projectedTokens'] if 'projectedTokens' in 压力 else None#投影
@@ -93,7 +93,7 @@ def 上下文占用(压力):
     return {'percent':min(100,round(已用/窗*100)),'usedTokens':已用,'contextWindow':窗}#占用
 
 def 取遗留节点(会话):
-    """chat.legacy.nodes。"""
+    'chat.legacy.nodes'
     聊天=会话['chat'] if 会话 is not None and 'chat' in 会话 else None#聊天
     遗留=聊天['legacy'] if 聊天 is not None and 'legacy' in 聊天 else None#遗留
     if 遗留 is None or 'nodes' not in 遗留 or 遗留['nodes'] is None:#无
@@ -101,18 +101,18 @@ def 取遗留节点(会话):
     return 遗留['nodes']#节点
 
 class 统计行:
-    """投影优先，窗口折叠回退。"""
+    '投影优先，窗口折叠回退'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """无组返回 None。"""
+        '无组返回 None'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话
@@ -158,7 +158,7 @@ class 统计行:
         return {'className':'root','groups':组列表,'line':' | '.join(组列表)}#行
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

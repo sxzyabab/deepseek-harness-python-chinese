@@ -1,4 +1,4 @@
-"""一个已打开的 `per-record` 布局 JSON 单元。"""
+'一个已打开的 `per-record` 布局 JSON 单元'
 import json,os,re#JSON、路径、正则
 from ..存储.错误 import 存储错误#存储错误
 from .格式 import 单元状态,序列化记录,解析记录#格式
@@ -8,12 +8,12 @@ __all__=['打开按记录单元','按记录Json单元']#仅中文公开名
 安全键正则=re.compile(r'^[a-zA-Z0-9_-]+\Z',re.ASCII)#路径安全键
 
 def _断言安全键(单元名,键):#拒绝不安全键
-    """拒绝不安全键。"""
+    '拒绝不安全键'
     if 安全键正则.fullmatch(键) is None:#不安全
         raise 存储错误('malformed-medium',"unit '"+单元名+"': per-record key '"+键+"' is not path-safe (must match "+安全键正则.pattern+")")#拒绝
 
 def _读记录(路径,版本):#读一条记录文档
-    """读一条记录文档；读失败则 None。"""
+    '读一条记录文档；读失败则 None'
     try:#读文件
         with open(路径,'r',encoding='utf-8') as 文件:#打开
             return 解析记录(文件.read(),版本)#解析
@@ -21,7 +21,7 @@ def _读记录(路径,版本):#读一条记录文档
         return None#外文档
 
 def _加载表记录(记录映射,版本,目录):#加载一张表的记录
-    """加载一张表的记录；返回是否见到文档。"""
+    '加载一张表的记录；返回是否见到文档'
     有文档=False#目录里是否有 .json
     try:#列目录
         条目=os.listdir(目录)#列文件
@@ -40,7 +40,7 @@ def _加载表记录(记录映射,版本,目录):#加载一张表的记录
     return 有文档#是否见到文档路径
 
 def _引导遗留单元(描述符,目录,状态):#从 legacy 整文件引导
-    """从 legacy 整文件引导到 per-record 树。"""
+    '从 legacy 整文件引导到 per-record 树'
     遗留路径=os.path.join(os.path.dirname(目录),描述符.name+'.json')#legacy 文件
     try:#读 legacy
         with open(遗留路径,'r',encoding='utf-8') as 文件:#打开
@@ -72,7 +72,7 @@ def _引导遗留单元(描述符,目录,状态):#从 legacy 整文件引导
             目标[键]=值#记入状态
 
 def _加载按记录状态(描述符,目录):#从目录树重建状态
-    """从目录树重建状态。"""
+    '从目录树重建状态'
     状态=单元状态(描述符.version,None,{表:{} for 表 in 描述符.tables})#空树
     有新文档=False#是否见到新树文档
     try:#列单元目录
@@ -95,23 +95,23 @@ def _加载按记录状态(描述符,目录):#从目录树重建状态
     return 状态#权威状态
 
 def _静默删(路径):#删文件忽略缺失
-    """删文件忽略缺失。"""
+    '删文件忽略缺失'
     try:#删
         os.remove(路径)#删除
     except FileNotFoundError:#已缺失
         pass#幂等
 
 class 按记录Json单元:#per-record 布局；目录即状态
-    """按记录目录树单元。"""
+    '按记录目录树单元'
     def __init__(自身,描述符,目录,关闭回调):#构造
-        """记下描述符、目录与关闭回调。"""
+        '记下描述符、目录与关闭回调'
         自身._描述符=描述符#描述符
         自身._目录=目录#单元目录
         自身._关闭回调=关闭回调#释放槽
         自身._已关=False#关闭标志
 
     def loadAll(自身):#重读树
-        """重读树。"""
+        '重读树'
         自身._断言打开()#已关拒绝
         状态=_加载按记录状态(自身._描述符,自身._目录)#重建
         表={}#投影
@@ -120,21 +120,21 @@ class 按记录Json单元:#per-record 布局；目录即状态
         return {'tables':表,'global':状态.全局值}#快照
 
     def putRecord(自身,表,键,值):#写一条记录
-        """写一条记录。"""
+        '写一条记录'
         自身._断言打开()#已关拒绝
         _断言安全键(自身._描述符.name,键)#键安全
         路径=os.path.join(自身._目录,表,键+'.json')#记录路径
         自身._写文档(路径,值)#耐久写
 
     def deleteRecord(自身,表,键):#删一条记录
-        """删一条记录。"""
+        '删一条记录'
         自身._断言打开()#已关拒绝
         _断言安全键(自身._描述符.name,键)#键安全
         路径=os.path.join(自身._目录,表,键+'.json')#记录路径
         _静默删(路径)#删文件
 
     def setGlobal(自身,值):#写全局
-        """写全局。"""
+        '写全局'
         自身._断言打开()#已关拒绝
         if not 自身._描述符.hasGlobal:#未声明
             raise 存储错误('malformed-medium',"unit '"+自身._描述符.name+"' does not declare a global slot")#调用方错误
@@ -142,23 +142,23 @@ class 按记录Json单元:#per-record 布局；目录即状态
         自身._写文档(路径,值)#耐久写
 
     def close(自身):#关闭
-        """关闭单元；重复关闭为空操作。"""
+        '关闭单元；重复关闭为空操作'
         if 自身._已关:#重复
             return
         自身._已关=True#标记
         自身._关闭回调()#释放槽
 
     def _断言打开(自身):#打开守卫
-        """已关则拒绝。"""
+        '已关则拒绝'
         if 自身._已关:#已关
             raise 存储错误('closed',"unit '"+自身._描述符.name+"' is closed")#拒绝
 
     def _写文档(自身,路径,值):#写一条文档
-        """写一条文档。"""
+        '写一条文档'
         os.makedirs(os.path.dirname(路径),mode=0o700,exist_ok=True)#建父目录
         原子写(路径,序列化记录(自身._描述符.version,值))#原子写
 
 def 打开按记录单元(描述符,根目录,关闭回调):#打开 per-record 单元
-    """打开 `<root>/<name>/`；打开时不碰介质。"""
+    '打开 `<root>/<name>/`；打开时不碰介质'
     目录=os.path.join(根目录,描述符.name)#单元目录
     return 按记录Json单元(描述符,目录,关闭回调)#无状态单元

@@ -7,11 +7,11 @@ from .工具行 import 工具行#摘要行外壳
 __all__=['待办行','待办工具视图','是否计划条目','汇总']#仅中文公开名
 
 def 是否计划条目(值):#形检查一条计划项
-    """来自未校验模型 JSON 的列表项。"""
+    '来自未校验模型 JSON 的列表项'
     return isinstance(值,dict)#普通对象
 
 def 汇总(文本,翻译):#从 args JSON 派生摘要两半
-    """非法字段时 None，行回退通用摘要。"""
+    '非法字段时 None，行回退通用摘要'
     try:#解析
         解析=json.loads(文本)#JSON
     except (TypeError,ValueError,json.JSONDecodeError):#非 JSON
@@ -28,19 +28,19 @@ def 汇总(文本,翻译):#从 args JSON 派生摘要两半
     return {'text':文本半,'extra':摘要['activeExtra']}#两半
 
 class 待办行:#计划更新行
-    """整行切换调用的 Input/Output；非 ok 态保留共享行点语义。"""
+    '整行切换调用的 Input/Output；非 ok 态保留共享行点语义'
 
     def __init__(自身,属性):#记下 props
-        """记下合成 props；内嵌工具行。"""
+        '记下合成 props；内嵌工具行'
         自身.属性=属性#合成
         自身.行=工具行()#外壳
 
     def 更新(自身,属性):#刷新
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """派生摘要/态后交给工具行。"""
+        '派生摘要/态后交给工具行'
         属性=自身.属性#props
         工具名=属性['toolName'] if 'toolName' in 属性 and 属性['toolName'] else 'todo_write'#工具名
         块=属性['block']#工具块
@@ -73,7 +73,7 @@ class 待办行:#计划更新行
         return 自身.行(行属性)#渲染外壳
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 组件调用。"""
+        '对齐 React 组件调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
@@ -84,9 +84,9 @@ class 待办行:#计划更新行
 }#插件描述
 
 def 应用待办工具视图(上下文):#登记待办行
-    """把待办行写入 Tool 拥有的按键视图槽。"""
+    '把待办行写入 Tool 拥有的按键视图槽'
     def 登记():#等槽出现再登记
-        """登记 todo_write 键。"""
+        '登记 todo_write 键'
         return 上下文.slots.register({#按键条目
             'name':'tool.call.toolview','key':'todo_write','locale':会话命名空间,#选项
         },待办行)#组件

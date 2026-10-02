@@ -5,11 +5,11 @@ __all__=['槽位错误','槽位登记表','解析槽标签','空条目']#仅中�
 空条目=tuple()#空条目的稳定引用
 
 class 槽位错误(Exception):
-    """槽位登记表登记与声明失败。"""
+    '槽位登记表登记与声明失败'
     pass#无额外字段
 
 def 解析槽标签(标签):
-    """字面量或零参 thunk。"""
+    '字面量或零参 thunk'
     if 标签 is None:#未声明
         return None#缺席
     if isinstance(标签,str):#字面量臂
@@ -17,31 +17,31 @@ def 解析槽标签(标签):
     return 标签()#thunk 臂
 
 def 是存储工厂(存储):
-    """store 为可调用则视为独占工厂。"""
+    'store 为可调用则视为独占工厂'
     return callable(存储)#工厂
 
 def 条目优先级(条目):
-    """options.priority；缺键为 0。0 是合法遮蔽秩。"""
+    'options.priority；缺键为 0。0 是合法遮蔽秩'
     形=条目['options']#形状
     return 形['priority'] if 'priority' in 形 else 0#缺键才 0
 
 def 条目顺序(条目):
-    """options.order；缺键为 0。0 是合法显示序。"""
+    'options.order；缺键为 0。0 是合法显示序'
     形=条目['options']#形状
     return 形['order'] if 'order' in 形 else 0#缺键才 0
 
 def 列表排序键(甲):
-    """list：priority 升序，同分 order。"""
+    'list：priority 升序，同分 order'
     return (条目优先级(甲),条目顺序(甲))#键
 
 def 优先级排序键(甲):
-    """非 list：只按 priority 升序。"""
+    '非 list：只按 priority 升序'
     return 条目优先级(甲)#键
 
 class 槽位登记表:#纯槽位登记表
-    """'root' 槽是唯一先验声明，构造时播种（single/root）。"""
+    '\'root\' 槽是唯一先验声明，构造时播种（single/root）'
     def __init__(自身):
-        """构造时空无人观察，不 markDirty。"""
+        '构造时空无人观察，不 markDirty'
         自身.记录表={}#按键的登记记录；创建后永不删除
         自身.工厂表={}#按名的工厂记录；创建后永不删除
         自身.变更监听=set()#每次变更同步通知
@@ -57,7 +57,7 @@ class 槽位登记表:#纯槽位登记表
         根['declarationEpoch']=1#首次声明世代
 
     def 取工厂记录(自身,名):
-        """第一次碰到时创建空白工厂记录。"""
+        '第一次碰到时创建空白工厂记录'
         if 名 in 自身.工厂表:#已有
             return 自身.工厂表[名]#返回
         记={'definition':None,'version':0,'listeners':set()}#空白工厂记录
@@ -65,7 +65,7 @@ class 槽位登记表:#纯槽位登记表
         return 记#返回
 
     def 登记工厂(自身,选项,组件):
-        """登记一条可复用工厂定义；已有定义或子槽冲突则抛错。返回拆除器。"""
+        '登记一条可复用工厂定义；已有定义或子槽冲突则抛错。返回拆除器'
         名=选项['name']#工厂名
         记=自身.取工厂记录(名)#工厂记录
         if 记['definition'] is not None:#已有定义
@@ -118,7 +118,7 @@ class 槽位登记表:#纯槽位登记表
             for _,子记 in 本批:#声明寿命
                 自身.通知声明(子记)#同步
         def 拆除():
-            """幂等；仅当本定义仍挂着时拆除。"""
+            '幂等；仅当本定义仍挂着时拆除'
             if 记['definition'] is not 定义:#已换或已拆
                 return#空操作
             记['definition']=None#清定义
@@ -134,44 +134,44 @@ class 槽位登记表:#纯槽位登记表
         return 拆除#拆除器
 
     def 取工厂(自身,名):
-        """读取已登记工厂定义；缺席为 None。"""
+        '读取已登记工厂定义；缺席为 None'
         if 名 not in 自身.工厂表:#无
             return None#缺席
         return 自身.工厂表[名]['definition']#定义
 
     def 工厂版本(自身,名):
-        """工厂定义单调版本；未碰过为 0。"""
+        '工厂定义单调版本；未碰过为 0'
         if 名 not in 自身.工厂表:#无
             return 0#0
         return 自身.工厂表[名]['version']#版本
 
     def 订阅工厂(自身,名,回调):
-        """订阅工厂定义寿命；微任务批处理通知。"""
+        '订阅工厂定义寿命；微任务批处理通知'
         记=自身.取工厂记录(名)#取得或创建
         记['listeners'].add(回调)#加入
         def 退订():
-            """从集合拿掉。"""
+            '从集合拿掉'
             记['listeners'].discard(回调)#删
         return 退订#退订器
 
     def 工厂仍存活(自身,定义):
-        """保留的工厂定义是否仍是当前登记。身份用 is。"""
+        '保留的工厂定义是否仍是当前登记。身份用 is'
         名=定义['name']#工厂名
         if 名 not in 自身.工厂表:#无
             return False#死
         return 自身.工厂表[名]['definition'] is 定义#同对象
 
     def 标工厂脏(自身,记):
-        """抬工厂版本并微任务通知订阅者。"""
+        '抬工厂版本并微任务通知订阅者'
         记['version']=记['version']+1#抬版本
         def 微任务通知():
-            """通知工厂订阅者。"""
+            '通知工厂订阅者'
             for 回调 in list(记['listeners']):#快照
                 回调()#调用
         threading.Timer(0,微任务通知).start()#近似 queueMicrotask
 
     def 取记录(自身,键):
-        """第一次碰到时创建空白记录。"""
+        '第一次碰到时创建空白记录'
         if 键 in 自身.记录表:#已有
             return 自身.记录表[键]#返回
         记={#空白记录
@@ -188,7 +188,7 @@ class 槽位登记表:#纯槽位登记表
         return 记#返回
 
     def 登记(自身,选项,组件):
-        """返回拆除器；未声明/冲突/基数约束失败则抛错。选项为 dict。"""
+        '返回拆除器；未声明/冲突/基数约束失败则抛错。选项为 dict'
         名=选项['name']#目标槽键
         记=自身.记录表[名] if 名 in 自身.记录表 else None#目标记录
         if 记 is None or 记['spec'] is None:#未声明
@@ -196,7 +196,7 @@ class 槽位登记表:#纯槽位登记表
         规格=记['spec']#运行时规格
         优先级=选项['priority'] if 'priority' in 选项 else 0#?? 0；0 合法
         def 占用提示(占用者):
-            """点名优先级与占用者。占用者为 dict。"""
+            '点名优先级与占用者。占用者为 dict'
             登记方=占用者['registrant'] if 'registrant' in 占用者 else None#登记方
             尾='' if 登记方 is None else ' (registered by '+str(登记方)+')'#尾
             return 'at priority '+str(优先级)+尾+' — register at a different priority to shadow it (lowest renders)'#提示
@@ -295,7 +295,7 @@ class 槽位登记表:#纯槽位登记表
             for _,子记 in 本批:#声明寿命
                 自身.通知声明(子记)#同步
         def 拆除():
-            """幂等；级联后过期拆除器空操作。身份用 is。"""
+            '幂等；级联后过期拆除器空操作。身份用 is'
             当前=list(记['entries'])#当前台账
             仍在=False#是否仍在
             for 甲 in 当前:#扫
@@ -310,7 +310,7 @@ class 槽位登记表:#纯槽位登记表
         return 拆除#拆除器
 
     def 仍存活(自身,条目):
-        """渲染机械的过期授权探测。身份用 is。"""
+        '渲染机械的过期授权探测。身份用 is'
         for 记 in 自身.记录表.values():#扫
             for 甲 in 记['entries']:#台账
                 if 甲 is 条目:#同对象
@@ -318,13 +318,13 @@ class 槽位登记表:#纯槽位登记表
         return False#死
 
     def 取条目列表(自身,键):
-        """变更之间引用稳定。"""
+        '变更之间引用稳定'
         if 键 not in 自身.记录表:#无
             return 空条目#空
         return 自身.记录表[键]['entries']#数组引用
 
     def 取槽位条目(自身,键):
-        """投影每格遮蔽胜者。chain 不遮蔽；每次调用新元组。"""
+        '投影每格遮蔽胜者。chain 不遮蔽；每次调用新元组'
         if 键 not in 自身.记录表:#无
             return 空条目#空
         记=自身.记录表[键]#记录
@@ -352,19 +352,19 @@ class 槽位登记表:#纯槽位登记表
         return tuple(胜者)#元组
 
     def 规格(自身,键):
-        """未声明为 None。"""
+        '未声明为 None'
         if 键 not in 自身.记录表:#无
             return None#无
         return 自身.记录表[键]['spec']#规格
 
     def 动态规格(自身,键):
-        """渲染器动态键逃生口。"""
+        '渲染器动态键逃生口'
         return 自身.规格(键)#同规格
 
     def 快照(自身,根=None):
-        """导出声明拓扑为活合成节点；不含组件或可执行钩。"""
+        '导出声明拓扑为活合成节点；不含组件或可执行钩'
         def 建槽(名,已见):
-            """环或未声明则 None。"""
+            '环或未声明则 None'
             if 名 not in 自身.记录表:#无
                 return None#无
             记=自身.记录表[名]#记录
@@ -406,7 +406,7 @@ class 槽位登记表:#纯槽位登记表
                 节点['declaredBy']=记['declaredBy']#带上
             return 节点#返回
         def 建工厂(名):
-            """无定义则 None。"""
+            '无定义则 None'
             if 名 not in 自身.工厂表:#无
                 return None#无
             定义=自身.工厂表[名]['definition']#定义
@@ -447,45 +447,45 @@ class 槽位登记表:#纯槽位登记表
         return 结果#返回
 
     def 声明世代(自身,键):
-        """首次声明前为 0。"""
+        '首次声明前为 0'
         if 键 not in 自身.记录表:#无
             return 0#0
         return 自身.记录表[键]['declarationEpoch']#世代
 
     def 订阅(自身,键,回调):
-        """微任务批处理；允许声明前订阅。"""
+        '微任务批处理；允许声明前订阅'
         记=自身.取记录(键)#取得或创建
         记['listeners'].add(回调)#加入
         def 退订():
-            """从集合拿掉。"""
+            '从集合拿掉'
             记['listeners'].discard(回调)#删
         return 退订#退订器
 
     def 订阅声明(自身,键,回调):
-        """同步通知。"""
+        '同步通知'
         记=自身.取记录(键)#取得或创建
         记['declarationListeners'].add(回调)#加入
         def 退订():
-            """从集合拿掉。"""
+            '从集合拿掉'
             记['declarationListeners'].discard(回调)#删
         return 退订#退订器
 
     def 版本(自身,键):
-        """未碰过的键为 0。"""
+        '未碰过的键为 0'
         if 键 not in 自身.记录表:#无
             return 0#0
         return 自身.记录表[键]['version']#版本
 
     def 变更时(自身,回调):
-        """同步触发、不批处理。"""
+        '同步触发、不批处理'
         自身.变更监听.add(回调)#加入
         def 退订():
-            """从集合拿掉。"""
+            '从集合拿掉'
             自身.变更监听.discard(回调)#删
         return 退订#退订器
 
     def 报告条目错误(自身,键,条目,错误,信息):
-        """abdicate 时一次性退位；重复退位空操作。信息为 dict。"""
+        'abdicate 时一次性退位；重复退位空操作。信息为 dict'
         退位=信息['abdicate'] is True if 'abdicate' in 信息 else False#是否退位
         if 退位 is True:#遮蔽基数
             标识=条目['_id']#身份
@@ -498,20 +498,20 @@ class 槽位登记表:#纯槽位登记表
             回调(键,条目,错误,{'abdicated':退位})#同步
 
     def 报告工厂错误(自身,名,登记,错误):
-        """工厂出现崩溃：经条目监督通道通知，不退位共享定义。"""
+        '工厂出现崩溃：经条目监督通道通知，不退位共享定义'
         for 回调 in list(自身.条目错误监听):#快照后通知
             回调('factory:'+str(名),登记,错误,{'abdicated':False})#同步
 
     def 条目错误时(自身,回调):
-        """每次报告同步触发；登记可为条目或工厂定义。"""
+        '每次报告同步触发；登记可为条目或工厂定义'
         自身.条目错误监听.add(回调)#加入
         def 退订():
-            """从集合拿掉。"""
+            '从集合拿掉'
             自身.条目错误监听.discard(回调)#删
         return 退订#退订器
 
     def 拆除条目(自身,条目):
-        """拆除存储挂载并塌缩子槽。条目为 dict。"""
+        '拆除存储挂载并塌缩子槽。条目为 dict'
         存储=条目['store'] if 'store' in 条目 else None#存储
         if 存储 is not None and 是存储工厂(存储) is False:#共享句柄
             钉=自身.句柄作用域[id(存储)] if id(存储) in 自身.句柄作用域 else None#已钉
@@ -522,7 +522,7 @@ class 槽位登记表:#纯槽位登记表
         自身.拆除子槽(条目['children'] if 'children' in 条目 else None)#塌缩子槽
 
     def 拆除子槽(自身,子表):
-        """塌缩子槽声明树；空 dict 在 JS 为真仍塌缩。"""
+        '塌缩子槽声明树；空 dict 在 JS 为真仍塌缩'
         if 子表 is None:#无子
             return#完
         for 子键 in 子表.keys():#每个子槽
@@ -541,7 +541,7 @@ class 槽位登记表:#纯槽位登记表
                 自身.拆除条目(死)#拆除
 
     def 标脏(自身,键,记):
-        """版本同步抬升。"""
+        '版本同步抬升'
         记['version']=记['version']+1#抬版本
         for 回调 in list(自身.变更监听):#同步通知
             回调(键)#调用
@@ -551,17 +551,17 @@ class 槽位登记表:#纯槽位登记表
             return#幂等
         自身.已排冲刷=True#记下
         def 微任务冲刷():
-            """冲刷 subscribe 监听。"""
+            '冲刷 subscribe 监听'
             自身.冲刷()#冲刷
         threading.Timer(0,微任务冲刷).start()#近似 queueMicrotask
 
     def 通知声明(自身,记):
-        """快照后调用。"""
+        '快照后调用'
         for 回调 in list(记['declarationListeners']):#快照
             回调()#调用
 
     def 冲刷(自身):
-        """先复位，好让监听器内部的变更重新排程。"""
+        '先复位，好让监听器内部的变更重新排程'
         自身.已排冲刷=False#复位
         脏=list(自身.脏集)#快照
         自身.脏集.clear()#清空

@@ -7,7 +7,7 @@ __all__=['终端关闭请求']#仅中文公开名
 本地存储=None#无浏览器存储
 
 def 是否请求(值):#校验关闭意图
-    """sessionId/id/title。"""
+    'sessionId/id/title'
     if not isinstance(值,dict):#非对象
         return False#否
     会话=值.get('sessionId')#会话
@@ -22,9 +22,9 @@ def 是否请求(值):#校验关闭意图
     return True#是
 
 class 终端关闭请求:#刷新后仍待 Host 确认的清理
-    """每个请求独立存储键，其它窗口不能覆盖。"""
+    '每个请求独立存储键，其它窗口不能覆盖'
     def __init__(自身):#恢复未完成清理
-        """存储不可用则只留内存表。"""
+        '存储不可用则只留内存表'
         自身._请求={}#id → 请求
         if 本地存储 is None:#无浏览器
             return#跳
@@ -36,11 +36,11 @@ class 终端关闭请求:#刷新后仍待 Host 确认的清理
             print('Terminal cleanup recovery failed:',错误)#英文日志
 
     def 未完成(自身):#仍待确认
-        """本实例拥有的未完成请求。"""
+        '本实例拥有的未完成请求'
         return list(自身._请求.values())#列表
 
     def 保存(自身,请求):#摘标签前先记下
-        """跨刷新保留清理意图。"""
+        '跨刷新保留清理意图'
         自身._请求[请求['id']]=请求#内存
         if 本地存储 is None:#无浏览器
             return#跳
@@ -50,7 +50,7 @@ class 终端关闭请求:#刷新后仍待 Host 确认的清理
             print('Terminal cleanup persistence failed:',错误)#英文日志
 
     def 移除(自身,标识):#Host 已确认
-        """内存与存储一起忘掉。"""
+        '内存与存储一起忘掉'
         自身._请求.pop(标识,None)#内存
         if 本地存储 is None:#无浏览器
             return#跳
@@ -60,7 +60,7 @@ class 终端关闭请求:#刷新后仍待 Host 确认的清理
             print('Terminal cleanup persistence failed:',错误)#英文日志
 
     def _载入(自身,键):#一条存储
-        """非法记录丢掉。"""
+        '非法记录丢掉'
         try:#解析
             if 键 not in 本地存储:#空
                 return#跳

@@ -4,16 +4,16 @@ from .客户端 import 装备客户端,是否普通对象,SDK协议错误#底层
 __all__=['深求装备','装备会话','运行选项','归一化输入','最终回复']#仅中文公开名
 
 def 通知参数(通知):
-    """取出通知 params 对象；缺席或非对象则为空 dict。"""
+    '取出通知 params 对象；缺席或非对象则为空 dict'
     原始=通知['params'] if 'params' in 通知 else None#载荷
     if isinstance(原始,dict):#普通对象
         return 原始#原样
     return {}#非对象则空对象
 
 class 深求装备:
-    """可复用的 SDK：在运行时子进程里跑 DeepSeek Harness 智能体回合。"""
+    '可复用的 SDK：在运行时子进程里跑 DeepSeek Harness 智能体回合'
     def __init__(自身,选项):
-        """运行时启动规格加上会话路由（cwd/provider/model）。选项为 dict。"""
+        '运行时启动规格加上会话路由（cwd/provider/model）。选项为 dict'
         自身.启动=选项['launch'] if 'launch' in 选项 else None#保存启动规格以便换新客户端
         自身.客户端实例=装备客户端(自身.启动)#先建一个底层客户端
         启动cwd=自身.启动['cwd'] if isinstance(自身.启动,dict) and 'cwd' in 自身.启动 else None#启动 cwd
@@ -34,11 +34,11 @@ class 深求装备:
 
     @property
     def 客户端(自身):
-        """握手失败会回收其运行时并换上新实例。"""
+        '握手失败会回收其运行时并换上新实例'
         return 自身.客户端实例#可能已在失败握手后被替换
 
     def 启动运行时(自身):
-        """启动子进程并只做一次 initialize 握手。"""
+        '启动子进程并只做一次 initialize 握手'
         if 自身.已初始化 is not None:#已记忆
             return 自身.已初始化#共用
         try:
@@ -57,31 +57,31 @@ class 深求装备:
         return 自身.已初始化#后续调用共用
 
     def 会话(自身,会话号=None):
-        """打开一个会话句柄（无线上流量）。"""
+        '打开一个会话句柄（无线上流量）'
         号=会话号 if 会话号 is not None else 'session-'+uuid.uuid4().hex#无 id 则造
         return 装备会话(自身,号)#会话句柄
 
     def 运行(自身,输入,选项=None):
-        """在一个新的（或具名）会话上跑一条提示。选项为 dict。"""
+        '在一个新的（或具名）会话上跑一条提示。选项为 dict'
         if 选项 is None:#缺省
             选项={}#空
         会话号=选项['sessionId'] if 'sessionId' in 选项 else None#可选会话
         return 自身.会话(会话号).运行(输入,选项)#有 sessionId 则复用
 
     def 关闭(自身):
-        """已关闭的 harness 不再重试失败的握手。"""
+        '已关闭的 harness 不再重试失败的握手'
         自身.已关闭=True#之后 start 失败不再换新客户端
         自身.客户端实例.关闭()#拆除当前底层客户端
 
 class 装备会话:
-    """一个 SDK 会话：稳定 id 加上所拥有的活动区间。"""
+    '一个 SDK 会话：稳定 id 加上所拥有的活动区间'
     def __init__(自身,装备,标识):
-        """记下所属与 id。"""
+        '记下所属与 id'
         自身.装备=装备#所属 harness
         自身.id=标识#本句柄所跑的线会话 id
 
     def 运行(自身,输入,选项=None):
-        """排队一条提示，然后观察整个会话直到它下次空闲。选项与通知为 dict。"""
+        '排队一条提示，然后观察整个会话直到它下次空闲。选项与通知为 dict'
         if 选项 is None:#缺省
             选项={}#空
         自身.装备.启动运行时()#确保已握手
@@ -91,7 +91,7 @@ class 装备会话:
         通知列表=[]#本树全部通知
         订阅=客户端.订阅会话树(自身.id)#订阅本会话及其后代
         def 收集(通知):
-            """计入本回合。"""
+            '计入本回合'
             参数=通知参数(通知)#载荷
             方法=通知['method'] if 'method' in 通知 else None#方法名
             观察=选项['onNotification'] if 'onNotification' in 选项 else None#可选观察者
@@ -138,13 +138,13 @@ class 装备会话:
 运行选项=('sessionId','onNotification')#run 的可选参数字段
 
 def 归一化输入(输入):
-    """字符串变成一块文本；内容块原样通过。"""
+    '字符串变成一块文本；内容块原样通过'
     if isinstance(输入,str):#字符串
         return [{'type':'text','text':输入}]#包成 text 块
     return 输入#原样
 
 def 校验会话事件(值):
-    """在返回带类型结果之前，校验线 session.event 信封里的字段。"""
+    '在返回带类型结果之前，校验线 session.event 信封里的字段'
     if (not 是否普通对象(值)) or 'type' not in 值 or not isinstance(值['type'],str):#必须是带 type 字符串的对象
         raise SDK协议错误('session.event 没有事件信封：'+str(值))#缺信封
     if 值['type']=='assistant/message':#助手消息需要校验 content
@@ -159,7 +159,7 @@ def 校验会话事件(值):
     return 值#通过校验
 
 def 是否收件箱回执(值,消息号):
-    """原始会话事件是否为 messageId 的持久入队回执。"""
+    '原始会话事件是否为 messageId 的持久入队回执'
     if (not 是否普通对象(值)) or 'type' not in 值 or 值['type']!='agent/inbox/spliced':#类型不对
         return False#不是
     if 'data' not in 值 or not 是否普通对象(值['data']):#data 不对
@@ -173,7 +173,7 @@ def 是否收件箱回执(值,消息号):
     return False#没有
 
 def 最终回复(事件列表):
-    """抽出末条助手消息拼接后的文本；没有则为空串。"""
+    '抽出末条助手消息拼接后的文本；没有则为空串'
     for 索引 in range(len(事件列表)-1,-1,-1):#从后往前找
         事件=事件列表[索引]#当前事件
         if (not 是否普通对象(事件)) or 'type' not in 事件 or 事件['type']!='assistant/message':#跳过非助手消息

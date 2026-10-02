@@ -1,7 +1,4 @@
-"""SQLite 存储后端：一个数据库文件托管所有被路由单元。
-
-注册为后端 `sqlite`。
-"""
+'SQLite 存储后端：一个数据库文件托管所有被路由单元'
 from ..存储.错误 import 存储错误#存储错误
 from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
 from ..存储 import 存储后端服务键#生命周期键
@@ -18,19 +15,19 @@ from ...依赖.schemastery import 字符串字段,字典字段#配置
 配置=配置模式#中文配置
 
 class 键值面实现(键值面):#SQLite KV 面
-    """SQLite KV 面。"""
+    'SQLite KV 面'
     def __init__(自身,后端):#绑定后端
-        """绑定后端。"""
+        '绑定后端'
         自身._后端=后端#宿主
 
     def open(自身,描述符):#打开单元
-        """打开单元。"""
+        '打开单元'
         return 自身._后端._打开单元(描述符)#委托
 
 class Sqlite存储后端(存储后端):#SQLite 后端
-    """拥有一个 sqlite3 连接与打开单元表。"""
+    '拥有一个 sqlite3 连接与打开单元表'
     def __init__(自身,配置值):#构造
-        """构造并同步打开库。"""
+        '构造并同步打开库'
         super().__init__()#初始化
         自身.kv=键值面实现(自身)#KV 面
         日志=配置值['journalMode'] if 'journalMode' in 配置值 else 'wal'#journal 模式
@@ -39,7 +36,7 @@ class Sqlite存储后端(存储后端):#SQLite 后端
         自身._已关=False#关闭标志
 
     def _打开单元(自身,描述符):#打开并物化单元
-        """打开并物化单元。"""
+        '打开并物化单元'
         if 自身._已关:#正在或已经关闭
             raise 存储错误('closed','sqlite storage backend is closed')#拒绝
         if 单元名正则.fullmatch(描述符.name) is None:#单元名非法
@@ -64,14 +61,14 @@ class Sqlite存储后端(存储后端):#SQLite 后端
             )#建表
         自身._连接.commit()#提交 DDL
         def 释放():#关闭回调
-            """释放单元名。"""
+            '释放单元名'
             自身._单元.pop(描述符.name,None)#释放名
         单元=SqliteKv单元(自身._连接,描述符,释放)#构造单元
         自身._单元[描述符.name]=单元#登记
         return 单元#返回
 
     def close(自身):#关闭后端
-        """关闭全部单元并关库。"""
+        '关闭全部单元并关库'
         if 自身._已关:#已关
             return
         自身._已关=True#标记
@@ -80,13 +77,13 @@ class Sqlite存储后端(存储后端):#SQLite 后端
         自身._连接.close()#关库
 
 def 应用(上下文,配置值):#注册 sqlite 后端
-    """在存储枢纽上注册 `sqlite` 后端。"""
+    '在存储枢纽上注册 `sqlite` 后端'
     后端=Sqlite存储后端(配置值)#构造后端
     def 副作用():#注册 effect
-        """挂到枢纽，拆除时注销并关后端。"""
+        '挂到枢纽，拆除时注销并关后端'
         注销=上下文.storage.backend.register('sqlite',后端)#挂到枢纽
         def 拆除():#插件拆除
-            """先注销再关后端。"""
+            '先注销再关后端'
             注销()#先注销
             后端.close()#再关后端
         return 拆除#disposer

@@ -1,9 +1,9 @@
 __all__=['运行时脚本']#仅中文公开名
 
 class 运行时脚本:#运行时脚本
-    """界域源目录中可见的一个脚本。"""
+    '界域源目录中可见的一个脚本'
     def __init__(自身,scriptKey,url,hash,startLine,startColumn,endLine,endColumn,buildId=None,sourceMapUrl=None,executionContextId=None,isModule=None,length=None):#构造
-        """保存脚本元数据字段。"""
+        '保存脚本元数据字段'
         自身.scriptKey=scriptKey#脚本键
         自身.url=url#源URL
         自身.hash=hash#内容哈希

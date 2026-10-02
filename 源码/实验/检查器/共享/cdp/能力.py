@@ -14,9 +14,9 @@ __all__=[#仅中文公开名
 调试器操作=('breakpoint','pause','resume','step','call-frame')#调试器操作名
 
 class 检查器领域能力:#界域能力
-    """一个被检查界域的完整能力声明。"""
+    '一个被检查界域的完整能力声明'
     def __init__(自身,运行时,控制台,源,调试器):#构造
-        """保存四类操作列表。"""
+        '保存四类操作列表'
         自身.runtime=tuple(运行时)#Runtime操作
         自身.console=tuple(控制台)#Console操作
         自身.sources=tuple(源)#源操作

@@ -37,18 +37,18 @@ UUID模式=re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
     +r'(?=\. Use read with offset/limit|[\s)"]|\\+"|$)',
 )#快照结束
 def 是否打包行(记录):#是否打包行
-    """是否打包 fixture 行。"""
+    '是否打包 fixture 行'
     return isinstance(记录.get('type'),str) and 记录['type'] in 打包块行类型#是否打包行
 
 def 省略信封(记录):#省略信封字段
-    """删除仅持久化信封字段。"""
+    '删除仅持久化信封字段'
     记录.pop('seq',None)#删序号
     记录.pop('time',None)#删时间
     记录.pop('seq0',None)#删起始序号
     记录.pop('time0',None)#删起始时间
 
 def 归一化反馈时钟(记录):#服务拥有的反馈时钟
-    """只动服务时钟，不动用户撰写载荷。"""
+    '只动服务时钟，不动用户撰写载荷'
     if 记录.get('type')!='feedback/message-put' or not isinstance(记录.get('data'),dict):#非反馈
         return#放过
     条目=记录['data'].get('item')#条目
@@ -60,12 +60,12 @@ def 归一化反馈时钟(记录):#服务拥有的反馈时钟
         条目['updatedAt']=0#归零
 
 def 规范化嵌入路径(值):#规范化嵌入路径
-    """仅在生成的带路径文本标记内转换分隔符。"""
+    '仅在生成的带路径文本标记内转换分隔符'
     值=路径标签模式.sub(lambda 匹配:匹配.group(1)+匹配.group(2).replace('\\','/')+匹配.group(3),值)#path 标签
     return 附加说明路径模式.sub(lambda 匹配:匹配.group(1)+匹配.group(2).replace('\\','/'),值)#附加说明
 
 def 提取快照溢出路径(内容):#提取溢出路径
-    """从会话日志提取每个快照模式溢出路径。"""
+    '从会话日志提取每个快照模式溢出路径'
     结果={}#结果表
     for 匹配 in 快照溢出路径模式.finditer(内容):#逐匹配
         名=匹配.group(1)#文件名
@@ -75,14 +75,14 @@ def 提取快照溢出路径(内容):#提取溢出路径
     return 结果#返回表
 
 def 工作目录拼写(上下文):#cwd 拼写列表
-    """返回生成 cwd 的每一种已知拼写，最具体优先。"""
+    '返回生成 cwd 的每一种已知拼写，最具体优先'
     基础=list({上下文['cwd'],*(上下文.get('cwdAliases') or [])})#去重基础
     基础=[拼 for 拼 in 基础 if 拼]#去空
     mac别名=[f'/private{拼}' for 拼 in 基础 if 拼.startswith('/') and not 拼.startswith('/private/')]#mac 前缀
     return sorted({*基础,*mac别名},key=len,reverse=True)#长优先
 
 def 是工作目录匹配(值,起点,长度):#是否 cwd 匹配边界
-    """嵌入的 cwd 匹配是否在路径/文本边界起止。"""
+    '嵌入的 cwd 匹配是否在路径/文本边界起止'
     前=值[起点-1] if 起点>0 else None#前字符
     后=值[起点+长度] if 起点+长度<len(值) else None#后字符
     后后=值[起点+长度+1] if 起点+长度+1<len(值) else None#后后字符
@@ -91,7 +91,7 @@ def 是工作目录匹配(值,起点,长度):#是否 cwd 匹配边界
     return 起合法 and 止合法#双边合法
 
 def 替换工作目录拼写(值,拼写,替换):#替换一种 cwd 拼写
-    """替换一种 cwd 拼写，而不匹配仅共享其前缀的更长路径段。"""
+    '替换一种 cwd 拼写，而不匹配仅共享其前缀的更长路径段'
     游标=0#游标
     输出=''#输出
     while 游标<len(值):#扫描
@@ -108,14 +108,14 @@ def 替换工作目录拼写(值,拼写,替换):#替换一种 cwd 拼写
     return 输出#返回
 
 def 替换工作目录(值,上下文,替换):#替换全部 cwd 拼写
-    """用稳定令牌替换每一种已知 cwd 拼写。"""
+    '用稳定令牌替换每一种已知 cwd 拼写'
     输出=值#可变输出
     for 拼写 in 工作目录拼写(上下文):#逐拼写
         输出=替换工作目录拼写(输出,拼写,替换)#替换
     return 输出#返回
 
 def 擦除字符串(值,上下文,路径模式,身份模式):#擦除字符串身份
-    """在字符串中用稳定令牌替换 cwd、会话 id 与散落 UUID。"""
+    '在字符串中用稳定令牌替换 cwd、会话 id 与散落 UUID'
     输出=替换工作目录(值,上下文,工作目录令牌)#先换 cwd
     输出=输出.replace(f'/private{工作目录令牌}',工作目录令牌)#折叠 private 前缀
     if 路径模式=='canonical':#规范路径
@@ -133,7 +133,7 @@ def 擦除字符串(值,上下文,路径模式,身份模式):#擦除字符串身
     return 输出#返回
 
 def 擦除值(值,上下文,路径模式,身份模式,键=None):#递归擦除
-    """递归擦除已解析 JSON 值。"""
+    '递归擦除已解析 JSON 值'
     if isinstance(值,str):#字符串
         if 身份模式=='legacy' and 键=='messageId':#消息 id
             return 消息标识令牌#令牌
@@ -149,11 +149,11 @@ def 擦除值(值,上下文,路径模式,身份模式,键=None):#递归擦除
     return 值#原样
 
 def 转义正则(值):#转义正则
-    """转义字面路径段。"""
+    '转义字面路径段'
     return re.escape(值)#转义
 
 def 令牌化夹具字符串(值,上下文,基名):#令牌化字符串
-    """替换末段为生成 cwd basename 的任意绝对拼写。"""
+    '替换末段为生成 cwd basename 的任意绝对拼写'
     精确=替换工作目录(值,上下文,工作目录令牌)#精确 cwd
     绝对=re.compile(#绝对 cwd
         rf'(?:[A-Za-z]:)?[\\/](?:[^\\/\s<>"]+[\\/])*{转义正则(基名)}'
@@ -162,7 +162,7 @@ def 令牌化夹具字符串(值,上下文,基名):#令牌化字符串
     return 绝对.sub(工作目录令牌,精确).replace(f'/private{工作目录令牌}',工作目录令牌)#折叠
 
 def 令牌化夹具值(值,上下文,基名):#递归令牌化
-    """递归替换生成 cwd 拼写。"""
+    '递归替换生成 cwd 拼写'
     if isinstance(值,str):#字符串
         return 令牌化夹具字符串(值,上下文,基名)#令牌化
     if isinstance(值,list):#数组
@@ -172,13 +172,13 @@ def 令牌化夹具值(值,上下文,基名):#递归令牌化
     return 值#原样
 
 def 令牌化会话夹具工作目录(原始日志):#令牌化 fixture cwd
-    """把生成工作区存为 {{cwd}} 同时保留每一个其他会话值。"""
+    '把生成工作区存为 {{cwd}} 同时保留每一个其他会话值'
     行列表=原始日志.split('\n')#行
     首行=next((行 for 行 in 行列表 if 行.strip()!=''),None)#首非空
     头=json.loads(首行) if 首行 is not None else {}#头
     工作目录=头['cwd'] if isinstance(头.get('cwd'),str) else ''#cwd
     基名=工作目录.replace('\\','/').rstrip('/').split('/')[-1] if 工作目录 else ''#basename
-        if 基名=='':#无 basename
+    if 基名=='':#无 basename
         raise Exception('acp-snapshot: cannot tokenize a cwd without a basename')#无 basename
     上下文={'sessionIds':[],'cwd':工作目录}#上下文
     return '\n'.join(#重写
@@ -187,7 +187,7 @@ def 令牌化会话夹具工作目录(原始日志):#令牌化 fixture cwd
     )#接合
 
 def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdout
-    """把原始 stdout transcript 归一化为稳定期望输出。"""
+    '把原始 stdout transcript 归一化为稳定期望输出'
     if 选项 is None:#缺省
         选项={}#空
     路径模式=选项.get('cwdPathMode') or 'canonical'#路径模式
@@ -195,7 +195,7 @@ def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdo
     行列表=[行 for 行 in 原始标准出.split('\n') if 行.strip()!='']#非空行
     标识序={}#id 序号
     def 稳定标识(标识):#稳定 JSON-RPC id
-        """按首次出现映射到序号。"""
+        '按首次出现映射到序号'
         键=json.dumps(标识,ensure_ascii=False)#键
         if 键 not in 标识序:#新
             标识序[键]=len(标识序)+1#分配
@@ -209,7 +209,7 @@ def 归一化标准输出(原始标准出,上下文,选项=None):#归一化 stdo
     return '\n'.join(json.dumps(帧,ensure_ascii=False,separators=(',',':')) for 帧 in 帧列表)+'\n'#NDJSON
 
 def 解码序号范围(值):#解码序号范围
-    """展开 sourceEventSeqs；非法形态原样返回以兼容归一化擦除。"""
+    '展开 sourceEventSeqs；非法形态原样返回以兼容归一化擦除'
     if not isinstance(值,list):#非数组
         return 值#原样
     try:#严格解码
@@ -218,7 +218,7 @@ def 解码序号范围(值):#解码序号范围
         return 值#原样
 
 def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话日志
-    """将会话 JSONL 日志归一化为稳定期望输出。"""
+    '将会话 JSONL 日志归一化为稳定期望输出'
     if 选项 is None:#缺省
         选项={}#空
     路径模式=选项.get('cwdPathMode') or 'canonical'#路径模式
@@ -268,7 +268,7 @@ def 归一化会话日志(原始日志,上下文,选项=None):#归一化会话�
     return '\n'.join(json.dumps(记录,ensure_ascii=False,separators=(',',':')) for 记录 in 记录列表)+'\n'#JSONL
 
 def 重打包会话快照(原始日志):#投影正文：只省略信封
-    """紧凑流嵌在事件数据里，持久化冲刷边界不能改行布局。"""
+    '紧凑流嵌在事件数据里，持久化冲刷边界不能改行布局'
     行列表=[行 for 行 in 原始日志.split('\n') if 行.strip()!='']#非空行
     头=行列表.pop(0)#头行
     正文=[]#正文行
@@ -279,7 +279,7 @@ def 重打包会话快照(原始日志):#投影正文：只省略信封
     return '\n'.join([头,*正文,''])#接合
 
 def 擦除模型请求内容(原始日志,选项):#擦除所选模型请求载荷
-    """变换所选模型请求载荷。"""
+    '变换所选模型请求载荷'
     行列表=原始日志.split('\n')#行
     输出=[]#输出
     for 行 in 行列表:#逐行
@@ -308,23 +308,22 @@ def 擦除模型请求内容(原始日志,选项):#擦除所选模型请求载�
     return '\n'.join(输出)#接合
 
 def 擦除系统提示词(原始日志):#擦除系统提示词
-    """用 {{system}} 替换每个 system/message 的渲染提示词文本。"""
+    '用 {{system}} 替换每个 system/message 的渲染提示词文本'
     return 擦除模型请求内容(原始日志,{'system':True})#擦系统
 
 def 擦除工具模式(原始日志):#擦除工具 schema
-    """用 {{tools}} 替换完整请求头快照中的工具 schema。"""
+    '用 {{tools}} 替换完整请求头快照中的工具 schema'
     return 擦除模型请求内容(原始日志,{'tools':True})#擦工具
 
 def 擦除模型请求主体(原始日志):#擦除模型请求主体
-    """用稳定令牌替换臃肿模型请求内容：system/message 提示词与请求头 tools。"""
+    '用稳定令牌替换臃肿模型请求内容：system/message 提示词与请求头 tools'
     return 擦除模型请求内容(原始日志,{'system':True,'tools':True})#全擦
 
 def 擦除请求头(原始日志):#兼容旧名
-    """历史别名；等价于 {@link 擦除模型请求主体}。"""
     return 擦除模型请求主体(原始日志)#全擦
 
 def 擦除会话快照(原始日志):#擦除会话快照
-    """投影持久化会话日志同时标记化提示词文本与 schema 主体。"""
+    '投影持久化会话日志同时标记化提示词文本与 schema 主体'
     已擦=擦除模型请求主体(原始日志)#先擦主体
     记录索引=0#索引
     行列表=[]#行
@@ -346,11 +345,11 @@ def 擦除会话快照(原始日志):#擦除会话快照
     return '\n'.join(行列表)#接合
 
 def 归一化会话快照(原始日志,上下文,选项=None):#归一化会话快照
-    """为已提交 fixture 归一化并投影持久化会话 JSONL。"""
+    '为已提交 fixture 归一化并投影持久化会话 JSONL'
     return 重打包会话快照(擦除会话快照(归一化会话日志(原始日志,上下文,选项)))#组合
 
 def 是否有会话格式版本(原始日志):#是否有格式版本
-    """fixture 是否声明已发布 Session 格式，因而参与迁移烧入。"""
+    'fixture 是否声明已发布 Session 格式，因而参与迁移烧入'
     首行=next((行 for 行 in 原始日志.splitlines() if 行.strip()!=''),None)#首非空行
     if 首行 is None:#缺头
         raise Exception('session snapshot must start with a session header')#缺头
@@ -360,7 +359,7 @@ def 是否有会话格式版本(原始日志):#是否有格式版本
     return 'version' in 头#是否有 version
 
 def 归一化会话格式元数据(原始日志):#归一化格式元数据
-    """仅为期望输出比较省略官方迁移后的制品头世代。"""
+    '仅为期望输出比较省略官方迁移后的制品头世代'
     行列表=[]#输出
     for 行 in 原始日志.split('\n'):#逐行
         if 行.strip()=='':#空行
@@ -375,7 +374,7 @@ def 归一化会话格式元数据(原始日志):#归一化格式元数据
     return '\n'.join(行列表)#拼回
 
 def 归一化会话快照列表(原始日志列表,上下文,选项=None):#归一化多份快照
-    """用共享类型化身份脱敏归一化一个场景的主与子日志。"""
+    '用共享类型化身份脱敏归一化一个场景的主与子日志'
     if 选项 is None:#缺省
         选项={}#空
     当前=[]#当前格式日志

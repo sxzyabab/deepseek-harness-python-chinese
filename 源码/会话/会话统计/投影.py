@@ -1,9 +1,9 @@
-"""`sessionStats` 投影单元。"""
+'`sessionStats` 投影单元'
 import math#有限数
 from ...模型后端.llm.助手流 import 助手流首令牌时间#嵌入流首 token
 
 def 用量输出令牌(用量):
-    """从 assistant/message usage 读 outputTokens。"""
+    '从 assistant/message usage 读 outputTokens'
     if not isinstance(用量,dict):#非记录
         return None#缺席
     if 'outputTokens' not in 用量:#无字段
@@ -16,11 +16,11 @@ def 用量输出令牌(用量):
     return None#无效
 
 def 统计初始(头):
-    """折叠初始状态。"""
+    '折叠初始状态'
     return {'turns':0,'steps':0,'llmMs':0,'toolMs':0,'ttftMs':0,'ttftSteps':0,'decodeMs':0,'decodeTokens':0,'lastTurn':None,'openStep':None,'pendingCalls':{}}#初始
 
 def 统计应用(状态,事件):
-    """纯折叠 sessionStats。"""
+    '纯折叠 sessionStats'
     类型=事件['type']#类型
     数据=事件['data'] if 'data' in 事件 else {}#数据
     时刻=事件['time'] if 'time' in 事件 else 0#时间
@@ -74,7 +74,7 @@ def 统计应用(状态,事件):
     return 状态#其它事件
 
 def 统计视图(状态):
-    """公开视图是 totals 子集。"""
+    '公开视图是 totals 子集'
     return {'turns':状态['turns'],'steps':状态['steps'],'llmMs':状态['llmMs'],'toolMs':状态['toolMs'],'ttftMs':状态['ttftMs'],'ttftSteps':状态['ttftSteps'],'decodeMs':状态['decodeMs'],'decodeTokens':状态['decodeTokens']}#视图
 
 会话统计投影定义={

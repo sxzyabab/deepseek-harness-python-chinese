@@ -9,7 +9,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 净化链接(网址):#协议白名单
-    """http/https/mailto 放行；相对与其余方案空串。"""
+    'http/https/mailto 放行；相对与其余方案空串'
     try:
         方案=解析URL(网址).scheme.lower()
     except (TypeError,ValueError,AttributeError):
@@ -19,7 +19,7 @@ def 净化链接(网址):#协议白名单
     return ''#拒
 
 def 远端图片地址(网址):#图片仅绝对 HTTP(S)
-    """非绝对或非 http(s) 则 None。"""
+    '非绝对或非 http(s) 则 None'
     try:
         方案=解析URL(网址).scheme.lower()
     except (TypeError,ValueError,AttributeError):
@@ -27,17 +27,17 @@ def 远端图片地址(网址):#图片仅绝对 HTTP(S)
     return 网址 if 方案 in ('http','https') else None#放行或拒
 
 def 归一化URI(网址):
-    """空/空白原样；其余 strip。"""
+    '空/空白原样；其余 strip'
     if 网址 is None:#缺
         return ''#空
     return str(网址).strip()#去空白
 
 def 建引用目标():#空引用表
-    """definitions / footnotes 两张映射。"""
+    'definitions / footnotes 两张映射'
     return {'definitions':{},'footnotes':{}}#空表
 
 def 收集引用目标(节点列表,目标):#深度优先收定义
-    """同标识首个定义胜出（CommonMark）。节点为 mdast dict。"""
+    '同标识首个定义胜出（CommonMark）。节点为 mdast dict'
     序列=节点列表 if 节点列表 is not None else []#缺则空
     for 节点 in 序列:#逐节点
         种=节点['type'] if 'type' in 节点 else None#类型
@@ -56,7 +56,7 @@ def 收集引用目标(节点列表,目标):#深度优先收定义
             收集引用目标(子,目标)#递归
 
 def 渲染块列表(块列表,上下文):#顶层块→视图列表
-    """空渲染丢弃，对齐原管线子列表。块为 {node,key} dict。"""
+    '空渲染丢弃，对齐原管线子列表。块为 {node,key} dict'
     出=[]#结果
     序列=块列表 if 块列表 is not None else []#缺则空
     for 块 in 序列:#逐块
@@ -68,7 +68,7 @@ def 渲染块列表(块列表,上下文):#顶层块→视图列表
     return 出#列表
 
 def 包块子节点(元素列表,边):#块间插入换行文本
-    """edges 时两端也插换行（hast loose wrap）。"""
+    'edges 时两端也插换行（hast loose wrap）'
     序列=元素列表 if 元素列表 is not None else []#缺则空
     包=[]#结果
     for 元 in 序列:#逐元素
@@ -80,12 +80,12 @@ def 包块子节点(元素列表,边):#块间插入换行文本
     return 包#包好
 
 def 渲染子节点(节点列表,上下文):#子节点列表
-    """带下标作 key。"""
+    '带下标作 key'
     序列=节点列表 if 节点列表 is not None else []#缺则空
     return [渲染节点(节点,下标,上下文) for 下标,节点 in enumerate(序列)]#映射
 
 def 渲染节点(节点,键,上下文):#单节点→视图
-    """merge-extensible 未映射类型返回 None。节点为 mdast dict。"""
+    'merge-extensible 未映射类型返回 None。节点为 mdast dict'
     if 节点 is None:#无
         return None#丢
     种=节点['type'] if 'type' in 节点 else None#类型
@@ -146,7 +146,7 @@ def 渲染节点(节点,键,上下文):#单节点→视图
     return None#未映射
 
 def 渲染行内码(节点,键,上下文):#行内 code
-    """换行变空格；整段 HTTP(S) 可链；文件提及按钮。"""
+    '换行变空格；整段 HTTP(S) 可链；文件提及按钮'
     原=节点['value'] if 'value' in 节点 and 节点['value'] is not None else ''#正文
     值=re.sub(r'\r?\n|\r',' ',原,count=0)#换行→空格；全部替换
     链=行内代码Http地址(值)#绝对 URL
@@ -170,7 +170,7 @@ def 渲染行内码(节点,键,上下文):#行内 code
     return {'type':'element','tag':'code','key':键,'children':[值]}#惰性码
 
 def 渲染代码(节点,键,上下文):#围栏代码
-    """空围栏保留 pre/code；math 定稿走 TeX；其余 CodeBlock。"""
+    '空围栏保留 pre/code；math 定稿走 TeX；其余 CodeBlock'
     语言=节点['lang'] if 'lang' in 节点 else None#lang
     值=节点['value'] if 'value' in 节点 and 节点['value'] is not None else ''#正文
     if 值=='':#空围栏
@@ -192,21 +192,21 @@ def 渲染代码(节点,键,上下文):#围栏代码
     return 视#代码块
 
 def 列表松散(列表):#列表是否 loose
-    """自身或任一项 spread。"""
+    '自身或任一项 spread'
     if 'spread' in 列表 and 列表['spread'] is True:#自身
         return True#松
     子=列表['children'] if 'children' in 列表 and 列表['children'] is not None else []#项
     return any(列表项松散(项) for 项 in 子)#任一项
 
 def 列表项松散(项):#单项是否 loose
-    """spread 或子多于一。"""
+    'spread 或子多于一'
     if 'spread' in 项 and 项['spread'] is not None:#显式
         return 项['spread'] is True#值
     子=项['children'] if 'children' in 项 and 项['children'] is not None else []#子
     return len(子)>1#多子
 
 def 渲染列表(节点,键,上下文):#ul/ol
-    """任务列表加 contains-task-list。"""
+    '任务列表加 contains-task-list'
     松=列表松散(节点)#松散
     属性={}#props
     起=节点['start'] if 'start' in 节点 else None#start
@@ -221,7 +221,7 @@ def 渲染列表(节点,键,上下文):#ul/ol
     return {'type':'element','tag':标签,'key':键,'props':属性,'children':项视}#列表
 
 def 渲染块条目(块列表,上下文):#区分段与其它块
-    """供列表项/脚注体拆段。"""
+    '供列表项/脚注体拆段'
     条=[]#条目
     序列=块列表 if 块列表 is not None else []#缺则空
     for 下标,块 in enumerate(序列):#逐块
@@ -235,7 +235,7 @@ def 渲染块条目(块列表,上下文):#区分段与其它块
     return 条#条目
 
 def 渲染列表项(项,松散,键,上下文):#li
-    """紧段解包；任务项前缀 checkbox。"""
+    '紧段解包；任务项前缀 checkbox'
     子=项['children'] if 'children' in 项 else None#子
     条=渲染块条目(子,上下文)#条目
     勾选=项['checked'] if 'checked' in 项 else None#checked
@@ -265,7 +265,7 @@ def 渲染列表项(项,松散,键,上下文):#li
     return {'type':'element','tag':'li','key':键,'props':{'className':类} if 类 is not None else {},'children':片}#li
 
 def 渲染表(节点,键,上下文):#表滚动壳
-    """首行 thead，其余 tbody。"""
+    '首行 thead，其余 tbody'
     对齐=节点['align'] if 'align' in 节点 else None#对齐列
     行列表=节点['children'] if 'children' in 节点 and 节点['children'] is not None else []#行
     头=行列表[0] if len(行列表)>0 else None#头
@@ -278,7 +278,7 @@ def 渲染表(节点,键,上下文):#表滚动壳
     return {'type':'element','tag':'div','key':键,'props':{'className':'tableScroll'},'children':[{'type':'element','tag':'table','children':子}]}#壳
 
 def 渲染表行(行,格标,对齐,键,上下文):#tr
-    """有对齐时按列数补/截。"""
+    '有对齐时按列数补/截'
     格列表=行['children'] if 'children' in 行 and 行['children'] is not None else []#单元格
     长=len(格列表) if 对齐 is None else len(对齐)#列数
     胞=[]#cells
@@ -291,7 +291,7 @@ def 渲染表行(行,格标,对齐,键,上下文):#tr
     return {'type':'element','tag':'tr','key':键,'children':胞}#tr
 
 def 渲染安全链(网址,子节点列表,键):#白名单锚
-    """不合法则解包为片。"""
+    '不合法则解包为片'
     安=净化链接(网址)#净化
     if 安=='':#拒
         return {'type':'fragment','key':键,'children':子节点列表}#解包
@@ -303,11 +303,11 @@ def 渲染安全链(网址,子节点列表,键):#白名单锚
     return {'type':'element','tag':'a','key':键,'props':属性,'children':子节点列表}#a
 
 def 渲染锚(网址,子节点列表,键):#markdown 目的地锚
-    """先归一化再白名单。"""
+    '先归一化再白名单'
     return 渲染安全链(归一化URI(网址),子节点列表,键)#锚
 
 def 行内代码Http地址(值):#整段是否绝对 HTTP(S)
-    """有首尾空白则否。"""
+    '有首尾空白则否'
     if 值.strip()!=值:#有空白
         return None#否
     try:
@@ -317,7 +317,7 @@ def 行内代码Http地址(值):#整段是否绝对 HTTP(S)
     return 值 if 方案 in ('http','https') else None#放行
 
 def 渲染图(网址,替代,键):#img 或 alt span
-    """非远端则只画 alt。"""
+    '非远端则只画 alt'
     源=远端图片地址(净化链接(归一化URI(网址)))#源
     if 源 is None:#不可用
         return {'type':'element','tag':'span','key':键,'props':{'className':'imageAlt'},'children':[替代]}#alt
@@ -327,7 +327,7 @@ def 渲染图(网址,替代,键):#img 或 alt span
     }}#img
 
 def 引用后缀(节点):#缺定义时回退括号文
-    """collapsed/full/shortcut。"""
+    'collapsed/full/shortcut'
     形=节点['referenceType'] if 'referenceType' in 节点 else None#形
     if 形=='collapsed':#空方
         return '][]'#后缀
@@ -339,7 +339,7 @@ def 引用后缀(节点):#缺定义时回退括号文
     return ']'#短
 
 def 渲染链接引用(节点,键,上下文):#linkReference
-    """无定义回退括号源文。"""
+    '无定义回退括号源文'
     原=节点['identifier'] if 'identifier' in 节点 and 节点['identifier'] is not None else ''#标识
     定义=上下文['targets']['definitions'][str(原).upper()] if str(原).upper() in 上下文['targets']['definitions'] else None#定义
     子=节点['children'] if 'children' in 节点 else None#子
@@ -349,7 +349,7 @@ def 渲染链接引用(节点,键,上下文):#linkReference
     return 渲染锚(址,渲染子节点(子,dict(上下文,inLink=True)),键)#锚
 
 def 渲染图引用(节点,键,上下文):#imageReference
-    """无定义回退 markdown 源文。"""
+    '无定义回退 markdown 源文'
     原=节点['identifier'] if 'identifier' in 节点 and 节点['identifier'] is not None else ''#标识
     定义=上下文['targets']['definitions'][str(原).upper()] if str(原).upper() in 上下文['targets']['definitions'] else None#定义
     替=节点['alt'] if 'alt' in 节点 and 节点['alt'] is not None else ''#alt
@@ -359,7 +359,7 @@ def 渲染图引用(节点,键,上下文):#imageReference
     return 渲染图(址,替,键)#图
 
 def 渲染脚注引用(节点,键,上下文):#footnoteReference
-    """上标序号；页内锚不过白名单。"""
+    '上标序号；页内锚不过白名单'
     原=节点['identifier'] if 'identifier' in 节点 and 节点['identifier'] is not None else ''#标识
     标识=str(原).upper()#键
     已见=上下文['footnoteCounts'][标识] if 标识 in 上下文['footnoteCounts'] else None#已见次数
@@ -371,7 +371,7 @@ def 渲染脚注引用(节点,键,上下文):#footnoteReference
     return {'type':'element','tag':'sup','key':键,'children':[str(号)]}#上标
 
 def 渲染脚注区(上下文):#文末脚注 section
-    """按首次引用序；无定义则跳过；全空则 None。"""
+    '按首次引用序；无定义则跳过；全空则 None'
     序=上下文['footnoteOrder'] if 'footnoteOrder' in 上下文 and 上下文['footnoteOrder'] is not None else []#序
     项列表=[]#li 列表
     for 标识 in 序:#按序

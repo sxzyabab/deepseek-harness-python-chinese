@@ -9,19 +9,19 @@ __all__=['包名','名称','依赖','应用','默认','巡检错误']
 依赖=['tools','cordisInspect']
 
 def 需要智能体(执行):
-    """工具执行必须带智能体。"""
+    '工具执行必须带智能体'
     if 'agent' not in 执行 or 执行['agent'] is None:
         raise 巡检错误('Cordis 巡检需要由智能体支撑的会话')
     return 执行['agent']
 
 def 渲染(参数,值):
-    """缩进 JSON。"""
+    '缩进 JSON'
     return [{'type':'text','text':json.dumps(值,ensure_ascii=False,indent=2,separators=(',',':'),allow_nan=False)}]
 
 def 应用(上下文):
-    """登记只读运行时巡检工具；Host 提供方由宿主插件按进程登记。"""
+    '登记只读运行时巡检工具；Host 提供方由宿主插件按进程登记'
     def 执行列表(参数,执行上下文):
-        """列出当前已知的全部巡检提供方。"""
+        '列出当前已知的全部巡检提供方'
         return {'providers':上下文.cordisInspect.列出()}
     上下文.tools.登记(定义工具({
         'name':'cordis_inspect_list',
@@ -35,7 +35,7 @@ def 应用(上下文):
         'presentCall':呈现列表调用,
     }))
     def 执行查询(参数,执行上下文):
-        """跑提供方声明的只读查询。"""
+        '跑提供方声明的只读查询'
         数据=上下文.cordisInspect.查询(
             参数['platform'],
             参数['provider'],

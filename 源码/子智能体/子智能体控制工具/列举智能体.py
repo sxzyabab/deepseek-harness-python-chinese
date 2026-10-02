@@ -39,20 +39,20 @@ __all__=[#仅中文公开名
 ]
 
 def 解析列举智能体请求(请求):
-    """把可选模型请求解析成内部必填作用域规格；缺省 scope 为 `children`。请求为 dict。"""
+    '把可选模型请求解析成内部必填作用域规格；缺省 scope 为 `children`。请求为 dict'
     if 请求 is None or 'scope' not in 请求 or 请求['scope'] is None:#未给出
         return {'scope':'children'}#默认直接子
     return {'scope':请求['scope']}#已解析规格
 
 def 状态于(智能体服务,标识):
-    """经活 Agent 注册表报告回合活动：正在跑为 `running`，否则 `inactive`。"""
+    '经活 Agent 注册表报告回合活动：正在跑为 `running`，否则 `inactive`'
     智能体=智能体服务.获取(标识)#活智能体
     if 智能体 is not None and 智能体.status=='running':#活动驱动
         return 'running'#正在工作
     return 'inactive'#未在跑
 
 def 投影(智能体服务,条目,位置=None):
-    """把一行服务条目投影成面向模型的条目，或省略一次性子体。条目与位置为 dict。"""
+    '把一行服务条目投影成面向模型的条目，或省略一次性子体。条目与位置为 dict'
     if 位置 is None:#无树位置
         处={}#空位置
     else:#有树位置
@@ -73,9 +73,9 @@ def 投影(智能体服务,条目,位置=None):
     return 行#子体行
 
 def 应用(上下文):
-    """登记 `list_agents` 工具。"""
+    '登记 `list_agents` 工具'
     def 渲染列表(参数,条目列表):
-        """按作用域渲染列表文本块；空列表渲染 `(no subagents)`。参数与条目为 dict。"""
+        '按作用域渲染列表文本块；空列表渲染 `(no subagents)`。参数与条目为 dict'
         请求=解析列举智能体请求(参数)#解析作用域
         if len(条目列表)==0:#空列表
             正文='(no subagents)'#空文案
@@ -93,7 +93,7 @@ def 应用(上下文):
             正文='\n'.join(行列表)#换行拼接
         return [{'type':'text','text':正文}]#文本块
     def 执行列举(参数,执行元数据):
-        """按作用域列举可续跑子体或后代树，并投影为面向模型的条目。参数与执行为 dict；父为智能体对象。"""
+        '按作用域列举可续跑子体或后代树，并投影为面向模型的条目。参数与执行为 dict；父为智能体对象'
         if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#无智能体调用方
             raise 子智能体错误('list_agents requires a calling agent (exec.agent was undefined)','NO_AGENT')#拒绝
         父=执行元数据['agent']#调用方智能体

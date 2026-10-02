@@ -6,15 +6,15 @@ __all__=['提问行','待办行','已答摘要','待办摘要','提问工具视�
 会话命名空间='conversation'#会话词典命名空间
 
 def 缺省翻译(键,_插值=None):#无文案
-    """原样返回键。"""
+    '原样返回键'
     return 键#键
 
 def 是答案(值):#答案条目形
-    """对象即为答案条目候选。"""
+    '对象即为答案条目候选'
     return isinstance(值,dict)#对象
 
 def 已答摘要(文本,翻译):#已答计数摘要
-    """从结果 JSON 计已答数；无效则 None。"""
+    '从结果 JSON 计已答数；无效则 None'
     try:#解析
         解析=json.loads(文本)#JSON
     except (TypeError,ValueError,json.JSONDecodeError):#失败
@@ -33,7 +33,7 @@ def 已答摘要(文本,翻译):#已答计数摘要
     return 翻译('ask.answered',{'answered':已答,'total':len(答案列表)})#摘要
 
 def 计划摘要(条目表):#待办计数
-    """done/total/activeContent/activeExtra。"""
+    'done/total/activeContent/activeExtra'
     完成=0#完成
     活跃内容=None#活跃正文
     活跃额外=0#并行活跃额外
@@ -49,7 +49,7 @@ def 计划摘要(条目表):#待办计数
     return {'done':完成,'total':len(条目表),'activeContent':活跃内容,'activeExtra':活跃额外}#摘要
 
 def 待办摘要(参数原文,翻译):#待办行摘要拆分
-    """text 可截断；extra 为并行活跃数。"""
+    'text 可截断；extra 为并行活跃数'
     try:#解析
         解析=json.loads(参数原文)#JSON
     except (TypeError,ValueError,json.JSONDecodeError):#失败
@@ -66,17 +66,17 @@ def 待办摘要(参数原文,翻译):#待办行摘要拆分
     return {'text':头+' · '+str(计['activeContent']),'extra':计['activeExtra']}#带头+活跃
 
 class 提问行:#ask_user_question 行
-    """提问交互一行摘要。"""
+    '提问交互一行摘要'
     def __init__(自身,属性):#props
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成
 
     def 更新(自身,属性):#刷新
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """派生摘要与状态。"""
+        '派生摘要与状态'
         p=自身.属性#props
         块=p['block']#块
         翻译=p['t'] if 't' in p else 缺省翻译#文案
@@ -114,23 +114,23 @@ class 提问行:#ask_user_question 行
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷新
         return 自身.渲染()#渲
 
 class 待办行:#todo_write 行
-    """计划更新一行摘要。"""
+    '计划更新一行摘要'
     def __init__(自身,属性):#props
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成
 
     def 更新(自身,属性):#刷新
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性#新
 
     def 渲染(自身):#结构树
-        """派生摘要。"""
+        '派生摘要'
         p=自身.属性#props
         块=p['block']#块
         翻译=p['t'] if 't' in p else 缺省翻译#文案
@@ -169,15 +169,15 @@ class 待办行:#todo_write 行
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷新
         return 自身.渲染()#渲
 
 def 提问工具视图应用(上下文):#登记提问行
-    """登记 ask_user_question toolview。"""
+    '登记 ask_user_question toolview'
     def 登记():#登记
-        """按键条目。"""
+        '按键条目'
         return 上下文.slots.register({#登记
             'name':'tool.call.toolview','key':'ask_user_question','locale':会话命名空间,#选项
         },提问行)#组件
@@ -186,9 +186,9 @@ def 提问工具视图应用(上下文):#登记提问行
 提问工具视图={'name':'ask-question-toolview','inject':['slots'],'apply':提问工具视图应用}#插件形
 
 def 待办工具视图应用(上下文):#登记待办行
-    """登记 todo_write toolview。"""
+    '登记 todo_write toolview'
     def 登记():#登记
-        """按键条目。"""
+        '按键条目'
         return 上下文.slots.register({#登记
             'name':'tool.call.toolview','key':'todo_write','locale':会话命名空间,#选项
         },待办行)#组件

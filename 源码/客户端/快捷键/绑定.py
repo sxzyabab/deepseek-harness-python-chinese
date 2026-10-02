@@ -1,4 +1,4 @@
-"""浏览器命令与桌面适配器共享的物理键协议；不含 DOM 或运行时状态。"""
+'浏览器命令与桌面适配器共享的物理键协议；不含 DOM 或运行时状态'
 import re#物理码校验
 
 __all__=[#仅中文公开名
@@ -16,7 +16,7 @@ __all__=[#仅中文公开名
 物理码模式=re.compile(r'^(Key[A-Z]|Digit[0-9]|F([1-9]|1[0-9]|2[0-4]))$')#字母数字功能键
 
 def 规范化绑定(绑定,平台):
-    """展开逻辑修饰键、去重并校验物理码；不支持的码在注册时抛错。"""
+    '展开逻辑修饰键、去重并校验物理码；不支持的码在注册时抛错'
     #收集一或两个物理码并按字典序
     码表=[绑定['code']]#主码
     if 绑定.get('secondCode') is not None:#有第二键
@@ -40,7 +40,7 @@ def 规范化绑定(绑定,平台):
     return 结果#返回
 
 def 绑定键(绑定):
-    """由规范化绑定生成精确匹配索引，同时用于匹配与冲突检测。"""
+    '由规范化绑定生成精确匹配索引，同时用于匹配与冲突检测'
     if 绑定.get('secondCode') is None:#单键
         码表=[绑定['code']]#仅主码
     else:#双键和弦
@@ -48,7 +48,7 @@ def 绑定键(绑定):
     return '+'.join(list(绑定['modifiers'])+码表)#修饰+码
 
 def 呈现绑定(绑定,平台):
-    """格式化键帽与 ARIA；Windows 用加号分隔修饰键，和弦键仍相邻。"""
+    '格式化键帽与 ARIA；Windows 用加号分隔修饰键，和弦键仍相邻'
     if 绑定 is None:#未绑定
         return {'keys':[],'aria':None}#空
     #主键展示
@@ -92,7 +92,7 @@ def 呈现绑定(绑定,平台):
     return {'keys':可见,'aria':aria}#返回
 
 def Web绑定是否准入(绑定,平台):
-    """检查 Web 组合：Windows/macOS 另放行任意三或四修饰键；Linux 保留受限集合。"""
+    '检查 Web 组合：Windows/macOS 另放行任意三或四修饰键；Linux 保留受限集合'
     if 绑定.get('secondCode') is not None:#和弦
         return False#Web 不收
     if 平台=='windows' or 平台=='macos':#宽平台

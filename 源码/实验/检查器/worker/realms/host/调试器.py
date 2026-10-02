@@ -6,19 +6,19 @@ from .脚本 import Host脚本键#脚本键
 __all__=['Host调试器后端']#仅中文公开名
 
 class Host调试器后端:#Host Debugger后端
-    """适配到公共命令、Runtime 值与事件的原生 Host 调试器。"""
+    '适配到公共命令、Runtime 值与事件的原生 Host 调试器'
     def __init__(自身,目标,运行时):#构造
-        """装配通知通道。"""
+        '装配通知通道'
         自身.目标=目标#会话
         自身.运行时=运行时#Runtime
         自身._事件=Host通知通道(目标,自身._接受,自身._投影)#通道
 
     def _接受(自身,消息):#是否接受
-        """只收 Debugger 恢复、断点解析与暂停。"""
+        '只收 Debugger 恢复、断点解析与暂停'
         return 消息.get('method') in ('Debugger.resumed','Debugger.breakpointResolved','Debugger.paused')#过滤
 
     def _投影(自身,消息):#投影
-        """按方法投影。"""
+        '按方法投影'
         方法=消息.get('method')#方法
         if 方法=='Debugger.resumed':#恢复
             return {'type':'resumed'}#恢复
@@ -27,23 +27,23 @@ class Host调试器后端:#Host Debugger后端
         return 自身._暂停(消息['params'] if 'params' in 消息 else None)#暂停
 
     def 启用(自身,请求):#启用
-        """Debugger.enable。"""
+        'Debugger.enable'
         return 自身.目标.请求('Debugger.enable',{**可选原生字段('maxScriptsCacheSize',请求['maxScriptsCacheSize'] if 'maxScriptsCacheSize' in 请求 else None)})#请求
 
     def 禁用(自身):#禁用
-        """Debugger.disable。"""
+        'Debugger.disable'
         return 自身.目标.请求('Debugger.disable',{})#请求
 
     def 暂停(自身):#暂停
-        """Debugger.pause。"""
+        'Debugger.pause'
         return 自身.目标.请求('Debugger.pause',{})#请求
 
     def 恢复(自身,请求):#恢复
-        """Debugger.resume。"""
+        'Debugger.resume'
         return 自身.目标.请求('Debugger.resume',{**可选原生字段('terminateOnResume',请求['terminateOnResume'] if 'terminateOnResume' in 请求 else None)})#请求
 
     def 帧上求值(自身,请求):#在调用帧求值
-        """Debugger.evaluateOnCallFrame。"""
+        'Debugger.evaluateOnCallFrame'
         return 自身.运行时.完成(自身.目标.请求('Debugger.evaluateOnCallFrame',{#求值
             'callFrameId':请求['callFrameId'],'expression':请求['expression'],#表达式
             **可选原生字段('objectGroup',请求['objectGroup'] if 'objectGroup' in 请求 else None),#对象组
@@ -56,15 +56,15 @@ class Host调试器后端:#Host Debugger后端
         }))#completion结束
 
     def 订阅(自身,监听):#订阅
-        """订阅调试事件。"""
+        '订阅调试事件'
         return 自身._事件.订阅(监听)#委托
 
     def 关闭(自身):#关闭
-        """拆除原生通知订阅。"""
+        '拆除原生通知订阅'
         自身._事件.关闭()#关通道
 
     def _暂停(自身,参数):#暂停事件
-        """投影 Debugger.paused。"""
+        '投影 Debugger.paused'
         if 参数 is None:#无参数
             参数={}#空映射
         if 'callFrames' not in 参数 or not isinstance(参数['callFrames'],list) or not isinstance(参数.get('reason'),str):#无效
@@ -81,7 +81,7 @@ class Host调试器后端:#Host Debugger后端
         return 事件#返回
 
     def _调用帧(自身,值):#调用帧
-        """转换调用帧。"""
+        '转换调用帧'
         记录=要求原生记录(值,'Host Debugger call frame')#记录
         if not isinstance(记录.get('callFrameId'),str) or not isinstance(记录.get('functionName'),str) or not isinstance(记录.get('url'),str) or 'scopeChain' not in 记录 or not isinstance(记录['scopeChain'],list):#无效
             raise 检查器错误('Host Debugger returned an invalid call frame')#无效
@@ -98,7 +98,7 @@ class Host调试器后端:#Host Debugger后端
         return 帧#返回
 
     def _作用域(自身,值):#作用域
-        """转换作用域。"""
+        '转换作用域'
         记录=要求原生记录(值,'Host Debugger scope')#记录
         if not isinstance(记录.get('type'),str):#无效
             raise 检查器错误('Host Debugger returned an invalid scope')#无效
@@ -112,7 +112,7 @@ class Host调试器后端:#Host Debugger后端
         return 作用域#返回
 
 def _断点已解析(参数):#断点已解析
-    """投影 breakpointResolved。"""
+    '投影 breakpointResolved'
     if 参数 is None:#无参数
         参数={}#空映射
     if not isinstance(参数.get('breakpointId'),str) or 'location' not in 参数 or 参数['location'] is None:#无效
@@ -120,7 +120,7 @@ def _断点已解析(参数):#断点已解析
     return {'type':'breakpoint-resolved','breakpointId':参数['breakpointId'],'location':_位置(参数['location'])}#事件
 
 def _位置(值):#位置
-    """转换调试位置。"""
+    '转换调试位置'
     记录=要求原生记录(值,'Host Debugger location')#记录
     行号=记录['lineNumber'] if 'lineNumber' in 记录 else None#行号
     if not isinstance(记录.get('scriptId'),str) or not isinstance(行号,int) or isinstance(行号,bool):#无效

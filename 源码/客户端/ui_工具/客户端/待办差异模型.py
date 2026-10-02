@@ -4,7 +4,7 @@ from .详情卡片模型 import 待办详情
 __all__=['待办差异模型']
 
 def 解析工具调用(块):
-    """解析调用头的 JSON 对象参数；准备中或非法则 None。块为 dict。"""
+    '解析调用头的 JSON 对象参数；准备中或非法则 None。块为 dict'
     if 'kind' not in 块 and 块['phase']=='preparing':
         return None
     调用=块['call'] if 'kind' in 块 else 块
@@ -19,7 +19,7 @@ def 解析工具调用(块):
     return {'name':调用['name'],'args':值}
 
 def 待办差异模型(块,基线,还有更早,翻译):
-    """与已加载历史中前一次写入比较。块为 dict。"""
+    '与已加载历史中前一次写入比较。块为 dict'
     if 'kind' not in 块 or ('isError' in 块 and 块['isError']):
         return None
     调用=解析工具调用(块)

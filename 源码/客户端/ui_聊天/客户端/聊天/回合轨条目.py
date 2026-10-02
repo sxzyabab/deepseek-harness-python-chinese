@@ -4,7 +4,7 @@ __all__=['合并回合轨条目','空轨条目']#仅中文公开名
 空轨条目=()#稳定空元组
 
 def 大纲条目(值):
-    """turn/seq 承重；预览装饰可降级。值为 dict。"""
+    'turn/seq 承重；预览装饰可降级。值为 dict'
     if not isinstance(值,dict):#非映射
         return None#丢
     回合=值['turn'] if 'turn' in 值 else None#回合
@@ -18,15 +18,15 @@ def 大纲条目(值):
     return {'turn':回合,'seq':序号,'prompt':提示 if isinstance(提示,str) else '','response':回复 if isinstance(回复,str) else ''}#条目
 
 def 列出大纲条目(大纲):
-    """投影缺席或畸形时为空。"""
+    '投影缺席或畸形时为空'
     return 大纲 if isinstance(大纲,list) else []#数组
 
 def 按回合号(项):
-    """排序键：回合号。"""
+    '排序键：回合号'
     return 项['turn']#回合
 
 def 合并回合轨条目(已加载,大纲):
-    """两侧都有的回合保留已加载锚；结果按回合升序。"""
+    '两侧都有的回合保留已加载锚；结果按回合升序'
     按回合={}#索引
     for 原始 in 列出大纲条目(大纲):#先铺大纲
         条目=大纲条目(原始)#收窄

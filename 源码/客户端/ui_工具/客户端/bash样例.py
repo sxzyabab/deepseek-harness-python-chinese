@@ -5,7 +5,7 @@ from .文案 import 会话命名空间#词典席
 __all__=['bash行','bash工具视图样例','前导态','状态文案']#仅中文公开名
 
 def 前导态(状态):#前导槽
-    """错误/中止换状态点；其余保留 api 图标。"""
+    '错误/中止换状态点；其余保留 api 图标'
     if 状态=='error':#失败
         return 'error'#红点
     if 状态=='stopped':#中止
@@ -13,7 +13,7 @@ def 前导态(状态):#前导槽
     return 'api'#工具图标
 
 def 状态文案(状态,翻译):#无障碍文案
-    """ok 为 None。"""
+    'ok 为 None'
     if 状态=='running':#运行
         return 翻译('bash.running') if callable(翻译) else 'bash.running'#运行
     if 状态=='error':#失败
@@ -23,32 +23,32 @@ def 状态文案(状态,翻译):#无障碍文案
     return None#ok
 
 class bash行:#bash 工具行
-    """图标+Bash·描述；整行切换终端或通用错误卡。"""
+    '图标+Bash·描述；整行切换终端或通用错误卡'
 
     def __init__(自身,属性=None):#构造
-        """记下 props 与本地展开。"""
+        '记下 props 与本地展开'
         自身.属性={} if 属性 is None else 属性#合成
         自身.已展开=False#本地展开
 
     def 更新(自身,属性):#刷新
-        """刷新。"""
+        '刷新'
         自身.属性=属性#新
 
     def 切换展开(自身):#整行切换
-        """可展开才翻转。"""
+        '可展开才翻转'
         if not 自身.可展开():#不可
             return#不动
         自身.已展开=not 自身.已展开#翻转
 
     def 会话工作目录(自身):#从会话表取 cwd
-        """useSessions 选 byId[sessionId].cwd。"""
+        'useSessions 选 byId[sessionId].cwd'
         属性=自身.属性#props
         会话标识=属性['sessionId'] if 'sessionId' in 属性 else None#会话
         用会话=属性['useSessions'] if 'useSessions' in 属性 else None#钩
         if not callable(用会话) or 会话标识 is None:#无
             return None#缺
         def 取工作目录(表):#选择器
-            """byId[sessionId].cwd。"""
+            'byId[sessionId].cwd'
             按标识=表['byId'] if 'byId' in 表 else None#byId
             if 按标识 is None or 会话标识 not in 按标识:#无会话
                 return None#缺
@@ -57,7 +57,7 @@ class bash行:#bash 工具行
         return 用会话(取工作目录)#cwd
 
     def 可展开(自身):#是否可展开
-        """有终端卡或通用错误体。"""
+        '有终端卡或通用错误体'
         属性=自身.属性#props
         工具名=属性['toolName'] if 'toolName' in 属性 else None#名
         块=属性['block'] if 'block' in 属性 else None#块
@@ -69,7 +69,7 @@ class bash行:#bash 工具行
         return 终端 is not None or 通用错#可
 
     def 渲染(自身):#结构树
-        """与上游 JSX 同构。"""
+        '与上游 JSX 同构'
         属性=自身.属性#props
         工具名=属性['toolName'] if 'toolName' in 属性 else None#名
         块=属性['block'] if 'block' in 属性 else None#块
@@ -124,7 +124,7 @@ class bash行:#bash 工具行
         }#结束
 
     def __call__(自身,属性=None):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

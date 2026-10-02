@@ -4,11 +4,11 @@ from ...模型后端.llm.调用配置 import 调用配置相等
 __all__=['归一请求头','请求头是否相等','折叠请求头']
 
 def 转json(值):
-    """按 JS JSON.stringify 的紧凑形态编码。"""
+    '按 JS JSON.stringify 的紧凑形态编码'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
 
 def 归一请求头(头):
-    """把请求头归一成规范形态：空工具列表变成缺省字段，与请求构建方式一致。"""
+    '把请求头归一成规范形态：空工具列表变成缺省字段，与请求构建方式一致'
     适配器默认=头['adapterDefaults'] if 'adapterDefaults' in 头 else None
     结果={'config':头['config']}
     if isinstance(适配器默认,dict) and (('reasoningEffort' in 适配器默认 and 适配器默认['reasoningEffort'] is True) or ('maxTokens' in 适配器默认 and 适配器默认['maxTokens'] is True)):
@@ -19,11 +19,11 @@ def 归一请求头(头):
     return 结果
 
 def 同一模式(甲,乙):
-    """经同一路径组装的工具模式的规范 JSON 相等。"""
+    '经同一路径组装的工具模式的规范 JSON 相等'
     return 转json(甲)==转json(乙)
 
 def 请求头是否相等(甲,乙):
-    """规范请求头的逐字段相等。工具模式按顺序比较。"""
+    '规范请求头的逐字段相等。工具模式按顺序比较'
     甲默认=甲['adapterDefaults'] if 'adapterDefaults' in 甲 else None
     乙默认=乙['adapterDefaults'] if 'adapterDefaults' in 乙 else None
     if not isinstance(甲默认,dict):
@@ -56,7 +56,7 @@ def 请求头是否相等(甲,乙):
     return True
 
 def 折叠请求头(事件列表,起始=None):
-    """把一份日志的请求头事件折成最后一次快照之后生效的纪元请求头。"""
+    '把一份日志的请求头事件折成最后一次快照之后生效的纪元请求头'
     状态=起始
     for 事件 in 事件列表:
         if ('type' in 事件 and 事件['type']=='request/header'):

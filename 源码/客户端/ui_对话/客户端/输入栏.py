@@ -5,45 +5,45 @@ from .上下文仪表 import 上下文仪表#占用环
 __all__=['输入栏']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 def 取自身(态):
-    """选择器原样。"""
+    '选择器原样'
     return 态#原样
 
 def 是命令源(源):
-    """菜单源是否 command。"""
+    '菜单源是否 command'
     return 源=='command'#是
 
 def 取提示错(快照):
-    """promptError。快照为 dict。"""
+    'promptError。快照为 dict'
     return 快照['promptError'] if 'promptError' in 快照 else None#错
 
 def 取运行(快照):
-    """running。"""
+    'running'
     return 快照['running'] if 'running' in 快照 else False#运行
 
 def 取子代理(快照):
-    """subagent。"""
+    'subagent'
     return 快照['subagent'] if 'subagent' in 快照 else None#子代理
 
 def 取已移除(快照):
-    """removed。"""
+    'removed'
     return 快照['removed'] if 'removed' in 快照 else False#移除
 
 def 按at(项):
-    """边界 at 排序键。"""
+    '边界 at 排序键'
     return 项['at']#at
 
 class 输入栏:#composer.bar 主体
-    """草稿/附件/工具行/主按钮视图模型。"""
+    '草稿/附件/工具行/主按钮视图模型'
     def __init__(自身,属性=None):
-        """记下 props 与本地 UI 态。"""
+        '记下 props 与本地 UI 态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.预览=None#灯箱附件
         自身.拖放中=False#拖放
@@ -52,34 +52,34 @@ class 输入栏:#composer.bar 主体
         自身.合成中=False#IME
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 显示吐司(自身,文):
-        """递增序号。"""
+        '递增序号'
         自身.吐司序号+=1#序
         自身.吐司={'seq':自身.吐司序号,'text':文}#吐司
 
     def 关吐司(自身):
-        """清。"""
+        '清'
         自身.吐司=None#清
 
     def 开预览(自身,附件):
-        """打开灯箱。"""
+        '打开灯箱'
         自身.预览=附件#记下
 
     def 关预览(自身):
-        """关灯箱。"""
+        '关灯箱'
         自身.预览=None#清
 
     def 摘附件(自身,标识):
-        """委派摘图。"""
+        '委派摘图'
         摘=自身.属性['removeImage'] if 'removeImage' in 自身.属性 else None#摘
         if 摘 is not None:#有
             摘(标识)#摘
 
     def 摄入图像(自身,文件列表,附件列表,限额,加图,翻译):
-        """限额失败整批拒；否则委派加图。文件/限额为 dict。"""
+        '限额失败整批拒；否则委派加图。文件/限额为 dict'
         if 加图 is None or 文件列表 is None or len(文件列表)==0:#无；判 length
             return#停
         拒=None#拒文
@@ -124,7 +124,7 @@ class 输入栏:#composer.bar 主体
             自身.显示吐司(拒)#横幅
 
     def 构建背景(自身,草稿,装饰,输入,有目标,翻译):
-        """令牌/芯片/文本引用/提示。装饰、输入为 dict。"""
+        '令牌/芯片/文本引用/提示。装饰、输入为 dict'
         段=[]#段
         游标=0#游标
         令牌=装饰['token'] if 'token' in 装饰 else None#令牌
@@ -166,7 +166,7 @@ class 输入栏:#composer.bar 主体
         return 段#段
 
     def 渲染(自身):
-        """胶囊卡视图。"""
+        '胶囊卡视图'
         属性=自身.属性#props
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话
         用输入=属性['useInput'] if 'useInput' in 属性 else None#输入
@@ -250,7 +250,7 @@ class 输入栏:#composer.bar 主体
         可中断=运行中 is True and 可续 is True#独立停
         主标=翻译('input.stop') if 主停 is True else 翻译('input.send')#主标
         def 主点():
-            """停或提交。"""
+            '停或提交'
             if 主停 is True:#停
                 if 停止 is not None:#有
                     停止()#停
@@ -344,7 +344,7 @@ class 输入栏:#composer.bar 主体
         }#结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

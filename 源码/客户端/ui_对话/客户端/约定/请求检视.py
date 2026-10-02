@@ -8,7 +8,7 @@ def 检视请求提示(先前,事件,系统):
     历史内更新已在自身位置呈现文本，故头对该更新不报告系统变更。
     先前为前一条已加载请求头的提示（dict 或 None）；
     事件为 request/header 会话事件；
-    系统为有效系统提示节点（dict 或 None）。
+    系统为有效系统提示节点（dict 或 None）
     """
     头=事件['data']['header']#请求头
     原始工具=头['tools'] if 'tools' in 头 else None#原始工具

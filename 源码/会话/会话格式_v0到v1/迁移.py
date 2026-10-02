@@ -1,4 +1,4 @@
-"""把已发布 v0 提升为已发布 v1 的身份格式边。"""
+'把已发布 v0 提升为已发布 v1 的身份格式边'
 import json#诊断序列化
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
@@ -14,17 +14,17 @@ from .校验 import (#从校验导入
 from .记录与精确键 import 校验已发布v0键,已发布v0记录#记录与精确键
 
 def 断言头版本(头,版本):#断言头版本
-    """断言逻辑头精确版本。"""
+    '断言逻辑头精确版本'
     if 头['version']!=版本:#版本不符
         raise 会话格式错误(f'expected format v{版本} header')#版本不符
 
 def 迁移头(头):#迁移头
-    """把已发布 v0 头提升为 v1。"""
+    '把已发布 v0 头提升为 v1'
     断言头版本(头,0)#断言v0头
     return {**头,'version':1}#提升版本
 
 def 创建阶段(输入):#创建阶段
-    """创建已发布 v0 到 v1 迁移阶段。"""
+    '创建已发布 v0 到 v1 迁移阶段'
     return 已发布v0到v1阶段(输入)#阶段实例
 
 #把已发布 v0 提升为已发布 v1 的身份格式边。
@@ -38,22 +38,22 @@ def 创建阶段(输入):#创建阶段
 })#会话格式v0到v1结束
 
 class 已发布v0到v1阶段:#v0到v1阶段
-    """有状态体阶段：逐事件规范化遗留形状。"""
+    '有状态体阶段：逐事件规范化遗留形状'
     def __init__(自身,输入):#构造
-        """记下输入并初始化规范化状态。"""
+        '记下输入并初始化规范化状态'
         断言头版本(输入['sourceHeader'],0)#断言源头
         自身.输入=输入#输入
         自身.headerInheritedEventCount=会话格式计数(输入['sourceInheritedEventCount'],'format v0 inherited event count')#校验继承数
         自身.状态={'messageIds':{},'retryIds':{}}#规范化状态
 
     def transformEvent(自身,事件,上下文):#转换事件
-        """规范化一条源事件并同步发出。"""
+        '规范化一条源事件并同步发出'
         规范化=规范化已发布v0事件(事件,自身.输入['sourceHeader']['id'],自身.状态)#规范化
         断言源投递标记(规范化,自身.输入)#断言投递标记
         上下文.emitEvent(规范化)#发出
 
     def transformRun(自身,游程,上下文):#转换游程
-        """助手块游程原样发出，其它展开转换。"""
+        '助手块游程原样发出，其它展开转换'
         if 是否已发布助手块游程(游程):#助手块游程
             上下文.emitRun(游程)#原样发出
             return#返回
@@ -61,11 +61,11 @@ class 已发布v0到v1阶段:#v0到v1阶段
             自身.transformEvent(事件,上下文)#转换
 
     def finish(自身,上下文):#完成
-        """返回头继承切口。"""
+        '返回头继承切口'
         return 自身.headerInheritedEventCount#头继承数
 
 def 规范化已发布v0事件(事件,会话id,状态):#规范化已发布v0事件
-    """规范化一条已发布 v0 事件。"""
+    '规范化一条已发布 v0 事件'
     命名=规范化遗留压缩类型(事件)#规范化压缩类型名
     断言受支持遗留类型(命名,会话id)#断言受支持遗留类型
     起始=规范化遗留回合开始(命名,会话id)#规范化turn/start
@@ -83,7 +83,7 @@ def 规范化已发布v0事件(事件,会话id,状态):#规范化已发布v0事�
     return 消息#返回
 
 def 规范化遗留压缩类型(事件):#规范化遗留压缩类型
-    """把 compact/* 改名为 compaction/*。"""
+    '把 compact/* 改名为 compaction/*'
     类型=事件['type']#类型
     if 类型=='compact/start':#旧开始
         return {**事件,'type':'compaction/start'}#新名
@@ -96,7 +96,7 @@ def 规范化遗留压缩类型(事件):#规范化遗留压缩类型
     return 事件#原样
 
 def 断言源投递标记(事件,输入):#断言源投递标记
-    """拒绝错会话的当代投递标记。"""
+    '拒绝错会话的当代投递标记'
     if 事件['type']!='session-log-deepseek/delivery-accepted':#非该类型
         return#返回
     数据=已发布v0记录(事件['data'],f"{事件['type']} {事件['seq']} data")#data
@@ -107,7 +107,7 @@ def 断言源投递标记(事件,输入):#断言源投递标记
         raise 会话格式错误('current-generation delivery marker names the wrong Session')#错误
 
 def 规范化遗留重试(事件,会话id,重试id映射):#规范化遗留重试
-    """为 llm/retry 补遗留 retryId。"""
+    '为 llm/retry 补遗留 retryId'
     if 事件['type']!='llm/retry':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f"llm/retry {事件['seq']} data")#data
@@ -123,7 +123,7 @@ def 规范化遗留重试(事件,会话id,重试id映射):#规范化遗留重试
     return {**事件,'data':{**数据,'retryId':迁移id}}#补id
 
 def 规范化遗留压缩(事件,会话id,状态):#规范化遗留压缩
-    """为压缩事件与 compact 插件消息补遗留 compactionId。"""
+    '为压缩事件与 compact 插件消息补遗留 compactionId'
     if 事件['type']=='session/end-seed':#结束种子
         状态.pop('compactionId',None)#清除压缩id
         return 事件#原样
@@ -165,14 +165,14 @@ def 规范化遗留压缩(事件,会话id,状态):#规范化遗留压缩
     }#return结束
 
 def 添加遗留压缩id(事件,压缩id):#添加遗留压缩id
-    """为压缩摘要/结束补 compactionId。"""
+    '为压缩摘要/结束补 compactionId'
     数据=已发布v0记录(事件['data'],f"{事件['type']} {事件['seq']} data")#data
     if 'compactionId' in 数据:#已有则原样
         return 事件#原样
     return {**事件,'data':{**数据,'compactionId':压缩id}}#补id
 
 def 规范化遗留请求头(事件,会话id):#规范化遗留请求头
-    """去掉 request/header 的遗留 messagePrefix。"""
+    '去掉 request/header 的遗留 messagePrefix'
     if 事件['type']!='request/header':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f"request/header {事件['seq']} data")#data记录
@@ -187,7 +187,7 @@ def 规范化遗留请求头(事件,会话id):#规范化遗留请求头
     return {**事件,'data':{**数据,'header':当前头}}#返回去前缀事件
 
 def 断言受支持遗留类型(事件,会话id):#断言受支持遗留类型
-    """拒绝不受支持的遗留事件类型。"""
+    '拒绝不受支持的遗留事件类型'
     if 事件['type']=='request/header-delta' or 事件['type']=='mode/set':#不支持类型
         raise 会话格式不支持迁移错误(#拒绝
             f'session {json.dumps(会话id,ensure_ascii=False)} contains unsupported legacy {事件["type"]} event at seq {事件["seq"]}',#消息
@@ -200,7 +200,7 @@ def 断言受支持遗留类型(事件,会话id):#断言受支持遗留类型
             )#Error结束
 
 def 规范化遗留转向(事件,会话id):#规范化遗留steering
-    """把 steering/message 转为 user/message。"""
+    '把 steering/message 转为 user/message'
     if 事件['type']!='steering/message':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f"steering/message {事件['seq']} data")#data
@@ -222,7 +222,7 @@ def 规范化遗留转向(事件,会话id):#规范化遗留steering
     }#return结束
 
 def 规范化遗留回合开始(事件,会话id):#规范化遗留turn/start
-    """去掉 turn/start 的遗留 trigger。"""
+    '去掉 turn/start 的遗留 trigger'
     if 事件['type']!='turn/start':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f"turn/start {事件['seq']} data")#data
@@ -236,7 +236,7 @@ def 规范化遗留回合开始(事件,会话id):#规范化遗留turn/start
     return {**事件,'data':{'turn':回合}}#仅保留turn
 
 def 规范化遗留回合结束(事件,会话id):#规范化遗留turn/end
-    """规范化 turn/end 的遗留 reason。"""
+    '规范化 turn/end 的遗留 reason'
     if 事件['type']!='turn/end':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f"turn/end {事件['seq']} data")#data
@@ -269,7 +269,7 @@ def 规范化遗留回合结束(事件,会话id):#规范化遗留turn/end
     return 事件#其他原样
 
 def 规范化遗留错误原因(原因,序号,会话id):#规范化遗留错误reason
-    """把遗留 error reason 规范为当代 error 包装。"""
+    '把遗留 error reason 规范为当代 error 包装'
     会话格式计数(原因['step'],f'turn/end {序号} error step')#校验step
     失败=原因.get('failure') if 'failure' in 原因 else None#failure字段
     if 'failure' in 原因:#有failure
@@ -296,7 +296,7 @@ def 规范化遗留错误原因(原因,序号,会话id):#规范化遗留错误re
     }#return结束
 
 def 规范化遗留消息(事件,会话id,消息id映射):#规范化遗留消息
-    """把遗留扁平消息包装为当代 message 信封。"""
+    '把遗留扁平消息包装为当代 message 信封'
     数据=已发布v0记录(事件['data'],f"{事件['type']} {事件['seq']} data")#data
     if 事件['type']=='user/message':#用户消息
         if ('id' in 数据) or ('role' in 数据) or ('message' in 数据) or ('content' not in 数据) or ('source' not in 数据):#已有新形或缺字段
@@ -359,14 +359,14 @@ def 规范化遗留消息(事件,会话id,消息id映射):#规范化遗留消息
     return 事件#其他原样
 
 def 替换起点(事件):#替换起点
-    """读取 surfaceOp 替换起点。"""
+    '读取 surfaceOp 替换起点'
     操作=事件.get('surfaceOp')#表面操作
     if 操作 is None or not 已发布是记录(操作) or 操作.get('op')!='replace':#非替换
         return None#非替换
     return 操作['start']#返回start
 
 def 事件消息id(事件):#事件消息id
-    """读取事件消息身份。"""
+    '读取事件消息身份'
     数据=已发布v0记录(事件['data'],f"{事件['type']} {事件['seq']} data")#data
     if 事件['type']=='user/message':#用户消息
         消息=数据#data即消息
@@ -377,15 +377,15 @@ def 事件消息id(事件):#事件消息id
     return 消息['id'] if isinstance(消息,dict) and isinstance(消息.get('id'),str) else None#返回id
 
 def 已发布是记录(值):#是否记录
-    """测试值是否为非 null、非数组对象。"""
+    '测试值是否为非 null、非数组对象'
     return isinstance(值,dict)#对象判定
 
 def 遗留消息id(会话id,序号):#遗留消息id
-    """拼遗留消息身份。"""
+    '拼遗留消息身份'
     return f'legacy-message:{会话id}:{序号}'#拼id
 
 def 畸形遗留(会话id,类型,序号):#畸形遗留错误
-    """构造畸形遗留错误。"""
+    '构造畸形遗留错误'
     return 会话格式错误(#错误
         f'session {json.dumps(会话id,ensure_ascii=False)} contains malformed pre-react-loop {类型} at seq {序号}',#消息
     )#Error结束

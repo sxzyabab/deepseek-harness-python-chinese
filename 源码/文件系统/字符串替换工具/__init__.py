@@ -1,4 +1,4 @@
-"""登记面向模型的字符串替换编辑工具。"""
+'登记面向模型的字符串替换编辑工具'
 import os#绝对路径判断
 from functools import cmp_to_key#目录列举排序比较器
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
@@ -38,10 +38,10 @@ __all__=(#仅中文公开名
 }#配置模式结束
 
 class 错误(Exception):
-    """运行时错误；详情保持英文线协议原文。"""
+    '运行时错误；详情保持英文线协议原文'
 
 def 或许截断(内容,最大输出字节):#按UTF-8字节上限截断输出
-    """超长输出按 UTF-8 字节截到上限并接上截断提示，切点落在字符边界。"""
+    '超长输出按 UTF-8 字节截到上限并接上截断提示，切点落在字符边界'
     数据=内容.encode('utf-8')
     if len(数据)<=最大输出字节:#未超长则原样返回
         return 内容
@@ -51,7 +51,7 @@ def 或许截断(内容,最大输出字节):#按UTF-8字节上限截断输出
     return 数据[0:切].decode('utf-8')+截断消息#截断并接提示
 
 def 码点比较(左,右):#字符串码点序比较
-    """按码点比较两条字符串，供目录列举排序。"""
+    '按码点比较两条字符串，供目录列举排序'
     if 左<右:#小于
         return -1#左先
     if 左>右:#大于
@@ -59,7 +59,7 @@ def 码点比较(左,右):#字符串码点序比较
     return 0#相等
 
 def 匹配下标(内容,搜索):#收集字面量每一处起始下标
-    """找出 `search` 在 `content` 中每一处字面量出现的起始下标。"""
+    '找出 `search` 在 `content` 中每一处字面量出现的起始下标'
     下标列表=[]#命中起始下标
     起点=0#下一轮搜索起点
     while True:#直到找不到下一处
@@ -70,7 +70,7 @@ def 匹配下标(内容,搜索):#收集字面量每一处起始下标
         起点=命中+len(搜索)#从本处之后继续，避免零宽死循环
 
 def 下标行号(内容,下标列表):#下标转1基行号
-    """把字节下标映射为 1 基行号。"""
+    '把字节下标映射为 1 基行号'
     行号=1#当前行号
     游标=0#已扫描到的下标
     结果=[]#与下标列表对齐的行号
@@ -83,9 +83,9 @@ def 下标行号(内容,下标列表):#下标转1基行号
     return 结果#行号列表
 
 class 变更政策:#变更所用的沙箱策略适配
-    """在文件系统处于沙箱模式时解析并映射变更拒绝。"""
+    '在文件系统处于沙箱模式时解析并映射变更拒绝'
     def __init__(自身,上下文):#按文件系统沙箱模式解析策略服务
-        """文件系统处于沙箱模式时必须能取到 `sandboxPolicy`。"""
+        '文件系统处于沙箱模式时必须能取到 `sandboxPolicy`'
         沙箱模式=上下文.fs.沙箱模式#读取后端默认沙箱模式
         if 沙箱模式 is None:#非沙箱则不取策略
             自身.政策=None#无策略服务
@@ -95,7 +95,7 @@ class 变更政策:#变更所用的沙箱策略适配
             raise 错误('tool-str-replace-editor: the mounted filesystem confines but ctx.sandboxPolicy is missing')#加载时大声失败
 
     def 解析(自身,执行上下文):#解析本次运行的沙箱策略
-        """为本次工具运行解析沙箱执行策略。"""
+        '为本次工具运行解析沙箱执行策略'
         if 自身.政策 is None:#无策略服务
             return None#非沙箱
         智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#可选智能体
@@ -105,7 +105,7 @@ class 变更政策:#变更所用的沙箱策略适配
         return 自身.政策.解析(请求)#有策略服务才解析
 
     def 映射错误(自身,错误,政策):#映射沙箱拒绝错误
-        """把 `FS_SANDBOX_DENIED` 换成带当前模式标记的同类错误。"""
+        '把 `FS_SANDBOX_DENIED` 换成带当前模式标记的同类错误'
         if not isinstance(错误,文件系统错误):#非文件系统错误
             return 错误#原样
         if 错误.code!='FS_SANDBOX_DENIED':#非沙箱拒绝则原样
@@ -114,7 +114,7 @@ class 变更政策:#变更所用的沙箱策略适配
         return 文件系统错误(沙箱拒绝标记(模式),'FS_SANDBOX_DENIED',{'cause':错误})#换成带模式标记的拒绝
 
 def 解析目标(上下文,路径,信号):#把绝对路径解析成FsTarget
-    """把绝对路径解析成文件系统目标。"""
+    '把绝对路径解析成文件系统目标'
     if len(路径.strip())==0:#空白路径拒绝
         raise 错误('path must be a non-empty string')#空白路径
     if not os.path.isabs(路径):#必须是绝对路径
@@ -122,7 +122,9 @@ def 解析目标(上下文,路径,信号):#把绝对路径解析成FsTarget
     return 上下文.fs.解析(路径,{'signal':信号})#交给文件系统解析
 
 def 状态已存在(上下文,目标,命令,执行上下文):#确认目标存在并取出元数据
-    """对已存在目标做 stat；缺失则发出 absent 观察并抛 `FS_NOT_FOUND`。目录上除 `view` 外拒绝。"""
+    """对已存在目标做 stat；缺失则发出 absent 观察并抛 `FS_NOT_FOUND`。
+    目录上除 `view` 外拒绝
+    """
     信息=上下文.fs.状态(目标,执行上下文['signal'] if 'signal' in 执行上下文 else None)#探测目标
     if 信息 is None:#目标不存在
         上下文.广播('fs/observed',目标,{'kind':'absent'},执行上下文)#记录缺失观察
@@ -138,7 +140,7 @@ def 状态已存在(上下文,目标,命令,执行上下文):#确认目标存在
     return 信息#存在且允许该命令
 
 def 命令必填(值,参数名,命令,允许空=True):#取出命令必填参数
-    """命令所需参数：缺失则抛错；`allowEmpty` 为假时还拒绝空字符串。"""
+    '命令所需参数：缺失则抛错；`allowEmpty` 为假时还拒绝空字符串'
     if 值 is None:#缺失则拒绝
         raise 错误('Parameter `'+参数名+'` is required for command: '+命令)#缺失参数
     if (not 允许空) and len(值)==0:#不允许空且给了空串
@@ -146,7 +148,7 @@ def 命令必填(值,参数名,命令,允许空=True):#取出命令必填参数
     return 值#已确认的参数
 
 def 格式化文件视图(路径,内容,最大输出字符,视图范围=None):#格式化带行号的文件视图
-    """把文件内容格式化成带行号的视图，可选 `view_range`。"""
+    '把文件内容格式化成带行号的视图，可选 `view_range`'
     全部行=内容.split('\n')#按行拆分
     行列表=全部行#实际展示的行
     起始行=1#展示起始行号
@@ -188,10 +190,10 @@ def 格式化文件视图(路径,内容,最大输出字符,视图范围=None):#�
     return 或许截断(导语+':\n'+正文+'\n',最大输出字符)#导语加编号正文，再截断
 
 def 列举目录(上下文,目标,最大输出字符,执行上下文):#列举目录最多两层
-    """列举目录最多 2 层，跳过隐藏项、`node_modules` 与 Python 缓存。"""
+    '列举目录最多 2 层，跳过隐藏项、`node_modules` 与 Python 缓存'
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#中止信号
     def 访问(目录,深度):#递归列举一层
-        """递归列举一层子项。"""
+        '递归列举一层子项'
         条目=上下文.fs.列目录(目录,信号)#列出直接子项
         行列表=[]#本层及更深层的行
         for 候选项 in 条目:#遍历直接子项
@@ -216,17 +218,17 @@ def 列举目录(上下文,目标,最大输出字符,执行上下文):#列举目
         return 行列表#本层及更深层的行
     行列表=['d\t'+目标['displayPath']]+访问(目标,1)#根目录行加递归结果
     def 取路径(行):#去掉类型标记后的展示路径
-        """从列举行取出展示路径。"""
+        '从列举行取出展示路径'
         return 行[行.find('\t')+1:]#展示路径
     def 按路径比较(左,右):#按展示路径码点序比较两行
-        """按展示路径码点序比较两行。"""
+        '按展示路径码点序比较两行'
         return 码点比较(取路径(左),取路径(右))#比较展示路径
     行列表=sorted(行列表,key=cmp_to_key(按路径比较))#按展示路径码点排序
     列举=或许截断('\n'.join(行列表)+'\n',最大输出字符)#拼成文本再截断
     return "Here're the files and directories up to 2 levels deep in "+目标['displayPath']+", excluding hidden items, node_modules, and Python cache directories:\n"+列举+'\n'#导语加列举
 
 def 查看路径(上下文,路径,视图范围,最大输出字符,执行上下文):#查看文件或目录
-    """查看文件或目录：目录走列举，文件走带行号视图。"""
+    '查看文件或目录：目录走列举，文件走带行号视图'
     目标=解析目标(上下文,路径,执行上下文['signal'] if 'signal' in 执行上下文 else None)#解析目标
     信息=状态已存在(上下文,目标,'view',执行上下文)#确认存在
     if 信息['type']=='directory':#目录走列举
@@ -240,7 +242,7 @@ def 查看路径(上下文,路径,视图范围,最大输出字符,执行上下�
     return 格式化文件视图(目标['displayPath'],内容,最大输出字符,视图范围)#带行号视图
 
 def 创建文件(上下文,政策,路径,文件文本,执行上下文):#仅在不存在时创建文件
-    """仅在目标不存在时创建文件。"""
+    '仅在目标不存在时创建文件'
     内容=命令必填(文件文本,'file_text','create')#create必填file_text
     沙箱政策=政策.解析(执行上下文)#本次沙箱策略
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#中止信号
@@ -248,7 +250,7 @@ def 创建文件(上下文,政策,路径,文件文本,执行上下文):#仅在�
     if 上下文.fs.状态(目标,信号) is not None:#目标已存在
         raise 错误('File already exists at: '+目标['displayPath']+'. Cannot overwrite files using command `create`.')#create不得覆盖
     def 默认写意图():#瀑布末端默认意图
-        """默认仅在缺失时创建。"""
+        '默认仅在缺失时创建'
         return {'kind':'createIfAbsent'}#仅在缺失时创建
     意图=上下文.链式拦截(#询问写意图
         'fs/write-intent',#写意图瀑布
@@ -270,12 +272,12 @@ def 创建文件(上下文,政策,路径,文件文本,执行上下文):#仅在�
     return 'New file created successfully at: '+目标['displayPath']#面向模型的成功说明
 
 def 文件内替换(上下文,政策,路径,旧串,新串,执行上下文):#字面量替换恰好一处
-    """把文件中恰好一处 `old_str` 替换为 `new_str`。"""
+    '把文件中恰好一处 `old_str` 替换为 `new_str`'
     沙箱政策=政策.解析(执行上下文)#本次沙箱策略
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#中止信号
     目标=解析目标(上下文,路径,信号)#解析目标
     def 默认编辑意图():#瀑布末端默认意图
-        """没有编辑意图监听器时返回空。"""
+        '没有编辑意图监听器时返回空'
         return None#无意图
     意图=上下文.链式拦截('fs/edit-intent',目标,执行上下文,默认编辑意图)#询问编辑意图
     旧值=命令必填(旧串,'old_str','str_replace',False)#old_str必填且非空
@@ -316,7 +318,7 @@ def 文件内替换(上下文,政策,路径,旧串,新串,执行上下文):#字�
     return 'The file '+目标['displayPath']+' has been edited successfully.'#面向模型的成功说明
 
 def 文件内插入(上下文,政策,路径,插入行,新串,执行上下文):#在指定行后插入文本
-    """在指定行后插入 `new_str`。"""
+    '在指定行后插入 `new_str`'
     if 插入行 is None:#insert必填insert_line
         raise 错误('Parameter `insert_line` is required for command: insert')#缺失insert_line
     值=命令必填(新串,'new_str','insert')#insert必填new_str
@@ -324,7 +326,7 @@ def 文件内插入(上下文,政策,路径,插入行,新串,执行上下文):#�
     信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#中止信号
     目标=解析目标(上下文,路径,信号)#解析目标
     def 默认编辑意图():#瀑布末端默认意图
-        """没有编辑意图监听器时返回空。"""
+        '没有编辑意图监听器时返回空'
         return None#无意图
     意图=上下文.链式拦截('fs/edit-intent',目标,执行上下文,默认编辑意图)#询问编辑意图
     信息=状态已存在(上下文,目标,'insert',执行上下文)#确认存在且非目录
@@ -353,7 +355,7 @@ def 文件内插入(上下文,政策,路径,插入行,新串,执行上下文):#�
     return 'The file '+目标['displayPath']+' has been edited successfully.'#面向模型的成功说明
 
 def 呈现编辑器调用(参数):#调用中的编辑器卡片
-    """调用中呈现：`view`/`insert` 用通用卡片，`create`/`str_replace` 用 diff 卡片。"""
+    '调用中呈现：`view`/`insert` 用通用卡片，`create`/`str_replace` 用 diff 卡片'
     命令=参数['command']#当前命令
     路径=参数['path']#目标路径
     if 命令=='view':#查看
@@ -398,13 +400,13 @@ def 呈现编辑器调用(参数):#调用中的编辑器卡片
     raise 错误('unsupported str_replace_editor command: '+str(命令))#封闭联合穷尽
 
 def 登记字符串替换编辑器(上下文,已解析配置):#注册str_replace_editor
-    """注册面向模型的 `str_replace_editor` 工具。"""
+    '注册面向模型的 `str_replace_editor` 工具'
     政策=变更政策(上下文)#本次插件的变更策略
     def 渲染输出(_参数,值):#原样渲染为文本块
-        """规范输出为字符串文本块。"""
+        '规范输出为字符串文本块'
         return [{'type':'text','text':值}]#原样渲染为文本块
     def 执行(参数,执行上下文):#按命令分派
-        """按四种命令分派执行。"""
+        '按四种命令分派执行'
         命令=参数['command']#当前命令
         if 命令=='view':#查看
             return 查看路径(上下文,参数['path'],参数['view_range'] if 'view_range' in 参数 else None,已解析配置['maxOutputChars'],执行上下文)#文件或目录视图
@@ -475,7 +477,7 @@ def 登记字符串替换编辑器(上下文,已解析配置):#注册str_replace
     }))#defineTool与register结束
 
 def 解析配置(配置值):#填入默认值并校验
-    """schemastery 填入默认值之后的运行配置校验。"""
+    'schemastery 填入默认值之后的运行配置校验'
     if 配置值 is None:#缺省配置
         配置值={}#空映射
     最大=配置值['maxOutputChars'] if 'maxOutputChars' in 配置值 else None#视图字符上限
@@ -498,7 +500,7 @@ def 解析配置(配置值):#填入默认值并校验
     }#resolved结束
 
 def 应用(上下文,配置值=None):#注册str_replace_editor
-    """在文件系统上注册一个 str_replace_editor 工具。"""
+    '在文件系统上注册一个 str_replace_editor 工具'
     已解析=解析配置(配置值)#填入默认值
     登记字符串替换编辑器(上下文,已解析)#注册工具
 

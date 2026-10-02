@@ -1,11 +1,11 @@
 from .描述符 import 折叠子智能体描述符,子智能体描述符错误#导入描述符折叠
 
 def 计时初始():
-    """计时折叠初始状态。"""
+    '计时折叠初始状态'
     return {'descriptorSeen':False,'settledMs':0}#初始未见描述符
 
 def 计时应用(状态,事件):
-    """围绕子体自身耐久描述符折叠回合边界。状态与事件为 dict。"""
+    '围绕子体自身耐久描述符折叠回合边界。状态与事件为 dict'
     类型=事件['type'] if 'type' in 事件 else None#事件类型
     时刻=事件['time'] if 'time' in 事件 else None#事件时间
     if 类型=='turn/start':#回合开始
@@ -49,7 +49,7 @@ def 计时应用(状态,事件):
     return 下一#新状态
 
 def 计时视图(状态):
-    """计时投影公开视图。状态为 dict。省略无开放区间的 active 键。"""
+    '计时投影公开视图。状态为 dict。省略无开放区间的 active 键'
     已结算=状态['settledMs'] if 'settledMs' in 状态 else 0#已结算毫秒
     视图={'settledMs':已结算}#已结算毫秒
     if 'active' in 状态 and 状态['active'] is not None:#有开放区间才带上
@@ -66,7 +66,7 @@ def 计时视图(状态):
 }#subagentTimingProjectionDefinition结束
 
 def 描述符身份(事件):
-    """解释一条 subagent/descriptor 事件的身份；载荷不可信时无值。事件为 dict。"""
+    '解释一条 subagent/descriptor 事件的身份；载荷不可信时无值。事件为 dict'
     try:
         描述符=折叠子智能体描述符([事件])#解析描述符
     except 子智能体描述符错误:
@@ -82,11 +82,11 @@ def 描述符身份(事件):
     return {'mode':'continuable','label':描述符['label'],'seq':序号}#可续跑身份
 
 def 身份初始():
-    """身份折叠初始状态。"""
+    '身份折叠初始状态'
     return {}#初始无身份
 
 def 身份应用(状态,事件):
-    """从 subagent/descriptor 事件后写折叠耐久模式/标签身份。状态与事件为 dict。"""
+    '从 subagent/descriptor 事件后写折叠耐久模式/标签身份。状态与事件为 dict'
     if 'type' not in 事件 or 事件['type']!='subagent/descriptor':#非描述符忽略
         return 状态#原样
     身份=描述符身份(事件)#解释身份
@@ -95,7 +95,7 @@ def 身份应用(状态,事件):
     return {'identity':身份}#合法则后写
 
 def 身份视图(状态):
-    """无身份则 None。状态为 dict。"""
+    '无身份则 None。状态为 dict'
     if 'identity' in 状态:#有身份
         return 状态['identity']#身份
     return None#无身份

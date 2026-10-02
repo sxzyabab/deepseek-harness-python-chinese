@@ -6,22 +6,22 @@ from ..cdp.源 import 拒绝源桥命令#拒绝Sources桥
 __all__=['宿主桥帧处理器','分发桥帧']#仅中文公开名
 
 class 宿主桥帧处理器:#Host桥帧处理器
-    """针对发往 Host 的 source 生命周期帧调用的操作。"""
+    '针对发往 Host 的 source 生命周期帧调用的操作'
     def 接纳(自身,帧):#接受
-        """接受。"""
+        '接受'
         raise NotImplementedError#子类实现
     def 确认(自身,帧):#确认追加
-        """确认追加。"""
+        '确认追加'
         raise NotImplementedError#子类实现
     def 重快照(自身,帧):#重快照
-        """重快照。"""
+        '重快照'
         raise NotImplementedError#子类实现
     def 拒绝(自身,帧):#拒绝
-        """拒绝。"""
+        '拒绝'
         raise NotImplementedError#子类实现
 
 def 分发桥帧(帧,处理器):#分发桥帧
-    """分发一帧已校验的 Worker 帧，并在 Host 载体上拒绝仅 Client 的命令。"""
+    '分发一帧已校验的 Worker 帧，并在 Host 载体上拒绝仅 Client 的命令'
     类型=帧['t'] if 't' in 帧 else None#类型
     if 类型=='source/accepted':#接受
         处理器.接纳(帧)#回调

@@ -1,4 +1,4 @@
-"""校验持久重试事件与失败事实（dict）。"""
+'校验持久重试事件与失败事实（dict）'
 import json,math
 from ...工具.超时 import 定时器延迟上限毫秒
 from .历史 import 打开步提供方
@@ -11,13 +11,13 @@ __all__=('包名','名称','依赖','安装','应用')
 依赖=['invariants']
 
 def 转JS字符串(值):
-    """None 写成字面量 undefined，其余用 str()；供持久事件诊断串。"""
+    'None 写成字面量 undefined，其余用 str()；供持久事件诊断串'
     if 值 is None:
         return 'undefined'
     return str(值)
 
 def 校验失败载荷(值,失败):
-    """在持久边界校验完整的提供方中立失败载荷。值为 dict。"""
+    '在持久边界校验完整的提供方中立失败载荷。值为 dict'
     if 值 is None or not isinstance(值,dict):
         失败('llm/retry failure must be an object')
     if 'message' not in 值 or not isinstance(值['message'],str) or len(值['message'])==0:
@@ -38,7 +38,7 @@ def 校验失败载荷(值,失败):
             失败('llm/retry failure.requestId must be a non-empty string when present')
 
 def 从后找(事件列表,判断):
-    """从后往前找出第一条命中的事件。"""
+    '从后往前找出第一条命中的事件'
     下标=len(事件列表)-1
     while 下标>=0:
         事件=事件列表[下标]
@@ -48,7 +48,7 @@ def 从后找(事件列表,判断):
     return None
 
 def 校验重试(历史,事件,失败):
-    """对照当前打开的请求步校验一条重试记录。事件为 dict。"""
+    '对照当前打开的请求步校验一条重试记录。事件为 dict'
     载荷=事件['data']
     链身份=载荷['retryId'] if 'retryId' in 载荷 else None
     回合=载荷['turn'] if 'turn' in 载荷 else None
@@ -80,7 +80,7 @@ def 校验重试(历史,事件,失败):
     if isinstance(延迟毫秒,bool) or not isinstance(延迟毫秒,(int,float)) or not math.isfinite(延迟毫秒) or 延迟毫秒<0 or 延迟毫秒>定时器延迟上限毫秒:
         失败('llm/retry delayMs must be a finite number within 0..'+str(定时器延迟上限毫秒))
     def 是回合边界(先前):
-        """回合开始或结束。"""
+        '回合开始或结束'
         类型=先前['type']
         return 类型=='turn/start' or 类型=='turn/end'
     回合边界=从后找(历史,是回合边界)
@@ -90,7 +90,7 @@ def 校验重试(历史,事件,失败):
     if 回合!=打开回合:
         失败('llm/retry names turn '+转JS字符串(回合)+', but the open turn is '+转JS字符串(打开回合))
     def 是步边界(先前):
-        """步开始或结束。"""
+        '步开始或结束'
         类型=先前['type']
         return 类型=='step/start' or 类型=='step/end'
     步边界=从后找(历史,是步边界)
@@ -105,7 +105,7 @@ def 校验重试(历史,事件,失败):
     if 路由提供方!=提供方:
         失败('llm/retry provider '+转JS字符串(提供方)+' does not match the failed request provider '+转JS字符串(路由提供方))
     def 是同政策重试(先前):
-        """同回合同一步同一提供方同一政策的重试。"""
+        '同回合同一步同一提供方同一政策的重试'
         if 先前['type']!='llm/retry':
             return False
         先前载荷=先前['data']
@@ -119,7 +119,7 @@ def 校验重试(历史,事件,失败):
         失败('llm/retry must preserve retryId across one provider-policy chain')
     if 先前政策重试 is None:
         def 占用链身份(先前):
-            """已被别的链占用的 retryId。"""
+            '已被别的链占用的 retryId'
             类型=先前['type']
             if 类型!='llm/retry' and 类型!='llm/retry-started':
                 return False
@@ -128,7 +128,7 @@ def 校验重试(历史,事件,失败):
             失败('llm/retry retryId '+json.dumps(链身份,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is already owned by another chain')
 
 def 校验已开始(历史,事件,失败):
-    """对照其已调度尝试校验一次等待完成过渡。事件为 dict。"""
+    '对照其已调度尝试校验一次等待完成过渡。事件为 dict'
     载荷=事件['data']
     链身份=载荷['retryId'] if 'retryId' in 载荷 else None
     回合=载荷['turn'] if 'turn' in 载荷 else None
@@ -137,7 +137,7 @@ def 校验已开始(历史,事件,失败):
     if not isinstance(链身份,str) or len(链身份)==0:
         失败('llm/retry-started retryId must be a non-empty string')
     def 是配对调度(先前):
-        """同链同序号的 llm/retry。"""
+        '同链同序号的 llm/retry'
         if 先前['type']!='llm/retry':
             return False
         先前载荷=先前['data']
@@ -149,7 +149,7 @@ def 校验已开始(历史,事件,失败):
     if 调度载荷['turn']!=回合 or 调度载荷['step']!=步:
         失败('llm/retry-started turn/step must match its scheduled attempt')
     def 是重复过渡(先前):
-        """已经有同一次的过渡。"""
+        '已经有同一次的过渡'
         if 先前['type']!='llm/retry-started':
             return False
         先前载荷=先前['data']
@@ -158,7 +158,7 @@ def 校验已开始(历史,事件,失败):
         失败('llm/retry-started repeats one scheduled attempt')
 
 def 校验会话(会话,失败):
-    """校验一份已加载会话里已有的每条重试记录。会话为对象，事件为 dict。"""
+    '校验一份已加载会话里已有的每条重试记录。会话为对象，事件为 dict'
     事件列表=会话.events
     下标=0
     for 事件 in 事件列表:
@@ -170,15 +170,15 @@ def 校验会话(会话,失败):
         下标+=1
 
 def 安装(上下文,失败):
-    """给已加载与新追加的重试记录安装校验。"""
+    '给已加载与新追加的重试记录安装校验'
     for 会话 in 上下文.sessions.列出():
         校验会话(会话,失败)
     def 新会话(会话):
-        """新会话也回放。"""
+        '新会话也回放'
         校验会话(会话,失败)
     上下文.监听('session/created',新会话,{'全局':True})
     def 分派钩子(模式,事件名,参数列表,*其余):
-        """新追加的会话事件。"""
+        '新追加的会话事件'
         if 事件名!='session/event':
             return
         会话=参数列表[0]
@@ -193,7 +193,7 @@ def 安装(上下文,失败):
 安装.inject=['sessions']
 
 def 应用(上下文):
-    """注册 LLM 重试不变量配套。"""
+    '注册 LLM 重试不变量配套'
     return 上下文.invariants.register(包名,安装)
 
 name=名称#框架槽

@@ -1,7 +1,7 @@
 __all__=['是可见聊天节点']
 
 def 是可见聊天节点(节点):
-    """排除系统提示、普通上下文与权限命令；持久事件与轨迹检视不受影响。节点为 dict。"""
+    '排除系统提示、普通上下文与权限命令；持久事件与轨迹检视不受影响。节点为 dict'
     if 节点['visibility']!='visible':
         return False
     种=节点['kind'] if 'kind' in 节点 else None

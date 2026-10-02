@@ -1,4 +1,4 @@
-"""面向模型的整文件写入。它从单策略槽取得可选意图，不经 stat 调用文件系统的写入文本，然后记录结果版本；没有策略表示无条件原子创建或覆盖。"""
+'面向模型的整文件写入'
 from ...内核.工具 import 定义工具#导入工具定义
 from .. import 文件系统 as fs#文件系统错误
 from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
@@ -9,20 +9,22 @@ from .会话工作目录 import 会话解析选项#导入会话cwd解析选项
     'Use the write tool to create files or completely replace file contents. Existing files are overwritten, so read an existing file first (the default fs-observation-policy requires it)'#整文件创建/覆盖：先读后写
 )#写提示文本前缀结束
 def 解析写参数(参数):#校验写工具参数
-    """校验 schema DSL 表达不了的值约束：只要非空白 file_path——空 content 合法。"""
+    '校验 schema DSL 表达不了的值约束：只要非空白 file_path——空 content 合法'
     if len(参数['file_path'].strip())==0:#路径不得为空
         raise 工具文件系统错误('file_path must be a non-empty string')#路径不得为空
     return {'路径':参数['file_path'],'内容':参数['content']}#转为内部字段
 
 def 格式化写输出(展示路径,结果):#格式化写结果确认信封
-    """把写入结果格式化成一块面向模型的文本体。确认信封不含文件内容。"""
+    """把写入结果格式化成一块面向模型的文本体。
+    确认信封不含文件内容
+    """
     动词='Created' if 结果['operation']=='create' else 'Updated'#按操作选择动词
     return '<path>'+展示路径+'</path>\n<type>file</type>\n<content>\n'+动词+' file\n</content>'#确认信封
 
 def 应用写工具(上下文,沙箱):#注册 write 工具
-    """注册 write 工具及其系统提示词指引。"""
+    '注册 write 工具及其系统提示词指引'
     def 段落文本(上下文元):#按作用域
-        """本作用域无 write 则空；有 edit 时补定向修改指引。"""
+        '本作用域无 write 则空；有 edit 时补定向修改指引'
         作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域
         if 上下文.tools.获取('write',作用域) is None:#看不见
             return ''#空
@@ -42,20 +44,20 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
     if len(沙箱.升级模式)>0:#隔离后端才展开升级字段
         参数表.update(沙箱.模式字段())#升级字段
     def 渲染(参数,值):#模型可见确认信封
-        """模型可见确认信封。"""
+        '模型可见确认信封'
         return [{'type':'text','text':格式化写输出(值['path'],值)}]#确认信封
     def 呈现元数据(参数,值):#结果呈现用的 diff meta
-        """结果呈现用的 diff meta。"""
+        '结果呈现用的 diff meta'
         if 'before' not in 值 or 值['before'] is None:#没有before则无hunk
             差异列表=[]#空diff列表
         else:#有基准文本
             差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(参数['file_path'],值['before'],值['after'])]#只保留展示字段
         return {'operation':值['operation'],'diffs':差异列表}#含operation的diff meta
     def 无条件意图():#裸默认无条件写入
-        """裸默认无条件写入。"""
+        '裸默认无条件写入'
         return None#无条件
     def 执行(参数,执行上下文):#执行写入
-        """执行写入。"""
+        '执行写入'
         输入=解析写参数(参数)#校验参数
         沙箱政策=沙箱.解析政策('write',参数,执行上下文)#解析沙箱策略
         政策根=沙箱政策['workspaceRoot'] if 沙箱政策 is not None and 'workspaceRoot' in 沙箱政策 else None#政策工作区根
@@ -73,7 +75,9 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
             'after':结局['after'],#写入后文本
         }#结果结束
     def 呈现调用(参数):#调用时 diff 卡片
-        """调用时 diff 卡片。拿不到先前文件内容，因此 oldText 为 None 也表示覆盖。"""
+        """调用时 diff 卡片。
+        拿不到先前文件内容，因此 oldText 为 None 也表示覆盖
+        """
         return {#卡片
             'card':'diff',#diff卡片
             'title':'Write '+参数['file_path'],#标题
@@ -81,7 +85,10 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
             'locations':[{'path':参数['file_path']}],#位置
         }#卡片结束
     def 呈现结果(参数,结果):#结果时 diff 卡片
-        """结果时 diff 卡片。错误结果不展示。畸形则回退到调用参数。"""
+        """结果时 diff 卡片。
+        错误结果不展示。
+        畸形则回退到调用参数
+        """
         if 'isError' in 结果 and 结果['isError']:#错误结果
             return None#不展示diff
         差异列表=从元数据取差异(结果['meta'] if 'meta' in 结果 else None)#从meta收窄hunk

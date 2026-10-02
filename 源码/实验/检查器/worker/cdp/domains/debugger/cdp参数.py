@@ -1,13 +1,13 @@
 __all__=['解析调用帧求值','取请求脚本id']#仅中文公开名
 
 def _精确键(参数,允许键,标签):#精确键校验
-    """拒绝未声明键。"""
+    '拒绝未声明键'
     for 键 in 参数:#扫键
         if 键 not in 允许键:#多余
             raise ValueError(f'{标签} 有未声明的键 {键}')#抛错
 
 def _可选布尔(参数,键):#可选布尔
-    """有则校验为布尔。"""
+    '有则校验为布尔'
     if 键 not in 参数:#缺省
         return {}#空
     值=参数[键]#取值
@@ -16,7 +16,7 @@ def _可选布尔(参数,键):#可选布尔
     return {键:值}#字段
 
 def _可选字符串(参数,键):#可选字符串
-    """有则校验为字符串。"""
+    '有则校验为字符串'
     if 键 not in 参数:#缺省
         return {}#空
     值=参数[键]#取值
@@ -25,7 +25,7 @@ def _可选字符串(参数,键):#可选字符串
     return {键:值}#字段
 
 def 解析调用帧求值(参数):#解析调用帧求值
-    """解析 Debugger.evaluateOnCallFrame，不静默接受不支持的选项。"""
+    '解析 Debugger.evaluateOnCallFrame，不静默接受不支持的选项'
     _精确键(参数,[#精确键
         'callFrameId','expression','objectGroup','includeCommandLineAPI','silent','returnByValue',#常用
         'generatePreview','throwOnSideEffect','timeout',#其余
@@ -50,7 +50,7 @@ def 解析调用帧求值(参数):#解析调用帧求值
     return 结果#返回
 
 def 取请求脚本id(参数):#取脚本id
-    """查找直接携带或由 Debugger 位置参数携带的 ScriptId。"""
+    '查找直接携带或由 Debugger 位置参数携带的 ScriptId'
     if isinstance(参数.get('scriptId'),str):#直接字段
         return 参数['scriptId']#返回
     for 键 in ('location','start','end'):#位置字段

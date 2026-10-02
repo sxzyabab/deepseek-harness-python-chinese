@@ -1,11 +1,7 @@
-"""远程贡献组装的宿主入口。
-
-各归属包类型模块侧效拉入，使转发事件键面与宿主声明同源。
-用显式成员断言代替形态门禁。
-"""
+'远程贡献组装的宿主入口'
 import os,json,threading
 from ...内核.作用域 import 获取载体键
-from ...typert.协议 import 是否远程json值
+from ...类型化远程调用.协议 import 是否远程json值
 from ...工具.双端队列 import 双端队列
 from ...api.网关.网关 import 操作任务,已中止
 from ...交互.命令 import 类型 as _命令类型#侧效：命令事件声明
@@ -13,7 +9,7 @@ from ...拓展.cordis服务端 import 类型 as _动态类型#侧效：动态包
 from ...凭据.凭据 import 类型 as _凭据类型#侧效：凭证事件声明
 from ...目标.目标 import 类型 as _目标类型#侧效：目标事件声明
 from ...模型后端.llm import 类型 as _大模型类型#侧效：大模型事件声明
-from ...预设.智能体预设 import 类型 as _预设类型#侧效：智能体预设事件
+from ...预设.智能体预设注册表 import 类型 as _预设类型#侧效：智能体预设事件
 from ...配置.配置 import 类型 as _设置类型#侧效：设置事件声明
 from ...交互.用户审批 import 类型 as _审批类型#侧效：用户审批事件声明
 from ...交互.用户提问 import 类型 as _提问类型#侧效：用户提问事件声明
@@ -46,28 +42,28 @@ __all__=[
 ]
 
 def 应用(上下文):
-    """登记本应用选定的 Cordis 事件源。"""
+    '登记本应用选定的 Cordis 事件源'
     def 登记():
-        """把事件源交给网关。"""
+        '把事件源交给网关'
         return 上下文.typertGateway.登记远程事件(远程事件源(上下文),{'home':os.path.expanduser('~')})
     上下文.副作用(登记,'api-remotes: forwarded Cordis event source')
 
 def 远程事件源(上下文):
-    """创建网关消费的唯一队列与监听器集。"""
+    '创建网关消费的唯一队列与监听器集'
     def 打开(信号):
-        """挂上白名单监听并交出迭代器。"""
+        '挂上白名单监听并交出迭代器'
         队列=远程事件队列()
         拆除表=[]
         for 条目 in 远程转发事件:
             事件=条目['event']
             if 条目['mode']=='emit':
                 def 发射(*位置参数,事件名=事件,目标=队列):
-                    """把 emit 参数推进队列。"""
+                    '把 emit 参数推进队列'
                     目标.推入({'event':事件名,'args':断言json参数(事件名,位置参数)})
                 拆除表.append(上下文.监听(事件,发射))
             else:
                 def 瀑布(*位置参数,事件名=事件,目标=队列):
-                    """把作用域瀑布交给网关。"""
+                    '把作用域瀑布交给网关'
                     if len(位置参数)>=3:
                         载体,请求,下一步=位置参数[0],位置参数[1],位置参数[2]
                     elif len(位置参数)==2:
@@ -83,23 +79,23 @@ def 远程事件源(上下文):
                     return 转发瀑布(目标,事件名,请求,{'value':智能体.ctx,'subject':智能体,'agentId':智能体.id},下一步)
                 拆除表.append(上下文.监听(事件,瀑布))
         def 清理():
-            """拆除监听。"""
+            '拆除监听'
             for 拆除 in 拆除表:
                 拆除()
         return 队列.迭代(信号,清理)
     return 打开
 
 class 远程事件队列:
-    """把同步 Cordis 监听接到可拉取迭代。"""
+    '把同步 Cordis 监听接到可拉取迭代'
 
     def __init__(自身):
-        """构造空队列。"""
+        '构造空队列'
         自身.缓冲=双端队列()
         自身.等待事件=threading.Event()
         自身.已结束=False
 
     def 推入(自身,帧):
-        """入队一帧。"""
+        '入队一帧'
         if 自身.已结束:
             return False
         自身.缓冲.尾推(帧)
@@ -107,7 +103,7 @@ class 远程事件队列:
         return True
 
     def 结束(自身,原因):
-        """结束并拒绝挂起瀑布。"""
+        '结束并拒绝挂起瀑布'
         if 自身.已结束:
             return
         自身.已结束=True
@@ -118,7 +114,7 @@ class 远程事件队列:
         自身.等待事件.set()
 
     def 迭代(自身,信号,清理):
-        """拉取直至中止。"""
+        '拉取直至中止'
         try:
             while True:
                 if 自身.已结束 or 已中止(信号):
@@ -135,16 +131,16 @@ class 远程事件队列:
             清理()
 
 def 远程事件源结束原因(信号):
-    """源关闭原因。"""
+    '源关闭原因'
     if 已中止(信号):
         return 信号._异常
     return Exception('api-remotes: 转发的 Remote 事件源已结束')
 
 def 转发瀑布(队列,事件,请求,上下文,下一步):
-    """把一次 Cordis 瀑布经网关挂起事件桥出。"""
+    '把一次 Cordis 瀑布经网关挂起事件桥出'
     任务=操作任务()
     def 兑现(结局):
-        """客户端结果或委托下一环。"""
+        '客户端结果或委托下一环'
         if 结局.get('kind')=='result':
             任务.兑现(结局.get('value'))
             return
@@ -164,14 +160,14 @@ def 转发瀑布(队列,事件,请求,上下文,下一步):
     return 任务.等待()
 
 def 断言json参数(事件,参数列表):
-    """参数必须是无损 JSON。"""
+    '参数必须是无损 JSON'
     for 下标,参数 in enumerate(参数列表):
         if not 是否远程json值(参数):
             raise Exception('转发的宿主事件 "'+事件+'" 第 '+str(下标)+' 个参数不是无损 JSON 数据')
     return list(参数列表)
 
 def _断言可转发白名单(白名单):
-    """断言白名单每条均为选择席位键，且与席位键集合一致。"""
+    '断言白名单每条均为选择席位键，且与席位键集合一致'
     席位键=frozenset(远程事件选择席位.__annotations__)
     if not isinstance(白名单,(tuple,list)):
         raise AssertionError('API_REMOTE_FORWARDED_EVENTS must be a sequence of event names')

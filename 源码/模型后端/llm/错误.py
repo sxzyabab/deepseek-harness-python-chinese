@@ -1,8 +1,4 @@
-"""带稳定、可供程序路由的 code 与链式 cause 的 Harness 错误基类。
-
-公开面仅中文名；失败码字面量为线协议原样保留。
-无英文别名。中文消费方别名（超出／溢出）保留供下游包导入。
-"""
+'带稳定、可供程序路由的 code 与链式 cause 的 Harness 错误基类'
 import re#正则
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#聚合错误
@@ -41,9 +37,9 @@ __all__=(#仅中文公开名
     re.I)#对模型来说太长/太大
 
 class 装备错误(Exception):#所有 Harness 错误的基类
-    """所有 Harness 错误的基类，携带稳定 code 与可选 cause。"""
+    '所有 Harness 错误的基类，携带稳定 code 与可选 cause'
     def __init__(自身,消息,码,选项=None):#记下稳定 code，并把 cause 链到本错误
-        """记下稳定 code，并把 cause 链到本错误。"""
+        '记下稳定 code，并把 cause 链到本错误'
         super().__init__(消息)#交给 Exception
         自身.message=消息#可读消息
         自身.code=码#记下稳定 code
@@ -56,7 +52,7 @@ class 装备错误(Exception):#所有 Harness 错误的基类
             自身.__cause__=原因#Python 异常链
 
 def 是否上下文窗口溢出(细节):#识别上下文溢出措辞
-    """识别 OpenAI 兼容提供方与库适配器使用的上下文溢出措辞。"""
+    '识别 OpenAI 兼容提供方与库适配器使用的上下文溢出措辞'
     return bool(#任一措辞命中
         结构化上下文溢出.search(细节)#结构化溢出
         or 最大上下文长度.search(细节)#max context
@@ -66,7 +62,7 @@ def 是否上下文窗口溢出(细节):#识别上下文溢出措辞
     )#任一措辞命中
 
 def 是否配额耗尽(细节):#识别账户配额耗尽措辞
-    """识别标识账户配额耗尽、而非瞬时请求速率限制的提供方措辞。"""
+    '识别标识账户配额耗尽、而非瞬时请求速率限制的提供方措辞'
     return bool(#仅终止性配额措辞
         re.search(r'\binsufficient[\s_-]+(?:quota|balance|credits?)\b',细节,re.I)#insufficient
         or re.search(r'\b(?:quota|usage[\s_-]+limit)[\s_-]+(?:exceeded|exhausted|reached)\b',细节,re.I)#quota limit
@@ -76,10 +72,10 @@ def 是否配额耗尽(细节):#识别账户配额耗尽措辞
     )#仅终止性配额措辞
 
 def 错误链(值):#渲染抛出值与 cause 链
-    """把抛出值连同完整 cause 链与聚合成员渲染出来。"""
+    '把抛出值连同完整 cause 链与聚合成员渲染出来'
     路径=set()#当前递归路径上的对象 id
     def 渲染(当前):#递归渲染一个节点
-        """递归渲染一个节点。"""
+        '递归渲染一个节点'
         编号=id(当前)#对象身份
         if 编号 in 路径:#环
             return '<circular cause>'#环则停
@@ -122,7 +118,7 @@ def 错误链(值):#渲染抛出值与 cause 链
     return 渲染(值)#从最外层开始
 
 def 是否装备错误(值):#收窄为装备错误实例
-    """把任意抛出值收窄为装备错误实例。"""
+    '把任意抛出值收窄为装备错误实例'
     return isinstance(值,装备错误)#按类身份判定
 
 上下文窗口超出码=上下文窗口溢出码#消费方别名

@@ -4,7 +4,7 @@ from .json模式 import 断言受支持json模式,转json#导入统一 JSON Sche
 __all__=('json模式转py','渲染工具sdkpy')#仅中文公开名
 
 class 类型渲染错误(Exception):
-    """内核工具类型渲染包的异常基类。"""
+    '内核工具类型渲染包的异常基类'
 
 保留字={
     'False','None','True','and','as','assert','async','await','break','class',
@@ -20,23 +20,23 @@ class 类型渲染错误(Exception):
 安全整数上限=2**53-1#JS 安全整数上限
 
 def 是否裸标识符(名称):
-    """名字能否作为裸 Python 标识符发出。"""
+    '名字能否作为裸 Python 标识符发出'
     return 名称.isidentifier() and unicodedata.normalize('NFKC',名称)==名称#文法匹配且 NFKC 稳定
 
 def 缩进前缀(层数):
-    """indent 层行前缀（每层四空格）。"""
+    'indent 层行前缀（每层四空格）'
     return '    '*层数#四空格一层
 
 def 转义不可打印(字符):
-    """Cc 控制转成 \\xNN。"""
+    'Cc 控制转成 \\xNN'
     return '\\x'+format(ord(字符),'02x')#Cc → \xNN
 
 def 转义代理(字符):
-    """未配对代理转成 \\uNNNN。"""
+    '未配对代理转成 \\uNNNN'
     return '\\u'+format(ord(字符),'04x')#代理 → \uNNNN
 
 def 折叠描述(模式节点):
-    """模式节点折叠成单行的 description。"""
+    '模式节点折叠成单行的 description'
     描述=模式节点['description'] if 'description' in 模式节点 else None#取出描述
     if not isinstance(描述,str):
         return None#非字符串则无
@@ -47,7 +47,7 @@ def 折叠描述(模式节点):
     return None if len(折叠)==0 else 折叠#空则视为无描述
 
 def 文档行(描述,层数):
-    """工具 description 的单行文档字符串；没有则无行。"""
+    '工具 description 的单行文档字符串；没有则无行'
     折叠=折叠描述({'description':描述})#经同一折叠
     if 折叠 is None:
         return []#无描述则无行
@@ -55,11 +55,11 @@ def 文档行(描述,层数):
     return [缩进前缀(层数)+'"""'+转义+'"""']#单行三引号
 
 def 是否续写(字符):
-    """字符能否出现在标识符续写位置。"""
+    '字符能否出现在标识符续写位置'
     return ('x'+字符).isidentifier()#续写检测
 
 def 驼峰(原始):
-    """把名字 CamelCase 成 Python 类型标识符。"""
+    '把名字 CamelCase 成 Python 类型标识符'
     段列表=[]#切词
     当前=[]#当前段
     for 字符 in 原始:
@@ -84,7 +84,7 @@ def 驼峰(原始):
     return unicodedata.normalize('NFKC',结果)#加前缀后再规范
 
 def 截断类名基(基名):
-    """把类名基截到上限。"""
+    '把类名基截到上限'
     if len(基名)<=类名基上限:
         return 基名#未超上限
     截断=基名[:类名基上限]#按码元切
@@ -93,7 +93,7 @@ def 截断类名基(基名):
     return 截断#已截断
 
 def 分配类名(基名,状态):
-    """从基名预约唯一类名，碰撞时加后缀。"""
+    '从基名预约唯一类名，碰撞时加后缀'
     截断=截断类名基(基名)#先截断
     名称=截断#候选
     if 名称 in 状态['usedClassNames']:
@@ -106,11 +106,11 @@ def 分配类名(基名,状态):
     return 名称#唯一类名
 
 def 子类名基(基名,片段):
-    """把子名片段接到父类名基上。"""
+    '把子名片段接到父类名基上'
     return 截断类名基(unicodedata.normalize('NFKC',基名+片段))#拼接、规范、截断
 
 def python标量(值):
-    """把已校验标量渲染成 Python 字面量文本。"""
+    '把已校验标量渲染成 Python 字面量文本'
     if 值 is True:
         return 'True'#布尔真
     if 值 is False:
@@ -126,7 +126,7 @@ def python标量(值):
     return str(值)#安全整数或浮点
 
 def 渲染受约束标量(节点,宽类型,状态):
-    """把已校验标量 const/enum 渲染成 Literal，否则回落宽类型。"""
+    '把已校验标量 const/enum 渲染成 Literal，否则回落宽类型'
     if 'const' in 节点:
         状态['typing'].add('Literal')#需要 Literal
         return 'Literal['+python标量(节点['const'])+']'#Literal 常量
@@ -136,7 +136,7 @@ def 渲染受约束标量(节点,宽类型,状态):
     return 宽类型#宽类型
 
 def 建渲染帧(模式节点,类名,列表深度):
-    """建一帧 Python 类型渲染。"""
+    '建一帧 Python 类型渲染'
     return {
         'schema':模式节点,#本节点
         'className':类名,#类名前缀
@@ -152,7 +152,7 @@ def 建渲染帧(模式节点,类名,列表深度):
     }#空聚合
 
 def 是否可作typeddict字段(名称):
-    """字段名能否作为类语法 TypedDict 字段。"""
+    '字段名能否作为类语法 TypedDict 字段'
     if not 是否裸标识符(名称):
         return False#非法标识符
     if 名称 in 保留字:
@@ -162,12 +162,12 @@ def 是否可作typeddict字段(名称):
     return True#可作字段
 
 def 渲染类型(模式节点,类名,状态):
-    """把一个 JSON Schema 节点映射成 Python 类型表达式。"""
+    '把一个 JSON Schema 节点映射成 Python 类型表达式'
     断言受支持json模式(模式节点)#断言子集
     帧列表=[建渲染帧(模式节点,类名,0)]#根帧
     根结果=None#根类型文本
     def 结束(类型文本):
-        """结束当前帧。"""
+        '结束当前帧'
         nonlocal 根结果#写根
         帧列表.pop()#弹出
         if len(帧列表)==0:
@@ -292,7 +292,7 @@ def 渲染类型(模式节点,类名,状态):
     return 根结果#根类型
 
 def json模式转py(模式节点):
-    """把一个 JSON Schema 节点映射成来自 typing 模块的无上下文 Python 类型表达式。"""
+    '把一个 JSON Schema 节点映射成来自 typing 模块的无上下文 Python 类型表达式'
     return 渲染类型(模式节点,'',{'classes':[],'usedClassNames':set(),'nextClassCounter':{},'typing':set()})#空类名标记无上下文
 
 sdk说明='''## Writing code for run_code
@@ -307,9 +307,9 @@ sdk说明='''## Writing code for run_code
 The available tools:'''#模型可见用法说明，保持英文
 
 def 渲染工具sdkpy(模式列表):
-    """渲染完整 tools:sdk 提示词段（Python 风味）。"""
+    '渲染完整 tools:sdk 提示词段（Python 风味）'
     def 按名(项):
-        """取出工具名供字典序。"""
+        '取出工具名供字典序'
         return 项['name']#名
     已排序=sorted(模式列表,key=按名)#字典序
     状态={'classes':[],'usedClassNames':set(),'nextClassCounter':{},'typing':set(['Protocol'])}#收集器；协议必用

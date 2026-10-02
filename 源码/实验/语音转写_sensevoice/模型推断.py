@@ -5,7 +5,7 @@ from .输入 import 校验输入
 __all__=['创建转写器']
 
 def 创建转写器(配置):
-    """加载一对本地模型；每条录音重置 VAD 并更新语言提示。"""
+    '加载一对本地模型；每条录音重置 VAD 并更新语言提示'
     识别器=sherpa_onnx.OfflineRecognizer.from_sense_voice(
         model=配置['model'],
         tokens=配置['tokens'],
@@ -25,7 +25,7 @@ def 创建转写器(配置):
     vad配置.provider='cpu'
     检测器=sherpa_onnx.VoiceActivityDetector(vad配置,配置['segmentSeconds']+配置['minSilenceSeconds']+1)
     def 转写(音频,语言):
-        """同步推理，不出进程。"""
+        '同步推理，不出进程'
         音频秒=校验输入(音频,语言,配置['maxAudioBytes'])
         pcm=memoryview(音频)[44:]
         样本=[]
@@ -37,7 +37,7 @@ def 创建转写器(配置):
         开始=time.perf_counter()
         文本=[]
         def 排空():
-            """取出全部 VAD 段。"""
+            '取出全部 VAD 段'
             while not 检测器.empty():
                 段=检测器.front
                 流=识别器.create_stream()

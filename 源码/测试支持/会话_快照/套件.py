@@ -25,40 +25,40 @@ __all__=[#仅中文公开名
 打包块行类型=frozenset(['text-chunks','reasoning-chunks','tool-call-chunks'])#打包行类型
 UUID模式=re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z',re.I|re.ASCII)#UUID
 def 子工具模式快照(索引):#子工具 schema 文件名
-    """返回某一子 fixture 索引的专用工具 schema sidecar。"""
+    '返回某一子 fixture 索引的专用工具 schema sidecar'
     return f'tool-schemas.{索引}.expected.json'#按索引命名
 
 def 子系统提示词快照(索引):#子系统提示词文件名
-    """返回某一子 fixture 索引的专用系统提示词 sidecar。"""
+    '返回某一子 fixture 索引的专用系统提示词 sidecar'
     return f'system-prompt.{索引}.expected.md'#按索引命名
 
 def 断言相等(实际,期望,消息=''):#相等断言
-    """vitest expect().toEqual / toBe 替代。"""
+    'vitest expect().toEqual / toBe 替代'
     if 实际!=期望:#不等
         raise Exception(消息 or f'{实际!r} != {期望!r}')#失败
 
 def 断言真(条件,消息=''):#真断言
-    """vitest expect().toBe(true) 替代。"""
+    'vitest expect().toBe(true) 替代'
     if not 条件:#假
         raise Exception(消息 or 'expected true')#失败
 
 def 断言大于(实际,下限,消息=''):#大于断言
-    """vitest expect().toBeGreaterThan 替代。"""
+    'vitest expect().toBeGreaterThan 替代'
     if not (实际>下限):#不大于
         raise Exception(消息 or f'{实际!r} !> {下限!r}')#失败
 
 def 读文本(路径):#读 utf-8 文本
-    """读取整个文本文件。"""
+    '读取整个文本文件'
     with open(路径,'r',encoding='utf-8') as 句柄:#打开
         return 句柄.read()#内容
 
 def 写文本(路径,内容):#写 utf-8 文本
-    """写入整个文本文件。"""
+    '写入整个文本文件'
     with open(路径,'w',encoding='utf-8',newline='\n') as 句柄:#打开
         句柄.write(内容)#写入
 
 def 场景是否跳过(场景,录制中,平台=None,有Pwsh=None):#场景是否跳过
-    """本模式与宿主下场景运行测试是否跳过。"""
+    '本模式与宿主下场景运行测试是否跳过'
     if 平台 is None:#缺省
         平台='win32' if os.name=='nt' else 'posix'#平台
     if 录制中 and not 场景.get('recorded'):#录制跳过手写
@@ -68,7 +68,7 @@ def 场景是否跳过(场景,录制中,平台=None,有Pwsh=None):#场景是否�
     return 场景.get('pwshOnly') is True and 有Pwsh is not True#无 pwsh 跳过
 
 def 标准输出期望变体(场景,平台=None):#选 stdout 期望变体
-    """选择共享 stdout 期望输出加上场景声明的任何平台原生断言。"""
+    '选择共享 stdout 期望输出加上场景声明的任何平台原生断言'
     if 平台 is None:#缺省
         平台='win32' if os.name=='nt' else 'posix'#平台
     规范={'file':'stdout.expected.jsonl','cwdPathMode':'canonical'}#规范变体
@@ -77,7 +77,7 @@ def 标准输出期望变体(场景,平台=None):#选 stdout 期望变体
     return [规范,{'file':视窗标准输出快照,'cwdPathMode':'native'}]#加 Windows 原生
 
 def 主张共享快照(主张表,源,场景,内容):#主张共享快照
-    """记录一个场景对共享快照源生成的内容。"""
+    '记录一个场景对共享快照源生成的内容'
     先前=主张表.get(源)#先前
     if 先前 is not None and 先前['content']!=内容:#分歧
         raise Exception(f"acp-snapshot: shared snapshot {源} diverged between {先前['scenario']} and {场景}")#分歧
@@ -85,7 +85,7 @@ def 主张共享快照(主张表,源,场景,内容):#主张共享快照
         主张表[源]={'scenario':场景,'content':内容}#登记
 
 def 断言唯一快照内容(种类,快照列表):#断言唯一
-    """拒绝不同路径下字节相同的已提交快照。"""
+    '拒绝不同路径下字节相同的已提交快照'
     首路径={}#内容→路径
     for 快照 in 快照列表:#逐份
         先前=首路径.get(快照['content'])#先前
@@ -94,20 +94,20 @@ def 断言唯一快照内容(种类,快照列表):#断言唯一
         首路径[快照['content']]=快照['path']#登记
 
 def 取子项索引(项):
-    """取出子 fixture 的序号供排序。"""
+    '取出子 fixture 的序号供排序'
     return 项['index']
 
 def 会话夹具名(名称列表):#会话 fixture 名
-    """校验并排序场景目录的会话 fixture 文件名（每角色取最高世代）。"""
+    '校验并排序场景目录的会话 fixture 文件名（每角色取最高世代）'
     return 会话夹具名列表(名称列表)#委托世代选择
 
 def 列出会话夹具(目录):#读目录会话 fixture 清单
-    """读取一个场景目录已校验的会话 fixture 清单。"""
+    '读取一个场景目录已校验的会话 fixture 清单'
     名称=[名 for 名 in os.listdir(目录) if os.path.isfile(os.path.join(目录,名))]#文件名
     return 会话夹具名(名称)#校验排序
 
 def 夹具上下文(夹具):#fixture 上下文
-    """从 fixture 自有会话头推导归一化值。"""
+    '从 fixture 自有会话头推导归一化值'
     首行=next((行 for 行 in 夹具.split('\n') if 行.strip()!=''),'{}')#首行
     头=json.loads(首行)#头
     return {#上下文
@@ -116,11 +116,11 @@ def 夹具上下文(夹具):#fixture 上下文
     }#返回
 
 def 是否记录(值):#是否字典
-    """非数组对象。"""
+    '非数组对象'
     return isinstance(值,dict)#字典
 
 def 归一化头事件(原始日志,上下文):#归一化头事件
-    """归一化请求头载荷同时保留原因。"""
+    '归一化请求头载荷同时保留原因'
     事件=[]#事件
     for 行 in 归一化会话日志(原始日志,上下文).split('\n'):#逐行
         if 行.strip()=='':#空
@@ -132,11 +132,11 @@ def 归一化头事件(原始日志,上下文):#归一化头事件
     return 事件#返回
 
 def 钉住头载荷(原始日志,上下文):#钉住头载荷
-    """拥有 sidecar 内容的头修订。"""
+    '拥有 sidecar 内容的头修订'
     return [事件['header'] for 事件 in 归一化头事件(原始日志,上下文) if 事件['reason']!='series']#过滤 series
 
 def 从头取工具模式(请求头列表):#从头取工具 schema
-    """从归一化头序列提取每个数组值工具目录。"""
+    '从归一化头序列提取每个数组值工具目录'
     结果=[]#结果
     for 头 in 请求头列表:#逐头
         if not 是否记录(头):#非对象
@@ -147,7 +147,7 @@ def 从头取工具模式(请求头列表):#从头取工具 schema
     return 结果#返回
 
 def 系统提示词自记录(记录):#取系统提示词
-    """一条已解析 system/message 的渲染提示词文本。"""
+    '一条已解析 system/message 的渲染提示词文本'
     if 记录.get('type')!='system/message':#非系统消息
         return None#无
     数据=记录.get('data') or {}#数据
@@ -161,11 +161,11 @@ def 系统提示词自记录(记录):#取系统提示词
     return 块.get('text') if isinstance(块,dict) and isinstance(块.get('text'),str) else None#文本
 
 def 归一化请求头(原始日志,上下文):#归一化请求头
-    """会话 JSONL 中每个 request/header 的 data.header 载荷。"""
+    '会话 JSONL 中每个 request/header 的 data.header 载荷'
     return [事件['header'] for 事件 in 归一化头事件(原始日志,上下文)]#头列表
 
 def 归一化系统提示词(原始日志,上下文):#归一化系统提示词
-    """每个 system/message 的归一化提示词文本，按日志顺序。"""
+    '每个 system/message 的归一化提示词文本，按日志顺序'
     结果=[]#结果
     for 记录 in 解析JSONL记录(归一化会话日志(原始日志,上下文)):#逐记录
         提示=系统提示词自记录(记录)#取提示词
@@ -174,7 +174,7 @@ def 归一化系统提示词(原始日志,上下文):#归一化系统提示词
     return 结果#返回
 
 def 系统提示词先于请求(原始日志):#系统提示词是否先于请求
-    """首个 request/header（若有）是否跟在 system/message 之后。"""
+    '首个 request/header（若有）是否跟在 system/message 之后'
     类型列表=[记录.get('type') for 记录 in 解析JSONL记录(原始日志)]#类型序列
     try:#首请求头
         首头=类型列表.index('request/header')#索引
@@ -187,17 +187,17 @@ def 系统提示词先于请求(原始日志):#系统提示词是否先于请求
     return 首提示<首头#提示在前
 
 def 归一化工具模式(原始日志,上下文):#归一化工具 schema
-    """请求头携带的归一化工具 schema 数组。"""
+    '请求头携带的归一化工具 schema 数组'
     return 从头取工具模式(归一化请求头(原始日志,上下文))#schema
 
 def 格式化工具模式快照(初始,变更=None):#格式化工具 schema 快照
-    """把完整工具 schema 序列渲染为规范可读 JSON。"""
+    '把完整工具 schema 序列渲染为规范可读 JSON'
     if 变更 is None:#缺省
         变更=[]#空
     return json.dumps({'initial':初始,'changes':变更},ensure_ascii=False,indent=2)+'\n'#美化 JSON
 
 def 解析工具模式快照(快照):#解析工具 schema 快照
-    """解析并校验工具 schema sidecar。"""
+    '解析并校验工具 schema sidecar'
     解析=json.loads(快照)#解析
     if not 是否记录(解析):#非对象
         raise Exception('acp-snapshot: 工具模式快照必须是对象')#非对象
@@ -208,7 +208,7 @@ def 解析工具模式快照(快照):#解析工具 schema 快照
     return {'initial':初始,'changes':变更}#返回
 
 def 恢复钉住工具模式(头,模式列表):#恢复钉住工具 schema
-    """把一个 sidecar schema 集恢复进标记化钉头。"""
+    '把一个 sidecar schema 集恢复进标记化钉头'
     if not 是否记录(头):#非对象
         raise Exception('acp-snapshot: 钉住的请求头必须是对象')#非对象
     if 头.get('tools')!=工具令牌:#必须令牌
@@ -218,7 +218,7 @@ def 恢复钉住工具模式(头,模式列表):#恢复钉住工具 schema
 系统提示词变更标记='\n<!-- system/message change '#系统消息变更标记前缀
 
 def 格式化系统提示词快照(提示词,变更=None):#格式化系统提示词快照
-    """把归一化提示词渲染为仓库友好的 Markdown 快照。"""
+    '把归一化提示词渲染为仓库友好的 Markdown 快照'
     if 变更 is None:#缺省
         变更=[]#空
     快照=提示词 if 提示词.endswith('\n') else 提示词+'\n'#首段
@@ -228,17 +228,17 @@ def 格式化系统提示词快照(提示词,变更=None):#格式化系统提示
     return 快照#返回
 
 def 解析系统提示词快照(快照):#解析系统提示词快照
-    """把提示词 sidecar 拆成初始提示词与每次后续变更。"""
+    '把提示词 sidecar 拆成初始提示词与每次后续变更'
     import re as _re#局部正则
     段=_re.split(r'\n<!-- system/message change [1-9]\d* -->\n\n',快照)#按标记拆分
     return {'initial':段[0],'changes':段[1:]}#初始与变更
 
 def 初始系统提示词快照(快照):#初始提示词部分
-    """返回可能多提示词快照的初始提示词部分。"""
+    '返回可能多提示词快照的初始提示词部分'
     return 解析系统提示词快照(快照)['initial']#取初始段
 
 def 断言子系统提示词快照(伴随,类钉,标签):#断言子提示词
-    """拒绝无法拥有不同规范提示词文本的子提示词 sidecar。"""
+    '拒绝无法拥有不同规范提示词文本的子提示词 sidecar'
     if 伴随.strip()=='':#空
         raise Exception(f'{标签} must pin a non-empty prompt')#空
     if not 伴随.endswith('\n'):#缺换行
@@ -247,7 +247,7 @@ def 断言子系统提示词快照(伴随,类钉,标签):#断言子提示词
         raise Exception(f'{标签} must differ from its class pin')#相同
 
 def 头变更计数(原始日志):#头变更计数
-    """统计会话 JSONL 中变更 request/header 快照数。"""
+    '统计会话 JSONL 中变更 request/header 快照数'
     计数=0#计数
     for 行 in 原始日志.split('\n'):#逐行
         if 行.strip()=='':#空
@@ -258,11 +258,11 @@ def 头变更计数(原始日志):#头变更计数
     return 计数#返回
 
 def 解析JSONL记录(文本):#解析 JSONL 记录
-    """解析非空 JSONL 行。"""
+    '解析非空 JSONL 行'
     return [json.loads(行) for 行 in 文本.split('\n') if 行.strip()!='']#记录
 
 def 完整消息(值):#完整已识别消息
-    """收窄为 fixture 保留的完整已识别消息形状。"""
+    '收窄为 fixture 保留的完整已识别消息形状'
     if not 是否记录(值):#非对象
         return None#无
     if not isinstance(值.get('id'),str) or not UUID模式.match(值['id']):#id
@@ -272,7 +272,7 @@ def 完整消息(值):#完整已识别消息
     return 值#消息
 
 def 表面事件消息(记录):#表面事件消息
-    """返回一个表面事件携带的完整已识别消息。"""
+    '返回一个表面事件携带的完整已识别消息'
     类型=记录.get('type')#类型
     if not isinstance(类型,str) or not 是否可进表面类型(类型):#非表面
         return None#无
@@ -288,7 +288,7 @@ def 表面事件消息(记录):#表面事件消息
     return 完整消息(消息)#消息
 
 def 列出记录消息(记录):#记录拥有的消息
-    """返回一个持久记录结构上拥有的完整消息身份。"""
+    '返回一个持久记录结构上拥有的完整消息身份'
     表面=表面事件消息(记录)#表面
     if 表面 is not None:#有表面
         return [表面]#单
@@ -302,7 +302,7 @@ def 列出记录消息(记录):#记录拥有的消息
     return 结果#返回
 
 def 规范JSON(值):#规范 JSON
-    """按值而非插入顺序序列化。"""
+    '按值而非插入顺序序列化'
     if isinstance(值,list):#数组
         return '['+','.join(规范JSON(项) for 项 in 值)+']'#数组
     if 是否记录(值):#对象
@@ -310,7 +310,7 @@ def 规范JSON(值):#规范 JSON
     return json.dumps(值,ensure_ascii=False)#叶子
 
 def 唯一消息标识(日志列表):#唯一消息 id
-    """索引 ID 与指纹相互唯一的无身份消息值。"""
+    '索引 ID 与指纹相互唯一的无身份消息值'
     指纹按标识={}#id→指纹集
     标识按指纹={}#指纹→id 集
     for 日志 in 日志列表:#逐日志
@@ -332,7 +332,7 @@ def 唯一消息标识(日志列表):#唯一消息 id
     return 唯一#返回
 
 def 夹具消息标识替换(日志列表,夹具列表):#消息 id 替换
-    """跨场景新鲜与现有日志匹配未变完整消息。"""
+    '跨场景新鲜与现有日志匹配未变完整消息'
     新鲜=唯一消息标识(日志列表)#新鲜
     已有=唯一消息标识(夹具列表)#已有
     替换={}#替换
@@ -344,14 +344,14 @@ def 夹具消息标识替换(日志列表,夹具列表):#消息 id 替换
     return 替换#返回
 
 def 应用字面替换(内容,替换列表):#应用字面替换
-    """应用字面 fixture 替换而不改任何其他新鲜值。"""
+    '应用字面 fixture 替换而不改任何其他新鲜值'
     稳定=内容#可变
     for 项 in 替换列表:#逐项
         稳定=稳定.replace(项['from'],项['to'])#替换
     return 稳定#返回
 
 def 应用夹具消息标识(内容,替换):#应用消息 id 替换
-    """仅重写已校验持久消息 ID 字段。"""
+    '仅重写已校验持久消息 ID 字段'
     行列表=[]#行
     for 行 in 内容.split('\n'):#逐行
         if 行.strip()=='':#空
@@ -369,12 +369,12 @@ def 应用夹具消息标识(内容,替换):#应用消息 id 替换
     return '\n'.join(行列表)#接合
 
 def 稳定夹具消息标识(日志列表,夹具列表):#稳定消息 id
-    """把已提交 UUID 带入新鲜会话 fixture 中未变、无歧义的消息。"""
+    '把已提交 UUID 带入新鲜会话 fixture 中未变、无歧义的消息'
     替换=夹具消息标识替换(日志列表,夹具列表)#替换表
     return [应用夹具消息标识(日志,替换) for 日志 in 日志列表]#映射
 
 def 列出打包纪元毫秒(记录):#打包行成员时间
-    """一个打包行的成员时间，或普通记录为 None。"""
+    '一个打包行的成员时间，或普通记录为 None'
     if 记录.get('type') not in 打包块行类型:#非打包
         return None#无
     数据=记录.get('data') or {}#数据
@@ -385,7 +385,7 @@ def 列出打包纪元毫秒(记录):#打包行成员时间
     return 纪元毫秒列表#返回
 
 def 展开逻辑记录(记录列表):#展开打包计时
-    """展开打包计时信封，使刷新对齐跟随逻辑事件而非物理行。"""
+    '展开打包计时信封，使刷新对齐跟随逻辑事件而非物理行'
     结果=[]#结果
     for 记录 in 记录列表:#逐记录
         纪元毫秒列表=列出打包纪元毫秒(记录)#时间
@@ -397,7 +397,7 @@ def 展开逻辑记录(记录列表):#展开打包计时
     return 结果#返回
 
 def 未知工具调用标识(原始日志):#未知工具调用 id
-    """找到结构化结果报告 UNKNOWN_TOOL 的工具调用。"""
+    '找到结构化结果报告 UNKNOWN_TOOL 的工具调用'
     结果=[]#结果
     for 记录 in 解析JSONL记录(原始日志):#逐记录
         if 记录.get('type')!='tool/result':#非工具结果
@@ -415,7 +415,7 @@ def 未知工具调用标识(原始日志):#未知工具调用 id
     return 结果#返回
 
 def 刷新夹具替换(日志列表,夹具列表):#刷新 fixture 替换
-    """为每日志会话 id、cwd 与溢出路径构建刷新回写替换。"""
+    '为每日志会话 id、cwd 与溢出路径构建刷新回写替换'
     替换=[]#替换
     for 索引,日志 in enumerate(日志列表):#逐日志
         内容=日志['content'] if 是否记录(日志) and 'content' in 日志 else 日志#内容
@@ -437,7 +437,7 @@ def 刷新夹具替换(日志列表,夹具列表):#刷新 fixture 替换
     return 替换#返回
 
 def 保留夹具易变(记录,已有):#保留 fixture 易变字段
-    """把已有 fixture 易变字段带入新鲜记录。"""
+    '把已有 fixture 易变字段带入新鲜记录'
     if 已有 is None or 已有.get('type')!=记录.get('type'):#类型不同
         return#跳过
     if 记录.get('type')=='session':#会话头
@@ -455,7 +455,7 @@ def 保留夹具易变(记录,已有):#保留 fixture 易变字段
         数据['durationMs']=已有数据['durationMs']#借出
 
 def 保留打包成员时间(记录,已有成员列表):#保留打包成员时间
-    """把逻辑成员时间带入新鲜打包行同时不碰其片段数组。"""
+    '把逻辑成员时间带入新鲜打包行同时不碰其片段数组'
     if 记录.get('type') not in 打包块行类型:#非打包
         return#跳过
     数据=记录.get('data')#数据
@@ -481,7 +481,7 @@ def 保留打包成员时间(记录,已有成员列表):#保留打包成员时�
     数据['dt']=间隙#写入
 
 def 保留归一化易变(新鲜,已有,归一新鲜,归一已有,字符串映射):#保留归一化易变
-    """复用归一化值等于新鲜值的现有叶子。"""
+    '复用归一化值等于新鲜值的现有叶子'
     if isinstance(新鲜,list) and isinstance(已有,list) and isinstance(归一新鲜,list) and isinstance(归一已有,list):#数组
         if len(新鲜)!=len(已有) or len(新鲜)!=len(归一新鲜) or len(新鲜)!=len(归一已有):#不对齐
             return 新鲜#保留新鲜
@@ -500,11 +500,11 @@ def 保留归一化易变(新鲜,已有,归一新鲜,归一已有,字符串映�
     return 已有 if 归一新鲜 is 归一已有 or 归一新鲜==归一已有 else 新鲜#叶子
 
 def 归一化刷新记录(记录,上下文):#归一化刷新记录
-    """用 fixture 比较同一契约归一化一条对齐记录。"""
+    '用 fixture 比较同一契约归一化一条对齐记录'
     return json.loads(归一化会话日志(json.dumps(记录,ensure_ascii=False)+'\n',上下文))#单行归一化
 
 def 收集归一化字符串映射(新鲜,已有,归一新鲜,归一已有,排除字符串,正向,反向):#收集字符串映射
-    """把归一化等价字符串替换加入双射。"""
+    '把归一化等价字符串替换加入双射'
     if isinstance(新鲜,list) and isinstance(已有,list) and isinstance(归一新鲜,list) and isinstance(归一已有,list):#数组
         if len(新鲜)!=len(已有) or len(新鲜)!=len(归一新鲜) or len(新鲜)!=len(归一已有):#不对齐
             return True#结构差异由新鲜拥有
@@ -537,7 +537,7 @@ def 收集归一化字符串映射(新鲜,已有,归一新鲜,归一已有,排�
     return True#成功
 
 def 构建归一化字符串映射(记录列表,新鲜记录列表,已有记录列表,新鲜上下文,已有上下文):#日志级双射
-    """为归一化等价字符串构建日志级双射。"""
+    '为归一化等价字符串构建日志级双射'
     排除=set()#排除消息 id
     for 记录 in [*新鲜记录列表,*已有记录列表]:#逐记录
         for 消息 in 列出记录消息(记录):#逐消息
@@ -568,7 +568,7 @@ def 构建归一化字符串映射(记录列表,新鲜记录列表,已有记录�
     return 正向 if 已有索引==len(已有记录列表) else None#完整对齐才返回
 
 def 稳定刷新日志(新鲜,已有,替换列表,新鲜上下文):#稳定刷新日志
-    """重写新鲜回放日志，使重复刷新不搅动易变 fixture 字段。"""
+    '重写新鲜回放日志，使重复刷新不搅动易变 fixture 字段'
     新鲜记录列表=解析JSONL记录(新鲜)#新鲜记录
     稳定=应用字面替换(新鲜,替换列表)#字面稳定
     已有记录列表=展开逻辑记录(解析JSONL记录(已有))#逻辑已有
@@ -603,11 +603,11 @@ def 稳定刷新日志(新鲜,已有,替换列表,新鲜上下文):#稳定刷新
     return '\n'.join(json.dumps(记录,ensure_ascii=False,separators=(',',':')) for 记录 in 记录列表)+'\n'#接合
 
 def 类名(场景):#头类名
-    """场景所属头组合类。"""
+    '场景所属头组合类'
     return 场景.get('headerClass') or 'default'#默认类
 
 def 定义ACP快照套件(选项):#定义 ACP 快照套件
-    """把场景表注册为可运行用例表。"""
+    '把场景表注册为可运行用例表'
     智能体=选项['agent']#待测智能体
     快照目录=选项['snapshotsDir']#快照目录
     场景列表=选项['scenarios']#场景列表
@@ -636,7 +636,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
         if 类名(场景) not in 钉按类:#缺钉
             raise Exception(f'acp-snapshot: no scenario pins the request-header content of class "{类名(场景)}" (needed by {场景["name"]})')#缺钉
     def 解析源(钉场景,字段,标签):#解析共享源
-        """解析钉场景引用的 sidecar 源场景。"""
+        '解析钉场景引用的 sidecar 源场景'
         源名=钉场景.get(字段) or 钉场景['name']#源名
         if 源名 not in 按名:#未知
             raise Exception(f'acp-snapshot: {钉场景["name"]} names unknown {标签} source "{源名}"')#未知
@@ -657,7 +657,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
     模式主张={}#共享 schema 主张
     用例=[]#用例表
     def 运行场景用例(场景):#单场景用例
-        """回放/录制/刷新一个场景并做全部比较。"""
+        '回放/录制/刷新一个场景并做全部比较'
         if 场景是否跳过(场景,录制中,有Pwsh=有Pwsh):#跳过
             return {'skipped':True}#跳过
         目录=os.path.join(快照目录,场景['name'])#场景目录
@@ -832,13 +832,13 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
     for 场景 in 场景列表:#注册场景用例
         用例.append({'name':f"snapshot: {场景['name']}",'run':(lambda 场景=场景:运行场景用例(场景))})#用例
     def 断言无孤儿():#无孤儿目录
-        """每个场景目录必须已注册。"""
+        '每个场景目录必须已注册'
         磁盘=sorted(名 for 名 in os.listdir(快照目录) if os.path.isdir(os.path.join(快照目录,名)))#磁盘
         已登记=sorted(场景['name'] for 场景 in 场景列表)#已登记
         断言相等(磁盘,已登记,'acp-snapshot: orphan or missing scenario dirs')#比较
     用例.append({'name':'fixtures:no-orphans','run':断言无孤儿})#用例
     def 断言必需文件():#必需文件在场
-        """每个已注册场景有其必需 fixture 文件。"""
+        '每个已注册场景有其必需 fixture 文件'
         for 场景 in 场景列表:#逐场景
             名=场景['name']#名
             目录=os.path.join(快照目录,名)#目录
@@ -849,7 +849,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             断言相等(清单.get('profile'),智能体.get('profile') or 'acp',f'{名}: manifest profile')#profile
             断言真('session' not in 清单,f'{名}: ACP scenarios own their session')#无 session
             def 子索引(模式):#子 sidecar 索引
-                """从文件名提取子索引集合。"""
+                '从文件名提取子索引集合'
                 结果=set()#索引集
                 for 项 in 文件:#逐文件
                     匹配=re.match(模式,项)#匹配
@@ -868,7 +868,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             列出会话夹具(目录)#清单校验
     用例.append({'name':'fixtures:required-files','run':断言必需文件})#用例
     def 断言恰一钉():#每类恰一钉
-        """每个头类恰好一个钉场景。"""
+        '每个头类恰好一个钉场景'
         钉={}#类→名列表
         for 场景 in 场景列表:#逐场景
             if 场景.get('pinsHeader') is not True:#非钉
@@ -880,7 +880,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             断言真(类名(场景) in 钉按类,f'class "{类名(场景)}" (scenario {场景["name"]}) has a pin')#有钉
     用例.append({'name':'fixtures:one-pin-per-class','run':断言恰一钉})#用例
     def 断言钉组合():#钉组合 sidecar
-        """每个钉 fixture 与其引用 sidecar 组合良构。"""
+        '每个钉 fixture 与其引用 sidecar 组合良构'
         for 场景 in 钉按类.values():#逐钉
             提示源=提示词源按类.get(类名(场景)) or 场景#提示源
             模式源=模式源按类.get(类名(场景)) or 场景#schema 源
@@ -903,14 +903,14 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
             断言相等(头变更计数(夹具),场景.get('expectedHeaderChanges') or 0,f"{场景['name']}: a pinning fixture must carry exactly its declared changed headers")#变更
     用例.append({'name':'fixtures:pin-sidecars','run':断言钉组合})#用例
     def 断言唯一共享():#共享快照唯一
-        """每个不同提示词与工具 schema 快照只存一份。"""
+        '每个不同提示词与工具 schema 快照只存一份'
         提示列表=[{'path':f'{所有者}/{系统提示词快照}','content':读文本(os.path.join(快照目录,所有者,系统提示词快照))} for 所有者 in 提示词所有者]#提示
         模式列表=[{'path':f'{所有者}/{工具模式快照}','content':读文本(os.path.join(快照目录,所有者,工具模式快照))} for 所有者 in 模式所有者]#schema
         断言唯一快照内容('system-prompt',提示列表)#提示唯一
         断言唯一快照内容('tool-schema',模式列表)#schema 唯一
     用例.append({'name':'fixtures:unique-shared','run':断言唯一共享})#用例
     def 断言子伴随():#子 sidecar 规范
-        """每个声明的子 sidecar 规范且命名真实子项。"""
+        '每个声明的子 sidecar 规范且命名真实子项'
         for 场景 in 场景列表:#逐场景
             目录=os.path.join(快照目录,场景['name'])#目录
             文件=列出会话夹具(目录)#fixture
@@ -930,7 +930,7 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
                 断言子系统提示词快照(伴随,初始系统提示词快照(类钉),f"{场景['name']}/{名}")#断言
     用例.append({'name':'fixtures:child-sidecars','run':断言子伴随})#用例
     def 断言规范存储():#规范 fixture 存储
-        """每个已提交 JSONL 有合法工具结果与规范存储。"""
+        '每个已提交 JSONL 有合法工具结果与规范存储'
         for 场景 in 场景列表:#逐场景
             目录=os.path.join(快照目录,场景['name'])#目录
             文件=列出会话夹具(目录)#fixture

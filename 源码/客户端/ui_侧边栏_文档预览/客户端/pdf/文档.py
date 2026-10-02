@@ -8,7 +8,7 @@ def 渲染pdf页(文档,页号,画布,信号,像素比,渲染文本=None):
 
     文档须提供 numPages / getPage；无后端时抛 NotImplementedError。
     渲染文本可选，共享本页与视口的清理屏障。
-    返回 dict：width / height（CSS 像素）。
+    返回 dict：width / height（CSS 像素）
     """
     if 已中止(信号):#已中止
         raise RuntimeError('已中止')
@@ -28,7 +28,7 @@ def 渲染pdf页(文档,页号,画布,信号,像素比,渲染文本=None):
         已取消=[False]#旗
 
         def 取消():
-            """幂等取消。"""
+            '幂等取消'
             if 已取消[0]:#已
                 return#停
             已取消[0]=True#标记

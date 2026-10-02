@@ -1,4 +1,4 @@
-"""校验 LLM 流协议块下标、增量与整段流。"""
+'校验 LLM 流协议块下标、增量与整段流'
 import math
 from .错误 import 装备错误
 
@@ -9,7 +9,7 @@ __all__=('包名','名称','依赖','校验下标','校验增量','校验流','�
 依赖=['invariants']
 
 def 校验下标(下标,失败):
-    """要求块下标为非负安全整数。外来 JSON 入口。"""
+    '要求块下标为非负安全整数。外来 JSON 入口'
     是整数=isinstance(下标,int) and not isinstance(下标,bool)#先排除 bool
     if not 是整数:#可能是整值浮点
         是整数=isinstance(下标,float) and math.isfinite(下标) and 下标==int(下标)
@@ -17,14 +17,14 @@ def 校验下标(下标,失败):
         失败('LLM stream block index must be a non-negative safe integer, got '+str(下标))
 
 def 校验增量(打开,下标,期望,失败):
-    """要求增量块指向已打开且类型匹配的块。"""
+    '要求增量块指向已打开且类型匹配的块'
     校验下标(下标,失败)
     if 下标 not in 打开 or 打开[下标]!=期望:
         实际=打开[下标] if 下标 in 打开 else None
         失败(期望+' delta at index '+str(下标)+' requires an open '+期望+' block, got '+str(实际))
 
 def 校验流(源,失败):
-    """包装一条提供方流，在消费块时强制其语法。源是同步可迭代。"""
+    '包装一条提供方流，在消费块时强制其语法。源是同步可迭代'
     打开={}
     已见用量=False
     已结束=False
@@ -65,13 +65,13 @@ def 校验流(源,失败):
         失败('LLM stream ended without a terminal finish chunk')
 
 def 安装(上下文,失败):
-    """给每条提供方流套上校验，并在适配器更新后核对注册表可读。"""
+    '给每条提供方流套上校验，并在适配器更新后核对注册表可读'
     def 包装流(选项,下一步):
-        """在全局最前包装每条流。"""
+        '在全局最前包装每条流'
         return 校验流(下一步(),失败)
     上下文.监听('llm/stream',包装流,{'全局':True,'前置':True})
     def 核对注册表():
-        """适配器更新后核对注册表可读。"""
+        '适配器更新后核对注册表可读'
         运行时=上下文.获取服务('llm')
         if 运行时 is None:
             return
@@ -83,7 +83,7 @@ def 安装(上下文,失败):
     上下文.监听('llm/adapters-updated',核对注册表,{'全局':True})
 
 def 应用(上下文):
-    """注册 LLM 不变量配套。"""
+    '注册 LLM 不变量配套'
     return 上下文.invariants.register(包名,安装)
 
 name=名称#框架槽

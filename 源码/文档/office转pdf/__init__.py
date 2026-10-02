@@ -1,13 +1,10 @@
-"""LibreOffice kit 提供方：可复用转换器与私有磁盘输入输出。
-
-公开面仅中文名。服务键 officeToPdf、远程方法名 render / generation 与配置键保持英文线协议。
-"""
+'LibreOffice kit 提供方：可复用转换器与私有磁盘输入输出'
 import base64,json,os,shutil,tempfile,threading,uuid
 from ...依赖.schemastery import 正整数字段,自然数字段,字符串字段,列表字段
 from ...依赖.libreoffice_kit import 创建转换器
 from ...依赖.工具 import 聚合错误
 from ...工具.超时 import 中止控制器,已中止,若已中止则抛出,合成信号
-from ...typert.协议 import 远程服务,远程 as _远程
+from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...api.工作区文件.类型 import 远程错误
 from .异常 import office转pdf错误
 from .标识构造 import office转pdf世代,office源键,office转pdf键
@@ -53,17 +50,17 @@ __all__=[
 }
 
 class 转换槽:
-    """一个并发槽：忙闲与可选转换器实例。"""
+    '一个并发槽：忙闲与可选转换器实例'
     def __init__(自身):
-        """空闲槽。"""
+        '空闲槽'
         自身.忙碌=False
         自身.转换器=None
 
 class office转pdf(远程服务):
-    """提供方寿命内拥有全部转换器、排队调用与临时文件。"""
+    '提供方寿命内拥有全部转换器、排队调用与临时文件'
     Config=配置
     def __init__(自身,上下文,配置值):
-        """用宿主上下文与已解析限额构造。"""
+        '用宿主上下文与已解析限额构造'
         super().__init__(上下文,'officeToPdf')
         自身.ctx=上下文
         自身._配置=配置值
@@ -89,13 +86,13 @@ class office转pdf(远程服务):
             选项['fontFallbacks']=字体回退
         自身._选项=选项
         def 转换字节入口(字节,扩展名,信号):
-            """交给实例转换字节。"""
+            '交给实例转换字节'
             return 自身._转换字节(字节,扩展名,信号)
         自身._队列=转换队列(配置值,自身.世代,转换字节入口)
         def 登记拆除():
-            """纤程拆除时清理队列、Remote 与转换器。"""
+            '纤程拆除时清理队列、Remote 与转换器'
             def 拆除():
-                """同步拆除。"""
+                '同步拆除'
                 自身._远程寿命.中止()
                 自身._队列.拆除()
                 for 请求结局 in list(自身._远程请求):
@@ -118,17 +115,18 @@ class office转pdf(远程服务):
         上下文.副作用(登记拆除,'officeToPdf.dispose()')
 
     def 转换(自身,请求,信号=None):
-        """转换 Office 字节；不改源、不写 Session 事件。阻塞至结果。"""
+        """转换 Office 字节；不改源、不写 Session 事件。
+        阻塞至结果"""
         return 自身._队列.读取(请求,信号)
 
     @_远程
     def render(自身,工作区文件作用域,路径,优先级,信号):
-        """Remote：经 Session 文件系统授权读并转换一个 Office 文件。"""
+        'Remote：经 Session 文件系统授权读并转换一个 Office 文件'
         上游=合成信号(信号,自身._远程寿命.信号)
         箱={'结果':None,'错误':None}
         完成=threading.Event()
         def 在线程执行():
-            """工作线程执行渲染。"""
+            '工作线程执行渲染'
             try:
                 箱['结果']=自身._渲染文件(工作区文件作用域,路径,优先级,上游)
             except BaseException as 错误:
@@ -136,9 +134,9 @@ class office转pdf(远程服务):
             finally:
                 完成.set()
         class 远程结局:
-            """只留等待。"""
+            '只留等待'
             def 等待(自):
-                """阻塞至结束。"""
+                '阻塞至结束'
                 完成.wait()
                 if 箱['错误'] is not None:
                     raise 箱['错误']
@@ -153,12 +151,12 @@ class office转pdf(远程服务):
 
     @_远程('generation')
     def 获取世代(自身,信号):
-        """Remote 导出名 generation：返回当前提供方世代。"""
+        'Remote 导出名 generation：返回当前提供方世代'
         若已中止则抛出(信号)
         return 自身.世代
 
     def _渲染文件(自身,作用域,路径,优先级,信号):
-        """授权、读源并转换；失败映射为 Remote 错误。"""
+        '授权、读源并转换；失败映射为 Remote 错误'
         try:
             若已中止则抛出(信号)
             扩展名=os.path.splitext(路径)[1][1:].lower()
@@ -171,13 +169,13 @@ class office转pdf(远程服务):
             已授权=文件.readBytes(作用域,路径,{'offset':0,'length':1},信号)
             源状态=文件.stat(作用域,路径,信号)
             def 断言未变(当前):
-                """路径或版本变化则拒绝。"""
+                '路径或版本变化则拒绝'
                 if 当前['absolutePath']!=源状态['absolutePath'] or 当前['version']!=源状态['version']:
                     raise office转pdf错误('source-changed','The source changed.')
             断言未变(已授权)
             若已中止则抛出(信号)
             def 延迟读(上游,最大字节):
-                """准入后有界读源。"""
+                '准入后有界读源'
                 目标=文件系统.解析(源状态['absolutePath'],{'signal':上游})
                 信息=文件系统.状态(目标,上游)
                 if 信息 is None or 信息['type']!='file':
@@ -210,7 +208,7 @@ class office转pdf(远程服务):
             raise
 
     def _转换字节(自身,字节,扩展名,信号):
-        """在槽内写入临时目录、调用 kit、读回 PDF。"""
+        '在槽内写入临时目录、调用 kit、读回 PDF'
         若已中止则抛出(信号)
         槽=None
         for 候选 in 自身._槽表:

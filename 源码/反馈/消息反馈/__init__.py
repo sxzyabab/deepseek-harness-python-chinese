@@ -1,8 +1,4 @@
-"""已定稿助手消息的持久、绑定生命周期的反馈。
-
-类型面与 `./远程` 贡献。
-宿主服务本体依赖 `storage-domain` / `session-persistence`（中文树尚未迁入），本包先落盘类型与 Remote 贡献。
-"""
+'已定稿助手消息的持久、绑定生命周期的反馈'
 from .类型 import *#类型面
 from .远程 import 远程贡献表,默认 as 远程默认#Remote 贡献
 

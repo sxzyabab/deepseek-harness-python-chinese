@@ -58,7 +58,7 @@ __all__=['名称','依赖','配置','应用']
 }#模式结束
 
 def 应用(上下文,配置值):#登记原生 Stagehand
-    """浏览器启动惰性；附着为一名活智能体预留端点。"""
+    '浏览器启动惰性；附着为一名活智能体预留端点'
     配置值=dict(配置值)#副本
     配置值['model']=stagehand模型模式(配置值['model'])#校验模型
     if 'headless' not in 配置值:#缺省
@@ -81,14 +81,14 @@ def 应用(上下文,配置值):#登记原生 Stagehand
         if 解析.scheme not in ('http','https','ws','wss') or ' ' in 端点 or '\t' in 端点:#非法
             raise Exception('需要 HTTP(S) 或 WS(S) 端点')
     def 运行时寿命():#登记与资源
-        """先放登记再拆资源。"""
+        '先放登记再拆资源'
         撤销=上下文.browserUse.登记(浏览器操作提供方名('stagehand-native'))#占用
         def 打开(智能体,信号):#惰性打开
-            """启动或附着后打开工作者。"""
+            '启动或附着后打开工作者'
             若已中止则抛出(信号)#中止
             铬=启动chromium(配置值,信号) if 配置值['mode']=='launch' else None#自有
             def 连接(连接信号):#开工作者
-                """打开隔离工作者。"""
+                '打开隔离工作者'
                 选项={#工作者配置
                     'mode':'attach','model':配置值['model'],'headless':配置值['headless'],
                     'operationTimeoutMs':配置值['operationTimeoutMs'],'shutdownGraceMs':配置值['shutdownGraceMs'],
@@ -100,7 +100,7 @@ def 应用(上下文,配置值):#登记原生 Stagehand
                 if 铬 is not None:#自有端点
                     选项['cdpEndpoint']=铬['endpoint']#端点
                 def 警告(消息):#日志
-                    """SDK 清理失败。"""
+                    'SDK 清理失败'
                     上下文.logger.warn(消息)#警告
                 return 打开浏览器工作者(选项,连接信号,警告)#打开
             连接体=[None]#当前连接
@@ -111,7 +111,7 @@ def 应用(上下文,配置值):#登记原生 Stagehand
                     铬['close']()#关
                 raise 错误#原样
             def 执行(方法,参数,操作信号):#一次
-                """当前连接上执行。"""
+                '当前连接上执行'
                 当前=连接体[0]#当前
                 if 当前 is None:#重连
                     当前=连接(操作信号)#打开
@@ -123,24 +123,24 @@ def 应用(上下文,配置值):#登记原生 Stagehand
                         当前['close']()#关
                         连接体[0]=None#清
             def 关原生():#关连接
-                """关当前连接。"""
+                '关当前连接'
                 当前=连接体[0]#当前
                 if 当前 is not None:#有
                     当前['close']()#关
             def 关():#关连接与铬
-                """并行关连接与自有 Chromium。"""
+                '并行关连接与自有 Chromium'
                 错误表=[]#失败
                 连接结果=[None]#连接
                 铬结果=[None]#铬
                 def 关连():#关连接
-                    """关原生。"""
+                    '关原生'
                     try:#关
                         关原生()#关
                         连接结果[0]='ok'#ok
                     except Exception as 错误:#失败
                         连接结果[0]=错误#记下
                 def 关铬():#关铬
-                    """关进程。"""
+                    '关进程'
                     try:#关
                         if 铬 is not None:#有
                             铬['close']()#关
@@ -170,11 +170,11 @@ def 应用(上下文,配置值):#登记原生 Stagehand
                 raise 错误#原样
         资源=会话资源(上下文,{'label':'stagehand-native','exclusive':配置值['mode']=='attach','open':打开})#资源
         def 应用子(内):#挂工具
-            """子插件挂载工具。"""
+            '子插件挂载工具'
             挂工具(内,资源)#挂
         子=上下文.启动插件({'name':'browser-use-stagehand-native-tools','inject':['tools','systemPrompt'],'apply':应用子})#子
         def 卸():#拆除
-            """先子后资源后登记。"""
+            '先子后资源后登记'
             if hasattr(子,'dispose'):#纤程
                 子.dispose()#拆
             资源.拆除()#资源
@@ -183,13 +183,13 @@ def 应用(上下文,配置值):#登记原生 Stagehand
     上下文.副作用(运行时寿命,'browser-use-stagehand-native.runtime')#寿命
 
 def 挂工具(上下文,资源):#登记工具
-    """登记原生 Stagehand 工具。"""
+    '登记原生 Stagehand 工具'
     名集=set()#已登记名
     for 方法 in 浏览器输入.keys():#逐方法
         工具名='stagehand_'+方法#公开名
         名集.add(工具名)#记下
         def 调用(参数,执行=None,方法名=方法):#执行
-            """取资源后执行。"""
+            '取资源后执行'
             智能体=上下文.agents.requireInitiator()#发起方
             句柄=资源.取(智能体)#资源
             return 句柄['native']['execute'](方法名,参数,句柄['operationSignal'])#执行
@@ -201,14 +201,14 @@ def 挂工具(上下文,资源):#登记工具
         })#登记
     上下文.systemPrompt.section({'name':'browser-use:stagehand-native','text':指引,'order':上下文.systemPrompt.getSectionOrder('TOOL_COMPUTER_USE')})#指引
     def 执行钩(执行,下一):#串行
-        """本提供方工具经资源队列执行。"""
+        '本提供方工具经资源队列执行'
         if 执行['name'] not in 名集:#他方
             return 下一()#过
         if 'agent' not in 执行 or 'agents' not in 上下文 or 上下文['agents'].get(执行['agent'].id) is not 执行['agent']:#非活
             raise Exception('Stagehand 浏览器工具需要一个确切的活动智能体')
         智能体=执行['agent']#智能体
         def 操作(句柄,活动信号):#队列体
-            """换信号后跑体。"""
+            '换信号后跑体'
             上游=执行.get('signal')
             执行['signal']=活动信号#换
             句柄['operationSignal']=活动信号#换

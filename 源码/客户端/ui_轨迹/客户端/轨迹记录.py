@@ -17,9 +17,9 @@ __all__=[#仅中文公开名
 轨迹源块键=('type','content','attachment','file','callId','toolName')#源块字段
 
 class 轨迹错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
     def __init__(自身,消息):
-        """记下英文消息。"""
+        '记下英文消息'
         super().__init__(消息)#消息原样英文
 
 轨迹单元格种类=(#轨迹单元格种类闭集
@@ -33,7 +33,7 @@ class 轨迹错误(Exception):
 )#种类结束
 
 def 轨迹记录身份(单元格):#解析轨迹记录稳定身份
-    """解析前置更旧投影记录后仍稳定的身份。"""
+    '解析前置更旧投影记录后仍稳定的身份'
     if 'recordId' in 单元格 and 单元格['recordId'] is not None:#有投影稳定 id
         return 单元格['recordId']#用之
     调用标识=单元格['callId'] if 'callId' in 单元格 else None#工具调用 id
@@ -47,12 +47,12 @@ def 轨迹记录身份(单元格):#解析轨迹记录稳定身份
     return f'{种类}\u0000index\u0000{下标}'#回退到种类+展示序号
 
 def 格式化毫秒时长(毫秒):#格式化毫秒时长
-    """把毫秒时长格式化成千分位分隔的标签；未知时为破折号。"""
+    '把毫秒时长格式化成千分位分隔的标签；未知时为破折号'
     if 毫秒 is None or type(毫秒) is bool or not isinstance(毫秒,(int,float)) or not math.isfinite(毫秒):#无效
         return '—'#破折号
     整数=str(round(毫秒))#四舍五入成整毫秒字符串
     return 千分位插入.sub(',',整数,count=0)+' ms'#插入千分位并加 ms
 
 def 格式化已用秒数(秒):#把秒时长转成毫秒标签
-    """把以秒给出的经过时长格式化成毫秒标签。"""
+    '把以秒给出的经过时长格式化成毫秒标签'
     return 格式化毫秒时长(None if 秒 is None else 秒*1000)#秒转毫秒后格式化

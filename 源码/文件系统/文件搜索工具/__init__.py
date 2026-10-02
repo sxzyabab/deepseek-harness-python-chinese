@@ -1,4 +1,4 @@
-"""登记面向模型的文件系统发现工具（glob、grep）；以前台 argv 跑打包 ripgrep，不经 shell；本包负责模式校验、argv、解析、保留与超时。"""
+'登记面向模型的文件系统发现工具（glob、grep）；以前台 argv 跑打包 ripgrep，不经 shell；本包负责模式校验、argv、解析、保留与超时'
 from ...依赖.schemastery import 布尔字段,数字字段#配置字段
 from ...工具.超时 import 定时器延迟上限毫秒#导入定时器延迟上限
 from .通配 import (#再导出glob公开面
@@ -66,7 +66,9 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 }#配置模式结束
 
 def 断言正整数(名,值):#断言配置项为正整数
-    """每项搜索上限计的是条数/字节/毫秒——必须是正整数，否则保留与超时算术会静默出错。配置入口收成 int。"""
+    """每项搜索上限计的是条数/字节/毫秒——必须是正整数，否则保留与超时算术会静默出错。
+    配置入口收成 int
+    """
     if isinstance(值,bool):#布尔不是整数
         raise 搜索工具错误('tool-fs-search: '+名+' must be a positive integer')#加载时大声失败
     if isinstance(值,float) and 值.is_integer():#配置入口整值浮点

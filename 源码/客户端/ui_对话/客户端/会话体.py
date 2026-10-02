@@ -4,19 +4,19 @@ __all__=['会话体','会话页眉','解析活动视图','派生谱系','默认�
 默认视图标识='chat'#环回退
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 def 空监听():
-    """触碰订阅用。"""
+    '触碰订阅用'
     return None#无事
 
 def 解析活动视图(页签列表,选中标识):
-    """按 id；失配回退 chat。页签为 dict 列表。"""
+    '按 id；失配回退 chat。页签为 dict 列表'
     请求=选中标识 if 选中标识 is not None else 默认视图标识#请求
     for 页 in 页签列表:#扫
         if 页['id']==请求:#命中
@@ -27,7 +27,7 @@ def 解析活动视图(页签列表,选中标识):
     return None#无
 
 def 派生谱系(列表,会话标识):
-    """沿 parentId 上溯至非 subagent。列表为 dict。"""
+    '沿 parentId 上溯至非 subagent。列表为 dict'
     链=[]#面包屑
     见过=set()#环防
     游标=会话标识#当前
@@ -46,7 +46,7 @@ def 派生谱系(列表,会话标识):
     return 链#链
 
 def 面包屑相等(左,右):
-    """长度与每项 id/标题。"""
+    '长度与每项 id/标题'
     if len(左)!=len(右):#长；判 length
         return False#不等
     for 索引,项 in enumerate(左):#逐项
@@ -56,41 +56,41 @@ def 面包屑相等(左,右):
     return True#等
 
 def 取视图(态):
-    """store.view。态为 dict。"""
+    'store.view。态为 dict'
     return 态['view'] if 'view' in 态 else None#视图
 
 def 取撰写相位(快照):
-    """composerPhase。"""
+    'composerPhase'
     return 快照['composerPhase'] if 'composerPhase' in 快照 else None#相位
 
 def 取空白(快照):
-    """blank。"""
+    'blank'
     return 快照['blank'] if 'blank' in 快照 else None#空白
 
 def 取草稿(态):
-    """store.draft。"""
+    'store.draft'
     return 态['draft'] if 'draft' in 态 else None#草稿
 
 def 取检视(态):
-    """store.inspect。态为 dict。"""
+    'store.inspect。态为 dict'
     return 态['inspect'] if 'inspect' in 态 else None#检视
 
 def 取输入(态):
-    """输入快照原样。"""
+    '输入快照原样'
     return 态#原样
 
 class 会话页眉:#滚动口上页眉
-    """标题面包屑与视图页签。"""
+    '标题面包屑与视图页签'
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """隐藏空白英雄页眉或可见标题/页签。"""
+        '隐藏空白英雄页眉或可见标题/页签'
         属性=自身.属性#props
         会话标识=属性['sessionId'] if 'sessionId' in 属性 else None#会话
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话钩
@@ -109,7 +109,7 @@ class 会话页眉:#滚动口上页眉
         选中=用存储(取视图) if 用存储 is not None else None#选中视图
         活动=解析活动视图(页签,选中)#活动
         def 取谱系(列表):
-            """按会话标识上溯。"""
+            '按会话标识上溯'
             return 派生谱系(列表,会话标识)#链
         谱系=取会话列表(取谱系,面包屑相等) if 取会话列表 is not None else []#面包屑
         撰写相位=用会话(取撰写相位) if 用会话 is not None else None#相位
@@ -121,7 +121,7 @@ class 会话页眉:#滚动口上页眉
             标识=摘要['id'] if 'id' in 摘要 else None#id
             标题=摘要['displayTitle'] if 'displayTitle' in 摘要 else None#标题
             def 造开(开往=标识):
-                """打开该会话。"""
+                '打开该会话'
                 if 打开 is not None:#有
                     打开(开往)#导航
             屑节点.append({#段
@@ -139,7 +139,7 @@ class 会话页眉:#滚动口上页眉
             for 页 in 页签:#逐页
                 标识=页['id'] if 'id' in 页 else None#id
                 def 造切(视=标识):
-                    """切到该页。"""
+                    '切到该页'
                     if 切视图 is not None:#有
                         切视图(视)#切
                 页签列表.append({#页签
@@ -166,25 +166,25 @@ class 会话页眉:#滚动口上页眉
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲
 
 class 会话体:#滚动口内活动视图
-    """活动视图区；空白英雄时为 None。"""
+    '活动视图区；空白英雄时为 None'
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已镜像=False#草稿镜像
         自身.解绑镜像=None#镜像拆除
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """活动视图或空白。"""
+        '活动视图或空白'
         属性=自身.属性#props
         会话标识=属性['sessionId'] if 'sessionId' in 属性 else None#会话
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话钩
@@ -223,11 +223,11 @@ class 会话体:#滚动口内活动视图
         活动标识=活动['id'] if 活动 is not None and 'id' in 活动 else None#活动
         清检视=动作.setInspect if 动作 is not None else None#清
         def 检视完成():
-            """清 inspect。"""
+            '清 inspect'
             if 清检视 is not None:#有
                 清检视(None)#清
         def 卸载():
-            """解绑镜像并释图。"""
+            '解绑镜像并释图'
             if 自身.解绑镜像 is not None:#有
                 自身.解绑镜像()#解绑
                 自身.解绑镜像=None#清
@@ -247,7 +247,7 @@ class 会话体:#滚动口内活动视图
         }#视图结束
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

@@ -1,4 +1,4 @@
-"""一次性会话全文只读模型的 SQLite 模式。"""
+'一次性会话全文只读模型的 SQLite 模式'
 import os,sqlite3#路径与 sqlite3
 __all__=[
     '会话查询sqlite应用标识',
@@ -17,10 +17,10 @@ __all__=[
 ])#派生索引允许的用户表
 
 class 会话查询sqlite错误(Exception):
-    """会话查询 sqlite 模式包的异常基类。"""
+    '会话查询 sqlite 模式包的异常基类'
 
 def 创建数据库文件(路径):
-    """独占创建缺失库文件；已存在则保留 mode。"""
+    '独占创建缺失库文件；已存在则保留 mode'
     try:#wx 创建
         描述符=os.open(路径,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)#仅所有者
         os.close(描述符)#关掉
@@ -31,7 +31,7 @@ def 创建数据库文件(路径):
             raise 错误#原样抛
 
 def 列出用户表(连接):
-    """列出非 sqlite_ 前缀的用户表。"""
+    '列出非 sqlite_ 前缀的用户表'
     行列表=连接.execute(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT GLOB 'sqlite_*' ORDER BY name",
     ).fetchall()#查表
@@ -41,7 +41,7 @@ def 列出用户表(连接):
     return 名称列表#表名列表
 
 def 校验派生用户表(路径,用户表列表):
-    """拒绝带未知用户表的派生索引。"""
+    '拒绝带未知用户表的派生索引'
     未知=[]#未知表
     for 名称 in 用户表列表:#逐表
         if 名称 not in 派生用户表:#未知
@@ -50,18 +50,18 @@ def 校验派生用户表(路径,用户表列表):
         raise 会话查询sqlite错误('session-search database at "'+路径+'" has unrecognized user tables: '+', '.join(未知))#拒绝
 
 def 引用标识符(值):
-    """SQL 标识符引用。"""
+    'SQL 标识符引用'
     引号=chr(34)#双引号
     return 引号+值.replace(引号,引号+引号)+引号#双引号转义
 
 def 重置派生模式(连接,用户表列表):
-    """丢弃不兼容派生表。"""
+    '丢弃不兼容派生表'
     for 名称 in 用户表列表:#逐表
         连接.execute('DROP TABLE IF EXISTS '+引用标识符(名称))#删表
     连接.execute('PRAGMA user_version = 0')#清版本
 
 def 确保持久模式(连接):
-    """创建/校验持久层 schema。"""
+    '创建/校验持久层 schema'
     连接.execute('PRAGMA application_id = '+str(会话查询sqlite应用标识))#盖应用 id
     连接.executescript('''
         CREATE TABLE IF NOT EXISTS search_state (
@@ -95,7 +95,7 @@ def 确保持久模式(连接):
     连接.execute('PRAGMA user_version = '+str(会话查询sqlite模式版本))#盖版本
 
 def 确保临时模式(连接):
-    """创建/校验连接级临时 schema。"""
+    '创建/校验连接级临时 schema'
     连接.executescript('''
         CREATE TEMP TABLE IF NOT EXISTS live_sessions (
             id             TEXT PRIMARY KEY,
@@ -123,7 +123,7 @@ def 确保临时模式(连接):
     ''')#临时表
 
 def 打开检索数据库(路径,日志模式值='wal'):
-    """打开、校验并初始化持久与连接级临时 schema。"""
+    '打开、校验并初始化持久与连接级临时 schema'
     if 日志模式值 not in 日志模式:#非法 journal
         raise 会话查询sqlite错误('session-query-sqlite: invalid journalMode '+repr(日志模式值))#配置错误
     if 路径==':memory:':#内存库

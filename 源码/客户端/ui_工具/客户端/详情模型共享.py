@@ -36,22 +36,22 @@ __all__=['详情记录','非空文本','详情json','详情徽章','详情标签
 检视条目上限=40
 
 def 详情记录(值):
-    """解析结果是否为可按名读字段的对象。"""
+    '解析结果是否为可按名读字段的对象'
     return isinstance(值,dict)
 
 def 非空文本(值):
-    """去空白后仍有可见文本。"""
+    '去空白后仍有可见文本'
     return isinstance(值,str) and 值.strip()!=''
 
 def 详情json(文本):
-    """整段 JSON；非 JSON 则 None。"""
+    '整段 JSON；非 JSON 则 None'
     try:
         return json.loads(文本)
     except (TypeError,ValueError,json.JSONDecodeError):
         return None
 
 def 详情徽章(状态,翻译):
-    """已记录状态的本地化名与静态语义色。"""
+    '已记录状态的本地化名与静态语义色'
     键=状态键[状态] if 状态 in 状态键 else None
     if 状态 in 成功态:
         调='success'
@@ -66,13 +66,13 @@ def 详情徽章(状态,翻译):
     return {'label':状态 if 键 is None else 翻译(键),'tone':调}
 
 def 详情标签(键,翻译):
-    """已知工具字段走文案；扩展字段保留原名。"""
+    '已知工具字段走文案；扩展字段保留原名'
     if 键 not in 字段键:
         return 键
     return 翻译(字段键[键])
 
 def 标量(值,翻译):
-    """空、布尔或原文/JSON。"""
+    '空、布尔或原文/JSON'
     if 值 is None:
         return 翻译('detail.none')
     if isinstance(值,bool):
@@ -82,7 +82,7 @@ def 标量(值,翻译):
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
 
 def 检视条目(值,翻译,深度=0):
-    """把开放检视记录投影成可读字段与具名披露。"""
+    '把开放检视记录投影成可读字段与具名披露'
     if 深度>4 and 值 is not None and isinstance(值,(dict,list)):
         return [{'code':{'text':json.dumps(值,ensure_ascii=False,indent=2,allow_nan=False),'language':'json'},'fields':[]}]
     if isinstance(值,list):
@@ -143,5 +143,5 @@ def 检视条目(值,翻译,深度=0):
     return [项]
 
 def 详情列表(条目表,摘要,翻译):
-    """给结果列表一致的历史上下文与空态文案。"""
+    '给结果列表一致的历史上下文与空态文案'
     return {'items':条目表,'summary':摘要,'caption':翻译('detail.recordedResult'),'empty':翻译('detail.empty')}

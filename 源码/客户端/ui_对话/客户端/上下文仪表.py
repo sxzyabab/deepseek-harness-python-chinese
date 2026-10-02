@@ -15,24 +15,24 @@ __all__=['上下文仪表','半径','周长','读数槽','行配置']#仅中文�
 ]#结束配置
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 分解令牌(分解,键):
-    """缺席当 0。"""
+    '缺席当 0'
     值=分解[键] if 分解 is not None and 键 in 分解 and 分解[键] is not None else 0#值
     return 值#令牌
 
 class 上下文仪表:
-    """压力+容量齐备才渲染；点击开面板。"""
+    '压力+容量齐备才渲染；点击开面板'
 
     def __init__(自身,属性=None):
-        """记下 props 与开合。"""
+        '记下 props 与开合'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已开=False#面板
 
     def 更新(自身,属性):
-        """刷新 props；不可用则关面板。"""
+        '刷新 props；不可用则关面板'
         自身.属性=属性 if 属性 is not None else {}#新
         用投影=自身.属性['useProjection'] if 'useProjection' in 自身.属性 else None#投影
         压力=用投影('contextPressure') if 用投影 is not None else None#压力
@@ -40,15 +40,15 @@ class 上下文仪表:
             自身.已开=False#关
 
     def 切换(自身):
-        """翻转面板。"""
+        '翻转面板'
         自身.已开=not 自身.已开#翻
 
     def 关闭(自身):
-        """关面板。"""
+        '关面板'
         自身.已开=False#关
 
     def 渲染(自身):
-        """无占用返回 None。"""
+        '无占用返回 None'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         用投影=属性['useProjection'] if 'useProjection' in 属性 else None#投影

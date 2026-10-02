@@ -41,25 +41,25 @@ class 子智能体后代列举诊断(子智能体列举诊断):#后代列举的�
 子智能体后代列举条目=子智能体后代列举一次性|子智能体后代列举可续跑|子智能体后代列举诊断#listDescendants 结果一条
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位
 
 def 断言列举未取消(信号):
-    """在下一个取消检查点停下列举。"""
+    '在下一个取消检查点停下列举'
     if 已中止(信号):#已取消
         raise 子智能体错误('子智能体列举已取消','CANCELLED')#稳定取消失败
 
 def 语料排序键(记录):
-    """按耐久创建时间再按 id 比较兄弟。记录为 dict，头为 dict。"""
+    '按耐久创建时间再按 id 比较兄弟。记录为 dict，头为 dict'
     头=记录['header']#头
     创建=头['createdAt'] if 'createdAt' in 头 else 0#时间
     标识=str(头['id'] if 'id' in 头 else '')#id
     return (创建,标识)#排序键
 
 def 同一生命周期(元,期望):
-    """一份检查过的日志是否仍属于枚举到的生命周期。元与期望为 dict。"""
+    '一份检查过的日志是否仍属于枚举到的生命周期。元与期望为 dict'
     for 键 in 生命周期证人键:#逐键
         左=元[键] if 键 in 元 else None#元值
         右=期望[键] if 键 in 期望 else None#期望值
@@ -68,7 +68,7 @@ def 同一生命周期(元,期望):
     return True#同一生命周期
 
 def 子体行(标识,身份,活动,有子体):
-    """把一份已提供身份物化为子体行。身份为 dict。"""
+    '把一份已提供身份物化为子体行。身份为 dict'
     if 身份['mode']=='one-shot':#一次性行
         行={'kind':'child','id':标识,'mode':'one-shot','activity':活动,'hasChildren':有子体}#一次性
         if 'label' in 身份 and 身份['label'] is not None:#有标签才展开
@@ -77,7 +77,7 @@ def 子体行(标识,身份,活动,有子体):
     return {'kind':'child','id':标识,'mode':'continuable','label':身份['label'],'activity':活动,'hasChildren':有子体}#可续跑行
 
 def 读子智能体身份(快照):
-    """从投影快照 dict 读 subagent 单元。"""
+    '从投影快照 dict 读 subagent 单元'
     if 快照 is None:#无快照
         return None#无身份
     if 'values' not in 快照:#无值表
@@ -88,7 +88,7 @@ def 读子智能体身份(快照):
     return 值表['subagent']#身份
 
 def 准备列举(上下文,信号=None):
-    """一次性解析列举服务并建造一份活优先会话语料。"""
+    '一次性解析列举服务并建造一份活优先会话语料'
     投影=上下文.获取服务('sessionProjections')#投影注册表
     if 投影 is None:#未挂载投影
         raise 子智能体错误(#配置错误
@@ -127,7 +127,7 @@ def 准备列举(上下文,信号=None):
     return {'projections':投影,'persistence':持久化,'cache':缓存,'corpus':语料,'subagentParents':子智能体父集合}#列举运行时
 
 def 解析冷身份(持久化,投影,缓存,头,有子体,信号=None):
-    """沿剩余梯子解析一个冷候选。头为 dict。"""
+    '沿剩余梯子解析一个冷候选。头为 dict'
     子标识=头['id']#候选id
     if 缓存 is not None and not 头.get('isSeeded'):#未播种可走缓存（切点精确为 0）
         缓存身份=None#缓存身份
@@ -160,7 +160,7 @@ def 解析冷身份(持久化,投影,缓存,头,有子体,信号=None):
     return 子体行(子标识,身份,'inactive',有子体)#冷子体行
 
 def 解析候选行(候选列表,列举,信号=None):
-    """以有界冷读为对齐候选解析投影行。候选为 dict。"""
+    '以有界冷读为对齐候选解析投影行。候选为 dict'
     投影=列举['projections']#投影注册表
     持久化=列举['persistence']#可选持久化
     缓存=列举['cache']#可选投影缓存
@@ -194,7 +194,7 @@ def 解析候选行(候选列表,列举,信号=None):
     return 行列表#对齐行
 
 def 后代候选(语料,根会话标识):
-    """无递归地从完整树建造按来源分类的候选。语料值为 dict，头为 dict。"""
+    '无递归地从完整树建造按来源分类的候选。语料值为 dict，头为 dict'
     子女={}#父到子女
     for 记录 in 语料.values():#建邻接
         头=记录['header']#头
@@ -224,7 +224,7 @@ def 后代候选(语料,根会话标识):
     return 定位#带位置候选
 
 def 列举子体(上下文,父会话标识,信号=None):
-    """从 ctx.sessions 与可选会话持久化的活优先合并中，枚举一个父的按来源分类的直接子体。"""
+    '从 ctx.sessions 与可选会话持久化的活优先合并中，枚举一个父的按来源分类的直接子体'
     列举=准备列举(上下文,信号)#准备运行时与语料
     候选列表=[]#直接子
     for 记录 in 列举['corpus'].values():#扫描语料
@@ -237,7 +237,7 @@ def 列举子体(上下文,父会话标识,信号=None):
     return [行 for 行 in 行列表 if 行 is not None]#去掉省略项
 
 def 列举后代(上下文,根会话标识,信号=None):
-    """以稳定前序枚举一个根下每个有会话的子智能体。"""
+    '以稳定前序枚举一个根下每个有会话的子智能体'
     列举=准备列举(上下文,信号)#准备运行时与语料
     定位=后代候选(列举['corpus'],根会话标识)#带位置的候选
     行列表=解析候选行([位置['record'] for 位置 in 定位],列举,信号)#解析投影行

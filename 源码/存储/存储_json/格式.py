@@ -1,17 +1,17 @@
-"""磁盘上的 JSON 单元格式。"""
+'磁盘上的 JSON 单元格式'
 import json#JSON 编解码
 from ..存储.错误 import 存储错误#存储错误
 __all__=['单元状态','序列化','解析','序列化记录','解析记录']#仅中文公开名
 
 class 单元状态:#内存权威状态
-    """一个单元的内存权威状态；文件是它的投影。"""
+    '一个单元的内存权威状态；文件是它的投影'
     def __init__(自身,版本,全局值,表):#构造状态
         自身.version=版本#单元版本
         自身.全局值=全局值#全局；未写为 None
         自身.tables=表#表名到记录映射
 
 def 序列化(名称,状态):#整单元序列化
-    """把单元状态序列成带尾换行的美化 JSON。"""
+    '把单元状态序列成带尾换行的美化 JSON'
     表投影={}#表到对象
     for 表名,记录 in 状态.tables.items():#每张表
         表投影[表名]=dict(记录)#Map 转 dict
@@ -19,7 +19,7 @@ def 序列化(名称,状态):#整单元序列化
     return json.dumps(文档,indent=2,ensure_ascii=False)+'\n'#美化加换行
 
 def 解析(文本,描述符):#解析整单元文件
-    """解析文件内容并校验形态与版本。"""
+    '解析文件内容并校验形态与版本'
     try:#JSON 解析
         文档=json.loads(文本)#解析文本
     except json.JSONDecodeError as 错误:#非法 JSON
@@ -47,11 +47,11 @@ def 解析(文本,描述符):#解析整单元文件
     return 单元状态(版本,文档.get('global') if 'global' in 文档 else None,表映射)#解析状态
 
 def 序列化记录(版本,值):#单记录文档
-    """序列化一条 per-record 文档。"""
+    '序列化一条 per-record 文档'
     return json.dumps({'version':版本,'record':值},indent=2,ensure_ascii=False)+'\n'#美化加换行
 
 def 解析记录(文本,版本):#解析单记录文档
-    """解析 per-record 文档；外文档读作缺席。"""
+    '解析 per-record 文档；外文档读作缺席'
     try:#JSON 解析
         文档=json.loads(文本)#解析
     except json.JSONDecodeError:#非法

@@ -3,7 +3,7 @@ from .节点工厂 import 聊天错误,聊天合成序号偏移,聊天节点#公
 __all__=['回合顶格定义','登记回合顶格会话节点']#仅中文公开名
 
 def 末步(上下文):#所属回合最后一步的步骤号
-    """非回合/步骤则 0。"""
+    '非回合/步骤则 0'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     if 起点 is not None and 'location' in 起点:#有起点
@@ -22,7 +22,7 @@ def 末步(上下文):#所属回合最后一步的步骤号
     return 末['step'] if 'step' in 末 else 0#末步
 
 def 通知锚(上下文,序号):#通知在 Chat 序列中的锚点 seq
-    """有收束助手则夹在助手与回合尾之间。"""
+    '有收束助手则夹在助手与回合尾之间'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     if 起点 is not None and 'location' in 起点:#有起点
@@ -44,7 +44,7 @@ def 通知锚(上下文,序号):#通知在 Chat 序列中的锚点 seq
     return 终序号+聊天合成序号偏移['maxTokensNotice']#夹中间
 
 def 自匹配取态(匹配项):#从 max-tokens 的 turn/end 取状态
-    """非该原因则 None。"""
+    '非该原因则 None'
     事件=匹配项['event']#事件
     if 事件['type']!='turn/end':#非
         return None#无
@@ -55,7 +55,7 @@ def 自匹配取态(匹配项):#从 max-tokens 的 turn/end 取状态
     return {'turn':数据['turn'] if 'turn' in 数据 else None,'seq':事件['seq'],'time':事件['time'] if 'time' in 事件 else None}#态
 
 def 回合顶格匹配(事件):#判定事件是否属于本节点
-    """max-tokens 的 turn/end。"""
+    'max-tokens 的 turn/end'
     if 事件['type']!='turn/end':#非
         return None#其余
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -65,18 +65,18 @@ def 回合顶格匹配(事件):#判定事件是否属于本节点
     return None#其余
 
 def 回合顶格开始(_上下文,匹配项):#用 max-tokens 的 turn/end 开节点
-    """非该事件则抛。"""
+    '非该事件则抛'
     态=自匹配取态(匹配项)#取
     if 态 is None:#非
         raise 聊天错误('turn-max-tokens start requires a max-tokens turn/end')#硬失败
     return 态#记下
 
 def 回合顶格更新(上下文,_匹配项=None):#后续不改
-    """原样。"""
+    '原样'
     return 上下文['state']#态
 
 def 回合顶格建视图(上下文):#组装可见 Chat 节点
-    """无状态则不渲染。"""
+    '无状态则不渲染'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None:#无
         return None#不渲染
@@ -89,5 +89,5 @@ def 回合顶格建视图(上下文):#组装可见 Chat 节点
 }#结束
 
 def 登记回合顶格会话节点(上下文):#注册截断通知贡献
-    """挂到 uiConversation.events。"""
+    '挂到 uiConversation.events'
     上下文.uiConversation.events.register(回合顶格定义)#登记

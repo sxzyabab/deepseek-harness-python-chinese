@@ -7,11 +7,11 @@ _绘图路径=re.compile(r'^xl/drawings/(?:[^/]+\.xml|_rels/[^/]+\.xml\.rels)\Z'
 _关系路径=re.compile(r'^(.*?/)?_rels/([^/]+)\.rels\Z',re.IGNORECASE|re.ASCII)
 
 def 部件键(路径):
-    """OPC 按 ASCII 大小写等价比较部件名。"""
+    'OPC 按 ASCII 大小写等价比较部件名'
     return re.sub(r'[A-Z]',lambda 命中:命中.group(0).lower(),路径)
 
 def 解码xml(数据):
-    """按强制 XML 编码解码，不改归档字节。"""
+    '按强制 XML 编码解码，不改归档字节'
     if (len(数据)>=2 and 数据[0]==0xff and 数据[1]==0xfe) or (len(数据)>=2 and 数据[0]==0x3c and 数据[1]==0):
         编码='utf-16-le'
     elif (len(数据)>=2 and 数据[0]==0xfe and 数据[1]==0xff) or (len(数据)>=2 and 数据[0]==0 and 数据[1]==0x3c):
@@ -21,7 +21,7 @@ def 解码xml(数据):
     return 数据.decode(编码)
 
 def 解析部件(属主,目标):
-    """解析内部关系目标，拒绝逃出包根。"""
+    '解析内部关系目标，拒绝逃出包根'
     段表=[] if 目标.startswith('/') else 属主.split('/')[:-1]
     for 段 in 目标.split('/'):
         if 段=='' or 段=='.':
@@ -35,7 +35,7 @@ def 解析部件(属主,目标):
     return '/'.join(段表)
 
 class xlsx预览归档:
-    """去掉 DrawingML 部件的预览副本。"""
+    '去掉 DrawingML 部件的预览副本'
     def __init__(自身,字节):
         自身.字节=字节
         自身.不支持特性=set()
@@ -54,7 +54,7 @@ class xlsx预览归档:
                 自身.部件[键]=数据
 
     def 去绘图(自身):
-        """ExcelJS 解析前省略 DrawingML；调用方还须忽略工作表绘图引用。"""
+        'ExcelJS 解析前省略 DrawingML；调用方还须忽略工作表绘图引用'
         省略=set()
         for 路径,数据 in 自身.文件.items():
             if _绘图路径.match(路径) is not None:

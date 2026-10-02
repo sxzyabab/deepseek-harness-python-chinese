@@ -3,20 +3,20 @@ __all__=['回合触发详情']
 回合触发图标=('agent','github','goal','job','plugin','request','schedule','subagent','team','webhook')
 
 def 记录对象(值):
-    """非对象则空表。"""
+    '非对象则空表'
     if isinstance(值,dict):
         return 值
     return {}
 
 def 字段串(源,键):
-    """非字符串则空串。"""
+    '非字符串则空串'
     if 键 not in 源:
         return ''
     值=源[键]
     return 值 if isinstance(值,str) else ''
 
 def 回合触发详情(节点):
-    """用源与可识别生产者框架描述唤醒消息。节点为 dict。"""
+    '用源与可识别生产者框架描述唤醒消息。节点为 dict'
     源=记录对象(节点['source'] if 'source' in 节点 else None)
     种=字段串(源,'kind')
     标题='message.trigger.request'

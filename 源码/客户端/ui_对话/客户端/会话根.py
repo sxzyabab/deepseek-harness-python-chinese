@@ -1,15 +1,15 @@
 __all__=['会话根','工作区标签','派生阶段']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键
 
 def 空渲染槽(*位置参数,**关键字参数):
-    """未注入槽渲染时不画。"""
+    '未注入槽渲染时不画'
     return None#不画
 
 def 工作区标签(工作目录):
-    """分隔符-only 路径回显原 cwd。"""
+    '分隔符-only 路径回显原 cwd'
     if 工作目录 is None or 工作目录=='':#空
         return 工作目录#原样
     段=工作目录.replace('\\','/').rstrip('/').split('/')#分段
@@ -17,7 +17,7 @@ def 工作区标签(工作目录):
     return 基 if 基!='' else 工作目录#空则原路径
 
 def 派生阶段(会话标识,作曲阶段,打开态,摘要空白):
-    """沉降：有会话且 blank+loading 且摘要未证 blank。"""
+    '沉降：有会话且 blank+loading 且摘要未证 blank'
     沉降=会话标识 is not None and 作曲阶段=='blank' and 打开态=='loading' and 摘要空白 is not True#沉降
     英雄=会话标识 is None or (作曲阶段=='blank' and (打开态=='open' or 摘要空白 is True))#英雄
     if 沉降 is True:#沉降优先
@@ -27,49 +27,49 @@ def 派生阶段(会话标识,作曲阶段,打开态,摘要空白):
     return 'active'#活动
 
 def 取打开态(快照):
-    """openState。"""
+    'openState'
     return 快照['openState'] if 'openState' in 快照 else None#打开
 
 def 取作曲阶段(快照):
-    """composerPhase。"""
+    'composerPhase'
     return 快照['composerPhase'] if 'composerPhase' in 快照 else None#相位
 
 def 取未决(快照):
-    """pending。空列表保留。"""
+    'pending。空列表保留'
     列=快照['pending'] if 'pending' in 快照 else None#未决
     return 列 if 列 is not None else []#空则空表
 
 def 取自身(快照):
-    """快照原样。"""
+    '快照原样'
     return 快照#原样
 
 def 取阻断(值):
-    """阻断原样。"""
+    '阻断原样'
     return 值#原样
 
 class 会话根:#常驻会话骨架
-    """英雄铬、composer 定位与会话链同树挂载。"""
+    '英雄铬、composer 定位与会话链同树挂载'
     def __init__(自身,属性=None):
-        """记下合成 props 与本地选择器态。"""
+        '记下合成 props 与本地选择器态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.选择器开=False#工作区菜单
         自身.待选工作区标识=None#刚挑的工作区
         自身.席位高度=0#composer 席高度
 
     def 更新(自身,属性):
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 切换选择器(自身):
-        """翻转工作区选择器。"""
+        '翻转工作区选择器'
         自身.选择器开=not 自身.选择器开#翻转
 
     def 关闭选择器(自身):
-        """关闭。"""
+        '关闭'
         自身.选择器开=False#关
 
     def 挑选工作区(自身,工作区标识):
-        """关菜单、记下待选并调用 selectWorkspace。"""
+        '关菜单、记下待选并调用 selectWorkspace'
         自身.选择器开=False#关
         自身.待选工作区标识=工作区标识#待选
         选定=自身.属性['selectWorkspace'] if 'selectWorkspace' in 自身.属性 else None#回调
@@ -77,18 +77,18 @@ class 会话根:#常驻会话骨架
             选定(工作区标识)#打开空白会话
 
     def 清理待选(自身,会话工作区标识,工作区相位,待选仍在):
-        """会话落盘或列表就绪且已删则清。"""
+        '会话落盘或列表就绪且已删则清'
         if 自身.待选工作区标识 is None:#无待选
             return#无事
         if 会话工作区标识==自身.待选工作区标识 or (工作区相位=='ready' and 待选仍在 is False):#已落或消失
             自身.待选工作区标识=None#清
 
     def 记录席位高度(自身,高度):
-        """供回到底部按钮 clearance。"""
+        '供回到底部按钮 clearance'
         自身.席位高度=高度#记下
 
     def 渲染(自身):
-        """与上游 JSX 同构的阶段/区/栏调度。"""
+        '与上游 JSX 同构的阶段/区/栏调度'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话钩
@@ -105,14 +105,14 @@ class 会话根:#常驻会话骨架
         会话=用会话(取自身) if 用会话 is not None else None#整快照
         输入态=用输入(取自身) if 用输入 is not None else None#输入机
         def 取cwd(表):
-            """byId[sessionId].cwd。表为 dict。"""
+            'byId[sessionId].cwd。表为 dict'
             if 会话标识 is None:#无会话
                 return None#无
             册=表['byId'] if 'byId' in 表 else None#byId
             摘要=册[会话标识] if 册 is not None and 会话标识 in 册 else None#摘要
             return 摘要['cwd'] if 摘要 is not None and 'cwd' in 摘要 else None#cwd
         def 取blank(表):
-            """byId[sessionId].blank。"""
+            'byId[sessionId].blank'
             if 会话标识 is None:#无会话
                 return None#无
             册=表['byId'] if 'byId' in 表 else None#byId
@@ -196,7 +196,7 @@ class 会话根:#常驻会话骨架
         }#结束根
 
     def __call__(自身,属性=None):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

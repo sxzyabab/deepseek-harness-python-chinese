@@ -33,7 +33,7 @@ setDefaultHighWaterMark=StreamBase.setDefaultHighWaterMark
 if getDefaultHighWaterMark(False)!=64*1024: setDefaultHighWaterMark(False,64*1024)
 
 def 是否数组缓冲视图(值):
-    """测试值是否为 ArrayBuffer 视图。"""
+    '测试值是否为 ArrayBuffer 视图'
     if 'ArrayBuffer' not in globals():
         return False
     是视图=getattr(globals()['ArrayBuffer'],'isView',None)

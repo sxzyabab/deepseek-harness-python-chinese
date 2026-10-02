@@ -1,11 +1,8 @@
-"""解析 Remote 智能体与会话身份的宿主 BFF 策略。
-
-诊断英文字面量保持线协议。
-"""
+'解析 Remote 智能体与会话身份的宿主 BFF 策略'
 import threading#后台恢复
 from typing import NotRequired,TypedDict#结构类型
 from concurrent.futures import Future as 原生结果#单次操作结果
-from ...typert.协议 import 查找策略失败
+from ...类型化远程调用.协议 import 查找策略失败
 
 __all__=(#仅中文公开名
     '远程会话未找到','远程子智能体会话所有权',
@@ -19,43 +16,43 @@ __all__=(#仅中文公开名
 远程查找错误码=('agent-busy','session-not-found','internal')#面向调用方失败码联合
 
 class 远程查找错误基类(Exception):
-    """远程智能体查找包的异常基类。"""
+    '远程智能体查找包的异常基类'
 
 class 远程查找错误(TypedDict):
-    """网关 RPC 适配器原样保留的面向调用方失败。"""
+    '网关 RPC 适配器原样保留的面向调用方失败'
     code:str#agent-busy | session-not-found | internal
     message:str#诊断消息
     details:dict#按码携带 reason / sessionId / 空对象
 
 class 远程智能体结果成功(TypedDict):
-    """解析到在线智能体。"""
+    '解析到在线智能体'
     agent:object#在线智能体
 
 class 远程智能体结果失败(TypedDict):
-    """查找失败。"""
+    '查找失败'
     error:远程查找错误#面向调用方失败信封
 
 远程智能体结果=dict#成功含 agent，失败含 error（运行时联合）
 
 class 远程智能体选项(TypedDict):
-    """拥有方宿主组合提供的恢复配置。"""
+    '拥有方宿主组合提供的恢复配置'
     agentOptions:NotRequired[object]#可选的智能体默认选项工厂
     setup:NotRequired[object]#发布前宿主专用智能体作用域装配工厂
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._未来.done():#尚未结算
             自身._未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身._未来.set_exception(错误)#原样拒绝
@@ -65,21 +62,21 @@ class 操作任务:
                 自身._未来.set_exception(包装)#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
 
 class 远程会话未找到(远程查找错误基类):
-    """持久会话库中没有的冷身份。"""
+    '持久会话库中没有的冷身份'
 
 class 远程子智能体会话所有权(远程查找错误基类):
-    """生命周期属于子智能体路由的会话身份。"""
+    '生命周期属于子智能体路由的会话身份'
     def __init__(自身,会话标识):
-        """记下被围栏的会话身份。"""
+        '记下被围栏的会话身份'
         super().__init__('session "'+str(会话标识)+'" is a subagent session; use subagent delivery')#诊断应走子智能体投递
         自身.会话标识=会话标识#会话身份
 
 def 有远程子智能体所有者(上下文,头,智能体):
-    """测试通用宿主路由是否必须把该身份留给子智能体路由。头为会话头 dict。"""
+    '测试通用宿主路由是否必须把该身份留给子智能体路由。头为会话头 dict'
     if 头 is None:#无头
         return False#不占用
     if 'origin' in 头 and 头['origin']=='subagent':#源头是子智能体则占用
@@ -91,7 +88,7 @@ def 有远程子智能体所有者(上下文,头,智能体):
     return 父 is not None and 上下文.agents.isOwnedBy(智能体.id,父)#父在线且该智能体由父拥有则占用
 
 def 远程子智能体所有权错误(会话标识):
-    """构造稳定的面向调用方所有权拒绝。"""
+    '构造稳定的面向调用方所有权拒绝'
     return {#agent-busy 信封
         'code':'agent-busy',#智能体正忙
         'message':'session "'+str(会话标识)+'" is owned by subagent routing',#由子智能体路由占用
@@ -99,7 +96,7 @@ def 远程子智能体所有权错误(会话标识):
     }#信封结束
 
 def 查看远程会话(上下文,会话标识):
-    """查看一个冷的可服务会话，不修复、不恢复、不发布。"""
+    '查看一个冷的可服务会话，不修复、不恢复、不发布'
     持久化=上下文.获取服务('sessionPersistence')#取可选持久化提供方
     if 持久化 is None:#没有配置持久化
         raise 远程查找错误基类('session persistence is not configured (load a dsh-session-persistence backend)')#必须装会话持久化后端
@@ -118,11 +115,11 @@ def 查看远程会话(上下文,会话标识):
     return {'meta':头,'events':list(事件列表)}#返回头与事件浅拷贝
 
 def 创建远程智能体解析器(上下文,选项):
-    """在线智能体复用，普通冷会话按身份恢复一次，子智能体占用的身份保留旧的 agent-busy 围栏。选项为 dict。"""
+    '在线智能体复用，普通冷会话按身份恢复一次，子智能体占用的身份保留旧的 agent-busy 围栏。选项为 dict'
     恢复中={}#进行中的按身份去重恢复：会话标识 → 共享任务
 
     def 围栏在线(会话标识):
-        """在线智能体复用或 agent-busy。"""
+        '在线智能体复用或 agent-busy'
         在线=上下文.agents.get(会话标识)#取该身份的在线智能体
         if 在线 is None:#没有在线智能体
             return None#无结论
@@ -131,7 +128,7 @@ def 创建远程智能体解析器(上下文,选项):
         return {'agent':在线}#可复用在线智能体
 
     def 解析智能体(会话标识):
-        """先看在线，再冷恢复。"""
+        '先看在线，再冷恢复'
         围栏=围栏在线(会话标识)#先看在线智能体
         if 围栏 is not None:#已有结论则返回
             return 围栏#结论
@@ -143,7 +140,7 @@ def 创建远程智能体解析器(上下文,选项):
             恢复=操作任务()#共享恢复任务
             恢复中[会话标识]=恢复#先入表，后跑体，使并发调用方挂上同一任务
             def 后台恢复会话():
-                """查看、装配、再恢复；成败都结算共享任务。"""
+                '查看、装配、再恢复；成败都结算共享任务'
                 try:
                     查看=查看远程会话(上下文,会话标识)#只读查看持久会话
                     if 有远程子智能体所有者(上下文,查看['meta'],None):#冷会话也由子智能体占用
@@ -192,18 +189,18 @@ def 创建远程智能体解析器(上下文,选项):
             }#内部失败结束
 
     def 挂查找(类型上下文,*位置参数):
-        """配置智能体/会话查找与宿主上下文提供方。"""
+        '配置智能体/会话查找与宿主上下文提供方'
         def 解析到智能体(会话标识):
-            """查找失败抛 查找策略失败。"""
+            '查找失败抛 查找策略失败'
             找到=解析智能体(会话标识)#走共享解析器
             if 'error' in 找到:#面向调用方失败原样保留
                 raise 查找策略失败(找到['error'])#抛出
             return 找到['agent']#解析到智能体
         def 解析到会话(会话标识):
-            """会话查找。"""
+            '会话查找'
             return 解析到智能体(会话标识).session#智能体上的会话
         def 解析到上下文(会话标识):
-            """宿主上下文。"""
+            '宿主上下文'
             return 解析到智能体(会话标识).ctx#智能体上下文
         类型上下文.typert.lookups.configure('agent',解析到智能体)
         类型上下文.typert.lookups.configure('session',解析到会话)

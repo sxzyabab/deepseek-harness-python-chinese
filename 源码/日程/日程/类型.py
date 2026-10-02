@@ -1,4 +1,4 @@
-"""持久且面向模型的日程取值类型。"""
+'持久且面向模型的日程取值类型'
 from typing import Literal,TypedDict,NotRequired,Union#字面量、结构类型与可选字段
 
 日程标识=str#会话内唯一且永不复用的稳定提醒身份

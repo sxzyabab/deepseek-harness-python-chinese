@@ -1,4 +1,4 @@
-"""受限进程 spawn：stdio 用匿名管道，STARTUPINFOW 带 STARTF_USESTDHANDLES，在受限令牌下 CreateProcessAsUserW，然后排空管道并等待退出。控制台隔离（CREATE_NO_WINDOW / CREATE_NEW_CONSOLE）故意缺席：在本限制方案下隐藏控制台子进程以 STATUS_DLL_INIT_FAILED (0xC0000142) 死去——已实证；stdio 重定向基于管道，不受影响；子进程共享宿主控制台。"""
+'受限进程 spawn：stdio 用匿名管道，STARTUPINFOW 带 STARTF_USESTDHANDLES，在受限令牌下 CreateProcessAsUserW，然后排空管道并等待退出'
 import re,time,ctypes#引号判定、让出与缓冲视图
 from .ffi import (
     分配指针槽,#指针槽
@@ -20,7 +20,7 @@ from . import win32_abi as abi#ABI常量
 空白或引号=re.compile(r'[\s"]',re.ASCII)#CommandLineToArgvW 的 ASCII 空白与引号
 
 def 引用参数(参数):
-    """按 CommandLineToArgvW 解析规则引用一个参数。"""
+    '按 CommandLineToArgvW 解析规则引用一个参数'
     if 参数=='':#空串
         return '""'#必须成对引号
     if 空白或引号.search(参数) is None:#无空白无引号
@@ -43,11 +43,11 @@ def 引用参数(参数):
     return 已引+'"'#收尾引号
 
 def 构建命令行(程序,参数列表):#拼命令行
-    """从程序加 argv 建成 CreateProcess 解析的那一条命令行。"""
+    '从程序加 argv 建成 CreateProcess 解析的那一条命令行'
     return ' '.join(引用参数(项) for 项 in [程序,*参数列表])#逐条引用再空格拼接
 
 def 创建管道(接口):#创建匿名管道
-    """创建一对匿名管道端。"""
+    '创建一对匿名管道端'
     读槽=分配指针槽()#读端槽
     写槽=分配指针槽()#写端槽
     if 接口.createPipe(读槽,写槽,None,0)==0:#创建失败
@@ -59,12 +59,12 @@ def 创建管道(接口):#创建匿名管道
     return {'read':读,'write':写}#两端
 
 def 设可继承(接口,句柄,标签):#打开句柄继承
-    """打开句柄继承位。"""
+    '打开句柄继承位'
     if 接口.setHandleInformation(句柄,abi.句柄可继承,abi.句柄可继承)==0:#设置失败
         抛上次错误(接口,'SetHandleInformation',标签)#带标签抛出
 
 def 隔离生成(接口,令牌,选项):#管道stdio隔离spawn
-    """在受限令牌下用管道 stdio 创建进程。"""
+    '在受限令牌下用管道 stdio 创建进程'
     标准入=创建管道(接口)#stdin管道
     标准出=创建管道(接口)#stdout管道
     标准误=创建管道(接口)#stderr管道
@@ -98,7 +98,7 @@ def 隔离生成(接口,令牌,选项):#管道stdio隔离spawn
     return {'pid':信息.dwProcessId,'process':进程句柄,'stdoutRead':标准出['read'],'stderrRead':标准误['read']}#管道spawn结果
 
 def 排空管道(接口,句柄):#排空管道
-    """经非阻塞 PeekNamedPipe 轮询把一个管道读端排空成 bytes。"""
+    '经非阻塞 PeekNamedPipe 轮询把一个管道读端排空成 bytes'
     块列表=[]#已读块
     while True:#直到EOF
         已读槽=分配无符号32()#已读字节槽
@@ -123,7 +123,7 @@ def 排空管道(接口,句柄):#排空管道
     return b''.join(块列表)#拼接内容
 
 def 等待退出(接口,进程):#等待退出
-    """等待进程退出并返回其退出码。"""
+    '等待进程退出并返回其退出码'
     等待结果=接口.waitForSingleObject(进程,abi.无限等待)#无限等待
     if 等待结果==0xFFFFFFFF:#等待失败
         抛上次错误(接口,'WaitForSingleObject')#抛出
@@ -134,7 +134,7 @@ def 等待退出(接口,进程):#等待退出
     return 解码无符号32(退出码槽)#退出码
 
 def 创建关闭即杀作业(接口):#创建关闭即杀作业
-    """创建关闭即杀作业对象。"""
+    '创建关闭即杀作业对象'
     作业=接口.createJobObjectW(None,None)#匿名作业
     if 是否空指针(作业):#创建失败
         抛上次错误(接口,'CreateJobObjectW')#抛出
@@ -148,7 +148,7 @@ def 创建关闭即杀作业(接口):#创建关闭即杀作业
     return 作业#作业句柄
 
 def 隔离继承生成(接口,令牌,选项):#继承stdio隔离spawn
-    """在受限令牌下创建进程，其 stdio 直通到调用方管道。"""
+    '在受限令牌下创建进程，其 stdio 直通到调用方管道'
     作业=创建关闭即杀作业(接口)#关闭即杀作业
     标准入=接口.getStdHandle(abi.标准输入句柄)#调用方stdin
     标准出=接口.getStdHandle(abi.标准输出句柄)#调用方stdout

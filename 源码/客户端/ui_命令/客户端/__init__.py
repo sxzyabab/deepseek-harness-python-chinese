@@ -17,21 +17,21 @@ __all__=[#仅中文公开名
 
 
 def 应用(上下文):
-    """挂词典与运行时；等槽位/命令界面/会话后登记弹层。"""
+    '挂词典与运行时；等槽位/命令界面/会话后登记弹层'
     def 登记词典():
-        """登记 command 命名空间中英文案。"""
+        '登记 command 命名空间中英文案'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
     上下文.副作用(登记词典,'ui-commands: dictionaries')#词典
     上下文.plugin(命令UI运行时)#挂运行时
 
     def 叠层就绪(作用域):
-        """等 slots/commandUi/sessions 后登记弹层。"""
+        '等 slots/commandUi/sessions 后登记弹层'
         命令=作用域.commandUi#运行时
         会话=作用域.get('sessions')#会话
         def 登记弹层():
-            """按会话解析弹层注入。"""
+            '按会话解析弹层注入'
             def 注入面(会话标识):
-                """解析作用域并交出 popup。"""
+                '解析作用域并交出 popup'
                 作用=会话.scope(会话标识)#作用域
                 if 作用 is None:#无
                     raise 命令错误('ui-commands: session "'+str(会话标识)+'" resolved no scope')#失败

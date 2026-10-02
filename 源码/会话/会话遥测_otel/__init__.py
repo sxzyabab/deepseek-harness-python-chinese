@@ -1,4 +1,4 @@
-"""OpenTelemetry 会话遥测后端。"""
+'OpenTelemetry 会话遥测后端'
 import threading#定时与并发
 from ...依赖.schemastery import 字典字段,字符串字段,任意字段,数字字段#配置
 from ...身份.匿名用户id import 获取或创建匿名用户id#用户 id
@@ -23,17 +23,17 @@ __all__=['包名','名称','依赖','应用','默认','配置','会话遥测模�
 会话遥测模式=('FULL','FEEDBACK_ONLY','DISABLED')#模式枚举
 
 class 开放遥测错误(Exception):
-    """会话遥测 otel 包的异常基类。"""
+    '会话遥测 otel 包的异常基类'
 
 def 解析模式(模式):
-    """校验模式。"""
+    '校验模式'
     已解析='DISABLED' if 模式 is None else 模式#默认
     if 已解析 not in 会话遥测模式:#未知
         raise 开放遥测错误('session-telemetry-otel: unsupported mode '+repr(模式))#拒绝
     return 已解析#返回
 
 def 共享状态于(模式):
-    """模式→sharing。"""
+    '模式→sharing'
     映射={'FULL':'full','FEEDBACK_ONLY':'feedback-only','DISABLED':'disabled'}#表
     return 映射[模式]#返回
 
@@ -42,9 +42,9 @@ def 共享状态于(模式):
 }#OTel 严重度
 
 class 开放遥测会话后端(会话遥测后端):
-    """把逻辑记录映射到 OTel Logger.emit。"""
+    '把逻辑记录映射到 OTel Logger.emit'
     def __init__(自身,上下文,配置值):
-        """按模式安装后端。"""
+        '按模式安装后端'
         模式=解析模式(配置值['mode'] if 'mode' in 配置值 else None)#模式
         super().__init__(上下文)#基类
         自身._共享=共享状态于(模式)#sharing
@@ -96,16 +96,16 @@ class 开放遥测会话后端(会话遥测后端):
         上下文.监听('session/event',自身._反馈监听)#挂
 
     def _丢弃记录(自身,记录):
-        """禁用模式丢弃。"""
+        '禁用模式丢弃'
         return#丢弃
 
     def _监听禁用反馈(自身,会话,事件):
-        """禁用时对反馈警告。"""
+        '禁用时对反馈警告'
         if 事件['type']=='feedback/record':#反馈
             自身.ctx.日志.警告(禁用反馈警告)#警告
 
     def _入队(自身,记录):
-        """映射到 OTel emit。"""
+        '映射到 OTel emit'
         记录器=自身._运维 if 记录['channel']=='ops' else 自身._账本#选 logger
         严重=严重度映射[记录['severity']] if 'severity' in 记录 and 记录['severity'] in 严重度映射 else ('INFO',9)#严重度
         记录器.emit({
@@ -115,7 +115,7 @@ class 开放遥测会话后端(会话遥测后端):
         })#发出
 
     def _反馈监听(自身,会话,事件):
-        """仅反馈捕获。"""
+        '仅反馈捕获'
         if 事件['type']!='feedback/record':#非反馈
             return#跳过
         事件列表=会话.events#日志
@@ -127,20 +127,20 @@ class 开放遥测会话后端(会话遥测后端):
 
     @property
     def 共享(自身):
-        """共享策略。"""
+        '共享策略'
         return 自身._共享#策略
 
     def 发出(自身,记录):
-        """发出一条逻辑记录。"""
+        '发出一条逻辑记录'
         自身._直接发出(记录)#转发
 
     def 关闭(自身):
-        """同步关闭提供者。"""
+        '同步关闭提供者'
         if 自身._提供者 is None:#禁用
             return#立即
         错误箱=[]#超时错误
         def 记下超时():
-            """超时标记。"""
+            '超时标记'
             错误箱.append(开放遥测错误('session-telemetry-otel: provider shutdown exceeded '+str(自身._关闭超时)+'ms'))#超时
         定时=threading.Timer(自身._关闭超时/1000.0,记下超时)#定时器
         定时.daemon=True#守护
@@ -153,7 +153,7 @@ class 开放遥测会话后端(会话遥测后端):
             raise 错误箱[0]#抛出
 
 def 应用(上下文,配置值):
-    """加载 otel 后端。"""
+    '加载 otel 后端'
     开放遥测会话后端(上下文,配置值)#注册
 
 默认=开放遥测会话后端

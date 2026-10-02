@@ -17,7 +17,6 @@ from .配置档 import (#配置档再导出
     愈合隔离配置模块回退,拆开配置模块回退,
 )#再导出结束
 from .配置解析.服务 import 插件包表#配置解析服务
-from .配置档上下文 import 读配置档补丁,解析遥测补丁#配置档上下文
 from .配置档插件 import 读配置插件,写配置组合包,对账配置插件#配置档插件
 from .配置档清洗 import 清洗配置档#清洗
 
@@ -61,10 +60,10 @@ __all__=[#仅中文公开名
 纤程失败=纤程状态.失败#已失败
 
 class 启动错误(Exception):
-    """应用启动粘合层失败；可附带未激活条目元数据。"""
+    '应用启动粘合层失败；可附带未激活条目元数据'
 
     def __init__(自身,消息,条目表=None):
-        """记下消息与可选条目；失败 outcome 挂为 cause。"""
+        '记下消息与可选条目；失败 outcome 挂为 cause'
         条目表=条目表 if 条目表 is not None else []#条目
         失败值=[]#原失败
         for 项 in 条目表:#逐条
@@ -85,7 +84,7 @@ class 启动错误(Exception):
         自身.startup=None#启动日志切片
 
 def 协调配置档补丁(上下文,补丁,二进制名,必需标识=None):
-    """应用一整代补丁并等待 Loader 激活诊断。"""
+    '应用一整代补丁并等待 Loader 激活诊断'
     if 必需标识 is None:#缺省
         必需标识=[]#空
     键=id(上下文)#上下文身份
@@ -111,7 +110,7 @@ def 协调配置档补丁(上下文,补丁,二进制名,必需标识=None):
         加载器.等待()#等结算
     失败=未激活条目(上下文)#新失败
     def 是否引入(项):
-        """是否新的或已变失败。"""
+        '是否新的或已变失败'
         if 项['entry'].选项.get('id') in 必需标识:#显式必需
             return True#引入
         for 先前 in 先前失败:#比对
@@ -126,7 +125,7 @@ def 协调配置档补丁(上下文,补丁,二进制名,必需标识=None):
     return [未激活诊断(项) for 项 in 失败]#诊断文本
 
 def 解析配置路径(配置路径,快照模式,工作目录=None):#解析启动配置路径
-    """解析要启动的配置；回放时换基名为 cordis.snapshot.yml。"""
+    '解析要启动的配置；回放时换基名为 cordis.snapshot.yml'
     if 工作目录 is None:#缺省
         工作目录=os.getcwd()#cwd
     绝对=os.path.abspath(os.path.join(工作目录,配置路径))#绝对路径
@@ -138,12 +137,12 @@ def 解析配置路径(配置路径,快照模式,工作目录=None):#解析启�
     return os.path.join(目录,回放名)#回放配置
 
 def 加载环境(二进制名,目录=None,警告=None):#加载单层 .env
-    """从 dir 加载可选的 .env。"""
+    '从 dir 加载可选的 .env'
     if 目录 is None:#缺省
         目录=os.getcwd()#cwd
     if 警告 is None:#缺省
         def 写警告(行):
-            """写标准错误。"""
+            '写标准错误'
             sys.stderr.write(行)#stderr
         警告=写警告#缺省警告
     路径=os.path.join(目录,'.env')#路径
@@ -155,7 +154,7 @@ def 加载环境(二进制名,目录=None,警告=None):#加载单层 .env
         警告(二进制名+': failed to load .env: '+str(错误)+'\n')#报告
 
 def 是否仅引导(名):#是否引导专用
-    """变量是否只能来自继承的进程环境。"""
+    '变量是否只能来自继承的进程环境'
     大写=名.upper()#大写名
     if 大写 in 引导名精确:#精确名
         return True
@@ -165,7 +164,7 @@ def 是否仅引导(名):#是否引导专用
     return False#否
 
 def 解析环境文本(内容):#解析 .env 文本
-    """把 .env 文本解析成名→值映射（对齐 Node parseEnv 子集）。"""
+    '把 .env 文本解析成名→值映射（对齐 Node parseEnv 子集）'
     值表={}#条目
     for 行 in 内容.splitlines():#逐行
         修剪=行.strip()#修剪
@@ -184,7 +183,7 @@ def 解析环境文本(内容):#解析 .env 文本
     return 值表#条目
 
 def 应用环境文件(路径):#把 .env 写入进程环境
-    """读取路径上的 .env 并写入尚未继承的名字。"""
+    '读取路径上的 .env 并写入尚未继承的名字'
     文件=open(路径,'r',encoding='utf-8')#打开
     try:#读
         内容=文件.read()#文本
@@ -195,7 +194,7 @@ def 应用环境文件(路径):#把 .env 写入进程环境
             os.environ[名]=值#写入
 
 def 读环境层(二进制名,目录,警告,主目录):#读一层 .env
-    """解析某目录的 .env 但不应用，拒绝引导专用名。主目录层可设代理名。"""
+    '解析某目录的 .env 但不应用，拒绝引导专用名。主目录层可设代理名'
     路径=os.path.join(目录,'.env')#该层路径
     是主目录=os.path.abspath(目录)==主目录#是否主目录层
     try:#读文件
@@ -225,12 +224,12 @@ def 读环境层(二进制名,目录,警告,主目录):#读一层 .env
     return {'path':路径,'values':值表}#路径与条目
 
 def 加载分层环境(二进制名,工作目录=None,警告=None):#加载分层环境
-    """加载继承环境 > 调用目录 .env > Harness 主目录 .env 快照。"""
+    '加载继承环境 > 调用目录 .env > Harness 主目录 .env 快照'
     if 工作目录 is None:#缺省
         工作目录=os.getcwd()#cwd
     if 警告 is None:#缺省
         def 写警告(行):
-            """写标准错误。"""
+            '写标准错误'
             sys.stderr.write(行)#stderr
         警告=写警告#缺省警告
     主目录=解析主目录()#Harness 主目录
@@ -251,7 +250,7 @@ def 加载分层环境(二进制名,工作目录=None,警告=None):#加载分层
     return 创建启动环境快照(各层)#冻结快照
 
 def 解析补丁列表(二进制名,文件,内容,标签):#解析补丁列表
-    """解析一份 loader 补丁列表。"""
+    '解析一份 loader 补丁列表'
     try:#解析 YAML
         解析=yaml.load(内容,Loader=条目列表加载器)#用 include 方言
     except yaml.YAMLError as 错误:#解析失败
@@ -263,7 +262,7 @@ def 解析补丁列表(二进制名,文件,内容,标签):#解析补丁列表
             raise 启动错误(二进制名+': '+标签+' entry '+str(下标+1)+' in '+文件+' must be a mapping (a loader patch entry)')#拒绝
     基=os.path.dirname(os.path.abspath(文件))#补丁目录
     def 访问(条目):
-        """把插入条目里的文件系统路径改成 file URL。"""
+        '把插入条目里的文件系统路径改成 file URL'
         名=条目['name'] if 'name' in 条目 else None#插件名
         if isinstance(名,str) and (os.path.isabs(名) or 名.startswith('./') or 名.startswith('../')):#路径形
             条目['name']=路径转文件url(os.path.abspath(os.path.join(基,名)))#改 file URL
@@ -277,7 +276,7 @@ def 解析补丁列表(二进制名,文件,内容,标签):#解析补丁列表
     return 解析#补丁列表
 
 def 加载可选补丁(二进制名,文件):#加载可选补丁
-    """文件缺失表示没有这一层；不可读或非法则抛。"""
+    '文件缺失表示没有这一层；不可读或非法则抛'
     try:#读文件
         打开=open(文件,'r',encoding='utf-8')#打开
         try:#读
@@ -291,7 +290,7 @@ def 加载可选补丁(二进制名,文件):#加载可选补丁
     return 解析补丁列表(二进制名,文件,内容,'patches')#按 patches 标签
 
 def 加载覆盖补丁(二进制名,文件):#加载必需覆盖补丁
-    """文件缺失也失败。"""
+    '文件缺失也失败'
     try:#读文件
         打开=open(文件,'r',encoding='utf-8')#打开
         try:#读
@@ -302,17 +301,19 @@ def 加载覆盖补丁(二进制名,文件):#加载必需覆盖补丁
         raise 启动错误(二进制名+': failed to read overlay '+文件+': '+str(错误))#缺失也失败
     return 解析补丁列表(二进制名,文件,内容,'overlay')#按 overlay 标签
 
+from .配置档上下文 import 读配置档补丁,解析遥测补丁#加载可选补丁已定义后再导入，避免环
+
 def 挂载根包含(上下文,绝对配置路径,补丁=None,裸模块基址=None):
-    """挂上并记住应用启动使用的根 Include 条目。"""
+    '挂上并记住应用启动使用的根 Include 条目'
     if 补丁 is None:#缺省
         补丁=[]#空
     if 裸模块基址 is None:#无宿主基址
         上下文.加载器.内建表['include']=包含#用原 Include
     else:#宿主解析
         class 宿主根包含(包含):
-            """宿主解析根 Include。"""
+            '宿主解析根 Include'
             def 导入(自身,名称,获取外层栈=None):
-                """改写导入。"""
+                '改写导入'
                 说明符=路径转文件url(名称) if os.path.isabs(名称) else 名称#绝对改 file URL
                 if 名称.startswith('.') or 名称.startswith('cordis:'):#相对与内建
                     return super().导入(说明符,获取外层栈)#父类
@@ -335,14 +336,14 @@ def 挂载根包含(上下文,绝对配置路径,补丁=None,裸模块基址=Non
     return 条目#返回根条目
 
 def 保留已组装拒绝(原因):
-    """计数加一。"""
+    '计数加一'
     if 原因 not in 已组装拒绝:#首条
         已组装拒绝[原因]=1#计数
     else:#已有
         已组装拒绝[原因]=已组装拒绝[原因]+1#加一
 
 def 释放已组装拒绝(原因):
-    """计数减一。"""
+    '计数减一'
     if 原因 not in 已组装拒绝:#没有
         return#空
     数=已组装拒绝[原因]#当前
@@ -352,12 +353,12 @@ def 释放已组装拒绝(原因):
         已组装拒绝[原因]=数-1#减一
 
 def 安装大声失败(二进制名,进程=None,拆除=None):
-    """把迟到的未处理插件初始化拒绝变成带标签诊断并 exit(1)。进程是 sys 模块。"""
+    '把迟到的未处理插件初始化拒绝变成带标签诊断并 exit(1)。进程是 sys 模块'
     if 进程 is None:#缺省
         进程=sys#进程
     退出中=False#是否已决定退出
     def 处理器(错误类型,错误,回溯):
-        """致命失败处理器。"""
+        '致命失败处理器'
         nonlocal 退出中#修改
         if 错误 in 已组装拒绝:#启动审计已计入
             return#忽略
@@ -370,10 +371,10 @@ def 安装大声失败(二进制名,进程=None,拆除=None):
             进程.exit(1)#立刻退出
             return
         def 后台拆除():
-            """等拆除或超时。"""
+            '等拆除或超时'
             完成=threading.Event()#完成事件
             def 执行拆除():
-                """执行拆除。"""
+                '执行拆除'
                 try:#拆除
                     拆除()#同步
                 except Exception:#拆除抛错形态未钉死
@@ -385,7 +386,7 @@ def 安装大声失败(二进制名,进程=None,拆除=None):
             进程.exit(1)#致命退出
         threading.Thread(target=后台拆除,daemon=True).start()#立即
     def 空卸载():
-        """Python 无 unhandledRejection；保留 API 形状。"""
+        'Python 无 unhandledRejection；保留 API 形状'
         return#空
     return 空卸载#卸载器
 
@@ -394,11 +395,11 @@ def 安装大声失败(二进制名,进程=None,拆除=None):
 ])#标识结束
 
 def 格式化激活错误(错误):
-    """展开插件栈、嵌套原因与聚合成员一次。"""
+    '展开插件栈、嵌套原因与聚合成员一次'
     细节=[]#行
     已见=set()#去环
     def 访问(值):
-        """递归展开。"""
+        '递归展开'
         if not isinstance(值,Exception):#非异常
             细节.append(str(值))#字符串
             return
@@ -415,7 +416,7 @@ def 格式化激活错误(错误):
     return '\n'.join(细节)#拼
 
 def 未激活条目(上下文):
-    """收集加载失败与禁用表达式错误。"""
+    '收集加载失败与禁用表达式错误'
     失败=[]#失败
     拒绝原因=[]#拒绝原因
     for 条目 in 上下文.加载器.列出插件配置():#逐条
@@ -458,13 +459,13 @@ def 未激活条目(上下文):
     return 失败#失败列表
 
 def 失败细节(结果):
-    """渲染一条失败插件的原错误与激活阶段。"""
+    '渲染一条失败插件的原错误与激活阶段'
     阶段=结果['phase'] if 'phase' in 结果 else None#阶段
     前缀='' if 阶段 is None else 阶段+': '#阶段前缀
     return 前缀+格式化激活错误(结果['error'])#细节
 
 def 未激活诊断(项):
-    """重载比较与可选警告用的稳定按条目文本。"""
+    '重载比较与可选警告用的稳定按条目文本'
     条目=项['entry']#条目
     结果=项['outcome']#结果
     if 结果['kind']=='failed':#失败
@@ -478,18 +479,18 @@ def 未激活诊断(项):
     return str(选项['id'] if 'id' in 选项 else None)+' ('+str(选项['name'] if 'name' in 选项 else None)+'): '+细节#诊断
 
 def 激活诊断(二进制名,失败列表):
-    """渲染仅可选警告。"""
+    '渲染仅可选警告'
     名词='entry' if len(失败列表)==1 else 'entries'#单复数
     return 二进制名+': warning: '+str(len(失败列表))+' '+名词+' did not activate\n'+'\n'.join(未激活诊断(项) for 项 in 失败列表)+'\n'#诊断
 
 def 启动诊断(二进制名,失败列表,必需集合):
-    """分组启动失败与待服务，并标出每条必需条目。"""
+    '分组启动失败与待服务，并标出每条必需条目'
     行=[二进制名+': startup failed: '+str(len(必需集合))+' required '+('plugin' if len(必需集合)==1 else 'plugins')+' did not activate']#首行
     已失败=[{'entry':项['entry'],'outcome':项['outcome']} for 项 in 失败列表 if 项['outcome']['kind']=='failed']#失败
     挂起=[{'entry':项['entry'],'outcome':项['outcome']} for 项 in 失败列表 if 项['outcome']['kind']=='pending']#挂起
     挂起.sort(key=lambda 项:0 if 项['entry'] in 必需集合 else 1)#必需在前
     def 标签(条目):
-        """带必需标记的标签。"""
+        '带必需标记的标签'
         选项=条目.选项#选项
         标识=str(选项['id'] if 'id' in 选项 else None)#id
         return 标识+(' (required)' if 条目 in 必需集合 else '')#标签
@@ -515,10 +516,10 @@ def 启动诊断(二进制名,失败列表,必需集合):
     return '\n'.join(行)#诊断
 
 def 审计启动条目(上下文,二进制名,警告=None):
-    """对已结算 Loader 树应用 DSH 启动政策。"""
+    '对已结算 Loader 树应用 DSH 启动政策'
     if 警告 is None:#缺省
         def 写警告(行):
-            """写标准错误。"""
+            '写标准错误'
             sys.stderr.write(行)#stderr
         警告=写警告#缺省
     失败=未激活条目(上下文)#收集
@@ -547,7 +548,7 @@ def 审计启动条目(上下文,二进制名,警告=None):
         警告(激活诊断(二进制名,失败))#警告
 
 def 断言条目已加载(上下文,二进制名):
-    """树结算之后，拒绝没有 fiber 的启用条目。"""
+    '树结算之后，拒绝没有 fiber 的启用条目'
     失败=[]#失败
     for 条目 in 上下文.加载器.列出插件配置():#逐条
         if 条目.纤程 is None and not 条目.已禁用:#未禁用却无 fiber
@@ -557,7 +558,7 @@ def 断言条目已加载(上下文,二进制名):
         raise 启动错误(二进制名+': plugin(s) failed to load: '+', '.join(str(名) for 名 in 失败)+'; Cordis startup failed because these plugin(s) could not be resolved (see the error(s) logged above)')#拒绝
 
 def 断言条目已激活(上下文,二进制名):
-    """启用条目失败或仍未激活时拒绝。"""
+    '启用条目失败或仍未激活时拒绝'
     断言条目已加载(上下文,二进制名)#先检查加载
     失败行=[]#失败行
     拒绝原因=[]#拒绝原因
@@ -599,7 +600,7 @@ def 断言条目已激活(上下文,二进制名):
         raise 启动错误(二进制名+': '+str(len(失败行))+' '+名词+' did not activate\n'+'\n'.join(失败行))#拒绝
 
 def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基址=None):
-    """对着绝对配置路径启动 Loader，整棵树结算后才返回。"""
+    '对着绝对配置路径启动 Loader，整棵树结算后才返回'
     上下文=上下文()#根上下文
     启动日志=[]#启动日志切片
     阶段='宿主准备失败'#当前阶段标签
@@ -611,7 +612,7 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
         加载器类=loader.加载器#Loader
         上下文.提供服务('dshHomePath',主目录路径)#提供主目录解析
         def 更新观察(_配置,_不保存,下一步):
-            """Fiber.update 丢掉重启承诺；在瀑布返回前观察。"""
+            'Fiber.update 丢掉重启承诺；在瀑布返回前观察'
             try:#观察
                 下一步()#同步
             except Exception as 错误:#激活失败
@@ -643,7 +644,7 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
         raise 启动错误(二进制名+': '+阶段+': '+细节+栈) from 原因#带阶段标签
 
 def 添加源码段落(上下文,源码根):
-    """加一段全局提示词，点名磁盘上的 harness 源码检出。"""
+    '加一段全局提示词，点名磁盘上的 harness 源码检出'
     系统提示词=上下文.获取服务('systemPrompt',False)#系统提示词服务
     if 系统提示词 is None:#没有该服务
         return None#空操作
@@ -654,10 +655,10 @@ def 添加源码段落(上下文,源码根):
     })#section 结束
 
 def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):
-    """按 boot 会挂上的方式组合有效条目列表并渲染。各层条目是 dict。"""
+    '按 boot 会挂上的方式组合有效条目列表并渲染。各层条目是 dict'
     if 警告 is None:#缺省
         def 写警告(行):
-            """写标准错误并换行。"""
+            '写标准错误并换行'
             sys.stderr.write(行+'\n')#stderr
         警告=写警告#缺省警告
     try:#读基配置
@@ -677,21 +678,21 @@ def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):
     基标签=os.path.basename(绝对配置路径)#基文件标签
     基=解析#基条目列表
     def 层补丁(层):
-        """取出一层补丁列表。"""
+        '取出一层补丁列表'
         if 'patches' not in 层 or 层['patches'] is None:#省略
             return []#空
         return 层['patches']#补丁
     def 层标签(层):
-        """一层标签。"""
+        '一层标签'
         return 层['label']#标签
     def 快照(计数,警告列表):
-        """应用到前缀层。"""
+        '应用到前缀层'
         展平=copy.deepcopy([补丁 for 层 in 各层[:计数] for 补丁 in 层补丁(层)])#克隆展平
         def 记警告(消息,*参数):
-            """展开 %C。"""
+            '展开 %C'
             下标=[0]#游标
             def 替(匹配):
-                """取下一参数。"""
+                '取下一参数'
                 值=参数[下标[0]] if 下标[0]<len(参数) else None#参数
                 下标[0]=下标[0]+1#推进
                 return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
@@ -718,12 +719,12 @@ def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):
     return 分组转储(已组合,出处)#按出处分组
 
 def 分组转储(已组合,出处):
-    """把已组合行按连续段分组。出处条目是 dict。"""
+    '把已组合行按连续段分组。出处条目是 dict'
     行列表=[]#输出行
     当前标签=None#当前段标签
     组=[]#当前段行
     def 冲掉():
-        """冲掉当前段。"""
+        '冲掉当前段'
         nonlocal 组,当前标签#修改
         if 当前标签 is None or len(组)==0:#没有
             return#无

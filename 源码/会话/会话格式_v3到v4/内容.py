@@ -1,11 +1,11 @@
-"""V3 内容标签与请求工具字段，在 V4 解释前准入。"""
+'V3 内容标签与请求工具字段，在 V4 解释前准入'
 from ..会话格式 import 会话格式错误,会话格式不支持迁移错误,是否会话格式json对象#从会话格式导入
 from .源列表 import 映射事件消息#映射事件消息
 
 v3块类型=frozenset(['text','reasoning','image','file','tool-call','tool-result'])#V3块类型
 
 def 迁移块(值,主语):#迁移单个内容块
-    """把未声明块类型加上 plugin 前缀。"""
+    '把未声明块类型加上 plugin 前缀'
     if not 是否会话格式json对象(值) or not isinstance(值.get('type'),str):#须带字符串type
         raise 会话格式错误(主语+' requires content blocks with string type tags')#错误
     类型=值['type']#类型
@@ -14,7 +14,7 @@ def 迁移块(值,主语):#迁移单个内容块
     return {**值,'type':'plugin:'+类型}#加前缀
 
 def 迁移v3内容(值,主语):#迁移v3内容数组
-    """转换已声明内容标签，参数与扩展数据保持不透明。"""
+    '转换已声明内容标签，参数与扩展数据保持不透明'
     if not isinstance(值,list):#须数组
         raise 会话格式错误(主语+' content must be an array')#错误
     已映射=[迁移块(块,主语+'['+str(下标)+']') for 下标,块 in enumerate(值)]#逐块
@@ -23,12 +23,12 @@ def 迁移v3内容(值,主语):#迁移v3内容数组
     return 已映射#新数组
 
 def 迁移消息(消息,主语):#迁移消息内容
-    """迁移一条消息的 content。"""
+    '迁移一条消息的 content'
     内容=迁移v3内容(消息.get('content'),主语)#内容
     return 消息 if 内容 is 消息.get('content') else {**消息,'content':内容}#无变化则原样
 
 def 迁移分块(值,主语):#迁移流分块
-    """迁移 block-end / block-start 上的内容标签。"""
+    '迁移 block-end / block-start 上的内容标签'
     if not 是否会话格式json对象(值):#非对象
         return 值#原样
     if 值.get('type')=='block-end':#结束块
@@ -43,7 +43,7 @@ def 迁移分块(值,主语):#迁移流分块
     return 值 if 块类型==原始 else {**值,'blockType':块类型}#写回
 
 def 迁移v3事件内容(事件):#迁移v3事件内容
-    """在规范结果提升之后转换已声明的 V3 扩展内容与流标签。"""
+    '在规范结果提升之后转换已声明的 V3 扩展内容与流标签'
     主语='format v3 '+事件['type']+' at seq '+str(事件['seq'])#诊断主语
     def 变换消息(消息):#消息变换
         return 迁移消息(消息,主语)#委托

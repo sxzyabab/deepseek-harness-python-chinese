@@ -5,7 +5,7 @@ __all__=['聊天差异最大行数','收窄差异','差异卡模型']#仅中文�
 聊天差异最大行数=9#聊天行折叠前的 diff 最大行数
 
 def 收窄差异(差异列表):#收窄 diffs 为合法 hunk 或 None
-    """非数组或空或畸形则 None。"""
+    '非数组或空或畸形则 None'
     if not isinstance(差异列表,list) or len(差异列表)==0:#不可用
         return None#None
     输出=[]#已校验
@@ -29,7 +29,7 @@ def 收窄差异(差异列表):#收窄 diffs 为合法 hunk 或 None
     return 输出#全部通过
 
 def 解析工具调用(块):#解析与一块工具块配对的调用头
-    """工具名与对象参数；调用头或合法 JSON 对象不可用时为 None。"""
+    '工具名与对象参数；调用头或合法 JSON 对象不可用时为 None'
     调用=块['call'] if 'kind' in 块 else 块#结算块取 call，在跑块即自身
     if 调用 is None or not isinstance(调用,dict):#无调用头
         return None#无
@@ -48,7 +48,7 @@ def 解析工具调用(块):#解析与一块工具块配对的调用头
     return {'name':名,'args':值}#解析结果
 
 def 升级字段合法(参数):#校验可选升级对
-    """声明的升级字段是否构成合法对。"""
+    '声明的升级字段是否构成合法对'
     权限=参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None#沙盒权限
     理由=参数['justification'] if 'justification' in 参数 else None#理由
     if 权限 is None and 理由 is None:#皆缺席
@@ -58,7 +58,7 @@ def 升级字段合法(参数):#校验可选升级对
     return isinstance(理由,str) and 理由.strip()!=''#理由非空串
 
 def 意图差异(块):#从参数派生意图 diff
-    """write/edit 与 str_replace_editor 的 create/replace。"""
+    'write/edit 与 str_replace_editor 的 create/replace'
     已解析=解析工具调用(块)#解析调用
     if 已解析 is None:#解析失败
         return None#无
@@ -104,7 +104,7 @@ def 意图差异(块):#从参数派生意图 diff
     return {'tool':'edit','diff':{'path':路径,'oldText':None if 旧=='' else 旧,'newText':新}}#编辑意图
 
 def 已应用差异(元数据):#从结果 meta 取已应用 diffs
-    """合法 hunk 列表、空数组标记 'empty'、或不可用 None。"""
+    '合法 hunk 列表、空数组标记 \'empty\'、或不可用 None'
     if not isinstance(元数据,dict):#meta 须对象
         return None#无
     if 'diffs' not in 元数据:#无 diffs
@@ -117,7 +117,7 @@ def 已应用差异(元数据):#从结果 meta 取已应用 diffs
     return 收窄差异(差异)#收窄非空
 
 def 差异卡模型(块):#从调用块推导 diff 卡片或走通用路径
-    """根 write/edit 与 str_replace_editor 的 create/replace；子调用走通用。"""
+    '根 write/edit 与 str_replace_editor 的 create/replace；子调用走通用'
     if 'parentCallId' in 块 and 块['parentCallId'] is not None:#子调用
         return None#通用
     意图=意图差异(块)#意图 diff

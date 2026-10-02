@@ -1,7 +1,7 @@
 __all__=['子智能体卡片外壳','子智能体卡片面']
 
 def 子智能体卡片外壳(限额,模型):
-    """两节可用性与结算合成一张卡的外壳。"""
+    '两节可用性与结算合成一张卡的外壳'
     节=[项 for 项 in (限额,模型) if 项.get('available')]
     return {
         'available':len(节)>0,
@@ -15,9 +15,9 @@ def 子智能体卡片外壳(限额,模型):
     }
 
 def 子智能体卡片面(限额,模型):
-    """两张表单合成一次保存。"""
+    '两张表单合成一次保存'
     def 保存():
-        """校验后只写脏的那一节。"""
+        '校验后只写脏的那一节'
         限额态=限额['hooks']['subagentLimitsCard'].getSnapshot()
         模型态=模型['hooks']['subagentModelSelectionCard'].getSnapshot()
         状态=子智能体卡片外壳(限额态,模型态)
@@ -28,7 +28,7 @@ def 子智能体卡片面(限额,模型):
         if 限额态.get('available') and 限额态.get('dirty'):
             限额['save']()
     def 丢弃():
-        """保存中不可丢。"""
+        '保存中不可丢'
         if 子智能体卡片外壳(
             限额['hooks']['subagentLimitsCard'].getSnapshot(),
             模型['hooks']['subagentModelSelectionCard'].getSnapshot(),

@@ -3,21 +3,21 @@ __all__=['页行','已载入页','末已载行','滚到行']#仅中文公开名
 
 
 def 页行(页):
-    """把已载入页拆成源码行。页为 dict：text / lines。"""
+    '把已载入页拆成源码行。页为 dict：text / lines'
     if 页['lines']==0:#零行
         return []#空
     return 页['text'].split('\n')#行
 
 
 def 已载入页(页表):
-    """按源码位置排序已载入页。页表为 offset → 页 dict。"""
+    '按源码位置排序已载入页。页表为 offset → 页 dict'
     列表=[{'offset':int(偏移),**页} for 偏移,页 in 页表.items()]#展开
     列表.sort(key=lambda 项:项['offset'])#排序
     return 列表#有序
 
 
 def 末已载行(页列表):
-    """求已载入源码前缀的末行。"""
+    '求已载入源码前缀的末行'
     if len(页列表)==0:#空
         return 0#零
     末=页列表[-1]#末页
@@ -28,7 +28,7 @@ def 滚到行(正文,行号):
     """揭示纯文本或高亮源码行。正文须暴露 querySelector / scrollTop。
 
     代码内容视口带 `data-code-block-content` 时在 `pre .line` 上取行；
-    返回当前渲染器是否暴露该行。浏览器 DOM 语义；无 DOM 时返回 False。
+    返回当前渲染器是否暴露该行。浏览器 DOM 语义；无 DOM 时返回 False
     """
     if not hasattr(正文,'querySelector'):#无 DOM
         return False#不可滚

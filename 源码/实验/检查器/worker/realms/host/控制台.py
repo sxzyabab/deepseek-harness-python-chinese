@@ -8,37 +8,37 @@ __all__=['Host控制台后端']#仅中文公开名
 ])#CONSOLE_TYPES结束
 
 class Host控制台后端:#Host Console后端
-    """将原生 Runtime 通知转换为 realm 中立的 Console 事件。"""
+    '将原生 Runtime 通知转换为 realm 中立的 Console 事件'
     def __init__(自身,目标,运行时):#构造
-        """装配通知通道。"""
+        '装配通知通道'
         自身.目标=目标#会话
         自身.运行时=运行时#Runtime
         自身._事件=Host通知通道(目标,自身._接受,自身._投影)#通道
 
     def _接受(自身,消息):#是否接受
-        """只收 Console 与异常通知。"""
+        '只收 Console 与异常通知'
         return 消息.get('method') in ('Runtime.consoleAPICalled','Runtime.exceptionThrown')#过滤
 
     def _投影(自身,消息):#投影
-        """按方法投影事件。"""
+        '按方法投影事件'
         if 消息.get('method')=='Runtime.consoleAPICalled':#Console
             return 自身._控制台事件(消息['params'] if 'params' in 消息 else None)#Console
         return 自身._异常事件(消息['params'] if 'params' in 消息 else None)#异常
 
     def 订阅(自身,监听):#订阅
-        """订阅原生 Console 与异常事件。"""
+        '订阅原生 Console 与异常事件'
         return 自身._事件.订阅(监听)#委托
 
     def 清空(自身):#清空
-        """丢弃 Console 条目。"""
+        '丢弃 Console 条目'
         自身.目标.请求('Runtime.discardConsoleEntries',{})#丢弃条目
 
     def 关闭(自身):#关闭
-        """拆除原生通知订阅。"""
+        '拆除原生通知订阅'
         自身._事件.关闭()#关通道
 
     def _控制台事件(自身,参数):#Console事件
-        """投影 consoleAPICalled。"""
+        '投影 consoleAPICalled'
         if 参数 is None:#无参数
             参数={}#空映射
         类型=参数['type'] if 'type' in 参数 else None#类型
@@ -59,7 +59,7 @@ class Host控制台后端:#Host Console后端
         return {'type':'console-api','event':事件}#事件
 
     def _异常事件(自身,参数):#异常事件
-        """投影 exceptionThrown。"""
+        '投影 exceptionThrown'
         if 参数 is None:#无参数
             参数={}#空映射
         时间戳=参数['timestamp'] if 'timestamp' in 参数 else None#时间

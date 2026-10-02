@@ -8,7 +8,7 @@ from .选项 import 解析选项#选项解析
 __all__=['文件程序']#仅中文公开名
 
 def 长格式条目(统计,名):#长格式条目
-    """按 `ls -l` 方式格式化一项，用 VFS 实际持有的事实。"""
+    '按 `ls -l` 方式格式化一项，用 VFS 实际持有的事实'
     大小=str(0 if 统计 is None else 统计['size']).rjust(8)#对齐大小
     毫秒=0 if 统计 is None else 统计['mtimeMs']#修改时间毫秒
     修改=日期时间.fromtimestamp(毫秒/1000,ZoneInfo('UTC')).isoformat().replace('T',' ')[:16]#修改时间
@@ -16,7 +16,7 @@ def 长格式条目(统计,名):#长格式条目
     return f'{模式} {大小} {修改} {名}'#拼长行
 
 def ls程序(argv,io,state,fs):#ls程序
-    """列出目录。"""
+    '列出目录'
     选项=解析选项(argv)#解析选项
     操作数=选项['operands'] if len(选项['operands'])>0 else ['.']#默认当前目录
     状态=0#累积状态
@@ -43,7 +43,7 @@ def ls程序(argv,io,state,fs):#ls程序
     return 状态#返回状态
 
 def find程序(argv,io,state,fs):#find程序
-    """查找路径。"""
+    '查找路径'
     # `find` 用单短横拼写多字母谓词，共享选项解析器会将其读为捆绑短标志；本遍历自行读取。
     根列表=[]#搜索根
     名称模式=None#名称模式
@@ -77,13 +77,13 @@ def find程序(argv,io,state,fs):#find程序
         根列表.append(词)#搜索根
         索引+=1#推进
     def 名称匹配(显示):#名称匹配
-        """基名是否命中名称模式。"""
+        '基名是否命中名称模式'
         if 名称模式 is None:#无模式
             return True#全过
         return 文件名匹配.fnmatch(基名(显示),名称模式)#匹配基名
     状态=[0]#累积状态（闭包可写）
     def 访问(路径,显示,深度):#递归访问
-        """访问节点。"""
+        '访问节点'
         统计=fs['stat'](路径)#查询
         if 统计 is None:#不存在
             io['err'](f'find: {显示}: No such file or directory\n')#诊断
@@ -102,7 +102,7 @@ def find程序(argv,io,state,fs):#find程序
     return 状态[0]#返回状态
 
 def mkdir程序(argv,io,state,fs):#mkdir程序
-    """建目录。"""
+    '建目录'
     选项=解析选项(argv)#解析选项
     状态=0#累积状态
     for 操作数 in 选项['operands']:#逐路径
@@ -114,7 +114,7 @@ def mkdir程序(argv,io,state,fs):#mkdir程序
     return 状态#返回状态
 
 def rmdir程序(argv,io,state,fs):#rmdir程序
-    """删空目录。"""
+    '删空目录'
     选项=解析选项(argv)#解析选项
     状态=0#累积状态
     for 操作数 in 选项['operands']:#逐路径
@@ -131,7 +131,7 @@ def rmdir程序(argv,io,state,fs):#rmdir程序
     return 状态#返回状态
 
 def rm程序(argv,io,state,fs):#rm程序
-    """删除。"""
+    '删除'
     选项=解析选项(argv)#解析选项
     递归='r' in 选项['flags'] or 'R' in 选项['flags']#递归
     强制='f' in 选项['flags']#强制
@@ -157,7 +157,7 @@ def rm程序(argv,io,state,fs):#rm程序
     return 状态#返回状态
 
 def 复制树(源,目标,fs):#复制树
-    """复制一个文件或一整棵子树。"""
+    '复制一个文件或一整棵子树'
     统计=fs['stat'](源)#源统计
     if 统计 is None or 统计['directory'] is not True:#文件
         fs['writeText'](目标,fs['readText'](源))#复制内容
@@ -167,12 +167,12 @@ def 复制树(源,目标,fs):#复制树
         复制树(解析路径(源,条目['name']),解析路径(目标,条目['name']),fs)#递归
 
 def 解析目标(目标,源,fs):#解析目标
-    """解析复制或移动的真实目标：进入目录，或落到路径上。"""
+    '解析复制或移动的真实目标：进入目录，或落到路径上'
     统计=fs['stat'](目标)#查询目标
     return 解析路径(目标,基名(源)) if 统计 is not None and 统计['directory'] is True else 目标#进目录或原路径
 
 def cp程序(argv,io,state,fs):#cp程序
-    """复制。"""
+    '复制'
     选项=解析选项(argv)#解析选项
     源列表=选项['operands'][:-1]#源列表
     目标=选项['operands'][-1] if len(选项['operands'])>0 else None#目标
@@ -200,7 +200,7 @@ def cp程序(argv,io,state,fs):#cp程序
     return 状态#返回状态
 
 def mv程序(argv,io,state,fs):#mv程序
-    """移动。"""
+    '移动'
     选项=解析选项(argv)#解析选项
     源列表=选项['operands'][:-1]#源列表
     目标=选项['operands'][-1] if len(选项['operands'])>0 else None#目标
@@ -218,7 +218,7 @@ def mv程序(argv,io,state,fs):#mv程序
     return 状态#返回状态
 
 def touch程序(argv,io,state,fs):#touch程序
-    """更新时间戳。"""
+    '更新时间戳'
     选项=解析选项(argv)#解析选项
     状态=0#累积状态
     for 操作数 in 选项['operands']:#逐路径
@@ -233,7 +233,7 @@ def touch程序(argv,io,state,fs):#touch程序
     return 状态#返回状态
 
 def stat程序(argv,io,state,fs):#stat程序
-    """打印统计。"""
+    '打印统计'
     选项=解析选项(argv)#解析选项
     状态=0#累积状态
     for 操作数 in 选项['operands']:#逐路径
@@ -249,13 +249,13 @@ def stat程序(argv,io,state,fs):#stat程序
     return 状态#返回状态
 
 def dirname程序(argv,io,state=None,fs=None):#dirname程序
-    """打印目录名。"""
+    '打印目录名'
     for 操作数 in argv[1:]:#逐参
         io['out'](f'{目录名(操作数)}\n')#打印目录名
     return 0 if len(argv)>1 else 2#有参成功否则用法错
 
 def basename程序(argv,io,state=None,fs=None):#basename程序
-    """打印基名。"""
+    '打印基名'
     路径=argv[1] if len(argv)>1 else None#路径
     后缀=argv[2] if len(argv)>2 else None#后缀
     if 路径 is None:#缺路径
@@ -265,9 +265,9 @@ def basename程序(argv,io,state=None,fs=None):#basename程序
     return 0#成功
 
 def 不可用(名):#不可用桩
-    """拒绝 VFS 完全无法表示其效果的工具。"""
+    '拒绝 VFS 完全无法表示其效果的工具'
     def 程序(argv,io,state=None,fs=None):#程序体
-        """报告不可用。"""
+        '报告不可用'
         io['err'](f'{名}: not available in the worker host\n')#诊断
         return 127#未找到
     return 程序#返回

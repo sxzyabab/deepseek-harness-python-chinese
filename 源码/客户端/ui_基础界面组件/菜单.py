@@ -4,31 +4,31 @@ __all__=['菜单','是分隔','是标题','视口边距']#仅中文公开名
 视口边距=12#portal 边距
 
 def 是分隔(条目):
-    """type==separator。条目为 dict。"""
+    'type==separator。条目为 dict'
     return 'type' in 条目 and 条目['type']=='separator'#分隔
 
 def 是标题(条目):
-    """type==label。条目为 dict。"""
+    'type==label。条目为 dict'
     return 'type' in 条目 and 条目['type']=='label'#标题
 
 class 菜单:#锚定下拉
-    """业主控 open；点外/Escape 关。"""
+    '业主控 open；点外/Escape 关'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.开子菜单=None#子菜单 id
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 开子(自身,标识):
-        """打开子菜单。"""
+        '打开子菜单'
         自身.开子菜单=标识#记下
 
     def 规范化条目(自身,条目表):
-        """产出统一条目视图。"""
+        '产出统一条目视图'
         选中=自身.属性['selectedId'] if 'selectedId' in 自身.属性 else None#单选
         多选列=自身.属性['selectedIds'] if 'selectedIds' in 自身.属性 else None#多选
         多选=多选列 if 多选列 is not None else []#空则空表
@@ -58,7 +58,7 @@ class 菜单:#锚定下拉
         return 结果#列表
 
     def 渲染(自身):
-        """锚定+列表。"""
+        '锚定+列表'
         属性=自身.属性#props
         打开=属性['open'] is True if 'open' in 属性 else False#开
         条目列=属性['items'] if 'items' in 属性 else None#条目
@@ -91,7 +91,7 @@ class 菜单:#锚定下拉
         }#视图结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

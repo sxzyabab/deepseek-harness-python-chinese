@@ -7,13 +7,13 @@ from ..会话 import 折叠请求头#请求头折叠
 依赖=['invariants']
 
 def 转json(值):
-    """把值编成紧凑 JSON。"""
+    '把值编成紧凑 JSON'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
 
 def 安装(上下文,失败):
-    """把请求重建贡献安装进其子注册纤程。"""
+    '把请求重建贡献安装进其子注册纤程'
     def 监听流(选项,下一步,*其余):
-        """前置校验循环组装的请求后再委托。"""
+        '前置校验循环组装的请求后再委托'
         if not 是否循环请求(选项):
             return 下一步()#非循环请求则放过
         if not 是否冻结(选项):
@@ -62,7 +62,7 @@ def 安装(上下文,失败):
     上下文.监听('llm/stream',监听流,{'全局':True,'前置':True})#全局且前置
 
 def 应用(上下文):
-    """注册 Agent 循环不变量配套。"""
+    '注册 Agent 循环不变量配套'
     return 上下文.invariants.register(包名,安装)#登记贡献并返回拆除器
 
 应用.name=名称

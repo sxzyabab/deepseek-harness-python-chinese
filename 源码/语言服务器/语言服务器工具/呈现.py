@@ -1,4 +1,4 @@
-"""`lsp` 工具的纯格式化与会话 cwd 辅助。"""
+'`lsp` 工具的纯格式化与会话 cwd 辅助'
 from ..语言服务器.类型 import 语言服务器操作#操作联合
 from ..语言服务器 import 语言服务器错误#本缝异常基类
 
@@ -13,13 +13,13 @@ __all__=[#仅中文公开名
 语言服务器操作列表=list(语言服务器操作)#运行时操作表
 
 def 一基坐标(值,名称):
-    """模型坐标从 1 开始。排除布尔。"""
+    '模型坐标从 1 开始。排除布尔'
     if isinstance(值,bool) or isinstance(值,int) is False or 值<1:#非法
         raise 语言服务器错误(名称+' must be a positive integer (one-based)','LSP_INVALID_ARGUMENT')#拒绝
     return 值#合法
 
 def 解析语言服务器参数(参数):
-    """operation 必须是四种之一；line/character 为正整数。参数是工具入参 dict。"""
+    'operation 必须是四种之一；line/character 为正整数。参数是工具入参 dict'
     if 'operation' not in 参数:#缺操作
         raise 语言服务器错误('operation must be one of '+', '.join(语言服务器操作列表),'LSP_INVALID_ARGUMENT')#拒绝
     操作=参数['operation']#操作名
@@ -35,7 +35,7 @@ def 解析语言服务器参数(参数):
     return {'operation':操作,'filePath':路径,'position':{'line':行-1,'character':列-1}}#零基
 
 def 限制结果(文本,最大字节,种类):
-    """超长时按 UTF-8 字节截断，切点落在字符边界。"""
+    '超长时按 UTF-8 字节截断，切点落在字符边界'
     标记='… ['+种类+' result truncated at '+str(最大字节)+' characters]'#截断标记
     数据=文本.encode('utf-8')#UTF-8 字节
     if len(数据)<=最大字节:#未超
@@ -51,7 +51,7 @@ def 限制结果(文本,最大字节,种类):
     return 标记#只剩标记
 
 def 渲染uri(uri,工作区uri):
-    """工作区内尽量相对化，否则保留绝对路径。"""
+    '工作区内尽量相对化，否则保留绝对路径'
     if str(uri).startswith('file:') is False:#非 file
         return str(uri)#原样
     路径=str(uri)[5:]#去掉 file:
@@ -60,7 +60,7 @@ def 渲染uri(uri,工作区uri):
     return 路径.replace('\\','/')#统一斜杠
 
 def 格式化位置列表(位置列表,工作区uri,最大位置数,最大结果字符数):
-    """按文件分组并转回一基 path:line:character。位置是 dict。"""
+    '按文件分组并转回一基 path:line:character。位置是 dict'
     if len(位置列表)==0:#无结果
         return 限制结果('No results.',最大结果字符数,'locations')#空结果
     展示=位置列表[:最大位置数]#截断
@@ -76,18 +76,18 @@ def 格式化位置列表(位置列表,工作区uri,最大位置数,最大结果
     return 限制结果('\n'.join(行列表),最大结果字符数,'locations')#合并
 
 def 格式化悬停(悬停,最大结果字符数):
-    """null 悬停给出固定文案。悬停是 dict。"""
+    'null 悬停给出固定文案。悬停是 dict'
     文本='No hover information.' if 悬停 is None else str(悬停['contents'])#正文
     return 限制结果(文本,最大结果字符数,'hover')#限长
 
 def 呈现语言服务器调用(参数):
-    """只依赖参数，不触 I/O。参数是工具入参 dict。"""
+    '只依赖参数，不触 I/O。参数是工具入参 dict'
     输入=解析语言服务器参数(参数)#已校验
     位置=输入['position']#零基位置
     return 输入['operation']+' '+输入['filePath']+':'+str(位置['line']+1)+':'+str(位置['character']+1)#摘要
 
 def 会话工作目录(执行上下文):
-    """非智能体调用方返回 None。执行上下文是跨包 dict。"""
+    '非智能体调用方返回 None。执行上下文是跨包 dict'
     if 'agent' not in 执行上下文:#无智能体
         return None#无 cwd
     智能体=执行上下文['agent']#调用智能体

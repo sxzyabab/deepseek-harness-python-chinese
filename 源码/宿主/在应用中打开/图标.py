@@ -1,7 +1,4 @@
-"""已解析应用的主机图标提取：macOS icns→PNG、Windows 关联图标、Linux hicolor/pixmaps。
-
-失败一律 None，图标路由答 404。
-"""
+'已解析应用的主机图标提取：macOS icns→PNG、Windows 关联图标、Linux hicolor/pixmaps'
 import json,os,shutil,tempfile#plist JSON、路径、清理与临时目录
 from .解析器 import (#解析侧共用
     取命令输出,是否普通文件,补全内部事实,查找桌面条目,xdg数据目录列表,平台规格于,
@@ -23,14 +20,14 @@ __all__=['应用图标','提取应用图标']
 ])#脚本结束
 
 class 应用图标:#提取结果
-    """原始字节与路由应提供的媒体类型。"""
+    '原始字节与路由应提供的媒体类型'
     def __init__(自身,字节,内容类型):#记下
-        """挂上字节与 content-type。"""
+        '挂上字节与 content-type'
         自身.字节=字节#原始字节
         自身.内容类型=内容类型#image/png 或 image/svg+xml
 
 def 提取包图标png(包路径,超时毫秒,事实):#macOS .icns → 128px PNG
-    """从 bundle 的 Info.plist / Resources 取 icns，经 sips 转 128px PNG。"""
+    '从 bundle 的 Info.plist / Resources 取 icns，经 sips 转 128px PNG'
     资源=os.path.join(包路径,'Contents','Resources')#Resources
     图标文件=None#候选名
     plistJson=取命令输出(#plutil → JSON
@@ -72,7 +69,7 @@ def 提取包图标png(包路径,超时毫秒,事实):#macOS .icns → 128px PNG
         shutil.rmtree(工作目录,ignore_errors=True)#删临时
 
 def 提取可执行图标png(可执行路径,超时毫秒,事实):#Windows 关联图标
-    """经生成的 PowerShell 脚本提取可执行关联图标为 32px PNG。"""
+    '经生成的 PowerShell 脚本提取可执行关联图标为 32px PNG'
     工作目录=tempfile.mkdtemp(prefix='dsh-open-in-app-')#临时目录
     try:#提取
         脚本=os.path.join(工作目录,'extract-icon.ps1')#脚本路径
@@ -93,7 +90,7 @@ def 提取可执行图标png(可执行路径,超时毫秒,事实):#Windows 关�
         shutil.rmtree(工作目录,ignore_errors=True)#删临时
 
 def 图标内容类型(路径):#按扩展名
-    """路径扩展名对应的可服务媒体类型。"""
+    '路径扩展名对应的可服务媒体类型'
     if 路径.endswith('.png'):#PNG
         return 'image/png'#类型
     if 路径.endswith('.svg'):#SVG
@@ -101,7 +98,7 @@ def 图标内容类型(路径):#按扩展名
     return None#不可服务
 
 def 读图标文件(路径):#读盘上图标
-    """文件存在且媒体类型可服务时读出。"""
+    '文件存在且媒体类型可服务时读出'
     内容类型=图标内容类型(路径)#类型
     if 内容类型 is None or (not 是否普通文件(路径)):#不可用
         return None#无
@@ -109,7 +106,7 @@ def 读图标文件(路径):#读盘上图标
         return 应用图标(文件.read(),内容类型)#图标
 
 def 查找Linux主题图标(名称,数据目录列表):#hicolor + pixmaps
-    """经 hicolor 与 pixmaps 解析 Linux 图标名，大尺寸优先。"""
+    '经 hicolor 与 pixmaps 解析 Linux 图标名，大尺寸优先'
     for 数据目录 in 数据目录列表:#逐数据目录
         for 尺寸 in 高色尺寸:#自大到小
             for 扩展 in ('png','svg'):#扩展
@@ -126,7 +123,7 @@ def 查找Linux主题图标(名称,数据目录列表):#hicolor + pixmaps
     return None#无
 
 def 提取Linux图标(桌面标识,事实):#desktop Icon=
-    """从 desktop 条目的 Icon= 取 Linux 图标。"""
+    '从 desktop 条目的 Icon= 取 Linux 图标'
     条目=查找桌面条目(桌面标识,事实)#读条目
     if 条目 is None or 条目.图标 is None or 条目.图标=='':#无
         return None#无
@@ -136,7 +133,7 @@ def 提取Linux图标(桌面标识,事实):#desktop Icon=
     return 查找Linux主题图标(图标,xdg数据目录列表(事实))#主题查找
 
 def 提取应用图标(应用,已解析,超时毫秒,内部=None):#extractAppIcon
-    """提取一条已解析应用在本机的图标；无则 None。"""
+    '提取一条已解析应用在本机的图标；无则 None'
     事实=补全内部事实(内部)#补全
     if 事实.平台=='linux':#Linux
         规格=平台规格于(应用,事实.平台)#规格

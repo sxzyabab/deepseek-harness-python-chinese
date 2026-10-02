@@ -16,7 +16,7 @@ with open(os.path.join(本目录,'定义行.module.css'),'r',encoding='utf-8') a
     样式表=样式文件.read()#全文
 
 def 状态文案键(态):
-    """running/error/stopped → 文案键。"""
+    'running/error/stopped → 文案键'
     if 态=='running':#定义中
         return 'a11y.defining'#定义中
     if 态=='error':#失败
@@ -26,7 +26,7 @@ def 状态文案键(态):
     return None#ok
 
 def 前导图标(态):
-    """error→StateDot.error；stopped→warning；其余 IconCodeOutline16。"""
+    'error→StateDot.error；stopped→warning；其余 IconCodeOutline16'
     if 态=='error':#失败
         return {'type':'StateDot','state':'error'}#红点
     if 态=='stopped':#中断
@@ -34,41 +34,41 @@ def 前导图标(态):
     return {'type':'IconCodeOutline16','size':14}#代码图标
 
 def 去掉空子节点(子节点列表):
-    """去掉 None 子节点。"""
+    '去掉 None 子节点'
     return [子 for 子 in 子节点列表 if 子 is not None]#过滤
 
 def 原样键(键):
-    """无翻译函数时返回键本身。"""
+    '无翻译函数时返回键本身'
     return 键#原样
 
 def 恒等(值):
-    """钩子选择器：整份快照。"""
+    '钩子选择器：整份快照'
     return 值#原样
 
 class 定义行:
-    """组装定义卡嵌套 JSX 树；源码 Tab 本地。属性为 dict。"""
+    '组装定义卡嵌套 JSX 树；源码 Tab 本地。属性为 dict'
 
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性={} if 属性 is None else 属性#合成
         自身.已展开=False#展开
         自身.选中源='client'#源 Tab
         自身.源面板标识='cordis-define-source'
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性={} if 属性 is None else 属性#新
 
     def 切换展开(自身):
-        """可展开才翻。"""
+        '可展开才翻'
         自身.已展开=not 自身.已展开#翻
 
     def 选源(自身,源):
-        """client | host。"""
+        'client | host'
         自身.选中源=源#写
 
     def 渲染(自身):
-        """与上游 JSX 同构的嵌套树。"""
+        '与上游 JSX 同构的嵌套树'
         p=自身.属性#props dict
         块=p['block'] if 'block' in p else None#调用块
         卡=定义卡片(块)#卡
@@ -201,7 +201,7 @@ class 定义行:
         }#结束
 
     def __call__(自身,属性=None):
-        """结构树面。"""
+        '结构树面'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

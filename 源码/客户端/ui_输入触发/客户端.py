@@ -10,29 +10,29 @@ __all__=['依赖','应用','菜单视图','触发服务','触发控制器','检�
 依赖=['sessions','locale']#会话与文案
 
 def 应用(上下文):#安装斜杠触发浏览器半边
-    """登记词典与触发服务，并把菜单视图挂进 input.overlay。"""
+    '登记词典与触发服务，并把菜单视图挂进 input.overlay'
     def 登记词表():#登记本包词典
-        """把中英文词表交给 locale。"""
+        '把中英文词表交给 locale'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
     上下文.副作用(登记词表,'ui-input-trigger: menu dictionaries')#词典
     上下文.启动插件(触发服务)#挂 ctx.inputTriggers
     def 挂菜单(作用域):#等槽位、inputTriggers、会话
-        """登记 slash-menu 叠层条目。"""
+        '登记 slash-menu 叠层条目'
         触发=作用域.inputTriggers#触发服务
         会话面=作用域.sessions#会话
         def 登记():#登记菜单
-            """候选菜单视图。"""
+            '候选菜单视图'
             def 注入面(会话标识):#按会话解析
-                """菜单状态与点选/关闭。"""
+                '菜单状态与点选/关闭'
                 作用域会话=会话面.scope(会话标识)#作用域
                 if 作用域会话 is None:#无
                     raise 触发错误('ui-input-trigger: 会话 "'+str(会话标识)+'" 解析不到作用域')#失败
                 控制器=触发.sessionOf(作用域会话)#该会话控制器
                 def 点选项(来源,下标):#点选
-                    """转调 pick。"""
+                    '转调 pick'
                     return 控制器.pick(来源,下标)#点选
                 def 关闭菜单():#关闭
-                    """转调 dismiss。"""
+                    '转调 dismiss'
                     return 控制器.dismiss()#关闭
                 return {#注入面
                     'menu':控制器.menu,#菜单仓

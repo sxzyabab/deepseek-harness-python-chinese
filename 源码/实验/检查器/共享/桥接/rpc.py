@@ -9,29 +9,29 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 class 检查器查询发送器:#查询发送器
-    """共用查询所有者所使用的活动载体写入。"""
+    '共用查询所有者所使用的活动载体写入'
     def 发送(自身,帧):#发送请求帧
-        """发送一帧已校验的查询请求。"""
+        '发送一帧已校验的查询请求'
         raise NotImplementedError#子类实现
 
 class 检查器查询连接选项:#查询连接选项
-    """一个 Host 或 Client 查询连接所应用的边界。"""
+    '一个 Host 或 Client 查询连接所应用的边界'
     def __init__(自身,timeoutMs,maxFrameBytes):#构造
-        """保存超时与帧上限。"""
+        '保存超时与帧上限'
         自身.timeoutMs=timeoutMs#超时毫秒
         自身.maxFrameBytes=maxFrameBytes#最大帧字节
 
 class 检查器查询远程错误(Exception):#远程查询错误
-    """Worker 查询处理器故意返回的失败。"""
+    'Worker 查询处理器故意返回的失败'
     def __init__(自身,code,message):#错误码与信息
-        """保存错误码与信息。"""
+        '保存错误码与信息'
         super().__init__(message)#设置消息
         自身.code=code#错误码
 
 class 检查器查询连接:#查询连接
-    """为一个可重连的 Host 或 Client 源关联请求。"""
+    '为一个可重连的 Host 或 Client 源关联请求'
     def __init__(自身,选项):#连接选项
-        """初始化待决表与世代。"""
+        '初始化待决表与世代'
         自身.选项=选项#连接选项
         自身._待决={}#待决表
         自身._活动=None#当前世代
@@ -39,14 +39,14 @@ class 检查器查询连接:#查询连接
         自身._已关闭=False#是否已永久关闭
 
     def 连接(自身,sourceId,generation,sender):#连接世代
-        """接纳 Worker 已确认的源世代。"""
+        '接纳 Worker 已确认的源世代'
         if 自身._已关闭:#已关闭
             raise 检查器错误('inspector query connection is closed')#英文诊断
         自身.断开('Inspector source generation replaced')#断开旧世代
         自身._活动={'sourceId':sourceId,'generation':generation,'sender':sender}#安装新世代
 
     def 请求(自身,查询):#执行查询
-        """对当前已接受的源世代执行一次查询。"""
+        '对当前已接受的源世代执行一次查询'
         活动=自身._活动#当前世代
         if 自身._已关闭 or 活动 is None:#未连接
             失败=操作任务()#失败任务
@@ -68,7 +68,7 @@ class 检查器查询连接:#查询连接
             return 失败#返回
         任务=操作任务()#待决任务
         def 超时():#超时
-            """超时拒绝。"""
+            '超时拒绝'
             if 自身._待决.pop(请求id,None) is not None:#仍待决
                 任务.拒绝(Exception(f'Inspector query {查询["op"]} timed out after {自身.选项.timeoutMs}ms'))#超时拒绝
         计时=定时器(自身.选项.timeoutMs/1000,超时)#定时器
@@ -82,7 +82,7 @@ class 检查器查询连接:#查询连接
         return 任务#返回任务
 
     def 接收(自身,值):#消费响应
-        """当解码后的载体值是查询响应时加以消费。"""
+        '当解码后的载体值是查询响应时加以消费'
         if not 是否检查器查询响应信封(值):#非查询响应
             return False#未消费
         try:#解码
@@ -113,20 +113,20 @@ class 检查器查询连接:#查询连接
         return True#已消费
 
     def 断开(自身,reason):#断开世代
-        """拒绝活动请求，同时允许稍后的源世代。"""
+        '拒绝活动请求，同时允许稍后的源世代'
         自身._活动=None#清世代
         for 请求id in list(自身._待决.keys()):#拒绝全部
             自身._拒绝待决(请求id,Exception(reason))#拒绝
 
     def 关闭(自身,reason='Inspector query connection closed'):#永久关闭
-        """永久拒绝请求并阻止稍后重连。"""
+        '永久拒绝请求并阻止稍后重连'
         if 自身._已关闭:#幂等
             return#返回
         自身._已关闭=True#标记关闭
         自身.断开(reason)#断开
 
     def _拒绝待决(自身,requestId,error):#拒绝待决
-        """拒绝一条待决请求。"""
+        '拒绝一条待决请求'
         待决=自身._待决.pop(requestId,None)#取待决
         if 待决 is None:#无则返回
             return#返回
@@ -134,5 +134,5 @@ class 检查器查询连接:#查询连接
         待决['任务'].拒绝(error)#拒绝
 
 def 渲染错误(错误):#规范化错误
-    """包装为 Exception。"""
+    '包装为 Exception'
     return 错误 if isinstance(错误,Exception) else Exception(str(错误))#包装为Error

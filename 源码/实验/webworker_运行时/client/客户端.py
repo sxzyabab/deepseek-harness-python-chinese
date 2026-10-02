@@ -12,12 +12,12 @@ __all__=['工作线程隧道']#仅中文公开名
 空体状态={101,204,205,304}#空体状态码
 
 def 文本转基64(值):#文本转Base64
-    """将 UTF-8 文本编码为内联 data URL 用的 Base64，避免调用栈级展开。"""
+    '将 UTF-8 文本编码为内联 data URL 用的 Base64，避免调用栈级展开'
     字节=值.encode('utf-8')#编码为字节
     return _基64.b64encode(字节).decode('ascii')#Base64编码
 
 def 本地化源映射(源,束网址,拉取):#本地化源映射
-    """将隧道专用 map 引用替换为自包含的 Base64 data URL。"""
+    '将隧道专用 map 引用替换为自包含的 Base64 data URL'
     匹配=源映射尾注.search(源)#匹配尾注
     if 匹配 is None:#无映射则原样返回
         return 源#原样
@@ -32,7 +32,7 @@ def 本地化源映射(源,束网址,拉取):#本地化源映射
         return 源映射尾注.sub('',源,count=1)#剥掉尾注
 
 def 转正文缓冲(正文):#请求体转缓冲
-    """将 RequestInit 体规范化为可转移的字节。"""
+    '将 RequestInit 体规范化为可转移的字节'
     if 正文 is None:#无体
         return None#无体
     if isinstance(正文,str):#字符串体
@@ -42,10 +42,10 @@ def 转正文缓冲(正文):#请求体转缓冲
     raise 运行时错误(f'web-preview tunnel: unsupported request body {type(正文)}')#不支持的体
 
 class 隧道逻辑流错误(Exception):#隧道逻辑流错误
-    """跨独立打包的 Client 代码携带流语义的错误。"""
+    '跨独立打包的 Client 代码携带流语义的错误'
 
     def __init__(自身,失败,原因=None):#构造错误
-        """按失败种类填充远程流失败标记。"""
+        '按失败种类填充远程流失败标记'
         super().__init__(失败['message'] if 'message' in 失败 else '')#基类
         自身.name='TunnelLogicalStreamError'#错误名
         if 'kind' in 失败 and 失败['kind']=='remote':#远程失败
@@ -56,17 +56,17 @@ class 隧道逻辑流错误(Exception):#隧道逻辑流错误
             自身.__cause__=原因#cause
 
 class 逻辑流入箱:#逻辑流入箱
-    """逻辑流帧入箱：推入、失败、取下一帧。"""
+    '逻辑流帧入箱：推入、失败、取下一帧'
 
     def __init__(自身):#构造
-        """空队列。"""
+        '空队列'
         自身._帧列表=[]#待取帧队列
         自身._唤醒=None#等待唤醒回调
         自身._已失败=False#是否已失败
         自身._失败=None#失败原因
 
     def 推入(自身,帧):#推入一帧
-        """入队并唤醒等待者。"""
+        '入队并唤醒等待者'
         if 自身._已失败:#已失败则忽略
             return#忽略
         自身._帧列表.append(帧)#入队
@@ -76,7 +76,7 @@ class 逻辑流入箱:#逻辑流入箱
             唤醒()#唤醒
 
     def 失败(自身,原因):#标记失败
-        """标记失败并清空队列。"""
+        '标记失败并清空队列'
         if 自身._已失败:#已失败则忽略
             return#忽略
         自身._已失败=True#置失败
@@ -88,7 +88,7 @@ class 逻辑流入箱:#逻辑流入箱
             唤醒()#唤醒
 
     def 下一帧(自身):#取下一帧
-        """取下一帧；队列空且已失败则抛出。"""
+        '取下一帧；队列空且已失败则抛出'
         if len(自身._帧列表)==0:#队列空
             if 自身._已失败:#失败则抛出
                 raise 自身._失败#抛出
@@ -96,10 +96,10 @@ class 逻辑流入箱:#逻辑流入箱
         return 自身._帧列表.pop(0)#取出队首
 
 class 工作线程隧道:#Worker隧道
-    """隧道的页面半端：在 postMessage 上提供一个类 fetch 面。"""
+    '隧道的页面半端：在 postMessage 上提供一个类 fetch 面'
 
     def __init__(自身,工作线程):#构造隧道
-        """附着到已启动的 worker 并开始消费响应帧。"""
+        '附着到已启动的 worker 并开始消费响应帧'
         自身._工作线程=工作线程#保存worker
         自身._下一号=1#下一请求号
         自身._一元={}#一元请求挂起表 id->{resolve,reject}
@@ -108,11 +108,11 @@ class 工作线程隧道:#Worker隧道
         自身._进行中={}#进行中请求描述
         自身._拆除表={}#中止拆除表
         def 收消息(事件):#监听消息
-            """分发响应帧。"""
+            '分发响应帧'
             数据=事件.data#MessageEvent 对象载荷
             自身._接收(数据)#分发帧
         def 收错误(事件):#监听worker错误
-            """拒绝全部挂起并清空表。"""
+            '拒绝全部挂起并清空表'
             消息=事件.message#ErrorEvent 对象消息
             原因=Exception(f'web-preview tunnel: worker failed: {消息}')#错误原因
             for 标识 in list(自身._进行中.keys()):#逐条告警
@@ -137,13 +137,13 @@ class 工作线程隧道:#Worker隧道
         工作线程.addEventListener('error',收错误)#error监听
 
     def 初始化(自身,镜像,覆盖层=None):#初始化隧道
-        """打开隧道：worker 从此帧组装其宿主。"""
+        '打开隧道：worker 从此帧组装其宿主'
         if 覆盖层 is None:#缺省
             覆盖层=[]#空
         自身._工作线程.postMessage({'t':'init','image':镜像,'overlays':list(覆盖层)})#发送init帧
 
     def 拉取(自身,输入,初始化=None):#隧道fetch
-        """类 fetch 入口：一请求帧，一 Response（worker 流式时则流式）。"""
+        '类 fetch 入口：一请求帧，一 Response（worker 流式时则流式）'
         if 初始化 is None:#缺省
             初始化={}#空
         信号=初始化.get('signal')#中止信号
@@ -162,10 +162,10 @@ class 工作线程隧道:#Worker隧道
             帧['body']=转正文缓冲(正文)#附缓冲
         结果盒={'response':None,'error':None}#挂起结果
         def 兑现(响应):#成功回调
-            """记下响应。"""
+            '记下响应'
             结果盒['response']=响应#响应
         def 拒绝(原因):#失败回调
-            """记下错误。"""
+            '记下错误'
             结果盒['error']=原因#错误
         自身._一元[标识]={'resolve':兑现,'reject':拒绝}#登记一元
         自身._进行中[标识]=f"{帧['method']} {帧['url']}"#记录进行中描述
@@ -175,7 +175,7 @@ class 工作线程隧道:#Worker隧道
         return 结果盒['response']#返回结算结果（宿主泵帧后）
 
     def 打开(自身,端点,载荷,信号):#打开逻辑流
-        """在 worker 本地载体上打开一条已解码的 Gateway Remote 流。"""
+        '在 worker 本地载体上打开一条已解码的 Gateway Remote 流'
         if 已中止(信号):#已中止则抛
             raise 中止错误()#AbortError
         标识=自身._下一号#分配流号
@@ -184,7 +184,7 @@ class 工作线程隧道:#Worker隧道
         已打开=False#是否已打开
         终态=False#是否已终态
         def 中止时():#中止时失败入箱
-            """入箱失败。"""
+            '入箱失败'
             入箱.失败(中止错误())#失败
         自身._逻辑流[标识]=入箱#登记入箱
         自身._进行中[标识]=f'STREAM {端点}'#记录进行中
@@ -213,7 +213,7 @@ class 工作线程隧道:#Worker隧道
                 自身._中止worker操作(标识)#中止
 
     def boot载荷(自身):#获取启动载荷
-        """读取 pre-cordis 启动载荷（依赖表）。"""
+        '读取 pre-cordis 启动载荷（依赖表）'
         响应=自身.拉取('/__boot__')#请求引导路由
         if not 响应['ok']:#非成功
             正文=响应['text']()#正文
@@ -221,7 +221,7 @@ class 工作线程隧道:#Worker隧道
         return 响应['json']()#解析为载荷
 
     def 加载束(自身,网址):#加载客户端包
-        """经隧道取一个客户端包并以经典脚本执行。"""
+        '经隧道取一个客户端包并以经典脚本执行'
         响应=自身.拉取(网址)#经隧道拉取
         if not 响应['ok']:#非成功
             raise 运行时错误(f'web-preview tunnel: bundle {网址} failed with HTTP {响应["status"]}')#抛错
@@ -229,19 +229,19 @@ class 工作线程隧道:#Worker隧道
         return 本地化源映射(源文本,网址,自身.拉取)
 
     def _中止worker操作(自身,标识):#中止worker操作
-        """尽力取消：已失败的 worker 反正收不到帧。"""
+        '尽力取消：已失败的 worker 反正收不到帧'
         try:#尽力发送
             自身._工作线程.postMessage({'t':'abort','id':标识})#发送中止
         except Exception:#postMessage 在通道已关时可能抛，契约未定所以收不窄
             pass#忽略
 
     def _告警拒绝(自身,标识,结果):#告警拒绝
-        """在页面控制台报告拒绝。"""
+        '在页面控制台报告拒绝'
         描述=自身._进行中.get(标识,'(unknown request)')#描述
         print(f'web-preview tunnel: request {标识} {描述} → {结果}')#控制台警告
 
     def _接收(自身,帧):#接收响应帧
-        """按帧类型分发。"""
+        '按帧类型分发'
         种类=帧['t'] if 't' in 帧 else None#帧类型
         if 种类=='res':#一元完整响应
             挂起=自身._一元.get(帧['id'])#取挂起
@@ -254,13 +254,13 @@ class 工作线程隧道:#Worker隧道
             自身._进行中.pop(帧['id'],None)#删进行中
             正文=None if 帧.get('status') in 空体状态 else 帧.get('body',帧.get('message'))#体
             def 取json():#解析 JSON 体
-                """把正文解析为 JSON。"""
+                '把正文解析为 JSON'
                 if 正文 is None:#空体
                     return None#无
                 文本=正文.decode('utf-8') if isinstance(正文,(bytes,bytearray)) else 正文#解码
                 return json.loads(文本)#解析
             def 取text():#取文本体
-                """把正文解码为文本。"""
+                '把正文解码为文本'
                 if isinstance(正文,(bytes,bytearray)):#字节
                     return 正文.decode('utf-8')#解码
                 return '' if 正文 is None else 正文#??空串，空正文合法

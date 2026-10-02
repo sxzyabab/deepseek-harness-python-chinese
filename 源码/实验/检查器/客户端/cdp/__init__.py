@@ -8,7 +8,7 @@ from .源 import 源桥能力#Sources
 __all__=['桥能力']
 
 def 桥能力(来源,有源):#桥能力
-    """描述需要 Worker→页面桥消息的 Client 操作。"""
+    '描述需要 Worker→页面桥消息的 Client 操作'
     return tuple(项 for 项 in (#能力列表
         运行时桥能力(来源),#Runtime
         控制台桥能力(),#Console

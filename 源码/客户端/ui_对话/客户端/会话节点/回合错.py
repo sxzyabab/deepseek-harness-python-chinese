@@ -5,7 +5,7 @@ from .事件面 import 展示失败文案#面辅助
 __all__=['回合错定义','登记回合错会话节点']#仅中文公开名
 
 def 末步(上下文):
-    """非回合/步骤位置则 0。"""
+    '非回合/步骤位置则 0'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     if 起点 is not None and 'location' in 起点:#有起点
@@ -24,7 +24,7 @@ def 末步(上下文):
     return 末['step'] if 'step' in 末 else 0#末步
 
 def 重试回合(事件):
-    """llm/retry 或 llm/retry-started。"""
+    'llm/retry 或 llm/retry-started'
     种=事件['type']#种
     if 种 in ('llm/retry','llm/retry-started'):#重试
         数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -32,7 +32,7 @@ def 重试回合(事件):
     return None#非
 
 def 自匹配抽失败(匹配项):
-    """仅 turn/end 且 reason.kind==error。"""
+    '仅 turn/end 且 reason.kind==error'
     事件=匹配项['event']#事件
     if 事件['type']!='turn/end':#非
         return None#无
@@ -47,7 +47,7 @@ def 自匹配抽失败(匹配项):
     return 出#失败快照
 
 def 回放回合错(上下文):
-    """有重试链则 hidden。"""
+    '有重试链则 hidden'
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     结束=None#带失败
     for 候 in 匹配列表:#扫
@@ -69,7 +69,7 @@ def 回放回合错(上下文):
     return {'turn':回合,'hidden':隐藏,'failure':失败}#回退态
 
 def 回合错匹配(事件):
-    """turn/start 开；错误收尾与重试更新。"""
+    'turn/start 开；错误收尾与重试更新'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='turn/start':#回合开始
@@ -81,7 +81,7 @@ def 回合错匹配(事件):
     return None if 回合 is None else {'id':str(回合),'role':'update'}#有则更新
 
 def 回合错开始(_上下文,匹配项):
-    """必须是 turn/start。"""
+    '必须是 turn/start'
     事件=匹配项['event']#事件
     if 事件['type']!='turn/start':#非
         raise 对话错误('turn-error start requires turn/start')#硬失败
@@ -89,7 +89,7 @@ def 回合错开始(_上下文,匹配项):
     return {'turn':数据['turn'] if 'turn' in 数据 else None,'hidden':False}#初态
 
 def 回合错更新(上下文,匹配项):
-    """失败快照或 hidden。"""
+    '失败快照或 hidden'
     态=上下文['state']#态
     失败=自匹配抽失败(匹配项)#失败
     if 失败 is not None:#有
@@ -99,7 +99,7 @@ def 回合错更新(上下文,匹配项):
     return 态#无关
 
 def 回合错建视图(上下文):
-    """无失败则不渲染；隐藏仍可占位。"""
+    '无失败则不渲染；隐藏仍可占位'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None:#无
         态=回放回合错(上下文)#回放
@@ -125,5 +125,5 @@ def 回合错建视图(上下文):
 }#结束
 
 def 登记回合错会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(回合错定义)#登记

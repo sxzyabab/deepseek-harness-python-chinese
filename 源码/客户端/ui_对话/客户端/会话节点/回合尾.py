@@ -6,7 +6,7 @@ from .事件面 import 是追加面事件,转助手块列表#面辅助
 __all__=['回合尾定义','登记回合尾会话节点']#仅中文公开名
 
 def 有文本助手(事件):
-    """assistant/message + 追加面 + 非空 text 块。"""
+    'assistant/message + 追加面 + 非空 text 块'
     if 事件['type']!='assistant/message' or not 是追加面事件(事件):#非
         return False#否
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -19,7 +19,7 @@ def 有文本助手(事件):
     return False#无
 
 def 块有文本(事件):
-    """text-delta 或 block-end 文本。"""
+    'text-delta 或 block-end 文本'
     if 事件['type']!='assistant/live-chunk':#非
         return False#否
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -35,7 +35,7 @@ def 块有文本(事件):
     return False#其它
 
 def 回合坐标(事件):
-    """没有则 None。"""
+    '没有则 None'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种 in ('assistant/message','assistant/attempt','assistant/live-chunk','step/end','llm/retry'):#带坐标
@@ -46,7 +46,7 @@ def 回合坐标(事件):
     return None#无
 
 def 收口锚(上下文):
-    """终态文本之后，或中断流式之后。"""
+    '终态文本之后，或中断流式之后'
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     终点=None#turn/end
     for 候 in 匹配列表:#扫
@@ -88,7 +88,7 @@ def 收口锚(上下文):
     return 锚#最终
 
 def 回合位置(上下文):
-    """turn/step 才有。"""
+    'turn/step 才有'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     if 起点 is not None and 'location' in 起点:#有起点
@@ -102,7 +102,7 @@ def 回合位置(上下文):
     return None#无
 
 def 有文本(数据):
-    """须有 finalNode 与非空 text。"""
+    '须有 finalNode 与非空 text'
     if 'finalNode' not in 数据 or 数据['finalNode'] is None:#无终态
         return False#否
     块列表=数据['blocks'] if 'blocks' in 数据 and 数据['blocks'] is not None else []#块
@@ -113,12 +113,12 @@ def 有文本(数据):
     return False#无
 
 def 终态序号(候):
-    """无则 0。"""
+    '无则 0'
     终=候['finalNode'] if 'finalNode' in 候 else None#终态
     return 终['seq'] if 终 is not None and 'seq' in 终 else 0#序号
 
 def 尾载荷(上下文):
-    """尚未结束则 None。"""
+    '尚未结束则 None'
     态=上下文['state'] if 'state' in 上下文 and 上下文['state'] is not None else {}#态
     结束=态['end'] if 'end' in 态 else None#已记下
     if 结束 is None:#无
@@ -184,7 +184,7 @@ def 尾载荷(上下文):
     return 出#载荷
 
 def 回合尾匹配(事件):
-    """turn/start 开；end/工具/坐标更新。"""
+    'turn/start 开；end/工具/坐标更新'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='turn/start':#开始
@@ -199,7 +199,7 @@ def 回合尾匹配(事件):
     return None#忽略
 
 def 回合尾开始(_上下文,匹配项):
-    """必须是 turn/start。"""
+    '必须是 turn/start'
     事件=匹配项['event']#事件
     if 事件['type']!='turn/start':#非
         raise 对话错误('turn-tail start requires turn/start')#硬失败
@@ -207,17 +207,17 @@ def 回合尾开始(_上下文,匹配项):
     return {'turn':数据['turn'] if 'turn' in 数据 else None}#记下
 
 def 回合尾更新(上下文,匹配项):
-    """其余不改。"""
+    '其余不改'
     if 匹配项['event']['type']=='turn/end':#结束
         return {**上下文['state'],'end':匹配项}#记下
     return 上下文['state']#不改
 
 def 回合尾发布(匹配项):
-    """immediate / none。"""
+    'immediate / none'
     return 'immediate' if 匹配项['event']['type']=='turn/end' else 'none'#发表
 
 def 回合尾位置数据(上下文,作用域):
-    """只贡献回合范围。"""
+    '只贡献回合范围'
     if 作用域!='turn':#非
         return None#无
     值=尾载荷(上下文)#折叠
@@ -226,7 +226,7 @@ def 回合尾位置数据(上下文,作用域):
     return {'kind':'turn','turn':值['turn'],'key':'turn-tail','value':值}#位置数据
 
 def 回合尾建视图(上下文):
-    """读已写入的尾载荷。"""
+    '读已写入的尾载荷'
     回合=回合位置(上下文)#回合
     if 回合 is None:#无
         return None#无
@@ -243,5 +243,5 @@ def 回合尾建视图(上下文):
 }#结束
 
 def 登记回合尾会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(回合尾定义)#登记

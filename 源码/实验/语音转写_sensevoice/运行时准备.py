@@ -9,7 +9,7 @@ __all__=['检查运行时','下载资产','准备运行时']
 支持平台=('darwin-arm64','darwin-x64','linux-arm64','linux-x64','win32-x64')
 
 def 平台键():
-    """当前宿主平台。"""
+    '当前宿主平台'
     系统=sys.platform
     架构=platform.machine().lower()
     if 架构 in ('amd64','x86_64'):
@@ -19,7 +19,7 @@ def 平台键():
     return 系统+'-'+架构
 
 def 匹配资产(路径,资产,信号):
-    """大小与 sha256 都对才算命中。"""
+    '大小与 sha256 都对才算命中'
     若已中止则抛出(信号)
     if not os.path.isfile(路径):
         if not os.path.exists(路径):
@@ -38,7 +38,7 @@ def 匹配资产(路径,资产,信号):
     return 摘要.hexdigest()==资产['sha256']
 
 def 解析运行时(配置):
-    """钉死平台与锁文件路径。"""
+    '钉死平台与锁文件路径'
     键=平台键()
     if 键 not in 支持平台:
         raise RuntimeError('Local speech is unavailable for '+键)
@@ -55,7 +55,7 @@ def 解析运行时(配置):
     return {'lock':锁,'modelRoot':模型根,'paths':路径}
 
 def 校验运行时(配置,路径,锁,信号):
-    """托管文件必须对得上钉死的大小与哈希。"""
+    '托管文件必须对得上钉死的大小与哈希'
     若已中止则抛出(信号)
     for 项 in (路径['model'],路径['tokens'],路径['vad']):
         if not os.path.exists(项):
@@ -73,17 +73,17 @@ def 校验运行时(配置,路径,锁,信号):
     return True
 
 def 检查运行时(配置,信号):
-    """只检查缓存，不下载、不写、不启动工作者。"""
+    '只检查缓存，不下载、不写、不启动工作者'
     解析=解析运行时(配置)
     if 校验运行时(配置,解析['paths'],解析['lock'],信号):
         return 解析['paths']
     return None
 
 def 下载资产(资产,根,信号,报告=None):
-    """下到唯一部分文件，校验后原子发布。"""
+    '下到唯一部分文件，校验后原子发布'
     if 报告 is None:
         def 报告(状态):
-            """空进度。"""
+            '空进度'
             return
     若已中止则抛出(信号)
     目标=os.path.join(根,资产['name'])
@@ -101,7 +101,7 @@ def 下载资产(资产,根,信号,报告=None):
             摘要=hashlib.sha256()
             完成字节=0
             def 发布():
-                """下载进度。"""
+                '下载进度'
                 报告({'phase':'downloading','resource':资产['name'],'completedBytes':完成字节,'totalBytes':资产['bytes']})
             发布()
             with open(部分,'xb') as 文件:
@@ -132,10 +132,10 @@ def 下载资产(资产,根,信号,报告=None):
         raise 语音下载错误({'resource':资产['name'],'source':源,**分类},错误)
 
 def 准备运行时(_上下文,配置,信号,报告=None):
-    """解析捆绑运行时并按需准备已校验 ONNX。"""
+    '解析捆绑运行时并按需准备已校验 ONNX'
     if 报告 is None:
         def 报告(状态):
-            """空进度。"""
+            '空进度'
             return
     解析=解析运行时(配置)
     锁=解析['lock']
@@ -143,7 +143,7 @@ def 准备运行时(_上下文,配置,信号,报告=None):
     路径=解析['paths']
     import time
     def 下载(资产,根,步骤):
-        """缺失才下。"""
+        '缺失才下'
         if 匹配资产(os.path.join(根,资产['name']),资产,信号):
             return
         源表=配置['modelOrigins'] if 配置['modelOrigin'] is None else [配置['modelOrigin']]
@@ -152,7 +152,7 @@ def 准备运行时(_上下文,配置,信号,报告=None):
         while 下标<len(网址表):
             try:
                 def 带步(状态,步=步骤):
-                    """叠步骤。"""
+                    '叠步骤'
                     报告({**状态,'step':步})
                 下载资产({**资产,'url':网址表[下标]},根,信号,带步)
                 return

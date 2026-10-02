@@ -1,4 +1,4 @@
-"""捆绑的 Office 工作流与文件系统资源，用于文档编写与结构检查。"""
+'捆绑的 Office 工作流与文件系统资源，用于文档编写与结构检查'
 import os,re,yaml#路径、frontmatter 与 YAML
 from ...依赖.schemastery import 字符串字段#配置字段
 from ..技能 import 捆绑技能排名#打包技能标准排名
@@ -15,10 +15,10 @@ __all__=['名称','依赖','配置','应用','默认']#仅中文公开名；Cord
 
 #工具
 class 办公技能错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
 
 def 解析技能(原文,路径):
-    """拆 frontmatter 与正文；缺描述则抛错。"""
+    '拆 frontmatter 与正文；缺描述则抛错'
     匹配=前栏模式.match(原文)#匹配开头 YAML 块
     if 匹配 is None:#缺 frontmatter
         raise 办公技能错误('skill-office: '+路径+' has no YAML frontmatter')#缺 frontmatter
@@ -32,7 +32,7 @@ def 解析技能(原文,路径):
 
 #
 def 应用(上下文,配置值=None):
-    """向技能注册表登记 Office 技能，资源可供脚本解释器读取。"""
+    '向技能注册表登记 Office 技能，资源可供脚本解释器读取'
     if 配置值 is None:#省略配置
         配置值={}#空配置
     资源根=配置值['assetRoot'] if 'assetRoot' in 配置值 else 默认资源根#默认随包资源
@@ -59,10 +59,10 @@ def 应用(上下文,配置值=None):
             'locator':路径,#定位器
         })#候选结束
     def 列出(选项=None):
-        """返回三候选目录。"""
+        '返回三候选目录'
         return 候选列表#固定三候选
     def 获取(候选,选项=None):
-        """按定位器加载正文，拼出完整定义。"""
+        '按定位器加载正文，拼出完整定义'
         if 选项 is None:#省略选项
             选项={}#空
         定位器=候选['locator']#正文路径
@@ -78,7 +78,7 @@ def 应用(上下文,配置值=None):
         'get':获取,#加载正文
     }#提供方结束
     def 构造(_控制=None):
-        """返回本提供方。"""
+        '返回本提供方'
         return 提供方#不可变提供方
     上下文.skills.登记提供方(构造)#挂到技能注册表
 

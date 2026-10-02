@@ -1,4 +1,4 @@
-"""可选加入的请求准备 tmux 位置上下文。合格的 step 尝试会追加一条持久、带来源归属的上下文，点名本 agent 进程所在的 tmux 会话、窗口与窗格，以及该窗口的窗格树布局。插件每回合只拉一次状态，且仅针对第一次请求（step === 1）：经 ctx.shell 执行器服务跑一条 tmux display-message。它用窗格的 #{pane_tty} 对照本进程控制终端，确认本进程确实跑在 $TMUX_PANE 所指窗格里，因此只从 tmux 祖先继承了 $TMUX/$TMUX_PANE 的终端会读成「不在 tmux」。仅当渲染出的 tmux 状态相对上次注入有变化才再注入，并可选用 refreshIntervalMs 作为两次注入之间的下限。没有 tmux 环境、只有继承来的环境、没有 ctx.shell、或查询失败，都是空操作，从不报错：执行器拒绝会被收住并记成警告，回合继续。"""
+'可选加入的请求准备 tmux 位置上下文'
 import json,os,time#JSON引号、本进程pid与纪元毫秒
 from ...依赖.schemastery import 数字字段
 from ...模型后端.llm import 创建用户消息#构造插件来源的用户消息
@@ -27,17 +27,17 @@ tmux字段表=(#display-message -p 字段，按查询顺序；有意排除窗格
 安全整数上限=9007199254740991#外来 JSON Number.MAX_SAFE_INTEGER
 
 def 编码(值):
-    """诊断用紧凑 JSON。"""
+    '诊断用紧凑 JSON'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位即中止
 
 def 查询tmux位置(外壳,日志器,进程号,信号):
-    """经 bash seam 读本进程的 tmux 位置；本进程并非真正跑在 tmux 窗格里或查询失败时为 None。单凭 $TMUX_PANE 不够：继承环境会读成「不在 tmux」。执行器拒绝是查询失败，不是回合失败。"""
+    '经 bash seam 读本进程的 tmux 位置；本进程并非真正跑在 tmux 窗格里或查询失败时为 None。单凭 $TMUX_PANE 不够：继承环境会读成「不在 tmux」。执行器拒绝是查询失败，不是回合失败'
     格式=字段分隔.join(tmux字段表)#拼成 tmux -p 格式
     命令='\n'.join([#先确认真在窗格，再打字段
         '[ -n "$TMUX_PANE" ] || exit 1',#没有 pane 变量则退出
@@ -80,7 +80,7 @@ def 查询tmux位置(外壳,日志器,进程号,信号):
     }#结束返回
 
 def 渲染状态(位置):
-    """渲染稳定的 tmux 状态块：读数里用来做变化抑制比较的那部分。排除回合前导，因此再注入只由 tmux 状态驱动。"""
+    '渲染稳定的 tmux 状态块：读数里用来做变化抑制比较的那部分。排除回合前导，因此再注入只由 tmux 状态驱动'
     return ('session '+位置['sessionName']+', '#会话
         +'window '+位置['windowIndex']+' '+编码(位置['windowName'])+', '#窗口（名用 JSON 引号）
         +'pane '+位置['paneIndex']+' '+位置['paneId']+'\n'#窗格
@@ -88,11 +88,11 @@ def 渲染状态(位置):
         +'layout '+位置['windowLayout'])#布局串
 
 def 渲染读数(位置,回合):
-    """渲染完整持久读数，含易变的回合前导。"""
+    '渲染完整持久读数，含易变的回合前导'
     return 读数前缀+str(回合)+'):\n'+渲染状态(位置)#前导 + 稳定块
 
 def 校验刷新间隔(刷新间隔毫秒):
-    """拒绝无法表示精确已过毫秒数目的刷新间隔。"""
+    '拒绝无法表示精确已过毫秒数目的刷新间隔'
     if 刷新间隔毫秒 is None:#省略
         return#通过
     if isinstance(刷新间隔毫秒,bool):#布尔不是整数
@@ -107,13 +107,13 @@ def 校验刷新间隔(刷新间隔毫秒):
         raise TypeError('tmux-context: refreshIntervalMs must be a non-negative safe integer, got '+str(刷新间隔毫秒))#加载失败
 
 def 应用(上下文,配置值=None):
-    """在 ctx 生命周期内登记一条前置的 pre-step 监听器。刷新间隔非法时抛出。"""
+    '在 ctx 生命周期内登记一条前置的 pre-step 监听器。刷新间隔非法时抛出'
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     刷新间隔毫秒=配置值['refreshIntervalMs'] if 'refreshIntervalMs' in 配置值 else None#调度下限
     校验刷新间隔(刷新间隔毫秒)#非法则加载失败
     def 折叠状态(状态,事件):
-        """从本插件注入抽出稳定状态块。"""
+        '从本插件注入抽出稳定状态块'
         if 事件['type']!='user/message':
             return 状态
         出处=事件['data']['source'] if 'source' in 事件['data'] else None
@@ -128,7 +128,7 @@ def 应用(上下文,配置值=None):
         稳定='' if 换行==-1 else 正文[换行+1:]
         return {'state':稳定,'time':事件['time']}
     def 初始状态(头=None):
-        """尚无注入。"""
+        '尚无注入'
         return None
     上下文.sessionProjections.登记({
         'key':'tmuxContext',
@@ -137,7 +137,7 @@ def 应用(上下文,配置值=None):
         'apply':折叠状态,
     })
     def 预步骤监听(载荷,下一步,*剩余):
-        """瀑布 pre-step：先跑后续，再在合格首步注入 tmux 位置。"""
+        '瀑布 pre-step：先跑后续，再在合格首步注入 tmux 位置'
         决策=下一步()#先跑后续监听器
         if 决策['kind']=='reject' or 已中止(载荷['signal'] if 'signal' in 载荷 else None) or 载荷['step']!=1:#拒绝/已取消/非首步则原样
             return 决策#原样返回

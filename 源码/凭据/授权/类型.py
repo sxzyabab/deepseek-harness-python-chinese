@@ -1,4 +1,4 @@
-"""授权能力缝线安全类型（无 cordis 依赖）。"""
+'授权能力缝线安全类型（无 cordis 依赖）'
 授权方法字段=('id','label')#方法 id 与标签
 授权通知字段=('message','url','code')#通知字段
 授权提示选项字段=('id','label','description')#选项字段

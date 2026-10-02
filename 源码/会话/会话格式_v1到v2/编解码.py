@@ -1,4 +1,4 @@
-"""已发布 v2 的冻结物理 JSON 编解码器。"""
+'已发布 v2 的冻结物理 JSON 编解码器'
 from ..会话格式 import (#从会话格式导入
     会话格式错误,#格式错误
     会话格式计数,#格式计数
@@ -15,7 +15,7 @@ from .校验 import 断言已发布v2头,断言已发布v2物理产物#从校验
 事件键=frozenset([*事件必填,*事件可选])#事件全部合法键
 
 def 解码物理头(值):#解码物理头
-    """解码已发布 v2 物理头为逻辑头。"""
+    '解码已发布 v2 物理头为逻辑头'
     快照=快照会话格式json(值,'released v2 physical header')#快照
     记录=json记录(快照,'released v2 physical header')#记录
     精确键(记录,头必填,头可选,'released v2 physical header')#精确键
@@ -46,7 +46,7 @@ def 解码物理头(值):#解码物理头
     return 头#返回头
 
 def 解码产物实现(头值,行值列表,可恢复):#解码产物
-    """解码物理头与行；可恢复时跳过畸形前缀直至 turn/end。"""
+    '解码物理头与行；可恢复时跳过畸形前缀直至 turn/end'
     头=解码物理头(头值)#解码头
     事件列表=[]#事件
     问题=None#问题
@@ -81,9 +81,9 @@ def 解码产物实现(头值,行值列表,可恢复):#解码产物
     return 产物#返回
 
 class _v2解码器:#v2流式解码器
-    """以显式失败策略逐行解码已发布 v2。"""
+    '以显式失败策略逐行解码已发布 v2'
     def __init__(自身,头值,恢复):#构造
-        """解码头并初始化行状态。"""
+        '解码头并初始化行状态'
         自身.header=解码物理头(头值)#头
         自身._恢复=恢复#恢复策略
         自身._行下标=0#行号
@@ -92,7 +92,7 @@ class _v2解码器:#v2流式解码器
         自身._问题=None#问题
 
     def decodeRow(自身,值,上下文):#解码行
-        """解码一行并同步发出事件。"""
+        '解码一行并同步发出事件'
         当前行=自身._行下标#当前行
         自身._行下标+=1#递增
         try:#尝试解码
@@ -126,7 +126,7 @@ class _v2解码器:#v2流式解码器
         上下文.emitEvent(事件)#发出事件
 
     def finish(自身,_上下文):#完成
-        """完成行校验并返回精确继承切口。"""
+        '完成行校验并返回精确继承切口'
         if 自身.header['isSeeded'] and 自身._继承事件数 is None:#种子缺标记
             raise 会话格式错误('released v2 seeded Session lacks an inherited end-seed marker')#错误
         if (not 自身.header['isSeeded']) and 自身._继承事件数 is not None:#非种子却有标记
@@ -134,7 +134,7 @@ class _v2解码器:#v2流式解码器
         return 0 if 自身._继承事件数 is None else 自身._继承事件数#返回继承数
 
 def 编码头实现(头,继承事件数):#编码头
-    """编码已发布 v2 物理头记录。"""
+    '编码已发布 v2 物理头记录'
     断言已发布v2头(头)#断言头
     切割=会话格式计数(继承事件数,'format v2 inherited event count')#校验切口
     if not 头['isSeeded'] and 切割!=0:#非种子却有继承
@@ -151,7 +151,7 @@ def 编码头实现(头,继承事件数):#编码头
     return 物理头#返回
 
 def 解码事件(值,行下标):#解码事件
-    """解码一行物理事件，压缩出处时展开。"""
+    '解码一行物理事件，压缩出处时展开'
     记录=json记录(值,f'released v2 row {行下标}')#记录
     for 键 in 事件必填:#缺键
         if 键 not in 记录:#缺
@@ -172,7 +172,7 @@ def 解码事件(值,行下标):#解码事件
     return 带出处#事件
 
 def 推导继承事件数(头,事件列表):#推导继承数
-    """从 inherited end-seed 标记推导继承切割。"""
+    '从 inherited end-seed 标记推导继承切割'
     切割=None#切割点
     for 事件 in 事件列表:#遍历
         if 事件['type']!='session/end-seed':#非end-seed跳过
@@ -187,7 +187,7 @@ def 推导继承事件数(头,事件列表):#推导继承数
     return 0 if 切割 is None else 切割#返回切割
 
 def 编码产物实现(产物):#编码产物
-    """编码已发布 v2 逻辑产物为物理头与行。"""
+    '编码已发布 v2 逻辑产物为物理头与行'
     断言已发布v2物理产物(产物)#断言物理
     头=产物['header']#头
     物理头基={'type':'session','version':2,'id':头['id'],'createdAt':头['createdAt'],'isSeeded':头['isSeeded'],'delegationDepth':头['delegationDepth']}#物理头基
@@ -204,7 +204,7 @@ def 编码产物实现(产物):#编码产物
     return {'header':物理头,'rows':行列表}#返回
 
 def 编码出处(事件):#编码出处
-    """把 sourceEventSeqs 压缩为范围表示。"""
+    '把 sourceEventSeqs 压缩为范围表示'
     if 'sourceEventSeqs' not in 事件:#无出处
         return 事件#无出处
     带压缩=dict(事件)#展开
@@ -212,7 +212,7 @@ def 编码出处(事件):#编码出处
     return 快照会话格式json(带压缩,f"released v2 event {事件['seq']} provenance")#断言对象
 
 def 解码序号范围(值,最大条目):#解码序号范围
-    """把单点与 [start,end] 范围展开为唯一更早序号。"""
+    '把单点与 [start,end] 范围展开为唯一更早序号'
     if not isinstance(值,list):#须为数组
         raise 会话格式错误('sourceEventSeqs must be an array')#须为数组
     输出=[]#输出
@@ -242,7 +242,7 @@ def 解码序号范围(值,最大条目):#解码序号范围
     return 输出#返回
 
 def 编码出处范围(值列表):#编码序号范围
-    """把严格递增序号压缩为单点与长度≥3 的范围。"""
+    '把严格递增序号压缩为单点与长度≥3 的范围'
     for 下标 in range(1,len(值列表)):#非递增原样
         if 值列表[下标]<=值列表[下标-1]:#非递增
             return list(值列表)#原样
@@ -264,13 +264,13 @@ def 编码出处范围(值列表):#编码序号范围
     return 输出#返回
 
 def json记录(值,标签):#JSON记录
-    """要求值为非 null 非数组对象。"""
+    '要求值为非 null 非数组对象'
     if not isinstance(值,dict):#非对象
         raise 会话格式错误(f'{标签} must be an object')#错误
     return 值#断言
 
 def 精确键(记录,必填,可选,标签):#精确键
-    """要求恰好含必填键，且无意外键。"""
+    '要求恰好含必填键，且无意外键'
     允许=set(必填)|set(可选)#允许集
     for 键 in 必填:#缺键
         if 键 not in 记录:#缺键
@@ -280,39 +280,39 @@ def 精确键(记录,必填,可选,标签):#精确键
             raise 会话格式错误(f'{标签} has unexpected field {键}')#意外错误
 
 class 已发布v2会话格式编解码器类型:#v2编解码器
-    """已发布 v2 的冻结物理 JSON 编解码器。"""
+    '已发布 v2 的冻结物理 JSON 编解码器'
     version=2#版本
 
     def decodeHeader(自身,值):#解码头
-        """把物理头解码为逻辑元数据。"""
+        '把物理头解码为逻辑元数据'
         return 解码物理头(值)#解码物理头
 
     def createDecoder(自身,头值,恢复):#创建解码器
-        """以显式失败策略创建逐行解码器。"""
+        '以显式失败策略创建逐行解码器'
         return _v2解码器(头值,恢复)#创建
 
     def encodeHeader(自身,头,继承事件数):#编码头
-        """编码当代物理头记录。"""
+        '编码当代物理头记录'
         return 编码头实现(头,继承事件数)#编码头
 
     def encodeEvent(自身,事件):#编码事件
-        """把一条逻辑事件编码为物理记录。"""
+        '把一条逻辑事件编码为物理记录'
         return 编码出处(事件)#编码出处
 
     def decodeArtifact(自身,头值,行值列表):#解码产物
-        """严格解码完整物理产物。"""
+        '严格解码完整物理产物'
         return 解码产物实现(头值,行值列表,False)#严格解码
 
     def decodeRecoverableArtifact(自身,头值,行值列表):#可恢复解码
-        """解码行原子可恢复前缀。"""
+        '解码行原子可恢复前缀'
         return 解码产物实现(头值,行值列表,True)#可恢复
 
     def 编码产物(自身,产物):#编码产物
-        """编码逻辑产物为物理头与行。"""
+        '编码逻辑产物为物理头与行'
         return 编码产物实现(产物)#编码
 
     def encodeArtifact(自身,产物):#编码产物（上游键名）
-        """编码逻辑产物为物理头与行。"""
+        '编码逻辑产物为物理头与行'
         return 编码产物实现(产物)#编码
 
 已发布v2会话格式编解码器=已发布v2会话格式编解码器类型()#v2编解码器单例

@@ -1,4 +1,4 @@
-"""MCP 客户端桥接插件：连接外部 MCP 服务器，并以服务器限定公开名注册其工具到 tools 服务。"""
+'MCP 客户端桥接插件：连接外部 MCP 服务器，并以服务器限定公开名注册其工具到 tools 服务'
 import re,weakref
 from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布尔字段,列表字段,字典字段,常量字段,复合类型字段
 from ...内核.作用域 import 获取作用域
@@ -49,14 +49,14 @@ __all__=['名称','依赖','配置','应用','公开工具名','同步工具','M
 )
 
 def 应用(上下文,配置值):
-    """连接一台 MCP 服务器，并在激活前发布其初始工具世代。配置为 dict。"""
+    '连接一台 MCP 服务器，并在激活前发布其初始工具世代。配置为 dict'
     服务器名=配置值['serverName']
     拥有者=获取作用域(上下文)
     if 拥有者 is None:
         拥有者=上下文.根
     重连=解析重连策略(配置值['reconnect'] if 'reconnect' in 配置值 else None,'mcp-client('+服务器名+'): reconnect')
     def 预留名():
-        """重复的 serverName 在加载时让本实例失败。"""
+        '重复的 serverName 在加载时让本实例失败'
         if 拥有者 not in 已占用服务器名:
             名称集=set()
             已占用服务器名[拥有者]=名称集
@@ -66,7 +66,7 @@ def 应用(上下文,配置值):
             raise MCP错误('mcp-client: serverName "'+服务器名+'" is already in use by another mcp-client instance — pick a unique serverName in cordis.yml')
         名称集.add(服务器名)
         def 释放():
-            """释放本服务器名。"""
+            '释放本服务器名'
             名称集.discard(服务器名)
         return 释放
     上下文.副作用(预留名,'mcp-client.serverName')
@@ -74,20 +74,20 @@ def 应用(上下文,配置值):
     登记服务器上下文(上下文,服务器名,连接)
     已拆除=False
     def 拆除():
-        """拆除监督器；重复调用复用第一次。"""
+        '拆除监督器；重复调用复用第一次'
         nonlocal 已拆除
         if 已拆除:
             return
         已拆除=True
         连接['dispose']()
     def 卸载时拆除(纤程对象):
-        """Cordis 在未完成的 apply 之前宣布卸载时先关传输。"""
+        'Cordis 在未完成的 apply 之前宣布卸载时先关传输'
         if 纤程对象 is not 上下文.纤程 or 纤程对象.编号 is not None:
             return
         拆除()
     上下文.监听('internal/plugin',卸载时拆除,{'全局':True})
     def 装连接():
-        """注册连接拆除。"""
+        '注册连接拆除'
         return 拆除
     上下文.副作用(装连接,'mcp-client.connection')
     结果=连接['ready'].等待()

@@ -11,7 +11,7 @@ _禁止属性=frozenset({'href','xlink:href'})
 _策略="default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; media-src data:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"
 
 class _净化器(HTMLParser):
-    """去掉脚本、网络资源、表单与嵌套帧。"""
+    '去掉脚本、网络资源、表单与嵌套帧'
     def __init__(自身):
         super().__init__(convert_charrefs=True)
         自身.块=[]
@@ -51,7 +51,7 @@ class _净化器(HTMLParser):
         自身.handle_starttag(标签,属性表)
 
 def 创建基础超文本文档(数据):
-    """净化后在 head 最前插入限制性 CSP。"""
+    '净化后在 head 最前插入限制性 CSP'
     清洗=_净化器()
     清洗.feed(解码文本(数据))
     清洗.close()

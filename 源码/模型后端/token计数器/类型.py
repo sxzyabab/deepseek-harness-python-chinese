@@ -1,4 +1,4 @@
-"""回放 token 计量的公开配置与测量词表。公开面仅中文名。"""
+'回放 token 计量的公开配置与测量词表'
 from typing import Literal,TypedDict#字面量与结构类型
 from .投影 import 用量投影,压力投影,分解投影#再导出投影词表
 
@@ -8,7 +8,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 class 计量错误(Exception):
-    """token 计量包的异常基类。"""
+    'token 计量包的异常基类'
 
 计量配置=dict#空配置；固定估算器没有设置项（对齐 TokenMeterConfig=Record<string,never>）
 

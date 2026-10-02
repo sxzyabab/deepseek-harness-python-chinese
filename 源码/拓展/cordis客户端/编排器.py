@@ -10,7 +10,7 @@ __all__=[
 失败原因=('host-half-failed','client-half-failed')#失败半
 
 def 同一请求(左,右):
-    """两份运行请求是否同一份。"""
+    '两份运行请求是否同一份'
     if 左 is None:#无左
         return False#否
     return (左.get('requestId')==右.get('requestId')
@@ -23,9 +23,9 @@ def 同一请求(左,右):
             and 左.get('requiresApproval')==右.get('requiresApproval'))#全等
 
 class 运行编排器:#CordisRunOrchestrator
-    """活动/失败图、打开审批、对账、关闭、批准、拒绝；inFlight 按插件串行。"""
+    '活动/失败图、打开审批、对账、关闭、批准、拒绝；inFlight 按插件串行'
     def __init__(自身,环境=None):#构造
-        """env：runner + host（runHostHalf/getClientCode/resolveRequestRun/settleUserRun）。"""
+        'env：runner + host（runHostHalf/getClientCode/resolveRequestRun/settleUserRun）'
         自身.环境=环境 or {}#环境
         自身.请求={}#requestId → 请求
         自身.活动={}#pluginId → 活动
@@ -36,15 +36,15 @@ class 运行编排器:#CordisRunOrchestrator
         自身._失败缓存=None#失败快照
 
     def observe(自身,函数):#订阅
-        """退订器。"""
+        '退订器'
         自身._听.add(函数)#加
         def 退():#退
-            """拿掉。"""
+            '拿掉'
             自身._听.discard(函数)#删
         return 退#器
 
     def commit(自身):#通知
-        """作废缓存并广播。"""
+        '作废缓存并广播'
         自身._活动缓存=None#失效
         自身._失败缓存=None#失效
         for 函数 in list(自身._听):#逐个
@@ -52,9 +52,9 @@ class 运行编排器:#CordisRunOrchestrator
 
     @property
     def activeRuns(自身):#活动可观察
-        """活动图。"""
+        '活动图'
         def 读():#惰性
-            """拷贝。"""
+            '拷贝'
             if 自身._活动缓存 is None:#惰性
                 自身._活动缓存=dict(自身.活动)#拷
             return 自身._活动缓存#缓存
@@ -62,16 +62,16 @@ class 运行编排器:#CordisRunOrchestrator
 
     @property
     def lastRunError(自身):#失败可观察
-        """失败图。"""
+        '失败图'
         def 读():#惰性
-            """拷贝。"""
+            '拷贝'
             if 自身._失败缓存 is None:#惰性
                 自身._失败缓存=dict(自身.失败)#拷
             return 自身._失败缓存#缓存
         return 可观察(读)#图
 
     def open(自身,请求):#打开请求
-        """登记；已授权则立刻编排（失败只记日志）。"""
+        '登记；已授权则立刻编排（失败只记日志）'
         自身.请求[请求['requestId']]=请求#记下
         if not 请求.get('requiresApproval'):#已授权
             计划={#立刻编排
@@ -94,7 +94,7 @@ class 运行编排器:#CordisRunOrchestrator
         自身.commit()#通知
 
     def close(自身,请求标识):#关闭请求
-        """他页落定或取消。"""
+        '他页落定或取消'
         请求=自身.请求.pop(请求标识,None)#拿掉
         if 请求 is None:#没有
             return#停
@@ -104,7 +104,7 @@ class 运行编排器:#CordisRunOrchestrator
         自身.commit()#通知
 
     def reconcileApprovals(自身,行列表):#对账审批
-        """从权威库存重建挂起审批。"""
+        '从权威库存重建挂起审批'
         期望={}#应有
         for 行 in 行列表 or []:#每行
             尝试=行.get('latestRun')#最近
@@ -160,7 +160,7 @@ class 运行编排器:#CordisRunOrchestrator
             自身.commit()#通知
 
     def approve(自身,请求标识,批后续=False):#批准
-        """进入编排串行。"""
+        '进入编排串行'
         请求=自身.请求.get(请求标识)#取出
         if 请求 is None or not 请求.get('requiresApproval'):#不可答或已授权路径
             return#空
@@ -172,7 +172,7 @@ class 运行编排器:#CordisRunOrchestrator
         自身._编排(计划)#串行
 
     def decline(自身,请求标识):#拒绝
-        """清活动并经 host.resolveRequestRun 回答。"""
+        '清活动并经 host.resolveRequestRun 回答'
         请求=自身.请求.get(请求标识)#取出
         if 请求 is None or not 请求.get('requiresApproval'):#不可答
             return#空
@@ -185,14 +185,14 @@ class 运行编排器:#CordisRunOrchestrator
         自身._回答(请求标识,{'ok':False,'reason':'rejected'})#告诉宿主拒绝
 
     def startUserRun(自身,请求):#用户启动
-        """编排串行；手势即授权。"""
+        '编排串行；手势即授权'
         计划=dict(请求)#浅拷
         if 'hasClientHalf' not in 计划:#缺省
             计划['hasClientHalf']=True#有半
         自身._编排(计划)#串行
 
     def _编排(自身,计划):#orchestrate：inFlight 串行；收尾在 finally
-        """同插件复用进行中 attempt；结束必清 inFlight + orchestrating。"""
+        '同插件复用进行中 attempt；结束必清 inFlight + orchestrating'
         插件=计划['pluginId']#插件
         飞=自身.进行中.get(插件)#已在飞
         if 飞 is not None:
@@ -214,16 +214,16 @@ class 运行编排器:#CordisRunOrchestrator
             自身.commit()#通知
 
     def _取宿主(自身):#env.host 接缝
-        """折好的宿主 RPC 操作表。"""
+        '折好的宿主 RPC 操作表'
         宿主=自身.环境.get('host') if isinstance(自身.环境,dict) else None#接缝
         return 宿主 if isinstance(宿主,dict) else {}#表
 
     def _取运行器(自身):#env.runner
-        """页本地客户端加载器。"""
+        '页本地客户端加载器'
         return 自身.环境.get('runner') if isinstance(自身.环境,dict) else None#运行器
 
     def _启动宿主(自身,计划):#startHost
-        """调用 host.runHostHalf；接缝抛错折成 {ok:false,...错误字段}。"""
+        '调用 host.runHostHalf；接缝抛错折成 {ok:false,...错误字段}'
         执行宿主半=自身._取宿主().get('runHostHalf')#动词
         try:#远程启动
             return 执行宿主半(
@@ -234,7 +234,7 @@ class 运行编排器:#CordisRunOrchestrator
             return {'ok':False,**错误字段(错误)}#折成失败
 
     def _回答(自身,请求标识,决议):#answer
-        """调用 host.resolveRequestRun；失败只记日志不外抛。"""
+        '调用 host.resolveRequestRun；失败只记日志不外抛'
         落定=自身._取宿主().get('resolveRequestRun')#宿主动词
         try:#远程落定
             落定(请求标识,决议)#应答
@@ -242,7 +242,7 @@ class 运行编排器:#CordisRunOrchestrator
             print('[cordis-client-runner] 回答运行请求',请求标识,'失败:',错误)
 
     def _落定面板(自身,计划,决议):#settleDirect
-        """调用 host.settleUserRun；宿主拒绝或抛错记 client-half-failed。"""
+        '调用 host.settleUserRun；宿主拒绝或抛错记 client-half-failed'
         落定=自身._取宿主().get('settleUserRun')#动词
         try:#远程落定
             响应=落定(计划['agentId'],计划['pluginId'],决议)#落定
@@ -252,7 +252,7 @@ class 运行编排器:#CordisRunOrchestrator
             自身.fail(计划,'client-half-failed',错误字段(错误))#记下
 
     def _客户端失败收尾(自身,计划,运行标识,本页启动,失败,原始错误=None):#finishClientFailure
-        """记失败并按模型/面板路径回答或落定。"""
+        '记失败并按模型/面板路径回答或落定'
         print(
             '[cordis-client-runner] 客户端激活',
             计划.get('pluginId'),'/',计划.get('packageId'),'(',运行标识,') 失败:',
@@ -270,7 +270,7 @@ class 运行编排器:#CordisRunOrchestrator
             自身._落定面板(计划,决议)#落定
 
     def _驱动(自身,计划):#drive：宿主 → 取码 → load → answer/settle；void
-        """决议只走 answer/settle，不向外抛返回值当契约。"""
+        '决议只走 answer/settle，不向外抛返回值当契约'
         已启动=自身._启动宿主(计划)#先宿主半
         if not isinstance(已启动,dict) or not 已启动.get('ok'):#宿主半失败
             自身.fail(计划,'host-half-failed',已启动 if isinstance(已启动,dict) else 错误字段(已启动))#记下
@@ -320,7 +320,7 @@ class 运行编排器:#CordisRunOrchestrator
         自身._落定面板(计划,决议)#面板路径落定
 
     def fail(自身,计划,原因,失败):#记下失败
-        """页侧失败。"""
+        '页侧失败'
         字段=错误字段(失败) if not isinstance(失败,dict) or 'message' not in 失败 else 失败#字段
         自身.失败[计划['pluginId']]={'packageId':计划['packageId'],'reason':原因,**字段}#写
         自身.commit()#通知

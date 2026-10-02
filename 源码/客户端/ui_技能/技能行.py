@@ -31,20 +31,20 @@ __all__=['技能错误','技能行','技能行模型','技能名','结果文本'
 '''
 
 class 技能错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
     def __init__(自身,消息):
-        """记下消息。"""
+        '记下消息'
         super().__init__(消息)
 
 def 首行(文本):
-    """折叠错误摘要与畸形参数回退用的第一物理行。"""
+    '折叠错误摘要与畸形参数回退用的第一物理行'
     换行=文本.find('\n')
     if 换行==-1:
         return 文本
     return 文本[:换行]
 
 def 技能名(原始参数,调用标识):
-    """紧凑行唯一呈现的调用参数是技能名。"""
+    '紧凑行唯一呈现的调用参数是技能名'
     try:
         解析=json.loads(原始参数)
         if isinstance(解析,dict) and 解析 is not None:
@@ -58,7 +58,7 @@ def 技能名(原始参数,调用标识):
     return 首行(原始参数)
 
 def 结果文本(块):
-    """压平耐久结果块；与 ui-tool 的 resultText 合同一致。"""
+    '压平耐久结果块；与 ui-tool 的 resultText 合同一致'
     if not isinstance(块,dict) or 'kind' not in 块:
         return None
     内容=块['content'] if 'content' in 块 and 块['content'] is not None else []
@@ -79,7 +79,7 @@ def 结果文本(块):
     return 接合
 
 def 技能行模型(块):
-    """只从耐久 call 切片派生展示状态，不查活技能目录。"""
+    '只从耐久 call 切片派生展示状态，不查活技能目录'
     已结算=isinstance(块,dict) and 'kind' in 块
     调用=块['call'] if 已结算 and 'call' in 块 else None
     原文=((调用['argsRaw'] if 调用 is not None and 'argsRaw' in 调用 else None) if 已结算 else (块['argsRaw'] if 'argsRaw' in 块 else None))
@@ -104,22 +104,22 @@ def 技能行模型(块):
     }
 
 class 技能行:
-    """渲染一条 skill 工具调用为强调摘要与说明披露。"""
+    '渲染一条 skill 工具调用为强调摘要与说明披露'
     def __init__(自身,属性=None):
-        """记下 props 与折叠状态。"""
+        '记下 props 与折叠状态'
         自身.属性={} if 属性 is None else 属性
         自身.已展开=False
 
     def 更新(自身,属性):
-        """刷新合成 props。"""
+        '刷新合成 props'
         自身.属性=属性
 
     def 切换展开(自身):
-        """切换展开状态。"""
+        '切换展开状态'
         自身.已展开=not 自身.已展开
 
     def 渲染(自身):
-        """产出结构化视图描述。"""
+        '产出结构化视图描述'
         块=自身.属性['block'] if 'block' in 自身.属性 else None
         翻译=自身.属性['t'] if 't' in 自身.属性 else None
         检查=自身.属性['inspect'] if 'inspect' in 自身.属性 else None
@@ -149,7 +149,7 @@ class 技能行:
         }
 
     def __call__(自身,属性=None):
-        """有新属性则刷新后渲染。"""
+        '有新属性则刷新后渲染'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

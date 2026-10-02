@@ -37,13 +37,13 @@ python探测超时毫秒=5000#探测
 默认堆上限=4*1024*1024*1024#无 V8 时约 4GiB
 
 def 宿主帧解析上限(堆上限=None):#有效帧帽
-    """协议帽与堆推导帽取小。"""
+    '协议帽与堆推导帽取小'
     if 堆上限 is None:#缺省
         堆上限=默认堆上限#4GiB
     return min(帧解析上限字节,(堆上限-宿主解析基线字节)//宿主解析最坏倍数)#帽
 
 def 消息于(错误):#安全渲染
-    """未知抛值的英文消息。"""
+    '未知抛值的英文消息'
     try:#渲染
         if isinstance(错误,BaseException):#异常
             return str(错误)#消息
@@ -52,7 +52,7 @@ def 消息于(错误):#安全渲染
         return '<unrenderable rejection value>'#占位
 
 def 读进程启动(pid):#身份半边
-    """Linux /proc 启动时刻；其余平台空。"""
+    'Linux /proc 启动时刻；其余平台空'
     if sys.platform!='linux':#非 Linux
         return None#空
     try:#读
@@ -64,9 +64,9 @@ def 读进程启动(pid):#身份半边
         return None#空
 
 def 解析python可执行(命令):#解析绝对路径
-    """basename 搜 PATH；相对对加载 cwd。"""
+    'basename 搜 PATH；相对对加载 cwd'
     def 可执行文件(候选):#X_OK 普通文件
-        """可执行普通文件则返回路径。"""
+        '可执行普通文件则返回路径'
         try:#查
             if os.access(候选,os.X_OK) and stat.S_ISREG(os.stat(候选).st_mode):#可执行文件
                 return 候选#路径
@@ -89,11 +89,11 @@ def 解析python可执行(命令):#解析绝对路径
     return None#空
 
 def python环境():#子环境
-    """只暴露 TMPDIR。"""
+    '只暴露 TMPDIR'
     return {'TMPDIR':tempfile.gettempdir()}#环境
 
 def 校验python可执行(路径):#探测版本
-    """须为响应的 CPython 3.10+。"""
+    '须为响应的 CPython 3.10+'
     try:#探测
         输出=subprocess.check_output([路径,'-I','-c','import sys; print(sys.implementation.name, sys.version_info.major, sys.version_info.minor, sys.version_info.micro)'],env=python环境(),timeout=python探测超时毫秒/1000,stderr=subprocess.STDOUT).decode('utf-8').strip()#探测
     except Exception as 错误:#失败
@@ -109,7 +109,7 @@ def 校验python可执行(路径):#探测版本
         raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython '+str(最低cpython[0])+'.'+str(最低cpython[1])+' 或更新，实际是 '+实现+' '+主文+'.'+次文+'.'+补文)
 
 def 物化python脚本():#每跑一份
-    """把 子/ 脚本拷到真实临时目录，返回入口路径。"""
+    '把 子/ 脚本拷到真实临时目录，返回入口路径'
     目录=tempfile.mkdtemp(prefix='dsh-ptc-runtime-python-')#目录
     源=os.path.join(os.path.dirname(os.path.abspath(__file__)),'子')#源
     try:#拷
@@ -125,13 +125,13 @@ def 物化python脚本():#每跑一份
     return os.path.join(目录,'bootstrap.py')#入口
 
 def 分离残余(残余):#拷走视图
-    """把残余拷成独立 bytes，避免钉住大缓冲。"""
+    '把残余拷成独立 bytes，避免钉住大缓冲'
     if len(残余)>0:#有
         return [bytes(残余)]#拷
     return []#空
 
 def 序列化字符代价(码,字符):#一字代价
-    """一字的 JSON 转义 UTF-8 宽。"""
+    '一字的 JSON 转义 UTF-8 宽'
     if 码<0x20:#C0
         return 2 if 码 in (0x08,0x09,0x0a,0x0c,0x0d) else 6#短或长
     if 码 in (0x22,0x5c):#引号反斜
@@ -141,7 +141,7 @@ def 序列化字符代价(码,字符):#一字代价
     return len(字符.encode('utf-8'))#原文
 
 def json串代价上限(文本,最大字节):#不物化转义
-    """JSON 串代价，一超即停。"""
+    'JSON 串代价，一超即停'
     if 最大字节<2:#不够引号
         return None#超
     字节=2#引号
@@ -152,7 +152,7 @@ def json串代价上限(文本,最大字节):#不物化转义
     return 字节#代价
 
 def 累加杂散代价(缓冲,状态):#UTF-8 计费
-    """按 WHATWG 替换计杂散字节的 JSON 代价。状态就地改。"""
+    '按 WHATWG 替换计杂散字节的 JSON 代价。状态就地改'
     代价=0#累计
     下标=0#扫描
     长=len(缓冲)#长
@@ -200,7 +200,7 @@ def 累加杂散代价(缓冲,状态):#UTF-8 计费
     return 代价#代价
 
 def 截消息(消息,最大字节):#原始字节帽
-    """按 UTF-8 字节截断 done.error.message。"""
+    '按 UTF-8 字节截断 done.error.message'
     if len(消息.encode('utf-8'))<=最大字节 and len(消息)*3<=最大字节:#必入
         return 消息#原样
     留=min(len(消息),最大字节)#码点上限
@@ -230,10 +230,10 @@ def 截消息(消息,最大字节):#原始字节帽
 })#配置结束
 
 class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
-    """每次请求一个全新 CPython 子进程；fd 3 JSON-lines。"""
+    '每次请求一个全新 CPython 子进程；fd 3 JSON-lines'
     Config=配置
     def __init__(自身,上下文,配置值=None):#加载校验
-        """Unix 平台；拒绝非法预算。"""
+        'Unix 平台；拒绝非法预算'
         super().__init__(上下文)#登记 ptcRuntime
         if sys.platform=='win32':#Windows
             raise Exception('dsh-ptc-runtime-python: 此后端需要 Unix 平台（POSIX rlimit、fd-3 标准流、进程组信号）；不能在 Windows 上运行')
@@ -286,23 +286,23 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         自身.在途=set()#活运行
         自身.已拆=False#拆除
         def 拆除寿命():#fiber 拆
-            """等全部子退出。"""
+            '等全部子退出'
             def 卸():#拆
-                """中止在途。"""
+                '中止在途'
                 自身.拆除()#拆
             return 卸#拆除器
         上下文.副作用(拆除寿命,'python ptc-runtime teardown')#挂
 
     def 语言(自身):#源语言
-        """python。"""
+        'python'
         return 'python'#语言
 
     def 隔离(自身):#基底
-        """process。"""
+        'process'
         return 'process'#隔离
 
     def 拆除(自身):#静默
-        """在途标 abort 并等退出。"""
+        '在途标 abort 并等退出'
         自身.已拆=True#记下
         表=list(自身.在途)#快照
         for 项 in 表:#逐项
@@ -311,7 +311,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             项['finished'].等待()#等
 
     def 解析(自身,请求):#填 cwd 与墙钟
-        """不支持沙箱与逐次超时。"""
+        '不支持沙箱与逐次超时'
         if 请求.get('sandboxPolicy') is not None:#沙箱
             raise Exception('dsh-ptc-runtime-python: 沙箱策略不受支持')
         if 请求.get('timeoutMs') is not None:#覆盖
@@ -328,7 +328,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         return 规格#规格
 
     def 运行(自身,请求):#一次程序
-        """无文件围栏。"""
+        '无文件围栏'
         if 请求.get('sandboxPolicy') is not None or 请求.get('timeoutMs')!=自身.配置['maxWallMs']:#政策
             raise Exception('dsh-ptc-runtime-python: 不支持的执行策略或超时')
         if 自身.已拆:#已拆
@@ -343,11 +343,11 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         return 自身.执行(请求,绑定,入口)#跑
 
     def 校验绑定(自身,请求):#缝误用
-        """拒绝非法命名空间。"""
+        '拒绝非法命名空间'
         绑定={}#名 → 记录
         依赖名=set()
         def 占全局(名,角色):
-            """运行时槽与重复。"""
+            '运行时槽与重复'
             if 名 in 保留绑定全局:
                 raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与运行时占用的全局名冲突')
             if 名 in 依赖名:
@@ -386,12 +386,12 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         return 绑定#表
 
     def 执行(自身,请求,绑定,入口):#驱动到结算
-        """spawn 并泵帧。"""
+        'spawn 并泵帧'
         引导目录=os.path.dirname(入口)#staging
         宿主套,子套=socket.socketpair()#双向 fd 3
         try:#spawn
             def 子预():#子进程预
-                """把子套接到 fd 3。"""
+                '把子套接到 fd 3'
                 os.dup2(子套.fileno(),协议文件描述符)#fd 3
                 子套.close()#关原
                 宿主套.close()#子不要宿主端
@@ -410,13 +410,13 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             return {'logs':[],'error':{'kind':'worker-exit','message':'python spawn error: '+消息于(错误)}}#基底
         结局=操作任务()#run 结果
         def 体():#泵
-            """驱动到结算。"""
+            '驱动到结算'
             自身._泵(请求,绑定,子,宿主套,引导目录,结局)#泵
         threading.Thread(target=体,daemon=True).start()#泵
         return 结局.等待()#阻塞
 
     def _泵(自身,请求,绑定,子,宿主套,引导目录,结局):#一跑泵
-        """fd-3 与杂散捕获。"""
+        'fd-3 与杂散捕获'
         已结算=[False]#settled
         已兑现=[False]#resolved
         日志=[]#logs
@@ -446,13 +446,13 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         墙定时=[None]#墙钟
         协议锁=threading.Lock()#写锁
         def 清杂散(杂):#丢缓冲
-            """截断后丢掉管道缓冲。"""
+            '截断后丢掉管道缓冲'
             杂['chunks']=[]#清
             杂['blocks']=[]#清
             杂['cost']=0#清
             杂['utf8']=dict(空utf8)#清
         def 截日志():#账本截断
-            """提交开行再追加标记。"""
+            '提交开行再追加标记'
             日志已截[0]=True#记下
             if len(开封)>0 or len(开片段)>0:#有开
                 日志.append(''.join(开封)+''.join(开片段))#提交
@@ -462,7 +462,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             清杂散(杂出)#清
             清杂散(杂错)#清
         def 准入(文本):#一条
-            """按序列化代价记账。"""
+            '按序列化代价记账'
             if 日志已截[0]:#已截
                 return#停
             if len(文本)+3>日志预算[0]:#下界
@@ -475,7 +475,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             日志预算[0]-=测+1#扣
             日志.append(文本)#记
         def 冲杂散(杂,留尾=False):#冲残余
-            """把管道残余写入 logs。"""
+            '把管道残余写入 logs'
             if len(杂['chunks'])==0 and len(杂['blocks'])==0:#空
                 return#停
             全=b''.join(杂['blocks']+杂['chunks'])#拼接
@@ -496,7 +496,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             杂['blocks']=[]#清
             准入(全.decode('utf-8','replace'))#准入
         def 捕杂散(杂,块):#stdout/stderr
-            """按行准入杂散。"""
+            '按行准入杂散'
             if 日志已截[0]:#已截
                 return#停
             杂['chunks'].append(块)#块
@@ -522,7 +522,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 冲杂散(杂出,True)#冲
                 冲杂散(杂错,True)#冲
         def 组空():#组是否空
-            """killpg 探测。"""
+            'killpg 探测'
             if 子.pid is None:#无
                 return True#空
             try:#探
@@ -532,7 +532,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 return getattr(错误,'errno',None)==getattr(os,'ESRCH',3)#ESRCH
         领袖启动=读进程启动(子.pid) if 子.pid is not None else None#身份
         def 杀组(信号值):#杀组
-            """负 pid 组信号。"""
+            '负 pid 组信号'
             try:#杀
                 if 子.pid is None:#无
                     return#停
@@ -543,20 +543,20 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             except OSError:#ESRCH
                 pass#已死
         def 升级并杀掉():#升级
-            """SIGTERM 再 SIGKILL。"""
+            'SIGTERM 再 SIGKILL'
             if 正在杀[0]:#已
                 return#停
             正在杀[0]=True#记下
             杀组(signal.SIGTERM)#TERM
             def 到期杀():#宽限后
-                """SIGKILL。"""
+                'SIGKILL'
                 杀组(signal.SIGKILL)#KILL
             定时=threading.Timer(自身.配置['graceMs']/1000,到期杀)#宽限
             定时.daemon=True#守护
             定时.start()#开
             宽限定时[0]=定时#记下
         def 结算(结果):#唯一结算点
-            """兑现 run 并等组空。"""
+            '兑现 run 并等组空'
             if 已兑现[0]:#已
                 return#停
             已兑现[0]=True#记下
@@ -568,7 +568,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 pass#忽略
             结局.兑现({**结果,'logs':list(日志)})#兑现
             def 收尾():#出 live
-                """从在途摘除。"""
+                '从在途摘除'
                 if 活项[0] is not None:#有
                     自身.在途.discard(活项[0])#摘
                 try:#完成
@@ -583,7 +583,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             截止=time.time()*1000+自身.配置['graceMs']+关闭回收裕量毫秒#截止
             硬=[0]#硬限
             def 轮询():#等组空
-                """轮询组。"""
+                '轮询组'
                 if 组空():#空
                     if 宽限定时[0] is not None:#有
                         宽限定时[0].cancel()#取消
@@ -601,7 +601,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 threading.Timer(组回收轮询毫秒/1000,轮询).start()#再
             轮询()#开
         def 完成(结果):#决定结局
-            """杀组，等 close。"""
+            '杀组，等 close'
             if 已结算[0]:#已
                 return#停
             已结算[0]=True#记下
@@ -617,7 +617,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 return#停
             升级并杀掉()#升级
             def 到截止():#孤儿兜底
-                """拆流强制结算。"""
+                '拆流强制结算'
                 冲杂散(杂出)#冲
                 冲杂散(杂错)#冲
                 try:#关协议
@@ -636,7 +636,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             定时.start()#开
             关闭截止[0]=定时#记下
         def 排空应答():#写应答
-            """一次一帧。"""
+            '一次一帧'
             if 排空中[0]:#已
                 return#停
             排空中[0]=True#进
@@ -662,7 +662,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 待应答[0]=0#清
                 应答队列.clear()#清
         def 发应答(载荷):#排队
-            """积压上限。"""
+            '积压上限'
             if 已结算[0]:#已
                 return#停
             if 待应答[0]>=最大待应答:#满
@@ -672,7 +672,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             应答队列.append(载荷)#排
             排空应答()#排
         def 处理帧(消息):#一帧
-            """boot-ack/log/done/call。"""
+            'boot-ack/log/done/call'
             if 已结算[0]:#已
                 return#停
             种=消息['type']#种
@@ -748,7 +748,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                     return#停
                 待调用[0]+=1#在途
                 def 调体(函数=函,帧=消息):#线程
-                    """跑绑定。"""
+                    '跑绑定'
                     try:#调
                         解析=函数(帧['args'])#调
                         if 已结算[0]:#已结
@@ -767,13 +767,13 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 threading.Thread(target=调体,daemon=True).start()#调
                 return#停
         def 处理协议块(块):#fd 3
-            """按行解析。"""
+            '按行解析'
             if 已结算[0]:#已
                 return#停
             if not 抽检挂[0]:#安排抽检
                 抽检挂[0]=True#挂
                 def 抽检():#后检
-                    """在途调用上限。"""
+                    '在途调用上限'
                     抽检挂[0]=False#清
                     if 已结算[0]:#已
                         return#停
@@ -835,7 +835,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 封块.append(b''.join(待块))#封
                 待块.clear()#清
         def 读流(流,收):#读管道
-            """读到 EOF。"""
+            '读到 EOF'
             try:#读
                 while True:#循环
                     块=流.read(65536)#块
@@ -845,21 +845,21 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             except Exception:#关
                 pass#忽略
         def 收出(块):#stdout 块
-            """捕 stdout。"""
+            '捕 stdout'
             捕杂散(杂出,块)#捕
         def 收误(块):#stderr 块
-            """捕 stderr。"""
+            '捕 stderr'
             捕杂散(杂错,块)#捕
         def 读出():#stdout
-            """捕 stdout。"""
+            '捕 stdout'
             读流(子.stdout,收出)#捕
             冲杂散(杂出)#冲
         def 读误():#stderr
-            """捕 stderr。"""
+            '捕 stderr'
             读流(子.stderr,收误)#捕
             冲杂散(杂错)#冲
         def 读协议():#fd 3 入站
-            """读子→宿主帧。"""
+            '读子→宿主帧'
             try:#读
                 while True:#循环
                     块=宿主套.recv(65536)#块
@@ -872,24 +872,24 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         threading.Thread(target=读误,daemon=True).start()#stderr
         threading.Thread(target=读协议,daemon=True).start()#fd 3
         def 墙到():#墙钟
-            """墙钟超时。"""
+            '墙钟超时'
             完成({'error':{'kind':'timeout','message':'wall-clock ceiling reached ('+str(自身.配置['maxWallMs'])+'ms)'}})#超时
         墙=threading.Timer(自身.配置['maxWallMs']/1000,墙到)#墙
         墙.daemon=True#守护
         墙.start()#开
         墙定时[0]=墙#记下
         def 中止时():#abort
-            """请求中止。"""
+            '请求中止'
             完成({'error':{'kind':'abort','message':消息于(getattr(请求.get('signal'),'reason',None))}})#中止
         信号=请求.get('signal')#信号
         if 信号 is not None:#有
             def 监视():#等
-                """置位后中止。"""
+                '置位后中止'
                 等待中止(信号)#等
                 中止时()#中止
             threading.Thread(target=监视,daemon=True).start()#监视
         def 结算失败(失败):#活运行 settle
-            """把失败送进完成。"""
+            '把失败送进完成'
             完成({'error':失败})#完成
         活={'kill':升级并杀掉,'finished':完成任务,'settle':结算失败}#活运行
         活项[0]=活#记下
@@ -908,7 +908,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             完成({'error':{'kind':'worker-exit','message':'failed to boot python subprocess: '+消息于(错误)}})#失败
             return#停
         def 发跑():#run 帧
-            """boot-ack 后发程序。"""
+            'boot-ack 后发程序'
             if 已发跑[0]:#已
                 return#停
             已发跑[0]=True#记下

@@ -21,7 +21,7 @@ __all__=['Json树','默认标签','对象预览上限','数组预览上限','预
 }#结束默认
 
 def 可展开值(值):#对象或数组（非 Date）
-    """排除 None 与非容器。"""
+    '排除 None 与非容器'
     if 值 is None:#空
         return False#不可
     if isinstance(值,(dict,list,tuple)):#容器
@@ -29,7 +29,7 @@ def 可展开值(值):#对象或数组（非 Date）
     return False#其余不可
 
 def 列出条目(值):#键值对列表
-    """数组下标作键；对象取键。"""
+    '数组下标作键；对象取键'
     if isinstance(值,(list,tuple)):#数组
         return [(str(下标),项) for 下标,项 in enumerate(值)]#下标键
     if isinstance(值,dict):#对象
@@ -37,11 +37,11 @@ def 列出条目(值):#键值对列表
     return []#非容器
 
 def 括号对(值):#开闭括号
-    """数组 []，对象 {}。"""
+    '数组 []，对象 {}'
     return ('[',']') if isinstance(值,(list,tuple)) else ('{','}')#括号
 
 def 原始预览(值):#叶子预览节点
-    """结构化叶子视图。"""
+    '结构化叶子视图'
     if 值 is None:#null
         return {'kind':'keyword','text':'null'}#关键字
     if isinstance(值,str):#字符串
@@ -55,7 +55,7 @@ def 原始预览(值):#叶子预览节点
     return {'kind':'other','text':str(值)}#其它
 
 def 预览值(值,深度):#折叠预览
-    """深度触顶则省略。"""
+    '深度触顶则省略'
     if not 可展开值(值):#叶子
         return 原始预览(值)#叶子
     是数组=isinstance(值,(list,tuple))#数组
@@ -77,7 +77,7 @@ def 预览值(值,深度):#折叠预览
     return {'kind':'preview','open':开,'close':闭,'parts':部件}#预览
 
 def 叶子值(值):#展开行叶子
-    """结构化叶子。"""
+    '结构化叶子'
     if 值 is None:#null
         return {'kind':'keyword','text':'null'}#关键字
     if isinstance(值,str):#字符串
@@ -89,11 +89,11 @@ def 叶子值(值):#展开行叶子
     return {'kind':'other','text':str(值)}#其它
 
 def 字段文(字段):#空键显示
-    """空串显示为引号空。"""
+    '空串显示为引号空'
     return '""' if 字段=='' else 字段#字段
 
 def 路径标识(路径):#稳定 id
-    """数字与字符串分段。"""
+    '数字与字符串分段'
     段列表=[]#段
     for 段 in 路径:#逐段
         if isinstance(段,int):#数字
@@ -104,7 +104,7 @@ def 路径标识(路径):#稳定 id
     return '/'.join(段列表)#拼接
 
 def 格式路径(路径):#展示路径
-    """$ 起；合法标识符用点，否则下标。"""
+    '$ 起；合法标识符用点，否则下标'
     结果='$'#根
     for 段 in 路径:#逐段
         if isinstance(段,int):#数组下标
@@ -116,7 +116,7 @@ def 格式路径(路径):#展示路径
     return 结果#路径
 
 def 复制文本(目标,模式):#按模式取复制串
-    """path/prettyJson/json/value。"""
+    'path/prettyJson/json/value'
     if 模式=='path':#路径
         return 格式路径(目标['path'])#路径
     if 模式=='prettyJson':#美化
@@ -131,14 +131,14 @@ def 复制文本(目标,模式):#按模式取复制串
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#其余 JSON
 
 def 合并标签(覆盖):#合并文案
-    """缺省字段保留内置。"""
+    '缺省字段保留内置'
     出=dict(默认标签)#拷贝
     if 覆盖 is not None:#有覆盖；空 dict 仍可合并
         出.update(覆盖)#合并
     return 出#标签
 
 def 值复制菜单项(标签):#叶子复制菜单
-    """value/json/path。"""
+    'value/json/path'
     return [#三项
         {'id':'value','label':标签['copyValue']},#原值
         {'id':'json','label':标签['copyJson']},#JSON
@@ -146,7 +146,7 @@ def 值复制菜单项(标签):#叶子复制菜单
     ]#结束
 
 def 对象复制菜单项(标签):#对象复制菜单
-    """prettyJson/json/path。"""
+    'prettyJson/json/path'
     return [#三项
         {'id':'prettyJson','label':标签['copyPrettyJson']},#美化
         {'id':'json','label':标签['copyCompactJson']},#紧凑
@@ -154,9 +154,9 @@ def 对象复制菜单项(标签):#对象复制菜单
     ]#结束
 
 class Json树节点:#树内一行
-    """展开态本地持有；产出结构化行。"""
+    '展开态本地持有；产出结构化行'
     def __init__(自身,字段,值,路径,标签,末项,初始展开,制表标识,认领制表,行悬停):#构造
-        """记下行参数。"""
+        '记下行参数'
         自身.字段=字段#字段名或 None
         自身.值=值#节点值
         自身.路径=list(路径)#路径
@@ -168,19 +168,19 @@ class Json树节点:#树内一行
         自身.行悬停=行悬停#悬停回调
 
     def 切换(自身):#展开/收起
-        """翻转展开。"""
+        '翻转展开'
         自身.已展开=not 自身.已展开#翻
 
     def 认领本制表(自身):
-        """展开钮获焦时认领制表。"""
+        '展开钮获焦时认领制表'
         自身.认领制表(路径标识(自身.路径))#认领
 
     def 悬停本行(自身):
-        """行悬停记复制目标。"""
+        '行悬停记复制目标'
         自身.行悬停(自身.路径,自身.值)#悬停
 
     def 渲染(自身):#结构化行
-        """产出 treeitem 视图。"""
+        '产出 treeitem 视图'
         容器=可展开值(自身.值)#容器
         项列表=列出条目(自身.值) if 容器 else []#条目
         可展=len(项列表)>0#可展
@@ -230,9 +230,9 @@ class Json树节点:#树内一行
         }#结束
 
 class Json树:#只读 JSON 检查树
-    """可选顶层固定展开与复制动作。"""
+    '可选顶层固定展开与复制动作'
     def __init__(自身,属性=None,**关键字参数):#构造
-        """合并 props 与本地复制态。"""
+        '合并 props 与本地复制态'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.复制目标=None#当前复制行
@@ -241,7 +241,7 @@ class Json树:#只读 JSON 检查树
         自身.制表标识=自身.初制表()#制表
 
     def 更新(自身,属性):#刷新
-        """刷新 props；数据变则重置复制与制表。"""
+        '刷新 props；数据变则重置复制与制表'
         旧=自身.属性['data'] if 'data' in 自身.属性 else None#旧数据
         自身.属性=dict(属性)#最新
         if (自身.属性['data'] if 'data' in 自身.属性 else None) is not 旧:#数据换；身份 is not
@@ -251,11 +251,11 @@ class Json树:#只读 JSON 检查树
             自身.制表标识=自身.初制表()#重算
 
     def 标签(自身):#合并文案
-        """Partial 覆盖。"""
+        'Partial 覆盖'
         return 合并标签(自身.属性['labels'] if 'labels' in 自身.属性 else None)#标签
 
     def 初制表(自身):#初始制表 id
-        """顶层展开取首可展项；否则根。"""
+        '顶层展开取首可展项；否则根'
         数据=自身.属性['data'] if 'data' in 自身.属性 else None#数据
         顶展=自身.属性['expandTopLevel'] if 'expandTopLevel' in 自身.属性 else True#顶展缺省 True
         if 数据 is None:#无
@@ -272,11 +272,11 @@ class Json树:#只读 JSON 检查树
         return None#无
 
     def 认领制表(自身,标识):#认领制表
-        """记下。"""
+        '记下'
         自身.制表标识=标识#写
 
     def 行悬停(自身,路径,值):#悬停行
-        """可复制且菜单未开时记目标。"""
+        '可复制且菜单未开时记目标'
         可复制=自身.属性['copyable'] if 'copyable' in 自身.属性 else True#缺省可复制
         if 可复制 is False or 自身.复制菜单开:#不可
             return#跳
@@ -284,18 +284,18 @@ class Json树:#只读 JSON 检查树
         自身.复制态='idle'#重置反馈
 
     def 清复制(自身):#清复制目标
-        """关菜单并清。"""
+        '关菜单并清'
         自身.复制目标=None#清
         自身.复制态='idle'#清
         自身.复制菜单开=False#关
 
     def 悬停根(自身):
-        """顶层括号悬停。"""
+        '顶层括号悬停'
         数据=自身.属性['data'] if 'data' in 自身.属性 else None#根值
         自身.行悬停([],数据)#悬停
 
     def 点按复制(自身,模式=None):
-        """无模式则按目标形态选默认。"""
+        '无模式则按目标形态选默认'
         if 自身.复制目标 is None:#无目标
             return#跳
         if 模式 is None:#默认
@@ -304,11 +304,11 @@ class Json树:#只读 JSON 检查树
         自身.复制(模式)#执行
 
     def 打开复制菜单(自身):
-        """右键打开复制菜单。"""
+        '右键打开复制菜单'
         自身.复制菜单开=True#开
 
     def 复制(自身,模式):#执行复制
-        """写剪贴板并反馈。"""
+        '写剪贴板并反馈'
         if 自身.复制目标 is None:#无目标
             return#跳
         文=复制文本(自身.复制目标,模式)#文本
@@ -318,7 +318,7 @@ class Json树:#只读 JSON 检查树
             自身.复制态='failed'#失败
 
     def 渲染(自身):#结构化视图
-        """产出树 + 可选复制锚。"""
+        '产出树 + 可选复制锚'
         属性=自身.属性#props
         数据=属性['data'] if 'data' in 属性 else None#数据
         if 数据 is None:#无数据
@@ -383,7 +383,7 @@ class Json树:#只读 JSON 检查树
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):#调用形
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

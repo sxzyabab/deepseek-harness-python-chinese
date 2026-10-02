@@ -1,14 +1,16 @@
-"""GitHub HTTP 鉴权、解析与即发即弃分发。"""
+'GitHub HTTP 鉴权、解析与即发即弃分发'
 import hashlib,hmac,json,time#签名、JSON 与时间
 from ...工具.值 import 快照json值#无损 JSON 快照
-from ..webhook.标识构造 import Webhook来源标识,Webhook投递标识
-from ..webhook import Webhook错误#运行时失败
+from ..web钩子.标识构造 import Webhook来源标识,Webhook投递标识
+from ..web钩子 import Webhook错误#运行时失败
 from .正文 import WebhookHttp错误,读取有界utf8正文
 
 __all__=['创建GitHubWebhook事件分派']
 
 def 必填头(请求,名):
-    """要求唯一、非空的请求头。请求为 webServer 对象，头名为小写。"""
+    """要求唯一、非空的请求头。
+    请求为 webServer 对象，头名为小写
+    """
     头表=请求.headers
     if 名 not in 头表:
         raise WebhookHttp错误(400,f'missing {名} header')
@@ -24,7 +26,7 @@ def 必填头(请求,名):
     return str(值)
 
 def 是否json内容类型(值):
-    """Content-Type 是否为 JSON，且最多带一个 UTF-8 charset。"""
+    'Content-Type 是否为 JSON，且最多带一个 UTF-8 charset'
     if 值 is None:
         return False
     if isinstance(值,list):
@@ -41,7 +43,7 @@ def 是否json内容类型(值):
     return 部分[1].lower() in ('charset=utf-8','charset="utf-8"')
 
 def 发送响应(响应对象,状态码,消息=None):
-    """恰好发送一次空响应或纯文本响应。"""
+    '恰好发送一次空响应或纯文本响应'
     if 消息 is None:
         响应对象.writeHead(状态码)
         响应对象.end()
@@ -50,7 +52,7 @@ def 发送响应(响应对象,状态码,消息=None):
     响应对象.end(消息)
 
 def 解析载荷(正文):
-    """把正文解析为可无损快照的 JSON 对象。"""
+    '把正文解析为可无损快照的 JSON 对象'
     try:
         已解析=json.loads(正文)
     except json.JSONDecodeError:
@@ -63,7 +65,7 @@ def 解析载荷(正文):
     return 快照
 
 def 校验签名(密钥,正文,签名头):
-    """校验 GitHub HMAC-SHA256 签名头（sha256=…）。"""
+    '校验 GitHub HMAC-SHA256 签名头（sha256=…）'
     if not 签名头.startswith('sha256='):
         return False
     期望=签名头[7:]
@@ -71,9 +73,11 @@ def 校验签名(密钥,正文,签名头):
     return hmac.compare_digest(期望,实际)
 
 def 创建GitHubWebhook事件分派(上下文,配置):
-    """创建一条精确路由的 GitHub 事件分派入口。配置为 dict。"""
+    """创建一条精确路由的 GitHub 事件分派入口。
+    配置为 dict
+    """
     def 分派入口(请求,响应对象):
-        """鉴权并解析后立即分发；不等待规则结算。"""
+        '鉴权并解析后立即分发；不等待规则结算'
         try:
             方法=请求.method
             if 方法!='POST':

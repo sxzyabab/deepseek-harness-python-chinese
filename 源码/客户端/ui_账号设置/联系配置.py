@@ -12,7 +12,7 @@ __all__=['配置','联系配置全局键']
 })
 
 def 解析联系配置(原始):
-    """把页面注入的问卷选项收成带默认值的配置。"""
+    '把页面注入的问卷选项收成带默认值的配置'
     表={} if 原始 is None else dict(原始)
     地址=表['contactFormUrl'] if 'contactFormUrl' in 表 and 表['contactFormUrl'] else 默认问卷地址
     来源=表['contactSource'] if 'contactSource' in 表 and 表['contactSource'] is not None else ''

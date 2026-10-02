@@ -1,4 +1,4 @@
-"""DeepSeek 会话日志无损增量上传的线路类型约定。"""
+'DeepSeek 会话日志无损增量上传的线路类型约定'
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
 class 深度求索会话日志线路头(TypedDict):#线路会话头

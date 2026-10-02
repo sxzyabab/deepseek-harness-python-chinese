@@ -10,21 +10,21 @@ __all__=[#仅中文公开名
 客户端脚本键=检查器id('client-bundle','scriptKey')#Client脚本键
 
 def 源桥能力(可用):#Sources桥能力
-    """描述浏览器侧源访问。"""
+    '描述浏览器侧源访问'
     return {'type':'client-sources'} if 可用 else None#有则通告
 
 class 客户端源目录错误(Exception):#Client源目录错误
-    """Client 源传输序列化的有意错误。"""
+    'Client 源传输序列化的有意错误'
     def __init__(自身,code,message):#绑定错误码
-        """保存码与信息。"""
+        '保存码与信息'
         super().__init__(message)#基类
         自身.code=code#错误码
         自身.message=message#信息
 
 class 客户端源目录:#Client源目录
-    """对 Client 脚本资产执行有界只读操作。"""
+    '对 Client 脚本资产执行有界只读操作'
     def __init__(自身,资产列表):#构造
-        """登记资产。"""
+        '登记资产'
         自身.资产={}#资产表
         for 资产 in 资产列表:#逐项
             键=资产['scriptKey']#键
@@ -33,7 +33,7 @@ class 客户端源目录:#Client源目录
             自身.资产[键]={'asset':资产}#登记
 
     def 按网址取脚本键(自身,网址):#按URL取脚本键
-        """将栈帧 URL 解析为本目录的本地脚本键。"""
+        '将栈帧 URL 解析为本目录的本地脚本键'
         规范=规范化网址(网址)#规范化
         for 项 in 自身.资产.values():#逐资产
             资产=项['asset']#资产
@@ -43,7 +43,7 @@ class 客户端源目录:#Client源目录
         return None#无
 
     def 执行(自身,命令,最大内容字节):#执行源操作
-        """执行一个已校验的源操作。"""
+        '执行一个已校验的源操作'
         操作=命令['op'] if 'op' in 命令 else None#操作
         if 操作=='list-scripts':#列脚本
             脚本列表=[]#列表
@@ -61,9 +61,9 @@ class 客户端源目录:#Client源目录
         raise 客户端源目录错误('invalid-request',f'unknown Client source command {操作!r}')#未知
 
 def 规范化网址(网址):#规范化
-    """规范化网址。"""
+    '规范化网址'
     return 网址.split('#')[0]#去片段
 
 def 发现检查器客户端源目录():#发现目录
-    """发现 Inspector Client 包源目录；无发现时返回 None。"""
+    '发现 Inspector Client 包源目录；无发现时返回 None'
     return None#无发现

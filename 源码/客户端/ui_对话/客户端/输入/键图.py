@@ -5,11 +5,11 @@ __all__=['登记作曲器键图']#仅中文公开名
 组合宽限毫秒=10#Safari 关闭 keydown 宽限
 
 def 纪元毫秒():
-    """墙钟毫秒 int。"""
+    '墙钟毫秒 int'
     return int(time.time()*1000)#纪元毫秒
 
 def 是否组合事件(事件,近期组合):
-    """keydown 可信任的组合态。keyCode 229 为无 isComposing 时的遗留 IME 信号。"""
+    'keydown 可信任的组合态。keyCode 229 为无 isComposing 时的遗留 IME 信号'
     if 事件['isComposing'] is True:#引擎组合
         return True
     if 事件['keyCode']==229:#遗留信号
@@ -17,42 +17,42 @@ def 是否组合事件(事件,近期组合):
     return 近期组合() is True#宽限内
 
 def 登记作曲器键图(编辑器,处理器):
-    """在一个编辑器上登记作曲器键图。处理器含 arbitrate/space/dismissPopup/canSubmit/submit/intakeFiles/pasteText。"""
+    '在一个编辑器上登记作曲器键图。处理器含 arbitrate/space/dismissPopup/canSubmit/submit/intakeFiles/pasteText'
     组合中=False#组合中
     组合截止=0#宽限期截止纪元毫秒
     根元素=None#当前根
 
     def 同步组合():
-        """根属性随组合与编辑器对账。"""
+        '根属性随组合与编辑器对账'
         if 根元素 is None:#无根
             return#停
         开=组合中 is True or 编辑器.正在组合() is True#组合中
         根元素.切换属性('data-composer-composing',开)#根属性
 
     def 组合开始():
-        """开始组合。"""
+        '开始组合'
         nonlocal 组合中#写
         组合中=True#开始
         同步组合()#同步
 
     def 组合结束():
-        """结束组合后再一拍宽限。"""
+        '结束组合后再一拍宽限'
         nonlocal 组合中,组合截止#写
         组合中=False#结束
         组合截止=纪元毫秒()+组合宽限毫秒#宽限
         def 空更新():
-            """组合结束后无文档编辑。"""
+            '组合结束后无文档编辑'
             return None#无事
         编辑器.更新(空更新,{'onUpdate':同步组合})#提交后再同步
 
     def 近期组合():
-        """组合中或宽限未过。"""
+        '组合中或宽限未过'
         return 组合中 is True or 纪元毫秒()<组合截止#近期
 
     def 箭头(键):
-        """箭头/Tab 工厂。"""
+        '箭头/Tab 工厂'
         def 处理(事件):
-            """裁决消费则阻止默认。"""
+            '裁决消费则阻止默认'
             在组合=事件 is not None and 是否组合事件(事件,近期组合)#是否组合
             if 处理器.arbitrate(键,在组合)!='pass':#消费
                 if 事件 is not None:#有事件
@@ -62,7 +62,7 @@ def 登记作曲器键图(编辑器,处理器):
         return 处理#处理器
 
     def 根交换(根,旧根):
-        """根交换时重挂组合监听。"""
+        '根交换时重挂组合监听'
         nonlocal 组合中,组合截止,根元素#写
         if 旧根 is not None:#有旧
             旧根.移除监听('compositionstart',组合开始)#卸 start
@@ -77,7 +77,7 @@ def 登记作曲器键图(编辑器,处理器):
         同步组合()#同步
 
     def 处理Escape(事件):
-        """先解散弹出再裁决。"""
+        '先解散弹出再裁决'
         处理器.dismissPopup()#先关覆盖
         if 处理器.arbitrate('escape',是否组合事件(事件,近期组合))=='consumed':#消费
             事件.阻止默认()#阻止
@@ -85,12 +85,12 @@ def 登记作曲器键图(编辑器,处理器):
         return False#放行
 
     def 处理Tab(事件):
-        """有高亮则落定；Shift+Tab 在菜单打开时一律离开。"""
+        '有高亮则落定；Shift+Tab 在菜单打开时一律离开'
         键='tabBack' if 事件 is not None and 事件['shiftKey'] is True else 'tab'#前进或后退
         return 箭头(键)(事件)#裁决
 
     def 处理空格(事件):
-        """组合中放行；认领则消费。"""
+        '组合中放行；认领则消费'
         if 是否组合事件(事件,近期组合) is True:#组合
             return False#放行
         已吃=处理器.space()#空格裁决
@@ -100,7 +100,7 @@ def 登记作曲器键图(编辑器,处理器):
         return False#放行
 
     def 处理回车(事件):
-        """Shift+Enter 无条件换行；IME 吞掉；菜单优先；按住不连发。"""
+        'Shift+Enter 无条件换行；IME 吞掉；菜单优先；按住不连发'
         if 事件 is not None and 事件['shiftKey'] is True:#Shift+Enter
             return False#放行换行
         if 事件 is not None and 是否组合事件(事件,近期组合) is True:#IME 候选
@@ -120,7 +120,7 @@ def 登记作曲器键图(编辑器,处理器):
         return True#已处理
 
     def 处理粘贴(事件):
-        """文件摄入 + 纯文本经壳插入。"""
+        '文件摄入 + 纯文本经壳插入'
         剪贴=事件['clipboardData'] if 'clipboardData' in 事件 else None#剪贴板
         if 剪贴 is None:#无
             return False#放行

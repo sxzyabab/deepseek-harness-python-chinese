@@ -15,7 +15,7 @@ __all__=[#仅中文公开名
 错误码集合=set(客户端运行时错误码)#Runtime错误码
 
 def 解析结果封装(值):#解析结果封装
-    """解析结果封装。"""
+    '解析结果封装'
     if not 是否普通对象(值) or not isinstance(值.get('ok'),bool):#须有ok
         raise 检查器错误('inspector protocol: invalid Client Runtime outcome')#英文诊断
     if 值['ok']:#成功
@@ -28,42 +28,42 @@ def 解析结果封装(值):#解析结果封装
     return {'ok':False,'error':{'code':错误['code'],'message':错误['message']}}#失败结果
 
 def 解析客户端运行时能力(值):#解析Runtime能力
-    """解析并重建一个 Client Runtime 能力。"""
+    '解析并重建一个 Client Runtime 能力'
     记录=精确对象(值,['type','origin'],'Client Runtime capability')#精确对象
     if 记录['type']!='client-runtime' or not isinstance(记录.get('origin'),str) or len(记录['origin'])>2048:#形状非法
         raise 检查器错误('inspector protocol: invalid Client Runtime capability')#英文诊断
     return {'type':'client-runtime','origin':记录['origin']}#能力
 
 def 解析客户端运行时请求帧(值):#解析Runtime请求
-    """解析并重建一帧 Worker-到-Client Runtime 请求。"""
+    '解析并重建一帧 Worker-到-Client Runtime 请求'
     精确键(值,['v','t','sourceId','generation','sessionId','requestId','command'],'Client Runtime request')#精确字段
     if 值.get('v')!=检查器协议版本 or 值.get('t')!='client-runtime/request':#信封非法
         raise 检查器错误('inspector protocol: invalid Client Runtime request envelope')#英文诊断
     return {'v':检查器协议版本,'t':'client-runtime/request','sourceId':线上标识(值['sourceId'],'sourceId'),'generation':线上标识(值['generation'],'generation'),'sessionId':线上标识(值['sessionId'],'sessionId'),'requestId':线上标识(值['requestId'],'requestId'),'command':解析客户端运行时命令(值['command'])}#请求帧
 
 def 解析客户端运行时取消帧(值):#解析取消帧
-    """解析并重建一帧 Worker-到-Client Runtime 取消。"""
+    '解析并重建一帧 Worker-到-Client Runtime 取消'
     精确键(值,['v','t','sourceId','generation','sessionId','requestId'],'Client Runtime cancellation')#精确字段
     if 值.get('v')!=检查器协议版本 or 值.get('t')!='client-runtime/cancel':#信封非法
         raise 检查器错误('inspector protocol: invalid Client Runtime cancellation envelope')#英文诊断
     return {'v':检查器协议版本,'t':'client-runtime/cancel','sourceId':线上标识(值['sourceId'],'sourceId'),'generation':线上标识(值['generation'],'generation'),'sessionId':线上标识(值['sessionId'],'sessionId'),'requestId':线上标识(值['requestId'],'requestId')}#取消帧
 
 def 解析客户端运行时响应确认帧(值):#解析响应确认
-    """解析并重建一帧 Worker 对 Client Runtime 响应的确认。"""
+    '解析并重建一帧 Worker 对 Client Runtime 响应的确认'
     精确键(值,['v','t','sourceId','generation','sessionId','requestId'],'Client Runtime response acknowledgement')#精确字段
     if 值.get('v')!=检查器协议版本 or 值.get('t')!='client-runtime/response-acknowledged':#信封非法
         raise 检查器错误('inspector protocol: invalid Client Runtime response acknowledgement envelope')#英文诊断
     return {'v':检查器协议版本,'t':'client-runtime/response-acknowledged','sourceId':线上标识(值['sourceId'],'sourceId'),'generation':线上标识(值['generation'],'generation'),'sessionId':线上标识(值['sessionId'],'sessionId'),'requestId':线上标识(值['requestId'],'requestId')}#确认帧
 
 def 解析客户端运行时响应帧(值):#解析Runtime响应
-    """解析并重建一帧 Client-到-Worker Runtime 响应。"""
+    '解析并重建一帧 Client-到-Worker Runtime 响应'
     精确键(值,['v','t','sourceId','generation','sessionId','requestId','outcome'],'Client Runtime response')#精确字段
     if 值.get('v')!=检查器协议版本 or 值.get('t')!='client-runtime/response':#信封非法
         raise 检查器错误('inspector protocol: invalid Client Runtime response envelope')#英文诊断
     return {'v':检查器协议版本,'t':'client-runtime/response','sourceId':线上标识(值['sourceId'],'sourceId'),'generation':线上标识(值['generation'],'generation'),'sessionId':线上标识(值['sessionId'],'sessionId'),'requestId':线上标识(值['requestId'],'requestId'),'outcome':解析结果封装(值['outcome'])}#响应帧
 
 def 解析客户端运行时会话关闭帧(值):#解析会话关闭
-    """解析并重建一帧 Runtime 会话清理通知。"""
+    '解析并重建一帧 Runtime 会话清理通知'
     精确键(值,['v','t','sourceId','generation','sessionId'],'Client Runtime session close')#精确字段
     if 值.get('v')!=检查器协议版本 or 值.get('t')!='client-runtime/session-closed':#信封非法
         raise 检查器错误('inspector protocol: invalid Client Runtime session close envelope')#英文诊断

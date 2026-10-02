@@ -11,19 +11,19 @@ cordis树模式版本=0#快照模式版本
 cordis树最大深度=256#最大嵌套深度
 
 def cordis上下文树节点(objectHandle,children):#Context树节点
-    """Cordis 树快照中的一个 Context 实体。"""
+    'Cordis 树快照中的一个 Context 实体'
     return {'kind':'context','objectHandle':objectHandle,'children':tuple(children)}#Context
 
 def cordis纤程树节点(objectHandle,uid,children):#Fiber树节点
-    """Cordis 树快照中的一个 Fiber 实体。"""
+    'Cordis 树快照中的一个 Fiber 实体'
     return {'kind':'fiber','objectHandle':objectHandle,'uid':uid,'children':tuple(children)}#Fiber
 
 cordis树节点=dict#树节点联合
 
 class cordis树快照:#树快照
-    """一个界域可达 Cordis 树的不可变、可序列化状态。"""
+    '一个界域可达 Cordis 树的不可变、可序列化状态'
     def __init__(自身,schemaVersion,revision,objectRegistryId,root,truncated):#构造
-        """保存树快照字段。"""
+        '保存树快照字段'
         自身.schemaVersion=schemaVersion#模式版本
         自身.revision=revision#修订号
         自身.objectRegistryId=objectRegistryId#对象注册表标识
@@ -31,7 +31,7 @@ class cordis树快照:#树快照
         自身.truncated=truncated#是否截断
 
 def 解析节点(值,状态,最大节点,深度):#解析树节点
-    """解析树节点。"""
+    '解析树节点'
     if 深度>cordis树最大深度:#超深
         raise 检查器错误('inspector protocol: Cordis tree exceeds the depth limit')#英文诊断
     状态['count']+=1#计数
@@ -63,7 +63,7 @@ def 解析节点(值,状态,最大节点,深度):#解析树节点
     return {'kind':'fiber','objectHandle':对象句柄,'uid':uid,'children':[上下文]}#Fiber
 
 def 解析cordis树快照(值,最大节点):#解析树快照
-    """解码并校验一次完整的 Cordis 树替换。"""
+    '解码并校验一次完整的 Cordis 树替换'
     记录=精确对象(值,['schemaVersion','revision','objectRegistryId','root','truncated'],'Cordis tree')#精确对象
     修订=记录['revision']#修订号
     if 记录['schemaVersion']!=cordis树模式版本 or not isinstance(修订,int) or isinstance(修订,bool) or 修订<1 or not isinstance(记录['truncated'],bool):#头非法

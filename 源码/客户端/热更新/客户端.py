@@ -7,7 +7,7 @@ __all__=['名称','依赖','应用','插件事件帧','事件端点','热更新�
 依赖=['modules']#依赖 modules
 
 def 解析插件事件帧(值):
-    """校验 SSE 载荷。"""
+    '校验 SSE 载荷'
     if not isinstance(值,dict):#非对象
         return {'kind':'invalid'}#无效
     种=值.get('type')#类型
@@ -24,10 +24,10 @@ def 解析插件事件帧(值):
     return {'kind':'invalid'}#无效
 
 def 应用(上下文):
-    """把图快照与重建转发给页面共享的串行条目控制器。"""
+    '把图快照与重建转发给页面共享的串行条目控制器'
     条目=上下文.modules.entries#条目控制器
     def 处理帧(帧):
-        """调和图或重载。"""
+        '调和图或重载'
         try:#跑
             if 帧['type']=='graph':#图
                 条目.sync(帧['graph'])#调和
@@ -36,11 +36,11 @@ def 应用(上下文):
         except BaseException as 错误:#失败
             上下文.日志.错误(错误)#记
     def 拆除源():
-        """关闭 EventSource。"""
+        '关闭 EventSource'
         源.close()#关闭
     源=globals()['EventSource'](事件端点)#打开
     def 收消息(事件对象):
-        """解析并处理。"""
+        '解析并处理'
         try:#JSON
             值=json.loads(事件对象.data)#解析
         except json.JSONDecodeError:#畸形

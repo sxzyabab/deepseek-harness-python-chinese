@@ -14,40 +14,40 @@ __all__=['解析快照清单','写当前会话夹具']#仅中文公开名
 环境名模式=re.compile(r'^[A-Z][A-Z0-9_]*\Z',re.ASCII)#环境名
 
 def 写当前会话夹具(清单,模式):#是否写当前世代
-    """一次运行是否为本场景写入当前写入器的 Session fixture。"""
+    '一次运行是否为本场景写入当前写入器的 Session fixture'
     return 模式!='replay' and 'session' not in 清单 and 'sessionFormat' not in 清单#非回放且自有且无钉住历史
 def 要求映射(值,标签):#要求映射
-    """值必须为映射。"""
+    '值必须为映射'
     if not isinstance(值,dict):#非映射
         raise Exception(f'{标签} must be a mapping')#必须映射
     return 值#断言映射
 
 def 精确键集(值,允许,标签):#精确键集
-    """拒绝未知字段。"""
+    '拒绝未知字段'
     未知=sorted(键 for 键 in 值 if 键 not in 允许)#未知键
     if 未知:#有未知
         raise Exception(f"{标签} has unknown field(s): {', '.join(未知)}")#未知字段
 
 def 要求名(值,标签):#要求 kebab 名
-    """要求 lower-kebab-case 名。"""
+    '要求 lower-kebab-case 名'
     if not isinstance(值,str) or not 名称模式.match(值):#名非法
         raise Exception(f'{标签} must be a lower-kebab-case name')#名非法
     return 值#返回名
 
 def 要求场景源(值,标签):#要求场景源路径
-    """要求 kebab 路径段。"""
+    '要求 kebab 路径段'
     if not isinstance(值,str) or not all(名称模式.match(段) for 段 in 值.split('/')):#路径非法
         raise Exception(f'{标签} must be a lower-kebab-case name or corpus-relative path')#路径非法
     return 值#返回路径
 
 def 要求正整数索引(值,标签):#要求正整数索引
-    """要求唯一正整数数组。"""
+    '要求唯一正整数数组'
     if not isinstance(值,list) or any(not isinstance(项,int) or isinstance(项,bool) or 项<1 for 项 in 值) or len(set(值))!=len(值):#非法
         raise Exception(f'{标签} must be an array of unique positive integers')#索引非法
     return list(值)#拷贝返回
 
 def 解析快照清单(源,路径='snapshot.yml'):#解析清单
-    """解析一份 snapshot.yml，不接纳未知字段。"""
+    '解析一份 snapshot.yml，不接纳未知字段'
     try:
         解析=yaml.safe_load(源)
     except yaml.YAMLError as 错误:

@@ -1,7 +1,4 @@
-"""为配置面的「获取可用模型」动作回答这个提供方能服务哪些模型。
-
-公开面仅中文名；无英文别名。
-"""
+'为配置面的「获取可用模型」动作回答这个提供方能服务哪些模型'
 import json,math#JSON 与有限数
 from json import JSONDecodeError#JSON 解析失败
 from urllib.error import HTTPError,URLError#HTTP 错误
@@ -15,7 +12,7 @@ __all__=('发现模型','可询问协议','回复字节上限')#仅中文公开�
 回复字节上限=4*1024*1024#回复字节上限
 
 def 容量(*候选列表):
-    """列表条目上的正整数字段，缺席或不可用则为 None。入口处排除 bool。"""
+    '列表条目上的正整数字段，缺席或不可用则为 None。入口处排除 bool'
     for 候选 in 候选列表:#按参数顺序取第一个能当容量的值，后面的字段只是回落
         if isinstance(候选,bool):#布尔是 int 子类不能当窗口
             continue#跳过布尔
@@ -26,29 +23,29 @@ def 容量(*候选列表):
     return None#所有候选都缺席或不可用，调用方按缺席处理
 
 def 标签(*候选列表):
-    """列表条目上的非空字符串字段，或 None。"""
+    '列表条目上的非空字符串字段，或 None'
     for 候选 in 候选列表:#按参数顺序取第一个能当展示名的值，id 失败再试 name/display_name
         if isinstance(候选,str) and len(候选)>0:#非字符串与空串都不能当标签
             return 候选#第一个非空字符串立刻收下
     return None#没有可用标签，列表条目没有 id 时整条丢掉
 
 def 列表网址(基址):
-    """把端点基址与列表路径拼起来。"""
+    '把端点基址与列表路径拼起来'
     去尾=基址
     while 去尾.endswith('/'):#去掉尾斜杠，避免拼出双斜杠 /models
         去尾=去尾[:-1]#每次只剥一层，直到不再以 / 结尾
     return 去尾+'/models'#接 OpenAI 兼容列表路径
 
 def 已中止(信号):
-    """调用方是否已中止。信号是 threading.Event 或 None。"""
+    '调用方是否已中止。信号是 threading.Event 或 None'
     if 信号 is None:#发现请求可以不带取消信号，没有信号就不算中止
         return False#无信号则继续询问端点
     return 信号.is_set()#Event 置位则中止
 
 def 有界读取(响应,网址):
-    """读回复正文，拒绝超出上限的。响应是 urllib HTTPResponse。"""
+    '读回复正文，拒绝超出上限的。响应是 urllib HTTPResponse'
     def 超限():
-        """超限错误。"""
+        '超限错误'
         return llm.大模型错误(f'{网址} answered with more than {回复字节上限} bytes','DISCOVERY_FAILED')#超限失败
     头=响应.headers#响应头；http.client 的 HTTPMessage
     if 'Content-Length' in 头:#规范头名优先
@@ -79,7 +76,7 @@ def 有界读取(响应,网址):
     return b''.join(块列表).decode('utf-8')#解码为文本
 
 def 读列表(正文):
-    """读一份 OpenAI 兼容列表回复。正文是 JSON 对象 dict。"""
+    '读一份 OpenAI 兼容列表回复。正文是 JSON 对象 dict'
     if 'data' not in 正文:#没有 data 键则无法自动发现
         raise llm.大模型错误(
             'the endpoint\'s model listing has no "data" array; enter this provider\'s models by hand',
@@ -121,7 +118,7 @@ def 读列表(正文):
     return 模型列表#候选列表
 
 def 可用探测密钥(原始):
-    """接受一把探测密钥，或在头造出之前拒绝它。规范化密钥返回 dict。"""
+    '接受一把探测密钥，或在头造出之前拒绝它。规范化密钥返回 dict'
     判定=llm.规范化密钥(原始)#判定已提供密钥；形态为 {'ok','value'/'reason'}
     if 判定['ok']:#通过则交出修剪后的密钥，失败再按原因写文案
         return 判定['value']#通过则返回修剪后的，头里只带这一把
@@ -133,7 +130,7 @@ def 可用探测密钥(原始):
     raise llm.大模型错误(文案,llm.非法凭证码)#拒绝；未通过不得把原串写进 Authorization
 
 def 发现模型(请求,已存密钥=None):
-    """询问一个草稿提供方端点它所通告的模型。请求为配置面发现 dict。"""
+    '询问一个草稿提供方端点它所通告的模型。请求为配置面发现 dict'
     提供方=请求['provider'] if 'provider' in 请求 else None#点名的路由
     if 提供方 is not None:#点名了路由才查已安装目录；未点名则只能问端点
         已安装=目录模型(提供方)#已安装目录；未运来的路由得到空表

@@ -22,31 +22,31 @@ __all__=[#仅中文公开名
 预览标识='@deepseek-ai/dsh-client-ui-plan'#侧栏类型 id
 
 def 应用(上下文):#安装计划控制浏览器半边
-    """登记计划控制、永久 Chat 卡与侧栏文档阅读。"""
+    '登记计划控制、永久 Chat 卡与侧栏文档阅读'
     def 登记词表():#登记中英文案
-        """把计划命名空间写进 locale。"""
+        '把计划命名空间写进 locale'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记词表
     上下文.副作用(登记词表,'ui-plan: dictionaries')#登记词表
     翻译=上下文.locale.bind(命名空间)#文案
 
     def 登记定义():#对话定义
-        """登记 submitted-plan。"""
+        '登记 submitted-plan'
         return 上下文.uiConversation.events.register(计划定义)#登记
     上下文.副作用(登记定义,'ui-plan: conversation definition')#定义
 
     def 登记资源():#资源
-        """登记 plan 协议。"""
+        '登记 plan 协议'
         return 上下文.resources.register(计划资源提供者(上下文.remote.session))#登记
     上下文.副作用(登记资源,'ui-plan: resources')#资源
 
     def 可打开(地址):#侧栏可否打开
-        """计划或审阅预览。"""
+        '计划或审阅预览'
         return 解析计划地址(地址) is not None or 是否审阅预览地址(地址)#可
     def 预览标题():#侧栏标题
-        """文案。"""
+        '文案'
         return 翻译('preview.title')#标题
     def 登记侧栏类型():#侧栏类型
-        """登记 plan 标签种。"""
+        '登记 plan 标签种'
         return 上下文.sidebarRightTabs.register({#登记
             'id':预览标识,'kind':'plan',#身份
             'patterns':['dsh-resource://plan/**','dsh-resource://plan-review/**'],#模式
@@ -55,9 +55,9 @@ def 应用(上下文):#安装计划控制浏览器半边
     上下文.副作用(登记侧栏类型,'ui-plan: sidebar type')#侧栏
 
     def 打开计划面(会话标识):#打开计划注入
-        """按调用打开侧栏计划。"""
+        '按调用打开侧栏计划'
         def 打开计划(调用标识):#打开
-            """编码地址并打开。"""
+            '编码地址并打开'
             子=上下文.sessions.subagentAddress(会话标识)#子智能体
             if 子 is None:#普通
                 会话={'kind':'session','sessionId':会话标识}#会话
@@ -71,15 +71,15 @@ def 应用(上下文):#安装计划控制浏览器半边
     审阅存储=创建计划审阅存储()#store
 
     def 登记回合尾():#回合尾卡
-        """登记计划卡。"""
+        '登记计划卡'
         def 注入(会话标识):
-            """绑定 Chat 目标后贡献 plans 源。"""
+            '绑定 Chat 目标后贡献 plans 源'
             绑定=上下文.sessions.binding(会话标识)
             if 绑定 is None:
                 raise RuntimeError('ui-plan: unknown session "'+str(会话标识)+'"')
             聊天=上下文.uiConversation.binding(绑定).target('chat')
             def 计划源(回合):
-                """submitted-plan 数据源。"""
+                'submitted-plan 数据源'
                 快照=聊天.getSnapshot()
                 if 快照 is None:
                     raise RuntimeError('ui-plan: Chat target is unavailable')
@@ -94,9 +94,9 @@ def 应用(上下文):#安装计划控制浏览器半边
     上下文.slots.inject('conversation.chat.turnTail',登记回合尾)#挂
 
     def 审阅注入(会话标识):#审阅动作注入
-        """打开审阅或临时预览。"""
+        '打开审阅或临时预览'
         def 打开审阅(审阅,请求键):#打开
-            """有 callId 开计划，否则临时预览。"""
+            '有 callId 开计划，否则临时预览'
             if 'callId' in 审阅 and 审阅['callId'] is not None:#有调用
                 打开计划面(会话标识)['openPlan'](审阅['callId'])#开计划
                 return#停
@@ -111,7 +111,7 @@ def 应用(上下文):#安装计划控制浏览器半边
         }
 
     def 登记审阅动作():#审阅动作
-        """登记审阅打开。"""
+        '登记审阅打开'
         return 上下文.slots.register({#登记
             'name':'conversation.plan-review.actions','id':预览标识,#元数据
             'locale':命名空间,'store':审阅存储,'inject':审阅注入,#注入
@@ -119,23 +119,23 @@ def 应用(上下文):#安装计划控制浏览器半边
     上下文.slots.inject('conversation.plan-review.actions',登记审阅动作)#挂
 
     def 登记预览标签():#侧栏预览
-        """登记计划预览标签。"""
+        '登记计划预览标签'
         return 上下文.slots.register({#登记
             'name':'sidebar.right.pane.tab','key':预览标识,'locale':命名空间,#元数据
         },计划预览)#预览
     上下文.slots.inject('sidebar.right.pane.tab',登记预览标签)#挂
 
     def 登记预览标题():#侧栏标题
-        """登记计划标题。"""
+        '登记计划标题'
         return 上下文.slots.register({#登记
             'name':'sidebar.right.pane.tab.title','key':预览标识,#元数据
         },计划标题)#标题
     上下文.slots.inject('sidebar.right.pane.tab.title',登记预览标题)#挂
 
     def 注入面(会话标识):#按会话解析计划芯片注入面
-        """执行 /plan off 离开计划模式。"""
+        '执行 /plan off 离开计划模式'
         def 退出计划模式():#执行 /plan off
-            """受理执行时为 None；否则是用户可见失败行。"""
+            '受理执行时为 None；否则是用户可见失败行'
             结果=上下文.remote.commands.execute(会话标识,'/plan off',[]).等待()#执行
             if not 结果['ok']:#命令失败
                 错误=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
@@ -148,7 +148,7 @@ def 应用(上下文):#安装计划控制浏览器半边
         return {'exitPlanMode':退出计划模式}#注入面
 
     def 登记芯片():#等席位出现
-        """登记计划芯片。"""
+        '登记计划芯片'
         return 上下文.slots.register({#席位登记
             'name':'conversation.input.plan',#席位槽名
             'locale':命名空间,#文案

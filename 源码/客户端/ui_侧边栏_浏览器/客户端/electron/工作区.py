@@ -10,7 +10,7 @@ def 若已中止则抛出(信号):
         raise RuntimeError('aborted')
 
 def 浏览器工作区(源,会话标识,信号):
-    """用工作区规范 cwd 作存储账户；未分组会话仍隔离。"""
+    '用工作区规范 cwd 作存储账户；未分组会话仍隔离'
     若已中止则抛出(信号)
     if 源.getSnapshot()['phase']!='ready':
         完成=[False]

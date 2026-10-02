@@ -24,13 +24,13 @@ __all__=[#仅中文公开名
 默认推理文本='mock reasoning'#默认推理文本
 具体行为集=frozenset(名 for 名 in 模拟LLM行为名表 if 名!='random')#具体行为集
 def 有界整数(名称,值,最小,最大):#校验有界整数
-    """校验有界整数。"""
+    '校验有界整数'
     if not isinstance(值,int) or isinstance(值,bool) or 值<最小 or 值>最大:#越界
         raise Exception(f'llm-mock-server: {名称} must be an integer between {最小} and {最大}')#越界
     return 值#返回有界整数
 
 def 解析选项(选项):#解析服务器选项
-    """解析并校验服务器选项。"""
+    '解析并校验服务器选项'
     主机=选项.get('host') or '127.0.0.1'#主机
     端口=有界整数('port',选项.get('port',0),0,65_535)#端口
     分片大小=有界整数('chunkSize',选项.get('chunkSize',8),1,2**53-1)#分片大小
@@ -91,7 +91,7 @@ def 解析选项(选项):#解析服务器选项
     return 已解析#返回
 
 def 发出(选项,事件):#发出遥测
-    """通知观察者；观察者失败不改线上行为。"""
+    '通知观察者；观察者失败不改线上行为'
     if 'onEvent' not in 选项:#无观察者
         return
     观察=选项['onEvent']#观察者
@@ -101,12 +101,12 @@ def 发出(选项,事件):#发出遥测
         return#忽略
 
 def 切分文本(文本,码点数):#按码点切分
-    """按 Unicode 码点切分文本。"""
+    '按 Unicode 码点切分文本'
     码点列表=list(文本)#按码点拆
     return [''.join(码点列表[索引:索引+码点数]) for 索引 in range(0,len(码点列表),码点数)]#按码点数切
 
 def 结束记录(选项,记录,结局):#结束请求记录
-    """写入结局并发出 result 事件。"""
+    '写入结局并发出 result 事件'
     if 记录.get('outcome') is not None:#已有结局
         return#幂等
     记录['outcome']=结局#写入结局
@@ -116,24 +116,24 @@ def 结束记录(选项,记录,结局):#结束请求记录
     })#结果事件
 
 def 写SSE(记录,写出,载荷):#写 SSE 事件
-    """写一条 data 事件。"""
+    '写一条 data 事件'
     正文=载荷 if isinstance(载荷,str) else json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False)#载荷文本
     写出(f'data: {正文}\n\n'.encode('utf-8'))#写 data 事件
     记录['chunksSent']+=1#计数
 
 def 写完成哨兵(记录,写出):#写 DONE
-    """写结束哨兵。"""
+    '写结束哨兵'
     写SSE(记录,写出,'[DONE]')#写结束哨兵
 
 def 终止分片(原因,输出令牌):#终止分片
-    """构造终止分片载荷。"""
+    '构造终止分片载荷'
     return {#终止载荷
         'choices':[{'index':0,'delta':{'content':''},'finish_reason':原因}],
         'usage':{'prompt_tokens':3,'completion_tokens':输出令牌},
     }#终止分片
 
 def 可取消等待(毫秒,已关闭):#可取消等待
-    """等待毫秒；连接已关则返回 False。"""
+    '等待毫秒；连接已关则返回 False'
     if 毫秒==0:#零延迟
         return not 已关闭()#仅检查存活
     截止=time.monotonic()+毫秒/1000#截止时刻
@@ -144,10 +144,10 @@ def 可取消等待(毫秒,已关闭):#可取消等待
     return not 已关闭()#仍存活
 
 def 带种子随机(种子):#带种子 PRNG
-    """返回 [0,1) 随机函数。"""
+    '返回 [0,1) 随机函数'
     状态=[种子&0xffffffff]#PRNG 状态
     def 抽():#抽随机
-        """一步混合。"""
+        '一步混合'
         状态[0]=(状态[0]+0x6d2b79f5)&0xffffffff#步进
         混合=状态[0]#混合
         混合=(混合^(混合>>15))*(混合|1)&0xffffffff#混1
@@ -156,7 +156,7 @@ def 带种子随机(种子):#带种子 PRNG
     return 抽#返回函数
 
 def 按权重抽行为(权重表,随机):#按权重抽行为
-    """按相对权重抽取具体行为。"""
+    '按相对权重抽取具体行为'
     总=sum(项[1] for 项 in 权重表)#总权重
     抽签=随机()*总#抽签
     for 行为,权重 in 权重表:#逐项
@@ -166,7 +166,7 @@ def 按权重抽行为(权重表,随机):#按权重抽行为
     return 权重表[-1][0]#兜底末项
 
 def 工具调用分片(选项):#工具调用分片
-    """构造两段工具调用增量。"""
+    '构造两段工具调用增量'
     中点=max(1,len(选项['toolArguments'])//2)#参数中点
     return [#两段增量
         {'choices':[{'index':0,'delta':{'tool_calls':[{
@@ -179,7 +179,7 @@ def 工具调用分片(选项):#工具调用分片
     ]#两段结束
 
 def 启动模拟LLM服务器(选项):#启动服务器
-    """启动本地 chat-completions 服务器，每个已接受请求消费一个配置行为。"""
+    '启动本地 chat-completions 服务器，每个已接受请求消费一个配置行为'
     已解析=解析选项(选项)#解析选项
     请求列表=[]#捕获记录
     随机=带种子随机(已解析['randomSeed'])#带种子 PRNG
@@ -188,7 +188,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
     活动连接=set()#活动响应集合
 
     def 选行为():#选行为
-        """消费脚本并解析具体行为。"""
+        '消费脚本并解析具体行为'
         索引=游标[0]#当前索引
         游标[0]=索引+1#推进
         选中=已解析['sequence'][索引] if 索引<len(已解析['sequence']) else None#当前条目
@@ -200,27 +200,27 @@ def 启动模拟LLM服务器(选项):#启动服务器
         return {'scriptBehavior':脚本行为,'behavior':行为}#返回选择
 
     class 处理器(基处理器):#请求处理器
-        """处理单个 HTTP 请求。"""
+        '处理单个 HTTP 请求'
         def log_message(自身,_格式,*_参数):#静默日志
-            """抑制默认访问日志。"""
+            '抑制默认访问日志'
             return#静默
 
         def do_POST(自身):#处理 POST
-            """处理 chat-completions POST。"""
+            '处理 chat-completions POST'
             自身._处理()#委托
 
         def do_GET(自身):#拒绝 GET
-            """非 POST 一律 405。"""
+            '非 POST 一律 405'
             自身.send_response(405)#方法不允许
             自身.send_header('Allow','POST')#允许 POST
             自身.end_headers()#结束头
 
         def _已关闭(自身):#连接是否已关
-            """连接已关或服务器关闭。"""
+            '连接已关或服务器关闭'
             return 关闭门闩.is_set() or 自身.close_connection#已关
 
         def _写头(自身,状态,头表=None,内容类型=None):#写响应头
-            """写状态与头。"""
+            '写状态与头'
             自身.send_response(状态)#状态
             if 内容类型 is not None:#内容类型
                 自身.send_header('Content-Type',内容类型)#写类型
@@ -229,16 +229,16 @@ def 启动模拟LLM服务器(选项):#启动服务器
             自身.end_headers()#结束头
 
         def _开SSE(自身,内容类型='text/event-stream; charset=utf-8'):#打开 SSE
-            """写 SSE 头。"""
+            '写 SSE 头'
             自身._写头(200,{'Cache-Control':'no-cache','Connection':'keep-alive'},内容类型)#写 SSE 头
 
         def _写出(自身,数据):#写字节
-            """写响应体。"""
+            '写响应体'
             自身.wfile.write(数据)#写
             自身.wfile.flush()#冲刷
 
         def _HTTP错误(自身,记录,状态,消息,码,类型名='mock_error'):#写 HTTP 错误
-            """写 JSON 错误并结束记录。"""
+            '写 JSON 错误并结束记录'
             头表={'Content-Type':'application/json'}#默认头
             if 记录['behavior']=='rate_limit':#限流
                 头表['Retry-After']=str((已解析['retryAfterMs']+999)//1000)#限流 Retry-After
@@ -250,7 +250,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             结束记录(已解析,记录,'completed')#记为完成
 
         def _流文本(自身,记录,文本,延迟毫秒):#流式发文本
-            """流式发出文本；客户端关闭返回 False。"""
+            '流式发出文本；客户端关闭返回 False'
             for 片 in 切分文本(文本,已解析['chunkSize']):#逐分片
                 写SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'content':片},'finish_reason':None}]})#写文本增量
                 if not 可取消等待(延迟毫秒,自身._已关闭):#客户端已关
@@ -258,7 +258,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             return True#全部发出
 
         def _完成文本(自身,记录,原因,延迟毫秒):#完成文本流
-            """完成文本流并结束。"""
+            '完成文本流并结束'
             if not 自身._流文本(记录,已解析['successText'],延迟毫秒):#客户端关闭
                 结束记录(已解析,记录,'client_closed')#客户端关闭
                 return
@@ -267,7 +267,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             结束记录(已解析,记录,'completed')#完成
 
         def _断开(自身,记录):#延迟断开
-            """延迟后销毁连接。"""
+            '延迟后销毁连接'
             if not 可取消等待(已解析['disconnectDelayMs'],自身._已关闭):#等待中客户端已关
                 结束记录(已解析,记录,'client_closed')#客户端已关
                 return
@@ -279,7 +279,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 return#忽略
 
         def _执行行为(自身,记录):#执行行为
-            """按行为分支执行。"""
+            '按行为分支执行'
             行为=记录['behavior']#具体行为
             if 行为=='script_exhausted':#脚本耗尽
                 自身._HTTP错误(记录,500,'mock script exhausted','MOCK_SCRIPT_EXHAUSTED')#脚本耗尽
@@ -368,7 +368,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 自身._完成文本(记录,'stop',已解析['chunkDelayMs'])#慢速成功
 
         def _处理(自身):#请求处理主路径
-            """鉴权、读体、选行为并执行。"""
+            '鉴权、读体、选行为并执行'
             路径=自身.path.split('?',1)[0]#路径
             if not 路径.endswith('/chat/completions'):#路径不符
                 自身.send_response(404)#路径不符
@@ -421,7 +421,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
     已关闭=[False]#是否已关
 
     def 关闭():#关闭句柄
-        """停止接受并强制关闭停滞连接。"""
+        '停止接受并强制关闭停滞连接'
         with 关闭锁:#串行关闭
             if 已关闭[0]:#幂等
                 return
@@ -446,7 +446,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
     }#句柄结束
 
 def 应用(上下文):#测试支持入口
-    """模拟服务器由 harness 直接调用，无 Cordis 挂载面。"""
+    '模拟服务器由 harness 直接调用，无 Cordis 挂载面'
     return#空 apply
 
 apply=应用#入口

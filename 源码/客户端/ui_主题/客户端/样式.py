@@ -21,7 +21,7 @@ __all__=[#仅中文公开名
 )
 
 def 读样式(文件名):#读本包一个 CSS 分片
-    """按 utf-8 读样式目录下的文件全文。"""
+    '按 utf-8 读样式目录下的文件全文'
     路径=os.path.join(样式目录,文件名)#绝对路径
     with open(路径,'r',encoding='utf-8') as 文件:#打开
         return 文件.read()#全文

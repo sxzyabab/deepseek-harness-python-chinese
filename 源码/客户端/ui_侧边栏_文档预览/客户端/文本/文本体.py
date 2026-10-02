@@ -4,7 +4,7 @@ __all__=['文本体']#仅中文公开名
 
 
 def 文本体(内容,取标签信息):
-    """产出带导航目标的源码行结构。内容为文档内容 dict。"""
+    '产出带导航目标的源码行结构。内容为文档内容 dict'
     标签=取标签信息()['tab']#标签
     参数=标签['navigation']['params'] if 'navigation' in 标签 and 'params' in 标签['navigation'] else None
     目标=参数['line'] if 参数 is not None and 'line' in 参数 else None#目标行

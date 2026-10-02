@@ -1,4 +1,4 @@
-"""Windows Shell 关联查询与调用；路径是编码数据，绝不是 PowerShell 表达式。"""
+'Windows Shell 关联查询与调用；路径是编码数据，绝不是 PowerShell 表达式'
 import base64
 
 WINDOWS关联=r'''
@@ -200,7 +200,7 @@ public static class DshFileAssociations {
 '''
 
 def windows文件应用程序(路径,应用程序,信号,运行):
-    """在 Unicode STA PowerShell 进程中执行 Windows Shell 适配器。"""
+    '在 Unicode STA PowerShell 进程中执行 Windows Shell 适配器'
     编码路径=base64.b64encode(路径.encode('utf-8')).decode('ascii')
     编码应用=base64.b64encode((应用程序 or '').encode('utf-8')).decode('ascii')
     if 应用程序 is None:

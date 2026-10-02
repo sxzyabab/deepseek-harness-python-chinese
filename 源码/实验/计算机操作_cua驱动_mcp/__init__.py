@@ -20,7 +20,7 @@ __all__=['名称','依赖','配置','应用']
 })
 
 def 应用(上下文,配置值):
-    """初始连接或发现失败拒绝激活并回滚。"""
+    '初始连接或发现失败拒绝激活并回滚'
     连接={
         'command':配置值['command'],
         'args':配置值['args'],
@@ -33,12 +33,12 @@ def 应用(上下文,配置值):
         连接['toolCallTimeoutMs']=配置值['toolCallTimeoutMs']
     子=None
     def 连接寿命():
-        """同一 effect 保序。"""
+        '同一 effect 保序'
         nonlocal 子
         撤销=上下文.computerUse.登记(计算机操作提供方名('cua-driver-mcp'))
         子=上下文.启动插件(mcp客户端,连接)
         def 卸():
-            """先子后登记。"""
+            '先子后登记'
             if hasattr(子,'dispose'):
                 子.dispose()
             撤销()

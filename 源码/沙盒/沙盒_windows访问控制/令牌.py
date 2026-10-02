@@ -1,4 +1,4 @@
-"""受限令牌构造：打开当前进程令牌，抽出其登录 SID，构建众所周知 SID，并用限制 SID 允许列表调用 CreateRestrictedToken。每次 API 调用都检查；任何失败都带 API 名与精确 Win32 码抛出。"""
+'受限令牌构造：打开当前进程令牌，抽出其登录 SID，构建众所周知 SID，并用限制 SID 允许列表调用 CreateRestrictedToken'
 import os,ctypes#取pid与缓冲视图
 from .ffi import (
     分配字节,#缓冲分配
@@ -18,7 +18,7 @@ from .acl import 构建显式访问#显式访问条目打包
 from . import win32_abi as abi#ABI常量
 
 def 打开当前进程令牌(接口):#打开当前进程令牌
-    """以 CreateRestrictedToken 所需权限打开当前进程的访问令牌。"""
+    '以 CreateRestrictedToken 所需权限打开当前进程的访问令牌'
     进程句柄=接口.openProcess(abi.进程查询信息,0,os.getpid())#打开本进程
     if 是否空指针(进程句柄):#打开失败
         抛上次错误(接口,'OpenProcess','pid '+str(os.getpid()))#抛出
@@ -36,7 +36,7 @@ def 打开当前进程令牌(接口):#打开当前进程令牌
     return 令牌#已打开令牌
 
 def 查找登录SID(接口,令牌):#抽出登录SID
-    """查找并复制令牌的登录会话 SID（SE_GROUP_LOGON_ID）。"""
+    '查找并复制令牌的登录会话 SID（SE_GROUP_LOGON_ID）'
     所需槽=分配无符号32()#接收所需大小
     接口.getTokenInformation(令牌,abi.令牌组信息,None,0,所需槽)#预期以ERROR_INSUFFICIENT_BUFFER失败
     所需=解码无符号32(所需槽)#所需字节
@@ -69,7 +69,7 @@ def 查找登录SID(接口,令牌):#抽出登录SID
     raise 访问控制错误('CreateRestrictedToken prerequisite failed: no logon SID found among '+str(组数)+' token groups')#没有登录SID
 
 def 制作众所周知SID(接口,类型):#创建众所周知SID
-    """创建一个众所周知 SID（68 字节缓冲）并断言其有效。"""
+    '创建一个众所周知 SID（68 字节缓冲）并断言其有效'
     sid=接口.localAlloc(0x40,abi.安全最大SID大小)#LMEM_ZEROINIT，供后续LocalFree
     if 是否空指针(sid):#分配失败
         抛上次错误(接口,'LocalAlloc','CreateWellKnownSid type '+str(类型))#抛出
@@ -84,7 +84,7 @@ def 制作众所周知SID(接口,类型):#创建众所周知SID
     return sid#有效SID
 
 def 设令牌默认DACL授予(接口,令牌,sid指针):#合并默认DACL授权
-    """把 sid 的一条完全访问允许 ACE 合并进令牌的默认 DACL。"""
+    '把 sid 的一条完全访问允许 ACE 合并进令牌的默认 DACL'
     所需槽=分配无符号32()#接收所需大小
     接口.getTokenInformation(令牌,abi.令牌默认DACL,None,0,所需槽)#预期以ERROR_INSUFFICIENT_BUFFER失败
     所需=解码无符号32(所需槽)#所需字节
@@ -114,7 +114,7 @@ def 设令牌默认DACL授予(接口,令牌,sid指针):#合并默认DACL授权
     接口.localFree(新DACL)#释放合并结果
 
 def 构建限制SID数组(SID列表):#打包限制SID数组
-    """打包 `SID_AND_ATTRIBUTES[count]`（Attributes 保持 0）。"""
+    '打包 `SID_AND_ATTRIBUTES[count]`（Attributes 保持 0）'
     缓冲=bytearray(abi.SID与属性大小*len(SID列表))#数组缓冲
     for 下标,条目SID in enumerate(SID列表):#逐个SID
         偏移=abi.SID与属性大小*下标#条目偏移
@@ -122,7 +122,7 @@ def 构建限制SID数组(SID列表):#打包限制SID数组
     return 缓冲#已打包数组
 
 def 创建受限令牌(接口,当前令牌,登录SID,写入SID列表,已知,模式):#创建写入受限令牌
-    """用按模式选择的限制列表创建写入受限令牌。"""
+    '用按模式选择的限制列表创建写入受限令牌'
     if 模式=='read-only':#只读
         限制列表=[登录SID,已知['world']]#保活组
     elif len(写入SID列表)==0:#工作区可写却没有写入SID

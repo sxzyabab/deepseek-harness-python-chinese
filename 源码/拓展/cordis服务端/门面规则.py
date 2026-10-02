@@ -22,14 +22,14 @@ __all__=[
 
 #工具
 class 宿主运行器错误(Exception):
-    """动态宿主运行器包的异常基类。"""
+    '动态宿主运行器包的异常基类'
 
 def 是否普通记录(值):
-    """普通字典，拒绝子类与数组。"""
+    '普通字典，拒绝子类与数组'
     return type(值) is dict
 
 def 是否稠密普通数组(值):
-    """普通列表且无额外自有属性。"""
+    '普通列表且无额外自有属性'
     if type(值) is not list:
         return False
     额外=getattr(值,'__dict__',None)
@@ -38,7 +38,7 @@ def 是否稠密普通数组(值):
     return True
 
 def 是否有限json数字(值):
-    """有限 JSON 数字，排除布尔与负零。"""
+    '有限 JSON 数字，排除布尔与负零'
     if isinstance(值,bool):
         return False
     if isinstance(值,int):
@@ -48,17 +48,17 @@ def 是否有限json数字(值):
     return False
 
 def 断言模式容器键(值,路径):
-    """模式记录只能有字符串键。"""
+    '模式记录只能有字符串键'
     for 键 in 值:
         if not isinstance(键,str):
             raise 宿主运行器错误(f'harness.defineTool {路径} 只能包含自有可枚举的字符串键')
 
 def 克隆json(值,路径):
-    """跨边界无损 JSON 克隆；path 带调用方错误前缀。"""
+    '跨边界无损 JSON 克隆；path 带调用方错误前缀'
     祖先=set()
     根盒=[None]
     def 写入(去向,项):
-        """把一项装到根、数组下标或对象键。"""
+        '把一项装到根、数组下标或对象键'
         种=去向['kind']
         if 种=='root':
             根盒[0]=项
@@ -68,7 +68,7 @@ def 克隆json(值,路径):
             return
         去向['target'][去向['key']]=项
     def 拒绝(处):
-        """教学拒绝非 JSON。"""
+        '教学拒绝非 JSON'
         raise 宿主运行器错误(
             f'{处} 必须是无损 JSON 数据（对象、数组、字符串、数字、布尔、null）——'
             '不能是类实例、函数、Map/Set、Date 或 undefined。请用需要的值构造普通对象，'
@@ -150,7 +150,7 @@ def 克隆json(值,路径):
     return 根盒[0]
 
 def 复制注解(值,输出,路径):
-    """复制共享注解词。"""
+    '复制共享注解词'
     if 'description' in 值:
         输出['description']=值['description']
     if 'title' in 值:
@@ -161,14 +161,14 @@ def 复制注解(值,输出,路径):
         输出['examples']=克隆json(值['examples'],f'harness.defineTool {路径}.examples')
 
 def 断言模式键(值,路径,允许):
-    """拒绝统一 DSL 会忽略的键。"""
+    '拒绝统一 DSL 会忽略的键'
     断言模式容器键(值,路径)
     for 键 in 值:
         if 键 not in 允许:
             raise 宿主运行器错误(f'harness.defineTool {路径}.{键} 不被统一 schema DSL 支持')
 
 def 规范化必填名(值,属性表,路径):
-    """校验 required 名并做成查找集。"""
+    '校验 required 名并做成查找集'
     if 值 is None:
         return set()
     if not 是否稠密普通数组(值):
@@ -187,7 +187,7 @@ def 规范化必填名(值,属性表,路径):
     return 名集
 
 def 写入规范化值(去向,值):
-    """安装一个规范化节点。"""
+    '安装一个规范化节点'
     种=去向['kind']
     if 种=='property':
         去向['target'][去向['key']]=值
@@ -197,14 +197,14 @@ def 写入规范化值(去向,值):
         去向['target'][去向['index']]=值
 
 def 写入规范化表(去向,值):
-    """安装一个规范化属性表。"""
+    '安装一个规范化属性表'
     if 去向['kind']=='root':
         去向['holder']['value']=值
     else:
         去向['target']['properties']=值
 
 def 规范化属性表(条目,路径,必填名,原始):
-    """规范化隐式属性表及其后代。"""
+    '规范化隐式属性表及其后代'
     持有={}
     祖先=set()
     任务列表=[{
@@ -355,7 +355,7 @@ def 规范化属性表(条目,路径,必填名,原始):
     return 持有['value'] if 'value' in 持有 else {}
 
 def 规范化参数模式规格(值,路径='parameters'):
-    """把沙箱 parameters 收成宿主 ParameterSchemaSpec。"""
+    '把沙箱 parameters 收成宿主 ParameterSchemaSpec'
     if not 是否普通记录(值):
         raise 宿主运行器错误(f'harness.defineTool {路径} 必须是 ParameterSchemaSpec 对象')
     if 值.get('type')=='object':
@@ -376,21 +376,21 @@ def 规范化参数模式规格(值,路径='parameters'):
     return {'spec':规范化属性表(值,路径,set(),False)}
 
 def 标记动态工具(工具):
-    """钉上动态工具标记。"""
+    '钉上动态工具标记'
     工具[动态工具标记]=True
     return 工具
 
 def 断言动态工具(工具):
-    """必须是 harness.defineTool 的返回。"""
+    '必须是 harness.defineTool 的返回'
     if not 是否普通记录(工具) or 工具.get(动态工具标记) is not True:
         raise 宿主运行器错误('动态工具登记必须使用 harness.defineTool(...) 返回的工具')
 
 def 是否内容块形态(值):
-    """带字符串 type 的普通对象。"""
+    '带字符串 type 的普通对象'
     return 是否普通记录(值) and isinstance(值.get('type'),str)
 
 def 描述返回(值):
-    """非法 execute 返回的紧凑 JSON 预览。"""
+    '非法 execute 返回的紧凑 JSON 预览'
     文本=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
     数据=文本.encode('utf-8')
     if len(数据)<=返回预览上限:
@@ -403,7 +403,7 @@ def 描述返回(值):
             切=切[:-1]
 
 def 断言已渲染内容(值):
-    """校验并交出内容块列表。"""
+    '校验并交出内容块列表'
     if isinstance(值,list) and all(是否内容块形态(项) for 项 in 值):
         return 值
     raise 宿主运行器错误(
@@ -413,7 +413,7 @@ def 断言已渲染内容(值):
 
 #
 def 沙箱定义工具(选项):
-    """交给沙箱的 harness.defineTool：规范化 parameters 与 execute 返回。"""
+    '交给沙箱的 harness.defineTool：规范化 parameters 与 execute 返回'
     if not 是否普通记录(选项):
         raise 宿主运行器错误('harness.defineTool options 必须是对象')
     规范化=规范化参数模式规格(选项.get('parameters'))
@@ -432,16 +432,16 @@ def 沙箱定义工具(选项):
     原始呈现=输出.get('presentationMeta')
     输出体={'schema':模式}
     def 渲染(参数,值):
-        """克隆并收窄内容块。"""
+        '克隆并收窄内容块'
         return 断言已渲染内容(克隆json(原始渲染(参数,值),'harness.defineTool output.render result'))
     输出体['render']=渲染
     if 原始呈现 is not None:
         def 呈现元数据(参数,值):
-            """克隆呈现元数据。"""
+            '克隆呈现元数据'
             return 克隆json(原始呈现(参数,值),'harness.defineTool output.presentationMeta result')
         输出体['presentationMeta']=呈现元数据
     def 执行(参数,执行上下文):
-        """克隆 execute 返回。"""
+        '克隆 execute 返回'
         return 克隆json(原始执行(参数,执行上下文),'harness.defineTool execute result')
     工具=定义工具({
         **选项,
@@ -456,29 +456,29 @@ def 沙箱定义工具(选项):
     return 标记动态工具({**工具,'parameters':参数})
 
 def 规范化处理函数(方法,函数):
-    """规范化 harness.handle 登记。"""
+    '规范化 harness.handle 登记'
     if not isinstance(方法,str) or 方法=='':
         raise 宿主运行器错误('harness.handle(method, fn) 需要非空的方法名字符串')
     if not callable(函数):
         raise 宿主运行器错误(f'harness.handle("{方法}") 的第二个参数必须是处理函数')
     def 处理(参数):
-        """克隆处理结果。"""
+        '克隆处理结果'
         return 克隆json(函数(参数),f'harness.handle("{方法}") result')
     return {'method':方法,'handler':处理}
 
 def 沙箱登记工具(上下文,工具):
-    """在真实 tools 服务上登记已标记的动态工具。"""
+    '在真实 tools 服务上登记已标记的动态工具'
     断言动态工具(工具)
     return 上下文.tools.登记(工具)
 
 def 拒绝门面(报告失败,消息):
-    """先报告再抛同一份错误。"""
+    '先报告再抛同一份错误'
     错误=宿主运行器错误(消息)
     报告失败(错误)
     raise 错误
 
 def 拒绝上下文返回(值,服务名,报告失败):
-    """服务返回 Context 则教学拒绝。"""
+    '服务返回 Context 则教学拒绝'
     if 值 is None or isinstance(值,(str,bytes,bool,int,float,dict,list,tuple,set)):
         return 值
     if 是上下文(值):
@@ -491,70 +491,70 @@ def 拒绝上下文返回(值,服务名,报告失败):
     return 值
 
 class 受护服务:
-    """方法转发后的返回值再过 Context 拒绝。"""
+    '方法转发后的返回值再过 Context 拒绝'
     def __init__(自身,服务,名,报告失败):
-        """钉死真实服务。"""
+        '钉死真实服务'
         object.__setattr__(自身,'_服务',服务)
         object.__setattr__(自身,'_名',名)
         object.__setattr__(自身,'_报告失败',报告失败)
 
     def __call__(自身,*位置参数):
-        """可调用服务本身。"""
+        '可调用服务本身'
         结果=自身._服务(*位置参数)
         return 拒绝上下文返回(结果,自身._名,自身._报告失败)
 
     def __getattr__(自身,属性):
-        """读成员；函数包装后再拒绝 Context。"""
+        '读成员；函数包装后再拒绝 Context'
         值=getattr(自身._服务,属性)
         if callable(值):
             def 转发(*位置参数):
-                """转发并拒绝 Context 返回。"""
+                '转发并拒绝 Context 返回'
                 结果=值(*位置参数)
                 return 拒绝上下文返回(结果,自身._名,自身._报告失败)
             return 转发
         return 拒绝上下文返回(值,自身._名,自身._报告失败)
 
 class 沙箱工具座位:
-    """登记受标记工具；schemas/get 只给只读投影。"""
+    '登记受标记工具；schemas/get 只给只读投影'
     def __init__(自身,上下文):
-        """钉死真实上下文。"""
+        '钉死真实上下文'
         自身._上下文=上下文
 
     def 登记(自身,工具):
-        """登记动态工具。"""
+        '登记动态工具'
         return 沙箱登记工具(自身._上下文,工具)
 
     def 诸模式(自身):
-        """作用域可见的模式投影。"""
+        '作用域可见的模式投影'
         return 自身._上下文.tools.诸模式(获取作用域(自身._上下文))
 
     def 获取(自身,名):
-        """按名取模式视图，不交活定义。"""
+        '按名取模式视图，不交活定义'
         for 项 in 自身.诸模式():
             if 项.get('name')==名:
                 return 项
         return None
 
 def 已声明注入(上下文):
-    """fiber.inject 的服务名集。"""
+    'fiber.inject 的服务名集'
     表=上下文.纤程.依赖表
     return set(表) if 表 is not None else set()
 
 class 动态宿主上下文:
-    """运行中宿主半看到的白名单 ctx。"""
+    '运行中宿主半看到的白名单 ctx'
     def __init__(自身,真实,报告失败):
-        """钉死真实上下文与失败报告。"""
+        '钉死真实上下文与失败报告'
         object.__setattr__(自身,'_真实',真实)
         object.__setattr__(自身,'_报告失败',报告失败)
         object.__setattr__(自身,'_已声明',已声明注入(真实))
         object.__setattr__(自身,'_工具',沙箱工具座位(真实))
 
     def 获取服务(自身,名):
-        """可选查找，不要求声明。"""
+        '可选查找，不要求声明'
         return 自身._读服务(名,False)
 
     def _拒绝读取(自身,属性):
-        """未声明服务与框架内部分教学。"""
+        '未声明服务与框架内部分教学'
         if 自身._真实.获取服务(属性,False) is not None:
             return 拒绝门面(
                 自身._报告失败,
@@ -569,7 +569,7 @@ class 动态宿主上下文:
         )
 
     def _读服务(自身,名,须声明):
-        """tools 走座位；其余过 Context 拒绝。"""
+        'tools 走座位；其余过 Context 拒绝'
         if 名=='tools':
             return 自身._工具
         if 须声明 and 名 not in 自身._已声明:
@@ -582,14 +582,14 @@ class 动态宿主上下文:
         return 受护服务(服务,名,自身._报告失败)
 
     def __getattr__(自身,属性):
-        """tools / 获取服务 / 白名单动词 / 已声明服务。"""
+        'tools / 获取服务 / 白名单动词 / 已声明服务'
         if 属性=='tools':
             return 自身._工具
         if 属性=='获取服务':
             return 自身.获取服务
         if 属性 in 上下文动词:
             def 转发(*位置参数):
-                """惰性转发白名单动词。"""
+                '惰性转发白名单动词'
                 if 属性 in 定时器动词 and 'timer' not in 自身._已声明:
                     return 自身._拒绝读取('timer')
                 方法=getattr(自身._真实,属性)
@@ -598,11 +598,11 @@ class 动态宿主上下文:
         return 自身._读服务(属性,True)
 
     def __setattr__(自身,属性,值):
-        """只读。"""
+        '只读'
         拒绝门面(自身._报告失败,f'沙箱 ctx 只读，不能赋值 "{属性}"')
 
     def __contains__(自身,属性):
-        """可见性：座位、动词（定时器须已声明 timer）、已声明服务。"""
+        '可见性：座位、动词（定时器须已声明 timer）、已声明服务'
         if 属性=='tools' or 属性=='获取服务':
             return True
         if not isinstance(属性,str):
@@ -614,11 +614,11 @@ class 动态宿主上下文:
         return 属性 in 自身._已声明
 
 def 沙箱上下文(上下文,报告失败):
-    """构造运行中宿主半的门面。"""
+    '构造运行中宿主半的门面'
     return 动态宿主上下文(上下文,报告失败)
 
 def 是否插件(值):
-    """函数，或带 apply 的对象。"""
+    '函数，或带 apply 的对象'
     if callable(值):
         return True
     if isinstance(值,dict):
@@ -626,15 +626,15 @@ def 是否插件(值):
     return 值 is not None and callable(getattr(值,'apply',None))
 
 def 受护插件(插件,报告失败):
-    """apply 收到沙箱上下文，并尽量保留 inject。"""
+    'apply 收到沙箱上下文，并尽量保留 inject'
     if callable(插件) and not isinstance(插件,dict):
         def 应用(上下文,配置=None):
-            """函数插件走门面。"""
+            '函数插件走门面'
             return 插件(沙箱上下文(上下文,报告失败),配置)
         return {'name':插件显示名(插件),'apply':应用}
     入口=插件['apply'] if isinstance(插件,dict) else 插件.apply
     def 应用(上下文,配置=None):
-        """对象插件走门面。"""
+        '对象插件走门面'
         return 入口(沙箱上下文(上下文,报告失败),配置)
     if isinstance(插件,dict):
         出=dict(插件)
@@ -647,7 +647,7 @@ def 受护插件(插件,报告失败):
     return 出
 
 def 插件显示名(插件):
-    """运行结果与巡检用的显示名。"""
+    '运行结果与巡检用的显示名'
     if isinstance(插件,dict):
         名=插件.get('name')
     else:

@@ -122,13 +122,13 @@ __all__=[#仅中文公开名
 图标表.update(表丁)#并入丁
 
 def 规范化路径(项):#path 项 → 字典
-    """字符串变仅 d；字典原样透传（transform/stroke/opacity/mask/fillRule）。"""
+    '字符串变仅 d；字典原样透传（transform/stroke/opacity/mask/fillRule）'
     if isinstance(项,str):#纯 d
         return {'d':项}#仅 d
     return 项#原样
 
 def 图标(名,属性=None,默认尺寸=None):#按名产出视图
-    """未知名返回 None。透传 clipPath/mask/rects/widthFactor。"""
+    '未知名返回 None。透传 clipPath/mask/rects/widthFactor'
     if 名 not in 图标表:#无
         return None#无
     描=图标表[名]#描述
@@ -152,281 +152,281 @@ def 图标(名,属性=None,默认尺寸=None):#按名产出视图
     }#结束
 
 def 图标下chevron14(属性=None):#下chevron
-    """披露前导。"""
+    '披露前导'
     return 图标('chevron-down-14',属性)#14
 
 def 图标勾16(属性=None):#勾
-    """复制成功。"""
+    '复制成功'
     return 图标('check-16',属性)#16
 
 def 图标勾14(属性=None):#勾14
-    """小号勾。"""
+    '小号勾'
     return 图标('check-14',属性)#14
 
 def 图标复制16(属性=None):#复制
-    """复制闲。"""
+    '复制闲'
     return 图标('copy-16',属性)#16
 
 def 图标警告16(属性=None):#警告
-    """风险确认。"""
+    '风险确认'
     return 图标('warning-16',属性)#14 视口
 
 def 图标地球14(属性=None):#地球
-    """web_search。"""
+    'web_search'
     return 图标('globe-14',属性)#14
 
 def 图标新聊16(属性=None):#新聊
-    """新会话。"""
+    '新会话'
     return 图标('new-chat-16',属性)#16
 
 def 图标检索16(属性=None):#检索
-    """搜索。"""
+    '搜索'
     return 图标('search-16',属性)#16
 
 def 图标清单14(属性=None):#清单
-    """待办行。"""
+    '待办行'
     return 图标('checklist-14',属性)#14
 
 def 图标浏览16(属性=None):#浏览/读
-    """read / web_fetch。"""
+    'read / web_fetch'
     return 图标('browse-16',属性)#16
 
 def 图标编辑16(属性=None):#编辑
-    """edit / write。"""
+    'edit / write'
     return 图标('edit-16',属性)#16
 
 def 图标代码16(属性=None):#代码
-    """run_code。"""
+    'run_code'
     return 图标('code-16',属性)#16
 
 def 图标接口14(属性=None):#API/终端
-    """bash 行。"""
+    'bash 行'
     return 图标('api-14',属性)#14
 
 def 图标星闪16(属性=None):#星闪
-    """others 变体。"""
+    'others 变体'
     return 图标('sparkle-16',属性)#16
 
 def 图标检视12(属性=None):#检视
-    """轨迹 Inspect。"""
+    '轨迹 Inspect'
     return 图标('inspect-12',属性,12)#12
 
 def 图标提问14(属性=None):#提问
-    """ask_user_question。"""
+    'ask_user_question'
     return 图标('question-14',属性)#14
 
 def 图标设置14(属性=None):#设置14
-    """设置小号。"""
+    '设置小号'
     return 图标('settings-14',属性)#14
 
 def 图标设置16(属性=None):#设置16
-    """设置。"""
+    '设置'
     return 图标('settings-16',属性)#16
 
 def 图标左栏16(属性=None):#左栏
-    """侧栏折叠。"""
+    '侧栏折叠'
     return 图标('panel-left-16',属性)#16
 
 def 图标省略16(属性=None):#省略
-    """更多菜单。"""
+    '更多菜单'
     return 图标('ellipsis-16',属性)#16
 
 def 图标加号16(属性=None):#加号
-    """新增。"""
+    '新增'
     return 图标('plus-16',属性)#16
 
 def 图标分支16(属性=None):#分支
-    """git 分支。"""
+    'git 分支'
     return 图标('branch-16',属性)#16
 
 def 图标左chevron14(属性=None):#左chevron
-    """向左。"""
+    '向左'
     return 图标('chevron-left-14',属性)#14
 
 def 图标右chevron14(属性=None):#右chevron
-    """向右。"""
+    '向右'
     return 图标('chevron-right-14',属性)#14
 
 def 图标右三角14(属性=None):#右三角
-    """树展开箭头。"""
+    '树展开箭头'
     return 图标('triangle-right-14',属性)#14
 
 def 图标上chevron14(属性=None):#上chevron
-    """向上。"""
+    '向上'
     return 图标('chevron-up-14',属性)#14
 
 def 图标关闭16(属性=None):#关闭
-    """关闭。"""
+    '关闭'
     return 图标('close-16',属性)#16
 
 def 图标关闭填14(属性=None):#关闭填
-    """关闭填色。"""
+    '关闭填色'
     return 图标('close-fill-14',属性)#14
 
 def 图标刷新16(属性=None):#刷新16
-    """刷新。"""
+    '刷新'
     return 图标('refresh-16',属性)#16
 
 def 图标刷新14(属性=None):#刷新14
-    """刷新小号。"""
+    '刷新小号'
     return 图标('refresh-14',属性)#14
 
 def 图标赞16(属性=None):#赞
-    """点赞线框。"""
+    '点赞线框'
     return 图标('like-16',属性)#16
 
 def 图标赞填16(属性=None):#赞填
-    """点赞填色。"""
+    '点赞填色'
     return 图标('like-fill-16',属性)#16
 
 def 图标踩16(属性=None):#踩
-    """点踩线框。"""
+    '点踩线框'
     return 图标('dislike-16',属性)#16
 
 def 图标踩填16(属性=None):#踩填
-    """点踩填色。"""
+    '点踩填色'
     return 图标('dislike-fill-16',属性)#16
 
 def 图标分享16(属性=None):#分享
-    """分享。"""
+    '分享'
     return 图标('share-16',属性)#16
 
 def 图标思考14(属性=None):#思考14
-    """推理小号。"""
+    '推理小号'
     return 图标('think-14',属性)#14
 
 def 图标思考16(属性=None):#思考16
-    """推理。"""
+    '推理'
     return 图标('think-16',属性)#16
 
 def 图标智能体预设16(属性=None):#智能体预设
-    """agent preset。"""
+    'agent preset'
     return 图标('agent-preset-16',属性)#16
 
 def 图标链接14(属性=None):#链接14
-    """链接小号。"""
+    '链接小号'
     return 图标('link-14',属性)#14
 
 def 图标链接16(属性=None):#链接16
-    """链接。"""
+    '链接'
     return 图标('link-16',属性)#16
 
 def 图标右上14(属性=None):#右上14
-    """外链小号。"""
+    '外链小号'
     return 图标('right-up-14',属性)#8 默认
 
 def 图标右上16(属性=None):#右上16
-    """外链。"""
+    '外链'
     return 图标('right-up-16',属性)#16
 
 def 图标增强16(属性=None):#增强
-    """增强提示。"""
+    '增强提示'
     return 图标('enhance-16',属性)#16
 
 def 图标垃圾桶16(属性=None):#垃圾桶
-    """删除。"""
+    '删除'
     return 图标('trash-16',属性)#16
 
 def 图标用户16(属性=None):#用户
-    """用户。"""
+    '用户'
     return 图标('user-16',属性)#16
 
 def 图标发送16(属性=None):#发送16
-    """发送。"""
+    '发送'
     return 图标('send-16',属性)#16
 
 def 图标发送14(属性=None):#发送14
-    """发送小号。"""
+    '发送小号'
     return 图标('send-14',属性)#14
 
 def 图标停止16(属性=None):#停止
-    """停止。"""
+    '停止'
     return 图标('stop-16',属性)#16
 
 def 图标回形针16(属性=None):#回形针
-    """附件。"""
+    '附件'
     return 图标('paperclip-16',属性)#16
 
 def 图标加载16(属性=None):#加载
-    """加载中。"""
+    '加载中'
     return 图标('loading-16',属性)#16
 
 def 图标下载16(属性=None):#下载
-    """下载。"""
+    '下载'
     return 图标('download-16',属性)#16
 
 def 图标播放16(属性=None):#播放
-    """播放。"""
+    '播放'
     return 图标('play-16',属性)#16
 
 def 图标暂停16(属性=None):#暂停
-    """暂停。"""
+    '暂停'
     return 图标('pause-16',属性)#16
 
 def 图标全屏16(属性=None):#全屏
-    """全屏。"""
+    '全屏'
     return 图标('fullscreen-16',属性)#16
 
 def 图标Cordis插件14(属性=None):#Cordis 插件
-    """cordis 插件。"""
+    'cordis 插件'
     return 图标('cordis-plugin-14',属性)#14
 
 def 图标个性化16(属性=None):#个性化
-    """个性化。"""
+    '个性化'
     return 图标('personalization-16',属性)#16
 
 def 图标项目加16(属性=None):#项目加
-    """新建项目。"""
+    '新建项目'
     return 图标('project-add-16',属性)#16
 
 def 图标开文件夹线16(属性=None):#开文件夹线
-    """开文件夹仅线。"""
+    '开文件夹仅线'
     return 图标('folder-open-outline-16',属性)#16
 
 def 图标开文件夹16(属性=None):#开文件夹
-    """开文件夹双色。"""
+    '开文件夹双色'
     return 图标('folder-open-16',属性)#16
 
 def 图标关文件夹16(属性=None):#关文件夹
-    """关文件夹。"""
+    '关文件夹'
     return 图标('folder-close-16',属性)#16
 
 def 图标树拐角8x10(属性=None):#树拐角
-    """会话树 L 连接。"""
+    '会话树 L 连接'
     return 图标('tree-corner-8x10',属性)#10
 
 def 图标浅色16(属性=None):#浅色
-    """浅色主题。"""
+    '浅色主题'
     return 图标('light-16',属性)#16
 
 def 图标深色16(属性=None):#深色
-    """深色主题。"""
+    '深色主题'
     return 图标('dark-16',属性)#16
 
 def 图标跟随系统16(属性=None):#跟随系统
-    """跟随系统主题。"""
+    '跟随系统主题'
     return 图标('followsystem-16',属性)#16
 
 def 图标数据16(属性=None):#数据
-    """数据。"""
+    '数据'
     return 图标('data-16',属性)#16
 
 def 图标队列14(属性=None):#队列
-    """steer 队列。"""
+    'steer 队列'
     return 图标('queue-14',属性)#14
 
 def 图标列表笔16(属性=None):#列表笔
-    """列表笔。"""
+    '列表笔'
     return 图标('list-pen-16',属性)#16
 
 def 图标目标16(属性=None):#目标
-    """goal。"""
+    'goal'
     return 图标('goal-16',属性)#16
 
 def 图标技能16(属性=None):#技能
-    """skill。"""
+    'skill'
     return 图标('skill-16',属性)#16
 
 def 图标归档20(属性=None):#归档
-    """归档。"""
+    '归档'
     return 图标('archive-20',属性)#20

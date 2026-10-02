@@ -1,4 +1,4 @@
-"""Client 与 Desktop main 共享的物理键与版本化偏好协议。"""
+'Client 与 Desktop main 共享的物理键与版本化偏好协议'
 from .绑定 import (#绑定协议
     键名表,
     修饰键序,

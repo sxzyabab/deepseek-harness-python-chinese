@@ -1,4 +1,4 @@
-"""启发式上下文构成投影的纯折叠。公开面仅中文名。"""
+'启发式上下文构成投影的纯折叠'
 from ...内核.会话 import 归一请求头,是否表面事件#规范请求头与表面判定
 from .类型 import 计量错误#计量异常
 from .计价 import 计价工具令牌#工具计价
@@ -7,10 +7,10 @@ from .表面折叠 import 计划表面令牌,提交表面令牌#计划/提交
 __all__=['分解投影定义']#仅中文公开名
 
 class 分解视图模式:
-    """上下文分解线路载荷模式。"""
+    '上下文分解线路载荷模式'
     @staticmethod
     def parse(值):
-        """校验三个非负整数。值必须是 dict。"""
+        '校验三个非负整数。值必须是 dict'
         if not isinstance(值,dict):#必须是对象
             raise 计量错误('contextBreakdown view must be an object')#拒绝
         需要=('systemTokens','toolsTokens','messageTokens')#三个数字
@@ -28,11 +28,11 @@ class 分解视图模式:
         return 结果#校验后的视图
 
 def 分解初态():
-    """初始空节点与零合计。"""
+    '初始空节点与零合计'
     return {'nodes':[],'breakdown':{'systemTokens':0,'toolsTokens':0,'messageTokens':0}}#初态
 
 def 分解转移(状态,事件):
-    """折一条分解事件。事件为 dict。"""
+    '折一条分解事件。事件为 dict'
     if 事件['type']=='request/header':#新请求头
         工具=计价工具令牌(归一请求头(事件['data']['header']))#仅工具
         if 工具==状态['breakdown']['toolsTokens']:#未变
@@ -64,7 +64,7 @@ def 分解转移(状态,事件):
     return {'nodes':节点列表,'breakdown':分解}#新状态
 
 def 分解视图(状态):
-    """只暴露分解合计。"""
+    '只暴露分解合计'
     return dict(状态['breakdown'])#对外三数
 
 分解投影定义={

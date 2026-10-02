@@ -1,7 +1,7 @@
 __all__=['应用索引注入']#仅中文公开名
 
 def 应用索引注入(行表,加载脚本):
-    """按表顺序执行索引注入行；loadScript 负责 script-src。"""
+    '按表顺序执行索引注入行；loadScript 负责 script-src'
     文档=globals().get('document')#DOM
     for 行 in 行表:#逐行
         种=行['kind']#种类

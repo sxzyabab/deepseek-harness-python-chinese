@@ -1,9 +1,4 @@
-"""`file` 协议提供方：工作区文件元数据作为 `RemoteResult` 帧流。
-
-`session/...` 把绝对或相对路径原样交给宿主；`absolute/...` 无 Session 则失败。
-首帧为 `stat`；宿主写入更新版本；消失或失败后的写入会再 `stat`。
-失败以 `ok: false` 帧表达，不抛；编程异常不捕获。
-"""
+'`file` 协议提供方：工作区文件元数据作为 `RemoteResult` 帧流'
 import re#盘符段
 from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
 from ..类型 import 远程错误,已中止#远程错误与中止
@@ -17,11 +12,11 @@ def 创建文件资源提供方(远程,变更供给):
     """在 Remote 面与变更供给上建造 `file` 提供方。
 
     远程为本包 Remote 面；变更供给为 变更供给。
-    返回供 `ctx.resources.登记` 的提供方 dict。
+    返回供 `ctx.resources.登记` 的提供方 dict
     """
 
     def 打开(地址,上下文):
-        """产出 RemoteResult 帧直至中止或结束。上下文为 dict，含 signal。"""
+        '产出 RemoteResult 帧直至中止或结束。上下文为 dict，含 signal'
         信号=上下文['signal']#中止
         解析结果=_解析地址(地址)#解析
         if not 解析结果['ok']:
@@ -75,7 +70,7 @@ def 创建文件资源提供方(远程,变更供给):
 
 
 def _解析地址(地址):
-    """解析地址为宿主调用，或 unsupported-address / unknown-workspace 失败帧。"""
+    '解析地址为宿主调用，或 unsupported-address / unknown-workspace 失败帧'
     解析=_解析文件地址(地址)#语法
     if 解析 is None:#非本语法
         return {'ok':False,'error':_不支持地址(地址)}
@@ -85,7 +80,7 @@ def _解析地址(地址):
 
 
 def _不支持地址(地址):
-    """本提供方不服务的地址。"""
+    '本提供方不服务的地址'
     return 远程错误(
         'workspace-file/unsupported-address',
         地址+' is not a dsh-resource://file/session/<sessionId>/<path> or dsh-resource://file/absolute/<path> address',
@@ -94,7 +89,7 @@ def _不支持地址(地址):
 
 
 def _未知工作区(地址):
-    """绝对地址无 Session。"""
+    '绝对地址无 Session'
     return 远程错误(
         'workspace-file/unknown-workspace',
         地址+' requires a dsh-resource://file/session/<sessionId>/<path> address',
@@ -103,10 +98,7 @@ def _未知工作区(地址):
 
 
 def _解析文件地址(地址):
-    """读回 `dsh-resource://file/…` 地址；非法则 None。
-
-    语法归属 util/workspace-path；本包内嵌解析以免扩大移植面。
-    """
+    '读回 `dsh-resource://file/…` 地址；非法则 None'
     try:
         网址=解析网址(地址)
         if 网址.scheme!='dsh-resource' or 网址.netloc!='file':#非本方案

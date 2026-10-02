@@ -5,11 +5,11 @@ from ..约定.回合指标 import 助手步骤读数#步骤读数
 __all__=['派生统计','格式化时长','缓存命中百分','计费输入令牌','统计行']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 def 派生统计(节点列表):
-    """无 sessionStats 投影时用。"""
+    '无 sessionStats 投影时用'
     回合集=set()#回合
     步数=0#步
     模型毫秒=0#LLM
@@ -45,7 +45,7 @@ def 派生统计(节点列表):
     return {'turns':len(回合集),'steps':步数,'llmMs':模型毫秒,'toolMs':工具毫秒,'ttftMs':首令牌毫秒,'ttftSteps':首令牌步,'decodeMs':解码毫秒,'decodeTokens':解码令牌}#统计
 
 def 格式化时长(毫秒,翻译):
-    """45.2s / 2m42s。"""
+    '45.2s / 2m42s'
     秒=毫秒/1000#秒
     if 秒<60:#亚分
         return 翻译('duration.compactSeconds',{'seconds':round(秒*10)/10})#秒
@@ -53,36 +53,36 @@ def 格式化时长(毫秒,翻译):
     return 翻译('duration.compactMinutes',{'minutes':整//60,'seconds':整%60})#分秒
 
 def 计费输入令牌(用量):
-    """uncached+cacheRead+cacheWrite。用量为 dict。"""
+    'uncached+cacheRead+cacheWrite。用量为 dict'
     未=用量['uncachedInputTokens'] if 'uncachedInputTokens' in 用量 and 用量['uncachedInputTokens'] is not None else 0#未缓存
     读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 and 用量['cacheReadTokens'] is not None else 0#读
     写=用量['cacheWriteTokens'] if 'cacheWriteTokens' in 用量 and 用量['cacheWriteTokens'] is not None else 0#写
     return 未+读+写#和
 
 def 缓存命中百分(用量):
-    """委托格式化；无计费输入则 None。"""
+    '委托格式化；无计费输入则 None'
     读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 and 用量['cacheReadTokens'] is not None else 0#读
     return 格式化缓存命中百分比(读,计费输入令牌(用量))#百分
 
 def 取遗留节点(快照):
-    """legacy.nodes。快照为 dict。"""
+    'legacy.nodes。快照为 dict'
     遗留=快照['legacy'] if 'legacy' in 快照 else None#遗留
     if 遗留 is None or 'nodes' not in 遗留 or 遗留['nodes'] is None:#无
         return []#空
     return 遗留['nodes']#节点
 
 class 统计行:
-    """投影优先，窗口折叠回退。"""
+    '投影优先，窗口折叠回退'
     def __init__(自身,属性=None):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """无组返回 None。"""
+        '无组返回 None'
         属性=自身.属性#props
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         用聊天=属性['useChat'] if 'useChat' in 属性 else None#快照钩
@@ -128,7 +128,7 @@ class 统计行:
         return {'type':'stats-line','groups':组列表,'line':' | '.join(组列表),'cssModule':'统计行.module.css'}#行
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

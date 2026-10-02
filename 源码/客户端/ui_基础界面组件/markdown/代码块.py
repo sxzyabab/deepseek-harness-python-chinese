@@ -3,19 +3,19 @@ from ..复制反馈 import 复制反馈#复制反馈
 __all__=['代码块']#仅中文公开名
 
 class 代码块:#代码面
-    """尾换行仅作终止符；复制写 trimmed。"""
+    '尾换行仅作终止符；复制写 trimmed'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.反馈=复制反馈()#复制
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        """banner+plain/highlighted 材料。"""
+        'banner+plain/highlighted 材料'
         属性=自身.属性#props
         代码=属性['code'] if 'code' in 属性 and 属性['code'] is not None else ''#源
         修剪=代码[:-1] if 代码.endswith('\n') else 代码#剥终止
@@ -35,7 +35,7 @@ class 代码块:#代码面
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

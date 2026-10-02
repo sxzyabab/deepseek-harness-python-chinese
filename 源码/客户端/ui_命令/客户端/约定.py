@@ -6,7 +6,7 @@ __all__=[#仅中文公开名
 ]
 
 class 命令错误(Exception):
-    """ui-commands 包异常基类。消息原样英文。"""
+    'ui-commands 包异常基类。消息原样英文'
 
 #选定确认：title / description / acknowledgeLabel / cancelLabel / confirmLabel
 选定确认=dict#选定前确认文案形

@@ -1,4 +1,4 @@
-"""工作区域声明：记录形态与域规格。"""
+'工作区域声明：记录形态与域规格'
 from ...存储.存储域 import 定义域,域表
 __all__=[
     '工作区记录字段','工作区域状态字段','工作区记录','工作区域状态','工作区域规格',
@@ -7,7 +7,7 @@ __all__=[
 工作区记录字段=('path','title','sessionIds','createdAt','updatedAt')
 
 def _校验工作区记录(记录):
-    """校验持久边界上的工作区记录形态。"""
+    '校验持久边界上的工作区记录形态'
     if not isinstance(记录,dict):
         raise TypeError('workspace record must be a dict')
     for 键 in 工作区记录字段:
@@ -22,7 +22,7 @@ def _校验工作区记录(记录):
 工作区域状态字段=('initialized','workspaceIds','archivedSessionIds')
 
 def _校验工作区域状态(状态):
-    """校验工作区域全局状态。"""
+    '校验工作区域全局状态'
     if not isinstance(状态,dict):
         raise TypeError('workspace domain state must be a dict')
     if 'initialized' not in 状态 or 'workspaceIds' not in 状态:

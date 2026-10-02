@@ -20,27 +20,27 @@ __all__=[#仅中文公开名
 依赖=['slots','locale','sidebarRightTabs']#槽、文案、右侧标签
 
 def 应用(上下文):
-    """登记浏览器类型、词典、正文与芯片标题。"""
+    '登记浏览器类型、词典、正文与芯片标题'
     翻译=上下文.locale.bind(命名空间)#绑定词表
     存储=创建浏览器存储()#每会话独占
 
     def 登记词典():
-        """挂载中英文案。"""
+        '挂载中英文案'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
 
     上下文.副作用(登记词典,'ui-sidebar-browser.copy')#词典寿命
 
     def 登记类型():
-        """把 browser 类型挂进右侧侧栏注册表。"""
+        '把 browser 类型挂进右侧侧栏注册表'
         return 上下文.sidebarRightTabs.register(浏览器定义(翻译))#登记
 
     上下文.副作用(登记类型,'ui-sidebar-browser.type')#类型寿命
 
     def 挂正文():
-        """正文进带键席位。"""
+        '正文进带键席位'
 
         def 登记正文():
-            """登记 browser 正文。"""
+            '登记 browser 正文'
             return 上下文.slots.register({#席位
                 'name':'sidebar.right.pane.tab',#席名
                 'key':浏览器标识,#实现键
@@ -54,10 +54,10 @@ def 应用(上下文):
     上下文.副作用(挂正文,'ui-sidebar-browser.body')#正文寿命
 
     def 挂标题():
-        """芯片标题进带键席位。"""
+        '芯片标题进带键席位'
 
         def 登记标题():
-            """登记 browser 标题。"""
+            '登记 browser 标题'
             return 上下文.slots.register({#席位
                 'name':'sidebar.right.pane.tab.title',#席名
                 'key':浏览器标识,#实现键

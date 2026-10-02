@@ -46,52 +46,52 @@ __all__=[
 
 #工具
 class 文本编码器:
-    """沙箱内的 UTF-8 编码器，对应 TextEncoder。"""
+    '沙箱内的 UTF-8 编码器，对应 TextEncoder'
     def encode(自身,文本):
-        """编码为字节。"""
+        '编码为字节'
         if not isinstance(文本,str):
             文本=str(文本)
         return 文本.encode('utf-8')
 
 class 文本解码器:
-    """沙箱内的 UTF-8 解码器，对应 TextDecoder。"""
+    '沙箱内的 UTF-8 解码器，对应 TextDecoder'
     def decode(自身,数据):
-        """解码为字符串。"""
+        '解码为字符串'
         if isinstance(数据,memoryview):
             数据=bytes(数据)
         return bytes(数据).decode('utf-8')
 
 def 编码base64(文本):
-    """utf-8 文本转 base64。"""
+    'utf-8 文本转 base64'
     return base64.b64encode(文本.encode('utf-8')).decode('ascii')
 
 def 解码base64(文本):
-    """base64 转 utf-8 文本。"""
+    'base64 转 utf-8 文本'
     return base64.b64decode(文本).decode('utf-8')
 
 def 标记控制台(标识):
-    """带包 id 标签的直通控制台。"""
+    '带包 id 标签的直通控制台'
     前缀=f'[cordis:{标识}]'
     def 写(*参数):
-        """写到标准输出。"""
+        '写到标准输出'
         print(前缀,*参数)
     def 写错(*参数):
-        """写到标准错误。"""
+        '写到标准错误'
         print(前缀,*参数,file=sys.stderr)
     return {'log':写,'info':写,'warn':写,'debug':写,'error':写错}
 
 def 节点接口陷阱():
-    """调用即抛出重定向教学。"""
+    '调用即抛出重定向教学'
     陷阱={}
     for 名,重定向 in 节点接口重定向.items():
         def 拦截(_名=名,_文=重定向):
-            """永不返回。"""
+            '永不返回'
             raise 宿主运行器错误(f'动态包沙箱里没有 {_名} —— {_文}')
         陷阱[名]=拦截
     return 陷阱
 
 def 包装宿主源(代码):
-    """把宿主半源码收成可 exec 的函数体，对应 async 包装。"""
+    '把宿主半源码收成可 exec 的函数体，对应 async 包装'
     行=['def __宿主半():']
     if 代码=='':
         行.append('    pass')
@@ -103,7 +103,7 @@ def 包装宿主源(代码):
 
 #
 def 语法错误上下文(错误):
-    """语法失败时带出问题行与插入符。"""
+    '语法失败时带出问题行与插入符'
     if not isinstance(错误,SyntaxError):
         return str(错误)
     段=[]
@@ -115,7 +115,7 @@ def 语法错误上下文(错误):
     return '\n'.join(段)
 
 def 解析失败消息(半,上下文):
-    """define 预检与运行时求值共用的教学文本。"""
+    'define 预检与运行时求值共用的教学文本'
     行=上下文.split('\n')
     问题行=行[0] if len(行)>0 else ''
     if 标注词.search(问题行) is not None:
@@ -133,7 +133,7 @@ def 解析失败消息(半,上下文):
     )
 
 def 预检代码(代码,半):
-    """只编译不运行，把无法解析的源码挡在登记之外。"""
+    '只编译不运行，把无法解析的源码挡在登记之外'
     包装=包装宿主源(代码)
     try:
         compile(包装,f'cordis-dyn-{半}.py','exec')
@@ -141,7 +141,7 @@ def 预检代码(代码,半):
         raise 宿主运行器错误(解析失败消息(半,语法错误上下文(错误)))
 
 def 创建沙箱(标识,额外=None):
-    """一份宿主半求值用的干净全局。"""
+    '一份宿主半求值用的干净全局'
     if 额外 is None:
         额外={}
     沙箱={
@@ -158,7 +158,7 @@ def 创建沙箱(标识,额外=None):
     return 沙箱
 
 def 求值宿主代码(沙箱,代码,标识,超时毫秒):
-    """在沙箱里把宿主半当函数体求值；超时只约束同步部分。"""
+    '在沙箱里把宿主半当函数体求值；超时只约束同步部分'
     包装=包装宿主源(代码)
     文件名=f'cordis-dyn-{标识}.py'
     try:
@@ -167,7 +167,7 @@ def 求值宿主代码(沙箱,代码,标识,超时毫秒):
         raise 宿主运行器错误(解析失败消息('code.host',语法错误上下文(错误)))
     盒={'结果':None,'错误':None}
     def 跑():
-        """在独立线程里 exec。"""
+        '在独立线程里 exec'
         try:
             exec(已编译,沙箱)
             盒['结果']=沙箱.get('__结果')

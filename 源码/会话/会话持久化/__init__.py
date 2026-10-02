@@ -65,72 +65,72 @@ __all__=[
 ]#公开面结束
 
 class 会话持久化(服务):#会话持久化服务
-    """经每会话句柄寻址的耐久仅追加会话存储。"""
+    '经每会话句柄寻址的耐久仅追加会话存储'
     def __init__(自身,上下文):
-        """以 sessionPersistence 名安装服务；抽象类不可直接实例化。"""
+        '以 sessionPersistence 名安装服务；抽象类不可直接实例化'
         if type(自身) is 会话持久化:#直接实例化抽象类
             raise 持久化错误('@deepseek-ai/dsh-session-persistence 是抽象持久化服务；请改加载后端实现')#必须加载实现
         自身.identity=object()#进程内实例身份，代理共享、替换后不同
         super().__init__(上下文,'sessionPersistence')#服务名
 
     def 创建(自身,头,选项=None):#创建并取写句柄
-        """创建新的已存会话并取得其写所有权。"""
+        '创建新的已存会话并取得其写所有权'
         raise NotImplementedError('SessionPersistence.create')#子类必须实现
 
     def 打开(自身,标识,访问,选项=None):#打开句柄
-        """打开已有已存会话；`write` 原子声明单写者所有权。"""
+        '打开已有已存会话；`write` 原子声明单写者所有权'
         raise NotImplementedError('SessionPersistence.open')#子类必须实现
 
     def 刷盘全部(自身):#服务范围刷盘
-        """在一次耐久屏障中刷本服务实例拥有的每个活写句柄。"""
+        '在一次耐久屏障中刷本服务实例拥有的每个活写句柄'
         raise NotImplementedError('SessionPersistence.flush')#子类必须实现
 
     def 观察(自身,标识,选项=None):#轻量观察
-        """在不读事件日志、不取所有权的情况下观察一个已存会话。"""
+        '在不读事件日志、不取所有权的情况下观察一个已存会话'
         raise NotImplementedError('SessionPersistence.stat')#子类必须实现
 
     def 列出(自身,选项=None):#列举快照
-        """列举本进程可见的每个已存会话，无承诺顺序。"""
+        '列举本进程可见的每个已存会话，无承诺顺序'
         raise NotImplementedError('SessionPersistence.list')#子类必须实现
 
     # —— 以下为旧协调器面的降级兼容；新恢复路径走 打开/读，不再经 seedSource 预备 —— #
 
     def 定位(自身,头):#定位产物
-        """解析此后端为一个会话的独立本地产物。"""
+        '解析此后端为一个会话的独立本地产物'
         raise NotImplementedError('SessionPersistence.locate')#子类必须实现
 
     @property#是否支持原样子产物
     def 支持原样子产物(自身):#是否支持原样子产物
-        """此后端是否每会话暴露一份原样子产物。"""
+        '此后端是否每会话暴露一份原样子产物'
         raise NotImplementedError('SessionPersistence.supportsRawArtifacts')#子类必须实现
 
     def 读原始(自身,标识,信号=None):#默认拒绝原样子产物
-        """原样读取一个会话的后端拥有产物文本。"""
+        '原样读取一个会话的后端拥有产物文本'
         若已中止则抛出(信号)#已取消则失败
         raise 持久化错误('此后端不暴露原样子产物')#不支持原样子产物
 
     def 追加(自身,标识,事件列表):#耐久追加（旧面）
-        """耐久持久化一批事件（旧协调器面；优先经写句柄追加）。"""
+        '耐久持久化一批事件（旧协调器面；优先经写句柄追加）'
         raise NotImplementedError('SessionPersistence.append')#子类必须实现
 
     def 预备(自身,标识,信号=None):#降级：旧预备契约
-        """降级保留：旧调用方仍可预备未发布 Session；内部改为 eventState 移交，不再使用 seedSource。"""
+        '降级保留：旧调用方仍可预备未发布 Session；内部改为 eventState 移交，不再使用 seedSource'
         raise NotImplementedError('SessionPersistence.prepare')#子类必须实现
 
     def 加载(自身,标识):#加载并提交恢复
-        """加载不可变的已平衡逻辑视图，并提交任何所需的冷恢复。"""
+        '加载不可变的已平衡逻辑视图，并提交任何所需的冷恢复'
         raise NotImplementedError('SessionPersistence.load')#子类必须实现
 
     def 检查(自身,标识,信号=None):#检查不提交恢复
-        """检查不可变逻辑会话，不提交恢复也不发布它。"""
+        '检查不可变逻辑会话，不提交恢复也不发布它'
         raise NotImplementedError('SessionPersistence.inspect')#子类必须实现
 
     def 从序号读(自身,标识,起始序号,信号=None):#按seq读后缀
-        """读取从起始序号起的已存储事件。"""
+        '读取从起始序号起的已存储事件'
         raise NotImplementedError('SessionPersistence.readFrom')#子类必须实现
 
     def 列出快照(自身,信号=None):#列出带头修订的快照
-        """列出已物化会话及其廉价的每日志变更令牌。"""
+        '列出已物化会话及其廉价的每日志变更令牌'
         raise NotImplementedError('SessionPersistence.listSnapshots')#子类必须实现
 
 默认=会话持久化

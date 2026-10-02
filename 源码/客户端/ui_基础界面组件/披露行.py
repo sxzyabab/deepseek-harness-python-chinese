@@ -1,18 +1,18 @@
 __all__=['披露行']#仅中文公开名
 
 class 披露行:#披露头+受控展开体
-    """结构化视图；宿主渲染真实 DOM。"""
+    '结构化视图；宿主渲染真实 DOM'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        """产出披露行视图。"""
+        '产出披露行视图'
         属性=自身.属性#props
         可展=属性['expandable'] is True if 'expandable' in 属性 else False#可展
         打开=属性['open'] is True if 'open' in 属性 else False#开
@@ -43,7 +43,7 @@ class 披露行:#披露头+受控展开体
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

@@ -1,4 +1,4 @@
-"""把 HTTP 与带内 Messages 错误归一成提供方中立失败。"""
+'把 HTTP 与带内 Messages 错误归一成提供方中立失败'
 import math,re,time
 from ..llm import 大模型错误,是否上下文窗口超出错误,是否配额超出错误
 from ..llm.标识构造 import 提供方请求标识
@@ -8,7 +8,7 @@ __all__=['提供方错误详情','提供方错误']
 数字延迟=re.compile(r'^\d+(?:\.\d+)?$',re.ASCII)
 
 def 提供方错误详情(原始):
-    """只读 Files 有界恢复用到的提供方错误字段。"""
+    '只读 Files 有界恢复用到的提供方错误字段'
     错误=原始['error'] if isinstance(原始,dict) and 'error' in 原始 else None
     if not isinstance(错误,dict):
         return ''
@@ -20,7 +20,7 @@ def 提供方错误详情(原始):
     return ' '.join(段)
 
 def 取头(头,名):
-    """大小写不敏感取头。"""
+    '大小写不敏感取头'
     if 头 is None:
         return None
     if hasattr(头,'get'):
@@ -33,7 +33,7 @@ def 取头(头,名):
     return None
 
 def 提供方错误(原始,状态,头=None):
-    """分类提供方错误，不信任任意响应字段。"""
+    '分类提供方错误，不信任任意响应字段'
     信封=原始 if isinstance(原始,dict) else {}
     错误=信封['error'] if isinstance(信封.get('error'),dict) else {}
     消息=错误['message'] if isinstance(错误.get('message'),str) else 'DeepSeek Messages request failed ('+(str(状态) if 状态 is not None else 'stream error')+')'

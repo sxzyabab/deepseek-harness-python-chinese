@@ -3,7 +3,7 @@ __all__=['停靠标签']#仅中文公开名
 
 
 def 停靠标签(翻译):
-    """把命名空间绑定翻译投影为停靠套件文案 dict。"""
+    '把命名空间绑定翻译投影为停靠套件文案 dict'
     return {#套件标签契约（键为线协议英文）
         'emptyPane':翻译('dock.emptyPane'),#空面板
         'splitPane':翻译('dock.splitPane'),#分栏

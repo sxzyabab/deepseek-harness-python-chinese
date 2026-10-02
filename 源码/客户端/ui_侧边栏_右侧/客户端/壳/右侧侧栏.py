@@ -20,7 +20,7 @@ __all__=['右栏席','意图面','样式表','窄视口全屏阈值']#仅中文�
 
 
 def 意图面(会话标识,动作,开标签):
-    """停靠手势 → 存储动作。"""
+    '停靠手势 → 存储动作'
     return {#意图
         'focusTab':lambda 签:动作['focusTab'](会话标识,签),
         'focusPane':lambda 窗:动作['focusPane'](会话标识,窗),
@@ -39,22 +39,22 @@ def 意图面(会话标识,动作,开标签):
 
 
 def _窗向导(布局,窗格标识):
-    """窗内向导。"""
+    '窗内向导'
     return 查找窗格内容标签(布局,窗格标识,页面地址(向导种类),向导种类)#签
 
 
 class 右栏席:#rightbar 席视图模型
-    """物化表面、同步帧呈现、绑定服务面、产出面板结构。"""
+    '物化表面、同步帧呈现、绑定服务面、产出面板结构'
 
     def __init__(自身,属性):
-        """记下 props 与房间读数。"""
+        '记下 props 与房间读数'
         自身.属性=属性 if 属性 is not None else {}#props
         自身.房间={}#paneId → halvesFit
         自身._服务释放=None#绑定释放
         自身._已报呈现=None#上次呈现
 
     def 更新(自身,属性):
-        """刷新 props 并重绑。"""
+        '刷新 props 并重绑'
         自身.属性=属性 if 属性 is not None else {}#最新
         自身._确保表面()#物化
         自身._同步可展示()#空间不足则收
@@ -62,7 +62,7 @@ class 右栏席:#rightbar 席视图模型
         自身._绑定服务()#服务
 
     def 卸载(自身):
-        """还轨道、释绑定。"""
+        '还轨道、释绑定'
         同步=自身.属性['syncPresentation'] if 'syncPresentation' in 自身.属性 else None#同步
         if 同步 is not None:#有
             同步({'shown':False,'track':False,'fullscreen':False})#还
@@ -71,28 +71,28 @@ class 右栏席:#rightbar 席视图模型
             自身._服务释放=None#清
 
     def _读表面表(自身):
-        """bySession。"""
+        'bySession'
         用=自身.属性['useStore']#选择
         return 用(lambda 态:态['bySession'])#表
 
     def _读表面(自身):
-        """本会话表面。"""
+        '本会话表面'
         表=自身._读表面表()#表
         会话=自身.属性['sessionId']#会话
         return 表[会话] if 会话 in 表 else None#表面
 
     def _确保表面(自身):
-        """无表面则 open。"""
+        '无表面则 open'
         if 自身._读表面() is None:#无
             自身.属性['actions']['open'](自身.属性['sessionId'])#物化
 
     def _自动全屏(自身):
-        """视口派生。"""
+        '视口派生'
         宽=自身.属性['viewportWidth'] if 'viewportWidth' in 自身.属性 else 1024#宽
         return 宽<窄视口全屏阈值#窄
 
     def _全屏(自身):
-        """自动或手动全屏。"""
+        '自动或手动全屏'
         表面=自身._读表面()#表面
         if 自身._自动全屏():#窄
             return True#全屏
@@ -101,18 +101,18 @@ class 右栏席:#rightbar 席视图模型
         return 表面['layout']['mode']=='fullscreen'#模式
 
     def _已展示(自身):
-        """面板是否画出。"""
+        '面板是否画出'
         表面=自身._读表面()#表面
         return 表面 is not None and 表面['layout']['expanded'] is True#展
 
     def _同步可展示(自身):
-        """普通呈现且不可展示则收起。"""
+        '普通呈现且不可展示则收起'
         可=自身.属性['canShow'] if 'canShow' in 自身.属性 else True#可
         if 自身._已展示() and not 自身._全屏() and not 可:#收
             自身.属性['actions']['setExpanded'](自身.属性['sessionId'],False)#收
 
     def _同步呈现(自身):
-        """报告帧。"""
+        '报告帧'
         同步=自身.属性['syncPresentation'] if 'syncPresentation' in 自身.属性 else None#同步
         if 同步 is None:#无
             return#止
@@ -126,7 +126,7 @@ class 右栏席:#rightbar 席视图模型
         同步(呈现)#报
 
     def _绑定服务(自身):
-        """发布绑定。"""
+        '发布绑定'
         绑函=自身.属性['bindService'] if 'bindService' in 自身.属性 else None#绑
         if 绑函 is None:#无
             return#止
@@ -135,7 +135,7 @@ class 右栏席:#rightbar 席视图模型
         房间=自身.房间#闭包
 
         def 可分(窗):
-            """房间规则。"""
+            '房间规则'
             读=房间[窗] if 窗 in 房间 else None#读
             if 读 is None:#未测
                 return True#默认可
@@ -149,11 +149,11 @@ class 右栏席:#rightbar 席视图模型
         })#绑定结束
 
     def 报房间(自身,适合表):
-        """停靠套件房间读数。"""
+        '停靠套件房间读数'
         自身.房间=dict(适合表) if 适合表 is not None else {}#写
 
     def 切模式(自身):
-        """全屏⟷推挤；自动全屏下退出则收起。"""
+        '全屏⟷推挤；自动全屏下退出则收起'
         会话=自身.属性['sessionId']#会话
         动作=自身.属性['actions']#动作
         全=自身._全屏()#全
@@ -163,11 +163,11 @@ class 右栏席:#rightbar 席视图模型
         动作['setMode'](会话,次)#模式
 
     def 收起(自身):
-        """切换展开。"""
+        '切换展开'
         自身.属性['actions']['toggleExpanded'](自身.属性['sessionId'])#切
 
     def 调度正文(自身,签):
-        """键控正文席。"""
+        '键控正文席'
         return 自身._调度席(签,'sidebar.right.pane.tab',{#回退
             'type':'p',
             'className':'unavailable',
@@ -176,11 +176,11 @@ class 右栏席:#rightbar 席视图模型
         })#调度
 
     def 调度标题(自身,签):
-        """键控标题席。"""
+        '键控标题席'
         return 自身._调度席(签,'sidebar.right.pane.tab.title',签['title'])#调度
 
     def _调度席(自身,签,席名,回退):
-        """带钩上下文的席调度。"""
+        '带钩上下文的席调度'
         属性=自身.属性#props
         出现=属性['occurrence'](签)#出现次
         用类型=属性['useTabTypes']#类型钩
@@ -202,7 +202,7 @@ class 右栏席:#rightbar 席视图模型
         })#结果
 
     def 面板铬(自身):
-        """顶右条带两端控件。"""
+        '顶右条带两端控件'
         翻译=自身.属性['t']#文案
         全=自身._全屏()#全
         退文=翻译('chrome.exitFullscreen') if 全 else 翻译('chrome.toFullscreen')#模式文
@@ -213,7 +213,7 @@ class 右栏席:#rightbar 席视图模型
         ]#铬
 
     def 停靠属性(自身):
-        """交给停靠表面的属性包。"""
+        '交给停靠表面的属性包'
         表面=自身._读表面()#表面
         if 表面 is None:#无
             return None#无
@@ -238,7 +238,7 @@ class 右栏席:#rightbar 席视图模型
         }#属性结束
 
     def 渲染(自身):
-        """面板+浮层宿主结构树。"""
+        '面板+浮层宿主结构树'
         表面=自身._读表面()#表面
         if 表面 is None:#尚未
             return None#空

@@ -1,4 +1,4 @@
-"""面向模型的 job_output、job_list、job_kill 工具，架在 jobs 服务上。"""
+'面向模型的 job_output、job_list、job_kill 工具，架在 jobs 服务上'
 import json,weakref
 from ...依赖.schemastery import 数字字段,枚举字段
 from ...内核.工具 import 定义工具
@@ -33,29 +33,29 @@ from .渲染 import 公开任务,状态行,渲染模型增量
 完成投递=('quiet','wakeup')
 
 class 工具任务错误(Exception):
-    """任务工具入参或配置非法。"""
+    '任务工具入参或配置非法'
     def __init__(自身,消息):
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)
 
 def 字节长(文本):
-    """按 UTF-8 计字节长度。"""
+    '按 UTF-8 计字节长度'
     return len(文本.encode('utf-8'))
 
 def 保留尾部(文本,最大字节):
-    """按尾部策略压进字节上限。"""
+    '按尾部策略压进字节上限'
     保留器=文本保留器({'kind':'tail','maxBytes':最大字节})
     保留器.推入(文本)
     return 保留器.收尾()['text']
 
 def 保留头部(文本,最大字节):
-    """按头部策略压进字节上限。"""
+    '按头部策略压进字节上限'
     保留器=文本保留器({'kind':'head','maxBytes':最大字节})
     保留器.推入(文本)
     return 保留器.收尾()['text']
 
 def 后缀适配(正文,后缀,最大字节,省略标记):
-    """在上限内拼接内容与后缀。"""
+    '在上限内拼接内容与后缀'
     全文=正文+后缀
     if 最大字节 is None or 字节长(全文)<=最大字节:
         return 全文
@@ -66,11 +66,11 @@ def 后缀适配(正文,后缀,最大字节,省略标记):
     return 保留尾部(正文,最大字节-固定字节)+固定
 
 def 完成摘要(任务):
-    """notice 形态折叠行里，一条已结算任务的一行说明。"""
+    'notice 形态折叠行里，一条已结算任务的一行说明'
     return 截上下文摘要(任务['kind']+' '+任务['label']+' '+状态行(公开任务(任务)))
 
 def 适配完成通知(任务):
-    """把完成通知压进生产者输出上限。"""
+    '把完成通知压进生产者输出上限'
     快照=公开任务(任务)
     前缀='background job '+str(快照['id'])
     细节=' ('+str(快照['kind'])+': '+str(快照['label'])+') finished '+状态行(快照)
@@ -96,7 +96,7 @@ def 适配完成通知(任务):
     return 保留头部(前缀,最大字节-动作字节)+动作
 
 def 单文本原文(内容):
-    """恰好一块文本时抽出原文，否则为 None。"""
+    '恰好一块文本时抽出原文，否则为 None'
     if 内容 is None or len(内容)!=1:
         return None
     块=内容[0]
@@ -105,21 +105,21 @@ def 单文本原文(内容):
     return 块['text']
 
 def 有界单文本(内容,最大字节):
-    """把单文本块压进上限；非单文本则不动。"""
+    '把单文本块压进上限；非单文本则不动'
     文本=单文本原文(内容)
     if 文本 is None:
         return None
     return [{'type':'text','text':后缀适配(文本,'',最大字节,'\n[result truncated]')}]
 
 def 调用方标识(执行):
-    """工具执行所属智能体的会话标识。"""
+    '工具执行所属智能体的会话标识'
     智能体=执行['agent'] if isinstance(执行,dict) and 'agent' in 执行 else getattr(执行,'agent',None)
     if 智能体 is None:
         return None
     return 智能体.id
 
 def 可见输出上限(上下文,执行):
-    """job_output 与 job_kill 所点名任务的生产者上限。"""
+    'job_output 与 job_kill 所点名任务的生产者上限'
     工具名=执行['name'] if isinstance(执行,dict) else 执行.name
     if 工具名!='job_output' and 工具名!='job_kill':
         return None
@@ -133,20 +133,20 @@ def 可见输出上限(上下文,执行):
     return None
 
 def 校验任务号(值):
-    """校验 ParameterSchemaSpec 表达不了的非空约束。"""
+    '校验 ParameterSchemaSpec 表达不了的非空约束'
     if len(值)==0:
         raise 工具任务错误('invalid job_id: expected a non-empty string, got '+json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False))
     return 任务标识(值)
 
 def 呈现任务调用(标题,种类,原始输入=None):
-    """三个通用任务控制共用的待决呈现。"""
+    '三个通用任务控制共用的待决呈现'
     视图={'card':'generic','title':标题,'kind':种类}
     if 原始输入 is not None:
         视图['rawInput']=原始输入
     return 视图
 
 def 读取正文(读取):
-    """消费增量、一次结果、再加状态行。"""
+    '消费增量、一次结果、再加状态行'
     溢出=读取['job']['output']['spillPaths'] if 'spillPaths' in 读取['job']['output'] else []
     增量=渲染模型增量(读取['chunks'],读取['lossy'],溢出)
     结果=读取['result'] if 'result' in 读取 else None
@@ -158,7 +158,7 @@ def 读取正文(读取):
     return {'text':文本,'job':公开任务(读取['job'])}
 
 def 应用(上下文,配置值):
-    """挂接控制器、完成投递、系统提示，并登记三个面向模型的任务工具。"""
+    '挂接控制器、完成投递、系统提示，并登记三个面向模型的任务工具'
     等待缺省=配置值['waitTimeoutMs'] if 'waitTimeoutMs' in 配置值 else 30000
     等待上限=配置值['maxWaitTimeoutMs'] if 'maxWaitTimeoutMs' in 配置值 else 600000
     投递=配置值['completionDelivery'] if 'completionDelivery' in 配置值 else 'wakeup'
@@ -180,7 +180,7 @@ def 应用(上下文,配置值):
         唤醒预算=int(唤醒预算)
     if 投递=='wakeup' and 唤醒预算 is not None:
         def 认领收件箱(载荷,*位置参数):
-            """用户输入重置连续唤醒预算。"""
+            '用户输入重置连续唤醒预算'
             智能体=载荷['agent']
             消息=载荷['message']
             来源=消息['source'] if 消息 is not None and 'source' in 消息 else None
@@ -189,14 +189,14 @@ def 应用(上下文,配置值):
         上下文.监听('agent/inbox/claimed',认领收件箱)
     输出上限表=weakref.WeakKeyDictionary()
     def 预执行(执行,下一步,*位置参数):
-        """插到 tools/pre-execute 链前，记下本次可见上限。"""
+        '插到 tools/pre-execute 链前，记下本次可见上限'
         最大字节=可见输出上限(上下文,执行)
         if 最大字节 is not None:
             输出上限表[执行]=最大字节
         return 下一步()
     上下文.监听('tools/pre-execute',预执行,{'前置':True})
     def 收口任务内容(执行,结果):
-        """按记下的或现查的上限收口工具可见内容。"""
+        '按记下的或现查的上限收口工具可见内容'
         最大字节=输出上限表[执行] if 执行 in 输出上限表 else None
         if 最大字节 is None:
             最大字节=可见输出上限(上下文,执行)
@@ -228,7 +228,7 @@ def 应用(上下文,配置值):
     })
     模型已杀=set()
     def 收结算(事件):
-        """把未收集的完成投递给所属智能体。"""
+        '把未收集的完成投递给所属智能体'
         if 事件['type']=='removed':
             模型已杀.discard(事件['job']['id'])
             return
@@ -260,13 +260,13 @@ def 应用(上下文,配置值):
         所有者.注入(消息)
     上下文.jobs.事件.订阅({'owners':'scope'},收结算)
     def 渲染输出(_参数,值):
-        """正文加状态行。"""
+        '正文加状态行'
         文本=值['text']
         正文=文本 if len(文本)>0 else '(no new output)'
         分隔='' if 正文.endswith('\n') else '\n'
         return [{'type':'text','text':正文+分隔+状态行(值['job'])}]
     def 执行输出(参数,执行):
-        """校验后可选等待，再读输出。"""
+        '校验后可选等待，再读输出'
         标识=校验任务号(参数['job_id'])
         会话=调用方标识(执行)
         if 'wait' in 参数 and 参数['wait'] is True:
@@ -278,7 +278,7 @@ def 应用(上下文,配置值):
             上下文.jobs.等待(标识,超时,会话,信号)
         return 读取正文(上下文.jobs.读取(标识,会话))
     def 呈现输出(参数):
-        """job_output 待决卡片。"""
+        'job_output 待决卡片'
         return 呈现任务调用('Read output from background job '+str(参数['job_id']),'read',参数['job_id'])
     公开任务必填=dict(公开任务模式)
     公开任务必填['required']=True
@@ -308,7 +308,7 @@ def 应用(上下文,配置值):
         'presentCall':呈现输出,
     }))
     def 渲染列表(_参数,任务列表):
-        """空列表占位或一行一条。"""
+        '空列表占位或一行一条'
         if len(任务列表)==0:
             文本='(no background jobs)'
         else:
@@ -318,11 +318,11 @@ def 应用(上下文,配置值):
             文本='\n'.join(行列表)
         return [{'type':'text','text':文本}]
     def 执行列表(_参数,执行):
-        """列出可见任务并投影公开快照。"""
+        '列出可见任务并投影公开快照'
         任务列表=上下文.jobs.列出(调用方标识(执行))
         return [公开任务(条) for 条 in 任务列表]
     def 呈现列表(_参数=None):
-        """job_list 待决卡片。"""
+        'job_list 待决卡片'
         return 呈现任务调用('List background jobs','read')
     上下文.tools.登记(定义工具({
         'name':'job_list',
@@ -336,14 +336,14 @@ def 应用(上下文,配置值):
         'presentCall':呈现列表,
     }))
     def 渲染终止(_参数,值):
-        """已结束或已请求取消文案。"""
+        '已结束或已请求取消文案'
         if 值['outcome']=='already-finished':
             文本='job '+str(值['job']['id'])+' had already finished '+状态行(值['job'])
         else:
             文本='requested cancellation of job '+str(值['job']['id'])
         return [{'type':'text','text':文本}]
     def 执行终止(参数,执行):
-        """请求取消并返回非消费公开快照。"""
+        '请求取消并返回非消费公开快照'
         标识=校验任务号(参数['job_id'])
         会话=调用方标识(执行)
         原因=参数['reason'] if 'reason' in 参数 else None
@@ -354,7 +354,7 @@ def 应用(上下文,配置值):
         结局='already-finished' if 结果=='already-finished' else 'cancellation-requested'
         return {'outcome':结局,'job':快照}
     def 呈现终止(参数):
-        """job_kill 待决卡片。"""
+        'job_kill 待决卡片'
         return 呈现任务调用('Kill background job '+str(参数['job_id']),'execute',参数['job_id'])
     上下文.tools.登记(定义工具({
         'name':'job_kill',

@@ -9,7 +9,7 @@ __all__=['账号分区']
 活动阶段=('initializing','waiting-browser','exchanging','committing')
 
 def 读账号(属性):
-    """注入面 hooks.account 快照。"""
+    '注入面 hooks.account 快照'
     钩=属性.get('hooks') or {}
     存储=钩.get('account')
     if 存储 is not None:
@@ -17,13 +17,13 @@ def 读账号(属性):
     取=属性.get('useAccount')
     if 取 is not None:
         def 全量(快照):
-            """整份账号快照。"""
+            '整份账号快照'
             return 快照
         return 取(全量)
     return {'view':None,'details':None,'failed':False}
 
 def 读主题(属性):
-    """注入面 hooks.theme 快照。"""
+    '注入面 hooks.theme 快照'
     钩=属性.get('hooks') or {}
     存储=钩.get('theme')
     if 存储 is not None:
@@ -31,15 +31,15 @@ def 读主题(属性):
     取=属性.get('useTheme')
     if 取 is not None:
         def 全量(快照):
-            """整份主题快照。"""
+            '整份主题快照'
             return 快照
         return 取(全量)
     return {'active':{'colorScheme':'light'}}
 
 class 账号分区:
-    """设置里的账号与余额分区。"""
+    '设置里的账号与余额分区'
     def __init__(自身,属性):
-        """记下 props 并拉一次资料。"""
+        '记下 props 并拉一次资料'
         自身.属性=属性
         自身.平台页=None
         自身.覆盖层=None
@@ -51,11 +51,11 @@ class 账号分区:
             刷新()
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性
 
     def 执行(自身,动作):
-        """串行跑一项。"""
+        '串行跑一项'
         自身.忙碌=True
         自身.失败=False
         try:
@@ -65,18 +65,18 @@ class 账号分区:
         自身.忙碌=False
 
     def 关平台(自身):
-        """拆原生视口。"""
+        '拆原生视口'
         if 自身.覆盖层 is not None:
             自身.覆盖层.拆除()
             自身.覆盖层=None
         自身.平台页=None
 
     def 开平台(自身,页):
-        """Desktop 才改走原生页。"""
+        'Desktop 才改走原生页'
         自身.平台页=页
 
     def 渲染(自身):
-        """未登录居中提示，已登录展示资料与余额。"""
+        '未登录居中提示，已登录展示资料与余额'
         翻译=自身.属性['t']
         账号=读账号(自身.属性)
         主题=读主题(自身.属性)
@@ -125,7 +125,7 @@ class 账号分区:
             状态文=翻译('signInDescription')
         if not 已登录 and not 活动:
             def 点登录():
-                """发起登录。"""
+                '发起登录'
                 自身.执行(自身.属性['start'])
             return {
                 'type':'account-section',
@@ -177,17 +177,17 @@ class 账号分区:
             赠金.append(格式化余额(项['balance'],符号))
         授权=None if 尝试 is None else 尝试.get('authorizeUrl')
         def 点用量():
-            """Desktop 走原生用量页。"""
+            'Desktop 走原生用量页'
             if 平台 is not None and 已登录:
                 自身.开平台('usage')
         def 点充值():
-            """Desktop 走原生充值页。"""
+            'Desktop 走原生充值页'
             if 平台 is not None and 已登录:
                 自身.开平台('top-up')
         def 点取消():
-            """取消进行中的登录。"""
+            '取消进行中的登录'
             def 取消():
-                """交给注入面。"""
+                '交给注入面'
                 自身.属性['cancel'](尝试['id'])
             自身.执行(取消)
         return {
@@ -222,7 +222,7 @@ class 账号分区:
         }
 
     def __call__(自身,属性=None):
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()

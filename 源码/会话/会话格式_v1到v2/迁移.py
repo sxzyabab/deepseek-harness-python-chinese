@@ -1,4 +1,4 @@
-"""相邻迁移：把已发布 v1 顶层助手块嵌入 v2 attempt 事件。"""
+'相邻迁移：把已发布 v1 顶层助手块嵌入 v2 attempt 事件'
 import json#未知类型诊断
 from ...模型后端.llm.助手流 import 助手流累加器#助手流累加器
 from ..会话格式 import (#从会话格式导入
@@ -19,12 +19,12 @@ from .校验 import 断言已发布v2头#从校验导入
 块事件键=frozenset([*块事件必填,*块事件可选])#块事件键
 
 def 迁移头(头):#迁移头
-    """把已发布 v1 头提升为 v2。"""
+    '把已发布 v1 头提升为 v2'
     断言已发布v1头(头)#断言v1头
     return {**头,'version':2}#提升版本
 
 def 创建阶段(输入):#创建阶段
-    """按源种类创建 v1 到 v2 阶段。"""
+    '按源种类创建 v1 到 v2 阶段'
     if 输入['sourceKind']=='decoded':#解码源
         return 解码已发布v1到v2阶段(输入)#解码源阶段
     return 转换已发布v1到v2阶段(输入)#转换源阶段
@@ -40,9 +40,9 @@ def 创建阶段(输入):#创建阶段
 })#会话格式v1到v2结束
 
 class 转换已发布v1到v2阶段:#转换源阶段
-    """有状态体阶段：把助手块嵌入 attempt。"""
+    '有状态体阶段：把助手块嵌入 attempt'
     def __init__(自身,输入):#构造
-        """记下源头并初始化迁移状态。"""
+        '记下源头并初始化迁移状态'
         断言已发布v1头(输入['sourceHeader'])#断言源头
         自身.状态={#初始化状态
             'sourceHeader':输入['sourceHeader'],#源头
@@ -56,27 +56,27 @@ class 转换已发布v1到v2阶段:#转换源阶段
         }#state结束
 
     def transformEvent(自身,事件,上下文):#转换事件
-        """转换一条源事件。"""
+        '转换一条源事件'
         转换已发布事件(自身.状态,事件,上下文)#委托
 
     def transformRun(自身,游程,上下文):#转换游程
-        """转换一个紧凑源游程。"""
+        '转换一个紧凑源游程'
         转换已发布游程(自身.状态,游程,上下文)#委托
 
     def finish(自身,上下文):#完成
-        """结束尝试并返回目标切口。"""
+        '结束尝试并返回目标切口'
         return 完成迁移(自身.状态,上下文)#委托
 
 class 解码已发布v1到v2阶段(转换已发布v1到v2阶段):#解码源阶段
-    """解码源：先断言已发布 v1 载荷。"""
+    '解码源：先断言已发布 v1 载荷'
     def transformEvent(自身,事件,上下文):#覆盖转换事件
-        """断言载荷后委托父类。"""
+        '断言载荷后委托父类'
         if 事件['type']!='assistant/chunk' and 事件['type'] in 已发布v0事件处置表:#已知处置
             断言已发布事件载荷(事件,1)#断言v1载荷
         super().transformEvent(事件,上下文)#父类转换
 
 def 转换已发布事件(状态,事件,上下文):#转换已发布事件
-    """转换一条已发布 v1 事件。"""
+    '转换一条已发布 v1 事件'
     if 事件['type']=='assistant/chunk':#块
         断言块信封(事件)#断言块信封
     if 事件['type'] not in 已发布v0事件处置表:#未知类型
@@ -111,7 +111,7 @@ def 转换已发布事件(状态,事件,上下文):#转换已发布事件
     发出源(状态,事件,上下文)#发出源
 
 def 断言块信封(事件):#断言块信封
-    """断言 assistant/chunk 信封键。"""
+    '断言 assistant/chunk 信封键'
     for 键 in 事件.keys():#意外键
         if 键 not in 块事件键:#意外
             raise 拒绝(f"assistant/chunk {事件['seq']} has unexpected member {键}")#意外成员
@@ -122,7 +122,7 @@ def 断言块信封(事件):#断言块信封
         raise 拒绝(f"assistant/chunk {事件['seq']} ignorable must be true when present")#拒绝
 
 def 断言源投递标记(状态,事件):#断言源投递标记
-    """拒绝错会话的当代投递标记。"""
+    '拒绝错会话的当代投递标记'
     if 事件['type']!='session-log-deepseek/delivery-accepted':#非该类型
         return#返回
     数据=记录(事件['data'])#data
@@ -131,7 +131,7 @@ def 断言源投递标记(状态,事件):#断言源投递标记
         raise 拒绝('current-generation delivery marker names the wrong Session')#拒绝
 
 def 转换已发布游程(状态,游程,上下文):#转换已发布游程
-    """转换紧凑助手块游程或展开其它游程。"""
+    '转换紧凑助手块游程或展开其它游程'
     if not 是否已发布助手块游程(游程):#非助手块游程
         for 事件 in 游程.expand():#展开
             转换已发布事件(状态,事件,上下文)#转换
@@ -151,7 +151,7 @@ def 转换已发布游程(状态,游程,上下文):#转换已发布游程
     记块跨度(状态['pending']['group'],游程.firstSeq,游程.eventCount,游程.lastTime)#记跨度
 
 def 完成迁移(状态,上下文):#完成迁移
-    """结束尝试、补种子切口并返回目标切口。"""
+    '结束尝试、补种子切口并返回目标切口'
     结束尝试(状态,上下文)#结束尝试
     if 状态['sourceHeader']['isSeeded'] and 状态['targetCut'] is None:#种子缺切口
         状态['targetCut']=状态['targetSeq']#记切口
@@ -165,7 +165,7 @@ def 完成迁移(状态,上下文):#完成迁移
     return 状态['targetCut']#返回切口
 
 def 转换块(状态,事件,上下文):#转换块
-    """把一条 assistant/chunk 并入待定尝试。"""
+    '把一条 assistant/chunk 并入待定尝试'
     数据=记录(事件['data'])#data
     回合=坐标(数据['turn'])#回合
     步骤=坐标(数据['step'])#步骤
@@ -187,7 +187,7 @@ def 转换块(状态,事件,上下文):#转换块
         待定['group']['terminal']=True#终止
 
 def 转换消息(状态,事件,上下文):#转换消息
-    """把助手消息绑定到完整块尝试。"""
+    '把助手消息绑定到完整块尝试'
     数据=记录(事件['data'])#data
     回合=坐标(数据['turn'])#回合
     步骤=坐标(数据['step'])#步骤
@@ -215,7 +215,7 @@ def 转换消息(状态,事件,上下文):#转换消息
     状态['pending']=None#清空待定
 
 def 结束尝试(状态,上下文):#结束尝试
-    """发出 pending attempt 并冲刷缓冲。"""
+    '发出 pending attempt 并冲刷缓冲'
     待定=状态['pending']#待定
     if 待定 is None:#无待定
         return#返回
@@ -224,13 +224,13 @@ def 结束尝试(状态,上下文):#结束尝试
     状态['pending']=None#清空
 
 def 冲刷缓冲(状态,待定,上下文):#冲刷缓冲
-    """发出末块后缓冲事件。"""
+    '发出末块后缓冲事件'
     for 事件 in 待定['afterLastChunk']:#缓冲
         发出源(状态,事件,上下文)#发出
     待定['afterLastChunk'].clear()#清空
 
 def 发出源(状态,事件,上下文):#发出源事件
-    """重映射并发出一条源事件。"""
+    '重映射并发出一条源事件'
     源=事件#源
     if (状态['sourceHeader']['isSeeded']
         and 事件['seq']==状态['sourceCut']
@@ -242,13 +242,13 @@ def 发出源(状态,事件,上下文):#发出源事件
     状态['targetSeq']+=1#推进
 
 def 发出生成(状态,源序号,事件,上下文):#发出生成事件
-    """发出一条生成事件。"""
+    '发出一条生成事件'
     确保目标切口(状态,源序号,事件['time'],事件['type'],上下文)#确保目标切口
     上下文.emitEvent(重映射引用(事件,状态['targetSeq'],状态['mapping']))#重映射发出
     状态['targetSeq']+=1#推进
 
 def 确保目标切口(状态,源序号,时间,类型,上下文):#确保目标切口
-    """在源切口处插入目标 end-seed。"""
+    '在源切口处插入目标 end-seed'
     if not 状态['sourceHeader']['isSeeded'] or 状态['targetCut'] is not None or 源序号<状态['sourceCut']:#无需
         return#返回
     状态['targetCut']=状态['targetSeq']#记切口
@@ -263,22 +263,22 @@ def 确保目标切口(状态,源序号,时间,类型,上下文):#确保目标�
     状态['targetSeq']+=1#推进
 
 def 断言尝试切口(状态,组,成员):#断言尝试切口
-    """拒绝跨继承切口的 attempt。"""
+    '拒绝跨继承切口的 attempt'
     首=组['spans'][0]['firstSeq'] if 组['spans'] else 成员#首序号
     if (首<状态['sourceCut'])!=(成员<状态['sourceCut']):#跨切口
         raise 拒绝(f"inherited Session cut {状态['sourceCut']} splits one Assistant attempt")#拒绝
 
 def 断言尝试范围(状态,首,末):#断言尝试范围
-    """拒绝跨继承切口的游程范围。"""
+    '拒绝跨继承切口的游程范围'
     if (首<状态['sourceCut'])!=(末<状态['sourceCut']):#跨切口
         raise 拒绝(f"inherited Session cut {状态['sourceCut']} splits one Assistant attempt")#拒绝
 
 def 遗留回合状态():#创建遗留回合状态
-    """开放回合观察初值。"""
+    '开放回合观察初值'
     return {'openTurn':None,'openStep':None,'previous':None}#初值
 
 def 遗留中断回合(状态,事件):#遗留中断回合
-    """在拼接模式下合成 turn/end。"""
+    '在拼接模式下合成 turn/end'
     if (事件['type']!='turn/start' or 状态['openTurn'] is None or 状态['openStep'] is not None
         or 坐标(记录(事件['data'])['turn'])!=状态['openTurn']+1
         or (状态['previous'] is None or 状态['previous']['type']!='agent/inbox/spliced')):#条件不符
@@ -294,7 +294,7 @@ def 遗留中断回合(状态,事件):#遗留中断回合
     }#return结束
 
 def 观察遗留回合(状态,事件):#观察遗留回合
-    """更新开放回合/步骤。"""
+    '更新开放回合/步骤'
     数据=记录(事件['data'])#data
     if 事件['type']=='turn/start':#回合开始
         状态['openTurn']=坐标(数据['turn'])#开放
@@ -309,7 +309,7 @@ def 观察遗留回合(状态,事件):#观察遗留回合
     状态['previous']=事件#记前事件
 
 def 拆遗留目标变更(事件):#拆遗留目标变更
-    """把 goal 出处用户消息拆成 change + message。"""
+    '把 goal 出处用户消息拆成 change + message'
     if 事件['type']!='user/message':#非用户消息
         return None#无
     数据=记录(事件['data'])#data
@@ -330,15 +330,15 @@ def 拆遗留目标变更(事件):#拆遗留目标变更
     }#return结束
 
 def 关闭尝试(事件):#是否关闭尝试
-    """回合/步骤/重试边界关闭 attempt。"""
+    '回合/步骤/重试边界关闭 attempt'
     return 事件['type'] in ('turn/end','step/end','llm/retry','llm/retry-started')#边界
 
 def 尝试组(回合,步骤):#创建尝试组
-    """空 attempt 组。"""
+    '空 attempt 组'
     return {'turn':回合,'step':步骤,'spans':[],'stream':[],'chunkCount':0,'terminal':False}#初值
 
 def 记块跨度(组,首序号,事件数,末时间):#记块跨度
-    """合并或追加块跨度。"""
+    '合并或追加块跨度'
     前=组['spans'][-1] if 组['spans'] else None#上一跨度
     if 前 is not None and 前['firstSeq']+前['eventCount']==首序号:#可合并
         前['eventCount']+=事件数#合并
@@ -349,7 +349,7 @@ def 记块跨度(组,首序号,事件数,末时间):#记块跨度
     组['lastChunkTime']=末时间#末时间
 
 def 出处匹配(组,出处):#出处是否匹配
-    """出处列表是否恰为一完整有序 attempt。"""
+    '出处列表是否恰为一完整有序 attempt'
     if len(出处)!=组['chunkCount']:#长度不符
         return False#不符
     索引=0#索引
@@ -361,7 +361,7 @@ def 出处匹配(组,出处):#出处是否匹配
     return True#匹配
 
 def 流记录末时间(记录值):#流记录末时间
-    """计算紧凑流记录末时间。"""
+    '计算紧凑流记录末时间'
     if 记录值['type']=='chunk':#单块
         return 记录值['time']#时间
     时间=记录值['time0']#起点
@@ -370,7 +370,7 @@ def 流记录末时间(记录值):#流记录末时间
     return 时间#返回
 
 def 可变流记录(记录值):#可变流记录
-    """拷贝可合并流记录。"""
+    '拷贝可合并流记录'
     if 记录值['type']=='chunk':#单块原样
         return 记录值#原样
     if 记录值['type']=='tool-call-chunks':#工具块
@@ -378,7 +378,7 @@ def 可变流记录(记录值):#可变流记录
     return {**记录值,'dt':list(记录值['dt']),'texts':list(记录值['texts'])}#文本/推理拷贝
 
 def 追加流记录(组,源,末时间,已拥有=True):#追加流记录
-    """合并或追加一条紧凑流记录。"""
+    '合并或追加一条紧凑流记录'
     流=组['stream']#流
     前=流[-1] if 流 else None#前一记录
     if 前 is None or 源['type']=='chunk' or 前['record']['type']!=源['type']:#不可合并
@@ -404,7 +404,7 @@ def 追加流记录(组,源,末时间,已拥有=True):#追加流记录
     前['lastTime']=末时间#更新末时间
 
 def 冲刷累加器(组):#冲刷累加器
-    """把累加器快照并入流。"""
+    '把累加器快照并入流'
     if 'accumulator' not in 组:#无则返回
         return#返回
     累加器=组['accumulator']#累加器
@@ -413,18 +413,18 @@ def 冲刷累加器(组):#冲刷累加器
     组.pop('accumulator',None)#删除累加器
 
 def 组流(组):#组流
-    """冲刷并返回流记录列表。"""
+    '冲刷并返回流记录列表'
     冲刷累加器(组)#冲刷
     return [项['record'] for 项 in 组['stream']]#映射记录
 
 def 消息事件(源,组):#消息事件
-    """把 v1 助手消息改写为带嵌入流的 v2 消息。"""
+    '把 v1 助手消息改写为带嵌入流的 v2 消息'
     数据=记录(源['data'])#data
     事件={键:值 for 键,值 in 源.items() if 键!='sourceEventSeqs'}#去掉出处
     return {**事件,'data':{**数据,'stream':组流(组)}}#返回嵌入流
 
 def 尝试事件(组):#attempt事件
-    """构造 assistant/attempt。"""
+    '构造 assistant/attempt'
     return {#返回
         'type':'assistant/attempt',#类型
         'seq':组['lastChunkSeq'],#序号
@@ -433,7 +433,7 @@ def 尝试事件(组):#attempt事件
     }#return结束
 
 def 重映射引用(源,目标序号,映射):#重映射引用
-    """重映射表面出处与载荷引用。"""
+    '重映射表面出处与载荷引用'
     事件={键:值 for 键,值 in 源.items() if 键 not in ('sourceEventSeqs','surfaceOp')}#拆字段
     出处=源.get('sourceEventSeqs')#出处
     出处字段={} if 出处 is None else {#映射出处
@@ -458,7 +458,7 @@ def 重映射引用(源,目标序号,映射):#重映射引用
     return 结果#返回
 
 def 重映射载荷引用(事件,映射):#重映射载荷引用
-    """按事件类型重映射载荷内序号。"""
+    '按事件类型重映射载荷内序号'
     数据=记录(事件['data'])#data
     if 事件['type']=='command/done':#命令完成
         if 'sourceEventSeq' not in 数据:#无源序号
@@ -485,27 +485,27 @@ def 重映射载荷引用(事件,映射):#重映射载荷引用
     return 数据#原样
 
 def 映射列表(值列表,映射,标签):#映射列表
-    """逐项映射序号列表。"""
+    '逐项映射序号列表'
     return [映射一项(值,映射,标签) for 值 in 值列表]#逐项映射
 
 def 映射一项(值,映射,标签):#映射一项
-    """查序号映射。"""
+    '查序号映射'
     if 值 not in 映射:#无映射
         raise 拒绝(f'{标签} targets consumed assistant/chunk {值}')#消费块
     return 映射[值]#返回
 
 def 记录(值):#记录
-    """断言为对象。"""
+    '断言为对象'
     return 值#断言
 
 def 数字数组(值):#数字数组
-    """断言为数字数组。"""
+    '断言为数字数组'
     return 值#断言
 
 def 坐标(值):#坐标
-    """断言为数字坐标。"""
+    '断言为数字坐标'
     return 值#断言
 
 def 拒绝(消息):#拒绝错误
-    """构造不支持迁移错误。"""
+    '构造不支持迁移错误'
     return 会话格式不支持迁移错误(消息)#构造

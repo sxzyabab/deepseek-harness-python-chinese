@@ -3,12 +3,12 @@ from decimal import Decimal,ROUND_DOWN,ROUND_HALF_UP
 __all__=['格式化余额']
 
 def 加千分位(文本):
-    """整数部分按千分位分组，小数部分原样接回。"""
+    '整数部分按千分位分组，小数部分原样接回'
     整数,小数=文本.split('.')
     return f'{int(整数):,}.{小数}'
 
 def 格式化余额(金额,符号):
-    """按 Platform Web 两位小数与不足一分的显示规则格式化余额。"""
+    '按 Platform Web 两位小数与不足一分的显示规则格式化余额'
     值=Decimal(金额)
     if 值==0:
         return 符号+'0.00'

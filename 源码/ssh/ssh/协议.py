@@ -17,29 +17,29 @@ ssh文本流上限=128#打开的文本迭代器
 }#限额结束
 
 class 远程操作错误(ssh错误):#带码远端错误
-    """保留类型化文件系统或沙箱码。"""
+    '保留类型化文件系统或沙箱码'
     def __init__(自身,消息,码=None):#记下英文消息与码
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
         自身.name='RemoteOperationError'#固定名
         自身.code=码#可选码
 
 def 请求分类(方法):#普通或管理
-    """管理方法用自己的限额。"""
+    '管理方法用自己的限额'
     if 方法 in 管理限额:#管理
         return 方法#该类
     return 'ordinary'#普通
 
 def 操作错误(错误):#收成 Error
-    """非异常则包一层。"""
+    '非异常则包一层'
     if isinstance(错误,BaseException):#已是
         return 错误#原样
     return ssh错误(str(错误))#包装
 
 class ssh请求对等:#有界 JSON 帧对等
-    """拥有未决调用；断连拒绝含糊操作，从不重放。"""
+    '拥有未决调用；断连拒绝含糊操作，从不重放'
     def __init__(自身,输入流,输出流,最大帧字节,最大未决,处理=None):#绑流
-        """登记读写错误并开读线程。"""
+        '登记读写错误并开读线程'
         自身.输入=输入流#可读
         自身.输出=输出流#可写
         自身.最大帧字节=最大帧字节#帧上限
@@ -52,7 +52,7 @@ class ssh请求对等:#有界 JSON 帧对等
         自身.失败=None#传输失败
         自身.关闭回调=[]#closed 监听
         def 流出错(错误=None):#流错误
-            """关闭对等。"""
+            '关闭对等'
             if 错误 is None:#无因
                 自身.关闭()#默认文案
             else:#有因
@@ -64,7 +64,7 @@ class ssh请求对等:#有界 JSON 帧对等
         线程.start()#启动
 
     def 请求(自身,方法,参数,模式,信号=None):#发请求并校验
-        """取消不回滚已完成远端副作用。"""
+        '取消不回滚已完成远端副作用'
         若已中止则抛出(信号)#已中止
         if 自身.失败 is not None:#已失败
             raise 自身.失败#传输失败
@@ -75,12 +75,12 @@ class ssh请求对等:#有界 JSON 帧对等
         任务=操作任务()#未决
         自身.未决[标识]={'任务':任务,'requestClass':种类}#登记
         def 中止时():#信号中止
-            """取消帧；远端清理未完成仍占额度。"""
+            '取消帧；远端清理未完成仍占额度'
             任务.拒绝(ssh错误('SSH operation cancelled; a completed remote mutation is not rolled back'))#拒绝
             自身.发送({'type':'cancel','id':标识})#取消帧
         if 信号 is not None:# Event
             def 监视():#等中止
-                """置位后取消。"""
+                '置位后取消'
                 等待中止(信号)#等待
                 if 标识 in 自身.未决:#仍未决
                     中止时()#取消
@@ -93,7 +93,7 @@ class ssh请求对等:#有界 JSON 帧对等
             pass#Event 监视自行结束
 
     def 关闭(自身,错误=None):#失败未决
-        """不声称回滚。"""
+        '不声称回滚'
         if 错误 is None:#默认文案
             错误=ssh错误('SSH connection lost; remote operation outcome and cleanup are unknown')#默认
         if 自身.失败 is not None:#已关
@@ -113,7 +113,7 @@ class ssh请求对等:#有界 JSON 帧对等
             回调(错误)#回调
 
     def 发送(自身,帧):#写一帧
-        """4 字节大端长度加 JSON。"""
+        '4 字节大端长度加 JSON'
         if 自身.失败 is not None:#已失败
             raise 自身.失败#拒绝
         体=json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#JSON
@@ -127,7 +127,7 @@ class ssh请求对等:#有界 JSON 帧对等
             自身.排队字节-=len(字节)#还账
 
     def 读帧(自身):#读循环
-        """按长度帧切分。"""
+        '按长度帧切分'
         try:#读
             缓冲=b''#未消费
             while True:#直到断
@@ -154,7 +154,7 @@ class ssh请求对等:#有界 JSON 帧对等
             自身.关闭(操作错误(错误))
 
     def 收取(自身,帧):#分发一帧
-        """结果、错误、取消或入站请求。"""
+        '结果、错误、取消或入站请求'
         类型=帧['type'] if 'type' in 帧 else None#类型
         if 类型=='result' or 类型=='error':#应答
             项=自身.未决.get(帧['id']) if 'id' in 帧 else None#未决
@@ -179,7 +179,7 @@ class ssh请求对等:#有界 JSON 帧对等
         控制器=中止控制器()#本请求中止
         自身.活动[帧['id']]={'controller':控制器,'requestClass':种类}#登记
         def 处理体():#线程
-            """调用处理并回帧。"""
+            '调用处理并回帧'
             try:#处理
                 值=自身.处理(方法,帧['params'] if 'params' in 帧 else None,控制器.信号)#处理
                 自身.发送({'type':'result','id':帧['id'],'value':值 if 值 is not None else None})#结果
@@ -196,7 +196,7 @@ class ssh请求对等:#有界 JSON 帧对等
         threading.Thread(target=处理体).start()#处理
 
     def 已满(自身,种类,请求们):#限额
-        """该类是否已达上限。"""
+        '该类是否已达上限'
         限额=自身.最大未决 if 种类=='ordinary' else 管理限额[种类]#上限
         计数=0#计数
         for 请求 in 请求们:#逐个

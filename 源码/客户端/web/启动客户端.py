@@ -3,12 +3,12 @@ from .加载器状态 import 状态标签#纤程状态标签
 __all__=['网页错误','加载器插件','启动客户端','断言条目已激活']#仅中文公开名
 
 class 网页错误(Exception):
-    """web 包异常基类。"""
+    'web 包异常基类'
 
 加载器插件=None#cordis Loader 插件类；启动前由宿主写入
 
 def 启动客户端(选项):
-    """组装客户端。选项为 dict：ctx、modules、manifest、onEntryState?。"""
+    '组装客户端。选项为 dict：ctx、modules、manifest、onEntryState?'
     if 加载器插件 is None:#未绑定
         raise 网页错误('网页启动：未绑定 cordis Loader 插件类')#失败
     上下文=选项['ctx']#根上下文
@@ -18,7 +18,7 @@ def 启动客户端(选项):
     加载器=上下文.loader#取加载器服务
     加载器.internal=选项['modules']#注入模块系统
     def 纤程状态(纤程):
-        """投影条目状态到启动页。"""
+        '投影条目状态到启动页'
         条目=纤程.entry#关联条目
         if 条目 is None:#无条目
             return#跳过
@@ -40,7 +40,7 @@ def 启动客户端(选项):
     断言条目已激活(上下文)#审计激活
 
 def 断言条目已激活(上下文):
-    """拒绝导入/apply 失败或仍在等缺失服务的条目。"""
+    '拒绝导入/apply 失败或仍在等缺失服务的条目'
     失败表=[]#失败汇总
     for 条目 in 上下文.loader.entries():#逐条目
         名=条目.options.name#条目名

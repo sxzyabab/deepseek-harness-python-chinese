@@ -1,4 +1,4 @@
-"""向 web 注册匿名公开 HTTP(S) 抓取提供方。"""
+'向 web 注册匿名公开 HTTP(S) 抓取提供方'
 import math
 from ...依赖.schemastery import 字符串字段,数字字段
 from .提供方 import (
@@ -25,21 +25,21 @@ __all__=['包名','名称','依赖','应用','默认','配置模式']
 }
 
 class 抓取配置错误(Exception):
-    """web-fetch-http 配置校验失败。"""
+    'web-fetch-http 配置校验失败'
 
 def 断言正有限(名称字,值):
-    """资源上限（字节/字符/长度/超时封顶）必须是正有限数。"""
+    '资源上限（字节/字符/长度/超时封顶）必须是正有限数'
     if isinstance(值,bool) or not isinstance(值,(int,float)) or not math.isfinite(值) or 值<=0:
         raise 抓取配置错误('web-fetch-http: '+名称字+' must be a positive finite number')
 
 def 断言超时毫秒(值):
-    """超出定时器延迟上限的值会被钳成 1ms，因此在配置时拒绝。"""
+    '超出定时器延迟上限的值会被钳成 1ms，因此在配置时拒绝'
     断言正有限('timeoutMs',值)
     if 值>定时器延迟上限毫秒:
         raise 抓取配置错误('web-fetch-http: timeoutMs must be no greater than '+str(定时器延迟上限毫秒))
 
 def 断言非负整数(名称字,值):
-    """重定向跳数上限必须是非负整数（0 表示不跟随重定向）。"""
+    '重定向跳数上限必须是非负整数（0 表示不跟随重定向）'
     if isinstance(值,bool):
         raise 抓取配置错误('web-fetch-http: '+名称字+' must be a non-negative integer')
     if isinstance(值,int):
@@ -51,7 +51,8 @@ def 断言非负整数(名称字,值):
     raise 抓取配置错误('web-fetch-http: '+名称字+' must be a non-negative integer')
 
 def 应用(上下文,配置):
-    """向 web 注册本地 HTTP(S) 抓取提供方。配置为 dict。"""
+    """向 web 注册本地 HTTP(S) 抓取提供方。
+    配置为 dict"""
     已解析=配置
     断言正有限('maxUrlLength',已解析['maxUrlLength'])
     断言正有限('maxResponseBytes',已解析['maxResponseBytes'])

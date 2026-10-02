@@ -1,7 +1,4 @@
-"""最终 LLM 适配器边界所抛值的归一化。
-
-公开面仅中文名；无英文别名。
-"""
+'最终 LLM 适配器边界所抛值的归一化'
 import math#有限数判定
 from .错误 import 装备错误#导入装备错误基类
 from .调用配置 import 深冻结#导入深冻结
@@ -9,7 +6,7 @@ from .调用配置 import 深冻结#导入深冻结
 __all__=('归一化语言模型失败',)#仅中文公开名
 
 def 归一化语言模型失败(值):#从适配器抛出拆下失败事实
-    """从适配器抛出的值上拆下可序列化的提供方事实。"""
+    '从适配器抛出的值上拆下可序列化的提供方事实'
     if isinstance(值,Exception):#已是异常
         错误=值#原样使用
     else:#非 Error
@@ -21,7 +18,7 @@ def 归一化语言模型失败(值):#从适配器抛出拆下失败事实
     return 深冻结(事实)#冻结事实
 
 def 抛出消息(值):#渲染非 Error 抛出
-    """渲染非 Error 抛出，不让敌对强制转换逃出归一化。"""
+    '渲染非 Error 抛出，不让敌对强制转换逃出归一化'
     try:#强制转字符串
         消息=str(值)#强制转字符串
         if len(消息)>0:#非空串
@@ -31,7 +28,7 @@ def 抛出消息(值):#渲染非 Error 抛出
         return 'LLM adapter failed'#吞掉敌对强制转换
 
 def 自有错误码(错误):#读取外来 Error 的自有数据型 code
-    """读取外来 Error 的自有数据型 code，不调用访问器。"""
+    '读取外来 Error 的自有数据型 code，不调用访问器'
     try:#只看实例字典
         字典=getattr(错误,'__dict__',None)#只看实例字典
         if 字典 is None or 'code' not in 字典:#没有数据值
@@ -41,7 +38,7 @@ def 自有错误码(错误):#读取外来 Error 的自有数据型 code
         return None#吞掉属性陷阱
 
 def 自有失败快照(错误):#快照自有 failure 属性
-    """快照一个自有数据属性，不调用 SDK 定义的访问器。"""
+    '快照一个自有数据属性，不调用 SDK 定义的访问器'
     try:#只看实例字典
         字典=getattr(错误,'__dict__',None)#只看实例字典
         if 字典 is None or 'failure' not in 字典:#没有数据值
@@ -51,7 +48,7 @@ def 自有失败快照(错误):#快照自有 failure 属性
         return None#吞掉属性陷阱
 
 def 失败快照(值):#校验并拆离可序列化失败载荷
-    """校验并拆离任意可序列化失败载荷。"""
+    '校验并拆离任意可序列化失败载荷'
     if not isinstance(值,dict):#必须是对象
         return None#必须是对象
     try:#校验字段
@@ -89,7 +86,7 @@ def 失败快照(值):#校验并拆离可序列化失败载荷
         return None#读失败则放弃载荷
 
 def 错误消息(错误):#读取 SDK 错误消息
-    """读取 SDK 错误消息，不让访问器替换主失败。"""
+    '读取 SDK 错误消息，不让访问器替换主失败'
     try:#取出消息
         消息=错误.message#取出消息
         if isinstance(消息,str) and len(消息)>0:#非空字符串
@@ -99,7 +96,7 @@ def 错误消息(错误):#读取 SDK 错误消息
     return 'LLM adapter failed'#读不到则用默认文案
 
 def 装备错误码(错误):#只信任装备自有 code
-    """只信任装备自有 code；第三方 SDK 的 code 不是我们的分类。"""
+    '只信任装备自有 code；第三方 SDK 的 code 不是我们的分类'
     if isinstance(错误,装备错误):#装备错误
         return 错误.code#装备分类码
     return 'UNKNOWN'#非装备则 UNKNOWN

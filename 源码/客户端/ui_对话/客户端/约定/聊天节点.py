@@ -13,11 +13,11 @@ __all__=[#仅中文公开名
 回合尾聊天数据=dict#回合尾聊天行数据形
 
 def 已结算工具(块):
-    """有 kind 即为已结算的 tool-result。块为 dict。"""
+    '有 kind 即为已结算的 tool-result。块为 dict'
     if 块 is None:#空
         return False#未结算
     return 'kind' in 块#有 kind
 
 def 运行中工具(块):
-    """未结算即运行中。"""
+    '未结算即运行中'
     return 已结算工具(块) is False#未结算

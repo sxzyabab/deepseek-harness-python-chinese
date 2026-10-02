@@ -3,7 +3,7 @@ from .计划 import 已提交计划#解析已提交计划
 __all__=['计划定义']#仅中文公开名
 
 def 匹配(事件):
-    """命中 exit_plan_mode 提交。"""
+    '命中 exit_plan_mode 提交'
     计划=已提交计划(事件)#解析
     if 计划 is None:#无关
         return None#无
@@ -11,15 +11,15 @@ def 匹配(事件):
     return {'id':计划['callId'],'role':角色}#匹配
 
 def 起始(_上下文,匹配项):
-    """起始态。"""
+    '起始态'
     return 已提交计划(匹配项['event'])#计划
 
 def 更新(上下文):
-    """更新保留态。"""
+    '更新保留态'
     return 上下文['state']#态
 
 def 构建视图节点(上下文):
-    """构建隐藏视图节点。"""
+    '构建隐藏视图节点'
     起始项=上下文['start'] if 'start' in 上下文 and 上下文['start'] is not None else None#起始
     if 起始项 is None and 'matches' in 上下文 and len(上下文['matches'])>0:#回退首匹配
         起始项=上下文['matches'][0]#首项

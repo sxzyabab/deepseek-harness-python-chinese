@@ -1,4 +1,4 @@
-"""用户提问能力缝（ctx.userQuestions）的服务定义：在人类回答问题之前暂停一次智能体工具调用的 UI 后端服务。面向模型的工具住在 @deepseek-ai/dsh-tool-ask-user；UI 包提供那个唯一活动的提供方。"""
+'用户提问能力缝（ctx.userQuestions）的服务定义：在人类回答问题之前暂停一次智能体工具调用的 UI 后端服务'
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from ...模型后端.llm import 装备错误#Harness 错误基类
@@ -12,23 +12,23 @@ from .类型 import (#再导出线路安全问答类型
 )#类型再导出结束
 
 class 询问用户问题请求:#向人类要一份答案的请求（运行时结构，非线路 TypedDict）
-    """向人类要一份答案的请求。"""
+    '向人类要一份答案的请求'
     def __init__(自身,questions,agent=None,signal=None):#问题列表与可选智能体/取消信号
-        """记下问题、可选调用智能体与中止信号。字段名与跨包调用方对齐。"""
+        '记下问题、可选调用智能体与中止信号。字段名与跨包调用方对齐'
         自身.questions=questions#要展示的问题
         自身.agent=agent#精确存活的调用智能体；请求来自智能体工具调用时提供
         自身.signal=signal#所属工具/步骤的中止信号
 
 class 用户提问提供方:#用户提问的 UI 侧提供方协议
-    """用户提问的 UI 侧提供方。"""
+    '用户提问的 UI 侧提供方'
     def ask(自身,request):#向 UI 要答案
-        """向 UI 收集人类答案。"""
+        '向 UI 收集人类答案'
         raise NotImplementedError#由 UI 包实现
 
 class 用户提问错误(装备错误):#用户提问失败的稳定错误分类
-    """用户提问失败的稳定错误分类。"""
+    '用户提问失败的稳定错误分类'
     def __init__(自身,消息,码,options=None):#构造带码错误
-        """记下人类可读拒绝原因与稳定分类码。"""
+        '记下人类可读拒绝原因与稳定分类码'
         if options is None:#无额外选项
             装备错误.__init__(自身,消息,码)#交给装备错误
         else:#带 cause 等选项
@@ -36,31 +36,37 @@ class 用户提问错误(装备错误):#用户提问失败的稳定错误分类
         自身.name='UserQuestionError'#固定错误名
 
 class 用户提问服务(服务):#ctx.userQuestions：一个活动 UI 提供方外加 ask() API
-    """ctx.userQuestions：一个活动 UI 提供方外加 ask() API。"""
+    'ctx.userQuestions：一个活动 UI 提供方外加 ask() API'
     def __init__(自身,上下文):#把本服务登记为 userQuestions
-        """以 userQuestions 名安装服务。"""
+        '以 userQuestions 名安装服务'
         super().__init__(上下文,'userQuestions')#以 userQuestions 名安装服务
         自身.提供方=None#当前唯一提供方
 
     def 登记提供方(自身,提供方):#登记 UI 提供方；一个上下文里只能有一个活动提供方
-        """登记 UI 提供方。一个上下文里只能有一个活动提供方。返回注销本提供方的拆除器。"""
+        """登记 UI 提供方。
+        一个上下文里只能有一个活动提供方。
+        返回注销本提供方的拆除器
+        """
         def 装():#effect 内安装
-            """effect 内安装唯一提供方。"""
+            'effect 内安装唯一提供方'
             if 自身.提供方 is not None:#已有提供方
                 raise 用户提问错误('a user-questions provider is already registered','DUPLICATE_PROVIDER')#拒绝重复
             自身.提供方=提供方#装上提供方
             def 拆():#拆除时清槽
-                """拆除时清槽。"""
+                '拆除时清槽'
                 自身.提供方=None#卸掉提供方
             return 拆#拆除器
         拆除=自身.ctx.副作用(装,'userInteraction.registerProvider()')#绑回本服务
         def 对外拆除():#对外返回 disposer
-            """调用 effect 拆除器。"""
+            '调用 effect 拆除器'
             拆除()#拆除
         return 对外拆除#disposer
 
     def ask(自身,request):#向活动 UI 提供方提问并等待用户回答
-        """向活动 UI 提供方提问并等待用户回答。调用方提供智能体时，人类交互只对精确存活的运行时根有效。请求是本包对象。"""
+        """向活动 UI 提供方提问并等待用户回答。
+        调用方提供智能体时，人类交互只对精确存活的运行时根有效。
+        请求是本包对象
+        """
         if 已中止(request.signal):#调用前已取消
             raise 用户提问错误('ask_user_question was aborted before the user answered','ASK_ABORTED')#报告已中止
         问题列表=request.questions#问题列表

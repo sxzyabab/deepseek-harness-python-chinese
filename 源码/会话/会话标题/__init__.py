@@ -1,4 +1,4 @@
-"""日志驱动会话标题服务、确定性回退与提供方契约。"""
+'日志驱动会话标题服务、确定性回退与提供方契约'
 import threading,weakref#并发与弱表
 from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字典字段,数字字段#配置
@@ -7,7 +7,7 @@ from ...模型后端.llm import 深冻结#冻结配置
 from .归一 import 归一化会话标题,回退会话标题,会话标题错误,会话标题无效错误#标题归一与异常
 
 def _用户消息(事件):
-    """提取一条合格的人类文本消息。"""
+    '提取一条合格的人类文本消息'
     if 事件['type']!='user/message':
         return None#跳过
     数据=事件['data']#载荷
@@ -25,7 +25,7 @@ def _用户消息(事件):
     return {'seq':事件['seq'],'text':文本}#消息
 
 def 折叠会话标题(事件列表):
-    """从日志折叠最新标题快照。"""
+    '从日志折叠最新标题快照'
     for 事件 in reversed(list(事件列表)):
         if 事件['type']!='session/title':
             continue#继续
@@ -35,17 +35,17 @@ def 折叠会话标题(事件列表):
     return None#无标题
 
 def 标题初始(头):
-    """title 投影初值。"""
+    'title 投影初值'
     return None#无标题
 
 def 标题应用(状态,事件):
-    """title 投影折叠。"""
+    'title 投影折叠'
     if 事件['type']=='session/title':
         return 事件['data']['title']#新标题
     return 状态#原样
 
 def 标题视图(状态):
-    """title 投影视图。"""
+    'title 投影视图'
     return 状态#原样
 
 标题投影定义={
@@ -58,7 +58,7 @@ def 标题视图(状态):
 空标题输入={'first':None,'count':0,'lastSeq':None}#titleInput 初始
 
 def _标题输入应用(状态,事件):
-    """折叠 titleInput 状态。"""
+    '折叠 titleInput 状态'
     消息=_用户消息(事件)#提取
     if 消息 is None:
         return 状态#原样
@@ -67,7 +67,7 @@ def _标题输入应用(状态,事件):
     return {'first':首条,'count':次数+1,'lastSeq':消息['seq']}#更新
 
 def 标题输入初始(头):
-    """titleInput 投影初值。"""
+    'titleInput 投影初值'
     return dict(空标题输入)#拷贝初值
 
 标题输入投影定义={
@@ -87,9 +87,9 @@ def 标题输入初始(头):
 __all__=['包名','名称','依赖','应用','默认','会话标题服务','会话标题错误','会话标题无效错误','折叠会话标题','标题投影定义']
 
 class 会话标题服务(服务):
-    """日志驱动标题与可选异步提供方。"""
+    '日志驱动标题与可选异步提供方'
     def __init__(自身,上下文,配置值):
-        """以 sessionTitle 名安装服务。"""
+        '以 sessionTitle 名安装服务'
         super().__init__(上下文,'sessionTitle')#服务名
         for 键 in ('fallbackMaxWords','fallbackMaxBytes','maxTitleBytes'):
             值=配置值[键]#读配置
@@ -105,9 +105,9 @@ class 会话标题服务(服务):
         上下文.sessionProjections.登记(标题输入投影定义)#titleInput 单元
         上下文.监听('session/event',自身._路由事件)#事件路由
         def 拆除效果():
-            """服务拆除。"""
+            '服务拆除'
             def 拆除():
-                """中止在途工作。"""
+                '中止在途工作'
                 自身._生命周期.set()#标记拆除
                 自身._提供方=None#清提供方
                 自身._工作=weakref.WeakKeyDictionary()#清工作表
@@ -115,7 +115,7 @@ class 会话标题服务(服务):
         上下文.副作用(拆除效果,'sessionTitle lifecycle')#生命周期
 
     def _路由事件(自身,会话,事件):
-        """按类型分发。"""
+        '按类型分发'
         if 自身._生命周期.is_set():
             return#忽略
         类型=事件['type']#类型
@@ -125,11 +125,11 @@ class 会话标题服务(服务):
             自身._处理请求头(会话,事件)#处理
 
     def 获取(自身,会话):
-        """读折叠标题。"""
+        '读折叠标题'
         return 折叠会话标题(会话.events)#折叠
 
     def 重命名(自身,会话,标题):
-        """接受显式用户标题。"""
+        '接受显式用户标题'
         if 自身._生命周期.is_set():
             raise 会话标题错误('session-title service disposed')#拒绝
         if 自身.ctx.sessions.get(会话.id) is not 会话:
@@ -144,21 +144,21 @@ class 会话标题服务(服务):
         return 结果#快照
 
     def 登记提供方(自身,提供方):
-        """登记唯一可选提供方。"""
+        '登记唯一可选提供方'
         if 自身._提供方 is not None:
             提供方号=提供方['id'] if isinstance(提供方,dict) else 提供方.id#提供方身份
             raise 会话标题错误('session-title provider "'+str(提供方号)+'" is already registered')#拒绝
         def 效果():
-            """登记并在拆除时清提供方。"""
+            '登记并在拆除时清提供方'
             自身._提供方=提供方#写入
             def 拆除():
-                """清提供方。"""
+                '清提供方'
                 自身._提供方=None#清空
             return 拆除#拆除时清提供方
         return 自身.ctx.副作用(效果,'sessionTitle.register()')#绑定提供方寿命
 
     def _处理用户消息(自身,会话,事件):
-        """确保回退并调度自动标题。"""
+        '确保回退并调度自动标题'
         if _用户消息(事件) is None:
             return#跳过
         当前=自身.获取(会话)#当前标题
@@ -169,7 +169,7 @@ class 会话标题服务(服务):
         自身._确保回退(会话)#回退
 
     def _确保回退(自身,会话):
-        """若无标题则写确定性回退。"""
+        '若无标题则写确定性回退'
         if 自身.获取(会话) is not None:
             return#跳过
         输入=自身.ctx.sessionProjections.状态(会话,'titleInput')#输入状态
@@ -184,11 +184,11 @@ class 会话标题服务(服务):
         会话.append('session/title',{'title':标题,'messageSeqs':[首['seq']],'source':{'kind':'fallback'}})#追加
 
     def _处理请求头(自身,会话,事件):
-        """自动标题在请求头后启动（简化：仅确保回退）。"""
+        '自动标题在请求头后启动（简化：仅确保回退）'
         自身._确保回退(会话)#回退
 
 def 应用(上下文,配置值):
-    """注册会话标题服务。"""
+    '注册会话标题服务'
     会话标题服务(上下文,配置值)#构造即登记
 
 默认=应用

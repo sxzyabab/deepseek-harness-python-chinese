@@ -1,35 +1,35 @@
-"""会话检索用的活/已持久逻辑语料解析。"""
+'会话检索用的活/已持久逻辑语料解析'
 import threading#并发持久检查工作线程
-from ....模型后端.llm import 结构化克隆#拆离克隆
-from ....会话.会话持久化 import 会话持久化损坏错误#持久化损坏
+from ...模型后端.llm import 结构化克隆#拆离克隆
+from ...会话.会话持久化 import 会话持久化损坏错误#持久化损坏
 from .配置 import 会话查询错误,已中止,若已中止则抛出#检索错误与中止
 from .来源 import 校验会话头兼容#头兼容断言
 from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 
 class 会话语料库:
-    """按此刻挂上的持久化服务解析优先活会话的语料。"""
+    '按此刻挂上的持久化服务解析优先活会话的语料'
     def __init__(自身,上下文,持久检查并发):
-        """可选依赖 sessionPersistence，并记下持久检查并发。"""
+        '可选依赖 sessionPersistence，并记下持久检查并发'
         自身._上下文=上下文#框架上下文
         自身._持久化=None#当前可选持久化服务
         自身._持久检查并发=持久检查并发#并发上限
         def 持久化安装(子上下文):
-            """记下当前持久化服务并在拆除时清绑定。"""
+            '记下当前持久化服务并在拆除时清绑定'
             服务=子上下文.sessionPersistence#取出服务
             自身._持久化=服务#换上
             def 摘掉():
-                """过期 disposer 不能清掉替换绑定。"""
+                '过期 disposer 不能清掉替换绑定'
                 if 自身._持久化 is 服务:#仍是本服务
                     自身._持久化=None#清空
             子上下文.副作用(摘掉,'sessionQuery.persistenceBinding')#effect名
         纤程=上下文.依赖启动(['sessionPersistence'],持久化安装)#可选依赖
         def 拆除纤程():
-            """拆除可选持久化 fiber。"""
+            '拆除可选持久化 fiber'
             纤程.dispose()#拆除
         上下文.副作用(拆除纤程,'sessionQuery.optionalPersistence')#拆除fiber
 
     def 列出会话(自身,信号=None):
-        """列出完整逻辑语料，活会话优先，头已克隆。"""
+        '列出完整逻辑语料，活会话优先，头已克隆'
         若已中止则抛出(信号)#入口检查取消
         持久化=自身._持久化#快照当前持久化
         持久头列表=[] if 持久化 is None else 列出持久(持久化,信号)#列出持久头
@@ -46,7 +46,7 @@ class 会话语料库:
         return sorted(记录表.values(),key=会话排序键)#最新优先排序
 
     def 加载(自身,会话号,信号=None):
-        """加载一条逻辑源，优先脱离的活快照。"""
+        '加载一条逻辑源，优先脱离的活快照'
         若已中止则抛出(信号)#入口检查取消
         活=自身._上下文.sessions.get(会话号)#先查活会话
         if 活 is not None:#活会话存在
@@ -82,7 +82,7 @@ class 会话语料库:
         return 快照#返回持久快照
 
     def 批量投影(自身,会话号列表,投影器,信号=None):
-        """从一次持久列出立刻投影去重后的逻辑源。"""
+        '从一次持久列出立刻投影去重后的逻辑源'
         标识列表=list(dict.fromkeys(会话号列表))#按首次出现去重
         若已中止则抛出(信号)#入口检查取消
         已解析={}#已解析结果
@@ -112,7 +112,7 @@ class 会话语料库:
         持久索引={头['id']:头 for 头 in 持久头列表}#按id索引
         锁=threading.Lock()#保护已解析表
         def 解析持久(标识):
-            """解析一条持久会话并投影。"""
+            '解析一条持久会话并投影'
             if 标识 not in 持久索引:#持久列表没有
                 挂上=自身._上下文.sessions.get(标识)#列出后可能已挂上
                 结果=投影源(标识,源活(挂上),投影器,信号) if 挂上 is not None else {'sessionId':标识,'status':'rejected','reason':未找到(标识)}#投影或未找到
@@ -139,7 +139,7 @@ class 会话语料库:
                     已解析[标识]={'sessionId':标识,'status':'rejected','reason':错误}#记下原因
         游标={'值':0}#共享游标
         def 工作线程体():
-            """领任务直到没有更多。"""
+            '领任务直到没有更多'
             while True:#领完为止
                 若已中止则抛出(信号)#领任务前检查取消
                 with 锁:#领取
@@ -159,7 +159,7 @@ class 会话语料库:
         return 有序结果(标识列表,已解析)#按输入顺序返回
 
 def 投影源(会话号,源,投影器,信号=None):
-    """同步投影一条借用源。"""
+    '同步投影一条借用源'
     try:#跑投影器
         若已中止则抛出(信号)#投影前检查取消
         值=投影器(源)#同步折叠
@@ -171,15 +171,15 @@ def 投影源(会话号,源,投影器,信号=None):
         return {'sessionId':会话号,'status':'rejected','reason':原因}#拒绝
 
 def 源活(会话):
-    """直接借用活对象的头、继承切口与事件。"""
+    '直接借用活对象的头、继承切口与事件'
     return {'header':会话.header,'inheritedEventCount':getattr(会话,'inheritedEventCount',0),'events':会话.events}#借用源
 
 def 有序结果(标识列表,已解析):
-    """按输入 id 顺序取出投影结果。"""
+    '按输入 id 顺序取出投影结果'
     return [已解析[标识] for 标识 in 标识列表]#有序列表
 
 def 列出持久(持久化,信号=None):
-    """列出持久会话头。"""
+    '列出持久会话头'
     try:#列出
         return 持久化.列出(信号)#委托持久化
     except Exception as 错误:#列出失败收成 PERSISTENCE_FAILED；取消优先
@@ -188,7 +188,7 @@ def 列出持久(持久化,信号=None):
         raise 会话查询错误('session persistence listing failed: '+错误消息(错误),'SESSION_QUERY_PERSISTENCE_FAILED',{'cause':错误})#打出失败
 
 def 检查持久(持久化,会话号,信号=None):
-    """冷读一条持久会话（已存 + 中断末回合内存闭合），映射查询错误。"""
+    '冷读一条持久会话（已存 + 中断末回合内存闭合），映射查询错误'
     try:#冷读
         冷=读冷会话日志(持久化,会话号,信号)#句柄冷读
         return {
@@ -205,18 +205,18 @@ def 检查持久(持久化,会话号,信号=None):
         raise 会话查询错误('failed to read stored session "'+str(会话号)+'": '+错误消息(错误),'SESSION_QUERY_PERSISTENCE_FAILED',{'cause':错误})#持久失败
 
 def 拍活快照(会话):
-    """克隆活会话的头、继承切口与事件。"""
+    '克隆活会话的头、继承切口与事件'
     return {'header':结构化克隆(会话.header),'inheritedEventCount':getattr(会话,'inheritedEventCount',0),'events':[结构化克隆(事件) for 事件 in 会话.events]}#脱离快照
 
 def 会话排序键(记录):
-    """最新优先，其次按 id。"""
+    '最新优先，其次按 id'
     头=记录['header']#头
     return (-头['createdAt'],头['id'])#时间倒序再 id
 
 def 未找到(会话号):
-    """包装会话未找到错误。"""
+    '包装会话未找到错误'
     return 会话查询错误('session "'+str(会话号)+'" not found','SESSION_QUERY_SESSION_NOT_FOUND')#未找到
 
 def 错误消息(错误):
-    """取出可打印错误消息。"""
+    '取出可打印错误消息'
     return str(错误) if isinstance(错误,BaseException) else 'unknown error'#消息

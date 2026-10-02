@@ -1,26 +1,26 @@
-"""归档动作：菜单项、行悬停按钮，及停止在途工作后归档的确认对话框。"""
+'归档动作：菜单项、行悬停按钮，及停止在途工作后归档的确认对话框'
 
 __all__=['归档会话菜单项','归档会话行按钮','会话归档确认对话框','活动行文案']#仅中文公开名
 
 class 归档会话菜单项:#菜单 order 400
-    """归档，或恢复已归档行。"""
+    '归档，或恢复已归档行'
 
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#props
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#最新
 
     def 渲染(自身):
-        """菜单行。"""
+        '菜单行'
         属性=自身.属性#props
         已归档=属性['useArchived'](lambda 集:属性['sessionId'] in 集)#归档态
         快捷=None if 已归档 else 属性['useShortcuts'](lambda 行表:next((行 for 行 in 行表 if 行['id']=='session.archive'),None))#快捷
         翻译=属性['t']#文案
         def 选定():
-            """关菜单后归档/恢复。"""
+            '关菜单后归档/恢复'
             设开=属性['useMenuOpenState']()[1]#setter
             设开(False)#关
             (属性['unarchiveSession'] if 已归档 else 属性['archiveSession'])(属性['sessionId'])#动作
@@ -34,29 +34,29 @@ class 归档会话菜单项:#菜单 order 400
         }#项结束
 
     def __call__(自身,属性=None):
-        """刷新后渲染。"""
+        '刷新后渲染'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
 
 class 归档会话行按钮:#悬停 order 100
-    """归档，或恢复已归档行。"""
+    '归档，或恢复已归档行'
 
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#props
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#最新
 
     def 渲染(自身):
-        """行按钮。"""
+        '行按钮'
         属性=自身.属性#props
         已归档=属性['useArchived'](lambda 集:属性['sessionId'] in 集)#归档态
         翻译=属性['t']#文案
         def 点击():
-            """归档/恢复。"""
+            '归档/恢复'
             (属性['unarchiveSession'] if 已归档 else 属性['archiveSession'])(属性['sessionId'])#动作
         return {#按钮
             'type':'button','className':'iconButton',#钮
@@ -70,13 +70,13 @@ class 归档会话行按钮:#悬停 order 100
         }#按钮结束
 
     def __call__(自身,属性=None):
-        """刷新后渲染。"""
+        '刷新后渲染'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
 
 def 活动行文案(条目,翻译):
-    """一族活动行：数量与条目标签（无标签用 id）；未知族走通用行。"""
+    '一族活动行：数量与条目标签（无标签用 id）；未知族走通用行'
     项表=条目['items'] if 'items' in 条目 and 条目['items'] is not None else []#项
     数=len(项表)#数
     名=翻译('archive.confirm.listSeparator').join([(项['label'] if 'label' in 项 and 项['label'] is not None else 项['id']) for 项 in 项表])#名串
@@ -93,10 +93,10 @@ def 活动行文案(条目,翻译):
     return 翻译(f'archive.confirm.other.{复}',{'kind':种,'n':数})#通用
 
 class 归档确认表单:#单次请求对话框
-    """在飞与错误态随请求消亡。"""
+    '在飞与错误态随请求消亡'
 
     def __init__(自身,请求,停止并归档,结算,翻译):
-        """记下请求与回调。"""
+        '记下请求与回调'
         自身.请求=请求#请求
         自身.停止并归档=停止并归档#注入
         自身.结算=结算#结算
@@ -105,13 +105,13 @@ class 归档确认表单:#单次请求对话框
         自身.错误=None#错误文
 
     def 关闭(自身):
-        """归档中不可关。"""
+        '归档中不可关'
         if 自身.归档中:#在飞
             return#止
         自身.结算()#结算
 
     def 确认(自身):
-        """停工作并归档。"""
+        '停工作并归档'
         自身.归档中=True#在飞
         自身.错误=None#清错
         应答=自身.停止并归档(自身.请求['sessionId'])#跑
@@ -128,7 +128,7 @@ class 归档确认表单:#单次请求对话框
         自身.结算()#结算
 
     def 渲染(自身):
-        """确认对话框结构。"""
+        '确认对话框结构'
         翻译=自身.翻译#文案
         请求=自身.请求#请求
         活动子=[{'type':'li','key':f"{条['kind']}-{下标}",'children':[活动行文案(条,翻译)]} for 下标,条 in enumerate(请求['activity'])]#活动行
@@ -150,20 +150,20 @@ class 归档确认表单:#单次请求对话框
         }#Modal 结束
 
 class 会话归档确认对话框:#shell.overlay 席
-    """无待确认时 None；有则按会话键一份对话框。"""
+    '无待确认时 None；有则按会话键一份对话框'
 
     def __init__(自身,属性):
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性 if 属性 is not None else {}#props
         自身._表单=None#当前表单
         自身._表单键=None#会话键
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=属性 if 属性 is not None else {}#最新
 
     def 渲染(自身):
-        """打开的对话框，或 None。"""
+        '打开的对话框，或 None'
         属性=自身.属性#props
         请求=属性['useArchiveRequest'](lambda 待:待)#待确认
         if 请求 is None:#无
@@ -177,7 +177,7 @@ class 会话归档确认对话框:#shell.overlay 席
         return 自身._表单.渲染()#渲染
 
     def __call__(自身,属性=None):
-        """刷新后渲染。"""
+        '刷新后渲染'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

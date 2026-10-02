@@ -10,9 +10,9 @@ from .接口 import 抽象接口客户端#抽象 API 客户端
 __all__=['网页接口客户端']#仅中文公开名
 
 class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户端
-    """浏览器平台子类：一元/应答用 fetch；mux/host 用仅下行 WebSocket。"""
+    '浏览器平台子类：一元/应答用 fetch；mux/host 用仅下行 WebSocket'
     def doFetch(自身,输入,初始化=None):#一元请求走浏览器 fetch
-        """标准 fetch 切面；无浏览器时用 urllib。"""
+        '标准 fetch 切面；无浏览器时用 urllib'
         初始化=初始化 if 初始化 is not None else {}#选项
         取=builtins.fetch if hasattr(builtins,'fetch') else None#可能有
         if callable(取):#有 fetch
@@ -26,15 +26,15 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
         return 响应#原始响应
 
     def openMux(自身,_载荷,信号,打开回调=None):#打开复用事件下行
-        """读 mux 路径。"""
+        '读 mux 路径'
         return 自身._读网页套接字(复用事件路径,信号,复用帧模式,打开回调)#读 mux
 
     def openHost(自身,_载荷,信号,打开回调=None):#打开宿主事件下行
-        """读 host 路径。"""
+        '读 host 路径'
         return 自身._读网页套接字(宿主事件路径,信号,宿主帧模式,打开回调)#读 host
 
     def _读网页套接字(自身,路径,信号,帧模式,打开回调=None):#把一条仅下行 WebSocket 变成迭代
-        """产出 RPC 信封；畸形帧丢掉。"""
+        '产出 RPC 信封；畸形帧丢掉'
         基=自身.resolveBase()#基址
         解析=解析URL(拼接URL(基.rstrip('/')+'/',路径.lstrip('/')))
         协议='wss' if 解析.scheme=='https' else 'ws'
@@ -44,16 +44,16 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
         套接字={'v':None}#稍后赋值
 
         def 入队(项):#入队
-            """放入收件箱。"""
+            '放入收件箱'
             收件箱.append(项)#放入
 
         def 处理打开(_事件=None):#套接字打开
-            """打开回调。"""
+            '打开回调'
             if callable(打开回调):#有回调
                 打开回调()#通知
 
         def 处理消息(事件):#一条文本帧
-            """线边界：畸形帧丢掉。"""
+            '线边界：畸形帧丢掉'
             try:#解析
                 数据=事件 if isinstance(事件,str) else 事件.data#文本
                 if not isinstance(数据,str):#不接受二进制
@@ -69,12 +69,12 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
             入队({'kind':'frame','envelope':{'rpcId':rpc标识,'payload':帧}})#入队给迭代器
 
         def 处理关闭(_事件=None):#套接字关则结束流
-            """入队 end。"""
+            '入队 end'
             入队({'kind':'end'})#结束
             结束旗['done']=True#标记
 
         def 处理中止(_事件=None):#取消时关掉仍活着的套接字
-            """连接中或已开才 close。"""
+            '连接中或已开才 close'
             活=套接字['v']#当前
             if 活 is None:#尚未造
                 return#完
@@ -103,7 +103,7 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
             入队({'kind':'end'})#结束
 
         def 生成():#产出信封
-            """直到 end。"""
+            '直到 end'
             try:#把收件箱交给调用方
                 while (not 结束旗['done']) or len(收件箱)>0:#直到排空且结束
                     while len(收件箱)>0:#先排空已到的

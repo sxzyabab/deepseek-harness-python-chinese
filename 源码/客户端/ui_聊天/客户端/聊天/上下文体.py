@@ -2,21 +2,21 @@
 __all__=['上下文体']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 class 上下文体:
-    """按 form 选渲染形态；缺席不透明。"""
+    '按 form 选渲染形态；缺席不透明'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """解析包：summary / body / rendered。"""
+        '解析包：summary / body / rendered'
         属性=自身.属性#props
         形态=属性['form'] if 'form' in 属性 else None#form
         内容=属性['content'] if 'content' in 属性 else None#内容
@@ -37,7 +37,7 @@ class 上下文体:
         return {'summary':摘要出,'body':内容,'rendered':形态出,'form':形态,'cssModule':'上下文体.module.css'}#包
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

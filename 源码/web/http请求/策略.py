@@ -1,4 +1,4 @@
-"""本地 HTTP(S) 抓取提供方的 URL 校验与内容类型分类——纯的、不碰网络的一半。提供方的 fetch() 把这些与传输（跟随重定向、字节上限、解码）组合起来。"""
+'本地 HTTP(S) 抓取提供方的 URL 校验与内容类型分类——纯的、不碰网络的一半'
 import re#抽出 charset 参数
 from urllib.parse import urlparse as 解析网址,urljoin as 拼接网址#解析与相对 Location
 from ..web import 网络错误#web 错误类型
@@ -8,7 +8,10 @@ from ..web import 网络错误#web 错误类型
 字符集参数=re.compile(r';\s*charset\s*=\s*"?([^";]+)"?',re.ASCII|re.I)#charset= 参数，\\s 只吃 ASCII
 
 def 校验抓取网址(输入,最大网址长度):#校验并解析请求 URL
-    """对照提供方在任何网络访问前强制的基本传输卫生校验请求 URL：只允许 http(s)、不许内嵌凭证、长度有界。返回解析后的网址对象。否则抛网络错误。urlparse 对字串不抛，畸形只表现为缺 scheme/netloc。"""
+    """对照提供方在任何网络访问前强制的基本传输卫生校验请求 URL：只允许 http(s)、不许内嵌凭证、长度有界。
+    返回解析后的网址对象。
+    否则抛网络错误。
+    urlparse 对字串不抛，畸形只表现为缺 scheme/netloc"""
     if len(输入)>最大网址长度:#超过长度上限
         raise 网络错误('URL exceeds the maximum length of '+str(最大网址长度),'WEB_INVALID_URL')#过长
     网址=解析网址(输入)#拆绝对 URL
@@ -22,13 +25,15 @@ def 校验抓取网址(输入,最大网址长度):#校验并解析请求 URL
     return 网址#卫生检查通过
 
 def 是否同源(甲,乙):#是否同源
-    """两个 URL 在协议、主机名、端口都相同时为同源。甲乙都是 urlparse 结果。"""
+    """两个 URL 在协议、主机名、端口都相同时为同源。
+    甲乙都是 urlparse 结果"""
     甲端口='' if 甲.port is None else str(甲.port)#对齐 URL.port 缺省空串
     乙端口='' if 乙.port is None else str(乙.port)#对齐 URL.port 缺省空串
     return 甲.scheme==乙.scheme and 甲.hostname==乙.hostname and 甲端口==乙端口#协议、主机、端口都相同
 
 def 分类内容类型(内容类型):#按 MIME 分类
-    """把响应 Content-Type 分类成可解码正文种类；不支持的（例如二进制）为 None。text/html 与 application/xhtml+xml 是 html；其它 text/* 加上几种结构化文本是 text。"""
+    """把响应 Content-Type 分类成可解码正文种类；不支持的（例如二进制）为 None。
+    text/html 与 application/xhtml+xml 是 html；其它 text/* 加上几种结构化文本是 text"""
     原文='' if 内容类型 is None else 内容类型#响应没有该头时为空
     媒体类型=媒体类型去参.sub('',原文,count=1).strip().lower()#去掉参数、去空白、小写；只换第一处
     if 媒体类型=='text/html' or 媒体类型=='application/xhtml+xml':#HTML
@@ -40,7 +45,8 @@ def 分类内容类型(内容类型):#按 MIME 分类
     return None#二进制或不认识
 
 def 解析字符集(内容类型):#抽出 charset
-    """从响应 Content-Type 抽出 charset 参数并小写；缺席则为 None。提供方把这个标签交给解码器，使非 UTF-8 响应按其声明编码解码，而不是悄悄变成替换字符。"""
+    """从响应 Content-Type 抽出 charset 参数并小写；缺席则为 None。
+    提供方把这个标签交给解码器，使非 UTF-8 响应按其声明编码解码，而不是悄悄变成替换字符"""
     原文='' if 内容类型 is None else 内容类型#无头则空串
     命中=字符集参数.search(原文)#匹配 charset= 参数
     if 命中 is None:#未声明
@@ -48,7 +54,9 @@ def 解析字符集(内容类型):#抽出 charset
     return 命中.group(1).strip().lower()#去空白并小写
 
 def 字符集解码器(字符集):#按 charset 建解码标签
-    """按声明的 charset 返回解码用标签；未声明则用 utf-8。标签存在但编解码器不认识时抛网络错误 WEB_UNSUPPORTED_CONTENT_TYPE。''.encode(标签) 对未知标签抛 LookupError。"""
+    """按声明的 charset 返回解码用标签；未声明则用 utf-8。
+    标签存在但编解码器不认识时抛网络错误 WEB_UNSUPPORTED_CONTENT_TYPE。
+    ''.encode(标签) 对未知标签抛 LookupError"""
     if 字符集 is None:#未声明则 UTF-8
         return 'utf-8'#默认编码
     try:#按标签探测
@@ -58,5 +66,6 @@ def 字符集解码器(字符集):#按 charset 建解码标签
         raise 网络错误('unsupported charset "'+字符集+'"','WEB_UNSUPPORTED_CONTENT_TYPE',{'cause':错误})#不支持的内容类型
 
 def 解析重定向目标(位置,基址):#相对 Location 相对基址解析
-    """把（可能相对的）Location 相对当前 URL 解析成绝对串。基址是 urlparse 的 ParseResult，有 geturl。"""
+    """把（可能相对的）Location 相对当前 URL 解析成绝对串。
+    基址是 urlparse 的 ParseResult，有 geturl"""
     return 拼接网址(基址.geturl(),位置)#相对基址解析

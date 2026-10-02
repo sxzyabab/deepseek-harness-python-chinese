@@ -7,15 +7,15 @@ __all__=['聊天快照构建器','聊天视图定义','登记聊天会话视图'
 空列表=()#空只读列表
 
 def 同引用(左,右):
-    """长度与每项 is 都成立。"""
+    '长度与每项 is 都成立'
     return len(左)==len(右) and all(甲 is 乙 for 甲,乙 in zip(左,右))#引用相等
 
 def 步骤键(回合,步):
-    """turn:step。"""
+    'turn:step'
     return str(回合)+':'+str(步)#键
 
 def 位置坐标(位置):
-    """其它种类无坐标。位置为 dict。"""
+    '其它种类无坐标。位置为 dict'
     if 位置 is None:#无
         return {}#无
     种=位置['kind'] if 'kind' in 位置 else None#种
@@ -32,7 +32,7 @@ def 位置坐标(位置):
     return {}#无
 
 def 位置身份(位置):
-    """kind:回合:步骤。"""
+    'kind:回合:步骤'
     坐标=位置坐标(位置)#坐标
     种=位置['kind'] if 位置 is not None and 'kind' in 位置 else None#种
     回合串=str(坐标['turn']) if 'turn' in 坐标 and 坐标['turn'] is not None else ''#回合
@@ -40,57 +40,57 @@ def 位置身份(位置):
     return str(种)+':'+回合串+':'+步串#身份
 
 def 可见排序键(节):
-    """锚点序号再按 key。"""
+    '锚点序号再按 key'
     锚=节['anchorSeq'] if 'anchorSeq' in 节 else 0#锚
     键=节['key'] if 'key' in 节 and 节['key'] is not None else ''#key
     return (锚,键)#排序键
 
 def 有序可见(节点列表):
-    """只要可见。"""
+    '只要可见'
     可见=[节 for 节 in 节点列表 if 'visibility' in 节 and 节['visibility']=='visible']#可见
     return sorted(可见,key=可见排序键)#排序
 
 def 序号键(节):
-    """定稿节点 seq。"""
+    '定稿节点 seq'
     return 节['seq'] if 'seq' in 节 else 0#序号
 
 def 锚点键(值):
-    """贡献锚点。"""
+    '贡献锚点'
     return 值['anchorSeq'] if 'anchorSeq' in 值 else 0#锚点
 
 def 贡献锚(贡献):
-    """贡献的 anchorSeq；缺席为 None。"""
+    '贡献的 anchorSeq；缺席为 None'
     if 贡献 is None or 'anchorSeq' not in 贡献:#无
         return None#缺
     return 贡献['anchorSeq']#锚
 
 def 取贡献节点列表(贡献):
-    """贡献 nodes；缺席或空容器保持空列表。"""
+    '贡献 nodes；缺席或空容器保持空列表'
     if 贡献 is None or 'nodes' not in 贡献 or 贡献['nodes'] is None:#无
         return 空列表#空
     return 贡献['nodes']#节点
 
 class 可变聊天节点存储:
-    """get / values / replace / upsert。快照存储公开面保持这些方法名。"""
+    'get / values / replace / upsert。快照存储公开面保持这些方法名'
     def __init__(自身):
-        """key → 视图节点。"""
+        'key → 视图节点'
         自身.按键={}#表
         自身.值缓存=list(空列表)#values 缓存
         自身.值脏=False#缓存是否脱节
 
     def get(自身,键):
-        """没有则为 None。"""
+        '没有则为 None'
         return 自身.按键[键] if 键 in 自身.按键 else None#节点
 
     def values(自身):
-        """只读值列表。"""
+        '只读值列表'
         if 自身.值脏:#脱节
             自身.值缓存=list(自身.按键.values())#重建
             自身.值脏=False#对齐
         return 自身.值缓存#列表
 
     def replace(自身,节点列表):
-        """立刻重建值缓存。"""
+        '立刻重建值缓存'
         自身.按键.clear()#清空
         for 节 in 节点列表:#放入
             自身.按键[节['key']]=节#按 key
@@ -98,7 +98,7 @@ class 可变聊天节点存储:
         自身.值脏=False#对齐
 
     def upsert(自身,节点列表):
-        """有变化则脏值缓存。"""
+        '有变化则脏值缓存'
         变了=False#是否换了
         for 节 in 节点列表:#逐个
             键=节['key']#key
@@ -110,23 +110,23 @@ class 可变聊天节点存储:
             自身.值脏=True#脏
 
 class 可变聊天位置索引:
-    """getTurn / getStep / rebuild / touch。快照位置索引公开面。"""
+    'getTurn / getStep / rebuild / touch。快照位置索引公开面'
     def __init__(自身):
-        """回合/步骤表。"""
+        '回合/步骤表'
         自身.回合表={}#回合 → keys
         自身.步骤表={}#步骤键 → keys
 
     def getTurn(自身,回合):
-        """缺席回空。"""
+        '缺席回空'
         return 自身.回合表[回合] if 回合 in 自身.回合表 else 空键#列表
 
     def getStep(自身,回合,步):
-        """缺席回空。"""
+        '缺席回空'
         键=步骤键(回合,步)#步骤键
         return 自身.步骤表[键] if 键 in 自身.步骤表 else 空键#列表
 
     def rebuild(自身,序,节点存储):
-        """能沿用旧列表引用则沿用。"""
+        '能沿用旧列表引用则沿用'
         回合表={}#可变
         步骤表={}#可变
         for 键 in 序:#按可见序
@@ -151,7 +151,7 @@ class 可变聊天位置索引:
         自身.步骤表=更新索引(自身.步骤表,步骤表)#同上
 
     def touch(自身,节点列表):
-        """成员数据变了但位置没动时换身份。"""
+        '成员数据变了但位置没动时换身份'
         回合集=set()#需换身份的回合
         步骤集=set()#需换身份的步骤
         for 节 in 节点列表:#逐个
@@ -176,7 +176,7 @@ class 可变聊天位置索引:
                 自身.步骤表[步键]=list(键列表)#浅拷
 
 def 更新索引(先前,下一可变):
-    """避免无谓通知。"""
+    '避免无谓通知'
     下一={}#结果
     键集=set(先前.keys())|set(下一可变.keys())#并集
     for 键 in 键集:#逐键
@@ -190,7 +190,7 @@ def 更新索引(先前,下一可变):
 空贡献={'anchorSeq':0,'nodes':空列表,'partial':None,'running':None}#空贡献
 
 def 遗留贡献(原始):
-    """按渲染器 kind 分发。原始为视图节点 dict。"""
+    '按渲染器 kind 分发。原始为视图节点 dict'
     种=原始['kind'] if 'kind' in 原始 else None#kind
     可见=原始['visibility'] if 'visibility' in 原始 else None#可见性
     数据=原始['data'] if 'data' in 原始 else None#载荷
@@ -233,13 +233,13 @@ def 遗留贡献(原始):
     return 空贡献#未识别
 
 def 偏字段(偏,键):
-    """partial 上的字段；偏为 None 则 None。"""
+    'partial 上的字段；偏为 None 则 None'
     if 偏 is None or 键 not in 偏:#无
         return None#缺
     return 偏[键]#值
 
 def 同贡献(左,右):
-    """锚点/partial/running/nodes 引用。"""
+    '锚点/partial/running/nodes 引用'
     if 左 is None:#无左
         return False#不同
     左偏=左['partial'] if 'partial' in 左 else None#左 partial
@@ -256,7 +256,7 @@ def 同贡献(左,右):
         and 同引用(左节,右节))#全同
 
 def 更新贡献索引(索引,键,贡献,在场):
-    """在场则写入。"""
+    '在场则写入'
     if 在场:#应收录
         索引[键]=贡献#写入
     else:#否则
@@ -264,7 +264,7 @@ def 更新贡献索引(索引,键,贡献,在场):
             del 索引[键]#删除
 
 def 定稿贡献变了(先前,下一):
-    """节点列表或锚点变了。"""
+    '节点列表或锚点变了'
     前节=取贡献节点列表(先前)#旧
     下节=取贡献节点列表(下一)#新
     if not 同引用(前节,下节):#列表不同
@@ -274,7 +274,7 @@ def 定稿贡献变了(先前,下一):
     return False#不变
 
 def 运行贡献变了(先前,下一):
-    """running 引用或锚点变了。"""
+    'running 引用或锚点变了'
     前跑=先前['running'] if 先前 is not None and 'running' in 先前 else None#旧
     下跑=下一['running'] if 'running' in 下一 else None#新
     if 前跑 is not 下跑:#引用不同
@@ -284,7 +284,7 @@ def 运行贡献变了(先前,下一):
     return False#不变
 
 def 局部贡献变了(先前,下一):
-    """partial 字段或锚点变了。"""
+    'partial 字段或锚点变了'
     左偏=先前['partial'] if 先前 is not None and 'partial' in 先前 else None#旧
     右偏=下一['partial'] if 'partial' in 下一 else None#新
     if 偏字段(左偏,'blocks')!=偏字段(右偏,'blocks'):#块不同
@@ -296,9 +296,9 @@ def 局部贡献变了(先前,下一):
     return False#不变
 
 class 遗留切片构建器:
-    """replace / apply。遗留切片公开面。"""
+    'replace / apply。遗留切片公开面'
     def __init__(自身):
-        """分表与缓存。"""
+        '分表与缓存'
         自身.贡献表={}#总表
         自身.定稿贡献={}#定稿分表
         自身.运行贡献={}#运行分表
@@ -311,13 +311,13 @@ class 遗留切片构建器:
         自身.回合结束={}#结束序号
 
     def 索引贡献(自身,键,贡献):
-        """有内容才进对应分表。"""
+        '有内容才进对应分表'
         更新贡献索引(自身.定稿贡献,键,贡献,len(取贡献节点列表(贡献))>0)#定稿
         更新贡献索引(自身.运行贡献,键,贡献,('running' in 贡献 and 贡献['running'] is not None))#运行
         更新贡献索引(自身.局部贡献,键,贡献,('partial' in 贡献 and 贡献['partial'] is not None))#局部
 
     def 重建定稿(自身):
-        """引用变了才换。"""
+        '引用变了才换'
         摊=[]#摊平
         for 值 in 自身.定稿贡献.values():#贡献
             摊.extend(取贡献节点列表(值))#节点
@@ -326,7 +326,7 @@ class 遗留切片构建器:
             自身.定稿=定稿#换
 
     def 重建运行(自身):
-        """引用变了才换。"""
+        '引用变了才换'
         排=sorted(自身.运行贡献.values(),key=锚点键)#锚点升序
         运行=[]#抽出
         for 值 in 排:#扫
@@ -336,7 +336,7 @@ class 遗留切片构建器:
             自身.运行调用=运行#换
 
     def 重建局部(自身):
-        """块/坐标变了才换。"""
+        '块/坐标变了才换'
         排=sorted(自身.局部贡献.values(),key=锚点键)#升序
         局部=None#结果
         for 值 in 排:#找最后非空
@@ -347,7 +347,7 @@ class 遗留切片构建器:
             自身.局部=局部#换
 
     def 更新时间线(自身,时间线):
-        """同一引用则跳过。时间线为 dict。"""
+        '同一引用则跳过。时间线为 dict'
         if 自身.时间线 is 时间线:#同一
             return#跳过
         自身.时间线=时间线#记下
@@ -370,11 +370,11 @@ class 遗留切片构建器:
         自身.回合结束=结束#换
 
     def 快照(自身):
-        """切片字段。"""
+        '切片字段'
         return {'nodes':自身.定稿,'turnTimings':自身.回合计时,'turnEnds':自身.回合结束,'partial':自身.局部,'runningCalls':自身.运行调用}#切片
 
     def replace(自身,节点列表,时间线):
-        """全量重算兼容切片。"""
+        '全量重算兼容切片'
         自身.贡献表.clear()#清空
         自身.定稿贡献.clear()#清空
         自身.运行贡献.clear()#清空
@@ -391,7 +391,7 @@ class 遗留切片构建器:
         return 自身.快照()#读出
 
     def apply(自身,写入列表,时间线):
-        """身份相同则跳过。"""
+        '身份相同则跳过'
         定稿变=False#定稿是否重建
         运行变=False#运行是否重建
         局部变=False#局部是否重建
@@ -416,9 +416,9 @@ class 遗留切片构建器:
         return 自身.快照()#读出
 
 class 聊天快照构建器:
-    """replace / apply；登记在 chat 目标下。"""
+    'replace / apply；登记在 chat 目标下'
     def __init__(自身):
-        """存储、索引、遗留。"""
+        '存储、索引、遗留'
         自身.节点存储=可变聊天节点存储()#按 key
         自身.位置=可变聊天位置索引()#位置索引
         自身.遗留=遗留切片构建器()#遗留
@@ -427,7 +427,7 @@ class 聊天快照构建器:
         自身.empty=自身.组装(空时间线,自身.遗留.replace(空列表,空时间线))#空快照
 
     def replace(自身,输入):
-        """存储全量 + 重建索引。输入为 dict。"""
+        '存储全量 + 重建索引。输入为 dict'
         节点列表=输入['nodes'] if 'nodes' in 输入 and 输入['nodes'] is not None else []#节点
         时间线=输入['timeline'] if 'timeline' in 输入 else None#时间线
         自身.节点存储.replace(节点列表)#全量
@@ -436,7 +436,7 @@ class 聊天快照构建器:
         return 自身.组装(时间线,自身.遗留.replace(节点列表,时间线))#快照
 
     def apply(自身,输入):
-        """结构变化则重排；仅内容变则 touch。输入为 dict。"""
+        '结构变化则重排；仅内容变则 touch。输入为 dict'
         写入=输入['upserts'] if 'upserts' in 输入 and 输入['upserts'] is not None else []#写入
         时间线=输入['timeline'] if 'timeline' in 输入 else None#时间线
         结构=False#是否结构变
@@ -460,13 +460,13 @@ class 聊天快照构建器:
         return 自身.组装(时间线,自身.遗留.apply(写入,时间线))#快照
 
     def 组装(自身,时间线,遗留=None):
-        """快照字段。"""
+        '快照字段'
         if 遗留 is None:#缺省
             遗留=自身.遗留.replace(空列表,时间线)#空节点全量
         return {'order':自身.序,'nodes':自身.节点存储,'locations':自身.位置,'timeline':时间线,'legacy':遗留}#快照
 
 def 造聊天快照构建器():
-    """每次新建构建器。"""
+    '每次新建构建器'
     return 聊天快照构建器()#新建
 
 聊天视图定义={#Chat 目标定义
@@ -475,5 +475,5 @@ def 造聊天快照构建器():
 }#结束
 
 def 登记聊天会话视图(上下文):
-    """conversationViews.register。"""
+    'conversationViews.register'
     上下文.conversationViews.register(聊天视图定义)#登记

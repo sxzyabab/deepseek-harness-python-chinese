@@ -1,13 +1,15 @@
-"""`@deepseek-ai/dsh-commands` 的包内不变量配套：命令生命周期事件在同一会话日志内按 commandId 配对。"""
+'`@deepseek-ai/dsh-commands` 的包内不变量配套：命令生命周期事件在同一会话日志内按 commandId 配对'
 包名='@deepseek-ai/dsh-commands'#本包名，用于登记所有权
 名称='commands-invariant'#配套插件名
 依赖=['invariants']
 
 def 安装(上下文,失败):#安装配对校验
-    """对已加载日志和新追加的生命周期事件安装配对校验。"""
+    '对已加载日志和新追加的生命周期事件安装配对校验'
     运行标识表={}#每会话已见的 run id；按会话身份弱关联用 id(session)
     def 校验事件(会话,事件):#校验单条生命周期事件
-        """校验单条 command/run 或 command/done。事件是 dict。"""
+        """校验单条 command/run 或 command/done。
+        事件是 dict
+        """
         类型=事件['type']#事件类型
         数据=事件['data'] if 'data' in 事件 else None#事件载荷
         if 类型=='command/run':#开始事件
@@ -53,7 +55,7 @@ def 安装(上下文,失败):#安装配对校验
         for 事件 in 会话.events:#回放历史事件
             校验事件(会话,事件)#校验
     def 内部派发(_模式,事件名,参数,*位置参数):#拦截新追加的会话事件
-        """提交前/派发时校验 session/event。"""
+        '提交前/派发时校验 session/event'
         if 事件名!='session/event':#只关心会话事件
             return#放过
         会话=参数[0]#拆出会话
@@ -64,7 +66,7 @@ def 安装(上下文,失败):#安装配对校验
 安装.inject=['sessions']#安装器还依赖 sessions
 
 def 应用(上下文):#对外导出配套入口
-    """登记本包的不变量配套，返回安装成功后已登记项的拆除器。"""
+    '登记本包的不变量配套，返回安装成功后已登记项的拆除器'
     return 上下文.invariants.register(包名,安装)#向不变量服务登记安装器
 
 __all__=['包名','名称','依赖','安装','应用']

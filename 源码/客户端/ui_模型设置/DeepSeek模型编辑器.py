@@ -10,7 +10,7 @@ __all__=[#仅中文公开名
 行号前缀=re.compile(r'^[0-9]+',re.ASCII)#缓冲键行号
 
 def 解析容量(文本):#解析 K/M 容量拼写
-    """空为继承；不可读为 NaN。"""
+    '空为继承；不可读为 NaN'
     去空白=文本.strip()#去空白
     if len(去空白)==0:#空
         return None#继承
@@ -24,7 +24,7 @@ def 解析容量(文本):#解析 K/M 容量拼写
     return 取整 if abs(缩放-取整)<1e-6 else 缩放#整意图则取整
 
 def 格式化容量(值):#最短可回写拼写
-    """非正整数原样；能整除 M/K 则用后缀。"""
+    '非正整数原样；能整除 M/K 则用后缀'
     if not isinstance(值,(int,float)) or isinstance(值,bool):#非数
         return str(值)#原样
     if not float(值).is_integer() or 值<=0:#非整或非正
@@ -37,7 +37,7 @@ def 格式化容量(值):#最短可回写拼写
     return str(整)#原样
 
 def 模型草稿表(值):#目录值→开放记录表
-    """非数组则空；非对象项变空对象。"""
+    '非数组则空；非对象项变空对象'
     if not isinstance(值,list):#非数组
         return []#空
     结果=[]#草稿
@@ -49,7 +49,7 @@ def 模型草稿表(值):#目录值→开放记录表
     return 结果#草稿表
 
 def 校验DeepSeek模型(值):#适配器约束校验
-    """首个非法行；继承态(undefined)通过。"""
+    '首个非法行；继承态(undefined)通过'
     if 值 is None:#继承
         return None#通过
     模型列表=模型草稿表(值)#草稿
@@ -74,23 +74,23 @@ def 校验DeepSeek模型(值):#适配器约束校验
     return None#通过
 
 def 行号自键(键):#缓冲键前缀行号
-    """`index:field` 取行号。"""
+    '`index:field` 取行号'
     return int(键[:键.index(':')])#行号
 
 class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
-    """id/name 行上，容量藏在行披露里。"""
+    'id/name 行上，容量藏在行披露里'
     def __init__(自身,属性):#构造
-        """记下 props 与编辑缓冲。"""
+        '记下 props 与编辑缓冲'
         自身.属性=属性#合成 props
         自身.编辑中={}#键→键入文本
         自身.已展开=set()#展开行
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 改字段(自身,下标,键,值):#改一行字段
-        """替换用户层数组。"""
+        '替换用户层数组'
         模型列表=list(自身.属性['models']) if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#当前
         下一=[]#新表
         for 位,模型 in enumerate(模型列表):#逐行
@@ -106,7 +106,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             变更(下一)#通知
 
     def 移除(自身,下标):#删一行并重键缓冲
-        """行号移动后保留未删缓冲。"""
+        '行号移动后保留未删缓冲'
         新编辑={}#新缓冲
         for 键,文本 in 自身.编辑中.items():#每缓冲
             位=行号自键(键)#行
@@ -128,7 +128,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             变更(模型列表)#通知
 
     def 重置(自身):#清除覆盖回继承
-        """清缓冲并 onReset。"""
+        '清缓冲并 onReset'
         自身.编辑中={}#清
         自身.已展开=set()#清
         复位=自身.属性['onReset'] if 'onReset' in 自身.属性 else None#回调
@@ -136,14 +136,14 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             复位()#复位
 
     def 切换展开(自身,下标):#切换行披露
-        """开则关，关则开。"""
+        '开则关，关则开'
         if 下标 in 自身.已展开:#已开
             自身.已展开.discard(下标)#关
         else:#未开
             自身.已展开.add(下标)#开
 
     def 容量文本(自身,模型,下标,字段):#容量字段显示文本
-        """优先键入缓冲，否则格式化存量。"""
+        '优先键入缓冲，否则格式化存量'
         键=f'{下标}:{字段}'#缓冲键
         if 键 in 自身.编辑中:#有键入
             return 自身.编辑中[键]#键入
@@ -151,7 +151,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         return 格式化容量(值) if isinstance(值,(int,float)) and not isinstance(值,bool) else ''#拼写
 
     def 落定容量(自身,下标,字段):#失焦落定可读缓冲
-        """不可读文本留屏。"""
+        '不可读文本留屏'
         键=f'{下标}:{字段}'#键
         if 键 not in 自身.编辑中:#无
             return
@@ -161,7 +161,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         自身.编辑中.pop(键,None)#清缓冲
 
     def 渲染(自身):#结构化视图
-        """目录头、行、添加。"""
+        '目录头、行、添加'
         翻译=自身.属性['t']#文案
         禁用=bool(自身.属性['disabled']) if 'disabled' in 自身.属性 else False#禁用
         模型列表=list(自身.属性['models']) if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#行
@@ -173,20 +173,20 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             标识=模型['id'] if 'id' in 模型 else None#id
             名称=模型['name'] if 'name' in 模型 else None#name
             def 切换本行(某=下标):#披露
-                """切换该行展开。"""
+                '切换该行展开'
                 自身.切换展开(某)#切换
             def 移除本行(某=下标):#删除
-                """删除该行。"""
+                '删除该行'
                 自身.移除(某)#删除
             def 改标识(文,某=下标):#改 id
-                """写入 id。"""
+                '写入 id'
                 自身.改字段(某,'id',文)#改
             def 落定标识(文,某=下标):#失焦 id
-                """去空白后写回。"""
+                '去空白后写回'
                 if 文.strip()!=文:#有空白
                     自身.改字段(某,'id',文.strip())#落定
             def 改名称(文,某=下标):#改 name
-                """空串则清 name。"""
+                '空串则清 name'
                 自身.改字段(某,'name',None if 文=='' else 文)#改
             行={#行
                 'index':下标,#下标
@@ -201,13 +201,13 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             }#行基础
             if 下标 in 自身.已展开:#披露容量
                 def 造容量(字段,回退,某=下标,模=模型):#容量控件
-                    """单容量字段。"""
+                    '单容量字段'
                     def 键入(文,行号=某,列=字段):#键入
-                        """缓冲并解析。"""
+                        '缓冲并解析'
                         自身.编辑中[f'{行号}:{列}']=文#缓冲
                         自身.改字段(行号,列,解析容量(文))#写行
                     def 失焦(行号=某,列=字段):#失焦
-                        """落定可读缓冲。"""
+                        '落定可读缓冲'
                         自身.落定容量(行号,列)#落定
                     标签键='contextWindow' if 字段=='contextWindow' else 'maxTokens'#标签
                     占位键='contextWindowPlaceholder' if 字段=='contextWindow' else 'maxTokensPlaceholder'#占位
@@ -222,7 +222,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
                 行['advanced']=[造容量('contextWindow',默认上下文),造容量('maxTokens',默认上限)]#高级
             行表.append(行)#记入
         def 添加():#加空 id 行
-            """追加空模型。"""
+            '追加空模型'
             变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
             if 变更 is not None:#有
                 变更([dict(模) for 模 in 模型列表]+[{'id':''}])#追加
@@ -242,7 +242,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         }#视图结束
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

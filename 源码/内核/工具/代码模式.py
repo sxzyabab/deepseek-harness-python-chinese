@@ -17,22 +17,22 @@ json缩进='  '#两空格 JSON 呈现
 json缩进上限=10#总缩进上限
 
 class 代码模式错误(Exception):
-    """内核工具代码模式包的异常基类。"""
+    '内核工具代码模式包的异常基类'
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._原生结果=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._原生结果.done():
             自身._原生结果.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._原生结果.done():
             if isinstance(错误,BaseException):
                 自身._原生结果.set_exception(错误)#原样拒绝
@@ -42,13 +42,14 @@ class 操作任务:
                 自身._原生结果.set_exception(包装)#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._原生结果.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
-    """threading.Event 取消通道。原因用异常对象承载。"""
+    """threading.Event 取消通道。
+    原因用异常对象承载"""
     def __init__(自身,已中止标志=False):
-        """创建一条取消通道。"""
+        '创建一条取消通道'
         自身._事件=threading.Event()#中止标志
         自身._异常=None#中止时抛出的异常
         if 已中止标志:
@@ -56,7 +57,7 @@ class 中止信号:
             自身._异常=代码模式错误('已中止')#默认中止异常
 
     def 触发(自身,原因=None):
-        """标记中止。"""
+        '标记中止'
         if 自身._事件.is_set():
             return#已触发
         if isinstance(原因,BaseException):
@@ -70,23 +71,24 @@ class 中止信号:
         自身._事件.set()#置位
 
 class 中止控制器:
-    """发出中止的控制器。"""
+    '发出中止的控制器'
     def __init__(自身):
-        """创建配套信号。"""
+        '创建配套信号'
         自身.信号=中止信号()#本控制器的信号
 
     def 中止(自身,原因=None):
-        """中止配套信号。"""
+        '中止配套信号'
         自身.信号.触发(原因)#触发一次
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    """信号是否已中止。
+    无信号视为未中止"""
     if 信号 is None:
         return False#未中止
     return 信号._事件.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
-    """已中止则抛出承载原因的异常。"""
+    '已中止则抛出承载原因的异常'
     if 信号 is None:
         return#无信号
     if not 信号._事件.is_set():
@@ -96,10 +98,11 @@ def 若已中止则抛出(信号):
     raise 代码模式错误('已中止')#默认中止
 
 def 在线程执行(函数):
-    """在工作线程执行并返回任务。回调翻译时已是同步函数。"""
+    """在工作线程执行并返回任务。
+    回调翻译时已是同步函数"""
     任务=操作任务()#本次任务
     def 执行并结算():
-        """执行函数并结算。"""
+        '执行函数并结算'
         try:
             任务.兑现(函数())#兑现同步返回值
         except BaseException as 错误:
@@ -110,9 +113,10 @@ def 在线程执行(函数):
     return 任务#操作任务
 
 def 全部结算(任务列表):
-    """并发等全部落定，吞掉失败。列表项必须是操作任务。"""
+    """并发等全部落定，吞掉失败。
+    列表项必须是操作任务"""
     def 等待并吞错(任务):
-        """等待一路并吞错。"""
+        '等待一路并吞错'
         try:
             任务.等待()#等待
         except BaseException:
@@ -127,10 +131,10 @@ def 全部结算(任务列表):
         工作.join()#等到结束
 
 def 任一落定(任务集):
-    """最先落定的那路胜出。"""
+    '最先落定的那路胜出'
     完成=threading.Event()#任一完成
     def 等待一路落定(任务):
-        """等待一路并唤醒。"""
+        '等待一路并唤醒'
         try:
             任务.等待()#等待
         except BaseException:
@@ -143,7 +147,7 @@ def 任一落定(任务集):
     完成.wait()#阻塞到任一落定
 
 def 空结算任务():
-    """立刻结算的空操作任务。"""
+    '立刻结算的空操作任务'
     任务=操作任务()#空任务
     任务.兑现(None)#立刻结算
     return 任务#已决议
@@ -187,7 +191,7 @@ python风味={
 升级指引文案=' A sandbox escalation approves this complete program for one execution only. Nested tools retain their own policies and approvals. Request wider access only after evidence of a denial. Earlier effects may already have completed: inspect them before explicitly retrying. Programs are never replayed automatically.'#升级指引
 
 def 控制参数(运行时):
-    """按运行时能力裁剪 timeoutMs 与沙箱升级字段。"""
+    '按运行时能力裁剪 timeoutMs 与沙箱升级字段'
     if 运行时 is None:
         return dict(运行代码控件)#目录读者给全套
     结果={}#按能力收录
@@ -202,7 +206,7 @@ def 控制参数(运行时):
     return 结果#已裁剪
 
 def 升级指引(运行时):
-    """运行时有文件政策时返回升级指引，否则空串。"""
+    '运行时有文件政策时返回升级指引，否则空串'
     if 运行时 is None:
         return ''#无运行时
     if 运行时.沙箱模式() is None:
@@ -210,7 +214,7 @@ def 升级指引(运行时):
     return 升级指引文案#指引
 
 def 解析风味(窥探运行时):
-    """按已加载运行时的语言解析 run_code 风味。"""
+    '按已加载运行时的语言解析 run_code 风味'
     运行时=窥探运行时()#窥探运行时
     if 运行时 is None:
         return typescript风味#TS 回落
@@ -221,14 +225,14 @@ def 解析风味(窥探运行时):
     return 运行代码风味[语言]#该语言风味
 
 class 代码运行失败错误(框架错误):
-    """程序运行本身失败时由 run_code 抛出。"""
+    '程序运行本身失败时由 run_code 抛出'
     def __init__(自身,消息):
-        """用失败消息构造。"""
+        '用失败消息构造'
         super().__init__(消息,'CODE_RUN_FAILED')#框架错误码
         自身.name='CodeRunFailedError'#类名
 
 def 错误文本(错误):
-    """从抛出值取人类可读消息。"""
+    '从抛出值取人类可读消息'
     if isinstance(错误,Exception):
         消息=getattr(错误,'message',None)#Error.message
         if isinstance(消息,str):
@@ -239,7 +243,7 @@ def 错误文本(错误):
     return str(错误)#其余
 
 def json归一参数(值):
-    """把一次绑定调用的参数快照成无损 JSON，再对这份已脱离值再快照一次。"""
+    '把一次绑定调用的参数快照成无损 JSON，再对这份已脱离值再快照一次'
     try:
         快照=快照json值(值)#脱离
     except Exception as 错误:
@@ -252,7 +256,7 @@ def json归一参数(值):
     return {'dispatched':快照,'logged':已记}#派发用第一份，日志用第二份
 
 def 渲染json数字(值):
-    """把数字渲染成十进制文本，匹配 JS String(number) 的输出（布尔为 true/false）。"""
+    '把数字渲染成十进制文本，匹配 JS String(number) 的输出（布尔为 true/false）'
     if isinstance(值,bool):
         return 'true' if 值 else 'false'#布尔到不了这里
     if isinstance(值,int):
@@ -262,7 +266,7 @@ def 渲染json数字(值):
     return str(值)#浮点
 
 def 渲染json值(值):
-    """渲染一个非字符串 JSON 根，不用递归遍历，也不让缩进无界增长。"""
+    '渲染一个非字符串 JSON 根，不用递归遍历，也不让缩进无界增长'
     块列表=[]#输出块
     任务列表=[{'kind':'value','value':值,'depth':0,'compact':False}]#从根值起步
     任务=任务列表.pop() if 任务列表 else None#弹出任务
@@ -343,27 +347,27 @@ def 渲染json值(值):
     return ''.join(块列表)#拼成字符串
 
 def 渲染完成值(值):
-    """把一次程序完成值渲染成面向模型的结果文本。"""
+    '把一次程序完成值渲染成面向模型的结果文本'
     if isinstance(值,str):
         return 值#字符串原样
     return 渲染json值(值)#其余走 JSON
 
 class 带取值定义(dict):
-    """允许 description/parameters 以取值器发出。"""
+    '允许 description/parameters 以取值器发出'
     def __init__(自身,源,描述取值=None,参数取值=None):
-        """记下静态字段与取值器。"""
+        '记下静态字段与取值器'
         super().__init__(源)#拷贝静态
         自身._描述取值=描述取值#描述 getter
         自身._参数取值=参数取值#参数 getter
     def __getitem__(自身,键):
-        """读字段，取值器优先。"""
+        '读字段，取值器优先'
         if 键=='description' and 自身._描述取值 is not None:
             return 自身._描述取值()#发出时读风味
         if 键=='parameters' and 自身._参数取值 is not None:
             return 自身._参数取值()#发出时重编译
         return super().__getitem__(键)#静态字段
     def get(自身,键,缺省=None):
-        """对齐 dict.get，走取值器。"""
+        '对齐 dict.get，走取值器'
         if 键=='description' and 自身._描述取值 is not None:
             return 自身._描述取值()#描述
         if 键=='parameters' and 自身._参数取值 is not None:
@@ -371,7 +375,7 @@ class 带取值定义(dict):
         return super().get(键,缺省)#静态
 
 def 创建运行代码工具(注册表,选项):
-    """构建 run_code 工具定义。"""
+    '构建 run_code 工具定义'
     要求运行时=选项['requireRuntime']#必需运行时
     窥探运行时=选项['peekRuntime']#窥探运行时
     窥探审批=选项['peekApprover']#窥探审批通道
@@ -379,13 +383,13 @@ def 创建运行代码工具(注册表,选项):
     并行上限=选项['maxParallel']#并行上限
     整形派发日志=选项['shapeDispatchLog']#整形日志内容
     def 渲染运行代码输出(_参数,值):
-        """渲染模型文本。"""
+        '渲染模型文本'
         return _渲染运行代码(值,窥探运行时)#委托
     def 跑传输(参数,执行):
-        """跑程序。"""
+        '跑程序'
         return 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,并行上限,整形派发日志,参数,执行)#委托
     def 呈现运行代码调用(参数):
-        """待处理呈现。"""
+        '待处理呈现'
         return {
             'card':'generic',#通用卡片
             'title':参数['description'],#UI 标题
@@ -429,7 +433,7 @@ def 创建运行代码工具(注册表,选项):
         'presentCall':呈现运行代码调用,#待处理呈现
     })#经 defineTool 编译
     def 读描述():
-        """发出时读风味描述、执行说明与升级指引。"""
+        '发出时读风味描述、执行说明与升级指引'
         运行时=窥探运行时()#当前运行时
         说明=运行时.执行说明() if 运行时 is not None else ''#提供方说明
         文案=解析风味(窥探运行时)['description']#当前风味
@@ -439,7 +443,7 @@ def 创建运行代码工具(注册表,选项):
             文案=文案+" The working directory is the Session's current directory."#工作目录句
         return 文案+升级指引(运行时)#接升级指引
     def 读参数():
-        """按当前风味重编译参数模式。"""
+        '按当前风味重编译参数模式'
         规格={
             'code':{'type':'string','required':True,'description':解析风味(窥探运行时)['codeDescription']},#代码描述随语言
             'description':{'type':'string','required':True,'description':运行代码描述参数文案},#标签文案不变
@@ -449,7 +453,7 @@ def 创建运行代码工具(注册表,选项):
     return 带取值定义(定义,读描述,读参数)#替换 description/parameters
 
 def _渲染运行代码(值,窥探运行时):
-    """渲染 run_code 规范输出。"""
+    '渲染 run_code 规范输出'
     渲染='' if 'result' not in 值 else 渲染完成值(值['result'])#返回值文本
     段列表=[项 for 项 in ['\n'.join(值['logs']),渲染] if len(项)>0]#去掉空段
     沙箱=值.get('sandbox')#沙箱投影
@@ -461,7 +465,7 @@ def _渲染运行代码(值,窥探运行时):
     return [{'type':'text','text':文本}]#文本块
 
 def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,并行上限,整形派发日志,参数,执行):
-    """跑一次 run_code 程序并排空子派发。"""
+    '跑一次 run_code 程序并排空子派发'
     from . import 调度器符号#延迟导入
     if len(参数['description'].strip())==0:
         raise 代码模式错误('invalid description: expected a non-empty string')#必须非空
@@ -496,7 +500,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
     本轮=中止控制器()#本轮控制器
     外层信号=执行['signal'] if 'signal' in 执行 else None#外层取消通道
     def 跟外层中止():
-        """外层中止则跟中止。"""
+        '外层中止则跟中止'
         if 外层信号 is None:
             return#无外层
         外层信号._事件.wait()#阻塞到外层置位
@@ -517,21 +521,21 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
     驾驶任务=空结算任务()#当前驱动任务
     条件=threading.Condition()#唤醒车道
     def 唤醒():
-        """唤醒驱动。"""
+        '唤醒驱动'
         with 条件:
             条件.notify_all()#唤醒等待
     def 本轮已结束():
-        """本轮是否已结束。"""
+        '本轮是否已结束'
         return 已中止(本轮.信号)#现场读取
     def 驱动():
-        """唯一有序车道。"""
+        '唯一有序车道'
         nonlocal 驾驶中,驾驶任务,独占活动
         with 条件:
             if 驾驶中:
                 return 驾驶任务#已在跑则复用
             驾驶中=True#占车道
         def 车道():
-            """新一轮驱动。"""
+            '新一轮驱动'
             nonlocal 驾驶中,独占活动
             try:
                 while True:
@@ -569,11 +573,11 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                         可开始['start']()#有序 prepare + 启动体
                         飞行=可开始['flight']#在飞体
                         def 离池(任务=飞行):
-                            """体结束后离池。"""
+                            '体结束后离池'
                             在飞.discard(任务)#离池
                             唤醒()#唤醒车道
                         def 等待飞行落定(任务=飞行,收尾=离池):
-                            """等到飞行落定。"""
+                            '等到飞行落定'
                             try:
                                 任务.等待()#等待
                             except BaseException:
@@ -589,15 +593,15 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
         驾驶任务=在线程执行(车道)#新一轮驱动
         return 驾驶任务#返回本轮驱动
     def 排空派发():
-        """每次派发都已落定并提交。"""
+        '每次派发都已落定并提交'
         驱动().等待()#跑到静止
         while len(日志工作)>0:
             全部结算(list(日志工作))#排空日志副作用
     def 绑定(模式):
-        """绑定一个工具。"""
+        '绑定一个工具'
         名称=模式['name']#工具名
         def 调用(原始参数):
-            """一次 SDK 子派发。"""
+            '一次 SDK 子派发'
             nonlocal 子调用序号
             if 本轮已结束():
                 raise 代码模式错误('run_code run is over ('+str(本轮.信号._异常)+'); '+名称+' not dispatched')#不再派发
@@ -619,7 +623,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
             结局任务=操作任务()#程序可见结局
             停住盒=[None]#停住的结局
             def 落定(结果):
-                """把结局交给程序并记日志。"""
+                '把结局交给程序并记日志'
                 if 结果['isError']:
                     结局任务.兑现({'isError':True,'message':结果['error']['message']})#程序可见错误
                 else:
@@ -628,7 +632,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 if 智能体 is None:
                     return#无智能体则不追加
                 def 日志体():
-                    """日志副作用。"""
+                    '日志副作用'
                     已记=整形派发日志({
                         'exec':执行,#父执行
                         'agent':智能体,#智能体
@@ -652,10 +656,10 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                     智能体.session.append('tool/ptc-dispatch',事件)#落定事件
                 日志任务=在线程执行(日志体)#跟踪副作用
                 def 日志离集(任务=日志任务):
-                    """落定后离集。"""
+                    '落定后离集'
                     日志工作.discard(任务)#离集
                 def 等待日志落定(任务=日志任务,收尾=日志离集):
-                    """等到日志落定。"""
+                    '等到日志落定'
                     try:
                         任务.等待()#等待
                     except BaseException:
@@ -670,13 +674,13 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 'settled':False,#尚未停住
             }#排队条目
             def 分类():
-                """惰性分类。"""
+                '惰性分类'
                 return 注册表.执行模式(输入)['kind']#对照 SDK 声明的同一智能体视图
             def 放弃():
-                """放弃未开始者。"""
+                '放弃未开始者'
                 结局任务.拒绝(代码模式错误('run_code run is over ('+str(本轮.信号._异常)+'); '+名称+' tool call abandoned'))#未开始被放弃
             def 开始():
-                """有序开始。"""
+                '有序开始'
                 智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
                 if 智能体 is not None:
                     智能体.session.append('tool/ptc-dispatch-start',{
@@ -689,7 +693,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 已准备=调度器['prepare'](输入)#预执行/守卫
                 if 已准备['kind']=='dispatch':
                     def 启动派发体():
-                        """启动体。"""
+                        '启动体'
                         派发结局=调度器['dispatch'](已准备['exec'])#环绕+体
                         停住盒[0]={'kind':派发结局['kind'],'exec':已准备['exec'],'result':派发结局['result']}#停住
                         条目['settled']=True#允许提交
@@ -699,7 +703,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 停住盒[0]={'kind':已准备['kind'],'exec':已准备['exec'],'result':已准备['result']}#预落定
                 条目['settled']=True#可提交
             def 提交():
-                """有序提交。"""
+                '有序提交'
                 停住=停住盒[0]#已停住结局
                 if 停住 is None:
                     return#防御

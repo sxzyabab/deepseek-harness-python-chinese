@@ -1,8 +1,4 @@
-"""单消费者 Remote 流的可重连生命周期。
-
-用同步生成器表达代际语义；连接代际源取
-`connection.generation` 或 `connection.hostDescription`。
-"""
+'单消费者 Remote 流的可重连生命周期'
 import threading#代际寿命与等待
 from .流载体 import 远程流载体错误#载体错误
 from .网关 import 已中止,中止控制器,中止信号#中止原语
@@ -13,7 +9,7 @@ __all__=[#仅中文公开名
 
 
 def 取连接代际源(连接):
-    """返回带 getSnapshot/subscribe 的代际观察面。"""
+    '返回带 getSnapshot/subscribe 的代际观察面'
     if 连接 is None:#无
         return None#空
     if hasattr(连接,'generation'):#上游命名
@@ -24,24 +20,24 @@ def 取连接代际源(连接):
 
 
 class 远程流项:
-    """带物理代际注解的一项。"""
+    '带物理代际注解的一项'
 
     def __init__(自身,代际,值,信号,接受器):
-        """记下代际、值、信号与接受回调。"""
+        '记下代际、值、信号与接受回调'
         自身.generation=代际#代际号
         自身.value=值#条目
         自身.signal=信号#代际信号
         自身._接受器=接受器#接受
 
     def accept(自身):
-        """将该代际开口标为已接受。"""
+        '将该代际开口标为已接受'
         自身._接受器()
 
 class 远程流:
-    """跨载体代际重开一条逻辑 Remote 流。"""
+    '跨载体代际重开一条逻辑 Remote 流'
 
     def __init__(自身,连接,选项):
-        """选项：name / open(signal)->iterable / ended(accepted)->Error / carrierFailed?。"""
+        '选项：name / open(signal)->iterable / ended(accepted)->Error / carrierFailed?'
         自身._连接=连接#连接
         自身._选项=选项#选项
         自身._寿命=中止控制器()#逻辑寿命
@@ -53,11 +49,11 @@ class 远程流:
 
     @property
     def signal(自身):
-        """共享取消寿命。"""
+        '共享取消寿命'
         return 自身._寿命.信号
 
     def restart(自身):
-        """中断当前代际并请求替换。"""
+        '中断当前代际并请求替换'
         if 已中止(自身._寿命.信号):#已拆
             return#空
         with 自身._锁:#改修订
@@ -67,7 +63,7 @@ class 远程流:
             代.中止(RuntimeError(自身._选项['name']+' generation restarted'))
 
     def dispose(自身):
-        """永久停止本流。"""
+        '永久停止本流'
         if 自身._关闭中:#幂等
             return#已拆
         自身._关闭中=True#标记
@@ -80,14 +76,14 @@ class 远程流:
                 代.中止(原因)
 
     def __iter__(自身):
-        """单消费者同步迭代。"""
+        '单消费者同步迭代'
         if 自身._已取:#重复
             raise RuntimeError(自身._选项['name']+' already has a consumer')#拒绝
         自身._已取=True#占用
         return 自身._读()#生成器
 
     def _读(自身):
-        """代际读取循环。"""
+        '代际读取循环'
         尝试盒=[0]#重试（可变）
         代际号=0#计数
         已观察修订=自身._修订#修订
@@ -155,7 +151,7 @@ class 远程流:
                 代.中止(Exception(自身._选项['name']+' disposed'))#跟寿命
 
     def _标记接受(自身,控,订,已接受,尝试盒):
-        """开口接受：重置重试计数。"""
+        '开口接受：重置重试计数'
         with 自身._锁:#核对
             if 自身._代际中止 is not 控 or 订!=自身._修订:#过期
                 return#忽略
@@ -164,7 +160,7 @@ class 远程流:
 
 
 def _终端流失败(错误):
-    """穿越流边界前标记终端逃逸。"""
+    '穿越流边界前标记终端逃逸'
     消息=错误.args[0] if isinstance(错误,BaseException) and 错误.args else str(错误)#消息
     包装=RuntimeError(消息)#包装
     包装.name='RemoteError'#近似
@@ -175,7 +171,7 @@ def _终端流失败(错误):
 
 
 def _等待远程流重试(连接,错误,尝试,信号):
-    """Connection 拥有物理重试时机。"""
+    'Connection 拥有物理重试时机'
     if 已中止(信号):#已取消
         raise RuntimeError('Remote stream retry aborted')#中止
     代际=取连接代际源(连接)#代际源
@@ -191,14 +187,14 @@ def _等待远程流重试(连接,错误,尝试,信号):
     失败=[None]#失败槽
 
     def 检查():
-        """快照出现则放行。"""
+        '快照出现则放行'
         if 代际.getSnapshot() is not None:#已连
             完成.set()#放行
 
     取消订=代际.subscribe(检查)#订阅
 
     def 中止监视():
-        """信号中止则失败。"""
+        '信号中止则失败'
         while not 完成.wait(0.05):#短等
             if 已中止(信号):#取消
                 失败[0]=Exception('Remote stream retry aborted')

@@ -1,7 +1,7 @@
 __all__=['计划失败行']#仅中文公开名
 
 def 计划失败行(翻译,失败):
-    """用当前 locale 解释失败的计划读取。"""
+    '用当前 locale 解释失败的计划读取'
     码=失败['code']#错误码
     if 码=='plan/invalid-address':#地址无效
         return 翻译('preview.invalidAddress')#文案

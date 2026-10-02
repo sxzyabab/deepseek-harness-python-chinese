@@ -15,11 +15,11 @@ __all__=[#仅中文公开名
 ]#公开结束
 
 def vfs():#取当前活动VFS
-    """取当前活动 VFS。"""
+    '取当前活动 VFS'
     return 要求活动vfs()#取当前活动VFS
 
 def 归一路径(路径):#归一为路径字符串
-    """路径参数转字符串。"""
+    '路径参数转字符串'
     if isinstance(路径,str): return 路径#字符串原样
     if type(路径).__name__=='URL' or hasattr(路径,'pathname'):#URL
         from urllib.parse import unquote#解码
@@ -27,43 +27,43 @@ def 归一路径(路径):#归一为路径字符串
     return bytes(路径).decode('utf-8') if isinstance(路径,(bytes,bytearray)) else str(路径)#字节解码
 
 def 取编码(选项):#提取编码
-    """从编码选项提取编码。"""
+    '从编码选项提取编码'
     if 选项 is None: return None#空则无编码
     if isinstance(选项,str): return 选项#字符串即编码
     if isinstance(选项,dict): return 选项.get('encoding')#对象取encoding
     return getattr(选项,'encoding',None)#属性
 
 def 数值模式(模式):#把八进制字符串或数字权限位收成int
-    """规范化 mode。"""
+    '规范化 mode'
     return int(模式,8) if isinstance(模式,str) else 模式#字符串按八进制
 
 def 读字节(路径):#同步读字节
-    """同步读文件字节。"""
+    '同步读文件字节'
     return vfs().读取文件同步(路径)#委托VFS
 
 def 作缓冲(字节):#视图包为Buffer
-    """共享 VFS 字节而非复制。"""
+    '共享 VFS 字节而非复制'
     return Buffer.from(字节)#包装
 
 class 目录条目:#目录条目
-    """`readdirSync(dir, { withFileTypes: true })` 返回的 Node `Dirent` 子集。"""
+    '`readdirSync(dir, { withFileTypes: true })` 返回的 Node `Dirent` 子集'
 
     def __init__(自身,名称,父路径,文件):#构造目录条目
-        """构建一个目录条目。"""
+        '构建一个目录条目'
         自身.name=名称#保存名
         自身.parentPath=父路径#保存父路径
         自身._文件=文件#保存文件标志
 
     def 是文件(自身):#是否文件
-        """条目是否为普通文件。"""
+        '条目是否为普通文件'
         return 自身._文件#返回标志
 
     def 是目录(自身):#是否目录
-        """条目是否为目录。"""
+        '条目是否为目录'
         return not 自身._文件#非文件即目录
 
     def 是符号链接(自身):#是否符号链接
-        """镜像物化时无符号链接。"""
+        '镜像物化时无符号链接'
         return False#镜像无符号链接
 
     isFile=是文件#Node面
@@ -79,7 +79,7 @@ Dirent=目录条目#Node面别名
 constants=常量#Node面别名
 
 def 读取文件同步(路径,选项=None):#同步读文件
-    """读取文件。"""
+    '读取文件'
     编码=取编码(选项)#解析编码
     字节=读字节(归一路径(路径))#读字节
     if 编码 is None: return 作缓冲(字节)#Buffer
@@ -87,29 +87,29 @@ def 读取文件同步(路径,选项=None):#同步读文件
     return 作缓冲(字节).toString(编码)#其它编码
 
 def 写入文件同步(路径,数据,选项=None):#同步写文件
-    """写入文件。"""
+    '写入文件'
     vfs().写入文件同步(归一路径(路径),数据,选项)#委托VFS
 
 def 追加文件同步(路径,数据):#同步追加
-    """追加到文件，不存在时创建。"""
+    '追加到文件，不存在时创建'
     vfs().追加文件同步(归一路径(路径),数据)#委托VFS
 
 def 存在同步(路径):#同步存在性
-    """路径是否存在。"""
+    '路径是否存在'
     return vfs().存在同步(归一路径(路径))#委托VFS
 
 def 统计同步(路径,选项=None):#同步stat
-    """对路径做 stat。"""
+    '对路径做 stat'
     return vfs().统计同步(归一路径(路径),选项)#委托VFS
 
 def 统计(路径,选项或回调=None,或许回调=None):#异步回调stat
-    """经 Node 回调形式读取 stats。"""
+    '经 Node 回调形式读取 stats'
     选项=None if callable(选项或回调) else 选项或回调#解析选项
     回调=选项或回调 if callable(选项或回调) else 或许回调#解析回调
     if 回调 is None: raise TypeError('The "callback" argument must be of type function')#必须有回调
     微任务=globals().get('queueMicrotask')#微任务
     def 执行():#微任务体
-        """同步stat后回调。"""
+        '同步stat后回调'
         try: 结果=统计同步(路径,选项)#同步stat
         except 运行时错误 as 错误:#VFS 失败
             回调(错误)#回调错误
@@ -119,26 +119,26 @@ def 统计(路径,选项或回调=None,或许回调=None):#异步回调stat
     else: 执行()#同步兜底仅当无微任务API
 
 def 改权限同步(路径,模式):#同步chmod
-    """更改条目权限位；stat 精确读回所设。"""
+    '更改条目权限位；stat 精确读回所设'
     vfs().改权限同步(归一路径(路径),数值模式(模式))#解析并委托
 
 def 链接统计同步(路径,选项=None):#同步lstat
-    """对路径做 stat 且不跟随符号链接（镜像无符号链接）。"""
+    '对路径做 stat 且不跟随符号链接（镜像无符号链接）'
     return 统计同步(路径,选项)#无符号链接委托stat
 
 def 链接统计(路径,选项或回调=None,或许回调=None):#异步回调lstat
-    """经 Node 回调形式读取链接 stats；此无符号链接 VFS 委托给 stat。"""
+    '经 Node 回调形式读取链接 stats；此无符号链接 VFS 委托给 stat'
     统计(路径,选项或回调,或许回调)#委托stat
 
 def 真实路径同步(路径):#同步realpath
-    """规范路径（仅规范化：镜像无符号链接）。"""
+    '规范路径（仅规范化：镜像无符号链接）'
     return vfs().真实路径同步(归一路径(路径))#委托VFS
 
 def 真实路径(路径,回调):#异步回调realpath
-    """经 Node 回调形式解析规范路径，并挂 native 别名。"""
+    '经 Node 回调形式解析规范路径，并挂 native 别名'
     微任务=globals().get('queueMicrotask')#微任务
     def 执行():#微任务体
-        """同步realpath后回调。"""
+        '同步realpath后回调'
         try: 结果=真实路径同步(路径)#同步realpath
         except 运行时错误 as 错误:#VFS 失败
             回调(错误)#回调错误
@@ -150,7 +150,7 @@ def 真实路径(路径,回调):#异步回调realpath
 真实路径.native=真实路径#Node native 别名
 
 def 读目录同步(路径,选项=None):#同步列目录
-    """列出目录。"""
+    '列出目录'
     目标=归一路径(路径)#归一路径
     名称列表=vfs().读目录同步(目标)#列名
     if not isinstance(选项,dict) or 选项.get('withFileTypes') is not True: return 名称列表#仅名称
@@ -162,11 +162,11 @@ def 读目录同步(路径,选项=None):#同步列目录
     return 结果#返回
 
 def 建目录同步(路径,选项=None):#同步mkdir
-    """创建目录。"""
+    '创建目录'
     return vfs().建目录同步(归一路径(路径),选项)#委托VFS
 
 def 建临时目录同步(前缀):#同步mkdtemp
-    """创建唯一命名目录。"""
+    '创建唯一命名目录'
     #不用 crypto.randomUUID：浏览器仅在安全上下文暴露它。
     字节=bytearray(3)#3字节
     globals()['crypto'].getRandomValues(字节)#填充随机
@@ -176,26 +176,26 @@ def 建临时目录同步(前缀):#同步mkdtemp
     return 目标#返回路径
 
 def 移除同步(路径,选项=None):#同步rm
-    """移除文件或目录。"""
+    '移除文件或目录'
     vfs().移除同步(归一路径(路径),选项)#委托VFS
 
 def 取消链接同步(路径):#同步unlink
-    """移除文件。"""
+    '移除文件'
     vfs().移除同步(归一路径(路径))#委托rm
 
 def 重命名同步(源路径,目标路径):#同步rename
-    """重命名路径。"""
+    '重命名路径'
     vfs().重命名同步(归一路径(源路径),归一路径(目标路径))#委托VFS
 
 def 访问同步(路径):#同步access
-    """访问检查：仅存在性。"""
+    '访问检查：仅存在性'
     vfs().真实路径同步(归一路径(路径))#存在性检查
 
 _打开文件表={}#fd到打开文件
 _下一fd=3#下一描述符从3起
 
 def 打开同步(路径,标志='r',模式=None):#同步open
-    """打开文件描述符。"""
+    '打开文件描述符'
     global _下一fd#_下一fd
     目标=归一路径(路径)#归一路径
     文件=vfs().打开文件同步(目标,标志,模式)#打开文件
@@ -205,20 +205,20 @@ def 打开同步(路径,标志='r',模式=None):#同步open
     return fd#返回描述符
 
 def 坏描述符(系统调用):#抛出EBADF
-    """抛出 EBADF。"""
+    '抛出 EBADF'
     错误=Exception(f'EBADF: bad file descriptor, {系统调用}')#构造错误
     错误.code='EBADF'#错误码
     错误.syscall=系统调用#系统调用名
     raise 错误#抛出
 
 def 取打开文件(fd,系统调用):#按fd取打开文件
-    """按 fd 取打开文件。"""
+    '按 fd 取打开文件'
     if fd not in _打开文件表: return 坏描述符(系统调用)#无效则抛
     文件=_打开文件表[fd]#查找
     return 文件#返回
 
 def 读取同步(fd,缓冲,偏移=0,长度=None,位置=None):#同步read
-    """从描述符读取。"""
+    '从描述符读取'
     if 长度 is None:#默认长度
         长度=缓冲.byteLength if hasattr(缓冲,'byteLength') else len(缓冲)#读取长度
     打开=取打开文件(fd,'read')#取打开文件
@@ -231,7 +231,7 @@ def 读取同步(fd,缓冲,偏移=0,长度=None,位置=None):#同步read
     return 长#返回长度
 
 def 写入同步(fd,数据):#同步write
-    """经描述符写入。"""
+    '经描述符写入'
     打开=取打开文件(fd,'write')#取打开文件
     if isinstance(数据,str):#文本
         编码器=globals().get('TextEncoder')#TextEncoder
@@ -246,19 +246,19 @@ def 写入同步(fd,数据):#同步write
     return 已写#返回写入数
 
 def 关闭同步(fd):#同步close
-    """关闭描述符。"""
+    '关闭描述符'
     if not _打开文件表.pop(fd,None): 取打开文件(fd,'close')#删除失败则抛EBADF
 
 def 硬链接同步(源路径,目标路径):#同步硬链
-    """为同一文件身份创建第二个名称。"""
+    '为同一文件身份创建第二个名称'
     vfs().硬链接同步(归一路径(源路径),归一路径(目标路径))#委托VFS
 
 def _兑现(值):#同步交回
-    """原样交回同步值。"""
+    '原样交回同步值'
     return 值#同步值
 
 def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
-    """打开文件句柄（`fs.FileHandle` 子集）：存储后端使用的原子写与持久化对。"""
+    '打开文件句柄（`fs.FileHandle` 子集）：存储后端使用的原子写与持久化对'
     目标=归一路径(路径)#归一路径
     存在=vfs().存在同步(目标)#存在
     统计值=vfs().统计同步(目标) if 存在 else None#stat
@@ -270,11 +270,11 @@ def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
     已关闭=[False]#关闭标志
 
     def 描述符(系统调用):#按调用取打开文件
-        """按调用取打开文件。"""
+        '按调用取打开文件'
         return 取打开文件(fd,系统调用)#取
 
     def 读整文件(选项=None):#读整文件
-        """读整文件。"""
+        '读整文件'
         if 目录: return _兑现(读取文件同步(目标,选项))#目录路径读文件
         打开=描述符('read')#取打开状态
         文统=打开['file'].stat()#stat
@@ -287,48 +287,48 @@ def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
         return _兑现(作缓冲(字节).toString(编码))#其它编码
 
     def 写整文件(数据,编码=None):#写整文件
-        """写整文件。"""
+        '写整文件'
         if 目录: 写入文件同步(目标,数据)#目录路径写文件
         else: 写入同步(fd,数据)#经fd写
         return _兑现(None)#兑现
 
     def 写一段(数据):#写一段
-        """写一段。"""
+        '写一段'
         return _兑现({'bytesWritten':写入同步(fd,数据)})#写一段
 
     def 读一段(缓冲,偏移=0,长度=None,位置=None):#读一段
-        """读一段。"""
+        '读一段'
         return _兑现({'bytesRead':读取同步(fd,缓冲,偏移,长度,位置),'buffer':缓冲})#同步读
 
     def 改权限(模式):#改权限
-        """改权限。"""
+        '改权限'
         if 目录: 改权限同步(目标,模式)#目录路径chmod
         else: 描述符('fchmod')['file'].chmod(数值模式(模式))#经句柄chmod
         return _兑现(None)#兑现
 
     def 取统计(选项=None):#取stats
-        """取 stats。"""
+        '取 stats'
         if 目录: return _兑现(统计同步(目标,选项))#目录路径stat
         if 选项 is not None and 'bigint' in 选项 and 选项['bigint'] is True:#BigInt形态
             return _兑现(描述符('fstat')['file'].statBigInt())#句柄BigInt
         return _兑现(描述符('fstat')['file'].stat())#句柄普通
 
     def 截断(长度=0):#截断
-        """截断。"""
+        '截断'
         if 目录: 写入文件同步(目标,bytearray(长度))#目录路径写空字节
         else: 描述符('ftruncate')['file'].truncate(长度)#经句柄截断
         return _兑现(None)#兑现
 
     def 刷盘():#刷盘
-        """刷盘。"""
+        '刷盘'
         return vfs().flush()#刷盘
 
     def 数据刷盘():#数据刷盘
-        """数据刷盘。"""
+        '数据刷盘'
         return vfs().flush()#数据刷盘
 
     def 关闭句柄():#关闭句柄
-        """关闭句柄。"""
+        '关闭句柄'
         if 已关闭[0]: return _兑现(None)#已关则跳过
         已关闭[0]=True#标记关闭
         if fd!=-1: 关闭同步(fd)#有fd则关闭
@@ -338,11 +338,11 @@ def 打开句柄同步(路径,标志='r',模式=None):#同步打开句柄
         'chmod':改权限,'stat':取统计,'truncate':截断,'sync':刷盘,'datasync':数据刷盘,'close':关闭句柄}#其余
 
 def 流自动销毁(自动关闭):#默认自动销毁
-    """Node 通过流的 `autoDestroy` 状态实现文件流 `autoClose`。"""
+    'Node 通过流的 `autoDestroy` 状态实现文件流 `autoClose`'
     return True if 自动关闭 is None else 自动关闭#默认自动销毁
 
 def 销毁文件流(流,信号,中止回调,错误,回调):#销毁文件流
-    """释放两个文件流方向共享的描述符。"""
+    '释放两个文件流方向共享的描述符'
     if 流.fd is not None:#有描述符
         关闭同步(流.fd)#关闭fd
     流.fd=None#清空fd
@@ -350,19 +350,19 @@ def 销毁文件流(流,信号,中止回调,错误,回调):#销毁文件流
     回调(错误)#回调
 
 def 关闭文件流(流,回调=None):#关闭文件流
-    """注册可选完成回调并显式销毁文件流。"""
+    '注册可选完成回调并显式销毁文件流'
     if 回调 is not None:#有完成回调
         def 关闭后():#close 后回调
-            """以无错误回调。"""
+            '以无错误回调'
             回调(None)#完成
         流.once('close',关闭后)#close后回调
     流.destroy()#销毁
 
 class 读流(Readable):#可读文件流
-    """跨一个 VFS 文件的读流。"""
+    '跨一个 VFS 文件的读流'
 
     def __init__(自身,路径,选项=None):#构造读流
-        """打开路径上的读流。"""
+        '打开路径上的读流'
         if 选项 is None: 选项={}#缺省
         super().__init__({#初始化可读基类
             'autoDestroy':流自动销毁(选项.get('autoClose')),#自动销毁
@@ -383,7 +383,7 @@ class 读流(Readable):#可读文件流
             自身.setEncoding(选项['encoding'])#设编码
 
     def _construct(自身,callback):#打开构造
-        """打开描述符。"""
+        '打开描述符'
         if 自身._start<0 or 自身._end<自身._start:#范围非法
             callback(RangeError('The value of "start" is out of range'))#回调范围错
             return#返回
@@ -401,7 +401,7 @@ class 读流(Readable):#可读文件流
         自身.emit('ready')#发射ready
 
     def _read(自身,size):#拉取数据
-        """拉取数据。"""
+        '拉取数据'
         if 自身.fd is None: return#尚无fd
         剩余=size if 自身._end==float('inf') else min(size,自身._end-自身._position+1)#剩余可读
         if 剩余<=0:#无剩余
@@ -420,11 +420,11 @@ class 读流(Readable):#可读文件流
         自身.push(缓冲.subarray(0,计数) if hasattr(缓冲,'subarray') else 缓冲[0:计数])#推送切片
 
     def _destroy(自身,error,callback):#销毁钩子
-        """销毁钩子。"""
+        '销毁钩子'
         销毁文件流(自身,自身._信号,自身._中止回调,error,callback)#共享销毁
 
     def 关闭(自身,回调=None):#关闭读流
-        """关闭流并释放其描述符。"""
+        '关闭流并释放其描述符'
         关闭文件流(自身,回调)#共享关闭
 
     close=关闭#Node面
@@ -432,10 +432,10 @@ class 读流(Readable):#可读文件流
 ReadStream=读流#Node面别名
 
 class 写流(Writable):#可写文件流
-    """经 VFS 文件描述符表面提交块的可写流。"""
+    '经 VFS 文件描述符表面提交块的可写流'
 
     def __init__(自身,路径,选项=None):#构造写流
-        """打开路径上的写流。"""
+        '打开路径上的写流'
         if 选项 is None: 选项={}#缺省
         super().__init__({#初始化可写基类
             'autoDestroy':流自动销毁(选项.get('autoClose')),#自动销毁
@@ -455,7 +455,7 @@ class 写流(Writable):#可写文件流
         自身._中止回调=None#不再挂监听
 
     def _construct(自身,callback):#打开构造
-        """打开描述符。"""
+        '打开描述符'
         if 自身._start is not None and 自身._start<0:#起始非法
             callback(RangeError('The value of "start" is out of range'))#回调范围错
             return#返回
@@ -474,7 +474,7 @@ class 写流(Writable):#可写文件流
         自身.emit('ready')#发射ready
 
     def _write(自身,chunk,encoding,callback):#写入钩子
-        """写入钩子。"""
+        '写入钩子'
         try:#尝试写
             if 自身.fd is None: return 坏描述符('write')#无fd则抛
             数据=Buffer.from(chunk,encoding) if isinstance(chunk,str) else chunk#归一字节
@@ -484,11 +484,11 @@ class 写流(Writable):#可写文件流
             callback(错误)#回调错误
 
     def _destroy(自身,error,callback):#销毁钩子
-        """销毁钩子。"""
+        '销毁钩子'
         销毁文件流(自身,自身._信号,自身._中止回调,error,callback)#共享销毁
 
     def 关闭(自身,回调=None):#关闭写流
-        """关闭流并释放其描述符。"""
+        '关闭流并释放其描述符'
         关闭文件流(自身,回调)#共享关闭
 
     close=关闭#Node面
@@ -496,43 +496,43 @@ class 写流(Writable):#可写文件流
 WriteStream=写流#Node面别名
 
 def 创建读流(路径,选项=None):#创建读流
-    """跨 VFS 创建 Node 兼容的可读文件流。"""
+    '跨 VFS 创建 Node 兼容的可读文件流'
     return 读流(路径,{'encoding':选项} if isinstance(选项,str) else 选项)#构造
 
 def 创建写流(路径,选项=None):#创建写流
-    """跨 VFS 创建 Node 兼容的可写文件流。"""
+    '跨 VFS 创建 Node 兼容的可写文件流'
     return 写流(路径,{'encoding':选项} if isinstance(选项,str) else 选项)#构造
 
 def 打开目录同步(路径):#同步打开目录
-    """打开目录句柄。列表取一次，因为 VFS 无外部写者可竞态。"""
+    '打开目录句柄。列表取一次，因为 VFS 无外部写者可竞态'
     目标=归一路径(路径)#归一路径
     条目列表=读目录同步(目标,{'withFileTypes':True})#一次列出
     下标=[0]#游标
 
     def 下一条():#取下一条
-        """取下一条。"""
+        '取下一条'
         if 下标[0]>=len(条目列表): return None#耗尽
         条目=条目列表[下标[0]]#取
         下标[0]+=1#推进
         return 条目#交回
 
     def 读():#异步读
-        """异步读下一条。"""
+        '异步读下一条'
         return _兑现(下一条())#兑现
 
     def 关():#异步关闭
-        """异步关闭耗尽。"""
+        '异步关闭耗尽'
         下标[0]=len(条目列表)#耗尽
         return _兑现(None)#兑现
 
     def 同步关():#同步关闭耗尽
-        """同步关闭耗尽。"""
+        '同步关闭耗尽'
         下标[0]=len(条目列表)#耗尽
 
     return {'path':目标,'read':读,'close':关,'closeSync':同步关}#返回句柄
 
 def _异步写文件(路径,数据,选项=None):#写文件
-    """写文件，含排他与追加。"""
+    '写文件，含排他与追加'
     flag=None if 选项 is None or 'flag' not in 选项 else 选项['flag']#取flag
     mode=None if 选项 is None or 'mode' not in 选项 else 选项['mode']#取mode
     if flag is not None and 'x' in flag and 存在同步(路径):#排他且已存在
@@ -551,7 +551,7 @@ def _异步写文件(路径,数据,选项=None):#写文件
     return None#完成
 
 def _异步复制(源路径,目标路径):#复制
-    """递归复制文件或目录。"""
+    '递归复制文件或目录'
     源=归一路径(源路径)#源路径
     目标=归一路径(目标路径)#目标路径
     统计值=统计同步(源)#stats
@@ -565,78 +565,78 @@ def _异步复制(源路径,目标路径):#复制
     return None#完成
 
 def 承诺读文件(路径,选项=None):#fs.promises.readFile
-    """读文件。"""
+    '读文件'
     return 读取文件同步(路径,选项)#同步读
 
 def 承诺追加文件(路径,数据):#fs.promises.appendFile
-    """追加文件。"""
+    '追加文件'
     追加文件同步(路径,数据)#同步追加
     return None#完成
 
 def 承诺建目录(路径,选项=None):#fs.promises.mkdir
-    """建目录。"""
+    '建目录'
     return 建目录同步(路径,选项)#同步
 
 def 承诺建临时目录(前缀):#fs.promises.mkdtemp
-    """建临时目录。"""
+    '建临时目录'
     return 建临时目录同步(前缀)#同步
 
 def 承诺读目录(路径,选项=None):#fs.promises.readdir
-    """列目录。"""
+    '列目录'
     return 读目录同步(路径,选项)#同步
 
 def 承诺统计(路径,选项=None):#fs.promises.stat
-    """stat。"""
+    'stat'
     return 统计同步(路径,选项)#同步
 
 def 承诺链接统计(路径,选项=None):#fs.promises.lstat
-    """lstat。"""
+    'lstat'
     return 链接统计同步(路径,选项)#同步
 
 def 承诺真实路径(路径):#fs.promises.realpath
-    """realpath。"""
+    'realpath'
     return 真实路径同步(路径)#同步
 
 def 承诺移除(路径,选项=None):#fs.promises.rm
-    """rm。"""
+    'rm'
     移除同步(路径,选项)#同步
     return None#完成
 
 def 承诺取消链接(路径):#fs.promises.unlink
-    """unlink。"""
+    'unlink'
     取消链接同步(路径)#同步
     return None#完成
 
 def 承诺重命名(源路径,目标):#fs.promises.rename
-    """rename。"""
+    'rename'
     重命名同步(源路径,目标)#同步
     return None#完成
 
 def 承诺访问(路径):#fs.promises.access
-    """access。"""
+    'access'
     访问同步(路径)#同步
     return None#完成
 
 def 承诺改权限(路径,模式):#fs.promises.chmod
-    """chmod。"""
+    'chmod'
     改权限同步(路径,模式)#同步
     return None#完成
 
 def 承诺硬链接(源路径,目标):#fs.promises.link
-    """硬链。"""
+    '硬链'
     硬链接同步(源路径,目标)#同步
     return None#完成
 
 def 承诺打开(路径,标志=None,模式=None):#fs.promises.open
-    """打开句柄。"""
+    '打开句柄'
     return 打开句柄同步(路径,'r' if 标志 is None else 标志,模式)#同步
 
 def 承诺打开目录(路径):#fs.promises.opendir
-    """打开目录。"""
+    '打开目录'
     return 打开目录同步(路径)#同步
 
 def 承诺截断(路径,长度=0):#fs.promises.truncate
-    """截断。"""
+    '截断'
     vfs().截断同步(归一路径(路径),长度)#同步
     return None#完成
 

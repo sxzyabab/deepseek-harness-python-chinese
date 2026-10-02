@@ -10,12 +10,12 @@ __all__=['网页配置档捆绑','组合捆绑名册','网页应用名册']#仅�
 百分C=re.compile(r'%C')#include 插件的 %C 占位
 
 def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
-    """按应用顺序组合捆绑表的浏览器名册。"""
+    '按应用顺序组合捆绑表的浏览器名册'
     if 锚点 is None:#缺省本文件
         锚点=os.path.abspath(__file__)#本文件
     层表=[读一层(名,锚点) for 名 in 捆绑表]#读每层
     def 补丁失败(消息,*参数):#补丁失败即抛
-        """把 include 警告收成组装错误。"""
+        '把 include 警告收成组装错误'
         raise 客户端测试运行时错误('client-test-runtime: bundle patch '+描述补丁(消息,参数))#英文诊断
     条目列表=应用插件补丁([],[补丁 for 层 in 层表 for 补丁 in 层['patches']],补丁失败)#应用补丁
     锚点表=[层['manifestPath'] for 层 in 层表]#各层清单路径
@@ -48,7 +48,7 @@ def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
     return 客户端名册.从行表(行表)#建造名册
 
 def 读一层(捆绑,锚点):#读一层捆绑
-    """定位捆绑 package.json 并解析其补丁列表。"""
+    '定位捆绑 package.json 并解析其补丁列表'
     清单路径=定位清单([锚点],捆绑)#定位捆绑 package.json
     if 清单路径 is None:#解析不到
         raise 客户端测试运行时错误('client-test-runtime: cannot resolve bundle '+捆绑)#英文诊断
@@ -66,7 +66,7 @@ def 读一层(捆绑,锚点):#读一层捆绑
     return {'manifestPath':清单路径,'patches':解析结果}#返回层
 
 def 摊平组(条目列表,继承=None):#摊平组
-    """按 Loader 顺序摊平组后的行；组本身从不是插件，组的 disabled 禁用其下每一行。"""
+    '按 Loader 顺序摊平组后的行；组本身从不是插件，组的 disabled 禁用其下每一行'
     行表=[]#摊平行
     for 条目 in 条目列表:#逐条
         自身禁用=条目['disabled'] if isinstance(条目,dict) and 'disabled' in 条目 else None#自身禁用
@@ -79,12 +79,12 @@ def 摊平组(条目列表,继承=None):#摊平组
     return 行表#返回
 
 def 读清单(路径):#读 package.json
-    """解析包清单。"""
+    '解析包清单'
     with open(路径,'r',encoding='utf-8') as 文件:#读
         return json.load(文件)#解析
 
 def 定位清单(锚点列表,名称):#定位清单
-    """在任一锚点向上的 node_modules 上定位 名称/package.json。"""
+    '在任一锚点向上的 node_modules 上定位 名称/package.json'
     for 锚点 in 锚点列表:#每个锚点
         当前=os.path.dirname(os.path.abspath(锚点)) if os.path.isfile(锚点) else os.path.abspath(锚点)#起点
         while True:#向上走
@@ -98,10 +98,10 @@ def 定位清单(锚点列表,名称):#定位清单
     return None#未命中
 
 def 描述补丁(消息,参数):#描述补丁
-    """按启动器打印方式填充 %C。"""
+    '按启动器打印方式填充 %C'
     下标=[0]#参数游标
     def 填一处(_匹配):#填一处
-        """取下一个参数作 JSON。"""
+        '取下一个参数作 JSON'
         值=参数[下标[0]] if 下标[0]<len(参数) else None#参数
         下标[0]+=1#前进
         return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON

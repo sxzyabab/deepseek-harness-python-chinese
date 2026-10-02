@@ -13,14 +13,14 @@ __all__=[#仅中文公开名
 _活动=None#当前活动加载器
 
 def 是否记录(值):#判断是否为普通对象
-    """非 null 非数组对象。"""
+    '非 null 非数组对象'
     return isinstance(值,dict)#普通对象
 
 class 工作线程模块加载器:#Worker模块加载器
-    """单个 VFS 挂载的加载器；每个 worker 构造一次。"""
+    '单个 VFS 挂载的加载器；每个 worker 构造一次'
 
     def __init__(自身,选项):#构造加载器
-        """绑定 VFS、静态表与 ALS。"""
+        '绑定 VFS、静态表与 ALS'
         自身._vfs=选项['vfs']#绑定VFS
         自身._根=选项['root'] if 选项.get('root') is not None else '/dsh'#??默认虚拟根，空串合法
         自身._静态模块=dict(选项['staticModules'])#静态模块转表
@@ -28,7 +28,7 @@ class 工作线程模块加载器:#Worker模块加载器
         if 前缀表 is None: 前缀表={}#??空表，空字典合法
         前缀条目=list(前缀表.items())#静态前缀条目
         def 前缀长度(项):#前缀长度键
-            """按前缀字符串长度排序。"""
+            '按前缀字符串长度排序'
             return len(项[0])#长度
         前缀条目.sort(key=前缀长度,reverse=True)#按前缀长度降序
         自身._静态前缀=前缀条目#前缀列表
@@ -40,7 +40,7 @@ class 工作线程模块加载器:#Worker模块加载器
         自身._清单表={}#包清单缓存
         自身._栈=[]#导入链栈
         def 内部解析(说明符,父网址=None):#内部解析闭包
-            """解析为内部接缝结果。"""
+            '解析为内部接缝结果'
             来自=自身._根 if 父网址 is None else 自身._基目录(父网址)#解析基目录
             解析结果=自身.解析(说明符,来自)#解析说明符
             if 解析结果['kind']=='static':#静态作内建
@@ -50,11 +50,11 @@ class 工作线程模块加载器:#Worker模块加载器
                 'url':路径转文件url(解析结果['path']),#路径转文件URL
             }#返回文件解析
         def 异步导入(说明符,父网址=None,属性=None):#异步导入实现
-            """解析并加载。"""
+            '解析并加载'
             来自=自身._根 if 父网址 is None else 自身._基目录(父网址)#导入基目录
             return 自身.加载(自身.解析(说明符,来自))#解析并加载
         def 异步解析(说明符,父网址=None,属性=None):#异步解析转发
-            """转发内部解析。"""
+            '转发内部解析'
             return 内部解析(说明符,父网址)#转发
         自身.internal={#装配内部接缝
             'version':'worker',#接缝版本
@@ -64,12 +64,12 @@ class 工作线程模块加载器:#Worker模块加载器
         }#internal赋值结束
 
     def _失败(自身,细节):#抛出带导入链的错误
-        """抛出加载错误。"""
+        '抛出加载错误'
         链='' if len(自身._栈)==0 else f" (importer chain: {' -> '.join(自身._栈)})"#导入链文本
         raise 运行时错误(f'webworker modules: {细节}{链}')#抛出加载错误
 
     def _基目录(自身,基):#计算基目录
-        """基路径或 URL 据以解析说明符的目录。"""
+        '基路径或 URL 据以解析说明符的目录'
         文本=基 if isinstance(基,str) else getattr(基,'href',str(基))#统一为字符串
         路径=文件url转路径(文本) if 文本.startswith('file://') else 文本#文件URL转路径
         if 路径.endswith('/'):#尾斜杠即目录
@@ -79,7 +79,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return 目录名(路径)#父目录
 
     def _清单(自身,目录):#读取包清单
-        """读取并缓存 package.json。"""
+        '读取并缓存 package.json'
         缓存=自身._清单表.get(目录)#查清单缓存
         if 缓存 is not None:#命中则返回
             return 缓存#返回
@@ -95,7 +95,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return 解析值#返回清单
 
     def _选择导出(自身,字段,子路径,包名):#选择exports目标
-        """按条件集与请求子路径走一个 exports 值。"""
+        '按条件集与请求子路径走一个 exports 值'
         if 字段 is None:#null不可导出
             return None#无
         if isinstance(字段,str):#字符串仅根路径
@@ -130,7 +130,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return None#未匹配
 
     def _选择条件(自身,字段,包名,子路径='.'):#按条件选目标
-        """选取本运行时满足的第一个条件分支。"""
+        '选取本运行时满足的第一个条件分支'
         if 字段 is None:#null无目标
             return None#无
         if isinstance(字段,str):#字符串即目标
@@ -150,7 +150,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return None#无匹配条件
 
     def _探测(自身,路径,说明符):#探测实际文件
-        """对具体路径做扩展名与目录探测。"""
+        '对具体路径做扩展名与目录探测'
         候选列表=[路径]+[路径+扩 for 扩 in 扩展名列表]#候选路径列表
         for 候选 in 候选列表:#遍历候选
             if 自身._vfs.存在同步(候选) and 自身._vfs.统计同步(候选)['isFile']():#命中文件
@@ -164,7 +164,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return 自身._失败(f'cannot resolve "{说明符}": no file at {", ".join(候选列表)}')#探测失败
 
     def _静态模块(自身,说明符):#查找静态模块
-        """返回静态说明符的 Worker 提供实现。"""
+        '返回静态说明符的 Worker 提供实现'
         精确=自身._静态模块.get(说明符)#精确匹配
         if 精确 is not None:#命中精确
             return 精确#返回
@@ -174,7 +174,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return 自身._静态模块.get(f'node:{说明符}')#回退node:前缀
 
     def 解析(自身,说明符,来自目录):#解析说明符
-        """按请求该说明符的模块方式解析说明符。"""
+        '按请求该说明符的模块方式解析说明符'
         静态=自身._静态模块(说明符)#查静态模块
         if 静态 is not None:#返回静态解析
             return {'kind':'static','specifier':说明符,'factory':静态}#静态
@@ -208,7 +208,7 @@ class 工作线程模块加载器:#Worker模块加载器
         return {'kind':'file','path':自身._探测(拼接(包目录,旧式),说明符)}#探测旧式入口
 
     def 加载(自身,解析结果):#加载模块
-        """加载已解析模块，复用缓存并以 CommonJS 部分导出语义容忍循环。"""
+        '加载已解析模块，复用缓存并以 CommonJS 部分导出语义容忍循环'
         if 解析结果['kind']=='static':#静态直接工厂
             return 解析结果['factory']()#工厂
         路径=解析结果['path']#文件路径
@@ -228,7 +228,7 @@ class 工作线程模块加载器:#Worker模块加载器
             工厂=自身._编译(源,路径)#编译为工厂
             目录=目录名(路径)#模块目录
             def 元解析(说明符):#import.meta.resolve
-                """相对本目录解析。"""
+                '相对本目录解析'
                 子=自身.解析(说明符,目录)#相对本目录解析
                 return 子['specifier'] if 子['kind']=='static' else 路径转文件url(子['path'])#静态或文件URL
             元={'url':路径转文件url(路径),'resolve':元解析}#import.meta面
@@ -241,7 +241,7 @@ class 工作线程模块加载器:#Worker模块加载器
             自身._栈.pop()#弹出导入栈
 
     def _编译(自身,代码,路径):#编译模块体
-        """编译镜像已降级的模块体。上游用 new Function(...WRAPPER_PARAMS, code)。"""
+        '编译镜像已降级的模块体。上游用 new Function(...WRAPPER_PARAMS, code)'
         形参=','.join(包装参数列表)#形参表
         源=f'def __dsh_factory({形参}):\n'#工厂头
         行列表=代码.splitlines()#源码行
@@ -261,18 +261,18 @@ class 工作线程模块加载器:#Worker模块加载器
             自身._失败(f'{路径} failed to compile: {消息}')#一般编译失败
 
     def 从目录创建require(自身,来自目录):#从目录创建require
-        """构建绑定到某目录的 require。"""
+        '构建绑定到某目录的 require'
         def 要求(说明符):#绑定加载
-            """加载并返回导出。"""
+            '加载并返回导出'
             return 自身.加载(自身.解析(说明符,来自目录))#绑定加载
         def 解析说明符(说明符):#resolve实现
-            """解析说明符为 VFS 路径。"""
+            '解析说明符为 VFS 路径'
             解析结果=自身.解析(说明符,来自目录)#解析说明符
             if 解析结果['kind']=='static':#静态无VFS路径
                 return 自身._失败(f'"{说明符}" is a worker-provided module and has no VFS path')#拒绝静态路径
             return 解析结果['path']#返回文件路径
         def 列出解析路径(说明符):#paths实现
-            """返回搜索根。"""
+            '返回搜索根'
             if 自身._静态模块(说明符) is not None or 说明符.startswith('node:'):#静态或node无根
                 return None#无根
             if 说明符.startswith('.'):#相对用当前目录
@@ -283,20 +283,20 @@ class 工作线程模块加载器:#Worker模块加载器
         return 要求#装配require对象
 
     def 创建require(自身,基):#创建require
-        """面向 VFS 的 node:module createRequire。"""
+        '面向 VFS 的 node:module createRequire'
         return 自身.从目录创建require(自身._基目录(基))#按基目录绑定
 
     def 用量(自身):#用量统计
-        """报告本加载器已做之事，供主机启动诊断。"""
+        '报告本加载器已做之事，供主机启动诊断'
         return {'modules':len(自身._模块表)}#已加载模块数
 
 def 设活动模块加载器(加载器):#设置活动加载器
-    """发布 node:module 代理所经由解析的加载器。"""
+    '发布 node:module 代理所经由解析的加载器'
     global _活动#槽位
     _活动=加载器#发布加载器
 
 def 要求活动模块加载器():#获取活动加载器
-    """读取已发布的加载器。"""
+    '读取已发布的加载器'
     if _活动 is None:#尚未挂载
         raise 运行时错误('webworker modules: 尚未挂载加载器；worker 入口必须在任何 createRequire 之前调用 setActiveModuleLoader')#未挂载错误
     return _活动#返回活动加载器

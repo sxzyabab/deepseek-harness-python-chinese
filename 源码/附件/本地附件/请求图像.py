@@ -1,4 +1,4 @@
-"""模型请求的确定性缓存图像版本。"""
+'模型请求的确定性缓存图像版本'
 import hashlib,json,os,uuid#摘要、描述符与原子写
 from io import BytesIO#内存缓冲
 from ..附件 import 附件错误,图像变体标识,若已中止则抛出#附件缝
@@ -10,25 +10,25 @@ __all__=['请求图像变换版本','请求图像变体标识','读取请求图�
 请求图像变换版本='request-image-v6'#缓存与上传索引身份版本
 
 def _摘要(值):
-    """对字符串或字节计算 sha256 十六进制摘要。"""
+    '对字符串或字节计算 sha256 十六进制摘要'
     if isinstance(值,str):#字符串
         值=值.encode('utf-8')#转字节
     return hashlib.sha256(值).hexdigest()#十六进制
 
 def _检查正整数(值,名称):
-    """检查正整数策略字段。"""
+    '检查正整数策略字段'
     if isinstance(值,bool) or not isinstance(值,int) or 值<=0:#非法
         raise 附件错误(名称+' must be a positive integer.','INVALID_ATTACHMENT_REF')#拒绝
     return 值#通过
 
 def _验证目标(目标):
-    """验证请求图像目标字段。"""
+    '验证请求图像目标字段'
     _检查正整数(目标['width'],'Image request width')#宽
     _检查正整数(目标['height'],'Image request height')#高
     _检查正整数(目标['maxBytes'],'Image request maxBytes')#字节预算
 
 def _描述符(附件引用,目标):
-    """构造变体标识覆盖的完整描述符。"""
+    '构造变体标识覆盖的完整描述符'
     return json.dumps({#键序与上游一致
         'transformVersion':请求图像变换版本,
         'attachmentId':附件引用['attachmentId'],
@@ -45,18 +45,18 @@ def _描述符(附件引用,目标):
     },ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
 
 def 请求图像变体标识(附件引用,目标):
-    """完整确定性请求变换身份。"""
+    '完整确定性请求变换身份'
     return 图像变体标识('sha256:'+_摘要(_描述符(附件引用,目标)))#品牌摘要
 
 def _源管线(已存储):
-    """从已验证字节构建 sRGB 源管线。"""
+    '从已验证字节构建 sRGB 源管线'
     图像=取锐化().open(BytesIO(已存储['data']))#打开
     if 图像.mode not in ('RGB','RGBA'):#统一到 sRGB 族
         图像=图像.convert('RGBA' if 'A' in 图像.mode else 'RGB')#转换
     return 图像#源图像
 
 def _管线(已存储,目标):
-    """只按源长边缩放，让编码器按路由预测的短边推导。"""
+    '只按源长边缩放，让编码器按路由预测的短边推导'
     图像=_源管线(已存储)#源
     重采样=取锐化().Resampling.LANCZOS#不放大滤波
     if 已存储['ref']['width']>=已存储['ref']['height']:#长边是宽
@@ -66,7 +66,7 @@ def _管线(已存储,目标):
     return 图像#已缩放
 
 def _创建请求图像(已存储,目标,有alpha):
-    """从已存储规范化图像创建请求版本。"""
+    '从已存储规范化图像创建请求版本'
     if (目标['width']>=已存储['ref']['width']
             and 目标['height']>=已存储['ref']['height']
             and len(已存储['data'])<=目标['maxBytes']):#可直接通过
@@ -80,11 +80,11 @@ def _创建请求图像(已存储,目标,有alpha):
     return 编码结果['smallest'] if 是否耗尽编码(编码结果) else 编码结果#fitting 或最小
 
 def _缓存路径(根,摘要):
-    """请求图像缓存路径。"""
+    '请求图像缓存路径'
     return os.path.join(根,'request-images',摘要[:2],摘要)#分桶
 
 def _读缓存(路径,目标,期望alpha,信号=None):
-    """读取缓存文件并验证仍符合目标与 alpha 事实。"""
+    '读取缓存文件并验证仍符合目标与 alpha 事实'
     try:#读盘
         文件=open(路径,'rb')#打开
         try:#读
@@ -104,7 +104,7 @@ def _读缓存(路径,目标,期望alpha,信号=None):
     return {'data':数据,'mediaType':已检测['mediaType'],'width':已检测['width'],'height':已检测['height'],'hasAlpha':已检测['hasAlpha']}#命中
 
 def _验证请求图像(图像,期望alpha):
-    """验证编码请求图像的 8 位 sRGB 元数据。"""
+    '验证编码请求图像的 8 位 sRGB 元数据'
     已检测=检测图像(图像['data'])#全检测
     if (已检测['depth']!='uchar' or 已检测['space']!='srgb'
             or 已检测['width']!=图像['width'] or 已检测['height']!=图像['height']
@@ -114,7 +114,7 @@ def _验证请求图像(图像,期望alpha):
     return {**图像,'hasAlpha':已检测['hasAlpha']}#带 alpha 事实
 
 def _写缓存(路径,数据):
-    """原子写请求图像缓存文件。"""
+    '原子写请求图像缓存文件'
     os.makedirs(os.path.dirname(路径),mode=0o700,exist_ok=True)#父目录
     临时=路径+'.'+str(uuid.uuid4())+'.tmp'#随机临时
     try:#写临时再改名
@@ -131,7 +131,7 @@ def _写缓存(路径,数据):
             pass#已不在
 
 def 读取请求图像文件(根,已存储,目标,信号=None):
-    """在本地附件缓存根下生成或复用一条请求图像。"""
+    '在本地附件缓存根下生成或复用一条请求图像'
     若已中止则抛出(信号)#取消优先
     _验证目标(目标)#目标合法
     源=探测图像(已存储['data'])#源事实

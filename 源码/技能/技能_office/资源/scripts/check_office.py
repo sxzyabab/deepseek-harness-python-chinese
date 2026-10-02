@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only OOXML checks and structural summaries; no rendering or formula evaluation.
-
-Run with INPUT.docx, INPUT.pptx, or INPUT.xlsx. Optional --contains assertions
-check extracted text; DOCX excludes comments, glossary text, and unreferenced parts or notes.
---count checks slides or sheets. JSON escapes non-ASCII
-characters and goes to stdout and optionally --out. Exit 0 means the requested
-structural checks passed, 1 means a document, assertion, or report write failed, and 2 means
-invalid command-line arguments.
-"""
+'Read-only OOXML checks and structural summaries; no rendering or formula evaluation'
 
 from __future__ import annotations
 
@@ -49,7 +41,7 @@ MAIN_PARTS = {
 
 
 def namespace(root: ET.Element, supported: tuple[str, ...], part: str) -> str:
-    """Return the main XML namespace after checking its OOXML variant."""
+    'Return the main XML namespace after checking its OOXML variant'
     uri = root.tag[1:].split("}", 1)[0] if root.tag.startswith("{") else ""
     if uri not in supported:
         raise ValueError(f"{part} uses unsupported XML namespace: {uri or '(none)'}")
@@ -57,7 +49,7 @@ def namespace(root: ET.Element, supported: tuple[str, ...], part: str) -> str:
 
 
 def relationship_id(node: ET.Element, part: str) -> str:
-    """Read an office-document relationship id from Transitional or Strict OOXML."""
+    'Read an office-document relationship id from Transitional or Strict OOXML'
     for uri in R_NAMESPACES:
         value = node.get("{" + uri + "}id")
         if value is not None:
@@ -66,18 +58,18 @@ def relationship_id(node: ET.Element, part: str) -> str:
 
 
 def relationship_types(kind: str) -> set[str]:
-    """Return the Transitional and Strict relationship type names for one role."""
+    'Return the Transitional and Strict relationship type names for one role'
     return {f"{uri}/{kind}" for uri in R_NAMESPACES}
 
 
 def iter_namespaces(root: ET.Element, namespaces: tuple[str, ...], local_name: str):
-    """Iterate matching elements across Transitional and Strict namespaces."""
+    'Iterate matching elements across Transitional and Strict namespaces'
     for uri in namespaces:
         yield from root.iter("{" + uri + "}" + local_name)
 
 
 def relationship_target(part: str, target: str) -> str:
-    """Resolve a package relationship without fetching external resources."""
+    'Resolve a package relationship without fetching external resources'
     path = unquote(urlsplit(target).path)
     return posixpath.normpath(path.lstrip("/") if path.startswith("/") else posixpath.join(posixpath.dirname(part), path))
 
@@ -94,7 +86,7 @@ def relationships(part: str, xml: dict[str, ET.Element], types: set[str] | None 
 
 
 def related_xml(part: str, reference: str, links: dict[str, str], xml: dict[str, ET.Element]) -> ET.Element:
-    """Read a related XML part with diagnostics naming its source and reference."""
+    'Read a related XML part with diagnostics naming its source and reference'
     if reference not in links:
         raise ValueError(f"{part} references missing relationship: {reference}")
     target = links[reference]
@@ -200,7 +192,7 @@ def inspect_xlsx(xml: dict[str, ET.Element]) -> tuple[dict, str]:
 
 
 def inspect(path: Path) -> tuple[dict, str]:
-    """Validate package members and relationships before inspecting the main part."""
+    'Validate package members and relationships before inspecting the main part'
     main, content_type = MAIN_PARTS[path.suffix.lower()]
     with zipfile.ZipFile(path) as archive:
         members = archive.namelist()

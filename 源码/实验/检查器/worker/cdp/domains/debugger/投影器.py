@@ -3,7 +3,7 @@ from .脚本注册表 import cdp脚本id#脚本id转换
 __all__=['脚本已解析事件','调试器事件']#仅中文公开名
 
 def 脚本已解析事件(realm,脚本):#脚本已解析事件
-    """将一个通用脚本描述符投影为 Debugger.scriptParsed。"""
+    '将一个通用脚本描述符投影为 Debugger.scriptParsed'
     上下文=脚本['executionContextId'] if 'executionContextId' in 脚本 else None#执行上下文
     if 上下文 is None and realm.context.kind=='synthetic':#合成
         上下文=realm.context.id#取id
@@ -29,14 +29,14 @@ def 脚本已解析事件(realm,脚本):#脚本已解析事件
     return {'method':'Debugger.scriptParsed','params':参数}#通知
 
 def _位置(值):#位置投影
-    """投影调试位置。"""
+    '投影调试位置'
     结果={'scriptId':cdp脚本id(值['scriptKey']),'lineNumber':值['lineNumber']}#位置对象
     if 'columnNumber' in 值:#列号
         结果['columnNumber']=值['columnNumber']#写入
     return 结果#返回
 
 def _栈(值):#栈投影
-    """投影栈跟踪。"""
+    '投影栈跟踪'
     结果={}#栈对象
     if 'description' in 值:#描述
         结果['description']=值['description']#写入
@@ -52,7 +52,7 @@ def _栈(值):#栈投影
     return 结果#返回
 
 def 调试器事件(realm,事件,运行时):#调试器事件投影
-    """将一个通用调试器事件及其全部嵌套 Runtime 对象投影为 CDP。"""
+    '将一个通用调试器事件及其全部嵌套 Runtime 对象投影为 CDP'
     if 事件['type']=='resumed':#恢复
         return {'method':'Debugger.resumed','params':{}}#resumed通知
     if 事件['type']=='breakpoint-resolved':#断点解析

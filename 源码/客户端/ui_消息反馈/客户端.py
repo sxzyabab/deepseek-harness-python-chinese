@@ -7,15 +7,15 @@ __all__=['依赖','应用','反馈表面','消息反馈动作','命名空间','�
 依赖=['slots','remote','remote.messageFeedback','remote.sessionFeedback','locale']#依赖
 
 def 应用(上下文):#安装消息反馈浏览器半边
-    """逐条消息反馈入口、会话对话框入口及其按会话表面。"""
+    '逐条消息反馈入口、会话对话框入口及其按会话表面'
     def 登记词典():#登记词表
-        """登记本插件词典。"""
+        '登记本插件词典'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
     上下文.副作用(登记词典,'ui-message-feedback: dictionaries')#登记词表
     表面表={}#会话 id → 表面
 
     def 表面于(会话标识):#按会话取或铸造
-        """每个 Session 一个表面。"""
+        '每个 Session 一个表面'
         if 会话标识 in 表面表:#已有
             return 表面表[会话标识]#复用
         新建=反馈表面(上下文,会话标识)#铸造
@@ -23,41 +23,41 @@ def 应用(上下文):#安装消息反馈浏览器半边
         return 新建#返回
 
     def 拆除表面():#拆除全部
-        """销毁表面。"""
+        '销毁表面'
         for 表面 in 表面表.values():#每个
             表面.拆除()#拆除
         表面表.clear()#清空
     上下文.副作用(lambda:拆除表面,'ui-message-feedback: per-session surfaces')#寿命
 
     def 打开会话(会话标识):
-        """打开该会话的反馈草稿。"""
+        '打开该会话的反馈草稿'
         表面于(会话标识).对话框.打开({'kind':'session'})
     上下文.provide('feedbackUi',{'openSession':打开会话})#对外服务
 
     def 连接重置():#重连
-        """只作废已经读过的。"""
+        '只作废已经读过的'
         for 表面 in 表面表.values():#每个
             if 表面.反馈.getSnapshot()['status']!='cold':#已读过
                 表面.反馈.resync()#重同步
     上下文.监听('connection/reset',连接重置)#连接重置
 
     def 登记动作():#等助手动作槽出现再登记
-        """登记赞/踩动作。"""
+        '登记赞/踩动作'
         def 注入面(会话标识):#按会话解析注入面
-            """把表面与动词交给占用方。"""
+            '把表面与动词交给占用方'
             表面=表面于(会话标识)#取或铸造
             def 确保():#确保已读
-                """ensure。"""
+                'ensure'
                 return 表面.反馈.ensure()#确保
             def 当前(消息标识):#当前条目
-                """current。"""
+                'current'
                 条目=表面.反馈.getSnapshot()['items']#表
                 return 条目[消息标识] if 消息标识 in 条目 else None#条目
             def 撤回(消息标识,评价):#撤回
-                """retract。"""
+                'retract'
                 return 表面.反馈.retract(消息标识,评价)#撤回
             def 打开对话框(消息标识,评价):#打开
-                """openDialog。"""
+                'openDialog'
                 表面.对话框.打开({'kind':'message','messageId':消息标识,'rating':评价})#打开
             return {#注入面
                 'hooks':{'feedback':表面.反馈},#共享视图
@@ -76,9 +76,9 @@ def 应用(上下文):#安装消息反馈浏览器半边
     上下文.slots.inject('conversation.chat.assistant-actions',登记动作)#等槽出现
 
     def 登记对话框():#等覆盖层槽出现再登记
-        """登记反馈对话框。组件占位用消息反馈动作直至 FeedbackDialog 落地。"""
+        '登记反馈对话框。组件占位用消息反馈动作直至 FeedbackDialog 落地'
         def 注入面(会话标识):#按会话解析
-            """对话框注入。"""
+            '对话框注入'
             对话框=表面于(会话标识).对话框#对话框
             return {#注入面
                 'hooks':{'dialog':对话框.状态},#状态
@@ -98,11 +98,11 @@ def 应用(上下文):#安装消息反馈浏览器半边
     上下文.slots.inject('conversation.input.overlay',登记对话框)#等槽出现
 
     def 挂命令装饰(子上下文):#命令 UI 可用时
-        """裸 /feedback 打开会话对话框。"""
+        '裸 /feedback 打开会话对话框'
         def 登记装饰():#装饰
-            """decorate feedback。"""
+            'decorate feedback'
             def 执行打开(会话):#打开
-                """打开会话级对话框。"""
+                '打开会话级对话框'
                 标识=会话['sessionId'] if isinstance(会话,dict) else 会话.sessionId#会话 id
                 打开会话(标识)#打开
             return 子上下文.commandUi.decorate({#装饰

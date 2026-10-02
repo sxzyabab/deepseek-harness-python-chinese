@@ -11,14 +11,14 @@ _绝对前缀=re.compile(r'^(?:[a-z][a-z\d+.-]*:|[/\\#?])',re.IGNORECASE|re.ASCI
 
 
 def _是否相对(引用):
-    """此引用是否可相对原文档读取。"""
+    '此引用是否可相对原文档读取'
     return len(引用)>0 and _绝对前缀.search(引用) is None and '\0' not in 引用#相对
 
 
 def 打包超文本(数据,相对读取,信号):
     """收集静态依赖。数据为 UTF-8 HTML 字节；返回 dict：data / assets。
 
-    无浏览器 DOM 时返回仅正文的包（依赖留空）；解码、上限与读取失败抛错。
+    无浏览器 DOM 时返回仅正文的包（依赖留空）；解码、上限与读取失败抛错
     """
     if 已中止(信号):#已中止
         raise RuntimeError('已中止')#中止

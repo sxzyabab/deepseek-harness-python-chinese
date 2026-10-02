@@ -4,7 +4,7 @@ from .节点工厂 import 聊天节点,上下文位置#公共
 __all__=['重试定义','登记重试会话节点']#仅中文公开名
 
 def 调度节点(匹配项):
-    """非调度事件则 None。"""
+    '非调度事件则 None'
     事件=匹配项['event']#事件
     if 事件['type']!='llm/retry':#非
         return None#无
@@ -15,7 +15,7 @@ def 调度节点(匹配项):
     return 节点#scheduled
 
 def 已关闭(位置):
-    """任一边关闭即 true。"""
+    '任一边关闭即 true'
     种=位置['kind'] if 'kind' in 位置 else None#种
     if 种=='step':#步骤
         步位=位置['step'] if 'step' in 位置 else None#步
@@ -28,7 +28,7 @@ def 已关闭(位置):
     return False#开放
 
 def 重试匹配(事件):
-    """llm/retry 与 llm/retry-started。"""
+    'llm/retry 与 llm/retry-started'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='llm/retry':#调度
@@ -45,14 +45,14 @@ def 重试匹配(事件):
     return None#其余
 
 def 重试开始(_上下文,匹配项):
-    """记下回合、步骤与首次尝试。"""
+    '记下回合、步骤与首次尝试'
     节点=调度节点(匹配项)#造
     if 节点 is None:#非
         raise 对话错误('model-retry start requires a valid llm/retry event')#硬失败
     return {'turn':节点['turn'] if 'turn' in 节点 else None,'step':节点['step'] if 'step' in 节点 else None,'attempts':[节点]}#初态
 
 def 重试更新(上下文,匹配项):
-    """追加 scheduled 或标 started。"""
+    '追加 scheduled 或标 started'
     事件=匹配项['event']#事件
     态=上下文['state']#态
     种=事件['type']#种
@@ -76,7 +76,7 @@ def 重试更新(上下文,匹配项):
     return {**态,'attempts':尝试列表}#写回
 
 def 重试建视图(上下文):
-    """末次 scheduled 且边界已关 → cancelled。"""
+    '末次 scheduled 且边界已关 → cancelled'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None or 'attempts' not in 态 or len(态['attempts'])==0:#无
         return None#不渲染
@@ -102,5 +102,5 @@ def 重试建视图(上下文):
 }#结束
 
 def 登记重试会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(重试定义)#登记

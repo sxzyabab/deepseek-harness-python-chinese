@@ -1,7 +1,4 @@
-"""域数据形态：带 schema 校验、会发出变更事件的 KV 域。
-
-消费方只依赖本包，不直接碰后端。
-"""
+'域数据形态：带 schema 校验、会发出变更事件的 KV 域'
 from ...依赖.schemastery import 字典字段,字符串字段#配置校验
 from ..存储 import 存储后端服务键#后端服务键
 from .错误 import 域错误#域错误
@@ -16,7 +13,7 @@ from .域 import 域实现#域实现
 })#配置模式结束
 
 def 解析记录(域名,表,键,解析):#跑一次 schema 解析
-    """跑一次 schema 解析。"""
+    '跑一次 schema 解析'
     try:#解析
         return 解析()#跑 schema
     except BaseException as 错误:#schema 失败
@@ -24,30 +21,30 @@ def 解析记录(域名,表,键,解析):#跑一次 schema 解析
         raise 域错误('invalid-record',"domain '"+域名+"': stored "+槽位+' does not match its schema',{'table':表,'key':键},错误)#invalid-record
 
 def 解析表值(表spec,原始):#校验一条表记录
-    """校验一条表记录。"""
+    '校验一条表记录'
     模式=表spec['valueSchema']#值模式
     if hasattr(模式,'parse'):#有 parse
         return 模式.parse(原始)#校验
     return 原始#无模式则原样
 
 def 解析全局值(全局spec,原始):#校验已存全局
-    """校验已存全局。"""
+    '校验已存全局'
     模式=全局spec['schema']#全局模式
     if hasattr(模式,'parse'):#有 parse
         return 模式.parse(原始)#校验
     return 原始#无模式则原样
 
 class 域设施:#已挂载的域设施
-    """在已路由后端上打开已声明域；强制每个域名只能开一次。"""
+    '在已路由后端上打开已声明域；强制每个域名只能开一次'
     def __init__(自身,上下文,配置):#构造设施
-        """记下上下文与配置。配置是 dict。"""
+        '记下上下文与配置。配置是 dict'
         自身._上下文=上下文#插件上下文
         自身._配置=配置#已校验配置
         自身._域={}#已打开域
         自身._预留=set()#预留名
 
     def open(自身,spec):#打开一个已声明域
-        """打开一个已声明域。spec 是 dict。"""
+        '打开一个已声明域。spec 是 dict'
         if spec['name'] in 自身._预留:#名字已预留
             raise 域错误('already-open',"domain '"+spec['name']+"' is already open")#已打开
         自身._预留.add(spec['name'])#预留名字
@@ -68,7 +65,7 @@ class 域设施:#已挂载的域设施
                         原始表={}#空
                     for 键,原始 in 原始表.items():#每条原始记录
                         def 解析本条(原始值=原始,规格=表spec):#闭包校验
-                            """校验本条记录。"""
+                            '校验本条记录'
                             return 解析表值(规格,原始值)#校验
                         记录[键]=解析记录(spec['name'],表名,键,解析本条)#校验后放入
                     表记录[表名]=记录#记下本表
@@ -79,11 +76,11 @@ class 域设施:#已挂载的域设施
                     全局值=全局spec['initial']#用 initial
                 else:#有已存全局
                     def 解析全局():#闭包校验
-                        """校验已存全局。"""
+                        '校验已存全局'
                         return 解析全局值(全局spec,快照['global'])#校验
                     全局值=解析记录(spec['name'],'','',解析全局)#校验
                 def 关闭钩子():#关闭钩子
-                    """从表删除并释放预留。"""
+                    '从表删除并释放预留'
                     自身._域.pop(spec['name'],None)#从表删除
                     自身._预留.discard(spec['name'])#释放预留
                 域=域实现(自身._上下文,spec,单元,表记录,全局值,关闭钩子)#构造域
@@ -97,27 +94,27 @@ class 域设施:#已挂载的域设施
             raise 错误#原样抛出
 
     def get(自身,名称):#按名取已打开域
-        """按名取已打开域。"""
+        '按名取已打开域'
         return 自身._域[名称] if 名称 in 自身._域 else None#查表
 
     def closeAll(自身):#关闭全部域
-        """关闭全部域。"""
+        '关闭全部域'
         for 域 in list(自身._域.values()):#逐个关
             域.close()#关域
 
 def 应用(上下文,配置):#安装域形态
-    """把域数据形态挂到存储枢纽上。"""
+    '把域数据形态挂到存储枢纽上'
     路由=配置['routes'] if 'routes' in 配置 else {}#按域路由
     后端列表=list({配置['backend'],*路由.values()})#去重后端
     后端服务=[存储后端服务键(名称) for 名称 in 后端列表]#转服务键
     def 安装(域上下文):#注入后端后挂载
-        """等后端就绪后挂载。"""
+        '等后端就绪后挂载'
         设施=域设施(域上下文,配置)#构造设施
         def 挂载():#挂载 effect
-            """挂到枢纽，拆除时关全部域。"""
+            '挂到枢纽，拆除时关全部域'
             卸载=域上下文.storage.mount('domain',设施)#挂到枢纽
             def 拆除():#拆除
-                """关全部域再卸形态。"""
+                '关全部域再卸形态'
                 设施.closeAll()#关全部域
                 卸载()#卸形态
             return 拆除#返回 disposer

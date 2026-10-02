@@ -3,7 +3,7 @@ __all__=['图标属性','取尺寸','取类名']#仅中文公开名
 图标属性=('size','className')#共用字段
 
 def 取尺寸(属性,默认):#正方形边长
-    """缺省用字形自身绘制尺寸。"""
+    '缺省用字形自身绘制尺寸'
     if 属性 is None:#空
         return 默认#默认
     if isinstance(属性,dict):#映射
@@ -12,7 +12,7 @@ def 取尺寸(属性,默认):#正方形边长
     return 默认 if 值 is None else 值#尺寸
 
 def 取类名(属性):#布局 class
-    """颜色走 currentColor。"""
+    '颜色走 currentColor'
     if 属性 is None:#空
         return None#无
     if isinstance(属性,dict):#映射

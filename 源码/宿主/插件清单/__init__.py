@@ -1,4 +1,4 @@
-"""当前 Loader 插件条目的只读投影。"""
+'当前 Loader 插件条目的只读投影'
 from ...启动.app启动.包元 import 读插件元
 from .类型 import 插件条目标识
 
@@ -17,7 +17,7 @@ __all__=['插件条目标识','读插件清单','名称','依赖','应用']
 }
 
 def 读插件清单(上下文):
-    """读取当前 Loader 条目与可选预设组合；无单独运行时缓存。"""
+    '读取当前 Loader 条目与可选预设组合；无单独运行时缓存'
     条目列表=[]#按 Loader 遍历顺序
     包表=上下文.获取服务('pluginPackages')
     for 条目 in 上下文.loader.entries():
@@ -74,19 +74,19 @@ def 读插件清单(上下文):
     return {'entries':条目列表,'agentPresets':智能体预设,**管理}
 
 class 插件清单网关:
-    """只远程暴露 Loader 当前非 group 条目状态的服务。"""
+    '只远程暴露 Loader 当前非 group 条目状态的服务'
     inject=依赖
 
     def __init__(自身,上下文):
-        """按上下文登记 pluginInventory 远程服务。"""
+        '按上下文登记 pluginInventory 远程服务'
         自身.上下文=上下文
 
     def list(自身):
-        """每次调用直接读 Loader，不缓存。"""
+        '每次调用直接读 Loader，不缓存'
         return 读插件清单(自身.上下文)
 
 def 应用(上下文):
-    """登记插件清单远程网关。"""
+    '登记插件清单远程网关'
     上下文.提供服务('pluginInventory',插件清单网关(上下文))
 
 name=名称#框架槽

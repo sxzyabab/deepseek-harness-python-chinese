@@ -1,11 +1,10 @@
-"""增量会话日志贡献。"""
+'增量会话日志贡献'
 import weakref#按会话折叠接受水位
 from ...依赖.schemastery import 字典字段,布尔字段#配置
-from ...模型后端.llm import 品牌字符串#会话 id 品牌
-from ...内核.会话 import 已知会话事件类型#已知事件类型
+from ...内核.会话 import 已知会话事件类型,会话标识#已知事件类型、会话 id 品牌
 
 class 会话日志错误(Exception):
-    """会话日志 deepseek 包的异常基类。"""
+    '会话日志 deepseek 包的异常基类'
 
 包名='@deepseek-ai/dsh-session-log-deepseek'
 名称='session-log-deepseek'
@@ -16,7 +15,7 @@ __all__=['包名','名称','依赖','应用','默认','已接受至','会话日�
 接受折叠表=weakref.WeakKeyDictionary()#Session→{scannedEvents,throughSeq}
 
 def 线路头(会话):#线路头
-    """把逻辑 Session 元数据译为原始外部请求字段。"""
+    '把逻辑 Session 元数据译为原始外部请求字段'
     头=会话.header#会话头
     结果={#头对象
         'version':头['version'],#版本
@@ -41,13 +40,13 @@ def 线路头(会话):#线路头
     return 结果#返回
 
 def 线路表面操作(操作):#线路表面操作
-    """把表面操作译为原始数字请求字段。"""
+    '把表面操作译为原始数字请求字段'
     if 操作=='append':#追加
         return 操作#原样
     return {'op':'replace','startSeq':int(操作['startSeq']),'endSeq':int(操作['endSeq'])}#替换
 
 def 线路事件(事件):#线路事件
-    """把编译期序号品牌译为原始数字请求字段。"""
+    '把编译期序号品牌译为原始数字请求字段'
     公共={#公共字段
         'seq':int(事件['seq']),#序号
         'time':事件['time'],#时间
@@ -73,7 +72,7 @@ def 线路事件(事件):#线路事件
     return {**公共,'type':类型}#仅日志
 
 def 已接受至(会话):
-    """本精确会话格式世代的最高已确认序号。"""
+    '本精确会话格式世代的最高已确认序号'
     if 会话 not in 接受折叠表:
         穿过=-1#水位
         起点=0#扫描起点
@@ -108,15 +107,15 @@ def 已接受至(会话):
     return 穿过#返回
 
 def 应用(上下文,配置值):
-    """enabled 时注册 dsh_session_log 字段。"""
+    'enabled 时注册 dsh_session_log 字段'
     if 'enabled' not in 配置值 or 配置值['enabled'] is not True:
         return#不挂
     def 准备(请求):
-        """为官方 DeepSeek 请求附加增量日志。"""
+        '为官方 DeepSeek 请求附加增量日志'
         会话标识值=请求['sessionId'] if 'sessionId' in 请求 else None#会话 id
         if 会话标识值 is None:
             return None#跳过
-        会话=上下文.sessions.get(品牌字符串(会话标识值))#活会话
+        会话=上下文.sessions.get(会话标识(会话标识值))#活会话
         if 会话 is None:
             return None#跳过
         之后序号=已接受至(会话)#已确认水位
@@ -134,7 +133,7 @@ def 应用(上下文,配置值):
             'events':[线路事件(事件) for 事件 in 后缀],#事件
         }#value结束
         def 接纳():
-            """写入 delivery-accepted 水印。"""
+            '写入 delivery-accepted 水印'
             会话.append('session-log-deepseek/delivery-accepted',{#追加
                 'sessionId':会话.id,#会话id
                 'sessionFormatVersion':会话.header['version'],#格式世代

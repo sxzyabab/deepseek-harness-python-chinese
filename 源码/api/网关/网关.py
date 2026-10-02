@@ -1,12 +1,9 @@
-"""通过 Cordis 服务与已注册提供方做在线 Typert Remote 分发。
-
-传输、请求关联与响应信封属于 Connection。
-"""
+'通过 Cordis 服务与已注册提供方做在线 Typert Remote 分发'
 import inspect,re,threading#参数名、标识符与中止
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-from ...typert.协议 import 远程方法列表,远程错误,取远程错误,是否远程json值#Remote 标记与失败
+from ...类型化远程调用.协议 import 远程方法列表,远程错误,取远程错误,是否远程json值#Remote 标记与失败
 from uuid import uuid4 as 生成uuid4#事件关联标识
 from .流协议 import (
     远程事件流端点,远程事件结果端点,
@@ -20,9 +17,9 @@ __all__=['网关错误','Typert网关服务','已中止','若已中止则抛出'
 标识符模式=re.compile(r'^[$A-Z_a-z][$A-Za-z0-9_]*\Z')#SRC 参数名，ASCII 标识符，行尾对齐 JS $
 
 class 网关错误(远程错误):
-    """在被调业务方法之外产生的分发失败。"""
+    '在被调业务方法之外产生的分发失败'
     def __init__(自身,码,端点,消息,选项=None):
-        """消息中不嵌入边界值。选项为 dict。"""
+        '消息中不嵌入边界值。选项为 dict'
         if 选项 is None:#无选项
             选项={}#空
         if not 码.startswith('gateway/'):#线路码带 gateway/ 前缀
@@ -38,9 +35,9 @@ class 网关错误(远程错误):
         自身.field=选项['field'] if 'field' in 选项 else None#可选线字段
 
 class 远程调用已取消(Exception):
-    """Remote 调用已被取消。"""
+    'Remote 调用已被取消'
     def __init__(自身,端点,原因):
-        """记下端点与原因。"""
+        '记下端点与原因'
         super().__init__('Remote invocation "'+端点+'" was aborted')#消息
         自身.name='RemoteInvocationCancelled'#按结构识别
         自身.endpoint=端点#端点
@@ -48,19 +45,19 @@ class 远程调用已取消(Exception):
             自身.__cause__=原因#挂原因
 
 class 操作任务:
-    """单次操作的 Future 包装，只留 等待。"""
+    '单次操作的 Future 包装，只留 等待'
     def __init__(自身):
-        """构造未决任务。"""
+        '构造未决任务'
         自身._未来=原生结果()#底层 Future
 
     def 兑现(自身,值=None):
-        """成功结算。"""
+        '成功结算'
         if not 自身._未来.done():#尚未结算
             自身._未来.set_result(值)#写入结果
         return 值#返回兑现值
 
     def 拒绝(自身,错误):
-        """失败结算。"""
+        '失败结算'
         if not 自身._未来.done():#尚未结算
             if isinstance(错误,BaseException):#已是异常
                 自身._未来.set_exception(错误)#原样拒绝
@@ -70,13 +67,13 @@ class 操作任务:
                 自身._未来.set_exception(包装)#包装拒绝
 
     def 等待(自身,超时=None):
-        """阻塞等到结算。"""
+        '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
-    """threading.Event 取消通道。原因用异常对象承载。"""
+    'threading.Event 取消通道。原因用异常对象承载'
     def __init__(自身,已中止标志=False):
-        """创建一条取消通道。"""
+        '创建一条取消通道'
         自身._事件=threading.Event()#中止标志
         自身._异常=None#中止时抛出的异常
         if 已中止标志:#创建时已中止
@@ -84,7 +81,7 @@ class 中止信号:
             自身._异常=远程调用已取消('','')#默认中止异常
 
     def 触发(自身,原因=None):
-        """标记中止。"""
+        '标记中止'
         if 自身._事件.is_set():#只触发一次
             return#已触发
         if isinstance(原因,BaseException):#原因已是异常
@@ -99,14 +96,14 @@ class 中止信号:
 
     @staticmethod
     def 任一(信号列表):
-        """最先中止的那路胜出。"""
+        '最先中止的那路胜出'
         融合=中止控制器()#融合控制器
         for 信号 in 信号列表:#先扫已中止
             if 信号 is not None and 已中止(信号):#已中止
                 融合.中止(信号._异常)#立刻胜出
                 return 融合.信号#已中止的融合信号
         def 转发中止(来源):
-            """等到来源置位后转发给融合控制器。"""
+            '等到来源置位后转发给融合控制器'
             来源._事件.wait()#阻塞到中止
             融合.中止(来源._异常)#转发异常
         for 信号 in 信号列表:#每路一线程
@@ -118,23 +115,23 @@ class 中止信号:
         return 融合.信号#融合信号
 
 class 中止控制器:
-    """发出中止的控制器。"""
+    '发出中止的控制器'
     def __init__(自身):
-        """创建配套信号。"""
+        '创建配套信号'
         自身.信号=中止信号()#本控制器的信号
 
     def 中止(自身,原因=None):
-        """中止配套信号。"""
+        '中止配套信号'
         自身.信号.触发(原因)#触发一次
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
-    """已中止则抛出承载原因的异常。"""
+    '已中止则抛出承载原因的异常'
     if 信号 is None:#无信号
         return#无信号
     if not 信号._事件.is_set():#仍活着
@@ -144,7 +141,7 @@ def 若已中止则抛出(信号):
     raise 远程调用已取消('','')#默认中止
 
 def 是否对象(值):
-    """非 None 对象或函数。"""
+    '非 None 对象或函数'
     if 值 is None:#空
         return False#不是
     if isinstance(值,(str,bytes,bytearray,int,float,bool)):#标量
@@ -152,46 +149,46 @@ def 是否对象(值):
     return True#对象或可调用
 
 def 是否普通对象(值):
-    """数组不是普通对象；要求 dict。"""
+    '数组不是普通对象；要求 dict'
     return isinstance(值,dict)#普通 dict
 
 def 拼端点(命名空间,方法):
-    """返回 namespace/method。"""
+    '返回 namespace/method'
     return 命名空间+'/'+方法#端点
 
 def 取原始(接收方):
-    """Python 无 Cordis 代理符号，接收方即原始对象。"""
+    'Python 无 Cordis 代理符号，接收方即原始对象'
     return 接收方#原样
 
 class Typert网关服务(服务):
-    """用严格生成定义或保守 SRC 标记，对照当前 Cordis 服务与 Typert 提供方做解析。"""
+    '用严格生成定义或保守 SRC 标记，对照当前 Cordis 服务与 Typert 提供方做解析'
     inject=['typert']#框架槽：依赖 typert
 
     def __init__(自身,上下文):
-        """向活动的 Typert 注册表登记网关。"""
+        '向活动的 Typert 注册表登记网关'
         super().__init__(上下文,'typertGateway')#以 typertGateway 名注册
         自身.源声明=None#SRC 端点声明缓存
         自身.远程事件登记=None#唯一转发事件源
         自身.远程事件客户端={}#clientId → 客户端
         自身.待决远程事件={}#eventId → 挂起瀑布
         def 服务变更(*位置参数,**关键字参数):
-            """下次认领时重新收集。"""
+            '下次认领时重新收集'
             自身.源声明=None#清空
         上下文.监听('internal/service',服务变更)#监听
         def 挂连接(连接上下文):
-            """拦截 /api 下的远程调用。"""
+            '拦截 /api 下的远程调用'
             连接=连接上下文.connection#连接服务
             def 认领(端点):
-                """是否认领该端点。"""
+                '是否认领该端点'
                 return 自身.认领端点(端点)#委托
             def 分发(端点,载荷,信号):
-                """分发一次 RPC。"""
+                '分发一次 RPC'
                 return 自身.分发RPC(端点,载荷,信号)#委托
             连接.rpc.intercept('/api',认领,分发,{'authority':'trusted-host'})#仅受信宿主
         上下文.依赖启动(['connection'],挂连接)#等 connection
 
     def 认领端点(自身,端点):
-        """两端非空；严格定义/曾见或 SRC 声明命中则认领。"""
+        '两端非空；严格定义/曾见或 SRC 声明命中则认领'
         if 端点==远程事件结果端点:#事件结果
             return True#认领
         段=端点.split('/')#拆
@@ -204,7 +201,7 @@ class Typert网关服务(服务):
         return 端点 in 自身.源声明#SRC 命中
 
     def 收集源声明(自身):
-        """遍历反射属性定义上的 typertRemote 绑定。"""
+        '遍历反射属性定义上的 typertRemote 绑定'
         声明=set()#端点集合
         反射=自身.ctx.反射#反射
         属性表=反射.属性表 if hasattr(反射,'属性表') else (反射.props if hasattr(反射,'props') else {})#属性定义
@@ -227,7 +224,7 @@ class Typert网关服务(服务):
         return 声明#集合
 
     def invoke(自身,请求):
-        """通过严格生成反射或 SRC 标记调用一个在线 Remote 方法。请求为 dict。"""
+        '通过严格生成反射或 SRC 标记调用一个在线 Remote 方法。请求为 dict'
         端点=拼端点(请求['namespace'],请求['method'])#拼端点
         描述符=自身.解析描述符(请求['namespace'],请求['method'],端点)#解析
         断言精确参数(请求['args'],描述符,端点)#校验 args
@@ -258,11 +255,11 @@ class Typert网关服务(服务):
         return 解码(描述符['result'],结果,'result-invalid',端点,'result')#边界校验
 
     def 分发RPC(自身,端点,载荷,信号):
-        """转到 invokeRpc。"""
+        '转到 invokeRpc'
         return 自身.调用RPC(端点,载荷,信号)#委托
 
     def 调用RPC(自身,端点,载荷,信号):
-        """成功带 value；失败折成信封。"""
+        '成功带 value；失败折成信封'
         try:
             if 端点==远程事件结果端点:#事件结果
                 结果=解析远程事件结果载荷(载荷)#校验
@@ -283,7 +280,7 @@ class Typert网关服务(服务):
             return RPC失败(错误)#折成失败
 
     def 解析描述符(自身,命名空间,方法,端点):
-        """有严格定义用之；曾见但已撤回禁止 SRC；否则 SRC。"""
+        '有严格定义用之；曾见但已撤回禁止 SRC；否则 SRC'
         严格=自身.ctx.typert.local.get(端点)#严格定义
         if 严格 is not None:#有
             return 严格#用之
@@ -292,7 +289,7 @@ class Typert网关服务(服务):
         return 自身.解析源描述符(命名空间,方法,端点)#SRC
 
     def 解析源描述符(自身,命名空间,方法,端点):
-        """多个服务导出同一端点则歧义。"""
+        '多个服务导出同一端点则歧义'
         候选列表=[]#候选
         反射=自身.ctx.反射#反射
         属性表=反射.属性表 if hasattr(反射,'属性表') else (反射.props if hasattr(反射,'props') else {})#属性
@@ -328,7 +325,7 @@ class Typert网关服务(服务):
         return 候选列表[0]#唯一
 
     def 源描述符(自身,绑定,标记,方法,端点):
-        """从签名读参数名，按 lookup 声明推导来源。"""
+        '从签名读参数名，按 lookup 声明推导来源'
         名列表=方法参数名(绑定['service'],标记['method'],端点)#参数名
         信号下标=名列表.index('signal') if 'signal' in 名列表 else -1#signal 位置
         if 信号下标>=0 and 信号下标!=len(名列表)-1:#不是最后一个
@@ -374,7 +371,7 @@ class Typert网关服务(服务):
         return 描述符#描述符
 
     def 解析接收上下文(自身,描述符,参数,端点):
-        """直接调用用网关自身上下文。参数为 dict。"""
+        '直接调用用网关自身上下文。参数为 dict'
         if 描述符['invocation']['kind']=='direct':#直接
             return 自身.ctx#自身
         调用=描述符['invocation']#上下文调用
@@ -397,7 +394,7 @@ class Typert网关服务(服务):
         return 上下文#上下文
 
     def 解析参数(自身,参数,参数表,端点):
-        """缺席 json 可省略；lookup 必须出现。参数与参数表为 dict。"""
+        '缺席 json 可省略；lookup 必须出现。参数与参数表为 dict'
         if 参数['wire'] not in 参数表:#缺席
             return None#省略键
         值=解码(参数['codec'],参数表[参数['wire']],'input-invalid',端点,参数['wire'])#解码
@@ -424,14 +421,14 @@ class Typert网关服务(服务):
         return 已解析#业务对象
 
     def 登记远程事件(自身,源,宿主):
-        """登记本应用选定的转发事件源。源为 (信号)->迭代器。"""
+        '登记本应用选定的转发事件源。源为 (信号)->迭代器'
         if 自身.远程事件登记 is not None:#已有
             raise Exception('typert gateway: forwarded Remote event source is already registered')
         寿命=中止控制器()#源寿命
         流=源(寿命.信号)#打开
         完成=操作任务()#消费完成
         def 消费():
-            """后台消费事件源。"""
+            '后台消费事件源'
             try:
                 自身.消费远程事件(流,寿命.信号)#消费
             except BaseException as 错误:
@@ -448,7 +445,7 @@ class Typert网关服务(服务):
         登记={'lifetime':寿命,'done':完成,'host':{'home':宿主['home']}}#登记
         自身.远程事件登记=登记#记下
         def 拆除():
-            """去掉本源并取消活动流。"""
+            '去掉本源并取消活动流'
             if 自身.远程事件登记 is 登记:#仍是本源
                 自身.远程事件登记=None#清空
                 错误=Exception('typert gateway: forwarded Remote event source was removed')
@@ -458,7 +455,7 @@ class Typert网关服务(服务):
         return 拆除#拆除器
 
     def 打开远程事件(自身,载荷,信号):
-        """打开一条转发事件流；载荷须为 {args:{}}。"""
+        '打开一条转发事件流；载荷须为 {args:{}}'
         if (not 是否对象(载荷) or not 是否普通对象(载荷) or list(载荷.keys())!=['args']
                 or not 是否对象(载荷['args']) or not 是否普通对象(载荷['args'])
                 or len(载荷['args'])!=0):
@@ -481,7 +478,7 @@ class Typert网关服务(服务):
             自身.移除远程事件客户端(客户端)#摘掉
 
     def 消费远程事件(自身,源,信号):
-        """消费应用事件源。"""
+        '消费应用事件源'
         for 派发 in 源:#逐帧
             if 已中止(信号):#中止
                 if isinstance(派发,dict) and 'context' in 派发:#瀑布
@@ -495,14 +492,14 @@ class Typert网关服务(服务):
             raise Exception('typert gateway: forwarded Remote event source ended unexpectedly')
 
     def 广播远程事件(自身,帧):
-        """向所有代际推 emit。"""
+        '向所有代际推 emit'
         断言远程事件帧(帧)#校验
         线={'type':'emit','event':帧['event'],'args':帧['args']}#线帧
         for 客户端 in 自身.远程事件客户端.values():#各代际
             客户端['queue'].推入(线)#推
 
     def 启动远程事件(自身,源):
-        """把一次瀑布投递给现有代际。"""
+        '把一次瀑布投递给现有代际'
         try:
             断言远程事件名(源)#名
             if not 是否远程事件智能体标识(源['context']['agentId']):#无身份
@@ -513,9 +510,9 @@ class Typert网关服务(服务):
                 标识=str(生成uuid4())#再抽
             try:
                 def 释放上下文工厂():
-                    """Context 拆除时取消。"""
+                    'Context 拆除时取消'
                     def 取消():
-                        """取消本瀑布。"""
+                        '取消本瀑布'
                         自身.取消远程事件(挂起,Exception('typert gateway: Remote event Agent Context was released'))
                     return 取消
                 释放上下文=源['context']['value'].副作用(释放上下文工厂,'api-gateway: Remote event '+repr(源['event']))
@@ -526,7 +523,7 @@ class Typert网关服务(服务):
             if 'signal' in 投影 and 投影['signal'] is not None:
                 信号集合.append(投影['signal'])
             def 中止():
-                """信号置位则取消。"""
+                '信号置位则取消'
                 原因=None
                 for 项 in 信号集合:
                     if 已中止(项):
@@ -545,7 +542,7 @@ class Typert网关服务(服务):
             }
             监视=[]
             def 监视信号(来源):
-                """等到来源置位。"""
+                '等到来源置位'
                 来源._事件.wait()
                 中止()
             for 项 in 信号集合:
@@ -553,7 +550,7 @@ class Typert网关服务(服务):
                 线.start()
                 监视.append(线)
             def 释放信号():
-                """监视线程随取消自然结束。"""
+                '监视线程随取消自然结束'
                 return None
             挂起['releaseSignal']=释放信号
             自身.待决远程事件[标识]=挂起#记下
@@ -566,13 +563,13 @@ class Typert网关服务(服务):
             源['reject'](错误)#拒绝源
 
     def 投递远程事件(自身,挂起,客户端):
-        """把瀑布帧推给一代。"""
+        '把瀑布帧推给一代'
         挂起['deliveries'].add(id(客户端))
         客户端['deliveries'][挂起['id']]=挂起
         客户端['queue'].推入(挂起['frame'])
 
     def 收取远程事件结果(自身,客户端,结果):
-        """结算一次客户端瀑布结果。"""
+        '结算一次客户端瀑布结果'
         挂起=自身.待决远程事件.get(结果['eventId'])
         if 挂起 is None or id(客户端) not in 挂起['deliveries']:
             return
@@ -586,31 +583,31 @@ class Typert网关服务(服务):
             自身.结算远程事件(挂起,{'kind':'next'})
 
     def 移除远程事件投递(自身,挂起,客户端):
-        """摘掉一代对某瀑布的投递。"""
+        '摘掉一代对某瀑布的投递'
         挂起['deliveries'].discard(id(客户端))
         客户端['deliveries'].pop(挂起['id'],None)
 
     def 移除远程事件客户端(自身,客户端):
-        """代际结束。"""
+        '代际结束'
         自身.远程事件客户端.pop(客户端['id'],None)
         for 挂起 in list(客户端['deliveries'].values()):
             自身.移除远程事件投递(挂起,客户端)
         客户端['queue'].结束()
 
     def 结算远程事件(自身,挂起,结局):
-        """兑现源监听。"""
+        '兑现源监听'
         自身.结束远程事件(挂起)
         挂起['source']['resolve'](结局)
 
     def 取消远程事件(自身,挂起,原因):
-        """拒绝源监听。"""
+        '拒绝源监听'
         if 自身.待决远程事件.get(挂起['id']) is not 挂起:
             return
         自身.结束远程事件(挂起)
         挂起['source']['reject'](原因)
 
     def 结束远程事件(自身,挂起):
-        """摘掉挂起并通知各代际取消。"""
+        '摘掉挂起并通知各代际取消'
         自身.待决远程事件.pop(挂起['id'],None)
         挂起['releaseSignal']()
         挂起['releaseContext']()
@@ -625,14 +622,14 @@ class Typert网关服务(服务):
             客户端['queue'].推入(取消帧)
 
     def 关闭远程事件(自身,原因):
-        """源拆除时拒绝全部挂起。"""
+        '源拆除时拒绝全部挂起'
         for 挂起 in list(自身.待决远程事件.values()):
             自身.取消远程事件(挂起,原因)
         for 客户端 in list(自身.远程事件客户端.values()):
             客户端['queue'].结束()
 
 def RPC失败(错误):
-    """把捕获错误折成 RPC 失败信封。控制流按 name/failure 结构识别。"""
+    '把捕获错误折成 RPC 失败信封。控制流按 name/failure 结构识别'
     远程=取远程错误(错误)
     if 远程 is not None:
         return {'ok':False,'error':{'code':远程.code,'message':远程.message,'details':远程.details}}
@@ -643,30 +640,30 @@ def RPC失败(错误):
     return {'ok':False,'error':{'code':'gateway/internal','message':str(错误),'details':{}}}#内部
 
 class 远程事件帧队列:
-    """一代客户端的拉取队列。"""
+    '一代客户端的拉取队列'
 
     def __init__(自身):
-        """空队列。"""
+        '空队列'
         自身.帧=双端队列()
         自身.等待事件=threading.Event()
         自身.已关闭=False
 
     def 推入(自身,帧):
-        """入队。"""
+        '入队'
         if 自身.已关闭:
             return
         自身.帧.尾推(帧)
         自身.等待事件.set()
 
     def 结束(自身):
-        """关闭。"""
+        '关闭'
         if 自身.已关闭:
             return
         自身.已关闭=True
         自身.等待事件.set()
 
     def 迭代(自身,信号):
-        """拉取直至关闭或中止。"""
+        '拉取直至关闭或中止'
         try:
             while True:
                 while 自身.帧.大小>0:
@@ -680,25 +677,25 @@ class 远程事件帧队列:
             pass
 
 def 断言远程事件帧(帧):
-    """校验 emit 帧。"""
+    '校验 emit 帧'
     断言远程事件名(帧)
     if not isinstance(帧.get('args'),list) or not 是否远程json值(帧['args']):
         raise TypeError('typert gateway: Remote event '+repr(帧.get('event'))+' arguments are not lossless JSON data')
 
 def 断言远程事件名(帧):
-    """事件名非空。"""
+    '事件名非空'
     if not isinstance(帧.get('event'),str) or 帧.get('event')=='':
         raise TypeError('typert gateway: Remote event name must be a nonempty string')
 
 def 解析远程事件结果载荷(载荷):
-    """载荷须恰好 args。"""
+    '载荷须恰好 args'
     if (not 是否对象(载荷) or not 是否普通对象(载荷)
             or list(载荷.keys())!=['args']):
         raise Exception('typert gateway: Remote event result requires exactly one plain-object args field')
     return 解析远程事件结果(载荷['args'])
 
 def 校验绑定(接收方,服务键,命名空间,端点):
-    """返回绑定与原始对象。"""
+    '返回绑定与原始对象'
     原始=取原始(接收方)#原始
     值=getattr(原始,'typertRemote',None)#绑定
     if 值 is None:#没有
@@ -706,7 +703,7 @@ def 校验绑定(接收方,服务键,命名空间,端点):
     return {'binding':读绑定(值,原始,服务键,端点,命名空间),'original':原始}#解析结果
 
 def 读绑定(值,原始,服务键,端点,命名空间=None):
-    """与接收方一致才通过。值为 dict。"""
+    '与接收方一致才通过。值为 dict'
     if not isinstance(值,dict):#非映射
         raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has an inconsistent typertRemote binding')#抛出
     if ('service' not in 值) or (值['service'] is not 原始):#服务不是同一对象
@@ -720,7 +717,7 @@ def 读绑定(值,原始,服务键,端点,命名空间=None):
     return 值#绑定
 
 def 方法参数名(服务实例,方法,端点):
-    """禁止解构、默认、剩余；用 inspect.signature。"""
+    '禁止解构、默认、剩余；用 inspect.signature'
     实现=None#函数实现
     for 类 in type(服务实例).__mro__:#沿 MRO
         if 方法 in 类.__dict__:#本层有
@@ -750,7 +747,7 @@ def 方法参数名(服务实例,方法,端点):
     return 名列表#按出现顺序
 
 def 断言精确参数(参数,描述符,端点):
-    """校验 args 自有键与描述符期望完全一致。参数为 dict。"""
+    '校验 args 自有键与描述符期望完全一致。参数为 dict'
     if not 是否普通对象(参数):#必须普通对象
         raise 网关错误('arguments-invalid',端点,'args must be a plain object')#抛出
     期望=set(项['wire'] for 项 in 描述符['parameters'])#业务线字段
@@ -774,7 +771,7 @@ def 断言精确参数(参数,描述符,端点):
     raise 网关错误('arguments-invalid',端点,'args fields do not match the descriptor: '+'; '.join(子句))#抛出
 
 def 解码(编解码,值,码,端点,字段):
-    """严格模式先走 schema；再断言 JSON 安全。编解码为 dict。"""
+    '严格模式先走 schema；再断言 JSON 安全。编解码为 dict'
     try:
         if 'mode' in 编解码 and 编解码['mode']=='strict':#严格
             值=编解码['schema'].parse(值)#schema
@@ -787,7 +784,7 @@ def 解码(编解码,值,码,端点,字段):
         raise 网关错误(码,端点,消息,{'cause':原因,'field':字段})#包成
 
 def 断言JSON值(值,祖先):
-    """null/字符串/布尔/有限数字/稠密数组/普通对象。"""
+    'null/字符串/布尔/有限数字/稠密数组/普通对象'
     if 值 is None or isinstance(值,(str,bool)):#简单
         return#通过
     if isinstance(值,(int,float)) and not isinstance(值,bool):#数字，先排除 bool

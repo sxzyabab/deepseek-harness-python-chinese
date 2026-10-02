@@ -1,4 +1,4 @@
-"""批准当前配置档工作区设置里 pnpm 待决的依赖脚本。"""
+'批准当前配置档工作区设置里 pnpm 待决的依赖脚本'
 import os
 import yaml
 from ...工具.原子写入 import 原子写文件
@@ -9,7 +9,7 @@ __all__=['读待决构建','批准构建']
 待决占位='set this to true or false'#pnpm 11 待决标量
 
 def 节点含锚点或别名(节点):
-    """allowBuilds 子树是否含 YAML 锚点或别名。"""
+    'allowBuilds 子树是否含 YAML 锚点或别名'
     if 节点 is None:
         return False
     if getattr(节点,'anchor',None):
@@ -27,7 +27,7 @@ def 节点含锚点或别名(节点):
     return False
 
 def 读策略(目录):
-    """读出 pnpm-workspace.yaml 的文档与待决包名；锚点/别名拒绝。"""
+    '读出 pnpm-workspace.yaml 的文档与待决包名；锚点/别名拒绝'
     路径=os.path.join(目录,'pnpm-workspace.yaml')
     try:
         文件=open(路径,'r',encoding='utf-8')
@@ -77,11 +77,11 @@ def 读策略(目录):
     return {'document':文档,'pending':待决,'path':路径,'text':文本}
 
 def 读待决构建(目录):
-    """读出 pnpm 11 留下的未决定包名；通配规则排除。"""
+    '读出 pnpm 11 留下的未决定包名；通配规则排除'
     return 读策略(目录)['pending']
 
 def 批准构建(目录,名称列表):
-    """持久化批准且不跑脚本；调用方持有配置档清单锁。名称须仍在待决列表。"""
+    '持久化批准且不跑脚本；调用方持有配置档清单锁。名称须仍在待决列表'
     策略=读策略(目录)
     待决=策略['pending']
     for 名称 in 名称列表:

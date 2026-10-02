@@ -1,8 +1,4 @@
-"""用 git 工作树快照与文件工具整文件捕获汇总每轮变更，以 workspace/changes 宣告，经 workspaceChanges 提供摘要与对比。
-
-公开业务面仅中文名。包名、服务名、事件名与配置键保持英文线协议。
-"""
-import os,sys,tempfile#平台、家目录与临时根
+'用 git 工作树快照与文件工具整文件捕获汇总每轮变更，以 workspace/changes 宣告，经 workspaceChanges 提供摘要与对比'import os,sys,tempfile#平台、家目录与临时根
 from ...依赖.schemastery import 数字字段#配置字段
 from ...工具.超时 import 中止控制器#插件寿命
 from .记录器 import 轮次记录器#每会话记录器
@@ -31,13 +27,13 @@ __all__=[#仅中文公开名
 }#配置模式结束
 
 class 工作区变更错误(Exception):#本包异常基类
-    """工作区变更插件入参或运行失败。"""
+    '工作区变更插件入参或运行失败'
     def __init__(自身,消息):#记下英文消息
-        """用原样英文消息构造。"""
+        '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
 def 可记录(会话):#顶层有cwd的会话
-    """子代理或委托会话不记录；否则返回工作目录，无则 None。"""
+    '子代理或委托会话不记录；否则返回工作目录，无则 None'
     头=会话.header#会话头
     来源=头['origin'] if 'origin' in 头 else None#来源
     委托=头['delegationDepth'] if 'delegationDepth' in 头 else 0#委托深度
@@ -48,7 +44,7 @@ def 可记录(会话):#顶层有cwd的会话
     return 头['cwd'] if 'cwd' in 头 else None#工作目录
 
 def 解析git(上下文,信号):#解析git可执行
-    """解析 git 可执行；macOS 上 /usr/bin/git 桩在未选开发者工具时视为不可用。"""
+    '解析 git 可执行；macOS 上 /usr/bin/git 桩在未选开发者工具时视为不可用'
     try:#查找
         可执行=上下文.subprocess.解析可执行文件('git',None,信号)#解析
     except Exception:#找不到
@@ -69,7 +65,7 @@ def 解析git(上下文,信号):#解析git可执行
     return 可执行 if 结局['exitCode']==0 else None#选中工具才可用
 
 def 应用(上下文,配置值):#登记服务并观察轮次
-    """观察顶层轮次、捕获文件工具编辑、宣告摘要，并提供 workspaceChanges。"""
+    '观察顶层轮次、捕获文件工具编辑、宣告摘要，并提供 workspaceChanges'
     for 字段,值 in [#逐字段校验
         ('timeoutMs',配置值['timeoutMs']),
         ('outputMaxBytes',配置值['outputMaxBytes']),
@@ -86,7 +82,7 @@ def 应用(上下文,配置值):#登记服务并观察轮次
     已解析=[False]#是否已解析git
 
     def 遗忘(会话):#释放一会话记录器
-        """摘掉并释放该会话的记录器。"""
+        '摘掉并释放该会话的记录器'
         记录器=记录器表.pop(会话,None)#取出
         if 会话.id in 按号表:#有号
             del 按号表[会话.id]#摘号
@@ -94,9 +90,9 @@ def 应用(上下文,配置值):#登记服务并观察轮次
             记录器.释放()#释放
 
     def 拆除体():#插件拆除
-        """中止寿命并释放全部记录器。"""
+        '中止寿命并释放全部记录器'
         def 拆除():#实际拆除
-            """跑遗忘。"""
+            '跑遗忘'
             寿命.中止()#中止
             for 会话 in list(记录器表.keys()):#逐会话
                 遗忘(会话)#释放
@@ -104,28 +100,28 @@ def 应用(上下文,配置值):#登记服务并观察轮次
     上下文.副作用(拆除体,'workspace-changes')#挂effect
 
     def 取摘要(会话号,序号):#服务.summary
-        """按会话号与事件序号取摘要。"""
+        '按会话号与事件序号取摘要'
         记录器=按号表[会话号] if 会话号 in 按号表 else None#查找
         return None if 记录器 is None else 记录器.摘要(序号)#摘要
 
     def 取差异(会话号,序号,下标,信号):#服务.diff
-        """按需对比所列文件。"""
+        '按需对比所列文件'
         记录器=按号表[会话号] if 会话号 in 按号表 else None#查找
         return None if 记录器 is None else 记录器.差异(序号,下标,信号)#差异
 
     class 工作区变更服务:#Host服务面
-        """workspaceChanges 服务：摘要与按需差异。"""
+        'workspaceChanges 服务：摘要与差异'
         def 摘要(自身,会话号,序号):#取摘要
-            """取摘要。"""
+            '取摘要'
             return 取摘要(会话号,序号)#委托
         def 差异(自身,会话号,序号,下标,信号):#取差异
-            """取差异。"""
+            '取差异'
             return 取差异(会话号,序号,下标,信号)#委托
 
     上下文.提供服务('workspaceChanges',工作区变更服务())#登记服务
 
     def 取git运行器():#惰性解析
-        """首次调用时解析 git 并构造运行器。"""
+        '首次调用时解析 git 并构造运行器'
         if not 已解析[0]:#尚未
             已解析[0]=True#钉住
             可执行=解析git(上下文,寿命.信号)#解析
@@ -137,11 +133,11 @@ def 应用(上下文,配置值):#登记服务并观察轮次
         return 运行器箱[0]#运行器或None
 
     def 警告(消息):#转日志
-        """把记录器警告转到上下文日志。"""
+        '把记录器警告转到上下文日志'
         上下文.日志.警告(消息)#警告
 
     def 记录器自(会话,工作目录):#取或建记录器
-        """为会话取得轮次记录器。"""
+        '为会话取得轮次记录器'
         记录器=记录器表[会话] if 会话 in 记录器表 else None#已有
         if 记录器 is None:#新建
             记录器=轮次记录器(会话,工作目录,{#环境
@@ -157,7 +153,7 @@ def 应用(上下文,配置值):#登记服务并观察轮次
         return 记录器#实例
 
     def 会话事件(会话,事件):#session/event
-        """观察 turn/start、tool/result、turn/end。"""
+        '观察 turn/start、tool/result、turn/end'
         if 事件['type']=='turn/start':#开轮
             工作目录=可记录(会话)#是否记录
             if 工作目录 is not None:#顶层有cwd
@@ -171,18 +167,18 @@ def 应用(上下文,配置值):#登记服务并观察轮次
                 记录器表[会话].结束(事件['data']['turn'])#可能再记
 
     def 会话已拆除(会话):#session/disposed
-        """会话释放时遗忘记录器。"""
+        '会话释放时遗忘记录器'
         遗忘(会话)#释放
 
     def 轮次将停(载荷):#agent/turn-stopping
-        """轮内提交记录。"""
+        '轮内提交记录'
         智能体=载荷['agent']#智能体
         会话=智能体.session#会话
         if 会话 in 记录器表:#有记录器
             记录器表[会话].停止中(载荷['turn'])#记录
 
     def 工具前执行(执行,下一步):#tools/pre-execute
-        """变更前捕获并等到记录队列空。"""
+        '变更前捕获并等到记录队列空'
         智能体=执行['agent'] if 'agent' in 执行 else None#智能体
         会话=智能体.session if 智能体 is not None else None#会话
         记录器=记录器表[会话] if 会话 is not None and 会话 in 记录器表 else None#记录器

@@ -7,7 +7,7 @@ __all__=['文本预览种类','文本预览标识','基名','文本定义']#仅�
 
 
 def _解析文件地址(地址):
-    """读回 `dsh-resource://file/…`；非法则 None。语法归属 util/workspace-path，内嵌以免扩大移植面。"""
+    '读回 `dsh-resource://file/…`；非法则 None。语法归属 util/workspace-path，内嵌以免扩大移植面'
     try:
         网址=解析URL(地址)
         if 网址.scheme!='dsh-resource' or 网址.netloc!='file':#非本方案
@@ -26,7 +26,7 @@ def _解析文件地址(地址):
 
 
 def 基名(地址):
-    """一个 `file:` 地址的标签标题：解码后的 basename。"""
+    '一个 `file:` 地址的标签标题：解码后的 basename'
     名=地址[地址.rfind('/')+1:]#末段
     if 名=='':#无段
         return 地址#整址
@@ -37,7 +37,7 @@ def 基名(地址):
 
 
 def 文本定义():
-    """文本类型的注册表定义。"""
+    '文本类型的注册表定义'
     return {#右侧侧栏 tab 定义
         'id':文本预览标识,#实现身份
         'kind':文本预览种类,#种类

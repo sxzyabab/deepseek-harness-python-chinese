@@ -22,16 +22,16 @@ __all__=[#仅中文公开名
 协调世界时=时区信息('UTC')
 
 def 解析日程时刻(原文):
-    """把线协议 UTC 时刻翻成纪元毫秒。"""
+    '把线协议 UTC 时刻翻成纪元毫秒'
     时刻=日期时间.strptime(原文,日程时刻格式).replace(tzinfo=协调世界时)
     return int(时刻.timestamp()*1000)#纪元毫秒
 
 def 缺省翻译(键,_插值=None):
-    """无翻译函数时回传键。"""
+    '无翻译函数时回传键'
     return 键#键即文案
 
 def 单位文案(单位,值,翻译):
-    """一个整数量级的本地化单位词。"""
+    '一个整数量级的本地化单位词'
     键对={#单复数键对
         'day':('unit.day.one','unit.day.other'),#天
         'hour':('unit.hour.one','unit.hour.other'),#小时
@@ -42,7 +42,7 @@ def 单位文案(单位,值,翻译):
     return 翻译(对[0] if 值==1 else 对[1],{'count':值})#单复数键
 
 def 格式化日程频率(记录,翻译):
-    """选取最大可整除完整单位，不舍入持久间隔。记录为线协议 dict。"""
+    '选取最大可整除完整单位，不舍入持久间隔。记录为线协议 dict'
     if 记录['kind']!='every':
         return 翻译('frequency.once')#单次
     选中=秒单位#默认秒
@@ -56,13 +56,13 @@ def 格式化日程频率(记录,翻译):
     return 翻译('frequency.every',{'value':值,'unit':单位文案(选中['unit'],值,翻译)})#重复文案
 
 def 格式化日程本地时间(计划于,区域=None):
-    """按当地时区格式化持久 UTC 目标。"""
+    '按当地时区格式化持久 UTC 目标'
     时刻=日期时间.strptime(计划于,日程时刻格式).replace(tzinfo=协调世界时)
     本地=时刻.astimezone()#当地时区
     return 本地.strftime('%Y-%m-%d %H:%M')#中等日期+短时间近似
 
 def 格式化日程相对(计划于,现在,翻译):
-    """用最大自然时钟单位表达人类相对目标。"""
+    '用最大自然时钟单位表达人类相对目标'
     目标=解析日程时刻(计划于)#目标毫秒
     差=目标-现在#差值毫秒
     if 差==0:
@@ -81,44 +81,44 @@ def 格式化日程相对(计划于,现在,翻译):
     return 翻译('relative.future' if 差>0 else 'relative.overdue',{'value':值,'unit':单位})#相对句
 
 def 排序日程记录(记录列表,现在):
-    """逾期在前，再按目标时间升序。完全并列保持稳定。"""
+    '逾期在前，再按目标时间升序。完全并列保持稳定'
     def 解析或零(记录):
-        """解析 scheduledAt；非法则 0。"""
+        '解析 scheduledAt；非法则 0'
         try:
             return 解析日程时刻(记录['scheduledAt'])#毫秒
         except ValueError:
             return 0#非法时刻
     带索引=[{'record':记录,'index':索引} for 索引,记录 in enumerate(记录列表)]#带原索引
     def 排序键(项):
-        """逾期优先，再时间，再稳定索引。"""
+        '逾期优先，再时间，再稳定索引'
         时=解析或零(项['record'])#目标
         return (时>现在,时,项['index'])#逾期在前
     带索引.sort(key=排序键)#逾期优先
     return [项['record'] for 项 in 带索引]#剥掉索引
 
 class 日程目录动作:#页眉动作
-    """只读的当前 Session 活动提醒目录。"""
+    '只读的当前 Session 活动提醒目录'
     def __init__(自身,属性=None):
-        """记下 props 与本地状态。"""
+        '记下 props 与本地状态'
         自身.属性={} if 属性 is None else 属性#合成
         自身.打开=False#弹层开合
         自身.现在=int(time.time()*1000)#纪元毫秒
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性={} if 属性 is None else 属性#新
 
     def 切换目录(自身):
-        """刷新时钟并切换开合。"""
+        '刷新时钟并切换开合'
         自身.现在=int(time.time()*1000)#刷新时钟
         自身.打开=not 自身.打开#切换开合
 
     def 关闭目录(自身):
-        """Escape 关。"""
+        'Escape 关'
         自身.打开=False#关
 
     def 渲染(自身):
-        """不可见则空；可见时触发+弹层。"""
+        '不可见则空；可见时触发+弹层'
         属性=自身.属性#props
         用会话=属性['useSession'] if 'useSession' in 属性 else None#会话钩
         用投影=属性['useProjection'] if 'useProjection' in 属性 else None#投影钩
@@ -163,11 +163,11 @@ class 日程目录动作:#页眉动作
         }#视图结束
 
     def 选打开态(自身,快照):
-        """从会话快照取 openState。快照为跨包 dict。"""
+        '从会话快照取 openState。快照为跨包 dict'
         return 快照['openState'] if 'openState' in 快照 else None#打开态
 
     def __call__(自身,属性=None):
-        """组件调用形；有属性则更新后渲染。"""
+        '组件调用形；有属性则更新后渲染'
         if 属性 is not None:
             自身.更新(属性)#刷
         return 自身.渲染()#渲

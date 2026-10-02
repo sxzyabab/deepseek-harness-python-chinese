@@ -28,16 +28,16 @@ __all__=['创建槽渲染器','槽错误边界','槽出口','根出口','槽渲�
 作用域区域缓存={}#区域提供者缓存
 
 def 空监听():
-    """仅驱动重读的占位订阅回调。"""
+    '仅驱动重读的占位订阅回调'
     return None#无
 
 def 绑定渲染槽(宿主,条目):
-    """按条目身份稳定；死亡后抛过期授权。条目为 dict。"""
+    '按条目身份稳定；死亡后抛过期授权。条目为 dict'
     键=id(条目)#缓存键
     绑定=渲染槽缓存[键] if 键 in 渲染槽缓存 else None#读缓存
     if 绑定 is None:#未缓存
         def 闭包(子键,拥有方,选项=None):
-            """子声明检查。"""
+            '子声明检查'
             if 宿主.isLive(条目) is False:#条目已死
                 raise 过期授权错误("renderSlot('"+str(子键)+"') from a disposed registration")#过期授权
             子表=条目['children'] if 'children' in 条目 and 条目['children'] is not None else {}#子声明
@@ -53,12 +53,12 @@ def 绑定渲染槽(宿主,条目):
     return 绑定#返回
 
 def 绑定渲染槽链(宿主,条目):
-    """按条目身份稳定。"""
+    '按条目身份稳定'
     键=id(条目)#缓存键
     绑定=渲染链缓存[键] if 键 in 渲染链缓存 else None#读缓存
     if 绑定 is None:#未缓存
         def 闭包(子键,拥有方,选项=None):
-            """必须是 chain。"""
+            '必须是 chain'
             if 宿主.isLive(条目) is False:#条目已死
                 raise 过期授权错误("renderSlotChain('"+str(子键)+"') from a disposed registration")#过期授权
             子表=条目['children'] if 'children' in 条目 and 条目['children'] is not None else {}#子声明
@@ -74,7 +74,7 @@ def 绑定渲染槽链(宿主,条目):
     return 绑定#返回
 
 def 绑定注入源(面):
-    """hooks/keyedHooks 变成钩子座位。面为 dict。"""
+    'hooks/keyedHooks 变成钩子座位。面为 dict'
     源表=面['hooks'] if 'hooks' in 面 else None#普通源
     键控源=面['keyedHooks'] if 'keyedHooks' in 面 else None#键控源
     if 源表 is None and 键控源 is None:#无需绑定
@@ -89,7 +89,7 @@ def 绑定注入源(面):
     return 绑定#返回
 
 def 执行注入(条目,绑定,动作):
-    """声明派生的位置参数。"""
+    '声明派生的位置参数'
     if 'inject' not in 条目:#无工厂
         return 空注入属性#空
     注入=条目['inject']#工厂
@@ -103,7 +103,7 @@ def 执行注入(条目,绑定,动作):
     return 绑定注入源(注入(*参数))#绑定源
 
 def 缓存槽注入(面):
-    """按稳定对象身份规范化。面为 dict。"""
+    '按稳定对象身份规范化。面为 dict'
     if 面 is None:#无面
         return 空槽注入#空
     键=id(面)#缓存键
@@ -130,7 +130,7 @@ def 缓存槽注入(面):
     return 已#返回
 
 def 缓存根注入(条目,动作):
-    """按条目缓存。"""
+    '按条目缓存'
     键=id(条目)#缓存键
     属性=根注入缓存[键] if 键 in 根注入缓存 else None#读缓存
     if 属性 is None:#未命中
@@ -139,7 +139,7 @@ def 缓存根注入(条目,动作):
     return 属性#返回
 
 def 缓存会话注入(条目,绑定,动作):
-    """按（条目 × 绑定）缓存。"""
+    '按（条目 × 绑定）缓存'
     外键=id(条目)#按条目
     if 外键 not in 会话注入缓存:#无
         会话注入缓存[外键]={}#建
@@ -152,7 +152,7 @@ def 缓存会话注入(条目,绑定,动作):
     return 属性#返回
 
 def 缓存可选会话注入(条目,绑定,动作):
-    """按（条目 × 绑定）缓存。"""
+    '按（条目 × 绑定）缓存'
     外键=id(条目)#按条目
     if 外键 not in 可选会话注入缓存:#无
         可选会话注入缓存[外键]={}#建
@@ -165,7 +165,7 @@ def 缓存可选会话注入(条目,绑定,动作):
     return 属性#返回
 
 def 文案座位(面,命名空间):
-    """按（面, 命名空间, 修订）缓存。locale 面为对象。"""
+    '按（面, 命名空间, 修订）缓存。locale 面为对象'
     面键=id(面)#按面
     if 面键 not in 文案座位缓存:#无
         文案座位缓存[面键]={}#建
@@ -177,21 +177,21 @@ def 文案座位(面,命名空间):
         return 缓存['t']#复用
     绑定=面.bind(命名空间)#绑定命名空间
     def 翻译(键,参数=None):
-        """每修订新包装。"""
+        '每修订新包装'
         return 绑定(键,参数)#调用
     按面[命名空间]={'revision':修订,'t':翻译}#写入缓存
     return 翻译#返回
 
 def 文案订阅(面):
-    """逐面 subscribe/getSnapshot 闭包对。locale 面为对象。"""
+    '逐面 subscribe/getSnapshot 闭包对。locale 面为对象'
     键=id(面)#缓存键
     缓存=文案订阅缓存[键] if 键 in 文案订阅缓存 else None#读缓存
     if 缓存 is None:#未建
         def 订面(回调):
-            """订阅 locale 面。"""
+            '订阅 locale 面'
             return 面.subscribe(回调)#订
         def 取修订():
-            """读修订。"""
+            '读修订'
             快照=面.getSnapshot()#快照
             return 快照['revision'] if 'revision' in 快照 else None#修订
         缓存={'subscribe':订面,'getRevision':取修订}#闭包对
@@ -199,13 +199,13 @@ def 文案订阅(面):
     return 缓存#返回
 
 def 用文案修订(面):
-    """未安装时为 0。"""
+    '未安装时为 0'
     if 面 is None:#无面
         return 0#版本 0
     return 文案订阅(面)['getRevision']()#读修订
 
 def 条目键于(条目):
-    """按条目身份稳定。"""
+    '按条目身份稳定'
     global 下一条目键#序号
     标识=id(条目)#身份
     键=条目键表[标识] if 标识 in 条目键表 else None#读缓存
@@ -216,20 +216,20 @@ def 条目键于(条目):
     return 键#返回
 
 def 行顺序(项):
-    """list 行按 order 排。"""
+    'list 行按 order 排'
     return 项['order']#序
 
 class 槽错误边界:
-    """组装错误穿透；其它失败显示崩溃面。"""
+    '组装错误穿透；其它失败显示崩溃面'
     def __init__(自身,槽键,条目错误时,子树=None):
-        """记下槽键与回调。子树为 thunk。"""
+        '记下槽键与回调。子树为 thunk'
         自身.slotKey=槽键#槽键
         自身.onEntryError=条目错误时#崩溃回调
         自身.子树=子树#子节点
         自身.失败=False#初始未失败
 
     def 渲染(自身):
-        """失败则崩溃面。"""
+        '失败则崩溃面'
         if 自身.失败 is True:#已失败
             return {'type':'slot-error','slotKey':自身.slotKey}#崩溃面
         try:#尝试子树
@@ -243,7 +243,7 @@ class 槽错误边界:
             return {'type':'slot-error','slotKey':自身.slotKey}#崩溃面
 
 def 物化标准绑定(绑定,可选):
-    """把一个绑定物化为稳定的框架钩子与普通 prop 座位。绑定为 dict。"""
+    '把一个绑定物化为稳定的框架钩子与普通 prop 座位。绑定为 dict'
     属性=绑定['props'] if 'props' in 绑定 and 绑定['props'] is not None else {}#拷贝 prop
     标准=dict(属性)#拷
     钩子表=绑定['hooks'] if 'hooks' in 绑定 and 绑定['hooks'] is not None else {}#钩子
@@ -259,7 +259,7 @@ def 物化标准绑定(绑定,可选):
     return 标准#返回
 
 def 标准属性(作用域,根绑定,作用域绑定):
-    """上下文钩子工厂使用的稳定官方 props 对象。"""
+    '上下文钩子工厂使用的稳定官方 props 对象'
     根键=id(根绑定)#根
     根=根标准缓存[根键] if 根键 in 根标准缓存 else None#根缓存
     if 根 is None:#未命中
@@ -282,7 +282,7 @@ def 标准属性(作用域,根绑定,作用域绑定):
     return 标准#返回
 
 def 作用域区域提供者(适配器):
-    """把域自有作用域区域渲染器绑到当前作用域绑定。适配器为 dict。"""
+    '把域自有作用域区域渲染器绑到当前作用域绑定。适配器为 dict'
     键=id(适配器)#缓存键
     提供者=作用域区域缓存[键] if 键 in 作用域区域缓存 else None#读缓存
     if 提供者 is not None:#命中
@@ -293,13 +293,13 @@ def 作用域区域提供者(适配器):
     if 渲区 is None:#空
         raise 槽组装错误("scope 'session' adapter does not provide its area renderer")#抛错
     def 区域提供者组件(属性):
-        """当前绑定 + props。"""
+        '当前绑定 + props'
         return 渲区(用作用域绑定(),属性)#渲染
     作用域区域缓存[键]=区域提供者组件#写入
     return 区域提供者组件#返回
 
 def 标准工具包(宿主,条目,作用域,根绑定,作用域绑定):
-    """标准座位 + locale/store/renderSlot/SessionProvider。"""
+    '标准座位 + locale/store/renderSlot/SessionProvider'
     标准=标准属性(作用域,根绑定,作用域绑定)#标准座位
     包=dict(标准)#工具包起点
     文案名=条目['locale'] if 'locale' in 条目 else None#声明了文案
@@ -329,14 +329,14 @@ def 标准工具包(宿主,条目,作用域,根绑定,作用域绑定):
     return {'kit':包,'standard':标准,'actions':动作}#返回三件套
 
 def 绑定槽钩子工厂(工厂表,标准,钩子上下文):
-    """为一个稳定的 renderSlot 出现点绑定。"""
+    '为一个稳定的 renderSlot 出现点绑定'
     钩子={}#结果表
     for 名称,工厂 in 工厂表.items():#逐工厂
         钩子[标准钩子属性名(名称)]=工厂(标准,钩子上下文)#调用工厂
     return 钩子#返回
 
 def 渲染条目(槽键,组件,包,标准,注入,槽注入,拥有方,钩子上下文,有钩子上下文):
-    """无延迟工厂则直接展开；组件为函数。"""
+    '无延迟工厂则直接展开；组件为函数'
     工厂表=槽注入['slotHookFactories'] if 'slotHookFactories' in 槽注入 else None#延迟工厂
     槽属性=槽注入['props'] if 'props' in 槽注入 else {}#inject props
     合并={**包,**注入,**槽属性,**拥有方}#展开
@@ -349,7 +349,7 @@ def 渲染条目(槽键,组件,包,标准,注入,槽注入,拥有方,钩子上�
     return 组件(合并)#展开
 
 def 渲染条目体(宿主,条目,作用域,绑定,槽键,槽注入,拥有方,钩子上下文,有钩子上下文):
-    """根/会话/可选会话共用。"""
+    '根/会话/可选会话共用'
     根绑定=用根绑定()#根绑定
     组件=条目['component']#组件
     三件=标准工具包(宿主,条目,作用域,根绑定,绑定)#工具包
@@ -362,9 +362,9 @@ def 渲染条目体(宿主,条目,作用域,绑定,槽键,槽注入,拥有方,�
     return 渲染条目(槽键,组件,三件['kit'],三件['standard'],注入,槽注入,拥有方,钩子上下文,有钩子上下文)#渲染
 
 class 可选会话条目:
-    """收养——唯一行为；身份在 undefined → 首个 id 上保持。"""
+    '收养——唯一行为；身份在 undefined → 首个 id 上保持'
     def __init__(自身,条目,拥有方,槽键,槽注入,钩子上下文,有钩子上下文):
-        """记下 props 与化身记账。"""
+        '记下 props 与化身记账'
         自身.entry=条目#条目
         自身.ownerProps=拥有方#拥有方
         自身.slotKey=槽键#槽键
@@ -374,7 +374,7 @@ class 可选会话条目:
         自身.state=dict(首化身)#化身记账
 
     def 渲染(自身):
-        """按 epoch 重挂体。"""
+        '按 epoch 重挂体'
         宿主=用宿主()#宿主
         绑定=用作用域绑定()#当前绑定
         收养=自身.state['adopted']#已收养
@@ -398,7 +398,7 @@ class 可选会话条目:
         }#树结束
 
 def 渲染链结果(槽键,当选,选项):
-    """同时保留覆盖层回退的树位置。选项为 dict 或 None。"""
+    '同时保留覆盖层回退的树位置。选项为 dict 或 None'
     回退=选项['fallback'] if 选项 is not None and 'fallback' in 选项 else None#回退
     覆盖=选项['overlay'] is True if 选项 is not None and 'overlay' in 选项 else False#覆盖层
     if 覆盖 is False:#无覆盖层
@@ -412,22 +412,22 @@ def 渲染链结果(槽键,当选,选项):
     }#树结束
 
 def 条目选项键(条目):
-    """options.key。"""
+    'options.key'
     形=条目['options'] if 'options' in 条目 else {}#形状
     return 形['key'] if 'key' in 形 else None#键
 
 def 条目选项标识(条目):
-    """options.id。"""
+    'options.id'
     形=条目['options'] if 'options' in 条目 else {}#形状
     return 形['id'] if 'id' in 形 else None#id
 
 def 条目选项顺序(条目):
-    """options.order；缺键为 0。上游 ?? 0，0 合法。"""
+    'options.order；缺键为 0。上游 ?? 0，0 合法'
     形=条目['options'] if 'options' in 条目 else {}#形状
     return 形['order'] if 'order' in 形 else 0#缺键才 0
 
 def 渲染出口内容(宿主,槽键,拥有方,选项,作用域绑定):
-    """锚点后的 kind 调度。"""
+    '锚点后的 kind 调度'
     规格=宿主.specOf(槽键)#规范
     if 规格 is None:#未声明
         return None#空
@@ -443,36 +443,36 @@ def 渲染出口内容(宿主,槽键,拥有方,选项,作用域绑定):
     槽注入=缓存槽注入(规格['inject'] if 'inject' in 规格 else None)#调度 inject
 
     def 守卫(条目,键=None,拥有=None):
-        """遮蔽 kind 崩溃时退位；链报告但不退位。"""
+        '遮蔽 kind 崩溃时退位；链报告但不退位'
         拥有方值=拥有 if 拥有 is not None else 拥有方#拥有方
         有钩=选项 is not None and 'hookContext' in 选项#是否带上下文
         钩上下文=选项['hookContext'] if 有钩 is True else None#钩子上下文
         def 条目错误时(错误):
-            """报告。"""
+            '报告'
             宿主.reportEntryError(槽键,条目,错误,{'abdicate':种类!='chain'})#报告
         if 作用域=='session':#严格会话
             绑定=用作用域绑定()#当前绑定
             if ('key' not in 绑定) or (绑定['key'] is None):#无会话
                 raise 槽组装错误("strict session slot '"+str(槽键)+"' rendered without a scope binding")#抛错
             def 会话体():
-                """严格会话条目体。"""
+                '严格会话条目体'
                 return 渲染条目体(用宿主(),条目,'session',绑定,槽键,槽注入,拥有方值,钩上下文,有钩)#体
             边界=槽错误边界(槽键,条目错误时,会话体)#边界
             return {'type':'strict-session-entry','key':绑定['key'],'body':边界.渲染()}#树
         if 作用域=='session-maybe':#可选会话
             def 可选体():
-                """可选会话化身。"""
+                '可选会话化身'
                 return 可选会话条目(条目,拥有方值,槽键,槽注入,钩上下文,有钩).渲染()#渲
             边界=槽错误边界(槽键,条目错误时,可选体)#边界
             return {'type':'session-maybe-wrap','key':键,'body':边界.渲染()}#树
         def 根体():
-            """根条目体。"""
+            '根条目体'
             return 渲染条目体(用宿主(),条目,'root',None,槽键,槽注入,拥有方值,钩上下文,有钩)#体
         边界=槽错误边界(槽键,条目错误时,根体)#根边界
         return {'type':'root-entry','key':键,'body':边界.渲染()}#树
 
     def 干涸格():
-        """每个登记都已退位的格子。"""
+        '每个登记都已退位的格子'
         return {'type':'slot-error','slotKey':槽键}#崩溃面
 
     if 种类=='single':#单条目
@@ -541,15 +541,15 @@ def 渲染出口内容(宿主,槽键,拥有方,选项,作用域绑定):
     return {'type':'slot-list','items':项视}#列表片段
 
 class 槽出口:
-    """每个槽渲染点暴露稳定的 data-slot 包装。"""
+    '每个槽渲染点暴露稳定的 data-slot 包装'
     def __init__(自身,槽键,拥有方,选项=None):
-        """记下键与 props。"""
+        '记下键与 props'
         自身.slotKey=槽键#槽键
         自身.ownerProps=拥有方#拥有方
         自身.opts=选项#渲染选项
 
     def 渲染(自身):
-        """锚点包装 + 调度内容。"""
+        '锚点包装 + 调度内容'
         宿主=用宿主()#宿主
         宿主.subscribe(自身.slotKey,空监听)#订变更（驱动重读）
         宿主.getVersion(自身.slotKey)#读版本
@@ -563,13 +563,13 @@ class 槽出口:
         }#树结束
 
 class 根出口:
-    """外壳唯一的 ctx 级渲染入口。"""
+    '外壳唯一的 ctx 级渲染入口'
     def __init__(自身,拥有方):
-        """记下拥有方。"""
+        '记下拥有方'
         自身.ownerProps=拥有方#拥有方
 
     def 渲染(自身):
-        """未登记的 root 是启动顺序失败。"""
+        '未登记的 root 是启动顺序失败'
         宿主=用宿主()#宿主
         宿主.subscribe('root',空监听)#订
         宿主.getVersion('root')#版本
@@ -581,10 +581,10 @@ class 根出口:
                 return {'type':'slot-error','slotKey':'root'}#干涸崩溃
             raise 槽组装错误("renderSlot('root') before any 'root' registration (boot order)")#启动顺序
         def 条目错误时(错误):
-            """报告。"""
+            '报告'
             宿主.reportEntryError('root',条目,错误,{'abdicate':True})#退位
         def 根体():
-            """根条目体。"""
+            '根条目体'
             return 渲染条目体(宿主,条目,'root',None,'root',空槽注入,自身.ownerProps,None,False)#体
         边界=槽错误边界('root',条目错误时,根体)#根边界
         return {#根锚点
@@ -596,16 +596,16 @@ class 根出口:
         }#树结束
 
 class 槽渲染器:
-    """安装进 SlotRegistry 的渲染器。"""
+    '安装进 SlotRegistry 的渲染器'
     def renderRoot(自身,宿主,拥有方):
-        """提供者树。"""
+        '提供者树'
         宿主栈.append(宿主)#压宿主
         try:#渲
             def 包根出口():
-                """ScopeProvider session-maybe。"""
+                'ScopeProvider session-maybe'
                 return 根出口(拥有方).渲染()#根
             def 子树():
-                """可选会话包根出口。"""
+                '可选会话包根出口'
                 return 作用域提供者('session-maybe',包根出口).渲染()#可选会话
             return {#提供者树
                 'type':'slot-renderer-root',#类型
@@ -615,5 +615,5 @@ class 槽渲染器:
             宿主栈.pop()#出栈
 
 def 创建槽渲染器():
-    """构建安装进 SlotRegistry 的渲染器。"""
+    '构建安装进 SlotRegistry 的渲染器'
     return 槽渲染器()#实例

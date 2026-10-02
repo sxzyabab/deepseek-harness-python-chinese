@@ -47,7 +47,7 @@ __all__=[#仅中文公开名
 ])#特权方法结束
 
 def 断言图像正文容量(上下文,最大请求正文字节):#正文上限必须装得下合计图像
-    """有附件服务时核图像容量。"""
+    '有附件服务时核图像容量'
     附件=上下文.获取服务('attachments')#可选附件服务
     if 附件 is None:#没有附件服务则不检查
         return#跳过
@@ -57,12 +57,12 @@ def 断言图像正文容量(上下文,最大请求正文字节):#正文上限�
         raise 连接错误('client-connection maxRequestBodyBytes ('+str(最大请求正文字节)+') must be at least '+str(所需)+' for the configured aggregate image limit')#加载期大声失败
 
 def 经网关fetch(网关,请求):
-    """把请求交给网关的 fetch 面。"""
+    '把请求交给网关的 fetch 面'
     from ...宿主.apiproxy import 转fetch处理#宿主网关 → fetch 面
     return 转fetch处理(网关).fetch(请求)#派发
 
 def 应用(上下文,配置值=None):#安装连接插件
-    """把 API 网关挂到浏览器传输前缀下。"""
+    '把 API 网关挂到浏览器传输前缀下'
     if 配置值 is None:#无配置
         受信任主机表=[]#空名单
         最大请求正文字节=默认最大请求正文字节#默认上限
@@ -75,7 +75,7 @@ def 应用(上下文,配置值=None):#安装连接插件
         断言图像正文容量(上下文,最大请求正文字节)#核图像容量
     连接=宿主连接服务(上下文,受信任主机表)#宿主连接服务
     def 回退fetch(请求):#处理未命中 RPC 的 /api 请求
-        """共享 fetch 回退。"""
+        '共享 fetch 回退'
         路径名=解析URL(请求['url'] if 'url' in 请求 else '').path
         方法名=None#方法名
         if 路径名.startswith(接口路径+'/'):#是否 /api/<method>
@@ -91,29 +91,29 @@ def 应用(上下文,配置值=None):#安装连接插件
         return 经网关fetch(网关,请求)#交给网关 fetch 面
     共享处理=连接.createSharedFetchHandler(接口路径,{'fetch':回退fetch})#共享 fetch 回退
     def 路由处理(请求,响应):#每条 /api 请求
-        """信任围栏后桥接。"""
+        '信任围栏后桥接'
         桥请求={'headers':请求.headers,'url':请求.url,'method':请求.method}#Node 请求归一成 dict
         if not 是否受信任接口请求(桥请求,受信任主机表):#Host 不在回环也不在名单
             响应.writeHead(403)#禁止
             响应.end('forbidden')#正文
             return#不再桥接
         def 下一():#默认桥
-            """落到共享 API 桥。"""
+            '落到共享 API 桥'
             桥接(请求,响应,共享处理,最大请求正文字节)#Node HTTP → fetch 桥
         上下文.waterfall('connection/request',请求,响应,下一)#瀑布后桥接
     路由={'kind':'prefix','path':接口路径,'handler':路由处理}#HTTP 前缀路由
     def 登记接口路由():#登记 /api 前缀
-        """把路由交给 web 服务器。"""
+        '把路由交给 web 服务器'
         return 上下文.webServer.register(路由)#登记
     上下文.副作用(登记接口路由,'client-connection: /api route')#登记 /api 路由
     def 挂下行(网关上下文):#等 apiProxy 出现再挂 WebSocket 下行
-        """登记 mux/host 下行。"""
+        '登记 mux/host 下行'
         断言图像正文容量(网关上下文,最大请求正文字节)#网关在时再核一次图像容量
         下行=网页套接字下行(网关上下文.apiProxy)#事件下行
         def 登记下行(路径,处理):#登记一条带信任闸的升级路由
-            """安装升级路由。"""
+            '安装升级路由'
             def 升级处理(请求,套接字,头):#升级请求
-                """信任闸后交给下行。"""
+                '信任闸后交给下行'
                 桥请求={'headers':请求.headers,'url':请求.url,'method':请求.method}#Node 请求归一成 dict
                 if not 是否受信任接口请求(桥请求,受信任主机表):#未过信任围栏
                     拒绝网页套接字升级(套接字)#拒绝握手
@@ -121,11 +121,11 @@ def 应用(上下文,配置值=None):#安装连接插件
                 return 处理(请求,套接字,头)#交给 mux/host 下行
             return 网关上下文.webServer.registerUpgrade({'path':路径,'handler':升级处理})#登记 WebSocket 升级
         def 下行效应():#下行生命周期
-            """登记两条升级并在拆除时关掉下行。"""
+            '登记两条升级并在拆除时关掉下行'
             拆复用=登记下行(复用事件路径,下行.handleMux)#复用事件通道
             拆宿主=登记下行(宿主事件路径,下行.handleHost)#宿主事件通道
             def 拆除():#拆除
-                """取消升级并关下行。"""
+                '取消升级并关下行'
                 拆复用()#拆复用
                 拆宿主()#拆宿主
                 下行.close()#关掉下行

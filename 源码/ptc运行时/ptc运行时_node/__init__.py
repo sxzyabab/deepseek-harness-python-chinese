@@ -1,4 +1,4 @@
-"""有界 Node 程序：宿主拥有绑定、输出上限与受管进程清理。"""
+'有界 Node 程序：宿主拥有绑定、输出上限与受管进程清理'
 import codecs,math,os,sys,threading#增量解码、有限数、路径、冻结探测与后台线程
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
 from ...工具.超时 import (#截止与中止
@@ -45,17 +45,17 @@ __all__=[#仅中文公开名
     +'Direct filesystem access follows this execution\'s sandbox policy.')#面向模型的执行说明
 
 def 消息于(错误):#错误英文消息
-    """异常取消息，其它强制转字符串。"""
+    '异常取消息，其它强制转字符串'
     if isinstance(错误,BaseException) and len(错误.args)>0:#有消息
         return str(错误.args[0]) if type(错误.args[0]) is str else str(错误)#消息
     return str(错误)#强制转
 
 def 是否记录(值):#非数组对象
-    """是否为非空且非 list 的 dict。"""
+    '是否为非空且非 list 的 dict'
     return type(值) is dict#只要 dict
 
 def 读管道(流,接纳,失败):#一路 UTF-8 管道
-    """阻塞读到结束，增量解码后交给接纳。"""
+    '阻塞读到结束，增量解码后交给接纳'
     解码器=codecs.getincrementaldecoder('utf-8')()#增量 UTF-8
     try:#读
         while True:#直到 EOF
@@ -72,9 +72,9 @@ def 读管道(流,接纳,失败):#一路 UTF-8 管道
         失败(错误)#失败
 
 class 节点ptc运行时(ptc运行时):#Node 提供方
-    """直接文件效果与 Bash 共用同一沙箱服务。"""
+    '直接文件效果与 Bash 共用同一沙箱服务'
     def __init__(自身,上下文,配置):#记下配置并挂清理
-        """校验正有限界限，缺省节点可执行为 node。"""
+        '校验正有限界限，缺省节点可执行为 node'
         super().__init__(上下文)#登记 ptcRuntime
         已解析=dict(配置)#拷贝
         if 'nodeExecutable' not in 已解析 or 已解析['nodeExecutable'] is None or 已解析['nodeExecutable']=='':#缺省
@@ -106,7 +106,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
         自身.存活=[]#进行中的运行
         自身.已释放=False#是否已拆
         def 拆除():#fiber 拆除
-            """中止并等待进行中的运行。"""
+            '中止并等待进行中的运行'
             自身.已释放=True#标记
             活动=list(自身.存活)#快照
             for 运行 in 活动:#逐个
@@ -117,28 +117,30 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
         上下文.副作用(拆除,'Node ptc-runtime cleanup')#登记
 
     def 语言(自身):#源语言
-        """run 期望的小写语言标识。"""
+        'run 期望的小写语言标识'
         return 'typescript'#TypeScript
 
     def 隔离(自身):#执行基底
-        """小写执行基底标识。"""
+        '小写执行基底标识'
         return 'process'#进程
 
     def 执行说明(自身):#程序用法
-        """提供方拥有的用法说明。"""
+        '提供方拥有的用法说明'
         return 执行说明文案#固定英文
 
     def 沙箱模式(自身):#部署文件政策
-        """文件政策模式。"""
+        '文件政策模式'
         return 自身.ctx.sandboxPolicy.defaultMode#部署默认
 
     def 超时(自身):#数值截止描述
-        """{defaultMs,maxMs}。"""
+        '{defaultMs,maxMs}'
         默认=min(自身.配置['timeoutMs'],自身.配置['maxTimeoutMs'])#有效默认
         return {'defaultMs':默认,'maxMs':自身.配置['maxTimeoutMs']}#描述
 
     def 解析(自身,请求):#解析一次执行
-        """补全 cwd、数值或空截止与执行策略。请求是 dict。"""
+        """补全 cwd、数值或空截止与执行策略。
+        请求是 dict
+        """
         if 自身.已释放:#已拆
             raise 节点ptc错误('ptc-runtime-node: resolve after disposal')#拒绝
         if 'sandboxPolicy' in 请求 and 请求['sandboxPolicy'] is not None:#请求自带
@@ -162,7 +164,9 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
         return 规格#已解析
 
     def 运行(自身,规格):#跑已解析程序
-        """在全新受管隔离 Node 进程中跑。规格是 dict。"""
+        """在全新受管隔离 Node 进程中跑。
+        规格是 dict
+        """
         if 自身.已释放:#已拆
             raise 节点ptc错误('ptc-runtime-node: run after disposal')#拒绝
         if 'sandboxPolicy' not in 规格 or 规格['sandboxPolicy'] is None:#缺政策
@@ -186,7 +190,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             完成.兑现()#落定
 
     def _执行(自身,规格,政策,绑定,控制器):#一次受管执行
-        """启动进程、分帧、绑定调用与清理。"""
+        '启动进程、分帧、绑定调用与清理'
         账本=输出账本(自身.配置['maxOutputBytes'])#外层账本
         日志=[]#已接纳日志
         沙箱={'mode':政策['mode'],'denied':False}#沙箱事实
@@ -207,7 +211,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
         锁=threading.Lock()#结算锁
         墙钟=None#定时器
         def 收尾(失败=None,值=None):#结算一次运行
-            """清理受管进程后兑现结果。"""
+            '清理受管进程后兑现结果'
             with 锁:#互斥
                 if 已结算[0]:#已结算
                     return#忽略
@@ -217,13 +221,13 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             if 通道 is not None:#有通道
                 通道.关闭()#关
             def 清理():#受管清理
-                """终止、等待、排空。"""
+                '终止、等待、排空'
                 失败值=失败#可变失败
                 if 句柄 is not None:#有进程
                     try:#清理
                         句柄.终止()#升级终止
                         def 等结局():#done
-                            """等孩子结局。"""
+                            '等孩子结局'
                             try:#等待
                                 句柄.done.等待()#结局
                             except (节点ptc错误,OSError,ValueError):#spawn 失败
@@ -255,7 +259,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             工作.start()
             工作.join()#等到清理结束再返回路径继续
         def 因中止():#中止回调
-            """超时或取消。"""
+            '超时或取消'
             if 已超时[0]:#墙钟
                 收尾({'kind':'timeout','message':'execution deadline reached ('+str(规格['timeoutMs'])+'ms)'})#超时
                 return
@@ -266,7 +270,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 原因=消息于(错误)#文案
             收尾({'kind':'abort','message':原因})#取消
         def 监视中止():#后台等中止
-            """阻塞到信号中止。"""
+            '阻塞到信号中止'
             等待中止(信号)#等待
             因中止()#收尾
         中止线程=threading.Thread(target=监视中止,daemon=True)#监视
@@ -276,7 +280,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             return 结果任务.等待()#已结算
         if 规格['timeoutMs'] is not None:#有墙钟
             def 到期():#墙钟
-                """标记超时并中止。"""
+                '标记超时并中止'
                 已超时[0]=True#超时
                 控制器.中止(节点ptc错误('execution deadline reached'))#中止
             墙钟=threading.Timer(规格['timeoutMs']/1000.0,到期)#定时器
@@ -321,7 +325,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             if 句柄.control is None or 句柄.stdout is None or 句柄.stderr is None:#缺管
                 raise 节点ptc错误('subprocess provider did not supply the requested control and output pipes')#拒绝
             def 接纳(文本):#一条外层文本
-                """接纳或触顶收尾。"""
+                '接纳或触顶收尾'
                 if 输出溢出[0]:#已溢出
                     return#忽略
                 if not 账本.接纳(文本,日志):#越顶
@@ -329,11 +333,11 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                     溢出结果[0]=账本.超限(日志+[文本])#预计算
                     收尾({'kind':'output-limit','message':'outer output exceeded '+str(自身.配置['maxOutputBytes'])+' bytes'})#收尾
             def 管道失败(错误):#stdout/stderr
-                """传输失败。"""
+                '传输失败'
                 收尾({'kind':'worker-exit','message':消息于(错误)})#失败
             出线程=threading.Thread(target=读管道,args=(句柄.stdout,接纳,管道失败),daemon=True)#stdout
             def 接纳标准误(文本):#stderr 另留尾
-                """接纳并保留尾部。"""
+                '接纳并保留尾部'
                 标准误[0]=(标准误[0]+文本)[-自身.配置['maxOutputBytes']:]#尾部
                 if len(文本)>0:#有文本
                     接纳(文本)#入账
@@ -345,10 +349,10 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             未决数=[0]#同时调用
             未决字节=[0]#未决帧字节
             def 协议失败(消息):#畸形帧
-                """协议失败收尾。"""
+                '协议失败收尾'
                 收尾({'kind':'protocol','message':消息})#协议
             def 进程结束(结局):#孩子退出
-                """提前退出分类。"""
+                '提前退出分类'
                 if 已结算[0]:#已结算
                     return#忽略
                 if 已隔离 is not None and 分类运行器失败(结局['exitCode'],标准误[0],已隔离['runnerFailureRules']) is not None:#运行器
@@ -356,7 +360,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                     return
                 收尾({'kind':'worker-exit','message':'Node process exited before completing ('+str(结局['exitCode'])+')'+(': '+标准误[0] if 标准误[0] else '')})#退出
             def 接收(原始,字节):#控制帧
-                """分派 ready/log/done/call。"""
+                '分派 ready/log/done/call'
                 if not 是否记录(原始):#非对象
                     协议失败('invalid control frame')#协议
                     return
@@ -430,7 +434,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                         协议失败('pending binding calls exceed configured limits')#协议
                         return
                     def 跑绑定(调用标识=标识,调用函数=函数,调用参数=参数,帧字节=字节):#一次绑定
-                        """执行绑定并回复。"""
+                        '执行绑定并回复'
                         try:#调用
                             try:#执行
                                 值=快照json值(调用函数(调用参数))#快照
@@ -451,14 +455,14 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                     return
                 协议失败('unknown control message')#未知
             def 通道失败(错误,种类):#通道失败
-                """协议或传输。"""
+                '协议或传输'
                 if 种类=='protocol':#协议
                     协议失败(消息于(错误))#协议
                 elif 已就绪[0]:#已握手
                     收尾({'kind':'worker-exit','message':消息于(错误)})#退出
                 else:#握手前
                     def 等退出():#等孩子
-                        """握手前的退出分类。"""
+                        '握手前的退出分类'
                         try:#等待
                             进程结束(句柄.done.等待())#结局
                         except BaseException as 失败值:#spawn
@@ -466,7 +470,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                     threading.Thread(target=等退出,daemon=True).start()#后台
             通道=json通道(句柄.control,自身.配置['maxMessageBytes'],接收,通道失败)#分帧
             def 等进程():#孩子退出
-                """排队帧回调后再分类退出。"""
+                '排队帧回调后再分类退出'
                 try:#等待
                     结局=句柄.done.等待()#结局
                 except BaseException as 错误:#spawn 失败

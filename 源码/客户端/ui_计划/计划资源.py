@@ -3,16 +3,16 @@ from .计划 import 解析计划地址,已提交计划#计划解析
 __all__=['计划资源提供者']#仅中文公开名
 
 def 造失败(码,消息,细节=None):
-    """RemoteFailure 形 dict。"""
+    'RemoteFailure 形 dict'
     return {'code':码,'message':消息,'details':细节 if 细节 is not None else {}}#失败
 
 def 计划资源提供者(远程会话):
-    """绑定计划读取到会话 Remote；找到精确调用后停。"""
+    '绑定计划读取到会话 Remote；找到精确调用后停'
     def 打开(地址,选项=None):
-        """同步生成器：逐帧产出 RemoteResult。"""
+        '同步生成器：逐帧产出 RemoteResult'
         信号=选项['signal'] if 选项 is not None and 'signal' in 选项 else None#中止 Event
         def 已中止():
-            """信号已中止。"""
+            '信号已中止'
             return 信号 is not None and 信号.is_set()#中止
         if 已中止():#已中止
             return#停

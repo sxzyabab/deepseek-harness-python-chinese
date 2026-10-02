@@ -1,4 +1,4 @@
-"""安装规格在交给 pnpm 之前的形态解析。"""
+'安装规格在交给 pnpm 之前的形态解析'
 import os,re
 
 __all__=['非法安装规格错误','解析安装规格','git主机']
@@ -14,20 +14,20 @@ TARBALL规格=re.compile(r'\.(?:tgz|tar\.gz)(?:#.*)?$',re.IGNORECASE|re.ASCII)
 包名最大长度=214
 
 class 非法安装规格错误(Exception):
-    """pnpm 与注册表都不会接受的规格；reason 给人读。"""
+    'pnpm 与注册表都不会接受的规格；reason 给人读'
     def __init__(自身,规格,理由):
-        """记下修剪后的规格与一句拒绝理由。"""
+        '记下修剪后的规格与一句拒绝理由'
         super().__init__('plugin-manager: '+理由+': '+规格)
         自身.name='InvalidInstallSpecError'
         自身.spec=规格
         自身.reason=理由
 
 def 构造非法(规格,理由):
-    """构造拒绝。"""
+    '构造拒绝'
     return 非法安装规格错误(规格,理由)
 
 def git主机(规格):
-    """git 规格克隆自的主机：简写主机、scp 形态或 URL 主机。"""
+    'git 规格克隆自的主机：简写主机、scp 形态或 URL 主机'
     from urllib.parse import urlparse
     简写=GIT简写捕获.match(规格)
     if 简写 is not None:
@@ -40,7 +40,7 @@ def git主机(规格):
     return urlparse(re.sub(r'^git\+','',规格,count=1,flags=re.IGNORECASE|re.ASCII)).netloc
 
 def 解析安装规格(原始):
-    """读出规格形态。路径必须绝对：浏览器工作目录对人不成立，相对路径若相对配置档会指进配置档内。"""
+    '读出规格形态。路径必须绝对：浏览器工作目录对人不成立，相对路径若相对配置档会指进配置档内'
     规格=原始.strip()
     if 规格=='':
         raise 构造非法(规格,'包规格不能为空')

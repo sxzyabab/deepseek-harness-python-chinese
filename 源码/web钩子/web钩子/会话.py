@@ -1,27 +1,31 @@
-"""按已结算的 webhook 规则结果，在工作区侧创建会话。"""
+'按已结算的 webhook 规则结果，在工作区侧创建会话'
 import os,uuid#绝对路径与会话 id
 from ...内核.会话 import 会话标识#会话 id 品牌
 from ...模型后端.llm import 创建用户消息,错误链#用户消息与错误链
 
 class 会话错误(Exception):
-    """webhook 会话创建路径上的失败。"""
+    'webhook 会话创建路径上的失败'
 
 class 会话查询错误中止(会话错误):
-    """webhook 创建路径上的取消。"""
+    'webhook 创建路径上的取消'
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    """信号是否已中止。
+    无信号视为未中止
+    """
     if 信号 is None:
         return False
     return 信号.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
-    """已中止则抛出会话创建取消。"""
+    '已中止则抛出会话创建取消'
     if 已中止(信号):
         raise 会话查询错误中止()
 
 def 必填字符串(记录,字段):
-    """从规则结果读取一个非空字符串字段。记录为 dict。"""
+    """从规则结果读取一个非空字符串字段。
+    记录为 dict
+    """
     if 字段 not in 记录:
         raise TypeError(f'webhook Session request {字段} must be a non-empty string')
     值=记录[字段]
@@ -30,7 +34,9 @@ def 必填字符串(记录,字段):
     return 值
 
 def 解析请求(上下文,输入):
-    """快照并校验同进程规则结果，再跨调用边界使用。输入为 dict。"""
+    """快照并校验同进程规则结果，再跨调用边界使用。
+    输入为 dict
+    """
     if 输入 is None or not isinstance(输入,dict):
         raise TypeError('webhook rule result must be null or a Session request object')
     工作区路径=必填字符串(输入,'workspacePath')
@@ -64,13 +70,15 @@ def 解析请求(上下文,输入):
     }
 
 def 报告回滚失败(上下文,主题,错误):
-    """记录回滚失败，不替换原始失败。"""
+    '记录回滚失败，不替换原始失败'
     上下文.日志.警告(f'webhook: {主题} rollback failed: {错误链(错误)}')
 
 def 安装初始模型选择(智能体上下文,选择):
-    """在首次耐久请求头出现前应用创建时选择。选择为 dict。"""
+    """在首次耐久请求头出现前应用创建时选择。
+    选择为 dict
+    """
     def 请求钩子(载荷,下一步):
-        """首条请求前覆盖 provider/model；路由已变则不覆盖。"""
+        '首条请求前覆盖 provider/model；路由已变则不覆盖'
         已解析=下一步(载荷)
         智能体=载荷.get('agent') if isinstance(载荷,dict) else None
         if 智能体 is None:
@@ -87,7 +95,9 @@ def 安装初始模型选择(智能体上下文,选择):
     智能体上下文.监听('agent/request',请求钩子)
 
 def 创建Webhook会话(上下文,投递,规则号,请求,信号):
-    """创建、附着、命名、配置并提示一条普通根会话。投递为 dict。"""
+    """创建、附着、命名、配置并提示一条普通根会话。
+    投递为 dict
+    """
     已解析=解析请求(上下文,请求)
     上下文.permissionPresets.resolve(已解析['permissionPreset'])
     预设=上下文.agentPresets.resolve(已解析['agentPreset'])
@@ -97,7 +107,7 @@ def 创建Webhook会话(上下文,投递,规则号,请求,信号):
     若已中止则抛出(信号)
     会话号=会话标识(f'webhook-{uuid.uuid4()}')
     def 安装预设(智能体上下文):
-        """setup 回调：挂载预设并安装模型选择。"""
+        'setup 回调：挂载预设并安装模型选择'
         安装预设与模型(上下文,智能体上下文,预设['id'],已解析['modelSelection'])
     句柄=上下文.agents.创建({
         'sessionId':会话号,'signal':信号,
@@ -138,6 +148,6 @@ def 创建Webhook会话(上下文,投递,规则号,请求,信号):
         raise 错误
 
 def 安装预设与模型(上下文,智能体上下文,预设号,模型选择):
-    """挂载智能体预设并安装初始模型选择。"""
+    '挂载智能体预设并安装初始模型选择'
     上下文.agentPresets.mount(智能体上下文,预设号)
     安装初始模型选择(智能体上下文,模型选择)

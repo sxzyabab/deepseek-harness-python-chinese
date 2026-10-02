@@ -42,7 +42,7 @@ __all__=[#公开面
 )#效应种结束
 
 def 空输入状态():#初值
-    """无草稿、无附件、plain、空排队（InboxState next-turn）。"""
+    '无草稿、无附件、plain、空排队（InboxState next-turn）'
     return {#态
         'draft':'',#草稿
         'attachmentIds':[],#附件

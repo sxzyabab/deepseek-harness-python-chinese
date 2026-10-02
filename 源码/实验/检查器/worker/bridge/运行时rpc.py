@@ -6,16 +6,16 @@ from .枢纽 import 检查器协议版本#协议版本
 __all__=['Client运行时远程错误','Client运行时路由']#仅中文公开名
 
 class Client运行时远程错误(Exception):#Client Runtime远程错误
-    """Client Runtime 执行器有意返回的错误。"""
+    'Client Runtime 执行器有意返回的错误'
     def __init__(自身,码,信息):#构造
-        """保存错误码。"""
+        '保存错误码'
         super().__init__(信息)#基类
         自身.code=码#错误码
 
 class Client运行时路由:#Client Runtime路由
-    """Runtime 上下文注册表与关联的 Worker→Client 请求所有者。"""
+    'Runtime 上下文注册表与关联的 Worker→Client 请求所有者'
     def __init__(自身,源注册表,超时毫秒):#构造
-        """订阅源事件。"""
+        '订阅源事件'
         自身.源注册表=源注册表#源注册表
         自身._超时毫秒=超时毫秒#超时
         自身._按源目标={}#按源目标
@@ -27,26 +27,26 @@ class Client运行时路由:#Client Runtime路由
         自身._取消订阅=源注册表.订阅事件(自身._接收源事件)#订阅
 
     def 列出目标(自身):#列出目标
-        """快照全部活动 Client 执行上下文。"""
+        '快照全部活动 Client 执行上下文'
         return list(自身._按源目标.values())#拷贝
 
     def 按源(自身,源):#按源查找
-        """解析一个活动源代数的 Client 目标。"""
+        '解析一个活动源代数的 Client 目标'
         目标=自身._按源目标.get(源['sourceId'])#取目标
         if 目标 is None:#无
             return None#无
         return 目标 if 目标['source']['generation']==源['generation'] else None#代数匹配
 
     def 订阅(自身,监听):#订阅
-        """订阅合成执行上下文生命周期。"""
+        '订阅合成执行上下文生命周期'
         自身._监听.add(监听)#加入
         def 拆除():#拆除本监听
-            """取消本监听。"""
+            '取消本监听'
             自身._监听.discard(监听)#摘掉
         return 拆除#拆除器
 
     def 订阅控制台(自身,目标,会话id,监听):#订阅Console
-        """为一个 Client realm 与 DevTools 会话启用 Console 事件。"""
+        '为一个 Client realm 与 DevTools 会话启用 Console 事件'
         if not 自身.源注册表.发送(目标['source'],{#发送启用
             'v':检查器协议版本,'t':'client-console/enable',#类型
             'sourceId':目标['source']['sourceId'],'generation':目标['source']['generation'],#代数
@@ -58,7 +58,7 @@ class Client运行时路由:#Client Runtime路由
         自身._控制台订阅对象=getattr(自身,'_控制台订阅对象',{})#对象表
         自身._控制台订阅对象[id(订阅)]=订阅#保存
         def 拆除():#拆除
-            """禁用 Console。"""
+            '禁用 Console'
             表=getattr(自身,'_控制台订阅对象',{})#表
             if id(订阅) not in 表:#已无
                 return#返回
@@ -75,7 +75,7 @@ class Client运行时路由:#Client Runtime路由
         return 拆除#拆除器
 
     def 请求(自身,目标,会话id,命令):#发起请求
-        """在其当前活动源代数中执行一次类型化命令。"""
+        '在其当前活动源代数中执行一次类型化命令'
         if 自身._已关闭 or 自身._按源目标.get(目标['source']['sourceId']) is not 目标:#不可用
             任务=操作任务()#失败任务
             任务.拒绝(RuntimeError('Client execution context is no longer available'))#拒绝
@@ -83,7 +83,7 @@ class Client运行时路由:#Client Runtime路由
         请求id=str(uuid.uuid4())#请求id
         任务=操作任务()#待决任务
         def 超时():#超时
-            """超时取消并拒绝。"""
+            '超时取消并拒绝'
             if 请求id not in 自身._待决:#已结算
                 return#返回
             自身._取消Client响应(目标['source'],会话id,请求id)#取消Client侧
@@ -105,7 +105,7 @@ class Client运行时路由:#Client Runtime路由
         return 任务#结果
 
     def 关闭目标会话(自身,目标,会话id):#关闭目标会话
-        """关闭一个 realm 本地 Runtime 会话，不通知兄弟 Client realm。"""
+        '关闭一个 realm 本地 Runtime 会话，不通知兄弟 Client realm'
         for 请求id,待决 in list(自身._待决.items()):#扫待决
             if 待决['target'] is not 目标 or 待决['sessionId']!=会话id:#不匹配
                 continue#跳过
@@ -123,7 +123,7 @@ class Client运行时路由:#Client Runtime路由
         })#通知结束
 
     def 关闭(自身):#关闭
-        """停止路由并拒绝每一笔未完成操作。"""
+        '停止路由并拒绝每一笔未完成操作'
         if 自身._已关闭:#幂等
             return#返回
         自身._已关闭=True#置位
@@ -136,7 +136,7 @@ class Client运行时路由:#Client Runtime路由
         自身._监听.clear()#清监听
 
     def _接收源事件(自身,事件):#处理源事件
-        """按类型分发。"""
+        '按类型分发'
         类型=事件['type']#类型
         if 类型=='opened':#打开
             自身._打开(事件['source'])#打开目标
@@ -148,7 +148,7 @@ class Client运行时路由:#Client Runtime路由
             自身._控制台事件(事件['source'],事件['frame'])#分发
 
     def _打开(自身,源):#打开目标
-        """登记 Client Runtime 能力目标。"""
+        '登记 Client Runtime 能力目标'
         能力=None#能力
         for 候 in 源['capabilities']:#找能力
             if 候['type']=='client-runtime':#命中
@@ -166,7 +166,7 @@ class Client运行时路由:#Client Runtime路由
         自身._发出({'type':'opened','target':目标})#发出
 
     def _移除(自身,源,原因):#移除目标
-        """拒绝待决并发出关闭。"""
+        '拒绝待决并发出关闭'
         目标=自身._按源目标.get(源['sourceId'])#取目标
         if 目标 is None or 目标['source']['generation']!=源['generation']:#代数不符
             return#返回
@@ -183,7 +183,7 @@ class Client运行时路由:#Client Runtime路由
         自身._发出({'type':'closed','target':目标})#发出
 
     def _控制台事件(自身,源,帧):#Console事件
-        """分发到匹配订阅。"""
+        '分发到匹配订阅'
         目标=自身._按源目标.get(源['sourceId'])#取目标
         if 目标 is None or 目标['source']['generation']!=源['generation']:#不符
             return#返回
@@ -197,7 +197,7 @@ class Client运行时路由:#Client Runtime路由
                 pass#一个 DevTools Console 会话不能扰乱兄弟会话
 
     def _结算(自身,源,帧):#结算响应
-        """确认并兑现或拒绝。"""
+        '确认并兑现或拒绝'
         待决=自身._待决.get(帧['requestId'])#取待决
         if 待决 is None:#无待决
             自身._取消Client响应(源,帧['sessionId'],帧['requestId'])#取消残余
@@ -225,7 +225,7 @@ class Client运行时路由:#Client Runtime路由
         待决['future'].兑现(结果['result'])#成功
 
     def _确认Client响应(自身,源,会话id,请求id):#确认Client响应
-        """发送确认帧。"""
+        '发送确认帧'
         try:#发送确认
             return 自身.源注册表.发送(源,{#确认帧
                 'v':检查器协议版本,'t':'client-runtime/response-acknowledged',#类型
@@ -236,7 +236,7 @@ class Client运行时路由:#Client Runtime路由
             return False#失败
 
     def _取消Client响应(自身,源,会话id,请求id):#取消Client响应
-        """发送取消帧。"""
+        '发送取消帧'
         try:#发送取消
             自身.源注册表.发送(源,{#取消帧
                 'v':检查器协议版本,'t':'client-runtime/cancel',#类型
@@ -247,7 +247,7 @@ class Client运行时路由:#Client Runtime路由
             pass#取消结算不依赖对可能正在关闭的源的投递
 
     def _拒绝待决(自身,请求id,错误):#拒绝待决
-        """清理并拒绝。"""
+        '清理并拒绝'
         待决=自身._待决.pop(请求id,None)#取待决
         if 待决 is None:#无
             return#返回
@@ -256,7 +256,7 @@ class Client运行时路由:#Client Runtime路由
             待决['future'].拒绝(错误)#拒绝
 
     def _发出(自身,事件):#发出事件
-        """隔离投递生命周期。"""
+        '隔离投递生命周期'
         for 监听 in list(自身._监听):#扫监听
             try:#隔离
                 监听(事件)#回调

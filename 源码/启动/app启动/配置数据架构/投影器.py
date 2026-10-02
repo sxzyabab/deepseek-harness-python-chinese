@@ -1,4 +1,4 @@
-"""投影原生 Config 输入约束，不执行其校验器或变换回调。"""
+'投影原生 Config 输入约束，不执行其校验器或变换回调'
 import json,math
 from .原生 import 是否原生配置数据架构
 from .匹配模式 import 创建模式检查
@@ -13,9 +13,9 @@ __all__=['装载器表达式数据架构','创建配置投影器']
 继承名=tuple(object.__dict__.keys())
 
 def json值(值,空化未定义=False):
-    """复制 JSON 兼容注解，不把非 JSON 默认值悄悄转换。"""
+    '复制 JSON 兼容注解，不把非 JSON 默认值悄悄转换'
     def 访问(项,活动):
-        """拒绝环与非 JSON。"""
+        '拒绝环与非 JSON'
         if 空化未定义 and 项 is None and 项 is not False:
             pass
         if 空化未定义 and 项 is None:
@@ -42,11 +42,11 @@ def json值(值,空化未定义=False):
     return json.loads(文本)
 
 def _json默认(项):
-    """禁止非 JSON。"""
+    '禁止非 JSON'
     raise Exception('schema annotation contains a non-JSON object')
 
 def 常量(值,对象比较):
-    """原生常量相等把省略与空成员同等对待。"""
+    '原生常量相等把省略与空成员同等对待'
     if isinstance(值,list):
         结果={'type':'array','minItems':len(值),'maxItems':len(值),'items':False}
         if len(值)>0:
@@ -67,12 +67,12 @@ def 常量(值,对象比较):
     return {'const':值}
 
 def re_escape(文本):
-    """正则转义。"""
+    '正则转义'
     import re
     return re.escape(文本)
 
 def 可空(核心,接受):
-    """加减 null 接受。"""
+    '加减 null 接受'
     if isinstance(核心,bool):
         if 接受:
             return 核心 or {'type':'null'}
@@ -96,7 +96,7 @@ def 可空(核心,接受):
     return 拷贝
 
 def 表达式化(模式,值位置=True,启用=True):
-    """只在配置值位置加表达式备选。"""
+    '只在配置值位置加表达式备选'
     结果=dict(模式)
     if 模式.get('properties') is not None:
         结果['properties']={键:表达式化(子,True,启用) for 键,子 in 模式['properties'].items()}
@@ -121,7 +121,7 @@ def 表达式化(模式,值位置=True,启用=True):
     return dict(注解,anyOf=[结果,{'$ref':'#/$defs/loaderExpression'}])
 
 def 校验易变放置(节点,路径,阻塞=False,已见=None):
-    """不求值、不调用未解析惰性构建器。"""
+    '不求值、不调用未解析惰性构建器'
     if 已见 is None:
         已见={}
     身份=id(节点)
@@ -153,13 +153,13 @@ def 校验易变放置(节点,路径,阻塞=False,已见=None):
             校验易变放置(子,路径+'/'+str(下标),True,已见)
 
 def 取(节点,名,缺省=None):
-    """对象或 dict 取值。"""
+    '对象或 dict 取值'
     if isinstance(节点,dict):
         return 节点.get(名,缺省)
     return getattr(节点,名,缺省)
 
 def 浅校验(模式,值):
-    """对生成模式做默认值字面校验。"""
+    '对生成模式做默认值字面校验'
     if 模式 is True:
         return True
     if 模式 is False:
@@ -242,11 +242,11 @@ def 浅校验(模式,值):
     return True
 
 def 创建配置投影器():
-    """返回把一份受信任原生 Config 图投影进外围文档定义的函数。"""
+    '返回把一份受信任原生 Config 图投影进外围文档定义的函数'
     可移植模式=创建模式检查()
     构建结果={}
     def 投影(根,前缀):
-        """投影一棵图。"""
+        '投影一棵图'
         校验易变放置(根,'config')
         完成={}
         严格节点={}
@@ -256,12 +256,12 @@ def 创建配置投影器():
         限制=[]
         元效果=[]
         def 记限制(路径,消息):
-            """记下限制文案。"""
+            '记下限制文案'
             文本=路径+': '+消息
             限制.append(文本)
             return 文本
         def 访问(节点,路径,严格=False):
-            """访问一个原生节点。"""
+            '访问一个原生节点'
             键=id(节点)
             if 严格:
                 if 键 not in 严格节点:
@@ -341,11 +341,11 @@ def 创建配置投影器():
                 输入限制=[]
                 不支持=False
                 def 输入限制消息(消息):
-                    """记下输入限制。"""
+                    '记下输入限制'
                     输入限制.append(消息)
                     自有限制.append(记限制(路径,消息))
                 def 注解(值,名):
-                    """JSON 兼容注解。"""
+                    'JSON 兼容注解'
                     try:
                         return {'ok':True,'value':json值(值)}
                     except Exception as 错误:
@@ -353,7 +353,7 @@ def 创建配置投影器():
                         return {'ok':False}
                 子结果=[]
                 def 子(值,后缀,子严格=False):
-                    """访问子节点。"""
+                    '访问子节点'
                     if 值 is None:
                         raise Exception(路径+': '+str(类型)+' schema is missing '+后缀)
                     结果=访问(值,路径+'/'+后缀,子严格)
@@ -375,7 +375,7 @@ def 创建配置投影器():
                 elif 类型=='const':
                     try:
                         def 对象比较():
-                            """对象常量比较限制。"""
+                            '对象常量比较限制'
                             输入限制消息('object constant inherited-member comparison requires native validation')
                         核心=False if 取(节点,'value') is None else 常量(json值(取(节点,'value'),True),对象比较)
                     except Exception as 错误:
@@ -532,7 +532,7 @@ def 创建配置投影器():
                 if 字典校验 is not None:
                     原生['dictionaryValidation']=字典校验
                 def 拷贝(名,值):
-                    """拷贝注解。"""
+                    '拷贝注解'
                     if 值 is None:
                         return
                     结果=注解(值,名)
@@ -587,13 +587,13 @@ def 创建配置投影器():
     return 投影
 
 def _带元(节点,元):
-    """浅拷贝并换元。"""
+    '浅拷贝并换元'
     if isinstance(节点,dict):
         拷贝=dict(节点)
         拷贝['meta']=元
         return 拷贝
     class 包装:
-        """带替换元的包装。"""
+        '带替换元的包装'
     包装=包装()
     包装.__dict__.update(getattr(节点,'__dict__',{}))
     for 名 in ('type','meta','dict','inner','sKey','list','value','builder'):

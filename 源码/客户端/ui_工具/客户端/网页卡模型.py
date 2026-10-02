@@ -1,7 +1,7 @@
 __all__=['网页卡模型']#仅中文公开名
 
 def 网页卡模型(块):#从调用切片派生 web 卡片 props
-    """非 web 卡片返回 None。"""
+    '非 web 卡片返回 None'
     if 'kind' not in 块:#仍在跑
         return None#通用路径
     结果=块['resultView'] if 'resultView' in 块 else None#结果视图

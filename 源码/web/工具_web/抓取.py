@@ -1,4 +1,4 @@
-"""面向模型的 `web_fetch` 工具。本模块负责 schema、校验与呈现；`ctx.web` 负责检索。超时是部署策略，不是模型参数：配置写入 ToolDefinition.timeoutMs，由超时策略强制执行，本工具转发得到的 signal。提供方超时仍作为直接服务调用方的后盾。"""
+'面向模型的 `web_fetch` 工具'
 import html#解码实体
 import re#标签扫描
 from html.parser import HTMLParser#构建转换用的简易 DOM
@@ -26,18 +26,20 @@ __all__=[#公开面
 标签名首字符=re.compile(r'[a-zA-Z]',re.ASCII)#标签名必须以字母起
 
 def 解析抓取参数(参数):#把参数收成缝的请求字段
-    """校验 schema DSL 表达不了的约束：`url` 不能是空白。没有超时参数——工具调用预算是部署策略。参数为 dict。"""
+    """校验 schema DSL 表达不了的约束：`url` 不能是空白。
+    没有超时参数——工具调用预算是部署策略。
+    参数为 dict"""
     网址=参数['url']#请求 URL
     if len(网址.strip())==0:#判 length：空白 url
         raise 网页工具错误('url must be a non-empty string')#空白 url 抛错
     return {'url':网址}#原样返回 url
 
 def 是否标签边界(字符):#判断结束标签名边界
-    """字符是否可以出现在原始文本结束标签名之后。"""
+    '字符是否可以出现在原始文本结束标签名之后'
     return 字符 is None or 字符=='>' or 字符=='/' or (len(字符)==1 and 字符.isspace())#结尾、`>`、`/` 或空白都算边界
 
 def 查找原始文本结束(小写html,标签名,起点):#从起点起找 `</name`
-    """查找匹配的原始文本结束标签，不把正文里像标记的文字当标记。"""
+    '查找匹配的原始文本结束标签，不把正文里像标记的文字当标记'
     前缀='</'+标签名#结束标签前缀
     候选=小写html.find(前缀,起点)#第一处候选
     while 候选!=-1:#还有候选
@@ -49,7 +51,8 @@ def 查找原始文本结束(小写html,标签名,起点):#从起点起找 `</na
     return -1#没有命中
 
 def 越过转换深度(正文):#词法栈是否超过转换深度
-    """保守地拒绝词法元素栈越过转换深度上限的 HTML。单次扫描忽略注释里的闭合标签、跳过原始文本正文、尊重引号内的 `>`，并且只接受当前元素的闭合标签；畸形输入因此会多计而不是藏起嵌套。"""
+    """保守地拒绝词法元素栈越过转换深度上限的 HTML。
+    单次扫描忽略注释里的闭合标签、跳过原始文本正文、尊重引号内的 `>`，并且只接受当前元素的闭合标签；畸形输入因此会多计而不是藏起嵌套"""
     小写=正文.lower()#小写副本，用来比标签名
     打开=[]#当前未闭合元素栈
     游标=0#扫描游标
@@ -113,9 +116,9 @@ def 越过转换深度(正文):#词法栈是否超过转换深度
     return False#未越过深度上限
 
 class 转换节点:#简易 DOM 节点
-    """转换器用的元素或文本节点。"""
+    '转换器用的元素或文本节点'
     def __init__(自身,种类,标签名=None,属性=None,文本=''):#构造
-        """收下种类、标签名、属性与文本。"""
+        '收下种类、标签名、属性与文本'
         自身.种类=种类#element 或 text
         自身.标签名=标签名#小写标签名
         自身.属性=属性 if 属性 is not None else {}#属性映射
@@ -123,16 +126,17 @@ class 转换节点:#简易 DOM 节点
         自身.子节点列表=[]#子节点
 
 class 建树解析器(HTMLParser):#把 HTML 收成简易树
-    """html.parser 建树；整段丢掉 script/style/noscript。handle_* 是标准库 HTMLParser 的协议槽。"""
+    """html.parser 建树；整段丢掉 script/style/noscript。
+    handle_* 是标准库 HTMLParser 的协议槽"""
     def __init__(自身):#构造
-        """初始化根节点与丢弃深度。"""
+        '初始化根节点与丢弃深度'
         super().__init__(convert_charrefs=True)#实体转字符
         自身.根=转换节点('element','root')#虚拟根
         自身.栈=[自身.根]#元素栈
         自身.丢弃深度=0#在 script/style/noscript 内时 >0
 
     def handle_starttag(自身,标签,属性列表):#开始标签
-        """遇到开始标签时建节点或加深丢弃区。"""
+        '遇到开始标签时建节点或加深丢弃区'
         标签名=标签.lower()#小写
         if 自身.丢弃深度>0:#已在丢弃区内
             if 标签名 in 原始文本元素名:#嵌套同名也加深
@@ -150,7 +154,7 @@ class 建树解析器(HTMLParser):#把 HTML 收成简易树
             自身.栈.append(节点)#压栈
 
     def handle_endtag(自身,标签):#结束标签
-        """遇到结束标签时弹出栈或离开丢弃区。"""
+        '遇到结束标签时弹出栈或离开丢弃区'
         标签名=标签.lower()#小写
         if 自身.丢弃深度>0:#在丢弃区
             if 标签名 in 原始文本元素名:#离开一层
@@ -163,7 +167,7 @@ class 建树解析器(HTMLParser):#把 HTML 收成简易树
                 break#停
 
     def handle_data(自身,数据):#文本
-        """把文本挂到当前元素下。"""
+        '把文本挂到当前元素下'
         if 自身.丢弃深度>0:#丢弃区
             return#丢掉
         if 数据=='':#空
@@ -171,16 +175,16 @@ class 建树解析器(HTMLParser):#把 HTML 收成简易树
         自身.栈[-1].子节点列表.append(转换节点('text',文本=数据))#文本节点
 
     def handle_entityref(自身,实体名):#命名实体
-        """命名实体解码后当文本。"""
+        '命名实体解码后当文本'
         自身.handle_data(html.unescape('&'+实体名+';'))#解码后当文本
 
     def handle_charref(自身,实体名):#数字实体
-        """数字实体解码后当文本。"""
+        '数字实体解码后当文本'
         自身.handle_data(html.unescape('&#'+实体名+';'))#解码后当文本
 
 
 def 取单元格对齐(格子):#读 align 或 CSS text-align
-    """把 HTML 单元格对齐映射成 GFM 分隔行标记。"""
+    '把 HTML 单元格对齐映射成 GFM 分隔行标记'
     属性=格子.属性#属性
     对齐=属性['align'] if 'align' in 属性 else ''#align 属性，缺席当空串
     样式=属性['style'] if 'style' in 属性 else ''#style
@@ -197,7 +201,7 @@ def 取单元格对齐(格子):#读 align 或 CSS text-align
     return '---'#默认无对齐
 
 def 渲染单元格(内容,下标):#按列下标拼单元格
-    """渲染一个 GFM 表格单元格，不解释 HTML 的 span 计数。"""
+    '渲染一个 GFM 表格单元格，不解释 HTML 的 span 计数'
     前缀='| ' if 下标==0 else ' '#首列前加竖线，其余只留空格
     逃=内容.strip().replace('\n\r','<br>').replace('\n','<br>')#去空白、换行改 br
     逃=竖线转义.sub('\\|',逃,count=0)#转义竖线，全换
@@ -206,20 +210,20 @@ def 渲染单元格(内容,下标):#按列下标拼单元格
     return 前缀+逃+' |'#拼出 `| 内容 |` 片段
 
 def 取纯文本(节点):#只取后代文本，不做行内标记
-    """pre/code 围栏内容：只要文本。"""
+    'pre/code 围栏内容：只要文本'
     if 节点.种类=='text':#文本
         return 节点.文本#原样
     return ''.join([取纯文本(子节点) for 子节点 in 节点.子节点列表])#下钻
 
 def 转行内(节点列表):#拼行内 markdown
-    """把子节点收成行内文本。"""
+    '把子节点收成行内文本'
     段=[]#片段
     for 子节点 in 节点列表:#逐子
         段.append(转节点(子节点,块级=False))#行内模式
     return ''.join(段)#拼接
 
 def 转节点(节点,块级=True):#递归转 markdown
-    """按标签名转成面向模型的 markdown；表格忽略 colspan/rowspan。"""
+    '按标签名转成面向模型的 markdown；表格忽略 colspan/rowspan'
     if 节点.种类=='text':#文本
         return 节点.文本#原样
     标签名=节点.标签名#标签
@@ -269,7 +273,7 @@ def 转节点(节点,块级=True):#递归转 markdown
     if 标签名=='table':#表格：忽略 colspan/rowspan
         行项列表=[]#({行,在头区})
         def 收集行(表格节,在头区):#递归收集 tr，保留 thead 语义
-            """递归收集表格行，保留 thead 语义。"""
+            '递归收集表格行，保留 thead 语义'
             if 表格节.种类!='element':#文本
                 return#忽略
             if 表格节.标签名=='thead':#头区
@@ -303,7 +307,7 @@ def 转节点(节点,块级=True):#递归转 markdown
     return 转行内(节点.子节点列表)#未知行内标签
 
 def html转markdown(正文):#HTML→markdown，对齐 turndown+GFM 面向模型展示
-    """共享的 HTML→markdown 转换：ATX 标题、围栏代码、短横列表；整段丢掉 script/style/noscript；表格忽略 colspan。"""
+    '共享的 HTML→markdown 转换：ATX 标题、围栏代码、短横列表；整段丢掉 script/style/noscript；表格忽略 colspan'
     解析=建树解析器()#建树
     解析.feed(正文)#喂入
     解析.close()#结束
@@ -312,7 +316,8 @@ def html转markdown(正文):#HTML→markdown，对齐 turndown+GFM 面向模型�
     return 文本.strip()+('\n' if 文本.strip() else '')#去首尾空白
 
 def 渲染正文(正文,最大输入字符):#按 kind 渲染正文
-    """把抓取到的正文渲染成面向模型的 markdown 文本。正文为 dict。"""
+    """把抓取到的正文渲染成面向模型的 markdown 文本。
+    正文为 dict"""
     全文=正文['content']#源全文
     内容=全文[:最大输入字符]#只取上限内的源前缀；按码点切，本字段不是字节预算
     源截断=len(内容)!=len(全文)#判 length：源是否被切开
@@ -326,7 +331,8 @@ def 渲染正文(正文,最大输入字符):#按 kind 渲染正文
     return 断言永不(正文,'unhandled web fetch body kind')#未处理的 kind 在编译期/穷尽失败
 
 def 计算抓取输出(结果,最大输出字符):#无缓存地拼完整输出
-    """renderFetchOutput 背后的无缓存转换。结果为 dict。"""
+    """renderFetchOutput 背后的无缓存转换。
+    结果为 dict"""
     页头='Fetched '+结果['url']+' (HTTP '+str(结果['statusCode'])+')\n\n'#页头：最终 URL 与状态码
     已渲染=渲染正文(结果['body'],最大输出字符)#按上限渲染正文
     前缀=页头+已渲染['text']#页头加正文
@@ -339,7 +345,8 @@ def 计算抓取输出(结果,最大输出字符):#无缓存地拼完整输出
     return {'text':前缀[:最大输出字符-len(截断页脚)]+截断页脚,'truncated':截断}#为页脚留位置后切开前缀
 
 def 渲染抓取输出(结果,最大输出字符):#带缓存地渲染抓取输出
-    """把抓取结果渲染成有界的面向模型文本和有效截断标记。按结果身份记忆化，使成对的 render/presentationMeta 只转换一次。"""
+    """把抓取结果渲染成有界的面向模型文本和有效截断标记。
+    按结果身份记忆化，使成对的 render/presentationMeta 只转换一次"""
     键=id(结果)#结果对象身份，不用值相等
     上限表=渲染缓存[键] if 键 in 渲染缓存 else None#按结果取上限表
     if 上限表 is None:#没有
@@ -352,16 +359,19 @@ def 渲染抓取输出(结果,最大输出字符):#带缓存地渲染抓取输�
     return 算出#返回刚算的结果
 
 def 格式化抓取输出(结果,最大输出字符):#对外的文本渲染入口
-    """把抓取结果格式化成一块面向模型的文本，整块有界。"""
+    '把抓取结果格式化成一块面向模型的文本，整块有界'
     return 渲染抓取输出(结果,最大输出字符)['text']#只取文本
 
 def 呈现抓取调用(参数):#进行中抓取卡片
-    """进行中调用的呈现：一张以 URL 为标题的抓取卡片。参数为 dict。"""
+    """进行中调用的呈现：一张以 URL 为标题的抓取卡片。
+    参数为 dict"""
     网址=参数['url']#请求 URL
     return {'card':'generic','title':网址,'kind':'fetch','rawInput':网址}#标题与原始输入都是 url
 
 def 抓取元自值(值,最大输出字符):#从结果值抽出呈现 meta
-    """把已校验的 `web_fetch` 输出值投影成可回放的呈现 meta。truncated 是面向模型文本所反映的有效截断。值为 dict。"""
+    """把已校验的 `web_fetch` 输出值投影成可回放的呈现 meta。
+    truncated 是面向模型文本所反映的有效截断。
+    值为 dict"""
     return {#meta 对象
         'url':值['url'],#最终 URL
         'statusCode':值['statusCode'],#HTTP 状态码
@@ -369,7 +379,9 @@ def 抓取元自值(值,最大输出字符):#从结果值抽出呈现 meta
     }#对象结束
 
 def 抓取元自结果(元):#校验回放 meta
-    """把不透明的现场或回放结果元数据收窄为 WebFetchMeta。畸形元数据返回 None，呈现可回退到通用卡片。元为 dict。"""
+    """把不透明的现场或回放结果元数据收窄为 WebFetchMeta。
+    畸形元数据返回 None，呈现可回退到通用卡片。
+    元为 dict"""
     if 元 is None or not isinstance(元,dict):#非普通对象
         return None#畸形
     if 'url' not in 元 or 'statusCode' not in 元 or 'truncated' not in 元:#必填键
@@ -382,7 +394,8 @@ def 抓取元自结果(元):#校验回放 meta
     return {'url':网址,'statusCode':状态码,'truncated':截断}#收成 WebFetchMeta
 
 def 呈现抓取结果(参数,结果):#完成态抓取卡片
-    """已完成调用的呈现：一张 `web` 抓取卡片，携带 `meta` 里的检索摘要。参数与结果为 dict。"""
+    """已完成调用的呈现：一张 `web` 抓取卡片，携带 `meta` 里的检索摘要。
+    参数与结果为 dict"""
     if 'isError' in 结果 and 结果['isError'] is True:#错误结果不画专用卡
         return None#通用卡
     元=抓取元自结果(结果['meta'] if 'meta' in 结果 else None)#校验 meta
@@ -398,9 +411,9 @@ def 呈现抓取结果(参数,结果):#完成态抓取卡片
     }#视图对象结束
 
 def 应用网络抓取工具(上下文,超时毫秒,最大输出字符):#注册 web_fetch 与提示词
-    """注册 `web_fetch` 工具及其系统提示词指引。"""
+    '注册 `web_fetch` 工具及其系统提示词指引'
     def 段落文本(上下文元):#按作用域
-        """本作用域无 web_fetch 则空。"""
+        '本作用域无 web_fetch 则空'
         作用域=上下文元['scope'] if 'scope' in 上下文元 else None#作用域
         if 上下文.tools.获取('web_fetch',作用域) is None:#看不见
             return ''#空
@@ -414,16 +427,17 @@ def 应用网络抓取工具(上下文,超时毫秒,最大输出字符):#注册 
         'text':段落文本,#动态指引
     })#提示词段落结束
     def 渲染(参数,值):#面向模型的文本块
-        """把结构化结果渲染成文本块。"""
+        '把结构化结果渲染成文本块'
         return [{'type':'text','text':格式化抓取输出(值,最大输出字符)}]#单个文本块
     def 呈现元(参数,值):#回放用 meta
-        """投影可回放呈现 meta。"""
+        '投影可回放呈现 meta'
         return 抓取元自值(值,最大输出字符)#呈现元
     def 并发安全():#提供方读取不改变父 agent 状态
-        """始终可并发。"""
+        '始终可并发'
         return True#安全
     def 执行(参数,执行上下文):#真正抓取
-        """校验后交给 ctx.web.抓取。执行上下文为 dict。"""
+        """校验后交给 ctx.web.抓取。
+        执行上下文为 dict"""
         输入=解析抓取参数(参数)#校验 url 非空
         结果=上下文.web.抓取(#交给能力缝，已是同步
             {'url':输入['url']},#请求字段
@@ -437,7 +451,7 @@ def 应用网络抓取工具(上下文,超时毫秒,最大输出字符):#注册 
             'truncated':结果['truncated'],#提供方截断
         }#规范输出
     def 呈现结果(参数,结果):#完成态卡片
-        """委托呈现抓取结果。"""
+        '委托呈现抓取结果'
         return 呈现抓取结果(参数,结果)#完成态卡片
     上下文.tools.登记(定义工具({#注册 web_fetch 工具
         'name':'web_fetch',#工具名

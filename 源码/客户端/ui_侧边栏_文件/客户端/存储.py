@@ -2,7 +2,7 @@ __all__=['文件树错误','创建文件存储']
 
 #工具
 def _分桶(状态,标签标识):
-    """`start` 之前没有桶。写者依赖这次播种。"""
+    '`start` 之前没有桶。写者依赖这次播种'
     按标签=状态['byTab']
     if 标签标识 not in 按标签:
         raise 文件树错误('ui-sidebar-files: no tree for tab "'+str(标签标识)+'"')
@@ -14,7 +14,7 @@ def 初值():
 
 
 def 启动(草稿,标签标识,根):
-    """根放进展开集，打开时不用再点一次。"""
+    '根放进展开集，打开时不用再点一次'
     草稿['byTab'][标签标识]={'root':根,'levels':{},'expanded':[根],'scrollTop':0,'autoRefresh':True}
 
 def 自动刷新(草稿,标签标识,启用):
@@ -27,7 +27,7 @@ def 加载中(草稿,标签标识,路径):
         树['levels'][路径]={'kind':'loading'}
 
 def 已加载(草稿,标签标识,路径,层级):
-    """层级为 dict：entries / truncated。已就绪级会裁掉消失的子目录。"""
+    '层级为 dict：entries / truncated。已就绪级会裁掉消失的子目录'
     树=_分桶(草稿,标签标识)
     先前=树['levels'][路径] if 路径 in 树['levels'] else None
     if 先前 is not None and 'kind' in 先前 and 先前['kind']=='ready':
@@ -45,7 +45,7 @@ def 已加载(草稿,标签标识,路径,层级):
     树['levels'][路径]={'kind':'ready','level':层级}
 
 def 已失败(草稿,标签标识,路径,失败):
-    """失败为跨包 RemoteFailure dict。已就绪级只叠 failure。"""
+    '失败为跨包 RemoteFailure dict。已就绪级只叠 failure'
     树=_分桶(草稿,标签标识)
     级=树['levels'][路径] if 路径 in 树['levels'] else None
     if 级 is not None and 'kind' in 级 and 级['kind']=='ready':
@@ -55,7 +55,7 @@ def 已失败(草稿,标签标识,路径,失败):
 
 
 def 已切换(草稿,标签标识,路径):
-    """折叠后已加载的级仍留着。"""
+    '折叠后已加载的级仍留着'
     树=_分桶(草稿,标签标识)
     展开=树['expanded']
     if 路径 in 展开:
@@ -65,12 +65,12 @@ def 已切换(草稿,标签标识,路径):
 
 
 def 已滚动(草稿,标签标识,滚动顶):
-    """偏移单位是像素。"""
+    '偏移单位是像素'
     _分桶(草稿,标签标识)['scrollTop']=滚动顶
 
 
 def 重置(草稿,标签标识):
-    """只清已加载级，不收起目录。"""
+    '只清已加载级，不收起目录'
     _分桶(草稿,标签标识)['levels']={}
 
 
@@ -80,14 +80,14 @@ def 遗忘(草稿,标签标识):
 
 #
 class 文件树错误(Exception):
-    """消息保持英文，调用方按字符串比对。"""
+    '消息保持英文，调用方按字符串比对'
 
     def __init__(自身,消息):
         super().__init__(消息)
 
 
 def 创建文件存储():
-    """框架按会话铸造。动作名是线协议。"""
+    '框架按会话铸造。动作名是线协议'
     return {
         'init':初值,
         'actions':{

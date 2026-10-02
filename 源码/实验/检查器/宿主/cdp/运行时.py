@@ -6,11 +6,11 @@ from .属性 import 拒绝属性桥操作#拒绝属性操作
 __all__=['运行时桥能力','拒绝运行时桥命令']#仅中文公开名
 
 def 运行时桥能力(_来源):#Runtime桥能力
-    """描述 Host Runtime 传输所有权。"""
+    '描述 Host Runtime 传输所有权'
     return None#无桥
 
 def 拒绝运行时桥命令(命令):#拒绝Runtime桥命令
-    """拒绝被路由到 Host source 的 Client Runtime 命令。"""
+    '拒绝被路由到 Host source 的 Client Runtime 命令'
     操作=命令['op'] if 'op' in 命令 else None#操作
     if 操作=='get-properties':#取属性
         return 拒绝属性桥操作()#拒绝属性

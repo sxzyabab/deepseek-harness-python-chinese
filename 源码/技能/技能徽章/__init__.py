@@ -23,11 +23,11 @@ __all__=['名称','依赖','提供方名','应用']#仅中文公开名；Cordis 
 }#目录候选结束
 
 def 列出(选项=None):
-    """返回随包候选列表。形参选项与 skill 注册表 list(options) 调用兼容。"""
+    '返回随包候选列表。形参选项与 skill 注册表 list(options) 调用兼容'
     return [候选]#单元素目录
 
 def 获取(_候选,选项=None):
-    """加载随包技能正文，拼出完整定义。形参选项与 skill 注册表 get(candidate, options) 调用兼容。"""
+    '加载随包技能正文，拼出完整定义。形参选项与 skill 注册表 get(candidate, options) 调用兼容'
     with open(技能正文路径,'r',encoding='utf-8') as 文件:#读 UTF-8 正文
         正文=文件.read()#技能 Markdown 正文
     return {#完整定义（不含 locator/rank）
@@ -47,9 +47,9 @@ def 获取(_候选,选项=None):
 }#技能提供方结束
 
 def 应用(上下文):
-    """把随包 dsh-badge 提供方登记到 ctx.skills；无配置项。"""
+    '把随包 dsh-badge 提供方登记到 ctx.skills；无配置项'
     def 构造(_控制=None):
-        """返回本提供方（忽略控制面；本包无失效逻辑）。"""
+        '返回本提供方（忽略控制面；本包无失效逻辑）'
         return 提供方#不可变提供方
     上下文.skills.登记提供方(构造)#挂到技能注册表
 

@@ -13,11 +13,11 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 def 是否精确字节(数据):#是否精确字节体
-    """对齐 Uint8Array 支。"""
+    '对齐 Uint8Array 支'
     return isinstance(数据,(bytes,bytearray,memoryview))#字节类
 
 def 是否类文件(数据):#是否有 read 的正文
-    """Blob/类文件臂：有 read 且非整段字节、非串、非映射。"""
+    'Blob/类文件臂：有 read 且非整段字节、非串、非映射'
     if 是否精确字节(数据) or isinstance(数据,(str,dict)):#排除
         return False#否
     try:#类文件声明 read
@@ -27,7 +27,7 @@ def 是否类文件(数据):#是否有 read 的正文
     return True#是
 
 def 是否流式正文(数据):#是否一次性字节流
-    """可迭代字节块且非精确字节、非映射、非类文件。"""
+    '可迭代字节块且非精确字节、非映射、非类文件'
     if 是否精确字节(数据) or 是否类文件(数据):#精确或类文件
         return False#否
     if isinstance(数据,(str,dict)):#文本或映射
@@ -35,7 +35,7 @@ def 是否流式正文(数据):#是否一次性字节流
     return True#可迭代
 
 def 物化字节(数据):#聚合成精确字节
-    """流或类文件读成 bytes。"""
+    '流或类文件读成 bytes'
     if 是否精确字节(数据):#已是
         return bytes(数据)#拷贝
     if 是否类文件(数据):#类文件
@@ -48,9 +48,9 @@ def 物化字节(数据):#聚合成精确字节
     raise TypeError('后台上传工作线程收到非法体')#非法体
 
 class 进度可读:#带进度的类文件正文
-    """供 urllib 边读边报进度。"""
+    '供 urllib 边读边报进度'
     def __init__(自身,源,进度回调=None,信号=None,总量=None):#绑定源
-        """记下源与观察者。"""
+        '记下源与观察者'
         自身._源=源#源
         自身._进度回调=进度回调#进度
         自身._信号=信号#取消
@@ -71,7 +71,7 @@ class 进度可读:#带进度的类文件正文
             自身._读=None#无 read
 
     def read(自身,大小=-1):#读一块
-        """读并报告进度；已取消则抛。"""
+        '读并报告进度；已取消则抛'
         若已中止则抛出(自身._信号)#已取消
         if 自身._结束 and not 自身._缓冲:#已空
             return b''#结束
@@ -108,7 +108,7 @@ class 进度可读:#带进度的类文件正文
         return 出#字节
 
 def 默认同步fetch(网址,初始化):#urllib 投递并归一成 dict
-    """标准库 HTTP，响应冻结为 dict。"""
+    '标准库 HTTP，响应冻结为 dict'
     方法=初始化['method'] if 'method' in 初始化 else 'GET'#方法
     头=dict(初始化['headers']) if 'headers' in 初始化 and 初始化['headers'] is not None else {}#头
     正文=初始化['body'] if 'body' in 初始化 else None#正文
@@ -121,11 +121,11 @@ def 默认同步fetch(网址,初始化):#urllib 投递并归一成 dict
     return {'status':状态,'body':响应正文 or ''}#dict 响应
 
 def 文件上传工作体(回传,创建请求=None,执行fetch=None):#Worker 语义入口
-    """自包含上传体：精确字节走 urllib 带进度；流式走边读边 POST。"""
+    '自包含上传体：精确字节走 urllib 带进度；流式走边读边 POST'
     if 执行fetch is None:#缺省
         执行fetch=默认同步fetch#标准 fetch
     def 处理启动(启动):#收到启动消息
-        """对齐 Worker onmessage。"""
+        '对齐 Worker onmessage'
         网址=启动['url']#绝对 URL
         正文=启动['body']#请求体
         头=dict(启动['headers']) if 'headers' in 启动 and 启动['headers'] is not None else {}#请求头
@@ -143,7 +143,7 @@ def 文件上传工作体(回传,创建请求=None,执行fetch=None):#Worker 语
                 回传({'kind':'error','message':'background upload worker received an invalid body'})#回传错误
                 return
             def 流进度(进度):#转发进度
-                """无总量。"""
+                '无总量'
                 回传({'kind':'progress','loaded':进度['loaded']})#报告
             可读=进度可读(正文,流进度,信号,None)#转发流
             初始化={'method':'POST','headers':头,'body':可读}#请求
@@ -155,14 +155,14 @@ def 文件上传工作体(回传,创建请求=None,执行fetch=None):#Worker 语
     return 处理启动#入口
 
 def 取全局钩子():#读启动前钩子
-    """builtins.__DSH_FILE_UPLOAD__；宿主可选注入。"""
+    'builtins.__DSH_FILE_UPLOAD__；宿主可选注入'
     try:#可选钩子
         return builtins.__DSH_FILE_UPLOAD__#钩子
     except AttributeError:#未注入
         return None#无
 
 def 解析网址(路径):#相对路径解析为绝对 URL
-    """有页面 origin 则用，否则 http://dsh.internal。"""
+    '有页面 origin 则用，否则 http://dsh.internal'
     源=None#可选源
     try:#宿主可选 location
         页面=builtins.location#页面
@@ -178,9 +178,9 @@ def 解析网址(路径):#相对路径解析为绝对 URL
     return 拼接URL(基.rstrip('/')+'/',路径.lstrip('/') if 路径.startswith('/') else 路径)
 
 def 自定义载体(自定义fetch):#页面自有载体
-    """经页面 Fetch 钩子投递。"""
+    '经页面 Fetch 钩子投递'
     def 投递(请求):#发 POST
-        """返回 status 与正文文本。"""
+        '返回 status 与正文文本'
         初始化={#请求初始化
             'method':'POST',#方法
             'body':请求['body'],#正文
@@ -200,14 +200,14 @@ def 自定义载体(自定义fetch):#页面自有载体
     return {'post':投递}#transport
 
 def 线程载体():#专用线程载体（对齐 Worker）
-    """在后台线程跑上传工作体。"""
+    '在后台线程跑上传工作体'
     def 投递(请求):#发 POST
-        """包装线程与取消。"""
+        '包装线程与取消'
         出箱=[]#输出消息
         锁=threading.Lock()#互斥
         唤醒=threading.Event()#有消息
         def 回传(消息):#Worker 回传
-            """入队并唤醒。"""
+            '入队并唤醒'
             with 锁:#持锁
                 出箱.append(消息)#放入
             唤醒.set()#唤醒
@@ -221,7 +221,7 @@ def 线程载体():#专用线程载体（对齐 Worker）
         }#结束 message
         错误盒={'v':None}#线程错误
         def 执行上传():#线程入口
-            """跑工作体。"""
+            '跑工作体'
             try:#执行
                 处理(启动)#启动
             except Exception as 错误:#脚本错误
@@ -258,11 +258,11 @@ def 线程载体():#专用线程载体（对齐 Worker）
     return {'post':投递}#transport
 
 def 是否普通对象(值):#是否普通对象
-    """非 null 非数组对象。"""
+    '非 null 非数组对象'
     return isinstance(值,dict)#映射即记录
 
 def 解析文件上传结果(正文):#解析 JSON 结果
-    """成功 RemoteResult 或失败 RemoteError。"""
+    '成功 RemoteResult 或失败 RemoteError'
     值=json.loads(正文)#解析
     成功=值['ok'] if 是否普通对象(值) and 'ok' in 值 else None#ok
     if 是否普通对象(值) is False or isinstance(成功,bool) is False:#形态不对
@@ -301,9 +301,9 @@ def 解析文件上传结果(正文):#解析 JSON 结果
     }#结束成功返回
 
 class 文件上传运行时(服务):#上传运行时
-    """每次上传操作拥有一个后台载体的 Cordis 服务。"""
+    '每次上传操作拥有一个后台载体的 Cordis 服务'
     def __init__(自身,上下文):#构造
-        """提供方客户端上下文。"""
+        '提供方客户端上下文'
         super().__init__(上下文,'fileUpload')#登记服务名
         钩子=取全局钩子()#启动前钩子
         if 钩子 is None:#无钩子
@@ -312,11 +312,11 @@ class 文件上传运行时(服务):#上传运行时
             自身._载体=自定义载体(钩子['fetch'])#页面载体
 
     def 投递(自身,请求):#投递
-        """用 Cordis 启动前选定的载体投递一次请求体。"""
+        '用 Cordis 启动前选定的载体投递一次请求体'
         return 自身._载体['post'](请求)#委托载体
 
     def 上传(自身,会话标识,数据,名=None,信号=None,进度回调=None):#上传入口
-        """为一个 Session 存储一个文件。"""
+        '为一个 Session 存储一个文件'
         if not 是否精确字节(数据):#非精确字节走后台载体
             查询={'sessionId':str(会话标识)}#会话查询
             if 名 is not None:#可选名

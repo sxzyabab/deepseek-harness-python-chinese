@@ -1,4 +1,4 @@
-"""DeepSeek Files API 传输。"""
+'DeepSeek Files API 传输'
 import time
 from urllib.parse import quote
 from requests import request as 发请求
@@ -18,9 +18,9 @@ __all__=[
 最大存储文件字节=25*1024*1024*1024
 
 class 深求文件错误(大模型错误):
-    """Files API 操作失败，保留 HTTP 状态供恢复政策。"""
+    'Files API 操作失败，保留 HTTP 状态供恢复政策'
     def __init__(自身,消息,状态,详情):
-        """记下可读失败、状态与分类详情。"""
+        '记下可读失败、状态与分类详情'
         if 状态==401 or 状态==403:
             码='AUTH'
         elif 状态==429:
@@ -34,16 +34,16 @@ class 深求文件错误(大模型错误):
         自身.detail=详情
 
 def 是否文件配额错误(错误):
-    """上传失败是否报告存储或文件数配额。"""
+    '上传失败是否报告存储或文件数配额'
     import re
     return isinstance(错误,深求文件错误) and re.search(r'(?:quota|storage|stored files|file count|too many files)',错误.detail,re.I) is not None
 
 def 非法响应(操作):
-    """畸形响应。"""
+    '畸形响应'
     return 大模型错误('DeepSeek Files API returned an invalid '+操作+' response.','INVALID_RESPONSE')
 
 def 解析文件对象(值,操作):
-    """校验提供方文件元数据。"""
+    '校验提供方文件元数据'
     if not isinstance(值,dict):
         raise 非法响应(操作)
     创建=值.get('created_at')
@@ -61,7 +61,7 @@ def 解析文件对象(值,操作):
     return {'id':深求文件标识(值['id']),'bytes':值['size_bytes'],'createdAt':创建于,'filename':值['filename']}
 
 def 提供方详情(值):
-    """解析错误信封。"""
+    '解析错误信封'
     if not isinstance(值,dict):
         return {'detail':''}
     错误=值.get('error')
@@ -75,16 +75,16 @@ def 提供方详情(值):
     return 结果
 
 class 深求文件客户端:
-    """直接 Files 客户端，拒绝重定向以免凭证离开源。"""
+    '直接 Files 客户端，拒绝重定向以免凭证离开源'
     def __init__(自身,选项):
-        """记下端点、密钥快照与可选测试传输。"""
+        '记下端点、密钥快照与可选测试传输'
         自身.密钥=选项['apiKey']
         自身.账号凭证=选项.get('accountCredential') is True
         自身.发=选项['fetch'] if 'fetch' in 选项 else 发请求
         自身.基址=消息接口根(选项['baseURL'])
 
     def 请求(自身,路径,方法,数据=None,文件=None,信号=None):
-        """发请求；已中止原样抛出。"""
+        '发请求；已中止原样抛出'
         from ...工具.超时 import 已中止
         头=dict(归属头())
         头['x-dsh-auth-token' if 自身.账号凭证 else 'x-api-key']=自身.密钥
@@ -107,7 +107,7 @@ class 深求文件客户端:
         raise 深求文件错误(提取.get('message') or 'DeepSeek Files API error (HTTP '+str(响应.status_code)+')',响应.status_code,提取['detail'])
 
     def 上传(自身,输入):
-        """上传一张带显式过期的图。"""
+        '上传一张带显式过期的图'
         数据=输入['data']
         if len(数据)>最大文件上传字节:
             raise 大模型错误('DeepSeek Files API upload exceeds 128 MiB.','INVALID_REQUEST')
@@ -126,7 +126,7 @@ class 深求文件客户端:
         return 文件对象
 
     def 列出(自身,选项=None):
-        """列一页提供方排序的文件。"""
+        '列一页提供方排序的文件'
         if 选项 is None:
             选项={}
         查询=[]
@@ -153,12 +153,12 @@ class 深求文件客户端:
         return 页
 
     def 取回(自身,文件号,信号=None):
-        """取回一个文件对象。"""
+        '取回一个文件对象'
         响应=自身.请求('/files/'+quote(文件号,safe=''),'GET',信号=信号)
         return 解析文件对象(响应.json(),'retrieve')
 
     def 删除(自身,文件号,信号=None):
-        """删除一个提供方文件。"""
+        '删除一个提供方文件'
         响应=自身.请求('/files/'+quote(文件号,safe=''),'DELETE',信号=信号)
         值=响应.json()
         if not isinstance(值,dict) or 值.get('id')!=文件号 or 值.get('type')!='file_deleted':

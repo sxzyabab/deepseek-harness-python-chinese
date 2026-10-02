@@ -1,7 +1,4 @@
-"""构造一条已配置路由注册进适配器 Models 集合的 pi-ai Provider。
-
-公开面仅中文名；无英文别名。
-"""
+'构造一条已配置路由注册进适配器 Models 集合的 pi-ai Provider'
 import pi_ai#外部依赖胶水（pi-ai SDK）
 from .目录 import 目录提供方,目录错误#已安装目录提供方查找与目录错误
 from .模型 import 创建提供方#静态提供方工厂
@@ -9,9 +6,9 @@ from .模型 import 创建提供方#静态提供方工厂
 __all__=('受支持协议','线束密钥认证','路由认证','复用目录提供方','构建提供方')#仅中文公开名
 
 def 协议工厂(协议名):
-    """调用时按 api 名取 ProviderStreams。"""
+    '调用时按 api 名取 ProviderStreams'
     def 工厂():
-        """取出已注册协议实现。"""
+        '取出已注册协议实现'
         return pi_ai.get_api_provider(协议名)#按 api 名取实现
     return 工厂#可调用工厂
 
@@ -23,13 +20,13 @@ def 协议工厂(协议名):
 }#可手声明的协议表
 
 def 受支持协议():
-    """已配置路由可以点名的每条线路协议，按到达次数从多到少。"""
+    '已配置路由可以点名的每条线路协议，按到达次数从多到少'
     return list(协议表.keys())#表的键顺序
 
 def 线束密钥认证(名称):
-    """给 harness 自己认证的路由用的 api-key 认证。"""
+    '给 harness 自己认证的路由用的 api-key 认证'
     def 解析(选项):
-        """按次解析密钥覆盖。选项是流式调用 dict。"""
+        '按次解析密钥覆盖。选项是流式调用 dict'
         if 'credential' not in 选项:#本次未带凭证
             return {'auth':{},'source':名称}#空认证头表示这次不附加 api-key
         凭证=选项['credential']#本次凭证 dict
@@ -43,7 +40,7 @@ def 线束密钥认证(名称):
     return {'name':名称,'resolve':解析}#认证对象
 
 def 路由认证(规格,目录):
-    """一条路由解析其凭证所经的认证。规格为 dict；目录为 SDK 提供方对象或 None。"""
+    '一条路由解析其凭证所经的认证。规格为 dict；目录为 SDK 提供方对象或 None'
     if 目录 is None:#手声明路由没有目录认证，只用 harness 密钥
         return {'apiKey':线束密钥认证(规格['displayName'])}#手声明：只用harness密钥
     目录认证=目录.auth#SDK 对象属性
@@ -57,19 +54,19 @@ def 路由认证(规格,目录):
     return 合并#仅OAuth的目录提供方
 
 def 复用目录提供方(基,规格):
-    """用本路由的模型与身份复用已安装目录提供方。基为 SDK 对象，规格为 dict。"""
+    '用本路由的模型与身份复用已安装目录提供方。基为 SDK 对象，规格为 dict'
     if 'baseURL' in 规格 and 规格['baseURL'] is not None:#配置显式写了端点（含空串，空串在配置入口已拒）
         基址=规格['baseURL']#配置端点优先
     else:#缺席才用目录端点
         基址=基.baseUrl#SDK 对象端点；可能仍为 None
     def 取模型():
-        """本路由物化模型。"""
+        '本路由物化模型'
         return 规格['models']#已物化模型
     def 流(模型,上下文,选项):
-        """委托目录提供方流。"""
+        '委托目录提供方流'
         return 基.stream(模型,上下文,选项)#委托流
     def 简化流(模型,上下文,选项):
-        """委托目录提供方简化流。"""
+        '委托目录提供方简化流'
         return 基.stream_simple(模型,上下文,选项)#委托简化流
     提供方={
         'id':规格['provider'],#路由键
@@ -84,7 +81,7 @@ def 复用目录提供方(基,规格):
     return 提供方#复用提供方
 
 def 构建提供方(规格):
-    """为一条已解析路由构建 pi-ai 提供方。规格为 dict。"""
+    '为一条已解析路由构建 pi-ai 提供方。规格为 dict'
     目录=目录提供方(规格['provider'])#已安装目录提供方；未运来为 None，下面走协议表
     if 目录 is not None and 'api' not in 规格:#已运来且没改协议，复用目录流实现，避免换一套线路
         return 复用目录提供方(目录,规格)#复用目录

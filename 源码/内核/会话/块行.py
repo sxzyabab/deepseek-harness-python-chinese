@@ -7,10 +7,10 @@ __all__=['打包块游程','解码存储记录']
 最少游程=3#最少打包成员
 
 class 块行错误(Exception):
-    """内核会话块行包的异常基类。"""
+    '内核会话块行包的异常基类'
 
 def 外来安全整数(值):
-    """外来 JSON 序号与时间是否落在安全整数范围。"""
+    '外来 JSON 序号与时间是否落在安全整数范围'
     if isinstance(值,bool):
         return False#布尔不是整数
     if isinstance(值,int):
@@ -20,11 +20,11 @@ def 外来安全整数(值):
     return False
 
 def 是否记录(值):
-    """值是否为非空对象记录。"""
+    '值是否为非空对象记录'
     return isinstance(值,dict)
 
 def 恰好这些键(值,键列表):
-    """精确键检查：value 有 keys 里的每个键且没有别的。"""
+    '精确键检查：value 有 keys 里的每个键且没有别的'
     自有=list(值.keys())
     if len(自有)!=len(键列表):
         return False
@@ -34,7 +34,7 @@ def 恰好这些键(值,键列表):
     return True
 
 def 分类(事件):
-    """为打包分类一条事件：整份形态都在白名单时为其 delta 种类。"""
+    '为打包分类一条事件：整份形态都在白名单时为其 delta 种类'
     if 事件['type']!='assistant/chunk':
         return None
     if not 恰好这些键(事件,('type','seq','time','data')):
@@ -74,15 +74,15 @@ def 分类(事件):
     return None
 
 def 工具调用于(事件):
-    """白名单 delta 块的工具调用字段。"""
+    '白名单 delta 块的工具调用字段'
     return 事件['data']['chunk']
 
 def 下标于(事件):
-    """白名单 delta 块的块下标。"""
+    '白名单 delta 块的块下标'
     return 工具调用于(事件)['index']
 
 def 是否延续(前,后,种类):
-    """后一条是否延长以前一条结尾的游程。"""
+    '后一条是否延长以前一条结尾的游程'
     if 后['seq']!=前['seq']+1:
         return False
     if not 外来安全整数(后['time']-前['time']):
@@ -102,7 +102,7 @@ def 是否延续(前,后,种类):
     return 甲['id']==乙['id'] and ('name' in 甲)==('name' in 乙) and 甲名==乙名
 
 def 建行(种类,游程):
-    """为已完成游程建行。"""
+    '为已完成游程建行'
     首=游程[0]
     首数据=首['data']
     间隔=[]
@@ -147,12 +147,12 @@ def 建行(种类,游程):
     return 行
 
 def 打包块游程(事件列表):
-    """为一批事件打包存储。"""
+    '为一批事件打包存储'
     输出=[]
     种类=None
     游程=[]
     def 冲掉():
-        """冲掉当前游程。"""
+        '冲掉当前游程'
         nonlocal 种类,游程
         if 种类 is not None and len(游程)>=最少游程:
             输出.append(建行(种类,游程))
@@ -178,11 +178,11 @@ def 打包块游程(事件列表):
     return 输出
 
 def 畸形(标签,原因):
-    """抛出统一的畸形行诊断。"""
+    '抛出统一的畸形行诊断'
     raise 块行错误('畸形 '+标签+' 存储行: '+原因)
 
 def 校验游程数据(标签,数据,载荷键):
-    """校验共享游程数据字段与载荷/dt 元数；返回成员载荷。"""
+    '校验共享游程数据字段与载荷/dt 元数；返回成员载荷'
     轮次=数据['turn'] if 'turn' in 数据 else None
     步骤=数据['step'] if 'step' in 数据 else None
     块下标=数据['index'] if 'index' in 数据 else None
@@ -207,7 +207,7 @@ def 校验游程数据(标签,数据,载荷键):
     return 载荷
 
 def 校验行(值,标签):
-    """校验一行标签解析值的信封与数据，任何畸形都抛。"""
+    '校验一行标签解析值的信封与数据，任何畸形都抛'
     if not 恰好这些键(值,('type','seq0','time0','data')):
         畸形(标签,'信封必须恰好是 {type, seq0, time0, data}')
     序号零=值['seq0'] if 'seq0' in 值 else None
@@ -240,7 +240,7 @@ def 校验行(值,标签):
     return 值
 
 def 展开行(行):
-    """把已校验行展开回精确原始事件，按顺序。"""
+    '把已校验行展开回精确原始事件，按顺序'
     行类型=行['type']
     数据=行['data']
     if 行类型=='tool-call-chunks':
@@ -278,7 +278,7 @@ def 展开行(行):
     return 事件列表
 
 def 解码存储记录(值):
-    """把一条解析后的 JSONL 行值解码成它存储的会话事件。"""
+    '把一条解析后的 JSONL 行值解码成它存储的会话事件'
     if not 是否记录(值):
         return [值]
     标签=值['type'] if 'type' in 值 else None

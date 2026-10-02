@@ -1,4 +1,4 @@
-"""持久提供方报告 token 用量与上下文占用的纯折叠。公开面仅中文名。"""
+'持久提供方报告 token 用量与上下文占用的纯折叠'
 from ..llm.助手流 import 末次助手流块#末次 usage 块
 from .类型 import 计量错误#计量异常
 from .表面投影 import 折叠表面投影#O(1)表面折叠
@@ -6,11 +6,11 @@ from .表面投影 import 折叠表面投影#O(1)表面折叠
 __all__=['用量投影定义','压力投影定义']#仅中文公开名
 
 def 空用量桶():#空用量桶
-    """空用量桶。"""
+    '空用量桶'
     return {'uncachedInputTokens':0,'outputTokens':0,'cacheReadTokens':0,'cacheWriteTokens':0}#四个桶为零
 
 def 拆用量桶(用量):
-    """从提供方用量拆桶。用量为 dict。"""
+    '从提供方用量拆桶。用量为 dict'
     缓存读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 else None#缓存读
     缓存写=用量['cacheWriteTokens'] if 'cacheWriteTokens' in 用量 else None#缓存写
     return {
@@ -21,7 +21,7 @@ def 拆用量桶(用量):
     }#拆桶结束
 
 def 桶相等(左,右):
-    """逐桶相等。"""
+    '逐桶相等'
     return (
         左['uncachedInputTokens']==右['uncachedInputTokens']#未缓存输入
         and 左['outputTokens']==右['outputTokens']#输出
@@ -30,7 +30,7 @@ def 桶相等(左,右):
     )#逐桶
 
 def 替换累加(累计,旧桶,新桶):
-    """用新样本替换同一步旧样本后加进累计。"""
+    '用新样本替换同一步旧样本后加进累计'
     旧未缓存=0 if 旧桶 is None else 旧桶['uncachedInputTokens']#同一步旧未缓存
     旧输出=0 if 旧桶 is None else 旧桶['outputTokens']#同一步旧输出
     旧读=0 if 旧桶 is None else 旧桶['cacheReadTokens']#同一步旧读
@@ -43,10 +43,10 @@ def 替换累加(累计,旧桶,新桶):
     }#新累计
 
 class 用量视图模式:
-    """用量投影线路载荷模式。"""
+    '用量投影线路载荷模式'
     @staticmethod
     def parse(值):
-        """校验四个非负整数桶。值必须是 dict。"""
+        '校验四个非负整数桶。值必须是 dict'
         if not isinstance(值,dict):#必须是对象
             raise 计量错误('tokenUsage view must be an object')#拒绝
         需要=('uncachedInputTokens','outputTokens','cacheReadTokens','cacheWriteTokens')#四个桶
@@ -64,10 +64,10 @@ class 用量视图模式:
         return 结果#校验后的视图
 
 class 压力视图模式:
-    """压力投影线路载荷模式。"""
+    '压力投影线路载荷模式'
     @staticmethod
     def parse(值):
-        """校验可选压力字段。值必须是 dict。"""
+        '校验可选压力字段。值必须是 dict'
         if not isinstance(值,dict):#必须是对象
             raise 计量错误('contextPressure view must be an object')#拒绝
         结果={}#输出
@@ -85,13 +85,13 @@ class 压力视图模式:
         return 结果#校验后的视图
 
 def 提示词压力(用量):
-    """一次请求的提示词侧压力：输入加缓存流量，不含输出。用量为 dict。"""
+    '一次请求的提示词侧压力：输入加缓存流量，不含输出。用量为 dict'
     缓存读=用量['cacheReadTokens'] if 'cacheReadTokens' in 用量 else None#缓存读
     缓存写=用量['cacheWriteTokens'] if 'cacheWriteTokens' in 用量 else None#缓存写
     return 用量['inputTokens']+(0 if 缓存读 is None else 缓存读)+(0 if 缓存写 is None else 缓存写)#输入加缓存读写
 
 def 事件用量(事件):
-    """一次耐久助手结算为其尝试报告的用量（若有）。事件为 dict。"""
+    '一次耐久助手结算为其尝试报告的用量（若有）。事件为 dict'
     种类=事件['type']#事件类型
     数据=事件['data']#载荷
     if 种类=='assistant/message' and 'usage' in 数据:#定稿带用量
@@ -102,11 +102,11 @@ def 事件用量(事件):
     return None if 块 is None else 块.get('usage')#用量
 
 def 用量初态():
-    """空累计、无样本。"""
+    '空累计、无样本'
     return {'totals':空用量桶(),'last':None}#初态
 
 def 用量转移(状态,事件):
-    """折一条用量事件。事件为 dict。"""
+    '折一条用量事件。事件为 dict'
     种类=事件['type']#事件类型
     数据=事件['data']#载荷
     if 种类=='llm/retry-started':#重试已开始
@@ -131,7 +131,7 @@ def 用量转移(状态,事件):
     return {'totals':替换累加(状态['totals'],旧桶,桶),'last':{'turn':回合,'step':步,'buckets':桶}}#新状态
 
 def 用量视图(状态):
-    """对外只看累计。"""
+    '对外只看累计'
     return 状态['totals']#累计桶
 
 用量投影定义={
@@ -144,11 +144,11 @@ def 用量视图(状态):
 }#用量投影定义结束
 
 def 压力初态():
-    """仅表面合计为零。"""
+    '仅表面合计为零'
     return {'surfaceTokens':0}#初态
 
 def 压力转移(状态,事件):
-    """折一条压力事件。事件为 dict。"""
+    '折一条压力事件。事件为 dict'
     折叠=折叠表面投影(状态['claim'] if 'claim' in 状态 else None,事件)#折叠表面
     下一=状态#从当前状态出发
     if 事件['type']=='request/context':#窗口记录
@@ -177,7 +177,7 @@ def 压力转移(状态,事件):
     return {**无声明,'claim':折叠['claim']}#换新声明
 
 def 压力视图(状态):
-    """对外视图。"""
+    '对外视图'
     结果={}#对外字段
     if 'contextWindow' in 状态:#有窗口才带上
         结果['contextWindow']=状态['contextWindow']#窗口

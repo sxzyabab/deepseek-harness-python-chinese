@@ -9,11 +9,11 @@ __all__=[
 浏览器文档={'.html','.htm','.xhtml','.svg'}
 
 def 有值(值):
-    """某环境标记是否设为非空值。"""
+    '某环境标记是否设为非空值'
     return 值 is not None and 值!=''
 
 def 是否WSL(内部=None):
-    """用进程与内核标记区分 WSL 与桌面 Linux。"""
+    '用进程与内核标记区分 WSL 与桌面 Linux'
     if 内部 is None:
         内部={}
     环境=内部['env'] if 'env' in 内部 else os.environ
@@ -23,12 +23,12 @@ def 是否WSL(内部=None):
     return 'microsoft' in 发行.lower()
 
 def 确保未中止(信号):
-    """信号已置位则抛 ABORT。"""
+    '信号已置位则抛 ABORT'
     if 已中止(信号):
         raise 原生命令错误('The operation was aborted','ABORT_ERR','','',None)#ABORT_ERR 字面量不翻译
 
 def macHttps包(plist):
-    """为 https 注册的 macOS 包。"""
+    '为 https 注册的 macOS 包'
     剥=re.sub(r'LSHandlerPreferredVersions\s*=\s*\{[^}]*\};','',plist)
     块匹配=re.search(r'\{[^{}]*LSHandlerURLScheme\s*=\s*"?https"?;[^{}]*\}',剥)
     if 块匹配 is None:
@@ -37,7 +37,8 @@ def macHttps包(plist):
     return None if 包匹配 is None else 包匹配.group(1)
 
 def 用浏览器打开(路径,信号,系统,运行,环境):
-    """用默认浏览器打开一份浏览器可渲染文档。成功为真。"""
+    """用默认浏览器打开一份浏览器可渲染文档。
+    成功为真"""
     if 系统=='darwin':
         try:
             结果=运行('defaults',['read','com.apple.LaunchServices/com.apple.launchservices.secure'],信号)
@@ -57,17 +58,17 @@ def 用浏览器打开(路径,信号,系统,运行,环境):
     return False
 
 def 资源管理器目标(windows路径):
-    """编码 Explorer 能原样接收的目标。"""
+    '编码 Explorer 能原样接收的目标'
     href=PureWindowsPath(windows路径).as_uri()
     def 解码非ascii(匹配):
-        """把一段非 ASCII 百分号转义还原为字面字符。"""
+        '把一段非 ASCII 百分号转义还原为字面字符'
         from urllib.parse import unquote as 解码百分号
         return 解码百分号(匹配.group(0))
     href=re.sub(r'(?:%[89A-Fa-f][0-9A-Fa-f])+',解码非ascii,href)
     return href.replace(',','%2C').replace('=','%3D')
 
 def 跑资源管理器(参数列表,信号,运行):
-    """把目标交给 Explorer；退出码 1 视为委托交接。"""
+    '把目标交给 Explorer；退出码 1 视为委托交接'
     try:
         运行('explorer.exe',参数列表,信号)
     except 原生命令错误 as 错误:
@@ -76,11 +77,11 @@ def 跑资源管理器(参数列表,信号,运行):
             raise 错误
 
 def 打开Windows路径(路径,信号,运行):
-    """经 Explorer 打开一条 Windows 可解析路径。"""
+    '经 Explorer 打开一条 Windows 可解析路径'
     跑资源管理器([资源管理器目标(路径)],信号,运行)
 
 def 打开WSL路径(路径,信号,运行):
-    """交给 Windows 桌面前先翻译 WSL 路径。"""
+    '交给 Windows 桌面前先翻译 WSL 路径'
     译=运行('wslpath',['-w',路径],信号)
     确保未中止(信号)
     windows路径=re.sub(r'[\r\n]+$','',译['stdout'])
@@ -89,7 +90,7 @@ def 打开WSL路径(路径,信号,运行):
     打开Windows路径(windows路径,信号,运行)
 
 def 按意图打开原生路径(路径,信号,意图,内部=None):
-    """为请求的打开意图派发一次无 shell 平台命令。"""
+    '为请求的打开意图派发一次无 shell 平台命令'
     if 内部 is None:
         内部={}
     系统=内部['platform'] if 'platform' in 内部 else ('win32' if os.name=='nt' else platform.system().lower())
@@ -119,7 +120,7 @@ def 按意图打开原生路径(路径,信号,意图,内部=None):
     raise 原生命令错误('本系统不支持原生路径打开器','ENOSYS','','',None)
 
 def 可打开原生路径(内部=None):
-    """本宿主上路径交给原生打开器是否大致能到达桌面。"""
+    '本宿主上路径交给原生打开器是否大致能到达桌面'
     if 内部 is None:
         内部={}
     系统=内部['platform'] if 'platform' in 内部 else ('win32' if os.name=='nt' else platform.system().lower())
@@ -131,7 +132,7 @@ def 可打开原生路径(内部=None):
     return 是否WSL(内部) or 有值(环境.get('DISPLAY')) or 有值(环境.get('WAYLAND_DISPLAY'))
 
 def 原生文件管理器(内部=None):
-    """识别原生文件管理器动作；不支持平台为 None。"""
+    '识别原生文件管理器动作；不支持平台为 None'
     if 内部 is None:
         内部={}
     系统=内部['platform'] if 'platform' in 内部 else ('win32' if os.name=='nt' else platform.system().lower())
@@ -142,7 +143,7 @@ def 原生文件管理器(内部=None):
     return 'directory' if 系统=='linux' else None
 
 def 揭示原生路径(路径,信号,内部=None):
-    """在 Finder 或 Explorer 中揭示文件，或在 Linux 默认文件管理器中打开其父目录。"""
+    '在 Finder 或 Explorer 中揭示文件，或在 Linux 默认文件管理器中打开其父目录'
     if 内部 is None:
         内部={}
     确保未中止(信号)
@@ -172,13 +173,13 @@ def 揭示原生路径(路径,信号,内部=None):
     raise 原生命令错误('本系统不支持原生文件管理器','ENOSYS','','',None)
 
 def 打开原生路径(路径,信号,内部=None):
-    """用操作系统默认应用打开文件系统路径。"""
+    '用操作系统默认应用打开文件系统路径'
     按意图打开原生路径(路径,信号,'default',内部)
 
 def 打开原生关联路径(路径,信号,内部=None):
-    """按文件类型关联打开路径，含 HTML 与 SVG。"""
+    '按文件类型关联打开路径，含 HTML 与 SVG'
     按意图打开原生路径(路径,信号,'association',内部)
 
 def 打开原生文本文件(路径,信号,内部=None):
-    """打开文本文档以供编辑。"""
+    '打开文本文档以供编辑'
     按意图打开原生路径(路径,信号,'text-editor',内部)

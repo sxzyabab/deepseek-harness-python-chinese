@@ -1,4 +1,4 @@
-"""共享 Typert Gateway 的宿主入口。"""
+'共享 Typert Gateway 的宿主入口'
 from .网关 import Typert网关服务,网关错误
 from .类型 import 调用远程请求,网关错误码,Typert网关
 from . import 客户端 as 客户端面
@@ -31,7 +31,7 @@ __all__=[
 ]
 
 def 应用(上下文):
-    """在宿主组合上挂载 Typert 网关服务。"""
+    '在宿主组合上挂载 Typert 网关服务'
     Typert网关服务(上下文)
 
 默认=应用

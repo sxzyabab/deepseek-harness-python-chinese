@@ -10,14 +10,17 @@ from ...内核.系统提示词 import 人设段落名,人设顺序#人设槽常�
 }#配置模式结束
 
 def 应用(上下文,配置值):
-    """为挂载上下文的作用域注册人设段落。无作用域的上下文会与提示词注册表自己的人设注册碰撞并拒绝。配置值是 dict。"""
+    """为挂载上下文的作用域注册人设段落。
+    无作用域的上下文会与提示词注册表自己的人设注册碰撞并拒绝。
+    配置值是 dict
+    """
     正文=配置值['text']#人设正文，配置必填
     独占=配置值['complete'] if 'complete' in 配置值 else False#缺键则不独占
     段选项={'name':人设段落名,'order':人设顺序,'text':正文}#段落贡献
     if 独占 is True:#独占整份提示词
         段选项['complete']=True#带 complete
     def 挂段():
-        """登记人设段落，拆除时撤回。"""
+        '登记人设段落，拆除时撤回'
         return 上下文.systemPrompt.段落(段选项)#登记并返回拆除器
     上下文.副作用(挂段,'persona.section()')#副作用名
     纳入运行时=True if 'includeRuntimeContext' not in 配置值 else 配置值['includeRuntimeContext']#缺键则纳入

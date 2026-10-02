@@ -7,7 +7,7 @@ __all__=['命令定义','登记命令会话节点','压缩来源','压缩摘要'
 压缩插件='compact'#压缩插件名
 
 def 自运行建命令(匹配项):
-    """起始必须是 command/run。"""
+    '起始必须是 command/run'
     事件=匹配项['event']#事件
     if 事件['type']!='command/run':#必须
         raise 对话错误('command start requires command/run')#硬失败
@@ -24,7 +24,7 @@ def 自运行建命令(匹配项):
     }#结束
 
 def 自完成叠命令(匹配项,先前=None):
-    """更新必须是 command/done。"""
+    '更新必须是 command/done'
     事件=匹配项['event']#事件
     if 事件['type']!='command/done':#必须
         raise 对话错误('command update requires command/done')#硬失败
@@ -50,7 +50,7 @@ def 自完成叠命令(匹配项,先前=None):
     }#结束
 
 def 压缩来源(事件):
-    """对不上则 None。"""
+    '对不上则 None'
     if 事件['type']!='user/message' or not 是替换面事件(事件):#非
         return None#对不上
     数据=事件['data'] if 'data' in 事件 else {}#载荷
@@ -66,7 +66,7 @@ def 压缩来源(事件):
     return 出#关联身份
 
 def 压缩摘要(匹配项,检查点):
-    """摘要与遮蔽读数。"""
+    '摘要与遮蔽读数'
     摘要=None#正文
     遮蔽条=None#条目数
     遮蔽令牌=None#token 数
@@ -98,7 +98,7 @@ def 压缩摘要(匹配项,检查点):
     }#结束
 
 def 更新压缩状态(态,匹配项):
-    """未增加证据则保持引用。"""
+    '未增加证据则保持引用'
     事件=匹配项['event']#事件
     if 事件['type']=='compaction/summary':#摘要
         return {**态,'summary':匹配项}#写入
@@ -107,7 +107,7 @@ def 更新压缩状态(态,匹配项):
     return 态#保持
 
 def 回放命令(上下文):
-    """done / 检查点 / 摘要。"""
+    'done / 检查点 / 摘要'
     匹配列表=上下文['matches'] if 'matches' in 上下文 else []#匹配
     完成=None#done
     检查点=None#检查点
@@ -140,7 +140,7 @@ def 回放命令(上下文):
     return 态#回放态
 
 def 命令匹配(事件):
-    """run/done；检查点挂命令；压缩生命周期挂源命令。"""
+    'run/done；检查点挂命令；压缩生命周期挂源命令'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='command/run':#开始
@@ -157,11 +157,11 @@ def 命令匹配(事件):
     return None#对不上
 
 def 命令开始(_上下文,匹配项):
-    """起始状态。"""
+    '起始状态'
     return {'command':自运行建命令(匹配项)}#命令
 
 def 命令更新(上下文,匹配项):
-    """done 叠结局；其余压缩证据。"""
+    'done 叠结局；其余压缩证据'
     事件=匹配项['event']#事件
     态=上下文['state']#态
     if 事件['type']=='command/done':#结束
@@ -170,7 +170,7 @@ def 命令更新(上下文,匹配项):
     return 更新压缩状态(态,匹配项)#压缩证据
 
 def 命令建视图(上下文):
-    """普通命令或手动压缩。"""
+    '普通命令或手动压缩'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None:#无
         态=回放命令(上下文)#回放
@@ -191,5 +191,5 @@ def 命令建视图(上下文):
 }#结束
 
 def 登记命令会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(命令定义)#登记

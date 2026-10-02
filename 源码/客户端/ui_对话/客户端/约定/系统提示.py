@@ -11,14 +11,14 @@ def 检视系统提示(先前,事件):
 
     替换位置继承其起点端点，而非时间序 seq。
     更早端点顺序未知时扣住提示，直到前置回放解析。
-    先前为上一相关事件处的解释（dict 或 None）；事件为已接纳的会话事件 dict。
+    先前为上一相关事件处的解释（dict 或 None）；事件为已接纳的会话事件 dict
     """
     操作=事件['surfaceOp'] if 是否表面事件(事件) and 'surfaceOp' in 事件 else None#表面操作
     首序号=先前['firstSeq'] if 先前 is not None and 'firstSeq' in 先前 else 事件['seq']#首相关序号
     节点表=list(先前['nodes']) if 先前 is not None and 'nodes' in 先前 else []#节点表
     替换=dict(先前['replacements']) if 先前 is not None and 'replacements' in 先前 else {}#替换映射
     def 未知端点(序号):
-        """序号早于首相关且未登记替换。"""
+        '序号早于首相关且未登记替换'
         return 序号<首序号 and 序号 not in 替换#未知端点
     先前不确定=先前 is not None and 'uncertain' in 先前 and 先前['uncertain'] is True#先前不确定
     本次不确定=操作 is not None and 操作!='append' and (未知端点(操作['startSeq']) or 未知端点(操作['endSeq']))#本次

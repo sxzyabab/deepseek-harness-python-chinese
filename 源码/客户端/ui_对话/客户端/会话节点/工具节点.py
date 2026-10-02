@@ -10,15 +10,15 @@ __all__=['工具定义','登记工具会话节点']#仅中文公开名
 投影缓存={}#源块 id → 上次投影
 
 def 同引用(左,右):
-    """长度与每项 is 都成立。"""
+    '长度与每项 is 都成立'
     return len(左)==len(右) and all(甲 is 乙 for 甲,乙 in zip(左,右))#引用相等
 
 def 参数原文(值):
-    """序列化。"""
+    '序列化'
     return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#原文
 
 def 根调用(匹配项):
-    """起始必须是 tool/call。"""
+    '起始必须是 tool/call'
     事件=匹配项['event']#事件
     if 事件['type']!='tool/call':#必须
         raise 对话错误('tool-call start requires tool/call')#硬失败
@@ -36,7 +36,7 @@ def 根调用(匹配项):
     }#结束
 
 def 根结果(匹配项,先前=None):
-    """非结果事件则 None。"""
+    '非结果事件则 None'
     事件=匹配项['event']#事件
     if 事件['type']!='tool/result':#非
         return None#无
@@ -65,7 +65,7 @@ def 根结果(匹配项,先前=None):
     return 结果#根结果
 
 def 位置回合(匹配项):
-    """步骤或回合位置才有。"""
+    '步骤或回合位置才有'
     位=匹配项['location'] if 'location' in 匹配项 and 匹配项['location'] is not None else {}#位置
     if 'kind' in 位 and 位['kind'] in ('step','turn'):#有
         回合=位['turn'] if 'turn' in 位 else None#回合
@@ -73,7 +73,7 @@ def 位置回合(匹配项):
     return 0#无
 
 def 位置步(匹配项):
-    """仅步骤位置。"""
+    '仅步骤位置'
     位=匹配项['location'] if 'location' in 匹配项 and 匹配项['location'] is not None else {}#位置
     if 'kind' in 位 and 位['kind']=='step':#步骤
         步=位['step'] if 'step' in 位 else None#步
@@ -81,7 +81,7 @@ def 位置步(匹配项):
     return 0#无
 
 def 子调用(匹配项,数据):
-    """运行中子调用。"""
+    '运行中子调用'
     return {#子
         'callId':数据['subCallId'] if 'subCallId' in 数据 else None,#子身份
         'name':数据['name'] if 'name' in 数据 else None,#名
@@ -92,7 +92,7 @@ def 子调用(匹配项,数据):
     }#结束
 
 def 子结果(匹配项,数据,先前=None):
-    """已结算子结果。"""
+    '已结算子结果'
     return {#子结果
         'kind':'tool-result',#结果
         'seq':匹配项['event']['seq'],#序号
@@ -106,7 +106,7 @@ def 子结果(匹配项,数据,先前=None):
     }#结束
 
 def 接受边(态,父,子):
-    """自环/已有父/成环/超深则拒绝。"""
+    '自环/已有父/成环/超深则拒绝'
     父表=态['parents'] if 'parents' in 态 and 态['parents'] is not None else {}#父表
     if 父==子 or 子 in 父表:#自环或已有父
         return False#拒
@@ -136,7 +136,7 @@ def 接受边(态,父,子):
     return 父深+子深<=最大深度#不超深
 
 def 折分发(态,匹配项):
-    """start 挂运行中；dispatch 结算。"""
+    'start 挂运行中；dispatch 结算'
     事件=匹配项['event']#事件
     种=事件['type']#种
     if 种 not in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#非
@@ -170,7 +170,7 @@ def 折分发(态,匹配项):
     return {**态,'children':子表,'parents':父表}#新态
 
 def 投影块(块,态,打断于,已访=None,深度=1):
-    """成环或超深则截断。"""
+    '成环或超深则截断'
     if 已访 is None:#无路径
         已访=set()#空
     标识=块['callId'] if 'callId' in 块 else None#callId
@@ -212,7 +212,7 @@ def 投影块(块,态,打断于,已访=None,深度=1):
     return 投影#本次
 
 def 打断边界(上下文):
-    """步骤/回合关闭。"""
+    '步骤/回合关闭'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     位置=起点['location'] if 起点 is not None and 'location' in 起点 else None#位置
     if 位置 is None:#无
@@ -229,7 +229,7 @@ def 打断边界(上下文):
     return None#开放
 
 def 回放工具(上下文):
-    """找根结果再折分发。"""
+    '找根结果再折分发'
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     根匹配=None#根结果
     for 候 in 匹配列表:#扫
@@ -245,7 +245,7 @@ def 回放工具(上下文):
     return 态#重放
 
 def 工具匹配(事件):
-    """call 开；result/分发 更新。"""
+    'call 开；result/分发 更新'
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='tool/call':#调用开始
@@ -263,11 +263,11 @@ def 工具匹配(事件):
     return None#其它
 
 def 工具开始(_上下文,匹配项):
-    """根调用。"""
+    '根调用'
     return {'root':根调用(匹配项),'children':{},'parents':{}}#空子树
 
 def 工具更新(上下文,匹配项):
-    """result 换根；其余当分发。"""
+    'result 换根；其余当分发'
     事件=匹配项['event']#事件
     态=上下文['state']#态
     if 事件['type']=='tool/result':#根结果
@@ -277,7 +277,7 @@ def 工具更新(上下文,匹配项):
     return 折分发(态,匹配项)#分发
 
 def 工具建视图(上下文):
-    """投影含子调用与打断。"""
+    '投影含子调用与打断'
     态=上下文['state'] if 'state' in 上下文 else None#态
     if 态 is None:#无
         态=回放工具(上下文)#回放
@@ -298,5 +298,5 @@ def 工具建视图(上下文):
 }#结束
 
 def 登记工具会话节点(上下文):
-    """挂到 conversationEvents。"""
+    '挂到 conversationEvents'
     上下文.conversationEvents.register(工具定义)#登记

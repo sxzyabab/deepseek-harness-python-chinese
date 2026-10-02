@@ -4,17 +4,17 @@ from .字段 import 取值字段,密钥字段#字段控件
 __all__=['终端卡片','智能体循环卡片','网页搜索卡片']#仅中文公开名
 
 def 读卡片状态(属性,钩名):
-    """注入面提供 hooks.<钩名>；快照是 dict。"""
+    '注入面提供 hooks.<钩名>；快照是 dict'
     return 属性['hooks'][钩名].getSnapshot()#快照
 
 def 投影取值(翻译,字段名,字段态,编辑,复位,禁用=False,数字=False):#投影取值字段视图
-    """用字段控件渲染一行。"""
+    '用字段控件渲染一行'
     def 点编辑(文,某=字段名):#编辑
-        """把键入交给表单。"""
+        '把键入交给表单'
         if 编辑 is not None:#有
             编辑(某,文)#编辑
     def 点复位(某=字段名):#复位
-        """把清除手势交给表单。"""
+        '把清除手势交给表单'
         if 复位 is not None:#有
             复位(某)#复位
     return 取值字段({#控件
@@ -34,9 +34,9 @@ def 投影取值(翻译,字段名,字段态,编辑,复位,禁用=False,数字=Fa
     })()#渲染
 
 def 投影密钥(翻译,字段态,编辑,已配,已配文案,未配文案,禁用=False):#投影密钥字段
-    """只写凭证。"""
+    '只写凭证'
     def 点编辑(文):#编辑
-        """把密钥草稿交给表单。"""
+        '把密钥草稿交给表单'
         if 编辑 is not None:#有
             编辑('apiKey',文)#编辑
     可写=字段态['writable'] if 'writable' in 字段态 else None#可写
@@ -52,9 +52,9 @@ def 投影密钥(翻译,字段态,编辑,已配,已配文案,未配文案,禁用
     })()#渲染
 
 class 终端卡片:#Shell 卡片
-    """timeoutMs / maxOutputBytes。"""
+    'timeoutMs / maxOutputBytes'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
         自身.壳=插件卡片({#内嵌壳
             't':属性['t'] if 't' in 属性 else None,#文案
@@ -67,11 +67,11 @@ class 终端卡片:#Shell 卡片
         })#壳结束
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 渲染(自身):#结构化视图
-        """投影字段控件。"""
+        '投影字段控件'
         翻译=自身.属性['t']#文案
         状态=读卡片状态(自身.属性,'bashCard')#状态
         编辑=自身.属性['edit'] if 'edit' in 自身.属性 else None#编辑
@@ -97,24 +97,24 @@ class 终端卡片:#Shell 卡片
         })#壳调用
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
 
 class 智能体循环卡片:#Agent 循环卡片
-    """maxParallelToolCalls。"""
+    'maxParallelToolCalls'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
         自身.壳=插件卡片({'t':属性['t'] if 't' in 属性 else None,'titleKey':'agentLoopTitle','descriptionKey':'agentLoopDescription','state':{},'onSave':属性['save'] if 'save' in 属性 else None,'onDiscard':属性['discard'] if 'discard' in 属性 else None,'children':None})#壳
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 渲染(自身):#结构化视图
-        """投影并行上限字段。"""
+        '投影并行上限字段'
         翻译=自身.属性['t']#文案
         状态=读卡片状态(自身.属性,'agentLoopCard')#状态
         编辑=自身.属性['edit'] if 'edit' in 自身.属性 else None#编辑
@@ -127,24 +127,24 @@ class 智能体循环卡片:#Agent 循环卡片
         return 自身.壳({'t':翻译,'titleKey':'agentLoopTitle','descriptionKey':'agentLoopDescription','state':状态,'onSave':自身.属性['save'] if 'save' in 自身.属性 else None,'onDiscard':自身.属性['discard'] if 'discard' in 自身.属性 else None,'children':{'fields':控件}})#壳
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染
 
 class 网页搜索卡片:#网页搜索卡片
-    """baseURL / maxUses / apiKey。"""
+    'baseURL / maxUses / apiKey'
     def __init__(自身,属性):#构造
-        """记下 props。"""
+        '记下 props'
         自身.属性=属性#合成 props
         自身.壳=插件卡片({'t':属性['t'] if 't' in 属性 else None,'titleKey':'webSearchTitle','descriptionKey':'webSearchDescription','state':{},'onSave':属性['save'] if 'save' in 属性 else None,'onDiscard':属性['discard'] if 'discard' in 属性 else None,'children':None})#壳
 
     def 更新(自身,属性):#props 变更
-        """刷新。"""
+        '刷新'
         自身.属性=属性#最新
 
     def 渲染(自身):#结构化视图
-        """投影搜索字段与密钥徽章。"""
+        '投影搜索字段与密钥徽章'
         翻译=自身.属性['t']#文案
         状态=读卡片状态(自身.属性,'webSearchCard')#状态
         编辑=自身.属性['edit'] if 'edit' in 自身.属性 else None#编辑
@@ -166,7 +166,7 @@ class 网页搜索卡片:#网页搜索卡片
         return 自身.壳({'t':翻译,'titleKey':'webSearchTitle','descriptionKey':'webSearchDescription','state':状态,'onSave':自身.属性['save'] if 'save' in 自身.属性 else None,'onDiscard':自身.属性['discard'] if 'discard' in 自身.属性 else None,'children':{'fields':控件}})#壳
 
     def __call__(自身,属性=None):#组件调用形
-        """对齐 React 调用。"""
+        '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
         return 自身.渲染()#渲染

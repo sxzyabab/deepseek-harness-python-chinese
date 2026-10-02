@@ -13,34 +13,40 @@ from .会话 import 创建Webhook会话
 __all__=['包名','名称','依赖','默认','Webhook运行时','Webhook错误','Webhook已中止','Webhook规则标识']
 
 class Webhook错误(Exception):
-    """本包异常基类。"""
+    '本包异常基类'
 
 class Webhook已中止(Webhook错误):
-    """规则拆除导致的中止。"""
+    '规则拆除导致的中止'
 
 def 已中止(信号):
-    """信号是否已中止。无信号视为未中止。"""
+    """信号是否已中止。
+    无信号视为未中止
+    """
     if 信号 is None:
         return False
     return 信号.is_set()
 
 def 若已中止则抛出(信号):
-    """已中止则抛出本包中止异常。"""
+    '已中止则抛出本包中止异常'
     if 已中止(信号):
         raise Webhook已中止('webhook 规则已拆除')
 
 class 中止控制器:
-    """登记生命周期用的中止控制器。信号是 threading.Event。"""
+    """登记生命周期用的中止控制器。
+    信号是 threading.Event
+    """
     def __init__(自身):
-        """创建配套 Event。"""
+        '创建配套 Event'
         自身.信号=threading.Event()
 
     def 中止(自身):
-        """置位信号。"""
+        '置位信号'
         自身.信号.set()
 
 def 快照投递(投递):
-    """在跨规则分发前校验并分离一条投递。投递为线协议 dict。"""
+    """在跨规则分发前校验并分离一条投递。
+    投递为线协议 dict
+    """
     for 字段 in ('kind','source','deliveryId'):#字符串身份字段
         if 字段 not in 投递:
             raise TypeError(f'webhook 投递 {字段} 必须是非空字符串')
@@ -58,28 +64,30 @@ def 快照投递(投递):
     return 深冻结(快照)
 
 class Webhook运行时(服务):
-    """即发即弃的规则运行时，注册为 webhookRuntime 服务。"""
+    '即发即弃的规则运行时，注册为 webhookRuntime 服务'
     inject=依赖
 
     def __init__(自身,上下文):
-        """安装 webhookRuntime 服务。"""
+        '安装 webhookRuntime 服务'
         super().__init__(上下文,'webhookRuntime')
         自身._规则={}
         自身._自身上下文=上下文
         自身._正在关闭=False
         def 生命周期拆除():
-            """关闭时中止并排空全部规则。"""
+            '关闭时中止并排空全部规则'
             自身._正在关闭=True
             自身._等待全部规则拆除()
         上下文.副作用(生命周期拆除,'webhookRuntime.lifecycle()')
 
     def _等待全部规则拆除(自身):
-        """同步拆除全部规则登记。"""
+        '同步拆除全部规则登记'
         for 登记 in list(自身._规则.values()):
             自身._拆除登记(登记)
 
     def 登记(自身,规则):
-        """注册一条受信任的程序化规则。规则为 dict。"""
+        """注册一条受信任的程序化规则。
+        规则为 dict
+        """
         if 自身._正在关闭:
             raise Webhook错误('webhook 运行时正在关闭')
         规则号=规则['id']
@@ -92,24 +100,24 @@ class Webhook运行时(服务):
             raise TypeError(f'webhook 规则 "{规则号}" 需要 run()')
         登记对象={'rule':规则,'controller':中止控制器(),'active':set(),'closing':False,'disposal':None}
         def 挂上():
-            """写入规则表并在拆除时清掉。"""
+            '写入规则表并在拆除时清掉'
             if 自身._正在关闭:
                 raise Webhook错误('webhook 运行时正在关闭')
             if 规则号 in 自身._规则:
                 raise Webhook错误(f'webhook 规则 "{规则号}" 已登记')
             自身._规则[规则号]=登记对象
             def 拆除():
-                """等待登记拆除完成。"""
+                '等待登记拆除完成'
                 自身._拆除登记(登记对象)
             return 拆除
         自身.ctx.副作用(挂上,f'webhookRuntime.register({规则号})')
         def 对外拆除():
-            """拆除本条登记。"""
+            '拆除本条登记'
             自身._拆除登记(登记对象)
         return 对外拆除
 
     def 分发(自身,投递):
-        """启动每条当前匹配规则，并在任何回调结算前返回。"""
+        '启动每条当前匹配规则，并在任何回调结算前返回'
         if 自身._正在关闭:
             raise Webhook错误('webhook 运行时正在关闭')
         快照=快照投递(投递)
@@ -119,11 +127,11 @@ class Webhook运行时(服务):
             自身._启动调用(登记,快照)
 
     def _启动调用(自身,登记,投递):
-        """启动一次受控调用并挂到登记拆除。"""
+        '启动一次受控调用并挂到登记拆除'
         跟踪=object()
         登记['active'].add(跟踪)
         def 执行规则调用():
-            """执行规则并在需要时创建会话。"""
+            '执行规则并在需要时创建会话'
             若已中止则抛出(登记['controller'].信号)
             请求=登记['rule']['run'](投递,登记['controller'].信号)
             若已中止则抛出(登记['controller'].信号)
@@ -145,7 +153,7 @@ class Webhook运行时(服务):
             登记['active'].discard(跟踪)
 
     def _拆除登记(自身,登记):
-        """隐藏、中止，再排空活跃调用。"""
+        '隐藏、中止，再排空活跃调用'
         if 登记['disposal'] is not None:
             return 登记['disposal']
         登记['closing']=True

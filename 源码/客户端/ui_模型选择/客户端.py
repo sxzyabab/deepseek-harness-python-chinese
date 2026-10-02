@@ -8,7 +8,7 @@ __all__=['依赖','应用','模型选择','模型目录解析器','命名空间'
 依赖=['commandUi','connection','locale','sessions','slots','remote']#依赖
 
 def 行键(提供方,模型):#提供方/模型拼行键
-    """不透明行键。"""
+    '不透明行键'
     return 提供方+'/'+模型#拼接
 
 内置描述键={#内置模型描述键
@@ -17,7 +17,7 @@ def 行键(提供方,模型):#提供方/模型拼行键
 }
 
 def 描述于(提供方,模型,翻译):#内置描述本地化
-    """线上描述仍是英文权威文案时才本地化。"""
+    '线上描述仍是英文权威文案时才本地化'
     键名=行键(提供方,模型['id'] if 'id' in 模型 else '')#行键
     键=内置描述键[键名] if 键名 in 内置描述键 else None#内置键
     描述=模型['description'] if 'description' in 模型 else None#原描述
@@ -26,7 +26,7 @@ def 描述于(提供方,模型,翻译):#内置描述本地化
     return 描述#原样
 
 def 选项于(目录,翻译):#目录 → 弹出选项
-    """失败行列出但永不可选。"""
+    '失败行列出但永不可选'
     行列表=[]#累积
     组列表=目录['groups'] if 'groups' in 目录 and 目录['groups'] is not None else []
     for 组 in 组列表:
@@ -53,7 +53,7 @@ def 选项于(目录,翻译):#目录 → 弹出选项
     return 行列表#全部
 
 def 选定于(状态,标识):#行键 → 模型选定
-    """失败行或过期 id 则为 None。"""
+    '失败行或过期 id 则为 None'
     组列表=状态['groups'] if 'groups' in 状态 and 状态['groups'] is not None else []
     for 组 in 组列表:
         模型列表=组['models'] if 'models' in 组 and 组['models'] is not None else []
@@ -73,32 +73,32 @@ def 选定于(状态,标识):#行键 → 模型选定
     return None#无效
 
 def 应用(上下文):#安装模型选择浏览器半边
-    """挂目录解析器、词典、/model 贡献与撰写器座位。"""
+    '挂目录解析器、词典、/model 贡献与撰写器座位'
     def 登记词典():#登记中英文案
-        """把模型选择词表写进 locale。"""
+        '把模型选择词表写进 locale'
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
     上下文.副作用(登记词典,'ui-model-selection: dictionaries')#词典
     翻译=上下文.locale.bind(命名空间)#绑定词表
     def 阻断文案():#阻断原因
-        """撰写器阻断文案。"""
+        '撰写器阻断文案'
         return 翻译('blocked.composer')#文案
     上下文.启动插件(模型目录解析器,{'blockReason':阻断文案})#目录服务
     def 挂模型命令(作用域):#等 commandUi 与目录
-        """登记 /model popupSelect。"""
+        '登记 /model popupSelect'
         命令=作用域.获取服务('commandUi')#命令 UI
         模型目录=作用域.modelDirectories#目录解析
         会话面=作用域.sessions#会话
         def 命令可用(会话):#是否可用
-            """非子智能体。"""
+            '非子智能体'
             return 会话面.subagentAddress(会话.sessionId) is None#可用
         def 命令选项(会话):#弹出选项
-            """拉目录展平。"""
+            '拉目录展平'
             return _模型选项(模型目录,会话面,会话,翻译)#选项
         def 命令选定(选项,会话):#选定一行
-            """提交选定。"""
+            '提交选定'
             return _模型选定(模型目录,会话面,选项,会话,翻译)#选定
         def 登记():#登记贡献
-            """/model 弹出选择。"""
+            '/model 弹出选择'
             return 命令.register({#登记
                 'name':'model',#命令名
                 'label':lambda:翻译('command.label'),#命令标签
@@ -114,24 +114,24 @@ def 应用(上下文):#安装模型选择浏览器半边
         作用域.副作用(登记,'ui-model-selection: /model contribution')#贡献
     上下文.依赖启动(['commandUi','modelDirectories'],挂模型命令)#注入
     def 挂座位(作用域):#等槽位与目录
-        """撰写器模型座位。"""
+        '撰写器模型座位'
         模型目录=作用域.modelDirectories#目录
         会话面=作用域.sessions#会话
         def 登记():#登记座位
-            """conversation.input.model。"""
+            'conversation.input.model'
             def 注入面(会话标识):#按会话解析
-                """座位注入面。"""
+                '座位注入面'
                 目录=模型目录.directoryFor(会话标识)#共享目录
                 可用=会话面.subagentAddress(会话标识) is None#可用
                 def 加载():#触发加载
-                    """可用才拉。"""
+                    '可用才拉'
                     if 可用:#可用
                         try:#拉
                             目录.load()#加载
                         except 模型选择错误:#失败反映在 store
                             pass
                 def 选定(选):#提交选定
-                    """可用才提交；成功 True。"""
+                    '可用才提交；成功 True'
                     if not 可用:#不可用
                         return False#立刻 false
                     try:#提交
@@ -149,14 +149,14 @@ def 应用(上下文):#安装模型选择浏览器半边
     上下文.依赖启动(['slots','modelDirectories'],挂座位)#注入
 
 def _模型选项(模型目录,会话面,会话,翻译):#拉选项行
-    """子智能体禁止；否则目录展平。"""
+    '子智能体禁止；否则目录展平'
     if 会话面.subagentAddress(会话.sessionId) is not None:#子智能体
         raise 模型选择错误('model selection is unavailable for addressed subagent sessions')#禁
     目录=模型目录.directoryFor(会话.sessionId).load()#加载已等待
     return 选项于(目录,翻译)#展平
 
 def _模型选定(模型目录,会话面,选项,会话,翻译):#选定一行
-    """行键还原后经同一目录提交。"""
+    '行键还原后经同一目录提交'
     if 会话面.subagentAddress(会话.sessionId) is not None:#子智能体
         raise 模型选择错误('model selection is unavailable for addressed subagent sessions')#禁
     目录=模型目录.directoryFor(会话.sessionId)#共享目录

@@ -9,14 +9,14 @@ __all__=['不支持图片媒体类型','对话错误','会话控制器','图片�
 支持媒体=('image/png','image/jpeg','image/webp','image/gif')#受支持的图片 MIME
 
 class 不支持图片媒体类型(Exception):
-    """浏览器声明了不支持的图片类型，由 UI 边界本地化。"""
+    '浏览器声明了不支持的图片类型，由 UI 边界本地化'
     def __init__(自身,媒体类型):
-        """保存声明值。"""
+        '保存声明值'
         super().__init__('unsupported image media type: '+(媒体类型 or '(empty)'))#消息
         自身.mediaType=媒体类型#声明值
 
 def 图片媒体类型(值):
-    """不支持则抛。"""
+    '不支持则抛'
     if 值 in 支持媒体:
         return 值#原样
     raise 不支持图片媒体类型(值)#UI 边界本地化
@@ -24,7 +24,7 @@ def 图片媒体类型(值):
 字节转base64=二进制.转base64#依赖版 base64 编码
 
 def 收回预览(网址):
-    """只收回 blob: 对象 URL；宿主注入的 revokeObjectURL 若存在则调用。"""
+    '只收回 blob: 对象 URL；宿主注入的 revokeObjectURL 若存在则调用'
     if not isinstance(网址,str) or not 网址.startswith('blob:'):
         return#无事
     撤销=globals().get('revokeObjectURL')#宿主可注入
@@ -32,7 +32,7 @@ def 收回预览(网址):
         撤销(网址)#收回
 
 def 浏览器草稿附件(文件):
-    """从 File 造草稿附件。文件为本包 dict。"""
+    '从 File 造草稿附件。文件为本包 dict'
     标识=str(uuid.uuid4())#草稿身份
     if 'previewUrl' in 文件:
         预览=文件['previewUrl']#用已有
@@ -42,9 +42,9 @@ def 浏览器草稿附件(文件):
     return {'kind':'image','id':标识,'previewUrl':预览,'file':文件}#草稿描述
 
 class 会话控制器(服务):
-    """根单例，登记为 conversation。"""
+    '根单例，登记为 conversation'
     def __init__(自身,上下文,配置):
-        """配置携带 input 与 blocks 登记表。"""
+        '配置携带 input 与 blocks 登记表'
         super().__init__(上下文,'conversation')#以 conversation 登记
         自身.input=配置['input']#输入机登记表
         自身.blocks=配置['blocks']#阻断登记表
@@ -54,7 +54,7 @@ class 会话控制器(服务):
         自身.已创建网址=set()#已创建的对象 URL
         自身.已拆除=False#拆除后为 True
         def 清缓存():
-            """收回 URL 并清空表。"""
+            '收回 URL 并清空表'
             自身.已拆除=True#标为已拆除
             for 网址 in list(自身.已创建网址):
                 收回预览(网址)#收回
@@ -66,7 +66,7 @@ class 会话控制器(服务):
         上下文.副作用(清缓存,'conversation attachment URL cache')#附件 URL 缓存
 
     def send(自身,文本):
-        """业务失败则拒绝。"""
+        '业务失败则拒绝'
         会话=自身.作用域会话('send')#取作用域会话面
         结果=会话.prompt([{'type':'text','text':文本}],'queue').等待()#排队发送
         if 结果['ok'] is not True:
@@ -74,7 +74,7 @@ class 会话控制器(服务):
             raise 对话错误('conversation.send failed: '+str(错误['code'])+': '+str(错误['message']))#拒绝
 
     def sendSession(自身,会话,文本,图片标识列表,模式):
-        """有草稿已不可用则拒绝；成功后释放草稿。"""
+        '有草稿已不可用则拒绝；成功后释放草稿'
         附件列表=自身.draftImages(图片标识列表)#按 id 解析仍活草稿
         if len(附件列表)!=len(图片标识列表):
             raise 对话错误('conversation.sendSession: one or more draft images are no longer available')#拒绝
@@ -87,7 +87,7 @@ class 会话控制器(服务):
         自身.releaseDraftImages(附件列表)#成功后释放
 
     def createDraftImages(自身,文件列表):
-        """校验媒体类型后返回有序草稿描述。文件为本包 dict。"""
+        '校验媒体类型后返回有序草稿描述。文件为本包 dict'
         for 文件 in 文件列表:
             图片媒体类型(文件['type'] if 'type' in 文件 else '')#不支持则抛
         结果=[]#草稿列表
@@ -99,7 +99,7 @@ class 会话控制器(服务):
         return 结果#有序草稿
 
     def draftImages(自身,标识列表):
-        """按请求顺序取仍活草稿。"""
+        '按请求顺序取仍活草稿'
         附件列表=[]#累积
         for 标识 in 标识列表:
             if 标识 in 自身.草稿附件:
@@ -107,7 +107,7 @@ class 会话控制器(服务):
         return 附件列表#仍活草稿
 
     def releaseDraftImage(自身,标识):
-        """已不在则无事。"""
+        '已不在则无事'
         if 标识 not in 自身.草稿附件:
             return#无事
         附件=自身.草稿附件[标识]#查
@@ -116,12 +116,12 @@ class 会话控制器(服务):
         收回预览(附件['previewUrl'])#收回
 
     def releaseDraftImages(自身,附件列表):
-        """逐个按 id 释放。"""
+        '逐个按 id 释放'
         for 附件 in 附件列表:
             自身.releaseDraftImage(附件['id'])#释放
 
     def resolveImage(自身,会话标识,附件):
-        """缓存进行中的加载；已拆除则拒绝。附件为线协议 dict。"""
+        '缓存进行中的加载；已拆除则拒绝。附件为线协议 dict'
         if 自身.已拆除:
             raise 对话错误('conversation.resolveImage: service is disposed')#拒绝
         附件标识=附件['attachmentId']#附件 id
@@ -134,7 +134,7 @@ class 会话控制器(服务):
         if 会话 is None:
             raise 对话错误('conversation.resolveImage: unknown session "'+str(会话标识)+'"')#未知会话
         def 加载():
-            """失败则视世代清缓存。"""
+            '失败则视世代清缓存'
             try:
                 结果=会话.readAttachment(附件标识).等待()#读
                 if 结果['ok'] is not True:
@@ -158,7 +158,7 @@ class 会话控制器(服务):
         return 加载#同步可调用
 
     def releaseSessionImages(自身,会话标识):
-        """世代加一，作废进行中的加载。"""
+        '世代加一，作废进行中的加载'
         自身.图片世代[会话标识]=(自身.图片世代[会话标识] if 会话标识 in 自身.图片世代 else 0)+1#世代+1
         for 键 in list(自身.图片网址.keys()):
             条目=自身.图片网址[键]#条目
@@ -175,7 +175,7 @@ class 会话控制器(服务):
                 pass#无 URL
 
     def updateQueue(自身,条目标识,动作):
-        """严格转向竞态可收敛为成功。动作为本包 dict。"""
+        '严格转向竞态可收敛为成功。动作为本包 dict'
         会话=自身.作用域会话('updateQueue')#取会话
         结果=会话.updateQueue(条目标识,动作).等待()#转发
         if 结果['ok'] is not True:
@@ -187,7 +187,7 @@ class 会话控制器(服务):
             raise 对话错误('conversation.updateQueue failed: '+str(码)+': '+str(错误['message']))#拒绝
 
     def cancel(自身):
-        """失败与 send 一样拒绝。"""
+        '失败与 send 一样拒绝'
         会话=自身.作用域会话('cancel')#取会话
         结果=会话.cancel().等待()#转发
         if 结果['ok'] is not True:
@@ -195,11 +195,11 @@ class 会话控制器(服务):
             raise 对话错误('conversation.cancel failed: '+str(错误['code'])+': '+str(错误['message']))#拒绝
 
     def loadOlder(自身):
-        """转发到会话面。"""
+        '转发到会话面'
         自身.作用域会话('loadOlder').loadOlder().等待()#转发
 
     def 作用域会话(自身,操作):
-        """没有绑定则抛。"""
+        '没有绑定则抛'
         标识=自身.作用域标识(操作)#读标签
         绑定=自身.要求会话().binding(标识)#查绑定
         if 绑定 is None:
@@ -207,21 +207,21 @@ class 会话控制器(服务):
         return 绑定.session#会话面
 
     def 作用域标识(自身,操作):
-        """根上下文大声失败。"""
+        '根上下文大声失败'
         标识=自身.要求会话().scopeOf(自身.ctx)#从重绑后的 ctx 读
         if 标识 is None:
             raise 对话错误('conversation.'+操作+' requires a session scope — address one via ctx.sessions.scope(id).conversation')#必须经 scope
         return 标识#会话身份
 
     def 要求会话(自身):
-        """严格获取服务。"""
+        '严格获取服务'
         会话面=自身.ctx.获取服务('sessions')#取
         if 会话面 is None:
             raise 对话错误('conversation: sessions service unavailable')#抛
         return 会话面#会话面
 
     def 序列化图片(自身,图片列表):
-        """逐个把文件 dict 翻成图片块。"""
+        '逐个把文件 dict 翻成图片块'
         结果=[]#块列表
         for 文件 in 图片列表:
             媒体=图片媒体类型(文件['type'] if 'type' in 文件 else '')#校验

@@ -1,4 +1,4 @@
-"""ACP 线路内容准入与投影，由 ACP 适配器拥有。"""
+'ACP 线路内容准入与投影，由 ACP 适配器拥有'
 import re
 from base64 import b64encode as 编码基64,b64decode as 解码基64
 from ...附件.附件 import 是否图像准入错误
@@ -11,9 +11,9 @@ __all__=['ACP内容错误','支持ACP图片提示','接纳ACP提示','助手块�
 规范基64=re.compile(r'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$')
 
 class ACP内容错误(Exception):
-    """稳定 ACP 请求失败分类，不含原始二进制。"""
+    '稳定 ACP 请求失败分类，不含原始二进制'
     def __init__(自身,消息,种类,原因=None):
-        """记下无内联二进制的协议细节。"""
+        '记下无内联二进制的协议细节'
         super().__init__(消息)
         自身.name='AcpContentError'
         自身.kind=种类
@@ -21,11 +21,11 @@ class ACP内容错误(Exception):
             自身.__cause__=原因
 
 def 图像媒体(值):
-    """收窄线路 MIME。"""
+    '收窄线路 MIME'
     return 值 if 值 in 图像媒体类型 else None
 
 def 解码图像(块):
-    """严格解码一张 ACP 内联图。"""
+    '严格解码一张 ACP 内联图'
     媒体=图像媒体(块.get('mimeType'))
     if 媒体 is None:
         raise ACP内容错误('image mimeType must be image/png, image/jpeg, image/webp, or image/gif','invalid')
@@ -38,7 +38,7 @@ def 解码图像(块):
     return {'data':字节,'mediaType':媒体}
 
 def 断言图像路由(上下文,路由,信号):
-    """解析精确当前路由并要求显式图像输入。"""
+    '解析精确当前路由并要求显式图像输入'
     提供方=None if 路由 is None else 路由.get('provider')
     模型=None if 路由 is None else 路由.get('model')
     大模型=上下文.获取服务('llm')
@@ -53,7 +53,7 @@ def 断言图像路由(上下文,路由,信号):
         raise ACP内容错误('model "'+str(模型)+'" does not declare image input','invalid')
 
 def 支持ACP图片提示(上下文,提供方,模型):
-    """初始化是否可如实宣称内联图像提示。"""
+    '初始化是否可如实宣称内联图像提示'
     附件=上下文.获取服务('attachments')
     大模型=上下文.获取服务('llm')
     if 附件 is None or 大模型 is None or 提供方 is None or 模型 is None:
@@ -70,13 +70,13 @@ def 支持ACP图片提示(上下文,提供方,模型):
         return False
 
 def 资源链接文本(块):
-    """基线资源链接变成核心文本词表。"""
+    '基线资源链接变成核心文本词表'
     名=json.dumps(块.get('name'),ensure_ascii=False,separators=(',',':'),allow_nan=False)
     址=json.dumps(块.get('uri'),ensure_ascii=False,separators=(',',':'),allow_nan=False)
     return '\n[resource_link name='+名+' uri='+址+']\n'
 
 def 接纳ACP提示(上下文,路由,提示,图像已启用,信号):
-    """把 ACP 提示收成有序耐久核心内容。"""
+    '把 ACP 提示收成有序耐久核心内容'
     图像=[]
     for 块 in 提示:
         类型=块.get('type') if isinstance(块,dict) else None
@@ -110,7 +110,7 @@ def 接纳ACP提示(上下文,路由,提示,图像已启用,信号):
     待文本=''
     图下标=0
     def 冲文本():
-        """冲出累计文本。"""
+        '冲出累计文本'
         nonlocal 待文本
         if len(待文本)==0:
             return
@@ -132,7 +132,7 @@ def 接纳ACP提示(上下文,路由,提示,图像已启用,信号):
     return 内容
 
 def 助手块转ACP(上下文,块):
-    """把已提交助手块译成 ACP 线路内容。"""
+    '把已提交助手块译成 ACP 线路内容'
     if 块.get('type')=='text':
         return None if len(块.get('text') or '')==0 else {'type':'text','text':块['text']}
     if 块.get('type')!='image':

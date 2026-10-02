@@ -6,7 +6,7 @@ from .分隔文本 import 转换分隔文本
 __all__=['转换excel']
 
 def 转换excel(字节,格式,上限):
-    """按后缀解码工作簿，不重算已存公式。"""
+    '按后缀解码工作簿，不重算已存公式'
     if len(字节)>上限['maxBytes']:
         raise 表格预览错误('tooLarge')
     if 格式=='xlsx':

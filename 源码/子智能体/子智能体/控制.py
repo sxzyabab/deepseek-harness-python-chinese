@@ -1,13 +1,15 @@
-"""浏览器面子智能体提示与打断请求校验，以及 Remote 面稳定失败码。"""
+'浏览器面子智能体提示与打断请求校验，以及 Remote 面稳定失败码'
 from ...附件.附件.错误 import 附件错误
-from ...typert.协议 import 远程错误
+from ...类型化远程调用.协议 import 远程错误
 from ...工具.超时 import 已中止
 from .错误 import 子智能体错误
 
 __all__=['校验控制请求','拒绝提示']
 
 def 校验控制请求(方法,载荷):
-    """比品牌字符串编解码更严的载荷检查。失败抛 gateway/bad-request。"""
+    """比品牌字符串编解码更严的载荷检查。
+    失败抛 gateway/bad-request
+    """
     if not isinstance(载荷,dict):
         raise 远程错误('gateway/bad-request','invalid payload for '+方法,{'issues':[{'message':'expected object'}]})
     if 方法=='subagent.prompt':
@@ -30,7 +32,9 @@ def 校验控制请求(方法,载荷):
         raise 远程错误('gateway/bad-request','invalid payload for '+方法,{'issues':问题})
 
 def 拒绝提示(错误,子会话标识,信号):
-    """拒绝一次续跑提示，不暴露提供方细节。始终抛 远程错误。"""
+    """拒绝一次续跑提示，不暴露提供方细节。
+    始终抛 远程错误
+    """
     取消=已中止(信号) or (isinstance(错误,子智能体错误) and 错误.code=='CANCELLED')
     if 取消:
         raise 远程错误('gateway/cancelled','subagent prompt was cancelled',{},错误)

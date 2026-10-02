@@ -4,7 +4,7 @@ from .轨迹记录 import 轨迹错误#本包异常
 __all__=['登记轨迹助手定义']#仅中文公开名
 
 def 空助手块(块类型):#空助手块
-    """按 blockType 播种空块。"""
+    '按 blockType 播种空块'
     if 块类型=='text':#文本
         return {'kind':'text','text':''}#空文本
     if 块类型=='reasoning':#推理
@@ -14,7 +14,7 @@ def 空助手块(块类型):#空助手块
     return {'kind':块类型}#其余
 
 def 转助手块(块):#完整块覆盖该槽
-    """把事件上的完整块收成助手块。"""
+    '把事件上的完整块收成助手块'
     if isinstance(块,dict) and 'kind' in 块:#已是助手块形
         return 块#原样
     if not isinstance(块,dict):#非对象
@@ -32,11 +32,11 @@ def 转助手块(块):#完整块覆盖该槽
     return {'kind':'other','block':块}#其它
 
 def 转助手块列表(内容):#内容数组转助手块数组
-    """逐条转换。"""
+    '逐条转换'
     return [转助手块(块) for 块 in (内容 if 内容 is not None else [])]#转换
 
 def 展示失败文案(失败):#失败展示文案
-    """优先 message。"""
+    '优先 message'
     if 失败 is None:#无
         return 'error'#占位
     if isinstance(失败,str):#字符串
@@ -46,16 +46,16 @@ def 展示失败文案(失败):#失败展示文案
     return str(失败)#str
 
 def 是否令牌增量(块):#是否 token 增量
-    """text/reasoning/tool-call delta。"""
+    'text/reasoning/tool-call delta'
     类型=块['type'] if 块 is not None and 'type' in 块 else None#块种类
     return 类型 in ('text-delta','reasoning-delta','tool-call-delta')#增量类
 
 def 压缩块(块列表):#去掉稀疏洞
-    """过滤 None 槽。"""
+    '过滤 None 槽'
     return [块 for 块 in 块列表 if 块 is not None]#过滤
 
 def 有可见内容(块列表):#是否有对用户可见的内容（工具调用不算）
-    """任一可见块即真。"""
+    '任一可见块即真'
     for 块 in 块列表:#逐块
         种类=块['kind'] if 'kind' in 块 else None#种类
         if 种类=='tool-call':#工具调用对轨迹不算可见
@@ -69,7 +69,7 @@ def 有可见内容(块列表):#是否有对用户可见的内容（工具调用
     return False#无可见
 
 def 有打断证据(块列表):#闭合边界上是否有可展示的打断证据
-    """任一非空块即真。"""
+    '任一非空块即真'
     for 块 in 块列表:#逐块
         种类=块['kind'] if 'kind' in 块 else None#种类
         if 种类 in ('text','reasoning'):#文本/推理须非空白
@@ -81,7 +81,7 @@ def 有打断证据(块列表):#闭合边界上是否有可展示的打断证据
     return False#无证据
 
 def 累加用量(当前,下一块):#把下一块用量累加到当前
-    """输入/输出必加；可选字段两边都缺才省略。"""
+    '输入/输出必加；可选字段两边都缺才省略'
     当前入=当前['inputTokens'] if 当前 is not None and 'inputTokens' in 当前 else None#当前入
     下入=下一块['inputTokens'] if 下一块 is not None and 'inputTokens' in 下一块 else None#下入
     当前出=当前['outputTokens'] if 当前 is not None and 'outputTokens' in 当前 else None#当前出
@@ -102,11 +102,11 @@ def 累加用量(当前,下一块):#把下一块用量累加到当前
     return 结果#累加结果
 
 def 初始状态(回合,步号,起点序号,起点时间,已开始):#播种一条尚未见块的助手状态
-    """空块、无用量、无重试。"""
+    '空块、无用量、无重试'
     return {'turn':回合,'step':步号,'startSeq':起点序号,'startTime':起点时间,'started':已开始,'sawChunk':False,'blocks':[],'firstVisibleSeq':None,'firstVisibleTime':None,'firstTokenTime':None,'final':None,'usage':None,'retry':None,'stepEnd':None}#初始状态
 
 def 更新块(状态,匹配):#按一条 assistant/live-chunk 推进块与用量
-    """非块事件原样返回。"""
+    '非块事件原样返回'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     if 事件 is None or ('type' not in 事件) or 事件['type']!='assistant/live-chunk':#非块事件
         return 状态#原样
@@ -156,7 +156,7 @@ def 更新块(状态,匹配):#按一条 assistant/live-chunk 推进块与用量
     return 新状态#新状态
 
 def 闭合边界(上下文):#从状态或位置推出已闭合的步/回合边界
-    """有闭合边界则返回其 seq/time。"""
+    '有闭合边界则返回其 seq/time'
     状态=上下文['state'] if 'state' in 上下文 else None#本节点状态
     步结束=状态['stepEnd'] if 状态 is not None and 'stepEnd' in 状态 else None#step/end 命中
     步事件=步结束['event'] if 步结束 is not None and 'event' in 步结束 else None#步事件
@@ -177,7 +177,7 @@ def 闭合边界(上下文):#从状态或位置推出已闭合的步/回合边�
     return None#尚无闭合边界
 
 def 结算节点(状态,上下文):#投影已结算或被打断的助手消息节点
-    """有结算或打断证据才返回。"""
+    '有结算或打断证据才返回'
     结算=状态['final'] if 'final' in 状态 else None#assistant/message 命中
     结算事件=结算['event'] if 结算 is not None and 'event' in 结算 else None#结算事件
     if 结算事件 is not None and 'type' in 结算事件 and 结算事件['type']=='assistant/message':#已有完整结算
@@ -194,7 +194,7 @@ def 结算节点(状态,上下文):#投影已结算或被打断的助手消息�
     return {'kind':'assistant','seq':边界['seq'],'time':边界['time'],'turn':状态['turn'] if 'turn' in 状态 else None,'step':状态['step'] if 'step' in 状态 else None,'blocks':块列表,'interrupted':True}#打断节点用边界序号，seq 保持 int
 
 def 助手请求(状态,节点,边界):#把累积状态投影成 assistant RequestView
-    """见过 start 才返回。"""
+    '见过 start 才返回'
     if not (状态['started'] if 'started' in 状态 else None):#回放缺 start
         return None#不投影请求
     打断=节点 is not None and 'interrupted' in 节点 and 节点['interrupted'] is True#打断
@@ -222,7 +222,7 @@ def 助手请求(状态,节点,边界):#把累积状态投影成 assistant Reque
     return 请求#RequestView
 
 def 回放状态(上下文):#无 start 时从命中回放累积状态
-    """可能仍 None（无助手事件）。"""
+    '可能仍 None（无助手事件）'
     状态=None#尚未见助手事件
     for 匹配 in (上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []):#按到达顺序回放
         事件=匹配['event'] if 'event' in 匹配 else None#取出事件
@@ -243,7 +243,7 @@ def 回放状态(上下文):#无 start 时从命中回放累积状态
     return 状态#可能仍 None
 
 def 助手匹配(事件):#按事件类型归入本步
-    """start / update / null。"""
+    'start / update / null'
     种类=事件['type'] if 'type' in 事件 else None#事件类型
     数据=事件['data'] if 'data' in 事件 else None#载荷
     回合=数据['turn'] if 数据 is not None and 'turn' in 数据 else None#回合
@@ -255,7 +255,7 @@ def 助手匹配(事件):#按事件类型归入本步
     return None#无关事件
 
 def 助手开始(_上下文,匹配):#从 step/start 播种状态
-    """见过 start，started=True。"""
+    '见过 start，started=True'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     if 事件 is None or ('type' not in 事件) or 事件['type']!='step/start':#类型守卫
         raise 轨迹错误('trajectory-assistant-step start requires step/start')#类型收窄失败则抛
@@ -263,7 +263,7 @@ def 助手开始(_上下文,匹配):#从 step/start 播种状态
     return 初始状态(数据['turn'] if 数据 is not None and 'turn' in 数据 else None,数据['step'] if 数据 is not None and 'step' in 数据 else None,事件['seq'],事件['time'],True)#初始状态
 
 def 助手更新(上下文,匹配):#按后续事件推进状态
-    """chunk / message / step/end / llm/retry。"""
+    'chunk / message / step/end / llm/retry'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     种类=事件['type'] if 事件 is not None and 'type' in 事件 else None#类型
     状态=上下文['state'] if 'state' in 上下文 else None#当前状态
@@ -288,7 +288,7 @@ def 助手更新(上下文,匹配):#按后续事件推进状态
     return 新状态#重试状态
 
 def 助手发布(匹配):#控制该命中何时发布视图
-    """start 不单独发布；用量/结束不发布。"""
+    'start 不单独发布；用量/结束不发布'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     种类=事件['type'] if 事件 is not None and 'type' in 事件 else None#事件类型
     if 种类=='step/start':#start
@@ -301,7 +301,7 @@ def 助手发布(匹配):#控制该命中何时发布视图
     return 'none' if 块类型 in ('usage','finish') else 'animation-frame'#用量/结束不发布
 
 def 助手构建视图(上下文):#投影轨迹视图节点
-    """三者皆空则不产出。"""
+    '三者皆空则不产出'
     状态=上下文['state'] if 'state' in 上下文 else None#有 start 用状态
     if 状态 is None:#否则回放
         状态=回放状态(上下文)#回放
@@ -334,7 +334,7 @@ def 助手构建视图(上下文):#投影轨迹视图节点
 }#定义结束
 
 def 回合结束开始(_上下文,匹配):#从 turn/end 播种状态
-    """记下回合、序号、时间，出错则带文案。"""
+    '记下回合、序号、时间，出错则带文案'
     事件=匹配['event'] if 'event' in 匹配 else None#事件
     if 事件 is None or ('type' not in 事件) or 事件['type']!='turn/end':#类型守卫
         raise 轨迹错误('trajectory-turn-end start requires turn/end')#类型收窄失败则抛
@@ -346,17 +346,17 @@ def 回合结束开始(_上下文,匹配):#从 turn/end 播种状态
     return 状态#状态
 
 def 回合结束匹配(事件):#只匹配回合结束
-    """以序号为 id 起步。"""
+    '以序号为 id 起步'
     if 'type' in 事件 and 事件['type']=='turn/end':#回合结束
         return {'id':str(事件['seq']),'role':'start'}#起步
     return None#其它
 
 def 回合结束更新(上下文,_匹配):#无后续事件
-    """状态原样。"""
+    '状态原样'
     return 上下文['state'] if 'state' in 上下文 else None#原样
 
 def 回合结束构建视图(上下文):#包进轨迹信封
-    """无状态则不产出。"""
+    '无状态则不产出'
     状态=上下文['state'] if 'state' in 上下文 else None#状态
     if 状态 is None:#无
         return None#不产出
@@ -375,6 +375,6 @@ def 回合结束构建视图(上下文):#包进轨迹信封
 }#定义结束
 
 def 登记轨迹助手定义(上下文):#登记助手步与回合结束
-    """登记轨迹助手生命周期 Definition。"""
+    '登记轨迹助手生命周期 Definition'
     上下文.conversationEvents.register(轨迹助手定义)#登记助手流式/结算
     上下文.conversationEvents.register(回合结束定义)#登记回合结束

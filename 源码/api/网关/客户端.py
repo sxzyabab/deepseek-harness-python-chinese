@@ -1,4 +1,5 @@
 import threading#后台串行与监听器等待
+from ...基础设施.通用工具 import 设置内部数据
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .网关 import 网关错误,操作任务,中止控制器,中止信号#本包异常与并发原语
@@ -16,40 +17,40 @@ __all__=[#仅中文公开名
 命名空间保留字段=frozenset(['ctx','empty','invokeRemote','methods','name','namespace'])#方法名不得占用
 
 def 拼端点(描述符):
-    """返回 namespace/method。描述符为 dict。"""
+    '返回 namespace/method。描述符为 dict'
     return 描述符['namespace']+'/'+描述符['method']#端点
 
 def 远程服务键(命名空间):
-    """remote. 前缀。"""
+    'remote. 前缀'
     return 'remote.'+命名空间#服务键
 
 def 内部失败(消息):
-    """internal 码、消息、空细节。"""
+    'internal 码、消息、空细节'
     return {'ok':False,'error':{'code':'internal','message':消息,'details':{}}}#信封
 
 def 已撤(端点):
-    """方法已不再挂载。"""
+    '方法已不再挂载'
     return 内部失败('client api: 远程方法 '+端点+' 已不再挂载')#已撤
 
 def 载体失败(端点,错误):
-    """带上错误消息。"""
+    '带上错误消息'
     消息=错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else str(错误)#消息
     return 内部失败('client api: '+端点+' 失败: '+str(消息))
 
 def 取消失败(端点,原因):
-    """调用方中止折入 gateway/cancelled，载体抛出作为 cause。"""
+    '调用方中止折入 gateway/cancelled，载体抛出作为 cause'
     错误={'code':'gateway/cancelled','message':'client api: 远程调用 "'+端点+'" 已中止','details':{}}#取消码
     if isinstance(原因,BaseException):#有原因
         错误['cause']=原因#挂上 cause
     return {'ok':False,'error':错误}#失败结果
 
 def 要求严格编解码(编解码,端点,字段):
-    """弱模式不允许出现在客户端生成描述符。编解码为 dict。"""
+    '弱模式不允许出现在客户端生成描述符。编解码为 dict'
     if 'mode' not in 编解码 or 编解码['mode']!='strict':#弱模式
         raise 网关错误('definition-unavailable',端点,'client api: 生成的 Remote '+端点+' 字段 '+repr(字段)+' 没有严格编解码')#无严格编解码
 
 def 要求严格输入(描述符):
-    """参数与 Context 身份编解码均须 strict。描述符为 dict。"""
+    '参数与 Context 身份编解码均须 strict。描述符为 dict'
     端点=拼端点(描述符)#端点
     for 参数 in 描述符['parameters']:#每个参数
         要求严格编解码(参数['codec'],端点,参数['wire'])#按线字段
@@ -57,7 +58,7 @@ def 要求严格输入(描述符):
         要求严格编解码(描述符['invocation']['codec'],端点,描述符['invocation']['wire'])#身份
 
 def 作用域投影(描述符):
-    """Context 调用或 scope+唯一 lookup。描述符为 dict。"""
+    'Context 调用或 scope+唯一 lookup。描述符为 dict'
     if 描述符['invocation']['kind']=='context':#调用约定本身就是上下文
         return {#用调用约定上的上下文与线字段
             'context':描述符['invocation']['context'],#上下文
@@ -77,49 +78,49 @@ def 作用域投影(描述符):
     }
 
 class 远程命名空间服务(服务):
-    """直接与作用域变体的方法表。"""
+    '直接与作用域变体的方法表'
 
     @staticmethod
     def 断言方法可用(命名空间,方法):
-        """保留字段或原型成员则抛。"""
+        '保留字段或原型成员则抛'
         if 方法 in 命名空间保留字段 or hasattr(远程命名空间服务,方法):#冲突
             raise 网关错误('binding-invalid',命名空间+'/'+方法,'client api: 方法 '+repr(命名空间+'/'+方法)+' 与其命名空间服务冲突')#冲突
 
     def __init__(自身,上下文,名,调用远程):
-        """以 remote.命名空间 登记。"""
+        '以 remote.命名空间 登记'
         super().__init__(上下文,远程服务键(名))#登记
         自身.namespace=名#命名空间名
         自身.invokeRemote=调用远程#委托回远程服务
         自身.methods={}#方法名 → 变体记录
 
     def 断言方法可用实例(自身,方法):
-        """连实例自有字段一起检查。"""
+        '连实例自有字段一起检查'
         远程命名空间服务.断言方法可用(自身.namespace,方法)#类级
         if hasattr(自身,方法) and 方法 not in 自身.methods:#实例上已有但不是已挂方法
             raise 网关错误('binding-invalid',自身.namespace+'/'+方法,'client api: 方法 '+repr(自身.namespace+'/'+方法)+' 与其命名空间服务冲突')#冲突
 
     @property
     def empty(自身):
-        """表空则为空。"""
+        '表空则为空'
         return len(自身.methods)==0#空
 
     def has(自身,种类,方法):
-        """对应槽非空。"""
+        '对应槽非空'
         if 方法 not in 自身.methods:#无记录
             return False#没有
         记录=自身.methods[方法]#记录
         return 种类 in 记录 and 记录[种类] is not None#有槽
 
     def installDirect(自身,描述符,令牌):
-        """写入 direct 槽。描述符为 dict。"""
+        '写入 direct 槽。描述符为 dict'
         自身._安装(描述符['method'],'direct',{'descriptor':描述符,'token':令牌})#安装
 
     def installScoped(自身,描述符,投影,令牌):
-        """写入 scoped 槽。描述符与投影为 dict。"""
+        '写入 scoped 槽。描述符与投影为 dict'
         自身._安装(描述符['method'],'scoped',{'descriptor':描述符,'projection':投影,'token':令牌})#安装
 
     def _安装(自身,方法,种类,值):
-        """首次定义访问器，再写入对应槽。值为 dict。"""
+        '首次定义访问器，再写入对应槽。值为 dict'
         自身.断言方法可用实例(方法)#断言
         记录=自身.methods[方法] if 方法 in 自身.methods else None#已有
         新建=记录 is None#是否第一次
@@ -127,7 +128,7 @@ class 远程命名空间服务(服务):
             记录={}#空记录
             自身.methods[方法]=记录#写入表
             def 发出(*位置参数,本=自身,名=方法):
-                """取值时捕获调用方上下文与当前变体。"""
+                '取值时捕获调用方上下文与当前变体'
                 调用方=本.ctx#调用方上下文
                 当前=本.methods[名] if 名 in 本.methods else None#当前变体记录
                 直接=当前['direct'] if 当前 is not None and 'direct' in 当前 else None#直接
@@ -137,7 +138,7 @@ class 远程命名空间服务(服务):
         记录[种类]=值#写入对应槽
 
     def remove(自身,种类,方法,令牌):
-        """没有记录或令牌不是自己则不动。"""
+        '没有记录或令牌不是自己则不动'
         if 方法 not in 自身.methods:#无记录
             return#不动
         记录=自身.methods[方法]#变体记录
@@ -155,19 +156,21 @@ class 远程命名空间服务(服务):
             delattr(自身,方法)#删掉
 
 class 客户端远程服务(服务):
-    """安装带类型的客户端远程服务。"""
+    '安装带类型的客户端远程服务'
 
     def __init__(自身,上下文):
-        """以 remote 名登记。"""
+        '以 remote 名登记'
         super().__init__(上下文,'remote')#登记
         自身.ownerCtx=上下文#拥有方上下文
         自身.namespaces={}#已安装命名空间
         自身.mutations=操作任务()#挂载拆除串行队列尾
         自身.mutations.兑现(None)#初始已结算
-        setattr(自身,'$stream',自身.开流)#线路名 $stream（标识符非法，动态挂）
+        设置内部数据(自身,'stream',自身.开流)#开流
+        设置内部数据(自身,'on',自身.on)#订阅
+        设置内部数据(自身,'mount',自身.mount)#挂载
         连接=上下文.获取服务('connection')#连接
         def 开远程流(端点,载荷,信号):
-            """进程内或 WebSocket 流。"""
+            '进程内或 WebSocket 流'
             本地=None#本地
             if hasattr(连接,'rpc') and hasattr(连接.rpc,'open') and 连接.rpc.open is not None:#有本地 open
                 本地=连接.rpc.open('/api',端点,载荷,信号)#本地
@@ -176,38 +179,38 @@ class 客户端远程服务(服务):
             raise 网关错误('service-unavailable',端点,'client api: Remote stream mux 硬阻塞，无本地 open')#硬阻塞
         自身._事件=客户端远程事件(上下文,连接,开远程流)#远程事件
         def 清传输():
-            """拆除传输。"""
+            '拆除传输'
             自身._事件.拆除()#拆事件
         上下文.副作用(清传输,'api-gateway.client.transport')#生命周期
 
     def 开流(自身,选项):
-        """创建一条可独立取消、可重连的逻辑流。选项为 dict：name/open/ended/carrierFailed?。"""
+        '创建一条可独立取消、可重连的逻辑流。选项为 dict：name/open/ended/carrierFailed?'
         连接=自身.ownerCtx.获取服务('connection')#活动连接
         return 远程流(连接,选项)#监督流
 
     def mount(自身,贡献):
-        """把挂载纳入调用方效果。贡献为 dict。"""
+        '把挂载纳入调用方效果。贡献为 dict'
         调用方=自身.ctx#调用方上下文
         def 执行挂载():
-            """安装贡献。"""
+            '安装贡献'
             return 自身.挂载贡献(调用方,贡献)#挂载
         拆除=自身.入队(执行挂载).等待()#串行等到完成
         def 卸():
-            """同样串行。"""
+            '同样串行'
             自身.入队(拆除).等待()#拆除
         return 卸#拆除函数
 
     def on(自身,事件,监听器):
-        """经转发事件所有者登记。"""
+        '经转发事件所有者登记'
         return 自身._事件.订阅(自身.ctx,事件,监听器)#订阅
 
     def 入队(自身,操作):
-        """前一步无论成败都执行本次。返回操作任务。"""
+        '前一步无论成败都执行本次。返回操作任务'
         前=自身.mutations#当前队列尾
         任务=操作任务()#本次结果
         锚=操作任务()#队列尾锚，吞掉成败
         def 后台执行():
-            """前任失败不挡本次；锚始终成功。"""
+            '前任失败不挡本次；锚始终成功'
             try:
                 try:
                     前.等待()#等前任
@@ -226,7 +229,7 @@ class 客户端远程服务(服务):
         return 任务#本次结果
 
     def 挂载贡献(自身,调用方,贡献):
-        """先校验，再逐个安装；中途失败回滚。贡献为 dict。"""
+        '先校验，再逐个安装；中途失败回滚。贡献为 dict'
         自身.校验贡献(贡献)#校验
         拆除远程=调用方.typert.remotes.register(贡献)#向 Typert 登记
         已装=[]#已安装描述符的拆除器
@@ -239,18 +242,18 @@ class 客户端远程服务(服务):
             拆除远程()#撤 Typert
             raise#原样抛
         def 整拆():
-            """逆序拆除描述符再撤登记。"""
+            '逆序拆除描述符再撤登记'
             for 拆除 in reversed(已装):#逆序
                 拆除()#拆除
             拆除远程()#撤
         return 整拆#拆除器
 
     def 校验贡献(自身,贡献):
-        """本贡献内与已挂载命名空间不冲突。贡献为 dict。"""
+        '本贡献内与已挂载命名空间不冲突。贡献为 dict'
         直接表={}#本贡献内的直接方法
         作用域表={}#本贡献内的作用域方法
         def 加入(表,描述符,种类):
-            """冲突则抛。"""
+            '冲突则抛'
             方法集合=表[描述符['namespace']] if 描述符['namespace'] in 表 else set()#已见方法
             if 描述符['method'] in 方法集合:#本贡献内重复
                 raise 网关错误('binding-invalid',拼端点(描述符),'client api: 贡献重复了 '+种类+' 方法 '+拼端点(描述符))#重复
@@ -286,7 +289,7 @@ class 客户端远程服务(服务):
                     服务实例.断言方法可用实例(方法)#实例检查
 
     def 安装(自身,描述符):
-        """先直接后作用域；失败作废令牌并回滚。描述符为 dict。"""
+        '先直接后作用域；失败作废令牌并回滚。描述符为 dict'
         令牌={'active':True,'abort':中止控制器()}#存活令牌
         已装=[]#已装变体
         try:
@@ -302,7 +305,7 @@ class 客户端远程服务(服务):
                 拆除()#拆除
             raise#抛
         def 卸():
-            """幂等。"""
+            '幂等'
             if not 令牌['active']:#已拆
                 return#返回
             令牌['active']=False#标记
@@ -312,7 +315,7 @@ class 客户端远程服务(服务):
         return 卸#拆除器
 
     def 安装直接(自身,描述符,令牌):
-        """取或创建命名空间。描述符为 dict。"""
+        '取或创建命名空间。描述符为 dict'
         命名空间=自身.取命名空间(描述符['namespace'])#句柄
         try:
             命名空间['service'].installDirect(描述符,令牌)#安装
@@ -320,13 +323,13 @@ class 客户端远程服务(服务):
             自身.卸命名空间(描述符['namespace'],命名空间)#尝试丢掉空命名空间
             raise#抛
         def 卸():
-            """按令牌去掉直接变体。"""
+            '按令牌去掉直接变体'
             命名空间['service'].remove('direct',描述符['method'],令牌)#去掉
             自身.卸命名空间(描述符['namespace'],命名空间)#若已空则拆
         return 卸#拆除器
 
     def 安装作用域(自身,描述符,投影,令牌):
-        """取或创建命名空间。描述符与投影为 dict。"""
+        '取或创建命名空间。描述符与投影为 dict'
         命名空间=自身.取命名空间(描述符['namespace'])#句柄
         try:
             命名空间['service'].installScoped(描述符,投影,令牌)#安装
@@ -334,20 +337,20 @@ class 客户端远程服务(服务):
             自身.卸命名空间(描述符['namespace'],命名空间)#尝试丢掉
             raise#抛
         def 卸():
-            """按令牌去掉作用域变体。"""
+            '按令牌去掉作用域变体'
             命名空间['service'].remove('scoped',描述符['method'],令牌)#去掉
             自身.卸命名空间(描述符['namespace'],命名空间)#若已空则拆
         return 卸#拆除器
 
     def 取命名空间(自身,名):
-        """已安装则直接返回。"""
+        '已安装则直接返回'
         if 名 in 自身.namespaces:#已安装
             return 自身.namespaces[名]#返回
         服务盒={'service':None}#插件 apply 里同步赋上
         def 插件应用(插件上下文):
-            """构造命名空间服务。"""
+            '构造命名空间服务'
             def 委托调用(直接,作用域,调用方,参数):
-                """转给远程服务。"""
+                '转给远程服务'
                 return 自身.调用方法(直接,作用域,调用方,参数)#委托
             服务盒['service']=远程命名空间服务(插件上下文,名,委托调用)#构造
         纤程=自身.ownerCtx.启动插件({'name':远程服务键(名),'apply':插件应用})#登记插件
@@ -363,14 +366,14 @@ class 客户端远程服务(服务):
         return 句柄#返回
 
     def 卸命名空间(自身,名,句柄):
-        """命名空间已空且仍是当前句柄时拆除。句柄为 dict。"""
+        '命名空间已空且仍是当前句柄时拆除。句柄为 dict'
         if (not 句柄['service'].empty) or (名 not in 自身.namespaces) or (自身.namespaces[名] is not 句柄):#不空或已换
             return#不动
         自身.namespaces.pop(名,None)#从表去掉
         句柄['dispose']()#拆除插件
 
     def 调用方法(自身,直接,作用域,调用方,值列表):
-        """有身份则走作用域；否则直接；仅作用域则仍走作用域。直接与作用域为 dict。"""
+        '有身份则走作用域；否则直接；仅作用域则仍走作用域。直接与作用域为 dict'
         if 作用域 is not None:#有作用域变体
             绑定器=自身.ownerCtx.typert.contexts.getClient(作用域['projection']['context'])#客户端绑定器
             身份=绑定器.identity(调用方) if 绑定器 is not None else None#读身份
@@ -383,7 +386,7 @@ class 客户端远程服务(服务):
         raise 网关错误('method-unavailable','','client api: 远程方法已不再挂载')#都不在了
 
     def 调用(自身,描述符,投影,令牌,调用方,值列表,已绑身份=None):
-        """按描述符组线参数并经 Connection 发出 RPC。描述符为 dict。"""
+        '按描述符组线参数并经 Connection 发出 RPC。描述符为 dict'
         端点=拼端点(描述符)#端点
         if not 令牌['active']:#已撤
             return 已撤(端点)#已撤
@@ -428,7 +431,7 @@ class 客户端远程服务(服务):
             return 载体失败(端点,错误)#折成内部失败
 
 def 应用(上下文):
-    """在客户端根上挂载 Remote 服务。"""
+    '在客户端根上挂载 Remote 服务'
     客户端远程服务(上下文)#构造并登记
 
 inject=依赖#框架槽

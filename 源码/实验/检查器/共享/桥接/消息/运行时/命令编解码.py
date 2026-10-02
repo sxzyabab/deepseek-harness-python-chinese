@@ -4,7 +4,7 @@ from ....校验 import 精确键,可选布尔,可选非负数,可选字符串,�
 __all__=['解析客户端运行时命令']#仅中文公开名
 
 def 解析调用参数(值):#解析调用参数
-    """解析调用参数。"""
+    '解析调用参数'
     if not 是否普通对象(值) or not isinstance(值.get('kind'),str):#须有kind
         raise 检查器错误('inspector protocol: invalid Client Runtime call argument')#英文诊断
     种类=值['kind']#种类
@@ -27,7 +27,7 @@ def 解析调用参数(值):#解析调用参数
     raise 检查器错误(f'inspector protocol: unknown call argument {种类!r}')#英文诊断
 
 def 解析调用函数(值):#解析调用函数
-    """解析调用函数。"""
+    '解析调用函数'
     精确键(值,['op','functionDeclaration','receiver','arguments','objectGroup','silent','returnByValue','generatePreview','userGesture','awaitPromise'],'call-function command')#精确字段
     if not isinstance(值.get('functionDeclaration'),str):#函数声明非法
         raise 检查器错误('inspector protocol: functionDeclaration must be a string')#英文诊断
@@ -50,7 +50,7 @@ def 解析调用函数(值):#解析调用函数
     return 结果#返回结束
 
 def 解析客户端运行时命令(值):#解析Runtime命令
-    """在命令进入 Client 界域之前解析并重建一条 Runtime 命令。"""
+    '在命令进入 Client 界域之前解析并重建一条 Runtime 命令'
     if not 是否普通对象(值) or not isinstance(值.get('op'),str):#须有op
         raise 检查器错误('inspector protocol: Client Runtime command must have an op')#英文诊断
     操作=值['op']#操作

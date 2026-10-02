@@ -1,4 +1,4 @@
-"""向 web seam 注册 Exa 搜索提供方。"""
+'向 web seam 注册 Exa 搜索提供方'
 from ...依赖.schemastery import 字符串字段,整数字段,枚举字段
 from ...工具.启动环境 import 取启动环境
 from .提供方 import (
@@ -25,7 +25,7 @@ __all__=['包名','名称','依赖','应用','默认']
 }
 
 def 应用(上下文,配置值):
-    """配置值为 dict；密钥缺失时回退到启动环境的 EXA_API_KEY。"""
+    '配置值为 dict；密钥缺失时回退到启动环境的 EXA_API_KEY'
     密钥=配置值['apiKey'] if 'apiKey' in 配置值 else None
     if 密钥 is None:
         环境项=取启动环境(上下文).取('EXA_API_KEY')

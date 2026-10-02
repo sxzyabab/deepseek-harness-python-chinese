@@ -15,13 +15,13 @@ Client_Runtime操作=(#Client Runtime操作
 )#常量
 
 def _支持(目标,能力类型):#是否支持能力
-    """检查源能力列表。"""
+    '检查源能力列表'
     return any(候['type']==能力类型 for 候 in 目标['source']['capabilities'])#检查
 
 class Client检查器realm:#Client检查器realm
-    """经公共 Worker realm 模型暴露的活动 Client realm。"""
+    '经公共 Worker realm 模型暴露的活动 Client realm'
     def __init__(自身,目标,运行时路由,源路由):#构造
-        """装配桥、描述与能力。"""
+        '装配桥、描述与能力'
         自身._桥=创建Client_realm桥(目标,运行时路由,源路由)#桥
         自身.descriptor=检查器realm描述(#描述
             realmId=str(uuid.uuid4()),#realm id
@@ -46,17 +46,17 @@ class Client检查器realm:#Client检查器realm
 
     @property
     def 目标(自身):#目标
-        """本 realm 代表的活动源代数。"""
+        '本 realm 代表的活动源代数'
         return 自身._桥['target']#桥目标
 
     def 打开会话(自身):#打开会话
-        """为一个 DevTools 连接打开一套隔离的 Client 后端。"""
+        '为一个 DevTools 连接打开一套隔离的 Client 后端'
         运行时会话id=str(uuid.uuid4())#Runtime会话
         运行时=Client运行时后端(自身.目标,运行时会话id,自身._桥['runtime'],自身._脚本身份)#Runtime
         控制台=Client控制台后端(自身.目标,运行时会话id,自身._桥['runtime'],自身._脚本身份) if _支持(自身.目标,'client-console') else None#Console
         源=Client源后端(自身.目标,str(uuid.uuid4()),自身._桥['sources'],自身._脚本身份) if _支持(自身.目标,'client-sources') else None#源
         def 关闭():#关闭
-            """关闭会话后端。"""
+            '关闭会话后端'
             if 控制台 is not None:#有Console
                 控制台.关闭()#关Console
             if 源 is not None:#有源

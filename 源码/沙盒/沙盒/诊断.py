@@ -1,4 +1,4 @@
-"""把观察到的沙箱运行器失败与文件效果拒绝分类。"""
+'把观察到的沙箱运行器失败与文件效果拒绝分类'
 import os,stat#工作目录可进入性与目录判定
 from errno import EACCES as 权限拒绝,ENOENT as 不存在#可执行解析/权限失败码
 
@@ -7,7 +7,7 @@ __all__=('是否运行器派生失败','分类运行器失败','匹配签名')#�
 可执行派生码=frozenset(('EACCES','ENOENT',权限拒绝,不存在))#可执行解析或权限失败
 
 def 可进入工作目录(路径):#调用方拥有的 cwd 能否进入
-    """调用方拥有的派生工作目录是否可进入。"""
+    '调用方拥有的派生工作目录是否可进入'
     try:#独立检查，不与 spawn 原子
         信息=os.stat(路径)#取元数据
         if not stat.S_ISDIR(信息.st_mode):#不是目录
@@ -17,7 +17,7 @@ def 可进入工作目录(路径):#调用方拥有的 cwd 能否进入
         return False#不可用
 
 def 是否运行器派生失败(错误,运行器程序,工作目录):#是否运行器 spawn 失败
-    """仅在可进入 cwd 下把 ENOENT/EACCES 归到 argv[0] 运行器。"""
+    '仅在可进入 cwd 下把 ENOENT/EACCES 归到 argv[0] 运行器'
     if 运行器程序 is None or not 可进入工作目录(工作目录):#无程序或 cwd 不可用
         return False#证据不足
     if not isinstance(错误,OSError):#非 OS 错误
@@ -39,7 +39,7 @@ def 是否运行器派生失败(错误,运行器程序,工作目录):#是否运�
     return 系统调用 is None or 系统调用=='spawn' or 系统调用==精确#路径命中
 
 def errno名(码):#errno 到名
-    """把 errno 整数映射成 EACCES/ENOENT 名。"""
+    '把 errno 整数映射成 EACCES/ENOENT 名'
     if 码==权限拒绝:#EACCES
         return 'EACCES'#名
     if 码==不存在:#ENOENT
@@ -47,7 +47,7 @@ def errno名(码):#errno 到名
     return ''#其它
 
 def 分类运行器失败(退出码,标准错误,规则表):#按规则分类
-    """按选定后端的结构化运行器失败规则分类一次已结算进程。"""
+    '按选定后端的结构化运行器失败规则分类一次已结算进程'
     if 退出码 is None or 退出码==0:#信号终止或成功
         return None#证据不足
     行列表=标准错误.split('\n')#按 LF 拆
@@ -78,7 +78,7 @@ def 分类运行器失败(退出码,标准错误,规则表):#按规则分类
     return None#未命中
 
 def 匹配签名(退出码,标准错误,签名表):#大小写不敏感子串
-    """非零退出且 stderr 命中任一签名。"""
+    '非零退出且 stderr 命中任一签名'
     if 退出码 is None or 退出码==0:#成功或信号
         return False#否
     小写=标准错误.lower()#小写

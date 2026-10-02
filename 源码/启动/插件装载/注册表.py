@@ -1,4 +1,4 @@
-"""一次包操作按何顺序询问哪些注册表，以及失败未能触及什么。"""
+'一次包操作按何顺序询问哪些注册表，以及失败未能触及什么'
 import re
 from urllib.parse import urlparse,urlunparse
 
@@ -14,10 +14,10 @@ __all__=[
 ]
 
 class 注册表错误(Exception):
-    """插件装载注册表解析失败。"""
+    '插件装载注册表解析失败'
 
 def 规范化注册表(网址):
-    """解析为 pnpm 比较用形态：小写主机、尾斜杠。"""
+    '解析为 pnpm 比较用形态：小写主机、尾斜杠'
     try:
         解析=urlparse(网址)
     except ValueError:
@@ -30,12 +30,12 @@ def 规范化注册表(网址):
     return urlunparse((解析.scheme,解析.netloc.lower(),路径,解析.params,解析.query,解析.fragment))
 
 def 注册表计划(请求,已配置):
-    """一次操作从先到后询问的注册表，永不为空。"""
+    '一次操作从先到后询问的注册表，永不为空'
     自身值=None if 已配置['resolved'] is None else 规范化注册表(已配置['resolved'])
     回退=[规范化注册表(项) for 项 in 已配置['fallbackRegistries']]
     自身公开=自身值 is not None and (自身值==官方npm注册表 or 自身值 in 回退)
     def 键(注册表):
-        """pnpm 自有注册表在已知时代表它所命名的网址。"""
+        'pnpm 自有注册表在已知时代表它所命名的网址'
         return 自身值 if 注册表 is None else 规范化注册表(注册表)
     已知=[]
     键表=[]
@@ -57,7 +57,7 @@ def 注册表计划(请求,已配置):
     return [规范第一]+[项 for 下标,项 in enumerate(已知) if 键表[下标]!=第一键]
 
 def 归因失败(种类,日志,规格):
-    """失败未能触及或得到回答的对象：registry / spec-host / other。"""
+    '失败未能触及或得到回答的对象：registry / spec-host / other'
     if 种类 not in 下一注册表种类:
         return 'other'
     主机=None

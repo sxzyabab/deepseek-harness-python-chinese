@@ -6,24 +6,24 @@ __all__=['读块','默认读最大行']#仅中文公开名
 默认读最大行=16#与终端同预算
 
 class 读块:#读卡
-    """banner+行号 gutter；复制写窗口原文。"""
+    'banner+行号 gutter；复制写窗口原文'
     def __init__(自身,属性=None,**关键字参数):
-        """合并 props。"""
+        '合并 props'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.已展开=False#展开
         自身.反馈=复制反馈()#复制
 
     def 更新(自身,属性):
-        """刷新。"""
+        '刷新'
         自身.属性=dict(属性)#最新
 
     def 切换展开(自身):
-        """封顶切换。"""
+        '封顶切换'
         自身.已展开=not 自身.已展开#翻
 
     def 渲染(自身):
-        """配对行号+文本并封顶。"""
+        '配对行号+文本并封顶'
         属性=自身.属性#props
         行列=属性['lines'] if 'lines' in 属性 else None#窗口行
         行列表=list(行列) if 行列 is not None else []#空则空表
@@ -63,7 +63,7 @@ class 读块:#读卡
         }#结束
 
     def __call__(自身,属性=None,**关键字参数):
-        """对齐 React。"""
+        '对齐 React'
         if 属性 is not None or len(关键字参数)>0:#有；判 length
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆

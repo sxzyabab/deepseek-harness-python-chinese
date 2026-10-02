@@ -2,21 +2,21 @@
 __all__=['回退命令卡']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    """无文案表时返回键本身。"""
+    '无文案表时返回键本身'
     return 键#键即文案
 
 class 回退命令卡:
-    """运行中/失败/完成态。"""
+    '运行中/失败/完成态'
     def __init__(自身,属性=None):
-        """记下合成 props。"""
+        '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
 
     def 更新(自身,属性):
-        """刷新 props。"""
+        '刷新 props'
         自身.属性=属性 if 属性 is not None else {}#新
 
     def 渲染(自身):
-        """命令卡。"""
+        '命令卡'
         属性=自身.属性#props
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
@@ -38,7 +38,7 @@ class 回退命令卡:
         return {'type':'generic-command-card','title':标题,'status':状态,'statusLabel':状态标签,'args':参数,'outcome':结局,'cssModule':'通用命令卡.module.css'}#卡
 
     def __call__(自身,属性=None):
-        """对齐。"""
+        '对齐'
         if 属性 is not None:#有
             自身.更新(属性)#刷
         return 自身.渲染()#渲

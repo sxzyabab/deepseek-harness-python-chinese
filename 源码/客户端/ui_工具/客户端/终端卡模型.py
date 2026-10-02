@@ -9,34 +9,34 @@ unc形=re.compile(r'^[/\\]{2}([^/\\]+)[/\\]+([^/\\]+)')#UNC 根
 盘符形=re.compile(r'^[A-Za-z]:')#盘符
 
 def 信号文案(翻译,信号):#signal 插值
-    """terminal.signal。"""
+    'terminal.signal'
     return 翻译('terminal.signal',{'signal':信号})#文案
 
 def 退出码文案(翻译,码):#exitCode 插值
-    """terminal.exitCode。"""
+    'terminal.exitCode'
     return 翻译('terminal.exitCode',{'code':码})#文案
 
 def 展开无障碍(翻译,隐):#expandAria
-    """terminal.expandAria。"""
+    'terminal.expandAria'
     return 翻译('terminal.expandAria',{'n':隐})#文案
 
 def 展开其余(翻译,隐):#expandRest
-    """terminal.expandRest。"""
+    'terminal.expandRest'
     return 翻译('terminal.expandRest',{'n':隐})#文案
 
 def 终端块文案(翻译):#从会话词条组装终端块文案
-    """原语文案面与本包词典配对。"""
+    '原语文案面与本包词典配对'
     def 信号(信号值):#signal
-        """插值。"""
+        '插值'
         return 信号文案(翻译,信号值)#文案
     def 退出码(码):#exitCode
-        """插值。"""
+        '插值'
         return 退出码文案(翻译,码)#文案
     def 展开无障碍文(隐):#expandAria
-        """插值。"""
+        '插值'
         return 展开无障碍(翻译,隐)#文案
     def 展开其余文(隐):#expandRest
-        """插值。"""
+        '插值'
         return 展开其余(翻译,隐)#文案
     return {#原语文案面
         'signal':信号,
@@ -51,7 +51,7 @@ def 终端块文案(翻译):#从会话词条组装终端块文案
   }#labels
 
 def 终端已失败(模型):#折叠行的失败信号
-    """非运行且（非零码或有信号）。"""
+    '非运行且（非零码或有信号）'
     卡=模型['card'] if 'card' in 模型 else {}#card
     退出码=卡['exitCode'] if 'exitCode' in 卡 else None#exitCode
     信号=卡['signal'] if 'signal' in 卡 else None#signal
@@ -59,7 +59,7 @@ def 终端已失败(模型):#折叠行的失败信号
     return 运行中 is not True and ((退出码 is not None and 退出码!=0) or 信号 is not None)#失败
 
 def 折叠段(体,有根,分隔符='/'):#折叠路径体的 . / ..
-    """无前导或尾随分隔符。"""
+    '无前导或尾随分隔符'
     保留=[]#保留段
     for 段 in 段切.split(体):#切开
         if 段=='' or 段=='.':#空或 .
@@ -74,7 +74,7 @@ def 折叠段(体,有根,分隔符='/'):#折叠路径体的 . / ..
     return 分隔符.join(保留)#重拼
 
 def 归一化段(路径):#折叠路径里的 . / ..
-    """分隔符按原文保留。"""
+    '分隔符按原文保留'
     if 点点段.search(路径) is None:#没有 . / ..
         return 路径#原样
     unc=unc形.match(路径)#UNC
@@ -95,7 +95,7 @@ def 归一化段(路径):#折叠路径里的 . / ..
     return 盘符+(前导 if 有根 else 分隔)+体#盘符+分隔+体
 
 def 解析终端工作区(视图工作区,会话工作区,解析工作区路径=None):#解析提示行 cwd
-    """绝对原样，相对接到会话工作区，省略则会话工作区。"""
+    '绝对原样，相对接到会话工作区，省略则会话工作区'
     if 视图工作区 is None or 视图工作区=='':#视图没给
         return 会话工作区#用会话
     if 会话工作区 is None or 会话工作区=='':#无会话根
@@ -108,7 +108,7 @@ def 解析终端工作区(视图工作区,会话工作区,解析工作区路径=
     return 归一化段(接)#折叠
 
 def 终端卡模型(块,会话工作区=None,解析工作区路径=None):#从调用切片派生终端卡片
-    """非终端卡片返回 None。"""
+    '非终端卡片返回 None'
     调用视图=块['callView'] if 'callView' in 块 else None#调用视图
     调用=调用视图 if 调用视图 is not None and 调用视图['card']=='terminal' else None#仅 terminal
     已结算='kind' in 块#已结算

@@ -4,19 +4,19 @@ from ...模型后端.llm.调用配置 import 深冻结,冻结映射,冻结列表
 __all__=['冻结记录','冻结树','快照json值','是否json值']
 
 class 冻结记录(冻结映射):
-    """冻结映射并允许点号读取字段。"""
+    '冻结映射并允许点号读取字段'
     def __getattr__(自身,名):
-        """按字段名读取，缺席则属性错误。"""
+        '按字段名读取，缺席则属性错误'
         if 名 in 自身:
             return 自身[名]
         raise AttributeError(名)
 
 def 是否负零(值):
-    """值为 IEEE 负零时为真。"""
+    '值为 IEEE 负零时为真'
     return isinstance(值,float) and 值==0.0 and math.copysign(1.0,值)<0
 
 def 冻结树(值):
-    """深冻结后把冻结映射升级为可点号读取的冻结记录。"""
+    '深冻结后把冻结映射升级为可点号读取的冻结记录'
     深冻结(值)
     待处理=[值]
     while len(待处理)>0:
@@ -34,15 +34,15 @@ def 冻结树(值):
     return 值
 
 def 是否普通数组(值):
-    """数组是否为普通列表或其冻结形态，拒绝子类。"""
+    '数组是否为普通列表或其冻结形态，拒绝子类'
     return type(值) is list or type(值) is 冻结列表
 
 def 是否普通对象(值):
-    """对象是否为普通字典或其冻结形态，拒绝子类。"""
+    '对象是否为普通字典或其冻结形态，拒绝子类'
     return type(值) is dict or type(值) is 冻结映射 or type(值) is 冻结记录
 
 def 可枚举字符串键(值):
-    """返回每个 JSON 可见的对象键，或拒绝 JSON 会丢掉的自有数据。"""
+    '返回每个 JSON 可见的对象键，或拒绝 JSON 会丢掉的自有数据'
     键列表=list(值.keys())
     for 键 in 键列表:
         if not isinstance(键,str):
@@ -50,7 +50,7 @@ def 可枚举字符串键(值):
     return 键列表
 
 def 写入快照槽(目标,项,根盒):
-    """把一项写入快照槽或根。"""
+    '把一项写入快照槽或根'
     if 目标 is None:
         return
     种类=目标['kind']
@@ -62,7 +62,7 @@ def 写入快照槽(目标,项,根盒):
         目标['target'][目标['key']]=项
 
 def 遍历json值(值,脱离):
-    """迭代校验无损 JSON，可选物化一份脱离快照。"""
+    '迭代校验无损 JSON，可选物化一份脱离快照'
     祖先=set()
     根盒=[None]
     任务列表=[{'kind':'visit','value':值}]
@@ -162,9 +162,9 @@ def 遍历json值(值,脱离):
     return True
 
 def 快照json值(值):
-    """校验并脱离无损 JSON，每个属性只读一次。"""
+    '校验并脱离无损 JSON，每个属性只读一次'
     return 遍历json值(值,True)
 
 def 是否json值(值):
-    """测试与快照json值相同的无损 JSON 边界，但不脱离。"""
+    '测试与快照json值相同的无损 JSON 边界，但不脱离'
     return 遍历json值(值,False) is True

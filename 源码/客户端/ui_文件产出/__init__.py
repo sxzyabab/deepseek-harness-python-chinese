@@ -8,7 +8,7 @@ __all__=['依赖','应用']
     +'Use the filename or a clear alias as the label, adding only enough parent directories to distinguish files; keep full paths out of labels. Default to the name alone; when precise locations matter, append :24 or :24–30, with no # or L in the line suffix.')#系统提示字面量，不译
 
 def 应用(上下文):
-    """登记 Web 文件引用引导与原生打开。"""
+    '登记 Web 文件引用引导与原生打开'
     登记呈现打开(上下文)
     上下文.systemPrompt.section({
         'name':'ui:deliverable-file-references',

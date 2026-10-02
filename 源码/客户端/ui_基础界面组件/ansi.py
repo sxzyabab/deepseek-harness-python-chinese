@@ -47,7 +47,7 @@ CSI=re.compile(r'\x1b\[([\x30-\x3f]*)[\x20-\x2f]*([\x40-\x7e])')#CSI
 制表宽=8#制表停
 
 def 折SGR(状态,参数):#叠 SGR
-    """返回新 {fg,bg,attrs}。"""
+    '返回新 {fg,bg,attrs}'
     码列表=['0'] if 参数=='' else 参数.split(';')#空=复位
     下=dict(状态)#拷
     下['attrs']=list(状态.get('attrs') or [])#属性可改
@@ -95,7 +95,7 @@ def 折SGR(状态,参数):#叠 SGR
     return 下#新态
 
 def 码到rgb(码,是背景=False):#参数 → rgb 串
-    """标准色表或 38/48 扩展。"""
+    '标准色表或 38/48 扩展'
     表=标准背景 if 是背景 else 标准前景#表
     if 码 in 表:#标准
         return 表[码]#rgb
@@ -112,7 +112,7 @@ def 码到rgb(码,是背景=False):#参数 → rgb 串
     return None#无
 
 def 解析样式(状态):#态 → css dict
-    """无 SGR 则 None。"""
+    '无 SGR 则 None'
     样式={}#累
     前景码=状态.get('fg') or ''#fg
     背景码=状态.get('bg') or ''#bg
@@ -143,7 +143,7 @@ def 解析样式(状态):#态 → css dict
     return 样式 if 样式 else None#空则无
 
 def 开SGR(状态):#态 → 规范序列
-    """默认态空串。"""
+    '默认态空串'
     码=list(状态.get('attrs') or [])#属性
     if 状态.get('fg'):#前景
         码.append(状态['fg'])#跟
@@ -152,14 +152,14 @@ def 开SGR(状态):#态 → 规范序列
     return '' if not 码 else '\x1b['+';'.join(码)+'m'#序列
 
 def 同SGR(甲,乙):#相等
-    """比较。"""
+    '比较'
     return (甲.get('fg')==乙.get('fg') and 甲.get('bg')==乙.get('bg')
             and list(甲.get('attrs') or [])==list(乙.get('attrs') or []))#同
 
 默认态={'fg':'','bg':'','attrs':[]}#默认
 
 def 回放一行(行,进入态):#列缓冲回放
-    """处理 \\r / 退格 / 擦行 / 制表。"""
+    '处理 \\r / 退格 / 擦行 / 制表'
     列=[]#稀疏格 {sgr,char,spacer?}
     光标=0#列
     态=dict(进入态)#当前
@@ -167,7 +167,7 @@ def 回放一行(行,进入态):#列缓冲回放
     位=0#源下标
 
     def 清(索引,填):#清一格
-        """宽对伙伴一并。"""
+        '宽对伙伴一并'
         while len(列)<=索引:#扩
             列.append(None)#空
         格=列[索引]#现
@@ -179,7 +179,7 @@ def 回放一行(行,进入态):#列缓冲回放
         列[索引]={'sgr':dict(态),'char':填}#本格
 
     def 消费(段):#写正文
-        """逐字符。"""
+        '逐字符'
         nonlocal 光标,态#改
         for 字 in 段:#逐字
             if 字=='\r':#回车
@@ -244,7 +244,7 @@ def 回放一行(行,进入态):#列缓冲回放
     return {'text':出,'sgr':态}#结果
 
 def 应用光标(文本):#逐行回放
-    """跨行贯穿 SGR。"""
+    '跨行贯穿 SGR'
     回=[]#行
     态=dict(默认态)#跨行
     for 原 in 文本.split('\n'):#切行
@@ -261,13 +261,13 @@ def 应用光标(文本):#逐行回放
     return '\n'.join(回)#拼
 
 def 净文本(文本):#剥无色转义
-    """OSC/非 CSI/惰性 C0；光标先回放。"""
+    'OSC/非 CSI/惰性 C0；光标先回放'
     已=OSC串.sub('',文本)#去 OSC
     已=非CSI转义.sub('',已)#去非 CSI
     return 惰性控制.sub('',应用光标(已))#回放后再剥
 
 def 解析ansi行(文本):#→ [[span...], ...]
-    """至少一行；span={text,style}。"""
+    '至少一行；span={text,style}'
     净=净文本(文本)#净
     当前=[]#当前行 spans
     行列表=[当前]#至少一行

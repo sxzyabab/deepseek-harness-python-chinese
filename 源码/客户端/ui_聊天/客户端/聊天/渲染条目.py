@@ -4,7 +4,7 @@ import json
 __all__=['聊天渲染键']
 
 def 聊天渲染键(条目):
-    """与呈现模式无关的渲染位置身份。条目为 dict。"""
+    '与呈现模式无关的渲染位置身份。条目为 dict'
     种=条目['kind']
     if 种=='node':
         组分=条目['groupPart'] if 'groupPart' in 条目 else None
