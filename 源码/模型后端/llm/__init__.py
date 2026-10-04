@@ -12,7 +12,7 @@ from .标识构造 import (
     推理力度标识,#推理力度品牌
 )
 from .永不 import 断言永不#再导出穷尽辅助
-from .错误 import (
+from .异常 import (
     装备错误,#错误基类
     上下文窗口溢出码,#上下文溢出码
     配额耗尽码,#配额耗尽码
@@ -27,6 +27,8 @@ from .错误 import (
     配额超出码,#消费方别名
     是否上下文窗口超出错误,#消费方别名
     是否配额超出错误,#消费方别名
+    语言模型错误,#LLM 相关失败的有类型错误
+    重试政策错误,#重试政策配置校验失败
 )
 from .密钥 import 规范化密钥#再导出密钥判定
 from .类型 import *#再导出类型词表
@@ -57,7 +59,7 @@ from .消息 import (
     创建工具结果消息,#创建工具结果消息
     是否词增量,#是否可见增量
 )
-from .重试政策 import 解析重试政策,重试政策错误#再导出重试政策
+from .重试政策 import 解析重试政策#再导出重试政策
 from .组装器 import 块组装器#再导出块组装器
 from .助手流 import (#再导出助手流
     助手流累积器,#紧凑累积器
@@ -127,47 +129,6 @@ def 已中止(信号):
     if 信号 is None:#无信号
         return False#未中止
     return 信号._事件.is_set()#Event 置位
-
-class 语言模型错误(装备错误):#LLM 相关失败的有类型错误
-    'LLM 相关失败的有类型错误'
-    def __init__(自身,消息,码,选项=None):#校验可序列化事实并冻结 failure
-        '校验可序列化事实并冻结 failure'
-        if not isinstance(消息,str) or len(消息)==0:#消息非法
-            raise 装备错误('LlmError message must be a non-empty string','INVALID_ERROR')#消息必须非空
-        if not isinstance(码,str) or len(码)==0:#code 非法
-            raise 装备错误('LlmError code must be a non-empty string','INVALID_ERROR')#code 必须非空
-        if 选项 is None:#无选项
-            选项={}#无选项
-        if 'status' in 选项:#有 HTTP 状态
-            状态=选项['status']#HTTP 状态
-            是整数=isinstance(状态,(int,float)) and not isinstance(状态,bool) and math.isfinite(状态) and 状态==int(状态)#合法整数
-            if not 是整数 or 状态<100 or 状态>599:#状态越界
-                raise 装备错误('LlmError status must be an integer from 100 through 599','INVALID_ERROR')#状态越界
-        if 'providerRetryAfterMs' in 选项:#有建议等待
-            等待=选项['providerRetryAfterMs']#建议等待
-            if not (isinstance(等待,(int,float)) and not isinstance(等待,bool) and math.isfinite(等待) and 等待>0):#等待非法
-                raise 装备错误('LlmError providerRetryAfterMs must be a positive finite number','INVALID_ERROR')#等待非法
-        if 'requestId' in 选项:#有请求 id
-            请求=选项['requestId']#请求 id
-            if not isinstance(请求,str) or len(请求)==0:#请求 id 非法
-                raise 装备错误('LlmError requestId must be a non-empty string','INVALID_ERROR')#请求 id 非法
-        if 'offloadImages' in 选项:#有还需卸载张数
-            卸载=选项['offloadImages']#还需卸载张数
-            是正安全=isinstance(卸载,(int,float)) and not isinstance(卸载,bool) and 卸载==int(卸载) and 卸载>0#正安全整数
-            if not 是正安全:#张数非法
-                raise 装备错误('LlmError offloadImages must be a positive safe integer','INVALID_ERROR')#张数非法
-        装备错误.__init__(自身,消息,码,选项)#交给装备错误
-        自身.name='LlmError'#固定类名
-        事实={'message':消息,'code':码}#可序列化事实
-        if 'status' in 选项:#有状态才写入
-            事实['status']=选项['status']#有状态才带上
-        if 'providerRetryAfterMs' in 选项:#有等待才写入
-            事实['providerRetryAfterMs']=选项['providerRetryAfterMs']#有等待才带上
-        if 'requestId' in 选项:#有请求 id 才写入
-            事实['requestId']=选项['requestId']#有请求 id 才带上
-        if 'offloadImages' in 选项:#有还需卸载张数
-            事实['offloadImages']=选项['offloadImages']#有张数才带上
-        自身.failure=深冻结(事实)#冻结可序列化事实
 
 def 若已中止则抛出(信号):
     '已中止则抛出信号上承载的异常'

@@ -2,7 +2,8 @@ import sys,threading,queue,base64#继承输出、转发线程、贯通缓冲与�
 from ...依赖.工具 import 聚合错误#多路清理
 from ...内核.作用域 import 操作任务#启动与完成
 from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号#中止
-from ...子进程.子进程 import 子进程运行时,可执行未找到错误,句柄#缝
+from ...子进程.子进程 import 子进程运行时,句柄#缝
+from ...子进程.子进程.异常 import 可执行未找到错误#缝
 from ...子进程.本地子进程 import 输出收集器#收集尾
 from ..ssh.模式 import (
     完成模式,#done
@@ -13,9 +14,10 @@ from ..ssh.模式 import (
     已准备模式,#prepare
     远端路径,#可执行
     流端点模式,#终端流
-    ssh错误,#基类
 )#模式
-from ..ssh.协议 import ssh请求对等,远程操作错误#快照对等与远端错误
+from ..ssh.协议 import ssh请求对等#快照对等
+from ..ssh.异常 import ssh错误,远程操作错误#基类与带码远端错误
+from .异常 import 远端清理错误#分配失败且远端清理未知
 
 __all__=['远端清理错误','ssh子进程运行时','依赖']
 
@@ -121,9 +123,6 @@ class 贯通管道:#分配期间可写的内存管道
             if not 块:#结束
                 return#停
             yield 块#块
-
-class 远端清理错误(聚合错误):#分配失败且远端清理未知
-    '终端分配失败且远端清理未知'
 
 class 远端进程(句柄):#一路普通远端进程
     'stdin 与 control 在 SSH 分配期间仍可写'

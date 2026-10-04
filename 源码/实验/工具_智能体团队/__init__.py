@@ -107,12 +107,7 @@ def 团队任务标识(标识):#字符串→TeamTaskId 标识构造
     '同串标识构造'
     return 标识#同串标识构造
 
-class 工具团队错误(Exception):#本包异常基类
-    '面向模型的 Agent Teams 工具包错误'
-    def __init__(自身,消息):#构造
-        '记下英文诊断'
-        super().__init__(消息)#基类
-        自身.消息=消息#诊断
+from .异常 import 工具团队错误#本包异常
 
 def 模型成员(成员):
     '把成员名暴露为面向模型的 target'

@@ -2,6 +2,7 @@ import re,threading
 from datetime import datetime as 日期时间,timedelta as 时间增量,timezone as 固定时区
 from zoneinfo import ZoneInfo as 时区信息
 from ...存储 import 创建快照存储
+from ..异常 import 工作区错误,目录浏览错误#本包异常
 
 __all__=['工作区错误','目录浏览错误','工作区UI服务','最近工作区']
 
@@ -9,19 +10,6 @@ _创建时刻=re.compile(
     r'^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(Z|([+-])([0-9]{2}):([0-9]{2}))\Z',
     re.ASCII,
 )
-
-class 工作区错误(Exception):
-    '本包工作区浏览器失败'
-
-class 目录浏览错误(Exception):
-    '目录浏览业务失败'
-    def __init__(自身,rpc错误):
-        'rpc错误为 RemoteFailure dict'
-        自身.rpcError=rpc错误
-        码=rpc错误['code'] if isinstance(rpc错误,dict) and 'code' in rpc错误 else ''
-        文=rpc错误['message'] if isinstance(rpc错误,dict) and 'message' in rpc错误 else str(rpc错误)
-        super().__init__('目录浏览失败: '+str(码)+': '+str(文))
-        自身.name='DirectoryBrowseError'
 
 def _创建时毫秒(文):
     '工作区 createdAt 转纪元毫秒；失败则 0'

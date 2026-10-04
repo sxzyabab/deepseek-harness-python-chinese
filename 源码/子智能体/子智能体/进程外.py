@@ -1,6 +1,6 @@
 import math,os#有限数判定与路径
 from typing import NotRequired,TypedDict#可选字段与结构类型
-from .错误 import 子智能体错误#缝内失败
+from .异常 import 子智能体错误#缝内失败
 无启动能力={#冻结的无能力广告
     'outputSchema':False,#不支持输出模式
     'depthLimit':False,#不支持深度上限

@@ -1,6 +1,14 @@
 '每会话存储句柄：通向已存会话仅追加事件日志的一条打开通道'
 import math#安全整数
-from .预备 import 持久化错误#包异常基类
+from .异常 import (#本包异常
+    持久化错误,#包异常基类
+    会话持久化未找到错误,#未找到
+    会话已存在错误,#已存在
+    会话已有写主错误,#已有写主
+    会话只读错误,#只读
+    会话所有权丢失错误,#所有权丢失
+    会话句柄已关闭错误,#已关闭
+)#本包异常
 
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
 会话访问=('read','write')#会话访问模式
@@ -24,56 +32,6 @@ def 外来安全整数(值):#外来 JSON 安全整数
     if isinstance(值,float) and math.isfinite(值) and 值==int(值):#整值浮点
         return abs(值)<=安全整数上限#安全范围
     return False#其它类型
-
-class 会话持久化未找到错误(持久化错误):#未找到
-    '请求的已存会话不存在'
-    def __init__(自身,标识):#构造
-        '记下缺失身份'
-        自身.id=标识#会话 id
-        super().__init__('session "'+str(标识)+'" not found')#文案
-        自身.name='SessionPersistenceNotFoundError'#固定错误名
-
-class 会话已存在错误(持久化错误):#已存在
-    '创建时会话 id 已存在'
-    def __init__(自身,标识):#构造
-        '记下冲突身份'
-        自身.id=标识#会话 id
-        super().__init__('session "'+str(标识)+'" already exists')#文案
-        自身.name='SessionAlreadyExistsError'#固定错误名
-
-class 会话已有写主错误(持久化错误):#已有写主
-    '写打开时所有权已被占用'
-    def __init__(自身,标识):#构造
-        '记下被争用的会话身份'
-        自身.id=标识#会话 id
-        super().__init__('session "'+str(标识)+'" is already owned by another writer')#文案
-        自身.name='SessionAlreadyOwnedError'#固定错误名
-
-class 会话只读错误(持久化错误):#只读
-    '读句柄上拒绝变更操作'
-    def __init__(自身,标识,操作):#构造
-        '记下会话与被拒操作'
-        自身.id=标识#会话 id
-        自身.操作=操作#操作名
-        super().__init__('session "'+str(标识)+'" handle is read-only; cannot '+str(操作))#文案
-        自身.name='SessionReadOnlyError'#固定错误名
-
-class 会话所有权丢失错误(持久化错误):#所有权丢失
-    '写所有权在句柄生命周期内丢失'
-    def __init__(自身,标识):#构造
-        '记下丢失所有权的会话'
-        自身.id=标识#会话 id
-        super().__init__('session "'+str(标识)+'" write ownership was lost')#文案
-        自身.name='SessionOwnershipLostError'#固定错误名
-
-class 会话句柄已关闭错误(持久化错误):#已关闭
-    '已关闭句柄上的操作'
-    def __init__(自身,标识,操作):#构造
-        '记下会话与被拒操作'
-        自身.id=标识#会话 id
-        自身.操作=操作#操作名
-        super().__init__('session "'+str(标识)+'" handle is closed; cannot '+str(操作))#文案
-        自身.name='SessionHandleClosedError'#固定错误名
 
 class 会话句柄:#会话句柄
     '通向已存会话的一条打开通道；读不回退到已观察点之下，写句柄能读到自己成功追加'

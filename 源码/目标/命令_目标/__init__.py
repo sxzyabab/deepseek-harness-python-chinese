@@ -2,7 +2,7 @@
 import re#解析 edit 后跟替换陈述
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...模型后端.llm import 创建用户消息#铸造用户消息
-from ..目标 import 目标错误#目标域边界错误
+from ..目标.异常 import 目标错误#目标域边界错误
 
 名称='command-goal'#Cordis插件名
 依赖=['commands','goals']#依赖命令注册表与目标服务

@@ -1,6 +1,7 @@
 from .文案 import 中文,英文,侧栏文件文案键
 from .定义 import 文件种类,文件标识,文件定义
-from .存储 import 文件树错误,创建文件存储
+from .存储 import 创建文件存储
+from ..异常 import 文件树错误#本包异常
 from .面 import 已中止,创建列举,子路径,文件面
 from .文件体 import (
     排序条目,

@@ -1,6 +1,6 @@
 '一个已打开的 `single` 布局 JSON 单元'
 import os#路径
-from ..存储.错误 import 存储错误#存储错误
+from ..存储.异常 import 存储错误#存储错误
 from .格式 import 单元状态,序列化,解析#格式
 from .原子 import 原子写#原子写
 __all__=['打开单单元']#仅中文公开名

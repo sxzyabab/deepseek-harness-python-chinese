@@ -4,7 +4,8 @@ from concurrent.futures import Future as 原生结果#单次操作结果
 from urllib.parse import quote as 百分编码#URI 段编码
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ...ui_基础界面组件.按名排序 import 按名排序#按名与标签排序
-from ..技能行 import 技能行,技能错误#技能工具行与本包异常
+from ..技能行 import 技能行#技能工具行
+from ..异常 import 技能错误#本包异常
 
 __all__=['依赖','应用']#仅中文公开名
 

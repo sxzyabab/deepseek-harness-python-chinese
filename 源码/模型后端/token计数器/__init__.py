@@ -5,7 +5,7 @@ from ...依赖 import cordis#外部依赖胶水
 from ..llm.助手流 import 组装助手流#嵌入流重组
 from ..llm.调用配置 import 深冻结,结构化克隆#深冻结与拆离克隆
 from ...内核.会话 import 归一请求头,请求头是否相等,是否表面事件#规范头、头相等与表面判定
-from .类型 import 计量错误#计量异常
+from .异常 import 计量错误#计量异常
 from .分解投影 import 分解投影定义#分解投影
 from .用量投影 import 用量投影定义,压力投影定义#压力与用量投影
 from .计价 import 计价内容,计价工具令牌,计价消息 as 纯计价消息,角色开销#计价与角色开销

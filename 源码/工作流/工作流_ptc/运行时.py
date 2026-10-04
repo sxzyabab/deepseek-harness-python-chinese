@@ -2,9 +2,12 @@
 import threading#槽位等待
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...内核.会话 import 会话标识#子 id 品牌
-from ...内核.工具.json模式 import 断言对象json模式,json模式错误#对象 JSON 模式
-from ..工作流 import 工作流错误,是否致命工作流错误#缝上错误
-from .领域 import 从领域物化,物化错误,渲染抛出#跨领域 JSON
+from ...内核.工具.json模式 import 断言对象json模式#对象 JSON 模式
+from ...内核.工具.异常 import json模式错误
+from ..工作流 import 是否致命工作流错误#缝上错误
+from ..工作流.异常 import 工作流错误#缝上错误
+from .异常 import 物化错误#从领域物化失败
+from .领域 import 从领域物化,渲染抛出#跨领域 JSON
 
 __all__=['任务','全部并发','全部结算','赛跑','工作流执行']#仅中文公开名
 

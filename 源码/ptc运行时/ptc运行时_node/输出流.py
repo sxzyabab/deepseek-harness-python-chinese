@@ -1,6 +1,6 @@
 '受管执行结束后，对原始进程输出做有界排空'
 import threading#宽限等待
-from .协议 import 节点ptc错误#本包异常
+from .异常 import 节点ptc错误#本包异常
 
 __all__=['排空输出']#仅中文公开名
 

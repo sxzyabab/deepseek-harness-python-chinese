@@ -1,4 +1,4 @@
-from .json import 检查器错误#本包错误
+from ..异常 import 检查器错误#本包错误
 
 __all__=['检查器标识','检查器id']#仅中文公开名
 

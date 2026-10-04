@@ -1,7 +1,8 @@
 import json,math
-from ...模型后端.llm import 装备错误 as 框架错误,断言永不#框架错误与穷尽检查
+from ...模型后端.llm import 断言永不#穷尽检查
 from ..会话 import 是否json值#无损JSON判定
 from ..会话.json值 import 是否普通对象,是否普通数组#普通记录与数组
+from .异常 import json模式错误
 
 __all__=(
     'json模式错误','断言受支持json模式','断言对象json模式','校验json模式值',
@@ -12,14 +13,6 @@ __all__=(
 注解关键字={'description','title','default','examples'}#注解关键字
 模式类型=('object','array','string','number','integer','boolean','null')#合法类型表
 联合旁禁字=('properties','required','additionalProperties','items','enum','const')#oneOf旁禁字
-
-class json模式错误(框架错误):
-    '原始模式落在受强制子集之外时抛出'
-    def __init__(自身,违规列表):
-        '用违规列表拼出不支持模式消息；公开属性仅 违规列表'
-        super().__init__('unsupported JSON schema: '+'; '.join(违规列表),'UNSUPPORTED_SCHEMA')#拼消息
-        自身.name='JsonSchemaError'#错误名槽（跨语言对照字面量）
-        自身.违规列表=违规列表#违规诊断列表
 
 def 是否普通json记录(值):
     '跨领域检测普通 JSON 记录，不接受数组或奇异对象'

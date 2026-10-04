@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..异常 import 运行时错误#本包错误
 import json as _json#序列化boot载荷
 from urllib.parse import urlparse as 解析网址#解析请求URL
 from .帧 import 解析入站帧#帧解析

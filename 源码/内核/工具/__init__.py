@@ -4,18 +4,19 @@ from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...依赖.schemastery import 枚举字段,自然数字段#配置字段
 服务=cordis.服务#导入服务基类
 from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,作用域目标#导入作用域层与载体
-from ...模型后端.llm import 装备错误 as 框架错误,断言永不,深冻结#导入框架错误、穷尽检查与深冻结
+from ...模型后端.llm.异常 import 装备错误 as 框架错误#导入框架错误
+from ...模型后端.llm import 断言永不,深冻结#穷尽检查与深冻结
 from ..会话 import 快照json值#导入无损 JSON 快照
-from .json模式 import 断言受支持json模式,断言对象json模式,校验json模式值,json模式错误#导入统一 JSON Schema 校验
+from .json模式 import 断言受支持json模式,断言对象json模式,校验json模式值#导入统一 JSON Schema 校验
 from .模式 import (
     定义工具,#定义工具
     值模式规格转json模式,#值模式编译
     参数模式规格转json模式,#参数模式编译
     校验参数,#校验参数
-    工具参数错误,#参数错误
 )
 from .ts类型 import json模式转ts,渲染工具sdk#导入 TS SDK
 from .python类型 import json模式转py,渲染工具sdkpy#导入 Python SDK
+from .异常 import 工具错误,工具未找到错误,工具输出错误,工具参数错误,json模式错误,代码运行失败错误
 from .测试 import 定义内容工具夹具#导入测试夹具
 from .类型 import PTC派发开始,PTC派发落定,派发开始字段,派发落定字段#导入派发事件词汇
 from .呈现 import (
@@ -69,7 +70,6 @@ from .代码模式 import (
     运行代码名,#传输名
     sdk段顺序,#SDK 段顺序
     创建运行代码工具,#构建传输
-    代码运行失败错误,#运行失败
     代码sdk语言,#随附 SDK 语言
     已中止,#是否中止
     中止控制器,#熔合控制器
@@ -84,13 +84,6 @@ sdk渲染器={
 class 可弱引用表(dict):
     '可被弱引用的工具执行或结果表'
     pass#字典子类可弱引用
-
-class 工具错误(框架错误):
-    '内核工具包的异常基类'
-    def __init__(自身,消息,码='TOOL_ERROR'):
-        '用消息构造'
-        super().__init__(消息,码)#框架错误
-        自身.name='ToolError'#类名
 
 def 是否正有限(值):
     '超时预算必须为正有限数'
@@ -165,25 +158,6 @@ def 解析并行上限(值):
     if (not 是整数) or 上限<1:
         raise 工具错误('maxParallelSubCalls 必须是正整数')#必须正整数
     return 上限#已校验上限
-
-class 工具未找到错误(框架错误):
-    '模型请求未注册工具时抛出'
-    def __init__(自身,工具名,可达路径=None):
-        '用名字与可选替代路径构造'
-        if 可达路径 is None:
-            消息='未知工具 "'+工具名+'"'
-        else:
-            消息='未知工具 "'+工具名+'": '+可达路径
-        super().__init__(消息,'UNKNOWN_TOOL')#错误码
-        自身.name='ToolNotFoundError'#类名
-
-class 工具输出错误(框架错误):
-    '工具函数体或后策略值违反其声明输出时抛出'
-    def __init__(自身,工具名,违规列表):
-        '用违规构造；公开属性仅 违规列表'
-        super().__init__('工具 "'+工具名+'" 返回了非法输出: '+'; '.join(违规列表),'INVALID_TOOL_OUTPUT')#拼消息
-        自身.name='ToolOutputError'#错误名槽
-        自身.违规列表=违规列表#违规诊断列表
 
 def 投影失败(工具名,投影器,错误):
     '把一次投影器异常转成规范的非法输出失败'

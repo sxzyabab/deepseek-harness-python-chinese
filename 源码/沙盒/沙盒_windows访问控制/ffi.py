@@ -1,7 +1,7 @@
 'Win32 ACL 沙盒后端的惰性 ctypes 绑定'
 import ctypes#Win32 FFI
 from ctypes import wintypes#Windows类型
-from .错误 import Win32错误,访问控制错误#带API名与错误码的失败、布局错误
+from .异常 import Win32错误,访问控制错误#带API名与错误码的失败、布局错误
 from . import win32_abi as abi#头文件探针钉死的尺寸与常量
 
 class 启动信息输入:#stdio相关字段

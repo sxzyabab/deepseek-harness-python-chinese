@@ -10,6 +10,7 @@ from ..工具_bash持久化 import (
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#工具定义
 from ...工具.超时 import 截止,取超时,中止控制器,合成信号,已中止,若已中止则抛出#超时与中止
+from .异常 import 持久pwsh错误#本包异常基类
 
 __all__=['名称','依赖','配置','应用']#公开面
 
@@ -31,12 +32,6 @@ pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [
 退出码模式=re.compile(r'^([0-9]+)\r?\n',re.ASCII)#结束退出码
 末尾换行模式=re.compile(r'\r?\n\Z')#尾换行
 开头换行模式=re.compile(r'^\r?\n')#开头换行
-
-class 持久pwsh错误(Exception):#本包异常基类
-    '持久 pwsh 工具入参、配置或壳生命周期失败'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
     '单次操作的 Future 包装，只留等待'

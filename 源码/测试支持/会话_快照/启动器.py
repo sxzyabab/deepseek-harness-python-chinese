@@ -2,6 +2,7 @@ import json,os,tempfile,threading,subprocess,time,sys#进程与 IO
 import yaml#YAML 补丁
 from ..加载器_冒烟 import 解析示例启动#示例启动解析
 from ...acp.acp import 协议版本#ACP 协议版本
+from .异常 import 会话快照错误#会话快照包的异常基类
 
 __all__=['启动ACP测试智能体','物化配置档补丁']#仅中文公开名
 
@@ -41,7 +42,7 @@ def 物化配置档补丁(源,工作目录,目标目录,索引):#物化配置补
     with open(源,'r',encoding='utf-8') as 句柄:#读补丁
         解析=yaml.safe_load(句柄.read())#解析 YAML
     if not isinstance(解析,list):#必须数组
-        raise Exception(f'snapshot profile patch must be a top-level array: {源}')#必须数组
+        raise 会话快照错误(f'snapshot profile patch must be a top-level array: {源}')#必须数组
     基目录=os.path.dirname(源)#基础目录
     def 解析名(值):#解析模块名
         '相对路径转 file URL；裸包保留'
@@ -191,7 +192,7 @@ def 启动ACP测试智能体(选项):#启动 ACP 测试智能体
         事件.wait()#等待
         响应=盒.get('frame') or {}#响应
         if 'error' in 响应:#错误
-            raise Exception(json.dumps(响应['error'],ensure_ascii=False))#拒绝
+            raise 会话快照错误(json.dumps(响应['error'],ensure_ascii=False))#拒绝
         return 响应.get('result')#结果
     def 通知(方法,参数):#JSON-RPC 通知
         '发通知'

@@ -1,5 +1,5 @@
 import base64,threading#编码与并发
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 
 __all__=['网络主题','请求采集选项','请求观察器','安装请求观察器']#仅中文公开名
 

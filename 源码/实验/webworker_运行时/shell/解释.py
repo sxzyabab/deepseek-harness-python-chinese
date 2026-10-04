@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..异常 import 运行时错误#本包错误
 import re as 正则#剥尾换行
 from .展开 import 展开参数,是否glob模式#展开
 from .文件系统访问 import 描述失败,宿主文件系统,在目录解析#FS辅助

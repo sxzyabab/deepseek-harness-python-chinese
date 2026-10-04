@@ -10,9 +10,7 @@ from .类型 import (
     任务偏移读取字段,任务结算起因,
 )
 from .归档准入 import 安装任务归档准入
-
-class 任务错误(Exception):
-    '后台任务包的异常基类'
+from .异常 import 任务错误#本包异常
 
 class 任务注册表(服务):
     """抽象后台任务注册表。

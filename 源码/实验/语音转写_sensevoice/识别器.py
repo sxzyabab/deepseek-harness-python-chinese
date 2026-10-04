@@ -1,8 +1,7 @@
 import json,os,secrets,sys,threading,time
 import requests
 from ...工具.超时 import 中止控制器,合成信号,截止,若已中止则抛出,已中止
-from .输入 import 语音输入错误
-from .下载错误 import 语音下载错误
+from .异常 import 语音输入错误,语音下载错误
 from .运行时准备 import 检查运行时,准备运行时
 
 __all__=['读就绪','读转写','sensevoice工作者']

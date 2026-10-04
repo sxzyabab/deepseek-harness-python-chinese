@@ -1,5 +1,5 @@
 import re
-from .错误 import 团队错误
+from .异常 import 团队错误
 
 __all__=['必填文本','写范围']
 

@@ -9,7 +9,7 @@ from urllib.request import (
     HTTPRedirectHandler as HTTP重定向处理器,#重定向处理
     HTTPErrorProcessor as HTTP错误处理器,#非 2xx 处理
 )#原生 HTTP
-from ..web import 网络错误#web 能力错误
+from ..web.异常 import 网络错误#web 能力错误
 
 提供方标识='deepseek-official'#本提供方注册所用的稳定 id
 默认基址='https://api.deepseek.com/anthropic/v1'#默认 Messages 基址（含 /v1，再拼 /messages）；不是 chat-completions 的 DEEPSEEK_BASE_URL

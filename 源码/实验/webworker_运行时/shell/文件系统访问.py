@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#VFS 错误
+from ..异常 import 运行时错误#VFS 错误
 from ..module_system.posix路径 import 解析 as 解析路径#路径解析
 from ..storage.活动 import 要求活动vfs#活动VFS
 

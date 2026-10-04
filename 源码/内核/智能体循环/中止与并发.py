@@ -1,16 +1,6 @@
 from threading import Event as 事件,Thread as 线程#完成门与工作线程
 from queue import Empty as 空队列,Queue as 队列#跨线程一次结果
-
-class 循环错误(Exception):
-    '内核智能体循环包的异常基类'
-
-class 中止错误(循环错误):
-    '取消通道已中止'
-    def __init__(自身,消息='已中止',种类=None):
-        '用消息与可选控制流种类构造'
-        super().__init__(消息)#错误消息原样英文
-        if 种类 is not None:#有控制流种类
-            自身.kind=种类#按结构识别，不做类型嗅探
+from .异常 import 循环错误,中止错误
 
 class 中止信号:
     """threading.Event 取消通道。

@@ -1,6 +1,6 @@
 import re#裸令牌后分隔判定
 import threading#中止 Event
-from ..服务 import 对话错误#本包异常
+from ...异常 import 对话错误#本包异常
 
 __all__=['输入机','已中止','若已中止则抛出','中止控制器']#仅中文公开名
 

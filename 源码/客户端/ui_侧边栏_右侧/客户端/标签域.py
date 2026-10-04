@@ -1,6 +1,6 @@
 import threading
 from ...ui_停靠套件.引擎 import 查找标签窗格
-from .约定.槽位 import 右侧侧栏错误
+from ..异常 import 右侧侧栏错误
 
 __all__=['标签域','快照仓']
 

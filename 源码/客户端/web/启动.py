@@ -1,5 +1,6 @@
 from threading import Thread as 线程#预取扇出
-from .启动客户端 import 网页错误,启动客户端#组装与本包异常
+from .启动客户端 import 启动客户端#组装
+from .异常 import 网页错误#本包异常
 from .启动页 import 启动页#启动页
 from .挂载 import 挂载客户端#应用挂载
 from .种子 import 静态模块表#静态模块表

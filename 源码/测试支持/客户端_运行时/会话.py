@@ -3,6 +3,7 @@ from ...api.会话控制器.客户端 import (#会话控制器客户端面
     创建作用域,作用域标签,可变会话事件源,会话搜索结果上限,#作用域与事件源
 )#结束导入
 from .夹具 import 会话快照#会话快照工厂
+from .异常 import 客户端测试运行时错误#本包异常
 
 __all__=['夹具会话','测试会话','已中止','若已中止则抛出','创建快照存储']
 
@@ -48,7 +49,7 @@ def 若已中止则抛出(信号):
         return#放过
     if 信号 in _中止原因表:#有原因
         raise _中止原因表[信号]#抛出
-    raise Exception('aborted')#默认
+    raise 客户端测试运行时错误('aborted')#默认
 
 class 中止信号:
     '可监听的中止信号；原因走旁表'
@@ -227,7 +228,7 @@ class 夹具会话:#fixture 会话面
 
     def prompt(自身,*_参数,**_关键字):#未桩 prompt
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": prompt is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": prompt is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def beginSubmission(自身):#开始提交
         '最小本地回声登记'
@@ -236,31 +237,31 @@ class 夹具会话:#fixture 会话面
 
     def readAttachment(自身,_附件标识):#未桩读附件
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": readAttachment is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": readAttachment is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def updateQueue(自身,*_参数,**_关键字):#未桩更新队列
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": updateQueue is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": updateQueue is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def cancel(自身,*_参数,**_关键字):#未桩取消
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": cancel is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": cancel is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def command(自身,*_参数,**_关键字):#未桩命令
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": command is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": command is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def loadOlder(自身,*_参数,**_关键字):#未桩加载更旧
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": loadOlder is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": loadOlder is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def loadThrough(自身,*_参数,**_关键字):#未桩加载至
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": loadThrough is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": loadThrough is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
     def rename(自身,*_参数,**_关键字):#未桩重命名
         '响亮失败桩'
-        raise Exception(f'test session "{自身.sessionId}": rename is not stubbed — supply it on the fixture\'s session face')#英文诊断
+        raise 客户端测试运行时错误(f'test session "{自身.sessionId}": rename is not stubbed — supply it on the fixture\'s session face')#英文诊断
 
 class 测试会话引用:#测试会话引用
     '测试会话引用'
@@ -279,7 +280,7 @@ class 测试会话引用:#测试会话引用
     def binding(自身):#读绑定
         '活引用才有绑定'
         if 自身._世代 is None or not 自身._世代['live']:#已释放
-            raise Exception(f'Session reference "{自身.sessionId}" is released')#英文诊断
+            raise 客户端测试运行时错误(f'Session reference "{自身.sessionId}" is released')#英文诊断
         return 自身._世代['binding']#返回绑定
 
     def attachOpening(自身,打开,信号=None):#附着打开
@@ -355,7 +356,7 @@ class 测试会话:#会话测试替身
         '从 fixture 添加会话'
         标识=夹具['id']#会话 id
         if 标识 in 自身._records:#重复
-            raise Exception(f'test session "{标识}" already added')#重复
+            raise 客户端测试运行时错误(f'test session "{标识}" already added')#重复
         摘要={#列表行
             'id':标识,'displayTitle':夹具['id'],'running':False,'blank':False,
             'updatedAt':len(自身._records)+1,**(夹具.get('summary') or {}),
@@ -483,7 +484,7 @@ class 测试会话:#会话测试替身
         if 信号 is not None:#有信号
             若已中止则抛出(信号)#已取消则抛
         if 自身._closed:#已关闭
-            raise Exception('test Session Controller is disposed')#英文诊断
+            raise 客户端测试运行时错误('test Session Controller is disposed')#英文诊断
         标识=自身._解析目标(目标)#解析 id
         世代=自身._generations.get(标识)#取世代
         if 世代 is None:#未物化
@@ -552,7 +553,7 @@ class 测试会话:#会话测试替身
         '经已安装测试行为创建'
         自身.calls.append({'method':'create','args':[选项]})#记录
         if 自身._createStub is None:#未桩
-            raise Exception('test sessions: create is not stubbed — call stubCreate() first')#英文诊断
+            raise 客户端测试运行时错误('test sessions: create is not stubbed — call stubCreate() first')#英文诊断
         标识=自身._createStub(选项)#走桩
         自身._要求(标识)#要求可寻址
         return 标识#返回
@@ -766,5 +767,5 @@ class 测试会话:#会话测试替身
         '要求记录存在'
         记录=自身._records.get(标识)#取记录
         if 记录 is None:#缺失
-            raise Exception(f'test session "{标识}" is not added')#英文诊断
+            raise 客户端测试运行时错误(f'test session "{标识}" is not added')#英文诊断
         return 记录#返回

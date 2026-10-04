@@ -1,5 +1,6 @@
 '首提示词模型标题提供方'
-from ..会话标题_llm import 登记会话标题llm提供方,会话标题llm配置模式,会话标题llm错误
+from ..会话标题_llm.异常 import 会话标题llm错误#模型标题失败
+from ..会话标题_llm import 登记会话标题llm提供方,会话标题llm配置模式
 
 包名='@deepseek-ai/dsh-session-title-first-prompt-llm'
 名称='session-title-first-prompt-llm'

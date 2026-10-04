@@ -9,7 +9,8 @@ import tempfile#平台临时根与私有临时目录
 from ...依赖.schemastery import 字符串字段,自然数字段,列表字段#配置字段
 from ...模型后端.llm import 断言永不#导入封闭联合穷尽辅助
 from ...工具.超时 import 若已中止则抛出#中止入口
-from ..沙盒 import 沙箱提供方,沙箱不可用错误,规范路径#导入沙箱提供方、不可用错误与规范路径
+from ..沙盒 import 沙箱提供方,规范路径#导入沙箱提供方与规范路径
+from ..沙盒.异常 import 沙箱不可用错误#沙箱不可用错误
 from ..沙盒_windows访问控制 import (#导入 ACL 授权、临时根断言与 SID 推导
     ACL写入授权,#写入授权物化
     断言临时根在工作区外,#临时根边界
@@ -24,11 +25,9 @@ from .landlock入口 import (#从 Landlock 入口缝导入（镜像 node-addon-s
     启动器路径 as landlock启动器路径,#启动器路径
     探测 as 默认探测Landlock,#默认 Landlock 探测
 )#Landlock 导入结束
+from .异常 import 本地沙箱错误#本地沙箱提供方的异常基类
 
 名称='sandbox-local'#Cordis 插件名（包目录用下划线，插件名保留上游连字符）
-
-class 本地沙箱错误(Exception):
-    '本地沙箱提供方的异常基类'
 
 配置模式={#插件配置：全部可选——Config 供给默认
     'runnerCommand':列表字段(字符串字段(),默认值=[]),#运行器覆盖，默认空

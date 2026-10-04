@@ -1,10 +1,6 @@
 import json,math,weakref
+from .异常 import 值错误#值辅助失败
 __all__=['断言永不','快照json值','是否json值','深相等json','深冻结','带值弱映射','值错误']
-
-class 值错误(Exception):
-    '值辅助失败'
-    def __init__(自身,消息):
-        super().__init__(消息)
 
 def 断言永不(值,上下文=None):
     '标记封闭联合的不可达分支；运行时逃出的值一律抛错'

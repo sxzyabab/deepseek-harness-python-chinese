@@ -13,6 +13,7 @@ from .协议 import (
     校验子帧,
     协议文件描述符,
 )
+from .异常 import python运行时错误#本包异常
 
 __all__=['python子进程ptc运行时','宿主帧解析上限','读进程启动','解析python可执行','分离残余',
     '检查完成值','编码json纯值','含非无损数字','含不安全整数词','日志截断标记','校验子帧']#仅中文公开名
@@ -97,16 +98,16 @@ def 校验python可执行(路径):#探测版本
     try:#探测
         输出=subprocess.check_output([路径,'-I','-c','import sys; print(sys.implementation.name, sys.version_info.major, sys.version_info.minor, sys.version_info.micro)'],env=python环境(),timeout=python探测超时毫秒/1000,stderr=subprocess.STDOUT).decode('utf-8').strip()#探测
     except Exception as 错误:#失败
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 探测 CPython 版本失败: '+消息于(错误))
+        raise python运行时错误('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 探测 CPython 版本失败: '+消息于(错误))
     匹配=re.fullmatch(r'(\S+) (\d+) (\d+) (\d+)',输出)#版本行
     if 匹配 is None:#畸形
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 没有报告 CPython 版本')
+        raise python运行时错误('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 没有报告 CPython 版本')
     实现,主文,次文,补文=匹配.group(1),匹配.group(2),匹配.group(3),匹配.group(4)#拆
     主,次=int(主文),int(次文)#数
     if 实现!='cpython':#非 CPython
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython，实际是 '+实现)
+        raise python运行时错误('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython，实际是 '+实现)
     if 主<最低cpython[0] or (主==最低cpython[0] and 次<最低cpython[1]):#过低
-        raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython '+str(最低cpython[0])+'.'+str(最低cpython[1])+' 或更新，实际是 '+实现+' '+主文+'.'+次文+'.'+补文)
+        raise python运行时错误('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(路径)+' 必须是 CPython '+str(最低cpython[0])+'.'+str(最低cpython[1])+' 或更新，实际是 '+实现+' '+主文+'.'+次文+'.'+补文)
 
 def 物化python脚本():#每跑一份
     '把 子/ 脚本拷到真实临时目录，返回入口路径'
@@ -236,7 +237,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         'Unix 平台；拒绝非法预算'
         super().__init__(上下文)#登记 ptcRuntime
         if sys.platform=='win32':#Windows
-            raise Exception('dsh-ptc-runtime-python: 此后端需要 Unix 平台（POSIX rlimit、fd-3 标准流、进程组信号）；不能在 Windows 上运行')
+            raise python运行时错误('dsh-ptc-runtime-python: 此后端需要 Unix 平台（POSIX rlimit、fd-3 标准流、进程组信号）；不能在 Windows 上运行')
         值=dict(配置值 or {})#副本
         for 键,缺 in (('cpuSeconds',60),('maxWallMs',600000),('addressSpaceMb',512),('maxLogBytes',65536),('maxValueBytes',32768),('graceMs',3000),('pythonBin','python3')):#缺省
             if 键 not in 值:#缺
@@ -244,43 +245,43 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         自身.配置=值#记下
         for 键,项 in 值.items():#正数
             if isinstance(项,(int,float)) and not isinstance(项,bool) and not (math.isfinite(项) and 项>0):#非正
-                raise Exception('dsh-ptc-runtime-python: config.'+键+' must be a positive number, got '+str(项))#失败
+                raise python运行时错误('dsh-ptc-runtime-python: config.'+键+' must be a positive number, got '+str(项))#失败
         if not isinstance(值['cpuSeconds'],int) or isinstance(值['cpuSeconds'],bool):#非整数
-            raise Exception('dsh-ptc-runtime-python: config.cpuSeconds must be a positive integer, got '+str(值['cpuSeconds']))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.cpuSeconds must be a positive integer, got '+str(值['cpuSeconds']))#失败
         if abs(值['cpuSeconds']+1)>9007199254740991:#超安全
-            raise Exception('dsh-ptc-runtime-python: config.cpuSeconds must be at most '+str(9007199254740991-1)+' (it and its +1 hard limit cross to setrlimit as exact integers), got '+str(值['cpuSeconds']))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.cpuSeconds must be at most '+str(9007199254740991-1)+' (it and its +1 hard limit cross to setrlimit as exact integers), got '+str(值['cpuSeconds']))#失败
         if abs(值['addressSpaceMb']*1024*1024)>9007199254740991:#超安全
-            raise Exception('dsh-ptc-runtime-python: config.addressSpaceMb must be at most '+str(9007199254740991//(1024*1024))+' (its byte count crosses the wire as an exact integer), got '+str(值['addressSpaceMb']))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.addressSpaceMb must be at most '+str(9007199254740991//(1024*1024))+' (its byte count crosses the wire as an exact integer), got '+str(值['addressSpaceMb']))#失败
         if 值['pythonBin']=='' or '\0' in 值['pythonBin']:#空或 NUL
-            raise Exception('dsh-ptc-runtime-python: config.pythonBin must be a non-empty path without NUL bytes, got '+json.dumps(值['pythonBin']))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.pythonBin must be a non-empty path without NUL bytes, got '+json.dumps(值['pythonBin']))#失败
         if 值['maxWallMs']>定时器延迟上限毫秒:#定时器会钳
-            raise Exception('dsh-ptc-runtime-python: config.maxWallMs must not exceed '+str(定时器延迟上限毫秒)+' (setTimeout clamps a larger delay to 1ms), got '+str(值['maxWallMs']))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.maxWallMs must not exceed '+str(定时器延迟上限毫秒)+' (setTimeout clamps a larger delay to 1ms), got '+str(值['maxWallMs']))#失败
         if 值['graceMs']+关闭回收裕量毫秒>定时器延迟上限毫秒:#截止
-            raise Exception('dsh-ptc-runtime-python: config.graceMs must not exceed '+str(定时器延迟上限毫秒-关闭回收裕量毫秒)+' (its close deadline adds '+str(关闭回收裕量毫秒)+'ms, and setTimeout clamps a larger delay to 1ms), got '+str(值['graceMs']))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.graceMs must not exceed '+str(定时器延迟上限毫秒-关闭回收裕量毫秒)+' (its close deadline adds '+str(关闭回收裕量毫秒)+'ms, and setTimeout clamps a larger delay to 1ms), got '+str(值['graceMs']))#失败
         自身.帧解析帽=宿主帧解析上限()#本实例
         for 键 in ('maxLogBytes','maxValueBytes'):#整数预算
             if not isinstance(值[键],int) or isinstance(值[键],bool):#非整数
-                raise Exception('dsh-ptc-runtime-python: config.'+键+' must be a positive integer (the child reads it as an int, so a float diverges from the host), got '+str(值[键]))#失败
+                raise python运行时错误('dsh-ptc-runtime-python: config.'+键+' must be a positive integer (the child reads it as an int, so a float diverges from the host), got '+str(值[键]))#失败
             限=自身.帧解析帽-帧信封字节#可载
             if 值[键]>限:#超帧
                 堆注=''#注
                 if 自身.帧解析帽<帧解析上限字节:#堆约束
                     堆注=" — this host's heap limits the parse to "+str(自身.帧解析帽)+' bytes, so the protocol cap of '+str(帧解析上限字节)+' would be unsafe'#注
-                raise Exception('dsh-ptc-runtime-python: config.'+键+' must not exceed '+str(限)+' (a payload that large cannot cross the fd-3 frame PARSER, which rejects raw frames past '+str(自身.帧解析帽)+' bytes before decoding to bound host memory'+堆注+' — a larger budget would admit a config whose honest child frames the host then rejects as a worker-exit), got '+str(值[键]))#失败
+                raise python运行时错误('dsh-ptc-runtime-python: config.'+键+' must not exceed '+str(限)+' (a payload that large cannot cross the fd-3 frame PARSER, which rejects raw frames past '+str(自身.帧解析帽)+' bytes before decoding to bound host memory'+堆注+' — a larger budget would admit a config whose honest child frames the host then rejects as a worker-exit), got '+str(值[键]))#失败
             if 键=='maxLogBytes' and 值[键]<最小日志字节:#过小
-                raise Exception('dsh-ptc-runtime-python: config.maxLogBytes must be at least '+str(最小日志字节)+' (a smaller budget cannot serialize the truncation marker itself, so a marker-only truncated run would return more than the configured cap), got '+str(值[键]))#失败
+                raise python运行时错误('dsh-ptc-runtime-python: config.maxLogBytes must be at least '+str(最小日志字节)+' (a smaller budget cannot serialize the truncation marker itself, so a marker-only truncated run would return more than the configured cap), got '+str(值[键]))#失败
         地址字节=值['addressSpaceMb']*1024*1024#AS
         可预算=地址字节-解释器基线字节#剩余
         if 可预算<=0:#基线不够
-            raise Exception('dsh-ptc-runtime-python: config.addressSpaceMb must exceed the '+str(解释器基线字节)+'-byte interpreter baseline with room for the output budgets, so the child has address space left to build and encode them; got '+str(值['addressSpaceMb'])+' MiB ('+str(地址字节)+' bytes)')#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.addressSpaceMb must exceed the '+str(解释器基线字节)+'-byte interpreter baseline with room for the output budgets, so the child has address space left to build and encode them; got '+str(值['addressSpaceMb'])+' MiB ('+str(地址字节)+' bytes)')#失败
         可纳=math.ceil(可预算/输出预算最坏倍数)-1#上限
         for 键 in ('maxLogBytes','maxValueBytes'):#对 AS
             if 值[键]*输出预算最坏倍数>=可预算:#会破 AS
-                raise Exception('dsh-ptc-runtime-python: config.'+键+' times the '+str(输出预算最坏倍数)+'x worst-case Unicode expansion must fit within the '+str(可预算)+' bytes left after the '+str(解释器基线字节)+'-byte interpreter baseline within the '+str(地址字节)+'-byte addressSpaceMb, so a near-budget output truncates rather than breaching RLIMIT_AS as worker-exit; got '+str(值[键])+' against a limit of '+str(可纳))#失败
+                raise python运行时错误('dsh-ptc-runtime-python: config.'+键+' times the '+str(输出预算最坏倍数)+'x worst-case Unicode expansion must fit within the '+str(可预算)+' bytes left after the '+str(解释器基线字节)+'-byte interpreter baseline within the '+str(地址字节)+'-byte addressSpaceMb, so a near-budget output truncates rather than breaching RLIMIT_AS as worker-exit; got '+str(值[键])+' against a limit of '+str(可纳))#失败
         解释器=解析python可执行(值['pythonBin'])#解析
         if 解释器 is None:#找不到
             显式=os.path.isabs(值['pythonBin']) or '/' in 值['pythonBin']#显式路径
-            raise Exception('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(值['pythonBin'])+' '+('is not an executable regular file' if 显式 else 'does not resolve on PATH'))#失败
+            raise python运行时错误('dsh-ptc-runtime-python: config.pythonBin '+json.dumps(值['pythonBin'])+' '+('is not an executable regular file' if 显式 else 'does not resolve on PATH'))#失败
         校验python可执行(解释器)#探测
         自身.python可执行=解释器#固定
         自身.在途=set()#活运行
@@ -313,15 +314,15 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
     def 解析(自身,请求):#填 cwd 与墙钟
         '不支持沙箱与逐次超时'
         if 请求.get('sandboxPolicy') is not None:#沙箱
-            raise Exception('dsh-ptc-runtime-python: 沙箱策略不受支持')
+            raise python运行时错误('dsh-ptc-runtime-python: 沙箱策略不受支持')
         if 请求.get('timeoutMs') is not None:#覆盖
-            raise Exception('dsh-ptc-runtime-python: 单次调用超时不受支持')
+            raise python运行时错误('dsh-ptc-runtime-python: 单次调用超时不受支持')
         if 'cwd' not in 请求:#缺
             目录=os.getcwd()#cwd
         else:
             目录=请求['cwd']#cwd
         if not os.path.isabs(目录):#相对
-            raise Exception('dsh-ptc-runtime-python: cwd 必须是绝对路径')
+            raise python运行时错误('dsh-ptc-runtime-python: cwd 必须是绝对路径')
         规格=dict(请求)#副本
         规格['cwd']=目录#绝对
         规格['timeoutMs']=自身.配置['maxWallMs']#墙钟
@@ -330,9 +331,9 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
     def 运行(自身,请求):#一次程序
         '无文件围栏'
         if 请求.get('sandboxPolicy') is not None or 请求.get('timeoutMs')!=自身.配置['maxWallMs']:#政策
-            raise Exception('dsh-ptc-runtime-python: 不支持的执行策略或超时')
+            raise python运行时错误('dsh-ptc-runtime-python: 不支持的执行策略或超时')
         if 自身.已拆:#已拆
-            raise Exception('dsh-ptc-runtime-python: 拆除后仍调用 run()')
+            raise python运行时错误('dsh-ptc-runtime-python: 拆除后仍调用 run()')
         绑定=自身.校验绑定(请求)#绑定
         if 已中止(请求.get('signal')):#已中止
             return {'logs':[],'error':{'kind':'abort','message':消息于(getattr(请求.get('signal'),'reason',None))}}#中止
@@ -349,16 +350,16 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         def 占全局(名,角色):
             '运行时槽与重复'
             if 名 in 保留绑定全局:
-                raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与运行时占用的全局名冲突')
+                raise python运行时错误('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与运行时占用的全局名冲突')
             if 名 in 依赖名:
-                raise Exception('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与另一处依赖写入的全局名冲突')
+                raise python运行时错误('dsh-ptc-runtime-python: '+角色+' '+json.dumps(名)+' 与另一处依赖写入的全局名冲突')
             依赖名.add(名)
         for 空间 in 请求.get('bindings') or ():#逐空间
             全局=空间['global']#名
             if not 标识.fullmatch(全局) or 全局 in 可移植保留字:#非法
-                raise Exception('dsh-ptc-runtime-python: 绑定全局名 '+json.dumps(全局)+' 不是可用的 Python 标识符')
+                raise python运行时错误('dsh-ptc-runtime-python: 绑定全局名 '+json.dumps(全局)+' 不是可用的 Python 标识符')
             if 全局 in 绑定:#重复
-                raise Exception('dsh-ptc-runtime-python: 重复的绑定全局名 '+json.dumps(全局))
+                raise python运行时错误('dsh-ptc-runtime-python: 重复的绑定全局名 '+json.dumps(全局))
             占全局(全局,'binding global')#占
             错类=空间.get('errorClass')#错误类
             已校错=None#可选
@@ -366,11 +367,11 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 名=错类['name']#名
                 成员=错类['memberNameProperty']#成员
                 if not 标识.fullmatch(名) or 名 in 可移植保留字:#非法
-                    raise Exception('dsh-ptc-runtime-python: errorClass.name '+json.dumps(名)+' 不是可用的 Python 标识符')
+                    raise python运行时错误('dsh-ptc-runtime-python: errorClass.name '+json.dumps(名)+' 不是可用的 Python 标识符')
                 if len(成员)==0:#空
-                    raise Exception('dsh-ptc-runtime-python: errorClass.memberNameProperty 必须是非空属性名')
+                    raise python运行时错误('dsh-ptc-runtime-python: errorClass.memberNameProperty 必须是非空属性名')
                 if 成员 in 保留错误成员 or 双下划线成员.match(成员):#保留
-                    raise Exception('dsh-ptc-runtime-python: errorClass.memberNameProperty '+json.dumps(成员)+' 是保留错误成员，不能赋值')
+                    raise python运行时错误('dsh-ptc-runtime-python: errorClass.memberNameProperty '+json.dumps(成员)+' 是保留错误成员，不能赋值')
                 占全局(名,'errorClass.name')#占
                 已校错={'name':名,'memberNameProperty':成员}#记下
             函数={}#可调用快照

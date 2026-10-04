@@ -1,5 +1,6 @@
 import threading#串行链
 from concurrent.futures import Future as _原生Future#单次操作结果
+from .异常 import 消息反馈错误#本包异常
 
 __all__=['消息反馈控制器','消息反馈错误','描述失败','成功结果','已拆除结果']#仅中文公开名
 
@@ -7,12 +8,6 @@ __all__=['消息反馈控制器','消息反馈错误','描述失败','成功结�
 初始视图={'status':'cold','items':空条目表,'error':None}#冷启动
 成功结果={'ok':True}#成功常量
 已拆除结果={'ok':False,'error':{'code':'disposed','message':'feedback controller is disposed'}}#拆除形
-
-class 消息反馈错误(Exception):
-    '本包消息反馈失败'
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
 
 class 操作任务:#本文件内单次操作结果
     '单次操作的 Future 包装，只留 等待'

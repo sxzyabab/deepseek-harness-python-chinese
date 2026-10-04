@@ -1,5 +1,5 @@
 import base64#分片编码
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误,客户端源目录错误#本包错误|Client源目录错误
 from ...共享.身份 import 检查器id#品牌化
 
 __all__=[#仅中文公开名
@@ -12,14 +12,6 @@ __all__=[#仅中文公开名
 def 源桥能力(可用):#Sources桥能力
     '描述浏览器侧源访问'
     return {'type':'client-sources'} if 可用 else None#有则通告
-
-class 客户端源目录错误(Exception):#Client源目录错误
-    'Client 源传输序列化的有意错误'
-    def __init__(自身,code,message):#绑定错误码
-        '保存码与信息'
-        super().__init__(message)#基类
-        自身.code=code#错误码
-        自身.message=message#信息
 
 class 客户端源目录:#Client源目录
     '对 Client 脚本资产执行有界只读操作'

@@ -1,12 +1,11 @@
 
+from ..异常 import 命令错误#本包异常
+
 __all__=[#仅中文公开名
     '命令错误',
     '选定确认','选定选项','弹出选定规格','动作规格','命令UI规格',
     '命令贡献','命令装饰','命令UI约定',
 ]
-
-class 命令错误(Exception):
-    'ui-commands 包异常基类。消息原样英文'
 
 #选定确认：title / description / acknowledgeLabel / cancelLabel / confirmLabel
 选定确认=dict#选定前确认文案形

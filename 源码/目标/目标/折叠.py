@@ -2,14 +2,12 @@
 import json,math,re#JSON 片段、安全整数、阻塞码正则
 
 from .运行时 import 目标变更版本,目标标识#载荷版本与目标 id 品牌
+from .异常 import 目标折叠错误
 
 快照操作集合=set(('create','edit','pause','resume','complete','block'))#允许的非清除操作
 阶段集合=set(('active','paused','blocked','complete'))#合法持久阶段
 阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z',re.ASCII)#小写短横线分类码
 安全整数上界=9007199254740991#JSON 入口安全整数上界
-
-class 目标折叠错误(Exception):
-    '持久目标变更解码或回放失败'
 
 def 空目标折叠状态():
     """构造空的回放累加器。

@@ -1,4 +1,5 @@
-from ....共享.json import 操作任务,检查器错误#单次结果|包内错误
+from ....共享.json import 操作任务#单次结果
+from ....异常 import 检查器错误#包内错误
 from .值 import Client完成,Client异常,Client句柄,Client属性,Client内部属性#值转换
 
 __all__=['Client运行时后端']#仅中文公开名

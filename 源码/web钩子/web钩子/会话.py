@@ -1,13 +1,9 @@
 '按已结算的 webhook 规则结果，在工作区侧创建会话'
 import os,uuid#绝对路径与会话 id
 from ...内核.会话 import 会话标识#会话 id 品牌
-from ...模型后端.llm import 创建用户消息,错误链#用户消息与错误链
-
-class 会话错误(Exception):
-    'webhook 会话创建路径上的失败'
-
-class 会话查询错误中止(会话错误):
-    'webhook 创建路径上的取消'
+from ...模型后端.llm import 创建用户消息#用户消息
+from ...模型后端.llm.异常 import 错误链#错误链
+from .异常 import 会话错误,会话查询错误中止#会话创建失败与取消
 
 def 已中止(信号):
     """信号是否已中止。

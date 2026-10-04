@@ -3,14 +3,9 @@ from concurrent.futures import Future as _原生Future,wait as _等待全部#在
 from ...客户端.存储 import 创建快照存储#快照存储
 from .已呈现 import 已呈现文件网址,呈现宿主路径,是否已呈现宿主#坐标与宿主
 from .改动 import 已改文件网址#改动打开 URL
+from .异常 import 已呈现打开错误#本包异常
 
 __all__=['已呈现打开控制器','已呈现打开错误']#仅中文公开名
-
-class 已呈现打开错误(Exception):
-    '已呈现打开失败'
-    def __init__(自身,消息):
-        '记下消息'
-        super().__init__(消息)#英文
 
 class _操作任务:#单次操作 Future
     '只留 等待'

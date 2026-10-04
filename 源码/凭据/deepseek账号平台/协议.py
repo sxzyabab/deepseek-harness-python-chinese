@@ -2,6 +2,7 @@ import json,re
 from urllib.parse import urlparse
 from requests import request as 发请求
 from ...工具.超时 import 已中止
+from .异常 import 平台认证错误#稳定码，不携带响应体或授权 URL
 
 __all__=['平台认证错误','平台来源','浏览器网址','平台头','初始化形态','交换形态','请求平台','请求账号','登出账号','登录来源']
 
@@ -9,13 +10,6 @@ __all__=['平台认证错误','平台来源','浏览器网址','平台头','初�
 回环主机=frozenset(['localhost','127.0.0.1','::1'])
 登录来源形态=re.compile(r'^http://(?:localhost|127\.0\.0\.1|\[::1\]):([0-9]+)/?\Z',re.ASCII|re.IGNORECASE)
 正文上限=65536
-
-class 平台认证错误(Exception):
-    '稳定码，不携带响应体或授权 URL'
-    def __init__(自身,码):
-        '码为 network/protocol/expired/storage'
-        super().__init__('account: '+码)
-        自身.code=码
 
 def 平台来源(值,允许回环http):
     'HTTPS 平台端点，或显式开启的回环 HTTP'

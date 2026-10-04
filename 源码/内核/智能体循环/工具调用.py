@@ -2,7 +2,8 @@ import json,threading
 from queue import Queue as 队列#单次落定门
 from ...模型后端.llm import 断言永不,创建工具结果消息
 from ..工具 import 工具体前中止,调度器符号
-from .中止与并发 import 已中止,赛跑取值,全部排空队列,放入成功,循环错误
+from .中止与并发 import 已中止,赛跑取值,全部排空队列,放入成功
+from .异常 import 循环错误#本包异常基类
 
 def 解析参数(原始):
     '解析模型参数：保留非法 JSON 为文本，空输入映射成空对象'

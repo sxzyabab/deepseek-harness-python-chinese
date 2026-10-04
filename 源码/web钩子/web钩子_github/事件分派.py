@@ -2,8 +2,9 @@
 import hashlib,hmac,json,time#签名、JSON 与时间
 from ...工具.值 import 快照json值#无损 JSON 快照
 from ..web钩子.标识构造 import Webhook来源标识,Webhook投递标识
-from ..web钩子 import Webhook错误#运行时失败
-from .正文 import WebhookHttp错误,读取有界utf8正文
+from ..web钩子.异常 import Webhook错误#运行时失败
+from .异常 import WebhookHttp错误#不含请求数据的 HTTP 拒绝
+from .正文 import 读取有界utf8正文
 
 __all__=['创建GitHubWebhook事件分派']
 

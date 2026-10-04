@@ -1,4 +1,4 @@
-from .未实现失败 import 运行时错误
+from ..异常 import 运行时错误
 from .builtin_modules.implemented import async_hooks as 节点异步钩子
 from .builtin_modules.implemented import buffer as 节点缓冲
 from .builtin_modules.implemented import crypto as 节点密码学

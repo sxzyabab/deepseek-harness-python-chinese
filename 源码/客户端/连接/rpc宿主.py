@@ -5,7 +5,8 @@ from ...依赖 import cordis#外部依赖胶水
 from .http桥 import 桥接#HTTP 桥
 from .接口请求信任 import 是否受信任接口请求#请求信任闸
 from .接口路径 import 接口路径#/api 路径常量
-from .rpc import 连接错误,连接权威_回环#异常与回环权威
+from .异常 import 连接错误#本包异常
+from .rpc import 连接权威_回环#回环权威
 
 __all__=['宿主连接服务']#仅中文公开名
 

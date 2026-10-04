@@ -3,7 +3,8 @@ import json,math#紧凑 JSON 渲染与入口整数判定
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 整数字段#配置字段
 from ..目标 import 目标标识#目标 id 品牌
-from ...模型后端.llm import 装备错误,截上下文摘要,创建用户消息#策略错误、摘要与收尾消息
+from ...模型后端.llm.异常 import 装备错误#策略错误
+from ...模型后端.llm import 截上下文摘要,创建用户消息#摘要与收尾消息
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .权限 import 目标工具执行,要求直接人类,完成权限#执行时权限
 from .收尾 import 渲染收尾上下文#终态收尾指令

@@ -1,6 +1,7 @@
 from .buffer import Buffer#本包Buffer
 from .events import 事件发出器#导入事件发出器
-from ...未实现失败 import 未实现失败,运行时错误#导入未实现桩|本包错误
+from ...未实现失败 import 未实现失败#导入未实现桩
+from ....异常 import 运行时错误#本包错误
 from ...进程表 import 登记进程,释放进程,信号进程#导入进程表
 from ....storage.路径 import dsh根#导入VFS根
 

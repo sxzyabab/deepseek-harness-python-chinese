@@ -1,6 +1,7 @@
 import json,os,platform,re,shutil,stat,sys,tempfile,threading
 from ...依赖.schemastery import 字符串字段
 from ...内核.工具 import 定义工具
+from .异常 import 工作区依赖错误
 
 __all__=['名称','依赖','配置','应用','默认','语法解析主运行时','读主运行时','工作区依赖路径','解析主运行时','安装主运行时']
 
@@ -11,9 +12,6 @@ __all__=['名称','依赖','配置','应用','默认','语法解析主运行时'
     'source':字符串字段(最小长度=1,可空=False),
     'root':字符串字段(最小长度=1),
 }
-
-class 工作区依赖错误(Exception):
-    '主运行时载荷无效或不可用'
 
 版本形态=re.compile(r'^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$',re.ASCII)
 平台表=('win32','darwin','linux')

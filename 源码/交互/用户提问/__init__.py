@@ -1,7 +1,7 @@
 '用户提问能力缝（ctx.userQuestions）的服务定义：在人类回答问题之前暂停一次智能体工具调用的 UI 后端服务'
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-from ...模型后端.llm import 装备错误#Harness 错误基类
+from .异常 import 用户提问错误
 from ...工具.超时 import 已中止#中止入口
 from .类型 import (#再导出线路安全问答类型
     询问用户问题选项,#可选答案
@@ -24,16 +24,6 @@ class 用户提问提供方:#用户提问的 UI 侧提供方协议
     def ask(自身,request):#向 UI 要答案
         '向 UI 收集人类答案'
         raise NotImplementedError#由 UI 包实现
-
-class 用户提问错误(装备错误):#用户提问失败的稳定错误分类
-    '用户提问失败的稳定错误分类'
-    def __init__(自身,消息,码,options=None):#构造带码错误
-        '记下人类可读拒绝原因与稳定分类码'
-        if options is None:#无额外选项
-            装备错误.__init__(自身,消息,码)#交给装备错误
-        else:#带 cause 等选项
-            装备错误.__init__(自身,消息,码,options)#交给装备错误
-        自身.name='UserQuestionError'#固定错误名
 
 class 用户提问服务(服务):#ctx.userQuestions：一个活动 UI 提供方外加 ask() API
     'ctx.userQuestions：一个活动 UI 提供方外加 ask() API'

@@ -1,14 +1,16 @@
 'JSONL 会话持久化后端的磁盘格式辅助'
 import json,os,re#JSON、路径与正则
 from ...内核.会话 import 会话格式版本,已知会话事件类型#本构建格式版本与已知类型
+from ..会话格式.异常 import 会话格式不支持迁移错误#不支持迁移
 from ..会话格式 import (#从会话格式导入
     会话格式日志文件名,#格式日志文件名
     解析会话格式日志文件名,#解析格式名
-    会话格式不支持迁移错误,#不支持迁移
 )#格式工具
 from ..会话格式目录 import 会话格式目录#会话格式目录
 from ..会话格式_v3到v4 import 断言v4行准入,断言已发布v4关系#v4准入与关系
-from ..会话持久化 import 会话格式不支持错误,会话格式版本拒绝文案#持久化错误
+from ..会话持久化.异常 import 会话格式不支持错误#格式不支持
+from ..会话持久化 import 会话格式版本拒绝文案#版本拒绝文案
+from .异常 import 格式辅助错误 as Error#格式辅助错误
 from ...内核.会话.json值 import 冻结树#深冻结已存事件图
 
 默认压缩='zstd'#默认 zstd
@@ -42,9 +44,6 @@ def 断言无已退役头字段(值):#断言无已退役头字段
         return#直接返回
     if 'sandboxMode' in 值 or 'approvalPolicy' in 值:#含退役策略字段
         raise Error('session header uses retired policy baseline fields')#拒绝退役字段
-
-class Error(Exception):#格式辅助错误
-    'JSONL 格式辅助抛出的 Error 风格异常'
 
 def 头转头行(头,继承事件数=None):#头转头行
     '从会话头构造头行对象'

@@ -2,7 +2,8 @@
 import re#引用语法
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程#Remote 基类
 from ...凭据.凭据 import 凭证引用#品牌化引用
-from .远程错误与中止 import 远程错误,远程错误消息#远程错误
+from .远程错误与中止 import 远程错误消息#远程错误消息
+from .异常 import 远程错误#本包异常
 
 __all__=['凭据控制器','最大描述引用数']#仅中文公开名
 

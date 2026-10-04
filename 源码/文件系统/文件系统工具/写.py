@@ -2,7 +2,7 @@
 from ...内核.工具 import 定义工具#导入工具定义
 from .. import 文件系统 as fs#文件系统错误
 from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
-from .错误 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
+from .异常 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
 from .会话工作目录 import 会话解析选项#导入会话cwd解析选项
 
 写提示文本前缀=(#write 稳定指引前半（字面量不翻译）

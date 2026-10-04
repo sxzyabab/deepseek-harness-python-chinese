@@ -32,6 +32,7 @@ from .分叉 import 构建分叉种子
 from .已知事件类型 import 已知会话事件类型,消息投影事件类型
 from .序号范围 import 编码序号范围,解码序号范围
 from .工具历史 import 工具历史投影
+from .异常 import 会话错误,会话分叉错误
 
 __all__=[
     '会话','会话存储','会话分叉错误','会话准备','会话标识','会话格式版本','会话头字段','会话头',
@@ -51,9 +52,6 @@ __all__=[
 允许适配器键=frozenset(('reasoningEffort','maxTokens'))
 附着表=weakref.WeakKeyDictionary()
 允许恢复头类型=(dict,冻结映射,冻结记录,可弱引用映射)
-
-class 会话错误(Exception):
-    '内核会话包的异常基类'
 
 def 外来安全整数(值):
     '外来 JSON 序号与时间是否落在安全整数范围'
@@ -536,15 +534,6 @@ class 会话:#事件源会话
     def 是否自有序号(自身,序号):#是否自有序号
         '一个已有事件位置是否在分叉继承前缀之外'
         return 序号>=自身.inheritedEventCount and 序号<自身.seq#区间判定
-
-class 会话分叉错误(Exception):#分叉错误
-    '会话分叉拒绝的带类型错误（码：SESSION_NOT_FOUND / SESSION_NOT_LIVE / SESSION_ALREADY_EXISTS / INVALID_BOUNDARY / OPEN_TURN）'
-    def __init__(自身,消息,码):#带拒绝码
-        '带拒绝码'
-        super().__init__(消息)#错误文案
-        自身.message=消息#可读消息
-        自身.code=码#拒绝码
-        自身.name='SessionForkError'#固定名（错误类协议名）
 
 class 会话存储(服务):#内存会话存储
     '内存会话存储（ctx.sessions）。有意不在这里实现持久化——插件订 session/event 并在 session/flush 时冲洗'

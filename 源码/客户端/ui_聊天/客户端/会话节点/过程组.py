@@ -1,4 +1,4 @@
-from .节点工厂 import 聊天错误
+from ...异常 import 聊天错误
 from ..约定.助手内容 import 有助手回复内容
 from ..约定.聊天可见性 import 是可见聊天节点
 from .过程活动记录 import 过程活动记录

@@ -1,7 +1,8 @@
 '兼容 AGENTS.md 的工作区指令加载器'
 import math,os,threading,weakref#工作目录、有限预算与按会话弱引用
 from ...模型后端.llm import 创建用户消息#导入用户消息构造
-from .配置 import 配置,解析配置,工作区基线身份,智能体命令错误,已中止,若已中止则抛出#导入配置解析、基线身份与中止
+from .配置 import 配置,解析配置,工作区基线身份,已中止,若已中止则抛出#导入配置解析、基线身份与中止
+from .异常 import 智能体命令错误
 from .文件 import 寻找项目根,加载基线指令集#导入项目根与基线加载
 from .状态 import (
     应用指令版本更新,#提交版本缓存更新

@@ -1,7 +1,8 @@
 '面向模型的 glob 工具：发现路径匹配 glob 的文件，按修改时间排序'
 import os#平台路径分隔符
 from ...内核.工具 import 定义工具#导入工具定义器
-from .搜索管道 import 搜索工具错误,执行ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与溢出保存
+from .异常 import 搜索工具错误#入参校验失败
+from .搜索管道 import 执行ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与溢出保存
 from .呈现 import glob搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择
 

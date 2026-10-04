@@ -1,6 +1,6 @@
 import json#子调用参数序列化
 from .轨迹节点 import 轨迹节点#包成轨迹视图节点
-from .轨迹记录 import 轨迹错误#本包异常
+from ..异常 import 轨迹错误#本包异常
 
 __all__=['登记轨迹工具定义']#仅中文公开名
 

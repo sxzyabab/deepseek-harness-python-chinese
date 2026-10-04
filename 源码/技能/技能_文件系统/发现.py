@@ -7,6 +7,7 @@ from ...工具.主目录路径 import (#共用家目录与监视路径，禁止�
     主目录名,#默认 .dsh 名
     主目录环境键,#DSH_HOME
 )#主目录路径权威实现
+from .异常 import 技能文件系统错误
 
 技能名正则=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\Z',re.ASCII)#公开技能名：kebab-case
 捆绑技能排名=600#打包技能提供方与本地捆绑根的标准优先排名
@@ -16,9 +17,6 @@ from ...工具.主目录路径 import (#共用家目录与监视路径，禁止�
 用户dsh排名=400#用户 .dsh/skills 排名
 用户agents排名=500#用户 .agents/skills 排名
 解析dsh家目录=解析主目录#本包沿用旧名，委托 home_paths
-
-class 技能文件系统错误(Exception):
-    '本包异常基类'
 
 中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在中止信号上
 

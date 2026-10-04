@@ -14,7 +14,7 @@ from .ffi import (
     抛上次错误,#BOOL失败
     抛Win32,#ERROR_*失败
 )#导入FFI辅助
-from .错误 import 访问控制错误#校验错误
+from .异常 import 访问控制错误#校验错误
 from . import win32_abi as abi#ABI常量
 
 空白或引号=re.compile(r'[\s"]',re.ASCII)#CommandLineToArgvW 的 ASCII 空白与引号

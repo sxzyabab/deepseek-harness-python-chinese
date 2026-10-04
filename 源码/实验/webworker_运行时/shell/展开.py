@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..异常 import 运行时错误#本包错误
 import fnmatch as 文件名匹配
 import math as 数学#整除
 import re as 正则#glob特征

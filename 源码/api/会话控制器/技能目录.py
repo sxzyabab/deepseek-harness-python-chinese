@@ -1,6 +1,7 @@
 '会话寻址、冷可读技能目录 Remote'
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from .远程错误与并发 import 远程错误,远程错误消息
+from .远程错误与并发 import 远程错误消息
+from .异常 import 远程错误#本包异常
 
 __all__=['会话技能目录']
 

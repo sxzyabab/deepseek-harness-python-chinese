@@ -1,4 +1,4 @@
-from ...node.未实现失败 import 运行时错误#本包错误
+from ...异常 import 运行时错误#本包错误
 from ..解释 import 运行shell命令,运行shell程序,壳中止信号#解释器入口与壳中止
 from ..文件系统访问 import 宿主文件系统#宿主FS
 from .子进程 import 运行shell进程#进程入口

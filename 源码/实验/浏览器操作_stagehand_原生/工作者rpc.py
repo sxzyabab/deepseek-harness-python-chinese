@@ -1,6 +1,7 @@
 import queue,threading#应答通道
 from ...内核.作用域 import 操作任务#一次等待
 from ...工具.超时 import 若已中止则抛出,已中止,等待中止#中止
+from .异常 import stagehand排空错误#SDK 未排空
 
 __all__=['请求','应答']#仅中文公开名
 
@@ -15,7 +16,7 @@ def 请求(目标,方法,参数=None,信号=None):#发一条
         if isinstance(原因,BaseException):#异常
             任务.拒绝(原因)#原因
         else:#包装
-            任务.拒绝(Exception('Stagehand Worker request canceled'))#取消
+            任务.拒绝(stagehand排空错误('Stagehand Worker request canceled'))#取消
     def 监视():#等中止
         '置位后拒绝'
         等待中止(信号)#等
@@ -27,12 +28,12 @@ def 请求(目标,方法,参数=None,信号=None):#发一条
         try:#收
             原始=应答箱.get()#应答
             if not isinstance(原始,dict) or 'ok' not in 原始:#畸形
-                任务.拒绝(Exception('Stagehand Worker reply channel closed'))#关闭
+                任务.拒绝(stagehand排空错误('Stagehand Worker reply channel closed'))#关闭
                 return#完
             if 原始['ok'] is True:#成功
                 任务.兑现(原始.get('value'))#兑现
             else:#失败
-                任务.拒绝(Exception(原始.get('error') if isinstance(原始.get('error'),str) else 'Stagehand Worker request canceled'))#拒绝
+                任务.拒绝(stagehand排空错误(原始.get('error') if isinstance(原始.get('error'),str) else 'Stagehand Worker request canceled'))#拒绝
         except Exception as 错误:#失败
             任务.拒绝(错误)#拒绝
     threading.Thread(target=收取应答,daemon=True).start()#收
@@ -45,12 +46,12 @@ def 请求(目标,方法,参数=None,信号=None):#发一条
 def 应答(原始,执行):#答一条
     '校验并应答一条请求。原始是 dict'
     if not isinstance(原始,dict):#非法
-        raise Exception('Stagehand 工作者请求')
+        raise stagehand排空错误('Stagehand 工作者请求')
     方法=原始.get('method')#方法
     参数=原始.get('args')#参数
     应答箱=原始.get('reply')#通道
     if not isinstance(方法,str) or 应答箱 is None:#非法
-        raise Exception('Stagehand 工作者请求')
+        raise stagehand排空错误('Stagehand 工作者请求')
     try:#执行
         值=执行(方法,参数)#执行
         应答箱.put({'ok':True,'value':值})#成功

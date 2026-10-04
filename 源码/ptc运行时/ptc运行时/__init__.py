@@ -39,11 +39,7 @@ __all__=[
     'global','is','lambda','nonlocal','not','or','pass','raise','match','type','_',
 ])
 
-class ptc运行时错误(Exception):
-    'PTC 运行时约定误用'
-    def __init__(自身,消息):
-        '用原样英文消息构造'
-        super().__init__(消息)
+from .异常 import ptc运行时错误#约定误用
 
 class ptc运行时(cordis.服务):
     """登记一个 ptcRuntime 实现。

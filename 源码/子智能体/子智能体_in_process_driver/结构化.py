@@ -1,4 +1,5 @@
-from ...内核.工具 import 工具参数错误,校验json模式值#参数校验
+from ...内核.工具.异常 import 工具参数错误#参数错误
+from ...内核.工具 import 校验json模式值#参数校验
 结构化输出工具名='structured_output'#工具名
 结构化输出指令=(
     'When you have your final answer, you MUST report it by calling the '

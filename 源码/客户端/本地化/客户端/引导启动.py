@@ -1,4 +1,4 @@
-from ..语言设置 import 本地化错误
+from ..异常 import 本地化错误
 
 __all__=['解析语言引导启动']
 

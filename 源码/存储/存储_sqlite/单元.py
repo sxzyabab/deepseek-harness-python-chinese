@@ -1,6 +1,6 @@
 '一个已打开的 SQLite KV 单元'
 import json#值列 JSON
-from ..存储.错误 import 存储错误#存储错误
+from ..存储.异常 import 存储错误#存储错误
 from .结构 import 记录表名#物理表名
 __all__=['SqliteKv单元']#仅中文公开名
 

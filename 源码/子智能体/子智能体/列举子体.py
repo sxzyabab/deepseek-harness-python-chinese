@@ -1,5 +1,5 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from .错误 import 子智能体错误#导入子智能体错误
+from .异常 import 子智能体错误#导入子智能体错误
 
 生命周期证人键=('version','id','createdAt','cwd','parentSession','isSeeded','delegationDepth','origin','agentPreset')#生命周期证人键
 

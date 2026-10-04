@@ -1,6 +1,6 @@
 '与提供方无关的逻辑会话与事件文本纯谓词'
 import re#文本过滤器正则
-from .配置 import 会话查询错误#检索错误
+from .异常 import 会话查询错误#检索错误
 
 空白切分=re.compile(r'\s+',re.ASCII)#ASCII 空白
 

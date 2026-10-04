@@ -1,5 +1,5 @@
 import json#解析 command
-from .服务 import 对话错误#本包异常
+from ..异常 import 对话错误#本包异常
 from .约定.槽 import 待决审批#审批域面
 from .约定.聊天节点 import 已结算工具#工具根判断
 from .工具节点读取 import 根工具调用#配对命令

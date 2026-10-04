@@ -1,5 +1,6 @@
 from .版本 import 检查器协议版本#协议版本
-from ..json import 是否json值,json字节长度,检查器错误#JSON工具|本包错误
+from ..json import 是否json值,json字节长度#JSON工具
+from ...异常 import 检查器错误#本包错误
 
 __all__=['检查器源缓冲选项','检查器源缓冲']#仅中文公开名
 

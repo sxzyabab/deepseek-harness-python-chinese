@@ -1,12 +1,12 @@
 import threading,time#计时器与墙钟
 from ...依赖 import cordis#外部依赖胶水
 from ...模型后端.llm import 创建用户消息#用户消息构造
+from .异常 import 日程日志错误#日志错误
 from .领域 import (
     折叠日程事件,#折叠事件流
     渲染固定频率提醒批次成帧,#渲染固定频率批次
     渲染提醒成帧,#渲染一次性提醒框
     解析固定频率出现,#解析固定频率出现
-    日程日志错误,#日志错误
     解析纪元毫秒,#纪元解析
     纪元转规范UTC,#UTC 格式化
 )#domain 导入

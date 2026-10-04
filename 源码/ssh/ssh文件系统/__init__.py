@@ -1,7 +1,8 @@
 import posixpath#远端 POSIX 相对路径
 from ...依赖.工具 import 路径转文件url,二进制#file URL 与 base64
 from ...工具.超时 import 若已中止则抛出,已中止#中止
-from ...文件系统.文件系统 import 文件系统,文件系统错误#文件系统缝
+from ...文件系统.文件系统 import 文件系统#文件系统缝
+from ...文件系统.文件系统.异常 import 文件系统错误#文件系统缝
 from ..ssh.模式 import (#辅助 JSON 模式
     目标模式,#目标
     信息可空模式,#stat
@@ -11,7 +12,7 @@ from ..ssh.模式 import (#辅助 JSON 模式
     写结果模式,#写
     编辑结果模式,#编辑
 )#模式结束
-from ..ssh.协议 import 远程操作错误,ssh错误
+from ..ssh.异常 import 远程操作错误,ssh错误#基类与带码远端错误
 
 __all__=['ssh文件系统','依赖']
 

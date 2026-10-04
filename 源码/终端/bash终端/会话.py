@@ -2,8 +2,8 @@
 import codecs,threading,time#流式解码、定时器与毫秒时钟
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 已中止,若已中止则抛出,等待中止#中止入口；信号来自超时库
-from ..终端 import 终端错误#带稳定错误码的终端错误
-from .配置 import 终端bash错误#本包错误
+from ..终端.异常 import 终端错误#带稳定错误码的终端错误
+from .异常 import 终端bash错误#本包错误
 from .清洗 import 受控提示符,终端清洗器#受控提示符与清洗器
 
 工作线程=threading.Thread#后台工作线程

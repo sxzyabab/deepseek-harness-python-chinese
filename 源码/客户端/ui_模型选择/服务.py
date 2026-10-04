@@ -2,7 +2,8 @@ from ...依赖 import cordis#外部依赖胶水
 from ...基础设施.通用工具 import 获取内部数据
 from ...工具.值 import 带值弱映射#按座位绑定弱缓存目录
 from .代际目录 import 代际目录#共享 Host 代际目录
-from .目录 import 模型目录,模型选择错误#每会话目录与异常
+from .目录 import 模型目录#每会话目录
+from .异常 import 模型选择错误#本包异常
 服务=cordis.服务#Cordis 服务基类
 
 __all__=['模型目录解析器']#仅中文公开名

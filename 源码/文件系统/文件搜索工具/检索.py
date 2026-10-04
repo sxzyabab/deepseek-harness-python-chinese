@@ -1,7 +1,8 @@
 '面向模型的 grep 工具：用 ripgrep 正则搜索文件内容'
 import json#按行解析rg --json NDJSON
 from ...内核.工具 import 定义工具#导入工具定义器
-from .搜索管道 import 搜索错误,搜索工具错误,预览行,保留grep命中,执行ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与保留
+from .异常 import 搜索错误,搜索工具错误#搜索失败类型|入参校验失败
+from .搜索管道 import 预览行,保留grep命中,执行ripgrep,改成工作目录相对,尽力保存格式化结果#导入搜索执行与保留
 from .呈现 import grep搜索元,搜索视图自元#导入卡片meta投影
 from .直接调用 import 已接受直调值#导入顶层调用事后选择
 

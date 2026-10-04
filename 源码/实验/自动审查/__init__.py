@@ -3,6 +3,7 @@ from ...内核.作用域 import 操作任务#在途结算
 from ...内核.工具 import 运行代码名#外层传输名
 from ...模型后端.llm import 块组装器,深冻结#审查流
 from ...工具.超时 import 已中止,合成信号,中止控制器#中止
+from .异常 import 审查错误#本包异常
 
 __all__=['名称','依赖','应用']
 
@@ -40,7 +41,7 @@ def 转json(值):#一份不可变日志值
     '一份不可变日志值的 JSON 文本'
     渲染=json.dumps(值,ensure_ascii=False,indent=2)#缩进
     if 渲染 is None:#不可序列化
-        raise Exception('自动审查：必填值无法 JSON 序列化')
+        raise 审查错误('自动审查：必填值无法 JSON 序列化')
     return 渲染#文本
 
 def 解析已记参数(原文):#原生调用原始参数
@@ -63,7 +64,7 @@ def 是否记录(值):#对象记录而非 null/数组
 def 已记模式(值,期望名,模式):#校验待审 schema
     '校验已记待审动作必须具备的 schema 字段'
     if not isinstance(值.get('description'),str) or not 是否记录(值.get('parameters')):#不完整
-        raise Exception('自动审查：待处理 '+模式+' 工具模式不完整')
+        raise 审查错误('自动审查：待处理 '+模式+' 工具模式不完整')
     return {'name':期望名,'description':值['description'],'parameters':值['parameters']}#模式
 
 def 是否人类指令(来源):#已发运 Web 人类指令
@@ -146,21 +147,21 @@ def 划定ptc开始(事件表):#把 PTC 开始划到当时打开的步骤
         if 事件['type']!='tool/ptc-dispatch-start':#非 PTC
             continue#下
         if 打开步骤 is None:#无主
-            raise Exception('自动审查：PTC 调用在会话日志中没有所属步骤')
+            raise 审查错误('自动审查：PTC 调用在会话日志中没有所属步骤')
         开始表.append({'event':事件,'step':打开步骤})#收下
     return {'starts':开始表,'openStep':打开步骤}#划定
 
 def 原生动作(执行,头工具,已记):#从可见调用与请求头解析
     '从可见调用与最新请求头解析一次原生动作'
     if 已记['data']['name']!=执行['name'] or not 同一json(解析已记参数(已记['data']['arguments']),执行['arguments']):#不一致
-        raise Exception('自动审查：待处理原生调用与已记动作不一致')
+        raise 审查错误('自动审查：待处理原生调用与已记动作不一致')
     候选表=头工具 if isinstance(头工具,list) else []#候选
     模式表=[]#匹配
     for 模式 in 候选表:#逐个
         if 是否记录(模式) and 模式.get('name')==执行['name']:#名匹配
             模式表.append(模式)#收下
     if len(模式表)!=1:#缺失或歧义
-        raise Exception('自动审查：待处理原生工具模式缺失或有歧义')
+        raise 审查错误('自动审查：待处理原生工具模式缺失或有歧义')
     模式=已记模式(模式表[0],执行['name'],'native')#校验
     return {'mode':'native','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
 
@@ -171,9 +172,9 @@ def ptc动作(执行,开始,可见父键):#从绑定 schema 与已记身份解�
             or 事件['data']['rootCallId']!=执行['rootCallId']
             or 事件['data']['name']!=执行['name']
             or not 同一json(事件['data']['arguments'],执行['arguments'])):#不一致
-        raise Exception('自动审查：待处理 PTC 调用与已记动作不一致')
+        raise 审查错误('自动审查：待处理 PTC 调用与已记动作不一致')
     if 'schema' not in 执行 or 执行['schema'].get('name')!=执行['name']:#缺失
-        raise Exception('自动审查：待处理 PTC 绑定模式缺失或不一致')
+        raise 审查错误('自动审查：待处理 PTC 绑定模式缺失或不一致')
     模式值=执行['schema']#绑定
     模式=已记模式(模式值,执行['name'],'PTC')#校验
     return {'mode':'ptc-inner','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
@@ -185,10 +186,10 @@ def 快照自动审查(智能体,执行):#冻结五段
     节点表=list(会话.surface.nodes)#表面
     头=会话.请求头()#请求头
     if 头 is None or len(头['config'].get('provider') or '')==0 or len(头['config'].get('model') or '')==0:#无路由
-        raise Exception('自动审查：没有完整的请求头路由可用')
+        raise 审查错误('自动审查：没有完整的请求头路由可用')
     工作目录=会话.header.get('cwd')#cwd
     if 工作目录 is None or len(工作目录)==0:#无目录
-        raise Exception('自动审查：会话没有工作目录')
+        raise 审查错误('自动审查：会话没有工作目录')
     原生调用表=[]#原生
     for 事件 in 事件表:#过滤
         if 事件['type']=='tool/call':#原生
@@ -208,7 +209,7 @@ def 快照自动审查(智能体,执行):#冻结五段
     for 开始 in 划定['starts']:#逐个
         子键=作用域调用键(开始['step'],开始['event']['data']['subCallId'])#子
         if 子键 in 按子调用开始:#歧义
-            raise Exception('自动审查：PTC 调用身份在会话日志中有歧义')
+            raise 审查错误('自动审查：PTC 调用身份在会话日志中有歧义')
         按子调用开始[子键]=开始#记下
         父键=作用域调用键(开始['step'],开始['event']['data']['parentCallId'])#父
         if 父键 not in 按父开始:#新
@@ -216,14 +217,14 @@ def 快照自动审查(智能体,执行):#冻结五段
         else:#已有
             按父开始[父键].append(开始)#追加
     if 当前步骤 is None:#无打开步骤
-        raise Exception('自动审查：待处理调用在会话日志中没有未关闭步骤')
+        raise 审查错误('自动审查：待处理调用在会话日志中没有未关闭步骤')
     当前根调用表=按作用域原生.get(作用域调用键(当前步骤,执行['rootCallId'])) or []#根
     if len(当前根调用表)!=1:#缺失或歧义
-        raise Exception('自动审查：待处理根调用在会话日志中缺失或有歧义')
+        raise 审查错误('自动审查：待处理根调用在会话日志中缺失或有歧义')
     当前根调用=当前根调用表[0]#根
     当前ptc开始=None if 'parent' not in 执行 else 按子调用开始.get(作用域调用键(当前步骤,执行['callId']))#内层
     if 'parent' in 执行 and 当前ptc开始 is None:#缺失
-        raise Exception('自动审查：待处理 PTC 调用在会话日志中缺失或有歧义')
+        raise 审查错误('自动审查：待处理 PTC 调用在会话日志中缺失或有歧义')
     项目指令=[]#约束
     历史=[]#历史
     可见父键=set()#可见父
@@ -251,23 +252,23 @@ def 快照自动审查(智能体,执行):#冻结五段
             键=作用域调用键(消息步骤,块['id'])#键
             是当前根=是当前消息 and 块['id']==执行['rootCallId']#当前根
             if 是当前根 and 已过当前根:#歧义
-                raise Exception('自动审查：待处理根调用在当前界面上有歧义')
+                raise 审查错误('自动审查：待处理根调用在当前界面上有歧义')
             调用表=按作用域原生.get(键) or []#调用
             if len(调用表)>1:#歧义
-                raise Exception('自动审查：原生调用身份在会话日志中有歧义')
+                raise 审查错误('自动审查：原生调用身份在会话日志中有歧义')
             调用=调用表[0] if len(调用表)==1 else None#调用
             该调用开始=按父开始.get(键) or []#PTC
             if 调用 is None:#未开始
                 if 是当前消息 and not 已过当前根:#缺日志
-                    raise Exception('自动审查：待处理根之前的可见调用在会话日志中缺失')
+                    raise 审查错误('自动审查：待处理根之前的可见调用在会话日志中缺失')
                 if len(该调用开始)>0:#未开始却有 PTC
-                    raise Exception('自动审查：未启动的可见调用已记下 PTC 分发')
+                    raise 审查错误('自动审查：未启动的可见调用已记下 PTC 分发')
                 见到未开始兄=True#记下
                 continue#下
             if 见到未开始兄:#前缀不整
-                raise Exception('自动审查：可见原生调用日志未形成已启动前缀')
+                raise 审查错误('自动审查：可见原生调用日志未形成已启动前缀')
             if 调用['data']['name']!=块['name'] or 调用['data']['arguments']!=块['arguments']:#不一致
-                raise Exception('自动审查：可见工具调用与已记动作不一致')
+                raise 审查错误('自动审查：可见工具调用与已记动作不一致')
             可见父键.add(键)#可见
             if 调用 is not 当前根调用 or 执行.get('parent') is not None:#非待审根
                 历史.append({'kind':'tool-call','role':'fact','mode':'native','name':调用['data']['name'],'arguments':调用['data']['arguments']})#事实
@@ -278,7 +279,7 @@ def 快照自动审查(智能体,执行):#冻结五段
             if 是当前根:#过根
                 已过当前根=True#记下
     if not 已过当前根:#表面缺根
-        raise Exception('自动审查：待处理根调用在当前界面上缺失')
+        raise 审查错误('自动审查：待处理根调用在当前界面上缺失')
     if 'parent' not in 执行:#原生
         动作=原生动作(执行,头.get('tools'),当前根调用)#原生
     else:#PTC
@@ -316,10 +317,10 @@ def 解析决策(文本):#封闭 risk/decision
     '解析封闭的 risk/decision 协议及其固定安全组合'
     值=json.loads(文本)#对象
     if 值 is None or not isinstance(值,dict):#非对象
-        raise Exception('自动审查：审查输出必须是一个 JSON 对象')
+        raise 审查错误('自动审查：审查输出必须是一个 JSON 对象')
     键表=list(值.keys())#键
     if 顶层成员数(文本)!=len(键表):#重复成员
-        raise Exception('自动审查：审查输出重复了 JSON 成员')
+        raise 审查错误('自动审查：审查输出重复了 JSON 成员')
     风险=值.get('risk')#风险
     决策=值.get('decision')#决策
     if len(键表)==2 and 决策=='allow' and (风险=='low' or 风险=='medium'):#允许
@@ -328,7 +329,7 @@ def 解析决策(文本):#封闭 risk/decision
         return {'risk':风险,'decision':决策}#拒绝
     if 决策=='deny' and (风险=='medium' or 风险=='high') and len(键表)==3 and 'reason' in 值 and isinstance(值['reason'],str):#带因
         return {'risk':风险,'decision':决策,'reason':值['reason']}#拒绝
-    raise Exception('自动审查：审查输出不符合风险/决策协议')
+    raise 审查错误('自动审查：审查输出不符合风险/决策协议')
 
 def 读决策(流):#推理块后恰好一块 JSON 文本再终止
     '消费零或多块推理、一块 JSON 文本与一次终止 stop'
@@ -336,23 +337,23 @@ def 读决策(流):#推理块后恰好一块 JSON 文本再终止
     已结束=False#终止
     for 块 in 流:#逐块
         if 已结束:#终止后再有数据
-            raise Exception('自动审查：审查在终态结束之后仍发出数据')
+            raise 审查错误('自动审查：审查在终态结束之后仍发出数据')
         组装器.推入(块)#推
         if 块.get('type')=='finish':#终止
             已结束=True#记下
             if 块['reason'].get('kind')!='stop':#非 stop
-                raise Exception('自动审查：审查以 '+str(块['reason'].get('kind'))+' 结束')
+                raise 审查错误('自动审查：审查以 '+str(块['reason'].get('kind'))+' 结束')
     if not 已结束:#无终止
-        raise Exception('自动审查：审查没有发出终态结束')
+        raise 审查错误('自动审查：审查没有发出终态结束')
     块表=组装器.块列表()#块
     if len(块表)==0:#空
-        raise Exception('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
+        raise 审查错误('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
     末=块表[-1]#末
     if 末.get('type')!='text':#非文本
-        raise Exception('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
+        raise 审查错误('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
     for 块 in 块表[:-1]:#前缀
         if 块.get('type')!='reasoning':#非推理
-            raise Exception('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
+            raise 审查错误('自动审查：审查必须先发出零个或多个推理块，再恰好发出一个文本块')
     return 解析决策(末['text'])#决策
 
 def 分类风险(上下文,智能体,执行,信号):#固定策略与当前路由
@@ -422,7 +423,7 @@ def 应用(上下文):#安装 Auto 与前置审查门
         def 准入():#登记 Auto
             '关闭中拒绝选择'
             if not 接纳中:#关闭
-                raise Exception('自动审查：集成正在关闭')
+                raise 审查错误('自动审查：集成正在关闭')
         停贡献=权限预设.登记自动(准入)#贡献
         def 卸():#拆除
             '先关选择再迁 Full access，再等在途'

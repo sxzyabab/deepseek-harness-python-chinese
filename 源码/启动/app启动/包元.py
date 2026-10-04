@@ -2,6 +2,7 @@
 import os,re,base64,json
 from .配置解析.解析器 import 裸包名
 from ...依赖.loader.内部 import 模块加载器
+from .异常 import 启动错误
 
 __all__=['解析插件资源','读插件元']
 
@@ -17,13 +18,13 @@ def 文本于(值,字段):
     if 值 is None:
         return None
     if not isinstance(值,str) or 值.strip()=='':
-        raise Exception(字段+' must be a non-empty string')
+        raise 启动错误(字段+' must be a non-empty string')
     return 值
 
 def 对象于(值,字段):
     '必须是对象'
     if not isinstance(值,dict):
-        raise Exception(字段+' must be an object')
+        raise 启动错误(字段+' must be an object')
     return 值
 
 def 读对象(文件):
@@ -35,7 +36,7 @@ def 读对象(文件):
         finally:
             文件对象.close()
     except Exception as 错误:
-        raise Exception(str(错误))
+        raise 启动错误(str(错误))
     return 对象于(内容,'resource')
 
 def 回退文本(值):
@@ -48,38 +49,38 @@ def 图标于(值,清单目录):
     if 图标 is None:
         return None
     if os.path.isabs(图标) or re.match(r'^[A-Za-z][A-Za-z\d+.-]*:',图标):
-        raise Exception('icon must be a relative file path')
+        raise 启动错误('icon must be a relative file path')
     媒体=图标媒体类型.get(os.path.splitext(图标)[1].lower())
     if 媒体 is None:
-        raise Exception('icon must be SVG, PNG, JPEG, or WebP')
+        raise 启动错误('icon must be SVG, PNG, JPEG, or WebP')
     目录=os.path.realpath(清单目录)
     文件=os.path.realpath(os.path.join(目录,图标))
     相对=os.path.relpath(文件,目录)
     if 相对=='..' or 相对.startswith('..'+os.sep) or os.path.isabs(相对):
-        raise Exception('icon must remain inside its manifest directory')
+        raise 启动错误('icon must remain inside its manifest directory')
     if not os.path.isfile(文件):
-        raise Exception('icon must be a regular file')
+        raise 启动错误('icon must be a regular file')
     大小=os.path.getsize(文件)
     if 大小>最大图标字节:
-        raise Exception('icon exceeds 256 KiB')
+        raise 启动错误('icon exceeds 256 KiB')
     文件对象=open(文件,'rb')
     try:
         字节=文件对象.read()
     finally:
         文件对象.close()
     if len(字节)>最大图标字节:
-        raise Exception('icon exceeds 256 KiB')
+        raise 启动错误('icon exceeds 256 KiB')
     return 'data:'+媒体+';base64,'+base64.b64encode(字节).decode('ascii')
 
 def 解析插件资源(说明符,父网址):
     '经活动模块解析器解析插件资源，不把路径写入错误'
     加载器=模块加载器.从内部()
     if 加载器 is None:
-        raise Exception('Plugin metadata requires the module resolver')
+        raise 启动错误('Plugin metadata requires the module resolver')
     模块=加载器.import_(说明符,父网址,{})
     路径=getattr(模块,'__file__',None)
     if not 路径:
-        raise Exception('plugin resource could not resolve to a local file')
+        raise 启动错误('plugin resource could not resolve to a local file')
     return 路径
 
 def 缺席资源(错误):
@@ -107,13 +108,13 @@ def 词典表(英文路径,说明符,父网址):
         资源=说明符+'/locale/'+名
         语言=名[:-5]
         if not 语言标识.match(语言):
-            raise Exception(资源+' must use a language id as its filename')
+            raise 启动错误(资源+' must use a language id as its filename')
         标识=语言.lower()
         if 标识 in 词典:
-            raise Exception(资源+' duplicates locale '+标识)
+            raise 启动错误(资源+' duplicates locale '+标识)
         文件=解析插件资源(资源,父网址)
         if os.path.dirname(文件)!=目录:
-            raise Exception(资源+' must share the English locale directory')
+            raise 启动错误(资源+' must share the English locale directory')
         解析=读对象(文件)
         元=None if 解析.get('meta') is None else 对象于(解析['meta'],'meta')
         词典[标识]={

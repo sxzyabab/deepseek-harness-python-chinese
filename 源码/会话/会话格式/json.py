@@ -1,7 +1,7 @@
 '耐久会话格式 JSON 边界校验与快照'
 import math#负零与有限数
 from ...工具.值 import 快照json值,深冻结#JSON快照与深冻结
-from .错误 import 会话格式错误#导入格式错误
+from .异常 import 会话格式错误#导入格式错误
 
 安全整数上限=9007199254740991#外来JSON Number.MAX_SAFE_INTEGER
 

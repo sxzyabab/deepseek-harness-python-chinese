@@ -32,9 +32,7 @@ __all__=[#仅中文公开名
 
 依赖=['slots','locale','remote','remote.dynamicCordisRunner','dynamicCordisRunner']
 
-class 远端错误(Exception):
-    '远端 RPC 载体失败'
-    pass#消息在构造时传入
+from ..异常 import 远端错误#远端 RPC 载体失败
 
 def 读远端错(答):
     """从 RPC 载体拼失败消息。

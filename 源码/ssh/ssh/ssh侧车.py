@@ -2,15 +2,16 @@ import hashlib,os,sys,threading,uuid#摘要、路径、平台、租期与流 id
 import tempfile,shutil#临时根与删除
 from ...依赖 import cordis#上下文
 from ...依赖.工具 import 二进制#base64
-from ...文件系统.文件系统 import 文件系统错误#整文超限
+from ...文件系统.文件系统.异常 import 文件系统错误#整文超限
 from ...文件系统.文件系统沙盒 import 沙箱文件系统#沙箱 fs
-from ...子进程.子进程 import 可执行未找到错误#查找失败
+from ...子进程.子进程.异常 import 可执行未找到错误#查找失败
 from ...子进程.本地子进程 import 本地子进程运行时#本地进程
 from ...沙盒.本地沙盒 import 本地沙箱提供方#本地沙箱
 from ...沙盒.沙盒策略 import 沙箱政策服务#政策
 from ...会话.会话投影 import 会话投影注册表#投影
 from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号#中止
-from .协议 import ssh请求对等,远程操作错误,ssh进程句柄上限,ssh文本流上限,ssh协议版本#对等
+from .异常 import ssh错误,远程操作错误#本包基类与带码远端错误
+from .协议 import ssh请求对等,ssh进程句柄上限,ssh文本流上限,ssh协议版本#对等
 from .远端进程 import 远端进程#进程表
 from .模式 import (
     编辑模式,#编辑
@@ -21,7 +22,6 @@ from .模式 import (
     远端路径,#路径
     目标模式,#目标
     文本流标识模式,#流 id
-    ssh错误,#基类
 )#模式结束
 
 __all__=['运行ssh辅助']#仅中文公开名

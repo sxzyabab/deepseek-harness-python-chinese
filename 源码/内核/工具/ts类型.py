@@ -1,10 +1,8 @@
 import re
 from .json模式 import 断言受支持json模式,转json#导入统一 JSON Schema 校验
+from .异常 import ts类型渲染错误 as 类型渲染错误
 
 __all__=('json模式转ts','渲染工具sdk')#仅中文公开名
-
-class 类型渲染错误(Exception):
-    '内核工具 TypeScript 类型渲染包的异常基类'
 
 裸标识符规则=re.compile(r'^[A-Za-z_$][A-Za-z0-9_$]*\Z',re.ASCII)#裸标识符规则
 

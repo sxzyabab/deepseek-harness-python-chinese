@@ -1,7 +1,8 @@
 '模型请求的确定性缓存图像版本'
 import hashlib,json,os,uuid#摘要、描述符与原子写
 from io import BytesIO#内存缓冲
-from ..附件 import 附件错误,图像变体标识,若已中止则抛出#附件缝
+from ..附件 import 图像变体标识,若已中止则抛出#附件缝
+from ..附件.异常 import 附件错误#附件失败
 from .编码 import WEBP编码力度,图像编码质量阶梯,编码首个不超限,编码阶梯,是否耗尽编码#编码阶梯
 from .图像 import 探测图像,检测图像,编码alpha是否兼容#图像事实
 from .锐化 import 取锐化#惰性栅格入口

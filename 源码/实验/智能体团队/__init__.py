@@ -3,7 +3,7 @@ from ...依赖.schemastery import 正整数字段,字典字段
 from ...依赖.工具 import 聚合错误
 from ...类型化远程调用.协议 import 远程服务
 from .活动 import 团队活动
-from .错误 import 团队错误,错误文案
+from .异常 import 团队错误,错误文案
 from .日志 import 团队日志
 from .生命周期 import 团队运行时生命周期
 from .邮箱 import 团队邮箱

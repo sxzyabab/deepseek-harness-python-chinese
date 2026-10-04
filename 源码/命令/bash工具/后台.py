@@ -3,13 +3,9 @@ from ...沙盒.沙盒 import 沙箱拒绝标记,升级提示标记
 import threading
 from concurrent.futures import Future as 原生结果
 
-__all__=['进程结果','进程源列表','环增量','进程作业']
+from .异常 import 后台错误#后台任务适配失败
 
-class 后台错误(Exception):
-    '后台任务适配失败'
-    def __init__(自身,消息):
-        '用原样英文消息构造'
-        super().__init__(消息)
+__all__=['进程结果','进程源列表','环增量','进程作业']
 
 class 操作任务:
     '任务对象只留等待'

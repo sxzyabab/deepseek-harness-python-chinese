@@ -5,6 +5,7 @@ from ...依赖.schemastery import 字符串字段#配置字段
 服务=cordis.服务#Cordis服务基类
 from ..命令 import 托管环境前缀#DSH_前缀
 from ...工具.主目录路径 import 解析主目录,主目录环境键#解析harness主目录与DSH_HOME键
+from .异常 import 外壳环境错误#本包异常基类
 
 __all__=(
     '名称','依赖','配置',
@@ -22,12 +23,6 @@ __all__=(
 会话JSONL键=托管环境前缀+'SESSION_JSONL'#DSH_SESSION_JSONL键
 保留环境键=set((主目录环境键,外壳键,会话ID键))#注册表自留键
 环境键后缀模式=re.compile(r'^[A-Z][A-Z0-9_]*\Z',re.ASCII)#前缀之后的合法后缀
-
-class 外壳环境错误(Exception):#本包异常基类
-    'shell 环境贡献方登记或收集失败'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 按名排序(贡献方):#sorted 的键函数
     '按贡献方名字排序'

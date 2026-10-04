@@ -2,7 +2,7 @@
 import mimetypes#按扩展名查 MIME
 import os#绝对路径判定
 from urllib.parse import parse_qs as 解析查询串,urlparse as 解析网址
-from ...文件系统.文件系统 import 文件系统错误#文件系统错误
+from ...文件系统.文件系统.异常 import 文件系统错误#文件系统错误
 
 __all__=['会话媒体引用']#仅中文公开名
 

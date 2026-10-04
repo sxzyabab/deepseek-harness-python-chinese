@@ -15,7 +15,8 @@ from .投影存储 import 投影值存储
 from .约定 import 可变会话事件源
 from .会话 import 会话,页消息数,跳转页消息数
 from .会话簇 import 会话簇
-from .服务 import 会话创建错误,会话分叉错误,客户端会话服务,应用客户端会话
+from .服务 import 客户端会话服务,应用客户端会话
+from ..异常 import 会话创建错误,会话分叉错误#本包异常
 
 __all__=[
     '断言会话线事件',

@@ -2,7 +2,7 @@
 from ...工具.值 import 深冻结#深冻结
 from .链 import 创建会话格式链#导入创建链
 from .上下文 import 会话格式事件收集器#导入事件收集器
-from .错误 import 会话格式错误,会话格式不支持迁移错误#导入错误
+from .异常 import 会话格式错误,会话格式不支持迁移错误#导入错误
 from .json import (#从json导入
     检查会话格式版本,#检查版本
     快照会话格式头,#快照头

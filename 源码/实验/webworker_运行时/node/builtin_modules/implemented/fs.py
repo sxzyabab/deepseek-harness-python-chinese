@@ -2,8 +2,8 @@ from .buffer import Buffer#本包Buffer
 from ....storage.活动 import 要求活动vfs#导入活动VFS
 from .stream import Readable,Writable#导入流基类
 from .path import dirname#导入目录名
-from .abort_error import 中止错误,已中止#导入中止错误|中止谓词
-from ...未实现失败 import 运行时错误#本包错误
+from ....异常 import 中止错误,运行时错误#中止错误|本包错误
+from .abort_error import 已中止#中止谓词
 from .fs_watch import FSWatcher,StatWatcher,unwatchFile,watch,watchAsync,watchFile#监视导出
 
 __all__=[#仅中文公开名

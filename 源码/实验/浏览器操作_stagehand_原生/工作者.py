@@ -1,5 +1,6 @@
 from .原生 import 打开原生浏览器,浏览器输入#SDK
 from .工作者rpc import 应答#RPC
+from .异常 import stagehand排空错误#SDK 未排空
 
 __all__=['运行工作者']#仅中文公开名
 
@@ -7,13 +8,13 @@ def 运行工作者(配置,收件箱):#隔离工作者
     '在隔离线程里持有 Stagehand SDK。收件箱是队列'
     模式=配置.get('mode')#模式
     if 模式 not in ('launch','attach'):#非法
-        raise Exception('Stagehand 浏览器操作')
+        raise stagehand排空错误('Stagehand 浏览器操作')
     if not isinstance(配置.get('headless'),bool):#非法
-        raise Exception('Stagehand 浏览器操作')
+        raise stagehand排空错误('Stagehand 浏览器操作')
     if not isinstance(配置.get('operationTimeoutMs'),(int,float)) or 配置['operationTimeoutMs']<=0:#非法
-        raise Exception('Stagehand 浏览器操作')
+        raise stagehand排空错误('Stagehand 浏览器操作')
     if not isinstance(配置.get('shutdownGraceMs'),(int,float)) or 配置['shutdownGraceMs']<=0:#非法
-        raise Exception('Stagehand 浏览器操作')
+        raise stagehand排空错误('Stagehand 浏览器操作')
     打开=打开原生浏览器({#配置
         **{键:配置[键] for 键 in 配置 if 键 not in ('extensionId','cdpEndpoint','executablePath')},#其余
         **({} if 'extensionId' not in 配置 else {'extensionId':配置['extensionId']}),#扩展
@@ -30,7 +31,7 @@ def 运行工作者(配置,收件箱):#隔离工作者
             运行时['close']()#关
             return None#空
         if 方法 not in 方法集:#非法
-            raise Exception('Stagehand 浏览器操作')
+            raise stagehand排空错误('Stagehand 浏览器操作')
         return 运行时['execute'](方法,参数)#执行
     while True:#循环
         原始=收件箱.get()#取

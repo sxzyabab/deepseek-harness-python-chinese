@@ -1,7 +1,7 @@
 from ...依赖.工具 import 克隆,聚合错误,获取内部数据
 from ...依赖.loader import 插件树
 from ...内核.作用域 import 获取作用域,获取作用域父
-from .类型 import 预设注册表错误
+from .异常 import 预设注册表错误#注册表失败
 
 __all__=[
     '实时预设挂载表','已泄漏服务列表','常驻挂载','获取智能体服务',

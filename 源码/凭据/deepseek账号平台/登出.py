@@ -1,6 +1,7 @@
 import time
 from ...工具.超时 import 已中止,截止
-from .协议 import 登出账号,平台认证错误
+from .异常 import 平台认证错误
+from .协议 import 登出账号
 
 __all__=['吊销账号']
 

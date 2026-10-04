@@ -3,8 +3,9 @@ import os#绝对路径判断
 from functools import cmp_to_key#目录列举排序比较器
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义器
-from ..文件系统 import 文件系统错误#导入文件系统错误
+from ..文件系统.异常 import 文件系统错误#导入文件系统错误
 from ...沙盒.沙盒 import 沙箱拒绝标记#导入沙箱拒绝标记文案
+from .异常 import 错误#本包异常
 
 __all__=(#仅中文公开名
     '名称','依赖','截断消息','默认描述','配置',
@@ -36,9 +37,6 @@ __all__=(#仅中文公开名
     'maxOutputChars':数字字段(默认值=16_000),#视图字符上限
     'description':字符串字段(默认值=默认描述),#工具描述
 }#配置模式结束
-
-class 错误(Exception):
-    '运行时错误；详情保持英文线协议原文'
 
 def 或许截断(内容,最大输出字节):#按UTF-8字节上限截断输出
     '超长输出按 UTF-8 字节截到上限并接上截断提示，切点落在字符边界'

@@ -4,6 +4,7 @@ import yaml
 from ...依赖.include import 插件列表读取器,插件列表写出器
 from ...工具.原子写入 import 原子写文件
 from ..app启动 import 加载可选补丁
+from .异常 import 注册表错误
 
 __all__=['写插件启用']
 
@@ -27,7 +28,7 @@ def 写插件启用(文件名,编号,模块名,启用):
     except yaml.YAMLError as 错误:
         raise 错误
     if not isinstance(文档,list):
-        raise Exception('配置档补丁必须是 YAML 序列')
+        raise 注册表错误('配置档补丁必须是 YAML 序列')
     加载可选补丁('dsh',文件名)
     目标下标=None
     for 下标 in range(len(文档)-1,-1,-1):

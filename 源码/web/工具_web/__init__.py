@@ -1,8 +1,7 @@
 '面向模型的 web_search 与 web_fetch 工具'
 from ...依赖.schemastery import 布尔字段,数字字段
 
-class 网页工具错误(Exception):
-    'tool-web 加载或参数校验失败'
+from .异常 import 网页工具错误#tool-web 加载或参数校验失败
 
 from .搜索 import (
     网络搜索最大结果数,

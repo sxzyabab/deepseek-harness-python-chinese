@@ -1,7 +1,7 @@
 import threading,queue#隔离线程与收件
 from ...内核.作用域 import 操作任务#关闭结算
 from ...工具.超时 import 若已中止则抛出,已中止,等待中止#中止
-from .原生 import stagehand排空错误#排空失败
+from .异常 import stagehand排空错误#排空失败
 from .工作者rpc import 请求#RPC
 from .工作者 import 运行工作者#工作者
 
@@ -114,7 +114,7 @@ def 打开浏览器工作者(配置,信号,警告):#隔离连接
         '经工作者执行一次操作'
         若已中止则抛出(操作信号)#中止
         if 关闭中 is not None:#已关
-            raise Exception('Stagehand 浏览器工作者已关闭')
+            raise stagehand排空错误('Stagehand 浏览器工作者已关闭')
         def 取消时():#操作取消
             '取消则关连接'
             try:#关

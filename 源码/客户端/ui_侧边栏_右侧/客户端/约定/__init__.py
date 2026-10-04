@@ -3,7 +3,7 @@ from . import (
     槽位,
     参数,
 )
-from .槽位 import 右侧侧栏错误
+from ...异常 import 右侧侧栏错误#本包异常
 
 __all__=[
     '种子',

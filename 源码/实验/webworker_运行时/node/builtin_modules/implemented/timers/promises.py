@@ -1,5 +1,6 @@
 import threading
-from ..abort_error import 中止错误,已中止,若已中止则抛出
+from .....异常 import 中止错误
+from ..abort_error import 已中止,若已中止则抛出
 
 __all__=[
     'setTimeout','setImmediate','scheduler','__esModule','default',

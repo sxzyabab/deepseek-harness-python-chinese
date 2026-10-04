@@ -1,7 +1,7 @@
 '本地 HTTP(S) 抓取提供方的 URL 校验与内容类型分类——纯的、不碰网络的一半'
 import re#抽出 charset 参数
 from urllib.parse import urlparse as 解析网址,urljoin as 拼接网址#解析与相对 Location
-from ..web import 网络错误#web 错误类型
+from ..web.异常 import 网络错误#web 错误类型
 
 可抓取种类=('html','text')#本提供方会解码的正文种类
 媒体类型去参=re.compile(r';.*\Z',re.S)#去掉 Content-Type 参数，行尾用 \\Z

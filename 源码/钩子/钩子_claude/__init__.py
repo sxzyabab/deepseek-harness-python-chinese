@@ -27,8 +27,7 @@ from .配置 import 解析克劳德代码配置#导入配置解析
 子智能体类型='general-purpose'#桥在 SubagentStart/Stop 上报的 agent_type；harness 无按种类标签
 处理器计数=0#处理器计数，用于稳定 id
 
-class 钩子claude错误(Exception):
-    'Claude 钩子桥包的异常基类'
+from .异常 import 钩子claude错误#本包异常
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

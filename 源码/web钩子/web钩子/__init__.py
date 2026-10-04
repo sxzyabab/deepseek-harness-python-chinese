@@ -1,22 +1,17 @@
 import threading
 from ...依赖 import cordis
 服务=cordis.服务
-from ...模型后端.llm import 错误链
+from ...模型后端.llm.异常 import 错误链
 from ...工具.值 import 快照json值,深冻结
 from .标识构造 import Webhook规则标识
 from .会话 import 创建Webhook会话
+from .异常 import Webhook错误,Webhook已中止#本包异常与规则拆除中止
 
 包名='@deepseek-ai/dsh-webhook'
 名称='webhook'
 依赖=['agents','agentDefaultModel','agentPresets','permissionPresets','sessionTitle','workspaceRegistry']
 
 __all__=['包名','名称','依赖','默认','Webhook运行时','Webhook错误','Webhook已中止','Webhook规则标识']
-
-class Webhook错误(Exception):
-    '本包异常基类'
-
-class Webhook已中止(Webhook错误):
-    '规则拆除导致的中止'
 
 def 已中止(信号):
     """信号是否已中止。

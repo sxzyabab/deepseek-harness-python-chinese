@@ -2,6 +2,7 @@
 import json,math,re#JSON片段、有限性、正则
 from datetime import datetime,timedelta,timezone#UTC、固定偏移与本地投影
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
+from .异常 import 日程日志错误,日程输入错误#本包异常
 
 变更版本=1#本包实现的持久日程协议版本
 最短固定间隔秒=300#固定频率提醒的固定 v1 下限
@@ -18,23 +19,6 @@ from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 本地日期=re.compile(r'^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})\Z',re.ASCII)#本地日历日期
 本地时间=re.compile(r'^(?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})(?:\.(?P<fraction>[0-9]{1,3}))?\Z',re.ASCII)#本地墙钟时间
 IANA区=re.compile(r'^[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)+\Z',re.ASCII)#IANA Area/Location
-
-class 日程日志错误(Exception):#持久日志错误
-    '畸形或转移非法的持久日程数据错误'
-    code='corrupt_schedule_log'#日志损坏码
-    def __init__(自身,消息):#构造日志错误
-        '构造一条持久日志失败'
-        Exception.__init__(自身,消息)#交给 Exception
-        自身.name='ScheduleLogError'#错误名
-
-class 日程输入错误(Exception):#输入错误
-    '模型提供的日程规则无法成为记录时的错误'
-    def __init__(自身,码,消息,原因=None):#构造输入错误
-        '构造一条稳定输入失败'
-        Exception.__init__(自身,消息)#交给 Exception
-        自身.name='ScheduleInputError'#错误名
-        自身.code=码#钉死公开码
-        自身.__cause__=原因#可选 cause
 
 def 铸造日程标识(值):#铸造日程 id
     '给原始会话局部 id 打品牌，不改运行时值'

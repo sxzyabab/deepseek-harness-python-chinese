@@ -1,5 +1,5 @@
 from ..回合指标 import 派生回合指标#回合指标
-from ..服务 import 对话错误#本包异常
+from ...异常 import 对话错误#本包异常
 from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
 from .事件面 import 是追加面事件,转助手块列表#面辅助
 

@@ -1,4 +1,5 @@
-from .....共享.json import 检查器错误,在线程执行#包内错误|后台跑
+from .....共享.json import 在线程执行#后台跑
+from .....异常 import 检查器错误#包内错误
 from ...协议 import cdp错误,响应cdp请求#协议
 from .cdp参数 import (#参数解析
     解析求值,解析取属性,解析调函数,解析等Promise,

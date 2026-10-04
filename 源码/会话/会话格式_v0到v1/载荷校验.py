@@ -2,7 +2,8 @@
 import json,math,re#诊断、有限数、瞬时正则
 from datetime import datetime#UTC瞬时字段
 from zoneinfo import ZoneInfo as 区时#时区一律 zoneinfo
-from ..会话格式 import 会话格式错误,会话格式计数,会话格式安全整数#格式错误与计数
+from ..会话格式.异常 import 会话格式错误#格式错误
+from ..会话格式 import 会话格式计数,会话格式安全整数#格式计数
 from ..会话格式.json import 是否负零#负零判定
 from .记录与精确键 import 校验已发布v0键,已发布v0记录#记录与精确键
 

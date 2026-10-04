@@ -6,6 +6,7 @@ from ...模型后端.llm import 截上下文摘要,创建用户消息
 from ...工具.输出保留 import 文本保留器
 from ..后台任务 import 任务标识
 from .渲染 import 公开任务,状态行,渲染模型增量
+from .异常 import 工具任务错误#本包异常
 
 公开任务模式={
     'type':'object',
@@ -31,12 +32,6 @@ from .渲染 import 公开任务,状态行,渲染模型增量
     'maxConsecutiveWakes':数字字段(最小=1),
 }
 完成投递=('quiet','wakeup')
-
-class 工具任务错误(Exception):
-    '任务工具入参或配置非法'
-    def __init__(自身,消息):
-        '用原样英文消息构造'
-        super().__init__(消息)
 
 def 字节长(文本):
     '按 UTF-8 计字节长度'

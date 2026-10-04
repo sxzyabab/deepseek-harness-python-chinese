@@ -1,5 +1,6 @@
 '活优先会话观察：history/follow 与冷探测共用'
-from .配置 import 会话查询错误,会话查询默认准备会话缓存大小#检索错误与默认缓存
+from .异常 import 会话查询错误#检索错误
+from .配置 import 会话查询默认准备会话缓存大小#默认缓存
 from .语料库 import 未找到#未找到工厂
 from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 

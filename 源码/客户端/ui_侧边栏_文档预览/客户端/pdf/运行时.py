@@ -1,4 +1,4 @@
-from .错误 import pdf工作线程失败#失败
+from ...异常 import pdf工作线程失败#失败
 from ..面 import 已中止#中止
 
 __all__=['打开pdf']#仅中文公开名

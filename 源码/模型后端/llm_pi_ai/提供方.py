@@ -1,6 +1,7 @@
 '构造一条已配置路由注册进适配器 Models 集合的 pi-ai Provider'
 import pi_ai#外部依赖胶水（pi-ai SDK）
-from .目录 import 目录提供方,目录错误#已安装目录提供方查找与目录错误
+from .异常 import 目录错误#目录失败
+from .目录 import 目录提供方#已安装目录提供方查找
 from .模型 import 创建提供方#静态提供方工厂
 
 __all__=('受支持协议','线束密钥认证','路由认证','复用目录提供方','构建提供方')#仅中文公开名

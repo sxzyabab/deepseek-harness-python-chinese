@@ -6,6 +6,7 @@ from ...依赖.工具 import 是否表达式节点,路径转文件url,文件url�
 from ..配置解析.解析器 import 安装配置解析
 from .原生 import 是否原生配置数据架构
 from .文档 import 构建配置数据架构文档
+from ..异常 import 启动错误
 
 __all__=['收集配置数据架构']
 
@@ -36,23 +37,23 @@ def 校验元数据(行):
     for 键 in ('id','name'):
         值=行.get(键)
         if 值 is not None and not isinstance(值,str):
-            raise Exception(键+' must be a literal string')
+            raise 启动错误(键+' must be a literal string')
     组值=行.get('group')
     if 组值 is not None and not isinstance(组值,bool):
-        raise Exception('group must be a literal boolean or null')
+        raise 启动错误('group must be a literal boolean or null')
 
 def 校验条目(值):
     '条目必须带字面插件名'
     if not 是记录(值) or not isinstance(值.get('name'),str):
-        raise Exception('each entry must be a mapping with a literal plugin name')
+        raise 启动错误('each entry must be a mapping with a literal plugin name')
     校验元数据(值)
 
 def 条目列表(值):
     '字面条目列表'
     if 值 is None:
-        raise Exception('entry list config is missing')
+        raise 启动错误('entry list config is missing')
     if not isinstance(值,list):
-        raise Exception('expected a literal entry list; config expressions are not evaluated')
+        raise 启动错误('expected a literal entry list; config expressions are not evaluated')
     return 值
 
 def 包含补丁(值):
@@ -60,10 +61,10 @@ def 包含补丁(值):
     if 值 is None:
         return None
     if not isinstance(值,list):
-        raise Exception('include patches must be a literal patch list; config expressions are not evaluated')
+        raise 启动错误('include patches must be a literal patch list; config expressions are not evaluated')
     for 补丁 in 值:
         if not 是记录(补丁) or 是否表达式节点(补丁):
-            raise Exception('include patches must be literal mappings; config expressions are not evaluated')
+            raise 启动错误('include patches must be literal mappings; config expressions are not evaluated')
         校验元数据(补丁)
         if 补丁.get('insert') is not None:
             条目列表(补丁['insert'])
@@ -79,7 +80,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
     try:
         加载器实例=模块加载器.从内部()
         if 加载器实例 is None:
-            raise Exception('config schema dump requires the module loader used by profile resolution')
+            raise 启动错误('config schema dump requires the module loader used by profile resolution')
         原生载体={}
         def 载体(插件,基址):
             '识别 group/include 载体'
@@ -107,7 +108,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                 return 'group'
             if 插件 is 已解析['include']:
                 return 'include'
-            raise Exception('unrecognized Loader tree carrier; use cordis:group or cordis:include for native child collection')
+            raise 启动错误('unrecognized Loader tree carrier; use cordis:group or cordis:include for native child collection')
         祖先=set()
         def 报告(路径,错误):
             '记下错误诊断，不含绝对路径'
@@ -129,15 +130,15 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
         def 走包含(配置,基址,路径):
             '走 include 子树'
             if 配置 is None:
-                raise Exception('include config is missing')
+                raise 启动错误('include config is missing')
             if not 是记录(配置) or 是否表达式节点(配置):
-                raise Exception('include config must be literal; config expressions are not evaluated')
+                raise 启动错误('include config must be literal; config expressions are not evaluated')
             if not isinstance(配置.get('path'),str):
-                raise Exception('include path must be literal; config expressions are not evaluated')
+                raise 启动错误('include path must be literal; config expressions are not evaluated')
             文件名=文件url转路径(路径转文件url(os.path.join(文件url转路径(基址) if 基址.startswith('file:') else 基址,配置['path'])))
             扩展=os.path.splitext(文件名)[1]
             if 扩展 not in ('.json','.yaml','.yml'):
-                raise Exception('include extension '+json.dumps(扩展,ensure_ascii=False)+' is not supported')
+                raise 启动错误('include extension '+json.dumps(扩展,ensure_ascii=False)+' is not supported')
             try:
                 规范=os.path.realpath(文件名)
             except OSError as 错误:
@@ -145,7 +146,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                     raise 错误
                 规范=文件名
             if 规范 in 祖先:
-                raise Exception('include cycle')
+                raise 启动错误('include cycle')
             内容=None
             源=None
             try:
@@ -159,7 +160,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                     raise 错误
                 源=配置.get('initial')
                 if 源 is None:
-                    raise Exception('include file not found')
+                    raise 启动错误('include file not found')
             if 内容 is not None:
                 try:
                     源=json.loads(内容) if 扩展=='.json' else yaml.load(内容,Loader=插件列表读取器)
@@ -168,13 +169,13 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                     标记=getattr(错误,'problem_mark',None)
                     if 标记 is not None:
                         位置=' at line '+str(标记.line+1)+', column '+str(标记.column+1)
-                    raise Exception('invalid '+('JSON' if 扩展=='.json' else 'YAML')+' include'+位置)
+                    raise 启动错误('invalid '+('JSON' if 扩展=='.json' else 'YAML')+' include'+位置)
             补丁=包含补丁(配置.get('patches'))
             行表=条目列表(源)
             try:
                 子=应用插件补丁(list(行表),补丁,警告(路径))
             except Exception as 错误:
-                raise Exception('include patches could not be composed; child declarations are unavailable') from 错误
+                raise 启动错误('include patches could not be composed; child declarations are unavailable') from 错误
             祖先.add(规范)
             try:
                 走(子,路径转文件url(os.path.dirname(文件名)+os.sep),路径+'/include')
@@ -204,7 +205,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                     if 名.startswith('cordis:'):
                         内建名=名[7:]
                         if 内建名 not in 内建:
-                            raise Exception('unknown Cordis builtin '+json.dumps(名,ensure_ascii=False))
+                            raise 启动错误('unknown Cordis builtin '+json.dumps(名,ensure_ascii=False))
                         导出=内建[内建名]
                     else:
                         导出=加载器实例.import_(名,基址,{})

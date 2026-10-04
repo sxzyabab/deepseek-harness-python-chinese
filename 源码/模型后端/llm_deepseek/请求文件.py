@@ -10,14 +10,7 @@ __all__=['文件解析失败','请求文件']
 缺失=re.compile(r'(?:expired|not[_ -]?found|deleted|do(?:es)? not exist|not created under (?:this|your) account)',re.I)
 非法号=re.compile(r'(?:invalid.{0,20}file[_ -]?(?:id|api)|file[_ -]?(?:id|api).{0,20}invalid)',re.I)
 
-class 文件解析失败(Exception):
-    '上传失败，整请求可回退内联'
-    def __init__(自身,原因=None):
-        '记下原因'
-        super().__init__('DeepSeek Files API could not resolve a request image.')
-        自身.name='FileResolutionFailure'
-        if 原因 is not None:
-            自身.__cause__=原因
+from .异常 import 文件解析失败#上传失败，整请求可回退内联
 
 def 提供方拒归一化图(详情):
     '详情是否像拒归一化图'

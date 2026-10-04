@@ -1,4 +1,5 @@
-from ..共享.json import 在线程执行,检查器错误#后台跑|包内错误
+from ..共享.json import 在线程执行#后台跑
+from ..异常 import 检查器错误#包内错误
 from .服务器 import 启动检查器Worker#装配并启动
 
 __all__=['主入口']#仅中文公开名

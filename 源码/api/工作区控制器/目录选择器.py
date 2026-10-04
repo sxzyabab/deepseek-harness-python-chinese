@@ -1,7 +1,8 @@
 '宿主目录选择 Remote 拥有者'
 import re
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from .远程错误与中止 import 远程错误,远程错误消息,已中止
+from .远程错误与中止 import 远程错误消息,已中止
+from .异常 import 远程错误#本包异常
 
 __all__=['目录选择器控制器']
 

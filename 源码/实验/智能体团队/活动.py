@@ -1,6 +1,6 @@
 import threading
 from .生命周期 import 已中止
-from .错误 import 团队错误
+from .异常 import 团队错误
 
 __all__=['团队活动']
 

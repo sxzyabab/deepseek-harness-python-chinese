@@ -1,7 +1,8 @@
 '浏览器表面组合包的运行时粘合插件'
 import os,socket,webbrowser
 from ...依赖.schemastery import 布尔字段,列表字段,字符串字段
-from ...启动.app启动 import 添加源码段落,审计启动条目,启动错误
+from ...启动.app启动 import 添加源码段落,审计启动条目
+from ...启动.app启动.异常 import 启动错误
 from ...工具.启动环境 import 取启动环境,经ssh拉起#SSH 拉起时抑制打开浏览器
 
 __all__=['名称','依赖','配置','应用','解析局域网信任','内部','网页启动服务键','网页错误']
@@ -24,8 +25,7 @@ __all__=['名称','依赖','配置','应用','解析局域网信任','内部','�
 
 网页启动服务键='webStartup'#供补丁与启动模块共用
 
-class 网页错误(Exception):
-    'Web 应用组合包失败'
+from .异常 import 网页错误#Web 应用组合包失败
 
 def 列举局域网地址():
     '采样本机非内部 IPv4 字面量'

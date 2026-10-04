@@ -1,6 +1,6 @@
 '面向人类的 /compact 命令，经压缩服务接口触发手动压缩'
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
-from ..压缩 import 手动压缩错误#预期手动压缩失败
+from ..压缩.异常 import 手动压缩错误#预期手动压缩失败
 
 名称='command-compact'#框架插件名
 依赖=['commands','compaction']#依赖命令注册表与压缩缝

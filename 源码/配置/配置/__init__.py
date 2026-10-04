@@ -15,9 +15,7 @@ from .数据架构 import 朴素配置,易变表单,投影表单,是否易变路
 工作线程=threading.Thread
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
 
-class 设置错误(Exception):
-    '设置服务失败'
-    pass
+from .异常 import 设置错误,设置冲突错误#设置服务失败
 
 class 操作任务:
     '单次操作的 Future 包装。只留 等待'
@@ -80,16 +78,6 @@ def json深度相等(甲,乙):
         if not json深度相等(甲[键],乙[键]):
             return False
     return True
-
-class 设置冲突错误(Exception):
-    '因命名空间在调用方读过之后发生了移动而被拒绝的写入'
-    def __init__(自身,命名空间,期望,实际):
-        '构造冲突错误'
-        super().__init__('settings namespace "'+str(命名空间)+'" changed since it was read (expected revision '+str(期望)+', now '+str(实际)+')')#诊断原文不改
-        自身.name='SettingsConflictError'
-        自身.code='SETTINGS_CONFLICT'
-        自身.expected=期望
-        自身.actual=实际
 
 def 是否普通对象(值):#普通对象守卫
     '值是否为普通数据对象（不是数组、null 或类实例）'

@@ -1,8 +1,8 @@
 import base64 as _基64#Base64编码
 import json#JSON解析
 import re#源映射尾注
-from ..node.builtin_modules.implemented.abort_error import 中止错误,已中止#本包中止原语
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..node.builtin_modules.implemented.abort_error import 已中止#本包中止原语
+from ..异常 import 运行时错误,中止错误,隧道逻辑流错误#本包错误
 
 __all__=['工作线程隧道']#仅中文公开名
 
@@ -40,20 +40,6 @@ def 转正文缓冲(正文):#请求体转缓冲
     if isinstance(正文,(bytes,bytearray,memoryview)):#已是缓冲
         return bytes(正文)#规范字节
     raise 运行时错误(f'web-preview tunnel: unsupported request body {type(正文)}')#不支持的体
-
-class 隧道逻辑流错误(Exception):#隧道逻辑流错误
-    '跨独立打包的 Client 代码携带流语义的错误'
-
-    def __init__(自身,失败,原因=None):#构造错误
-        '按失败种类填充远程流失败标记'
-        super().__init__(失败['message'] if 'message' in 失败 else '')#基类
-        自身.name='TunnelLogicalStreamError'#错误名
-        if 'kind' in 失败 and 失败['kind']=='remote':#远程失败
-            自身.dshRemoteStreamFailure={'kind':'remote','code':失败['code'] if 'code' in 失败 else None,'details':失败['details'] if 'details' in 失败 else None}#远程标记
-        else:#载体失败
-            自身.dshRemoteStreamFailure={'kind':'carrier'}#载体标记
-        if 原因 is not None:#带cause
-            自身.__cause__=原因#cause
 
 class 逻辑流入箱:#逻辑流入箱
     '逻辑流帧入箱：推入、失败、取下一帧'

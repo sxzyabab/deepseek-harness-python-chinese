@@ -4,7 +4,7 @@ from ...依赖 import cordis
 纤程状态=cordis.纤程状态
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
-from ...模型后端.llm import 装备错误#Harness错误
+from ...模型后端.llm.异常 import 装备错误#Harness错误
 from ..命令 import 托管环境前缀#DSH环境前缀
 from ...沙盒.沙盒 import (
     升级目标,#可广告的升级目标
@@ -14,6 +14,7 @@ from ...沙盒.沙盒 import (
 )#导入沙箱升级与路径辅助
 from .后台 import 进程结果,进程源列表,环增量,进程作业
 from .渲染 import 解析退出状态,渲染结果,渲染晋升,渲染任务读取
+from .异常 import bash工具错误#本包校验与组合失败
 
 __all__=['名称','依赖','配置','应用']#仅中文公开名
 
@@ -27,12 +28,6 @@ __all__=['名称','依赖','配置','应用']#仅中文公开名
     'kind':{'type':'string','required':True,'const':'background'},#种类为background
     'jobId':{'type':'string','required':True},#任务id
 }#后台输出字段结束
-
-class bash工具错误(Exception):#本包校验与组合失败
-    'bash工具入参或组合非法'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
     '任务对象只留等待'

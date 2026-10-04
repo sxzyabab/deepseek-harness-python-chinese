@@ -1,5 +1,6 @@
 '一次性会话全文只读模型的 SQLite 模式'
 import os,sqlite3#路径与 sqlite3
+from .异常 import 会话查询sqlite错误#本包异常
 __all__=[
     '会话查询sqlite应用标识',
     '会话查询sqlite模式版本',
@@ -15,9 +16,6 @@ __all__=[
     'persisted_docs_data','persisted_docs_idx','persisted_docs_content',
     'persisted_docs_docsize','persisted_docs_config',
 ])#派生索引允许的用户表
-
-class 会话查询sqlite错误(Exception):
-    '会话查询 sqlite 模式包的异常基类'
 
 def 创建数据库文件(路径):
     '独占创建缺失库文件；已存在则保留 mode'

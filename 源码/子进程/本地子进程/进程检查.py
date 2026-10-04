@@ -1,5 +1,5 @@
 import os,re,signal,struct,sys,sysconfig,importlib.util,platform as 平台库,stat as 文件状态#读proc、匹配数字名、信号、小端整型、平台与标准库载入
-from .终端 import 本地子进程错误#本包错误
+from .异常 import 本地子进程错误#本包错误
 标准库子进程规格=importlib.util.spec_from_file_location('dsh_stdlib_subprocess',os.path.join(sysconfig.get_path('stdlib'),'subprocess.py'))#标准库subprocess路径
 标准库子进程=importlib.util.module_from_spec(标准库子进程规格)#标准库模块壳
 标准库子进程规格.loader.exec_module(标准库子进程)#装入标准库subprocess

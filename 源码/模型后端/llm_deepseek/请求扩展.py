@@ -1,6 +1,6 @@
 '准备插件贡献的请求字段，并在 HTTP 接受后提交投递'
 import json
-from ..llm import 大模型错误
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 
 __all__=['准备请求扩展']
 

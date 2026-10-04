@@ -4,8 +4,8 @@ from .events import 事件发出器#导入事件发出器
 from .async_hooks import 捕获异步上下文,在异步上下文运行#导入异步上下文
 from .path import 基名,相对,解析,分隔符#导入路径工具
 from ....storage.活动 import 要求活动vfs#导入活动VFS
-from ...未实现失败 import 运行时错误#VFS 错误
-from .abort_error import 中止错误,已中止,若已中止则抛出#导入中止原语
+from ....异常 import 运行时错误,中止错误#VFS 错误|中止错误
+from .abort_error import 已中止,若已中止则抛出#导入中止原语
 
 __all__=['文件系统监视器','统计监视器','监视','监视文件','取消监视文件','异步监视']#仅中文公开名；Node 面挂名不入表
 

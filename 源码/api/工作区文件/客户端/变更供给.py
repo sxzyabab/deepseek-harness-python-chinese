@@ -3,7 +3,8 @@ import json#断言帧
 from ....基础设施.通用工具 import 获取内部数据
 import threading#唤醒与结算
 from concurrent.futures import Future as 原生结果#就绪与拆除
-from ..类型 import 已中止,远程错误#中止查询与包异常
+from ..类型 import 已中止#中止查询
+from ..异常 import 远程错误#本包异常
 
 __all__=['变更供给']#仅中文公开名
 

@@ -4,13 +4,10 @@ import os,sys,tempfile,shutil#目录、参数、临时目录与删除
 from .ffi import 解析绑定#惰性Win32绑定
 from . import ACL沙箱,断言临时根在工作区外#沙箱与临时根边界检查
 from .工作区sid import 临时写入SID,工作区写入SID#临时与工作区SID推导
+from .异常 import 运行器失败#已打印签名的失败
 
 运行器签名='windows-acl-run'#失败签名前缀
 运行器失败退出=127#运行器失败退出码
-
-class 运行器失败(Exception):#已打印过签名的失败
-    '已向 stderr 打印签名行的运行器失败'
-    pass#无额外字段
 
 def 失败(细节):#打印并抛出
     '打印运行器失败签名行并展开'

@@ -3,6 +3,7 @@ from ....基础设施.通用工具 import 获取内部数据
 from urllib.parse import quote as 百分编码#URI 段编码
 from ....上下文.文件引用.词法 import 格式化文件提及#文件 mention 格式化
 from .文案 import 命名空间,中文,英文#词典与键
+from ..异常 import 引用错误#本包异常
 
 __all__=[#仅中文公开名
     '依赖','应用','面包屑','目录载荷','文件候选行','会话候选行','解析候选',
@@ -13,12 +14,6 @@ __all__=[#仅中文公开名
     'inputTriggers','locale','sessions','remote','remote.fileReferences',#基础服务
     'remote.sessionReferenceResolver','sidebarRight',#会话引用解析与右侧边栏
 ]#inject 结束
-
-class 引用错误(Exception):
-    '本包引用源失败'
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
 
 def 已中止(信号):
     'threading.Event 是否已置位'

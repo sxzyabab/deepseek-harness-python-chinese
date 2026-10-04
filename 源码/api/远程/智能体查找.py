@@ -2,7 +2,8 @@
 import threading#后台恢复
 from typing import NotRequired,TypedDict#结构类型
 from concurrent.futures import Future as 原生结果#单次操作结果
-from ...类型化远程调用.协议 import 查找策略失败
+from ...类型化远程调用.协议.异常 import 查找策略失败#lookup 策略拒绝
+from .异常 import 远程查找错误基类,远程会话未找到,远程子智能体会话所有权#本包异常
 
 __all__=(#仅中文公开名
     '远程会话未找到','远程子智能体会话所有权',
@@ -14,9 +15,6 @@ __all__=(#仅中文公开名
 )#公开面结束
 
 远程查找错误码=('agent-busy','session-not-found','internal')#面向调用方失败码联合
-
-class 远程查找错误基类(Exception):
-    '远程智能体查找包的异常基类'
 
 class 远程查找错误(TypedDict):
     '网关 RPC 适配器原样保留的面向调用方失败'
@@ -64,16 +62,6 @@ class 操作任务:
     def 等待(自身,超时=None):
         '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
-
-class 远程会话未找到(远程查找错误基类):
-    '持久会话库中没有的冷身份'
-
-class 远程子智能体会话所有权(远程查找错误基类):
-    '生命周期属于子智能体路由的会话身份'
-    def __init__(自身,会话标识):
-        '记下被围栏的会话身份'
-        super().__init__('session "'+str(会话标识)+'" is a subagent session; use subagent delivery')#诊断应走子智能体投递
-        自身.会话标识=会话标识#会话身份
 
 def 有远程子智能体所有者(上下文,头,智能体):
     '测试通用宿主路由是否必须把该身份留给子智能体路由。头为会话头 dict'

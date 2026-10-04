@@ -1,5 +1,5 @@
 import json#属性序列化
-from .....共享.json import 检查器错误#包内错误
+from .....异常 import 检查器错误#包内错误
 from .....共享.cordis.对象注册表 import 领域对象表达式#对象表达式
 from ...协议 import 响应cdp请求#协议
 from ...标识 import cdp数字id,cdp字符串id#CDP id

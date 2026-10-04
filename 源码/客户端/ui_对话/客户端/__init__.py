@@ -5,7 +5,8 @@ from .文案 import 命名空间,中文,英文#词典
 from .存储 import 创建聊天存储#聊天存储
 from .阻断 import 阻断登记表#阻断
 from .提交策略 import 提交策略,默认忙碌回车行为#提交策略
-from .服务 import 会话控制器,不支持图片媒体类型,对话错误#会话服务
+from .服务 import 会话控制器#会话服务
+from ..异常 import 不支持图片媒体类型,对话错误#本包异常
 from .会话根 import 会话根,派生阶段#骨架根
 from .会话面板 import 会话面板#主面板
 from .会话体 import 会话体,会话页眉#严格会话体与页眉

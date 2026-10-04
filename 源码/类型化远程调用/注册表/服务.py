@@ -21,8 +21,7 @@ def 拼端点(描述符):#组合命名空间与方法
     '拼出本地与 Remote 调用注册表使用的端点键 `<namespace>/<method>`'
     return 描述符['namespace']+'/'+描述符['method']#端点键
 
-class 注册表错误(Exception):
-    'Typert 注册表拒绝非法贡献或重复登记'
+from .异常 import 注册表错误#非法贡献或重复登记
 
 def 校验非空(主语,值):#校验非空字符串
     '空串则抛'

@@ -1,5 +1,5 @@
 import threading,weakref#后台等待落地与中止原因旁表
-from .类型 import 钩子协议错误#本包异常基类
+from .异常 import 钩子协议错误#本包异常基类
 
 分离运行=dict#一座桥的分离钩子运行登记（运行时为跟踪器对象）
 _中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在中止信号上

@@ -1,4 +1,4 @@
-from .打包 import 打包器错误#本包错误
+from .异常 import 打包器错误#本包错误
 import json,os,shutil,subprocess,sys,tempfile#子进程、文件系统与临时目录
 from ...工具.主目录路径 import 主目录环境键
 

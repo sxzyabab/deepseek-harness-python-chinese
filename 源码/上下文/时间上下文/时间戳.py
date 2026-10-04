@@ -3,11 +3,9 @@ import os#读取进程TZ
 from datetime import datetime as 日期时间#纪元与字段拆分
 from types import SimpleNamespace as 简易命名空间#对齐resolvedOptions对象
 from zoneinfo import ZoneInfo as 区时#IANA时区
+from .异常 import 时间戳错误
 
 时间戳分段=('day','hour','minute','month','second','timeZoneName','year')#Intl分段名联合，仅作文档对齐
-
-class 时间戳错误(Exception):
-    '时间戳包的异常基类'
 
 def 解析进程时区名():#省略显式时区时解析进程回退时区
     '对齐 Node 省略 timeZone 时的进程时区解析，优先 TZ，其次本地 ZoneInfo.key'

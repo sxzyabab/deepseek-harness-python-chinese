@@ -1,40 +1,13 @@
 'API 会话智能体激活与模型选择策略'
 import os#目录
 from threading import Event as 同步事件,Lock as 互斥锁#飞行结算与串行互斥
-from .远程错误与并发 import 远程错误,远程错误消息#远程错误
+from .远程错误与并发 import 远程错误消息#远程错误消息
+from .异常 import 远程错误,会话未找到,子智能体会话所有权,cwd冲突,预设冲突#本包异常
 
 __all__=[#仅中文公开名
     '会话未找到','子智能体会话所有权','cwd冲突','预设冲突',
     '有子智能体所有者','子智能体所有权错误','检视会话','会话智能体控制器',
 ]
-
-class 会话未找到(Exception):
-    '冷会话未找到'
-
-class 子智能体会话所有权(Exception):
-    '子智能体所有权围栏'
-    def __init__(自身,会话标识):
-        '记下会话标识'
-        super().__init__('session "'+str(会话标识)+'" is a subagent session; use subagent delivery')#消息
-        自身.sessionId=会话标识#id
-
-class cwd冲突(Exception):
-    'cwd 冲突'
-    def __init__(自身,会话标识,请求cwd,已有cwd):
-        '记下冲突 cwd'
-        super().__init__('session cwd conflict')#消息
-        自身.sessionId=会话标识#id
-        自身.requestedCwd=请求cwd#请求
-        自身.existingCwd=已有cwd#已有
-
-class 预设冲突(Exception):
-    '预设冲突'
-    def __init__(自身,会话标识,请求预设,已有预设):
-        '记下冲突预设'
-        super().__init__('session preset conflict')#消息
-        自身.sessionId=会话标识#id
-        自身.requestedPreset=请求预设#请求
-        自身.existingPreset=已有预设#已有
 
 def 有子智能体所有者(上下文,头,智能体):
     '普通会话路由是否应让给子智能体。头为会话头 dict'

@@ -4,9 +4,7 @@ from ...依赖.schemastery import 字典字段,数字字段,字符串字段
 from ...模型后端.llm import 创建用户消息,深冻结,块组装器#LLM 辅助
 from ...工具.超时 import 截止#截止
 from ..会话标题.归一 import 归一化会话标题#标题归一
-
-class 会话标题llm错误(Exception):
-    '模型标题策略包的异常基类'
+from .异常 import 会话标题llm错误#本包异常
 
 会话标题超时码='SESSION_TITLE_TIMEOUT'#超时原因码
 最大定时器延迟毫秒=2147483647#定时器延迟上限（毫秒）

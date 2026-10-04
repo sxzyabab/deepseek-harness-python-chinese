@@ -11,8 +11,7 @@ from ...依赖.schemastery import 布尔字段#配置字段
 
 __all__=['清单错误','名称','依赖','配置模式','应用','默认']#仅中文公开名
 
-class 清单错误(Exception):
-    '插件包清单解析与校验失败'
+from .异常 import 清单错误#清单解析与校验失败
 
 def 裸包名(说明符):#解析 bare package 名
     '相对路径、绝对路径与带协议说明符返回 None'

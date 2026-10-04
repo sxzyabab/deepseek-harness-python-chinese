@@ -1,6 +1,7 @@
 '强制的原生 V4 关系；不完整尾部保留其开放事务'
 import json,re#重试键与未启动标识后缀
-from ..会话格式 import 会话格式错误,是否会话格式json对象,会话格式计数#从会话格式导入
+from ..会话格式.异常 import 会话格式错误#格式错误
+from ..会话格式 import 是否会话格式json对象,会话格式计数#从会话格式导入
 
 表面类型=frozenset(['system/message','user/message','developer/message','assistant/message','tool/result'])#表面类型
 步骤事件类型=frozenset(['system/message','developer/message','assistant/attempt'])#步骤事件类型

@@ -1,5 +1,5 @@
 '面向模型的目标工具在执行时的权限检查'
-from ...模型后端.llm import 装备错误#结构化工具策略失败
+from ...模型后端.llm.异常 import 装备错误#结构化工具策略失败
 
 def 拒绝(消息,码='GOAL_TOOL_AUTHORITY_REQUIRED'):
     """抛出一次结构化工具策略失败。

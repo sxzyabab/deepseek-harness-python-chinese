@@ -2,7 +2,8 @@ import threading#后台清理
 from ....依赖.cordis import 服务#服务基类
 from ....内核.作用域 import 操作任务#关闭任务
 from ....工具.加密 import 随机uuid#新终端身份
-from ..类型 import 远程错误,取远程错误#远程失败形态
+from ..类型 import 取远程错误#远程失败形态
+from ..异常 import 远程错误#本包异常
 from .模型 import 终端视图,快照存储#视图与通知
 from .外壳偏好 import 首选外壳,记住外壳#外壳偏好
 from .关闭请求 import 终端关闭请求#未完成关闭

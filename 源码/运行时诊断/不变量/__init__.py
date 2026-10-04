@@ -2,6 +2,7 @@ import re
 from ...依赖.schemastery import 字典字段,布尔字段,列表字段,字符串字段
 from ...依赖 import cordis
 服务=cordis.服务
+from .异常 import 不变量错误
 
 名称='invariants'
 依赖=[]
@@ -12,15 +13,6 @@ from ...依赖 import cordis
     'package_blocklist':列表字段(字符串字段(),默认值=[]),
 })
 配置=配置模式
-
-class 不变量错误(Exception):
-    '包拥有的运行时不变量被违反时抛出'
-    def __init__(自身,包名,消息):
-        '记下包名与英文消息'
-        super().__init__('不变量被 "'+包名+'" 违反: '+消息)
-        自身.包名=包名
-        自身.code='INVARIANT'#稳定机器可读不变量失败码
-        自身.name='InvariantError'
 
 def 编译模式列表(字段名,值列表):
     '编译并校验一个包过滤列表'

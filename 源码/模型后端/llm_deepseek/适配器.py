@@ -1,11 +1,13 @@
 'DeepSeek Messages 直接传输，每次模型请求一条可取消生命周期'
 from requests import request as 发请求
-from ..llm import 大模型适配器,大模型错误,归属头
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
+from ..llm import 大模型适配器,归属头
 from ...工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号,已中止,若已中止则抛出
 from .模型信息 import 目录模型信息,模型信息
 from .文件仓 import 深求文件仓
 from .消息接口 import 消息文件测试通道,消息接口根
-from .请求文件 import 文件解析失败,请求文件
+from .异常 import 文件解析失败#上传失败，整请求可回退内联
+from .请求文件 import 请求文件
 from .请求扩展 import 准备请求扩展
 from .图片 import 图片定价,内联图片,准备文件标识,准备图片
 from .序列化 import 序列化

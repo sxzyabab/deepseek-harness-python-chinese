@@ -3,7 +3,8 @@ from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 数字字段#配置字段
 服务=cordis.服务#导入Cordis服务基类
 from ...模型后端.llm import 冻结消息#导入冻结消息
-from .配置 import 码点长度,默认预算,修剪标记,解析配置,工具结果裁剪错误#导入码点长度、默认值、标记与解析
+from .异常 import 工具结果裁剪错误#本包异常
+from .配置 import 码点长度,默认预算,修剪标记,解析配置#导入码点长度、默认值、标记与解析
 from .类型 import (
     修剪记账字段,#单条替换记账词汇
     修剪结果字段,#一遍结果词汇

@@ -1,4 +1,5 @@
-from ...类型化远程调用.协议 import 远程服务,远程,远程错误#Remote 面
+from ...类型化远程调用.协议 import 远程服务,远程#Remote 面
+from ...类型化远程调用.协议.异常 import 远程错误#远程失败
 from ...工具.时间 import 规范化客户端时区#浏览器时区
 from ...内核.作用域 import 作用域目标#导入作用域载体解析
 from ...内核.工具 import 断言对象json模式#导入对象JSON模式断言
@@ -17,7 +18,7 @@ from .类型 import (
     子智能体跑,#一次性跑句柄协议
     子智能体提供方,#具名传输提供方协议
 )
-from .错误 import 子智能体错误#缝内带码失败
+from .异常 import 子智能体错误,子智能体深度错误,子智能体描述符错误#缝内带码失败
 from .深度 import 断言子智能体最大深度,委托深度于#共享深度词汇
 from .生命周期 import 创建生命周期发出,观察运行,创建激活观察者#start/end 发布与 Activation 观察
 from .续跑 import (
@@ -55,7 +56,7 @@ from .运行结算 import 结算运行#一次性后台 Task 结局
 from .助手输出 import 助手输出折叠,最终助手输出#最终助手输出选取
 from .子体 import (
     追加委托策略覆盖,应用子体组合,捕获委托策略覆盖,子会话元数据,
-    解析子智能体选项,解析子深度,子智能体深度错误,子智能体委托上下文,
+    解析子智能体选项,解析子深度,子智能体委托上下文,
     子体组合,#persona / toolFilter
     委托策略覆盖,#sandbox / approval 快照
 )
@@ -242,7 +243,7 @@ class 子智能体运行时(远程服务):
             else:
                 附件存储=自身.ctx.获取服务('attachments',False)
                 if 附件存储 is None:
-                    raise Exception('subagent image prompt requires an attachment store')
+                    raise 子智能体描述符错误('subagent image prompt requires an attachment store')
                 内容=附件存储.准入提示内容(内容块)
             return {'messageId':自身.投递提示(父,子会话标识,内容,来源,信号,投递)}
         except Exception as 错误:

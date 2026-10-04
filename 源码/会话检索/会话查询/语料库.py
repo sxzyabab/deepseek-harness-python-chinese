@@ -1,8 +1,9 @@
 '会话检索用的活/已持久逻辑语料解析'
 import threading#并发持久检查工作线程
 from ...模型后端.llm import 结构化克隆#拆离克隆
-from ...会话.会话持久化 import 会话持久化损坏错误#持久化损坏
-from .配置 import 会话查询错误,已中止,若已中止则抛出#检索错误与中止
+from ...会话.会话持久化.异常 import 会话持久化损坏错误#持久化损坏
+from .异常 import 会话查询错误#检索错误
+from .配置 import 已中止,若已中止则抛出#中止
 from .来源 import 校验会话头兼容#头兼容断言
 from .冷读 import 读冷会话日志#句柄冷读 + 中断闭合
 

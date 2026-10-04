@@ -5,7 +5,8 @@ from ...浏览器操作.浏览器操作.标识构造 import 浏览器操作提�
 from ...依赖.工具 import 聚合错误#多失败
 from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号,定时器延迟上限毫秒#中止
 from ..浏览器操作_运行时 import 会话资源#每 Session 资源
-from .原生 import 浏览器输入,stagehand模型模式,stagehand排空错误#原生
+from .异常 import stagehand排空错误#SDK 未排空
+from .原生 import 浏览器输入,stagehand模型模式#原生
 from .工作者客户端 import 打开浏览器工作者#工作者
 from .启动 import 启动chromium#Chromium
 
@@ -70,16 +71,16 @@ def 应用(上下文,配置值):#登记原生 Stagehand
     if 'mode' not in 配置值:#缺省
         配置值['mode']='launch'#启动
     if 配置值['mode']=='attach' and ('cdpEndpoint' not in 配置值 or str(配置值['cdpEndpoint']).strip()==''):#缺端点
-        raise Exception('Stagehand 附着模式需要 cdpEndpoint')
+        raise stagehand排空错误('Stagehand 附着模式需要 cdpEndpoint')
     if 配置值['mode']=='launch' and ('cdpEndpoint' in 配置值 or 'extensionId' in 配置值):#启动带附着字段
-        raise Exception('Stagehand 的 cdpEndpoint 与 extensionId 需要附着模式')
+        raise stagehand排空错误('Stagehand 的 cdpEndpoint 与 extensionId 需要附着模式')
     if 配置值['mode']=='attach' and 'executablePath' in 配置值:#附着带可执行
-        raise Exception('Stagehand 的 executablePath 需要启动模式')
+        raise stagehand排空错误('Stagehand 的 executablePath 需要启动模式')
     if 配置值['mode']=='attach':#校验 URL
         端点=配置值['cdpEndpoint']#端点
         解析=urlparse(端点)#解析
         if 解析.scheme not in ('http','https','ws','wss') or ' ' in 端点 or '\t' in 端点:#非法
-            raise Exception('需要 HTTP(S) 或 WS(S) 端点')
+            raise stagehand排空错误('需要 HTTP(S) 或 WS(S) 端点')
     def 运行时寿命():#登记与资源
         '先放登记再拆资源'
         撤销=上下文.browserUse.登记(浏览器操作提供方名('stagehand-native'))#占用
@@ -205,7 +206,7 @@ def 挂工具(上下文,资源):#登记工具
         if 执行['name'] not in 名集:#他方
             return 下一()#过
         if 'agent' not in 执行 or 'agents' not in 上下文 or 上下文['agents'].get(执行['agent'].id) is not 执行['agent']:#非活
-            raise Exception('Stagehand 浏览器工具需要一个确切的活动智能体')
+            raise stagehand排空错误('Stagehand 浏览器工具需要一个确切的活动智能体')
         智能体=执行['agent']#智能体
         def 操作(句柄,活动信号):#队列体
             '换信号后跑体'

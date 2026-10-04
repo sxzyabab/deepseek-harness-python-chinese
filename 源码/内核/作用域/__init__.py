@@ -3,9 +3,7 @@ from concurrent.futures import Future as _原生Future
 from ...依赖 import cordis
 上下文=cordis.上下文
 from .存储 import 具名条目,匿名条目,作用域层集
-
-class 作用域错误(Exception):
-    '内核作用域包的异常基类'
+from .异常 import 作用域错误
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

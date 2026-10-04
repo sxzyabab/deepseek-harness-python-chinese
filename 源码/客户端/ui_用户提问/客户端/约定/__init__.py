@@ -1,4 +1,5 @@
-from .槽位 import 计划审阅于,待答提问,提问错误
+from .槽位 import 计划审阅于,待答提问
+from ...异常 import 提问错误#本包异常
 
 __all__=[
     '计划审阅于',

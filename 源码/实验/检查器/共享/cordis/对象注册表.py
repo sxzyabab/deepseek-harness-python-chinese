@@ -1,5 +1,5 @@
 import uuid#随机标识
-from ..json import 检查器错误#包内错误
+from ...异常 import 检查器错误#包内错误
 from ..身份 import 检查器id#品牌化
 
 __all__=[#仅中文公开名

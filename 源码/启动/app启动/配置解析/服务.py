@@ -3,6 +3,7 @@ import os,json#路径与清单
 from ....依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 from .解析器 import 裸包名,安装配置解析,登记工作线程解析#解析器
+from ..异常 import 启动错误#应用启动粘合层失败
 
 __all__=['插件包表','读包']#仅中文公开名
 
@@ -70,7 +71,7 @@ class 插件包表(服务):
     def 替换(自身,世代):
         '为本进程及随后创建的工作线程发布加性世代'
         if 自身._解析器 is None:#未安装运行时解析
-            raise Exception('plugin-packages: 运行时解析尚未安装')#拒绝
+            raise 启动错误('plugin-packages: 运行时解析尚未安装')#拒绝
         自身._解析器.替换(世代)#替换
         自身._包表={}#清空缓存
         if 自身._拆除工作线程 is not None:#有旧登记

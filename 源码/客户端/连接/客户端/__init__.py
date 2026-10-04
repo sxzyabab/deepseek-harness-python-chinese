@@ -1,7 +1,7 @@
 import builtins#读页面 location
 from urllib.parse import urlparse as 解析URL
 from ..回环主机名 import 是否回环主机名#回环主机名判定
-from ..rpc import 连接错误#本包异常
+from ..异常 import 连接错误#本包异常
 from .接口 import (#再导出浏览器可用的连接协议辅助
     传输错误,
     结果槽,

@@ -3,7 +3,7 @@ import os,threading#环境清空与发送线程
 from .通道 import json通道,任务,全部并发#分帧与未完成发送
 from .引导 import 运行程序#程序求值
 from .环境 import 启动环境名#启动环境白名单
-from .协议 import 节点ptc错误#本包异常
+from .异常 import 节点ptc错误#本包异常
 
 __all__=['运行节点主程序']#仅中文公开名
 

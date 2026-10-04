@@ -1,5 +1,6 @@
 import json,os,socket,threading,time#JSON、随机种子、网络、线程与延迟
 from http.server import BaseHTTPRequestHandler as 基处理器,ThreadingHTTPServer as 线程HTTP服务器#HTTP 服务
+from .异常 import 模拟服务器错误#模拟服务器包的异常基类
 
 __all__=[#仅中文公开名
     '模拟LLM行为名表','默认模拟LLM随机权重','模拟LLM定时器延迟上限毫秒',
@@ -26,7 +27,7 @@ __all__=[#仅中文公开名
 def 有界整数(名称,值,最小,最大):#校验有界整数
     '校验有界整数'
     if not isinstance(值,int) or isinstance(值,bool) or 值<最小 or 值>最大:#越界
-        raise Exception(f'llm-mock-server: {名称} must be an integer between {最小} and {最大}')#越界
+        raise 模拟服务器错误(f'llm-mock-server: {名称} must be an integer between {最小} and {最大}')#越界
     return 值#返回有界整数
 
 def 解析选项(选项):#解析服务器选项
@@ -49,31 +50,31 @@ def 解析选项(选项):#解析服务器选项
     工具参数=选项.get('toolArguments') or '{"value":"mock"}'#工具参数
     序列=选项.get('sequence')#行为序列
     if 主机=='':#空主机
-        raise Exception('llm-mock-server: host 不能为空')#空主机
+        raise 模拟服务器错误('llm-mock-server: host 不能为空')#空主机
     if not 序列:#空序列
-        raise Exception('llm-mock-server: sequence 不能为空')#空序列
+        raise 模拟服务器错误('llm-mock-server: sequence 不能为空')#空序列
     末项=序列[-1]#末项行为
     if 选项.get('apiKey')=='':#空密钥
-        raise Exception('llm-mock-server: apiKey 不能为空')#空密钥
+        raise 模拟服务器错误('llm-mock-server: apiKey 不能为空')#空密钥
     if 成功文本=='' or 部分文本=='' or 推理文本=='' or 工具名=='':#空文本
-        raise Exception('llm-mock-server: successText/partialText/reasoningText/toolName 不能为空')#空文本
+        raise 模拟服务器错误('llm-mock-server: successText/partialText/reasoningText/toolName 不能为空')#空文本
     if 选项.get('requestId')=='':#空请求 id
-        raise Exception('llm-mock-server: requestId 不能为空')#空请求 id
+        raise 模拟服务器错误('llm-mock-server: requestId 不能为空')#空请求 id
     try:
         json.loads(工具参数)
     except json.JSONDecodeError:
-        raise Exception('llm-mock-server: toolArguments 必须是合法 JSON')
+        raise 模拟服务器错误('llm-mock-server: toolArguments 必须是合法 JSON')
     配置权重=选项.get('randomWeights') or 默认模拟LLM随机权重#配置权重
     随机权重=[]#正权重列表
     for 行为,权重 in 配置权重.items():#逐项权重
         if 行为 not in 具体行为集:#未知行为
-            raise Exception(f'llm-mock-server: randomWeights contains unknown concrete behavior {行为!r}')#未知行为
+            raise 模拟服务器错误(f'llm-mock-server: randomWeights contains unknown concrete behavior {行为!r}')#未知行为
         if not isinstance(权重,(int,float)) or isinstance(权重,bool) or 权重<0:#权重非法
-            raise Exception(f'llm-mock-server: random weight for {行为} must be a non-negative finite number')#权重非法
+            raise 模拟服务器错误(f'llm-mock-server: random weight for {行为} must be a non-negative finite number')#权重非法
         if 权重>0:#正权重
             随机权重.append((行为,权重))#收集
     if len(随机权重)==0:#无正权重
-        raise Exception('llm-mock-server: randomWeights 必须至少有一个正权重')#无正权重
+        raise 模拟服务器错误('llm-mock-server: randomWeights 必须至少有一个正权重')#无正权重
     已解析={#返回已解析选项
         'host':主机,'port':端口,'sequence':list(序列),'lastBehavior':末项,
         'repeatLast':选项.get('repeatLast') or False,'randomSeed':随机种子,

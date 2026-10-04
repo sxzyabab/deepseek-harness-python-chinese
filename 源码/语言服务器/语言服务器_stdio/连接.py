@@ -1,5 +1,5 @@
 import threading#stdout读线程与写入互斥
-from ..语言服务器 import 语言服务器错误#本缝异常基类
+from ..语言服务器.异常 import 语言服务器错误#本缝异常基类
 from .取消 import 操作任务#单次操作结果
 from .成帧 import 编码消息,消息解码器#成帧编码与流式解码
 

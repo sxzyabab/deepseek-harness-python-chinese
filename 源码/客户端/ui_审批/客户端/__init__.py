@@ -1,7 +1,8 @@
 import threading#拆卸清理等待
 from ....基础设施.通用工具 import 获取内部数据
 from .审批面板 import 审批面板#审批面板
-from .约定.槽 import 待决审批,审批错误#待处理审批面
+from .约定.槽 import 待决审批#待处理审批面
+from ..异常 import 审批错误#本包异常
 from .文案 import 中文,英文,命名空间#中英文词典
 
 __all__=[#仅中文公开名

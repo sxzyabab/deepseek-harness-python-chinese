@@ -1,9 +1,9 @@
 '工具桥接：发现 MCP 工具，以确定性的服务器限定公开名注册到框架工具运行时，并在服务器工具列表变化时再同步'
 import base64,hashlib,json,re,weakref
 from ...内核.工具 import 断言受支持json模式
-from ...附件.附件 import 是否图像准入错误
+from ...附件.附件.异常 import 是否图像准入错误
 from ...模型后端.llm import 已中止
-from .传输 import MCP错误
+from .异常 import MCP错误
 
 __all__=['公开工具名','同步工具','MCP结果','创建mcp工具定义']
 

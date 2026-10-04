@@ -4,11 +4,12 @@ from watchfiles import watch as 监视变化,Change as 变化种类
 from ...依赖 import cordis
 from ...依赖.schemastery import 字符串字段,列表字段,自然数字段
 from ...依赖.工具 import 路径转文件url,文件url转路径
-from .错误 import 处理错误
+from .异常 import 处理错误
 from .监视配置 import 监视配置 as 精确监视配置
+from ..app启动.异常 import 启动错误#应用启动失败
 from ..app启动 import (
     读配置清单,配置补丁文件名,加载可选补丁,加载配置目录,
-    启动包含表,未激活条目,激活诊断,启动错误,组合条目,
+    启动包含表,未激活条目,激活诊断,组合条目,
 )
 
 服务=cordis.服务

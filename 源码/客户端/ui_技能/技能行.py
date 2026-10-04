@@ -1,4 +1,5 @@
 import json
+from .异常 import 技能错误#本包异常
 
 __all__=['技能错误','技能行','技能行模型','技能名','结果文本','首行','样式表']
 
@@ -29,12 +30,6 @@ __all__=['技能错误','技能行','技能行模型','技能名','结果文本'
 .visuallyHidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.card[data-state=running] .row::after{animation:none;display:none}.iconIdle,.chevronHover,.inspectButton{transition:none}}
 '''
-
-class 技能错误(Exception):
-    '本包异常基类'
-    def __init__(自身,消息):
-        '记下消息'
-        super().__init__(消息)
 
 def 首行(文本):
     '折叠错误摘要与畸形参数回退用的第一物理行'

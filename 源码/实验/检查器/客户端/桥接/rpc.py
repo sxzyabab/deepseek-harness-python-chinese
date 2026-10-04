@@ -1,5 +1,5 @@
 import json#序列化
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.rpc import 检查器查询连接#查询连接基类
 
 __all__=['客户端桥rpc']#仅中文公开名

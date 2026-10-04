@@ -1,6 +1,6 @@
 '把 HTTP 与带内 Messages 错误归一成提供方中立失败'
 import math,re,time
-from ..llm import 大模型错误,是否上下文窗口超出错误,是否配额超出错误
+from ..llm.异常 import 语言模型错误 as 大模型错误,是否上下文窗口超出错误,是否配额超出错误#大模型错误与窗口、配额判定
 from ..llm.标识构造 import 提供方请求标识
 
 __all__=['提供方错误详情','提供方错误']

@@ -2,7 +2,7 @@
 import os
 import yaml
 from ...工具.原子写入 import 原子写文件
-from .失败 import 装载失败
+from .异常 import 装载失败,注册表错误
 
 __all__=['读待决构建','批准构建']
 
@@ -48,16 +48,16 @@ def 读策略(目录):
     if 根 is None:
         根=yaml.compose('{}\n')
     if not isinstance(根,yaml.nodes.MappingNode):
-        raise Exception('pnpm-workspace.yaml 必须是 YAML 映射')
+        raise 注册表错误('pnpm-workspace.yaml 必须是 YAML 映射')
     构建节点=None
     for 键节点,值节点 in 根.value:
         if isinstance(键节点,yaml.nodes.ScalarNode) and 键节点.value=='allowBuilds':
             构建节点=值节点
             break
     if 构建节点 is not None and not isinstance(构建节点,yaml.nodes.MappingNode):
-        raise Exception('allowBuilds 必须是 YAML 映射')
+        raise 注册表错误('allowBuilds 必须是 YAML 映射')
     if 节点含锚点或别名(构建节点):
-        raise Exception('allowBuilds 不得含 YAML 锚点或别名')
+        raise 注册表错误('allowBuilds 不得含 YAML 锚点或别名')
     try:
         文档=yaml.safe_load(文本)
     except yaml.YAMLError as 错误:
@@ -65,10 +65,10 @@ def 读策略(目录):
     if 文档 is None:
         文档={}
     if not isinstance(文档,dict):
-        raise Exception('pnpm-workspace.yaml 必须是 YAML 映射')
+        raise 注册表错误('pnpm-workspace.yaml 必须是 YAML 映射')
     构建=文档.get('allowBuilds')
     if 构建 is not None and not isinstance(构建,dict):
-        raise Exception('allowBuilds 必须是 YAML 映射')
+        raise 注册表错误('allowBuilds 必须是 YAML 映射')
     待决=[]
     if isinstance(构建,dict):
         for 键,值 in 构建.items():

@@ -1,7 +1,8 @@
 '不含 Cordis 的本地文件系统机制'
 import os,re,errno,uuid,stat,shutil,codecs#路径、上级分量、错误号、唯一名、类型位、递归删除与增量解码
 from .. import 文件系统 as fs#文件系统错误与品牌
-from .win32 import 复制文件Dacl,替换文件,Win32系统错误#Windows DACL 复制、替换与 Win32 错误
+from .异常 import Win32系统错误#带 Win32 错误码的系统异常
+from .win32 import 复制文件Dacl,替换文件#Windows DACL 复制与替换
 
 二进制采样字节=8192#二进制探测采样字节数
 diff基准读取块字节=64*1024#diff 基准每次读取块大小

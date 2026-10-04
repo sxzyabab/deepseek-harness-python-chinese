@@ -2,7 +2,7 @@ import builtins,json,re#全局、JSON 与形态校验
 import urllib.request as 请求库#标准库 fetch 形
 from urllib.parse import urljoin as 拼接URL
 from ..rpc import Rpc标识#RPC id
-from ..rpc import 连接错误#本包异常
+from ..异常 import 连接错误#本包异常
 from .随机uuid import 随机uuid#浏览器 UUID
 
 __all__=['创建网页连接rpc']#仅中文公开名

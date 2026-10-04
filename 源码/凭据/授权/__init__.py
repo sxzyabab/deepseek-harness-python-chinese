@@ -3,7 +3,7 @@ import threading#中止信号
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 服务=cordis.服务#服务基类
-from ...模型后端.llm import 装备错误 as 框架错误#Harness 风格错误
+from .异常 import 授权错误,授权拒绝错误#授权失败与人类拒绝
 
 __all__=[#仅中文公开名
     '授权错误','授权拒绝错误','授权服务','默认','信号已中止',
@@ -15,20 +15,6 @@ def 信号已中止(信号):
     if 信号 is None:#无信号
         return False#未中止
     return 信号.is_set()#已中止
-
-class 授权错误(框架错误):
-    '授权失败的结构化错误'
-    def __init__(自身,消息,码,选项=None):
-        '记下消息与稳定码'
-        super().__init__(消息,码,选项)#基类
-        自身.name='AuthorizationError'#错误名
-
-class 授权拒绝错误(授权错误):
-    '提示被人类拒绝时使用'
-    def __init__(自身,消息='the authorization prompt was declined'):
-        'DECLINED 码'
-        super().__init__(消息,'DECLINED')#基类
-        自身.name='AuthorizationDeclinedError'#错误名
 
 class 授权服务(服务):
     '每个凭证键同时只允许一次授权尝试'

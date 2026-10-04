@@ -1,4 +1,5 @@
-from ....json import 是否普通对象,检查器错误#普通对象|本包错误
+from ....json import 是否普通对象#普通对象
+from .....异常 import 检查器错误#本包错误
 from ....校验 import 精确键,精确对象,线上标识#校验
 from ....cdp.控制台 import 运行时控制台类型#Console类别
 from ...版本 import 检查器协议版本#协议版本

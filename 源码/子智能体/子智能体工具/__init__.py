@@ -4,7 +4,7 @@ from ...依赖.cordis import 聚合错误#多失败聚合
 from ...依赖.schemastery import 字符串字段,布尔字段,整数字段,列表字段,复合类型字段,常量字段,枚举字段,字典字段,自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义
 from ..子智能体 import 断言子智能体最大深度,结算运行#深度断言与运行结算
-from ..子智能体.错误 import 子智能体错误#缝内失败
+from ..子智能体.异常 import 子智能体错误#缝内失败
 
 名称='tool-subagent'#Cordis插件名
 依赖=['tools','subagents','systemPrompt','sessionProjections']#依赖工具、子智能体、提示词与投影

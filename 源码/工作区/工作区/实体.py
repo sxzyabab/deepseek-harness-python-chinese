@@ -3,16 +3,8 @@ import os
 from datetime import datetime#ISO 时间戳
 from zoneinfo import ZoneInfo#UTC 时区
 from .路径 import 规范化真实路径
+from .异常 import 工作区错误,工作区移动无效错误#一般错误与非法移动
 __all__=['工作区错误','工作区移动无效错误','工作区实体宿主字段','工作区实体']
-
-class 工作区错误(Exception):
-    '工作区包的一般错误'
-
-class 工作区移动无效错误(Exception):
-    'insertSessionBefore 点名了未入账的会话或锚'
-    def __init__(自身,消息):
-        '记下非法移动诊断'
-        super().__init__(消息)
 
 工作区实体宿主字段=('table','sessionPath','readSessionHeader','rememberSessionPath')#宿主机械
 

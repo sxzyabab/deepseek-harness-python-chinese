@@ -1,4 +1,5 @@
 import time#纪元毫秒
+from ..异常 import 作业列表错误#本包异常
 
 __all__=['任务列表动作','样式表']
 
@@ -105,9 +106,6 @@ def 排序作业(作业表):
         完结=作业['finishedAt'] if 'finishedAt' in 作业 and 作业['finishedAt'] is not None else 开始
         return (0 if 进行 else 1,开始 if 进行 else -完结,开始)
     return sorted(作业表,key=键)
-
-class 作业列表错误(Exception):
-    '作业列表呈现失败'
 
 class 任务列表动作:
     '会话头部后台作业列表'

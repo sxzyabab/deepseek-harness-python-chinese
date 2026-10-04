@@ -2,7 +2,8 @@ import threading#后台观察
 from ....基础设施.通用工具 import 获取内部数据
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
-from .导航 import 目录浏览错误,工作区错误,工作区UI服务,最近工作区
+from .导航 import 工作区UI服务,最近工作区
+from ..异常 import 目录浏览错误,工作区错误#本包异常
 from .树 import (#再导出树派生
     未分组键,
     未分组标签,

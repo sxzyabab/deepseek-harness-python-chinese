@@ -1,5 +1,5 @@
 '本地宿主的纯协议翻译：服务器能力允许什么，以及如何把其 Location/LocationLink/Hover 载荷归一成 seam 的封闭结果联合'
-from ..语言服务器 import 语言服务器错误#带稳定code的语言服务器错误
+from ..语言服务器.异常 import 语言服务器错误#带稳定code的语言服务器错误
 from ...模型后端.llm import 断言永不#封闭联合穷尽断言
 
 def 请求方法(操作):

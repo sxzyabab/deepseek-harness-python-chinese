@@ -1,5 +1,6 @@
 '本包拥有的严格日程流不变量'
-from .领域 import 折叠日程事件,日程日志错误#折叠校验与日志错误
+from .异常 import 日程日志错误#日志错误
+from .领域 import 折叠日程事件#折叠校验
 
 包名='@deepseek-ai/dsh-schedule'#本包的不变量所有权名
 名称='schedule-invariant'#配套不变量插件名

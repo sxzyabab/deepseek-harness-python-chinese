@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..异常 import 运行时错误#本包错误
 import time#mtime
 from ..module_system.posix路径 import 目录名,拼接,规范化,解析,分隔符#路径工具
 from ..镜像布局 import 镜像覆盖目录列表#覆盖层目录白名单

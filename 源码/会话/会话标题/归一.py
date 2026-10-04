@@ -1,12 +1,6 @@
 '标题文本归一化与 UTF-8 截断'
 import re#正则清洗
-
-class 会话标题错误(Exception):
-    '会话标题包的异常基类'
-
-class 会话标题无效错误(会话标题错误):
-    '用户标题归一化后为空'
-    name='SessionTitleInvalidError'#错误名
+from .异常 import 会话标题错误,会话标题无效错误#本包异常
 
 _OSC=re.compile(r'(?:\x1b\]|\x9d)(?:(?!\x07|\x1b\\)[\s\S])*(?:\x07|\x1b\\|\Z)',re.U)#OSC 序列
 _CSI=re.compile(r'(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]',re.U)#CSI 序列

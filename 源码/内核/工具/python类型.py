@@ -1,10 +1,8 @@
 import json,re,unicodedata
 from .json模式 import 断言受支持json模式,转json#导入统一 JSON Schema 断言
+from .异常 import python类型渲染错误 as 类型渲染错误
 
 __all__=('json模式转py','渲染工具sdkpy')#仅中文公开名
-
-class 类型渲染错误(Exception):
-    '内核工具类型渲染包的异常基类'
 
 保留字={
     'False','None','True','and','as','assert','async','await','break','class',

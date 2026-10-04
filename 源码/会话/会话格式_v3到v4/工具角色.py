@@ -1,5 +1,6 @@
 'V4 表示中的一等工具角色消息'
-from ..会话格式 import 会话格式错误,会话格式不支持迁移错误,是否会话格式json对象#从会话格式导入
+from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
+from ..会话格式 import 是否会话格式json对象#从会话格式导入
 
 包装字段=frozenset(['type','toolCallId','content','isError'])#包装自有字段
 消息字段=frozenset(['id','role','source','content'])#消息自有字段

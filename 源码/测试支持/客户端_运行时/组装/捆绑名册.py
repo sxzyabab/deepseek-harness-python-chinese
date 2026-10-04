@@ -2,7 +2,8 @@ import json,os,re,yaml#JSON、路径、正则与 YAML
 from ....依赖.include import 应用插件补丁,插件列表读取器#补丁应用与条目列表方言
 from ....客户端.模块 import 解析客户端声明#dsh.client 声明解析
 from ....客户端.模块.清单 import 精确包说明符#精确包说明符
-from .名册 import 客户端名册,客户端名册行,客户端测试运行时错误#名册与异常
+from .名册 import 客户端名册,客户端名册行#名册
+from ..异常 import 客户端测试运行时错误#本包异常
 
 __all__=['网页配置档捆绑','组合捆绑名册','网页应用名册']#仅中文公开名
 

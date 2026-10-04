@@ -1,6 +1,7 @@
 from ..约定.助手内容 import 有助手回复内容#可见回复
 from ..约定.回合过程 import 是子代理委派工具,回合过程规格#过程契约
-from .节点工厂 import 聊天错误,聊天合成序号偏移,聊天节点#公共
+from ...异常 import 聊天错误#本包异常
+from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
 from .事件投影 import 转助手块列表#块转换
 from .事件面 import 是追加面事件#面辅助
 

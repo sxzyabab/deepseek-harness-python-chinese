@@ -1,15 +1,13 @@
 '本包内嵌的 ACP 智能体侧 NDJSON JSON-RPC 最小线路'
 import json,threading#JSON 与读写线程
 from concurrent.futures import Future as 原生结果#单次操作结果
+from .异常 import ACP线路错误,请求错误#线路失败与带码请求失败
 
 __all__=[#仅中文公开名
     '协议版本','ACP线路错误','请求错误','NDJSON流','智能体侧连接','操作任务','创建NDJSON流',
 ]#公开面结束
 
 协议版本=1#ACP 协议版本常量（与 SDK PROTOCOL_VERSION 对齐的本桥接钉值）
-
-class ACP线路错误(Exception):
-    '本包异常基类'
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'
@@ -34,26 +32,6 @@ class 操作任务:
     def 等待(自身,超时=None):
         '阻塞等到结算'
         return 自身._未来.result(timeout=超时)#取结果或抛错
-
-class 请求错误(ACP线路错误):
-    'ACP 线路错误，保留 code 与可选 data'
-    def __init__(自身,码,消息,数据=None):
-        '记下错误码、消息与可选载荷'
-        super().__init__(消息)#消息
-        自身.code=码#错误码
-        自身.message=消息#消息
-        自身.data=数据#可选 data
-        自身.name='RequestError'#固定名
-
-    @staticmethod
-    def 非法参数(数据,细节):
-        '把非法参数细节保留在线路错误消息里'
-        return 请求错误(-32602,细节,数据)#invalid params
-
-    @staticmethod
-    def 内部错误(数据,细节):
-        '把失败细节保留为内部错误'
-        return 请求错误(-32603,细节,数据)#internal error
 
 class NDJSON流:
     '可读/可写字节或文本流对，供智能体侧连接使用'

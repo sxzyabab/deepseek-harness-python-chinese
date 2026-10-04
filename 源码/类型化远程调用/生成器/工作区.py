@@ -1,5 +1,5 @@
 import json,os#读 package.json
-from .分析器 import Typert分析错误#分析错误类型
+from .异常 import Typert分析错误#分析错误类型
 from .代码输出 import 面模型代码输出器#按面模型输出
 
 __all__=[#公开面

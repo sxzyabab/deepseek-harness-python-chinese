@@ -1,5 +1,5 @@
 from threading import Event as 同步事件,Thread as 线程
-from .错误 import 团队错误
+from .异常 import 团队错误
 
 __all__=['团队运行时生命周期','已中止','若已中止则抛出','合成中止']
 

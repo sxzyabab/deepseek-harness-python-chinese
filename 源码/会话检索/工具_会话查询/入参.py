@@ -2,7 +2,7 @@
 import re#正则
 from datetime import datetime,timedelta,timezone#写死 ISO 解析；timezone 仅固定偏移
 from zoneinfo import ZoneInfo#UTC
-from ..会话查询 import 会话查询错误#检索错误
+from ..会话查询.异常 import 会话查询错误#检索错误
 
 会话搜索参数={
     'query':{'type':'string','required':True,'description':'Literal full-text query over prior session history.'},

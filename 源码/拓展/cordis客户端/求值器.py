@@ -1,4 +1,5 @@
 import json
+from .异常 import cordis客户端错误#本包异常
 
 __all__=[
     '定时器重定向','客户端重定向','闭包陷阱','harness陷阱','标记控制台',
@@ -31,7 +32,7 @@ def 闭包陷阱():#可调用教学陷阱
             '抛教学错误'
             def 拦截调用(*_位置,**_关键字):#陷阱
                 '永不返回'
-                raise Exception(f'动态客户端半里没有 {名称} — {文}')#教学
+                raise cordis客户端错误(f'动态客户端半里没有 {名称} — {文}')#教学
             return 拦截调用#函数
         陷阱[名]=造()#写入
     return 陷阱#表
@@ -42,7 +43,7 @@ def harness陷阱():#harness 座位只在宿主侧
         '触碰即抛'
         def __getattr__(自身,属性):#读任何属性
             '永不返回'
-            raise Exception(#教学
+            raise cordis客户端错误(#教学
                 f'harness.{属性} 属于宿主半（`code`）：在那边用 harness.handle(method, fn) 登记处理函数；'
                 '浏览器半通过 host.call(method, args) 调用。'
             )
@@ -91,7 +92,7 @@ class 动态样式:#按包 style 标签记账（语义面，无 DOM）
     def 插入(自身,样式文本):#插入样式
         '需要 CSS 字符串；返回拆除器'
         if not isinstance(样式文本,str):#非串
-            raise Exception('styles.insert(css) 需要 CSS 字符串')
+            raise cordis客户端错误('styles.insert(css) 需要 CSS 字符串')
         自身.标签列表.append(样式文本)#记账
         下标=len(自身.标签列表)-1#位置
         def 拆除():#拆除器
@@ -124,9 +125,9 @@ def 校验求值返回(返回值):#收窄返回
     if 是否动态插件(返回值):#可挂
         return 返回值#原样
     if 返回值 is None:#忘了 return
-        raise Exception(#教学
+        raise cordis客户端错误(#教学
             '客户端半返回了 `undefined` — 是不是忘了 `return`？\n'
             '  ✓ return (ctx) => { … }\n'
             "  ✓ return { name: '…', inject: ['slots'], apply(ctx) { … } }"
         )
-    raise Exception('客户端半必须 `return` 一个插件：函数，或带 `apply(ctx)` 方法的对象')#形态
+    raise cordis客户端错误('客户端半必须 `return` 一个插件：函数，或带 `apply(ctx)` 方法的对象')#形态

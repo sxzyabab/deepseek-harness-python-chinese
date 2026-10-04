@@ -2,7 +2,7 @@ import threading,uuid#线程与子 id
 from concurrent.futures import Future as 原生结果#结果 Future
 from ...内核.会话 import 会话标识#品牌
 from ...sdk.客户端.高层 import 深求装备#Harness 高层 API
-from ..子智能体.错误 import 子智能体错误#缝内失败
+from ..子智能体.异常 import 子智能体错误#缝内失败
 默认关闭超时毫秒=10000#shutdown 上限
 默认处置eof宽限毫秒=6000#EOF 宽限
 默认处置宽限毫秒=3000#处置宽限

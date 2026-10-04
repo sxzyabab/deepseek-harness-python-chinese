@@ -18,7 +18,7 @@ from .详情.详情面板 import 详情面板#详情
 from .设置.转录视图行 import 转录视图行#设置行
 from .会话节点 import 登记会话节点#会话节点
 from ...存储 import 创建快照存储
-from .会话节点.节点工厂 import 聊天错误#本包异常
+from ..异常 import 聊天错误#本包异常
 
 _=_侧边栏文档预览#保活侧效导入
 

@@ -1,6 +1,7 @@
 from .快照 import cordis树最大深度#最大嵌套深度
 from ..身份 import 检查器id#品牌化
-from ..json import 是否普通对象,检查器错误#普通对象|本包错误
+from ..json import 是否普通对象#普通对象
+from ...异常 import 检查器错误#本包错误
 from ..校验 import 精确键,精确对象,线上标识#校验
 
 __all__=[#仅中文公开名

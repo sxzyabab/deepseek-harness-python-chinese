@@ -1,5 +1,5 @@
 import json,time#序列化与时钟
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.缓冲 import 检查器源缓冲#源缓冲
 from ...共享.桥接.发布器 import 检查器状态发布器#状态发布器面
 

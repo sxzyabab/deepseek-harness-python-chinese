@@ -1,20 +1,10 @@
 '无 React 的 Client Workspace 服务与命令门面'
 from ....依赖.cordis import 服务#Cordis 服务基类
+from ..异常 import 工作区创建错误#本包异常
 
 __all__=[#仅中文公开名
     '工作区创建错误','工作区控制器','应用工作区服务',
 ]#公开面结束
-
-class 工作区创建错误(Exception):
-    '区分 Host 业务错误的结构化创建失败'
-
-    def __init__(自身,远程失败):
-        '记下 Host 业务或折叠后的载体失败'
-        码=远程失败['code'] if isinstance(远程失败,dict) else getattr(远程失败,'code',None)#码
-        消息=远程失败['message'] if isinstance(远程失败,dict) else getattr(远程失败,'message',None)#消息
-        super().__init__('workspace create failed: '+str(码)+': '+str(消息))#文案
-        自身.name='WorkspaceCreateError'#错误名
-        自身.rpcError=远程失败#远程失败
 
 class _可等待:
     '把同步结果包成带 等待() 的完成态，供 UI inject 面链式等待'

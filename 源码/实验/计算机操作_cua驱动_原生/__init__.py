@@ -3,6 +3,7 @@ from ...依赖.schemastery import 复合类型字段#空配置
 from ...计算机操作.计算机操作.标识构造 import 计算机操作提供方名#提供方名
 from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
 from ...内核.作用域 import 操作任务#在途结算
+from .异常 import 驱动错误#本包异常
 
 __all__=['名称','依赖','配置','应用']
 
@@ -21,13 +22,13 @@ __all__=['名称','依赖','配置','应用']
 def 解析目录(原始):#校验目录
     '解析 SDK 列出的工具目录'
     if not isinstance(原始,dict) or not isinstance(原始.get('tools'),list):#非法
-        raise Exception('Cua 驱动工具目录无效')
+        raise 驱动错误('Cua 驱动工具目录无效')
     工具表=[]#表
     for 工具 in 原始['tools']:#逐项
         if not isinstance(工具,dict) or not isinstance(工具.get('name'),str) or len(工具['name'])<1:#非法
-            raise Exception('Cua 驱动工具目录无效')
+            raise 驱动错误('Cua 驱动工具目录无效')
         if not isinstance(工具.get('inputSchema'),dict):#非法
-            raise Exception('Cua 驱动工具目录无效')
+            raise 驱动错误('Cua 驱动工具目录无效')
         项={'name':工具['name'],'inputSchema':工具['inputSchema']}#项
         if 工具.get('description') is not None:#描述
             项['description']=工具['description']#描述
@@ -99,9 +100,9 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
         for 工具 in 目录['tools']:#逐工具
             公开名='cua_driver_native__'+工具['name']#公开名
             if not 工具名模式.fullmatch(公开名):#超格式
-                raise Exception('Cua 驱动工具 "'+工具['name']+'" 超出支持的函数名格式')
+                raise 驱动错误('Cua 驱动工具 "'+工具['name']+'" 超出支持的函数名格式')
             if 公开名 in 名集:#重名
-                raise Exception('Cua 驱动目录中工具 "'+工具['name']+'" 出现了多次')
+                raise 驱动错误('Cua 驱动目录中工具 "'+工具['name']+'" 出现了多次')
             名集.add(公开名)#记下
             def 调用(参数,执行=None,原始名=工具['name'],活动驱动=活动):#调用
                 '经原生 SDK 调工具'

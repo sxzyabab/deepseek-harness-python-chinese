@@ -2,7 +2,8 @@ import threading#后台串行与监听器等待
 from ...基础设施.通用工具 import 设置内部数据
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-from .网关 import 网关错误,操作任务,中止控制器,中止信号#本包异常与并发原语
+from .网关 import 操作任务,中止控制器,中止信号#并发原语
+from .异常 import 网关错误#本包异常
 from .远程流 import 远程流#可重连流
 from .远程事件 import 客户端远程事件#转发事件
 

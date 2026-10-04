@@ -2,7 +2,7 @@
 import os#存在判定与路径
 
 from .acl import 授予写入,撤销写入#授予与撤销写入ACE
-from .错误 import Win32错误,访问控制错误#Win32错误与校验错误
+from .异常 import Win32错误,访问控制错误#Win32错误与校验错误
 from .ffi import 分配指针槽,解码指针,是否空指针,抛上次错误,解析绑定#指针槽、解码、空指针、错误抛出与绑定
 from .路径边界 import 断言私有临时不相交,断言临时根在工作区外#私有临时不相交与临时根断言
 from .spawn import 引用参数,排空管道,隔离生成,隔离继承生成,等待退出#引用、排空、隔离spawn与等待

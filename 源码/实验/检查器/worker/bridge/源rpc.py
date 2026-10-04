@@ -6,12 +6,7 @@ from .枢纽 import 检查器协议版本#协议版本
 
 __all__=['Client源远程错误','Client源路由']#仅中文公开名
 
-class Client源远程错误(Exception):#Client源远程错误
-    'Client 源目录有意返回的错误'
-    def __init__(自身,码,信息):#构造
-        '保存错误码'
-        super().__init__(信息)#基类
-        自身.code=码#错误码
+from ...异常 import Client源远程错误#Client源远程错误
 
 class Client源路由:#Client源路由
     '将有界源请求与一个活动 Client 源代数关联'

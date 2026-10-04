@@ -1,4 +1,5 @@
 import json#诊断串化
+from .异常 import 客户端模块错误#本包异常
 
 __all__=[#仅中文公开名
     '客户端模块错误',
@@ -18,12 +19,6 @@ __all__=[#仅中文公开名
     '客户端模块加载器',
     '客户端模块系统选项',
 ]
-
-class 客户端模块错误(Exception):
-    '本包模块系统失败'
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
 
 class 网页启动入口(dict):#启动图行
     '宿主推来的一条已组合客户端条目。键：id、url、rev；可选 inject、immediately、external'

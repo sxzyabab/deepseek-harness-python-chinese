@@ -3,7 +3,8 @@ from concurrent.futures import Future as 原生结果#单次操作结果
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...依赖 import cordis#外部依赖胶水
 聚合错误=cordis.聚合错误#多失败聚合
-from ...模型后端.llm import 创建用户消息,截上下文摘要,错误链#用户消息、摘要与错误链
+from ...模型后端.llm.异常 import 错误链#错误链
+from ...模型后端.llm import 创建用户消息,截上下文摘要#用户消息与摘要
 from ...内核.会话 import 会话标识#会话id品牌
 from .描述符 import 折叠子智能体描述符,快照子智能体描述符#描述符折叠与快照
 from .子体 import (#子体组合零件
@@ -15,11 +16,8 @@ from .子体 import (#子体组合零件
     解析子深度,#解析子深度
 )#子体组合零件结束
 from .深度 import 断言子智能体最大深度#导入深度上限断言
-from .错误 import 子智能体错误#导入子智能体错误
+from .异常 import 子智能体错误,子智能体中止错误#本包异常
 from .目录 import 建立目录子体#父拥有目录追加
-
-class 子智能体中止错误(子智能体错误):
-    '调用方取消'
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

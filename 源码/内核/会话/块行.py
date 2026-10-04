@@ -1,13 +1,11 @@
 from ...模型后端.llm.标识构造 import 调用标识
 from ...模型后端.llm.永不 import 断言永不
 from .类型 import 安全整数上限
+from .异常 import 块行错误
 
 __all__=['打包块游程','解码存储记录']
 
 最少游程=3#最少打包成员
-
-class 块行错误(Exception):
-    '内核会话块行包的异常基类'
 
 def 外来安全整数(值):
     '外来 JSON 序号与时间是否落在安全整数范围'

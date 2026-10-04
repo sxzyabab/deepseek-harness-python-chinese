@@ -1,7 +1,7 @@
 import threading#中止竞态线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 取超时,已中止,若已中止则抛出,等待中止#超时分类与中止入口
-from ..语言服务器 import 语言服务器错误#本缝异常基类
+from ..语言服务器.异常 import 语言服务器错误#本缝异常基类
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

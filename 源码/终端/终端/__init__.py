@@ -4,8 +4,8 @@ from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
 聚合错误=cordis.聚合错误#搭建与清理双失败聚合
 from ...工具.超时 import 中止控制器,合成信号,已中止,若已中止则抛出#取消控制器、合成信号与中止入口
+from .异常 import 终端错误,终端后端清理错误#带稳定错误码的错误|搭建清理双失败
 from .类型 import (
-    终端后端清理错误,#搭建清理双失败
     终端会话标识值,#会话id品牌基底
     终端等待原因,#等待原因
     终端信号,#信号
@@ -35,15 +35,6 @@ from .类型 import (
     'SEND_ACTIVE',#已有活动发送
     'SERVICE_DISPOSING',#服务拆除中
 )#错误码结束
-
-class 终端错误(Exception):#带稳定错误码的错误
-    '携带稳定 TerminalErrorCode 的错误'
-    def __init__(自身,消息,码=None):#记下消息与可选码
-        '记下可读消息与稳定码'
-        super().__init__(消息)#交给Exception
-        自身.name='TerminalError'#固定类名
-        if 码 is not None:#有稳定码
-            自身.code=码#稳定失败码
 
 def 终端会话标识(值):#把注册表签发的字符串打成会话身份
     '把注册表签发的字符串打成 TerminalSessionId'

@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..异常 import 运行时错误#本包错误
 import json as _json#清单解析
 from ..polyfill.async_context.als运行时 import 创建als运行时#ALS运行时
 from .posix路径 import 目录名,文件url转路径,是否绝对,拼接,路径转文件url,解析 as 解析路径#路径工具

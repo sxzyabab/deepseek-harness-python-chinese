@@ -1,5 +1,5 @@
-from ...模型后端.llm import 错误链#errorChain 渲染
-from .错误 import 子智能体错误#导入子智能体错误
+from ...模型后端.llm.异常 import 错误链#errorChain 渲染
+from .异常 import 子智能体错误#导入子智能体错误
 
 def 是否已移除(登记):#是否已撤销
     '贡献可能已自行撤销后重读可变移除状态'

@@ -1,7 +1,7 @@
 from ...共享.桥接.标识 import 客户端远程对象句柄#句柄
 from ...共享.json import 是否json值#JSON
 from ...共享.cordis.对象注册表 import 识别领域对象#语义引用
-from .错误 import 客户端运行时执行错误#执行错误
+from ...异常 import 客户端运行时执行错误#执行错误
 
 __all__=['客户端对象分配','客户端运行时对象选项','客户端对象存储']#仅中文公开名
 

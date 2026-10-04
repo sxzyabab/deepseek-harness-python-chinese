@@ -9,8 +9,7 @@ from ...内核.会话 import 会话标识#会话 id 品牌构造
 
 __all__=['装备SDKJSONRPC服务端','成功状态','SDK服务端错误','操作任务']#仅中文公开名
 
-class SDK服务端错误(Exception):
-    '本包异常基类'
+from .异常 import SDK服务端错误#本包异常
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

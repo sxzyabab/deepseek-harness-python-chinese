@@ -2,9 +2,9 @@
 import importlib#惰性解析打包rg路径
 import os#绝对路径、相对路径与分隔符
 import re#非法模式stderr匹配
-from ...模型后端.llm import 装备错误#带类型的Harness错误基类
+from .异常 import 搜索工具错误,搜索错误#本包异常
 from ...工具.输出保留 import 条目保留器,文本保留器#条数与文本保留器
-from ...子进程.本地子进程 import 本地子进程错误#spawn与等待失败
+from ...子进程.本地子进程.异常 import 本地子进程错误#spawn与等待失败
 
 原始输出最大字节=20_000_000#原始stdout默认字节上限
 搜索超时毫秒=30_000#协作超时默认毫秒
@@ -14,12 +14,6 @@ from ...子进程.本地子进程 import 本地子进程错误#spawn与等待失
 
 rg路径记忆=None#进程内惰性解析一次的rg路径
 非法模式=re.compile(r'regex parse error|error parsing glob',re.I|re.ASCII)#ripgrep拒绝正则或glob的stderr
-
-class 搜索工具错误(Exception):#参数校验失败
-    '搜索工具入参非法；详情保持英文线协议原文'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 已中止(信号):#读取中止标志
     """信号已置位则为已中止。
@@ -32,17 +26,6 @@ def 已中止(信号):#读取中止标志
 def 字节长(文本):#UTF-8字节长度
     '按 UTF-8 字节计长'
     return len(文本.encode('utf-8'))#按utf8计字节
-
-class 搜索错误(装备错误):#搜索带类型错误
-    """带类型的搜索失败。扩展装备错误，因此携带稳定的搜索错误码并链接 cause；工具注册表在 isError 结果上暴露 { name, code }，以便重试/权限/UI 层无需解析消息即可分支。
-
-    稳定错误码：SEARCH_INVALID_PATTERN — ripgrep 拒绝了正则或 glob；SEARCH_FAILED — 搜索无法运行或其输出无法解析；SEARCH_RAW_OUTPUT_OVERFLOW — 原始 rg 输出超出 rawOutputMaxBytes；SEARCH_ABORTED — 协作工具超时或调用方取消
-    """
-    def __init__(自身,消息,码,选项=None):#记下稳定搜索错误码
-        '记下稳定搜索错误码，并把 cause 链到本错误'
-        super().__init__(消息,码,选项)#交给装备错误保存消息、错误码与cause
-        自身.code=码#再写下本类的错误码字段
-        自身.name='SearchError'#固定错误名
 
 def 标准错误摘录(标准错误文本,已截断):#stderr诊断摘录
     '把保留的 stderr 尾做成诊断摘录；子进程丢掉字节时附截断说明'

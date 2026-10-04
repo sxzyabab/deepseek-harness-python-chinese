@@ -13,14 +13,7 @@ TARBALL规格=re.compile(r'\.(?:tgz|tar\.gz)(?:#.*)?$',re.IGNORECASE|re.ASCII)
 包名模式=re.compile(r'^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*$',re.ASCII)
 包名最大长度=214
 
-class 非法安装规格错误(Exception):
-    'pnpm 与注册表都不会接受的规格；reason 给人读'
-    def __init__(自身,规格,理由):
-        '记下修剪后的规格与一句拒绝理由'
-        super().__init__('plugin-manager: '+理由+': '+规格)
-        自身.name='InvalidInstallSpecError'
-        自身.spec=规格
-        自身.reason=理由
+from .异常 import 非法安装规格错误#非法规格
 
 def 构造非法(规格,理由):
     '构造拒绝'

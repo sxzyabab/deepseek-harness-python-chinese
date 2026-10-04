@@ -5,9 +5,7 @@ __all__=[#仅中文公开名
     '类型图渲染错误','类型图渲染器',
 ]#公开面结束
 
-class 类型图渲染错误(Exception):#类型图渲染错误
-    '渲染或遍历内部不一致的 TypeGraph 时失败'
-    name='TypeGraphRenderError'#错误名
+from .异常 import 类型图渲染错误#类型图渲染错误
 
 def 引号(值):#单引号字符串
     '转义'

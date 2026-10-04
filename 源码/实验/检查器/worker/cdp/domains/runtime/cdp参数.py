@@ -1,4 +1,5 @@
-from .....共享.json import 是否json值,是否普通对象,检查器错误#JSON工具|本包错误
+from .....共享.json import 是否json值,是否普通对象#JSON工具
+from .....异常 import 检查器错误#本包错误
 from .....共享.校验 import 精确键,可选布尔,可选字符串#校验
 
 __all__=[#仅中文公开名

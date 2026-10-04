@@ -1,6 +1,6 @@
 '无依赖源码引导闭包用的无损 JSON 快照与扁平线格式'
 import math#有限数判定
-from .协议 import 节点ptc错误#本包异常
+from .异常 import 节点ptc错误#本包异常
 
 __all__=['快照ptcjson值','编码ptcjson线','解码ptcjson线']#仅中文公开名
 

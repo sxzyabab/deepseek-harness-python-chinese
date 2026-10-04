@@ -1,7 +1,7 @@
 '一条可重连窗口保持，由终端的全部出现共享'
 import threading#等待者
 from ....基础设施.通用工具 import 获取内部数据
-from ..类型 import 远程错误#不可用
+from ..异常 import 远程错误#本包异常
 from ...工具.超时 import 若已中止则抛出#中止
 
 __all__=['终端窗口保持']#仅中文公开名

@@ -1,6 +1,5 @@
 from .文案 import 会话命名空间#会话文案命名空间
 from ....基础设施.通用工具 import 获取内部数据
-from ....基础设施.通用工具 import 获取内部数据
 from .工具调用树 import 工具调用树#工具调用树组件
 from .工具详情 import 工具详情#工具详情渲染器
 from .提问行 import 提问工具视图#提问原子视图

@@ -1,4 +1,5 @@
 import re#词边界与标签
+from .异常 import Typert分析错误#分析失败
 from .模型 import 子类型节点标识列表#子边
 from .渲染器 import 类型图渲染器#类型图渲染器
 
@@ -67,13 +68,13 @@ def 报告类型链接违规(门禁,违规列表):#有违规则抛聚合错误
     '聚合全部类型链接违规'
     if len(违规列表)==0:#无
         return#静默
-    raise Exception(门禁+': '+str(len(违规列表))+' signature type-link coverage violation(s):\n'+'\n'.join('  '+项 for 项 in 违规列表))#抛
+    raise Typert分析错误(门禁+': '+str(len(违规列表))+' signature type-link coverage violation(s):\n'+'\n'.join('  '+项 for 项 in 违规列表))#抛
 
 def 报告违规(门禁,违规列表):#JSDoc 完整性门禁
     '聚合全部 JSDoc 违规'
     if len(违规列表)==0:#无
         return#静默
-    raise Exception(门禁+': '+str(len(违规列表))+' JSDoc completeness violation(s) (see AGENTS.md):\n'+'\n'.join('  '+项 for 项 in 违规列表))#抛
+    raise Typert分析错误(门禁+': '+str(len(违规列表))+' JSDoc completeness violation(s) (see AGENTS.md):\n'+'\n'.join('  '+项 for 项 in 违规列表))#抛
 
 def 解析JsDoc(原文):#把原始 JSDoc 拆成散文与标签
     'doc / params / returns / throws / deprecated'

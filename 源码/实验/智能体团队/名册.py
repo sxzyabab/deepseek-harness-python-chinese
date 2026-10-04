@@ -2,7 +2,7 @@ import re,uuid#名字模式、预留子 id
 from threading import Event as 同步事件,Thread as 线程#进度门与中止盯梢
 from ...依赖.工具 import 聚合错误#聚合错误
 from ...子智能体.子智能体 import 折叠子智能体描述符#描述符折叠
-from .错误 import 团队错误,错误文案#领域错误
+from .异常 import 团队错误,错误文案#领域错误
 from .持久化 import 读持久会话#持久读取
 from .会话消息 import 消息已接受#消息接受
 from .类型 import 团队标识#TeamId

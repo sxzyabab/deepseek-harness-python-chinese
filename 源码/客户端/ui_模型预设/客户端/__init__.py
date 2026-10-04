@@ -1,4 +1,5 @@
-from .目录 import 权限目录,预设错误#进程目录
+from .目录 import 权限目录#进程目录
+from ..异常 import 预设错误#本包异常
 from .文案 import 权限访问命名空间,中文,英文,访问中文,访问英文#词典
 from .呈现 import 自动审查预设,完全权限预设,展示权限预设#展示
 from .权限行 import 权限行#通用设置行

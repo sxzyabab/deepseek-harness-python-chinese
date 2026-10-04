@@ -1,12 +1,7 @@
 import threading#后台读目录
+from ..异常 import 预设错误#本包异常
 
 __all__=['权限目录','预设错误']#仅中文公开名
-
-class 预设错误(Exception):
-    '权限目录读失败'
-    def __init__(自身,消息):
-        '英文消息'
-        super().__init__(消息)#消息
 
 class 快照存储:#简易 SnapshotStore
     '值 + 订阅'

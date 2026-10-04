@@ -1,5 +1,6 @@
 import threading#工作线程
 from .. import llm#语言模型服务
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 import pi_ai#外部依赖胶水（pi-ai SDK）
 from ...工具.超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .上下文 import 转派上下文#上下文转换
@@ -20,7 +21,7 @@ class 中止信号:
         自身._异常=None#中止时抛出的异常
         if 已中止标志:#创建时已中止
             自身._事件.set()#置位
-            自身._异常=llm.大模型错误('已中止','ABORTED')#默认中止
+            自身._异常=大模型错误('已中止','ABORTED')#默认中止
 
     def 触发(自身,原因=None):
         '标记中止'
@@ -29,11 +30,11 @@ class 中止信号:
         if isinstance(原因,BaseException):#原因已是异常
             自身._异常=原因#用异常对象承载
         elif 原因 is not None:#非异常原因
-            错=llm.大模型错误('已中止','ABORTED')#包装
+            错=大模型错误('已中止','ABORTED')#包装
             错.原因=原因#附加属性
             自身._异常=错#记下
         else:#无原因
-            自身._异常=llm.大模型错误('已中止','ABORTED')#默认
+            自身._异常=大模型错误('已中止','ABORTED')#默认
         自身._事件.set()#置位
 
 class 中止控制器:
@@ -58,7 +59,7 @@ def 若已中止则抛出(信号):
         return#继续
     原因=信号._异常#异常对象承载原因
     if 原因 is None:#无原因
-        raise llm.大模型错误('已中止','ABORTED')#默认中止
+        raise 大模型错误('已中止','ABORTED')#默认中止
     raise 原因#原样抛出
 
 def 合成信号(源列表):
@@ -118,7 +119,7 @@ def 解析思考档位(模型,力度):
             return 力度#支持则用
     提供方=模型.provider#提供方
     标识=模型.id#模型id
-    raise llm.大模型错误(
+    raise 大模型错误(
         'pi-ai provider "'+str(提供方)+'" model "'+str(标识)+'" does not support reasoning effort "'+str(力度)+'"',
         'UNSUPPORTED_REASONING_EFFORT',
     )#不支持
@@ -178,7 +179,7 @@ class 派爱适配器(llm.大模型适配器):
         '一份快照里一条路由的配置，或不拥有该路由的失败'
         配置项=快照['profiles'][提供方] if 提供方 in 快照['profiles'] else None#查表
         if 配置项 is None:#本适配器不拥有该路由
-            raise llm.大模型错误('pi-ai adapter does not own provider "'+提供方+'"','NO_ADAPTER')#未注册
+            raise 大模型错误('pi-ai adapter does not own provider "'+提供方+'"','NO_ADAPTER')#未注册
         return 配置项#已解析配置
     def 模型于(自身,快照,提供方,模型):
         '一份快照里一对精确路由/模型的已配置描述符'
@@ -188,10 +189,10 @@ class 派爱适配器(llm.大模型适配器):
         if 失败 is None and ('piProvider' not in 配置项 or 配置项['piProvider'] is None):#路由级
             失败=配置项['catalogError'] if 'catalogError' in 配置项 else None#目录错误
         if 失败 is not None:#配置无效
-            raise llm.大模型错误(失败,'INVALID_CONFIG')#无效配置
+            raise 大模型错误(失败,'INVALID_CONFIG')#无效配置
         已解析=快照['models'].getModel(提供方,模型)#从集合取模型
         if 已解析 is None:#路由有了但集合里没有这个模型
-            raise llm.大模型错误('pi-ai provider "'+提供方+'" has no configured model "'+模型+'"','UNKNOWN_MODEL')#未知模型
+            raise 大模型错误('pi-ai provider "'+提供方+'" has no configured model "'+模型+'"','UNKNOWN_MODEL')#未知模型
         return 已解析#已配置模型
     def 提供方简介(自身,提供方):
         '提供方展示'
@@ -262,7 +263,7 @@ class 派爱适配器(llm.大模型适配器):
         '在一份已捕获快照下流式调用'
         停止=选项['stop'] if 'stop' in 选项 else None#停止序列
         if 停止 is not None:#本后端不支持 GenerateOptions.stop
-            raise llm.大模型错误('llm-pi-ai does not support GenerateOptions.stop','UNSUPPORTED_OPTION')#不支持
+            raise 大模型错误('llm-pi-ai does not support GenerateOptions.stop','UNSUPPORTED_OPTION')#不支持
         提供方=选项['provider']#提供方
         模型标识=选项['model']#模型id
         配置项=自身.配置于(快照,提供方)#本次配置
@@ -291,14 +292,14 @@ class 派爱适配器(llm.大模型适配器):
             输入=模型.input#输入模态
             if 含图片 and 'image' not in 输入:#模型目录没声明 image 模态
                 标识=模型.id#模型id
-                raise llm.大模型错误('pi-ai model "'+str(标识)+'" does not support image input','UNSUPPORTED_CONTENT')#不支持图片
+                raise 大模型错误('pi-ai model "'+str(标识)+'" does not support image input','UNSUPPORTED_CONTENT')#不支持图片
             附件=None#附件服务
             if 含图片:#有图片才解析附件钩子
                 解析附件=自身.配置['resolveAttachments'] if 'resolveAttachments' in 自身.配置 else None#可选附件钩子
                 if 解析附件 is not None:#插件装了附件钩子才调用
                     附件=解析附件()#有图片才解析附件服务
             if 含图片 and 附件 is None:#需要图片却没有持久附件服务
-                raise llm.大模型错误('pi-ai image input requires the durable attachment service','UNSUPPORTED_CONTENT')#缺少附件服务
+                raise 大模型错误('pi-ai image input requires the durable attachment service','UNSUPPORTED_CONTENT')#缺少附件服务
             def 回放降级(原因):#不可用回放只警告
                 '把不可用回放降级通知插件'
                 钩子=自身.配置['onReplayDegrade'] if 'onReplayDegrade' in 自身.配置 else None#可选钩子
@@ -360,9 +361,9 @@ class 派爱适配器(llm.大模型适配器):
                         pass#稳定信号已拥有SDK终止；return时的中止不能再添第二种结果
         except Exception as 错误:#打开或消费流契约未收窄抛出类型
             if 取超时(看门狗.信号,流空闲超时码) is not None:#空闲超时优先于其它失败
-                raise llm.大模型错误('pi-ai stream idle timeout after '+str(空闲超时毫秒)+'ms','TIMEOUT',{'cause':错误})#超时
+                raise 大模型错误('pi-ai stream idle timeout after '+str(空闲超时毫秒)+'ms','TIMEOUT',{'cause':错误})#超时
             if 调用方信号 is not None and 已中止(调用方信号):#调用方中止
-                raise llm.大模型错误('pi-ai request aborted by caller','ABORTED',{'cause':错误})#中止
+                raise 大模型错误('pi-ai request aborted by caller','ABORTED',{'cause':错误})#中止
             raise 错误#其余原样抛出
         finally:#生成器结束
             消费方.中止('pi-ai stream consumer stopped')#中止消费方

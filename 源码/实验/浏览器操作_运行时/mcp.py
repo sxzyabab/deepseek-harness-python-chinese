@@ -5,7 +5,8 @@ from ...浏览器操作.浏览器操作.标识构造 import 浏览器操作提�
 from ...mcp import mcp客户端#MCP 客户端插件
 from ...内核.作用域 import 创建作用域#铸造作用域
 from ...工具.超时 import 若已中止则抛出#中止
-from . import 会话资源,浏览器操作运行时错误#资源表与异常
+from .异常 import 浏览器操作运行时错误#异常
+from . import 会话资源#资源表
 
 __all__=['浏览器mcp配置','校验浏览器mcp配置','挂会话mcp']#仅中文公开名
 

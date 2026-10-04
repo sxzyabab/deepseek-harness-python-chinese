@@ -1,6 +1,7 @@
 import json,time#JSON 文本与墙钟
 from ...依赖 import cordis#外部依赖胶水
 from ...内核.工具 import 定义工具#定义面向模型的工具
+from .异常 import 日程输入错误,日程日志错误#本包异常
 from .领域 import (
     分配日程标识,#分配 id
     创建延迟日程记录,#创建延迟记录
@@ -9,8 +10,6 @@ from .领域 import (
     折叠日程事件,#折叠事件流
     最短固定间隔秒,#最短固定间隔
     日程标识,#日程 id
-    日程输入错误,#输入错误
-    日程日志错误,#日志错误
     日程视图,#面向模型视图
 )#domain 导出
 from .持久化 import 冲洗日程持久#导入持久屏障

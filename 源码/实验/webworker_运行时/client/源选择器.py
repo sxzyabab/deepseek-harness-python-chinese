@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误#本包错误
+from ..异常 import 运行时错误#本包错误
 from ..fixture清单 import 解析预览fixture清单#解析函数
 
 __all__=['选择预览源']#仅中文公开名

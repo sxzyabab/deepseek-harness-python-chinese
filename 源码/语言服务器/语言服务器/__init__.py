@@ -2,7 +2,7 @@
 import re#扩展名文法
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#服务基类
-from ...模型后端.llm import 装备错误 as 框架错误#Harness 风格错误
+from .异常 import 语言服务器错误
 
 __all__=[
     '包名','名称','默认','语言服务器错误','语言服务器提供方标识','最终扩展名','语言服务器',
@@ -17,9 +17,6 @@ def 语言服务器提供方标识(标识):
     空串由注册表拒绝
     """
     return 标识#opaque id
-
-class 语言服务器错误(框架错误):
-    '带稳定 code 的 LSP 错误'
 
 def 最终扩展名(文件路径):
     '`Foo.TS`→`.ts`；无扩展名或点开头的 dotfile 返回空串'

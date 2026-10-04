@@ -1,5 +1,5 @@
 from .转换 import 转换excel
-from .错误 import 表格预览错误
+from ...异常 import 表格预览错误
 
 __all__=['工作者入口']
 

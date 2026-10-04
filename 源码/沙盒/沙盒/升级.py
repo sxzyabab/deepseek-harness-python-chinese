@@ -1,8 +1,6 @@
 '每个沙箱强制工具家族共用的升级词表与编排：严格更宽阶梯、参数配对校验、面向模型的拒绝/提示标记，以及批准升级——在任何东西执行之前经用户审批通道解析 sandbox_permissions 请求的有序失败即关闭序列'
 from ...模型后端.llm import 断言永不#封闭联合穷尽辅助
-
-class 沙箱升级错误(Exception):
-    '沙箱升级失败'
+from .异常 import 沙箱升级错误#沙箱升级失败
 
 更宽模式={#从当前模式可升级到的更宽模式
     'read-only':('workspace-write','danger-full-access'),#只读可升到工作区可写或完全放开

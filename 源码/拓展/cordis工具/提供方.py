@@ -1,7 +1,7 @@
 from ..cordis服务端.巡检注册表 import 宿主巡检提供方登记
 from .名录 import 事件目录,查询事件目录,查询服务目录
 from .配置 import 查询现场配置
-from .呈现 import 巡检错误
+from .异常 import 巡检错误
 
 __all__=['宿主巡检提供方']
 

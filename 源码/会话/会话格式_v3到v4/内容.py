@@ -1,5 +1,6 @@
 'V3 内容标签与请求工具字段，在 V4 解释前准入'
-from ..会话格式 import 会话格式错误,会话格式不支持迁移错误,是否会话格式json对象#从会话格式导入
+from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
+from ..会话格式 import 是否会话格式json对象#从会话格式导入
 from .源列表 import 映射事件消息#映射事件消息
 
 v3块类型=frozenset(['text','reasoning','image','file','tool-call','tool-result'])#V3块类型

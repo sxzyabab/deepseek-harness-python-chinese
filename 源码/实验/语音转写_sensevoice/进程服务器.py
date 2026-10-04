@@ -2,7 +2,7 @@ import json
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import parse_qs,urlparse
 from hmac import compare_digest
-from .输入 import 语音输入错误
+from .异常 import 语音输入错误
 
 __all__=['启动识别服务器']
 

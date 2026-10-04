@@ -3,7 +3,7 @@ import json,threading#JSON编解码与中止监视线程
 from json import JSONDecodeError as JSON解码错误#线协议 JSON 解析失败
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as HTTP异常#HTTP客户端
 from urllib.parse import urlparse as 解析网址#拆基址
-from ..web.类型 import 网络错误#web能力错误
+from ..web.异常 import 网络错误#web能力错误
 
 提供方标识='perplexity'#本提供方注册所用的稳定 id
 默认基址='https://api.perplexity.ai'#默认 Perplexity 端点；操作是 /chat/completions

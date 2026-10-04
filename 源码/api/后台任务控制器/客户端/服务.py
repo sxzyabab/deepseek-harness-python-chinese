@@ -1,6 +1,6 @@
 import threading
 from .....依赖.cordis import 服务
-from .....api.网关.流载体 import 远程流载体错误
+from ...网关.异常 import 远程流载体错误
 
 __all__=['客户端作业']
 

@@ -1,6 +1,7 @@
 import json#条目目标指纹
 from threading import Lock as 锁#串行调和队列
-from .清单 import 客户端模块错误,解析启动清单#本包异常与清单解析
+from .异常 import 客户端模块错误#本包异常
+from .清单 import 解析启动清单#清单解析
 from .条目生命周期 import 拆除条目纤程,移除包拥有样式#纤程与样式拆除
 
 __all__=['客户端条目状态','客户端条目表','活动纤程态','失败纤程态']#仅中文公开名

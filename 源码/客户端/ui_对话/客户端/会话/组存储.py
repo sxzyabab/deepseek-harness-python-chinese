@@ -1,6 +1,6 @@
 from ....存储 import 创建快照存储
 from .....工具.值 import 断言永不
-from ..约定.槽 import 对话错误
+from ...异常 import 对话错误
 
 __all__=['会话组存储']
 

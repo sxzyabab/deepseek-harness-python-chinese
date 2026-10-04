@@ -1,6 +1,7 @@
 import json as _json#解析工具参数
 from .已呈现 import 是否已呈现数据,是否已呈现文件,路径末段 as _已呈现路径末段#已呈现校验
 from .改动 import 是否改动事件#改动事件
+from .异常 import 交付物错误#本包异常
 
 __all__=[#仅中文公开名
     '收口产出',
@@ -16,9 +17,6 @@ __all__=[#仅中文公开名
 ]
 
 表面事件类型=frozenset({'user/message','assistant/message','tool/result'})#可进表面的事件类型
-
-class 交付物错误(Exception):
-    '本包异常基类'
 
 def 是否追加面事件(事件):#表面且操作为追加
     '表面且操作为追加'

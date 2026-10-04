@@ -1,6 +1,6 @@
 'SQLite 存储后端的 schema 与打开时辅助'
 import os,sqlite3#路径与 sqlite3
-from ..存储.错误 import 存储错误#存储错误
+from ..存储.异常 import 存储错误#存储错误
 __all__=['存储_SQLITE_结构版本','日志模式','打开数据库','记录表名']#仅中文公开名
 
 存储_SQLITE_结构版本=1#物理布局版本

@@ -3,7 +3,7 @@ import base64#附件解码
 import threading#帧调度
 import time#挂钟
 import uuid#请求 id
-from ..远程错误与并发 import 远程错误
+from ..异常 import 远程错误#本包异常
 from .传输 import 会话事件流#事件流
 from .约定.事件 import 可变会话事件源#事件源
 from .通知器 import 通知器#通知

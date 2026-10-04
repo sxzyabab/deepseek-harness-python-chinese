@@ -1,5 +1,5 @@
 import threading#序列化取消与附件飞行
-from ..服务 import 对话错误#本包异常
+from ...异常 import 对话错误#本包异常
 from .输入机 import 输入机,已中止,若已中止则抛出,中止控制器#提交平面
 from .运行时 import 草稿编辑器运行时#作曲器编辑器
 

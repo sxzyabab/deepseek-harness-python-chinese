@@ -6,8 +6,7 @@ from ..llm import 若已中止则抛出#中止原语
 
 __all__=['扩展错误','深度seek官方请求扩展注册表','默认']#仅中文公开名
 
-class 扩展错误(Exception):
-    'DeepSeek LLM API 扩展注册与接纳失败'
+from .异常 import 扩展错误#扩展注册与接纳失败
 
 def 深冻结json(值):
     '递归复制 JSON 形值；dict 与 list 拆离，标量原样'

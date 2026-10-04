@@ -1,12 +1,15 @@
 import json,os,re,time,threading#JSON、文件、正则、节拍与挂起
 from ...模型后端.llm import (#LLM 运行时
-    语言模型适配器,语言模型错误,解析重试政策,断言永不,
+    语言模型适配器,解析重试政策,断言永不,
 )#LLM 导入
+from ...模型后端.llm.异常 import 语言模型错误#LLM 相关失败的有类型错误
 from ...模型后端.llm.助手流 import 展开助手流#展开嵌入助手流
 from ...模型后端.llm.标识构造 import 推理力度标识#推理力度
 from ...模型后端.llm.内容 import 请求图片句柄文案,卸载图片文案#图像句柄与卸载文案
 from ...内核.会话 import 会话格式版本#当代版本
-from ...会话.会话格式目录 import 会话格式目录,会话格式不支持迁移错误#格式目录
+from ...会话.会话格式目录 import 会话格式目录#格式目录
+from ...会话.会话格式.异常 import 会话格式不支持迁移错误
+from .异常 import 回放错误#回放包的异常基类
 
 __all__=[#仅中文公开名
     '名称','依赖','应用','解析会话日志','解析会话头','派生回放脚本',
@@ -141,9 +144,9 @@ def 解析会话夹具(文本):#解析会话 fixture
         try:
             值=json.loads(行)
         except json.JSONDecodeError as 错误:
-            raise Exception(f'会话快照第 {索引+1} 行不是合法 JSON') from 错误
+            raise 回放错误(f'会话快照第 {索引+1} 行不是合法 JSON') from 错误
         if not isinstance(值,dict):#须为对象
-            raise Exception(f'会话快照第 {索引+1} 行必须是 JSON 对象')
+            raise 回放错误(f'会话快照第 {索引+1} 行必须是 JSON 对象')
         行号=索引+1#行号
         if 恢复器 is None:#头行
             头行号=行号#记头行
@@ -160,10 +163,10 @@ def 解析会话夹具(文本):#解析会话 fixture
         有序号=序号键 in 记录#有序号否
         有时间=时间键 in 记录#有时间否
         if 有序号!=有时间:#须成对
-            raise Exception(f'session snapshot line {行号} must contain both {序号键} and {时间键}, or neither')#成对要求
+            raise 回放错误(f'session snapshot line {行号} must contain both {序号键} and {时间键}, or neither')#成对要求
         当前体种='complete' if 有序号 else 'projected'#当前体种
         if 体种 is not None and 当前体种!=体种:#禁止混用
-            raise Exception(f'session snapshot line {行号} cannot mix projected and complete body rows')#混用错误
+            raise 回放错误(f'session snapshot line {行号} cannot mix projected and complete body rows')#混用错误
         体种=当前体种#记录体种
         if 当前体种=='projected':#投影行补全
             记录[序号键]=下一序号#写入序号
@@ -177,7 +180,7 @@ def 解析会话夹具(文本):#解析会话 fixture
         except Exception as 错误:#解码失败
             raise 夹具格式错误(错误,头行号,行号表,事件行号,len(行号表)-1)#带行号
     if 恢复器 is None or 源头 is None or 头行号 is None:#缺头
-        raise Exception('会话快照必须以会话头开始')#缺头
+        raise 回放错误('会话快照必须以会话头开始')#缺头
     try:#完成恢复
         return 物化解析会话夹具(恢复器.finish(),源头)#物化视图
     except Exception as 错误:#完成失败
@@ -248,7 +251,7 @@ def 派生回放脚本(事件列表):#派生回放脚本
         末=分片列表[-1]#末分片
         类型=末.get('type') if isinstance(末,dict) else getattr(末,'type',None)#类型
         if 类型!='finish':#缺 finish
-            raise Exception(#需覆盖
+            raise 回放错误(#需覆盖
                 f'llm-replay: model call {键} ended without a finish chunk (a thrown stream); '
                 +'this scenario needs a replay.override.json sidecar',
             )#缺 finish 需覆盖
@@ -259,7 +262,7 @@ def 派生回放脚本(事件列表):#派生回放脚本
         if 类型=='compaction/summary':#压缩摘要
             if isinstance(数据,dict) and 数据.get('llmStreamCall') is True:#LLM 流调用
                 if 'rawOutput' not in 数据:#缺 rawOutput
-                    raise Exception('llm-replay: compaction/summary marks an LLM stream call without rawOutput')#缺 rawOutput
+                    raise 回放错误('llm-replay: compaction/summary marks an LLM stream call without rawOutput')#缺 rawOutput
                 分片列表=[]#分片
                 for 索引,块 in enumerate(数据['rawOutput']):#逐块
                     块类型=块.get('type') if isinstance(块,dict) else getattr(块,'type',None)#块类型
@@ -298,12 +301,12 @@ def 解析请求占位(模式,语料):#对照请求语料解析占位
     try:
         编译=正则.compile(模式)
     except 正则.error as 错误:
-        raise Exception(f'llm-replay: fromRequest 模式非法 {模式!r}: {错误}')
+        raise 回放错误(f'llm-replay: fromRequest 模式非法 {模式!r}: {错误}')
     末次=None#末次匹配
     for 匹配 in 编译.finditer(语料):#逐匹配
         末次=匹配#取末次
     if 末次 is None:#无匹配
-        raise Exception(f'llm-replay: fromRequest pattern {模式!r} matched nothing in the request')#无匹配
+        raise 回放错误(f'llm-replay: fromRequest pattern {模式!r} matched nothing in the request')#无匹配
     return 末次.group(1) if 末次.lastindex else 末次.group(0)#首捕获或整匹配
 
 def 替换字符串占位(文本,语料):#替换占位
@@ -316,7 +319,7 @@ def 替换字符串占位(文本,语料):#替换占位
             return 结果+文本[游标:]#收尾
         闭=文本.find(请求占位闭,开+len(请求占位开))#找闭
         if 闭==-1:#未闭合
-            raise Exception(f'llm-replay: fromRequest placeholder is unterminated in {文本!r}')#未闭合
+            raise 回放错误(f'llm-replay: fromRequest placeholder is unterminated in {文本!r}')#未闭合
         while 闭+len(请求占位闭)<len(文本) and 文本[闭+len(请求占位闭)]=='}':#连续 }
             闭+=1#延长
         模式=文本[开+len(请求占位开):闭]#取出模式
@@ -354,7 +357,7 @@ def 物化会话令牌(条目,实时会话标识列表):#物化会话令牌
                 序=int(匹配.group(1))#序号
                 实时=实时会话标识列表[序-1] if 序-1<len(实时会话标识列表) else None#实时 id
                 if 实时 is None:#未绑定
-                    raise Exception(f'llm-replay: session token {{{{session:{序}}}}} was used before that recorded session bound')#未绑定
+                    raise 回放错误(f'llm-replay: session token {{{{session:{序}}}}} was used before that recorded session bound')#未绑定
                 return 实时#返回
             return 正则.sub(r'\{\{session:([1-9]\d*)\}\}',一次,值)#替换
         if isinstance(值,list):#数组
@@ -381,7 +384,7 @@ def 推断已启动子智能体(消息列表,实时会话标识列表):#推断�
 
 def 非法覆盖(文件,位置,细节):#覆盖非法
     '抛出覆盖非法'
-    raise Exception(f'llm-replay: invalid override {文件}: {位置} {细节}')#覆盖非法
+    raise 回放错误(f'llm-replay: invalid override {文件}: {位置} {细节}')#覆盖非法
 
 def 读取分片列表(值,文件,位置):#读分片数组
     '校验 StreamChunk 数组'
@@ -454,7 +457,7 @@ def 读主夹具(配置):#读主 JSONL，整脚本覆盖占用同路径时跳过
 def 从夹具派生脚本(文件,夹具):#已迁移夹具派生
     '夹具缺席则失败'
     if 夹具 is None:#缺失
-        raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
+        raise 回放错误(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
     return 派生回放脚本(夹具['events'])#派生
 
 def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
@@ -470,12 +473,12 @@ def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
         已见=set()#已见索引
         for 补丁 in 文档['patches']:#逐补丁
             if 补丁['at']>派生长度:#越界
-                raise Exception(#越界
+                raise 回放错误(#越界
                     f"llm-replay: override patch index {补丁['at']} out of range "
                     +f"(derived script has {派生长度} call(s); == length appends): {覆盖}",
                 )#越界
             if 补丁['at'] in 已见:#重复
-                raise Exception(f"llm-replay: duplicate override patch index {补丁['at']}: {覆盖}")#重复
+                raise 回放错误(f"llm-replay: duplicate override patch index {补丁['at']}: {覆盖}")#重复
             已见.add(补丁['at'])#登记
             if 补丁['at']==派生长度:#追加
                 脚本.append(补丁['entry'])#追加
@@ -487,7 +490,7 @@ def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
 def 从文件派生脚本(文件):#从 JSONL 派生
     '从会话 JSONL 派生主脚本'
     if not os.path.exists(文件):#缺失
-        raise Exception(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
+        raise 回放错误(f'llm-replay: fixture not found: {文件} — run `pnpm run test:snapshot:record` first')#缺失
     with open(文件,'r',encoding='utf-8') as 句柄:#读文件
         return 派生回放脚本(解析会话日志(句柄.read()))#解析并派生
 
@@ -508,7 +511,7 @@ def 加载会话脚本(配置):#加载主与子脚本
     子项列表=[]#子脚本
     for 子文件 in 配置.get('childFiles') or []:#逐子
         if not os.path.exists(子文件):#缺失
-            raise Exception(f'llm-replay: child fixture not found: {子文件} — re-record the scenario')#缺失
+            raise 回放错误(f'llm-replay: child fixture not found: {子文件} — re-record the scenario')#缺失
         with open(子文件,'r',encoding='utf-8') as 句柄:#读子
             文本=句柄.read()#文本
         头=解析会话头(文本)#头
@@ -619,7 +622,7 @@ def 节拍延迟(毫秒,信号):#节拍等待
     截止=time.monotonic()+毫秒/1000#截止
     while time.monotonic()<截止:#等待
         if 信号 is not None and getattr(信号,'aborted',False):#中止
-            raise Exception('aborted')#中止
+            raise 回放错误('aborted')#中止
         time.sleep(0.01)#短睡
 
 def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
@@ -628,14 +631,14 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
     if 种类=='chunks':#分片
         for 分片 in 条目['chunks']:#逐分片
             if 信号 is not None and getattr(信号,'aborted',False):#中止
-                raise Exception('aborted')#中止
+                raise 回放错误('aborted')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
         return
     if 种类=='throw':#抛错
         for 分片 in 条目['chunks']:#先发前缀
             if 信号 is not None and getattr(信号,'aborted',False):#中止
-                raise Exception('aborted')#中止
+                raise 回放错误('aborted')#中止
             节拍延迟(节拍毫秒,信号)#节拍
             yield 分片#产出
         raise 语言模型错误(条目['message'],条目['code'])#抛已记录错误
@@ -651,13 +654,13 @@ def 回放条目流(条目,信号,节拍毫秒):#回放条目生成器
             门闩.set()#放行
         if 信号 is not None:#有信号
             if getattr(信号,'aborted',False):#已中止
-                raise Exception('aborted')#中止
+                raise 回放错误('aborted')#中止
             if hasattr(信号,'addEventListener'):#DOM 风格
                 信号.addEventListener('abort',中止回调,{'once':True})#监听
             elif hasattr(信号,'add_callback'):#回调风格
                 信号.add_callback(中止回调)#监听
         门闩.wait()#等中止
-        raise Exception('aborted')#中止
+        raise 回放错误('aborted')#中止
     断言永不(条目,'llm-replay replay entry')#穷尽
 
 def 提供方已接受(条目):#是否到达 2xx 后提交点
@@ -672,13 +675,13 @@ def 提供方已接受(条目):#是否到达 2xx 后提交点
 def 安装LLM回放(上下文,配置):#安装回放
     '安装每会话位置回放'
     if 会话格式目录.当前版本!=会话格式版本:#目录版本须与会话包一致
-        raise Exception(#抛出版本不匹配
+        raise 回放错误(#抛出版本不匹配
             f'llm-replay: format catalog v{会话格式目录.当前版本} '
             +f'does not match Session v{会话格式版本}',
         )#版本检查结束
     节拍=配置.get('paceMs') or 0#节拍
     if not isinstance(节拍,int) or isinstance(节拍,bool) or 节拍<0:#非法
-        raise Exception(f"llm-replay: paceMs must be a non-negative integer, got {配置.get('paceMs')!r}")#非法
+        raise 回放错误(f"llm-replay: paceMs must be a non-negative integer, got {配置.get('paceMs')!r}")#非法
     脚本列表=加载会话脚本(配置)#有序脚本
     绑定={}#绑定表
     实时会话标识列表=[None]*len(脚本列表)#实时 id 槽
@@ -708,12 +711,12 @@ def 安装LLM回放(上下文,配置):#安装回放
         def 生成():#生成器
             '产出回放分片'
             if 未记录:#未记录会话
-                raise Exception(#未记录
+                raise 回放错误(#未记录
                     f'llm-replay: a model call arrived from an unrecorded session (#{已见+1}); '
                     +f'the scenario recorded only {总数} session(s) — re-record it',
                 )#未记录
             if 条目 is None:#耗尽
-                raise Exception(#耗尽
+                raise 回放错误(#耗尽
                     f'llm-replay: script exhausted — session requested model call #{索引+1} '
                     +f"but its script has only {len(状态['entries'])}; re-record the scenario",
                 )#耗尽
@@ -750,7 +753,7 @@ def 安装LLM回放(上下文,配置):#安装回放
                 谁='the anonymous session' if 键==匿名 else f'session {键}'#身份
                 问题.append(f"{谁} consumed {状态['cursor']}/{len(状态['entries'])} recorded call(s)")#欠载
         if 问题:#有问题
-            raise Exception(f"llm-replay: fixture not fully consumed — {'; '.join(问题)}; the scenario drove fewer model calls than recorded")#欠载
+            raise 回放错误(f"llm-replay: fixture not fully consumed — {'; '.join(问题)}; the scenario drove fewer model calls than recorded")#欠载
     return {'dispose':拆除,'assertConsumed':断言已消费}#句柄
 
 def 校验已配置模型(提供方列表):#校验模型配置
@@ -759,24 +762,24 @@ def 校验已配置模型(提供方列表):#校验模型配置
         for 模型 in 提供方.get('models') or []:#逐模型
             模态=模型.get('inputModalities')#模态
             if 模态 is not None and (not isinstance(模态,list) or not all(项 in ('text','image') for 项 in 模态)):#非法
-                raise Exception(#模态非法
+                raise 回放错误(#模态非法
                     f'llm-replay: provider "{提供方["id"]}" model "{模型["id"]}" inputModalities '
                     +'must be an array containing only "text" and "image"',
                 )#模态非法
             图像价=模型.get('imageRequestTokens')#图像价
             if 图像价 is not None and (not isinstance(图像价,int) or isinstance(图像价,bool) or 图像价<=0):#非法
-                raise Exception(#图像价非法
+                raise 回放错误(#图像价非法
                     f'llm-replay: provider "{提供方["id"]}" model "{模型["id"]}" imageRequestTokens '
                     +'must be a positive safe integer',
                 )#图像价非法
             if 图像价 is not None and (模态 is None or 'image' not in 模态):#需 image 模态
-                raise Exception(#需 image
+                raise 回放错误(#需 image
                     f'llm-replay: provider "{提供方["id"]}" model "{模型["id"]}" imageRequestTokens '
                     +'requires inputModalities to include "image"',
                 )#需 image
             系统提示更新=模型.get('systemPromptUpdate')#系统提示词更新
             if 系统提示更新 is not None and 系统提示更新!='in-history':#仅允许 in-history
-                raise Exception(#非法更新策略
+                raise 回放错误(#非法更新策略
                     f'llm-replay: provider "{提供方["id"]}" model "{模型["id"]}" systemPromptUpdate '
                     +'must be "in-history" when present',
                 )#非法更新策略
@@ -787,7 +790,7 @@ def 应用(上下文,配置=None):#Cordis 入口
         配置={}#空
     文件=配置.get('file') or os.environ.get('DSH_SNAPSHOT_FILE')#主 fixture
     if 文件 is None or 文件=='':#缺路径
-        raise Exception('llm-replay: 需要夹具路径（Config.file 或 $DSH_SNAPSHOT_FILE）')#缺路径
+        raise 回放错误('llm-replay: 需要夹具路径（Config.file 或 $DSH_SNAPSHOT_FILE）')#缺路径
     校验已配置模型(配置.get('providers'))#校验模型
     覆盖=配置.get('overrideFile') or os.environ.get('DSH_SNAPSHOT_OVERRIDE')#覆盖
     子环境=os.environ.get('DSH_SNAPSHOT_CHILD_FILES')#子环境

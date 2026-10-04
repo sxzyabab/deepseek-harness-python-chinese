@@ -1,7 +1,8 @@
 import os,subprocess,threading,time#环境、子进程、线程与超时
 from concurrent.futures import Future as 原生结果#单次操作结果
 from collections import deque#有界 stderr 尾
-from ..协议 import 换行JSONRPC传输,JSONRPC响应错误#传输与对端错误
+from ..协议 import 换行JSONRPC传输#传输
+from ..协议.异常 import JSONRPC响应错误#对端错误
 from .拆除 import 拆除运行时进程#运行时进程拆除阶梯
 
 __all__=[#仅中文公开名
@@ -13,29 +14,7 @@ __all__=[#仅中文公开名
 标准错误尾上限=400#stderr 尾部最多保留行数
 流落定毫秒=100#流落定等待毫秒
 
-class SDK客户端错误(Exception):
-    '本包异常基类'
-
-class 传输已关闭错误(SDK客户端错误):
-    '运行时子进程已消失或不可用'
-    def __init__(自身,消息):
-        '记下失败描述，含任何 stderr 尾部'
-        super().__init__(消息)#交给基类
-        自身.name='TransportClosedError'#固定错误名
-
-class 请求超时错误(SDK客户端错误):
-    '某次请求超过了 requestTimeoutMs'
-    def __init__(自身,消息):
-        '记下哪个方法超时'
-        super().__init__(消息)#交给基类
-        自身.name='RequestTimeoutError'#固定错误名
-
-class SDK协议错误(SDK客户端错误):
-    '运行时给出了文档协议之外的应答'
-    def __init__(自身,消息):
-        '记下协议违规描述'
-        super().__init__(消息)#交给基类
-        自身.name='SdkProtocolError'#固定错误名
+from .异常 import SDK客户端错误,传输已关闭错误,请求超时错误,SDK协议错误#本包异常
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

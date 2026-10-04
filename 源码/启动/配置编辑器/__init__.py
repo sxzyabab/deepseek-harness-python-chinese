@@ -13,8 +13,7 @@ __all__=['包名','名称','依赖','默认','配置编辑器']
 名称='config-editor'
 依赖=['加载器','profileContext']
 
-class 配置编辑错误(Exception):
-    '配置编辑失败'
+from .异常 import 配置编辑错误#配置编辑失败
 
 def 展平(行列表):
     '展开嵌套 Include 组。行是 dict'

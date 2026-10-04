@@ -7,7 +7,8 @@ from .快照 import DOM快照序列化器,注册DOM快照序列化器#序列化�
 from .会话 import 夹具会话,测试会话,创建快照存储#会话替身与快照存储
 from .工作区 import 测试工作区#工作区替身
 from .配置表单 import 桩配置表单#配置表单桩
-from .远程 import 测试远程,远程错误#Remote 替身
+from .远程 import 测试远程#Remote 替身
+from .异常 import 客户端测试运行时错误,远程错误#本包异常
 from .夹具 import 聊天快照,对话快照,会话快照,工作区快照#fixture 工厂
 from .翻译 import 制作翻译#translate 桩
 from .语言环境 import 用钉住浏览器语言#语言钉住
@@ -100,7 +101,7 @@ class 槽测试运行时:#slot 测试运行时
         自身.panelInfo=创建快照存储({'activePanelId':None})#面板信息
         def 未桩上传(*_参数,**_关键字):#未桩上传
             '响亮失败'
-            raise Exception('客户端测试运行时：文件上传未桩')
+            raise 客户端测试运行时错误('客户端测试运行时：文件上传未桩')
         自身.fileUpload={'upload':未桩上传}#文件上传桩
         上下文.提供服务('sessions',自身.sessions)#提供会话
         上下文.提供服务('workspaces',自身.workspaces)#提供工作区
@@ -143,7 +144,7 @@ class 槽测试运行时:#slot 测试运行时
             必需=list(依赖表)
         缺失=[名 for 名 in 必需 if 自身.ctx.获取服务(名) is None]#缺失服务
         if 缺失:#有缺失
-            raise Exception(f"挂载会挂起：缺少服务 {', '.join(缺失)}，请先 provide()")
+            raise 客户端测试运行时错误(f"挂载会挂起：缺少服务 {', '.join(缺失)}，请先 provide()")
         纤程=自身.ctx.启动插件(插件)#挂插件
         def 等待激活():
             '稳定期内等待纤程激活'
@@ -210,7 +211,7 @@ class 槽测试运行时:#slot 测试运行时
     def renderSlot(自身,键,拥有方,选项=None):#渲染单 slot
         '用其 owner props 渲染一个已声明 slot'
         if 键 not in 自身._autoDeclared:#未声明
-            raise Exception(f"renderSlot('{键}') without declare() — declare the key first (or use root.declare for a custom frame)")#英文诊断
+            raise 客户端测试运行时错误(f"renderSlot('{键}') without declare() — declare the key first (or use root.declare for a custom frame)")#英文诊断
         当前选项=[选项]#可变盒
         缺省选项=object()#未传选项哨兵
         def 安装(下一批,下一批选项=缺省选项):#安装 owner
@@ -227,10 +228,10 @@ class 槽测试运行时:#slot 测试运行时
     def storeOf(自身,键,会话引用=None):#解析 store
         '解析渲染器会交给 slot 组件的 store 实例'
         if 自身._host is None:#无宿主
-            raise Exception('storeOf before renderRoot() — the host face exists only inside the installed renderer')#英文诊断
+            raise 客户端测试运行时错误('storeOf before renderRoot() — the host face exists only inside the installed renderer')#英文诊断
         条目列表=自身._host.entriesOf(键)#条目
         if not 条目列表:#无登记
-            raise Exception(f"storeOf('{键}'): no registration on the ledger")#英文诊断
+            raise 客户端测试运行时错误(f"storeOf('{键}'): no registration on the ledger")#英文诊断
         条目=条目列表[0]#首条目
         作用域绑定=None#作用域绑定
         if 会话引用 is not None:#有会话引用
@@ -242,19 +243,19 @@ class 槽测试运行时:#slot 测试运行时
                 作用域绑定=解析#绑定
             if 作用域绑定 is None:#缺失
                 会话标识=会话引用['sessionId'] if isinstance(会话引用,dict) and 'sessionId' in 会话引用 else getattr(会话引用,'sessionId',会话引用)#id
-                raise Exception(f"storeOf('{键}'): no live Session binding for '{会话标识}'")#英文诊断
+                raise 客户端测试运行时错误(f"storeOf('{键}'): no live Session binding for '{会话标识}'")#英文诊断
         实例=自身._host.storeOf(条目,作用域绑定)#取实例
         if 实例 is None:#无 store
-            raise Exception(f"storeOf('{键}'): the entry declares no store")#英文诊断
+            raise 客户端测试运行时错误(f"storeOf('{键}'): the entry declares no store")#英文诊断
         return 实例#返回
 
     def factoryOf(自身,名称):#取工厂
         '读一个已登记 Factory 定义'
         if 自身._host is None:#无宿主
-            raise Exception('factoryOf before renderRoot()')#英文诊断
+            raise 客户端测试运行时错误('factoryOf before renderRoot()')#英文诊断
         定义=自身._host.factoryOf(名称)#取定义
         if 定义 is None:#无
-            raise Exception(f"factoryOf('{名称}'): no definition")#英文诊断
+            raise 客户端测试运行时错误(f"factoryOf('{名称}'): no definition")#英文诊断
         return 定义#返回
 
     def flush(自身):#冲刷

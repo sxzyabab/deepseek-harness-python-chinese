@@ -1,6 +1,6 @@
 import fnmatch
 from urllib.parse import urlparse as 解析URL
-from .约定.槽位 import 右侧侧栏错误
+from ..异常 import 右侧侧栏错误
 
 __all__=['右侧侧栏标签注册表','默认优先级带','优先级秩']
 

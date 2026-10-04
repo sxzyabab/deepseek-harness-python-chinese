@@ -1,4 +1,5 @@
-from ....json import 是否json值,是否普通对象,检查器错误#JSON校验|本包错误
+from ....json import 是否json值,是否普通对象#JSON校验
+from .....异常 import 检查器错误#本包错误
 from ....校验 import 精确键,精确对象,可选布尔,可选字符串,线上标识#校验
 from ....cordis.对象引用 import 解析检查器对象引用#对象引用
 from ....cdp.远程对象 import 运行时远程对象类型,运行时远程对象子类型#类型常量

@@ -1,16 +1,15 @@
 '为 deepseek-account 注册账号令牌鉴权与模型发现'
+from ..llm.异常 import 语言模型错误 as 大模型错误,重试政策错误,配额耗尽码#大模型错误、重试政策错误与配额码
 from ..llm import (
-    大模型错误,
     解析图片附件访问,
-    重试政策错误,
-    配额耗尽码,
 )
 from ...工具.启动环境 import 取启动环境
 from ...身份.匿名用户id import 获取或创建匿名用户id
 from ...配置.配置 import json深度相等
 from ..llm_deepseek.适配器 import 深求适配器
 from ..llm_deepseek.模型信息 import 目录模型信息
-from .配置 import 配置,朴素选项,解析适配器选项,深求配置错误
+from ..llm_deepseek.异常 import 深求配置错误#配置校验失败
+from .配置 import 配置,朴素选项,解析适配器选项
 
 __all__=(
     '名称','依赖','配置','应用','默认',

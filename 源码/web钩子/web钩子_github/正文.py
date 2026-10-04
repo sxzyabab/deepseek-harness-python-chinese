@@ -1,13 +1,7 @@
 'GitHub 签名校验用的有界 HTTP 正文读取'
+from .异常 import WebhookHttp错误#不含请求数据的 HTTP 拒绝
 
 __all__=['WebhookHttp错误','内容长度','读取有界utf8正文']
-
-class WebhookHttp错误(Exception):
-    '消息可原样回写、不含请求数据的 HTTP 拒绝'
-    def __init__(自身,状态码,消息):
-        '记下 HTTP 状态码与安全消息'
-        super().__init__(消息)
-        自身.status=状态码#HTTP 状态码
 
 def 内容长度(请求):
     """解析十进制 Content-Length；歧义头或越界值直接拒绝。

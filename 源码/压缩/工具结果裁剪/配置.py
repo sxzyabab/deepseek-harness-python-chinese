@@ -9,8 +9,7 @@ from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆�
 })#默认预算结束
 配置键集合=frozenset(('thresholdChars','headChars','tailChars'))#允许的配置键
 
-class 工具结果裁剪错误(Exception):
-    '工具结果裁剪包的异常基类'
+from .异常 import 工具结果裁剪错误#本包异常
 
 def 码点长度(文本):
     '统计 Unicode 码点，不拆开代理对'

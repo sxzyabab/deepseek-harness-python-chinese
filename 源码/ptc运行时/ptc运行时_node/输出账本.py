@@ -1,6 +1,6 @@
 '一次运行的外层输出账本；绑定值永不进入'
 from .输出json import json字符串字节上限,json值字节上限,截断json字符串字节#字节计量
-from .协议 import 节点ptc错误#本包异常
+from .异常 import 节点ptc错误#本包异常
 
 __all__=['输出账本']#仅中文公开名
 

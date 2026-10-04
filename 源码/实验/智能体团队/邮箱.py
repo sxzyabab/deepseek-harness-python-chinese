@@ -1,7 +1,7 @@
 import copy,json,uuid#克隆、字节计、消息 id
 from threading import Event as 同步事件,Lock as 互斥锁#飞行完成门与队尾互斥
 from ...模型后端.llm import 创建用户消息#用户消息工厂
-from .错误 import 团队错误,错误文案#领域错误
+from .异常 import 团队错误,错误文案#领域错误
 from .持久化 import 读持久会话#持久读取
 from .名册 import 解析活跃成员#活跃成员
 from .会话消息 import 消息已接受#消息接受

@@ -1,4 +1,5 @@
 import threading#取消事件用 Event
+from .异常 import cordis客户端错误#本包异常
 
 __all__=['客户端巡检注册表','提供客户端巡检','说明']
 
@@ -19,14 +20,14 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
         清单=登记.get('manifest') if isinstance(登记,dict) else getattr(登记,'manifest',None)#清单
         标识=清单.get('id') if isinstance(清单,dict) else None#id
         if not isinstance(标识,str) or 标识.strip()=='':#空
-            raise Exception('客户端 Cordis 巡检提供方 id 不能为空')#抛
+            raise cordis客户端错误('客户端 Cordis 巡检提供方 id 不能为空')#抛
         if 标识 in 自身.提供方:#重复
-            raise Exception(f'客户端 Cordis 巡检提供方 "{标识}" 已登记')
+            raise cordis客户端错误(f'客户端 Cordis 巡检提供方 "{标识}" 已登记')
         名集=set()#方法名
         for 方法 in (清单.get('methods') or []):#每条
             名=方法.get('name')#名
             if 名 in 名集:#重复
-                raise Exception(f'客户端 Cordis 巡检提供方 "{标识}" 重复方法 "{名}"')
+                raise cordis客户端错误(f'客户端 Cordis 巡检提供方 "{标识}" 重复方法 "{名}"')
             名集.add(名)#收入
         自身.提供方[标识]=登记#写入
         自身.publish()#发布

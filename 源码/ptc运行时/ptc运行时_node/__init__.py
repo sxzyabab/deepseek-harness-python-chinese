@@ -11,9 +11,10 @@ from ...工具.超时 import (#截止与中止
     等待中止,#阻塞到中止
 )#超时结束
 from ...工具.值 import 快照json值#绑定返回值
-from ...沙盒.沙盒 import 沙箱不可用错误,分类运行器失败,是否运行器派生失败#沙箱失败
+from ...沙盒.沙盒.异常 import 沙箱不可用错误#沙箱失败
+from ...沙盒.沙盒 import 分类运行器失败,是否运行器派生失败#沙箱失败
 from ..ptc运行时 import ptc运行时#缝上服务
-from .协议 import 节点ptc错误#本包异常
+from .异常 import 节点ptc错误#本包异常
 from .绑定 import 校验绑定#绑定名
 from .通道 import json通道,任务,全部并发#控制通道
 from .启动 import 引导参数#argv 尾

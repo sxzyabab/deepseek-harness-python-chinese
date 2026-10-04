@@ -1,6 +1,6 @@
 'token-meter 投影单元共用的 O(1) 表面 token 折叠'
 from ...内核.会话 import 事件派生消息,是否表面事件#消息导出与表面判定
-from .类型 import 计量错误#计量异常
+from .异常 import 计量错误#计量异常
 from .计价 import 计价消息#消息计价
 
 __all__=['折叠表面投影']#仅中文公开名

@@ -1,5 +1,6 @@
 import json,os,re#JSON、路径与正则
 from ...会话.会话格式.文件名 import 会话格式日志文件名,解析会话格式日志文件名#持久日志名
+from .异常 import 会话快照错误#会话快照包的异常基类
 
 __all__=[#仅中文公开名
     '会话夹具文件名','写者快照名','解析会话夹具名','会话夹具文件列表','会话夹具名列表',
@@ -12,7 +13,7 @@ __all__=[#仅中文公开名
 def 断言非负安全整数(值,标签):#断言非负安全整数
     '值须为非负安全整数'
     if not isinstance(值,int) or isinstance(值,bool) or 值<0:#非法
-        raise Exception(f'{标签} must be a non-negative safe integer')#抛错
+        raise 会话快照错误(f'{标签} must be a non-negative safe integer')#抛错
 
 def 会话夹具文件名(索引,版本):#构造夹具名
     '返回一份父/序与世代的规范夹具文件名'
@@ -32,7 +33,7 @@ def 解析会话夹具名(名称):#解析夹具名
     匹配=夹具文件模式.match(名称)#匹配
     if 匹配 is None:#不匹配
         if 名称.startswith('session') and 名称.endswith('.jsonl'):#像夹具但非法
-            raise Exception(f'invalid session fixture name: {名称}')#非法名
+            raise 会话快照错误(f'invalid session fixture name: {名称}')#非法名
         return None#无关文件
     索引=0 if 匹配.group(1) is None else int(匹配.group(1))#索引
     版本=0 if 匹配.group(2) is None else int(匹配.group(2))#版本
@@ -48,17 +49,17 @@ def 会话夹具文件列表(名称列表):#选择夹具文件
             continue#跳过
         身份=f"{夹具['index']}/{夹具['version']}"#身份
         if 身份 in 身份集:#重复
-            raise Exception(f'duplicate session fixture generation: {名称}')#重复世代
+            raise 会话快照错误(f'duplicate session fixture generation: {名称}')#重复世代
         身份集.add(身份)#登记
         先前=已选.get(夹具['index'])#已选
         if 先前 is None or 夹具['version']>先前['version']:#更高则换
             已选[夹具['index']]=夹具#登记
     if 0 not in 已选:#缺父
-        raise Exception('缺少父会话夹具')#缺父
+        raise 会话快照错误('缺少父会话夹具')#缺父
     有序=sorted(已选.values(),key=lambda 项:项['index'])#按索引排序
     for 偏移,夹具 in enumerate(有序):#检查连续
         if 夹具['index']!=偏移:#不连续
-            raise Exception(f"session fixture roles must be contiguous: expected index {偏移}, found {夹具['name']}")#报错
+            raise 会话快照错误(f"session fixture roles must be contiguous: expected index {偏移}, found {夹具['name']}")#报错
     return 有序#有序列表
 
 def 会话夹具名列表(名称列表):#夹具名列表
@@ -69,23 +70,23 @@ def 会话头版本(内容,标签):#读头版本
     '从一份 Session JSONL 头读取声明的物理世代'
     行=next((候选 for 候选 in 内容.splitlines() if 候选.strip()!=''),None)#首非空行
     if 行 is None:#空
-        raise Exception(f'{标签}: session fixture is empty')#空文件
+        raise 会话快照错误(f'{标签}: session fixture is empty')#空文件
     try:
         值=json.loads(行)
     except json.JSONDecodeError as 错误:
-        raise Exception(f'{标签}: 会话头不是合法 JSON') from 错误
+        raise 会话快照错误(f'{标签}: 会话头不是合法 JSON') from 错误
     if not isinstance(值,dict) or 值.get('type')!='session':#非session头
-        raise Exception(f'{标签}: first record must be a Session header')#报错
+        raise 会话快照错误(f'{标签}: first record must be a Session header')#报错
     版本=值.get('version')#版本字段
     if not isinstance(版本,int) or isinstance(版本,bool) or 版本<0:#非法版本
-        raise Exception(f'{标签}: Session header version must be a non-negative safe integer')#报错
+        raise 会话快照错误(f'{标签}: Session header version must be a non-negative safe integer')#报错
     return 版本#返回版本
 
 def 断言会话夹具版本(名称,内容):#断言夹具版本
     '要求夹具规范文件名世代等于其头声明'
     夹具=解析会话夹具名(名称)#解析名
     if 夹具 is None:#非夹具
-        raise Exception(f'not a session fixture name: {名称}')#非夹具
+        raise 会话快照错误(f'not a session fixture name: {名称}')#非夹具
     首行=next((候选 for 候选 in 内容.splitlines() if 候选.strip()!=''),None)#首非空行
     if 首行 is not None:#有内容
         try:
@@ -94,11 +95,11 @@ def 断言会话夹具版本(名称,内容):#断言夹具版本
             投影=None
         if isinstance(投影,dict) and 投影.get('type')=='session' and 'version' not in 投影:#无version字段
             if 夹具['version']!=0:#文件名非v0
-                raise Exception(f'{名称}: a versionless projected Session header is format v0')#冲突
+                raise 会话快照错误(f'{名称}: a versionless projected Session header is format v0')#冲突
             return 0#v0
     头版本=会话头版本(内容,名称)#读头版本
     if 头版本!=夹具['version']:#不一致
-        raise Exception(
+        raise 会话快照错误(
             f"{名称}: filename declares Session format v{夹具['version']}, header declares v{头版本}",
         )#报错
     return 头版本#返回
@@ -133,10 +134,10 @@ def 断言持久会话版本(名称,内容):#断言持久版本
     '要求持久化基名世代等于其 Session 头'
     持久=解析持久会话文件名(名称)#解析名
     if 持久 is None:#非规范
-        raise Exception(f'not a canonical Session persistence filename: {名称}')#非规范
+        raise 会话快照错误(f'not a canonical Session persistence filename: {名称}')#非规范
     头版本=会话头版本(内容,名称)#读头
     if 头版本!=持久['version']:#不一致
-        raise Exception(
+        raise 会话快照错误(
             f"{名称}: filename declares Session format v{持久['version']}, header declares v{头版本}",
         )#报错
     return 头版本#返回

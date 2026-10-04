@@ -1,4 +1,4 @@
-from .错误 import 表格预览错误
+from ...异常 import 表格预览错误
 from .xlsx import 转换xlsx
 from .xls import 转换xls
 from .分隔文本 import 转换分隔文本

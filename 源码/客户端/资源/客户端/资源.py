@@ -8,6 +8,7 @@ from .约定 import (
     资源状态_失败,
     资源服务协议,
 )
+from ..异常 import 资源错误#本包异常
 
 __all__=[
     '资源方案',
@@ -19,12 +20,6 @@ __all__=[
 ]
 
 资源方案='dsh-resource'#资源地址 scheme，无冒号
-
-class 资源错误(Exception):
-    '本包资源模型失败'
-    def __init__(自身,消息):
-        '记下消息；线协议比对用的英文原样保留'
-        super().__init__(消息)
 
 def 已中止(信号):
     '无信号视为未中止；信号为 threading.Event'

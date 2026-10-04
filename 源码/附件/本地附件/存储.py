@@ -1,6 +1,7 @@
 '内容寻址、仅所有者本地附件存储'
 import hashlib,os,uuid#摘要、路径与临时名
-from ..附件 import 附件错误,附件标识,若已中止则抛出#附件缝
+from ..附件 import 附件标识,若已中止则抛出#附件缝
+from ..附件.异常 import 附件错误#附件失败
 from .图像 import 检测图像,探测图像#图像检查
 from .规范化 import 规范化图像#规范化
 __all__=[#仅中文公开名

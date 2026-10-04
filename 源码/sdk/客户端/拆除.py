@@ -2,8 +2,7 @@ import sys,subprocess#平台判定与超时等待
 
 __all__=['拆除运行时进程','SDK拆除错误']#仅中文公开名
 
-class SDK拆除错误(Exception):
-    '拆除阶梯失败'
+from .异常 import SDK拆除错误#拆除阶梯失败
 
 def 时限内退出(子进程,毫秒):
     '两种结果都不会在子进程上留下残留监听'

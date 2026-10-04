@@ -6,7 +6,8 @@ from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
 from ...依赖.schemastery import 正整数字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .变更 import 工作区变更供给
-from .类型 import 远程错误,已中止
+from .类型 import 已中止
+from .异常 import 远程错误#本包异常
 
 __all__=['包名','名称','依赖','应用','默认','配置','工作区文件']
 

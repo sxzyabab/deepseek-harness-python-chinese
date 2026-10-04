@@ -1,9 +1,7 @@
 from .加载器状态 import 状态标签#纤程状态标签
+from .异常 import 网页错误#本包异常
 
 __all__=['网页错误','加载器插件','启动客户端','断言条目已激活']#仅中文公开名
-
-class 网页错误(Exception):
-    'web 包异常基类'
 
 加载器插件=None#cordis Loader 插件类；启动前由宿主写入
 

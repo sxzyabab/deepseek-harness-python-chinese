@@ -1,6 +1,6 @@
 '仅事件的文件系统观察策略：弱映射记录存在/缺失观察，意图监听器推导写/编辑守卫；未加载时工具保持无条件变更'
 from weakref import WeakKeyDictionary as 弱键字典#所有者到目标观察的弱映射
-from ..文件系统 import 文件系统错误#文件系统带类型错误
+from ..文件系统.异常 import 文件系统错误#文件系统带类型错误
 
 名称='fs-observation-policy'#Cordis 插件名
 

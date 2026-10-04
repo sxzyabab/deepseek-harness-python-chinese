@@ -1,7 +1,8 @@
 from .文案 import 命名空间,中文,英文#词典
 from .菜单视图 import 菜单视图#菜单组件
 from .服务 import 触发服务#根服务
-from .控制器 import 触发控制器,触发错误#每会话控制器与本包异常
+from .控制器 import 触发控制器#每会话控制器
+from .异常 import 触发错误#本包异常
 from .探测 import 检测触发#纯核心探测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约,精确匹配#纯核心归约
 

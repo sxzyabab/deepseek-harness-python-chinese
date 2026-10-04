@@ -1,7 +1,7 @@
 '确定性提供者无关图像规范化'
 from io import BytesIO#内存缓冲
 from PIL import ImageOps#图像定向
-from ..附件.错误 import 附件错误#附件失败
+from ..附件.异常 import 附件错误#附件失败
 from ..附件.请求投影 import 请求图像尺寸#投影几何
 from .编码 import 编码首个不超限,编码阶梯,是否耗尽编码#质量阶梯
 from .图像 import 检测图像,编码alpha是否兼容#检测与 alpha 兼容

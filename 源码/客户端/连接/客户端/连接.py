@@ -1,5 +1,6 @@
 import math,random,threading,time#有限判定、抖动、后台循环、睡眠
-from ..rpc import 连接错误,已中止#本包异常与中止
+from ..异常 import 连接错误#本包异常
+from ..rpc import 已中止#中止
 
 __all__=['连接配置缺省','解析连接配置','连接控制器']#仅中文公开名
 

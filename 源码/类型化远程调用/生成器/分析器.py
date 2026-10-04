@@ -7,9 +7,7 @@ __all__=[
     '工作区分析器',
 ]
 
-class Typert分析错误(Exception):#带源码向诊断的分析失败
-    '带源码向诊断的分析失败；工作区导出校验亦复用此类型'
-    name='TypertAnalysisError'#错误名
+from .异常 import Typert分析错误#带源码向诊断的分析失败
 
 分析模式=frozenset(['check','write'])#公开业务边界上缺失注解的处理方式
 

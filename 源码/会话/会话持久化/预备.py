@@ -1,17 +1,7 @@
 '有界共享与独占预留未发布 Session'
 import threading#后台观察与加载
 from threading import Event as 事件#单次操作结算门
-
-class 持久化错误(Exception):
-    '会话持久化包的异常基类'
-
-class 中止错误(持久化错误):
-    '取消通道已中止'
-    def __init__(自身,消息='aborted',种类=None):
-        '用消息与可选控制流种类构造'
-        super().__init__(消息)#错误消息原样英文
-        if 种类 is not None:#有控制流种类
-            自身.种类=种类#按结构识别，不做类型嗅探
+from .异常 import 持久化错误,中止错误#本包异常
 
 class 操作任务:
     '单次操作结算；只留 等待'

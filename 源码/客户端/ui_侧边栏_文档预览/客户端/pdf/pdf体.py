@@ -1,5 +1,5 @@
 from .运行时 import 打开pdf#打开
-from .错误 import pdf工作线程失败#失败
+from ...异常 import pdf工作线程失败#失败
 from .文本 import pdf文本渲染器#文本层
 
 __all__=['pdf体','失败文案']#仅中文公开名

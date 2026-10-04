@@ -6,16 +6,15 @@ from ...内核.智能体 import 智能体事件#按智能体作用域派发
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器
 from .类型 import *#纯类型出口再导出到包根
 from .域 import *#宿主侧域词汇再导出到包根
+from .异常 import 目标折叠错误,目标错误#本包异常
 from .折叠 import (
     应用目标事件,#严格折叠步进
     解码目标变更,#严格解码器
     目标变更引用,#变更 → 引用
     折叠目标,#整日志折叠
-    目标折叠错误,#回放失败
 )#纯回放折叠
 from .运行时 import (#运行时构造
     目标变更版本,#载荷版本
-    目标错误,#域边界错误
     目标标识,#目标 id 品牌函数
 )#运行时构造
 
@@ -345,9 +344,9 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         '读登记表维护的当前持久投影'
         投影=自身.ctx.sessionProjections.stateOf(会话,'goal')#检查点
         if 投影 is None:#未登记
-            raise Exception('goal projection is not registered')#未登记
+            raise 目标折叠错误('goal projection is not registered')#未登记
         if 投影['failure'] is not None:#回放失败
-            raise Exception(投影['failure'])#失败诊断
+            raise 目标折叠错误(投影['failure'])#失败诊断
         return 投影['current']#当前或空
 
     def 运行时状态(自身,会话):#懒播种武装

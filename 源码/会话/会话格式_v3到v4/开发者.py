@@ -1,5 +1,6 @@
 '原生 V4 开发者消息与推迟工具模式校验'
-from ..会话格式 import 会话格式错误,是否会话格式json对象,会话格式计数#从会话格式导入
+from ..会话格式.异常 import 会话格式错误#格式错误
+from ..会话格式 import 是否会话格式json对象,会话格式计数#从会话格式导入
 
 def 断言工具变更(块,开发者):#断言工具增删块
     '校验 tool-addition / tool-removal 块'

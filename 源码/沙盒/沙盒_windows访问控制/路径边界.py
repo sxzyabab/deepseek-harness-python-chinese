@@ -1,6 +1,6 @@
 'Windows ACL 工作区与私有临时能力的规范目录边界检查'
 import os#路径与realpath
-from .错误 import 访问控制错误#校验错误
+from .异常 import 访问控制错误#校验错误
 
 def 包含目录(根,候选):#根是否包含候选目录
     '`根` 是否与 `候选` 为同一规范目录，或包含它'

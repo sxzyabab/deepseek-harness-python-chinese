@@ -3,15 +3,10 @@ from ...依赖 import cordis
 服务=cordis.服务
 from ...内核.作用域 import 创建作用域,获取作用域,具名条目,作用域层集
 from .资源工具登记 import 登记资源工具
+from .异常 import mcp资源错误#MCP 资源登记或派发失败
 
 
 __all__=['mcp资源错误','mcp资源运行时']
-
-class mcp资源错误(Exception):
-    'MCP 资源登记或派发失败'
-    def __init__(自身,消息):
-        '用原样英文消息构造'
-        super().__init__(消息)
 
 class 资源层:
     '一层作用域内的资源提供方'

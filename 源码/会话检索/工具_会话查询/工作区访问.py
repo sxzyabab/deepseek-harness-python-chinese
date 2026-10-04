@@ -1,5 +1,5 @@
 '调用方身份、工作区授权，以及可见谱系投影'
-from ...模型后端.llm import 装备错误#Harness错误
+from ...模型后端.llm.异常 import 装备错误#Harness错误
 from .服务边界 import 服务边界#服务边界
 
 def 调用方(执行上下文):

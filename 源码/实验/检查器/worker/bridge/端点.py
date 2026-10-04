@@ -2,7 +2,7 @@ import json,socket,threading#HTTP与套接字
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer#HTTP服务
 from urllib.parse import urlparse as 解析网址#路径解析
 from ..cdp.会话 import Cdp会话#CDP会话
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 
 __all__=['检查器端点']#仅中文公开名
 

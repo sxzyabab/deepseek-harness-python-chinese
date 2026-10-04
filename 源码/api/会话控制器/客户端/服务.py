@@ -3,11 +3,11 @@ import os#路径基名
 import re#分叉标题
 import threading
 from ....基础设施.通用工具 import 获取内部数据
-from ....基础设施.通用工具 import 获取内部数据
 from ....工具.超时 import 若已中止则抛出#中止
 from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
 from .会话簇 import 会话簇#会话簇
+from ..异常 import 会话创建错误,会话分叉错误#本包异常
 
 __all__=['会话创建错误','会话分叉错误','客户端会话服务','应用客户端会话']#仅中文公开名
 
@@ -39,28 +39,6 @@ class _快照存储:
                 回调()#通知
             except Exception as 错误:
                 print('[session-controller] list store subscriber failed:',错误)#日志
-
-class 会话创建错误(Exception):
-    '结构化 session 创建失败'
-    def __init__(自身,远程失败,请求会话标识=None):
-        '记下失败'
-        码=远程失败.code if hasattr(远程失败,'code') else 远程失败.get('code')#码
-        消息=远程失败.message if hasattr(远程失败,'message') else 远程失败.get('message')#消息
-        super().__init__('session create failed: '+str(码)+': '+str(消息))#文案
-        自身.name='SessionCreateError'#名
-        自身.rpcError=远程失败
-        自身.requestedSessionId=请求会话标识#请求 id
-
-class 会话分叉错误(Exception):
-    '结构化 session 分叉失败'
-    def __init__(自身,远程失败,源会话标识):
-        '记下失败'
-        码=远程失败.code if hasattr(远程失败,'code') else 远程失败.get('code')#码
-        消息=远程失败.message if hasattr(远程失败,'message') else 远程失败.get('message')#消息
-        super().__init__('session fork failed: '+str(码)+': '+str(消息))#文案
-        自身.name='SessionForkError'#名
-        自身.rpcError=远程失败
-        自身.sourceSessionId=源会话标识#源
 
 def _展示标题(标题,工作目录,标识):
     '持久标题、项目基名，然后 id'

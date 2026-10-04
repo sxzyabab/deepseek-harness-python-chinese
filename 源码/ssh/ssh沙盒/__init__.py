@@ -1,17 +1,12 @@
 from ...工具.超时 import 若已中止则抛出
-from ...沙盒.沙盒 import 沙箱提供方,沙箱不可用错误
-from ..ssh.协议 import 远程操作错误
-from ..ssh.模式 import ssh错误
+from ...沙盒.沙盒 import 沙箱提供方
+from ...沙盒.沙盒.异常 import 沙箱不可用错误
+from ..ssh.异常 import ssh错误,远程操作错误
+from .异常 import ssh沙盒错误#本包异常基类
 
 __all__=['ssh沙盒错误','ssh沙盒提供方','依赖']
 
 依赖=['ssh']
-
-class ssh沙盒错误(Exception):#本包异常基类
-    'SSH 沙箱应答非法'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 事实模式(值):#sandbox 应答
     'argv/enforcement/denialSignatures/runnerFailureRules'

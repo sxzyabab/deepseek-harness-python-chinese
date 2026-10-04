@@ -4,7 +4,7 @@ import re#标签扫描
 from html.parser import HTMLParser#构建转换用的简易 DOM
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...模型后端.llm import 断言永不#封闭联合穷尽检查
-from . import 网页工具错误#本包参数错误
+from .异常 import 网页工具错误#本包参数错误
 
 __all__=[#公开面
     '应用网络抓取工具','格式化抓取输出','解析抓取参数',

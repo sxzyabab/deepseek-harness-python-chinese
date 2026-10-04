@@ -2,15 +2,13 @@
 import math#负零判定
 from ....内核.会话.类型 import 安全整数上限#外来 JSON 安全整数
 from ....内核.会话.表面 import 是否可进表面类型#表面类型词表
+from ..异常 import 会话线事件错误#本包异常
 
 __all__=['断言会话线事件','会话线事件错误']#仅中文公开名
 
 接纳键=frozenset({#线信封已接纳键
     'type','seq','time','data','ignorable','surfaceOp','sourceEventSeqs',
 })#接纳键结束
-
-class 会话线事件错误(Exception):
-    '会话线事件验收失败'
 
 def _是记录(值):#是否普通对象
     '运行时值是否为非数组对象记录'

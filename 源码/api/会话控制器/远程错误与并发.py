@@ -1,19 +1,9 @@
 '会话控制器远程错误、中止查询与线程任务'
 import threading#后台任务
 from threading import Event as 同步事件#跨线程结算广播
+from .异常 import 远程错误#本包异常
 
 __all__=['远程错误','远程错误消息','已中止','若已中止则抛出','在线程执行']#仅中文公开名
-
-class 远程错误(Exception):
-    '远程错误。附加信息做成属性'
-    def __init__(自身,码,消息,详情=None,原因=None):
-        '记下 code/message/details'
-        super().__init__(消息)#消息
-        自身.code=码#错误码
-        自身.message=消息#消息
-        自身.details={} if 详情 is None else 详情#详情
-        if 原因 is not None:#原因
-            自身.__cause__=原因#链接
 
 def 远程错误消息(错误):
     '把错误收成字符串'

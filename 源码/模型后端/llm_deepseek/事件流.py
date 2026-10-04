@@ -1,6 +1,6 @@
 'SSE 分帧；JSON 错误仍是提供方失败'
 import json
-from ..llm import 大模型错误
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from .回放 import 对象
 from .传输 import 提供方错误
 

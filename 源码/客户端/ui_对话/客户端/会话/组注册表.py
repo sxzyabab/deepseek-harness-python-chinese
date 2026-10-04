@@ -1,4 +1,4 @@
-from ..约定.槽 import 对话错误
+from ...异常 import 对话错误
 import json
 
 __all__=['会话组注册表']

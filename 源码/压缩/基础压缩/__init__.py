@@ -1,15 +1,16 @@
 '轻量压缩后端：用 token 计量做压力、保留与摘要收敛计价；summarize 为唯一子类钩子'
 import weakref#每智能体溢出计数与会话→智能体弱映射
 from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布尔字段,列表字段#配置字段
-from ..压缩 import 压缩引擎,手动压缩错误#导入压缩引擎与手动失败
-from ...模型后端.llm import 上下文窗口溢出码,断言永不#导入上下文溢出码与穷尽断言
+from ..压缩 import 压缩引擎#导入压缩引擎
+from ..压缩.异常 import 手动压缩错误#手动失败
+from ...模型后端.llm import 断言永不#导入穷尽断言
+from ...模型后端.llm.异常 import 上下文窗口溢出码#导入上下文溢出码
 from ...工具.超时 import 合成信号#对应 AbortSignal.any
+from .异常 import 基础压缩错误,目标压力配置错误#本包异常
 from .配置 import (#导入配置解析
     解析压缩规格,#缩放到 token 预算
     解析配置,#解析服务配置
     解析目标政策,#合并目标政策
-    目标压力配置错误,#目标压力配置错误
-    基础压缩错误,#本包异常
 )#本包配置
 from .区间 import (#导入区间事务
     校验无活动压缩,#校验无活动压缩

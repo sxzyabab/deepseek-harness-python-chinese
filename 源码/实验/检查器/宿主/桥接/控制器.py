@@ -1,5 +1,5 @@
 import os,secrets,uuid#环境与随机
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from ..检视.网络 import 网络主题,安装请求观察器#fetch采集
 from .传输 import 宿主检查器源#Host源

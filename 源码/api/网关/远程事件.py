@@ -2,7 +2,8 @@
 import threading#代际泵送
 import uuid#事件前缀
 from ...类型化远程调用.协议.拥有值 import 是否协议拥有值#受拥有识别
-from .网关 import 中止控制器,中止信号,网关错误#中止与包异常
+from .网关 import 中止控制器,中止信号#中止
+from .异常 import 网关错误#本包异常
 
 __all__=['客户端远程事件']#仅中文公开名
 

@@ -1,6 +1,6 @@
 import threading
 from ....基础设施.通用工具 import 获取内部数据
-from ....api.网关.流载体 import 远程流载体错误
+from ....api.网关.异常 import 远程流载体错误
 from ....客户端.存储 import 创建快照存储
 
 __all__=['观察就绪度']

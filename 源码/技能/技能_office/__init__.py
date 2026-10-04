@@ -2,6 +2,7 @@
 import os,re,yaml#路径、frontmatter 与 YAML
 from ...依赖.schemastery import 字符串字段#配置字段
 from ..技能 import 捆绑技能排名#打包技能标准排名
+from .异常 import 办公技能错误
 
 __all__=['名称','依赖','配置','应用','默认']#仅中文公开名；Cordis 槽英文别名不入表
 
@@ -14,9 +15,6 @@ __all__=['名称','依赖','配置','应用','默认']#仅中文公开名；Cord
 默认资源根=os.path.abspath(os.path.join(os.path.dirname(__file__),'资源'))#随包资源目录
 
 #工具
-class 办公技能错误(Exception):
-    '本包异常基类'
-
 def 解析技能(原文,路径):
     '拆 frontmatter 与正文；缺描述则抛错'
     匹配=前栏模式.match(原文)#匹配开头 YAML 块

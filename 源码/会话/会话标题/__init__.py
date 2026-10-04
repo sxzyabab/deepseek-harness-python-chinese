@@ -4,7 +4,8 @@ from ...依赖 import cordis#框架
 from ...依赖.schemastery import 字典字段,数字字段#配置
 服务=cordis.服务#服务基类
 from ...模型后端.llm import 深冻结#冻结配置
-from .归一 import 归一化会话标题,回退会话标题,会话标题错误,会话标题无效错误#标题归一与异常
+from .异常 import 会话标题错误,会话标题无效错误#本包异常
+from .归一 import 归一化会话标题,回退会话标题#标题归一
 
 def _用户消息(事件):
     '提取一条合格的人类文本消息'

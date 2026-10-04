@@ -1,6 +1,7 @@
 import threading
 from ....工具.超时 import 中止控制器
-from .音频 import 录制错误,音频base64
+from ..异常 import 录制错误#采集失败
+from .音频 import 音频base64
 from .波形图 import 波形图
 from .语音输入安装对话框 import 语音输入安装对话框
 

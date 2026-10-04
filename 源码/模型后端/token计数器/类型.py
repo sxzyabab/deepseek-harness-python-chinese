@@ -7,8 +7,7 @@ __all__=[#仅中文公开名
     '用量投影','压力投影','分解投影',
 ]#公开面结束
 
-class 计量错误(Exception):
-    'token 计量包的异常基类'
+from .异常 import 计量错误#计量异常
 
 计量配置=dict#空配置；固定估算器没有设置项（对齐 TokenMeterConfig=Record<string,never>）
 

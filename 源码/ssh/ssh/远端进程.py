@@ -4,7 +4,8 @@ from ...内核.作用域 import 操作任务#未决连接
 from ...工具.超时 import 中止控制器,若已中止则抛出#中止
 from ...子进程.本地子进程 import 输出收集器,准备受管进程绑定#收集与溢出根
 from ...依赖.工具 import 聚合错误#多路清理失败
-from .模式 import 启动模式,完成模式,输出快照帧上限,ssh错误#启动与完成
+from .异常 import ssh错误#本包异常基类
+from .模式 import 启动模式,完成模式,输出快照帧上限#启动与完成
 from .协议 import ssh请求对等#快照 RPC
 from .流安全 import ssh流tls选项,套接字流#PSK 选项与套接字面
 

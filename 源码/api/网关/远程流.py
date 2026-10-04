@@ -1,6 +1,6 @@
 '单消费者 Remote 流的可重连生命周期'
 import threading#代际寿命与等待
-from .流载体 import 远程流载体错误#载体错误
+from .异常 import 远程流载体错误#载体错误
 from .网关 import 已中止,中止控制器,中止信号#中止原语
 
 __all__=[#仅中文公开名

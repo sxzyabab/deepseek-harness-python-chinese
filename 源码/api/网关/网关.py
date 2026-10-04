@@ -3,7 +3,7 @@ import inspect,re,threading#参数名、标识符与中止
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
-from ...类型化远程调用.协议 import 远程方法列表,远程错误,取远程错误,是否远程json值#Remote 标记与失败
+from ...类型化远程调用.协议 import 远程方法列表,取远程错误,是否远程json值#Remote 标记与失败
 from uuid import uuid4 as 生成uuid4#事件关联标识
 from .流协议 import (
     远程事件流端点,远程事件结果端点,
@@ -11,38 +11,11 @@ from .流协议 import (
     是否远程事件智能体标识,
 )
 from ...工具.双端队列 import 双端队列
+from .异常 import 网关错误,远程调用已取消,远程流载体错误#本包异常
 
 __all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','操作任务','中止信号','中止控制器']#仅中文公开名
 
 标识符模式=re.compile(r'^[$A-Z_a-z][$A-Za-z0-9_]*\Z')#SRC 参数名，ASCII 标识符，行尾对齐 JS $
-
-class 网关错误(远程错误):
-    '在被调业务方法之外产生的分发失败'
-    def __init__(自身,码,端点,消息,选项=None):
-        '消息中不嵌入边界值。选项为 dict'
-        if 选项 is None:#无选项
-            选项={}#空
-        if not 码.startswith('gateway/'):#线路码带 gateway/ 前缀
-            码='gateway/'+码#补前缀
-        原因=选项['cause'] if 'cause' in 选项 else None#可选原因
-        细节={'endpoint':端点}#端点
-        if 'field' in 选项 and 选项['field'] is not None:#有字段
-            细节['field']=选项['field']#字段
-        全文='typert gateway: '+端点+': '+消息#带端点前缀
-        super().__init__(码,全文,细节,原因=原因 if isinstance(原因,BaseException) else None)#构造
-        自身.name='TypertGatewayError'#固定错误名
-        自身.endpoint=端点#端点
-        自身.field=选项['field'] if 'field' in 选项 else None#可选线字段
-
-class 远程调用已取消(Exception):
-    'Remote 调用已被取消'
-    def __init__(自身,端点,原因):
-        '记下端点与原因'
-        super().__init__('Remote invocation "'+端点+'" was aborted')#消息
-        自身.name='RemoteInvocationCancelled'#按结构识别
-        自身.endpoint=端点#端点
-        if isinstance(原因,BaseException):#原因已是异常
-            自身.__cause__=原因#挂原因
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'
@@ -265,7 +238,7 @@ class Typert网关服务(服务):
                 结果=解析远程事件结果载荷(载荷)#校验
                 客户端=自身.远程事件客户端.get(结果['clientId'])#代际
                 if 客户端 is None:#无代际
-                    raise Exception('typert gateway: Remote event result identifies no active event stream')
+                    raise 远程流载体错误('typert gateway: Remote event result identifies no active event stream')
                 自身.收取远程事件结果(客户端,结果)#结算
                 return {'ok':True,'value':None}#无业务值
             段=端点.split('/')#拆端点
@@ -423,7 +396,7 @@ class Typert网关服务(服务):
     def 登记远程事件(自身,源,宿主):
         '登记本应用选定的转发事件源。源为 (信号)->迭代器'
         if 自身.远程事件登记 is not None:#已有
-            raise Exception('typert gateway: forwarded Remote event source is already registered')
+            raise 远程流载体错误('typert gateway: forwarded Remote event source is already registered')
         寿命=中止控制器()#源寿命
         流=源(寿命.信号)#打开
         完成=操作任务()#消费完成
@@ -489,7 +462,7 @@ class Typert网关服务(服务):
             else:
                 自身.广播远程事件(派发)#广播
         if not 已中止(信号):#源自己结束
-            raise Exception('typert gateway: forwarded Remote event source ended unexpectedly')
+            raise 远程流载体错误('typert gateway: forwarded Remote event source ended unexpectedly')
 
     def 广播远程事件(自身,帧):
         '向所有代际推 emit'
@@ -691,7 +664,7 @@ def 解析远程事件结果载荷(载荷):
     '载荷须恰好 args'
     if (not 是否对象(载荷) or not 是否普通对象(载荷)
             or list(载荷.keys())!=['args']):
-        raise Exception('typert gateway: Remote event result requires exactly one plain-object args field')
+        raise 远程流载体错误('typert gateway: Remote event result requires exactly one plain-object args field')
     return 解析远程事件结果(载荷['args'])
 
 def 校验绑定(接收方,服务键,命名空间,端点):

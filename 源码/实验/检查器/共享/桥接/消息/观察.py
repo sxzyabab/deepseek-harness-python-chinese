@@ -1,5 +1,6 @@
 from ...身份 import 检查器id#品牌化
-from ...json import 是否json值,是否普通对象,检查器错误#JSON|本包错误
+from ...json import 是否json值,是否普通对象#JSON
+from ....异常 import 检查器错误#本包错误
 from ...校验 import 精确键#精确键
 from ..版本 import 检查器协议版本#协议版本
 from .运行时 import (#Runtime解析

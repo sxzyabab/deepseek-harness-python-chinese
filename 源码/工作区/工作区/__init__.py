@@ -4,7 +4,8 @@ from datetime import datetime,timedelta,timezone#ISO 时间戳、固定偏移与
 from zoneinfo import ZoneInfo#IANA / UTC
 from ...依赖 import cordis
 服务=cordis.服务
-from .实体 import 工作区实体,工作区移动无效错误,工作区错误
+from .实体 import 工作区实体
+from .异常 import 工作区错误,工作区移动无效错误,工作区未知会话错误,工作区顺序无效错误#一般错误、非法移动、未知会话与非法重排
 from .路径 import 规范化真实路径
 from .规格 import 工作区域规格
 
@@ -18,20 +19,6 @@ _创建时刻=re.compile(#记录 createdAt：Z 或 ±HH:MM 偏移
 def 工作区标识(标识):
     '把字符串标成工作区 id'
     return 标识
-
-class 工作区未知会话错误(Exception):
-    '归档点名了活会话与持久化都不认识的会话'
-    def __init__(自身,会话号):
-        '记下未知会话 id'
-        super().__init__("cannot archive session: live sessions and session persistence hold no such session")
-        自身.sessionId=会话号
-
-class 工作区顺序无效错误(Exception):
-    '重排点名了未登记的工作区'
-    def __init__(自身,工作区号):
-        '记下未知工作区 id'
-        super().__init__("cannot reorder unknown workspace")
-        自身.workspaceId=工作区号
 
 def _同id列表(左,右):
     '两份 id 列表是否同序同值'

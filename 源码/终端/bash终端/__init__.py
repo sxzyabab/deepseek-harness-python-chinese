@@ -1,9 +1,10 @@
 '登记持久 shell PTY 后端：叠在子进程终端原语上，配合共享沙盒策略、有界输出与提供方拥有的会话清理'
 import weakref#按所有者记住沙盒模式栅栏
 from ...工具.超时 import 若已中止则抛出#中止入口；信号来自超时库
-from ..终端 import 终端后端清理错误#搭建清理双失败
+from ..终端.异常 import 终端后端清理错误#搭建清理双失败
 from ...沙盒.沙盒策略 import 生效沙盒模式#有效沙盒模式
-from .配置 import 配置,校验配置,终端bash错误#配置模式、校验与本包错误
+from .异常 import 终端bash错误#本包错误
+from .配置 import 配置,校验配置#配置模式、校验
 from .会话 import 本地PTY会话#本地PTY会话
 from .清洗 import 受控提示符#受控提示符
 

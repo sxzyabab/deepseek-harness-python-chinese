@@ -4,11 +4,7 @@ __all__=[#仅中文公开名
     '输出上限消息字段','完成消息字段','回复消息字段',
 ]#公开面结束
 
-class 节点ptc错误(Exception):#本包异常基类
-    'Node PTC 运行时失败'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
+from .异常 import 节点ptc错误#本包异常
 
 程序引导数据字段=('code','namespaces','maxOutputBytes')#就绪握手后宿主交给程序的引导
 调用消息字段=('type','id','global','name','args')#程序→宿主：一次桥接绑定调用

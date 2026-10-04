@@ -1,13 +1,8 @@
 '本地 PTY 后端经过校验的配置'
 from ...依赖.schemastery import 字符串字段,数字字段,列表字段#配置字段
+from .异常 import 终端bash错误#本包配置与搭建失败
 
 安全整数上限=9007199254740991#外来JSON校验点：JS Number.MAX_SAFE_INTEGER
-
-class 终端bash错误(Exception):#本包配置与搭建失败
-    '本地 bash 终端配置或搭建非法'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 配置={#对外插件配置模式
     'backendType':字符串字段(默认值='shell'),#默认后端类型

@@ -1,6 +1,6 @@
 from urllib.parse import urlparse as 解析URL
 from .回环主机名 import 是否回环主机名#回环主机名判定
-from .rpc import 连接错误#本包异常
+from .异常 import 连接错误#本包异常
 
 __all__=['断言受信任权威','是否受信任接口请求']#仅中文公开名
 

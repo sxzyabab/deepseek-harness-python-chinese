@@ -1,6 +1,6 @@
 '宿主半纤程生命周期：把沙箱产出的插件落成子纤程，并报告仍缺的服务'
 from .门面规则 import 受护插件
-from .类型 import 动态cordis错误
+from .异常 import 动态cordis错误
 
 __all__=['启动宿主半','缺席服务列表']
 

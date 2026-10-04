@@ -14,6 +14,7 @@ from .渲染 import (#导入渲染与截断
     渲染打开,#渲染打开结果
 )#渲染模块结束
 from .后台 import 发送源
+from .异常 import 终端工具错误#本包校验与组合失败
 
 名称='tool-terminal'#Cordis插件名
 依赖=['terminals','tools','systemPrompt']#必需的能力、注册表与提示词服务
@@ -24,12 +25,6 @@ from .后台 import 发送源
     'enableRunInBackground':布尔字段(默认值=True),#是否暴露 run_in_background 并接受后台发送
     'maxResultBytes':整数字段(默认值=默认结果字节),#结果字节上限
 }#配置模式结束
-
-class 终端工具错误(Exception):#本包校验与组合失败
-    '终端工具入参或组合非法'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
     '单次操作的 Future 包装，只留等待'

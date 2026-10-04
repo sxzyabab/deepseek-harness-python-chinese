@@ -1,4 +1,4 @@
-from ...未实现失败 import 运行时错误
+from ....异常 import 运行时错误
 import json
 import math
 import re
@@ -34,7 +34,7 @@ def 承诺化(函数):
             错误=结算['错误']
             if isinstance(错误,BaseException):
                 raise 错误
-            raise Exception(检视(错误))
+            raise 运行时错误(检视(错误))
         return 结算['值']
     return 包装
 

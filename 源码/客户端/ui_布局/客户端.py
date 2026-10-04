@@ -1,6 +1,7 @@
 from .应用帧 import 应用帧#帧组件
 from .存储 import 创建布局存储#布局存储工厂
-from .服务 import 布局控制器,布局错误
+from .服务 import 布局控制器
+from .异常 import 布局错误
 from .主题呈现 import 主题呈现器#主题呈现
 
 __all__=['依赖','应用','应用帧','布局控制器','布局错误','创建布局存储','主题呈现器']

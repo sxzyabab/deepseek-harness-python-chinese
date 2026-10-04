@@ -1,4 +1,4 @@
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 from ..cdp.控制台 import 拒绝控制台桥命令#拒绝Console桥
 from ..cdp.运行时 import 拒绝运行时桥命令#拒绝Runtime桥
 from ..cdp.源 import 拒绝源桥命令#拒绝Sources桥

@@ -2,7 +2,7 @@
 import io,json,re,zipfile#缓冲、JSON、净化、ZIP
 from ...内核.会话 import 会话格式版本#当代格式版本
 from ...会话.会话格式 import 会话格式日志文件名#规范日志文件名
-from ...会话.会话持久化 import 会话持久化未找到错误#缺席
+from ...会话.会话持久化.异常 import 会话持久化未找到错误#缺席
 
 默认会话日志压缩级别=6#缺省 DEFLATE 级别
 媒体类型扩展={#光栅媒体扩展

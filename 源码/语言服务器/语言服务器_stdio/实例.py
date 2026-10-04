@@ -1,6 +1,6 @@
 import threading#队列与拆除互斥
 from ...工具.超时 import 截止,已中止#有界截止期与已中止判定
-from ..语言服务器 import 语言服务器错误#带稳定code的语言服务器错误
+from ..语言服务器.异常 import 语言服务器错误#带稳定code的语言服务器错误
 from .取消 import 可中止等待,中止错误,操作任务#取消与操作任务
 from .连接 import 语言服务器连接#JSON-RPC连接
 from .翻译 import (

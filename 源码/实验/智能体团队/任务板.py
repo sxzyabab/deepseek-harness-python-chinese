@@ -1,7 +1,7 @@
 import copy#脱离视图
-from .错误 import 团队错误#领域错误
+from .异常 import 团队错误,任务图错误#领域错误|图校验
 from .名册 import 解析活跃成员#活跃成员解析
-from .任务图 import 断言任务图候选,任务图错误#图校验
+from .任务图 import 断言任务图候选#图校验
 from .类型 import 团队标识,团队任务标识#身份
 from .校验 import 必填文本,写范围#输入规范化
 

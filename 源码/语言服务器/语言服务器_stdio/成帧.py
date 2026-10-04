@@ -1,6 +1,6 @@
 'LSP 基础协议成帧：字节流上按 Content-Length 分隔的 JSON-RPC'
 import json#JSON正文编解码
-from ..语言服务器 import 语言服务器错误#本缝异常基类
+from ..语言服务器.异常 import 语言服务器错误#本缝异常基类
 
 头体分隔符='\r\n\r\n'#头与体之间的CRLF分隔
 头段上限字节=1<<16#头段最大字节数

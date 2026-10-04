@@ -2,13 +2,11 @@
 import os,sys,re
 from pathlib import PurePosixPath,PureWindowsPath
 from ...工具.原生命令 import 运行原生命令,已中止
+from .异常 import 文档目录错误#本包异常
 
 __all__=['校验文档目录','默认工作区目录']
 
 换行尾=re.compile(r'[\r\n]+\Z',re.ASCII)
-
-class 文档目录错误(Exception):
-    '文档目录解析失败'
 
 def 若已中止则抛出(信号):
     '信号已置位则抛出'

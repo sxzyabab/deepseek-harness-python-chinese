@@ -1,5 +1,6 @@
 import re
-from .协议 import 平台认证错误,请求账号
+from .异常 import 平台认证错误
+from .协议 import 请求账号
 
 __all__=['投影配置档','读账号细节']
 

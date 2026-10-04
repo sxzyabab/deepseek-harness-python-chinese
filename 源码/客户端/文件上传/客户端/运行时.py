@@ -5,7 +5,8 @@ from ....依赖 import cordis#Cordis
 服务=cordis.服务#服务基类
 from ....工具.加密 import 字节转base64#字节转 base64
 from ..协议 import 文件上传路径#上传路径
-from ..类型 import 远程错误,文件上传错误,已中止,若已中止则抛出#错误与中止
+from ..异常 import 远程错误,文件上传错误#本包异常
+from ..类型 import 已中止,若已中止则抛出#中止
 
 __all__=[#仅中文公开名
     '文件上传工作体',

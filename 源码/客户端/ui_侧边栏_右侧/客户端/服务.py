@@ -9,7 +9,7 @@ from ...ui_停靠套件.引擎 import (#树只读
 )#引擎
 from ...存储 import 创建快照存储
 from .约定.种子 import 页面地址
-from .约定.槽位 import 右侧侧栏错误
+from ..异常 import 右侧侧栏错误
 from .存储 import 可关闭标签
 from .标签域 import 标签域
 from .标签清单 import 侧栏标签清单

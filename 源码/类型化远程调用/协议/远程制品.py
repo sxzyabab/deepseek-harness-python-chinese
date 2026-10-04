@@ -45,20 +45,7 @@ def 远程贡献(包名,描述符列表):#组装 TYPERT_REMOTE
     'package + descriptors'
     return {'package':包名,'descriptors':list(描述符列表)}#贡献
 
-class 远程错误(Exception):
-    """一次远程调用失败：稳定码、诊断与结构化细节。
-    判别按 code
-    """
-    def __init__(自身,code,message,details,原因=None):
-        'code/message/details 为线路字段；原因仅同进程存活'
-        super().__init__(message)
-        自身.name='RemoteError'
-        自身.code=code
-        自身.message=message
-        自身.details=details
-        自身.isDSHRemoteError=True
-        if 原因 is not None:
-            自身.__cause__=原因
+from .异常 import 远程错误#一次远程调用失败
 
 def 取远程错误(值):
     '结构识别跨模块抛出的远程错误；不按类型'

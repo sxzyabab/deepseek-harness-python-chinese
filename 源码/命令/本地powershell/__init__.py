@@ -12,6 +12,7 @@ from ...工具.超时 import (
     若已中止则抛出,#写前已中止则抛
 )#超时库
 from .解析 import 解析Pwsh路径,候选Pwsh路径#再导出 pwsh 路径解析
+from .异常 import 本地powershell错误#本包异常基类
 
 __all__=(#仅中文公开名
     '环境覆盖','编码前导','断言可用Pwsh配置',
@@ -32,12 +33,6 @@ __all__=(#仅中文公开名
     'graceMs':数字字段(默认值=默认宽限毫秒),#杀进程升级与继承管道宽限
     'pwshPath':字符串字段(),#显式 pwsh 可执行路径；省略则探测
 }#插件配置模式结束
-
-class 本地powershell错误(Exception):#本包异常基类
-    '本地 PowerShell 执行器入参、配置或组合失败'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 class 操作任务:#单次操作结果
     '单次操作的 Future 包装，只留等待'

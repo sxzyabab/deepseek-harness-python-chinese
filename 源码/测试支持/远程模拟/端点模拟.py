@@ -1,14 +1,14 @@
 import threading#活流锁与中止赛跑
 from .调用日志 import 调用日志库#日志库
 from .命名空间代理 import 创建远程代理#惰性命名空间
-from .流脚本 import (#中止、任务、流与错误
+from .流脚本 import (#中止、任务与流
     中止控制器,
     已中止,
     操作任务,
     模拟流,
     转错误,
-    远程模拟错误,
 )#流脚本结束
+from .异常 import 远程模拟错误#远程模拟包的异常基类
 
 事件端点='$events'#Gateway 事件端点
 

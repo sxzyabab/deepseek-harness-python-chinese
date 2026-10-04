@@ -1,13 +1,8 @@
 import signal,time#信号名反查与宽限短睡
 from threading import Event as 同步事件,Lock as 互斥锁,Thread as 线程#退出广播、拆除互斥与后台观察
+from .异常 import 本地子进程错误#本包终端与子进程失败
 
 __all__=('贯通流','本地终端句柄','本地子进程错误')#仅中文公开名
-
-class 本地子进程错误(Exception):#本包终端与子进程失败
-    '本地子进程或终端句柄失败'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 延迟(毫秒):#宽限内轮询用的短睡
     '阻塞睡指定毫秒'
@@ -582,7 +577,7 @@ class 本地终端句柄:#本地 PTY 会话
                 try:#再等
                     所有者.等待退出()#最终
                 except Exception as 最终错:#再失败
-                    raise Exception('terminal managed-range cleanup failed') from 最终错#聚合语义简化
+                    raise 本地子进程错误('terminal managed-range cleanup failed') from 最终错#聚合语义简化
                 raise 首轮['error']#抛首次
             观察.取值()#等 timeout 路径上的观察兑现
         if not 自身.已退出.is_set():#壳退出事件可能滞后

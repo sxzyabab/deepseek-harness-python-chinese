@@ -1,6 +1,7 @@
 '工作区命令实现与稳定 Remote 失败映射'
 import threading#串行锁
-from .远程错误与中止 import 远程错误,远程错误消息#远程错误
+from .远程错误与中止 import 远程错误消息#远程错误消息
+from .异常 import 远程错误#本包异常
 from .提要 import 工作区视图#投影
 
 __all__=['工作区命令','工作区未找到']#仅中文公开名

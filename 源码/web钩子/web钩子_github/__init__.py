@@ -2,6 +2,7 @@
 from ...依赖.schemastery import 字符串字段,整数字段
 from ...凭据.凭据 import 凭证引用
 from .事件分派 import 创建GitHubWebhook事件分派
+from .异常 import WebhookGithub配置错误#路由与来源配置非法
 
 包名='@deepseek-ai/dsh-webhook-github'
 名称='webhook-github'
@@ -15,9 +16,6 @@ from .事件分派 import 创建GitHubWebhook事件分派
 }
 
 __all__=['包名','名称','依赖','应用','默认','配置']
-
-class WebhookGithub配置错误(Exception):
-    '路由与来源配置非法'
 
 def 断言配置(配置值):
     """校验 Schemastery 表达不了的路由与来源事实。

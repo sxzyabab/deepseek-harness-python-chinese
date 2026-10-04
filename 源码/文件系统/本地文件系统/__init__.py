@@ -5,6 +5,7 @@ from urllib.request import pathname2url#路径转 file URL
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from .. import 文件系统 as fs#文件系统服务定义与错误
 from . import 文件读写#本地 IO 实现
+from .异常 import 本地文件系统错误#本包配置非法
 
 默认diff基准最大字节=10*1024*1024#diff 基准默认 10MiB
 缓冲区最大长度=4294967295#Node 64 位 buffer.constants.MAX_LENGTH
@@ -26,12 +27,6 @@ class 已解析配置:#缺省已填满的配置
 
 class 内部钩子:#本地 IO 测试钩子
     '转发给文件读写的测试钩子，用于原子发布边界'
-
-class 本地文件系统错误(Exception):#本包配置非法
-    '本地文件系统配置非法；详情保持英文线协议原文'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 路径转文件网址(路径):
     '把进程路径编成 file URL'

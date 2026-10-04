@@ -3,7 +3,7 @@ from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#框架 服务基类
 from .标识构造 import 附件标识,图像变体标识#标识构造
-from .错误 import 附件错误,是否图像准入错误#错误面
+from .异常 import 附件错误,是否图像准入错误#错误面
 from .准入 import 准入编码图像批次#线上准入
 from .请求投影 import 请求图像尺寸,长边尺寸#请求投影几何
 from .类型 import (#类型锚点

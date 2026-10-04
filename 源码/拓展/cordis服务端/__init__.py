@@ -3,7 +3,8 @@ from ...依赖.schemastery import 自然数字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...模型后端.llm import 创建用户消息
 from ...内核.作用域 import 操作任务
-from .门面规则 import 宿主运行器错误,是否插件,规范化处理函数
+from .异常 import 宿主运行器错误#动态宿主运行器包的异常基类
+from .门面规则 import 是否插件,规范化处理函数
 from .沙箱 import 创建沙箱,求值宿主代码,预检代码
 from .注册表 import 动态cordis注册表
 from .巡检注册表 import 巡检注册表服务

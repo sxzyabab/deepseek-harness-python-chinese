@@ -1,3 +1,3 @@
-__all__=['宿主cdp桥原因']#仅中文公开名
+from ...异常 import 宿主cdp桥原因#拒绝原因常量
 
-宿主cdp桥原因='Host Runtime is attached directly from the Inspector Worker'#拒绝原因
+__all__=['宿主cdp桥原因']#仅中文公开名

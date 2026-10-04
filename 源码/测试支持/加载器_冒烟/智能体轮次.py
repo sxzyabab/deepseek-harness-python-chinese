@@ -1,5 +1,6 @@
 from threading import Event as 事件#首次发布等待
 from ...模型后端.llm import 创建用户消息#构造用户消息
+from .异常 import 冒烟错误#冒烟包的异常基类
 
 __all__=['驱动夹具轮次','累加用量','助手文本']#仅中文公开名
 
@@ -30,7 +31,7 @@ def 唯一根智能体(上下文):#取得唯一根智能体
     '要求恰好一个已配置根智能体'
     注册表=上下文.获取服务('agents')#智能体注册表
     if 注册表 is None:#无注册表
-        raise Exception('夹具轮次需要恰好一个顶层 agent，实际为 0')#无注册表
+        raise 冒烟错误('夹具轮次需要恰好一个顶层 agent，实际为 0')#无注册表
     根列表=注册表.roots()#根智能体列表
     if len(根列表)==0:#尚无根
         已发布=事件()#首次发布门闩
@@ -42,7 +43,7 @@ def 唯一根智能体(上下文):#取得唯一根智能体
         已发布.wait()#等待首次发布
         根列表=注册表.roots()#再取根
     if len(根列表)!=1:#数量不符
-        raise Exception(f'fixture turn requires exactly one top-level agent, found {len(根列表)}')#数量不符
+        raise 冒烟错误(f'fixture turn requires exactly one top-level agent, found {len(根列表)}')#数量不符
     return 根列表[0]#返回唯一根智能体
 
 def 驱动夹具轮次(上下文,选项):#驱动一轮

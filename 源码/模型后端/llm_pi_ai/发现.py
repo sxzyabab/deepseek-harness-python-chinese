@@ -4,6 +4,7 @@ from json import JSONDecodeError#JSON 解析失败
 from urllib.error import HTTPError,URLError#HTTP 错误
 from urllib.request import Request,urlopen#发出请求
 from .. import llm#语言模型服务
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from .目录 import 目录模型#已安装目录模型
 
 __all__=('发现模型','可询问协议','回复字节上限')#仅中文公开名
@@ -46,7 +47,7 @@ def 有界读取(响应,网址):
     '读回复正文，拒绝超出上限的。响应是 urllib HTTPResponse'
     def 超限():
         '超限错误'
-        return llm.大模型错误(f'{网址} answered with more than {回复字节上限} bytes','DISCOVERY_FAILED')#超限失败
+        return 大模型错误(f'{网址} answered with more than {回复字节上限} bytes','DISCOVERY_FAILED')#超限失败
     头=响应.headers#响应头；http.client 的 HTTPMessage
     if 'Content-Length' in 头:#规范头名优先
         声明原文=头['Content-Length']#声明长度原文
@@ -78,13 +79,13 @@ def 有界读取(响应,网址):
 def 读列表(正文):
     '读一份 OpenAI 兼容列表回复。正文是 JSON 对象 dict'
     if 'data' not in 正文:#没有 data 键则无法自动发现
-        raise llm.大模型错误(
+        raise 大模型错误(
             'the endpoint\'s model listing has no "data" array; enter this provider\'s models by hand',
             'DISCOVERY_FAILED',
         )#无法解析
     数据=正文['data']#只认 data；其它包装字段不当列表
     if not isinstance(数据,list):#data 必须是数组
-        raise llm.大模型错误(
+        raise 大模型错误(
             'the endpoint\'s model listing has no "data" array; enter this provider\'s models by hand',
             'DISCOVERY_FAILED',
         )#无法解析
@@ -127,7 +128,7 @@ def 可用探测密钥(原始):
         文案='this provider\'s API key is blank; enter it on the Models page, or clear it to probe unauthenticated'#空密钥
     else:#其余拒绝都是头无法携带的字符，不能静默丢掉再发未认证请求
         文案='this provider\'s API key contains characters no HTTP header can carry; paste the raw key only'#非法字符
-    raise llm.大模型错误(文案,llm.非法凭证码)#拒绝；未通过不得把原串写进 Authorization
+    raise 大模型错误(文案,llm.非法凭证码)#拒绝；未通过不得把原串写进 Authorization
 
 def 发现模型(请求,已存密钥=None):
     '询问一个草稿提供方端点它所通告的模型。请求为配置面发现 dict'
@@ -148,7 +149,7 @@ def 发现模型(请求,已存密钥=None):
     基址=请求['baseURL'] if 'baseURL' in 请求 else None#端点
     if 基址 is None or len(基址)==0:#没有目录又没有端点，无法自动发现
         路由文案='' if 提供方 is None else 提供方#诊断用路由
-        raise llm.大模型错误(
+        raise 大模型错误(
             'pi-ai ships no catalog for provider "'+路由文案+'", so its models can only come from its'
             +" endpoint; set a baseURL, or enter this provider's models by hand",
             'DISCOVERY_FAILED',
@@ -157,7 +158,7 @@ def 发现模型(请求,已存密钥=None):
     if 协议 is None:#草稿没写协议则默认 Completions 列表，与手声明路由默认一致
         协议='openai-completions'#默认Completions
     if 协议 not in 可询问协议:#本构建读不了该协议的列表，交给人手填
-        raise llm.大模型错误(
+        raise 大模型错误(
             'pi-ai protocol "'+协议+'" has no model listing this build can read; enter this provider\'s models by hand',
             'DISCOVERY_UNSUPPORTED',
         )#无法询问
@@ -177,26 +178,26 @@ def 发现模型(请求,已存密钥=None):
     except HTTPError as 错误:#端点用 HTTP 状态拒绝，与达不到端点分开报
         状态=错误.code#HTTP状态
         后缀='; check the API key' if 状态==401 or 状态==403 else ''#401/403点名密钥；其它状态只报码
-        raise llm.大模型错误(网址+' answered '+str(状态)+后缀,'DISCOVERY_FAILED')#端点拒绝
+        raise 大模型错误(网址+' answered '+str(状态)+后缀,'DISCOVERY_FAILED')#端点拒绝
     except URLError as 错误:#达不到端点；若调用方已中止则改报中止
         if 已中止(信号):#调用方先取消则不报达不到端点，避免把取消当成网络故障
-            raise llm.大模型错误('model discovery aborted by caller','ABORTED',{'cause':错误})#中止
-        raise llm.大模型错误('could not reach '+网址,'DISCOVERY_FAILED',{'cause':错误})#达不到端点
+            raise 大模型错误('model discovery aborted by caller','ABORTED',{'cause':错误})#中止
+        raise 大模型错误('could not reach '+网址,'DISCOVERY_FAILED',{'cause':错误})#达不到端点
     状态=响应.status#urllib HTTPResponse.status
     if 状态<200 or 状态>=300:#非成功状态同样拒绝，401/403 点名密钥
         后缀='; check the API key' if 状态==401 or 状态==403 else ''#401/403点名密钥
         响应.close()#非成功也要关掉，避免套接字泄漏
-        raise llm.大模型错误(网址+' answered '+str(状态)+后缀,'DISCOVERY_FAILED')#端点拒绝
+        raise 大模型错误(网址+' answered '+str(状态)+后缀,'DISCOVERY_FAILED')#端点拒绝
     try:#有界读取正文
         文本=有界读取(响应,网址)#有界读取；内部 finally 会关响应
     except (OSError,UnicodeDecodeError) as 错误:#读取或解码失败；调用方中止则改报中止
         if 已中止(信号):#调用方先取消则不把读失败当发现错误
-            raise llm.大模型错误('model discovery aborted by caller','ABORTED',{'cause':错误})#中止
+            raise 大模型错误('model discovery aborted by caller','ABORTED',{'cause':错误})#中止
         raise 错误#其余原样抛，保留超限或解码错误
     try:#按 JSON 查看
         正文=json.loads(文本)#按未知查看
     except JSONDecodeError as 错误:#不是 JSON 则无法读列表
-        raise llm.大模型错误(网址+' did not answer with JSON','DISCOVERY_FAILED',{'cause':错误})#不是JSON
+        raise 大模型错误(网址+' did not answer with JSON','DISCOVERY_FAILED',{'cause':错误})#不是JSON
     if not isinstance(正文,dict):#根必须是对象
-        raise llm.大模型错误(网址+' did not answer with JSON','DISCOVERY_FAILED')#不是对象
+        raise 大模型错误(网址+' did not answer with JSON','DISCOVERY_FAILED')#不是对象
     return 读列表(正文)#解析列表

@@ -1,7 +1,7 @@
 '跨事件关系校验：构造一份当代 Session 所需的已发布关系'
 import json#诊断序列化
 from ...工具.值 import 深相等json#深相等JSON
-from ..会话格式 import 会话格式错误#格式错误
+from ..会话格式.异常 import 会话格式错误#格式错误
 from .记录与精确键 import 已发布v0记录#记录与精确键
 from .处置 import 已发布v0事件处置表#处置表
 

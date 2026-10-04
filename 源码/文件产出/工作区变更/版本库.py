@@ -2,6 +2,7 @@
 from ...工具.超时 import 截止,取超时,已中止#超时与中止
 from .行数统计 import 解析行数统计#numstat解析
 from .路径 import 规范路径,是否位于内,转斜杠路径#路径工具
+from .异常 import 版本库错误#本包git异常
 __all__=[#仅中文公开名
     'git运行器','定位版本库工作区','快照树','树团块','团块文本','差异树','链接路径集','忽略路径集',
 ]#公开面结束
@@ -10,12 +11,6 @@ __all__=[#仅中文公开名
 终止宽限毫秒=2000#子进程终止宽限
 标准误尾字节=16*1024#诊断用stderr尾
 非仓库模式=re.compile(r'not a git repository',re.I|re.ASCII)#rev-parse非仓库
-
-class 版本库错误(Exception):#本包git异常
-    'git 命令失败或输出越界'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 是否不存在错误(错误):#是否ENOENT
     '文件系统错误是否表示路径不存在'

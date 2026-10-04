@@ -1,6 +1,6 @@
 '翻译 Messages 事件，保住块顺序与累计用量'
 import json
-from ..llm import 大模型错误
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from ..llm.标识构造 import 调用标识
 from .回放 import 对象,回放状态
 

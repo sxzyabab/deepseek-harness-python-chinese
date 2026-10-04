@@ -3,8 +3,8 @@ from ....基础设施.通用工具 import 获取内部数据
 from ....内核.作用域 import 操作任务#创建与关闭
 from ....工具.加密 import 随机uuid#附着身份
 from ....工具.超时 import 中止控制器,已中止,等待中止,若已中止则抛出#寿命
-from ...网关.流载体 import 远程流载体错误#载体失败
-from ..类型 import 远程错误#视图失败
+from ...网关.异常 import 远程流载体错误#载体失败
+from ..异常 import 远程错误,终端视图错误#视图失败
 from .外壳偏好 import 首选外壳,记住外壳#偏好
 
 __all__=['终端视图错误','终端视图','快照存储']#仅中文公开名
@@ -32,12 +32,6 @@ class 快照存储:#getSnapshot / subscribe / set
                 回调()#通知
             except Exception as 错误:
                 print('[terminal-controller] subscriber failed:',错误)#日志
-
-class 终端视图错误(远程错误):#本视图失败
-    'code=terminal/view，details.issue 为产品键'
-    def __init__(自身,问题,消息=None):#记下
-        '缺省消息即问题键'
-        super().__init__('terminal/view',问题 if 消息 is None else 消息,{'issue':问题})#构造
 
 def 取值(结果):#解开 Remote 信封
     '失败则抛出 error'

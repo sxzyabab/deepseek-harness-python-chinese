@@ -2,6 +2,7 @@
 import json#JSON 序列化
 import re#正则
 from .. import llm#语言模型服务
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 import pi_ai#外部依赖胶水（pi-ai SDK）
 from .回放 import 转派回放状态#回放状态投影
 
@@ -157,4 +158,4 @@ def 转流块(事件列表,上下文窗口=None,请求模型=None):
             已终止=True#见到终止
             return#翻译结束
     if not 已终止:#流耗尽却没见到 done/error，当作流被截断
-        raise llm.大模型错误('pi-ai event stream ended without done/error','STREAM_CLOSED')#没有终止事件
+        raise 大模型错误('pi-ai event stream ended without done/error','STREAM_CLOSED')#没有终止事件

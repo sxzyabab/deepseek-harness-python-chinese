@@ -1,5 +1,5 @@
 from .外壳 import 会话输入壳#会话输入壳
-from ..服务 import 对话错误#发送失败
+from ...异常 import 对话错误#发送失败
 
 __all__=['输入枢纽']#仅中文公开名
 

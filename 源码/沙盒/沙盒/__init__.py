@@ -1,7 +1,6 @@
 '同机进程隔离服务：在宿主路径文件政策下包装精确子进程 argv'
 from ...依赖 import cordis
 服务=cordis.服务
-from ...模型后端.llm import 装备错误
 from .升级 import (
     更宽模式,
     升级目标,
@@ -13,8 +12,8 @@ from .升级 import (
     沙箱拒绝标记,
     升级提示标记,
     批准升级,
-    沙箱升级错误,
 )
+from .异常 import 沙箱不可用错误,沙箱升级错误
 from .根 import 规范路径,可写根
 from ...工具.超时 import 若已中止则抛出
 from .诊断 import 分类运行器失败,是否运行器派生失败,匹配签名
@@ -27,22 +26,6 @@ from .诊断 import 分类运行器失败,是否运行器派生失败,匹配签�
 运行器失败规则字段=('allowedExitCodes','fatalSignatures','informationalLines')
 已隔离参数表字段=('argv','enforcement','denialSignatures','runnerFailureRules')
 沙箱不可用码='SANDBOX_UNAVAILABLE'
-
-class 沙箱不可用错误(装备错误):
-    """隔离无法强制请求模式时抛出。
-    经结构化错误通道携带 SANDBOX_UNAVAILABLE
-    """
-    def __init__(自身,模式,细节=None):
-        """按模式与可选细节构造。
-        面向用户的不可用说明不翻译字面量
-        """
-        消息=('sandbox mode "'+模式+'" is requested but no sandbox backend is usable on this host; '
-            +'refusing to run the command unconfined. Install bubblewrap or run a Landlock-enforcing '
-            +'kernel (Linux), ensure sandbox-exec is usable (macOS), or ensure the ACL '
-            +'restricted-token runner can start (Windows) — otherwise switch the consumer to '
-            +'danger-full-access.'
-            +('' if 细节 is None else ' Runner failure: '+细节))
-        装备错误.__init__(自身,消息,沙箱不可用码)
 
 class 沙箱提供方(服务):
     """抽象进程沙箱服务。

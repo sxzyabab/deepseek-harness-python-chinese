@@ -4,7 +4,7 @@ from ....基础设施.通用工具 import 获取内部数据
 from .会话线事件 import 断言会话线事件#线事件验收
 from .历史记录 import 历史条目,历史记录首序号,历史记录末序号#历史辅助
 from .助手流 import 客户端助手流#帧→live-chunk（直连回退用）
-from ...网关.流载体 import 远程流载体错误#载体错误
+from ...网关.异常 import 远程流载体错误#载体错误
 from ...网关.快照流 import 远程快照流#快照流
 from ...网关.日志流 import 远程日志流#日志流
 

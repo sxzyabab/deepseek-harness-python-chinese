@@ -5,7 +5,7 @@ from ...内核.作用域 import 获取作用域
 from ...工具.超时 import 定时器延迟上限毫秒
 from .连接 import 默认最大指令字节,重连默认值,解析重连策略,启动连接
 from .工具桥接 import 公开工具名,同步工具,MCP结果,创建mcp工具定义
-from .传输 import MCP错误
+from .异常 import MCP错误
 from .服务器上下文 import 登记服务器上下文
 
 __all__=['名称','依赖','配置','应用','公开工具名','同步工具','MCP结果','创建mcp工具定义','重连默认值','解析重连策略','启动连接']

@@ -1,7 +1,7 @@
 import json
 from ...启动.app启动.配置数据架构.投影器 import 创建配置投影器,装载器表达式数据架构
 from ...启动.app启动.配置数据架构.原生 import 是否原生配置数据架构
-from .呈现 import 巡检错误
+from .异常 import 巡检错误
 
 __all__=['查询现场配置']
 

@@ -1,6 +1,6 @@
 '盖在会话检索服务能力上的工具操作编排'
-from ...模型后端.llm import 装备错误#Harness错误
-from ..会话查询 import 会话查询错误#检索错误
+from ...模型后端.llm.异常 import 装备错误#Harness错误
+from ..会话查询.异常 import 会话查询错误#检索错误
 from ..会话查询.配置 import 若已中止则抛出#中止
 from .入参 import 工具入参#参数归一化
 from .呈现 import 呈现#文本渲染

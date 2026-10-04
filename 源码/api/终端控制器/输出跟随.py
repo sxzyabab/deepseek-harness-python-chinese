@@ -1,6 +1,6 @@
 import json,threading#帧编码与唤醒
 from ...工具.双端队列 import 双端队列#有界排队
-from .类型 import 远程错误#本包错误
+from .异常 import 远程错误#本包异常
 
 __all__=['终端跟随']#仅中文公开名
 

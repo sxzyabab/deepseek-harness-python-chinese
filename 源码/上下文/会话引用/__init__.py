@@ -8,10 +8,10 @@ from .配置 import (
     默认候选上限,
     默认最大引用字节,
     默认引用上下文比例,
-    会话引用错误,
     会话引用错误码,
     会话引用配置字段,
 )
+from .异常 import 会话引用错误
 from .溢出 import 引用警告,准备引用省略
 from .投影 import 保留引用会话
 from .序列化 import 序列化标签安全JSON

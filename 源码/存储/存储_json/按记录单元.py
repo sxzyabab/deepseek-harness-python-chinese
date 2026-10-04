@@ -1,6 +1,6 @@
 '一个已打开的 `per-record` 布局 JSON 单元'
 import json,os,re#JSON、路径、正则
-from ..存储.错误 import 存储错误#存储错误
+from ..存储.异常 import 存储错误#存储错误
 from .格式 import 单元状态,序列化记录,解析记录#格式
 from .原子 import 原子写#原子写
 __all__=['打开按记录单元','按记录Json单元']#仅中文公开名

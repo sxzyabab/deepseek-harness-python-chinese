@@ -1,5 +1,5 @@
 from .. import 共享#先装上包，桥接才能顺着父路径找
-from ..共享.json import 检查器错误#本包错误
+from ..异常 import 检查器错误#本包错误
 from .桥接.控制器 import 解析检查器选项,启动检查器#控制器面
 from ..共享.服务 import 创建检查器服务#服务门面工厂
 from .检视.cordis import 发布cordis树#Cordis树发布

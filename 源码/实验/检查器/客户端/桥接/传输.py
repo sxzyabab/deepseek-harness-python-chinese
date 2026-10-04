@@ -1,5 +1,6 @@
 import json,threading#序列化与中止
-from ...共享.json import 是否json值,json字节长度,检查器错误#JSON工具|本包错误
+from ...共享.json import 是否json值,json字节长度#JSON工具
+from ...异常 import 检查器错误,客户端源目录错误#本包错误|Client源目录错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from ...共享.桥接.消息.观察 import 解析工作者源帧#Worker源帧
 from ...共享.桥接.发布器 import 检查器源连接#源连接基类
@@ -7,7 +8,7 @@ from ...共享.桥接.缓冲 import 检查器源缓冲选项#缓冲选项
 from ...共享.桥接.rpc import 检查器查询连接选项#查询选项
 from ..cdp.运行时 import 客户端运行时上限,客户端运行时执行器#Runtime
 from ..cdp.控制台 import 客户端控制台观察器#Console
-from ..cdp.源 import 客户端源目录错误,发现检查器客户端源目录#Sources
+from ..cdp.源 import 发现检查器客户端源目录#Sources
 from ..检视.领域 import 客户端领域源#realm源
 from ..检视.网络 import 网络主题#网络主题
 from .生命周期 import 客户端桥生命周期#生命周期

@@ -2,6 +2,7 @@ import threading#并发与中止
 from uuid import uuid4 as 生成随机UUID#安装请求 id
 from ...存储 import 创建快照存储#快照存储
 from .呈现 import 短名#短名排序
+from ..异常 import 远程应答错误#本包异常
 
 __all__=['是否安装待决','行键','包视图','排序包表','插件装载控制','空闲安装']#仅中文公开名
 
@@ -10,14 +11,6 @@ __all__=['是否安装待决','行键','包视图','排序包表','插件装载�
     'detailsOpen':False,'installed':None,'restartRequired':False,'failure':None,
     'approvedBuilds':[],'enabling':False,
 }#空闲结束
-
-class 远程应答错误(Exception):
-    '拒绝应答或 Host 未能应用的变更'
-    def __init__(自身,原因,码=None):
-        '记下原因与可选拒码'
-        super().__init__(原因)#消息
-        自身.原因=原因#原因
-        自身.码=码
 
 def 是否安装待决(阶段):
     '安装是否仍由 Host 拥有'

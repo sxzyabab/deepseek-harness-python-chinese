@@ -1,9 +1,11 @@
 '向 llm 注册 pi-ai 通用适配器；每实例一份提供方路由表'
 from .. import llm#语言模型服务
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from ...工具.启动环境 import 取启动环境#启动环境快照
 from ...配置.配置 import json深度相等,安装设置段,设置命名空间#JSON 相等、设置段安装与命名空间
 from .适配器 import 派爱适配器#适配器类
-from .目录 import 目录提供方标识列表,目录提供方接受密钥,配置错误#目录路由、密钥方法判定与本包异常
+from .异常 import 配置错误#本包异常
+from .目录 import 目录提供方标识列表,目录提供方接受密钥#目录路由、密钥方法判定
 from .配置 import 配置模式,断言可服务,解析配置表#配置模式、可服务断言与解析
 from .发现 import 发现模型#模型发现
 from .提供方 import 受支持协议#受支持协议
@@ -93,7 +95,7 @@ def 应用(上下文,配置):#为所有已配置提供方路由注册通用 pi-a
                 值=环境项['value']#环境值
         if 值 is not None and len(值)>0:#拿到非空值才判定可用；空串当缺失
             return llm.断言可用接口密钥(值,'llm-pi-ai',引用)#判定
-        raise llm.大模型错误(
+        raise 大模型错误(
             'llm-pi-ai: no credential for provider route "'+提供方+'"; its profile resolves '+str(引用)+', which is not'
             +' set — store '+str(引用)+' through the credentials service (the web Models page writes it) or export it,'
             +' and remove apiKeyEnv only if this provider should authenticate from pi-ai\'s own environment discovery',

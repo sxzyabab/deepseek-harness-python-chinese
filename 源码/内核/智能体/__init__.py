@@ -12,6 +12,7 @@ from .收件箱 import 收件箱#再导出结构化收件箱接口
 from .已消费工作 import 折叠已消费工作,交代领取,已消费工作账本#再导出已消费工作
 from .模型选择 import 安装模型选择,模型选择,模型选择引用#再导出模型选择
 from .归档准入 import 安装回合归档准入
+from .异常 import 智能体错误
 from .派发 import (
     智能体事件派发,#派发器协议
     智能体载体,#作用域载体
@@ -63,9 +64,6 @@ __all__=(#仅中文公开名；无英文别名
 无工厂诊断='no agent factory registered (load an agent-loop plugin)'#无工厂诊断；插件名不译
 无发起方诊断='no initiating agent is active'#无发起方诊断
 发起方已拆除诊断='agent initiator scope is disposed'#发起方已拆除诊断
-
-class 智能体错误(Exception):
-    '内核智能体包的异常基类'
 
 class 智能体设置提交:#尚未发表的设置在发表直前的同步收尾
     """设置在发表直前校验并提交已准备贡献。

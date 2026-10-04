@@ -1,6 +1,7 @@
 from threading import Timer as 定时器#超时定时器
 from .标识 import 检查器id#标识构造
-from ..json import 操作任务,json字节长度,检查器错误#单次结果|帧字节|本包错误
+from ..json import 操作任务,json字节长度#单次结果|帧字节
+from ...异常 import 检查器错误,检查器查询远程错误#本包错误|远程查询错误
 from .版本 import 检查器协议版本#协议版本
 from .消息.查询.编解码 import 是否检查器查询响应信封,解析检查器查询响应帧#响应编解码
 
@@ -20,13 +21,6 @@ class 检查器查询连接选项:#查询连接选项
         '保存超时与帧上限'
         自身.timeoutMs=timeoutMs#超时毫秒
         自身.maxFrameBytes=maxFrameBytes#最大帧字节
-
-class 检查器查询远程错误(Exception):#远程查询错误
-    'Worker 查询处理器故意返回的失败'
-    def __init__(自身,code,message):#错误码与信息
-        '保存错误码与信息'
-        super().__init__(message)#设置消息
-        自身.code=code#错误码
 
 class 检查器查询连接:#查询连接
     '为一个可重连的 Host 或 Client 源关联请求'

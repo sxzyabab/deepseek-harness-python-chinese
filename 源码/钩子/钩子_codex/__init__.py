@@ -25,8 +25,7 @@ from .配置 import 解析科德克斯配置#导入配置解析
 插件来源={'kind':'hooks-codex'}#本桥注入的每条上下文都盖上的来源
 处理器计数=0#处理器计数，用于稳定 id
 
-class 钩子codex错误(Exception):
-    'Codex 钩子桥包的异常基类'
+from .异常 import 钩子codex错误#本包异常
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

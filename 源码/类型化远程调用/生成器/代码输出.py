@@ -7,9 +7,7 @@ __all__=[#公开面
     '远程贡献骨架字面量',
 ]#结束
 
-class Typert代码输出错误(Exception):#代码输出期失败
-    '把已建模构造投影成制品失败'
-    name='TypertEmitError'#错误名
+from .异常 import Typert代码输出错误#代码输出期失败
 
 def 引号(值):#单引号 JS 字符串字面量
     '转义反斜杠、引号、换行'

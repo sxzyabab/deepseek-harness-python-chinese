@@ -3,16 +3,11 @@ import urllib.error#URL 失败
 from urllib.parse import urljoin as 拼接URL
 import urllib.request as 请求库#默认同步 HTTP
 from ....宿主.在应用中打开.共享 import 应用列表路由,打开路由#线路径
+from ..异常 import 在应用中打开错误#本包异常
 
 __all__=['在应用中打开控制器','在应用中打开错误','快照存储','宿主基址']#仅中文公开名
 
 选择持久化名='dsh.open-in-app.choice'#浏览器侧上次选择键（线协议字面量）
-
-class 在应用中打开错误(Exception):
-    '本包在应用中打开失败'
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
 
 def 宿主基址():#解析 Host 基址
     '有页面 origin 则用，否则 http://dsh.internal'

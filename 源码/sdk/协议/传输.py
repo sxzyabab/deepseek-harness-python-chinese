@@ -3,8 +3,7 @@ from concurrent.futures import Future as 原生结果#单次操作结果
 
 __all__=['JSONRPC响应错误','JSONRPC传输对等端','换行JSONRPC传输','操作任务','已中止','中止信号','中止控制器']#仅中文公开名
 
-class JSONRPC传输错误(Exception):
-    '本包异常基类'
+from .异常 import JSONRPC传输错误,JSONRPC响应错误#本包异常
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'
@@ -86,16 +85,6 @@ def 中止错误(原因):
 def 错误消息(错误):
     '取出错误消息'
     return str(错误)#字符串化
-
-class JSONRPC响应错误(JSONRPC传输错误):
-    'JSON-RPC 错误响应，保留线上 code 与可选 data'
-    def __init__(自身,码,消息,数据=None):
-        '记下线上错误码、消息与可选载荷'
-        super().__init__(消息)#用线上消息构造
-        自身.code=码#线上错误码；对端未给时为 None
-        自身.message=消息#线上错误消息
-        自身.data=数据#可选结构化错误载荷
-        自身.name='JsonRpcResponseError'#固定错误名
 
 class JSONRPC传输对等端:
     '运行时服务端与 SDK 客户端共用的出站请求与通知面'

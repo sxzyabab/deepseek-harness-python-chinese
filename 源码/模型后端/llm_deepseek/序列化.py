@@ -1,6 +1,7 @@
 '按配置路由能力把系统快照与对话轮次映射到 Messages'
 import json,base64
-from ..llm import 大模型错误,请求图片句柄文案
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
+from ..llm import 请求图片句柄文案
 from .回放 import 读回放
 
 __all__=['序列化']

@@ -2,8 +2,10 @@ import atexit,os,threading#宿主退出收尾、路径解析与后台释放线�
 from ...依赖 import node_pty as 伪终端库#node-pty 的 Python 面（依赖胶水，禁止顶层 import）
 from ...工具.超时 import 若已中止则抛出#中止入口；信号来自超时库
 from .命令活动 import 准备命令活动#shell 活动
-from .终端 import 本地子进程错误,本地终端句柄,贯通流#本包错误、PTY 句柄与输出流
-from ..子进程 import 子进程运行时,可执行未找到错误#子进程服务定义与查找失败
+from .异常 import 本地子进程错误#本包终端与子进程失败
+from .终端 import 本地终端句柄,贯通流#PTY 句柄与输出流
+from ..子进程 import 子进程运行时#子进程服务定义
+from ..子进程.异常 import 可执行未找到错误#可执行查找未找到文件
 from .启动 import 启动子进程,子环境,输出收集器,准备受管进程绑定,节点平台#管道启动与收集
 from .Linux范围 import (
     探测Linux管理器,#已引导后的廉价探测

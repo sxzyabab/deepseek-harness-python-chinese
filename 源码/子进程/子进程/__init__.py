@@ -39,6 +39,7 @@ from .类型 import (
     标准输出模式,#标准输出模式
     终端环境,#终端环境
 )#再导出子进程公开类型
+from .异常 import 可执行未找到错误#可执行查找未找到文件
 
 __all__=(#仅中文公开名；无英文别名
     '敏感环境模式','擦洗父环境','子进程运行时',
@@ -120,12 +121,3 @@ class 子进程运行时(服务):#子进程运行时服务定义
         raise NotImplementedError('子进程运行时.启动终端')
 
 default=子进程运行时#框架槽
-
-class 可执行未找到错误(Exception):#可执行查找未找到文件
-    '可执行查找完成但没有找到可执行文件'
-    def __init__(自身,消息,原因=None):#记下诊断
-        '记下提供方查找诊断与可选原始失败'
-        super().__init__(消息)#英文诊断
-        自身.name='SubprocessExecutableNotFoundError'#错误名
-        if 原因 is not None:#有原因
-            自身.__cause__=原因#链上原因

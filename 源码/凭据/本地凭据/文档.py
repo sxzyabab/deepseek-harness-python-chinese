@@ -2,6 +2,7 @@
 import os,errno,io,copy#路径、错误码、文本流与深拷贝
 import yaml#PyYAML
 from ..凭据 import 凭证引用,解析凭证键#引用与记录键
+from .异常 import 本地凭据错误#本地凭证提供方失败
 from ...工具.主目录路径 import 规范化监视路径#监视路径规范化
 
 凭证文件名='.credentials.yaml'#harness 主目录内凭证文档的基名
@@ -62,7 +63,7 @@ def 解析凭证文档(文本,文件名):
     try:
         根=yaml.safe_load(文本)#解析
     except yaml.YAMLError as 错误:
-        raise Exception('credentials-local: invalid document at '+文件名+': '+描述yaml错误(错误))#诊断
+        raise 本地凭据错误('credentials-local: invalid document at '+文件名+': '+描述yaml错误(错误))#诊断
     if 根 is None:#空
         return {'refs':{},'records':{}}#空存储
     if not isinstance(根,dict) or isinstance(根,list):#非映射
@@ -71,20 +72,20 @@ def 解析凭证文档(文本,文件名):
     if len(键列表)==0:#空映射
         return {'refs':{},'records':{}}#空存储
     if 'version' not in 根:#预发布扁平
-        raise Exception(
+        raise 本地凭据错误(
             'credentials-local: '+文件名+' uses the pre-release flat layout. Add `version: '+str(文档版本)+'`'
             +' and nest the existing '+str(len(键列表))+' '
             +('entry' if len(键列表)==1 else 'entries')+' under `refs:`.'
             +' No values need to change.'
         )#指引迁移
     if 根['version']!=文档版本:#版本不符
-        raise Exception(
+        raise 本地凭据错误(
             'credentials-local: '+文件名+' declares version '+repr(根['version'])+';'
             +' this build reads version '+str(文档版本)
         )#拒绝
     for 键 in 键列表:#未知顶层
         if 键 not in ('version','refs','records'):#越界
-            raise Exception('credentials-local: unknown top-level key "'+str(键)+'" in '+文件名)#拒绝
+            raise 本地凭据错误('credentials-local: unknown top-level key "'+str(键)+'" in '+文件名)#拒绝
     return {
         'refs':_解析引用节(根.get('refs'),文件名),
         'records':_解析记录节(根.get('records'),文件名),
@@ -137,7 +138,7 @@ def _解析引用节(节,文件名):
         if not isinstance(值,str):#类型
             raise TypeError('credentials-local: the value for "'+文字键+'" in '+文件名+' must be a string')#拒绝
         if len(值)==0:#空
-            raise Exception('credentials-local: the value for "'+文字键+'" in '+文件名+' is empty; remove the key instead')#拒绝
+            raise 本地凭据错误('credentials-local: the value for "'+文字键+'" in '+文件名+' is empty; remove the key instead')#拒绝
         条目[文字键]=值#收下
     return 条目#表
 
@@ -172,19 +173,19 @@ def _解析记录(键,值,文件名):
     if 种类=='grant':#授权
         _断言字段(键,值,('kind','payload'),文件名)#词表
         if 'payload' not in 值:#缺
-            raise Exception('credentials-local: record "'+键+'" in '+文件名+' has no payload')#拒绝
+            raise 本地凭据错误('credentials-local: record "'+键+'" in '+文件名+' has no payload')#拒绝
         断言json值('record "'+键+'" payload in '+文件名,值['payload'],set())#JSON
         return {'kind':'grant','payload':值['payload']}#返回
     if 种类 is None:#缺
-        raise Exception('credentials-local: record "'+键+'" in '+文件名+' has no kind')#拒绝
-    raise Exception('credentials-local: record "'+键+'" in '+文件名+' has unknown kind '+repr(种类))#未知
+        raise 本地凭据错误('credentials-local: record "'+键+'" in '+文件名+' has no kind')#拒绝
+    raise 本地凭据错误('credentials-local: record "'+键+'" in '+文件名+' has unknown kind '+repr(种类))#未知
 
 
 def _断言字段(键,字段,允许,文件名):
     '拒绝未知字段'
     for 名 in 字段.keys():#逐字段
         if 名 not in 允许:#越界
-            raise Exception('credentials-local: record "'+键+'" in '+文件名+' has unknown field "'+str(名)+'"')#拒绝
+            raise 本地凭据错误('credentials-local: record "'+键+'" in '+文件名+' has unknown field "'+str(名)+'"')#拒绝
 
 
 def _解析记录环境(键,环境,文件名):
@@ -320,7 +321,7 @@ def 断言仅所有者(文件名):
     if 越权==0:#通过
         return#过
     八进制=format(模式&0o777,'o')#八进制
-    raise Exception('credentials-local: '+文件名+' is readable beyond its owner (mode '+八进制+'); run "chmod 600 '+文件名+'" before starting again')#拒绝
+    raise 本地凭据错误('credentials-local: '+文件名+' is readable beyond its owner (mode '+八进制+'); run "chmod 600 '+文件名+'" before starting again')#拒绝
 
 
 def 同json值(左,右):

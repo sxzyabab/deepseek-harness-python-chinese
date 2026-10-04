@@ -5,12 +5,7 @@ from .枢纽 import 检查器协议版本#协议版本
 
 __all__=['Client运行时远程错误','Client运行时路由']#仅中文公开名
 
-class Client运行时远程错误(Exception):#Client Runtime远程错误
-    'Client Runtime 执行器有意返回的错误'
-    def __init__(自身,码,信息):#构造
-        '保存错误码'
-        super().__init__(信息)#基类
-        自身.code=码#错误码
+from ...异常 import Client运行时远程错误#Client Runtime远程错误
 
 class Client运行时路由:#Client Runtime路由
     'Runtime 上下文注册表与关联的 Worker→Client 请求所有者'

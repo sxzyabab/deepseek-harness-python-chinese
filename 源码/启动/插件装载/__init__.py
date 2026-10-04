@@ -20,9 +20,9 @@ from ..app启动 import (
 from ..app启动.配置档 import 配置补丁文件名
 from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包,读配置档注册表
 from .安装失败 import 分类安装失败
-from .安装规格 import 非法安装规格错误,解析安装规格
+from .安装规格 import 解析安装规格
 from .补丁 import 写插件启用
-from .失败 import 装载失败
+from .异常 import 装载失败,非法安装规格错误,安装已取消错误,注册表错误
 from .构建审批 import 批准构建,读待决构建
 from . import 类型
 from . import 安装失败 as 安装失败模块
@@ -189,7 +189,7 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
     if 必需编号 is None:#缺省
         必需编号=[]#空
     if id(根上下文) not in 启动包含表:#缺失
-        raise Exception(二进制名+': 配置档重载需要根 Include 条目')
+        raise 注册表错误(二进制名+': 配置档重载需要根 Include 条目')
     条目=启动包含表[id(根上下文)]#根 Include
     先前失败=[]#先前失败快照
     for 失败 in 未激活条目(根上下文):#收集
@@ -231,17 +231,10 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
         if 必需 or not 旧同:#新失败
             引入.append(失败项)#收下
     if len(引入)>0:#有新失败
-        raise Exception(激活诊断(二进制名,'warning',引入).rstrip())#与上游 activationDiagnostic 字面一致
+        raise 注册表错误(激活诊断(二进制名,'warning',引入).rstrip())#与上游 activationDiagnostic 字面一致
     if len(拒绝原因)>0:#旧纤程新抛
         raise 拒绝原因[0]#抛首条
     return [未激活诊断(项) for 项 in 失败]#警告列表
-
-class 安装已取消错误(Exception):
-    '调用方停止安装；文件已恢复后抛出'
-    def __init__(自身):
-        '固定消息'
-        super().__init__('安装已取消')
-        自身.name='InstallCancelledError'#错误名
 
 class 装载服务(远程服务):
     '管理配置档文件并应用其声明的重载生命周期'
@@ -473,7 +466,7 @@ class 装载服务(远程服务):
                 if not 命名['bundle']:
                     return 带表拒绝('not-a-bundle',命名['name']+' 未声明 dsh.bundle')
                 return 命名
-        raise Exception('不可达的安装规格种类')
+        raise 注册表错误('不可达的安装规格种类')
 
     @远程
     def 设置插件启用(自身,标识,启用):
@@ -554,7 +547,7 @@ class 装载服务(远程服务):
                         结果['pendingBuilds']=读待决构建(自身.配置档['dir'])#待决
                     except Exception as 错误:#读失败
                         自身.拥有上下文.日志.警告('pnpm 失败后无法读取待决构建审批',错误)
-                    raise Exception(结果['packageResult']['output'])#带输出失败
+                    raise 注册表错误(结果['packageResult']['output'])#带输出失败
                 之后=(读配置清单('dsh',自身.配置档['dir']).get('dependencies') or {})#装后
                 已装=[名 for 名 in 之后.keys() if 之前.get(名)!=之后[名]]#变化名
                 if len(已装)==0:#无变化则按规格猜
@@ -640,7 +633,7 @@ class 装载服务(远程服务):
             自身.配置事务(操作)#先卸运行时
             结果['packageResult']=自身.跑pnpm(['remove',名称])#pnpm remove
             if 结果['packageResult']['exitCode']!=0:#失败
-                raise Exception(结果['packageResult']['output'])#带输出
+                raise 注册表错误(结果['packageResult']['output'])#带输出
         return 自身.变更(作业,{'stage':'remove','target':名称},'remove')#变更
 
     def 声明行(自身,名称,信息):

@@ -1,10 +1,8 @@
 import re
 from ...依赖.cordis.服务 import 服务
+from .异常 import 设置错误#本包异常
 
 __all__=['设置错误','设置模式服务']
-
-class 设置错误(Exception):
-    '本包设置失败'
 
 数字键=re.compile(r'^\d+\Z',re.ASCII)#纯数字键
 

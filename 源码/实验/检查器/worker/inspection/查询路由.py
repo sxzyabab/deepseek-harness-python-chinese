@@ -1,5 +1,6 @@
 import json#查询帧序列化
-from ..共享.json import 检查器错误,在线程执行#包内错误|后台跑
+from ...共享.json import 在线程执行#后台跑
+from ...异常 import 检查器错误#包内错误
 from .cordis查询 import 执行检查器查询#查询执行
 
 __all__=['检查器查询路由','检查器查询对端']#仅中文公开名

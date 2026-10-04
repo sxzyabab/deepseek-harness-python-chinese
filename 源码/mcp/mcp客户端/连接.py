@@ -1,7 +1,8 @@
 import math,threading,time#有限判定、定时器与时间戳
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
-from .传输 import 创建传输,MCP错误#传输工厂与本包异常
+from .异常 import MCP错误#本包异常
+from .传输 import 创建传输#传输工厂
 from .工具桥接 import 同步工具#工具同步
 
 __all__=['重连默认值','默认最大指令字节','解析重连策略','启动连接']

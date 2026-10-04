@@ -5,7 +5,7 @@ from ...凭据.凭据 import (#凭证键辅助
     凭证键,凭证键标识,凭证键作用域,凭证引用,是否凭证键段,是否凭证引用名,
 )#凭证
 from ...工具.启动环境 import 取启动环境#启动环境
-from .. import llm#大模型错误
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 
 __all__=['记录作用域','记录键于','从上下文建凭证仓','从上下文建认证上下文','建认证注入']#仅中文公开名
 
@@ -66,7 +66,7 @@ def 可写仓(上下文):
     '凭证服务，或点名缺什么的失败'
     凭证=上下文.获取服务('credentials')#可选
     if 凭证 is None:#无
-        raise llm.大模型错误(
+        raise 大模型错误(
             'llm-pi-ai: this composition mounts no credentials service, so there is nowhere to store the'
             +' credential a sign-in produces; mount one (dsh-credentials-local) to sign in',
             'NO_CREDENTIAL_STORE',
@@ -99,7 +99,7 @@ def 从上下文建凭证仓(上下文):
     def 修改(提供方标识,变更):
         '串行读改写'
         if not 是否凭证键段(提供方标识):#非法
-            raise llm.大模型错误(
+            raise 大模型错误(
                 'llm-pi-ai: provider id "'+提供方标识+'" cannot address a stored credential record (a record id is a'
                 +' lowercase hyphenated identifier); authenticate this route through apiKeyEnv instead of a stored'
                 +' credential',

@@ -1,6 +1,7 @@
 from ...存储 import 通知订阅者#订阅者通知
 from ....基础设施.通用工具 import 获取内部数据
 from .会话提供方 import 渲染会话区域#SessionProvider 渲染语义
+from ..异常 import 会话错误#本包异常
 
 __all__=[#仅中文公开名
     '依赖','应用','会话界面','会话错误','待处理交互基座','标准钩子属性名',
@@ -70,9 +71,6 @@ class 待处理交互域:#单一待处理域
         委托列表=[条目.delegate for 条目 in 自身.值表.values()]#抽出委托
         自身.值表.clear()#清空域
         return 委托列表#返回委托列表
-
-class 会话错误(Exception):
-    '本包会话适配失败'
 
 内置源={#内置 Session 源
     'hooks':('session',),#会话快照钩子

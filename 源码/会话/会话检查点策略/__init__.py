@@ -1,14 +1,12 @@
 '语义耐久检查点策略'
 from ...内核.工具 import 工具体前中止#取消前派发原因码
+from .异常 import 检查点策略错误#本包异常
 
 包名='@deepseek-ai/dsh-session-checkpoint-policy'
 名称='session-checkpoint-policy'
 依赖=['llm','sessionPersistence','sessions','tools']
 
 __all__=['包名','名称','依赖','应用','默认']
-
-class 检查点策略错误(Exception):
-    '会话检查点策略包的异常基类'
 
 def 已中止(信号):
     """信号是否已中止。

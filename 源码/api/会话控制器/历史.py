@@ -2,7 +2,8 @@
 import threading#follow 等待
 from ...工具.双端队列 import 双端队列#缓冲
 from ...内核.会话.表面 import 是否追加表面事件#消息对齐分页
-from .远程错误与并发 import 远程错误,已中止#远程错误与中止
+from .远程错误与并发 import 已中止#中止
+from .异常 import 远程错误#本包异常
 from .助手流 import 会话助手流累加器#助手流累加器
 
 __all__=['会话历史控制器']#仅中文公开名

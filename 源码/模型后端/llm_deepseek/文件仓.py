@@ -1,6 +1,6 @@
 'DeepSeek Files API 上传复用、作废与配额恢复'
 import threading,time
-from ..llm import 大模型错误
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from .文件接口 import 深求文件客户端,是否文件配额错误
 from .消息接口 import 消息接口根
 from .上传索引 import 深求文件作用域摘要,深求上传索引

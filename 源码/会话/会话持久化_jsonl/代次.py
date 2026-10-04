@@ -7,8 +7,8 @@ import time#让出近似
 from ...内核.会话 import 会话,会话标识#Session 重开
 from ...模型后端.llm import 块组装器,展开助手流#嵌入流回放
 from ...工具.值 import 深相等json#深相等
-from ..会话格式 import 会话格式错误#格式错误
-from ..会话格式目录 import 会话格式目录,会话格式不支持迁移错误#格式目录
+from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
+from ..会话格式目录 import 会话格式目录#格式目录
 from ..会话格式目录.消息投影 import 当前会话消息投影表#当代消息投影
 from ..会话持久化.存储契约 import 校验已存事件#已存事件校验
 from .格式 import 代次日志文件名,日志后缀,扫描日志#格式辅助
@@ -19,38 +19,16 @@ from .zstd编解码 import (#zstd 公开面
     扫描zstd帧,#帧扫描
 )#zstd
 from .win32 import 发布新文件win32,是否eexist as win32是否eexist#Win32 发布
+from .异常 import (#本包异常
+    代次源变更错误,#源变更
+    代次不支持迁移错误,#不支持迁移
+    代次目标冲突错误,#目标冲突
+    代次辅助错误 as Error,#代次辅助错误
+)#本包异常
 
 迁移解码让出间隔秒=0.5#迁移解码让出间隔
 迁移工作块字节=1024*1024#迁移工作块
 迁移写块字节=4*1024*1024#迁移写块
-
-class 代次源变更错误(Exception):#源变更
-    '历史源在解码与迁移遍之后发生了变更'
-    def __init__(自身,路径):#构造
-        '记下修订已变的历史代'
-        自身.path=路径#路径
-        自身.name='JsonlGenerationSourceChangedError'#错误名
-        super().__init__(f'historical session generation changed during migration: "{路径}"')#消息
-
-class 代次不支持迁移错误(Exception):#不支持迁移
-    '历史产物完好，但格式边拒绝其内容'
-    def __init__(自身,来自版本,原因):#构造
-        '记下源版本与格式边拒绝'
-        自身.fromVersion=来自版本#源版本
-        自身.reason=原因#原因
-        自身.name='JsonlGenerationUnsupportedMigrationError'#错误名
-        super().__init__(str(原因))#消息
-        自身.__cause__=原因#cause
-
-class 代次目标冲突错误(Exception):#目标冲突
-    '当代文件名已指向不同或非法字节'
-    def __init__(自身,路径,原因):#构造
-        '记下阻止独占发布的目标'
-        自身.path=路径#路径
-        自身.reason=原因#原因
-        自身.name='JsonlGenerationTargetConflictError'#错误名
-        super().__init__(f'current session generation already exists at "{路径}": {原因}')#消息
-        自身.__cause__=原因#cause
 
 def 物理身份(状态):#从 os.stat_result 造身份
     '与精确代字节一并捕获的 stat 身份'
@@ -551,9 +529,6 @@ def 默认代次格式适配器():#默认格式适配器
         'encodeEvent':lambda 事件:会话格式目录.编码当代事件(事件),#编码事件
         'isUnsupportedMigrationError':lambda 错误:isinstance(错误,会话格式不支持迁移错误),#不支持判定
     }#结束
-
-class Error(Exception):#代次辅助错误
-    '代次模块抛出的 Error 风格异常'
 
 __all__=[#公开面
     '物理身份','身份串','读稳定jsonl文件','准备jsonl迁移','校验jsonl当代代',

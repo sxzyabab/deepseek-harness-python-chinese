@@ -1,16 +1,7 @@
 '工作区控制器远程错误与中止查询'
-__all__=['远程错误','远程错误消息','已中止','若已中止则抛出']#仅中文公开名
+from .异常 import 远程错误#本包异常
 
-class 远程错误(Exception):
-    '远程错误。附加信息做成属性'
-    def __init__(自身,码,消息,详情=None,原因=None):
-        '记下 code/message/details'
-        super().__init__(消息)#消息
-        自身.code=码#错误码
-        自身.message=消息#消息
-        自身.details={} if 详情 is None else 详情#详情
-        if 原因 is not None:#原因链
-            自身.__cause__=原因#链接
+__all__=['远程错误','远程错误消息','已中止','若已中止则抛出']#仅中文公开名
 
 def 远程错误消息(错误):
     '把错误收成字符串'

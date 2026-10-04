@@ -1,9 +1,7 @@
 import threading
+from .异常 import 布局错误#本包异常
 
 __all__=['布局错误','布局控制器']
-
-class 布局错误(Exception):
-    '本包布局面板接线失败'
 
 class 布局控制器:#跨插件面板动作面
     '其它插件可触发的面板过渡'

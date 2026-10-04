@@ -1,24 +1,15 @@
 'ACP 线路内容准入与投影，由 ACP 适配器拥有'
 import re
 from base64 import b64encode as 编码基64,b64decode as 解码基64
-from ...附件.附件 import 是否图像准入错误
+from ...附件.附件.异常 import 是否图像准入错误
 from ...工具.超时 import 若已中止则抛出
 import json
+from .异常 import ACP内容错误#稳定 ACP 请求失败分类
 
 __all__=['ACP内容错误','支持ACP图片提示','接纳ACP提示','助手块转ACP']
 
 图像媒体类型=('image/png','image/jpeg','image/webp','image/gif')
 规范基64=re.compile(r'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$')
-
-class ACP内容错误(Exception):
-    '稳定 ACP 请求失败分类，不含原始二进制'
-    def __init__(自身,消息,种类,原因=None):
-        '记下无内联二进制的协议细节'
-        super().__init__(消息)
-        自身.name='AcpContentError'
-        自身.kind=种类
-        if 原因 is not None:
-            自身.__cause__=原因
 
 def 图像媒体(值):
     '收窄线路 MIME'

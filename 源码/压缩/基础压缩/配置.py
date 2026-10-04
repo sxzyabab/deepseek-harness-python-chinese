@@ -20,18 +20,7 @@ from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆�
 基础压缩配置键集合=frozenset(政策配置键+('modelPolicies','auto'))#完整的公开顶层配置键集
 模型政策键集合=frozenset(('provider','model')+政策配置键)#完整的精确目标覆盖键集
 
-class 基础压缩错误(Exception):
-    '基础压缩包的异常基类'
-
-class 目标压力配置错误(基础压缩错误):
-    '目标特有压力配置失败，可抑制重复警告'
-
-    def __init__(自身,目标键,消息):
-        '记下用作警告键的精确提供方/模型路由与可操作的配置失败细节'
-        super().__init__(消息)#交给基类
-        自身.targetKey=目标键#警告键
-        自身.message=消息#诊断文案
-        自身.name='TargetPressureConfigError'#错误名
+from .异常 import 基础压缩错误,目标压力配置错误#本包异常
 
 def 是否有限数(值):
     '有限实数，排除布尔'

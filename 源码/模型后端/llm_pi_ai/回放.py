@@ -1,7 +1,7 @@
 '持久的 pi-ai 回放元数据与助手历史重建'
 import json#JSON 解析
 from json import JSONDecodeError#畸形 JSON
-from .. import llm#语言模型服务
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 
 __all__=('转派回放状态','读回放状态','转派助手','空派用量','解析参数')#仅中文公开名
 
@@ -84,7 +84,7 @@ def 转派回放状态(消息,请求模型=None):
 
 def 非法回放(消息):
     '非法回放状态'
-    raise llm.大模型错误(f'invalid pi-ai replay state: {消息}','INVALID_REPLAY_STATE')#带诊断抛出
+    raise 大模型错误(f'invalid pi-ai replay state: {消息}','INVALID_REPLAY_STATE')#带诊断抛出
 
 def 读回放状态(值):
     '在适配器私有状态到达 pi-ai 之前校验它'
@@ -146,7 +146,7 @@ def 外来助手(消息):
                 'arguments':解析参数(块['arguments']),#畸形 JSON 容忍为 {}
             })#工具调用
         elif 类型=='image':#派爱历史无法表示助手结构化图片输出
-            raise llm.大模型错误('pi-ai chat history cannot represent structured assistant image output','UNSUPPORTED_CONTENT')#助手图片无法表示
+            raise 大模型错误('pi-ai chat history cannot represent structured assistant image output','UNSUPPORTED_CONTENT')#助手图片无法表示
     有工具=False#是否含工具调用，用来钉 stopReason；外来路径不读回放元数据里的结束原因
     for 片 in 内容:#扫一遍已转换内容，决定结束原因
         if 片['type']=='toolCall':#见到工具调用则结束原因必须是 toolUse，与同模型回放读元数据不同
@@ -244,7 +244,7 @@ def 转派助手(消息,降级=None):
         return 外来助手(消息)#外来
     try:#校验并重组
         return 回放助手(消息,来源,回放)#同模型
-    except llm.大模型错误 as 错误:#不可用回放
+    except 大模型错误 as 错误:#不可用回放
         if 错误.code!='INVALID_REPLAY_STATE':#其它失败保持大声
             raise 错误#原样抛出
         if 降级 is not None:#通知调用方

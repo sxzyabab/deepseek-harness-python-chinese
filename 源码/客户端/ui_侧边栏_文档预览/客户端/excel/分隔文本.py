@@ -1,5 +1,5 @@
 import csv,io
-from .错误 import 表格预览错误
+from ...异常 import 表格预览错误
 from .模型 import 格式化单元格,初始选区
 
 __all__=['转换分隔文本']

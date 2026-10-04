@@ -1,14 +1,9 @@
 import threading#候选拉取中止标志
 from .探测 import 检测触发#光标处触发检测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约#关菜单态、铺组、归约
+from .异常 import 触发错误#本包异常
 
 __all__=['触发控制器','简易快照存储','触发错误','已中止','若已中止则抛出']#仅中文公开名
-
-class 触发错误(Exception):
-    '本包触发管线失败'
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
 
 def 已中止(信号):#读 threading.Event
     '无信号视为未中止'

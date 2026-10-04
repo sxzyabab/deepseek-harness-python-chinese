@@ -25,8 +25,7 @@ __all__=(
 消息基址=公开基址
 基址环境='DEEPSEEK_BASE_URL'
 
-class 深求配置错误(Exception):
-    'llm-deepseek 配置校验失败'
+from .异常 import 深求配置错误#配置校验失败
 
 目录模型={
     'id':字符串字段(可空=False),

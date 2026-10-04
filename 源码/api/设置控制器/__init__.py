@@ -1,7 +1,8 @@
 '配置域远程拥有者：settings 与并列的 credentials'
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .凭据 import 凭据控制器
-from .远程错误与中止 import 远程错误,远程错误消息,已中止
+from .远程错误与中止 import 远程错误消息,已中止
+from .异常 import 远程错误#本包异常
 from .投影与写入 import 命名空间视图,拒绝写入
 from .类型 import 设置文档打开值
 

@@ -1,7 +1,7 @@
 '栅格检查：准入时全解码，已验证读取时仅头探测'
 from io import BytesIO#字节缓冲
 from PIL import ImageOps#EXIF 方向
-from ..附件.错误 import 附件错误#附件失败
+from ..附件.异常 import 附件错误#附件失败
 from .锐化 import 取锐化#惰性栅格入口
 __all__=['已检测图像字段','编码alpha是否兼容','探测图像','检测图像']#仅中文公开名
 

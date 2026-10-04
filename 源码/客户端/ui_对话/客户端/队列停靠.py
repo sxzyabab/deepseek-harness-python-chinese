@@ -1,4 +1,4 @@
-from .服务 import 对话错误
+from ..异常 import 对话错误
 from .文案 import 命名空间
 
 __all__=['队列停靠','队列停靠条目']

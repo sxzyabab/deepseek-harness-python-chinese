@@ -1,5 +1,6 @@
 import math#有限数判定
 import re#千分位插入
+from ..异常 import 轨迹错误#本包异常
 
 __all__=[#仅中文公开名
     '轨迹错误',
@@ -15,12 +16,6 @@ __all__=[#仅中文公开名
 # 布局产出的源块字段约定：type、content 必有；attachment 为图片附件引用；
 # file 为普通文件附件引用（从不交给图片加载器）；可选 callId、toolName。
 轨迹源块键=('type','content','attachment','file','callId','toolName')#源块字段
-
-class 轨迹错误(Exception):
-    '本包异常基类'
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
 
 轨迹单元格种类=(#轨迹单元格种类闭集
     'system',#系统记录

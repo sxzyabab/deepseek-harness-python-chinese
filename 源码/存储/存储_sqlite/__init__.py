@@ -1,5 +1,5 @@
 'SQLite 存储后端：一个数据库文件托管所有被路由单元'
-from ..存储.错误 import 存储错误#存储错误
+from ..存储.异常 import 存储错误#存储错误
 from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
 from ..存储 import 存储后端服务键#生命周期键
 from .结构 import 打开数据库,记录表名,存储_SQLITE_结构版本,日志模式#打开库

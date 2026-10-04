@@ -1,6 +1,6 @@
 import ssl,socket,threading#TLS-PSK、Unix 套接字与握手超时
 from ...工具.超时 import 若已中止则抛出,等待中止#中止
-from .模式 import ssh错误#本包基类
+from .异常 import ssh错误#本包异常基类
 
 __all__=['ssh流tls选项','套接字流','认证流']#仅中文公开名
 

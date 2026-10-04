@@ -1,3 +1,5 @@
+from .异常 import codex子体错误#本包异常
+
 默认处置宽限毫秒=3000
 
 def 启动codex运行(请求,规格):
@@ -5,7 +7,7 @@ def 启动codex运行(请求,规格):
     try:
         import openai
     except ImportError as 错误:
-        raise Exception('subagent-codex: @openai/codex Python package is required: '+str(错误))
-    raise Exception('subagent-codex: Codex app-server wire driver is not yet implemented in Python')
+        raise codex子体错误('subagent-codex: @openai/codex Python package is required: '+str(错误))
+    raise codex子体错误('subagent-codex: Codex app-server wire driver is not yet implemented in Python')
 
 __all__=['默认处置宽限毫秒','启动codex运行']

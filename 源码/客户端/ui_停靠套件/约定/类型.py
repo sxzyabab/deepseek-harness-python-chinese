@@ -1,4 +1,6 @@
 
+from ..异常 import 停靠错误#本包异常
+
 __all__=[#仅中文公开名
     '停靠错误',
     '分割轴行',
@@ -27,11 +29,3 @@ __all__=[#仅中文公开名
 节点种分割='split'#分割节点
 节点种窗格='pane'#窗格节点
 焦点操作种表=frozenset({'focusTab','focusPane','restoreFocus'})#仅挪焦点的操作种
-
-
-class 停靠错误(Exception):
-    '本包停靠布局失败'
-
-    def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文

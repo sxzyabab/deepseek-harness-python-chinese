@@ -1,7 +1,8 @@
 '`file` 协议提供方：工作区文件元数据作为 `RemoteResult` 帧流'
 import re#盘符段
 from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
-from ..类型 import 远程错误,已中止#远程错误与中止
+from ..类型 import 已中止#中止
+from ..异常 import 远程错误#本包异常
 
 __all__=['创建文件资源提供方']#仅中文公开名
 

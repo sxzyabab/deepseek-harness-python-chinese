@@ -2,7 +2,7 @@
 import json,threading#编解码与读线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .输出json import json值字节上限#排队字节预算
-from .协议 import 节点ptc错误#本包异常
+from .异常 import 节点ptc错误#本包异常
 
 __all__=['任务','全部并发','全部结算','json通道']#仅中文公开名
 

@@ -5,6 +5,7 @@ from ...身份.匿名用户id import 获取或创建匿名用户id#用户 id
 from ...模型后端.llm import 应用身份#产品身份
 from ..会话遥测 import 会话遥测后端#基类
 from ..会话遥测.协调器 import 会话遥测协调器#协调器
+from .异常 import 开放遥测错误#本包异常
 包名='@deepseek-ai/dsh-session-telemetry-otel'
 名称='session-telemetry-otel'
 依赖=['sessions']#依赖
@@ -21,9 +22,6 @@ from ..会话遥测.协调器 import 会话遥测协调器#协调器
 __all__=['包名','名称','依赖','应用','默认','配置','会话遥测模式','开放遥测会话后端','开放遥测错误']
 
 会话遥测模式=('FULL','FEEDBACK_ONLY','DISABLED')#模式枚举
-
-class 开放遥测错误(Exception):
-    '会话遥测 otel 包的异常基类'
 
 def 解析模式(模式):
     '校验模式'

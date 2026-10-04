@@ -1,8 +1,8 @@
 '共享 Typert Gateway 的宿主入口'
-from .网关 import Typert网关服务,网关错误
+from .网关 import Typert网关服务
 from .类型 import 调用远程请求,网关错误码,Typert网关
 from . import 客户端 as 客户端面
-from .流载体 import 远程流载体错误
+from .异常 import 网关错误,远程流载体错误
 from .远程流 import 远程流,远程流项,取连接代际源
 from .远程事件 import 客户端远程事件
 from .快照流 import 远程快照流

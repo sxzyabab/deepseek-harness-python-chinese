@@ -1,10 +1,12 @@
 '经共享沙箱 Node PTC 执行器的工作流编排'
 import copy,os,re,threading,uuid#参数拷贝、并行度、元数据头、结束事件线程、运行标识
 from ...依赖.schemastery import 字符串字段,自然数字段#配置字段
-from ..工作流 import 工作流引擎,工作流错误,工作流运行标识#缝上引擎
+from ..工作流 import 工作流引擎,工作流运行标识#缝上引擎
+from ..工作流.异常 import 工作流错误#缝上错误
 from .宿主 import ptc工作流运行#持有者运行
 from .元数据 import 校验元数据#元数据校验
-from .领域 import 从领域物化,物化错误#再导出
+from .异常 import 物化错误#再导出
+from .领域 import 从领域物化#再导出
 from .类型 import (#再导出宾客类型字段
     工作者上限字段,#上限
     工作者初始化字段,#初始化

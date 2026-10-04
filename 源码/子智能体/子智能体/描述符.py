@@ -1,5 +1,6 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...内核.会话 import 快照json值#导入无损JSON快照
+from .异常 import 子智能体描述符错误#本包异常
 
 子智能体描述符版本=2#当前描述符版本
 描述符公共键=('version','mode','provider','label')#描述符公共键
@@ -40,9 +41,6 @@ class 可续跑子智能体描述符输入(TypedDict):#可续跑子体耐久身�
     toolFilter:NotRequired[object]#请求的子工具作用域
 
 子智能体描述符输入=一次性子智能体描述符输入|可续跑子智能体描述符输入#snapshot 校验并分离的输入
-
-class 子智能体描述符错误(Exception):
-    '持久化描述符非法'
 
 def 是否记录(值):#对象记录守卫
     '持久化 JSON 值是否为对象记录'

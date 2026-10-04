@@ -5,7 +5,8 @@ from .http桥 import 桥接,默认最大请求正文字节#HTTP 桥与默认正�
 from .接口请求信任 import 断言受信任权威,是否受信任接口请求#权威校验与请求信任闸
 from .rpc宿主 import 宿主连接服务#宿主连接服务
 from .网页套接字下行 import 拒绝网页套接字升级,网页套接字下行#WebSocket 下行与拒绝升级
-from .rpc import 连接错误,连接权威_受信任宿主,连接权威_回环#异常与权威常量
+from .异常 import 连接错误#本包异常
+from .rpc import 连接权威_受信任宿主,连接权威_回环#权威常量
 
 __all__=[#仅中文公开名
     '名称',

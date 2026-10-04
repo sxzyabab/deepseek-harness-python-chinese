@@ -1,15 +1,8 @@
 '跨进程写所有权锁，覆盖一个会话产物目录的整个写句柄生命周期'
 import os,sys#路径与平台
-from ..会话持久化.预备 import 持久化错误#持久化错误基类
+from .异常 import 会话已有写主错误#已有写主
 
 租约文件名='session.lock'#锁文件名
-
-class 会话已有写主错误(持久化错误):#已有写主
-    '另一持有者仍占锁时'
-    def __init__(自身,标识):#构造
-        '记下被争用的会话身份'
-        自身.id=标识#会话id
-        super().__init__(f'session {标识!s} is already owned by another writer')#文案
 
 class 会话写租约:#会话写租约
     '一把已持写锁；释放关闭描述符或句柄'

@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误
+from ..异常 import 运行时错误
 import gzip
 
 __all__=['流式解压镜像','解压镜像']

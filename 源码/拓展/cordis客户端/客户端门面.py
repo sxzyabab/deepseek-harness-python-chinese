@@ -1,3 +1,4 @@
+from .异常 import cordis客户端错误#本包异常
 from .定时器 import 安装客户端定时器
 from ...基础设施.通用工具 import 获取内部数据
 from .巡检注册表 import 客户端巡检注册表,提供客户端巡检
@@ -74,7 +75,7 @@ def 装配客户端运行面(上下文):
         答=远端.syncInspectManifest(清单列表)#推
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
-            raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
+            raise cordis客户端错误(f"{错.get('code')}: {错.get('message')}")#抛
 
     def 落定查询(会话,请求标识,决议):#resolveInspectQuery
         '推决议'
@@ -83,7 +84,7 @@ def 装配客户端运行面(上下文):
         答=远端.resolveInspectQuery(会话,请求标识,决议)#推
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
-            raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
+            raise cordis客户端错误(f"{错.get('code')}: {错.get('message')}")#抛
 
     巡检=客户端巡检注册表({'sync':同步清单,'解析':落定查询})#注册表
     提供客户端巡检(上下文,巡检)#挂服务
@@ -98,14 +99,14 @@ def 装配客户端运行面(上下文):
     def 调用宿主(插件标识,运行标识,方法,参数):#runner.invoke
         'host.call 路由；载体/路由失败折教学'
         if 远端 is None:#无远端
-            raise Exception(线路失败文本(插件标识,方法,'remote.dynamicCordisRunner missing'))#抛
+            raise cordis客户端错误(线路失败文本(插件标识,方法,'remote.dynamicCordisRunner missing'))#抛
         try:#远程
             答=远端.invoke(插件标识,运行标识,方法,参数)#调
         except Exception as 错误:#线路
-            raise Exception(线路失败文本(插件标识,方法,错误))#教学
+            raise cordis客户端错误(线路失败文本(插件标识,方法,错误))#教学
         if isinstance(答,dict) and not 答.get('ok'):#载体失败
             错误体=答.get('error') or {}#错
-            raise Exception(线路失败文本(插件标识,方法,f"{错误体.get('code')}: {错误体.get('message')}"))#抛
+            raise cordis客户端错误(线路失败文本(插件标识,方法,f"{错误体.get('code')}: {错误体.get('message')}"))#抛
         结果=答.get('value') if isinstance(答,dict) else 答#命名空间结果
         if isinstance(结果,dict) and 结果.get('ok'):#成功
             return 结果.get('value')#值
@@ -170,31 +171,31 @@ def 装配客户端运行面(上下文):
     def 取客户端码(会话,插件标识,运行标识):#getClientCode
         '载体失败则抛'
         if 远端 is None:#无
-            raise Exception('缺少 remote.dynamicCordisRunner')#抛
+            raise cordis客户端错误('缺少 remote.dynamicCordisRunner')#抛
         答=远端.getClientCode(会话,插件标识,运行标识)#远程
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
-            raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
+            raise cordis客户端错误(f"{错.get('code')}: {错.get('message')}")#抛
         return 答.get('value') if isinstance(答,dict) else 答#源码
 
     def 落定审批(请求标识,决议):#resolveRequestRun
         '载体失败则抛'
         if 远端 is None:#无
-            raise Exception('缺少 remote.dynamicCordisRunner')#抛
+            raise cordis客户端错误('缺少 remote.dynamicCordisRunner')#抛
         答=远端.resolveRequestRun(请求标识,决议)#远程
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
-            raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
+            raise cordis客户端错误(f"{错.get('code')}: {错.get('message')}")#抛
         return 答.get('value') if isinstance(答,dict) else 答#应答
 
     def 落定用户运行(会话,插件标识,决议):#settleUserRun
         '载体失败则抛'
         if 远端 is None:#无
-            raise Exception('缺少 remote.dynamicCordisRunner')#抛
+            raise cordis客户端错误('缺少 remote.dynamicCordisRunner')#抛
         答=远端.settleUserRun(会话,插件标识,决议)#远程
         if isinstance(答,dict) and not 答.get('ok'):#失败
             错=答.get('error') or {}#错
-            raise Exception(f"{错.get('code')}: {错.get('message')}")#抛
+            raise cordis客户端错误(f"{错.get('code')}: {错.get('message')}")#抛
         return 答.get('value') if isinstance(答,dict) else 答#应答
 
     编排=运行编排器({#runner + host；决议走 host.resolveRequestRun

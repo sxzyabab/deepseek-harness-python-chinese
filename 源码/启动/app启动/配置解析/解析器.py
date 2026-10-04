@@ -1,6 +1,7 @@
 '进程内配置包路由：把裸包请求导向世代表选定的目录'
 import os,sys,json,threading#路径、导入钩、清单与线程数据
 from .遗留链接 import 是否配置模块回退链接#遗留投影判定
+from ..异常 import 启动错误#应用启动粘合层失败
 __all__=[#仅中文公开名
     '裸包名','安装配置解析','登记工作线程解析','取工作线程登记',
 ]#公开面结束
@@ -98,21 +99,21 @@ class 解析路由:
         for 项 in 世代['entries']:#逐条
             条目[项['name']]=项#记下
         if 世代['profilesDir']!=自身.当前['profilesDir'] or 世代.get('profileDir')!=自身.当前['profileDir']:#作用域变
-            raise Exception('配置解析: 一代不能改变其配置档作用域')#拒绝
+            raise 启动错误('配置解析: 一代不能改变其配置档作用域')#拒绝
         for 名,当前 in 自身.当前['entries'].items():#已有映射
             下一=条目.get(名)#下一代
             if (下一 is None or not 同一解析(当前['packageDir'],下一['packageDir'])
                     or not 同一解析(当前['declarer'],下一['declarer'])
                     or 当前.get('version')!=下一.get('version')
                     or 当前.get('scope')!=下一.get('scope')):#映射变
-                raise Exception('配置解析: 替换 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
+                raise 启动错误('配置解析: 替换 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
         本地=set(世代.get('localPackageNames') or [])#新本地
         for 名 in 自身.当前['localPackageNames']:#旧本地
             if 名 not in 本地:#删了本地包
-                raise Exception('配置解析: 移除本地包 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
+                raise 启动错误('配置解析: 移除本地包 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
         for 名 in 本地:#新本地
             if 名 not in 自身.当前['localPackageNames'] and 名 in 自身.当前['entries']:#用本地覆盖已有回退
-                raise Exception('配置解析: 在本地覆盖 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
+                raise 启动错误('配置解析: 在本地覆盖 '+json.dumps(名,ensure_ascii=False)+' 需要重启进程')#需重启
         自身.当前=编译世代(世代)#发布
 
     def 作用域路由(自身,请求,父路由,世代,风格):
@@ -257,7 +258,7 @@ def 断言等价(实际,期望,请求,父):
     '校验与世代解析一致'
     if 同一解析(实际,期望):#相同
         return#通过
-    raise Exception(
+    raise 启动错误(
         '配置解析不一致: 请求 '+json.dumps(请求,ensure_ascii=False)+' 的磁盘结果与世代结果不同'
     )#不一致
 
@@ -303,7 +304,7 @@ def 安装配置解析(世代,行为='enforce'):
             return 期望#通过
         if 实际 is not None and 期望 is not None and 同一解析(实际,期望):#相同
             return 期望#通过
-        raise Exception(
+        raise 启动错误(
             '配置解析不一致: 请求 '+json.dumps(说明符,ensure_ascii=False)+' 的磁盘选择与世代选择不同'
         )#不一致
 

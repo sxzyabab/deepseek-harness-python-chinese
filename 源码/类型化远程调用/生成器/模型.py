@@ -11,8 +11,7 @@ __all__=[#仅中文公开名
 
 成员可见性=frozenset(['public','protected','private'])#类成员可见性
 
-class 模型错误(Exception):
-    '未覆盖的类型图变体'
+from .异常 import 模型错误#未覆盖的类型图变体
 
 def 子类型节点标识列表(节点):
     """返回一个节点所拥有的直接类型表达式边的图内 id。

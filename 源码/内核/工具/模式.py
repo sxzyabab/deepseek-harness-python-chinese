@@ -1,12 +1,11 @@
 import math
-from ...模型后端.llm import 装备错误 as 框架错误#导入框架错误基类
 from .json模式 import (
     断言受支持json模式,#统一子集断言
     是否json模式记录,#模式记录检测
     是否普通json数组,#普通数组检测
-    json模式错误,#模式错误
     校验json模式值,#值校验
 )#导入统一 JSON Schema 校验
+from .异常 import json模式错误,工具参数错误#模式错误与参数错误
 
 __all__=(
     '定义工具','值模式规格转json模式','参数模式规格转json模式',
@@ -223,14 +222,6 @@ def 参数模式规格转json模式(规格):
         模式节点['required']=已编译['required']#有必填才带 required
     断言受支持json模式(模式节点)#再过统一子集
     return 模式节点#返回参数模式
-
-class 工具参数错误(框架错误):
-    '带类型工具上模型生成的非法参数'
-    def __init__(自身,违规列表):
-        '用违规列表构造；公开属性仅 违规列表'
-        super().__init__('invalid arguments: '+'; '.join(违规列表),'INVALID_ARGS')#拼消息
-        自身.name='ToolArgsError'#错误名槽
-        自身.违规列表=违规列表#违规诊断列表
 
 def 校验参数(规格,参数):
     '按隐式参数模式校验模型生成的参数'

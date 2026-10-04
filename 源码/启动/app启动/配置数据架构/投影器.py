@@ -2,6 +2,7 @@
 import json,math
 from .原生 import 是否原生配置数据架构
 from .匹配模式 import 创建模式检查
+from ..异常 import 启动错误
 
 __all__=['装载器表达式数据架构','创建配置投影器']
 
@@ -25,10 +26,10 @@ def json值(值,空化未定义=False):
         if isinstance(项,(int,float)) and not isinstance(项,bool) and math.isfinite(项):
             return
         if not isinstance(项,(dict,list)):
-            raise Exception('schema annotation is not JSON-compatible')
+            raise 启动错误('schema annotation is not JSON-compatible')
         身份=id(项)
         if 身份 in 活动:
-            raise Exception('schema annotation contains a cycle')
+            raise 启动错误('schema annotation contains a cycle')
         活动.add(身份)
         if isinstance(项,dict):
             for 子 in 项.values():
@@ -43,7 +44,7 @@ def json值(值,空化未定义=False):
 
 def _json默认(项):
     '禁止非 JSON'
-    raise Exception('schema annotation contains a non-JSON object')
+    raise 启动错误('schema annotation contains a non-JSON object')
 
 def 常量(值,对象比较):
     '原生常量相等把省略与空成员同等对待'
@@ -134,7 +135,7 @@ def 校验易变放置(节点,路径,阻塞=False,已见=None):
     状态.add(阻塞)
     元=节点.meta if hasattr(节点,'meta') else 节点.get('meta') or {}
     if 元.get('volatile') and 阻塞:
-        raise Exception(路径+': volatile fields require a fixed object path without an enclosing volatile field')
+        raise 启动错误(路径+': volatile fields require a fixed object path without an enclosing volatile field')
     嵌套=阻塞 or bool(元.get('volatile'))
     字典=节点.dict if hasattr(节点,'dict') else 节点.get('dict')
     if 字典:
@@ -307,7 +308,7 @@ def 创建配置投影器():
                         break
                     身份=id(内部)
                     if 身份 in 链:
-                        raise Exception(路径+': lazy cycle has no concrete schema')
+                        raise 启动错误(路径+': lazy cycle has no concrete schema')
                     链.add(身份)
                     下一=取(内部,'inner') if 缓存内部 else 构建结果.get(id(内部))
                     构建器=取(内部,'builder')
@@ -315,7 +316,7 @@ def 创建配置投影器():
                         下一=构建器()
                         构建结果[id(内部)]=下一
                     if not 是否原生配置数据架构(下一):
-                        raise Exception(路径+': lazy schema has no native builder result or resolved inner schema')
+                        raise 启动错误(路径+': lazy schema has no native builder result or resolved inner schema')
                     下一元=取(下一,'meta') or {}
                     if not 缓存内部:
                         for 字段 in ('required','default','min','max','step','pattern','loose','volatile'):
@@ -355,7 +356,7 @@ def 创建配置投影器():
                 def 子(值,后缀,子严格=False):
                     '访问子节点'
                     if 值 is None:
-                        raise Exception(路径+': '+str(类型)+' schema is missing '+后缀)
+                        raise 启动错误(路径+': '+str(类型)+' schema is missing '+后缀)
                     结果=访问(值,路径+'/'+后缀,子严格)
                     子结果.append(结果)
                     return 结果
@@ -462,7 +463,7 @@ def 创建配置投影器():
                 elif 类型=='tuple':
                     列表=取(节点,'list')
                     if 列表 is None:
-                        raise Exception(路径+': tuple schema is missing its list')
+                        raise 启动错误(路径+': tuple schema is missing its list')
                     值表=[子(项,str(下标)) for 下标,项 in enumerate(列表)]
                     核心={'type':'array'}
                     if len(值表)>0:
@@ -476,7 +477,7 @@ def 创建配置投影器():
                 elif 类型=='union':
                     列表=取(节点,'list')
                     if 列表 is None:
-                        raise Exception(路径+': union schema is missing its list')
+                        raise 启动错误(路径+': union schema is missing its list')
                     变体=[子(项,str(下标),严格) for 下标,项 in enumerate(列表)]
                     if any(项['mutating'] for 项 in 变体[:-1]):
                         核心=True

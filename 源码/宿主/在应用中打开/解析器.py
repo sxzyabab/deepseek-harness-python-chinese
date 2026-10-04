@@ -2,9 +2,11 @@
 import errno,os,re,subprocess,sys,threading#错误码、路径、正则、派生、平台与看护
 from dataclasses import dataclass#已解析启动与注册表视图
 from pathlib import Path#家目录
-from ...工具.原生命令 import 运行原生命令,原生命令错误#无 shell 宿主命令
+from ...工具.原生命令 import 运行原生命令#无 shell 宿主命令
+from ...工具.原生命令.异常 import 原生命令错误
 from ...子进程.子进程 import 擦洗父环境#凭证擦洗环境
 from .目录 import 在应用中打开目录,路径令牌,参数启动#目录数据与 argv 启动
+from .异常 import 在应用中打开错误#本包异常基类
 
 __all__=[
     '在应用中打开错误','图标来源','已解析启动','已完成内部事实',
@@ -33,9 +35,6 @@ __all__=[
     r'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
     r'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
 )#卸载根
-
-class 在应用中打开错误(Exception):#本包异常基类
-    '在应用中打开主机半边失败'
 
 @dataclass(frozen=True)
 class 图标来源:#已解析图标像素来源

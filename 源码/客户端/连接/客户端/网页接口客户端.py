@@ -4,7 +4,8 @@ from urllib.parse import urljoin as 拼接URL,urlparse as 解析URL,urlunparse a
 from ....host.apiproxy.接口.事件模式 import 宿主帧模式,复用帧模式#宿主/复用帧模式
 from ....host.apiproxy.接口.rpc模式 import 服务端请求模式#服务端请求模式
 from ..接口路径 import 宿主事件路径,复用事件路径#两条事件路径
-from ..rpc import 连接错误,已中止#本包异常与中止
+from ..异常 import 连接错误#本包异常
+from ..rpc import 已中止#中止
 from .接口 import 抽象接口客户端#抽象 API 客户端
 
 __all__=['网页接口客户端']#仅中文公开名

@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from requests import request as 发请求
 from ...依赖.cordis import 服务
 from ...依赖.schemastery import 字符串字段,数字字段,复合类型字段,常量字段
+from .异常 import 产品遥测错误#产品遥测配置或导出失败
 
 __all__=['包名','名称','依赖','默认','配置','产品遥测']
 
@@ -33,9 +34,6 @@ __all__=['包名','名称','依赖','默认','配置','产品遥测']
     'exportTimeoutMillis':数字字段(最小=1,默认值=20000),
     'shutdownTimeoutMillis':数字字段(最小=1,默认值=21000),
 }
-
-class 产品遥测错误(Exception):
-    '产品遥测配置或导出失败'
 
 def 属性项(键,值):
     'OTLP 属性'

@@ -2,7 +2,8 @@
 import time
 from urllib.parse import quote
 from requests import request as 发请求
-from ..llm import 大模型错误,归属头
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
+from ..llm import 归属头
 from .文件标识 import 深求文件标识
 from .消息接口 import 消息接口根,消息文件测试通道
 
@@ -17,21 +18,7 @@ __all__=[
 最大存储文件数=10000
 最大存储文件字节=25*1024*1024*1024
 
-class 深求文件错误(大模型错误):
-    'Files API 操作失败，保留 HTTP 状态供恢复政策'
-    def __init__(自身,消息,状态,详情):
-        '记下可读失败、状态与分类详情'
-        if 状态==401 or 状态==403:
-            码='AUTH'
-        elif 状态==429:
-            码='RATE_LIMIT'
-        elif 状态>=500:
-            码='SERVER'
-        else:
-            码='FILES_API'
-        super().__init__(消息,码,{'status':状态})
-        自身.name='DeepSeekFilesError'
-        自身.detail=详情
+from .异常 import 深求文件错误#Files API 操作失败
 
 def 是否文件配额错误(错误):
     '上传失败是否报告存储或文件数配额'

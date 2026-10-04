@@ -1,6 +1,7 @@
 'JSONL 持久化后端的 Zstandard 帧原语'
 from io import BytesIO#字节流
 import zstandard as zstd#zstd
+from .异常 import zstd辅助错误 as Error#zstd 辅助错误
 
 ZSTD魔数=0xFD2FB528#Zstandard 帧魔数（小端）
 
@@ -95,9 +96,6 @@ def 解压zstd前缀(输入):#解压不完整前缀
     except zstd.ZstdError:#开流即失败
         return b''.join(块列表)#可能为空
     return b''.join(块列表)#拼接
-
-class Error(Exception):#zstd 辅助错误
-    'Zstandard 帧原语抛出的 Error 风格异常'
 
 浮点无穷=float('inf')#正无穷（帧上限缺省）
 

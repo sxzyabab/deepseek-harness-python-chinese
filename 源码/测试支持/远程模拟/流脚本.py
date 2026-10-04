@@ -1,15 +1,8 @@
 import threading#取消监听与队列锁
 from concurrent.futures import Future as 原生结果#单次操作结果
+from .异常 import 远程模拟错误#远程模拟包的异常基类
 
 流结束哨兵=object()#迭代结束哨兵
-
-class 远程模拟错误(Exception):
-    '远程模拟包的异常基类'
-
-    def __init__(自身,消息,种类=None):
-        '记下消息与可选种类'
-        super().__init__(消息)#错误消息
-        自身.种类=种类#按结构识别，无则None
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'

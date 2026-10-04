@@ -1,11 +1,11 @@
 from threading import Thread as 线程#工作线程
 from queue import Queue as 队列#跨线程一次结果
 from ..智能体 import 智能体事件,为组装构建上下文,下一轮,下一步
+from ...模型后端.llm.异常 import 语言模型错误#LLM 相关失败
+from ...模型后端.llm.异常 import 错误链#把未知错误链成日志串
 from ...模型后端.llm import (
-    语言模型错误,
     创建助手消息,
     深冻结,
-    错误链,
     标记循环请求,
     结构化克隆,
 )
@@ -18,9 +18,10 @@ from .运行时上下文 import 运行时上下文投影,系统提示投影
 from .工具调用 import 执行工具调用
 from .助手流 import 助手流尝试#在线流尝试
 from .中止与并发 import (
-    已中止,中止控制器,若已中止则抛出,循环错误,中止错误,
+    已中止,中止控制器,若已中止则抛出,
     已决议队列,放入成功,放入失败,等待队列结果,
 )
+from .异常 import 循环错误,中止错误#本包异常基类与中止异常
 
 def 请求提议(头):
     '在插件提议下一次请求配置前去掉适配器派生值'

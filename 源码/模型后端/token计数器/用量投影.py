@@ -1,6 +1,6 @@
 '持久提供方报告 token 用量与上下文占用的纯折叠'
 from ..llm.助手流 import 末次助手流块#末次 usage 块
-from .类型 import 计量错误#计量异常
+from .异常 import 计量错误#计量异常
 from .表面投影 import 折叠表面投影#O(1)表面折叠
 
 __all__=['用量投影定义','压力投影定义']#仅中文公开名

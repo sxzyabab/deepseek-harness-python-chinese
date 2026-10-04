@@ -7,7 +7,7 @@ from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,
 from .外壳 import 发现外壳,解析外壳#壳
 from .浏览器终端 import 浏览器终端#PTY 视图
 from .保持 import 终端保持#保持与回收
-from .类型 import 远程错误#限额与身份
+from .异常 import 远程错误#本包异常
 
 __all__=['依赖','默认','配置','终端控制器']
 

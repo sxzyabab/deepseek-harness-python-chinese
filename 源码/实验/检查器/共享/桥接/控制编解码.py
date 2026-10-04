@@ -1,5 +1,6 @@
 from urllib.parse import urlparse as 解析网址
-from ..json import 是否普通对象,检查器错误#普通对象|本包错误
+from ..json import 是否普通对象#普通对象
+from ...异常 import 检查器错误#本包错误
 from ..校验 import 精确键,精确对象#精确校验
 
 __all__=[#仅中文公开名

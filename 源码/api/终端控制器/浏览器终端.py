@@ -3,7 +3,7 @@ from ...内核.作用域 import 操作任务#操作链
 from ...工具.惰性导入 import 创建惰性导入#xterm
 from .输出跟随 import 终端跟随#跟随队列
 from .保持 import 终端保持#保持
-from .类型 import 远程错误#控制权
+from .异常 import 远程错误#本包异常
 
 __all__=['浏览器终端']#仅中文公开名
 

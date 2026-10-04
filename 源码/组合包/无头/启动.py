@@ -1,5 +1,6 @@
 '一次性应用的命令行提供方：解析任务位置参数、`--session-id`、`--json` 与 `--help`'
-from ...启动.命令行 import 命令,解析命令行,命令错误
+from ...启动.命令行 import 命令,解析命令行
+from ...启动.命令行.异常 import 命令错误
 from .json流 import 约束json行
 from .启动内部 import 内部流
 

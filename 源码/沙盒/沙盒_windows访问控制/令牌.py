@@ -13,7 +13,7 @@ from .ffi import (
     抛上次错误,#BOOL失败
     抛Win32,#ERROR_*失败
 )#导入FFI辅助
-from .错误 import 访问控制错误#校验错误
+from .异常 import 访问控制错误#校验错误
 from .acl import 构建显式访问#显式访问条目打包
 from . import win32_abi as abi#ABI常量
 

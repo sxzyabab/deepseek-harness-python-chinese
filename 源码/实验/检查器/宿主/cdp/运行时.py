@@ -1,5 +1,4 @@
-from ...共享.json import 检查器错误#本包错误
-from .错误 import 宿主cdp桥不可用错误#桥不可用错误
+from ...异常 import 检查器错误,宿主cdp桥不可用错误#本包错误|桥不可用错误
 from .对象 import 拒绝对象桥操作#拒绝对象操作
 from .属性 import 拒绝属性桥操作#拒绝属性操作
 

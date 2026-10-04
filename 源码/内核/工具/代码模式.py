@@ -1,9 +1,10 @@
 import json,math,threading
 from concurrent.futures import Future as 原生结果#单次操作结果
-from ...模型后端.llm import 调用标识,装备错误 as 框架错误,深冻结,创建用户消息#导入调用 id、框架错误、冻结与用户消息
+from ...模型后端.llm import 调用标识,深冻结,创建用户消息#导入调用 id、冻结与用户消息
 from ...沙盒.沙盒 import 批准升级,校验升级参数,升级目标#导入沙箱升级
 from ..会话 import 快照json值#导入无损 JSON 快照
 from .模式 import 定义工具,参数模式规格转json模式#导入工具定义器与参数编译
+from .异常 import 代码模式错误,代码运行失败错误
 
 __all__=(
     '运行代码名','sdk段顺序','代码sdk语言',
@@ -15,9 +16,6 @@ __all__=(
 sdk段顺序=5000#SDK 段顺序，对齐 TOOLS_SDK
 json缩进='  '#两空格 JSON 呈现
 json缩进上限=10#总缩进上限
-
-class 代码模式错误(Exception):
-    '内核工具代码模式包的异常基类'
 
 class 操作任务:
     '单次操作的 Future 包装，只留 等待'
@@ -223,13 +221,6 @@ def 解析风味(窥探运行时):
         已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in 运行代码风味.keys())#已知语言
         raise 代码模式错误('dsh-tools: no run_code schema flavor registered for runtime language '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' (known: '+已知+')')#大声失败
     return 运行代码风味[语言]#该语言风味
-
-class 代码运行失败错误(框架错误):
-    '程序运行本身失败时由 run_code 抛出'
-    def __init__(自身,消息):
-        '用失败消息构造'
-        super().__init__(消息,'CODE_RUN_FAILED')#框架错误码
-        自身.name='CodeRunFailedError'#类名
 
 def 错误文本(错误):
     '从抛出值取人类可读消息'

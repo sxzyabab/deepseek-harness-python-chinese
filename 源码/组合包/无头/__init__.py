@@ -6,7 +6,7 @@ from ...内核.智能体 import 安装模型选择
 from ...模型后端.llm import 创建用户消息
 from ...模型后端.llm.永不 import 断言永不
 from ...内核.会话 import 会话标识
-from ...会话检索.会话查询 import 会话查询错误
+from ...会话检索.会话查询.异常 import 会话查询错误
 from .运行器内部 import 内部流
 from .json流 import 投影json运行,约束json行
 
@@ -20,8 +20,7 @@ __all__=['名称','依赖','配置','应用','内部流']
     'json':布尔字段(),
 }
 
-class 无头错误(Exception):
-    '无头运行器失败'
+from .异常 import 无头错误#无头运行器失败
 
 def 汇总(会话,起始序号):
     '在一段已拥有区间内汇总最后助手文本与回合结局'

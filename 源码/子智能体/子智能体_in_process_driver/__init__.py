@@ -3,7 +3,7 @@ from concurrent.futures import Future as 原生结果#结果 Future
 from ...内核.会话 import 会话标识#品牌
 from ...内核.智能体.已消费工作 import 折叠已消费工作#foldConsumedWork
 from ...模型后端.llm import 创建用户消息#用户消息
-from ..子智能体.错误 import 子智能体错误#缝内失败
+from ..子智能体.异常 import 子智能体错误#缝内失败
 from ..子智能体.子体 import (
     追加委托策略覆盖,应用子体组合,捕获委托策略覆盖,子会话元数据,
     解析子智能体选项,解析子深度,

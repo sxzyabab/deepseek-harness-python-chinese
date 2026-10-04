@@ -1,6 +1,6 @@
 from ...ui_基础界面组件.按名排序 import 按名排序#名与标签排序
 from ....基础设施.通用工具 import 获取内部数据
-from .约定 import 命令错误#本包异常
+from ..异常 import 命令错误#本包异常
 from .目录 import 命令目录#按会话键目录
 from .呈现 import 内置行面,分区行#内置行面与分区
 from .解析 import 认领令牌#菜单点选拼写

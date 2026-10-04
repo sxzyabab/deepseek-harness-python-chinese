@@ -2,7 +2,7 @@
 import threading#消费线程与页读竞态
 from ...基础设施.通用工具 import 获取内部数据
 from concurrent.futures import Future as 原生结果,wait as 等待完成,FIRST_COMPLETED as 先完成
-from .流载体 import 远程流载体错误#载体错误
+from .异常 import 远程流载体错误#载体错误
 from .网关 import 已中止#中止查询
 
 __all__=[#仅中文公开名

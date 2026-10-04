@@ -1,4 +1,4 @@
-from ..服务 import 对话错误#本包异常
+from ...异常 import 对话错误#本包异常
 from .节点工厂 import 聊天节点#聊天节点工厂
 from .事件面 import 展示失败文案#面辅助
 

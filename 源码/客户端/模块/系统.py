@@ -1,7 +1,8 @@
 import json#JSON 选择器
 import re#chunk 名与 rev 查询
 from threading import Event as 事件#飞行到达门闩
-from .清单 import 客户端模块错误,剥客户端后缀#本包异常与后缀剥离
+from .异常 import 客户端模块错误#本包异常
+from .清单 import 剥客户端后缀#后缀剥离
 from .条目 import 客户端条目表#页面条目调和
 from .条目生命周期 import 移除包拥有样式#拆除包拥有样式
 

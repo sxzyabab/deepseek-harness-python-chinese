@@ -1,6 +1,6 @@
 '线上 base64 图像上传准入'
 import base64#base64 编解码
-from .错误 import 附件错误#附件失败
+from .异常 import 附件错误#附件失败
 __all__=['准入编码图像批次']#仅中文公开名
 
 def _解码base64(数据):#解码并拒绝非规范 base64

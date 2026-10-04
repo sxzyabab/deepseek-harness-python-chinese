@@ -4,7 +4,7 @@ from ...依赖.cordis import 服务
 from ...工具.超时 import 已中止,若已中止则抛出
 from ...内核.会话 import 快照json值
 from ...内核.工具 import 断言受支持json模式,校验json模式值
-from .类型 import 动态cordis错误
+from .异常 import 动态cordis错误
 
 __all__=['巡检注册表服务','宿主巡检查询上下文','宿主巡检提供方登记']
 

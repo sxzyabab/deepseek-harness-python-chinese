@@ -1,7 +1,7 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...内核.工具 import 定义工具#导入工具定义
 from ...模型后端.llm import 断言永不#导入穷尽检查
-from ..子智能体.错误 import 子智能体错误#缝内失败
+from ..子智能体.异常 import 子智能体错误#缝内失败
 
 名称='tool-subagent-list-agents'#Cordis插件名
 依赖=['tools','subagents','agents']#依赖工具、子智能体与智能体注册表

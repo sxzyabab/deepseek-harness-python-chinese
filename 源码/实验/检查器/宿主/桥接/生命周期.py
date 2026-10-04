@@ -1,5 +1,5 @@
 import threading#超时与事件
-from ...共享.json import 检查器错误#本包错误
+from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.控制编解码 import 解析检查器工作者控制#控制帧解析
 
 __all__=['检查器工作者生命周期']#仅中文公开名

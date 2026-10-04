@@ -4,7 +4,7 @@ from ...压缩.压缩 import 是否压缩检查点来源#导入压缩检查点�
 from ...模型后端.llm import 断言永不#导入穷尽检查
 from ...工具.输出保留 import 文本保留器#导入头尾文本保留器
 from .序列化 import 序列化标签安全JSON#导入标签安全JSON序列化
-from .配置 import 会话引用错误#本包异常
+from .异常 import 会话引用错误#本包异常
 
 def 字节长(文本):#UTF-8字节长度
     '对齐 Buffer.byteLength(text, \'utf8\')'

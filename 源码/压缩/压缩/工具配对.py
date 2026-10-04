@@ -1,8 +1,7 @@
 '会话表面上的工具配对平衡'
 import weakref#按会话弱表缓存平衡状态
 
-class 工具配对错误(Exception):
-    '压缩工具配对包的异常基类'
+from .异常 import 工具配对错误#本包异常
 
 平衡缓存表=weakref.WeakKeyDictionary()#会话 → 平衡缓存
 

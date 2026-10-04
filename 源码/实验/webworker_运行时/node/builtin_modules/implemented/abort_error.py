@@ -1,13 +1,6 @@
-__all__=['中止错误','已中止','若已中止则抛出']
+from ....异常 import 中止错误
 
-class 中止错误(Exception):
-    '携带 Node 稳定错误码的取消错误；中止原因作异常属性，不挂在信号上'
-    def __init__(自身,原因=None):
-        '记下 AbortError 面与可选原因'
-        super().__init__('The operation was aborted')
-        自身.name='AbortError'
-        自身.code='ABORT_ERR'
-        自身.原因=原因
+__all__=['中止错误','已中止','若已中止则抛出']
 
 def 已中止(信号):
     '信号是否已中止；信号是 threading.Event'

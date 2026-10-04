@@ -62,12 +62,7 @@ def 巡检查询标识(标识):
     return 标识
 
 #
-class 动态cordis错误(Exception):
-    '动态 Cordis 运行器的异常基类'
-    def __init__(自身,消息):
-        '用消息构造'
-        super().__init__(消息)
-        自身.message=消息
+from .异常 import 动态cordis错误#动态 Cordis 运行器失败
 
 class 巡检方法清单:
     '巡检提供方暴露的一条模型可调用只读查询'

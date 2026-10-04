@@ -1,6 +1,7 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from ...内核.系统提示词 import 人设段落名,人设顺序#遮蔽部署人设须同名同序
 from .深度 import 委托深度于#导入委托深度读取
+from .异常 import 子智能体深度错误,范围错误#本包异常
 
 安全整数上限=2**53-1#对齐 Number.MAX_SAFE_INTEGER
 
@@ -13,18 +14,6 @@ class 委托策略覆盖(TypedDict):
     '在委托边界播种到子会话日志的策略'
     sandboxMode:object#父会话的显式沙盒模式覆盖；没有则为 None
     approvalPolicy:NotRequired[Literal['never']]#组合了审批能力时为 never，否则缺席
-
-class 子智能体深度错误(Exception):
-    '启动子体会超过所请求深度上限时抛出'
-    def __init__(自身,尝试深度,最大深度):
-        '记下尝试深度与上限；消费方只读中文属性'
-        Exception.__init__(自身,'子智能体深度 '+str(尝试深度)+' 超过 maxDepth '+str(最大深度))#文案含两个数
-        自身.尝试深度=尝试深度#已算出的子深度
-        自身.最大深度=最大深度#调用方给出的绝对上限
-
-class 范围错误(Exception):
-    '子深度离开安全整数范围时抛出'
-    pass#无附加字段
 
 def 解析子深度(父,最大深度=None):
     '从父解析子体委托深度并强制可选上限。持久父头是单调下限，因此恢复的父不能像顶层一样委托'

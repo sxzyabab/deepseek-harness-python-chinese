@@ -1,6 +1,7 @@
 import os,platform,re
 from pathlib import Path,PureWindowsPath
-from . import 运行原生命令,已中止,原生命令错误
+from . import 运行原生命令,已中止
+from .异常 import 原生命令错误
 
 __all__=[
     '可打开原生路径','原生文件管理器','揭示原生路径','打开原生路径','打开原生关联路径','打开原生文本文件',

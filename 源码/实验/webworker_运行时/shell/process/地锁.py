@@ -4,8 +4,7 @@ from ..文件系统访问 import 文件系统错误#FS错误
 
 __all__=['地锁启动器错误','解析地锁参数','地锁文件系统','地锁可执行']#仅中文公开名
 
-class 地锁启动器错误(Exception):#启动器错误
-    '启动器自有失败；调用方以其消息加 `landlock-run:` 前缀打印'
+from ...异常 import 地锁启动器错误#启动器错误
 
 空设备统计={'directory':False,'size':0,'mtimeMs':0}#虚拟/dev/null统计
 设备根='/dev'#设备根

@@ -4,7 +4,7 @@ import yaml
 from ...依赖.include import 插件列表写出器
 from ...内核.作用域 import 创建作用域,获取作用域,绑定作用域父
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from .类型 import 远程错误,预设注册表错误
+from .异常 import 远程错误,预设注册表错误#注册表失败与带码远程失败
 from .预设 import 配置
 from .会话 import 智能体预设投影定义
 from .定义 import 条目列表问题

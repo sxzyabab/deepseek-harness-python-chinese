@@ -1,6 +1,7 @@
 '网关自有 Remote 流与事件结果 RPC 的线协议报文'
 import json
 from ...类型化远程调用.协议 import 是否远程json值
+from .异常 import 远程流载体错误
 
 __all__=[
     '远程流复用路径','远程事件流端点','远程事件结果端点','远程事件流载荷','远程事件流就绪',
@@ -63,7 +64,7 @@ def 解析远程事件拒绝(值):
             or not isinstance(值.get('message'),str)
             or ('code' in 值 and not isinstance(值.get('code'),str))
             or ('details' in 值 and not 是否远程json值(值.get('details')))):
-        raise Exception('api gateway: invalid Remote event rejection')
+        raise 远程流载体错误('api gateway: invalid Remote event rejection')
     出={'name':值['name'],'message':值['message']}
     if isinstance(值.get('code'),str):
         出['code']=值['code']
@@ -77,7 +78,7 @@ def 解析远程事件结果(值):
             or not 是否远程事件客户端标识(值.get('clientId'))
             or not 是否远程事件标识(值.get('eventId'))
             or not 是否记录(值.get('outcome'))):
-        raise Exception('api gateway: invalid Remote event result')
+        raise 远程流载体错误('api gateway: invalid Remote event result')
     结局=值['outcome']
     if 结局.get('kind')=='next' and 精确键(结局,['kind']):
         return {'clientId':值['clientId'],'eventId':值['eventId'],'outcome':{'kind':'next'}}
@@ -93,7 +94,7 @@ def 解析远程事件结果(值):
             'clientId':值['clientId'],'eventId':值['eventId'],
             'outcome':{'kind':'rejected','error':解析远程事件拒绝(结局['error'])},
         }
-    raise Exception('api gateway: invalid Remote event result')
+    raise 远程流载体错误('api gateway: invalid Remote event result')
 
 def 投影远程事件请求(值,主体):
     '去掉 waterfall 请求上的 agent 与 signal'
@@ -159,11 +160,9 @@ def 解析报文(文本,校验):
     try:
         解码=json.loads(文本)
     except Exception as 原因:
-        错=Exception('api gateway: Remote stream message is not JSON')
-        错.__cause__=原因
-        raise 错
+        raise 远程流载体错误('api gateway: Remote stream message is not JSON',原因)
     if not 是否记录(解码):
-        raise Exception('api gateway: Remote stream message must be an object')
+        raise 远程流载体错误('api gateway: Remote stream message must be an object')
     return 校验(解码)
 
 def 解析远程流客户端报文(文本):
@@ -183,7 +182,7 @@ def 解析远程流客户端报文(文本):
                 and 合法标识(值.get('streamId'))
                 and isinstance(值.get('endpoint'),str) and 值.get('endpoint')!=''):
             return 值
-        raise Exception('api gateway: invalid Remote stream client message')
+        raise 远程流载体错误('api gateway: invalid Remote stream client message')
     return 解析报文(文本,校验)
 
 def 解析远程流服务端报文(文本):
@@ -205,5 +204,5 @@ def 解析远程流服务端报文(文本):
                 and isinstance(值['error'].get('message'),str)
                 and 是否记录(值['error'].get('details'))):
             return 值
-        raise Exception('api gateway: invalid Remote stream server message')
+        raise 远程流载体错误('api gateway: invalid Remote stream server message')
     return 解析报文(文本,校验)

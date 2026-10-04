@@ -1,5 +1,5 @@
 import threading#中止与等待
-from .约定 import 命令错误#本包异常
+from ..异常 import 命令错误#本包异常
 from .解析 import 解析命令#精确名优先于本地化别名
 
 __all__=['命令目录','已中止','若已中止则抛出']#仅中文公开名

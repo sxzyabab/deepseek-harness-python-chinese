@@ -3,13 +3,7 @@ from ....工具.超时 import 中止控制器,若已中止则抛出
 
 __all__=['录制错误','编码波形','音频base64','录制']
 
-class 录制错误(Exception):
-    '采集失败，文案键由调用方按 kind 翻译'
-    def __init__(自身,kind):
-        'kind 为 unavailable / permission / empty / cancelled / interrupted'
-        super().__init__(kind)
-        自身.kind=kind
-        自身.name='RecordingError'
+from ..异常 import 录制错误#采集失败
 
 def 编码波形(采样):
     '把 16 kHz 单声道浮点采样编成 Host 接受的 PCM16 WAV'

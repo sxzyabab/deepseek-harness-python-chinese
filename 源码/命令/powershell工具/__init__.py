@@ -2,7 +2,7 @@
 import json,math,os#JSON片段、有限数与路径
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
-from ...模型后端.llm import 装备错误#Harness错误
+from ...模型后端.llm.异常 import 装备错误#Harness错误
 from ..命令 import 解析退出状态#共用退出状态解析
 from ...沙盒.沙盒 import (
     升级目标,#可广告的升级目标
@@ -11,6 +11,7 @@ from ...沙盒.沙盒 import (
 )#沙箱升级面
 from .后台 import 进程结果,进程作业#后台进程映射为任务结果
 from .渲染 import 渲染Pwsh结果#pwsh渲染
+from .异常 import pwsh工具错误#本包校验与组合失败
 
 __all__=['名称','依赖','配置','应用']#仅中文公开名
 
@@ -23,12 +24,6 @@ __all__=['名称','依赖','配置','应用']#仅中文公开名
     'kind':{'type':'string','required':True,'const':'background'},#种类为background
     'jobId':{'type':'string','required':True},#任务id
 }#后台输出字段结束
-
-class pwsh工具错误(Exception):#本包校验与组合失败
-    'pwsh 工具入参或组合非法'
-    def __init__(自身,消息):#记下英文消息
-        '用原样英文消息构造'
-        super().__init__(消息)#英文消息
 
 def 已中止(信号):#读中止事实
     '信号按 Event 定死'

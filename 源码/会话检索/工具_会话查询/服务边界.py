@@ -1,6 +1,6 @@
 '模型安全的会话检索调用与错误翻译边界'
-from ...模型后端.llm import 装备错误,错误链#Harness错误与错误链
-from ..会话查询 import 会话查询错误#检索错误
+from ...模型后端.llm.异常 import 装备错误,错误链#Harness错误与错误链
+from ..会话查询.异常 import 会话查询错误#检索错误
 from ..会话查询.配置 import 已中止,若已中止则抛出#中止
 
 不可打印服务错误='[unprintable session query failure]'#无法打印的失败占位

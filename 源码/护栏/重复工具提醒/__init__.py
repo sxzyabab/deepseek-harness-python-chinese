@@ -1,6 +1,7 @@
 import json,re,weakref#JSON规范串、通配正则与按智能体弱表
 from ...依赖.schemastery import 列表字段,数字字段,字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息#构造提醒用户消息
+from .异常 import 重复工具提醒错误
 
 名称='repeat-tool-reminder'#loader诊断所用的Cordis插件名
 
@@ -20,9 +21,6 @@ __all__=['名称','配置模式','应用']#仅中文公开名；Cordis 槽英文
     +'not complete, try a different approach or different arguments instead of '#续段
     +'repeating the call.'#温和提醒正文
 )#温和提醒结束
-
-class 重复工具提醒错误(Exception):
-    '重复工具提醒包的异常基类'
 
 def 详细提醒(工具名,次数,规范参数):
     '点名工具、连续次数与规范参数的后续阈值详细提醒'

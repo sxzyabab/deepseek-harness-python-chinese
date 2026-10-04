@@ -3,9 +3,9 @@ from ...模型后端.llm import (#导入 LLM 词汇
     内容含图片,#图像判断
     创建用户消息,#用户消息工厂
     块组装器,#流式块组装
-    语言模型错误,#LLM 错误
 )#LLM 包
-from .配置 import 基础压缩错误#本包异常
+from ...模型后端.llm.异常 import 语言模型错误#LLM 错误
+from .异常 import 基础压缩错误#本包异常
 
 摘要开标签='<compacted-summary>'#落地检查点节点里包裹结构化摘要的开标签
 摘要闭标签='</compacted-summary>'#落地检查点节点里包裹结构化摘要的闭标签

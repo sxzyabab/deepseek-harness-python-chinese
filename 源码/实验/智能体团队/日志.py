@@ -1,5 +1,5 @@
 import threading#串行队尾
-from .错误 import 团队错误#领域错误
+from .异常 import 团队错误#领域错误
 
 __all__=['团队日志']#仅中文公开名
 

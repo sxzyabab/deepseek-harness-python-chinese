@@ -5,7 +5,7 @@ from ...依赖 import cordis#外部依赖胶水
 from ...模型后端.llm import 创建用户消息#铸造用户消息
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...内核.工具 import 定义工具#定义工具
-from ...交互.用户提问 import 用户提问错误#用户提问通道错误
+from ...交互.用户提问.异常 import 用户提问错误#用户提问通道错误
 from .类型 import 计划投影字段,计划投影#再导出计划域纯类型
 
 __all__=[#公开面
@@ -34,8 +34,7 @@ __all__=[#公开面
     'required':['active','pending'],#两字段必填
 }#模式结束
 
-class 计划模式错误(Exception):
-    '计划模式配置或运行时拒绝'
+from .异常 import 计划模式错误#计划模式配置或运行时拒绝
 
 def 首条标题(计划):
     '计划的第一条 markdown 标题（任意级别）；没有则 None'

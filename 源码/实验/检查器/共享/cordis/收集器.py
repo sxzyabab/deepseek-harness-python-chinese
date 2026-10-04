@@ -1,4 +1,5 @@
-from ..json import json字节长度,检查器错误#字节长度|本包错误
+from ..json import json字节长度#字节长度
+from ...异常 import 检查器错误#本包错误
 from .快照 import cordis树模式版本#模式版本
 from .对象注册表 import 领域对象注册表#对象注册表
 

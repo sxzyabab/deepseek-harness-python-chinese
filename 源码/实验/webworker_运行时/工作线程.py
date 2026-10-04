@@ -1,4 +1,4 @@
-from .node.未实现失败 import 运行时错误
+from .异常 import 运行时错误
 from .工作线程宿主 import 创建工作线程宿主
 
 __all__=['安装工作线程入口']

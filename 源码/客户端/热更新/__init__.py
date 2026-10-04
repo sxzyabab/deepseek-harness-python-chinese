@@ -1,6 +1,7 @@
 import json,os,threading#JSON、路径与定时器
 from ...依赖.schemastery import 自然数字段#配置字段
-from .事件 import 插件事件帧,事件端点,热更新错误#再导出 SSE 帧、路径与本包错误
+from .事件 import 插件事件帧,事件端点#再导出 SSE 帧、路径
+from .异常 import 热更新错误#本包异常
 
 __all__=['名称','依赖','配置','应用','插件事件帧','事件端点','热更新错误']#仅中文公开名
 

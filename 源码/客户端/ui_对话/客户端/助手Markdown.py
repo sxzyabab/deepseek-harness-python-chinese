@@ -1,4 +1,4 @@
-from ..服务 import 对话错误#本包异常
+from ..异常 import 对话错误#本包异常
 from .推理行 import 推理行#Think 披露
 from .图像标签 import 消息图像标签 as 消息图标签#图廊标签
 

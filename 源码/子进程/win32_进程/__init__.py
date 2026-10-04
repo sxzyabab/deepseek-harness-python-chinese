@@ -1,4 +1,5 @@
 import ctypes,os,struct,time#FFI、平台、结构打包与退避
+from .异常 import Win32错误#Win32 调用失败
 __all__=[#仅中文公开名
     '错误缓冲不足','Win32错误','分配指针槽','分配uint32','解码指针','解码uint32',
     '扩展win32进程绑定','是否空指针','抛上次错误','抛win32错误',
@@ -40,16 +41,6 @@ __all__=[#仅中文公开名
 句柄字节=8#64位 HANDLE
 无效句柄值=0xFFFFFFFFFFFFFFFF#UV_INVALID_OS_FILE_HANDLE
 无效描述符值=0xFFFFFFFFFFFFFFFE#UV_INVALID_FILE_DESCRIPTOR
-
-class Win32错误(Exception):#Win32 调用失败
-    'Win32 调用失败，携带 API 名与错误码'
-    def __init__(自身,接口,win32码,细节=None):#记下失败上下文
-        '记下失败 API、Win32 码与可选细节'
-        后缀='' if 细节 is None else ': '+细节#细节后缀
-        super().__init__(接口+' failed (Win32 '+str(win32码)+')'+后缀)#英文诊断
-        自身.name='Win32Error'#错误名
-        自身.api=接口#失败 API
-        自身.win32Code=win32码#Win32 码
 
 def 是否空指针(值):#指针是否为空
     '指针是否为 null、未定义或地址零'

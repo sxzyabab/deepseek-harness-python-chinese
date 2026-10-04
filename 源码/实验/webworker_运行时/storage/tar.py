@@ -1,4 +1,4 @@
-from ..node.未实现失败 import 运行时错误
+from ..异常 import 运行时错误
 import math
 
 __all__=['打包tar','解析tar']

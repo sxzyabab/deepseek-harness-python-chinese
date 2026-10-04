@@ -1,19 +1,12 @@
 import uuid#草稿 id
 from ....依赖 import cordis#外部依赖胶水
 from ....依赖.工具 import 二进制#base64 编解码
-from .约定.槽 import 对话错误#本包唯一异常基类
+from ..异常 import 对话错误,不支持图片媒体类型#本包异常
 服务=cordis.服务#Cordis 服务基类
 
 __all__=['不支持图片媒体类型','对话错误','会话控制器','图片媒体类型','字节转base64']#仅中文公开名
 
 支持媒体=('image/png','image/jpeg','image/webp','image/gif')#受支持的图片 MIME
-
-class 不支持图片媒体类型(Exception):
-    '浏览器声明了不支持的图片类型，由 UI 边界本地化'
-    def __init__(自身,媒体类型):
-        '保存声明值'
-        super().__init__('unsupported image media type: '+(媒体类型 or '(empty)'))#消息
-        自身.mediaType=媒体类型#声明值
 
 def 图片媒体类型(值):
     '不支持则抛'

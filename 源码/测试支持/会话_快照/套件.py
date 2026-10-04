@@ -9,6 +9,7 @@ from .归一化 import (#归一化
     提取快照溢出路径,归一化会话日志,归一化会话快照列表,归一化标准输出,
     擦除会话快照,擦除系统提示词,擦除工具模式,令牌化会话夹具工作目录,
 )#归一化结束
+from .异常 import 会话快照错误#会话快照包的异常基类
 
 __all__=[#仅中文公开名
     '场景是否跳过','标准输出期望变体','主张共享快照','断言唯一快照内容','会话夹具名',
@@ -35,17 +36,17 @@ def 子系统提示词快照(索引):#子系统提示词文件名
 def 断言相等(实际,期望,消息=''):#相等断言
     'vitest expect().toEqual / toBe 替代'
     if 实际!=期望:#不等
-        raise Exception(消息 or f'{实际!r} != {期望!r}')#失败
+        raise 会话快照错误(消息 or f'{实际!r} != {期望!r}')#失败
 
 def 断言真(条件,消息=''):#真断言
     'vitest expect().toBe(true) 替代'
     if not 条件:#假
-        raise Exception(消息 or 'expected true')#失败
+        raise 会话快照错误(消息 or 'expected true')#失败
 
 def 断言大于(实际,下限,消息=''):#大于断言
     'vitest expect().toBeGreaterThan 替代'
     if not (实际>下限):#不大于
-        raise Exception(消息 or f'{实际!r} !> {下限!r}')#失败
+        raise 会话快照错误(消息 or f'{实际!r} !> {下限!r}')#失败
 
 def 读文本(路径):#读 utf-8 文本
     '读取整个文本文件'
@@ -80,7 +81,7 @@ def 主张共享快照(主张表,源,场景,内容):#主张共享快照
     '记录一个场景对共享快照源生成的内容'
     先前=主张表.get(源)#先前
     if 先前 is not None and 先前['content']!=内容:#分歧
-        raise Exception(f"acp-snapshot: shared snapshot {源} diverged between {先前['scenario']} and {场景}")#分歧
+        raise 会话快照错误(f"acp-snapshot: shared snapshot {源} diverged between {先前['scenario']} and {场景}")#分歧
     if 先前 is None:#首次
         主张表[源]={'scenario':场景,'content':内容}#登记
 
@@ -90,7 +91,7 @@ def 断言唯一快照内容(种类,快照列表):#断言唯一
     for 快照 in 快照列表:#逐份
         先前=首路径.get(快照['content'])#先前
         if 先前 is not None:#重复
-            raise Exception(f"acp-snapshot: identical {种类} snapshots appear in {先前} and {快照['path']}; reuse one source")#重复
+            raise 会话快照错误(f"acp-snapshot: identical {种类} snapshots appear in {先前} and {快照['path']}; reuse one source")#重复
         首路径[快照['content']]=快照['path']#登记
 
 def 取子项索引(项):
@@ -200,19 +201,19 @@ def 解析工具模式快照(快照):#解析工具 schema 快照
     '解析并校验工具 schema sidecar'
     解析=json.loads(快照)#解析
     if not 是否记录(解析):#非对象
-        raise Exception('acp-snapshot: 工具模式快照必须是对象')#非对象
+        raise 会话快照错误('acp-snapshot: 工具模式快照必须是对象')#非对象
     初始=解析.get('initial')#初始
     变更=解析.get('changes')#变更
     if not isinstance(初始,list) or not isinstance(变更,list) or not all(isinstance(项,list) for 项 in 变更):#非法
-        raise Exception('acp-snapshot: 工具模式快照必须带数组型的 initial 与 changes 字段')#非法
+        raise 会话快照错误('acp-snapshot: 工具模式快照必须带数组型的 initial 与 changes 字段')#非法
     return {'initial':初始,'changes':变更}#返回
 
 def 恢复钉住工具模式(头,模式列表):#恢复钉住工具 schema
     '把一个 sidecar schema 集恢复进标记化钉头'
     if not 是否记录(头):#非对象
-        raise Exception('acp-snapshot: 钉住的请求头必须是对象')#非对象
+        raise 会话快照错误('acp-snapshot: 钉住的请求头必须是对象')#非对象
     if 头.get('tools')!=工具令牌:#必须令牌
-        raise Exception(f'acp-snapshot: pinned request header tools must equal {工具令牌}')#令牌
+        raise 会话快照错误(f'acp-snapshot: pinned request header tools must equal {工具令牌}')#令牌
     return {**头,'tools':list(模式列表)}#恢复
 
 系统提示词变更标记='\n<!-- system/message change '#系统消息变更标记前缀
@@ -240,11 +241,11 @@ def 初始系统提示词快照(快照):#初始提示词部分
 def 断言子系统提示词快照(伴随,类钉,标签):#断言子提示词
     '拒绝无法拥有不同规范提示词文本的子提示词 sidecar'
     if 伴随.strip()=='':#空
-        raise Exception(f'{标签} must pin a non-empty prompt')#空
+        raise 会话快照错误(f'{标签} must pin a non-empty prompt')#空
     if not 伴随.endswith('\n'):#缺换行
-        raise Exception(f'{标签} must end in a newline')#缺换行
+        raise 会话快照错误(f'{标签} must end in a newline')#缺换行
     if 伴随==类钉:#相同
-        raise Exception(f'{标签} must differ from its class pin')#相同
+        raise 会话快照错误(f'{标签} must differ from its class pin')#相同
 
 def 头变更计数(原始日志):#头变更计数
     '统计会话 JSONL 中变更 request/header 快照数'
@@ -284,7 +285,7 @@ def 表面事件消息(记录):#表面事件消息
     elif 类型 in ('assistant/message','tool/result'):#助手/工具
         消息=数据.get('message')#消息
     else:#新形状
-        raise Exception(f'acp-snapshot: unsupported surface event type "{类型}"')#不支持
+        raise 会话快照错误(f'acp-snapshot: unsupported surface event type "{类型}"')#不支持
     return 完整消息(消息)#消息
 
 def 列出记录消息(记录):#记录拥有的消息
@@ -584,7 +585,7 @@ def 稳定刷新日志(新鲜,已有,替换列表,新鲜上下文):#稳定刷新
         插入标题=记录.get('type')=='session/title' and (已有记录 is None or 已有记录.get('type')!='session/title')#插入标题
         if 插入标题:#插入标题
             if not isinstance(先前事件时间,int) or isinstance(先前事件时间,bool):#无前时间
-                raise Exception('acp-snapshot: 插入的标题前面没有事件时间')#失败
+                raise 会话快照错误('acp-snapshot: 插入的标题前面没有事件时间')#失败
             记录['time']=先前事件时间#写入
         else:#普通对齐
             if 字符串映射 is not None and 成员数==1 and 已有记录 is not None and 已有记录.get('type')==记录.get('type'):#可复用
@@ -619,35 +620,35 @@ def 定义ACP快照套件(选项):#定义 ACP 快照套件
     按名={}#场景名→场景
     for 场景 in 场景列表:#登记
         if 场景['name'] in 按名:#重复
-            raise Exception(f'acp-snapshot: duplicate scenario name "{场景["name"]}"')#重复
+            raise 会话快照错误(f'acp-snapshot: duplicate scenario name "{场景["name"]}"')#重复
         按名[场景['name']]=场景#登记
         for 字段 in ('systemPromptSource','toolSchemasSource','expectedHeaderChanges','expectedPromptChanges'):#钉专用字段
             if 场景.get(字段) is not None and 场景.get('pinsHeader') is not True:#非法
-                raise Exception(f'acp-snapshot: {场景["name"]}.{字段} is only valid on a header-pinning scenario')#非法
+                raise 会话快照错误(f'acp-snapshot: {场景["name"]}.{字段} is only valid on a header-pinning scenario')#非法
     钉按类={}#类→钉场景
     for 场景 in 场景列表:#收集钉
         if 场景.get('pinsHeader') is not True:#非钉
             continue#跳过
         类=类名(场景)#类
         if 类 in 钉按类:#分裂
-            raise Exception(f'acp-snapshot: header class "{类}" pinned by both {钉按类[类]["name"]} and {场景["name"]}')#分裂
+            raise 会话快照错误(f'acp-snapshot: header class "{类}" pinned by both {钉按类[类]["name"]} and {场景["name"]}')#分裂
         钉按类[类]=场景#登记
     for 场景 in 场景列表:#每类有钉
         if 类名(场景) not in 钉按类:#缺钉
-            raise Exception(f'acp-snapshot: no scenario pins the request-header content of class "{类名(场景)}" (needed by {场景["name"]})')#缺钉
+            raise 会话快照错误(f'acp-snapshot: no scenario pins the request-header content of class "{类名(场景)}" (needed by {场景["name"]})')#缺钉
     def 解析源(钉场景,字段,标签):#解析共享源
         '解析钉场景引用的 sidecar 源场景'
         源名=钉场景.get(字段) or 钉场景['name']#源名
         if 源名 not in 按名:#未知
-            raise Exception(f'acp-snapshot: {钉场景["name"]} names unknown {标签} source "{源名}"')#未知
+            raise 会话快照错误(f'acp-snapshot: {钉场景["name"]} names unknown {标签} source "{源名}"')#未知
         源=按名[源名]#源
         if 源.get('pinsHeader') is not True:#非钉
-            raise Exception(f'acp-snapshot: {钉场景["name"]} names non-pinning {标签} source "{源名}"')#非钉
+            raise 会话快照错误(f'acp-snapshot: {钉场景["name"]} names non-pinning {标签} source "{源名}"')#非钉
         if 源.get(字段) is not None and 源.get(字段)!=源['name']:#不自有
-            raise Exception(f'acp-snapshot: {钉场景["name"]} names {标签} source "{源名}", which does not own its sidecar')#不自有
+            raise 会话快照错误(f'acp-snapshot: {钉场景["name"]} names {标签} source "{源名}", which does not own its sidecar')#不自有
         计数字段='expectedPromptChanges' if 字段=='systemPromptSource' else 'expectedHeaderChanges'#计数字段
         if (源.get(计数字段) or 0)!=(钉场景.get(计数字段) or 0):#不一致
-            raise Exception(f'acp-snapshot: {钉场景["name"]} and {源名} declare different {计数字段} counts for shared {标签}')#不一致
+            raise 会话快照错误(f'acp-snapshot: {钉场景["name"]} and {源名} declare different {计数字段} counts for shared {标签}')#不一致
         return 源#返回
     提示词源按类={类:解析源(钉,'systemPromptSource','system-prompt snapshot') for 类,钉 in 钉按类.items()}#提示词源
     模式源按类={类:解析源(钉,'toolSchemasSource','tool-schema snapshot') for 类,钉 in 钉按类.items()}#schema 源

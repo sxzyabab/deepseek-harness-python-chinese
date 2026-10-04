@@ -3,8 +3,8 @@ import os
 from ...依赖.schemastery import 字符串字段
 from ...依赖 import cordis
 服务=cordis.服务
+from .异常 import 网络错误#带机器可路由开放字符串code与链式cause的类型化web错误
 from .类型 import (
-    网络错误,
     网络搜索请求字段,
     网络搜索结果字段,
     网络搜索来源字段,

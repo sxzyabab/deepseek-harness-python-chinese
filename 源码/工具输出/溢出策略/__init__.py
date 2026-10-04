@@ -11,6 +11,7 @@ from .持留 import 持留内容
 from .须知 import 格式化溢出须知,含溢出须知
 from ...模型后端.token计数器.计价 import 计价内容
 from ...模型后端.llm import 创建用户消息,解析图片附件访问
+from .异常 import 溢出策略错误#溢出策略加载或运行失败
 
 __all__=[
     '名称','依赖','配置模式','应用',
@@ -22,11 +23,6 @@ __all__=[
 依赖=['tools']
 配置模式={'maxInlineTokens':数字字段()}
 空隙={'type':'text','text':'\n\n[...]\n\n'}
-
-class 溢出策略错误(Exception):
-    '溢出策略加载或运行失败'
-    def __init__(自身,消息):
-        super().__init__(消息)
 
 def 可持留(内容):
     '内容是否仅含可切文本与必须整块的图像'

@@ -9,12 +9,7 @@ __all__=[#仅中文公开名
 
 检查器json标量=type(None)|bool|int|float|str#JSON标量
 
-class 检查器错误(Exception):#检查器错误基类
-    '检查器包内错误基类'
-    def __init__(自身,消息):#构造
-        '记下英文诊断'
-        super().__init__(消息)#基类
-        自身.消息=消息#诊断
+from ..异常 import 检查器错误#检查器错误基类
 
 class 操作任务:#单次操作结果
     '单次操作结果，只暴露兑现、拒绝、等待'

@@ -3,7 +3,8 @@ from ...依赖 import cordis#外部依赖胶水
 服务=cordis.服务#Cordis 服务基类
 
 from .类型 import *#协议类型锚点
-from .远程制品 import 透传模式,严格编解码,调用描述符,远程贡献,远程错误,取远程错误#手写 Remote 制品辅助
+from .远程制品 import 透传模式,严格编解码,调用描述符,远程贡献,取远程错误#手写 Remote 制品辅助
+from .异常 import 远程错误,查找策略失败,协议消息错误#一次远程调用失败|lookup 策略拒绝错误
 from .拥有值 import 协议拥有值标记,协议拥有值,是否协议拥有值,构造协议拥有值#调用拥有值
 from .json值 import 是否远程json值,是否远程上行项
 
@@ -21,14 +22,6 @@ __all__=[#仅中文公开名
 def 是否合法远程段(值):#判断是否为合法 Remote 段
     '用 Connection 端点语法测试一个生成的 Remote 名'
     return 值!='.' and 值!='..' and 远程段模式.match(值) is not None#排除点段并匹配字符集
-
-class 查找策略失败(Exception):#lookup 策略拒绝错误
-    'lookup 策略拒绝，其带类型的载荷属于当前边界适配器'
-    def __init__(自身,失败载荷):#用适配器失败构造
-        '包装一次适配器失败，不暴露被拒绝的身份'
-        super().__init__('Typert lookup policy rejected the requested identity')#固定英文消息
-        自身.name='TypertLookupFailure'#错误名
-        自身.failure=失败载荷#适配器失败载荷
 
 def 校验段名(主语,值):#校验 Remote 段名
     '非法端点段则抛'
@@ -65,7 +58,7 @@ def 记下标记(原型,方法名,调用模式,导出名=None):#把一条标记�
     if 当前 is not None:#同一方法被标过
         if 当前.get('exportName')==标记.get('exportName') and 当前['invocation']==标记['invocation']:#相同
             return#幂等忽略
-        raise Exception('typert-protocol: Remote 方法 "'+方法名+'" 的调用标记冲突')#冲突
+        raise 协议消息错误('typert-protocol: Remote 方法 "'+方法名+'" 的调用标记冲突')#冲突
     表[方法名]=标记#写入
 
 def 远程(方法或导出名=None):#直接 Remote 调用装饰器
@@ -101,7 +94,7 @@ def 记下标记到函数(方法,调用模式,导出名=None,模式=None):#把�
         标记['mode']=模式
     已有=getattr(方法,'_typert_remote_marker',None)#已有
     if 已有 is not None and 已有!=标记:#冲突
-        raise Exception('typert-protocol: Remote 方法 "'+方法.__name__+'" 的调用标记冲突')#冲突
+        raise 协议消息错误('typert-protocol: Remote 方法 "'+方法.__name__+'" 的调用标记冲突')#冲突
     方法._typert_remote_marker=标记#挂上
 
 def 远程作用域(键,导出名=None):#作用域 Remote 装饰器工厂

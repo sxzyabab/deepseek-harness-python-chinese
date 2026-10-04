@@ -2,6 +2,7 @@
 from ...依赖.工具 import 二进制#base64 编解码
 from ...附件.附件 import 请求图像尺寸#请求图几何
 from .. import llm#语言模型服务
+from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from .配置 import 默认请求图像素预算,默认请求图最大字节#路由默认预算
 from .回放 import 转派助手#助手历史重建
 
@@ -34,13 +35,13 @@ def 断言可支持历史(消息列表):
     '拒绝开发者角色、工具变更块，以及非用户/工具消息里的图片'
     for 消息 in 消息列表:#逐条
         if 消息.get('role')=='developer':#开发者历史尚未序列化
-            raise llm.大模型错误('Developer messages are not supported yet','UNSUPPORTED_CONTENT')#尚未支持
+            raise 大模型错误('Developer messages are not supported yet','UNSUPPORTED_CONTENT')#尚未支持
         内容=消息.get('content') or []#内容
         for 块 in 内容:#工具变更只能落在开发者角色
             if 块.get('type')=='tool-addition' or 块.get('type')=='tool-removal':#工具变更
-                raise llm.大模型错误('Tool-change blocks require developer role','UNSUPPORTED_CONTENT')#角色不对
+                raise 大模型错误('Tool-change blocks require developer role','UNSUPPORTED_CONTENT')#角色不对
         if 消息.get('role')!='user' and 消息.get('role')!='tool' and llm.内容含图片(内容):#其它角色不能带图
-            raise llm.大模型错误(
+            raise 大模型错误(
                 'pi-ai cannot represent an image in an in-history '+str(消息.get('role'))+' message',
                 'UNSUPPORTED_CONTENT',
             )#无法表示
@@ -95,7 +96,7 @@ def 工具列表(选项):
         return None#省略
     for 工具项 in 选项['tools']:#推迟载入尚未接到提供方
         if 工具项.get('deferLoading') is True:#推迟载入
-            raise llm.大模型错误('Deferred tool loading is not supported yet','UNSUPPORTED_CONTENT')#尚未支持
+            raise 大模型错误('Deferred tool loading is not supported yet','UNSUPPORTED_CONTENT')#尚未支持
     映射=[]#派爱工具
     for 工具项 in 选项['tools']:#投影
         映射.append({
@@ -147,7 +148,7 @@ def 纯文本上下文(选项,回放降级=None):
     消息列表=[]#派爱消息
     for 消息 in 拆分['messages']:#按对话顺序
         if llm.内容含图片(消息.get('content') or []):#纯文本路径没有附件
-            raise llm.大模型错误('pi-ai image conversion requires the durable attachment service','UNSUPPORTED_CONTENT')#缺附件
+            raise 大模型错误('pi-ai image conversion requires the durable attachment service','UNSUPPORTED_CONTENT')#缺附件
         if 追加系统或助手(消息,消息列表,工具名表,回放降级):#系统或助手
             continue#下一条
         if 消息.get('role')=='tool':#一等工具结果
@@ -175,7 +176,7 @@ def 带图片转派上下文(选项,图片上下文,回放降级=None):
             return 请求图[块['attachment']['attachmentId']]['bytes']#版本字节
         还需=llm.必需图片卸载(拆分['messages'],{'representation':'base64','maxBytes':最大请求图字节},版本字节)#还需卸载
         if 还需>0:#放不下
-            raise llm.大模型错误(
+            raise 大模型错误(
                 'pi-ai request images exceed the '+str(最大请求图字节)+'-byte base64 bound; '+str(还需)+' more oldest occurrence(s) must be offloaded.',
                 llm.图片卸载必需码,
                 {'offloadImages':还需},

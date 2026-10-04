@@ -5,7 +5,7 @@ from ...工具.超时 import 定时器延迟上限毫秒,已中止,若已中止�
 from ..子进程 import 擦洗父环境#清洗后的父环境
 from ..子进程.控制 import 子进程控制描述符#控制通道 fd
 from .进程检查 import 组内有活成员#Linux组内存活探针
-from .终端 import 本地子进程错误#本包错误
+from .异常 import 本地子进程错误#本包错误
 from .输出 import 输出收集器,准备受管进程绑定#有界尾与溢出根
 from .控制派生 import 控制环境,控制管道#控制管装配
 

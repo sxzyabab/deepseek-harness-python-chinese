@@ -1,4 +1,5 @@
 import os,errno,time,secrets
+from .异常 import 原子写入错误#原子写入或写锁失败
 __all__=[
     '锁重试初始毫秒','锁重试上限毫秒','锁超时毫秒',
     '是否已存在','原子写文件','带文件锁','原子写入错误',
@@ -12,11 +13,6 @@ Windows瞬时改名错误=frozenset({'EACCES','EBUSY','EPERM'})
 Windows改名重试初始毫秒=20
 Windows改名重试上限毫秒=200
 Windows改名重试次数=8
-
-class 原子写入错误(Exception):
-    '原子写入或写锁失败'
-    def __init__(自身,消息):
-        super().__init__(消息)
 
 def 是否已存在(错误):
     '独占创建是否因路径已存在而失败'

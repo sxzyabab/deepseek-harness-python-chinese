@@ -2,9 +2,7 @@
 import weakref#按会话折叠接受水位
 from ...依赖.schemastery import 字典字段,布尔字段#配置
 from ...内核.会话 import 已知会话事件类型,会话标识#已知事件类型、会话 id 品牌
-
-class 会话日志错误(Exception):
-    '会话日志 deepseek 包的异常基类'
+from .异常 import 会话日志错误#本包异常
 
 包名='@deepseek-ai/dsh-session-log-deepseek'
 名称='session-log-deepseek'

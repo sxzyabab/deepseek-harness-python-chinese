@@ -8,6 +8,7 @@ from ..后台任务 import 任务注册表,任务标识
 from .事件 import 任务层,任务事件枢纽
 from .泵送 import 启动泵送
 from .环 import 输出环
+from .异常 import 本地任务错误#本包异常
 
 任务等待超时='TASK_WAIT_TIMEOUT'
 默认每所有者并发=10
@@ -21,12 +22,6 @@ from .环 import 输出环
     'settledRetainBytes':整数字段(默认值=默认结算保留字节),
     'pumpPollMs':整数字段(默认值=默认泵送轮询毫秒),
 }
-
-class 本地任务错误(Exception):
-    '本地任务入参、所有权或组合非法'
-    def __init__(自身,消息):
-        '用原样英文消息构造'
-        super().__init__(消息)
 
 class 操作任务:
     '单次操作的 Future 包装，只留等待'

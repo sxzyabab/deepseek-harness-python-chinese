@@ -5,7 +5,7 @@ from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#派生、忽略流与
 from ...工具.超时 import 已中止,若已中止则抛出#中止入口
 from ..子进程.控制 import 子进程控制描述符#控制通道 fd
 from .启动 import 子环境#擦洗后的子环境
-from .终端 import 本地子进程错误#本包错误
+from .异常 import 本地子进程错误#本包错误
 from .控制派生 import 控制管道#父侧控制管
 
 __all__=(#仅中文公开名

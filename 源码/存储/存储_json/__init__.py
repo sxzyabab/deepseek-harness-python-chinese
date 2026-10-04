@@ -1,7 +1,7 @@
 'JSON 存储后端：在配置根下以原子整文件重写发布人类可读文档'
 import os#路径
 from ...依赖.schemastery import 字符串字段,字典字段#配置
-from ..存储.错误 import 存储错误#存储错误
+from ..存储.异常 import 存储错误#存储错误
 from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
 from ..存储 import 存储后端服务键#生命周期键
 from .单单元 import 打开单单元#single 布局
