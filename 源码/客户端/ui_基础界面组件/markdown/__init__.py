@@ -9,6 +9,11 @@ from .解析 import 解析GFM,解析GFM含数学,装载流式解析,装载定稿
 from .增量 import 增量Markdown解析器,未稳定尾部块数#增量
 from .纯文本 import 抽取Markdown纯文本#纯文本
 from .katex import 渲染TeX到树,装载TeX渲染#KaTeX
+from . import (
+    本地图语法,
+    文件链,
+    高亮,
+)
 
 __all__=[#仅中文公开名
     '消息文本','代码块','json块','最大字节','默认截断标签','Markdown文本',

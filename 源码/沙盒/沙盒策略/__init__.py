@@ -1,15 +1,17 @@
 '沙箱政策服务：部署回落与按会话解析的唯一所有者'
-import json#工作区根写入模型可见字面量
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 import os#进程 cwd 回落
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 字符串字段,枚举字段#配置字段
-服务=cordis.服务#Cordis 服务基类
 from .会话模式 import (#覆盖套件
     沙盒模式表,#合法模式表
     生效沙盒模式,#折叠
     设沙盒模式,#写入
 )#会话模式导出结束
 from .异常 import 沙箱政策错误#沙箱政策包的异常基类
+from . import (
+    不变量,
+)
 
 名称='sandbox-policy'#Cordis 插件名（包目录用下划线，插件名保留上游连字符）
 
@@ -32,7 +34,7 @@ def 渲染政策上下文(政策):
     if 模式值=='workspace-write':#工作区可写
         return ('Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox '#工作区可写政策前半
             +'may modify files under the session workspace: '#可改会话工作区下文件
-            +json.dumps(政策['workspaceRoot'],ensure_ascii=False,separators=(',',':'),allow_nan=False)#工作区根 JSON 字面量
+            +紧凑json编码(政策['workspaceRoot'])#工作区根 JSON 字面量
             +'. Some platform temporary areas may also be writable.')#工作区可写说明
     if 模式值=='danger-full-access':#完全放开
         return ('Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file '#完全放开政策前半

@@ -1,5 +1,5 @@
 '把历史子事实追加到已转换为 V4 的 V3 源事件之后'
-import json#未知类型诊断
+from ...基础设施.通用工具 import 紧凑json编码
 from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
 from ..会话格式 import (#从会话格式导入
     定义会话格式迁移,#定义迁移
@@ -93,7 +93,7 @@ class 已发布v3到v4阶段:#已发布v3到v4阶段
             return#返回
         if 事件['type'] not in 已发布v3事件类型:#未知必需
             raise 会话格式不支持迁移错误(#拒绝
-                'format v3 contains unknown event type '+json.dumps(事件['type'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' at seq '+str(事件['seq']),#消息
+                'format v3 contains unknown event type '+紧凑json编码(事件['type'])+' at seq '+str(事件['seq']),#消息
             )#Error结束
         已重映射=重映射v3引用(事件,目标序号,自身.映射)#重映射引用
         自身.映射.append(目标序号)#登记映射

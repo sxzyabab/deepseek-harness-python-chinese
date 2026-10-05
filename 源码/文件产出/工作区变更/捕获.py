@@ -1,5 +1,6 @@
 '文件工具编辑前后的整文件捕获：首次变更前与轮次结束时各存一份，按字节 SHA-1 内容寻址'
-import hashlib,os,stat#哈希、文件与类型位
+import os,stat#文件与类型位
+from ...基础设施.通用工具.序列化编码 import 摘要十六进制
 from .异常 import 捕获错误#本模块异常
 __all__=['捕获文件','相同捕获','变更路径']#仅中文公开名
 
@@ -37,7 +38,7 @@ def 捕获文件(绝对路径,目录,最大字节):#读入并按哈希落盘
         字节=bytes(探针[0:长度])#定长副本
     finally:#关闭
         句柄.close()#关
-    文件=os.path.join(目录,hashlib.sha1(字节).hexdigest())#内容寻址名
+    文件=os.path.join(目录,摘要十六进制(字节,'sha1'))#内容寻址名
     os.makedirs(目录,exist_ok=True)#确保目录
     try:#独占写入
         with open(文件,'xb') as 写出:#wx

@@ -1,13 +1,15 @@
 import os,re,sys,copy,json,threading#路径、环境、流、克隆、JSON、定时
-from ...依赖 import cordis,include,loader
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 import yaml#外部依赖胶水（含 PyYAML）
-上下文=cordis.上下文#上下文
-纤程状态=cordis.纤程状态#纤程/纤程状态
-包含=include.包含#Include
-应用条目补丁=include.应用插件补丁#补丁应用
-条目列表加载器=include.插件列表读取器#YAML 条目列表方言
-路径转文件url=include.路径转文件url#路径转 url
-组=loader.组#Group 内建
+from ...依赖.cordis.上下文 import 上下文#上下文
+from ...依赖.cordis.纤程 import 纤程状态#纤程状态
+from ...依赖.include import (
+    包含,#Include
+    应用插件补丁 as 应用条目补丁,#补丁应用
+    插件列表读取器 as 条目列表加载器,#YAML 条目列表
+    路径转文件url,#路径转 url
+)
+from ...依赖.loader import 组,加载器#组与加载器
 from ...工具.主目录路径 import 主目录路径,解析主目录#主目录
 from ...工具.启动环境 import 创建启动环境快照#启动环境快照
 from .配置档 import (#配置档再导出
@@ -60,6 +62,10 @@ __all__=[#仅中文公开名
 纤程失败=纤程状态.失败#已失败
 
 from .异常 import 启动错误#应用启动粘合层失败
+from . import (
+    包元,
+    配置数据架构,
+)
 
 def 协调配置档补丁(上下文,补丁,二进制名,必需标识=None):
     '应用一整代补丁并等待 Loader 激活诊断'
@@ -587,7 +593,7 @@ def 启动(二进制名,绝对配置路径,补丁=None,准备=None,裸模块基�
         if not 基址.endswith('/'):#尾斜杠
             基址=基址+'/'#补上
         上下文.基准网址=基址#写入
-        加载器类=loader.加载器#Loader
+        加载器类=加载器#Loader
         上下文.提供服务('dshHomePath',主目录路径)#提供主目录解析
         def 更新观察(_配置,_不保存,下一步):
             'Fiber.update 丢掉重启承诺；在瀑布返回前观察'
@@ -673,7 +679,7 @@ def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):
                 '取下一参数'
                 值=参数[下标[0]] if 下标[0]<len(参数) else None#参数
                 下标[0]=下标[0]+1#推进
-                return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
+                return 紧凑json编码(值)#JSON
             警告列表.append(re.sub(r'%C',替,消息))#展开
         return 应用条目补丁(基,展平,记警告)#应用
     上一=基#上一快照
@@ -686,11 +692,11 @@ def 渲染配置转储(二进制名,绝对配置路径,各层,警告=None):
         已组合=快照(计数,警告列表)#应用到本前缀
         for 行 in 警告列表[len(上一警告):]:#新尾巴
             警告(二进制名+': ['+层标签(层)+'] '+行)#带层标签
-        之前=[json.dumps(条,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True) for 条 in 上一]#上一序列化
+        之前=[紧凑json编码(条,True) for 条 in 上一]#上一序列化
         for 下标 in range(len(已组合)):#按位置差分
             if 下标>=len(之前):#追加行
                 出处.append({'origin':层标签(层),'patchedBy':[]})#归本层
-            elif json.dumps(已组合[下标],ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)!=之前[下标]:#改写
+            elif 紧凑json编码(已组合[下标],True)!=之前[下标]:#改写
                 出处[下标]['patchedBy'].append(层标签(层))#记补丁
         上一=已组合#推进
         上一警告=警告列表#推进

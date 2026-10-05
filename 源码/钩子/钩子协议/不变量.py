@@ -1,4 +1,5 @@
 import json#方言诊断
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...内核.作用域 import 弱身份表#按身份存取的弱表
 
 包名='@deepseek-ai/dsh-hook-protocol'#本包名
@@ -26,13 +27,13 @@ def 校验钩子事件(踪迹,事件,失败):
             失败('hook/invoked point and handlerId must be non-empty')#空则失败
         方言=数据['dialect'] if 'dialect' in 数据 else None#方言
         if 方言!='claude-code' and 方言!='codex':#必须已知
-            失败('hook/invoked carries unknown dialect '+json.dumps(方言,ensure_ascii=False,separators=(',',':'),allow_nan=False))#未知
+            失败('hook/invoked carries unknown dialect '+紧凑json编码(方言))#未知
         return {'key':钩子键(数据),'delta':1}#+1
     键=钩子键(数据)#结果关联键
     待配对=踪迹['pending']#待配对表
     已有=待配对[键] if 键 in 待配对 else 0#当前计数
     if 已有==0:#缺调用
-        失败('hook/result has no matching hook/invoked for '+json.dumps(数据['handlerId'],ensure_ascii=False,separators=(',',':'),allow_nan=False))#缺配对
+        失败('hook/result has no matching hook/invoked for '+紧凑json编码(数据['handlerId']))#缺配对
     时长=数据['durationMs'] if 'durationMs' in 数据 else None#时长
     if isinstance(时长,bool) or (not isinstance(时长,int)) or 时长<0:#必须非负整数；先排除布尔
         失败('hook/result durationMs must be a non-negative finite number')#非法

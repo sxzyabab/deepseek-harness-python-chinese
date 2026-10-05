@@ -72,9 +72,10 @@ def 采集体(体,上限,分块上限,中止事件,发射):#采集body
 def 安装请求观察器(发布器,选项):#安装fetch观察器
     '为之后经全局 fetch 的每次调用安装完整 fetch 采集'
     import builtins#全局
-    原始=getattr(builtins,'fetch',None)#原fetch
-    if not callable(原始):#不可用
-        原始=getattr(__import__('builtins'),'fetch',None)#再试
+    try:#原 fetch
+        原始=fetch#原fetch
+    except NameError:#未注入
+        原始=None#无
     if not callable(原始):#仍不可用
         raise 检查器错误('inspector: globalThis.fetch is unavailable')#不可用
     中止=threading.Event()#停止信号

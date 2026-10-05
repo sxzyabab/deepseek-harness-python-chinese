@@ -1,4 +1,5 @@
 import json,time#序列化与时钟
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.缓冲 import 检查器源缓冲#源缓冲
 from ...共享.桥接.发布器 import 检查器状态发布器#状态发布器面
@@ -53,7 +54,7 @@ class 客户端桥发布器(检查器状态发布器):#Client桥发布器
         就绪=套接字.readyState#就绪态
         if 就绪!=1:#未开
             return#返回
-        套接字.send(json.dumps(自身.记录.替换帧(活动['source']['sourceId'],活动['source']['generation']),ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送替换
+        套接字.send(紧凑json编码(自身.记录.替换帧(活动['source']['sourceId'],活动['source']['generation'])))#发送替换
 
     def 断开(自身,套接字):#断开
         '忘记一个已关闭传输，同时为重连保留缓冲状态'
@@ -79,4 +80,4 @@ class 客户端桥发布器(检查器状态发布器):#Client桥发布器
             帧=自身.记录.取一批(活动['source']['sourceId'],活动['source']['generation'])#取批次
             if 帧 is None:#无
                 break#结束
-            套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+            套接字.send(紧凑json编码(帧))#发送

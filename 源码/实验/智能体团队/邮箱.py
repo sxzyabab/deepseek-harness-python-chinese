@@ -1,4 +1,5 @@
 import copy,json,uuid#克隆、字节计、消息 id
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from threading import Event as 同步事件,Lock as 互斥锁#飞行完成门与队尾互斥
 from ...模型后端.llm import 创建用户消息#用户消息工厂
 from .异常 import 团队错误,错误文案#领域错误
@@ -119,7 +120,7 @@ class 团队邮箱:#团队邮箱
                 'targetId':目标['id'],#目标
                 'content':内容,#内容
             }#快照结束
-            字节数=len(json.dumps(自身._投递内容(已入队),ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#字节
+            字节数=len(紧凑json编码(自身._投递内容(已入队)).encode('utf-8'))#字节
             if 字节数>自身._最大消息字节:#过大
                 raise 团队错误('team message exceeds '+str(自身._最大消息字节)+' bytes','TEAM_MESSAGE_TOO_LARGE')#过大
             自身._日志.追加并刷新(根,'team/message/queued',{#入队

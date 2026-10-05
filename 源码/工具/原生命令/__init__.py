@@ -74,3 +74,7 @@ from .路径打开 import (
 from .文件应用 import 原生文件应用程序,打开原生文件应用程序
 from .类型 import 解析原生文件应用程序
 from .桌面条目 import 桌面条目字段,桌面数据目录,桌面应用程序图标
+from . import (
+    文件应用_linux,
+    文件应用_windows,
+)

@@ -1,5 +1,6 @@
 'JSONL 会话持久化：代次文件加活写句柄'
 import hashlib,json,os,secrets,sys#摘要、JSON、路径、临时名、平台
+from ...基础设施.通用工具 import 紧凑json编码
 from ...依赖.schemastery import 字典字段,字符串字段,布尔字段,数字字段
 from ...内核.会话 import 会话格式版本#当代格式版本
 from ..会话格式目录 import 会话格式目录,创建带子项的会话格式目录#格式目录
@@ -674,7 +675,7 @@ class jsonl会话持久化(会话持久化):
     def 编码物化(自身,元,继承事件数,事件列表):#编码物化内容
         '编码头与首批，不合并它们的帧边界'
         头值=头转头行(元,继承事件数 if 元.get('isSeeded') else None)#头行对象
-        头行=json.dumps(头值,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n'#头行
+        头行=紧凑json编码(头值)+'\n'#头行
         if len(事件列表)==0:#无事件
             return 压缩zstd帧(头行) if 自身.压缩=='zstd' else 头行.encode('utf-8')#仅头
         体=事件行文本(事件列表)+'\n'#事件行
@@ -731,7 +732,7 @@ class jsonl会话持久化(会话持久化):
                 修订=身份串(物理身份(os.stat(路径)))#修订
             except FileNotFoundError:#缺失
                 修订='missing'#缺失
-            摘要.update(json.dumps([路径,修订],ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#喂入
+            摘要.update(紧凑json编码([路径,修订]).encode('utf-8'))#喂入
         若已中止则抛出(信号)#取消
         return 摘要.hexdigest()#十六进制
 

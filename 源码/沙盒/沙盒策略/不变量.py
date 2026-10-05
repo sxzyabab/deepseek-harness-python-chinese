@@ -1,5 +1,5 @@
 '沙箱政策的本包拥有会话事件不变量'
-import json#诊断里序列化未知模式
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .会话模式 import 沙盒模式表
 
 包名='@deepseek-ai/dsh-sandbox-policy'
@@ -14,7 +14,7 @@ def 校验事件(事件,失败):
         return
     模式=事件['data']['mode']
     if 模式 not in 沙盒模式表:
-        失败('sandbox/mode carries unknown mode '+json.dumps(模式,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+        失败('sandbox/mode carries unknown mode '+紧凑json编码(模式))
 
 def 安装(上下文,失败):
     '给已加载与新追加的沙箱模式安装校验'

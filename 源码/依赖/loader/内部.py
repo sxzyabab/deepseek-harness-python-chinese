@@ -1,4 +1,5 @@
-import hashlib,importlib,importlib.util,os,sys#标准库
+import importlib,importlib.util,os,sys#标准库
+from ...基础设施.通用工具.序列化编码 import 摘要十六进制
 from urllib.parse import urljoin#按父网址拼接相对说明符
 from ..工具 import 路径转文件url,文件url转路径#路径与 file URL 互转
 
@@ -67,7 +68,7 @@ def _网址到路径(网址):
 def _模块名(路径):
     "为同一路径生成稳定的 sys.modules 键"
     规范=os.path.normpath(os.path.abspath(路径))#绝对规范路径
-    摘要=hashlib.sha256(规范.encode()).hexdigest()#路径摘要
+    摘要=摘要十六进制(规范)#路径摘要
     return '_cordis_'+摘要#避免与正常包名冲突
 
 def _从路径加载(路径):

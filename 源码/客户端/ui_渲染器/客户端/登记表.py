@@ -1,10 +1,8 @@
 from ...ui_槽位 import 槽位登记表#纯登记表
 from ...ui_槽位.异常 import 过期授权错误#过期授权
-from ....依赖 import cordis#外部依赖胶水
+from ....依赖.cordis.服务 import 服务#服务基类
 from ..异常 import 槽装配错误,槽组装错误#独占持久装配失败与组装失败
 from .绑定 import 可观察源#可观察源
-
-服务=cordis.服务#Cordis 服务基类
 
 __all__=['槽登记表','槽宿主面','标准钩子属性名','根实例键','根拥有方属性']#仅中文公开名
 

@@ -1,5 +1,6 @@
 '智能体侧当前配置档装载工具；与 Web 控件共用同一服务'
 import json
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...模型后端.llm import 断言永不
 from ...内核.工具 import 定义工具
 from ...沙盒.沙盒.升级 import 批准升级
@@ -24,7 +25,7 @@ def 应用(上下文):
             'requestedMode':'danger-full-access',
             'effectiveMode':生效,
             'subject':'plugin management operation',
-            'justification':'plugin_manager '+json.dumps(参数,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'. Profile changes persist across sessions; installed Host code runs outside the workspace sandbox.',
+            'justification':'plugin_manager '+紧凑json编码(参数)+'. Profile changes persist across sessions; installed Host code runs outside the workspace sandbox.',
         },{
             'approver':getattr(上下文,'approval',None),
             'agent':智能体,
@@ -44,7 +45,7 @@ def 应用(上下文):
             行表=装载.列出插件() if 动作=='list_plugins' else 装载.列出组合包()
             条目=行表[偏移:偏移+限额]
             下一=偏移+len(条目) if 偏移+len(条目)<len(行表) else None
-            return json.dumps({'entries':条目,'total':len(行表),'nextOffset':下一},ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            return 紧凑json编码({'entries':条目,'total':len(行表),'nextOffset':下一})
         if 动作=='set_plugin' or 动作=='set_bundle':
             if 'target' not in 参数 or 参数['target'] is None or 'enabled' not in 参数 or 参数['enabled'] is None:
                 raise ValueError('必须提供 target 与 enabled')
@@ -52,7 +53,7 @@ def 应用(上下文):
                 结果=装载.设置插件启用(参数['target'],参数['enabled'])
             else:
                 结果=装载.设置组合包启用(参数['target'],参数['enabled'])
-            return json.dumps(结果,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            return 紧凑json编码(结果)
         if 动作=='install_bundle':
             if 'target' not in 参数 or 参数['target'] is None:
                 raise ValueError('必须提供目标包规格')
@@ -61,11 +62,11 @@ def 应用(上下文):
                 选项['enabled']=参数['enabled']
             if 'approvedBuilds' in 参数 and 参数['approvedBuilds'] is not None:
                 选项['approvedBuilds']=参数['approvedBuilds']
-            return json.dumps(装载.安装组合包(参数['target'],选项),ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            return 紧凑json编码(装载.安装组合包(参数['target'],选项))
         if 动作=='remove_bundle':
             if 'target' not in 参数 or 参数['target'] is None:
                 raise ValueError('必须提供目标组合包名')
-            return json.dumps(装载.移除组合包(参数['target']),ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            return 紧凑json编码(装载.移除组合包(参数['target']))
         return 断言永不(动作,'plugin_manager action')
     def 呈现调用(参数):
         '调用卡片'

@@ -1,10 +1,9 @@
-import uuid,threading#随机身份与工作线程
+import uuid#随机身份
 from queue import Queue as 队列,Full as 队列已满#单次落定门与已满
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
+from ...依赖.cordis.纤程 import 纤程状态#纤程状态
 from ...依赖.工具 import 获取内部数据,聚合错误#读事件总线内部成员；拆除失败聚合
 from ...依赖.schemastery import 字符串字段,整数字段,列表字段#配置字段
-服务=cordis.服务#服务基类
-纤程状态=cordis.纤程状态#纤程/纤程状态
 from ...模型后端.llm.异常 import 错误链#把未知错误链成日志串
 from ...模型后端.llm import 结构化克隆#深拷贝头
 from ...配置.配置 import 设置命名空间,安装设置段#设置段安装与命名空间
@@ -12,11 +11,11 @@ from ..会话 import 会话标识,会话准备,中断轮次关闭器#会话 id�
 from .智能体 import 循环智能体#具体循环驱动
 from .常量 import 默认最大并行工具调用,安全整数上限#默认并行上限与配置入口安全整数
 from .收件箱 import 收件箱投影定义#收件箱投影定义
+from ...基础设施.通用工具 import 启动守护线程,合成信号
 from .中止与并发 import (
     已中止,#信号是否已中止
     若已中止则抛出,#已中止则抛
     中止控制器,#发出中止
-    中止信号,#可监听取消通道
     启动可中止操作,#启动并与中止赛跑
     包装中止错误,#包装创建中止
     全部等待,#并发等全部 Queue
@@ -26,6 +25,12 @@ from .中止与并发 import (
     等待队列结果,#阻塞取出 Queue(1)
 )
 from .异常 import 循环错误,中止错误#本包异常基类与中止异常
+from . import (
+    不变量,
+    助手流,
+    工具调用,
+    运行时上下文,
+)
 
 __all__=(#仅中文公开名；Cordis 槽不入表
     '工厂所有权','穿透配置','已发表句柄','已准备智能体',
@@ -123,9 +128,7 @@ class 工厂所有权:
             except BaseException:
                 pass#失败也忘掉
             忘掉()#从集合删掉
-        工作=threading.Thread(target=收尾)#收尾线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(收尾)#收尾线程
 
     def 跟踪续体(自身,任务):
         '加入一次公开 create/resume 续体；工厂 dispose 等待它落定'
@@ -137,9 +140,7 @@ class 工厂所有权:
             except BaseException:
                 pass
             放入成功(吞)#落定
-        工作=threading.Thread(target=吞掉续体结果)#收尾线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(吞掉续体结果)#收尾线程
         自身.跟踪启动(吞)#登记启动任务
 
     def 活动期内等待(自身,任务):
@@ -343,9 +344,7 @@ class 智能体循环(服务):
                         except BaseException as 错误:
                             自身.报告配置启动失败(标签,'restore',标识,错误)#报告 restore 失败
                             放入成功(启动)#catch 后仍落定
-                    创建线程=threading.Thread(target=执行创建)#启动线程
-                    创建线程.daemon=True#不挡住退出
-                    创建线程.start()
+                    启动守护线程(执行创建)#启动线程
                     自身.所有权.跟踪启动(启动)#登记启动任务
                 else:
                     启动=队列(1)#启动任务
@@ -357,9 +356,7 @@ class 智能体循环(服务):
                         except BaseException as 错误:
                             自身.报告配置启动失败(标签,'restore',标识,错误)#报告 restore 失败
                             放入成功(启动)#catch 后仍落定
-                    工作=threading.Thread(target=执行启动)#启动线程
-                    工作.daemon=True#不挡住退出
-                    工作.start()
+                    启动守护线程(执行启动)#启动线程
                     自身.所有权.跟踪启动(启动)#登记启动任务
                 continue#下一条
             def 恢复副作用(标签=配置id,恢复会话号=恢复号,循环选项=选项):
@@ -375,9 +372,7 @@ class 智能体循环(服务):
                             }))#经显式句柄恢复
                         except BaseException as 错误:
                             自身.报告配置启动失败(标签,'resume',恢复会话号,错误)#报告 resume 失败
-                    恢复线程=threading.Thread(target=执行恢复)#恢复线程
-                    恢复线程.daemon=True#不挡住退出
-                    恢复线程.start()
+                    启动守护线程(执行恢复)#恢复线程
                 纤程=上下文.依赖启动(['sessionPersistence'],子回调)#注入持久化
                 纤程.等待()#启动失败则抛
                 return 纤程.拆除#effect 拆除即卸注入
@@ -442,26 +437,22 @@ class 智能体循环(服务):
         if not 自身.所有权.是否活动():
             raise 循环错误('agent loop is not active')#工厂必须活动
         if 已中止(调用方信号):
-            raise 包装中止错误(标识,调用方信号._异常 if 调用方信号 is not None else None)#调用方已取消
+            raise 包装中止错误(标识,调用方信号.原因 if 调用方信号 is not None else None)#调用方已取消
         循环上下文=自身.运行时['ctx']#未追踪运行时上下文
         融合=中止控制器()#融合中止
         def 转发调用方中止():
             '调用方取消则转发到融合'
             if 调用方信号 is None:#无调用方信号
                 return#无信号
-            调用方信号._事件.wait()#等到中止
-            融合.中止(包装中止错误(标识,调用方信号._异常))#包装原因
+            调用方信号.等待()#等到中止
+            融合.中止(包装中止错误(标识,调用方信号.原因))#包装原因
         def 转发工厂中止():
             '工厂拆除则转发到融合'
-            自身.所有权.信号._事件.wait()#等到中止
-            融合.中止(自身.所有权.信号._异常)#工厂原因
+            自身.所有权.信号.等待()#等到中止
+            融合.中止(自身.所有权.信号.原因)#工厂原因
         if 调用方信号 is not None:
-            调用方线程=threading.Thread(target=转发调用方中止)#调用方线程
-            调用方线程.daemon=True#不挡住退出
-            调用方线程.start()
-        工厂线程=threading.Thread(target=转发工厂中止)#工厂线程
-        工厂线程.daemon=True#不挡住退出
-        工厂线程.start()
+            启动守护线程(转发调用方中止)#调用方线程
+        启动守护线程(转发工厂中止)#工厂线程
         机器=[None]#循环驱动，铸造前为空
         脱离会话=[None]#会话脱离器
         脱离智能体=[None]#Agent 脱离器
@@ -514,9 +505,7 @@ class 智能体循环(服务):
                     放入失败(任务,聚合错误(失败列表,'agent "'+str(标识)+'" disposal failed'))#多失败
                     return
                 放入成功(任务)#拆除完成
-            拆除线程=threading.Thread(target=执行拆除)#拆除线程
-            拆除线程.daemon=True#不挡住退出
-            拆除线程.start()
+            启动守护线程(执行拆除)#拆除线程
             return 任务#记忆化拆除
         忘掉[0]=自身.所有权.跟踪(拆除)#发表前就向工厂登记拆除
         try:
@@ -654,9 +643,7 @@ class 智能体循环(服务):
                 放入成功(已发表,句柄)#已发表句柄
             except BaseException as 错误:
                 放入失败(已发表,错误)#失败
-        工作=threading.Thread(target=执行创建并发表)#工作线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(执行创建并发表)#工作线程
         自身.所有权.跟踪续体(已发表)#工厂拆除等待本续体
         return 已发表#已发表句柄
 
@@ -713,9 +700,7 @@ class 智能体循环(服务):
             finally:
                 if 准备 is not None:
                     准备.拆除()#作用域结束时拆除准备
-        工作=threading.Thread(target=执行设置并发表)#工作线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(执行设置并发表)#工作线程
         return 任务#已发表句柄承诺
 
     def 追加未存后缀(自身,已存,会话):
@@ -758,7 +743,7 @@ class 智能体循环(服务):
                 信号列表.append(调用方信号)#可选调用方信号
             信号列表.append(所有者中止.信号)#所有者卸载
             信号列表.append(自身.所有权.信号)#工厂拆除
-            融合=中止信号.任一(信号列表)#融合三路中止
+            融合=合成信号(*信号列表)#融合三路中止
             try:
                 try:
                     def 打开写():
@@ -817,9 +802,7 @@ class 智能体循环(服务):
                         写句柄.关闭()#关闭残留句柄
                     except OSError:
                         pass#关闭残留句柄失败
-        工作=threading.Thread(target=执行加载并发表)#工作线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(执行加载并发表)#工作线程
         自身.所有权.跟踪续体(已发表)#工厂拆除等待本续体
         return 已发表#已发表句柄
 

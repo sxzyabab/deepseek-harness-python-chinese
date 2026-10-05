@@ -1,4 +1,5 @@
 import threading#后台读目录
+from ....基础设施.通用工具 import 启动守护线程,观察者集合
 from ..异常 import 预设错误#本包异常
 
 __all__=['权限目录','预设错误']#仅中文公开名
@@ -8,7 +9,7 @@ class 快照存储:#简易 SnapshotStore
     def __init__(自身,初值):
         '记下初值'
         自身.状态=初值#当前
-        自身.监听者=set()#订阅者
+        自身.监听者=观察者集合()#订阅者
 
     def getSnapshot(自身):
         '当前值'
@@ -16,17 +17,12 @@ class 快照存储:#简易 SnapshotStore
 
     def subscribe(自身,回调):
         '登记'
-        自身.监听者.add(回调)#加入
-        def 退订():
-            '取消'
-            自身.监听者.discard(回调)#删除
-        return 退订#退订器
+        return 自身.监听者.订阅(回调)#退订器
 
     def set(自身,下一份):
         '写入并通知'
         自身.状态=下一份#覆盖
-        for 回调 in list(自身.监听者):#通知
-            回调()#触发
+        自身.监听者.通知()#触发
 
 class 读任务:#一次目录读取
     '线程加等待'
@@ -42,7 +38,7 @@ class 读任务:#一次目录读取
             except 预设错误 as 错误:#失败
                 自身._错误=错误#记下
             自身._事件.set()#完成
-        threading.Thread(target=在线线程执行,daemon=True).start()#后台
+        启动守护线程(在线线程执行)#后台
 
     def 等待(自身):
         '阻塞至完成'
@@ -168,7 +164,7 @@ class 权限目录:#进程级最新结果获胜的目录
                 自身.store.set({'value':None})#清
             if 自身.待决 is 操作:#仍是自己
                 自身.待决=None#清
-        threading.Thread(target=结算,daemon=True).start()#后台结算
+        启动守护线程(结算)#后台结算
         自身.待决=操作#记下
 
     def 接受(自身,纪元,世代标识):

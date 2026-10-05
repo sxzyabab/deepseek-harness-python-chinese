@@ -1,4 +1,5 @@
 import json,re,traceback
+from ...基础设施.通用工具 import 紧凑json编码
 from ...依赖.schemastery import 自然数字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...模型后端.llm import 创建用户消息
@@ -9,6 +10,10 @@ from .沙箱 import 创建沙箱,求值宿主代码,预检代码
 from .注册表 import 动态cordis注册表
 from .巡检注册表 import 巡检注册表服务
 from .生命周期 import 启动宿主半,缺席服务列表
+from . import (
+    类型,
+    远程,
+)
 
 __all__=[
     '包名','名称','依赖','默认','配置',
@@ -934,7 +939,7 @@ class 动态cordis运行器(远程服务):
         智能体=智能体表.获取(插件['sessionId'])
         if 智能体 is None:
             return
-        方法文=json.dumps(方法,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+        方法文=紧凑json编码(方法)
         智能体.转向(创建用户消息({
             'content':[{
                 'type':'text',

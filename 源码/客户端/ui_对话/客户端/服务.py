@@ -1,8 +1,8 @@
 import uuid#草稿 id
-from ....依赖 import cordis#外部依赖胶水
+from ....依赖.cordis.服务 import 服务#服务基类
 from ....依赖.工具 import 二进制#base64 编解码
+from ....基础设施.通用工具 import 构造dataurl
 from ..异常 import 对话错误,不支持图片媒体类型#本包异常
-服务=cordis.服务#Cordis 服务基类
 
 __all__=['不支持图片媒体类型','对话错误','会话控制器','图片媒体类型','字节转base64']#仅中文公开名
 
@@ -140,7 +140,7 @@ class 会话控制器(服务):
                 值=结果['value']#值
                 媒体=值['attachment']['mediaType']#MIME
                 数据=值['data']#字节
-                网址='data:'+str(媒体)+';base64,'+字节转base64(数据)#data URL 回退
+                网址=构造dataurl(str(媒体),数据)#data URL 回退
                 自身.已创建网址.add(网址)#跟踪
                 return 网址#可渲染
             except 对话错误:

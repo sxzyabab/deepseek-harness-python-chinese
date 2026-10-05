@@ -4,6 +4,10 @@ from ..存储 import 存储后端服务键#后端服务键
 from .异常 import 域错误#域错误
 from .规范 import 定义域,域表,描述符投影#spec 工厂
 from .域 import 域实现#域实现
+from . import (
+    不变量,
+    事件,
+)
 
 名称='storage-domain'#框架 插件名
 依赖=['storage']#依赖 storage 枢纽

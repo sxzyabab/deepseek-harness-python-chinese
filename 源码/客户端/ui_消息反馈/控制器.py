@@ -1,5 +1,5 @@
 import threading#串行链
-from concurrent.futures import Future as _原生Future#单次操作结果
+from ...基础设施.通用工具 import 操作任务,启动守护线程,观察者集合
 from .异常 import 消息反馈错误#本包异常
 
 __all__=['消息反馈控制器','消息反馈错误','描述失败','成功结果','已拆除结果']#仅中文公开名
@@ -8,30 +8,6 @@ __all__=['消息反馈控制器','消息反馈错误','描述失败','成功结�
 初始视图={'status':'cold','items':空条目表,'error':None}#冷启动
 成功结果={'ok':True}#成功常量
 已拆除结果={'ok':False,'error':{'code':'disposed','message':'feedback controller is disposed'}}#拆除形
-
-class 操作任务:#本文件内单次操作结果
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身._未来=_原生Future()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._未来.set_exception(消息反馈错误(str(错误)))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 def 已结算(值=None):#立刻结算的任务
     '立刻兑现的操作任务'
@@ -71,7 +47,7 @@ class 消息反馈控制器:#每会话反馈对象层
         自身.会话标识=会话标识#会话 id
         自身.视图=dict(初始视图)#当前视图
         自身.视图['items']={}#独立条目表
-        自身.监听者=set()#订阅者
+        自身.监听者=观察者集合()#订阅者
         自身.加载承诺=None#在飞列表
         自身.操作尾=已结算(None)#变更队列尾
         自身.已拆除=False#是否拆除
@@ -82,11 +58,7 @@ class 消息反馈控制器:#每会话反馈对象层
 
     def subscribe(自身,监听):#订阅视图替换
         '登记订阅者，返回退订'
-        自身.监听者.add(监听)#加入
-        def 退订():#退订
-            '取消'
-            自身.监听者.discard(监听)#删除
-        return 退订#退订器
+        return 自身.监听者.订阅(监听)#退订器
 
     def ensure(自身):#加载一次
         '失败的加载仍可重试'
@@ -142,7 +114,7 @@ class 消息反馈控制器:#每会话反馈对象层
     def dispose(自身):#拆除
         '所属 fiber 卸载时拒绝后续工作'
         自身.已拆除=True#拒绝
-        自身.监听者.clear()#清订阅
+        自身.监听者=观察者集合()#清订阅
 
     def 提交写入(自身,消息标识,评价,条目,观察):#put 并调和冲突
         '按观察版本 put；条目 text→note、category 原样'
@@ -247,9 +219,7 @@ class 消息反馈控制器:#每会话反馈对象层
                     本次.拒绝(错误)#交给等待方
             finally:#无论成败都放行链
                 新尾.兑现(None)#放行
-        线=threading.Thread(target=执行串行链)#串行链
-        线.daemon=True#不挡退出
-        线.start()#启动
+        启动守护线程(执行串行链)#串行链
         return 本次.等待()#已结算
 
     def 提交(自身,消息标识,项):#替换或删除一条条目
@@ -265,8 +235,4 @@ class 消息反馈控制器:#每会话反馈对象层
     def 发布(自身,视图):#替换视图并通知
         '可观察边界吞掉订阅者失败'
         自身.视图=视图#替换
-        for 监听 in list(自身.监听者):#逐个
-            try:#订阅者失败不得外溢
-                监听()#通知
-            except Exception as 错误:#抛错；订阅者异常契约未定，故不能换成更窄的 except
-                print('[ui-message-feedback] 订阅者抛错:',错误)#记日志
+        自身.监听者.通知()#通知

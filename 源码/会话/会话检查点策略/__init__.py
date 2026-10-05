@@ -1,5 +1,6 @@
 '语义耐久检查点策略'
 from ...内核.工具 import 工具体前中止#取消前派发原因码
+from ...基础设施.通用工具 import 已中止
 from .异常 import 检查点策略错误#本包异常
 
 包名='@deepseek-ai/dsh-session-checkpoint-policy'
@@ -7,14 +8,6 @@ from .异常 import 检查点策略错误#本包异常
 依赖=['llm','sessionPersistence','sessions','tools']
 
 __all__=['包名','名称','依赖','应用','默认']
-
-def 已中止(信号):
-    """信号是否已中止。
-    无信号视为未中止
-    """
-    if 信号 is None:
-        return False
-    return 信号._事件.is_set()
 
 def 派发前中止结果():
     '工具派发前已中止时返回的错误结果载荷'

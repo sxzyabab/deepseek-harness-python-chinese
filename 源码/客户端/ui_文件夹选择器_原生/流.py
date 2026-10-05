@@ -1,4 +1,4 @@
-import threading#后台观察挑选结果
+from ...基础设施.通用工具 import 启动守护线程
 
 __all__=['原生目录流','原生流注入面']#仅中文公开名
 
@@ -54,9 +54,7 @@ class 原生目录流:#无渲染：上升沿挑一次目录
                 成功(任务.等待())#等待
             except BaseException as 原因:#失败臂
                 失败(原因)#回报失败
-        线=threading.Thread(target=观察)#挂观察
-        线.daemon=True#不挡退出
-        线.start()#启动
+        启动守护线程(观察)#启动
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 组件调用；返回 None（无渲染）'

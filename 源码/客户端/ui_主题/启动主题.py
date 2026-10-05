@@ -1,4 +1,5 @@
-import json,re#JSON 嵌入与开 body 定位
+import re#开 body 定位
+from ...基础设施.通用工具 import 紧凑json编码
 from .主题设置 import 默认偏好,默认字号#默认跟随系统与默认字号
 
 __all__=['启动主题注入行','注入启动主题']#仅中文公开名
@@ -19,10 +20,10 @@ def 启动主题样式(偏好):#按偏好拼头部样式
 
 def 启动主题脚本(偏好,字号):#按偏好与字号拼脚本体
     '构造安装调色板选择器与内容字号的 body 脚本'
-    字号声明=json.dumps(str(字号)+'px',ensure_ascii=False,separators=(',',':'),allow_nan=False)#字号 CSS
+    字号声明=紧凑json编码(str(字号)+'px')#字号 CSS
     return (#立即执行，避免污染全局
         '(() => {'#开 IIFE
-        +'const preference = '+json.dumps(偏好,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';'#嵌入当前内置偏好
+        +'const preference = '+紧凑json编码(偏好)+';'#嵌入当前内置偏好
         +'const systemDark = preference === \'system\''#偏好为跟随系统
         +' && typeof matchMedia !== \'undefined\''#且存在 matchMedia
         +' && matchMedia(\'(prefers-color-scheme: dark)\').matches;'#且系统为暗色

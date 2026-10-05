@@ -1,6 +1,6 @@
 '文档视图状态归属标签记录，正文隐藏时亦然'
 from .....工具.超时 import 等待中止#中止等待
-import threading#后台监视
+from .....基础设施.通用工具 import 启动守护线程
 __all__=['保留文档标签']#仅中文公开名
 
 def 保留文档标签(上下文):
@@ -35,6 +35,6 @@ def 保留文档标签(上下文):
                 '置位后 forget'
                 等待中止(信号)#等置位
                 忘()#忘标签
-            threading.Thread(target=监视,daemon=True).start()#后台监视
+            启动守护线程(监视)#后台监视
 
     return 登记#回调

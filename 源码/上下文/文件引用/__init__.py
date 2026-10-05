@@ -1,6 +1,5 @@
 '宿主侧共享的文件引用发现能力缝'
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .词法 import 光标处活动令牌,格式化文件提及#再导出词法
 from .类型 import 文件引用候选字段#候选字段约定
 

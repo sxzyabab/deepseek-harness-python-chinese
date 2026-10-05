@@ -1,5 +1,6 @@
 '面向模型的前台 Ralph 循环，叠在工作流与子智能体缝上'
 import json#结果与交接 JSON 序列化
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数,截断utf8字节
 from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
 from ...工具.超时 import 已中止#中止入口
@@ -127,18 +128,6 @@ return { status: 'budget-limited', roundsStarted: args.maxRounds, report: previo
     'agentsStarted':{'type':'integer','required':True},#智能体计数
     'result':{'type':'json','required':True},#终态 JSON
 }#推断为只读字段表
-def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字符边界
-    '按 UTF-8 字节上限截断，切点落在字符边界'
-    数据=文本.encode('utf-8')#UTF-8 字节
-    if len(数据)<=最大字节:#未超预算；判 length
-        return 文本#原样
-    切片=数据[:最大字节]#先按字节切开
-    while len(切片)>0 and (切片[-1] & 0xC0)==0x80:#去掉不完整字符的续字节
-        切片=切片[:-1]#回退
-    if len(切片)>0 and (切片[-1] & 0xC0)==0xC0:#去掉不完整的首字节
-        切片=切片[:-1]#回退
-    return 切片.decode('utf-8')#截断文本
-
 def 解析配置(配置值):#即便调用方不经 Loader 归一化就调 apply()，也要校验默认值
     """解析并校验部署配置。
     配置值是 dict。
@@ -230,7 +219,7 @@ def 读报告(值,期望状态,最大字节):#跨提供方边界防御性解码�
         raise 错误('Ralph workflow returned an invalid completion report')#完成报告无效
     if 期望状态=='blocked' and not 归一化文本(报告['blocker']):#阻塞态必须有具体阻塞
         raise 错误('Ralph workflow returned an invalid blocked report')#阻塞报告无效
-    字节数=len(json.dumps(报告,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#序列化 UTF-8 字节
+    字节数=utf8字节数(紧凑json编码(报告))#序列化 UTF-8 字节
     if 字节数>最大字节:#超过交接上限
         raise 错误('Ralph workflow returned an oversized handoff ('+str(字节数)+' > '+str(最大字节)+')')#交接过大
     return 报告#返回已校验报告
@@ -298,13 +287,12 @@ def 停止原因错误(结果):#非干净的工作流结束是错误，绝不是
 
 def 约束结果(文本,最大字节):#约束面向父方的完整文本，含信封与截断标记
     '按 UTF-8 字节上限截断结果文本'
-    标记字节=截断标记.encode('utf-8')#截断标记字节
-    数据=文本.encode('utf-8')#文本字节
-    if len(数据)<=最大字节:#未超限则原样；判 length
+    标记字节数=utf8字节数(截断标记)#截断标记字节
+    if utf8字节数(文本)<=最大字节:#未超限则原样；判 length
         return 文本#原样
-    if 最大字节<=len(标记字节):#上限比标记还短则只留标记前缀
-        return 按utf8字节截断(截断标记,最大字节)#只留标记前缀
-    正文=按utf8字节截断(文本,最大字节-len(标记字节))#正文按剩余预算截
+    if 最大字节<=标记字节数:#上限比标记还短则只留标记前缀
+        return 截断utf8字节(截断标记,最大字节)#只留标记前缀
+    正文=截断utf8字节(文本,最大字节-标记字节数)#正文按剩余预算截
     return 正文+截断标记#截断并附标记
 
 def 渲染结果(结果,最大字节):#渲染固定终态信封，不把自我报告当成认证

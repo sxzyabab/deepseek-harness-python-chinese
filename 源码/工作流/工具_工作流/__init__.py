@@ -1,5 +1,6 @@
 '面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值'
 import json#结果 JSON 渲染
+from ...基础设施.通用工具 import 截断utf8字节,utf8字节数,启动守护线程
 from ...依赖.schemastery import 字符串字段,自然数字段,布尔字段#配置字段
 from .记录 import 创建工作流记录镜像
 
@@ -18,6 +19,10 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
 }#配置模式结束
 
 from .异常 import 工作流工具错误#面向模型的工作流工具失败
+from . import (
+    不变量,
+    类型,
+)
 
 # 脚本编写约定，嵌在工具描述里。这就是面向模型的规格：meta 块、钩子及其精确语义、以及受支持的模式子集。字面量保持原文。
 描述=(#面向模型的工具描述
@@ -38,15 +43,8 @@ def 按utf8字节截断(文本,最大字节):#按 UTF-8 字节截断且切在字
     """按 UTF-8 字节上限截断，切点落在字符边界。
     返回截断后的文本与被丢掉的字节数
     """
-    数据=文本.encode('utf-8')#UTF-8 字节
-    if len(数据)<=最大字节:#未超预算；判 length
-        return 文本,0#原样
-    切片=数据[:最大字节]#先按字节切开
-    while len(切片)>0 and (切片[-1] & 0xC0)==0x80:#去掉不完整字符的续字节
-        切片=切片[:-1]#回退
-    if len(切片)>0 and (切片[-1] & 0xC0)==0xC0:#去掉不完整的首字节
-        切片=切片[:-1]#回退
-    return 切片.decode('utf-8'),len(数据)-len(切片)#截断文本与丢掉的字节数
+    截断文本=截断utf8字节(文本,最大字节)#按字符边界截断
+    return 截断文本,utf8字节数(文本)-utf8字节数(截断文本)#截断文本与丢掉的字节数
 
 def 渲染记录错误(错误):#把记录失败渲染成可记录字符串
     '渲染被收容的记录失败，不信任抛出值'
@@ -232,7 +230,6 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
             '取消后台工作流运行'
             运行.取消(原因 if 原因 is not None else 'background workflow job killed')
         from concurrent.futures import Future as 原生结果
-        from threading import Thread as 工作线程
         结算=原生结果()
         def 盯():
             '后台等待运行结局'
@@ -240,8 +237,7 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
                 结算.set_result(等待结局())
             except BaseException as 错误:
                 结算.set_exception(错误)
-        线=工作线程(target=盯,daemon=True)
-        线.start()
+        启动守护线程(盯)
         class 结局任务:
             '给注册表 .等待 的结局包装'
             def 等待(自身,超时=None):

@@ -1,5 +1,5 @@
 '工作区指令发现与渲染的配置归一化'
-import json,os#序列化身份与相对路径
+from ...基础设施.通用工具 import 紧凑json编码,相对正斜杠路径,已中止
 from ...依赖.schemastery import 字符串字段,数字字段,列表字段
 from ...工具.主目录路径 import 解析主目录#导入harness家目录解析
 from .异常 import 智能体命令错误
@@ -21,32 +21,24 @@ __all__=['配置','解析配置','工作区基线身份','默认项目根标记'
     'localInstructionFileCandidates':列表字段(字符串字段(),默认值=list(默认本地指令文件候选)),#本地覆盖默认
 }#Config校验结束
 
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
-
 def 若已中止则抛出(信号):
     '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号._事件.is_set():#仍活着
+    if not 已中止(信号):#无信号或仍活着
         return#仍活着
-    if 信号._异常 is not None:#有承载异常
-        raise 信号._异常#抛出
+    if 信号.原因 is not None:#有承载异常
+        raise 信号.原因#抛出
     raise 智能体命令错误('aborted')#默认中止
 
 def 工作区基线身份(配置值,工作目录,项目根):#计算工作区基线身份
     '标识一份基线的发现、优先级与预算语义。返回供恢复时兼容检查的稳定序列化身份'
-    return json.dumps({#序列化发现与预算字段
-        'projectRoot':os.path.relpath(项目根,工作目录).replace('\\','/'),#相对cwd的项目根
+    return 紧凑json编码({#序列化发现与预算字段
+        'projectRoot':相对正斜杠路径(项目根,工作目录),#相对cwd的项目根
         'projectRootMarkers':配置值['projectRootMarkers'],#根标记
         'maxBytes':配置值['maxBytes'],#渲染预算
         'maxSourceBytes':配置值['maxSourceBytes'],#单源上限
         'instructionFileCandidates':配置值['instructionFileCandidates'],#基线候选
         'localInstructionFileCandidates':配置值['localInstructionFileCandidates'],#本地覆盖候选
-    },ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑JSON身份
+    })#紧凑JSON身份
 
 def 解析指令文件候选(候选列表,回退):#过滤合法同目录候选名
     '过滤空段、.、..以及含路径分隔符的名字'

@@ -1,5 +1,6 @@
 '面向模型的 PowerShell 消费方'
-import json,math,os#JSON片段、有限数与路径
+import math,os#有限数与路径
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
 from ...模型后端.llm.异常 import 装备错误#Harness错误
@@ -39,7 +40,7 @@ def 校验Pwsh参数(参数):#校验参数值
         raise pwsh工具错误('invalid description: expected a non-empty string')#拒绝空描述
     超时=参数['timeoutMs'] if 'timeoutMs' in 参数 else None#可选超时
     if 超时 is not None and (isinstance(超时,bool) or not isinstance(超时,(int,float)) or not math.isfinite(超时) or 超时<=0):#超时非法
-        raise pwsh工具错误('invalid timeoutMs: expected a positive number, got '+json.dumps(超时,ensure_ascii=False,separators=(',',':'),allow_nan=False))#拒绝非正超时
+        raise pwsh工具错误('invalid timeoutMs: expected a positive number, got '+紧凑json编码(超时))#拒绝非正超时
     校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
 
 def pwsh描述(启用后台,升级模式):#拼工具描述

@@ -1,4 +1,5 @@
 import json
+from ...基础设施.通用工具 import 紧凑json编码
 from ...启动.app启动.配置数据架构.投影器 import 创建配置投影器,装载器表达式数据架构
 from ...启动.app启动.配置数据架构.原生 import 是否原生配置数据架构
 from .异常 import 巡检错误
@@ -79,7 +80,7 @@ def 包目录(上下文,条目):
 
 def 转json(值):
     '投影输出按 JSON 构造'
-    return json.loads(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+    return json.loads(紧凑json编码(值))
 
 def 查询现场配置(上下文,输入=None):
     '回答 Config.listConfigs：一页目录，或一条目的投影模式'
@@ -99,7 +100,7 @@ def 查询现场配置(上下文,输入=None):
             条目=候选
             break
     if 条目 is None:
-        raise 巡检错误('未知条目 id '+json.dumps(查询['entry'],ensure_ascii=False,separators=(',',':'),allow_nan=False))
+        raise 巡检错误('未知条目 id '+紧凑json编码(查询['entry']))
     列出行=dict(目录行(条目))
     列出行.update(包目录(上下文,加载器.解析(查询['entry'])))
     if 'native' not in 条目:

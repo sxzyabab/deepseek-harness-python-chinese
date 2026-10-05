@@ -1,7 +1,15 @@
 '配置档模式生成：组合诊断、运行时解析与无启动发现'
 import json
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ..配置档 import 组合条目,读配置清单,创建配置解析世代
 from .收集 import 收集配置数据架构
+from . import (
+    匹配模式,
+    原生,
+    投影器,
+    文档,
+    类型,
+)
 
 __all__=['生成配置数据架构','跳过的配置组合包']
 
@@ -19,7 +27,7 @@ def 生成配置数据架构(二进制名,配置档,各层,安装锚点):
     for 包名 in 跳过的配置组合包(配置档,清单):
         诊断.append({
             'level':'error',
-            'message':'Selected profile bundle '+json.dumps(包名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' could not be loaded; repair or remove its bundle selection.',
+            'message':'Selected profile bundle '+紧凑json编码(包名)+' could not be loaded; repair or remove its bundle selection.',
         })
     def 记警告(消息):
         '组合警告'

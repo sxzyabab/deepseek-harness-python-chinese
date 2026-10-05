@@ -1,7 +1,12 @@
-import json,os,threading#JSON、路径与定时器
+import os,threading#路径与定时器
+from ...基础设施.通用工具 import 编码sse事件,紧凑json编码,启动守护线程
 from ...依赖.schemastery import 自然数字段#配置字段
 from .事件 import 插件事件帧,事件端点#再导出 SSE 帧、路径
 from .异常 import 热更新错误#本包异常
+from . import (
+    不变量,
+    客户端,
+)
 
 __all__=['名称','依赖','配置','应用','插件事件帧','事件端点','热更新错误']#仅中文公开名
 
@@ -10,10 +15,6 @@ __all__=['名称','依赖','配置','应用','插件事件帧','事件端点','�
 配置={#HMR 可校验配置
     'pollIntervalMs':自然数字段(最小=1,默认值=500),#至少 1 毫秒，默认 500
 }#配置模式结束
-
-def sse数据(帧):
-    '把一帧序列化成 SSE data 行'
-    return 'data: '+json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n\n'#标准 data 行加空行
 
 def 应用(上下文,配置值):
     '挂上开发链：打包产物监视、rebuilt 上报，以及 SSE 通道'
@@ -104,7 +105,7 @@ def 应用(上下文,配置值):
         响应.write(': connected\n\n')#SSE 注释行
         图=上下文.clientModules.graph()#当前整图
         帧={'type':'graph','graph':图}#整图帧
-        响应.write(sse数据(帧))#先推当前整图
+        响应.write(编码sse事件(紧凑json编码(帧)))#先推当前整图
         连接集.add(响应)#登记连接
         def 关闭(_事件=None):
             '关闭时从表删除'
@@ -142,15 +143,14 @@ def 应用(上下文,配置值):
         同步监视()#先对齐已有图
         nonlocal 退订图,轮询线程#写入外层绑定
         退订图=上下文.clientModules.onGraphChanged(同步监视)#图变再对齐
-        轮询线程=threading.Thread(target=监视线程体,daemon=True)#后台轮询
-        轮询线程.start()#启动轮询
+        轮询线程=启动守护线程(监视线程体)#后台轮询
         return 拆除监视#拆除器
     退订图=None#图订阅拆除
     轮询线程=None#轮询线程
     上下文.副作用(监视效应,'client-hmr: bundle watches')#监视生命周期
     def 广播图():
         '图变更时广播 graph 帧'
-        行=sse数据({'type':'graph','graph':上下文.clientModules.graph()})#帧
+        行=编码sse事件(紧凑json编码({'type':'graph','graph':上下文.clientModules.graph()}))#帧
         for 响应 in list(连接集):#写给每个打开的 SSE
             响应.write(行)#写出
 
@@ -164,7 +164,7 @@ def 应用(上下文,配置值):
         })#结束路由注册
         def 广播重建(标识,修订):
             '某行重建时广播 rebuilt 帧'
-            行=sse数据({'type':'rebuilt','id':标识,'rev':修订})#组装 rebuilt 帧
+            行=编码sse事件(紧凑json编码({'type':'rebuilt','id':标识,'rev':修订}))#组装 rebuilt 帧
             for 响应 in list(连接集):#写给每个打开的 SSE
                 响应.write(行)#写出
         退订图广播=上下文.clientModules.onGraphChanged(广播图)#图变广播

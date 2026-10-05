@@ -1,6 +1,5 @@
 import weakref#按会话弱引用缓存单元
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#框架 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...模型后端.llm import 结构化克隆#深拷贝检查点行
 from .异常 import 会话投影错误#本包异常
 

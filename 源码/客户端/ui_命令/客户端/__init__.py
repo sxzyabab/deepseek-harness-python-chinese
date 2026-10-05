@@ -4,6 +4,11 @@ from .约定 import (#再导出约定形
 )#约定结束
 from .文案 import 中文,英文#中英文案
 from .服务 import 命令UI运行时#运行时
+from . import (
+    呈现,
+    目录,
+    解析,
+)
 
 __all__=[#仅中文公开名
     '依赖','应用',

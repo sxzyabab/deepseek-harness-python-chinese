@@ -1,5 +1,6 @@
 '可选加入的请求准备 tmux 位置上下文'
-import json,os,time#JSON引号、本进程pid与纪元毫秒
+import os#本进程pid
+from ...基础设施.通用工具 import 当前毫秒,紧凑json编码,已中止
 from ...依赖.schemastery import 数字字段
 from ...模型后端.llm import 创建用户消息#构造插件来源的用户消息
 
@@ -28,13 +29,7 @@ tmux字段表=(#display-message -p 字段，按查询顺序；有意排除窗格
 
 def 编码(值):
     '诊断用紧凑 JSON'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
-
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
+    return 紧凑json编码(值)#JSON
 
 def 查询tmux位置(外壳,日志器,进程号,信号):
     '经 bash seam 读本进程的 tmux 位置；本进程并非真正跑在 tmux 窗格里或查询失败时为 None。单凭 $TMUX_PANE 不够：继承环境会读成「不在 tmux」。执行器拒绝是查询失败，不是回合失败'
@@ -147,7 +142,7 @@ def 应用(上下文,配置值=None):
         智能体=载荷['agent']#本步智能体
         先前=上下文.sessionProjections.状态(智能体.session,'tmuxContext')
         if 刷新间隔毫秒 is not None and 刷新间隔毫秒>0 and 先前 is not None:#有下限且已注入过
-            现在=int(time.time()*1000)#当前时刻毫秒
+            现在=当前毫秒()#当前时刻毫秒
             if 现在>=先前['time'] and 现在-先前['time']<刷新间隔毫秒:#未到下限则跳过
                 return 决策#原样返回
         位置=查询tmux位置(外壳,上下文.日志,取进程号(),载荷['signal'] if 'signal' in 载荷 else None)#查询位置

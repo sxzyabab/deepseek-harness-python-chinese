@@ -1,8 +1,7 @@
 'web 访问服务：搜索与抓取注册表，及按提供方选择的执行'
 import os
 from ...依赖.schemastery import 字符串字段
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from .异常 import 网络错误#带机器可路由开放字符串code与链式cause的类型化web错误
 from .类型 import (
     网络搜索请求字段,

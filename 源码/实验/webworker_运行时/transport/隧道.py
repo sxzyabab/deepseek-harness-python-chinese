@@ -1,5 +1,6 @@
 from ..异常 import 运行时错误#本包错误
 import json as _json#序列化boot载荷
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
 from urllib.parse import urlparse as 解析网址#解析请求URL
 from .帧 import 解析入站帧#帧解析
 from .合成http import 创建合成交换#合成HTTP
@@ -274,7 +275,7 @@ class 隧道服务器:#隧道服务器
         if 帧['method']!='GET':#仅GET
             汇['end']({'status':405,'headers':{'allow':'GET'}})#方法不允许
             return
-        正文=_json.dumps(自身._缝合['bootPayload'](),ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#序列化载荷
+        正文=紧凑json编码(自身._缝合['bootPayload']()).encode('utf-8')#序列化载荷
         汇['end']({'status':200,'headers':{'content-type':'application/json; charset=utf-8','cache-control':'no-store'},'body':正文})#200应答
 
     def _服务api(自身,原始,路径化,路径,汇):#服务API

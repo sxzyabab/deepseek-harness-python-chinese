@@ -1,5 +1,6 @@
 '把已发布 v0 提升为已发布 v1 的身份格式边'
 import json#诊断序列化
+from ...基础设施.通用工具 import 紧凑json编码
 from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
 from ..会话格式 import (#从会话格式导入
     定义会话格式迁移,#定义迁移
@@ -110,7 +111,7 @@ def 规范化遗留重试(事件,会话id,重试id映射):#规范化遗留重试
     if 事件['type']!='llm/retry':#非该类型原样
         return 事件#原样
     数据=已发布v0记录(事件['data'],f"llm/retry {事件['seq']} data")#data
-    链键='\0'.join(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 值 in [数据['turn'],数据['step'],数据['provider'],数据['policyKey']])#链键
+    链键='\0'.join(紧凑json编码(值) for 值 in [数据['turn'],数据['step'],数据['provider'],数据['policyKey']])#链键
     重试id=数据.get('retryId')#重试id
     if isinstance(重试id,str) and len(重试id)>0:#已有id
         重试id映射[链键]=重试id#记入

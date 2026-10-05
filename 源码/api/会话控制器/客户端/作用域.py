@@ -1,6 +1,5 @@
 'Client Agent 作用域原语：铸造带所属 Agent 身份标签的 Cordis 上下文'
-from ....依赖 import cordis#Cordis
-上下文类=cordis.上下文#上下文类
+from ....依赖.cordis.上下文 import 上下文 as 上下文类#上下文类
 
 __all__=['创建作用域','作用域标签','作用域身份']#仅中文公开名
 

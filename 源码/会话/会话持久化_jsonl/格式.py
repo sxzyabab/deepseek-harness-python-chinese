@@ -1,5 +1,6 @@
 'JSONL 会话持久化后端的磁盘格式辅助'
 import json,os,re#JSON、路径与正则
+from ...基础设施.通用工具 import 紧凑json编码
 from ...内核.会话 import 会话格式版本,已知会话事件类型#本构建格式版本与已知类型
 from ..会话格式.异常 import 会话格式不支持迁移错误#不支持迁移
 from ..会话格式 import (#从会话格式导入
@@ -155,7 +156,7 @@ def 日志路径(根,头,压缩=None):#当前代次日志路径
 
 def 事件行(事件):#单事件行
     '把一条当代事件序列化为一条无尾随换行的 JSONL 记录'
-    return json.dumps(会话格式目录.编码当代事件(事件),ensure_ascii=False,separators=(',',':'),allow_nan=False)#经目录编码后序列化
+    return 紧凑json编码(会话格式目录.编码当代事件(事件))#经目录编码后序列化
 
 def 事件行文本(事件列表):#事件行文本
     '把一批事件序列化为 JSONL 行（无尾随换行）'

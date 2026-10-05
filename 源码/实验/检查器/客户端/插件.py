@@ -26,8 +26,10 @@ def 拆除检查器客户端(源,清理列表):#拆除Client检查器
 
 def 应用(上下文):#应用Client插件
     '挂载 Client source 与共享的 ctx.inspector 发布 API'
-    import builtins as 内建#全局命名空间
-    依赖值=getattr(内建,'__DSH_INSPECTOR__',None)
+    try:#宿主引导
+        依赖值=__DSH_INSPECTOR__#引导
+    except NameError:#未注入
+        依赖值=None#无
     if 依赖值 is None:
         raise 检查器错误('实验性检查器：缺少 Host 引导')
     引导=解析检查器客户端引导(依赖值)

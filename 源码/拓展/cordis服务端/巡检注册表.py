@@ -2,6 +2,7 @@
 import threading
 from ...依赖.cordis import 服务
 from ...工具.超时 import 已中止,若已中止则抛出
+from ...基础设施.通用工具 import 启动守护线程
 from ...内核.会话 import 快照json值
 from ...内核.工具 import 断言受支持json模式,校验json模式值
 from .异常 import 动态cordis错误
@@ -213,8 +214,7 @@ class 巡检注册表服务(服务):
                     取消()
                     return
                 停止.wait(0.05)
-        监视=threading.Thread(target=看中止,daemon=True)
-        监视.start()
+        启动守护线程(看中止)
         try:
             if 已中止(信号):
                 取消()

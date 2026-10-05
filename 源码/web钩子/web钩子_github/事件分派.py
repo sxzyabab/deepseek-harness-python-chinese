@@ -1,5 +1,6 @@
 'GitHub HTTP 鉴权、解析与即发即弃分发'
-import hashlib,hmac,json,time#签名、JSON 与时间
+import hashlib,hmac,json#签名与 JSON
+from ...基础设施.通用工具.时间工具 import 当前毫秒
 from ...工具.值 import 快照json值#无损 JSON 快照
 from ..web钩子.标识构造 import Webhook来源标识,Webhook投递标识
 from ..web钩子.异常 import Webhook错误#运行时失败
@@ -103,7 +104,7 @@ def 创建GitHubWebhook事件分派(上下文,配置):
                 'source':Webhook来源标识(配置['source']),
                 'deliveryId':Webhook投递标识(投递号),
                 'event':{'name':事件名,'payload':载荷},
-                'receivedAt':int(time.time()*1000),#纪元毫秒
+                'receivedAt':当前毫秒(),#纪元毫秒
             }
             try:
                 上下文.webhookRuntime.dispatch(投递)#即发即弃，不等规则返回

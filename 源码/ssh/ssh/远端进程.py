@@ -206,7 +206,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
         '所有数据通道认证后启动；关闭中则拒绝'
         for 端点 in 记录['endpoints'].values():#逐路
             端点['connected'].等待()#等认证
-        记录['expiry'].cancel()准备超时
+        记录['expiry'].cancel()#准备超时
         if 自身._关闭中:#关闭中
             raise ssh错误('SSH helper is closing')#拒绝
         若已中止则抛出(记录['controller'].信号)#中止
@@ -534,7 +534,7 @@ class 远端进程:#拥有远端启动预留直到进程范围静止
 
     def _释放体(自身,标识,记录):#一次释放
         '清超时、中止、关端点、停进程、删目录'
-        记录['expiry'].cancel()超时
+        记录['expiry'].cancel()#超时
         记录['controller'].中止(ssh错误('SSH process reservation closed'))#中止
         if 记录['preparing'] is not None:#准备中
             try:#等

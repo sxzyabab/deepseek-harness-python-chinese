@@ -1,5 +1,6 @@
 '经 Perplexity 的 OpenAI 兼容 chat-completions 端点做搜索'
 import json,threading#JSON编解码与中止监视线程
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from json import JSONDecodeError as JSON解码错误#线协议 JSON 解析失败
 from http.client import HTTPSConnection as 安全连接,HTTPConnection as 明文连接,HTTPException as HTTP异常#HTTP客户端
 from urllib.parse import urlparse as 解析网址#拆基址
@@ -106,7 +107,7 @@ class Perplexity搜索提供方:#Perplexity 支持的搜索提供方；HTTP 重�
             体['search_recency_filter']=自身.选项['searchRecency']#发给 Perplexity
         网址=自身.选项['baseURL'].rstrip('/')+'/chat/completions'#拼 /chat/completions
         解析=解析网址(网址)#拆主机路径
-        载荷=json.dumps(体,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#锁三参数
+        载荷=紧凑json编码(体).encode('utf-8')#锁三参数
         头={#请求头
             'authorization':'Bearer '+自身.选项['apiKey'],#Bearer 密钥
             'content-type':'application/json',#JSON 体

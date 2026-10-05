@@ -1,6 +1,6 @@
-import hashlib,os,sys,threading,uuid#摘要、路径、平台、租期与流 id
+import os,sys,threading,uuid#路径、平台、租期与流 id
 import tempfile,shutil#临时根与删除
-from ...依赖 import cordis#上下文
+from ...依赖.cordis.上下文 import 上下文 as 新建上下文#根上下文
 from ...依赖.工具 import 二进制#base64
 from ...文件系统.文件系统.异常 import 文件系统错误#整文超限
 from ...文件系统.文件系统沙盒 import 沙箱文件系统#沙箱 fs
@@ -10,6 +10,8 @@ from ...沙盒.本地沙盒 import 本地沙箱提供方#本地沙箱
 from ...沙盒.沙盒策略 import 沙箱政策服务#政策
 from ...会话.会话投影 import 会话投影注册表#投影
 from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号#中止
+from ...基础设施.通用工具.序列化编码 import 摘要十六进制
+from ...基础设施.通用工具.文本工具 import 路径转正斜杠
 from .异常 import ssh错误,远程操作错误#本包基类与带码远端错误
 from .协议 import ssh请求对等,ssh进程句柄上限,ssh文本流上限,ssh协议版本#对等
 from .远端进程 import 远端进程#进程表
@@ -49,7 +51,7 @@ def 文本流标识请求(值):#{id}
 
 def 装服务():#本地提供方
     '挂投影、政策、沙箱 fs、本地进程与本地沙箱'
-    上下文=cordis.上下文()#根
+    上下文=新建上下文()#根
     纤程表=[]#拆除序
     def 挂(插件,配置=None):#启动并等待
         '启动插件并记下纤程'
@@ -147,6 +149,7 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
 
     def 处理(方法,原始,请求信号):#入站
         'hello 之后的私有操作'
+        nonlocal 工作区,租期毫秒,已握手#改
         信号=合成信号(请求信号,寿命.信号)#融合
         if 方法=='hello':#握手
             if 已握手:#重复
@@ -162,7 +165,6 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             引导=原始.get('bootstrapPath')#可选引导
             if 引导 is not None:#有
                 远端路径(引导)#路径
-            nonlocal 工作区,租期毫秒,已握手#改
             工作区=上下文.fs.进程路径(上下文.fs.解析(工作区路径,{'signal':信号}))#规范化
             租期毫秒=租#记下
             已握手=True#完成
@@ -170,15 +172,15 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             入口字节=open(传输['entryPath'],'rb').read()#入口
             结果={
                 'protocol':ssh协议版本,#版本
-                'hash':hashlib.sha256(入口字节).hexdigest(),#摘要
+                'hash':摘要十六进制(入口字节),#摘要
                 'platform':'linux' if 平台=='linux' or 平台.startswith('linux') else 'darwin',#平台
                 'nodeVersion':sys.version.split()[0],#解释器版本
-                'node':sys.executable.replace('\\','/') if not sys.executable.startswith('/') else sys.executable,#可执行
+                'node':路径转正斜杠(sys.executable) if not sys.executable.startswith('/') else sys.executable,#可执行
                 'root':根,#套接字根
                 'workspace':工作区,#工作区
             }#握手
             if 引导 is not None:#有引导
-                结果['bootstrapHash']=hashlib.sha256(open(引导,'rb').read()).hexdigest()#引导摘要
+                结果['bootstrapHash']=摘要十六进制(open(引导,'rb').read())#引导摘要
             return 结果#hello
         if (not 已握手) or 清理任务['值'] is not None:#未握手或关闭中
             raise ssh错误('SSH helper is not accepting operations')#拒绝

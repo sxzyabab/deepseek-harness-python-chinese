@@ -1,5 +1,5 @@
 import threading
-from ...基础设施.通用工具 import 获取内部数据
+from ...基础设施.通用工具 import 获取内部数据,启动守护线程
 from .模式 import 设置模式服务
 from .设置镜像 import 设置描述镜像
 from .配置表单 import 配置表单集
@@ -20,12 +20,12 @@ def 应用(上下文):
         '订两路失效并确保首读'
         def 重载():
             '文档更新或重连时后台重读'
-            threading.Thread(target=镜像.加载,daemon=True).start()
+            启动守护线程(镜像.加载)
         拆表=[
             获取内部数据(上下文.remote,'on')('settings/document-updated',重载),
             上下文.监听('connection/reset',重载),
         ]
-        threading.Thread(target=镜像.确保,daemon=True).start()
+        启动守护线程(镜像.确保)
         def 拆除():
             '取消订阅'
             for 拆 in 拆表:

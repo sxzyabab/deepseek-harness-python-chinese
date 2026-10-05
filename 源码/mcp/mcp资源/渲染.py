@@ -1,4 +1,4 @@
-import json#紧凑 JSON
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 
 __all__=['渲染资源结果']
 
@@ -18,5 +18,5 @@ def 替换二进制(值):#把 blob 字符串换成说明
 
 def 渲染资源结果(服务器,值):#给模型看的文本块
     '渲染资源 JSON，原始二进制只留给程序化调用方'
-    渲染=json.dumps(替换二进制(值),ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    渲染=紧凑json编码(替换二进制(值))
     return [{'type':'text','text':'MCP server: '+服务器+'\n'+渲染}]

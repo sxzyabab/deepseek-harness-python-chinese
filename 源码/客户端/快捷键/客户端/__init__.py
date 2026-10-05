@@ -1,5 +1,4 @@
 '浏览器命令服务；每个插件寿命一个键盘适配器'
-import builtins#页面全局
 from ....依赖.cordis.服务 import 服务#服务基类
 from ..协议 import (#协议
     绑定问题,
@@ -12,6 +11,9 @@ from .注册表 import 快捷键注册表#注册表
 from .dom import 探测环境,安装键盘#DOM
 from .存储 import Web快捷键存储,桌面快捷键存储#存储
 from .原生 import 安装原生键盘#原生
+from . import (
+    类型,
+)
 
 __all__=[#仅中文公开名
     '依赖','快捷键服务',
@@ -25,9 +27,9 @@ class 快捷键服务(服务):
 
     def __init__(自身,上下文):
         '探测环境、挂注册表与适配器'
-        文档=builtins.document#文档
-        导航=builtins.navigator#导航
-        窗口=builtins.window#窗口
+        文档=document#文档
+        导航=navigator#导航
+        窗口=window#窗口
         环境=探测环境(文档,导航)#环境
         键盘=None#原生键盘桥
         if 环境['runtime']=='desktop':#桌面
@@ -39,7 +41,10 @@ class 快捷键服务(服务):
         自身.keyboard=键盘#桥
         自身.runtime=环境['runtime']#壳
         自身.platform=环境['platform']#平台
-        注入=getattr(builtins,'__DSH_SHORTCUTS_CONFIG__',None)#Host 注入
+        try:#宿主注入
+            注入=__DSH_SHORTCUTS_CONFIG__#Host 注入
+        except NameError:#未注入
+            注入=None#无
         表={} if 注入 is None else dict(注入)#表
         if 'stopSequenceMs' in 表 and 表['stopSequenceMs'] is not None:#有显式
             自身.stopSequenceMs=表['stopSequenceMs']#采用

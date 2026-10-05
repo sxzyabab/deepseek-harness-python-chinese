@@ -1,9 +1,12 @@
 '授权能力缝（`ctx.authorization`）服务定义'
 import threading#中止信号
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
-服务=cordis.服务#服务基类
 from .异常 import 授权错误,授权拒绝错误#授权失败与人类拒绝
+from . import (
+    不变量,
+    类型,
+)
 
 __all__=[#仅中文公开名
     '授权错误','授权拒绝错误','授权服务','默认','信号已中止',

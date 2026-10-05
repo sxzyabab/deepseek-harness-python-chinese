@@ -1,5 +1,6 @@
 from .消息铬 import 格式化延迟秒,格式化消息时钟,格式化运行时长,格式化每秒令牌,本地日起点,距下一本地午夜毫秒#时钟辅助
-import time as 时间模块,threading#墙钟与后台观察
+import time as 时间模块#墙钟
+from ....基础设施.通用工具 import 启动守护线程
 
 __all__=['消息图标动作','日历日']#仅中文公开名
 
@@ -49,7 +50,7 @@ class 消息图标动作:
                 成功=结果.等待() is True#结算
             finally:#无论成败
                 完成(成功)#收尾
-        threading.Thread(target=观察,daemon=True).start()#挂观察
+        启动守护线程(观察)#挂观察
 
     def 清除复制铬(自身):
         '1s 窗后调用'

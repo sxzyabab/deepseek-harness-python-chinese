@@ -1,7 +1,7 @@
 '客户端会话：事件窗口、生命周期与可观察快照'
 import base64#附件解码
 import threading#帧调度
-import time#挂钟
+from ....基础设施.通用工具 import 当前毫秒,启动守护线程
 import uuid#请求 id
 from ..异常 import 远程错误#本包异常
 from .传输 import 会话事件流#事件流
@@ -119,7 +119,7 @@ class 会话:
         自身._待定提交=自身._待定提交+({
             'requestId':请求标识,
             'placement':放置,
-            'time':int(time.time()*1000),
+            'time':当前毫秒(),
             'text':输入['text'],
             'attachments':list(输入['attachments']) if 'attachments' in 输入 else [],
         },)#追加
@@ -239,7 +239,7 @@ class 会话:
             finally:
                 if 自身._打开承诺 is 任务:#仍是本承诺
                     自身._打开承诺=None
-        threading.Thread(target=后台打开,daemon=True).start()#后台
+        启动守护线程(后台打开)#后台
         任务.等待()#同步等待（对齐阻塞切片）
 
     def loadOlder(自身):
@@ -298,7 +298,7 @@ class 会话:
                 自身._加载更早=False
                 自身._通知器.标脏()#脏
                 任务.兑现(None)#完成
-        threading.Thread(target=后台跳转,daemon=True).start()#后台
+        启动守护线程(后台跳转)#后台
         任务.等待()#等
 
     def resync(自身):

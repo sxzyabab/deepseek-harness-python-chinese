@@ -1,5 +1,6 @@
 import json,os,secrets,sys,threading,time
 import requests
+from ...基础设施.通用工具.时间工具 import 当前毫秒
 from ...工具.超时 import 中止控制器,合成信号,截止,若已中止则抛出,已中止
 from .异常 import 语音输入错误,语音下载错误
 from .运行时准备 import 检查运行时,准备运行时
@@ -116,7 +117,7 @@ class sensevoice工作者:
                     if 项['status']=='running':
                         新.append(项)
                     else:
-                        新.append({'kind':项['kind'],'status':'running','startedAt':int(time.time()*1000)})
+                        新.append({'kind':项['kind'],'status':'running','startedAt':当前毫秒()})
                     continue
                 if 项['status']!='running':
                     新.append(项)
@@ -148,7 +149,7 @@ class sensevoice工作者:
         def 跑(信号):
             '检查'
             句柄=截止(信号,自身.配置['prepareTimeoutMs'],'SPEECH_PREPARE_TIMEOUT')
-            自身.发布({'phase':'checking','step':'check','startedAt':int(time.time()*1000)})
+            自身.发布({'phase':'checking','step':'check','startedAt':当前毫秒()})
             运行时=检查运行时(自身.配置,句柄.信号)
             若已中止则抛出(句柄.信号)
             自身.运行时=运行时
@@ -208,7 +209,7 @@ class sensevoice工作者:
         if 任务 is None:
             return
         if not 任务['completed']:
-            自身.发布({'phase':'cancelling','startedAt':int(time.time()*1000)})
+            自身.发布({'phase':'cancelling','startedAt':当前毫秒()})
             任务['abort'].中止(RuntimeError('Speech preparation cancelled'))
         任务['settled'].wait()
 
@@ -255,11 +256,11 @@ class sensevoice工作者:
         句柄=截止(信号,自身.配置['prepareTimeoutMs'],'SPEECH_PREPARE_TIMEOUT')
         已缓存=自身.运行时 is not None
         if not 已缓存:
-            自身.发布({'phase':'checking','step':'check','startedAt':int(time.time()*1000)})
+            自身.发布({'phase':'checking','step':'check','startedAt':当前毫秒()})
         运行时=自身.运行时 or 准备运行时(自身.上下文,准备配置,句柄.信号,自身.发布)
         自身.运行时=运行时
         若已中止则抛出(句柄.信号)
-        自身.发布({'phase':'waking' if 已缓存 else 'loading','step':'load','startedAt':int(time.time()*1000)})
+        自身.发布({'phase':'waking' if 已缓存 else 'loading','step':'load','startedAt':当前毫秒()})
         os.makedirs(自身.配置['dataRoot'],exist_ok=True)
         令牌=secrets.token_hex(32)
         载荷={**自身.配置,**运行时}

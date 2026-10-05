@@ -3,6 +3,9 @@ from ...依赖.cordis.服务 import 服务
 from ...依赖.schemastery import 字符串字段,字典字段
 from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出,已中止,等待中止
 from .类型 import 语音提供方标识
+from . import (
+    波形,
+)
 
 __all__=['应用','配置','语音转写','依赖']
 

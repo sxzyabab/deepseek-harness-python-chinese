@@ -9,7 +9,17 @@ from .模型选择投影 import 安装模型选择投影
 from .文件引用 import 会话文件引用
 from .媒体引用 import 会话媒体引用
 from .技能目录 import 会话技能目录
-from . import 已归档会话闸门
+from . import (
+    已归档会话闸门,
+    命令,
+    历史,
+    列表,
+    智能体,
+    控制,
+    助手流,
+    远程,
+    客户端,
+)
 from .远程错误与并发 import 已中止,在线程执行#中止与并发
 from .异常 import 远程错误#本包异常
 

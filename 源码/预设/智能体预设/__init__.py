@@ -1,5 +1,8 @@
 from ...依赖.schemastery import 字符串字段,数字字段,列表字段,任意字段
 from ...依赖.loader.插件组 import 标记为组插件
+from . import (
+    远程,
+)
 
 配置={
     'id':字符串字段(可空=False),

@@ -1,5 +1,6 @@
 '持久目标变更的纯回放折叠与严格解码器'
-import json,math,re#JSON 片段、安全整数、阻塞码正则
+import math,re#安全整数、阻塞码正则
+from ...基础设施.通用工具 import 紧凑json编码
 
 from .运行时 import 目标变更版本,目标标识#载荷版本与目标 id 品牌
 from .异常 import 目标折叠错误
@@ -188,7 +189,7 @@ def 校验快照迁移(状态,变更,当前):
     if 操作=='edit':#编辑只改定义
         当前原因=当前['blockedReason'] if 'blockedReason' in 当前 else None#当前阻塞原因
         下一原因=下一['blockedReason'] if 'blockedReason' in 下一 else None#下一阻塞原因
-        if 下一['phase']!=当前['phase'] or json.dumps(下一原因,ensure_ascii=False,separators=(',',':'),allow_nan=False)!=json.dumps(当前原因,ensure_ascii=False,separators=(',',':'),allow_nan=False):#阶段或原因被改
+        if 下一['phase']!=当前['phase'] or 紧凑json编码(下一原因)!=紧凑json编码(当前原因):#阶段或原因被改
             raise 目标折叠错误('goal edit cannot change phase or blocked reason')#编辑越权
         return edit
     if 操作=='pause':#暂停

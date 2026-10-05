@@ -1,4 +1,5 @@
-import json,threading,uuid#JSON、中止与随机 id
+import threading,uuid#中止与随机 id
+from ...基础设施.通用工具 import 紧凑json编码
 
 __all__=['拒绝网页套接字升级','网页套接字下行']#仅中文公开名
 
@@ -93,7 +94,7 @@ class 网页套接字下行:#mux 与 host 两条下行
                         'method':帧['payload']['type'] if 'payload' in 帧 and 帧['payload'] is not None and 'type' in 帧['payload'] else None,#以载荷 type 当方法名
                         'payload':帧['payload'] if 'payload' in 帧 else 帧,#事件载荷
                     }#结束信封
-                    文本=json.dumps(信封,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON 文本
+                    文本=紧凑json编码(信封)#JSON 文本
                     if hasattr(套接字,'send'):#ws 形
                         套接字.send(文本)#写出
                     elif hasattr(套接字,'write'):#流形

@@ -1,6 +1,7 @@
 'DeepSeek Files API 上传复用、作废与配额恢复'
-import threading,time
+import threading
 from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
+from ...基础设施.通用工具.时间工具 import 当前毫秒
 from .文件接口 import 深求文件客户端,是否文件配额错误
 from .消息接口 import 消息接口根
 from .上传索引 import 深求文件作用域摘要,深求上传索引
@@ -38,7 +39,7 @@ class 深求文件仓:
         if 选项 is None:
             选项={}
         自身.索引=选项['index'] if 'index' in 选项 else 深求上传索引()
-        自身.现在=选项['now'] if 'now' in 选项 else (lambda:int(time.time()*1000))
+        自身.现在=选项['now'] if 'now' in 选项 else 当前毫秒
         自身.发=选项.get('fetch')
         自身.锁=threading.Lock()
 

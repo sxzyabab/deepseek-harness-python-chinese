@@ -1,5 +1,6 @@
 '强制的原生 V4 关系；不完整尾部保留其开放事务'
-import json,re#重试键与未启动标识后缀
+import re#未启动标识后缀
+from ...基础设施.通用工具 import 紧凑json编码
 from ..会话格式.异常 import 会话格式错误#格式错误
 from ..会话格式 import 是否会话格式json对象,会话格式计数#从会话格式导入
 
@@ -210,7 +211,7 @@ class 关系状态:#关系状态
                 raise 会话格式错误('llm/retry-started pairs no prior scheduled attempt')#错误
             if 已调度.get('turn')!=数据.get('turn') or 已调度.get('step')!=数据.get('step'):#坐标变了
                 raise 会话格式错误('llm/retry-started changes scheduled coordinates')#错误
-            键=json.dumps([标识,次数],ensure_ascii=False,separators=(',',':'),allow_nan=False)#键
+            键=紧凑json编码([标识,次数])#键
             if 键 in 自身.已启动重试:#重复
                 raise 会话格式错误('llm/retry-started repeats one scheduled attempt')#错误
             自身.已启动重试.add(键)#记入

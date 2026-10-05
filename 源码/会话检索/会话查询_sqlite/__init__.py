@@ -1,8 +1,8 @@
 '在优先活会话语料上用 SQLite FTS5 做全文检索的具体会话检索服务'
-import base64,hashlib,json,threading,uuid#编码、哈希、JSON、并发与实例 id
-from ...依赖 import cordis#框架
+import hashlib,json,threading,uuid#哈希、JSON、并发与实例 id
+from ...基础设施.通用工具 import 紧凑json编码,字节转base64url,base64url转字节,utf8字节数
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 字典字段,字符串字段,枚举字段,整数字段#配置
-服务=cordis.服务#框架服务基类
 from ...模型后端.llm import 结构化克隆#拆离克隆
 from ..会话查询.异常 import 会话查询错误#检索错误
 from ..会话查询 import (
@@ -23,6 +23,9 @@ from .查询 import (
     引用Fts数据,清洗Fts文本,请求指纹,生成摘要,
 )#query
 from ..会话查询.配置 import 已中止,若已中止则抛出#中止
+from . import (
+    异常,
+)
 
 包名='@deepseek-ai/dsh-session-query-sqlite'
 名称='session-query-sqlite'
@@ -129,9 +132,9 @@ def 观察会话(头,继承事件数,事件列表):#观察一条会话
     分离头=结构化克隆(头)#拆离头
     分离事件=[结构化克隆(事件) for 事件 in 事件列表]#拆离事件
     文档列表=构建会话事件搜索文档(分离头['id'],分离事件)#建文档
-    指纹=base64.urlsafe_b64encode(hashlib.sha256(json.dumps(
-        {'header':分离头,'inheritedEventCount':继承事件数,'events':分离事件},ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True).encode('utf-8'),
-    ).digest()).decode('ascii').rstrip('=')#指纹
+    指纹=字节转base64url(hashlib.sha256(紧凑json编码(
+        {'header':分离头,'inheritedEventCount':继承事件数,'events':分离事件},排序键=True).encode('utf-8'),
+    ).digest())#指纹
     return {'header':分离头,'inheritedEventCount':继承事件数,'documents':文档列表,'fingerprint':指纹}#观察
 
 def 观察活会话(会话):#观察活会话
@@ -197,14 +200,13 @@ def 分页(行列表,限制,转换,下一游标,偏移):#分页包装
 
 def 编码游标(载荷):#编码游标
     '编码不透明游标'
-    文本=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#JSON
-    return 会话搜索游标(base64.urlsafe_b64encode(文本.encode('utf-8')).decode('ascii').rstrip('='))#base64url
+    文本=紧凑json编码(载荷,排序键=True)#JSON
+    return 会话搜索游标(字节转base64url(文本.encode('utf-8')))#base64url
 
 def 解码游标(游标,实例,范围,指纹,世代,偏移期望=None):#解码游标
     '解码并校验游标'
     try:#解析
-        填充=游标+'='*((4-len(游标)%4)%4)#补齐
-        载荷=json.loads(base64.urlsafe_b64decode(填充.encode('ascii')).decode('utf-8'))#解码
+        载荷=json.loads(base64url转字节(游标).decode('utf-8'))#解码
     except BaseException as 错误:#坏游标
         raise 非法游标(错误)#拒绝
     if (
@@ -282,7 +284,7 @@ def 选中文档参数(查询,持久可见):#FTS 绑定参数
     '选中文档绑定参数'
     表达式=引用Fts数据(查询)#短语
     可见=1 if 持久可见 else 0#可见标志
-    标记字节=len(FTS高亮开始.encode('utf-8'))#标记字节长
+    标记字节=utf8字节数(FTS高亮开始)#标记字节长
     return [
         FTS高亮开始,FTS高亮结束,表达式,可见,可见,
         FTS高亮开始,FTS高亮结束,表达式,
@@ -473,7 +475,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             插入.execute(
                 'INSERT INTO persisted_docs (text, session_id, seq, type, time, surface, codepoint_length) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (文本,文档['sessionId'],文档['seq'],文档['type'],
-                 文档['time'],文档['surface'],len(文本.encode('utf-8'))),
+                 文档['time'],文档['surface'],utf8字节数(文本)),
             )#插入
         库.commit()#提交
 
@@ -492,7 +494,7 @@ class Sqlite会话查询引擎(会话查询引擎):#SQLite FTS5 检索实现
             插入.execute(
                 'INSERT INTO temp.live_docs (text, session_id, seq, type, time, surface, codepoint_length) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (文本,文档['sessionId'],文档['seq'],文档['type'],
-                 文档['time'],文档['surface'],len(文本.encode('utf-8'))),
+                 文档['time'],文档['surface'],utf8字节数(文本)),
             )#插入
         库.commit()#提交
 

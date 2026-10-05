@@ -1,4 +1,4 @@
-import json,math
+from ...基础设施.通用工具 import 是否有限json数字,紧凑json编码
 from ...模型后端.llm import 断言永不#穷尽检查
 from ..会话 import 是否json值#无损JSON判定
 from ..会话.json值 import 是否普通对象,是否普通数组#普通记录与数组
@@ -35,24 +35,14 @@ def 是否普通json数组(值):
         return False#JSON 会丢掉的额外键
     return True#稠密普通数组
 
-def 是JSON数字(值):
-    '无损有限 JSON 数字，排除负零'
-    if isinstance(值,bool):
-        return False#布尔不是数字
-    if isinstance(值,int):
-        return True#整数有限
-    if isinstance(值,float):
-        return math.isfinite(值) and not (值==0 and math.copysign(1,值)<0)#有限且非-0
-    return False#其它类型
-
 def 标量匹配(类型名,值):
     '标量是否匹配所声明的模式类型'
     if 类型名=='string':
         return isinstance(值,str)#字符串
     if 类型名=='number':
-        return 是JSON数字(值)#有限JSON数字
+        return 是否有限json数字(值)#有限JSON数字
     if 类型名=='integer':
-        return 是JSON数字(值) and 值==int(值)#整数
+        return 是否有限json数字(值) and 值==int(值)#整数
     if 类型名=='boolean':
         return isinstance(值,bool)#布尔
     if 类型名=='null':
@@ -349,12 +339,12 @@ def 检查值(模式,值,路径):
             elif 节点类型=='number':
                 if not isinstance(帧['值'],(int,float)) or isinstance(帧['值'],bool):
                     结束(['"'+诊断路径(帧['路径'])+'" must be a number'])#必须是数字
-                elif not 是JSON数字(帧['值']):
+                elif not 是否有限json数字(帧['值']):
                     结束(['"'+诊断路径(帧['路径'])+'" must be a finite JSON number'])#必须是有限JSON数字
                 else:
                     结束(检查标量值(帧['节点'],帧['值'],帧['路径']))#再查enum/const
             elif 节点类型=='integer':
-                if not 是JSON数字(帧['值']) or 帧['值']!=int(帧['值']):
+                if not 是否有限json数字(帧['值']) or 帧['值']!=int(帧['值']):
                     结束(['"'+诊断路径(帧['路径'])+'" must be an integer'])#必须是整数
                 else:
                     结束(检查标量值(帧['节点'],帧['值'],帧['路径']))#再查enum/const
@@ -379,5 +369,5 @@ def 校验json模式值(模式,值,路径='value'):
 
 def 转json(值):
     '把值编成紧凑 JSON 文本'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
+    return 紧凑json编码(值)#紧凑 JSON
 

@@ -1,6 +1,5 @@
 import re,weakref#段名校验与原型标记弱表
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 
 from .类型 import *#协议类型锚点
 from .远程制品 import 透传模式,严格编解码,调用描述符,远程贡献,取远程错误#手写 Remote 制品辅助

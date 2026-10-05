@@ -1,11 +1,6 @@
 '停靠与浮动侧栏页的活 DOM 归属'
-import builtins#页面全局
 
 __all__=['从元素取右侧侧栏目标','可见侧栏窗格','观察侧栏焦点']#仅中文公开名
-
-元素类型=builtins.Element#DOM Element
-变动观察=builtins.MutationObserver#MutationObserver
-微任务=builtins.queueMicrotask#queueMicrotask
 
 def 从元素取右侧侧栏目标(元素,会话标识,布局,出现次):
     """从活拥有方 markup 读窗格与页签身份，含嵌入 iframe。
@@ -85,6 +80,9 @@ def 观察侧栏焦点(文档):
     文档为侧栏拥有监听生命周期的产品文档。
     返回全部 document/window 监听的拆除器
     """
+    元素类型=Element#DOM Element
+    变动观察=MutationObserver#MutationObserver
+    微任务=queueMicrotask#queueMicrotask
     活跃=[True]#寿命开关
     已焦=[None]#{element,sessionId,paneId,occurrence}
     def 移除回调(_记录):

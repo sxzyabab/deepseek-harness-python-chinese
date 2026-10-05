@@ -1,4 +1,6 @@
 import json#查询帧序列化
+from .....基础设施.通用工具.文本工具 import utf8字节数
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...共享.json import 在线程执行#后台跑
 from ...异常 import 检查器错误#包内错误
 from .cordis查询 import 执行检查器查询#查询执行
@@ -9,7 +11,7 @@ __all__=['检查器查询路由','检查器查询对端']#仅中文公开名
 
 def _json字节长(值):#估计JSON字节
     '按线上 JSON 计 UTF-8 字节'
-    return len(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#字节
+    return utf8字节数(紧凑json编码(值))#字节
 
 class 检查器查询路由:#查询路由
     '在一个共享语义读取器上创建隔离的查询对端'

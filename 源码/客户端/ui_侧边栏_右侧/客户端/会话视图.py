@@ -1,4 +1,4 @@
-import threading
+from ....基础设施.通用工具 import 启动守护线程
 
 __all__=['侧栏会话视图']
 
@@ -26,7 +26,7 @@ class 侧栏会话视图:
                         就绪.等待()
                 except Exception as 错误:
                     print('Sidebar Session opening failed:',错误)
-            threading.Thread(target=报错,daemon=True).start()
+            启动守护线程(报错)
 
     def 有保留标签(自身):
         return len(自身.标签表)>0
@@ -59,7 +59,7 @@ class 侧栏会话视图:
             def 盯():
                 信号.wait()
                 释放()
-            threading.Thread(target=盯,daemon=True).start()
+            启动守护线程(盯)
         return 释放
 
     def 退役(自身):

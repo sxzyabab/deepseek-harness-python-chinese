@@ -1,6 +1,5 @@
 '同机进程隔离服务：在宿主路径文件政策下包装精确子进程 argv'
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from .升级 import (
     更宽模式,
     升级目标,

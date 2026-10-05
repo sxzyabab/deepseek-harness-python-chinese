@@ -12,6 +12,9 @@ from .状态 import (
     工作区上下文消息,#基线上下文消息
 )#从状态模块导入
 from .渲染 import 渲染工作区上下文
+from . import (
+    摘要,
+)
 
 包名='@deepseek-ai/dsh-agent-instructions'
 

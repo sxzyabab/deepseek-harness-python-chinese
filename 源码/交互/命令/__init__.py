@@ -20,6 +20,10 @@ from .类型 import (#再导出类型面字段约定
     命令完成载荷字段,#done 载荷
 )#类型再导出结束
 from .异常 import 命令错误
+from . import (
+    不变量,
+    远程,
+)
 
 命令名形态=re.compile(r'^[a-z][a-z0-9_-]*\Z',re.ASCII)#合法命令名形态
 斜杠命令形态=re.compile(r'^/([a-z][a-z0-9_-]*)(?=\Z|[\t\n\r ])',re.ASCII)#斜杠命令行拆分

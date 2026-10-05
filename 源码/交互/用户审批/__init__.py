@@ -1,14 +1,16 @@
 '审批能力缝的服务定义，覆盖请求、取消、审计与按会话策略'
-import uuid,threading#配对 id 与中止竞赛线程
-from concurrent.futures import Future as 原生结果#单次操作结果
-from ...依赖 import cordis#外部依赖胶水
+import uuid#配对 id
+from ...基础设施.通用工具 import 操作任务,启动守护线程
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 枚举字段#配置字段
-服务=cordis.服务#Cordis 服务基类
 from ...模型后端.llm import 创建用户消息#把策略切换通知注入下一步
 from ...内核.作用域 import 作用域目标#按智能体过滤的瀑布载体
 from ...工具.超时 import 已中止,等待中止#中止入口
 from .类型 import 审批请求标识,审批结果#再导出线路安全标识与结果
 from .异常 import 用户审批错误
+from . import (
+    不变量,
+)
 
 结果表=审批结果#封闭结果表，用于运行时归一化回答者返回值
 审批策略=('ask','never')#会话审批策略封闭表
@@ -20,30 +22,6 @@ from .异常 import 用户审批错误
 配置模式={#插件配置：全部可选——static Config 给出默认值
     'policy':枚举字段('ask','never',默认值='ask'),#没有覆盖时的部署默认策略
 }#配置模式结束
-
-class 操作任务:#单次操作结果
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._未来.set_exception(用户审批错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 def 生效审批策略(事件列表):#从日志折叠当前策略
     """会话的审批策略覆盖：日志里最后一条 approval/policy 事件；会话从未切换时为 None（调用方套用插件配置的默认）。
@@ -217,12 +195,8 @@ class 审批服务(服务):#审批服务：在回答者之前套用会话策略�
         def 等回答():#跟随回答者
             '跟随回答者兑现'
             结算一次(问回答者())#兑现回答；中止已赢后是空操作
-        中止线程=threading.Thread(target=等中止)#中止监视
-        中止线程.daemon=True#不挡住退出
-        中止线程.start()#启动
-        回答线程=threading.Thread(target=等回答)#后台等回答
-        回答线程.daemon=True#不挡住退出
-        回答线程.start()#启动
+        启动守护线程(等中止)#中止监视
+        启动守护线程(等回答)#后台等回答
         return 结果任务.等待()#竞赛结果
 
 __all__=[#仅中文公开名

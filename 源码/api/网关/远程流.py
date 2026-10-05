@@ -1,5 +1,6 @@
 '单消费者 Remote 流的可重连生命周期'
 import threading#代际寿命与等待
+from ...基础设施.通用工具 import 启动守护线程
 from .异常 import 远程流载体错误#载体错误
 from .网关 import 已中止,中止控制器,中止信号#中止原语
 
@@ -201,8 +202,7 @@ def _等待远程流重试(连接,错误,尝试,信号):
                 完成.set()#放行
                 return#停
 
-    线=threading.Thread(target=中止监视,daemon=True)#监视
-    线.start()#启
+    启动守护线程(中止监视)#监视
     检查()#即时
     完成.wait()#等
     try:

@@ -1,5 +1,6 @@
 '单次打开的请求回合所用的浏览器时区推导与面向模型的策略文本'
-import json,re#JSON诊断片段与IANA形态校验
+import re#IANA形态校验
+from ...基础设施.通用工具 import 紧凑json编码
 from zoneinfo import ZoneInfo as 区时,ZoneInfoNotFoundError as 时区未找到#Intl等价的规范时区解析
 from ...模型后端.llm import 断言永不#导入穷尽检查
 
@@ -7,7 +8,7 @@ IANA时区形态=re.compile(r'^[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)+\Z'
 
 def 编码(值):
     '诊断用紧凑 JSON'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
+    return 紧凑json编码(值)#JSON
 
 def 浏览器时区(消息):
     '从一条普通 user-rpc 消息读取并校验宿主已规范化的浏览器时区'

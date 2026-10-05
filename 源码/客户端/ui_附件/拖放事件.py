@@ -1,5 +1,3 @@
-import builtins#页面 document 与 window
-
 __all__=['安装文档拖放事件']#仅中文公开名
 
 def 放下目录集(传输,文件表):
@@ -32,8 +30,8 @@ def 放下目录集(传输,文件表):
 
 def 安装文档拖放事件(可接受拖放,加入文件,拖放深度,设拖放活动):
     '给一份已挂载附件视图装上整页文件拖放监听。拖放深度为含 current 的计数盒'
-    文档=builtins.document#页面文档
-    窗口=builtins.window#页面窗口
+    文档=document#页面文档
+    窗口=window#页面窗口
     def 文件传输(事件):
         '只认携带 Files 类型的 DataTransfer'
         传输=事件['dataTransfer'] if 'dataTransfer' in 事件 else None#传输

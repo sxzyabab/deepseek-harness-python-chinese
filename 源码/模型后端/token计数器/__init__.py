@@ -1,7 +1,6 @@
 '按会话回放计量 token，供请求预算与表面压力使用'
 from weakref import WeakKeyDictionary as 弱键字典#会话到回放状态
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ..llm.助手流 import 组装助手流#嵌入流重组
 from ..llm.调用配置 import 深冻结,结构化克隆#深冻结与拆离克隆
 from ...内核.会话 import 归一请求头,请求头是否相等,是否表面事件#规范头、头相等与表面判定
@@ -11,6 +10,13 @@ from .用量投影 import 用量投影定义,压力投影定义#压力与用量�
 from .计价 import 计价内容,计价工具令牌,计价消息 as 纯计价消息,角色开销#计价与角色开销
 from .表面折叠 import 折叠表面令牌#按节点表面折叠
 from .路由计价 import 计价表面#路由计价
+from . import (
+    回合用量,
+    客户端,
+    投影,
+    类型,
+    表面投影,
+)
 
 __all__=['计量错误','用量令牌','可选头相等','校验配置键','令牌计量','默认']#仅中文公开名（Cordis 槽另挂）
 

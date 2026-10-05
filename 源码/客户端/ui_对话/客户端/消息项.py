@@ -1,5 +1,5 @@
 import math#重试秒
-import time#倒计时
+from ....基础设施.通用工具 import 当前毫秒
 
 __all__=['内容分片','重试秒数','模型重试行','回合错行','回合顶格行','待插话泡','用户消息行']#仅中文公开名
 
@@ -36,7 +36,7 @@ class 模型重试行:
         自身.属性=属性 if 属性 is not None else {}#合成
         节点=自身.属性['node'] if 'node' in 自身.属性 and 自身.属性['node'] is not None else {}#节点
         延迟=节点['delayMs'] if 'delayMs' in 节点 and 节点['delayMs'] is not None else 0#延迟
-        自身.截止=int(time.time()*1000)+int(延迟)#截止
+        自身.截止=当前毫秒()+int(延迟)#截止
 
     def 更新(自身,属性):
         '刷新；delay/seq 变则重锚'
@@ -49,7 +49,7 @@ class 模型重试行:
         新序=新['seq'] if 新 is not None and 'seq' in 新 else None#新序
         if 旧延!=新延 or 旧序!=新序:#重锚
             延迟=新延 if 新延 is not None else 0#延迟
-            自身.截止=int(time.time()*1000)+int(延迟)#截止
+            自身.截止=当前毫秒()+int(延迟)#截止
 
     def 渲染(自身):
         '重试 details'
@@ -61,7 +61,7 @@ class 模型重试行:
         计划秒=重试秒数(延迟)#计划
         模式=节点['mode'] if 'mode' in 节点 else None#模式
         最大=节点['maxRetries'] if 'maxRetries' in 节点 and 模式=='normal' else '∞'#最大
-        剩余=重试秒数(自身.截止-int(time.time()*1000)) if 活跃 is True else 计划秒#秒
+        剩余=重试秒数(自身.截止-当前毫秒()) if 活跃 is True else 计划秒#秒
         态=节点['retryState'] if 'retryState' in 节点 else None#态
         if 活跃 is True:#活跃
             标签=翻译('message.retry.active')#活

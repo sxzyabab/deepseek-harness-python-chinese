@@ -1,8 +1,8 @@
 '一条可重连窗口保持，由终端的全部出现共享'
 import threading#等待者
-from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据,启动守护线程
 from ..异常 import 远程错误#本包异常
-from ...工具.超时 import 若已中止则抛出#中止
+from ....工具.超时 import 若已中止则抛出#中止
 
 __all__=['终端窗口保持']#仅中文公开名
 
@@ -19,9 +19,7 @@ class 终端窗口保持:
             'open':lambda 信号:远程.retain(会话标识,终端标识,信号),#打开
             'ended':lambda:远程错误('terminal/unavailable','Terminal hold ended',{}),
         })
-        线=threading.Thread(target=自身._消费)#消费线程
-        线.daemon=True#守护
-        线.start()
+        启动守护线程(自身._消费)#消费线程
 
     @property
     def 已失败(自身):

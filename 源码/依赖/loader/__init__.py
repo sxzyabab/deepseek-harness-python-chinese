@@ -1,5 +1,6 @@
-import json,os,time
+import json,os
 from .. import cordis
+from ...基础设施.通用工具.时间工具 import 当前毫秒
 from .内部 import 模块加载器#Node 内部模块加载器
 from .插件配置 import 插件配置#插件配置节点
 from .插件组 import 组,标记为组插件,是组插件#组插件与组载体登记
@@ -16,7 +17,7 @@ class 加载器(插件树):
         if 自身.配置.get('baseUrl'):
             自身.所属上下文.__dict__['基准网址']=自身.配置['baseUrl']#相对说明符的解析基准
         共享=os.environ.get('CORDIS_SHARED')#宿主传进来的共享环境
-        自身.环境数据=json.loads(共享) if 共享 else {'startTime':int(time.time()*1000)}#共享环境
+        自身.环境数据=json.loads(共享) if 共享 else {'startTime':当前毫秒()}#共享环境
         自身.名称='加载器'#服务名，拦截配置按它查找
         自身.内部加载器=模块加载器.从内部()#Node 内部加载器
         自身.内建表={}#cordis: 说明符到内建插件

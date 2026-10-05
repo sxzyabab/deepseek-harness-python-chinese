@@ -4,10 +4,16 @@ from ...依赖.工具 import 聚合错误#拆除失败
 from ...内核.作用域 import 操作任务#分配任务
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
+from ...基础设施.通用工具 import utf8字节数
 from .外壳 import 发现外壳,解析外壳#壳
 from .浏览器终端 import 浏览器终端#PTY 视图
 from .保持 import 终端保持#保持与回收
 from .异常 import 远程错误#本包异常
+from . import (
+    输出跟随,
+    类型,
+    客户端,
+)
 
 __all__=['依赖','默认','配置','终端控制器']
 
@@ -163,7 +169,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
     def write(自身,智能体,标识,附着标识,数据):#原始输入
         '含 Tab 与控制字符'
         上限=自身.配置值.get('maxInputBytes',64*1024)#上限
-        if len(数据.encode('utf-8'))>上限:#超
+        if utf8字节数(数据)>上限:#超
             raise 远程错误('gateway/bad-request','Terminal input exceeds the configured limit',{})#拒绝
         自身._终端(智能体,标识).写入(附着标识,数据)#写
 

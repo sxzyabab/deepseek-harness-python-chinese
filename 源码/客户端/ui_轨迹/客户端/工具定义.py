@@ -1,4 +1,4 @@
-import json#子调用参数序列化
+from ....基础设施.通用工具 import 紧凑json编码
 from .轨迹节点 import 轨迹节点#包成轨迹视图节点
 from ..异常 import 轨迹错误#本包异常
 
@@ -76,7 +76,7 @@ def 子调用(匹配,数据):#从 dispatch-start 抽出进行中的子调用
     return {#子调用
         'callId':数据['subCallId'] if 'subCallId' in 数据 else None,#子 id
         'name':数据['name'] if 'name' in 数据 else None,#名
-        'argsRaw':json.dumps(参数,ensure_ascii=False,separators=(',',':'),allow_nan=False),#参数原文
+        'argsRaw':紧凑json编码(参数),#参数原文
         'turn':位置回合(匹配),#回合
         'step':位置步号(匹配),#步
         'time':事件['time'],#时刻
@@ -94,7 +94,7 @@ def 子结果(匹配,数据,先前=None):#从 ptc-dispatch 抽出子调用结果
         'seq':事件['seq'],#序号
         'time':事件['time'],#时刻
         'callId':数据['subCallId'] if 'subCallId' in 数据 else None,#子 id
-        'call':{'name':数据['name'] if 'name' in 数据 else None,'argsRaw':json.dumps(参数,ensure_ascii=False,separators=(',',':'),allow_nan=False)},#调用
+        'call':{'name':数据['name'] if 'name' in 数据 else None,'argsRaw':紧凑json编码(参数)},#调用
         'callTime':先前['time'] if 进行中 and 'time' in 先前 else None,#进行中才有开始时刻
         'content':数据['content'] if 'content' in 数据 and 数据['content'] is not None else [],#内容
         'isError':('isError' in 数据 and 数据['isError'] is True),#错误

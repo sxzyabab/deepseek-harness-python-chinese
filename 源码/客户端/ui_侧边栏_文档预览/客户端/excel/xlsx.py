@@ -1,4 +1,4 @@
-import io,zipfile,xml.etree.ElementTree as 元素树
+import io,re,zipfile,xml.etree.ElementTree as 元素树
 from ...异常 import 表格预览错误
 from .模型 import 不支持特性表,格式化单元格,初始选区
 from .xlsx归档 import xlsx预览归档,解码xml

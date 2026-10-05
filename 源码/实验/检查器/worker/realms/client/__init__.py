@@ -6,6 +6,9 @@ from .控制台 import Client控制台后端#Console
 from .源 import Client源后端#源
 from .脚本 import Client脚本身份#脚本身份
 from .调试器 import Client调试器能力#调试器
+from . import (
+    值,
+)
 
 __all__=['Client检查器realm']
 

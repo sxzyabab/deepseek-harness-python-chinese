@@ -1,4 +1,5 @@
 import json,os,platform,re,shutil,stat,sys,tempfile,threading
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 字符串字段
 from ...内核.工具 import 定义工具
 from .异常 import 工作区依赖错误
@@ -181,7 +182,7 @@ def 安装主运行时(来源,根):
     根在=存在路径(根)
     if not 根在 and 先前在:
         os.rename(先前,根)
-    if 存在路径(os.path.join(根,'runtime.json')) and json.dumps(读主运行时(根),ensure_ascii=False,separators=(',',':'),allow_nan=False)==json.dumps(清单,ensure_ascii=False,separators=(',',':'),allow_nan=False):
+    if 存在路径(os.path.join(根,'runtime.json')) and 紧凑json编码(读主运行时(根))==紧凑json编码(清单):
         路径表=工作区依赖路径(根,清单)
         校验载荷条目(路径表)
         return 路径表

@@ -1,5 +1,6 @@
 '@deepseek-ai/dsh-plan-mode 的本包拥有不变量配套：校验持久计划模式状态'
 import json#JSON 片段
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 包名='@deepseek-ai/dsh-plan-mode'#本包的不变量所有权名
 名称='plan-mode-invariant'#配套不变量插件名
 依赖=['invariants']
@@ -11,7 +12,7 @@ def 校验事件(事件,失败):
     载荷=事件['data']#事件载荷
     激活=载荷['active'] if 'active' in 载荷 else None#取出 active
     if not isinstance(激活,bool):#必须是布尔
-        失败('plan/mode carries invalid active state '+json.dumps(激活,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'; expected a boolean')#报告非法 active
+        失败('plan/mode carries invalid active state '+紧凑json编码(激活)+'; expected a boolean')#报告非法 active
 
 def 安装(上下文,失败):
     '为已加载和新追加的计划模式状态安装校验'

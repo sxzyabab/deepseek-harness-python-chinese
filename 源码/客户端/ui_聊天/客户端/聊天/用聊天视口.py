@@ -1,4 +1,3 @@
-import builtins
 from .用滚动跟随 import 滚动度量,滚动跟随
 
 __all__=['聊天视口','用聊天视口']
@@ -30,7 +29,10 @@ class 聊天视口:
         滚动口.addEventListener('scrollend',自身.滚动结束,{'passive':True,'capture':True})
         for 种 in 阅读意图:
             滚动口.addEventListener(种,自身.意图,{'passive':True,'capture':True})
-        观察类=getattr(builtins,'ResizeObserver',None)
+        try:#页面观察器
+            观察类=ResizeObserver#构造
+        except NameError:#非浏览器
+            观察类=None#无
         if 观察类 is not None:
             def 尺寸():
                 '内容或视口尺寸变化'
@@ -128,7 +130,10 @@ class 聊天视口:
         视口=滚动口.getBoundingClientRect()
         底=撰写.getBoundingClientRect().top if 撰写 is not None else 视口.bottom
         锚点=None
-        取点=getattr(builtins.document,'elementsFromPoint',None) if hasattr(builtins,'document') else None
+        try:#页面文档
+            取点=getattr(document,'elementsFromPoint',None)#命中
+        except NameError:#非浏览器
+            取点=None#无
         if callable(取点) and 底>视口.top:
             内容=列表.getBoundingClientRect()
             左=max(视口.left,内容.left)

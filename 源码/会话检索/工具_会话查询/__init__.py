@@ -5,6 +5,10 @@ from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
 from .入参 import 工具入参#工具入参面
 from .操作 import 操作#工具执行
 from .呈现 import 呈现#工具呈现
+from . import (
+    工作区访问,
+    服务边界,
+)
 
 包名='@deepseek-ai/dsh-tool-session-query'
 名称='tool-session-query'

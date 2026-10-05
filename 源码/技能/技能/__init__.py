@@ -1,8 +1,8 @@
 import json,math,re,threading,weakref#正则、缓存键、有限数、中止通道与原因旁表
-from ...依赖 import cordis#外部依赖胶水
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...依赖.schemastery import 数字字段#配置字段
-服务=cordis.服务#Cordis服务基类
 from ...内核.作用域 import 具名条目,作用域层集,获取作用域,获取作用域链,弱身份表#分层命名条目与作用域链
 from ...模型后端.llm import 断言永不#封闭联合收尾断言
 from .类型 import (#再导出类型面
@@ -448,7 +448,7 @@ class 技能注册表(服务):#技能注册表服务
             载荷['cwd']=cwd#工作区根
         载荷['scopes']=[自身.作用域编号(键) for 键 in 链]#作用域id链
         载荷['revision']=修订#修订号
-        return json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False)#cwd+作用域id链+修订
+        return 紧凑json编码(载荷)#cwd+作用域id链+修订
 
     def 通知变更(自身):#发出skills/change
         '通知目录观察者，但不让他们的刷新工作成为负载'

@@ -1,5 +1,7 @@
-import json#序列化
-from threading import Event as 事件,Lock as 锁,Thread as 线程#完成门、结算互斥、工作线程
+from ....基础设施.通用工具.并发原语 import 操作任务#一次性任务
+from ....基础设施.通用工具.线程工具 import 启动守护线程#守护线程
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
+from ....基础设施.通用工具.文本工具 import utf8字节数
 
 __all__=[#仅中文公开名
     '检查器json标量','检查器json值','检查器json对象',
@@ -11,46 +13,6 @@ __all__=[#仅中文公开名
 
 from ..异常 import 检查器错误#检查器错误基类
 
-class 操作任务:#单次操作结果
-    '单次操作结果，只暴露兑现、拒绝、等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身._门=事件()#完成门
-        自身._锁=锁()#结算互斥
-        自身._值=None#成功值
-        自身._错误=None#失败异常
-        自身._已结算=False#是否已结算
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        with 自身._锁:#竞态
-            if 自身._已结算:#已结算
-                return 值#忽略
-            自身._已结算=True#标记
-            自身._值=值#写入结果
-        自身._门.set()#放行
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        with 自身._锁:#竞态
-            if 自身._已结算:#已结算
-                return#忽略
-            自身._已结算=True#标记
-            if isinstance(错误,BaseException):#已是异常
-                自身._错误=错误#原样
-            else:#非异常
-                自身._错误=Exception(str(错误))#包装
-        自身._门.set()#放行
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞等到结算'
-        if not 自身._门.wait(超时):#超时未完成
-            raise TimeoutError()#超时
-        if 自身._错误 is not None:#失败
-            raise 自身._错误#原样抛
-        return 自身._值#成功值
-
 def 在线程执行(函数):#在工作线程执行
     '在工作线程执行并返回操作任务'
     任务=操作任务()#本次任务
@@ -60,8 +22,7 @@ def 在线程执行(函数):#在工作线程执行
             任务.兑现(函数())#兑现
         except Exception as 错误:#结算路径上的回调什么都可能抛，契约未定所以收不窄
             任务.拒绝(错误)#拒绝
-    工作=线程(target=执行并结算,daemon=True)#工作线程
-    工作.start()#启动
+    启动守护线程(执行并结算)#工作线程
     return 任务#操作任务
 
 def 已中止(信号):#信号是否已中止
@@ -130,4 +91,4 @@ def 要求json对象(值,标签):#要求普通JSON对象
 
 def json字节长度(值):#JSON线上字节长度
     '计算 JSON 线上值的 UTF-8 字节长度'
-    return len(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#序列化后量
+    return utf8字节数(紧凑json编码(值))#序列化后量

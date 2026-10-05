@@ -1,5 +1,6 @@
 '智能体框架生命周期与仅自动化 ACP 线路之间的纯翻译'
 import json#资源链接引用里的 JSON 片段
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 
 __all__=['回合结束到停止原因','ACP提示转文本','提示含不受支持内容']#仅中文公开名
 
@@ -31,8 +32,8 @@ def ACP提示转文本(提示):
             文本=块['text'] if 'text' in 块 else None#原文
             片段列表.append(文本 if isinstance(文本,str) else '')#原样取出文本
         elif 类型=='resource_link':#资源链接块
-            名=json.dumps(块['name'] if 'name' in 块 else None,ensure_ascii=False,separators=(',',':'),allow_nan=False)#名称 JSON
-            址=json.dumps(块['uri'] if 'uri' in 块 else None,ensure_ascii=False,separators=(',',':'),allow_nan=False)#URI JSON
+            名=紧凑json编码(块['name'] if 'name' in 块 else None)#名称 JSON
+            址=紧凑json编码(块['uri'] if 'uri' in 块 else None)#URI JSON
             片段列表.append('\n[resource_link name='+名+' uri='+址+']\n')#方括号引用
     return ''.join(片段列表)#按顺序拼接
 

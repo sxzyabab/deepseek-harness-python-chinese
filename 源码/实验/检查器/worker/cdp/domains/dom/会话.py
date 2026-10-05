@@ -1,4 +1,5 @@
 import json#属性序列化
+from .......基础设施.通用工具.序列化编码 import 紧凑json编码
 from .....异常 import 检查器错误#包内错误
 from .....共享.cordis.对象注册表 import 领域对象表达式#对象表达式
 from ...协议 import 响应cdp请求#协议
@@ -373,7 +374,7 @@ class Cordis_Dom会话:#Cordis DOM会话
 
 def 外层html(节点,缩进=''):#外层HTML
     '外层 HTML'
-    属性=''.join(' '+名+'='+json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名,值 in 节点['attributes'])#属性串
+    属性=''.join(' '+名+'='+紧凑json编码(值) for 名,值 in 节点['attributes'])#属性串
     if len(节点['children'])==0:#自闭合
         return f'{缩进}<{节点["name"]}{属性} />'#自闭合
     子='\n'.join(外层html(项,缩进+'  ') for 项 in 节点['children'])#子HTML

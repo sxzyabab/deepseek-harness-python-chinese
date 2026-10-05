@@ -17,9 +17,8 @@ def 会话客户端源标识():#会话源id
 def 客户端来源():#Client origin
     'Client origin'
     try:#取location
-        import builtins#全局
-        定位=getattr(builtins,'location',None)#location
-        来源=getattr(定位,'origin',None) if 定位 is not None else None#origin
+        定位=location#location
+        来源=getattr(定位,'origin',None)#origin
         return 来源 if isinstance(来源,str) else ''#字符串或空
     except Exception:#无对应领域或 CDP 求值失败，契约未定所以收不窄
         return ''#空

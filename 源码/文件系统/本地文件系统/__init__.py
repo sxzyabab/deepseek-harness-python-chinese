@@ -3,8 +3,12 @@ import os#工作目录与路径判定
 import threading#每目标键互斥
 from urllib.request import pathname2url#路径转 file URL
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
+from ...基础设施.通用工具.文本工具 import utf8字节数
 from .. import 文件系统 as fs#文件系统服务定义与错误
-from . import 文件读写#本地 IO 实现
+from . import (
+    文件读写,#本地 IO 实现
+    win32,
+)
 from .异常 import 本地文件系统错误#本包配置非法
 
 默认diff基准最大字节=10*1024*1024#diff 基准默认 10MiB
@@ -185,7 +189,7 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
                     raise fs.文件系统错误(f'cannot write "{展示路径}": file changed since it was read','FS_STALE_VERSION')#内容已变视为过期
             elif 种类=='createIfAbsent' and 已有 is not None:#要创建但已经存在
                 raise fs.文件系统错误(f'cannot overwrite existing "{展示路径}" without reading it first','FS_NOT_OBSERVED')#未经观察不得覆盖
-            可diff=已有 is not None and len(内容.encode('utf-8'))<自身.配置.diffBasisMaxBytes#值得抓 diff 基准
+            可diff=已有 is not None and utf8字节数(内容)<自身.配置.diffBasisMaxBytes#值得抓 diff 基准
             之前=文件读写.为diff读文本(目标键,自身.配置.diffBasisMaxBytes,信号) if 可diff else None#尽力读取旧文本或 None
             文件读写.原子写文件(目标键,内容,已有['mode'] if 已有 is not None else None,信号,自身.内部,{'displayPath':展示路径} if 种类=='createIfAbsent' else None)#原子发布
             之后=文件读写.探测(目标键)#写入后再探测版本

@@ -21,6 +21,11 @@ from .storage.tar import 打包tar
 from .storage.内存 import 加载vfs镜像,加载vfs覆盖层,内存vfs
 from .storage.镜像gzip import 解压镜像,流式解压镜像
 from .storage.活动 import 要求活动vfs,设活动vfs
+from . import (
+    client,
+    工作线程,
+    异常,
+)
 
 __all__=[
     '创建als运行时','解析入站帧',

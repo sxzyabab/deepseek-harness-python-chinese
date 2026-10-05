@@ -1,5 +1,6 @@
 'ACL 编辑辅助：经 SetEntriesInAclW + SetNamedSecurityInfoW 在目录上授予/撤销能力 SID（POC 用的同一组调用，外加 POC 缺少的失败处理）'
-import hashlib,os#哈希与路径
+import os#路径
+from ...基础设施.通用工具.序列化编码 import 摘要十六进制
 from .ffi import (
     分配重叠结构,#重叠结构
     分配指针槽,#指针槽
@@ -31,7 +32,7 @@ def 构建显式访问(sid指针,模式,权限):#打包显式访问条目
 
 def 锁文件路径(接口,路径):#锁文件路径
     '每个受保护路径一个锁文件：`<GetTempPathW()>\\dsh-acl-locks\\<sha256前16位>.lock`'
-    摘要=hashlib.sha256(路径.lower().encode('utf-8')).hexdigest()[:16]#小写路径哈希前16位
+    摘要=摘要十六进制(路径.lower())[:16]#小写路径哈希前16位
     return os.path.join(取临时路径(接口),'dsh-acl-locks',摘要+'.lock')#临时根下的锁文件
 
 def 持路径锁(接口,路径,动作):#持锁跑动作

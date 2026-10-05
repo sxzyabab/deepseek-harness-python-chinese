@@ -1,5 +1,3 @@
-import builtins#探测 document
-
 __all__=['深色属性','主题源属性','内容字号变量','主题呈现器']#仅中文公开名
 
 深色属性='data-ds-dark-theme'#深色调色板属性名
@@ -14,8 +12,8 @@ class 主题呈现器:#文档主题呈现器
         自身.最近快照=None#最近快照
         自身.主题色元=None#自有 meta；有 DOM 时铸造
         try:#探测 DOM
-            文档=builtins.document#浏览器 document
-        except AttributeError:#无
+            文档=document#浏览器 document
+        except NameError:#无
             return#无 DOM 不铸 meta
         元=文档.createElement('meta')#铸造 meta
         元.name='theme-color'#标成 theme-color
@@ -31,8 +29,8 @@ class 主题呈现器:#文档主题呈现器
         偏好=快照['preference'] if 快照 is not None and 'preference' in 快照 else None#偏好
         字号=快照['fontSize'] if 快照 is not None and 'fontSize' in 快照 else None#字号
         try:#探测 DOM
-            文档=builtins.document#浏览器 document
-        except AttributeError:#无
+            文档=document#浏览器 document
+        except NameError:#无
             文档=None#无 DOM
         if 文档 is None:#无浏览器
             自身.已施加令牌=list(令牌.keys())#仅记名
@@ -62,8 +60,8 @@ class 主题呈现器:#文档主题呈现器
         '清根 color-scheme、主题源、调色板属性、字号轴、令牌与自有 meta'
         自身.最近快照=None#清快照
         try:#探测 DOM
-            文档=builtins.document#浏览器 document
-        except AttributeError:#无
+            文档=document#浏览器 document
+        except NameError:#无
             自身.已施加令牌=[]#清集合
             return#无 DOM
         根=文档.documentElement#根

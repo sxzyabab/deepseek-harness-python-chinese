@@ -1,5 +1,6 @@
 '经审计的 V2 迁移准入与 V3 载荷校验，独立于已安装的核心会话类型'
-import json,re#JSON诊断与修复标识后缀
+import re#修复标识后缀
+from ...基础设施.通用工具 import 紧凑json编码
 from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
 from ..会话格式 import (#从会话格式导入
     是否会话格式json对象,#是否JSON对象
@@ -332,4 +333,4 @@ def 规范化已转换事件(事件):#规范化已转换事件
 
 def _json串(值):#JSON诊断串
     '用 JSON 渲染诊断值'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#渲染
+    return 紧凑json编码(值)#渲染

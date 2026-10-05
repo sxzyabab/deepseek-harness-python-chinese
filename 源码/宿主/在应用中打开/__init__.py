@@ -1,5 +1,6 @@
 '在应用中打开的主机半边：三条 webServer 路由提供已解析目录、图标与启动端点'
 import json,os#JSON 与路径核验
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from urllib.parse import urlsplit#取 pathname
 from ...工具.启动环境 import 取启动环境,经ssh拉起#SSH 拉起事实
 from ...依赖.schemastery import 正整数字段#有界毫秒
@@ -8,6 +9,9 @@ from .解析器 import 解析在应用中打开应用,解析启动,启动已解�
 from .图标 import 提取应用图标#图标提取
 from .内部缝 import 内部#测试钩子
 from .共享 import 应用列表路由,图标前缀,打开路由#线路径
+from . import (
+    异常,
+)
 
 名称='open-in-app'#插件名（字面量）
 依赖=['webServer','connection','subprocess']#路由载体、信任围栏、PATH 解析
@@ -28,7 +32,7 @@ __all__=[
 
 def 发送json(响应,状态码,载荷):#JSON 应答
     'application/json；no-store（可用性与启动结局是活事实）'
-    正文=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False)#锁分隔与非 ASCII
+    正文=紧凑json编码(载荷)#锁分隔与非 ASCII
     响应.writeHead(状态码,{#写头
         'content-type':'application/json; charset=utf-8',#类型
         'cache-control':'no-store',#不缓存

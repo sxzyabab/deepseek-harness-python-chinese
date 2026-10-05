@@ -1,6 +1,5 @@
 import os,json,copy#路径、JSON、克隆
-from ...依赖 import include#外部依赖胶水
-应用条目补丁=include.应用插件补丁#补丁应用
+from ...依赖.include import 应用插件补丁 as 应用条目补丁#补丁应用
 from ...工具.主目录路径 import 解析主目录#主目录解析
 from .异常 import 启动错误#应用启动粘合层失败
 

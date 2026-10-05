@@ -12,6 +12,9 @@ from .文件体 import (
     样式表,
 )
 from .文件标题 import 文件标题
+from . import (
+    目录节点,
+)
 
 __all__=[
     '依赖',

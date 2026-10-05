@@ -1,5 +1,5 @@
-import threading
-from .....依赖.cordis import 服务
+from ....基础设施.通用工具 import 启动守护线程
+from ....依赖.cordis.服务 import 服务
 from ...网关.异常 import 远程流载体错误
 
 __all__=['客户端作业']
@@ -86,7 +86,7 @@ class 客户端作业(服务):
                 if 键 in 表:
                     return
                 清空()
-            threading.Thread(target=收尾,daemon=True).start()
+            启动守护线程(收尾)
         return 释放
 
     def _开表行(自身,会话标识):
@@ -117,7 +117,7 @@ class 客户端作业(服务):
                     项['dispose']()
                 except BaseException:
                     pass
-        threading.Thread(target=消费,daemon=True).start()
+        启动守护线程(消费)
         return 项
 
     def _开观察(自身,会话标识,标识):
@@ -162,5 +162,5 @@ class 客户端作业(服务):
                     项['dispose']()
                 except BaseException:
                     pass
-        threading.Thread(target=消费,daemon=True).start()
+        启动守护线程(消费)
         return 项

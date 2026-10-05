@@ -1,9 +1,11 @@
 '凭证引用能力缝（ctx.credentials）的服务定义'
 import re#正则
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
-服务=cordis.服务#Cordis 服务基类
 from .类型 import 凭证引用品牌#再导出凭证引用品牌
+from . import (
+    不变量,
+)
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '引用形态','引用模式','凭证引用','是否凭证引用名','键段形态','键段模式',

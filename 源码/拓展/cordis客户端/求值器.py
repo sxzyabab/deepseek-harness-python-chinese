@@ -1,4 +1,4 @@
-import json
+from ...基础设施.通用工具 import 紧凑json编码
 from .异常 import cordis客户端错误#本包异常
 
 __all__=[
@@ -58,7 +58,7 @@ def 错误文本(参数):#console 参数串
     if 参数 is None:#undefined 字面，非 Python repr
         return 'undefined'#镜像 errorText(undefined)
     try:
-        return json.dumps(参数,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+        return 紧凑json编码(参数)
     except (TypeError,ValueError):
         return '[unserializable console argument]'
 

@@ -1,4 +1,5 @@
 import json#序列化 stdin 载荷
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .编解码 import 解析钩子输出#钩子输出解码
 
 默认钩子超时毫秒=600000#单条钩子的参考默认超时（10 分钟）
@@ -22,7 +23,7 @@ def 执行钩子(外壳,钩子,选项,现在):
     else:
         超时毫秒=选项['defaultTimeoutMs']#配置未设超时时的默认毫秒
     换行=选项['trailingNewline'] if 'trailingNewline' in 选项 else False#是否追加末尾换行
-    载荷文本=json.dumps(选项['payload'],ensure_ascii=False,separators=(',',':'),allow_nan=False)#序列化载荷
+    载荷文本=紧凑json编码(选项['payload'])#序列化载荷
     if 换行 is True:#按方言决定是否加换行
         载荷文本=载荷文本+'\n'#追加换行
     请求={'command':钩子['command'],'timeoutMs':超时毫秒,'stdin':载荷文本}#组装 shell 请求

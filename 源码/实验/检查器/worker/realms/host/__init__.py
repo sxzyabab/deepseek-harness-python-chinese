@@ -5,6 +5,10 @@ from .运行时 import Host运行时后端#Runtime
 from .控制台 import Host控制台后端#Console
 from .源 import Host源后端#源
 from .调试器 import Host调试器后端#调试器
+from . import (
+    值,
+    脚本,
+)
 
 __all__=['Host检查器realm']
 

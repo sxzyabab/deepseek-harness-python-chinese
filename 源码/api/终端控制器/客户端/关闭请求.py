@@ -1,4 +1,5 @@
 import json,re#解析与身份
+from ....基础设施.通用工具 import 紧凑json编码
 
 __all__=['终端关闭请求']#仅中文公开名
 
@@ -45,7 +46,7 @@ class 终端关闭请求:#刷新后仍待 Host 确认的清理
         if 本地存储 is None:#无浏览器
             return#跳
         try:#持久
-            本地存储[前缀+请求['id']]=json.dumps(请求,ensure_ascii=False,separators=(',',':'),allow_nan=False)#写下
+            本地存储[前缀+请求['id']]=紧凑json编码(请求)#写下
         except BaseException as 错误:#配额或私密
             print('Terminal cleanup persistence failed:',错误)#英文日志
 

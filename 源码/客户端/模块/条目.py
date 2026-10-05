@@ -1,4 +1,4 @@
-import json#条目目标指纹
+from ...基础设施.通用工具 import 紧凑json编码
 from threading import Lock as 锁#串行调和队列
 from .异常 import 客户端模块错误#本包异常
 from .清单 import 解析启动清单#清单解析
@@ -13,7 +13,7 @@ __all__=['客户端条目状态','客户端条目表','活动纤程态','失败�
 #工具
 def 条目目标指纹(清单):
     '修订与请求标识期望代码；URL 只选其不可变交付资源'
-    return json.dumps([[行['id'],行['rev'],行['inject'],行['external']] for 行 in 清单['modules']],ensure_ascii=False,separators=(',',':'),allow_nan=False)#序列化
+    return 紧凑json编码([[行['id'],行['rev'],行['inject'],行['external']] for 行 in 清单['modules']])#序列化
 
 class 客户端条目状态(dict):
     '页面本地失败不改变 Host 的包启用态。键：syncing、failures'

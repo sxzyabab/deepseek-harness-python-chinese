@@ -1,4 +1,4 @@
-from threading import Thread as 线程#预取扇出
+from ...基础设施.通用工具 import 启动守护线程
 from .启动客户端 import 启动客户端#组装
 from .异常 import 网页错误#本包异常
 from .启动页 import 启动页#启动页
@@ -22,9 +22,7 @@ def 全部并发(调用表):
             错误表[下标]=错误#记下
     线程表=[]#工作线程
     for 下标,调用 in enumerate(调用表):#每路一线程
-        工作=线程(target=跑一路,args=(下标,调用),daemon=True)#工作线程
-        工作.start()#启动
-        线程表.append(工作)#登记
+        线程表.append(启动守护线程(跑一路,下标,调用))#登记
     for 工作 in 线程表:#扇出 join
         工作.join()#等到结束
     for 错误 in 错误表:#按原序检查

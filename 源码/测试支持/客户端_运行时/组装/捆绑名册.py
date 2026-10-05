@@ -1,4 +1,5 @@
 import json,os,re,yaml#JSON、路径、正则与 YAML
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ....依赖.include import 应用插件补丁,插件列表读取器#补丁应用与条目列表方言
 from ....客户端.模块 import 解析客户端声明#dsh.client 声明解析
 from ....客户端.模块.清单 import 精确包说明符#精确包说明符
@@ -35,7 +36,7 @@ def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
         清单=读清单(清单路径)#读清单
         清单名=清单['name'] if 'name' in 清单 else None#清单包名
         if 清单名!=包名:#包名不符
-            raise 客户端测试运行时错误('client-test-runtime: package.json names '+json.dumps(清单名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+', expected '+包名)#英文诊断
+            raise 客户端测试运行时错误('client-test-runtime: package.json names '+紧凑json编码(清单名)+', expected '+包名)#英文诊断
         dsh=清单['dsh'] if 'dsh' in 清单 else None#dsh 字段
         声明值=dsh['client'] if isinstance(dsh,dict) and 'client' in dsh else None#client 声明
         声明=解析客户端声明(包名,声明值)#解析 dsh.client
@@ -105,7 +106,9 @@ def 描述补丁(消息,参数):#描述补丁
         '取下一个参数作 JSON'
         值=参数[下标[0]] if 下标[0]<len(参数) else None#参数
         下标[0]+=1#前进
-        return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
+        return 紧凑json编码(值)#JSON
     return 百分C.sub(填一处,消息)#全替换 %C
 
-网页应用名册=组合捆绑名册(网页配置档捆绑)#网页应用名册，导入时组合
+def 网页应用名册():
+    '组合网页配置档捆绑。调用时才读仓库里的 bundle'
+    return 组合捆绑名册(网页配置档捆绑)

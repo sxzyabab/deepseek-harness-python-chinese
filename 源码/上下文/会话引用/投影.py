@@ -1,14 +1,11 @@
 '当前表面投影与按字节封顶的渲染'
 import math#ceil
+from ...基础设施.通用工具 import utf8字节数
 from ...压缩.压缩 import 是否压缩检查点来源#导入压缩检查点来源判定
 from ...模型后端.llm import 断言永不#导入穷尽检查
 from ...工具.输出保留 import 文本保留器#导入头尾文本保留器
 from .序列化 import 序列化标签安全JSON#导入标签安全JSON序列化
 from .异常 import 会话引用错误#本包异常
-
-def 字节长(文本):#UTF-8字节长度
-    '对齐 Buffer.byteLength(text, \'utf8\')'
-    return len(文本.encode('utf-8'))#按utf8计字节
 
 def 投影会话对话(快照):#从表面快照投影对话
     '投影当前用户/助手对话，排除工具、推理与注入上下文'
@@ -52,7 +49,7 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
         }#对象结束
     def 尺寸():#当前JSON的UTF-8字节
         '当前序列化对象的 UTF-8 字节'
-        return 字节长(序列化标签安全JSON(数据()))#计字节
+        return utf8字节数(序列化标签安全JSON(数据()))#计字节
     完整数据=数据()#截断前的完整投影
     while 尺寸()>最大字节:#先丢掉非检查点、非最新的整条消息
         最新下标=len(保留)-1#最新一条下标
@@ -67,12 +64,12 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
         if 移除 is None:#理论上pop总会给出元素
             raise 会话引用错误('session-reference retention selected a missing message','SESSION_REFERENCE_READ_FAILED')#选中了不存在的消息
         省略消息+=1#整条省略计数
-        丢掉省略字节+=字节长(移除['originalText'])#按原文计省略字节
+        丢掉省略字节+=utf8字节数(移除['originalText'])#按原文计省略字节
     while 尺寸()>最大字节:#再截断当前最长文本
         最长下标=-1#当前最长项下标
         最长字节=0#当前最长项字节
         for 下标,项 in enumerate(保留):#扫描保留集
-            当前字节=字节长(项['text'])#该项当前文本字节
+            当前字节=utf8字节数(项['text'])#该项当前文本字节
             if 当前字节>最长字节:#发现更长项
                 最长字节=当前字节#记下长度
                 最长下标=下标#记下位置
@@ -118,11 +115,11 @@ def 抽出文本(内容):#抽出文本块并换行拼接
 
 def 附通知截断(文本,最大输出字节):#头尾截断并附省略通知
     '头尾截断并附省略通知'
-    if 字节长(文本)<=最大输出字节:#已能装下则原样返回
+    if utf8字节数(文本)<=最大输出字节:#已能装下则原样返回
         return {'text':文本,'omittedBytes':0}#原样
     下界=0#二分下界：保留字节
     上界=最大输出字节#二分上界
-    最佳={'text':'','omittedBytes':字节长(文本)}#目前最佳候选，初始为全省略
+    最佳={'text':'','omittedBytes':utf8字节数(文本)}#目前最佳候选，初始为全省略
     while 下界<=上界:#二分寻找最大可装下的头尾保留
         保留字节=(下界+上界)//2#本轮尝试的保留字节
         头字节=math.ceil(保留字节/2)#头半
@@ -135,7 +132,7 @@ def 附通知截断(文本,最大输出字节):#头尾截断并附省略通知
             raise 会话引用错误('session-reference retention did not report exact omitted bytes','SESSION_REFERENCE_READ_FAILED')#非精确省略
         省略=省略量['count']#精确省略字节
         候选=结果['text']+'\n[… omitted '+str(省略)+' UTF-8 bytes …]'#附上省略通知
-        if 字节长(候选)<=最大输出字节:#通知后仍装得下
+        if utf8字节数(候选)<=最大输出字节:#通知后仍装得下
             最佳={'text':候选,'omittedBytes':省略}#记下更长的可行候选
             下界=保留字节+1#尝试保留更多
         else:#装不下

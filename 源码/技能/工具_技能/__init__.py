@@ -1,5 +1,4 @@
-import hashlib#目录条目摘要用 SHA-256
-import json#目录条目规范 JSON 编码
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码,摘要十六进制
 import re#技能手势正则与空白压缩
 from ...依赖.schemastery import 数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
@@ -80,9 +79,9 @@ def 摘要目录条目(条目列表):
     '目录身份基于持久条目列表，而不是渲染出的散文。变的是条目；周围的 system-reminder 框架是写给模型的，不得决定是否需要重新发布。条目是 dict'
     片段列表=[]#规范片段
     for 条目 in 条目列表:#逐条JSON而不是分隔符
-        片段列表.append(json.dumps([条目['name'],条目['description']],ensure_ascii=False,separators=(',',':'),allow_nan=False))#加引号才能让边界精确
+        片段列表.append(紧凑json编码([条目['name'],条目['description']]))#加引号才能让边界精确
     规范='\n'.join(片段列表)#规范文本
-    return hashlib.sha256(规范.encode('utf-8')).hexdigest()#十六进制摘要
+    return 摘要十六进制(规范)#十六进制摘要
 
 def 读取目录条目(来源):
     '一条持久目录消息的条目，记录不可用则 None。会话事件可能是恢复、分叉或外部写入的种子，种子校验只保证来源对象带非空 kind；不可读记录被当作不是本插件的目录，而不是在步进监听器里抛错。来源是 dict'

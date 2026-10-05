@@ -1,5 +1,5 @@
 '原生 V4 元数据与本代次自有关系校验'
-import json#未知类型诊断
+from ...基础设施.通用工具 import 紧凑json编码
 from os.path import isabs as 是否绝对路径#cwd须为绝对路径
 from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
 from ..会话格式 import (#从会话格式导入
@@ -61,7 +61,7 @@ def 恢复已发布v4产物(产物,已知事件类型):#恢复v4产物
     for 下标,事件 in enumerate(产物['events']):#逐事件
         if 事件['type'] not in 已知事件类型 and 事件.get('ignorable') is not True:#未知必需
             raise 会话格式不支持迁移错误(#拒绝
-                'format v4 contains unknown event type '+json.dumps(事件['type'],ensure_ascii=False,separators=(',',':'),allow_nan=False)
+                'format v4 contains unknown event type '+紧凑json编码(事件['type'])
                 +' at seq '+str(下标),#消息
             )#Error结束
         if 事件['seq']!=下标:#须稠密

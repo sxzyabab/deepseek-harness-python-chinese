@@ -1,5 +1,6 @@
 import json,os,time,threading#读配置、进程 cwd、单调时钟与后台链
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务#一次性任务
+from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...模型后端.llm import 创建用户消息#导入用户消息工厂
 from ..钩子协议 import (
@@ -26,32 +27,6 @@ from .配置 import 解析科德克斯配置#导入配置解析
 处理器计数=0#处理器计数，用于稳定 id
 
 from .异常 import 钩子codex错误#本包异常
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身.原生结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身.原生结果.done():#尚未结算
-            自身.原生结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身.原生结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.原生结果.set_exception(错误)#原样拒绝
-            else:
-                包装=钩子codex错误('任务被拒绝')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身.原生结果.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身.原生结果.result(timeout=超时)#取结果或抛错
 
 def 取单调纳秒():
     '单调时钟纳秒，供钩子时长计量'
@@ -273,7 +248,7 @@ def 应用(上下文,配置值=None):
             拥有信号=分离.信号#只用拆除信号
         else:
             拥有信号=创建信号#创建信号与拆除信号任一取消
-            if 分离.信号.is_set():#拆除已触发
+            if 分离.信号.已中止():#拆除已触发
                 拥有信号.set()#一并取消
         def 任务():
             '跑 SessionStart 并注入'
@@ -298,7 +273,7 @@ def 应用(上下文,配置值=None):
                 后台.兑现(None)#成功
             except BaseException as 错误:
                 后台.拒绝(错误)#拒绝
-        threading.Thread(target=执行链,daemon=True).start()#启动
+        启动守护线程(执行链)#启动
         分离.登记(后台)#纳入拆除排空
         后台.等待()#创建边等到跑完
     上下文.监听('agent/created',智能体已创建监听)#结束 created 监听

@@ -1,4 +1,4 @@
-import math
+from ...基础设施.通用工具 import 是否正有限数
 from .json模式 import (
     断言受支持json模式,#统一子集断言
     是否json模式记录,#模式记录检测
@@ -227,16 +227,6 @@ def 校验参数(规格,参数):
     '按隐式参数模式校验模型生成的参数'
     return 校验json模式值(参数模式规格转json模式(规格),参数,'')#空路径在诊断里显示为 arguments
 
-def 是否正有限(值):
-    '超时预算必须为正有限数'
-    if isinstance(值,bool):
-        return False#布尔不是数字
-    if isinstance(值,int):
-        return 值>0#正整数
-    if isinstance(值,float):
-        return math.isfinite(值) and 值>0#正有限浮点
-    return False#其余非法
-
 def 定义工具(选项):
     '定义带推断参数与严格执行校验的第一方工具'
     用户执行=选项['execute']#抽出执行体
@@ -248,7 +238,7 @@ def 定义工具(选项):
     用户呈现结果=选项.get('presentResult')#抽出完成呈现
     用户并发安全=选项.get('isConcurrencySafe')#抽出并发分类器
     超时毫秒=选项.get('timeoutMs')#超时
-    if 超时毫秒 is not None and not 是否正有限(超时毫秒):
+    if 超时毫秒 is not None and not 是否正有限数(超时毫秒):
         raise 作者错误('defineTool('+选项['name']+'): timeoutMs must be a positive finite number')#必须是正有限数
     参数模式=参数模式规格转json模式(选项['parameters'])#编译参数模式
     输出模式=值模式规格转json模式(选项['output']['schema'])#编译输出模式

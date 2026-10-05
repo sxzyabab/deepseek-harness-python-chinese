@@ -1,10 +1,9 @@
 import threading#线程本地存储与后台观察
-from concurrent.futures import Future as _原生Future#单次操作结果
+from ...基础设施.通用工具 import 操作任务
 from typing import NotRequired,TypedDict#结构类型
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
+from ...依赖.cordis.纤程 import 纤程状态#纤程状态
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
-服务=cordis.服务#服务基类
-纤程状态=cordis.纤程状态#纤程/纤程状态
 from ..作用域 import 作用域目标#作用域载体构造
 from .运行时类型 import *#再导出运行时类型（含智能体取消原因）
 from .类型 import *#再导出可持久化类型
@@ -20,32 +19,9 @@ from .派发 import (
     为组装构建上下文,#组装上下文
     发出智能体事件,#一次性发出
 )
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=_原生Future()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():
-            if isinstance(错误,BaseException):
-                自身._未来.set_exception(错误)#原样拒绝
-            else:
-                包装=智能体错误('任务被拒绝')#包装拒绝
-                包装.原因=错误#附加信息
-                自身._未来.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
+from . import (
+    不变量,
+)
 
 __all__=(#仅中文公开名；无英文别名
     '无工厂诊断','无发起方诊断','发起方已拆除诊断',

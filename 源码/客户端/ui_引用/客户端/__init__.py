@@ -1,5 +1,5 @@
-import json,time#行载荷编解码与相对时间基准
-from ....基础设施.通用工具 import 获取内部数据
+import json#行载荷编解码
+from ....基础设施.通用工具 import 获取内部数据,当前毫秒,紧凑json编码,路径转正斜杠
 from urllib.parse import quote as 百分编码#URI 段编码
 from ....上下文.文件引用.词法 import 格式化文件提及#文件 mention 格式化
 from .文案 import 命名空间,中文,英文#词典与键
@@ -70,17 +70,17 @@ def 是否绝对工作区路径(路径):
 
 def 会话文件地址(会话标识,路径):
     '编成 dsh-resource://file/session/<id>/<path>'
-    规范化=路径.replace('\\','/')#统一斜杠
+    规范化=路径转正斜杠(路径)#统一斜杠
     while 规范化.startswith('./'):
         规范化=规范化[2:]#剥前导 ./
     return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
 
 def 文件资源地址(会话标识,cwd,路径):
     '相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址'
-    规范化=路径.replace('\\','/')#统一斜杠
+    规范化=路径转正斜杠(路径)#统一斜杠
     if not 是否绝对工作区路径(规范化):
         return 会话文件地址(会话标识,规范化)#相对
-    根='' if cwd is None else cwd.replace('\\','/').rstrip('/')#工作区根
+    根='' if cwd is None else 路径转正斜杠(cwd).rstrip('/')#工作区根
     if 根!='' and 规范化==根:
         return 会话文件地址(会话标识,'')#根本身
     if 根!='' and 规范化.startswith(根+'/'):
@@ -90,7 +90,7 @@ def 文件资源地址(会话标识,cwd,路径):
 def 目录载荷(标签,提及):
     '把一个目录目的地投影为 onPick 已理解的 drill 载荷'
     值={'kind':'file','fileKind':'directory','label':标签,'mention':提及}#目录载荷
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#行 value 序列化
+    return 紧凑json编码(值)#行 value 序列化
 
 def 面包屑(查询,引号路径,已下钻,翻译):
     '只有 drill 才产生；无法格式化则放弃页眉'
@@ -131,7 +131,7 @@ def 文件候选行(候选,保留引号,标位置,翻译):
         'name':名+('/' if 目录 else ''),#行名
         'icon':'folder' if 目录 else 'file',#图标
         'section':翻译('section.files'),#分组
-        'value':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False),#序列化载荷
+        'value':紧凑json编码(值),#序列化载荷
     }#行结束
     if 标位置 and 父!='':
         行['description']=父#位置只写父路径
@@ -157,7 +157,7 @@ def 会话候选行(候选,标签,更新于,现在,家目录,分组,翻译):
         'description':年龄 if 位置 is None else f'{位置} · {年龄}',#位置 · 年龄
         'icon':'session',#图标
         'section':分组,#分组标题
-        'value':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False),#序列化载荷
+        'value':紧凑json编码(值),#序列化载荷
     }#行结束
 
 def 解析候选(值):
@@ -214,7 +214,7 @@ def 应用(上下文):
         if 信号 is not None and 已中止(信号):
             return []#空
         标位置=面包屑(查询,引号,已下钻,翻译) is None#是否行上标位置
-        现在=int(time.time()*1000)#相对时间基准
+        现在=当前毫秒()#相对时间基准
         家=获取内部数据(上下文.remote,'host').home#宿主 home
         列表=会话面.list.getSnapshot().byId#会话列表
         行列表=[]#合并候选行

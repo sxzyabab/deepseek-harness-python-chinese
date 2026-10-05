@@ -39,6 +39,10 @@ from .搜索管道 import (#再导出search-core公开面
     保留grep命中,#内联截断grep命中
     保留glob路径,#内联截断glob路径
 )#search-core再导出结束
+from . import (
+    呈现,
+    直接调用,
+)
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '名称','依赖','配置','应用',

@@ -1,11 +1,10 @@
 '右侧栏拥有的命令：对着当前已挂载页解析'
-import builtins#页面全局
 
 __all__=['登记右侧侧栏快捷键']#仅中文公开名
 
 def 关闭顶层模态(文档):
     '对齐 closeTopModal：关掉最前登记模态的 onClose'
-    builtins.closeTopModal(文档)#关顶层
+    closeTopModal(文档)#关顶层
 
 def 登记右侧侧栏快捷键(快捷键,侧栏,译,关闭窗口):
     """在可见控件所用控制器上登记侧栏命令。
@@ -117,7 +116,7 @@ def 登记右侧侧栏快捷键(快捷键,侧栏,译,关闭窗口):
                 if 种=='close' and 模态 is not None:#关模态优先
                     def 关模态():
                         '关顶层模态'
-                        关闭顶层模态(builtins.document)#关
+                        关闭顶层模态(document)#关
                     return {'status':'handled','run':关模态}#已处理
                 目标=侧栏.focusedTarget(元素)#焦点目标
                 if 目标 is None and (来源=='iframe' or (元素 is not None

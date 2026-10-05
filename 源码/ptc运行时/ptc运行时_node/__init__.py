@@ -22,6 +22,13 @@ from .输出账本 import 输出账本#外层账本
 from .输出流 import 排空输出#排空
 from .环境 import 启动环境名#启动环境
 from .json线 import 解码ptcjson线,编码ptcjson线#线格式
+from . import (
+    协议,
+    引导,
+    输出json,
+    进程,
+    进程入口,
+)
 
 __all__=[#仅中文公开名
     '节点ptc运行时','名称','依赖','配置',

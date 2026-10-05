@@ -81,7 +81,11 @@ def 可空(核心,接受):
     类型=核心.get('type')
     类型列=[类型] if isinstance(类型,str) else 类型
     if 类型列 is None:
-        return {'anyOf':[核心,{'type':'null'}]} if 接受 else dict(核心,not={'type':'null'})
+        if 接受:
+            return {'anyOf':[核心,{'type':'null'}]}
+        拷贝=dict(核心)
+        拷贝['not']={'type':'null'}
+        return 拷贝
     if 接受:
         合并=[]
         for 项 in 类型列+['null']:

@@ -1,4 +1,5 @@
 import re,threading
+from ....基础设施.通用工具 import 启动守护线程
 from datetime import datetime as 日期时间,timedelta as 时间增量,timezone as 固定时区
 from zoneinfo import ZoneInfo as 时区信息
 from ...存储 import 创建快照存储
@@ -230,9 +231,7 @@ class 工作区UI服务:#跨控制器导航与目录
                         return
                     初始[0]='waiting'
                     print('初始工作区选定失败:',原因)
-            线=threading.Thread(target=观察)#线
-            线.daemon=True#守护
-            线.start()#启
+            启动守护线程(观察)#启
 
         拆工作区=自身.workspaces.list.subscribe(调和)#订
         拆会话=自身.sessions.list.subscribe(调和)#订

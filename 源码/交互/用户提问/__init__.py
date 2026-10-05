@@ -1,6 +1,5 @@
 '用户提问能力缝（ctx.userQuestions）的服务定义：在人类回答问题之前暂停一次智能体工具调用的 UI 后端服务'
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .异常 import 用户提问错误
 from ...工具.超时 import 已中止#中止入口
 from .类型 import (#再导出线路安全问答类型

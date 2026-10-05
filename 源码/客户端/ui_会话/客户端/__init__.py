@@ -1,5 +1,4 @@
-from ...存储 import 通知订阅者#订阅者通知
-from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据,观察者集合
 from .会话提供方 import 渲染会话区域#SessionProvider 渲染语义
 from ..异常 import 会话错误#本包异常
 
@@ -164,17 +163,13 @@ def 相同会话状态(左,右):#比较统一状态投影
 
 def 创建绑定源(值):#构造可观察绑定源
     'value/listeners/getSnapshot/subscribe'
-    源={'value':值,'listeners':set()}#源对象
+    源={'value':值,'listeners':观察者集合()}#源对象
     def 读快照():#读快照
         '当前值'
         return 源['value']#值
     def 订阅(监听):#订阅
         '返回退订'
-        源['listeners'].add(监听)#登记
-        def 退订():#退订
-            '去掉监听'
-            源['listeners'].discard(监听)#去掉
-        return 退订#退订
+        return 源['listeners'].订阅(监听)#退订
     源['getSnapshot']=读快照#挂读
     源['subscribe']=订阅#挂订
     return 源#返回源
@@ -204,7 +199,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         自身.running={}#运行态表
         自身.completionUnread=set()#完成未读集
         自身.statusSnapshot={}#状态投影
-        自身.statusListeners=set()#状态订阅者
+        自身.statusListeners=观察者集合()#状态订阅者
         自身.mainRetainId=None#主视图持有会话
         自身.disposeMainRetain=lambda:None#主视图持有退订
         自身.active=True#服务是否活跃
@@ -253,11 +248,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
 
     def _订状态(自身,监听):#订阅状态
         '返回退订'
-        自身.statusListeners.add(监听)#登记
-        def 退订():#退订
-            '去掉监听'
-            自身.statusListeners.discard(监听)#去掉
-        return 退订#退订
+        return 自身.statusListeners.订阅(监听)#退订
 
     def 取绑定源(自身,引用):#按引用取稳定渲染器源
         '缺席或服务已死回退缺席源'
@@ -331,9 +322,9 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         自身.absent['value']=缺席#换缺席值
         for 项 in 更新表:#换各源值
             项['source']['value']=项['value']#写入
-        通知订阅者(自身.absent['listeners'],'[ui-session] absent binding')#通知缺席
+        自身.absent['listeners'].通知()#通知缺席
         for 项 in 更新表:#通知各绑定
-            通知订阅者(项['source']['listeners'],'[ui-session] Session binding')#通知
+            项['source']['listeners'].通知()#通知
         自身.发布主视图()#刷新主视图
 
     def 源为(自身,拥有方):#取或创建绑定源
@@ -367,7 +358,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         if 自身.current['value'] is 值:#未变
             return#跳过
         自身.current['value']=值#更新当前
-        通知订阅者(自身.current['listeners'],'[ui-session] main binding')#通知
+        自身.current['listeners'].通知()#通知
 
     def 监视主视图持有(自身,会话标识):#监视主视图持有变更
         'id 未变则跳过'
@@ -456,7 +447,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         if 相同会话状态(自身.statusSnapshot,下一):#同内容
             return#跳过
         自身.statusSnapshot=下一#更新投影
-        通知订阅者(自身.statusListeners,'[ui-session] Session status')#通知
+        自身.statusListeners.通知()#通知
 
     def 创建物化绑定(自身,拥有方):#物化并挂生命周期
         '作用域死亡时清缓存并回退缺席值'
@@ -473,7 +464,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
                     return#忽略
                 del 自身.bindings[拥有方]#清缓存
                 源['value']=自身.absent['value']#回退缺席值
-                通知订阅者(源['listeners'],'[ui-session] Session binding')#通知
+                源['listeners'].通知()#通知
                 自身.发布主视图()#刷新主视图
             return 清理#返回清理
         释放效果=拥有方.ctx.副作用(作用域寿命,'ui-session: binding '+str(拥有方.sessionId))#诊断名

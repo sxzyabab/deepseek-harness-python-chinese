@@ -24,7 +24,11 @@ from .远程事件 import 远程转发事件
 from .类型 import (
     远程转发事件名,远程事件选择席位,可订阅远程事件名,
 )
-from . import 客户端 as 客户端面
+from . import (
+    客户端 as 客户端面,
+    载荷词汇,
+    远程方法目录,
+)
 
 包名='@deepseek-ai/dsh-api-remotes'
 名称='api-remotes'

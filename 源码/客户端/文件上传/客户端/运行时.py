@@ -1,8 +1,7 @@
-import builtins,json,threading,time#全局、JSON、线程与轮询
+import json,threading,time#JSON、线程与轮询
 from urllib.parse import urlencode as 编查询,urljoin as 拼接URL
 import urllib.request as 请求库#标准库 HTTP
-from ....依赖 import cordis#Cordis
-服务=cordis.服务#服务基类
+from ....依赖.cordis.服务 import 服务#服务基类
 from ....工具.加密 import 字节转base64#字节转 base64
 from ..协议 import 文件上传路径#上传路径
 from ..异常 import 远程错误,文件上传错误#本包异常
@@ -156,21 +155,21 @@ def 文件上传工作体(回传,创建请求=None,执行fetch=None):#Worker 语
     return 处理启动#入口
 
 def 取全局钩子():#读启动前钩子
-    'builtins.__DSH_FILE_UPLOAD__；宿主可选注入'
+    '宿主可选注入 __DSH_FILE_UPLOAD__'
     try:#可选钩子
-        return builtins.__DSH_FILE_UPLOAD__#钩子
-    except AttributeError:#未注入
+        return __DSH_FILE_UPLOAD__#钩子
+    except NameError:#未注入
         return None#无
 
 def 解析网址(路径):#相对路径解析为绝对 URL
     '有页面 origin 则用，否则 http://dsh.internal'
     源=None#可选源
     try:#宿主可选 location
-        页面=builtins.location#页面
+        页面=location#页面
         源=页面.origin#origin
         if not isinstance(源,str):#无
             源=None#清空
-    except AttributeError:#非浏览器或无 origin
+    except (NameError,AttributeError):#非浏览器或无 origin
         源=None#清空
     if 源 is None or 源=='null':#缺源
         基='http://dsh.internal'#内部基

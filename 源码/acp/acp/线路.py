@@ -1,6 +1,12 @@
 '本包内嵌的 ACP 智能体侧 NDJSON JSON-RPC 最小线路'
 import json,threading#JSON 与读写线程
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务#一次性任务
+from ...基础设施.通用工具.帧协议 import 换行帧解码器,编码ndjson行#换行帧
+from ...基础设施.通用工具.jsonrpc协议 import (#JSON-RPC 构造与未决表
+    构造jsonrpc请求,构造jsonrpc通知,构造jsonrpc成功响应,构造jsonrpc错误响应,
+    分类jsonrpc消息,未决请求表,
+)#构造与分类
+from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from .异常 import ACP线路错误,请求错误#线路失败与带码请求失败
 
 __all__=[#仅中文公开名
@@ -8,30 +14,6 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 协议版本=1#ACP 协议版本常量（与 SDK PROTOCOL_VERSION 对齐的本桥接钉值）
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._未来.set_exception(ACP线路错误(str(错误)))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 class NDJSON流:
     '可读/可写字节或文本流对，供智能体侧连接使用'
@@ -50,13 +32,12 @@ class 智能体侧连接:
         '铸造处理器并开始读帧'
         自身.流=流#传输流
         自身.写锁=threading.Lock()#写出互斥
-        自身.未决={}#出站请求 id → 任务
-        自身.下一标识=1#下一个出站 id
+        自身.未决表=未决请求表()#整数 id 的未决请求
+        自身._出站任务={}#id → 任务，响应仍按请求错误结算
         自身.已关闭=操作任务()#连接关闭任务
         自身._关闭落定=False#是否已兑现关闭
         自身.智能体=铸造智能体(自身)#记下连接后铸造 ACP Agent
-        自身._读线程=threading.Thread(target=自身._读循环,daemon=True)#后台读
-        自身._读线程.start()
+        自身._读线程=启动守护线程(自身._读循环)#后台读
 
     @property
     def 已关闭承诺(自身):
@@ -77,30 +58,25 @@ class 智能体侧连接:
 
     def _通知(自身,方法,参数):
         '省略响应'
-        自身._写出({'jsonrpc':'2.0','method':方法,'params':参数})#通知帧
+        自身._写出(构造jsonrpc通知(方法,参数))#通知帧
 
     def _请求(自身,方法,参数):
         """等待响应。
         同步返回结果
         """
-        等待=操作任务()#结果
-        with 自身.写锁:#互斥取 id
-            标识=自身.下一标识#分配
-            自身.下一标识+=1#递增
-            自身.未决[标识]=等待#登记
+        标识,等待=自身.未决表.新建请求()#整数 id
+        自身._出站任务[标识]=等待#留下任务引用
         try:
-            自身._写出({'jsonrpc':'2.0','id':标识,'method':方法,'params':参数})#请求帧
+            自身._写出(构造jsonrpc请求(标识,方法,参数))#请求帧
         except BaseException as 错误:
-            自身.未决.pop(标识,None)#清 pending
-            if isinstance(错误,BaseException):#已是异常
-                等待.拒绝(错误)#拒绝
-            else:#非异常
-                等待.拒绝(ACP线路错误(str(错误)))#包装
+            自身._出站任务.pop(标识,None)#清 pending
+            自身.未决表.撤销(标识)#撤销登记
+            等待.拒绝(错误)#拒绝
         return 等待.等待()#同步交出
 
     def _写出(自身,消息):
         '序列化后加换行'
-        行=json.dumps(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n'#紧凑行
+        行=编码ndjson行(消息)#紧凑行
         with 自身.写锁:#写出互斥
             写出=自身.流.写出#出站流
             编码=getattr(写出,'encoding',None)#文本流编码
@@ -113,32 +89,26 @@ class 智能体侧连接:
 
     def _读循环(自身):
         '派发请求/响应/通知'
-        缓冲=''#行缓冲
+        解码器=换行帧解码器()#换行切分
         读入=自身.流.读入#入站
+        按行=hasattr(读入,'readline')#按行读时末行可以没有换行
         try:
             while True:#直到 EOF
-                if hasattr(读入,'readline'):#按行
+                if 按行:#按行
                     行=读入.readline()#读一行
                     if 行=='' or 行 is None:#EOF
                         break
-                    if isinstance(行,bytes):#字节
-                        行=行.decode('utf-8')#解码
-                    自身._处理行(行.strip())#处理
+                    for 整行 in 解码器.推入(行):#完整行
+                        自身._处理行(整行)#处理
                     continue#下一行
                 块=读入.read(65536)#一块
                 if not 块:#EOF
                     break
-                if isinstance(块,bytes):#字节
-                    块=块.decode('utf-8')#解码
-                缓冲+=块#拼
-                while True:#切行
-                    换行=缓冲.find('\n')#找换行
-                    if 换行<0:#没有
-                        break#停
-                    行=缓冲[:换行].strip()#取出
-                    缓冲=缓冲[换行+1:]#剩余
-                    if 行!='':#非空
-                        自身._处理行(行)#处理
+                for 整行 in 解码器.推入(块):#完整行
+                    自身._处理行(整行)#处理
+            if 按行:#readline 的最后一行可能没有换行
+                for 整行 in 解码器.结束():#末行
+                    自身._处理行(整行)#处理
         except BaseException as 错误:
             if isinstance(错误,BaseException):#已是异常
                 自身._关闭(错误)#带错关闭
@@ -155,10 +125,11 @@ class 智能体侧连接:
             return#忽略
         if not isinstance(消息,dict):#非对象
             return#忽略
-        标识=消息['id'] if 'id' in 消息 else None#可能的 id
-        方法=消息['method'] if 'method' in 消息 else None#可能的方法
-        if 'id' in 消息 and 方法 is None:#入站响应
-            等待=自身.未决.pop(标识,None)#认领
+        种类=分类jsonrpc消息(消息)#请求、通知、响应或无效
+        if 种类=='响应':#入站响应
+            标识=消息['id']#响应 id
+            等待=自身._出站任务.pop(标识,None)#认领
+            自身.未决表.撤销(标识)#从表摘掉
             if 等待 is None:#未知
                 return#忽略
             if 'error' in 消息 and isinstance(消息['error'],dict):#错误响应
@@ -167,14 +138,16 @@ class 智能体侧连接:
                 原始消息=错['message'] if 'message' in 错 else None#消息
                 文案=原始消息 if isinstance(原始消息,str) and 原始消息!='' else 'ACP error'#默认消息
                 数据=错['data'] if 'data' in 错 else None#可选 data
-                等待.拒绝(请求错误(码,文案,数据))#拒绝
+                等待.拒绝(请求错误(码,文案,数据))#拒绝，仍用请求错误
             else:#成功
                 等待.兑现(消息['result'] if 'result' in 消息 else None)#兑现
             return#完
-        if isinstance(方法,str):#入站请求或通知
+        if 种类=='请求' or 种类=='通知':#入站请求或通知
+            标识=消息['id'] if 种类=='请求' else None#通知不回写
+            方法=消息['method']#方法
             原始参数=消息['params'] if 'params' in 消息 else None#params
             参数=原始参数 if isinstance(原始参数,dict) else {}#非对象则空对象
-            threading.Thread(target=自身._派发入站,args=(标识,方法,参数),daemon=True).start()#异步派发
+            启动守护线程(自身._派发入站,标识,方法,参数)#异步派发
 
     def _派发入站(自身,标识,方法,参数):
         """有 id 则回写响应。
@@ -196,17 +169,17 @@ class 智能体侧连接:
                 raise 请求错误(-32601,'method not found: '+方法)#方法未找到
             结果=处理(参数)#同步调用
             if 标识 is not None:#有 id：响应
-                自身._写出({'jsonrpc':'2.0','id':标识,'result':结果 if 结果 is not None else {}})#成功响应
+                自身._写出(构造jsonrpc成功响应(标识,结果 if 结果 is not None else {}))#成功响应
         except BaseException as 错误:
             错误名=getattr(错误,'name',None)#结构名
             错误码=getattr(错误,'code',None)#结构码
             if 错误名=='RequestError':#线路错误
                 if 标识 is not None:#有 id
                     消息=getattr(错误,'message',str(错误))#消息
-                    自身._写出({'jsonrpc':'2.0','id':标识,'error':{'code':错误码,'message':消息}})#错误响应
+                    自身._写出(构造jsonrpc错误响应(标识,错误码,消息))#错误响应
                 return#已写出
             if 标识 is not None:#其它错误
-                自身._写出({'jsonrpc':'2.0','id':标识,'error':{'code':-32603,'message':str(错误)}})#内部错误
+                自身._写出(构造jsonrpc错误响应(标识,-32603,str(错误)))#内部错误
 
     def _关闭(自身,错误):
         '只落定一次'
@@ -214,9 +187,8 @@ class 智能体侧连接:
             return#忽略
         自身._关闭落定=True#标记
         关闭错=错误 if 错误 is not None else ACP线路错误('ACP connection closed')#默认关闭
-        for 等待 in list(自身.未决.values()):#拒绝未决
-            等待.拒绝(关闭错)#拒绝
-        自身.未决.clear()#清空
+        自身.未决表.全部拒绝(关闭错)#拒绝未决
+        自身._出站任务.clear()#清空引用
         if 错误 is not None:#带错关闭
             自身.已关闭.拒绝(错误)#拒绝关闭承诺
         else:#正常

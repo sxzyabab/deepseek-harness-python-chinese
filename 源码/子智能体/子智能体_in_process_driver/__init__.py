@@ -1,5 +1,5 @@
 import threading,uuid#线程与子 id
-from concurrent.futures import Future as 原生结果#结果 Future
+from ...基础设施.通用工具.并发原语 import 操作任务
 from ...内核.会话 import 会话标识#品牌
 from ...内核.智能体.已消费工作 import 折叠已消费工作#foldConsumedWork
 from ...模型后端.llm import 创建用户消息#用户消息
@@ -13,30 +13,6 @@ from ..子智能体.助手输出 import 最终助手输出#输出选取
 from .结构化 import 附着结构化运行时,结构化输出工具名,结构化输出指令#结构化
 
 __all__=['结构化输出工具名','结构化输出指令','启动进程内运行']#公开面
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._原生结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._原生结果.done():#尚未结算
-            自身._原生结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._原生结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._原生结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._原生结果.set_exception(子智能体错误(str(错误),'ERROR'))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._原生结果.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):
     '信号是否已中止。无信号视为未中止'

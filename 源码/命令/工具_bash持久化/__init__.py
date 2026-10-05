@@ -1,7 +1,10 @@
 '面向模型的持久 bash 工具，叠在按所有者隔离的 PTY 能力上'
 import re,time,uuid,threading,weakref#正则、轮询休眠、随机标记、中止锁与弱表
-from concurrent.futures import Future as 原生结果#单次操作结果
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.线程工具 import 启动守护线程
+from ...基础设施.通用工具.数值判定 import 是否正安全整数
+from ...基础设施.通用工具.文本工具 import utf8字节数,截断utf8字节
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 截止,取超时,中止控制器,合成信号,已中止,若已中止则抛出#命令截止与中止通道
 from .异常 import 持久bash错误#本包异常基类
@@ -17,7 +20,6 @@ __all__=['名称','依赖','配置','应用','或许截断','下一滚回偏移'
 滚回页行数=1000#每次读取的滚回页行数
 轮询间隔毫秒=25#轮询间隔毫秒
 默认描述='Run commands in a persistent bash shell. State, including the current directory and exported environment variables, persists across calls for this agent.'#默认工具描述
-安全整数上限=9007199254740991#外来 JSON 校验点
 名称='tool-bash-persistent'#Cordis插件名（字面量）
 依赖=['tools','terminals']#依赖工具与终端
 配置={#持久Bash工具配置
@@ -30,30 +32,6 @@ __all__=['名称','依赖','配置','应用','或许截断','下一滚回偏移'
 末尾换行模式=re.compile(r'(?:\r?\n)+\Z')#末尾全部换行
 开头换行模式=re.compile(r'^\r?\n')#开头换行
 
-class 操作任务:#单次操作结果
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(持久bash错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
-
 def 全部结算(任务列表):#等全部落定，吞掉失败
     '并发原语按本包持有：等全部落定，吞掉失败'
     for 任务 in 任务列表:#逐路
@@ -62,24 +40,14 @@ def 全部结算(任务列表):#等全部落定，吞掉失败
         except BaseException:#排空不抛
             pass#排空不抛
 
-def 按字节截到边界(文本,最大字节):#按UTF-8字节截断且落在字符边界
-    '按 UTF-8 字节预算截断，切点落在字符边界'
-    编码=文本.encode('utf-8')#UTF-8字节
-    if len(编码)<=最大字节:#未超
-        return 文本#原样
-    切片=编码[:最大字节]#先按字节切
-    while len(切片)>0 and (切片[-1]&0xC0)==0x80:#落在后续字节上则回退
-        切片=切片[:-1]#丢掉后续字节
-    return 切片.decode('utf-8')#解码为文本
-
 def 或许截断(内容,最大输出字节,不完整=False):#按上限截断并追加说明
     '按 UTF-8 字节上限截断并追加说明'
-    编码=内容.encode('utf-8')#UTF-8字节
-    if len(编码)<=最大输出字节 and not 不完整:#未超且完整则原样
+    编码长度=utf8字节数(内容)#UTF-8字节
+    if 编码长度<=最大输出字节 and not 不完整:#未超且完整则原样
         return 内容#原样
-    if len(编码)<=最大输出字节:#仍未超长
+    if 编码长度<=最大输出字节:#仍未超长
         return 内容+截断说明#完整但调用方标了不完整，只追加说明
-    return 按字节截到边界(内容,最大输出字节)+截断说明#超长则切尾巴再追加说明
+    return 截断utf8字节(内容,最大输出字节)+截断说明#超长则切尾巴再追加说明
 
 def 命令标记():#生成本次命令的唯一起止标记
     '生成本次命令的唯一起止标记'
@@ -317,9 +285,7 @@ def 持久壳表(上下文,配置值):#按所有者缓存持久壳
                 创建.拒绝(错误)#原样拒绝
             finally:#创建结束不论成败
                 创建中.discard(创建)#从拆除等待集合摘掉
-        工作=threading.Thread(target=拉起并初始化)#创建线程
-        工作.daemon=True#不挡住退出
-        工作.start()#立刻开跑
+        启动守护线程(拉起并初始化)#立刻开跑
         return 创建#返回创建任务
 
     return {'get':获取,'reset':重置}#交出按所有者的get/reset
@@ -461,16 +427,6 @@ def 登记持久Bash(上下文,配置值):#注册持久bash工具
         'execute':执行,#执行一条持久bash
         'presentCall':呈现调用,#调用卡片
     }))#bash工具结束
-
-def 是否正安全整数(值):#配置入口的安全整数校验
-    '外来配置校验：正整数且不超过 JS 安全整数上限；布尔先排除'
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是整数
-    if isinstance(值,int):#整数
-        return 值>0 and 值<=安全整数上限#正且安全
-    if isinstance(值,float) and 值.is_integer():#整值浮点
-        return 值>0 and 值<=安全整数上限#正且安全
-    return False#其它类型
 
 def 应用(上下文,配置值):#加载持久bash工具插件
     '注册一个按所有者隔离的持久 bash 工具'

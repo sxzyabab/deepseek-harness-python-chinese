@@ -1,5 +1,5 @@
 '本地沙箱后端'
-import json#会话/工作区键序列化
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 import os#存在判定与路径拼接
 import re#失败签名换行检查
 import shutil#递归删除临时目录
@@ -244,7 +244,7 @@ class 本地沙箱提供方(沙箱提供方):#本地进程沙箱提供方
                     raise 聚合错误([错误,清理错误],'sandbox-local windows-acl workspace grant failed and its cleanup also failed')#聚合失败
                 raise 错误#原错误
             自身.workspaceGrants[工作区根]=授权#记下常驻授权
-        键=json.dumps([str(会话号),工作区根],ensure_ascii=False,separators=(',',':'),allow_nan=False)#会话/工作区键
+        键=紧凑json编码([str(会话号),工作区根])#会话/工作区键
         已有=自身.tempCapabilities.get(键)#已有临时能力
         if 已有 is not None:#复用
             return 已有#已有能力

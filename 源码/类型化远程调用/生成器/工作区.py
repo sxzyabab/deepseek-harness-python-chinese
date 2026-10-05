@@ -1,4 +1,5 @@
 import json,os#读 package.json
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .异常 import Typert分析错误#分析错误类型
 from .代码输出 import 面模型代码输出器#按面模型输出
 
@@ -27,7 +28,7 @@ def 校验制品导出(工作区根,制品):#核对该包 exports 与 files
     导出面=清单['exports'] if 'exports' in 清单 else None#exports
     实际=导出面[子路径] if isinstance(导出面,dict) and 子路径 in 导出面 else None#该子路径
     if not 相同导出(实际,期望):#不一致
-        raise Typert分析错误('typert('+制品['face']+'): '+制品['package']+' must export '+子路径+' as '+json.dumps(期望,ensure_ascii=False,separators=(',',':'),allow_nan=False))#错误
+        raise Typert分析错误('typert('+制品['face']+'): '+制品['package']+' must export '+子路径+' as '+紧凑json编码(期望))#错误
     文件列表=清单['files'] if 'files' in 清单 and isinstance(清单['files'],list) else []#files
     for 文件 in ('lib/typert.'+制品['face']+'.js','lib/typert.'+制品['face']+'.d.ts'):#逐项
         if 文件 not in 文件列表:#漏了
@@ -42,7 +43,7 @@ def 校验制品导出(工作区根,制品):#核对该包 exports 与 files
             raise Typert分析错误('typert(host): '+制品['package']+' publishes Remote artifacts but has no Remote methods')#错误
         return
     if not 相同导出(远程实际,远程期望):#不一致
-        raise Typert分析错误('typert(host): '+制品['package']+' must export ./remote as '+json.dumps(远程期望,ensure_ascii=False,separators=(',',':'),allow_nan=False))#错误
+        raise Typert分析错误('typert(host): '+制品['package']+' must export ./remote as '+紧凑json编码(远程期望))#错误
     for 文件 in 远程文件列表:#逐项
         if 文件 not in 文件列表:#漏了
             raise Typert分析错误('typert(host): '+制品['package']+' package files must include '+文件)#错误

@@ -1,5 +1,6 @@
 '进程内配置包路由：把裸包请求导向世代表选定的目录'
 import os,sys,json,threading#路径、导入钩、清单与线程数据
+from ....基础设施.通用工具.文本工具 import 路径转正斜杠
 from .遗留链接 import 是否配置模块回退链接#遗留投影判定
 from ..异常 import 启动错误#应用启动粘合层失败
 __all__=[#仅中文公开名
@@ -236,10 +237,10 @@ def _搜索路径(父,名):
 def _前缀下标(值,前缀列表):
     '值落在哪条前缀下；没有则 -1'
     for 下标,前缀 in enumerate(前缀列表):#逐条
-        转='file:///'+前缀.replace('\\','/') if not 值.startswith('file:') else 值#对齐
-        if 值.startswith(前缀) or 转.startswith('file:///'+前缀.replace('\\','/')):#命中
+        转='file:///'+路径转正斜杠(前缀) if not 值.startswith('file:') else 值#对齐
+        if 值.startswith(前缀) or 转.startswith('file:///'+路径转正斜杠(前缀)):#命中
             return 下标#下标
-        if 值.startswith('file:///'+前缀.replace('\\','/')):# URL 命中
+        if 值.startswith('file:///'+路径转正斜杠(前缀)):# URL 命中
             return 下标#下标
     return -1#没有
 
@@ -285,7 +286,7 @@ def 安装配置解析(世代,行为='enforce'):
     配置路径=前缀列表(世代['profilesDir'])#配置前缀
     if 世代.get('profileDir') is not None:#有活动配置
         配置路径=配置路径+前缀列表(世代['profileDir'])#并上
-    配置网址=['file:///'+前缀.replace('\\','/') for 前缀 in 配置路径]#URL 前缀
+    配置网址=['file:///'+路径转正斜杠(前缀) for 前缀 in 配置路径]#URL 前缀
 
     def 包目录(说明符,父网址):
         '公开包目录查找；verify 时对照原生'

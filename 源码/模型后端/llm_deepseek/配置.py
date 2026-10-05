@@ -4,6 +4,7 @@ from urllib.parse import urlparse as 解析网址
 from ...依赖.schemastery import 字符串字段,整数字段,列表字段,枚举字段,常量字段,数字字段,复合类型字段
 from ...凭据.凭据 import 凭证引用
 from ...工具.超时 import 定时器延迟上限毫秒
+from ...基础设施.通用工具.数值判定 import 是否正安全整数
 from ..llm import 解析重试政策
 from .默认值 import (
     默认流空闲超时毫秒,默认上下文窗口,默认最大令牌,默认最大内联请求图字节,
@@ -73,10 +74,6 @@ def 朴素选项(配置值):
 def 是否正整数(值):
     '排除 bool 的正整数'
     return not isinstance(值,bool) and isinstance(值,(int,float)) and 值==int(值) and 值>0
-
-def 是否正安全整数(值):
-    '排除 bool 的正安全整数'
-    return 是否正整数(值) and abs(值)<=最大安全整数
 
 def 解析模型目录(模型列表):
     '解析、校验并拆离建议模型目录'

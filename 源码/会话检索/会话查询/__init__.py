@@ -1,5 +1,4 @@
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#框架服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...内核.会话 import 会话,快照会话事件#会话回放与事件快照
 from ...模型后端.llm import 结构化克隆#拆离克隆
 from .异常 import 会话查询错误#检索错误

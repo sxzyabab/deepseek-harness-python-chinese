@@ -1,6 +1,9 @@
 '当前 Loader 插件条目的只读投影'
 from ...启动.app启动.包元 import 读插件元
 from .类型 import 插件条目标识
+from . import (
+    远程,
+)
 
 __all__=['插件条目标识','读插件清单','名称','依赖','应用']
 

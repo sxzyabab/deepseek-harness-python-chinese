@@ -1,5 +1,6 @@
 '经导出资源读取插件展示文案与图标，不求值插件代码'
-import os,re,base64,json
+import os,re,json
+from ...基础设施.通用工具.序列化编码 import 构造dataurl
 from .配置解析.解析器 import 裸包名
 from ...依赖.loader.内部 import 模块加载器
 from .异常 import 启动错误
@@ -70,7 +71,7 @@ def 图标于(值,清单目录):
         文件对象.close()
     if len(字节)>最大图标字节:
         raise 启动错误('icon exceeds 256 KiB')
-    return 'data:'+媒体+';base64,'+base64.b64encode(字节).decode('ascii')
+    return 构造dataurl(媒体,字节)
 
 def 解析插件资源(说明符,父网址):
     '经活动模块解析器解析插件资源，不把路径写入错误'

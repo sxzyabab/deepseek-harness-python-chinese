@@ -9,6 +9,10 @@ from .异常 import stagehand排空错误#SDK 未排空
 from .原生 import 浏览器输入,stagehand模型模式#原生
 from .工作者客户端 import 打开浏览器工作者#工作者
 from .启动 import 启动chromium#Chromium
+from . import (
+    工作者,
+    工作者rpc,
+)
 
 __all__=['名称','依赖','配置','应用']
 

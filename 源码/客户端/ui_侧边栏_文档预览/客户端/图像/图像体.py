@@ -1,3 +1,4 @@
+from .....基础设施.通用工具 import 路径转正斜杠
 from ..远程过程调用 import 宿主文件#宿主文件
 
 __all__=['图像媒体类型','图像体','图像扩展名']#仅中文公开名
@@ -18,7 +19,7 @@ _图像媒体类型={#后缀 → MIME
 
 def 图像媒体类型(路径):
     '把受支持文件名解析为媒体类型；未登记后缀为 None'
-    归一=路径.replace('\\','/')#归一
+    归一=路径转正斜杠(路径)#归一
     名=归一[归一.rfind('/')+1:].lower()#文件名
     点=名.rfind('.')#末点
     if 点<0:#无扩展
@@ -34,7 +35,7 @@ def 图像体(内容,资源地址,翻译):
     数据=内容['data'] if 内容.get('kind')=='bytes' else None#字节
     if 数据 is None or 媒体 is None:#不支持
         return {'kind':'image-status','status':'unsupported','message':翻译('unsupported')}#状态
-    名=路径.replace('\\','/')#归一
+    名=路径转正斜杠(路径)#归一
     名=名[名.rfind('/')+1:]#文件名
     return {#结构
         'kind':'image-body',

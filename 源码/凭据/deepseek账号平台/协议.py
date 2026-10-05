@@ -1,4 +1,5 @@
 import json,re
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from urllib.parse import urlparse
 from requests import request as 发请求
 from ...工具.超时 import 已中止
@@ -92,7 +93,7 @@ def 请求平台(来源,方法,体,信号,头):
     return 平台请求(来源+'/auth-api/v0/dsh/'+方法,{
         'method':'POST',
         'headers':{**头,'content-type':'application/json'},
-        'body':json.dumps(体,ensure_ascii=False,separators=(',',':'),allow_nan=False),
+        'body':紧凑json编码(体),
     },信号)
 
 def 请求账号(来源,路径,令牌,信号,头):

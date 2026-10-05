@@ -1,5 +1,6 @@
 from ....异常 import 运行时错误
 import json
+from ......基础设施.通用工具.序列化编码 import 紧凑json编码
 import math
 import re
 
@@ -62,7 +63,7 @@ def 检视(值):
         消息=getattr(值,'message',str(值))
         return f'{名}: {消息}'
     try:
-        渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+        渲染=紧凑json编码(值)
         return 渲染 if 渲染 is not None else str(值)
     except (TypeError,ValueError):#json.dumps 对非法类型或 NaN 失败
         return str(值)

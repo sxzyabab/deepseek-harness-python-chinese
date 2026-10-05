@@ -1,17 +1,12 @@
 '每 Session 一条宿主 `changes` 订阅，扇出到该 Session 已打开的文件'
 import json#断言帧
-from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据,操作任务,启动守护线程,路径转正斜杠
 import threading#唤醒与结算
 from concurrent.futures import Future as 原生结果#就绪与拆除
 from ..类型 import 已中止#中止查询
 from ..异常 import 远程错误#本包异常
 
 __all__=['变更供给']#仅中文公开名
-
-
-def _路径键(路径):
-    '宿主绝对路径的跟随键：反斜杠归一为斜杠'
-    return 路径.replace('\\','/')#归一
 
 
 class _跟随者:
@@ -28,7 +23,7 @@ class _跟随者:
 
     def 绑定(自身,绝对路径):
         '选定排队与后续变更所用的宿主路径'
-        自身._宿主键=_路径键(绝对路径)#绑定
+        自身._宿主键=路径转正斜杠(绝对路径)#绑定
 
     def 启动(自身):
         '宿主已确认订阅并解析工作区根'
@@ -134,7 +129,7 @@ class _会话供给:
                         跟随者.启动()#就绪
                 elif 种类=='change':#变更
                     变更=帧['change']#变更
-                    键=_路径键(变更['absolutePath'])#键
+                    键=路径转正斜杠(变更['absolutePath'])#键
                     通知=_编辑于(变更)#通知
                     for 跟随者 in list(自身._跟随者集合):#扇出
                         跟随者.推(通知,键)#推
@@ -161,7 +156,7 @@ class _会话供给:
 
 def _包装拆除(拆除):
     '把 dispose 收成带 等待 的任务。dispose 翻译时已是同步阻塞'
-    任务=_可等待()#任务
+    任务=操作任务()#任务
     def 后台拆除():
         '执行拆除'
         try:
@@ -169,31 +164,8 @@ def _包装拆除(拆除):
             任务.兑现()#成功
         except BaseException as 错误:
             任务.拒绝(错误)
-    线=threading.Thread(target=后台拆除,daemon=True)#后台
-    线.start()
+    启动守护线程(后台拆除)#后台
     return 任务#任务
-
-
-class _可等待:
-    '只留 等待 的 Future 包装'
-
-    def __init__(自身):
-        '未决'
-        自身._未来=原生结果()#底层
-
-    def 兑现(自身,值=None):
-        '成功'
-        if not 自身._未来.done():#未结
-            自身._未来.set_result(值)#写入
-
-    def 拒绝(自身,错误):
-        '失败'
-        if not 自身._未来.done():#未结
-            自身._未来.set_exception(错误 if isinstance(错误,BaseException) else Exception(str(错误)))#拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞至结算'
-        return 自身._未来.result(timeout=超时)#结果
 
 
 def _编辑于(变更):
@@ -269,7 +241,7 @@ class 变更供给:
         def 关闭后(已关):
             '流消失时登记关闭中'
             自身._会话表.pop(会话标识,None)#摘活表
-            追踪=_可等待()#追踪
+            追踪=操作任务()#追踪
 
             def 收尾():
                 '拆除无论成败都算结清'
@@ -281,8 +253,7 @@ class 变更供给:
                     自身._关闭中.pop(会话标识,None)#摘
                 追踪.兑现()#结
 
-            线=threading.Thread(target=收尾,daemon=True)#收尾
-            线.start()
+            启动守护线程(收尾)#收尾
             自身._关闭中[会话标识]=追踪#记下
 
         供给=_会话供给(自身._远程,会话标识,前任,关闭后)#新建

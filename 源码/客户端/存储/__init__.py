@@ -1,12 +1,12 @@
 '客户端快照存储引擎'
-import builtins,json#localStorage 与 JSON
+import json#JSON
+from ...基础设施.通用工具 import 观察者集合,紧凑json编码
 from types import SimpleNamespace as 简易命名空间#声明句柄
 
 __all__=[#仅中文公开名
     '浅相等',
     '创建快照存储',
     '声明存储',
-    '通知订阅者',
     '应用',
 ]
 
@@ -31,10 +31,10 @@ def 浅相等(甲,乙):
     return False#其余不等
 
 def _取本地存储():
-    '可选 builtins.localStorage；非浏览器则无'
+    '可选 localStorage；非浏览器则无'
     try:#可选
-        return builtins.localStorage#存储
-    except AttributeError:#未注入
+        return localStorage#存储
+    except NameError:#未注入
         return None#无
 
 class 快照存储面:
@@ -43,7 +43,7 @@ class 快照存储面:
         '记下初值与可选 flush/persist'
         选项=选项 or {}#缺省
         自身._状态=初值#当前值
-        自身._监听者=set()#订阅者
+        自身._监听者=观察者集合()#订阅者
         自身._flush=选项.get('flush') or 'sync'#同步或 raf
         自身._待通知=False#raf 合并门闩
         持久=选项.get('persist')#持久化声明
@@ -62,11 +62,7 @@ class 快照存储面:
 
     def subscribe(自身,回调):
         '登记变更回调，返回退订'
-        自身._监听者.add(回调)#加入
-        def 退订():
-            '取消'
-            自身._监听者.discard(回调)#删除
-        return 退订#退订器
+        return 自身._监听者.订阅(回调)#退订器
 
     def update(自身,变换):
         '经草稿变换写状态；dict 就地改，其余把返回值当下一态'
@@ -102,7 +98,10 @@ class 快照存储面:
             '一拍后扇出'
             自身._待通知=False
             自身._扇出()#扇出
-        调度=getattr(builtins,'requestAnimationFrame',None)#浏览器 RAF
+        try:#下一拍
+            调度=requestAnimationFrame#浏览器 RAF
+        except NameError:#非浏览器
+            调度=None#无
         if callable(调度):#有
             调度(lambda *_:冲刷())#排队
         else:#无 RAF
@@ -110,7 +109,7 @@ class 快照存储面:
 
     def _扇出(自身):
         '通知全部订阅者；单回调失败不饿死其余'
-        通知订阅者(自身._监听者,'快照存储')#扇出
+        自身._监听者.通知()#扇出
 
     def _再水合(自身):
         '从 localStorage 读回；失败只关掉持久化'
@@ -135,7 +134,7 @@ class 快照存储面:
             自身._可持久化=False#关
             return
         try:#写
-            存储.setItem(自身._持久名,json.dumps(自身._状态,ensure_ascii=False,separators=(',',':'),allow_nan=False))#整值
+            存储.setItem(自身._持久名,紧凑json编码(自身._状态))#整值
         except (TypeError,ValueError,AttributeError,OSError) as 错误:#写失败
             print("快照存储 '"+自身._持久名+"' 持久化失败:",错误)#诊断
             自身._可持久化=False#关
@@ -200,14 +199,6 @@ def 声明存储(声明):
         return 实例#实例
 
     return 简易命名空间(spec=声明,create=创建)#句柄：.spec / .create
-
-def 通知订阅者(监听者列表,标签,*参数):
-    '逐个通知，单个回调失败不饿死其余'
-    for 监听 in list(监听者列表):#复制后派发
-        try:#单回调
-            监听(*参数)#调用
-        except Exception as 错误:#订阅者回调契约未定
-            print(标签+' 订阅者失败:',错误)#打出
 
 def 应用():
     '本包导出库引擎，无宿主侧行为'

@@ -1,8 +1,10 @@
 'LSP 能力缝（`ctx.lsp`）服务定义'
 import re#扩展名文法
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .异常 import 语言服务器错误
+from . import (
+    类型,
+)
 
 __all__=[
     '包名','名称','默认','语言服务器错误','语言服务器提供方标识','最终扩展名','语言服务器',

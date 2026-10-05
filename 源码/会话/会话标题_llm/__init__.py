@@ -1,5 +1,5 @@
 '模型会话标题共享策略'
-import json#消息 JSON 帧
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数,已中止
 from ...依赖.schemastery import 字典字段,数字字段,字符串字段
 from ...模型后端.llm import 创建用户消息,深冻结,块组装器#LLM 辅助
 from ...工具.超时 import 截止#截止
@@ -21,14 +21,6 @@ from .异常 import 会话标题llm错误#本包异常
     'model':字符串字段(),#可选模型
 }#字段表
 会话标题llm配置模式=字典字段(字典结构=配置字段)#配置模式
-
-def 已中止(信号):
-    """信号是否已中止。
-    无信号视为未中止
-    """
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
     '已中止则抛 aborted'
@@ -80,7 +72,7 @@ def _系统提示(配置):
 
 def _帧消息(消息列表):
     '把消息帧成 JSON'
-    return 'Generate the session title from this JSON array of human messages:\n'+json.dumps(消息列表,ensure_ascii=False,separators=(',',':'),allow_nan=False)#帧
+    return 'Generate the session title from this JSON array of human messages:\n'+紧凑json编码(消息列表)#帧
 
 def 结束错误(结束):
     '把终止结束原因收成辅助调用失败'
@@ -114,7 +106,7 @@ def 用llm生成会话标题(上下文,配置,请求,选中消息,标题提供�
     if len(选中消息)==0:#无消息
         raise 会话标题llm错误('session-title-llm: at least one source message is required')#拒绝
     帧=_帧消息(选中消息)#帧
-    输入字节=len(帧.encode('utf-8'))#UTF-8 字节
+    输入字节=utf8字节数(帧)#UTF-8 字节
     if 输入字节>配置['maxInputBytes']:#超长
         raise 会话标题llm错误('session-title-llm: input is '+str(输入字节)+' bytes, exceeding maxInputBytes '+str(配置['maxInputBytes']))#拒绝
     路由=解析路由(配置,请求)#路由

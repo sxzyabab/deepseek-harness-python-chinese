@@ -15,7 +15,7 @@ dependencies=[
     "psutil",
     "watchfiles",
     "zstandard",
-    "e2b",
+    "requests",
 ]
 
 [project.scripts]

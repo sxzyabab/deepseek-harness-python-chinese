@@ -1,4 +1,5 @@
 import json
+from ....基础设施.通用工具 import 紧凑json编码
 
 __all__=['详情记录','非空文本','详情json','详情徽章','详情标签','检视条目','详情列表']
 
@@ -79,7 +80,7 @@ def 标量(值,翻译):
         return 翻译('detail.yes' if 值 else 'detail.no')
     if isinstance(值,str):
         return 值
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    return 紧凑json编码(值)
 
 def 检视条目(值,翻译,深度=0):
     '把开放检视记录投影成可读字段与具名披露'

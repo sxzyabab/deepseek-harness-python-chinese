@@ -2,6 +2,13 @@ from .文案 import 中文,英文,pdf文案键#词典
 from .存储 import 创建pdf存储#存储
 from .pdf体 import pdf体,失败文案#正文
 from ..文档.标签寿命 import 保留文档标签#保留标签
+from . import (
+    懒加载pdf体,
+    文本,
+    文档,
+    资源,
+    运行时,
+)
 
 __all__=['pdf体标识','pdf体定义','pdf体登记','应用','pdf体','失败文案','中文','英文','pdf文案键']#仅中文公开名
 

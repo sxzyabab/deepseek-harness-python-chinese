@@ -1,4 +1,4 @@
-import threading#后台观察清单读取
+from ....基础设施.通用工具 import 启动守护线程
 
 __all__=['创建清单源']
 
@@ -60,7 +60,7 @@ def 创建清单源(端口,报错):#创建清单源
                     成功(原始.等待())#等待
                 except BaseException as 错误:#失败臂
                     失败(错误)#失败
-            threading.Thread(target=观察,daemon=True).start()#挂观察
+            启动守护线程(观察)#挂观察
         else:#同步
             try:#成功
                 飞行=True#占槽

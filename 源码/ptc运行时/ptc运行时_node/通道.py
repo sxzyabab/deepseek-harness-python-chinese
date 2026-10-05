@@ -1,12 +1,12 @@
 '带长度前缀的 JSON 传输，输入与排队写入均有界'
 import json,threading#编解码与读线程
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from concurrent.futures import Future as 原生结果#单次操作结果
 from .输出json import json值字节上限#排队字节预算
 from .异常 import 节点ptc错误#本包异常
 
 __all__=['任务','全部并发','全部结算','json通道']#仅中文公开名
 
-编码=json.dumps#JSON 编码
 解码=json.loads#JSON 解码
 
 class 任务:#单次操作的 Future 包装，只留 等待
@@ -164,7 +164,7 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
         大小=json值字节上限(消息,自身._最大字节)#计量
         if 大小 is None or 自身._排队字节+大小>自身._最大字节:#超排队
             raise 节点ptc错误('control output exceeds '+str(自身._最大字节)+' queued bytes')#拒绝
-        正文=编码(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#正文
+        正文=紧凑json编码(消息).encode('utf-8')#正文
         头=len(正文).to_bytes(4,'big')#长度头
         自身._排队字节+=len(正文)#入队
         完成=任务()#本帧任务

@@ -1,5 +1,6 @@
 '一个已打开的 SQLite KV 单元'
 import json#值列 JSON
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ..存储.异常 import 存储错误#存储错误
 from .结构 import 记录表名#物理表名
 __all__=['SqliteKv单元']#仅中文公开名
@@ -46,7 +47,7 @@ class SqliteKv单元:#SQLite KvUnit
     def putRecord(自身,表,键,值):#写记录
         '写记录'
         自身._确保打开()#关闭守卫
-        自身._连接.execute(自身._sql[表]['upsert'],(键,json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)))#upsert
+        自身._连接.execute(自身._sql[表]['upsert'],(键,紧凑json编码(值)))#upsert
         自身._连接.commit()#提交写
 
     def deleteRecord(自身,表,键):#删记录
@@ -60,7 +61,7 @@ class SqliteKv单元:#SQLite KvUnit
         自身._确保打开()#关闭守卫
         if 自身._全局写入 is None:#未声明
             raise 存储错误('malformed-medium',"kv unit '"+自身._描述符.name+"' declared no global slot")#调用方错误
-        自身._连接.execute(自身._全局写入,(自身._描述符.name,json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)))#upsert
+        自身._连接.execute(自身._全局写入,(自身._描述符.name,紧凑json编码(值)))#upsert
         自身._连接.commit()#提交写
 
     def close(自身):#关闭单元

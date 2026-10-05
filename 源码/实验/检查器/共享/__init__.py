@@ -14,5 +14,10 @@ from .桥接.查询读取器 import *
 from .桥接.rpc import *
 from .cdp import *
 from .桥接.消息.观察 import 检查器协议版本,检查器源种类,解析工作者源帧,解析源帧
+from . import (
+    服务,
+    校验,
+    身份,
+)
 
 __all__=[]

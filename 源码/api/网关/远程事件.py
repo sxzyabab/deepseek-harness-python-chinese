@@ -1,5 +1,6 @@
 '转发 Remote 事件订阅与投递的 Client 所有者'
 import threading#代际泵送
+from ...基础设施.通用工具 import 启动守护线程
 import uuid#事件前缀
 from ...类型化远程调用.协议.拥有值 import 是否协议拥有值#受拥有识别
 from .网关 import 中止控制器,中止信号#中止
@@ -201,7 +202,7 @@ class 客户端远程事件:
                             失败控.中止(错误)#失败代际
                     finally:
                         活动.pop(帧本['eventId'],None)#摘
-                threading.Thread(target=应答,daemon=True).start()#后台
+                启动守护线程(应答)#后台
         except BaseException as 错误:
             流失败=True
             流错误=错误#记

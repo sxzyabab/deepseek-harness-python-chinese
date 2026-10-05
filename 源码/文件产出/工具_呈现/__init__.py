@@ -1,4 +1,5 @@
-'作用域工具：在所属会话中声明文件系统交付'import weakref#待定交付弱映射
+'作用域工具：在所属会话中声明文件系统交付'
+import weakref#待定交付弱映射
 from ...依赖.schemastery import 数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 若已中止则抛出#取消信号

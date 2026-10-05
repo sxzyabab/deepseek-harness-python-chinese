@@ -1,5 +1,4 @@
-import threading#后台观察
-from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据,启动守护线程
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
 from .导航 import 工作区UI服务,最近工作区
@@ -23,6 +22,11 @@ from .树 import (#再导出树派生
 from .约定.槽位 import 侧栏目录流槽,英雄目录流槽,目录流槽名表#再导出槽名
 from .浏览区 import 工作区浏览区#侧栏浏览区
 from .选择器 import 工作区选择器#英雄选择器
+from . import (
+    快捷键,
+    置顶顺序,
+    行,
+)
 
 __all__=[#仅中文公开名
     '依赖',
@@ -150,9 +154,7 @@ def 应用(上下文):#注册浏览区与选择器
                     工作区面.forkSession(会话标识)#分叉打开
                 except BaseException:#失败
                     pass#保持
-            线=threading.Thread(target=观察)#线
-            线.daemon=True#守护
-            线.start()#启
+            启动守护线程(观察)#启
         return {#注入面
             'startSession':工作区面.startSession,#开新会话
             'open':工作区面.openSession,#打开会话

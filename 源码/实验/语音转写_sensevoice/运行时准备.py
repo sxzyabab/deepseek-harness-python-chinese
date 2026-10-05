@@ -1,5 +1,6 @@
 import hashlib,json,os,platform,sys,uuid
 import requests
+from ...基础设施.通用工具.时间工具 import 当前毫秒
 from ...工具.超时 import 若已中止则抛出,已中止,取超时
 from .异常 import 分类下载失败,语音下载错误
 from .模型源列表 import 排序模型源
@@ -162,13 +163,13 @@ def 准备运行时(_上下文,配置,信号,报告=None):
                     raise 错误
             下标+=1
     if 配置['modelDirectory'] is None:
-        报告({'phase':'checking','step':'model','startedAt':int(time.time()*1000)})
+        报告({'phase':'checking','step':'model','startedAt':当前毫秒()})
         下载(锁['models'][配置['precision']],模型根,'model')
         下载(锁['tokens'],模型根,'model')
     if 配置['vadModelPath'] is None:
-        报告({'phase':'checking','step':'vad','startedAt':int(time.time()*1000)})
+        报告({'phase':'checking','step':'vad','startedAt':当前毫秒()})
         下载(锁['vad'],os.path.join(配置['dataRoot'],'models','silero'),'vad')
-    报告({'phase':'checking','step':'verify','startedAt':int(time.time()*1000)})
+    报告({'phase':'checking','step':'verify','startedAt':当前毫秒()})
     if not 校验运行时(配置,路径,锁,信号):
         raise RuntimeError('Speech model verification failed: missing or corrupted model files')
     return 路径

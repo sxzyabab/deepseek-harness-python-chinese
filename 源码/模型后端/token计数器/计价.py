@@ -1,6 +1,6 @@
 '计量服务与纯上下文分解投影共用的固定密度启发式令牌计价'
 from math import ceil as 上取整#上取整
-from json import dumps as 编码#紧凑json
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 
 __all__=['每令牌字符数','块开销','角色开销','计价结构块','计价内容','计价系统消息','计价消息','计价工具令牌']#仅中文公开名
 
@@ -13,7 +13,7 @@ def 计价结构块(块):
     计价块=块
     if ('type' in 块) and 块['type']=='image':
         计价块={键:值 for 键,值 in 块.items() if 键!='offloaded'}
-    return 块开销+上取整(len(编码(计价块,ensure_ascii=False,separators=(',',':'),allow_nan=False))/每令牌字符数)
+    return 块开销+上取整(len(紧凑json编码(计价块))/每令牌字符数)
 
 def 计价内容(块列表):
     '在固定密度启发式下递归计价内容块。块为 dict'
@@ -40,7 +40,7 @@ def 计价系统消息(消息):
         if 块['type']=='text':#文本
             字符数+=len(块['text'])#文本长度
         else:#其余按JSON
-            字符数+=len(编码(块,ensure_ascii=False,separators=(',',':'),allow_nan=False))#JSON长度
+            字符数+=len(紧凑json编码(块))#JSON长度
     return 上取整(字符数/每令牌字符数)+角色开销#密度加角色开销
 
 def 计价消息(消息):
@@ -56,4 +56,4 @@ def 计价工具令牌(头):
     工具=头['tools']#工具列表
     if 工具 is None or len(工具)==0:#没有工具
         return 0#缺席或空则为0
-    return 上取整(len(编码(工具,ensure_ascii=False,separators=(',',':'),allow_nan=False))/每令牌字符数)+块开销#JSON密度加结构开销
+    return 上取整(len(紧凑json编码(工具))/每令牌字符数)+块开销#JSON密度加结构开销

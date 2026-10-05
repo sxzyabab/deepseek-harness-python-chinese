@@ -1,5 +1,6 @@
 '把 Loader 条目/补丁结构与发现的插件输入模式合成一份 JSON Schema 文档'
 from .投影器 import 创建配置投影器,装载器表达式数据架构
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
 from .类型 import 配置json数据架构网址,配置数据架构补丁引用
 
 __all__=['构建配置数据架构文档']
@@ -107,7 +108,7 @@ def 构建配置数据架构文档(配置档,已收集,目标表,初始诊断):
                 则['then']=校验
         条目规则.append({'if':{'properties':{'name':{'const':名}},'required':['name']},'then':则})
         if len(选择)>1:
-            诊断.append({'level':'warning','message':'Plugin '+json_dumps(名)+' has multiple collected schemas; entry validation accepts their union because module resolution depends on the owning tree.'})
+            诊断.append({'level':'warning','message':'Plugin '+紧凑json编码(名)+' has multiple collected schemas; entry validation accepts their union because module resolution depends on the owning tree.'})
     定义['entry']={
         'type':'object','required':['name'],'allOf':[引用('entryMetadata')]+条目规则,
         'description':'Loader entry. Unknown metadata and plugin names are accepted; plugin-specific validation is available only for the names collected in this profile. Distinct resolutions of one name use a union of their schemas.',
@@ -145,8 +146,3 @@ def 构建配置数据架构文档(配置档,已收集,目标表,初始诊断):
             'patchSchema':配置数据架构补丁引用,
         },
     }
-
-def json_dumps(值):
-    '诊断用 JSON'
-    import json
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)

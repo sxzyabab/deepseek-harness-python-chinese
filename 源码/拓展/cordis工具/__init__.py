@@ -2,6 +2,12 @@ import json
 from ...内核.工具 import 定义工具
 from .异常 import 巡检错误#Cordis 巡检失败
 from .呈现 import 呈现列表调用,呈现查询调用
+from . import (
+    名录,
+    宿主,
+    提供方,
+    配置,
+)
 
 __all__=['包名','名称','依赖','应用','默认','巡检错误']
 

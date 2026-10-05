@@ -1,5 +1,5 @@
 import ssl,socket,threading#TLS-PSK、Unix 套接字与握手超时
-from ...工具.超时 import 若已中止则抛出,等待中止#中止
+from ...工具.超时 import 已中止,若已中止则抛出,等待中止#中止
 from .异常 import ssh错误#本包异常基类
 
 __all__=['ssh流tls选项','套接字流','认证流']#仅中文公开名
@@ -121,7 +121,7 @@ def 认证流(套接字对象,能力,超时毫秒,信号=None):#TLS-PSK 认证�
     返回已暂停的认证流
     """
     流=套接字对象 if isinstance(套接字对象,套接字流) else 套接字流(套接字对象)#统一面
-    if 信号 is not None and 信号.is_set():#已中止
+    if 已中止(信号):#已中止
         流.destroy()#毁
         若已中止则抛出(信号)#抛原因或已中止错误
     上下文=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)#客户 TLS

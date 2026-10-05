@@ -1,10 +1,6 @@
 '双击 Escape 取消：两次独立按键必须落在同一 Conversation 实例与同一活跃回合'
-import builtins#页面全局
 
 __all__=['停止目标','停止序列']#仅中文公开名
-
-窗口=builtins.window#定时器宿主
-性能=builtins.performance#单调时钟
 
 def 停止目标(会话标识,回合,代际,区域,取消):
     '刚解析出的取消目标；代际与区域保住焦点归属'
@@ -21,6 +17,7 @@ class 停止序列:
 
     def 重置(自身):
         '清掉第一下按键及其过期定时器'
+        窗口=window#定时器宿主
         自身.第一下=None#清目标
         窗口.clearTimeout(自身.定时器)#清定时器
         自身.定时器=None#卸句柄
@@ -28,6 +25,8 @@ class 停止序列:
 
     def 按下(自身,目标):
         '接受一次合格、非重复的 Escape，对照刚解析的当前状态；返回本下是否已请求取消'
+        窗口=window#定时器宿主
+        性能=performance#单调时钟
         第一下=自身.第一下#先前第一下
         自身.重置()#先清旧态
         if (第一下 is not None and 性能.now()<=第一下['deadline']

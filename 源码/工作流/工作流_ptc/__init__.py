@@ -1,5 +1,6 @@
 '经共享沙箱 Node PTC 执行器的工作流编排'
-import copy,os,re,threading,uuid#参数拷贝、并行度、元数据头、结束事件线程、运行标识
+import copy,os,re,uuid#参数拷贝、并行度、元数据头、运行标识
+from ...基础设施.通用工具 import 启动守护线程
 from ...依赖.schemastery import 字符串字段,自然数字段#配置字段
 from ..工作流 import 工作流引擎,工作流运行标识#缝上引擎
 from ..工作流.异常 import 工作流错误#缝上错误
@@ -15,6 +16,12 @@ from .类型 import (#再导出宾客类型字段
     子句柄,#句柄
     子端口,#端口
 )#类型结束
+from . import (
+    宾客,
+    宾客源码,
+    宾客类型,
+    运行时,
+)
 
 __all__=[#仅中文公开名
     'ptc工作流引擎','校验元数据','从领域物化','物化错误',
@@ -134,7 +141,7 @@ class ptc工作流引擎(工作流引擎):#PTC 后端工作流引擎
             if 'error' in 已结算 and 已结算['error'] is not None:#有错误
                 结局['error']=已结算['error']#带上
             自身.发出工作流事件('workflow/end',信息,结局)#结束
-        threading.Thread(target=发结束,daemon=True).start()#后台
+        启动守护线程(发结束)#后台
         return 运行#存活运行
 
 default=ptc工作流引擎#Cordis 默认导出

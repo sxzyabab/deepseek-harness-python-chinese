@@ -1,11 +1,14 @@
 '可选的请求时钟上下文'
-import json,time#JSON诊断与纪元毫秒
+from ...基础设施.通用工具 import 当前毫秒,紧凑json编码,已中止
 from zoneinfo import ZoneInfoNotFoundError as 时区未找到#时区解析失败
 from ...依赖.schemastery import 字符串字段,数字字段
 from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
 from .时间戳 import 创建时间戳格式化器,格式化时间戳#时间戳格式化
 from .异常 import 时间戳错误,时间上下文错误
+from . import (
+    不变量,
+)
 
 __all__=['包名','名称','依赖','应用','默认','配置']
 
@@ -20,17 +23,7 @@ __all__=['包名','名称','依赖','应用','默认','配置']
 
 def 编码(值):
     '诊断用紧凑 JSON'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
-
-def 取时间毫秒():
-    '当前纪元毫秒'
-    return int(time.time()*1000)#纪元毫秒
-
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
+    return 紧凑json编码(值)#JSON
 
 def 格式化时长(经过毫秒):
     '把非负经过毫秒格式化为紧凑的整秒单位'
@@ -165,7 +158,7 @@ def 应用(上下文,配置值):
         信号=载荷['signal'] if 'signal' in 载荷 else None#取消信号
         if 决策['kind']=='reject' or 已中止(信号):#拒绝或已取消则不注入
             return 决策#原样返回
-        此刻=取时间毫秒()#采样时刻
+        此刻=当前毫秒()#采样时刻
         智能体=载荷['agent']#智能体
         状态=上下文.sessionProjections.状态(智能体.session,'timeContext')
         if 状态 is None:

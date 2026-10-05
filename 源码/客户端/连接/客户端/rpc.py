@@ -1,4 +1,5 @@
-import builtins,json,re#全局、JSON 与形态校验
+import json,re#JSON 与形态校验
+from ....基础设施.通用工具 import 紧凑json编码
 import urllib.request as 请求库#标准库 fetch 形
 from urllib.parse import urljoin as 拼接URL
 from ..rpc import Rpc标识#RPC id
@@ -14,8 +15,8 @@ __all__=['创建网页连接rpc']#仅中文公开名
 def 解析基址():#解析 fetch 基址
     '有真 origin 用它，不透明 origin 用内部基址'
     try:#宿主可选 location
-        定位=builtins.location#页面
-    except AttributeError:#非浏览器
+        定位=location#页面
+    except NameError:#非浏览器
         定位=None#无
     原点=定位.origin if 定位 is not None else None#origin
     if 原点 is not None and 原点!='null':#真 origin
@@ -27,10 +28,10 @@ def 断言目标(通道,端点):#校验通道与端点
     段列表=端点.split('/')#端点按段切开
     目标=通道+'/'+端点#拼
     if not 通道规则.fullmatch(通道):#通道名非法
-        raise 连接错误('connection: invalid RPC target '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
+        raise 连接错误('connection: invalid RPC target '+紧凑json编码(目标))#调用前失败
     for 段 in 段列表:#任一段
         if 段=='' or 段=='.' or 段=='..' or 端点段规则.fullmatch(段) is None:#空段、相对段或非法字符
-            raise 连接错误('connection: invalid RPC target '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False))#调用前失败
+            raise 连接错误('connection: invalid RPC target '+紧凑json编码(目标))#调用前失败
 
 def 是否记录(值):
     '普通对象记录'
@@ -95,7 +96,7 @@ class 网页连接rpc:#浏览器 RPC 调用方
         初始化={#fetch init
             'method':'POST',#方法
             'headers':{'content-type':'application/json'},#头
-            'body':json.dumps(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False),#正文
+            'body':紧凑json编码(消息),#正文
         }#结束
         if 信号 is not None:#有中止
             初始化['signal']=信号#带上
@@ -116,7 +117,7 @@ def 创建网页连接rpc(执行fetch=None,打开流=None):#浏览器 RPC 调用
             'worker 本地 Gateway 流'
             断言目标(通道,端点)#形态
             if 通道!='/api':#通道必须是 /api
-                raise 连接错误('connection: worker-local streams require the /api channel, got '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False))#抛
+                raise 连接错误('connection: worker-local streams require the /api channel, got '+紧凑json编码(通道))#抛
             return 打开流(端点,载荷,信号)#委托
         调用方.open=打开#挂上
     return 调用方#实例

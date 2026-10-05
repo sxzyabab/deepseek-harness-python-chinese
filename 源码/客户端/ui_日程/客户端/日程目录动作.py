@@ -1,5 +1,5 @@
 import math#向上取整
-import time#纪元毫秒
+from ....基础设施.通用工具 import 当前毫秒
 from datetime import datetime as 日期时间
 from zoneinfo import ZoneInfo as 时区信息
 from .文案 import 命名空间#命名空间
@@ -102,7 +102,7 @@ class 日程目录动作:#页眉动作
         '记下 props 与本地状态'
         自身.属性={} if 属性 is None else 属性#合成
         自身.打开=False#弹层开合
-        自身.现在=int(time.time()*1000)#纪元毫秒
+        自身.现在=当前毫秒()#纪元毫秒
 
     def 更新(自身,属性):
         '刷新 props'
@@ -110,7 +110,7 @@ class 日程目录动作:#页眉动作
 
     def 切换目录(自身):
         '刷新时钟并切换开合'
-        自身.现在=int(time.time()*1000)#刷新时钟
+        自身.现在=当前毫秒()#刷新时钟
         自身.打开=not 自身.打开#切换开合
 
     def 关闭目录(自身):

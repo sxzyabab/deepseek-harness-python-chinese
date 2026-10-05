@@ -1,4 +1,7 @@
 '键盘命令的浏览器 UI 包；Host Loader 入口无宿主行为'
+from . import (
+    客户端,
+)
 
 __all__=['应用','默认']
 

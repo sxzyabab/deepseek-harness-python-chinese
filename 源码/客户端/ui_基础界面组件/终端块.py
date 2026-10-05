@@ -1,3 +1,4 @@
+from ...基础设施.通用工具 import 路径转正斜杠
 from .头尾封顶 import 头尾封顶#高度封顶
 from .复制反馈 import 复制反馈#复制反馈
 from .ansi import 解析ansi行#ANSI 行
@@ -40,7 +41,7 @@ def 剥尾分隔(路径):
 
 def 切末段(路径):
     '两分隔都认'
-    片=路径.replace('\\','/').split('/')#统一
+    片=路径转正斜杠(路径).split('/')#统一
     return 片[-1] if len(片)>0 else ''#末；判 length
 
 def 提示标签(工作目录,家目录):

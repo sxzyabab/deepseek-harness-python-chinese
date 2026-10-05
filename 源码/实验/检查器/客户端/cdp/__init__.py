@@ -4,6 +4,11 @@ from .堆分析器 import 堆分析器桥能力#HeapProfiler
 from .分析器 import 分析器桥能力#Profiler
 from .运行时 import 运行时桥能力#Runtime
 from .源 import 源桥能力#Sources
+from . import (
+    对象,
+    属性,
+    栈,
+)
 
 __all__=['桥能力']
 

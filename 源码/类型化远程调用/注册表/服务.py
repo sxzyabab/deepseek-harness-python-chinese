@@ -1,6 +1,5 @@
 import re#端点段校验
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ..协议 import 是否合法远程段#Remote 段校验
 
 __all__=[#仅中文公开名

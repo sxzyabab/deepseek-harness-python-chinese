@@ -1,8 +1,7 @@
 '本地 PTY 后端经过校验的配置'
 from ...依赖.schemastery import 字符串字段,数字字段,列表字段#配置字段
 from .异常 import 终端bash错误#本包配置与搭建失败
-
-安全整数上限=9007199254740991#外来JSON校验点：JS Number.MAX_SAFE_INTEGER
+from ...基础设施.通用工具.数值判定 import 是否正安全整数
 
 配置={#对外插件配置模式
     'backendType':字符串字段(默认值='shell'),#默认后端类型
@@ -34,15 +33,7 @@ def 校验配置(配置值):#断言每个数值配置字段都是正的安全整
         raise 终端bash错误('terminal-bash: shellPath must be non-empty')#拒绝空shell路径
     for 名称 in 数值字段:#逐数值字段
         值=配置值[名称]#字段值
-        if isinstance(值,bool):#布尔不是数字
-            raise 终端bash错误('terminal-bash: '+名称+' must be a positive safe integer')#拒绝非法数值
-        if isinstance(值,int):#整数
-            合法=值>0 and 值<=安全整数上限#正且安全
-        elif isinstance(值,float) and 值.is_integer():#整值浮点
-            合法=值>0 and 值<=安全整数上限#正且安全
-        else:#其它类型
-            合法=False#非法
-        if not 合法:#非正安全整数
+        if not 是否正安全整数(值):#非正安全整数
             raise 终端bash错误('terminal-bash: '+名称+' must be a positive safe integer')#拒绝非法数值
     if 配置值['maxReadBytes']>配置值['scrollbackMaxBytes']:#单次读取超过回滚上限
         raise 终端bash错误('terminal-bash: maxReadBytes must not exceed scrollbackMaxBytes')#拒绝越界读取上限

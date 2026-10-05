@@ -2,6 +2,9 @@ from .约定.槽位 import 待答提问,计划审阅于#约定再导出
 from ..异常 import 提问错误#本包异常
 from .文案 import 中文,英文#词典
 from .提问撰写器 import 提问撰写器,解析推荐标签#撰写器入口
+from . import (
+    计划审阅面板,
+)
 
 __all__=[#仅中文公开名
     '依赖',

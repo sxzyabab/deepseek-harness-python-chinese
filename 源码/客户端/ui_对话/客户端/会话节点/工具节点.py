@@ -1,4 +1,4 @@
-import json#子调用参数序列化
+from .....基础设施.通用工具 import 紧凑json编码
 from ...异常 import 对话错误#本包异常
 from ..约定.聊天节点 import 已结算工具#已结算判断
 from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
@@ -15,7 +15,7 @@ def 同引用(左,右):
 
 def 参数原文(值):
     '序列化'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#原文
+    return 紧凑json编码(值)#原文
 
 def 根调用(匹配项):
     '起始必须是 tool/call'

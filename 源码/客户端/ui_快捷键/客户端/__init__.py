@@ -4,6 +4,11 @@ from .存储 import 创建快捷键存储
 from .参考 import 快捷键速查,快捷键设置行
 from .文案 import 命名空间,中文,英文
 from .固定 import 固定命令
+from . import (
+    反馈,
+    图标,
+    编辑器,
+)
 
 __all__=['依赖','应用','命名空间','中文','英文','创建快捷键存储','固定命令','快捷键速查','快捷键设置行']
 
@@ -72,7 +77,7 @@ def 应用(上下文):
             def 跑():
                 'toggle'
                 if 模态=='shortcuts':
-                    关闭顶层模态(globals()['document'])
+                    关闭顶层模态(document)#页面文档
                 else:
                     实例['actions']['open']()
             return {'status':'handled','run':跑}

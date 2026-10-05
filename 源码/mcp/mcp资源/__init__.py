@@ -1,9 +1,11 @@
-import json
-from ...依赖 import cordis
-服务=cordis.服务
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
+from ...依赖.cordis.服务 import 服务
 from ...内核.作用域 import 创建作用域,获取作用域,具名条目,作用域层集
 from .资源工具登记 import 登记资源工具
 from .异常 import mcp资源错误#MCP 资源登记或派发失败
+from . import (
+    渲染,
+)
 
 
 __all__=['mcp资源错误','mcp资源运行时']
@@ -48,7 +50,7 @@ class mcp资源运行时(服务):
                     return ''
                 return ('## MCP resource servers\n\n'
                     +'Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names '
-                    +'as the server argument: '+json.dumps(名称表,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'.')
+                    +'as the server argument: '+紧凑json编码(名称表)+'.')
             内上下文.systemPrompt.section({
                 'name':'mcp-resource-servers',
                 'order':内上下文.systemPrompt.getSectionOrder('MCP_SERVERS'),

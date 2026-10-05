@@ -1,4 +1,5 @@
 '冷安全会话列表与搜索投影'
+from ...基础设施.通用工具 import 截断utf8字节,utf8字节数
 from .常量 import 会话搜索结果上限,会话搜索片段最大字节,会话搜索查询最大字节#常量
 from .远程错误与并发 import 远程错误消息,已中止#远程错误消息与中止
 from .异常 import 远程错误#本包异常
@@ -20,16 +21,6 @@ def 应用会话列表元数据(状态,事件):
     if 空白==状态['blank'] and 最近提示==(状态['lastPromptAt'] if 'lastPromptAt' in 状态 else None):#未变
         return 状态#原样
     return {'blank':空白,'lastPromptAt':最近提示}#新状态
-
-def 截断utf8字节(文本,最大字节):
-    '按 UTF-8 字节截断，切点落在字符边界'
-    数据=文本.encode('utf-8')#字节
-    if len(数据)<=最大字节:#未超
-        return 文本#原样
-    切=最大字节#预算
-    while 切>0 and (数据[切] & 0xC0)==0x80:#续字节
-        切-=1#回退到字符起点
-    return 数据[:切].decode('utf-8')#解码
 
 def 初值列表元数据():
     'sessionListMetadata 初值'
@@ -177,7 +168,7 @@ class 会话列表:
         规范化=str(查询 if 查询 is not None else '').strip()#修剪，?? 语义保留空串
         if 规范化=='':#空
             raise 远程错误('gateway/bad-request','session search query must not be empty',{})#拒绝
-        if len(规范化.encode('utf-8'))>会话搜索查询最大字节:#太长，按 UTF-8 字节
+        if utf8字节数(规范化)>会话搜索查询最大字节:#太长，按 UTF-8 字节
             raise 远程错误('gateway/bad-request','session search query too long',{})#拒绝
         if '\0' in 规范化:#NUL
             raise 远程错误('gateway/bad-request','session search query must not contain NUL',{})#拒绝

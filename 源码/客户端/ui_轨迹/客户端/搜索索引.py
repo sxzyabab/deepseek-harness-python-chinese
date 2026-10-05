@@ -1,4 +1,4 @@
-import json#任意值压成 JSON
+from ....基础设施.通用工具 import 紧凑json编码
 from .轨迹记录 import 轨迹记录身份#稳定记录身份
 from .轨迹预览 import 轨迹预览文本#Markdown 预览纯文本
 
@@ -9,7 +9,7 @@ def 可检索JSON(值):#任意值压成可检索 JSON 文本
     if 值 is None:#缺省
         return ''#空串
     try:#stringify 可能因循环引用失败
-        return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#序列化后纳入索引
+        return 紧凑json编码(值)#序列化后纳入索引
     except (TypeError,ValueError):#无法序列化
         return ''#失败则空串
 

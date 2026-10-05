@@ -1,5 +1,5 @@
-import os,threading
-from ....基础设施.通用工具 import 获取内部数据
+import os
+from ....基础设施.通用工具 import 获取内部数据,启动守护线程,观察者集合
 from urllib.parse import urlparse
 from .文案 import 命名空间,中文,英文
 from .联系网址 import 联系网址
@@ -7,6 +7,14 @@ from ..联系配置 import 解析联系配置,联系配置全局键
 from .账号引导 import 账号引导
 from .账号菜单 import 账号菜单
 from .账号分区 import 账号分区
+from . import (
+    平台覆盖层,
+    授权网址,
+    格式化余额,
+    登出图标,
+    登录对话框,
+    账号头像,
+)
 
 __all__=['依赖','应用','命名空间','中文','英文']
 
@@ -24,13 +32,12 @@ def 应用(上下文):
     页面=globals()
     配置=解析联系配置(页面[联系配置全局键] if 联系配置全局键 in 页面 else {})
     快照={'view':None,'details':None,'failed':False,'loginVisible':False}
-    监听者=set()
+    监听者=观察者集合()
     def 发布(值):
         '替换快照并通知'
         nonlocal 快照
         快照=值
-        for 监听 in list(监听者):
-            监听()
+        监听者.通知()
     修订=0
     刷新中=None
     def 刷新():
@@ -123,13 +130,13 @@ def 应用(上下文):
         except Exception:
             if not 已拆除:
                 发布({**快照,'failed':True})
-    threading.Thread(target=消费流,daemon=True).start()
+    启动守护线程(消费流)
     原生平台=globals().get('dshPlatform')
     def 意见反馈():
         '系统浏览器打开问卷'
         语言快照=上下文.locale.getSnapshot()
         语言='zh-CN' if 语言快照['active']=='zh' else 'en'
-        窗口=globals()['window']
+        窗口=window#页面窗口
         网址=联系网址(配置,{
             'version':os.environ.get('DSH_CLIENT_VERSION'),
             'locale':语言,
@@ -148,7 +155,7 @@ def 应用(上下文):
         '发起 Desktop 登录'
         发布({**快照,'loginVisible':True,'loginFailed':False})
         传输=globals().get('__DSH_TRANSPORT__')
-        窗口=globals()['window']
+        窗口=window#页面窗口
         源=窗口.location.origin
         if isinstance(传输,dict) and 传输.get('streamBaseUrl') is not None:
             解析=urlparse(传输['streamBaseUrl'])
@@ -175,11 +182,7 @@ def 应用(上下文):
         return 快照
     def 订账号(监听):
         '订阅账号快照'
-        监听者.add(监听)
-        def 退订():
-            '取消订阅'
-            监听者.discard(监听)
-        return 退订
+        return 监听者.订阅(监听)
     def 订主题(监听):
         '订阅主题变化'
         return 上下文.监听('theme/change',监听)
@@ -247,11 +250,11 @@ def 应用(上下文):
                 if 注销 is not None:
                     注销()
                     注销=None
-        监听者.add(更新)
+        退订更新=监听者.订阅(更新)
         更新()
         def 拆():
             '取消订阅并拆分区'
-            监听者.discard(更新)
+            退订更新()
             if 注销 is not None:
                 注销()
         return 拆

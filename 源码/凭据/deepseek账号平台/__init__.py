@@ -5,6 +5,8 @@ from ...依赖.schemastery import (
     字符串字段,布尔字段,数字字段,字典字段,复合类型字段,常量字段,
 )
 from ...工具.超时 import 已中止,若已中止则抛出,截止,中止控制器
+from ...基础设施.通用工具.时间工具 import 当前毫秒
+from ...基础设施.通用工具.序列化编码 import 字节转base64url
 from ...内核.作用域 import 操作任务
 from ..凭据 import 凭证键
 from ..deepseek账号 import deepseek账号,合并平台Cookie,桌面客户端头
@@ -13,6 +15,9 @@ from .登出 import 吊销账号
 from .异常 import 平台认证错误
 from .协议 import (
     平台头,平台来源,浏览器网址,请求平台,初始化形态,交换形态,登录来源 as 规范化登录来源,
+)
+from . import (
+    类型,
 )
 
 __all__=['包名','名称','依赖','默认','配置','平台账号','平台认证错误']
@@ -410,11 +415,11 @@ class 平台账号(deepseek账号):
             raise 平台认证错误('protocol')
         校验器=secrets.token_urlsafe(32)
         状态=secrets.token_urlsafe(32)
-        挑战=base64.urlsafe_b64encode(hashlib.sha256(校验器.encode('ascii')).digest()).rstrip(b'=').decode('ascii')
+        挑战=字节转base64url(hashlib.sha256(校验器.encode('ascii')).digest())
         授权标识=[None]
         码任务=操作任务()
         截止控制=中止控制器()
-        过期于=int(time.time()*1000)+自身._尝试超时
+        过期于=当前毫秒()+自身._尝试超时
         句柄=截止(会话['signal'],自身._尝试超时,'account-attempt')
         信号=句柄.信号
         def 中止码():
@@ -474,7 +479,7 @@ class 平台账号(deepseek账号):
             授权网址=浏览器网址(初值['authorize_url'],自身._来源,'/dsh/authorize',自身._改写浏览器)
             授权标识[0]=初值['authorize_id']
             若已中止则抛出(信号)
-            现在=int(time.time()*1000)
+            现在=当前毫秒()
             过期于=min(过期于,现在+int(初值['expires_in']*1000))
             剩余=过期于-现在
             if 剩余<=0:
@@ -518,7 +523,7 @@ class 平台账号(deepseek账号):
                 for 值 in 值列表:
                     扁.append((键,值))
             尝试['completionUrl']=urlunparse((完成解析.scheme,完成解析.netloc,完成解析.path,'',urlencode(扁),''))
-            if int(time.time()*1000)>=过期于:
+            if 当前毫秒()>=过期于:
                 raise 平台认证错误('expired')
             若已中止则抛出(信号)
             if 换得.get('user') is not None:

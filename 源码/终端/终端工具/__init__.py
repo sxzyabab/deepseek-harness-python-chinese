@@ -1,7 +1,8 @@
 '登记六种面向模型的持久终端工具；所有者来自工具执行智能体，后台 id 与收集由任务层负责'
 import threading#后台结算线程
-from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 已中止#中止入口；信号来自超时库
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.数值判定 import 是否非负安全整数
 from ...依赖.schemastery import 布尔字段,整数字段#配置字段
 from ..终端 import 终端会话标识#导入会话id品牌化
 from ...内核.工具 import 定义工具#导入工具定义
@@ -20,35 +21,10 @@ from .异常 import 终端工具错误#本包校验与组合失败
 依赖=['terminals','tools','systemPrompt']#必需的能力、注册表与提示词服务
 默认结果字节=256*1024#一次完整面向模型的终端结果的默认上限
 最小结果字节=64#能在截断回执里保住全部计数器签发的 PTY 与任务 id 的最小上限
-安全整数上限=9007199254740991#外来JSON校验点
 配置={#终端工具消费方配置
     'enableRunInBackground':布尔字段(默认值=True),#是否暴露 run_in_background 并接受后台发送
     'maxResultBytes':整数字段(默认值=默认结果字节),#结果字节上限
 }#配置模式结束
-
-class 操作任务:#单次操作结果
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(终端工具错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
 
 会话状态模式={#会话状态模式
     'oneOf':[#运行中或已退出
@@ -130,23 +106,13 @@ def 发送详情(结果):#后台任务详情
     原因=退出码 if 退出码 is not None else (信号 if 信号 is not None else 'unknown')#退出信息
     return 'session exited: '+str(原因)#退出信息
 
-def 是非负安全整数(值):#外来JSON整型校验
-    '外来 JSON 入口：非负且落在 JS 安全整数范围；布尔先排除'
-    if isinstance(值,bool):#布尔不是数字
-        return False#非法
-    if isinstance(值,int):#整数
-        return 值>=0 and 值<=安全整数上限#非负安全
-    if isinstance(值,float) and 值.is_integer():#整值浮点
-        return 值>=0 and 值<=安全整数上限#非负安全
-    return False#其它类型
-
 def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说明
     '登记全部终端工具与最少用法说明'
     if 配置值 is None:#缺省空配置
         配置值={}#空配置
     后台启用=配置值['enableRunInBackground'] if 'enableRunInBackground' in 配置值 else True#是否启用后台
     结果字节=配置值['maxResultBytes'] if 'maxResultBytes' in 配置值 else 默认结果字节#结果字节上限
-    if not 是非负安全整数(结果字节) or 结果字节<最小结果字节:#非法上限
+    if not 是否非负安全整数(结果字节) or 结果字节<最小结果字节:#非法上限
         raise 终端工具错误('tool-terminal: maxResultBytes must be a safe integer of at least '+str(最小结果字节))#拒绝
     结果字节=int(结果字节)#收窄为整型
     def 收口内容(_执行,结果):#执行后封顶文本
@@ -350,12 +316,12 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
         请求={}#回滚请求
         if 'offset' in 参数 and 参数['offset'] is not None:#有偏移则带上
             偏移=参数['offset']#相对最新偏移
-            if not 是非负安全整数(偏移):#拒绝非法偏移
+            if not 是否非负安全整数(偏移):#拒绝非法偏移
                 raise 终端工具错误('PTY read offset must be a non-negative safe integer')#拒绝
             请求['offset']=int(偏移)#收窄为整型
         if 'count' in 参数 and 参数['count'] is not None:#有行数则带上
             行数=参数['count']#行数
-            if isinstance(行数,bool) or not 是非负安全整数(行数) or 行数<=0:#拒绝非法行数
+            if isinstance(行数,bool) or not 是否非负安全整数(行数) or 行数<=0:#拒绝非法行数
                 raise 终端工具错误('PTY read count must be a positive safe integer')#拒绝
             请求['count']=int(行数)#收窄为整型
         return 上下文.terminals.读取(#读回滚

@@ -1,5 +1,5 @@
 import re
-from ...依赖 import cordis
+from ...依赖.cordis.服务 import 服务
 from .类型 import (
     绑定错误类字段,
     绑定命名空间字段,
@@ -41,7 +41,7 @@ __all__=[
 
 from .异常 import ptc运行时错误#约定误用
 
-class ptc运行时(cordis.服务):
+class ptc运行时(服务):
     """登记一个 ptcRuntime 实现。
     程序、预算、中止与基底失败落在运行结果；仅约定误用才拒绝
     """

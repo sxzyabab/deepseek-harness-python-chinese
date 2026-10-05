@@ -1,5 +1,6 @@
 '通过 Anthropic 兼容的 Messages 模型调用，使用原生 web_search_20250305 服务端工具做 DeepSeek 搜索'
 import json#JSON 编解码
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from json import JSONDecodeError as JSON解码错误#线协议 JSON 解析失败
 from urllib.error import URLError as 网址错误#urlopen 网络失败
 from urllib.parse import urlparse as 解析网址#基址可解析判定
@@ -178,7 +179,7 @@ class DeepSeek搜索提供方:#DeepSeek 支持的搜索提供方；HTTP 重定�
             'accept':'application/json',#要 JSON
             'user-agent':用户代理,#归属头
         }#headers 结束
-        载荷=json.dumps(体,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#锁三参数
+        载荷=紧凑json编码(体).encode('utf-8')#锁三参数
         请求对象=请求构造(端点,data=载荷,headers=头,method='POST')#POST Messages
         try:#发 POST，重定向当错误
             响应=打开器.open(请求对象)#原生打开

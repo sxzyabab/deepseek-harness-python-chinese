@@ -1,6 +1,8 @@
 import json,threading,uuid#帧编码、读线程与请求 id
 from ...内核.作用域 import 操作任务#未决请求
 from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,等待中止#中止
+from ...基础设施.通用工具.帧协议 import 编码长度前缀帧,长度前缀帧解码器,帧协议错误#4字节长度帧
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码#紧凑 JSON
 from .异常 import ssh错误,远程操作错误#本包基类与带码远端错误
 
 __all__=['ssh协议版本','ssh进程句柄上限','ssh文本流上限','远程操作错误','ssh请求对等']#仅中文公开名
@@ -108,11 +110,10 @@ class ssh请求对等:#有界 JSON 帧对等
         '4 字节大端长度加 JSON'
         if 自身.失败 is not None:#已失败
             raise 自身.失败#拒绝
-        体=json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#JSON
+        体=紧凑json编码(帧).encode('utf-8')#JSON
         if len(体)>自身.最大帧字节 or 自身.排队字节+len(体)+4>自身.最大帧字节*2:#超限
             raise ssh错误('SSH helper frame or write queue limit exceeded')#超限
-        头=len(体).to_bytes(4,'big')#长度
-        字节=头+体#帧
+        字节=编码长度前缀帧(体)#4字节大端长度帧
         with 自身.写锁:#串行写
             自身.排队字节+=len(字节)#记账
             自身.输出.write(字节)#写出
@@ -121,25 +122,21 @@ class ssh请求对等:#有界 JSON 帧对等
     def 读帧(自身):#读循环
         '按长度帧切分'
         try:#读
-            缓冲=b''#未消费
+            解码器=长度前缀帧解码器(自身.最大帧字节)#4字节长度
             while True:#直到断
                 块=自身.输入.read(65536) if hasattr(自身.输入,'read') else None#读
                 if not 块:#结束
                     break#停
-                缓冲+=块#追加
-                while True:#切帧
-                    if len(缓冲)<4:#不够头
-                        break#等
-                    大小=int.from_bytes(缓冲[:4],'big')#长度
-                    if 大小==0 or 大小>自身.最大帧字节:#非法
+                try:#切帧
+                    载荷列表=解码器.推入(块)#完整载荷
+                except 帧协议错误:#长度超限
+                    raise ssh错误('SSH helper sent an invalid frame length')#非法
+                for 载荷 in 载荷列表:#逐帧
+                    if len(载荷)==0:#零长度
                         raise ssh错误('SSH helper sent an invalid frame length')#非法
-                    if len(缓冲)<4+大小:#不够体
-                        break#等
-                    载荷=缓冲[4:4+大小]#体
-                    缓冲=缓冲[4+大小:]#剩余
                     帧=json.loads(载荷.decode('utf-8'))#JSON
                     自身.收取(帧)#分发
-            if len(缓冲)>0:#半帧
+            if 解码器.未消费字节数>0:#半帧
                 raise ssh错误('SSH helper disconnected during a frame; outcome is unknown')#半帧
             raise ssh错误('SSH helper disconnected; outcome is unknown')#干净断
         except (json.JSONDecodeError,UnicodeDecodeError,OSError,ValueError,KeyError,ssh错误) as 错误:

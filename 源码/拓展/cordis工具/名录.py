@@ -1,4 +1,5 @@
-import json,re
+import re
+from ...基础设施.通用工具 import 紧凑json编码
 from .异常 import 巡检错误
 
 __all__=[
@@ -1388,7 +1389,7 @@ def 上下文属性(键):
     '硬依赖访问表达式'
     if 标识形态.search(键) is not None:
         return '上下文.'+键
-    return '上下文['+json.dumps(键,ensure_ascii=False,separators=(',',':'),allow_nan=False)+']'
+    return '上下文['+紧凑json编码(键)+']'
 
 def 查询服务目录(键=None,服务表=None):
     '把服务目录投影为压缩目录或一份精确编码契约'
@@ -1417,7 +1418,7 @@ def 查询服务目录(键=None,服务表=None):
             'description':服务['description'],
             'access':{
                 'optional':{
-                    'expression':'上下文.获取服务('+json.dumps(服务['key'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+')',
+                    'expression':'上下文.获取服务('+紧凑json编码(服务['key'])+')',
                     'requiresUndefinedCheck':True,
                 },
                 'hardDependency':{'inject':[服务['key']],'expression':上下文属性(服务['key'])},

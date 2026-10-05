@@ -17,6 +17,9 @@ from .会话 import 会话,页消息数,跳转页消息数
 from .会话簇 import 会话簇
 from .服务 import 客户端会话服务,应用客户端会话
 from ..异常 import 会话创建错误,会话分叉错误#本包异常
+from . import (
+    远程面,
+)
 
 __all__=[
     '断言会话线事件',

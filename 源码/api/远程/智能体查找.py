@@ -1,7 +1,6 @@
 '解析 Remote 智能体与会话身份的宿主 BFF 策略'
-import threading#后台恢复
 from typing import NotRequired,TypedDict#结构类型
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具 import 操作任务,启动守护线程
 from ...类型化远程调用.协议.异常 import 查找策略失败#lookup 策略拒绝
 from .异常 import 远程查找错误基类,远程会话未找到,远程子智能体会话所有权#本包异常
 
@@ -36,32 +35,6 @@ class 远程智能体选项(TypedDict):
     '拥有方宿主组合提供的恢复配置'
     agentOptions:NotRequired[object]#可选的智能体默认选项工厂
     setup:NotRequired[object]#发布前宿主专用智能体作用域装配工厂
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                包装=远程查找错误基类('task rejected')#包装拒绝
-                包装.原因=错误#附加属性
-                自身._未来.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 def 有远程子智能体所有者(上下文,头,智能体):
     '测试通用宿主路由是否必须把该身份留给子智能体路由。头为会话头 dict'
@@ -152,9 +125,7 @@ def 创建远程智能体解析器(上下文,选项):
                     恢复.拒绝(错误)#所有调用方经 等待 收到同一失败
                 finally:
                     恢复中.pop(会话标识,None)#允许同一身份再次恢复
-            工作=threading.Thread(target=后台恢复会话)#后台恢复
-            工作.daemon=True#不挡住退出
-            工作.start()
+            启动守护线程(后台恢复会话)#后台恢复
         try:
             return {'agent':恢复.等待()}#恢复成功则返回智能体
         except 远程会话未找到 as 错误:

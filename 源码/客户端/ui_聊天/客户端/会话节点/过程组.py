@@ -2,7 +2,7 @@ from ...异常 import 聊天错误
 from ..约定.助手内容 import 有助手回复内容
 from ..约定.聊天可见性 import 是可见聊天节点
 from .过程活动记录 import 过程活动记录
-import json
+from .....基础设施.通用工具 import 紧凑json编码
 
 __all__=['过程状态','过程组定义']
 
@@ -180,7 +180,7 @@ class 回合分组:
             首=待发[0]
             留用=自身.延伸组(待发,新增)
             组分=首['groupPart'] if 'groupPart' in 首 else None
-            键=留用.键 if 留用 is not None else json.dumps(['process',首['key'],组分],ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            键=留用.键 if 留用 is not None else 紧凑json编码(['process',首['key'],组分])
             先前=自身.组表[键] if 键 in 自身.组表 else None
             之前=先前.快照 if 先前 is not None else None
             if 先前 is not None and 同成员(先前.成员列表,待发):

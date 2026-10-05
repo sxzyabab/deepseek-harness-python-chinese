@@ -3,6 +3,8 @@ from threading import Event as 同步事件,Lock as 互斥锁,Thread as 线程#�
 from secrets import token_hex#单元词干随机后缀
 from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#派生、忽略流与同步 systemd
 from ...工具.超时 import 已中止,若已中止则抛出#中止入口
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ..子进程.控制 import 子进程控制描述符#控制通道 fd
 from .启动 import 子环境#擦洗后的子环境
 from .异常 import 本地子进程错误#本包错误
@@ -27,7 +29,7 @@ FD_CLOEXEC=1#close-on-exec
 
 def 锁json(值):#线协议 JSON
     '按对拍锁写出 JSON 文本'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#锁格式
+    return 紧凑json编码(值)#锁格式
 
 def 管理器环境():#管理器环境
     'C 语言环境，去掉 SYSTEMD_LOG_TARGET'
@@ -294,39 +296,6 @@ def 探测Linux管理器(内部=None):#探测 Linux 管理器
 def 探测Linux原生(内部=None):#探测 Linux 原生
     '为一次合格 spawn 复核每个 Linux 原生先决'
     return 探测Linux引导(内部) and 探测Linux范围(内部)#引导且 scope
-
-class 操作任务:
-    '单次操作结果；兑现或拒绝一次'
-    def __init__(自身):#未决
-        '构造未决任务'
-        自身._事件=同步事件()#落定事件
-        自身._值=None#兑现值
-        自身._错误=None#拒绝错误
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if 自身._事件.is_set():#已结算
-            return 值#忽略
-        自身._值=值#记下
-        自身._事件.set()#落定
-        return 值#返回
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if 自身._事件.is_set():#已结算
-            return#忽略
-        if isinstance(错误,BaseException):#已是异常
-            自身._错误=错误#原样
-        else:#包装
-            自身._错误=本地子进程错误(str(错误))#包装
-        自身._事件.set()#落定
-
-    def 等待(自身):#阻塞等到结算
-        '阻塞等到结算'
-        自身._事件.wait()#等
-        if 自身._错误 is not None:#失败
-            raise 自身._错误#抛出
-        return 自身._值#兑现值
 
 class Linux范围启动:#scope 启动结算
     '引导消费与已请求终止信号'

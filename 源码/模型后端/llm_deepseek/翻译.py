@@ -1,5 +1,6 @@
 '翻译 Messages 事件，保住块顺序与累计用量'
 import json
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from ..llm.标识构造 import 调用标识
 from .回放 import 对象,回放状态
@@ -54,7 +55,7 @@ def 开始块(事件,下标):
         if 原生.get('signature') is not None:
             回放['signature']=字符串(原生.get('signature'))
     elif 种类=='tool_use':
-        内容={'type':'tool-call','id':调用标识(字符串(原生.get('id'))),'name':字符串(原生.get('name')),'arguments':json.dumps(对象(原生.get('input')),ensure_ascii=False,separators=(',',':'),allow_nan=False)}
+        内容={'type':'tool-call','id':调用标识(字符串(原生.get('id'))),'name':字符串(原生.get('name')),'arguments':紧凑json编码(对象(原生.get('input')))}
         if not 内容['id'] or not 内容['name']:
             畸形('empty tool identity')
         回放={'type':'tool-call'}

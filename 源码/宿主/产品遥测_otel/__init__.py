@@ -1,4 +1,6 @@
-import gzip,json,threading,time
+import gzip,threading
+from ...基础设施.通用工具.时间工具 import 当前毫秒
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from urllib.parse import urlparse
 from requests import request as 发请求
 from ...依赖.cordis import 服务
@@ -118,7 +120,7 @@ class 产品遥测(服务):
             'eventName':记录['eventName'],
             'body':记录['body'],
             'timestamp':记录['timestamp'],
-            'observedTimestamp':int(time.time()*1000),
+            'observedTimestamp':当前毫秒(),
             'severityNumber':级别,
             'severityText':严重级别文本[级别] if 级别 in 严重级别文本 else 'INFO',
             'attributes':记录['attributes'] if 'attributes' in 记录 else {},
@@ -194,7 +196,7 @@ class 产品遥测(服务):
                 }],
             }],
         }
-        正文=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')
+        正文=紧凑json编码(载荷).encode('utf-8')
         头={'Content-Type':'application/json','x-channel':自身._频道}
         if 自身._压缩=='gzip':
             正文=gzip.compress(正文)

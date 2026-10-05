@@ -1,4 +1,5 @@
-'每会话轮次记录器：快照、文件工具捕获、轮末差异，及释放前保留的记录'import os,shutil,tempfile,threading#路径、删树、临时目录与串行锁
+'每会话轮次记录器：快照、文件工具捕获、轮末差异，及释放前保留的记录'
+import os,shutil,tempfile,threading#路径、删树、临时目录与串行锁
 from ...工具.超时 import 中止控制器,已中止,合成信号#中止原语
 from .捕获 import 捕获文件,变更路径,相同捕获#整文件捕获
 from .对比 import 对比文本#逐行对比

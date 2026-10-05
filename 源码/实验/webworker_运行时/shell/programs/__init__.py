@@ -1,6 +1,10 @@
 from .内建 import 内建程序
 from .文件 import 文件程序
 from .文本 import 文本程序
+from . import (
+    索引,
+    选项,
+)
 
 __all__=['标准程序','标准程序表']
 

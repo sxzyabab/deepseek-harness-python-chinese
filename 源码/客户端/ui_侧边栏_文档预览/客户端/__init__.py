@@ -17,6 +17,10 @@ from .文本预览 import 文本预览#正文视图模型
 from .文本标题 import 文本标题#标题视图模型
 from .excel import 应用 as 登记excel#表格
 from ..配置 import 默认配置#配置
+from . import (
+    加载指示器,
+    图标,
+)
 
 __all__=[#仅中文公开名
     '依赖',

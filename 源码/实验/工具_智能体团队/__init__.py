@@ -1,4 +1,5 @@
 import json#紧凑JSON渲染
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 字符串字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
@@ -120,7 +121,7 @@ def 紧凑JSON输出(模式):#声明规范输出并以紧凑 JSON 渲染
     '声明一份规范输出 schema，并以紧凑面向模型的 JSON 渲染'
     def 渲染(_参数,值):#序列化为 JSON 文本块
         '把结构化结果渲染成紧凑 JSON 文本块'
-        return [{'type':'text','text':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)}]#紧凑 JSON
+        return [{'type':'text','text':紧凑json编码(值)}]#紧凑 JSON
     return {'schema':模式,'render':渲染}#output 声明
 
 def 调用方智能体(智能体,工具名):#取调用方 Agent

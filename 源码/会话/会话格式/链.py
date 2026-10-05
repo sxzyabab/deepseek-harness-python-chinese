@@ -1,5 +1,5 @@
 '纯相邻流式会话格式迁移链'
-import json#名称重复诊断
+from ...基础设施.通用工具 import 紧凑json编码
 from ...工具.值 import 深冻结#深冻结
 from .异常 import 会话格式错误,会话格式不支持迁移错误#导入格式错误
 from .json import (#从json导入
@@ -41,7 +41,7 @@ class 已编译会话格式链:#已编译链
             if 源版本 in 按源:#重复源
                 raise 会话格式错误(f'Session migration v{源版本}->v{目标版本} is duplicated')#重复
             if 名称 in 名称集:#名重复
-                raise 会话格式错误('Session migration name '+json.dumps(名称,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is duplicated')#名重复
+                raise 会话格式错误('Session migration name '+紧凑json编码(名称)+' is duplicated')#名重复
             按源[源版本]=迁移#入索引
             名称集.add(名称)#记名
         有序=[]#有序列表

@@ -1,7 +1,6 @@
 '计划模式是按智能体记录的协作状态：激活时，每次模型请求都会带上部署方拥有的指导段落，`exit_plan_mode` 把完成的计划交给用户审阅，`/plan off` 则让用户直接离开'
 import re,weakref#标题匹配与会话弱表
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...模型后端.llm import 创建用户消息#铸造用户消息
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...内核.工具 import 定义工具#定义工具
@@ -35,6 +34,10 @@ __all__=[#公开面
 }#模式结束
 
 from .异常 import 计划模式错误#计划模式配置或运行时拒绝
+from . import (
+    不变量,
+    客户端,
+)
 
 def 首条标题(计划):
     '计划的第一条 markdown 标题（任意级别）；没有则 None'

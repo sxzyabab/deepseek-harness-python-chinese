@@ -1,4 +1,5 @@
 from ...工具.超时 import 若已中止则抛出,已中止
+from ...基础设施.通用工具 import utf8字节数
 from .唤醒 import 输出等待者,休眠
 
 __all__=['观察作业输出']
@@ -55,10 +56,10 @@ def 输出帧(块列表,下一偏移,有损,最大帧字节):
     标有损=有损
     for 块 in 块列表:
         批次.append(块)
-        批次字节+=len(块['text'].encode('utf-8'))
+        批次字节+=utf8字节数(块['text'])
         if 批次字节>=最大帧字节:
             末=批次[len(批次)-1]
-            结束=末['at']+len(末['text'].encode('utf-8'))
+            结束=末['at']+utf8字节数(末['text'])
             帧={'type':'output','chunks':批次,'next':结束}
             if 标有损:
                 帧['lossy']=True

@@ -1,5 +1,5 @@
 '面向模型的 get_goal、create_goal 和 update_goal 工具，叠在同会话持久目标域之上'
-import json,math#紧凑 JSON 渲染与入口整数判定
+from ...基础设施.通用工具 import 是否正安全整数,紧凑json编码
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 整数字段#配置字段
 from ..目标 import 目标标识#目标 id 品牌
@@ -72,18 +72,6 @@ from .收尾 import 渲染收尾上下文#终态收尾指令
     'blockedAfterConsecutiveRounds':整数字段(最小=1,默认值=3),#默认 3 轮
 }#配置模式结束
 
-安全整数上界=9007199254740991#JSON 入口安全整数上界
-
-def 是正安全整数(值):
-    '数据入口：正安全整数，排除布尔'
-    if isinstance(值,bool):#布尔不是数字
-        return False#否
-    if isinstance(值,int):#整数
-        return 值>=1 and 值<=安全整数上界#正且安全
-    if isinstance(值,float) and 值.is_integer() and math.isfinite(值):#整值浮点
-        return 值>=1 and 值<=安全整数上界#正且安全
-    return False#其它
-
 def 策略指导(阻塞轮次):
     '用部署选定的阻塞阈值渲染策略指导'
     return (#系统提示段落
@@ -103,7 +91,7 @@ def 解析配置(配置值):
     配置值是 dict
     """
     阻塞轮次=配置值['blockedAfterConsecutiveRounds'] if 'blockedAfterConsecutiveRounds' in 配置值 else 3#读配置
-    if not 是正安全整数(阻塞轮次):#非正安全整数
+    if not 是否正安全整数(阻塞轮次):#非正安全整数
         raise TypeError('blockedAfterConsecutiveRounds must be a positive safe integer')#加载时失败
     return {'blockedAfterConsecutiveRounds':int(阻塞轮次)}#已解析
 
@@ -122,7 +110,7 @@ def 目标引用(标识,修订):
             'goal_id must be non-empty and revision must be a positive safe integer',#人类可读
             'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
         )#结束抛错
-    if not 是正安全整数(修订):#修订必须是正安全整数
+    if not 是否正安全整数(修订):#修订必须是正安全整数
         raise 装备错误(#参数非法
             'goal_id must be non-empty and revision must be a positive safe integer',#人类可读
             'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
@@ -156,7 +144,7 @@ def 目标工具值(目标):
 
 def 渲染目标值(_参数,值):
     '把结构化结果渲染成紧凑 JSON 文本'
-    return [{'type':'text','text':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)}]#紧凑 JSON
+    return [{'type':'text','text':紧凑json编码(值)}]#紧凑 JSON
 
 目标输出={#三个目标控件共用的规范输出声明
     'schema':目标值模式,#JSON Schema

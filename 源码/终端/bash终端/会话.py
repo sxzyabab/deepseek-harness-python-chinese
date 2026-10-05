@@ -1,45 +1,15 @@
 '叠在子进程终端原语上的持久 PTY 会话'
-import codecs,threading,time#流式解码、定时器与毫秒时钟
-from concurrent.futures import Future as 原生结果#单次操作结果
+import codecs,threading#流式解码与定时器
 from ...工具.超时 import 已中止,若已中止则抛出,等待中止#中止入口；信号来自超时库
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.时间工具 import 当前毫秒
+from ...基础设施.通用工具.文本工具 import 保留utf8尾部字节
 from ..终端.异常 import 终端错误#带稳定错误码的终端错误
 from .异常 import 终端bash错误#本包错误
 from .清洗 import 受控提示符,终端清洗器#受控提示符与清洗器
 
 工作线程=threading.Thread#后台工作线程
 定时器=threading.Timer#延迟定时器
-
-class 操作任务:#单次操作结果
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(终端bash错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
-
-def 此刻毫秒():
-    '当前纪元毫秒'
-    return int(time.time()*1000)
-
-def 字节长(文本):
-    'UTF-8 字节数'
-    return len(文本.encode('utf-8'))
 
 def 安排定时(回调,毫秒):
     '安排一次延迟回调，返回可取消的定时器'
@@ -53,23 +23,6 @@ def 清定时(器):
     if 器 is None:
         return
     器.cancel()
-
-def utf8尾部(文本,最大字节):#按UTF-8字节从尾部截取
-    """按 UTF-8 字节从尾部截取；超限则 truncated 为真。
-    切点落在字符边界
-    """
-    if 字节长(文本)<=最大字节:#未超则原样
-        return {'text':文本,'truncated':False}#原样
-    码点=list(文本)#按码点拆开
-    字节=0#已收下的字节
-    起点=len(码点)#从尾往前的起点
-    while 起点>0:#还能再收一个码点
-        下一个=字节长(码点[起点-1])#上一个码点字节
-        if 字节+下一个>最大字节:#再收会超
-            break#停
-        字节+=下一个#累加字节
-        起点-=1#起点前移
-    return {'text':''.join(码点[起点:]),'truncated':True}#尾部文本
 
 合并块单元=4096#合并块码元上限
 
@@ -341,7 +294,7 @@ class 本地PTY会话:#本地PTY会话
         自身.提示符尾巴=''#提示符尾巴累积
         自身.壳进程组=None#shell前台进程组
         自身.初始化中=False#是否在启动就绪
-        自身.最近输出时刻=此刻毫秒()#最近输出时刻
+        自身.最近输出时刻=当前毫秒()#最近输出时刻
         自身.关闭中=False#是否正在关闭
         自身.关闭承诺=None#关闭任务
         自身.传输失败=None#传输失败
@@ -410,7 +363,7 @@ class 本地PTY会话:#本地PTY会话
             自身.取消时打断(操作)#打断
         操作=本地发送操作(#新建发送
             自身.配置['maxReadBytes'],#输出上限
-            此刻毫秒(),#起始时刻
+            当前毫秒(),#起始时刻
             取消时,#取消时打断
         )#构造结束
         自身.活动=操作#占住发送槽
@@ -487,7 +440,7 @@ class 本地PTY会话:#本地PTY会话
 
     def 清就绪证据(自身):#清就绪证据
         '清就绪证据'
-        自身.最近输出时刻=此刻毫秒()#输出时刻重置
+        自身.最近输出时刻=当前毫秒()#输出时刻重置
         自身.见过提示符=False#未见提示符标记
         自身.见过提示符文本=False#未见提示符文本
         自身.提示符尾巴=''#清尾巴
@@ -510,14 +463,14 @@ class 本地PTY会话:#本地PTY会话
         结束=总行-偏移#结束行
         开始=max(0,结束-行数)#起始行
         请求文本='\n'.join(行列表[开始:结束])#取出请求行
-        有界=utf8尾部(请求文本,自身.配置['maxReadBytes'])#再按字节留尾
-        返回行=0 if len(有界['text'])==0 else len(有界['text'].split('\n'))#实际返回行数
+        有界文本=保留utf8尾部字节(请求文本,自身.配置['maxReadBytes'])#再按字节留尾
+        返回行=0 if len(有界文本)==0 else len(有界文本.split('\n'))#实际返回行数
         return {#分页结果
-            'text':有界['text'],#页文本
+            'text':有界文本,#页文本
             'totalLines':总行,#总行数
             'lineBegin':偏移,#起始偏移
             'lineEnd':偏移+返回行,#结束偏移
-            'truncated':快照['truncated'] or 有界['truncated'],#回滚或本页截断
+            'truncated':快照['truncated'] or len(有界文本)<len(请求文本),#回滚或本页截断
         }#结果结束
 
     def 发信号(自身,信号名):#向前台进程组发信号
@@ -579,7 +532,7 @@ class 本地PTY会话:#本地PTY会话
             #信号延迟的提示符可能归到后一次发送，需先定义标记生成边界
             自身.见过提示符=True#记下标记
             自身.提示符尾巴=''#清尾巴
-            自身.最近输出时刻=此刻毫秒()#更新输出时刻
+            自身.最近输出时刻=当前毫秒()#更新输出时刻
         if 自身.见过提示符 and 'promptTail' in 已洗 and 已洗['promptTail'] is not None:#标记后继续收尾巴
             剩余=max(0,len(受控提示符)+1-len(自身.提示符尾巴))#还能收多少
             尾巴=已洗['promptTail']#本分片尾巴
@@ -619,7 +572,7 @@ class 本地PTY会话:#本地PTY会话
         '追加到回滚与活动发送'
         if len(文本)==0:#空则忽略
             return
-        自身.最近输出时刻=此刻毫秒()#更新输出时刻
+        自身.最近输出时刻=当前毫秒()#更新输出时刻
         自身.回滚.追加(文本)#回滚
         if 自身.活动 is not None:#活动发送也收
             自身.活动.追加(文本)#活动发送也收
@@ -649,14 +602,14 @@ class 本地PTY会话:#本地PTY会话
             前台=自身.终端.检查前台()#探前台
             if 自身.活动 is not 操作 or 自身.关闭中 or 自身.打断中 is 操作:#等待期间槽已易主
                 return#停
-            静默=此刻毫秒()-自身.最近输出时刻#静默时长
+            静默=当前毫秒()-自身.最近输出时刻#静默时长
             if 自身.见过提示符 and 前台 is not None and 自身.壳进程组 is None:#首次见提示符时记住shell组
                 自身.壳进程组=前台['processGroupId']#记下shell进程组
             if (自身.见过提示符 and 自身.见过提示符文本 and 静默>=自身.配置['pollIntervalMs']#提示符完整且静默过一轮
                 and 前台 is not None and 前台['processGroupId']==自身.壳进程组):#且shell占据前台
                 自身.结算活动('stdin_read')#按stdin等待结算
                 return
-            已过=此刻毫秒()-操作.开始时刻#发送已过时长
+            已过=当前毫秒()-操作.开始时刻#发送已过时长
             启动已有输出=(not 自身.初始化中) or not 自身.回滚.为空#启动期须已有输出
             接受等待=启动已有输出 and 前台 is not None and 操作.接受标准输入等待(前台['processGroupId'],前台['inputWaiting'] is True)#写后stdin等待证据
             if 已过>=自身.配置['exactProbeAfterMs'] and 接受等待:#过了精确探测延迟且证据成立

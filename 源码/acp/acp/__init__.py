@@ -1,7 +1,6 @@
 '仅用于自动化的 Agent Client Protocol 服务器，经 JSON-RPC stdio 承载'
 import os,sys,threading,uuid#绝对路径、stdio、后台线程与会话 id
-from ...依赖 import cordis#外部依赖胶水
-聚合错误=cordis.聚合错误#多失败聚合
+from ...依赖.工具 import 聚合错误#多失败聚合
 from ...依赖.schemastery import 字符串字段
 from ...模型后端.llm import 创建用户消息#铸造用户消息
 from ...模型后端.llm.异常 import 错误链#错误链文本
@@ -9,6 +8,10 @@ from ...内核.会话 import 会话标识#会话 id 品牌
 from .编解码 import ACP提示转文本,提示含不受支持内容,回合结束到停止原因#提示展平与停止原因映射
 from .线路 import 协议版本,创建NDJSON流,智能体侧连接,操作任务#ACP 线路面
 from .异常 import 请求错误#带码请求失败
+from . import (
+    内容,
+    更新,
+)
 
 __all__=['包名','名称','依赖','应用','默认','配置']
 

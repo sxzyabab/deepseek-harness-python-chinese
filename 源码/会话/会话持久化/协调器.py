@@ -1,7 +1,7 @@
-import json,math,threading#JSON相等、安全整数、后台串行
+import math#安全整数
+from ...基础设施.通用工具 import 紧凑json编码,启动守护线程
 from threading import Lock as 锁#每会话互斥
-from ...依赖 import cordis#外部依赖胶水
-聚合错误=cordis.聚合错误#后端拆除失败聚合
+from ...依赖.工具 import 聚合错误#后端拆除失败聚合
 from ...内核.会话 import (#会话包运行时原语
     收养会话事件,#收养会话事件
     中断轮次关闭器,#被打断回合的合成关闭事件
@@ -78,7 +78,7 @@ def 种子覆盖前缀(种子,前缀):#种子是否覆盖前缀
         种子事件=种子[下标]#对应种子事件
         if 种子事件 is None:#不存在
             return False#不覆盖
-        if json.dumps(种子事件,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)!=json.dumps(事件,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True):#JSON不等
+        if 紧凑json编码(种子事件,排序键=True)!=紧凑json编码(事件,排序键=True):#JSON不等
             return False#不覆盖
         下标+=1#下一条
     return True#全部相等
@@ -746,7 +746,7 @@ class 持久化协调器:#持久化协调器
             finally:
                 with 自身.表锁:#离途
                     自身.进行中.discard(下一)#摘掉
-        threading.Thread(target=后台执行,daemon=True).start()#后台执行本操作
+        启动守护线程(后台执行)#后台执行本操作
         if 信号 is None:#无取消
             return 下一#返回本操作
         def 已越过截止():
@@ -876,8 +876,8 @@ class 持久化协调器:#持久化协调器
                 忘掉()#忘掉
             except BaseException as 错误:
                 警告失败(错误)#警告并忘掉
-        threading.Thread(target=执行退役,daemon=True).start()#后台退役
-        threading.Thread(target=观察退役结算,daemon=True).start()#观察结算
+        启动守护线程(执行退役)#后台退役
+        启动守护线程(观察退役结算)#观察结算
 
     def 退役核心(自身,活会话):#退役核心
         '排空并释放一个精确已拆除 Session 生命周期拥有的状态'

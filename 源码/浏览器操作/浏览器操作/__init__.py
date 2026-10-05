@@ -1,5 +1,4 @@
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from .标识构造 import 浏览器操作提供方名
 from .异常 import 浏览器操作错误#浏览器操作登记失败
 

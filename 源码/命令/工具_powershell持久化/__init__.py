@@ -1,6 +1,5 @@
 '面向模型的持久 pwsh 工具'
 import re,uuid,threading,weakref#正则、标记、线程与弱表
-from concurrent.futures import Future as 原生结果#单次操作结果
 from ..工具_bash持久化 import (
     保留滚回,#拼滚回
     渲染已抽,#抽出输出渲染
@@ -10,6 +9,9 @@ from ..工具_bash持久化 import (
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#工具定义
 from ...工具.超时 import 截止,取超时,中止控制器,合成信号,已中止,若已中止则抛出#超时与中止
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.线程工具 import 启动守护线程
+from ...基础设施.通用工具.数值判定 import 是否正安全整数
 from .异常 import 持久pwsh错误#本包异常基类
 
 __all__=['名称','依赖','配置','应用']#公开面
@@ -28,34 +30,9 @@ pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [
     'description':字符串字段(默认值=默认描述),#工具描述
 }#结束
 滚回页行数=1000#滚回页行数
-安全整数上限=9007199254740991#外来 JSON 校验点
 退出码模式=re.compile(r'^([0-9]+)\r?\n',re.ASCII)#结束退出码
 末尾换行模式=re.compile(r'\r?\n\Z')#尾换行
 开头换行模式=re.compile(r'^\r?\n')#开头换行
-
-class 操作任务:#单次操作结果
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(持久pwsh错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
 
 def 全部结算(任务列表):#等全部落定，吞掉失败
     '并发原语按本包持有：等全部落定，吞掉失败'
@@ -288,22 +265,10 @@ def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
                 创建.拒绝(错误)#拒绝
             finally:#结束
                 创建中.discard(创建)#摘掉
-        工作=threading.Thread(target=拉起并初始化)#创建线程
-        工作.daemon=True#不挡住退出
-        工作.start()#启动
+        启动守护线程(拉起并初始化)#启动
         return 创建#创建任务
 
     return {'get':获取,'reset':重置}#交出
-
-def 是否正安全整数(值):#配置入口的安全整数校验
-    '外来配置校验：正整数且不超过 JS 安全整数上限；布尔先排除'
-    if isinstance(值,bool):#布尔不是数字
-        return False#不是
-    if isinstance(值,int):#整数
-        return 值>0 and 值<=安全整数上限#正且安全
-    if isinstance(值,float) and 值.is_integer():#整值浮点
-        return 值>0 and 值<=安全整数上限#正且安全
-    return False#其它
 
 def 登记持久pwsh(上下文,配置值):#注册工具
     '注册面向模型的持久 pwsh 工具'

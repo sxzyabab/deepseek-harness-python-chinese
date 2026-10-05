@@ -100,8 +100,10 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     if 固定 is not None:#需要观察
         观察者=窗口.MutationObserver(模态变更) if hasattr(窗口,'MutationObserver') else None#构造
         if 观察者 is None:#挂在全局
-            import builtins#全局
-            观察构造=getattr(builtins,'MutationObserver',None)#构造
+            try:#页面观察器
+                观察构造=MutationObserver#构造
+            except NameError:#非浏览器
+                观察构造=None#无
             if 观察构造 is not None:#有
                 观察者=观察构造(模态变更)#建
         if 观察者 is not None:#观察根

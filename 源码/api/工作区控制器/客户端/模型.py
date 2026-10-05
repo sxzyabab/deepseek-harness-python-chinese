@@ -2,7 +2,7 @@
 import re#写死 ISO
 from datetime import datetime as 日期时间,timedelta as 时间差,timezone as 固定偏移
 from zoneinfo import ZoneInfo as 时区
-from ....客户端.存储 import 通知订阅者#安全通知
+from ....基础设施.通用工具 import 观察者集合
 
 __all__=[#仅中文公开名
     '工作区列表阶段','工作区快照','工作区跟随接收端','客户端工作区模型',
@@ -69,7 +69,7 @@ class 客户端工作区模型:
         自身._顺序帧代=0#流顺序代
         自身._已提交顺序=[]#已提交顺序
         自身._已移除=set()#已移除 id
-        自身._监听者=set()#订阅者
+        自身._监听者=观察者集合()#订阅者
         自身._快照脏=False#快照是否脏
         自身._待通知=False#是否有待通知
         自身._已调度通知=False#是否已调度
@@ -187,8 +187,7 @@ class 客户端工作区模型:
 
     def subscribe(自身,监听):
         '订阅 Workspace 状态失效；返回取消订阅函数'
-        自身._监听者.add(监听)#登记
-        return lambda:自身._监听者.discard(监听)#取消
+        return 自身._监听者.订阅(监听)#取消
 
     def getSnapshot(自身):
         '读取缓存状态，必要时先重建'
@@ -295,7 +294,7 @@ class 客户端工作区模型:
             return#跳过
         自身._待通知=False#清除
         自身._刷新快照()#重建
-        通知订阅者(自身._监听者,'[workspace-controller]')#安全通知
+        自身._监听者.通知()#通知
 
     def _刷新快照(自身):
         '按需重建快照'

@@ -1,21 +1,31 @@
-import builtins,json,time#全局、JSON、短等
+import json,time#JSON、短等
 import urllib.request as 请求库#标准库
 from urllib.parse import urljoin as 拼接URL,urlparse as 解析URL,urlunparse as 组合URL
-from ....host.apiproxy.接口.事件模式 import 宿主帧模式,复用帧模式#宿主/复用帧模式
-from ....host.apiproxy.接口.rpc模式 import 服务端请求模式#服务端请求模式
 from ..接口路径 import 宿主事件路径,复用事件路径#两条事件路径
 from ..异常 import 连接错误#本包异常
 from ..rpc import 已中止#中止
-from .接口 import 抽象接口客户端#抽象 API 客户端
 
 __all__=['网页接口客户端']#仅中文公开名
 
-class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户端
+class 透传帧:
+    '线路帧原样交回；宿主帧与复用帧都没有单独的模式模块'
+    def parse(自身,值):
+        '原样返回'
+        return 值
+
+服务端请求模式=透传帧()#server-request 信封
+宿主帧模式=透传帧()#host 载荷
+复用帧模式=透传帧()#mux 载荷
+
+class 网页接口客户端:#真实浏览器 API 客户端
     '浏览器平台子类：一元/应答用 fetch；mux/host 用仅下行 WebSocket'
     def doFetch(自身,输入,初始化=None):#一元请求走浏览器 fetch
         '标准 fetch 切面；无浏览器时用 urllib'
         初始化=初始化 if 初始化 is not None else {}#选项
-        取=builtins.fetch if hasattr(builtins,'fetch') else None#可能有
+        try:#页面 fetch
+            取=fetch#可能有
+        except NameError:#非浏览器
+            取=None#无
         if callable(取):#有 fetch
             return 取(输入,初始化)#标准 fetch
         方法=初始化['method'] if 'method' in 初始化 else 'GET'#方法
@@ -84,7 +94,10 @@ class 网页接口客户端(抽象接口客户端):#真实浏览器 API 客户�
                 活.close()#关
 
         try:#优先浏览器 WebSocket
-            构造=builtins.WebSocket if hasattr(builtins,'WebSocket') else None#可能有
+            try:#页面 WebSocket
+                构造=WebSocket#可能有
+            except NameError:#非浏览器
+                构造=None#无
             if callable(构造):#有 WebSocket
                 活=构造(地址)#打开
                 套接字['v']=活#记下

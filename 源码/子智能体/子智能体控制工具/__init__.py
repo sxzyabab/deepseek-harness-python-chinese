@@ -1,6 +1,9 @@
 from ...内核.工具 import 定义工具#导入工具定义
 from ...内核.会话 import 会话标识#导入会话id品牌
 from ..子智能体.异常 import 子智能体错误#缝内失败
+from . import (
+    列举智能体,
+)
 
 名称='tool-subagent-control'#Cordis插件名
 依赖=['tools','subagents']#依赖工具与子智能体服务

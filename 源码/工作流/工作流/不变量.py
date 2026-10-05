@@ -1,5 +1,5 @@
 '本包拥有的工作流生命周期不变量'
-import json#元数据快照序列化
+from ...基础设施.通用工具 import 紧凑json编码
 包名='@deepseek-ai/dsh-workflow'#本包在不变量注册表中的名字
 名称='workflow-invariant'#配套插件名
 依赖=['invariants']#依赖不变量服务
@@ -8,13 +8,13 @@ __all__=['包名','名称','依赖','安装','应用']#仅中文公开名
 
 def 编码片段(值):#错误消息里的 JSON 片段
     '把值编成紧凑 JSON 片段'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
+    return 紧凑json编码(值)#紧凑 JSON
 
 def 元数据快照(元数据):#把元数据打成可比较的 JSON 快照
     """把运行身份里的 meta 块序列化，供跨事件比对是否漂移。
     元数据是 dict
     """
-    return json.dumps(元数据,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON，键序保持插入序
+    return 紧凑json编码(元数据)#紧凑 JSON，键序保持插入序
 
 def 取追踪(追踪表,信息,失败):#按运行身份取出追踪；对不上则失败
     """要求某次运行的每条事件都保留其已校验的身份快照。

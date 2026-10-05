@@ -1,4 +1,5 @@
 import threading#活流锁与中止赛跑
+from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from .调用日志 import 调用日志库#日志库
 from .命名空间代理 import 创建远程代理#惰性命名空间
 from .流脚本 import (#中止、任务与流
@@ -423,16 +424,14 @@ def 全部并发(任务列表):
         except BaseException as 错误:#失败
             槽.拒绝(错误)#拒绝
     for 任务,槽 in zip(任务列表,槽表):#每路一线程
-        工作=threading.Thread(target=等待并写入槽,args=(任务,槽))#工作线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(等待并写入槽,任务,槽)#工作线程
     return [槽.等待() for 槽 in 槽表]#按原序取出
 
 def 与中止赛跑(操作,信号):
     '等待操作任务，或在信号中止时立刻抛出其原因'
     def 中止原因():
         '按载体契约包装中止原因'
-        原因=信号._异常#承载异常
+        原因=信号.原因#承载异常
         if isinstance(原因,BaseException):#已是异常
             return 原因#原样
         错误=远程模拟错误('remote-mock: call aborted')#包装
@@ -444,9 +443,7 @@ def 与中止赛跑(操作,信号):
     中止侧=操作任务()#中止时拒绝
     def 监听():
         '中止时拒绝赛跑'
-        信号._事件.wait()#等到中止
+        信号.等待()#等到中止
         中止侧.拒绝(中止原因())#中止原因
-    工作=threading.Thread(target=监听)#监听线程
-    工作.daemon=True#不挡住退出
-    工作.start()
+    启动守护线程(监听)#监听线程
     return 赛跑([操作,中止侧])#操作或中止

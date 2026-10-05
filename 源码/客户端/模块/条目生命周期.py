@@ -15,7 +15,10 @@ def 拆除条目纤程(条目):
 
 def 移除包拥有样式(标识):
     '插件 effect 清理后移除样式'
-    文档=globals().get('document')#DOM
+    try:#页面文档
+        文档=document#DOM
+    except NameError:#非浏览器
+        文档=None#无
     if 文档 is None:#无
         return#停
     for 元 in 文档.querySelectorAll('style[data-plugin]'):#逐样式

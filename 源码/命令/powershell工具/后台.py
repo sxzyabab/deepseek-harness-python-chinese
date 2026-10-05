@@ -1,35 +1,11 @@
 '后台 pwsh 进程句柄的通用任务适配——与 bash 后台适配同形、且与具体 shell 无关'
 from ...沙盒.沙盒 import 沙箱拒绝标记,升级提示标记
 import threading
-from concurrent.futures import Future as 原生结果
+from ...基础设施.通用工具.并发原语 import 操作任务
 
 from .异常 import 后台错误#后台任务适配失败
 
 __all__=['进程结果','进程源列表','环增量','进程作业']
-
-class 操作任务:
-    '任务对象只留等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身.未来=原生结果()
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身.未来.done():
-            自身.未来.set_result(值)
-        return 值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身.未来.done():
-            if isinstance(错误,BaseException):
-                自身.未来.set_exception(错误)
-            else:
-                自身.未来.set_exception(后台错误(错误))
-
-    def 等待(自身,超时=None):
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)
 
 def 沙箱说明列表(沙箱,升级模式=None):
     '值得写进终端细节的沙箱事实：运行器根本没跑命令，或一次拒绝（带本组合广告的升级提示）'

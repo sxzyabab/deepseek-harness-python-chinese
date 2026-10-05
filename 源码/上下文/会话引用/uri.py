@@ -1,5 +1,6 @@
 '规范会话 URI 与行内提及编码'
-import base64,json,re#base64url、JSON与提及正则
+import json,re#JSON与提及正则
+from ...基础设施.通用工具 import 字节转base64url,base64url转字节
 from ...内核.会话 import 会话标识#导入会话id品牌
 from .异常 import 会话引用错误#导入会话引用错误
 
@@ -9,7 +10,7 @@ from .异常 import 会话引用错误#导入会话引用错误
 
 def 编码会话引用URI(会话号):#编码规范会话引用URI
     '把任意会话 id 字符串编码为无损的规范 URI'
-    载荷=base64.urlsafe_b64encode(json.dumps(会话号,ensure_ascii=False).encode('utf-8')).decode('ascii').rstrip('=')#JSON后按utf8做base64url
+    载荷=字节转base64url(json.dumps(会话号,ensure_ascii=False).encode('utf-8'))#JSON后按utf8做base64url
     return 会话引用方案+载荷#方案前缀加载荷
 
 def 解码会话引用URI(统一资源):#解码规范会话引用URI
@@ -20,8 +21,7 @@ def 解码会话引用URI(统一资源):#解码规范会话引用URI
     if not 载荷字符.match(载荷):#载荷须为base64url字符
         raise 非法URI(统一资源)#非法载荷
     try:#尝试解码并校验规范形
-        填充=(4-len(载荷)%4)%4#补回padding
-        解析=json.loads(base64.urlsafe_b64decode(载荷+'='*填充).decode('utf-8'))#base64url还原后JSON解析
+        解析=json.loads(base64url转字节(载荷).decode('utf-8'))#base64url还原后JSON解析
         if not isinstance(解析,str):#解析结果必须是字符串
             raise TypeError('decoded session id is not a string')#类型非法
         会话号=会话标识(解析)#打上会话id品牌

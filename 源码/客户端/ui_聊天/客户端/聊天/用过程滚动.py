@@ -1,4 +1,3 @@
-import builtins
 from .用滚动跟随 import 滚动度量,用滚动跟随
 
 __all__=['用过程滚动','过程滚动席位']
@@ -92,7 +91,10 @@ class 过程滚动席位:
         正文=自身.正文引用['current']
         if 正文 is None or not 自身.打开:
             return
-        观察类=getattr(builtins,'ResizeObserver',None)
+        try:#页面观察器
+            观察类=ResizeObserver#构造
+        except NameError:#非浏览器
+            观察类=None#无
         if 观察类 is None:
             return
         自身.解绑=自身.跟随.绑定(正文)

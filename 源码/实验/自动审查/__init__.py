@@ -1,4 +1,5 @@
 import json,re,threading#渲染、成员计数与在途审查
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...内核.作用域 import 操作任务#在途结算
 from ...内核.工具 import 运行代码名#外层传输名
 from ...模型后端.llm import 块组装器,深冻结#审查流
@@ -55,7 +56,7 @@ def 解析已记参数(原文):#原生调用原始参数
 
 def 同一json(左,右):#无损 JSON 比较
     '比较两份无损 JSON 值且不保留别名'
-    return json.dumps(左,ensure_ascii=False,separators=(',',':'),allow_nan=False)==json.dumps(右,ensure_ascii=False,separators=(',',':'),allow_nan=False)#相等
+    return 紧凑json编码(左)==紧凑json编码(右)#相等
 
 def 是否记录(值):#对象记录而非 null/数组
     '已记 JSON 值是否为对象记录'

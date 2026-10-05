@@ -1,11 +1,12 @@
-import json,math,weakref
+import math,weakref
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .异常 import 值错误#值辅助失败
 __all__=['断言永不','快照json值','是否json值','深相等json','深冻结','带值弱映射','值错误']
 
 def 断言永不(值,上下文=None):
     '标记封闭联合的不可达分支；运行时逃出的值一律抛错'
     try:
-        渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+        渲染=紧凑json编码(值)
     except (TypeError,ValueError):
         渲染=str(值)
     标签=' in '+上下文 if 上下文 is not None else ''

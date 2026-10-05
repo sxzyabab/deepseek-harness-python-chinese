@@ -1,3 +1,7 @@
+from . import (
+    客户端,
+    异常,
+)
 __all__=['名称','应用']
 
 名称='client-ui-cordis'

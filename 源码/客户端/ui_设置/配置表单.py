@@ -1,6 +1,7 @@
-import copy,threading
+import copy
+from ...基础设施.通用工具 import 启动守护线程
 from ...依赖.cordis.服务 import 服务
-from ...存储 import 创建快照存储
+from ..存储 import 创建快照存储
 from ...配置.配置 import 操作任务,已结算任务
 from .配置表单类型 import 空表单快照,就绪,不可用
 from .开发者工具 import 开发者工具偏好
@@ -103,9 +104,7 @@ class 配置表单控制器:
                 任务.兑现(操作())
             except Exception as 错误:
                 任务.拒绝(错误)
-        线=threading.Thread(target=跑)
-        线.daemon=True
-        线.start()
+        启动守护线程(跑)
         吞=操作任务()#尾巴始终兑现
         def 收尾():
             '吞掉本次成败'
@@ -114,9 +113,7 @@ class 配置表单控制器:
             except Exception:
                 pass
             吞.兑现(None)
-        尾线=threading.Thread(target=收尾)
-        尾线.daemon=True
-        尾线.start()
+        启动守护线程(收尾)
         自身.尾=吞#新尾巴
         return 任务.等待()
 

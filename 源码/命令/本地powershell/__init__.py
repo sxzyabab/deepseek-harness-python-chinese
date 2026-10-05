@@ -1,6 +1,6 @@
 '本地 PowerShell 服务提供方'
 import os,math,threading#工作目录、有限数与后台结算线程
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ..命令 import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
 from ...配置.配置 import 安装设置段#设置段安装
@@ -33,30 +33,6 @@ __all__=(#仅中文公开名
     'graceMs':数字字段(默认值=默认宽限毫秒),#杀进程升级与继承管道宽限
     'pwshPath':字符串字段(),#显式 pwsh 可执行路径；省略则探测
 }#插件配置模式结束
-
-class 操作任务:#单次操作结果
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(本地powershell错误(错误))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):#读中止事实
     """信号按 Event 定死。

@@ -1,4 +1,5 @@
 import json,os,socket,threading,time#JSON、随机种子、网络、线程与延迟
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from http.server import BaseHTTPRequestHandler as 基处理器,ThreadingHTTPServer as 线程HTTP服务器#HTTP 服务
 from .异常 import 模拟服务器错误#模拟服务器包的异常基类
 
@@ -118,7 +119,7 @@ def 结束记录(选项,记录,结局):#结束请求记录
 
 def 写SSE(记录,写出,载荷):#写 SSE 事件
     '写一条 data 事件'
-    正文=载荷 if isinstance(载荷,str) else json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False)#载荷文本
+    正文=载荷 if isinstance(载荷,str) else 紧凑json编码(载荷)#载荷文本
     写出(f'data: {正文}\n\n'.encode('utf-8'))#写 data 事件
     记录['chunksSent']+=1#计数
 
@@ -245,7 +246,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 头表['Retry-After']=str((已解析['retryAfterMs']+999)//1000)#限流 Retry-After
             if 'requestId' in 已解析:#可选请求 id
                 头表['X-Request-Id']=已解析['requestId']#写请求 id
-            正文=json.dumps({'error':{'message':消息,'type':类型名,'code':码}},ensure_ascii=False,separators=(',',':'),allow_nan=False)#错误体
+            正文=紧凑json编码({'error':{'message':消息,'type':类型名,'code':码}})#错误体
             自身._写头(状态,头表)#写状态
             自身._写出(正文.encode('utf-8'))#写错误体
             结束记录(已解析,记录,'completed')#记为完成
@@ -378,7 +379,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
             授权=自身.headers.get('Authorization')#授权头
             if 'apiKey' in 已解析 and 授权!=f"Bearer {已解析['apiKey']}":#鉴权失败
                 自身._写头(401,内容类型='application/json')#写 401 头
-                自身._写出(json.dumps({'error':{'message':'invalid mock bearer token','code':'invalid_api_key'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#鉴权失败
+                自身._写出(紧凑json编码({'error':{'message':'invalid mock bearer token','code':'invalid_api_key'}}).encode('utf-8'))#鉴权失败
                 return
             长度=int(自身.headers.get('Content-Length') or 0)#正文长度
             原始=自身.rfile.read(长度) if 长度>0 else b''#读正文
@@ -386,7 +387,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 体=json.loads(原始.decode('utf-8')) if 原始 else None
             except (json.JSONDecodeError,UnicodeDecodeError):
                 自身._写头(400,内容类型='application/json')
-                自身._写出(json.dumps({'error':{'message':'request body must be valid JSON','code':'invalid_json'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))
+                自身._写出(紧凑json编码({'error':{'message':'request body must be valid JSON','code':'invalid_json'}}).encode('utf-8'))
                 return
             选中=选行为()#消费脚本
             记录={#新建记录
@@ -410,7 +411,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
                         return
                     return
                 自身._写头(500,内容类型='application/json')#写 500 头
-                自身._写出(json.dumps({'error':{'message':'mock server handler failed','code':'MOCK_HANDLER_FAILED'}},ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#处理器失败
+                自身._写出(紧凑json编码({'error':{'message':'mock server handler failed','code':'MOCK_HANDLER_FAILED'}}).encode('utf-8'))#处理器失败
                 raise 错误#再抛
 
     服务器=线程HTTP服务器((已解析['host'],已解析['port']),处理器)#创建服务器

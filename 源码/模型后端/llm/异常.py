@@ -1,8 +1,7 @@
 '带稳定、可供程序路由的 code 与链式 cause 的 Harness 错误基类'
 import re#正则
 import math#有限数判定
-from ...依赖 import cordis#外部依赖胶水
-聚合错误=cordis.聚合错误#聚合错误
+from ...依赖.工具 import 聚合错误#聚合错误
 from .调用配置 import 深冻结#冻结可序列化事实
 
 __all__=(#仅中文公开名

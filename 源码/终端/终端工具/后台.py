@@ -1,5 +1,6 @@
 '后台终端发送对通用任务拉取源的适配'
 from .渲染 import 渲染发送读取
+from ...基础设施.通用工具.文本工具 import utf8字节数
 
 def 发送源(操作):
     """把后端的消费型发送读取器适配成注册表拉取源。
@@ -11,7 +12,7 @@ def 发送源(操作):
         if 活 is None:
             return {'text':'','nextOffset':起始字节,'lossy':False}
         文本=渲染发送读取(活.读取输出())
-        return {'text':文本,'nextOffset':起始字节+len(文本.encode('utf-8')),'lossy':False}
+        return {'text':文本,'nextOffset':起始字节+utf8字节数(文本),'lossy':False}
     return {'read':读取}
 
 __all__=['发送源']

@@ -1,5 +1,4 @@
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from .标识构造 import 计算机操作提供方名
 from .异常 import 计算机操作错误#计算机操作登记失败
 

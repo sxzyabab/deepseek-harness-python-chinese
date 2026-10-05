@@ -1,12 +1,8 @@
-import time#纪元毫秒
+from .....基础设施.通用工具 import 当前毫秒
 
 __all__=['登记作曲器键图']#仅中文公开名
 
 组合宽限毫秒=10#Safari 关闭 keydown 宽限
-
-def 纪元毫秒():
-    '墙钟毫秒 int'
-    return int(time.time()*1000)#纪元毫秒
 
 def 是否组合事件(事件,近期组合):
     'keydown 可信任的组合态。keyCode 229 为无 isComposing 时的遗留 IME 信号'
@@ -39,7 +35,7 @@ def 登记作曲器键图(编辑器,处理器):
         '结束组合后再一拍宽限'
         nonlocal 组合中,组合截止#写
         组合中=False#结束
-        组合截止=纪元毫秒()+组合宽限毫秒#宽限
+        组合截止=当前毫秒()+组合宽限毫秒#宽限
         def 空更新():
             '组合结束后无文档编辑'
             return None#无事
@@ -47,7 +43,7 @@ def 登记作曲器键图(编辑器,处理器):
 
     def 近期组合():
         '组合中或宽限未过'
-        return 组合中 is True or 纪元毫秒()<组合截止#近期
+        return 组合中 is True or 当前毫秒()<组合截止#近期
 
     def 箭头(键):
         '箭头/Tab 工厂'

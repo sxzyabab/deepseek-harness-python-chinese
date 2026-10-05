@@ -1,4 +1,5 @@
-'用 git 工作树快照与文件工具整文件捕获汇总每轮变更，以 workspace/changes 宣告，经 workspaceChanges 提供摘要与对比'import os,sys,tempfile#平台、家目录与临时根
+'用 git 工作树快照与文件工具整文件捕获汇总每轮变更，以 workspace/changes 宣告，经 workspaceChanges 提供摘要与对比'
+import os,sys,tempfile#平台、家目录与临时根
 from ...依赖.schemastery import 数字字段#配置字段
 from ...工具.超时 import 中止控制器#插件寿命
 from .记录器 import 轮次记录器#每会话记录器
@@ -11,6 +12,12 @@ from .类型 import (#再导出类型面
     工作区变更服务字段,
 )#类型字段
 from .异常 import 工作区变更错误#本包异常基类
+from . import (
+    对比,
+    捕获,
+    行数统计,
+    路径,
+)
 
 __all__=[#仅中文公开名
     '名称','注入','配置','应用','默认','工作区变更错误',

@@ -1,35 +1,11 @@
 import weakref,threading
-from concurrent.futures import Future as _原生Future
-from ...依赖 import cordis
-上下文=cordis.上下文
+from ...基础设施.通用工具 import 操作任务
+from ...依赖.cordis.上下文 import 上下文
 from .存储 import 具名条目,匿名条目,作用域层集
 from .异常 import 作用域错误
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=_原生Future()
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():
-            自身._未来.set_result(值)
-        return 值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():
-            if isinstance(错误,BaseException):
-                自身._未来.set_exception(错误)
-            else:
-                包装=作用域错误('任务被拒绝')
-                包装.原因=错误
-                自身._未来.set_exception(包装)
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)
+from . import (
+    作用域事件,
+)
 
 __all__=(
     '弱身份表',
@@ -221,3 +197,7 @@ def 获取载体键(值):
     if not 是否作用域载体(值):
         return None
     return 载体键表.取(值)
+
+from . import (
+    不变量,
+)

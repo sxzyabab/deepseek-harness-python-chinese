@@ -1,5 +1,6 @@
 '当前配置档的插件与组合包装载，复用共享 dsh 插件包操作'
 import os,re,json,copy,threading
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from uuid import uuid4 as 生成uuid4
 from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段,列表字段
 from .注册表 import 规范化注册表,注册表计划,归因失败,npmmirror注册表
@@ -27,6 +28,9 @@ from .构建审批 import 批准构建,读待决构建
 from . import 类型
 from . import 安装失败 as 安装失败模块
 from . import 安装规格 as 安装规格模块
+from . import (
+    装载工具,
+)
 
 __all__=[
     '装载服务','配置','分类安装失败','非法安装规格错误','解析安装规格',
@@ -198,7 +202,7 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
             'entry':失败['entry'],#条目
             'diagnostic':未激活诊断(失败),#诊断
             'fiber':纤程,#纤程
-            'options':json.dumps(失败['entry'].选项,ensure_ascii=False,separators=(',',':'),allow_nan=False),#选项
+            'options':紧凑json编码(失败['entry'].选项),#选项
         })#快照结束
     先前纤程=[]#先前纤程
     for 配置 in 根上下文.loader.列出插件配置():#逐条
@@ -224,7 +228,7 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
         旧同=False#是否旧有
         for 先前 in 先前失败:#比对
             if (先前['entry'] is 失败项['entry'] and 先前['fiber'] is 失败项['entry'].纤程
-                    and 先前['options']==json.dumps(失败项['entry'].选项,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+                    and 先前['options']==紧凑json编码(失败项['entry'].选项)
                     and 先前['diagnostic']==未激活诊断(失败项)):#同失败
                 旧同=True#旧有
                 break#停
@@ -754,7 +758,7 @@ class 装载服务(远程服务):
             组合包=先前 if 名称 in 先前 else 先前+[名称]#追加
         else:#关闭
             组合包=[项 for 项 in 先前 if 项!=名称]#过滤
-        if json.dumps(先前,ensure_ascii=False,separators=(',',':'),allow_nan=False)==json.dumps(组合包,ensure_ascii=False,separators=(',',':'),allow_nan=False):#无变化
+        if 紧凑json编码(先前)==紧凑json编码(组合包):#无变化
             return#跳过
         dsh=dict(清单.get('dsh') or {})#dsh
         配置段=dict(dsh.get('profile') or {})#profile

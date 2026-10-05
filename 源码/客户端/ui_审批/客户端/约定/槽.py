@@ -1,4 +1,5 @@
 import threading#中止等待与结算等待
+from .....基础设施.通用工具 import 启动守护线程
 from ...异常 import 审批错误#本包异常
 
 __all__=['待决审批','下一审批键','审批决定','审批错误','已中止','若已中止则抛出']#仅中文公开名
@@ -45,7 +46,7 @@ class 待决审批:#可作答的待处理 Host waterfall 的 Client 呈现
                     '等 Event 置位后结算'
                     自身._信号.wait()#阻塞至中止
                     中止()#结算
-                threading.Thread(target=等中止,daemon=True).start()#后台等中止
+                启动守护线程(等中止)#后台等中止
 
     @property#只读
     def result(自身):

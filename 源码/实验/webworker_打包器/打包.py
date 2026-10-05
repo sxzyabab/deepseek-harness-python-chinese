@@ -1,6 +1,6 @@
 import gzip,json,os,re,yaml,fnmatch#文件系统、压缩、YAML与通配
-from ...依赖 import include#include方言
-条目列表读取器=include.插件列表读取器#入口列表schema
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
+from ...依赖.include import 插件列表读取器 as 条目列表读取器#入口列表schema
 from ..webworker_运行时 import (#从运行时导入打包所需符号
     降低模块源,内存vfs,打包tar,工作线程模块加载器,#模块降级、内存VFS、打包tar、工作线程加载器
     默认根,镜像配置路径,镜像空目录列表,镜像清单路径,#默认根、配置路径、空目录、清单路径
@@ -369,7 +369,7 @@ def 打包虚拟文件系统叠加(树列表):#把不透明数据树打成有序
         if (挂载=='' or 首 is None or 首 not in 镜像覆盖目录列表#挂载合法性
             or any(段=='' or 段=='.' or 段=='..' for 段 in 段列表)):#禁空段与相对段
             raise 打包器错误(#非法挂载
-                'vfs overlay: mount '+json.dumps(树['mount'],ensure_ascii=False,separators=(',',':'),allow_nan=False)+' must stay under '+' or '.join(镜像覆盖目录列表),#错误详情
+                'vfs overlay: mount '+紧凑json编码(树['mount'])+' must stay under '+' or '.join(镜像覆盖目录列表),#错误详情
             )#Error结束
         def 全保留(相对路径):#全量收集
             return True#保留

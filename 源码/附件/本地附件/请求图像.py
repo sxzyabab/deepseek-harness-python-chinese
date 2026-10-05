@@ -1,5 +1,6 @@
 '模型请求的确定性缓存图像版本'
-import hashlib,json,os,uuid#摘要、描述符与原子写
+import os,uuid#路径与临时名
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码,摘要十六进制
 from io import BytesIO#内存缓冲
 from ..附件 import 图像变体标识,若已中止则抛出#附件缝
 from ..附件.异常 import 附件错误#附件失败
@@ -9,12 +10,6 @@ from .锐化 import 取锐化#惰性栅格入口
 __all__=['请求图像变换版本','请求图像变体标识','读取请求图像文件']#仅中文公开名
 
 请求图像变换版本='request-image-v6'#缓存与上传索引身份版本
-
-def _摘要(值):
-    '对字符串或字节计算 sha256 十六进制摘要'
-    if isinstance(值,str):#字符串
-        值=值.encode('utf-8')#转字节
-    return hashlib.sha256(值).hexdigest()#十六进制
 
 def _检查正整数(值,名称):
     '检查正整数策略字段'
@@ -30,7 +25,7 @@ def _验证目标(目标):
 
 def _描述符(附件引用,目标):
     '构造变体标识覆盖的完整描述符'
-    return json.dumps({#键序与上游一致
+    return 紧凑json编码({#键序与上游一致
         'transformVersion':请求图像变换版本,
         'attachmentId':附件引用['attachmentId'],
         'targetWidth':目标['width'],
@@ -43,11 +38,11 @@ def _描述符(附件引用,目标):
             'order':['alpha:webp','opaque:jpeg'],
             'colourspace':'srgb',
         },
-    },ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
+    })#紧凑 JSON
 
 def 请求图像变体标识(附件引用,目标):
     '完整确定性请求变换身份'
-    return 图像变体标识('sha256:'+_摘要(_描述符(附件引用,目标)))#品牌摘要
+    return 图像变体标识('sha256:'+摘要十六进制(_描述符(附件引用,目标)))#品牌摘要
 
 def _源管线(已存储):
     '从已验证字节构建 sRGB 源管线'

@@ -1,8 +1,7 @@
 import uuid,weakref,threading#随机uuid、弱谱系与后台结算线程
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
-from ...依赖 import cordis#外部依赖胶水
-聚合错误=cordis.聚合错误#多失败聚合
+from ...依赖.工具 import 聚合错误#多失败聚合
 from ...模型后端.llm.异常 import 错误链#错误链
 from ...模型后端.llm import 创建用户消息,截上下文摘要#用户消息与摘要
 from ...内核.会话 import 会话标识#会话id品牌
@@ -18,30 +17,6 @@ from .子体 import (#子体组合零件
 from .深度 import 断言子智能体最大深度#导入深度上限断言
 from .异常 import 子智能体错误,子智能体中止错误#本包异常
 from .目录 import 建立目录子体#父拥有目录追加
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._原生结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._原生结果.done():#尚未结算
-            自身._原生结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._原生结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._原生结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._原生结果.set_exception(子智能体错误(str(错误)))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._原生结果.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):
     '信号是否已中止。无信号视为未中止。信号为中止通道（Event 形态）'

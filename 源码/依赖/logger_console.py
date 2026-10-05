@@ -1,4 +1,5 @@
-import os,sys,time
+import os,sys
+from ..基础设施.通用工具.时间工具 import 当前毫秒
 from .工具 import 时长单位
 from .schemastery import 复合类型字段,常量字段,数字字段,字典字段,布尔字段,字符串字段,枚举字段#配置字段
 from .cordis import 日志器
@@ -107,7 +108,7 @@ class 控制台导出器:
         自身.时间模板=配置.get('showTime','yyyy-MM-dd hh:mm:ss ')#时间模板
         自身.标签样式=配置.get('label') or {}#名称标签样式
         自身.格式化器表={'o':展开对象,'O':展开对象}#对象占位符改用检查器展开
-        自身.上次时刻=int(time.time()*1000)#上一条消息的时刻
+        自身.上次时刻=当前毫秒()#上一条消息的时刻
         上下文.日志.登记导出器(自身)#登记导出器
 
     def 导出(自身,消息):

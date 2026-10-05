@@ -1,4 +1,3 @@
-import builtins
 from .用滚动跟随 import 用滚动跟随
 
 __all__=['聊天读取','用聊天读取']
@@ -101,8 +100,14 @@ class 聊天读取:
                 自身.已采样({'position':None,'movedByReader':滚动['movedByReader'],'followingTail':True})
             return
         if 自身.采样定时 is None:
-            窗=getattr(builtins,'window',None)
-            定时=窗.setTimeout if 窗 is not None else getattr(builtins,'setTimeout',None)
+            try:#页面窗口
+                窗=window#窗口
+            except NameError:#非浏览器
+                窗=None#无
+            try:#定时
+                定时=窗.setTimeout if 窗 is not None else setTimeout#定时
+            except NameError:#非浏览器
+                定时=None#无
             自身.采样定时=定时(自身.冲刷采样,滚动采样间隔毫秒)
 
     def 滚动结束(自身):
@@ -127,7 +132,10 @@ class 聊天读取:
             return
         if 自身.探测帧 is not None:
             return
-        调度=getattr(builtins,'requestAnimationFrame',None)
+        try:#下一拍
+            调度=requestAnimationFrame#浏览器
+        except NameError:#非浏览器
+            调度=None#无
         if not callable(调度):
             自身.探测()
         else:
@@ -156,11 +164,20 @@ class 聊天读取:
     def 取消待处理(自身):
         '清定时与帧'
         if 自身.采样定时 is not None:
-            窗=getattr(builtins,'window',None)
-            清=窗.clearTimeout if 窗 is not None else getattr(builtins,'clearTimeout',None)
+            try:#页面窗口
+                窗=window#窗口
+            except NameError:#非浏览器
+                窗=None#无
+            try:#清定时
+                清=窗.clearTimeout if 窗 is not None else clearTimeout#清
+            except NameError:#非浏览器
+                清=None#无
             if callable(清):
                 清(自身.采样定时)
-        取消=getattr(builtins,'cancelAnimationFrame',None)
+        try:#取消帧
+            取消=cancelAnimationFrame#浏览器
+        except NameError:#非浏览器
+            取消=None#无
         if 自身.探测帧 is not None and callable(取消):
             取消(自身.探测帧)
         自身.采样定时=None

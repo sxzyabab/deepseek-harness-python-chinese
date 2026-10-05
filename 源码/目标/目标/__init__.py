@@ -1,5 +1,6 @@
 '同会话目标域：事件源状态、比较交换变更，以及进程内续跑武装'
-import re,time,uuid,weakref#阻塞码、纪元毫秒、目标 id 与会话弱表
+import re,uuid,weakref#阻塞码、目标 id 与会话弱表
+from ...基础设施.通用工具 import 当前毫秒
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 数字字段#配置字段
 from ...内核.智能体 import 智能体事件#按智能体作用域派发
@@ -17,6 +18,11 @@ from .运行时 import (#运行时构造
     目标变更版本,#载荷版本
     目标标识,#目标 id 品牌函数
 )#运行时构造
+from . import (
+    不变量,
+    客户端,
+    远程,
+)
 
 配置={#插件配置模式
     'defaultMaxGoalRounds':数字字段(默认值=256),#默认 256 轮
@@ -24,10 +30,6 @@ from .运行时 import (#运行时构造
 Config=配置#Cordis 配置模式
 安全整数上限=9007199254740991#Number.MAX_SAFE_INTEGER
 阻塞码模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z',re.ASCII)#小写短横线分类码
-
-def 此刻毫秒():
-    '当前纪元毫秒'
-    return int(time.time()*1000)#纪元毫秒
 
 def 折叠状态从投影(状态):#检查点 → 严格折叠
     '从一份检查点安全的投影状态构造严格折叠状态'
@@ -200,7 +202,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
         当前=状态['goal'] if 状态 is not None else None#当前快照
         if 当前 is not None and 当前['phase']!='complete':#未完成目标还在
             raise 目标错误('goal "'+str(当前['id'])+'" already exists with phase "'+str(当前['phase'])+'"','GOAL_ALREADY_EXISTS')#拒绝覆盖
-        现在=此刻毫秒()#创建与变更同一时刻
+        现在=当前毫秒()#创建与变更同一时刻
         快照={#修订一的活跃快照
             'id':目标标识('goal-'+str(uuid.uuid4())),#新品牌 id
             'revision':1,#首修订
@@ -420,7 +422,7 @@ class 目标服务(远程服务):#目标域服务（ctx.goals）
 
     def 下一变更时间(自身,状态):#不早于上次变更
         '在墙钟回拨时夹紧当前目标的下一时间戳'
-        return max(此刻毫秒(),状态['updatedAt'])#取较晚者
+        return max(当前毫秒(),状态['updatedAt'])#取较晚者
 
     def 提交快照(自身,智能体,运行时,操作,快照,已接纳轮次,创建于,变更于,武装):#整值提交
         '构造并提交一次整快照变更'

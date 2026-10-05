@@ -1,4 +1,6 @@
 import json,threading#序列化与中止
+from .....基础设施.通用工具.文本工具 import utf8字节数
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...共享.json import 是否json值,json字节长度#JSON工具
 from ...异常 import 检查器错误,客户端源目录错误#本包错误|Client源目录错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
@@ -89,7 +91,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         if not 是否json值(帧) or json字节长度(帧)>自身.引导['maxFrameBytes']:#超限
             return#丢弃
         try:#发送
-            套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+            套接字.send(紧凑json编码(帧))#发送
         except Exception:#WebSocket.send 可能抛 OSError/连接断开，契约未定所以收不窄
             pass#套接字关闭路径会重置
 
@@ -109,7 +111,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         try:#发送关闭
             if 套接字 is not None and 套接字.readyState==1 and 代数 is not None:#可发
                 帧={'v':检查器协议版本,'t':'source/close','sourceId':自身.领域源.sourceId,'generation':代数}#关闭帧
-                套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+                套接字.send(紧凑json编码(帧))#发送
                 套接字.close(1000,'Client source closed')#正常关闭
             elif 套接字 is not None:#不可发
                 套接字.close()#尽力关
@@ -137,14 +139,14 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             if 自身.套接字 is not 套接字 or 自身.已关闭:#过期
                 return#返回
             帧={'v':检查器协议版本,'t':'source/open','source':源,'topics':['*',*网络主题]}#打开帧
-            套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+            套接字.send(紧凑json编码(帧))#发送
         def 消息(事件):#消息
             '解析并分发入站帧'
             数据=事件.data#MessageEvent 对象文本
             if 自身.套接字 is not 套接字 or not isinstance(数据,str):#过期或非文本
                 return#返回
             try:#解析分发
-                if len(数据.encode('utf-8'))>自身.引导['maxFrameBytes']:#超限
+                if utf8字节数(数据)>自身.引导['maxFrameBytes']:#超限
                     raise 检查器错误(f'inspector protocol: Worker frame exceeds {自身.引导["maxFrameBytes"]} bytes')#拒绝
                 值=json.loads(数据)#解析JSON
                 if 自身.查询实例.接收(值):#RPC已消费
@@ -242,7 +244,7 @@ class 客户端检查器源(检查器源连接):#Client检查器源
         if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or 套接字.readyState!=1:#过期
             自身.取消运行时(帧['sessionId'],帧['requestId'])#清理
             return
-        套接字.send(json.dumps(响应,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送响应
+        套接字.send(紧凑json编码(响应))#发送响应
 
     def 确认运行时(自身,会话标识,请求标识):#确认Runtime
         '确认 Runtime 响应'
@@ -291,4 +293,4 @@ class 客户端检查器源(检查器源连接):#Client检查器源
             响应={**响应,'outcome':{'ok':False,'error':{'code':'result-too-large','message':'Client source result exceeds the source-frame byte limit'}}}#改写
         if 自身.已关闭 or 自身.套接字 is not 套接字 or 自身.代数!=代数 or 套接字.readyState!=1:#过期
             return#返回
-        套接字.send(json.dumps(响应,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+        套接字.send(紧凑json编码(响应))#发送

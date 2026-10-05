@@ -1,4 +1,4 @@
-import time#活动时长 now
+from ....基础设施.通用工具 import 当前毫秒
 
 __all__=[#仅中文公开名
     '目录动作','格式化令牌','格式化时长','格式化精确时长','令牌合计','活动时长毫秒','样式表',
@@ -130,7 +130,7 @@ class 目录动作:#会话头目录
         '记下 props 与开合态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.打开=False#菜单开
-        自身.现在=int(time.time()*1000)#纪元毫秒
+        自身.现在=当前毫秒()#纪元毫秒
         自身.已展开=set()#展开的子 id
         自身.观察中=set()#已 observe 的父
 
@@ -145,7 +145,7 @@ class 目录动作:#会话头目录
         设开=自身.属性['setCatalogOpen'] if 'setCatalogOpen' in 自身.属性 else None#注入
         会话=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None#父会话
         if 下一:#开
-            自身.现在=int(time.time()*1000)#刷新
+            自身.现在=当前毫秒()#刷新
             if 设开 is not None and 会话 is not None:#observe
                 设开(会话,True)#开
                 自身.观察中.add(会话)#记

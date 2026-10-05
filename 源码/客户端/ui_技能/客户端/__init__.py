@@ -1,6 +1,5 @@
 import threading#单飞拉取与预热等待
-from ....基础设施.通用工具 import 获取内部数据
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ....基础设施.通用工具 import 获取内部数据,操作任务,启动守护线程,路径转正斜杠,观察者集合
 from urllib.parse import quote as 百分编码#URI 段编码
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ...ui_基础界面组件.按名排序 import 按名排序#按名与标签排序
@@ -10,30 +9,6 @@ from ..异常 import 技能错误#本包异常
 __all__=['依赖','应用']#仅中文公开名
 
 依赖=['inputTriggers','sessions','slots','locale','remote','remote.skills','sidebarRight']#触发源、会话、槽位、文案、远程、skills 与右侧边栏
-
-class 操作任务:#本文件内单次操作结果
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身._结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身._结果.done():#尚未结算
-            自身._结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身._结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._结果.set_exception(技能错误(str(错误)))#包装拒绝
-
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞等到结算'
-        return 自身._结果.result(timeout=超时)#取结果或抛错
 
 def 已中止(信号):#读 threading.Event
     '无信号视为未中止'
@@ -66,17 +41,17 @@ def 是否绝对工作区路径(路径):
 
 def 会话文件地址(会话标识,路径):
     '编成 dsh-resource://file/session/<id>/<path>'
-    规范化=路径.replace('\\','/')#统一斜杠
+    规范化=路径转正斜杠(路径)#统一斜杠
     while 规范化.startswith('./'):
         规范化=规范化[2:]#剥前导 ./
     return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
 
 def 文件资源地址(会话标识,cwd,路径):
     '相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址'
-    规范化=路径.replace('\\','/')#统一斜杠
+    规范化=路径转正斜杠(路径)#统一斜杠
     if not 是否绝对工作区路径(规范化):
         return 会话文件地址(会话标识,规范化)#相对
-    根='' if cwd is None else cwd.replace('\\','/').rstrip('/')#工作区根
+    根='' if cwd is None else 路径转正斜杠(cwd).rstrip('/')#工作区根
     if 根!='' and 规范化==根:
         return 会话文件地址(会话标识,'')#根本身
     if 根!='' and 规范化.startswith(根+'/'):
@@ -102,11 +77,8 @@ def 应用(上下文):#安装技能引用浏览器半边
 
     def 通知词表(会话标识):#通知该会话的词表监听者
         '通知该会话的词表监听者'
-        for 监听 in list(词表监听[会话标识] if 会话标识 in 词表监听 else set()):#快照后逐个通知
-            try:#单个监听者失败不得饿死其余
-                监听()#触发
-            except Exception as 错误:#订阅者异常契约未定，故不能换成更窄的 except
-                print('[ui-skill] 词表监听失败:',错误)#记日志
+        if 会话标识 in 词表监听:#有订阅
+            词表监听[会话标识].通知()#触发
 
     def 拉目录(会话标识):#按会话单飞拉取技能目录
         '按会话单飞拉取技能目录，返回共享条目'
@@ -156,9 +128,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                 if (拉取表[会话标识] if 会话标识 in 拉取表 else None) is 条目:#仍是本条目
                     del 拉取表[会话标识]#摘掉
                 任务.拒绝(错误)#共享失败
-        线=threading.Thread(target=执行拉取)#后台拉取
-        线.daemon=True#不挡退出
-        线.start()
+        启动守护线程(执行拉取)#后台拉取
         return 条目#共享条目
 
     def 失效(键):#丢掉一键缓存
@@ -208,9 +178,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                 任务.等待()#等待
             except BaseException:#失败
                 pass#忽略
-        线=threading.Thread(target=忽略)#后台
-        线.daemon=True#不挡退出
-        线.start()
+        启动守护线程(忽略)#后台
 
     def 词表(会话):#同步词表
         '已落定目录的技能名'
@@ -227,12 +195,12 @@ def 应用(上下文):#安装技能引用浏览器半边
         键=会话['sessionId']#会话键
         集合=词表监听[键] if 键 in 词表监听 else None#已有集合
         if 集合 is None:#新建
-            集合=set()#空集合
+            集合=观察者集合()#空集合
             词表监听[键]=集合#写回
-        集合.add(监听)#加入
+        退订观察=集合.订阅(监听)#加入
         def 退订():#退订
             '从该会话集合摘掉'
-            集合.discard(监听)#摘掉
+            退订观察()#摘掉
             if len(集合)==0 and 键 in 词表监听:#空了
                 del 词表监听[键]#摘掉会话键
         return 退订#拆除器
@@ -273,9 +241,7 @@ def 应用(上下文):#安装技能引用浏览器半边
             except BaseException as 错误:#预览失败
                 if not 已中止(条目['signal']):#仍有效才记
                     print('[ui-skill] 引用预览失败:',错误)#记日志
-        线=threading.Thread(target=到达后打开)#后台打开
-        线.daemon=True#不挡退出
-        线.start()
+        启动守护线程(到达后打开)#后台打开
         return True#已受理
 
     def 选定(载荷):#选定：插入字面 /name 加空格

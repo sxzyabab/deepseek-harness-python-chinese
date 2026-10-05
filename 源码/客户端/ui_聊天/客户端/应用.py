@@ -1,4 +1,5 @@
 import threading#分叉后台观察
+from ....基础设施.通用工具 import 路径转正斜杠,启动守护线程
 from urllib.parse import quote as 百分编码#URI 段编码
 from ...ui_侧边栏_文档预览 import 客户端 as _侧边栏文档预览#文档预览面：SidebarRightResourceParamsMap.file
 from ..聊天设置 import 聊天设置命名空间,默认链接打开#Chat 设置段
@@ -67,17 +68,17 @@ def 是否绝对工作区路径(路径):
 
 def 会话文件地址(会话标识,路径):
     '编成 dsh-resource://file/session/<id>/<path>'
-    规范化=路径.replace('\\','/')#统一斜杠
+    规范化=路径转正斜杠(路径)#统一斜杠
     while 规范化.startswith('./'):
         规范化=规范化[2:]#剥前导 ./
     return 'dsh-resource://file/session/'+编码段(会话标识)+'/'+编码路径(规范化)#会话作用域
 
 def 文件资源地址(会话标识,cwd,路径):
     '相对或工作区内绝对走会话作用域；工作区外绝对仍写进同一会话地址'
-    规范化=路径.replace('\\','/')#统一斜杠
+    规范化=路径转正斜杠(路径)#统一斜杠
     if not 是否绝对工作区路径(规范化):
         return 会话文件地址(会话标识,规范化)#相对
-    根='' if cwd is None else cwd.replace('\\','/').rstrip('/')#工作区根
+    根='' if cwd is None else 路径转正斜杠(cwd).rstrip('/')#工作区根
     if 根!='' and 规范化==根:
         return 会话文件地址(会话标识,'')#根本身
     if 根!='' and 规范化.startswith(根+'/'):
@@ -241,9 +242,7 @@ def 应用(上下文):
                         上下文.uiWorkspace.openSession(子标识)#经工作区打开
                     except BaseException:#失败
                         pass#源视图不变
-                线=threading.Thread(target=观察)#线
-                线.daemon=True#守护
-                线.start()#启
+                启动守护线程(观察)#启
             def 取组源(键):
                 'grouped(\'chat\').groupSource'
                 会话面=上下文.uiConversation.binding(绑定)

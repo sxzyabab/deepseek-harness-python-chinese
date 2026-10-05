@@ -1,4 +1,5 @@
-import time,weakref#时间、弱表
+import weakref#弱表
+from ...基础设施.通用工具 import 当前毫秒
 from ...模型后端.llm import 结构化克隆#深拷贝
 
 交接游标=weakref.WeakKeyDictionary()#Session→最高已交接 seq
@@ -33,7 +34,7 @@ def 身份于(会话,事件):
 
 def 关闭记录(会话):
     '拆除时的 ops 关闭记录'
-    return {'channel':'ops','time':int(time.time()*1000),'severity':'info','attributes':{'telemetry.op':'shutdown','session.id':str(会话.id)},'body':{'op':'shutdown'}}#记录
+    return {'channel':'ops','time':当前毫秒(),'severity':'info','attributes':{'telemetry.op':'shutdown','session.id':str(会话.id)},'body':{'op':'shutdown'}}#记录
 
 def 错误细节(错误):
     '归一化错误细节'
@@ -113,7 +114,7 @@ class 会话遥测协调器:
         智能体=载荷['agent']#智能体
         细节=错误细节(载荷['error'])#错误
         自身._递交(智能体.session,{'record':自身._脱敏({
-            'channel':'ops','time':int(time.time()*1000),'severity':'error',
+            'channel':'ops','time':当前毫秒(),'severity':'error',
             'attributes':{
                 'telemetry.op':'agent-error','session.id':str(智能体.session.id),
                 'agent.id':智能体.id,'error.name':细节['name'],

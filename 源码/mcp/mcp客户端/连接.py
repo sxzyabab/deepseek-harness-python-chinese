@@ -1,37 +1,13 @@
 import math,threading,time#有限判定、定时器与时间戳
-from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 定时器延迟上限毫秒#定时器延迟上限
+from ...基础设施.通用工具.时间工具 import 当前毫秒
+from ...基础设施.通用工具.文本工具 import utf8字节数
+from ...基础设施.通用工具.并发原语 import 操作任务
 from .异常 import MCP错误#本包异常
 from .传输 import 创建传输#传输工厂
 from .工具桥接 import 同步工具#工具同步
 
 __all__=['重连默认值','默认最大指令字节','解析重连策略','启动连接']
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                包装=MCP错误('任务被拒绝')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身._未来.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 重连默认值={#冻结语义的重连默认值
     'enabled':True,#默认启用重连
@@ -257,7 +233,7 @@ def 启动连接(上下文,配置,策略):
             else:#无
                 原文=''#空
             指令=('### MCP server: '+配置['serverName']+'\n\n'+原文) if 原文!='' else ''#带标题
-            if len(指令.encode('utf-8'))>最大指令字节:#超上限
+            if utf8字节数(指令)>最大指令字节:#超上限
                 raise MCP错误(标签+': server instructions exceed maxInstructionBytes ('+str(最大指令字节)+')')#拒绝
             排队同步(世代容器,启动选项 if 启动 else 选项).等待()#排队初次同步
         except MCP错误 as 错误:#连接或同步失败
@@ -282,7 +258,7 @@ def 启动连接(上下文,配置,策略):
         if not 仍是当前(世代容器):#已不是当前则退出
             return#退出
         状态['serverInstructions']=指令#记下快照
-        状态['connectedAt']=int(time.time()*1000)#记下连通时刻
+        状态['connectedAt']=当前毫秒()#记下连通时刻
         if 状态['failedAttempts']>0:#重连成功则记信息
             上下文.日志.信息(标签+': reconnected and re-synced tools (attempt '+str(状态['failedAttempts'])+'/'+str(策略['maxAttempts'])+')')#重连成功
 

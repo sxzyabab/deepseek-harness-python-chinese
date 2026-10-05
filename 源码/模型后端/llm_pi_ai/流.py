@@ -1,5 +1,5 @@
 '把 pi-ai 助手事件翻译成 harness 流式协议'
-import json#JSON 序列化
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 import re#正则
 from .. import llm#语言模型服务
 from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
@@ -141,7 +141,7 @@ def 转流块(事件列表,上下文窗口=None,请求模型=None):
                     'type':'tool-call',#工具调用
                     'id':llm.调用标识(工具调用.id),#调用id
                     'name':工具调用.name,#工具名
-                    'arguments':json.dumps(参数,ensure_ascii=False,separators=(',',':'),allow_nan=False),#序列化回原始JSON
+                    'arguments':紧凑json编码(参数),#序列化回原始JSON
                 },#已组装工具调用
             }#块结束
             continue#toolcall_end结束

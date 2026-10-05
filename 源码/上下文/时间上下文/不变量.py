@@ -1,5 +1,6 @@
 '本包拥有的持久时钟上下文不变量'
-import json,re#JSON片段与读数格式
+import re#读数格式
+from ...基础设施.通用工具 import 紧凑json编码
 from datetime import datetime as 日期时间#解析渲染时间戳
 from zoneinfo import ZoneInfo as 时区
 from .请求时区 import 推导浏览器时区上下文,渲染浏览器时区上下文#推导与渲染浏览器时区
@@ -125,7 +126,7 @@ def 校验读数(历史,事件,失败):
         失败('time-context browser-zone text does not match current-turn user messages')#时区行与本回合消息不符
     基线=匹配.group(5)#经过时长基线种类
     if (步骤==1)!=(基线=='model-visible message'):#首步必须用模型可见消息基线
-        失败('time-context step '+str(步骤)+' uses the wrong elapsed-time baseline '+json.dumps(基线,ensure_ascii=False,separators=(',',':'),allow_nan=False))#基线种类错误
+        失败('time-context step '+str(步骤)+' uses the wrong elapsed-time baseline '+紧凑json编码(基线))#基线种类错误
     渲染=匹配.group(3)#渲染出的时间戳
     if 渲染 is None:#正则必有第三组
         失败('time-context reading omitted its rendered timestamp')#缺时间戳

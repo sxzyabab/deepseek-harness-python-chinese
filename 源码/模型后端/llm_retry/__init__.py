@@ -1,5 +1,6 @@
 import json,math,random,threading,uuid#标准库
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .标识构造 import 重试身份#导入重试链身份
 
 __all__=('名称','依赖','配置','应用','重试身份')#仅中文公开名
@@ -9,30 +10,10 @@ __all__=('名称','依赖','配置','应用','重试身份')#仅中文公开名
 配置={}#空对象模式；本执行器无自有策略配置
 
 from .异常 import 重试错误#配置与拆除失败
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._原生结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._原生结果.done():#尚未结算
-            自身._原生结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._原生结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._原生结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._原生结果.set_exception(重试错误(str(错误)))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._原生结果.result(timeout=超时)#取结果或抛错
+from . import (
+    不变量,
+    历史,
+)
 
 class 中止信号:
     'threading.Event 取消通道'
@@ -123,9 +104,9 @@ def 政策指纹(政策):
     '政策指纹。政策为 dict'
     模式值=政策['mode']#模式
     if 模式值=='always':#始终模式不含次数与码
-        return json.dumps([模式值,政策['initialDelayMs'],政策['maxDelayMs'],政策['jitterRatio']],ensure_ascii=False,separators=(',',':'),allow_nan=False)#模式加退避
+        return 紧凑json编码([模式值,政策['initialDelayMs'],政策['maxDelayMs'],政策['jitterRatio']])#模式加退避
     可重试码=sorted(list(政策['retryableCodes']))#排序后的可重试码
-    return json.dumps([模式值,政策['maxRetries'],可重试码,政策['initialDelayMs'],政策['maxDelayMs'],政策['jitterRatio']],ensure_ascii=False,separators=(',',':'),allow_nan=False)#普通指纹
+    return 紧凑json编码([模式值,政策['maxRetries'],可重试码,政策['initialDelayMs'],政策['maxDelayMs'],政策['jitterRatio']])#普通指纹
 
 def 可取消等待(延迟毫秒,信号):
     '可取消等待。等到时为 True，中止为 False'

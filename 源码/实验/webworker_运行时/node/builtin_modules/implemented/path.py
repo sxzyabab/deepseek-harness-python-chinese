@@ -1,5 +1,6 @@
 from ....异常 import 运行时错误#本包错误
 import json#诊断序列化
+from ......基础设施.通用工具.序列化编码 import 紧凑json编码
 from ....storage.路径 import dsh根#VFS根
 
 __all__=[#中文与Node面
@@ -23,7 +24,7 @@ def 当前目录():#当前工作目录
 def 断言路径(路径):#断言路径为串
     '非串则抛 TypeError'
     if not isinstance(路径,str):#非串
-        raise TypeError("Path 必须是字符串。收到 "+json.dumps(路径,ensure_ascii=False,separators=(',',':'),allow_nan=False))#类型错误
+        raise TypeError("Path 必须是字符串。收到 "+紧凑json编码(路径))#类型错误
 
 def 规范化段串(路径,允许越过根):#规范化段串
     '解析 `.` 与 `..` 段；`允许越过根` 为相对输入保留前导 `..`'

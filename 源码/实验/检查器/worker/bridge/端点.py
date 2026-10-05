@@ -1,4 +1,5 @@
 import json,socket,threading#HTTP与套接字
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer#HTTP服务
 from urllib.parse import urlparse as 解析网址#路径解析
 from ..cdp.会话 import Cdp会话#CDP会话
@@ -96,7 +97,7 @@ class 检查器端点:#检查器端点
         class _传输:#CDP传输
             def 发送(传,载荷):#发送
                 '发送 JSON 载荷'
-                数据=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#编码
+                数据=紧凑json编码(载荷).encode('utf-8')#编码
                 try:#发送
                     套接字.sendall(数据)#发
                 except OSError:#套接字已断
@@ -126,7 +127,7 @@ class 检查器端点:#检查器端点
             def send(传,帧):#发送
                 '发送查询帧'
                 try:#发送
-                    套接字.sendall(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#发
+                    套接字.sendall(紧凑json编码(帧).encode('utf-8'))#发
                 except OSError:#套接字已断
                     pass#忽略
             def close(传,码=1000,原因=''):#关闭
@@ -139,7 +140,7 @@ class 检查器端点:#检查器端点
         def 发送(帧):#发送
             '发往 Client'
             try:#发送
-                套接字.sendall(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#发
+                套接字.sendall(紧凑json编码(帧).encode('utf-8'))#发
             except OSError:#套接字已断
                 return#未开
             if 帧.get('t')=='source/accepted':#接受后登记
@@ -216,7 +217,7 @@ class 检查器端点:#检查器端点
 
     def _写json(自身,处理器,值):#写JSON响应
         '写 JSON 响应'
-        体=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#体
+        体=紧凑json编码(值).encode('utf-8')#体
         处理器.send_response(200)#头
         处理器.send_header('content-type','application/json; charset=utf-8')#类型
         处理器.send_header('content-length',str(len(体)))#长度

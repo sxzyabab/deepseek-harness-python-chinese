@@ -5,6 +5,7 @@ import re#非法模式stderr匹配
 from .异常 import 搜索工具错误,搜索错误#本包异常
 from ...工具.输出保留 import 条目保留器,文本保留器#条数与文本保留器
 from ...子进程.本地子进程.异常 import 本地子进程错误#spawn与等待失败
+from ...基础设施.通用工具.文本工具 import utf8字节数
 
 原始输出最大字节=20_000_000#原始stdout默认字节上限
 搜索超时毫秒=30_000#协作超时默认毫秒
@@ -22,10 +23,6 @@ def 已中止(信号):#读取中止标志
     if 信号 is None:#无信号
         return False#未中止
     return 信号.is_set()#Event置位
-
-def 字节长(文本):#UTF-8字节长度
-    '按 UTF-8 字节计长'
-    return len(文本.encode('utf-8'))#按utf8计字节
 
 def 标准错误摘录(标准错误文本,已截断):#stderr诊断摘录
     '把保留的 stderr 尾做成诊断摘录；子进程丢掉字节时附截断说明'
@@ -59,7 +56,7 @@ def 完整标准输出(工具名,标准输出,原始输出最大字节值):#取�
             内存文本=''
         else:
             内存文本=标准输出['text']
-        内联字节=字节长(内存文本)#内存文本的 UTF-8 字节
+        内联字节=utf8字节数(内存文本)#内存文本的 UTF-8 字节
         if 内联字节>原始输出最大字节值:#完整但超过工具自己的解析上限
             raise 搜索错误(#报告实际字节与上限
                 工具名+' produced '+str(内联字节)+' bytes of raw output, over the '+str(原始输出最大字节值)+'-byte cap; '+收窄,

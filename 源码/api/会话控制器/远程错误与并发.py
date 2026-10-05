@@ -1,5 +1,5 @@
 '会话控制器远程错误、中止查询与线程任务'
-import threading#后台任务
+from ...基础设施.通用工具 import 启动守护线程
 from threading import Event as 同步事件#跨线程结算广播
 from .异常 import 远程错误#本包异常
 
@@ -32,9 +32,7 @@ def 在线程执行(函数):
             箱['错误']=错误#原样记下
         finally:
             完成.set()#广播
-    工作=threading.Thread(target=执行并结算)#工作线程
-    工作.daemon=True#不挡住退出
-    工作.start()
+    启动守护线程(执行并结算)#工作线程
     class 线程结局:
         '跨线程工作结局；只公开 等待结局'
         def 等待结局(自身):

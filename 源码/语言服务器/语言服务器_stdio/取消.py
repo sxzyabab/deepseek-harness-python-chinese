@@ -1,31 +1,8 @@
 import threading#中止竞态线程
-from concurrent.futures import Future as 原生结果#单次操作结果
 from ...工具.超时 import 取超时,已中止,若已中止则抛出,等待中止#超时分类与中止入口
+from ...基础设施.通用工具.并发原语 import 操作任务#一次性任务
+from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from ..语言服务器.异常 import 语言服务器错误#本缝异常基类
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身.未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if 自身.未来.done() is False:#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if 自身.未来.done() is False:#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(语言服务器错误('任务被拒绝','LSP_INTERNAL'))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
 
 def 中止错误(信号):
     '把中止信号转成可抛出的错误，并保留超时分类'
@@ -81,10 +58,6 @@ def 可中止等待(工作,信号=None):
         等待中止(信号)#阻塞到中止
         结算失败(中止错误(信号))#用分类中止拒绝
 
-    工作线程=threading.Thread(target=执行工作)#执行工作
-    工作线程.daemon=True#不挡住退出
-    工作线程.start()
-    中止线程=threading.Thread(target=转发中止)#转发中止
-    中止线程.daemon=True#不挡住退出
-    中止线程.start()
+    启动守护线程(执行工作)#执行工作
+    启动守护线程(转发中止)#转发中止
     return 结果任务.等待()#同步等待竞态

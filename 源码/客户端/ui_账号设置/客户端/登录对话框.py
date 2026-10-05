@@ -1,4 +1,4 @@
-import threading
+import threading#定时
 from .授权网址 import 带主题的授权网址
 
 __all__=['登录对话框']
@@ -88,7 +88,10 @@ class 登录对话框:
 
     def 复制链接(自身,授权网址):
         '把带主题的授权链接写入剪贴板'
-        导航=globals().get('navigator')
+        try:#页面导航
+            导航=navigator#navigator
+        except NameError:#非浏览器
+            导航=None#无
         剪贴板=None if 导航 is None else getattr(导航,'clipboard',None)
         try:
             剪贴板.writeText(带主题的授权网址(授权网址,自身.属性['colorScheme']))

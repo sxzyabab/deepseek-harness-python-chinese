@@ -1,10 +1,14 @@
 import threading#后台结算线程
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.线程工具 import 启动守护线程
 from ...依赖.cordis import 聚合错误#多失败聚合
 from ...依赖.schemastery import 字符串字段,布尔字段,整数字段,列表字段,复合类型字段,常量字段,枚举字段,字典字段,自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义
 from ..子智能体 import 断言子智能体最大深度,结算运行#深度断言与运行结算
 from ..子智能体.异常 import 子智能体错误#缝内失败
+from . import (
+    不变量,
+)
 
 名称='tool-subagent'#Cordis插件名
 依赖=['tools','subagents','systemPrompt','sessionProjections']#依赖工具、子智能体、提示词与投影
@@ -31,30 +35,6 @@ from ..子智能体.异常 import 子智能体错误#缝内失败
 }#配置模式结束
 
 __all__=['名称','依赖','配置','子智能体段落顺序','应用']#仅中文公开名
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._原生结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._原生结果.done():#尚未结算
-            自身._原生结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._原生结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._原生结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._原生结果.set_exception(子智能体错误(str(错误),'ERROR'))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._原生结果.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
     'threading.Event 取消通道'
@@ -126,8 +106,7 @@ def 结算启动(启动,信号):
                 结局任务.兑现({'status':'killed'})#中止结局
             else:#否则失败并带细节
                 结局任务.兑现({'status':'failed','detail':str(错误)})#失败结局
-    工作=threading.Thread(target=监视结算,daemon=True)#后台结算线程
-    工作.start()#启动
+    启动守护线程(监视结算)#后台结算线程
     return 结局任务#交给任务收集器
 
 def 停止原因错误(结果):

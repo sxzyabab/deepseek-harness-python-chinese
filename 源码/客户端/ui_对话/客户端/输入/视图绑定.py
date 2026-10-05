@@ -1,4 +1,3 @@
-import builtins#窗口选区
 from .键图 import 登记作曲器键图#键图
 from ..提交策略 import 解析提交模式#提交模式
 
@@ -14,7 +13,7 @@ def 揭示草稿选区(滚动引用):
         return#停
     if 滚动.scrollHeight<=滚动.clientHeight:#无需滚
         return#停
-    选区=builtins.window.getSelection()#窗口选区
+    选区=window.getSelection()#窗口选区
     if 选区 is None or 选区.rangeCount==0:#无范围
         return#停
     范围=选区.getRangeAt(0)#第一范围

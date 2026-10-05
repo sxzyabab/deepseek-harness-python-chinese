@@ -1,5 +1,5 @@
 from ...异常 import 对话错误
-import json
+from .....基础设施.通用工具 import 紧凑json编码
 
 __all__=['会话组注册表']
 
@@ -35,7 +35,7 @@ class 会话组注册表:
                 if 目标 in 自身.定义表 and 自身.定义表[目标] is 定义:
                     del 自身.定义表[目标]
             return 拆除
-        return 自身.上下文.副作用(效应,'uiConversation.groups.register('+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False)+')')
+        return 自身.上下文.副作用(效应,'uiConversation.groups.register('+紧凑json编码(目标)+')')
 
     def 按目标(自身,目标):
         '查找一项目标的分组规则'

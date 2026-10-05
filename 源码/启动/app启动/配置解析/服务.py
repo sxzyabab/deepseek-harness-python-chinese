@@ -1,7 +1,7 @@
 '经一次配置解析登记解析出的包元数据'
 import os,json#路径与清单
-from ....依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
+from ....依赖.cordis.服务 import 服务#服务基类
 from .解析器 import 裸包名,安装配置解析,登记工作线程解析#解析器
 from ..异常 import 启动错误#应用启动粘合层失败
 
@@ -89,7 +89,7 @@ class 插件包表(服务):
             目录=自身._解析器.包目录(名,父网址)#查找
         if 目录 is None:#未找到
             return None#缺席
-        键=json.dumps({'dir':目录,'name':名},ensure_ascii=False,separators=(',',':'),allow_nan=False)#缓存键
+        键=紧凑json编码({'dir':目录,'name':名})#缓存键
         if 键 not in 自身._包表:#未缓存
             自身._包表[键]=读包(目录,名)#读入
         return 自身._包表[键]#包记录

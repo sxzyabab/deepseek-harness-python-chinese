@@ -1,6 +1,7 @@
 '会话簇：实例簇、帧分发与列表状态'
 import threading#防抖
 import time#活动时间
+from ....基础设施.通用工具 import 当前毫秒,启动守护线程
 from .有序基线 import 合并有序基线#有序合并
 from .谱系 import 展平谱系#谱系
 from .通知器 import 通知器#通知
@@ -258,9 +259,7 @@ class 会话簇:
                     自身._目录陈旧.discard(父会话标识)#清
                     自身.refreshSubagents(父会话标识)#再刷
                 自身._通知器.标脏()#脏
-        线=threading.Thread(target=后台刷新目录)#后台
-        线.daemon=True#守护
-        线.start()#启
+        启动守护线程(后台刷新目录)#启
 
     def setSubagentCatalogOpen(自身,父会话标识,打开):
         '目录打开态'
@@ -323,9 +322,7 @@ class 会话簇:
                     自身._列表变更=None#清
                     自身._列表飞行=None#清
                     自身._通知器.标脏()#脏
-        线=threading.Thread(target=后台刷新列表)#后台
-        线.daemon=True#守护
-        线.start()#启
+        启动守护线程(后台刷新列表)#启
 
     def search(自身,查询,信号=None):
         '搜索'
@@ -349,7 +346,7 @@ class 会话簇:
         结果=_调用远程(会话面.create,载荷)
         if 结果.get('ok'):#成功
             自身._记录变更({'kind':'upsert','summary':{
-                'sessionId':结果['value']['sessionId'],'updatedAt':int(time.time()*1000),
+                'sessionId':结果['value']['sessionId'],'updatedAt':当前毫秒(),
                 'running':False,'blank':True,
                 **({} if 'cwd' not in 选项 else {'cwd':选项['cwd']}),
             }})#合并
@@ -357,7 +354,7 @@ class 会话簇:
             已发布=_工作区附着会话标识(结果['error'])#已发布
             if 已发布 is not None:#有
                 自身._记录变更({'kind':'upsert','summary':{
-                    'sessionId':已发布,'updatedAt':int(time.time()*1000),'running':False,'blank':True,
+                    'sessionId':已发布,'updatedAt':当前毫秒(),'running':False,'blank':True,
                 }})#暴露
         return 结果#结果
 
@@ -376,7 +373,7 @@ class 会话簇:
         子标识=结果['value']['sessionId'] if 结果.get('ok') else _工作区附着会话标识(结果.get('error'))#子
         if 子标识 is not None:#有
             自身._记录变更({'kind':'upsert','summary':{
-                'sessionId':子标识,'updatedAt':int(time.time()*1000),'running':False,'blank':False,
+                'sessionId':子标识,'updatedAt':当前毫秒(),'running':False,'blank':False,
                 'parentSessionId':选项['sessionId'],
                 **({} if 源 is None or 'cwd' not in 源 else {'cwd':源['cwd']}),
             }})#合并
@@ -526,9 +523,7 @@ class 会话簇:
                 实例.dispose()#拆
             finally:
                 自身._处置中.discard(实例)#移除
-        线=threading.Thread(target=后台)#后台
-        线.daemon=True#守护
-        线.start()#启
+        启动守护线程(后台)#启
 
     def _记录变更(自身,变更):
         '记录并应用变更'

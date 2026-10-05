@@ -1,4 +1,4 @@
-from threading import Thread as 线程#工作线程
+from ...基础设施.通用工具 import 启动守护线程
 from queue import Queue as 队列#跨线程一次结果
 from ..智能体 import 智能体事件,为组装构建上下文,下一轮,下一步
 from ...模型后端.llm.异常 import 语言模型错误#LLM 相关失败
@@ -127,13 +127,12 @@ class 循环智能体:
                 放入失败(结果,错误)#失败
             finally:
                 自身.设阶段({'kind':'idle','lastTurn':维护['lastTurn']})#回到空闲
-                原因=维护['abort'].信号._异常#中止原因
+                原因=维护['abort'].信号.原因#中止原因
                 已拆除=原因 is not None and getattr(原因,'kind',None)=='disposed'#拆除种类
                 if (not 已拆除) and 维护['wakeRequested'] and 自身.inbox.有待处理:
                     自身.叫醒驱动器()#有闩且有工作则叫醒
                 放入成功(落定)#活动落定
-        工作=线程(target=执行维护并收尾,daemon=True)#工作线程
-        工作.start()#启动
+        启动守护线程(执行维护并收尾)#工作线程
         return 结果#任务结果队列
 
     def 叫醒驱动器(自身,中止后唤醒=False):
@@ -167,8 +166,7 @@ class 循环智能体:
                 放入成功(驱动器)#落定
             except BaseException as 错误:
                 放入失败(驱动器,错误)#失败
-        工作=线程(target=执行驱动,daemon=True)#驱动线程
-        工作.start()#启动
+        启动守护线程(执行驱动)#驱动线程
 
     def 等到空闲(自身):
         '等到空闲'

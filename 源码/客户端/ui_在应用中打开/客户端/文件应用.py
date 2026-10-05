@@ -1,5 +1,6 @@
 from ...存储 import 创建快照存储
 import threading
+from ....基础设施.通用工具 import 启动守护线程
 
 __all__=['使用文件应用']
 
@@ -32,7 +33,7 @@ def _订阅(查询,目标,监听):
                 if 控.is_set():
                     return
                 项['state'].set({'apps':[] if 应用 is None else list(应用),'loading':False,'failed':应用 is None})
-            threading.Thread(target=跑,daemon=True).start()
+            启动守护线程(跑)
         项['refresh']=刷新
         目标表[目标]=项
     项['users']+=1

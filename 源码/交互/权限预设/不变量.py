@@ -1,5 +1,5 @@
 '包内权限预设事件不变量'
-import json#诊断里序列化未知预设名
+from ...基础设施.通用工具 import 紧凑json编码
 from . import 自动预设#实验性 Auto 预设名
 包名='@deepseek-ai/dsh-permission-presets'#本包名，用于登记所有权
 名称='permission-presets-invariant'#配套插件名
@@ -15,7 +15,7 @@ def 校验事件(上下文,事件,失败):#校验单条预设事件
             return#放过
         名表=list(上下文.permissionPresets.名表)#当前公布表键
         if 预设 not in 名表:#点名未知预设
-            失败('permission/preset names unknown preset '+json.dumps(预设,ensure_ascii=False,separators=(',',':'),allow_nan=False))#报告不可解析
+            失败('permission/preset names unknown preset '+紧凑json编码(预设))#报告不可解析
 
 def 安装(上下文,失败):#安装解析性校验
     '安装校验：已加载和新追加的预设事件必须仍可解析'

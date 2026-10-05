@@ -1,4 +1,5 @@
 import json
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ..未实现失败 import 未实现失败
 from ...异常 import 运行时错误
 
@@ -26,7 +27,7 @@ def 解析类型(目标):
             raise 运行时错误(f'web-preview: koffi type "{目标}" is unknown to the stub')
         return 造令牌(目标,原始大小表[目标])
     if not isinstance(目标,dict) or '__dshKoffiType' not in 目标:
-        raise 运行时错误('web-preview: koffi 类型 '+json.dumps(目标,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 不是桩描述符')
+        raise 运行时错误('web-preview: koffi 类型 '+紧凑json编码(目标)+' 不是桩描述符')
     return 目标
 
 def 描述(目标):

@@ -1,5 +1,5 @@
-import builtins#localStorage
 from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.上下文 import 上下文 as 上下文类#Cordis 上下文
 from ...客户端.ui_渲染器.客户端 import 槽登记表,创建槽渲染器#槽登记与渲染器
 from ...客户端.ui_渲染器.客户端.绑定选择器 import 绑定快照选择器 as 绑定渲染器快照选择器#选择器绑定
 from ...客户端.ui_会话.客户端 import 应用 as 应用UI会话,依赖 as UI会话依赖
@@ -12,8 +12,10 @@ from .异常 import 客户端测试运行时错误,远程错误#本包异常
 from .夹具 import 聊天快照,对话快照,会话快照,工作区快照#fixture 工厂
 from .翻译 import 制作翻译#translate 桩
 from .语言环境 import 用钉住浏览器语言#语言钉住
+from . import (
+    组装,
+)
 
-上下文类=cordis.上下文#Cordis 上下文
 依赖解析=getattr(cordis,'Inject',None)
 
 __all__=[#仅中文公开名
@@ -280,7 +282,10 @@ class 槽测试运行时:#slot 测试运行时
             '稳定内拆根纤程'
             自身.ctx.纤程.拆除()#拆
         自身._stabilizer(拆根纤程)#稳定内
-        存储=getattr(builtins,'localStorage',None)#本地存储
+        try:#页面存储
+            存储=localStorage#本地存储
+        except NameError:#非浏览器
+            存储=None#无
         if 存储 is not None and hasattr(存储,'clear'):#有 clear
             存储.clear()#清空
 

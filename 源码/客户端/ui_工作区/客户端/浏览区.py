@@ -1,4 +1,4 @@
-import time#相对时间 now
+from ....基础设施.通用工具 import 当前毫秒
 from .树 import (#树派生
     未分组键,
     按近因排序,
@@ -330,7 +330,7 @@ class 工作区浏览区:#侧栏浏览区
         未分组序=账本序[未分组键] if 账本序 is not None and 未分组键 in 账本序 else None#未分组
         视图={'expandedGroups':展开键,'ungroupedOrder':未分组序}#树视图
         查询=自身.清洗查询().strip()#非空白查询
-        现在=int(time.time()*1000)#纪元毫秒
+        现在=当前毫秒()#纪元毫秒
         分组方式=快照['groupBy'] if 'groupBy' in 快照 and 快照['groupBy'] is not None else 'workspace'#分组
         排序方式=快照['orderBy'] if 'orderBy' in 快照 and 快照['orderBy'] is not None else 'updated'#排序
         检索上限=属性['searchResultLimit'] if 'searchResultLimit' in 属性 and 属性['searchResultLimit'] is not None else 20#上限

@@ -1,5 +1,6 @@
 '已发布事件嵌套载荷语义校验'
-import json,math,re#诊断、有限数、瞬时正则
+import math,re#有限数、瞬时正则
+from ...基础设施.通用工具 import 紧凑json编码
 from datetime import datetime#UTC瞬时字段
 from zoneinfo import ZoneInfo as 区时#时区一律 zoneinfo
 from ..会话格式.异常 import 会话格式错误#格式错误
@@ -306,7 +307,7 @@ def 断言已发布载荷语义(事件,版本):#断言已发布载荷语义
         非空串(数据['apiVersion'],f'{标签} apiVersion')#api版本
         深搜请求体值(数据['body'],f'{标签} body')#体
         return
-    raise 会话格式错误(f'released payload validator is missing event {json.dumps(类型,ensure_ascii=False,separators=(",",":"),allow_nan=False)}')#未知类型
+    raise 会话格式错误(f'released payload validator is missing event {紧凑json编码(类型)}')#未知类型
 
 def 精确记录(值,标签,必填,可选=None):#精确记录
     '要求普通对象且键精确'
@@ -712,7 +713,7 @@ def 流块值(值,标签):#流块值
         if 'replayState' in 块:#有重放状态
             重放信封值(块['replayState'],f'{标签} replayState')#重放
         return
-    raise 会话格式错误(f'{标签} has unknown stream chunk type {json.dumps(块["type"] if "type" in 块 else None,ensure_ascii=False,separators=(",",":"),allow_nan=False)}')#未知
+    raise 会话格式错误(f'{标签} has unknown stream chunk type {紧凑json编码(块["type"] if "type" in 块 else None)}')#未知
 
 def 结束原因值(值,标签):#结束原因值
     '校验流结束原因'

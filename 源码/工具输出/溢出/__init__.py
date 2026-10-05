@@ -1,6 +1,5 @@
 'spill 存储能力 seam 的 Service Definition（`ctx.spillStore`）：抽象服务定义溢出后端做什么——持久化工具过大的文本并返回面向模型的定位器加检索指引——不说怎么做'
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#导入Cordis服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .类型 import (#从本包类型再导出词汇
     溢出定位器,#溢出定位器品牌化
     溢出所有者字段,#所有者词汇

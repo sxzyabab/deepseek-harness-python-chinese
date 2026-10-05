@@ -4,6 +4,9 @@ from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .类型 import 待办条目,待办状态#再导出类型面
 from .异常 import 待办错误#本包异常
+from . import (
+    不变量,
+)
 
 __all__=['名称','依赖','配置','应用','待办条目','待办状态','待办错误']#仅中文公开名
 

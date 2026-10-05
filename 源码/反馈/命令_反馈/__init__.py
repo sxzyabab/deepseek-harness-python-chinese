@@ -1,8 +1,11 @@
 '记录会话反馈事件，并注册 `/feedback` 命令与 sessionFeedback 远程服务'
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...身份.匿名用户id import 获取或创建匿名用户id#匿名用户 id
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from .类型 import 反馈类别表#类别表
+from . import (
+    远程,
+)
 
 名称='command-feedback'#Cordis插件名
 依赖=['commands']#依赖命令注册表
@@ -38,7 +41,7 @@ def 执行反馈命令(调用):#执行 /feedback
         'text':'Feedback recorded for session '+str(会话.id)+'\nAnonymous user: '+str(匿名用户)+'.',#确认文案
     }#成功返回结束
 
-class 会话反馈服务(cordis.服务):#sessionFeedback Remote
+class 会话反馈服务(服务):#sessionFeedback Remote
     '产品面经其记录会话级评语'
     inject=['sessions']#依赖会话存储
 

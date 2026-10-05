@@ -1,5 +1,6 @@
 from .异常 import 打包器错误#本包错误
 import json,os,shutil,subprocess,sys,tempfile#子进程、文件系统与临时目录
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...工具.主目录路径 import 主目录环境键
 
 __all__=[#仅中文公开名
@@ -67,7 +68,7 @@ def 配置树列表(仓库根):#读CLI包声明的配置树
             or (树.get('scanRoster') is not None and not isinstance(树.get('scanRoster'),bool))):#scanRoster
             raise 打包器错误('vfs image: '+位点+' must declare a string mount, a string path, and an optional boolean scanRoster')#拒绝
         if 树['mount'] in 挂载集合:#重复挂载
-            raise 打包器错误('vfs image: '+位点+' repeats mount '+json.dumps(树['mount'],ensure_ascii=False,separators=(',',':'),allow_nan=False))#重复挂载
+            raise 打包器错误('vfs image: '+位点+' repeats mount '+紧凑json编码(树['mount']))#重复挂载
         挂载集合.add(树['mount'])#记入
         一项={'mount':树['mount'],'directory':os.path.join(包目录,树['path'])}#绝对源目录
         if 树.get('scanRoster') is not None:一项['scanRoster']=树['scanRoster']#可选扫roster

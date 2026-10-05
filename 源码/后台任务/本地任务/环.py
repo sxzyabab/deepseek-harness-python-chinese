@@ -1,15 +1,5 @@
 '一份任务背后的有界输出环：绝对字节偏移上的分块、从不移动已赋值偏移的头部淘汰，以及从任意偏移的非消费读取'
-
-def utf8尾(文本,最大字节):
-    '文本按 UTF-8 计不超过最大字节的尾部；切点落在字符边界'
-    原始=文本.encode('utf-8')
-    起点=len(原始)-最大字节
-    if 起点<0:
-        起点=0
-    while 起点<len(原始) and (原始[起点]&0xC0)==0x80:
-        起点+=1
-    尾=原始[起点:]
-    return {'text':尾.decode('utf-8'),'bytes':len(尾)}
+from ...基础设施.通用工具.文本工具 import utf8字节数,保留utf8尾部字节
 
 class 输出环:
     '偏移在淘汰后仍绝对：earliest 只前进'
@@ -26,7 +16,7 @@ class 输出环:
         """
         if len(文本)==0:
             return False
-        字节=len(文本.encode('utf-8'))
+        字节=utf8字节数(文本)
         项={'at':自身.总量,'text':文本,'bytes':字节}
         if 选项 is not None and 'channel' in 选项 and 选项['channel'] is not None:
             项['channel']=选项['channel']
@@ -45,12 +35,13 @@ class 输出环:
             自身.保留字节-=丢掉['bytes']
         单独=自身.分块列表[0] if len(自身.分块列表)==1 else None
         if 单独 is not None and 单独['bytes']>上限:
-            尾=utf8尾(单独['text'],上限)
-            单独['at']+=单独['bytes']-尾['bytes']
-            单独['text']=尾['text']
-            单独['bytes']=尾['bytes']
+            尾文本=保留utf8尾部字节(单独['text'],上限)
+            尾字节=utf8字节数(尾文本)
+            单独['at']+=单独['bytes']-尾字节
+            单独['text']=尾文本
+            单独['bytes']=尾字节
             单独['gapBefore']=True
-            自身.保留字节=尾['bytes']
+            自身.保留字节=尾字节
         自身.最早=自身.分块列表[0]['at'] if len(自身.分块列表)>0 else 自身.总量
 
     def 从偏移读取(自身,起点):
@@ -67,4 +58,4 @@ class 输出环:
             块列表.append(项)
         return {'chunks':块列表,'next':自身.总量,'lossy':起点<自身.最早}
 
-__all__=['输出环','utf8尾']
+__all__=['输出环']

@@ -1,5 +1,5 @@
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.通用工具.并发原语 import 操作任务
 from ...依赖.schemastery import 字符串字段,布尔字段,列表字段,数字字段#配置字段
 from .发现 import (
     项目dsh排名,#项目 .dsh/skills 排名
@@ -49,32 +49,6 @@ __all__=[#仅中文公开名；Cordis 英文槽不入表
     'bundledSkillDir':字符串字段(),#捆绑根
 }#配置模式，缺省在此显式给出
 配置=配置模式#中文配置模式
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待。供监视器 ready 这类真实并发边界使用'
-    def __init__(自身):
-        '构造未决任务'
-        自身.未来=原生结果()#底层结果
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                包装=技能文件系统错误('任务被拒绝')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身.未来.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
     'threading.Event 取消通道。原因用异常对象承载'

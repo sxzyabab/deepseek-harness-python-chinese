@@ -1,5 +1,9 @@
 import ctypes,os,struct,time#FFI、平台、结构打包与退避
 from .异常 import Win32错误#Win32 调用失败
+from . import (
+    koffi,
+    控制标准流,
+)
 __all__=[#仅中文公开名
     '错误缓冲不足','Win32错误','分配指针槽','分配uint32','解码指针','解码uint32',
     '扩展win32进程绑定','是否空指针','抛上次错误','抛win32错误',

@@ -1,10 +1,12 @@
 '同会话目标轮次驱动器：经公开智能体、会话与目标服务自动续跑'
-import threading#串行驱动线程
-from ...依赖 import cordis#外部依赖胶水
-纤程状态=cordis.纤程状态#纤程生命周期
+from ...基础设施.通用工具 import 启动守护线程
+from ...依赖.cordis.纤程 import 纤程状态#纤程生命周期
 from ...内核.智能体 import 下一步#收件箱下一步目标
 from ...模型后端.llm import 创建用户消息#构造轮次提示
 from .提示 import 渲染目标轮次提示#轮次指令
+from . import (
+    不变量,
+)
 
 __all__=('名称','依赖','应用','默认','渲染目标轮次提示')#仅中文公开名
 
@@ -193,10 +195,7 @@ def 应用(上下文):#安装自动续跑
                 状态['run']=None#清线程
                 if 状态['requested'] and not 状态['stopping']:#还有请求
                     请求驱动(状态)#再开
-        工作=threading.Thread(target=在线程执行)#驱动线程
-        工作.daemon=True#不挡住退出
-        状态['run']=工作#记下
-        工作.start()
+        状态['run']=启动守护线程(在线程执行)#记下驱动线程
 
     def 安装():#监听与拆除
         '登记监听，拆除时先停驱动再摘监听'

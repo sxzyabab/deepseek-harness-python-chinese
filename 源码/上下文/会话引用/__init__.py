@@ -1,5 +1,6 @@
 '跨会话快照准备'
-import json,weakref#自引用诊断与按智能体弱表
+import weakref#按智能体弱表
+from ...基础设施.通用工具 import 紧凑json编码,已中止
 from ...依赖.schemastery import 整数字段,数字字段
 from ...模型后端.llm import 创建用户消息,冻结消息,结构化克隆
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
@@ -30,6 +31,9 @@ from .uri import (
     解析会话引用文本,#解析文本提及
     已解析会话引用文本字段,#解析结果字段
 )#再导出URI与提及编解码
+from . import (
+    远程,
+)
 
 __all__=[
     '包名','名称','依赖','默认','配置','会话引用解析器',
@@ -56,20 +60,12 @@ __all__=[
     'referenceContextFraction':数字字段(默认值=默认引用上下文比例),#窗口比例
 }#Config校验结束
 
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
-
 def 若已中止则抛出(信号):
     '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号._事件.is_set():#仍活着
+    if not 已中止(信号):#无信号或仍活着
         return#仍活着
-    if 信号._异常 is not None:#有承载异常
-        raise 信号._异常#抛出
+    if 信号.原因 is not None:#有承载异常
+        raise 信号.原因#抛出
     raise 会话引用错误('aborted','SESSION_REFERENCE_CANCELLED')#默认中止
 
 class 会话引用解析器(远程服务):
@@ -331,7 +327,7 @@ def 规范化引用(目标标识,引用列表,最大引用):
         if (not isinstance(会话号,str)) or (标签 is not None and not isinstance(标签,str)):#id必须是字符串，标签若出现必须是字符串
             raise 会话引用错误('session reference must contain a string sessionId and optional string label','SESSION_REFERENCE_INVALID_REFERENCE')#结构非法
         if 会话号==目标标识:#引用自身
-            raise 会话引用错误('session '+json.dumps(目标标识,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' cannot reference itself','SESSION_REFERENCE_SELF_REFERENCE')#自引用
+            raise 会话引用错误('session '+紧凑json编码(目标标识)+' cannot reference itself','SESSION_REFERENCE_SELF_REFERENCE')#自引用
         if 会话号 in 已见:#重复源跳过，保留首次
             continue#跳过
         已见.add(会话号)#记下id

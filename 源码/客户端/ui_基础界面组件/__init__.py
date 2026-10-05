@@ -34,6 +34,16 @@ from .按名排序 import 按名排序#按名与标签排序
 from .darwin桌面 import 是否darwin桌面#macOS 桌面壳
 from .markdown import 消息文本,代码块,json块,Markdown文本#markdown
 from .markdown.文件链 import 解析文件链#本地文件链
+from . import (
+    icons,
+    代码文件图标画稿,
+    异常,
+    模态层,
+    焦点,
+    覆盖层顶边距,
+    输入模态,
+    键盘合成,
+)
 
 __all__=[#仅中文公开名
     '头尾封顶','写剪贴板','复制反馈','复制反馈毫秒','锚定最大高度','锚定边距',

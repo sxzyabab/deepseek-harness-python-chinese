@@ -1,5 +1,7 @@
 '面向模型的 job_output、job_list、job_kill 工具，架在 jobs 服务上'
-import json,weakref
+import weakref
+from ...基础设施.通用工具.文本工具 import utf8字节数
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 数字字段,枚举字段
 from ...内核.工具 import 定义工具
 from ...模型后端.llm import 截上下文摘要,创建用户消息
@@ -33,10 +35,6 @@ from .异常 import 工具任务错误#本包异常
 }
 完成投递=('quiet','wakeup')
 
-def 字节长(文本):
-    '按 UTF-8 计字节长度'
-    return len(文本.encode('utf-8'))
-
 def 保留尾部(文本,最大字节):
     '按尾部策略压进字节上限'
     保留器=文本保留器({'kind':'tail','maxBytes':最大字节})
@@ -52,10 +50,10 @@ def 保留头部(文本,最大字节):
 def 后缀适配(正文,后缀,最大字节,省略标记):
     '在上限内拼接内容与后缀'
     全文=正文+后缀
-    if 最大字节 is None or 字节长(全文)<=最大字节:
+    if 最大字节 is None or utf8字节数(全文)<=最大字节:
         return 全文
     固定=('' if 正文.endswith(省略标记.lstrip()) else 省略标记)+后缀
-    固定字节=字节长(固定)
+    固定字节=utf8字节数(固定)
     if 固定字节>=最大字节:
         return 保留尾部(固定,最大字节)
     return 保留尾部(正文,最大字节-固定字节)+固定
@@ -72,20 +70,20 @@ def 适配完成通知(任务):
     动作='\nDone; job_output.'
     全文=前缀+细节+'. Read its output with job_output.'
     最大字节=任务['outputLimitBytes'] if 'outputLimitBytes' in 任务 else None
-    if 最大字节 is None or 字节长(全文)<=最大字节:
+    if 最大字节 is None or utf8字节数(全文)<=最大字节:
         return 全文
     省略='\n[notice truncated]'
     固定=前缀+省略+动作
-    固定字节=字节长(固定)
+    固定字节=utf8字节数(固定)
     if 固定字节<=最大字节:
         if 固定字节==最大字节:
             return 固定
         return 前缀+保留头部(细节,最大字节-固定字节)+省略+动作
     紧凑=前缀+动作
-    紧凑字节=字节长(紧凑)
+    紧凑字节=utf8字节数(紧凑)
     if 紧凑字节<=最大字节:
         return 紧凑
-    动作字节=字节长(动作)
+    动作字节=utf8字节数(动作)
     if 动作字节>=最大字节:
         return 保留尾部(动作,最大字节)
     return 保留头部(前缀,最大字节-动作字节)+动作
@@ -130,7 +128,7 @@ def 可见输出上限(上下文,执行):
 def 校验任务号(值):
     '校验 ParameterSchemaSpec 表达不了的非空约束'
     if len(值)==0:
-        raise 工具任务错误('invalid job_id: expected a non-empty string, got '+json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+        raise 工具任务错误('invalid job_id: expected a non-empty string, got '+紧凑json编码(值))
     return 任务标识(值)
 
 def 呈现任务调用(标题,种类,原始输入=None):

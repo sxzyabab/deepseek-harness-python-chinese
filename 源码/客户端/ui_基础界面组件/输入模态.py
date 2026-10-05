@@ -12,7 +12,10 @@ _按键源=None#keydown 时的真实目标
 
 def _发布():
     '把当前焦点环归属写到 documentElement'
-    文档=globals().get('document')#document
+    try:#页面文档
+        文档=document#document
+    except NameError:#非浏览器
+        文档=None#无
     if 文档 is None:#无 DOM
         return#停
     根=getattr(文档,'documentElement',None)#html
@@ -25,7 +28,10 @@ def 指针模态():
     '上次输入是否来自指针，与焦点环是否显示无关'
     return _指针#上次是否指针
 
-窗口=globals().get('window')#window
+try:#页面窗口
+    窗口=window#window
+except NameError:#非浏览器
+    窗口=None#无
 if 窗口 is not None:#浏览器才挂监听
     def _指针按下(_事件=None):
         '指针按下：指针拥有输入与焦点环'

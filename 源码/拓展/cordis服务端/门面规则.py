@@ -1,4 +1,4 @@
-import json,math
+from ...基础设施.通用工具 import 是否有限json数字,紧凑json编码,截断utf8字节,utf8字节数
 from ...依赖.cordis.上下文 import 是上下文
 from ...内核.作用域 import 获取作用域
 from ...内核.工具 import 定义工具,断言受支持json模式
@@ -35,16 +35,6 @@ def 是否稠密普通数组(值):
     if 额外 is not None and len(额外)>0:
         return False
     return True
-
-def 是否有限json数字(值):
-    '有限 JSON 数字，排除布尔与负零'
-    if isinstance(值,bool):
-        return False
-    if isinstance(值,int):
-        return True
-    if isinstance(值,float):
-        return math.isfinite(值) and not (值==0.0 and math.copysign(1.0,值)<0)
-    return False
 
 def 断言模式容器键(值,路径):
     '模式记录只能有字符串键'
@@ -180,7 +170,7 @@ def 规范化必填名(值,属性表,路径):
             raise 宿主运行器错误(f'harness.defineTool {路径} 必须是已声明属性名的数组')
         名集.add(名)
         if 名 not in 属性表:
-            文=json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            文=紧凑json编码(名)
             raise 宿主运行器错误(f'harness.defineTool {路径} 点名了未声明属性 {文}')
         下标+=1
     return 名集
@@ -289,7 +279,7 @@ def 规范化属性表(条目,路径,必填名,原始):
             任务=任务列表.pop() if 任务列表 else None
             continue
         if 值.get('type') not in 模式类型 or (任务['raw'] and 值.get('type')=='json'):
-            文=json.dumps(值.get('type'),ensure_ascii=False,separators=(',',':'),allow_nan=False)
+            文=紧凑json编码(值.get('type'))
             raise 宿主运行器错误(f'harness.defineTool {路径} 必须声明合法 type: {合法类型文}（得到 {文}）')
         类型名=值['type']
         属性['type']=类型名
@@ -390,16 +380,10 @@ def 是否内容块形态(值):
 
 def 描述返回(值):
     '非法 execute 返回的紧凑 JSON 预览'
-    文本=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
-    数据=文本.encode('utf-8')
-    if len(数据)<=返回预览上限:
+    文本=紧凑json编码(值)
+    if utf8字节数(文本)<=返回预览上限:
         return 文本
-    切=数据[:返回预览上限]
-    while True:
-        try:
-            return 切.decode('utf-8')+'…'
-        except UnicodeDecodeError:
-            切=切[:-1]
+    return 截断utf8字节(文本,返回预览上限)+'…'
 
 def 断言已渲染内容(值):
     '校验并交出内容块列表'

@@ -1,7 +1,6 @@
 '抽象附件存储服务；须加载具体后端'
-from concurrent.futures import Future as 原生结果#单次操作结果
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#框架 服务基类
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...依赖.cordis.服务 import 服务#服务基类
 from .标识构造 import 附件标识,图像变体标识#标识构造
 from .异常 import 附件错误,是否图像准入错误#错误面
 from .准入 import 准入编码图像批次#线上准入
@@ -23,30 +22,6 @@ __all__=[#仅中文公开名
 
 名称='attachment'#框架 插件名（字面量）
 依赖=[]#抽象缝无依赖
-
-class 操作任务:
-    '单次操作 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._结果=原生结果()#底层结果
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._结果.done():#尚未结算
-            自身._结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._结果.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._结果.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._结果.set_exception(附件错误(str(错误),'ATTACHMENT_READ_FAILED'))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._结果.result(timeout=超时)#取结果或抛错
 
 class 附件存储(服务):#不可变二进制附件服务
     '不可变二进制附件服务。实现方在发布引用前验证字节'

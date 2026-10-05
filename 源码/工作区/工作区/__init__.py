@@ -2,12 +2,15 @@
 import os,re,threading,uuid#路径、写死 ISO、串行写与会话 id
 from datetime import datetime,timedelta,timezone#ISO 时间戳、固定偏移与 UTC
 from zoneinfo import ZoneInfo#IANA / UTC
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from .实体 import 工作区实体
 from .异常 import 工作区错误,工作区移动无效错误,工作区未知会话错误,工作区顺序无效错误#一般错误、非法移动、未知会话与非法重排
 from .路径 import 规范化真实路径
 from .规格 import 工作区域规格
+from . import (
+    不变量,
+    类型,
+)
 
 名称='workspace'#插件名（字面量）
 依赖=['storageDomain','sessionPersistence']

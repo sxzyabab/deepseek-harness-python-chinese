@@ -1,9 +1,8 @@
 '以 `$DSH_HOME/.credentials.yaml` 为文件后端的凭证提供方，按各层受信任程度叠在环境之上'
-import os,queue,threading#路径、队列与线程
-from concurrent.futures import Future as _原生Future#单次操作结果
-from ...依赖 import cordis#外部依赖胶水
+import os#路径
+from ...基础设施.通用工具.并发原语 import 串行执行器
+from ...依赖.cordis.服务 import 服务#服务初始化符号
 from ...依赖.schemastery import 字符串字段,布尔字段,数字字段#配置字段
-服务=cordis.服务#服务初始化符号
 from ..凭据 import 凭证提供方,凭证引用,解析凭证键#凭证提供方基类与键
 from ...工具.原子写入 import 原子写文件,带文件锁#文件锁与原子写
 from ...工具.主目录路径 import 规范化监视路径,解析主目录#监视路径规范化与主目录解析
@@ -14,53 +13,6 @@ from .文档 import (#文档解析与权限
 )#文档面
 from .监视 import 监视#文档热重载监视
 from .异常 import 本地凭据错误#本地凭证提供方失败
-
-class _操作任务:#本文件内单次入队结果
-    '单次入队操作的 Future 包装，只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身._future=_原生Future()#底层 Future
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身._future.done():#尚未结算
-            自身._future.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身._future.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._future.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._future.set_exception(Exception(错误))#包装拒绝
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞等到结算'
-        return 自身._future.result(timeout=超时)#取结果或抛错
-
-class _串行操作链:#本文件内互斥队列
-    '单工作者线程串行跑文档操作'
-    def __init__(自身):#启动工作者
-        '启动工作者线程'
-        自身._队列=queue.Queue()#待跑操作
-        自身._工作者=threading.Thread(target=自身._执行操作循环,daemon=True)#工作者
-        自身._工作者.start()#启动
-    def _执行操作循环(自身):#工作者循环
-        '逐项执行入队操作'
-        while True:#常驻
-            结果,操作=自身._队列.get()#取下一项
-            try:#跑操作
-                结果.兑现(操作())#成功
-            except BaseException as 错误:#失败
-                结果.拒绝(错误)#拒绝
-            finally:#无论成败
-                自身._队列.task_done()#标记完成
-    def 入队(自身,操作):#排入串行链
-        '把操作排到此前所有操作之后，返回本次结果'
-        结果=_操作任务()#本次结果
-        自身._队列.put((结果,操作))#入队
-        return 结果#交给调用方
-    def 等待静止(自身):#排空队列
-        '等到已入队操作全部跑完'
-        自身._队列.join()#等 task_done
 
 __all__=[#仅中文公开名；Cordis 槽英文别名不入表
     '配置模式','解析规格','本地凭证提供方','默认','本地凭据错误',
@@ -106,7 +58,7 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
         自身.值表={}#已解析引用快照；每次重载整份替换
         自身.记录表={}#已解析记录快照；每次重载整份替换
         # 单一互斥操作链：监视重载与行编辑按队列顺序一次一个，因此编辑绝不能从并发重载正在替换的文本里渲染。
-        自身.操作链=_串行操作链()#互斥操作队列
+        自身.操作链=串行执行器()#互斥操作队列
         自身.已关闭=False#拆除时置位：拒绝新写入，让飞行中的工作空操作
         自身.__dict__[服务.初始化]=自身._初始化#登记 Service.init
 
@@ -288,7 +240,7 @@ class 本地凭证提供方(凭证提供方):#本地文件凭证提供方
 
     def 入队(自身,操作):#串行排队
         '把一次互斥文档操作排到此前所有操作之后'
-        return 自身.操作链.入队(操作)#队列串行
+        return 自身.操作链.提交(操作)#队列串行
 
     def 排队刷新(自身):#排队监视重载
         '排队一次重载；只有逃出扇出的不变量违规能让它拒绝，随后记成错误并保持操作链存活'

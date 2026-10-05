@@ -1,4 +1,5 @@
 import json,re#JSON片段与正则
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 
 克劳德字面=re.compile(r'^[A-Za-z0-9_|]+\Z')#Claude字面模式正则；行尾用\\Z对齐 JS $
 
@@ -22,7 +23,7 @@ def 匹配诊断(匹配器,模式):
     if 模式=='claude-code' and 克劳德字面.match(图案) is not None:#Claude字面模式有效
         return None#无诊断
     if 编译正则(图案) is None:#正则编译失败则给出诊断
-        return '非法 '+模式+' 正则匹配器 '+json.dumps(图案,ensure_ascii=False,separators=(',',':'),allow_nan=False)#稳定诊断文案
+        return '非法 '+模式+' 正则匹配器 '+紧凑json编码(图案)#稳定诊断文案
     return None#正则有效则无诊断
 
 def 匹配命中(匹配器,查询,模式):

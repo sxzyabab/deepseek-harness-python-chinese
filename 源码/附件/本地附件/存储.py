@@ -1,5 +1,6 @@
 '内容寻址、仅所有者本地附件存储'
-import hashlib,os,uuid#摘要、路径与临时名
+import os,uuid#路径与临时名
+from ...基础设施.通用工具.序列化编码 import 摘要十六进制
 from ..附件 import 附件标识,若已中止则抛出#附件缝
 from ..附件.异常 import 附件错误#附件失败
 from .图像 import 检测图像,探测图像#图像检查
@@ -12,10 +13,6 @@ __all__=[#仅中文公开名
 已准备图像文件字段=('data','ref')#已准备对象
 标识模式=__import__('re').compile(r'^sha256:([a-f0-9]{64})$')#引用形态
 耐久主目录=set()#进程内已证明耐久的主目录
-
-def _摘要(数据):#sha256 十六进制
-    '计算字节 sha256 十六进制摘要'
-    return hashlib.sha256(数据).hexdigest()#十六进制
 
 def _显示名(值):#剥离路径信息
     '剥离本地路径信息并清理控制字符'
@@ -57,7 +54,7 @@ def 准备图像文件(输入,限额,策略):#解码规范化但不触盘
         raise 附件错误('Image exceeds the configured byte limit.','IMAGE_TOO_LARGE')#拒绝
     已检测=_检查元数据(数据,输入['mediaType'],限额)#元数据
     规范化=规范化图像(数据,已检测,策略)#规范化
-    摘要=_摘要(规范化['data'])#内容摘要
+    摘要=摘要十六进制(规范化['data'])#内容摘要
     名字=_显示名(输入.get('name'))#显示名
     已缩小=已检测['width']!=规范化['width'] or 已检测['height']!=规范化['height']#是否缩小
     引用={#耐久引用事实
@@ -110,7 +107,7 @@ def 提交已准备图像文件(根,已准备):#发布已验证对象
     '在版本化附件根下发布已验证规范化图像'
     字节=已准备['data']#规范化字节
     摘要=_确保引用(已准备['ref'])#引用摘要
-    if _摘要(字节)!=摘要 or len(字节)!=已准备['ref']['bytes']:#字节与引用不符
+    if 摘要十六进制(字节)!=摘要 or len(字节)!=已准备['ref']['bytes']:#字节与引用不符
         raise 附件错误('Prepared attachment bytes do not match their reference.','ATTACHMENT_CORRUPT')#损坏
     桶=os.path.join(根,'objects',摘要[:2])#分桶目录
     暂存=os.path.join(根,'tmp')#暂存目录
@@ -132,7 +129,7 @@ def 提交已准备图像文件(根,已准备):#发布已验证对象
             if not (isinstance(错误,OSError) and 错误.errno==getattr(__import__('errno'),'EEXIST',17)):#非已存在
                 raise 错误#原样
             现有=open(目标,'rb').read()#读已有
-            if _摘要(现有)!=摘要:#内容不一致
+            if 摘要十六进制(现有)!=摘要:#内容不一致
                 raise 附件错误('Stored attachment failed integrity verification.','ATTACHMENT_CORRUPT')#损坏
         try:#删暂存名
             os.unlink(临时)#去掉暂存链接
@@ -168,7 +165,7 @@ def 读取图像文件(根,引用,信号=None):#读取并校验
         若已中止则抛出(信号)#取消再检
         raise 附件错误('Unable to read image attachment.','ATTACHMENT_READ_FAILED',{'cause':错误})#读取失败
     若已中止则抛出(信号)#读后再检
-    if _摘要(数据)!=摘要:#摘要不符
+    if 摘要十六进制(数据)!=摘要:#摘要不符
         raise 附件错误('Stored attachment failed integrity verification.','ATTACHMENT_CORRUPT')#损坏
     元数据=探测图像(数据)#仅头探测
     若已中止则抛出(信号)#探测后再检

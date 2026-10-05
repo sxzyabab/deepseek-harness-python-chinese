@@ -1,4 +1,5 @@
 import json#序列化
+from ...基础设施.通用工具 import 紧凑json编码
 from .剪贴板 import 写剪贴板#复制
 from .菜单 import 菜单#复制菜单
 
@@ -45,7 +46,7 @@ def 原始预览(值):#叶子预览节点
     if 值 is None:#null
         return {'kind':'keyword','text':'null'}#关键字
     if isinstance(值,str):#字符串
-        return {'kind':'string','text':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)}#引号串
+        return {'kind':'string','text':紧凑json编码(值)}#引号串
     if isinstance(值,bool):#布尔
         return {'kind':'keyword','text':'true' if 值 else 'false'}#关键字
     if isinstance(值,(int,float)) and not isinstance(值,bool):#数字
@@ -81,7 +82,7 @@ def 叶子值(值):#展开行叶子
     if 值 is None:#null
         return {'kind':'keyword','text':'null'}#关键字
     if isinstance(值,str):#字符串
-        return {'kind':'string','text':json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)}#串
+        return {'kind':'string','text':紧凑json编码(值)}#串
     if isinstance(值,bool):#布尔
         return {'kind':'keyword','text':'true' if 值 else 'false'}#关键字
     if isinstance(值,(int,float)) and not isinstance(值,bool):#数字
@@ -112,7 +113,7 @@ def 格式路径(路径):#展示路径
         elif 段 and (段[0].isalpha() or 段[0] in '_$') and all((c.isalnum() or c in '_$') for c in 段):#合法标识符
             结果+='.'+段#点访问
         else:#需引号下标
-            结果+='['+json.dumps(段,ensure_ascii=False,separators=(',',':'),allow_nan=False)+']'#下标
+            结果+='['+紧凑json编码(段)+']'#下标
     return 结果#路径
 
 def 复制文本(目标,模式):#按模式取复制串
@@ -122,13 +123,13 @@ def 复制文本(目标,模式):#按模式取复制串
     if 模式=='prettyJson':#美化
         return json.dumps(目标['value'],ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#美化
     if 模式=='json':#紧凑
-        return json.dumps(目标['value'],ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑
+        return 紧凑json编码(目标['value'])#紧凑
     值=目标['value']#原值
     if isinstance(值,str):#字符串原样
         return 值#原
     if 值 is None:#null
         return 'null'#字面
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#其余 JSON
+    return 紧凑json编码(值)#其余 JSON
 
 def 合并标签(覆盖):#合并文案
     '缺省字段保留内置'

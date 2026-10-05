@@ -1,4 +1,4 @@
-import json#JSON
+from ...基础设施.通用工具 import 紧凑json编码
 from ...模型后端.llm import 是否循环请求,是否冻结#循环请求判定与冻结判定
 from ..会话 import 折叠请求头#请求头折叠
 
@@ -8,7 +8,7 @@ from ..会话 import 折叠请求头#请求头折叠
 
 def 转json(值):
     '把值编成紧凑 JSON'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
+    return 紧凑json编码(值)#紧凑 JSON
 
 def 安装(上下文,失败):
     '把请求重建贡献安装进其子注册纤程'

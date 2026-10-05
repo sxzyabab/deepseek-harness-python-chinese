@@ -1,5 +1,7 @@
-import json,math,threading
-from concurrent.futures import Future as 原生结果#单次操作结果
+import math,threading
+from ...基础设施.通用工具 import (
+    紧凑json编码,操作任务,中止控制器,已中止,若已中止则抛出,启动守护线程,
+)
 from ...模型后端.llm import 调用标识,深冻结,创建用户消息#导入调用 id、冻结与用户消息
 from ...沙盒.沙盒 import 批准升级,校验升级参数,升级目标#导入沙箱升级
 from ..会话 import 快照json值#导入无损 JSON 快照
@@ -17,84 +19,6 @@ sdk段顺序=5000#SDK 段顺序，对齐 TOOLS_SDK
 json缩进='  '#两空格 JSON 呈现
 json缩进上限=10#总缩进上限
 
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._原生结果=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._原生结果.done():
-            自身._原生结果.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._原生结果.done():
-            if isinstance(错误,BaseException):
-                自身._原生结果.set_exception(错误)#原样拒绝
-            else:
-                包装=代码模式错误('任务被拒绝')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身._原生结果.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._原生结果.result(timeout=超时)#取结果或抛错
-
-class 中止信号:
-    """threading.Event 取消通道。
-    原因用异常对象承载"""
-    def __init__(自身,已中止标志=False):
-        '创建一条取消通道'
-        自身._事件=threading.Event()#中止标志
-        自身._异常=None#中止时抛出的异常
-        if 已中止标志:
-            自身._事件.set()#置位
-            自身._异常=代码模式错误('已中止')#默认中止异常
-
-    def 触发(自身,原因=None):
-        '标记中止'
-        if 自身._事件.is_set():
-            return#已触发
-        if isinstance(原因,BaseException):
-            自身._异常=原因#用异常对象承载
-        elif 原因 is not None:
-            中止异常=代码模式错误('已中止')#包装
-            中止异常.原因=原因#附加属性
-            自身._异常=中止异常#记下
-        else:
-            自身._异常=代码模式错误('已中止')#默认
-        自身._事件.set()#置位
-
-class 中止控制器:
-    '发出中止的控制器'
-    def __init__(自身):
-        '创建配套信号'
-        自身.信号=中止信号()#本控制器的信号
-
-    def 中止(自身,原因=None):
-        '中止配套信号'
-        自身.信号.触发(原因)#触发一次
-
-def 已中止(信号):
-    """信号是否已中止。
-    无信号视为未中止"""
-    if 信号 is None:
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
-
-def 若已中止则抛出(信号):
-    '已中止则抛出承载原因的异常'
-    if 信号 is None:
-        return#无信号
-    if not 信号._事件.is_set():
-        return#仍活着
-    if 信号._异常 is not None:
-        raise 信号._异常#抛出
-    raise 代码模式错误('已中止')#默认中止
-
 def 在线程执行(函数):
     """在工作线程执行并返回任务。
     回调翻译时已是同步函数"""
@@ -105,9 +29,7 @@ def 在线程执行(函数):
             任务.兑现(函数())#兑现同步返回值
         except BaseException as 错误:
             任务.拒绝(错误)#拒绝
-    工作=threading.Thread(target=执行并结算)#工作线程
-    工作.daemon=True#不挡住退出
-    工作.start()
+    启动守护线程(执行并结算)#工作线程
     return 任务#操作任务
 
 def 全部结算(任务列表):
@@ -121,9 +43,7 @@ def 全部结算(任务列表):
             pass#排空不抛
     线程表=[]#工作线程
     for 任务 in 任务列表:
-        工作=threading.Thread(target=等待并吞错,args=(任务,))#工作线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        工作=启动守护线程(等待并吞错,任务)#工作线程
         线程表.append(工作)#登记
     for 工作 in 线程表:
         工作.join()#等到结束
@@ -139,9 +59,7 @@ def 任一落定(任务集):
             pass#赛跑不关心成败
         完成.set()#唤醒
     for 任务 in list(任务集):
-        工作=threading.Thread(target=等待一路落定,args=(任务,))#等待线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(等待一路落定,任务)#等待线程
     完成.wait()#阻塞到任一落定
 
 def 空结算任务():
@@ -218,8 +136,8 @@ def 解析风味(窥探运行时):
         return typescript风味#TS 回落
     语言=运行时.语言()#语言名
     if 语言 not in 运行代码风味:
-        已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in 运行代码风味.keys())#已知语言
-        raise 代码模式错误('dsh-tools: no run_code schema flavor registered for runtime language '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' (known: '+已知+')')#大声失败
+        已知=', '.join(紧凑json编码(名) for 名 in 运行代码风味.keys())#已知语言
+        raise 代码模式错误('dsh-tools: no run_code schema flavor registered for runtime language '+紧凑json编码(语言)+' (known: '+已知+')')#大声失败
     return 运行代码风味[语言]#该语言风味
 
 def 错误文本(错误):
@@ -284,7 +202,7 @@ def 渲染json值(值):
             任务=任务列表.pop() if 任务列表 else None#下一任务
             continue
         if isinstance(当前,str):
-            块列表.append(json.dumps(当前,ensure_ascii=False,separators=(',',':'),allow_nan=False))#JSON 引号
+            块列表.append(紧凑json编码(当前))#JSON 引号
             任务=任务列表.pop() if 任务列表 else None#下一任务
             continue
         紧凑=任务['compact'] or (任务['depth']+1)*len(json缩进)>json缩进上限#超上限则紧凑
@@ -328,10 +246,10 @@ def 渲染json值(值):
             任务列表.append({'kind':'value','value':项,'depth':子深度,'compact':紧凑})#属性值
             if 紧凑:
                 前= '' if 下标==0 else ','#首键无逗号
-                文本=前+json.dumps(键,ensure_ascii=False,separators=(',',':'),allow_nan=False)+':'#键后紧跟冒号
+                文本=前+紧凑json编码(键)+':'#键后紧跟冒号
             else:
                 前='\n' if 下标==0 else ',\n'#换行
-                文本=前+json缩进*子深度+json.dumps(键,ensure_ascii=False,separators=(',',':'),allow_nan=False)+': '#换行缩进加冒号空格
+                文本=前+json缩进*子深度+紧凑json编码(键)+': '#换行缩进加冒号空格
             任务列表.append({'kind':'text','text':文本})#键与分隔
             下标-=1#前进
         任务=任务列表.pop() if 任务列表 else None#下一任务
@@ -494,14 +412,12 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
         '外层中止则跟中止'
         if 外层信号 is None:
             return#无外层
-        外层信号._事件.wait()#阻塞到外层置位
-        本轮.中止(外层信号._异常)#转发异常原因
+        外层信号.等待()#阻塞到外层置位
+        本轮.中止(外层信号.原因)#转发异常原因
     if 已中止(外层信号):
-        本轮.中止(外层信号._异常)#已中止则立刻跟
+        本轮.中止(外层信号.原因)#已中止则立刻跟
     elif 外层信号 is not None:
-        外层线程=threading.Thread(target=跟外层中止)#跟外层中止线程
-        外层线程.daemon=True#不挡住退出
-        外层线程.start()
+        启动守护线程(跟外层中止)#跟外层中止线程
     子调用序号=0#子调用序号
     未开始队列=[]#未开始队列
     在飞=set()#在飞体
@@ -575,9 +491,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                                 pass#飞行失败仍离池
                             收尾()#离池
                         在飞.add(飞行)#入池
-                        等待线程=threading.Thread(target=等待飞行落定)#等待飞行线程
-                        等待线程.daemon=True#不挡住退出
-                        等待线程.start()
+                        启动守护线程(等待飞行落定)#等待飞行线程
             finally:
                 with 条件:
                     驾驶中=False#释放占位
@@ -595,7 +509,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
             '一次 SDK 子派发'
             nonlocal 子调用序号
             if 本轮已结束():
-                raise 代码模式错误('run_code run is over ('+str(本轮.信号._异常)+'); '+名称+' not dispatched')#不再派发
+                raise 代码模式错误('run_code run is over ('+str(本轮.信号.原因)+'); '+名称+' not dispatched')#不再派发
             归一=json归一参数(原始参数)#派发/日志两份快照
             子调用序号+=1#子调用序号
             子调用号=调用标识(str(执行['callId'])+':ptc:'+str(子调用序号))#确定性子 id
@@ -657,9 +571,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                         pass#shapeDispatchLog 是收住的
                     收尾()#离集
                 日志工作.add(日志任务)#跟踪副作用
-                日志线程=threading.Thread(target=等待日志落定)#等待日志线程
-                日志线程.daemon=True#不挡住退出
-                日志线程.start()
+                启动守护线程(等待日志落定)#等待日志线程
             条目={
                 'flight':空结算任务(),#占位，start() 替换
                 'settled':False,#尚未停住
@@ -669,7 +581,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 return 注册表.执行模式(输入)['kind']#对照 SDK 声明的同一智能体视图
             def 放弃():
                 '放弃未开始者'
-                结局任务.拒绝(代码模式错误('run_code run is over ('+str(本轮.信号._异常)+'); '+名称+' tool call abandoned'))#未开始被放弃
+                结局任务.拒绝(代码模式错误('run_code run is over ('+str(本轮.信号.原因)+'); '+名称+' tool call abandoned'))#未开始被放弃
             def 开始():
                 '有序开始'
                 智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
@@ -726,7 +638,7 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
             驱动()#确保车道在跑
             结局=结局任务.等待()#等到提交
             if 本轮已结束():
-                raise 代码模式错误('run_code run is over ('+str(本轮.信号._异常)+'); '+名称+' result discarded')#丢弃结果
+                raise 代码模式错误('run_code run is over ('+str(本轮.信号.原因)+'); '+名称+' result discarded')#丢弃结果
             if 结局['isError']:
                 raise 代码模式错误(结局['message'])#程序可见失败
             return 结局['value']#规范值

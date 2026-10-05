@@ -1,5 +1,6 @@
 '工具桥接：发现 MCP 工具，以确定性的服务器限定公开名注册到框架工具运行时，并在服务器工具列表变化时再同步'
-import base64,hashlib,json,re,weakref
+import re,weakref
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码,摘要十六进制,严格解码base64
 from ...内核.工具 import 断言受支持json模式
 from ...附件.附件.异常 import 是否图像准入错误
 from ...模型后端.llm import 已中止
@@ -13,17 +14,13 @@ __all__=['公开工具名','同步工具','MCP结果','创建mcp工具定义']
 图像媒体类型=('image/png','image/jpeg','image/webp','image/gif')
 规范base64=re.compile(r'^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z')
 
-def 编码(值):
-    '按线协议锁死的 JSON 序列化'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
-
 def 公开工具名(服务器名,原始名):
     '由服务器名与原始工具名生成确定性公开名；干净时为 mcp__<server>__<raw>'
     拼接='mcp__'+服务器名+'__'+原始名
     归一=非法名字符.sub('_',拼接,count=0)
     if 归一==拼接 and len(归一)<=公开名最大长度:
         return 归一
-    摘要=hashlib.sha256((服务器名+'\0'+原始名).encode('utf-8')).hexdigest()[:哈希长度]
+    摘要=摘要十六进制(服务器名+'\0'+原始名)[:哈希长度]
     前缀预算=公开名最大长度-哈希长度-1
     return 归一[:前缀预算]+'_'+摘要
 
@@ -186,7 +183,7 @@ def 创建执行器(上下文,选项,投影表):
         内容=结果['content'] if 'content' in 结果 else None
         if not isinstance(内容,list):
             if 'toolResult' in 结果:
-                文本=编码(结果['toolResult'])
+                文本=紧凑json编码(结果['toolResult'])
             else:
                 文本='(no output)'
             if 'isError' in 结果 and 结果['isError'] is True:
@@ -222,8 +219,9 @@ def 解码图像(块):
     数据=块['data'] if 'data' in 块 else None
     if not isinstance(数据,str) or 规范base64.match(数据) is None:
         raise MCP错误('the image data is not canonical base64')
-    字节=base64.b64decode(数据,validate=True)
-    if base64.b64encode(字节).decode('ascii')!=数据:
+    try:
+        字节=严格解码base64(数据)
+    except ValueError:
         raise MCP错误('the image data is not canonical base64')
     return {'data':字节,'mediaType':媒体}
 

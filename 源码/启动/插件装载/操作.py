@@ -1,5 +1,7 @@
 'dsh plugin 与运行中装载服务共用的配置档包操作'
 import os,re,json,tempfile,threading,subprocess,time
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
+from ...基础设施.通用工具.文本工具 import utf8字节数
 from ...工具.原子写入 import 带文件锁,原子写文件
 from ...子进程.子进程 import 擦洗父环境
 from ..app启动 import (
@@ -69,7 +71,7 @@ def 调和(之前,目录,锚点,选项):
         加载覆盖补丁('dsh',os.path.join(解析组合包目录('dsh',名称,锚点,目录),补丁))
         if 名称 not in 组合包:
             组合包.append(名称)
-    if json.dumps(先前,ensure_ascii=False,separators=(',',':'),allow_nan=False)==json.dumps(组合包,ensure_ascii=False,separators=(',',':'),allow_nan=False):
+    if 紧凑json编码(先前)==紧凑json编码(组合包):
         return
     dsh=dict(之后.get('dsh') or {})
     配置=dict(dsh.get('profile') or {})
@@ -175,7 +177,7 @@ def 跑配置档pnpm(上下文,参数列表,选项):
         if 退出码!=0 and len(状态['output'])==0:
             诊断='pnpm 失败'
             日志句柄.write(诊断.encode('utf-8'))
-            状态['truncated']=len(诊断.encode('utf-8'))>选项['outputBytes']
+            状态['truncated']=utf8字节数(诊断)>选项['outputBytes']
             状态['output']=诊断.encode('utf-8')[:选项['outputBytes']]
         if 退出码==0 and 选项.get('activateNewBundles') is not False:
             调和(之前,目录,上下文['installAnchor'],选项)

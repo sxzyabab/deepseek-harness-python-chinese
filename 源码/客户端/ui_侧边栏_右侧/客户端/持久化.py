@@ -1,5 +1,6 @@
 '校验过的当前布局快照；撤销历史归活动窗口'
 import json#JSON
+from ....基础设施.通用工具 import 紧凑json编码
 
 __all__=['侧栏持久化前缀','读侧栏布局','写侧栏布局','清侧栏布局']#仅中文公开名
 
@@ -30,7 +31,7 @@ def 写侧栏布局(会话标识,表面,存储=None):
         return#空
     已存={'bySession':{会话标识:{'layout':表面['layout'],'minted':表面['minted']}}}#信封
     try:#写
-        存储.setItem(侧栏持久化前缀+'.'+会话标识,json.dumps(已存,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+        存储.setItem(侧栏持久化前缀+'.'+会话标识,紧凑json编码(已存))
     except (TypeError,ValueError,AttributeError,OSError) as 错误:
         print('侧栏布局持久化失败:',错误)
 

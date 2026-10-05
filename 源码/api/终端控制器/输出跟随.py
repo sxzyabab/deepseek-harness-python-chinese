@@ -1,4 +1,5 @@
-import json,threading#帧编码与唤醒
+import threading#唤醒
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数,启动守护线程
 from ...工具.双端队列 import 双端队列#有界排队
 from .异常 import 远程错误#本包异常
 
@@ -22,8 +23,8 @@ class 终端跟随:#一路 Remote 流世代的有界输出队列
         '超限则记下错误并关闭本跟随'
         if 自身._已关 or 自身._已结束:#停
             return#忽略
-        体=json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
-        字节=len(体.encode('utf-8'))#UTF-8
+        体=紧凑json编码(帧)#JSON
+        字节=utf8字节数(体)#UTF-8
         if 自身._字节+字节>自身.最大字节:#超
             自身._失败=远程错误('terminal/view','Terminal output consumer exceeded its buffer; reconnect to recover the current screen',{'issue':'invalidOutput'})#超限
             自身.关闭()#关
@@ -54,7 +55,7 @@ class 终端跟随:#一路 Remote 流世代的有界输出队列
                 '置位后关'
                 信号.wait()#等
                 中止时()#关
-            threading.Thread(target=监视,daemon=True).start()#监视
+            启动守护线程(监视)#监视
             if 信号.is_set():#已中止
                 中止时()#立刻
         try:#读

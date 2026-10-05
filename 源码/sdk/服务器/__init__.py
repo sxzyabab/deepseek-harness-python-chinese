@@ -2,6 +2,9 @@ import sys,threading#生产 stdio、退出与异步退出拍
 from ...依赖.schemastery import 布尔字段
 from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输
 from .服务端 import 装备SDKJSONRPC服务端#SDK 运行时服务器
+from . import (
+    异常,
+)
 
 __all__=['包名','名称','依赖','应用','默认','配置','装备SDKJSONRPC服务端']
 

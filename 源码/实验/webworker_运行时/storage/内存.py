@@ -1,5 +1,6 @@
 from ..异常 import 运行时错误#本包错误
 import time#mtime
+from ....基础设施.通用工具.时间工具 import 当前毫秒
 from ..module_system.posix路径 import 目录名,拼接,规范化,解析,分隔符#路径工具
 from ..镜像布局 import 镜像覆盖目录列表#覆盖层目录白名单
 from .tar import 解析tar#tar解析
@@ -308,13 +309,13 @@ class 内存vfs:#内存VFS
     def _触碰节点(自身,节点=None):#节点触碰时间
         '严格新于一个文件节点当前值的修改时间'
         先前=None if 节点 is None else 节点.get('mtimeMs')#先前
-        现在=int(time.time()*1000)#现在毫秒
+        现在=当前毫秒()#现在毫秒
         return 现在 if 先前 is None else max(现在,先前+1)#严格递增
 
     def _触碰目录(自身,目标):#推进目录mtime
         '直接子项变化后推进目录的 mtime'
         先前=自身._目录mtime.get(目标)#先前
-        现在=int(time.time()*1000)#现在
+        现在=当前毫秒()#现在
         自身._目录mtime[目标]=现在 if 先前 is None else max(现在,先前+1)#严格递增
 
     def _忘身份(自身,目标):#忘记身份
@@ -459,7 +460,7 @@ class 内存vfs:#内存VFS
             if 目标 in 自身._文件表:#与文件冲突
                 失败('EEXIST','mkdir',目标)#报错
             自身._目录集.add(目标)#登记
-            自身._目录mtime[目标]=选项.get('mtimeMs') if 选项.get('mtimeMs') is not None else int(time.time()*1000)#mtime
+            自身._目录mtime[目标]=选项.get('mtimeMs') if 选项.get('mtimeMs') is not None else 当前毫秒()#mtime
             自身._触碰目录(父)#父mtime
         if 选项.get('mode') is not None:#可选权限
             自身._目录权限[目标]=选项['mode']&0o777#记下
@@ -629,7 +630,7 @@ class 内存vfs:#内存VFS
     def 建临时目录同步(自身,前缀):#同步临时目录
         '在 prefix 旁创建唯一命名目录'
         自身._临时序号+=1#序号
-        目标=f'{前缀}{int(time.time()*1000):x}{自身._临时序号:x}'#唯一路径
+        目标=f'{前缀}{当前毫秒():x}{自身._临时序号:x}'#唯一路径
         自身.建目录同步(目标,{'recursive':True})#创建
         return 自身._键(目标)#返回规范化
 

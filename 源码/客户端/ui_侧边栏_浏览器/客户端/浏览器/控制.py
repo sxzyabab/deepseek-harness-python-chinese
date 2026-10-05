@@ -1,5 +1,5 @@
-import threading#中止监听线程
-from .帧 import 内嵌帧实现#iframe 实现
+from .....基础设施.通用工具 import 启动守护线程
+from .内嵌帧实现 import 内嵌帧实现#iframe 实现
 from .导航 import 浏览器导航#导航状态机
 from .地址 import 解析浏览器地址#地址解析
 
@@ -22,7 +22,7 @@ class 浏览器控制:#每标签控制器
             def 监视():#等中止
                 信号.wait()#阻塞
                 自身._拆除()#拆除
-            threading.Thread(target=监视,daemon=True).start()#守护
+            启动守护线程(监视)#守护
 
     def 加载地址(自身,值):
         '校验并加载地址；同址则刷新'
@@ -118,7 +118,7 @@ def 创建浏览器控制表(动作):
                     return#停
                 del 表[标签标识]#删
                 动作['forget'](标签标识)#遗忘
-            threading.Thread(target=清理,daemon=True).start()#守护
+            启动守护线程(清理)#守护
 
     def 取帧(键):
         '带键席位要的帧可观察源'

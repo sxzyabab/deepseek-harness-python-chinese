@@ -1,5 +1,5 @@
 import os,re,sys,tempfile,shutil,threading,subprocess,time,socket
-from ...依赖 import cordis
+from ...依赖.cordis.服务 import 服务
 from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段
 from ...内核.作用域 import 操作任务
 from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号,截止
@@ -7,6 +7,11 @@ from .协议 import ssh请求对等,ssh协议版本
 from .异常 import ssh错误#本包异常基类
 from .模式 import 握手模式,流端点模式
 from .流安全 import 认证流,套接字流
+from . import (
+    ssh侧车,
+    入口,
+    远端进程,
+)
 
 __all__=['配置','ssh连接']#仅中文公开名
 
@@ -69,7 +74,7 @@ def 包装管道(文件):#Popen 管道面
     流.destroy=关闭流#毁
     return 流#面
 
-class ssh连接(cordis.服务):
+class ssh连接(服务):
     '一局不重连的 SSH 会话。丢失会使全部活动操作失效'
     Config=配置#框架槽：类级配置
     def __init__(自身,上下文,配置值):#构造

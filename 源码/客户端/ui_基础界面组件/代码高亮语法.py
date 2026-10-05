@@ -1,4 +1,5 @@
 import re
+from ...基础设施.通用工具 import 路径转正斜杠
 from .markdown.高亮 import 高亮分行,语法加载计数
 
 __all__=['代码高亮扩展名','路径语言','使用代码高亮器']
@@ -44,7 +45,7 @@ _后缀=re.compile(r'\.([^./]+)\Z',re.ASCII)
 
 def 路径语言(路径):
     '按文件名后缀选共享语法；未登记则 None'
-    命中=_后缀.search(路径.replace('\\','/'))
+    命中=_后缀.search(路径转正斜杠(路径))
     if 命中 is None:
         return None
     return _扩展语言.get(命中.group(1).lower())

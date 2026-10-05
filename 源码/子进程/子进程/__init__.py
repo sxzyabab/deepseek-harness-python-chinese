@@ -1,6 +1,5 @@
 import os,re#父环境与敏感名模式
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#从 Cordis 导入服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...工具.http代理 import 子进程代理环境#子进程继承的代理环境
 from .类型 import (
     托管环境前缀,#托管环境变量前缀
@@ -40,6 +39,9 @@ from .类型 import (
     终端环境,#终端环境
 )#再导出子进程公开类型
 from .异常 import 可执行未找到错误#可执行查找未找到文件
+from . import (
+    控制,
+)
 
 __all__=(#仅中文公开名；无英文别名
     '敏感环境模式','擦洗父环境','子进程运行时',

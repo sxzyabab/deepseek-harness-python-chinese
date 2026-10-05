@@ -1,4 +1,5 @@
 import json#美化 JSON
+from ....基础设施.通用工具 import 紧凑json编码
 
 __all__=['变体标题','分类工具','结果文本','相对化到工作区','派生工具行']#仅中文公开名
 
@@ -168,7 +169,7 @@ def 派生工具行(工具名或块,块=None,工作区=None,主目录=None):#冻
         else:#空
             参数原文=''#空
     if not isinstance(参数原文,str):#非串
-        参数原文=json.dumps(参数原文,ensure_ascii=False,separators=(',',':'),allow_nan=False) if 参数原文 is not None else ''#串化
+        参数原文=紧凑json编码(参数原文) if 参数原文 is not None else ''#串化
     错误=块['error'] if 'error' in 块 else None#错误
     错误码=错误['code'] if 错误 is not None and 'code' in 错误 else None#码
     if not 已结算:#尚未结算

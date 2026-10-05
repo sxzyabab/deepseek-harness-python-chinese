@@ -3,6 +3,12 @@ from urllib.parse import urlparse
 from .配置 import 配置,应用配置
 from .识别器 import sensevoice工作者
 from .输入 import 语言表
+from . import (
+    异常,
+    模型源列表,
+    进程服务器,
+    运行时准备,
+)
 
 __all__=['名称','依赖','配置','应用']
 

@@ -1,4 +1,5 @@
 import threading#读取线程与中止监视
+from ....基础设施.通用工具 import 启动守护线程
 from .文档.资源组 import 资源组
 
 __all__=['已中止','文本面']#仅中文公开名
@@ -36,7 +37,7 @@ def 文本面(读取,完整读取,资源):
                     '等中止后清理'
                     信号.wait()#阻塞至置位
                     清理()#清
-                threading.Thread(target=监视,daemon=True).start()#守护
+                启动守护线程(监视)#守护
             return 簿#簿记
         def 模式簿(标签标识,信号,模式,渲染器标识=None):
             '换模式或渲染器时晋代并重置桶'
@@ -78,7 +79,7 @@ def 文本面(读取,完整读取,资源):
                     return#停
                 簿['version']=值['version']#记下
                 动作['page'](标签标识,值)#写入
-            threading.Thread(target=结算,daemon=True).start()#守护
+            启动守护线程(结算)#守护
         def 加载全部(标签标识,文件,信号,观察版本=None):
             '为整文件渲染器读取完整文件'
             if 已中止(信号):#已中止
@@ -103,7 +104,7 @@ def 文本面(读取,完整读取,资源):
                 文件字节=结果['value']#已解码
                 簿['version']=文件字节['version']#记下
                 动作['complete'](标签标识,文件字节)#写入
-            threading.Thread(target=结算,daemon=True).start()#守护
+            启动守护线程(结算)#守护
         def 重启(标签标识,文件,信号,观察版本=None,模式='text-pages'):
             '丢掉页并按模式重读'
             if 已中止(信号):#已中止

@@ -1,4 +1,3 @@
-import builtins#读页面 location
 from urllib.parse import urlparse as 解析URL
 from ..回环主机名 import 是否回环主机名#回环主机名判定
 from ..异常 import 连接错误#本包异常
@@ -9,6 +8,10 @@ from .接口 import (#再导出浏览器可用的连接协议辅助
 )#来自本包接口模块
 from .连接 import 连接控制器,解析连接配置#连接控制器与恢复解析
 from .rpc import 创建网页连接rpc#浏览器 RPC 工厂
+from . import (
+    网页接口客户端,
+    随机uuid,
+)
 
 __all__=[#仅中文公开名
     '依赖','应用','安装连接','连接句柄',
@@ -50,8 +53,8 @@ class 停止句柄:#流循环停止面
 def 取页面定位():
     '非浏览器则无'
     try:#宿主可选 location
-        return builtins.location#页面
-    except AttributeError:#非浏览器
+        return location#页面
+    except NameError:#非浏览器
         return None#无
 
 def 安装连接(上下文,选项=None):
@@ -105,8 +108,8 @@ def 安装连接(上下文,选项=None):
     def 监视浏览器网络(控制器):
         '订 online/offline；无 navigator.onLine 则空拆除'
         try:#页面 window
-            浏览器=builtins.window#窗口
-        except AttributeError:#非浏览器
+            浏览器=window#窗口
+        except NameError:#非浏览器
             return lambda:None#空
         导航=getattr(浏览器,'navigator',None)#导航
         初值=getattr(导航,'onLine',None) if 导航 is not None else None#初值

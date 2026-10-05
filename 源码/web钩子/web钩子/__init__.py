@@ -1,11 +1,14 @@
 import threading
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from ...模型后端.llm.异常 import 错误链
 from ...工具.值 import 快照json值,深冻结
 from .标识构造 import Webhook规则标识
 from .会话 import 创建Webhook会话
 from .异常 import Webhook错误,Webhook已中止#本包异常与规则拆除中止
+from . import (
+    不变量,
+    类型,
+)
 
 包名='@deepseek-ai/dsh-webhook'
 名称='webhook'

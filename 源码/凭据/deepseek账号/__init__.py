@@ -1,4 +1,7 @@
 from ...依赖.cordis import 服务
+from . import (
+    类型,
+)
 
 __all__=['包名','名称','依赖','应用','默认','合并平台Cookie','桌面客户端头','deepseek账号']
 

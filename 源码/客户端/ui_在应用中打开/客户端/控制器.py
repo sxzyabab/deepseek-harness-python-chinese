@@ -1,4 +1,5 @@
-import builtins,json#页面 location / localStorage 与 JSON
+import json#页面 location / localStorage 与 JSON
+from ....基础设施.通用工具 import 紧凑json编码,观察者集合
 import urllib.error#URL 失败
 from urllib.parse import urljoin as 拼接URL
 import urllib.request as 请求库#默认同步 HTTP
@@ -13,11 +14,11 @@ def 宿主基址():#解析 Host 基址
     '有页面 origin 则用，否则 http://dsh.internal'
     源=None#可选源
     try:#宿主可选 location
-        页面=builtins.location#页面
+        页面=location#页面
         源=页面.origin#origin
         if not isinstance(源,str):#非串
             源=None#清空
-    except AttributeError:#非浏览器或无 origin
+    except (NameError,AttributeError):#非浏览器或无 origin
         源=None#清空
     if 源 is None or 源=='null':#缺源或空源
         return 'http://dsh.internal'#内部基
@@ -49,10 +50,10 @@ def 默认同步fetch(网址,初始化=None):#urllib 投递并归一成 dict
     return {'status':状态,'ok':200<=状态<300,'json':解析json,'text':文本}#dict 响应
 
 def 取本地存储():#可选 localStorage
-    'builtins.localStorage；非浏览器则无'
+    'localStorage；非浏览器则无'
     try:#可选
-        return builtins.localStorage#存储
-    except AttributeError:#未注入
+        return localStorage#存储
+    except NameError:#未注入
         return None#无
 
 class 快照存储:#本包自持快照存储
@@ -63,7 +64,7 @@ class 快照存储:#本包自持快照存储
     def __init__(自身,初值,持久化名=None):#播种
         '记下初值与可选持久化键'
         自身.状态=初值#当前值
-        自身.监听者=set()#订阅者
+        自身.监听者=观察者集合()#订阅者
         自身.持久化名=持久化名#键或 None
         自身._可持久化=持久化名 is not None#是否尝试持久化
         if 自身._可持久化:#有名则再水合
@@ -75,18 +76,13 @@ class 快照存储:#本包自持快照存储
 
     def subscribe(自身,回调):#订阅
         '登记变更回调，返回退订'
-        自身.监听者.add(回调)#加入
-        def 退订():#退订
-            '取消'
-            自身.监听者.discard(回调)#删除
-        return 退订#退订器
+        return 自身.监听者.订阅(回调)#退订器
 
     def set(自身,下一):#整值替换
         '写快照、持久化并广播'
         自身.状态=下一#替换
         自身._写出()#持久化
-        for 回调 in list(自身.监听者):#每个
-            回调()#触发
+        自身.监听者.通知()#触发
 
     def _再水合(自身):#从 localStorage 读回
         '失败只关掉持久化，不打断存储'
@@ -111,7 +107,7 @@ class 快照存储:#本包自持快照存储
             自身._可持久化=False#关
             return
         try:#写
-            存储.setItem(自身.持久化名,json.dumps(自身.状态,ensure_ascii=False,separators=(',',':'),allow_nan=False))#整值
+            存储.setItem(自身.持久化名,紧凑json编码(自身.状态))#整值
         except (TypeError,ValueError,AttributeError,OSError) as 错误:#写失败
             print("快照存储 '"+自身.持久化名+"' 持久化失败:",错误)#诊断
             自身._可持久化=False#关
@@ -143,7 +139,7 @@ class 在应用中打开控制器:#页面生命周期控制器
         响应=自身.取数(网址,{#POST
             'method':'POST',#方法
             'headers':{'content-type':'application/json'},#头
-            'body':json.dumps(体,ensure_ascii=False,separators=(',',':'),allow_nan=False),#正文
+            'body':紧凑json编码(体),#正文
         })#发出
         if not 响应['ok']:#失败
             raise 在应用中打开错误('open failed: HTTP '+str(响应['status']))#抛错

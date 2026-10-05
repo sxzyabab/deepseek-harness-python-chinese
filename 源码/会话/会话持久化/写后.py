@@ -1,5 +1,6 @@
 '共享持久化协调器的有界每会话写批处理'
 import threading#批处理定时器
+from ...基础设施.通用工具 import 启动守护线程
 from ...模型后端.llm import 结构化克隆#深拷贝事件
 from .预备 import 操作任务#本包任务原语
 
@@ -56,9 +57,7 @@ class 会话写后:
             except BaseException as 错误:#同步逃逸
                 自身.屏障=None#拆屏障
                 屏障.拒绝(错误)#拒绝调用方
-        线程=threading.Thread(target=后台排空)#后台排空
-        线程.daemon=True#不挡退出
-        线程.start()
+        启动守护线程(后台排空)#后台排空
         return 屏障#返回屏障
 
     def 取消自动等待(自身):
@@ -98,7 +97,7 @@ class 会话写后:
                 自身.继续自动()#成功则继续
             except BaseException:#失败已报告
                 pass#吞掉
-        threading.Thread(target=观察写入结算,daemon=True).start()#后台观察
+        启动守护线程(观察写入结算)#后台观察
 
     def 继续自动(自身):
         '超预算的活动写结束后立刻继续，否则保留其定时器'
@@ -150,8 +149,6 @@ class 会话写后:
                     自身.选项['reportBackgroundFailure'](错误)#报告
                 自身.活动=None#清活动写
                 活动.拒绝(错误)#继续拒绝
-        线程=threading.Thread(target=后台写入)#后台写线程
-        线程.daemon=True#不挡退出
         自身.活动=活动#记下活动写
-        线程.start()
+        启动守护线程(后台写入)#后台写线程
         return 活动#返回任务

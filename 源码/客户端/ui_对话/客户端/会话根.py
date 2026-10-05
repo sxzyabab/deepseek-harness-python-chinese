@@ -1,3 +1,5 @@
+from ....基础设施.通用工具 import 路径转正斜杠
+
 __all__=['会话根','工作区标签','派生阶段']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
@@ -12,7 +14,7 @@ def 工作区标签(工作目录):
     '分隔符-only 路径回显原 cwd'
     if 工作目录 is None or 工作目录=='':#空
         return 工作目录#原样
-    段=工作目录.replace('\\','/').rstrip('/').split('/')#分段
+    段=路径转正斜杠(工作目录).rstrip('/').split('/')#分段
     基=段[-1] if len(段)>0 else ''#末段；判 length
     return 基 if 基!='' else 工作目录#空则原路径
 

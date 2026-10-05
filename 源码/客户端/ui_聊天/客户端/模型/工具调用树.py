@@ -1,4 +1,4 @@
-import json#参数序列化
+from .....基础设施.通用工具 import 紧凑json编码
 
 __all__=['最大工具调用树深','工具调用树']#仅中文公开名
 
@@ -43,7 +43,7 @@ class 工具调用树:
             参=数据['arguments'] if 'arguments' in 数据 else None#参数
             运行={#运行中
                 'callId':子,'parentCallId':父,'name':数据['name'] if 'name' in 数据 else None,
-                'argsRaw':json.dumps(参,ensure_ascii=False,separators=(',',':'),allow_nan=False),
+                'argsRaw':紧凑json编码(参),
                 'turn':0,'step':0,'time':事件['time'] if 'time' in 事件 else None,'subCalls':[],
             }#结束
             兄弟=list(自身.子表[父]) if 父 in 自身.子表 and 自身.子表[父] is not None else []#兄弟
@@ -69,7 +69,7 @@ class 工具调用树:
         参=数据['arguments'] if 'arguments' in 数据 else None#参数
         结算={#结果
             'kind':'tool-result','seq':事件['seq'] if 'seq' in 事件 else None,'time':事件['time'] if 'time' in 事件 else None,
-            'callId':子,'call':{'name':数据['name'] if 'name' in 数据 else None,'argsRaw':json.dumps(参,ensure_ascii=False,separators=(',',':'),allow_nan=False)},
+            'callId':子,'call':{'name':数据['name'] if 'name' in 数据 else None,'argsRaw':紧凑json编码(参)},
             'content':正文 if 正文 is not None else [],
             'isError':('isError' in 数据 and 数据['isError'] is True),'subCalls':[],
         }#结束

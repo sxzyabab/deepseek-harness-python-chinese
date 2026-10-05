@@ -2,7 +2,10 @@ __all__=['是否darwin桌面']#仅中文公开名
 
 def 是否darwin桌面():
     '客户端是否跑在 macOS Electron 壳：读 html 的 data-platform'
-    文档=globals().get('document')#document
+    try:#页面文档
+        文档=document#document
+    except NameError:#非浏览器
+        文档=None#无
     if 文档 is None:#无 DOM
         return False#非桌面壳
     根=getattr(文档,'documentElement',None)#html

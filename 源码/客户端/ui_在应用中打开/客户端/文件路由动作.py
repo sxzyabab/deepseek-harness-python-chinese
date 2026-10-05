@@ -1,11 +1,13 @@
 '把已授权投递与变更文件路由接到共享打开控件'
-import builtins#页面 fetch
 from .文件应用 import 使用文件应用#联想查询
 from .打开目标按钮 import 打开目标按钮#共享分体按钮
 
 __all__=['查询路由','文件路由动作']#仅中文公开名
 
-取=builtins.fetch if hasattr(builtins,'fetch') else None#页面 fetch
+try:#页面 fetch
+    取=fetch#页面 fetch
+except NameError:#非浏览器
+    取=None#无
 
 def 查询路由(网址,信号):
     '经授权路由拉文件关联；不可用或畸形则 None，回落揭示'

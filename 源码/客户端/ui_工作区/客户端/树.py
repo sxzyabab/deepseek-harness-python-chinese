@@ -1,3 +1,4 @@
+from ....基础设施.通用工具 import 路径转正斜杠
 from datetime import datetime as 日期时间
 from zoneinfo import ZoneInfo as 时区信息
 import re as 正则#路径探测
@@ -36,13 +37,13 @@ def 工作区标签(工作目录):#工作区/目录展示标签
     '目录 basename；没有 basename 时返回原始路径；空路径返回空标记'
     if 工作目录 is None or 工作目录=='':#空路径
         return ''#空标记
-    基名=工作目录.rstrip('/\\').replace('\\','/').split('/')[-1]#最后一段
+    基名=路径转正斜杠(工作目录.rstrip('/\\')).split('/')[-1]#最后一段
     return 基名 if 基名!='' else 工作目录#有 basename 用它
 
 def 文件夹路径(路径):#规范化分隔符
     'Windows 路径统一斜杠；不去把 POSIX 反斜杠当分隔符'
     视窗=正则.match(r'^[A-Za-z]:[/\\]',路径) is not None or 路径.startswith('\\\\')#是否 Windows
-    规范=(路径.replace('\\','/') if 视窗 else 路径).rstrip('/')#统一并去尾
+    规范=(路径转正斜杠(路径) if 视窗 else 路径).rstrip('/')#统一并去尾
     return 规范#规范路径
 
 def 拥有父文件夹(路径,父表):#最近已登记祖先

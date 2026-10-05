@@ -1,4 +1,5 @@
-import json#JSON
+from .....基础设施.通用工具.文本工具 import utf8字节数
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 
 __all__=['检查器源注册表']#仅中文公开名
 
@@ -6,7 +7,7 @@ __all__=['检查器源注册表']#仅中文公开名
 
 def _json字节长(值):#估计JSON字节
     '粗估帧字节'
-    return len(json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8'))#字节
+    return utf8字节数(紧凑json编码(值))#字节
 
 def _解析源帧(值,每帧上限):
     '要求已是映射并校验记录上限'

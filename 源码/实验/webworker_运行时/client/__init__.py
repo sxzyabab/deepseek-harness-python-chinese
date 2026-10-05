@@ -1,4 +1,4 @@
-from concurrent.futures import Future as 原生结果
+from ....基础设施.通用工具.并发原语 import 操作任务#一次性任务
 from ..镜像布局 import 镜像文件名
 from ..fixture清单 import (
     预览fixture清单文件,
@@ -14,30 +14,6 @@ __all__=[
     '解析预览fixture清单','预览fixture清单文件','预览fixture清单版本',
     '选择工作线程宿主源','连接工作线程宿主',
 ]
-
-class 操作任务:
-    '本文件内单次操作结果，只留兑现、拒绝、等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._结果=原生结果()
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._结果.done():
-            自身._结果.set_result(值)
-        return 值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._结果.done():
-            if isinstance(错误,BaseException):
-                自身._结果.set_exception(错误)
-            else:
-                自身._结果.set_exception(Exception(str(错误)))
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._结果.result(timeout=超时)
 
 def boot就绪屏障():
     '与客户端入口共享的 boot 就绪任务'

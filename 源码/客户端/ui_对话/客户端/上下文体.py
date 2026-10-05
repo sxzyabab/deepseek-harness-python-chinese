@@ -1,4 +1,4 @@
-import json as 编码#紧凑 JSON
+from ....基础设施.通用工具 import 紧凑json编码,截断utf8字节,utf8字节数
 
 __all__=[#公开面
     '上下文体','不透明体','选上下文体','最大字节','最大条目',
@@ -22,13 +22,10 @@ def 是数(值):
 
 def 有界文本(文本,翻译):
     '超界附 truncated 标；按 UTF-8 字节截'
-    字节=文本.encode('utf-8')#预算
-    if len(字节)<=最大字节:#未超
+    字节数=utf8字节数(文本)#预算
+    if 字节数<=最大字节:#未超
         return 文本#原文
-    截=字节[:最大字节]#截断
-    while len(截)>0 and (截[-1]&0xC0)==0x80:#补齐码点
-        截=截[:-1]#退
-    return f"{截.decode('utf-8')}\n{翻译('json.truncated',{'total':len(字节)})}"#截
+    return f"{截断utf8字节(文本,最大字节)}\n{翻译('json.truncated',{'total':字节数})}"#截
 
 def 字段值(值,翻译):
     '串/数/布尔原文；其余 JSON'
@@ -37,7 +34,7 @@ def 字段值(值,翻译):
     elif isinstance(值,bool) or 是数(值):#标量
         文=str(值)#串
     else:#结构
-        文=编码.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#JSON
+        文=紧凑json编码(值)#JSON
     return 有界文本(文,翻译)#界
 
 def 内容游程(内容):

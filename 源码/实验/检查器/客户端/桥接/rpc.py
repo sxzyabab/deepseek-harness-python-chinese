@@ -1,4 +1,5 @@
 import json#序列化
+from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.rpc import 检查器查询连接#查询连接基类
 
@@ -13,5 +14,5 @@ class 客户端桥rpc(检查器查询连接):#Client桥RPC
                 '发送帧'
                 if 套接字.readyState!=1:#未开
                     raise 检查器错误('Inspector Client query socket is not connected')#未开
-                套接字.send(json.dumps(帧,ensure_ascii=False,separators=(',',':'),allow_nan=False))#发送
+                套接字.send(紧凑json编码(帧))#发送
         自身.连接(源['sourceId'],源['generation'],_发送器())#连接

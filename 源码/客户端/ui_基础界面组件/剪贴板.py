@@ -2,8 +2,14 @@ __all__=['写剪贴板']#仅中文公开名
 
 def 写剪贴板(文本):#写入宿主剪贴板
     '仅当宿主接受写入时为 True'
-    导航=globals().get('navigator')
-    文档=globals().get('document')
+    try:#页面导航
+        导航=navigator#navigator
+    except NameError:#非浏览器
+        导航=None#无
+    try:#页面文档
+        文档=document#document
+    except NameError:#非浏览器
+        文档=None#无
     if 导航 is not None:#有 navigator
         剪贴=getattr(导航,'clipboard',None)#clipboard
         写入=getattr(剪贴,'writeText',None) if 剪贴 is not None else None#writeText

@@ -1,4 +1,5 @@
-import base64,re,time#解码与时间
+import time#时间
+from .....基础设施.通用工具.序列化编码 import 严格解码base64
 
 __all__=['网络存储']#仅中文公开名
 
@@ -6,7 +7,6 @@ __all__=['网络存储']#仅中文公开名
     'fetch/start','fetch/request-body-chunk','fetch/request-body-end',#请求
     'fetch/response','fetch/response-body-chunk','fetch/end','fetch/error',#响应
 ])#主题结束
-规范base64=re.compile(r'(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z')#规范 base64
 
 class 网络存储:#网络存储
     '与 CDP 连接状态无关的已校验 Network 观测存储'
@@ -248,12 +248,10 @@ def _组装正文(块列表,截断,捕获错,完整):#组装捕获正文
 
 def _解码base64(值):#解码base64
     '规范 base64'
-    if 值=='' or len(值)%4!=0 or 规范base64.fullmatch(值) is None:#非规范
-        raise ValueError('fetch 载荷 body 块必须是规范 base64')#抛错
-    字节=base64.b64decode(值)#解码
-    if base64.b64encode(字节).decode('ascii')!=值:#再校验
-        raise ValueError('fetch 载荷 body 块必须是规范 base64')#抛错
-    return 字节#返回
+    try:#严格解码
+        return 严格解码base64(值)#规范 base64
+    except ValueError:#非规范
+        raise ValueError('fetch 载荷 body 块必须是规范 base64')#业务错误
 
 def _要求载荷(值):#要求载荷对象
     '必须为映射'

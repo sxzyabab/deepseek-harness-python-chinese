@@ -1,5 +1,6 @@
 '流式提升系统提示词，随后做规范 V3 信封转换'
-import hashlib,json#哈希与身份材料
+import json#身份材料
+from ...基础设施.通用工具 import 摘要十六进制
 from ..会话格式.异常 import 会话格式错误,会话格式不支持迁移错误#格式错误
 from ..会话格式 import (#从会话格式导入
     定义会话格式迁移,#定义迁移
@@ -141,7 +142,7 @@ class 已发布v2到v3阶段:#已发布v2到v3阶段
             separators=(',',':'),#紧凑
             ensure_ascii=False,#与 Node 一致
         )#dumps结束
-        标识='v2-to-v3-system-'+hashlib.sha256(身份材料.encode('utf-8')).hexdigest()#合成标识
+        标识='v2-to-v3-system-'+摘要十六进制(身份材料)#合成标识
         if 标识 in 自身.源标识 or 标识 in 自身.生成标识:#标识冲突
             raise 会话格式不支持迁移错误('generated system message id collides with an existing message id')#拒绝
         自身.生成标识.add(标识)#记入生成标识

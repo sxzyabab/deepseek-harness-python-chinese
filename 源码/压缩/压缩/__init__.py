@@ -1,6 +1,5 @@
 '抽象压缩服务：把一段表面跨度替换成摘要节点，并串行化同会话压缩'
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#框架服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .类型 import 压缩结果字段#再导出压缩结果词汇
 from .标识构造 import 压缩标识#再导出压缩事务 id
 from .工具配对 import 工具配对前平衡,工具配对后平衡#再导出工具配对边界检查
@@ -19,6 +18,9 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 手动压缩错误码=('busy','cancelled','changed','summary','commit','persistence')#对空闲会话显式压缩请求的预期失败类别
 
 from .异常 import 压缩错误,手动压缩错误#本包异常
+from . import (
+    不变量,
+)
 
 class 压缩智能体上下文:
     '压缩所需的最小智能体上下文'

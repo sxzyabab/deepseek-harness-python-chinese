@@ -1,6 +1,5 @@
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...工具.值 import 带值弱映射#按座位绑定弱缓存控制器
-服务=cordis.服务#Cordis 服务基类
 from .控制器 import 触发控制器#每会话控制器
 from .异常 import 触发错误#本包异常
 

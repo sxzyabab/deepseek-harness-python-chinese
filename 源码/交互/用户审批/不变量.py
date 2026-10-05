@@ -1,5 +1,5 @@
 '包内审批审计流不变量'
-import json#诊断里序列化未知词表值
+from ...基础设施.通用工具 import 紧凑json编码
 from ...内核.作用域 import 弱身份表#按身份存取的弱表
 
 包名='@deepseek-ai/dsh-user-approval'#本包名，用于登记所有权
@@ -23,22 +23,22 @@ def 校验审批事件(踪迹,事件,失败):#校验单条审批事件
             失败('approval/asked toolName must be non-empty')#空工具名
         配对=数据['id']#请求 id
         if 配对 in 踪迹['pending']:#id 不得重复打开
-            失败('approval/asked repeated open id '+json.dumps(配对,ensure_ascii=False,separators=(',',':'),allow_nan=False))#重复打开
+            失败('approval/asked repeated open id '+紧凑json编码(配对))#重复打开
         return {'kind':'asked','id':配对}#接受提问转移
     if 种类=='approval/decided':#裁决事件
         if 踪迹['openTurn'] is None:#必须在打开回合内
             失败('approval/decided appended outside any open turn')#回合外裁决
         配对=数据['id']#请求 id
         if 配对 not in 踪迹['pending']:#必须先有提问
-            失败('approval/decided has no matching approval/asked for id '+json.dumps(配对,ensure_ascii=False,separators=(',',':'),allow_nan=False))#孤立裁决
+            失败('approval/decided has no matching approval/asked for id '+紧凑json编码(配对))#孤立裁决
         结果=数据['outcome']#封闭结果
         if 结果 not in 审批结果表:#结果必须在封闭表内
-            失败('approval/decided carries unknown outcome '+json.dumps(结果,ensure_ascii=False,separators=(',',':'),allow_nan=False))#未知结果
+            失败('approval/decided carries unknown outcome '+紧凑json编码(结果))#未知结果
         return {'kind':'decided','id':配对}#接受裁决转移
     if 种类=='approval/policy':#策略事件也要封闭词表
         策略=数据['policy']#策略值
         if 策略 not in 审批策略表:#未知策略
-            失败('approval/policy carries unknown policy '+json.dumps(策略,ensure_ascii=False,separators=(',',':'),allow_nan=False))#未知策略
+            失败('approval/policy carries unknown policy '+紧凑json编码(策略))#未知策略
     return None#非配对事件
 
 def 应用审批转移(待决,转移):#更新未匹配集合

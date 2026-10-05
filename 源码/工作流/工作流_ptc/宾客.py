@@ -1,5 +1,5 @@
 '在挂载的 PTC 运行时 Node 进程里执行一次工作流 VM'
-import threading#进度与子结果线程
+from ...基础设施.通用工具 import 启动守护线程
 from .领域 import 渲染抛出#进度失败文本
 from .运行时 import 工作流执行,任务#执行与未完成进度
 
@@ -35,8 +35,7 @@ def 运行工作流宾客(宿主):#一次进度批次在飞
                 排队.clear()#丢掉
                 在飞[0]=None
                 完成.兑现()#进度失败不拒绝宾客主路径
-        工作=threading.Thread(target=发批次,daemon=True)#后台
-        工作.start()#启动
+        启动守护线程(发批次)#后台
     def 发送(事件):#一条进度
         '排队并尝试冲刷'
         if 进度错误[0] is not None:#已失败
@@ -75,7 +74,7 @@ def 运行工作流宾客(宿主):#一次进度批次在飞
                     结果任务.兑现(宿主.子结果({'callId':调用标识}))#兑现
                 except BaseException as 错误:#基础设施
                     结果任务.拒绝(错误)#拒绝
-            threading.Thread(target=等结果,daemon=True).start()#启动
+            启动守护线程(等结果)#启动
             class 句柄:#宾客句柄
                 '已发布子句柄'
                 def __init__(自身):#钉字段

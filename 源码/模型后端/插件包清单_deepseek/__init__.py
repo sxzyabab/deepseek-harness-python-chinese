@@ -1,9 +1,9 @@
 '向官方 DeepSeek 请求贡献 dsh_plugin_packages 字段'
 import json,os#读 manifest 与路径
+from ...基础设施.通用工具.文本工具 import 路径转正斜杠
 from json import JSONDecodeError#清单解析失败
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.纤程 import 纤程状态#纤程状态
 from ...依赖.schemastery import 布尔字段#配置字段
-纤程状态=cordis.纤程状态#纤程状态
 
 名称='plugin-package-inventory-deepseek'#框架 插件名
 依赖=['agents','deepseekLlmApiExtensions','loader']#依赖
@@ -12,6 +12,9 @@ from ...依赖.schemastery import 布尔字段#配置字段
 __all__=['清单错误','名称','依赖','配置模式','应用','默认']#仅中文公开名
 
 from .异常 import 清单错误#清单解析与校验失败
+from . import (
+    类型,
+)
 
 def 裸包名(说明符):#解析 bare package 名
     '相对路径、绝对路径与带协议说明符返回 None'
@@ -80,7 +83,7 @@ class 包身份解析器:#带进程内缓存的解析器
         自身.宿主基础url=宿主基础url
         自身.包表=包表
         自身.缓存={}
-        自身.本模块网址='file:///'+os.path.abspath(__file__).replace('\\','/')
+        自身.本模块网址='file:///'+路径转正斜杠(os.path.abspath(__file__))
 
     def 解析(自身,活动条目):
         '返回身份或 None（loose module）。活动条目为 dict，Loader 条目为对象'

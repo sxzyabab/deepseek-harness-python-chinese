@@ -1,5 +1,6 @@
 '工作流 VM 钩子、子回调、普通并发上限与结果序列化'
 import threading#槽位等待
+from ...基础设施.通用工具 import 启动守护线程
 from concurrent.futures import Future as 原生结果#单次操作结果
 from ...内核.会话 import 会话标识#子 id 品牌
 from ...内核.工具.json模式 import 断言对象json模式#对象 JSON 模式
@@ -47,8 +48,7 @@ def 全部并发(函数列表):#Promise.all
             错误表[下标]=错误#记下
     线程表=[]#工作线程
     for 下标,函数 in enumerate(函数列表):#每路一线程
-        工作=threading.Thread(target=跑一路,args=(下标,函数),daemon=True)#工作线程
-        工作.start()#启动
+        工作=启动守护线程(跑一路,下标,函数)#工作线程
         线程表.append(工作)#登记
     for 工作 in 线程表:#扇出 join
         工作.join()#等到结束
@@ -67,8 +67,7 @@ def 全部结算(任务列表):#Promise.allSettled
             pass#吞掉
     线程表=[]#工作线程
     for 一项 in 任务列表:#每路一线程
-        工作=threading.Thread(target=等待并吞错,args=(一项,),daemon=True)#工作线程
-        工作.start()#启动
+        工作=启动守护线程(等待并吞错,一项)#工作线程
         线程表.append(工作)#登记
     for 工作 in 线程表:#等全部结束
         工作.join()#等到结束
@@ -83,8 +82,7 @@ def 赛跑(函数列表):#Promise.race
         except BaseException as 错误:#失败
             完成.拒绝(错误)#拒绝
     for 函数 in 函数列表:#每路一线程
-        工作=threading.Thread(target=在线线程执行,args=(函数,),daemon=True)#工作线程
-        工作.start()#启动
+        启动守护线程(在线线程执行,函数)#工作线程
     return 完成.等待()#先到
 
 def 输出文本(块表):#子最终输出块压成文本

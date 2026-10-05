@@ -1,5 +1,5 @@
 '经共享沙箱 PTC 执行器的工作流子归属与进度'
-import json,threading#程序字面量与清理线程
+from ...基础设施.通用工具 import 紧凑json编码,启动守护线程
 from urllib.parse import quote as 百分号编码#data URL
 from ...内核.会话 import 会话标识#子 id 品牌
 from ...内核.工具.json模式 import 断言对象json模式#对象 JSON 模式
@@ -11,11 +11,9 @@ from .运行时 import 任务,全部并发,全部结算,赛跑#本包并发
 
 __all__=['ptc工作流运行']#仅中文公开名
 
-编码=json.dumps#JSON 编码
-
 宾客网址='data:text/javascript,'+百分号编码(工作流宾客源码,safe="-_.!~*'()")#data URL
 程序=('const { runWorkflowGuest } = await import('
-    +编码(宾客网址,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    +紧凑json编码(宾客网址)
     +'); return await runWorkflowGuest(workflowHost);')#注入宾客的 JS 程序体
 
 def 对象(值):#绑定参数必须是对象
@@ -152,11 +150,11 @@ class ptc工作流运行:#持有者所有的工作流
                     '等到外部中止'
                     等待中止(信号)#等待
                     外部中止()#取消
-                threading.Thread(target=等外部,daemon=True).start()#监视
+                启动守护线程(等外部)#监视
         def 开跑():#后台驱动
             '驱动并兑现结果'
             自身.结果.兑现(自身._驱动())#永不拒绝
-        threading.Thread(target=开跑,daemon=True).start()#后才挂记录
+        启动守护线程(开跑)#后才挂记录
 
     def 取消(自身,原因='workflow cancelled'):#停脚本并中止子
         """停脚本并中止待完成与已发布子。
@@ -184,7 +182,7 @@ class ptc工作流运行:#持有者所有的工作流
                 except BaseException:#不应拒绝
                     pass#吞掉
                 完成.兑现()#拆除完成
-            threading.Thread(target=等结果,daemon=True).start()#后台
+            启动守护线程(等结果)#后台
         自身._已拆.等待()#等到
         return None#拆除完成
 
@@ -206,7 +204,7 @@ class ptc工作流运行:#持有者所有的工作流
                 完成.拒绝(错误)#拒绝
             if 完成 in 自身._未决:#仍在
                 自身._未决.remove(完成)#摘掉
-        threading.Thread(target=在线线程执行,daemon=True).start()
+        启动守护线程(在线线程执行)
         return 完成.等待()#等本路
 
     def _绑定(自身):#workflowHost 函数表
@@ -305,7 +303,7 @@ class ptc工作流运行:#持有者所有的工作流
             finally:#摘掉
                 自身._子表.pop(记录['callId'],None)#移除
                 完成.兑现()#完成
-        threading.Thread(target=跑拆除,daemon=True).start()
+        启动守护线程(跑拆除)
         完成.等待()#等到
         return None#结束
 

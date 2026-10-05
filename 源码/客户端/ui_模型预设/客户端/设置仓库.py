@@ -1,3 +1,4 @@
+from ....基础设施.通用工具 import 观察者集合
 from ..异常 import 预设错误#本包失败
 from .呈现 import 展示权限预设#显示名
 
@@ -10,7 +11,7 @@ class 快照存储:#简易 SnapshotStore
     def __init__(自身,初值):
         '记下初值'
         自身.状态=初值#当前
-        自身.监听者=set()#订阅者
+        自身.监听者=观察者集合()#订阅者
 
     def getSnapshot(自身):
         '当前值'
@@ -18,17 +19,12 @@ class 快照存储:#简易 SnapshotStore
 
     def subscribe(自身,回调):
         '登记'
-        自身.监听者.add(回调)#加入
-        def 退订():
-            '取消'
-            自身.监听者.discard(回调)#删除
-        return 退订#退订器
+        return 自身.监听者.订阅(回调)#退订器
 
     def set(自身,下一份):
         '写入并通知'
         自身.状态=下一份#覆盖
-        for 回调 in list(自身.监听者):#通知
-            回调()#触发
+        自身.监听者.通知()#触发
 
 def 权限默认于(视图,模式):
     '读取宿主 defaultPreset 模式编码的动态预设枚举'

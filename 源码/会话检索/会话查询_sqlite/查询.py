@@ -1,5 +1,6 @@
 '请求归一化、参数化谓词与结果呈现'
-import json,re#JSON 与空白正则
+import re#空白正则
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数
 from ..会话查询.异常 import 会话查询错误#检索错误
 from ..会话查询 import 物化会话结果过滤器,物化会话事件结果过滤器#共享检索工具
 __all__=[
@@ -214,7 +215,7 @@ def 清洗Fts文本(文本):
 
 def 过滤器指纹键(项):
     '过滤器稳定排序键'
-    return json.dumps(项,ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#键
+    return 紧凑json编码(项,排序键=True)#键
 
 def 规范过滤器(过滤器列表):
     '规范过滤器排序用于指纹'
@@ -237,17 +238,17 @@ def 比较可空键(值):
 def 请求指纹(请求):
     '生成游标绑定的稳定请求身份'
     if 'sessionId' in 请求:#事件范围
-        return json.dumps({
+        return 紧凑json编码({
             'scope':'events','sessionId':请求['sessionId'],
             'query':请求['query'],'filters':规范过滤器(请求['filters']),
             'limit':请求['limit'],
-        },ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#事件指纹
-    return json.dumps({
+        },排序键=True)#事件指纹
+    return 紧凑json编码({
         'scope':'sessions','query':请求['query'],
         'sessionFilters':规范过滤器(请求['sessionFilters']),
         'eventFilters':规范过滤器(请求['eventFilters']),
         'limit':请求['limit'],
-    },ensure_ascii=False,separators=(',',':'),allow_nan=False,sort_keys=True)#会话指纹
+    },排序键=True)#会话指纹
 
 def 规范化标记文本(标记文本):
     '去掉 FTS 标记并折叠空白'
@@ -256,7 +257,7 @@ def 规范化标记文本(标记文本):
     for 字符 in 标记文本:#逐字符
         if 字符==FTS高亮开始:#开始
             if 匹配起点 is None:#首个
-                匹配起点=len(''.join(字符列表).encode('utf-8'))#记下字节
+                匹配起点=utf8字节数(''.join(字符列表))#记下字节
             continue#跳过
         if 字符==FTS高亮结束:#结束
             continue#跳过
@@ -276,7 +277,7 @@ def 按字节截取(文本,起点字节,长度字节):
     跳过=0#跳过字节
     输出=''#结果
     for 字符 in 文本:#逐码点
-        宽=len(字符.encode('utf-8'))#本字符字节
+        宽=utf8字节数(字符)#本字符字节
         if 跳过+宽<=起点字节:#仍在窗口前
             跳过+=宽#累计跳过
             continue#下一
@@ -291,27 +292,27 @@ def 生成摘要(标记文本,最大字节):
     清洗=规范化标记文本(标记文本)#去标记
     干净文本=清洗['text']#纯文本
     匹配起点=清洗['matchStart']#匹配起点字节
-    总字节=len(干净文本.encode('utf-8'))#总字节
+    总字节=utf8字节数(干净文本)#总字节
     if 总字节<=最大字节:#够短
         return 干净文本#原样
     if 最大字节==1:#极短
         return '…'#省略号
-    省略=len('…'.encode('utf-8'))#省略号字节
+    省略=utf8字节数('…')#省略号字节
     匹配索引=min(匹配起点,max(0,总字节-1))#夹住
     起点=max(0,匹配索引-最大字节//3)#窗口起点
     前缀='…' if 起点>0 else ''#前省略
     后缀='…'#后省略
-    内容长度=最大字节-len(前缀.encode('utf-8'))-len(后缀.encode('utf-8'))#可用长度
+    内容长度=最大字节-utf8字节数(前缀)-utf8字节数(后缀)#可用长度
     if 内容长度<1:#放不下
         起点=匹配索引#从匹配开始
         后缀=''#无后缀
-        内容长度=最大字节-len(前缀.encode('utf-8'))#重算
+        内容长度=最大字节-utf8字节数(前缀)#重算
     elif 匹配索引>=起点+内容长度:#匹配在窗外
         起点=匹配索引-内容长度+1#右移
     终点=min(总字节,起点+内容长度)#窗口终点
     if 终点==总字节:#到末尾
         后缀=''#无后缀
-        内容长度=最大字节-len(前缀.encode('utf-8'))#重算
+        内容长度=最大字节-utf8字节数(前缀)#重算
         起点=max(0,终点-内容长度)#左移
         终点=min(总字节,起点+内容长度)#再夹
     return 前缀+按字节截取(干净文本,起点,终点-起点)+后缀#拼摘要

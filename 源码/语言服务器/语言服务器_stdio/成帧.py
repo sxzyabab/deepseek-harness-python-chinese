@@ -1,15 +1,15 @@
 'LSP 基础协议成帧：字节流上按 Content-Length 分隔的 JSON-RPC'
 import json#JSON正文编解码
 from ..语言服务器.异常 import 语言服务器错误#本缝异常基类
+from ...基础设施.通用工具.帧协议 import 编码内容长度帧,内容长度帧解码器,帧协议错误#Content-Length 成帧
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码#紧凑 JSON
 
-头体分隔符='\r\n\r\n'#头与体之间的CRLF分隔
 头段上限字节=1<<16#头段最大字节数
 
 def 编码消息(消息):
     '把一条 JSON-RPC 消息编码成成帧的 LSP 缓冲（Content-Length: N\\r\\n\\r\\n<utf-8 json>）'
-    正文=json.dumps(消息,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#把消息序列化为UTF-8正文
-    头=('Content-Length: '+str(len(正文))+'\r\n\r\n').encode('ascii')#按正文字节数写Content-Length头
-    return 头+正文#头与体拼接成一帧
+    正文=紧凑json编码(消息).encode('utf-8')#把消息序列化为UTF-8正文
+    return 编码内容长度帧(正文)#头与体拼接成一帧
 
 class 消息解码器:
     """Content-Length 成帧 JSON-RPC 的流式解码器。
@@ -18,8 +18,7 @@ class 消息解码器:
     """
     def __init__(自身,最大消息字节):
         '记下单条成帧正文上限'
-        自身.缓冲=b''#尚未消费的入站字节
-        自身.最大消息字节=最大消息字节#单条消息体上限
+        自身._解码器=内容长度帧解码器(最大消息字节,头段上限字节)#帧解码
 
     def 推入(自身,块):
         '追加一块数据，并返回此刻已完整的每一条消息体'
@@ -27,52 +26,14 @@ class 消息解码器:
             块=块.encode('utf-8')#转字节
         elif isinstance(块,(bytes,bytearray)) is False:#memoryview等
             块=bytes(块)#强制字节
-        自身.缓冲=块 if len(自身.缓冲)==0 else 自身.缓冲+块#拼接到未消费缓冲
+        try:#成帧
+            正文列表=自身._解码器.推入(块)#取出完整正文
+        except 帧协议错误 as 错误:#头或正文超限、头非法
+            raise 语言服务器错误(str(错误),'LSP_PROTOCOL')#保留原错误码
         消息列表=[]#本轮解析出的消息
-        while True:#循环取出所有已完整消息
-            步进=自身.下一条()#尝试消费下一条
-            if 步进['ready'] is False:#字节不够则停止
-                break#停止
-            消息列表.append(步进['message'])#收下一完整消息
+        for 正文 in 正文列表:#逐条正文
+            try:#解析JSON正文
+                消息列表.append(json.loads(正文.decode('utf-8')))#解析成功则交出消息
+            except json.JSONDecodeError as 错误:#JSON无效
+                raise 语言服务器错误('LSP message body was not valid JSON: '+str(错误),'LSP_PROTOCOL')#包装成LSP正文错误
         return 消息列表#返回本轮全部完整消息
-
-    def 下一条(自身):
-        '解析并消费下一条完整消息，或报告还需要更多字节'
-        分隔=自身.缓冲.find(头体分隔符.encode('ascii'))#查找头体分隔符
-        if 分隔<0:#尚未看到分隔符
-            if len(自身.缓冲)>头段上限字节:#头已超过上限
-                raise 语言服务器错误('LSP header exceeded '+str(头段上限字节)+' bytes without a terminator','LSP_PROTOCOL')#拒绝无限增长的头
-            return {'ready':False}#还需要更多字节
-        if 分隔>头段上限字节:#分隔符出现得太晚
-            raise 语言服务器错误('LSP header exceeded '+str(头段上限字节)+' bytes','LSP_PROTOCOL')#拒绝过长的头
-        头文本=自身.缓冲[0:分隔].decode('ascii','replace')#把头解码成ASCII文本
-        内容长度=解析内容长度(头文本)#解析Content-Length
-        if 内容长度>自身.最大消息字节:#正文超过配置上限
-            raise 语言服务器错误('LSP message length '+str(内容长度)+' exceeds the '+str(自身.最大消息字节)+'-byte limit','LSP_PROTOCOL')#拒绝过大消息
-        正文起=分隔+len(头体分隔符)#正文起始偏移
-        正文止=正文起+内容长度#正文结束偏移
-        if len(自身.缓冲)<正文止:#正文尚未收齐
-            return {'ready':False}#还需要更多字节
-        正文=自身.缓冲[正文起:正文止].decode('utf-8')#取出UTF-8正文
-        自身.缓冲=自身.缓冲[正文止:]#丢掉已消费字节
-        try:#解析JSON正文
-            return {'ready':True,'message':json.loads(正文)}#解析成功则交出消息
-        except json.JSONDecodeError as 错误:#JSON无效
-            raise 语言服务器错误('LSP message body was not valid JSON: '+str(错误),'LSP_PROTOCOL')#包装成LSP正文错误
-
-def 解析内容长度(头文本):
-    '读取 Content-Length 头值（大小写不敏感），缺失或非数字则拒绝'
-    for 行 in 头文本.split('\r\n'):#逐行扫描头
-        冒号=行.find(':')#找冒号
-        if 冒号<0:#没有冒号则跳过
-            continue#跳过
-        if 行[0:冒号].strip().lower()!='content-length':#不是Content-Length则跳过
-            continue#跳过
-        try:#解析冒号后的数字
-            值=int(行[冒号+1:].strip())#整型
-        except ValueError:#非数字
-            raise 语言服务器错误('invalid Content-Length header: '+json.dumps(行,ensure_ascii=False,separators=(',',':'),allow_nan=False),'LSP_PROTOCOL')#拒绝无效长度
-        if 值<0:#负数非法
-            raise 语言服务器错误('invalid Content-Length header: '+json.dumps(行,ensure_ascii=False,separators=(',',':'),allow_nan=False),'LSP_PROTOCOL')#拒绝无效长度
-        return 值#返回正文长度
-    raise 语言服务器错误('LSP header block missing Content-Length: '+json.dumps(头文本,ensure_ascii=False,separators=(',',':'),allow_nan=False),'LSP_PROTOCOL')#整块头都没有Content-Length

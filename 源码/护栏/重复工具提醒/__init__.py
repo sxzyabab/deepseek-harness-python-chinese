@@ -1,4 +1,5 @@
 import json,re,weakref#JSON规范串、通配正则与按智能体弱表
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 列表字段,数字字段,字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息#构造提醒用户消息
 from .异常 import 重复工具提醒错误
@@ -50,7 +51,7 @@ def 排序Json值(值):
 
 def 规范化(参数值):
     '一次调用参数的规范字符串形式：深键排序后 stringify'
-    return json.dumps(排序Json值(参数值),ensure_ascii=False,separators=(',',':'),allow_nan=False)#排序后紧凑序列化
+    return 紧凑json编码(排序Json值(参数值))#排序后紧凑序列化
 
 def 转义通配元字符(匹配):
     '转义除星号外的正则元字符'
@@ -116,7 +117,7 @@ def 应用(上下文,配置):
         if not 已跟踪(工具名):#未跟踪工具透明
             return None#无提醒
         规范串=规范化(执行['arguments'] if 'arguments' in 执行 else None)#规范化参数
-        键=json.dumps([工具名,规范串],ensure_ascii=False,separators=(',',':'),allow_nan=False)#调用身份键
+        键=紧凑json编码([工具名,规范串])#调用身份键
         链=链表.get(智能体)#取出该智能体的链
         次数=(链['count']+1) if (链 is not None and 链['key']==键) else 1#同键则累加否则从1
         链表[智能体]={'key':键,'count':次数}#写回链

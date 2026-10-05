@@ -3,6 +3,10 @@ from ...依赖.schemastery import 字符串字段,整数字段
 from ...凭据.凭据 import 凭证引用
 from .事件分派 import 创建GitHubWebhook事件分派
 from .异常 import WebhookGithub配置错误#路由与来源配置非法
+from . import (
+    正文,
+    类型,
+)
 
 包名='@deepseek-ai/dsh-webhook-github'
 名称='webhook-github'

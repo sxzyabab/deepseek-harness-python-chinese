@@ -1,4 +1,5 @@
 import fnmatch
+from ....基础设施.通用工具 import 观察者集合
 from urllib.parse import urlparse as 解析URL
 from ..异常 import 右侧侧栏错误
 
@@ -6,15 +7,6 @@ __all__=['右侧侧栏标签注册表','默认优先级带','优先级秩']
 
 默认优先级带='extension'#未声明时的带
 优先级秩={'extension':3,'builtin':2,'fallback':1}#带秩
-
-
-def _通知订阅者(监听者列表,标签,*参数):
-    '逐个通知，单个回调失败不饿死其余'
-    for 监听 in list(监听者列表):#复制后派发
-        try:#单回调
-            监听(*参数)#调用
-        except Exception as 错误:#订阅者回调契约未定
-            print(标签+' 订阅者失败:',错误)#打出
 
 
 def _路径于(地址):
@@ -58,7 +50,7 @@ class 右侧侧栏标签注册表:#标签类型登记表
         自身.上下文=上下文#上下文
         自身.种类表={}#kind → 槽
         自身.标识集=set()#id 集
-        自身.监听者=set()#订阅
+        自身.监听者=观察者集合()#订阅
         自身.登记序=0#全局序
         自身.缓存=()#entries 稳定引用
         自身.向导条目=()#guide 稳定引用
@@ -186,11 +178,7 @@ class 右侧侧栏标签注册表:#标签类型登记表
 
     def 订阅(自身,监听):
         '低频变更'
-        自身.监听者.add(监听)#加
-        def 退订():
-            '退'
-            自身.监听者.discard(监听)#删
-        return 退订#退订器
+        return 自身.监听者.订阅(监听)#退订器
 
     def _刷新(自身):
         '重建缓存并通知'
@@ -202,4 +190,4 @@ class 右侧侧栏标签注册表:#标签类型登记表
                 盒.append({**条目,'kind':定义['kind'],'providerId':定义['id']})#带 kind 与实现
         盒.sort(key=lambda 项:项['order'])#序
         自身.向导条目=tuple(盒)#稳定
-        _通知订阅者(自身.监听者,'[ui-sidebar-right] tab registry')#通知
+        自身.监听者.通知()#通知

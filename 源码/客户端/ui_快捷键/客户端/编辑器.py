@@ -1,5 +1,5 @@
 '行内物理键录制与修订感知的命令编辑'
-import re
+import re#键名
 from .反馈 import 快捷键失败,快捷键读取失败
 
 __all__=['快捷键编辑器']
@@ -145,7 +145,10 @@ class 快捷键编辑器:
 
     def 按下(自身,事件):
         'keydown 捕获阶段逻辑'
-        文档=globals().get('document')
+        try:#页面文档
+            文档=document#document
+        except NameError:#非浏览器
+            文档=None#无
         合成观察=getattr(自身,'_合成',None)
         if 合成观察 is not None and 合成观察.guards(事件):
             if 自身.桌面和弦():
@@ -218,7 +221,10 @@ class 快捷键编辑器:
 
     def 抬起(自身,事件):
         'keyup 捕获阶段逻辑'
-        文档=globals().get('document')
+        try:#页面文档
+            文档=document#document
+        except NameError:#非浏览器
+            文档=None#无
         录钮=getattr(自身,'_录钮',None)
         自身.按住.discard(事件.code)
         if 自身.桌面和弦() and 文档 is not None and 文档.activeElement is 录钮:
@@ -253,8 +259,14 @@ class 快捷键编辑器:
         自身._录钮=录钮
         自身._合成=合成观察
         自身.已挂=True
-        文档=globals().get('document')
-        窗=globals().get('window')
+        try:#页面文档
+            文档=document#document
+        except NameError:#非浏览器
+            文档=None#无
+        try:#页面窗口
+            窗=window#window
+        except NameError:#非浏览器
+            窗=None#无
         录制=自身.属性['recording']
         def 成():
             '原生保护就绪'

@@ -1,4 +1,4 @@
-import json#JSON 结果
+from ...基础设施.通用工具 import 紧凑json编码
 from urllib.parse import parse_qs as 解析查询,urlparse as 解析URL
 from ...工具.标识构造 import 标识构造#会话 id 标识
 from .类型 import 取远程错误#Remote 错误提取
@@ -76,7 +76,7 @@ def 处理文件上传http(服务,请求):#处理上传 HTTP
         else:#内部错误
             消息=错误.args[0] if len(错误.args)>0 else str(错误)#消息
             结果={'ok':False,'error':{'code':'gateway/internal','message':消息,'details':{}}}#内部
-    正文=json.dumps(结果,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')#JSON 字节
+    正文=紧凑json编码(结果).encode('utf-8')#JSON 字节
     return {#始终 200 JSON
         'status':200,#状态
         'headers':{#头

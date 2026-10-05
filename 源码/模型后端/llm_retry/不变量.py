@@ -1,6 +1,7 @@
 '校验持久重试事件与失败事实（dict）'
-import json,math
+import math
 from ...工具.超时 import 定时器延迟上限毫秒
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .历史 import 打开步提供方
 
 __all__=('包名','名称','依赖','安装','应用')
@@ -125,7 +126,7 @@ def 校验重试(历史,事件,失败):
                 return False
             return 先前['data']['retryId']==链身份
         if 从后找(历史,占用链身份) is not None:
-            失败('llm/retry retryId '+json.dumps(链身份,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' is already owned by another chain')
+            失败('llm/retry retryId '+紧凑json编码(链身份)+' is already owned by another chain')
 
 def 校验已开始(历史,事件,失败):
     '对照其已调度尝试校验一次等待完成过渡。事件为 dict'

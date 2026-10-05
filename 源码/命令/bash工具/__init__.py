@@ -1,7 +1,7 @@
-import json,math,os,threading#JSON片段、有限数、路径与后台结算线程
-from concurrent.futures import Future as 原生Future#单次操作结果
-from ...依赖 import cordis
-纤程状态=cordis.纤程状态
+import math,os,threading#有限数、路径与后台结算线程
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
+from ...依赖.cordis.纤程 import 纤程状态
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
 from ...模型后端.llm.异常 import 装备错误#Harness错误
@@ -29,27 +29,6 @@ __all__=['名称','依赖','配置','应用']#仅中文公开名
     'jobId':{'type':'string','required':True},#任务id
 }#后台输出字段结束
 
-class 操作任务:#单次操作结果
-    '任务对象只留等待'
-    def __init__(自身):#构造未决任务
-        '构造未决任务'
-        自身.未来=原生Future()#底层Future
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身.未来.done():#尚未结算
-            自身.未来.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身.未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身.未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身.未来.set_exception(bash工具错误(错误))#包装拒绝
-    def 等待(自身,超时=None):#阻塞等待
-        '阻塞到结算'
-        return 自身.未来.result(timeout=超时)#取结果或抛错
-
 def 已中止(信号):#读中止事实
     '信号按Event定死'
     if 信号 is None:#无信号
@@ -64,7 +43,7 @@ def 校验Bash参数(参数):#校验参数值
         raise bash工具错误('非法 description：需要非空字符串')#拒绝空描述
     超时=参数['timeoutMs'] if 'timeoutMs' in 参数 else None#可选超时
     if 超时 is not None and (isinstance(超时,bool) or not isinstance(超时,(int,float)) or not math.isfinite(超时) or 超时<=0):#超时非法
-        raise bash工具错误('非法 timeoutMs：需要正数，实际为 '+json.dumps(超时,ensure_ascii=False,separators=(',',':'),allow_nan=False))#拒绝非正超时
+        raise bash工具错误('非法 timeoutMs：需要正数，实际为 '+紧凑json编码(超时))#拒绝非正超时
     校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
 
 def 拼Bash描述(后台启用,升级模式,晋升超时):#拼工具描述

@@ -1,5 +1,6 @@
 '`--json` 运行投影：从一只智能体的耐久会话事件导出有界有序事件流'
 import json,math,os#序列化、有限数与工作目录
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...模型后端.llm.助手流 import 末条助手流块#流末条用量
 __all__=['最大字符串字节','最大事件字节','约束json行','投影json运行']#仅中文公开名
 
@@ -53,7 +54,7 @@ def 约束json事件(事件,最大串字节=最大字符串字节):
 
 def 编码行(值):
     '按线协议锁死的 JSON 序列化'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#紧凑 JSON
+    return 紧凑json编码(值)#紧凑 JSON
 
 def 约束json行(事件,最大串字节=最大字符串字节,最大事件字节数=最大事件字节):
     '在串上限与整行上限下序列化一条投影载荷，不含尾换行'

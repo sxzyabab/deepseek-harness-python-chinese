@@ -1,5 +1,4 @@
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#导入Cordis服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...内核.会话 import 会话头字段#导入会话头（本包只再导出，不拥有）
 from .修订 import 会话持久化修订#修订品牌
 from .异常 import (#本包异常
@@ -41,6 +40,9 @@ from .存储契约 import (#存储契约再导出
     物化追加批,#追加批
     断言连续,#连续 seq
 )#存储契约
+from . import (
+    写后,
+)
 
 会话持久化快照字段=('header','revision','eventCount','sizeBytes')#不加载完整日志即可返回的轻量不可变源身份
 

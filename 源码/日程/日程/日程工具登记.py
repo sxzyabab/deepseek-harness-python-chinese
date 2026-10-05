@@ -1,5 +1,6 @@
-import json,time#JSON 文本与墙钟
 from ...依赖 import cordis#外部依赖胶水
+from ...基础设施.通用工具.时间工具 import 当前毫秒
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .异常 import 日程输入错误,日程日志错误#本包异常
 from .领域 import (
@@ -98,7 +99,7 @@ def 已中止(信号):
 
 def 渲染取值(_参数,值):#每个规范日程取值的确定性模型正文
     '每个规范日程取值的确定性模型正文'
-    文本=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#规范 JSON 文本
+    文本=紧凑json编码(值)#规范 JSON 文本
     return [{'type':'text','text':文本}]#单文本块
 
 def 呈现(标题,种类,原始输入=None):#纯 generic 待处理卡片
@@ -221,11 +222,11 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
                 标识=分配日程标识(折叠)#分配新鲜 id
                 try:#按选择器铸造记录
                     if 'at' in 参数 and 参数['at'] is not None:#绝对
-                        记录=创建绝对日程记录(标识,参数['prompt'],参数['at'],int(time.time()*1000))#绝对记录
+                        记录=创建绝对日程记录(标识,参数['prompt'],参数['at'],当前毫秒())#绝对记录
                     elif 'after_seconds' in 参数 and 参数['after_seconds'] is not None:#延迟
-                        记录=创建延迟日程记录(标识,参数['prompt'],参数['after_seconds'],int(time.time()*1000))#延迟记录
+                        记录=创建延迟日程记录(标识,参数['prompt'],参数['after_seconds'],当前毫秒())#延迟记录
                     else:#固定频率
-                        记录=创建固定频率日程记录(标识,参数['prompt'],参数['every_seconds'],int(time.time()*1000))#固定频率记录
+                        记录=创建固定频率日程记录(标识,参数['prompt'],参数['every_seconds'],当前毫秒())#固定频率记录
                 except 日程输入错误 as 错误:#铸造失败为输入
                     return 输入错误译(错误)#输入
                 except Exception:#其它
@@ -241,7 +242,7 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
                 if 屏障 is not None:#不确定
                     return 屏障#带 id 报告
                 通知耐久变更()#屏障成功后再驱使
-                return 日程视图(记录,int(time.time()*1000))#返回视图
+                return 日程视图(记录,当前毫秒())#返回视图
             return 可取消日程事务(智能体,信号,任务)#串行
         def 呈现创建(参数):#待处理卡片
             '创建待处理卡片'
@@ -279,7 +280,7 @@ def 登记日程工具(根上下文,工具上下文,智能体,耐久变更时):#
                 折叠=工具折叠(智能体)#折叠当前流
                 if 是工具错误(折叠):#损坏或内部错误
                     return 折叠#错误
-                现在=int(time.time()*1000)#墙钟采样
+                现在=当前毫秒()#墙钟采样
                 return [日程视图(记录,现在) for 记录 in 折叠['active']]#创建序视图
             return 可取消日程事务(智能体,信号,任务)#串行
         def 呈现列出(_参数=None):#只读卡片

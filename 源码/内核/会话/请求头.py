@@ -1,11 +1,11 @@
-import json
+from ...基础设施.通用工具 import 紧凑json编码
 from ...模型后端.llm.调用配置 import 调用配置相等
 
 __all__=['归一请求头','请求头是否相等','折叠请求头']
 
 def 转json(值):
     '按 JS JSON.stringify 的紧凑形态编码'
-    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    return 紧凑json编码(值)
 
 def 归一请求头(头):
     '把请求头归一成规范形态：空工具列表变成缺省字段，与请求构建方式一致'

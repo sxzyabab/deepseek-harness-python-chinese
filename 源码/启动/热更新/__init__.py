@@ -1,7 +1,8 @@
 '串行化的模块与配置档配置重载'
 import copy,json,os,re,sys,threading
+from ...基础设施.通用工具.文本工具 import 路径转正斜杠,相对正斜杠路径
 from watchfiles import watch as 监视变化,Change as 变化种类
-from ...依赖 import cordis
+from ...依赖.cordis.服务 import 服务
 from ...依赖.schemastery import 字符串字段,列表字段,自然数字段
 from ...依赖.工具 import 路径转文件url,文件url转路径
 from .异常 import 处理错误
@@ -12,7 +13,6 @@ from ..app启动 import (
     启动包含表,未激活条目,激活诊断,组合条目,
 )
 
-服务=cordis.服务
 __all__=['热更新','重载记录']
 
 #常量
@@ -39,8 +39,8 @@ def 规范路径(文件名):
 
 def 通配命中(文本,通配式):
     '按 glob 规则判断相对路径是否命中，支持 **、* 与 ?'
-    文本=文本.replace('\\','/')#正斜杠
-    通配式=通配式.replace('\\','/')#正斜杠
+    文本=路径转正斜杠(文本)#正斜杠
+    通配式=路径转正斜杠(通配式)#正斜杠
     段=[]#正则片段
     下标=0#扫描下标
     while 下标<len(通配式):#逐字符
@@ -322,7 +322,7 @@ class 热更新(服务):
         def 忽略路径(绝对路径):
             '任一忽略模式命中相对路径时为真'
             try:#相对
-                相对=os.path.relpath(绝对路径,监视基准).replace('\\','/')#相对
+                相对=相对正斜杠路径(绝对路径,监视基准)#相对
             except ValueError:#跨盘
                 return True#忽略
             return any(通配命中(相对,式) for 式 in 忽略模式)#命中
@@ -354,7 +354,7 @@ class 热更新(服务):
                             except ValueError:#跨盘
                                 continue#跳过
                             with 变更锁:#入批
-                                变更集.add(相对.replace('\\','/'))#相对路径
+                                变更集.add(路径转正斜杠(相对))#相对路径
                             防抖派发()#派发
                 except Exception as 错误:#单轮失败
                     if 停止.is_set():#关闭

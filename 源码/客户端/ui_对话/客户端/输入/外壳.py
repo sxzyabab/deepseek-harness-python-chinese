@@ -1,4 +1,4 @@
-import threading#序列化取消与附件飞行
+from .....基础设施.通用工具 import 启动守护线程,观察者集合
 from ...异常 import 对话错误#本包异常
 from .输入机 import 输入机,已中止,若已中止则抛出,中止控制器#提交平面
 from .运行时 import 草稿编辑器运行时#作曲器编辑器
@@ -13,7 +13,7 @@ class 快照存储:#简易 SnapshotStore
     def __init__(自身,初值):
         '记下初值'
         自身.状态=初值#当前
-        自身.监听者=set()#订阅者
+        自身.监听者=观察者集合()#订阅者
 
     def getSnapshot(自身):
         '返回当前值'
@@ -21,17 +21,12 @@ class 快照存储:#简易 SnapshotStore
 
     def subscribe(自身,回调):
         '登记'
-        自身.监听者.add(回调)#加入
-        def 退订():
-            '取消'
-            自身.监听者.discard(回调)#删除
-        return 退订#退订器
+        return 自身.监听者.订阅(回调)#退订器
 
     def set(自身,下一份):
         '写入并通知'
         自身.状态=下一份#覆盖
-        for 回调 in list(自身.监听者):#通知
-            回调()#触发
+        自身.监听者.通知()#触发
 
 def 触发档位(相位):
     'plain / claimed / frozen'
@@ -265,7 +260,7 @@ class 会话输入壳:#每会话输入外壳
                         del 自身.附件飞行[飞行]#摘
                         自身.恢复附件(附件列表)#恢复
                         自身.notify('error',str(错误))#通知
-                threading.Thread(target=直送,daemon=True).start()#后台
+                启动守护线程(直送)#后台
             return#停
         前=自身.snapshot#提交前
         认领=前['claim'] if 'claim' in 前 else None#认领
@@ -526,7 +521,7 @@ class 会话输入壳:#每会话输入外壳
                 if 自身.已失效(尝试):#过期
                     return#丢
                 自身.结算脱离失败(尝试,str(错误))#失败
-        threading.Thread(target=序列化,daemon=True).start()#后台
+        启动守护线程(序列化)#后台
 
     def 结算汇(自身,尝试,待决):
         '独立结算一次脱离发送'
@@ -547,7 +542,7 @@ class 会话输入壳:#每会话输入外壳
                 if 自身.已失效(尝试):#过期
                     return#丢
                 自身.结算脱离失败(尝试,str(错误))#失败
-        threading.Thread(target=工作,daemon=True).start()#后台
+        启动守护线程(工作)#后台
 
     def 结算脱离失败(自身,尝试,消息=None):
         '恢复一份失败脱离发送，不覆盖恢复后键入的正文'
@@ -649,7 +644,7 @@ class 会话输入壳:#每会话输入外壳
                 if 自身.已失效(尝试):#过期
                     return#丢
                 自身.执行派发({'type':'submit-settled','attempt':尝试,'ok':False,'draft':自身.投影['clipboardText'],'message':str(错误)})#失败
-        threading.Thread(target=工作,daemon=True).start()#后台
+        启动守护线程(工作)#后台
 
     def 已失效(自身,尝试):
         '拆除或已中止'

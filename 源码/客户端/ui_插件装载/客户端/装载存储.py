@@ -1,4 +1,5 @@
 import threading#并发与中止
+from ....基础设施.通用工具 import 启动守护线程
 from uuid import uuid4 as 生成随机UUID#安装请求 id
 from ...存储 import 创建快照存储#快照存储
 from .呈现 import 短名#短名排序
@@ -167,25 +168,25 @@ class 插件装载控制:#装载页状态拥有者
 
     def 跑安装触发(自身):
         '触发安装'
-        threading.Thread(target=自身._跑安装,daemon=True).start()#线程
+        启动守护线程(自身._跑安装)#线程
 
     def 允许构建并重试触发(自身):
         '允许待决脚本并重试'
-        threading.Thread(target=自身._允许构建并重试,daemon=True).start()#线程
+        启动守护线程(自身._允许构建并重试)#线程
 
     def 取消安装触发(自身):
         '取消安装'
         def 干活():
             '取消不关闭'
             自身._取消安装(False)#取消
-        threading.Thread(target=干活,daemon=True).start()#线程
+        启动守护线程(干活)#线程
 
     def 取消并关闭触发(自身):
         '取消并关闭'
         def 干活():
             '取消并关'
             自身._取消安装(True)#取消关
-        threading.Thread(target=干活,daemon=True).start()#线程
+        启动守护线程(干活)#线程
 
     def 切换安装详情(自身):
         '折叠/展开安装详情'
@@ -193,7 +194,7 @@ class 插件装载控制:#装载页状态拥有者
 
     def 启用已安装触发(自身):
         '启用刚装包'
-        threading.Thread(target=自身._启用已安装,daemon=True).start()#线程
+        启动守护线程(自身._启用已安装)#线程
 
     def 清高亮(自身):
         '丢掉列表高亮'
@@ -209,7 +210,7 @@ class 插件装载控制:#装载页状态拥有者
         def 跑启停():
             '在忙碌键下跑'
             自身._跑(包名,{'packageName':包名,'action':动作},干活)#跑
-        threading.Thread(target=跑启停,daemon=True).start()#线程
+        启动守护线程(跑启停)#线程
 
     def 卸载(自身,包名):
         '请求确认后卸载'
@@ -224,7 +225,7 @@ class 插件装载控制:#装载页状态拥有者
 
     def 确认触发(自身):
         '确认待决破坏动作'
-        threading.Thread(target=自身._确认,daemon=True).start()#线程
+        启动守护线程(自身._确认)#线程
 
     def 取消确认(自身):
         '取消确认'
@@ -241,7 +242,7 @@ class 插件装载控制:#装载页状态拥有者
         def 跑行():
             '在忙碌键下跑'
             自身._跑(键,{'packageName':入口标识,'action':动作},干活)#跑
-        threading.Thread(target=跑行,daemon=True).start()#线程
+        启动守护线程(跑行)#线程
 
     def 关掉提示(自身):
         '关掉 toast'
@@ -298,7 +299,7 @@ class 插件装载控制:#装载页状态拥有者
             finally:
                 自身.飞行中=None
                 事件.set()#完成
-        threading.Thread(target=干活,daemon=True).start()#线程
+        启动守护线程(干活)#线程
         事件.wait()#阻塞至完成
 
     def _读取(自身):
@@ -329,10 +330,8 @@ class 插件装载控制:#装载页状态拥有者
             def 拉插件():
                 '拉插件'
                 插件结果[0]=自身.上下文.remote.pluginManager.listPlugins().等待()#等
-            线1=threading.Thread(target=拉组合,daemon=True)#线
-            线2=threading.Thread(target=拉插件,daemon=True)#线
-            线1.start()
-            线2.start()
+            线1=启动守护线程(拉组合)#线
+            线2=启动守护线程(拉插件)#线
             线1.join()#等
             线2.join()#等
             if 代次!=自身.代次:#过期

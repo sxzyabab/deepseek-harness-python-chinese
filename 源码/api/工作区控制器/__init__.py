@@ -1,5 +1,6 @@
 '宿主工作区远程拥有者：显式命令与重连安全状态'
 import re,threading
+from ...基础设施.通用工具 import 启动守护线程
 from ...依赖.schemastery import 字符串字段,数字字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .命令 import 工作区命令
@@ -8,6 +9,10 @@ from .目录选择器 import 目录选择器控制器
 from .远程错误与中止 import 已中止
 from .默认目录 import 校验文档目录,默认工作区目录
 from .异常 import 远程错误,文档目录错误#本包异常
+from . import (
+    远程,
+    客户端,
+)
 
 __all__=['包名','名称','依赖','应用','默认','配置','工作区控制器','目录选择器控制器','工作区视图']
 
@@ -79,9 +84,7 @@ class 工作区控制器(远程服务):
                 return
             信号.wait()
             合成.set()
-        监视=threading.Thread(target=监视父)
-        监视.daemon=True
-        监视.start()
+        启动守护线程(监视父)
         def 解析默认():
             try:
                 路径=默认工作区目录(目录名,自身._配置['documentsDirectory'],合成)

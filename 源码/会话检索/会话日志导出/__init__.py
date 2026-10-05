@@ -13,6 +13,9 @@ from .归档 import (#归档
     会话日志zip条目,#条目
 )#归档
 from .路由列表 import 会话日志导出路径#路由
+from . import (
+    客户端,
+)
 
 包名='@deepseek-ai/dsh-session-log-export'
 名称='session-log-download'

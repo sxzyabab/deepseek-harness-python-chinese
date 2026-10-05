@@ -1,5 +1,5 @@
 import threading#写入链、流消费与渲染确认
-from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据,utf8字节数,启动守护线程
 from ....内核.作用域 import 操作任务#创建与关闭
 from ....工具.加密 import 随机uuid#附着身份
 from ....工具.超时 import 中止控制器,已中止,等待中止,若已中止则抛出#寿命
@@ -84,7 +84,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         自身._已挂=True#挂
         快照=自身.状态.getSnapshot()#状态
         if 'info' not in 快照 or 快照['info'] is None:#尚无进程
-            threading.Thread(target=自身.刷新,daemon=True).start()#刷新
+            启动守护线程(自身.刷新)#刷新
         else:#已有
             自身.连接()#接
         def 卸挂():#DOM 卸
@@ -217,7 +217,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
             except BaseException as 错误:
                 if not 自身._已停():#仍活
                     自身._失败(错误)
-        threading.Thread(target=后台,daemon=True).start()#后台
+        启动守护线程(后台)#后台
 
     def 连接(自身):#新屏幕并夺回输入
         '已挂且未关闭才开流'
@@ -253,7 +253,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         盒['流']=流#记下
         自身._流=流#记下
         自身._补丁({'phase':'connecting','writable':False,'error':None,'issue':None,'render':None})#连接中
-        threading.Thread(target=自身._消费,args=(流,),daemon=True).start()#消费
+        启动守护线程(自身._消费,流)#消费
 
     def 确认(自身,修订):#xterm 已解析
         '只确认当前待渲染修订'
@@ -271,7 +271,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
         可写=状态['writable'] if 'writable' in 状态 else False#可写
         if not 可写 or 信息 is None or 附着标识 is None:#不可
             return#跳
-        字节=len(数据.encode('utf-8'))#UTF-8
+        字节=utf8字节数(数据)#UTF-8
         环境=状态['environment'] if 'environment' in 状态 else None#环境
         上限=环境['maxInputBytes'] if 环境 is not None else 0#上限
         if 自身._排队输入+字节>上限:#满
@@ -458,7 +458,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
                         '代际信号'
                         等待中止(项.signal)#等
                         中止时()#确认
-                    threading.Thread(target=监视,daemon=True).start()#监视
+                    启动守护线程(监视)#监视
                     自身._补丁({'render':{'revision':修订,'frame':帧}})#渲染
                     if 已中止(项.signal):#已取消
                         中止时()#立刻

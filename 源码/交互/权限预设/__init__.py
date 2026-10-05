@@ -1,7 +1,6 @@
 '盖在独立沙盒模式与审批策略旋钮上的面向用户权限预设'
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 字符串字段,枚举字段,常量字段,复合类型字段#配置字段
-服务=cordis.服务#Cordis 服务基类
 from ...配置.配置 import 安装设置段,设置命名空间#设置段安装与命名空间
 from ...交互.命令.标识构造 import 命令定义标识#命令定义身份
 from ...沙盒.沙盒策略 import 沙盒模式表,生效沙盒模式,设沙盒模式#沙盒模式表、折叠与写入
@@ -386,3 +385,7 @@ __all__=[#仅中文公开名
 name='permission-presets'#Cordis插件名
 Config=配置模式#Cordis配置模式
 default=权限预设服务#Cordis默认导出
+from . import (
+    不变量,
+    客户端,
+)

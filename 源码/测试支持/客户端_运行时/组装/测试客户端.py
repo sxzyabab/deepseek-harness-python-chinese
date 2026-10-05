@@ -1,5 +1,5 @@
 import builtins,threading#页面全局与启动回合锁
-from ....依赖 import cordis#外部依赖胶水
+from ....依赖.cordis.上下文 import 上下文 as 上下文类#Cordis 上下文
 from ....客户端.模块.条目生命周期 import 拆除条目纤程#条目纤程拆除
 from ....客户端.连接.客户端 import 安装连接#连接安装
 from ....客户端.web.启动客户端 import 启动客户端#生产客户端启动
@@ -11,7 +11,6 @@ from .远程代理 import 远程接口包名,收集远程命名空间,远程代�
 
 __all__=['测试客户端']#仅中文公开名
 
-上下文类=cordis.上下文#Cordis 上下文
 连接包名='@deepseek-ai/dsh-client-connection'#连接包名
 默认连接超时毫秒=5000#默认连接超时毫秒
 
@@ -97,7 +96,10 @@ def 解析挂载点(挂载):#解析挂载点
     '解析挂载选项'
     if 挂载 is None or 挂载 is False:#不挂载
         return {'element':None,'owned':False}#空
-    文档=getattr(builtins,'document',None)#页面文档
+    try:#页面文档
+        文档=document#页面文档
+    except NameError:#非浏览器
+        文档=None#无
     if 文档 is None:#无 DOM
         raise 客户端测试运行时错误('client-test-runtime: mount requires a DOM; add `// @vitest-environment jsdom` to the spec')#英文诊断
     if 挂载 is True:#自建节点
@@ -145,7 +147,10 @@ class 测试客户端:#测试客户端
         名册=计划.名册.去掉([远程接口包名]) if 名册含远程 else 计划.名册#丢掉远程包
         上下文=上下文类()#新建上下文
         页面定位=None#页面主机名
-        定位=getattr(builtins,'location',None)#页面 location
+        try:#页面定位
+            定位=location#页面 location
+        except NameError:#非浏览器
+            定位=None#无
         if 定位 is not None:#有 location
             页面定位={'hostname':定位.hostname}#主机名
         挂载点={'element':None,'owned':False}#挂载点

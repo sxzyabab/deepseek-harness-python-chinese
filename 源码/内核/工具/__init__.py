@@ -1,8 +1,8 @@
-import json,math,threading,weakref
-from ...依赖 import cordis#外部依赖胶水
+import json,threading,weakref
+from ...基础设施.通用工具 import 是否正有限数,紧凑json编码,启动守护线程
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...依赖.schemastery import 枚举字段,自然数字段#配置字段
-服务=cordis.服务#导入服务基类
 from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,作用域目标#导入作用域层与载体
 from ...模型后端.llm.异常 import 装备错误 as 框架错误#导入框架错误
 from ...模型后端.llm import 断言永不,深冻结#穷尽检查与深冻结
@@ -74,6 +74,9 @@ from .代码模式 import (
     已中止,#是否中止
     中止控制器,#熔合控制器
 )
+from . import (
+    不变量,
+)
 
 仅代码指令='`'+运行代码名+'` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.'#模型可见折叠规则
 sdk渲染器={
@@ -84,16 +87,6 @@ sdk渲染器={
 class 可弱引用表(dict):
     '可被弱引用的工具执行或结果表'
     pass#字典子类可弱引用
-
-def 是否正有限(值):
-    '超时预算必须为正有限数'
-    if isinstance(值,bool):
-        return False#布尔不是数字
-    if isinstance(值,int):
-        return 值>0#正整数
-    if isinstance(值,float):
-        return math.isfinite(值) and 值>0#正有限浮点
-    return False#其余非法
 
 def 是否可调用(值):
     '值是否可调用'
@@ -250,21 +243,19 @@ def 熔合工具信号(调用方,包装器):
         '等到来源中止再转发给熔合控制器'
         if 来源 is None:
             return#无信号
-        来源._事件.wait()#阻塞到置位
+        来源.等待()#阻塞到置位
         if 停止.is_set():
             return#已拆除
-        控制器.中止(来源._异常)#转发异常对象
+        控制器.中止(来源.原因)#转发异常对象
     if 已中止(包装器):
-        控制器.中止(包装器._异常)#包装器已中止
+        控制器.中止(包装器.原因)#包装器已中止
     elif 已中止(调用方):
-        控制器.中止(调用方._异常)#调用方已中止
+        控制器.中止(调用方.原因)#调用方已中止
     else:
         for 来源 in (调用方,包装器):
             if 来源 is None:
                 continue#无信号
-            工作=threading.Thread(target=转发中止,args=(来源,))#转发线程
-            工作.daemon=True#不挡住退出
-            工作.start()#启动
+            启动守护线程(转发中止,来源)#转发线程
     return {'signal':控制器.信号,'dispose':拆除}#熔合信号与拆除
 
 class 工具层:
@@ -460,8 +451,8 @@ class 工具运行时(服务):
             raise 工具错误('dsh-tools: 模式 "'+呈现+'" 需要PTC运行时 — 请加载 ctx.ptcRuntime 实现（例如 @deepseek-ai/dsh-ptc-runtime-node）或把 tools 模式设为 "native"')#可操作错误
         语言=运行时.language#语言
         if 语言 not in sdk渲染器:
-            已知=', '.join(json.dumps(名,ensure_ascii=False,separators=(',',':'),allow_nan=False) for 名 in sdk渲染器.keys())#已知语言
-            raise 工具错误('dsh-tools: 运行时语言 '+json.dumps(语言,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' 没有已登记的 SDK 渲染器（已知: '+已知+'）')#未知语言
+            已知=', '.join(紧凑json编码(名) for 名 in sdk渲染器.keys())#已知语言
+            raise 工具错误('dsh-tools: 运行时语言 '+紧凑json编码(语言)+' 没有已登记的 SDK 渲染器（已知: '+已知+'）')#未知语言
         return 运行时#已校验运行时
 
     def 登记(自身,定义):
@@ -472,7 +463,7 @@ class 工具运行时(服务):
             raise TypeError('工具 "'+名+'" 必须声明 output { schema, render, presentationMeta? }')#必须声明输出
         断言受支持json模式(输出['schema'])#输出模式必须是子集
         超时=定义['timeoutMs'] if 'timeoutMs' in 定义 else None#超时
-        if 超时 is not None and not 是否正有限(超时):
+        if 超时 is not None and not 是否正有限数(超时):
             raise TypeError('工具 "'+名+'" 的 timeoutMs 必须是正有限数')#必须正有限
         if 名==运行代码名:
             raise 工具错误('工具名 "'+运行代码名+'" 保留给 PTC mode 呈现传输，不能登记或遮蔽')#不得注册或遮蔽

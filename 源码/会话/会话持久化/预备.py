@@ -1,60 +1,13 @@
 '有界共享与独占预留未发布 Session'
-import threading#后台观察与加载
-from threading import Event as 事件#单次操作结算门
+from ...基础设施.通用工具 import 操作任务,已中止,启动守护线程
 from .异常 import 持久化错误,中止错误#本包异常
-
-class 操作任务:
-    '单次操作结算；只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._完成=事件()#结算门
-        自身._值=None#成功值
-        自身._错误=None#失败原因
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if 自身._完成.is_set():#已结算
-            return 值#幂等
-        自身._值=值#记下
-        自身._完成.set()#开门
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算；非异常则包成本包错误'
-        if 自身._完成.is_set():#已结算
-            return#幂等
-        if isinstance(错误,BaseException):#已是异常
-            自身._错误=错误#原样
-        else:#非异常
-            包装=持久化错误('task rejected')#包装拒绝
-            包装.原因=错误#附加信息做成属性
-            自身._错误=包装#记下
-        自身._完成.set()#开门
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算；失败原样抛'
-        if not 自身._完成.wait(超时):#超时未结算
-            raise TimeoutError('operation timed out')#超时
-        if 自身._错误 is not None:
-            raise 自身._错误#原样抛
-        return 自身._值#成功值
-
-def 已中止(信号):
-    """信号是否已中止。
-    无信号视为未中止
-    """
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
 
 def 若已中止则抛出(信号):
     '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号._事件.is_set():#仍活着
+    if not 已中止(信号):#无信号或仍活着
         return#仍活着
-    if 信号._异常 is not None:#有承载异常
-        raise 信号._异常#抛出
+    if 信号.原因 is not None:#有承载异常
+        raise 信号.原因#抛出
     raise 中止错误()#默认中止
 
 def 尚未越过截止():
@@ -109,17 +62,13 @@ def 观察排队取消(操作,信号,已开始=None):
             拒绝包装(原因)
     def 转发中止():
         '等到来源置位后拒绝观察包装'
-        信号._事件.wait()#阻塞到中止
+        信号.等待()#阻塞到中止
         在取消()#转发取消
-    线程=threading.Thread(target=观察共享)#后台
-    线程.daemon=True#不挡退出
-    线程.start()
+    启动守护线程(观察共享)#后台
     if 已中止(信号):#已经取消
         在取消()#立刻处理
     else:
-        中止监视线程=threading.Thread(target=转发中止)#转发中止线程
-        中止监视线程.daemon=True#不挡退出
-        中止监视线程.start()
+        启动守护线程(转发中止)#转发中止线程
     return 包装#观察任务
 
 会话预备预留字段=('entry','source','state')#一份独占持有的预备源及其已提交持久化状态（所属条目、预备源、已提交状态）
@@ -289,9 +238,7 @@ class 会话预备池:
             except BaseException as 错误:#挂源失败
                 自身.摘掉(条目)#摘掉
                 延迟.拒绝(错误)#拒绝观察者
-        线程=threading.Thread(target=观察加载)#后台加载
-        线程.daemon=True#不挡退出
-        线程.start()
+        启动守护线程(观察加载)#后台加载
         return 条目#返回条目
 
     def 标就绪(自身,条目):

@@ -1,8 +1,9 @@
 '用配置档模块解析、不启动插件地检查已声明 Config 模式'
 import os,json,yaml
-from ...依赖.loader import 组,是组插件,模块加载器
-from ...依赖.include import 包含,应用插件补丁,插件列表读取器
-from ...依赖.工具 import 是否表达式节点,路径转文件url,文件url转路径
+from ....基础设施.通用工具.序列化编码 import 紧凑json编码
+from ....依赖.loader import 组,是组插件,模块加载器
+from ....依赖.include import 包含,应用插件补丁,插件列表读取器
+from ....依赖.工具 import 是否表达式节点,路径转文件url,文件url转路径
 from ..配置解析.解析器 import 安装配置解析
 from .原生 import 是否原生配置数据架构
 from .文档 import 构建配置数据架构文档
@@ -123,7 +124,7 @@ def 收集配置数据架构(配置档,条目,解析,诊断=None):
                     '下一参数'
                     值=参数[下标[0]] if 下标[0]<len(参数) else None
                     下标[0]+=1
-                    return json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+                    return 紧凑json编码(值)
                 import re
                 结果['diagnostics'].append({'level':'warning','path':路径,'message':re.sub(r'%C',替,消息)})
             return 记

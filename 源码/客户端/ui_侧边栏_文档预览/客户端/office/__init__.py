@@ -9,6 +9,10 @@ from .缓存 import Office预览缓存#缓存
 from .存储 import 创建Office存储#存储
 from .面 import office面#读取面
 from ..pdf import 应用 as 登记pdf呈现#PDF 呈现登记占位
+from . import (
+    Office正文,
+    字体提示,
+)
 
 __all__=['应用','转换错误键']#仅中文公开名
 

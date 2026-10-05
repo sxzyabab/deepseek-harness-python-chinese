@@ -1,7 +1,7 @@
-import time,threading,weakref
-from ...依赖 import cordis
+import threading,weakref
+from ...基础设施.通用工具 import 当前毫秒
+from ...依赖.cordis.服务 import 服务
 from ...依赖.工具 import 获取内部数据
-服务=cordis.服务
 from ...模型后端.llm.调用配置 import 结构化克隆,冻结映射,可弱引用映射
 from ...工具.值 import 断言永不
 from ..作用域 import 获取作用域,作用域目标
@@ -33,6 +33,9 @@ from .已知事件类型 import 已知会话事件类型,消息投影事件类�
 from .序号范围 import 编码序号范围,解码序号范围
 from .工具历史 import 工具历史投影
 from .异常 import 会话错误,会话分叉错误
+from . import (
+    不变量,
+)
 
 __all__=[
     '会话','会话存储','会话分叉错误','会话准备','会话标识','会话格式版本','会话头字段','会话头',
@@ -73,10 +76,6 @@ def 是否绝对路径(路径):
     if len(路径)>2 and (('A'<=首<='Z') or ('a'<=首<='z')) and 路径[1]==':' and (路径[2]=='/' or 路径[2]=='\\'):
         return True
     return False
-
-def 当前毫秒():
-    'Unix 纪元毫秒'
-    return int(time.time()*1000)
 
 def 是否普通记录(值):
     '值是否为普通 JSON 记录，不是数组'

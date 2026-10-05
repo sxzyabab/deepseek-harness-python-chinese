@@ -1,9 +1,6 @@
 '`grep` 与 `glob` 在结果时刻的搜索卡片呈现'
-import json#meta序列化字节计量
-
-def 字节长(文本):#UTF-8字节长度
-    '按 UTF-8 字节计长'
-    return len(文本.encode('utf-8'))#按utf8计字节
+from ...基础设施.通用工具.文本工具 import utf8字节数
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 
 def 按文件分组命中(命中列表):#按文件首次出现顺序分组命中
     """按文件分组扁平命中（首次出现顺序），做成 UI 可展开的按文件结构。
@@ -23,7 +20,7 @@ def 按文件分组命中(命中列表):#按文件首次出现顺序分组命中
 
 def 元字节(元):#计算meta序列化后的UTF-8字节数
     '一份 meta 载荷序列化后的 UTF-8 字节大小（持久化并重发的大小）'
-    return 字节长(json.dumps(元,ensure_ascii=False,separators=(',',':'),allow_nan=False))#按utf8计序列化字节
+    return utf8字节数(紧凑json编码(元))#按utf8计序列化字节
 
 def 限制元字节(元,最大元字节):#把序列化meta压进字节预算
     """丢掉尾部顶层项（文件组或路径），直到序列化后的 meta 适合 maxMetaBytes；丢掉任何项时标记 truncated。

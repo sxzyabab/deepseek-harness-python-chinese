@@ -11,6 +11,9 @@ from .提供方 import (
     映射Perplexity结果,
     映射Perplexity响应,
 )
+from . import (
+    类型,
+)
 
 __all__=['包名','名称','依赖','应用','默认']
 

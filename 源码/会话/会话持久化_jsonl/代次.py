@@ -1,5 +1,6 @@
 'JSONL 会话产物的耐久整代发布（对齐 generation.ts；迁移校验进程内完成）'
 import hashlib#摘要
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数,摘要十六进制
 import os#路径与 fs
 import secrets#随机令牌
 import sys#平台
@@ -286,7 +287,7 @@ def 校验jsonl当代代(路径,压缩,期望标识,期望事件数,期望前缀
     if 期望前缀 is not None:#仅前缀
         if len(字节)<期望前缀['bytes']:#过短
             raise Error('target bytes are shorter than the migrated generation')#错误
-        摘要=hashlib.sha256(字节[:期望前缀['bytes']]).hexdigest()#摘要
+        摘要=摘要十六进制(字节[:期望前缀['bytes']])#摘要
         if 摘要!=期望前缀['digest']:#不符
             raise Error('target bytes do not begin with the migrated generation')#错误
         return {'identity':之后,'bytes':期望前缀['bytes'],'digest':摘要}#前缀身份
@@ -303,7 +304,7 @@ def 校验jsonl当代代(路径,压缩,期望标识,期望事件数,期望前缀
     return {#已校验
         'identity':之后,#身份
         'bytes':len(字节),#字节数
-        'digest':hashlib.sha256(字节).hexdigest(),#全文摘要
+        'digest':摘要十六进制(字节),#全文摘要
     }#返回
 
 def 断言当代助手流(事件列表):#断言当代助手流
@@ -355,16 +356,15 @@ def _写已同步临时(当代路径,后缀,压缩,产物,格式适配,信号=No
             哈希.update(块)#哈希
             字节数+=len(块)#累加
         头值=格式适配['encodeHeader'](产物['header'],产物.get('inheritedEventCount',0))#编码头
-        import json#JSON
-        头行=(json.dumps(头值,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n').encode('utf-8')#头行
+        头行=(紧凑json编码(头值)+'\n').encode('utf-8')#头行
         写块(压缩zstd帧(头行) if 压缩=='zstd' else 头行)#写头
         事件列表=产物.get('events') or []#事件
         if len(事件列表)>0:#有事件
             行缓冲=[]#行
             缓冲字节=0#缓冲大小
             for 值 in 事件列表:#逐事件
-                行=json.dumps(格式适配['encodeEvent'](值),ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n'#行
-                行字节=len(行.encode('utf-8'))#行字节
+                行=紧凑json编码(格式适配['encodeEvent'](值))+'\n'#行
+                行字节=utf8字节数(行)#行字节
                 if 缓冲字节>0 and 缓冲字节+行字节>迁移工作块字节:#超块
                     明文=''.join(行缓冲).encode('utf-8')#明文
                     写块(压缩zstd帧(明文) if 压缩=='zstd' else 明文)#写出

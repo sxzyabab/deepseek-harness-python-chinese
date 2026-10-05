@@ -1,4 +1,5 @@
 import re#地址方案探测
+from .....基础设施.通用工具 import utf8字节数
 from urllib.parse import urlparse as 解析URL,urlunparse as 组合URL#标准库 URL
 
 __all__=['最大地址字节','解析浏览器地址']#仅中文公开名
@@ -12,7 +13,7 @@ def 解析浏览器地址(输入,应用源=None):
     修剪=输入.strip()#去空白
     if 修剪=='':#空
         return {'ok':False,'reason':'empty'}#空地址
-    if len(修剪.encode('utf-8'))>最大地址字节:#超长按 UTF-8 字节
+    if utf8字节数(修剪)>最大地址字节:#超长按 UTF-8 字节
         return {'ok':False,'reason':'invalid'}#无效
     显式=_显式方案.search(修剪) is not None#是否带方案
     候选=修剪 if 显式 else f'https://{修剪}'#缺省补 https

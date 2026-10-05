@@ -1,5 +1,6 @@
-import threading,time#计时器与墙钟
+import threading#计时器
 from ...依赖 import cordis#外部依赖胶水
+from ...基础设施.通用工具.时间工具 import 当前毫秒
 from ...模型后端.llm import 创建用户消息#用户消息构造
 from .异常 import 日程日志错误#日志错误
 from .领域 import (
@@ -231,7 +232,7 @@ class 日程运行时:#日程运行时
         折叠=自身.读折叠()#折叠当前流
         if 折叠 is None:#损坏则停
             return#停
-        唤醒现在=int(time.time()*1000)#唤醒墙钟
+        唤醒现在=当前毫秒()#唤醒墙钟
         唤醒决定=自身.安全决定(折叠,唤醒现在)#决定下一步
         if 唤醒决定 is None:#决定失败
             return#停
@@ -246,7 +247,7 @@ class 日程运行时:#日程运行时
             认领=自身.读折叠()#认领后再折叠
             if 认领 is None:#损坏
                 return False#未派发
-            决定现在=int(time.time()*1000)#决定墙钟
+            决定现在=当前毫秒()#决定墙钟
             决定=自身.安全决定(认领,决定现在)#再决定
             if 决定 is None:#决定失败
                 return False#未派发

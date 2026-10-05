@@ -1,5 +1,3 @@
-import builtins
-
 __all__=['聊天导航','用聊天导航']
 
 class 聊天导航:
@@ -142,7 +140,10 @@ class 聊天导航:
                 return
             跳跃['phase']='settled'
             自身.取消帧()
-            调度=getattr(builtins,'requestAnimationFrame',None)
+            try:#下一拍
+                调度=requestAnimationFrame#浏览器
+            except NameError:#非浏览器
+                调度=None#无
             if not callable(调度):
                 自身.对齐()
             else:
@@ -157,7 +158,10 @@ class 聊天导航:
 
     def 取消帧(自身):
         '取消对齐帧'
-        取消=getattr(builtins,'cancelAnimationFrame',None)
+        try:#取消帧
+            取消=cancelAnimationFrame#浏览器
+        except NameError:#非浏览器
+            取消=None#无
         if 自身.结算帧 is not None and callable(取消):
             取消(自身.结算帧)
         自身.结算帧=None

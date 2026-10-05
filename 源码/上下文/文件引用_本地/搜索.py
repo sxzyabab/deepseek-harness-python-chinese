@@ -1,5 +1,6 @@
 '工作区文件搜索索引，供 `@file` 补全使用'
 import os,threading#路径与后台索引
+from ...基础设施.通用工具 import 路径转正斜杠,相对正斜杠路径,启动守护线程,已中止
 from concurrent.futures import Future as _原生Future#索引任务
 from ..文件引用.词法 import 光标处活动令牌,格式化文件提及#再导出词法
 from .异常 import 文件引用本地错误
@@ -17,25 +18,17 @@ __all__=[#仅中文公开名
     '光标处活动令牌','格式化文件提及',
 ]#公开面结束
 
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
-
 def 若已中止则抛出(信号):
     '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号._事件.is_set():#仍活着
+    if not 已中止(信号):#无信号或仍活着
         return#仍活着
-    if 信号._异常 is not None:#有承载异常
-        raise 信号._异常#抛出
+    if 信号.原因 is not None:#有承载异常
+        raise 信号.原因#抛出
     raise 文件引用本地错误('aborted')#默认中止
 
 def 规范化查询(查询):
     '统一斜杠并去掉首尾空白'
-    return str(查询 or '').strip().replace('\\','/')#规范化
+    return 路径转正斜杠(str(查询 or '').strip())#规范化
 
 def 评分(查询,路径):
     '查询为空时按路径字典序；否则优先前缀再子串'
@@ -94,7 +87,7 @@ class 工作区文件搜索:
             if 计数[0]>=自身.最大条目:#预算耗尽
                 return#停止
             完整=os.path.join(目录,名称)#完整路径
-            相对=os.path.relpath(完整,自身.根).replace('\\','/')#相对路径
+            相对=相对正斜杠路径(完整,自身.根)#相对路径
             if 名称 in 自身.排除 and os.path.isdir(完整):#排除目录
                 continue#跳过
             try:#探测类型
@@ -130,7 +123,7 @@ class 工作区文件搜索:
                 自身._条目=条目列表#缓存
                 自身._构建中=None#清在途
                 未来.set_result(条目列表)#兑现
-        threading.Thread(target=构建,daemon=True).start()#后台线程
+        启动守护线程(构建)#后台线程
         return 未来#返回 Future
 
     def 列举(自身,查询,信号):

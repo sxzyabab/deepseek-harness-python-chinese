@@ -2,7 +2,7 @@
 import os#路径基名
 import re#分叉标题
 import threading
-from ....基础设施.通用工具 import 获取内部数据
+from ....基础设施.通用工具 import 获取内部数据,启动守护线程
 from ....工具.超时 import 若已中止则抛出#中止
 from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
@@ -98,9 +98,7 @@ class _会话引用:
             except BaseException as 错误:
                 自身._就绪错误=错误#记下
                 自身._就绪.set()#唤醒
-        线=threading.Thread(target=后台)#后台
-        线.daemon=True#守护
-        线.start()#启
+        启动守护线程(后台)#启
     def release(自身):
         '释放一次'
         if 自身._已释:#已

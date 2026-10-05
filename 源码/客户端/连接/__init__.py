@@ -7,6 +7,11 @@ from .rpc宿主 import 宿主连接服务#宿主连接服务
 from .网页套接字下行 import 拒绝网页套接字升级,网页套接字下行#WebSocket 下行与拒绝升级
 from .异常 import 连接错误#本包异常
 from .rpc import 连接权威_受信任宿主,连接权威_回环#权威常量
+from . import (
+    回环主机名,
+    客户端,
+    操作方对等,
+)
 
 __all__=[#仅中文公开名
     '名称',

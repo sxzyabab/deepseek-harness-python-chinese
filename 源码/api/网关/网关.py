@@ -1,8 +1,7 @@
 '通过 Cordis 服务与已注册提供方做在线 Typert Remote 分发'
 import inspect,re,threading#参数名、标识符与中止
-from concurrent.futures import Future as 原生结果#单次操作结果
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...基础设施.通用工具 import 操作任务,启动守护线程
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...类型化远程调用.协议 import 远程方法列表,取远程错误,是否远程json值#Remote 标记与失败
 from uuid import uuid4 as 生成uuid4#事件关联标识
 from .流协议 import (
@@ -16,32 +15,6 @@ from .异常 import 网关错误,远程调用已取消,远程流载体错误#本
 __all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','操作任务','中止信号','中止控制器']#仅中文公开名
 
 标识符模式=re.compile(r'^[$A-Z_a-z][$A-Za-z0-9_]*\Z')#SRC 参数名，ASCII 标识符，行尾对齐 JS $
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                包装=网关错误('internal','','task rejected')#包装拒绝
-                包装.原因=错误#附加信息做成属性
-                自身._未来.set_exception(包装)#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
 
 class 中止信号:
     'threading.Event 取消通道。原因用异常对象承载'
@@ -82,9 +55,7 @@ class 中止信号:
         for 信号 in 信号列表:#每路一线程
             if 信号 is None:#无信号
                 continue#跳过
-            工作=threading.Thread(target=转发中止,args=(信号,))#转发线程
-            工作.daemon=True#不挡住退出
-            工作.start()
+            启动守护线程(转发中止,信号)#转发线程
         return 融合.信号#融合信号
 
 class 中止控制器:
@@ -413,8 +384,7 @@ class Typert网关服务(服务):
                     寿命.中止(错误)#中止寿命
             finally:
                 完成.兑现(None)#完成
-        线=threading.Thread(target=消费,daemon=True)#消费线程
-        线.start()
+        启动守护线程(消费)#消费线程
         登记={'lifetime':寿命,'done':完成,'host':{'home':宿主['home']}}#登记
         自身.远程事件登记=登记#记下
         def 拆除():
@@ -519,9 +489,7 @@ class Typert网关服务(服务):
                 来源._事件.wait()
                 中止()
             for 项 in 信号集合:
-                线=threading.Thread(target=监视信号,args=(项,),daemon=True)
-                线.start()
-                监视.append(线)
+                监视.append(启动守护线程(监视信号,项))
             def 释放信号():
                 '监视线程随取消自然结束'
                 return None

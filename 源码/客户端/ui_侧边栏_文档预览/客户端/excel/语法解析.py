@@ -1,4 +1,5 @@
 import threading
+from .....基础设施.通用工具 import 启动守护线程
 from .工作者 import 工作者入口
 from .模型 import 不支持特性表
 from ..面 import 已中止
@@ -16,14 +17,13 @@ def 解析excel(字节,格式,上限,信号):
     def 跑():
         盒.update(工作者入口(bytes(字节),格式,上限))
         完成.set()
-    线=threading.Thread(target=跑,daemon=True)
-    线.start()
+    启动守护线程(跑)
     if 信号 is not None:
         def 盯():
             if hasattr(信号,'wait'):
                 信号.wait()
             完成.set()
-        threading.Thread(target=盯,daemon=True).start()
+        启动守护线程(盯)
     秒=上限['timeoutMs']/1000
     if not 完成.wait(秒):
         raise RuntimeError('timeout')

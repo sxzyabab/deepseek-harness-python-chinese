@@ -1,5 +1,6 @@
 '面向模型的工作区指令渲染，受显式字节预算约束'
 import math,os#有限性与路径分量
+from ...基础设施.通用工具 import utf8字节数,截断utf8字节,路径转正斜杠
 
 系统提醒开='<system-reminder>'#系统提醒开标签
 系统提醒闭='</system-reminder>'#系统提醒闭标签
@@ -13,20 +14,6 @@ import math,os#有限性与路径分量
 用户全局目录='user-global'#用户全局目录占位
 用户全局文件='AGENTS.md'#用户全局固定文件名
 作用域分隔='\u0000'#作用域键里目录与文件名的分隔，路径与文件名都不可能含NUL
-def 字节长度(值):#计算UTF-8字节长度
-    '按 utf8 计字符串字节长度'
-    return len(值.encode('utf-8'))#按utf8计
-
-def 截断Utf8(值,最大字节):#按UTF-8字节截断且不切断码点
-    '按 UTF-8 字节截断且不切断码点'
-    字节=值.encode('utf-8')#编码为字节
-    if len(字节)<=最大字节:#已能装下则原样返回
-        return 值#原样
-    结束=max(0,int(最大字节))#预算切断点
-    while 结束>0 and (字节[结束]&0xc0)==0x80:#续字节则继续回退
-        结束-=1#排除该续字节
-    return 字节[:结束].decode('utf-8')#解码切断后的前缀
-
 def 转义指令帧正文(正文):#防止正文提前关闭系统提醒帧
     '转义闭标签，防止正文提前关闭系统提醒帧'
     return 正文.replace(系统提醒闭,'<\\/system-reminder>')#转义闭标签
@@ -39,7 +26,7 @@ def 展示路径作用域(展示路径):#由展示路径得到作用域
     '从面向模型的路径推导逻辑指令作用域。返回 user-global、.，或所在的相对项目目录'
     if 展示路径=='~/.dsh/AGENTS.md' or 展示路径=='$DSH_HOME/AGENTS.md':#两种家目录展示都映射到用户全局
         return 用户全局目录#用户全局
-    return os.path.dirname(展示路径).replace('\\','/') or '.'#其余用所在目录；根文件为.
+    return 路径转正斜杠(os.path.dirname(展示路径)) or '.'#其余用所在目录；根文件为.
 
 def 候选作用域键(目录,候选名):#组成按候选划分的作用域键
     '为单个指令候选文件组成调和键。目录与文件名用 NUL 分隔'
@@ -113,21 +100,21 @@ def 组装指令文本(文件列表,最大字节,省略列表,截断列表,风�
 def 带截断内容(文件,纳入字节):#拷贝文件并截断正文
     '只改 content'
     拷贝=dict(文件)#浅拷贝
-    拷贝['content']=截断Utf8(文件['content'],纳入字节)#截断正文
+    拷贝['content']=截断utf8字节(文件['content'],纳入字节)#截断正文
     return 拷贝#截断后文件
 
 def 截断到装下(文件,已纳入,最大字节,省略列表,风格):#二分截断单个文件直到整份文本装进预算
     '装得下的最长截断'
-    原文字节=字节长度(文件['content'])#原文字节
+    原文字节=utf8字节数(文件['content'])#原文字节
     低=0#二分下界
     高=原文字节#二分上界
     最佳=带截断内容(文件,0)#目前最佳，初始为零内容
     while 低<=高:#二分寻找最大可纳入字节
         中=(低+高)//2#本轮尝试的纳入字节
         候选=带截断内容(文件,中)#按mid截断
-        截断=[{'displayPath':文件['displayPath'],'originalBytes':原文字节,'includedBytes':字节长度(候选['content'])}]#本候选的截断记账
+        截断=[{'displayPath':文件['displayPath'],'originalBytes':原文字节,'includedBytes':utf8字节数(候选['content'])}]#本候选的截断记账
         文本=组装指令文本(已纳入+[候选],最大字节,省略列表,截断,风格)#试渲染
-        if 字节长度(文本)<=最大字节:#装得下
+        if utf8字节数(文本)<=最大字节:#装得下
             最佳=候选#记下更长的可行截断
             低=中+1#尝试纳入更多
         else:#装不下
@@ -139,34 +126,34 @@ def 渲染指令上下文(文件列表,最大字节,风格):#按预算渲染指�
     if 最大字节<=0 or not math.isfinite(最大字节):#非法预算
         return {'text':'','omitted':list(文件列表),'truncated':[],'represented':[]}#全部当作省略
     完整=组装指令文本(文件列表,最大字节,[],[],风格)#先试完整渲染
-    if 字节长度(完整)<=最大字节:#完整装得下
+    if utf8字节数(完整)<=最大字节:#完整装得下
         return {'text':完整,'omitted':[],'truncated':[],'represented':list(文件列表)}#全部代表
     for 起点 in range(1,len(文件列表)):#从最宽开始整份丢掉，保留更具体后缀
         纳入=文件列表[起点:]#保留的后缀
         省略=[{'absolutePath':文件['absolutePath'],'displayPath':文件['displayPath']} for 文件 in 文件列表[:起点]]#丢掉的前缀
         后缀文本=组装指令文本(纳入,最大字节,省略,[],风格)#试渲染后缀
-        if 字节长度(后缀文本)<=最大字节:#后缀装得下则采用
+        if utf8字节数(后缀文本)<=最大字节:#后缀装得下则采用
             return {'text':后缀文本,'omitted':省略,'truncated':[],'represented':list(纳入)}#采用后缀
     最具体=文件列表[-1] if len(文件列表)>0 else None#最具体的一份
     if 最具体 is None:#空列表保护
         return {'text':'','omitted':[],'truncated':[],'represented':[]}#空
     省略=[{'absolutePath':文件['absolutePath'],'displayPath':文件['displayPath']} for 文件 in 文件列表[:-1]]#其余全部省略
-    原文字节=字节长度(最具体['content'])#最具体文件原文字节
+    原文字节=utf8字节数(最具体['content'])#最具体文件原文字节
     for 候选风格 in [风格,{**风格,'intro':压缩工作区上下文开场}]:#先原开场，再压缩开场
         截断文件=截断到装下(最具体,[],最大字节,省略,候选风格)#截断到能装下
-        纳入字节=字节长度(截断文件['content'])#实际纳入字节
+        纳入字节=utf8字节数(截断文件['content'])#实际纳入字节
         截断=[{'displayPath':最具体['displayPath'],'originalBytes':原文字节,'includedBytes':纳入字节}]#截断记账
         文本=组装指令文本([截断文件],最大字节,省略,截断,候选风格)#试渲染
-        if 字节长度(文本)<=最大字节:#装得下
+        if utf8字节数(文本)<=最大字节:#装得下
             代表=[最具体] if 纳入字节>0 or 原文字节==0 else []#有内容或本就是空文件才算被代表
             return {'text':文本,'omitted':省略,'truncated':截断,'represented':代表}#返回截断结果
     截断=[{'displayPath':最具体['displayPath'],'originalBytes':原文字节,'includedBytes':0}]#零纳入的截断记账
     压缩通知=转义指令帧正文(预算标记文本(最大字节,省略,截断))#仅诊断标记
     带标题=转义指令帧正文('\n\n'.join([压缩通知,风格['section'](带截断内容(最具体,0))]))#标记加空内容标题
-    if 字节长度(带标题)<=最大字节:#标题也装得下
+    if utf8字节数(带标题)<=最大字节:#标题也装得下
         代表=[最具体] if 原文字节==0 else []#只有原本就是空文件才算被代表
         return {'text':带标题,'omitted':省略,'truncated':截断,'represented':代表}#返回带标题压缩
-    文本=压缩通知 if 字节长度(压缩通知)<=最大字节 else 截断Utf8(压缩通知,最大字节)#标记本身再截
+    文本=压缩通知 if utf8字节数(压缩通知)<=最大字节 else 截断utf8字节(压缩通知,int(最大字节))#标记本身再截
     return {'text':文本,'omitted':省略,'truncated':截断,'represented':[]}#仅通知，无代表文件
 
 def 渲染指令变更(项列表,最大字节):#渲染调和批次

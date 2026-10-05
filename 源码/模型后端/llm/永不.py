@@ -1,6 +1,5 @@
 '封闭核心联合的穷尽性辅助'
-import json#JSON 渲染
-
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .异常 import 永不错误#封闭联合穷尽失败
 
 __all__=('永不错误','断言永不')#仅中文公开名
@@ -8,7 +7,7 @@ __all__=('永不错误','断言永不')#仅中文公开名
 def 断言永不(值,现场=None):#封闭联合的不可达分支
     '标记不可达的封闭联合分支，总是抛出'
     try:#JSON.stringify 对不可序列化会失败
-        渲染=json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#优先 JSON
+        渲染=紧凑json编码(值)#优先 JSON
     except (TypeError,ValueError):#不可序列化或非法数值
         渲染=None#覆盖不可序列化逃逸
     if 渲染 is None:#JSON 失败

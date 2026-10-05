@@ -1,6 +1,5 @@
 '后台任务服务定义（ctx.jobs）'
-from ...依赖 import cordis
-服务=cordis.服务
+from ...依赖.cordis.服务 import 服务
 from .标识构造 import 任务标识
 from .类型 import (
     任务标识 as _再导出标识,
@@ -11,6 +10,10 @@ from .类型 import (
 )
 from .归档准入 import 安装任务归档准入
 from .异常 import 任务错误#本包异常
+from . import (
+    不变量,
+    视图,
+)
 
 class 任务注册表(服务):
     """抽象后台任务注册表。

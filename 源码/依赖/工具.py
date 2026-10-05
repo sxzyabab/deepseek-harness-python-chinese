@@ -1,11 +1,12 @@
 import base64,datetime,math,os,re,threading
+from ..基础设施.通用工具.文本工具 import 路径转正斜杠
 import traceback,types
 from urllib.parse import unquote,urlparse
 
 def 路径转文件url(路径):
     """本地路径转 file URL。"""
     绝对=os.path.abspath(路径)#绝对路径
-    正斜杠=绝对.replace('\\','/')#统一正斜杠
+    正斜杠=路径转正斜杠(绝对)#统一正斜杠
     if not 正斜杠.startswith('/'):
         正斜杠='/'+正斜杠#Windows 盘符前补斜杠
     return 'file://'+正斜杠#file URL

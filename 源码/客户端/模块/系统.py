@@ -1,4 +1,4 @@
-import json#JSON 选择器
+from ...基础设施.通用工具 import 紧凑json编码
 import re#chunk 名与 rev 查询
 from threading import Event as 事件#飞行到达门闩
 from .异常 import 客户端模块错误#本包异常
@@ -14,12 +14,13 @@ __all__=['客户端模块系统','认领样式']#仅中文公开名
 #工具
 def 认领样式(标识):
     '认领并清点工厂物化期间注入的 style 标签'
-    if 'document' not in globals():#无 DOM
+    try:#页面文档
+        文档=document#浏览器 document
+    except NameError:#无 DOM
         return []#空
-    文档=globals()['document']#浏览器 document
     for 元素 in 文档.querySelectorAll('style:not([data-plugin])'):#未打标的 style
         元素.setAttribute('data-plugin',标识)#标给本插件
-    选择器='style[data-plugin='+json.dumps(标识,ensure_ascii=False,separators=(',',':'),allow_nan=False)+']'#本插件选择器
+    选择器='style[data-plugin='+紧凑json编码(标识)+']'#本插件选择器
     拥有=[]#本插件拥有的 css 键
     for 元素 in 文档.querySelectorAll(选择器):#本插件的 style
         属性=元素.getAttribute('data-plugin-css')#css 键
@@ -28,11 +29,12 @@ def 认领样式(标识):
 
 def 默认加载包(网址):
     '同源外部经典脚本；阻塞到 load/error，失败原样抛'
-    if 'document' not in globals():#无 DOM
+    try:#页面文档
+        文档=document#浏览器 document
+    except NameError:#无 DOM
         raise 客户端模块错误('client-modules: bundle script '+网址+' failed to load')#无法加载
-    文档=globals()['document']#浏览器 document
     元素=文档.createElement('script')#经典脚本元素
-    元素.async=True#DOM 属性不译
+    setattr(元素,'async',True)#DOM 属性不译；async 是关键字，不能点号写
     元素.src=网址#包 URL
     完成=事件()#脚本结算门
     错误箱=[]#失败箱
@@ -70,7 +72,7 @@ def 分块网址(行,文件名,修订):
     修订起点=网址.find('&rev=',资源起点+len(标记)) if 资源起点>=0 else -1#修订起点
     资源=None if 资源起点<0 or 修订起点<0 else 网址[资源起点+len(标记):修订起点]#资源段
     if 资源!=行['id']+'/client.js':#必须是该包 client.js 组合
-        raise 客户端模块错误('client-modules: cannot resolve chunk '+json.dumps(文件名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' from bundle URL '+网址)
+        raise 客户端模块错误('client-modules: cannot resolve chunk '+紧凑json编码(文件名)+' from bundle URL '+网址)
     return 网址[:资源起点]+'/'+行['id']+'/'+文件名+'?'+网址[修订起点+1:]#单文件 URL
 
 #
@@ -132,7 +134,7 @@ class 客户端模块系统:
         拥有标识=剥客户端后缀(交接['id'])#规范化拥有包
         分块=交接['chunk'] if 'chunk' in 交接 else None#可选 chunk
         if 分块 is not None and 客户端分块名.match(分块) is None:#非法 chunk 名
-            raise 客户端模块错误('client-modules: invalid package-local chunk '+json.dumps(分块,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+            raise 客户端模块错误('client-modules: invalid package-local chunk '+紧凑json编码(分块))
         标识=拥有标识 if 分块 is None else 分块标识(拥有标识,分块)#表键
         if 标识 in 自身.启动标识集 or 标识 in 自身.工厂表:#启动或已登记
             诊断名=交接['id'] if 分块 is None else 标识#诊断名
@@ -256,7 +258,7 @@ class 客户端模块系统:
                 return 自身.import_(说明符)#走 import
             文件名=说明符[2:]#相对文件名
             if 客户端分块名.match(文件名) is None:#非法相对 chunk
-                raise 客户端模块错误('client-modules: invalid relative chunk request '+json.dumps(说明符,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+                raise 客户端模块错误('client-modules: invalid relative chunk request '+紧凑json编码(说明符))
             return 自身.导入分块(拥有标识,文件名)#导入 chunk
         setattr(要求,'async',异步要求)#挂异步操作（TS require.async）
         return 要求#带 async 的 require
@@ -399,4 +401,4 @@ class 客户端模块系统:
             if 键==规范化 or 键.startswith(规范化+'/client.'):#条目与 chunk
                 del 自身.loadCache[键]#删
 
-客户端模块系统.import=客户端模块系统.import_#TS 方法名 import；保留字故本体为 import_
+setattr(客户端模块系统,'import',客户端模块系统.import_)#TS 方法名 import；保留字故本体为 import_

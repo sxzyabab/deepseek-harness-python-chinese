@@ -1,5 +1,5 @@
 import copy#深拷草稿
-from ..模式表单 import 再水合模式,取路径,有路径,设路径,删路径,校验草稿#路径编辑
+from ..ui_设置.模式 import 再水合模式,取路径,有路径,设路径,删路径,校验草稿#路径编辑
 from .DeepSeek模型编辑器 import DeepSeek模型编辑器,模型草稿表,校验DeepSeek模型#DeepSeek 目录
 from .密钥判定 import 密钥失败#密钥门闩
 from .编辑器页脚 import 编辑器页脚#页脚

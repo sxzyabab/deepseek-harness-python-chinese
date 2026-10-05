@@ -1,6 +1,7 @@
 import os,subprocess,threading,time#环境、子进程、线程与超时
-from concurrent.futures import Future as 原生结果#单次操作结果
 from collections import deque#有界 stderr 尾
+from ...基础设施.通用工具.并发原语 import 操作任务,中止信号,中止控制器,已中止#任务与中止
+from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from ..协议 import 换行JSONRPC传输#传输
 from ..协议.异常 import JSONRPC响应错误#对端错误
 from .拆除 import 拆除运行时进程#运行时进程拆除阶梯
@@ -15,68 +16,6 @@ __all__=[#仅中文公开名
 流落定毫秒=100#流落定等待毫秒
 
 from .异常 import SDK客户端错误,传输已关闭错误,请求超时错误,SDK协议错误#本包异常
-
-class 操作任务:
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._未来.set_exception(SDK客户端错误(str(错误)))#包装拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
-
-class 中止信号:
-    'threading.Event 取消通道'
-    def __init__(自身,已中止标志=False):
-        '创建一条取消通道'
-        自身._事件=threading.Event()#中止旗标
-        自身._异常=None#中止时抛出的异常
-        if 已中止标志:#创建时已中止
-            自身._事件.set()#置位
-            自身._异常=SDK客户端错误('请求已中止')#默认
-
-    def 触发(自身,原因=None):
-        '标记中止'
-        if 自身._事件.is_set():#只触发一次
-            return#已触发
-        if isinstance(原因,BaseException):#已是异常
-            自身._异常=原因#承载
-        elif 原因 is not None:#非异常
-            自身._异常=SDK客户端错误(str(原因))#包装
-        else:#无原因
-            自身._异常=SDK客户端错误('请求已中止')#默认
-        自身._事件.set()#置位
-
-class 中止控制器:
-    '发出中止的控制器'
-    def __init__(自身):
-        '创建配套信号'
-        自身.信号=中止信号()#本控制器的信号
-
-    def 中止(自身,原因=None):
-        '中止配套信号'
-        自身.信号.触发(原因)#触发一次
-
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位
 
 def 是否普通对象(值):
     '当且仅当值是非 null、非数组对象时为真'
@@ -201,7 +140,7 @@ class 装备客户端:
             自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已退出'))#让订阅失败
             if 自身.传输 is not None:#有传输
                 自身.传输.关闭()#关闭传输
-        threading.Thread(target=监视退出,daemon=True).start()#监视 exit
+        启动守护线程(监视退出)#监视 exit
         def 读标准错误():
             '追加 stderr 块到有界尾部'
             try:
@@ -220,7 +159,7 @@ class 装备客户端:
                 pass#管道错误忽略
             落定旗['stderr']=True#标记 stderr 已关
             或许落定()#尝试兑现落定
-        threading.Thread(target=读标准错误,daemon=True).start()#读 stderr
+        启动守护线程(读标准错误)#读 stderr
         传输=换行JSONRPC传输(子.stdout,子.stdin)#stdout 入、stdin 出
         def 派发通知(方法,参数):
             '把通知交给订阅'
@@ -272,7 +211,7 @@ class 装备客户端:
                 '到期后 abort，带方法名与毫秒数'
                 time.sleep(超时/1000.0)#等待
                 控制器.中止(请求超时错误(方法+' 等待 DeepSeek Harness 运行时超时，已过 '+str(超时)+'ms'))#中止
-            threading.Thread(target=到期,daemon=True).start()#定时
+            启动守护线程(到期)#定时
             return 传输.请求(方法,载荷,控制器.信号)#带信号发请求
         except JSONRPC响应错误:
             raise#原样
@@ -397,7 +336,7 @@ class 装备客户端:
         '落定或超时先到先得'
         截止=time.time()+流落定毫秒/1000.0#截止
         while time.time()<截止:#未超时
-            if 自身.流落定._未来.done():#已落定
+            if 自身.流落定.已完成():#已落定
                 break#停
             time.sleep(0.01)#小睡
         return

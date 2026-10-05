@@ -1,7 +1,7 @@
-import json,re#JSON 与通道名校验
+import re#通道名校验
+from ...基础设施.通用工具 import 紧凑json编码
 from urllib.parse import urlparse as 解析URL
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .http桥 import 桥接#HTTP 桥
 from .接口请求信任 import 是否受信任接口请求#请求信任闸
 from .接口路径 import 接口路径#/api 路径常量
@@ -29,12 +29,12 @@ def 路径切端点(通道,路径名):#路径切相对端点
 def 断言通道(通道):#独占通道名必须合法且不得占用 /api
     '拒绝 /api 与畸形通道名'
     if 通道规则.fullmatch(通道) is None or 通道=='/api':#畸形或保留名
-        raise 连接错误('connection: invalid or reserved RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False))#加载/登记时失败
+        raise 连接错误('connection: invalid or reserved RPC channel '+紧凑json编码(通道))#加载/登记时失败
 
 def 完整响应(rpc标识,结果):#成功或失败都写成 server-response
     '包成 server-response JSON 响应'
     体={'type':'server-response','rpcId':rpc标识,'result':结果}#标准信封
-    return {'status':200,'headers':{'content-type':'application/json; charset=utf-8'},'body':json.dumps(体,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')}#JSON 响应
+    return {'status':200,'headers':{'content-type':'application/json; charset=utf-8'},'body':紧凑json编码(体).encode('utf-8')}#JSON 响应
 
 def 错误响应(rpc标识,错误):#失败结果包成 HTTP JSON
     '失败结果'
@@ -76,7 +76,7 @@ def rpcFetch处理(通道,处理函数):#把 RPC handler 适配成 FetchHandler
             用标识=rpc标识 if isinstance(rpc标识,str) else 无效请求标识#尽量保住
             return 错误响应(用标识,{'code':'bad-request','message':'invalid client-request message','details':{'issues':[]}})#坏信封
         if 方法名!=端点:#信封 method 必须与路径端点一致
-            return 错误响应(rpc标识,{'code':'bad-request','message':'method '+json.dumps(方法名,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' does not match endpoint '+json.dumps(端点,ensure_ascii=False,separators=(',',':'),allow_nan=False),'details':{'issues':[]}})#不一致
+            return 错误响应(rpc标识,{'code':'bad-request','message':'method '+紧凑json编码(方法名)+' does not match endpoint '+紧凑json编码(端点),'details':{'issues':[]}})#不一致
         try:#调用业务 handler
             信号=请求['signal'] if 'signal' in 请求 else None#取消信号
             结果=处理函数(端点,载荷,信号)#同步 handler
@@ -143,7 +143,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
     def 登记拦截器(自身,拥有,通道,匹配,处理函数,选项):#在共享通道上登记拦截器
         '在共享 /api 通道的回退之前拦截所拥有的端点'
         if 通道!=接口路径:#只允许保留的共享通道
-            raise 连接错误('connection: invalid shared RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False))#其它通道名失败
+            raise 连接错误('connection: invalid shared RPC channel '+紧凑json编码(通道))#其它通道名失败
         拦截器={#组装拦截器
             'matches':匹配,#所有权判断
             'fetchHandler':rpcFetch处理(通道,处理函数),#解码并调 handler
@@ -152,7 +152,7 @@ class 宿主连接服务(服务):#提供 ctx.connection
         def 效应():#归调用方纤程
             '写入表；拆除时删除'
             if 通道 in 自身.拦截器表:#同一通道只能有一个拦截器
-                raise 连接错误('connection: shared RPC channel '+json.dumps(通道,ensure_ascii=False,separators=(',',':'),allow_nan=False)+' already has an interceptor')#重复登记失败
+                raise 连接错误('connection: shared RPC channel '+紧凑json编码(通道)+' already has an interceptor')#重复登记失败
             自身.拦截器表[通道]=拦截器#写入表
             def 拆除():#拆除
                 '从表删除'

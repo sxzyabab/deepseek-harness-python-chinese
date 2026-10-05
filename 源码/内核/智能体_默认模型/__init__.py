@@ -1,6 +1,5 @@
-from ...依赖 import cordis
+from ...依赖.cordis.服务 import 服务
 from ...依赖.schemastery import 字符串字段
-服务=cordis.服务
 from ...模型后端.llm import 推理力度标识
 from .类型 import 智能体默认模型设置,插件配置
 

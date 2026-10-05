@@ -1,5 +1,5 @@
 'compaction-basic 的加载时校验与路由模型政策解析'
-import math#有限数判定
+from ...基础设施.通用工具 import 是否有限数
 from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆离克隆
 
 默认阈值比例=0.8#每个路由模型的默认请求压力比例
@@ -21,14 +21,6 @@ from ...模型后端.llm import 深冻结,结构化克隆#导入深冻结与拆�
 模型政策键集合=frozenset(('provider','model')+政策配置键)#完整的精确目标覆盖键集
 
 from .异常 import 基础压缩错误,目标压力配置错误#本包异常
-
-def 是否有限数(值):
-    '有限实数，排除布尔'
-    if isinstance(值,bool):#布尔不是数字
-        return False#排除
-    if isinstance(值,(int,float)):#数字
-        return math.isfinite(值)#有限
-    return False#其它
 
 def 校验非空字符串(名称,值):
     '字段须为非空字符串'

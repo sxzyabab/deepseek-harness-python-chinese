@@ -1,50 +1,8 @@
-import threading,weakref#后台等待落地与中止原因旁表
+from ...基础设施.通用工具.并发原语 import 中止控制器#中止
+from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from .异常 import 钩子协议错误#本包异常基类
 
 分离运行=dict#一座桥的分离钩子运行登记（运行时为跟踪器对象）
-_中止原因表=weakref.WeakKeyDictionary()#中止原因旁表，不挂在中止信号上
-
-class 中止信号:
-    'threading.Event 取消通道。原因用异常对象承载，不对外挂第二字段'
-    def __init__(自身,事件对象):
-        '绑到共享事件'
-        自身._事件=事件对象#中止事件
-
-    def is_set(自身):
-        '供按 Event 定死的调用方读取'
-        return 自身._事件.is_set()#事件已置位
-
-class 中止控制器:
-    '发出中止的控制器'
-    def __init__(自身):
-        '创建配套信号'
-        自身._事件=threading.Event()#中止事件
-        自身.信号=中止信号(自身._事件)#对外信号
-
-    def 中止(自身,原因=None):
-        '中止配套信号'
-        if 自身._事件.is_set():#已中止
-            return#幂等
-        if 原因 is not None:#有原因异常
-            _中止原因表[自身.信号]=原因#旁表承载
-        自身._事件.set()#置位
-
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号.is_set()#事件已置位
-
-def 若已中止则抛出(信号):
-    '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号.is_set():#仍活着
-        return#仍活着
-    原因=_中止原因表.get(信号)#旁表原因
-    if 原因 is not None:#有承载异常
-        raise 原因#抛出
-    raise 钩子协议错误('已中止')#默认中止
 
 class _分离跟踪器:
     '在飞登记；接线方式见模块文档'
@@ -64,9 +22,7 @@ class _分离跟踪器:
             except BaseException:
                 pass#拒绝也算落地
             自身._在飞.discard(运行)#剔除
-        工作=threading.Thread(target=等待落地)#后台线程
-        工作.daemon=True#不挡住退出
-        工作.start()#启动
+        启动守护线程(等待落地)#后台等待落地
 
     def 排空(自身):
         '中止信号，然后等到每条已跟踪链都落地——包括排空进行中新登记的链'

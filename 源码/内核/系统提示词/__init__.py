@@ -1,8 +1,8 @@
-import json,math,re#json、有限数与正则
-from ...依赖 import 工具,cordis#外部依赖胶水
+import re#正则
+from ...基础设施.通用工具 import 是否有限数,紧凑json编码
+from ...依赖.工具 import 克隆#深克隆
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 布尔字段,字符串字段,列表字段#配置字段
-克隆=工具.克隆#深克隆工具参数
-服务=cordis.服务#服务基类
 from ..作用域 import (
     具名条目,#具名登记表
     匿名条目,#匿名登记表
@@ -20,6 +20,9 @@ from .类型 import (
     提示词组装,#组装结果
     系统提示词配置,#配置字段类型
 )#再导出结构类型
+from . import (
+    不变量,
+)
 
 #部署人设前缀/后缀的段落名。导出是因为组合可以替换本槽——Agent 预设用自己的人设遮蔽部署人设——两边点名同一段落才让替换生效而不是重复。
 人设前缀段落名='deployment:persona-prefix'#部署人设前缀段落名
@@ -76,14 +79,6 @@ def 是否合法变量名(名):
     if not isinstance(名,str):#必须是字符串
         return False#非字符串非法
     return 变量名规则.fullmatch(名) is not None#整串合法
-
-def 是否有限数(值):
-    '对齐 Number.isFinite：整数或浮点且有限，排除布尔'
-    if isinstance(值,bool):#布尔不是数字
-        return False#布尔不是数字
-    if isinstance(值,(int,float)):#整数或浮点
-        return math.isfinite(值)#有限
-    return False#其余不是
 
 def 段落排序键(段):
     '按显式放置再按名确定性排序'
@@ -413,7 +408,7 @@ class 系统提示词(服务):#系统提示词服务
             if 'complete' in 段 and 段['complete'] is True:#完整
                 完整定义.append(段)#收下
         if len(完整定义)>1:#多于一个完整
-            raise 系统提示词错误('multiple complete prompt sections are active: '+', '.join(json.dumps(段['name'],ensure_ascii=False,separators=(',',':'),allow_nan=False) for 段 in 完整定义))#组装失败
+            raise 系统提示词错误('multiple complete prompt sections are active: '+', '.join(紧凑json编码(段['name']) for 段 in 完整定义))#组装失败
         完整段落=None#记下完整段
         段落列表=[]#已组装段落
         for 段 in 段落定义:#解析文本

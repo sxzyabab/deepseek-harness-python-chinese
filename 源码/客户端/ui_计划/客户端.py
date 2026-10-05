@@ -1,5 +1,5 @@
 from uuid import uuid4 as 随机UUID#审阅窗身份
-from ...ui_基础界面组件.markdown.纯文本 import 抽取Markdown纯文本#审阅标题
+from ..ui_基础界面组件.markdown.纯文本 import 抽取Markdown纯文本#审阅标题
 from .文案 import 命名空间,中文,英文#词表
 from .计划芯片 import 计划芯片#芯片组件
 from .计划定义 import 计划定义#对话定义

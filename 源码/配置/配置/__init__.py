@@ -1,9 +1,7 @@
-import copy,math,re,threading
-from concurrent.futures import Future as 原生结果
-from ...依赖 import cordis
-from ...依赖.工具 import 获取内部数据
-服务=cordis.服务
-纤程状态=cordis.纤程状态
+import copy,math,re
+from ...基础设施.通用工具 import 操作任务,启动守护线程
+from ...依赖.cordis.服务 import 服务
+from ...依赖.cordis.纤程 import 纤程状态
 from .类型 import 设置命名空间品牌,设置更新来源
 from .脱敏 import 脱敏密钥
 from .数据架构 import 朴素配置,易变表单,投影表单,是否易变路径
@@ -12,34 +10,9 @@ from .数据架构 import 朴素配置,易变表单,投影表单,是否易变路
 命名空间模式=re.compile(命名空间形态)
 纤程已拆除=纤程状态.已拆除
 纤程卸载中=纤程状态.卸载中
-工作线程=threading.Thread
 缺席=object()#对齐 JS undefined，与 JSON null（None）区分
 
 from .异常 import 设置错误,设置冲突错误#设置服务失败
-
-class 操作任务:
-    '单次操作的 Future 包装。只留 等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身.底层=原生结果()
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身.底层.done():
-            自身.底层.set_result(值)
-        return 值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身.底层.done():
-            if isinstance(错误,BaseException):
-                自身.底层.set_exception(错误)
-            else:
-                自身.底层.set_exception(设置错误(错误))
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身.底层.result(timeout=超时)
 
 def 已结算任务(值=None):
     '立刻兑现的操作任务'
@@ -426,9 +399,7 @@ class 设置提供方(服务):#ctx.settings
                 任务.兑现()#成功
             except Exception as 错误:#写入体可抛设置错误、冲突、模式校验与提供方持久化错误，无法再收窄
                 任务.拒绝(错误)#调用方看见拒绝
-        工作=工作线程(target=执行排队写入)#工作线程
-        工作.daemon=True#不挡住退出
-        工作.start()
+        启动守护线程(执行排队写入)#工作线程
         自身._写队列[命名空间]=任务#钉成新尾巴
         return 任务#调用方等这次
 
@@ -527,9 +498,7 @@ class 设置提供方(服务):#ctx.settings
                     自身._待排干.discard(当前段)#摘掉
             观察者['tail']=段#新尾巴
             自身._待排干.add(段)#拆除时等待
-            线=工作线程(target=执行观察者回调)#后台
-            线.daemon=True#不挡退出
-            线.start()
+            启动守护线程(执行观察者回调)#后台
         不变量失败=None#延后的 INVARIANT
         参数=['settings/updated',登记['ns'],下一,上一,来源]#派发参数
         事件总线=获取内部数据(自身.ctx,'属性链')['事件']#事件总线，不经壳

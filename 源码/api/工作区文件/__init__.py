@@ -1,6 +1,7 @@
 '工作区文件服务：只读预览、工作区目录列举与观察变更流'
 import base64#字节窗线路编码
 import os#路径解析
+from ...基础设施.通用工具 import 路径转正斜杠,utf8字节数
 import re#相对路径校验
 from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
 from ...依赖.schemastery import 正整数字段
@@ -8,6 +9,10 @@ from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .变更 import 工作区变更供给
 from .类型 import 已中止
 from .异常 import 远程错误#本包异常
+from . import (
+    远程,
+    客户端,
+)
 
 __all__=['包名','名称','依赖','应用','默认','配置','工作区文件']
 
@@ -71,7 +76,7 @@ def _切页(块序列,偏移,限额,最大字节,路径):
             换行=块.find('\n',位置)#下一换行
             片段=块[位置:] if 换行==-1 else 块[位置:换行]#本段
             if 行号>=偏移:#页内
-                验收(len(片段.encode('utf-8')))#UTF-8 字节
+                验收(utf8字节数(片段))#UTF-8 字节
                 当前+=片段#追加
             if 换行==-1:#块尽
                 break#下一块
@@ -214,7 +219,7 @@ class 工作区文件(远程服务):
     @_远程
     def readRelated(自身,工作区文件作用域,路径,相对路径,信号):
         '相对另一文件目录读完整相关文件'
-        相对=相对路径.replace('\\','/')#归一
+        相对=路径转正斜杠(相对路径)#归一
         if 相对=='' or 相对.startswith('/') or 绝对或方案模式.match(相对) is not None or 空字节 in 相对:#非法
             raise 远程错误('gateway/bad-request','relativePath must be a relative filesystem path',{})#拒绝
         目标,_信息=自身._定位文件(工作区文件作用域,路径,信号)#定位基准

@@ -1,9 +1,13 @@
 import base64,math
+from ...基础设施.通用工具.序列化编码 import 严格解码base64
 from ...类型化远程调用.协议 import 远程服务,远程
 from ...依赖.schemastery import 自然数字段,数字字段,字典字段
 from ...工具.超时 import 若已中止则抛出
 from ..语音转写.波形 import 校验波形
 from .异常 import 远程错误
+from . import (
+    类型,
+)
 
 __all__=['依赖','配置','应用','语音转写控制器','远程贡献']
 
@@ -73,9 +77,7 @@ class 语音转写控制器(远程服务):
         if len(编码)>上限:
             raise 远程错误('speech/invalid-audio','Audio is invalid or exceeds the configured byte limit',{'reason':'encoding-or-size'})
         try:
-            音频=base64.b64decode(编码,validate=True)
-            if base64.b64encode(音频).decode('ascii')!=编码:
-                raise RuntimeError('Audio must use canonical base64 encoding')
+            音频=严格解码base64(编码)
             if len(音频)>自身.maxAudioBytes:
                 raise RuntimeError('Audio exceeds the configured byte limit')
             校验波形(音频,自身.maxDurationSeconds)

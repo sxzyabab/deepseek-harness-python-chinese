@@ -6,6 +6,10 @@ from ..存储.后端 import 单元名正则,存储后端,键值面#后端词汇
 from ..存储 import 存储后端服务键#生命周期键
 from .单单元 import 打开单单元#single 布局
 from .按记录单元 import 打开按记录单元#per-record 布局
+from . import (
+    原子,
+    格式,
+)
 
 名称='storage-json'#框架 插件名
 依赖=['storage']#依赖 storage 枢纽

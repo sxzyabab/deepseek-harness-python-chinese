@@ -11,22 +11,14 @@ from ...模型后端.llm import 创建用户消息#导入用户消息
 from ...模型后端.llm.异常 import 错误链#导入错误链
 from .异常 import 基础压缩错误,表面已变错误#本包异常
 from .摘要器 import 装帧摘要#导入检查点装帧
-
-def 已中止(信号):
-    """信号是否已中止。
-    无信号视为未中止"""
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
+from ...基础设施.通用工具 import 已中止
 
 def 若已中止则抛出(信号):
     '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号._事件.is_set():#仍活着
+    if not 已中止(信号):#无信号或仍活着
         return#仍活着
-    if 信号._异常 is not None:#有承载异常
-        raise 信号._异常#抛出
+    if 信号.原因 is not None:#有承载异常
+        raise 信号.原因#抛出
     raise 基础压缩错误('aborted')#默认中止
 
 def 深相等(左,右):

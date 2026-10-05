@@ -1,5 +1,6 @@
 'Host 侧会话日志下载：把逻辑日志与引用附件打成 ZIP'
 import io,json,re,zipfile#缓冲、JSON、净化、ZIP
+from ...基础设施.通用工具 import 紧凑json编码
 from ...内核.会话 import 会话格式版本#当代格式版本
 from ...会话.会话格式 import 会话格式日志文件名#规范日志文件名
 from ...会话.会话持久化.异常 import 会话持久化未找到错误#缺席
@@ -46,9 +47,9 @@ def 序列化会话日志(头,事件列表):#序列化逻辑日志
         行['origin']=头['origin']#带上
     if 'agentPreset' in 头:#预设
         行['agentPreset']=头['agentPreset']#带上
-    行列表=[json.dumps(行,ensure_ascii=False,separators=(',',':'),allow_nan=False)]#头行
+    行列表=[紧凑json编码(行)]#头行
     for 事件 in 事件列表:#逐事件
-        行列表.append(json.dumps(事件,ensure_ascii=False,separators=(',',':'),allow_nan=False))#事件行
+        行列表.append(紧凑json编码(事件))#事件行
     return '\n'.join(行列表)+'\n'#尾换行
 
 def 读会话日志文本(持久化,标识,信号=None):#读完整逻辑日志

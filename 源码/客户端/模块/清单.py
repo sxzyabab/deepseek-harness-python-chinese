@@ -1,4 +1,4 @@
-import json#诊断串化
+from ...基础设施.通用工具 import 紧凑json编码
 from .异常 import 客户端模块错误#本包异常
 
 __all__=[#仅中文公开名
@@ -113,7 +113,7 @@ def 解析启动清单(线值):#解析启动清单
         if not isinstance(值,dict):#每行必须是对象
             raise 客户端模块错误('client-modules: boot manifest entry is not an object')#非对象
         有标识='id' in 值 and isinstance(值['id'],str)#id 形态
-        位置='"'+值['id']+'"' if 有标识 else json.dumps(值,ensure_ascii=False,separators=(',',':'),allow_nan=False)#诊断位置
+        位置='"'+值['id']+'"' if 有标识 else 紧凑json编码(值)#诊断位置
         if (not 有标识) or ('url' not in 值) or (not isinstance(值['url'],str)) or ('rev' not in 值) or (not isinstance(值['rev'],str)):#三个字符串字段
             raise 客户端模块错误('client-modules: boot manifest entry '+位置+' must carry string id/url/rev')#缺字段
         if 值['id'] in 已见条目标识:#重复 id
@@ -144,11 +144,11 @@ def 解析启动清单(线值):#解析启动清单
             raise 客户端模块错误('client-modules: boot manifest batch is not an object')#非对象
         阶段=值['phase'] if 'phase' in 值 else None#阶段
         if 阶段!='bootstrap' and 阶段!='application':#必须是已知阶段
-            raise 客户端模块错误('client-modules: boot manifest batch phase must be "bootstrap" or "application", received '+json.dumps(阶段,ensure_ascii=False,separators=(',',':'),allow_nan=False))#阶段非法
+            raise 客户端模块错误('client-modules: boot manifest batch phase must be "bootstrap" or "application", received '+紧凑json编码(阶段))#阶段非法
         if ('url' not in 值) or (not isinstance(值['url'],str)) or ('rev' not in 值) or (not isinstance(值['rev'],str)):#url/rev 必须是字符串
             raise 客户端模块错误('client-modules: boot manifest '+阶段+' batch must carry string url/rev')#缺字段
         if 值['url'] in 批网址集:#批 URL 不得重复
-            raise 客户端模块错误('client-modules: boot manifest carries duplicate batch URL '+json.dumps(值['url'],ensure_ascii=False,separators=(',',':'),allow_nan=False))#重复 URL
+            raise 客户端模块错误('client-modules: boot manifest carries duplicate batch URL '+紧凑json编码(值['url']))#重复 URL
         批网址集.add(值['url'])#记下 URL
         条目=可选字符串数组('boot manifest '+阶段+' batch','entries',值['entries'] if 'entries' in 值 else None)#批内条目
         if 条目 is None or len(条目)==0:#必须非空

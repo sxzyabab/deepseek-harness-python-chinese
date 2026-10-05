@@ -1,7 +1,7 @@
-import hashlib,json,os,threading#哈希、JSON、路径与微任务近似
+import os,threading#路径与微任务近似
+from ...基础设施.通用工具 import 紧凑json编码,摘要十六进制
 from urllib.parse import unquote as 百分号解码,urlparse as 解析URL
-from ...依赖 import cordis#外部依赖胶水
-服务=cordis.服务#Cordis 服务基类
+from ...依赖.cordis.服务 import 服务#服务基类
 from .清单 import (#再导出启动清单类型
     客户端模块错误,#本包异常
     网页启动入口,#入口
@@ -15,6 +15,13 @@ from .清单 import (#再导出启动清单类型
     剥客户端后缀,#剥 /client
 )#清单面
 from .异常 import 缺客户端包错误,客户端包组合错误#本包异常
+from . import (
+    不变量,
+    客户端,
+    条目,
+    条目生命周期,
+    系统,
+)
 
 __all__=[#仅中文公开名
     '客户端模块错误',
@@ -48,9 +55,7 @@ def 客户端导出路径(包名,导出字段):
 
 def 短哈希(输入):
     'sha1 内容哈希截成 12 个十六进制字符'
-    if isinstance(输入,str):#字符串
-        输入=输入.encode('utf-8')#编码
-    return hashlib.sha1(输入).hexdigest()[:12]#sha1 前 12
+    return 摘要十六进制(输入,'sha1')[:12]#sha1 前 12
 
 def 图行(标识,修订,注入边,立即):
     '一个包 rev 的图行'
@@ -63,7 +68,7 @@ def 图行(标识,修订,注入边,立即):
 
 def 注入启动清单(网页,图):
     '把启动入口图注入 index.html'
-    正文=json.dumps(图,ensure_ascii=False,separators=(',',':'),allow_nan=False).replace('<','\\u003c')#转义 < 防冲出
+    正文=紧凑json编码(图).replace('<','\\u003c')#转义 < 防冲出
     脚本='<script>window.__DSH_BOOT__ = '+正文+'</script>'#启动脚本
     头=网页.find('<head>')#head 起点
     if 头!=-1:#有 head
@@ -195,7 +200,7 @@ class 客户端模块注册表(服务):
     def 组合(自身):
         '组合当前入口图'
         入口列表=[记录['entry'] for 记录 in 自身.表.values()]#当前全部入口
-        return {'rev':短哈希(json.dumps(入口列表,ensure_ascii=False,separators=(',',':'),allow_nan=False)),'entries':入口列表}#图
+        return {'rev':短哈希(紧凑json编码(入口列表)),'entries':入口列表}#图
 
     def 通知图变更(自身):
         '通知每个图监听器'

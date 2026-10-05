@@ -1,6 +1,8 @@
 'jobs 服务的进程内提供方'
-import json,math,time,threading,weakref
-from concurrent.futures import Future as 原生结果
+import math,threading,weakref
+from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.通用工具.时间工具 import 当前毫秒
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 整数字段
 from ...内核.作用域 import 作用域层集,获取作用域
 from ...工具.超时 import 截止,取超时,已中止
@@ -22,30 +24,6 @@ from .异常 import 本地任务错误#本包异常
     'settledRetainBytes':整数字段(默认值=默认结算保留字节),
     'pumpPollMs':整数字段(默认值=默认泵送轮询毫秒),
 }
-
-class 操作任务:
-    '单次操作的 Future 包装，只留等待'
-    def __init__(自身):
-        '构造未决任务'
-        自身._未来=原生结果()
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():
-            自身._未来.set_result(值)
-        return 值
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():
-            if isinstance(错误,BaseException):
-                自身._未来.set_exception(错误)
-            else:
-                自身._未来.set_exception(本地任务错误(错误))
-
-    def 等待(自身,超时=None):
-        '阻塞到结算'
-        return 自身._未来.result(timeout=超时)
 
 def 是否终态(状态):
     '三个终态 JobStatus 值为真'
@@ -121,7 +99,7 @@ class 本地任务注册表(任务注册表):
             else:
                 合法=False
             if not 合法:
-                raise 本地任务错误('invalid outputLimitBytes: expected a positive safe integer, got '+json.dumps(输出上限,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+                raise 本地任务错误('invalid outputLimitBytes: expected a positive safe integer, got '+紧凑json编码(输出上限))
             输出上限=int(输出上限)
         if 所有者 is not None:
             自身.确保所有者清理(所有者)
@@ -158,7 +136,7 @@ class 本地任务注册表(任务注册表):
             'state':状态,
             'detail':None,
             'result':None,
-            'startedAt':int(time.time()*1000),
+            'startedAt':当前毫秒(),
             'finishedAt':None,
             'killReason':None,
             'settleCause':None,
@@ -241,13 +219,13 @@ class 本地任务注册表(任务注册表):
         '不移动模型游标的保留输出读取'
         任务=自身.期望(标识,调用方)
         if isinstance(起点,bool) or not isinstance(起点,(int,float)):
-            raise 本地任务错误('invalid output read offset: expected a non-negative safe integer, got '+json.dumps(起点,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+            raise 本地任务错误('invalid output read offset: expected a non-negative safe integer, got '+紧凑json编码(起点))
         if isinstance(起点,float):
             if (not 起点.is_integer()) or 起点<0 or 起点>安全整数上限:
-                raise 本地任务错误('invalid output read offset: expected a non-negative safe integer, got '+json.dumps(起点,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+                raise 本地任务错误('invalid output read offset: expected a non-negative safe integer, got '+紧凑json编码(起点))
             起点=int(起点)
         elif 起点<0 or 起点>安全整数上限:
-            raise 本地任务错误('invalid output read offset: expected a non-negative safe integer, got '+json.dumps(起点,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+            raise 本地任务错误('invalid output read offset: expected a non-negative safe integer, got '+紧凑json编码(起点))
         return 任务['ring'].从偏移读取(起点)
 
     def 终止(自身,标识,调用方=None,原因=None):
@@ -387,7 +365,7 @@ class 本地任务注册表(任务注册表):
         '等待结算或超时'
         if (isinstance(超时毫秒,bool) or not isinstance(超时毫秒,(int,float))
             or not math.isfinite(超时毫秒) or 超时毫秒<=0):
-            raise 本地任务错误('invalid wait timeout: expected a positive number of milliseconds, got '+json.dumps(超时毫秒,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+            raise 本地任务错误('invalid wait timeout: expected a positive number of milliseconds, got '+紧凑json编码(超时毫秒))
         if not 是否终态(任务['status']):
             if 已中止(信号):
                 raise 本地任务错误('wait aborted')
@@ -486,7 +464,7 @@ class 本地任务注册表(任务注册表):
             任务['detail']=结局['detail']
         任务['state']['progress']=None
         任务['result']=结局['result'] if 'result' in 结局 else None
-        任务['finishedAt']=int(time.time()*1000)
+        任务['finishedAt']=当前毫秒()
         未消费=任务['ring'].总量-任务['modelCursor']
         任务['ring'].修剪(max(自身.结算保留字节,未消费))
         等待决议器=list(任务['waitResolvers'])

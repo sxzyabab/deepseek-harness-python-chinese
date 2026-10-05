@@ -1,5 +1,5 @@
 import threading
-from ...存储 import 创建快照存储#共享快照仓库
+from ..存储 import 创建快照存储#共享快照仓库
 
 __all__=['设置描述镜像']#仅中文公开名
 

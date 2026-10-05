@@ -4,6 +4,7 @@ from base64 import b64encode as 编码基64,b64decode as 解码基64
 from ...附件.附件.异常 import 是否图像准入错误
 from ...工具.超时 import 若已中止则抛出
 import json
+from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .异常 import ACP内容错误#稳定 ACP 请求失败分类
 
 __all__=['ACP内容错误','支持ACP图片提示','接纳ACP提示','助手块转ACP']
@@ -62,8 +63,8 @@ def 支持ACP图片提示(上下文,提供方,模型):
 
 def 资源链接文本(块):
     '基线资源链接变成核心文本词表'
-    名=json.dumps(块.get('name'),ensure_ascii=False,separators=(',',':'),allow_nan=False)
-    址=json.dumps(块.get('uri'),ensure_ascii=False,separators=(',',':'),allow_nan=False)
+    名=紧凑json编码(块.get('name'))
+    址=紧凑json编码(块.get('uri'))
     return '\n[resource_link name='+名+' uri='+址+']\n'
 
 def 接纳ACP提示(上下文,路由,提示,图像已启用,信号):

@@ -4,6 +4,9 @@ from ..异常 import 本地化错误#本包异常
 from ..词表 import 中文,英文,设置中文,设置英文#公共与设置词表
 from .设置存储 import 创建语言行存储#语言行存储
 from .语言行 import 语言行#语言行组件
+from . import (
+    引导启动,
+)
 
 __all__=[#仅中文公开名
     '依赖','应用','语言运行时','回退语言','公共命名空间','设置命名空间',
@@ -24,11 +27,11 @@ __all__=[#仅中文公开名
 
 def 探测浏览器语言():
     '浏览器请求的第一种随包语言；非浏览器返回 None'
-    if 'window' not in globals():#非浏览器
+    try:#页面
+        window#非浏览器则没有
+        导航=navigator#navigator
+    except NameError:#非浏览器
         return None#未识别
-    if 'navigator' not in globals():#无导航
-        return None#未识别
-    导航=globals()['navigator']#navigator
     标签表=[]#候选标签
     语言列表=导航.languages#languages
     if 语言列表 is not None:#有列表

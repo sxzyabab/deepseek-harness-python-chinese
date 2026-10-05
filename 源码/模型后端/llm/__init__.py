@@ -1,8 +1,7 @@
 '语言模型适配器注册表与可拦截的流式调用入口'
 import math,threading#有限数与后台观察
-from ...依赖 import cordis#外部依赖胶水
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
-服务=cordis.服务#服务基类
 from .归属 import 应用身份,用户代理,归属头#再导出归属
 from .标识构造 import (
     消息标识,#消息身份品牌
@@ -93,6 +92,10 @@ from .调用配置 import (
     冻结映射,#冻结映射
 )
 from .适配器失败 import 归一化语言模型失败#导入适配器失败归一化
+from . import (
+    不变量,
+    远程,
+)
 
 __all__=(#仅中文公开名；无英文别名
     '应用身份','用户代理','归属头',

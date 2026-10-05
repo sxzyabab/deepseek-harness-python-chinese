@@ -1,8 +1,7 @@
 '持久化投影缓存'
 import threading,weakref#脏状态、定时写、会话身份
-from ...依赖 import cordis#框架
+from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 字典字段,数字字段#配置
-服务=cordis.服务#服务基类
 from ...模型后端.llm import 结构化克隆#JSON 快照
 from ..会话投影.异常 import 会话投影错误#注水失败
 from .规格 import 投影缓存域规格#域 spec

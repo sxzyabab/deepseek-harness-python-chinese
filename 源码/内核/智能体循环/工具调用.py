@@ -1,4 +1,5 @@
-import json,threading
+import json
+from ...基础设施.通用工具 import 启动守护线程
 from queue import Queue as 队列#单次落定门
 from ...模型后端.llm import 断言永不,创建工具结果消息
 from ..工具 import 工具体前中止,调度器符号
@@ -123,9 +124,7 @@ def 执行一组(上下文,轮次,步骤,组,模式,信号,接受上下文):
                         if 调度失败 is None:
                             调度失败={'error':错误}#记下首次失败
                 放入成功(条任务,下标)#返回下标以便排空
-            工作=threading.Thread(target=执行派发)#派发线程
-            工作.daemon=True#不挡住退出
-            工作.start()#启动
+            启动守护线程(执行派发)#派发线程
             在飞[下标]=条任务#记入在飞
         elif 种类=='post-result':
             槽表[下标]={

@@ -1,5 +1,4 @@
-from ...依赖 import cordis#外部依赖胶水
-聚合错误=cordis.聚合错误#搭建与清理双失败的聚合基类
+from ...依赖.工具 import 聚合错误#搭建与清理双失败的聚合基类
 
 class 终端错误(Exception):#带稳定错误码的错误
     '携带稳定 TerminalErrorCode 的错误'

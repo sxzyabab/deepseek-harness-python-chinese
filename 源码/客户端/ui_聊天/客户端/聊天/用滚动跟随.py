@@ -1,4 +1,4 @@
-import builtins,weakref
+import weakref
 
 __all__=['滚动度量','滚动跟随','用滚动跟随']
 
@@ -95,7 +95,10 @@ class 滚动跟随:
         自身.跟随中=True
         if 行为=='instant' or 度量['top']>=度量['floor'] or (not 自身.animating and 自身.近底(度量)):
             return 自身.跳转(元素,度量,度量['floor'])
-        匹配媒体=getattr(builtins,'matchMedia',None)
+        try:#页面媒体查询
+            匹配媒体=matchMedia#构造
+        except NameError:#非浏览器
+            匹配媒体=None#无
         if callable(匹配媒体) and 匹配媒体('(prefers-reduced-motion: reduce)').matches:
             return 自身.跳转(元素,度量,度量['floor'])
         if 自身.目标 is None:

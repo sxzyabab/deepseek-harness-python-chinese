@@ -3,6 +3,10 @@ from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .观察 import 观察作业输出
 from .表行列表 import 流出作业表行
 from .异常 import 远程错误
+from . import (
+    唤醒,
+    客户端,
+)
 
 __all__=['包名','名称','依赖','默认','配置','后台任务控制器']
 
