@@ -1,5 +1,6 @@
 import threading#单飞拉取与预热等待
-from ....基础设施.通用工具 import 获取内部数据,操作任务,启动守护线程,路径转正斜杠,观察者集合
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+from ....基础设施.通用工具 import 获取内部数据,启动守护线程,路径转正斜杠,观察者集合
 from urllib.parse import quote as 百分编码#URI 段编码
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ...ui_基础界面组件.按名排序 import 按名排序#按名与标签排序
@@ -99,16 +100,40 @@ def 应用(上下文):#安装技能引用浏览器半边
                 消息=错误['message'] if 错误 is not None and 'message' in 错误 else None#消息
                 raise 技能错误('skills/list 失败: '+str(码)+': '+str(消息))#转抛
             return 结果['value']['skills']#目录条目
-        任务=操作任务()#本键共享拉取
+        任务=期约()#本键共享拉取
         条目={'任务':任务,'abort':中止拉取,'signal':中止器}#本键共享条目
         拉取表[会话标识]=条目#写入缓存
+        def 拉取失败(错误):
+            '失败不得毒化该键：摘掉缓存，共享失败'
+            if (拉取表[会话标识] if 会话标识 in 拉取表 else None) is 条目:#仍是本条目
+                del 拉取表[会话标识]#摘掉
+            任务.拒绝(错误)#共享失败
+        def 拉取成功(技能列表):
+            '目录到手：记同步词表快照，交给等待方并通知词表监听者'
+            try:
+                条目['settled']=技能列表#同步词表快照
+                任务.解决(技能列表)#交给等待方
+                通知词表(会话标识)#通知词表监听者
+            except BaseException as 错误:#通知失败同样按拉取失败
+                拉取失败(错误)
+        本次拉取=None#在持有内拉取写上，已列出结算
+        def 已列出(包装):
+            'RPC 返回：仍有效才业务解包'
+            try:
+                若已中止则抛出(中止器)#RPC 后仍有效
+                本次拉取.解决(解包目录(包装))#业务解包
+            except BaseException as 错误:#失效或业务失败
+                本次拉取.拒绝(错误)
         def 执行拉取():#单飞拉取体
             '持留会话至历史打开后再调 skills/list'
+            nonlocal 本次拉取
             try:#拉取并解包
                 if 会话服务.binding(会话标识) is None:#未持留
                     raise 技能错误('skill catalog requires a retained session "'+str(会话标识)+'"')
                 def 在持有内拉取(引用):#打开后拉目录
-                    '等历史打开再 RPC'
+                    '等历史打开再 RPC，返回期约，解决值是目录'
+                    nonlocal 本次拉取
+                    本次拉取=期约()#本次拉取的结算点
                     若已中止则抛出(中止器)#拉取期间失效则抛
                     状态=引用.binding.session.getSnapshot()#会话快照
                     打开态=状态['openState'] if isinstance(状态,dict) else getattr(状态,'openState',None)
@@ -117,17 +142,13 @@ def 应用(上下文):#安装技能引用浏览器半边
                         if 错误 is not None:
                             raise 错误
                         raise 技能错误('session "'+str(会话标识)+'" is not open')
-                    包装=技能接口.list({'sessionId':会话标识},中止器).等待()#唯一一次 list
-                    若已中止则抛出(中止器)#RPC 后仍有效
-                    return 解包目录(包装)#业务解包
-                技能列表=会话服务.using(会话标识,{'source':'skillCatalog','signal':中止器},在持有内拉取)
-                条目['settled']=技能列表#同步词表快照
-                任务.兑现(技能列表)#交给等待方
-                通知词表(会话标识)#通知词表监听者
-            except BaseException as 错误:#失败不得毒化该键
-                if (拉取表[会话标识] if 会话标识 in 拉取表 else None) is 条目:#仍是本条目
-                    del 拉取表[会话标识]#摘掉
-                任务.拒绝(错误)#共享失败
+                    技能接口.list({'sessionId':会话标识},中止器).然后(已列出,本次拉取.拒绝)#唯一一次 list
+                    return 本次拉取
+                目录期约=会话服务.using(会话标识,{'source':'skillCatalog','signal':中止器},在持有内拉取)
+            except BaseException as 错误:#线程入口把同步段失败收进共享失败
+                拉取失败(错误)
+                return
+            目录期约.然后(拉取成功,拉取失败)#目录到手后落定
         启动守护线程(执行拉取)#后台拉取
         return 条目#共享条目
 
@@ -151,34 +172,37 @@ def 应用(上下文):#安装技能引用浏览器半边
         '按查询过滤本会话技能候选'
         查询=选项['query'] if 'query' in 选项 else ''#查询串
         信号=选项['signal'] if 'signal' in 选项 else None#中止信号
+        候选结果=期约()#本次候选的结算点，解决值是候选列表
         if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体会话
-            return []#无用户技能目录
-        技能列表=拉目录(会话['sessionId'])['任务'].等待()#共享目录
-        if 已中止(信号):#被取代的按键：共享拉取仍热着，本调用方让出
-            return []#早退
-        结果=[]#候选列表
-        for 技能 in 按名排序(技能列表,查询):#前缀优先的有序子序列
-            名=技能['name'] if 'name' in 技能 else ''#技能名
-            描述=技能['description'] if 'description' in 技能 else ''#描述
-            if 'modelInvocable' in 技能 and 技能['modelInvocable']:#模型可调则原文
-                次要=描述#原文
-            else:#仅用户
-                次要=翻译('menu.userOnly')+' · '+描述#加前缀
-            结果.append({'name':名,'description':次要})#候选
-        return 结果#候选列表
+            候选结果.解决([])#无用户技能目录
+            return 候选结果
+        def 目录已到(技能列表):
+            '共享目录到手：被取代的按键让出，否则按查询过滤'
+            if 已中止(信号):#被取代的按键：共享拉取仍热着，本调用方让出
+                候选结果.解决([])#早退
+                return
+            结果=[]#候选列表
+            for 技能 in 按名排序(技能列表,查询):#前缀优先的有序子序列
+                名=技能['name'] if 'name' in 技能 else ''#技能名
+                描述=技能['description'] if 'description' in 技能 else ''#描述
+                if 'modelInvocable' in 技能 and 技能['modelInvocable']:#模型可调则原文
+                    次要=描述#原文
+                else:#仅用户
+                    次要=翻译('menu.userOnly')+' · '+描述#加前缀
+                结果.append({'name':名,'description':次要})#候选
+            候选结果.解决(结果)#候选列表
+        拉目录(会话['sessionId'])['任务'].然后(目录已到,候选结果.拒绝)#共享目录
+        return 候选结果
 
     def 预热(会话):#作用域诞生预热
         '点火即忘的作用域诞生预热'
         if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体
             return#不预热
         任务=拉目录(会话['sessionId'])['任务']#预热
-        def 忽略():#吞掉成败
-            '预热失败由 candidates 再报'
-            try:#等待
-                任务.等待()#等待
-            except BaseException:#失败
-                pass#忽略
-        启动守护线程(忽略)#后台
+        def 忽略(错误):#预热失败
+            '预热失败不在此处理：目录拉取失败已摘掉缓存，下一次 candidates 会再拉并上报'
+            return
+        任务.捕获(忽略)#后台
 
     def 词表(会话):#同步词表
         '已落定目录的技能名'
@@ -232,16 +256,18 @@ def 应用(上下文):#安装技能引用浏览器半边
         if 已落定 is not None:#已落定
             return 打开(已落定)#同步打开
         条目=拉目录(会话标识)#加入或发起拉取
-        def 到达后打开():#目录到达后打开
+        def 预览失败(错误):#预览失败
+            '仍有效才记'
+            if not 已中止(条目['signal']):#仍有效才记
+                print('[ui-skill] 引用预览失败:',错误)#记日志
+        def 到达后打开(目录):#目录到达后打开
             '仍有效才打开'
-            try:#等待目录
-                目录=条目['任务'].等待()#目录
+            try:
                 if not 已中止(条目['signal']):#仍有效
                     打开(目录)#打开
             except BaseException as 错误:#预览失败
-                if not 已中止(条目['signal']):#仍有效才记
-                    print('[ui-skill] 引用预览失败:',错误)#记日志
-        启动守护线程(到达后打开)#后台打开
+                预览失败(错误)
+        条目['任务'].然后(到达后打开,预览失败)#目录到达后打开
         return True#已受理
 
     def 选定(载荷):#选定：插入字面 /name 加空格

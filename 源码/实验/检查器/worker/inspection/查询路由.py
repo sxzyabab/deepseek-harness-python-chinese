@@ -1,7 +1,6 @@
 import json#查询帧序列化
 from .....基础设施.通用工具.文本工具 import utf8字节数
 from .....基础设施.通用工具.序列化编码 import 紧凑json编码
-from ...共享.json import 在线程执行#后台跑
 from ...异常 import 检查器错误#包内错误
 from .cordis查询 import 执行检查器查询#查询执行
 
@@ -106,10 +105,7 @@ class 检查器查询对端:#查询对端
             自身._发送失败(帧,'invalid-request','Inspector query requestId is already in flight')#失败
             return True#已拥有
         自身._进行中[帧['requestId']]=已接受#登记进行中
-        def 后台执行():#后台跑查询
-            '在工作线程执行本帧'
-            自身._执行(帧,已接受)#执行
-        在线程执行(后台执行)#后台执行
+        自身._执行(帧,已接受)#读取器是同步函数，直接执行并投递响应
         return True#已拥有
 
     def 关闭(自身):#关闭

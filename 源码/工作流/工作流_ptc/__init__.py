@@ -1,6 +1,5 @@
 '经共享沙箱 Node PTC 执行器的工作流编排'
 import copy,os,re,uuid#参数拷贝、并行度、元数据头、运行标识
-from ...基础设施.通用工具 import 启动守护线程
 from ...依赖.schemastery import 字符串字段,自然数字段#配置字段
 from ..工作流 import 工作流引擎,工作流运行标识#缝上引擎
 from ..工作流.异常 import 工作流错误#缝上错误
@@ -134,14 +133,16 @@ class ptc工作流引擎(工作流引擎):#PTC 后端工作流引擎
             信号,#信号
         )#运行
         自身.发出工作流事件('workflow/start',信息)#开始
-        def 发结束():#结果落定时发 end
+        def 发结束(已结算):#结果落定时发 end
             'workflow/end 只带结局数据，不含结果值'
-            已结算=运行.结果.等待()#永不拒绝
             结局={'stopReason':已结算['stopReason'],'agentsStarted':已结算['agentsStarted']}#摘要
             if 'error' in 已结算 and 已结算['error'] is not None:#有错误
                 结局['error']=已结算['error']#带上
             自身.发出工作流事件('workflow/end',信息,结局)#结束
-        启动守护线程(发结束)#后台
+        def 结束失败(错误):#结果不应拒绝
+            '拒绝留在链上'
+            raise 错误#再抛
+        运行.结果.然后(发结束,结束失败)#结果落定后发 end
         return 运行#存活运行
 
 default=ptc工作流引擎#Cordis 默认导出

@@ -1,5 +1,11 @@
 '工作区指令发现与渲染的配置归一化'
-from ...基础设施.通用工具 import 紧凑json编码,相对正斜杠路径,已中止
+from ...基础设施.通用工具 import 紧凑json编码,相对正斜杠路径
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 from ...依赖.schemastery import 字符串字段,数字字段,列表字段
 from ...工具.主目录路径 import 解析主目录#导入harness家目录解析
 from .异常 import 智能体命令错误

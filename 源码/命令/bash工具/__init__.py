@@ -1,5 +1,6 @@
-import math,os,threading#有限数、路径与后台结算线程
-from ...基础设施.通用工具.并发原语 import 操作任务
+import functools,math,os#偏应用、有限数与路径
+偏应用=functools.partial
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.cordis.纤程 import 纤程状态
 from ...依赖.schemastery import 布尔字段#配置字段
@@ -186,6 +187,65 @@ def 应用(上下文,配置值=None):#加载bash工具插件
     沙箱政策=None if 默认模式 is None else 上下文.获取服务('sandboxPolicy',False)
     if 默认模式 is not None and 沙箱政策 is None:
         raise bash工具错误('tool-bash: 已挂载的 bash 执行器会隔离，但缺少 ctx.sandboxPolicy')
+    def 准备超时已停(结果,超时毫秒,规格,*停止值):
+        '准备超时的任务已停：给出已结算的空结果'
+        空={'kind':'foreground','exitCode':None,'signal':None,'timedOut':True,'aborted':False,'timeoutMs':超时毫秒,
+            'stdout':{'text':'','truncated':False},'stderr':{'text':'','truncated':False}}
+        if 'sandboxPolicy' in 规格 and 规格['sandboxPolicy'] is not None:
+            空['sandbox']={'mode':规格['sandboxPolicy']['mode'],'denied':False}
+        结果.解决(空)
+    def 停止后已结算(注册表,已挂,所有者,停止结果,已结算):
+        '任务落定则移除记录'
+        if 已结算['status']!='running' and 已结算['status']!='stopping':
+            注册表.移除(已挂['id'],所有者)
+        停止结果.解决(已结算)
+    def 进程结果已到(已挂,结果,进程结果值):
+        '前台进程结果到手后规范化'
+        收成=规范Bash结果(进程结果值)
+        已停=已挂['stopped']()
+        if 已停 is not None:
+            收成['stopped']=已停
+        结果.解决(收成)
+    def 视图已到(已挂,停止,结果,超时毫秒,规格,注册表,所有者,视图):
+        '等待落定：按任务状态归结为准备超时、晋升或前台结果'
+        try:
+            if (视图['status']=='running' or 视图['status']=='stopping') and 已挂['process']() is None:
+                停止('timed out during preparation').然后(偏应用(准备超时已停,结果,超时毫秒,规格),结果.拒绝)
+                return
+            if 视图['status']=='running' or 视图['status']=='stopping':
+                读=注册表.读取(已挂['id'],所有者)
+                溢出=读['job']['output'].get('spillPaths') if isinstance(读.get('job'),dict) and isinstance(读['job'].get('output'),dict) else []
+                if 溢出 is None:
+                    溢出=[]
+                活=已挂['process']()
+                结果.解决({'kind':'promoted','jobId':已挂['id'],'timeoutMs':超时毫秒,
+                    'output':渲染任务读取(环增量(读['chunks']),读['lossy'],溢出,None if 活 is None else getattr(活,'sandbox',None),升级模式)})
+                return
+            注册表.移除(已挂['id'],所有者)
+            进程=已挂['process']()
+            if 进程 is None:
+                raise bash工具错误(视图['detail'])
+            进程.结果().然后(偏应用(进程结果已到,已挂,结果),结果.拒绝)
+        except Exception as 错误:
+            结果.拒绝(错误)
+    def 等待被取消(停止,结果,错误):
+        '等待因调用方取消而失败：调用结束，命令随之停掉并抛中止'
+        停止('tool call aborted').然后(偏应用(已停掉,结果),结果.拒绝)
+    def 已停掉(结果,*停止值):
+        '任务已停，作为调用中止结束'
+        try:
+            抛中止()
+        except Exception as 中止错误:
+            结果.拒绝(中止错误)
+    def 前台命令已结算(前台结果,结果):
+        '前台命令结算：已中止则抛中止，否则规范化'
+        if 结果['aborted'] is True:
+            try:
+                抛中止()
+            except Exception as 中止错误:
+                前台结果.拒绝(中止错误)
+            return
+        前台结果.解决(规范Bash结果(结果))
     def 解析沙箱政策(执行上下文):
         '挂上隔离执行器时，解析本次调用的完整常驻政策'
         if 沙箱政策 is None:
@@ -220,26 +280,31 @@ def 应用(上下文,配置值=None):#加载bash工具插件
         晋升=后台 and 晋升超时
         def 启动任务(注册表,参数,执行上下文,规格):
             '登记命令为任务；进程在 starter 内、准入之后才 spawn'
-            进程箱=[None]
-            已停=[None]
+            活进程=None#已派生的进程
+            已停原因=None#外部杀死的原因
             def 取进程():
                 '已派生的活进程'
-                return 进程箱[0]
+                return 活进程
+            def 取已停原因():
+                '外部杀死的原因，没有则 None'
+                return 已停原因
             def 任务体():
                 '准入后启动进程作业'
                 def 拉起(信号):
                     '带任务取消信号执行规格'
+                    nonlocal 活进程#改外层
                     下一=dict(规格)
                     下一['signal']=信号
-                    进程箱[0]=上下文.shell.执行(下一)
-                    return 进程箱[0]
+                    活进程=上下文.shell.执行(下一)
+                    return 活进程
                 def 投影结局(已启动):
                     '带升级模式映射任务结局'
                     return 进程结果(已启动,升级模式)
                 钩子=进程作业(拉起,投影结局)
                 def 取消(原因=None):
                     '外部杀死记下原因'
-                    已停[0]=原因
+                    nonlocal 已停原因#改外层
+                    已停原因=原因
                     钩子['cancel'](原因)
                 return {'done':钩子['done'],'cancel':取消}
             启动参数={'kind':'bash','label':参数['command'],'output':进程源列表(取进程),'run':任务体}
@@ -247,49 +312,24 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             if 智能体 is not None:
                 启动参数['owner']=智能体.id
             编号=注册表.启动(启动参数)
-            return {'id':编号,'process':取进程,'stopped':lambda:已停[0]}
+            return {'id':编号,'process':取进程,'stopped':取已停原因}
         def 等待任务(注册表,已挂,执行上下文,规格):
-            '等到登记的前台命令结算或超时'
+            '返回期约：等到登记的前台命令结算或超时，兑现前台结果或晋升结果'
             智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None
             所有者=None if 智能体 is None else 智能体.id
             超时毫秒=规格['timeoutMs']
+            结果=期约()#工具结果
             def 停止(原因):
-                '由本调用停掉任务并等到结算，使模型从未见过的 id 随调用离开'
+                '返回期约：由本调用停掉任务并等到结算，使模型从未见过的 id 随调用离开；兑现值是结算视图'
                 注册表.终止(已挂['id'],所有者,原因)
-                已结算=注册表.等待(已挂['id'],超时毫秒,所有者)
-                if 已结算['status']!='running' and 已结算['status']!='stopping':
-                    注册表.移除(已挂['id'],所有者)
-                return 已结算
-            try:
-                视图=注册表.等待(已挂['id'],超时毫秒,所有者,执行上下文['signal'] if 'signal' in 执行上下文 else None)
-            except BaseException:
-                停止('tool call aborted')
-                抛中止()
-            if (视图['status']=='running' or 视图['status']=='stopping') and 已挂['process']() is None:
-                停止('timed out during preparation')
-                空={'kind':'foreground','exitCode':None,'signal':None,'timedOut':True,'aborted':False,'timeoutMs':超时毫秒,
-                    'stdout':{'text':'','truncated':False},'stderr':{'text':'','truncated':False}}
-                if 'sandboxPolicy' in 规格 and 规格['sandboxPolicy'] is not None:
-                    空['sandbox']={'mode':规格['sandboxPolicy']['mode'],'denied':False}
-                return 空
-            if 视图['status']=='running' or 视图['status']=='stopping':
-                读=注册表.读取(已挂['id'],所有者)
-                溢出=读['job']['output'].get('spillPaths') if isinstance(读.get('job'),dict) and isinstance(读['job'].get('output'),dict) else []
-                if 溢出 is None:
-                    溢出=[]
-                活=已挂['process']()
-                return {'kind':'promoted','jobId':已挂['id'],'timeoutMs':超时毫秒,
-                    'output':渲染任务读取(环增量(读['chunks']),读['lossy'],溢出,None if 活 is None else getattr(活,'sandbox',None),升级模式)}
-            注册表.移除(已挂['id'],所有者)
-            进程=已挂['process']()
-            if 进程 is None:
-                raise bash工具错误(视图['detail'])
-            结果=进程.结果()
-            已停=已挂['stopped']()
-            收成=规范Bash结果(结果)
-            if 已停 is not None:
-                收成['stopped']=已停
-            return 收成
+                停止结果=期约()#结算视图
+                注册表.等待(已挂['id'],超时毫秒,所有者).然后(偏应用(停止后已结算,注册表,已挂,所有者,停止结果),停止结果.拒绝)
+                return 停止结果
+            try:#等待任务结算或超时
+                注册表.等待(已挂['id'],超时毫秒,所有者,执行上下文['signal'] if 'signal' in 执行上下文 else None).然后(偏应用(视图已到,已挂,停止,结果,超时毫秒,规格,注册表,所有者),偏应用(等待被取消,停止,结果))
+            except Exception as 错误:#同步失败也按取消处理
+                等待被取消(停止,结果,错误)
+            return 结果
         def 渲染(参数,值):
             '按种类渲染'
             if 值['kind']=='background':
@@ -300,7 +340,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
                 文本=渲染结果(值,升级模式)
             return [{'type':'text','text':文本}]
         def 执行(参数,执行上下文):
-            '校验后前台等待或后台登记'
+            '校验后前台等待或后台登记，返回期约'
             常驻政策=解析沙箱政策(执行上下文)
             校验Bash参数(参数)
             if ('sandbox_permissions' in 参数 and 参数['sandbox_permissions'] is not None and
@@ -329,7 +369,9 @@ def 应用(上下文,配置值=None):#加载bash工具插件
                 if 已中止(执行上下文['signal'] if 'signal' in 执行上下文 else None):
                     抛中止()
                 请求['onExpiry']='none'
-                return {'kind':'background','jobId':启动任务(任务服务,参数,执行上下文,上下文.shell.解析(请求))['id']}
+                后台结果=期约()#后台启动结果
+                后台结果.解决({'kind':'background','jobId':启动任务(任务服务,参数,执行上下文,上下文.shell.解析(请求))['id']})
+                return 后台结果
             if 任务服务 is not None and 晋升:
                 规格=上下文.shell.解析(dict(请求,onExpiry='none'))
                 已挂=None
@@ -342,10 +384,9 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             前台请求=dict(请求)
             前台请求['signal']=执行上下文['signal'] if 'signal' in 执行上下文 else None
             句柄=上下文.shell.执行(上下文.shell.解析(前台请求))
-            结果=句柄.结果()
-            if 结果['aborted'] is True:
-                抛中止()
-            return 规范Bash结果(结果)
+            前台结果=期约()#前台结果
+            句柄.结果().然后(偏应用(前台命令已结算,前台结果),前台结果.拒绝)
+            return 前台结果
         超时说明=('Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed.'
             if 晋升 else 'Timeout in milliseconds. The executor applies its configured default and cap, and kills the command on expiry.')
         参数表={

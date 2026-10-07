@@ -1,14 +1,10 @@
 '有界 Node 程序：宿主拥有绑定、输出上限与受管进程清理'
 import codecs,math,os,sys,threading#增量解码、有限数、路径、冻结探测与后台线程
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
-from ...工具.超时 import (#截止与中止
+from ...工具.超时 import (#截止
     定时器延迟上限毫秒,#定时器上限
     夹取超时,#钳截止
-    中止控制器,#AbortController
-    合成信号,#AbortSignal.any
-    已中止,#读中止
-    若已中止则抛出,#抛中止
-    等待中止,#阻塞到中止
+    等待中止,#中止类已禁用
 )#超时结束
 from ...工具.值 import 快照json值#绑定返回值
 from ...沙盒.沙盒.异常 import 沙箱不可用错误#沙箱失败
@@ -16,7 +12,8 @@ from ...沙盒.沙盒 import 分类运行器失败,是否运行器派生失败#�
 from ..ptc运行时 import ptc运行时#缝上服务
 from .异常 import 节点ptc错误#本包异常
 from .绑定 import 校验绑定#绑定名
-from .通道 import json通道,任务,全部并发#控制通道
+from ...基础设施.js特性 import PromiseEX as 期约#期约
+from .通道 import json通道#控制通道
 from .启动 import 引导参数#argv 尾
 from .输出账本 import 输出账本#外层账本
 from .输出流 import 排空输出#排空
@@ -113,16 +110,17 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 raise 节点ptc错误('ptc-runtime-node: bootstrapPath must be absolute')#拒绝
         自身.存活=[]#进行中的运行
         自身.已释放=False#是否已拆
-        def 拆除():#fiber 拆除
-            '中止并等待进行中的运行'
-            自身.已释放=True#标记
-            活动=list(自身.存活)#快照
-            for 运行 in 活动:#逐个
-                运行['控制器'].中止(节点ptc错误('runtime disposed'))#中止
-            for 运行 in 活动:#等完成
-                运行['完成'].等待()#等到
-            return None#拆除完成
-        上下文.副作用(拆除,'Node ptc-runtime cleanup')#登记
+        def 登记清理():#fiber 拆除登记
+            '交出拆除器，中止并等进行中的运行'
+            def 拆除():#插件拆除
+                '中止并返回进行中运行的落定期约'
+                自身.已释放=True#标记
+                活动=list(自身.存活)#快照
+                for 运行 in 活动:#逐个
+                    运行['控制器'].中止(节点ptc错误('runtime disposed'))#中止
+                return 期约.全部([运行['完成'] for 运行 in 活动])#全部落定
+            return 拆除#拆除器
+        上下文.副作用(登记清理,'Node ptc-runtime cleanup')#登记
 
     def 语言(自身):#源语言
         'run 期望的小写语言标识'
@@ -173,7 +171,8 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
 
     def 运行(自身,规格):#跑已解析程序
         """在全新受管隔离 Node 进程中跑。
-        规格是 dict
+        规格是 dict。
+        返回期约，清理完成后解决为运行结果
         """
         if 自身.已释放:#已拆
             raise 节点ptc错误('ptc-runtime-node: run after disposal')#拒绝
@@ -187,22 +186,38 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 raise 节点ptc错误('ptc-runtime-node: run requires resolved cwd and timeout')#拒绝
         绑定=校验绑定(规格)#绑定表
         控制器=中止控制器()#本运行
-        完成=任务()#运行落定
+        完成=期约()#运行落定
         存活={'控制器':控制器,'完成':完成}#登记项
         自身.存活.append(存活)#记下
-        try:#执行
-            return 自身._执行(规格,规格['sandboxPolicy'],绑定,控制器)#结果
-        finally:#摘掉
+        def 运行结束(结果值):#成功
+            '摘掉存活并放开拆除，原样交还结果'
             if 存活 in 自身.存活:#仍在
                 自身.存活.remove(存活)#移除
-            完成.兑现()#落定
+            if 完成.状态=='pending':#尚未放开
+                完成.解决()#放开拆除
+            return 结果值#原结果
+        def 运行失败(错误):#失败
+            '摘掉存活并放开拆除，再拒绝'
+            if 存活 in 自身.存活:#仍在
+                自身.存活.remove(存活)#移除
+            if 完成.状态=='pending':#尚未放开
+                完成.解决()#放开拆除
+            失败=期约()#拒绝回执
+            失败.拒绝(错误)#原错误
+            return 失败#继续拒绝
+        try:#执行
+            执行结果=自身._执行(规格,规格['sandboxPolicy'],绑定,控制器)#结果期约
+        except BaseException as 错误:#执行器自身抛出
+            执行结果=期约()#失败回执
+            执行结果.拒绝(错误)#拒绝
+        return 执行结果.然后(运行结束,运行失败)#摘掉后交还原结果
 
     def _执行(自身,规格,政策,绑定,控制器):#一次受管执行
         '启动进程、分帧、绑定调用与清理'
         账本=输出账本(自身.配置['maxOutputBytes'])#外层账本
         日志=[]#已接纳日志
         沙箱={'mode':政策['mode'],'denied':False}#沙箱事实
-        结果任务=任务()#调用方结果
+        结果任务=期约()#调用方结果
         if 'signal' not in 规格 or 规格['signal'] is None:#无上游
             信号=控制器.信号#只用本运行
         else:#融合
@@ -219,7 +234,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
         锁=threading.Lock()#结算锁
         墙钟=None#定时器
         def 收尾(失败=None,值=None):#结算一次运行
-            '清理受管进程后兑现结果'
+            '清理受管进程后解决结果'
             with 锁:#互斥
                 if 已结算[0]:#已结算
                     return#忽略
@@ -228,44 +243,57 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 墙钟.cancel()#取消
             if 通道 is not None:#有通道
                 通道.关闭()#关
-            def 清理():#受管清理
-                '终止、等待、排空'
-                失败值=失败#可变失败
-                if 句柄 is not None:#有进程
-                    try:#清理
-                        句柄.终止()#升级终止
-                        def 等结局():#done
-                            '等孩子结局'
-                            try:#等待
-                                句柄.done.等待()#结局
-                            except (节点ptc错误,OSError,ValueError):#spawn 失败
-                                pass#吞掉
-                        全部并发([等结局,句柄.等待退出])#结局与整树
-                        出干净=排空输出(句柄.stdout,自身.配置['graceMs'])#stdout
-                        错干净=排空输出(句柄.stderr,自身.配置['graceMs'])#stderr
-                        if (not 出干净 or not 错干净) and 失败值 is None:#未干净结束
-                            失败值={'kind':'worker-exit','message':'Node process output did not close cleanly'}#失败
-                    except (节点ptc错误,OSError,ValueError) as 错误:#清理失败
-                        失败值={'kind':'worker-exit','message':'managed process cleanup failed: '+消息于(错误)}#失败
-                    finally:#关流
-                        for 流 in (句柄.stdout,句柄.stderr):#两路
-                            if 流 is None:#无
-                                continue#跳过
-                            try:#关
-                                流.close()#关
-                            except (OSError,ValueError):#已关
-                                pass#忽略
+            失败盒=[失败]#清理期间可改写的失败
+            def 交还结局(忽略=None):#写出沙箱事实并解决
+                '按溢出、成功或失败解决调用方结果。忽略是然后传入的汇合值'
                 if 输出溢出[0]:#输出上限优先
                     结局=溢出结果[0] if 溢出结果[0] is not None else 账本.超限(日志)#超限
-                elif 失败值 is None:#成功
+                elif 失败盒[0] is None:#成功
                     结局=账本.成功(日志,值)#成功
                 else:#失败
-                    结局=账本.失败(日志,失败值)#失败
+                    结局=账本.失败(日志,失败盒[0])#失败
                 结局['sandbox']=dict(沙箱)#沙箱事实
-                结果任务.兑现(结局)#兑现
-            工作=threading.Thread(target=清理,daemon=True)#清理线程
-            工作.start()
-            工作.join()#等到清理结束再返回路径继续
+                if 结果任务.状态=='pending':#尚未解决
+                    结果任务.解决(结局)#解决
+            def 关掉输出():#关掉两路管道
+                '关掉标准输出与标准错误'
+                if 句柄 is None:#无进程
+                    return#无流
+                for 流 in (句柄.stdout,句柄.stderr):#两路
+                    if 流 is None:#无
+                        continue#跳过
+                    try:#关
+                        流.close()#关
+                    except (OSError,ValueError):#已关
+                        pass#忽略
+            def 清理出错(错误):#终止或等待失败
+                '记清理失败后仍交还结局'
+                失败盒[0]={'kind':'worker-exit','message':'managed process cleanup failed: '+消息于(错误)}#失败
+                关掉输出()#关流
+                交还结局()#解决
+            if 句柄 is None:#没有进程
+                交还结局()#直接解决
+                return#无清理
+            try:#开始终止
+                句柄.终止()#升级终止
+            except (节点ptc错误,OSError,ValueError) as 错误:#终止失败
+                清理出错(错误)#记失败
+                return#已交还
+            def 忽略结局(错误):#孩子结局拒绝不挡清理
+                '吞掉结局拒绝'
+                return None#当成功
+            def 进程已退出(落定值):#结局与整树都已结算
+                '排空输出后交还结局。落定值是两路汇合值'
+                try:#排空
+                    出干净=排空输出(句柄.stdout,自身.配置['graceMs'])#stdout
+                    错干净=排空输出(句柄.stderr,自身.配置['graceMs'])#stderr
+                    if (not 出干净 or not 错干净) and 失败盒[0] is None:#未干净结束
+                        失败盒[0]={'kind':'worker-exit','message':'Node process output did not close cleanly'}#失败
+                except (节点ptc错误,OSError,ValueError) as 错误:#排空失败
+                    失败盒[0]={'kind':'worker-exit','message':'managed process cleanup failed: '+消息于(错误)}#失败
+                关掉输出()#关流
+                交还结局()#解决
+            期约.全部([句柄.done.捕获(忽略结局),句柄.等待退出()]).然后(进程已退出,清理出错)#结局与整树
         def 因中止():#中止回调
             '超时或取消'
             if 已超时[0]:#墙钟
@@ -285,7 +313,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
         中止线程.start()
         if 已中止(信号):#已经中止
             因中止()#立刻
-            return 结果任务.等待()#已结算
+            return 结果任务#已结算
         if 规格['timeoutMs'] is not None:#有墙钟
             def 到期():#墙钟
                 '标记超时并中止'
@@ -296,7 +324,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             墙钟.start()#武装
         try:#启动进程
             if 已结算[0]:#中止已结算
-                return 结果任务.等待()#结果
+                return 结果任务#结果
             代码=规格['program']#程序体；Python 宿主不擦 TS 类型
             解析中[0]=False#进入启动
             空间列表=[]#boot 命名空间
@@ -308,7 +336,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             引导={'code':代码,'namespaces':空间列表,'maxOutputBytes':自身.配置['maxOutputBytes']}#boot
             可执行=自身.ctx.subprocess.解析可执行文件(自身.配置['nodeExecutable'],None,信号)#解析
             if 已结算[0]:#中止
-                return 结果任务.等待()#结果
+                return 结果任务#结果
             打包=hasattr(sys,'frozen') and ('bootstrapPath' not in 自身.配置 or 自身.配置['bootstrapPath'] is None)#打包
             堆标志='--max-old-space-size='+str(自身.配置['maxOldGenerationSizeMb'])#堆上限
             参数表=[可执行]#argv0
@@ -318,7 +346,7 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
             if 政策['mode']!='danger-full-access':#需要隔离
                 已隔离=自身.ctx.sandbox.隔离(参数表,政策)#包装 argv
             if 已结算[0]:#中止
-                return 结果任务.等待()#结果
+                return 结果任务#结果
             if 已隔离 is not None and 'enforcement' in 已隔离:#强制能力
                 沙箱['enforcement']=已隔离['enforcement']#记下
             环境={}#墓碑表
@@ -377,10 +405,15 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                         协议失败('program frame arrived before bootstrap readiness')#协议
                         return
                     已就绪[0]=True#就绪
-                    try:#发 boot
-                        通道.发送({'type':'boot','data':引导})#引导
-                    except (节点ptc错误,OSError,ValueError) as 错误:#发送失败
+                    def 引导发送失败(错误):#boot 帧失败
+                        '引导帧发送失败'
                         协议失败(消息于(错误))#协议
+                    try:#发 boot
+                        写出=通道.发送({'type':'boot','data':引导})#引导期约
+                    except (节点ptc错误,OSError,ValueError,TypeError) as 错误:#编码失败
+                        协议失败(消息于(错误))#协议
+                        return#不再挂捕获
+                    写出.捕获(引导发送失败)#传输失败
                     return
                 种类=原始.get('type')#帧类
                 if 种类=='log':#日志
@@ -455,8 +488,11 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                                 未决数[0]-=1#减一
                                 未决字节[0]-=帧字节#减字节
                             if not 已结算[0]:#仍活
-                                通道.发送(回复)#回复
-                        except (节点ptc错误,OSError,ValueError) as 错误:#回复失败
+                                def 回复失败(错误):#回复帧失败
+                                    '回复发送失败'
+                                    协议失败(消息于(错误))#协议
+                                通道.发送(回复).捕获(回复失败)#回复
+                        except (节点ptc错误,OSError,ValueError,TypeError) as 错误:#回复失败
                             协议失败(消息于(错误))#协议
                     绑定线程=threading.Thread(target=跑绑定,daemon=True)#绑定线程
                     绑定线程.start()
@@ -469,31 +505,32 @@ class 节点ptc运行时(ptc运行时):#Node 提供方
                 elif 已就绪[0]:#已握手
                     收尾({'kind':'worker-exit','message':消息于(错误)})#退出
                 else:#握手前
-                    def 等退出():#等孩子
-                        '握手前的退出分类'
-                        try:#等待
-                            进程结束(句柄.done.等待())#结局
-                        except BaseException as 失败值:#spawn
-                            收尾({'kind':'worker-exit','message':消息于(失败值)})#退出
-                    threading.Thread(target=等退出,daemon=True).start()#后台
+                    def 握手前退出(结局):#孩子已退出
+                        '握手前按结局分类'
+                        进程结束(结局)#分类
+                    def 握手前失败(失败值):#等结局失败
+                        '握手前的退出失败'
+                        收尾({'kind':'worker-exit','message':消息于(失败值)})#退出
+                    句柄.done.然后(握手前退出,握手前失败)#等孩子
             通道=json通道(句柄.control,自身.配置['maxMessageBytes'],接收,通道失败)#分帧
-            def 等进程():#孩子退出
+            def 进程已退出(结局):#孩子退出
                 '排队帧回调后再分类退出'
-                try:#等待
-                    结局=句柄.done.等待()#结局
-                except BaseException as 错误:#spawn 失败
-                    if 已隔离 is not None and 是否运行器派生失败(错误,已隔离['argv'][0],规格['cwd']):#运行器
-                        收尾({'kind':'sandbox-unavailable','message':消息于(错误)})#沙箱
-                    else:#普通
-                        收尾({'kind':'worker-exit','message':消息于(错误)})#退出
-                    return
-                进程结束(结局)#分类
-            threading.Thread(target=等进程,daemon=True).start()#监视退出
+                def 稍后分类():#让已排队的帧回调先走
+                    '分类退出'
+                    进程结束(结局)#分类
+                threading.Thread(target=稍后分类,daemon=True).start()#延后一拍
+            def 进程等待失败(错误):#spawn 失败
+                '启动或等待失败'
+                if 已隔离 is not None and 是否运行器派生失败(错误,已隔离['argv'][0],规格['cwd']):#运行器
+                    收尾({'kind':'sandbox-unavailable','message':消息于(错误)})#沙箱
+                else:#普通
+                    收尾({'kind':'worker-exit','message':消息于(错误)})#退出
+            句柄.done.然后(进程已退出,进程等待失败)#监视退出
         except 沙箱不可用错误 as 错误:#沙箱不可用
             收尾({'kind':'sandbox-unavailable','message':消息于(错误)})#沙箱
         except BaseException as 错误:#其它
             收尾({'kind':'exception' if 解析中[0] else 'worker-exit','message':消息于(错误)})#阶段
-        return 结果任务.等待()#阻塞到清理完
+        return 结果任务#清理完成后解决
 
 default=节点ptc运行时#Cordis 默认导出
 name=名称#Cordis 插件名

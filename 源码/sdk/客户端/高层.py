@@ -1,4 +1,5 @@
 import os,uuid#工作目录与会话 id
+from ...基础设施.js特性 import PromiseEX as 期约#启动运行时与运行返回的期约
 from .异常 import SDK协议错误#协议错误
 from .客户端 import 装备客户端,是否普通对象#底层客户端
 
@@ -39,23 +40,30 @@ class 深求装备:
         return 自身.客户端实例#可能已在失败握手后被替换
 
     def 启动运行时(自身):
-        '启动子进程并只做一次 initialize 握手'
+        '启动子进程并只做一次 initialize 握手，返回记忆的期约；握手失败时回收运行时并拒绝为原错误'
         if 自身.已初始化 is not None:#已记忆
             return 自身.已初始化#共用
+        握手=期约()#握手结果，先记忆再启动，失败时才能清掉记忆
+        自身.已初始化=握手#立刻记忆
+        def 握手失败(错误):
+            '清掉记忆允许重试，回收失败的运行时，回收成功后换新客户端并以原错误拒绝'
+            自身.已初始化=None#清掉记忆，允许下次重试
+            def 回收完成(落定值):
+                '运行时已回收，harness 未终端关闭才换新客户端'
+                if not 自身.已关闭:#harness 未终端关闭
+                    自身.客户端实例=装备客户端(自身.启动)#换新客户端
+                握手.拒绝(错误)#把原错误交给调用方
+            自身.客户端实例.关闭().然后(回收完成,握手.拒绝)#回收失败则以回收错误拒绝
         try:
             自身.客户端实例.启动()#拉起子进程
-            参数={'cwd':自身.cwd,'provider':自身.provider,'model':自身.model}#进程级握手
-            if 自身.maxTokens is not None:#有上限才写入
-                参数['maxTokens']=自身.maxTokens#上限
-            自身.客户端实例.初始化(参数)#initialize
-        except BaseException:
-            自身.已初始化=None#清掉记忆，允许下次重试
-            自身.客户端实例.关闭()#回收失败的运行时
-            if not 自身.已关闭:#harness 未终端关闭
-                自身.客户端实例=装备客户端(自身.启动)#换新客户端
-            raise#把原错误抛给调用方
-        自身.已初始化=True#立刻记忆
-        return 自身.已初始化#后续调用共用
+        except BaseException as 错误:
+            握手失败(错误)#启动期同步失败也走回收
+            return 握手#已按拒绝交出
+        参数={'cwd':自身.cwd,'provider':自身.provider,'model':自身.model}#进程级握手
+        if 自身.maxTokens is not None:#有上限才写入
+            参数['maxTokens']=自身.maxTokens#上限
+        自身.客户端实例.初始化(参数).然后(握手.解决,握手失败)#initialize
+        return 握手#后续调用共用
 
     def 会话(自身,会话号=None):
         '打开一个会话句柄（无线上流量）'
@@ -63,16 +71,16 @@ class 深求装备:
         return 装备会话(自身,号)#会话句柄
 
     def 运行(自身,输入,选项=None):
-        '在一个新的（或具名）会话上跑一条提示。选项为 dict'
+        '在一个新的（或具名）会话上跑一条提示，返回期约，兑现活动区间。选项为 dict'
         if 选项 is None:#缺省
             选项={}#空
         会话号=选项['sessionId'] if 'sessionId' in 选项 else None#可选会话
         return 自身.会话(会话号).运行(输入,选项)#有 sessionId 则复用
 
     def 关闭(自身):
-        '已关闭的 harness 不再重试失败的握手'
+        '已关闭的 harness 不再重试失败的握手。返回期约，兑现于拆除结束'
         自身.已关闭=True#之后 start 失败不再换新客户端
-        自身.客户端实例.关闭()#拆除当前底层客户端
+        return 自身.客户端实例.关闭()#拆除当前底层客户端
 
 class 装备会话:
     '一个 SDK 会话：稳定 id 加上所拥有的活动区间'
@@ -82,59 +90,76 @@ class 装备会话:
         自身.id=标识#本句柄所跑的线会话 id
 
     def 运行(自身,输入,选项=None):
-        '排队一条提示，然后观察整个会话直到它下次空闲。选项与通知为 dict'
+        '排队一条提示，然后观察整个会话直到它下次空闲。返回期约，兑现活动区间；传输丢失、超时或协议错误则拒绝。选项与通知为 dict'
         if 选项 is None:#缺省
             选项={}#空
-        自身.装备.启动运行时()#确保已握手
-        客户端=自身.装备.客户端#取当前底层客户端
-        内容块列表=归一化输入(输入)#字符串变成文本块
-        事件列表=[]#本会话的 session.event 载荷
-        通知列表=[]#本树全部通知
-        订阅=客户端.订阅会话树(自身.id)#订阅本会话及其后代
-        def 收集(通知):
-            '计入本回合'
-            参数=通知参数(通知)#载荷
-            方法=通知['method'] if 'method' in 通知 else None#方法名
-            观察=选项['onNotification'] if 'onNotification' in 选项 else None#可选观察者
-            本会话事件=方法=='session.event' and 'sessionId' in 参数 and 参数['sessionId']==自身.id#本会话的日志事件
-            if 本会话事件:#本会话的日志事件
-                事件=校验会话事件(参数['event'] if 'event' in 参数 else None)#校验后再收
-                通知列表.append(通知)#记下原始通知
-                if 观察 is not None:#有观察者
-                    观察(通知)#回调
-                事件列表.append(事件)#记下校验后的事件
-                return#本会话事件已处理
-            通知列表.append(通知)#其它树内通知
-            if 观察 is not None:#有观察者
-                观察(通知)#回调
-        try:
-            消息号=客户端.提示(自身.id,内容块列表)#排队用户消息
-            已收到=False#是否已见到该消息的收件箱回执
-            while True:#直到本会话 idle
-                通知=订阅.下一条()#下一条树内通知
-                if not 已收到:#回执到来之前丢掉无关前缀
+        def 执行器(解决,拒绝):
+            '握手后订阅、排队提示、逐条读通知直到本会话 idle；结束时先关订阅再落定'
+            def 握手完成(握手值):
+                '握手已完成，开始订阅并排队提示'
+                客户端=自身.装备.客户端#取当前底层客户端
+                内容块列表=归一化输入(输入)#字符串变成文本块
+                事件列表=[]#本会话的 session.event 载荷
+                通知列表=[]#本树全部通知
+                订阅=客户端.订阅会话树(自身.id)#订阅本会话及其后代
+                消息号=None#排队后才知道的消息 id
+                已收到=False#是否已见到该消息的收件箱回执
+                def 收集(通知):
+                    '计入本回合'
                     参数=通知参数(通知)#载荷
                     方法=通知['method'] if 'method' in 通知 else None#方法名
-                    事件=参数['event'] if 'event' in 参数 else None#事件
+                    观察=选项['onNotification'] if 'onNotification' in 选项 else None#可选观察者
+                    本会话事件=方法=='session.event' and 'sessionId' in 参数 and 参数['sessionId']==自身.id#本会话的日志事件
+                    if 本会话事件:#本会话的日志事件
+                        事件=校验会话事件(参数['event'] if 'event' in 参数 else None)#校验后再收
+                        通知列表.append(通知)#记下原始通知
+                        if 观察 is not None:#有观察者
+                            观察(通知)#回调
+                        事件列表.append(事件)#记下校验后的事件
+                        return#本会话事件已处理
+                    通知列表.append(通知)#其它树内通知
+                    if 观察 is not None:#有观察者
+                        观察(通知)#回调
+                def 失败收尾(错误):
+                    '订阅丢掉队列并拒绝等待者，再以错误拒绝本次运行'
+                    订阅.关闭()#丢掉队列并拒绝等待者
+                    拒绝(错误)#交给调用方
+                def 处理通知(通知):
+                    '回执到来之前丢掉无关前缀；空闲则收尾，否则继续读下一条'
+                    nonlocal 已收到#见到回执后改外层
+                    参数=通知参数(通知)#载荷
+                    方法=通知['method'] if 'method' in 通知 else None#方法名
                     会话号=参数['sessionId'] if 'sessionId' in 参数 else None#会话
-                    if 方法!='session.event' or 会话号!=自身.id or not 是否收件箱回执(事件,消息号):#尚未回执
-                        continue#跳过
-                    已收到=True#见到回执
-                收集(通知)#计入本回合
-                参数=通知参数(通知)#再取载荷
-                方法=通知['method'] if 'method' in 通知 else None#方法名
-                会话号=参数['sessionId'] if 'sessionId' in 参数 else None#会话
-                状态=参数['status'] if 'status' in 参数 else None#状态
-                if 方法=='session.status' and 会话号==自身.id and 状态=='idle':#空闲则回合结束
-                    break#结束观察循环
-        finally:
-            订阅.关闭()#丢掉队列并拒绝等待者
-        return {#组装活动区间
-            'sessionId':自身.id,#本会话
-            'finalResponse':最终回复(事件列表),#末条助手文本
-            'events':事件列表,#本会话事件
-            'notifications':通知列表,#树内全部通知
-        }#结束返回值
+                    if not 已收到:#回执到来之前
+                        事件=参数['event'] if 'event' in 参数 else None#事件
+                        if 方法!='session.event' or 会话号!=自身.id or not 是否收件箱回执(事件,消息号):#尚未回执
+                            订阅.下一条().然后(处理通知,失败收尾)#跳过，读下一条
+                            return#本条处理完
+                        已收到=True#见到回执
+                    try:
+                        收集(通知)#计入本回合
+                    except Exception as 错误:#畸形会话事件的 SDK协议错误，或观察者抛出的错误
+                        失败收尾(错误)#拒绝本次运行，不能让回调里的错误悬空
+                        return#不再读
+                    状态=参数['status'] if 'status' in 参数 else None#状态
+                    if 方法=='session.status' and 会话号==自身.id and 状态=='idle':#空闲则回合结束
+                        订阅.关闭()#丢掉队列并拒绝等待者
+                        解决({#组装活动区间
+                            'sessionId':自身.id,#本会话
+                            'finalResponse':最终回复(事件列表),#末条助手文本
+                            'events':事件列表,#本会话事件
+                            'notifications':通知列表,#树内全部通知
+                        })#结束
+                        return#回合结束
+                    订阅.下一条().然后(处理通知,失败收尾)#继续读下一条
+                def 提示已排队(已排队消息号):
+                    '提示排队成功，开始读通知'
+                    nonlocal 消息号#记下回执要匹配的消息 id
+                    消息号=已排队消息号#记下
+                    订阅.下一条().然后(处理通知,失败收尾)#读第一条通知
+                客户端.提示(自身.id,内容块列表).然后(提示已排队,失败收尾)#排队用户消息
+            自身.装备.启动运行时().然后(握手完成,拒绝)#确保已握手
+        return 期约(执行器)#上游 async run 对应返回期约
 
 运行选项=('sessionId','onNotification')#run 的可选参数字段
 

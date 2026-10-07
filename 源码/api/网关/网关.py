@@ -1,6 +1,7 @@
 '通过 Cordis 服务与已注册提供方做在线 Typert Remote 分发'
 import inspect,re,threading#参数名、标识符与中止
-from ...基础设施.通用工具 import 操作任务,启动守护线程
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+from ...基础设施.通用工具 import 启动守护线程
 from ...依赖.cordis.服务 import 服务#服务基类
 from ...类型化远程调用.协议 import 远程方法列表,取远程错误,是否远程json值#Remote 标记与失败
 from uuid import uuid4 as 生成uuid4#事件关联标识
@@ -12,7 +13,7 @@ from .流协议 import (
 from ...工具.双端队列 import 双端队列
 from .异常 import 网关错误,远程调用已取消,远程流载体错误#本包异常
 
-__all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','操作任务','中止信号','中止控制器']#仅中文公开名
+__all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','中止信号','中止控制器']#仅中文公开名
 
 标识符模式=re.compile(r'^[$A-Z_a-z][$A-Za-z0-9_]*\Z')#SRC 参数名，ASCII 标识符，行尾对齐 JS $
 
@@ -232,6 +233,13 @@ class Typert网关服务(服务):
             raise 网关错误('definition-unavailable',端点,'its strict definition was withdrawn and SRC fallback is forbidden')#禁止 SRC
         return 自身.解析源描述符(命名空间,方法,端点)#SRC
 
+    def 找到导出方法(自身,原始,方法):#按名找
+        '导出名优先，否则方法名。没有则 None'
+        for 候选 in 远程方法列表(原始):#找标记
+            导出名=候选['exportName'] if 'exportName' in 候选 and 候选['exportName'] is not None else 候选['method']#导出名或方法名
+            if 导出名==方法:#命中
+                return 候选#记下
+        return None#没有
     def 解析源描述符(自身,命名空间,方法,端点):
         '多个服务导出同一端点则歧义'
         候选列表=[]#候选
@@ -252,12 +260,7 @@ class Typert网关服务(服务):
             绑定=读绑定(值,原始,服务键,端点)#校验
             if 绑定['namespace']!=命名空间:#命名空间不匹配
                 continue#跳过
-            标记=None#匹配标记
-            for 候选 in 远程方法列表(原始):#找标记
-                导出名=候选['exportName'] if 'exportName' in 候选 and 候选['exportName'] is not None else 候选['method']#导出名或方法名
-                if 导出名==方法:#命中
-                    标记=候选#记下
-                    break#停止
+            标记=自身.找到导出方法(原始,方法)#与外层循环同级
             if 标记 is None:#没有
                 continue#跳过
             候选列表.append(自身.源描述符(绑定,标记,方法,端点))#加入
@@ -370,7 +373,7 @@ class Typert网关服务(服务):
             raise 远程流载体错误('typert gateway: forwarded Remote event source is already registered')
         寿命=中止控制器()#源寿命
         流=源(寿命.信号)#打开
-        完成=操作任务()#消费完成
+        完成=期约()#消费完成
         def 消费():
             '后台消费事件源'
             try:
@@ -383,18 +386,18 @@ class Typert网关服务(服务):
                     自身.远程事件登记=None#清空
                     寿命.中止(错误)#中止寿命
             finally:
-                完成.兑现(None)#完成
+                完成.解决()#完成
         启动守护线程(消费)#消费线程
         登记={'lifetime':寿命,'done':完成,'host':{'home':宿主['home']}}#登记
         自身.远程事件登记=登记#记下
         def 拆除():
-            '去掉本源并取消活动流'
+            '去掉本源并取消活动流，返回消费结束后解决的期约'
             if 自身.远程事件登记 is 登记:#仍是本源
                 自身.远程事件登记=None#清空
                 错误=Exception('typert gateway: forwarded Remote event source was removed')
                 登记['lifetime'].中止(错误)#中止
                 自身.关闭远程事件(错误)#关闭
-            完成.等待()#等消费结束
+            return 完成#消费结束的期约
         return 拆除#拆除器
 
     def 打开远程事件(自身,载荷,信号):

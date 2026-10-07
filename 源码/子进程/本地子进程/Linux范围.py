@@ -2,8 +2,7 @@ import ctypes,errno,json,os,re,signal,socket,sys,tempfile,time#libc、缺席码�
 from threading import Event as 同步事件,Lock as 互斥锁,Thread as 线程#观察广播、互斥与后台线程
 from secrets import token_hex#单元词干随机后缀
 from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#派生、忽略流与同步 systemd
-from ...工具.超时 import 已中止,若已中止则抛出#中止入口
-from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ..子进程.控制 import 子进程控制描述符#控制通道 fd
 from .启动 import 子环境#擦洗后的子环境
@@ -490,13 +489,7 @@ class Systemd范围所有者:#systemd scope 所有者
                 return False#当作已停
             if 自身.杀失败 is not None:#抛杀失败
                 if 直接在跑 and 自身.直接杀结算 is not None:#直接仍在且有结算
-                    结算=自身.直接杀结算#取出
-                    自身.直接杀结算=None#摘掉
-                    try:#汇合物理结算
-                        结算.等待()#等直接结局
-                    except BaseException:#直接结局保留错误
-                        pass#本屏障只汇合物理结算
-                    return 自身.范围活动()#重查
+                    return True#直接进程物理结算前先当仍活动，由观察循环的下一轮轮询重查
                 raise 自身.杀失败#抛杀失败
             return True#活动
         if not 缺失单元.search(输出):#非缺失
@@ -527,12 +520,14 @@ class Systemd范围所有者:#systemd scope 所有者
             自身._唤醒事件.clear()#清
 
     def 等待退出(自身):#等待退出
-        '等待受管范围变空'
+        '返回期约：受管范围变空后兑现；观察失败则拒绝，失败后再调用可重试'
         if 自身.已停:#已停
-            return
+            已空=期约()#已经空了
+            已空.解决()#已兑现
+            return 已空
         with 自身._观察锁:#单例观察
             if 自身._观察 is None:#未建
-                观察=操作任务()#观察任务
+                观察=期约()#观察期约
                 自身._观察=观察#记下
                 def 后台观察退出():#后台观察
                     '活动则等，停下后兑现'
@@ -545,16 +540,16 @@ class Systemd范围所有者:#systemd scope 所有者
                             if 自身.建立=='established':#已建立
                                 轮询间隔毫秒=min(轮询间隔毫秒*2,systemctl超时毫秒)#退避
                         自身.已停=True#停下
-                        观察.兑现()#兑现
+                        观察.解决()#兑现
                     except BaseException as 错误:#失败可重试
                         with 自身._观察锁:#清观察
                             if 自身._观察 is 观察:#仍是本观察
                                 自身._观察=None#清观察
-                        观察.拒绝(错误)#重抛
+                        观察.拒绝(错误)#拒绝
                 工作=线程(target=后台观察退出)#观察线程
                 工作.daemon=True#不挡住退出
                 工作.start()#启动
-        自身._观察.等待()#等待
+            return 自身._观察#交给调用方继续链式
 
     def 清理(自身):#清理
         '释放提供方私有协议制品'
@@ -566,7 +561,7 @@ def 范围参数(单元基,调用,参数表):#scope 参数
 
 def 直接结局(孩子,启动):#直接结局
     '等孩子退出并走启动结算'
-    任务=操作任务()#结局任务
+    任务=期约()#结局期约
     def 盯退出():#退出监视
         '等退出后结算'
         try:#等孩子
@@ -579,7 +574,7 @@ def 直接结局(孩子,启动):#直接结局
                     信号名=signal.Signals(-码).name#信号名
                 except ValueError:#未知编号
                     信号名=None#未知
-            任务.兑现(启动.结算结局({'exitCode':退出码,'signal':信号名}))#兑现
+            任务.解决(启动.结算结局({'exitCode':退出码,'signal':信号名}))#兑现
         except BaseException as 错误:#读失败
             失败=错误 if isinstance(错误,BaseException) else 本地子进程错误(str(错误))#失败
             任务.拒绝(失败)#拒绝

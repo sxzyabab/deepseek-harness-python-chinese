@@ -9,9 +9,9 @@ from ...子进程.本地子进程 import 本地子进程运行时#本地进程
 from ...沙盒.本地沙盒 import 本地沙箱提供方#本地沙箱
 from ...沙盒.沙盒策略 import 沙箱政策服务#政策
 from ...会话.会话投影 import 会话投影注册表#投影
-from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号#中止
 from ...基础设施.通用工具.序列化编码 import 摘要十六进制
 from ...基础设施.通用工具.文本工具 import 路径转正斜杠
+from ...基础设施.js特性 import PromiseEX as 期约#入站处理返回的期约
 from .异常 import ssh错误,远程操作错误#本包基类与带码远端错误
 from .协议 import ssh请求对等,ssh进程句柄上限,ssh文本流上限,ssh协议版本#对等
 from .远端进程 import 远端进程#进程表
@@ -28,6 +28,7 @@ from .模式 import (
 
 __all__=['运行ssh辅助']#仅中文公开名
 
+返回期约的方法=('close','process.prepare','process.start','process.done','process.wait','process.terminate','terminal.resize','terminal.write','terminal.inspect','terminal.activity','terminal.signal')#处理方法里本身返回期约的方法
 最大帧字节=64*1024*1024#帧上限
 最大文本字节=8*1024*1024#整文上限
 
@@ -71,12 +72,17 @@ def 装服务():#本地提供方
     return {'ctx':上下文,'close':关闭}#运行时
 
 def 运行ssh辅助(传输):#跑到通道关闭或租期到期
-    '传输含 input/output/entryPath/signal'
+    '传输含 input/output/entryPath/signal。返回期约，兑现于通道关闭且清理完成；非 POSIX、已中止、装服务失败或清理失败则拒绝'
+    结果=期约()#运行结果
     平台=sys.platform#平台
-    if 平台!='linux' and not 平台.startswith('linux') and 平台!='darwin':#非 POSIX
-        raise ssh错误('SSH helper requires a POSIX host')#拒绝
-    若已中止则抛出(传输['signal'])#已中止
-    运行时=装服务()#服务
+    try:#前置检查与装服务
+        if 平台!='linux' and not 平台.startswith('linux') and 平台!='darwin':#非 POSIX
+            raise ssh错误('SSH helper requires a POSIX host')#拒绝
+        若已中止则抛出(传输['signal'])#已中止
+        运行时=装服务()#服务
+    except Exception as 错误:#不满足运行条件
+        结果.拒绝(错误)#拒绝
+        return 结果#已落定
     上下文=运行时['ctx']#上下文
     根=tempfile.mkdtemp(prefix='dsh-ssh-',dir='/tmp')#套接字根
     进程表=远端进程(上下文,根,ssh进程句柄上限,30000)#进程
@@ -86,42 +92,48 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
     租期毫秒=30000#默认
     已握手=False#hello
     工作区=os.getcwd()#默认 cwd
-    清理任务={'值':None}#只跑一次
+    清理期约=None#只跑一次，之后共用同一个期约
 
     def 关闭():#关闭辅助
-        '停租期、中止迭代器、关进程、拆服务、删根'
-        if 清理任务['值'] is not None:#已开始
-            清理任务['值'].wait()#等
-            return
-        完成=threading.Event()#完成
-        清理任务['值']=完成#记下
-        def 在线程执行():#线程
-            '一次清理'
-            nonlocal 租期定时#改
-            try:#清理
-                if 租期定时 is not None:#有定时
-                    租期定时.cancel()#清
-                寿命.中止(ssh错误('SSH helper is closing'))#中止
-                for 记录 in 迭代器表.values():#流
-                    记录['controller'].中止(寿命.信号)#中止
-                    迭代器=记录['iterator']#迭代器
-                    if hasattr(迭代器,'close'):#生成器
-                        try:#关
-                            迭代器.close()#关
-                        except BaseException:#忽略
-                            pass#吞
-                迭代器表.clear()#清空
-                try:#进程
-                    进程表.关闭()#关
-                finally:#服务与根
-                    try:#服务
-                        运行时['close']()#拆
-                    finally:#根
-                        shutil.rmtree(根,ignore_errors=True)#删
-            finally:#广播
-                完成.set()#完
-        threading.Thread(target=在线程执行).start()#清理
-        完成.wait()#等
+        '停租期、中止迭代器、关进程、拆服务、删根；返回期约，兑现于清理完成。重复调用共用同一个期约'
+        nonlocal 清理期约,租期定时#改
+        if 清理期约 is not None:#已开始
+            return 清理期约#共用
+        清理期约=期约()#本次清理
+        if 租期定时 is not None:#有定时
+            租期定时.cancel()#清
+        寿命.中止(ssh错误('SSH helper is closing'))#中止
+        for 记录 in 迭代器表.values():#流
+            记录['controller'].中止(寿命.信号)#中止
+            迭代器=记录['iterator']#迭代器
+            if hasattr(迭代器,'close'):#生成器
+                try:#关
+                    迭代器.close()#关
+                except BaseException:#关闭中的生成器出错不阻断其余清理，上游同样吞掉
+                    pass#对调用方无害
+        迭代器表.clear()#清空
+        进程关闭错误=None#进程表关闭的失败，之后仍要拆服务与删根
+        def 本地清理(落定值):
+            '进程表关闭结算后（无论成败）拆服务、删根；进程表关闭失败时仍以那个错误拒绝'
+            try:#服务与根
+                try:#服务
+                    运行时['close']()#拆
+                finally:#根
+                    shutil.rmtree(根,ignore_errors=True)#删
+            except Exception as 错误:#拆服务失败
+                清理期约.拒绝(错误)#拒绝
+                return#已落定
+            if 进程关闭错误 is not None:#进程表关闭曾失败
+                清理期约.拒绝(进程关闭错误)#拒绝
+                return#已落定
+            清理期约.解决(None)#清理完成
+        def 进程关闭失败(错误):
+            '进程表关闭失败：记下后照样拆服务、删根'
+            nonlocal 进程关闭错误#改外层
+            进程关闭错误=错误#记下
+            本地清理(None)#照样清理
+        进程表.关闭().然后(本地清理,进程关闭失败)#关进程
+        return 清理期约#期约
 
     def 续租():#重置租期
         '到期则关闭对等'
@@ -147,8 +159,8 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
         '校验目标'
         return 目标模式(原始)#目标
 
-    def 处理(方法,原始,请求信号):#入站
-        'hello 之后的私有操作'
+    def 处理方法(方法,原始,请求信号):#入站
+        'hello 之后的私有操作；进程与终端类方法返回期约，其余同步返回结果或抛出'
         nonlocal 工作区,租期毫秒,已握手#改
         信号=合成信号(请求信号,寿命.信号)#融合
         if 方法=='hello':#握手
@@ -182,7 +194,7 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             if 引导 is not None:#有引导
                 结果['bootstrapHash']=摘要十六进制(open(引导,'rb').read())#引导摘要
             return 结果#hello
-        if (not 已握手) or 清理任务['值'] is not None:#未握手或关闭中
+        if (not 已握手) or 清理期约 is not None:#未握手或关闭中
             raise ssh错误('SSH helper is not accepting operations')#拒绝
         if 方法=='heartbeat':#心跳
             空对象(原始)#空
@@ -190,8 +202,7 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             return None#空
         if 方法=='close':#关闭
             空对象(原始)#空
-            关闭()#关
-            return None#空
+            return 关闭()#关，期约兑现为空
         if 方法=='process.prepare':#准备
             return 进程表.准备(原始)#预留
         if 方法=='process.start':#启动
@@ -201,16 +212,14 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
         if 方法=='process.wait':#等待
             return 进程表.等待(进程标识请求(原始)['id'],信号)#观察
         if 方法=='process.terminate':#终止
-            进程表.终止(进程标识请求(原始)['id'])#终止
-            return None#空
+            return 进程表.终止(进程标识请求(原始)['id'])#终止，期约兑现为空
         if 方法=='terminal.environment':#终端环境
             空对象(原始)#空
             return 上下文.subprocess.终端环境(信号)#环境
         if 方法=='terminal.resize':#尺寸
             if not isinstance(原始,dict):#非对象
                 raise ssh错误('expected resize object')#失败
-            进程表.调整终端尺寸(进程标识模式(原始.get('id')),原始['cols'],原始['rows'])#调
-            return None#空
+            return 进程表.调整终端尺寸(进程标识模式(原始.get('id')),原始['cols'],原始['rows'])#调，期约兑现为空
         if 方法=='terminal.write' or 方法=='terminal.inspect' or 方法=='terminal.activity' or 方法=='terminal.signal':#终端操作
             if not isinstance(原始,dict):#非对象
                 raise ssh错误('expected terminal object')#失败
@@ -341,12 +350,26 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             return 上下文.fs.编辑文本(目标,编辑,期望,信号,已解析)#编辑
         raise ssh错误('Unknown SSH helper operation: '+方法)#未知
 
+    def 处理(方法,原始,请求信号):#交给对等的入站处理函数
+        '返回期约：处理成功兑现结果，失败拒绝；进程与终端类方法本身返回期约，其余在这里按同步结果兑现'
+        结果期约=期约()#处理结果
+        try:#同步部分
+            值=处理方法(方法,原始,请求信号)#按方法处理
+        except Exception as 错误:#校验失败或操作失败
+            结果期约.拒绝(错误)#拒绝
+            return 结果期约#已落定
+        if 方法 in 返回期约的方法:#本身返回期约
+            值.然后(结果期约.解决,结果期约.拒绝)#跟随
+        else:#同步结果
+            结果期约.解决(值)#兑现
+        return 结果期约#交给对等
+
     对等=ssh请求对等(传输['input'],传输['output'],最大帧字节,128,处理)#对等
-    已关闭=threading.Event()#通道关闭
+    通道已关闭=期约()#通道关闭后解决
     def 对等已关(错误=None):#closed
-        '启动清理'
-        threading.Thread(target=关闭).start()#清理
-        已关闭.set()#广播
+        '启动清理，清理的结果由通道关闭后的收尾接走'
+        关闭()#清理
+        通道已关闭.解决(None)#广播
     对等.关闭回调.append(对等已关)#监听
     def 传输中止():#transport abort
         '关对等'
@@ -362,5 +385,8 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             传输中止()#关
         threading.Thread(target=监视,daemon=True).start()#监视
         续租()#开租
-    已关闭.wait()#等通道
-    关闭()#再确保清理
+    def 通道关闭后(落定值):
+        '通道关闭后再确保清理完成，运行结果跟随清理结果'
+        关闭().然后(结果.解决,结果.拒绝)#再确保清理
+    通道已关闭.然后(通道关闭后)#等通道
+    return 结果#期约

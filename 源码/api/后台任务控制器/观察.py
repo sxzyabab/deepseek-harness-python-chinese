@@ -1,4 +1,3 @@
-from ...工具.超时 import 若已中止则抛出,已中止
 from ...基础设施.通用工具 import utf8字节数
 from .唤醒 import 输出等待者,休眠
 

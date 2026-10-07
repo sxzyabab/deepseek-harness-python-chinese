@@ -1,5 +1,5 @@
 import weakref,threading
-from ...基础设施.通用工具 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...依赖.cordis.上下文 import 上下文
 from .存储 import 具名条目,匿名条目,作用域层集
 from .异常 import 作用域错误
@@ -110,10 +110,16 @@ def 获取作用域链(键):
     return 链
 
 def 等到纤程静止(纤程对象):
-    '即使原始拆除器已被领取，也跟随 Cordis 纤程走完拆除与 inertia'
-    纤程对象.dispose().等待()
-    while 纤程对象.inertia is not None:
-        纤程对象.inertia.等待()
+    '即使原始拆除器已被领取，也跟随 Cordis 纤程走完拆除与 inertia。返回期约，静止后解决'
+    静止=期约()#本次静止的结算点
+    def 等待惯性(拆除结果=None):
+        '拆除已完成：仍有 inertia 就继续等它，没有就解决'
+        if 纤程对象.inertia is None:
+            静止.解决()#已静止
+            return
+        纤程对象.inertia.然后(等待惯性,静止.拒绝)#等当前 inertia
+    纤程对象.dispose().然后(等待惯性,静止.拒绝)#先等拆除
+    return 静止#调用方对期约链接 然后 与 捕获
 
 def 空插件(上下文,配置=None):
     '作为支撑作用域纤程的共享空操作插件；纤程只为拥有经作用域上下文做出的注册'
@@ -130,18 +136,13 @@ def 创建作用域(上下文,键,选项=None):
     带标签=纤程对象.ctx.扩展({作用域符号:键})
     拆除中=None
     def 拆除():
-        '竞态共用一次静止拆除'
+        '竞态共用一次静止拆除，返回静止后解决的期约'
         nonlocal 拆除中
         if 拆除中 is None:
-            任务=操作任务()
+            任务=期约()#共用的拆除结算点
             拆除中=任务
-            try:
-                等到纤程静止(纤程对象)
-                任务.兑现(None)
-            except Exception as 错误:
-                任务.拒绝(错误)
-                raise
-        拆除中.等待()
+            等到纤程静止(纤程对象).然后(任务.解决,任务.拒绝)#静止后结算
+        return 拆除中
     return 作用域(带标签,纤程对象.dispose,拆除)
 
 def 获取作用域(上下文):

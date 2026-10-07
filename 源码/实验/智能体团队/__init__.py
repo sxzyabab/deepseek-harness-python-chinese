@@ -1,4 +1,6 @@
+from functools import partial as 偏函数
 import threading
+from ...基础设施.js特性 import PromiseEX as 期约#恢复与拆除的异步结果
 from ...依赖.schemastery import 正整数字段,字典字段
 from ...依赖.工具 import 聚合错误
 from ...类型化远程调用.协议 import 远程服务
@@ -106,11 +108,8 @@ class 团队服务(远程服务):
             '注册投影并在拆除时拆除运行时'
             卸投影=上下文.根.sessionProjections.register(团队投影定义)
             def 卸除():
-                '先拆除运行时再卸投影'
-                try:
-                    自身._拆除运行时()
-                finally:
-                    卸投影()
+                '先拆除运行时再卸投影。返回期约'
+                return 自身._拆除运行时().最终(卸投影)#拆除失败也卸投影
             return 卸除
         上下文.副作用(寿命效果,'agentTeams.runtimeLifecycle()')
         for 智能体 in 上下文.agents.list():
@@ -163,37 +162,56 @@ class 团队服务(远程服务):
 
     def _调度恢复(自身,智能体):
         '在发布栈回退后排队一次受控恢复'
+        def 恢复失败(错误):#恢复失败
+            '恢复失败只写警告；运行时已拆除时视为预期'
+            if 自身.lifecycle.已拆除:
+                return None
+            自身.ctx.日志.警告(f'Agent Teams 对 "{智能体.id}" 的恢复失败：{错误文案(错误)}')
+        def 恢复(启动值):#开始恢复
+            '开始恢复；同步抛出也转成拒绝'
+            return 自身._执行恢复(智能体)
         def 微任务():
-            '执行恢复'
+            '执行恢复；线程只负责等发布栈回退，失败由期约链收纳'
             if 自身.lifecycle.已拆除:
                 return
-            try:
-                自身._执行恢复(智能体)
-            except Exception as 错误:#roster/mailbox 恢复可能抛团队错误/持久化错误，契约未定所以收不窄
-                if 自身.lifecycle.已拆除:
-                    return
-                自身.ctx.日志.警告('Agent Teams recovery for "'+str(智能体.id)+'" failed: '+错误文案(错误))
+            启动=期约()#恢复在失败处理登记之后才开始
+            启动.然后(恢复).捕获(恢复失败)
+            启动.解决(None)#开始
         threading.Thread(target=微任务,daemon=True).start()
 
     def _执行恢复(自身,智能体):
-        '先对账 roster provisioning，再重试该成员的 pending mailbox'
-        自身.roster.恢复(智能体,自身.lifecycle.信号)
-        自身.mailbox.恢复(智能体,自身.lifecycle.信号)
+        '先对账 roster provisioning，再重试该成员的 pending mailbox。返回期约'
+        def 恢复邮箱(对账值):#对账完成
+            '对账后重试该成员的待投消息'
+            return 自身.mailbox.恢复(智能体,自身.lifecycle.信号)
+        return 自身.roster.恢复(智能体,自身.lifecycle.信号).然后(恢复邮箱)
 
     def _拆除运行时(自身):
-        '在服务拆除完成前停止 Team 拥有的 live 分支并拆除每一个等待者'
+        '在服务拆除完成前停止 Team 拥有的 live 分支并拆除每一个等待者。返回期约，有失败则以聚合错误拒绝'
         自身.lifecycle.关闭()
         自身.activity.关闭()
-        失败列表=[]
-        自身.lifecycle.结算(自身.roster.列出待创建(),失败列表)
-        自身.lifecycle.结算(自身.mailbox.列出待投递(),失败列表)
-        for 根,子标识列表 in 自身.roster.按根分组活子().items():
-            try:
-                自身.roster.停止队友(根,子标识列表)
-            except Exception as 错误:#停止队友可能抛团队错误/会话错误，契约未定所以收不窄
-                失败列表.append(错误)
-        if len(失败列表)>0:
-            raise 聚合错误(失败列表,'智能体团队运行时拆除失败')
+        失败列表=[]#各步失败，最后汇总
+        def 结算邮箱(创建结算值):#已准入创建结算完
+            '再结算已准入的邮箱投递'
+            return 自身.lifecycle.结算(自身.mailbox.列出待投递(),失败列表)
+        def 记录停止失败(错误):#停止失败
+            '记录失败后继续下一组'
+            失败列表.append(错误)
+        def 停止一组(所属根,所属子标识列表,前一组结果=None):#前一组停完后
+            '停止一个 Lead 的队友，失败记入失败列表'
+            return 自身.roster.停止队友(所属根,所属子标识列表).捕获(记录停止失败)
+        def 停止全部队友(邮箱结算值):#邮箱结算完
+            '逐个 Lead 依次停止其队友；某个失败只记录，继续下一个'
+            停止链=期约()#逐组停止的链起点
+            停止链.解决(None)#已结算，第一组立即开始
+            for 根,子标识列表 in 自身.roster.按根分组活子().items():
+                停止链=停止链.然后(偏函数(停止一组,根,子标识列表))#排在上一组之后
+            return 停止链
+        def 汇总失败(停止结算值):#全部停止完
+            '有失败则以聚合错误拒绝'
+            if len(失败列表)>0:
+                raise 聚合错误(失败列表,'智能体团队运行时拆除失败')
+        return 自身.lifecycle.结算(自身.roster.列出待创建(),失败列表).然后(结算邮箱).然后(停止全部队友).然后(汇总失败)
 
 def 应用(上下文,配置值=None):
     '构造并登记团队服务'

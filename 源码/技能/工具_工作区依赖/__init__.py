@@ -1,4 +1,6 @@
-import json,os,platform,re,shutil,stat,sys,tempfile,threading
+import functools,json,os,platform,re,shutil,stat,sys,tempfile,threading
+from ...基础设施.js特性 import PromiseEX as 期约
+偏应用=functools.partial
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 字符串字段
 from ...内核.工具 import 定义工具
@@ -216,6 +218,15 @@ def 应用(上下文,配置值=None):
         raise 工作区依赖错误('工作区依赖: source 与 root 必须是绝对路径')
     准备=[None]
     锁=threading.Lock()
+    def 落到(完成,*值):
+        '准备落定后放开拆除'
+        完成.set()
+    def 等到忽略(任务):
+        '拆除线程等到准备落定，成败都放过'
+        完成=threading.Event()
+        通知=偏应用(落到,完成)
+        任务.然后(通知,通知)
+        完成.wait()
     def 拆除效果():
         '只等文件系统工作结束'
         def 清理():
@@ -224,10 +235,7 @@ def 应用(上下文,配置值=None):
                 任务=准备[0]
             if 任务 is None:
                 return
-            try:
-                任务.等待()
-            except BaseException:
-                pass
+            等到忽略(任务)
         return 清理
     上下文.副作用(拆除效果)
     def 渲染(参数,值):
@@ -235,10 +243,9 @@ def 应用(上下文,配置值=None):
         return [{'type':'text','text':json.dumps(值,ensure_ascii=False,indent=2,allow_nan=False)}]
     def 执行(参数,执行上下文):
         '首次调用准备载荷'
-        from ...内核.作用域 import 操作任务 as 任务类
         with 锁:
             if 准备[0] is None:
-                任务=任务类()
+                任务=期约()
                 准备[0]=任务
                 def 跑():
                     '准备或校验'
@@ -247,14 +254,14 @@ def 应用(上下文,配置值=None):
                             值=解析主运行时(来源)
                         else:
                             值=安装主运行时(来源,根)
-                        任务.兑现(值)
+                        任务.解决(值)
                     except BaseException as 错误:
                         with 锁:
                             准备[0]=None
                         任务.拒绝(错误)
                 threading.Thread(target=跑,daemon=True).start()
             当前=准备[0]
-        return 当前.等待()
+        return 当前
     def 呈现调用(参数):
         '通用读卡片'
         return {'card':'generic','title':'Load workspace dependencies','kind':'read'}

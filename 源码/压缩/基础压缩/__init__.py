@@ -1,11 +1,11 @@
 '轻量压缩后端：用 token 计量做压力、保留与摘要收敛计价；summarize 为唯一子类钩子'
 import weakref#每智能体溢出计数与会话→智能体弱映射
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...依赖.schemastery import 字符串字段,整数字段,数字字段,布尔字段,列表字段#配置字段
 from ..压缩 import 压缩引擎#导入压缩引擎
 from ..压缩.异常 import 手动压缩错误#手动失败
 from ...模型后端.llm import 断言永不#导入穷尽断言
 from ...模型后端.llm.异常 import 上下文窗口溢出码#导入上下文溢出码
-from ...工具.超时 import 合成信号#对应 AbortSignal.any
 from .异常 import 基础压缩错误,目标压力配置错误#本包异常
 from .配置 import (#导入配置解析
     解析压缩规格,#缩放到 token 预算
@@ -99,6 +99,14 @@ def 对话目标(智能体):
         return None#无目标
     return {'provider':提供方,'model':模型}#用智能体选项
 
+def 绑定(函数,*已绑):
+    '把已有参数钉进然后回调，调用点不再套一层函数'
+    def 调用(*其余):
+        '把结算值补到已钉参数后面'
+        参数=已绑+其余
+        return 函数(*参数)
+    return 调用
+
 class 基础压缩引擎(压缩引擎):
     '轻量压缩后端：用 token 计量做压力、保留、被引用源事件与摘要收敛计价；summarize 为唯一子类定制钩子'
 
@@ -125,23 +133,46 @@ class 基础压缩引擎(压缩引擎):
                 +' surface nodes (seqs '+str(区间['start'])+'-'+str(区间['end'])
                 +', ~'+str(结果['shadowedTokenCount'])+' tokens)'#遮蔽节点与估算 token
             )#info 结束
+        def 委托下一环(步进结果,下一步,压缩完成=None):
+            '压缩落定（成败都不打断回合）后委托下一环'
+            try:
+                步进结果.解决(下一步())#委托下一环
+            except BaseException as 错误:#下一环同步失败交给调用方
+                步进结果.拒绝(错误)
+        def 压力失败(步进结果,下一步,错误):
+            '压力路径任意失败不得打断回合：按需警告，再委托'
+            if isinstance(错误,目标压力配置错误):#目标配置错误
+                if 错误.targetKey in 自身.已警告压力配置目标:#已警告过则静默继续
+                    委托下一环(步进结果,下一步)#委托
+                    return
+                自身.已警告压力配置目标.add(错误.targetKey)#记下已警告
+            消息=错误.message if hasattr(错误,'message') and 错误.message else str(错误)#诊断文案
+            上下文.日志.警告('step compaction failed: '+str(消息)+'; continuing the turn')#警告后继续回合
+            委托下一环(步进结果,下一步)
+        def 压力成功(步进结果,下一步,结果):
+            '压缩成功：有结果则记日志，再委托'
+            try:
+                if 结果 is not None:#有结果则记日志
+                    记结果(结果,'step pressure')#记日志
+            except Exception as 错误:#记日志失败同样不得打断回合
+                压力失败(步进结果,下一步,错误)
+                return
+            委托下一环(步进结果,下一步)
         def 步进前(载荷,下一步):
-            '跑压力压缩后委托下一环'
+            '跑压力压缩后委托下一环，返回期约，解决值是下一环的决定'
+            步进结果=期约()#本次 pre-step 的结算点
             智能体=载荷['agent']#智能体
             信号=载荷['signal'] if 'signal' in 载荷 else None#取消
-            if not 已中止(信号):#尚未取消
-                try:#尝试压力压缩
-                    结果=自身.按需压缩(智能体,'pressure',信号)#按需压缩
-                    if 结果 is not None:#有结果则记日志
-                        记结果(结果,'step pressure')#记日志
-                except Exception as 错误:#压力路径任意失败不得打断回合
-                    if isinstance(错误,目标压力配置错误):#目标配置错误
-                        if 错误.targetKey in 自身.已警告压力配置目标:#已警告过则静默继续
-                            return 下一步()#委托
-                        自身.已警告压力配置目标.add(错误.targetKey)#记下已警告
-                    消息=错误.message if hasattr(错误,'message') and 错误.message else str(错误)#诊断文案
-                    上下文.日志.警告('step compaction failed: '+str(消息)+'; continuing the turn')#警告后继续回合
-            return 下一步()#委托下一环
+            if 已中止(信号):#已取消则不压缩
+                委托下一环(步进结果,下一步)
+                return 步进结果
+            try:#尝试压力压缩
+                压力期约=自身.按需压缩(智能体,'pressure',信号)#按需压缩
+            except Exception as 错误:#压力路径同步失败不得打断回合
+                压力失败(步进结果,下一步,错误)
+                return 步进结果
+            压力期约.然后(绑定(压力成功,步进结果,下一步),绑定(压力失败,步进结果,下一步))
+            return 步进结果#调用方对期约链接 然后 与 捕获
         上下文.监听('agent/pre-step',步进前)#pre-step 结束
         def 状态监听(载荷,*其余):
             '空闲则清溢出计数'
@@ -164,45 +195,71 @@ class 基础压缩引擎(压缩引擎):
                 except KeyError:#本无
                     pass#放过
         上下文.监听('session/event',会话事件)#session/event 结束
+        def 恢复失败(恢复决定,信号,智能体,代数,重试次数,委托,恢复错误):
+            '恢复路径任意失败仍可能已有耐久进展'
+            消息=str(恢复错误)#诊断
+            if (not 已中止(信号)#尚未取消
+                    and 智能体.session.surface.replaceGeneration>代数):#已有耐久表面进展
+                上下文.日志.警告(#警告后仍重试
+                    'context-overflow compaction failed after durable surface progress: '+消息
+                    +'; retrying from the replacement surface'#从替换表面重试
+                )#warn 结束
+                自身.溢出重试表[智能体]=重试次数+1#记一次恢复
+                恢复决定.解决({'kind':'retry'})#重试原请求
+                return
+            取消文案='cancellation prevents retry' if 已中止(信号) else 'preserving the original request error'#取消则不重试，否则保留原错
+            上下文.日志.警告('context-overflow compaction failed: '+消息+'; '+取消文案)#无进展则保留原错误
+            委托()#委托原失败
+        def 恢复成功(恢复决定,信号,智能体,代数,重试次数,委托,结果):
+            '压缩成功：表面推进了就记日志并重试，否则委托'
+            if (已中止(信号)#等待期间被取消
+                    or 智能体.session.surface.replaceGeneration<=代数):#或表面未推进
+                委托()
+                return
+            try:
+                if 结果 is not None:#有摘要则记日志
+                    记结果(结果,'context overflow recovery')#记日志
+            except BaseException as 错误:#记日志失败交给调用方
+                恢复决定.拒绝(错误)
+                return
+            自身.溢出重试表[智能体]=重试次数+1#记一次恢复
+            恢复决定.解决({'kind':'retry'})#从替换表面重试
         def 请求错误(载荷,下一步):
-            '溢出则尝试压缩并重试；否则原样委托'
+            '溢出则尝试压缩并重试；否则原样委托。返回期约，解决值是恢复决定'
+            恢复决定=期约()#本次 request-error 的结算点
             智能体=载荷['agent']#智能体
             失败=载荷['failure']#失败
             信号=载荷['signal'] if 'signal' in 载荷 else None#取消
+            def 委托(委托结果=None):
+                '原样委托下一环'
+                try:
+                    恢复决定.解决(下一步())#委托
+                except BaseException as 错误:#下一环同步失败交给调用方
+                    恢复决定.拒绝(错误)
             if 失败['code']!=上下文窗口溢出码 or 已中止(信号):#非溢出或已取消
-                return 下一步()#委托
+                委托()
+                return 恢复决定
             自身.溢出智能体表[智能体.session]=智能体#记下本会话智能体
             目标=已路由目标(智能体.session)#须有已路由目标
             if 目标 is None:#没有则无法恢复
-                return 下一步()#委托
+                委托()
+                return 恢复决定
             政策=解析目标政策(自身.配置,目标)#目标政策
             重试次数=自身.溢出重试表.get(智能体,0)#已恢复次数
             if 重试次数>=政策['maxOverflowRetries']:#达到上限则放弃
-                return 下一步()#委托
+                委托()
+                return 恢复决定
             代数=智能体.session.surface.replaceGeneration#压缩前的表面代数
-            结果=None#摘要结果
             try:#尝试溢出压缩
-                结果=自身.按需压缩(智能体,'context-overflow',信号)#强制有用缩减
-            except Exception as 恢复错误:#恢复路径任意抛错仍可能已有耐久进展
-                消息=str(恢复错误)#诊断
-                if (not 已中止(信号)#尚未取消
-                        and 智能体.session.surface.replaceGeneration>代数):#已有耐久表面进展
-                    上下文.日志.警告(#警告后仍重试
-                        'context-overflow compaction failed after durable surface progress: '+消息
-                        +'; retrying from the replacement surface'#从替换表面重试
-                    )#warn 结束
-                    自身.溢出重试表[智能体]=重试次数+1#记一次恢复
-                    return {'kind':'retry'}#重试原请求
-                取消文案='cancellation prevents retry' if 已中止(信号) else 'preserving the original request error'#取消则不重试，否则保留原错
-                上下文.日志.警告('context-overflow compaction failed: '+消息+'; '+取消文案)#无进展则保留原错误
-                return 下一步()#委托原失败
-            if (已中止(信号)#等待期间被取消
-                    or 智能体.session.surface.replaceGeneration<=代数):#或表面未推进
-                return 下一步()#委托
-            if 结果 is not None:#有摘要则记日志
-                记结果(结果,'context overflow recovery')#记日志
-            自身.溢出重试表[智能体]=重试次数+1#记一次恢复
-            return {'kind':'retry'}#从替换表面重试
+                溢出期约=自身.按需压缩(智能体,'context-overflow',信号)#强制有用缩减
+            except Exception as 恢复错误:#恢复路径同步失败
+                恢复失败(恢复决定,信号,智能体,代数,重试次数,委托,恢复错误)
+                return 恢复决定
+            溢出期约.然后(
+                绑定(恢复成功,恢复决定,信号,智能体,代数,重试次数,委托),
+                绑定(恢复失败,恢复决定,信号,智能体,代数,重试次数,委托),
+            )
+            return 恢复决定#调用方对期约链接 然后 与 捕获
         上下文.监听('agent/request-error',请求错误)#request-error 结束
 
     def 摘要(自身,输入,智能体,信号=None):
@@ -215,10 +272,12 @@ class 基础压缩引擎(压缩引擎):
         return 经语言模型摘要(自身.ctx,配置值,输入,智能体,信号)#默认 LLM 一次性摘要
 
     def 按需压缩(自身,智能体,触发,信号):
-        '两种触发都为最近一次耐久已路由请求信封计价；溢出绕过常规阈值与保留尾政策'
+        '两种触发都为最近一次耐久已路由请求信封计价；溢出绕过常规阈值与保留尾政策。返回期约，解决值是压缩结果或 None；同步段的配置失败直接抛出'
+        压缩结果=期约()#本次按需压缩的结算点
         目标=已路由目标(智能体.session)#须有已路由目标
         if 目标 is None:#没有则无法选政策
-            return None#无需摘要
+            压缩结果.解决(None)#无需摘要
+            return 压缩结果
         政策=解析目标政策(自身.配置,目标)#目标政策
         计量器=自身.ctx.tokenMeter#单例计量
         计量=计量器.测量(智能体.session)#当前表面计量
@@ -235,8 +294,10 @@ class 基础压缩引擎(压缩引擎):
                 计量=计量器.测量(智能体.session)#修剪后重测
             区间=选择可压缩区间(智能体.session,计量,0)#不保留尾，尽量缩
             if 区间 is None:#没有可压缩区间
-                return None#无可摘要
-            return 自身.压缩区间(区间['start'],区间['end'],智能体,信号)#强制压缩该区间
+                压缩结果.解决(None)#无可摘要
+                return 压缩结果
+            自身.压缩区间(区间['start'],区间['end'],智能体,信号).然后(压缩结果.解决,压缩结果.拒绝)#强制压缩该区间
+            return 压缩结果
         模型信息=自身.ctx.llm.解析模型信息(目标['provider'],目标['model'],信号)#解析模型容量
         上下文容量=模型信息['context'] if 模型信息 is not None and 'context' in 模型信息 else None#可选上下文
         校验无活动压缩(智能体.session,'automatic pressure compaction')#异步决策后复核锁
@@ -257,28 +318,58 @@ class 基础压缩引擎(压缩引擎):
             预留=0
         规格=解析压缩规格(政策,上下文容量['contextWindow'],预留)#缩成 token 预算
         if 计量['totalTokens']<规格['thresholdTokens']:#未达压力阈值
-            return None#无需摘要
+            压缩结果.解决(None)#无需摘要
+            return 压缩结果
         if 修剪 is not None:#压力够格后，先落地无模型遍再选摘要区间
             修剪.修剪会话(智能体.session)#无模型修剪
             计量=计量器.测量(智能体.session)#修剪后重测
         if 计量['totalTokens']<规格['thresholdTokens']:#修剪后已低于阈值
-            return None#无需摘要
-        结果=None#最近一次摘要结果
-        for 尝试 in range(规格['compactionRetries']+1):#含首次在内的尝试
-            区间=选择可压缩区间(智能体.session,计量,规格['retainTokens'])#保留近期尾
-            if 区间 is None:#没有可压缩区间
-                if 结果 is None:#从未摘要成功
-                    return None#无可摘要
-                break#已有成功结果则停止
-            结果=自身.压缩区间(区间['start'],区间['end'],智能体,信号)#压缩该区间
-            计量=计量器.测量(智能体.session)#压缩后重测
-            if 计量['totalTokens']<规格['thresholdTokens']:#已低于阈值
-                return 结果#返回
-        raise 基础压缩错误(#仍高于阈值
-            'compaction still above threshold after '+str(规格['compactionRetries']+1)
-            +' compaction attempts ('+str(计量['totalTokens'])
-            +' estimated tokens >= threshold '+str(规格['thresholdTokens'])+')'#尝试次数与计量
-        )#抛出结束
+            压缩结果.解决(None)#无需摘要
+            return 压缩结果
+        最近结果=None#最近一次摘要结果
+        def 尝试完成(本次结果):
+            '一次压缩落定：重测，低于阈值就返回，否则下一次尝试'
+            nonlocal 计量,最近结果#修改外层
+            try:
+                最近结果=本次结果#记下
+                计量=计量器.测量(智能体.session)#压缩后重测
+                if 计量['totalTokens']<规格['thresholdTokens']:#已低于阈值
+                    压缩结果.解决(本次结果)#返回
+                    return
+            except BaseException as 错误:#重测失败
+                压缩结果.拒绝(错误)
+                return
+            跑一次尝试(尝试序号槽[0]+1)#下一次尝试
+        尝试序号槽=[0]#本轮尝试序号；尝试完成与跑一次尝试同级
+        def 跑一次尝试(尝试序号):
+            '一次摘要尝试；未低于阈值且还有次数就再来一次，次数用尽则以仍高于阈值拒绝'
+            nonlocal 计量,最近结果#修改外层
+            尝试序号槽[0]=尝试序号#同级完成回调要读
+            if 尝试序号>规格['compactionRetries']:#含首次在内的尝试已用尽
+                收尾失败()
+                return
+            try:
+                区间=选择可压缩区间(智能体.session,计量,规格['retainTokens'])#保留近期尾
+                if 区间 is None:#没有可压缩区间
+                    if 最近结果 is None:#从未摘要成功
+                        压缩结果.解决(None)#无可摘要
+                        return
+                    收尾失败()#已有成功结果则停止尝试
+                    return
+                本次期约=自身.压缩区间(区间['start'],区间['end'],智能体,信号)#压缩该区间
+            except BaseException as 错误:#同步段失败
+                压缩结果.拒绝(错误)
+                return
+            本次期约.然后(尝试完成,压缩结果.拒绝)
+        def 收尾失败():
+            '尝试用尽仍高于阈值'
+            压缩结果.拒绝(基础压缩错误(#仍高于阈值
+                'compaction still above threshold after '+str(规格['compactionRetries']+1)
+                +' compaction attempts ('+str(计量['totalTokens'])
+                +' estimated tokens >= threshold '+str(规格['thresholdTokens'])+')'#尝试次数与计量
+            ))#拒绝结束
+        跑一次尝试(0)#首次尝试
+        return 压缩结果#调用方对期约链接 然后 与 捕获
 
     def 压缩区间(自身,起点,终点,智能体,信号=None):
         '返回成功的耐久压缩结果'
@@ -293,7 +384,8 @@ class 基础压缩引擎(压缩引擎):
         )#事务结束
 
     def 立即压缩(自身,智能体,信号,来源命令标识=None):
-        '仅在其独立标记对耐久检查点之后才决议；没有可安全有用区间时为 None'
+        '仅在其独立标记对耐久检查点之后才决议；没有可安全有用区间时为 None。返回期约'
+        立即结果=期约()#本次立即压缩的结算点
         若已中止则抛出(信号)#入口即检查取消
         try:#同步启动空闲任务
             def 维护任务(智能体信号):
@@ -336,15 +428,25 @@ class 基础压缩引擎(压缩引擎):
                         )#抛出结束
                     若已中止则抛出(操作信号)#请求取消则抛原中止
                     raise 错误#其他失败原样抛
-            return 智能体.执行维护(维护任务).等待()#空闲维护结束
+            def 映射为忙碌(错误):
+                '已分类的手动压缩错误原样拒绝，其它失败（智能体非空闲）映射为 busy'
+                if isinstance(错误,手动压缩错误):#已分类则原样
+                    立即结果.拒绝(错误)
+                    return
+                立即结果.拒绝(手动压缩错误(#映射为 busy
+                    'busy',#忙碌码
+                    'manual compaction requires an idle agent with no waking queued work',#须空闲
+                    {'cause':错误},#保留原因
+                ))#拒绝结束
+            try:#同步拒绝：智能体非空闲
+                维护期约=智能体.执行维护(维护任务)#空闲维护
+            except Exception as 错误:#执行维护同步失败
+                映射为忙碌(错误)
+                return 立即结果
+            维护期约.然后(立即结果.解决,映射为忙碌)#空闲维护结束
+            return 立即结果#调用方对期约链接 然后 与 捕获
         except 手动压缩错误:#已分类则原样抛
             raise#原样
-        except Exception as 错误:#同步拒绝：智能体非空闲
-            raise 手动压缩错误(#映射为 busy
-                'busy',#忙碌码
-                'manual compaction requires an idle agent with no waking queued work',#须空闲
-                {'cause':错误},#保留原因
-            )#抛出结束
 
     def 区间依赖(自身):
         '返回区间事务依赖'

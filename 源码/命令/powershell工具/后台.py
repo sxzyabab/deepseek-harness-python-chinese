@@ -1,7 +1,7 @@
 '后台 pwsh 进程句柄的通用任务适配——与 bash 后台适配同形、且与具体 shell 无关'
 from ...沙盒.沙盒 import 沙箱拒绝标记,升级提示标记
 import threading
-from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 
 from .异常 import 后台错误#后台任务适配失败
 
@@ -74,31 +74,41 @@ def 进程作业(启动,结局):
     """任务准入之后适配外壳准备，不暴露半拉进程。
     启动接收任务拥有的取消信号
     """
-    取消事件=threading.Event()
-    进程箱=[None]
-    完成=操作任务()
-    def 体():
-        '准备、可选杀死、等待关闭，再投影结局'
-        try:
-            进程箱[0]=启动(取消事件)
-            进程=进程箱[0]
-            try:
-                if 取消事件.is_set():
-                    进程.杀死()
-            finally:
-                进程.done.等待()
-            完成.兑现(结局(进程))
-        except BaseException as 错误:
-            状态='killed' if 取消事件.is_set() and 进程箱[0] is None else 'failed'
-            完成.兑现({'status':状态,'detail':str(错误)})
-    工作=threading.Thread(target=体)
-    工作.daemon=True
-    工作.start()
+    取消事件=threading.Event()#任务拥有的取消信号
+    进程=None#已启动的进程
+    杀死错误=None#启动后补杀失败，进程关闭后再报告
+    完成=期约()#任务结局，永不拒绝
+    def 失败收尾(错误):
+        '准备或结算失败：取消且尚无进程算 killed，否则 failed'
+        状态='killed' if 取消事件.is_set() and 进程 is None else 'failed'
+        完成.解决({'status':状态,'detail':str(错误)})
+    def 进程已关闭(*关闭值):
+        '进程关闭后投影结局；补杀失败则按失败结局'
+        if 杀死错误 is not None:#补杀失败
+            失败收尾(杀死错误)
+            return
+        try:#投影结局
+            结局值=结局(进程)
+        except Exception as 错误:#投影失败
+            失败收尾(错误)
+            return
+        完成.解决(结局值)
+    try:#准备并启动进程
+        进程=启动(取消事件)
+    except Exception as 错误:#准备失败
+        失败收尾(错误)
+    else:#已启动
+        try:#取消已先到则补杀
+            if 取消事件.is_set():
+                进程.杀死()
+        except Exception as 错误:#补杀失败也要等进程关闭
+            杀死错误=错误
+        进程.done.然后(进程已关闭,失败收尾)#等进程关闭
     def 取消(原因=None):
         '请求取消；已取消则空操作'
         if 取消事件.is_set():
             return
         取消事件.set()
-        if 进程箱[0] is not None:
-            进程箱[0].杀死()
+        if 进程 is not None:
+            进程.杀死()
     return {'cancel':取消,'done':完成}

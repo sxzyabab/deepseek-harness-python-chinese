@@ -1,7 +1,47 @@
 import math,threading
+from threading import Event as 事件#本轮取消通道
 from ...基础设施.通用工具 import (
-    紧凑json编码,操作任务,中止控制器,已中止,若已中止则抛出,启动守护线程,
+    紧凑json编码,启动守护线程,
 )
+
+class 中止信号(事件):
+    '取消通道。Event 本身就是信号'
+    def __init__(自身):
+        '创建未中止的通道'
+        事件.__init__(自身)#未置位
+        自身.原因=None#跨包读取的中止原因
+
+    def 等待(自身):
+        '阻塞到中止'
+        自身.wait()#阻塞
+
+class 中止控制器:
+    '发出中止的控制器'
+    def __init__(自身):
+        '创建配套信号'
+        自身.信号=中止信号()#本控制器的信号
+
+    def 中止(自身,原因=None):
+        '中止配套信号，只生效一次'
+        if 自身.信号.is_set():#已经中止
+            return#只生效一次
+        自身.信号.原因=原因#记下原因
+        自身.信号.set()#置位
+
+def 已中止(信号):
+    '信号是否已中止。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
+
+def 若已中止则抛出(信号):
+    '已中止则抛出承载原因的异常'
+    if not 已中止(信号):#无信号或仍活着
+        return#仍活着
+    if 信号.原因 is not None:#有承载异常
+        raise 信号.原因#抛出
+    raise 代码模式错误('已中止')#默认中止
+from ...基础设施.js特性 import PromiseEX as 期约#期约
 from ...模型后端.llm import 调用标识,深冻结,创建用户消息#导入调用 id、冻结与用户消息
 from ...沙盒.沙盒 import 批准升级,校验升级参数,升级目标#导入沙箱升级
 from ..会话 import 快照json值#导入无损 JSON 快照
@@ -18,55 +58,6 @@ __all__=(
 sdk段顺序=5000#SDK 段顺序，对齐 TOOLS_SDK
 json缩进='  '#两空格 JSON 呈现
 json缩进上限=10#总缩进上限
-
-def 在线程执行(函数):
-    """在工作线程执行并返回任务。
-    回调翻译时已是同步函数"""
-    任务=操作任务()#本次任务
-    def 执行并结算():
-        '执行函数并结算'
-        try:
-            任务.兑现(函数())#兑现同步返回值
-        except BaseException as 错误:
-            任务.拒绝(错误)#拒绝
-    启动守护线程(执行并结算)#工作线程
-    return 任务#操作任务
-
-def 全部结算(任务列表):
-    """并发等全部落定，吞掉失败。
-    列表项必须是操作任务"""
-    def 等待并吞错(任务):
-        '等待一路并吞错'
-        try:
-            任务.等待()#等待
-        except BaseException:
-            pass#排空不抛
-    线程表=[]#工作线程
-    for 任务 in 任务列表:
-        工作=启动守护线程(等待并吞错,任务)#工作线程
-        线程表.append(工作)#登记
-    for 工作 in 线程表:
-        工作.join()#等到结束
-
-def 任一落定(任务集):
-    '最先落定的那路胜出'
-    完成=threading.Event()#任一完成
-    def 等待一路落定(任务):
-        '等待一路并唤醒'
-        try:
-            任务.等待()#等待
-        except BaseException:
-            pass#赛跑不关心成败
-        完成.set()#唤醒
-    for 任务 in list(任务集):
-        启动守护线程(等待一路落定,任务)#等待线程
-    完成.wait()#阻塞到任一落定
-
-def 空结算任务():
-    '立刻结算的空操作任务'
-    任务=操作任务()#空任务
-    任务.兑现(None)#立刻结算
-    return 任务#已决议
 
 typescript风味={
     'description':(
@@ -425,83 +416,167 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
     提交队列=[]#提交序队列
     独占活动=False#独占屏障是否立着
     驾驶中=False#驱动车道是否在跑
-    驾驶任务=空结算任务()#当前驱动任务
-    条件=threading.Condition()#唤醒车道
+    驾驶任务=None#真正开跑后才是期约
+    条件=threading.Condition()#队列临界区
+    唤醒槽=[None]#车道睡眠期约的解决函数
     def 唤醒():
         '唤醒驱动'
         with 条件:
-            条件.notify_all()#唤醒等待
+            释放=唤醒槽[0]#取走本轮解决
+            唤醒槽[0]=None#避免重复解决
+        if 释放 is not None:
+            释放(None)#解决睡眠期约
     def 本轮已结束():
         '本轮是否已结束'
         return 已中止(本轮.信号)#现场读取
     def 驱动():
         '唯一有序车道'
         nonlocal 驾驶中,驾驶任务,独占活动
-        with 条件:
-            if 驾驶中:
-                return 驾驶任务#已在跑则复用
-            驾驶中=True#占车道
-        def 车道():
-            '新一轮驱动'
-            nonlocal 驾驶中,独占活动
-            try:
-                while True:
-                    可提交=None#提交队头
-                    可开始=None#未开始队头
-                    模式=None#分类
-                    with 条件:
-                        if len(提交队列)>0 and 提交队列[0]['settled']:
-                            可提交=提交队列.pop(0)#出队
-                        elif len(未开始队列)>0:
-                            队头=未开始队列[0]#未开始队头
-                            if 本轮已结束():
-                                未开始队列.pop(0)#出队
-                                队头['abandon']()#放弃未开始者
-                                continue#再看队列
+        车道门=threading.Lock()#串行车道步
+        车道进行中=False#车道函数是否在栈上
+        车道待重入=False#让出期间又有人要跑一轮
+        提交条目盒=[None]#本轮正在提交的条目
+        开始条目盒=[None]#本轮正在开始的条目
+        def 车道结束():
+            '车道静止，兑现驾驶期约'
+            nonlocal 驾驶中
+            with 条件:
+                if not 驾驶中:
+                    return#已经结束
+                驾驶中=False#释放占位
+                唤醒槽[0]=None#丢掉未睡的解决
+            驾驶任务.解决(None)#静止
+        def 车道失败(错误):
+            '车道失败，拒绝驾驶期约'
+            nonlocal 驾驶中
+            with 条件:
+                if not 驾驶中:
+                    return#已经结束
+                驾驶中=False#释放占位
+                唤醒槽[0]=None#丢掉未睡的解决
+            驾驶任务.拒绝(错误)#失败
+        def 挂上唤醒(解决,拒绝回调):
+            '把本轮睡眠期约的解决收进槽'
+            唤醒槽[0]=解决#稍后唤醒时调用
+        def 提交后(结算值):
+            '提交落定后放下独占屏障并再跑车道'
+            nonlocal 独占活动
+            条目=提交条目盒[0]#本轮提交
+            if 条目 is not None and 条目.get('mode')=='exclusive':
+                独占活动=False#放下独占屏障
+            进入车道()#继续
+        def 开始后(结算值):
+            '有序开始已返回。预落定没有在飞期约'
+            条目=开始条目盒[0]#本轮开始
+            飞行=条目['flight']#未派发则没有在飞期约
+            if 飞行 is None:#预落定，没有要等的体
+                进入车道()#继续
+                return
+            在飞.add(飞行)#先入池，最终回调即使同步也能摘掉
+            def 本条离池(落定值=None,任务=飞行):
+                '这条体离池并唤醒'
+                在飞.discard(任务)#离池
+                唤醒()#唤醒车道
+            飞行.最终(本条离池)#成败都离池
+            进入车道()#不等体，继续车道
+        def 车道一步():
+            '车道一轮。让出=已挂钩期约；结束=静止'
+            nonlocal 独占活动
+            while True:
+                可提交=None#提交队头
+                可开始=None#未开始队头
+                模式=None#分类
+                要放弃=None#已中止的未开始者
+                要睡=False#本轮无事可做
+                静止=False#队列与在飞都空
+                with 条件:
+                    睡眠=期约(挂上唤醒)#检查前先挂上唤醒
+                    if len(提交队列)>0 and 提交队列[0]['settled']:
+                        可提交=提交队列.pop(0)#出队
+                    elif len(未开始队列)>0:
+                        队头=未开始队列[0]#未开始队头
+                        if 本轮已结束():
+                            未开始队列.pop(0)#出队
+                            要放弃=队头#锁外放弃
+                        else:
                             模式=队头['classify']()#当前分类
                             有槽=(not 独占活动) and (len(在飞)==0 if 模式=='exclusive' else len(在飞)<并行上限)#独占要空池，并行要低于上限
                             if 有槽:
                                 可开始=未开始队列.pop(0)#出未开始队
-                        if 可提交 is None and 可开始 is None:
-                            if len(未开始队列)==0 and len(提交队列)==0 and len(在飞)==0:
-                                return#静止
-                            条件.wait()#等落定或新提交
-                            continue#再看
-                    if 可提交 is not None:
-                        可提交['commit']()#有序后执行 + 落定
-                        if 可提交.get('mode')=='exclusive':
-                            独占活动=False#放下独占屏障
-                        continue#再看队头
-                    if 可开始 is not None:
-                        if 模式=='exclusive':
-                            独占活动=True#立独占屏障
-                        可开始['mode']=模式#记下开始分类
-                        提交队列.append(可开始)#入提交序
-                        可开始['start']()#有序 prepare + 启动体
-                        飞行=可开始['flight']#在飞体
-                        def 离池(任务=飞行):
-                            '体结束后离池'
-                            在飞.discard(任务)#离池
-                            唤醒()#唤醒车道
-                        def 等待飞行落定(任务=飞行,收尾=离池):
-                            '等到飞行落定'
-                            try:
-                                任务.等待()#等待
-                            except BaseException:
-                                pass#飞行失败仍离池
-                            收尾()#离池
-                        在飞.add(飞行)#入池
-                        启动守护线程(等待飞行落定)#等待飞行线程
-            finally:
-                with 条件:
-                    驾驶中=False#释放占位
-        驾驶任务=在线程执行(车道)#新一轮驱动
-        return 驾驶任务#返回本轮驱动
+                    if 可提交 is None and 可开始 is None and 要放弃 is None:
+                        if len(未开始队列)==0 and len(提交队列)==0 and len(在飞)==0:
+                            唤醒槽[0]=None#不再睡
+                            静止=True#锁外结束
+                        else:
+                            要睡=True#等落定或新提交
+                if 静止:
+                    车道结束()#静止
+                    return '结束'
+                if 要放弃 is not None:
+                    要放弃['abandon']()#放弃未开始者
+                    continue#再看队列
+                if 要睡:
+                    睡眠.然后(进入车道).捕获(车道失败)#睡到被唤醒
+                    return '让出'
+                if 可提交 is not None:
+                    提交条目盒[0]=可提交#提交后读取
+                    可提交['commit']().然后(提交后).捕获(车道失败)#等有序提交
+                    return '让出'
+                if 模式=='exclusive':
+                    独占活动=True#立独占屏障
+                可开始['mode']=模式#记下开始分类
+                提交队列.append(可开始)#入提交序
+                开始条目盒[0]=可开始#开始后读取
+                可开始['start']().然后(开始后).捕获(车道失败)#等有序开始
+                return '让出'
+        def 进入车道(落定值=None):
+            '串行进入车道。已经在跑则只登记重入'
+            nonlocal 车道进行中,车道待重入
+            if not 驾驶中:
+                return#驾驶期约已结束
+            with 车道门:
+                if 车道进行中:
+                    车道待重入=True#当前这轮返回后续跑
+                    return
+                车道进行中=True#占住车道
+            while True:
+                try:
+                    动作=车道一步()#一轮
+                except BaseException as 错误:
+                    车道失败(错误)#收进驾驶期约
+                    动作='结束'
+                with 车道门:
+                    if 动作=='让出' and 车道待重入:
+                        车道待重入=False#同步回调登记的下一轮
+                        continue
+                    车道待重入=False#本段结束
+                    车道进行中=False#放开车道
+                    return
+        with 条件:
+            if 驾驶中:
+                return 驾驶任务#已在跑则复用
+            驾驶任务=期约()#真正开跑后才是期约
+            驾驶中=True#与期约同一临界区，避免并发拿到空占位
+        进入车道()#开跑
+        return 驾驶任务
     def 排空派发():
         '每次派发都已落定并提交'
-        驱动().等待()#跑到静止
-        while len(日志工作)>0:
-            全部结算(list(日志工作))#排空日志副作用
+        排空落定=threading.Event()#驾驶与日志都排空后放行
+        排空错误=[None]#排空失败
+        def 排空失败(错误):
+            '驾驶或日志期约拒绝'
+            排空错误[0]=错误#记下
+            排空落定.set()#放行
+        def 再排日志(结算值=None):
+            '日志副作用清空后放行，否则再等一轮'
+            if len(日志工作)==0:
+                排空落定.set()#已空
+                return
+            期约.全部已结算(list(日志工作)).然后(再排日志).捕获(排空失败)#本轮都结算后再看
+        驱动().然后(再排日志).捕获(排空失败)#先等到车道静止
+        排空落定.wait()#调用方要同步结果
+        if 排空错误[0] is not None:
+            raise 排空错误[0]#原样抛出
     def 绑定(模式):
         '绑定一个工具'
         名称=模式['name']#工具名
@@ -525,55 +600,56 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
             if 'agent' in 执行 and 执行['agent'] is not None:
                 输入['agent']=执行['agent']#有智能体则带上
             调度器=注册表[调度器符号]#分阶段调度器
-            结局任务=操作任务()#程序可见结局
+            结局任务=期约()#程序可见结局
             停住盒=[None]#停住的结局
+            已准备盒=[None]#本轮准备，记下停住与开始同级
+            日志链接盒=[None]#本条日志期约，离集与落定同级
+            提交完成盒=[None]#本轮提交期约，回压与提交同级
+            def 日志离集(落定值=None):
+                '落定后离集'
+                日志工作.discard(日志链接盒[0])#离集
             def 落定(结果):
                 '把结局交给程序并记日志'
                 if 结果['isError']:
-                    结局任务.兑现({'isError':True,'message':结果['error']['message']})#程序可见错误
+                    结局任务.解决({'isError':True,'message':结果['error']['message']})#程序可见错误
                 else:
-                    结局任务.兑现({'isError':False,'value':结果['value']})#规范值
+                    结局任务.解决({'isError':False,'value':结果['value']})#规范值
                 智能体=执行['agent'] if 'agent' in 执行 else None#记日志需要会话
                 if 智能体 is None:
                     return#无智能体则不追加
+                日志任务=期约()#日志副作用
                 def 日志体():
                     '日志副作用'
-                    已记=整形派发日志({
-                        'exec':执行,#父执行
-                        'agent':智能体,#智能体
-                        'subCallId':子调用号,#子 id
-                        'name':名称,#工具名
-                        'isError':结果['isError'],#是否错误
-                        'content':结果['content'],#默认内容
-                    })#整形要记的内容
-                    事件={
-                        'rootCallId':执行['rootCallId'],#根
-                        'parentCallId':执行['callId'],#父 run_code
-                        'subCallId':子调用号,#子 id
-                        'name':名称,#工具名
-                        'arguments':归一['logged'],#日志副本
-                        'isError':结果['isError'],#是否错误
-                        'content':已记,#可能被替换的耐久内容
-                    }#落定事件
-                    失败=结果.get('error')#失败细节
-                    if isinstance(失败,dict) and 失败.get('info') is not None:
-                        事件['error']=失败['info']#结构化错误身份
-                    智能体.session.append('tool/ptc-dispatch',事件)#落定事件
-                日志任务=在线程执行(日志体)#跟踪副作用
-                def 日志离集(任务=日志任务):
-                    '落定后离集'
-                    日志工作.discard(任务)#离集
-                def 等待日志落定(任务=日志任务,收尾=日志离集):
-                    '等到日志落定'
                     try:
-                        任务.等待()#等待
-                    except BaseException:
-                        pass#shapeDispatchLog 是收住的
-                    收尾()#离集
-                日志工作.add(日志任务)#跟踪副作用
-                启动守护线程(等待日志落定)#等待日志线程
+                        已记=整形派发日志({
+                            'exec':执行,#父执行
+                            'agent':智能体,#智能体
+                            'subCallId':子调用号,#子 id
+                            'name':名称,#工具名
+                            'isError':结果['isError'],#是否错误
+                            'content':结果['content'],#默认内容
+                        })#整形要记的内容
+                        事件={
+                            'rootCallId':执行['rootCallId'],#根
+                            'parentCallId':执行['callId'],#父 run_code
+                            'subCallId':子调用号,#子 id
+                            'name':名称,#工具名
+                            'arguments':归一['logged'],#日志副本
+                            'isError':结果['isError'],#是否错误
+                            'content':已记,#可能被替换的耐久内容
+                        }#落定事件
+                        失败=结果.get('error')#失败细节
+                        if isinstance(失败,dict) and 失败.get('info') is not None:
+                            事件['error']=失败['info']#结构化错误身份
+                        智能体.session.append('tool/ptc-dispatch',事件)#落定事件
+                        日志任务.解决(None)#记完
+                    except BaseException as 错误:
+                        日志任务.拒绝(错误)#记失败
+                日志链接盒[0]=日志任务.最终(日志离集)#离集在最终之后，竞速才看得到摘除
+                日志工作.add(日志链接盒[0])#跟踪副作用
+                启动守护线程(日志体)#日志线程
             条目={
-                'flight':空结算任务(),#占位，start() 替换
+                'flight':None,#真正派发后才赋期约
                 'settled':False,#尚未停住
             }#排队条目
             def 分类():
@@ -582,6 +658,11 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
             def 放弃():
                 '放弃未开始者'
                 结局任务.拒绝(代码模式错误('run_code run is over ('+str(本轮.信号.原因)+'); '+名称+' tool call abandoned'))#未开始被放弃
+            def 记下停住(派发结局):
+                '派发落定后停住，供提交按序收尾'
+                已准备执行=已准备盒[0]#本轮准备
+                停住盒[0]={'kind':派发结局['kind'],'exec':已准备执行['exec'],'result':派发结局['result']}#停住
+                条目['settled']=True#允许提交
             def 开始():
                 '有序开始'
                 智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
@@ -594,22 +675,39 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                         'arguments':归一['logged'],#日志副本
                     })#开始事件
                 已准备=调度器['prepare'](输入)#预执行/守卫
+                开始结果=期约()#有序开始阶段
                 if 已准备['kind']=='dispatch':
-                    def 启动派发体():
-                        '启动体'
-                        派发结局=调度器['dispatch'](已准备['exec'])#环绕+体
-                        停住盒[0]={'kind':派发结局['kind'],'exec':已准备['exec'],'result':派发结局['result']}#停住
-                        条目['settled']=True#允许提交
-                        唤醒()#唤醒车道
-                    条目['flight']=在线程执行(启动派发体)#体在飞
-                    return#体在飞
+                    已准备盒[0]=已准备#记下停住读取
+                    体期约=期约()#派发体
+                    def 执行体():
+                        '工作线程跑派发'
+                        try:
+                            体期约.解决(调度器['dispatch'](已准备['exec']))#环绕+体
+                        except BaseException as 错误:
+                            体期约.拒绝(错误)#体失败
+                    启动守护线程(执行体)#体在另一线程
+                    条目['flight']=体期约.然后(记下停住)#体在飞，记下停住后才算落定
+                    开始结果.解决(None)#开始阶段结束，体另算
+                    return 开始结果
                 停住盒[0]={'kind':已准备['kind'],'exec':已准备['exec'],'result':已准备['result']}#预落定
                 条目['settled']=True#可提交
+                开始结果.解决(None)#预落定没有在飞体
+                return 开始结果
+            def 压住日志(结算值=None):
+                '超出并行上限时等一条日志副作用落定'
+                完成=提交完成盒[0]#本轮提交期约
+                if len(日志工作)<=并行上限:
+                    完成.解决(None)#回压结束
+                    return
+                期约.竞速(list(日志工作)).然后(压住日志).捕获(完成.拒绝)#最先落定的一条
             def 提交():
                 '有序提交'
+                完成=期约()#提交阶段
+                提交完成盒[0]=完成#回压回调读取
                 停住=停住盒[0]#已停住结局
                 if 停住 is None:
-                    return#防御
+                    完成.解决(None)#没有停住
+                    return 完成
                 if 停住['kind']=='post-result':
                     结果=调度器['finalize'](停住['exec'],停住['result'])#后执行 + 最终化
                 else:
@@ -627,16 +725,30 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                 if 结果.get('concludesTurn'):
                     执行['concludeTurn']()#嵌套成功才终止外层
                 落定(结果)#交给程序并记日志
-                while len(日志工作)>并行上限:
-                    任一落定(日志工作)#回压日志副作用
+                压住日志()#回压日志副作用
+                return 完成
             条目['classify']=分类#惰性分类
             条目['abandon']=放弃#放弃
             条目['start']=开始#有序开始
             条目['commit']=提交#有序提交
+            结局盒={'结局值':None,'错误':None}#同步边界
+            落定事件=threading.Event()#期约落定后放行绑定线程
+            def 结局已解决(结局值):
+                '期约兑现，记下值并放行'
+                结局盒['结局值']=结局值#规范结局
+                落定事件.set()#放行
+            def 结局已拒绝(错误):
+                '期约拒绝，记下错误并放行'
+                结局盒['错误']=错误#拒绝原因
+                落定事件.set()#放行
+            结局任务.然后(结局已解决).捕获(结局已拒绝)#挂钩，不在期约上等待
             未开始队列.append(条目)#入未开始队
             唤醒()#唤醒车道
             驱动()#确保车道在跑
-            结局=结局任务.等待()#等到提交
+            落定事件.wait()#绑定调用方要同步值
+            if 结局盒['错误'] is not None:
+                raise 结局盒['错误']#放弃或提交失败
+            结局=结局盒['结局值']#规范结局
             if 本轮已结束():
                 raise 代码模式错误('run_code run is over ('+str(本轮.信号.原因)+'); '+名称+' result discarded')#丢弃结果
             if 结局['isError']:

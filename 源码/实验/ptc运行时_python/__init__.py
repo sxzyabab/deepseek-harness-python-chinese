@@ -2,8 +2,8 @@ import json,math,os,re,shutil,signal,socket,stat,subprocess,sys,tempfile,threadi
 from ...依赖.schemastery import 数字字段,字符串字段,复合类型字段#配置
 from ...ptc运行时.ptc运行时 import ptc运行时,保留绑定全局,保留错误成员,双下划线成员,可移植保留字#缝
 from ...内核.会话 import 快照json值#无损快照
-from ...内核.作用域 import 操作任务#结算
-from ...工具.超时 import 定时器延迟上限毫秒,已中止,等待中止#中止与定时上限
+from ...基础设施.js特性 import PromiseEX as 期约扩展#运行结果与结束期约
+from ...工具.超时 import 定时器延迟上限毫秒,等待中止#定时上限
 from .协议 import (
     检查完成值,
     含不安全整数词,
@@ -289,8 +289,8 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         def 拆除寿命():#fiber 拆
             '等全部子退出'
             def 卸():#拆
-                '中止在途'
-                自身.拆除()#拆
+                '中止在途，返回期约，全部子进程退出后兑现'
+                return 自身.拆除()#拆
             return 卸#拆除器
         上下文.副作用(拆除寿命,'python ptc-runtime teardown')#挂
 
@@ -303,13 +303,12 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         return 'process'#隔离
 
     def 拆除(自身):#静默
-        '在途标 abort 并等退出'
+        '在途标 abort，返回期约，全部在途运行的子进程退出后兑现'
         自身.已拆=True#记下
         表=list(自身.在途)#快照
         for 项 in 表:#逐项
             项['settle']({'kind':'abort','message':'runtime disposed'})#中止
-        for 项 in 表:#等
-            项['finished'].等待()#等
+        return 期约扩展.全部([项['finished'] for 项 in 表])#全部子退出才算拆除完成
 
     def 解析(自身,请求):#填 cwd 与墙钟
         '不支持沙箱与逐次超时'
@@ -329,19 +328,22 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         return 规格#规格
 
     def 运行(自身,请求):#一次程序
-        '无文件围栏'
+        '无文件围栏。校验失败直接抛出；已中止与物化失败仍返回已结算期约，成功路径返回未完成期约'
         if 请求.get('sandboxPolicy') is not None or 请求.get('timeoutMs')!=自身.配置['maxWallMs']:#政策
             raise python运行时错误('dsh-ptc-runtime-python: 不支持的执行策略或超时')
         if 自身.已拆:#已拆
             raise python运行时错误('dsh-ptc-runtime-python: 拆除后仍调用 run()')
-        绑定=自身.校验绑定(请求)#绑定
+        绑定=自身.校验绑定(请求)#绑定误用直接抛出
+        结局=期约扩展()#本次运行的结果期约，由泵线程或下面的提前结算解决
         if 已中止(请求.get('signal')):#已中止
-            return {'logs':[],'error':{'kind':'abort','message':消息于(getattr(请求.get('signal'),'reason',None))}}#中止
+            结局.解决({'logs':[],'error':{'kind':'abort','message':消息于(getattr(请求.get('signal'),'reason',None))}})#中止
+            return 结局#返回已解决的期约
         try:#物化
             入口=物化python脚本()#入口
         except Exception as 错误:#失败
-            return {'logs':[],'error':{'kind':'worker-exit','message':'failed to stage the python bootstrap: '+消息于(错误)}}#基底
-        return 自身.执行(请求,绑定,入口)#跑
+            结局.解决({'logs':[],'error':{'kind':'worker-exit','message':'failed to stage the python bootstrap: '+消息于(错误)}})#基底
+            return 结局#返回已解决的期约
+        return 自身.执行(请求,绑定,入口,结局)#跑
 
     def 校验绑定(自身,请求):#缝误用
         '拒绝非法命名空间'
@@ -386,8 +388,8 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             绑定[全局]=记录#挂
         return 绑定#表
 
-    def 执行(自身,请求,绑定,入口):#驱动到结算
-        'spawn 并泵帧'
+    def 执行(自身,请求,绑定,入口,结局):#驱动到结算
+        'spawn 并泵帧，运行结果解决到传入的结局期约并把它返回'
         引导目录=os.path.dirname(入口)#staging
         宿主套,子套=socket.socketpair()#双向 fd 3
         try:#spawn
@@ -408,18 +410,18 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 子套.close()#关
             except Exception:#忽略
                 pass#忽略
-            return {'logs':[],'error':{'kind':'worker-exit','message':'python spawn error: '+消息于(错误)}}#基底
-        结局=操作任务()#run 结果
+            结局.解决({'logs':[],'error':{'kind':'worker-exit','message':'python spawn error: '+消息于(错误)}})#基底
+            return 结局#返回已解决的期约
         def 体():#泵
             '驱动到结算'
             自身._泵(请求,绑定,子,宿主套,引导目录,结局)#泵
-        threading.Thread(target=体,daemon=True).start()#泵
-        return 结局.等待()#阻塞
+        threading.Thread(target=体,daemon=True).start()#泵线程在后台把结局解决掉
+        return 结局#返回期约，不阻塞
 
     def _泵(自身,请求,绑定,子,宿主套,引导目录,结局):#一跑泵
         'fd-3 与杂散捕获'
         已结算=[False]#settled
-        已兑现=[False]#resolved
+        已解决=[False]#结局期约是否已解决
         日志=[]#logs
         开片段=[]#openParts
         开封=[]#openSealed
@@ -443,7 +445,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         关闭截止=[None]#closeDeadline
         决定=[None]#decided
         活项=[None]#live
-        完成任务=操作任务()#finished
+        完成任务=期约扩展()#finished，运行收尾后解决
         墙定时=[None]#墙钟
         协议锁=threading.Lock()#写锁
         def 清杂散(杂):#丢缓冲
@@ -557,25 +559,22 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             定时.start()#开
             宽限定时[0]=定时#记下
         def 结算(结果):#唯一结算点
-            '兑现 run 并等组空'
-            if 已兑现[0]:#已
+            '解决 run 并等组空'
+            if 已解决[0]:#已
                 return#停
-            已兑现[0]=True#记下
+            已解决[0]=True#记下
             if 关闭截止[0] is not None:#有截止
                 关闭截止[0].cancel()#取消
             try:#删 staging
                 shutil.rmtree(引导目录,ignore_errors=True)#删
             except Exception:#忽略
                 pass#忽略
-            结局.兑现({**结果,'logs':list(日志)})#兑现
+            结局.解决({**结果,'logs':list(日志)})#以运行结果解决
             def 收尾():#出 live
-                '从在途摘除'
+                '从在途摘除并解决 finished'
                 if 活项[0] is not None:#有
                     自身.在途.discard(活项[0])#摘
-                try:#完成
-                    完成任务.兑现(None)#完成
-                except Exception:#已
-                    pass#忽略
+                完成任务.解决()#收尾只会走到一次，直接解决
             if (not 正在杀[0]) or 组空():#无需等
                 if 宽限定时[0] is not None:#有
                     宽限定时[0].cancel()#取消
@@ -932,7 +931,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             完成({'error':{'kind':'worker-exit','message':'python exited (code='+str(码)+', signal='+str(信号名)+') before completing'}})#退出
         if 决定[0] is not None:#已决定
             结算(决定[0])#结
-        elif not 已兑现[0]:#尚未
+        elif not 已解决[0]:#尚未
             结算({'error':{'kind':'worker-exit','message':'python exited (code='+str(码)+', signal='+str(信号名)+') before completing'}})#结
 
 名称='experimental-ptc-runtime-python'

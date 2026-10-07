@@ -1,3 +1,4 @@
+from ......基础设施.js特性 import PromiseEX as 期约扩展#后端方法的返回期约
 from .值 import Client控制台事件#Console转换
 
 __all__=['Client控制台后端']#仅中文公开名
@@ -28,8 +29,10 @@ class Client控制台后端:#Client Console后端
         return 卸除#拆除器
 
     def 清空(自身):#清空
-        'Client Console 清空无操作'
-        return#无操作
+        'Client Console 清空无需操作，返回已解决的期约'
+        已清空=期约扩展()#空结果期约
+        已清空.解决()#无结果，直接解决
+        return 已清空#返回已解决的期约
 
     def 关闭(自身):#关闭
         '禁用本连接的每一个活动 Console 订阅'

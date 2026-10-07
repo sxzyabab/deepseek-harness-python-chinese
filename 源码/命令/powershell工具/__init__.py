@@ -1,5 +1,8 @@
 '面向模型的 PowerShell 消费方'
 import math,os#有限数与路径
+import functools
+from ...基础设施.js特性 import PromiseEX as 期约
+偏应用=functools.partial
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
@@ -255,13 +258,14 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
             if 智能体 is not None:#有智能体
                 启动参数['owner']=智能体#带所有者
             编号=任务服务.start(启动参数)#启动后台任务
-            return {'kind':'background','jobId':编号}#立刻返回任务号
+            后台结果=期约()#后台启动结果
+            后台结果.解决({'kind':'background','jobId':编号})#立刻返回任务号
+            return 后台结果#已兑现
         前台请求=dict(请求)#拷贝请求
         前台请求['signal']=执行上下文['signal'] if 'signal' in 执行上下文 else None#跟取消信号
-        结果=上下文.shell.运行(上下文.shell.解析(前台请求))#前台跑
-        if 结果['aborted'] is True:#被中止
-            抛中止()#抛出中止
-        return 规范Pwsh结果(结果)#返回规范前台结果
+        前台结果=期约()#前台结果
+        上下文.shell.运行(上下文.shell.解析(前台请求)).然后(偏应用(前台命令已结算,前台结果),前台结果.拒绝)#前台跑
+        return 前台结果#交给工具注册表继续链式
     def 呈现调用(参数):#调用卡片
         '后台确认不带终端退出状态；通用卡片镜像 bash 工具的后台呈现'
         if 'run_in_background' in 参数 and 参数['run_in_background'] is True:#后台
@@ -364,6 +368,16 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
         'presentCall':呈现调用,#调用卡片
         'presentResult':呈现结果,#结果卡片
     }))#pwsh工具结束
+
+def 前台命令已结算(前台结果,结果):
+    '前台命令结算：已中止则抛中止，否则规范化'
+    if 结果['aborted'] is True:
+        try:
+            抛中止()
+        except Exception as 中止错误:
+            前台结果.拒绝(中止错误)
+        return
+    前台结果.解决(规范Pwsh结果(结果))
 
 name=名称#Cordis插件名
 inject=依赖#Cordis依赖声明

@@ -1,4 +1,5 @@
 import os
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 获取内部数据,启动守护线程,观察者集合
 from urllib.parse import urlparse
 from .文案 import 命名空间,中文,英文
@@ -49,12 +50,10 @@ def 应用(上下文):
         if 刷新中 is not None:
             return 刷新中
         代=修订
-        def 读字段(字段名,查询):
+        结算=期约()#本次刷新
+        刷新中=结算
+        def 写入(字段名,值):
             '写入 details 的一栏'
-            try:
-                值=查询()
-            except Exception:
-                值={'status':'failed'}
             if 值 is None:
                 return
             if 代!=修订:
@@ -62,29 +61,39 @@ def 应用(上下文):
             细节={} if 快照['details'] is None else dict(快照['details'])
             细节[字段名]=值
             发布({**快照,'details':细节})
-        def 跑():
-            '顺序拉取资料与余额'
-            def 资料():
-                '读 profile'
-                结果=上下文.remote.account.getProfile().等待()
-                if not 结果['ok']:
-                    raise RuntimeError('account profile failed')
-                return 结果['value']
-            def 余额():
-                '读 balance'
-                结果=上下文.remote.account.getBalance().等待()
-                if not 结果['ok']:
-                    raise RuntimeError('account balance failed')
-                return 结果['value']
-            读字段('profile',资料)
-            读字段('balance',余额)
-        刷新中=跑
-        try:
-            跑()
-        finally:
-            if 刷新中 is 跑:
+        def 收尾():
+            '刷新落定后放行下一次'
+            nonlocal 刷新中
+            if 刷新中 is 结算:
                 刷新中=None
-        return 刷新中
+            结算.解决()
+        def 余额失败(_错误):
+            '余额失败记失败栏'
+            写入('balance',{'status':'failed'})
+            收尾()
+        def 余额已到(结果):
+            '余额返回后写入'
+            if not 结果['ok']:
+                余额失败(RuntimeError('账号余额读取失败'))
+                return
+            写入('balance',结果['value'])
+            收尾()
+        def 资料失败(_错误):
+            '资料失败后仍读余额'
+            写入('profile',{'status':'failed'})
+            上下文.remote.account.getBalance().然后(余额已到,余额失败)
+        def 资料已到(结果):
+            '资料返回后写入，再读余额'
+            if not 结果['ok']:
+                资料失败(RuntimeError('账号资料读取失败'))
+                return
+            写入('profile',结果['value'])
+            上下文.remote.account.getBalance().然后(余额已到,余额失败)
+        try:
+            上下文.remote.account.getProfile().然后(资料已到,资料失败)
+        except Exception:
+            资料失败(RuntimeError('账号资料读取失败'))
+        return 结算
     def 拆修订():
         '卸载时作废在途 details'
         def 拆():
@@ -160,23 +169,44 @@ def 应用(上下文):
         if isinstance(传输,dict) and 传输.get('streamBaseUrl') is not None:
             解析=urlparse(传输['streamBaseUrl'])
             源=解析.scheme+'://'+解析.netloc
-        try:
-            结果=上下文.remote.account.startSignIn(上下文.locale.getSnapshot()['active'],源,'desktop').等待()
-            if not 结果['ok']:
-                raise RuntimeError('account start failed')
-        except Exception as 错误:
+        登录结果=期约()#本次发起的结算点
+        def 登录失败(错误):
+            '发起失败：标记登录失败并拒绝'
             发布({**快照,'loginFailed':True})
-            raise 错误
+            登录结果.拒绝(错误)
+        def 登录已发起(结果):
+            '发起返回：业务失败按登录失败处理'
+            if not 结果['ok']:
+                登录失败(RuntimeError('account start failed'))
+                return
+            登录结果.解决()
+        try:
+            上下文.remote.account.startSignIn(上下文.locale.getSnapshot()['active'],源,'desktop').然后(登录已发起,登录失败)
+        except Exception as 错误:#同步段失败
+            登录失败(错误)
+        return 登录结果
     def 取消登录(标识):
-        '取消进行中的登录'
-        结果=上下文.remote.account.cancelSignIn(标识).等待()
-        if not 结果['ok']:
-            raise RuntimeError('account cancel failed')
+        '取消进行中的登录，返回期约'
+        取消结果=期约()#本次取消的结算点
+        def 已取消(结果):
+            '取消返回：业务失败则拒绝'
+            if not 结果['ok']:
+                取消结果.拒绝(RuntimeError('account cancel failed'))
+                return
+            取消结果.解决()
+        上下文.remote.account.cancelSignIn(标识).然后(已取消,取消结果.拒绝)
+        return 取消结果
     def 退出登录():
-        '退出已存凭证'
-        结果=上下文.remote.account.signOut().等待()
-        if not 结果['ok']:
-            raise RuntimeError('account sign-out failed')
+        '退出已存凭证，返回期约'
+        退出结果=期约()#本次退出的结算点
+        def 已退出(结果):
+            '退出返回：业务失败则拒绝'
+            if not 结果['ok']:
+                退出结果.拒绝(RuntimeError('account sign-out failed'))
+                return
+            退出结果.解决()
+        上下文.remote.account.signOut().然后(已退出,退出结果.拒绝)
+        return 退出结果
     def 读账号快照():
         '当前账号快照'
         return 快照

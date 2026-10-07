@@ -5,7 +5,6 @@ from uuid import uuid4 as 生成uuid4
 from ...依赖.schemastery import 字符串字段,自然数字段,正整数字段,列表字段
 from .注册表 import 规范化注册表,注册表计划,归因失败,npmmirror注册表
 from ...工具.原子写入 import 带文件锁,原子写文件
-from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出,已中止
 from ...类型化远程调用.协议 import 远程服务,远程
 from ..app启动 import (
     读配置清单,

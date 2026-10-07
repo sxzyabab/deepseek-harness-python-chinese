@@ -1,6 +1,7 @@
 import uuid#草稿 id
 from ....依赖.cordis.服务 import 服务#服务基类
 from ....依赖.工具 import 二进制#base64 编解码
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 构造dataurl
 from ..异常 import 对话错误,不支持图片媒体类型#本包异常
 
@@ -59,12 +60,21 @@ class 会话控制器(服务):
         上下文.副作用(清缓存,'conversation attachment URL cache')#附件 URL 缓存
 
     def send(自身,文本):
-        '业务失败则拒绝'
+        '业务失败则拒绝。返回期约'
         会话=自身.作用域会话('send')#取作用域会话面
-        结果=会话.prompt([{'type':'text','text':文本}],'queue').等待()#排队发送
-        if 结果['ok'] is not True:
-            错误=结果['error']#错误
-            raise 对话错误('conversation.send failed: '+str(错误['code'])+': '+str(错误['message']))#拒绝
+        结算=期约()#本次发送
+        def 已发送(结果):
+            '业务失败则拒绝'
+            if 结果['ok'] is not True:
+                错误=结果['error']#错误
+                结算.拒绝(对话错误('conversation.send failed: '+str(错误['code'])+': '+str(错误['message'])))#拒绝
+                return
+            结算.解决(None)#完成
+        try:#排队发送
+            会话.prompt([{'type':'text','text':文本}],'queue').然后(已发送,结算.拒绝)#排队发送
+        except Exception as 错误:#同步失败
+            结算.拒绝(错误)
+        return 结算
 
     def sendSession(自身,会话,文本,图片标识列表,模式):
         '有草稿已不可用则拒绝；成功后释放草稿'
@@ -73,11 +83,20 @@ class 会话控制器(服务):
             raise 对话错误('conversation.sendSession: one or more draft images are no longer available')#拒绝
         已传=自身.序列化图片([项['file'] for 项 in 附件列表])#File 转图片块
         内容=list(已传)+([] if 文本=='' else [{'type':'text','text':文本}])#图片在前
-        结果=会话.prompt(内容,模式).等待()#按模式投递
-        if 结果['ok'] is not True:
-            错误=结果['error']#错误
-            raise 对话错误('conversation.send failed: '+str(错误['code'])+': '+str(错误['message']))#拒绝
-        自身.releaseDraftImages(附件列表)#成功后释放
+        结算=期约()#本次发送
+        def 已发送(结果):
+            '业务失败则拒绝；成功后释放草稿'
+            if 结果['ok'] is not True:
+                错误=结果['error']#错误
+                结算.拒绝(对话错误('conversation.send failed: '+str(错误['code'])+': '+str(错误['message'])))#拒绝
+                return
+            自身.releaseDraftImages(附件列表)#成功后释放
+            结算.解决(None)#完成
+        try:#按模式投递
+            会话.prompt(内容,模式).然后(已发送,结算.拒绝)#按模式投递
+        except Exception as 错误:#同步失败
+            结算.拒绝(错误)
+        return 结算
 
     def createDraftImages(自身,文件列表):
         '校验媒体类型后返回有序草稿描述。文件为本包 dict'
@@ -126,29 +145,36 @@ class 会话控制器(服务):
         会话=绑定.session if 绑定 is not None else None#会话面
         if 会话 is None:
             raise 对话错误('conversation.resolveImage: unknown session "'+str(会话标识)+'"')#未知会话
-        def 加载():
-            '失败则视世代清缓存'
-            try:
-                结果=会话.readAttachment(附件标识).等待()#读
-                if 结果['ok'] is not True:
-                    错误=结果['error']#错误
-                    raise 对话错误(str(错误['code'])+': '+str(错误['message']))#抛
-                if 自身.已拆除:
-                    raise 对话错误('conversation.resolveImage: service was disposed before loading completed')#拆除
-                if (自身.图片世代[会话标识] if 会话标识 in 自身.图片世代 else 0)!=世代:
-                    raise 对话错误('historical image scope was released before loading completed')#作用域释放
-                值=结果['value']#值
-                媒体=值['attachment']['mediaType']#MIME
-                数据=值['data']#字节
-                网址=构造dataurl(str(媒体),数据)#data URL 回退
-                自身.已创建网址.add(网址)#跟踪
-                return 网址#可渲染
-            except 对话错误:
-                if 键 in 自身.图片网址 and 自身.图片网址[键]['generation']==世代:
-                    del 自身.图片网址[键]#清缓存
-                raise#继续拒绝
-        自身.图片网址[键]={'sessionId':会话标识,'generation':世代,'pending':加载}#写入
-        return 加载#同步可调用
+        结算=期约()#本次加载
+        def 失败(错误):
+            '视世代清缓存后拒绝'
+            if 键 in 自身.图片网址 and 自身.图片网址[键]['generation']==世代:
+                del 自身.图片网址[键]#清缓存
+            结算.拒绝(错误)#继续拒绝
+        def 已读(结果):
+            '读到附件后做成可渲染网址'
+            if 结果['ok'] is not True:
+                错误=结果['error']#错误
+                失败(对话错误(str(错误['code'])+': '+str(错误['message'])))#抛
+                return
+            if 自身.已拆除:
+                失败(对话错误('conversation.resolveImage: service was disposed before loading completed'))#拆除
+                return
+            if (自身.图片世代[会话标识] if 会话标识 in 自身.图片世代 else 0)!=世代:
+                失败(对话错误('historical image scope was released before loading completed'))#作用域释放
+                return
+            值=结果['value']#值
+            媒体=值['attachment']['mediaType']#MIME
+            数据=值['data']#字节
+            网址=构造dataurl(str(媒体),数据)#data URL 回退
+            自身.已创建网址.add(网址)#跟踪
+            结算.解决(网址)#可渲染
+        try:#读
+            会话.readAttachment(附件标识).然后(已读,失败)#读
+        except Exception as 错误:#同步失败
+            失败(错误)
+        自身.图片网址[键]={'sessionId':会话标识,'generation':世代,'pending':结算}#写入
+        return 结算#期约
 
     def releaseSessionImages(自身,会话标识):
         '世代加一，作废进行中的加载'
@@ -158,38 +184,59 @@ class 会话控制器(服务):
             if 条目['sessionId']!=会话标识:
                 continue#跳过
             del 自身.图片网址[键]#去掉
-            进行中=条目['pending']#进行中
-            try:
-                网址=进行中()#取 URL
+            进行中=条目['pending']#进行中的期约
+            def 收回(网址):
+                '有网址则收回'
                 if 网址 in 自身.已创建网址:
                     自身.已创建网址.discard(网址)#去掉
                     收回预览(网址)#收回
-            except 对话错误:
-                pass#无 URL
+            def 忽略释放失败(_错误):
+                '无网址'
+                return
+            进行中.然后(收回,忽略释放失败)#取 URL
 
     def updateQueue(自身,条目标识,动作):
-        '严格转向竞态可收敛为成功。动作为本包 dict'
+        '严格转向竞态可收敛为成功。动作为本包 dict。返回期约'
         会话=自身.作用域会话('updateQueue')#取会话
-        结果=会话.updateQueue(条目标识,动作).等待()#转发
-        if 结果['ok'] is not True:
-            错误=结果['error']#错误
-            种类=动作['kind'] if 'kind' in 动作 else None#动作种类
-            码=错误['code']#错误码
-            if 种类=='steer' and 码 in ('steer-unavailable','queue-item-not-found'):
-                return#成功
-            raise 对话错误('conversation.updateQueue failed: '+str(码)+': '+str(错误['message']))#拒绝
+        结算=期约()#本次更新
+        def 已更新(结果):
+            '业务失败则拒绝；转向竞态收敛为成功'
+            if 结果['ok'] is not True:
+                错误=结果['error']#错误
+                种类=动作['kind'] if 'kind' in 动作 else None#动作种类
+                码=错误['code']#错误码
+                if 种类=='steer' and 码 in ('steer-unavailable','queue-item-not-found'):
+                    结算.解决(None)#成功
+                    return
+                结算.拒绝(对话错误('conversation.updateQueue failed: '+str(码)+': '+str(错误['message'])))#拒绝
+                return
+            结算.解决(None)#完成
+        try:#转发
+            会话.updateQueue(条目标识,动作).然后(已更新,结算.拒绝)#转发
+        except Exception as 错误:#同步失败
+            结算.拒绝(错误)
+        return 结算
 
     def cancel(自身):
-        '失败与 send 一样拒绝'
+        '失败与 send 一样拒绝。返回期约'
         会话=自身.作用域会话('cancel')#取会话
-        结果=会话.cancel().等待()#转发
-        if 结果['ok'] is not True:
-            错误=结果['error']#错误
-            raise 对话错误('conversation.cancel failed: '+str(错误['code'])+': '+str(错误['message']))#拒绝
+        结算=期约()#本次取消
+        def 已取消(结果):
+            '业务失败则拒绝'
+            if 结果['ok'] is not True:
+                错误=结果['error']#错误
+                结算.拒绝(对话错误('conversation.cancel failed: '+str(错误['code'])+': '+str(错误['message'])))#拒绝
+                return
+            结算.解决(None)#完成
+        try:#转发
+            会话.cancel().然后(已取消,结算.拒绝)#转发
+        except Exception as 错误:#同步失败
+            结算.拒绝(错误)
+        return 结算
 
     def loadOlder(自身):
         '转发到会话面'
-        自身.作用域会话('loadOlder').loadOlder().等待()#转发
+        自身.作用域会话('loadOlder').loadOlder()#转发
 
     def 作用域会话(自身,操作):
         '没有绑定则抛'

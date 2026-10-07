@@ -1,4 +1,5 @@
 import json#属性序列化
+from .......基础设施.js特性 import PromiseEX as 期约扩展#操作结果期约
 from .......基础设施.通用工具.序列化编码 import 紧凑json编码
 from .....异常 import 检查器错误#包内错误
 from .....共享.cordis.对象注册表 import 领域对象表达式#对象表达式
@@ -37,8 +38,16 @@ class Cordis_Dom会话:#Cordis DOM会话
         if not 请求['method'].startswith('DOM.'):#非DOM
             return False#未拥有
         def 执行():#执行体
-            '执行 DOM 方法'
-            return 自身._执行(请求['method'],请求['params'])#执行
+            '执行 DOM 方法，返回期约；DOM.resolveNode 要等 Runtime 求值，其余方法同步得到结果'
+            if 请求['method']=='DOM.resolveNode':#需要 Runtime 求值
+                参数=请求['params']#参数
+                def 包装对象(远程对象):#节点解析完成后调用
+                    '包装成 CDP 结果'
+                    return {'object':远程对象}#对象
+                return 自身._解析节点(自身._选节点(参数),可选字符串(参数.get('objectGroup'))).然后(包装对象)#解析完成后再包装
+            已执行=期约扩展()#同步结果的期约
+            已执行.解决(自身._执行(请求['method'],请求['params']))#同步执行并解决
+            return 已执行#返回已解决的期约
         自身._响应(请求,执行)#响应
         return True#已拥有
 
@@ -115,8 +124,6 @@ class Cordis_Dom会话:#Cordis DOM会话
                 自身._推节点路径(节点)#推路径
                 节点ids.append(自身._节点id(节点))#前端id
             return {'nodeIds':节点ids}#返回
-        if 方法=='DOM.resolveNode':#解析节点
-            return {'object':自身._解析节点(自身._选节点(参数),可选字符串(参数.get('objectGroup')))}#对象
         if 方法=='DOM.requestNode':#请求节点
             对象id=cdp字符串id(字符串参数(参数.get('objectId'),'objectId'),'objectId')#对象id
             if 对象id not in 自身._对象到节点:#无绑定
@@ -154,7 +161,7 @@ class Cordis_Dom会话:#Cordis DOM会话
         raise 检查器错误('找不到方法：'+方法)#抛错
 
     def _解析节点(自身,节点,对象组):#解析为对象
-        '解析为 Runtime 对象'
+        '解析为 Runtime 对象，返回期约，兑现值是 RemoteObject 字段加节点呈现'
         路由=节点['object'] if 'object' in 节点 else None#对象路由
         if 路由 is None:#结构节点
             raise 检查器错误('结构 Cordis 节点没有活的 Runtime 对象')#结构节点
@@ -162,15 +169,17 @@ class Cordis_Dom会话:#Cordis DOM会话
             raise 检查器错误('Cordis realm 已断开')#已断
         快照=路由['snapshot']#快照对象
         表达式=领域对象表达式({'registryId':快照.objectRegistryId,'handle':路由['node']['objectHandle']})#表达式
-        远程=自身._运行时.解析对象(路由['source'],表达式,对象组)#求值已同步
-        if 'objectId' not in 远程:#无id
-            raise 检查器错误('Cordis 对象查找未返回 RemoteObjectId')#无id
-        原始id=远程['objectId']#原始id
-        if not isinstance(原始id,str):#无id
-            raise 检查器错误('Cordis 对象查找未返回 RemoteObjectId')#无id
-        对象id=cdp字符串id(原始id,'objectId')#品牌id
-        自身._绑定对象id(对象id,节点,对象组)#绑定
-        return {**远程,**呈现(节点)}#合并呈现
+        def 绑定并呈现(远程):#对象解析完成后调用
+            '校验 objectId、绑定映射并合并呈现'
+            if 'objectId' not in 远程:#无id
+                raise 检查器错误('Cordis 对象查找未返回 RemoteObjectId')#无id
+            原始id=远程['objectId']#原始id
+            if not isinstance(原始id,str):#无id
+                raise 检查器错误('Cordis 对象查找未返回 RemoteObjectId')#无id
+            对象id=cdp字符串id(原始id,'objectId')#品牌id
+            自身._绑定对象id(对象id,节点,对象组)#绑定
+            return {**远程,**呈现(节点)}#合并呈现
+        return 自身._运行时.解析对象(路由['source'],表达式,对象组).然后(绑定并呈现)#对象解析完成后再绑定
 
     def _绑定对象id(自身,objectId,节点,group):#绑定对象id
         '登记映射'

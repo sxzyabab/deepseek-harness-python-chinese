@@ -1,6 +1,7 @@
 '每 Session 一条宿主 `changes` 订阅，扇出到该 Session 已打开的文件'
 import json#断言帧
-from ....基础设施.通用工具 import 获取内部数据,操作任务,启动守护线程,路径转正斜杠
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+from ....基础设施.通用工具 import 获取内部数据,启动守护线程,路径转正斜杠
 import threading#唤醒与结算
 from concurrent.futures import Future as 原生结果#就绪与拆除
 from ..类型 import 已中止#中止查询
@@ -79,30 +80,33 @@ class _会话供给:
         自身._已关闭=False#关闭
         自身._已启动=False#收到 ready
         自身._关闭后=关闭后#关闭回调
-        自身._拆除结果=原生结果()#dispose 结算
+        自身._流=None#前任拆除完成后才有监督流
 
         def 打开(信号):
-            '等前任后打开宿主 changes'
+            '打开宿主 changes 物理代'
             自身._已启动=False#新代
-            if 前任 is not None:#有前任
-                try:
-                    前任.等待()#等拆除
-                except BaseException:
-                    pass#拆除失败仍视为已结
             return 远程.workspaceFiles.changes(会话标识,信号)#物理代
 
         def 已结束(_已接受):
             '正常结束：Session 或宿主关闭，无可重开'
             return Exception('workspace file changes of '+str(会话标识)+' ended')#终态
 
-        开流=获取内部数据(远程,'stream')#监督流工厂
-        自身._流=开流({#监督流
-            'name':'workspace file changes of '+str(会话标识),#诊断名
-            'open':打开,#开代
-            'ended':已结束,#终态分类
-        })#流
-        线=threading.Thread(target=自身._泵,daemon=True,name='dsh-workspace-files-feed')#泵线程
-        线.start()
+        def 启动流(前任结果=None):
+            '前任拆除完成（成败都算）后再开监督流与泵线程；其间已被关闭则不再开'
+            if 自身._已关闭:#等前任期间已被关闭
+                return
+            开流=获取内部数据(远程,'stream')#监督流工厂
+            自身._流=开流({#监督流
+                'name':'workspace file changes of '+str(会话标识),#诊断名
+                'open':打开,#开代
+                'ended':已结束,#终态分类
+            })#流
+            线=threading.Thread(target=自身._泵,daemon=True,name='dsh-workspace-files-feed')#泵线程
+            线.start()
+        if 前任 is None:#没有前任，立刻开流
+            启动流()
+        else:
+            前任.然后(启动流,启动流)#前任拆除完成后再开流
 
     def 加入(自身,跟随者):
         '在宿主路径已知前登记跟随者'
@@ -145,27 +149,24 @@ class _会话供给:
         if 自身._已关闭:#已关
             return#停
         自身._已关闭=True#标记
-        关闭任务=_包装拆除(自身._流.dispose)#包装 dispose
+        关闭任务=期约()#流 dispose 的结算点
+        if 自身._流 is None:#前任还没拆完，流尚未开出，无物可拆
+            关闭任务.解决()
+        else:
+            流=自身._流#要拆的监督流
+            def 后台拆除():
+                '在工作线程同步拆除流，成败都结算关闭任务'
+                try:
+                    流.dispose()#同步拆除
+                except BaseException as 错误:#线程入口把失败收进关闭任务
+                    关闭任务.拒绝(错误)
+                    return
+                关闭任务.解决()#成功
+            启动守护线程(后台拆除)#后台
         for 跟随者 in list(自身._跟随者集合):
             跟随者.结束()
         自身._跟随者集合.clear()#清空
         自身._关闭后(关闭任务)#通知供给
-        if not 自身._拆除结果.done():#本对象
-            自身._拆除结果.set_result(None)#结算
-
-
-def _包装拆除(拆除):
-    '把 dispose 收成带 等待 的任务。dispose 翻译时已是同步阻塞'
-    任务=操作任务()#任务
-    def 后台拆除():
-        '执行拆除'
-        try:
-            拆除()#同步拆除
-            任务.兑现()#成功
-        except BaseException as 错误:
-            任务.拒绝(错误)
-    启动守护线程(后台拆除)#后台
-    return 任务#任务
 
 
 def _编辑于(变更):
@@ -225,12 +226,8 @@ class 变更供给:
         return 跟随者#订阅
 
     def 结算(自身):
-        '等待仍在关闭的流，使拆除不留下宿主流'
-        for 任务 in list(自身._关闭中.values()):#逐个
-            try:
-                任务.等待()#等
-            except BaseException:
-                pass#继续
+        '等待仍在关闭的流，使拆除不留下宿主流；返回全部落定后解决的期约'
+        return 期约.全部已结算(list(自身._关闭中.values()))#成败都等
 
     def _供给于(自身,会话标识):
         '取或建 Session 供给'
@@ -241,20 +238,16 @@ class 变更供给:
         def 关闭后(已关):
             '流消失时登记关闭中'
             自身._会话表.pop(会话标识,None)#摘活表
-            追踪=操作任务()#追踪
+            追踪=期约()#追踪
 
-            def 收尾():
+            def 收尾(拆除结果=None):
                 '拆除无论成败都算结清'
-                try:
-                    已关.等待()#等拆除
-                except BaseException:
-                    pass#吞
                 if 会话标识 in 自身._关闭中 and 自身._关闭中[会话标识] is 追踪:#仍是自己
                     自身._关闭中.pop(会话标识,None)#摘
-                追踪.兑现()#结
+                追踪.解决()#结
 
-            启动守护线程(收尾)#收尾
             自身._关闭中[会话标识]=追踪#记下
+            已关.然后(收尾,收尾)#拆除无论成败都收尾
 
         供给=_会话供给(自身._远程,会话标识,前任,关闭后)#新建
         自身._会话表[会话标识]=供给#挂上

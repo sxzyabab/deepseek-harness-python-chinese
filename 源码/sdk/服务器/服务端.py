@@ -1,12 +1,12 @@
 import os,threading#默认工作目录与路径解析、创建去重
-from ...基础设施.通用工具.并发原语 import 操作任务#一次性任务
+from ...基础设施.js特性 import PromiseEX as 期约#会话创建、提示、关闭与请求处理返回的期约
 from ...模型后端 import llm_deepseek#DeepSeek LLM 插件模块
 from ...依赖.工具 import 聚合错误#拆除失败聚合
 from ...模型后端.llm import 创建用户消息#用户消息工厂
 from ...内核.作用域 import 获取载体键#作用域载体键
 from ...内核.会话 import 会话标识#会话 id 品牌构造
 
-__all__=['装备SDKJSONRPC服务端','成功状态','SDK服务端错误','操作任务']#仅中文公开名
+__all__=['装备SDKJSONRPC服务端','成功状态','SDK服务端错误']#仅中文公开名
 
 from .异常 import SDK服务端错误#本包异常
 
@@ -35,9 +35,9 @@ class 装备SDKJSONRPC服务端:
         自身.maxTokens=None#可选输出 token 上限
         自身.llm纤程=None#按需挂载的 DeepSeek 适配器纤程
         自身.会话表={}#已创建会话记录 sessionId → {handle}
-        自身.会话创建中={}#进行中的会话创建
+        自身.会话创建中={}#进行中的会话创建期约，按 sessionId 登记
         自身.拆除列表=[]#事件订阅拆除函数
-        自身.关闭任务=None#关闭任务去重
+        自身.关闭任务=None#关闭去重用的关闭期约
         自身.正在关闭=False#是否已进入关闭
         自身.锁=threading.Lock()#会话创建互斥
         服务选项=自身.选项#捕获选项供子智能体结束回调使用
@@ -99,104 +99,113 @@ class 装备SDKJSONRPC服务端:
         return {'serverInfo':{'name':'deepseek-harness-sdk-runtime','version':'0.0.1'}}#线稳定身份
 
     def 提示(自身,参数):
-        '排队一条已标识的提示，后续活动不归到该次调用。参数为 dict'
-        记录=自身.取或创建会话(参数['sessionId'] if 'sessionId' in 参数 else None)#取已有会话或惰性创建
-        句柄=记录['handle']#智能体句柄
-        智能体=句柄.智能体#智能体
-        if 自身.ctx.agents.获取(智能体.id) is not 智能体:#句柄上的智能体已不在注册表
-            raise SDK服务端错误('会话智能体已在服务端之外被拆除：'+str(参数['sessionId'] if 'sessionId' in 参数 else None))#拒绝
-        消息=创建用户消息({'content':参数['contentBlocks'] if 'contentBlocks' in 参数 else None,'source':{'kind':'user'}})#构造用户消息
-        智能体.后续(消息)#投入该会话智能体
-        return {'messageId':消息.id}#返回已排队消息 id
+        '排队一条已标识的提示，后续活动不归到该次调用。返回期约，兑现 {messageId}。参数为 dict'
+        会话号=参数['sessionId'] if 'sessionId' in 参数 else None#目标会话 id
+        def 投递(记录):
+            '会话记录就绪后校验智能体仍在注册表，再投入用户消息'
+            句柄=记录['handle']#智能体句柄
+            智能体=句柄.智能体#智能体
+            if 自身.ctx.agents.获取(智能体.id) is not 智能体:#句柄上的智能体已不在注册表
+                raise SDK服务端错误(f'会话智能体已在服务端之外被拆除：{会话号}')#拒绝
+            消息=创建用户消息({'content':参数['contentBlocks'] if 'contentBlocks' in 参数 else None,'source':{'kind':'user'}})#构造用户消息
+            智能体.后续(消息)#投入该会话智能体
+            return {'messageId':消息.id}#返回已排队消息 id
+        return 自身.取或创建会话(会话号).然后(投递)#取已有会话或惰性创建后投递
 
     def 关闭(自身):
-        '拆除服务端拥有的智能体、适配器与订阅直至静止。外围上下文继续运行'
+        '拆除服务端拥有的智能体、适配器与订阅直至静止。外围上下文继续运行。返回期约，兑现空对象，拆除失败则拒绝'
         if 自身.关闭任务 is None:#首次调用才真正关闭
-            自身.关闭任务=自身._执行关闭()#启动关闭并记忆
-        return 自身.关闭任务#后续调用共用同一结果
+            自身.关闭任务=自身._执行关闭()#启动关闭并记忆期约
+        return 自身.关闭任务#后续调用共用同一个期约
 
     def _执行关闭(自身):
-        '返回空对象'
+        '先等进行中的会话创建全部结算，再拆除订阅、智能体句柄与适配器；返回期约，兑现空对象'
         自身.正在关闭=True#标记进入关闭
         进行中=list(自身.会话创建中.values())#快照进行中的创建
-        for 一项 in 进行中:#等创建结束
-            try:
-                一项.等待()#不论成败
-            except BaseException:
-                pass#继续
-        自身.会话创建中.clear()#清空创建表
-        记录列表=list(自身.会话表.values())#快照已有会话记录
-        自身.会话表.clear()#清空会话表
-        失败列表=[]#收集拆除失败
-        while len(自身.拆除列表)>0:#逐个拆除事件订阅
-            try:
-                拆=自身.拆除列表.pop()#弹出
-                if 拆 is not None:#有拆除器
-                    拆()#调用
-            except BaseException as 错误:
-                失败列表.append(错误)#记录
-        for 记录 in 记录列表:#拆除智能体句柄
-            try:
-                记录['handle'].拆除()#每个会话句柄 dispose
-            except BaseException as 错误:
-                失败列表.append(错误)#记录
-        if 自身.llm纤程 is not None:#有挂载适配器
-            try:
-                自身.llm纤程.拆除()#拆除
-            except BaseException as 错误:
-                失败列表.append(错误)#记录
-            自身.llm纤程=None#丢掉引用
-        if len(失败列表)==1:#恰好一次失败
-            raise 失败列表[0]#原样抛出
-        if len(失败列表)>1:#多次失败
-            raise 聚合错误(失败列表,'SDK 服务端拆除失败')#聚合
-        return {}#成功则返回空对象
+        def 拆除全部(结算列表):
+            '进行中的创建都结算后（不论成败）拆除服务端拥有的一切'
+            自身.会话创建中.clear()#清空创建表
+            记录列表=list(自身.会话表.values())#快照已有会话记录
+            自身.会话表.clear()#清空会话表
+            失败列表=[]#收集拆除失败
+            while len(自身.拆除列表)>0:#逐个拆除事件订阅
+                try:
+                    拆=自身.拆除列表.pop()#弹出
+                    if 拆 is not None:#有拆除器
+                        拆()#调用
+                except BaseException as 错误:
+                    失败列表.append(错误)#记录
+            for 记录 in 记录列表:#拆除智能体句柄
+                try:
+                    记录['handle'].拆除()#每个会话句柄 dispose
+                except BaseException as 错误:
+                    失败列表.append(错误)#记录
+            if 自身.llm纤程 is not None:#有挂载适配器
+                try:
+                    自身.llm纤程.拆除()#拆除
+                except BaseException as 错误:
+                    失败列表.append(错误)#记录
+                自身.llm纤程=None#丢掉引用
+            if len(失败列表)==1:#恰好一次失败
+                raise 失败列表[0]#原样抛出
+            if len(失败列表)>1:#多次失败
+                raise 聚合错误(失败列表,'SDK 服务端拆除失败')#聚合
+            return {}#成功则返回空对象
+        return 期约.全部已结算(进行中).然后(拆除全部)#上游 allSettled 后继续拆除
 
     def 处理请求(自身,方法,参数):
-        '未知方法抛错（→ JSON-RPC 错误响应）。参数为 dict'
+        '分发到处理函数，返回期约，兑现结果。未知方法与处理失败都拒绝（→ JSON-RPC 错误响应）。参数为 dict'
         载荷=参数 if isinstance(参数,dict) else {}#非对象则空对象
+        结果期约=期约()#分发结果，由各分支解决或拒绝
         if 方法=='initialize':#握手
-            return 自身.初始化(载荷)#转为握手参数并处理
-        if 方法=='session/prompt':#会话提示
-            return 自身.提示(载荷)#转为提示参数并处理
-        if 方法=='shutdown':#关闭
-            return 自身.关闭()#执行关闭
-        raise SDK服务端错误('未知的 DeepSeek Harness SDK 运行时方法：'+str(方法))#未知方法
+            try:
+                握手结果=自身.初始化(载荷)#握手是同步的，转为握手参数并处理
+            except BaseException as 错误:
+                结果期约.拒绝(错误)#握手失败拒绝
+                return 结果期约#已落定
+            结果期约.解决(握手结果)#握手成功
+        elif 方法=='session/prompt':#会话提示
+            自身.提示(载荷).然后(结果期约.解决,结果期约.拒绝)#提示期约落定后跟随
+        elif 方法=='shutdown':#关闭
+            自身.关闭().然后(结果期约.解决,结果期约.拒绝)#关闭期约落定后跟随
+        else:#未知方法
+            结果期约.拒绝(SDK服务端错误(f'未知的 DeepSeek Harness SDK 运行时方法：{方法}'))#拒绝
+        return 结果期约#交给传输按落定写响应
 
     def 取或创建会话(自身,会话号):
-        '已有则直接返回；否则启动创建并去重并发'
+        '返回期约，兑现会话记录。已有则立刻兑现；创建中则共用同一期约；否则启动创建并去重并发；关闭中拒绝'
         if 自身.正在关闭:#关闭中拒绝新会话
-            raise SDK服务端错误('SDK 服务端正在关闭')#拒绝
-        应执行创建=False#是否由本调用执行创建
+            关闭中=期约()#上游 async 函数里的 throw 是拒绝
+            关闭中.拒绝(SDK服务端错误('SDK 服务端正在关闭'))#拒绝
+            return 关闭中#已落定
+        创建=期约()#本调用需要创建时用的共享期约
         with 自身.锁:#互斥
             已有=自身.会话表[会话号] if 会话号 in 自身.会话表 else None#查已完成记录
-            if 已有 is not None:#已有
-                return 已有#直接返回
             进行中=自身.会话创建中[会话号] if 会话号 in 自身.会话创建中 else None#查进行中的创建
-            if 进行中 is not None:#已有创建任务
-                创建=进行中#共用
-            else:#新创建
-                创建=操作任务()#共享任务
-                自身.会话创建中[会话号]=创建#登记
-                应执行创建=True#本调用执行
-        if 应执行创建:#由本调用执行创建体
-            try:
-                选项={'provider':自身.provider,'model':自身.model}#智能体路由选项
-                if 自身.maxTokens is not None:#有上限才写入
-                    选项['maxTokens']=自身.maxTokens#上限
-                句柄=自身.ctx.agents.创建({#创建智能体
-                    'sessionId':会话标识(会话号),#品牌化会话 id
-                    'meta':{'cwd':自身.cwd},#会话头工作目录
-                    'agentOptions':选项,#路由选项
-                })#create 结束
-                记录={'handle':句柄}#包成会话记录
-                自身.会话表[会话号]=记录#写入已创建表
-                创建.兑现(记录)#兑现
-            except BaseException as 错误:
-                创建.拒绝(错误)#拒绝
-            finally:
-                自身.会话创建中.pop(会话号,None)#删除
-        return 创建.等待()#结果
+            if 已有 is None and 进行中 is None:#新创建
+                自身.会话创建中[会话号]=创建#登记，本调用执行
+        if 已有 is not None:#已有
+            创建.解决(已有)#以已有记录解决
+            return 创建#已落定
+        if 进行中 is not None:#已有创建期约
+            return 进行中#共用
+        try:
+            选项={'provider':自身.provider,'model':自身.model}#智能体路由选项
+            if 自身.maxTokens is not None:#有上限才写入
+                选项['maxTokens']=自身.maxTokens#上限
+            句柄=自身.ctx.agents.创建({#创建智能体
+                'sessionId':会话标识(会话号),#品牌化会话 id
+                'meta':{'cwd':自身.cwd},#会话头工作目录
+                'agentOptions':选项,#路由选项
+            })#create 结束
+            记录={'handle':句柄}#包成会话记录
+            自身.会话表[会话号]=记录#写入已创建表
+            创建.解决(记录)#解决
+        except BaseException as 错误:
+            创建.拒绝(错误)#拒绝
+        finally:
+            自身.会话创建中.pop(会话号,None)#删除
+        return 创建#期约，由调用方链式取记录
 
     def 有适配器(自身,提供方):
         '无 llm 服务则视为没有'

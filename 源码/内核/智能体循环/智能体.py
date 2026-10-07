@@ -1,5 +1,5 @@
 from ...基础设施.通用工具 import 启动守护线程
-from queue import Queue as 队列#跨线程一次结果
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ..智能体 import 智能体事件,为组装构建上下文,下一轮,下一步
 from ...模型后端.llm.异常 import 语言模型错误#LLM 相关失败
 from ...模型后端.llm.异常 import 错误链#把未知错误链成日志串
@@ -17,10 +17,7 @@ from .收件箱 import 循环收件箱#投影拥有的耐久收件箱
 from .运行时上下文 import 运行时上下文投影,系统提示投影
 from .工具调用 import 执行工具调用
 from .助手流 import 助手流尝试#在线流尝试
-from .中止与并发 import (
-    已中止,中止控制器,若已中止则抛出,
-    已决议队列,放入成功,放入失败,等待队列结果,
-)
+from .中止与并发 import 已中止,中止控制器,若已中止则抛出
 from .异常 import 循环错误,中止错误#本包异常基类与中止异常
 
 def 请求提议(头):
@@ -50,7 +47,8 @@ class 循环智能体:
         边界=循环上下文.sessionProjections.状态(会话,'turnBoundary')#轮次边界投影
         上次轮次=边界['lastTurn'] if 边界 is not None and 'lastTurn' in 边界 else 0#上次轮次
         自身.阶段={'kind':'idle','lastTurn':上次轮次}#从空闲开始
-        自身.活动落定=已决议队列()#空闲已落定
+        自身.活动落定=期约()#空闲时没有活动在途
+        自身.活动落定.解决()#空闲已落定
         自身.请求头已记=False#是否已记请求头
         自身.请求表面代际=会话.surface.contentGeneration#附着时代际
         自身.助手流修订=0#助手流修订
@@ -106,10 +104,10 @@ class 循环智能体:
             自身.阶段['abort'].中止(原因)#中止活动
 
     def 执行维护(自身,任务):
-        '从空闲阶段执行一次非轮次维护'
+        '从空闲阶段执行一次非轮次维护，返回期约；任务是同步回调，解决值是它的返回值'
         if 自身.阶段['kind']!='idle':
             raise 循环错误('agent "'+str(自身.id)+'" already has active work')#已有活动
-        落定=队列(1)#维护落定
+        落定=期约()#维护落定的结算点
         维护={
             'kind':'maintenance',#种类
             'abort':中止控制器(),#取消控制器
@@ -118,22 +116,29 @@ class 循环智能体:
         }#维护阶段
         自身.设阶段(维护)#进入维护
         自身.活动落定=落定#跟踪活动
-        结果=队列(1)#任务结果
+        结果=期约()#维护任务的结算点
         def 执行维护并收尾():
-            '执行维护并收尾'
+            '在工作线程执行维护，先回到空闲并落定活动，再结算任务结果'
+            值=None#任务的返回值
+            失败=None#任务抛出的错误
             try:
-                放入成功(结果,任务(维护['abort'].信号))#交给任务
-            except BaseException as 错误:
-                放入失败(结果,错误)#失败
-            finally:
+                值=任务(维护['abort'].信号)#交给任务
+            except BaseException as 错误:#线程入口把失败收进结果
+                失败=错误
+            try:
                 自身.设阶段({'kind':'idle','lastTurn':维护['lastTurn']})#回到空闲
                 原因=维护['abort'].信号.原因#中止原因
                 已拆除=原因 is not None and getattr(原因,'kind',None)=='disposed'#拆除种类
                 if (not 已拆除) and 维护['wakeRequested'] and 自身.inbox.有待处理:
                     自身.叫醒驱动器()#有闩且有工作则叫醒
-                放入成功(落定)#活动落定
+            finally:
+                落定.解决()#活动落定
+            if 失败 is None:
+                结果.解决(值)#任务成功
+            else:
+                结果.拒绝(失败)#任务失败
         启动守护线程(执行维护并收尾)#工作线程
-        return 结果#任务结果队列
+        return 结果#调用方对期约链接 然后 与 捕获
 
     def 叫醒驱动器(自身,中止后唤醒=False):
         '启动一个驱动器，或把它的唤醒闩在维护或已中止活动后面'
@@ -149,7 +154,7 @@ class 循环智能体:
             if (not 已拆除) and (自身.阶段['kind']=='maintenance' or 中止后唤醒):
                 自身.阶段['wakeRequested']=True#闩住
             return#不新开驱动器
-        驱动器=队列(1)#驱动器落定
+        驱动器=期约()#驱动器落定的结算点
         自身.活动落定=驱动器#跟踪活动
         自身.设阶段({
             'kind':'running',#种类
@@ -160,21 +165,30 @@ class 循环智能体:
         })#进入运行
         循环上下文=自身.循环上下文#循环上下文
         def 执行驱动():
-            '带发起者执行驱动器'
+            '在工作线程带发起者启动驱动循环，驱动循环落定后落定驱动器'
             try:
-                循环上下文.agents.带发起方(自身,自身.驱动循环)#带发起者跑
-                放入成功(驱动器)#落定
-            except BaseException as 错误:
-                放入失败(驱动器,错误)#失败
+                驱动循环期约=循环上下文.agents.带发起方(自身,自身.驱动循环)#带发起者启动
+            except BaseException as 错误:#线程入口把失败收进驱动器
+                驱动器.拒绝(错误)
+                return
+            驱动循环期约.然后(驱动器.解决,驱动器.拒绝)#驱动循环落定后落定驱动器
         启动守护线程(执行驱动)#驱动线程
 
     def 等到空闲(自身):
-        '等到空闲'
-        while True:
+        '返回期约；当前活动落定且没有被替换时解决，被替换则继续等新活动'
+        空闲=期约()#空闲的结算点
+        def 等待当前活动():
+            '等当前活动落定，没被替换才算空闲'
             活动=自身.活动落定#当前活动
-            等待队列结果(活动)#等待当前
-            if 活动 is 自身.活动落定:
-                return#没有被替换
+            def 活动落定后(结果):
+                '活动落定：没有被替换则解决，否则再等新活动'
+                if 活动 is 自身.活动落定:
+                    空闲.解决()#没有被替换
+                    return
+                等待当前活动()#被替换则等新活动
+            活动.然后(活动落定后,空闲.拒绝)#活动失败则原样拒绝
+        等待当前活动()#从当前活动开始等
+        return 空闲#调用方对期约链接 然后 与 捕获
 
     def 抛错误(自身,错误):
         '在在线边界报告一次失败，再保留它供驱动器收住'
@@ -185,19 +199,41 @@ class 循环智能体:
         raise 错误#再抛出
 
     def 驱动循环(自身):
-        '驱动循环'
-        try:
-            while 自身.轮次():
-                pass#还有后续则继续
-        except BaseException:
-            pass#已报告的失败与取消在驱动器边界收住
-        finally:
-            if 自身.阶段['kind']=='running':
-                轮次=自身.阶段['turn']#取出轮次
-                有闩=自身.阶段['wakeRequested']#取出闩
-                自身.设阶段({'kind':'idle','lastTurn':轮次})#回到空闲
-                if 有闩 and 自身.inbox.有待处理:
-                    自身.叫醒驱动器()#有闩且有工作则再叫醒
+        '驱动循环，返回期约；驱动器退出时解决。已报告的失败与取消在此收住，不再向外拒绝'
+        驱动结局=期约()#驱动器退出的结算点
+        智能体注册表=自身.循环上下文.agents#续跑时重新进入发起方的注册表
+        def 退出驱动(已报告的失败=None):
+            '驱动器边界：仍在运行阶段则回到空闲，有闩且有工作则再叫醒'
+            try:
+                if 自身.阶段['kind']=='running':
+                    轮次=自身.阶段['turn']#取出轮次
+                    有闩=自身.阶段['wakeRequested']#取出闩
+                    自身.设阶段({'kind':'idle','lastTurn':轮次})#回到空闲
+                    if 有闩 and 自身.inbox.有待处理:
+                        自身.叫醒驱动器()#有闩且有工作则再叫醒
+            except BaseException as 错误:#线程入口把失败收进驱动结局
+                驱动结局.拒绝(错误)
+                return
+            驱动结局.解决()#驱动器已退出
+        def 跑一轮():
+            '跑一轮；还有后续就在发起方里继续下一轮，否则退出驱动'
+            try:
+                轮次期约=自身.轮次()#同步段里的失败已由轮次报告
+            except BaseException:#已报告的失败与取消在驱动器边界收住
+                退出驱动()
+                return
+            轮次期约.然后(处理轮次结果,退出驱动)#轮次失败同样在驱动器边界收住
+        def 处理轮次结果(还有后续):
+            '一轮落定：还有后续则在发起方里再跑一轮，否则退出驱动'
+            if not 还有后续:
+                退出驱动()#没有后续工作
+                return
+            try:
+                智能体注册表.带发起方(自身,跑一轮)#续跑要重新进入发起方
+            except BaseException:#发起方已拆除时无法续跑，在驱动器边界收住
+                退出驱动()
+        跑一轮()#首轮由叫醒驱动器的发起方上下文承载
+        return 驱动结局#调用方对期约链接 然后 与 捕获
 
     def 预步骤(自身,目标,位置):
         '预步骤'
@@ -247,65 +283,135 @@ class 循环智能体:
         except BaseException as 错误:
             自身.抛错误(错误)#报告并抛
         阶段['turn']=轮次号#记下打开轮次
+        轮次结局=期约()#本轮结算点，解决值是是否还有后续轮次
+        智能体注册表=自身.循环上下文.agents#步骤落定后重新进入发起方的注册表
         轮次结束=None#轮次结束原因
-        目标=下一轮#首步吃下一轮
-        try:
-            while True:
-                若已中止则抛出(信号)#每步前检查
-                步骤号=阶段['step']+1#下一步号
-                决定=自身.预步骤(目标,{'turn':轮次号,'step':步骤号})#预步骤
-                if 决定['kind']=='reject':
-                    轮次结束={'kind':'blocked'}#预步骤拒绝
-                    return False#关闭且不再续
-                消息列表=决定['messages'] if 'messages' in 决定 and 决定['messages'] is not None else []#进入消息
-                if 轮次结束 is not None and len(消息列表)==0:
-                    break#已有结束且无消息则停
-                if 阶段['step']==0 and len(消息列表)==0:
-                    轮次结束={'kind':'completed'}#当作完成
-                    return False#关闭且不再续
-                若已中止则抛出(信号)#步骤开始前检查
-                自身.session.追加('step/start',{'turn':轮次号,'step':步骤号})#打开步骤
-                阶段['step']=步骤号#记下打开步骤
+        def 关闭轮次():
+            '追加 turn/end；追加失败则报告并抛出'
+            try:
+                自身.session.追加('turn/end',{'turn':轮次号,'reason':轮次结束})#关闭轮次
+            except BaseException as 错误:#报告后原样抛出
+                自身.抛错误(错误)
+        def 以不再续关闭轮次():
+            '关闭轮次后解决为没有后续轮次'
+            try:
+                关闭轮次()#追加 turn/end
+            except BaseException as 错误:#线程入口把失败收进结算点
+                轮次结局.拒绝(错误)
+                return
+            轮次结局.解决(False)#预步骤拒绝或空轮次，不再续
+        def 以后续检查关闭轮次():
+            '关闭轮次后按收件箱是否有待处理工作解决是否再跑一轮'
+            try:
+                关闭轮次()#追加 turn/end
+            except BaseException as 错误:#线程入口把失败收进结算点
+                轮次结局.拒绝(错误)
+                return
+            if not 自身.inbox.有待处理:
+                轮次结局.解决(False)#没有后续工作
+                return
+            阶段['abort']=中止控制器()#新控制器
+            阶段['wakeRequested']=False#清闩
+            阶段['step']=0#步骤重置
+            轮次结局.解决(True)#再跑一轮
+        def 以失败关闭轮次(错误):
+            '按失败种类记下轮次结束原因，报告失败并关闭轮次，最后以失败拒绝'
+            nonlocal 轮次结束#修改外层
+            待抛=错误#最终向外拒绝的错误
+            if 已中止(信号):
                 try:
-                    步骤结束=自身.一步(决定)#跑一步（系统提示与用户消息在步内准入）
-                    if 轮次结束 is None or 轮次结束['kind']!='max-tokens':
-                        轮次结束=步骤结束#更新结束原因
-                finally:
-                    自身.session.追加('step/end',{'turn':轮次号,'step':步骤号})#关闭步骤
+                    若已中止则抛出(信号)#取出承载异常
+                except BaseException as 中止:#取出的中止原因记入轮次结束
+                    轮次结束={'kind':'aborted','reason':中止}#中止原因
+            else:
+                if isinstance(错误,语言模型错误):
+                    失败=错误.failure#保留其事实
+                else:
+                    失败={'message':错误链(错误),'code':'UNKNOWN'}#压扁
+                轮次结束={'kind':'error','error':失败}#出错
+                try:
+                    自身.抛错误(错误)#报告并抛
+                except BaseException as 报告后错误:#报告后原样抛出的错误
+                    待抛=报告后错误
+            try:
+                关闭轮次()#追加 turn/end
+            except BaseException as 关闭错误:#关闭失败的错误顶替原失败
+                待抛=关闭错误
+            轮次结局.拒绝(待抛)
+        本步=[0,None]# [0]已打开步骤号 [1]本步结束原因；步骤回调与继续同级
+        def 关闭步骤():
+            '追加 step/end'
+            自身.session.追加('step/end',{'turn':轮次号,'step':本步[0]})#关闭步骤
+        def 继续():
+            '关闭步骤后检查中止与停止边界，再决定下一步或关轮'
+            nonlocal 轮次结束#修改外层
+            步骤结束=本步[1]#本步结束原因
+            try:
+                if 轮次结束 is None or 轮次结束['kind']!='max-tokens':
+                    轮次结束=步骤结束#更新结束原因
+                关闭步骤()#关闭步骤
                 若已中止则抛出(信号)#步骤后检查
                 if 轮次结束 is not None and len(自身.inbox.下一步队列)==0:
                     自身.派发['串行']('agent/turn-stopping',{'turn':轮次号,'signal':信号})#征求停止边界
                     若已中止则抛出(信号)#征求后检查
                 if 轮次结束 is not None and len(自身.inbox.下一步队列)==0:
-                    break#仍无下一步则关轮
-                目标=下一步#后续步骤吃下一步
-        except BaseException as 错误:
-            if 已中止(信号):
-                try:
-                    若已中止则抛出(信号)#取出承载异常
-                except BaseException as 中止:
-                    轮次结束={'kind':'aborted','reason':中止}#中止原因
-                raise 错误#再抛出
-            if isinstance(错误,语言模型错误):
-                失败=错误.failure#保留其事实
-            else:
-                失败={'message':错误链(错误),'code':'UNKNOWN'}#压扁
-            轮次结束={'kind':'error','error':失败}#出错
-            自身.抛错误(错误)#报告并抛
-        finally:
+                    以后续检查关闭轮次()#仍无下一步则关轮
+                    return
+            except BaseException as 错误:#按失败关轮
+                以失败关闭轮次(错误)
+                return
+            执行下一步(下一步)#后续步骤吃下一步
+        def 步骤已落定(步骤结束):
+            '步骤成功落定：记下结束原因，再在发起方里决定继续还是关轮'
+            本步[1]=步骤结束#交给同级继续
             try:
-                自身.session.追加('turn/end',{'turn':轮次号,'reason':轮次结束})#关闭轮次
-            except BaseException as 错误:
-                自身.抛错误(错误)#报告并抛
-        if not 自身.inbox.有待处理:
-            return False#没有后续工作
-        阶段['abort']=中止控制器()#新控制器
-        阶段['wakeRequested']=False#清闩
-        阶段['step']=0#步骤重置
-        return True#再跑一轮
+                智能体注册表.带发起方(自身,继续)#步骤落定在别的线程，要重新进入发起方
+            except BaseException as 错误:#发起方已拆除时无法续跑
+                以失败关闭轮次(错误)
+        def 步骤失败(错误):
+            '步骤失败：先关闭步骤，关闭失败则以关闭失败顶替，再按失败关轮'
+            try:
+                关闭步骤()#关闭步骤
+            except BaseException as 关闭错误:#关闭步骤的失败顶替原失败
+                错误=关闭错误
+            以失败关闭轮次(错误)
+        def 执行下一步(目标):
+            '预步骤并开启步骤，再跑一步；步骤落定后在发起方里继续下一步或关轮'
+            nonlocal 轮次结束#修改外层
+            try:
+                若已中止则抛出(信号)#每步前检查
+                步骤号=阶段['step']+1#下一步号
+                决定=自身.预步骤(目标,{'turn':轮次号,'step':步骤号})#预步骤
+                if 决定['kind']=='reject':
+                    轮次结束={'kind':'blocked'}#预步骤拒绝
+                    以不再续关闭轮次()#关闭且不再续
+                    return
+                消息列表=决定['messages'] if 'messages' in 决定 and 决定['messages'] is not None else []#进入消息
+                if 轮次结束 is not None and len(消息列表)==0:
+                    以后续检查关闭轮次()#已有结束且无消息则停
+                    return
+                if 阶段['step']==0 and len(消息列表)==0:
+                    轮次结束={'kind':'completed'}#当作完成
+                    以不再续关闭轮次()#关闭且不再续
+                    return
+                若已中止则抛出(信号)#步骤开始前检查
+                自身.session.追加('step/start',{'turn':轮次号,'step':步骤号})#打开步骤
+                阶段['step']=步骤号#记下打开步骤
+                本步[0]=步骤号#同级关闭步骤要用
+            except BaseException as 错误:#步骤尚未开启，直接按失败关轮
+                以失败关闭轮次(错误)
+                return
+            try:
+                步骤期约=自身.一步(决定)#跑一步（系统提示与用户消息在步内准入）
+            except BaseException as 错误:#一步同步段失败
+                步骤失败(错误)
+                return
+            步骤期约.然后(步骤已落定,步骤失败)#工具调度落定后继续
+        执行下一步(下一轮)#首步吃下一轮
+        return 轮次结局#调用方对期约链接 然后 与 捕获
 
     def 一步(自身,决定):
-        '跑一步：先投影系统提示与用户消息，再准备配置并派生请求'
+        '跑一步：先投影系统提示与用户消息，再准备配置并派生请求。返回期约，解决值是步骤结束原因（None 表示继续）；同步段的失败直接抛出'
         if 自身.阶段['kind']!='running':
             raise 循环错误('agent "'+str(自身.id)+'": step outside running phase')#必须在运行
         阶段=自身.阶段#运行阶段
@@ -316,6 +422,7 @@ class 循环智能体:
         组装=决定['assembly']#提示组装
         渲染提示=渲染提示词(组装)#渲染系统提示（不进 header）
         首尝试=True#是否本步首次尝试
+        步骤结局=期约()#本步结算点
         while True:
             准备=自身.准备请求(轮次号,步骤号,信号)#先解析配置
             配置=准备['config']#配置
@@ -451,15 +558,25 @@ class 循环智能体:
                     lambda:自身.session.追加('assistant/message',载荷,{'surfaceOp':'append'})['seq'],#表面追加，无 sourceEventSeqs
                 )#settle 结束
                 if 结束种=='max-tokens':
-                    return {'kind':'max-tokens'}#碰到上限
+                    步骤结局.解决({'kind':'max-tokens'})#碰到上限
+                    return 步骤结局
                 工具调用列表=[块 for 块 in 消息['content'] if 块['type']=='tool-call']#取出工具调用
                 if len(工具调用列表)==0:
-                    return {'kind':'completed'}#无调用则完成
+                    步骤结局.解决({'kind':'completed'})#无调用则完成
+                    return 步骤结局
                 def 接受上下文(上下文块):
                     '把结果上下文接到下一步收件箱'
                     自身.inbox.拼接(下一步,len(自身.inbox.下一步队列),0,[上下文块])#追加上下文
-                调度=执行工具调用(自身.循环上下文,轮次号,步骤号,工具调用列表,信号,接受上下文)#调度工具调用
-                return {'kind':'completed'} if 调度['concluded'] else None#结束轮次或继续
+                def 调度已落定(调度):
+                    '工具调用全部落定：已结束轮次则以完成解决，否则以 None 解决'
+                    步骤结局.解决({'kind':'completed'} if 调度['concluded'] else None)#结束轮次或继续
+                def 调度失败(错误):
+                    '工具调度失败：流尝试未结束则放弃，再原样拒绝'
+                    if not 在线.已结束:
+                        在线.放弃()#未结束则放弃
+                    步骤结局.拒绝(错误)
+                执行工具调用(自身.循环上下文,轮次号,步骤号,工具调用列表,信号,接受上下文).然后(调度已落定,调度失败)#调度工具调用
+                return 步骤结局
             except BaseException as 错误:#完成失败
                 if not 在线.已结束:
                     在线.放弃()#未结束则放弃

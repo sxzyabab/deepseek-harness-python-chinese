@@ -1,6 +1,7 @@
 '解析 Remote 智能体与会话身份的宿主 BFF 策略'
+from functools import partial as 绑定参数#把落定槽绑进然后回调，避免再套一层函数
 from typing import NotRequired,TypedDict#结构类型
-from ...基础设施.通用工具 import 操作任务,启动守护线程
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...类型化远程调用.协议.异常 import 查找策略失败#lookup 策略拒绝
 from .异常 import 远程查找错误基类,远程会话未找到,远程子智能体会话所有权#本包异常
 
@@ -10,7 +11,7 @@ __all__=(#仅中文公开名
     '查看远程会话','创建远程智能体解析器',
     '远程查找错误码','远程查找错误',
     '远程智能体结果成功','远程智能体结果失败','远程智能体结果','远程智能体选项',
-    '远程查找错误基类','操作任务',
+    '远程查找错误基类',
 )#公开面结束
 
 远程查找错误码=('agent-busy','session-not-found','internal')#面向调用方失败码联合
@@ -75,9 +76,62 @@ def 查看远程会话(上下文,会话标识):
     事件列表=查看['events'] if 'events' in 查看 and 查看['events'] is not None else []#事件
     return {'meta':头,'events':list(事件列表)}#返回头与事件浅拷贝
 
+def 恢复已成功(恢复中,会话标识,共享恢复,句柄):
+    '恢复成功：允许同一身份再次恢复，以智能体解决共享期约'
+    恢复中.pop(会话标识,None)#允许同一身份再次恢复
+    共享恢复.解决(句柄.agent)
+
+def 恢复已失败(恢复中,会话标识,共享恢复,错误):
+    '恢复失败：允许同一身份再次恢复，所有调用方经 捕获 收到同一失败'
+    恢复中.pop(会话标识,None)#允许同一身份再次恢复
+    共享恢复.拒绝(错误)
+
+def 解析成功(结果,智能体):
+    '恢复成功则返回智能体'
+    结果.解决({'agent':智能体})
+
+def 解析失败(结果,会话标识,上下文,围栏在线,错误):
+    '把恢复失败折成面向调用方的失败信封'
+    if isinstance(错误,远程会话未找到):
+        结果.解决({'error':{'code':'session-not-found','message':str(错误),'details':{'sessionId':会话标识}}})#会话未找到信封
+        return
+    if isinstance(错误,远程子智能体会话所有权):
+        结果.解决({'error':远程子智能体所有权错误(错误.会话标识)})#折成 agent-busy
+        return
+    围栏=围栏在线(会话标识)#失败时再看是否已有可复用在线智能体
+    if 围栏 is not None:#有则用之
+        结果.解决(围栏)#结论
+        return
+    已附着=上下文.sessions.get(会话标识)#再看已附着会话
+    if 已附着 is not None and 有远程子智能体所有者(上下文,已附着.header,None):#现已由子智能体占用
+        结果.解决({'error':远程子智能体所有权错误(会话标识)})#折成 agent-busy
+        return
+    结果.解决({#其余视为内部失败
+        'error':{#内部错误信封
+            'code':'internal',#内部错误码
+            'message':'resume failed for session "'+str(会话标识)+'": '+str(错误),#带上恢复失败原因
+            'details':{},#无额外细节
+        },#error 字段结束
+    })#内部失败结束
+
+def 已找到(落定,找到):
+    '面向调用方失败原样保留，成功则交出智能体'
+    if 'error' in 找到:
+        落定.拒绝(查找策略失败(找到['error']))#失败信封
+        return
+    落定.解决(找到['agent'])#解析到智能体
+
+def 已找到会话(落定,智能体):
+    '取智能体上的会话'
+    落定.解决(智能体.session)
+
+def 已找到上下文(落定,智能体):
+    '取智能体上的作用域上下文'
+    落定.解决(智能体.ctx)
+
 def 创建远程智能体解析器(上下文,选项):
     '在线智能体复用，普通冷会话按身份恢复一次，子智能体占用的身份保留旧的 agent-busy 围栏。选项为 dict'
-    恢复中={}#进行中的按身份去重恢复：会话标识 → 共享任务
+    恢复中={}#进行中的按身份去重恢复：会话标识 → 共享期约
 
     def 围栏在线(会话标识):
         '在线智能体复用或 agent-busy'
@@ -89,78 +143,68 @@ def 创建远程智能体解析器(上下文,选项):
         return {'agent':在线}#可复用在线智能体
 
     def 解析智能体(会话标识):
-        '先看在线，再冷恢复'
+        '先看在线，再冷恢复。返回期约，解决值是 {agent} 或 {error}'
+        结果=期约()#本次解析的结算点
         围栏=围栏在线(会话标识)#先看在线智能体
         if 围栏 is not None:#已有结论则返回
-            return 围栏#结论
+            结果.解决(围栏)#结论
+            return 结果
         已附着=上下文.sessions.get(会话标识)#取已附着但可能尚未发布智能体的会话
         if 已附着 is not None and 有远程子智能体所有者(上下文,已附着.header,None):#已附着且由子智能体占用
-            return {'error':远程子智能体所有权错误(会话标识)}#返回 agent-busy
+            结果.解决({'error':远程子智能体所有权错误(会话标识)})#返回 agent-busy
+            return 结果
         恢复=恢复中[会话标识] if 会话标识 in 恢复中 else None#该身份是否已有进行中的恢复
-        if 恢复 is None:#没有则启动一次并写入共享任务
-            恢复=操作任务()#共享恢复任务
-            恢复中[会话标识]=恢复#先入表，后跑体，使并发调用方挂上同一任务
-            def 后台恢复会话():
-                '查看、装配、再恢复；成败都结算共享任务'
-                try:
-                    查看=查看远程会话(上下文,会话标识)#只读查看持久会话
-                    if 有远程子智能体所有者(上下文,查看['meta'],None):#冷会话也由子智能体占用
-                        raise 远程子智能体会话所有权(会话标识)#用围栏错误跳出
-                    装配工厂=选项['setup'] if 选项 is not None and 'setup' in 选项 else None#可选装配工厂
-                    装配=装配工厂(查看) if 装配工厂 is not None else None#需要时跑宿主装配
-                    已发布会话=上下文.sessions.get(会话标识)#装配等待后可能已有人发布会话
-                    已发布智能体=上下文.agents.get(会话标识)#以及可能已发布的智能体
-                    已发布头=已发布会话.header if 已发布会话 is not None else None#已发布头
-                    if 已发布会话 is not None and 有远程子智能体所有者(上下文,已发布头,已发布智能体):#现已由子智能体占用
-                        raise 远程子智能体会话所有权(会话标识)#围栏错误
-                    恢复参数={'resumeSessionId':会话标识}#要恢复的会话身份
-                    选项工厂=选项['agentOptions'] if 选项 is not None and 'agentOptions' in 选项 else None#默认选项工厂
-                    if 选项工厂 is not None:#有默认选项则带上
-                        恢复参数['agentOptions']=选项工厂()#带上
-                    if 装配 is not None:#有装配则带上
-                        恢复参数['setup']=装配#带上
-                    句柄=上下文.agents.resume(恢复参数)#按该身份恢复智能体
-                    恢复.兑现(句柄.agent)#结算共享任务
-                except BaseException as 错误:
-                    恢复.拒绝(错误)#所有调用方经 等待 收到同一失败
-                finally:
-                    恢复中.pop(会话标识,None)#允许同一身份再次恢复
-            启动守护线程(后台恢复会话)#后台恢复
-        try:
-            return {'agent':恢复.等待()}#恢复成功则返回智能体
-        except 远程会话未找到 as 错误:
-            return {'error':{'code':'session-not-found','message':str(错误),'details':{'sessionId':会话标识}}}#会话未找到信封
-        except 远程子智能体会话所有权 as 错误:
-            return {'error':远程子智能体所有权错误(错误.会话标识)}#折成 agent-busy
-        except Exception as 错误:
-            围栏=围栏在线(会话标识)#失败时再看是否已有可复用在线智能体
-            if 围栏 is not None:#有则用之
-                return 围栏#结论
-            已附着=上下文.sessions.get(会话标识)#再看已附着会话
-            if 已附着 is not None and 有远程子智能体所有者(上下文,已附着.header,None):#现已由子智能体占用
-                return {'error':远程子智能体所有权错误(会话标识)}#折成 agent-busy
-            return {#其余视为内部失败
-                'error':{#内部错误信封
-                    'code':'internal',#内部错误码
-                    'message':'resume failed for session "'+str(会话标识)+'": '+str(错误),#带上恢复失败原因
-                    'details':{},#无额外细节
-                },#error 字段结束
-            }#内部失败结束
+        if 恢复 is None:#没有则启动一次并写入共享期约
+            恢复=期约()#共享恢复期约
+            恢复中[会话标识]=恢复#先入表，后跑体，使并发调用方挂上同一期约
+            共享恢复=恢复#供回调落定本次期约
+            成功回调=绑定参数(恢复已成功,恢复中,会话标识,共享恢复)#同级函数
+            失败回调=绑定参数(恢复已失败,恢复中,会话标识,共享恢复)#同级函数
+            try:
+                查看=查看远程会话(上下文,会话标识)#只读查看持久会话
+                if 有远程子智能体所有者(上下文,查看['meta'],None):#冷会话也由子智能体占用
+                    raise 远程子智能体会话所有权(会话标识)#用围栏错误跳出
+                装配工厂=选项['setup'] if 选项 is not None and 'setup' in 选项 else None#可选装配工厂
+                装配=装配工厂(查看) if 装配工厂 is not None else None#需要时跑宿主装配
+                已发布会话=上下文.sessions.get(会话标识)#装配等待后可能已有人发布会话
+                已发布智能体=上下文.agents.get(会话标识)#以及可能已发布的智能体
+                已发布头=已发布会话.header if 已发布会话 is not None else None#已发布头
+                if 已发布会话 is not None and 有远程子智能体所有者(上下文,已发布头,已发布智能体):#现已由子智能体占用
+                    raise 远程子智能体会话所有权(会话标识)#围栏错误
+                恢复参数={'resumeSessionId':会话标识}#要恢复的会话身份
+                选项工厂=选项['agentOptions'] if 选项 is not None and 'agentOptions' in 选项 else None#默认选项工厂
+                if 选项工厂 is not None:#有默认选项则带上
+                    恢复参数['agentOptions']=选项工厂()#带上
+                if 装配 is not None:#有装配则带上
+                    恢复参数['setup']=装配#带上
+                恢复期约=上下文.agents.resume(恢复参数)#按该身份恢复智能体
+            except BaseException as 错误:#同步段失败以拒绝交出
+                失败回调(错误)
+            else:
+                恢复期约.然后(成功回调,失败回调)#恢复落定后结算共享期约
+        恢复.然后(绑定参数(解析成功,结果),绑定参数(解析失败,结果,会话标识,上下文,围栏在线))#共享恢复落定后解析
+        return 结果#调用方对期约链接 然后 与 捕获
+
+    def 解析到智能体(会话标识):
+        '返回期约；查找失败以 查找策略失败 拒绝，成功则以智能体解决'
+        落定=期约()#本次查找的结算点
+        解析智能体(会话标识).然后(绑定参数(已找到,落定),落定.拒绝)#走共享解析器
+        return 落定
+
+    def 解析到会话(会话标识):
+        '会话查找，返回期约'
+        落定=期约()#本次查找的结算点
+        解析到智能体(会话标识).然后(绑定参数(已找到会话,落定),落定.拒绝)
+        return 落定
+
+    def 解析到上下文(会话标识):
+        '宿主上下文，返回期约'
+        落定=期约()#本次查找的结算点
+        解析到智能体(会话标识).然后(绑定参数(已找到上下文,落定),落定.拒绝)
+        return 落定
 
     def 挂查找(类型上下文,*位置参数):
         '配置智能体/会话查找与宿主上下文提供方'
-        def 解析到智能体(会话标识):
-            '查找失败抛 查找策略失败'
-            找到=解析智能体(会话标识)#走共享解析器
-            if 'error' in 找到:#面向调用方失败原样保留
-                raise 查找策略失败(找到['error'])#抛出
-            return 找到['agent']#解析到智能体
-        def 解析到会话(会话标识):
-            '会话查找'
-            return 解析到智能体(会话标识).session#智能体上的会话
-        def 解析到上下文(会话标识):
-            '宿主上下文'
-            return 解析到智能体(会话标识).ctx#智能体上下文
         类型上下文.typert.lookups.configure('agent',解析到智能体)
         类型上下文.typert.lookups.configure('session',解析到会话)
         类型上下文.typert.contexts.configureHost('agent',解析到上下文)#宿主上下文提供方

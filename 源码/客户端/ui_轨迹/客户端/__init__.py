@@ -101,7 +101,7 @@ def 应用(上下文):#安装轨迹视图浏览器半边
                 快照=会话.getSnapshot()#当前快照
                 视图=快照['views'] if 'views' in 快照 else None#视图表
                 之前=视图['trajectory'] if 视图 is not None and 'trajectory' in 视图 else None#分页前
-                会话.loadOlder().等待()#向更早一页
+                会话.loadOlder()#向更早一页
                 之后快照=会话.getSnapshot()#分页后
                 之后视图=之后快照['views'] if 'views' in 之后快照 else None#视图表
                 之后=之后视图['trajectory'] if 之后视图 is not None and 'trajectory' in 之后视图 else None#分页后轨迹

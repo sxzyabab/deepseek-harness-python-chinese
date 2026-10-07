@@ -1,5 +1,6 @@
 '持久化投影缓存'
 import threading,weakref#脏状态、定时写、会话身份
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.schemastery import 字典字段,数字字段#配置
 from ...模型后端.llm import 结构化克隆#JSON 快照
@@ -126,9 +127,20 @@ class 会话投影缓存(服务):
         '取投影表面切口并写域；活会话先刷耐久屏障'
         行表=自身.ctx.sessionProjections.检查点(会话)#表面切口
         自身._标干净(会话)#写前摘掉脏标记与定时器
+        写完=期约()#本次写的结算点
+        def 写行(刷新结果=None):
+            '耐久屏障之后写行'
+            try:
+                自身._放(会话.id,身份于(会话.header,getattr(会话,'inheritedEventCount',0)),行表)#写行
+            except BaseException as 错误:#线程入口把失败收进结果
+                写完.拒绝(错误)
+                return
+            写完.解决()
         if 自身.ctx.sessions.get(会话.id) is 会话:
-            自身.ctx.sessions.flush(会话).等待()#耐久屏障
-        自身._放(会话.id,身份于(会话.header,getattr(会话,'inheritedEventCount',0)),行表)#写行
+            自身.ctx.sessions.flush(会话).然后(写行,写完.拒绝)#耐久屏障
+        else:
+            写行()#非活会话没有耐久屏障
+        return 写完#调用方对期约链接 然后 与 捕获
 
     def 冷快照(自身,头,继承事件数,事件列表):
         '从完整日志冷读并回写缓存'
@@ -192,10 +204,13 @@ class 会话投影缓存(服务):
 
     def _软刷(自身,会话,触发):
         'fail-soft 写'
-        try:
-            自身.写(会话)#耐久
-        except Exception as 错误:
+        def 警告写失败(错误):
+            '写失败只记警告，缓存保持陈旧'
             自身.ctx.日志.警告('session projection cache: '+触发+' write for "'+str(会话.id)+'" failed (cache stays stale): '+str(错误))#警告
+        try:
+            自身.写(会话).捕获(警告写失败)#耐久
+        except Exception as 错误:#写的同步段失败
+            警告写失败(错误)
 
     def _标干净(自身,会话):
         '清脏'

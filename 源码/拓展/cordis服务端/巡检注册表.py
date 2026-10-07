@@ -1,7 +1,6 @@
 '面向模型的只读 Cordis 能力查询的宿主注册表'
 import threading
 from ...依赖.cordis import 服务
-from ...工具.超时 import 已中止,若已中止则抛出
 from ...基础设施.通用工具 import 启动守护线程
 from ...内核.会话 import 快照json值
 from ...内核.工具 import 断言受支持json模式,校验json模式值

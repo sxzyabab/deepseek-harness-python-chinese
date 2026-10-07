@@ -3,7 +3,7 @@ from ...基础设施.通用工具 import 紧凑json编码
 from ...依赖.schemastery import 自然数字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...模型后端.llm import 创建用户消息
-from ...内核.作用域 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约
 from .异常 import 宿主运行器错误#动态宿主运行器包的异常基类
 from .门面规则 import 是否插件,规范化处理函数
 from .沙箱 import 创建沙箱,求值宿主代码,预检代码
@@ -210,6 +210,10 @@ class 动态cordis运行器(远程服务):
         计划['plugin']['latestRun']=尝试
         if 'clientCode' not in 计划['definition']:
             已启动=自身._激活(计划,None,False,尝试)
+            if getattr(已启动,'状态',None)=='pending':#另一路还在启动
+                return 已启动#不阻塞
+            if getattr(已启动,'状态',None)=='fulfilled':#在途期约已结算
+                已启动=已启动.数据#取出结果
             if 已启动['ok']:
                 return 自身._运行回执(计划['plugin'],已启动)
             自身._失败尝试(计划['plugin'],尝试,'host-load',已启动)
@@ -305,6 +309,10 @@ class 动态cordis运行器(远程服务):
             if 尝试['host']['status']!='absent':
                 尝试['host']={'status':'pending','waitingFor':[]}
         已启动=自身._激活(计划,请求标识,附着,尝试)
+        if getattr(已启动,'状态',None)=='pending':#另一路还在启动
+            return 已启动#不阻塞
+        if getattr(已启动,'状态',None)=='fulfilled':#在途期约已结算
+            已启动=已启动.数据#取出结果
         if not 已启动['ok']:
             自身._失败尝试(计划['plugin'],尝试,'host-load',已启动)
         return 已启动
@@ -661,19 +669,19 @@ class 动态cordis运行器(远程服务):
         return {'ok':True,'plugin':插件,'definition':定义,'mode':模式}
 
     def _激活(自身,计划,请求标识,允许附着,尝试):
-        '同一插件的在途启动共用一个操作任务'
+        '同一插件的在途启动共用一个期约'
         插件标识=计划['plugin']['pluginId']
         在途=自身._启动中.get(插件标识)
         if 在途 is not None:
-            return 在途.等待()
-        任务=操作任务()
+            return 在途#另一路还在启动
+        任务=期约()#本路结果
         自身._启动中[插件标识]=任务
         try:
             结果=自身._新启(计划,请求标识,允许附着,尝试)
-            任务.兑现(结果)
-            return 结果
+            任务.解决(结果)#启动在返回前已做完
+            return 结果#拆掉已结算期约
         except BaseException as 错误:
-            任务.拒绝(错误)
+            任务.拒绝(错误)#在途等待者看见拒绝
             raise
         finally:
             自身._启动中.pop(插件标识,None)

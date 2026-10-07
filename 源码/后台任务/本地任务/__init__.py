@@ -1,11 +1,11 @@
 'jobs 服务的进程内提供方'
 import math,threading,weakref
-from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...基础设施.通用工具.时间工具 import 当前毫秒
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 整数字段
 from ...内核.作用域 import 作用域层集,获取作用域
-from ...工具.超时 import 截止,取超时,已中止
+from ...工具.超时 import 截止,取超时
 from ..后台任务 import 任务注册表,任务标识
 from .事件 import 任务层,任务事件枢纽
 from .泵送 import 启动泵送
@@ -55,14 +55,17 @@ class 本地任务注册表(任务注册表):
             '没有从一层派生缓存'
             return
         自身.层集=作用域层集(建层,空变更)
-        自身.枢纽=任务事件枢纽(自身.层集,lambda 消息:上下文.日志.警告(消息))
+        def 记录警告(消息):
+            '事件枢纽的警告写进日志'
+            上下文.日志.警告(消息)
+        自身.枢纽=任务事件枢纽(自身.层集,记录警告)
         自身.所有者清理=weakref.WeakKeyDictionary()
         自身.自用上下文=上下文
         def 拆除体():
             '拆除时清全部任务'
             def 拆除():
-                '拆除整份注册表'
-                自身.拆除全部()
+                '拆除整份注册表，返回期约'
+                return 自身.拆除全部()
             return 拆除
         上下文.副作用(拆除体,'jobs teardown')
 
@@ -118,10 +121,10 @@ class 本地任务注册表(任务注册表):
             自身.更新进度(状态,行)
         句柄={'id':标识,'append':追加,'updateProgress':更新进度}
         钩子=规格['run'](句柄)
-        已结算=操作任务()
+        已结算=期约()
         def 标记已结算():
-            '兑现结算承诺'
-            已结算.兑现(None)
+            '兑现结算期约'
+            已结算.解决(None)
         任务={
             'id':标识,
             'kind':种类,
@@ -149,33 +152,12 @@ class 本地任务注册表(任务注册表):
         状态['job']=任务
         自身.存储[标识]=任务
         自身.发出({'type':'registered','job':自身.快照(任务)},所有者)
-        def 生产者完成():
-            '等到 done；拒绝则强制失败'
-            try:
-                完成=钩子['done'] if isinstance(钩子,dict) else 钩子.done
-                if hasattr(完成,'等待'):
-                    return 完成.等待()
-                return 完成
-            except BaseException as 错误:
-                自身.自用上下文.日志.警告('jobs: job '+str(任务['id'])+' producer done promise rejected (producer contract violation): '+str(错误))
-                return {'status':'failed','detail':str(错误)}
-        生产者任务=操作任务()
-        泵直到=操作任务()
-        def 盯泵直到(任务):
-            '生产者或注册表结算任一完成即停泵'
-            try:
-                任务.等待()
-            except BaseException:
-                pass
-            泵直到.兑现(None)
-        def 跟进生产者():
-            '后台等到生产者再结算'
-            结局=生产者完成()
-            生产者任务.兑现(结局)
-            泵=任务['pump']
-            if 泵 is not None:
-                泵.等待()
-            自身.结算(任务,结局,任务['settleCause'] if 任务['settleCause'] is not None else 'producer')
+        生产者结局=期约()#生产者结局，永不拒绝
+        def 生产者失败(错误):
+            'done 拒绝是生产者违约，收成失败结局，避免清理与等待者挂死'
+            自身.自用上下文.日志.警告('jobs: job '+str(任务['id'])+' producer done promise rejected (producer contract violation): '+str(错误))
+            生产者结局.解决({'status':'failed','detail':str(错误)})
+        (钩子['done'] if isinstance(钩子,dict) else 钩子.done).然后(生产者结局.解决,生产者失败)#生产者 done 落定
         输出=规格['output'] if 'output' in 规格 else None
         if 输出 is not None and len(输出)>0:
             def 泵追加(文本,选项=None):
@@ -186,16 +168,23 @@ class 本地任务注册表(任务注册表):
                 while len(任务['spillPaths'])<=下标:
                     任务['spillPaths'].append(None)
                 任务['spillPaths'][下标]=路径
-            threading.Thread(target=盯泵直到,args=(生产者任务,),daemon=True).start()
-            threading.Thread(target=盯泵直到,args=(已结算,),daemon=True).start()
             任务['pump']=启动泵送(
                 [自身.守护源(任务,源) for 源 in 输出],
                 {'append':泵追加,'spill':泵溢出},
                 自身.泵送轮询毫秒,
-                泵直到,
+                期约.竞速([生产者结局,已结算]),
             )
-        线程=threading.Thread(target=跟进生产者,daemon=True)
-        线程.start()
+        def 生产者已结局(结局):
+            '生产者落定后泵最后抽干，再结算'
+            def 结算任务(*泵结果):
+                '泵抽干后（或泵失败后，不让任务挂死）结算'
+                自身.结算(任务,结局,任务['settleCause'] if 任务['settleCause'] is not None else 'producer')
+            泵=任务['pump']
+            if 泵 is None:
+                结算任务()
+            else:
+                泵.然后(结算任务,结算任务)
+        生产者结局.然后(生产者已结局)#结算
         return 标识
 
     def 列出(自身,调用方=None):
@@ -362,44 +351,51 @@ class 本地任务注册表(任务注册表):
         return 'requested'
 
     def 等待任务(自身,任务,超时毫秒,信号=None):
-        '等待结算或超时'
+        '返回期约：等待结算或超时，兑现值是任务快照；等待被调用方取消则拒绝'
         if (isinstance(超时毫秒,bool) or not isinstance(超时毫秒,(int,float))
             or not math.isfinite(超时毫秒) or 超时毫秒<=0):
             raise 本地任务错误('invalid wait timeout: expected a positive number of milliseconds, got '+紧凑json编码(超时毫秒))
-        if not 是否终态(任务['status']):
-            if 已中止(信号):
-                raise 本地任务错误('wait aborted')
-            截止对象=截止(信号,超时毫秒,任务等待超时)
-            try:
-                等待任务=操作任务()
-                停止监视=threading.Event()
-                def 已结算时():
-                    '任务结算唤醒'
+        结果=期约()#快照的结算
+        if 是否终态(任务['status']):
+            结果.解决(自身.快照(任务))
+            return 结果
+        if 已中止(信号):
+            raise 本地任务错误('wait aborted')
+        截止对象=截止(信号,超时毫秒,任务等待超时)
+        等待任务=期约()#结算或超时即兑现
+        停止监视=threading.Event()
+        def 已结算时():
+            '任务结算唤醒'
+            任务['waitResolvers'].discard(已结算时)
+            停止监视.set()
+            等待任务.解决(None)
+        def 监视中止():
+            '监视截止信号'
+            while not 停止监视.is_set():
+                if 已中止(截止对象.信号):
                     任务['waitResolvers'].discard(已结算时)
+                    if 取超时(截止对象.信号,任务等待超时) is not None:
+                        等待任务.解决(None)
+                    else:
+                        等待任务.拒绝(本地任务错误('wait aborted'))
                     停止监视.set()
-                    等待任务.兑现(None)
-                def 监视中止():
-                    '监视截止信号'
-                    while not 停止监视.is_set():
-                        if 已中止(截止对象.信号):
-                            任务['waitResolvers'].discard(已结算时)
-                            if 取超时(截止对象.信号,任务等待超时) is not None:
-                                等待任务.兑现(None)
-                            else:
-                                等待任务.拒绝(本地任务错误('wait aborted'))
-                            停止监视.set()
-                            return
-                        停止监视.wait(0.01)
-                任务['waitResolvers'].add(已结算时)
-                监视线程=threading.Thread(target=监视中止,daemon=True)
-                监视线程.start()
-                try:
-                    等待任务.等待()
-                finally:
-                    停止监视.set()
-            finally:
-                截止对象.释放()
-        return 自身.快照(任务)
+                    return
+                停止监视.wait(0.01)
+        def 等待已落定(*等待值):
+            '结算或超时：停监视、释放截止，兑现快照'
+            停止监视.set()
+            截止对象.释放()
+            结果.解决(自身.快照(任务))
+        def 等待被取消(错误):
+            '调用方取消：停监视、释放截止，拒绝'
+            停止监视.set()
+            截止对象.释放()
+            结果.拒绝(错误)
+        任务['waitResolvers'].add(已结算时)
+        监视线程=threading.Thread(target=监视中止,daemon=True)
+        监视线程.start()
+        等待任务.然后(等待已落定,等待被取消)
+        return 结果
 
     def 追加环(自身,状态,环,文本,选项,写方):
         '追加一块。已结算的生产者写入记日志并丢掉'
@@ -485,20 +481,24 @@ class 本地任务注册表(任务注册表):
         def 执行体():
             '挂接所有者清理'
             def 拆除():
-                '取消并丢掉其任务'
+                '取消并丢掉其任务，返回期约'
                 自身.所有者清理.pop(所有者,None)
-                自身.拆除所属(所有者)
+                return 自身.拆除所属(所有者)
             return 拆除
         拆下=所有者.ctx.副作用(执行体,'jobs.ownerCleanup()')
         自身.所有者清理[所有者]=拆下
 
     def 拆除所属(自身,所有者):
-        '取消、等待终态记录，并丢掉一个精确智能体生命周期拥有的每一条任务'
+        '返回期约：取消、等待终态记录，并丢掉一个精确智能体生命周期拥有的每一条任务'
         已拥有=[任务 for 任务 in list(自身.存储.values()) if 任务['owner'] is 所有者]
         自身.拆除取消(已拥有,'owner disposed')
-        for 任务 in 已拥有:
-            任务['settled'].等待()
-        自身.丢掉(已拥有)
+        结果=期约()#拆除结算
+        def 全部已结算(*结算值):
+            '每条任务都落定后丢掉'
+            自身.丢掉(已拥有)
+            结果.解决()
+        期约.全部([任务['settled'] for 任务 in 已拥有]).然后(全部已结算,结果.拒绝)#等全部终态
+        return 结果
 
     def 丢掉(自身,任务列表):
         '丢掉已结算记录并宣布每条 removed'
@@ -507,16 +507,20 @@ class 本地任务注册表(任务注册表):
             自身.发出({'type':'removed','job':自身.快照(任务)},任务['owner'])
 
     def 拆除全部(自身):
-        '取消在线任务、等待结算，并拆掉所有者 effect'
+        '返回期约：取消在线任务、等待结算，并拆掉所有者 effect'
         全部=list(自身.存储.values())
         自身.拆除取消(全部,'jobs service disposed')
-        for 任务 in 全部:
-            任务['settled'].等待()
-        自身.丢掉(全部)
-        所有者清理列表=list(自身.所有者清理.values())
-        自身.所有者清理.clear()
-        for 清理 in 所有者清理列表:
-            清理()
+        结果=期约()#拆除结算
+        def 全部已结算(*结算值):
+            '每条任务都落定后丢掉，并拆掉所有者 effect'
+            自身.丢掉(全部)
+            所有者清理列表=list(自身.所有者清理.values())
+            自身.所有者清理.clear()
+            for 清理 in 所有者清理列表:
+                清理()
+            结果.解决()
+        期约.全部([任务['settled'] for 任务 in 全部]).然后(全部已结算,结果.拒绝)#等全部终态
+        return 结果
 
     def 拆除取消(自身,任务列表,原因):
         '拆除期间按任务包含地取消'
@@ -536,7 +540,7 @@ class 本地任务注册表(任务注册表):
 __all__=[
     '任务等待超时','默认每所有者并发','默认保留字节','默认结算保留字节',
     '默认泵送轮询毫秒','安全整数上限','配置',
-    '本地任务错误','操作任务','本地任务注册表',
+    '本地任务错误','本地任务注册表',
 ]
 Config=配置
 default=本地任务注册表

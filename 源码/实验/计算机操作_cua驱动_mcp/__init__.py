@@ -44,8 +44,7 @@ def 应用(上下文,配置值):
             撤销()
         return 卸
     上下文.副作用(连接寿命,'computer-use-cua-driver-mcp.connection')
-    if 子 is not None and hasattr(子,'等待'):
-        子.等待()
+    return 子.等待()#返回期约，初始 MCP 工具发现完成后兑现
 
 name=名称
 inject=依赖

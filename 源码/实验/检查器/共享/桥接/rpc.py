@@ -1,6 +1,7 @@
 from threading import Timer as 定时器#超时定时器
+from .....基础设施.js特性 import PromiseEX as 期约扩展#请求结果期约
 from .标识 import 检查器id#标识构造
-from ..json import 操作任务,json字节长度#单次结果|帧字节
+from ..json import json字节长度#帧字节
 from ...异常 import 检查器错误,检查器查询远程错误#本包错误|远程查询错误
 from .版本 import 检查器协议版本#协议版本
 from .消息.查询.编解码 import 是否检查器查询响应信封,解析检查器查询响应帧#响应编解码
@@ -43,9 +44,9 @@ class 检查器查询连接:#查询连接
         '对当前已接受的源世代执行一次查询'
         活动=自身._活动#当前世代
         if 自身._已关闭 or 活动 is None:#未连接
-            失败=操作任务()#失败任务
-            失败.拒绝(Exception('Inspector query transport is not connected'))#拒绝
-            return 失败#返回
+            失败=期约扩展()#未连接时直接拒绝的期约
+            失败.拒绝(Exception('Inspector query transport is not connected'))#调用方可据此重试
+            return 失败#返回已拒绝的期约
         自身._下一请求号+=1#分配请求号
         请求id=检查器id(f'query-{自身._下一请求号}','requestId')#分配请求id
         帧={#请求帧
@@ -57,10 +58,10 @@ class 检查器查询连接:#查询连接
             'query':查询,#查询体
         }#帧结束
         if json字节长度(帧)>自身.选项.maxFrameBytes:#超帧
-            失败=操作任务()#失败任务
-            失败.拒绝(Exception(f'Inspector query request exceeds {自身.选项.maxFrameBytes} bytes'))#拒绝
-            return 失败#返回
-        任务=操作任务()#待决任务
+            失败=期约扩展()#超帧时直接拒绝的期约
+            失败.拒绝(Exception(f'Inspector query request exceeds {自身.选项.maxFrameBytes} bytes'))#请求帧超过上限
+            return 失败#返回已拒绝的期约
+        任务=期约扩展()#待决请求的期约，响应到达时解决
         def 超时():#超时
             '超时拒绝'
             if 自身._待决.pop(请求id,None) is not None:#仍待决
@@ -103,7 +104,7 @@ class 检查器查询连接:#查询连接
             return True#已消费
         待决['timer'].cancel()#清超时
         del 自身._待决[帧['requestId']]#移除待决
-        待决['任务'].兑现(结果封装['result'])#兑现结果
+        待决['任务'].解决(结果封装['result'])#以查询结果解决期约
         return True#已消费
 
     def 断开(自身,reason):#断开世代

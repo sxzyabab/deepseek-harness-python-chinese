@@ -1,6 +1,7 @@
 import base64 as _基64#Base64编码
 import json#JSON解析
 import re#源映射尾注
+from ....基础设施.js特性 import PromiseEX as 期约扩展#隧道请求的期约
 from ..node.builtin_modules.implemented.abort_error import 已中止#本包中止原语
 from ..异常 import 运行时错误,中止错误,隧道逻辑流错误#本包错误
 
@@ -17,19 +18,23 @@ def 文本转基64(值):#文本转Base64
     return _基64.b64encode(字节).decode('ascii')#Base64编码
 
 def 本地化源映射(源,束网址,拉取):#本地化源映射
-    '将隧道专用 map 引用替换为自包含的 Base64 data URL'
+    '将隧道专用 map 引用替换为自包含的 Base64 data URL，返回期约，兑现值是处理后的源'
     匹配=源映射尾注.search(源)#匹配尾注
     if 匹配 is None:#无映射则原样返回
-        return 源#原样
-    try:#尝试拉取映射
-        响应=拉取(匹配.group(1))#请求映射文件
+        无映射=期约扩展()#无需处理时的期约
+        无映射.解决(源)#原样
+        return 无映射#返回已解决的期约
+    def 内联映射(响应):#映射文件取回后调用
+        '映射取回成功则内联为 data URL，否则剥掉尾注'
         if not 响应['ok']:#失败则剥掉尾注
             return 源映射尾注.sub('',源,count=1)#剥掉
         正文=响应['text']()#映射正文
         数据网址=f'data:application/json;charset=utf-8;base64,{文本转基64(正文)}'#内联data URL
         return 源映射尾注.sub(f'//# sourceMappingURL={数据网址}',源,count=1)#替换为data URL
-    except Exception:#隧道拉取或 json 解码可能抛 OSError/JSONDecodeError，契约未定所以收不窄
+    def 剥掉尾注(错误):#拉取或内联失败后调用
+        '源映射只用于诊断，失败时不能阻止插件工厂注册'
         return 源映射尾注.sub('',源,count=1)#剥掉尾注
+    return 拉取(匹配.group(1)).然后(内联映射).捕获(剥掉尾注)#拉取映射后再内联，任一步失败都剥掉尾注
 
 def 转正文缓冲(正文):#请求体转缓冲
     '将 RequestInit 体规范化为可转移的字节'
@@ -88,7 +93,7 @@ class 工作线程隧道:#Worker隧道
         '附着到已启动的 worker 并开始消费响应帧'
         自身._工作线程=工作线程#保存worker
         自身._下一号=1#下一请求号
-        自身._一元={}#一元请求挂起表 id->{resolve,reject}
+        自身._一元={}#一元请求挂起表 id->响应期约
         自身._体流={}#体流控制器表
         自身._逻辑流={}#逻辑流入箱表
         自身._进行中={}#进行中请求描述
@@ -105,7 +110,7 @@ class 工作线程隧道:#Worker隧道
                 自身._告警拒绝(标识,f'worker failed: {消息}')#告警
             自身._进行中.clear()#清空进行中
             for 挂起 in list(自身._一元.values()):#拒绝一元
-                挂起['reject'](原因)#拒绝
+                挂起.拒绝(原因)#拒绝
             自身._一元.clear()#清空一元表
             for 控制器 in list(自身._体流.values()):#体流出错
                 出错=控制器['error'] if 'error' in 控制器 else None#error面
@@ -129,7 +134,7 @@ class 工作线程隧道:#Worker隧道
         自身._工作线程.postMessage({'t':'init','image':镜像,'overlays':list(覆盖层)})#发送init帧
 
     def 拉取(自身,输入,初始化=None):#隧道fetch
-        '类 fetch 入口：一请求帧，一 Response（worker 流式时则流式）'
+        '类 fetch 入口：一请求帧，返回期约，兑现值是一个 Response（worker 流式时则流式）'
         if 初始化 is None:#缺省
             初始化={}#空
         信号=初始化.get('signal')#中止信号
@@ -146,19 +151,11 @@ class 工作线程隧道:#Worker隧道
             'headers':dict(头)}#请求头
         if 正文 is not None:#有体
             帧['body']=转正文缓冲(正文)#附缓冲
-        结果盒={'response':None,'error':None}#挂起结果
-        def 兑现(响应):#成功回调
-            '记下响应'
-            结果盒['response']=响应#响应
-        def 拒绝(原因):#失败回调
-            '记下错误'
-            结果盒['error']=原因#错误
-        自身._一元[标识]={'resolve':兑现,'reject':拒绝}#登记一元
+        响应期约=期约扩展()#响应帧到达时解决或拒绝
+        自身._一元[标识]=响应期约#登记一元
         自身._进行中[标识]=f"{帧['method']} {帧['url']}"#记录进行中描述
         自身._工作线程.postMessage(帧)#发送请求帧
-        if 结果盒['error'] is not None:#同步失败
-            raise 结果盒['error']#抛出
-        return 结果盒['response']#返回结算结果（宿主泵帧后）
+        return 响应期约#返回期约
 
     def 打开(自身,端点,载荷,信号):#打开逻辑流
         '在 worker 本地载体上打开一条已解码的 Gateway Remote 流'
@@ -199,20 +196,24 @@ class 工作线程隧道:#Worker隧道
                 自身._中止worker操作(标识)#中止
 
     def boot载荷(自身):#获取启动载荷
-        '读取 pre-cordis 启动载荷（依赖表）'
-        响应=自身.拉取('/__boot__')#请求引导路由
-        if not 响应['ok']:#非成功
-            正文=响应['text']()#正文
-            raise 运行时错误(f'web-preview tunnel: boot payload failed with HTTP {响应["status"]}: {正文}')#抛错
-        return 响应['json']()#解析为载荷
+        '读取 pre-cordis 启动载荷（依赖表），返回期约，兑现值是载荷'
+        def 解析载荷(响应):#引导路由响应到达后调用
+            '非成功则抛错，成功则解析载荷'
+            if not 响应['ok']:#非成功
+                正文=响应['text']()#正文
+                raise 运行时错误(f'web-preview tunnel: boot payload failed with HTTP {响应["status"]}: {正文}')#抛错
+            return 响应['json']()#解析为载荷
+        return 自身.拉取('/__boot__').然后(解析载荷)#请求引导路由后再解析
 
     def 加载束(自身,网址):#加载客户端包
-        '经隧道取一个客户端包并以经典脚本执行'
-        响应=自身.拉取(网址)#经隧道拉取
-        if not 响应['ok']:#非成功
-            raise 运行时错误(f'web-preview tunnel: bundle {网址} failed with HTTP {响应["status"]}')#抛错
-        源文本=响应['text']()
-        return 本地化源映射(源文本,网址,自身.拉取)
+        '经隧道取一个客户端包并以经典脚本执行，返回期约，兑现值是本地化后的源文本'
+        def 读取源(响应):#包响应到达后调用
+            '非成功则抛错，成功则本地化源映射'
+            if not 响应['ok']:#非成功
+                raise 运行时错误(f'web-preview tunnel: bundle {网址} failed with HTTP {响应["status"]}')#抛错
+            源文本=响应['text']()#源文本
+            return 本地化源映射(源文本,网址,自身.拉取)#本地化源映射
+        return 自身.拉取(网址).然后(读取源)#经隧道拉取后再读取
 
     def _中止worker操作(自身,标识):#中止worker操作
         '尽力取消：已失败的 worker 反正收不到帧'
@@ -252,7 +253,7 @@ class 工作线程隧道:#Worker隧道
                 return '' if 正文 is None else 正文#??空串，空正文合法
             if 'headers' not in 帧: 响应头={}#缺席才空表，空字典合法
             else: 响应头=帧['headers']#响应头
-            挂起['resolve']({'ok':(0 if 'status' not in 帧 else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':正文,'json':取json,'text':取text})#兑现Response面
+            挂起.解决({'ok':(0 if 'status' not in 帧 else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':正文,'json':取json,'text':取text})#以Response面解决期约
             return
         if 种类=='res-head':#流式响应头
             挂起=自身._一元.get(帧['id'])#取挂起
@@ -263,7 +264,7 @@ class 工作线程隧道:#Worker隧道
             自身._体流[帧['id']]=控制器#存控制器
             if 'headers' not in 帧: 响应头={}#缺席才空表，空字典合法
             else: 响应头=帧['headers']#响应头
-            挂起['resolve']({'ok':(0 if 'status' not in 帧 else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':控制器,'stream':True})#兑现流式
+            挂起.解决({'ok':(0 if 'status' not in 帧 else 帧['status'])<400,'status':帧.get('status'),'headers':响应头,'body':控制器,'stream':True})#以流式Response面解决期约
             return
         if 种类=='res-chunk':#流式分块
             控制器=自身._体流.get(帧['id'])#取控制器
@@ -284,7 +285,7 @@ class 工作线程隧道:#Worker隧道
             自身._进行中.pop(帧['id'],None)#删进行中
             挂起=自身._一元.pop(帧['id'],None)#取一元挂起
             if 挂起 is not None:#头未结算
-                挂起['reject'](原因)#拒绝
+                挂起.拒绝(原因)#拒绝
                 return
             控制器=自身._体流.pop(帧['id'],None)#取体流
             if 控制器 is None:#无则忽略

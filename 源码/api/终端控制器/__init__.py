@@ -1,9 +1,8 @@
 import re,threading#身份形态与拆除线程
 from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段,列表字段
 from ...依赖.工具 import 聚合错误#拆除失败
-from ...内核.作用域 import 操作任务#分配任务
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
 from ...基础设施.通用工具 import utf8字节数
 from .外壳 import 发现外壳,解析外壳#壳
 from .浏览器终端 import 浏览器终端#PTY 视图
@@ -117,10 +116,18 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         if 已有 is not None:#有
             return 已有.info#现有
         进行=拥有['pending'].get(标识)#进行中
+        结果=期约()#本次创建的结算点，解决值是终端信息
         if 进行 is not None:#等同一分配
-            终端=进行.等待()#等
-            自身._要求开着(拥有,标识)#仍开
-            return 终端.info#信息
+            def 同一分配完成(终端):
+                '同一分配落定：仍开则交出信息'
+                try:
+                    自身._要求开着(拥有,标识)#仍开
+                except BaseException as 错误:#已被关闭
+                    结果.拒绝(错误)
+                    return
+                结果.解决(终端.info)#信息
+            进行.然后(同一分配完成,结果.拒绝)
+            return 结果
         if 标识 in 拥有['allocations']:#失败残留
             raise 远程错误('gateway/bad-request','Close the failed terminal allocation before creating it again',{})#拒绝
         占用=set(list(拥有['terminals'].keys())+list(拥有['pending'].keys())+list(拥有['allocations'].keys()))#身份
@@ -130,24 +137,34 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         融合=合成信号(信号,自身.寿命.信号,拥有['lifetime'].信号)#融合
         任务=自身._分配任务(智能体,拥有,请求,融合)#任务
         拥有['pending'][标识]=任务#进行中
-        try:#等
-            终端=任务.等待()#终端
-            拥有['terminals'][标识]=终端#提交
-            拥有['allocations'].pop(标识,None)#摘残留
-            def 关闭中():
-                '关闭 id'
-                拥有['closedIds'].add(标识)#记
-            def 已关():
-                '摘终端'
-                拥有['terminals'].pop(标识,None)#摘
-            def 失败汇(错误):
-                '日志'
-                print('Browser terminal cleanup failed',错误)#日志
-            终端.监视(自身.配置值,关闭中,已关,失败汇)#监视
-            自身._要求开着(拥有,标识)#仍开
-            return 终端.info#信息
-        finally:#摘进行
-            拥有['pending'].pop(标识,None)#摘
+        def 分配完成(终端):
+            '分配成功：提交终端、挂监视，仍开则交出信息'
+            try:
+                拥有['terminals'][标识]=终端#提交
+                拥有['allocations'].pop(标识,None)#摘残留
+                def 关闭中():
+                    '关闭 id'
+                    拥有['closedIds'].add(标识)#记
+                def 已关():
+                    '摘终端'
+                    拥有['terminals'].pop(标识,None)#摘
+                def 失败汇(错误):
+                    '日志'
+                    print('Browser terminal cleanup failed',错误)#日志
+                终端.监视(自身.配置值,关闭中,已关,失败汇)#监视
+                自身._要求开着(拥有,标识)#仍开
+            except BaseException as 错误:#线程入口把失败收进结果
+                拥有['pending'].pop(标识,None)#摘进行
+                结果.拒绝(错误)
+                return
+            拥有['pending'].pop(标识,None)#摘进行
+            结果.解决(终端.info)#信息
+        def 分配失败(错误):
+            '分配失败：摘进行，原样拒绝'
+            拥有['pending'].pop(标识,None)#摘进行
+            结果.拒绝(错误)
+        任务.然后(分配完成,分配失败)#等分配
+        return 结果
 
     @_流方法
     def retain(自身,会话标识,标识,信号):#窗口保持
@@ -189,25 +206,34 @@ class 终端控制器(远程服务):#会话范围浏览器终端
 
     @_远程
     def close(自身,智能体,标识):#关身份并杀进程范围
-        '重复关闭成功；清理失败则保留以便重试'
+        '重复关闭成功；清理失败则保留以便重试。返回期约，关闭完成后解决，失败则拒绝'
         拥有=自身._拥有(智能体)#拥有
         拥有['closedIds'].add(标识)#记住关闭
         进行=拥有['pending'].get(标识)#进行中创建
-        if 进行 is not None:#等创建
-            try:#等
-                进行.等待()#等
-            except BaseException:#创建失败仍拥有已分配进程
-                pass
-        终端=拥有['terminals'].get(标识)#已提交
-        if 终端 is not None:#有
-            终端.关闭()#关
-            拥有['terminals'].pop(标识,None)#摘
-        else:#残留分配
-            分配=拥有['allocations'].get(标识)#残留
-            if 分配 is None:#无
-                return#成功
-            分配['cleanup'].close()#关
-            拥有['allocations'].pop(标识,None)#摘
+        结果=期约()#本次关闭的结算点
+        def 关闭已提交(创建结果=None):
+            '创建落定（成败相同对待，创建失败仍拥有已分配进程）后关闭终端或残留分配'
+            try:
+                终端=拥有['terminals'].get(标识)#已提交
+                if 终端 is not None:#有
+                    终端.关闭()#关
+                    拥有['terminals'].pop(标识,None)#摘
+                else:#残留分配
+                    分配=拥有['allocations'].get(标识)#残留
+                    if 分配 is None:#无
+                        结果.解决()#成功
+                        return
+                    分配['cleanup'].close()#关
+                    拥有['allocations'].pop(标识,None)#摘
+            except BaseException as 错误:#线程入口把失败收进结果
+                结果.拒绝(错误)
+                return
+            结果.解决()
+        if 进行 is None:#没有进行中的创建
+            关闭已提交()
+        else:
+            进行.然后(关闭已提交,关闭已提交)#等创建
+        return 结果
 
     def _拥有(自身,智能体):#按会话
         '没有则创建并挂智能体拆除'
@@ -227,46 +253,42 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             def 拆除效果():#智能体拆除
                 '拆本拥有者'
                 def 清理():#拆除器
-                    '委托'
-                    自身._拆除拥有者(标识,持有)#拆
+                    '委托，返回拆除完成的期约'
+                    return 自身._拆除拥有者(标识,持有)#拆
                 return 清理#拆除器
             智能体.ctx.副作用(拆除效果,'terminal-controller.owner')
         return 拥有
 
     def _拆除拥有者(自身,标识,拥有):#一次
-        '等进行中创建，关终端，杀残留'
-        if 拥有['cleanup'] is not None:#已开始
-            拥有['cleanup'].wait()#等
-            return
-        完成=threading.Event()#完成
+        '等进行中创建，关终端，杀残留。返回期约，拆除完成后解决，失败则拒绝'
+        if 拥有['cleanup'] is not None:#已开始，共享同一期约
+            return 拥有['cleanup']
+        完成=期约()#完成
         拥有['cleanup']=完成#记下
         拥有['lifetime'].中止(远程错误('gateway/internal','Terminal Session owner disposed',{}))#中止
-        try:#拆
-            for 任务 in list(拥有['pending'].values()):#进行中
-                try:#等
-                    任务.等待()#等
-                except BaseException:#忽略
-                    pass
+        def 关终端并杀残留(进行结果=None):
+            '进行中创建全部落定后关终端并拆残留保持'
             失败=[]#错误
             for 终端 in list(拥有['terminals'].values()):#终端
                 try:#关
                     终端.关闭()#关
-                except BaseException as 错误:
+                except BaseException as 错误:#收齐失败后聚合
                     失败.append(错误)#收
             for 分配 in list(拥有['allocations'].values()):#残留
                 try:#拆除保持
                     分配['cleanup'].dispose()#拆
-                except BaseException as 错误:
+                except BaseException as 错误:#收齐失败后聚合
                     失败.append(错误)#收
             if len(失败)>0:#有
                 拥有['cleanup']=None#可重试
-                完成.set()#放行等待者
-                raise 聚合错误(失败,'Session terminal cleanup failed')#聚合
+                完成.拒绝(聚合错误(失败,'Session terminal cleanup failed'))#聚合
+                return
             拥有['terminals'].clear()#清空
             拥有['allocations'].clear()#清空
             自身.拥有者.pop(标识,None)#摘
-        finally:#广播
-            完成.set()#完
+            完成.解决()#完
+        期约.全部已结算(list(拥有['pending'].values())).然后(关终端并杀残留)#进行中创建成败都等
+        return 完成
 
     def _终端(自身,智能体,标识):#已提交
         '不存在则拒绝'
@@ -299,16 +321,17 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         return {'subprocess':子进程,'sandboxPolicy':沙箱政策}#提供方
 
     def _分配任务(自身,智能体,拥有,请求,信号):#后台 spawn
-        '返回可等待任务'
-        任务=操作任务()#任务
-        def 在线程执行():#线程
+        '返回期约，解决值是分配好的终端'
+        任务=期约()#任务
+        def 分配线程():#线程
             'spawn'
             try:#分配
                 值=自身._生成(智能体,拥有,请求,信号)#终端
-                任务.兑现(值)#完
-            except BaseException as 错误:
+            except BaseException as 错误:#线程入口把失败收进任务
                 任务.拒绝(错误)#拒绝
-        threading.Thread(target=在线线程执行).start()#跑
+                return
+            任务.解决(值)#完
+        threading.Thread(target=分配线程).start()#跑
         return 任务#任务
 
     def _生成(自身,智能体,拥有,请求,信号):#spawnTerminal

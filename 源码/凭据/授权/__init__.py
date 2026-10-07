@@ -95,14 +95,33 @@ class 授权服务(服务):
         控制器=信号 if 信号 is not None else threading.Event()#本尝试中止旗
         自身.运行表[键]={'信号':控制器,'提交中':False}#占槽
         结算='failed'#默认失败
+        延后放槽=False#期约还没落定则先不放槽
         try:#运行流程
             交互=请求['interaction'] if 'interaction' in 请求 else None#交互面
             结果=自身.尝试(流程,方法,控制器,交互)#一次尝试
+            if getattr(结果,'状态',None) is not None and callable(getattr(结果,'然后',None)):#流程改成期约
+                延后放槽=True#落定后再放槽
+                def 记下(值):
+                    '期约兑现后记下结算'
+                    nonlocal 结算#改外层
+                    结算=值['status']#记录结算
+                    return 值#原样
+                def 失败(错误):
+                    '期约拒绝仍按失败放槽'
+                    nonlocal 结算#改外层
+                    结算='failed'#失败
+                    raise 错误#上抛
+                def 放槽(落定值=None):
+                    '期约落定后释放槽并扇出'
+                    自身.运行表.pop(键,None)#释放
+                    自身.结算(键,结算)#事件扇出
+                return 结果.然后(记下,失败).最终(放槽)#调用方链式
             结算=结果['status']#记录结算
             return 结果#返回结果
         finally:#释放槽并扇出 settled
-            自身.运行表.pop(键,None)#释放
-            自身.结算(键,结算)#事件扇出
+            if not 延后放槽:#同步路径在这里放槽
+                自身.运行表.pop(键,None)#释放
+                自身.结算(键,结算)#事件扇出
 
     def 结算(自身,键,结算):
         '监听器失败记日志；INVARIANT 失败重抛'
@@ -132,6 +151,7 @@ class 授权服务(服务):
             if 键==流程['key']:#本键
                 已观察['committed']=True#已提交
         取消监听=自身.ctx.监听('credentials/record-updated',记录更新)#挂监听
+        延后收听=False#期约还没落定则先留着监听
         try:#运行流程
             if 信号已中止(信号):#已撤回
                 return {'status':'cancelled'}#取消
@@ -161,19 +181,42 @@ class 授权服务(服务):
                     '忽略当前，写入本尝试记录'
                     return 记录
                 自身.ctx.credentials.修改记录(流程['key'],给出记录)
-            流程['run']({#会话面
+            跑出=流程['run']({#会话面
                 'method':方法,#所选方法
                 'signal':信号,#取消信号
                 'commit':提交记录,#提交
                 'notify':通知包装,#通知
                 'prompt':提示包装,#提示
-            })#run 调用已同步
+            })#同步流程返回 None；换码流程返回期约
+            if getattr(跑出,'状态',None) is not None and callable(getattr(跑出,'然后',None)):#还没换完码
+                延后收听=True#提交发生在回调里
+                def 提交已核对(落定值=None):
+                    '换码落定后再核对是否提交'
+                    取消监听()#拆监听
+                    if not 已观察['committed']:#未提交
+                        raise 授权错误('authorization flow for "'+str(流程['key'])+'" resolved without committing a credential record in this attempt','NOT_COMMITTED')#未提交
+                    记录键=流程['key']#目标键
+                    if hasattr(自身.ctx.credentials,'描述记录') and isinstance(记录键,str) and '/' in 记录键:#记录键
+                        描述=自身.ctx.credentials.描述记录(记录键)#读记录描述
+                    else:#引用键
+                        描述=自身.ctx.credentials.描述(记录键)#读引用描述
+                    if not 描述['configured']:#提交后又删
+                        raise 授权错误('authorization flow for "'+str(流程['key'])+'" deleted its credential record instead of committing one','NOT_COMMITTED')#未提交
+                    return {'status':'authorized'}#成功
+                def 流程失败(错误):
+                    '换码拒绝'
+                    取消监听()#拆监听
+                    if 信号已中止(信号) or 已观察['declined']:#撤回或拒绝
+                        return {'status':'cancelled'}#取消
+                    raise 错误#上抛
+                return 跑出.然后(提交已核对,流程失败)#调用方链式
         except Exception as 错误:#流程 run 可抛任意类型，无法再收窄
             if 信号已中止(信号) or 已观察['declined']:#撤回或拒绝
                 return {'status':'cancelled'}#取消
             raise 错误#其它失败上抛
         finally:#拆掉监听
-            取消监听()#disposer
+            if not 延后收听:#同步路径在这里拆
+                取消监听()#disposer
         if not 已观察['committed']:#未提交
             raise 授权错误('authorization flow for "'+str(流程['key'])+'" resolved without committing a credential record in this attempt','NOT_COMMITTED')#未提交
         键=流程['key']#目标键

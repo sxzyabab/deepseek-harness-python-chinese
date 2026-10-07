@@ -1,4 +1,4 @@
-import threading#后台读目录
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 启动守护线程,观察者集合
 from ..异常 import 预设错误#本包异常
 
@@ -25,27 +25,22 @@ class 快照存储:#简易 SnapshotStore
         自身.监听者.通知()#触发
 
 class 读任务:#一次目录读取
-    '线程加等待'
+    '线程加期约'
     def __init__(自身,函数):
-        '开跑'
-        自身._结果=None#值
-        自身._错误=None#失败
-        自身._事件=threading.Event()#完成
+        '开跑。函数返回期约'
+        自身.期约=期约()#本次读取
         def 在线程执行():
             '执行读取'
             try:#读
-                自身._结果=函数()#值
+                产出=函数()#期约
             except 预设错误 as 错误:#失败
-                自身._错误=错误#记下
-            自身._事件.set()#完成
-        启动守护线程(在线线程执行)#后台
-
-    def 等待(自身):
-        '阻塞至完成'
-        自身._事件.wait()#等
-        if 自身._错误 is not None:#失败
-            raise 自身._错误#抛
-        return 自身._结果#值
+                自身.期约.拒绝(错误)#记下
+                return
+            except BaseException as 错误:#其它失败
+                自身.期约.拒绝(错误)#记下
+                return
+            产出.然后(自身.期约.解决,自身.期约.拒绝)#接上
+        启动守护线程(在线程执行)#后台
 
 class 权限目录:#进程级最新结果获胜的目录
     '整份浏览器进程一份完整权限目录'
@@ -88,25 +83,36 @@ class 权限目录:#进程级最新结果获胜的目录
         自身.开始读(世代标识)#读
 
     def 加载(自身):
-        '命令弹出打开时取当前世代完整目录。进行中刷新先结算'
+        '命令弹出打开时取当前世代完整目录。进行中刷新先结算。返回期约'
         if 自身.待决 is None and 自身.store.getSnapshot()['value'] is None:#还没有值
             自身.刷新()#开读
-        while 自身.已拆除 is False:#直到有值或拆除
+        结算=期约()#本次加载
+        def 看():
+            '有值则解决，进行中则等它再看'
+            if 自身.已拆除 is True:#已拆
+                结算.拒绝(预设错误('permission catalog directory is disposed'))#已拆
+                return
             快=自身.连接.generation.getSnapshot()#世代
             世代标识=快['id'] if 快 is not None and 'id' in 快 else None#id
             if 世代标识 is None:#无连接
-                raise 预设错误('permission catalog has no active Host connection')#抛
+                结算.拒绝(预设错误('permission catalog has no active Host connection'))#抛
+                return
             if 世代标识!=自身.世代标识:#世代变了
                 自身.同步世代()#同步
             待决=自身.待决#进行中
             if 待决 is not None:#有
-                待决.等待()#等
-                continue#再看
+                def 再看(_值=None):
+                    '进行中的读取落定后再看'
+                    看()
+                待决.期约.然后(再看,再看)#等
+                return
             态=自身.store.getSnapshot()#快照
             if 态['value'] is not None:#有值
-                return 态['value']#目录
-            raise 自身.失败#失败
-        raise 预设错误('permission catalog directory is disposed')#已拆
+                结算.解决(态['value'])#目录
+                return
+            结算.拒绝(自身.失败)#失败
+        看()
+        return 结算
 
     def dispose(自身):
         '停订阅并收回迟到结算的写入权'
@@ -143,28 +149,42 @@ class 权限目录:#进程级最新结果获胜的目录
         纪元=自身.纪元#本读
         自身.失败=预设错误('permission catalog has no complete value')#重置
         def 读():
-            '拉完整目录'
-            结果=自身.上下文.remote.permissionPresets.catalog().等待()#RPC
-            if 结果['ok'] is not True:#失败
-                错=结果['error']#错误
-                raise 预设错误(str(错['code'])+': '+str(错['message']))#码+消息
-            return 结果['value']#目录
+            '拉完整目录，返回期约'
+            目录结果=期约()#本次目录
+            def 已目录(结果):
+                '远程返回'
+                if 结果['ok'] is not True:#失败
+                    错=结果['error']#错误
+                    目录结果.拒绝(预设错误(str(错['code'])+': '+str(错['message'])))#码+消息
+                    return
+                目录结果.解决(结果['value'])#目录
+            try:#RPC
+                自身.上下文.remote.permissionPresets.catalog().然后(已目录,目录结果.拒绝)#RPC
+            except Exception as 错误:#同步失败
+                目录结果.拒绝(错误)
+            return 目录结果
         操作=读任务(读)#开跑
-        def 结算():
-            '写回或记下失败'
-            try:#等
-                值=操作.等待()#目录
-                if 自身.接受(纪元,世代标识) is False:#过期
-                    return#丢
-                自身.store.set({'value':值})#写入
-            except 预设错误 as 错误:#失败
-                if 自身.接受(纪元,世代标识) is False:#过期
-                    return#丢
-                自身.失败=错误#记下
-                自身.store.set({'value':None})#清
+        def 清待决():
+            '仍是自己则清'
             if 自身.待决 is 操作:#仍是自己
                 自身.待决=None#清
-        启动守护线程(结算)#后台结算
+        def 结算成功(值):
+            '写回'
+            if 自身.接受(纪元,世代标识) is False:#过期
+                清待决()
+                return
+            自身.store.set({'value':值})#写入
+            清待决()
+        def 结算失败(错误):
+            '记下失败'
+            if 自身.接受(纪元,世代标识) is False:#过期
+                清待决()
+                return
+            if isinstance(错误,预设错误):#业务失败
+                自身.失败=错误#记下
+                自身.store.set({'value':None})#清
+            清待决()
+        操作.期约.然后(结算成功,结算失败)#后台结算
         自身.待决=操作#记下
 
     def 接受(自身,纪元,世代标识):

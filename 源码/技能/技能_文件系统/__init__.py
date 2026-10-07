@@ -1,5 +1,5 @@
 import os,stat,threading,time#路径、文件状态、监视线程与稳定计时
-from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约
 from ...依赖.schemastery import 字符串字段,布尔字段,列表字段,数字字段#配置字段
 from .发现 import (
     项目dsh排名,#项目 .dsh/skills 排名
@@ -186,12 +186,32 @@ def 是否潜在技能路径(根,路径):#宿主变更路径是否可能是技�
         return 段列表[0].endswith('.md')#一层须是 md
     return 段列表[1]=='SKILL.md'#两层须是 SKILL.md
 
+def 等到结算(结算):
+    '调用线程等到期约落定；拒绝则抛出'
+    完成=threading.Event()
+    盒子={'值':None,'拒绝':False}
+    def 成功(值=None):
+        盒子['值']=值
+        完成.set()
+    def 失败(错误=None):
+        盒子['值']=错误
+        盒子['拒绝']=True
+        完成.set()
+    结算.然后(成功,失败)
+    完成.wait()
+    if 盒子['拒绝']:
+        错误=盒子['值']
+        if isinstance(错误,BaseException):
+            raise 错误
+        raise 技能文件系统错误('期约已拒绝')
+    return 盒子['值']
+
 def 等待监视器打开(打开):#等待打开并吞掉失败
-    '等待打开并吞掉失败。打开是操作任务或 None'
+    '等待打开并吞掉失败。打开是期约或 None'
     if 打开 is None:#没有进行中的打开
         return#无事
     try:#打开可能已失败
-        打开.等待()#等待结算
+        等到结算(打开)#等到落定
     except BaseException:#打开失败
         return#监视启动已记下底层失败；拆除只收容它
 
@@ -674,13 +694,13 @@ class 技能根监视:#技能根监视
             return#立刻
         已有=状态['opening']#已有进行中的打开
         if 已有 is not None:#已有进行中的打开
-            已有.等待()#交给调用方等待
+            等到结算(已有)#交给调用方等待
             return
-        打开=操作任务()#启动打开
+        打开=期约()#启动打开
         状态['opening']=打开#记下进行中
         try:#无论成败都清 opening
             自身.确保当前监视器(状态)#核对或替换
-            打开.兑现()#成功
+            打开.解决()#成功
         except BaseException as 错误:#打开失败
             打开.拒绝(错误)#失败
             状态['opening']=None#清进行中
@@ -771,7 +791,7 @@ class 技能根监视:#技能根监视
             监视器.关闭()#关掉
         句柄={'mode':模式,'关闭':关闭句柄,'options':监视器.options,'watcher':监视器}#包装关闭，并暴露监视选项
         已就绪=False#ready 之前的 error 拒绝 readiness
-        就绪=操作任务()#等待 ready
+        就绪=期约()#等待 ready
         信号=自身.生命周期.信号#技能根监视生命周期
         if 已中止(信号):#已拆除
             自身.关闭监视器(句柄)#关掉刚打开的
@@ -797,7 +817,7 @@ class 技能根监视:#技能根监视
             '首次就绪'
             nonlocal 已就绪#改外层
             已就绪=True#之后 error 走运行时路径
-            就绪.兑现()#打开完成
+            就绪.解决()#打开完成
         监视器.on('error',收到错误)#挂错误
         监视器.on('ready',收到就绪)#首次就绪
         for 事件 in ('add','addDir','change','unlink','unlinkDir'):#关心的事件
@@ -810,7 +830,7 @@ class 技能根监视:#技能根监视
             监视器.on(事件,绑定(事件))#挂事件
         监视器.启动()#开始监视（原生或轮询由 usePolling 决定）
         try:#等待 ready 或失败
-            就绪.等待()#打开完成
+            等到结算(就绪)#打开完成
         except BaseException as 错误:#ready 前失败
             自身.关闭监视器(句柄)#关掉
             raise 错误#上抛

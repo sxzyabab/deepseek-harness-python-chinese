@@ -1,3 +1,4 @@
+from ......基础设施.js特性 import PromiseEX as 期约扩展#后端方法的返回期约
 from .桥接 import Host通知通道#通知通道
 
 __all__=['Host控制台后端']#仅中文公开名
@@ -20,7 +21,7 @@ class Host控制台后端:#Host Console后端
         return 消息.get('method') in ('Runtime.consoleAPICalled','Runtime.exceptionThrown')#过滤
 
     def _投影(自身,消息):#投影
-        '按方法投影事件'
+        '按方法投影事件，返回期约，兑现值是事件或 None'
         if 消息.get('method')=='Runtime.consoleAPICalled':#Console
             return 自身._控制台事件(消息['params'] if 'params' in 消息 else None)#Console
         return 自身._异常事件(消息['params'] if 'params' in 消息 else None)#异常
@@ -30,44 +31,51 @@ class Host控制台后端:#Host Console后端
         return 自身._事件.订阅(监听)#委托
 
     def 清空(自身):#清空
-        '丢弃 Console 条目'
-        自身.目标.请求('Runtime.discardConsoleEntries',{})#丢弃条目
+        '丢弃 Console 条目，返回期约'
+        return 自身.目标.请求('Runtime.discardConsoleEntries',{})#丢弃条目
 
     def 关闭(自身):#关闭
         '拆除原生通知订阅'
         自身._事件.关闭()#关通道
 
     def _控制台事件(自身,参数):#Console事件
-        '投影 consoleAPICalled'
+        '投影 consoleAPICalled，返回期约，兑现值是事件或 None'
         if 参数 is None:#无参数
             参数={}#空映射
         类型=参数['type'] if 'type' in 参数 else None#类型
         参数列表=参数['args'] if 'args' in 参数 else None#参数列表
         时间戳=参数['timestamp'] if 'timestamp' in 参数 else None#时间戳
         if 类型 not in 控制台类型 or not isinstance(参数列表,list) or not isinstance(时间戳,float) and not (isinstance(时间戳,int) and not isinstance(时间戳,bool)):#无效
-            return None#无
-        参数对象=[]#参数对象
-        for 值 in 参数列表:#扫
-            参数对象.append(自身.运行时.远程对象(值))#转换
-        事件={'type':类型,'arguments':参数对象,'timestamp':时间戳}#载荷
-        上下文id=参数['executionContextId'] if 'executionContextId' in 参数 else None#上下文
-        if isinstance(上下文id,int) and not isinstance(上下文id,bool) or isinstance(上下文id,float):#上下文
-            事件['contextId']=上下文id#写入
-        栈=参数['stackTrace'] if 'stackTrace' in 参数 else None#栈
-        if isinstance(栈,dict):#有栈
-            事件['stackTrace']=自身.运行时.栈跟踪(栈)#转换
-        return {'type':'console-api','event':事件}#事件
+            无事件=期约扩展()#无效通知的期约
+            无事件.解决(None)#无效通知不产出事件
+            return 无事件#返回已解决的期约
+        def 组装事件(参数对象):#全部参数转换完成后调用
+            '组装 Console 事件'
+            事件={'type':类型,'arguments':参数对象,'timestamp':时间戳}#载荷
+            上下文id=参数['executionContextId'] if 'executionContextId' in 参数 else None#上下文
+            if isinstance(上下文id,int) and not isinstance(上下文id,bool) or isinstance(上下文id,float):#上下文
+                事件['contextId']=上下文id#写入
+            栈=参数['stackTrace'] if 'stackTrace' in 参数 else None#栈
+            if isinstance(栈,dict):#有栈
+                事件['stackTrace']=自身.运行时.栈跟踪(栈)#转换
+            return {'type':'console-api','event':事件}#事件
+        return 期约扩展.全部([自身.运行时.远程对象(值) for 值 in 参数列表]).然后(组装事件)#各参数并发转换
 
     def _异常事件(自身,参数):#异常事件
-        '投影 exceptionThrown'
+        '投影 exceptionThrown，返回期约，兑现值是事件或 None'
         if 参数 is None:#无参数
             参数={}#空映射
         时间戳=参数['timestamp'] if 'timestamp' in 参数 else None#时间
         异常详情=参数['exceptionDetails'] if 'exceptionDetails' in 参数 else None#异常详情
         if not (isinstance(时间戳,float) or (isinstance(时间戳,int) and not isinstance(时间戳,bool))) or 异常详情 is None:#无效
-            return None#无
-        事件={'timestamp':时间戳,'details':自身.运行时.异常详情(异常详情)}#载荷
-        上下文id=参数['executionContextId'] if 'executionContextId' in 参数 else None#上下文
-        if isinstance(上下文id,int) and not isinstance(上下文id,bool) or isinstance(上下文id,float):#上下文
-            事件['contextId']=上下文id#写入
-        return {'type':'exception','event':事件}#事件
+            无事件=期约扩展()#无效通知的期约
+            无事件.解决(None)#无效通知不产出事件
+            return 无事件#返回已解决的期约
+        def 组装事件(详情):#异常详情转换完成后调用
+            '组装异常事件'
+            事件={'timestamp':时间戳,'details':详情}#载荷
+            上下文id=参数['executionContextId'] if 'executionContextId' in 参数 else None#上下文
+            if isinstance(上下文id,int) and not isinstance(上下文id,bool) or isinstance(上下文id,float):#上下文
+                事件['contextId']=上下文id#写入
+            return {'type':'exception','event':事件}#事件
+        return 自身.运行时.异常详情(异常详情).然后(组装事件)#异常详情转换完成后再组装

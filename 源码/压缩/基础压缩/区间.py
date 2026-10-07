@@ -11,7 +11,13 @@ from ...模型后端.llm import 创建用户消息#导入用户消息
 from ...模型后端.llm.异常 import 错误链#导入错误链
 from .异常 import 基础压缩错误,表面已变错误#本包异常
 from .摘要器 import 装帧摘要#导入检查点装帧
-from ...基础设施.通用工具 import 已中止
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 
 def 若已中止则抛出(信号):
     '已中止则抛出承载原因的异常'
@@ -380,23 +386,38 @@ def 压缩表面区间(依赖,会话,起点,终点,智能体,选项,信号=None)
                 已关闭=True#已关闭
             except Exception as 关闭错误:#关闭本身失败不得掩盖
                 失败={'error':关闭错误,'stage':'commit'}#改记为提交失败
+    结果期约=期约()#本次事务的结算点
+    def 结算(刷盘失败):
+        '刷盘落定（失败只记下，不掩盖事务结果）后，按取消、事务失败、刷盘失败分类结算'
+        try:
+            if ('owner' not in 选项) or 选项['owner'] is None:#取消仍优先于失败分类
+                若已中止则抛出(信号)#取消优先
+            if 失败 is not None:#事务失败
+                if ('owner' not in 选项) or 选项['owner'] is None:#手动路径分类抛出
+                    抛手动失败(失败)#分类
+                raise 失败['error']#自动路径原样抛
+            if 刷盘失败 is not None:#刷盘失败
+                raise 手动压缩错误(#映射为 persistence
+                    'persistence',#持久化码
+                    'manual compaction durability checkpoint failed',#刷盘失败
+                    {'cause':刷盘失败},#保留原因
+                )#抛出结束
+            if 结果 is None:#无结果却走到成功
+                raise 基础压缩错误('compaction committed without a result')#无结果
+        except BaseException as 错误:#线程入口把分类后的失败收进结果
+            结果期约.拒绝(错误)
+            return
+        结果期约.解决(结果)#成功结果
+    def 刷盘成功(刷盘结果=None):
+        '刷盘成功：没有刷盘失败'
+        结算(None)
     if 已关闭 and 'flush' in 选项 and 选项['flush'] is not None:#已关闭且要刷盘
         try:#耐久检查点
-            选项['flush']().等待()#刷盘
+            刷盘期约=选项['flush']()#刷盘
         except Exception as 错误:#刷盘失败不得掩盖事务结果
-            刷盘失败=错误#记下，不掩盖事务结果
-    if ('owner' not in 选项) or 选项['owner'] is None:#取消仍优先于失败分类
-        若已中止则抛出(信号)#取消优先
-    if 失败 is not None:#事务失败
-        if ('owner' not in 选项) or 选项['owner'] is None:#手动路径分类抛出
-            抛手动失败(失败)#分类
-        raise 失败['error']#自动路径原样抛
-    if 刷盘失败 is not None:#刷盘失败
-        raise 手动压缩错误(#映射为 persistence
-            'persistence',#持久化码
-            'manual compaction durability checkpoint failed',#刷盘失败
-            {'cause':刷盘失败},#保留原因
-        )#抛出结束
-    if 结果 is None:#无结果却走到成功
-        raise 基础压缩错误('compaction committed without a result')#无结果
-    return 结果#成功结果
+            结算(错误)#记下，不掩盖事务结果
+            return 结果期约
+        刷盘期约.然后(刷盘成功,结算)#刷盘落定后结算；刷盘失败只记下
+    else:
+        结算(None)#无需刷盘
+    return 结果期约#调用方对期约链接 然后 与 捕获

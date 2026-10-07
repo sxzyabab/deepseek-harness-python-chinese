@@ -1,6 +1,12 @@
 '跨会话快照准备'
 import weakref#按智能体弱表
-from ...基础设施.通用工具 import 紧凑json编码,已中止
+from ...基础设施.通用工具 import 紧凑json编码
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 from ...依赖.schemastery import 整数字段,数字字段
 from ...模型后端.llm import 创建用户消息,冻结消息,结构化克隆
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程

@@ -3,7 +3,6 @@ import os#路径基名
 import re#分叉标题
 import threading
 from ....基础设施.通用工具 import 获取内部数据,启动守护线程
-from ....工具.超时 import 若已中止则抛出#中止
 from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
 from .会话簇 import 会话簇#会话簇

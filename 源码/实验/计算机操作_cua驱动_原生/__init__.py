@@ -1,8 +1,7 @@
-import json,re,threading#目录、工具名与在途
+import json,re#目录与工具名
+from ...基础设施.js特性 import PromiseEX as 期约#就绪、在途与拆除的异步结果
 from ...依赖.schemastery import 复合类型字段#空配置
 from ...计算机操作.计算机操作.标识构造 import 计算机操作提供方名#提供方名
-from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号,已中止#中止
-from ...内核.作用域 import 操作任务#在途结算
 from .异常 import 驱动错误#本包异常
 
 __all__=['名称','依赖','配置','应用']
@@ -38,7 +37,7 @@ def 解析目录(原始):#校验目录
     return {'tools':工具表}#目录
 
 def 应用(上下文,配置值=None):#占用并挂原生
-    '启动失败回滚全部登记'
+    '启动失败回滚全部登记。返回期约，运行时发现完成后兑现'
     寿命=中止控制器()#寿命
     在途=set()#在途任务
     驱动箱={'驱动':None}#原生句柄
@@ -47,7 +46,7 @@ def 应用(上下文,配置值=None):#占用并挂原生
         if 纤程 is getattr(上下文,'fiber',None) and getattr(纤程,'uid',True) is None:#本纤程
             寿命.中止()#中止
     上下文.on('internal/plugin',插件事件)#监听
-    就绪=操作任务()#子就绪
+    就绪=期约()#运行时发现完成时兑现，失败时拒绝
     def 运行时寿命():#登记与拆除
         '先放登记再关原生'
         撤销=上下文.computerUse.登记(计算机操作提供方名('cua-driver-native'))#占用
@@ -55,18 +54,14 @@ def 应用(上下文,配置值=None):#占用并挂原生
             '子插件拥有目录与工具'
             挂运行时(内,寿命,在途,驱动箱,就绪)#挂
         子=上下文.启动插件({'name':'computer-use-cua-driver-native-runtime','inject':['tools','systemPrompt'],'apply':应用子})#子
-        def 卸():#拆除
-            '中止、等在途、关 SDK、放登记'
-            寿命.中止()#中止
-            try:#等就绪失败
-                就绪.等待()#等
-            except Exception:#启动失败
-                pass#拆除仍拥有句柄
-            for 任务 in list(在途):#在途
-                try:#等
-                    任务.等待()#等
-                except Exception:#忽略
-                    pass#结算
+        def 忽略启动失败(错误):#启动失败
+            '启动失败由 应用 报告；拆除仍拥有原生句柄，需要继续'
+            return None#失败已被消化，拆除继续
+        def 等在途(就绪值):#就绪结算后
+            '等全部在途工具调用结算，失败也继续'
+            return 期约.全部已结算(list(在途))#栅栏，不关心各自结果
+        def 关闭原生并放回登记(在途结算值):#在途结清后
+            '关 SDK、拆子插件、放回登记'
             驱动=驱动箱['驱动']#句柄
             if 驱动 is not None:#有
                 驱动.shutdown()#关
@@ -75,16 +70,21 @@ def 应用(上下文,配置值=None):#占用并挂原生
             if hasattr(子,'dispose'):#纤程
                 子.dispose()#拆
             撤销()#放
+        def 卸():#拆除
+            '中止、等在途、关 SDK、放登记。返回期约'
+            寿命.中止()#中止
+            return 就绪.捕获(忽略启动失败).然后(等在途).然后(关闭原生并放回登记)#按顺序结清
         return 卸#拆除器
     拆除=上下文.副作用(运行时寿命,'computer-use-cua-driver-native.runtime')#寿命
-    try:#等就绪
-        就绪.等待()#等
-    except Exception as 错误:#失败
+    def 启动失败回滚(错误):#启动失败
+        '启动失败：拆除全部登记后抛出原错误'
+        def 拆除后抛出(已拆除值):#拆完
+            '回滚完成后抛出原错误'
+            raise 错误#原样抛出
         if callable(拆除):#拆除
-            拆除()#回滚
-        elif hasattr(拆除,'dispose'):#纤程
-            拆除.dispose()#回滚
-        raise 错误#原样
+            return 拆除().然后(拆除后抛出)#回滚
+        return 拆除.dispose().然后(拆除后抛出)#纤程回滚
+    return 就绪.捕获(启动失败回滚)#等运行时发现完成，失败则回滚
 
 def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
     '导入 SDK、建运行时、发现工具'
@@ -122,21 +122,21 @@ def 挂运行时(内,寿命,在途,驱动箱,就绪):#发现并登记
                 return 下一()#过
             上游=执行.get('signal')
             执行['signal']=合成信号(上游,寿命.信号)#合成
-            任务=操作任务()#在途
-            在途.add(任务)#记下
-            try:#跑
-                值=下一()#跑
-                任务.兑现(值)#兑现
-                return 值#结果
-            except Exception as 错误:#失败
-                任务.拒绝(错误)#拒绝
-                raise 错误#原样
-            finally:#清
-                在途.discard(任务)#摘
+            启动=期约()#下一在登记在途之后才开始
+            def 调用下一(启动值):#开始
+                '开始本次工具调用；同步抛出也转成拒绝'
+                return 下一()#下游执行
+            操作=启动.然后(调用下一)#在途操作
+            在途.add(操作)#拆除时要等它结算
+            启动.解决(None)#在途已登记，开始执行
+            def 清理():#结算后
+                '本次调用结算后摘出在途并还原信号'
+                在途.discard(操作)#摘
                 执行['signal']=上游#还原
+            return 操作.最终(清理)#无论成败都清理
         内.on('tools/execute',执行钩)#钩
         内.systemPrompt.section({'name':'computer-use:cua-driver-native','order':内.systemPrompt.getSectionOrder('TOOL_COMPUTER_USE'),'text':指引})#指引
-        就绪.兑现(None)#就绪
+        就绪.解决(None)#就绪
     except Exception as 错误:#失败
         就绪.拒绝(错误)#拒绝
         raise 错误#原样

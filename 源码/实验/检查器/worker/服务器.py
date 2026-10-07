@@ -1,4 +1,3 @@
-from ..共享.json import 在线程执行#后台执行
 from .inspection.网络存储 import 网络存储#网络存储
 from .cdp.domains.network.会话 import 网络域#Network域
 from .inspection.cordis存储 import Cordis树存储#Cordis树存储
@@ -81,13 +80,17 @@ def 启动检查器Worker(启动包):#启动Worker
     Host端口.start()#启动端口
     端点主=检查器端点(配置,源注册表,网络,realms,cordisDom,读cordis树,查询路由)#端点所有者
     端点=端点主.启动()#启动端点
-    已关闭=[None]#关闭任务盒
+    已关闭=False#首次关闭执行拆除
+    关闭错误=None#首次失败留住，再次关闭抛同一个错误
     def 关闭():#关闭
-        '惰性单次关闭'
-        if 已关闭[0] is not None:#已关
-            return 已关闭[0].等待()#复用
-        def 体():#关闭体
-            '逆序拆除'
+        '惰性单次关闭。端点关闭在返回前就停完，拆除出错则抛出'
+        nonlocal 已关闭,关闭错误#首次关闭时赋值
+        if 已关闭:#已关
+            if 关闭错误 is not None:#上次失败
+                raise 关闭错误#再次关闭抛同一个错误
+            return#已拆完
+        已关闭=True#登记，重入不再拆第二遍
+        try:#逆序拆除
             端点主.关闭()#关端点
             网络.关闭()#关网络域
             网络仓.拆除()#拆除网络存储
@@ -100,6 +103,7 @@ def 启动检查器Worker(启动包):#启动Worker
             取消查询订阅()#取消订阅
             查询路由.关闭()#关查询路由
             Host端口.close()#关Host端口
-        已关闭[0]=在线程执行(体)#登记
-        return 已关闭[0].等待()#返回
+        except Exception as 错误:#各组件拆除什么都可能抛，契约未定所以收不窄
+            关闭错误=错误#留住，再次关闭抛同一个错误
+            raise#拆除出错直接抛出
     return {'endpoint':端点,'close':关闭}#运行时

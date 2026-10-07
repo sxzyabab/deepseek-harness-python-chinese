@@ -3,7 +3,8 @@ import os,json,threading
 from ...内核.作用域 import 获取载体键
 from ...类型化远程调用.协议 import 是否远程json值
 from ...工具.双端队列 import 双端队列
-from ...api.网关.网关 import 操作任务,已中止
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+from ...api.网关.网关 import 已中止
 from ...交互.命令 import 类型 as _命令类型#侧效：命令事件声明
 from ...拓展.cordis服务端 import 类型 as _动态类型#侧效：动态包转发事件
 from ...凭据.凭据 import 类型 as _凭据类型#侧效：凭证事件声明
@@ -141,27 +142,27 @@ def 远程事件源结束原因(信号):
     return Exception('api-remotes: 转发的 Remote 事件源已结束')
 
 def 转发瀑布(队列,事件,请求,上下文,下一步):
-    '把一次 Cordis 瀑布经网关挂起事件桥出'
-    任务=操作任务()
-    def 兑现(结局):
+    '把一次 Cordis 瀑布经网关挂起事件桥出。返回期约，解决值是客户端结果或下一环的结果'
+    任务=期约()#本次瀑布的结算点
+    def 解决结局(结局):
         '客户端结果或委托下一环'
         if 结局.get('kind')=='result':
-            任务.兑现(结局.get('value'))
+            任务.解决(结局.get('value'))#客户端给出的结果
             return
         try:
-            任务.兑现(下一步())
-        except BaseException as 错误:
+            任务.解决(下一步())#没有客户端结果则走下一环
+        except BaseException as 错误:#下一环的失败交给调用方
             任务.拒绝(错误)
     派发={
         'event':事件,'request':请求,'context':上下文,
-        'resolve':兑现,'reject':任务.拒绝,
+        'resolve':解决结局,'reject':任务.拒绝,
     }
     if not 队列.推入(派发):
         try:
-            任务.兑现(下一步())
-        except BaseException as 错误:
+            任务.解决(下一步())#队列已结束，直接走下一环
+        except BaseException as 错误:#下一环的失败交给调用方
             任务.拒绝(错误)
-    return 任务.等待()
+    return 任务#调用方对期约链接 然后 与 捕获
 
 def 断言json参数(事件,参数列表):
     '参数必须是无损 JSON'

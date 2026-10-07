@@ -1,3 +1,4 @@
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 获取内部数据,启动守护线程
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
@@ -64,6 +65,48 @@ __all__=[#仅中文公开名
 依赖=['slots','sessions','workspaces','locale','remote','remote.directoryPicker','layout']
 命名空间='workspace'
 
+def 接上(产出,成功,失败):
+    '期约走 然后，上游 then 走 then；已是值则直接成功'
+    if hasattr(产出,'然后'):#本层期约
+        产出.然后(成功,失败)#接上
+        return
+    if hasattr(产出,'then'):#上游期约
+        产出.then(成功,失败)#接上
+        return
+    成功(产出)#已是值
+
+def 转发期约(产出):
+    '把一次调用收成期约'
+    结算=期约()#本次
+    try:#接上
+        接上(产出,结算.解决,结算.拒绝)#期约或值
+    except Exception as 错误:#同步失败
+        结算.拒绝(错误)#拒绝
+    return 结算#期约
+
+def 取检索值(结果):
+    '检索命中列表'
+    return 结果['value'] if isinstance(结果,dict) and 'value' in 结果 else None#命中
+
+def 取空(_结果):
+    '成功无值'
+    return None#无
+
+def 绑业务结算(结算,取成功值):
+    'ok 则解决取值，否则拒绝工作区错误'
+    def 已结束(结果):
+        '业务失败拒绝'
+        if not isinstance(结果,dict) or not 结果.get('ok'):#失败
+            错=结果['error'] if isinstance(结果,dict) and 'error' in 结果 else None#错误
+            消息=错['message'] if isinstance(错,dict) and 'message' in 错 else None#文案
+            结算.拒绝(工作区错误(消息))#抛出
+            return
+        结算.解决(取成功值(结果))#成功值
+    def 失败(错误):
+        '调用失败'
+        结算.拒绝(错误)#拒绝
+    return 已结束,失败#两臂
+
 def 流占用源(上下文,洞名):
     '目录流子洞已填时为真的可观察源'
     def 快照():#条目数
@@ -93,13 +136,14 @@ def 应用(上下文):#注册浏览区与选择器
     上下文.副作用(登记词典,'ui-workspace: dictionaries')#挂载中英文字典
 
     def 检索会话(查询,信号):#按查询检索会话
-        '转发会话检索；失败抛出错误详情'
-        结果=上下文.sessions.search(查询,信号).等待()#转发
-        if not 结果['ok']:#失败
-            错=结果['error'] if 'error' in 结果 else None#错误
-            消息=错['message'] if 错 is not None and 'message' in 错 else None#文案
-            raise 工作区错误(消息)#抛出
-        return 结果['value']#命中列表
+        '转发会话检索；失败拒绝。返回期约'
+        结算=期约()#本次检索
+        已结束,失败=绑业务结算(结算,取检索值)#取值
+        try:#转发
+            接上(上下文.sessions.search(查询,信号),已结束,失败)#检索
+        except Exception as 错误:#同步失败
+            失败(错误)#拒绝
+        return 结算#期约
 
     侧栏流源=流占用源(上下文,侧栏目录流槽)#侧栏目录流占用源
     选择器流源=流占用源(上下文,英雄目录流槽)#选择器目录流占用源
@@ -115,16 +159,16 @@ def 应用(上下文):#注册浏览区与选择器
     }#宿主源
 
     def 重命名工作区(标识,标题):#重命名工作区
-        '转发 rename'
-        return 上下文.workspaces.rename(标识,标题).等待()#等
+        '转发 rename。返回期约'
+        return 转发期约(上下文.workspaces.rename(标识,标题))#期约
 
     def 删除工作区(标识):#删除工作区
-        '转发 delete'
-        return 上下文.workspaces.delete(标识).等待()#等
+        '转发 delete。返回期约'
+        return 转发期约(上下文.workspaces.delete(标识))#期约
 
     def 插入工作区前(标识,锚):#插到某工作区前
-        '转发 insertBefore'
-        return 上下文.workspaces.insertBefore(标识,锚).等待()#等
+        '转发 insertBefore。返回期约'
+        return 转发期约(上下文.workspaces.insertBefore(标识,锚))#期约
 
     def 创建工作区(输入):#创建
         'create'
@@ -133,19 +177,21 @@ def 应用(上下文):#注册浏览区与选择器
     def 浏览区注入():#侧栏浏览区注入
         '浏览区驱动的 Host 动作'
         def 重命名会话(会话标识,标题):#按会话 id 改标题
-            '经引用占用改名'
+            '经引用占用改名。返回期约'
             def 改名(引用):#占用回调
                 '绑定面改名'
                 return 引用.binding.session.rename(标题)#改名
-            结果=上下文.sessions.using(
-                会话标识,
-                {'source':'workspaceOperation'},
-                改名,
-            ).等待()#占用改名
-            if not 结果['ok']:#失败
-                错=结果['error'] if 'error' in 结果 else None#错误
-                消息=错['message'] if 错 is not None and 'message' in 错 else None#文案
-                raise 工作区错误(消息)#抛出
+            结算=期约()#本次改名
+            已结束,失败=绑业务结算(结算,取空)#成功无值
+            try:#占用改名
+                接上(上下文.sessions.using(
+                    会话标识,
+                    {'source':'workspaceOperation'},
+                    改名,
+                ),已结束,失败)#占用
+            except Exception as 错误:#同步失败
+                失败(错误)#拒绝
+            return 结算#期约
         def 分叉会话(会话标识):#分叉会话
             '经导航面分叉；失败保持当前选中'
             def 观察():#观察

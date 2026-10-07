@@ -93,11 +93,8 @@ def 应用(上下文,配置值):
     if 快照 is not None and 经ssh拉起(快照):
         交出浏览器=False
     上下文.提供服务(运行时服务键,运行时)
-    try:
-        import host_frontend_static as 前端静态
-        上下文.启动插件(前端静态,{'distIndex':内部['resolveDistIndex']()})
-    except ImportError as 错误:
-        raise 网页错误('web-app: 缺少 host_frontend_static 包') from 错误
+    from ...宿主 import 前端静态 as 前端静态插件
+    上下文.启动插件(前端静态插件,{'distIndex':内部['resolveDistIndex']()})
     if 'surfaceContext' in 配置值 and 配置值['surfaceContext']:
         def 提示词接线(提示上下文,*其余):
             '登记 harness 源码段与 web 表面段'

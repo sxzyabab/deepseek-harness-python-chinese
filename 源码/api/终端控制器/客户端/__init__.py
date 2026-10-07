@@ -1,6 +1,6 @@
 from ....基础设施.通用工具 import 启动守护线程
 from ....依赖.cordis import 服务#服务基类
-from ....内核.作用域 import 操作任务#关闭任务
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....工具.加密 import 随机uuid#新终端身份
 from ..类型 import 取远程错误#远程失败形态
 from ..异常 import 远程错误#本包异常
@@ -64,13 +64,11 @@ class 客户端终端(服务):#侧栏出现与后台清理
                     for 保持 in list(会话保持.values()):
                         保持.dispose()
                 自身._保持.clear()
+                待结算=[]#视图的释放与进行中的关闭，关闭失败已记入 closeFailures
                 for 视图 in 待拆:
-                    视图.释放()
-                for 任务 in list(自身._关闭中.values()):
-                    try:
-                        任务.等待()
-                    except BaseException:#关闭失败已记入 closeFailures
-                        pass
+                    待结算.append(视图.释放())
+                待结算.extend(自身._关闭中.values())
+                return 期约.全部已结算(待结算)#成败都等
             return 清理
         上下文.副作用(拆除效果,'terminal-controller.client.views')
         for 请求 in 自身._请求.未完成():
@@ -220,7 +218,7 @@ class 客户端终端(服务):#侧栏出现与后台清理
 
     def _释放保持(自身,保持):
         '后台释放保持'
-        def 在线程执行():
+        def 释放保持线程():
             '释放'
             try:
                 保持.dispose()#拆
@@ -230,7 +228,7 @@ class 客户端终端(服务):#侧栏出现与后台清理
                 自身._释放中.discard(任务)#移除
         任务=object()#标记
         自身._释放中.add(任务)#登记
-        启动守护线程(在线程执行)#启
+        启动守护线程(释放保持线程)#启
 
     def _清理(自身,记录,视图=None):#后台 Host 清理
         '成功与进行中无通知'
@@ -238,35 +236,44 @@ class 客户端终端(服务):#侧栏出现与后台清理
             return#跳
         失败列=[项 for 项 in 自身.closeFailures.getSnapshot() if 项['id']!=记录['id']]#摘旧失败
         自身.closeFailures.set(失败列)#写回
-        任务=操作任务()#本轮
+        任务=期约()#本轮
         自身._关闭中[记录['id']]=任务#登记
-        def 在线程执行():#线程
+        def 收尾():
+            '释放视图，摘出关闭中，解决本轮'
+            if 视图 is not None:#有
+                视图.释放()#放
+            自身._关闭中.pop(记录['id'],None)#摘
+            任务.解决()#完
+        def 确认已关(关闭结果=None):
+            '关闭成功：确认请求并收尾'
+            自身._请求.移除(记录['id'])#确认
+            收尾()
+        def 关闭失败(错误):
+            '关闭失败：会话没了就丢掉请求，否则记入失败通知，再收尾'
+            if 取码(错误)=='session/not-found':#会话没了
+                自身._请求.移除(记录['id'])#丢掉
+            elif not 自身._已拆除:#仍可见
+                自身.closeFailures.set(自身.closeFailures.getSnapshot()+[{
+                    'id':记录['id'],#身份
+                    'title':记录['title'],#标题
+                    'message':取消息(错误),#文案
+                }])#记失败
+            收尾()
+        def 后台关闭():#线程
             '关进程或远程 close'
-            try:#清理
-                try:#主路径
-                    if 视图 is not None:#有模型
-                        视图.关闭()#关
-                    else:#仅身份
-                        结果=自身._远程.close(记录['sessionId'],记录['id'])#远程
-                        if not 结果['ok']:
-                            失败=结果['error']#载荷
-                            raise 远程错误(失败['code'],失败['message'],失败['details'] if 'details' in 失败 else {})#包装
-                    自身._请求.移除(记录['id'])#确认
-                except BaseException as 错误:
-                    if 取码(错误)=='session/not-found':#会话没了
-                        自身._请求.移除(记录['id'])#丢掉
-                    elif not 自身._已拆除:#仍可见
-                        自身.closeFailures.set(自身.closeFailures.getSnapshot()+[{
-                            'id':记录['id'],#身份
-                            'title':记录['title'],#标题
-                            'message':取消息(错误),#文案
-                        }])#记失败
-            finally:#收尾
-                if 视图 is not None:#有
-                    视图.释放()#放
-                自身._关闭中.pop(记录['id'],None)#摘
-                任务.兑现(None)#完
-        启动守护线程(在线程执行)#后台
+            if 视图 is not None:#有模型
+                视图.关闭().然后(确认已关,关闭失败)#关
+                return
+            try:#仅身份
+                结果=自身._远程.close(记录['sessionId'],记录['id'])#远程
+                if not 结果['ok']:
+                    失败=结果['error']#载荷
+                    raise 远程错误(失败['code'],失败['message'],失败['details'] if 'details' in 失败 else {})#包装
+            except BaseException as 错误:#线程入口把失败收进失败通知
+                关闭失败(错误)
+                return
+            确认已关()
+        启动守护线程(后台关闭)#后台
 
 def 应用(上下文):
     '安装客户端终端模型到上下文'

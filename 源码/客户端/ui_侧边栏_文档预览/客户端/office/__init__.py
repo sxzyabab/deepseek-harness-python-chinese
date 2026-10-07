@@ -1,5 +1,4 @@
 '经授权 Host 渲染与既有 PDF 正文支撑的 Office 预览登记'
-from .....工具.超时 import 若已中止则抛出#中止
 from ..文档.标签寿命 import 保留文档标签#标签寿命
 from ..远程过程调用 import 文档文件字节#文档字节
 from ..失败行 import 失败行#失败行

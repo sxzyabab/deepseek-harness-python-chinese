@@ -3,7 +3,6 @@ import re,uuid#命令名形态与实例令牌
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...内核.作用域 import 具名条目,作用域层集#具名登记与作用域层
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程#Remote 服务基类与装饰器
-from ...工具.超时 import 已中止,若已中止则抛出#中止入口
 from ...附件.附件 import 准入编码图像批次#图片准入
 from ...附件.附件.异常 import 附件错误#附件错误
 from .标识构造 import 命令定义标识,命令标识#命令定义身份与生命周期配对标识

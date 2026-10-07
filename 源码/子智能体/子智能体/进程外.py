@@ -1,4 +1,5 @@
 import math,os#有限数判定与路径
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from typing import NotRequired,TypedDict#可选字段与结构类型
 from .异常 import 子智能体错误#缝内失败
 无启动能力={#冻结的无能力广告
@@ -18,7 +19,7 @@ class 跑结果结算(TypedDict):#settleRunResult 的输入
 
 class 子进程运行句柄零件(TypedDict):#subprocessRunHandle 的输入
     id:object#父作用域跑 id
-    result:object#已压平、永不拒绝的结果任务
+    result:object#已压平、永不拒绝的结果期约
     signal:object#请求的取消信号
     onAbort:object#启动时登记的中止回调
     requestCancel:object#结算本地取消
@@ -65,21 +66,30 @@ def 解析子工作目录(前缀,已配置,父工作目录):
     return 断言可用工作目录(前缀,'parent session cwd',父工作目录)#校验父cwd
 
 def 结算运行结果(零件):
-    '按缝约定结算进程外跑结果：发布后 result 永不拒绝。零件为 dict'
-    try:#尝试回合
-        结果=零件['attempt']()#等待尝试
+    '返回期约：按缝约定结算进程外跑结果，期约只兑现不拒绝。零件为 dict，attempt 须返回期约'
+    最终=期约()#永不拒绝的结果期约
+    def 尝试已兑现(结果):
+        '尝试兑现：取消已赢则压成中止，否则原结果'
         if 零件['cancelled']():#取消已赢
-            return {'output':零件['collectOutput'](),'stopReason':'aborted'}#压成中止
-        return 结果#否则原结果
-    except Exception as 错误:#尝试拒绝
+            最终.解决({'output':零件['collectOutput'](),'stopReason':'aborted'})#压成中止
+        else:#否则原结果
+            最终.解决(结果)#原结果
+    def 尝试已拒绝(错误):
+        '尝试拒绝：取消优先，否则通知诊断槽并压成错误'
         if 零件['cancelled']():#取消优先
-            return {'output':零件['collectOutput'](),'stopReason':'aborted'}#压成中止
+            最终.解决({'output':零件['collectOutput'](),'stopReason':'aborted'})#压成中止
+            return
         try:#诊断槽不得拒绝跑结果
             if 'onError' in 零件 and 零件['onError'] is not None:#有槽
                 零件['onError'](错误,'error')#通知诊断
         except Exception:#诊断槽抛出
             pass#诊断槽不能拒绝跑结果
-        return {'output':零件['collectOutput'](),'stopReason':'error'}#压成错误
+        最终.解决({'output':零件['collectOutput'](),'stopReason':'error'})#压成错误
+    try:#尝试回合
+        零件['attempt']().然后(尝试已兑现,尝试已拒绝)#等待尝试
+    except Exception as 错误:#尝试同步抛出
+        尝试已拒绝(错误)#按拒绝处理
+    return 最终#交给调用方继续链式
 
 class 子进程运行句柄实例:
     '持有者所有的远程一次性跑：协议字段 id/localAgent/result 保持与上游 SubagentRun 一致；拆除入口仅中文 销毁'
@@ -87,21 +97,22 @@ class 子进程运行句柄实例:
         '记下身份、永不拒绝的结果，以及幂等拆除闭包'
         自身.id=标识#父作用域跑 id
         自身.localAgent=None#远程无本地智能体
-        自身.result=结果#永不拒绝的结果任务
+        自身.result=结果#永不拒绝的结果期约
         自身._拆除=拆除#记忆化拆除闭包
 
     def 销毁(自身):
-        '取消剩余工作并等待后端拆除到静止。幂等'
-        return 自身._拆除()#同一任务
+        '取消剩余工作，返回期约：后端拆除到静止后兑现。幂等'
+        return 自身._拆除()#同一期约
 
 def 子进程运行句柄(零件):
     '为进程外子体发布缝跑句柄。销毁() 幂等（一份记忆化拆除）。零件为 dict'
-    拆除盒=[None]#记忆化拆除
+    已启动拆除=None#记忆化拆除期约
     def 拆除():
-        '结算本地取消，再等待后端拆除；已启动则复用同一任务'
-        if 拆除盒[0] is not None:#已拆除则复用
-            return 拆除盒[0]#同一任务
+        '结算本地取消，再启动后端拆除；已启动则复用同一期约'
+        nonlocal 已启动拆除#改外层
+        if 已启动拆除 is not None:#已拆除则复用
+            return 已启动拆除#同一期约
         零件['requestCancel']()#结算本地取消
-        拆除盒[0]=零件['teardown']()#启动后端拆除
-        return 拆除盒[0]#返回同一任务
+        已启动拆除=零件['teardown']()#启动后端拆除
+        return 已启动拆除#返回同一期约
     return 子进程运行句柄实例(零件['id'],零件['result'],拆除)#缝句柄

@@ -1,3 +1,4 @@
+from ....基础设施.js特性 import PromiseEX as 期约扩展#清单取回后的期约链
 from ..异常 import 运行时错误#本包错误
 from ..fixture清单 import 解析预览fixture清单#解析函数
 
@@ -197,7 +198,7 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
     参数:
         清单网址: 内置夹具目录 URL（字符串或 URL 面）。
     返回:
-        Worker 挂载所选的有序叠加层 URL
+        期约，兑现值是 Worker 挂载所选的有序叠加层 URL
     """
     全局=globals()#宿主全局
     定位=全局.get('location')#location
@@ -210,76 +211,80 @@ def 选择预览源(清单网址):#打开源选择器并等待选择
             from urllib.parse import urlparse,parse_qs#解析查询
             请求源=(parse_qs(urlparse(查询).query).get(预览fixture查询) or [None])[0]#读取查询指定源
     if 请求源==空源标识:#空源则直接无叠加层
-        return []#空叠加层
+        空叠加层=期约扩展()#空源时无需取清单的期约
+        空叠加层.解决([])#空叠加层
+        return 空叠加层#返回已解决的期约
     if not callable(拉取):#无fetch
         raise 运行时错误('preview source chooser: fetch 不可用')#拒绝
-    响应=拉取(清单网址)#请求夹具清单
-    if not 响应.ok:#清单响应失败
-        raise 运行时错误(f'preview source chooser: fixture manifest returned {响应.status}')#抛出状态错误
-    原始=响应.json()#解析清单JSON
-    清单=解析预览fixture清单(原始)#校验清单
-    选项列表=[#组装可选源列表
-        {#空环境选项
-            'id':空源标识,#空源标识
-            'label':'Empty environment',#空环境标题
-            'description':'Load only the base runtime to verify first launch and workspace creation.',#空环境说明
-            'overlays':[],#无叠加层
-        },#空环境选项结束
-        *列出夹具选项(清单['fixtures']),
-        {#WebFS选项
-            'id':webfs源标识,#WebFS标识
-            'label':'WebFS directory',#WebFS标题
-            'description':'Requires directory access and will be available after the WebFS provider lands.',#WebFS说明
-            'overlays':[],#暂无叠加层
-            'disabled':True,#尚未可用故禁用
-        },#WebFS选项结束
-    ]#选项列表结束
-    if 请求源 is not None:#URL已指定源
-        指定=None#查找可用指定项
-        for 选项 in 选项列表:#查找
-            if 选项['id']==请求源 and 选项.get('disabled') is not True:#命中可用
-                指定=选项#记下
+    def 选择叠加层(响应):#清单响应到达后调用
+        '校验并解析清单，按 URL 指定或默认选择返回叠加层'
+        if not 响应.ok:#清单响应失败
+            raise 运行时错误(f'preview source chooser: fixture manifest returned {响应.status}')#抛出状态错误
+        原始=响应.json()#解析清单JSON
+        清单=解析预览fixture清单(原始)#校验清单
+        选项列表=[#组装可选源列表
+            {#空环境选项
+                'id':空源标识,#空源标识
+                'label':'Empty environment',#空环境标题
+                'description':'Load only the base runtime to verify first launch and workspace creation.',#空环境说明
+                'overlays':[],#无叠加层
+            },#空环境选项结束
+            *列出夹具选项(清单['fixtures']),
+            {#WebFS选项
+                'id':webfs源标识,#WebFS标识
+                'label':'WebFS directory',#WebFS标题
+                'description':'Requires directory access and will be available after the WebFS provider lands.',#WebFS说明
+                'overlays':[],#暂无叠加层
+                'disabled':True,#尚未可用故禁用
+            },#WebFS选项结束
+        ]#选项列表结束
+        if 请求源 is not None:#URL已指定源
+            指定=None#查找可用指定项
+            for 选项 in 选项列表:#查找
+                if 选项['id']==请求源 and 选项.get('disabled') is not True:#命中可用
+                    指定=选项#记下
+                    break#停止
+            if 指定 is None:#未找到或不可用
+                raise 运行时错误(f'preview source chooser: unknown or interactive source "{请求源}"')#抛出未知源错误
+            return 指定['overlays']#返回指定项叠加层
+        if 文档 is None:#无document
+            raise 运行时错误('preview source chooser: 缺少 #root')#缺少环境
+        根=文档.getElementById('root')#获取页面根节点
+        if 根 is None:#缺少根节点
+            raise 运行时错误('preview source chooser: 缺少 #root')#失败
+        已选=清单['defaultFixture'] if 清单['defaultFixture'] is not None else 空源标识#默认选中项
+        样式=文档.createElement('style')#创建样式元素
+        样式.dataset.previewSourceStyle=''#标记选择器样式
+        样式.textContent=选择器样式#写入样式内容
+        文档.head.append(样式)#挂到文档头
+        选择器=文档.createElement('main')#创建选择器主容器
+        选择器.dataset.previewSourceChooser=''#标记选择器根
+        选项html=''.join(选项标记(选项,已选) for 选项 in 选项列表)#选项HTML
+        选择器.innerHTML=(#写入选择器表单HTML
+            f'<form data-preview-source-card aria-labelledby="preview-source-title">\n'
+            f'      <h1 id="preview-source-title">Choose Preview data</h1>\n'
+            f'      <p>Data mounts before the Worker and application start. Refresh to choose again.</p>\n'
+            f'      <fieldset>\n'
+            f'        <legend>Filesystem source</legend>\n'
+            f'        {选项html}\n'
+            f'      </fieldset>\n'
+            f'      <button data-preview-source-submit type="submit">Start Preview</button>\n'
+            f'    </form>'
+        )#表单HTML结束
+        根.prepend(选择器)#插入选择器到根前部
+        表单=选择器.querySelector('[data-preview-source-card]')#定位表单元素
+        if 表单 is None:#表单未渲染
+            raise 运行时错误('preview source chooser: 表单未渲染')#失败
+        #同步路径要求表单已带所选值。
+        源标识=已选#默认所选
+        所选=None#查找可用所选
+        for 候选 in 选项列表:#查找
+            if 候选['id']==源标识 and 候选.get('disabled') is not True:#命中
+                所选=候选#记下
                 break#停止
-        if 指定 is None:#未找到或不可用
-            raise 运行时错误(f'preview source chooser: unknown or interactive source "{请求源}"')#抛出未知源错误
-        return 指定['overlays']#返回指定项叠加层
-    if 文档 is None:#无document
-        raise 运行时错误('preview source chooser: 缺少 #root')#缺少环境
-    根=文档.getElementById('root')#获取页面根节点
-    if 根 is None:#缺少根节点
-        raise 运行时错误('preview source chooser: 缺少 #root')#失败
-    已选=清单['defaultFixture'] if 清单['defaultFixture'] is not None else 空源标识#默认选中项
-    样式=文档.createElement('style')#创建样式元素
-    样式.dataset.previewSourceStyle=''#标记选择器样式
-    样式.textContent=选择器样式#写入样式内容
-    文档.head.append(样式)#挂到文档头
-    选择器=文档.createElement('main')#创建选择器主容器
-    选择器.dataset.previewSourceChooser=''#标记选择器根
-    选项html=''.join(选项标记(选项,已选) for 选项 in 选项列表)#选项HTML
-    选择器.innerHTML=(#写入选择器表单HTML
-        f'<form data-preview-source-card aria-labelledby="preview-source-title">\n'
-        f'      <h1 id="preview-source-title">Choose Preview data</h1>\n'
-        f'      <p>Data mounts before the Worker and application start. Refresh to choose again.</p>\n'
-        f'      <fieldset>\n'
-        f'        <legend>Filesystem source</legend>\n'
-        f'        {选项html}\n'
-        f'      </fieldset>\n'
-        f'      <button data-preview-source-submit type="submit">Start Preview</button>\n'
-        f'    </form>'
-    )#表单HTML结束
-    根.prepend(选择器)#插入选择器到根前部
-    表单=选择器.querySelector('[data-preview-source-card]')#定位表单元素
-    if 表单 is None:#表单未渲染
-        raise 运行时错误('preview source chooser: 表单未渲染')#失败
-    #同步路径要求表单已带所选值。
-    源标识=已选#默认所选
-    所选=None#查找可用所选
-    for 候选 in 选项列表:#查找
-        if 候选['id']==源标识 and 候选.get('disabled') is not True:#命中
-            所选=候选#记下
-            break#停止
-    if 所选 is None:#不可用
-        raise 运行时错误(f'preview source chooser: unavailable source "{源标识}"')#失败
-    选择器.remove()#移除选择器DOM
-    样式.remove()#移除样式元素
-    return 所选['overlays']#返回所选叠加层
+        if 所选 is None:#不可用
+            raise 运行时错误(f'preview source chooser: unavailable source "{源标识}"')#失败
+        选择器.remove()#移除选择器DOM
+        样式.remove()#移除样式元素
+        return 所选['overlays']#返回所选叠加层
+    return 拉取(清单网址).然后(选择叠加层)#取回清单后再选择叠加层

@@ -1,5 +1,6 @@
 import signal,time#信号名反查与宽限短睡
-from threading import Event as 同步事件,Lock as 互斥锁,Thread as 线程#退出广播、拆除互斥与后台观察
+from threading import Event as 同步事件,Lock as 互斥锁,Timer as 定时器#退出广播、拆除互斥与宽限定时
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from .异常 import 本地子进程错误#本包终端与子进程失败
 
 __all__=('贯通流','本地终端句柄','本地子进程错误')#仅中文公开名
@@ -7,15 +8,6 @@ __all__=('贯通流','本地终端句柄','本地子进程错误')#仅中文公�
 def 延迟(毫秒):#宽限内轮询用的短睡
     '阻塞睡指定毫秒'
     time.sleep(max(毫秒,0)/1000.0)#一次短睡
-
-def 与延迟赛跑(操作等待,毫秒,超时值):#对齐 raceWithDelay
-    '等操作等待兑现，或宽限到期返回超时值。操作等待是有等待() 的任务'
-    截止=time.time()+毫秒/1000.0#截止
-    while time.time()<截止:#未到期
-        if 操作等待.已完成():#已兑现或拒绝
-            return 操作等待.取值()#结果或抛错
-        延迟(min(25,max(1,(截止-time.time())*1000.0)))#短睡
-    return 超时值#超时
 
 def 信号名(编号):#退出回调里的信号编号 → 名
     '把退出回调里的信号编号收成信号名；未死于信号则 None'
@@ -93,68 +85,8 @@ class 贯通流:#对齐 node:stream PassThrough 的用户可见输出面
         自身.派发('end')#通知结束
         自身.派发('close')#对齐 close
 
-class 结局任务:#对齐 Promise.withResolvers
-    '可兑现/拒绝的结局等待'
-    def __init__(自身):#未结算
-        '构造未结算任务'
-        自身._事件=同步事件()#广播
-        自身._值=None#兑现值
-        自身._错=None#拒绝
-
-    def 兑现(自身,值):#成功结算
-        '兑现一次'
-        if 自身._事件.is_set():#已结算
-            return#幂等
-        自身._值=值#记下
-        自身._事件.set()#广播
-
-    def 拒绝(自身,错误):#失败结算
-        '拒绝一次'
-        if 自身._事件.is_set():#已结算
-            return#幂等
-        自身._错=错误#记下
-        自身._事件.set()#广播
-
-    def 已完成(自身):#是否结算
-        '是否已兑现或拒绝'
-        return 自身._事件.is_set()#已结算
-
-    def 取值(自身):#取结果或抛错
-        '阻塞到结算后返回值；拒绝则抛'
-        自身._事件.wait()#等
-        if 自身._错 is not None:#拒绝
-            raise 自身._错#抛
-        return 自身._值#兑现值
-
-    def 等待(自身,超时秒=None):#可选超时等待
-        '等结算；超时返回 False'
-        return 自身._事件.wait(超时秒)#广播
-
-class 拆除任务:#对齐 terminate() 返回的 Promise
-    '拆除完成等待；失败可重试'
-    def __init__(自身):#未完成
-        '构造未完成拆除'
-        自身._事件=同步事件()#广播
-        自身._错=None#失败
-
-    def 完成(自身):#成功
-        '标记拆除完成'
-        自身._错=None#清错
-        自身._事件.set()#广播
-
-    def 失败(自身,错误):#失败
-        '记下失败并广播'
-        自身._错=错误#记下
-        自身._事件.set()#广播
-
-    def 等待(自身):#阻塞到完成或失败
-        '等到拆除结束；失败则抛'
-        自身._事件.wait()#等
-        if 自身._错 is not None:#失败
-            raise 自身._错#抛
-
 class 本地终端句柄:#本地 PTY 会话
-    '进程会话所有权留在 PTY 后端之下的本地终端。终止() 返回时没有进行中的写入、检查或信号：每条句柄调用在底层都同步做完（PTY 写入、基于 ps 的检查），拆除自己也在调用线程里跑完'
+    '进程会话所有权留在 PTY 后端之下的本地终端。除 终止() 外每条句柄调用在底层都同步做完（PTY 写入、基于 ps 的检查）；终止() 返回期约，拆除的轮询部分在调用线程里跑，托管范围的退出观察经期约衔接'
     def __init__(自身,终端,检查器,宽限毫秒,平台=None,托管所有者=None,结算托管结局=None,命令活动=None,静止回调=None,观察壳退出=False):#钉 pid、身份、输出与退出
         '用已分配的 PTY、平台检查器与宽限构造句柄'
         import sys as 系统#平台缺省
@@ -169,7 +101,7 @@ class 本地终端句柄:#本地 PTY 会话
         自身.观察壳退出=观察壳退出#是否观察托管范围空
         自身.pid=终端.pid#顶层 shell pid
         自身.输出=贯通流()#用户可见输出
-        自身.结局任务=结局任务()#顶层退出任务
+        自身.done=期约()#顶层退出期约，兑现退出事实
         自身.已退出=同步事件()#exit 回调是否已到
         自身.已静止=False#拆除是否已完整跑完一次
         自身.托管范围已空=False#托管范围是否已空
@@ -198,7 +130,10 @@ class 本地终端句柄:#本地 PTY 会话
                 if 恢复 is not None:#有
                     恢复()#恢复
         自身.输出.监听('drain',恢复写出)#背压解除
-        自身.输出.一次('close',lambda:自身.输出.取消监听('drain',恢复写出))#卸
+        def 卸恢复写出():#输出关闭时卸监听
+            '输出流关闭后卸掉 drain 监听'
+            自身.输出.取消监听('drain',恢复写出)#卸
+        自身.输出.一次('close',卸恢复写出)#卸
         def 在数据时(数据):#PTY 文本 → 字节
             '把 PTY 回调文本写入用户可见流；背压则 pause'
             if isinstance(数据,bytes):#已是字节
@@ -216,14 +151,13 @@ class 本地终端句柄:#本地 PTY 会话
                 return#忽略
             自身.已退出.set()#先记退出
             if 自身.托管所有者 is not None and 自身.观察壳退出:#观察范围空
-                def 观察范围():#后台等范围空
-                    '等托管范围退出后授权空闲'
-                    try:#观察
-                        自身.托管所有者.等待退出()#等空
-                        自身.托管范围已空=True#授权
-                    except Exception:#失败不得授权空闲回收
-                        pass#吞掉
-                线程(target=观察范围,daemon=True).start()#后台
+                def 范围已空(*空值):
+                    '托管范围退出后授权空闲'
+                    自身.托管范围已空=True#授权
+                def 范围观察失败(错误):
+                    '观察失败不得授权空闲回收'
+                    return#不授权
+                自身.托管所有者.等待退出().然后(范围已空,范围观察失败)#等空
             自身.输出.结束()#关掉用户可见流
             退出码=退出事实['exitCode'] if 'exitCode' in 退出事实 else None#退出码
             退出信号=退出事实['signal'] if 'signal' in 退出事实 else None#信号编号
@@ -232,9 +166,9 @@ class 本地终端句柄:#本地 PTY 会话
             try:#可改写结局
                 if 自身.结算托管结局 is not None:#有改写
                     结局=自身.结算托管结局(结局)#改写
-                自身.结局任务.兑现(结局)#兑现
+                自身.done.解决(结局)#兑现
             except Exception as 错误:#改写失败
-                自身.结局任务.拒绝(错误)#拒绝
+                自身.done.拒绝(错误)#拒绝
         自身.数据拆除=终端.onData(在数据时)#onData 监听
         自身.退出拆除=终端.onExit(在退出时)#onExit 监听
 
@@ -258,10 +192,6 @@ class 本地终端句柄:#本地 PTY 会话
             raise 本地子进程错误('terminal process has exited')#已退出
         自身.终端.resize(列,行)#同步改尺寸
         return None#对齐 void
-
-    def 等待结局(自身):#阻塞到顶层进程退出
-        '阻塞到顶层进程退出，返回其退出事实'
-        return 自身.结局任务.取值()#退出事实
 
     def 检查前台(自身):#读前台进程组
         '读前台进程组快照；无法解析则 None。本地检查是同步的'
@@ -342,32 +272,37 @@ class 本地终端句柄:#本地 PTY 会话
         return 前台['processGroupId']#返回打到的 pgid
 
     def 终止(自身):#TERM→KILL 整棵会话；幂等
-        '同步做完一次完整拆除；已静止或进行中则复用；失败原样抛出且允许重试'
+        '返回期约：完成一次完整拆除后兑现；已静止或进行中则复用同一期约；失败则拒绝且允许重试'
         with 自身.拆除锁:#并发调用排队
             if 自身.拆除中 is not None:#已有拆除
-                任务=自身.拆除中#复用
-            else:#首次
-                if 自身.输出已暂停:#解除背压
-                    自身.输出已暂停=False#清
-                    恢复=getattr(自身.终端,'resume',None)#可选
-                    if 恢复 is not None:#有
-                        恢复()#恢复
-                任务=拆除任务()#新建
-                自身.拆除中=任务#记下
-                try:#完整拆除
-                    自身.关闭一次()#拆除
-                    自身.已静止=True#记下静止
-                    if 自身.命令活动 is not None:#有活动
-                        自身.命令活动.拆除()#拆
-                    if 自身.静止回调 is not None:#有回调
-                        自身.静止回调()#回调
-                    任务.完成()#成功
-                except Exception as 错误:#失败可重试
-                    自身.拆除中=None#允许重试
-                    任务.失败(错误)#广播失败
-                    raise#原样
-            #锁外等待同一任务
-        任务.等待()#等到完成或失败
+                return 自身.拆除中#复用
+            if 自身.输出已暂停:#解除背压
+                自身.输出已暂停=False#清
+                恢复=getattr(自身.终端,'resume',None)#可选
+                if 恢复 is not None:#有
+                    恢复()#恢复
+            任务=期约()#新建
+            自身.拆除中=任务#记下
+        def 拆除已关闭(*关闭值):
+            '一次拆除成功：记下静止、拆活动、回调，兑现'
+            try:#收尾
+                自身.已静止=True#记下静止
+                if 自身.命令活动 is not None:#有活动
+                    自身.命令活动.拆除()#拆
+                if 自身.静止回调 is not None:#有回调
+                    自身.静止回调()#回调
+            except Exception as 收尾错误:#收尾失败按拆除失败处理
+                拆除失败(收尾错误)
+                return
+            任务.解决()#成功
+        def 拆除失败(错误):
+            '拆除失败：允许重试并拒绝'
+            自身.拆除中=None#允许重试
+            任务.拒绝(错误)#广播失败
+        try:#完整拆除
+            自身.关闭一次().然后(拆除已关闭,拆除失败)#拆除
+        except Exception as 错误:#同步前缀失败
+            拆除失败(错误)#拒绝
         return 任务#可再等
 
     def 为宿主退出终止(自身):#宿主退出路径：立刻 KILL
@@ -522,32 +457,51 @@ class 本地终端句柄:#本地 PTY 会话
             延迟(min(25,max(1,(截止-time.time())*1000.0)))#短睡
 
     def 关闭一次(自身):#一次完整拆除
-        '一次完整拆除：托管范围或子孙→壳→二次子孙，最后卸监听'
+        '返回期约：一次完整拆除（托管范围或子孙→壳→二次子孙，最后卸监听）完成后兑现；失败则拒绝'
+        结果=期约()#拆除结算
         if 自身.托管所有者 is not None:#走托管路径
-            try:#关范围
-                自身.关闭托管范围(自身.托管所有者)#TERM→KILL 范围
-                自身.数据拆除.dispose()#卸 onData
-                自身.退出拆除.dispose()#卸 onExit
-            finally:#结局后再 cleanup
-                def 清所有者():#等结局后清
-                    '结算后再释放所有者私有物'
-                    try:#等结局
-                        自身.结局任务.取值()#等
-                    except Exception:#结局拒绝仍清
-                        pass#仍清
+            def 清所有者后台():
+                '结局落定后再释放所有者私有物，结局拒绝仍清'
+                def 清理所有者(*结局值):
+                    '结局落定后清理'
                     自身.清理托管所有者(自身.托管所有者)#cleanup
-                线程(target=清所有者,daemon=True).start()#后台
-            return#托管路径结束
-        存活=自身.停子孙()#先清子孙
-        if len(存活)>0:#还有活的
-            raise 本地子进程错误('terminal cleanup failed; surviving pids: '+', '.join(str(成员.pid) for 成员 in 存活))#带仍活 pid
-        自身.停壳()#再清 shell
-        存活=自身.停子孙()#shell 死后可能新冒出的
-        if len(存活)>0:#仍有活的
-            raise 本地子进程错误('terminal cleanup failed; surviving pids: '+', '.join(str(成员.pid) for 成员 in 存活))#带仍活 pid
-        自身.若已走则结算退出()#Windows 可能缺 exit 事件
-        自身.数据拆除.dispose()#卸 onData
-        自身.退出拆除.dispose()#卸 onExit
+                自身.done.然后(清理所有者,清理所有者)#等结局后清
+            def 范围已关闭(*关闭值):
+                '范围关闭后卸监听'
+                try:#卸监听
+                    自身.数据拆除.dispose()#卸 onData
+                    自身.退出拆除.dispose()#卸 onExit
+                except Exception as 错误:#卸监听失败
+                    清所有者后台()#无论成败都清
+                    结果.拒绝(错误)#拒绝
+                    return
+                清所有者后台()#无论成败都清
+                结果.解决()#兑现
+            def 范围关闭失败(错误):
+                '范围关闭失败：仍清所有者再拒绝'
+                清所有者后台()#无论成败都清
+                结果.拒绝(错误)#拒绝
+            try:#关范围
+                自身.关闭托管范围(自身.托管所有者).然后(范围已关闭,范围关闭失败)#TERM→KILL 范围
+            except Exception as 错误:#同步前缀失败
+                范围关闭失败(错误)#拒绝
+            return 结果#托管路径结束
+        try:#非托管路径：轮询式拆除
+            存活=自身.停子孙()#先清子孙
+            if len(存活)>0:#还有活的
+                raise 本地子进程错误('terminal cleanup failed; surviving pids: '+', '.join(str(成员.pid) for 成员 in 存活))#带仍活 pid
+            自身.停壳()#再清 shell
+            存活=自身.停子孙()#shell 死后可能新冒出的
+            if len(存活)>0:#仍有活的
+                raise 本地子进程错误('terminal cleanup failed; surviving pids: '+', '.join(str(成员.pid) for 成员 in 存活))#带仍活 pid
+            自身.若已走则结算退出()#Windows 可能缺 exit 事件
+            自身.数据拆除.dispose()#卸 onData
+            自身.退出拆除.dispose()#卸 onExit
+        except Exception as 错误:#拆除失败
+            结果.拒绝(错误)#拒绝
+            return 结果
+        结果.解决()#兑现
+        return 结果
 
     def 清理托管所有者(自身,所有者):#释放私有物
         '只清一次'
@@ -559,31 +513,49 @@ class 本地终端句柄:#本地 PTY 会话
             清理()#清
 
     def 关闭托管范围(自身,所有者):#TERM→KILL 托管范围
-        '先 TERM 等宽限，超时再 KILL'
+        '返回期约：先 TERM 等宽限，超时再 KILL；范围停下且壳退出后兑现，失败则拒绝'
+        结果=期约()#关闭结算
         所有者.发信号('SIGTERM')#先 TERM
-        观察=结局任务()#包装 waitForExit
-        def 跑观察():#后台观察
-            '把等待退出收成任务'
-            try:#等
-                所有者.等待退出()#等空
-                观察.兑现({'kind':'stopped'})#停了
-            except Exception as 错误:#失败
-                观察.兑现({'kind':'failed','error':错误})#失败
-        线程(target=跑观察,daemon=True).start()#启动
-        首轮=与延迟赛跑(观察,自身.宽限毫秒,{'kind':'timeout'})#赛跑
-        if 首轮['kind']!='stopped':#未停
+        观察=期约()#包装 waitForExit：兑现 stopped 或 failed，永不拒绝
+        def 观察已停(*空值):
+            '等待退出兑现：范围停了'
+            观察.解决({'kind':'stopped'})#停了
+        def 观察失败(错误):
+            '等待退出拒绝：记为失败'
+            观察.解决({'kind':'failed','error':错误})#失败
+        所有者.等待退出().然后(观察已停,观察失败)#等空
+        宽限到期=期约()#宽限定时
+        宽限定时=定时器(自身.宽限毫秒/1000.0,宽限到期.解决,args=({'kind':'timeout'},))#到点兑现 timeout
+        宽限定时.daemon=True#不挡住退出
+        宽限定时.start()#开始计时
+        def 等壳退出(*观察值):
+            '范围已停：壳退出事件可能滞后，再等一个宽限'
+            if not 自身.已退出.is_set():#壳退出事件可能滞后
+                自身.已退出.wait(自身.宽限毫秒/1000.0)#再等宽限
+            if not 自身.已退出.is_set():#仍活
+                结果.拒绝(本地子进程错误('terminal cleanup failed; surviving pid: '+str(自身.pid)))#失败
+                return
+            结果.解决()#兑现
+        def 首轮已出(首轮):
+            '赛跑出结果：已停则等壳；否则 KILL 后按情形收尾'
+            if 首轮['kind']=='stopped':#已停
+                等壳退出()#等壳
+                return
             所有者.发信号('SIGKILL')#KILL
             if 首轮['kind']=='failed':#观察失败仍要最终观察
-                try:#再等
-                    所有者.等待退出()#最终
-                except Exception as 最终错:#再失败
-                    raise 本地子进程错误('terminal managed-range cleanup failed') from 最终错#聚合语义简化
-                raise 首轮['error']#抛首次
-            观察.取值()#等 timeout 路径上的观察兑现
-        if not 自身.已退出.is_set():#壳退出事件可能滞后
-            自身.已退出.wait(自身.宽限毫秒/1000.0)#再等宽限
-        if not 自身.已退出.is_set():#仍活
-            raise 本地子进程错误('terminal cleanup failed; surviving pid: '+str(自身.pid))#失败
+                def 最终已停(*空值):
+                    '最终观察成功仍抛首次错误'
+                    结果.拒绝(首轮['error'])#抛首次
+                def 最终失败(最终错):
+                    '最终观察也失败：聚合语义简化'
+                    失败=本地子进程错误('terminal managed-range cleanup failed')#聚合说明
+                    失败.__cause__=最终错#保留原因链
+                    结果.拒绝(失败)#拒绝
+                所有者.等待退出().然后(最终已停,最终失败)#最终观察
+                return
+            观察.然后(等壳退出)#等 timeout 路径上的观察落定
+        期约.竞速([观察,宽限到期]).然后(首轮已出,结果.拒绝)#赛跑
+        return 结果#交给调用方继续链式
 
     def 若已走则结算退出(自身):#Windows 缺 exit 时补结算
         '外部 taskkill 可能不触发 node-pty 退出通知'
@@ -595,4 +567,4 @@ class 本地终端句柄:#本地 PTY 会话
             return#不结算
         自身.已退出.set()#补记
         自身.输出.结束()#关流
-        自身.结局任务.兑现({'exitCode':None,'signal':None})#补结局
+        自身.done.解决({'exitCode':None,'signal':None})#补结局

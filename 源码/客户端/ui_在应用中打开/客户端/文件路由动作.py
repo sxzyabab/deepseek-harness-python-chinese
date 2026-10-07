@@ -1,34 +1,54 @@
 '把已授权投递与变更文件路由接到共享打开控件'
+from ....基础设施.js特性 import 请求#上游 fetch
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from .文件应用 import 使用文件应用#联想查询
 from .打开目标按钮 import 打开目标按钮#共享分体按钮
 
 __all__=['查询路由','文件路由动作']#仅中文公开名
 
-try:#页面 fetch
-    取=fetch#页面 fetch
-except NameError:#非浏览器
-    取=None#无
+def 接上(产出,成功,失败):#期约或上游 then
+    '本层期约走 然后，上游 fetch 期约走 then；已是值则直接成功'
+    if hasattr(产出,'然后'):#本层期约
+        产出.然后(成功,失败)#接上
+        return
+    if hasattr(产出,'then'):#上游 fetch 期约
+        产出.then(成功,失败)#接上
+        return
+    成功(产出)#已是值
 
 def 查询路由(网址,信号):
-    '经授权路由拉文件关联；不可用或畸形则 None，回落揭示'
-    try:#请求
-        if 取 is None:#无 fetch
-            return None#无
-        应答=取(网址,{'signal':信号})#请求
-        if hasattr(应答,'等待'):#异步
-            应答=应答.等待()#等
-        if hasattr(应答,'ok') and not 应答.ok:#非 OK
-            return None#无
-        体=应答.json() if hasattr(应答,'json') else 应答#体
-        if hasattr(体,'等待'):#异步 json
-            体=体.等待()#等
+    '经授权路由拉文件关联；不可用或畸形则解决 None，回落揭示。返回期约'
+    结算=期约()#本次查询
+    def 失败(_错误):
+        '不可用则回落'
+        结算.解决(None)#回落揭示
+    def 体已到(体):
+        '列表或包装里的 applications'
         if isinstance(体,list):#已是应用表
-            return 体#原样
+            结算.解决(体)#原样
+            return
         if isinstance(体,dict) and 'applications' in 体:#包装
-            return 体['applications']#表
-        return None#畸形
+            结算.解决(体['applications'])#表
+            return
+        结算.解决(None)#畸形
+    def 已响应(应答):
+        '非 OK 则空；否则读 json'
+        if hasattr(应答,'ok') and not 应答.ok:#非 OK
+            结算.解决(None)#无
+            return
+        if isinstance(应答,dict) and 'applications' in 应答:#已是包装
+            体已到(应答)#直接
+            return
+        if isinstance(应答,list):#已是表
+            体已到(应答)#直接
+            return
+        体=应答.json() if hasattr(应答,'json') else 应答#体
+        接上(体,体已到,失败)#json 期约
+    try:#请求
+        接上(请求(网址,{'signal':信号}),已响应,失败)#请求
     except Exception:#不可用路由
-        return None#回落揭示
+        失败(None)#回落揭示
+    return 结算#期约
 
 class 文件路由动作:#投递文件动作席
     """不绕开所属会话的授权路由渲染文件动作。

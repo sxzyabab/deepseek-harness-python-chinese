@@ -1,6 +1,6 @@
 import json,threading,uuid#帧编码、读线程与请求 id
-from ...内核.作用域 import 操作任务#未决请求
-from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,等待中止#中止
+from ...基础设施.js特性 import PromiseEX as 期约#请求返回的期约
+from ...工具.超时 import 等待中止#中止类已禁用
 from ...基础设施.通用工具.帧协议 import 编码长度前缀帧,长度前缀帧解码器,帧协议错误#4字节长度帧
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码#紧凑 JSON
 from .异常 import ssh错误,远程操作错误#本包基类与带码远端错误
@@ -38,8 +38,8 @@ class ssh请求对等:#有界 JSON 帧对等
         自身.输出=输出流#可写
         自身.最大帧字节=最大帧字节#帧上限
         自身.最大未决=最大未决#普通未决上限
-        自身.处理=处理#入站处理
-        自身.未决={}#id → 任务与分类
+        自身.处理=处理#入站处理，返回期约
+        自身.未决={}#id → 解决、拒绝与分类
         自身.活动={}#id → 控制器与分类
         自身.写锁=threading.Lock()#写串行
         自身.排队字节=0#写队列
@@ -58,33 +58,38 @@ class ssh请求对等:#有界 JSON 帧对等
         线程.start()#启动
 
     def 请求(自身,方法,参数,模式,信号=None):#发请求并校验
-        '取消不回滚已完成远端副作用'
-        若已中止则抛出(信号)#已中止
-        if 自身.失败 is not None:#已失败
-            raise 自身.失败#传输失败
-        种类=请求分类(方法)#分类
-        if 自身.已满(种类,自身.未决.values()):#限额
-            raise ssh错误('SSH helper pending request limit reached')#满
-        标识=str(uuid.uuid4())#请求 id
-        任务=操作任务()#未决
-        自身.未决[标识]={'任务':任务,'requestClass':种类}#登记
-        def 中止时():#信号中止
-            '取消帧；远端清理未完成仍占额度'
-            任务.拒绝(ssh错误('SSH operation cancelled; a completed remote mutation is not rolled back'))#拒绝
-            自身.发送({'type':'cancel','id':标识})#取消帧
-        if 信号 is not None:# Event
-            def 监视():#等中止
-                '置位后取消'
-                等待中止(信号)#等待
-                if 标识 in 自身.未决:#仍未决
-                    中止时()#取消
-            threading.Thread(target=监视).start()#监视
-        try:#发送并等
-            自身.发送({'type':'request','id':标识,'method':方法,'params':参数})#请求帧
-            值=任务.等待()#结果
-            return 模式(值)#校验
-        finally:#摘监听
-            pass#Event 监视自行结束
+        '取消不回滚已完成远端副作用。返回期约，兑现经模式校验的响应；传输失败、远端错误、取消或校验失败则拒绝'
+        def 执行器(解决,拒绝):
+            '前置检查、登记未决并发出请求帧，响应由收取认领'
+            try:#前置检查
+                若已中止则抛出(信号)#已中止
+                if 自身.失败 is not None:#已失败
+                    raise 自身.失败#传输失败
+                种类=请求分类(方法)#分类
+                if 自身.已满(种类,自身.未决.values()):#限额
+                    raise ssh错误('SSH helper pending request limit reached')#满
+            except Exception as 错误:#已中止、传输失败或满
+                拒绝(错误)#拒绝
+                return#已落定
+            标识=str(uuid.uuid4())#请求 id
+            自身.未决[标识]={'解决':解决,'拒绝':拒绝,'requestClass':种类}#登记
+            def 中止时():#信号中止
+                '取消帧；远端清理未完成仍占额度'
+                拒绝(ssh错误('SSH operation cancelled; a completed remote mutation is not rolled back'))#拒绝
+                自身.发送({'type':'cancel','id':标识})#取消帧
+            if 信号 is not None:# Event
+                def 监视():#等中止
+                    '置位后取消'
+                    等待中止(信号)#等待
+                    if 标识 in 自身.未决:#仍未决
+                        中止时()#取消
+                threading.Thread(target=监视).start()#监视
+            try:#发送
+                自身.发送({'type':'request','id':标识,'method':方法,'params':参数})#请求帧
+            except Exception as 错误:#发送失败，响应不会来
+                自身.未决.pop(标识,None)#摘
+                拒绝(操作错误(错误))#拒绝
+        return 期约(执行器).然后(模式)#响应兑现后校验
 
     def 关闭(自身,错误=None):#失败未决
         '不声称回滚'
@@ -94,7 +99,7 @@ class ssh请求对等:#有界 JSON 帧对等
             return#忽略
         自身.失败=错误#记下
         for 项 in list(自身.未决.values()):#未决
-            项['任务'].拒绝(错误)#拒绝
+            项['拒绝'](错误)#拒绝
         自身.未决.clear()#清空
         for 项 in list(自身.活动.values()):#活动
             项['controller'].中止(错误)#中止处理
@@ -151,10 +156,10 @@ class ssh请求对等:#有界 JSON 帧对等
                 return#忽略
             del 自身.未决[帧['id']]#摘
             if 类型=='result':#成功
-                项['任务'].兑现(帧['value'] if 'value' in 帧 else None)#兑现
+                项['解决'](帧['value'] if 'value' in 帧 else None)#解决
             else:#远端错误
                 错=帧['error'] if 'error' in 帧 else {}#错误
-                项['任务'].拒绝(远程操作错误(错['message'] if 'message' in 错 else '',错['code'] if 'code' in 错 else None))#拒绝
+                项['拒绝'](远程操作错误(错['message'] if 'message' in 错 else '',错['code'] if 'code' in 错 else None))#拒绝
             return
         if 类型=='cancel':#取消入站
             活动=自身.活动.get(帧['id']) if 'id' in 帧 else None#活动
@@ -167,21 +172,34 @@ class ssh请求对等:#有界 JSON 帧对等
             raise ssh错误('SSH helper received an unexpected or excessive request')#意外
         控制器=中止控制器()#本请求中止
         自身.活动[帧['id']]={'controller':控制器,'requestClass':种类}#登记
-        def 处理体():#线程
-            '调用处理并回帧'
-            try:#处理
-                值=自身.处理(方法,帧['params'] if 'params' in 帧 else None,控制器.信号)#处理
+        def 摘活动():
+            '处理落定且回帧结束后摘掉活动登记'
+            if 帧['id'] in 自身.活动:#仍在
+                del 自身.活动[帧['id']]#摘
+        def 回结果(值):
+            '处理兑现后回结果帧；回帧失败则关对等'
+            try:#回帧
                 自身.发送({'type':'result','id':帧['id'],'value':值 if 值 is not None else None})#结果
-            except Exception as 错误:#失败
+            except Exception as 错误:#回帧失败
+                自身.关闭(操作错误(错误))#关对等
+            finally:#摘活动
+                摘活动()#摘
+        def 回错误(错误):
+            '处理拒绝后回错误帧；回帧失败则关对等'
+            try:#回帧
                 细节=操作错误(错误)#异常
                 码=细节.code if hasattr(细节,'code') and isinstance(细节.code,str) else None#码
                 体={'name':type(细节).__name__,'message':str(细节)}#错误体
                 if 码 is not None:#有码
                     体['code']=码#码
                 自身.发送({'type':'error','id':帧['id'],'error':体})#错误帧
+            except Exception as 错误2:#回帧失败
+                自身.关闭(操作错误(错误2))#关对等
             finally:#摘活动
-                if 帧['id'] in 自身.活动:#仍在
-                    del 自身.活动[帧['id']]#摘
+                摘活动()#摘
+        def 处理体():#线程
+            '在线程里调用处理函数，它返回的期约落定后回帧'
+            自身.处理(方法,帧['params'] if 'params' in 帧 else None,控制器.信号).然后(回结果,回错误)#处理
         threading.Thread(target=处理体).start()#处理
 
     def 已满(自身,种类,请求们):#限额

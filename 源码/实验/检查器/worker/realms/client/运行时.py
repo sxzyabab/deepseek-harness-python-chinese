@@ -1,5 +1,4 @@
-from ....共享.json import 操作任务#单次结果
-from ....异常 import 检查器错误#包内错误
+from ......基础设施.js特性 import PromiseEX as 期约扩展#后端方法的返回期约
 from .值 import Client完成,Client异常,Client句柄,Client属性,Client内部属性#值转换
 
 __all__=['Client运行时后端']#仅中文公开名
@@ -15,31 +14,42 @@ class Client运行时后端:#Client Runtime后端
         自身._已关闭=False#是否已关闭
 
     def 启用(自身):#启用
-        '无操作'
-        return#无操作
+        '无需向 Client 发请求，返回已解决的期约'
+        已启用=期约扩展()#空结果期约
+        已启用.解决()#无结果，直接解决
+        return 已启用#返回已解决的期约
 
     def 禁用(自身):#禁用
-        '关闭目标会话'
+        '关闭目标会话，返回已解决的期约'
         自身.路由.关闭目标会话(自身.目标,自身.会话id)#关会话
+        已禁用=期约扩展()#空结果期约
+        已禁用.解决()#无结果，直接解决
+        return 已禁用#返回已解决的期约
 
     def 求值(自身,请求):#求值
-        '执行 evaluate'
+        '执行 evaluate，返回期约，兑现值是 Client 完成结果'
         _断言求值选项(请求)#断言选项
         支持={键:值 for 键,值 in 请求.items() if 键 not in ('context','throwOnSideEffect','serializationOptions')}#支持的
-        return Client完成(自身._期望(自身._请求({'op':'evaluate',**支持}).等待(),'evaluate'),自身.脚本身份.转Runtime)#转换
+        def 转换完成(结果):#Client响应到达后转换
+            '校验操作名并转成公共完成结果'
+            return Client完成(自身._期望(结果,'evaluate'),自身.脚本身份.转Runtime)#转换
+        return 自身._请求({'op':'evaluate',**支持}).然后(转换完成)#响应到达后再转换
 
     def 取属性(自身,请求):#取属性
-        '执行 get-properties'
-        结果=自身._期望(自身._请求({'op':'get-properties',**请求,'handle':Client句柄(请求['handle'])}).等待(),'get-properties')#请求
-        输出={'properties':[Client属性(项) for 项 in 结果['properties']]}#属性
-        if 'internalProperties' in 结果:#内部属性
-            输出['internalProperties']=[Client内部属性(项) for 项 in 结果['internalProperties']]#映射
-        if 'exceptionDetails' in 结果:#异常
-            输出['exceptionDetails']=Client异常(结果['exceptionDetails'],自身.脚本身份.转Runtime)#转换
-        return 输出#返回
+        '执行 get-properties，返回期约，兑现值是属性集'
+        def 转换属性(结果):#Client响应到达后转换
+            '校验操作名并转成公共属性集'
+            结果=自身._期望(结果,'get-properties')#校验操作名
+            输出={'properties':[Client属性(项) for 项 in 结果['properties']]}#属性
+            if 'internalProperties' in 结果:#内部属性
+                输出['internalProperties']=[Client内部属性(项) for 项 in 结果['internalProperties']]#映射
+            if 'exceptionDetails' in 结果:#异常
+                输出['exceptionDetails']=Client异常(结果['exceptionDetails'],自身.脚本身份.转Runtime)#转换
+            return 输出#返回
+        return 自身._请求({'op':'get-properties',**请求,'handle':Client句柄(请求['handle'])}).然后(转换属性)#响应到达后再转换
 
     def 调函数(自身,请求):#调函数
-        '执行 call-function'
+        '执行 call-function，返回期约，兑现值是 Client 完成结果'
         _断言调用选项(请求)#断言选项
         接收者=请求.get('receiver')#接收者
         参数列表=请求.get('arguments')#参数
@@ -49,25 +59,40 @@ class Client运行时后端:#Client Runtime后端
             命令['receiver']=Client句柄(接收者)#接收者
         if 参数列表 is not None:#有参数
             命令['arguments']=[_参数转Client(项) for 项 in 参数列表]#参数
-        return Client完成(自身._期望(自身._请求(命令).等待(),'call-function'),自身.脚本身份.转Runtime)#转换
+        def 转换完成(结果):#Client响应到达后转换
+            '校验操作名并转成公共完成结果'
+            return Client完成(自身._期望(结果,'call-function'),自身.脚本身份.转Runtime)#转换
+        return 自身._请求(命令).然后(转换完成)#响应到达后再转换
 
     def 等Promise(自身,请求):#等Promise
-        '执行 await-promise'
-        return Client完成(自身._期望(自身._请求({'op':'await-promise',**请求,'promise':Client句柄(请求['promise'])}).等待(),'await-promise'),自身.脚本身份.转Runtime)#转换
+        '执行 await-promise，返回期约，兑现值是 Client 完成结果'
+        def 转换完成(结果):#Client响应到达后转换
+            '校验操作名并转成公共完成结果'
+            return Client完成(自身._期望(结果,'await-promise'),自身.脚本身份.转Runtime)#转换
+        return 自身._请求({'op':'await-promise',**请求,'promise':Client句柄(请求['promise'])}).然后(转换完成)#响应到达后再转换
 
     def 全局词法名(自身,上下文=None):#全局词法名
-        '执行 global-lexical-scope-names'
+        '执行 global-lexical-scope-names，返回期约，兑现值是名字列表'
         if 上下文 is not None:#不支持上下文
             raise RuntimeError('客户端 Runtime 不支持原生执行上下文')#抛错
-        return 自身._期望(自身._请求({'op':'global-lexical-scope-names'}).等待(),'global-lexical-scope-names')['names']#名字
+        def 取出名字(结果):#Client响应到达后转换
+            '校验操作名并取出名字列表'
+            return 自身._期望(结果,'global-lexical-scope-names')['names']#名字
+        return 自身._请求({'op':'global-lexical-scope-names'}).然后(取出名字)#响应到达后再取名字
 
     def 释放对象(自身,句柄):#释放对象
-        '执行 release-object'
-        自身._期望(自身._请求({'op':'release-object','handle':Client句柄(句柄)}).等待(),'release-object')#请求
+        '执行 release-object，返回期约，响应通过校验后才兑现'
+        def 校验响应(结果):#Client响应到达后校验
+            '校验操作名，不关心结果内容'
+            自身._期望(结果,'release-object')#校验操作名
+        return 自身._请求({'op':'release-object','handle':Client句柄(句柄)}).然后(校验响应)#响应到达后再校验
 
     def 释放对象组(自身,组):#释放对象组
-        '执行 release-object-group'
-        自身._期望(自身._请求({'op':'release-object-group','objectGroup':组}).等待(),'release-object-group')#请求
+        '执行 release-object-group，返回期约，响应通过校验后才兑现'
+        def 校验响应(结果):#Client响应到达后校验
+            '校验操作名，不关心结果内容'
+            自身._期望(结果,'release-object-group')#校验操作名
+        return 自身._请求({'op':'release-object-group','objectGroup':组}).然后(校验响应)#响应到达后再校验
 
     def 关闭(自身):#关闭
         '关闭本连接的会话并拒绝后续请求'
@@ -77,11 +102,11 @@ class Client运行时后端:#Client Runtime后端
         自身.路由.关闭目标会话(自身.目标,自身.会话id)#关会话
 
     def _请求(自身,命令):#发起请求
-        '路由请求'
+        '路由请求，返回期约'
         if 自身._已关闭:#已关闭
-            任务=操作任务()#失败任务
-            任务.拒绝(RuntimeError('Client realm session is closed'))#拒绝
-            return 任务#返回
+            失败=期约扩展()#会话已关闭时直接拒绝的期约
+            失败.拒绝(RuntimeError('Client realm session is closed'))#会话已关闭
+            return 失败#返回已拒绝的期约
         return 自身.路由.请求(自身.目标,自身.会话id,命令)#路由
 
     def _期望(自身,结果,操作):#期望结果

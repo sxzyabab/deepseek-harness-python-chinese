@@ -1,3 +1,4 @@
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...类型化远程调用.协议 import 远程服务,远程#Remote 面
 from ...类型化远程调用.协议.异常 import 远程错误#远程失败
 from ...工具.时间 import 规范化客户端时区#浏览器时区
@@ -204,10 +205,12 @@ class 子智能体运行时(远程服务):
         return 自身._要求续跑().发送消息(发送方,目标标识,内容,选项)
 
     def 排空可续跑子体(自身,父,子标识列表):
-        '释放一个精确活父之下选中的驻留可续跑直接子'
+        '返回期约：释放一个精确活父之下选中的驻留可续跑直接子，全部落定后兑现'
         管理器=自身._续跑
         if 管理器 is None:
-            return
+            已释放=期约()#无管理器则没有可释放的
+            已释放.解决()#已兑现
+            return 已释放
         return 管理器.排空子体(父,子标识列表)
 
     def 投递提示(自身,父,子标识,内容,来源,信号,投递):
@@ -218,7 +221,7 @@ class 子智能体运行时(远程服务):
 
     @远程('prompt')
     def 提示(自身,请求,信号):
-        '经精确活直接父向可续跑子投递一条浏览器撰写的消息'
+        '返回期约：经精确活直接父向可续跑子投递一条浏览器撰写的消息，兑现值是 messageId；失败译成 远程错误 后拒绝（参数校验失败仍同步抛出）'
         父会话标识=请求['parentSessionId']
         子会话标识=请求['childSessionId']
         客户端时区=请求['clientTimeZone'] if 'clientTimeZone' in 请求 else None
@@ -242,6 +245,16 @@ class 子智能体运行时(远程服务):
         来源={'kind':'user','rpcId':请求['requestId']}
         if 规范时区 is not None:
             来源['clientTimeZone']=规范时区
+        结果=期约()
+        def 投递已接受(消息标识):
+            '收件箱接受后兑现 messageId'
+            结果.解决({'messageId':消息标识})
+        def 投递失败(错误):
+            '把投递失败译成远程错误并拒绝结果；拒绝提示 始终抛 远程错误'
+            try:
+                拒绝提示(错误,子会话标识,信号)
+            except 远程错误 as 远程失败:
+                结果.拒绝(远程失败)
         try:
             内容块=请求['content']
             if all(块['type']=='text' for 块 in 内容块):
@@ -251,9 +264,10 @@ class 子智能体运行时(远程服务):
                 if 附件存储 is None:
                     raise 子智能体描述符错误('subagent image prompt requires an attachment store')
                 内容=附件存储.准入提示内容(内容块)
-            return {'messageId':自身.投递提示(父,子会话标识,内容,来源,信号,投递)}
+            自身.投递提示(父,子会话标识,内容,来源,信号,投递).然后(投递已接受,投递失败)
         except Exception as 错误:
-            拒绝提示(错误,子会话标识,信号)
+            投递失败(错误)
+        return 结果
 
     @远程('interruptByParent')
     def 按父打断(自身,childSessionId,parentSessionId,mode):
@@ -291,11 +305,13 @@ class 子智能体运行时(远程服务):
         )
 
     def 排空可续跑后代(自身,父列表):#排空作用域后代
-        '关闭精确活父智能体之下的可续跑准入，同步只停它们可见的后代 Activation'
+        '返回期约：关闭精确活父智能体之下的可续跑准入，同步只停它们可见的后代 Activation，全部拆除后兑现'
         管理器=自身._续跑#可选管理器
         # 缺少续跑服务表示从未物化过任何东西。
         if 管理器 is None:#无管理器则空操作
-            return#空操作
+            已排空=期约()#从未物化过任何东西
+            已排空.解决()#已兑现
+            return 已排空#空操作
         return 管理器.排空后代(父列表)#交给管理器
 
     def 列出子体(自身,父会话标识,信号=None):#枚举直接子体

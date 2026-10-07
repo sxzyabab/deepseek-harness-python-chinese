@@ -1,6 +1,5 @@
 '只读取私有任务目录内有界、普通的 PDF'
 import os,re,stat#路径打开、PDF 头尾校验、文件类型
-from ...工具.超时 import 若已中止则抛出#中止入口
 from .异常 import office转pdf错误#分类失败
 
 __all__=['读取pdf']#仅中文公开名

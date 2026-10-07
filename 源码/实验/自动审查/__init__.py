@@ -1,9 +1,8 @@
-import json,re,threading#渲染、成员计数与在途审查
+import json,re#渲染与成员计数
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
-from ...内核.作用域 import 操作任务#在途结算
+from ...基础设施.js特性 import PromiseEX as 期约#在途结算
 from ...内核.工具 import 运行代码名#外层传输名
 from ...模型后端.llm import 块组装器,深冻结#审查流
-from ...工具.超时 import 已中止,合成信号,中止控制器#中止
 from .异常 import 审查错误#本包异常
 
 __all__=['名称','依赖','应用']
@@ -398,7 +397,7 @@ def 应用(上下文):#安装 Auto 与前置审查门
                 return 下一()#过
             if (not 接纳中) or 已中止(寿命.信号):#关闭
                 return {'kind':'cancel'}#取消
-            完成=操作任务()#在途
+            完成=期约()#在途
             在途.add(完成)#登记
             try:#审查
                 信号=合成信号(执行.get('signal'),寿命.信号)#合成
@@ -419,33 +418,37 @@ def 应用(上下文):#安装 Auto 与前置审查门
                 return 下游#下游
             finally:#出
                 在途.discard(完成)#摘
-                完成.兑现(None)#兑现
+                完成.解决(None)#解决
         停监听=上下文.on('tools/pre-execute',预执行,{'prepend':True})#前置
         def 准入():#登记 Auto
             '关闭中拒绝选择'
             if not 接纳中:#关闭
                 raise 审查错误('自动审查：集成正在关闭')
         停贡献=权限预设.登记自动(准入)#贡献
-        def 卸():#拆除
-            '先关选择再迁 Full access，再等在途'
-            nonlocal 接纳中#改
-            接纳中=False#关
-            try:#迁移
-                for 会话 in 上下文.sessions.列出():#会话
-                    if 权限预设.当前(会话)!=自动预设:#非 Auto
-                        continue#下
-                    权限预设.设(会话,'danger-full-access')#Full access
-            finally:#中止在途
-                寿命.中止(Exception('自动审查集成已拆除'))
-                for 任务 in list(在途):#等
-                    try:#结算
-                        任务.等待()#等
-                    except Exception:#忽略
-                        pass#结清
+        def 迁移会话(启动值):#先迁移
+            '把全部 Auto 会话迁到 Full access'
+            for 会话 in 上下文.sessions.列出():#会话
+                if 权限预设.当前(会话)!=自动预设:#非 Auto
+                    continue#下
+                权限预设.设(会话,'danger-full-access')#Full access
+        def 中止并等在途():#无论迁移成败
+            '中止在途审查并等它们全部结算，失败也继续'
+            寿命.中止(Exception('自动审查集成已拆除'))
+            return 期约.全部已结算(list(在途))#栅栏，不关心各自结果
+        def 停监听与贡献(在途结算值):#在途结清后
+            '摘掉监听与 Auto 贡献'
             if callable(停监听):#监听
                 停监听()#停
             if callable(停贡献):#贡献
                 停贡献()#停
+        def 卸():#拆除
+            '先关选择再迁 Full access，再等在途。返回期约'
+            nonlocal 接纳中#改
+            接纳中=False#关
+            启动=期约()#迁移作为链的起点
+            迁移后=启动.然后(迁移会话).最终(中止并等在途).然后(停监听与贡献)#迁移失败也会中止并等在途
+            启动.解决(None)#开始迁移
+            return 迁移后#拆除结果
         return 卸#拆除器
     上下文.副作用(寿命体,'自动审查寿命')
 

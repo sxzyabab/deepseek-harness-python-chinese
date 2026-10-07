@@ -1,7 +1,6 @@
 '上下文溢出时省略最旧图片，释放请求预算'
 from ...模型后端.llm.异常 import 图片卸载必需码#溢出码
 from ...模型后端.llm.异常 import 装备错误#LLM 错误
-from ...工具.超时 import 若已中止则抛出#中止抛出
 from .图片省略 import 省略最旧图片#选图
 from .异常 import 图片省略错误#本包异常
 from .投影 import 图片省略投影#投影

@@ -1,5 +1,4 @@
-import sys,signal as 信号模块#参数与终止信号
-from ...工具.超时 import 中止控制器#进程寿命
+import sys,threading,signal as 信号模块#参数、进程寿命事件与终止信号
 from .异常 import ssh错误#本包异常基类
 from .ssh侧车 import 运行ssh辅助#辅助运行
 from .流安全 import 套接字流#标准流入面
@@ -43,6 +42,18 @@ def 主入口():#OpenSSH 进程入口
         控制器.中止(ssh错误('SSH helper process terminated'))#中止
     for 名 in ('SIGTERM','SIGHUP','SIGINT'):#终止信号
         信号模块.signal(getattr(信号模块,名),停止)#一次登记
+    运行结束=threading.Event()#进程寿命：运行期约落定后才让主线程返回，相当于上游事件循环保持进程存活
+    退出码=0#运行失败时改为约定退出码
+    def 运行完成(落定值):
+        '运行成功结束，放行主线程'
+        运行结束.set()#放行
+    def 运行失败(错误):
+        '运行失败：写诊断并改退出码，放行主线程'
+        nonlocal 退出码#改外层
+        消息=错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else str(错误)#消息
+        sys.stderr.write('dsh-ssh-sandbox: '+str(消息)+'\n')#诊断
+        退出码=127#约定退出
+        运行结束.set()#放行
     try:#运行
         if len(sys.argv)!=1:#除脚本名外还有参数
             raise ssh错误('SSH helper accepts no command arguments')#拒绝
@@ -51,14 +62,15 @@ def 主入口():#OpenSSH 进程入口
             'output':包装标准流(sys.stdout.buffer),#只走 exec 标准出
             'entryPath':__file__,#入口路径供摘要
             'signal':控制器.信号,#寿命
-        })#运行直到通道关闭
-    except BaseException as 错误:#失败
-        消息=错误.args[0] if isinstance(错误,BaseException) and len(错误.args)>0 else str(错误)#消息
-        sys.stderr.write('dsh-ssh-sandbox: '+str(消息)+'\n')#诊断
-        sys.exit(127)#约定退出
+        }).然后(运行完成,运行失败)#运行直到通道关闭
+        运行结束.wait()#等运行期约落定
+    except ssh错误 as 错误:#参数非法，运行尚未开始
+        运行失败(错误)#同样写诊断
     finally:#摘信号
         for 名 in ('SIGTERM','SIGHUP','SIGINT'):#信号
             信号模块.signal(getattr(信号模块,名),信号模块.SIG_DFL)#恢复
+    if 退出码!=0:#运行失败
+        sys.exit(退出码)#约定退出
 
 if __name__=='__main__':#进程入口
     主入口()#启动

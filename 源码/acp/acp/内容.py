@@ -2,7 +2,6 @@
 import re
 from base64 import b64encode as 编码基64,b64decode as 解码基64
 from ...附件.附件.异常 import 是否图像准入错误
-from ...工具.超时 import 若已中止则抛出
 import json
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from .异常 import ACP内容错误#稳定 ACP 请求失败分类

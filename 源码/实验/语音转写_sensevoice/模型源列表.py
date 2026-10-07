@@ -1,7 +1,7 @@
 import threading
 from urllib.parse import urljoin,urlparse
 import requests
-from ...工具.超时 import 截止,若已中止则抛出,已中止
+from ...工具.超时 import 截止
 
 __all__=['排序模型源']
 

@@ -1,6 +1,6 @@
 '共享 Files 解析、有界陈旧 id 恢复与归一化图诊断'
 import re
-from ...工具.超时 import 截止,若已中止则抛出
+from ...工具.超时 import 截止
 
 __all__=['文件解析失败','请求文件']
 

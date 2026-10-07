@@ -1,6 +1,6 @@
-import base64,math,threading
-from ....工具.超时 import 中止控制器,若已中止则抛出
-
+from functools import partial as 偏函数
+import base64,math
+from ....基础设施.js特性 import PromiseEX as 期约#停录、拆除与启动的异步结果
 __all__=['录制错误','编码波形','音频base64','录制']
 
 from ..异常 import 录制错误#采集失败
@@ -53,54 +53,65 @@ class 录制:
         自身.拆除回调=拆除回调
 
     def start(自身,出错=None):
-        '取得麦克风；已取消的授权立刻停轨'
+        '取得麦克风；已取消的授权立刻停轨。返回期约，采集开始后兑现；开始阶段失败时先拆除再拒绝'
         导航=globals().get('navigator')
         记录器类=globals().get('MediaRecorder')
         音频上下文类=globals().get('AudioContext')
         设备=None if 导航 is None else getattr(导航,'mediaDevices',None)
         if 设备 is None or 记录器类 is None or 音频上下文类 is None:
             raise 录制错误('unavailable')
-        try:
-            流=设备.getUserMedia({'audio':{'echoCancellation':True,'noiseSuppression':True},'video':False})
-        except Exception as 错误:
-            名称=getattr(错误,'name',None)
-            if 名称=='NotAllowedError':
-                raise 录制错误('permission')
-            raise
-        if 自身.寿命.信号.已中止():
-            for 轨 in 流.getTracks():
-                轨.stop()
-            raise 录制错误('cancelled')
-        自身.流=流
-        try:
-            自身.上下文=音频上下文类()
-            自身.分析器=自身.上下文.createAnalyser()
-            自身.分析器.fftSize=len(自身.采样)
-            自身.上下文.createMediaStreamSource(流).connect(自身.分析器)
-            自身.记录器=记录器类(流)
-            def 收到数据(事件):
-                '累积未中止且非空的数据块'
-                if not 自身.寿命.信号.已中止() and 事件.data.size>0:
-                    自身.块表.append(事件.data)
-            def 记录失败(*位置参数):
-                '采集中断则拆除并回调'
-                if 自身.寿命.信号.已中止():
-                    return
-                try:
-                    自身.拆除()
-                except Exception:
-                    pass
-                try:
-                    if 出错 is not None:
-                        出错(录制错误('interrupted'))
-                except Exception as 回调错误:
-                    print('Speech recording error handler failed',回调错误)
-            自身.记录器.ondataavailable=收到数据
-            自身.记录器.onerror=记录失败
-            自身.记录器.start()
-        except Exception:
-            自身.拆除()
-            raise
+        def 抛出原失败(失败,拆除值=None):#拆除完成
+            '抛出原失败'
+            raise 失败
+        def 拆除后抛出(失败):#开始记录失败
+            '先拆除，拆除完成后抛出原失败'
+            return 自身.拆除().然后(偏函数(抛出原失败,失败))
+        def 收到数据(事件):
+            '累积未中止且非空的数据块'
+            if not 自身.寿命.信号.已中止() and 事件.data.size>0:
+                自身.块表.append(事件.data)
+        def 忽略拆除失败(拆除错误):#拆除失败
+            '中断回调不依赖拆除结果，拆除失败可忽略'
+            return None#失败已消化
+        def 记录失败(*位置参数):
+            '采集中断则拆除并回调'
+            if 自身.寿命.信号.已中止():
+                return
+            自身.拆除().捕获(忽略拆除失败)#拆除失败不影响中断回调
+            try:
+                if 出错 is not None:
+                    出错(录制错误('interrupted'))
+            except Exception as 回调错误:
+                print('Speech recording error handler failed',回调错误)
+        def 开始采集(启动值):#取得麦克风
+            '取得麦克风并开始记录；开始记录阶段失败则拆除后抛出'
+            try:
+                流=设备.getUserMedia({'audio':{'echoCancellation':True,'noiseSuppression':True},'video':False})
+            except Exception as 错误:
+                名称=getattr(错误,'name',None)
+                if 名称=='NotAllowedError':
+                    raise 录制错误('permission')
+                raise
+            if 自身.寿命.信号.已中止():
+                for 轨 in 流.getTracks():
+                    轨.stop()
+                raise 录制错误('cancelled')
+            自身.流=流
+            try:
+                自身.上下文=音频上下文类()
+                自身.分析器=自身.上下文.createAnalyser()
+                自身.分析器.fftSize=len(自身.采样)
+                自身.上下文.createMediaStreamSource(流).connect(自身.分析器)
+                自身.记录器=记录器类(流)
+                自身.记录器.ondataavailable=收到数据
+                自身.记录器.onerror=记录失败
+                自身.记录器.start()
+            except Exception as 错误:
+                return 拆除后抛出(错误)
+        起点=期约()#取得麦克风在返回之后才开始
+        结果=起点.然后(开始采集)
+        起点.解决(None)
+        return 结果
 
     def 振幅(自身):
         '当前 RMS；未采集时为 0'
@@ -113,28 +124,29 @@ class 录制:
         return math.sqrt(平方和/len(自身.采样))
 
     def stop(自身,最长秒):
-        '结束采集并重采样到 16 kHz 单声道 WAV'
+        '结束采集并重采样到 16 kHz 单声道 WAV。返回期约，兑现值是 WAV 字节；无论成败都拆除'
         记录器=自身.记录器
         上下文=自身.上下文
         if 记录器 is None or 上下文 is None or 记录器.state!='recording':
-            自身.拆除()
-            raise 录制错误('empty')
+            def 拆除后抛出空录音(拆除值):#拆除完成
+                '拆除后抛出空录音'
+                raise 录制错误('empty')
+            return 自身.拆除().然后(拆除后抛出空录音)
+        完成=期约()#最后一块到达时兑现，停录出错时拒绝
+        def 已停(*位置参数):
+            '最后一块到达'
+            完成.解决(None)
+        def 停失败(*位置参数):
+            '停录失败'
+            完成.拒绝(录制错误('empty'))
+        记录器.onstop=已停
+        记录器.onerror=停失败
         try:
-            完成=threading.Event()
-            失败=[None]
-            def 已停(*位置参数):
-                '最后一块到达'
-                完成.set()
-            def 停失败(*位置参数):
-                '停录失败'
-                失败[0]=录制错误('empty')
-                完成.set()
-            记录器.onstop=已停
-            记录器.onerror=停失败
             记录器.stop()
-            完成.wait()
-            if 失败[0] is not None:
-                raise 失败[0]
+        except Exception as 错误:
+            完成.拒绝(错误)
+        def 重采样并编码(停止值):#最后一块已到达
+            '停轨后合成二进制块、解码并重采样编码'
             if 自身.流 is not None:
                 for 轨 in 自身.流.getTracks():
                     轨.stop()
@@ -155,18 +167,18 @@ class 录制:
             重采样=离线.startRendering()
             若已中止则抛出(自身.寿命.信号)
             return 编码波形(重采样.getChannelData(0))
-        finally:
-            自身.拆除()
+        return 完成.然后(重采样并编码).最终(自身.拆除)#无论成败都拆除
 
     def 拆除(自身):
-        '释放本采集并作废未决授权'
+        '释放本采集并作废未决授权。返回共享期约；释放失败（含 AudioContext 关闭失败）时拒绝'
         if 自身.拆除完成 is None:
-            自身.拆除完成=threading.Event()
-            try:
+            起点=期约()#释放在共享期约登记之后才开始
+            def 执行释放(启动值):#开始释放
+                '执行释放；失败使共享期约拒绝'
                 自身.释放()
-            finally:
-                自身.拆除完成.set()
-        自身.拆除完成.wait()
+            自身.拆除完成=起点.然后(执行释放)
+            起点.解决(None)
+        return 自身.拆除完成
 
     def 释放(自身):
         '停轨并关闭 AudioContext'

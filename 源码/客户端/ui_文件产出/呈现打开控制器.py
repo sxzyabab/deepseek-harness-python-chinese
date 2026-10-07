@@ -1,32 +1,11 @@
 import threading#寿命与元数据中止
-from concurrent.futures import Future as _原生Future,wait as _等待全部#在飞任务
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...客户端.存储 import 创建快照存储#快照存储
 from .已呈现 import 已呈现文件网址,呈现宿主路径,是否已呈现宿主#坐标与宿主
 from .改动 import 已改文件网址#改动打开 URL
 from .异常 import 已呈现打开错误#本包异常
 
 __all__=['已呈现打开控制器','已呈现打开错误']#仅中文公开名
-
-class _操作任务:#单次操作 Future
-    '只留 等待'
-    def __init__(自身):
-        '构造未决'
-        自身._未来=_原生Future()#底层
-
-    def 兑现(自身,值=None):
-        '成功结算'
-        if not 自身._未来.done():#尚未
-            自身._未来.set_result(值)#写入
-        return 值#返回
-
-    def 拒绝(自身,错误):
-        '失败结算'
-        if not 自身._未来.done():#尚未
-            自身._未来.set_exception(错误 if isinstance(错误,BaseException) else 已呈现打开错误(str(错误)))#拒绝
-
-    def 等待(自身,超时=None):
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果
 
 class 已呈现打开控制器:#浏览器侧打开控制器
     '一个插件一份；拆除时取消未完请求'
@@ -49,46 +28,56 @@ class 已呈现打开控制器:#浏览器侧打开控制器
         return 自身._按网址打开(已改文件网址(会话标识,序号,下标),'open')#委托打开
 
     def _按网址打开(自身,网址,动作):#按 URL 打开
-        '同一 URL 在飞时只打开一次'
+        '同一 URL 在飞时只打开一次。返回期约，请求结束后解决，失败则拒绝'
+        结果=期约()#本次打开的结算点
         快照=自身.状态.getSnapshot()#当前
         阶段=快照[网址] if 网址 in 快照 else None#阶段
         if 自身._寿命.is_set() or 阶段 in ('opening','revealing'):#已中止或在飞
-            return#空操作
+            结果.解决()#空操作
+            return 结果
         def 写进行中(状态):#进入进行中
             '更新阶段'
             状态[网址]='opening' if 动作=='open' else 'revealing'#进行中
         自身.状态.update(写进行中)#发布进行中
-        未来=_原生Future()#拆除时等待
+        未来=期约()#拆除时等待
         自身._在飞.add(未来)#记下
         try:#请求
             自身._请求(网址,动作)#同步请求
-            未来.set_result(None)#成功
         except BaseException as 错误:#失败
-            未来.set_exception(错误)#拒绝
-            raise#上抛
-        finally:#结算
             自身._在飞.discard(未来)#移出
+            未来.拒绝(错误)#拒绝
+            结果.拒绝(错误)#交给调用方
+            return 结果
+        自身._在飞.discard(未来)#移出
+        未来.解决()#成功
+        结果.解决()
+        return 结果
 
     def 加载宿主(自身):#加载宿主元数据
-        '读服务桌面元数据，合并并发读'
+        '读服务桌面元数据，合并并发读。返回期约，读完后解决，失败则拒绝'
         if 自身._寿命.is_set():#已中止
-            return#空
+            已中止=期约()#无需读
+            已中止.解决()
+            return 已中止
         if 自身._加载中 is not None:#合并并发
-            return 自身._加载中.等待()#等既有
+            return 自身._加载中#共享既有
         自身.宿主.set(None)#清空
-        任务=_操作任务()#新任务
+        任务=期约()#新任务
         自身._加载中=任务#记下
-        自身._在飞.add(任务._未来)#计入
+        自身._在飞.add(任务)#计入
         try:#读
             自身._读宿主()#同步读
-            任务.兑现()#成功
         except BaseException as 错误:#失败
-            任务.拒绝(错误)#拒绝
-            raise#上抛
-        finally:#结算
             if 自身._加载中 is 任务:#仍是本任务
                 自身._加载中=None#清
-            自身._在飞.discard(任务._未来)#移出
+            自身._在飞.discard(任务)#移出
+            任务.拒绝(错误)#拒绝
+            return 任务
+        if 自身._加载中 is 任务:#仍是本任务
+            自身._加载中=None#清
+        自身._在飞.discard(任务)#移出
+        任务.解决()#成功
+        return 任务
 
     def 重置宿主(自身):#连接替换时作废
         '作废桌面元数据；曾在读则重载'
@@ -101,10 +90,9 @@ class 已呈现打开控制器:#浏览器侧打开控制器
             自身.加载宿主()#重载
 
     def 拆除(自身):#拆除
-        '取消未完，等到没有任何请求还能发布状态'
+        '取消未完，返回没有任何请求还能发布状态后解决的期约'
         自身._寿命.set()#中止寿命
-        if len(自身._在飞)>0:#有在飞
-            _等待全部(list(自身._在飞))#等全部
+        return 期约.全部已结算(list(自身._在飞))#等全部
 
     def _读宿主(自身):#读宿主元数据
         '拉取 present.host'

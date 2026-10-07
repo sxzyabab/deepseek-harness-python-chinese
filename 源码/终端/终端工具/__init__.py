@@ -1,7 +1,6 @@
 '登记六种面向模型的持久终端工具；所有者来自工具执行智能体，后台 id 与收集由任务层负责'
-import threading#后台结算线程
-from ...工具.超时 import 已中止#中止入口；信号来自超时库
-from ...基础设施.通用工具.并发原语 import 操作任务
+import functools
+from ...基础设施.js特性 import PromiseEX as 期约
 from ...基础设施.通用工具.数值判定 import 是否非负安全整数
 from ...依赖.schemastery import 布尔字段,整数字段#配置字段
 from ..终端 import 终端会话标识#导入会话id品牌化
@@ -96,6 +95,23 @@ def 原文单文本(内容):#取出唯一文本块
         return 块['text']#正文
     return None#非文本
 
+偏应用=functools.partial
+
+def 映射完成(取消请求,结果):
+    '把发送结算映射成任务结局'
+    return {'status':'killed' if 取消请求[0] else 'completed','detail':发送详情(结果)}
+
+def 映射失败(错误):
+    '发送失败也记成任务结局'
+    return {'status':'failed','detail':str(错误)}
+
+def 前台发送已到(前台结果,信号,结果):
+    '前台发送落定：已中止则拒绝，否则交回前台结果'
+    if 已中止(信号):
+        前台结果.拒绝(终端工具错误('terminal send aborted'))
+        return
+    前台结果.解决({'kind':'foreground',**结果})
+
 def 发送详情(结果):#后台任务详情
     '把发送结算映射成任务 detail 字符串'
     会话状态=结果['sessionStatus']#会话状态
@@ -189,42 +205,33 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             取消请求=[False]
             文本=参数['text'] if 'text' in 参数 and 参数['text'] is not None else ''
             操作槽=[None]
+            def 取操作():
+                '发送开始前读到空'
+                return 操作槽[0]
             def 任务体():
                 '在通用任务层下拉起后台终端发送'
                 操作=上下文.terminals.开始发送(所有者,标识,请求)
                 操作槽[0]=操作
-                结算=操作任务()
-                def 盯结算():
-                    '把发送结算映射成任务结局'
-                    try:
-                        结果=操作.done.等待()
-                        结算.兑现({'status':'killed' if 取消请求[0] else 'completed','detail':发送详情(结果)})
-                    except BaseException as 错误:
-                        结算.兑现({'status':'failed','detail':str(错误)})
-                工作=threading.Thread(target=盯结算)
-                工作.daemon=True
-                工作.start()
                 def 取消():
                     '请求打断后台发送'
                     取消请求[0]=True
                     操作.取消()
-                return {'cancel':取消,'done':结算}
+                return {'cancel':取消,'done':操作.done.然后(偏应用(映射完成,取消请求),映射失败)}
             编号=任务服务.启动({
                 'kind':'pty-send',
                 'label':str(标识)+': '+(文本 if len(文本)>0 else '(input)'),
                 'owner':所有者.id,
                 'outputLimitBytes':结果字节,
-                'output':[发送源(lambda:操作槽[0])],
+                'output':[发送源(取操作)],
                 'run':任务体,
             })
             return {'kind':'background','jobId':编号}#立刻返回任务id
         前台请求=dict(请求)#拷贝请求
         前台请求['signal']=执行元数据.signal#前台发送带取消
         操作=上下文.terminals.开始发送(所有者,标识,前台请求)#前台发送
-        结果=操作.done.等待()#等待结算
-        if 已中止(执行元数据.signal):#工具已取消
-            raise 终端工具错误('terminal send aborted')#工具已取消
-        return {'kind':'foreground',**结果}#前台结果
+        前台结果=期约()
+        操作.done.然后(偏应用(前台发送已到,前台结果,执行元数据.signal),前台结果.拒绝)
+        return 前台结果
     def 渲染发送结果(_参数,值):#渲染发送结果
         '后台报任务 id，前台渲染视口'
         if 值['kind']=='background':#后台

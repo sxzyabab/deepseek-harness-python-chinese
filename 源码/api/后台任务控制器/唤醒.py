@@ -1,4 +1,3 @@
-from ...工具.超时 import 已中止
 import threading,time
 
 __all__=['输出等待者','休眠']

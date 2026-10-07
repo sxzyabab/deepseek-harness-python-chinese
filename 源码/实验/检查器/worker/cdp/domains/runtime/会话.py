@@ -1,4 +1,4 @@
-from .....共享.json import 在线程执行#后台跑
+from .......基础设施.js特性 import PromiseEX as 期约扩展#后端方法的期约组合
 from .....异常 import 检查器错误#包内错误
 from ...协议 import cdp错误,响应cdp请求#协议
 from .cdp参数 import (#参数解析
@@ -32,10 +32,10 @@ class Runtime域会话:#Runtime域会话
             自身._响应(请求,自身._禁用)#响应
             return True#已拥有
         if 方法=='Runtime.evaluate':#求值
-        def 求值():#求值体
-            '求值'
-            return 自身._求值(请求['params'])#求值
-        自身._响应(请求,求值)#响应
+            def 求值():#求值体
+                '求值'
+                return 自身._求值(请求['params'])#求值
+            自身._响应(请求,求值)#响应
             return True#已拥有
         if 方法=='Runtime.getProperties':#取属性
             return 自身._取属性(请求)#委托
@@ -119,59 +119,68 @@ class Runtime域会话:#Runtime域会话
         return 访问(参数,None)#改写结果
 
     def 解析对象(自身,源,表达式,对象组):#解析对象表达式
-        '将一个 realm 注册表表达式解析为连接本地对象 id'
+        '将一个 realm 注册表表达式解析为连接本地对象 id，返回期约，兑现值是 RemoteObject 字段'
         领域=自身.realms.按源(源)#取realm
         if 领域 is None:#已断
             raise 检查器错误('Cordis realm is no longer connected')#抛错
         运行时=运行时后端(领域)#后端
-        完成=运行时.求值({'expression':表达式,'generatePreview':True,**({} if 对象组 is None else {'objectGroup':对象组})})#求值
-        if 完成.get('exceptionDetails') is not None:#失败
-            raise 检查器错误('Cordis object lookup failed')#抛错
-        return 自身._对象.完成(领域,完成,对象组)['result']#结果
+        def 投影结果(完成):#求值完成后调用
+            '失败则拒绝，成功则投影出 result'
+            if 完成.get('exceptionDetails') is not None:#失败
+                raise 检查器错误('Cordis object lookup failed')#抛错
+            return 自身._对象.完成(领域,完成,对象组)['result']#结果
+        return 运行时.求值({'expression':表达式,'generatePreview':True,**({} if 对象组 is None else {'objectGroup':对象组})}).然后(投影结果)#求值完成后再投影
 
     def _启用(自身):#启用
-        '启用各 realm Runtime'
+        '启用各 realm Runtime，返回期约；任一 realm 失败则回滚并以原错误拒绝'
         自身._已启用=True#置位
-        try:#启用各realm
-            for 领域 in 自身.realms.全部():#扫
-                运行时后端(领域).启用()#启用
+        def 附着并公告(启用结果列表):#全部 realm 启用后调用
+            '附着 Console 并公告上下文'
             for 领域 in 自身.realms.全部():#扫realm
                 自身._附着控制台(领域)#附着Console
                 自身._公告(领域)#公告上下文
             return {}#空结果
-        except Exception:#运行时后端.启用可能抛检查器错误/连接错误，契约未定所以收不窄
+        def 回滚(错误):#启用失败后调用
+            '撤销启用并尽力禁用各 realm，禁用结算后再以原错误拒绝'
             自身._已启用=False#清位
             for 拆除 in 自身._控制台拆除器.values():#拆Console
                 拆除()#回调
             自身._控制台拆除器.clear()#清Console
             自身._已公告上下文.clear()#清公告
-            for 领域 in 自身.realms.全部():#尽力禁用
-                try:#禁用
-                    运行时后端(领域).禁用()#禁用
-                except Exception:#回滚路径上 backend.禁用同样什么都可能抛，契约未定所以收不窄
-                    pass#忽略
-            raise#再抛
+            def 重新抛出(禁用结果列表):#各 realm 禁用结算后调用
+                '把启用失败的原错误交还调用方'
+                raise 错误#再抛
+            return 期约扩展.全部已结算([运行时后端(领域).禁用() for 领域 in 自身.realms.全部()]).然后(重新抛出)#尽力禁用
+        return 期约扩展.全部([运行时后端(领域).启用() for 领域 in 自身.realms.全部()]).然后(附着并公告).捕获(回滚)#全部启用后再附着，失败则回滚
 
     def _禁用(自身):#禁用
-        '禁用 Runtime'
+        '禁用 Runtime，返回期约；无论成败都清理连接状态'
         for 拆除 in 自身._控制台拆除器.values():#拆Console
             拆除()#回调
         自身._控制台拆除器.clear()#清Console
-        try:#禁用后端
-            for 领域 in 自身.realms.全部():#逐个
-                运行时后端(领域).禁用()#禁用
-        finally:#清理
+        def 清理状态():#禁用结算后调用
+            '清位并清空对象与公告'
             自身._已启用=False#清位
             自身._对象.清空()#清对象
             自身._已公告上下文.clear()#清公告
-        return {}#空结果
+        def 禁用完成(禁用结果列表):#全部 realm 禁用后调用
+            '清理状态后返回空结果'
+            清理状态()#清理
+            return {}#空结果
+        def 禁用失败(错误):#禁用被拒绝后调用
+            '清理状态后把错误交还调用方'
+            清理状态()#清理
+            raise 错误#再抛
+        return 期约扩展.全部([运行时后端(领域).禁用() for 领域 in 自身.realms.全部()]).然后(禁用完成,禁用失败)#全部禁用后再清理
 
     def _求值(自身,参数):#求值
-        'Runtime.evaluate'
+        'Runtime.evaluate，返回期约'
         解析=解析求值(参数)#解析
         领域=自身._按选择器取realm(解析,'contextId')#选realm
-        完成=运行时后端(领域).求值({**解析['request'],**自身._后端上下文(领域,解析,'contextId')})#求值
-        return 自身._对象.完成(领域,完成,解析['request'].get('objectGroup'))#投影
+        def 投影结果(完成):#求值完成后调用
+            '经对象表投影'
+            return 自身._对象.完成(领域,完成,解析['request'].get('objectGroup'))#投影
+        return 运行时后端(领域).求值({**解析['request'],**自身._后端上下文(领域,解析,'contextId')}).然后(投影结果)#求值完成后再投影
 
     def _取属性(自身,请求):#取属性
         'Runtime.getProperties'
@@ -182,10 +191,12 @@ class Runtime域会话:#Runtime域会话
         if 路由 is None:#未知
             return False#未拥有
         def 操作():#响应体
-            '取属性并投影'
+            '取属性并投影，返回期约'
             解析=解析取属性(请求['params'])#解析
-            属性=运行时后端(路由['realm']).取属性({**解析['request'],'handle':路由['handle']})#取属性
-            return 自身._对象.投影属性(路由['realm'],属性,路由['group'])#投影
+            def 投影结果(属性):#取属性完成后调用
+                '经对象表投影'
+                return 自身._对象.投影属性(路由['realm'],属性,路由['group'])#投影
+            return 运行时后端(路由['realm']).取属性({**解析['request'],'handle':路由['handle']}).然后(投影结果)#取属性完成后再投影
         自身._响应(请求,操作)#响应
         return True#已拥有
 
@@ -203,15 +214,17 @@ class Runtime域会话:#Runtime域会话
             自身._发错误(请求,'Runtime.callFunctionOn receiver and execution context belong to different realms')#错误
             return True#已拥有
         def 操作():#响应体
-            '调函数并投影'
+            '调函数并投影，返回期约'
             解析=解析调函数(请求['params'])#解析
             组=解析['request'].get('objectGroup')#对象组
             if 组 is None and 接收者 is not None: 组=接收者['group']#?? receiver.group，空串合法
             调用={**解析['request'],**自身._后端上下文(领域,解析,'executionContextId'),'arguments':[自身._路由参数(领域,项) for 项 in 解析['arguments']]}#调用
             if 接收者 is not None:#有接收者
                 调用['receiver']=接收者['handle']#接收者
-            完成=运行时后端(领域).调函数(调用)#调函数
-            return 自身._对象.完成(领域,完成,组)#投影
+            def 投影结果(完成):#调函数完成后调用
+                '经对象表投影'
+                return 自身._对象.完成(领域,完成,组)#投影
+            return 运行时后端(领域).调函数(调用).然后(投影结果)#调函数完成后再投影
         自身._响应(请求,操作)#响应
         return True#已拥有
 
@@ -224,10 +237,12 @@ class Runtime域会话:#Runtime域会话
         if 路由 is None:#未知
             return False#未拥有
         def 操作():#响应体
-            '等待并投影'
+            '等待并投影，返回期约'
             解析=解析等Promise(请求['params'])#解析
-            完成=运行时后端(路由['realm']).等Promise({**解析['request'],'promise':路由['handle']})#等待
-            return 自身._对象.完成(路由['realm'],完成,路由['group'])#投影
+            def 投影结果(完成):#等待完成后调用
+                '经对象表投影'
+                return 自身._对象.完成(路由['realm'],完成,路由['group'])#投影
+            return 运行时后端(路由['realm']).等Promise({**解析['request'],'promise':路由['handle']}).然后(投影结果)#等待完成后再投影
         自身._响应(请求,操作)#响应
         return True#已拥有
 
@@ -240,43 +255,56 @@ class Runtime域会话:#Runtime域会话
         if 路由 is None:#未知
             return False#未拥有
         def 操作():#响应体
-            '后端与表释放'
+            '后端与表释放，返回期约'
             解析释放对象(请求['params'])#校验
-            运行时后端(路由['realm']).释放对象(路由['handle'])#后端释放
-            自身._对象.释放(对象id)#表释放
-            return {}#空
+            def 释放对象表项(后端结果):#后端释放完成后调用
+                '再释放对象表里的项'
+                自身._对象.释放(对象id)#表释放
+                return {}#空
+            return 运行时后端(路由['realm']).释放对象(路由['handle']).然后(释放对象表项)#后端释放完成后再释放表项
         自身._响应(请求,操作)#响应
         return True#已拥有
 
     def _释放对象组(自身,参数):#释放对象组
-        'Runtime.releaseObjectGroup'
+        'Runtime.releaseObjectGroup，返回期约；无论成败都清理对象表里的组'
         组=解析释放对象组(参数)#组名
         领域表=自身._对象.组内realms(组)#相关realm
-        try:#后端释放
-            for 领域 in 领域表:#逐个
-                运行时后端(领域).释放对象组(组)#释放
-        finally:#表清理
+        def 释放完成(释放结果列表):#各 realm 释放后调用
+            '清理对象表里的组后返回空结果'
             自身._对象.释放组(组)#释放组
-        return {}#空
+            return {}#空
+        def 释放失败(错误):#释放被拒绝后调用
+            '清理对象表里的组后把错误交还调用方'
+            自身._对象.释放组(组)#释放组
+            raise 错误#再抛
+        return 期约扩展.全部([运行时后端(领域).释放对象组(组) for 领域 in 领域表]).然后(释放完成,释放失败)#各 realm 释放后再清理
 
     def _全局词法作用域名(自身,参数):#词法作用域名
-        'Runtime.globalLexicalScopeNames'
+        'Runtime.globalLexicalScopeNames，返回期约'
         解析=解析全局词法作用域名(参数)#解析
         领域=自身._按选择器取realm(解析,'executionContextId')#选realm
         上下文=自身._后端上下文(领域,解析,'executionContextId').get('context')#上下文
-        return {'names':运行时后端(领域).全局词法名(上下文)}#名称
+        def 包装名称(名字):#词法名取回后调用
+            '包装成 CDP 结果'
+            return {'names':名字}#名称
+        return 运行时后端(领域).全局词法名(上下文).然后(包装名称)#取回后再包装
 
     def _丢弃控制台条目(自身):#丢弃Console条目
-        'Runtime.discardConsoleEntries'
-        for 领域 in 自身.realms.全部():#逐个
+        'Runtime.discardConsoleEntries，返回期约'
+        def 丢弃单个领域(领域):#逐 realm 丢弃
+            '清 Console（支持时）并释放 console 对象组，返回期约'
             控制台=领域.console#Console能力
-            状态=控制台['state']#状态
-            if 状态=='supported':#支持
-                后端=控制台['backend']#后端
-                后端.清空()#清Console
-            运行时后端(领域).释放对象组('console')#释console组
-        自身._对象.释放组('console')#表释放
-        return {}#空
+            if 控制台['state']!='supported':#不支持
+                return 运行时后端(领域).释放对象组('console')#只释console组
+            def 释放控制台对象组(清空结果):#Console 清空后调用
+                '再释放 console 对象组'
+                return 运行时后端(领域).释放对象组('console')#释console组
+            return 控制台['backend'].清空().然后(释放控制台对象组)#清空后再释放
+        def 释放对象表组(结果列表):#各 realm 丢弃后调用
+            '释放对象表里的 console 组后返回空结果'
+            自身._对象.释放组('console')#表释放
+            return {}#空
+        return 期约扩展.全部([丢弃单个领域(领域) for 领域 in 自身.realms.全部()]).然后(释放对象表组)#各 realm 丢弃后再释放表项
 
     def _按选择器取realm(自身,参数,数字键):#按选择器取realm
         '缺省 Host'
@@ -360,15 +388,14 @@ class Runtime域会话:#Runtime域会话
         '打开或关闭'
         if 事件['type']=='opened':#打开
             if 自身._已启用:#已启用
-                def 启用():#启用体
-                    '启用后端'
-                    try:#成功
-                        运行时后端(事件['session']).启用()#启用
-                        自身._附着控制台(事件['session'])#附着Console
-                        自身._公告(事件['session'])#公告
-                    except Exception:#新 realm 启用/附着可能抛检查器错误/连接错误，契约未定所以收不窄
-                        事件['session'].关闭()#关会话
-                在线程执行(启用)#投递
+                def 附着并公告(启用结果):#新 realm 启用后调用
+                    '附着 Console 并公告上下文'
+                    自身._附着控制台(事件['session'])#附着Console
+                    自身._公告(事件['session'])#公告
+                def 关闭会话(错误):#新 realm 启用失败后调用
+                    '关掉这个 realm 的会话'
+                    事件['session'].关闭()#关会话
+                运行时后端(事件['session']).启用().然后(附着并公告,关闭会话)#启用完成后再附着，失败则关会话
             return#返回
         会话=事件['session']#会话
         拆除=自身._控制台拆除器.pop(会话.descriptor.realmId,None)#拆Console

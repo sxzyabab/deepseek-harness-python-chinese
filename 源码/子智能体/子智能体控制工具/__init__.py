@@ -1,3 +1,4 @@
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...内核.工具 import 定义工具#导入工具定义
 from ...内核.会话 import 会话标识#导入会话id品牌
 from ..子智能体.异常 import 子智能体错误#缝内失败
@@ -24,13 +25,17 @@ def 应用(上下文):
         选项={}
         if 'signal' in 执行元数据:#有取消信号
             选项['signal']=执行元数据['signal']#写入
-        消息标识=上下文.subagents.发送消息(
+        投递结果=期约()#投递结果
+        def 已接受(消息标识):
+            '收件箱接受后兑现消息id'
+            投递结果.解决({'messageId':消息标识})#返回消息id
+        上下文.subagents.发送消息(
             发送方,
             会话标识(参数['agent_id']),
             内容,
             选项,
-        )
-        return {'messageId':消息标识}#返回消息id
+        ).然后(已接受,投递结果.拒绝)#接受则兑现，失败原样拒绝
+        return 投递结果#交给工具注册表继续链式
     上下文.tools.登记(定义工具({#登记 send_message
         'name':'send_message',#工具名
         'description':(#工具描述

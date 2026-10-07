@@ -2,6 +2,7 @@
 import re#写死 ISO
 from datetime import datetime as 日期时间,timedelta as 时间差,timezone as 固定偏移
 from zoneinfo import ZoneInfo as 时区
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 观察者集合
 
 __all__=[#仅中文公开名
@@ -77,31 +78,49 @@ class 客户端工作区模型:
         自身._快照缓存=自身._构造快照()#初始快照
 
     def create(自身,输入):
-        '创建或解析 Workspace，并立即合并一元结果。输入含 path'
-        结果=自身._远程.create(输入)#发远程
-        if hasattr(结果,'等待'):#可等待
-            结果=结果.等待()#兑现
-        if 结果.get('ok'):#成功
-            自身._合并(结果['value']['workspace'])#合并
-        return 结果#结果
+        '创建或解析 Workspace，并立即合并一元结果。输入含 path。返回期约，解决值是远程结果'
+        落定=期约()#本次调用的结算点
+        def 已返回(结果):
+            '远程返回：成功则合并，再交出结果'
+            try:
+                if 结果.get('ok'):#成功
+                    自身._合并(结果['value']['workspace'])#合并
+            except BaseException as 错误:#合并失败交给调用方
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)#结果
+        自身._远程.create(输入).然后(已返回,落定.拒绝)#发远程
+        return 落定
 
     def rename(自身,工作区标识,标题):
-        '重命名 Workspace，并立即合并一元结果'
-        结果=自身._远程.rename({'workspaceId':工作区标识,'title':标题})#发远程
-        if hasattr(结果,'等待'):#可等待
-            结果=结果.等待()#兑现
-        if 结果.get('ok'):#成功
-            自身._合并(结果['value']['workspace'])#合并
-        return 结果#结果
+        '重命名 Workspace，并立即合并一元结果。返回期约，解决值是远程结果'
+        落定=期约()#本次调用的结算点
+        def 已返回(结果):
+            '远程返回：成功则合并，再交出结果'
+            try:
+                if 结果.get('ok'):#成功
+                    自身._合并(结果['value']['workspace'])#合并
+            except BaseException as 错误:#合并失败交给调用方
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)#结果
+        自身._远程.rename({'workspaceId':工作区标识,'title':标题}).然后(已返回,落定.拒绝)#发远程
+        return 落定
 
     def delete(自身,工作区标识):
-        '删除 Workspace，并立即从本地投影移除'
-        结果=自身._远程.delete({'workspaceId':工作区标识})#发远程
-        if hasattr(结果,'等待'):#可等待
-            结果=结果.等待()#兑现
-        if 结果.get('ok'):#成功
-            自身._移除(工作区标识,True)#立即移除
-        return 结果#结果
+        '删除 Workspace，并立即从本地投影移除。返回期约，解决值是远程结果'
+        落定=期约()#本次调用的结算点
+        def 已返回(结果):
+            '远程返回：成功则立即移除，再交出结果'
+            try:
+                if 结果.get('ok'):#成功
+                    自身._移除(工作区标识,True)#立即移除
+            except BaseException as 错误:#移除失败交给调用方
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)#结果
+        自身._远程.delete({'workspaceId':工作区标识}).然后(已返回,落定.拒绝)#发远程
+        return 落定
 
     def insertBefore(自身,工作区标识,锚点=None):
         '乐观移动 Workspace，并与返回的完整顺序对账'
@@ -113,36 +132,54 @@ class 客户端工作区模型:
         载荷={'workspaceId':工作区标识}#请求
         if 锚点 is not None:#有锚
             载荷['beforeWorkspaceId']=锚点#锚点
-        结果=自身._远程.insertBefore(载荷)#发远程
-        if hasattr(结果,'等待'):#可等待
-            结果=结果.等待()#兑现
-        if 请求代==自身._顺序请求代 and 帧代==自身._顺序帧代:#仍最新
-            自身._安装顺序(
-                结果['value']['workspaceIds'] if 结果.get('ok') else 自身._已提交顺序,
-                结果.get('ok'),
-            )#对账
-        return 结果#结果
+        落定=期约()#本次调用的结算点，解决值是远程结果
+        def 已返回(结果):
+            '远程返回：仍最新则与返回的完整顺序对账，再交出结果'
+            try:
+                if 请求代==自身._顺序请求代 and 帧代==自身._顺序帧代:#仍最新
+                    自身._安装顺序(
+                        结果['value']['workspaceIds'] if 结果.get('ok') else 自身._已提交顺序,
+                        结果.get('ok'),
+                    )#对账
+            except BaseException as 错误:#对账失败交给调用方
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)#结果
+        自身._远程.insertBefore(载荷).然后(已返回,落定.拒绝)#发远程
+        return 落定
 
     def insertSessionBefore(自身,工作区标识,会话标识,锚点=None):
         '在所属 Workspace 内移动会话，并合并返回行'
         载荷={'workspaceId':工作区标识,'sessionId':会话标识}#请求
         if 锚点 is not None:#有锚
             载荷['beforeSessionId']=锚点#锚点
-        结果=自身._远程.insertSessionBefore(载荷)#发远程
-        if hasattr(结果,'等待'):#可等待
-            结果=结果.等待()#兑现
-        if 结果.get('ok'):#成功
-            自身._合并(结果['value']['workspace'])#合并
-        return 结果#结果
+        落定=期约()#本次调用的结算点，解决值是远程结果
+        def 已返回(结果):
+            '远程返回：成功则合并，再交出结果'
+            try:
+                if 结果.get('ok'):#成功
+                    自身._合并(结果['value']['workspace'])#合并
+            except BaseException as 错误:#合并失败交给调用方
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)#结果
+        自身._远程.insertSessionBefore(载荷).然后(已返回,落定.拒绝)#发远程
+        return 落定
 
     def archiveSession(自身,会话标识):
         '归档一个会话，并安装返回的完整归档集合'
-        结果=自身._远程.archiveSession({'sessionId':会话标识})#发远程
-        if hasattr(结果,'等待'):#可等待
-            结果=结果.等待()#兑现
-        if 结果.get('ok'):#成功
-            自身._安装归档(结果['value']['archivedSessionIds'])#安装
-        return 结果#结果
+        落定=期约()#本次调用的结算点，解决值是远程结果
+        def 已返回(结果):
+            '远程返回：成功则安装归档集合，再交出结果'
+            try:
+                if 结果.get('ok'):#成功
+                    自身._安装归档(结果['value']['archivedSessionIds'])#安装
+            except BaseException as 错误:#安装失败交给调用方
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)#结果
+        自身._远程.archiveSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)#发远程
+        return 落定
 
     def replaceBaseline(自身,基线):
         '用一份完整流代际基线替换投影。基线为 dict'

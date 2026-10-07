@@ -242,25 +242,27 @@ class 会话输入壳:#每会话输入外壳
                 飞行=自身.附件飞行序号#序号
                 自身.附件飞行[飞行]={'controller':控制器,'attachmentIds':附件列表}#记下
                 自身.commitSend(附件列表)#先清
-                def 直送():
-                    '附件直送结算'
-                    try:#发送
-                        结局=自身.依赖['defaultSink']('',附件列表,模式,控制器.signal).等待()#汇
-                        if 自身.已拆除 is True or 飞行 not in 自身.附件飞行:#过期
-                            return#丢
-                        del 自身.附件飞行[飞行]#摘
-                        if 结局['kind']=='success':#成功
-                            return#停
-                        自身.恢复附件(附件列表)#恢复
-                        if 'text' in 结局 and 结局['text'] is not None:#有文案
-                            自身.notify('error',结局['text'])#通知
-                    except 对话错误 as 错误:#失败
-                        if 自身.已拆除 is True or 飞行 not in 自身.附件飞行:#过期
-                            return#丢
-                        del 自身.附件飞行[飞行]#摘
-                        自身.恢复附件(附件列表)#恢复
-                        自身.notify('error',str(错误))#通知
-                启动守护线程(直送)#后台
+                def 直送成功(结局):
+                    '附件直送成功臂'
+                    if 自身.已拆除 is True or 飞行 not in 自身.附件飞行:#过期
+                        return
+                    del 自身.附件飞行[飞行]#摘
+                    if 结局['kind']=='success':#成功
+                        return
+                    自身.恢复附件(附件列表)#恢复
+                    if 'text' in 结局 and 结局['text'] is not None:#有文案
+                        自身.notify('error',结局['text'])#通知
+                def 直送失败(错误):
+                    '附件直送失败臂'
+                    if 自身.已拆除 is True or 飞行 not in 自身.附件飞行:#过期
+                        return
+                    del 自身.附件飞行[飞行]#摘
+                    自身.恢复附件(附件列表)#恢复
+                    自身.notify('error',str(错误))#通知
+                try:#发送
+                    自身.依赖['defaultSink']('',附件列表,模式,控制器.signal).然后(直送成功,直送失败)#汇
+                except Exception as 错误:#同步失败
+                    直送失败(错误)
             return#停
         前=自身.snapshot#提交前
         认领=前['claim'] if 'claim' in 前 else None#认领
@@ -525,24 +527,26 @@ class 会话输入壳:#每会话输入外壳
 
     def 结算汇(自身,尝试,待决):
         '独立结算一次脱离发送'
-        def 工作():
-            '等汇并结算'
-            try:#发送
-                结局=待决.等待()#等汇
-                if 自身.已失效(尝试):#过期
-                    return#丢
-                if 结局['kind']!='success':#失败
-                    文=结局['text'] if 'text' in 结局 else None#文案
-                    自身.结算脱离失败(尝试,文)#失败
-                    return#停
-                if 尝试['seq'] in 自身.脱离草稿:#有记录
-                    del 自身.脱离草稿[尝试['seq']]#摘
-                自身.执行派发({'type':'sink-settled','attempt':尝试,'ok':True,'outcome':结局})#成功
-            except 对话错误 as 错误:#失败
-                if 自身.已失效(尝试):#过期
-                    return#丢
-                自身.结算脱离失败(尝试,str(错误))#失败
-        启动守护线程(工作)#后台
+        def 汇成功(结局):
+            '成功则摘记录，否则按失败恢复'
+            if 自身.已失效(尝试):#过期
+                return
+            if 结局['kind']!='success':#失败
+                文=结局['text'] if 'text' in 结局 else None#文案
+                自身.结算脱离失败(尝试,文)#失败
+                return
+            if 尝试['seq'] in 自身.脱离草稿:#有记录
+                del 自身.脱离草稿[尝试['seq']]#摘
+            自身.执行派发({'type':'sink-settled','attempt':尝试,'ok':True,'outcome':结局})#成功
+        def 汇失败(错误):
+            '失败则恢复脱离'
+            if 自身.已失效(尝试):#过期
+                return
+            自身.结算脱离失败(尝试,str(错误))#失败
+        try:#发送
+            待决.然后(汇成功,汇失败)#等汇
+        except Exception as 错误:#同步失败
+            汇失败(错误)
 
     def 结算脱离失败(自身,尝试,消息=None):
         '恢复一份失败脱离发送，不覆盖恢复后键入的正文'
@@ -618,33 +622,42 @@ class 会话输入壳:#每会话输入外壳
     def 开始提交(自身,尝试,认领,参数):
         '对会话作用域做 claim.submit；接受附件的认领才带上序列化附件'
         附件列表=list(自身.附件标识列表) if 'attachments' in 认领 and 认领['attachments'] is True else []#本批
-        def 工作():
-            '序列化后提交'
+        def 提交失败(错误):
+            '过期丢弃，否则派发失败'
+            if 自身.已失效(尝试):#过期
+                return
+            自身.执行派发({'type':'submit-settled','attempt':尝试,'ok':False,'draft':自身.投影['clipboardText'],'message':str(错误)})#失败
+        def 提交已到(结局):
+            '成功则释放附件并派发'
+            if 结局 is None or 自身.已失效(尝试):#过期
+                return
+            if 结局['kind']=='success' and len(附件列表)>0:#成功释放
+                已送=set(附件列表)#已送
+                自身.附件标识列表=[项 for 项 in 自身.附件标识列表 if 项 not in 已送]#去掉
+                自身.依赖['commandAttachments']['release'](附件列表)#释放
+            事件={'type':'submit-settled','attempt':尝试,'ok':结局['kind']=='success','draft':自身.投影['clipboardText'],'outcome':结局}#结算
+            if 结局['kind']=='error' and ('text' not in 结局 or 结局['text'] is None):#无文案
+                事件['message']='command failed'#缺省
+            自身.执行派发(事件)#派发
+        def 已序列化(附件载荷):
+            '序列化完成后提交'
+            if 自身.已失效(尝试):#过期
+                return
+            提交=认领['submit'] if 认领 is not None and 'submit' in 认领 else None#submit
+            if 提交 is None:#无
+                提交失败(对话错误('claim.submit unavailable'))#失败
+                return
             try:#提交
-                附件载荷=[]#载荷
-                if len(附件列表)>0:#有附件
-                    附件载荷=自身.依赖['commandAttachments']['serialize'](附件列表).等待()#序列化
-                if 自身.已失效(尝试):#过期
-                    return#丢
-                提交=认领['submit'] if 认领 is not None and 'submit' in 认领 else None#submit
-                if 提交 is None:#无
-                    raise 对话错误('claim.submit unavailable')#失败
-                结局=提交(参数,自身.依赖['actx'],附件载荷).等待()#提交
-                if 结局 is None or 自身.已失效(尝试):#过期
-                    return#丢
-                if 结局['kind']=='success' and len(附件列表)>0:#成功释放
-                    已送=set(附件列表)#已送
-                    自身.附件标识列表=[项 for 项 in 自身.附件标识列表 if 项 not in 已送]#去掉
-                    自身.依赖['commandAttachments']['release'](附件列表)#释放
-                事件={'type':'submit-settled','attempt':尝试,'ok':结局['kind']=='success','draft':自身.投影['clipboardText'],'outcome':结局}#结算
-                if 结局['kind']=='error' and ('text' not in 结局 or 结局['text'] is None):#无文案
-                    事件['message']='command failed'#缺省
-                自身.执行派发(事件)#派发
-            except 对话错误 as 错误:#失败
-                if 自身.已失效(尝试):#过期
-                    return#丢
-                自身.执行派发({'type':'submit-settled','attempt':尝试,'ok':False,'draft':自身.投影['clipboardText'],'message':str(错误)})#失败
-        启动守护线程(工作)#后台
+                提交(参数,自身.依赖['actx'],附件载荷).然后(提交已到,提交失败)#提交
+            except Exception as 错误:#同步失败
+                提交失败(错误)
+        if len(附件列表)>0:#有附件
+            try:#序列化
+                自身.依赖['commandAttachments']['serialize'](附件列表).然后(已序列化,提交失败)#序列化
+            except Exception as 错误:#同步失败
+                提交失败(错误)
+        else:#无附件
+            已序列化([])#直接提交
 
     def 已失效(自身,尝试):
         '拆除或已中止'

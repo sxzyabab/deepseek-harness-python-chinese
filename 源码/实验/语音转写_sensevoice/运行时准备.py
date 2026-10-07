@@ -1,7 +1,7 @@
 import hashlib,json,os,platform,sys,uuid
 import requests
 from ...基础设施.通用工具.时间工具 import 当前毫秒
-from ...工具.超时 import 若已中止则抛出,已中止,取超时
+from ...工具.超时 import 取超时
 from .异常 import 分类下载失败,语音下载错误
 from .模型源列表 import 排序模型源
 

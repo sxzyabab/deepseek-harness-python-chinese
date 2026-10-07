@@ -160,15 +160,17 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
                 +'To message another teammate, use send_message({ target: "<teammate name>", message: "..." }).\n'
                 +'</system-reminder>\n\n'
             )#提醒结束
-            结果=上下文.agentTeams.spawnTeammate(调用方,{#调用团队服务创建
+            def 转成模型成员行(结果):#创建完成
+                '创建成功后把成员行转成面向模型的形态'
+                return {'member':模型成员(结果['member'])}#面向模型的成员行
+            return 上下文.agentTeams.spawnTeammate(调用方,{#调用团队服务创建，返回期约
                 'name':参数['name'],#成员名
                 'description':参数['description'],#职责描述
                 'prompt':[{'type':'text','text':提醒},{'type':'text','text':参数['prompt']}],#提醒加初始任务
                 'context':上下文模式,#上下文模式
                 'provider':提供方,#选中的 provider
                 'signal':执行['signal'] if 'signal' in 执行 else None,#取消信号
-            })#spawnTeammate结束
-            return {'member':模型成员(结果['member'])}#面向模型的成员行
+            }).然后(转成模型成员行)#spawnTeammate结束
         登记(作用域.tools.register(定义工具({#注册 spawn_teammate
             'name':'spawn_teammate',#工具名
             'description':'Create one named, durable teammate. Only the Team Lead may call this tool.',#工具说明
@@ -188,7 +190,7 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
 
         def 执行发消息(参数,执行):#执行 send_message
             '向另一 Team 成员投递一条耐久消息'
-            return 上下文.agentTeams.sendMessage(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'send_message'),{#投递消息，已同步
+            return 上下文.agentTeams.sendMessage(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'send_message'),{#投递消息，返回期约
                 'target':参数['target'],#目标成员
                 'content':[{'type':'text','text':参数['message']}],#消息内容块
                 'signal':执行['signal'] if 'signal' in 执行 else None,#取消信号
@@ -304,13 +306,11 @@ def 安装(智能体,上下文,已解析配置):#在一个精确 Agent 作用域
             for 任务 in 上下文.agentTeams.listTasks(调用方智能体(执行['agent'] if 'agent' in 执行 else None,'team_task_list')):#按条件筛任务
                 if 状态 is not None and 任务['status']!=状态:#状态不匹配
                     continue#跳过
-                if 所有者过滤 is not None:#有所有者过滤
-                    所有者名=任务['ownerName'] if 'ownerName' in 任务 else None#任务所有者
-                    if 所有者过滤=='unowned':#无主过滤
-                        if 所有者名 is not None:#有主则跳过
-                            continue#跳过
-                    elif 所有者名!=所有者过滤:#名字不匹配
-                        continue#跳过
+                所有者名=任务['ownerName'] if 'ownerName' in 任务 else None#任务所有者
+                if 所有者过滤=='unowned' and 所有者名 is not None:#无主过滤命中有主
+                    continue#跳过
+                if 所有者过滤 is not None and 所有者过滤!='unowned' and 所有者名!=所有者过滤:#名字不匹配
+                    continue#跳过
                 if 就绪过滤 is not None and 任务['ready']!=就绪过滤:#就绪不匹配
                     continue#跳过
                 已筛.append(任务)#收下

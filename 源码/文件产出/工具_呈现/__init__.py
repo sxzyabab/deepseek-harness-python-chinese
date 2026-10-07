@@ -2,7 +2,6 @@
 import weakref#待定交付弱映射
 from ...依赖.schemastery import 数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
-from ...工具.超时 import 若已中止则抛出#取消信号
 from ...文件系统.文件系统.异常 import 文件系统错误#文件系统带类型错误
 from .类型 import 已呈现文件字段#再导出类型面
 from .异常 import 呈现错误#本包异常基类

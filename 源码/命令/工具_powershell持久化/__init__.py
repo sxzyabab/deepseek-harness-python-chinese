@@ -1,5 +1,6 @@
 '面向模型的持久 pwsh 工具'
-import re,uuid,threading,weakref#正则、标记、线程与弱表
+import functools,re,uuid,weakref#偏应用、正则、标记与弱表
+偏应用=functools.partial
 from ..工具_bash持久化 import (
     保留滚回,#拼滚回
     渲染已抽,#抽出输出渲染
@@ -8,9 +9,8 @@ from ..工具_bash持久化 import (
 )#共用滚回与渲染
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ...内核.工具 import 定义工具#工具定义
-from ...工具.超时 import 截止,取超时,中止控制器,合成信号,已中止,若已中止则抛出#超时与中止
-from ...基础设施.通用工具.并发原语 import 操作任务
-from ...基础设施.通用工具.线程工具 import 启动守护线程
+from ...工具.超时 import 截止,取超时#超时
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...基础设施.通用工具.数值判定 import 是否正安全整数
 from .异常 import 持久pwsh错误#本包异常基类
 
@@ -33,14 +33,6 @@ pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [
 退出码模式=re.compile(r'^([0-9]+)\r?\n',re.ASCII)#结束退出码
 末尾换行模式=re.compile(r'\r?\n\Z')#尾换行
 开头换行模式=re.compile(r'^\r?\n')#开头换行
-
-def 全部结算(任务列表):#等全部落定，吞掉失败
-    '并发原语按本包持有：等全部落定，吞掉失败'
-    for 任务 in 任务列表:#逐路
-        try:#等待
-            任务.等待()#等待
-        except BaseException:#排空不抛
-            pass#排空不抛
 
 def 收成pwsh引号(值):#把字符串收成 pwsh 转义
     '把字符串收成 PowerShell 双引号转义'
@@ -113,69 +105,100 @@ def 部分输出(快照,标记,回退,回退已截=False):#命令未完时尽量
     return {'text':剥提示符(结束前.replace(壳提示符,'')),'incomplete':回退已截 or 回退开始<0}#返回
 
 def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久壳里跑一条命令
-    '在持久壳里跑一条命令并返回面向模型的文本'
+    '返回期约：在持久壳里跑一条命令，兑现面向模型的文本；命令截止在期约落定后释放'
     命令截止=截止(上游,配置值['timeoutMs'],超时码)#截止
-    try:#执行循环
-        会话编号=壳表['get'](所有者,命令截止.信号).等待()#拿壳
-        标记=命令标记()#标记
-        已包装=包装命令(命令,标记)#包装
-        首次=True#第一次才提交
-        回退=''#回退
-        回退已截=False#回退是否被截
-        while True:#轮询
-            try:#发送
-                操作=上下文.terminals.开始发送(所有者,会话编号,{#向PTY发送
-                    'text':已包装 if 首次 else '',#第一次发包装命令
-                    'submit':首次,#第一次才提交
-                    'signal':命令截止.信号,#跟截止
-                })#开始发送结束
-                首次=False#之后不再提交
-                结果=操作.done.等待()#等这一轮
-            except BaseException as 错误:#发送失败
-                壳表['reset'](所有者,'persistent pwsh send failed')#丢掉这个壳
-                raise 错误#原样抛出
-            增量=操作.读取输出()#读增量
-            增量文本=增量['delta']#增量正文
-            if len(增量文本)>0:#有增量
-                回退=回退+增量文本#累加
-            else:#否则用视口
-                回退=结果['viewport']#视口
-            回退已截=回退已截 or 增量['truncated'] is True or 结果['truncated'] is True#截断
-            最新=上下文.terminals.读取(所有者,会话编号,{'offset':0,'count':滚回页行数})#最新页
-            已超时=取超时(命令截止.信号,超时码)#是否超时
-            if 已超时 is not None:#超时
-                快照=保留滚回(上下文,所有者,会话编号,最新)#拼滚回
-                部分=渲染已抽(部分输出(快照,标记,回退,回退已截),配置值['maxOutputChars'])#部分输出
-                壳表['reset'](所有者,'persistent pwsh command timed out')#超时重置
-                秒数=round(已超时.timeoutMs/1000.0)#超时秒数
-                return '\n'.join([#超时说明
-                    'Your command timed out after '+str(秒数)+' seconds or experienced an OOM error. Below is partial output:',#说明
-                    部分,#部分
-                    壳重置说明,#重置
-                ])#拼成一段
-            if 已中止(命令截止.信号):#取消
-                壳表['reset'](所有者,'persistent pwsh command aborted')#丢掉这个壳
-                若已中止则抛出(命令截止.信号)#按取消抛出
-            if 标记['end'] in 最新['text']:#见到结束标记
-                完整=命令输出(保留滚回(上下文,所有者,会话编号,最新),标记)#抽出
-                if 完整 is not None:#齐了
-                    return 渲染已抽(完整,配置值['maxOutputChars'])#渲染
-            会话状态=结果['sessionStatus']#会话状态
-            if 会话状态['kind']=='exited':#壳退出
-                快照=保留滚回(上下文,所有者,会话编号,最新)#拼滚回
-                壳表['reset'](所有者,'persistent pwsh shell exited')#清缓存
-                段=渲染壳退出状态(#退出原因
-                    渲染已抽(部分输出(快照,标记,回退,回退已截),配置值['maxOutputChars']),#部分输出
-                    会话状态['exitCode'] if 'exitCode' in 会话状态 else None,#退出码
-                    会话状态['signal'] if 'signal' in 会话状态 else None,#信号
-                )#渲染结束
-                return '\n'.join([段,壳重置说明])#拼上重置
-            if 提示符已完成(结果):#回到提示符
-                快照=保留滚回(上下文,所有者,会话编号,最新)#拼滚回
-                return 渲染已抽(部分输出(快照,标记,回退,回退已截),配置值['maxOutputChars'])#部分输出
-            暂停()#再等一轮
-    finally:#拆除定时器
+    执行结果=期约()#面向模型的文本
+    def 收尾成功(文本):
+        '命令结算：释放定时器后兑现文本'
         命令截止.释放()#释放
+        执行结果.解决(文本)#兑现文本
+    def 收尾失败(错误):
+        '命令失败：释放定时器后拒绝'
+        命令截止.释放()#释放
+        执行结果.拒绝(错误)#拒绝
+    def 发送失败(错误):
+        '发送失败：丢掉这个壳再原样拒绝'
+        壳表['reset'](所有者,'persistent pwsh send failed')
+        收尾失败(错误)
+    def 本轮已发完(状态,操作,结果):
+        '这一轮发送结束：判断超时、取消、完成、壳退出，否则再等一轮'
+        try:
+            增量=操作.读取输出()
+            增量文本=增量['delta']
+            if len(增量文本)>0:
+                状态['回退']=状态['回退']+增量文本
+            else:
+                状态['回退']=结果['viewport']
+            状态['回退已截']=状态['回退已截'] or 增量['truncated'] is True or 结果['truncated'] is True
+            最新=上下文.terminals.读取(所有者,状态['会话编号'],{'offset':0,'count':滚回页行数})
+            已超时=取超时(命令截止.信号,超时码)
+            if 已超时 is not None:
+                快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
+                部分=渲染已抽(部分输出(快照,状态['标记'],状态['回退'],状态['回退已截']),配置值['maxOutputChars'])
+                壳表['reset'](所有者,'persistent pwsh command timed out')
+                秒数=round(已超时.timeoutMs/1000.0)
+                收尾成功('\n'.join([
+                    'Your command timed out after '+str(秒数)+' seconds or experienced an OOM error. Below is partial output:',
+                    部分,
+                    壳重置说明,
+                ]))
+                return
+            if 已中止(命令截止.信号):
+                壳表['reset'](所有者,'persistent pwsh command aborted')
+                若已中止则抛出(命令截止.信号)
+            if 状态['标记']['end'] in 最新['text']:
+                完整=命令输出(保留滚回(上下文,所有者,状态['会话编号'],最新),状态['标记'])
+                if 完整 is not None:
+                    收尾成功(渲染已抽(完整,配置值['maxOutputChars']))
+                    return
+            会话状态=结果['sessionStatus']
+            if 会话状态['kind']=='exited':
+                快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
+                壳表['reset'](所有者,'persistent pwsh shell exited')
+                段=渲染壳退出状态(
+                    渲染已抽(部分输出(快照,状态['标记'],状态['回退'],状态['回退已截']),配置值['maxOutputChars']),
+                    会话状态['exitCode'] if 'exitCode' in 会话状态 else None,
+                    会话状态['signal'] if 'signal' in 会话状态 else None,
+                )
+                收尾成功('\n'.join([段,壳重置说明]))
+                return
+            if 提示符已完成(结果):
+                快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
+                收尾成功(渲染已抽(部分输出(快照,状态['标记'],状态['回退'],状态['回退已截']),配置值['maxOutputChars']))
+                return
+        except Exception as 错误:
+            收尾失败(错误)
+            return
+        暂停().然后(偏应用(发一轮,状态),收尾失败)
+    def 发一轮(状态,*暂停结果):
+        '发一次（首次带命令，之后空提交只为读），等这一轮发送结束'
+        try:
+            操作=上下文.terminals.开始发送(所有者,状态['会话编号'],{
+                'text':状态['已包装'] if 状态['首次'] else '',
+                'submit':状态['首次'],
+                'signal':命令截止.信号,
+            })
+        except Exception as 错误:
+            发送失败(错误)
+            return
+        状态['首次']=False
+        操作.done.然后(偏应用(本轮已发完,状态,操作),发送失败)
+    def 壳已就绪(会话编号):
+        '拿到壳后包装命令并开始轮询'
+        标记=命令标记()
+        发一轮({
+            '会话编号':会话编号,
+            '标记':标记,
+            '已包装':包装命令(命令,标记),
+            '首次':True,
+            '回退':'',
+            '回退已截':False,
+        })
+    try:#拿壳
+        壳表['get'](所有者,命令截止.信号).然后(壳已就绪,收尾失败)#拿壳失败直接拒绝
+    except Exception as 错误:#同步失败
+        收尾失败(错误)#拒绝
+    return 执行结果#交给调用方继续链式
 
 def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
     """按所有者缓存持久壳。
@@ -187,8 +210,44 @@ def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
     已装所有者拆除=weakref.WeakSet()#已给所有者装过拆除
     生命周期=中止控制器()#插件拆除时中止创建
 
+    def 创建已落定(拆除结果,*落定值):
+        '创建都结束后并行关掉存活会话，全部落定后清表'
+        关闭列表=[关闭(所有者,会话编号,'tool-pwsh-persistent disposed') for 所有者,会话编号 in list(存活.items())]
+        存活.clear()
+        期约.全部已结算(关闭列表).然后(拆除结果.解决,拆除结果.拒绝)
+    def 拆除():
+        '返回期约：插件拆除时等进行中的创建落定，再清掉所有壳'
+        生命周期.中止(持久pwsh错误('tool-pwsh-persistent disposed during shell creation'))
+        拆除结果=期约()
+        期约.全部已结算(list(创建中)).然后(偏应用(创建已落定,拆除结果),拆除结果.拒绝)
+        return 拆除结果
+    def 关闭失败(重置结果,错误):
+        '关闭失败只记日志，仍算重置完成'
+        上下文.日志.警告('tool-pwsh-persistent: failed to close shell: '+str(错误))
+        重置结果.解决()
+    def 清缓存(所有者):
+        '所有者上下文拆除时清缓存'
+        进行中.pop(所有者,None)
+        存活.pop(所有者,None)
+    def 所有者副作用体(所有者):
+        '登记所有者拆除清缓存'
+        return 偏应用(清缓存,所有者)
+    def 创建失败(创建,所有者,错误):
+        '创建或初始化失败：清掉半成品再原样拒绝'
+        重置(所有者,'persistent pwsh initialization failed')
+        创建中.discard(创建)
+        创建.拒绝(错误)
+    def 初始化已发完(创建,所有者,会话编号,结果):
+        '初始化发完：壳活过初始化才兑现会话 id'
+        会话状态=结果['sessionStatus']
+        if 会话状态['kind']=='exited' or 结果['waitReason']=='timeout':
+            创建失败(创建,所有者,持久pwsh错误('persistent pwsh shell did not accept initialization'))
+            return
+        创建中.discard(创建)
+        创建.解决(会话编号)
+
     def 关闭(所有者,会话编号,原因):#关掉一个会话
-        '关掉一个会话'
+        '返回期约：关掉一个会话；已经不在名单里则立刻兑现'
         名单=上下文.terminals.列出(所有者)#名单
         仍在=False#是否仍在
         for 快照 in 名单:#逐条
@@ -196,77 +255,59 @@ def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
                 仍在=True#仍在
                 break#停
         if not 仍在:#已经不在
-            return#无需关
-        上下文.terminals.关闭(所有者,会话编号,原因)#关掉
+            已关=期约()#无需关
+            已关.解决()#已兑现
+            return 已关
+        return 上下文.terminals.关闭(所有者,会话编号,原因)#关掉
 
     def 副作用体():#插件拆除时清掉所有壳
         '登记插件拆除清壳'
-        def 拆除():#清掉所有壳
-            '插件拆除时清掉所有壳'
-            生命周期.中止(持久pwsh错误('tool-pwsh-persistent disposed during shell creation'))#中止创建
-            全部结算(list(创建中))#等创建结束
-            for 所有者,会话编号 in list(存活.items()):#关掉存活
-                关闭(所有者,会话编号,'tool-pwsh-persistent disposed')#关掉
-            存活.clear()#清空
-        return 拆除#拆除器
+        return 拆除
     上下文.副作用(副作用体,'tool-pwsh-persistent shell cleanup')#插件拆除清壳
 
     def 重置(所有者,原因):#丢掉该所有者的壳
-        '丢掉该所有者的壳'
+        '返回期约：丢掉该所有者的壳，关闭落定后兑现；关闭失败只记日志，不挡调用方'
         进行中.pop(所有者,None)#去掉进行中
         会话编号=存活.pop(所有者,None)#取出
-        if 会话编号 is not None:#有会话
-            关闭(所有者,会话编号,原因)#关掉
+        重置结果=期约()#重置结算
+        if 会话编号 is None:#没有会话
+            重置结果.解决()#无事可做
+            return 重置结果
+        关闭(所有者,会话编号,原因).然后(重置结果.解决,偏应用(关闭失败,重置结果))#关掉
+        return 重置结果
 
     def 获取(所有者,信号):#拿到或创建该所有者的壳
-        '拿到或创建该所有者的壳'
+        '返回期约：拿到或创建该所有者的壳，兑现值是会话 id'
         if 所有者 in 进行中:#已有进行中
             return 进行中[所有者]#复用
         if 信号 is None:#未给取消
             组合信号=生命周期.信号#只跟拆除
         else:#两路
             组合信号=合成信号(信号,生命周期.信号)#合成
-        创建=操作任务()#创建任务
+        创建=期约()#创建期约
         创建中.add(创建)#拆除时要等
         进行中[所有者]=创建#复用
-        def 拉起并初始化():#拉起并初始化
-            '拉起并初始化持久壳'
-            try:#拉起
-                头=所有者.session.header#会话头
-                工作目录=头['cwd'] if 'cwd' in 头 else None#工作目录
-                规格={'type':配置值['backendType']}#后端类型
-                if 工作目录 is not None:#有cwd
-                    规格['cwd']=工作目录#带上
-                拉起=上下文.terminals.搭建(所有者,规格,组合信号)#搭建
-                会话编号=拉起['sessionId']#会话id
-                存活[所有者]=会话编号#记下
-                if 所有者 not in 已装所有者拆除:#还没装拆除
-                    已装所有者拆除.add(所有者)#记下
-                    def 所有者副作用体():#所有者拆除清缓存
-                        '登记所有者拆除清缓存'
-                        def 清缓存():#清缓存
-                            '所有者上下文拆除时清缓存'
-                            进行中.pop(所有者,None)#去掉进行中
-                            存活.pop(所有者,None)#去掉存活
-                        return 清缓存#拆除器
-                    所有者.ctx.副作用(所有者副作用体,'tool-pwsh-persistent owner cache cleanup')#所有者拆除
-                发送=上下文.terminals.开始发送(所有者,会话编号,{#设提示符
-                    'text':pwsh提示符安装,#初始化命令
-                    'submit':True,#提交
-                    'signal':组合信号,#信号
-                })#开始发送结束
-                结果=发送.done.等待()#等初始化
-                会话状态=结果['sessionStatus']#会话状态
-                if 会话状态['kind']=='exited' or 结果['waitReason']=='timeout':#初始化失败
-                    raise 持久pwsh错误('persistent pwsh shell did not accept initialization')#失败
-                创建.兑现(会话编号)#返回会话id
-            except BaseException as 错误:#失败
-                重置(所有者,'persistent pwsh initialization failed')#清半成品
-                创建.拒绝(错误)#拒绝
-            finally:#结束
-                创建中.discard(创建)#摘掉
-        启动守护线程(拉起并初始化)#启动
-        return 创建#创建任务
+        try:#拉起
+            头=所有者.session.header#会话头
+            工作目录=头['cwd'] if 'cwd' in 头 else None#工作目录
+            规格={'type':配置值['backendType']}#后端类型
+            if 工作目录 is not None:#有cwd
+                规格['cwd']=工作目录#带上
+            拉起=上下文.terminals.搭建(所有者,规格,组合信号)#搭建
+            会话编号=拉起['sessionId']#会话id
+            存活[所有者]=会话编号#记下
+            if 所有者 not in 已装所有者拆除:#还没装拆除
+                已装所有者拆除.add(所有者)#记下
+                所有者.ctx.副作用(偏应用(所有者副作用体,所有者),'tool-pwsh-persistent owner cache cleanup')#所有者拆除
+            发送=上下文.terminals.开始发送(所有者,会话编号,{#设提示符
+                'text':pwsh提示符安装,#初始化命令
+                'submit':True,#提交
+                'signal':组合信号,#信号
+            })#开始发送结束
+            发送.done.然后(偏应用(初始化已发完,创建,所有者,会话编号),偏应用(创建失败,创建,所有者))#等初始化
+        except Exception as 错误:#拉起或发送失败
+            创建失败(创建,所有者,错误)#清半成品并拒绝
+        return 创建#创建期约
 
     return {'get':获取,'reset':重置}#交出
 
@@ -275,32 +316,39 @@ def 登记持久pwsh(上下文,配置值):#注册工具
     壳表=持久pwsh壳表(上下文,配置值)#壳管家
     队列=weakref.WeakKeyDictionary()#串行队列
 
+    def 放行后来者(所有者,尾巴):
+        '本条落定后清掉仍属于自己的尾巴，并放行后来者'
+        if 所有者 in 队列 and 队列[所有者] is 尾巴:
+            队列.pop(所有者,None)
+        尾巴.解决()
+    def 本条已兑现(所有者,尾巴,运行,值):
+        '本条兑现则兑现结果'
+        运行.解决(值)
+        放行后来者(所有者,尾巴)
+    def 本条已拒绝(所有者,尾巴,运行,错误):
+        '本条拒绝则拒绝结果'
+        运行.拒绝(错误)
+        放行后来者(所有者,尾巴)
+    def 接龙(所有者,尾巴,运行,操作,*上一条落定值):
+        '上一条无论成败都落定后才跑本条'
+        try:
+            本条期约=操作()
+        except Exception as 错误:
+            本条已拒绝(所有者,尾巴,运行,错误)
+            return
+        本条期约.然后(偏应用(本条已兑现,所有者,尾巴,运行),偏应用(本条已拒绝,所有者,尾巴,运行))
     def 串行(所有者,操作):#同一所有者串行
-        '同一所有者上串行执行'
+        '返回期约：同一所有者上串行执行，操作须返回期约；上一条失败不波及本条'
         先前=队列[所有者] if 所有者 in 队列 else None#上一条
-        运行=操作任务()#本条
-        尾巴=操作任务()#尾巴
-        def 接龙():#接上一条
-            '无论上一条成败都跑本条'
-            try:#等上一条
-                if 先前 is not None:#有上一条
-                    try:#等
-                        先前.等待()#等上一条
-                    except BaseException:#失败也继续
-                        pass#吞掉
-                try:#跑本条
-                    运行.兑现(操作())#兑现
-                except BaseException as 错误:#失败
-                    运行.拒绝(错误)#拒绝
-            finally:#结束
-                尾巴.兑现(None)#尾巴落定
+        运行=期约()#本条
+        尾巴=期约()#只当队列尾巴，本条落定即兑现，从不拒绝
         队列[所有者]=尾巴#记下
-        接龙()#开跑
-        try:#等本条
-            return 运行.等待()#结果
-        finally:#结束后
-            if 所有者 in 队列 and 队列[所有者] is 尾巴:#自己的尾巴
-                队列.pop(所有者,None)#删掉
+        接上=偏应用(接龙,所有者,尾巴,运行,操作)
+        if 先前 is None:#没有上一条
+            接上()#开跑
+        else:#排在上一条之后
+            先前.然后(接上,接上)#上一条成败都继续
+        return 运行#返回本条结果期约
 
     def 渲染(_参数,值):#原样文本块
         '原样文本块'

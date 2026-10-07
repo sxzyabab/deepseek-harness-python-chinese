@@ -1,5 +1,5 @@
 import threading,uuid#线程与子 id
-from ...基础设施.通用工具.并发原语 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...内核.会话 import 会话标识#品牌
 from ...sdk.客户端.高层 import 深求装备#Harness 高层 API
 from ..子智能体.异常 import 子智能体错误#缝内失败
@@ -18,14 +18,14 @@ def 已中止(信号):
 class sdk跑:
     '持有者所有的 SDK 一次性跑。载荷字段 id/localAgent/result 为线协议键；拆除入口仅 销毁'
     def __init__(自身,标识,结果,拆除):
-        '记下身份、结果任务与拆除闭包'
+        '记下身份、结果期约与拆除闭包'
         自身.id=标识#父作用域跑 id
         自身.localAgent=None#远程无本地智能体
-        自身.result=结果#结果任务
+        自身.result=结果#结果期约
         自身._拆除=拆除#拆除闭包
 
     def 销毁(自身):
-        '等待结果落定并关闭装备'
+        '返回期约：结果兑现后关闭装备'
         return 自身._拆除()#同一闭包
 
 def 启动sdk运行(请求,规格):
@@ -52,21 +52,23 @@ def 启动sdk运行(请求,规格):
     信号=请求['signal'] if 'signal' in 请求 else None#取消
     if 已中止(信号):#已取消
         raise 子智能体错误('aborted','CANCELLED')#取消
-    结果任务=操作任务()#结果
+    结果任务=期约()#结果期约，由下面的后台线程结算
     def 工作者():
         '后台握手、跑一轮并关闭装备'
         try:#跑
             装备.启动运行时()#握手
             会话=装备.会话(str(子标识))#开会话
             输出=会话.运行(提示)#跑一轮
-            结果任务.兑现({'output':[{'type':'text','text':str(输出)}],'stopReason':'completed'})#成功
+            结果任务.解决({'output':[{'type':'text','text':str(输出)}],'stopReason':'completed'})#成功
         except BaseException as 错误:#失败
             结果任务.拒绝(错误)#拒绝
-        finally:#关
+        finally:#无论成败都关装备
             装备.关闭()#关闭装备
     threading.Thread(target=工作者,daemon=True).start()#启动
     def 拆除():
-        '等结果落定后再关装备'
-        结果任务.等待()#等结果
-        装备.关闭()#关
+        '结果兑现后再关装备，返回衔接后的期约'
+        def 关闭装备(结果):
+            '结果兑现后的回调'
+            装备.关闭()#关闭装备
+        return 结果任务.然后(关闭装备)#交给调用方继续链式
     return sdk跑(子标识,结果任务,拆除)#句柄

@@ -1,9 +1,9 @@
 '面向模型的前台 Ralph 循环，叠在工作流与子智能体缝上'
 import json#结果与交接 JSON 序列化
 from ...基础设施.通用工具 import 紧凑json编码,utf8字节数,截断utf8字节
+from ...基础设施.js特性 import PromiseEX as 期约#中文期约
 from ...依赖.schemastery import 字符串字段,整数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义辅助
-from ...工具.超时 import 已中止#中止入口
 __all__=[#仅中文公开名；Cordis 英文槽不入表
     '名称','依赖','配置','拉尔夫元数据','拉尔夫脚本',
     '解析配置','解析轮数上限','要求全新提供方','是否记录','归一化文本','归一化列表',
@@ -384,21 +384,48 @@ def 应用(上下文,配置值=None):#登记固定 Ralph 工具及其显式询�
         })#结束启动请求
         if 信号 is not None and 已中止(信号):#已经中止则立即取消
             运行.取消('parent step aborted')#立即取消
-        try:#等待运行结算
-            已结算=运行.结果.等待()#等待脚本结算
-            错误文案=停止原因错误(已结算)#非干净结束则得到错误文案
-            if 错误文案 is not None:#有停止原因错误
-                raise 错误(错误文案)#抛出停止原因
-            终态=读运行结果(已结算['value'],轮数上限,已解析['maxHandoffChars'])#解码终态值
-            if 终态['status']=='round-failed':#轮次失败
-                raise 错误(渲染轮次失败(终态,已解析['maxResultChars']))#轮次失败报成工具错误
-            return {#返回结构化成功结果
-                'runId':运行.id,#运行标识
-                'agentsStarted':已结算['agentsStarted'],#智能体计数
-                'result':终态,#终态 JSON
-            }#结束成功结果
-        finally:#无论成败都清理
-            运行.销毁()#等待脚本与子运行静止
+        结局=期约()#工具结果
+        盒={'值':None,'错误':None}#先算出结果，拆除失败则盖过它
+        def 接上销毁():
+            '拆除结束后解决或拒绝'
+            def 完成后(值=None):
+                '拆除成功则交出先前的结果'
+                if 盒['错误'] is not None:#先前失败
+                    结局.拒绝(盒['错误'])#拒绝
+                    return#结束
+                结局.解决(盒['值'])#成功
+            def 销毁失败(错误):
+                '拆除失败盖过先前结果'
+                结局.拒绝(错误)#拒绝
+            try:#拆除
+                拆除=运行.销毁()#期约或已完成
+            except BaseException as 错误:#同步失败
+                销毁失败(错误)#拒绝
+                return#结束
+            然后方法=getattr(拆除,'然后',None)#期约
+            if callable(然后方法):#期约
+                然后方法(完成后,销毁失败)#等拆除
+                return#已接上
+            完成后()#已拆除
+        def 成功(已结算):
+            '解码终态后再拆除'
+            try:#解码
+                错误文案=停止原因错误(已结算)#非干净结束
+                if 错误文案 is not None:#有停止原因错误
+                    raise 错误(错误文案)#抛出停止原因
+                终态=读运行结果(已结算['value'],轮数上限,已解析['maxHandoffChars'])#解码终态值
+                if 终态['status']=='round-failed':#轮次失败
+                    raise 错误(渲染轮次失败(终态,已解析['maxResultChars']))#轮次失败报成工具错误
+                盒['值']={'runId':运行.id,'agentsStarted':已结算['agentsStarted'],'result':终态}#成功结果
+            except BaseException as 抛错:#解码或停止原因
+                盒['错误']=抛错#记下
+            接上销毁()#拆除
+        def 失败(错误):
+            '运行拒绝后仍拆除'
+            盒['错误']=错误#记下
+            接上销毁()#拆除
+        运行.结果.然后(成功,失败)#等脚本结算
+        return 结局#期约
 
     上下文.tools.register(定义工具({#登记面向模型的 Ralph 工具
         'name':'ralph',#工具名

@@ -79,27 +79,11 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
     if not callable(原始):#仍不可用
         raise 检查器错误('inspector: globalThis.fetch is unavailable')#不可用
     中止=threading.Event()#停止信号
-    挂起=set()#挂起读取
     序号={'n':0}#请求序号
     已停止={'p':None}#停止去重
 
-    def 跟踪(任务):#跟踪挂起
-        '跟踪挂起'
-        挂起.add(任务)#加入
-        def 收尾(_=None):#结算后移除
-            '结算后移除'
-            挂起.discard(任务)#移除
-        if hasattr(任务,'add_done_callback'):#Future
-            任务.add_done_callback(收尾)#回调
-        else:#线程
-            def 近似收尾():#非 Future 的近似收尾
-                '保留任务引用后立即收尾'
-                任务#保留引用
-                收尾()#收尾
-            threading.Thread(target=近似收尾,daemon=True).start()#近似
-
     def 观察请求(输入,初始化=None):#包装fetch
-        '包装 fetch'
+        '包装 fetch，返回期约，兑现值是原响应；原 fetch 返回的也是期约'
         序号['n']+=1#递增
         请求标识=f'fetch-{序号["n"]}'#请求id
         方法=getattr(输入,'method',None)#Request.method
@@ -118,23 +102,29 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
         if not 有体 and 初始化 is not None:#再看 init
             有体=初始化.get('body') is not None#init.body
         发布器.发布('fetch/start',{'requestId':请求标识,'url':网址,'method':方法,'headers':头条目(头),'hasBody':有体,'wallTimeMs':__import__('time').time()*1000})#开始
-        try:#真实fetch
-            响应=原始(输入,初始化) if 初始化 is not None else 原始(输入)#调用原版
-        except Exception as 错误:#被包装的 fetch 实现什么都可能抛，契约未定所以收不窄
+        def 发布失败(错误):#原 fetch 失败后调用
+            '发布 fetch/error 后把原错误交还调用方'
             发布器.发布('fetch/error',{'requestId':请求标识,'message':渲染错误(错误),'canceled':中止.is_set()})#错误
-            raise#原样抛出
-        状态=响应.status#Response.status
-        状态文本=响应.statusText#Response.statusText
-        响应头=响应.headers#Response.headers
-        if 'content-type' not in 响应头: 原始类型=''#??空串
-        else: 原始类型=响应头['content-type']#MIME 原文
-        内容类型=原始类型.split(';')[0].strip().lower()#MIME
-        响应网址=响应.url#Response.url
-        if 响应网址 is None or 响应网址=='':#|| 空串也回退
-            响应网址=网址#请求 url
-        发布器.发布('fetch/response',{'requestId':请求标识,'url':响应网址,'status':状态,'statusText':状态文本,'headers':头条目(响应头),'mimeType':内容类型})#响应头
-        发布器.发布('fetch/end',{'requestId':请求标识,'capturedBytes':0,'responseBodyTruncated':False})#Python侧体采集占位
-        return 响应#立即返回原响应
+            raise 错误#原样抛出
+        def 发布响应(响应):#原 fetch 兑现后调用
+            '发布响应头与结束记录，原响应原样交还调用方'
+            状态=响应.status#Response.status
+            状态文本=响应.statusText#Response.statusText
+            响应头=响应.headers#Response.headers
+            if 'content-type' not in 响应头: 原始类型=''#??空串
+            else: 原始类型=响应头['content-type']#MIME 原文
+            内容类型=原始类型.split(';')[0].strip().lower()#MIME
+            响应网址=响应.url#Response.url
+            if 响应网址 is None or 响应网址=='':#|| 空串也回退
+                响应网址=网址#请求 url
+            发布器.发布('fetch/response',{'requestId':请求标识,'url':响应网址,'status':状态,'statusText':状态文本,'headers':头条目(响应头),'mimeType':内容类型})#响应头
+            发布器.发布('fetch/end',{'requestId':请求标识,'capturedBytes':0,'responseBodyTruncated':False})#Python侧体采集占位
+            return 响应#立即返回原响应
+        try:#真实fetch
+            响应期约=原始(输入,初始化) if 初始化 is not None else 原始(输入)#调用原版
+        except Exception as 错误:#被包装的 fetch 实现什么都可能同步抛，契约未定所以收不窄
+            发布失败(错误)#发布错误并原样抛出
+        return 响应期约.然后(发布响应,发布失败)#原 fetch 结算后再发布
 
     setattr(builtins,'fetch',观察请求)#安装包装
 

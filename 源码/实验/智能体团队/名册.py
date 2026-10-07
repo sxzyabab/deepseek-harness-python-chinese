@@ -1,5 +1,7 @@
+from functools import partial as 偏函数
 import re,uuid#名字模式、预留子 id
-from threading import Event as 同步事件,Thread as 线程#进度门与中止盯梢
+from threading import Event as 同步事件,Thread as 线程#中止盯梢收尾与盯梢线程
+from ...基础设施.js特性 import PromiseEX as 期约#创建、对账与进度的异步结果
 from ...依赖.工具 import 聚合错误#聚合错误
 from ...子智能体.子智能体 import 折叠子智能体描述符#描述符折叠
 from .异常 import 团队错误,错误文案#领域错误
@@ -154,30 +156,29 @@ class 团队名册:#成员表
         return 行#行
 
     def 创建(自身,调用方,请求):#创建 teammate
-        '创建一个具名、可延续的 Team Lead 直接子代'
+        '创建一个具名、可延续的 Team Lead 直接子代。返回期约，兑现值是 {member}'
         if 自身._生命周期.已拆除:#已拆除
             raise 团队错误('Agent Teams service is disposing','TEAM_DISPOSED')#已拆除
-        条目={'完成':同步事件(),'错误':None}#飞行条目
-        自身._飞行中创建.add(条目)#跟踪
-        try:#等待
-            return 自身._已准入创建(调用方,请求)#已准入创建
-        except Exception as 错误:#已准入创建可能抛团队错误/供应错误，契约未定所以收不窄
-            条目['错误']=错误#记下失败
-            raise#原样上抛
-        finally:#摘跟踪
-            条目['完成'].set()#落定
-            自身._飞行中创建.discard(条目)#摘跟踪
+        操作=自身._已准入创建(调用方,请求)#已准入创建
+        自身._飞行中创建.add(操作)#跟踪
+        def 摘除跟踪():#结算后
+            '创建结算后不再跟踪'
+            自身._飞行中创建.discard(操作)#摘跟踪
+        return 操作.最终(摘除跟踪)#无论成败都摘跟踪
 
     def 列出待创建(自身):#飞行中创建
-        '返回为有序拆除捕获的已准入创建操作'
+        '返回为有序拆除捕获的已准入创建操作（期约列表）'
         return list(自身._飞行中创建)#快照
 
     def 恢复(自身,智能体,信号):#恢复供应
-        '当一个 Team 成员 Session 启动时对账供应状态'
+        '当一个 Team 成员 Session 启动时对账供应状态。返回期约'
         若已中止则抛出(信号)#已取消
         关系=自身.试成员关系(智能体)#试成员
         if 关系 is not None and 关系['role']=='lead':#Lead 对账
-            自身._对账供应(关系['root'],信号)#对账
+            return 自身._对账供应(关系['root'],信号)#对账
+        无需对账结果=期约()#无需对账
+        无需对账结果.解决(None)#视为已完成
+        return 无需对账结果
 
     def 中断(自身,调用方,目标名):#中断
         '中断一个 live teammate 轮次，不清理其 pending inbox'
@@ -215,11 +216,8 @@ class 团队名册:#成员表
         return 团队表#分组
 
     def 停止队友(自身,根,子标识列表):#停 teammate
-        '经延续生命周期所有者拆除精确 teammate Activation'
-        def 排空():#有界排空
-            '排空可续跑后代'
-            return 自身.ctx.subagents.排空可续跑后代([根])#drain
-        自身._生命周期.有界等待(排空)#有界 drain
+        '经延续生命周期所有者拆除精确 teammate Activation。返回期约，排空超过拆除超时则拒绝'
+        return 自身._生命周期.有界等待(自身.ctx.subagents.排空可续跑后代([根]))#有界 drain
 
     def _已准入创建(自身,调用方,请求):#已准入创建
         '执行在 Team 运行时拆除截止前已准入的一次创建'
@@ -240,11 +238,13 @@ class 团队名册:#成员表
             'context':请求['context'] if 'context' in 请求 else None,#上下文
             'phase':'provisioning',#供应中
         }#快照结束
-        自身._持久供应(根,名字,成员)#持久供应边
-        return 自身._启动并结算(根,名字,成员,请求,信号)#启动结算
+        def 供应后启动(供应值):#供应边已持久
+            '供应边持久化后启动并结算'
+            return 自身._启动并结算(根,名字,成员,请求,信号)#启动结算
+        return 自身._持久供应(根,名字,成员).然后(供应后启动)#持久供应边
 
     def _持久供应(自身,根,名字,成员):#持久供应边
-        '在 Lead 日志写入 provisioning 边'
+        '在 Lead 日志写入 provisioning 边。返回期约'
         def 操作():#事务
             '检查名占用与上限后追加'
             状态=自身._日志.状态(根)#状态
@@ -252,94 +252,119 @@ class 团队名册:#成员表
                 raise 团队错误('teammate name "'+名字+'" was already used in this Team','TEAM_MEMBER_NAME_TAKEN')#占用
             if len(状态['members'])>=自身._最大成员数:#上限
                 raise 团队错误('Team member limit '+str(自身._最大成员数)+' reached','TEAM_MEMBER_LIMIT')#上限
-            自身._日志.追加并刷新(根,'team/member',{'version':2,'teamId':团队标识(根.id),'member':成员})#持久
-        自身._日志.事务(根.id,操作)#串行
+            return 自身._日志.追加并刷新(根,'team/member',{'version':2,'teamId':团队标识(根.id),'member':成员})#持久
+        return 自身._日志.事务(根.id,操作)#串行
 
     def _启动并结算(自身,根,名字,成员,请求,信号):#启动并结算
-        '启动可续跑子代并结算 active/failed'
+        '启动可续跑子代并结算 active/failed。返回期约，兑现值是 {member}'
         子标识=成员['id']#子 id
-        try:#启动
-            已启动=自身.ctx.subagents.启动可续跑({#启动可续跑
+        def 等初始提示(已启动):#启动完成
+            '确认实际子 id 后等初始提示落盘'
+            nonlocal 成员,子标识#实际子 id 与预留不同时改用实际值
+            实际子标识=已启动['childId'] if 'childId' in 已启动 else 子标识#实际 id
+            if 实际子标识!=子标识:
+                成员={**成员,'id':实际子标识}
+                子标识=实际子标识
+            return 自身._检查点初始提示(子标识,已启动['messageId'] if 'messageId' in 已启动 else None,信号)#等初始提示落盘
+        def 启动并等初始提示(启动值):#开始启动
+            '启动可续跑子代，再等初始提示落盘'
+            return 自身.ctx.subagents.启动可续跑({#启动可续跑
                 'childId':子标识,#预留 id（上游字段）
                 'provider':请求['provider'],#provider
                 'label':成员['description'],#标签
                 'request':{'prompt':请求['prompt'],'parent':根},#请求
                 'signal':信号,#取消
-            })#启动结束
-            实际子标识=已启动['childId'] if 'childId' in 已启动 else 子标识#实际 id
-            if 实际子标识!=子标识:
-                成员={**成员,'id':实际子标识}
-                子标识=实际子标识
-            自身._检查点初始提示(子标识,已启动['messageId'] if 'messageId' in 已启动 else None,信号)#等初始提示落盘
-        except Exception as 错误:#启动子会话/检查点可能抛团队错误/持久化错误，契约未定所以收不窄
-            自身._创建失败(根,名字,成员,子标识,错误)#失败结算
-            raise#原错误
-        活跃={**成员,'phase':'active'}#活跃快照
-        已结算阶段=自身._结算供应(根,活跃)#结算 active
-        if 已结算阶段=='failed':#对账冲突
-            冲突=团队错误(#对账冲突
-                'teammate "'+名字+'" was reconciled as failed while creation was in progress',#文案
-                'TEAM_PROVISIONING_CONFLICT',#码
-            )#冲突
-            try:#清理
-                自身.停止队友(根,[子标识])#清理
-            except Exception as 清理错误:#停止队友同样可能抛团队错误/会话错误，契约未定所以收不窄
-                raise 聚合错误([冲突,清理错误],'provisioning conflict cleanup failed')#双失败
+            }).然后(等初始提示)#启动结束
+        def 启动失败(错误):#启动或检查点失败
+            '失败结算；子 id 取失败时的最新值'
+            return 自身._创建失败(根,名字,成员,子标识,错误)#失败结算
+        def 清理失败(冲突,清理错误):#清理也失败
+            '清理失败与冲突合并为聚合错误'
+            raise 聚合错误([冲突,清理错误],'provisioning conflict cleanup failed')#双失败
+        def 清理后抛冲突(冲突,清理值=None):#清理完成
+            '清理完成后抛出冲突'
             raise 冲突#抛冲突
-        return {'member':自身._成员视图(活跃)}#返回视图
+        def 检查阶段(活跃,已结算阶段):#结算完成
+            '已被对账为 failed 则冲突，否则返回成员视图'
+            if 已结算阶段=='failed':#对账冲突
+                冲突=团队错误(#对账冲突
+                    'teammate "'+名字+'" was reconciled as failed while creation was in progress',#文案
+                    'TEAM_PROVISIONING_CONFLICT',#码
+                )#冲突
+                return 自身.停止队友(根,[子标识]).捕获(偏函数(清理失败,冲突)).然后(偏函数(清理后抛冲突,冲突))#清理
+            return {'member':自身._成员视图(活跃)}#返回视图
+        def 结算活跃(检查点值):#初始提示已落盘
+            '结算 active；对账冲突则清理后抛冲突'
+            活跃={**成员,'phase':'active'}#活跃快照
+            return 自身._结算供应(根,活跃).然后(偏函数(检查阶段,活跃))#结算 active
+        起点=期约()#启动在返回之前不开始
+        结果=起点.然后(启动并等初始提示).然后(结算活跃,启动失败)#启动失败才走失败结算
+        起点.解决(None)#开始
+        return 结果
 
     def _创建失败(自身,根,名字,成员,子标识,错误):#创建失败结算
-        '创建失败时写 failed 边并清理'
+        '创建失败时写 failed 边并清理。返回期约，最终总是拒绝：原错误或聚合错误'
         失败={**成员,'phase':'failed','error':错误文案(错误)}#失败快照
-        try:#结算
-            阶段=自身._结算供应(根,失败)#结算
-            自身.停止队友(根,[子标识])#清理子
+        def 检查竞态(阶段,清理值=None):#清理完成
+            '清理后若阶段为 active，说明创建者报告失败时它已变 active'
             if 阶段=='active':#竞态冲突
                 raise 团队错误(#竞态
                     'teammate "'+名字+'" became active while its creator reported failure',#文案
                     'TEAM_PROVISIONING_CONFLICT',#码
                     {'cause':错误},#cause
                 )#抛出
-        except Exception as 记录错误:#失败结算写边与清理什么都可能抛，契约未定所以收不窄
-            if 记录错误 is 错误:#同错
-                raise#上抛
+        def 结算后清理(阶段):#failed 边已写
+            '清理子，若竞态下已 active 则冲突'
+            return 自身.停止队友(根,[子标识]).然后(偏函数(检查竞态,阶段))#清理子
+        def 聚合记录失败(记录错误):#结算或清理失败
+            '结算写边与清理的失败同原错误合并'
             raise 聚合错误([错误,记录错误],'teammate creation and durable failure recording both failed')#双失败
+        def 抛出原错误(记录值):#记录成功
+            '失败已记录，抛出原错误'
+            raise 错误#原错误
+        return 自身._结算供应(根,失败).然后(结算后清理).捕获(聚合记录失败).然后(抛出原错误)#结算写边与清理
 
     def _检查点初始提示(自身,子标识,消息标识,信号):#检查点初始提示
-        '在 Lead 可提交 active 之前 flush 已接受的初始 inbox 项'
-        while True:#轮询直到接受
-            若已中止则抛出(信号)#取消
-            会话=自身.ctx.sessions.get(子标识)#live 会话
-            if 会话 is None:#读持久
-                已存=读持久会话(自身.ctx.sessionPersistence,子标识,信号)#读持久
+        '在 Lead 可提交 active 之前 flush 已接受的初始 inbox 项。返回期约，初始提示已落盘后兑现'
+        若已中止则抛出(信号)#取消
+        会话=自身.ctx.sessions.get(子标识)#live 会话
+        if 会话 is None:#读持久
+            def 判定落盘(已存):#读完持久会话
+                '初始提示已持久接受则完成，否则冲突'
                 后缀=已存['events'][已存['inheritedEventCount']:]#自有后缀
                 if 消息已接受(后缀,_消息标识匹配(消息标识)):#已接受
-                    return#完成
+                    return None#完成
                 raise 团队错误(#未落盘
                     'teammate "'+str(子标识)+'" initial prompt was not durably accepted',#文案
                     'TEAM_PROVISIONING_CONFLICT',#码
                 )#抛出
-            自身._等会话推进(会话,子标识,消息标识,信号)#等推进或接受
+            return 读持久会话(自身.ctx.sessionPersistence,子标识,信号).然后(判定落盘)#读持久
+        def 未完成则重来(已完成):#一轮等待结束
+            '一轮结束仍未接受则重新检查，相当于上游的循环'
+            if 已完成:#已接受
+                return None#完成
+            return 自身._检查点初始提示(子标识,消息标识,信号)#再检查
+        return 自身._等会话推进(会话,子标识,消息标识,信号).然后(未完成则重来)#等推进或接受
 
     def _等会话推进(自身,会话,子标识,消息标识,信号):#等会话推进
-        'flush 后检查接受；否则等事件或拆除'
-        进度=操作任务()#进度门
+        'flush 后检查接受；否则等事件或拆除。返回期约：已接受兑现 True；会话换了或推进后兑现 False，调用方重新检查'
+        进度=期约()#会话推进时兑现，创建被取消时拒绝
         def 事件推进(候选,*_其余):#事件推进
             '会话事件推进'
             if 候选 is 会话:#同会话
-                进度.兑现()#推进
+                进度.解决(None)#推进
         def 拆除推进(候选,*_其余):#拆除推进
             '会话拆除推进'
             if 候选 is 会话:#同会话
-                进度.兑现()#推进
+                进度.解决(None)#推进
         def 取消处理():#取消
-            '取消进度门'
+            '取消进度'
             进度.拒绝(团队错误('teammate creation aborted','TEAM_DISPOSED'))#包装
         停事件=自身.ctx.监听('session/event',事件推进)#听事件
         停拆除=自身.ctx.监听('session/disposed',拆除推进)#听拆除
-        停止听=threading.Event()#摘中止
+        停止听=同步事件()#通知盯梢线程收尾
         def 等待中止置位():#等待取消
-            '信号置位则拒绝进度门'
+            '信号置位则拒绝进度'
             if 信号 is None:#无信号
                 return#返回
             while not 停止听.is_set():#尚未收尾
@@ -347,39 +372,59 @@ class 团队名册:#成员表
                     取消处理()#取消
                     return
                 停止听.wait(0.05)#短等摘除
-        try:#flush 检查
-            if 信号 is not None:#有信号
-                threading.Thread(target=等待中止置位,daemon=True).start()#转发中止
-            若已中止则抛出(信号)#取消
-            自身.ctx.sessions.flush(会话)#flush
+        def 推进后重来(进度值):#会话推进
+            '推进后让外层重新检查'
+            return False#外层重来
+        def 检查并等待(刷新值):#flush 完成
+            '已接受则完成；会话换了则重来；否则等推进后重来'
             后缀=会话.snapshotEvents(会话.inheritedEventCount)#后缀
             if 消息已接受(后缀,_消息标识匹配(消息标识)):#已接受
-                return#完成
+                return True#完成
             if 自身.ctx.sessions.get(子标识) is not 会话:#会话换了
-                return#外层重来
-            进度.等待()#等推进
-        finally:#卸监听
+                return False#外层重来
+            return 进度.然后(推进后重来)#等推进
+        def 卸监听():#本轮结算后
+            '无论成败，停盯梢并卸掉监听'
             停止听.set()#停盯梢
             停拆除()#卸拆除
             停事件()#卸事件
+        def 刷新(启动值):#开始
+            '取消检查后 flush，再检查接受'
+            若已中止则抛出(信号)#取消
+            return 自身.ctx.sessions.flush(会话).然后(检查并等待)#flush
+        起点=期约()#刷新在监听登记之后才开始
+        结果=起点.然后(刷新).最终(卸监听)#本轮结算后卸监听
+        if 信号 is not None:#有信号
+            线程(target=等待中止置位,daemon=True).start()#转发中止
+        起点.解决(None)#开始
+        return 结果
 
     def _对账供应(自身,根,信号):#对账供应
-        '从各自独立持久的子 Session 结算仅供应中的成员'
+        '从各自独立持久的子 Session 结算仅供应中的成员。返回期约，逐成员依次对账完后兑现'
         供应中=[成员 for 成员 in 自身._日志.状态(根)['members'] if 成员['phase']=='provisioning']#供应中
+        链=期约()#逐成员对账的链起点
+        链.解决(None)#已结算，第一个成员立即开始
+        def 写终态(待对账,判定):#判定完成
+            '取消检查后写终态'
+            若已中止则抛出(信号)#取消
+            阶段,失败=判定#判定结果
+            return 自身._写供应终态(根,待对账,阶段,失败,信号)#写终态
         for 成员 in 供应中:#逐成员
-            若已中止则抛出(信号)#取消
-            if 自身.ctx.agents.get(成员['id']) is not None:#创建中跳过
-                continue#下一
-            阶段,失败=自身._判定供应终态(根,成员,信号)#判定
-            若已中止则抛出(信号)#取消
-            自身._写供应终态(根,成员,阶段,失败,信号)#写终态
+            def 对账一个(前一个结果,待对账=成员):#前一个成员对账完后
+                '取消检查后对账一个成员；创建中的成员跳过'
+                若已中止则抛出(信号)#取消
+                if 自身.ctx.agents.get(待对账['id']) is not None:#创建中跳过
+                    return None#下一
+                return 自身._判定供应终态(根,待对账,信号).然后(偏函数(写终态,待对账))#判定
+            链=链.然后(对账一个)#排在上一个之后
+        return 链#全部对账完后兑现
 
     def _判定供应终态(自身,根,成员,信号):#判定供应终态
-        '读持久子 Session 判定 active/failed'
-        阶段='failed'#默认失败
-        失败='provisioning did not leave a resumable child Session'#默认文案
-        try:#读子
-            已载=读持久会话(自身.ctx.sessionPersistence,成员['id'],信号)#读子
+        '读持久子 Session 判定 active/failed。返回期约，兑现值是 (阶段,失败文案)'
+        def 判定(已载):#读完持久会话
+            '按持久子 Session 内容判定阶段'
+            阶段='failed'#默认失败
+            失败='provisioning did not leave a resumable child Session'#默认文案
             后缀=已载['events'][已载['inheritedEventCount']:]#后缀
             描述符=折叠子智能体描述符(后缀)#描述符
             已接受初始=消息已接受(后缀,_初始用户消息)#初始用户消息
@@ -391,12 +436,14 @@ class 团队名册:#成员表
                 阶段='active'#活跃
             else:#不匹配
                 失败='persisted child Session does not match the provisioned continuation'#不匹配
-        except Exception as 错误:#读持久会话可能抛 IO/解析/取消错误，契约未定所以收不窄
-            失败='child Session recovery failed: '+错误文案(错误)#读失败
-        return 阶段,失败#结果
+            return 阶段,失败#结果
+        def 读取失败(错误):#读或判定失败
+            '读持久会话或判定失败时按 failed 处理'
+            return 'failed','child Session recovery failed: '+错误文案(错误)#读失败
+        return 读持久会话(自身.ctx.sessionPersistence,成员['id'],信号).然后(判定).捕获(读取失败)#读子
 
     def _写供应终态(自身,根,成员,阶段,失败,信号):#写供应终态
-        '若仍为 provisioning 则写终态边'
+        '若仍为 provisioning 则写终态边。返回期约'
         def 操作():#事务
             '条件写终态'
             若已中止则抛出(信号)#取消
@@ -406,17 +453,17 @@ class 团队名册:#成员表
                     当前=候选#记下
                     break#结束
             if 当前 is None or 当前['phase']!='provisioning':#已被结算
-                return#跳过
+                return None#跳过
             已结算=dict(当前)#拷贝
             已结算['phase']=阶段#阶段
             if 阶段=='failed':#失败文案
                 已结算['error']=失败#错误
-            自身._日志.追加并刷新(根,'team/member',{#写终态
+            return 自身._日志.追加并刷新(根,'team/member',{#写终态
                 'version':2,#版本
                 'teamId':团队标识(根.id),#团队
                 'member':已结算,#成员
             })#追加结束
-        自身._日志.事务(根.id,操作)#串行
+        return 自身._日志.事务(根.id,操作)#串行
 
     def _成员视图(自身,成员):#成员视图
         '成功创建后构建一条运行时成员行'
@@ -458,13 +505,15 @@ class 团队名册:#成员表
                 raise 团队错误('provisioned teammate "'+终态['id']+'" disappeared','TEAM_PROVISIONING_CONFLICT')#消失
             if 当前['phase']!='provisioning':#已被结算
                 return 当前['phase']#返回已有
-            自身._日志.追加并刷新(根,'team/member',{#写终态
+            def 写入后阶段(刷新值):#终态边已持久
+                '终态边持久化后给出阶段'
+                return 'active' if 终态['phase']=='active' else 'failed'#阶段
+            return 自身._日志.追加并刷新(根,'team/member',{#写终态
                 'version':2,#版本
                 'teamId':团队标识(根.id),#团队
                 'member':终态,#终态
-            })#追加结束
-            return 'active' if 终态['phase']=='active' else 'failed'#阶段
-        return 自身._日志.事务(根.id,操作)#串行
+            }).然后(写入后阶段)#追加结束
+        return 自身._日志.事务(根.id,操作)#串行，返回期约
 
     def _子智能体描述符(自身,智能体):#是否 subagent
         '一个 Session 的自有后缀是否标识 provider 拥有的 subagent 子代'

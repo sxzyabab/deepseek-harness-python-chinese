@@ -6,7 +6,8 @@ from ...模型后端.llm import 创建用户消息#铸造用户消息
 from ...模型后端.llm.异常 import 错误链#错误链文本
 from ...内核.会话 import 会话标识#会话 id 品牌
 from .编解码 import ACP提示转文本,提示含不受支持内容,回合结束到停止原因#提示展平与停止原因映射
-from .线路 import 协议版本,创建NDJSON流,智能体侧连接,操作任务#ACP 线路面
+from ...基础设施.js特性 import PromiseEX as 期约#提示、静止返回的期约
+from .线路 import 协议版本,创建NDJSON流,智能体侧连接#ACP 线路面
 from .异常 import 请求错误#带码请求失败
 from . import (
     内容,
@@ -223,20 +224,22 @@ def 应用(上下文,配置值):
         记录=拥有记录(请求['agent'] if 'agent' in 请求 else None)#必须是桥接拥有的智能体
         if 记录 is None or 'callId' not in 请求 or 请求['callId'] is None:#非本桥接或无 callId
             return 下一步()#委托下游
-        结果=连接盒['conn'].请求许可({#向 ACP 客户端要一次性许可
+        def 解析许可结果(结果):
+            '客户端答复兑现后，映射为一次性审批结论'
+            结局=结果['outcome'] if isinstance(结果,dict) and 'outcome' in 结果 else None#客户端结果
+            结局种类=结局['outcome'] if isinstance(结局,dict) and 'outcome' in 结局 else None#结果种类
+            if 结局种类=='cancelled':#客户端取消
+                return 'cancelled'#取消
+            选项号=结局['optionId'] if isinstance(结局,dict) and 'optionId' in 结局 else None#选项
+            return 'allowed-once' if 选项号=='allow-once' else 'rejected'#允许一次或拒绝
+        return 连接盒['conn'].请求许可({#向 ACP 客户端要一次性许可，返回期约
             'sessionId':记录['agent'].session.id,#本会话 id
             'toolCall':{'toolCallId':请求['callId']},#工具调用 id
             'options':[#仅一次性允许/拒绝
                 {'optionId':'allow-once','name':'Allow once','kind':'allow_once'},#允许一次
                 {'optionId':'reject-once','name':'Reject','kind':'reject_once'},#拒绝一次
             ],#选项结束
-        })#请求结束
-        结局=结果['outcome'] if isinstance(结果,dict) and 'outcome' in 结果 else None#客户端结果
-        结局种类=结局['outcome'] if isinstance(结局,dict) and 'outcome' in 结局 else None#结果种类
-        if 结局种类=='cancelled':#客户端取消
-            return 'cancelled'#取消
-        选项号=结局['optionId'] if isinstance(结局,dict) and 'optionId' in 结局 else None#选项
-        return 'allowed-once' if 选项号=='allow-once' else 'rejected'#允许一次或拒绝
+        }).然后(解析许可结果)#答复兑现后映射结论
 
     上下文.监听('approval/request',审批请求)#挂监听
 
@@ -298,10 +301,10 @@ def 应用(上下文,配置值):
             if 上下文.agents.获取(记录['agent'].id) is not 记录['agent']:#注册表里已不是同一实例
                 raise 内部错误('prompt was not queued: the agent was disposed outside the bridge')#桥接外拆除
             消息=创建用户消息({'content':[{'type':'text','text':文本}],'source':{'kind':'user'}})#铸造用户消息
-            等待=操作任务()#等到结算才决议
+            停止原因期约=期约()#等到结算才解决
             飞行={#新的进行中槽
-                'resolve':等待.兑现,#决议器
-                'reject':等待.拒绝,#拒绝器
+                'resolve':停止原因期约.解决,#解决器
+                'reject':停止原因期约.拒绝,#拒绝器
                 'messageId':消息.id,#消息 id
                 'turn':None,#尚未认领回合
                 'endReason':None,#尚未结束
@@ -329,7 +332,10 @@ def 应用(上下文,配置值):
                 else:#其它
                     飞行['resolve'](回合结束到停止原因(结束))#映射
             threading.Thread(target=空闲结算,daemon=True).start()#后台等空闲
-            return {'stopReason':等待.等待()}#ACP 提示响应
+            def 组装提示响应(停止原因):
+                '停止原因解决后组装 ACP 提示响应'
+                return {'stopReason':停止原因}#ACP 提示响应
+            return 停止原因期约.然后(组装提示响应)#返回期约，由线路在落定后回写
         def 取消(参数):
             """未知 id 为空操作。
             参数为 dict
@@ -362,10 +368,10 @@ def 应用(上下文,配置值):
     连接盒['conn']=连接#确保已赋值
 
     def 静止():
-        '客户端断开与 Cordis 释放共用同一个记忆化清理流程'
+        '客户端断开与 Cordis 释放共用同一个记忆化清理流程，返回期约'
         if 静止盒['task'] is not None:#已在静止
-            return 静止盒['task'].等待()#复用
-        任务=操作任务()#本轮静止
+            return 静止盒['task']#复用
+        任务=期约()#本轮静止
         静止盒['task']=任务#先登记防重入
         已关闭标志['v']=True#拒绝新会话与提示
         记录列表=list(会话表.values())#快照全部记录
@@ -389,28 +395,27 @@ def 应用(上下文,配置值):
             if len(失败列表)>0:#有会话拆除失败
                 细节='; '.join(错误链(失败) for 失败 in 失败列表)#拼错误链
                 raise 聚合错误(失败列表,'ACP agent teardown failed for '+str(len(失败列表))+' session(s): '+细节)#聚合
-            任务.兑现(None)#成功
+            任务.解决(None)#成功
         except BaseException as 错误:
             任务.拒绝(错误)
-        return 任务.等待()#把同一结果交给调用方
+        return 任务#把同一个期约交给调用方
 
-    def 连接关闭后():
-        '无论成败都拆除会话'
-        try:
-            连接.已关闭.等待()#关闭边沿
-        except BaseException as 错误:
-            日志器.警告('acp: connection closed with an error: '+str(错误))#记日志后仍静止
-        try:
-            静止()#拆除会话
-        except BaseException as 错误:
-            日志器.警告('acp: connection-close teardown failed: '+str(错误))#记日志
-    threading.Thread(target=连接关闭后,daemon=True).start()#后台盯关闭
+    def 记录关闭错误(错误):
+        '连接带错关闭：记日志后仍静止'
+        日志器.警告('acp: connection closed with an error: '+str(错误))#记日志
+    def 记录拆除失败(错误):
+        '拆除会话失败：只记日志'
+        日志器.警告('acp: connection-close teardown failed: '+str(错误))#记日志
+    def 拆除会话(关闭值):
+        '连接已关闭（无论成败），拆除会话'
+        静止().捕获(记录拆除失败)#静止失败只记日志
+    连接.已关闭.捕获(记录关闭错误).然后(拆除会话)#连接关闭后无论成败都拆除会话
 
     def 生命周期():
         '返回拆除函数'
         def 拆除():
-            '记忆化清理'
-            静止()#静止
+            '记忆化清理，返回静止期约'
+            return 静止()#静止
         return 拆除#拆除器
     上下文.副作用(生命周期,'acp.connection')#副作用名
 

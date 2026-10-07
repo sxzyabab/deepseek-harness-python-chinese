@@ -275,8 +275,8 @@ class 快捷键编辑器:
             '原生保护失败'
             自身.报告(自身.属性['t']('native-failed'))
         结果=录制(True)
-        if hasattr(结果,'then'):
-            结果.then(成,败)
+        if hasattr(结果,'然后'):
+            结果.然后(成,败)
         else:
             成()
         自身.重置录=自身.重置缓冲
@@ -304,9 +304,12 @@ class 快捷键编辑器:
                 文档.removeEventListener('compositionstart',自身.失焦,True)
             if 窗 is not None:
                 窗.removeEventListener('blur',自身.失焦)
+            def 忽略关闭失败(_错误):
+                '关闭录键保护失败不打断拆卸'
+                return
             关=录制(False)
-            if hasattr(关,'catch'):
-                关.catch(lambda _e:None)
+            if hasattr(关,'捕获'):
+                关.捕获(忽略关闭失败)
         自身.录键卸=卸
         return 卸
 

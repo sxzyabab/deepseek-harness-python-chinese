@@ -1,6 +1,7 @@
+from functools import partial as 偏函数
 import threading,queue#隔离线程与收件
-from ...内核.作用域 import 操作任务#关闭结算
-from ...工具.超时 import 若已中止则抛出,已中止,等待中止#中止
+from ...基础设施.js特性 import PromiseEX as 期约#关闭、终止、就绪与请求的异步结果
+from ...工具.超时 import 等待中止#中止类已禁用
 from .异常 import stagehand排空错误#排空失败
 from .工作者rpc import 请求#RPC
 from .工作者 import 运行工作者#工作者
@@ -8,130 +9,95 @@ from .工作者 import 运行工作者#工作者
 __all__=['打开浏览器工作者']#仅中文公开名
 
 def 打开浏览器工作者(配置,信号,警告):#隔离连接
-    '经隔离线程连接 Stagehand；该线程不接收宿主环境。配置是 dict。警告是可调用'
-    若已中止则抛出(信号)#中止
-    收件箱=queue.Queue()#收件
-    寿命=操作任务()#寿命
-    已退=threading.Event()#退出
-    死因=[None]#死因
-    def 体():#工作者体
-        '跑工作者'
-        try:#跑
-            运行工作者(配置,收件箱)#跑
-            死因[0]=Exception('Stagehand browser Worker exited (0)')#退出
-        except Exception as 错误:#失败
-            死因[0]=错误#记下
-        finally:#退
-            已退.set()#退
-            try:#拒绝寿命
-                寿命.拒绝(死因[0] or Exception('Stagehand browser Worker exited (0)'))#拒绝
-            except Exception:#已兑现
-                pass#忽略
-    线程=threading.Thread(target=体,daemon=True)#线程
-    线程.start()#启动
-    终止中=None#终止
+    '经隔离线程连接 Stagehand；该线程不接收宿主环境。配置是 dict。警告是可调用。返回期约，兑现值是含 execute 与 close 的运行时 dict'
+    若已中止则抛出(信号)#调用前已中止则不启动线程
+    收件箱=queue.Queue()#宿主发给工作者线程的请求队列
+    寿命=期约()#工作者线程退出时拒绝，在途请求借此提前结束
+    退出结果=期约()#工作者线程退出后兑现
+    死因=None#工作者线程退出的原因，存活时为 None
+    已发终止=False#是否已向工作者线程投入终止哨兵
+    关闭中=None#共享的关闭结果，首次关闭时赋值
+    def 工作者线程体():#工作者体
+        '运行工作者，退出后拒绝寿命并兑现退出结果'
+        nonlocal 死因#退出原因由本线程写入
+        try:#运行工作者
+            运行工作者(配置,收件箱)#阻塞到收到终止哨兵或协议失败
+            死因=Exception('Stagehand 浏览器工作者已退出 (0)')#正常退出也是工作者不可再用
+        except Exception as 错误:#工作者异常退出
+            死因=错误#记下退出原因
+        finally:#无论怎样退出
+            寿命.拒绝(死因)#在途请求随寿命结束
+            退出结果.解决(0)#终止方得知线程已退出
+    threading.Thread(target=工作者线程体,daemon=True).start()#启动隔离线程
     def 终止():#停线程
-        '投入终止哨兵'
-        nonlocal 终止中#改
-        if 终止中 is not None:#已有
-            return 终止中.等待()#共享
-        终止中=操作任务()#共享
-        收件箱.put(None)#哨兵
-        已退.wait()#等退
-        终止中.兑现(0)#码
-        return 0#码
-    关闭中=None#关闭
+        '向工作者线程投入终止哨兵，返回退出结果；重复调用共享同一个结果'
+        nonlocal 已发终止#标记哨兵只投一次
+        if not 已发终止:#尚未投入哨兵
+            已发终止=True#记下
+            收件箱.put(None)#哨兵使工作者循环结束
+        return 退出结果#线程退出后兑现
+    def 到期(超时):#宽限
+        '宽限期满，拒绝超时'
+        超时.拒绝(Exception('Stagehand 连接清理超时'))#与 close 请求竞速
+    def 记录排空失败(错误):#排空失败
+        'close 没在宽限内完成：警告并抛出排空错误'
+        警告(f'Stagehand SDK 清理未完成：{错误}')#交给宿主日志
+        raise stagehand排空错误(f'Stagehand SDK 请求未排空：{错误}')#阻止该连接被复用
+    def 收尾(定时):#收尾
+        '无论成败：撤销宽限定时器并终止工作者线程'
+        定时.cancel()#撤销定时器
+        return 终止()#等线程退出后才算收尾完成
     def 关():#关 SDK 再停线程
-        'SDK 请求须在连接工作者终止前排空'
-        nonlocal 关闭中#改
-        if 关闭中 is not None:#已有
-            return 关闭中.等待()#共享
-        关闭中=操作任务()#共享
-        def 体关():#关体
-            '竞速 close 与宽限'
-            超时=操作任务()#超时
-            def 到期():#宽限
-                '超时拒绝'
-                超时.拒绝(Exception('Stagehand connection cleanup timed out'))#超时
-            定时=threading.Timer(配置['shutdownGraceMs']/1000,到期)#宽限
-            定时.daemon=True#守护
-            定时.start()#开
-            try:#竞速
-                关任务=操作任务()#close
-                def 发关():#发 close
-                    '请求 close'
-                    try:#请求
-                        请求(收件箱,'close',None)#close
-                        关任务.兑现(None)#兑现
-                    except Exception as 错误:#失败
-                        关任务.拒绝(错误)#拒绝
-                threading.Thread(target=发关,daemon=True).start()#发
-                胜=操作任务()#胜
-                def 等关():#等 close
-                    'close 先到'
-                    try:#等
-                        关任务.等待()#等
-                        胜.兑现('ok')#ok
-                    except Exception as 错误:#失败
-                        胜.拒绝(错误)#拒绝
-                def 等超():#等超时
-                    '超时先到'
-                    try:#等
-                        超时.等待()#等
-                    except Exception as 错误:#超时
-                        胜.拒绝(错误)#拒绝
-                threading.Thread(target=等关,daemon=True).start()#等关
-                threading.Thread(target=等超,daemon=True).start()#等超
-                胜.等待()#等胜
-            except Exception as 错误:#失败
-                警告('Stagehand SDK cleanup did not finish: '+str(错误))#警告
-                关闭中.拒绝(stagehand排空错误('Stagehand SDK requests did not drain: '+str(错误)))#排空
-                终止()#停
-                return#完
-            finally:#清
-                定时.cancel()#取消
-                终止()#停
-            关闭中.兑现(None)#完成
-        threading.Thread(target=体关,daemon=True).start()#关
-        return 关闭中.等待()#等
-    def 打开中止():#获取取消
-        '取消则停线程'
-        终止()#停
-    def 监视打开():#等信号
-        '置位后停'
-        等待中止(信号)#等
-        打开中止()#停
-    if 信号 is not None:#有信号
-        threading.Thread(target=监视打开,daemon=True).start()#监视
-    try:#就绪
-        请求(收件箱,'ready',None)#就绪
-        若已中止则抛出(信号)#中止
-    except Exception as 错误:#失败
-        终止()#停
-        若已中止则抛出(信号)#中止
-        raise (死因[0] or 错误)#原样
+        'SDK 请求须在连接工作者终止前排空。返回共享的关闭结果'
+        nonlocal 关闭中#共享关闭结果在此赋值
+        if 关闭中 is not None:#已经在关闭
+            return 关闭中#共享同一个结果
+        超时=期约()#宽限期满时拒绝
+        定时=threading.Timer(配置['shutdownGraceMs']/1000,偏函数(到期,超时))#宽限定时器
+        定时.daemon=True#不阻止进程退出
+        定时.start()#开始计时
+        关闭中=期约.竞速([请求(收件箱,'close',None),寿命,超时]).捕获(记录排空失败).最终(偏函数(收尾,定时))#close、线程退出与宽限竞速
+        return 关闭中#共享关闭结果
+    def 监视取消(操作信号):#等取消
+        '操作信号置位后关闭连接'
+        等待中止(操作信号)#阻塞到信号置位
+        关()#在途请求在关闭中排空
+    def 校验未中止(操作信号,结果):#成功后
+        '请求成功后若操作已取消，按取消处理'
+        若已中止则抛出(操作信号)#取消优先于结果
+        return 结果#原样交回结果
+    def 中止优先(操作信号,错误):#失败后
+        '请求失败后若操作已取消，抛出取消原因而不是请求错误'
+        若已中止则抛出(操作信号)#取消优先于请求错误
+        raise 错误#未取消则原样抛出
     def 执行(方法,参数,操作信号=None):#一次操作
-        '经工作者执行一次操作'
-        若已中止则抛出(操作信号)#中止
-        if 关闭中 is not None:#已关
+        '经工作者执行一次操作，返回期约。操作信号置位会关闭整个连接'
+        若已中止则抛出(操作信号)#操作已取消则不发出
+        if 死因 is not None:#工作者线程已退出
+            raise 死因#抛出退出原因
+        if 关闭中 is not None:#连接已在关闭
             raise stagehand排空错误('Stagehand 浏览器工作者已关闭')
-        def 取消时():#操作取消
-            '取消则关连接'
-            try:#关
-                关()#关
-            except Exception as 错误:#失败
-                pass#寿命
-        def 监视取消():#等
-            '置位后关'
-            等待中止(操作信号)#等
-            取消时()#关
-        if 操作信号 is not None:#有信号
-            threading.Thread(target=监视取消,daemon=True).start()#监视
-        try:#请求
-            结果=请求(收件箱,方法,参数)#请求
-            若已中止则抛出(操作信号)#中止
-            return 结果#结果
-        except Exception as 错误:#失败
-            若已中止则抛出(操作信号)#中止
-            raise 错误#原样
-    return {'execute':执行,'close':关}#运行时
+        if 操作信号 is not None:#调用方给了操作信号
+            threading.Thread(target=偏函数(监视取消,操作信号),daemon=True).start()#后台监视取消
+        return 期约.竞速([请求(收件箱,方法,参数),寿命]).然后(偏函数(校验未中止,操作信号),偏函数(中止优先,操作信号))#线程退出会拒绝在途请求
+    def 就绪成功(就绪值):#就绪
+        '工作者就绪后：确认打开期间没有中止、线程没有退出，再交出运行时'
+        若已中止则抛出(信号)#打开期间被取消
+        if 死因 is not None:#打开期间线程已退出
+            raise 死因#抛出退出原因
+        return {'execute':执行,'close':关}#运行时
+    def 终止后抛出(失败,退出码):#线程已退出
+        '线程退出后抛出：打开已取消则抛取消原因'
+        若已中止则抛出(信号)#取消优先
+        raise 失败#抛出失败原因
+    def 就绪失败(错误):#就绪失败
+        '先终止工作者线程，再抛出失败原因；线程已退出则抛出其退出原因'
+        失败=死因 if 死因 is not None else 错误#退出原因优先
+        return 终止().然后(偏函数(终止后抛出,失败))#等线程退出再抛
+    if 信号 is not None:#调用方给了打开信号
+        def 监视打开():#等信号
+            '打开期间信号置位则终止工作者线程'
+            等待中止(信号)#阻塞到信号置位
+            终止()#终止后就绪请求随寿命结束
+        threading.Thread(target=监视打开,daemon=True).start()#后台监视打开
+    return 期约.竞速([请求(收件箱,'ready',None),寿命]).然后(就绪成功,就绪失败)#就绪请求与线程退出竞速

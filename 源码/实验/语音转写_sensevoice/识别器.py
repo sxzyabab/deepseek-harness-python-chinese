@@ -1,7 +1,8 @@
 import json,os,secrets,sys,threading,time
 import requests
+from ...基础设施.js特性 import PromiseEX as 期约#准备结清与取消的异步结果
 from ...基础设施.通用工具.时间工具 import 当前毫秒
-from ...工具.超时 import 中止控制器,合成信号,截止,若已中止则抛出,已中止
+from ...工具.超时 import 截止
 from .异常 import 语音输入错误,语音下载错误
 from .运行时准备 import 检查运行时,准备运行时
 
@@ -49,6 +50,26 @@ def 读转写(应答,上限):
         'audioSeconds':值['audioSeconds'],
         'inferenceSeconds':值['inferenceSeconds'],
     }
+
+def 合并步骤(状态,项):
+    '按上游提前返回合并一步'
+    if 状态['phase']=='ready':
+        return {**项,'status':'complete'}
+    if 状态.get('step')=='check' and 项['kind']!='check':
+        return {'kind':项['kind'],'status':'pending'}
+    if 状态.get('step')==项['kind'] and 项['status']=='running':
+        return 项
+    if 状态.get('step')==项['kind']:
+        return {'kind':项['kind'],'status':'running','startedAt':当前毫秒()}
+    if 项['status']!='running':
+        return 项
+    if 状态['phase']=='standby':
+        return {**项,'status':'cancelled'}
+    if 状态['phase'] in ('failed','cancelled'):
+        return {**项,'status':状态['phase']}
+    if 状态.get('step') is None:
+        return 项
+    return {**项,'status':'complete'}
 
 class sensevoice工作者:
     '一台串行工作者，请求拥有取消，空闲回收'
@@ -105,32 +126,7 @@ class sensevoice工作者:
         先前=自身.状态
         步骤=状态.get('steps')
         if 步骤 is None:
-            新=[]
-            for 项 in 先前['steps']:
-                if 状态['phase']=='ready':
-                    新.append({**项,'status':'complete'})
-                    continue
-                if 状态.get('step')=='check' and 项['kind']!='check':
-                    新.append({'kind':项['kind'],'status':'pending'})
-                    continue
-                if 状态.get('step')==项['kind']:
-                    if 项['status']=='running':
-                        新.append(项)
-                    else:
-                        新.append({'kind':项['kind'],'status':'running','startedAt':当前毫秒()})
-                    continue
-                if 项['status']!='running':
-                    新.append(项)
-                    continue
-                if 状态['phase']=='standby':
-                    新.append({**项,'status':'cancelled'})
-                elif 状态['phase'] in ('failed','cancelled'):
-                    新.append({**项,'status':状态['phase']})
-                elif 状态.get('step') is None:
-                    新.append(项)
-                else:
-                    新.append({**项,'status':'complete'})
-            步骤=新
+            步骤=[合并步骤(状态,项) for 项 in 先前['steps']]
         自身.状态={**状态,'steps':步骤}
         现在=time.perf_counter()*1000
         if (
@@ -182,7 +178,7 @@ class sensevoice工作者:
             return
         若已中止则抛出(自身.寿命.信号)
         中止=中止控制器()
-        任务={'abort':中止,'completed':False,'downloadSource':下载源,'settled':threading.Event()}
+        任务={'abort':中止,'completed':False,'downloadSource':下载源,'settled':期约()}
         自身.准备任务=任务
         def 执行():
             '入队准备'
@@ -199,19 +195,21 @@ class sensevoice工作者:
                         态['download']=错误.download
                     自身.发布(态)
             finally:
-                任务['settled'].set()
+                任务['settled'].解决(None)
                 自身.准备任务=None
         threading.Thread(target=执行,daemon=True).start()
 
     def cancel(自身):
-        '取消未完成准备；已完成就绪保留'
+        '取消未完成准备；已完成就绪保留。返回期约，准备任务结清后兑现'
         任务=自身.准备任务
         if 任务 is None:
-            return
+            无任务结果=期约()#没有准备任务
+            无任务结果.解决(None)#视为已结清
+            return 无任务结果
         if not 任务['completed']:
             自身.发布({'phase':'cancelling','startedAt':当前毫秒()})
             任务['abort'].中止(RuntimeError('Speech preparation cancelled'))
-        任务['settled'].wait()
+        return 任务['settled']
 
     def transcribe(自身,输入,信号):
         '有界排队；取消后不等推理残留'
@@ -276,16 +274,12 @@ class sensevoice工作者:
             工作者={'handle':进程,'url':'http://127.0.0.1:'+str(端口),'token':令牌,'closed':False}
             自身.工作者=工作者
             自身.发布({'phase':'ready'})
-            def 退出():
-                '进程退出进 standby'
+            def 退出(结算值):
+                '进程退出（无论成败）进 standby'
                 if not 工作者['closed']:
                     工作者['closed']=True
                     自身.发布({'phase':'standby'})
-            def 等退出():
-                '等 done'
-                进程.done.等待() if hasattr(进程.done,'等待') else 进程.waitForExit()
-                退出()
-            threading.Thread(target=等退出,daemon=True).start()
+            进程.done.然后(退出,退出)#进程退出后进 standby
             句柄.释放()
             return 工作者
         except Exception as 错误:
@@ -344,4 +338,7 @@ class sensevoice工作者:
             自身.停止()
         任务=自身.准备任务
         if 任务 is not None:
-            任务['settled'].wait()
+            return 任务['settled']
+        无任务结果=期约()#没有准备任务
+        无任务结果.解决(None)#视为已结清
+        return 无任务结果

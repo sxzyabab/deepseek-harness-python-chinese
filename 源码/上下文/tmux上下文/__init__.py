@@ -1,6 +1,12 @@
 '可选加入的请求准备 tmux 位置上下文'
 import os#本进程pid
-from ...基础设施.通用工具 import 当前毫秒,紧凑json编码,已中止
+from ...基础设施.通用工具 import 当前毫秒,紧凑json编码
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 from ...依赖.schemastery import 数字字段
 from ...模型后端.llm import 创建用户消息#构造插件来源的用户消息
 

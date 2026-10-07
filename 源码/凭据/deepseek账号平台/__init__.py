@@ -4,10 +4,10 @@ from ...依赖.cordis import 服务
 from ...依赖.schemastery import (
     字符串字段,布尔字段,数字字段,字典字段,复合类型字段,常量字段,
 )
-from ...工具.超时 import 已中止,若已中止则抛出,截止,中止控制器
+from ...工具.超时 import 截止
 from ...基础设施.通用工具.时间工具 import 当前毫秒
 from ...基础设施.通用工具.序列化编码 import 字节转base64url
-from ...内核.作用域 import 操作任务
+from ...基础设施.js特性 import PromiseEX as 期约
 from ..凭据 import 凭证键
 from ..deepseek账号 import deepseek账号,合并平台Cookie,桌面客户端头
 from .细节列表 import 投影配置档,读账号细节
@@ -108,7 +108,7 @@ class 平台账号(deepseek账号):
             尝试=自身._尝试
             if 尝试 is None:
                 raise 平台认证错误('protocol')
-            自身._运行(会话,尝试)
+            return 自身._运行(会话,尝试)
         上下文.authorization.注册流程({
             'key':授予键,
             'label':'DeepSeek',
@@ -288,28 +288,49 @@ class 平台账号(deepseek账号):
         自身._尝试=尝试
         def 后台():
             '跑完授权开始'
-            try:
-                结果=自身.所属上下文.authorization.开始({
-                    'key':授予键,
-                    'signal':尝试['controller'].信号,
-                    'interaction':静默交互(),
-                })
+            def 登录成功(结果):
+                '授权落定后写阶段并回应浏览器'
                 自身._更新(尝试,{'phase':'succeeded' if 结果['status']=='authorized' else 'cancelled'})
                 回调=尝试.get('callback')
                 if 结果['status']=='authorized' and 尝试.get('completionUrl') is not None and 回调 is not None:
                     回调.writeHead(302,{'location':尝试['completionUrl'],'cache-control':'no-store'}).end()
                 elif 回调 is not None:
                     回调.writeHead(204,{'cache-control':'no-store'}).end()
-            except Exception as 错误:
+            def 登录失败(错误):
+                '授权失败后写阶段'
                 码=错误.code if isinstance(错误,平台认证错误) else 'protocol'
                 print('[deepseek-account] 登录失败',{'errorCode':码})
                 自身._更新(尝试,{'phase':'expired' if 码=='expired' else 'failed','errorCode':码})
                 自身._失败回调(尝试)
-            finally:
+            def 登录收尾(落定值=None):
+                '拆掉回调并放开取消等待'
                 拆除=尝试.get('disposeCallback')
                 if 拆除 is not None:
                     拆除()
                 尝试['done'].set()
+            交给期约=False
+            try:
+                结果=自身.所属上下文.authorization.开始({
+                    'key':授予键,
+                    'signal':尝试['controller'].信号,
+                    'interaction':静默交互(),
+                })
+                if getattr(结果,'状态',None) is not None and callable(getattr(结果,'然后',None)):
+                    交给期约=True
+                    def 登录落定(值):
+                        '兑现里的异常改走失败'
+                        try:
+                            登录成功(值)
+                        except Exception as 错误:
+                            登录失败(错误)
+                    结果.然后(登录落定,登录失败).最终(登录收尾)
+                    return
+                登录成功(结果)
+            except Exception as 错误:
+                登录失败(错误)
+            finally:
+                if not 交给期约:
+                    登录收尾()
         threading.Thread(target=后台,daemon=True).start()
         自身._已变()
         return 自身.获取状态()
@@ -417,7 +438,7 @@ class 平台账号(deepseek账号):
         状态=secrets.token_urlsafe(32)
         挑战=字节转base64url(hashlib.sha256(校验器.encode('ascii')).digest())
         授权标识=[None]
-        码任务=操作任务()
+        码任务=期约()
         截止控制=中止控制器()
         过期于=当前毫秒()+自身._尝试超时
         句柄=截止(会话['signal'],自身._尝试超时,'account-attempt')
@@ -431,6 +452,7 @@ class 平台账号(deepseek账号):
                 time.sleep(0.05)
             中止码()
         threading.Thread(target=看中止,daemon=True).start()
+        交给回调=False#换码回调接管句柄后，外层 finally 不再释放
         try:
             def 处理(请求,响应):
                 'OAuth 回调'
@@ -455,7 +477,7 @@ class 平台账号(deepseek账号):
                     响应.writeHead(410,{'cache-control':'no-store'}).end()
                     return
                 尝试['callback']=响应
-                码任务.兑现(收到码)
+                码任务.解决(收到码)
             def 登记效果():
                 '挂精确回调路由'
                 return 网页服务.register({'kind':'exact','path':'/oauth/callback','handler':处理})
@@ -485,68 +507,81 @@ class 平台账号(deepseek账号):
             if 剩余<=0:
                 raise 平台认证错误('expired')
             自身._更新(尝试,{'phase':'waiting-browser','authorizeUrl':授权网址,'expiresAt':过期于})
-            收到码=码任务.等待()
-            若已中止则抛出(信号)
-            自身._更新(尝试,{'phase':'exchanging'})
-            def 设备变更(当前):
-                '没有设备记录则新建'
-                if 当前 is None:
-                    return {'kind':'grant','payload':{'id':str(uuid.uuid4())}}
-                return None
-            设备记录=自身.ctx.credentials.修改记录(设备键,设备变更)
-            if 设备记录 is None or 设备记录.get('kind')!='grant':
-                raise 平台认证错误('storage')
-            身份=设备记录['payload']
-            if not isinstance(身份,dict) or not isinstance(身份.get('id'),str):
-                raise 平台认证错误('storage')
-            系统=sys.platform
-            句柄3=截止(信号,自身._请求超时,'account-exchange')
-            try:
-                换得=交换形态(自身._请求('auth_exchange',{
-                    'code':收到码,
-                    'code_verifier':校验器,
-                    'redirect_uri':重定向,
-                    'device_id':身份['id'],
-                    'device_model':系统+'-'+platform.machine(),
-                    'os_version':系统+' '+platform.release(),
-                },句柄3.信号))
-            finally:
-                句柄3.释放()
-            if 换得 is None:
-                自身._拒绝载荷('auth_exchange')
-            完成=浏览器网址(换得['authorized_url'],自身._来源,'/dsh/authorized',自身._改写浏览器)
-            完成解析=urlparse(完成)
-            查询=parse_qs(完成解析.query)
-            查询['login_source']=[尝试['loginSource']]
-            扁=[]
-            for 键,值列表 in 查询.items():
-                for 值 in 值列表:
-                    扁.append((键,值))
-            尝试['completionUrl']=urlunparse((完成解析.scheme,完成解析.netloc,完成解析.path,'',urlencode(扁),''))
-            if 当前毫秒()>=过期于:
-                raise 平台认证错误('expired')
-            若已中止则抛出(信号)
-            if 换得.get('user') is not None:
+            def 换上授权码(收到码):
+                '浏览器回调把授权码交来之后继续换码'
                 try:
-                    尝试['initialProfile']={'token':换得['token'],'value':{'status':'ready','value':投影配置档(换得['user'])}}
-                except 平台认证错误:
-                    pass
-            自身._更新(尝试,{'phase':'committing'})
-            try:
-                def 写入授予(当前):
-                    '提交授予记录'
-                    return {'kind':'grant','payload':{'version':1,'token':换得['token'],'issuer':自身._来源}}
-                自身.ctx.credentials.修改记录(授予键,写入授予)
-            except Exception:
-                raise 平台认证错误('storage')
+                    若已中止则抛出(信号)
+                    自身._更新(尝试,{'phase':'exchanging'})
+                    def 设备变更(当前):
+                        '没有设备记录则新建'
+                        if 当前 is None:
+                            return {'kind':'grant','payload':{'id':str(uuid.uuid4())}}
+                        return None
+                    设备记录=自身.ctx.credentials.修改记录(设备键,设备变更)
+                    if 设备记录 is None or 设备记录.get('kind')!='grant':
+                        raise 平台认证错误('storage')
+                    身份=设备记录['payload']
+                    if not isinstance(身份,dict) or not isinstance(身份.get('id'),str):
+                        raise 平台认证错误('storage')
+                    系统=sys.platform
+                    句柄3=截止(信号,自身._请求超时,'account-exchange')
+                    try:
+                        换得=交换形态(自身._请求('auth_exchange',{
+                            'code':收到码,
+                            'code_verifier':校验器,
+                            'redirect_uri':重定向,
+                            'device_id':身份['id'],
+                            'device_model':系统+'-'+platform.machine(),
+                            'os_version':系统+' '+platform.release(),
+                        },句柄3.信号))
+                    finally:
+                        句柄3.释放()
+                    if 换得 is None:
+                        自身._拒绝载荷('auth_exchange')
+                    完成=浏览器网址(换得['authorized_url'],自身._来源,'/dsh/authorized',自身._改写浏览器)
+                    完成解析=urlparse(完成)
+                    查询=parse_qs(完成解析.query)
+                    查询['login_source']=[尝试['loginSource']]
+                    扁=[]
+                    for 键,值列表 in 查询.items():
+                        for 值 in 值列表:
+                            扁.append((键,值))
+                    尝试['completionUrl']=urlunparse((完成解析.scheme,完成解析.netloc,完成解析.path,'',urlencode(扁),''))
+                    if 当前毫秒()>=过期于:
+                        raise 平台认证错误('expired')
+                    若已中止则抛出(信号)
+                    if 换得.get('user') is not None:
+                        try:
+                            尝试['initialProfile']={'token':换得['token'],'value':{'status':'ready','value':投影配置档(换得['user'])}}
+                        except 平台认证错误:
+                            pass
+                    自身._更新(尝试,{'phase':'committing'})
+                    try:
+                        def 写入授予(当前):
+                            '提交授予记录'
+                            return {'kind':'grant','payload':{'version':1,'token':换得['token'],'issuer':自身._来源}}
+                        自身.ctx.credentials.修改记录(授予键,写入授予)
+                    except Exception:
+                        raise 平台认证错误('storage')
+                except Exception as 错误:
+                    if 已中止(截止控制.信号) or (isinstance(错误,平台认证错误) and 错误.code=='expired'):
+                        raise 平台认证错误('expired')
+                    raise
+                finally:
+                    if 已中止(信号) and 授权标识[0] is not None:
+                        自身._取消请求(授权标识[0],校验器)
+                    句柄.释放()
+            交给回调=True#句柄改由换码回调释放
+            return 码任务.然后(换上授权码)#等授权码，不阻塞
         except Exception as 错误:
             if 已中止(截止控制.信号) or (isinstance(错误,平台认证错误) and 错误.code=='expired'):
                 raise 平台认证错误('expired')
             raise
         finally:
-            if 已中止(信号) and 授权标识[0] is not None:
-                自身._取消请求(授权标识[0],校验器)
-            句柄.释放()
+            if not 交给回调:#还没交给换码回调
+                if 已中止(信号) and 授权标识[0] is not None:
+                    自身._取消请求(授权标识[0],校验器)
+                句柄.释放()
 
     def _拒绝载荷(自身,阶段):
         '载荷校验失败'

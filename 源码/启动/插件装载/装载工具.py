@@ -4,8 +4,6 @@ from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...模型后端.llm import 断言永不
 from ...内核.工具 import 定义工具
 from ...沙盒.沙盒.升级 import 批准升级
-from ...工具.超时 import 若已中止则抛出
-
 __all__=['依赖','应用']
 
 依赖=['tools','pluginManager','sandboxPolicy']

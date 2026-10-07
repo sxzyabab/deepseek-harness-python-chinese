@@ -1,7 +1,8 @@
 import math,os,signal,socket,sys,time#有限数、路径、信号、双工套接字、平台与轮询
 from threading import Event as 同步事件,Lock as 互斥锁,Thread as 线程,Timer as 定时器#结局广播、互斥、后台线程与宽限定时器
 from subprocess import Popen,DEVNULL,PIPE,run as 同步跑#子进程与同步taskkill
-from ...工具.超时 import 定时器延迟上限毫秒,已中止,若已中止则抛出,等待中止#定时器上限与中止入口
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
+from ...工具.超时 import 定时器延迟上限毫秒,等待中止#定时器上限
 from ..子进程 import 擦洗父环境#清洗后的父环境
 from ..子进程.控制 import 子进程控制描述符#控制通道 fd
 from .进程检查 import 组内有活成员#Linux组内存活探针
@@ -160,8 +161,7 @@ def 启动子进程(规格,内部=None):#本地spawn
     pid=孩子.pid if 孩子.pid is not None else -1#同步可读pid
     树静止=同步事件()#整树已确认缺席，广播给等待者
     观察锁=互斥锁()#保住观察线程单例
-    结局=None#直接孩子退出事实
-    已结局=同步事件()#直接孩子结局已写好，广播给等待者
+    结局期约=期约()#直接孩子退出事实，结算后兑现；spawn 级失败在 Popen 处同步抛出，所以不会拒绝
 
     def 树仍活():#存活探针
         '分离树的根（或 POSIX 组）是否仍活着'
@@ -288,7 +288,6 @@ def 启动子进程(规格,内部=None):#本地spawn
 
     def 结算(退出码,信号名):#只结算一次
         '结算直接孩子结局'
-        nonlocal 结局#写外层结局
         if 状态['settled']:#已经结算
             return#空操作
         状态['settled']=True#记下
@@ -307,8 +306,7 @@ def 启动子进程(规格,内部=None):#本地spawn
         if 标准误收集 is not None:#封stderr溢出
             标准误收集.封上()#封
         清理()#卸abort与排空定时器
-        结局={'exitCode':退出码,'signal':信号名}#写下结局
-        已结局.set()#唤醒等结局的调用方
+        结局期约.解决({'exitCode':退出码,'signal':信号名})#兑现结局，唤醒等结局的调用方
 
     def 盯退出():#孩子退出与管道排空
         '等进程结束，再以宽限等待收集管道排空后结算'
@@ -338,25 +336,31 @@ def 启动子进程(规格,内部=None):#本地spawn
     盯线程.daemon=True#不挡住退出
     盯线程.start()
 
-    def 等待结局():#等到直接孩子结局
-        '阻塞到直接孩子退出，返回其退出事实'
-        已结局.wait()#等结算
-        return 结局#退出事实
-
     def 等待退出(等待信号=None):#等到树静止或调用方取消
-        '等到整树静止；调用方取消则返回 False'
+        '返回期约：整树静止兑现 True；调用方取消兑现 False'
+        静止结果=期约()#静止或取消
         观察树退出()#起观察
         if 树静止.is_set():#已经静止
-            return True#静止
+            静止结果.解决(True)#静止
+            return 静止结果
         if 已中止(等待信号):#调用方已取消
-            return False#取消
-        if 等待信号 is None:#无取消则死等
-            树静止.wait()#等到缺席
-            return True#静止
-        while not 树静止.wait(0.015):#与中止赛跑，一拍一查
-            if 已中止(等待信号):#取消
-                return False#取消
-        return True#静止
+            静止结果.解决(False)#取消
+            return 静止结果
+        def 盯静止():#后台等静止或取消
+            '与中止赛跑：无取消则死等，有取消则一拍一查'
+            if 等待信号 is None:#无取消则死等
+                树静止.wait()#等到缺席
+                静止结果.解决(True)#静止
+                return
+            while not 树静止.wait(0.015):#与中止赛跑，一拍一查
+                if 已中止(等待信号):#取消
+                    静止结果.解决(False)#取消
+                    return
+            静止结果.解决(True)#静止
+        盯线程=线程(target=盯静止)#等待线程
+        盯线程.daemon=True#不挡住退出
+        盯线程.start()#开始
+        return 静止结果#交给调用方继续链式
 
     已收集={}#collect模式读取器
     if 标准输出收集 is not None:#有stdout收集器才带
@@ -374,7 +378,7 @@ def 启动子进程(规格,内部=None):#本地spawn
             自身.stderr=孩子.stderr if 错模式=='pipe' else None#仅pipe暴露
             自身.control=控制管道(孩子,控制请求)#可选控制通道
             自身.collected=已收集#collect模式读取器
-            自身.等待结局=等待结局#等孩子结局
+            自身.done=结局期约#孩子结局，兑现退出事实
             自身.终止=终止#TERM→KILL
             自身.为宿主退出终止=为宿主退出终止#立刻KILL
             自身.等待退出=等待退出#等树静止

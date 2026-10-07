@@ -71,8 +71,7 @@ class 深求文件客户端:
         自身.基址=消息接口根(选项['baseURL'])
 
     def 请求(自身,路径,方法,数据=None,文件=None,信号=None):
-        '发请求；已中止原样抛出'
-        from ...工具.超时 import 已中止
+        '发请求'
         头=dict(归属头())
         头['x-dsh-auth-token' if 自身.账号凭证 else 'x-api-key']=自身.密钥
         头['anthropic-version']='2023-06-01'
@@ -80,8 +79,6 @@ class 深求文件客户端:
         try:
             响应=自身.发(方法,自身.基址+路径,headers=头,data=数据,files=文件,allow_redirects=False,timeout=None)
         except Exception as 错误:
-            if 已中止(信号):
-                raise 错误
             raise 大模型错误('DeepSeek Files API request failed','TRANSPORT',{'cause':错误})
         if 响应.status_code>=200 and 响应.status_code<300:
             return 响应

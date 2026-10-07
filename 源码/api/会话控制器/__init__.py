@@ -20,7 +20,9 @@ from . import (
     远程,
     客户端,
 )
-from .远程错误与并发 import 已中止,在线程执行#中止与并发
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+from ...基础设施.通用工具 import 启动守护线程
+from .远程错误与并发 import 已中止#中止查询
 from .异常 import 远程错误#本包异常
 
 __all__=['包名','名称','依赖','应用','默认','配置','会话控制器','构建模型目录','会话文件引用','会话媒体引用','会话技能目录']
@@ -120,8 +122,8 @@ class 会话控制器(远程服务):
             if 事件['type']=='user/message' and 种类=='user':#用户消息
                 上下文.广播('api-session/activity',会话.id,事件['time'])#活动
         def 等待晋升():
-            '晋升拆除'
-            自身._等待晋升()#委托
+            '晋升拆除，返回后台晋升全部落定的期约'
+            return 自身._等待晋升()#委托
         上下文.监听('session/created',会话创建)
         上下文.监听('session/disposed',会话销毁)#销毁
         上下文.监听('agent/status',智能体状态)#状态
@@ -130,17 +132,14 @@ class 会话控制器(远程服务):
         上下文.副作用(等待晋升,'session-controller.promotions')#晋升拆除
 
     def _等待晋升(自身):
-        '拆除时等待后台晋升'
-        for 任务 in list(自身._晋升任务集合):#逐个
-            try:
-                任务.等待结局()
-            except BaseException:
-                pass#继续
+        '拆除时等待后台晋升，返回全部落定后解决的期约'
+        return 期约.全部已结算(list(自身._晋升任务集合))#成败都等
 
     def _晋升(自身,观测):
         '快照交付后晋升普通会话'
+        任务=期约()#后台晋升的结算点
         def 执行晋升():
-            '解析并激活观测到的会话'
+            '在工作线程解析并激活观测到的会话，失败记日志，成败都解决任务'
             try:
                 结果=自身._智能体控制器.解析观测智能体(观测)
                 if isinstance(结果,dict) and 'error' in 结果:
@@ -149,17 +148,13 @@ class 会话控制器(远程服务):
                     自身.ctx.广播('api-session/error',观测.header['id'],消息)#报错
             except BaseException as 错误:
                 自身.ctx.日志.错误('session-controller: background activation failed: '+str(错误))#日志
-        任务=在线程执行(执行晋升)#后台
+            任务.解决()#成败都落定
         自身._晋升任务集合.add(任务)#登记
-        def 收尾():
-            '任务落后定后从表移除'
-            try:
-                任务.等待结局()
-            except BaseException:
-                pass#忽略
+        def 移出集合(结算结果=None):
+            '任务落定后从表移除'
             自身._晋升任务集合.discard(任务)#移除
-        收=在线程执行(收尾)#收尾线程
-        自身._晋升任务集合.add(收)#登记收尾以免拆除时漏等
+        任务.然后(移出集合,移出集合)#成败都移除
+        启动守护线程(执行晋升)#后台
 
     def resolveAgent(自身,会话标识):
         '为其它域解析或恢复普通会话'

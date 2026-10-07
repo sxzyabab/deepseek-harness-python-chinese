@@ -75,28 +75,29 @@ def 应用(上下文,配置值):
     上下文.副作用(预留名,'mcp-client.serverName')
     连接=启动连接(上下文,配置值,重连)
     登记服务器上下文(上下文,服务器名,连接)
-    已拆除=False
+    停止中=None
     def 拆除():
-        '拆除监督器；重复调用复用第一次'
-        nonlocal 已拆除
-        if 已拆除:
-            return
-        已拆除=True
-        连接['dispose']()
+        '拆除监督器，返回期约；重复调用复用第一次的期约'
+        nonlocal 停止中
+        if 停止中 is None:
+            停止中=连接['dispose']()
+        return 停止中
     def 卸载时拆除(纤程对象):
         'Cordis 在未完成的 apply 之前宣布卸载时先关传输'
         if 纤程对象 is not 上下文.纤程 or 纤程对象.编号 is not None:
             return
-        拆除()
+        return 拆除()
     上下文.监听('internal/plugin',卸载时拆除,{'全局':True})
     def 装连接():
         '注册连接拆除'
         return 拆除
     上下文.副作用(装连接,'mcp-client.connection')
-    结果=连接['ready'].等待()
-    if 'error' in 结果 and 结果['error'] is not None and 配置值['failOnStartupError']:
-        错误=MCP错误('mcp-client('+服务器名+'): initial connection or tool synchronization failed')
-        raise 错误 from 结果['error']
+    def 检查启动结果(结果):
+        '首次连接与工具同步落定后，failOnStartupError 为真且有错误则让启动失败'
+        if 'error' in 结果 and 结果['error'] is not None and 配置值['failOnStartupError']:
+            错误=MCP错误('mcp-client('+服务器名+'): initial connection or tool synchronization failed')
+            raise 错误 from 结果['error']
+    return 连接['ready'].然后(检查启动结果)
 
 name=名称#框架槽
 inject=依赖#框架槽

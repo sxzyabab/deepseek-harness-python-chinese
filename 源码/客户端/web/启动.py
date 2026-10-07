@@ -1,4 +1,4 @@
-from ...基础设施.通用工具 import 启动守护线程
+from ...基础设施.js特性 import PromiseEX as 期约#期约
 from .启动客户端 import 启动客户端#组装
 from .异常 import 网页错误#本包异常
 from .启动页 import 启动页#启动页
@@ -8,26 +8,6 @@ from .种子 import 静态模块表#静态模块表
 __all__=['网页应用入口','上下文构造']#仅中文公开名
 
 上下文构造=None#Cordis Context 类；启动前由宿主写入
-
-def 全部并发(调用表):
-    '扇出：每路一线程，join 后按原序抬错'
-    if len(调用表)==0:#空
-        return#无事
-    错误表=[None]*len(调用表)#按原序错误
-    def 跑一路(下标,调用):
-        '执行一路并记下错误'
-        try:#跑
-            调用()#无参调用
-        except BaseException as 错误:#失败
-            错误表[下标]=错误#记下
-    线程表=[]#工作线程
-    for 下标,调用 in enumerate(调用表):#每路一线程
-        线程表.append(启动守护线程(跑一路,下标,调用))#登记
-    for 工作 in 线程表:#扇出 join
-        工作.join()#等到结束
-    for 错误 in 错误表:#按原序检查
-        if 错误 is not None:#有失败
-            raise 错误#原样抛
 
 class 网页应用入口:#apps/web 消费的浏览器启动入口
     '绘制启动页；run 启动加载器'
@@ -43,6 +23,14 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
 
     def run(自身,失败回调=None):
         '加载并激活每个客户端入口，再把挂载点交给 UI 渲染器。失败回调可选'
+        def 呈现失败(原因):
+            '载体呈现或启动页失败报告'
+            if 失败回调 is not None:#载体呈现
+                失败回调(原因)#回调
+            elif isinstance(原因,网页错误):#本包错误
+                自身.页.fail(原因.args[0] if len(原因.args)>0 else str(原因))#启动页失败报告
+            else:#其它
+                自身.页.fail(str(原因))#启动页失败报告
         try:#跑启动
             窗口=自身.窗口#门面
             if 窗口 is None:#缺窗口
@@ -61,30 +49,31 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
                 创建选项['loadBundle']=自身.接缝['loadBundle']#覆盖
             自身.模块系统=模块加载器.create(创建选项)#创建模块系统
             自身.清单=自身.模块系统.manifest#记下清单
-            自身.预取立即层()#预取立即层
-            if 上下文构造 is None:#未绑定 Context
-                raise 网页错误('网页启动：未绑定 Context 类')#失败
-            上下文=上下文构造()#新 Cordis 树
-            自身.上下文=上下文#记下
-            自身.页.setTotal(len(自身.清单['plugins']))#设进度总数
-            def 投影状态(名,状态):
-                '投影到启动页；载体呈现失败时跳过 failed'
-                if 失败回调 is None or 状态!='failed':#可写页
-                    自身.页.setState(名,状态)#写下
-            启动客户端({#组装插件树
-                'ctx':上下文,#根上下文
-                'modules':自身.模块系统,#模块系统
-                'manifest':自身.清单,#清单
-                'onEntryState':投影状态,#投影
-            })#启动客户端结束
-            挂载客户端(上下文,自身.容器)#挂应用
+            def 预取后启动(结算表):
+                '预取落定后创建上下文、组装并挂载。结算表是各路兑现值'
+                try:#落定后
+                    if 上下文构造 is None:#未绑定 Context
+                        raise 网页错误('网页启动：未绑定 Context 类')#失败
+                    上下文=上下文构造()#新 Cordis 树
+                    自身.上下文=上下文#记下
+                    自身.页.setTotal(len(自身.清单['plugins']))#设进度总数
+                    def 投影状态(入口名,状态):
+                        '投影到启动页；载体呈现失败时跳过 failed'
+                        if 失败回调 is None or 状态!='failed':#可写页
+                            自身.页.setState(入口名,状态)#写下
+                    启动客户端({#组装插件树
+                        'ctx':上下文,#根上下文
+                        'modules':自身.模块系统,#模块系统
+                        'manifest':自身.清单,#清单
+                        'onEntryState':投影状态,#投影
+                    })#启动客户端结束
+                    挂载客户端(上下文,自身.容器)#挂应用
+                except Exception as 原因:#启动失败
+                    呈现失败(原因)#报告
+                return 结算表#然后要求收下兑现值
+            自身.预取立即层(预取后启动,呈现失败)#预取落定后继续
         except Exception as 原因:#启动失败
-            if 失败回调 is not None:#载体呈现
-                失败回调(原因)#回调
-            elif isinstance(原因,网页错误):#本包错误
-                自身.页.fail(原因.args[0] if len(原因.args)>0 else str(原因))#启动页失败报告
-            else:#其它
-                自身.页.fail(str(原因))#启动页失败报告
+            呈现失败(原因)#报告
 
     def dispose(自身):
         '拆除客户端插件树以及当前拥有挂载点的页面'
@@ -94,20 +83,24 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
             上下文.fiber.dispose().等待()#拆除插件树并等落定；cordis 纤程须显式等待
         自身.页.dispose()#拆除启动页
 
-    def 预取立即层(自身):
+    def 预取立即层(自身,落定,拒绝时):
         '在并发插件导入前预取一阶段包及其动态请求。预取失败不阻断启动'
-        调用表=[]#预取调用
-        for 行 in 自身.清单['plugins']:#逐行
-            if 行['immediately'] is not True:#非立即
+        def 造预取期约(标识):
+            '一路预取期约；本包失败兑现为空'
+            def 执行(解决,拒绝):
+                '预取并结算'
+                try:#预取
+                    自身.模块系统.prefetch(标识)#预取；模块系统内同步阻塞
+                except 网页错误:#仅吞本包预取失败
+                    解决(None)#失败不阻断
+                except Exception as 错误:#其它
+                    拒绝(错误)#交给全部
+                else:#完成
+                    解决(None)#这一路完成
+            return 期约(执行)#这一路
+        期约表=[]#各路预取
+        for 插件行 in 自身.清单['plugins']:#逐行
+            if 插件行['immediately'] is not True:#非立即
                 continue#下
-            def 造预取(标识):
-                '预取一个包'
-                def 预取一条():
-                    '只提前开传输；失败由 Loader 导入再报'
-                    try:#预取
-                        自身.模块系统.prefetch(标识)#预取；模块系统内同步阻塞
-                    except 网页错误:#仅吞本包预取失败
-                        return#忽略
-                return 预取一条#调用
-            调用表.append(造预取(行['id']))#收下
-        全部并发(调用表)#并发预取
+            期约表.append(造预取期约(插件行['id']))#收下
+        期约.然后(期约.全部(期约表),落定,拒绝时)#全部落定后调用落定

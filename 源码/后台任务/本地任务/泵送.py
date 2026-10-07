@@ -1,15 +1,15 @@
 '注册表自有的拉取泵：按有界节拍把任务的输出源拷进环，生产者结算后再抽干一次'
 import math,threading
-from concurrent.futures import Future as 原生结果
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 
 def 启动泵送(源列表,汇,轮询毫秒,直到):
-    '按数组顺序抽干每个源，睡 pollMs 或等到 until 结算，再抽最后一次'
+    '按数组顺序抽干每个源，睡 pollMs 或等到 until 结算，再抽最后一次。返回期约：最后一次抽干后兑现；抽干失败则拒绝。直到是期约，兑现或拒绝都算结算'
     if (isinstance(轮询毫秒,bool) or not isinstance(轮询毫秒,(int,float))
         or not math.isfinite(轮询毫秒) or 轮询毫秒<=0):
         raise ValueError('invalid pump pollMs: expected a positive finite number of milliseconds, got '+repr(轮询毫秒))
     状态列表=[{'source':源,'cursor':0} for 源 in 源列表]
-    已结算=threading.Event()
-    完成=原生结果()
+    已结算=threading.Event()#直到结算后置位，叫醒轮询
+    完成=期约()#最后一次抽干后的结算
 
     def 抽干():
         '按源顺序读增量并写入汇'
@@ -45,35 +45,17 @@ def 启动泵送(源列表,汇,轮询毫秒,直到):
                 抽干()
                 已结算.wait(轮询毫秒/1000.0)
             抽干()
-            完成.set_result(None)
+            完成.解决(None)
         except BaseException as 错误:
-            if not 完成.done():
-                完成.set_exception(错误)
+            完成.拒绝(错误)
 
-    def 等到结算():
+    def 直到已结算(*结算值):
         'until 结算（兑现或拒绝都算）后结束轮询'
-        try:
-            if hasattr(直到,'等待'):
-                直到.等待()
-            elif hasattr(直到,'result'):
-                直到.result()
-        except BaseException:
-            pass
         已结算.set()
 
+    直到.然后(直到已结算,直到已结算)
     轮询线程=threading.Thread(target=循环,daemon=True)
-    监视线程=threading.Thread(target=等到结算,daemon=True)
     轮询线程.start()
-    监视线程.start()
-
-    class 泵送句柄:
-        '一次泵运行；done.等待 在最后一次抽干后返回'
-        def 等待(自身,超时=None):
-            '阻塞到泵结束'
-            return 完成.result(timeout=超时)
-
-    句柄=泵送句柄()
-    句柄.done=句柄
-    return 句柄
+    return 完成
 
 __all__=['启动泵送']

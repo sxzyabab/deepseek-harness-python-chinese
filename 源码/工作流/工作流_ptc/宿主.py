@@ -1,14 +1,13 @@
 '经共享沙箱 PTC 执行器的工作流子归属与进度'
 from ...基础设施.通用工具 import 紧凑json编码,启动守护线程
+from ...基础设施.js特性 import PromiseEX as 期约#中文期约
 from urllib.parse import quote as 百分号编码#data URL
 from ...内核.会话 import 会话标识#子 id 品牌
 from ...内核.工具.json模式 import 断言对象json模式#对象 JSON 模式
-from ...工具.超时 import 中止控制器,已中止,若已中止则抛出,等待中止#中止
+from ...工具.超时 import 等待中止#中止类已禁用
 from ...工具.值 import 断言永不,快照json值#穷尽与 JSON 边界
 from .宾客源码 import 工作流宾客源码#自包含宾客 JS
 from .领域 import 渲染抛出#拆除失败文本
-from .运行时 import 任务,全部并发,全部结算,赛跑#本包并发
-
 __all__=['ptc工作流运行']#仅中文公开名
 
 宾客网址='data:text/javascript,'+百分号编码(工作流宾客源码,safe="-_.!~*'()")#data URL
@@ -137,7 +136,7 @@ class ptc工作流运行:#持有者所有的工作流
         自身._终态=False#已有终态
         自身._取消原因=None#首次取消原因
         自身._已拆=None#共享拆除任务
-        自身.结果=任务()#永不拒绝
+        自身.结果=期约()#永不拒绝
         def 外部中止():#外部信号
             '外部中止则取消运行'
             自身.取消('workflow signal aborted')#取消
@@ -152,8 +151,11 @@ class ptc工作流运行:#持有者所有的工作流
                     外部中止()#取消
                 启动守护线程(等外部)#监视
         def 开跑():#后台驱动
-            '驱动并兑现结果'
-            自身.结果.兑现(自身._驱动())#永不拒绝
+            '驱动；结果由清理收尾解决'
+            try:#驱动
+                自身._驱动()#清理结束后解决自身.结果
+            except BaseException as 错误:#驱动抛错
+                自身.结果.解决({'value':None,'stopReason':'error','error':渲染抛出(错误),'agentsStarted':自身._已启动})#错误结果
         启动守护线程(开跑)#后才挂记录
 
     def 取消(自身,原因='workflow cancelled'):#停脚本并中止子
@@ -167,24 +169,20 @@ class ptc工作流运行:#持有者所有的工作流
         for 记录 in list(自身._子表.values()):#已发布
             自身._拆除子(记录)#拆除
 
-    def 销毁(自身):#取消未完成并等待清理
-        """取消未完成工作并等待程序与子清理。
-        重复调用共享同一完成
+    def 销毁(自身):#取消未完成并返回清理期约
+        """取消未完成工作。
+        返回共享期约，结果落定后兑现；重复调用同一期约
         """
         自身.取消('workflow disposed')#取消
         if 自身._已拆 is None:#首次
-            完成=任务()#拆除任务
-            自身._已拆=完成#共享
-            def 等结果():#等运行结果
-                '结果落定即拆除完成'
-                try:#等待
-                    自身.结果.等待()#结果
-                except BaseException:#不应拒绝
-                    pass#吞掉
-                完成.兑现()#拆除完成
-            启动守护线程(等结果)#后台
-        自身._已拆.等待()#等到
-        return None#拆除完成
+            def 拆除完成(值=None):#结果已落定
+                '拆除完成'
+                return None#无值
+            def 吞拒绝(错误=None):#结果不应拒绝
+                '吞掉拒绝，拆除仍然完成'
+                return None#无值
+            自身._已拆=自身.结果.然后(拆除完成).捕获(吞拒绝)#共享
+        return 自身._已拆#期约
 
     def _要求活动(自身):#已中止则抛
         '已中止则抛出原因'
@@ -194,18 +192,35 @@ class ptc工作流运行:#持有者所有的工作流
         """跑一路绑定并跟踪未决。
         函数无参
         """
-        完成=任务()#本次
+        完成=期约()#本次
         自身._未决.append(完成)#登记
-        def 在线程执行():#后台
-            '执行并摘掉'
-            try:#执行
-                完成.兑现(函数())#成功
-            except BaseException as 错误:#失败
-                完成.拒绝(错误)#拒绝
+        def 摘掉():#离开未决
+            '结算前摘掉，避免排空反复看见已结算项'
             if 完成 in 自身._未决:#仍在
                 自身._未决.remove(完成)#摘掉
-        启动守护线程(在线线程执行)
-        return 完成.等待()#等本路
+        def 在线程执行():#后台
+            '执行并解决'
+            try:#执行
+                值=函数()#成功或期约
+            except BaseException as 错误:#失败
+                摘掉()#先摘
+                完成.拒绝(错误)#拒绝
+                return#结束
+            def 成功(内值):#展平后的值
+                '摘掉并解决'
+                摘掉()#先摘
+                完成.解决(内值)#解决
+            def 失败(错误):#内层拒绝
+                '摘掉并拒绝'
+                摘掉()#先摘
+                完成.拒绝(错误)#拒绝
+            然后方法=getattr(值,'然后',None)#返回的期约
+            if callable(然后方法):#期约
+                然后方法(成功,失败)#等它
+                return#已接上
+            成功(值)#普通值
+        启动守护线程(在线程执行)#后台
+        return 完成#期约
 
     def _绑定(自身):#workflowHost 函数表
         'PTC 绑定函数'
@@ -226,9 +241,8 @@ class ptc工作流运行:#持有者所有的工作流
                 return 自身._子结果(自身._子(值))#结果
             return 自身._跟踪(在线线程执行)#跟踪
         def 拆除子绑定(值):#disposeChild
-            '拆除一个子'
-            自身._拆除子(自身._子(值))#拆除
-            return None#null
+            '拆除一个子，返回期约'
+            return 自身._拆除子(自身._子(值))#拆除
         def 进度绑定(值):#progress
             '分派一批进度'
             for 事件 in 进度批(值):#逐条
@@ -271,28 +285,39 @@ class ptc工作流运行:#持有者所有的工作流
         return {'callId':调用标识,'childId':跑.id}#引用
 
     def _子结果(自身,记录):#等子终态
-        '与中止赛跑，等子终态 JSON'
+        '与中止赛跑，返回子终态 JSON 的期约'
         若已中止则抛出(自身._控制器.信号)#已中止
-        def 等子():#子结果
-            '等提供方结果'
-            return 记录['run'].result.等待()#子结果
-        def 等中止():#中止
-            '等到中止再抛'
+        中止侧=期约()#中止时拒绝
+        def 监视中止():#中止
+            '中止信号先到则拒绝'
             等待中止(自身._控制器.信号)#等待
-            若已中止则抛出(自身._控制器.信号)#抛原因
-            raise RuntimeError('The operation was aborted')#默认
-        结果=赛跑([等子,等中止])#先到
-        投影={'output':结果['output'],'stopReason':结果['stopReason']}#必填
-        if 'structured' in 结果 and 结果['structured'] is not None:#有结构化
-            投影['structured']=结果['structured']#带上
-        return json值(投影)#JSON
+            try:#抛原因
+                若已中止则抛出(自身._控制器.信号)#抛原因
+                中止侧.拒绝(RuntimeError('The operation was aborted'))#默认
+            except BaseException as 错误:#已中止
+                中止侧.拒绝(错误)#拒绝
+        启动守护线程(监视中止)#监视
+        结局=期约()#JSON
+        def 成功(结果):#子先到
+            '投影为 JSON 后解决'
+            投影={'output':结果['output'],'stopReason':结果['stopReason']}#必填
+            if 'structured' in 结果 and 结果['structured'] is not None:#有结构化
+                投影['structured']=结果['structured']#带上
+            try:#快照
+                结局.解决(json值(投影))#JSON
+            except BaseException as 错误:#不是 JSON
+                结局.拒绝(错误)#拒绝
+        def 失败(错误):#中止或子拒绝
+            '赛跑失败则拒绝'
+            结局.拒绝(错误)#拒绝
+        期约.竞速([记录['run'].result,中止侧]).然后(成功,失败)#先到
+        return 结局#期约
 
     def _拆除子(自身,记录):#共享拆除
-        '所有清理路径共享的子拆除'
+        '所有清理路径共享的子拆除，返回期约'
         if 'disposal' in 记录 and 记录['disposal'] is not None:#已有
-            记录['disposal'].等待()#加入
-            return None#结束
-        完成=任务()#本次拆除
+            return 记录['disposal']#共享
+        完成=期约()#本次拆除
         记录['disposal']=完成#共享
         def 跑拆除():#后台
             '调用提供方拆除'
@@ -302,10 +327,9 @@ class ptc工作流运行:#持有者所有的工作流
                 自身.ctx.日志.警告('workflow-ptc: child dispose failed: '+渲染抛出(错误))#警告
             finally:#摘掉
                 自身._子表.pop(记录['callId'],None)#移除
-                完成.兑现()#完成
-        启动守护线程(跑拆除)
-        完成.等待()#等到
-        return None#结束
+                完成.解决(None)#完成
+        启动守护线程(跑拆除)#后台
+        return 完成#期约
 
     def _当进度(自身,事件):#分派进度
         '把一条进度交给观察器'
@@ -338,43 +362,55 @@ class ptc工作流运行:#持有者所有的工作流
         return {'value':None,'stopReason':'cancelled','error':'workflow run cancelled: '+str(自身._取消原因),'agentsStarted':自身._已启动}#取消
 
     def _驱动(自身):#跑 PTC 程序
-        '跑 PTC 程序并清理子'
-        结果=None#终态
+        '跑 PTC 程序并清理子；清理结束后解决自身.结果'
+        终态={'结果':None}#终态
         try:#执行
             规格=自身._运行时.解析({'program':程序,'bindings':[{'global':'workflowHost','functions':自身._绑定()}],'cwd':自身._政策['workspaceRoot'],'sandboxPolicy':自身._政策,'timeoutMs':None,'signal':自身._控制器.信号})#解析
-            结局=自身._运行时.运行(规格)#运行
+            运行结局=自身._运行时.运行(规格)#运行
             自身._终态=True#终态
             if 自身._取消原因 is not None:#取消获胜
-                结果=自身._已取消结果()#取消
-            elif 'error' in 结局 and 结局['error'] is not None:#PTC 失败
-                结果={'value':None,'stopReason':'error','error':'workflow execution failed ('+结局['error']['kind']+'): '+结局['error']['message'],'agentsStarted':自身._已启动}#错误
+                终态['结果']=自身._已取消结果()#取消
+            elif 'error' in 运行结局 and 运行结局['error'] is not None:#PTC 失败
+                终态['结果']={'value':None,'stopReason':'error','error':'workflow execution failed ('+运行结局['error']['kind']+'): '+运行结局['error']['message'],'agentsStarted':自身._已启动}#错误
             else:#完成值
-                结果=工作流结果值(结局['value'] if 'value' in 结局 else None)#结果
+                终态['结果']=工作流结果值(运行结局['value'] if 'value' in 运行结局 else None)#结果
         except BaseException as 错误:#执行抛错
             自身._终态=True#终态
             if 自身._取消原因 is None:#非取消
-                结果={'value':None,'stopReason':'error','error':渲染抛出(错误),'agentsStarted':自身._已启动}#错误
+                终态['结果']={'value':None,'stopReason':'error','error':渲染抛出(错误),'agentsStarted':自身._已启动}#错误
             else:#取消
-                结果=自身._已取消结果()#取消
+                终态['结果']=自身._已取消结果()#取消
         finally:#清理
             自身._终态=True#终态
             自身._控制器.中止(RuntimeError('workflow settled'))#结算中止
             for 记录 in list(自身._子表.values()):#已发布
-                自身._拆除子(记录)#拆除
-            while len(自身._未决)>0:#未决绑定
-                全部结算(list(自身._未决))#结算
-            拆除表=list(自身._子表.values())#快照
-            def 制作拆除(记录):#钉住记录
-                '钉住一条拆除'
-                def 在线程执行():#一路
-                    '拆除一路'
-                    自身._拆除子(记录)#拆除
-                return 在线程执行#函数
-            if len(拆除表)>0:#还有
-                全部并发([制作拆除(记录) for 记录 in 拆除表])#并发拆除
-            自身._子表.clear()#清空
-            for 信息 in list(自身._活智能体.values()):#未配对结束
-                结束=dict(信息)#拷贝
-                结束['outcome']='cancelled'#取消
-                自身._结束智能体(结束)#合成 cancelled
-        return 结果#终态
+                自身._拆除子(记录)#开始拆除
+            def 收尾(结算表=None):#未决与拆除都结束
+                '清空子表并补取消结束'
+                自身._子表.clear()#清空
+                for 信息 in list(自身._活智能体.values()):#未配对结束
+                    结束=dict(信息)#拷贝
+                    结束['outcome']='cancelled'#取消
+                    自身._结束智能体(结束)#合成 cancelled
+                自身.结果.解决(终态['结果'])#终态
+            def 等拆除(结算表=None):#再等共享拆除
+                '等每条拆除期约'
+                拆除表=list(自身._子表.values())#快照
+                if len(拆除表)==0:#没有
+                    收尾()#收尾
+                    return#结束
+                期约.全部([自身._拆除子(记录) for 记录 in 拆除表]).然后(收尾,收尾)#并发拆除
+            def 排空未决(结算表=None):#未决绑定
+                '全部已结算后摘掉快照，有新的再排'
+                if len(自身._未决)==0:#没有
+                    等拆除()#拆除
+                    return#结束
+                快照=list(自身._未决)#快照
+                def 再看(结算结果=None):#这一批已结算
+                    '摘掉这一批再看有没有新的'
+                    for 一项 in 快照:#这一批
+                        if 一项 in 自身._未决:#还在
+                            自身._未决.remove(一项)#摘掉
+                    排空未决()#再看
+                期约.全部已结算(快照).然后(再看,再看)#结算
+            排空未决()#先排空绑定

@@ -14,7 +14,6 @@ from .升级 import (
 )
 from .异常 import 沙箱不可用错误,沙箱升级错误
 from .根 import 规范路径,可写根
-from ...工具.超时 import 若已中止则抛出
 from .诊断 import 分类运行器失败,是否运行器派生失败,匹配签名
 
 沙箱模式=('read-only','workspace-write','danger-full-access')

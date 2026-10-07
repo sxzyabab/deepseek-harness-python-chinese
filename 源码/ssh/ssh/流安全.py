@@ -1,5 +1,6 @@
 import ssl,socket,threading#TLS-PSK、Unix 套接字与握手超时
-from ...工具.超时 import 已中止,若已中止则抛出,等待中止#中止
+from ...基础设施.js特性 import PromiseEX as 期约#认证流返回的期约
+from ...工具.超时 import 等待中止#中止类已禁用
 from .异常 import ssh错误#本包异常基类
 
 __all__=['ssh流tls选项','套接字流','认证流']#仅中文公开名
@@ -118,52 +119,70 @@ def 客户psk回调(能力十六进制):#PSK 客户端
 
 def 认证流(套接字对象,能力,超时毫秒,信号=None):#TLS-PSK 认证转发流
     """用管理通道私钥认证已连接套接字；密钥从不作为数据发送。
-    返回已暂停的认证流
+    返回期约，兑现已暂停的认证流；已中止、握手失败、超时或认证期间被关闭则拒绝
     """
     流=套接字对象 if isinstance(套接字对象,套接字流) else 套接字流(套接字对象)#统一面
-    if 已中止(信号):#已中止
-        流.destroy()#毁
-        若已中止则抛出(信号)#抛原因或已中止错误
-    上下文=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)#客户 TLS
-    上下文.minimum_version=ssl.TLSVersion.TLSv1_2#下限
-    上下文.maximum_version=ssl.TLSVersion.TLSv1_2#上限
-    上下文.set_ciphers(ssh流tls选项['ciphers'])#PSK-AEAD
-    上下文.check_hostname=False#PSK 无主机名
-    上下文.verify_mode=ssl.CERT_NONE#无证书
-    上下文.set_psk_client_callback(客户psk回调(能力))#PSK
-    完成=threading.Event()#握手结束
-    箱={'流':None,'错误':None}#结算
-    def 握手():#线程
-        '阻塞握手'
-        try:#包装
-            包装=上下文.wrap_socket(流._套接字,server_side=False)#握手
-            箱['流']=套接字流(包装)#认证流
-        except BaseException as 错误:#失败
-            箱['错误']=错误#记下
-        finally:#广播
-            完成.set()#结束
-    def 中止时():#信号中止
-        '毁掉握手中的套接字'
-        原因=ssh错误('SSH stream closed during authentication')#默认
-        流.destroy(原因)#毁
-    if 信号 is not None:#有信号
-        def 监视():#等中止
-            '置位后毁掉'
-            等待中止(信号)#等置位
-            if not 完成.is_set():#仍在握手
-                中止时()#毁
-        监视线程=threading.Thread(target=监视)#监视
-        监视线程.daemon=True#守护
-        监视线程.start()#启动
-    工作=threading.Thread(target=握手)#握手线程
-    工作.daemon=True#守护
-    工作.start()#启动
-    if not 完成.wait(超时毫秒/1000.0):#超时
-        流.destroy(ssh错误('SSH stream authentication timed out'))#毁
-        raise ssh错误('SSH stream authentication timed out')#超时
-    if 箱['错误'] is not None:#失败
-        流.destroy(箱['错误'] if isinstance(箱['错误'],BaseException) else ssh错误(str(箱['错误'])))#毁
-        raise 箱['错误']#原样
-    认证=箱['流']#已包装
-    认证.pause()#暂停待消费方挂上
-    return 认证#已认证流
+    def 执行器(解决,拒绝):
+        '握手、超时与中止三路竞争，谁先落定谁决定结果'
+        if 已中止(信号):#已中止
+            流.destroy()#毁
+            try:#抛原因或已中止错误
+                若已中止则抛出(信号)#必然抛出
+            except Exception as 错误:#中止原因
+                拒绝(错误)#拒绝
+            return#已落定
+        上下文=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)#客户 TLS
+        上下文.minimum_version=ssl.TLSVersion.TLSv1_2#下限
+        上下文.maximum_version=ssl.TLSVersion.TLSv1_2#上限
+        上下文.set_ciphers(ssh流tls选项['ciphers'])#PSK-AEAD
+        上下文.check_hostname=False#PSK 无主机名
+        上下文.verify_mode=ssl.CERT_NONE#无证书
+        上下文.set_psk_client_callback(客户psk回调(能力))#PSK
+        已落定=False#握手结果、超时与中止谁先到谁落定，之后到的不再动
+        def 落定失败(错误):
+            '首个失败：毁掉流并拒绝；已落定则忽略'
+            nonlocal 已落定#改外层
+            if 已落定:#别的路径已落定
+                return#忽略
+            已落定=True#落定
+            流.destroy(错误)#毁
+            拒绝(错误)#拒绝
+        def 握手():#线程
+            '阻塞握手，结果交给落定'
+            nonlocal 已落定#改外层
+            try:#包装
+                包装=上下文.wrap_socket(流._套接字,server_side=False)#握手
+                认证=套接字流(包装)#认证流
+            except BaseException as 错误:#线程入口，失败交给期约
+                落定失败(错误)#失败
+                return#结束
+            if 已落定:#超时或中止已先到
+                认证.destroy()#毁掉迟到的认证流
+                return#结束
+            已落定=True#落定
+            定时.cancel()#取消超时
+            认证.pause()#暂停待消费方挂上
+            解决(认证)#已认证流
+        def 超时():
+            '认证超时'
+            落定失败(ssh错误('SSH stream authentication timed out'))#超时
+        定时=threading.Timer(超时毫秒/1000.0,超时)#超时定时器
+        定时.daemon=True#守护
+        定时.start()#武装
+        def 中止时():#信号中止
+            '毁掉握手中的套接字，握手线程随之失败'
+            原因=ssh错误('SSH stream closed during authentication')#默认
+            流.destroy(原因)#毁
+        if 信号 is not None:#有信号
+            def 监视():#等中止
+                '置位后毁掉'
+                等待中止(信号)#等置位
+                if not 已落定:#仍在握手
+                    中止时()#毁
+            监视线程=threading.Thread(target=监视)#监视
+            监视线程.daemon=True#守护
+            监视线程.start()#启动
+        工作=threading.Thread(target=握手)#握手线程
+        工作.daemon=True#守护
+        工作.start()#启动
+    return 期约(执行器)#调用方链式

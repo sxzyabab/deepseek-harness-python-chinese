@@ -1,0 +1,7 @@
+{
+    "native-picker": "原生选择",
+    "win32-dialog": "对话框",
+    "win32-dialog-logic": "对话框逻辑",
+    "win32-dialog-bindings": "对话框绑定",
+    "win32-dialog-worker": "对话框工作进程"
+}

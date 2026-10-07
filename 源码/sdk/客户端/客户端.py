@@ -1,6 +1,6 @@
 import os,subprocess,threading,time#环境、子进程、线程与超时
 from collections import deque#有界 stderr 尾
-from ...基础设施.通用工具.并发原语 import 操作任务,中止信号,中止控制器,已中止#任务与中止
+from ...基础设施.js特性 import PromiseEX as 期约#请求、下一条、关闭返回的期约
 from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from ..协议 import 换行JSONRPC传输#传输
 from ..协议.异常 import JSONRPC响应错误#对端错误
@@ -9,7 +9,6 @@ from .拆除 import 拆除运行时进程#运行时进程拆除阶梯
 __all__=[#仅中文公开名
     '传输已关闭错误','请求超时错误','SDK协议错误',
     '通知订阅','装备客户端','是否普通对象',
-    '操作任务','中止信号','中止控制器','已中止',
 ]#公开面结束
 
 标准错误尾上限=400#stderr 尾部最多保留行数
@@ -39,14 +38,17 @@ class 通知订阅:
         自身.卸订阅=卸订阅#从客户端表删除本订阅
 
     def 下一条(自身):
-        '等待下一条匹配的通知'
-        if len(自身.状态['queue'])>0:#有存货
-            return 自身.状态['queue'].pop(0)#立刻兑现
-        if 自身.状态['failure'] is not None:#已失败
-            raise 自身.状态['failure']#拒绝
-        等待=操作任务()#挂起
-        自身.状态['waiters'].append(等待)#等后续 push
-        return 等待.等待()#阻塞取
+        '返回期约：有存货立刻以队首兑现，已失败则拒绝，否则挂起到后续推送'
+        def 执行器(解决,拒绝):
+            '按队列、失败、挂起的顺序决定这个期约怎么落定'
+            if len(自身.状态['queue'])>0:#有存货
+                解决(自身.状态['queue'].pop(0))#立刻以队首兑现
+                return#已落定
+            if 自身.状态['failure'] is not None:#已失败
+                拒绝(自身.状态['failure'])#以终结失败拒绝
+                return#已落定
+            自身.状态['waiters'].append({'解决':解决,'拒绝':拒绝})#挂起，等后续推送或失败
+        return 期约(执行器)#交给调用方链式
 
     def 关闭(自身):
         '已排队项丢弃，未完成等待者拒绝'
@@ -61,7 +63,7 @@ class 通知订阅:
         等待者=自身.状态['waiters']#取出
         自身.状态['waiters']=[]#清空
         for 一项 in 等待者:#拒绝并清空等待者
-            一项.拒绝(自身.状态['failure'])#拒绝
+            一项['拒绝'](自身.状态['failure'])#拒绝
 
     def 推送(自身,通知):
         '过滤器抛错只让本订阅失败'
@@ -78,7 +80,7 @@ class 通知订阅:
         if not 匹配:#不匹配
             return#丢弃
         if len(自身.状态['waiters'])>0:#有人在等
-            自身.状态['waiters'].pop(0).兑现(通知)#交给等待者
+            自身.状态['waiters'].pop(0)['解决'](通知)#交给等待者
         else:#否则入队
             自身.状态['queue'].append(通知)#入队
 
@@ -96,9 +98,9 @@ class 装备客户端:
         自身.退出码=None#子进程退出码；未退出则为特殊哨兵
         自身._已退出=False#是否已见 exit
         自身.拉起错误=None#spawn 失败错误
-        自身.流落定=操作任务()#stderr 关闭与 exit 都发生后兑现
-        自身.流落定.兑现(None)#初始已落定（尚未 start）
-        自身.关闭任务=None#close 去重任务
+        自身.流落定=期约()#stderr 关闭与 exit 都发生后解决
+        自身.流落定.解决(None)#初始已落定（尚未 start）
+        自身.关闭任务=None#close 去重用的关闭期约
         自身.锁=threading.Lock()#订阅表互斥
 
     def 启动(自身):
@@ -125,18 +127,18 @@ class 装备客户端:
         )#spawn 结束
         自身.子进程=子#记下子进程
         落定旗={'stderr':False,'exited':False}#两旗
-        自身.流落定=操作任务()#新的落定任务
+        自身.流落定=期约()#新的落定期约
         def 或许落定():
-            '通知等待流落定的人'
+            '两路都齐了就解决流落定期约'
             if 落定旗['stderr'] and 落定旗['exited']:#都齐
-                自身.流落定.兑现(None)#兑现
+                自身.流落定.解决(None)#解决
         def 监视退出():
             '记下退出码并让订阅失败'
             码=子.wait()#等待退出
             自身.退出码=码#记下退出码
             自身._已退出=True#标记已退出
             落定旗['exited']=True#标记已退出
-            或许落定()#尝试兑现落定
+            或许落定()#尝试解决落定
             自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已退出'))#让订阅失败
             if 自身.传输 is not None:#有传输
                 自身.传输.关闭()#关闭传输
@@ -158,7 +160,7 @@ class 装备客户端:
             except OSError:
                 pass#管道错误忽略
             落定旗['stderr']=True#标记 stderr 已关
-            或许落定()#尝试兑现落定
+            或许落定()#尝试解决落定
         启动守护线程(读标准错误)#读 stderr
         传输=换行JSONRPC传输(子.stdout,子.stdin)#stdout 入、stdin 出
         def 派发通知(方法,参数):
@@ -169,57 +171,74 @@ class 装备客户端:
         自身.传输=传输#记下传输
 
     def 初始化(自身,参数):
-        '执行进程级握手'
-        结果=自身.请求('initialize',dict(参数))#发 initialize
-        信息=结果['serverInfo'] if 是否普通对象(结果) and 'serverInfo' in 结果 else None#serverInfo
-        if (not 是否普通对象(信息)
-            or 'name' not in 信息
-            or 'version' not in 信息
-            or not isinstance(信息['name'],str)
-            or not isinstance(信息['version'],str)):#缺少身份
-            raise SDK协议错误('initialize 未返回服务器身份：'+str(结果))#协议错误
-        return {'serverInfo':{'name':信息['name'],'version':信息['version']}}#只交出线稳定字段
+        '执行进程级握手，返回期约，兑现运行时的线稳定身份；响应缺身份则以 SDK协议错误拒绝'
+        def 校验身份(结果):
+            '握手响应兑现后校验身份字段'
+            信息=结果['serverInfo'] if 是否普通对象(结果) and 'serverInfo' in 结果 else None#serverInfo
+            if (not 是否普通对象(信息)
+                or 'name' not in 信息
+                or 'version' not in 信息
+                or not isinstance(信息['name'],str)
+                or not isinstance(信息['version'],str)):#缺少身份
+                raise SDK协议错误(f'initialize 未返回服务器身份：{结果}')#协议错误
+            return {'serverInfo':{'name':信息['name'],'version':信息['version']}}#只交出线稳定字段
+        return 自身.请求('initialize',dict(参数)).然后(校验身份)#发 initialize 后校验
 
     def 提示(自身,会话号,内容块列表):
-        '排队一条提示并返回其持久收件箱身份'
-        结果=自身.请求('session/prompt',{'sessionId':会话号,'contentBlocks':内容块列表})#发
-        if (not 是否普通对象(结果)) or 'messageId' not in 结果 or not isinstance(结果['messageId'],str):#缺 messageId
-            raise SDK协议错误('session/prompt 未返回消息 id：'+str(结果))#协议错误
-        return 结果['messageId']#交出消息 id
+        '排队一条提示，返回期约，兑现其持久收件箱身份；响应缺消息 id 则以 SDK协议错误拒绝'
+        def 取出消息号(结果):
+            '提示响应兑现后校验并取出 messageId'
+            if (not 是否普通对象(结果)) or 'messageId' not in 结果 or not isinstance(结果['messageId'],str):#缺 messageId
+                raise SDK协议错误(f'session/prompt 未返回消息 id：{结果}')#协议错误
+            return 结果['messageId']#交出消息 id
+        return 自身.请求('session/prompt',{'sessionId':会话号,'contentBlocks':内容块列表}).然后(取出消息号)#发提示后取消息 id
 
     def 请求(自身,方法,参数=None,超时毫秒=None):
-        '发送 JSON-RPC 请求并等待结果'
-        自身.启动()#惰性确保子进程已启动
-        if 自身._已退出 or 自身.拉起错误 is not None:#已经退出或 spawn 失败
-            自身._落定流()#等 stderr/exit 落定以便拼诊断
-            raise 自身._关闭错误('DeepSeek Harness 运行时未在运行')#带退出码与 stderr 尾部
-        传输=自身.传输#取出传输
-        if 传输 is None:#start 后仍无传输
-            raise 传输已关闭错误('DeepSeek Harness 运行时未在运行')#关闭
-        if 超时毫秒 is not None:#调用方给了单次超时
-            超时=超时毫秒#用单次
-        elif 'requestTimeoutMs' in 自身.选项:#选项默认
-            超时=自身.选项['requestTimeoutMs']#用选项
-        else:#都没有
-            超时=None#一直等
-        try:
+        '发送 JSON-RPC 请求，返回期约，兑现原始结果。对端错误响应拒绝为 JSONRPC响应错误，超时拒绝为 请求超时错误，运行时已不在拒绝为 传输已关闭错误'
+        def 执行器(解决,拒绝):
+            '惰性启动、检查运行时存活、按超时发出请求，并把传输层失败补上进程上下文'
+            try:
+                自身.启动()#惰性确保子进程已启动
+            except 传输已关闭错误 as 错误:#客户端已关闭，不能再启动
+                拒绝(错误)#启动期失败按拒绝交出
+                return#已落定
+            def 等落定后拒绝(原因):
+                '等 stderr/exit 落定后，带退出码与 stderr 尾部拒绝为传输已关闭错误'
+                def 拒绝为关闭错误(落定值):
+                    '流已落定或落定等待超时，拼诊断后拒绝'
+                    拒绝(自身._关闭错误(原因))#带退出码与 stderr 尾部
+                自身._落定流().然后(拒绝为关闭错误)#落定与超时先到先得
+            if 自身._已退出 or 自身.拉起错误 is not None:#已经退出或 spawn 失败
+                等落定后拒绝('DeepSeek Harness 运行时未在运行')#写进已死进程只会挂到超时
+                return#已落定
+            传输=自身.传输#取出传输
+            if 传输 is None:#start 后仍无传输
+                拒绝(传输已关闭错误('DeepSeek Harness 运行时未在运行'))#关闭
+                return#已落定
+            if 超时毫秒 is not None:#调用方给了单次超时
+                超时=超时毫秒#用单次
+            elif 'requestTimeoutMs' in 自身.选项:#选项默认
+                超时=自身.选项['requestTimeoutMs']#用选项
+            else:#都没有
+                超时=None#一直等
+            def 转换失败(错误):
+                '对端错误与超时原样拒绝，其余是传输层失败，补进程上下文后拒绝'
+                if isinstance(错误,(JSONRPC响应错误,请求超时错误)):#协议错误响应或超时
+                    拒绝(错误)#原样
+                    return#已落定
+                等落定后拒绝(错误消息(错误))#包成传输已关闭错误
             载荷=参数 if 参数 is not None else {}#缺 params 则空对象
             if 超时 is None:#无超时则一直等
-                return 传输.请求(方法,载荷)#同步等
+                传输.请求(方法,载荷).然后(解决,转换失败)#响应兑现即解决
+                return#已挂接
             控制器=中止控制器()#超时用的中止
             def 到期():
                 '到期后 abort，带方法名与毫秒数'
                 time.sleep(超时/1000.0)#等待
-                控制器.中止(请求超时错误(方法+' 等待 DeepSeek Harness 运行时超时，已过 '+str(超时)+'ms'))#中止
+                控制器.中止(请求超时错误(f'{方法} 等待 DeepSeek Harness 运行时超时，已过 {超时}ms'))#中止
             启动守护线程(到期)#定时
-            return 传输.请求(方法,载荷,控制器.信号)#带信号发请求
-        except JSONRPC响应错误:
-            raise#原样
-        except 请求超时错误:
-            raise#原样
-        except BaseException as 错误:
-            自身._落定流()#等流落定
-            raise 自身._关闭错误(错误消息(错误))#包成传输已关闭错误
+            传输.请求(方法,载荷,控制器.信号).然后(解决,转换失败)#带信号发请求
+        return 期约(执行器)#上游 async request 对应返回期约
 
     def 订阅(自身,过滤=None):
         '订阅服务端通知'
@@ -256,25 +275,22 @@ class 装备客户端:
         return 自身.订阅(过滤)#过滤后的订阅
 
     def 关闭(自身):
-        '先协议 shutdown，再走拆除阶梯。幂等。同步返回'
+        '先协议 shutdown，再走拆除阶梯。幂等，返回期约，兑现于完整拆除结束，拆除阶梯失败则拒绝'
         if 自身.关闭任务 is None:#首次调用才真正关闭
-            自身._执行关闭()#实际关闭
-            自身.关闭任务=True#记忆已关
-        return#无返回值
+            自身.关闭任务=自身._执行关闭()#实际关闭并记忆期约，后续调用共用
+        return 自身.关闭任务#后续调用共用同一个期约
 
     def _执行关闭(自身):
-        '完整拆除'
+        '完整拆除，返回期约。shutdown 请求无论成败都接着走拆除阶梯'
         子=自身.子进程#取出子进程
         if 子 is None:#从未 start
-            return#无事可做
+            无事可做=期约()#没有进程可拆
+            无事可做.解决(None)#直接以已解决交出
+            return 无事可做#无事可做
         if 'shutdownTimeoutMs' in 自身.选项 and 自身.选项['shutdownTimeoutMs'] is not None:#调用方给了宽限
             关超时=自身.选项['shutdownTimeoutMs']#用选项
         else:#缺席
             关超时=1000#默认 1 秒
-        try:
-            自身.请求('shutdown',None,关超时)#先尽量走协议 shutdown
-        except BaseException as 错误:
-            自身.标准错误尾.append('shutdown 请求失败：'+错误消息(错误))#写入 stderr 尾部
         if 'disposeEofGraceMs' in 自身.选项 and 自身.选项['disposeEofGraceMs'] is not None:#EOF 宽限
             eof宽限=自身.选项['disposeEofGraceMs']#用选项
         else:#缺席
@@ -283,13 +299,19 @@ class 装备客户端:
             杀宽限=自身.选项['disposeGraceMs']#用选项
         else:#缺席
             杀宽限=3000#默认 3 秒
-        拆除运行时进程(子,{#走 EOF → SIGTERM → SIGKILL
-            'disposeEofGraceMs':eof宽限,#EOF 宽限
-            'disposeGraceMs':杀宽限,#SIGTERM 宽限
-        })#拆除阶梯结束
-        if 自身.传输 is not None:#有传输
-            自身.传输.关闭()#关掉传输
-        自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已关闭'))#让剩余订阅失败
+        def 记录关机失败(错误):
+            'shutdown 请求只作诊断，失败也要继续拆除，所以写进 stderr 尾部后视为已处理'
+            自身.标准错误尾.append(f'shutdown 请求失败：{错误消息(错误)}')#写入 stderr 尾部
+        def 走拆除阶梯(落定值):
+            'shutdown 请求落定后，走 EOF → SIGTERM → SIGKILL，再关传输并让剩余订阅失败'
+            拆除运行时进程(子,{#走 EOF → SIGTERM → SIGKILL
+                'disposeEofGraceMs':eof宽限,#EOF 宽限
+                'disposeGraceMs':杀宽限,#SIGTERM 宽限
+            })#拆除阶梯结束
+            if 自身.传输 is not None:#有传输
+                自身.传输.关闭()#关掉传输
+            自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已关闭'))#让剩余订阅失败
+        return 自身.请求('shutdown',None,关超时).捕获(记录关机失败).然后(走拆除阶梯)#先尽量走协议 shutdown，失败只记诊断
 
     def _派发通知(自身,通知):
         '先记下子智能体系谱'
@@ -333,13 +355,15 @@ class 装备客户端:
             订阅.失败(错误)
 
     def _落定流(自身):
-        '落定或超时先到先得'
-        截止=time.time()+流落定毫秒/1000.0#截止
-        while time.time()<截止:#未超时
-            if 自身.流落定.已完成():#已落定
-                break#停
-            time.sleep(0.01)#小睡
-        return
+        '返回期约：流落定与流落定毫秒的超时谁先到谁先兑现'
+        def 超时执行器(解决,拒绝):
+            '流落定毫秒之后解决，作为竞速的另一边'
+            def 到期():
+                '睡满流落定毫秒后解决'
+                time.sleep(流落定毫秒/1000.0)#等待
+                解决(None)#超时一侧兑现
+            启动守护线程(到期)#定时
+        return 期约.竞速([自身.流落定,期约(超时执行器)])#谁先结算就跟谁
 
     def _关闭错误(自身,原因):
         '多段用换行拼'

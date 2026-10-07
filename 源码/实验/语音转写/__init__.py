@@ -1,7 +1,8 @@
 import threading
+from ...基础设施.js特性 import PromiseEX as 期约#转写、移除与拆除的异步结果
 from ...依赖.cordis.服务 import 服务
 from ...依赖.schemastery import 字符串字段,字典字段
-from ...工具.超时 import 中止控制器,合成信号,若已中止则抛出,已中止,等待中止
+from ...工具.超时 import 等待中止
 from .类型 import 语音提供方标识
 from . import (
     波形,
@@ -42,12 +43,13 @@ class 语音转写(服务):
         上下文.监听('loader/volatile-update',自身.已变)
         def 拆服务():
             '中止寿命并卸掉全部注册'
-            def 拆():
-                'join 已接收工作'
-                自身.寿命.中止(RuntimeError('Speech service disposed'))
-                for 注册 in list(自身.提供方表.values()):
-                    自身.移除(注册)
+            def 清监听者(移除值):
+                '全部注册移除后清空监听者'
                 自身.监听者.clear()
+            def 拆():
+                '中止寿命并等已接收工作结清。返回期约'
+                自身.寿命.中止(RuntimeError('Speech service disposed'))
+                return 期约.全部([自身.移除(注册) for 注册 in list(自身.提供方表.values())]).然后(清监听者)
             return 拆
         上下文.副作用(拆服务)
 
@@ -75,21 +77,22 @@ class 语音转写(服务):
         自身.提供方表[标识]=注册
         自身.已变()
         def 卸():
-            '拒绝新请求并 join 已接收工作'
-            自身.移除(注册)
+            '拒绝新请求并等已接收工作结清。返回期约'
+            return 自身.移除(注册)
         return 卸
 
     def 移除(自身,注册):
-        '幂等卸掉一条注册'
+        '幂等卸掉一条注册。返回期约，已接收工作全部结算后兑现'
         信息=注册['provider']['info']
-        if 自身.提供方表.get(信息['id']) is not 注册:
-            return
+        if 自身.提供方表.get(信息['id']) is not 注册:#已被卸掉
+            已卸结果=期约()#无事可等
+            已卸结果.解决(None)#视为已完成
+            return 已卸结果
         del 自身.提供方表[信息['id']]
         注册['unsubscribe']()
         自身.已变()
         注册['lifetime'].中止(RuntimeError('Speech provider unloaded'))
-        for 完成 in list(注册['pending']):
-            完成.wait()
+        return 期约.全部已结算(list(注册['pending']))#等已接收的转写结算
 
     def 列出提供方(自身):
         '按登记顺序给出公开事实'
@@ -158,7 +161,7 @@ class 语音转写(服务):
             更新['defaultProvider']=补丁['providerId']
         if 'language' in 补丁 and 补丁['language'] is not None:
             更新['language']=补丁['language']
-        设置.update(条目,更新)
+        return 设置.update(条目,更新)#返回期约，写入与随后的实时更新完成后兑现
 
     def 选定提供方(自身,标识,语言):
         '缺失或不支持语言则明确失败'
@@ -179,13 +182,16 @@ class 语音转写(服务):
             准备['prepare'](选项)
 
     def 取消准备(自身,标识):
-        '显式取消准备'
+        '显式取消准备。返回期约，准备任务结清后兑现'
         注册=自身.提供方表.get(标识)
         if 注册 is None:
             raise RuntimeError('Speech provider is unavailable: '+str(标识))
         准备=注册['provider'].get('preparation')
         if 准备 is not None:
-            准备['cancel']()
+            return 准备['cancel']()
+        无准备结果=期约()#提供方没有准备任务
+        无准备结果.解决(None)#视为已完成
+        return 无准备结果
 
     def 解析(自身,请求):
         '套组合默认并钉死已登记提供方'
@@ -206,16 +212,22 @@ class 语音转写(服务):
         if 注册 is None or 注册['provider'] is not 提供方:
             raise RuntimeError('Resolved speech provider is no longer registered')
         合并=合成信号(信号,注册['lifetime'].信号)
-        完成=threading.Event()
-        注册['pending'].add(完成)
-        try:
+        启动=期约()#转写在登记在途之后才开始
+        def 调用提供方(启动值):#开始转写
+            '确认未中止后交给提供方；同步抛出也转成拒绝'
             若已中止则抛出(合并)
-            结果=提供方['transcribe']({'audio':规格['audio'],'language':规格['language']},合并)
+            return 提供方['transcribe']({'audio':规格['audio'],'language':规格['language']},合并)
+        在途=启动.然后(调用提供方)#提供方转写
+        注册['pending'].add(在途)#卸载时要等它结算
+        启动.解决(None)#在途已登记，开始转写
+        def 校验未中止(结果):#转写完成
+            '转写完成后若已取消，按取消处理'
             若已中止则抛出(合并)
             return 结果
-        finally:
-            完成.set()
-            注册['pending'].discard(完成)
+        def 摘除在途():#结算后
+            '结算后不再等待它'
+            注册['pending'].discard(在途)
+        return 在途.然后(校验未中止).最终(摘除在途)#无论成败都摘除
 
 def 应用(上下文,配置值=None):
     '挂上语音转写服务'

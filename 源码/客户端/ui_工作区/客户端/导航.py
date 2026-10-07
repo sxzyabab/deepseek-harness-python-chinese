@@ -1,4 +1,5 @@
 import re,threading
+from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 启动守护线程
 from datetime import datetime as 日期时间,timedelta as 时间增量,timezone as 固定时区
 from zoneinfo import ZoneInfo as 时区信息
@@ -91,7 +92,7 @@ class 工作区UI服务:#跨控制器导航与目录
         if 工作区 is None:#未知
             raise 工作区错误('未知工作区 '+str(工作区标识))
         if 工作区标识 in 自身.connecting:#飞行中
-            return 自身.connecting[工作区标识].等待()#共享
+            return 自身.connecting[工作区标识]#共享期约
         已归档=快['archivedSessionIds']#已归档
         会话快=自身.sessions.list.getSnapshot()#会话
         for 标识 in 会话快['ids']:#找可复用
@@ -99,32 +100,52 @@ class 工作区UI服务:#跨控制器导航与目录
             if (摘要 is not None and 摘要['blank'] and 摘要['cwd']==工作区['path']
                 and 摘要['id'] in 工作区['sessionIds']
                 and 摘要['id'] not in 已归档):#可复用
-                return 摘要['id']#复用
-        任务=自身.sessions.create({'workspaceId':工作区标识})#创建
+                复用=期约()#复用已有空白会话
+                复用.解决(摘要['id'])
+                return 复用
+        任务=自身.sessions.create({'workspaceId':工作区标识})#创建，返回期约，解决值是会话 id
         自身.connecting[工作区标识]=任务#记下
-        try:#等待
-            return 任务.等待()#会话 id
-        finally:#清
+        def 清记录(创建结果=None):
+            '创建落定后清掉飞行中记录'
             自身.connecting.pop(工作区标识,None)#删
+        任务.然后(清记录,清记录)#成败都清
+        return 任务
 
     def openSession(自身,目标):
         '选中会话目标并显示对话'
         自身.替换主视图(目标,自身.lifetime)#替换
 
     def openWorkspace(自身,工作区标识,打开前=None):
-        '连接并打开；可被后续导航取代'
+        '连接并打开；可被后续导航取代。返回期约，打开完成或被取代后解决'
         导航=自身.ctx.layout.beginNavigation()#导航中止 Event
-        会话标识=自身.connectWorkspace(工作区标识)#连接
-        if 导航.is_set() or 自身.lifetime.is_set():#被取代
-            return#止
-        自身.替换主视图(会话标识,导航,打开前)#替换
+        打开结果=期约()#本次打开的结算点
+        def 已连接(会话标识):
+            '连接到会话：被取代则止，否则替换主视图'
+            try:
+                if not (导航.is_set() or 自身.lifetime.is_set()):#未被取代
+                    自身.替换主视图(会话标识,导航,打开前)#替换
+            except BaseException as 错误:#替换失败交给调用方
+                打开结果.拒绝(错误)
+                return
+            打开结果.解决()
+        自身.connectWorkspace(工作区标识).然后(已连接,打开结果.拒绝)#连接
+        return 打开结果
 
     def forkSession(自身,会话标识):
-        '分叉并打开子会话'
+        '分叉并打开子会话。返回期约，打开完成后解决'
         导航=自身.ctx.layout.beginNavigation()#导航中止
-        子标识=自身.sessions.fork({'sessionId':会话标识,'increaseTitle':True}).等待()#分叉
-        if not 导航.is_set() and not 自身.lifetime.is_set():#仍当前
-            自身.替换主视图(子标识,导航)#打开
+        分叉结果=期约()#本次分叉的结算点
+        def 已分叉(子标识):
+            '分叉完成：仍当前则打开'
+            try:
+                if not 导航.is_set() and not 自身.lifetime.is_set():#仍当前
+                    自身.替换主视图(子标识,导航)#打开
+            except BaseException as 错误:#打开失败交给调用方
+                分叉结果.拒绝(错误)
+                return
+            分叉结果.解决()
+        自身.sessions.fork({'sessionId':会话标识,'increaseTitle':True}).然后(已分叉,分叉结果.拒绝)#分叉
+        return 分叉结果
 
     def startSession(自身,工作区标识=None):
         '新建会话流'
@@ -142,41 +163,68 @@ class 工作区UI服务:#跨控制器导航与目录
         if 目标 is None:#无
             自身.清主视图()#清
             return#止
-        try:#打开
-            自身.openWorkspace(目标)#打开
-        except Exception as 原因:
+        def 报告新建失败(原因):
+            '新建会话失败只打印，不打断调用方'
             print('新建会话失败:',原因)
+        try:#打开
+            自身.openWorkspace(目标).捕获(报告新建失败)#打开
+        except Exception as 原因:#同步段失败
+            报告新建失败(原因)
 
     def archiveSession(自身,会话标识):
-        '归档会话；若为当前则清选中'
-        自身.workspaces.archiveSession(会话标识).等待()#归档
-        if 自身.mainReference is not None and 自身.mainReference.sessionId==会话标识:#当前
-            自身.清主视图()#清
+        '归档会话；若为当前则清选中。返回期约，完成后解决'
+        归档结果=期约()#本次归档的结算点
+        def 已归档(远程结果=None):
+            '归档完成：是当前则清选中'
+            try:
+                if 自身.mainReference is not None and 自身.mainReference.sessionId==会话标识:#当前
+                    自身.清主视图()#清
+            except BaseException as 错误:#清选中失败交给调用方
+                归档结果.拒绝(错误)
+                return
+            归档结果.解决()
+        自身.workspaces.archiveSession(会话标识).然后(已归档,归档结果.拒绝)#归档
+        return 归档结果
 
     def unarchiveSession(自身,会话标识):
-        '解除归档，恢复到记录的工作区位置'
-        自身.workspaces.unarchiveSession(会话标识).等待()#等
+        '解除归档，恢复到记录的工作区位置。返回期约，完成后解决'
+        return 自身.workspaces.unarchiveSession(会话标识)#远程期约
 
     def pickDirectory(自身):
-        '打开宿主目录选择器'
-        结果=自身.directoryPicker.pick().等待()#选
-        if not 结果['ok']:#失败
-            raise 工作区错误('目录选择失败: '+str(结果['error']['message']))
-        return 结果['value']#路径或 None
+        '打开宿主目录选择器。返回期约，解决值是路径或 None'
+        选择结果=期约()#本次选择的结算点
+        def 已选(结果):
+            '选择返回：失败则拒绝为工作区错误'
+            if not 结果['ok']:#失败
+                选择结果.拒绝(工作区错误('目录选择失败: '+str(结果['error']['message'])))
+                return
+            选择结果.解决(结果['value'])#路径或 None
+        自身.directoryPicker.pick().然后(已选,选择结果.拒绝)#选
+        return 选择结果
 
     def listDirectory(自身,路径=None,信号=None):
-        '列一级目录'
-        结果=自身.directoryPicker.list(路径,信号).等待()#列
-        if not 结果['ok']:#失败
-            raise 目录浏览错误(结果['error'])#抛
-        return 结果['value']#列表
+        '列一级目录。返回期约，解决值是列表'
+        列出结果=期约()#本次列出的结算点
+        def 已列出(结果):
+            '列出返回：失败则拒绝为目录浏览错误'
+            if not 结果['ok']:#失败
+                列出结果.拒绝(目录浏览错误(结果['error']))#抛
+                return
+            列出结果.解决(结果['value'])#列表
+        自身.directoryPicker.list(路径,信号).然后(已列出,列出结果.拒绝)#列
+        return 列出结果
 
     def createDirectory(自身,路径,名):
-        '建子目录'
-        结果=自身.directoryPicker.createDirectory(路径,名).等待()#建
-        if not 结果['ok']:#失败
-            raise 目录浏览错误(结果['error'])#抛
-        return 结果['value']#绝对路径
+        '建子目录。返回期约，解决值是绝对路径'
+        创建结果=期约()#本次创建的结算点
+        def 已创建(结果):
+            '创建返回：失败则拒绝为目录浏览错误'
+            if not 结果['ok']:#失败
+                创建结果.拒绝(目录浏览错误(结果['error']))#抛
+                return
+            创建结果.解决(结果['value'])#绝对路径
+        自身.directoryPicker.createDirectory(路径,名).然后(已创建,创建结果.拒绝)#建
+        return 创建结果
 
     def 监视导航(自身):
         '初始选中与归档当前清理'

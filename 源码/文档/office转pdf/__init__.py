@@ -3,7 +3,6 @@ import base64,json,os,shutil,tempfile,threading,uuid
 from ...依赖.schemastery import 正整数字段,自然数字段,字符串字段,列表字段
 from ...依赖.libreoffice_kit import 创建转换器
 from ...依赖.工具 import 聚合错误
-from ...工具.超时 import 中止控制器,已中止,若已中止则抛出,合成信号
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from ...api.工作区文件.异常 import 远程错误
 from .异常 import office转pdf错误

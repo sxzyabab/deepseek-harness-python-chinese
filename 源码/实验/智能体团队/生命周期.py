@@ -1,4 +1,5 @@
-from threading import Event as 同步事件,Thread as 线程
+from threading import Event as 同步事件,Thread as 线程,Timer as 定时器
+from ...基础设施.js特性 import PromiseEX as 期约#结算与有界等待的异步结果
 from .异常 import 团队错误
 
 __all__=['团队运行时生命周期','已中止','若已中止则抛出','合成中止']
@@ -34,26 +35,6 @@ def 合成中止(*信号列表):
         线程(target=等待源置位,args=(源,),daemon=True).start()
     return 融合
 
-def 等待飞行条目列表(条目列表):
-    '线程扇出等待各飞行条目，收集 fulfilled 与 rejected'
-    结局列表=[None]*len(条目列表)
-    def 等待一路写入(下标,条目):
-        '等待一路写入槽'
-        条目['完成'].wait()
-        错误=条目['错误']
-        if 错误 is not None:
-            结局列表[下标]={'status':'rejected','reason':错误}
-        else:
-            结局列表[下标]={'status':'fulfilled'}
-    线程表=[]
-    for 下标,条目 in enumerate(条目列表):
-        工作=线程(target=等待一路写入,args=(下标,条目),daemon=True)
-        工作.start()
-        线程表.append(工作)
-    for 工作 in 线程表:
-        工作.join()
-    return 结局列表
-
 class 团队运行时生命周期:
     '拥有唯一的 Team 运行时取消事实与拆除超时'
     def __init__(自身,拆除超时毫秒):
@@ -88,39 +69,29 @@ class 团队运行时生命周期:
         '关闭 Team 运行时准入并取消已准入的可中断工作'
         自身._事件.set()
 
-    def 结算(自身,条目列表,失败列表):
-        '等待已准入飞行，并保留除运行时取消以外的失败'
-        if len(条目列表)==0:
-            return
-        def 收集():
-            '并发结算全部飞行条目'
-            return 等待飞行条目列表(条目列表)
-        try:
-            结局列表=自身.有界等待(收集)
-            for 结局 in 结局列表:
-                if 结局['status']=='rejected' and not 自身._是否取消(结局['reason']):
-                    失败列表.append(结局['reason'])
-        except 团队错误 as 错误:
-            失败列表.append(错误)
+    def 结算(自身,操作列表,失败列表):
+        '等待已准入操作，并保留除运行时取消以外的失败。操作列表是期约列表；返回期约，失败追加到失败列表'
+        if len(操作列表)==0:#没有已准入操作
+            无操作结果=期约()#无事可等
+            无操作结果.解决(None)#视为已结算
+            return 无操作结果
+        def 收集失败(结算表):#全部结算后
+            '收集各操作的失败；运行时取消不算失败'
+            for 操作 in 操作列表:#逐个操作
+                if 操作.状态=='rejected' and not 自身._是否取消(操作.数据):#被拒且不是运行时取消
+                    失败列表.append(操作.数据)#记下失败原因
+        def 记录等待失败(错误):#等待超时或收集出错
+            '等待本身失败也计入失败列表'
+            失败列表.append(错误)#记下
+        return 自身.有界等待(期约.全部已结算(操作列表)).然后(收集失败).捕获(记录等待失败)#全部结算后统一收集
 
-    def 有界等待(自身,动作):
-        '为一次运行时结算动作设界；动作是无参可调用'
-        完成=同步事件()
-        盒={'值':None,'错误':None}
-        def 执行并结算():
-            '执行动作并写入结果盒'
-            try:
-                盒['值']=动作()
-            except Exception as 错误:#拆除动作体什么都可能抛，契约未定所以收不窄
-                盒['错误']=错误
-            finally:
-                完成.set()
-        线程(target=执行并结算,daemon=True).start()
-        if not 完成.wait(自身._拆除超时毫秒/1000):
-            raise 团队错误(
-                'Agent Teams runtime disposal exceeded '+str(自身._拆除超时毫秒)+'ms',
-                'TEAM_DISPOSAL_TIMEOUT',
-            )
-        if 盒['错误'] is not None:
-            raise 盒['错误']
-        return 盒['值']
+    def 有界等待(自身,操作):
+        '为一次运行时结算操作设界；操作是期约。返回期约，超过拆除超时则拒绝'
+        超时=期约()#超时到期时拒绝
+        def 到期():#计时到期
+            '拒绝超时'
+            超时.拒绝(团队错误(f'Agent Teams 运行时拆除超过 {自身._拆除超时毫秒}ms','TEAM_DISPOSAL_TIMEOUT'))#超时错误
+        计时=定时器(自身._拆除超时毫秒/1000,到期)#拆除超时计时器
+        计时.daemon=True#不阻止进程退出
+        计时.start()#开始计时
+        return 期约.竞速([操作,超时]).最终(计时.cancel)#无论谁先结算都撤销计时

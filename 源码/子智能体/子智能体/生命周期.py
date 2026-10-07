@@ -1,4 +1,4 @@
-import uuid,threading#随机uuid与后台观察
+import uuid#随机uuid
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...内核.智能体 import 折叠已消费工作#导入已消费工作折叠
 from .助手输出 import 最终助手输出#导入最终助手输出选取
@@ -30,14 +30,14 @@ def 创建生命周期发出(上下文,载体):
     return 发出#生命周期发出
 
 def 观察运行(发出,提供方,父,跑):
-    '为一次被接受的一次性跑发出 start/end 生命周期对。返回同一跑，未改动。跑为对象，result 为操作任务'
+    '为一次被接受的一次性跑发出 start/end 生命周期对。返回同一跑，未改动。跑为对象，result 为期约'
     身份={#共享身份
         'runId':子智能体运行标识(str(uuid.uuid4())),#铸造跑id
         'provider':提供方,#提供方名
         'id':跑.id,#子会话id
         'local':跑.localAgent is not None,#是否进程内
     }#identity结束
-    结果=跑.result#结果任务
+    结果=跑.result#结果期约
     def 成功(结果值):
         '成功决议后发 end。结果值为 dict'
         载荷=dict(身份)#共享身份
@@ -46,20 +46,14 @@ def 观察运行(发出,提供方,父,跑):
         if 输出 is not None and len(输出)>0:#有输出才带上
             载荷['lastAssistantMessage']=输出#带上
         发出('subagent/end',载荷,父)#终态边
-    def 失败():
+    def 失败(错误):
         '基础设施拒绝后发 error 终态'
         载荷=dict(身份)#共享身份
         载荷['stopReason']='error'#错误终态
         发出('subagent/end',载荷,父)#终态边
-    def 观察():
-        '终态观察在同步 start 发射之后跑，保持 start → end'
-        try:
-            成功(结果.等待())#等待后成功
-        except BaseException:
-            失败()#基础设施拒绝
-    if 结果 is not None:#有结果任务
-        threading.Thread(target=观察,daemon=True).start()#挂观察
     发出('subagent/start',身份,父)#发布start
+    if 结果 is not None:#有结果期约
+        结果.然后(成功,失败)#挂在 start 之后，保持 start → end
     return 跑#原跑
 
 def 纪元停止原因(事件列表):

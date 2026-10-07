@@ -1,6 +1,5 @@
-import threading#后台结算线程
-from ...基础设施.通用工具.并发原语 import 操作任务
-from ...基础设施.通用工具.线程工具 import 启动守护线程
+import threading#取消通道的 Event
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...依赖.cordis import 聚合错误#多失败聚合
 from ...依赖.schemastery import 字符串字段,布尔字段,整数字段,列表字段,复合类型字段,常量字段,枚举字段,字典字段,自然数字段#配置字段
 from ...内核.工具 import 定义工具#导入工具定义
@@ -75,13 +74,6 @@ def 已中止(信号):
         return False#未中止
     return 信号._事件.is_set()#Event 置位
 
-def 单路结算(动作):
-    '等一路落定并收成 fulfilled/rejected 观察'
-    try:#等待成功
-        return {'status':'fulfilled','value':动作()}#兑现观察
-    except BaseException as 错误:#失败
-        return {'status':'rejected','reason':错误}#拒绝观察
-
 def 输出值文本(值列表):
     '从权威JSON块数组渲染文本块，不信任任意值。块为 dict'
     文本列表=[]#收集文本
@@ -95,18 +87,15 @@ def 输出值文本(值列表):
     return ''.join(文本列表)#拼接
 
 def 结算启动(启动,信号):
-    '结算尚未完成的启动，且不破坏任务生产者约定。启动为跑对象'
-    结局任务=操作任务()#任务done
-    def 监视结算():
-        '把启动收成任务结局'
-        try:#正常结算
-            结局任务.兑现(结算运行(启动))#先得到运行再结算
-        except BaseException as 错误:#启动失败
-            if 已中止(信号) and not isinstance(错误,聚合错误):#中止且非聚合失败才记为killed
-                结局任务.兑现({'status':'killed'})#中止结局
-            else:#否则失败并带细节
-                结局任务.兑现({'status':'failed','detail':str(错误)})#失败结局
-    启动守护线程(监视结算)#后台结算线程
+    '结算尚未完成的启动，且不破坏任务生产者约定：返回的期约只兑现任务结局，不拒绝。启动为跑对象'
+    结局任务=期约()#任务done
+    def 启动失败(错误):
+        '结算本身拒绝时把失败收成任务结局'
+        if 已中止(信号) and not isinstance(错误,聚合错误):#中止且非聚合失败才记为killed
+            结局任务.解决({'status':'killed'})#中止结局
+        else:#否则失败并带细节
+            结局任务.解决({'status':'failed','detail':str(错误)})#失败结局
+    结算运行(启动).然后(结局任务.解决,启动失败)#运行结算后兑现任务结局
     return 结局任务#交给任务收集器
 
 def 停止原因错误(结果):
@@ -143,30 +132,38 @@ def 附带诊断与部分文本(错误,结果):
     return 错误+诊断+部分#标题、诊断与部分文本
 
 def 结算前台运行(运行):
-    '收集并释放一次前台运行，不让拆除替换一次独立的结果失败。运行为对象'
-    def 映射结果():
-        '把子结果收成前台成功值或抛错'
-        结果=运行.result.等待()#等待结果
+    '返回期约：收集并释放一次前台运行，不让拆除替换一次独立的结果失败。运行为对象'
+    最终结果=期约()#前台成功值或失败，由下面的回调结算
+    def 释放运行(执行值,执行错误):
+        '结果落定后销毁运行，再按结果与拆除的成败汇总。执行错误为 None 表示结果干净完成'
+        def 拆除成功(拆除结果):
+            '拆除成功则按结果结算'
+            if 执行错误 is None:#结果干净完成
+                最终结果.解决(执行值)#兑现前台成功值
+            else:#只有结果失败
+                最终结果.拒绝(执行错误)#拒绝结果失败
+        def 拆除失败(拆除错误):
+            '拆除失败时与结果失败合并'
+            if 执行错误 is None:#完成后拆除失败仍报错
+                最终结果.拒绝(拆除错误)#拒绝拆除失败
+            else:#两条诊断都保留
+                最终结果.拒绝(聚合错误(#结果失败与拆除失败
+                    [执行错误,拆除错误],#两条失败
+                    'subagent run failed: '+str(执行错误)+'; dispose failed: '+str(拆除错误),#聚合文案
+                ))#结束
+        运行.销毁().然后(拆除成功,拆除失败)#无论结果如何都销毁
+    def 结果已兑现(结果):
+        '把子结果收成前台成功值或失败'
         错误=停止原因错误(结果)#非完成则得到错误文案
         if 错误 is not None:#非干净完成
-            raise 子智能体错误(附带诊断与部分文本(错误,结果),'RUN_FAILED')#带诊断与部分文本的错误
-        return {#干净完成
-            'kind':'foreground',#前台
-            'runId':运行.id,#运行id
-            'output':结果['output'],#快照为JSON值
-        }#成功值结束
-    执行=单路结算(映射结果)#先等结果，失败也收下
-    拆除=单路结算(运行.销毁)#无论结果如何都销毁
-    if 执行['status']=='rejected':#结果失败
-        if 拆除['status']=='rejected':#拆除也失败
-            raise 聚合错误(#两条诊断都保留
-                [执行['reason'],拆除['reason']],#结果失败与拆除失败
-                'subagent run failed: '+str(执行['reason'])+'; dispose failed: '+str(拆除['reason']),#聚合文案
-            )#结束
-        raise 执行['reason']#只抛结果失败
-    if 拆除['status']=='rejected':#完成后拆除失败仍报错
-        raise 拆除['reason']#抛拆除失败
-    return 执行['value']#返回前台成功值
+            释放运行(None,子智能体错误(附带诊断与部分文本(错误,结果),'RUN_FAILED'))#带诊断与部分文本的错误
+        else:#干净完成
+            释放运行({'kind':'foreground','runId':运行.id,'output':结果['output']},None)#快照为JSON值
+    def 结果已拒绝(错误):
+        '子结果拒绝则作为独立的结果失败'
+        释放运行(None,错误)#结果失败
+    运行.result.然后(结果已兑现,结果已拒绝)#先等结果，失败也收下
+    return 最终结果#交给调用方继续链式
 
 def 提供方措辞(继承会话):
     '由提供方的会话历史描述符得到面向模型的措辞'
@@ -317,8 +314,12 @@ def 应用(上下文,配置值,会话=None):
                     }#规格
                     if 'signal' in 执行元数据:#有信号
                         可续跑请求['signal']=执行元数据['signal']#写入
-                    已启动=上下文.subagents.启动可续跑(可续跑请求)#启动
-                    return {'kind':'continuable','subagentId':已启动['childId']}#立刻返回子体id
+                    续跑结果=期约()#续跑结果
+                    def 初始提示已接受(已启动):
+                        '收件箱接受初始提示后兑现子体id'
+                        续跑结果.解决({'kind':'continuable','subagentId':已启动['childId']})#返回子体id
+                    上下文.subagents.启动可续跑(可续跑请求).然后(初始提示已接受,续跑结果.拒绝)#启动
+                    return 续跑结果#接受后再返回
                 任务服务=上下文.获取服务('jobs')#取任务运行时
                 if 任务服务 is None:#未装任务能力
                     raise 子智能体错误('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs','JOBS_UNAVAILABLE')#缺任务运行时
@@ -341,7 +342,9 @@ def 应用(上下文,配置值,会话=None):
                     'owner':父,#父智能体
                     'run':任务体,#任务体
                 })#jobs.启动结束
-                return {'kind':'background','jobId':编号}#立刻返回任务id
+                后台结果=期约()#后台启动结果
+                后台结果.解决({'kind':'background','jobId':编号})#立刻返回任务id
+                return 后台结果#已兑现
             前台请求=dict(请求)#复制
             if 'signal' in 执行元数据:#有信号
                 前台请求['signal']=执行元数据['signal']#写入

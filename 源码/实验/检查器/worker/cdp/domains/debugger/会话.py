@@ -1,4 +1,4 @@
-from .....共享.json import 在线程执行#后台跑
+from .......基础设施.js特性 import PromiseEX as 期约扩展#后端方法的期约组合
 from .....异常 import 检查器错误#包内错误
 from .....共享.校验 import 精确键,可选布尔#校验
 from ...协议 import 响应cdp请求,发送cdp失败#协议
@@ -92,68 +92,68 @@ class Debugger域会话:#Debugger域会话
         自身.运行时.释放投影组('backtrace')#释回溯组
 
     def _启用(自身,参数):#启用
-        'Debugger.enable'
+        'Debugger.enable，返回期约；失败则回滚并以原错误拒绝'
         精确键(参数,['maxScriptsCacheSize'],'Debugger.enable 参数')#键
         if 自身._已启用:#已启用
-            return {}#空
+            已启用=期约扩展()#已启用时返回空结果的期约
+            已启用.解决({})#空
+            return 已启用#返回已解决的期约
         缓存=参数.get('maxScriptsCacheSize')#缓存大小
         if 缓存 is not None and (not isinstance(缓存,(int,float)) or isinstance(缓存,bool) or not (缓存==缓存) or 缓存<0):#非法
             raise 检查器错误('Debugger.enable 的 maxScriptsCacheSize 必须是非负数')#抛错
         启用请求={} if 缓存 is None else {'maxScriptsCacheSize':缓存}#启用请求
         自身._启用请求=启用请求#保存
         自身._已启用=True#置位
-        try:#启用各realm
-            for 领域 in 自身.realms.全部():#附着
-                自身._附着能力(领域)#附着能力
-            结果列表=[]#结果
-            for 领域 in 自身.realms.全部():#逐个启用
-                调试=_能力(领域.debugger)#能力
-                结果列表.append(调试['backend'].启用(启用请求) if 调试['state']=='supported' else {})#启用或空
-            for 领域 in 自身.realms.全部():#发布目录
-                自身._发布目录(领域)#发布
-            return 合并结果(结果列表)#合并结果
-        except Exception:#后端.启用可能抛检查器错误/连接错误，契约未定所以收不窄
+        def 回滚(错误):#启用失败后调用
+            '撤销启用并尽力禁用各 realm，禁用结算后再以原错误拒绝'
             自身._已启用=False#清位
             自身._启用请求={}#清空请求
             自身._卸能力()#卸能力
             自身._脚本.清空()#清脚本
-            for 领域 in 自身.realms.全部():#尽力禁用
-                调试=_能力(领域.debugger)#能力
-                if 调试['state']=='supported':#支持
-                    try:#禁用
-                        调试['backend'].禁用()#禁用
-                    except Exception:#回滚路径上 backend.禁用同样什么都可能抛，契约未定所以收不窄
-                        pass#忽略
-            raise#再抛
+            def 重新抛出(禁用结果列表):#各 realm 禁用结算后调用
+                '把启用失败的原错误交还调用方'
+                raise 错误#再抛
+            return 期约扩展.全部已结算([_能力(领域.debugger)['backend'].禁用() for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']).然后(重新抛出)#尽力禁用
+        def 发布全部目录(启用结果列表):#全部 realm 启用后调用
+            '发布各 realm 目录，完成后合并启用结果'
+            def 合并启用结果(目录结果列表):#各目录发布后调用
+                '合并各 realm 的启用结果'
+                return 合并结果(启用结果列表)#合并结果
+            return 期约扩展.全部([自身._发布目录(领域) for 领域 in 自身.realms.全部()]).然后(合并启用结果)#各目录发布后再合并
+        try:#附着各realm
+            for 领域 in 自身.realms.全部():#附着
+                自身._附着能力(领域)#附着能力
+        except Exception as 错误:#附着源与调试订阅可能抛检查器错误，契约未定所以收不窄
+            return 回滚(错误)#附着失败同样回滚
+        return 期约扩展.全部([_能力(领域.debugger)['backend'].启用(启用请求) for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']).然后(发布全部目录).捕获(回滚)#全部启用后再发布目录，失败则回滚
 
     def _禁用(自身):#禁用
-        'Debugger.disable'
+        'Debugger.disable，返回期约'
         自身._已启用=False#清位
         自身._启用请求={}#清空
         自身._卸能力()#卸能力
         自身._调用帧realms.clear()#清帧
         自身._脚本.清空()#清脚本
         自身.运行时.释放投影组('backtrace')#释回溯
-        结果列表=[]#结果
-        for 领域 in 自身.realms.全部():#逐个禁用
-            调试=_能力(领域.debugger)#能力
-            结果列表.append(调试['backend'].禁用() if 调试['state']=='supported' else {})#禁用或空
-        return 合并结果(结果列表)#合并
+        return 期约扩展.全部([_能力(领域.debugger)['backend'].禁用() for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']).然后(合并结果)#全部禁用后合并
 
     def _取脚本来源(自身,参数):#取脚本来源
-        'Debugger.getScriptSource'
+        'Debugger.getScriptSource，返回期约'
         精确键(参数,['scriptId'],'Debugger.getScriptSource 参数')#键
         if not isinstance(参数.get('scriptId'),str):#类型
             raise 检查器错误('Debugger.getScriptSource 需要 scriptId')#抛错
         路由=自身._脚本.解析(参数['scriptId'])#路由
         if 路由 is not None:#本地
-            return {'scriptSource':路由['source'].取脚本来源(路由['script']['scriptKey'])}#本地
+            def 包装源(源):#源读完后调用
+                '包装成 CDP 结果'
+                return {'scriptSource':源}#本地
+            return 路由['source'].取脚本来源(路由['script']['scriptKey']).然后(包装源)#读完再包装
         if 自身._脚本.曾不支持(参数['scriptId']) or 参数['scriptId'].startswith('client:'):#Client失效
             raise 检查器错误('Client 脚本已不可用')#抛错
         return 自身._原生.请求('Debugger.getScriptSource',参数)#原生
 
     def _内容搜索(自身,参数):#内容搜索
-        'Debugger.searchInContent'
+        'Debugger.searchInContent，返回期约'
         精确键(参数,['scriptId','query','caseSensitive','isRegex'],'Debugger.searchInContent 参数')#键
         if not isinstance(参数.get('scriptId'),str) or not isinstance(参数.get('query'),str):#缺必填
             raise 检查器错误('Debugger.searchInContent 需要 scriptId 和 query')#抛错
@@ -165,12 +165,14 @@ class Debugger域会话:#Debugger域会话
         if 路由 is None:#无本地
             if 自身._脚本.曾不支持(参数['scriptId']) or 参数['scriptId'].startswith('client:'):#Client失效
                 raise 检查器错误('Client 脚本已不可用')#抛错
-            return 自身._原生.请求('Debugger.searchInContent',参数)#原生已同步
-        源=路由['source'].取脚本来源(路由['script']['scriptKey'])#取源已同步
-        return {'result':按行搜索(源,参数['query'],参数.get('caseSensitive') is True,参数.get('isRegex') is True)}#结果
+            return 自身._原生.请求('Debugger.searchInContent',参数)#原生
+        def 搜索源(源):#源读完后调用
+            '按行搜索并包装成 CDP 结果'
+            return {'result':按行搜索(源,参数['query'],参数.get('caseSensitive') is True,参数.get('isRegex') is True)}#结果
+        return 路由['source'].取脚本来源(路由['script']['scriptKey']).然后(搜索源)#读完再搜索
 
     def _帧上求值(自身,参数):#帧上求值
-        'Debugger.evaluateOnCallFrame'
+        'Debugger.evaluateOnCallFrame，返回期约'
         解析=解析调用帧求值(参数)#解析
         if 解析['callFrameId'].startswith('client:'):#Client不可用
             raise 检查器错误('Client 原生调试不可用')#抛错
@@ -178,26 +180,26 @@ class Debugger域会话:#Debugger域会话
         if 领域 is None: 领域=自身._支持调试的()#??支持调试的 realm
         对象组=解析.get('objectGroup')#对象组
         if 对象组 is None: 对象组='backtrace'#??backtrace，空串合法
-        完成=调试后端(领域).帧上求值({**解析,'objectGroup':对象组})#求值已同步
-        return 自身.运行时.投影完成(领域,完成,对象组)#投影
+        def 投影结果(完成):#帧上求值完成后调用
+            '经 Runtime 对象表投影'
+            return 自身.运行时.投影完成(领域,完成,对象组)#投影
+        return 调试后端(领域).帧上求值({**解析,'objectGroup':对象组}).然后(投影结果)#求值完成后再投影
 
     def _暂停(自身):#暂停
-        'Debugger.pause'
+        'Debugger.pause，返回期约'
         支持=[领域 for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']#支持的
         if len(支持)==0:#全不支持
             raise 检查器错误('当前所有活动 realm 都不支持 Debugger.pause')#抛错
-        结果列表=[调试后端(领域).暂停() for 领域 in 支持]#逐个暂停已同步
-        return 合并结果(结果列表)#合并
+        return 期约扩展.全部([调试后端(领域).暂停() for 领域 in 支持]).然后(合并结果)#全部暂停后合并
 
     def _恢复(自身,参数):#恢复
-        'Debugger.resume'
+        'Debugger.resume，返回期约'
         精确键(参数,['terminateOnResume'],'Debugger.resume 参数')#键
         请求=可选布尔(参数,'terminateOnResume')#可选
         支持=[领域 for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']#支持的
         if len(支持)==0:#全不支持
             raise 检查器错误('当前所有活动 realm 都不支持 Debugger.resume')#抛错
-        结果列表=[调试后端(领域).恢复(请求) for 领域 in 支持]#逐个恢复已同步
-        return 合并结果(结果列表)#合并
+        return 期约扩展.全部([调试后端(领域).恢复(请求) for 领域 in 支持]).然后(合并结果)#全部恢复后合并
 
     def _转发原生(自身,请求):#转发原生
         '转发原生 Debugger 方法'
@@ -209,10 +211,10 @@ class Debugger域会话:#Debugger域会话
         except Exception as 错误:#原生参数本地化可能抛检查器错误/KeyError，契约未定所以收不窄
             发送cdp失败(自身.传输,请求,错误)#失败响应
             return#返回
-            def 原生请求():#原生请求体
-                '转发原生方法'
-                return 自身._原生.请求(请求['method'],参数)#原生
-            响应cdp请求(自身.传输,请求,原生请求)#原生请求
+        def 原生请求():#原生请求体
+            '转发原生方法，返回期约'
+            return 自身._原生.请求(请求['method'],参数)#原生
+        响应cdp请求(自身.传输,请求,原生请求)#原生请求
 
     def _不支持路由(自身,参数):#不支持路由
         '检查不支持原因'
@@ -245,13 +247,10 @@ class Debugger域会话:#Debugger域会话
         '打开或关闭'
         if 事件['type']=='opened':#打开
             if 自身._已启用:#已启用
-                def 启用单个领域():#启用体
-                    '启用单个 realm'
-                    try:#启用
-                        自身._启用realm(事件['session'])#启用
-                    except Exception as 错误:#_启用realm 可能抛检查器错误/连接错误，契约未定所以收不窄
-                        print(f'检查器无法启用 Debugger realm {事件["session"].descriptor.label}:',错误)#记录
-                在线程执行(启用单个领域)#投递
+                def 记录启用失败(错误):#新 realm 启用被拒绝后调用
+                    '记录启用失败的 realm'
+                    print(f'检查器无法启用 Debugger realm {事件["session"].descriptor.label}:',错误)#记录
+                自身._启用realm(事件['session']).捕获(记录启用失败)#启用失败只记录
             return#返回
         会话=事件['session']#会话
         源拆=自身._源拆除器.pop(会话.descriptor.realmId,None)#拆源
@@ -266,12 +265,15 @@ class Debugger域会话:#Debugger域会话
         自身._脚本.移除realm(会话)#移除脚本
 
     def _启用realm(自身,领域):#启用单个realm
-        '附着并启用'
+        '附着并启用，返回期约，目录发布后兑现'
         自身._附着能力(领域)#附着
         调试=_能力(领域.debugger)#能力
-        if 调试['state']=='supported':#支持
-            调试['backend'].启用(自身._启用请求)#启用已同步
-        自身._发布目录(领域)#发布目录
+        if 调试['state']!='supported':#不支持调试
+            return 自身._发布目录(领域)#只发布目录
+        def 发布目录(启用结果):#启用完成后调用
+            '发布目录'
+            return 自身._发布目录(领域)#发布目录
+        return 调试['backend'].启用(自身._启用请求).然后(发布目录)#启用完成后再发布目录
 
     def _附着能力(自身,领域):#附着能力
         '附着源与调试订阅'
@@ -292,13 +294,17 @@ class Debugger域会话:#Debugger域会话
             自身._调试拆除器[领域.descriptor.realmId]=调试['backend'].订阅(收调试)#订阅事件
 
     def _发布目录(自身,领域):#发布目录
-        '列出并发布脚本'
+        '列出并发布脚本，返回期约，发布完成后兑现'
         源=_能力(领域.sources)#源
         if not 自身._已启用 or 源['state']=='unsupported':#跳过
-            return#返回
-        脚本列表=源['backend'].列脚本()#列脚本已同步
-        for 脚本 in 脚本列表:#发布
-            自身._发布脚本(领域,源['backend'],脚本)#发布
+            已跳过=期约扩展()#无需发布时的期约
+            已跳过.解决()#无结果，直接解决
+            return 已跳过#返回已解决的期约
+        def 发布脚本列表(脚本列表):#列脚本完成后调用
+            '逐个发布脚本'
+            for 脚本 in 脚本列表:#发布
+                自身._发布脚本(领域,源['backend'],脚本)#发布
+        return 源['backend'].列脚本().然后(发布脚本列表)#列脚本完成后再发布
 
     def _发布脚本(自身,realm,源,脚本):#发布脚本
         '注册并首次公告'

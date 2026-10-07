@@ -1,6 +1,7 @@
 '面向模型的 `workflow` 工具：运行一份向外扇出子智能体的 JavaScript 编排脚本，并返回脚本的最终值'
 import json#结果 JSON 渲染
-from ...基础设施.通用工具 import 截断utf8字节,utf8字节数,启动守护线程
+from ...基础设施.通用工具 import 截断utf8字节,utf8字节数
+from ...基础设施.js特性 import PromiseEX as 期约#中文期约
 from ...依赖.schemastery import 字符串字段,自然数字段,布尔字段#配置字段
 from .记录 import 创建工作流记录镜像
 
@@ -212,32 +213,53 @@ def 启动后台运行(上下文,参数,父智能体,写记录,记录器,镜像,
         镜像['开始'](运行.id,任务)
         if 写记录:
             记录器['开始'](父智能体.session,运行)
-        def 等待结局():
-            '销毁、停镜像，再把停止原因映射成任务结局'
-            try:
-                结果=运行.结果.等待()
-            finally:
+        from concurrent.futures import Future as 原生结果
+        结算=原生结果()#任务注册表仍要阻塞式结局
+        def 收尾(结果,错误):
+            '销毁后停镜像，再把停止原因映射成任务结局'
+            def 映射(值=None):
+                '停镜像并结算'
                 try:
-                    运行.销毁()
-                except Exception as 错误:
-                    上下文.日志.警告('background workflow run '+str(运行.id)+' dispose failed: '+str(错误))
-                镜像['停止'](运行.id)
-                if 写记录:
-                    记录器['完成'](运行.id,结果['stopReason'] if 结果 is not None else 'error')
-                    记录器['放弃'](运行.id)
-            return 任务结局于(结果,参数['meta']['name'],最大字节)
+                    镜像['停止'](运行.id)#停镜像
+                    if 写记录:#要记录
+                        if 结果 is not None:#有结果
+                            记录器['完成'](运行.id,结果['stopReason'])#结束
+                        else:#没有结果
+                            记录器['完成'](运行.id,'error')#结束
+                        记录器['放弃'](运行.id)#放弃
+                    if 错误 is not None:#运行失败
+                        if not 结算.done():#未结算
+                            结算.set_exception(错误)#抛给注册表
+                        return#结束
+                    if not 结算.done():#未结算
+                        结算.set_result(任务结局于(结果,参数['meta']['name'],最大字节))#结局
+                except BaseException as 抛错:#记录失败
+                    if not 结算.done():#未结算
+                        结算.set_exception(抛错)#抛给注册表
+            def 销毁出错(销毁错误):
+                '拆除失败只记日志，仍然映射结局'
+                上下文.日志.警告('background workflow run '+str(运行.id)+' dispose failed: '+str(销毁错误))#日志
+                映射()#继续
+            try:#拆除
+                拆除=运行.销毁()#期约或已完成
+            except Exception as 销毁错误:#同步失败
+                销毁出错(销毁错误)#记日志
+                return#结束
+            然后方法=getattr(拆除,'然后',None)#期约
+            if callable(然后方法):#期约
+                然后方法(映射,销毁出错)#等拆除
+                return#已接上
+            映射()#已拆除
+        def 成功(结果):
+            '运行兑现后收尾'
+            收尾(结果,None)#映射
+        def 失败(错误):
+            '运行拒绝后收尾'
+            收尾(None,错误)#映射
+        运行.结果.然后(成功,失败)#等结果
         def 取消(原因=None):
             '取消后台工作流运行'
             运行.取消(原因 if 原因 is not None else 'background workflow job killed')
-        from concurrent.futures import Future as 原生结果
-        结算=原生结果()
-        def 盯():
-            '后台等待运行结局'
-            try:
-                结算.set_result(等待结局())
-            except BaseException as 错误:
-                结算.set_exception(错误)
-        启动守护线程(盯)
         class 结局任务:
             '给注册表 .等待 的结局包装'
             def 等待(自身,超时=None):
@@ -279,7 +301,7 @@ def 应用(上下文,配置值=None):
         return [{'type':'text','text':文本}]
 
     def 执行(参数,执行上下文):
-        '启动工作流运行并等待结算，或后台立刻返回任务 id'
+        '启动工作流运行并返回期约，或后台立刻返回任务 id'
         if 'agent' not in 执行上下文 or 执行上下文['agent'] is None:
             raise 工作流工具错误('workflow tool requires a calling agent (exec.agent was undefined)')
         父智能体=执行上下文['agent']
@@ -300,28 +322,67 @@ def 应用(上下文,配置值=None):
         运行=上下文.workflowEngine.启动(启动请求)
         if 写记录:
             记录器['开始'](父智能体.session,运行)
-        结果=None
-        try:
-            结果=运行.结果.等待()
-            错误文案=停止原因错误(结果)
-            if 错误文案 is not None:
-                raise 工作流工具错误(错误文案)
-            return {
-                'kind':'foreground',
-                'runId':运行.id,
-                'agentsStarted':结果['agentsStarted'],
-                'result':结果['value'],
-            }
-        finally:
-            try:
-                运行.销毁()
-                if 写记录:
-                    if 结果 is None:
-                        raise 工作流工具错误('workflow run settled without a result')
-                    记录器['完成'](运行.id,结果['stopReason'])
-            finally:
-                if 写记录:
-                    记录器['放弃'](运行.id)
+        结局=期约()#前台结果
+        盒={'结果':None,'错误':None}#结算盒
+        def 结算():
+            '记录之后解决或拒绝工具结果'
+            if 盒['错误'] is not None:#失败
+                结局.拒绝(盒['错误'])#拒绝
+                return#结束
+            结果=盒['结果']#结果
+            if 结果 is None:#没有结果
+                结局.拒绝(工作流工具错误('workflow run settled without a result'))#拒绝
+                return#结束
+            错误文案=停止原因错误(结果)#停止原因
+            if 错误文案 is not None:#没有干净结束
+                结局.拒绝(工作流工具错误(错误文案))#拒绝
+                return#结束
+            结局.解决({'kind':'foreground','runId':运行.id,'agentsStarted':结果['agentsStarted'],'result':结果['value']})#前台
+        def 清理(值=None):
+            '拆除成功后写记录'
+            try:#记录
+                if 写记录:#要记录
+                    if 盒['结果'] is None and 盒['错误'] is None:#没有结果
+                        盒['错误']=工作流工具错误('workflow run settled without a result')#记下
+                    elif 盒['结果'] is not None:#有结果
+                        记录器['完成'](运行.id,盒['结果']['stopReason'])#结束
+            except BaseException as 错误:#记录失败
+                盒['错误']=错误#记下
+            finally:#放弃
+                if 写记录:#要记录
+                    记录器['放弃'](运行.id)#放弃
+                结算()#工具结果
+        def 接上销毁():
+            '销毁结束后清理'
+            def 销毁出错(错误):
+                '拆除失败则放弃记录并拒绝'
+                盒['错误']=错误#记下
+                if 写记录:#要记录
+                    记录器['放弃'](运行.id)#放弃
+                结算()#工具结果
+            try:#拆除
+                拆除=运行.销毁()#期约或已完成
+            except BaseException as 错误:#同步失败
+                销毁出错(错误)#拒绝
+                return#结束
+            然后方法=getattr(拆除,'然后',None)#期约
+            if callable(然后方法):#期约
+                然后方法(清理,销毁出错)#等拆除
+                return#已接上
+            清理()#已拆除
+        def 成功(结果):
+            '运行兑现后拆除'
+            盒['结果']=结果#记下
+            错误文案=停止原因错误(结果)#停止原因
+            if 错误文案 is not None:#没有干净结束
+                盒['错误']=工作流工具错误(错误文案)#记下
+            接上销毁()#拆除
+        def 失败(错误):
+            '运行拒绝后拆除'
+            盒['错误']=错误#记下
+            接上销毁()#拆除
+        运行.结果.然后(成功,失败)#等结果
+        return 结局#期约
 
     上下文.tools.register(定义工具({#登记面向模型的工作流工具
         'name':工具名,#工具名

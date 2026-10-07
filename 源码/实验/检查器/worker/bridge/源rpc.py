@@ -1,6 +1,6 @@
 import uuid#请求id
 from threading import Timer as 定时器#超时定时器
-from ...共享.json import 操作任务#单次结果
+from .....基础设施.js特性 import PromiseEX as 期约扩展#请求结果期约
 from .会话 import 发送Client会话关闭#会话关闭
 from .枢纽 import 检查器协议版本#协议版本
 
@@ -23,20 +23,20 @@ class Client源路由:#Client源路由
     def 请求(自身,源,会话id,命令):#发起请求
         '对活动 Client 源代数执行一次操作'
         if 自身._已关闭:#已关闭
-            任务=操作任务()#失败任务
-            任务.拒绝(RuntimeError('Client source router is closed'))#拒绝
-            return 任务#返回
+            失败=期约扩展()#路由已关闭时直接拒绝的期约
+            失败.拒绝(RuntimeError('Client source router is closed'))#路由已关闭
+            return 失败#返回已拒绝的期约
         请求id=str(uuid.uuid4())#请求id
-        任务=操作任务()#新建任务
+        任务=期约扩展()#待决请求的期约，响应到达时解决
         def 超时():#超时
             '超时拒绝'
             if 请求id in 自身._待决:#仍待决
                 del 自身._待决[请求id]#移除
-                任务.拒绝(TimeoutError(f"Client source {命令['op']} timed out after {自身._超时毫秒}ms"))#拒绝
-        定时=threading.Timer(自身._超时毫秒/1000,超时)#超时
+                任务.拒绝(TimeoutError(f"Client source {命令['op']} timed out after {自身._超时毫秒}ms"))#超时拒绝
+        定时=定时器(自身._超时毫秒/1000,超时)#超时定时器
         定时.daemon=True#守护
         定时.start()#启动
-        自身._待决[请求id]={'source':源,'sessionId':会话id,'command':命令,'future':任务,'timer':定时}#登记
+        自身._待决[请求id]={'source':源,'sessionId':会话id,'command':命令,'任务':任务,'timer':定时}#登记
         try:#投递
             已发=自身.源注册表.发送(源,{#发送请求帧
                 'v':检查器协议版本,'t':'client-sources/request',#类型
@@ -80,7 +80,7 @@ class Client源路由:#Client源路由
             自身._结算(事件['source'],事件['frame'])#结算
 
     def _结算(自身,源,帧):#结算响应
-        '匹配命令并兑现 Future'
+        '匹配命令并解决期约'
         待决=自身._待决.get(帧['requestId'])#取待决
         if 待决 is None:#无待决
             return#返回
@@ -97,7 +97,7 @@ class Client源路由:#Client源路由
             return#返回
         待决['timer'].cancel()#清超时
         del 自身._待决[帧['requestId']]#移除
-        待决['future'].兑现(结果['result'])#成功
+        待决['任务'].解决(结果['result'])#以响应结果解决期约
 
     def _拒绝待决(自身,请求id,错误):#拒绝待决
         '清理并拒绝'
@@ -105,8 +105,7 @@ class Client源路由:#Client源路由
         if 待决 is None:#无
             return#返回
         待决['timer'].cancel()#清超时
-        if not 待决['future']._future.done():#未结算
-            待决['future'].拒绝(错误)#拒绝
+        待决['任务'].拒绝(错误)#已从待决表摘除，只会结算这一次
 
 def _匹配命令(命令,结果):#命令与结果匹配
     '校验响应与请求对应'

@@ -2,7 +2,6 @@ import json,re
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from urllib.parse import urlparse
 from requests import request as 发请求
-from ...工具.超时 import 已中止
 from .异常 import 平台认证错误#稳定码，不携带响应体或授权 URL
 
 __all__=['平台认证错误','平台来源','浏览器网址','平台头','初始化形态','交换形态','请求平台','请求账号','登出账号','登录来源']

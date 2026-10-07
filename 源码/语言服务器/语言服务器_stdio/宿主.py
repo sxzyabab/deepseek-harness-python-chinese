@@ -1,5 +1,4 @@
 '通用 stdio LSP 提供方所用的文件系统 seam 源访问'
-from ...工具.超时 import 若已中止则抛出#已中止即抛错
 from ..语言服务器.异常 import 语言服务器错误#本缝异常基类
 
 宿主工作区字段=('target','canonicalPath','fileUrl')#文件系统/子进程执行世界中的规范工作区

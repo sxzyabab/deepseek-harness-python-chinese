@@ -1,4 +1,5 @@
 import threading
+from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ..存储 import 创建快照存储#共享快照仓库
 
 __all__=['设置描述镜像']#仅中文公开名
@@ -119,27 +120,14 @@ class 设置描述镜像:
         return None#未登记
 
     def 运行(自身):
-        '串行 describe 读循环；需重跑则再读，代际变了则丢弃本次答案'
-        while True:#直到无需重跑
-            先前=自身.store.getSnapshot()#循环前状态
-            if 先前['status']=='idle':#空闲则标加载
-                加载中=dict(先前)#浅拷
-                加载中['status']='loading'#加载中
-                自身.store.set(加载中)#发布；可能同步重入加载
-            with 自身.槽锁:#导线读发出前立即清除
-                自身.需重跑=False#更早标的加载由本次读覆盖
-            自身.世代+=1#捕获代际
-            世代=自身.世代#本读代际
-            try:#导线 describe
-                应答=自身.上下文.remote.settings.describe().等待()#线上读
-                if 应答['ok'] is True:#成功
-                    成果={'view':应答['value']}#视图
-                else:#业务失败
-                    成果={'failure':应答['error']['message']}#失败文案
-            except Exception as 错误:#抛错记入快照，不打断飞行槽
-                成果={'failure':str(错误)}#失败文案
-            if 世代!=自身.世代:#写答案使写提交前取到的文档读失效
-                continue#重跑
+        '串行 describe 读循环；需重跑则再读，代际变了则丢弃本次答案。返回期约，循环结束后解决'
+        结束=期约()#循环结束的结算点
+        本读代际=None#跑一轮写上，处理成果比对
+        def 处理成果(成果):
+            '代际变了就重跑，否则发布结果；需重跑则再读，否则清飞行槽并结束'
+            if 本读代际!=自身.世代:#写答案使写提交前取到的文档读失效
+                跑一轮()#重跑
+                return
             if 'view' in 成果:#成功
                 自身.store.set({'status':'ready','view':成果['view'],'error':None})#就绪
             else:#失败
@@ -150,7 +138,41 @@ class 设置描述镜像:
                     'error':成果['failure'],#记下失败
                 })#结束 set
             with 自身.槽锁:#与清槽同一同步段观察需重跑
-                if 自身.需重跑 is True:#读中途又有加载
-                    continue#再读
-                自身.飞行中=None#清飞行槽
+                需再读=自身.需重跑 is True#读中途又有加载
+                if not 需再读:
+                    自身.飞行中=None#清飞行槽
+            if 需再读:
+                跑一轮()#再读
                 return
+            结束.解决()
+        def 已应答(应答):
+            '线上读返回：成功或业务失败折成成果'
+            try:
+                if 应答['ok'] is True:#成功
+                    成果={'view':应答['value']}#视图
+                else:#业务失败
+                    成果={'failure':应答['error']['message']}#失败文案
+            except Exception as 错误:#抛错记入快照，不打断飞行槽
+                成果={'failure':str(错误)}#失败文案
+            处理成果(成果)
+        def 读失败(错误):
+            '线上读抛错：记入快照，不打断飞行槽'
+            处理成果({'failure':str(错误)})#失败文案
+        def 跑一轮():
+            '一轮读：标加载，发 describe，答案交给处理成果'
+            nonlocal 本读代际
+            先前=自身.store.getSnapshot()#循环前状态
+            if 先前['status']=='idle':#空闲则标加载
+                加载中=dict(先前)#浅拷
+                加载中['status']='loading'#加载中
+                自身.store.set(加载中)#发布；可能同步重入加载
+            with 自身.槽锁:#导线读发出前立即清除
+                自身.需重跑=False#更早标的加载由本次读覆盖
+            自身.世代+=1#捕获代际
+            本读代际=自身.世代#本读代际
+            try:#导线 describe
+                自身.上下文.remote.settings.describe().然后(已应答,读失败)#线上读
+            except Exception as 错误:#同步段失败同样记入快照
+                读失败(错误)
+        跑一轮()#首轮
+        return 结束#调用方对期约链接 然后 与 捕获

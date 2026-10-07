@@ -1,7 +1,6 @@
 '工作流 VM 钩子、子回调、普通并发上限与结果序列化'
 import threading#槽位等待
-from ...基础设施.通用工具 import 启动守护线程
-from concurrent.futures import Future as 原生结果#单次操作结果
+from ...基础设施.js特性 import PromiseEX as 期约#中文期约
 from ...内核.会话 import 会话标识#子 id 品牌
 from ...内核.工具.json模式 import 断言对象json模式#对象 JSON 模式
 from ...内核.工具.异常 import json模式错误
@@ -10,80 +9,18 @@ from ..工作流.异常 import 工作流错误#缝上错误
 from .异常 import 物化错误#从领域物化失败
 from .领域 import 从领域物化,渲染抛出#跨领域 JSON
 
-__all__=['任务','全部并发','全部结算','赛跑','工作流执行']#仅中文公开名
+__all__=['工作流执行']#仅中文公开名
 
 支持的智能体选项=frozenset(('label','phase','schema','provider','model'))#脚本可传的 agent() 选项
 推迟的智能体选项=frozenset(('effort','isolation','agentType'))#拒绝文案里点名的推迟选项
 
-class 任务:#单次操作的 Future 包装，只留 等待
-    '单次操作的 Future 包装，只留 等待'
-    def __init__(自身):#未决任务
-        '构造未决任务'
-        自身._未来=原生结果()#底层 Future
-    def 兑现(自身,值=None):#成功结算
-        '成功结算'
-        if not 自身._未来.done():#尚未结算
-            自身._未来.set_result(值)#写入结果
-        return 值#返回兑现值
-    def 拒绝(自身,错误):#失败结算
-        '失败结算'
-        if not 自身._未来.done():#尚未结算
-            if isinstance(错误,BaseException):#已是异常
-                自身._未来.set_exception(错误)#原样拒绝
-            else:#非异常
-                自身._未来.set_exception(工作流错误(str(错误),'INVALID_ARGUMENT'))#包成工作流错误
-    def 等待(自身,超时=None):#阻塞等到结算
-        '阻塞等到结算'
-        return 自身._未来.result(timeout=超时)#取结果或抛错
-
-def 全部并发(函数列表):#Promise.all
-    '每路一线程，join 后按原序取结果；一路失败则抛'
-    结果表=[None]*len(函数列表)#按原序结果
-    错误表=[None]*len(函数列表)#按原序错误
-    def 跑一路(下标,函数):#执行一路
-        '执行一路并写入表'
-        try:#执行
-            结果表[下标]=函数()#成功
-        except BaseException as 错误:#失败
-            错误表[下标]=错误#记下
-    线程表=[]#工作线程
-    for 下标,函数 in enumerate(函数列表):#每路一线程
-        工作=启动守护线程(跑一路,下标,函数)#工作线程
-        线程表.append(工作)#登记
-    for 工作 in 线程表:#扇出 join
-        工作.join()#等到结束
-    for 错误 in 错误表:#按原序检查
-        if 错误 is not None:#有失败
-            raise 错误#原样抛
-    return 结果表#按原序结果
-
-def 全部结算(任务列表):#Promise.allSettled
-    '并发等全部任务落定，吞掉失败'
-    def 等待并吞错(一项):#等待一路
-        '等待一路并吞错'
-        try:#等待
-            一项.等待()#等到结算
-        except BaseException:#排空不抛
-            pass#吞掉
-    线程表=[]#工作线程
-    for 一项 in 任务列表:#每路一线程
-        工作=启动守护线程(等待并吞错,一项)#工作线程
-        线程表.append(工作)#登记
-    for 工作 in 线程表:#等全部结束
-        工作.join()#等到结束
-
-def 赛跑(函数列表):#Promise.race
-    '先结算的一路获胜'
-    完成=任务()#先到先得
-    def 在线程执行(函数):#一路
-        '跑一路并尝试结算'
-        try:#执行
-            完成.兑现(函数())#成功
-        except BaseException as 错误:#失败
-            完成.拒绝(错误)#拒绝
-    for 函数 in 函数列表:#每路一线程
-        启动守护线程(在线线程执行,函数)#工作线程
-    return 完成.等待()#先到
+def 接上(值,成功,失败):
+    '有然后就等它结算再调用；普通值立刻成功'
+    然后方法=getattr(值,'然后',None)#期约才有然后
+    if callable(然后方法):#期约
+        然后方法(成功,失败)#结算后调用
+        return#已接上
+    成功(值)#普通值
 
 def 输出文本(块表):#子最终输出块压成文本
     '把子最终输出块里的 text 块拼成字符串'
@@ -143,17 +80,29 @@ class 工作流执行:#隔离进程内的一次脚本执行
 
     def 驱动(自身):#跑脚本并物化 JSON 返回值
         """跑脚本并物化 JSON 返回值。
-        完成或错误结果；脚本失败永不拒绝
+        返回期约，兑现完成或错误结果；脚本失败永不拒绝
         """
+        结局=期约()#本次驱动
+        def 写成失败(错误):#脚本失败
+            '脚本失败兑现为错误结果，不拒绝驱动期约'
+            结局.解决({'value':None,'stopReason':'error','error':渲染抛出(错误),'agentsStarted':自身._已启动})#错误
+        def 写成成功(原始):#脚本返回
+            '物化返回值并兑现完成结果'
+            try:#物化
+                if 原始 is None:#无返回
+                    值=None#null
+                else:#有返回
+                    值=自身.物化结果(原始)#物化
+                结局.解决({'value':值,'stopReason':'completed','agentsStarted':自身._已启动})#完成
+            except BaseException as 错误:#物化或脚本失败
+                写成失败(错误)#错误结果
         try:#执行
             原始=自身._已编译()#跑包装；钩子闭包走实例
-            if 原始 is None:#无返回
-                值=None#null
-            else:#有返回
-                值=自身.物化结果(原始)#物化
-            return {'value':值,'stopReason':'completed','agentsStarted':自身._已启动}#完成
-        except BaseException as 错误:#脚本失败
-            return {'value':None,'stopReason':'error','error':渲染抛出(错误),'agentsStarted':自身._已启动}#错误
+        except BaseException as 错误:#脚本同步失败
+            写成失败(错误)#错误结果
+            return 结局#期约
+        接上(原始,写成成功,写成失败)#普通值或期约
+        return 结局#期约
 
     def 物化结果(自身,原始):#返回值
         '物化脚本返回值；违规变成 RESULT_UNSERIALIZABLE'
@@ -167,17 +116,19 @@ class 工作流执行:#隔离进程内的一次脚本执行
             )#不可序列化
 
     def 取得槽(自身):#FIFO 取一个并发槽
-        '取得一个并发槽；满则按 FIFO 等待'
+        '取得一个并发槽；满则按 FIFO 返回未决期约'
         with 自身._槽锁:#互斥
             if 自身._活动槽<自身._上限['maxConcurrentAgents']:#有空位
                 自身._活动槽+=1#占用
-                return#立刻
-            事件=threading.Event()#等待
-            自身._槽等待.append(事件)#排队
-        事件.wait()#等到唤醒
+                已取得=期约()#立刻得到
+                已取得.解决(None)#已占
+                return 已取得#期约
+            等待=期约()#排队
+            自身._槽等待.append(等待)#FIFO
+            return 等待#未决
 
     def 释放槽(自身):#还槽并唤醒下一个
-        '释放一个并发槽，FIFO 唤醒下一个等待者'
+        '释放一个并发槽，FIFO 解决下一个等待者'
         下一个=None#待唤醒
         with 自身._槽锁:#互斥
             自身._活动槽-=1#还
@@ -185,7 +136,7 @@ class 工作流执行:#隔离进程内的一次脚本执行
                 下一个=自身._槽等待.pop(0)#FIFO
                 自身._活动槽+=1#占给下一个
         if 下一个 is not None:#唤醒
-            下一个.set()#放行
+            下一个.解决(None)#放行
 
     def 智能体(自身,原始提示,原始选项=None):#agent 钩子
         'agent(prompt, opts) 钩子'
@@ -201,44 +152,74 @@ class 工作流执行:#隔离进程内的一次脚本执行
         序号=自身._已启动#从 1
         标签=选项['label'] if 'label' in 选项 else 默认标签(原始提示)#展示标签
         阶段=选项['phase'] if 'phase' in 选项 else 自身._当前阶段#阶段
-        自身.取得槽()#占槽
-        try:#启动到拆除
-            try:#启动子
-                请求={'prompt':原始提示}#提示词
-                if 'schema' in 选项:#有模式
-                    请求['schema']=选项['schema']#带上
-                if 'provider' in 选项:#有提供方
-                    请求['provider']=选项['provider']#带上
-                if 'model' in 选项:#有模型
-                    请求['model']=选项['model']#带上
-                跑=自身._子端口.启动智能体(请求)#发布
-            except BaseException as 错误:#启动失败
-                raise 工作流错误('agent() could not start a child: '+渲染抛出(错误),'AGENT_START',{'cause':错误})#启动
-            信息={'seq':序号,'label':标签,'childId':会话标识(跑.id)}#身份
-            if 阶段 is not None:#有阶段
-                信息['phase']=阶段#带上
-            自身._观察器.智能体开始(信息)#开始
-            try:#等结果并拆除
-                try:#等子
-                    结果=跑.result.等待()#子终态
-                except BaseException as 错误:#基础设施
+        请求={'prompt':原始提示}#提示词
+        if 'schema' in 选项:#有模式
+            请求['schema']=选项['schema']#带上
+        if 'provider' in 选项:#有提供方
+            请求['provider']=选项['provider']#带上
+        if 'model' in 选项:#有模型
+            请求['model']=选项['model']#带上
+        结局=期约()#钩子结果
+        def 占槽之后(已占):#占到槽
+            '启动子并把它的结果装进结局'
+            try:#启动到挂钩
+                try:#启动子
+                    子运行=自身._子端口.启动智能体(请求)#发布
+                except BaseException as 错误:#启动失败
+                    自身.释放槽()#还
+                    raise 工作流错误('agent() could not start a child: '+渲染抛出(错误),'AGENT_START',{'cause':错误})#启动
+                信息={'seq':序号,'label':标签,'childId':会话标识(子运行.id)}#身份
+                if 阶段 is not None:#有阶段
+                    信息['phase']=阶段#带上
+                try:#通知开始
+                    自身._观察器.智能体开始(信息)#开始
+                except BaseException:#开始失败
+                    子运行.销毁()#拆除
+                    自身.释放槽()#还
+                    raise#再抛
+                def 处理结果(结果):#子终态
+                    '完成则取值，否则 null'
+                    if 结果['stopReason']=='completed':#完成
+                        if 'schema' in 选项:#要结构化
+                            if 'structured' not in 结果 or 结果['structured'] is None:#没给
+                                自身._观察器.智能体结束(dict(信息,outcome='failed'))#失败
+                                return None#null
+                            自身._观察器.智能体结束(dict(信息,outcome='completed'))#完成
+                            return 结果['structured']#结构化
+                        自身._观察器.智能体结束(dict(信息,outcome='completed'))#完成
+                        return 输出文本(结果['output'])#文本
+                    自身._观察器.智能体结束(dict(信息,outcome='failed'))#失败
+                    return None#null
+                def 处理失败(错误):#基础设施
+                    '配对失败后拒绝'
                     自身._观察器.智能体结束(dict(信息,outcome='failed'))#配对失败
                     raise 工作流错误('child agent run failed: '+渲染抛出(错误),'AGENT_RESULT',{'cause':错误})#致命
-                if 结果['stopReason']=='completed':#完成
-                    if 'schema' in 选项:#要结构化
-                        if 'structured' not in 结果 or 结果['structured'] is None:#没给
-                            自身._观察器.智能体结束(dict(信息,outcome='failed'))#失败
-                            return None#null
-                        自身._观察器.智能体结束(dict(信息,outcome='completed'))#完成
-                        return 结果['structured']#结构化
-                    自身._观察器.智能体结束(dict(信息,outcome='completed'))#完成
-                    return 输出文本(结果['output'])#文本
-                自身._观察器.智能体结束(dict(信息,outcome='failed'))#失败
-                return None#null
-            finally:#拆除
-                跑.销毁()#拆除
-        finally:#还槽
-            自身.释放槽()#还
+                def 拆除(结算值=None):#收尾
+                    '拆除子并还槽；拆除若返回期约则等它'
+                    def 还槽(值=None):#拆除结束
+                        '还槽'
+                        自身.释放槽()#还
+                    def 拆除失败(错误):#拆除拒绝
+                        '还槽后把拆除失败留在链上'
+                        自身.释放槽()#还
+                        raise 错误#再抛
+                    try:#拆除
+                        拆除结果=子运行.销毁()#拆除
+                    except BaseException:#拆除抛错
+                        自身.释放槽()#还
+                        raise#再抛
+                    然后方法=getattr(拆除结果,'然后',None)#期约
+                    if callable(然后方法):#期约
+                        return 然后方法(还槽,拆除失败)#等完再还槽
+                    自身.释放槽()#还
+                子运行.result.捕获(处理失败).然后(处理结果).最终(拆除).然后(结局.解决,结局.拒绝)#子结果
+            except BaseException as 错误:#同步失败
+                结局.拒绝(错误)#拒绝钩子
+        def 槽失败(错误):#拿槽失败
+            '拿槽失败则拒绝钩子'
+            结局.拒绝(错误)#拒绝
+        自身.取得槽().然后(占槽之后,槽失败)#占槽后启动
+        return 结局#期约
 
     def 读智能体选项(自身,原始选项):#物化并校验选项袋
         '从领域物化并校验 agent() 选项袋'
@@ -292,24 +273,30 @@ class 工作流执行:#隔离进程内的一次脚本执行
                 raise 工作流错误('parallel() item '+str(下标)+' is not a function','INVALID_ARGUMENT')#参数
             块列表.append(块)#收下
             下标+=1#推进
-        def 跑一块(块):#一路
-            '跑一块；致命再抛，普通变 null'
-            try:#执行
-                return 块()#结果
-            except BaseException as 错误:#捕获
-                if 是否致命工作流错误(错误):#致命
-                    raise 错误#再抛
-                return None#null
-        函数列表=[]#并发函数
-        for 块 in 块列表:#每块一路
+        期约列表=[]#并发期约
+        for 函数块 in 块列表:#每块一路
             def 制作(一块):#钉住本块
-                '钉住一块'
-                def 在线程执行():#一路
-                    '跑一块'
-                    return 跑一块(一块)#执行
-                return 在线程执行#函数
-            函数列表.append(制作(块))#收下
-        return 全部并发(函数列表)#并发
+                '钉住一块并包成期约'
+                def 执行器(解决,拒绝):#一路
+                    '跑一块；致命拒绝，普通变 null'
+                    def 失败(错误):#捕获
+                        '致命再拒绝，普通变 null'
+                        if 是否致命工作流错误(错误):#致命
+                            拒绝(错误)#再抛
+                            return#已拒绝
+                        解决(None)#null
+                    try:#执行
+                        值=一块()#结果
+                    except BaseException as 错误:#捕获
+                        失败(错误)#转 null 或拒绝
+                        return#已处理
+                    def 成功(内值):#展平
+                        '嵌套期约继续接，普通值兑现'
+                        接上(内值,解决,失败)#展平
+                    接上(值,成功,失败)#接上结果
+                return 期约(执行器)#期约
+            期约列表.append(制作(函数块))#收下
+        return 期约.全部(期约列表)#并发
 
     def 流水线(自身,原始条目,原始阶段):#pipeline 钩子
         '每条目的阶段链，无跨阶段屏障'
@@ -326,29 +313,38 @@ class 工作流执行:#隔离进程内的一次脚本执行
                 raise 工作流错误('pipeline() stage '+str(下标)+' is not a function','INVALID_ARGUMENT')#参数
             阶段表.append(阶段)#收下
             下标+=1#推进
-        def 跑一条(条目,序号):#一条流水线
-            '顺序跑阶段；致命再抛，普通变 null'
-            值=条目#起点
-            try:#阶段链
-                for 阶段 in 阶段表:#逐阶段
-                    值=阶段(值,条目,序号)#下一步
-                return 值#结果
-            except BaseException as 错误:#捕获
-                if 是否致命工作流错误(错误):#致命
-                    raise 错误#再抛
-                return None#null
-        函数列表=[]#并发函数
-        号=0#从 0
-        for 项 in 原始条目:#每条目一路
+        期约列表=[]#并发期约
+        序号=0#从 0
+        for 当前条目 in 原始条目:#每条目一路
             def 制作(一条目,一号):#钉住本条
-                '钉住一条'
-                def 在线程执行():#一路
-                    '跑一条流水线'
-                    return 跑一条(一条目,一号)#执行
-                return 在线程执行#函数
-            函数列表.append(制作(项,号))#收下
-            号+=1#推进
-        return 全部并发(函数列表)#并发
+                '钉住一条并包成期约'
+                def 执行器(解决,拒绝):#一路
+                    '顺序跑阶段；致命拒绝，普通变 null'
+                    def 失败(错误):#捕获
+                        '致命再拒绝，普通变 null'
+                        if 是否致命工作流错误(错误):#致命
+                            拒绝(错误)#再抛
+                            return#已拒绝
+                        解决(None)#null
+                    def 跑阶段(阶段下标,当前值):#下一阶段
+                        '跑剩余阶段'
+                        if 阶段下标>=len(阶段表):#完成
+                            解决(当前值)#结果
+                            return#结束
+                        try:#本阶段
+                            下一步=阶段表[阶段下标](当前值,一条目,一号)#下一步
+                        except BaseException as 错误:#捕获
+                            失败(错误)#转 null 或拒绝
+                            return#已处理
+                        def 成功(内值):#本阶段结果
+                            '继续下一阶段'
+                            跑阶段(阶段下标+1,内值)#下一步
+                        接上(下一步,成功,失败)#接上
+                    跑阶段(0,一条目)#从条目开始
+                return 期约(执行器)#期约
+            期约列表.append(制作(当前条目,序号))#收下
+            序号+=1#推进
+        return 期约.全部(期约列表)#并发
 
     def 断言条目上限(自身,长度,钩子):#每调用上限
         '一次 parallel/pipeline 的条目上限'

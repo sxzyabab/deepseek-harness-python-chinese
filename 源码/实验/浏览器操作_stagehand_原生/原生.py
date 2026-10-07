@@ -1,7 +1,5 @@
 import json,base64#结果与截图
 from ...工具.值 import 断言永不#封闭联合
-from ...工具.超时 import 若已中止则抛出#中止
-
 __all__=['浏览器输入','浏览器方法','stagehand排空错误','打开原生浏览器','stagehand模型模式']#仅中文公开名
 
 from .异常 import stagehand排空错误#SDK 未排空

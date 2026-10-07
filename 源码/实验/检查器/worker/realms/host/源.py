@@ -1,3 +1,4 @@
+from ......基础设施.js特性 import PromiseEX as 期约扩展#后端方法的返回期约
 from ....异常 import 检查器错误#包内错误
 from .脚本 import Host脚本键#脚本键
 
@@ -19,22 +20,28 @@ class Host源后端:#Host源后端
         自身._取消订阅=目标.订阅(自身._接收)#订阅
 
     def 列脚本(自身):#列脚本
-        '返回描述列表'
-        return [项['descriptor'] for 项 in 自身._脚本.values()]#描述列表
+        '返回期约，兑现值是描述列表'
+        已列出=期约扩展()#描述列表期约
+        已列出.解决([项['descriptor'] for 项 in 自身._脚本.values()])#目录在本地，直接解决
+        return 已列出#返回已解决的期约
 
     def 取脚本来源(自身,脚本键):#取脚本来源
-        '请求原生脚本来源'
+        '请求原生脚本来源，返回期约，兑现值是源文本'
         脚本=自身._脚本[脚本键] if 脚本键 in 自身._脚本 else None#取脚本
         if 脚本 is None:#不可用
             raise 检查器错误('Host script is no longer available')#抛错
-        结果=自身.目标.请求('Debugger.getScriptSource',{'scriptId':脚本['nativeId']})#请求
-        if 'scriptSource' not in 结果 or not isinstance(结果['scriptSource'],str):#无源
-            raise 检查器错误('Host Debugger returned no script source')#抛错
-        return 结果['scriptSource']#返回
+        def 取出源(结果):#请求完成后调用
+            '校验并取出源文本'
+            if 'scriptSource' not in 结果 or not isinstance(结果['scriptSource'],str):#无源
+                raise 检查器错误('Host Debugger returned no script source')#抛错
+            return 结果['scriptSource']#返回
+        return 自身.目标.请求('Debugger.getScriptSource',{'scriptId':脚本['nativeId']}).然后(取出源)#请求完成后再取源
 
     def 取源映射(自身,_脚本键):#取源映射
-        'Host 不提供源映射'
-        return None#Host不提供
+        'Host 不提供源映射，返回兑现 None 的期约'
+        无映射=期约扩展()#源映射期约
+        无映射.解决(None)#Host不提供
+        return 无映射#返回已解决的期约
 
     def 订阅(自身,监听):#订阅
         '订阅初始目录读取之后发现的脚本'

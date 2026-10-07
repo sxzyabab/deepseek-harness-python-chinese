@@ -18,27 +18,46 @@ __all__=['使用打开目标手势','应用图标','打开目标按钮','样式�
 .skeleton{display:inline-block;flex:none;border-radius:var(--dsw-radius-xs);background:var(--dsw-alias-interactive-bg-hover)}
 '''#样式表结束
 
+def 接上(产出,成功,失败):
+    '期约走 然后，上游 then 走 then；已是值则直接成功'
+    if hasattr(产出,'然后'):#本层期约
+        产出.然后(成功,失败)#接上
+        return
+    if hasattr(产出,'then'):#上游期约
+        产出.then(成功,失败)#接上
+        return
+    成功(产出)#已是值
+
 def 使用打开目标手势(执行,翻译):
     """串行化手势，失败经发起控件的 toast 宣告。
-    执行为目标适配器，返回失败键或 None；翻译为本地化文案。
+    执行为目标适配器，返回失败键、None 或期约；翻译为本地化文案。
     返回 pending、toast 与受守卫的 act
     """
     提示=使用打开失败提示()#横幅
     箱={'pending':False,'inFlight':False}#态
-    def 行动(操作):
-        '在飞时忽略；结束后清 pending'
-        if 箱['inFlight']:#在飞
-            return#忽略
-        箱['inFlight']=True#占位
-        箱['pending']=True#忙碌
-        失败=执行(操作)#跑
-        if hasattr(失败,'等待'):#异步面
-            失败=失败.等待()#等
+    def 读待定():
+        '是否在飞'
+        return 箱['pending']#忙碌
+    def 结束(失败):
+        '失败则宣告，并清在飞'
         if 失败 is not None:#失败
             提示['show'](翻译(f'path.{失败}'))#宣告
         箱['inFlight']=False#结束
         箱['pending']=False#闲
-    return {'pending':lambda:箱['pending'],'toast':提示['toast'],'act':行动,'state':箱}#面
+    def 失败臂(错误):
+        '拒绝值为文案键则宣告'
+        结束(错误 if isinstance(错误,str) else None)#清
+    def 行动(操作):
+        '在飞时忽略；落定后清 pending'
+        if 箱['inFlight']:#在飞
+            return#忽略
+        箱['inFlight']=True#占位
+        箱['pending']=True#忙碌
+        try:#跑
+            接上(执行(操作),结束,失败臂)#期约或值
+        except Exception:#同步失败
+            结束(None)#清
+    return {'pending':读待定,'toast':提示['toast'],'act':行动,'state':箱}#面
 
 class 应用图标:#主钮与菜单共用
     '一条应用图；失败落到通用右上箭头占位'
@@ -118,6 +137,10 @@ class 打开目标按钮:#文件与目录同一分体按钮
             return#止
         自身._跑({'kind':'application','id':标识[4:]})#app: 前缀后为 id
 
+    def 关菜单(自身):
+        '关菜单'
+        自身.菜单开=False#关
+
     def 切换菜单(自身):
         '箭头；打开前可选刷新'
         if not 自身.菜单开:#将开
@@ -179,7 +202,7 @@ class 打开目标按钮:#文件与目录同一分体按钮
             'styleSheet':样式表,#样式
             'onPrimary':自身._主钮,#主钮
             'onToggle':自身.切换菜单,#箭头
-            'onClose':lambda:setattr(自身,'菜单开',False),#关菜单
+            'onClose':自身.关菜单,#关菜单
             'onSelect':自身._菜单选定,#选定
         }#视图结束
 

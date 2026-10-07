@@ -1,7 +1,7 @@
 '有界源准入、共享内容转换与调用方拥有的 PDF 交付'
 import hashlib,json,threading#内容摘要、源键序列化、任务线程
 from concurrent.futures import Future as 原生结果#读取方结算
-from ...工具.超时 import 中止控制器,已中止,若已中止则抛出,等待中止#中止原语
+from ...工具.超时 import 等待中止#中止类已禁用
 from .异常 import office转pdf错误#分类失败
 from .标识构造 import office转pdf键#内容身份
 

@@ -1,5 +1,11 @@
 '模型会话标题共享策略'
-from ...基础设施.通用工具 import 紧凑json编码,utf8字节数,已中止
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 from ...依赖.schemastery import 字典字段,数字字段,字符串字段
 from ...模型后端.llm import 创建用户消息,深冻结,块组装器#LLM 辅助
 from ...工具.超时 import 截止#截止

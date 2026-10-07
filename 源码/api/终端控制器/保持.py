@@ -1,7 +1,6 @@
 '一个终端所有者的窗口保持与保守空闲回收'
 import threading#观察与定时
 import time#单调时钟
-from ...工具.超时 import 中止控制器,若已中止则抛出,合成信号#中止
 from .异常 import 远程错误#本包异常
 
 __all__=['终端保持']#仅中文公开名

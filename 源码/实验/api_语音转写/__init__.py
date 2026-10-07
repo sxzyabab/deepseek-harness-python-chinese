@@ -2,7 +2,6 @@ import base64,math
 from ...基础设施.通用工具.序列化编码 import 严格解码base64
 from ...类型化远程调用.协议 import 远程服务,远程
 from ...依赖.schemastery import 自然数字段,数字字段,字典字段
-from ...工具.超时 import 若已中止则抛出
 from ..语音转写.波形 import 校验波形
 from .异常 import 远程错误
 from . import (
@@ -76,6 +75,13 @@ class 语音转写控制器(远程服务):
         上限=math.ceil(自身.maxAudioBytes/3)*4
         if len(编码)>上限:
             raise 远程错误('speech/invalid-audio','Audio is invalid or exceeds the configured byte limit',{'reason':'encoding-or-size'})
+        def 转换失败(错误):#校验或转写失败
+            '已取消则抛取消原因；Remote 错误原样抛出；其余包成转写失败'
+            若已中止则抛出(signal)
+            if isinstance(错误,远程错误):
+                raise 错误
+            原因=str(错误)
+            raise 远程错误('speech/transcription-failed',原因,{'reason':原因})
         try:
             音频=严格解码base64(编码)
             if len(音频)>自身.maxAudioBytes:
@@ -87,13 +93,10 @@ class 语音转写控制器(远程服务):
             if 'language' in request and request['language'] is not None:
                 请求['language']=request['language']
             规格=自身.上下文.speechToText.解析(请求)
-            return 自身.上下文.speechToText.转写(规格,signal)
+            转写结果=自身.上下文.speechToText.转写(规格,signal)
         except Exception as 错误:
-            若已中止则抛出(signal)
-            if isinstance(错误,远程错误):
-                raise 错误
-            原因=str(错误)
-            raise 远程错误('speech/transcription-failed',原因,{'reason':原因})
+            转换失败(错误)
+        return 转写结果.捕获(转换失败)#转写期约失败同样转换
 
 远程贡献={
     'package':'@deepseek-ai/dsh-experimental-api-speech-to-text',

@@ -1,6 +1,12 @@
 '工作区文件搜索索引，供 `@file` 补全使用'
 import os,threading#路径与后台索引
-from ...基础设施.通用工具 import 路径转正斜杠,相对正斜杠路径,启动守护线程,已中止
+from ...基础设施.通用工具 import 路径转正斜杠,相对正斜杠路径,启动守护线程
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 from concurrent.futures import Future as _原生Future#索引任务
 from ..文件引用.词法 import 光标处活动令牌,格式化文件提及#再导出词法
 from .异常 import 文件引用本地错误

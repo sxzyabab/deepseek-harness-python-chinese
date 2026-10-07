@@ -1,6 +1,6 @@
 '本地 PowerShell 服务提供方'
-import os,math,threading#工作目录、有限数与后台结算线程
-from ...基础设施.通用工具.并发原语 import 操作任务
+import os,math#工作目录与有限数
+from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
 from ..命令 import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
 from ...配置.配置 import 安装设置段#设置段安装
@@ -9,7 +9,6 @@ from ...工具.超时 import (
     截止,#融合截止
     定时器延迟上限毫秒,#定时器延迟上限
     取超时,#取出超时原因
-    若已中止则抛出,#写前已中止则抛
 )#超时库
 from .解析 import 解析Pwsh路径,候选Pwsh路径#再导出 pwsh 路径解析
 from .异常 import 本地powershell错误#本包异常基类
@@ -83,7 +82,7 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         自身.status='running'#刚拉起，算在跑
         自身.exitCode=None#尚未退出
         自身.signal=None#尚未被信号打死
-        自身.done=操作任务()#结算任务
+        自身.done=期约()#结算期约，永不拒绝
         自身.sandbox=None#沙箱事实由子类盖章
         自身.运行中=运行中#存活子进程句柄
         自身.收集=收集#两路收集读取器
@@ -92,26 +91,31 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         自身.失败说明=None#待交付的启动失败说明
         自身.标准输出偏移=0#标准输出已读偏移
         自身.标准误偏移=0#标准误已读偏移
-        自身.投影=None#前台投影缓存
+        自身.投影=None#前台投影期约缓存
         自身.提供方失败=None#基础设施失败
         自身.分类函数=分类函数#到期分类
 
     def 结果(自身):
-        '前台投影：进程关闭后给出运行结果；提供方失败则抛出'
+        '返回期约：前台投影，进程关闭后兑现运行结果；提供方失败则拒绝。同一进程复用同一期约'
         if 自身.投影 is None:
-            自身.done.等待()
-            if 自身.提供方失败 is not None:
-                raise 自身.提供方失败
-            分类=自身.分类函数()
-            自身.投影={
-                'exitCode':自身.exitCode,
-                'signal':自身.signal,
-                'timedOut':分类['timedOut'],
-                'aborted':分类['aborted'],
-                'timeoutMs':自身.规格['timeoutMs'],
-                'stdout':最终输出(自身.收集['stdout']),
-                'stderr':最终输出(自身.收集['stderr']),
-            }
+            投影=期约()#前台投影的结算
+            自身.投影=投影#记忆化
+            def 进程已关闭(*关闭值):
+                '进程关闭后给出运行结果'
+                if 自身.提供方失败 is not None:
+                    投影.拒绝(自身.提供方失败)
+                    return
+                分类=自身.分类函数()
+                投影.解决({
+                    'exitCode':自身.exitCode,
+                    'signal':自身.signal,
+                    'timedOut':分类['timedOut'],
+                    'aborted':分类['aborted'],
+                    'timeoutMs':自身.规格['timeoutMs'],
+                    'stdout':最终输出(自身.收集['stdout']),
+                    'stderr':最终输出(自身.收集['stderr']),
+                })
+            自身.done.然后(进程已关闭,投影.拒绝)
         return 自身.投影
 
     def 消费启动失败(自身):#读走并清空启动失败说明
@@ -155,23 +159,10 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
         自身.运行中.终止()#请子进程服务终止进程树
         return True#发出了终止
 
-    def 盯退出(自身):#正常结算或启动拒绝
-        '把子进程 done 投影到后台句柄'
-        try:#正常结算
-            结算=自身.运行中.done.等待()#等到关闭
-            if 自身.status=='running':#还没被杀死标过
-                规格信号=自身.规格['signal'] if 'signal' in 自身.规格 else None#规格上的中止信号
-                上游中止=已中止(规格信号)#上游是否已中止
-                if 上游中止 or 结算['signal'] is not None:#中止或有信号
-                    自身.status='killed'#killed
-                else:#干净退出
-                    自身.status='completed'#completed
-            自身.exitCode=结算['exitCode']#记下退出码
-            自身.signal=结算['signal']#记下终止信号
-            错快照=自身.收集['stderr'].自偏移读取(0)#整路标准误
-            自身.执行器.进程已结束(自身,错快照['text'],False)#通知子类进程已结算，非启动失败
-            自身.done.兑现()#句柄 done 决议
-        except BaseException as 错误:#启动拒绝
+    def 盯退出(自身,拆除截止=None):#正常结算或启动拒绝
+        '把子进程 done 投影到后台句柄；句柄 done 落定后若给了拆除截止则调用'
+        def 启动拒绝(错误):
+            '子进程 done 拒绝：没有进程可报告，句柄 done 仍兑现，前台投影拒绝'
             自身.status='killed'#没有进程，算被杀掉
             细节='unprintable provider failure'
             try:
@@ -181,7 +172,30 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
             自身.失败说明='spawn failed: '+细节#把失败说明留给读取路径
             自身.提供方失败=错误#前台投影拒绝
             自身.执行器.进程已结束(自身,自身.失败说明,True,错误)#通知子类这是启动失败
-            自身.done.兑现()#句柄 done 仍决议，不拒绝
+            自身.done.解决()#句柄 done 仍决议，不拒绝
+            if 拆除截止 is not None:#调用方要求释放定时器
+                拆除截止()#释放
+        def 已退出(结算):
+            '子进程关闭后记下退出事实'
+            try:#结算处理失败按启动拒绝处理
+                if 自身.status=='running':#还没被杀死标过
+                    规格信号=自身.规格['signal'] if 'signal' in 自身.规格 else None#规格上的中止信号
+                    上游中止=已中止(规格信号)#上游是否已中止
+                    if 上游中止 or 结算['signal'] is not None:#中止或有信号
+                        自身.status='killed'#killed
+                    else:#干净退出
+                        自身.status='completed'#completed
+                自身.exitCode=结算['exitCode']#记下退出码
+                自身.signal=结算['signal']#记下终止信号
+                错快照=自身.收集['stderr'].自偏移读取(0)#整路标准误
+                自身.执行器.进程已结束(自身,错快照['text'],False)#通知子类进程已结算，非启动失败
+                自身.done.解决()#句柄 done 决议
+            except Exception as 处理错误:#结算处理失败
+                启动拒绝(处理错误)#按启动拒绝处理
+                return
+            if 拆除截止 is not None:#调用方要求释放定时器
+                拆除截止()#释放
+        自身.运行中.done.然后(已退出,启动拒绝)#等到关闭
 
 class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
     """架在子进程能力上的本地 PowerShell 执行器。
@@ -354,23 +368,17 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
             进程.失败说明='spawn failed: '+细节
             进程.提供方失败=同步错误
             进程.执行器.进程已结束(进程,进程.失败说明,True,同步错误)
-            进程.done.兑现()
+            进程.done.解决()
             拆除截止()
         elif 准备超时 is True:
             进程.status='killed'
             进程.exitCode=None
             进程.signal=None
             进程.执行器.进程已结束(进程,'',False)
-            进程.done.兑现()
+            进程.done.解决()
             拆除截止()
         else:
-            def 盯完():
-                '结算后续拆除截止'
-                进程.盯退出()
-                拆除截止()
-            工作=threading.Thread(target=盯完)
-            工作.daemon=True
-            工作.start()
+            进程.盯退出(拆除截止)
         if 准备超时 is not True and 已启动 is not None:
             已启动(进程)
         return 进程
@@ -397,9 +405,7 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
         进程=后台进程句柄(运行中,收集,规格,自身,分类)#后台进程句柄
         if 已启动 is not None:
             已启动(进程)
-        工作=threading.Thread(target=进程.盯退出)#后台结算线程
-        工作.daemon=True#不挡住退出
-        工作.start()#启动
+        进程.盯退出()#子进程关闭后结算句柄
         return 进程#返回后台进程
 
     def 进程已结束(自身,进程,标准误,启动失败,启动错误=None):#给子类的结算钩子

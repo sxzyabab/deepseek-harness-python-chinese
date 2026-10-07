@@ -1,5 +1,5 @@
 import json,os,time,threading#读配置、进程 cwd、单调时钟与后台链
-from ...基础设施.通用工具.并发原语 import 操作任务#一次性任务
+from ...基础设施.js特性 import PromiseEX as 期约#分离钩子运行的期约
 from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程
 from ...依赖.schemastery import 数字字段,字符串字段#配置字段
 from ...模型后端.llm import 创建用户消息#导入用户消息工厂
@@ -264,17 +264,18 @@ def 应用(上下文,配置值=None):
                     智能体.注入(上下文消息)#注入
             except Exception as 错误:
                 上下文.日志.警告('hooks-claude-code: SessionStart hook failed: '+str(错误))#记录失败
-        后台=操作任务()#本条创建边任务
+        后台=期约()#本条创建边的运行期约
         def 执行链():
             '执行并结算'
             try:
                 任务()#执行
-                后台.兑现(None)#成功
-            except BaseException as 错误:
+            except BaseException as 错误:#线程入口，失败交给期约
                 后台.拒绝(错误)#拒绝
+                return#已落定
+            后台.解决(None)#成功
         启动守护线程(执行链)
         分离.登记(后台)#纳入拆除排空
-        后台.等待()#创建边等到跑完
+        return 后台#创建边等它跑完，由调用方链式
     上下文.监听('agent/created',智能体已创建监听)#结束 created 监听
 
     def 预步骤监听(载荷,下一步,*位置参数):
@@ -389,14 +390,15 @@ def 应用(上下文,配置值=None):
             except Exception as 错误:
                 #分离链里注入可抛智能体包多种错误，契约未钉死
                 上下文.日志.警告('hooks-claude-code: SubagentStart hook failed: '+str(错误))#记录失败
-        后台=操作任务()#分离链任务
+        后台=期约()#分离链期约
         def 执行分离链():
             '后台执行分离链'
             try:
                 任务()#执行分离链
-                后台.兑现(None)#成功
-            except BaseException as 错误:
+            except BaseException as 错误:#线程入口，失败交给期约
                 后台.拒绝(错误)#拒绝
+                return#已落定
+            后台.解决(None)#成功
         启动守护线程(执行分离链)
         分离.登记(后台)#登记分离链
     上下文.监听('subagent/start',子智能体开始监听)#结束 subagent/start 监听
@@ -416,14 +418,15 @@ def 应用(上下文,配置值=None):
             if 孩子 is not None:#有孩子才传入
                 选项['agent']=孩子#孩子
             执行钩子点('SubagentStop',子智能体类型,子智能体载荷(上下文,'SubagentStop',信息,孩子),选项)#只观察，分离跟踪
-        后台=操作任务()#分离链任务
+        后台=期约()#分离链期约
         def 执行分离链():
             '后台执行分离链'
             try:
                 任务()#执行分离链
-                后台.兑现(None)#成功
-            except BaseException as 错误:
+            except BaseException as 错误:#线程入口，失败交给期约
                 后台.拒绝(错误)#拒绝
+                return#已落定
+            后台.解决(None)#成功
         启动守护线程(执行分离链)
         分离.登记(后台)#登记分离链
     上下文.监听('subagent/end',子智能体结束监听)#结束 subagent/end 监听

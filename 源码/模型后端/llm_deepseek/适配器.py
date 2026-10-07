@@ -2,7 +2,7 @@
 from requests import request as 发请求
 from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from ..llm import 大模型适配器,归属头
-from ...工具.超时 import 空闲看门狗,取超时,中止控制器,合成信号,已中止,若已中止则抛出
+from ...工具.超时 import 空闲看门狗,取超时
 from .模型信息 import 目录模型信息,模型信息
 from .文件仓 import 深求文件仓
 from .消息接口 import 消息文件测试通道,消息接口根

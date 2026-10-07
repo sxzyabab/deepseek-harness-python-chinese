@@ -1,6 +1,5 @@
 import threading#操作队列
-from ...内核.作用域 import 操作任务#单次等待
-from ...工具.超时 import 中止控制器,若已中止则抛出,已中止,合成信号#中止
+from ...基础设施.js特性 import PromiseEX as 期约#就绪、队尾、拆除与关闭的异步结果
 from ...依赖.工具 import 聚合错误#多失败
 
 __all__=['浏览器操作运行时错误','会话资源']#仅中文公开名
@@ -8,46 +7,35 @@ __all__=['浏览器操作运行时错误','会话资源']#仅中文公开名
 from .异常 import 浏览器操作运行时错误#本包异常
 
 def 等待操作(操作,信号):#可取消等待
-    '停调用方等待，资源所有者的工作仍保留处理器。操作是操作任务'
-    任务=操作任务()#调用方任务
-    def 已中止时():#信号
-        '按原因拒绝'
-        原因=None#原因
-        if hasattr(信号,'reason'):#有原因
-            原因=信号.reason#原因
-        if isinstance(原因,BaseException):#异常
-            任务.拒绝(原因)#原因
-        else:#包装
-            包装=浏览器操作运行时错误('browser operation canceled')#文案
-            包装.__cause__=原因#cause
-            任务.拒绝(包装)#拒绝
+    '停调用方等待，资源所有者的工作仍保留处理器。操作是期约；返回期约，信号中止时先拒绝'
+    中止结果=期约()#信号中止时拒绝
     def 监视():#等中止
-        '置位后拒绝'
+        '信号置位后按中止原因拒绝中止结果'
         if hasattr(信号,'wait'):#Event
-            信号.wait()#等待
-            已中止时()#拒绝
+            信号.wait()#阻塞到信号置位
+            原因=None#中止原因
+            if hasattr(信号,'reason'):#信号携带原因
+                原因=信号.reason#取原因
+            if isinstance(原因,BaseException):#原因本身是异常
+                中止结果.拒绝(原因)#原样拒绝
+            else:#原因不是异常
+                包装=浏览器操作运行时错误('浏览器操作已取消')#包成取消错误
+                包装.__cause__=原因#保留原始原因
+                中止结果.拒绝(包装)#拒绝
     if 信号 is not None:#有信号
-        threading.Thread(target=监视).start()#监视
-    def 转交():#操作结算
-        '兑现或拒绝调用方任务'
-        try:#等操作
-            值=操作.等待()#结果
-            任务.兑现(值)#兑现
-        except Exception as 错误:#失败
-            任务.拒绝(错误 if isinstance(错误,BaseException) else 浏览器操作运行时错误(str(错误)))#拒绝
-    threading.Thread(target=转交).start()#转交
-    return 任务.等待()#阻塞调用方
+        threading.Thread(target=监视,daemon=True).start()#后台监视中止
+    return 期约.竞速([操作,中止结果])#先结算的一路决定结果
 
 class 会话资源:#每 Session 惰性一份资源
     '按活智能体惰性获取资源，并串行其操作'
     def __init__(自身,上下文,选项):#记下上下文与策略
-        '选项含 label/exclusive/open'
+        '选项含 label/exclusive/open；open 返回期约，兑现值是含 value 与 close 的 dict'
         自身.上下文=上下文#提供者上下文
         自身.选项=选项#策略
         自身.条目={}#智能体 → 条目
         自身.所有者拆除={}#智能体 → 拆除
         自身.已拆所有者=set()#已拆所有者
-        自身.拆除中=None#共享拆除任务
+        自身.拆除中=None#共享拆除结果
 
     def 可用(自身,智能体):#不占资源的准入
         '该所有者能否使用或获取浏览器'
@@ -67,158 +55,135 @@ class 会话资源:#每 Session 惰性一份资源
         return True#可
 
     def 取(自身,智能体,信号=None):#获取资源值
-        '没有则获取一次'
-        若已中止则抛出(信号)#中止
+        '没有则获取一次。返回期约，兑现值是资源句柄；信号只取消本次等待，不取消所有者的获取'
+        若已中止则抛出(信号)#调用前已中止
         条目=自身.条目于(智能体)#条目
+        def 取出句柄(资源):#获取完成
+            '确认本次等待与所有者都没有中止，再交出句柄'
+            若已中止则抛出(信号)#本次等待已取消
+            若已中止则抛出(条目['controller'].信号)#所有者已中止
+            return 资源['value']#句柄
         if 信号 is None:#无取消
-            资源=条目['ready'].等待()#资源
+            就绪结果=条目['ready']#直接等所有者的获取
         else:#可取消等待
-            资源=等待操作(条目['ready'],信号)#等待
-        若已中止则抛出(信号)#中止
-        若已中止则抛出(条目['controller'].信号)#所有者中止
-        return 资源['value']#句柄
+            就绪结果=等待操作(条目['ready'],信号)#取消只停本次等待
+        return 就绪结果.然后(取出句柄)#获取完成后取句柄
 
     def 运行(自身,智能体,信号,操作):#串行操作
-        '等本 Session 先前操作；取消只停本次等待'
-        若已中止则抛出(信号)#中止
+        '等本 Session 先前操作；取消只停本次等待。操作返回期约；本方法返回期约，兑现值是操作结果'
+        若已中止则抛出(信号)#调用前已中止
         条目=自身.条目于(智能体)#条目
         合成=合成信号(信号,条目['controller'].信号)#合成
+        def 记录清理失败(错误):#关条目失败
+            'Session 取消期间清理失败写日志'
+            自身.上下文.logger.warn(f"{自身.选项['label']}: Session 取消期间浏览器清理失败：{错误}")#日志
         def 释放已拆():#disposed 中止
-            'Session 取消时先关资源'
+            'Session 以 disposed 原因取消时，先关资源以打断在途操作'
             原因=getattr(信号,'reason',None)#原因
             种=原因['kind'] if isinstance(原因,dict) and 'kind' in 原因 else getattr(原因,'kind',None)#kind
             if 种!='disposed':#不是拆除
                 return#忽略
             自身.已拆所有者.add(智能体)#记下
-            def 清():#关条目
-                '清理失败打日志'
-                try:#关
-                    自身.关条目(智能体,条目).等待()#关
-                except Exception as 错误:#失败
-                    自身.上下文.logger.warn(自身.选项['label']+': browser cleanup during Session cancellation failed: '+str(错误))#日志
-            threading.Thread(target=清).start()#清
+            自身.关条目(智能体,条目).捕获(记录清理失败)#关闭失败只记日志
         def 监视拆除():#等信号
             '置位后释放'
             if hasattr(信号,'wait'):#Event
                 信号.wait()#等待
                 释放已拆()#释放
-        threading.Thread(target=监视拆除).start()#监视
-        任务=操作任务()#本次
-        def 体():#队列体
-            '等尾再跑操作'
-            try:#串行
-                条目['tail'].等待()#先前
-                若已中止则抛出(合成)#合成
-                资源=等待操作(条目['ready'],合成)#资源
-                若已中止则抛出(合成)#合成
-                结果=操作(资源['value'],合成)#提供方调用
-                若已中止则抛出(合成)#合成
-                任务.兑现(结果)#兑现
-            except Exception as 错误:#失败
-                任务.拒绝(错误)#拒绝
-        threading.Thread(target=体).start()#启动
-        尾=操作任务()#队列尾
-        def 收尾():#忽略对错
-            '只跟踪结算'
-            try:#等本次
-                任务.等待()#结算
-            except Exception:#忽略
-                pass#队列不观察错误
-            尾.兑现(None)#尾完成
-        threading.Thread(target=收尾).start()#收尾
-        条目['tail']=尾#换尾
-        return 任务.等待()#返回结果
+        def 校验未中止(结果):#操作完成
+            '操作完成后若已取消，按取消处理'
+            若已中止则抛出(合成)#取消优先于结果
+            return 结果#原样交回
+        def 取得资源后执行(资源):#获取完成
+            '资源就绪后在合成信号下执行操作'
+            若已中止则抛出(合成)#等资源期间已取消
+            return 操作(资源['value'],合成).然后(校验未中止)#提供方调用
+        def 排队执行(先前值):#队尾结算后
+            '先前操作结算后，取得资源并执行本次操作'
+            若已中止则抛出(合成)#排队期间已取消
+            return 等待操作(条目['ready'],合成).然后(取得资源后执行)#取消只停本次等待
+        threading.Thread(target=监视拆除,daemon=True).start()#监视
+        任务=条目['tail'].然后(排队执行)#排在先前操作之后
+        条目['tail']=期约.全部已结算([任务])#队尾只跟踪结算，不观察对错
+        return 任务#调用方观察本次结果
 
     def 拆除(自身):#停获取并等全部
-        '失败的 close 保留条目并拒绝拆除'
-        if 自身.拆除中 is not None:#已有
-            return 自身.拆除中.等待()#共享
-        自身.拆除中=操作任务()#共享
-        def 体():#拆除体
-            '关每条再关所有者拆除'
-            try:#结算
-                错误表=[]#失败
-                for 智能体,条目 in list(自身.条目.items()):#逐条
-                    try:#关
-                        自身.关条目(智能体,条目).等待()#关
-                    except Exception as 错误:#失败
-                        错误表.append(错误)#记下
+        '失败的 close 保留条目并拒绝拆除。返回共享的期约'
+        if 自身.拆除中 is None:#首次拆除
+            关闭表=[自身.关条目(智能体,条目) for 智能体,条目 in list(自身.条目.items())]#每个条目各自关闭
+            def 关闭全部后(结算表):#条目全部结算
+                '汇总条目关闭失败，再拆除全部所有者'
+                错误表=[关闭结果.数据 for 关闭结果 in 关闭表 if 关闭结果.状态=='rejected']#失败
                 if len(错误表)>0:#有失败
-                    raise 聚合错误(错误表,自身.选项['label']+': browser cleanup failed')#聚合
-                for 关 in list(自身.所有者拆除.values()):#所有者
-                    关()#拆除
-                自身.拆除中.兑现(None)#完成
-            except Exception as 错误:#失败
-                自身.拆除中.拒绝(错误)#拒绝
-        threading.Thread(target=体).start()#启动
-        return 自身.拆除中.等待()#等待
+                    raise 聚合错误(错误表,f"{自身.选项['label']}: 浏览器清理失败")#聚合
+                return 期约.全部([所有者拆除() for 所有者拆除 in list(自身.所有者拆除.values())])#所有者拆除器各返回期约
+            自身.拆除中=期约.全部已结算(关闭表).然后(关闭全部后)#共享拆除结果
+        return 自身.拆除中#共享
 
     def 条目于(自身,智能体):#取或建条目
-        '准入失败则抛英文'
+        '准入失败则同步抛出本包异常'
         登记=自身.上下文.get('agents')#表
         if 自身.拆除中 is not None or 智能体 in 自身.已拆所有者 or 登记 is None or 登记.get(智能体.id) is not 智能体:#非活所有者
-            raise 浏览器操作运行时错误(自身.选项['label']+': Session is not a live browser owner')#非活
+            raise 浏览器操作运行时错误(f"{自身.选项['label']}: Session 不是存活的浏览器所有者")#非活
         if 智能体 in 自身.条目:#已有
             return 自身.条目[智能体]#条目
         if 自身.选项['exclusive'] and len(自身.条目)>0:#独占
-            raise 浏览器操作运行时错误(自身.选项['label']+': attached browser is already reserved by another Session')#已占
+            raise 浏览器操作运行时错误(f"{自身.选项['label']}: 附着的浏览器已被另一个 Session 占用")#已占
         if 智能体 not in 自身.所有者拆除:#尚未挂拆除
+            def 摘除所有者(已关闭值=None):#条目已关
+                '条目关闭后摘掉所有者拆除器'
+                if 智能体 in 自身.所有者拆除:#摘
+                    del 自身.所有者拆除[智能体]#摘
+            def 拆除条目():#卸
+                '关本智能体的条目并摘掉自己，返回期约'
+                自身.已拆所有者.add(智能体)#记下
+                if 智能体 in 自身.条目:#仍有
+                    return 自身.关条目(智能体,自身.条目[智能体]).然后(摘除所有者)#关完再摘
+                无条目结果=期约()#没有条目可关
+                无条目结果.解决(None)#视为已关闭
+                return 无条目结果.然后(摘除所有者)#摘
             def 会话拆除():#智能体作用域拆除
-                '关本条'
-                def 拆除条目():#异步卸
-                    '等 close'
-                    自身.已拆所有者.add(智能体)#记下
-                    if 智能体 in 自身.条目:#仍有
-                        自身.关条目(智能体,自身.条目[智能体]).等待()#关
-                    if 智能体 in 自身.所有者拆除:#摘
-                        del 自身.所有者拆除[智能体]#摘
-                    return
-                threading.Thread(target=拆除条目).start()#卸
+                '登记智能体作用域的拆除器：关本条'
                 return 拆除条目#拆除器
             自身.所有者拆除[智能体]=智能体.ctx.副作用(会话拆除,自身.选项['label']+'.session')#挂
         控制器=中止控制器()#本条寿命
-        就绪=操作任务()#获取
-        def 获取():#open
-            '失败则删条目'
-            try:#open
-                若已中止则抛出(控制器.信号)#中止
-                资源=自身.选项['open'](智能体,控制器.信号)#获取
-                就绪.兑现(资源)#兑现
-            except Exception as 错误:#失败
-                if 智能体 in 自身.条目:#仍是本条
-                    del 自身.条目[智能体]#删
-                就绪.拒绝(错误)#拒绝
-        threading.Thread(target=获取).start()#获取
-        尾=操作任务()#空尾
-        尾.兑现(None)#已完成
-        条目={'controller':控制器,'ready':就绪,'tail':尾}#条目
+        起始=期约()#条目登记之后才开始获取
+        空尾=期约()#尚无先前操作
+        空尾.解决(None)#已结算的队尾
+        def 打开资源(起始值):#开始获取
+            '确认条目未被中止后调用提供方 open，返回期约'
+            若已中止则抛出(控制器.信号)#中止
+            return 自身.选项['open'](智能体,控制器.信号)#获取
+        def 打开失败(错误):#获取失败
+            'open 已自行回滚；摘掉条目后把失败交给等待者'
+            自身.条目.pop(智能体,None)#摘掉条目
+            raise 错误#原样抛出
+        条目={'controller':控制器,'ready':起始.然后(打开资源).捕获(打开失败),'tail':空尾}#条目
         自身.条目[智能体]=条目#挂
+        起始.解决(None)#条目已登记，开始获取
         return 条目#条目
 
     def 关条目(自身,智能体,条目):#关一条
-        '共享 closing 任务'
-        if 'closing' in 条目 and 条目['closing'] is not None:#已有
+        '共享 closing 期约'
+        if 'closing' in 条目:#已有
             return 条目['closing']#共享
-        关=操作任务()#关闭
-        条目['closing']=关#挂
-        def 体():#关体
-            '中止获取、close 资源、等尾'
-            try:#关
-                条目['controller'].中止(浏览器操作运行时错误(自身.选项['label']+': Session browser is closing'))#中止
-                资源=None#可能失败的获取
-                try:#ready
-                    资源=条目['ready'].等待()#资源
-                except Exception:#获取失败无资源
-                    资源=None#无
-                try:#close
-                    if 资源 is not None:#有
-                        资源['close']()#关
-                finally:#等尾
-                    条目['tail'].等待()#尾
-                if 智能体 in 自身.条目:#摘
-                    del 自身.条目[智能体]#摘
-                关.兑现(None)#完成
-            except Exception as 错误:#失败
-                关.拒绝(错误)#拒绝
-        threading.Thread(target=体).start()#启动
-        return 关#任务
+        条目['controller'].中止(浏览器操作运行时错误(f"{自身.选项['label']}: Session 浏览器正在关闭"))#中止获取
+        def 忽略获取失败(错误):#获取失败无资源
+            '获取失败时没有资源可关'
+            return None#无资源
+        def 等队尾():#收尾
+            '无论资源关闭成败，都等队尾结清'
+            return 条目['tail']#队尾
+        def 关闭资源(资源):#关资源
+            '关闭资源后，等本条目的队尾结清'
+            if 资源 is not None:#获取成功
+                资源关闭结果=资源['close']()#关资源
+            else:#获取失败
+                资源关闭结果=期约()#没有资源可关
+                资源关闭结果.解决(None)#视为已关闭
+            return 资源关闭结果.最终(等队尾)#关闭失败时仍等队尾
+        def 摘除条目(队尾值):#关完
+            '条目全部关完后摘掉'
+            自身.条目.pop(智能体,None)#摘
+        条目['closing']=条目['ready'].捕获(忽略获取失败).然后(关闭资源).然后(摘除条目)#共享关闭结果
+        return 条目['closing']#共享

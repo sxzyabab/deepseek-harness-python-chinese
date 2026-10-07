@@ -1,5 +1,5 @@
 import threading
-from ....工具.超时 import 中止控制器
+from ....基础设施.js特性 import PromiseEX as 期约#停录、转写与拆除的异步结果
 from ..异常 import 录制错误#采集失败
 from .音频 import 音频base64
 from .波形图 import 波形图
@@ -99,11 +99,11 @@ class 语音输入:
         自身.阶段='feedback'
 
     def 拆录音(自身,采集):
-        '关闭失败不得盖住结果'
-        try:
-            采集.拆除()
-        except Exception:
-            return
+        '关闭失败不得盖住结果。返回期约，关闭失败也兑现'
+        def 忽略关闭失败(失败):#拆除失败
+            '轨道先于 AudioContext.close() 停止，关闭失败不能盖住录音结果'
+            return None#失败已消化
+        return 采集.拆除().捕获(忽略关闭失败)
 
     def 取消(自身):
         '作废在途采集'
@@ -140,35 +140,49 @@ class 语音输入:
         if 计时 is not None:
             计时.cancel()
         自身.阶段='transcribing'
-        try:
-            音频=活动['capture'].stop(活动['maxDurationSeconds'])
+        def 停录(启动值):#开始停录
+            '停止采集，返回期约；同步抛出也转成拒绝'
+            return 活动['capture'].stop(活动['maxDurationSeconds'])
+        def 转写音频(音频):#录音已停止
+            '检查大小后转写；会话已换代则丢弃'
             if 代!=自身.代:
-                return
+                return None
             if len(音频)>活动['maxAudioBytes']:
                 自身.反馈(自身.属性['t']('tooLarge'))
-                return
+                return None
             请求={'audioBase64':音频base64(音频),**活动['selection']}
-            结果=自身.属性['transcribe'](请求,活动['abort'].信号)
-            if 代!=自身.代:
-                return
-            if not 结果['ok']:
-                自身.反馈(填(自身.属性['t'],'failed',{'message':结果['error'].message}))
-                return
-            文本=结果['value']['text']
-            if 文本=='':
-                自身.反馈(自身.属性['t']('empty'))
-                return
-            if not 自身.属性['inputActions'].insertText(文本,活动['span']):
-                自身.待插入=文本
-                自身.反馈(自身.属性['t']('conflict'))
-                return
-            自身.阶段='idle'
-        except Exception as 失败:
-            自身.拆录音(活动['capture'])
+            def 处理转写结果(结果):#转写完成
+                '按转写结果插入文本或给出反馈'
+                if 代!=自身.代:
+                    return
+                if not 结果['ok']:
+                    自身.反馈(填(自身.属性['t'],'failed',{'message':结果['error'].message}))
+                    return
+                文本=结果['value']['text']
+                if 文本=='':
+                    自身.反馈(自身.属性['t']('empty'))
+                    return
+                if not 自身.属性['inputActions'].insertText(文本,活动['span']):
+                    自身.待插入=文本
+                    自身.反馈(自身.属性['t']('conflict'))
+                    return
+                自身.阶段='idle'
+            return 自身.属性['transcribe'](请求,活动['abort'].信号).然后(处理转写结果)
+        def 处理失败(失败):#停录或转写失败
+            '先拆录音，再按失败给出反馈'
+            def 提示失败(拆除值):#拆除完成
+                '会话未换代才给出反馈'
+                if 代==自身.代:
+                    自身.反馈(自身.失败文(失败))
+            return 自身.拆录音(活动['capture']).然后(提示失败)
+        def 收尾():#结算后
+            '会话未换代则清掉当前采集'
             if 代==自身.代:
-                自身.反馈(自身.失败文(失败))
-        if 代==自身.代:
-            自身.当前=None
+                自身.当前=None
+        起点=期约()#停录在登记失败处理之后才开始
+        结果=起点.然后(停录).然后(转写音频).捕获(处理失败).最终(收尾)
+        起点.解决(None)
+        return 结果
 
     def 开始(自身):
         '取得麦克风并开始采集'
@@ -203,8 +217,11 @@ class 语音输入:
                 计时.cancel()
             寿命.中止()
             自身.反馈(自身.失败文(失败))
-        try:
-            活动['capture'].start(采集出错)
+        def 开始采集(启动值):#开始采集
+            '开始采集，返回期约；同步抛出也转成拒绝'
+            return 活动['capture'].start(采集出错)
+        def 进入录制(采集已开始值):#麦克风已取得
+            '未换代且仍是本次采集才进入录制并启动计时'
             if 代!=自身.代 or 自身.当前 is not 活动:
                 return
             活动['phase']='recording'
@@ -214,11 +231,18 @@ class 语音输入:
             计时.daemon=True
             活动['timer']=计时
             计时.start()
-        except Exception as 失败:
-            自身.拆录音(活动['capture'])
-            if 代==自身.代:
-                自身.当前=None
-                自身.反馈(自身.失败文(失败))
+        def 处理失败(失败):#开始或进入录制失败
+            '先拆录音，再按失败给出反馈'
+            def 提示失败(拆除值):#拆除完成
+                '未换代才清当前采集并给出反馈'
+                if 代==自身.代:
+                    自身.当前=None
+                    自身.反馈(自身.失败文(失败))
+            return 自身.拆录音(活动['capture']).然后(提示失败)
+        起点=期约()#开始在登记失败处理之后才进行
+        结果=起点.然后(开始采集).然后(进入录制).捕获(处理失败)
+        起点.解决(None)
+        return 结果
 
     def 插入待定(自身):
         '草稿冲突后显式插入'

@@ -1,5 +1,11 @@
 '可选的请求时钟上下文'
-from ...基础设施.通用工具 import 当前毫秒,紧凑json编码,已中止
+from ...基础设施.通用工具 import 当前毫秒,紧凑json编码
+
+def 已中止(信号):
+    '信号按 Event 定死。无信号视为未中止'
+    if 信号 is None:#无信号
+        return False#未中止
+    return 信号.is_set()#Event 已置位
 from zoneinfo import ZoneInfoNotFoundError as 时区未找到#时区解析失败
 from ...依赖.schemastery import 字符串字段,数字字段
 from ...模型后端.llm import 创建用户消息#导入用户消息构造

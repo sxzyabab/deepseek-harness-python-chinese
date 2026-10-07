@@ -1,6 +1,6 @@
 '经子进程能力做 git 工作树快照、树差异与忽略检查'
 import os,re,shutil,tempfile#路径、正则、拷贝与临时目录
-from ...工具.超时 import 截止,取超时,已中止#超时与中止
+from ...工具.超时 import 截止,取超时#超时
 from .行数统计 import 解析行数统计#numstat解析
 from .路径 import 规范路径,是否位于内,转斜杠路径#路径工具
 from .异常 import 版本库错误#本包git异常

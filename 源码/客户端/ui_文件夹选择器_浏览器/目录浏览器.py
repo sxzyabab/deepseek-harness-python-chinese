@@ -169,62 +169,46 @@ class 目录浏览器:#应用内目录浏览器状态机
             任务=列举(None,信号)#发起
         return {'seq':序号,'scan':任务,'controller':信号}#任务包
 
-    def 结算扫描(自身,扫描):#结算扫描
-        '工作区列举返回任务对象，调用 等待'
-        return 扫描.等待()#等待
-
     def 着陆(自身,路径,关编辑,宣告):#整视图着陆
-        '选中锚定；远离显示根则两栏'
+        '选中锚定；远离显示根则两栏。列举期约落到同级回调'
         包=自身.启动列举(路径)#发起
         序号=包['seq']#序号
         自身.加载中=True#加载
         if 宣告:#宣告失败
             自身.错误=None
-        try:#扫描目标
-            目标=自身.结算扫描(包['scan'])#目标层
-        except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
-            if 序号!=自身.请求序号:#过期
-                return#丢弃
-            自身.加载中=False#结束加载
-            if 宣告:#宣告
-                自身.错误=失败文案(原因)#告警
-            return
-        if 序号!=自身.请求序号:#过期
-            return#丢弃
-        if not 关编辑 and 路径 is not None:#草稿扫描记下着陆
-            自身.已扫描={'directory':路径,'landed':目标['path'] if 'path' in 目标 else None}#扫描记录
+        本次目标=None#目标层，同级回调共用
+        父序号=None#父腿序号
         def 单栏():#单栏着陆
             '目标独占'
-            自身.父层=目标#左列
+            自身.父层=本次目标#左列
             自身.选中=None#无选中
             自身.子层=None#无右列
             自身.加载中=False#结束
             if 关编辑:#关编辑
                 自身.路径草稿=None#关
             else:#草稿模式
-                自身.错误=None错误
-        屑=展示面包屑(目标,'')#显示链
-        if len(屑)<2:#显示根；判的是 length
-            单栏()#单栏
-            return
-        屑链=目标['crumbs'] if 'crumbs' in 目标 and 目标['crumbs'] is not None else []#原始屑；空列表保留
-        if len(屑链)<2:#无父屑；判的是 length
-            单栏()#单栏
-            return
-        父屑=屑链[-2]#父屑
-        try:#拉父层
-            父包=自身.启动列举(父屑['path'] if 'path' in 父屑 else None)#父腿
-            父序号=父包['seq']#父序号
-            父层=自身.结算扫描(父包['scan'])#父层
+                自身.错误=None
+        def 目标失败(原因):#目标列举失败
+            '过期丢弃，否则宣告'
+            if 序号!=自身.请求序号:#过期
+                return
+            自身.加载中=False#结束加载
+            if 宣告:#宣告
+                自身.错误=失败文案(原因)#告警
+        def 父失败(_原因):#父腿失败
+            '单栏回退'
+            单栏()
+        def 父已到(父层):#父层到达
+            '匹配目标行则两栏，否则单栏'
             if 父序号!=自身.请求序号:#过期
-                return#丢弃
+                return
             分隔=分隔符于(父层)#分隔符
             def 折(值):#大小写折叠
                 'Windows 忽略大小写'
                 return 值.lower() if 分隔=='\\' else 值#折叠
             匹配=None#父层中的目标条目
             父条目=父层['entries'] if 'entries' in 父层 and 父层['entries'] is not None else []#条目；空列表保留
-            目标路径=目标['path'] if 'path' in 目标 and 目标['path'] is not None else ''#目标路径
+            目标路径=本次目标['path'] if 'path' in 本次目标 and 本次目标['path'] is not None else ''#目标路径
             for 条目 in 父条目:#找匹配
                 条路径=条目['path'] if 'path' in 条目 and 条目['path'] is not None else ''#条路径
                 if 折(条路径)==折(目标路径):#命中
@@ -235,14 +219,39 @@ class 目录浏览器:#应用内目录浏览器状态机
                 return
             自身.父层=父层#左列
             自身.选中=匹配#选中
-            自身.子层=目标#右列
+            自身.子层=本次目标#右列
             自身.加载中=False#结束
             if 关编辑:#关编辑
                 自身.路径草稿=None#关
             else:#草稿
                 自身.错误=None
-        except Exception:#父腿失败；列举 RPC 异常契约未定，故不能换成更窄的 except
-            单栏()#单栏回退
+        def 目标已到(目标):#目标层到达
+            '显示根单栏；否则再列父层'
+            nonlocal 本次目标,父序号
+            if 序号!=自身.请求序号:#过期
+                return
+            本次目标=目标#记下
+            if not 关编辑 and 路径 is not None:#草稿扫描记下着陆
+                自身.已扫描={'directory':路径,'landed':目标['path'] if 'path' in 目标 else None}#扫描记录
+            屑=展示面包屑(目标,'')#显示链
+            if len(屑)<2:#显示根；判的是 length
+                单栏()#单栏
+                return
+            屑链=目标['crumbs'] if 'crumbs' in 目标 and 目标['crumbs'] is not None else []#原始屑；空列表保留
+            if len(屑链)<2:#无父屑；判的是 length
+                单栏()#单栏
+                return
+            父屑=屑链[-2]#父屑
+            try:#拉父层
+                父包=自身.启动列举(父屑['path'] if 'path' in 父屑 else None)#父腿
+                父序号=父包['seq']#父序号
+                父包['scan'].然后(父已到,父失败)#父层期约
+            except Exception:#父腿同步失败；列举 RPC 异常契约未定，故不能换成更窄的 except
+                单栏()#单栏回退
+        try:#扫描目标
+            包['scan'].然后(目标已到,目标失败)#目标期约
+        except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
+            目标失败(原因)
 
     def 导航(自身,路径=None):#提交路径导航
         '编辑器关闭，失败宣告'
@@ -255,22 +264,26 @@ class 目录浏览器:#应用内目录浏览器状态机
         if 自身.路径草稿 is not None:#编辑中选定
             自身.路径草稿=None#关编辑
         自身.选中=条目#选中
-        自身.子层=None右列
+        自身.子层=None#无右列
         自身.加载中=True#加载
-        自身.错误=None错误
-        try:#扫描
-            下一=自身.结算扫描(包['scan'])#子层
-        except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
+        自身.错误=None#清告警
+        def 子层失败(原因):#子层列举失败
+            '过期丢弃，否则回退单栏'
             if 序号!=自身.请求序号:#过期
-                return#丢弃
+                return
             自身.加载中=False#结束
             自身.错误=失败文案(原因)#告警
             自身.选中=None#回退单栏
-            return
-        if 序号!=自身.请求序号:#过期
-            return#丢弃
-        自身.子层=下一#右列
-        自身.加载中=False#结束
+        def 子层已到(下一):#子层到达
+            '写入右列'
+            if 序号!=自身.请求序号:#过期
+                return
+            自身.子层=下一#右列
+            自身.加载中=False#结束
+        try:#扫描
+            包['scan'].然后(子层已到,子层失败)#子层期约
+        except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
+            子层失败(原因)
 
     def 前进(自身,条目):#右列选定推进一层
         '子层变左列'
@@ -321,35 +334,47 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身.创建错误=None
         世代=自身.打开世代#打开世代
         创建=自身.属性['createDirectory']#创建调用
-        try:#创建
-            已建=创建(目标路径,名).等待()#建目录
-        except Exception as 原因:#创建 RPC 异常契约未定，故不能换成更窄的 except
+        本次序号=None#重列序号
+        本次已建=None#新建路径
+        def 创建失败(原因):#创建失败
+            '过期丢弃，否则告警'
             if 世代!=自身.打开世代:#过期
-                return#丢弃
+                return
             自身.创建中=False#结束
             自身.创建错误=失败文案(原因)#告警
-            return
-        if 世代!=自身.打开世代:#过期
-            return#丢弃
-        自身.创建中=False#结束
-        自身.文件夹草稿=None#关新建
-        包=自身.启动列举(目标路径)#重列目标
-        序号=包['seq']#序号
-        自身.加载中=True#加载
-        自身.错误=None
-        try:#重列
-            层=自身.结算扫描(包['scan'])#层
-        except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
-            if 序号!=自身.请求序号:#过期
-                return#丢弃
+        def 重列失败(原因):#重列失败
+            '过期丢弃，否则告警'
+            if 本次序号!=自身.请求序号:#过期
+                return
             自身.加载中=False#结束
             自身.错误=失败文案(原因)#告警
-            return
-        if 序号!=自身.请求序号:#过期
-            return#丢弃
-        自身.父层=层#左列
-        自身.加载中=False#结束
-        自身.选定({'name':名,'path':已建,'hidden':False})#选中新建
+        def 层已到(层):#目标层重列到达
+            '写入左列并选中新建'
+            if 本次序号!=自身.请求序号:#过期
+                return
+            自身.父层=层#左列
+            自身.加载中=False#结束
+            自身.选定({'name':名,'path':本次已建,'hidden':False})#选中新建
+        def 已建到达(已建):#目录已建
+            '关新建并重列目标'
+            nonlocal 本次序号,本次已建
+            if 世代!=自身.打开世代:#过期
+                return
+            自身.创建中=False#结束
+            自身.文件夹草稿=None#关新建
+            本次已建=已建#记下路径
+            包=自身.启动列举(目标路径)#重列目标
+            本次序号=包['seq']#序号
+            自身.加载中=True#加载
+            自身.错误=None
+            try:#重列
+                包['scan'].然后(层已到,重列失败)#层期约
+            except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
+                重列失败(原因)
+        try:#创建
+            创建(目标路径,名).然后(已建到达,创建失败)#建目录期约
+        except Exception as 原因:#创建 RPC 异常契约未定，故不能换成更窄的 except
+            创建失败(原因)
 
     def 视图(自身):#读视图模型
         '关闭返回 None'

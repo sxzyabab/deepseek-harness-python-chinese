@@ -3,7 +3,6 @@ import re#技能手势正则与空白压缩
 from ...依赖.schemastery import 数字字段#配置字段
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...模型后端.llm import 创建用户消息#构造用户消息
-from ...工具.超时 import 若已中止则抛出#工具取消信号
 from ..技能 import (#技能 seam 公开符号
     转义文本,#转义目录描述
     是否模型可调用,#模型面是否可调用

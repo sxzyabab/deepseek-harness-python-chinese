@@ -1,6 +1,6 @@
 import json,time#JSON、短等
-import urllib.request as 请求库#标准库
 from urllib.parse import urljoin as 拼接URL,urlparse as 解析URL,urlunparse as 组合URL
+from ....基础设施.js特性 import 请求 as 发起请求#fetch 的中文封装，返回期约
 from ..接口路径 import 宿主事件路径,复用事件路径#两条事件路径
 from ..异常 import 连接错误#本包异常
 from ..rpc import 已中止#中止
@@ -19,22 +19,9 @@ class 透传帧:
 
 class 网页接口客户端:#真实浏览器 API 客户端
     '浏览器平台子类：一元/应答用 fetch；mux/host 用仅下行 WebSocket'
-    def doFetch(自身,输入,初始化=None):#一元请求走浏览器 fetch
-        '标准 fetch 切面；无浏览器时用 urllib'
-        初始化=初始化 if 初始化 is not None else {}#选项
-        try:#页面 fetch
-            取=fetch#可能有
-        except NameError:#非浏览器
-            取=None#无
-        if callable(取):#有 fetch
-            return 取(输入,初始化)#标准 fetch
-        方法=初始化['method'] if 'method' in 初始化 else 'GET'#方法
-        头=初始化['headers'] if 'headers' in 初始化 and 初始化['headers'] is not None else {}#头
-        正文=初始化['body'] if 'body' in 初始化 else None#正文
-        数据=正文.encode('utf-8') if isinstance(正文,str) else 正文#字节
-        请求=请求库.Request(str(输入),data=数据,headers=头,method=方法)#构造
-        响应=请求库.urlopen(请求)#发出
-        return 响应#原始响应
+    def doFetch(自身,输入,初始化=None):#一元请求走 fetch
+        '一元请求的 fetch 切面；返回期约，兑现值是响应报文'
+        return 发起请求(输入,初始化)#交给请求封装，不再手搓 HTTP
 
     def openMux(自身,_载荷,信号,打开回调=None):#打开复用事件下行
         '读 mux 路径'

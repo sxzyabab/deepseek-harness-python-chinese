@@ -1,47 +1,42 @@
 import queue,threading#应答通道
-from ...内核.作用域 import 操作任务#一次等待
-from ...工具.超时 import 若已中止则抛出,已中止,等待中止#中止
+from ...基础设施.js特性 import PromiseEX as 期约#请求的异步结果
+from ...工具.超时 import 等待中止#中止类已禁用
 from .异常 import stagehand排空错误#SDK 未排空
 
 __all__=['请求','应答']#仅中文公开名
 
 def 请求(目标,方法,参数=None,信号=None):#发一条
-    '发一条请求并在应答通道关闭前取回结果。目标是收件队列'
-    若已中止则抛出(信号)#中止
-    应答箱=queue.Queue()#应答
-    任务=操作任务()#一次
-    def 中止时():#取消
-        '按原因拒绝'
-        原因=getattr(信号,'reason',None) if 信号 is not None else None#原因
-        if isinstance(原因,BaseException):#异常
-            任务.拒绝(原因)#原因
-        else:#包装
-            任务.拒绝(stagehand排空错误('Stagehand Worker request canceled'))#取消
-    def 监视():#等中止
-        '置位后拒绝'
-        等待中止(信号)#等
-        中止时()#拒绝
-    if 信号 is not None:#有信号
-        threading.Thread(target=监视,daemon=True).start()#监视
+    '发一条请求，返回期约：兑现值是应答值，应答通道异常或信号中止则拒绝。目标是收件队列'
+    若已中止则抛出(信号)#调用前已中止则不发出
+    应答箱=queue.Queue()#工作者把应答放进这里
+    应答结果=期约()#工作者应答后结算
+    竞争表=[应答结果]#先结算的一路决定请求结果
     def 收取应答():#收应答
-        '等应答'
-        try:#收
-            原始=应答箱.get()#应答
-            if not isinstance(原始,dict) or 'ok' not in 原始:#畸形
-                任务.拒绝(stagehand排空错误('Stagehand Worker reply channel closed'))#关闭
-                return#完
-            if 原始['ok'] is True:#成功
-                任务.兑现(原始.get('value'))#兑现
-            else:#失败
-                任务.拒绝(stagehand排空错误(原始.get('error') if isinstance(原始.get('error'),str) else 'Stagehand Worker request canceled'))#拒绝
-        except Exception as 错误:#失败
-            任务.拒绝(错误)#拒绝
-    threading.Thread(target=收取应答,daemon=True).start()#收
-    try:#投递
-        目标.put({'method':方法,'args':参数,'reply':应答箱})#投递
-    except Exception as 错误:#失败
-        任务.拒绝(错误)#拒绝
-    return 任务.等待()#等
+        '阻塞到工作者应答，按应答内容结算应答结果'
+        原始=应答箱.get()#阻塞取出唯一一条应答
+        if not isinstance(原始,dict) or 'ok' not in 原始:#应答格式不对
+            应答结果.拒绝(stagehand排空错误('Stagehand 工作者应答通道已关闭'))#等同通道被对端关闭
+        elif 原始['ok'] is True:#对端执行成功
+            应答结果.解决(原始.get('value'))#取回对端结果
+        elif isinstance(原始.get('error'),str):#对端失败且带消息
+            应答结果.拒绝(stagehand排空错误(原始['error']))#按对端消息拒绝
+        else:#对端失败但没有消息
+            应答结果.拒绝(stagehand排空错误('Stagehand 工作者请求已取消'))#按取消处理
+    threading.Thread(target=收取应答,daemon=True).start()#后台收取应答
+    if 信号 is not None:#调用方给了中止信号
+        中止结果=期约()#信号置位时结算
+        def 监视中止():#等中止
+            '信号置位后按中止原因拒绝中止结果'
+            等待中止(信号)#阻塞到信号置位
+            原因=getattr(信号,'reason',None)#信号携带的中止原因
+            if isinstance(原因,BaseException):#原因本身是异常
+                中止结果.拒绝(原因)#原样拒绝
+            else:#原因不是异常
+                中止结果.拒绝(stagehand排空错误('Stagehand 工作者请求已取消'))#包成取消错误
+        threading.Thread(target=监视中止,daemon=True).start()#后台监视中止
+        竞争表.append(中止结果)#中止与应答竞速
+    目标.put({'method':方法,'args':参数,'reply':应答箱})#投递请求
+    return 期约.竞速(竞争表)#先结算的一路决定结果
 
 def 应答(原始,执行):#答一条
     '校验并应答一条请求。原始是 dict'
