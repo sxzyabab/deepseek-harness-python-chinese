@@ -129,5 +129,7 @@
     "2026-09-22-input-echo-admission-ownership":"2026-09-22-输入回显准入归属",
     "2026-09-22-windows-open-through-shell-resolution":"2026-09-22-windows打开经shell解析",
     "2026-09-23-bounded-pnpm-runs":"2026-09-23-有界pnpm运行",
-    "2026-09-24-exited-holder-lock-takeover":"2026-09-24-已退出持有者锁接管"
+    "2026-09-24-exited-holder-lock-takeover":"2026-09-24-已退出持有者锁接管",
+    "2026-09-27-pwsh-prompt-tail-grace":"2026-09-27-pwsh提示符尾部宽限",
+    "2026-09-30-session-list-host-fairness":"2026-09-30-会话列表宿主时间片"
 }

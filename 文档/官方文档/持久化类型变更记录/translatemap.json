@@ -15,5 +15,7 @@
     "2026-09-20-unknown-child-catalog.schema":"2026-09-20-未知子会话目录.schema",
     "finalized":"定稿",
     "historical-formats":"格式参考",
-    "releases":"预发行版本归档"
+    "releases":"预发行版本归档",
+    "2026-09-21-user-question-reply":"2026-09-21-用户提问回复",
+    "2026-09-21-user-question-reply.schema":"2026-09-21-用户提问回复.schema"
 }

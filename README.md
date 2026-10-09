@@ -44,28 +44,30 @@ pip install -e .
     3.部分外围内容(官方开发用脚本等非核心代码)不加入
     4.[python](python/) 文件夹由于本仓库为python，不再加入，后期适配
 
-## 较大修改
-
-* 将vendor并入packages
-* 删除 vendor/group
-* schemastery包改为手搓校验包
-
 ## 更新日志
 
 进行中:
-* 常态化：跟进包结构及新代码
+* 常态化：跟进包结构及新代码,清理屎山
 * 初步重构：目前部分完成`packages/`的整理
 * 彻底重构外部依赖(Cordis相关)：将`timer`合并进`cordis`；多个工具文件及`cosmokit`合并为一个工具文件；重写`schemastery`；`vendor/`移至`packages/`
 * 优化原生体验：可安装为包，完成部分基础文件，可正常导入顶层包（AI造新轮子真是拉完了）
+* 对原有架构进行升级
 
 计划中(TODO):
 * 完成web端并成功启动
 * 完成桌面端打包链路
 * 兼容用ts写的插件
 * 为ts包写python更易用的版本
-* 对原有架构进行升级
 
 已完成:
-3.初步重构外部依赖(Cordis相关)
-2.将文档整理：`docs/`->`文档/官方文档/`
-1.将大部分核心源码转为python版：`packages/`->`源码/`
+* 增加`translatemap.json`方便处理文件对应关系
+* 初步重构外部依赖(Cordis相关)
+* 将文档整理：`docs/`->`文档/官方文档/`
+* 将大部分核心源码转为python版：`packages/`->`源码/`
+
+### 较大修改
+
+* 将vendor并入packages
+* 删除 vendor/group
+* schemastery包改为手搓校验包
+* 增加`基础设施`分组,仅用于提供可靠组件,不参与插件体系

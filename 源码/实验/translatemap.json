@@ -18,5 +18,9 @@
     "client-ui-voice-input":"客户端ui_语音输入",
     "speech-to-text":"语音转写",
     "speech-to-text-sensevoice":"语音转写_sensevoice",
-    "voice-input-bundle":"语音输入组合包"
+    "voice-input-bundle":"语音输入组合包",
+    "claude-code-mods":"claude代码_模组",
+    "client-ui-claude-code-mods":"客户端ui_claude代码_模组",
+    "inspector-profile":"检查器_配置",
+    "session-inspector":"会话检查器"
 }

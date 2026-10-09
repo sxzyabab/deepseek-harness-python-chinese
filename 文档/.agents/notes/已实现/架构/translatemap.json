@@ -262,5 +262,13 @@
     "2026-09-23-desktop-close-to-background-and-quit-confirmation":"2026-09-23-桌面关闭到后台与退出确认",
     "2026-09-23-schedule-local-menu":"2026-09-23-调度本地菜单",
     "2026-09-24-bounded-session-log-upload":"2026-09-24-有界会话日志上传",
-    "2026-09-24-web-default-schedule-composition":"2026-09-24-web默认调度组合"
+    "2026-09-24-web-default-schedule-composition":"2026-09-24-web默认调度组合",
+    "2026-09-19-timed-user-question-two-settlements":"2026-09-19-计时用户提问两次结算",
+    "2026-09-24-preparing-tool-arguments":"2026-09-24-准备中的工具参数",
+    "2026-09-24-preset-scoped-schedule-tools":"2026-09-24-预设作用域日程工具",
+    "2026-09-24-preset-scoped-time-context":"2026-09-24-预设作用域时间上下文",
+    "2026-09-24-scheduled-message-framing":"2026-09-24-日程消息框架",
+    "2026-09-25-session-log-otel-byte-limits":"2026-09-25-会话日志otel字节上限",
+    "2026-09-30-profile-package-refresh-and-manifest-invalidation":"2026-09-30-配置包刷新与清单失效",
+    "2026-09-30-structured-draft-initialization":"2026-09-30-结构化草稿初始化"
 }

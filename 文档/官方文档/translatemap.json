@@ -27,5 +27,9 @@
     "tool-execution-pipeline":"工具执行流水线",
     "ui-radius":"统一圆角规范",
     "user":"用户手册",
-    "web-styling":"WebUI样式参考"
+    "web-styling":"WebUI样式参考",
+    "dependency-catalog":"依赖目录",
+    "persistence-schema":"持久化schema",
+    "upgrade-guide":"升级指南",
+    "root":"根目录"
 }

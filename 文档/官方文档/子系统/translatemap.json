@@ -57,5 +57,8 @@
     "web-server":"HTTP服务器",
     "webhook":"Webhook运行时",
     "workflow":"工作流",
-    "workspace":"工作区"
+    "workspace":"工作区",
+    "claude-code-mods":"claude代码模组",
+    "todo":"待办",
+    "otel":"otel上报"
 }

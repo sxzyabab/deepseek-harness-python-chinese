@@ -5,5 +5,10 @@
     "network-proxy":"网络代理",
     "providers":"配置模型",
     "python-sdk":"PythonSDK快速上手",
-    "schedule":"Schedule提醒"
+    "schedule":"Schedule提醒",
+    "public-deployments":"公开部署",
+    "providers-models-page":"提供方模型页",
+    "providers-models-page.zh":"提供方模型页.zh",
+    "providers-custom-form":"自定义提供方表单",
+    "providers-custom-form.zh":"自定义提供方表单.zh"
 }

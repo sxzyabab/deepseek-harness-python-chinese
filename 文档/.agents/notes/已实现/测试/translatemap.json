@@ -30,5 +30,9 @@
     "2026-09-10-hosted-image-test-assumptions":"2026-09-10-托管图片测试假设",
     "2026-09-12-connection-and-compaction-fixture-preconditions":"2026-09-12-连接与压缩fixture前提",
     "2026-09-14-desktop-installed-update-journal":"2026-09-14-桌面已安装更新日志",
-    "2026-09-14-desktop-installed-update-materials":"2026-09-14-桌面已安装更新材料"
+    "2026-09-14-desktop-installed-update-materials":"2026-09-14-桌面已安装更新材料",
+    "2026-09-27-observation-waits-on-observed-state":"2026-09-27-观察等待已观测状态",
+    "2026-09-27-plugin-manager-git-child-environment":"2026-09-27-插件装载git子进程环境",
+    "2026-09-27-spreadsheet-selection-by-keyboard-before-reflow":"2026-09-27-重排前键盘移动表格选区",
+    "2026-09-28-session-corpus-performance":"2026-09-28-会话语料性能"
 }
