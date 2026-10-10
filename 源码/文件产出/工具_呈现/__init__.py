@@ -9,7 +9,7 @@ from .异常 import 呈现错误#本包异常基类
 __all__=['名称','注入','配置','应用','默认','已呈现文件字段','呈现错误']#仅中文公开名
 
 名称='tool-present'#Cordis插件名（字面量）
-注入=['tools','fs','sessionProjections']#依赖工具、文件系统与投影
+注入=['tools','fs','sessionProjections','workingDirectory']#依赖工具、文件系统、投影与工作目录
 配置={#部署配置
     'maxFiles':数字字段(默认值=8),#每次调用最大文件数
 }#配置模式结束
@@ -37,11 +37,10 @@ def 应用(上下文,配置值):#登记 present 并在成功结果上追加交�
         文件参数=参数['files']#模型给出的列表
         if len(文件参数)==0 or len(文件参数)>最大文件:#数量越界
             raise 呈现错误('present accepts 1 to '+str(最大文件)+' files')#拒绝
-        头=智能体.session.header#会话头
-        工作目录=头['cwd'] if 'cwd' in 头 else None#工作区
+        信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
+        工作目录=上下文.workingDirectory.ensure(智能体,信号)#确保当前目录
         if 工作目录 is None:#无工作区
             raise 呈现错误('present requires a workspace')#拒绝
-        信号=执行上下文['signal'] if 'signal' in 执行上下文 else None#取消信号
         选项={'cwd':工作目录,'signal':信号}#解析选项
         文件表=[]#已校验声明
         for 文件 in 文件参数:#逐文件

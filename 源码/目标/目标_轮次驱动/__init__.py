@@ -4,9 +4,6 @@ from ...依赖.cordis.纤程 import 纤程状态#纤程生命周期
 from ...内核.智能体 import 下一步#收件箱下一步目标
 from ...模型后端.llm import 创建用户消息#构造轮次提示
 from .提示 import 渲染目标轮次提示#轮次指令
-from . import (
-    不变量,
-)
 
 __all__=('名称','依赖','应用','默认','渲染目标轮次提示')#仅中文公开名
 
@@ -224,15 +221,19 @@ def 应用(上下文):#安装自动续跑
             状态['competingQueued']=False#空闲清竞争
             尝试=状态['attempt']#预订
             目标=当前目标(状态)#当前
-            if (尝试 is not None
+            暂停=(尝试 is not None
                 and (尝试['phase']=='queued' or 尝试['phase']=='claimed' or 尝试['cancelled'])
                 and 目标 is not None and 目标['phase']=='active' and 目标['activation']=='armed'
-                and 尝试['goalId']==目标['id'] and 尝试['revision']==目标['revision']):#取消打到本修订
+                and 尝试['goalId']==目标['id'] and 尝试['revision']==目标['revision'])#暂停打到本修订
+            if 暂停 or (尝试 is not None and 尝试['phase']=='queued'):#暂停或仍排队
                 状态['attempt']=None#清预订
-                try:#暂停
-                    上下文.goals.暂停(智能体,目标引用(目标))#暂停
+                try:#撤回排队并按需暂停
+                    if 尝试['phase']=='queued':#还在收件箱
+                        智能体.inbox.移除(尝试['messageId'])#撤回，避免挡住后面的人
+                    if 暂停:#打到本修订
+                        上下文.goals.暂停(智能体,目标引用(目标))#暂停
                 except Exception as 错误:#失败
-                    上下文.日志.警告('goal-round-driver: could not pause cancelled goal for agent "'+str(智能体.id)+'": '+渲染抛出(错误))#警告
+                    上下文.日志.警告('goal-round-driver: could not settle cancelled goal round for agent "'+str(智能体.id)+'": '+渲染抛出(错误))#警告
                     解除武装(状态)#解除
             请求驱动(状态)#再跑
         上下文.监听('agent/status',智能体状态)#状态

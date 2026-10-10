@@ -294,7 +294,7 @@ class 工具运行时(服务):
     '工具注册表与执行管线'
     依赖=['systemPrompt']
     配置={
-        'mode':枚举字段('native','ptc','both',默认值='native'),#呈现默认 native
+        'mode':枚举字段('native','ptc',默认值='native'),#呈现默认 native
         'maxParallelSubCalls':自然数字段(最小=1,默认值=10),#并行上限默认 10
     }#Loader 配置模式
 
@@ -396,10 +396,19 @@ class 工具运行时(服务):
             def 整形日志(派发):
                 '整形日志'
                 return 自身.整形派发日志(派发)#委托
+            def 解析工作目录(执行):
+                '有智能体时解析会话当前目录'
+                if 'agent' not in 执行 or 执行['agent'] is None:
+                    return None#无智能体则不需要
+                目录=自身.ctx.获取服务('workingDirectory')#工作目录服务
+                if 目录 is None:
+                    raise 工具错误('dsh-tools: run_code with an Agent requires workingDirectory')#必须有服务
+                return 目录.ensure(执行['agent'],执行.get('signal'))#确保目录
             自身.代码传输=创建运行代码工具(自身,{
                 'requireRuntime':要求运行时,#必需
                 'peekApprover':窥探审批,#窥探审批
                 'resolveSandboxPolicy':解析沙箱政策,#解析沙箱政策
+                'resolveWorkingDirectory':解析工作目录,#工作目录
                 'peekRuntime':窥探运行时,#窥探
                 'maxParallel':自身.最大并行子调用,#并行上限
                 'shapeDispatchLog':整形日志,#整形日志
@@ -437,12 +446,10 @@ class 工具运行时(服务):
             return {'schemas':模式列表,'knownNames':list(视图['knownNames'])}#已知名含限制前
         自身.要求代码运行时(呈现)#必需运行时与渲染器
         模式列表=[自身.投影模式(定义,False) for 定义 in 视图['visible'].values()]#含传输
-        if 呈现=='ptc':
-            return {
-                'schemas':[项 for 项 in 模式列表 if 项['name']==运行代码名],#仅 run_code
-                'knownNames':[运行代码名],#顺序校验只认传输
-            }#折叠到 run_code
-        return {'schemas':模式列表,'knownNames':list(视图['knownNames'])+[运行代码名]}#both：全部加传输
+        return {
+            'schemas':[项 for 项 in 模式列表 if 项['name']==运行代码名],#仅 run_code
+            'knownNames':[运行代码名],#顺序校验只认传输
+        }#折叠到 run_code
 
     def 要求代码运行时(自身,呈现):
         '解析代码运行时，否则抛出可操作的错误配置'

@@ -194,20 +194,61 @@ def 渲染已校验模式(模式节点,层数):
     return 根文档#根文档
 
 def json模式转ts(模式节点,层数=0):
-    '把一个已强制的 JSON-Schema 节点映射成 TypeScript 类型字面量'
-    断言受支持json模式(模式节点)#先统一校验
-    return 展平类型文档(渲染已校验模式(模式节点,层数))#展平文档
+    '把一个已强制的 JSON-Schema 节点映射成 TypeScript 类型字面量；畸形输入降为 unknown'
+    try:
+        断言受支持json模式(模式节点)#先统一校验
+        return 展平类型文档(渲染已校验模式(模式节点,层数))#展平文档
+    except Exception:
+        return 'unknown'#不受支持则 unknown
 
 sdk说明='''## Writing code for run_code
 
-`run_code` takes two required arguments: `code` — the body of an async TypeScript function (erasable syntax only — no `enum` or namespaces; type annotations are advisory, the code runs type-stripped) — and `description`, a short summary of what the program does. Inside the program:
+`run_code` takes two required arguments: `description`, a short summary of what the program does, and `code` — the body of an async TypeScript function (erasable syntax only — no `enum` or namespaces; type annotations are advisory, the code runs type-stripped). The declarations below are SDK bindings for this program. A declaration does not make its name a directly callable tool; only names supplied as separate tool schemas may be called directly.'''#SDK 用法说明（模型可见，不改字面量）
+sdk程序说明='''Inside the program:
 
 - Call tools as `await tools.name(args)` — quoted access for exotic names: `tools["my-tool"](args)`. Every call resolves to the tool's typed canonical JSON value. Tool arguments must be lossless JSON.
 - A FAILED tool call rejects with `ToolCallError`, whose `toolName` identifies the failed tool and whose `message` is human-readable — `try/catch` it to handle and continue.
 - Independent read-only calls MAY overlap under `Promise.all` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with `await`.
-- Emit results with `return` and/or `console.log(...)`. ONLY what you print or return comes back to you — intermediate tool results never enter the conversation, so extract just what you need.
+- Emit results with `return` and/or `console.log(...)`. Only what you print or return is program output. A successful tool result containing an image is attached after the run so you can inspect it on the next step; every other intermediate result stays out of the conversation, so extract just what you need.
 
-The available tools:'''#SDK 用法说明（模型可见，不改字面量）
+Program-only SDK bindings:'''#程序内用法
+
+def 接受示例字符串(模式节点,值):
+    '字符串模式是否接受这条示例字面量'
+    if not isinstance(模式节点,dict) or 模式节点.get('type')!='string':
+        return False
+    if 'const' in 模式节点 and 模式节点['const']!=值:
+        return False
+    if 'enum' in 模式节点 and 值 not in 模式节点['enum']:
+        return False
+    return True
+
+def 渲染bash示例(模式列表):
+    '仅当字面参数满足当前 bash 模式时给出示例'
+    bash=None
+    for 模式项 in 模式列表:
+        if 模式项['name']=='bash':
+            bash=模式项
+            break
+    if bash is None:
+        return ''
+    参数=bash['parameters']
+    if not isinstance(参数,dict) or 参数.get('type')!='object':
+        return ''
+    必填=参数['required'] if 'required' in 参数 and 参数['required'] is not None else []
+    for 名 in 必填:
+        if 名!='command' and 名!='description':
+            return ''
+    属性=参数['properties'] if 'properties' in 参数 else None
+    if not isinstance(属性,dict):
+        return ''
+    if not 接受示例字符串(属性.get('command'),'pwd'):
+        return ''
+    需要描述='description' in 必填
+    if 需要描述 and not 接受示例字符串(属性.get('description'),'Show current directory'):
+        return ''
+    描述="description: 'Show current directory', " if 需要描述 else ''
+    return ' When no separate `bash` schema is supplied, invoke a declared `bash` binding inside `run_code`:\n\n`run_code({ description: "Show current directory", code: "return await tools.bash({ '+描述+"command: 'pwd' })\" })"+'`'
 
 def 渲染工具sdk(模式列表):
     '渲染完整 tools:sdk 提示词段落'
@@ -233,4 +274,4 @@ def 渲染工具sdk(模式列表):
     工具常量='\n'.join(['declare const tools: {','  [K in ToolName]: (args: ToolArgsMap[K]) => Promise<ToolOutputMap[K]>;','}'])#tools 常量
     声明='\n\n'.join([参数映射,输出映射,'type ToolName = keyof ToolOutputMap',错误类,工具常量])#声明拼好
     json值别名='type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }'#JSON 值别名
-    return sdk说明+'\n\n```ts\n'+json值别名+'\n\n'+声明+'\n```'#包进 fenced ts
+    return sdk说明+渲染bash示例(已排序)+'\n\n'+sdk程序说明+'\n\n```ts\n'+json值别名+'\n\n'+声明+'\n```'#包进 fenced ts

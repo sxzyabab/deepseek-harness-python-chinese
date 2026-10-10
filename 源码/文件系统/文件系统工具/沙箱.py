@@ -32,11 +32,11 @@ class 文件系统沙箱控制器:#文件系统沙箱升级控制器
             'sandbox_permissions':{#更宽模式
                 'type':'string',#字符串
                 'enum':list(自身.升级模式),#封闭升级目标
-                'description':'The wider sandbox mode this file operation needs. Only valid as a one-shot retry of an operation the sandbox just denied; requires justification and user approval.',#仅作为沙箱刚拒绝后的一次性重试
+                'description':'The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.',#最窄的更宽模式，重试前先问用户
             },#sandbox_permissions结束
             'justification':{#理由
                 'type':'string',#字符串
-                'description':'Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access.',#必须与sandbox_permissions一起
+                'description':'Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request.',#必须与sandbox_permissions一起，并用用户这次请求的语言
             },#justification结束
         }#字段结束
 

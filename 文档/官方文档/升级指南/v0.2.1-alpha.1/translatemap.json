@@ -1,0 +1,21 @@
+{
+    "deepseek-model-discovery":"deepseek模型发现",
+    "desktop-test-auth-popup":"桌面测试鉴权弹窗",
+    "experimental-package-composition":"实验包组合",
+    "instruction-home-override":"指令主目录覆盖",
+    "mock-messages-events":"模拟消息事件",
+    "native-subagent-bundle-tools":"原生子代理组合包工具",
+    "new-session-generations":"新会话世代",
+    "plugin-option-placement":"插件选项位置",
+    "python-optional-resources":"python可选资源",
+    "python-ptc-sandbox":"python-ptc沙箱",
+    "session-title-adapters":"会话标题适配器",
+    "session-title-provider-strategy":"会话标题提供方策略",
+    "ssh-helper-launch":"ssh助手启动",
+    "subagent-activations":"子智能体激活",
+    "team-direct-inbox":"团队直接收件箱",
+    "terminal-command-labels":"终端命令标签",
+    "tool-presentation-mode":"工具呈现方式",
+    "web-listener-trust-config":"web监听信任配置",
+    "working-directory":"工作目录"
+}

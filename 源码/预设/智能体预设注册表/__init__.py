@@ -2,7 +2,7 @@ import threading
 from weakref import WeakKeyDictionary as 弱键字典
 import yaml
 from ...依赖.include import 插件列表写出器
-from ...内核.作用域 import 创建作用域,获取作用域,绑定作用域父
+from ...内核.作用域 import 创建作用域,获取作用域,获取作用域父,绑定作用域父
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
 from .异常 import 远程错误,预设注册表错误#注册表失败与带码远程失败
 from .预设 import 配置
@@ -11,7 +11,7 @@ from .定义 import 条目列表问题
 from .挂载 import (
     审计表行列表,实时预设挂载表,已泄漏服务列表,获取智能体服务,常驻挂载,挂载预设,
 )
-from .组合清单 import 定义组合体,已挂载组合体表行列表
+from .组合清单 import 定义组合体,已挂载组合体表行列表,活动组合模块
 from . import (
     类型,
     不变量,
@@ -22,12 +22,12 @@ __all__=[
     '包名','名称','依赖','默认','配置','智能体预设注册表','智能体预设信息',
     '智能体预设投影定义','条目列表问题',
     '审计表行列表','实时预设挂载表','已泄漏服务列表','获取智能体服务','常驻挂载',
-    '定义组合体','已挂载组合体表行列表',
+    '定义组合体','已挂载组合体表行列表','活动组合模块',
 ]
 
 包名='@deepseek-ai/dsh-agent-preset-registry'
 名称='agent-preset-registry'
-依赖=['加载器','sessionProjections']
+依赖=['loader','sessionProjections']
 
 class 智能体预设信息:
     '一条声明的当前元数据'
@@ -148,7 +148,7 @@ class 智能体预设注册表(远程服务):
         树=记录['generation']['mount']['tree']
         审计=审计表行列表(树)
         if len(审计['pending'])>0:
-            自身._拥有.加载器.等待()
+            自身._拥有.loader.等待()
             审计=审计表行列表(树)
         行列表=审计['failed']+审计['pending']
         if len(行列表)==0:
@@ -367,6 +367,25 @@ class 智能体预设注册表(远程服务):
             世代['users']-=1
             自身._收集(世代)
         return {'key':世代['key'],'拆除':拆除}
+
+    def 检查组合(自身,上下文=None):
+        '检查仍持留的修订，或某个智能体加入的那一版'
+        if 上下文 is None:
+            世代列表=list(自身._世代表.values())
+        else:
+            键=获取作用域(上下文)
+            父=None if 键 is None else 获取作用域父(键)
+            加入=None if 父 is None else 自身._世代表.get(父)
+            世代列表=[] if 加入 is None else [加入]
+        结果=[]
+        for 世代 in 世代列表:
+            挂载=世代['mount']
+            结果.append({
+                'id':挂载['presetId'],
+                'modules':活动组合模块(挂载['tree']),
+                'leakedServices':已泄漏服务列表(自身._拥有,挂载['fiber']),
+            })
+        return 结果
 
     def 组合体库存清单(自身):
         '不创建智能体，读各声明的插件行'

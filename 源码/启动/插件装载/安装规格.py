@@ -1,7 +1,7 @@
 '安装规格在交给 pnpm 之前的形态解析'
 import os,re
 
-__all__=['非法安装规格错误','解析安装规格','git主机']
+__all__=['非法安装规格错误','解析安装规格','git主机','依赖规格']
 
 GIT简写=re.compile(r'^(?:github|gitlab|bitbucket|gist):',re.IGNORECASE|re.ASCII)
 GIT网址=re.compile(r'^git(?:\+[a-z]+)?:\/\/|^git@[^:]+:',re.IGNORECASE|re.ASCII)
@@ -12,6 +12,8 @@ GIT用户主机=re.compile(r'^git@([^:]+):',re.IGNORECASE|re.ASCII)
 TARBALL规格=re.compile(r'\.(?:tgz|tar\.gz)(?:#.*)?$',re.IGNORECASE|re.ASCII)
 包名模式=re.compile(r'^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*$',re.ASCII)
 包名最大长度=214
+非注册表值=re.compile(r'^(?!(?:npm|jsr|workspace|catalog):)[a-z][a-z0-9+.-]*:|^[^@/:\s]+@[^:/\s]+:',re.IGNORECASE|re.ASCII)
+HTTP用户信息=re.compile(r'^((?:git\+)?https?://)[^/]*@',re.IGNORECASE|re.ASCII)
 
 from .异常 import 非法安装规格错误#非法规格
 
@@ -64,3 +66,21 @@ def 解析安装规格(原始):
     if 范围 is None:
         return {'kind':'registry','spec':规格,'name':名称}
     return {'kind':'registry','spec':规格,'name':名称,'range':范围}
+
+def 依赖规格(名称,已记,配置目录,包名=None):
+    '配置清单记下的依赖值收成 pnpm add 接受的规格'
+    if 包名 is None:
+        包名=名称
+    本地=re.search(r'^(file|link):(.*)$',已记,re.DOTALL|re.ASCII)
+    if 本地 is not None:
+        路径=本地.group(2)
+        if 路径=='~' or 路径.startswith('~/') or 路径.startswith('~\\'):
+            路径=os.path.expanduser('~')+路径[1:]
+        规格=本地.group(1)+':'+os.path.abspath(os.path.join(配置目录,路径))
+    elif 非注册表值.search(已记) is not None:
+        规格=HTTP用户信息.sub(r'\1',已记,count=1)
+    else:
+        return 名称+'@'+已记
+    if 包名==名称:
+        return 规格
+    return 名称+'@'+规格

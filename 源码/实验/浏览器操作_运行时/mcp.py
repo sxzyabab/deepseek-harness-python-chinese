@@ -1,6 +1,6 @@
 from functools import partial as 偏函数
 from urllib.parse import urlparse#拆端点
-import threading#中止监视
+import re,threading#空白与中止监视
 from ...依赖.schemastery import 复合类型字段,常量字段,布尔字段,字符串字段,数字字段#配置字段
 from ...浏览器操作.浏览器操作.标识构造 import 浏览器操作提供方名#提供方名
 from ...mcp import mcp客户端#MCP 客户端插件
@@ -19,7 +19,7 @@ __all__=['浏览器mcp配置','校验浏览器mcp配置','挂会话mcp']#仅中�
     },#launch 结束
     {#attach
         'mode':常量字段('attach'),#附着
-        'endpoint':字符串字段(可空=False),#端点
+        'endpoint':字符串字段(可空=False,格式=r'^(?:https?://[^\s/]+|wss?://[^\s/]+)'),#端点
         'toolCallTimeoutMs':数字字段(最小=1),#超时
     },#attach 结束
 )#配置结束
@@ -29,12 +29,18 @@ def 校验浏览器mcp配置(配置):#激活前校验端点
     if 配置['mode']!='attach':#启动
         return#过
     端点=配置['endpoint']#原文
-    解析=urlparse(端点)#解析
-    if 解析.scheme not in ('http','https','ws','wss') or ' ' in 端点 or '\t' in 端点:#非法
+    try:#解析
+        解析=urlparse(端点)#解析
+    except ValueError as 错误:#非法
+        raise 浏览器操作运行时错误('browser endpoint must be a valid HTTP(S) or WS(S) URL') from 错误
+    if 解析.scheme not in ('http','https','ws','wss') or re.search(r'\s',端点) is not None or 解析.netloc=='':#非法
         raise 浏览器操作运行时错误('browser endpoint must be a valid HTTP(S) or WS(S) URL without whitespace')#失败
 
 def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
     '等未来智能体创建时接入一台 MCP 客户端。选项是 dict'
+    if 'workingDirectory' not in 上下文:#缺工作目录
+        raise 浏览器操作运行时错误(选项['name']+': browser MCP requires a working-directory provider')
+    工作目录=上下文.workingDirectory#工作目录服务
     箱={'资源':None}#延迟赋值
     客户={}#智能体 → 状态
     工具前缀='mcp__'+选项['name']+'__'#工具前缀
@@ -112,9 +118,7 @@ def 挂会话mcp(上下文,选项):#每 Session 一台 MCP
             }#配置
             if 选项.get('env') is not None:#环境
                 连接['env']=选项['env']#覆盖
-            头=智能体.session.header#会话头
-            if 头.get('cwd') is not None:#工作目录
-                连接['cwd']=头['cwd']#cwd
+            连接['cwd']=工作目录.ensure(智能体,信号)#确保后的工作目录
             if 选项.get('toolCallTimeoutMs') is not None:#超时
                 连接['toolCallTimeoutMs']=选项['toolCallTimeoutMs']#超时
             客户插件=已铸.上下文.启动插件(mcp客户端,连接)#挂客户端

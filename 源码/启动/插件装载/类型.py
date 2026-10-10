@@ -26,3 +26,9 @@ __all__=[#仅中文说明名；记录本身是 dict 形态
 # plugin-manager/install-log
 # plugin-manager/install-state
 #注册表面：registry / fallbackRegistries / resolved
+#组合包信息键：installTarget / official / availability / source / meta
+#availability：installation | profile | missing
+#变更结果键：pendingBuilds / approvedBuilds / registries / failedAt / version
+#failedAt：registry | spec-host | other
+#安装选项键：approvedBuilds / registry / saveExact / requestId / enabled
+#安装进度 attempt：registry / index / total

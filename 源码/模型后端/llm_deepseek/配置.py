@@ -38,6 +38,7 @@ from .异常 import 深求配置错误#配置校验失败
     'imagePixelBudget':复合类型字段(整数字段(最小=1),常量字段('low')),
     'imageMaxBytes':整数字段(最小=1),
     'systemPromptUpdate':常量字段('in-history'),
+    'toolUpdate':复合类型字段(常量字段('in-history'),常量字段('addition-only')),
 }
 配置={
     'apiKeyEnv':字符串字段(默认值=默认接口密钥环境),
@@ -108,6 +109,9 @@ def 解析模型目录(模型列表):
         更新模式=模型['systemPromptUpdate'] if 'systemPromptUpdate' in 模型 else None
         if 更新模式 is not None and 更新模式!='in-history':
             raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" systemPromptUpdate must be "in-history" when present')
+        工具更新=模型['toolUpdate'] if 'toolUpdate' in 模型 else None
+        if 工具更新 is not None and 工具更新 not in ('in-history','addition-only'):
+            raise 深求配置错误('llm-deepseek: catalog model "'+模型['id']+'" toolUpdate must be "in-history" or "addition-only" when present')
         if 模型['id'] in 已见:
             raise 深求配置错误('llm-deepseek: duplicate catalog model "'+模型['id']+'"')
         已见.add(模型['id'])
@@ -122,6 +126,8 @@ def 解析模型目录(模型列表):
             条目['maxTokens']=模型['maxTokens']
         if 更新模式 is not None:
             条目['systemPromptUpdate']=更新模式
+        if 工具更新 is not None:
+            条目['toolUpdate']=工具更新
         if 有图:
             if 'imagePixelBudget' in 模型 and 模型['imagePixelBudget'] is not None:
                 条目['imagePixelBudget']=模型['imagePixelBudget']

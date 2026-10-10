@@ -55,3 +55,12 @@ def 从元数据取差异(元数据):#从结果meta收窄出diff列表
         if not 是否文件差异(项):#有非法项
             return None#畸形
     return 差异列表#已校验列表
+
+def 从元数据取路径(元数据):
+    '即使没有 diff hunk，也读出这次操作记下的路径'
+    if not isinstance(元数据,dict):#必须是普通对象
+        return None#旧数据或畸形
+    路径=元数据['path'] if 'path' in 元数据 else None#记下的路径
+    if not isinstance(路径,str) or len(路径)==0:#空或不是字符串
+        return None#不用
+    return 路径#路径

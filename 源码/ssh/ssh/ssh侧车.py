@@ -169,12 +169,15 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             if not isinstance(原始,dict):#非对象
                 raise ssh错误('expected hello object')#失败
             if 原始.get('protocol')!=ssh协议版本:#版本
-                raise ssh错误('expected protocol 1')#失败
+                raise ssh错误('expected protocol '+str(ssh协议版本))#失败
             工作区路径=远端路径(原始.get('workspace'))#工作区
             租=原始.get('leaseMs')#租期
             if isinstance(租,bool) or not isinstance(租,int) or 租<3000 or 租>600000:#范围
                 raise ssh错误('expected leaseMs')#失败
             引导=原始.get('bootstrapPath')#可选引导
+            种类=传输.get('kind','node-script')#脚本或可执行
+            if 种类=='executable' and 引导 is not None:#可执行文件自带引导
+                raise ssh错误('Executable SSH helper uses its embedded PTC bootstrap')#拒绝
             if 引导 is not None:#有
                 远端路径(引导)#路径
             工作区=上下文.fs.进程路径(上下文.fs.解析(工作区路径,{'signal':信号}))#规范化
@@ -182,12 +185,14 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
             已握手=True#完成
             续租()#开租
             入口字节=open(传输['entryPath'],'rb').read()#入口
+            可执行=sys.executable#本进程可执行文件
             结果={
                 'protocol':ssh协议版本,#版本
                 'hash':摘要十六进制(入口字节),#摘要
+                'kind':种类,#启动种类
                 'platform':'linux' if 平台=='linux' or 平台.startswith('linux') else 'darwin',#平台
                 'nodeVersion':sys.version.split()[0],#解释器版本
-                'node':路径转正斜杠(sys.executable) if not sys.executable.startswith('/') else sys.executable,#可执行
+                'executable':路径转正斜杠(可执行) if not 可执行.startswith('/') else 可执行,#可执行
                 'root':根,#套接字根
                 'workspace':工作区,#工作区
             }#握手
@@ -345,8 +350,11 @@ def 运行ssh辅助(传输):#跑到通道关闭或租期到期
                 return 上下文.fs.写文本(目标,内容,期望,信号,已解析)#写
             编辑=编辑模式(原始.get('edit'))#编辑
             期望=None#版本
-            if 原始.get('expected') is not None:#有
-                期望=原始['expected']#原样
+            if 'expected' in 原始 and 原始['expected'] is not None:#有
+                期望对象=原始['expected']#声称的版本
+                if not isinstance(期望对象,dict) or set(期望对象.keys())!={'version'} or not isinstance(期望对象.get('version'),str):#恰好 version
+                    raise ssh错误('expected version string')#失败
+                期望=期望对象#版本守卫
             return 上下文.fs.编辑文本(目标,编辑,期望,信号,已解析)#编辑
         raise ssh错误('Unknown SSH helper operation: '+方法)#未知
 

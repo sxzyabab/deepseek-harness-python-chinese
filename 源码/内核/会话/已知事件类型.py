@@ -59,6 +59,7 @@ __all__=['已知会话事件类型','消息投影事件类型']
     'turn/start',#轮次开始
     'user/message',#用户消息
     'web/deepseek-search-llm-request',#搜索 LLM 请求
+    'working-directory/change',#工作目录变更
     'workspace/changes',#工作区变更
 ))
 

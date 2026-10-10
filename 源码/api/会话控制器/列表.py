@@ -1,12 +1,11 @@
 '冷安全会话列表与搜索投影'
-from ...基础设施.通用工具 import 截断utf8字节,utf8字节数
+import time
 from .常量 import 会话搜索结果上限,会话搜索片段最大字节,会话搜索查询最大字节#常量
 from .远程错误与并发 import 远程错误消息,已中止#远程错误消息与中止
 from .异常 import 远程错误#本包异常
 
-__all__=['应用会话列表元数据','截断utf8字节','会话列表']#仅中文公开名
+__all__=['应用会话列表元数据','截断码位','会话列表']#仅中文公开名
 
-冷摘要批大小=16#冷摘要批大小
 搜索提供方调用上限=100#搜索调用预算
 消息类型=set(['user/message','assistant/message'])#可搜索类型
 
@@ -38,13 +37,22 @@ def 按更新时间(项):
     '列表排序键。项为 dict'
     return 项['updatedAt']#活动时间
 
+def 截断码位(值,上限):
+    '最长前缀，至多上限个 Unicode 码位'
+    计数=0#已数
+    for 下标,字 in enumerate(值):#逐码位
+        if 计数==上限:#到顶
+            return 值[:下标]#前缀
+        计数+=1#推进
+    return 值#未超
+
 class 会话列表:
     '拥有列表投影注册、冷摘要与授权搜索'
 
-    def __init__(自身,上下文,冷空白探测最大字节):
+    def __init__(自身,上下文,工作切片毫秒=16):
         '注册 sessionListMetadata 列'
         自身._上下文=上下文#Cordis
-        自身._冷上限=冷空白探测最大字节#冷探测上限
+        自身._工作切片毫秒=工作切片毫秒#让出预算
         上下文.sessionProjections.register({#列表元数据列
             'key':'sessionListMetadata',#键
             'init':初值列表元数据,#初值
@@ -77,6 +85,8 @@ class 会话列表:
         条目={#摘要
             'sessionId':会话.id,#id
             'updatedAt':自身._更新时间(会话.header,元数据),#活动
+            'agentAvailable':智能体 is not None and getattr(智能体,'session',None) is 会话,#同一会话
+            'formatStatus':'current',#当前格式
             'running':智能体.status=='running' if 智能体 is not None else False,#运行中
             'blank':元数据['blank'] if 元数据 is not None else 会话.seq==0,#空白
         }#基础
@@ -91,20 +101,31 @@ class 会话列表:
             raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
         记录列表=自身._上下文.sessionQuery.listSessions(信号)#列持久
         条目=[]#结果
-        冷头列表=[]#冷头
+        冷记录=[]#冷记录
+        让出期限=time.perf_counter()+自身._工作切片毫秒/1000.0#让出
         for 记录 in 记录列表:#逐条，记录为 dict
+            if 信号 is not None and 已中止(信号):#取消
+                raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
             头=记录['header']#头
             活=自身._上下文.sessions.get(头['id'])#附着
             if 活 is not None:#附着
                 条目.append(自身.摘要(活))#摘要
-                continue#下一条
-            if 'cwd' not in 头 or 头['cwd'] is None:#无 cwd
-                continue#跳过
-            冷头列表.append(头)#冷
-        for 偏移 in range(0,len(冷头列表),冷摘要批大小):#分批
-            批=冷头列表[偏移:偏移+冷摘要批大小]#一批
-            for 头 in 批:#逐头
-                条目.append(自身._冷摘要(头,信号))#冷摘要
+            elif 'cwd' in 头 and 头['cwd'] is not None:#有 cwd
+                冷记录.append(记录)#冷
+            if time.perf_counter()>=让出期限:#让出
+                time.sleep(0)#让出
+                if 信号 is not None and 已中止(信号):#取消
+                    raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
+                让出期限=time.perf_counter()+自身._工作切片毫秒/1000.0#重置
+        for 记录 in 冷记录:#冷摘要
+            if 信号 is not None and 已中止(信号):#取消
+                raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
+            条目.append(自身._冷摘要(记录))#冷摘要
+            if time.perf_counter()>=让出期限:#让出
+                time.sleep(0)#让出
+                if 信号 is not None and 已中止(信号):#取消
+                    raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
+                让出期限=time.perf_counter()+自身._工作切片毫秒/1000.0#重置
         条目.sort(key=按更新时间,reverse=True)#按活动降序
         return 条目#列表
 
@@ -127,6 +148,7 @@ class 会话列表:
                 return {'items':[],'hasMore':False}#空结果
             授权=[]#命中
             已接受=set()#去重
+            见过游标=set()#续页游标
             游标=None#continuation
             调用次数=0#预算
             页上限=会话搜索结果上限#页大小
@@ -134,13 +156,32 @@ class 会话列表:
                 if 已中止(信号):#取消
                     raise 远程错误('gateway/cancelled','session search was aborted',{})#取消
                 if 调用次数>=搜索提供方调用上限:#超预算
-                    raise 远程错误('gateway/internal','session search provider exceeded work budget',{})
+                    raise ValueError('session search provider exceeded the '+str(搜索提供方调用上限)+'-call work budget')
                 调用次数+=1#计数
-                请求={'query':规范化,'eventFilters':[{'kind':'type','values':['user/message','assistant/message']},{'kind':'surface','values':['current']}],'limit':页上限}#请求
-                if 游标 is not None:#续页
-                    请求['cursor']=游标#游标
-                页=提供方.searchSessions(请求,{'signal':信号})#搜索，页为 dict
+                请求游标=游标#本页游标
+                请求上限=页上限#本页上限
+                请求={'query':规范化,'eventFilters':[{'kind':'type','values':['user/message','assistant/message']},{'kind':'surface','values':['current']}],'limit':请求上限}#请求
+                if 请求游标 is not None:#续页
+                    请求['cursor']=请求游标#游标
+                try:#搜索
+                    页=提供方.searchSessions(请求,{'signal':信号})#搜索，页为 dict
+                except Exception as 错误:#提供方拒绝
+                    if 已中止(信号):#取消
+                        raise#交给外层
+                    码=getattr(错误,'code',None)#查询码
+                    if 请求游标 is None and 码=='SESSION_QUERY_INVALID_LIMIT' and 请求上限>1:#缩小页
+                        页上限=max(1,请求上限//2)#减半
+                        continue#重试
+                    if 请求游标 is not None and 码=='SESSION_QUERY_STALE_CURSOR':#游标过期
+                        授权.clear()#清空
+                        已接受.clear()#清空
+                        见过游标.clear()#清空
+                        游标=None#从头
+                        continue#重试
+                    raise#其余
                 命中列表=页['items'] if 'items' in 页 and 页['items'] is not None else []#命中
+                if len(命中列表)>请求上限:#超页
+                    raise ValueError('session search provider returned '+str(len(命中列表))+' items; maximum is '+str(请求上限))
                 for 命中 in 命中列表:#逐命中
                     if len(授权)>会话搜索结果上限:#超上限
                         continue#跳过
@@ -151,15 +192,19 @@ class 会话列表:
                     if 最佳['sessionId']!=头标识 or 最佳['surface']!='current' or 最佳['type'] not in 消息类型 or 头标识 in 已接受:#过滤
                         continue#跳过
                     已接受.add(头标识)#记下
-                    授权.append({'sessionId':头标识,'snippet':截断utf8字节(最佳['snippet'],会话搜索片段最大字节)})#收录
+                    授权.append({'sessionId':头标识,'snippet':截断码位(最佳['snippet'],会话搜索片段最大字节)})#收录
                 游标=页['nextCursor'] if 'nextCursor' in 页 else None#下一游标
+                if 游标 is not None:#有续页
+                    if 游标 in 见过游标:#重复
+                        raise ValueError('session search provider repeated a continuation cursor')
+                    见过游标.add(游标)#记下
                 if len(授权)>会话搜索结果上限 or 游标 is None:
                     break#退出
             return {'items':授权[:会话搜索结果上限],'hasMore':len(授权)>会话搜索结果上限}#结果
         except 远程错误:
             raise#原样
-        except (OSError,ValueError,TypeError,KeyError,AttributeError) as 错误:
-            if 已中止(信号):#取消
+        except Exception as 错误:
+            if 已中止(信号) or getattr(错误,'code',None)=='SESSION_QUERY_ABORTED':#取消
                 raise 远程错误('gateway/cancelled','session search was aborted',{})#取消
             raise 远程错误('gateway/internal','session search failed: '+远程错误消息(错误),{})#内部
 
@@ -168,76 +213,52 @@ class 会话列表:
         规范化=str(查询 if 查询 is not None else '').strip()#修剪，?? 语义保留空串
         if 规范化=='':#空
             raise 远程错误('gateway/bad-request','session search query must not be empty',{})#拒绝
-        if utf8字节数(规范化)>会话搜索查询最大字节:#太长，按 UTF-8 字节
-            raise 远程错误('gateway/bad-request','session search query too long',{})#拒绝
+        if len(规范化)>会话搜索查询最大字节:#太长，按码位
+            raise 远程错误('gateway/bad-request','session search query must contain at most '+str(会话搜索查询最大字节)+' UTF-16 code units',{})#拒绝
         if '\0' in 规范化:#NUL
             raise 远程错误('gateway/bad-request','session search query must not contain NUL',{})#拒绝
         return 规范化#返回
 
-    def _冷摘要(自身,头,信号):
-        '为冷会话构建摘要。头为 dict'
-        缓存=自身._投影(头,None)#缓存投影
-        投影=缓存#默认
-        元数据=None#默认
-        if 投影 is not None and 'values' in 投影 and 'sessionListMetadata' in 投影['values']:#有元数据
-            元数据=投影['values']['sessionListMetadata']#元数据
-        空白=元数据['blank'] if 元数据 is not None and 'blank' in 元数据 else None#空白
-        if 空白 is not False:#需探测
-            探测=自身._探测小冷(头,信号)#探测
-            if 探测 is not None:#有结果
-                投影=探测#采用
-        竞态=自身._上下文.sessions.get(头['id'])#竞态附着
-        if 竞态 is not None:#已附着
-            return 自身.摘要(竞态)#活摘要
+    def _冷摘要(自身,记录):
+        '为冷会话构建摘要。记录含 header 与可选 formatStatus'
+        头=记录['header'] if isinstance(记录,dict) and 'header' in 记录 else 记录#头
+        投影=自身._投影(头,None)#缓存投影
         元数据=投影['values']['sessionListMetadata'] if 投影 is not None and 'values' in 投影 and 'sessionListMetadata' in 投影['values'] else None#元数据
         条目={#冷摘要
             'sessionId':头['id'],#id
             'updatedAt':自身._更新时间(头,元数据),#活动
+            'agentAvailable':False,#冷
             'running':False,#冷会话不运行
-            'blank':元数据['blank'] if 元数据 is not None else False,#空白未知为可见
+            'blank':元数据['blank'] if 元数据 is not None and 'blank' in 元数据 else False,#空白未知为可见
         }#基础
+        if isinstance(记录,dict) and 记录.get('formatStatus') is not None:#格式状态
+            条目['formatStatus']=记录['formatStatus']#写入
         条目.update(自身._列表字段(头))#头字段
         if 投影 is not None:#有投影
             条目['projections']=投影#投影
         return 条目
 
-    def _探测小冷(自身,头,信号):
-        '小工件全量观测。头为 dict'
-        if 自身._冷上限==0:#禁用
-            return None#跳过
-        持久=自身._上下文.获取服务('sessionPersistence')#持久
-        if 持久 is None:#无
-            return None#跳过
-        位置=持久.locate(头) if hasattr(持久,'locate') else None#定位
-        if 位置 is None:#无位置
-            return None#跳过
-        try:
-            观测=自身._上下文.sessionQuery.observeSession(头['id'],{'signal':信号,'projectionMode':'all'})#观测
-            try:
-                块=观测.projections#投影块
-                if 块 is None:#无
-                    return None#跳过
-                return {'asOfSeq':块['asOfSeq'],'values':块['values']}#提示
-            finally:
-                if hasattr(观测,'close'):#可关
-                    观测.close()#关
-        except (OSError,ValueError,TypeError,KeyError,AttributeError):
-            return None#可见但未知
-
     def _投影(自身,头,会话):
         '读列表提示投影块。头为 dict'
         try:
             if 会话 is None:#冷
+                种类='cached'#缓存序列
                 缓存=自身._上下文.获取服务('sessionProjectionCache')#缓存服务
-                块=None if 缓存 is None else 缓存.cachedSnapshot(头)#冷快照
+                块=None#块
+                if 缓存 is not None:#有缓存
+                    块=缓存.cachedSnapshot(头)#冷快照
+                    if 块 is None and hasattr(缓存,'cachedPredecessorTitle'):#标题前驱
+                        块=缓存.cachedPredecessorTitle(头)#前驱
             else:#活
+                种类='sequenced'#活序列
                 块=自身._上下文.sessionProjections.cachedSnapshot(会话)#活快照
             if 块 is None:#无
                 return None#无
-            值列表=块['values'] if 'values' in 块 else None#值
+            值列表=块['values'] if isinstance(块,dict) and 'values' in 块 else getattr(块,'values',None)#值
             if 值列表 is None or len(值列表)==0:#空
                 return None#无
-            return {'asOfSeq':块['asOfSeq'],'values':值列表}#块
+            序号=块['asOfSeq'] if isinstance(块,dict) else 块.asOfSeq#水位
+            return {'kind':种类,'asOfSeq':序号,'values':值列表}#块
         except (OSError,ValueError,TypeError,KeyError,AttributeError):
             return None#无列
 

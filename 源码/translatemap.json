@@ -39,6 +39,7 @@
     "storage":"存储",
     "subagent":"子智能体",
     "subprocess":"子进程",
+    "telemetry":"遥测",
     "terminal":"终端",
     "test-support":"测试支持",
     "todo":"待办",

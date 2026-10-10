@@ -1,5 +1,4 @@
 '`ctx.fileReferences` 的本地文件系统实现'
-import os#路径
 from ...依赖.schemastery import 自然数字段,列表字段,字符串字段
 from ..文件引用 import 文件引用服务,文件引用提示#基类与提示
 from ..文件引用.词法 import 光标处活动令牌,格式化文件提及#再导出词法
@@ -21,14 +20,21 @@ __all__=[
 }
 包名='@deepseek-ai/dsh-file-reference-local'
 名称='file-reference-local'
-依赖=['agents']
+依赖=['agents','workingDirectory']#智能体名单与会话工作目录
+安全整数上限=9007199254740991#与 JS 安全整数同界
+
+def 是安全正整数(值):
+    '正的安全整数，布尔不算'
+    return isinstance(值,int) and not isinstance(值,bool) and 值>0 and 值<=安全整数上限#正且不越界
 
 def 校验配置(配置):
     '非法配置让插件激活失败'
     最大结果=配置['maxResults'] if 'maxResults' in 配置 else 默认最大结果数#结果上限
     最大条目=配置['maxEntries'] if 'maxEntries' in 配置 else 默认最大条目数#索引上限
-    if 最大结果<=0 or 最大条目<=0:#非正
-        raise 文件引用本地错误('file-reference-local: maxResults and maxEntries must be positive')#拒绝
+    if not 是安全正整数(最大结果):#结果上限非法
+        raise 文件引用本地错误('file-reference-local: maxResults must be a positive safe integer')#拒绝
+    if not 是安全正整数(最大条目):#索引上限非法
+        raise 文件引用本地错误('file-reference-local: maxEntries must be a positive safe integer')#拒绝
     排除=配置['excludedDirectories'] if 'excludedDirectories' in 配置 else 默认排除目录#排除名
     for 名称 in 排除:#逐个排除名
         if 名称=='' or '/' in 名称 or '\\' in 名称:#非法目录基名
@@ -48,7 +54,7 @@ class 本地文件引用服务(文件引用服务):
             'excludedDirectories':list(配置['excludedDirectories'] if 'excludedDirectories' in 配置 else 默认排除目录),#排除目录
         }
         校验配置(自身.配置)#启动前校验
-        自身.搜索表={}#智能体→搜索索引
+        自身.搜索表={}#智能体→{cwd,search}
         自身.提示纤程={}#智能体→提示纤程
         自身.提示拆除器表=set()#在途提示拆除
 
@@ -58,10 +64,9 @@ class 本地文件引用服务(文件引用服务):
                 return#跳过
             def 挂段(作用域):
                 '按工具可用性决定是否展示指引'
-                有读=作用域.tools.获取('read',智能体) is not None#是否有 read
                 def 提示正文():
-                    'read 工具存在时才给出指引'
-                    return 文件引用提示 if 有读 else ''#动态正文
+                    '渲染时再看 read 是否还在'
+                    return 文件引用提示 if 作用域.tools.获取('read',智能体) is not None else ''#动态正文
                 作用域.systemPrompt.section({#挂段
                     'name':'context:file-reference',#段名
                     'order':作用域.systemPrompt.getSectionOrder('FILE_REFERENCE'),#顺序
@@ -87,7 +92,9 @@ class 本地文件引用服务(文件引用服务):
         def 智能体已拆除(载荷,*_位置参数):
             '销毁智能体时清索引与提示'
             智能体=载荷['agent']#被拆智能体
-            自身.搜索表.pop(智能体,None)#清索引
+            记录=自身.搜索表.pop(智能体,None)#取出索引
+            if 记录 is not None:#有索引
+                记录['search'].拆除()#释放
             拆除提示(智能体)#拆提示
 
         for 智能体 in 上下文.agents.列出():#已有智能体
@@ -100,16 +107,16 @@ class 本地文件引用服务(文件引用服务):
                 return#放过
             智能体=上下文.agents.获取(会话.id)#按会话找智能体
             if 智能体 is not None:#命中
-                搜索=自身.搜索表.get(智能体)#取索引
-                if 搜索 is not None:#有索引
-                    搜索.失效()#失效
+                记录=自身.搜索表.get(智能体)#取索引
+                if 记录 is not None:#有索引
+                    记录['search'].失效()#失效
         上下文.监听('session/event',会话事件)#监听会话事件
         def 装寿命():
             '拆除时释放全部索引与提示纤程'
             def 拆():
                 '清空搜索与提示'
-                for 搜索 in 自身.搜索表.values():#逐个索引
-                    搜索.拆除()#拆索引
+                for 记录 in 自身.搜索表.values():#逐个索引
+                    记录['search'].拆除()#拆索引
                 自身.搜索表.clear()#清表
                 纤程列表=list(自身.提示纤程.values())#拷贝纤程
                 自身.提示纤程.clear()#清表
@@ -122,16 +129,15 @@ class 本地文件引用服务(文件引用服务):
         上下文.副作用(装寿命,'file-reference-local: search cache')#登记 effect
 
     def 列举(自身,智能体,查询,信号):
-        '按智能体 cwd 根建索引并搜索'
-        搜索=自身.搜索表.get(智能体)#已有索引
-        if 搜索 is None:#首次
-            头=智能体.session.header#会话头
-            工作目录=头['cwd'] if 'cwd' in 头 else None#会话 cwd
-            if 工作目录 is None:#缺 cwd
-                工作目录=os.getcwd()#进程 cwd
-            搜索=工作区文件搜索(工作目录,自身.配置)#新建索引
-            自身.搜索表[智能体]=搜索#缓存
-        return 搜索.列举(查询,信号)#搜索
+        '按当前工作目录建索引；目录变了就丢掉旧索引'
+        工作目录=上下文.workingDirectory.ensure(智能体,信号)#会话当前目录
+        记录=自身.搜索表.get(智能体)#已有索引
+        if 记录 is None or 记录['cwd']!=工作目录:#没有或目录已变
+            if 记录 is not None:#旧索引
+                记录['search'].拆除()#丢掉
+            记录={'cwd':工作目录,'search':工作区文件搜索(工作目录,自身.配置)}#按新目录重建
+            自身.搜索表[智能体]=记录#缓存
+        return 记录['search'].列举(查询,信号)#搜索
 
 默认=本地文件引用服务
 name=名称#框架槽

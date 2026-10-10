@@ -36,14 +36,18 @@ class 会话语料库:
         持久头列表=[] if 持久化 is None else 列出持久(持久化,信号)#列出持久头
         若已中止则抛出(信号)#列出后检查取消
         记录表={}#按id收记录
-        for 头 in 持久头列表:#先放持久记录
-            记录表[头['id']]={'header':结构化克隆(头),'live':False,'persisted':True}#克隆头
+        for 快照 in 持久头列表:#先放持久记录
+            头=快照['header']#持久头
+            记录={'header':结构化克隆(头),'live':False,'persisted':True}#克隆头
+            if 'formatStatus' in 快照:#有格式状态
+                记录['formatStatus']=快照['formatStatus']#带上
+            记录表[头['id']]=记录#记下
         for 会话 in 自身._上下文.sessions.list():#再覆盖活会话
             标识=会话.header['id']#会话id
             耐久=记录表[标识] if 标识 in 记录表 else None#对应持久记录
             if 耐久 is not None:#同时持久
                 校验会话头兼容(会话.header,耐久['header'])#头必须兼容
-            记录表[标识]={'header':结构化克隆(会话.header),'live':True,'persisted':耐久 is not None}#活覆盖
+            记录表[标识]={'header':结构化克隆(会话.header),'live':True,'persisted':耐久 is not None,'formatStatus':'current'}#活覆盖
         return sorted(记录表.values(),key=会话排序键)#最新优先排序
 
     def 加载(自身,会话号,信号=None):
@@ -59,12 +63,12 @@ class 会话语料库:
             raise 未找到(会话号)#未找到
         持久头列表=列出持久(持久化,信号)#列出持久头
         若已中止则抛出(信号)#列出后检查取消
-        列出头=None#该id头
-        for 头 in 持久头列表:#找该id
-            if 头['id']==会话号:#命中
-                列出头=头#记下
+        列出快照=None#该id快照
+        for 快照 in 持久头列表:#找该id
+            if 快照['header']['id']==会话号:#命中
+                列出快照=快照#记下
                 break#停
-        if 列出头 is None:#列表没有
+        if 列出快照 is None:#列表没有
             raise 未找到(会话号)#未找到
         已加载=检查持久(持久化,会话号,信号)#读取完整日志
         若已中止则抛出(信号)#inspect后检查取消
@@ -73,7 +77,7 @@ class 会话语料库:
             快照=拍活快照(挂上)#改用活快照
             若已中止则抛出(信号)#快照后检查取消
             return 快照#返回活快照
-        校验会话头兼容(已加载['meta'],列出头)#头必须兼容
+        校验会话头兼容(已加载['meta'],列出快照['header'])#头必须兼容
         快照={#脱离快照
             'header':结构化克隆(已加载['meta']),#克隆头
             'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,#继承切口
@@ -110,7 +114,7 @@ class 会话语料库:
             for 标识 in 未解析:#整批记失败
                 已解析[标识]={'sessionId':标识,'status':'rejected','reason':错误}#记下原因
             return 有序结果(标识列表,已解析)#返回
-        持久索引={头['id']:头 for 头 in 持久头列表}#按id索引
+        持久索引={快照['header']['id']:快照 for 快照 in 持久头列表}#按id索引
         锁=threading.Lock()#保护已解析表
         def 解析持久(标识):
             '解析一条持久会话并投影'
@@ -120,7 +124,7 @@ class 会话语料库:
                 with 锁:#写入
                     已解析[标识]=结果#记下
                 return#本条结束
-            列出头=持久索引[标识]#列表里的头
+            列出快照=持久索引[标识]#列表里的快照
             try:#inspect并投影
                 若已中止则抛出(信号)#inspect前检查取消
                 已加载=检查持久(持久化,标识,信号)#读取完整日志
@@ -129,7 +133,7 @@ class 会话语料库:
                 if 挂上 is not None:#已变成活会话
                     结果=投影源(标识,源活(挂上),投影器,信号)#改用活源
                 else:#仍是持久
-                    校验会话头兼容(已加载['meta'],列出头)#头必须兼容
+                    校验会话头兼容(已加载['meta'],列出快照['header'])#头必须兼容
                     结果=投影源(标识,{'header':已加载['meta'],'inheritedEventCount':已加载['inheritedEventCount'] if 'inheritedEventCount' in 已加载 else 0,'events':已加载['events']},投影器,信号)#投影持久源
                 with 锁:#写入
                     已解析[标识]=结果#记下
@@ -182,7 +186,8 @@ def 有序结果(标识列表,已解析):
 def 列出持久(持久化,信号=None):
     '列出持久会话头'
     try:#列出
-        return 持久化.列出(信号)#委托持久化
+        选项=None if 信号 is None else {'signal':信号}#列出选项
+        return 持久化.列出(选项)#委托持久化
     except Exception as 错误:#列出失败收成 PERSISTENCE_FAILED；取消优先
         if 已中止(信号):#取消优先
             若已中止则抛出(信号)#抛出取消

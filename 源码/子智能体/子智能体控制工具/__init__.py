@@ -2,6 +2,7 @@ from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...内核.工具 import 定义工具#导入工具定义
 from ...内核.会话 import 会话标识#导入会话id品牌
 from ..子智能体.异常 import 子智能体错误#缝内失败
+from ..子智能体.内部 import 标记相邻智能体发消息工具#宿主识别相邻投递工具
 from . import (
     列举智能体,
 )
@@ -36,13 +37,11 @@ def 应用(上下文):
             选项,
         ).然后(已接受,投递结果.拒绝)#接受则兑现，失败原样拒绝
         return 投递结果#交给工具注册表继续链式
-    上下文.tools.登记(定义工具({#登记 send_message
+    上下文.tools.登记(标记相邻智能体发消息工具(定义工具({#登记 send_message
         'name':'send_message',#工具名
         'description':(#工具描述
-            'Send a message to a direct continuable child by its agent id. If you are a resident continuable child, '
-            +'you may also target your direct parent. If the target is still working, the message steers its nearest step; '
-            +'if it is inactive, the message starts or resumes a turn. This call returns no answer from the agent — only confirmation '
-            +'that the message was delivered. A failure means the message was NOT delivered.'
+            'Send a message to an agent. A working agent receives it at its next step; an idle agent starts a new turn with it. '
+            +"Returns delivery confirmation, not the agent's answer."
         ),#描述结束
         'parameters':{#参数模式
             'agent_id':{#目标 id
@@ -67,7 +66,7 @@ def 应用(上下文):
             'render':渲染投递,#渲染投递确认
         },#output 结束
         'execute':执行投递,#执行投递
-    }))#send_message 登记结束
+    })))#send_message 登记结束
     def 渲染打断(参数,_值):
         '渲染中断确认文本块。参数为 dict'
         return [{'type':'text','text':'interrupt requested for agent '+参数['agent_id']}]#确认文案
@@ -81,18 +80,15 @@ def 应用(上下文):
     上下文.tools.登记(定义工具({#登记 interrupt_agent
         'name':'interrupt_agent',#工具名
         'description':(#工具描述
-            'Request cancellation of a background agent\'s current turn by its agent id. The target may be your '
-            +'direct child or a deeper agent created under you. Only the current turn stops: messages already '
-            +'queued for the agent stay parked until a later send_message, agents it started keep running, and '
-            +'the agent itself stays available for follow-ups. This call returns as soon as the stop request is '
-            +'accepted, so the target may keep running briefly; interrupting an agent that already finished is '
-            +'an accepted no-op.'
+            'Ask a subagent to stop its current work. This call returns without waiting for it to stop. '
+            +"You can continue a local direct child's conversation later with send_message. "
+            +'External executions stop permanently and cannot receive follow-ups. Subagents it started will keep running.'
         ),#描述结束
         'parameters':{#参数模式
             'agent_id':{#目标智能体id
                 'type':'string',#字符串
                 'required':True,#必填
-                'description':'The agent id of the running agent to interrupt.',#参数说明
+                'description':'The id of an agent created under you: your direct child or a deeper descendant.',#参数说明
             },#agent_id 结束
         },#parameters 结束
         'output':{#成功返回

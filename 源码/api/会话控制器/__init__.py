@@ -3,7 +3,6 @@ import os
 import socket
 from ...依赖.schemastery import 数字字段,布尔字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from .常量 import 默认冷空白探测最大字节
 from .目录 import 构建模型目录
 from .模型选择投影 import 安装模型选择投影
 from .文件引用 import 会话文件引用
@@ -30,12 +29,12 @@ __all__=['包名','名称','依赖','应用','默认','配置','会话控制器'
 包名='@deepseek-ai/dsh-api-session-controller'
 名称='session-controller'
 依赖=[
-    'agentDefaultModel','agents','attachments','fileUploads','llm','sessions',
+    'agentDefaultModel','agents','attachments','fileUploads','fs','llm','sessions',
     'sessionProjections','sessionQuery','typert','workspaceRegistry',
 ]
 
 配置={#部署策略
-    'coldBlankProbeMaxBytes':数字字段(默认值=默认冷空白探测最大字节),#冷探测上限
+    'listWorkSliceMs':数字字段(默认值=16),#列表让出预算毫秒
     'nativeOpen':布尔字段(),#原生打开覆盖
 }
 
@@ -61,8 +60,8 @@ class 会话控制器(远程服务):
         自身._命令=会话命令控制器(上下文,自身._智能体控制器,os.getcwd())#命令
         自身._控制=会话控制控制器(上下文)#控制
         自身._历史=会话历史控制器(上下文,自身._晋升)#历史
-        探测上限=配置值['coldBlankProbeMaxBytes'] if 'coldBlankProbeMaxBytes' in 配置值 and 配置值['coldBlankProbeMaxBytes'] is not None else 默认冷空白探测最大字节#列表
-        自身._列表=会话列表(上下文,探测上限)#列表
+        切片=配置值['listWorkSliceMs'] if 'listWorkSliceMs' in 配置值 and 配置值['listWorkSliceMs'] is not None else 16#列表
+        自身._列表=会话列表(上下文,切片)#列表
         自身._打开路径=内部['openPath'] if 'openPath' in 内部 else None#打开路径
         自身._揭示路径=内部['revealPath'] if 'revealPath' in 内部 else None#揭示路径
         自身._能否打开=内部['canOpenPath'] if 'canOpenPath' in 内部 else None#能否打开
@@ -207,21 +206,52 @@ class 会话控制器(远程服务):
     @_远程('openWorkspacePath')
     def openWorkspacePath(自身,请求,信号):
         '原生打开或揭示工作区路径。请求为 dict'
-        路径=请求['path'] if 'path' in 请求 and 请求['path'] is not None else ''#路径，|| 空串
-        if 路径=='':#空
-            raise 远程错误('gateway/bad-request','session.openWorkspacePath requires a non-empty path',{})#拒绝
-        if 已中止(信号):#取消
-            raise 远程错误('gateway/cancelled','path open was aborted',{})#取消
         try:
-            if ('action' in 请求) and 请求['action']=='reveal':#揭示
+            路径=自身._核验桌面路径(请求.get('path') if isinstance(请求,dict) else '',信号)#核验
+            if isinstance(请求,dict) and 请求.get('action')=='reveal':#揭示
                 自身._揭示路径(路径,信号)#揭示
+            elif isinstance(请求,dict) and 请求.get('application') is not None:#指定应用
+                from ...工具.原生命令 import 打开原生文件应用程序
+                打开原生文件应用程序(路径,请求['application'],信号)#打开
             else:
-                自身._打开路径(路径,信号)
+                自身._打开路径(路径,信号)#默认打开
             return {'opened':True}#确认
         except (OSError,ValueError,TypeError) as 错误:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','path open was aborted',{},原因=错误)#取消
             raise 远程错误('gateway/internal','path open failed: '+str(错误),{},原因=错误)#内部
+
+    @_远程('workspacePathApplications')
+    def workspacePathApplications(自身,请求,信号):
+        '查询当前桌面能打开该路径的应用程序'
+        if not 自身._能否打开():#不可用
+            return []#空
+        try:
+            路径=自身._核验桌面路径(请求.get('path') if isinstance(请求,dict) else '',信号)#核验
+            from ...工具.原生命令 import 原生文件应用程序
+            return 原生文件应用程序(路径,信号)#列表
+        except 远程错误:
+            raise#原样
+        except (OSError,ValueError,TypeError) as 错误:
+            if 已中止(信号):#取消
+                raise 远程错误('gateway/cancelled','application query was aborted',{},原因=错误)#取消
+            raise 远程错误('gateway/internal','file application query failed',{},原因=错误)#内部
+
+    def _核验桌面路径(自身,路径,信号):
+        '经文件系统确认宿主路径'
+        if 路径 is None or len(路径)==0:#空
+            raise 远程错误('gateway/bad-request','A non-empty file path is required',{})#拒绝
+        if 已中止(信号):#取消
+            raise 远程错误('gateway/cancelled','path open was aborted',{})#取消
+        宿主路径=os.path.abspath(路径)#绝对
+        文件系统=自身.ctx.fs#文件系统
+        映射=文件系统.宿主路径转进程路径(宿主路径)#映射
+        解析后=文件系统.解析(映射,{'signal':信号}) if 映射 is not None else None#解析
+        if 映射 is None or 文件系统.进程路径(解析后)!=宿主路径:#对不上
+            raise 远程错误('gateway/bad-request','Path has no verified Host path',{})#拒绝
+        if 已中止(信号):#取消
+            raise 远程错误('gateway/cancelled','path open was aborted',{})#取消
+        return 宿主路径#宿主路径
 
     @_远程('rename')
     def rename(自身,请求):

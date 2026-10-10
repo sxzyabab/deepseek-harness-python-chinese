@@ -1,15 +1,19 @@
 '指令文件发现，以及带上限、可中止的提供方读取'
 import errno,os,stat#路径、错误码与文件类型
-from ...基础设施.通用工具 import utf8字节数,路径转正斜杠,相对正斜杠路径
+from ...基础设施.通用工具 import utf8字节数,相对正斜杠路径
 from ...工具.主目录路径 import 主目录展示#导入家目录展示路径
-from .配置 import 解析配置,解析发现配置,若已中止则抛出#导入配置解析与中止
+from .配置 import 解析配置,解析发现配置,智能体主目录展示,若已中止则抛出#导入配置解析与中止
 from .异常 import 智能体命令错误
 from .摘要 import 去空白指令摘要#导入去空白摘要
 from ...文件系统.文件系统.异常 import 文件系统错误#提供方错误
 from .渲染 import (
     解码作用域键,#解码候选作用域键
+    展示路径作用域,#由展示路径得到作用域
+    指令候选组,#候选组
+    转义项目展示路径,#避开全局作用域名
     渲染工作区指令集,#按预算渲染指令集
     用户全局目录,#用户全局目录占位
+    用户全局目录列表,#两个全局根的顺序
     用户全局文件,#用户全局文件名
 )#从渲染导入结束
 
@@ -121,12 +125,18 @@ def 后代目录之间(根,触及路径):#cwd与触及路径之间的后代目�
     return 祖先链(解析根,目标目录)[1:]#去掉根本身
 
 def 相对展示(根,路径):#计算相对展示路径
-    '把绝对指令路径转成相对项目根的展示形式'
-    return 相对正斜杠路径(路径,根)#相对项目根
+    '把绝对指令路径转成避开用户全局作用域名的相对展示形式'
+    return 转义项目展示路径(相对正斜杠路径(路径,根))#相对项目根后再避开保留目录名
 
-def 用户全局展示路径(家目录):#用户全局文件的展示路径
-    '家目录展示名加固定文件名'
-    return 主目录展示(家目录)+'/AGENTS.md'#家目录展示名加固定文件名
+def 用户全局根列表(配置值):#两个用户全局根，家目录在前
+    'harness 家目录与共享智能体根，按模型优先级'
+    根表=[]#按固定顺序
+    for 目录 in 用户全局目录列表:#家目录然后共享根
+        if 目录==用户全局目录:#harness 家
+            根表.append({'directory':目录,'home':配置值['dshHome'],'display':主目录展示(配置值['dshHome'])})#家目录
+        else:#共享智能体根
+            根表.append({'directory':目录,'home':配置值['agentsHome'],'display':智能体主目录展示(配置值['agentsHome'])})#共享根
+    return 根表#返回根列表
 
 def 目录下现存指令文件(目录,根,指令文件候选,文件系统=None,信号=None):#列出某目录下存在的全部候选
     '返回该目录命中的候选'
@@ -156,17 +166,18 @@ def 发现指令文件(选项,文件系统=None):#发现用户全局与根到cwd
             return#跳过
         已见.add(文件['absolutePath'])#记下路径
         文件列表.append(文件)#按发现顺序追加
-    用户全局=os.path.join(配置值['dshHome'],用户全局文件)#用户全局AGENTS.md
-    全局探测=探测文件(用户全局,文件系统,选项['signal'] if 'signal' in 选项 else None)#探测全局文件
-    全局种类=全局探测['kind']#探测种类
-    if 全局种类=='present':#存在
-        项={'absolutePath':用户全局,'displayPath':用户全局展示路径(配置值['dshHome'])}#全局候选
-        项.update(全局探测['info'])#带上探测元数据
-        加入(项)#加入
-    elif 全局种类 in ('absent','unavailable'):#全局文件不是硬性必需
-        pass#放过
-    else:#不可达
-        raise 智能体命令错误('StatFileProbe')#封闭联合
+    for 根 in 用户全局根列表(配置值):#先家目录再共享根
+        绝对路径=os.path.join(根['home'],用户全局文件)#该根下的固定文件
+        全局探测=探测文件(绝对路径,文件系统,选项['signal'] if 'signal' in 选项 else None)#探测
+        全局种类=全局探测['kind']#探测种类
+        if 全局种类=='present':#存在
+            项={'absolutePath':绝对路径,'displayPath':根['display']+'/'+用户全局文件}#全局候选
+            项.update(全局探测['info'])#带上探测元数据
+            加入(项)#加入
+        elif 全局种类 in ('absent','unavailable'):#该根文件不是硬性必需
+            pass#放过
+        else:#不可达
+            raise 智能体命令错误('StatFileProbe')#封闭联合
     工作目录=os.path.abspath(选项['cwd'])#绝对会话cwd
     项目根=选项['projectRoot'] if 'projectRoot' in 选项 else None#已选定的项目根
     if 项目根 is None:#未选定
@@ -218,19 +229,19 @@ def 有界读取(文件,单源上限,文件系统=None,信号=None):#按单文�
         若已中止则抛出(信号)#取消优先
         return None#当作该候选不可用
 
-def 按目录去重指令文件(文件列表):#按目录去空白内容去重
-    '丢掉同目录里去空白内容与更早兄弟重复的较晚候选'
-    已保留摘要={}#每目录已保留摘要
+def 按目录去重指令文件(文件列表):#按候选组去空白内容去重
+    '丢掉同一候选组里去空白内容与更早候选重复的较晚文件。两个用户全局根同组'
+    已保留摘要={}#每组已保留摘要
     保留=[]#保留列表
     for 文件 in 文件列表:#按发现顺序
-        目录=路径转正斜杠(os.path.dirname(文件['displayPath']))#用展示路径的目录分组
-        if 目录 not in 已保留摘要:#该目录第一次出现
+        组=指令候选组(展示路径作用域(文件['displayPath']))#候选组
+        if 组 not in 已保留摘要:#该组第一次出现
             摘要集=set()#新建摘要集
-            已保留摘要[目录]=摘要集#记下
+            已保留摘要[组]=摘要集#记下
         else:
-            摘要集=已保留摘要[目录]#该目录已见摘要
+            摘要集=已保留摘要[组]#该组已见摘要
         摘要=去空白指令摘要(文件['content'])#去首尾空白后的内容身份
-        if 摘要 in 摘要集:#同目录重复则丢掉较晚者
+        if 摘要 in 摘要集:#同组重复则丢掉较晚者
             continue#丢掉
         摘要集.add(摘要)#记下本摘要
         保留.append(文件)#保留该文件
@@ -260,30 +271,47 @@ def 加载基线指令集(选项,文件系统=None):#加载基线并带上保留
         if ('replacePreviousBaseline' not in 选项) or 选项['replacePreviousBaseline'] is not True:#非替换模式则表示无基线
             return None#无基线
         结果=渲染工作区指令集([],{'maxBytes':配置值['maxBytes'],'replacePreviousBaseline':True})#空集显式替换
-        return {'rendered':结果['rendered'],'observed':[],'included':结果['included']}#空观察与空纳入
+        return {'rendered':结果['rendered'],'observed':[],'deduped':[],'included':结果['included']}#空观察、空重复与空纳入
     渲染选项={'maxBytes':配置值['maxBytes']}#渲染字节预算
     if 'replacePreviousBaseline' in 选项:#声明了替换
         渲染选项['replacePreviousBaseline']=选项['replacePreviousBaseline']#原样转发
     结果=渲染工作区指令集(去重,渲染选项)#按预算渲染去重后的文件
-    return {'rendered':结果['rendered'],'observed':已载,'included':结果['included']}#观察集与纳入集
+    保留路径=set(文件['absolutePath'] for 文件 in 去重)#去重后留下的路径
+    重复=[文件 for 文件 in 已载 if 文件['absolutePath'] not in 保留路径]#同组较晚的重复内容
+    return {'rendered':结果['rendered'],'observed':已载,'deduped':重复,'included':结果['included']}#观察集、重复集与纳入集
 
 def 加载基线指令(选项,文件系统=None):#只返回渲染结果
     '发现、读取并渲染基线指令链。什么都加载不了时为 None'
     集合=加载基线指令集(选项,文件系统)#完整集合
     return None if 集合 is None else 集合['rendered']#从完整集合取出渲染
 
-def 探测作用域指令(作用域,项目根,已解析,文件系统,信号=None):#探测单个作用域候选
-    '三分状态：present/absent/unavailable'
+def 作用域指令文件(作用域,项目根,已解析):#一个逻辑候选的绝对路径与展示路径
+    '全局根用对应家目录，项目作用域相对项目根'
     拆=解码作用域键(作用域)#拆目录与候选文件名
     目录=拆['directory']#目录分量
     候选名=拆['candidateName']#候选文件名
-    if 目录==用户全局目录:#用户全局占位
-        绝对目录=已解析['dshHome']#用家目录
+    全局根=None#命中的用户全局根
+    for 根 in 用户全局根列表(已解析):#两个全局根
+        if 根['directory']==目录:#作用域对上
+            全局根=根#记下
+            break#停
+    if 全局根 is not None:#用户全局
+        绝对目录=全局根['home']#该根的绝对目录
     elif 目录=='.':#项目根
         绝对目录=项目根#项目根
     else:#相对项目目录
         绝对目录=os.path.join(项目根,目录)#拼相对目录
     绝对路径=os.path.join(绝对目录,候选名)#绝对候选路径
+    if 全局根 is None:#项目文件
+        展示=相对展示(项目根,绝对路径)#相对展示
+    else:#全局文件
+        展示=全局根['display']+'/'+候选名#符号目录加文件名
+    return {'absolutePath':绝对路径,'displayPath':展示}#路径身份
+
+def 探测作用域指令(作用域,项目根,已解析,文件系统,信号=None):#探测单个作用域候选
+    '三分状态：present/absent/unavailable'
+    候选=作用域指令文件(作用域,项目根,已解析)#路径身份
+    绝对路径=候选['absolutePath']#绝对候选路径
     try:#尝试resolve再stat
         目标=文件系统.解析(绝对路径,信号选项(信号))#解析稳定目标
         信息=文件系统.状态(目标,信号)#取元数据
@@ -292,8 +320,7 @@ def 探测作用域指令(作用域,项目根,已解析,文件系统,信号=None
         return {'kind':'unavailable'}#其余为暂时不可用
     if 信息 is None or 信息['type']!='file':#非文件为确认缺失
         return {'kind':'absent'}#缺失
-    展示=用户全局展示路径(已解析['dshHome']) if 目录==用户全局目录 else 相对展示(项目根,绝对路径)#全局用家目录展示
-    文件={'absolutePath':绝对路径,'displayPath':展示,'target':目标,'version':信息['version']}#组装探测文件
+    文件={'absolutePath':绝对路径,'displayPath':候选['displayPath'],'target':目标,'version':信息['version']}#组装探测文件
     if 'size' in 信息:#有大小
         文件['size']=信息['size']#带上
     return {'kind':'present','file':文件}#报告存在

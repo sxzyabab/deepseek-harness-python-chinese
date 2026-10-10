@@ -1,16 +1,16 @@
 from functools import partial as 偏函数
-import threading
+import json,threading
 from ...基础设施.js特性 import PromiseEX as 期约#恢复与拆除的异步结果
 from ...依赖.schemastery import 正整数字段,字典字段
 from ...依赖.工具 import 聚合错误
+from ...模型后端.llm import 创建用户消息#转向 Lead 时的用户消息
 from ...类型化远程调用.协议 import 远程服务
 from .活动 import 团队活动
 from .异常 import 团队错误,错误文案
 from .日志 import 团队日志
-from .生命周期 import 团队运行时生命周期
-from .邮箱 import 团队邮箱
+from .生命周期 import 团队运行时生命周期,若已中止则抛出,合成中止
 from .投影 import 团队投影定义
-from .名册 import 团队名册
+from .名册 import 团队名册,解析活跃成员
 from .任务板 import 团队任务板
 from .类型 import 团队标识,团队任务标识,团队消息标识
 from . import (
@@ -32,14 +32,12 @@ __all__=[
 
 默认最大成员=16
 默认最大任务=256
-默认最大待投=64
 默认最大消息字节=65_536
 默认拆除超时毫秒=5_000
 
 配置=字典字段(字典结构={
     'maxMembers':正整数字段(默认值=默认最大成员),
     'maxTasks':正整数字段(默认值=默认最大任务),
-    'maxPendingMessagesPerMember':正整数字段(默认值=默认最大待投),
     'maxMessageBytes':正整数字段(默认值=默认最大消息字节),
     'disposalTimeoutMs':正整数字段(默认值=默认拆除超时毫秒),
 })
@@ -59,15 +57,11 @@ def _配置项(配置值,键,缺省):
 class 团队服务(远程服务):
     '以精确 live Lead Session 日志为后台的 Agent Teams 服务'
     def __init__(自身,上下文,配置值=None):
-        '构造并接线活动、生命周期、日志、名册、邮箱与任务板'
+        '构造并接线活动、生命周期、日志、名册与任务板'
         super().__init__(上下文,'agentTeams')
         自身.config={
             'maxMembers':正限制('maxMembers',_配置项(配置值,'maxMembers',默认最大成员)),
             'maxTasks':正限制('maxTasks',_配置项(配置值,'maxTasks',默认最大任务)),
-            'maxPendingMessagesPerMember':正限制(
-                'maxPendingMessagesPerMember',
-                _配置项(配置值,'maxPendingMessagesPerMember',默认最大待投),
-            ),
             'maxMessageBytes':正限制('maxMessageBytes',_配置项(配置值,'maxMessageBytes',默认最大消息字节)),
             'disposalTimeoutMs':正限制(
                 'disposalTimeoutMs',
@@ -81,19 +75,11 @@ class 团队服务(远程服务):
             自身.activity.通知(团队标识(根.id))
         自身.journal=团队日志(上下文,提交时)
         自身.roster=团队名册(上下文,自身.journal,自身.lifecycle,自身.config['maxMembers'])
-        自身.mailbox=团队邮箱(
-            上下文,自身.journal,自身.roster,自身.lifecycle,
-            自身.config['maxPendingMessagesPerMember'],自身.config['maxMessageBytes'],
-        )
         自身.tasks=团队任务板(自身.journal,自身.config['maxTasks'])
         自身._接线监听(上下文)
 
     def _接线监听(自身,上下文):
         '挂会话事件、恢复与运行时拆除'
-        def 观察事件(会话,事件,*_其余):
-            '观察会话事件'
-            自身.mailbox.观察会话事件(会话,事件)
-        上下文.监听('session/event',观察事件)
         def 智能体已创建(载荷,*_其余):
             '调度恢复'
             自身._调度恢复(载荷['agent'])
@@ -128,8 +114,13 @@ class 团队服务(远程服务):
         return 自身.roster.创建(调用方,请求)
 
     def sendMessage(自身,调用方,请求):
-        '排队一条持久 peer 消息，再尝试即时投递'
-        return 自身.mailbox.发送(调用方,请求)
+        '把一条同伴消息转进目标收件箱。接受即返回，不等模型处理'
+        if 自身.lifecycle.已拆除:#正在拆除
+            raise 团队错误('Agent Teams service is disposing','TEAM_DISPOSED')#拒绝
+        信号=合成中止(请求.get('signal'),自身.lifecycle.信号)#调用方与寿命
+        合并=dict(请求)#不改调用方对象
+        合并['signal']=信号#合成后的取消
+        return 自身.lifecycle.跟踪(自身._发送已准入(调用方,合并))#计入拆除结算
 
     def createTask(自身,调用方,请求):
         '在 Team Lead 日志中创建一条无主 pending 任务'
@@ -180,38 +171,60 @@ class 团队服务(远程服务):
         threading.Thread(target=微任务,daemon=True).start()
 
     def _执行恢复(自身,智能体):
-        '先对账 roster provisioning，再重试该成员的 pending mailbox。返回期约'
-        def 恢复邮箱(对账值):#对账完成
-            '对账后重试该成员的待投消息'
-            return 自身.mailbox.恢复(智能体,自身.lifecycle.信号)
-        return 自身.roster.恢复(智能体,自身.lifecycle.信号).然后(恢复邮箱)
+        '对账这个智能体的 roster 供应。返回期约'
+        return 自身.roster.恢复(智能体,自身.lifecycle.信号)#只对账名册
+
+    def _发送已准入(自身,调用方,请求):
+        '用 Lead 的权威投递，身份仍是实际发送者。返回期约，兑现值含 messageId'
+        关系=自身.roster.成员关系(调用方)#发送者
+        若已中止则抛出(请求.get('signal'))#准入前已取消
+        根=关系['root']#Lead
+        目标=解析活跃成员(根,自身.journal.状态(根),请求['target'])#按名字
+        if 目标['id']==调用方.id:#不能发给自己
+            raise 团队错误('a Team member cannot message itself','TEAM_SELF_MESSAGE')#拒绝
+        内容=[{'type':'text','text':'Team message from '+关系['name']+':'}]#前缀
+        for 块 in 请求['content']:#调用方的块
+            内容.append(dict(块) if isinstance(块,dict) else 块)#拆开一份
+        字节=len(json.dumps(内容,ensure_ascii=False,separators=(',',':')).encode('utf-8'))#UTF-8 字节
+        if 字节>自身.config['maxMessageBytes']:#超限
+            raise 团队错误('team message exceeds '+str(自身.config['maxMessageBytes'])+' bytes','TEAM_MESSAGE_TOO_LARGE')#拒绝
+        来源={'kind':'agent-message','form':'relay','senderSessionId':调用方.id}#中继来源
+        if 目标['id']==根.id:#发给 Lead
+            输入=创建用户消息({'content':内容,'source':来源})#用户消息
+            根.转向(输入)#转向当前回合
+            自身.activity.通知(关系['id'])#唤醒等待
+            已转向=期约()#与子路径同形
+            已转向.解决({'messageId':输入['id']})#消息号
+            return 已转向#已接受
+        def 已投递(消息号):
+            '子路径接受后通知等待者'
+            自身.activity.通知(关系['id'])#唤醒
+            return {'messageId':消息号}#结果
+        return 自身.ctx.subagents.投递提示(根,目标['id'],内容,来源,请求.get('signal'),'steer').然后(已投递)#转向子收件箱
 
     def _拆除运行时(自身):
-        '在服务拆除完成前停止 Team 拥有的 live 分支并拆除每一个等待者。返回期约，有失败则以聚合错误拒绝'
-        自身.lifecycle.关闭()
-        自身.activity.关闭()
-        失败列表=[]#各步失败，最后汇总
-        def 结算邮箱(创建结算值):#已准入创建结算完
-            '再结算已准入的邮箱投递'
-            return 自身.lifecycle.结算(自身.mailbox.列出待投递(),失败列表)
+        '在服务拆除完成前停止 Team 拥有的 live 分支并释放等待者。返回期约，有失败则以聚合错误拒绝'
+        自身.lifecycle.关闭()#先关准入
+        自身.activity.关闭()#释放等待
+        失败列表=[]#各步失败
         def 记录停止失败(错误):#停止失败
             '记录失败后继续下一组'
-            失败列表.append(错误)
+            失败列表.append(错误)#记下
         def 停止一组(所属根,所属子标识列表,前一组结果=None):#前一组停完后
             '停止一个 Lead 的队友，失败记入失败列表'
-            return 自身.roster.停止队友(所属根,所属子标识列表).捕获(记录停止失败)
-        def 停止全部队友(邮箱结算值):#邮箱结算完
-            '逐个 Lead 依次停止其队友；某个失败只记录，继续下一个'
-            停止链=期约()#逐组停止的链起点
-            停止链.解决(None)#已结算，第一组立即开始
-            for 根,子标识列表 in 自身.roster.按根分组活子().items():
-                停止链=停止链.然后(偏函数(停止一组,根,子标识列表))#排在上一组之后
-            return 停止链
+            return 自身.roster.停止队友(所属根,所属子标识列表).捕获(记录停止失败)#继续
+        def 停止全部队友(结算值):#已准入工作结算完
+            '逐个 Lead 依次停止其队友'
+            停止链=期约()#链起点
+            停止链.解决(None)#第一组立即开始
+            for 根,子标识列表 in 自身.roster.按根分组活子().items():#逐根
+                停止链=停止链.然后(偏函数(停止一组,根,子标识列表))#排后
+            return 停止链#全部
         def 汇总失败(停止结算值):#全部停止完
             '有失败则以聚合错误拒绝'
-            if len(失败列表)>0:
-                raise 聚合错误(失败列表,'智能体团队运行时拆除失败')
-        return 自身.lifecycle.结算(自身.roster.列出待创建(),失败列表).然后(结算邮箱).然后(停止全部队友).然后(汇总失败)
+            if len(失败列表)>0:#有失败
+                raise 聚合错误(失败列表,'智能体团队运行时拆除失败')#汇总
+        return 自身.lifecycle.结算(自身.lifecycle.待定(),失败列表).然后(停止全部队友).然后(汇总失败)#先等已准入，再停队友
 
 def 应用(上下文,配置值=None):
     '构造并登记团队服务'

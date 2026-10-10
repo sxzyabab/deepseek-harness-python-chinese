@@ -2,9 +2,9 @@ import json,re
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from urllib.parse import urlparse
 from requests import request as 发请求
-from .异常 import 平台认证错误#稳定码，不携带响应体或授权 URL
+from .异常 import 平台认证错误,账号未授权错误#稳定码，不携带响应体或授权 URL
 
-__all__=['平台认证错误','平台来源','浏览器网址','平台头','初始化形态','交换形态','请求平台','请求账号','登出账号','登录来源']
+__all__=['平台认证错误','账号未授权错误','平台来源','浏览器网址','平台头','初始化形态','交换形态','请求平台','请求账号','请求未通知奖励','请求奖励已通知','登出账号','登录来源']
 
 保留头=frozenset(['authorization','x-dsh-auth-token','host','content-length','transfer-encoding','connection','content-type'])
 回环主机=frozenset(['localhost','127.0.0.1','::1'])
@@ -95,11 +95,43 @@ def 请求平台(来源,方法,体,信号,头):
         'body':紧凑json编码(体),
     },信号)
 
+def 账号头(头,令牌):
+    '授予归提供方；部署头不能覆盖认证令牌'
+    return {**头,'x-dsh-auth-token':令牌}
+
+def 含认证令牌(头):
+    '请求头里是否带了账号令牌'
+    for 名 in 头:
+        if 名.lower()=='x-dsh-auth-token':
+            return True
+    return False
+
+def 已中止(信号):
+    '信号是否已取消'
+    if 信号 is None:
+        return False
+    return 信号._事件.is_set()
+
 def 请求账号(来源,路径,令牌,信号,头):
     '用授予读固定账号端点'
     return 平台请求(来源+路径,{
         'method':'GET',
-        'headers':{**头,'x-dsh-auth-token':令牌},
+        'headers':账号头(头,令牌),
+    },信号)
+
+def 请求未通知奖励(来源,令牌,信号,头):
+    '读取平台尚未记为已展示的授予奖励'
+    return 平台请求(来源+'/api/v0/users/get_unnotified_bonuses',{
+        'method':'GET',
+        'headers':账号头(头,令牌),
+    },信号)
+
+def 请求奖励已通知(来源,令牌,订单标识,信号,头):
+    '确认用户已经看到的一条奖励'
+    return 平台请求(来源+'/api/v0/users/ack_bonus_notified',{
+        'method':'POST',
+        'headers':{**账号头(头,令牌),'content-type':'application/json'},
+        'body':紧凑json编码({'order_id':订单标识}),
     },信号)
 
 def 登出账号(来源,令牌,信号,头):
@@ -114,8 +146,8 @@ def 平台请求(网址,发起,信号):
     路径=urlparse(网址).path
     print('[deepseek-account] 请求',{'path':路径,'method':发起['method']})
     if 已中止(信号):
-        print('[deepseek-account] 请求失败',{'path':路径,'errorCode':'network','aborted':True})
-        raise 平台认证错误('network')
+        print('[deepseek-account] 请求失败',{'path':路径,'errorCode':'no-response','aborted':True})
+        raise 平台认证错误('no-response')
     try:
         响应=发请求(
             发起['method'],
@@ -127,9 +159,12 @@ def 平台请求(网址,发起,信号):
             timeout=120,
         )
     except Exception:
-        print('[deepseek-account] 请求失败',{'path':路径,'errorCode':'network','aborted':已中止(信号)})
-        raise 平台认证错误('network')
+        print('[deepseek-account] 请求失败',{'path':路径,'errorCode':'no-response','aborted':已中止(信号)})
+        raise 平台认证错误('no-response')
     print('[deepseek-account] 响应',{'path':路径,'status':响应.status_code})
+    if 响应.status_code==401 and 含认证令牌(发起['headers']):
+        响应.close()
+        raise 账号未授权错误()
     if 响应.status_code<200 or 响应.status_code>=300:
         响应.close()
         raise 平台认证错误('network')
@@ -147,6 +182,8 @@ def 平台请求(网址,发起,信号):
             块列表.append(块)
         阶段='parse-json'
         载荷=json.loads(b''.join(块列表).decode('utf-8'))
+        if isinstance(载荷,dict) and 载荷.get('code')==40003 and 含认证令牌(发起['headers']):
+            raise 账号未授权错误()
         if isinstance(载荷,dict) and isinstance(载荷.get('code'),int) and not isinstance(载荷.get('code'),bool):
             业务=载荷['data'] if isinstance(载荷.get('data'),dict) else None
             业务码=业务.get('biz_code') if 业务 is not None else None
@@ -159,8 +196,8 @@ def 平台请求(网址,发起,信号):
         if 载荷['data'].get('biz_code')!=0:
             raise 平台认证错误('protocol')
         return 载荷['data'].get('biz_data')
-    except 平台认证错误:
-        print('[deepseek-account] 响应已拒绝',{'path':路径,'stage':阶段,'errorCode':'protocol'})
+    except 平台认证错误 as 错误:
+        print('[deepseek-account] 响应已拒绝',{'path':路径,'stage':阶段,'errorCode':错误.code})
         raise
     except Exception:
         print('[deepseek-account] 响应已拒绝',{'path':路径,'stage':阶段,'errorCode':'protocol'})

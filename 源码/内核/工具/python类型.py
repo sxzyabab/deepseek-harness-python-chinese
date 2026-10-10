@@ -159,7 +159,7 @@ def 是否可作typeddict字段(名称):
         return False#会名字修饰
     return True#可作字段
 
-def 渲染类型(模式节点,类名,状态):
+def 渲染类型实现(模式节点,类名,状态):
     '把一个 JSON Schema 节点映射成 Python 类型表达式'
     断言受支持json模式(模式节点)#断言子集
     帧列表=[建渲染帧(模式节点,类名,0)]#根帧
@@ -289,18 +289,26 @@ def 渲染类型(模式节点,类名,状态):
         return 'Any'#根类型或回落
     return 根结果#根类型
 
+def 渲染类型(模式节点,类名,状态):
+    '映射类型；不受支持或畸形模式降为 Any'
+    try:
+        return 渲染类型实现(模式节点,类名,状态)#先校验再走
+    except Exception:
+        状态['typing'].add('Any')#补 Any
+        return 'Any'#降级
+
 def json模式转py(模式节点):
     '把一个 JSON Schema 节点映射成来自 typing 模块的无上下文 Python 类型表达式'
     return 渲染类型(模式节点,'',{'classes':[],'usedClassNames':set(),'nextClassCounter':{},'typing':set()})#空类名标记无上下文
 
 sdk说明='''## Writing code for run_code
 
-`run_code` takes two required arguments: `code` — the body of a Python function (`return` works) — and `description`, a short summary of what the program does. At run time exactly two of the names declared below are bound: `tools` and `ToolCallError`. Everything else is a STATIC STUB describing argument and return types — in particular the `TypedDict` classes do NOT exist at run time, so build arguments as plain `dict`/`list` JSON values: `tools.name({"field": 1})`, never `FooArgs(field=1)`, which raises `NameError`. Inside the program:
+`run_code` takes two required arguments: `description`, a short summary of what the program does, and `code` — the body of an async Python function (top-level `await` and `return` both work). At run time exactly two of the names declared below are bound: `tools` and `ToolCallError`. Everything else is a STATIC STUB describing argument and return types — in particular the `TypedDict` classes do NOT exist at run time, so build arguments as plain `dict`/`list` JSON values: `await tools.name({"field": 1})`, never `FooArgs(field=1)`, which raises `NameError`. Inside the program:
 
-- Call tools as `tools.name(args)` — subscript access for exotic, reserved, or underscore-leading names: `tools["my-tool"](args)`. Every call resolves to the tool's typed canonical JSON value (each method's return type below). Tool arguments must be lossless JSON.
+- Call tools as `await tools.name(args)` — subscript access for exotic, reserved, or underscore-leading names: `await tools["my-tool"](args)`. Every call resolves to the tool's typed canonical JSON value (each method's return type below). Tool arguments must be lossless JSON.
 - A FAILED tool call raises `ToolCallError`, whose `toolName` identifies the failed tool and whose message is human-readable — wrap in `try/except` to handle and continue.
-- Call tools sequentially: each call blocks until it finishes. Do not use `async`/`await` or `asyncio`.
-- Emit the run's answer with `print(...)` and/or a `return <value>`; the returned value must be lossless JSON. ONLY what you print and the returned value come back — intermediate tool results never enter the conversation, so extract just what you need.
+- Independent read-only calls MAY overlap under `asyncio.gather` (safe calls run concurrently; mutating calls run alone, in submission order). Sequence dependent work with `await`.
+- Emit the run's answer with `print(...)` and/or a top-level `return <value>`; the returned value must be lossless JSON. Only what you print and return is program output. A successful tool result containing an image is attached after the run so you can inspect it on the next step; every other intermediate result stays out of the conversation, so extract just what you need.
 
 The available tools:'''#模型可见用法说明，保持英文
 
@@ -320,9 +328,9 @@ def 渲染工具sdkpy(模式列表):
         if 是否裸标识符(名称) and 名称 not in 保留字 and not 名称.startswith('_'):
             文档=文档行(模式项['description'] if 'description' in 模式项 else None,2)#方法文档
             if len(文档)>0:
-                成员.append(缩进前缀(1)+'def '+名称+'(self, args: '+参数类型+') -> '+输出类型+':')#有文档则文档即方法体
+                成员.append(缩进前缀(1)+'async def '+名称+'(self, args: '+参数类型+') -> '+输出类型+':')#有文档则文档即方法体
             else:
-                成员.append(缩进前缀(1)+'def '+名称+'(self, args: '+参数类型+') -> '+输出类型+': ...')#无文档用 ...
+                成员.append(缩进前缀(1)+'async def '+名称+'(self, args: '+参数类型+') -> '+输出类型+': ...')#无文档用 ...
             成员.extend(文档)#文档行（若有）
             语句数+=1#计一条方法
         else:

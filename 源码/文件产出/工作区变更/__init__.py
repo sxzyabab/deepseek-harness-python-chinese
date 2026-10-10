@@ -24,7 +24,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 名称='workspace-changes'#Cordis插件名（字面量）
-注入=['subprocess']#依赖子进程能力
+注入=['subprocess','fs']#依赖子进程与文件系统
 配置={#部署配置
     'timeoutMs':数字字段(默认值=30000),#单条git超时毫秒
     'outputMaxBytes':数字字段(默认值=8*1024*1024),#git输出帽
@@ -178,20 +178,45 @@ def 应用(上下文,配置值):#登记服务并观察轮次
         if 会话 in 记录器表:#有记录器
             记录器表[会话].停止中(载荷['turn'])#记录
 
+    变更表={}#本次执行到记录器
+    def 捕获目标(目标,执行者):#意图决定后、写入前捕获
+        '按本次执行找到记录器，捕获已解析进程路径'
+        if 执行者 is None:#无执行者
+            return#不捕
+        记录器=变更表.get(id(执行者))#本次执行的记录器
+        if 记录器 is None:#没有关联
+            return#不捕
+        记录器.捕获(上下文.fs.进程路径(目标))#捕获进程路径
+        记录器.已结算()#等到捕获入队完成
+    def 写意图(目标,执行者,下一步):#fs/write-intent
+        '先交给后续决策，再捕获'
+        意图=下一步()#后续监听器决定意图
+        捕获目标(目标,执行者)#写入前捕获
+        return 意图#原意图
+    def 编辑意图(目标,执行者,下一步):#fs/edit-intent
+        '先交给后续决策，再捕获'
+        意图=下一步()#后续监听器决定意图
+        捕获目标(目标,执行者)#编辑前捕获
+        return 意图#原意图
     def 工具前执行(执行,下一步):#tools/pre-execute
-        '变更前捕获并等到记录队列空'
+        '记下本次执行的记录器，并等到已有捕获结束'
         智能体=执行['agent'] if 'agent' in 执行 else None#智能体
         会话=智能体.session if 智能体 is not None else None#会话
         记录器=记录器表[会话] if 会话 is not None and 会话 in 记录器表 else None#记录器
         if 记录器 is not None:#有
-            记录器.捕获(执行['name'],执行['arguments'])#捕获
+            变更表[id(执行)]=记录器#关联本次执行
             记录器.已结算()#等到空
-        return 下一步()#继续瀑布
+        try:#执行期间写意图还能找到记录器
+            return 下一步()#继续瀑布
+        finally:#执行结束即断开
+            变更表.pop(id(执行),None)#不再保留
 
     上下文.监听('session/event',会话事件)#轮次与工具结果
     上下文.监听('session/disposed',会话已拆除)#拆除
     上下文.监听('agent/turn-stopping',轮次将停)#轮内记录
-    上下文.监听('tools/pre-execute',工具前执行)#捕获
+    上下文.监听('fs/write-intent',写意图,{'prepend':True})#写入前捕获
+    上下文.监听('fs/edit-intent',编辑意图,{'prepend':True})#编辑前捕获
+    上下文.监听('tools/pre-execute',工具前执行)#关联记录器
 
 name=名称#Cordis插件名
 inject=注入#Cordis依赖声明

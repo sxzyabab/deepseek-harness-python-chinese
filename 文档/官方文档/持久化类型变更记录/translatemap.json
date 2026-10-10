@@ -17,5 +17,15 @@
     "historical-formats":"格式参考",
     "releases":"预发行版本归档",
     "2026-09-21-user-question-reply":"2026-09-21-用户提问回复",
-    "2026-09-21-user-question-reply.schema":"2026-09-21-用户提问回复.schema"
+    "2026-09-21-user-question-reply.schema":"2026-09-21-用户提问回复.schema",
+    "2026-09-13-working-directory":"2026-09-13-工作目录",
+    "2026-09-13-working-directory.schema":"2026-09-13-工作目录.schema",
+    "2026-09-19-external-subagent-catalog":"2026-09-19-外部子智能体目录",
+    "2026-09-19-external-subagent-catalog.schema":"2026-09-19-外部子智能体目录.schema",
+    "2026-10-05-ptc-operation-metadata":"2026-10-05-ptc操作元数据",
+    "2026-10-05-ptc-operation-metadata.schema":"2026-10-05-ptc操作元数据.schema",
+    "2026-10-05-working-directory-attribution":"2026-10-05-工作目录归属",
+    "2026-10-05-working-directory-attribution.schema":"2026-10-05-工作目录归属.schema",
+    "2026-10-07-title-reasoning-effort":"2026-10-07-标题推理强度",
+    "2026-10-07-title-reasoning-effort.schema":"2026-10-07-标题推理强度.schema"
 }

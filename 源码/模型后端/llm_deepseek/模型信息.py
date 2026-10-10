@@ -46,6 +46,8 @@ def 模型信息(连接,提供方,模型):
     结果['defaultMaxTokens']=已配['maxTokens'] if 已配 is not None and 'maxTokens' in 已配 and 已配['maxTokens'] is not None else 连接['maxTokens']
     if 已配 is not None and 'systemPromptUpdate' in 已配 and 已配['systemPromptUpdate'] is not None:
         结果['systemPromptUpdate']=已配['systemPromptUpdate']
+    if 已配 is not None and 'toolUpdate' in 已配 and 已配['toolUpdate'] is not None:
+        结果['toolUpdate']=已配['toolUpdate']
     默认=连接['defaults']
     if 默认.get('thinking')=='disabled':
         结果['reasoning']={'efforts':list(仅关闭力度表),'defaultEffort':关闭力度}

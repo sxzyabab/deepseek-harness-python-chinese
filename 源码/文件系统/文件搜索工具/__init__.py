@@ -54,7 +54,7 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 ]#公开面结束
 
 名称='tool-fs-search'#加载器诊断使用的Cordis插件名
-依赖=['tools','systemPrompt','subprocess']#搜索工具套件所需的服务（spillStore可选，经获取服务读取）
+依赖=['tools','systemPrompt','subprocess','workingDirectory']#搜索工具套件所需的服务（spillStore可选，经获取服务读取）
 
 配置={#插件配置；超额glob抽样是显式部署选择，其余字段有默认值
     'sampleOverCapGlobResults':布尔字段(可空=False),#超额glob是否跨顶层抽样，必填

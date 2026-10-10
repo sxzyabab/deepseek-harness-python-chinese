@@ -1,8 +1,9 @@
 '兼容 AGENTS.md 的工作区指令加载器'
-import math,os,threading,weakref#工作目录、有限预算与按会话弱引用
+import math,threading,weakref#有限预算与按会话弱引用
 from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .配置 import 配置,解析配置,工作区基线身份,已中止,若已中止则抛出#导入配置解析、基线身份与中止
 from .异常 import 智能体命令错误
+from .摘要 import 去空白指令摘要#导入去空白摘要
 from .文件 import 寻找项目根,加载基线指令集#导入项目根与基线加载
 from .状态 import (
     应用指令版本更新,#提交版本缓存更新
@@ -11,7 +12,7 @@ from .状态 import (
     调和指令上下文,#动态调和
     工作区上下文消息,#基线上下文消息
 )#从状态模块导入
-from .渲染 import 渲染工作区上下文
+from .渲染 import 渲染工作区上下文,指令候选组,指令作用域键,展示路径作用域#导入候选组与作用域键
 from . import (
     摘要,
 )
@@ -20,7 +21,7 @@ from . import (
 
 __all__=['包名','名称','依赖','应用','默认','配置','解析配置','渲染工作区上下文']
 
-依赖=[]#不静态依赖fs，缺提供方时空操作
+依赖=['sessionProjections','workingDirectory']#回合边界与会话工作目录；fs 仍按可选服务读取
 
 def 深相等(左,右):#深相等比较
     '比较两条载荷是否相同'
@@ -96,7 +97,6 @@ def 应用(上下文,配置值):#注册工作区指令插件
         return 拆除投影#返回disposer
     上下文.副作用(投影生命周期,'agent-instructions.projectionLifecycle')#拆除时中止投影生命周期
     投影尾=weakref.WeakKeyDictionary()#每智能体的投影串行尾
-    打开步骤=weakref.WeakKeyDictionary()#会话当前步骤是否仍打开
     步骤触及=weakref.WeakKeyDictionary()#打开步骤内暂存的触及，步骤结束后再投影
     def 组装(智能体,信号,已声明,待处理,触及路径列表=None):#组装期望的工作区上下文消息
         '有期望上下文则返回'
@@ -108,16 +108,16 @@ def 应用(上下文,配置值):#注册工作区指令插件
         文件系统=上下文.获取服务('fs')#可选文件系统提供方
         if 文件系统 is None:#无提供方则空操作
             return None#空操作
-        if len(触及路径列表)==0 and len(待处理)>0:#无新触及且已有待处理则沿用第一条
-            return 待处理[0]#沿用
         内容=[]#累积内容块
         变更列表=[]#累积变更
         期望基线=False#本条是否携带基线标记
         权威消息=list(已声明)#可变的权威列表，后面可追加刚组装的基线
-        头=智能体.session.header#会话头
-        工作目录=头['cwd'] if 'cwd' in 头 and 头['cwd'] else os.getcwd()#会话cwd
+        工作目录=上下文.workingDirectory.ensure(智能体,信号)#会话当前工作目录
         项目根=寻找项目根(工作目录,已解析['projectRootMarkers'],文件系统,信号)#寻找项目根
         身份=工作区基线身份(已解析,工作目录,项目根)#发现与预算身份
+        已准备身份=基线准备[智能体.session] if 智能体.session in 基线准备 else None#上次准备
+        if len(触及路径列表)==0 and len(待处理)>0 and 已准备身份 is not None and 已准备身份['identity']==身份:#身份未变且无新触及
+            return 待处理[0]#沿用已有待处理
         可见基线=可见基线来源(智能体,权威消息)#当前可见基线
         基线已在=可见基线 is not None#是否已有基线
         保留可见基线=(可见基线['baselineIdentity']==身份) if 可见基线 is not None and 'baselineIdentity' in 可见基线 else False#身份是否仍匹配
@@ -131,6 +131,7 @@ def 应用(上下文,配置值):#注册工作区指令插件
             指令集=加载基线指令集({#加载基线文件集
                 'cwd':工作目录,#工作目录
                 'dshHome':已解析['dshHome'],#家目录
+                'agentsHome':已解析['agentsHome'],#共享智能体根
                 'projectRootMarkers':已解析['projectRootMarkers'],#根标记
                 'maxBytes':已解析['maxBytes'],#渲染预算
                 'maxSourceBytes':已解析['maxSourceBytes'],#单源上限
@@ -144,9 +145,23 @@ def 应用(上下文,配置值):#注册工作区指令插件
             观察=指令集['observed'] if 指令集 is not None and 'observed' in 指令集 and 指令集['observed'] is not None else []#观察文件
             基线=基线指令状态(纳入)#纳入文件的变更
             观察基线=基线指令状态(观察)#观察文件的变更
+            纳入摘要={}#候选组到已纳入内容的去空白摘要
+            for 文件 in 纳入:#纳入文件按组登记摘要
+                组=指令候选组(展示路径作用域(文件['displayPath']))#候选组
+                摘要集=纳入摘要.get(组)#该组摘要
+                if 摘要集 is None:#第一次
+                    摘要集=set()#新建
+                    纳入摘要[组]=摘要集#记下
+                摘要集.add(去空白指令摘要(文件['content']))#登记
             排除集=set(观察基线['changes'].keys())#先放入全部观察作用域
             for 作用域 in 基线['changes'].keys():#再去掉实际纳入的
                 排除集.discard(作用域)#去掉
+            去重文件=指令集['deduped'] if 指令集 is not None and 'deduped' in 指令集 and 指令集['deduped'] is not None else []#同组重复
+            for 文件 in 去重文件:#重复内容若胜出者已纳入，则仍可在胜出者消失后晋升
+                组=指令候选组(展示路径作用域(文件['displayPath']))#候选组
+                摘要集=纳入摘要.get(组)#该组已纳入摘要
+                if 摘要集 is not None and 去空白指令摘要(文件['content']) in 摘要集:#与已纳入内容重复
+                    排除集.discard(指令作用域键(文件['displayPath']))#不排除，允许晋升
             排除基线作用域=排除集#本轮排除集
             下一准备={'identity':身份,'excludedScopes':排除集}#记下供后续复用
             版本表=指令版本[智能体.session] if 智能体.session in 指令版本 else None#现有版本表
@@ -181,6 +196,7 @@ def 应用(上下文,配置值):#注册工作区指令插件
                 }))#权威消息结束
                 期望基线=True#本条带基线标记
         调和选项={#调和选项
+            'cwd':工作目录,#已解析工作目录
             'authorityMessages':权威消息,#含可能刚加入的基线
             'scopeMessages':待处理,#待处理提示
             'includeBaselineScopes':保留可见基线,#仅在保留可见基线时把基线作用域纳入调和
@@ -269,19 +285,12 @@ def 应用(上下文,配置值):#注册工作区指令插件
         '同步实现下投影已在排队时跑完'
         return#无挂起尾
     def 步骤已打开(会话):#判断会话是否有打开的步骤
-        '从缓存或事件重放开关'
-        已知=打开步骤[会话] if 会话 in 打开步骤 else None#缓存的开关
-        if 已知 is not None:#已跟踪则直接用
-            return 已知#直接用
-        打开=False#从事件重放开关
-        for 事件 in 会话.events:#扫描全部事件
-            种类=事件['type']#事件类型
-            if 种类=='step/start':#步骤开始
-                打开=True#打开
-            elif 种类=='step/end' or 种类=='turn/end':#步骤或回合结束
-                打开=False#关闭
-        打开步骤[会话]=打开#记下
-        return 打开#返回
+        '打开回合内，最近步骤边界必须是开始，且落在该回合起点之后'
+        边界=上下文.sessionProjections.状态(会话,'turnBoundary')#回合边界投影
+        if 边界 is None:#部署没装上
+            raise 智能体命令错误('agent-instructions requires the turnBoundary session projection')#拒绝
+        步骤边界=边界['lastStepBoundary'] if 'lastStepBoundary' in 边界 else None#最近步骤边界
+        return 边界['openTurnStartSeq'] is not None and isinstance(步骤边界,dict) and 步骤边界['kind']=='start' and 步骤边界['seq']>边界['openTurnStartSeq']#步骤仍打开
     def 投影触及(触及):#按步骤边界决定立刻投影还是暂存
         '步骤已关闭则立刻排队，否则暂存'
         会话=触及['agent'].session#所属会话
@@ -293,18 +302,10 @@ def 应用(上下文,配置值):#注册工作区指令插件
             步骤触及[会话]=[触及]#新建
         else:#追加
             待存.append(触及)#追加
-    def 会话事件(会话,事件):#跟踪步骤开关并在步骤结束时放出暂存触及
-        'step/start 打开；turn/end 关闭；step/end 关闭并放出暂存'
-        种类=事件['type']#事件类型
-        if 种类=='step/start':#步骤开始
-            打开步骤[会话]=True#标记打开
-            return#不必再看
-        if 种类=='turn/end':#回合结束也关闭步骤
-            打开步骤[会话]=False#标记关闭
-            return#触及仍留到显式step/end处理
-        if 种类!='step/end':#其他事件忽略
+    def 会话事件(会话,事件):#步骤结束时放出暂存触及
+        '只在 step/end 放出打开步骤里暂存的文件触及'
+        if 事件['type']!='step/end':#其他事件忽略
             return#忽略
-        打开步骤[会话]=False#步骤结束
         待存=步骤触及[会话] if 会话 in 步骤触及 else None#取出暂存
         if 待存 is None:#没有触及
             return
@@ -340,7 +341,9 @@ def 应用(上下文,配置值):#注册工作区指令插件
                 最后声明=下标#更新
         进入=list(决定消息)#拷贝
         进入.insert(最后声明+1,期望)#插在声明批次之后
-        return {'kind':'enter','messages':进入}#带着插入后的消息进入
+        结果=dict(决定)#保留决定上的其余字段
+        结果['messages']=进入#换成插入后的消息
+        return 结果#带着插入后的消息进入
     上下文.监听('agent/pre-step',预步骤)#预步骤瀑布
     def 工具结果(执行,结果):#工具结果：收集文件触及并在根执行提交
         '根执行按步骤边界投影；嵌套执行上交给父令牌'

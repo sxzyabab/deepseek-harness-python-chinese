@@ -217,7 +217,7 @@ class 团队名册:#成员表
 
     def 停止队友(自身,根,子标识列表):#停 teammate
         '经延续生命周期所有者拆除精确 teammate Activation。返回期约，排空超过拆除超时则拒绝'
-        return 自身._生命周期.有界等待(自身.ctx.subagents.排空可续跑后代([根]))#有界 drain
+        return 自身._生命周期.有界等待(自身.ctx.subagents.排空子体(根,子标识列表))#有界拆选中的队友
 
     def _已准入创建(自身,调用方,请求):#已准入创建
         '执行在 Team 运行时拆除截止前已准入的一次创建'
@@ -268,8 +268,9 @@ class 团队名册:#成员表
             return 自身._检查点初始提示(子标识,已启动['messageId'] if 'messageId' in 已启动 else None,信号)#等初始提示落盘
         def 启动并等初始提示(启动值):#开始启动
             '启动可续跑子代，再等初始提示落盘'
-            return 自身.ctx.subagents.启动可续跑({#启动可续跑
-                'childId':子标识,#预留 id（上游字段）
+            return 自身.ctx.subagents.启动激活({#本地激活
+                'delivery':'parent',#父投递
+                'childId':子标识,#预留 id
                 'provider':请求['provider'],#provider
                 'label':成员['description'],#标签
                 'request':{'prompt':请求['prompt'],'parent':根},#请求

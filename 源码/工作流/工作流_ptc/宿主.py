@@ -129,6 +129,7 @@ class ptc工作流运行:#持有者所有的工作流
         自身._观察器=观察器#进度观察
         自身._信号=信号#外部中止
         自身._控制器=中止控制器()#本运行中止
+        自身._当前目录=上下文.workingDirectory.ensure(父,自身._控制器.信号)#确保当前目录
         自身._子表={}#callId 到记录
         自身._未决=[]#进行中的绑定任务
         自身._活智能体={}#seq 到信息
@@ -266,23 +267,32 @@ class ptc工作流运行:#持有者所有的工作流
         自身._要求活动()#活动
         自身._已启动+=1#计数
         调用标识=自身._已启动#callId
-        启动={'prompt':[{'type':'text','text':请求['prompt']}],'parent':自身._父,'signal':自身._控制器.信号}#启动请求
+        请求体={'cwd':自身._当前目录,'prompt':[{'type':'text','text':请求['prompt']}],'parent':自身._父}#启动请求
         if 'schema' in 请求:#有模式
-            启动['outputSchema']=请求['schema']#输出模式
+            请求体['outputSchema']=请求['schema']#输出模式
         if 'provider' in 请求 or 'model' in 请求:#有覆盖
             选项={}#agentOptions
             if 'provider' in 请求:#提供方
                 选项['provider']=请求['provider']#带上
             if 'model' in 请求:#模型
                 选项['model']=请求['model']#带上
-            启动['agentOptions']=选项#覆盖
-        跑=自身._子智能体.启动(自身._提供方,启动)#发布
-        记录={'callId':调用标识,'run':跑}#记录
-        自身._子表[调用标识]=记录#登记
-        if 已中止(自身._控制器.信号):#启动期间已取消
-            自身._拆除子(记录)#拆除
-            raise RuntimeError('workflow child started after cancellation')#拒绝
-        return {'callId':调用标识,'childId':跑.id}#引用
+            请求体['agentOptions']=选项#覆盖
+        启动=自身._子智能体.启动激活({#发布
+            'provider':自身._提供方,#提供方
+            'label':自身.meta['name']+' child '+str(调用标识),#标签
+            'delivery':'caller',#调用方投递
+            'signal':自身._控制器.信号,#取消
+            'request':请求体,#请求
+        })#期约
+        def 已启动(跑):#激活回执
+            '登记并在已取消时拆除'
+            记录={'callId':调用标识,'run':跑}#记录
+            自身._子表[调用标识]=记录#登记
+            if 已中止(自身._控制器.信号):#启动期间已取消
+                自身._拆除子(记录)#拆除
+                raise RuntimeError('workflow child started after cancellation')#拒绝
+            return {'callId':调用标识,'childId':跑['childId']}#引用
+        return 启动.然后(已启动)#等激活
 
     def _子结果(自身,记录):#等子终态
         '与中止赛跑，返回子终态 JSON 的期约'
@@ -310,7 +320,7 @@ class ptc工作流运行:#持有者所有的工作流
         def 失败(错误):#中止或子拒绝
             '赛跑失败则拒绝'
             结局.拒绝(错误)#拒绝
-        期约.竞速([记录['run'].result,中止侧]).然后(成功,失败)#先到
+        期约.竞速([记录['run']['result'],中止侧]).然后(成功,失败)#先到
         return 结局#期约
 
     def _拆除子(自身,记录):#共享拆除
@@ -322,12 +332,23 @@ class ptc工作流运行:#持有者所有的工作流
         def 跑拆除():#后台
             '调用提供方拆除'
             try:#拆除
-                记录['run'].销毁()#销毁
+                拆除=记录['run']['dispose']()#拆除这次激活
+                然后=getattr(拆除,'然后',None)#期约才等
+                if callable(然后):#等拆除结束
+                    def 拆除完(_值=None):
+                        '摘掉并完成'
+                        自身._子表.pop(记录['callId'],None)#移除
+                        完成.解决(None)#完成
+                    def 拆除失败(错误):
+                        '失败只警告，仍算拆完'
+                        自身.ctx.日志.警告('workflow-ptc: child dispose failed: '+渲染抛出(错误))#警告
+                        拆除完()#继续
+                    然后(拆除完,拆除失败)#接上
+                    return#已接上，摘掉留给回调
             except BaseException as 错误:#失败
                 自身.ctx.日志.警告('workflow-ptc: child dispose failed: '+渲染抛出(错误))#警告
-            finally:#摘掉
-                自身._子表.pop(记录['callId'],None)#移除
-                完成.解决(None)#完成
+            自身._子表.pop(记录['callId'],None)#同步路径摘掉
+            完成.解决(None)#完成
         启动守护线程(跑拆除)#后台
         return 完成#期约
 
@@ -365,7 +386,7 @@ class ptc工作流运行:#持有者所有的工作流
         '跑 PTC 程序并清理子；清理结束后解决自身.结果'
         终态={'结果':None}#终态
         try:#执行
-            规格=自身._运行时.解析({'program':程序,'bindings':[{'global':'workflowHost','functions':自身._绑定()}],'cwd':自身._政策['workspaceRoot'],'sandboxPolicy':自身._政策,'timeoutMs':None,'signal':自身._控制器.信号})#解析
+            规格=自身._运行时.解析({'program':程序,'bindings':[{'global':'workflowHost','functions':自身._绑定()}],'cwd':自身._当前目录,'sandboxPolicy':自身._政策,'timeoutMs':None,'signal':自身._控制器.信号})#解析
             运行结局=自身._运行时.运行(规格)#运行
             自身._终态=True#终态
             if 自身._取消原因 is not None:#取消获胜

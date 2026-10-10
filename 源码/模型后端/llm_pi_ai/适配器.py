@@ -5,13 +5,18 @@ import pi_ai#外部依赖胶水（pi-ai SDK）
 from ...工具.超时 import 空闲看门狗,取超时#空闲看门狗与超时判定
 from .上下文 import 转派上下文#上下文转换
 from .流 import 转流块#事件翻译
-from .模型 import 创建模型集,取受支持思考档#模型集合与思考档
+from .模型 import 创建模型集,取受支持思考档,对话更新#模型集合、思考档与对话更新
 
 __all__=('派爱适配器','合成信号','配置流选项','解析思考档位','推理信息','请求头','流空闲超时码','已中止','若已中止则抛出')#仅中文公开名
 
 线程=threading.Thread#工作线程
 事件=threading.Event#中止事件
 流空闲超时码='LLM_STREAM_IDLE_TIMEOUT'#空闲超时码
+人择工具占位={
+    'name':'DeferredToolPlaceholder',#占位名
+    'description':'Reserved placeholder that keeps deferred tool loading active; never call this tool.',#不得调用
+    'parameters':{'type':'object','properties':{}},#空参数
+}#Anthropic 全推迟工具时的初始活跃声明
 
 class 中止信号:
     'threading.Event 取消通道。原因用异常对象承载，不对外挂第二字段'
@@ -245,6 +250,7 @@ class 派爱适配器(llm.大模型适配器):
         if 配置上限 is not None:#配置显式写了按次上限才带 defaultMaxTokens
             信息['defaultMaxTokens']=配置上限#有配置上限才带上
         信息.update(推理信息(已解析模型,默认档位))#推理元数据
+        信息.update(对话更新(已解析模型))#系统提示与工具更新方式
         return 信息#已解析信息
 
     def 准备调用(自身,提供方,模型,信号=None):#把模型元数据与派发绑到同一代快照
@@ -268,7 +274,23 @@ class 派爱适配器(llm.大模型适配器):
         模型标识=选项['model']#模型id
         配置项=自身.配置于(快照,提供方)#本次配置
         模型=自身.模型于(快照,提供方,模型标识)#本次模型
-        请求力度=选项['reasoningEffort'] if 'reasoningEffort' in 选项 else None#请求力度
+        更新=对话更新(模型)#本模型的工具更新方式
+        工具=选项.get('tools') or []#当前工具
+        有工具变更=False#历史里是否有开发者工具变更
+        for 消息 in 选项.get('messages') or []:#扫开发者事件
+            if 消息.get('role')!='developer':#其它角色
+                continue#跳过
+            for 块 in 消息.get('content') or []:#逐块
+                if 块.get('type')=='tool-addition' or 块.get('type')=='tool-removal':#工具变更
+                    有工具变更=True#需要占位
+                    break#已判定
+            if 有工具变更:#不必继续
+                break#已判定
+        全部推迟=all(项.get('deferLoading') is True for 项 in 工具)#空列表也算全部推迟
+        请求=选项#默认原请求
+        if getattr(模型,'api',None)=='anthropic-messages' and 更新.get('toolUpdate')=='in-history' and 全部推迟 and 有工具变更:#Anthropic 拒绝没有初始活跃声明的工具表
+            请求={**选项,'tools':[人择工具占位,*工具]}#前置占位
+        请求力度=请求['reasoningEffort'] if 'reasoningEffort' in 请求 else None#请求力度
         if 请求力度 is None:#请求没给力度则用路由配置默认
             请求力度=配置项['reasoning'] if 'reasoning' in 配置项 else None#配置力度
         推理=解析思考档位(模型,请求力度)#校验力度
@@ -306,7 +328,7 @@ class 派爱适配器(llm.大模型适配器):
                 if 钩子 is not None:#有钩子
                     钩子({'provider':提供方,'model':模型标识,'reason':原因})#带路由
             if 附件 is None:#没有附件则走同步纯文本转换
-                上下文=转派上下文(选项,None,回放降级)#同步纯文本
+                上下文=转派上下文(请求,None,回放降级)#同步纯文本
             else:#有附件则解析图片
                 解析访问=自身.配置['resolveImageAccess'] if 'resolveImageAccess' in 自身.配置 else None#可选访问解析
                 def 访问引用(引用):#当前路径
@@ -323,7 +345,7 @@ class 派爱适配器(llm.大模型适配器):
                         'maxBytes':配置项['requestImageMaxBytes'],#单张字节
                     },#路由预算
                 }#图片上下文
-                带信号={**选项,'signal':看门狗.信号}#把看门狗信号交给读图
+                带信号={**请求,'signal':看门狗.信号}#把看门狗信号交给读图
                 上下文=转派上下文(带信号,图片上下文,回放降级)#解析图片
             流选项=配置流选项(配置项,推理,密钥)#配置旋钮
             温度=选项['temperature'] if 'temperature' in 选项 else None#温度

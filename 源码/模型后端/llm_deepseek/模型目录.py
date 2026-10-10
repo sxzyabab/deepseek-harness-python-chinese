@@ -6,10 +6,11 @@ __all__=['默认模型列表']
 默认模型列表=[
     {
         'id':'deepseek-flash',
-        'name':'DeepSeek-V41-Flash',
+        'name':'DeepSeek-V4.1-Flash',
         'contextWindow':默认上下文窗口,
         'inputModalities':['text','image'],
         'systemPromptUpdate':'in-history',
+        'toolUpdate':'addition-only',
     },
     {
         'id':'deepseek-v4-pro',

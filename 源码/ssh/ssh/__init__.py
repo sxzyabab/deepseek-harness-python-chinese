@@ -1,6 +1,6 @@
 import os,re,sys,tempfile,shutil,threading,subprocess,time,socket
 from ...依赖.cordis.服务 import 服务
-from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段
+from ...依赖.schemastery import 字符串字段,正整数字段,自然数字段,字典字段
 from ...基础设施.js特性 import PromiseEX as 期约#就绪、请求、连接流、拆除返回的期约
 from ...工具.超时 import 截止
 from .协议 import ssh请求对等,ssh协议版本
@@ -17,12 +17,10 @@ __all__=['配置','ssh连接']#仅中文公开名
 
 配置={#部署方持有的 SSH 身份与已安装辅助
     'host':字符串字段(),#OpenSSH 主机别名
-    'node':字符串字段(),#远端 Node
+    'launch':字典字段(),#脚本或可执行文件启动
     'helper':字符串字段(),#辅助入口
     'helperHash':字符串字段(格式=r'^[0-9a-f]{64}$'),#摘要
     'workspace':字符串字段(),#默认工作区
-    'bootstrapPath':字符串字段(),#可选 PTC 入口
-    'bootstrapHash':字符串字段(格式=r'^[0-9a-f]{64}$'),#引导摘要
     'requestTimeoutMs':正整数字段(最大=2147483647,默认值=30000),#管理截止
     'maxFrameBytes':正整数字段(最大=64*1024*1024,默认值=64*1024*1024),#帧上限
     'maxPending':正整数字段(最大=128,默认值=128),#普通未决
@@ -124,21 +122,37 @@ class ssh连接(服务):
         主机=配置值.get('host')#别名
         if not isinstance(主机,str) or 主机形态.match(主机) is None:#非法
             raise ssh错误('expected OpenSSH host alias')#失败
-        for 键 in ('node','helper','workspace'):#绝对路径
+        启动=配置值.get('launch')#启动
+        if not isinstance(启动,dict):#非对象
+            raise ssh错误('expected launch')#失败
+        种类=启动.get('kind')#种类
+        if 种类=='node-script':#脚本
+            节点=启动.get('node')#远端 Node
+            if not isinstance(节点,str) or not 节点.startswith('/'):#绝对
+                raise ssh错误('expected absolute node')#失败
+            引导路径=启动.get('bootstrapPath')#可选
+            引导摘要=启动.get('bootstrapHash')#可选
+            if (引导路径 is None)!=(引导摘要 is None):#不成对
+                raise ssh错误('bootstrapPath and bootstrapHash must be paired')#失败
+            if 引导路径 is not None and (not isinstance(引导路径,str) or not 引导路径.startswith('/')):#路径
+                raise ssh错误('expected absolute bootstrapPath')#失败
+            if 引导摘要 is not None and (not isinstance(引导摘要,str) or 哈希形态.match(引导摘要) is None):#摘要
+                raise ssh错误('expected bootstrapHash')#失败
+            for 键 in 启动:#额外键
+                if 键 not in ('kind','node','bootstrapPath','bootstrapHash'):#不允许
+                    raise ssh错误('unexpected launch field '+键)#失败
+        elif 种类=='executable':#可执行文件
+            if set(启动.keys())!={'kind'}:#无额外字段
+                raise ssh错误('unexpected launch field')#失败
+        else:#未知
+            raise ssh错误('expected launch kind')#失败
+        for 键 in ('helper','workspace'):#绝对路径
             值=配置值.get(键)#值
             if not isinstance(值,str) or not 值.startswith('/'):#非法
                 raise ssh错误('expected absolute '+键)#失败
         摘要=配置值.get('helperHash')#摘要
         if not isinstance(摘要,str) or 哈希形态.match(摘要) is None:#非法
             raise ssh错误('expected helperHash')#失败
-        引导路径=配置值.get('bootstrapPath')#可选
-        引导摘要=配置值.get('bootstrapHash')#可选
-        if (引导路径 is None)!=(引导摘要 is None):#不成对
-            raise ssh错误('bootstrapPath and bootstrapHash must be paired')#失败
-        if 引导路径 is not None and (not isinstance(引导路径,str) or not 引导路径.startswith('/')):#路径
-            raise ssh错误('expected absolute bootstrapPath')#失败
-        if 引导摘要 is not None and (not isinstance(引导摘要,str) or 哈希形态.match(引导摘要) is None):#摘要
-            raise ssh错误('expected bootstrapHash')#失败
         结果=dict(配置值)#拷
         if 'requestTimeoutMs' not in 结果 or 结果['requestTimeoutMs'] is None:#默认
             结果['requestTimeoutMs']=30000#默认
@@ -151,18 +165,16 @@ class ssh连接(服务):
         return 结果#配置
 
     @property#只读
-    def 节点可执行文件(自身):#已验证远端 Node
-        '配对 PTC 运行时用'
+    def ptc启动(自身):#已验证的远端 PTC 启动
+        '脚本部署必须带已验证的引导；可执行文件用内嵌运行时'
         if 自身.远端 is None:#未就绪
             raise ssh错误('SSH helper is not ready')#拒绝
-        return 自身.远端['node']#路径
-
-    @property#只读
-    def 引导路径(自身):#已验证 PTC 入口
-        '未配置则在程序执行前拒绝'
-        if 自身.远端 is None or 'bootstrapPath' not in 自身.配置值:#未配
+        启动=自身.配置值['launch']#启动
+        if 启动['kind']=='executable':#内嵌
+            return {'kind':'embedded','executable':自身.远端['executable']}#内嵌
+        if 'bootstrapPath' not in 启动:#脚本缺引导
             raise ssh错误('SSH PTC requires a verified bootstrapPath and bootstrapHash')#拒绝
-        return 自身.配置值['bootstrapPath']#路径
+        return {'kind':'node-script','executable':自身.远端['executable'],'bootstrapPath':启动['bootstrapPath']}#脚本
 
     def 请求(自身,方法,参数,结果模式,信号=None,等待=False):#辅助操作
         '取消从不重放含糊变更。等待=True 时观察可超过管理截止。返回期约，兑现经校验的远端结果'
@@ -428,7 +440,11 @@ class ssh连接(服务):
         自身.目录=tempfile.mkdtemp(prefix='dsh-ssh-',dir='/tmp')#临时
         if 自身._已关:#已关
             raise ssh错误('SSH connection closed before startup')#拒绝
-        命令=单引号(自身.配置值['node'])+' --disable-sigusr1 '+单引号(自身.配置值['helper'])#远端 argv
+        启动=自身.配置值['launch']#启动
+        if 启动['kind']=='node-script':#脚本
+            命令=单引号(启动['node'])+' --disable-sigusr1 '+单引号(自身.配置值['helper'])#远端 argv
+        else:#可执行文件
+            命令="NODE_OPTIONS='--disable-sigusr1' "+单引号(自身.配置值['helper'])#内嵌 Node
         argv=[
             'ssh','-T','-M','-S',自身._控制路径(),'-o','ControlPersist=no','-o','BatchMode=yes',
             '-o','StrictHostKeyChecking=yes','-o','ForwardAgent=no','-o','ClearAllForwardings=yes',
@@ -463,14 +479,17 @@ class ssh连接(服务):
             'workspace':自身.配置值['workspace'],#工作区
             'leaseMs':自身.配置值['leaseMs'],#租期
         }#hello 参数
-        if 自身.配置值.get('bootstrapPath') is not None:#引导
-            参数['bootstrapPath']=自身.配置值['bootstrapPath']#路径
+        if 启动['kind']=='node-script' and 启动.get('bootstrapPath') is not None:#引导
+            参数['bootstrapPath']=启动['bootstrapPath']#路径
         句柄=截止(None,自身.配置值['requestTimeoutMs'],'ssh-hello')#截止
         def 握手已回(握手):
             'hello 兑现后校验摘要，记下远端身份并开始心跳；摘要不符抛出即拒绝就绪'
             if 握手['hash']!=自身.配置值['helperHash']:#摘要
                 raise ssh错误('SSH helper digest differs from the configured artifact')#拒绝
-            if 握手.get('bootstrapHash')!=自身.配置值.get('bootstrapHash'):#引导
+            if 握手.get('kind')!=启动['kind']:#种类
+                raise ssh错误('SSH helper runtime differs from the configured launch kind')#拒绝
+            引导摘要=启动.get('bootstrapHash') if 启动['kind']=='node-script' else None#期望引导摘要
+            if 握手.get('bootstrapHash')!=引导摘要:#引导
                 raise ssh错误('SSH PTC bootstrap digest differs from the configured artifact')#拒绝
             自身.远端=握手#记下
             心跳进行中=False#一次一心跳

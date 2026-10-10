@@ -2,5 +2,6 @@
     "account-sign-in-errors":"账号登录错误",
     "remove-runtime-invariants":"移除运行时不变量",
     "schedule-bundle-retired":"日程组合包退役",
-    "subpath-plugin-display-manifest":"子路径插件展示清单"
+    "subpath-plugin-display-manifest":"子路径插件展示清单",
+    "bundled-python-tests":"随附python测试"
 }

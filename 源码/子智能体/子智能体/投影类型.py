@@ -6,13 +6,25 @@ class 子智能体目录一次性条目(TypedDict):#一次性直接子发现行
     mode:Literal['one-shot']#一次性
     label:NotRequired[str]#可选标签
 
+class 子智能体目录外部条目(TypedDict):#没有本地子会话的外部执行
+    id:str#提供方身份
+    createdAt:int#创建时刻
+    mode:Literal['external']#外部
+    label:NotRequired[str]#可选标签
+
 class 子智能体目录可续跑条目(TypedDict):#可续跑直接子发现行
     id:str#子会话 id
     createdAt:int#创建时刻
     mode:Literal['continuable']#可续跑
     label:str#标签
 
-子智能体目录条目=子智能体目录一次性条目|子智能体目录可续跑条目#目录条目联合
+class 子智能体目录未知条目(TypedDict):#无法识别的目录模式
+    id:str#子身份
+    createdAt:int#创建时刻
+    mode:Literal['unknown']#未知
+    label:NotRequired[str]#可选标签
+
+子智能体目录条目=子智能体目录一次性条目|子智能体目录外部条目|子智能体目录可续跑条目|子智能体目录未知条目#目录条目联合
 
 class 子智能体计时活动(TypedDict):#当前未到达 turn/end 的开放回合的同一切片边界
     since:int#开放回合的起点
@@ -21,6 +33,7 @@ class 子智能体计时活动(TypedDict):#当前未到达 turn/end 的开放回
 class 子智能体计时投影(TypedDict):#一份有描述符的子会话的耐久活动回合计时
     settledMs:int#子体自身描述符之后、已完成回合累计的毫秒
     active:NotRequired[子智能体计时活动]#当前未结束回合的同一切片边界
+    lastTurnCompleted:NotRequired[bool]#描述符之后最近一个已关闭回合是否正常完成
 
 class 子智能体一次性身份投影(TypedDict):#终态一次性子体的耐久身份
     mode:Literal['one-shot']#终态一次性子体

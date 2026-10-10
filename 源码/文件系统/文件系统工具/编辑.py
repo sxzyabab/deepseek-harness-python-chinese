@@ -3,11 +3,8 @@ from ...内核.工具 import 定义工具#导入工具定义
 from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
 from .异常 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
 from .会话工作目录 import 会话解析选项#导入会话cwd解析选项
-from .. import 文件系统 as fs#文件系统错误
 
-编辑提示文本=(#把 edit 定位为定向字面量替换的稳定系统提示词指引（字面量不翻译）
-    'Use the edit tool for targeted changes to existing UTF-8 text files. It replaces literal old_string with new_string; by default old_string must appear exactly once. If old_string appears multiple times, provide a more specific old_string or set replace_all to true. Read the file first (the default fs-observation-policy requires it), unless you just created or edited it in this session.'#定向替换：默认唯一匹配，先读后edit
-)#编辑提示文本结束
+编辑提示文本='Read a file before editing it (the default fs-observation-policy requires it), unless you just created or edited it in this session.'#先读后改，本会话刚创建或编辑过的除外
 def 解析编辑参数(参数):#校验编辑工具参数
     """校验 schema DSL 表达不了的值约束：非空白 file_path、非空 old_string，以及 old_string 与 new_string 必须不同。
     replace_all 缺省为 False
@@ -44,12 +41,12 @@ def 应用编辑工具(上下文,沙箱):#注册 edit 工具
         return 编辑提示文本#指引
     上下文.systemPrompt.段落({#写入系统提示词段落
         'name':'tool:edit',#段落名
-        'order':102,#排序
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_EDIT'),#中央段落顺序
         'text':段落文本,#动态指引
     })#系统提示词结束
     参数表={#参数schema
-        'file_path':{'type':'string','required':True,'description':'Path to edit, resolved by the filesystem backend.'},#编辑路径
-        'old_string':{'type':'string','required':True,'description':'Literal text to replace. Must match exactly.'},#待替换字面量
+        'file_path':{'type':'string','required':True,'description':'Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments.'},#编辑路径，参数里先写路径
+        'old_string':{'type':'string','required':True,'description':'Literal text to replace.'},#待替换字面量
         'new_string':{'type':'string','required':True,'description':'Literal replacement text. Use an empty string to delete the match.'},#替换字面量
         'replace_all':{'type':'boolean','description':'Replace all matches. Defaults to false; when false, old_string must appear exactly once.'},#是否全部替换
     }#基础参数
@@ -63,8 +60,8 @@ def 应用编辑工具(上下文,沙箱):#注册 edit 工具
         return [{'type':'text','text':格式化编辑输出(值['path'],替换全部)}]#确认句
     def 呈现元数据(参数,值):#结果呈现用的 diff meta
         '结果呈现用的 diff meta'
-        差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(参数['file_path'],值['before'],值['after'])]#只保留展示字段
-        return {'diffs':差异列表}#diff meta
+        差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(值['path'],值['before'],值['after'])]#只保留展示字段
+        return {'path':值['path'],'diffs':差异列表}#路径与diff meta
     def 无条件意图():#裸默认无条件编辑
         '裸默认无条件编辑'
         return None#无条件
@@ -72,8 +69,7 @@ def 应用编辑工具(上下文,沙箱):#注册 edit 工具
         '执行编辑'
         输入=解析编辑参数(参数)#校验参数
         沙箱政策=沙箱.解析政策('edit',参数,执行上下文)#解析沙箱策略
-        政策根=沙箱政策['workspaceRoot'] if 沙箱政策 is not None and 'workspaceRoot' in 沙箱政策 else None#政策工作区根
-        目标=上下文.fs.解析(输入['路径'],会话解析选项(执行上下文,输入['路径'],政策根))#解析稳定目标
+        目标=上下文.fs.解析(输入['路径'],会话解析选项(上下文,执行上下文))#按当前目录解析稳定目标
         try:#取意图并调用提供方编辑
             意图=上下文.链式拦截('fs/edit-intent',目标,执行上下文,无条件意图)#取编辑意图
             结局=上下文.fs.编辑文本(#原子编辑
@@ -83,14 +79,16 @@ def 应用编辑工具(上下文,沙箱):#注册 edit 工具
                 执行上下文['signal'] if 'signal' in 执行上下文 else None,#取消信号
                 沙箱政策,#每调用沙箱策略
             )#编辑文本结束
-        except fs.文件系统错误 as 错误:#意图或编辑失败
-            raise 补救文件系统错误(沙箱.映射错误(错误,沙箱政策))#映射并补救后抛出
+        except Exception as 错误:#意图或编辑失败
+            补救后=补救文件系统错误(沙箱.映射错误(错误,沙箱政策),目标['displayPath'])#映射并补救
+            if 补救后 is 错误:#原错误
+                raise#原样
+            raise 补救后#换成面向模型的诊断
+        结果={键:值 for 键,值 in 结局.items() if 键!='version'}#结果不含版本
         上下文.广播('fs/observed',目标,{'kind':'present','version':结局['version']},执行上下文)#记录观察
-        return {#返回结构化结果
-            'path':目标['displayPath'],#展示路径
-            'before':结局['before'],#编辑前文本
-            'after':结局['after'],#编辑后文本
-        }#结果结束
+        返回={'path':上下文.fs.进程路径(目标)}#执行世界中的规范路径
+        返回.update(结果)#其余结果字段；若自带 path 则覆盖
+        return 返回#结构化结果
     def 呈现调用(参数):#调用时 diff 卡片
         """调用时 diff 卡片。
         空 old_string 映射为 None

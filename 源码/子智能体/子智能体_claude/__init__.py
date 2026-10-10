@@ -1,4 +1,5 @@
 from ...依赖.schemastery import 字典字段,字符串字段,数字字段#配置
+from ..子智能体 import 无启动能力,断言可用工作目录#无能力广告与目录校验
 from .运行 import 启动claude运行,默认处置宽限毫秒#运行
 from . import (
     异常,
@@ -7,7 +8,7 @@ from . import (
 名称='subagent-claude-code'#Cordis 插件名
 依赖=['subagents','subprocess']#依赖
 配置=字典字段(字典结构={
-    'providerName':字符串字段(默认值='claude'),
+    'providerName':字符串字段(默认值='claude-code'),
     'permissionMode':字符串字段(默认值='dontAsk'),
     'disposeGraceMs':数字字段(默认值=默认处置宽限毫秒),
 })#配置
@@ -19,17 +20,19 @@ class claude提供方:
     def __init__(自身,名,规格):
         '记下提供方名、能力与运行规格。规格为 dict'
         自身.名称=名#名
-        自身.能力={}#无启动能力
+        自身.能力=dict(无启动能力)#五项启动能力全关
         自身.继承父上下文=False#契约
         自身._规格=规格#规格
 
     def 启动(自身,请求):
-        '启动 Claude 一次性跑。请求为 dict'
-        return 启动claude运行(请求,自身._规格)#跑
+        '启动 Claude 一次性跑。工作目录来自服务解析后的 request.cwd'
+        规格=dict(自身._规格)#拷贝
+        规格['cwd']=断言可用工作目录('subagent-claude-code','child cwd',请求['cwd'])#绝对可进入目录
+        return 启动claude运行(请求,规格)#跑
 
 def 应用(上下文,配置值):
     '加载 Claude 提供方。配置为 dict'
-    名=配置值['providerName'] if 'providerName' in 配置值 else 'claude'#名
+    名=配置值['providerName'] if 'providerName' in 配置值 else 'claude-code'#名
     规格={#运行规格
         'permissionMode':配置值['permissionMode'] if 'permissionMode' in 配置值 else 'dontAsk',#权限模式
         'disposeGraceMs':配置值['disposeGraceMs'] if 'disposeGraceMs' in 配置值 else 默认处置宽限毫秒,#处置宽限

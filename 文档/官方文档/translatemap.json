@@ -31,5 +31,7 @@
     "dependency-catalog":"依赖目录",
     "persistence-schema":"持久化schema",
     "upgrade-guide":"升级指南",
-    "root":"根目录"
+    "root":"根目录",
+    "cli-help":"命令行帮助",
+    "experimental-persistence-catalog":"实验性插件记录目录"
 }

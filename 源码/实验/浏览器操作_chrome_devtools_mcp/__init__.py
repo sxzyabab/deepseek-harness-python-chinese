@@ -3,7 +3,7 @@ from ..浏览器操作_运行时.mcp import 浏览器mcp配置,挂会话mcp,校�
 __all__=['名称','依赖','配置','应用']
 
 名称='experimental-browser-use-chrome-devtools-mcp'
-依赖=['browserUse','agents','tools','systemPrompt']
+依赖=['browserUse','agents','tools','systemPrompt','workingDirectory']
 配置=浏览器mcp配置
 
 def 应用(上下文,配置值):

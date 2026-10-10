@@ -21,7 +21,7 @@ __all__=['名称','依赖','配置','应用','或许截断','下一滚回偏移'
 轮询间隔毫秒=25#轮询间隔毫秒
 默认描述='Run commands in a persistent bash shell. State, including the current directory and exported environment variables, persists across calls for this agent.'#默认工具描述
 名称='tool-bash-persistent'#Cordis插件名（字面量）
-依赖=['tools','terminals']#依赖工具与终端
+依赖=['tools','terminals','workingDirectory']#依赖工具、终端与工作目录
 配置={#持久Bash工具配置
     'backendType':字符串字段(默认值='shell'),#默认shell后端
     'timeoutMs':数字字段(默认值=300000),#默认300秒
@@ -297,11 +297,8 @@ def 持久壳表(上下文,配置值):#按所有者缓存持久壳
         创建中.add(创建)#拆除时要等它
         进行中[所有者]=创建#给后续调用复用
         try:#拉起并初始化
-            头=所有者.session.header#会话头
-            工作目录=头['cwd'] if 'cwd' in 头 else None#会话工作目录
-            规格={'type':配置值['backendType']}#按后端类型搭建
-            if 工作目录 is not None:#有cwd则带上
-                规格['cwd']=工作目录#带上
+            工作目录=上下文.workingDirectory.ensure(所有者,组合信号)#确保当前目录
+            规格={'type':配置值['backendType'],'cwd':工作目录}#按后端类型搭建并带上当前目录
             上下文.terminals.搭建(所有者,规格,组合信号).然后(偏应用(搭建已完成,创建,所有者,组合信号),偏应用(创建失败,创建,所有者))
         except Exception as 错误:#拉起失败
             创建失败(创建,所有者,错误)#清掉半成品并拒绝

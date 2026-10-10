@@ -10,13 +10,37 @@ class 子智能体跑信息(TypedDict):#已发布子智能体跑的只观察身�
     runId:str#与配对终态事件共享的唯一身份（子智能体运行标识品牌）
     provider:str#子体首次创建时记下的提供方名
     id:str#子智能体的会话 id
-    local:bool#SubagentRun.localAgent 在 start 兑现时是否存在的快照
+    local:bool#发布时这次激活是否拥有本地智能体
+
+class 子智能体激活规格(TypedDict):#启动一次受管理执行
+    provider:str#已登记后端
+    label:str#目录里保留的短标签
+    childId:NotRequired[str]#本地子的预留身份；外部后端自己分配
+    request:dict#任务、父与后端选项（不含 label 与 signal）
+    signal:object#发布前取消
+    delivery:Literal['parent','caller']#父通知或只把结果还给调用方
+
+class 子智能体激活(TypedDict):#一次受管理执行
+    childId:str#子身份
+    messageId:NotRequired[str]#本地收件箱接受后的消息身份
+    result:object#拆除与通知之后的结果期约
+    dispose:object#停掉并释放这次激活
+
+class 子智能体打断权威用户(TypedDict):#人类客户端给出的耐久直接父地址
+    kind:Literal['user']
+    parentSessionId:str
+
+class 子智能体打断权威祖先(TypedDict):#谱系必须包含调用方的精确活智能体
+    kind:Literal['ancestor']
+    agent:object
+
+子智能体打断权威=子智能体打断权威用户|子智能体打断权威祖先#打断权威
 
 class 子智能体跑结束信息(TypedDict):#已结算子智能体跑的只观察结局细节，由 subagent/end 携带，并通过 runId 与一份跑信息配对
     runId:str#与配对开始事件共享的唯一身份
     provider:str#配对开始事件携带的同一提供方名
     id:str#子智能体的会话 id
-    local:bool#SubagentRun.localAgent 在 start 兑现时是否存在的快照
+    local:bool#发布时这次激活是否拥有本地智能体
     stopReason:str#终态停止原因（子智能体停止原因）
     lastAssistantMessage:NotRequired[list]#最终助手输出；基础设施拒绝或子体未产出时缺席
 
@@ -27,7 +51,8 @@ class 子智能体能力(TypedDict):#提供方支持哪些启动时功能；服�
     toolFilter:bool#是否支持工具过滤
     persona:bool#是否支持人设
 
-class 子智能体启动请求(TypedDict):#启动一次性子智能体时调用方要的东西
+class 子智能体启动请求(TypedDict):#交给后端的任务与可选能力
+    cwd:NotRequired[str]#子初始目录；省略则在启动时继承父的当前目录
     label:NotRequired[str]#可选的短显示标签，与有会话的子体一起持久化
     prompt:list#作为子体用户消息投递的内容（内容块列表）
     parent:object#拉起方智能体（上游类型为 Agent）
@@ -38,10 +63,11 @@ class 子智能体启动请求(TypedDict):#启动一次性子智能体时调用�
     toolFilter:NotRequired[object]#可选的子工具作用域
     persona:NotRequired[str]#可选的每子体人设
 
-class 已解析子智能体启动请求(子智能体启动请求):#start 解析耐久子描述符之后、面向提供方的一次性请求
-    descriptor:object#有会话的提供方持久化进子日志的分离描述符
+class 已解析子智能体启动请求(子智能体启动请求):#启动前已选定绝对目录的面向提供方请求
+    cwd:str#从父或显式请求捕获的绝对子目录
 
-class 可续跑创建请求(TypedDict):#续跑管理器在物化一个可续跑子体的第一次激活时向提供方要的东西
+class 可续跑创建请求(TypedDict):#管理器在物化一个可续跑子体的第一次激活时向提供方要的东西
+    cwd:str#准备前捕获的绝对初始目录
     sessionId:str#已预留的耐久子会话 id，供提供方诊断
     parent:object#委托父智能体（上游类型为 Agent）
     signal:object#调用方取消（上游类型为 AbortSignal）
@@ -64,12 +90,12 @@ class 子智能体发送消息选项(TypedDict):#相邻智能体之间一条模�
 class 子智能体结果(TypedDict):#子智能体跑的终态结局，由 SubagentRun.result 决议
     output:list#子体最终助手输出（内容块列表）；两者都没产出时为 []
     structured:NotRequired[object]#所请求 outputSchema 成功满足后的结构化结果
+    diagnostic:NotRequired[str]#提供方撰写的失败细节，最多 4096 个 UTF-8 字节
     stopReason:子智能体停止原因#跑为何结束
 
-class 子智能体跑:#发布后返回的一次性子句柄协议；提示提交、回合工作以及该边界之后的基础设施故障属于 result
-    '持有者所有的一次性子跑。提供方对象实现本协议：载荷字段名 id/localAgent/result 为线协议键；拆除入口仅 销毁'
-    id=None#父作用域跑 id（会话标识品牌；载荷键字面量）
-    localAgent=None#精确的已发布进程内子体；远程跑为 None（载荷键字面量）
+class 子智能体跑:#激活注册表直接持有的后端执行句柄
+    '提供方对象实现本协议：载荷字段名 id/result 为线协议键；拆除入口仅 销毁'
+    id=None#提供方铸造的身份（载荷键字面量）
     result=None#结算结果承诺（载荷键字面量；上游为 Promise<SubagentResult>）
 
     def 销毁(自身):#取消剩余工作、达到子体静止并释放资源
@@ -81,6 +107,7 @@ class 子智能体提供方:#运行子智能体的一个已登记传输协议；
     name=None#唯一注册表名（例如 spawn、fork、acp；载荷键字面量）
     capabilities=None#本提供方支持的启动时功能（子智能体能力；载荷键字面量）
     inheritsParentContext=None#子体是否看见父的已完成回合前缀（描述性，非服务校验）
+    agentRouteDefaults=None#可选的静态提供方/模型路由；要求 agentOptions
 
     def 启动(自身,请求):#建立一次性子体并在发布后返回其句柄
         '建立一次性子体并在发布后返回其句柄'

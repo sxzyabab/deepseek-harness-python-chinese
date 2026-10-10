@@ -13,7 +13,7 @@ __all__=(#仅中文公开名；无英文别名
     '令牌用量','图片请求价格','提供方简介','可配置提供方',
     '模型发现请求','发现到的模型','模型信息','模型上下文',
     '推理力度信息','模型推理信息','已解析模型信息',
-    '系统提示词更新','图片请求预算','回放信封','工具模式','生成选项',
+    '系统提示词更新','工具更新','工具历史','图片请求预算','回放信封','工具模式','生成选项',
 )#公开面结束
 
 class 中止信号:
@@ -230,6 +230,17 @@ class 模型推理信息(TypedDict):#可选推理力度
     defaultEffort:NotRequired[str]#可选默认力度
 
 系统提示词更新=Literal['in-history']#系统提示词更新模式
+工具更新=Literal['in-history','addition-only']#工具声明中途更新模式
+
+class 工具历史更新(TypedDict):#一次已折叠的开发者更新
+    '一次已折叠的开发者更新'
+    messageId:str#在派生请求历史里定位这次更新
+    additions:list#从所引用请求头解析出的追加定义
+
+class 工具历史(TypedDict):#自上次声明重置以来的工具声明与更新
+    '自上次声明重置以来的已记录工具声明与更新身份'
+    tools:list#这段历史开始时的完整活动声明
+    updates:list#有序开发者消息，追加已从历史头解析
 
 class 已解析模型信息(TypedDict):#由其拥有适配器解析的精确元数据
     '由其拥有适配器解析的精确路由模型元数据'
@@ -242,6 +253,7 @@ class 已解析模型信息(TypedDict):#由其拥有适配器解析的精确元�
     defaultMaxTokens:NotRequired[int]#可选默认最大输出
     reasoning:NotRequired[模型推理信息]#可选推理
     systemPromptUpdate:NotRequired[系统提示词更新]#可选系统提示词更新模式
+    toolUpdate:NotRequired[工具更新]#可选工具声明更新模式
 
 class 工具模式(TypedDict):#发给模型的工具 JSON Schema 描述
     '发给模型的工具 JSON Schema 描述'
@@ -258,6 +270,7 @@ class 生成选项(TypedDict):#一次已完全组装的模型请求
     reasoningEffort:NotRequired[str]#可选推理力度
     system:NotRequired[str]#可选系统提示
     tools:NotRequired[list]#可选工具模式
+    toolHistory:NotRequired[工具历史]#可选会话折叠工具历史
     temperature:NotRequired[float]#可选温度
     maxTokens:NotRequired[int]#可选最大 token
     stop:NotRequired[list]#可选停止序列

@@ -41,7 +41,14 @@ def 应用(上下文):
                     isinstance(限额,bool) or not isinstance(限额,int) or 限额<1 or 限额>100):
                 raise ValueError('offset 必须是非负整数，limit 必须是 1 到 100 的整数')
             行表=装载.列出插件() if 动作=='list_plugins' else 装载.列出组合包()
-            条目=行表[偏移:偏移+限额]
+            页=行表[偏移:偏移+限额]
+            条目=[]
+            for 行 in 页:
+                公开=dict(行)
+                公开.pop('meta',None)
+                if isinstance(公开.get('rows'),list):
+                    公开['rows']=[{键:值 for 键,值 in 声明.items() if 键!='meta'} for 声明 in 公开['rows']]
+                条目.append(公开)
             下一=偏移+len(条目) if 偏移+len(条目)<len(行表) else None
             return 紧凑json编码({'entries':条目,'total':len(行表),'nextOffset':下一})
         if 动作=='set_plugin' or 动作=='set_bundle':
@@ -60,6 +67,8 @@ def 应用(上下文):
                 选项['enabled']=参数['enabled']
             if 'approvedBuilds' in 参数 and 参数['approvedBuilds'] is not None:
                 选项['approvedBuilds']=参数['approvedBuilds']
+            if 'registry' in 参数 and 参数['registry'] is not None:
+                选项['registry']=参数['registry']
             return 紧凑json编码(装载.安装组合包(参数['target'],选项))
         if 动作=='remove_bundle':
             if 'target' not in 参数 or 参数['target'] is None:
@@ -72,12 +81,13 @@ def 应用(上下文):
         return {'card':'generic','title':'Manage profile plugins','kind':种类,'rawInput':参数}
     上下文.tools.登记(定义工具({
         'name':'plugin_manager',#工具名（线协议）
-        'description':'List plugins or bundles in the current profile, enable or disable them, install a bundle, or remove an installed bundle. Every action requires danger-full-access permission or approval for this call. Approval does not change the session permission mode. Changes affect every session in this profile. List first to obtain exact identifiers. Package installation can execute allowed build scripts. Live profiles apply changes immediately; startup profiles require restart.',#描述字面量
+        'description':'List plugins or bundles in the current profile, enable or disable them, install a bundle, or remove an installed bundle. Every action requires danger-full-access permission or approval for this call. Approval does not change the session permission mode. Changes affect every session in this profile. List first to obtain exact identifiers. Package installation can execute allowed build scripts. Live profiles apply changes immediately; startup profiles require restart. For install_bundle, an optional registry URL is asked first; otherwise the configured registry is asked, and its configured fallbacks while a registry is unreachable.',#描述字面量
         'parameters':{
             'action':{'type':'string','required':True,'enum':['list_plugins','list_bundles','set_plugin','set_bundle','install_bundle','remove_bundle'],'description':'Management operation.'},
             'target':{'type':'string','description':'Plugin entry id, bundle package name, or installation spec, according to action.'},
             'enabled':{'type':'boolean','description':'Required for set operations; defaults to true for installation.'},
             'approvedBuilds':{'type':'array','items':{'type':'string'},'description':'For install_bundle: pass names from pendingBuilds only after the user explicitly approves running their install scripts in the conversation. This grants persistent permission for this profile.'},
+            'registry':{'type':'string','description':'For install_bundle: the npm registry URL asked first, when the user names one; otherwise the configured registry is asked, and its configured fallbacks while a registry is unreachable.'},
             'offset':{'type':'number','description':'Zero-based list offset; defaults to 0.'},
             'limit':{'type':'number','description':'List page size, from 1 to 100; defaults to 25.'},
         },

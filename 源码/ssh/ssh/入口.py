@@ -57,10 +57,12 @@ def 主入口():#OpenSSH 进程入口
     try:#运行
         if len(sys.argv)!=1:#除脚本名外还有参数
             raise ssh错误('SSH helper accepts no command arguments')#拒绝
+        已打包=getattr(sys,'frozen',False)#打包可执行文件
         运行ssh辅助({
             'input':包装标准流(sys.stdin.buffer),#OpenSSH exec 标准入
             'output':包装标准流(sys.stdout.buffer),#只走 exec 标准出
-            'entryPath':__file__,#入口路径供摘要
+            'entryPath':sys.executable if 已打包 else __file__,#入口路径供摘要
+            'kind':'executable' if 已打包 else 'node-script',#启动种类
             'signal':控制器.信号,#寿命
         }).然后(运行完成,运行失败)#运行直到通道关闭
         运行结束.wait()#等运行期约落定

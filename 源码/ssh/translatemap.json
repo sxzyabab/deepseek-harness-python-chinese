@@ -1,5 +1,6 @@
 {
     "fs-ssh":"ssh文件系统",
     "sandbox-ssh":"ssh沙盒",
-    "subprocess-ssh":"ssh进程"
+    "subprocess-ssh":"ssh进程",
+    "ssh-helper-runtime":"ssh助手运行时"
 }

@@ -2,14 +2,13 @@
 import weakref#按所有者记住沙盒模式栅栏
 from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ..终端.异常 import 终端后端清理错误#搭建清理双失败
-from ...沙盒.沙盒策略 import 生效沙盒模式#有效沙盒模式
 from .异常 import 终端bash错误#本包错误
 from .配置 import 配置,校验配置#配置模式、校验
 from .会话 import 本地PTY会话#本地PTY会话
 from .清洗 import 受控提示符#受控提示符
 
 名称='terminal-bash'#Cordis插件名
-依赖=['terminals','sandboxPolicy','subprocess']#必需服务
+依赖=['terminals','sandboxPolicy','sessionProjections','subprocess','workingDirectory']#必需服务
 沙盒模式栅栏=weakref.WeakKeyDictionary()#按所有者记住栅栏
 
 def 确保沙盒模式栅栏(上下文,所有者):#确保所有者已挂沙盒模式栅栏
@@ -18,8 +17,9 @@ def 确保沙盒模式栅栏(上下文,所有者):#确保所有者已挂沙盒�
     if 已有 is not None:#已挂过
         已有['pty']=上下文.terminals#刷新终端服务
         已有['sandboxPolicy']=上下文.sandboxPolicy#刷新沙盒策略
+        已有['sessionProjections']=上下文.sessionProjections#刷新投影
         return#不必再监听
-    状态={'pty':上下文.terminals,'sandboxPolicy':上下文.sandboxPolicy}#新建状态
+    状态={'pty':上下文.terminals,'sandboxPolicy':上下文.sandboxPolicy,'sessionProjections':上下文.sessionProjections}#新建状态
     沙盒模式栅栏[所有者]=状态#记下栅栏
     def 内部派发(_模式,事件名,参数,*其余):#拦截会话事件
         '拦截 session/event 上的 sandbox/mode'
@@ -29,9 +29,8 @@ def 确保沙盒模式栅栏(上下文,所有者):#确保所有者已挂沙盒�
         事件=参数[1]#事件
         if 会话 is not 所有者.session or 事件['type']!='sandbox/mode':#不是本所有者的模式事件
             return#放过
-        当前模式=生效沙盒模式(会话.events)#当前有效模式
-        if 当前模式 is None:#日志没有则用默认
-            当前模式=状态['sandboxPolicy'].默认模式#默认模式
+        折叠=状态['sessionProjections'].状态(会话,'sandboxMode')#已折叠模式
+        当前模式=状态['sandboxPolicy'].默认模式 if 折叠 is None else 折叠#当前模式
         事件数据=事件['data'] if 'data' in 事件 else None#事件载荷
         新模式=事件数据['mode'] if 事件数据 is not None and 'mode' in 事件数据 else None#要改成的模式
         if 新模式==当前模式 or not 状态['pty'].有所有者活动(所有者):#未改模式或无PTY活动
@@ -46,7 +45,7 @@ def 子环境(规格):#组装子进程环境
         'PAGER':'cat',#分页器用cat
         'GIT_PAGER':'cat',#git分页器用cat
         'PS1':受控提示符,#受控提示符
-        'PROMPT_COMMAND':'printf "\\033]133;D;%s\\007" "$?"',#退出码标记
+        'PROMPT_COMMAND':'printf "\\033]133;D;%s\\007" "$?"; PS1=\''+受控提示符+'\'',#退出码标记并重申提示符
         'BASH_SILENCE_DEPRECATION_WARNING':'1',#静音弃用警告
         'DSH_SHELL':'1',#标记为harness shell
         'DSH_SESSION_ID':规格['owner'].id,#所有者会话id
@@ -98,7 +97,7 @@ class Bash终端后端:#本地bash后端
             raise 终端bash错误('terminal-bash: sandbox returned empty argv')#拒绝空参数
         工作目录=规格['cwd'] if 'cwd' in 规格 else None#请求工作目录
         if 工作目录 is None:#缺省
-            工作目录=政策['workspaceRoot']#策略根
+            工作目录=自身.上下文.workingDirectory.ensure(规格['owner'],信号)#确保目录
         终端规格={#子进程终端规格
             'argv':参数表,#命令行
             'cwd':工作目录,#工作目录

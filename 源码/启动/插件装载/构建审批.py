@@ -1,12 +1,13 @@
 '批准当前配置档工作区设置里 pnpm 待决的依赖脚本'
-import os
+import os,re
 import yaml
 from ...工具.原子写入 import 原子写文件
 from .异常 import 装载失败,注册表错误
 
-__all__=['读待决构建','批准构建']
+__all__=['读待决构建','记下待决构建','批准构建']
 
 待决占位='set this to true or false'#pnpm 11 待决标量
+忽略构建=re.compile(r'\bIgnored build scripts: (.+)')#非交互运行点名跳过的脚本
 
 def 节点含锚点或别名(节点):
     'allowBuilds 子树是否含 YAML 锚点或别名'
@@ -70,15 +71,46 @@ def 读策略(目录):
     if 构建 is not None and not isinstance(构建,dict):
         raise 注册表错误('allowBuilds 必须是 YAML 映射')
     待决=[]
+    键表=[]
     if isinstance(构建,dict):
         for 键,值 in 构建.items():
+            if isinstance(键,str):
+                键表.append(键)
             if isinstance(键,str) and '*' not in 键 and '?' not in 键 and 值==待决占位:
                 待决.append(键)
-    return {'document':文档,'pending':待决,'path':路径,'text':文本}
+    return {'document':文档,'pending':待决,'keys':键表,'path':路径,'text':文本}
+
+def 忽略构建名(输出):
+    '读出一次 pnpm 运行报告为被忽略的构建脚本包名；通配排除'
+    匹配=忽略构建.search(输出 or '')
+    if 匹配 is None:
+        return []
+    留下=[]
+    for 名 in 匹配.group(1).split(','):
+        名=名.strip()
+        if 名!='' and '*' not in 名 and '?' not in 名:
+            留下.append(名)
+    return 留下
 
 def 读待决构建(目录):
     '读出 pnpm 11 留下的未决定包名；通配规则排除'
     return 读策略(目录)['pending']
+
+def 记下待决构建(目录,输出):
+    '把失败运行报告为忽略的构建脚本记进策略，再列出全部待决名'
+    策略=读策略(目录)
+    已知=set(策略['keys'])
+    新增=[名 for 名 in 忽略构建名(输出) if 名 not in 已知]
+    if len(新增)==0:
+        return list(策略['pending'])
+    文档=策略['document']
+    if not isinstance(文档.get('allowBuilds'),dict):
+        文档['allowBuilds']={}
+    for 名 in 新增:
+        文档['allowBuilds'][名]=待决占位
+    写出=yaml.safe_dump(文档,allow_unicode=True,sort_keys=False)
+    原子写文件(策略['path'],写出,{'mode':0o600})
+    return list(策略['pending'])+新增
 
 def 批准构建(目录,名称列表):
     '持久化批准且不跑脚本；调用方持有配置档清单锁。名称须仍在待决列表'

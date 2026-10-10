@@ -109,5 +109,9 @@
     "2026-09-22-desktop-main-bundle-after-workspace-tsdown":"2026-09-22-desktop主包在工作区tsdown后",
     "2026-09-22-workspace-release-ranges":"2026-09-22-工作区依赖发布范围",
     "2026-09-23-section-keyed-translation-pairing-records":"2026-09-23-按分节键翻译配对记录",
-    "2026-09-28-dual-release-install-layout-work-budget":"2026-09-28-双发布安装布局工作预算"
+    "2026-09-28-dual-release-install-layout-work-budget":"2026-09-28-双发布安装布局工作预算",
+    "2026-09-14-generated-cli-help-reference":"2026-09-14-生成cli帮助参考",
+    "2026-10-05-pr-artifact-typechecks":"2026-10-05-pr产物类型检查",
+    "2026-10-05-product-package-classification":"2026-10-05-产品包分类",
+    "2026-10-08-session-reader-compatibility-review":"2026-10-08-会话读取器兼容审阅"
 }

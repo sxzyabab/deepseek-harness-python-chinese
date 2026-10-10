@@ -36,7 +36,7 @@ def 事件派生消息(事件,投影消息=None):
     类型=事件['type'] if 'type' in 事件 else None
     if 类型=='user/message':
         return 事件['data']
-    if 类型=='system/message' or 类型=='assistant/message':
+    if 类型=='system/message' or 类型=='developer/message' or 类型=='assistant/message':
         消息=事件['data']['message']
         if len(消息['content'])==0:
             return None
@@ -50,9 +50,36 @@ def 是否记录(值):
     return isinstance(值,dict)
 
 def 校验会话事件数据(事件,主题):
-    '拒绝非规范请求头字段与自相矛盾的工具失败元数据'
+    '拒绝非规范请求头字段、开发者角色与内容、以及自相矛盾的工具失败元数据'
     数据=事件['data'] if 'data' in 事件 else None
     类型=事件['type'] if 'type' in 事件 else None
+    if 是否可进表面类型(类型) and 是否记录(数据):
+        消息=数据 if 类型=='user/message' else (数据['message'] if 'message' in 数据 else None)
+        if 是否记录(消息):
+            if (类型=='developer/message')!=(消息.get('role')=='developer'):
+                raise 表面错误(主题+' developer/message 与 developer 角色必须同时出现')
+            内容=消息['content'] if 'content' in 消息 else None
+            if 消息.get('role')!='developer' and isinstance(内容,list):
+                for 块 in 内容:
+                    if 是否记录(块) and (块.get('type')=='tool-addition' or 块.get('type')=='tool-removal'):
+                        raise 表面错误(主题+' tool-change 块要求 developer 角色')
+            if 类型=='developer/message' and isinstance(内容,list):
+                有追加=False
+                for 块 in 内容:
+                    if not 是否记录(块):
+                        continue
+                    块类型=块.get('type')
+                    if 块类型!='tool-addition' and 块类型!='tool-removal':
+                        continue
+                    工具名=块.get('toolName')
+                    if not isinstance(工具名,str) or len(工具名)==0:
+                        raise 表面错误(主题+' '+str(块类型)+' 需要非空 toolName')
+                    if 块类型=='tool-addition':
+                        有追加=True
+                        if 'tool' in 块:
+                            raise 表面错误(主题+' tool-addition 必须省略内联 tool 定义')
+                if (not 是否事件序号(数据.get('headerSeq'))) if 有追加 else ('headerSeq' in 数据):
+                    raise 表面错误(主题+' 恰好在存在工具追加时需要 headerSeq')
     if 类型=='request/header':
         if not 是否记录(数据):
             raise 表面错误(主题+' 的 data 必须是对象')
@@ -73,10 +100,8 @@ def 校验会话事件数据(事件,主题):
         if 'error' not in 数据:
             return
         消息=数据['message'] if 'message' in 数据 else None
-        内容=消息['content'] if 是否记录(消息) and 'content' in 消息 else None
-        块=内容[0] if isinstance(内容,list) and len(内容)>0 else None
-        if (not 是否记录(块)) or ('isError' not in 块) or 块['isError'] is not True:
-            raise 表面错误(主题+' 的 error 要求 message content[0].isError === true')
+        if (not 是否记录(消息)) or 消息.get('isError') is not True:
+            raise 表面错误(主题+' 的 error 要求 message.isError === true')
 
 def 创建折叠状态():
     '创建空的表面折叠状态'
@@ -262,11 +287,42 @@ def 断言系统头改写(事件,状态,起点下标,被遮蔽序号,事件列�
     if 事件['type']!='system/message' or len(被遮蔽序号)!=1:
         raise 表面错误('表面替换: 节点 0 持有系统提示，只能由恰好覆盖该节点的 system/message 改写')
 
+def 断言开发者头(事件,事件列表,基序号):
+    '把工具追加对到更早的不可变 request/header'
+    if 事件.get('type')!='developer/message':
+        return
+    校验会话事件数据(事件,'developer/message seq '+str(事件['seq']))
+    数据=事件['data']
+    if 'headerSeq' not in 数据:
+        return
+    头序号=数据['headerSeq']
+    下标=头序号-基序号
+    头事件=事件列表[下标] if isinstance(下标,int) and 0<=下标<len(事件列表) else None
+    if 头序号>=事件['seq'] or 头事件 is None or 头事件.get('type')!='request/header':
+        raise 表面错误('developer/message 的 headerSeq 必须引用更早的 request/header')
+    头载荷=头事件['data'] if 'data' in 头事件 else None
+    头=头载荷['header'] if 是否记录(头载荷) and 'header' in 头载荷 else None
+    工具表=头['tools'] if 是否记录(头) and 'tools' in 头 and isinstance(头['tools'],list) else []
+    内容=数据['message']['content'] if 是否记录(数据.get('message')) and 'content' in 数据['message'] else []
+    for 块 in 内容:
+        if not 是否记录(块) or 块.get('type')!='tool-addition':
+            continue
+        名=块.get('toolName')
+        定义列表=[工具 for 工具 in 工具表 if 是否记录(工具) and 工具.get('name')==名]
+        if len(定义列表)!=1:
+            raise 表面错误('tool-addition "'+str(名)+'" 必须在 headerSeq '+str(头序号)+' 中恰好点名一个工具')
+        定义=定义列表[0]
+        if not isinstance(定义.get('description'),str) or not 是否记录(定义.get('parameters')):
+            raise 表面错误('tool-addition "'+str(名)+'" 需要 headerSeq '+str(头序号)+' 中的完整工具定义')
+        if 'deferLoading' in 定义 and 定义['deferLoading'] is not True:
+            raise 表面错误('developer/message 引用的工具 deferLoading 若存在则必须为 true')
+
 def 计划表面事件(状态,事件,期望序号,事件列表,基序号,投影列表):
     '在回放边界校验一条事件，并准备其原子折叠变迁。投影列表为插件拥有的纯解释器'
     if 事件['seq']!=期望序号:
         raise 表面错误('会话事件 seq '+str(事件['seq'])+' 不连续；期望 '+str(期望序号))
     表面操作=校验表面元数据(事件)
+    断言开发者头(事件,事件列表,基序号)
     类型=事件['type'] if 'type' in 事件 else None
     投影=None
     for 候选 in 投影列表:

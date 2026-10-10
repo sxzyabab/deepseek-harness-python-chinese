@@ -17,5 +17,9 @@
     "error":"错误",
     "depth":"深度",
     "control":"控制",
-    "control-types":"控制类型"
+    "control-types":"控制类型",
+    "activation":"激活操作",
+    "manager":"管理器",
+    "structured":"结构化",
+    "internal":"内部"
 }

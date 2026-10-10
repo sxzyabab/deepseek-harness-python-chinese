@@ -27,22 +27,22 @@ def 裸包名(说明符):#解析 bare package 名
         return 段[0]+'/'+段[1]#@scope/name
     return 段[0]#普通包名
 
-def 从manifest读身份(路径,允许匿名=False):#读 package.json 身份
-    '无效 manifest 抛错；匿名 loose module 可返回 None。清单为 dict'
+def 从manifest读身份(路径):#读 package.json 身份
+    '名字空白则没有身份；版本只在非空白字符串时带上。清单为 dict'
     文本=open(路径,'r',encoding='utf-8').read()#读文件
     try:#解析
         清单=json.loads(文本)#解析
     except JSONDecodeError as 错误:#清单不是 JSON
         raise 清单错误('plugin-package-inventory-deepseek: package.json is not valid JSON') from 错误#拒绝
     if not isinstance(清单,dict):#必须是对象
-        raise 清单错误('plugin-package-inventory-deepseek: package.json must be an object')#拒绝
-    if 允许匿名 and 'name' not in 清单:#匿名
-        return None#无身份
+        return None#没有身份
     名称值=清单['name'] if 'name' in 清单 else None#包名
+    if not isinstance(名称值,str) or 名称值.strip()=='':#名字空白
+        return None#没有身份
     版本=清单['version'] if 'version' in 清单 else None#版本
-    if not isinstance(名称值,str) or 名称值=='' or not isinstance(版本,str) or 版本=='':#无效
-        raise 清单错误('plugin-package-inventory-deepseek: package.json must declare non-empty name and version')#拒绝
-    return {'name':名称值,'version':版本}#身份
+    if isinstance(版本,str) and 版本.strip()!='':#非空白版本
+        return {'name':名称值,'version':版本}#带版本
+    return {'name':名称值}#只有名字
 
 def 最近manifest(模块路径):#向上找 package.json
     '找不到返回 None'
@@ -58,8 +58,8 @@ def 最近manifest(模块路径):#向上找 package.json
         当前=父#上移
 
 def 身份排序键(项):
-    '按 name 再 version 排序'
-    return (项['name'],项['version'])#排序键
+    '按 name 再 version 排序；缺版本当空串'
+    return (项['name'],项['version'] if 'version' in 项 else '')#排序键
 
 def 裸包清单(包名,锚列表,包表):
     '解析裸包而不要求它导出 ./package.json。锚列表为 str'
@@ -122,7 +122,7 @@ class 包身份解析器:#带进程内缓存的解析器
         elif not 说明符.startswith('cordis:'):
             模块路径=说明符 if os.path.isabs(说明符) else os.path.normpath(os.path.join(锚列表[0] if len(锚列表)>0 else '.',说明符))
             manifest=最近manifest(模块路径)
-        身份=None if manifest is None else 从manifest读身份(manifest,包名 is None)
+        身份=None if manifest is None else 从manifest读身份(manifest)
         自身.缓存[键]=身份
         return 身份
 
@@ -145,8 +145,8 @@ def 列出活动条目(树,根裸基础url=None):#枚举活动非 group 条目
         输出.append(项)#纳入结果
     return 输出#仅活动条目
 
-def 收集活动插件包(上下文,解析器,宿主基础url,会话id=None):#收集一次请求的包集
-    '去重后按 name/version 排序'
+def 收集活动插件包(上下文,解析器,宿主基础url,不可读,会话id=None):#收集一次请求的包集
+    '去重后按 name/version 排序；读不了的身份每个模块只警告一次'
     条目列表=列出活动条目(上下文.loader)#宿主 Loader
     if 会话id is not None and 上下文.获取服务('agentPresets') is not None:#可选 preset 树
         智能体=上下文.agents.get(会话id)#按会话找智能体
@@ -160,10 +160,18 @@ def 收集活动插件包(上下文,解析器,宿主基础url,会话id=None):#�
                 pass#忽略
     唯一={}#去重表
     for 活动 in 条目列表:#逐条解析
-        身份=解析器.解析(活动)#解析身份
+        try:#解析失败则省略
+            身份=解析器.解析(活动)#解析身份
+        except Exception as 错误:#读不了
+            模块名=str(活动['entry'].options['name'])#模块
+            if 模块名 not in 不可读:#每个模块一次
+                不可读.add(模块名)#记下
+                上下文.日志.警告('plugin-package-inventory-deepseek: omitting unreadable package identity for '+模块名+': '+str(错误))#警告
+            continue#省略
         if 身份 is None:#loose module
             continue#跳过
-        唯一[身份['name']+'\u0000'+身份['version']]=身份#去重
+        版本=身份['version'] if 'version' in 身份 else ''#缺版本当空
+        唯一[身份['name']+'\u0000'+版本]=身份#去重
     return sorted(唯一.values(),key=身份排序键)#按 name 再 version 排序
 
 def 应用(上下文,配置=None):#注册 dsh_plugin_packages 字段
@@ -176,12 +184,13 @@ def 应用(上下文,配置=None):#注册 dsh_plugin_packages 字段
     if 宿主基础url is None:#未给
         宿主基础url=''#空串
     解析器=包身份解析器(宿主基础url,上下文.获取服务('pluginPackages'))
+    不可读=set()#读不了的模块只警告一次
     class 提供方:#扩展提供方
         '每次请求读取 Loader 真值'
         def prepare(自身,请求):
             '组装 version=1 的包清单。请求为 dict'
             会话号=请求['sessionId'] if 'sessionId' in 请求 else None#可选会话
-            值={'version':1,'packages':收集活动插件包(上下文,解析器,宿主基础url,会话号)}#扩展体
+            值={'version':1,'packages':收集活动插件包(上下文,解析器,宿主基础url,不可读,会话号)}#扩展体
             return {'value':值}#返回
     上下文.deepseekLlmApiExtensions.注册('dsh_plugin_packages',提供方())#登记字段
 

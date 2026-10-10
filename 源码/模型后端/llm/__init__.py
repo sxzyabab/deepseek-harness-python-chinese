@@ -15,6 +15,7 @@ from .异常 import (
     装备错误,#错误基类
     上下文窗口溢出码,#上下文溢出码
     配额耗尽码,#配额耗尽码
+    账户配额耗尽码,#账户配额码
     空响应码,#空响应码
     非法凭证码,#非法凭证码
     图片卸载必需码,#图片卸载尚未满足码
@@ -39,6 +40,7 @@ from .内容 import (#再导出内容辅助
     卸载图片文案,#卸载占位
     文件句柄文案,#文件句柄
     投影文件为文本,#文件投影
+    投影工具更新,#工具更新投影
     投影图片为仅文本,#仅文本投影
     卸载图片前缀张数,#卸载前缀
     按政策卸载请求图片,#按政策卸载
@@ -92,6 +94,7 @@ from .调用配置 import (
     冻结映射,#冻结映射
 )
 from .适配器失败 import 归一化语言模型失败#导入适配器失败归一化
+from ...类型化远程调用.协议 import 远程错误#发现失败的远程错误
 from . import (
     不变量,
     远程,
@@ -100,18 +103,18 @@ from . import (
 __all__=(#仅中文公开名；无英文别名
     '应用身份','用户代理','归属头',
     '消息标识','调用标识','提供方请求标识','尝试标识','推理力度标识',
-    '断言永不','装备错误','上下文窗口溢出码','配额耗尽码','空响应码','非法凭证码','图片卸载必需码',
+    '断言永不','装备错误','上下文窗口溢出码','配额耗尽码','账户配额耗尽码','空响应码','非法凭证码','图片卸载必需码',
     '是否上下文窗口溢出','是否配额耗尽','错误链','是否装备错误',
     '上下文窗口超出码','配额超出码','是否上下文窗口超出错误','是否配额超出错误',
     '规范化密钥','断言可用密钥','断言可用接口密钥',
     '中止信号','内容含图片','内容含文件','仅文本图片文案','请求图片句柄文案','卸载图片文案',
-    '文件句柄文案','投影文件为文本','投影图片为仅文本','投影卸载图片','必需图片卸载',
+    '文件句柄文案','投影文件为文本','投影工具更新','投影图片为仅文本','投影卸载图片','必需图片卸载',
     '卸载图片前缀张数','按政策卸载请求图片','解析图片附件访问',
     '语言模型失败','文本块','推理块','图片块','工具调用块','工具追加块','工具移除块',
     '文本模态','图片模态','模型模态','正常停止','工具调用停止','达到令牌上限',
     '令牌用量','提供方简介','可配置提供方','模型发现请求','发现到的模型',
     '模型信息','模型上下文','推理力度信息','模型推理信息','已解析模型信息',
-    '系统提示词更新','图片请求预算','回放信封','工具模式','生成选项',
+    '系统提示词更新','工具更新','工具历史','图片请求预算','回放信封','工具模式','生成选项',
     '请求用户输入','图片请求价格',
     '上下文摘要最大字符','截上下文摘要','冻结消息',
     '创建消息','创建用户消息','创建助手消息','创建系统消息','创建开发者消息','创建工具结果消息','是否词增量',
@@ -402,7 +405,7 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         '列出可以询问端点的设置命名空间，让界面只在可用之处提供该动作'
         return list(自身.发现表.keys())#按登记顺序的命名空间
 
-    def 发现模型(自身,设置命名空间,请求):#发现端点模型
+    def 发现模型(自身,设置命名空间,请求,信号=None):#发现端点模型
         '询问一个提供方端点它所通告的模型'
         if 设置命名空间 not in 自身.发现表:#没有要约
             raise 语言模型错误('no model discovery is registered for "'+设置命名空间+'"','NO_DISCOVERY')#未注册发现
@@ -411,7 +414,10 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         端点=请求.get('baseURL') or ''#可选端点
         if len(路由)==0 and len(端点)==0:#路由与端点都空
             raise 语言模型错误('model discovery needs a provider route or a baseURL','INVALID_DISCOVERY')#缺少目标
-        通告=发现(请求)#发现回调已是同步，直取通告
+        if 信号 is None:#无取消
+            通告=发现(请求)#发现回调已是同步，直取通告
+        else:#带上取消
+            通告=发现(请求,信号)#把取消交给发现
         已见=set()#已见 id
         模型列表=[]#去重结果
         for 模型 in 通告:#逐个通告
@@ -430,6 +436,17 @@ class 语言模型运行时(服务):#抽象的 llm 服务
                 候选['inputModalities']=list(模型['inputModalities'])#拆离模态
             模型列表.append(候选)#记下
         return 模型列表#去重后的候选
+
+    def 远程发现模型(自身,设置命名空间,请求,信号):#远程发现模型
+        '一次草稿提供方探询的远程适配'
+        try:#发现拒绝或失败都收成远程错误
+            return 自身.发现模型(设置命名空间,请求,信号)#带上取消
+        except Exception as 错误:#发现拒绝或失败
+            细节={'settingsNs':设置命名空间}#命名空间
+            if 'baseURL' in 请求 and 请求['baseURL'] is not None:#有端点
+                细节['baseURL']=请求['baseURL']#有端点才带上
+            消息=错误.message if isinstance(getattr(错误,'message',None),str) else str(错误)#诊断
+            raise 远程错误('llm/model-discovery-rejected',消息,细节,错误)#远程拒绝
 
     def 提供方重试政策(自身,提供方):#取出提供方政策
         '解析一条提供方路由注册时捕获的重试政策'
@@ -516,6 +533,9 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         系统提示词更新=已解析.get('systemPromptUpdate') if 'systemPromptUpdate' in 已解析 else None#可选系统提示词更新
         if 系统提示词更新 is not None and 系统提示词更新!='in-history':#非法模式
             raise 语言模型错误('adapter returned invalid system prompt update mode for provider "'+提供方+'" model "'+模型+'"','INVALID_MODEL_INFO')#系统提示词更新非法
+        工具更新=已解析.get('toolUpdate') if 'toolUpdate' in 已解析 else None#可选工具更新
+        if 工具更新 is not None and 工具更新!='in-history' and 工具更新!='addition-only':#非法模式
+            raise 语言模型错误('adapter returned invalid tool update mode for provider "'+提供方+'" model "'+模型+'"','INVALID_MODEL_INFO')#工具更新非法
         默认上限=已解析.get('defaultMaxTokens') if 'defaultMaxTokens' in 已解析 else None#可选默认最大 token
         if 默认上限 is not None:#有默认上限
             是安全整数=isinstance(默认上限,(int,float)) and not isinstance(默认上限,bool) and math.isfinite(默认上限) and 默认上限==int(默认上限) and abs(默认上限)<=9007199254740991#正安全整数
@@ -532,6 +552,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             信息['defaultMaxTokens']=默认上限#有上限才带上
         if 系统提示词更新 is not None:#有更新模式
             信息['systemPromptUpdate']=系统提示词更新#有更新模式才带上
+        if 工具更新 is not None:#有工具更新模式
+            信息['toolUpdate']=工具更新#有工具更新才带上
         推理=已解析.get('reasoning') if 'reasoning' in 已解析 else None#可选推理元数据
         if 推理 is None:#没有推理
             return 信息#没有推理则到此
@@ -597,21 +619,36 @@ class 语言模型运行时(服务):#抽象的 llm 服务
         结果['modelInfo']=信息#带上已解析模型信息
         return 结果#返回
 
-    def 准备调用(自身,配置,信号=None):#解析一次调用并返回一次性句柄
+    def 准备调用(自身,配置,信号=None,配置回调=None):#解析一次调用并返回一次性句柄
         '在其当前适配器注册下解析一次调用，返回一次性句柄'
-        注册=自身.取注册(配置['provider'])#捕获当前注册
-        适配器调用=注册['adapter'].准备调用(配置['provider'],配置['model'],信号)#绑到同一代适配器
-        模型信息=自身.规范化模型信息(注册,配置['model'],适配器调用['model'])#校验本代模型
-        已解析=自身.用信息解析调用(配置,模型信息)#物化默认
+        若已中止则抛出(信号)#准备前取消
+        提供方=配置['provider']#路由
+        模型=配置['model']#模型
+        控件=dict(配置)#不含路由的控件
+        控件.pop('provider',None)#控件不含路由
+        控件.pop('model',None)#控件不含模型
+        注册=自身.取注册(提供方)#捕获当前注册
+        适配器调用=注册['adapter'].准备调用(提供方,模型,信号)#绑到同一代适配器
+        若已中止则抛出(信号)#解析后取消
+        模型信息=自身.规范化模型信息(注册,模型,适配器调用['model'])#校验本代模型
+        if 配置回调 is None:#无回调
+            提议=配置#沿用调用方配置
+        else:#纯控件选择
+            选出=配置回调(深冻结(结构化克隆(控件)),深冻结(模型信息))#一次选择
+            提议=dict(选出)#回调结果
+            提议['provider']=提供方#路由不被回调改写
+            提议['model']=模型#模型不被回调改写
+        若已中止则抛出(信号)#校验前取消
+        已解析=自身.用信息解析调用(提议,模型信息)#物化默认
         已解析配置=深冻结(结构化克隆(已解析['config']))#拆离并冻结配置
         if 'context' not in 已解析:#无上下文
             上下文=None#保持缺省
         else:#有上下文
             上下文=深冻结(结构化克隆(已解析['context']))#拆离并冻结上下文
         适配器默认={}#标记哪些字段来自适配器
-        if 'reasoningEffort' not in 配置 and 'reasoningEffort' in 已解析配置:#力度被物化
+        if 'reasoningEffort' not in 提议 and 'reasoningEffort' in 已解析配置:#力度被物化
             适配器默认['reasoningEffort']=True#标记力度
-        if 'maxTokens' not in 配置 and 'maxTokens' in 已解析配置:#上限被物化
+        if 'maxTokens' not in 提议 and 'maxTokens' in 已解析配置:#上限被物化
             适配器默认['maxTokens']=True#标记上限
         适配器默认=深冻结(适配器默认)#冻结标记
         已分派=False#是否已分派
@@ -636,6 +673,8 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             句柄['inputModalities']=tuple(模型信息['inputModalities'])#冻结模态
         if 'systemPromptUpdate' in 模型信息:#有更新模式
             句柄['systemPromptUpdate']=模型信息['systemPromptUpdate']#带上更新模式
+        if 'toolUpdate' in 模型信息:#有工具更新模式
+            句柄['toolUpdate']=模型信息['toolUpdate']#带上工具更新
         return 深冻结(句柄)#冻结一次性句柄
 
     def 取注册(自身,提供方):#按路由取注册
@@ -715,12 +754,20 @@ class 语言模型运行时(服务):#抽象的 llm 服务
             if (模态 is not None and 'image' not in 模态
                 and any(内容含图片(消息.get('content') or []) for 消息 in 投影消息)):#仅文本却含图
                 投影消息=投影图片为仅文本(投影消息)#仅文本投影
-            if 投影消息 is 已解析选项['messages']:#无投影
+            工具投影=投影工具更新(投影消息,已解析选项.get('tools'),模型信息.get('toolUpdate') if isinstance(模型信息,dict) else None,已解析选项.get('toolHistory'))#按路由模式投影工具变更
+            投影消息=工具投影['messages']#投影后的消息
+            投影工具=工具投影['tools']#投影后的声明
+            消息变了=投影消息 is not 已解析选项['messages']#消息身份变了
+            工具变了=投影工具 is not 已解析选项.get('tools')#声明身份变了
+            if not 消息变了 and not 工具变了:#无投影
                 分派选项=已解析选项#原样
-            elif 是否冻结(已解析选项):#冻结
-                分派选项=深冻结({**已解析选项,'messages':投影消息})#冻结投影
-            else:#可变
-                分派选项={**已解析选项,'messages':投影消息}#可变投影
+            else:#有投影
+                分派选项=dict(已解析选项)#拷贝请求
+                分派选项['messages']=投影消息#写入消息
+                if 投影工具 is not None:#有声明
+                    分派选项['tools']=投影工具#写入声明
+                if 是否冻结(已解析选项):#原请求冻结
+                    分派选项=深冻结(分派选项)#结果也冻结
             流=分派入口(自身.按适配器过滤(分派选项,适配器))#经本代入口分派
             迭代器=iter(流)#取出迭代器
         except Exception as 错误:#适配器契约未收窄抛出类型，一律收成终止失败块

@@ -59,6 +59,8 @@
     "ui-settings-web-search":"ui_web搜索设置",
     "ui-sidebar-browser":"ui_侧边栏_浏览器",
     "ui-plugin-manager":"ui_插件装载",
+    "product-analytics":"产品埋点",
+    "ui-settings-session-log":"ui_会话日志设置",
     "shortcuts":"快捷键",
     "ui-shortcuts":"ui_快捷键"
 }

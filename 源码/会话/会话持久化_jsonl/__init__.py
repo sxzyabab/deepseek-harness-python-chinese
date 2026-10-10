@@ -228,8 +228,8 @@ class jsonl会话持久化(会话持久化):
         选中=自身.查找日志(标识,信号)
         if 选中 is None:#无
             return None#缺席
-        头=自身.读代次头(选中,标识,信号)#头
-        if 头 is None:#坏
+        头行=自身.读代次头(选中,标识,信号)#头与格式状态
+        if 头行 is None:#坏
             return None#缺席
         try:#stat
             身份=物理身份(os.stat(选中['sourcePath']))#身份
@@ -237,7 +237,7 @@ class jsonl会话持久化(会话持久化):
             修订=会话持久化修订(身份串(身份))#修订
             if 选中['sourceVersion']<会话格式版本:#历史
                 修订=会话持久化修订(身份串(身份)+':'+自身.历史语料修订(信号))#语料修订
-            return {'header':头,'revision':修订,'sizeBytes':身份['size']}#快照
+            return {'header':头行['header'],'formatStatus':头行['formatStatus'],'revision':修订,'sizeBytes':身份['size']}#快照
         except FileNotFoundError:#消失
             return None#缺席
 
@@ -261,7 +261,7 @@ class jsonl会话持久化(会话持久化):
                 修订=会话持久化修订(身份串(身份))#修订
                 if 产物.get('sourceVersion',会话格式版本)<会话格式版本 and 语料修订 is not None:#历史
                     修订=会话持久化修订(身份串(身份)+':'+语料修订)#语料修订
-                快照列表.append({'header':产物['header'],'revision':修订,'sizeBytes':身份['size']})#追加
+                快照列表.append({'header':产物['header'],'formatStatus':产物['formatStatus'],'revision':修订,'sizeBytes':身份['size']})#追加
             except FileNotFoundError:#消失
                 continue#跳过
         for 标识,条目 in 挂起:#挂起
@@ -763,13 +763,13 @@ class jsonl会话持久化(会话持久化):
             原因=结果['reason']#原因
             if 结果.get('storedVersion') is not None and 结果['storedVersion']>会话格式版本:
                 原因=会话格式版本拒绝文案(物理标识,结果['storedVersion'])#未来版本
-            raise 会话格式不支持错误(原因)#不支持
+            raise 会话格式不支持错误(原因+' (raw log: '+选中['sourcePath']+')',{'kind':'jsonl','path':选中['sourcePath']})#不支持
         if 结果['status']=='malformed':#畸形
             return None#无
         头=自身.当代头(结果['header'])#当代头
         if 期望标识 is not None and 头['id']!=期望标识:
             raise 持久化错误('stored session identity mismatch')#身份不符
-        return 头#头
+        return {'header':头,'formatStatus':结果['status']}#头与格式状态
 
     def 当代头(自身,头):#当代头
         '把目录字符串身份收成当代会话头'
@@ -794,15 +794,16 @@ class jsonl会话持久化(会话持久化):
         for 选中 in 自身.列出代次(信号):#代
             若已中止则抛出(信号)#取消
             try:#读头
-                头=自身.读代次头(选中,None,信号)#头
+                头行=自身.读代次头(选中,None,信号)#头与格式状态
             except (会话格式不支持错误,会话持久化损坏错误):
                 continue#跳过
-            if 头 is None:#无
+            if 头行 is None:#无
                 continue#跳过
+            头=头行['header']#当代头
             if 头['id'] in 已见:#重复
                 raise 持久化错误('duplicate JSONL session id "'+str(头['id'])+'" appears in multiple project directories')#拒绝
             已见.add(头['id'])#记下
-            结果.append({'header':头,'path':选中['sourcePath'],'sourceVersion':选中['sourceVersion']})#产物
+            结果.append({'header':头,'formatStatus':头行['formatStatus'],'path':选中['sourcePath'],'sourceVersion':选中['sourceVersion']})#产物
         return 结果#返回
 
     # --- 遗留转发 ---

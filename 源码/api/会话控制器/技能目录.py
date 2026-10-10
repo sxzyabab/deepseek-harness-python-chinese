@@ -23,9 +23,12 @@ class 会话技能目录(远程服务):
             try:
                 if 观测.projections is None:#缺投影
                     raise 远程错误('gateway/internal','skill catalog requires a projected Session observation',{})#拒绝
+                值=观测.projections['values']#投影值
                 头=观测.header#头 dict
-                工作目录=头['cwd'] if 'cwd' in 头 else None#cwd
-                预设=观测.projections['values']['agentPreset']#预设
+                投影目录=值.get('workingDirectory') if isinstance(值,dict) else None#投影目录
+                头目录=头.get('cwd') if isinstance(头,dict) else None#头目录
+                工作目录=投影目录 if 投影目录 is not None else 头目录#目录
+                预设=值.get('agentPreset') if isinstance(值,dict) else None#预设
             finally:
                 if hasattr(观测,'close'):#可关闭
                     观测.close()#关闭
@@ -36,15 +39,18 @@ class 会话技能目录(远程服务):
             if 码=='SESSION_QUERY_SESSION_NOT_FOUND':#未找到
                 raise 远程错误('session/not-found','session "'+str(会话标识)+'" not found',{'sessionId':会话标识})#映射
             raise 远程错误('gateway/internal','session "'+str(会话标识)+'" could not be inspected: '+远程错误消息(错误),{})#内部
-        if 工作目录 is None:#无 cwd
-            raise 远程错误('gateway/internal','session "'+str(会话标识)+'" has no project cwd',{})#拒绝
         活跃=自身.ctx.agents.get(会话标识)#活智能体
+        if 活跃 is not None:#活会话用确保后的目录
+            工作目录=自身.ctx.workingDirectory.ensure(活跃,信号)#确保
+        elif 工作目录 is None:#冷会话回退部署目录
+            工作目录=自身.ctx.workingDirectory.默认目录#默认
         预设服务=自身.ctx.获取服务('agentPresets')#预设服务
         作用域注册表=预设服务.serviceFor(活跃,'skills') if (活跃 is not None and 预设服务 is not None) else None#作用域技能
         技能注册表=作用域注册表 if 作用域注册表 is not None else 自身.ctx.获取服务('skills')#回退全局
         if 技能注册表 is None:#缺席
             raise 远程错误('gateway/internal',"skill registry is absent: neither this session's agent preset nor the host composition mounts @deepseek-ai/dsh-skill",{})#拒绝
-        作用域=自身._作用域(会话标识,预设)#作用域键
+        租约=None if 活跃 is not None else 自身._作用域(预设)#冷租约
+        作用域=活跃 if 活跃 is not None else (None if 租约 is None else 租约.get('key'))#作用域键
         try:
             列表=技能注册表.list({'cwd':工作目录,'scope':作用域})#列出
             from ...技能.技能 import isUserInvocable as 用户可调用#过滤
@@ -62,19 +68,19 @@ class 会话技能目录(远程服务):
             raise#原样
         except (OSError,ValueError,TypeError,KeyError,AttributeError) as 错误:
             raise 远程错误('gateway/internal','skill listing failed: '+远程错误消息(错误),{})#内部
+        finally:
+            if 租约 is not None and '拆除' in 租约:#放掉冷租约
+                租约['拆除']()#拆除
 
-    def _作用域(自身,会话标识,智能体预设):
-        '解析活或站立预设作用域，不创建智能体'
-        活跃=自身.ctx.agents.get(会话标识)#活智能体
-        if 活跃 is not None:#有活智能体
-            return 活跃#作用域载体
+    def _作用域(自身,智能体预设):
+        '解析站立预设作用域，不创建智能体'
         预设服务=自身.ctx.获取服务('agentPresets')#预设
         if 预设服务 is None:#无预设
             return None#全局
         try:
-            return 预设服务.standingKeyFor(智能体预设)#键
+            return 预设服务.取得作用域(智能体预设)#租约
         except (OSError,ValueError,TypeError,KeyError,AttributeError):
             return None#未知预设回退全局
 
-依赖=['agents','sessionQuery','typert']
+依赖=['agents','sessionQuery','typert','workingDirectory']
 会话技能目录.inject=依赖#框架槽

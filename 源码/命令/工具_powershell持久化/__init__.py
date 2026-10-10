@@ -22,7 +22,7 @@ __all__=['名称','依赖','配置','应用']#公开面
 默认描述='Run commands in a persistent PowerShell shell. State, including the current directory and exported environment variables, persists across calls for this agent.'#默认描述
 pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '"+壳提示符+"' }"#初始化
 名称='tool-pwsh-persistent'#Cordis 插件名
-依赖=['tools','terminals']#依赖工具与终端
+依赖=['tools','terminals','workingDirectory']#依赖工具、终端与工作目录
 配置={#配置模式
     'backendType':字符串字段(默认值='shell'),#后端类型
     'timeoutMs':数字字段(默认值=300000),#默认超时
@@ -288,11 +288,8 @@ def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
         创建中.add(创建)#拆除时要等
         进行中[所有者]=创建#复用
         try:#拉起
-            头=所有者.session.header#会话头
-            工作目录=头['cwd'] if 'cwd' in 头 else None#工作目录
-            规格={'type':配置值['backendType']}#后端类型
-            if 工作目录 is not None:#有cwd
-                规格['cwd']=工作目录#带上
+            工作目录=上下文.workingDirectory.ensure(所有者,组合信号)#确保当前目录
+            规格={'type':配置值['backendType'],'cwd':工作目录}#后端类型并带上当前目录
             拉起=上下文.terminals.搭建(所有者,规格,组合信号)#搭建
             会话编号=拉起['sessionId']#会话id
             存活[所有者]=会话编号#记下

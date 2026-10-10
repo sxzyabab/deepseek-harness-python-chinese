@@ -3,6 +3,7 @@ from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from typing import NotRequired,TypedDict#可选字段与结构类型
 from .异常 import 子智能体错误#缝内失败
 无启动能力={#冻结的无能力广告
+    'agentOptions':False,#不支持智能体选项
     'outputSchema':False,#不支持输出模式
     'depthLimit':False,#不支持深度上限
     'toolFilter':False,#不支持工具过滤
@@ -65,26 +66,71 @@ def 解析子工作目录(前缀,已配置,父工作目录):
         raise 子智能体错误(前缀+': no working directory for the child — configure `cwd` or delegate from a parent session that has one','NO_CWD')#必须给出cwd
     return 断言可用工作目录(前缀,'parent session cwd',父工作目录)#校验父cwd
 
+诊断字节上限=4096#诊断 UTF-8 上限
+诊断截断后缀='\n[diagnostic truncated]'#截断标记
+
+def 限制子智能体诊断(诊断):
+    '把提供方诊断压到字节上限，不拆开 UTF-8 序列'
+    字节=诊断.encode('utf-8')#字节
+    if len(字节)<=诊断字节上限:#未超
+        return 诊断#原样
+    后缀字节=诊断截断后缀.encode('utf-8')#后缀
+    前缀字节数=诊断字节上限-len(后缀字节)#留给正文
+    while 前缀字节数>0 and (字节[前缀字节数]&0b11000000)==0b10000000:#落在续字节上就回退
+        前缀字节数-=1#回退
+    return 字节[:前缀字节数].decode('utf-8')+诊断截断后缀#截断
+
+def 规范化子智能体诊断(结果):
+    '提供方返回的诊断走同一字节上限'
+    if not isinstance(结果,dict) or 'diagnostic' not in 结果 or 结果['diagnostic'] is None:#没有诊断
+        return 结果#原样
+    规范=dict(结果)#拷贝
+    规范['diagnostic']=限制子智能体诊断(结果['diagnostic'])#限长
+    return 规范#规范结果
+
+def _摘掉中止监听(零件):
+    '结算每条路径都摘掉 abort 监听'
+    信号=零件['signal'] if 'signal' in 零件 else None#信号
+    监听=零件['onAbort'] if 'onAbort' in 零件 else None#监听
+    if 信号 is None or 监听 is None:#没有接线
+        return#不摘
+    if hasattr(信号,'removeEventListener'):#浏览器形
+        信号.removeEventListener('abort',监听)#摘掉
+        return#结束
+    移除=getattr(信号,'remove_abort_listener',None)#可选中文槽
+    if callable(移除):#有
+        移除(监听)#摘掉
+
 def 结算运行结果(零件):
     '返回期约：按缝约定结算进程外跑结果，期约只兑现不拒绝。零件为 dict，attempt 须返回期约'
     最终=期约()#永不拒绝的结果期约
+    def 收尾(值):
+        '摘监听再兑现'
+        _摘掉中止监听(零件)#摘掉
+        最终.解决(值)#兑现
     def 尝试已兑现(结果):
-        '尝试兑现：取消已赢则压成中止，否则原结果'
+        '尝试兑现：取消已赢则压成中止，否则规范化诊断'
         if 零件['cancelled']():#取消已赢
-            最终.解决({'output':零件['collectOutput'](),'stopReason':'aborted'})#压成中止
+            收尾({'output':零件['collectOutput'](),'stopReason':'aborted'})#压成中止
         else:#否则原结果
-            最终.解决(结果)#原结果
+            收尾(规范化子智能体诊断(结果))#限长诊断
     def 尝试已拒绝(错误):
         '尝试拒绝：取消优先，否则通知诊断槽并压成错误'
         if 零件['cancelled']():#取消优先
-            最终.解决({'output':零件['collectOutput'](),'stopReason':'aborted'})#压成中止
-            return
+            收尾({'output':零件['collectOutput'](),'stopReason':'aborted'})#压成中止
+            return#结束
         try:#诊断槽不得拒绝跑结果
             if 'onError' in 零件 and 零件['onError'] is not None:#有槽
                 零件['onError'](错误,'error')#通知诊断
         except Exception:#诊断槽抛出
             pass#诊断槽不能拒绝跑结果
-        最终.解决({'output':零件['collectOutput'](),'stopReason':'error'})#压成错误
+        收集=None#诊断文本
+        if 'collectDiagnostic' in 零件 and 零件['collectDiagnostic'] is not None:#有收集
+            收集=零件['collectDiagnostic']()#收集
+        载荷={'output':零件['collectOutput'](),'stopReason':'error'}#错误结果
+        if 收集 is not None:#有诊断
+            载荷['diagnostic']=限制子智能体诊断(收集)#限长
+        收尾(载荷)#压成错误
     try:#尝试回合
         零件['attempt']().然后(尝试已兑现,尝试已拒绝)#等待尝试
     except Exception as 错误:#尝试同步抛出
@@ -92,11 +138,10 @@ def 结算运行结果(零件):
     return 最终#交给调用方继续链式
 
 class 子进程运行句柄实例:
-    '持有者所有的远程一次性跑：协议字段 id/localAgent/result 保持与上游 SubagentRun 一致；拆除入口仅中文 销毁'
+    '持有者所有的远程跑：协议字段 id/result 保持与上游 SubagentRun 一致；拆除入口仅中文 销毁'
     def __init__(自身,标识,结果,拆除):
         '记下身份、永不拒绝的结果，以及幂等拆除闭包'
-        自身.id=标识#父作用域跑 id
-        自身.localAgent=None#远程无本地智能体
+        自身.id=标识#提供方铸造的身份
         自身.result=结果#永不拒绝的结果期约
         自身._拆除=拆除#记忆化拆除闭包
 
@@ -112,6 +157,7 @@ def 子进程运行句柄(零件):
         nonlocal 已启动拆除#改外层
         if 已启动拆除 is not None:#已拆除则复用
             return 已启动拆除#同一期约
+        _摘掉中止监听(零件)#摘掉 abort 监听
         零件['requestCancel']()#结算本地取消
         已启动拆除=零件['teardown']()#启动后端拆除
         return 已启动拆除#返回同一期约

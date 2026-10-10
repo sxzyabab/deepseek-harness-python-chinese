@@ -1,5 +1,5 @@
 '会话可见的工作区指令状态与动态调和'
-import os,weakref#路径与按会话弱引用缓存
+import weakref#按会话弱引用缓存
 from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from .摘要 import 指令内容摘要,去空白指令摘要#导入内容摘要
 from .文件 import (
@@ -9,13 +9,16 @@ from .文件 import (
     探测作用域指令,#探测作用域候选
     读取作用域指令,#读取已探测候选
     相对展示,#相对展示路径
+    作用域指令文件,#作用域对应的路径身份
 )#从文件导入结束
 from .渲染 import (
     候选作用域键,#按候选组成作用域键
     解码作用域键,#解码作用域键
     指令作用域键,#由展示路径得到作用域键
+    指令候选组,#候选组
+    是否用户全局目录,#两个用户全局根
     渲染指令变更,#渲染调和批次
-    用户全局目录,#用户全局目录占位
+    用户全局目录列表,#两个全局根
     用户全局文件,#用户全局文件名
 )#从渲染导入结束
 
@@ -75,14 +78,13 @@ def 同一指令变更(甲,乙):#比较两次变更是否同一转移
 
 def 收集可见指令变更(智能体,权威消息列表):#收集表面可见的最新每作用域变更
     '作用域到最新可见变更'
-    表面序号=set(智能体.session.surface.nodes)#当前表面节点序号
     可见={}#按作用域覆盖写入
-    for 序号,事件 in enumerate(智能体.session.events):#扫描持久事件
+    for 序号 in 智能体.session.surface.nodes:#按表面顺序，后者覆盖前者
+        事件=智能体.session.events[序号]#该表面序号的事件
         if 事件['type']!='user/message' or not 是否工作区上下文来源(事件['data']['source'] if 'source' in 事件['data'] else None):#只看工作区用户消息
             continue#跳过
         for 变更 in 抽出工作区指令变更(事件['data']['source']):#抽出变更
-            if 序号 in 表面序号:#仅表面可见的事件才算
-                可见[变更['scope']]=变更#覆盖
+            可见[变更['scope']]=变更#覆盖
     for 消息 in 权威消息列表:#权威消息后写，覆盖日志
         if not 是否工作区上下文来源(消息['source'] if 'source' in 消息 else None):#非工作区来源跳过
             continue#跳过
@@ -144,8 +146,7 @@ def 调和指令上下文(智能体,已解析,版本缓存,文件系统,选项):
     '比较可见状态与提供方可见文件并渲染转移。未变或不可用时为 None'
     会话=智能体.session#当前会话
     有效=收集可见指令变更(智能体,选项['authorityMessages'])#当前可见每作用域状态
-    头=会话.header#会话头
-    工作目录=头['cwd'] if 'cwd' in 头 and 头['cwd'] else os.getcwd()#会话cwd，缺则用进程cwd
+    工作目录=选项['cwd']#调用方已解析的会话工作目录
     项目根=选项['projectRoot'] if 'projectRoot' in 选项 else None#已选定根
     if 项目根 is None:#未选定
         项目根=寻找项目根(工作目录,已解析['projectRootMarkers'],文件系统,选项['signal'] if 'signal' in 选项 else None)#否则向上寻找
@@ -160,7 +161,8 @@ def 调和指令上下文(智能体,已解析,版本缓存,文件系统,选项):
     def 加项目作用域(目标,目录):#绝对目录转相对作用域再加入
         '相对项目根后加入'
         加目录作用域(目标,相对作用域(项目根,目录))#相对项目根
-    基线作用域.add(候选作用域键(用户全局目录,用户全局文件))#用户全局始终属于基线
+    for 目录 in 用户全局目录列表:#两个用户全局根都属于基线
+        基线作用域.add(候选作用域键(目录,用户全局文件))#固定文件名
     for 目录 in 祖先链(项目根,工作目录):#根到cwd的项目作用域
         加项目作用域(基线作用域,目录)#加入
     if 'includeBaselineScopes' in 选项 and 选项['includeBaselineScopes']:#本轮参与基线
@@ -177,8 +179,8 @@ def 调和指令上下文(智能体,已解析,版本缓存,文件系统,选项):
         if (not ('includeBaselineScopes' in 选项 and 选项['includeBaselineScopes'])) and 作用域 in 基线作用域:#不参与基线时跳过
             continue#跳过
         拆=解码作用域键(作用域)#拆目录
-        if 拆['directory']==用户全局目录:#全局固定文件
-            作用域集合.add(候选作用域键(用户全局目录,用户全局文件))#加入
+        if 是否用户全局目录(拆['directory']):#全局固定文件，保留该根自己的作用域
+            作用域集合.add(候选作用域键(拆['directory'],用户全局文件))#加入
         else:#该目录全部候选，避免漏掉兄弟
             加目录作用域(作用域集合,拆['directory'])#加入
     for 触及路径 in 选项['touchedPaths']:#工具触及的路径
@@ -186,36 +188,43 @@ def 调和指令上下文(智能体,已解析,版本缓存,文件系统,选项):
             加项目作用域(作用域集合,目录)#加入
     版本表=会话版本表(会话,版本缓存)#本会话版本表
     已见绝对=set()#本轮已见绝对路径，防止同一文件重复渲染
-    已保留去空白={}#目录到已保留去空白摘要
-    def 登记去空白(目录,摘要):#登记摘要；若已存在则返回True表示重复
-        '同目录去重登记'
-        摘要集=已保留去空白.get(目录)#该目录摘要集
-        if 摘要集 is None:#第一次见到该目录
+    已保留去空白={}#候选组到已保留去空白摘要
+    def 已有去空白(组,摘要):#该组是否已保留这份去空白内容
+        '不登记，只查询'
+        摘要集=已保留去空白.get(组)#该组摘要集
+        return 摘要集 is not None and 摘要 in 摘要集#已有则为真
+    def 登记去空白(组,摘要):#登记摘要；若已存在则返回True表示重复
+        '同候选组去重登记'
+        摘要集=已保留去空白.get(组)#该组摘要集
+        if 摘要集 is None:#第一次见到该组
             摘要集=set()#新建
-            已保留去空白[目录]=摘要集#挂上
+            已保留去空白[组]=摘要集#挂上
         if 摘要 in 摘要集:#已有则为重复
             return True#重复
         摘要集.add(摘要)#记下新摘要
         return False#不是重复
     项列表=[]#待渲染变更项
     版本更新=[]#待提交缓存更新
-    def 排队移除(作用域,路径):#排队一次移除
-        '声明移除并删缓存'
+    def 排队移除(作用域,路径,状态=None):#排队一次移除
+        '声明移除；有状态则保留该文件的元数据，否则删缓存'
         变更={'action':'remove','scope':作用域,'path':路径}#移除变更
         项列表.append({'change':变更,'file':{'absolutePath':'removed:'+作用域,'displayPath':路径,'content':''}})#占位文件供渲染器索引
-        版本更新.append({'change':变更})#无state表示删缓存
-    按目录={}#按目录分组作用域，同目录是一个去重权威组
+        更新={'change':变更}#缓存转移
+        if 状态 is not None:#重复移除仍保留元数据
+            更新['state']=状态#保留
+        版本更新.append(更新)#排队
+    按组={}#按候选组分组，同组是一个去重与失败回滚单位
     for 作用域 in 作用域集合:#分组
-        目录=解码作用域键(作用域)['directory']#拆目录
-        列表=按目录.get(目录)#该目录已有列表
+        组=指令候选组(解码作用域键(作用域)['directory'])#候选组
+        列表=按组.get(组)#该组已有列表
         if 列表 is None:#新建列表
-            按目录[目录]=[作用域]#新建
+            按组[组]=[作用域]#新建
         else:#追加
             列表.append(作用域)#追加
-    for 目录,目录作用域集合 in 按目录.items():#按目录处理，一组内失败则整组回滚
+    for 组,组作用域 in 按组.items():#按组处理，一组内失败则整组回滚
         探测作用域集合=[]#实际要探测的作用域
         排除集=选项['excludedBaselineScopes'] if 'excludedBaselineScopes' in 选项 else None#可选排除集
-        for 作用域 in 目录作用域集合:#先处理被预算排除的基线作用域
+        for 作用域 in 组作用域:#先处理被预算排除的基线作用域
             if 排除集 is not None and 作用域 in 基线作用域 and 作用域 in 排除集:#被排除
                 先前=有效.get(作用域)#可见旧状态
                 if 先前 is None or 先前['action']=='remove':#本来就没有则清缓存
@@ -226,25 +235,25 @@ def 调和指令上下文(智能体,已解析,版本缓存,文件系统,选项):
                 探测作用域集合.append(作用域)#纳入探测列表
         项起点=len(项列表)#本组开始前的渲染项长度，失败时回滚
         更新起点=len(版本更新)#本组开始前的更新长度
-        新增绝对=[]#本组新登记的绝对路径
         先前版本={作用域:版本表.get(作用域) for 作用域 in 探测作用域集合}#探测前的缓存快照
+        def 回滚组():#整组失败：丢掉本组转移，恢复缓存，并挡住未探测候选的路径
+            '失败组不发表内容'
+            del 项列表[项起点:]#丢掉本组已排队的渲染项
+            del 版本更新[更新起点:]#丢掉本组已排队的缓存更新
+            for 候选作用域,先前缓存 in 先前版本.items():#恢复探测前缓存
+                if 先前缓存 is None:#探测前没有则删
+                    版本表.pop(候选作用域,None)#删
+                else:#否则写回旧值
+                    版本表[候选作用域]=先前缓存#写回
+            for 候选作用域 in 探测作用域集合:#未走到的候选也不能发表
+                已见绝对.add(作用域指令文件(候选作用域,项目根,已解析)['absolutePath'])#挡住路径
+            已保留去空白.pop(组,None)#撤回本组去重登记
         for 作用域 in 探测作用域集合:#逐个探测
             先前=有效.get(作用域)#该作用域可见旧状态
             探测=探测作用域指令(作用域,项目根,已解析,文件系统,选项['signal'] if 'signal' in 选项 else None)#三分探测
-            if 探测['kind']=='unavailable':#提供方暂时失败
-                if 先前 is None or 先前['action']=='remove':#本来就没有可见内容则跳过该候选
-                    continue#跳过
-                del 项列表[项起点:]#丢掉本组已排队的渲染项
-                del 版本更新[更新起点:]#丢掉本组已排队的缓存更新
-                for 候选作用域,先前缓存 in 先前版本.items():#恢复探测前缓存
-                    if 先前缓存 is None:#探测前没有则删
-                        版本表.pop(候选作用域,None)#删
-                    else:#否则写回旧值
-                        版本表[候选作用域]=先前缓存#写回
-                for 绝对路径 in 新增绝对:#撤回本轮路径登记
-                    已见绝对.discard(绝对路径)#撤回
-                已保留去空白.pop(目录,None)#撤回本目录去重登记
-                break#该目录其余候选不再探测
+            if 探测['kind']=='unavailable':#提供方暂时失败则整组放弃
+                回滚组()#整组回滚
+                break#该组其余候选不再探测
             if 探测['kind']=='absent':#确认缺失
                 if 先前 is None or 先前['action']=='remove':#本来就没有则清缓存
                     版本表.pop(作用域,None)#清缓存
@@ -255,32 +264,29 @@ def 调和指令上下文(智能体,已解析,版本缓存,文件系统,选项):
             if 探测文件['absolutePath'] in 已见绝对:#同一绝对路径已处理
                 continue#跳过
             已见绝对.add(探测文件['absolutePath'])#登记路径
-            新增绝对.append(探测文件['absolutePath'])#计入本组，失败时撤回
             缓存态=版本表.get(作用域)#快路径缓存
-            if (#版本、路径、可见摘要都未变
-                缓存态 is not None#有缓存
-                and 缓存态['path']==探测文件['displayPath']#展示路径相同
-                and 缓存态['version']==探测文件['version']#提供方版本相同
-                and 先前 is not None#表面仍有内容
-                and 先前['action']!='remove'#不是已移除
-                and 先前['path']==缓存态['path']#可见路径与缓存一致
-                and (先前['digest'] if 'digest' in 先前 else None)==缓存态['digest']#可见摘要与缓存一致
-            ):#未改且先前已渲染
-                if 登记去空白(目录,缓存态['trimmedDigest']):#变成同目录重复则移除
-                    排队移除(作用域,先前['path'])#移除
-                continue#不必再读正文
+            元数据未变=缓存态 is not None and 缓存态['path']==探测文件['displayPath'] and 缓存态['version']==探测文件['version']#版本与路径未变
+            if 元数据未变:#可以不重读正文
+                已渲染=(先前 is not None and 先前['action']!='remove' and 先前['path']==缓存态['path'] and (先前['digest'] if 'digest' in 先前 else None)==缓存态['digest'])#表面仍是这份
+                if 已渲染:#未改且先前已渲染
+                    if 登记去空白(组,缓存态['trimmedDigest']):#变成同组重复则移除并保留元数据
+                        排队移除(作用域,先前['path'],缓存态)#移除
+                    continue#不必再读正文
+                if (先前 is None or 先前['action']=='remove') and 已有去空白(组,缓存态['trimmedDigest']):#隐藏重复不必再读
+                    continue#下一作用域
             文件=读取作用域指令(探测文件,已解析['maxSourceBytes'],文件系统,选项['signal'] if 'signal' in 选项 else None)#按上限读取
-            if 文件 is None:#超限或不可读则跳过，不发出转移
-                continue#跳过
+            if 文件 is None:#超限或不可读则整组放弃
+                回滚组()#整组回滚
+                break#该组其余候选不再探测
             当前摘要=指令内容摘要(文件['content'])#精确摘要
             去空白摘要=去空白指令摘要(文件['content'])#去空白摘要
-            if 登记去空白(目录,去空白摘要):#同目录去空白重复
-                if 先前 is not None and 先前['action']!='remove':#表面仍有则声明移除
-                    排队移除(作用域,先前['path'])#声明移除
-                else:#否则只清缓存
-                    版本表.pop(作用域,None)#清缓存
-                continue#不渲染重复内容
             下一版本={'path':文件['displayPath'],'version':探测文件['version'],'digest':当前摘要,'trimmedDigest':去空白摘要}#新的版本状态
+            if 登记去空白(组,去空白摘要):#同组去空白重复
+                if 先前 is not None and 先前['action']!='remove':#表面仍有则声明移除并保留新元数据
+                    排队移除(作用域,先前['path'],下一版本)#声明移除
+                else:#否则记下元数据，下次不必再读
+                    版本表[作用域]=下一版本#保留元数据
+                continue#不渲染重复内容
             if 先前 is not None and 先前['action']!='remove' and 先前['path']==文件['displayPath'] and (先前['digest'] if 'digest' in 先前 else None)==当前摘要:#内容未变，只是缓存过期
                 版本表[作用域]=下一版本#就地刷新缓存，不发渲染转移
                 continue#下一作用域

@@ -10,9 +10,8 @@ from ..命令 import 托管环境前缀#DSH环境前缀
 from ...沙盒.沙盒 import (
     升级目标,#可广告的升级目标
     批准升级,#批准升级
-    规范路径,#规范路径
     校验升级参数,#校验升级参数配对
-)#导入沙箱升级与路径辅助
+)#导入沙箱升级
 from .后台 import 进程结果,进程源列表,环增量,进程作业
 from .渲染 import 解析退出状态,渲染结果,渲染晋升,渲染任务读取
 from .异常 import bash工具错误#本包校验与组合失败
@@ -20,7 +19,7 @@ from .异常 import bash工具错误#本包校验与组合失败
 __all__=['名称','依赖','配置','应用']#仅中文公开名
 
 名称='tool-bash'#Cordis插件名
-依赖=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
+依赖=['tools','shell','systemPrompt','shellEnv','workingDirectory']#依赖工具、shell、提示词、环境与工作目录
 配置={#bash工具部署配置
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
     'promoteOnTimeout':布尔字段(默认值=True),#超时后晋升为后台任务
@@ -36,8 +35,8 @@ def 已中止(信号):#读中止事实
         return False#未中止
     return 信号.is_set()#事件已置位
 
-def 校验Bash参数(参数):#校验参数值
-    '已解析工具参数；execute校验ParameterSchemaSpec没有的值约束'
+def 校验Bash参数(参数,生效模式=None):#校验参数值
+    '已解析工具参数；重复当前沙箱模式时不再要求理由'
     if len(参数['command'].strip())==0:#命令为空
         raise bash工具错误('非法 command：需要非空字符串')#拒绝空命令
     if len(参数['description'].strip())==0:#描述为空
@@ -45,7 +44,13 @@ def 校验Bash参数(参数):#校验参数值
     超时=参数['timeoutMs'] if 'timeoutMs' in 参数 else None#可选超时
     if 超时 is not None and (isinstance(超时,bool) or not isinstance(超时,(int,float)) or not math.isfinite(超时) or 超时<=0):#超时非法
         raise bash工具错误('非法 timeoutMs：需要正数，实际为 '+紧凑json编码(超时))#拒绝非正超时
-    校验升级参数(参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None,参数['justification'] if 'justification' in 参数 else None)#校验升级配对
+    权限=参数['sandbox_permissions'] if 'sandbox_permissions' in 参数 else None#请求的模式
+    if 权限 is not None and 权限==生效模式:#重复当前模式
+        return#不必再配对理由
+    理由=参数['justification'] if 'justification' in 参数 else None#理由
+    if 权限 is None and isinstance(理由,str) and 理由.strip()=='':#空白理由当没写
+        理由=None#不参与配对
+    校验升级参数(权限,理由)#校验升级配对
 
 def 拼Bash描述(后台启用,升级模式,晋升超时):#拼工具描述
     '按组合拼面向模型的bash工具描述'
@@ -121,23 +126,13 @@ def 呈现Bash结果(参数,结果):#结果卡片
         卡片['signal']=解析['signal']#信号药丸
     return 卡片#终端加药丸
 
-def 解析工作目录(模型工作目录,执行上下文,政策工作区根=None):#解析工作目录
-    """先解析显式workdir，相对路径相对会话工作区；否则用会话cwd的文件系统身份，并把执行器默认当作回退。
-    已解析的沙箱政策根赢，因此workdir与隔离使用完全相同的按次身份
-    """
-    头=执行上下文['agent'].session.header#会话头；执行上下文是dict，智能体是对象
-    头cwd=头['cwd'] if 'cwd' in 头 else None#会话头cwd
-    if 政策工作区根 is not None:#政策根优先
-        会话cwd=政策工作区根#政策根
-    elif 头cwd is None:#无会话cwd
-        会话cwd=None#空
-    else:#规范会话cwd
-        会话cwd=规范路径(头cwd)#规范化
+def 解析工作目录(模型工作目录,会话cwd):#解析工作目录
+    '未给 workdir 时用当前目录；相对路径直接接在当前目录后面，不折叠 ..'
     if 模型工作目录 is None:#未给
-        return 会话cwd#用会话
+        return 会话cwd#用当前目录
     if 会话cwd is not None and (not os.path.isabs(模型工作目录)):#相对路径
-        return os.path.normpath(os.path.join(会话cwd,模型工作目录))#相对会话解析
-    return 模型工作目录#绝对或无会话则原样
+        return 会话cwd+os.sep+模型工作目录#接到当前目录后
+    return 模型工作目录#绝对或无当前目录则原样
 
 def 规范Bash结果(结果):#规范化前台结果
     '把执行器DTO从只读Service Definition类型拆成普通JSON数据'
@@ -339,10 +334,13 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             else:
                 文本=渲染结果(值,升级模式)
             return [{'type':'text','text':文本}]
+        def 呈现元数据(_参数,值):
+            '回放当前目录'
+            return {'cwd':值.get('cwd')}
         def 执行(参数,执行上下文):
             '校验后前台等待或后台登记，返回期约'
             常驻政策=解析沙箱政策(执行上下文)
-            校验Bash参数(参数)
+            校验Bash参数(参数,None if 常驻政策 is None else 常驻政策.get('mode'))
             if ('sandbox_permissions' in 参数 and 参数['sandbox_permissions'] is not None and
                     'justification' in 参数 and 参数['justification'] is not None):
                 批准模式=审批Bash升级(参数['sandbox_permissions'],参数['justification'],执行上下文,常驻政策)
@@ -353,7 +351,12 @@ def 应用(上下文,配置值=None):#加载bash工具插件
             else:
                 政策=dict(常驻政策)
                 政策['mode']=批准模式
-            工作目录=解析工作目录(参数['workdir'] if 'workdir' in 参数 else None,执行上下文,None if 常驻政策 is None else (常驻政策['workspaceRoot'] if 'workspaceRoot' in 常驻政策 else None))
+            智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用智能体
+            if 智能体 is None:#无智能体
+                会话目录=None#不设目录
+            else:#有智能体
+                会话目录=上下文.workingDirectory.ensure(智能体,执行上下文['signal'] if 'signal' in 执行上下文 else None)#确保当前目录
+            工作目录=解析工作目录(参数['workdir'] if 'workdir' in 参数 else None,会话目录)#解析工作目录
             请求={'command':参数['command'],'dshEnv':上下文.shellEnv.收集(执行上下文)}
             if 工作目录 is not None:
                 请求['workdir']=工作目录
@@ -471,6 +474,7 @@ def 应用(上下文,配置值=None):#加载bash工具插件
                     ],
                 },
                 'render':渲染,
+                'presentationMeta':呈现元数据,
             },
             'execute':执行,
             'presentCall':呈现Bash调用,

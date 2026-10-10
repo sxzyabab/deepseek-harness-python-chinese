@@ -5,20 +5,21 @@ from ...模型后端.llm.异常 import 语言模型错误#LLM 相关失败
 from ...模型后端.llm.异常 import 错误链#把未知错误链成日志串
 from ...模型后端.llm import (
     创建助手消息,
+    创建开发者消息,
     深冻结,
     标记循环请求,
     结构化克隆,
 )
 from ...依赖.工具 import 聚合错误#流失败与落定失败聚合
 from ..作用域 import 创建作用域
-from ..会话 import 归一请求头,请求头是否相等
+from ..会话 import 归一请求头,请求头是否相等,打开轮次关闭器
 from ..系统提示词 import 拼接上下文章节,渲染上下文章节,渲染提示词
 from .收件箱 import 循环收件箱#投影拥有的耐久收件箱
 from .运行时上下文 import 运行时上下文投影,系统提示投影
 from .工具调用 import 执行工具调用
 from .助手流 import 助手流尝试#在线流尝试
 from .中止与并发 import 已中止,中止控制器,若已中止则抛出
-from .异常 import 循环错误,中止错误#本包异常基类与中止异常
+from .异常 import 循环错误#本包异常基类
 
 def 请求提议(头):
     '在插件提议下一次请求配置前去掉适配器派生值'
@@ -31,6 +32,26 @@ def 请求提议(头):
     if 'maxTokens' in 默认 and 默认['maxTokens'] is True:
         提议.pop('maxTokens',None)#去掉适配器 token 上限
     return 提议#返回提议
+
+def 取出中止原因(信号):
+    '只抄 turn/end 要记的取消字段；信号仍活着则 None'
+    if not 已中止(信号):
+        return None
+    原因=信号.原因
+    if isinstance(原因,dict):
+        种类=原因.get('kind')
+        钩子原因=原因.get('reason')
+    else:
+        种类=getattr(原因,'kind',None)
+        钩子原因=getattr(原因,'reason',None)
+    if 种类=='user' or 种类=='parent' or 种类=='disposed':
+        return {'kind':种类}
+    if 种类=='hook':
+        结果={'kind':'hook'}
+        if 钩子原因 is not None:
+            结果['reason']=钩子原因
+        return 结果
+    return None
 
 class 循环智能体:
     '驱动一个会话穿过轮次与步骤边界'
@@ -127,8 +148,8 @@ class 循环智能体:
                 失败=错误
             try:
                 自身.设阶段({'kind':'idle','lastTurn':维护['lastTurn']})#回到空闲
-                原因=维护['abort'].信号.原因#中止原因
-                已拆除=原因 is not None and getattr(原因,'kind',None)=='disposed'#拆除种类
+                原因=取出中止原因(维护['abort'].信号)#可记入日志的取消原因
+                已拆除=原因 is not None and 原因['kind']=='disposed'#拆除种类
                 if (not 已拆除) and 维护['wakeRequested'] and 自身.inbox.有待处理:
                     自身.叫醒驱动器()#有闩且有工作则叫醒
             finally:
@@ -145,12 +166,8 @@ class 循环智能体:
         if 自身.阶段['kind']!='idle':
             已拆除=False#是否拆除取消
             if 已中止(自身.阶段['abort'].信号):
-                try:
-                    若已中止则抛出(自身.阶段['abort'].信号)#取出承载异常
-                except 中止错误 as 错误:
-                    已拆除=错误.kind=='disposed'#拆除种类
-                except 循环错误:
-                    已拆除=False#其它循环错误
+                原因=取出中止原因(自身.阶段['abort'].信号)#可记入日志的取消原因
+                已拆除=原因 is not None and 原因['kind']=='disposed'#拆除种类
             if (not 已拆除) and (自身.阶段['kind']=='maintenance' or 中止后唤醒):
                 自身.阶段['wakeRequested']=True#闩住
             return#不新开驱动器
@@ -319,10 +336,14 @@ class 循环智能体:
             nonlocal 轮次结束#修改外层
             待抛=错误#最终向外拒绝的错误
             if 已中止(信号):
-                try:
-                    若已中止则抛出(信号)#取出承载异常
-                except BaseException as 中止:#取出的中止原因记入轮次结束
-                    轮次结束={'kind':'aborted','reason':中止}#中止原因
+                原因=取出中止原因(信号)#只抄可序列化字段
+                if 原因 is not None:
+                    轮次结束={'kind':'aborted','reason':原因}#中止原因
+                else:
+                    try:
+                        若已中止则抛出(信号)#取出承载异常
+                    except BaseException as 中止:#未知种类仍按中止记下
+                        轮次结束={'kind':'aborted','reason':中止}#中止原因
             else:
                 if isinstance(错误,语言模型错误):
                     失败=错误.failure#保留其事实
@@ -369,12 +390,23 @@ class 循环智能体:
             except BaseException as 错误:#发起方已拆除时无法续跑
                 以失败关闭轮次(错误)
         def 步骤失败(错误):
-            '步骤失败：先关闭步骤，关闭失败则以关闭失败顶替，再按失败关轮'
+            '步骤失败：先补记未完成工具结果，再关闭步骤，然后按失败关轮'
+            待抛=错误#最终向外拒绝的错误
+            try:
+                for 事件 in 打开轮次关闭器(list(自身.session.events),{'kind':'interrupted'}):#补记本步未完成调用
+                    if 事件['type']!='tool/result':
+                        continue#步骤与轮次关闭由本驱动器写
+                    意图={'surfaceOp':'append'}#追加到表面
+                    if 'sourceEventSeqs' in 事件:
+                        意图['sourceEventSeqs']=事件['sourceEventSeqs']#已启动则指向 tool/call
+                    自身.session.追加('tool/result',事件['data'],意图)#耐久结果
+            except BaseException as 恢复错误:#补记失败则与原失败一起抛
+                待抛=聚合错误([错误,恢复错误],'Step failed and its pending tool results could not be recorded')#聚合
             try:
                 关闭步骤()#关闭步骤
             except BaseException as 关闭错误:#关闭步骤的失败顶替原失败
-                错误=关闭错误
-            以失败关闭轮次(错误)
+                待抛=关闭错误
+            以失败关闭轮次(待抛)
         def 执行下一步(目标):
             '预步骤并开启步骤，再跑一步；步骤落定后在发起方里继续下一步或关轮'
             nonlocal 轮次结束#修改外层
@@ -427,12 +459,17 @@ class 循环智能体:
             准备=自身.准备请求(轮次号,步骤号,信号)#先解析配置
             配置=准备['config']#配置
             已准备调用=准备['preparedCall'] if 'preparedCall' in 准备 else None#已准备调用
+            当前上下文=自身.循环上下文.systemPrompt.刷新上下文(组装,为组装构建上下文(自身,信号))#刷新已接受上下文
+            上下文章节=渲染上下文章节(当前上下文)#渲染上下文段落
+            上下文消息=自身.运行时上下文.投影(拼接上下文章节(上下文章节),上下文章节)#投影快照
+            若已中止则抛出(信号)#刷新后检查
             开系列=首尝试 and 决定.get('startsRequestSeries') is True#仅首尝试用系列旗
+            工具更新=已准备调用.get('toolUpdate') if 已准备调用 is not None else None#工具更新模式
             提交列表=自身.系统提示.投影(渲染提示,{#投影到 system/message 表面
                 'inHistory':已准备调用 is not None and 已准备调用.get('systemPromptUpdate')=='in-history',#历史内
                 'startsSeries':开系列
                     or 自身.请求表面代际!=自身.session.surface.contentGeneration#或表面代际变
-                    or 自身.工具是否变(组装['tools'] if 'tools' in 组装 else None),#或工具变
+                    or (工具更新 is None and 自身.工具是否变(组装['tools'] if 'tools' in 组装 else None)),#未接管工具更新时才因工具变开系列
             })#投影结束
             for 项 in 提交列表:#逐条系统提交
                 自身.session.追加('system/message',{
@@ -440,12 +477,21 @@ class 循环智能体:
                     'step':步骤号,#步骤
                     'message':项['message'],#系统消息
                 },项['intent'])#写入表面
-            if 首尝试:#首尝试才准入用户消息
+            已准入上下文=False#本尝试是否已写入刷新后的上下文
+            if 首尝试:#首尝试才准入进入消息
                 消息列表=决定['messages'] if 'messages' in 决定 and 决定['messages'] is not None else []#进入消息
                 for 消息 in 消息列表:
-                    自身.session.追加('user/message',消息,{'surfaceOp':'append'})#追加到表面
-            首尝试=False#之后重试不再写用户消息
-            请求=自身.构建请求(配置,已准备调用,组装['tools'] if 'tools' in 组装 else None,开系列,信号)#记头并派生
+                    来源=消息.get('source') if isinstance(消息,dict) else None#消息来源
+                    if isinstance(来源,dict) and 来源.get('kind')=='runtime-context':#用刷新后的上下文替换声明
+                        if 上下文消息 is not None and not 已准入上下文:
+                            自身.session.追加('user/message',上下文消息,{'surfaceOp':'append'})#刷新后的上下文
+                            已准入上下文=True#只写一次
+                    else:
+                        自身.session.追加('user/message',消息,{'surfaceOp':'append'})#普通进入消息
+            if 上下文消息 is not None and not 已准入上下文:#重试或首尝试没有上下文声明时补写
+                自身.session.追加('user/message',上下文消息,{'surfaceOp':'append'})#刷新后的上下文
+            首尝试=False#之后重试不再写进入消息
+            请求=自身.构建请求(配置,已准备调用,组装['tools'] if 'tools' in 组装 else None,{'turn':轮次号,'step':步骤号},开系列,信号)#记头并派生
             自身.助手尝试计数+=1#尝试号
             def 下一修订():
                 '分配下一发出帧修订号'
@@ -638,7 +684,7 @@ class 循环智能体:
             结果['preparedCall']=已准备调用#可选已准备调用
         return 结果#准备结果
 
-    def 构建请求(自身,配置,已准备调用,工具列表,开系列,信号):
+    def 构建请求(自身,配置,已准备调用,工具列表,位置,开系列,信号):
         '记录已解析信封，并从已准入表面派生冻结请求（提示不在 header）'
         会话=自身.session#取出会话
         表面代际=会话.surface.contentGeneration#表面代际
@@ -650,17 +696,42 @@ class 循环智能体:
         头=归一请求头(头输入)#规范请求头
         基线=自身.session.请求头()#先前折叠头
         开新系列=开系列 or 自身.请求表面代际!=表面代际#系列边界或表面代际变
+        头序号=None#本步新写下的 request/header 序号
         if not 自身.请求头已记:
             原因='initial' if 基线 is None else 'resume'#初始或恢复
-            自身.session.追加('request/header',{'header':头,'reason':原因})#记下锚点
+            载荷={'header':头,'reason':原因}#锚点
+            if 开新系列:
+                载荷['startsSeries']=True#恢复后的压缩仍可开系列
+            头序号=自身.session.追加('request/header',载荷)['seq']#记下锚点
             自身.请求头已记=True#已记锚点
         elif 基线 is None or not 请求头是否相等(基线,头):
             载荷={'header':头,'reason':'change'}#变更
             if 开新系列:
                 载荷['startsSeries']=True#系列旗
-            自身.session.追加('request/header',载荷)#记下变更
+            头序号=自身.session.追加('request/header',载荷)['seq']#记下变更
         elif 开新系列:
             自身.session.追加('request/header',{'header':头,'reason':'series'})#同头新系列
+        if 基线 is not None and 头序号 is not None:
+            先前名=set()#基线工具名
+            基线工具=基线['tools'] if 'tools' in 基线 and 基线['tools'] is not None else []#基线工具
+            for 工具 in 基线工具:
+                先前名.add(工具['name'])#记下
+            当前工具=工具列表 if 工具列表 is not None else []#当前工具
+            当前名=set()#当前工具名
+            for 工具 in 当前工具:
+                当前名.add(工具['name'])#记下
+            内容=[]#开发者内容
+            for 工具 in 当前工具:
+                if 工具['name'] not in 先前名:
+                    内容.append({'type':'tool-addition','toolName':工具['name']})#新增
+            for 工具 in 基线工具:
+                if 工具['name'] not in 当前名:
+                    内容.append({'type':'tool-removal','toolName':工具['name']})#移除
+            if len(内容)>0:
+                开发者载荷={'turn':位置['turn'],'step':位置['step'],'message':创建开发者消息({'source':{'kind':'tool-registry'},'content':内容})}#工具登记差
+                if any(块['type']=='tool-addition' for 块 in 内容):
+                    开发者载荷['headerSeq']=头序号#追加必须点名本头
+                会话.追加('developer/message',开发者载荷,{'surfaceOp':'append'})#写入表面
         自身.请求表面代际=表面代际#保存代际
         上下文窗口=None#上下文窗口
         系统提示更新=None#系统提示更新模式
@@ -695,6 +766,7 @@ class 循环智能体:
         深冻结(边界消息)#冻结派生列表
         请求=dict(头['config'])#调用配置
         请求['messages']=边界消息#派生消息
+        请求['toolHistory']=会话.工具历史()#已解析工具历史
         if 'tools' in 头 and 头['tools'] is not None:
             请求['tools']=头['tools']#有工具则带
         请求['sessionId']=自身.session.id#会话 id

@@ -29,7 +29,7 @@ __all__=[#仅中文公开名
 ]#公开面结束
 
 名称='workflow-ptc'#Cordis 插件名
-依赖=['subagents','ptcRuntime','sandboxPolicy']#所需服务
+依赖=['subagents','ptcRuntime','sandboxPolicy','workingDirectory']#所需服务
 配置={#全部可选——Config 填默认
     'provider':字符串字段(默认值='spawn'),#agent() 使用的子提供方
     'maxConcurrentAgents':自然数字段(默认值=0),#并发上限；0 按核数解析

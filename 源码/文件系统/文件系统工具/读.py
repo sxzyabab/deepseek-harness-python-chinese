@@ -9,7 +9,7 @@ from .异常 import 工具文件系统错误#本包异常
 流最小字节数=10*1024*1024#默认10MiB起流式读取
 读信封正文=re.compile(r'^<path>[^\n]*</path>\n<type>file</type>\n<content>\n([\s\S]*)\n</content>\Z')#抽出信封内正文；\Z 不吃末尾换行
 读提示文本=(#把 read 定位为带行号检视的稳定系统提示词指引（字面量不翻译）
-    'Use the read tool — not shell commands like cat — to inspect text files. Results include line numbers. Use offset and limit to continue reading large files.'#用read而不是cat，带行号与分页
+    'Use the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.'#用read而不是cat，大文件用偏移和行数继续读
 )#读提示文本结束
 def 解析正整数(值,名):#解析正整数参数
     """把工具参数收成正整数。
@@ -46,7 +46,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
         return 读提示文本#指引
     上下文.systemPrompt.段落({#写入系统提示词段落
         'name':'tool:read',#段落名
-        'order':100,#排序
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_READ'),#中央段落顺序
         'text':段落文本,#动态指引
     })#系统提示词结束
     def 渲染(参数,值):#渲染模型可见信封
@@ -92,7 +92,7 @@ def 应用读工具(上下文,上限):#注册 read 工具
             目标['displayPath'],#错误消息用的展示路径
         )#构建窗口结束
         结局={#结构化读结果
-            'path':目标['displayPath'],#展示路径
+            'path':上下文.fs.进程路径(目标),#执行世界中的规范路径
             'offset':输入['偏移'],#起始行
             'lines':窗口['lines'],#窗口行
             'totalLines':窗口['totalLines'],#总行数

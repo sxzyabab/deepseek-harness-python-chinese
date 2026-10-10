@@ -1,13 +1,10 @@
 '面向模型的整文件写入'
 from ...内核.工具 import 定义工具#导入工具定义
-from .. import 文件系统 as fs#文件系统错误
-from .差异 import 计算块差异,从元数据取差异#导入hunk diff计算与meta收窄
+from .差异 import 计算块差异,从元数据取差异,从元数据取路径#导入hunk diff计算与meta收窄
 from .异常 import 补救文件系统错误,工具文件系统错误#导入模型边界错误补救与本包异常
 from .会话工作目录 import 会话解析选项#导入会话cwd解析选项
 
-写提示文本前缀=(#write 稳定指引前半（字面量不翻译）
-    'Use the write tool to create files or completely replace file contents. Existing files are overwritten, so read an existing file first (the default fs-observation-policy requires it)'#整文件创建/覆盖：先读后写
-)#写提示文本前缀结束
+写提示文本前缀='Read an existing file before overwriting it with write (the default fs-observation-policy requires it)'#先读后覆盖
 def 解析写参数(参数):#校验写工具参数
     '校验 schema DSL 表达不了的值约束：只要非空白 file_path——空 content 合法'
     if len(参数['file_path'].strip())==0:#路径不得为空
@@ -34,11 +31,11 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
         return 文+'.'#收尾
     上下文.systemPrompt.段落({#写入系统提示词段落
         'name':'tool:write',#段落名
-        'order':101,#排序
+        'order':上下文.systemPrompt.获取段落顺序('TOOL_WRITE'),#中央段落顺序
         'text':段落文本,#动态指引
     })#系统提示词结束
     参数表={#参数schema
-        'file_path':{'type':'string','required':True,'description':'Path to write, resolved by the filesystem backend.'},#写入路径
+        'file_path':{'type':'string','required':True,'description':'Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments.'},#写入路径，参数里先写路径
         'content':{'type':'string','required':True,'description':'Full UTF-8 text content to write.'},#完整内容
     }#基础参数
     if len(沙箱.升级模式)>0:#隔离后端才展开升级字段
@@ -51,8 +48,8 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
         if 'before' not in 值 or 值['before'] is None:#没有before则无hunk
             差异列表=[]#空diff列表
         else:#有基准文本
-            差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(参数['file_path'],值['before'],值['after'])]#只保留展示字段
-        return {'operation':值['operation'],'diffs':差异列表}#含operation的diff meta
+            差异列表=[{'path':项['path'],'oldText':项['oldText'],'newText':项['newText']} for 项 in 计算块差异(值['path'],值['before'],值['after'])]#只保留展示字段
+        return {'operation':值['operation'],'path':值['path'],'diffs':差异列表}#含操作与路径的diff meta
     def 无条件意图():#裸默认无条件写入
         '裸默认无条件写入'
         return None#无条件
@@ -60,20 +57,20 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
         '执行写入'
         输入=解析写参数(参数)#校验参数
         沙箱政策=沙箱.解析政策('write',参数,执行上下文)#解析沙箱策略
-        政策根=沙箱政策['workspaceRoot'] if 沙箱政策 is not None and 'workspaceRoot' in 沙箱政策 else None#政策工作区根
-        目标=上下文.fs.解析(输入['路径'],会话解析选项(执行上下文,输入['路径'],政策根))#解析稳定目标
+        目标=上下文.fs.解析(输入['路径'],会话解析选项(上下文,执行上下文))#按当前目录解析稳定目标
         意图=上下文.链式拦截('fs/write-intent',目标,执行上下文,无条件意图)#取写意图
         try:#调用提供方写入
             结局=上下文.fs.写文本(目标,输入['内容'],意图,执行上下文['signal'] if 'signal' in 执行上下文 else None,沙箱政策)#原子写入
-        except fs.文件系统错误 as 错误:#写入失败
-            raise 补救文件系统错误(沙箱.映射错误(错误,沙箱政策))#映射并补救后抛出
+        except Exception as 错误:#写入失败
+            补救后=补救文件系统错误(沙箱.映射错误(错误,沙箱政策),目标['displayPath'])#映射并补救
+            if 补救后 is 错误:#原错误
+                raise#原样
+            raise 补救后#换成面向模型的诊断
+        结果={键:值 for 键,值 in 结局.items() if 键!='version'}#结果不含版本
         上下文.广播('fs/observed',目标,{'kind':'present','version':结局['version']},执行上下文)#记录观察
-        return {#返回结构化结果
-            'path':目标['displayPath'],#展示路径
-            'operation':结局['operation'],#创建或更新
-            'before':结局['before'] if 'before' in 结局 else None,#写入前文本
-            'after':结局['after'],#写入后文本
-        }#结果结束
+        返回={'path':上下文.fs.进程路径(目标)}#执行世界中的规范路径
+        返回.update(结果)#其余结果字段；若自带 path 则覆盖
+        return 返回#结构化结果
     def 呈现调用(参数):#调用时 diff 卡片
         """调用时 diff 卡片。
         拿不到先前文件内容，因此 oldText 为 None 也表示覆盖
@@ -91,9 +88,11 @@ def 应用写工具(上下文,沙箱):#注册 write 工具
         """
         if 'isError' in 结果 and 结果['isError']:#错误结果
             return None#不展示diff
-        差异列表=从元数据取差异(结果['meta'] if 'meta' in 结果 else None)#从meta收窄hunk
-        if 差异列表 is None:#畸形
-            差异列表=[{'path':参数['file_path'],'oldText':None,'newText':参数['content']}]#回退到调用参数
+        元数据=结果['meta'] if 'meta' in 结果 else None#持久元数据
+        差异列表=从元数据取差异(元数据)#从meta收窄hunk
+        if 差异列表 is None:#创建、未改或畸形
+            记下的路径=从元数据取路径(元数据)#记下的路径
+            差异列表=[{'path':参数['file_path'] if 记下的路径 is None else 记下的路径,'oldText':None,'newText':参数['content']}]#回退
         return {'card':'diff','title':'Write '+参数['file_path'],'diffs':差异列表}#结果diff卡片
     上下文.tools.登记(定义工具({#注册write工具
         'name':'write',#工具名

@@ -6,7 +6,7 @@ __all__=(#仅中文公开名
     '解析图片附件访问','仅文本图片文案','请求图片句柄文案','卸载图片文案',
     '内容含图片','内容含文件','文件句柄文案','投影文件为文本',
     '投影图片为仅文本','投影卸载图片','必需图片卸载',
-    '卸载图片前缀张数','按政策卸载请求图片',
+    '卸载图片前缀张数','按政策卸载请求图片','投影工具更新',
 )#公开面结束
 
 def 引用串(值):#JSON 引用字符串
@@ -251,3 +251,101 @@ def 按政策卸载请求图片(消息列表,政策):#按政策卸载请求图�
         else:#有变
             结果.append({**消息,'content':内容})#浅拷贝
     return 结果#投影后
+
+def 去掉开发者消息(消息列表):#去掉开发者消息
+    '不支持工具更新的路由不接收开发者消息'
+    保留=[消息 for 消息 in 消息列表 if 消息.get('role')!='developer']#非开发者
+    if len(保留)==len(消息列表):#没有开发者
+        return 消息列表#原样
+    return 保留#去掉后
+
+def 工具声明表(工具列表,模式,历史):#按模式构造声明表
+    '从会话折叠历史构造提供方声明，不改已记录的活动工具'
+    声明={}#按名
+    for 工具 in 历史['tools']:#基线声明
+        声明[工具['name']]=工具#基线
+    for 更新 in 历史['updates']:#后来的追加
+        for 工具 in 更新['additions']:#追加定义
+            if 工具['name'] not in 声明:#尚未声明
+                副本=dict(工具)#稍后在记录位置激活
+                副本['deferLoading']=True#推迟载入
+                声明[工具['name']]=副本#记下
+    if 模式=='in-history':#移除块只停用，不丢掉历史定义
+        return 声明#保留全部
+    if 模式=='addition-only':#不能移除时，声明表必须去掉不活动工具
+        活跃=set()#当前活动名
+        if 工具列表 is not None:#有当前声明
+            for 工具 in 工具列表:#当前活动
+                活跃.add(工具['name'])#记下
+        for 名 in list(声明.keys()):#不活动则删
+            if 名 not in 活跃:#不活动
+                del 声明[名]#去掉
+        return 声明#只留活动
+    断言永不(模式)#封闭联合之外
+
+def 投影工具更新(消息列表,工具列表,工具更新=None,历史=None):#按路由投影工具更新
+    '按路由声明的工具更新模式投影消息与提供方声明'
+    if 工具更新 is None:#不支持的路由只要立即可用的工具
+        即时工具=工具列表#默认原声明
+        if 工具列表 is not None and any(工具.get('deferLoading') is True for 工具 in 工具列表):#有推迟
+            即时工具=[]#去掉推迟标记
+            for 工具 in 工具列表:#逐个
+                副本=dict(工具)#拷贝
+                副本.pop('deferLoading',None)#去掉推迟
+                即时工具.append(副本)#记下
+        return {'messages':去掉开发者消息(消息列表),'tools':即时工具}#无更新消息
+    if 历史 is None:#当前模式无法解析过去更新引用的定义
+        return {'messages':去掉开发者消息(消息列表),'tools':工具列表}#只用当前声明
+    消息号=set()#本请求里的开发者消息
+    for 消息 in 消息列表:#收集
+        if 消息.get('role')=='developer' and 'id' in 消息:#开发者
+            消息号.add(消息['id'])#记下
+    for 更新 in 历史['updates']:#辅助前缀可能丢掉激活所需的更新
+        if 更新['messageId'] not in 消息号:#缺更新
+            return {'messages':去掉开发者消息(消息列表),'tools':工具列表}#退回当前声明
+    声明=工具声明表(工具列表,工具更新,历史)#本路由声明
+    更新号=set(更新['messageId'] for 更新 in 历史['updates'])#当前声明系列
+    已提供=set()#已经可用的工具
+    for 工具 in 历史['tools']:#推迟的基线要等第一次保留追加
+        if 工具.get('deferLoading') is not True:#立即可用
+            已提供.add(工具['name'])#记下
+    投影=[]#投影后的消息
+    for 消息 in 消息列表:#逐条
+        if 消息.get('role')!='developer':#普通消息
+            投影.append(消息)#原样
+            continue#下一条
+        if 消息.get('id') not in 更新号:#更早的声明系列不管当前工具集
+            continue#丢掉
+        内容=[]#本条保留的块
+        for 块 in 消息.get('content') or []:#逐块
+            种类=块.get('type')#块类型
+            if 种类=='tool-addition':#只激活尚未可用的已声明工具
+                if 块.get('toolName') not in 声明 or 块.get('toolName') in 已提供:#已可用或未声明
+                    continue#丢掉
+                已提供.add(块['toolName'])#变为可用
+                内容.append(块)#保留
+            elif 种类=='tool-removal':#仅 in-history 能通过历史停用
+                if 工具更新!='in-history':#addition-only
+                    continue#丢掉
+                if 块.get('toolName') not in 已提供:#本来就不可用
+                    continue#丢掉
+                已提供.remove(块['toolName'])#停用
+                内容.append(块)#保留
+            else:#其它块保留内容和顺序
+                内容.append(块)#保留
+        if len(内容)==0:#空了
+            continue#丢掉整条
+        原内容=消息.get('content') or []#原块
+        if len(内容)==len(原内容):#没有删块
+            投影.append(消息)#原样
+        else:#删过块
+            投影.append({**消息,'content':内容})#浅拷贝
+    未变=len(投影)==len(消息列表)#长度相同才可能原样
+    if 未变:#再比身份
+        下标=0#下标
+        while 下标<len(投影):#逐条
+            if 投影[下标] is not 消息列表[下标]:#身份变了
+                未变=False#变了
+                break#停
+            下标+=1#下一条
+    return {'messages':消息列表 if 未变 else 投影,'tools':list(声明.values())}#声明按插入顺序

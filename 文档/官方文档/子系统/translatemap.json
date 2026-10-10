@@ -60,5 +60,8 @@
     "workspace":"工作区",
     "claude-code-mods":"claude代码模组",
     "todo":"待办",
-    "otel":"otel上报"
+    "otel":"otel上报",
+    "working-directory":"工作目录",
+    "translation":"文本翻译",
+    "worktrees":"Git工作树"
 }

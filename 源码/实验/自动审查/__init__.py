@@ -8,7 +8,7 @@ from .异常 import 审查错误#本包异常
 __all__=['名称','依赖','应用']
 
 名称='experimental-auto-review'
-依赖=['llm','permissionPresets','sessions','tools']
+依赖=['approval','llm','permissionPresets','sessions','tools','workingDirectory']
 自动预设='auto'#AUTO_PRESET
 自动审查拒绝错误名='AutoReviewDeniedError'#结构化错误名
 自动审查拒绝码='AUTO_REVIEW_DENIED'#结构化错误码
@@ -179,7 +179,7 @@ def ptc动作(执行,开始,可见父键):#从绑定 schema 与已记身份解�
     模式=已记模式(模式值,执行['name'],'PTC')#校验
     return {'mode':'ptc-inner','name':模式['name'],'description':模式['description'],'parameters':模式['parameters'],'arguments':执行['arguments']}#动作
 
-def 快照自动审查(智能体,执行):#冻结五段
+def 快照自动审查(智能体,执行,工作目录):#冻结五段
     '从一份会话与待执行冻结审查员的五段'
     会话=智能体.session#会话
     事件表=会话.snapshotEvents()#全历史
@@ -187,9 +187,6 @@ def 快照自动审查(智能体,执行):#冻结五段
     头=会话.请求头()#请求头
     if 头 is None or len(头['config'].get('provider') or '')==0 or len(头['config'].get('model') or '')==0:#无路由
         raise 审查错误('自动审查：没有完整的请求头路由可用')
-    工作目录=会话.header.get('cwd')#cwd
-    if 工作目录 is None or len(工作目录)==0:#无目录
-        raise 审查错误('自动审查：会话没有工作目录')
     原生调用表=[]#原生
     for 事件 in 事件表:#过滤
         if 事件['type']=='tool/call':#原生
@@ -341,8 +338,13 @@ def 读决策(流):#推理块后恰好一块 JSON 文本再终止
         组装器.推入(块)#推
         if 块.get('type')=='finish':#终止
             已结束=True#记下
-            if 块['reason'].get('kind')!='stop':#非 stop
-                raise 审查错误('自动审查：审查以 '+str(块['reason'].get('kind'))+' 结束')
+            原因=块['reason']#结束原因
+            种类=原因.get('kind')#种类
+            if 种类=='error' or 种类=='aborted':#失败或中止
+                失败信息=原因.get('failure') or {}#失败
+                raise 审查错误('自动审查：审查以 '+str(种类)+' '+str(失败信息.get('code'))+': '+str(失败信息.get('message'))+' 结束')
+            if 种类!='stop':#非 stop
+                raise 审查错误('自动审查：审查以 '+str(种类)+' 结束')
     if not 已结束:#无终止
         raise 审查错误('自动审查：审查没有发出终态结束')
     块表=组装器.块列表()#块
@@ -358,7 +360,8 @@ def 读决策(流):#推理块后恰好一块 JSON 文本再终止
 
 def 分类风险(上下文,智能体,执行,信号):#固定策略与当前路由
     '用固定策略与当前 LLM 路由审查一次冻结待审动作'
-    快照=快照自动审查(智能体,执行)#快照
+    工作目录=上下文.workingDirectory.ensure(智能体,信号)#确保工作目录
+    快照=快照自动审查(智能体,执行,工作目录)#快照
     选项=深冻结({#生成
         'provider':快照['provider'],#提供方
         'model':快照['model'],#模型
@@ -377,7 +380,19 @@ def 拒绝(执行,原因=None):#固定拒绝
     信息={'name':自动审查拒绝错误名,'code':自动审查拒绝码}#信息
     if 原因 is not None:#有因
         信息['reason']=原因#因
-    return {'kind':'deny','reason':'自动审查拒绝了工具 "'+执行['name']+'"; 其体未被执行','info':信息}
+    return {'kind':'deny','reason':'Auto review rejected tool "'+执行['name']+'"; its body was not executed','info':信息}
+
+def 询问用户(执行,原因=None):#审查拒绝后改问人
+    '审查拒绝且审批策略不是 never 时改问用户。reason 为英文；展示文案带中英'
+    拒绝句='Auto review denied tool "'+执行['name']+'"'#审计句
+    if 原因 is None:#无因
+        return {'kind':'ask','reason':拒绝句,'displayReason':{'en':'Auto review denied this call.','zh':'Auto review 拒绝了此调用。'}}
+    return {'kind':'ask','reason':拒绝句+': '+原因,'displayReason':{'en':'Auto review denied this call: '+原因,'zh':'Auto review 拒绝了此调用：'+原因}}
+
+def 审查失败(执行,错误):#审查自身失败
+    '审查失败是独立错误，不是拒绝裁决'
+    消息=str(错误) if isinstance(错误,Exception) else str(错误)#消息
+    return {'kind':'deny','reason':'Auto review of tool "'+执行['name']+'" failed; its body was not executed: '+消息}
 
 def 应用(上下文):#安装 Auto 与前置审查门
     '安装 Auto 预设及其前置的逐调用审查门'
@@ -402,20 +417,23 @@ def 应用(上下文):#安装 Auto 与前置审查门
             try:#审查
                 信号=合成信号(执行.get('signal'),寿命.信号)#合成
                 决策=None#决策
+                审查异常=None#审查自身失败
                 try:#分类
                     决策=分类风险(上下文,智能体,执行,信号)#分类
-                except Exception:#失败关
-                    决策=None#关
+                except Exception as 异常:#失败关
+                    审查异常=异常#记下
                 if 已中止(寿命.信号):#拆除
                     return {'kind':'cancel'}#取消
-                if 决策 is None:#失败
-                    return 拒绝(执行)#拒绝
-                if 决策['decision']=='deny':#拒绝
+                if 审查异常 is not None:#失败
+                    return 审查失败(执行,审查异常)#失败
+                if 决策['decision']=='deny' and 上下文.approval.覆盖于(智能体.session)=='never':#never 则终拒
                     return 拒绝(执行,决策.get('reason'))#拒绝
                 下游=下一()#下游
                 if 已中止(寿命.信号):#拆除
                     return {'kind':'cancel'}#取消
-                return 下游#下游
+                if 决策['decision']=='allow' or 下游.get('kind')!='allow':#允许或下游已不是允许
+                    return 下游#下游
+                return 询问用户(执行,决策.get('reason'))#改问用户
             finally:#出
                 在途.discard(完成)#摘
                 完成.解决(None)#解决

@@ -1,7 +1,6 @@
 '进程内配置包路由：把裸包请求导向世代表选定的目录'
 import os,sys,json,threading#路径、导入钩、清单与线程数据
 from ....基础设施.通用工具.文本工具 import 路径转正斜杠
-from .遗留链接 import 是否配置模块回退链接#遗留投影判定
 from ..异常 import 启动错误#应用启动粘合层失败
 __all__=[#仅中文公开名
     '裸包名','安装配置解析','登记工作线程解析','取工作线程登记',
@@ -132,13 +131,7 @@ class 解析路由:
                 break#停
             候选=os.path.join(搜索,名)#候选目录
             if os.path.isdir(候选) or os.path.exists(os.path.join(候选,'package.json')):#存在
-                遗留=False#是否托管投影
-                for 前缀 in 世代['profile']:#活动配置前缀
-                    if 候选==os.path.join(前缀,'node_modules',名) and 是否配置模块回退链接(前缀[:-1],名):#托管投影
-                        遗留=True#是
-                        break#停
-                if not 遗留:#非托管
-                    候选列表.append({'packageDir':候选})#收下
+                候选列表.append({'packageDir':候选})#收下
         if len(候选列表)>0:#有本地候选
             选中=候选列表[0]#第一条
             状态={'route':{'kind':'native','packageDir':选中['packageDir']},'packageDir':选中['packageDir']}#原生

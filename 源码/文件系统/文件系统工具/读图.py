@@ -1,7 +1,7 @@
-'面向模型的 read_image 工具：读取 PNG/JPEG/WebP/GIF 文件，经附件服务持久提交其字节（与用户上传图像同一生命周期），并返回图像块，使图像从下一请求起进入模型上下文'
+'面向模型的 read_image 工具：读取 PNG/JPEG/WebP/GIF 文件，经附件服务持久提交其字节，并返回图像块'
+import re#16位 PNG 诊断匹配
 from ...附件.附件.异常 import 附件错误#导入附件错误
 from ...附件.附件 import 附件标识#导入附件id品牌
-from ...模型后端.llm import 创建用户消息#导入用户消息构造
 from ...内核.工具 import 定义工具#导入工具定义
 from .读目标 import 解析普通读目标#导入普通文件目标解析
 from .异常 import 工具文件系统错误#本包异常
@@ -29,6 +29,40 @@ def 取扩展名(路径):#取带点后缀
 def 路径图像类型(文件路径):#按扩展名映射媒体类型
     '按扩展名把模型提供的路径映射为声明的图像媒体类型'
     return 图像扩展名.get(取扩展名(文件路径).lower())#小写扩展名查表
+
+def 字节相符(数据,偏移,期望):
+    '从偏移起是否逐字节相等'
+    if len(数据)<偏移+len(期望):#不够长
+        return False#不符
+    下标=0#比较下标
+    while 下标<len(期望):#逐字节
+        if 数据[偏移+下标]!=期望[下标]:#不同
+            return False#不符
+        下标+=1#前进
+    return True#相符
+
+def 文本相符(数据,偏移,文本):
+    '从偏移起是否为这段 ASCII'
+    if len(数据)<偏移+len(文本):#不够长
+        return False#不符
+    下标=0#比较下标
+    while 下标<len(文本):#逐字符
+        if 数据[偏移+下标]!=ord(文本[下标]):#不同
+            return False#不符
+        下标+=1#前进
+    return True#相符
+
+def 嗅探图像媒体类型(数据):
+    '按文件签名识别受支持的图像媒体类型'
+    if 字节相符(数据,0,(0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a)):#PNG
+        return 'image/png'#PNG
+    if 字节相符(数据,0,(0xff,0xd8,0xff)):#JPEG
+        return 'image/jpeg'#JPEG
+    if 文本相符(数据,0,'GIF87a') or 文本相符(数据,0,'GIF89a'):#GIF
+        return 'image/gif'#GIF
+    if 文本相符(数据,0,'RIFF') and 文本相符(数据,8,'WEBP'):#WebP
+        return 'image/webp'#WebP
+    return None#不是受支持的签名
 
 def 断言图像路由(上下文,执行,请求路径):#强制图像能力门控
     """对调用路由强制严格的图像能力门控。
@@ -70,11 +104,23 @@ def 值转图像引用(图像):#规范图像转附件引用
     }#引用结束
     if 'name' in 图像 and 图像['name'] is not None:#有名字
         引用['name']=图像['name']#带上
+    if 'originalDimensions' in 图像 and 图像['originalDimensions'] is not None:#缩小前的尺寸
+        引用['originalDimensions']=dict(图像['originalDimensions'])#拷贝宽高
     return 引用#附件引用
 
 def 格式化读图输出(展示路径,图像):#格式化读图摘要信封
-    '把读图格式化为图像块旁边的面向模型信封'
-    return '<path>'+展示路径+'</path>\n<type>image</type>\n<content>\n'+图像['mediaType']+' image, '+str(图像['width'])+'x'+str(图像['height'])+' px, '+str(图像['bytes'])+' bytes\n</content>'#类型为image的摘要信封
+    '把读图格式化为图像块旁边的面向模型信封。缩小过的读出要说明原图尺寸和坐标倍率'
+    缩小=''#默认没有缩小说明
+    if 'originalDimensions' in 图像 and 图像['originalDimensions'] is not None:#有原图尺寸
+        原图=图像['originalDimensions']#原图宽高
+        横向=format(原图['width']/图像['width'],'.2f')#横向倍率
+        纵向=format(原图['height']/图像['height'],'.2f')#纵向倍率
+        if 横向==纵向:#两轴倍率相同
+            建议='multiply coordinates by '+横向#一个倍率
+        else:#两轴不同
+            建议='multiply x coordinates by '+横向+' and y coordinates by '+纵向#分开说
+        缩小=' (downscaled from '+str(原图['width'])+'x'+str(原图['height'])+' px; '+建议+' to locate features in the original file)'#缩小说明
+    return '<path>'+展示路径+'</path>\n<type>image</type>\n<content>\n'+图像['mediaType']+' image, '+str(图像['width'])+'x'+str(图像['height'])+' px, '+str(图像['bytes'])+' bytes'+缩小+'\n</content>'#类型为image的摘要信封
 
 def 读图内容(值):#投影为信封与图像块
     """把一次规范读图投影为面向模型的信封与图像。
@@ -93,6 +139,9 @@ def 应用读图工具(上下文):#注册 read_image 工具
     def 渲染(参数,值):#渲染信封加图像块
         '渲染信封加图像块'
         return 读图内容(值)#信封加图像块
+    def 呈现元数据(_参数,值):#只持久化已解析路径
+        '图像引用已在结果内容里，meta 只留路径'
+        return {'path':值['path']}#路径
     def 并发安全(参数):#读图并发安全
         '读图并发安全'
         return True#内容寻址的附件写入是幂等的
@@ -103,28 +152,45 @@ def 应用读图工具(上下文):#注册 read_image 工具
         """
         if len(参数['file_path'].strip())==0:#路径不得为空
             raise 工具文件系统错误('file_path must be a non-empty string')#路径不得为空
-        媒体类型=路径图像类型(参数['file_path'])#按扩展名取声明类型
-        if 媒体类型 is None:#不是接受的图像扩展名
-            raise 工具文件系统错误('cannot read "'+参数['file_path']+'": read_image only accepts PNG/JPEG/WebP/GIF paths')#拒绝非图像路径
+        扩展名=取扩展名(参数['file_path']).lower()#声明用的扩展名
+        声明类型=路径图像类型(参数['file_path'])#按扩展名取声明类型
+        if 声明类型 is None and 扩展名!='':#有扩展名但不是图像
+            raise 工具文件系统错误('cannot read "'+参数['file_path']+'": the '+扩展名+' extension does not declare a supported image format; read_image accepts PNG/JPEG/WebP/GIF files, including extension-less files in those formats')#拒绝
         附件=上下文.获取服务('attachments',False)#取出附件服务
         if 附件 is None:#未挂载附件服务
             raise 工具文件系统错误('cannot read "'+参数['file_path']+'" as an image: no attachment service is mounted')#拒绝
-        限额=附件.图像限额#部署图像限额（服务对象属性）
-        if 媒体类型 not in 限额['mediaTypes']:#部署不接受该媒体类型；限额字段名与线协议一致
-            raise 工具文件系统错误('cannot read "'+参数['file_path']+'": '+媒体类型+' images are not accepted by this deployment')#拒绝
+        限额=附件.图像限额#部署图像限额
+        if 声明类型 is not None and 声明类型 not in 限额['mediaTypes']:#部署不接受声明类型
+            raise 工具文件系统错误('cannot read "'+参数['file_path']+'": '+声明类型+' images are not accepted by this deployment')#拒绝
         断言图像路由(上下文,执行上下文,参数['file_path'])#断言当前路由接受图像
         已解析=解析普通读目标(上下文,执行上下文,参数['file_path'])#解析普通文件目标
         目标=已解析['target']#目标
         信息=已解析['info']#stat结果
         字节上限=min(限额['maxImageBytes'],限额['maxMessageImageBytes'])#取更严的字节上限
         数据=上下文.fs.读字节(目标,执行上下文['signal'] if 'signal' in 执行上下文 else None,字节上限)#按上限读取原始字节
+        媒体类型=声明类型 if 声明类型 is not None else 嗅探图像媒体类型(数据)#无扩展名时看签名
+        if 媒体类型 is None:#签名也不是受支持图像
+            raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the file content is not a supported image format; read_image accepts PNG/JPEG/WebP/GIF')#拒绝
+        if 声明类型 is None and 媒体类型 not in 限额['mediaTypes']:#无扩展名时再查部署是否接受嗅探出的类型
+            raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": '+媒体类型+' images are not accepted by this deployment')#拒绝
         try:#保存图像附件
-            引用=附件.保存图像({'data':数据,'mediaType':媒体类型,'name':取基名(目标['displayPath'])})#按声明类型提交
+            引用=附件.保存图像({'data':数据,'mediaType':媒体类型,'name':取基名(目标['displayPath'])})#按媒体类型提交
         except 附件错误 as 错误:#保存失败
-            if 错误.code!='IMAGE_TYPE_MISMATCH':#非类型不匹配
+            if 错误.code=='IMAGE_DIMENSION_TOO_LARGE':#边长超限
+                raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": at least one image side exceeds the '+str(限额['maxImageDimension'])+'px limit; downscale the image and read the smaller copy') from 错误#要求缩小
+            if 错误.code=='IMAGE_TOO_MANY_PIXELS':#像素超限
+                raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the image exceeds the '+str(限额['maxImagePixels'])+'-pixel decoded-size limit; downscale the image and read the smaller copy') from 错误#要求缩小
+            if 错误.code=='IMAGE_TOO_LARGE':#字节超限
+                raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the image cannot be stored within the deployment\'s byte limits; downscale the image and read the smaller copy') from 错误#要求缩小
+            if 错误.code=='ATTACHMENT_WRITE_FAILED' and re.search(r'16-bit PNG',错误.message,re.IGNORECASE):#16位PNG
+                raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the 16-bit PNG could not be converted to the normalized 8-bit sRGB form; convert it to an 8-bit PNG/JPEG/WebP and retry') from 错误#要求转成8位
+            if 错误.code=='INVALID_IMAGE' and 声明类型 is None:#无扩展名且解不出
+                raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the bytes do not decode as a supported PNG/JPEG/WebP/GIF image; the file may be truncated or corrupt') from 错误#可能损坏
+            if 错误.code!='IMAGE_TYPE_MISMATCH':#其它错误
                 raise#原样抛出
-            扩展名=取扩展名(目标['displayPath']).lower()#实际扩展名
-            raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the '+扩展名+' extension declares '+媒体类型+', but the bytes use a different image format; rename the file to match its actual format if it is PNG/JPEG/WebP/GIF, or convert it to one of those formats') from 错误#扩展名与字节格式不一致
+            if 声明类型 is None:#签名与解码不一致
+                raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the file signature claims '+媒体类型+', but the bytes decode as a different image format; the file may be corrupt') from 错误#可能损坏
+            raise 工具文件系统错误('cannot read "'+目标['displayPath']+'": the '+扩展名+' extension declares '+媒体类型+', but the bytes use a different image format; rename the file to match its actual format if it is PNG/JPEG/WebP/GIF, or convert it to one of those formats') from 错误#扩展名与字节不一致
         上下文.广播('fs/observed',目标,{'kind':'present','version':信息['version']},执行上下文)#记录存在观察
         图像={#图像元数据
             'attachmentId':引用['attachmentId'],#附件id
@@ -135,13 +201,9 @@ def 应用读图工具(上下文):#注册 read_image 工具
         }#图像结束
         if 'name' in 引用 and 引用['name'] is not None:#有名字
             图像['name']=引用['name']#带上
-        值={'path':目标['displayPath'],'image':图像}#规范结果
-        if 'parent' in 执行上下文 and 执行上下文['parent'] is not None:#嵌套派发时把图像注入后续模型上下文
-            执行上下文['deferContext'](创建用户消息({#推迟一条用户消息
-                'content':读图内容(值),#信封加图像块
-                'source':{'kind':'plugin','plugin':'tool-fs'},#来源为本插件
-            }))#deferContext结束
-        return 值#返回规范结果
+        if 'originalDimensions' in 引用 and 引用['originalDimensions'] is not None:#缩小前尺寸
+            图像['originalDimensions']=dict(引用['originalDimensions'])#拷贝宽高
+        return {'path':上下文.fs.进程路径(目标),'image':图像}#规范结果
     def 呈现调用(参数):#调用时通用卡片
         '调用时通用卡片，跟随位置在图像文件上'
         return {#卡片
@@ -152,7 +214,7 @@ def 应用读图工具(上下文):#注册 read_image 工具
         }#卡片结束
     上下文.tools.登记(定义工具({#注册工具
         'name':'read_image',#工具名
-        'description':'Read a PNG/JPEG/WebP/GIF file and return the image itself. Requires the current model to accept image input.',#工具描述
+        'description':'Read a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.',#工具描述
         'parameters':{#参数schema
             'file_path':{'type':'string','required':True,'description':'Path to the image file, resolved by the filesystem backend.'},#图像路径
         },#parameters结束
@@ -173,11 +235,20 @@ def 应用读图工具(上下文):#注册 read_image 工具
                             'width':{'type':'integer','required':True},#宽
                             'height':{'type':'integer','required':True},#高
                             'name':{'type':'string'},#可选文件名
+                            'originalDimensions':{#缩小前的文件尺寸
+                                'type':'object',
+                                'additionalProperties':False,
+                                'properties':{
+                                    'width':{'type':'integer','required':True},
+                                    'height':{'type':'integer','required':True},
+                                },
+                            },#原图尺寸
                         },#properties结束
                     },#image结束
                 },#properties结束
             },#schema结束
             'render':渲染,#渲染信封加图像块
+            'presentationMeta':呈现元数据,#只持久化已解析路径
         },#output结束
         'isConcurrencySafe':并发安全,#读图并发安全
         'execute':执行,#执行读图

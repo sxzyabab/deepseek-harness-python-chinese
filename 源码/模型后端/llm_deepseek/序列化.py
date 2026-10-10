@@ -88,14 +88,23 @@ def 序列化(选项,连接,历史,图片表,访问,回放降级=None,文件标�
             不支持('system update without a preceding user or tool-result turn')
         消息列表.extend(系统更新)
         系统更新.clear()
-    工具列表=选项.get('tools')
-    if 工具列表 is not None:
-        for 工具 in 工具列表:
-            if 工具.get('deferLoading') is True:
-                不支持('deferred tool loading')
     for 消息 in 历史:
         if 消息.get('role')=='developer':
-            不支持('developer message')
+            内容=[]
+            for 块 in 消息.get('content') or []:
+                种类=块.get('type')
+                if 种类=='text':
+                    if len(块.get('text') or '')>0:
+                        内容.append({'type':'text','text':块['text']})
+                elif 种类=='tool-addition':
+                    内容.append({'type':'tool_addition','tool':{'type':'tool_reference','name':块['toolName']}})
+                elif 种类=='tool-removal':
+                    内容.append({'type':'tool_removal','tool':{'type':'tool_reference','name':块['toolName']}})
+                else:
+                    不支持('developer content '+str(种类))
+            if len(内容)>0:
+                系统更新.append({'role':'system','content':内容})
+            continue
         if any(块.get('type')=='tool-addition' or 块.get('type')=='tool-removal' for 块 in 消息.get('content') or []):
             不支持('tool-change blocks outside developer messages')
         if 消息.get('role')=='system':
@@ -150,9 +159,7 @@ def 序列化(选项,连接,历史,图片表,访问,回放降级=None,文件标�
     if len(未决)>0:
         raise 大模型错误('DeepSeek Messages history ends with unresolved tools','INVALID_REQUEST')
     默认=连接['defaults']
-    if 选项.get('purpose')=='session-title':
-        力度='off'
-    elif 选项.get('reasoningEffort') is not None:
+    if 选项.get('reasoningEffort') is not None:
         力度=选项['reasoningEffort']
     elif 默认.get('reasoningEffort') is not None:
         力度=默认['reasoningEffort']
@@ -184,6 +191,13 @@ def 序列化(选项,连接,历史,图片表,访问,回放降级=None,文件标�
         体['temperature']=选项['temperature']
     if 选项.get('stop') is not None:
         体['stop_sequences']=选项['stop']
+    工具列表=选项.get('tools')
     if 工具列表 is not None:
-        体['tools']=[{'name':工具['name'],'description':工具['description'],'input_schema':工具['parameters']} for 工具 in 工具列表]
+        线路工具=[]
+        for 工具 in 工具列表:
+            条目={'name':工具['name'],'description':工具['description'],'input_schema':工具['parameters']}
+            if 工具.get('deferLoading') is True:
+                条目['defer_loading']=True
+            线路工具.append(条目)
+        体['tools']=线路工具
     return 体

@@ -10,7 +10,7 @@ class 子智能体目录行(TypedDict):
     '完整后代列举共用的子体字段'
     id:str
     activity:Literal['running','inactive']
-    mode:Literal['one-shot','continuable']
+    mode:Literal['one-shot','continuable','external']
     label:NotRequired[str]
 
 class 子智能体子体列举行(TypedDict):
@@ -18,7 +18,7 @@ class 子智能体子体列举行(TypedDict):
     kind:Literal['child']
     id:str
     activity:Literal['running','inactive']
-    mode:Literal['one-shot','continuable']
+    mode:Literal['one-shot','continuable','external']
     label:NotRequired[str]
     hasChildren:bool
 

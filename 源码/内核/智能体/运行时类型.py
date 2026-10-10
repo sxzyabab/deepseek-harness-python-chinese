@@ -27,6 +27,7 @@ __all__=(#仅中文公开名
 class 智能体选项(TypedDict):#可合并扩展的智能体创建选项；人设归系统提示词段落
     provider:NotRequired[str]#提供方路由（调用时必须已有注册适配器）
     model:NotRequired[str]#由所选提供方适配器解释的模型 id
+    reasoningEffort:NotRequired[str]#所选提供方/模型路由上、适配器拥有的推理力度
     maxTokens:NotRequired[int]#每次对话模型请求的最大输出 token 数
 
 class 取消选项(TypedDict):#智能体.取消 的选项
@@ -38,6 +39,7 @@ class 预步骤拒绝(TypedDict):#预步骤拒绝进入
 class 预步骤进入(TypedDict):#预步骤进入提议步骤
     kind:Literal['enter']#进入臂
     messages:list#拟进入步骤的完整、带标识且冻结的用户消息批次
+    startsRequestSeries:NotRequired[Literal[True]]#在本步准入消息之前另开一条模型消息系列
 
 class 请求错误重试(TypedDict):#拥有模型请求恢复的监听器返回的重试动作
     kind:Literal['retry']#重试臂
@@ -81,13 +83,13 @@ class 智能体句柄协议:#公开的在线智能体句柄协议；字段由实
         raise NotImplementedError('智能体句柄协议.注入')#由循环实现
 
 # 事件声明（仅文档；由注册表/循环经作用域载体派发）：
-# agent/created(payload) @mode emit：完全配置好的智能体与在线会话已发表；同步监听器失败否决发表。
+# agent/created(payload) @mode serial：进入后的智能体可供按智能体初始化；监听器按序等待，抛出或拒绝则创建失败并跳过更后监听器。载荷含 agent、source（startup|resume|clear|compact）与可选 signal。
 # agent/disposed(payload) @mode emit：智能体离开注册表。
 # agent/status(payload) @mode emit：状态 idle⇄running。
 # agent/inbox/inserted|claimed|discarded(payload) @mode emit：收件箱在线通知。
-# agent/session-start(payload) @mode emit：会话生命周期开始；不可否决。
-# agent/pre-step(payload, next) @mode waterfall：预步骤决策 reject|enter。
+# agent/pre-step(payload, next) @mode waterfall：预步骤决策 reject|enter；enter 可带 startsRequestSeries。
 # agent/request(payload, next) @mode waterfall：请求路由组合。
 # agent/request-error(payload, next) @mode waterfall：恢复动作 retry 或缺省终态。
+# agent/assistant-stream(payload) @mode emit：进程本地助手流发布；帧为 start|chunk|end。end.outcome 为 committed（eventType 为 assistant/message|assistant/attempt，另带 seq）或 abandoned。
 # agent/turn-stopping(payload) @mode serial：可完成轮次关闭前征求。
 # agent/error(payload) @mode emit：步骤级错误通知。

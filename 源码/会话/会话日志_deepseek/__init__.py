@@ -1,20 +1,24 @@
 '增量会话日志贡献'
-import weakref#按会话折叠接受水位
-from ...依赖.schemastery import 字典字段,布尔字段#配置
+import weakref#按会话折叠接受水位与阻塞警告
+from ...依赖.schemastery import 字典字段,布尔字段,数字字段#配置
+from ...基础设施.通用工具 import 紧凑json编码,utf8字节数#字段字节
 from ...内核.会话 import 已知会话事件类型,会话标识#已知事件类型、会话 id 品牌
 from .异常 import 会话日志错误#本包异常
 from . import (
-    不变量,
     类型,
 )
 
 包名='@deepseek-ai/dsh-session-log-deepseek'
 名称='session-log-deepseek'
 依赖=['deepseekLlmApiExtensions','sessions']#依赖常量
-配置模式=字典字段(字典结构={'enabled':布尔字段(默认值=True)})#配置模式
+配置模式=字典字段(字典结构={
+    'enabled':布尔字段(默认值=True),#是否贡献 dsh_session_log
+    'maxBytes':数字字段(默认值=8*1024*1024),#单次字段 UTF-8 上限
+})#配置模式
 __all__=['包名','名称','依赖','应用','默认','已接受至','会话日志错误','线路头','线路事件']
 
 接受折叠表=weakref.WeakKeyDictionary()#Session→{scannedEvents,throughSeq}
+阻塞警告表=weakref.WeakKeyDictionary()#Session→上次报告被挡住的事件序号
 
 def 线路头(会话):#线路头
     '把逻辑 Session 元数据译为原始外部请求字段'
@@ -108,12 +112,30 @@ def 已接受至(会话):
     接受折叠表[会话]={'scannedEvents':长度,'throughSeq':穿过}#缓存
     return 穿过#返回
 
+def json字节(值):
+    '请求体编码下的 UTF-8 字节；无法序列化视为超过任何上限'
+    try:#序列化
+        文本=紧凑json编码(值)#紧凑 JSON
+    except (TypeError,ValueError):#无法序列化
+        return float('inf')#超过任何上限
+    return utf8字节数(文本)#字节
+
+def 启用中(配置值):
+    '每次请求读取启用开关'
+    值=配置值['enabled'] if 'enabled' in 配置值 else True#默认开
+    if hasattr(值,'get') and callable(值.get):#可变配置
+        return 值.get() is True#当前值
+    return 值 is True#布尔
+
 def 应用(上下文,配置值):
-    'enabled 时注册 dsh_session_log 字段'
-    if 'enabled' not in 配置值 or 配置值['enabled'] is not True:
-        return#不挂
+    '注册增量日志字段；每次请求再读启用开关，并只带放得进 maxBytes 的最长前缀'
+    最大字节=配置值['maxBytes'] if 'maxBytes' in 配置值 else 8*1024*1024#上限
+    if isinstance(最大字节,bool) or not isinstance(最大字节,int) or 最大字节<=0:#非法
+        raise 会话日志错误('session-log-deepseek: maxBytes must be a positive integer')#拒绝
     def 准备(请求):
-        '为官方 DeepSeek 请求附加增量日志'
+        '为官方 DeepSeek 请求附加放得进上限的增量日志'
+        if not 启用中(配置值):#本次关闭
+            return None#不贡献
         会话标识值=请求['sessionId'] if 'sessionId' in 请求 else None#会话 id
         if 会话标识值 is None:
             return None#跳过
@@ -121,19 +143,37 @@ def 应用(上下文,配置值):
         if 会话 is None:
             return None#跳过
         之后序号=已接受至(会话)#已确认水位
-        快照=会话.events#完整日志
-        if len(快照)==0:
-            return None#跳过
-        至序号=快照[-1]['seq']#当前末端
-        后缀=快照[之后序号+1:]#未确认后缀
-        值={#扩展体
+        待传=会话.snapshotEvents(之后序号+1)#未确认后缀
+        信封={#不含事件与 throughSeq 数字的外壳
             'version':1,#版本
             'sessionFormatVersion':会话.header['version'],#格式世代
             'session':线路头(会话),#头
             'afterSeq':之后序号,#起点
-            'throughSeq':至序号,#终点
-            'events':[线路事件(事件) for 事件 in 后缀],#事件
-        }#value结束
+        }#信封
+        字节=json字节({**信封,'throughSeq':0,'events':[]})-1#去掉占位的一位 throughSeq
+        事件列表=[]#放得进的线路事件
+        候选字节=0#最近一次考察的字段大小
+        for 事件 in 待传:#按前缀增长
+            线路=线路事件(事件)#线路事件
+            下一段=字节+(0 if len(事件列表)==0 else 1)+json字节(线路)#加上本事件
+            候选字节=下一段+len(str(事件['seq']))#补上真实 throughSeq 位数
+            if 候选字节>最大字节:#放不下
+                break#停在上一个前缀
+            字节=下一段#收下
+            事件列表.append(线路)#收下
+        末事件=None if len(事件列表)==0 else 待传[len(事件列表)-1]#前缀末端
+        if 末事件 is None:#一条都放不下
+            首条=待传[0] if len(待传)>0 else None#挡住的第一条
+            if 首条 is not None and 阻塞警告表.get(会话)!=首条['seq']:#同一条只警告一次
+                阻塞警告表[会话]=首条['seq']#记下
+                序号文本=str(首条['seq'])#序号
+                if 候选字节!=float('inf'):#能算出字节
+                    上下文.日志.警告('session-log-deepseek: event '+序号文本+' of session "'+str(会话.id)+'" needs a '+str(候选字节)+'-byte dsh_session_log field, above maxBytes '+str(最大字节)+'; this session\'s upload stays at event '+序号文本+' until maxBytes admits it')#警告
+                else:#无法序列化
+                    上下文.日志.警告('session-log-deepseek: event '+序号文本+' of session "'+str(会话.id)+'" is too large to serialize into a dsh_session_log field; this session\'s upload stays at event '+序号文本)#警告
+            return None#本次不上传
+        至序号=末事件['seq']#接受水位
+        值={**信封,'throughSeq':至序号,'events':事件列表}#扩展体
         def 接纳():
             '写入 delivery-accepted 水印'
             会话.append('session-log-deepseek/delivery-accepted',{#追加

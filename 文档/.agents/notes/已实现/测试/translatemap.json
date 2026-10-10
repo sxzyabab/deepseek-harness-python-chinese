@@ -34,5 +34,7 @@
     "2026-09-27-observation-waits-on-observed-state":"2026-09-27-观察等待已观测状态",
     "2026-09-27-plugin-manager-git-child-environment":"2026-09-27-插件装载git子进程环境",
     "2026-09-27-spreadsheet-selection-by-keyboard-before-reflow":"2026-09-27-重排前键盘移动表格选区",
-    "2026-09-28-session-corpus-performance":"2026-09-28-会话语料性能"
+    "2026-09-28-session-corpus-performance":"2026-09-28-会话语料性能",
+    "2026-10-07-memory-limited-benchmarks":"2026-10-07-内存受限基准",
+    "2026-10-07-scaled-benchmark-report":"2026-10-07-缩放基准报告"
 }

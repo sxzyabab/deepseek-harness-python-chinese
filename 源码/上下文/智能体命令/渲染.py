@@ -11,8 +11,11 @@ from ...基础设施.通用工具 import utf8字节数,截断utf8字节,路径�
 空替换工作区上下文开场='This complete workspace instruction baseline replaces all earlier workspace instruction baselines. '#空基线替换开场
 空替换工作区上下文开场+='No workspace instructions are currently active.'#当前无活动工作区指令
 压缩工作区上下文开场='Workspace instructions were omitted or truncated to fit the configured byte budget.'#预算裁剪开场
-用户全局目录='user-global'#用户全局目录占位
+用户全局目录='user-global'#harness 家目录作用域
+智能体全局目录='agents-global'#共享智能体根作用域，与家目录同属一个候选组
+用户全局目录列表=(用户全局目录,智能体全局目录)#发现与调和按此顺序遍历
 用户全局文件='AGENTS.md'#用户全局固定文件名
+保留作用域目录=set(用户全局目录列表)#项目路径不得占用的作用域目录名
 作用域分隔='\u0000'#作用域键里目录与文件名的分隔，路径与文件名都不可能含NUL
 def 转义指令帧正文(正文):#防止正文提前关闭系统提醒帧
     '转义闭标签，防止正文提前关闭系统提醒帧'
@@ -23,10 +26,27 @@ def 章节文本(文件):#基线章节文本
     return 'Instructions from: '+文件['displayPath']+'\n\n'+文件['content']#路径标题加正文
 
 def 展示路径作用域(展示路径):#由展示路径得到作用域
-    '从面向模型的路径推导逻辑指令作用域。返回 user-global、.，或所在的相对项目目录'
+    '从面向模型的路径推导逻辑指令作用域。返回 user-global、agents-global、.，或所在的相对项目目录'
     if 展示路径=='~/.dsh/AGENTS.md' or 展示路径=='$DSH_HOME/AGENTS.md':#两种家目录展示都映射到用户全局
         return 用户全局目录#用户全局
+    if 展示路径=='~/.agents/AGENTS.md' or 展示路径=='$DSH_AGENTS_HOME/AGENTS.md':#两种共享根展示
+        return 智能体全局目录#共享根
     return 路径转正斜杠(os.path.dirname(展示路径)) or '.'#其余用所在目录；根文件为.
+
+def 是否用户全局目录(目录):#解码后的目录是否为两个全局根之一
+    'user-global 与 agents-global 都是用户全局根'
+    return 目录==用户全局目录 or 目录==智能体全局目录#两个根
+
+def 指令候选组(目录):#解码目录所属的候选组
+    '两个用户全局根合成一组；项目目录各自成组'
+    return 用户全局目录 if 目录==智能体全局目录 else 目录#共享根并入家目录组
+
+def 转义项目展示路径(相对路径):#避免项目目录名撞上用户全局作用域
+    '首段等于用户全局目录名时前面加一个点分量'
+    首段=相对路径 if '/' not in 相对路径 else 相对路径.split('/',1)[0]#第一段
+    if 首段 in 保留作用域目录:#撞上全局作用域名
+        return './'+相对路径#留在项目作用域
+    return 相对路径#原样
 
 def 候选作用域键(目录,候选名):#组成按候选划分的作用域键
     '为单个指令候选文件组成调和键。目录与文件名用 NUL 分隔'
@@ -44,12 +64,17 @@ def 解码作用域键(作用域):#解码作用域键
     return {'directory':作用域[:分隔],'candidateName':作用域[分隔+1:]}#切开目录与文件名
 
 def 追加章节文本(文件):#动态追加章节文本
-    '拼追加说明与正文'
+    '拼追加说明与正文。用户全局目录名不进入模型可见句'
     作用域=展示路径作用域(文件['displayPath'])#该文件的逻辑作用域
+    if 是否用户全局目录(作用域):#内部调和键
+        适用='These user-global instructions apply to all work.'#全局适用
+    else:#项目目录
+        适用='These instructions apply to work under `'+作用域+'`.'#限定目录
+    引导='Use them as guidance when relevant; more specific instructions take precedence. They do not override system, developer, or direct user instructions.'#优先级
     return '\n'.join([#拼追加说明
         'Additional instructions from: '+文件['displayPath'],#追加来源标题
         '',#空行
-        'These instructions apply to work under `'+作用域+'`. Use them as guidance when relevant; more specific instructions take precedence. They do not override system, developer, or direct user instructions.',#适用范围与优先级
+        适用+' '+引导,#适用范围与优先级
         '',#空行
         文件['content'],#文件正文
     ])#用换行拼起来

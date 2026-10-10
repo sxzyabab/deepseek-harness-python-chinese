@@ -91,11 +91,9 @@ def 执行ripgrep(上下文,执行,工具名,参数向量,原始输出最大字�
         raise 搜索错误(工具名+' was aborted before completion (tool timeout or caller cancellation)','SEARCH_ABORTED')#报SEARCH_ABORTED
     智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
     if 智能体 is None:#无智能体
-        会话工作目录=None#无会话cwd
+        工作目录=os.getcwd()#进程当前目录
     else:#有智能体
-        头=智能体.session.header#会话头是dict
-        会话工作目录=头['cwd'] if 'cwd' in 头 else None#会话工作目录（若有）
-    工作目录=会话工作目录 if 会话工作目录 is not None else os.getcwd()#无会话则用进程cwd
+        工作目录=上下文.workingDirectory.ensure(智能体,信号)#目录消失时回到原项目
     try:#创建spawn
         句柄=上下文.subprocess.spawn({#拉起打包的rg
             'argv':[解析rg路径(),'--no-config',*list(参数向量)],#二进制、禁用宿主配置、工具argv

@@ -44,7 +44,7 @@ from . import (
     写后,
 )
 
-会话持久化快照字段=('header','revision','eventCount','sizeBytes')#不加载完整日志即可返回的轻量不可变源身份
+会话持久化快照字段=('header','formatStatus','revision','eventCount','sizeBytes')#不加载完整日志即可返回的轻量不可变源身份
 
 会话存储元数据字段=('meta','inheritedEventCount')#逻辑会话头与精确继承切口
 

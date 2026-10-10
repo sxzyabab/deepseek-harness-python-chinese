@@ -32,19 +32,22 @@ def 工具结果消息(消息,工具名表,内容):
     }#派爱工具结果
 
 def 断言可支持历史(消息列表):
-    '拒绝开发者角色、工具变更块，以及非用户/工具消息里的图片'
+    '拒绝错位的工具变更块，以及不支持的图片角色和非文本系统消息'
     for 消息 in 消息列表:#逐条
-        if 消息.get('role')=='developer':#开发者历史尚未序列化
-            raise 大模型错误('Developer messages are not supported yet','UNSUPPORTED_CONTENT')#尚未支持
         内容=消息.get('content') or []#内容
-        for 块 in 内容:#工具变更只能落在开发者角色
-            if 块.get('type')=='tool-addition' or 块.get('type')=='tool-removal':#工具变更
-                raise 大模型错误('Tool-change blocks require developer role','UNSUPPORTED_CONTENT')#角色不对
+        if 消息.get('role')!='developer':#工具变更只能落在开发者角色
+            for 块 in 内容:#逐块
+                if 块.get('type')=='tool-addition' or 块.get('type')=='tool-removal':#工具变更
+                    raise 大模型错误('Tool-change blocks require developer role','UNSUPPORTED_CONTENT')#角色不对
         if 消息.get('role')!='user' and 消息.get('role')!='tool' and llm.内容含图片(内容):#其它角色不能带图
             raise 大模型错误(
                 'pi-ai cannot represent an image in an in-history '+str(消息.get('role'))+' message',
                 'UNSUPPORTED_CONTENT',
             )#无法表示
+        if 消息.get('role')=='system':#系统消息只能是文本
+            for 块 in 内容:#逐块
+                if 块.get('type')!='text':#非文本
+                    raise 大模型错误('pi-ai cannot represent non-text system messages','UNSUPPORTED_CONTENT')#无法表示
 
 def 用户内容(块列,请求图,解析访问):
     '把用户或工具结果块转成派爱内容'
@@ -90,20 +93,23 @@ def 准备请求图(消息列表,附件,预算,信号=None):
         版本表[引用['attachmentId']]=附件.读取图像请求(引用,目标,信号)#同步物化
     return 版本表#精确版本
 
+def 派工具(工具项):
+    '去掉 harness 激活标记后的派爱工具声明'
+    return {
+        'name':工具项['name'],#工具名
+        'description':工具项['description'],#说明
+        'parameters':工具项['parameters'],#参数
+    }#一条
+
 def 工具列表(选项):
-    '映射请求工具。推迟载入尚未支持'
+    '映射请求工具，推迟载入的声明不进入初始列表'
     if 'tools' not in 选项 or 选项['tools'] is None:#没有工具
         return None#省略
-    for 工具项 in 选项['tools']:#推迟载入尚未接到提供方
-        if 工具项.get('deferLoading') is True:#推迟载入
-            raise 大模型错误('Deferred tool loading is not supported yet','UNSUPPORTED_CONTENT')#尚未支持
     映射=[]#派爱工具
     for 工具项 in 选项['tools']:#投影
-        映射.append({
-            'name':工具项['name'],#工具名
-            'description':工具项['description'],#说明
-            'parameters':工具项['parameters'],#参数
-        })#一条
+        if 工具项.get('deferLoading') is True:#推迟载入不进初始列表
+            continue#跳过
+        映射.append(派工具(工具项))#一条
     return 映射#工具列表
 
 def 派上下文信封(系统提示,选项,消息列表):
@@ -117,19 +123,62 @@ def 派上下文信封(系统提示,选项,消息列表):
     return 信封#信封
 
 def 拆分系统提示词(选项):
-    '选出两条转换路径共用的派爱 systemPrompt 来源'
-    if 'system' in 选项 and 选项['system'] is not None:#一次性槽获胜
-        return {'systemPrompt':选项['system'],'messages':选项['messages']}#整份历史都转换
+    '把一次性槽和前导系统历史拼成初始 systemPrompt'
+    文本=[]#待拼接
+    if 选项.get('system'):#空串不当提示
+        文本.append(选项['system'])#一次性槽
     对话=选项['messages']#对话
-    if len(对话)==0 or 对话[0].get('role')!='system':#无前导系统
-        return {'systemPrompt':None,'messages':对话}#不发送
-    文本=压平文本(对话[0])#压平前导
-    return {'systemPrompt':文本 if len(文本)>0 else None,'messages':对话[1:]}#空文本则不发送
+    结束=0#前导系统条数
+    for 消息 in 对话:#连续前导系统
+        if 消息.get('role')!='system':#遇到非系统即停
+            break#停
+        文本.append(压平文本(消息))#压平
+        结束+=1#计入
+    非空=[段 for 段 in 文本 if 段]#丢掉空段
+    系统提示='\n\n'.join(非空) if len(非空)>0 else None#空则不发送
+    return {'systemPrompt':系统提示,'messages':对话[结束:]}#剩余历史
 
-def 追加系统或助手(消息,消息列表,工具名表,回放降级=None):
-    '系统与助手两条路径相同；吃掉则返回真'
-    if 消息.get('role')=='system':#未供给槽的系统折成用户
-        消息列表.append({'role':'user','content':压平文本(消息),'timestamp':0})#保顺序
+def 追加开发者(消息,选项,消息列表):
+    '一条开发者事件收成一条系统更新，并解析投影后的工具声明'
+    内容=[]#文本
+    新增=[]#新增工具
+    移除=[]#移除工具
+    for 块 in 消息.get('content') or []:#按块
+        类型=块.get('type')#块类型
+        if 类型=='text':#文本
+            if len(块['text'])>0:#空串不占一块
+                内容.append({'type':'text','text':块['text']})#非空才带
+        elif 类型=='tool-addition':#新增
+            工具=None#声明
+            for 项 in 选项.get('tools') or []:#在当前工具表里找
+                if 项['name']==块['toolName']:#同名
+                    工具=项#命中
+                    break#已找到
+            if 工具 is None:#没有声明
+                raise 大模型错误('pi-ai tool update references undeclared tool "'+块['toolName']+'"','INVALID_REQUEST')#非法请求
+            新增.append(派工具(工具))#去掉激活标记
+        elif 类型=='tool-removal':#移除
+            移除.append({'name':块['toolName']})#只留名字
+        else:#其它开发者块
+            raise 大模型错误('pi-ai cannot represent developer content '+str(类型),'UNSUPPORTED_CONTENT')#无法表示
+    if len(内容)==0 and len(新增)==0 and len(移除)==0:#空事件不占一条
+        return#跳过
+    条目={'role':'system','content':内容,'timestamp':0}#系统更新
+    if len(新增)>0:#有新增才写
+        条目['toolsAdded']=新增#新增
+    if len(移除)>0:#有移除才写
+        条目['toolsRemoved']=移除#移除
+    消息列表.append(条目)#写入
+
+def 追加系统或助手(消息,选项,消息列表,工具名表,回放降级=None):
+    '开发者、系统与助手；吃掉则返回真'
+    if 消息.get('role')=='developer':#开发者事件
+        追加开发者(消息,选项,消息列表)#收成系统更新
+        return True#已消费
+    if 消息.get('role')=='system':#未进初始槽的系统保持系统角色
+        内容=压平文本(消息)#压平
+        if len(内容)>0:#空文本不占一条
+            消息列表.append({'role':'system','content':内容,'timestamp':0})#系统
         return True#已消费
     if 消息.get('role')=='assistant':#助手走回放
         助手=转派助手(消息,回放降级)#重建
@@ -149,7 +198,7 @@ def 纯文本上下文(选项,回放降级=None):
     for 消息 in 拆分['messages']:#按对话顺序
         if llm.内容含图片(消息.get('content') or []):#纯文本路径没有附件
             raise 大模型错误('pi-ai image conversion requires the durable attachment service','UNSUPPORTED_CONTENT')#缺附件
-        if 追加系统或助手(消息,消息列表,工具名表,回放降级):#系统或助手
+        if 追加系统或助手(消息,选项,消息列表,工具名表,回放降级):#开发者、系统或助手
             continue#下一条
         if 消息.get('role')=='tool':#一等工具结果
             消息列表.append(工具结果消息(消息,工具名表,压平文本(消息)))#独立 toolResult
@@ -188,7 +237,7 @@ def 带图片转派上下文(选项,图片上下文,回放降级=None):
     工具名表={}#调用 id 到工具名
     消息列表=[]#派爱消息
     for 消息 in 精确消息:#按投影后顺序
-        if 追加系统或助手(消息,消息列表,工具名表,回放降级):#系统或助手
+        if 追加系统或助手(消息,选项,消息列表,工具名表,回放降级):#开发者、系统或助手
             continue#下一条
         if 消息.get('role')=='tool':#一等工具结果，内容可含图
             消息列表.append(工具结果消息(消息,工具名表,用户内容(消息.get('content') or [],请求图,解析访问)))#独立 toolResult

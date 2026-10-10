@@ -249,7 +249,7 @@ class 会话投影注册表(服务):
         for 事件 in 事件列表:#逐事件
             状态=定义['apply'](状态,事件)#折叠
         末序号=事件列表[-1]['seq'] if len(事件列表)>0 else -1#末 seq
-        return {'state':状态,'observedSeq':末序号}#单元
+        return {'state':状态,'observedSeq':末序号,'views':[None,None]}#单元
 
     def _单元(自身,登记,会话):
         '读取或懒构建单元并推进到会话游标'
@@ -270,6 +270,11 @@ class 会话投影注册表(服务):
             if 事件 is None or 事件['seq']!=序号:#缺口
                 raise 会话投影错误('会话投影 '+repr(定义['key'])+' 无法跨过缺失的 seq '+str(序号)+' 推进')#拒绝
             下一=定义['apply'](单元['state'],事件)#折叠
+            if 下一 is not 单元['state']:#状态引用变了
+                视图=单元['views'] if 'views' in 单元 else [None,None]#最近两次视图
+                单元['views']=视图#补上
+                视图[0]=视图[1]#后移
+                视图[1]=None#新视图待算
             单元['state']=下一#写回
             单元['observedSeq']=序号#水位
 
@@ -290,10 +295,22 @@ class 会话投影注册表(服务):
             变更=下一 is not 先前#引用变更
             单元['state']=下一#写回
             单元['observedSeq']=事件['seq']#水位
-            if 变更 and 登记['def']['wire'] is not None and len(自身._监听)>0:#通知
-                值=自身._视图单元(登记,单元)#视图
-                for 监听器 in 自身._监听:#馈送
-                    监听器(会话,登记['def']['key'],值,事件['seq'])#通知
+            if 变更:#状态变了才动视图
+                视图=单元['views'] if 'views' in 单元 else [None,None]#最近两次视图
+                单元['views']=视图#补上
+                视图[0]=视图[1]#后移
+                wire=登记['def']['wire']#wire
+                if wire is not None and len(自身._监听)>0:#有人在听
+                    视图[1]=wire['view'](下一)#原始视图
+                    if 视图[0] is not 视图[1]:#视图引用也变了才发布
+                        值=视图[1]#待校验
+                        视图校验=wire['viewSchema'] if 'viewSchema' in wire else None#可选校验
+                        if 视图校验 is not None:#校验
+                            值=视图校验(值)#解析
+                        for 监听器 in 自身._监听:#馈送
+                            监听器(会话,登记['def']['key'],值,事件['seq'])#通知
+                elif wire is not None:#没人听，丢掉缓存视图
+                    视图[1]=None#下次变更再算
 
     def _视图单元(自身,登记,单元):
         '返回 schema 校验后的 wire 视图'

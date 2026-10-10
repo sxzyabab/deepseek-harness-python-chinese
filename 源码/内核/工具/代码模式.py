@@ -62,9 +62,9 @@ json缩进上限=10#总缩进上限
 typescript风味={
     'description':(
         'Execute a TypeScript program against the available tools. Takes two required '
-        +'arguments: `code`, the BODY of an async function (erasable syntax only; top-level '
-        +'`await` and `return` work), and `description`, a short summary of what the program '
-        +'does. Call tools as `await tools.name(args)` per the declarations in the system '
+        +'arguments: `description`, a short summary of what the program does, and `code`, '
+        +'the BODY of an async function (erasable syntax only; top-level `await` and '
+        +'`return` work). Call tools as `await tools.name(args)` per the declarations in the system '
         +'prompt. Only what you print or return is program output — curate it. Image-bearing '
         +'subtool results are attached after the run.'
     ),#工具描述
@@ -73,13 +73,13 @@ typescript风味={
 python风味={
     'description':(
         'Execute a Python program against the available tools. Takes two required '
-        +'arguments: `code`, the BODY of a Python function (`return` works), and '
-        +'`description`, a short summary of what the program does. Call tools as '
-        +'`tools.name(args)` per the declarations in the system prompt (synchronous; no '
-        +'`async`/`await`/`asyncio`). Use `print(...)` and/or `return <value>` for program '
-        +'output — curate it. Image-bearing subtool results are attached after the run.'
+        +'arguments: `description`, a short summary of what the program does, and `code`, '
+        +'the BODY of an async function (top-level `await` and `return` work). Call tools as '
+        +'`await tools.name(args)` per the declarations in the system prompt. Use '
+        +'`print(...)` and/or `return <value>` for program output — curate it. Image-bearing '
+        +'subtool results are attached after the run.'
     ),#工具描述
-    'codeDescription':'The program: the body of a Python function.',#代码参数描述
+    'codeDescription':'The program: the body of an async Python function.',#代码参数描述
 }#Python 风味
 运行代码风味={
     'typescript':typescript风味,#TS
@@ -87,13 +87,14 @@ python风味={
 }#风味表
 运行代码描述参数文案=(
     'Clear, concise description of what this program does in active voice, '
-    +'5-10 words (shown in the UI). Examples: "Count TODO markers across packages"; '
+    +'5-10 words (shown in the UI). Provide `description` before `code` in the arguments. '
+    +'Examples: "Count TODO markers across packages"; '
     +'"Read failing test and its fixture"; "Rename config key in every cordis.yml".'
 )#description 参数文案
 运行代码控件={
     'timeoutMs':{'type':'number','description':'Positive elapsed-time budget in milliseconds, capped by the deployment maximum.'},#超时
     'sandbox_permissions':{'type':'string','enum':list(升级目标),'description':'Wider sandbox mode for this complete program execution; requires justification and approval.'},#沙箱权限
-    'justification':{'type':'string','description':'Reason this complete program needs wider access, shown to the user for approval.'},#理由
+    'justification':{'type':'string','description':'Reason this complete program needs wider access, shown to the user for approval. Use the language of the user’s current request.'},#理由
 }#控件参数
 升级指引文案=' A sandbox escalation approves this complete program for one execution only. Nested tools retain their own policies and approvals. Request wider access only after evidence of a denial. Earlier effects may already have completed: inspect them before explicitly retrying. Programs are never replayed automatically.'#升级指引
 
@@ -280,6 +281,7 @@ def 创建运行代码工具(注册表,选项):
     窥探运行时=选项['peekRuntime']#窥探运行时
     窥探审批=选项['peekApprover']#窥探审批通道
     解析沙箱政策=选项['resolveSandboxPolicy']#解析站立政策
+    解析工作目录=选项['resolveWorkingDirectory']#解析工作目录
     并行上限=选项['maxParallel']#并行上限
     整形派发日志=选项['shapeDispatchLog']#整形日志内容
     def 渲染运行代码输出(_参数,值):
@@ -287,7 +289,7 @@ def 创建运行代码工具(注册表,选项):
         return _渲染运行代码(值,窥探运行时)#委托
     def 跑传输(参数,执行):
         '跑程序'
-        return 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,并行上限,整形派发日志,参数,执行)#委托
+        return 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,解析工作目录,并行上限,整形派发日志,参数,执行)#委托
     def 呈现运行代码调用(参数):
         '待处理呈现'
         return {
@@ -297,12 +299,12 @@ def 创建运行代码工具(注册表,选项):
             'rawInput':参数['code'],#程序体
         }#呈现卡片
     静态参数={
-        'code':{'type':'string','required':True,'description':typescript风味['codeDescription']},#代码体
         'description':{
             'type':'string',#字符串
             'required':True,#必填
             'description':运行代码描述参数文案,#语言无关文案
         },#UI 标签
+        'code':{'type':'string','required':True,'description':typescript风味['codeDescription']},#代码体
     }#必填参数
     静态参数.update(运行代码控件)#控件字段
     定义=定义工具({
@@ -340,13 +342,13 @@ def 创建运行代码工具(注册表,选项):
         if 说明:
             文案=文案+' '+说明#接说明
         if 运行时 is not None:
-            文案=文案+" The working directory is the Session's current directory."#工作目录句
+            文案=文案+" Each program starts in the Session's current directory. Running programs keep their initial directory."#工作目录句
         return 文案+升级指引(运行时)#接升级指引
     def 读参数():
         '按当前风味重编译参数模式'
         规格={
-            'code':{'type':'string','required':True,'description':解析风味(窥探运行时)['codeDescription']},#代码描述随语言
             'description':{'type':'string','required':True,'description':运行代码描述参数文案},#标签文案不变
+            'code':{'type':'string','required':True,'description':解析风味(窥探运行时)['codeDescription']},#代码描述随语言
         }#必填
         规格.update(控制参数(窥探运行时()))#按能力收录控件
         return 参数模式规格转json模式(规格)#投影成模型可见模式
@@ -364,7 +366,7 @@ def _渲染运行代码(值,窥探运行时):
     文本='\n'.join(段列表) if len(段列表)>0 else '(run_code completed with no output)'#无输出时的哨兵句
     return [{'type':'text','text':文本}]#文本块
 
-def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,并行上限,整形派发日志,参数,执行):
+def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策,解析工作目录,并行上限,整形派发日志,参数,执行):
     '跑一次 run_code 程序并排空子派发'
     from . import 调度器符号#延迟导入
     if len(参数['description'].strip())==0:
@@ -396,7 +398,8 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
         })#一次批准
         政策=dict(站立政策)#拷贝站立
         政策['mode']=批准模式#盖上批准模式
-    若已中止则抛出(执行.get('signal'))#升级后若已取消则停
+    工作目录=解析工作目录(执行)#有智能体时解析当前目录
+    若已中止则抛出(执行.get('signal'))#解析后若已取消则停
     本轮=中止控制器()#本轮控制器
     外层信号=执行['signal'] if 'signal' in 执行 else None#外层取消通道
     def 跟外层中止():
@@ -639,8 +642,10 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
                             'content':已记,#可能被替换的耐久内容
                         }#落定事件
                         失败=结果.get('error')#失败细节
-                        if isinstance(失败,dict) and 失败.get('info') is not None:
-                            事件['error']=失败['info']#结构化错误身份
+                        if isinstance(失败,dict) and 'info' in 失败:
+                            事件['error']=失败['info']#结构化错误身份，含 JSON null
+                        if 'meta' in 结果:
+                            事件['meta']=结果['meta']#派发元数据，含 JSON null
                         智能体.session.append('tool/ptc-dispatch',事件)#落定事件
                         日志任务.解决(None)#记完
                     except BaseException as 错误:
@@ -771,11 +776,8 @@ def 执行运行代码(注册表,要求运行时,窥探审批,解析沙箱政策
             }],#bindings
             'signal':本轮.信号,#本轮信号
         }#运行请求
-        智能体=执行['agent'] if 'agent' in 执行 else None#可选智能体
-        if 智能体 is not None:
-            头=智能体.session.header#会话头
-            if 'cwd' in 头:
-                请求['cwd']=头['cwd']#会话工作目录
+        if 工作目录 is not None:
+            请求['cwd']=工作目录#本次程序的起始目录
         if 政策 is not None:
             请求['sandboxPolicy']=政策#本次政策
         if 超时毫秒 is not None:

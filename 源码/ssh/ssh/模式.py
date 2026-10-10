@@ -1,6 +1,7 @@
 import re,uuid#路径与标识
 from ...依赖.工具 import 二进制#base64
 from .异常 import ssh错误#本包异常基类
+from .协议 import ssh协议版本#握手版本
 __all__=[#仅中文公开名
     'ssh错误','进程标识','文本流标识','进程标识模式','文本流标识模式','远端路径',
     '目标模式','信息模式','路径信息模式','政策模式','目录项模式','意图模式','编辑模式',
@@ -182,14 +183,21 @@ def 启动模式(值):#普通或终端启动
 
 def 握手模式(值):#hello
     '连接握手'
-    严格对象(值,('protocol','hash','platform','nodeVersion','node','root','workspace','bootstrapHash'))#键
-    if 值.get('protocol')!=1:#版本
-        raise ssh错误('expected protocol 1')#失败
+    严格对象(值,('protocol','hash','kind','platform','nodeVersion','executable','root','workspace','bootstrapHash'))#键
+    if 值.get('protocol')!=ssh协议版本:#版本
+        raise ssh错误('expected protocol '+str(ssh协议版本))#失败
     if not isinstance(值.get('hash'),str) or 哈希形态.match(值['hash']) is None:#摘要
         raise ssh错误('expected helper hash')#失败
+    if 值.get('kind') not in ('node-script','executable'):#启动种类
+        raise ssh错误('expected helper kind')#失败
     if 值.get('platform') not in ('linux','darwin'):#平台
         raise ssh错误('expected linux or darwin')#失败
-    远端路径(值.get('node'))#node
+    if not isinstance(值.get('nodeVersion'),str):#解释器版本
+        raise ssh错误('expected nodeVersion string')#失败
+    远端路径(值.get('executable'))#可执行文件
+    引导摘要=值.get('bootstrapHash')#可选引导摘要
+    if 引导摘要 is not None and (not isinstance(引导摘要,str) or 哈希形态.match(引导摘要) is None):#格式
+        raise ssh错误('expected bootstrap hash')#失败
     远端路径(值.get('root'))#root
     远端路径(值.get('workspace'))#workspace
     return 值#握手

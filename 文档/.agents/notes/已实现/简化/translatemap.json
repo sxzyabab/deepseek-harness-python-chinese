@@ -62,5 +62,8 @@
     "2026-09-15-model-agent-availability-and-team-targets":"2026-09-15-模型agent可用性与团队目标",
     "2026-09-16-subagent-catalog-membership-only":"2026-09-16-subagent目录仅成员资格",
     "2026-09-19-deepseek-messages-only":"2026-09-19-deepseek仅消息",
-    "2026-09-19-remove-desktop-profile-core-cleanup":"2026-09-19-移除桌面profile核心清理"
+    "2026-09-19-remove-desktop-profile-core-cleanup":"2026-09-19-移除桌面profile核心清理",
+    "2026-09-17-unified-subagent-activations":"2026-09-17-统一subagent激活",
+    "2026-09-26-team-direct-inbox":"2026-09-26-团队直接收件箱",
+    "2026-10-05-native-or-ptc-presentation":"2026-10-05-原生或ptc呈现"
 }

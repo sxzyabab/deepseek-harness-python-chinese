@@ -3,6 +3,8 @@ import os,json#路径与清单
 from ....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ....依赖.cordis.服务 import 服务#服务基类
 from .解析器 import 裸包名,安装配置解析,登记工作线程解析#解析器
+from ..包元 import 读插件元#展示元数据
+from ..配置档 import 创建配置解析世代,加载配置目录#重算世代
 from ..异常 import 启动错误#应用启动粘合层失败
 
 __all__=['插件包表','读包']#仅中文公开名
@@ -56,10 +58,13 @@ class 插件包表(服务):
         自身._包表={}#缓存
         自身._解析器=None#运行时解析器
         自身._拆除工作线程=None#工作线程登记拆除
-        if 'generation' not in 配置 or 配置['generation'] is None:#只暴露原生查找
+        自身._当前=None#当前世代
+        世代=配置.get('resolution',配置.get('generation'))#解析表
+        if 世代 is None:#只暴露原生查找
             return#不装解析器
-        解析器=安装配置解析(配置['generation'],自身._行为)#安装
-        自身._拆除工作线程=登记工作线程解析(配置['generation'],自身._行为)#工作线程
+        自身._当前=世代#记下
+        解析器=安装配置解析(世代,自身._行为)#安装
+        自身._拆除工作线程=登记工作线程解析(世代,自身._行为)#工作线程
         自身._解析器=解析器#记下
         def 拆除解析():
             '拆除工作线程登记与解析器'
@@ -73,10 +78,27 @@ class 插件包表(服务):
         if 自身._解析器 is None:#未安装运行时解析
             raise 启动错误('plugin-packages: 运行时解析尚未安装')#拒绝
         自身._解析器.替换(世代)#替换
+        自身._当前=世代#记下
         自身._包表={}#清空缓存
         if 自身._拆除工作线程 is not None:#有旧登记
             自身._拆除工作线程()#拆除
         自身._拆除工作线程=登记工作线程解析(世代,自身._行为)#新登记
+
+    def 刷新(自身):
+        '用已安装解析表重算最新世代并发布'
+        源=自身._当前.get('_source') if isinstance(自身._当前,dict) else None#重算输入
+        if not isinstance(源,dict) or not isinstance(源.get('installAnchor'),str):#不能重算
+            raise 启动错误('plugin-packages: the installed runtime resolution cannot be recomputed')#拒绝
+        参数={'installAnchor':源['installAnchor']}#参数
+        if 源.get('home') is not None:#有主目录
+            参数['home']=源['home']#写入
+        if 源.get('profileDir') is not None:#有配置
+            参数['profile']=加载配置目录('dsh',源['profileDir'],源['installAnchor'])#重读
+        自身.替换(创建配置解析世代(参数))#发布
+
+    def 元属于(自身,说明符,父网址):
+        '读展示元数据，不加载也不激活目标插件'
+        return 读插件元(说明符,父网址)#元数据
 
     def 包属于(自身,说明符,父网址):
         '按说明符定位拥有该模块的包，不要求导出'

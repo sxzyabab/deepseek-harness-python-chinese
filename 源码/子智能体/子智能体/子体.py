@@ -24,22 +24,34 @@ def 解析子深度(父,最大深度=None):
         raise 子智能体深度错误(子深度,最大深度)#深度超限
     return 子深度#已解析深度
 
+def 父委托智能体选项(父):
+    '委托用的父路由：请求头拥有提供方、模型与推理力度，其余仍用父选项'
+    父选项=dict(父.options) if isinstance(父.options,dict) else {}#父选项拷贝
+    请求头=父.session.请求头() if hasattr(父.session,'请求头') else None#当前请求头
+    配置=请求头['config'] if isinstance(请求头,dict) and 'config' in 请求头 else None#请求配置
+    if not isinstance(配置,dict):#没有请求头
+        return 父选项#整份父选项
+    结果={键:值 for 键,值 in 父选项.items() if 键 not in ('provider','model','reasoningEffort')}#去掉创建时路由
+    结果['provider']=配置['provider']#请求头提供方
+    结果['model']=配置['model']#请求头模型
+    if 'reasoningEffort' in 配置 and 配置['reasoningEffort'] is not None:#请求头点了力度
+        结果['reasoningEffort']=配置['reasoningEffort']#力度
+    return 结果#委托路由
+
 def 解析子智能体选项(父,请求,子深度):
-    '解析子体的 AgentOptions：除非请求覆盖，否则继承父的提供方/模型/maxTokens 路由，并盖上子体自己的委托深度。请求为 dict'
+    '解析子体的 AgentOptions：除非请求覆盖，否则继承父的提供方/模型/推理力度/maxTokens，并盖上子体自己的委托深度。换了路由又没点力度时清掉父的力度'
+    父选项=父委托智能体选项(父)#委托路由
     结果={}#合并路由
-    父选项=父.options if 父 is not None else None#父选项
-    父提供方=父选项['provider'] if isinstance(父选项,dict) and 'provider' in 父选项 else None#父提供方
-    父模型=父选项['model'] if isinstance(父选项,dict) and 'model' in 父选项 else None#父模型
-    父令牌上限=父选项['maxTokens'] if isinstance(父选项,dict) and 'maxTokens' in 父选项 else None#父token上限
-    if 父提供方 is not None:#有父提供方
-        结果['provider']=父提供方#展开
-    if 父模型 is not None:#有父模型
-        结果['model']=父模型#展开
-    if 父令牌上限 is not None:#有父token上限
-        结果['maxTokens']=父令牌上限#展开
+    for 键 in ('provider','model','reasoningEffort','maxTokens'):#继承这些
+        if 键 in 父选项 and 父选项[键] is not None:#有值
+            结果[键]=父选项[键]#展开
     if isinstance(请求,dict):#有请求覆盖
         结果.update(请求)#覆盖
     结果['subagentDepth']=子深度#盖上子深度
+    路由变了=结果.get('provider')!=父选项.get('provider') or 结果.get('model')!=父选项.get('model')#路由变了
+    请求点了力度=isinstance(请求,dict) and 'reasoningEffort' in 请求 and 请求['reasoningEffort'] is not None#请求自己点了力度
+    if 路由变了 and not 请求点了力度 and 'reasoningEffort' in 结果:#清掉父路由自己的力度
+        del 结果['reasoningEffort']#让所选模型用自己的默认力度
     return 结果#已解析选项
 
 def 子会话元数据(父,子深度,已播种):

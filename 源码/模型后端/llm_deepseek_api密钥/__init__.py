@@ -8,6 +8,7 @@ from ...工具.启动环境 import 取启动环境
 from ...身份.匿名用户id import 获取或创建匿名用户id
 from ...配置.配置 import json深度相等
 from ..llm_deepseek.适配器 import 深求适配器
+from ..llm_deepseek.模型信息 import 目录模型信息
 from ..llm_deepseek.异常 import 深求配置错误#配置校验失败
 from .配置 import 配置,朴素选项,解析适配器选项
 
@@ -53,6 +54,19 @@ def 应用(上下文,原始配置=None):
             +str(引用)+'（网页模型页会写入），或在启动环境中导出 '+str(引用),
             'MISSING_CREDENTIAL',
         )
+    def 解析鉴权(连接):
+        '把已解析密钥放进请求头'
+        return {'headers':{'x-api-key':解析接口密钥(连接)}}
+    def 发现模型(提供方名):
+        '缺凭证时目录为空，有凭证才通告配置模型'
+        连接=选项()
+        try:
+            解析接口密钥(连接)
+        except 大模型错误 as 错误:
+            if getattr(错误,'code',None)=='MISSING_CREDENTIAL':
+                return []
+            raise
+        return [目录模型信息(提供方名,模型) for 模型 in 连接['models']]
     用户标识=None
     def 解析用户标识():
         '首次签发后复用'
@@ -81,17 +95,43 @@ def 应用(上下文,原始配置=None):
                 return None
             return {'fields':{},'accept':接纳}
         return 扩展.准备(请求)
+    已降级=set()
     def 回放降级(细节):
-        '报告不可用消息回放，不暴露耐久内容或签名'
+        '同一路由与原因只警告一次'
+        键=str(细节['provider'])+'/'+str(细节['model'])+'\0'+str(细节['reason'])
+        if 键 in 已降级:
+            return
+        已降级.add(键)
         上下文.日志.警告('llm-deepseek: unusable Messages replay state on assistant history for route "'+str(细节['provider'])+'/'+str(细节['model'])+'"; sending provider-neutral content ('+str(细节['reason'])+')')
+    已省略=set()
+    def 扩展被省略(细节):
+        '同一路由的扩展序列化失败只警告一次'
+        路由=str(细节['provider'])+'/'+str(细节['model'])
+        if 路由 in 已省略:
+            return
+        已省略.add(路由)
+        字段=', '.join(细节['fields'])
+        上下文.日志.警告('llm-deepseek: sending route "'+路由+'" without request extension fields '+字段+' because they failed to serialize: '+str(细节['error']))
+    已未接纳=set()
+    def 扩展未接纳(细节):
+        '同一路由的扩展接纳失败只警告一次'
+        路由=str(细节['provider'])+'/'+str(细节['model'])
+        if 路由 in 已未接纳:
+            return
+        已未接纳.add(路由)
+        上下文.日志.警告('llm-deepseek: route "'+路由+'" request extension acceptance failed; contributors resend on a later request: '+str(细节['error']))
     适配器=深求适配器({
         '选项':选项,
-        '解析接口密钥':解析接口密钥,
+        '提供方名':'DeepSeek',
+        '解析鉴权':解析鉴权,
+        '发现模型':发现模型,
         '解析用户标识':解析用户标识,
         '解析附件':解析附件,
         '解析图片访问':解析图片访问,
         '准备扩展':准备扩展,
         '回放降级':回放降级,
+        '扩展被省略':扩展被省略,
+        '扩展未接纳':扩展未接纳,
     })
     入口=上下文.纤程.插件配置
     设置命名=名称

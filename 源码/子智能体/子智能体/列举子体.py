@@ -1,21 +1,27 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 from .异常 import 子智能体错误#导入子智能体错误
 
-生命周期证人键=('version','id','createdAt','cwd','parentSession','isSeeded','delegationDepth','origin','agentPreset')#生命周期证人键
-
 class 子智能体列举一次性子体(TypedDict):#列举结果的一次性子体臂
     kind:Literal['child']#子体条目
     id:str#耐久子会话 id
-    activity:Literal['running','inactive']#存储快照活动
-    hasChildren:bool#是否有耐久 origin:subagent 的直接后代
+    activity:Literal['running','inactive']#目录观察时是否驻留
+    hasChildren:bool#子目录是否含直接子
     mode:Literal['one-shot']#终态一次性子体
     label:NotRequired[str]#可选耐久创建标签
+
+class 子智能体列举外部子体(TypedDict):#没有本地子会话的外部执行
+    kind:Literal['child']#子体条目
+    id:str#提供方身份
+    activity:Literal['running','inactive']#目录观察时是否驻留
+    hasChildren:bool#外部执行是叶子
+    mode:Literal['external']#外部
+    label:NotRequired[str]#可选标签
 
 class 子智能体列举可续跑子体(TypedDict):#列举结果的可续跑子体臂
     kind:Literal['child']#子体条目
     id:str#耐久子会话 id
-    activity:Literal['running','inactive']#存储快照活动
-    hasChildren:bool#是否有耐久 origin:subagent 的直接后代
+    activity:Literal['running','inactive']#目录观察时是否驻留
+    hasChildren:bool#子目录是否含直接子
     mode:Literal['continuable']#可恢复对话
     label:str#耐久创建标签
 
@@ -24,7 +30,11 @@ class 子智能体列举诊断(TypedDict):#列举结果的诊断臂
     id:str#候选的会话 id
     reason:Literal['corrupt','unsupported','unavailable']#候选没有 child 行的原因
 
-子智能体列举条目=子智能体列举一次性子体|子智能体列举可续跑子体|子智能体列举诊断#listChildren 结果一条
+子智能体列举条目=子智能体列举一次性子体|子智能体列举外部子体|子智能体列举可续跑子体|子智能体列举诊断#listDescendants 结果一条
+
+class 子智能体后代列举外部(子智能体列举外部子体):#后代列举的外部执行
+    parentId:str#本候选在枚举树中的耐久直接父
+    depth:int#相对所请求根的边距
 
 class 子智能体后代列举一次性(子智能体列举一次性子体):#后代列举的一次性子体
     parentId:str#本候选在枚举树中的耐久直接父
@@ -38,215 +48,99 @@ class 子智能体后代列举诊断(子智能体列举诊断):#后代列举的�
     parentId:str#本候选在枚举树中的耐久直接父
     depth:int#相对所请求根的边距
 
-子智能体后代列举条目=子智能体后代列举一次性|子智能体后代列举可续跑|子智能体后代列举诊断#listDescendants 结果一条
+子智能体后代列举条目=子智能体后代列举一次性|子智能体后代列举外部|子智能体后代列举可续跑|子智能体后代列举诊断#listDescendants 结果一条
 
 def 已中止(信号):
     '信号是否已中止。无信号视为未中止'
     if 信号 is None:#无信号
         return False#未中止
-    return 信号._事件.is_set()#Event 置位
+    if hasattr(信号,'is_set'):#线程事件
+        return bool(信号.is_set())#置位
+    return bool(信号._事件.is_set())#工具中止信号
 
 def 断言列举未取消(信号):
     '在下一个取消检查点停下列举'
     if 已中止(信号):#已取消
-        raise 子智能体错误('子智能体列举已取消','CANCELLED')#稳定取消失败
+        raise 子智能体错误('subagent listing was cancelled','CANCELLED')#稳定取消失败
 
-def 语料排序键(记录):
-    '按耐久创建时间再按 id 比较兄弟。记录为 dict，头为 dict'
-    头=记录['header']#头
-    创建=头['createdAt'] if 'createdAt' in 头 else 0#时间
-    标识=str(头['id'] if 'id' in 头 else '')#id
-    return (创建,标识)#排序键
-
-def 同一生命周期(元,期望):
-    '一份检查过的日志是否仍属于枚举到的生命周期。元与期望为 dict'
-    for 键 in 生命周期证人键:#逐键
-        左=元[键] if 键 in 元 else None#元值
-        右=期望[键] if 键 in 期望 else None#期望值
-        if 左!=右:#不相等
-            return False#分叉
-    return True#同一生命周期
-
-def 子体行(标识,身份,活动,有子体):
-    '把一份已提供身份物化为子体行。身份为 dict'
-    if 身份['mode']=='one-shot':#一次性行
-        行={'kind':'child','id':标识,'mode':'one-shot','activity':活动,'hasChildren':有子体}#一次性
-        if 'label' in 身份 and 身份['label'] is not None:#有标签才展开
-            行['label']=身份['label']#展开
-        return 行#一次性行
-    return {'kind':'child','id':标识,'mode':'continuable','label':身份['label'],'activity':活动,'hasChildren':有子体}#可续跑行
-
-def 读子智能体身份(快照):
-    '从投影快照 dict 读 subagent 单元'
-    if 快照 is None:#无快照
-        return None#无身份
-    if 'values' not in 快照:#无值表
-        return None#无身份
-    值表=快照['values']#值表
-    if 'subagent' not in 值表:#无单元
-        return None#无身份
-    return 值表['subagent']#身份
-
-def 准备列举(上下文,信号=None):
-    '一次性解析列举服务并建造一份活优先会话语料'
-    投影=上下文.获取服务('sessionProjections')#投影注册表
-    if 投影 is None:#未挂载投影
-        raise 子智能体错误(#配置错误
-            '列举子智能体需要 sessionProjections 注册表（请加载 @deepseek-ai/dsh-session-projection）',#文案
-            'SUBAGENT_CONTROL_PROJECTIONS_UNAVAILABLE',#错误码
-        )#结束
-    会话存储=上下文.获取服务('sessions')#会话存储
-    if 会话存储 is None:#未挂载存储
-        raise 子智能体错误(#配置错误
-            '列举子智能体需要会话存储（请加载 @deepseek-ai/dsh-session）',#文案
-            'SUBAGENT_CONTROL_SESSION_STORE_UNAVAILABLE',#错误码
-        )#结束
-    断言列举未取消(信号)#取消检查点
-    持久化=上下文.获取服务('sessionPersistence')#可选持久化
-    缓存=上下文.获取服务('sessionProjectionCache')#可选投影缓存
-    持久头列表=[]#持久化头
-    if 持久化 is not None:#有持久化
-        try:#尝试列举持久化头
-            持久头列表=list(持久化.列出(信号))#列出头
-        except Exception as 错误:#列举失败
-            断言列举未取消(信号)#取消则改抛子智能体错误
-            raise 错误#否则原样抛出
-        断言列举未取消(信号)#列举后取消检查点
-    语料={}#活优先语料
-    for 头 in 持久头列表:#先放持久化
-        语料[头['id']]={'header':头,'live':None}#冷记录
-    for 会话 in 会话存储.列出():#再用活会话覆盖
-        头=会话.header#会话头
-        语料[头['id']]={'header':头,'live':会话}#活记录赢
-    子智能体父集合=set()#有子智能体后代的父
-    for 记录 in 语料.values():#扫描语料
-        头=记录['header']#头
-        if ('origin' in 头 and 头['origin']=='subagent'
-            and 'parentSession' in 头 and 头['parentSession'] is not None):#子智能体且有父
-            子智能体父集合.add(头['parentSession'])#记下父
-    return {'projections':投影,'persistence':持久化,'cache':缓存,'corpus':语料,'subagentParents':子智能体父集合}#列举运行时
-
-def 解析冷身份(持久化,投影,缓存,头,有子体,信号=None):
-    '沿剩余梯子解析一个冷候选。头为 dict'
-    子标识=头['id']#候选id
-    if 缓存 is not None and not 头.get('isSeeded'):#未播种可走缓存（切点精确为 0）
-        缓存身份=None#缓存身份
-        try:#读缓存快照
-            快照=缓存.缓存快照(头)#读快照
-            缓存身份=读子智能体身份(快照)#读subagent单元
-        except Exception:#缓存行损坏
-            缓存身份=None#当作未命中
-        if 缓存身份 is not None:#有可用缓存
-            return 子体行(子标识,缓存身份,'inactive',有子体)#冷子体行
-    断言列举未取消(信号)#检查前取消检查点
-    try:#持久化检查
-        已检=持久化.检查(子标识,信号)#读头与事件
-    except Exception:#检查失败
-        断言列举未取消(信号)#取消则改抛
-        return {'kind':'diagnostic','id':子标识,'reason':'unavailable'}#瞬时不可用
-    断言列举未取消(信号)#检查后取消检查点
-    元=已检['meta']#检查头
-    if not 同一生命周期(元,头):#生命周期证人分叉
-        return {'kind':'diagnostic','id':子标识,'reason':'corrupt'}#损坏诊断
-    继承计数=已检['inheritedEventCount'] if 'inheritedEventCount' in 已检 and 已检['inheritedEventCount'] is not None else 0#继承切口
-    try:#经注册表折叠分离日志
-        事件列表=已检['events'] if 'events' in 已检 and 已检['events'] is not None else []#事件
-        已折=投影.恢复({},事件列表,0,头)#从零恢复
-        身份=读子智能体身份(已折['snapshot'] if 'snapshot' in 已折 else None)#读subagent单元
-    except Exception:#任一单元拒绝损坏载荷
-        return {'kind':'diagnostic','id':子标识,'reason':'corrupt'}#损坏诊断
-    if 身份 is None or (isinstance(身份,dict) and 'seq' in 身份 and 身份['seq']<继承计数):#无自身后缀身份
-        return {'kind':'diagnostic','id':子标识,'reason':'corrupt'}#已结算无身份
-    return 子体行(子标识,身份,'inactive',有子体)#冷子体行
-
-def 解析候选行(候选列表,列举,信号=None):
-    '以有界冷读为对齐候选解析投影行。候选为 dict'
-    投影=列举['projections']#投影注册表
-    持久化=列举['persistence']#可选持久化
-    缓存=列举['cache']#可选投影缓存
-    子智能体父集合=列举['subagentParents']#有后代的父
-    行列表=[None]*len(候选列表)#按索引占位
-    冷读=[]#待冷读作业
-    for 下标,候选 in enumerate(候选列表):#先处理活候选
-        子标识=候选['header']['id']#候选id
-        if 候选['live'] is None:#冷候选
-            冷读.append({'index':下标,'header':候选['header']})#排队冷读
-            continue#本候选结束
-        try:#折叠活快照
-            快照=投影.快照(候选['live'])#读水位
-            身份=读子智能体身份(快照)#读subagent单元
-        except Exception:#任意单元折叠/模式拒绝
-            行列表[下标]={'kind':'diagnostic','id':子标识,'reason':'corrupt'}#损坏诊断
-            continue#本候选结束
-        if 身份 is None:#创建窗口省略
-            continue#省略
-        行列表[下标]=子体行(子标识,身份,'running',子标识 in 子智能体父集合)#活子体行
-    if 持久化 is not None and len(冷读)>0:#需要冷读
-        队列=list(冷读)#作业队列
-        while len(队列)>0:#串行消化
-            作业=队列.pop(0)#取作业
-            作业头=作业['header']#头
-            行列表[作业['index']]=解析冷身份(#解析冷身份
-                持久化,投影,缓存,作业头,#服务与头
-                作业头['id'] in 子智能体父集合,信号,#是否有后代与取消
-            )#结束
-    断言列举未取消(信号)#全部解析后取消检查点
-    return 行列表#对齐行
-
-def 后代候选(语料,根会话标识):
-    '无递归地从完整树建造按来源分类的候选。语料值为 dict，头为 dict'
-    子女={}#父到子女
-    for 记录 in 语料.values():#建邻接
-        头=记录['header']#头
-        if 'parentSession' not in 头 or 头['parentSession'] is None:#无父跳过
-            continue#跳过
-        父标识=头['parentSession']#直接父
-        if 父标识 not in 子女:#新建列表
-            子女[父标识]=[记录]#新建
-        else:#已有兄弟
-            子女[父标识].append(记录)#追加
-    for 兄弟 in 子女.values():#兄弟排序
-        兄弟.sort(key=语料排序键)#按时间再id
-    定位=[]#结果
-    栈=[{'record':记录,'parentId':根会话标识,'depth':1} for 记录 in reversed(子女[根会话标识] if 根会话标识 in 子女 else [])]#根的直接子女反转压栈
-    已访问=set([根会话标识])#已访问，含根
-    while len(栈)>0:#迭代前序
-        位置=栈.pop()#弹出一帧
-        标识=位置['record']['header']['id']#当前id
-        if 标识 in 已访问:#环或重复跳过
-            continue#跳过
-        已访问.add(标识)#记下
-        if 'origin' in 位置['record']['header'] and 位置['record']['header']['origin']=='subagent':#只收子智能体
-            定位.append(位置)#收下
-        后代=子女[标识] if 标识 in 子女 else []#其子女
-        for 记录 in reversed(list(后代)):#反转压栈以保持顺序
-            栈.append({'record':记录,'parentId':标识,'depth':位置['depth']+1})#更深一档
-    return 定位#带位置候选
+def _目录值(观察):
+    '从一次会话观察取出 subagentCatalog'
+    投影=观察.projections#投影块
+    if not isinstance(投影,dict):#没有投影
+        return None#缺席
+    值=投影['values'] if 'values' in 投影 else 投影#活路径包在 values 里
+    if not isinstance(值,dict) or 'subagentCatalog' not in 值:#没有目录
+        return None#缺席
+    return 值['subagentCatalog']#目录行
 
 def 列举子体(上下文,父会话标识,信号=None):
-    '从 ctx.sessions 与可选会话持久化的活优先合并中，枚举一个父的按来源分类的直接子体'
-    列举=准备列举(上下文,信号)#准备运行时与语料
-    候选列表=[]#直接子
-    for 记录 in 列举['corpus'].values():#扫描语料
-        头=记录['header']#头
-        if ('parentSession' in 头 and 头['parentSession']==父会话标识
-            and 'origin' in 头 and 头['origin']=='subagent'):#直接子且来源是子智能体
-            候选列表.append(记录)#收下
-    候选列表.sort(key=语料排序键)#按创建时间再按id
-    行列表=解析候选行(候选列表,列举,信号)#解析投影行
-    return [行 for 行 in 行列表 if 行 is not None]#去掉省略项
+    '经活优先会话观察读取父的耐久直接子目录'
+    查询=上下文.获取服务('sessionQuery')#查询服务
+    if 查询 is None:#没装
+        raise 子智能体错误(
+            'listing subagents requires the sessionQuery service (load @deepseek-ai/dsh-session-query)',
+            'SUBAGENT_CONTROL_QUERY_UNAVAILABLE',
+        )#拒绝
+    选项={} if 信号 is None else {'signal':信号}#取消
+    观察=查询.observeSession(父会话标识,选项)#点观察
+    try:#用完即关
+        条目=_目录值(观察)#目录
+        if 条目 is None:#没登记投影
+            raise 子智能体错误(
+                'listing subagents requires the registered subagentCatalog projection',
+                'SUBAGENT_CONTROL_PROJECTIONS_UNAVAILABLE',
+            )#拒绝
+        return list(条目)#父目录事件顺序
+    finally:#释放观察
+        观察.close()#关
 
 def 列举后代(上下文,根会话标识,信号=None):
-    '以稳定前序枚举一个根下每个有会话的子智能体'
-    列举=准备列举(上下文,信号)#准备运行时与语料
-    定位=后代候选(列举['corpus'],根会话标识)#带位置的候选
-    行列表=解析候选行([位置['record'] for 位置 in 定位],列举,信号)#解析投影行
-    条目列表=[]#结果
-    for 下标,位置 in enumerate(定位):#按位置对齐行
-        行=行列表[下标]#对应投影行
-        if 行 is not None:#有解释结果
-            条目=dict(行)#复制行
-            条目['parentId']=位置['parentId']#附上树位置
-            条目['depth']=位置['depth']#相对深度
-            条目列表.append(条目)#收下
-    return 条目列表#后代条目
+    '按父目录稳定前序走可达目录。外部是叶子；unknown 仍往下走并记 unsupported'
+    会话表=上下文.获取服务('sessions')#会话存储
+    if 会话表 is None:#没装
+        raise 子智能体错误(
+            'listing subagents requires the session store (load @deepseek-ai/dsh-session)',
+            'SUBAGENT_CONTROL_SESSION_STORE_UNAVAILABLE',
+        )#拒绝
+    def 读子(标识):
+        '读一个父的直接子，取消则停'
+        断言列举未取消(信号)#读前
+        try:#读目录
+            孩子们=列举子体(上下文,标识,信号)#直接子
+        except 子智能体错误:#服务缺失原样上抛
+            断言列举未取消(信号)#取消优先
+            raise#上抛
+        断言列举未取消(信号)#读后
+        return 孩子们#目录行
+    栈=[{'entry':条目,'parentId':根会话标识,'depth':1} for 条目 in reversed(读子(根会话标识))]#根的直接子反转压栈
+    已访问=set([根会话标识])#已访问
+    结果=[]#前序
+    while len(栈)>0:#迭代
+        位置=栈.pop()#弹出
+        条目=位置['entry']#目录行
+        if 条目['id'] in 已访问:#环
+            continue#跳过
+        已访问.add(条目['id'])#记下
+        try:#读子目录；外部不读
+            孩子们=[] if 条目['mode']=='external' else 读子(条目['id'])#子
+        except 子智能体错误:#缝错误上抛
+            raise#上抛
+        except BaseException as 错误:#分支读失败
+            码=getattr(错误,'code',None)#错误码
+            原因='corrupt' if 码 in ('SESSION_QUERY_CORRUPT_SESSION','SESSION_QUERY_SOURCE_CONFLICT') else 'unavailable'#分类
+            结果.append({'kind':'diagnostic','id':条目['id'],'parentId':位置['parentId'],'depth':位置['depth'],'reason':原因})#诊断
+            continue#停这一支
+        if 条目['mode']=='unknown':#未知模式
+            结果.append({'kind':'diagnostic','id':条目['id'],'parentId':位置['parentId'],'depth':位置['depth'],'reason':'unsupported'})#仍遍历
+        else:#子行
+            行={键:值 for 键,值 in 条目.items() if 键!='createdAt'}#去掉创建时刻
+            取=会话表.get if hasattr(会话表,'get') else 会话表.获取#驻留查找
+            行['kind']='child'#子
+            行['parentId']=位置['parentId']#父
+            行['depth']=位置['depth']#深度
+            行['activity']='inactive' if 取(条目['id']) is None else 'running'#是否驻留
+            行['hasChildren']=len(孩子们)>0#有直接子
+            结果.append(行)#收下
+        for 孩子 in reversed(list(孩子们)):#反转压栈以保持目录顺序
+            栈.append({'entry':孩子,'parentId':条目['id'],'depth':位置['depth']+1})#更深
+    return 结果#后代

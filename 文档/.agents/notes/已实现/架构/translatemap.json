@@ -270,5 +270,17 @@
     "2026-09-24-scheduled-message-framing":"2026-09-24-日程消息框架",
     "2026-09-25-session-log-otel-byte-limits":"2026-09-25-会话日志otel字节上限",
     "2026-09-30-profile-package-refresh-and-manifest-invalidation":"2026-09-30-配置包刷新与清单失效",
-    "2026-09-30-structured-draft-initialization":"2026-09-30-结构化草稿初始化"
+    "2026-09-30-structured-draft-initialization":"2026-09-30-结构化草稿初始化",
+    "2026-09-13-session-working-directory":"2026-09-13-会话工作目录",
+    "2026-09-19-concrete-web-bind-address":"2026-09-19-具体web绑定地址",
+    "2026-09-23-native-https-web-listener":"2026-09-23-原生https-web监听",
+    "2026-09-29-explicit-session-history-preparation":"2026-09-29-显式会话历史准备",
+    "2026-10-05-anonymous-reasoning-translation":"2026-10-05-免登录推理翻译",
+    "2026-10-05-official-on-demand-bundles":"2026-10-05-官方按需组合包",
+    "2026-10-05-paid-native-flash-reasoning-translation":"2026-10-05-付费原生flash推理翻译",
+    "2026-10-05-persistent-machine-translation":"2026-10-05-持久机器翻译",
+    "2026-10-05-shared-agents-root-instructions":"2026-10-05-共享agents根指令",
+    "2026-10-06-web-desktop-plugin-identity-compatibility":"2026-10-06-web桌面插件身份兼容",
+    "2026-10-08-desktop-shell-configuration":"2026-10-08-桌面壳层配置",
+    "2026-10-09-reasoning-content-slot-factory":"2026-10-09-推理内容槽位工厂"
 }

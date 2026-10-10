@@ -48,16 +48,21 @@ def 子名录事实(源):#子名录事实
 
 def 名录事实(值,主语='subagent/catalog'):#名录事实
     '校验名录成员所用的历史字段，不解释扩展'
-    if (not 是否会话格式json对象(值) or 值.get('version') not in (0,1)
+    版本=值.get('version') if 是否会话格式json对象(值) else None#版本
+    模式=值.get('mode') if 是否会话格式json对象(值) else None#模式
+    if (not 是否会话格式json对象(值) or 版本 not in (0,1,2)
         or not isinstance(值.get('childId'),str)
-        or 值.get('mode') not in ('continuable','one-shot','unknown')
-        or (值.get('version')==0 and 值.get('mode')=='unknown')
-        or (值.get('mode')=='continuable' and not isinstance(值.get('label'),str))
+        or 模式 not in ('continuable','one-shot','external','unknown')
+        or ((版本==2)!=(模式=='external'))#版本 2 当且仅当外部模式
+        or (版本==0 and 模式=='unknown')
+        or (模式=='continuable' and not isinstance(值.get('label'),str))
         or ('label' in 值 and not isinstance(值['label'],str))):#不支持
         raise 会话格式错误(主语+' requires a supported versioned catalog fact')#错误
     会话格式计数(值['childCreatedAt'],'catalog child creation time')#创建时间
     return 值#返回
 
 def 子名录主语(源):#子名录主语
-    '在迁移诊断中命名该子'
-    return 'Session '+str(源['childId'])#仅用子标识，不回显路径
+    '在迁移诊断中命名该子及其持久化给出的原始日志位置'
+    路径=源.get('sourcePath')#持久化供给的位置
+    后缀=' (raw log: '+路径+')' if isinstance(路径,str) else ''#有字符串位置才附上
+    return 'Session '+str(源['childId'])+后缀#子标识与可选位置

@@ -20,7 +20,7 @@ from .异常 import pwsh工具错误#本包校验与组合失败
 __all__=['名称','依赖','配置','应用']#仅中文公开名
 
 名称='tool-pwsh'#插件名（字面量不译）
-依赖=['tools','shell','systemPrompt','shellEnv']#依赖工具、shell、提示词与环境
+依赖=['tools','shell','systemPrompt','shellEnv','workingDirectory']#依赖工具、shell、提示词、环境与工作目录
 配置={#pwsh工具配置模式
     'enableRunInBackground':布尔字段(默认值=True),#默认启用后台
 }#配置模式结束
@@ -86,17 +86,13 @@ def pwsh描述(启用后台,升级模式):#拼工具描述
         +'A rejected escalation is final for that command — stop and explain, never work around '#拒绝升级
         +'it — but it does not forbid attempting or escalating other commands later.')#不影响其他命令
 
-def 解析工作目录(模型工作目录,执行):#解析工作目录
-    '先解析显式 workdir，相对路径相对会话工作区；否则用会话头 cwd，并把执行器默认当作回退'
-    智能体=执行['agent'] if 'agent' in 执行 else None#调用智能体；执行是dict
-    会话=智能体.session if 智能体 is not None else None#所属会话
-    头=会话.header if 会话 is not None else None#会话头
-    会话头工作目录=头['cwd'] if 头 is not None and 'cwd' in 头 else None#会话头cwd
+def 解析工作目录(模型工作目录,会话cwd):#解析工作目录
+    '未给 workdir 时用当前目录；相对路径按 path.resolve 折叠到当前目录'
     if 模型工作目录 is None:#未给
-        return 会话头工作目录#用会话
-    if 会话头工作目录 is not None and (not os.path.isabs(模型工作目录)):#相对路径
-        return os.path.normpath(os.path.join(会话头工作目录,模型工作目录))#相对会话解析
-    return 模型工作目录#绝对或无会话则原样
+        return 会话cwd#用当前目录
+    if 会话cwd is not None and (not os.path.isabs(模型工作目录)):#相对路径
+        return os.path.normpath(os.path.join(会话cwd,模型工作目录))#折叠到当前目录
+    return 模型工作目录#绝对或无当前目录则原样
 
 def 规范Pwsh结果(结果):#规范化前台结果
     '把执行器 DTO 从只读 Service Definition 类型拆成普通 JSON 数据'
@@ -205,6 +201,9 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
         else:#前台
             文本=渲染Pwsh结果(值,升级模式)#前台渲染
         return [{'type':'text','text':文本}]#单个文本块
+    def 呈现元数据(_参数,值):#回放当前目录
+        '回放当前目录'
+        return {'cwd':值.get('cwd')}#当前目录
     def 执行(参数,执行上下文):#执行pwsh
         '校验后前台运行或登记后台任务'
         校验Pwsh参数(参数)#先校验参数
@@ -219,7 +218,12 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
         else:#盖上已批准模式
             政策=dict(常驻政策)#拷贝常驻
             政策['mode']=批准模式#覆盖模式
-        工作目录=解析工作目录(参数['workdir'] if 'workdir' in 参数 else None,执行上下文)#解析工作目录
+        智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#调用智能体
+        if 智能体 is None:#无智能体
+            会话目录=None#不设目录
+        else:#有智能体
+            会话目录=上下文.workingDirectory.ensure(智能体,执行上下文['signal'] if 'signal' in 执行上下文 else None)#确保当前目录
+        工作目录=解析工作目录(参数['workdir'] if 'workdir' in 参数 else None,会话目录)#解析工作目录
         请求={#执行请求
             'command':参数['command'],#命令
             'dshEnv':上下文.shellEnv.收集(执行上下文),#托管环境
@@ -363,6 +367,7 @@ def 应用(上下文,配置值=None):#加载pwsh工具插件
                 ],#oneOf结束
             },#schema结束
             'render':渲染,#按种类渲染
+            'presentationMeta':呈现元数据,#回放当前目录
         },#output结束
         'execute':执行,#执行
         'presentCall':呈现调用,#调用卡片

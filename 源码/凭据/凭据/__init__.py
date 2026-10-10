@@ -128,9 +128,8 @@ class 凭证提供方(服务):#凭证提供方服务定义
         自身.通知记录已更新(键)#扇出
 
     def 通知已更新(自身,引用):#向监听器扇出已提交变更
-        '扇出 credentials/updated（兼容）与 credentials/reference-updated'
-        自身._扇出('credentials/updated',引用)#旧名
-        自身._扇出('credentials/reference-updated',引用)#新名
+        '扇出 credentials/reference-updated'
+        自身._扇出('credentials/reference-updated',引用)#引用
 
     def 通知记录已更新(自身,键):#扇出记录变更
         '扇出 credentials/record-updated'

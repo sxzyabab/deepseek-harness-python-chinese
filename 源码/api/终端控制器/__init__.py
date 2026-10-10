@@ -66,13 +66,10 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         '不解析壳'
         若已中止则抛出(信号)#中止
         执行=自身._执行环境(智能体)#提供方
-        头=智能体.session.header if hasattr(智能体.session,'header') else None#头
-        会话目录=头.cwd if 头 is not None and hasattr(头,'cwd') else None#会话 cwd
-        if 会话目录 is None and isinstance(头,dict):#dict 头
-            会话目录=头.get('cwd')#cwd
-        根=执行['sandboxPolicy'].workspaceRoot#工作区根
+        工作目录=执行['workingDirectory']#工作目录
+        会话目录=工作目录.取当前目录(智能体.session) if hasattr(工作目录,'取当前目录') else 工作目录.get(智能体.session)#已记录目录
         return {
-            'cwd':会话目录 if 会话目录 is not None else 根,#工作区
+            'cwd':会话目录,#已记录
             'maxInputBytes':自身.配置值.get('maxInputBytes',64*1024),#输入
             'maxCols':自身.配置值.get('maxCols',500),#列
             'maxRows':自身.配置值.get('maxRows',200),#行
@@ -318,7 +315,10 @@ class 终端控制器(远程服务):#会话范围浏览器终端
         沙箱政策=智能体.ctx.获取服务('sandboxPolicy',False)#政策
         if 子进程 is None or 沙箱政策 is None:#缺
             raise 远程错误('gateway/bad-request','The Session execution environment requires subprocess and sandbox policy providers',{})#拒绝
-        return {'subprocess':子进程,'sandboxPolicy':沙箱政策}#提供方
+        工作目录=智能体.ctx.获取服务('workingDirectory',False)#工作目录
+        if 工作目录 is None:#缺
+            raise 远程错误('gateway/bad-request','The Session execution environment requires a working-directory provider',{})#拒绝
+        return {'subprocess':子进程,'sandboxPolicy':沙箱政策,'workingDirectory':工作目录}#提供方
 
     def _分配任务(自身,智能体,拥有,请求,信号):#后台 spawn
         '返回期约，解决值是分配好的终端'
@@ -336,8 +336,8 @@ class 终端控制器(远程服务):#会话范围浏览器终端
 
     def _生成(自身,智能体,拥有,请求,信号):#spawnTerminal
         '失败则经 TerminalRetention 清理并可能留下 allocations'
-        环境=自身.environment(智能体,信号)#环境
         执行=自身._执行环境(智能体)#提供方
+        目录=执行['workingDirectory'].ensure(智能体,信号)#确保目录
         if 'shellPath' not in 请求:#默认
             壳=解析外壳(执行['subprocess'],自身.配置值.get('shell'),信号)
         else:#指定
@@ -351,7 +351,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             raise 远程错误('gateway/bad-request','Selected shell is not available in this execution environment',{})#拒绝
         句柄=执行['subprocess'].启动终端({
             'argv':[壳['path'],*壳['args']],#参数
-            'cwd':环境['cwd'],#目录
+            'cwd':目录,#目录
             'cols':请求['cols'],#列
             'rows':请求['rows'],#行
             'terminalType':'xterm-256color',#TERM
@@ -364,7 +364,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
             'id':请求['id'],#id
             'shell':壳,#壳
             'title':壳['name'],#标题
-            'cwd':环境['cwd'],#目录
+            'cwd':目录,#目录
             'cols':请求['cols'],#列
             'rows':请求['rows'],#行
             'state':'running',#运行
@@ -396,7 +396,7 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                 raise 聚合错误([错误,清理错误],'Terminal allocation cleanup failed')#聚合
             raise 错误#原样
 
-依赖=['subprocess','sandboxPolicy','typert']
+依赖=['subprocess','sandboxPolicy','workingDirectory','typert']
 默认=终端控制器
 Config=配置#框架槽
 default=默认#框架槽

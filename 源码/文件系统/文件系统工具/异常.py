@@ -7,20 +7,15 @@ class 工具文件系统错误(Exception):
         '用原样英文消息构造'
         super().__init__(消息)#英文消息
 
-补救表={#错误码到补救文本
-    'FS_STALE_VERSION':'re-read the file, then retry',#过期：重新读再试
-    'FS_NOT_OBSERVED':'read the file, then retry',#未经观察：先读再试
-}#补救表结束
-
-def 补救文件系统错误(错误):#在模型边界补救可恢复的文件系统错误
-    """给受守卫变更失败的消息追加正确的恢复指示。
-    FS_STALE_VERSION（自本会话上次观察以来文件已变，包括目标缺失）只能通过重新读取恢复；FS_NOT_OBSERVED（本会话没有先前读取）通过读取恢复。
-    保留 FsError 码，使重试/权限/UI 层继续按它路由，原始错误作为 cause 链接。
-    其他错误原样穿过
+def 补救文件系统错误(错误,展示路径):#在模型边界补救可恢复的文件系统错误
+    """给受守卫变更失败换上稳定的面向模型诊断。
+    FS_NOT_OBSERVED 换成带路径的先读再试；FS_STALE_VERSION 保留原因并要求重读。
+    保留错误码，原始错误作为 cause。其他错误原样穿过
     """
     if not isinstance(错误,fs.文件系统错误):#不是文件系统错误
         return 错误#原样返回
-    补救=补救表.get(错误.code)#按错误码取补救文本
-    if not 补救:#没有补救
-        return 错误#原样返回
-    return fs.文件系统错误(错误.message+' — '+补救,错误.code,{'cause':错误})#拼接补救并保留错误码与cause
+    if 错误.code=='FS_NOT_OBSERVED':#本会话没有先前读取
+        return fs.文件系统错误('cannot modify "'+展示路径+'": file has not been read — read the file, then retry',错误.code,{'cause':错误})#换成带路径的诊断
+    if 错误.code=='FS_STALE_VERSION':#自上次观察以来文件已变
+        return fs.文件系统错误(错误.message+' — re-read the file, then retry',错误.code,{'cause':错误})#保留原因并要求重读
+    return 错误#原样返回

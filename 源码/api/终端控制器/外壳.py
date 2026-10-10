@@ -41,11 +41,13 @@ def 发现外壳(子进程,已配置,候选,信号):#已安装候选，默认在
             找到.append(解析外壳(子进程,剖面(项),信号))#核验
         except 可执行未找到错误:#省略
             找到.append(None)#空
-    壳表={}#路径去重
+    壳表={}#按可执行名去重
     for 壳 in [首选,*找到]:#默认在前
         if 壳 is None:#省略
             continue#跳
-        键=壳['path'].lower() if '\\' in 壳['path'] else 壳['path']#Windows 大小写
+        键=剖面(壳['path'])['name'].lower()#名
+        if 键.endswith('.exe'):#去后缀
+            键=键[:-4]#去
         if 键 not in 壳表:#未见
             壳表[键]=壳#收下
     return list(壳表.values())#列表

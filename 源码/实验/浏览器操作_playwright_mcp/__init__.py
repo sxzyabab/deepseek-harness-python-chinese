@@ -1,9 +1,10 @@
+import os
 from ..浏览器操作_运行时.mcp import 浏览器mcp配置,挂会话mcp,校验浏览器mcp配置
 
 __all__=['名称','依赖','配置','应用']
 
 名称='experimental-browser-use-playwright-mcp'
-依赖=['browserUse','agents','tools','systemPrompt']
+依赖=['browserUse','agents','tools','systemPrompt','workingDirectory']
 配置=浏览器mcp配置
 
 def 应用(上下文,配置值):
@@ -23,7 +24,7 @@ def 应用(上下文,配置值):
         'exclusive':配置值['mode']=='attach',
         'command':'node',
         'args':参数,
-        'env':{},#不读进程环境；PLAYWRIGHT_MCP_* 掏空未做
+        'env':{键:'' for 键 in os.environ if 键.upper().startswith('PLAYWRIGHT_MCP_')},#掏空上游环境，避免换掉已配置的浏览器模式
     }
     if 'toolCallTimeoutMs' in 配置值 and 配置值['toolCallTimeoutMs'] is not None:
         挂选项['toolCallTimeoutMs']=配置值['toolCallTimeoutMs']

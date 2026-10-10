@@ -131,5 +131,7 @@
     "2026-09-23-bounded-pnpm-runs":"2026-09-23-有界pnpm运行",
     "2026-09-24-exited-holder-lock-takeover":"2026-09-24-已退出持有者锁接管",
     "2026-09-27-pwsh-prompt-tail-grace":"2026-09-27-pwsh提示符尾部宽限",
-    "2026-09-30-session-list-host-fairness":"2026-09-30-会话列表宿主时间片"
+    "2026-09-30-session-list-host-fairness":"2026-09-30-会话列表宿主时间片",
+    "2026-09-06-packed-install-private-npm-cache":"2026-09-06-打包安装私有npm缓存",
+    "2026-09-28-pty-bundled-console-host":"2026-09-28-pty随附控制台宿主"
 }

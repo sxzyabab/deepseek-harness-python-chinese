@@ -17,13 +17,15 @@ from ..app启动 import (
     未激活条目,
     激活诊断,
 )
-from ..app启动.配置档 import 配置补丁文件名
-from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包,读配置档注册表
+from ...依赖.include import 路径转文件url
+from ..app启动.配置档 import 配置补丁文件名,组合包补丁路径
+from .操作 import 组合包清单,跑配置档pnpm,保存清单,查看配置档包,读配置档注册表,注册表参数
 from .安装失败 import 分类安装失败
-from .安装规格 import 解析安装规格
+from .安装规格 import 解析安装规格,依赖规格
 from .补丁 import 写插件启用
 from .异常 import 装载失败,非法安装规格错误,安装已取消错误,注册表错误
-from .构建审批 import 批准构建,读待决构建
+from .构建审批 import 批准构建,记下待决构建
+from ..app启动.包元 import 读插件元
 from . import 类型
 from . import 安装失败 as 安装失败模块
 from . import 安装规格 as 安装规格模块
@@ -52,8 +54,17 @@ __all__=[
 ANSI序列=re.compile(r'\x1b\[[0-9;]*m',re.ASCII)#pnpm 色码
 #app启动尚未迁入时本包装同源字面量
 可选组合包=[
+    '@deepseek-ai/dsh-experimental-session-search',
+    '@deepseek-ai/dsh-experimental-ralph-bundle',
+    '@deepseek-ai/dsh-experimental-terminal-bundle',
+    '@deepseek-ai/dsh-experimental-badge-skill-bundle',
+    '@deepseek-ai/dsh-experimental-session-titles-bundle',
     '@deepseek-ai/dsh-experimental-agent-team-profile',
-    '@deepseek-ai/dsh-experimental-agent-team-web-profile',
+    '@deepseek-ai/dsh-experimental-voice-input-bundle',
+    '@deepseek-ai/dsh-experimental-cot-translation-bundle',
+    '@deepseek-ai/dsh-experimental-auto-review',
+    '@deepseek-ai/dsh-experimental-inspector-profile',
+    '@deepseek-ai/dsh-experimental-tool-worktree',
 ]
 遥测行编号='session-telemetry-otel'
 
@@ -239,6 +250,13 @@ def 调和配置补丁(根上下文,补丁,二进制名,必需编号=None):
         raise 拒绝原因[0]#抛首条
     return [未激活诊断(项) for 项 in 失败]#警告列表
 
+def 供注册表解析(规格):
+    '解析失败的规格按注册表名交给归因'
+    try:
+        return 解析安装规格(规格)
+    except 非法安装规格错误:
+        return {'kind':'registry','spec':规格,'name':规格}
+
 class 装载服务(远程服务):
     '管理配置档文件并应用其声明的重载生命周期'
     inject=['loader','profileContext']#框架依赖槽
@@ -328,32 +346,55 @@ class 装载服务(远程服务):
         安装依赖=安装清单.get('dependencies') or {}#安装依赖
         名称集=list(dict.fromkeys(已选+依赖+list(安装依赖.keys())))#去重保序
         组合包表=[]#结果
+        已记依赖=清单.get('dependencies') or {}#记下的依赖值
         for 名称 in 名称集:#逐名
             已装=名称 in 依赖#已装
             可选=名称 in 可选组合包#可选
-            可卸=已装 and 名称 not in 安装依赖#可卸
             启用=名称 in 已选#启用
+            随附=名称 in 安装依赖#安装供给
+            拥有=已装 and not 随附#配置自己装的
+            可卸=拥有 or (启用 and not 已装 and not 随附)#可卸或仅取消选择
+            官方=可选#无官方目录时可选即官方
+            版本=None#版本
+            可得性='missing'#尚未读到
+            def 来源(包名=None,名称=名称,已记=已记依赖.get(名称) if isinstance(已记依赖.get(名称),str) else None):
+                '已装且非随附时给出 pnpm 规格'
+                if not 拥有 or not isinstance(已记,str):
+                    return {}
+                return {'source':依赖规格(名称,已记,自身.配置档['dir'],包名)}
             try:#读元数据
                 信息=组合包清单(名称,自身.配置档['dir'],自身.配置档['installAnchor'])#元数据
+                可得性='installation' if 随附 else 'profile'#读到包
                 if 信息 is None:#非组合包
                     if 启用:#仅已选才列
-                        组合包表.append({'name':名称,'enabled':启用,'installed':已装,'optional':可选,'removable':可卸,'error':{'code':'not-bundle'},'rows':[],'overrides':[]})#问题行
+                        行={'name':名称,'official':官方,'availability':可得性,'enabled':启用,'installed':已装,'optional':可选,'removable':可卸,'error':{'code':'not-bundle'},'rows':[],'overrides':[]}#问题行
+                        行.update(来源())#规格
+                        组合包表.append(行)#收下
                     continue#下一名
-                只读= 'management-required' if 自身.保护装载(名称) else None#只读
-                行={'name':名称,'enabled':启用,'installed':已装,'optional':可选,'removable':可卸 and 只读 is None}#基行
+                只读='management-required' if 自身.保护装载(名称) else None#只读
                 版本=字符串字段值(信息,'version')#版本
                 描述=字符串字段值(信息,'description')#描述
+                目录=解析组合包目录('dsh',名称,自身.配置档['installAnchor'],自身.配置档['dir'])#包目录
+                元=读插件元(信息.get('name') if isinstance(信息.get('name'),str) else 名称,路径转文件url(os.path.join(目录,'package.json')))#展示
+                行={'name':名称,'official':官方,'availability':可得性,'enabled':启用,'installed':已装,'optional':可选,'removable':可卸 and 只读 is None}#基行
                 if 版本 is not None:#有版本
                     行['version']=版本#写入
                 if 描述 is not None and 描述!='':#有描述
                     行['description']=描述#写入
+                if 元 is not None:#有展示
+                    行['meta']=元#写入
                 if 只读 is not None:#只读
                     行['readOnlyReason']=只读#写入
+                行.update(来源(信息.get('name') if isinstance(信息.get('name'),str) else None))#规格
                 行.update(自身.声明行(名称,信息))#rows/overrides
                 组合包表.append(行)#收下
             except Exception as 错误:#读失败
-                if 启用 or 已装:#可见
-                    组合包表.append({'name':名称,'enabled':启用,'installed':已装,'optional':可选,'removable':可卸,'error':装载错误(错误),'rows':[],'overrides':[]})#错误行
+                if 启用 or 已装 or 可选:#可见
+                    行={'name':名称,'official':官方,'availability':可得性,'enabled':启用,'installed':已装,'optional':可选,'removable':可卸,'error':装载错误(错误),'rows':[],'overrides':[]}#错误行
+                    if 版本 is not None:#已读到版本
+                        行['version']=版本#写入
+                    行.update(来源())#规格
+                    组合包表.append(行)#收下
         return 组合包表#列表
 
     @远程
@@ -508,7 +549,11 @@ class 装载服务(远程服务):
             def 操作():
                 '配置事务体'
                 自身.选择组合包(名称,启用)#选入/去掉
+                if 启用:#先刷新包表
+                    自身.刷新包()#最新世代
                 结果['warnings']=自身.重载([行.get('id') for 行 in 自身.组合包行(名称)] if 启用 else [])#重载
+                if (not 启用) and getattr(自身.拥有上下文,'hmr',None) is not None:#停用后刷新
+                    自身.刷新包()#最新世代
             return 自身.配置事务(操作)#经 HMR
         return 自身.变更(作业,{'stage':'enable','target':名称,'enabled':启用},'bundle')#变更
 
@@ -524,10 +569,13 @@ class 装载服务(远程服务):
             return 控制['abort'].信号.已中止()#已中止
         if 请求标识 is not None:#有 id
             自身.安装表[请求标识]=控制#登记
-        def 通告(阶段):
+        def 通告(阶段,尝试=None):
             '通告安装阶段'
             if 请求标识 is not None:#有 id
-                自身.拥有上下文.广播('plugin-manager/install-state',{'requestId':请求标识,'phase':阶段})#事件
+                事件={'requestId':请求标识,'phase':阶段}#事件
+                if 尝试 is not None:#有尝试
+                    事件['attempt']=尝试#写入
+                自身.拥有上下文.广播('plugin-manager/install-state',事件)#事件
         def 作业(结果):
             '安装变更体'
             if 规格.strip()=='' or 规格.startswith('-'):#非法规格
@@ -539,36 +587,78 @@ class 装载服务(远程服务):
                 结果['approvedBuilds']=选项['approvedBuilds']#记下
             文件=自身.读恢复文件()#快照
             之前=(读配置清单('dsh',自身.配置档['dir']).get('dependencies') or {})#装前依赖
-            通告('installing')#阶段
             名称=None#装入名
+            版本=None#版本
             try:#pnpm add
-                结果['packageResult']=自身.跑pnpm(['add',规格],控制['abort'].信号,请求标识)#跑
-                if 已停():#取消
-                    raise 安装已取消错误()#取消
-                if 结果['packageResult']['exitCode']!=0:#失败
-                    try:#读待决
-                        结果['pendingBuilds']=读待决构建(自身.配置档['dir'])#待决
+                结果['registries']=[]#问过的注册表
+                计划=注册表计划(选项.get('registry'),自身.列出注册表())#注册表计划
+                运行=None#最后一次
+                for 序号,注册表 in enumerate(计划):#逐个注册表
+                    if 序号>0:#重试前恢复
+                        自身.恢复文件(文件)#恢复
+                    if 已停():#已取消
+                        raise 安装已取消错误()#取消
+                    结果['registries'].append(注册表)#记下
+                    通告('installing',{'registry':注册表,'index':序号+1,'total':len(计划)})#阶段
+                    参数=['add',规格]#pnpm add
+                    if 选项.get('saveExact') is True:#精确版本
+                        参数.append('--save-exact')#精确
+                    参数.extend(注册表参数(注册表))#注册表
+                    运行=自身.跑pnpm(参数,控制['abort'].信号,请求标识)#跑
+                    结果['packageResult']=运行#记下
+                    if 已停():#取消
+                        raise 安装已取消错误()#取消
+                    if 运行.get('incompatible') is not None:#包自己拒绝
+                        raise 装载失败('incompatible-version')#不再问别的注册表
+                    if 运行.get('exitCode')==0 and 运行.get('timedOut') is not True:#成功
+                        break#停
+                    if 运行.get('kind') is None:#没有分类
+                        break#停
+                    结果.pop('failedAt',None)#清掉上一失败点
+                    if 运行.get('timedOut') is True:#被本服务终止
+                        break#停
+                    失败点=归因失败(运行['kind'],运行.get('output') or '',供注册表解析(规格))#归因
+                    if 失败点!='other':#有说法
+                        结果['failedAt']=失败点#记下
+                    if 失败点!='registry' or 序号==len(计划)-1:#不再试
+                        break#停
+                if 运行 is None:#没有问过
+                    raise 注册表错误('no registry was asked')#失败
+                成功=运行.get('exitCode')==0 and 运行.get('timedOut') is not True#可用退出
+                if 成功:#成功
+                    结果.pop('failedAt',None)#清失败点
+                if not 成功:#失败
+                    try:#记下待决构建
+                        结果['pendingBuilds']=记下待决构建(自身.配置档['dir'],运行.get('output') or '')#待决
                     except Exception as 错误:#读失败
                         自身.拥有上下文.日志.警告('pnpm 失败后无法读取待决构建审批',错误)
-                    raise 注册表错误(结果['packageResult']['output'])#带输出失败
+                    raise 注册表错误(运行.get('output') or '')#带输出失败
                 之后=(读配置清单('dsh',自身.配置档['dir']).get('dependencies') or {})#装后
                 已装=[名 for 名 in 之后.keys() if 之前.get(名)!=之后[名]]#变化名
                 if len(已装)==0:#无变化则按规格猜
-                    已装=[名 for 名 in 之后.keys() if 规格==名 or 规格.startswith(名+'@')]#保留范围
+                    解析=供注册表解析(规格)#规格
+                    本地名=None#路径包名
+                    if 解析.get('kind')=='path':#本地路径
+                        本地名=读配置清单('dsh',解析['path']).get('name')#清单名
+                    已装=[名 for 名 in 之后.keys() if 名==本地名 or 规格==名 or 规格.startswith(名+'@')]#保留范围
                 if len(已装)!=1:#歧义
                     raise 装载失败('ambiguous-install')#拒绝
                 名称=已装[0]#目标名
                 目录=解析组合包目录('dsh',名称,自身.配置档['installAnchor'],自身.配置档['dir'])#包目录
                 清单=组合包清单(名称,自身.配置档['dir'],自身.配置档['installAnchor'])#元数据
-                if 'patch' not in (((清单 or {}).get('dsh') or {}).get('bundle') or {}):#无补丁
+                if not isinstance(((清单 or {}).get('dsh') or {}).get('bundle'),dict):#无补丁
                     raise 装载失败('not-bundle')#拒绝
-                加载覆盖补丁('dsh',os.path.join(目录,清单['dsh']['bundle']['patch']))#加载
+                for 补丁文件 in 组合包补丁路径(目录,清单['dsh']['bundle']):#每个补丁
+                    加载覆盖补丁('dsh',补丁文件)#加载
+                版本=清单.get('version') if isinstance(清单.get('version'),str) else None#版本
             except Exception as 错误:#恢复
                 自身.恢复文件(文件)#恢复
                 raise 错误#再抛
             控制['phase']='applying'#进入应用
             通告('applying')#通告
             结果['bundle']=名称#记下
+            if 版本 is not None:#有版本
+                结果['version']=版本#写入
             结果['target']=名称#目标
             结果['stage']='enable'#阶段
             def 启用操作():
@@ -577,6 +667,7 @@ class 装载服务(远程服务):
                     自身.选择组合包(名称,True)#选入
                 if 名称 in 之前:#替换已有
                     return 'restart-required'#需重启
+                自身.刷新包()#最新世代
                 if 选项.get('enabled') is not False:#启用则重载
                     结果['warnings']=自身.重载()#重载
                 return None#默认
@@ -633,31 +724,50 @@ class 装载服务(远程服务):
                         for 行 in 贡献:#贡献
                             if 行.get('id')==配置.选项.get('id') and 行.get('name')==配置.选项.get('name'):#命中
                                 raise 装载失败('bundle-in-use')#占用
-            自身.配置事务(操作)#先卸运行时
+                return bool(组合.get('installed'))#是否还要 pnpm remove
+            已装=自身.配置事务(操作)#先卸运行时
+            if not 已装:#只取消选择
+                return#结束
             结果['packageResult']=自身.跑pnpm(['remove',名称])#pnpm remove
-            if 结果['packageResult']['exitCode']!=0:#失败
-                raise 注册表错误(结果['packageResult']['output'])#带输出
+            if 结果['packageResult'].get('exitCode')!=0 or 结果['packageResult'].get('timedOut') is True:#失败
+                raise 注册表错误(结果['packageResult'].get('output') or '')#带输出
+            自身.配置事务(lambda:自身.刷新包())#刷新包表
         return 自身.变更(作业,{'stage':'remove','target':名称},'remove')#变更
 
     def 声明行(自身,名称,信息):
         '组合包补丁插入的行与其改写的已有行；不可读补丁则抛'
-        补丁路径=((信息.get('dsh') or {}).get('bundle') or {}).get('patch')#补丁相对路径
-        if 补丁路径 is None:#无
+        组合包=((信息.get('dsh') or {}).get('bundle'))#组合包声明
+        if not isinstance(组合包,dict):#无
             return {'rows':[],'overrides':[]}#空
         目录=解析组合包目录('dsh',名称,自身.配置档['installAnchor'],自身.配置档['dir'])#包目录
-        补丁列表=加载覆盖补丁('dsh',os.path.join(目录,补丁路径))#补丁
-        存活={}#行 id → 条目标识
+        补丁列表=[]#补丁
+        for 补丁文件 in 组合包补丁路径(目录,组合包):#每个文件
+            补丁列表.extend(加载覆盖补丁('dsh',补丁文件))#追加
+        存活={}#行 id → 条目
         for 配置 in 自身.ctx.loader.列出插件配置():#活条目
             编号=配置.选项.get('id')#id
             if isinstance(编号,str):#有 id
-                存活[编号]=插件条目标识(配置.编号)#记下
+                基址=None#解析基址
+                父=getattr(配置,'parent',None)#父
+                树=getattr(父,'tree',None) if 父 is not None else None#树
+                树上下文=getattr(树,'ctx',None) if 树 is not None else None#上下文
+                if 树上下文 is not None:#有上下文
+                    基址=getattr(树上下文,'baseUrl',None)#基址
+                存活[编号]={'entryId':插件条目标识(配置.编号),'baseUrl':基址}#记下
         行表=[]#声明行
+        包表=getattr(自身.ctx,'pluginPackages',None)#包表
+        回退基址=路径转文件url(os.path.join(目录,'package.json'))#包清单网址
         for 行 in 展平行表(组合条目([[项 for 项 in 补丁列表 if 项.get('insert') is not None]])):#插入行
-            if not isinstance(行.get('id'),str) or not isinstance(行.get('name'),str):#缺字段
+            if not isinstance(行.get('id'),str) or not isinstance(行.get('name'),str) or 行.get('group') is True:#组行或然字段
                 continue#跳过
             项={'rowId':行['id'],'moduleName':行['name']}#基行
-            if 行['id'] in 存活:#有活条目
-                项['entryId']=存活[行['id']]#挂上
+            活动=存活.get(行['id'])#活条目
+            if 活动 is not None:#有活条目
+                项['entryId']=活动['entryId']#挂上
+            基址=活动['baseUrl'] if 活动 is not None and 活动.get('baseUrl') else 回退基址#基址
+            元=包表.元属于(行['name'],基址) if 包表 is not None and hasattr(包表,'元属于') else 读插件元(行['name'],基址)#展示
+            if 元 is not None:#有展示
+                项['meta']=元#写入
             行表.append(项)#收下
         已声明=set(行['rowId'] for 行 in 行表)#已声明 id
         覆盖=[]#覆盖 id
@@ -704,10 +814,13 @@ class 装载服务(远程服务):
             尾=dict(身份)#尾块
             尾.update({'jobId':作业标识,'argv':参数行,'cwd':工作目录,'stream':'stdout','text':'','exitCode':退出})#字段
             自身.拥有上下文.广播('plugin-manager/install-log',尾)#尾事件
-            if 结果['exitCode']==0:#成功
+            if 结果.get('exitCode')==0 and 结果.get('timedOut') is not True:#成功
                 return 结果#原样
             分类=dict(结果)#失败
-            分类['kind']=分类安装失败({'log':结果['output']})#种类
+            事实={'log':结果.get('output') or ''}#日志
+            if 结果.get('timedOut') is True:#超时
+                事实['timedOut']=True#写入
+            分类['kind']=分类安装失败(事实)#种类
             return 分类#带种类
         except Exception as 错误:#失败
             错块=dict(身份)#错块
@@ -773,7 +886,10 @@ class 装载服务(远程服务):
         if 信息 is None or 'bundle' not in (信息.get('dsh') or {}):#无
             return []#空
         目录=解析组合包目录('dsh',名称,自身.配置档['installAnchor'],自身.配置档['dir'])#目录
-        return 展平行表(组合条目([加载覆盖补丁('dsh',os.path.join(目录,信息['dsh']['bundle']['patch']))]))#行
+        补丁=[]#补丁
+        for 补丁文件 in 组合包补丁路径(目录,信息['dsh']['bundle']):#每个文件
+            补丁.extend(加载覆盖补丁('dsh',补丁文件))#追加
+        return 展平行表(组合条目([补丁]))#行
 
     def 保护装载(自身,名称):
         '该组合包是否贡献受保护模块或拥有条目'
@@ -795,6 +911,17 @@ class 装载服务(远程服务):
         if 独占 is None:#尚未迁入
             return 执行()#直接
         return 独占(执行)#串行
+
+    def 刷新包(自身):
+        '无热更新且仍有已取消选择的启动组合包时保留旧包表，否则刷新'
+        if getattr(自身.拥有上下文,'hmr',None) is None:#无热更新
+            已选=list(((读配置清单('dsh',自身.配置档['dir']).get('dsh') or {}).get('profile') or {}).get('bundles') or [])#已选
+            启动中=list(自身.配置档.get('startedBundles') or [])#启动用过
+            if any(名 not in 已选 for 名 in 启动中):#仍在跑
+                return#保留旧表
+        包表=getattr(自身.拥有上下文,'pluginPackages',None)#包表
+        if 包表 is not None and hasattr(包表,'刷新'):#可刷新
+            包表.刷新()#最新世代
 
     def 重载(自身,必需编号=None):
         '调和配置档补丁；无 HMR 则空警告'
@@ -830,7 +957,7 @@ class 装载服务(远程服务):
     def 磁盘状态(自身):
         '配置档关键文件拼接快照'
         块表=[]#块
-        for 文件 in ('package.json','cordis.patch.yml','pnpm-workspace.yaml'):#逐文件
+        for 文件 in ('package.json','cordis.patch.yml','pnpm-workspace.yaml','compatibility.json'):#逐文件
             路径=os.path.join(自身.配置档['dir'],文件)#路径
             try:#读
                 句柄=open(路径,'r',encoding='utf-8')#打开

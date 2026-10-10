@@ -7,28 +7,31 @@ from typing import Literal,TypedDict,NotRequired,Union#字面量、结构类型�
 class 延迟日程记录(TypedDict):#由正延迟创建的持久一次性提醒
     id:日程标识#会话局部稳定身份
     kind:Literal['after']#延迟一次性提醒的规则判别
+    title:str#已裁切、非空、至多120字符的任务名
     prompt:str#创建时提供的已裁切提醒内容
     afterSeconds:int#创建时接受的正安全整数延迟
     scheduledAt:str#四位年份的RFC3339UTC目标
 
-延迟日程记录字段=('id','kind','prompt','afterSeconds','scheduledAt')#字段名元组
+延迟日程记录字段=('id','kind','title','prompt','afterSeconds','scheduledAt')#字段名元组
 
 class 绝对日程记录(TypedDict):#由绝对瞬间创建的持久一次性提醒
     id:日程标识#会话局部稳定身份
     kind:Literal['at']#绝对一次性提醒的规则判别
+    title:str#已裁切、非空、至多120字符的任务名
     prompt:str#创建时提供的已裁切提醒内容
     scheduledAt:str#四位年份的RFC3339UTC目标
 
-绝对日程记录字段=('id','kind','prompt','scheduledAt')#字段名元组
+绝对日程记录字段=('id','kind','title','prompt','scheduledAt')#字段名元组
 
 class 固定频率日程记录(TypedDict):#下次目标仍与创建锚对齐的持久固定频率提醒
     id:日程标识#会话局部稳定身份
     kind:Literal['every']#固定频率重复提醒的规则判别
+    title:str#已裁切、非空、至多120字符的任务名
     prompt:str#创建时提供的已裁切提醒内容
-    everySeconds:int#固定安全整数间隔，从不低于五分钟
+    everySeconds:int#固定安全整数间隔，从不低于一分钟
     scheduledAt:str#尚未派发的最早锚对齐出现
 
-固定频率日程记录字段=('id','kind','prompt','everySeconds','scheduledAt')#字段名元组
+固定频率日程记录字段=('id','kind','title','prompt','everySeconds','scheduledAt')#字段名元组
 
 class 本地绝对输入(TypedDict):#schedule_create接受的结构化本地日历输入
     date:str#四位ISO日历日期
@@ -64,7 +67,7 @@ class 固定频率派发变更(TypedDict):#记录一次固定频率决定，并�
 日程派发变更=Union[一次性派发变更,固定频率派发变更]#当前规则集支持的持久派发形态
 日程变更=Union[日程创建变更,日程删除变更,日程派发变更]#严格版本1的持久日程变更联合
 日程状态=Literal['scheduled','overdue']#由持久记录与墙钟派生的当前投递时机
-日程投递模式=Literal['session-local']#固定v1投递边界：原会话必须在线
+日程投递模式=Literal['host']#宿主在需要时恢复原会话并投递
 
 class 日程视图(TypedDict):#一条活动提醒的完整面向模型视图
     id:日程标识#会话局部稳定身份
@@ -106,6 +109,10 @@ class 频率过高错误(TypedDict):#固定频率规则比所支持的更频繁�
     code:Literal['frequency_too_high']#错误码
     message:str#错误消息
 
+class 子智能体会话错误(TypedDict):#目标会话属于子智能体路由，收不到提醒
+    code:Literal['subagent_session']#错误码
+    message:str#错误消息
+
 class 日志损坏错误(TypedDict):#持久日程流畸形时返回的稳定错误
     code:Literal['corrupt_schedule_log']#错误码
     message:str#错误消息
@@ -128,6 +135,7 @@ class 内部日程错误(TypedDict):#不披露内部异常的稳定回退
     非未来错误,#非未来
     时间越界错误,#时间越界
     频率过高错误,#频率过高
+    子智能体会话错误,#子智能体会话
     日志损坏错误,#日志损坏
     持久不确定错误,#持久不确定
     内部日程错误,#内部错误

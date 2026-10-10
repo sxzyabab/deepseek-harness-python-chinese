@@ -1,0 +1,15 @@
+{
+    "api":"接口",
+    "chain":"链",
+    "define-mod":"定义模组",
+    "elements":"元素",
+    "engine":"引擎",
+    "host-ops":"宿主操作",
+    "matcher":"匹配器",
+    "module":"模块",
+    "surfaces":"表面",
+    "testing":"测试套件",
+    "tool-names":"工具名",
+    "types":"类型",
+    "values":"值"
+}

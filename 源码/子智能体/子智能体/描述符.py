@@ -5,7 +5,7 @@ from .异常 import 子智能体描述符错误#本包异常
 子智能体描述符版本=2#当前描述符版本
 描述符公共键=('version','mode','provider','label')#描述符公共键
 一次性描述符键=set(描述符公共键)#一次性允许键
-可续跑描述符键=set(list(描述符公共键)+['agentProvider','agentModel','persona','toolFilter'])#可续跑允许键
+可续跑描述符键=set(list(描述符公共键)+['agentProvider','agentModel','agentReasoningEffort','persona','toolFilter'])#可续跑允许键
 工具过滤键=set(['allow','deny'])#工具过滤允许键
 
 class 一次性子智能体描述符(TypedDict):#其跑结束后不能冷恢复的有会话子智能体
@@ -21,6 +21,7 @@ class 可续跑子智能体描述符数据(TypedDict):#已声明组合支持冷�
     label:str#创建标签
     agentProvider:NotRequired[str]#已解析的子 agentOptions.provider
     agentModel:NotRequired[str]#已解析的子 agentOptions.model
+    agentReasoningEffort:NotRequired[str]#已解析的子 agentOptions.reasoningEffort
     persona:NotRequired[str]#恢复时遮蔽部署人设的每子体人设
     toolFilter:NotRequired[object]#恢复时再应用的子工具作用域
 
@@ -37,6 +38,7 @@ class 可续跑子智能体描述符输入(TypedDict):#可续跑子体耐久身�
     label:str#创建标签
     agentProvider:NotRequired[str]#请求的子 agentOptions.provider
     agentModel:NotRequired[str]#请求的子 agentOptions.model
+    agentReasoningEffort:NotRequired[str]#请求的子 agentOptions.reasoningEffort
     persona:NotRequired[str]#请求的每子体人设
     toolFilter:NotRequired[object]#请求的子工具作用域
 
@@ -116,6 +118,7 @@ def 解析子智能体描述符(值):#解析描述符
         raise 子智能体描述符错误('persisted subagent descriptor label must be a string')#拒绝
     智能体提供方=可选字符串(值,'agentProvider')#可选子提供方
     智能体模型=可选字符串(值,'agentModel')#可选子模型
+    推理力度=可选字符串(值,'agentReasoningEffort')#可选推理力度
     人设=可选字符串(值,'persona')#可选人设
     工具过滤=解析工具过滤(值['toolFilter']) if 'toolFilter' in 值 else None#是否带工具过滤
     结果={'version':子智能体描述符版本,'mode':模式,'provider':提供方,'label':标签}#可续跑描述符
@@ -123,6 +126,8 @@ def 解析子智能体描述符(值):#解析描述符
         结果['agentProvider']=智能体提供方#展开
     if 智能体模型 is not None:#有子模型
         结果['agentModel']=智能体模型#展开
+    if 推理力度 is not None:#有推理力度
+        结果['agentReasoningEffort']=推理力度#展开
     if 人设 is not None:#有人设
         结果['persona']=人设#展开
     if 工具过滤 is not None:#有过滤
@@ -140,7 +145,7 @@ def 快照子智能体描述符(输入):
     else:#可续跑候选
         标签=输入['label']#标签
         候选={'version':子智能体描述符版本,'mode':模式,'provider':提供方,'label':标签}#可续跑候选
-        for 键 in ('agentProvider','agentModel','persona','toolFilter'):#可选组合字段
+        for 键 in ('agentProvider','agentModel','agentReasoningEffort','persona','toolFilter'):#可选组合字段
             if 键 in 输入 and 输入[键] is not None:#有值
                 候选[键]=输入[键]#展开
     快照=快照json值(候选)#经无损JSON边界分离

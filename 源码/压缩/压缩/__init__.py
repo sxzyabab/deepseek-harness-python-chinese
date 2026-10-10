@@ -18,9 +18,6 @@ __all__=[#仅中文公开名；Cordis 槽英文别名不入表
 手动压缩错误码=('busy','cancelled','changed','summary','commit','persistence')#对空闲会话显式压缩请求的预期失败类别
 
 from .异常 import 压缩错误,手动压缩错误#本包异常
-from . import (
-    不变量,
-)
 
 class 压缩智能体上下文:
     '压缩所需的最小智能体上下文'
