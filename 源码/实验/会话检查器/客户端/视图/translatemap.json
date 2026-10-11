@@ -1,0 +1,15 @@
+{
+    "type-filter":"类型筛选",
+    "table-model":"表格模型",
+    "table-layout":"表格布局",
+    "object-value":"对象值",
+    "objects":"对象",
+    "raw-json":"原始json",
+    "format":"格式",
+    "inspector":"检查器",
+    "View":"视图",
+    "TypeFilter":"类型筛选器",
+    "InspectorTable":"检查器表格",
+    "InspectorObjectTree":"检查器对象树",
+    "InspectorDetails":"检查器详情"
+}

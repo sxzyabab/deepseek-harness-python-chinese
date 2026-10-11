@@ -1,0 +1,6 @@
+{
+    "transport":"传输",
+    "event-transport":"事件传输",
+    "event-log":"事件日志",
+    "session-log":"会话日志"
+}
