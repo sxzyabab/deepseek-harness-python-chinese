@@ -1,6 +1,6 @@
 import threading#串行投递
 from ......基础设施.js特性 import PromiseEX as 期约扩展#请求结果期约与投递链
-from ....异常 import 检查器错误#包内错误
+from ....异常 import 检查器错误,失败说明#包内错误|失败句
 
 __all__=['Host检查器会话','Host通知通道']#仅中文公开名
 
@@ -35,7 +35,7 @@ class Host检查器会话:#Host inspector会话
         try:#投递
             结果期约.解决(自身._会话.post(方法,参数))#原生会话同步返回结果
         except Exception as 错误:#post 可能抛连接/协议错误，契约未定所以收不窄
-            结果期约.拒绝(检查器错误(str(错误)))#以渲染后的消息拒绝
+            结果期约.拒绝(检查器错误(失败说明(str(错误))))#说明不含绝对路径
         return 结果期约#返回期约
 
     def 关闭(自身):#关闭
@@ -59,7 +59,7 @@ class Host检查器会话:#Host inspector会话
             if 自身._会话 is not None:#有会话
                 自身._会话.connectToMainThread()#连接
         except Exception as 错误:#connectToMainThread 可能抛连接/协议错误，契约未定所以收不窄
-            自身._失败=f'Host V8 inspector is unavailable: {错误}'#记录
+            自身._失败='Host V8 inspector is unavailable: '+失败说明(str(错误))#说明不含绝对路径
         return 自身._失败#返回失败或None
 
     def _改写上下文名(自身,消息):#改写上下文名

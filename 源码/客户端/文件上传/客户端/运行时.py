@@ -4,7 +4,7 @@ import urllib.request as 请求库#标准库 HTTP
 from ....依赖.cordis.服务 import 服务#服务基类
 from ....工具.加密 import 字节转base64#字节转 base64
 from ..协议 import 文件上传路径#上传路径
-from ..异常 import 远程错误,文件上传错误#本包异常
+from ..异常 import 远程错误,文件上传错误,失败说明#本包异常；说明去掉绝对路径
 from ..类型 import 已中止,若已中止则抛出#中止
 
 __all__=[#仅中文公开名
@@ -150,7 +150,9 @@ def 文件上传工作体(回传,创建请求=None,执行fetch=None):#Worker 语
             响应=执行fetch(网址,初始化)#发出
             回传({'kind':'complete','status':响应['status'],'body':响应['body'] or ''})#完成
         except Exception as 错误:#传输失败
-            消息=错误.args[0] if len(错误.args)>0 else str(错误)#消息
+            消息=失败说明(错误)#说明不含绝对路径
+            if 消息=='':#掏空
+                消息='background upload transport failed'#兜底
             回传({'kind':'error','message':消息})#结束回传
     return 处理启动#入口
 
@@ -226,7 +228,10 @@ def 线程载体():#专用线程载体（对齐 Worker）
                 处理(启动)#启动
             except Exception as 错误:#脚本错误
                 错误盒['v']=错误#记下
-                回传({'kind':'error','message':str(错误) or 'background upload worker failed'})#拒绝
+                消息=失败说明(错误)#说明不含绝对路径
+                if 消息=='':#掏空
+                    消息='background upload worker failed'#兜底
+                回传({'kind':'error','message':消息})#拒绝
         线=threading.Thread(target=执行上传,daemon=True,name='dsh-file-upload')#建线程
         线.start()#启动
         信号=请求['signal'] if 'signal' in 请求 else None#取消
@@ -252,7 +257,7 @@ def 线程载体():#专用线程载体（对齐 Worker）
                         raise 文件上传错误(消息)#拒绝
             if not 线.is_alive() and len(出箱)==0:#线程已死且无消息
                 if 错误盒['v'] is not None:#有错
-                    raise 错误盒['v']#抛
+                    raise 文件上传错误(失败说明(错误盒['v'])) from None#说明不含绝对路径
                 raise 文件上传错误('background upload worker failed')#失败
             time.sleep(0.01)#让出
     return {'post':投递}#transport

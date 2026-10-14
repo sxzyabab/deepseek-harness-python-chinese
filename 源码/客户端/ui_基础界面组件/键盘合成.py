@@ -17,17 +17,17 @@ def 观察合成(文档):
     def 释放():
         'keyup 后关闭键窗口结束'
         nonlocal 刚结束#写
-        刚结束=False#清
+        刚结束=False
     def 失焦():
         '窗口失焦时两端状态一并清掉'
         nonlocal 组合中,刚结束#写
         组合中=False#关
-        刚结束=False#清
+        刚结束=False
     文档.addEventListener('compositionstart',开始,True)#捕获 start
     文档.addEventListener('compositionend',结束,True)#捕获 end
     文档.addEventListener('keyup',释放,True)#捕获 keyup
     视口=getattr(文档,'defaultView',None)#窗口
-    if 视口 is not None:#有
+    if 视口 is not None:
         视口.addEventListener('blur',失焦)#窗 blur
     def 守卫(事件):
         '当前键是否仍属合成或刚结束的关闭键；读后清一次性刚结束'
@@ -41,6 +41,6 @@ def 观察合成(文档):
         文档.removeEventListener('compositionstart',开始,True)#卸 start
         文档.removeEventListener('compositionend',结束,True)#卸 end
         文档.removeEventListener('keyup',释放,True)#卸 keyup
-        if 视口 is not None:#有窗
+        if 视口 is not None:
             视口.removeEventListener('blur',失焦)#卸 blur
     return {'guards':守卫,'dispose':拆除}#守卫与拆除

@@ -11,7 +11,10 @@
   );
   margin: 0 auto;
 }
+
 .bar {
+  position: relative;
+  isolation: isolate;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -21,11 +24,29 @@
   height: 36px;
   margin: 0 auto;
   padding: 4px 5px 4px 12px;
-  border: 1px solid var(--dsw-alias-border-l1);
-  border-radius: 12px;
-  background: var(--dsw-specific-tip);
+  border: 0;
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-md);
+  box-shadow: var(--dsw-elevation-panel);
 }
-.goalGlyph { display: inline-flex; flex: none; color: var(--dsw-alias-label-tertiary); }
+
+.bar::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--dsw-specific-menu);
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  content: '';
+  pointer-events: none;
+}
+
+.goalGlyph {
+  display: inline-flex;
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
 .label {
   flex: none;
   font-size: 13px;
@@ -33,6 +54,7 @@
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
 }
+
 .objective {
   flex: 1;
   min-width: 0;
@@ -43,6 +65,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .error {
   flex: 1;
   min-width: 0;
@@ -53,22 +76,22 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.objectiveInput {
-  flex: 1;
-  min-width: 0;
-  height: 26px;
-  padding: 0 8px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-alias-bg-base);
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--dsw-alias-label-primary);
-  outline: none;
+
+.editBar {
+  height: auto;
+  min-height: 36px;
+  align-items: flex-end;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
-.objectiveInput:focus { border-color: var(--dsw-alias-state-business-primary); }
-.objectiveInput::placeholder { color: var(--dsw-alias-label-caption); }
-.actions { display: flex; align-items: center; gap: 10px; flex: none; }
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
 .iconBtn {
   display: inline-flex;
   align-items: center;
@@ -82,8 +105,13 @@
   color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
 }
+
 .iconBtn:hover {
   background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
 }
-.iconBtn:disabled { opacity: 0.4; cursor: default; }
+
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

@@ -1,6 +1,6 @@
 from ..远程过程调用 import 宿主文件#宿主文件
 from .文案 import 中文,英文,超文本预览键#词典
-from .超文本体 import 超文本体#正文
+from .超文本体 import 超文本体,超文本面板,样式表#正文
 from . import (
     基础文档,
     字节,
@@ -9,8 +9,7 @@ from . import (
     读取相对,
 )
 
-__all__=['超文本体标识','超文本体定义','应用','超文本体','中文','英文','超文本预览键']#仅中文公开名
-
+__all__=['超文本体标识','超文本体定义','应用','超文本体','超文本面板','样式表','中文','英文','超文本预览键']
 超文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/html'#实现 id
 
 
@@ -61,7 +60,7 @@ def 应用(上下文):
                 'key':超文本体标识,
                 'locale':'documentHtml',
                 'inject':注入,#关联读
-            },超文本体)#正文
+            },超文本面板)#正文
 
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
 

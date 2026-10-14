@@ -1,9 +1,8 @@
 from .文案 import 中文,英文#词典
 from ....ui_基础界面组件.代码高亮语法 import 代码高亮扩展名
-from .代码体 import 代码体,样式表#正文
+from .代码体 import 代码体,代码面板,样式表#正文
 
-__all__=['应用','代码体标识','代码体','样式表','中文','英文','代码高亮扩展名']#仅中文公开名
-
+__all__=['应用','代码体标识','代码体','代码面板','样式表','中文','英文','代码高亮扩展名']
 代码体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/code'#实现 id
 _命名空间='sidebarCodePreview'#命名空间
 
@@ -33,7 +32,7 @@ def 应用(上下文):
                 'name':'sidebar.right.tab.document',
                 'key':代码体标识,
                 'locale':_命名空间,
-            },代码体)#正文
+            },代码面板)#正文
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
     上下文.副作用(挂正文)#寿命
 

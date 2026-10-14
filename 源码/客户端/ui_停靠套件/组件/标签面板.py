@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from ..引擎.树 import 取标签#树
 from .面板回调 import 分割阻断预算,分割阻断宽度#阻断
 from .标签菜单 import 标签菜单#菜单
@@ -78,7 +79,7 @@ class 标签面板:
         自身._菜单标签=None#关
 
     def 渲染(自身):
-        '结构树'
+        '画出标签条与窗格体'
         回调=自身.回调#回调
         窗格=自身.窗格#窗
         状态=自身.状态#态
@@ -92,92 +93,75 @@ class 标签面板:
             条带下标=目标['index']#槽
         if 目标 is not None and 目标['kind']=='zone' and 目标['paneId']==窗格['id']:#区位
             区=目标['zone']#区
-        芯片=[]#条带子
-        for 序号,标签标识 in enumerate(窗格['tabs']):#逐签
-            if 条带下标==序号:#插入符
-                芯片.append({'type':'caret','data':'dockkit-caret','index':序号})#符
-            标签=取标签(状态,标签标识)#记录
-            选中=标签标识==活动标识#选
-            标题=标签['title']#默认
-            if 回调['renderTabTitle'] is not None:#自定义标题
-                标题=回调['renderTabTitle'](标签)#渲
-            菜单树=None#菜单
-            if 自身._菜单标签==标签标识:#打开
-                def _关此(签=标签标识):
-                    '关菜单并关签'
-                    自身.关菜单()#关菜
-                    回调['onCloseTab'](签)#关签
-                def _解散():
-                    '仅解散'
-                    自身.关菜单()#关
-                附加=None#附加
-                if 回调['renderTabMenuItems'] is not None:#有
-                    附加=回调['renderTabMenuItems'](标签,_解散)#附加
-                菜单树=标签菜单(回调['labels'],_关此,_解散,附加).渲染()#树
-            芯片.append({#芯片
-                'type':'tab',
-                'data':'dockkit-tab',
-                'tabId':标签标识,
-                'selected':选中,
-                'dragging':回调['draggingTabId']==标签标识,
-                'title':标题,
-                'menu':菜单树,
-                'onPress':lambda 签=标签标识,事=None:回调['onTabPressed'](签,事),
-                'onClick':lambda 签=标签标识:自身.激活标签(签),
-                'onClose':lambda 签=标签标识:回调['onCloseTab'](签),
-                'onContext':lambda 签=标签标识:自身.切换菜单(签),
-                'onKey':lambda 键,签=标签标识:(
-                    (lambda 下一:自身.激活标签(下一) if 下一 is not None else (
-                        自身.激活标签(签) if 是否选定键(键) else None
-                    ))(芯片导航目标(键,窗格['tabs'],签))
-                ),
-            })#片
-        if 条带下标==len(窗格['tabs']):#末符
-            芯片.append({'type':'caret','data':'dockkit-caret','index':条带下标})#符
-        端=[]#条带末端控件
-        if 回调['canAddTab'](窗格['id']):#可加
-            端.append({#加
-                'type':'addTab',
-                'data':'dockkit-add-tab',
-                'paneId':窗格['id'],
-                'label':回调['labels']['addTab'],
-                'onClick':lambda:回调['onAddTab'](窗格['id']),
-            })#加
-        端.append({'type':'stripFill','data':'dockkit-strip-fill'})#填充
-        if not (回调['hideSplitAtCapacity'] and 阻断==分割阻断预算):#显示分割
-            端.append({#分割钮
-                'type':'splitButton',
-                'data':'dockkit-split-button',
-                'paneId':窗格['id'],
-                'blocked':阻断,
-                'title':_分割标题(回调['labels'],阻断),
-                'disabled':阻断 is not None,
-                'onClick':lambda:回调['onSplitPane'](窗格['id']),
-            })#钮
-        if 窗格['id']==回调['chromePaneId'] and 回调['chrome'] is not None:#铬
-            端.append({'type':'chrome','data':'dockkit-strip-chrome','children':回调['chrome']})#铬
-        正文=回调['labels']['emptyPane'] if 活动 is None else 回调['renderTab'](活动)#体
-        提示=[]#投放提示
-        if 区 is not None:#有区
-            if 回调['horizontalDrops'] and 区!='center':#水平双提示
-                提示=[#左右
-                    {'type':'dockHint','zone':'left','active':区=='left'},
-                    {'type':'dockHint','zone':'right','active':区=='right'},
-                ]#提示
-            else:#单区
-                提示=[{'type':'dockHint','zone':区}]#一
-        return {#树
-            'type':'pane',
-            'data':'dockkit-pane',
-            'paneId':窗格['id'],
-            'active':状态['activePaneId']==窗格['id'],
-            'onFocusPane':自身.聚焦窗格体,
-            'strip':{
-                'type':'tabStrip',
-                'data':'dockkit-strip',
-                'paneId':窗格['id'],
-                'tabs':芯片,
-                'end':端,
-            },
-            'body':{'type':'paneBody','content':正文,'hints':提示},
-        }#结束
+        with 界面.column().classes('dockkit-pane'):
+            with 界面.row().classes('dockkit-strip'):
+                for 序号,标签标识 in enumerate(窗格['tabs']):#逐签
+                    if 条带下标==序号:#插入符
+                        界面.element('span').classes('dockkit-caret')
+                    标签=取标签(状态,标签标识)#记录
+                    标题=标签['title']#默认
+                    if 回调['renderTabTitle'] is not None:#自定义标题
+                        产出=回调['renderTabTitle'](标签)
+                        if isinstance(产出,str):
+                            标题=产出
+                        elif hasattr(产出,'渲染'):
+                            产出.渲染()
+                    def 点标签(签=标签标识):
+                        '激活该签'
+                        自身.激活标签(签)
+                    def 关此签(签=标签标识):
+                        '关闭该签'
+                        回调['onCloseTab'](签)
+                    def 开菜单(签=标签标识):
+                        '打开或关闭菜单'
+                        自身.切换菜单(签)
+                    钮=界面.button(str(标题), on_click=点标签).classes('dockkit-tab')
+                    if 标签标识==活动标识:
+                        钮.classes(add='selected')
+                    界面.button(回调['labels']['closeTab'], on_click=关此签)
+                    界面.button(on_click=开菜单).props('icon=more_vert flat round')
+                    if 自身._菜单标签==标签标识:#打开
+                        def 关此(签=标签标识):
+                            '关菜单并关签'
+                            自身.关菜单()
+                            回调['onCloseTab'](签)
+                        def 解散():
+                            '仅解散'
+                            自身.关菜单()
+                        附加=None
+                        if 回调['renderTabMenuItems'] is not None:
+                            附加=回调['renderTabMenuItems'](标签,解散)
+                        标签菜单(回调['labels'],关此,解散,附加).渲染()
+                if 条带下标==len(窗格['tabs']):
+                    界面.element('span').classes('dockkit-caret')
+                if 回调['canAddTab'](窗格['id']):
+                    def 加签(窗=窗格['id']):
+                        '加标签'
+                        回调['onAddTab'](窗)
+                    界面.button(回调['labels']['addTab'], on_click=加签)
+                if not (回调['hideSplitAtCapacity'] and 阻断==分割阻断预算):
+                    def 分割(窗=窗格['id']):
+                        '分割窗格'
+                        回调['onSplitPane'](窗)
+                    分钮=界面.button(_分割标题(回调['labels'],阻断), on_click=分割)
+                    if 阻断 is not None:
+                        分钮.disable()
+                铬=回调['chrome']
+                if 窗格['id']==回调['chromePaneId'] and 铬 is not None:
+                    if hasattr(铬,'渲染'):
+                        铬.渲染()
+            if 活动 is None:
+                界面.label(回调['labels']['emptyPane'])
+            else:
+                正文=回调['renderTab'](活动)
+                if hasattr(正文,'渲染'):
+                    正文.渲染()
+                elif isinstance(正文,str) and 正文!='':
+                    界面.label(正文)
+            if 区 is not None:
+                区文=回调['labels']['dropZone']
+                if 回调['horizontalDrops'] and 区!='center':
+                    界面.label(区文['left']).classes('dock-hint' if 区!='left' else 'dock-hint active')
+                    界面.label(区文['right']).classes('dock-hint' if 区!='right' else 'dock-hint active')
+                elif 区 in 区文:
+                    界面.label(区文[区]).classes('dock-hint active')

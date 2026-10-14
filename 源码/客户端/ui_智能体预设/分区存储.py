@@ -1,4 +1,5 @@
 import re#正则
+from .异常 import 页面失败文案
 from .设置存储 import 错误文,写默认预设,写模式选择启用,读名册#读名册、错误文案、写默认与选择器
 
 __all__=['分区控制器','草稿阻挡','分区初始','预设标识形']#仅中文公开名
@@ -93,7 +94,7 @@ class 分区控制器:#预设管理页控制器
                 return#停在失败
             有效=自身.确认有效默认(露出)#确认有效默认
             if 有效 is None:#开关未对齐或名册未就绪
-                return#停
+                return
             if 同步空白会话 is not None:#可选同步空白会话
                 同步失败=同步空白会话(有效)#同步
                 if 同步失败 is not None:#同步拒绝
@@ -136,7 +137,7 @@ class 分区控制器:#预设管理页控制器
         名册=读名册(自身.接口)#读名册
         if not 名册['ok']:#失败
             自身._合并({'status':'error','error':名册['error']})#错误
-            return#停
+            return
         值=名册['value'] if 名册['value'] is not None else {}#值
         预设列表=值['presets'] if 'presets' in 值 and 值['presets'] is not None else []#列表
         可写=bool(值['authorable']) if 'authorable' in 值 else False#可否编写
@@ -164,7 +165,7 @@ class 分区控制器:#预设管理页控制器
             结果=应答['result'] if 'result' in 应答 else None#信封
             if 结果 is None or not 结果['ok']:#宿主拒绝
                 错误体=(结果['error'] if 结果 is not None and 'error' in 结果 else None) or {}#错误
-                自身._合并({'error':错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体)})#整页展示失败
+                自身._合并({'error':页面失败文案(错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体))})#整页展示失败
                 return#停在失败
             值=结果['value'] if 'value' in 结果 and 结果['value'] is not None else {}#值
             名=值['name'] if 'name' in 值 else None#展示名
@@ -175,15 +176,15 @@ class 分区控制器:#预设管理页控制器
 
     def closeView(自身):#关掉查看器
         '清查看器'
-        自身._合并({'view':None})#清
+        自身._合并({'view':None})
 
     def beginCopy(自身,源):#打开复制对话框
         '针对一份预设打开复制对话框'
         行=None#源行
         for 候选 in 自身.存储.getSnapshot()['rows']:#找源行
             if 候选['id']==源:#命中
-                行=候选#记下
-                break#停
+                行=候选
+                break
         标题=(行['name'] if 行 is not None and 'name' in 行 else None) or 源#源标题
         自身._合并({'error':None,'copy':{'from':源,'fromTitle':标题,'id':'','name':'','saving':False,'error':None}})#空草稿
 
@@ -217,7 +218,7 @@ class 分区控制器:#预设管理页控制器
             结果=应答['result'] if 'result' in 应答 else None#信封
             if 结果 is None or not 结果['ok']:#宿主拒绝
                 错误体=(结果['error'] if 结果 is not None and 'error' in 结果 else None) or {}#错误
-                自身._改草稿({'saving':False,'error':错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体)})#对话框展示失败
+                自身._改草稿({'saving':False,'error':页面失败文案(错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体))})#对话框展示失败
                 return#停在对话框
             自身._合并({'copy':None})#关掉对话框
             自身.load()#重读名册
@@ -234,7 +235,7 @@ class 分区控制器:#预设管理页控制器
             结果=应答['result'] if 'result' in 应答 else None#信封
             if 结果 is None or not 结果['ok']:#宿主拒绝
                 错误体=(结果['error'] if 结果 is not None and 'error' in 结果 else None) or {}#错误
-                自身._合并({'error':错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体)})#整页展示失败
+                自身._合并({'error':页面失败文案(错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体))})#整页展示失败
                 return#停在失败
             值=结果['value'] if 'value' in 结果 and 结果['value'] is not None else {}#值
             if 'opened' in 值 and 值['opened']:#桌面已打开
@@ -264,7 +265,7 @@ class 分区控制器:#预设管理页控制器
             结果=应答['result'] if 'result' in 应答 else None#信封
             if 结果 is None or not 结果['ok']:#宿主拒绝
                 错误体=(结果['error'] if 结果 is not None and 'error' in 结果 else None) or {}#错误
-                自身._合并({'deleting':False,'pendingDelete':None,'error':错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体)})#清确认
+                自身._合并({'deleting':False,'pendingDelete':None,'error':页面失败文案(错误体['message'] if isinstance(错误体,dict) and 'message' in 错误体 else str(错误体))})#清确认
                 return#停在失败
             自身._合并({'deleting':False,'pendingDelete':None})#清删除态
             自身.load()#重读名册
@@ -286,7 +287,7 @@ class 分区控制器:#预设管理页控制器
                 return#停在失败
             有效=自身.确认有效默认(True)#确认有效默认
             if 有效 is None:#名册未就绪
-                return#停
+                return
             if 同步空白会话 is not None:#可选同步空白会话
                 同步失败=同步空白会话(有效)#同步
                 if 同步失败 is not None:#同步拒绝

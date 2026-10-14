@@ -1,8 +1,13 @@
 from .消息铬 import 格式化每秒令牌#吞吐数字
 from .令牌格式 import 格式化令牌,格式化缓存命中百分比#令牌与缓存
+from .消息项 import 打开列,收起列
 from ..约定.回合指标 import 助手步骤读数#步骤读数
 
 __all__=['派生统计','格式化时长','缓存命中百分','计费输入令牌','统计行']#仅中文公开名
+
+from nicegui import ui as 界面
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -23,7 +28,7 @@ def 派生统计(节点列表):
         种=节点['kind'] if 'kind' in 节点 else None#kind
         if 种=='tool-result':#工具结果
             调用时=节点['callTime'] if 'callTime' in 节点 else None#callTime
-            if 调用时 is not None:#有
+            if 调用时 is not None:
                 时=节点['time'] if 'time' in 节点 and 节点['time'] is not None else 0#时
                 工具毫秒+=max(0,时-调用时)#墙钟
             continue#下
@@ -76,6 +81,8 @@ class 统计行:
     def __init__(自身,属性=None):
         '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -103,7 +110,7 @@ class 统计行:
             工具=统计['toolMs'] if 'toolMs' in 统计 and 统计['toolMs'] is not None else 0#工具
             if 工具>0:#工具
                 时长列表.append(翻译('stats.toolCall',{'duration':格式化时长(工具,翻译)}))#工具
-            if len(时长列表)>0:#有
+            if len(时长列表)>0:
                 组列表.append(' · '.join(时长列表))#时长组
             速率列表=[]#速
             首步=统计['ttftSteps'] if 'ttftSteps' in 统计 and 统计['ttftSteps'] is not None else 0#TTFT 步
@@ -114,21 +121,23 @@ class 统计行:
             if 解码>0:#吞吐
                 令牌=统计['decodeTokens'] if 'decodeTokens' in 统计 else 0#令牌
                 速率列表.append(翻译('stats.tokensPerSecond',{'throughput':格式化每秒令牌(令牌/(解码/1000))}))#吞吐
-            if len(速率列表)>0:#有
+            if len(速率列表)>0:
                 组列表.append(' · '.join(速率列表))#速组
         if 用量 is not None:#有用量
             输出=用量['outputTokens'] if 'outputTokens' in 用量 and 用量['outputTokens'] is not None else 0#输出
             if 计费输入令牌(用量)>0 or 输出>0:#计费
                 命中=缓存命中百分(用量)#命中
-                if 命中 is not None:#有
+                if 命中 is not None:
                     组列表.append(翻译('stats.cacheHit',{'percent':命中}))#缓存
                 组列表.append(翻译('stats.tokens',{'input':格式化令牌(计费输入令牌(用量),翻译),'output':格式化令牌(输出,翻译)}))#令牌
         if len(组列表)==0:#空
-            return None#不画
-        return {'type':'stats-line','groups':组列表,'line':' | '.join(组列表),'cssModule':'统计行.module.css'}#行
+            收起列(自身)
+            return
+        with 打开列(自身,'统计行'):
+            界面.label(' | '.join(组列表))
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

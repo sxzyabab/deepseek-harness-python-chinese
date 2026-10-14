@@ -1,4 +1,8 @@
+from .消息项 import 打开列
+
 __all__=['推理行','首行','末行']#仅中文公开名
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -21,6 +25,7 @@ class 推理行:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.展开=False#展开
+        自身.根=None#列
 
     def 更新(自身,属性):
         '刷新 props'
@@ -37,10 +42,26 @@ class 推理行:
         运行中=属性['running'] is True if 'running' in 属性 else False#流式
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         摘要=末行(文本) if 运行中 is True else 首行(文本)#摘要
-        return {'type':'reasoning-row','title':翻译('message.think'),'summary':摘要,'open':自身.展开,'running':运行中,'body':文本 if 自身.展开 is True else None,'onToggle':自身.切换,'cssModule':'推理行.module.css'}#行
+        def 点切换():
+            '展开或收起思考正文。'
+            自身.切换()
+            自身.渲染()
+        with 打开列(自身,'推理行'):
+            with 界面.row().classes('推理头'):
+                界面.label(翻译('message.think')).classes('标题')
+                if 摘要=='':
+                    界面.label('')
+                else:
+                    界面.label(摘要)
+                界面.button(翻译('message.compaction.expand'),on_click=点切换)
+            if 自身.展开 is True:
+                if 文本=='':
+                    界面.label('')
+                else:
+                    界面.label(文本).style('white-space:pre-wrap')
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

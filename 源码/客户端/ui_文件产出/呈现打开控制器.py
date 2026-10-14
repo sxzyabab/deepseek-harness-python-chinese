@@ -1,4 +1,5 @@
 import threading#寿命与元数据中止
+from urllib.parse import quote as 编码查询#应用 id
 from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...客户端.存储 import 创建快照存储#快照存储
 from .已呈现 import 已呈现文件网址,呈现宿主路径,是否已呈现宿主#坐标与宿主
@@ -19,15 +20,15 @@ class 已呈现打开控制器:#浏览器侧打开控制器
         自身._在飞=set()#在飞 Future
         自身._拉取=拉取#可选拉取
 
-    def 打开(自身,会话标识,序号,下标,动作='open'):#打开或揭示已呈现
+    def 打开(自身,会话标识,序号,下标,动作='open',应用=None):#打开或揭示已呈现
         '同一坐标在飞时只打开一次。失败留在卡片上，后续手势可重试'
-        return 自身._按网址打开(已呈现文件网址(会话标识,序号,下标),动作)#委托
+        return 自身._按网址打开(已呈现文件网址(会话标识,序号,下标),动作,应用)#委托
 
-    def 打开改动(自身,会话标识,序号,下标):#打开已改文件
-        '在宿主默认应用中打开一条已记录改动文件'
-        return 自身._按网址打开(已改文件网址(会话标识,序号,下标),'open')#委托打开
+    def 打开改动(自身,会话标识,序号,下标,动作='open',应用=None):#打开已改文件
+        '可指定已登记应用；缺省走宿主默认应用'
+        return 自身._按网址打开(已改文件网址(会话标识,序号,下标),动作,应用)#委托打开
 
-    def _按网址打开(自身,网址,动作):#按 URL 打开
+    def _按网址打开(自身,网址,动作,应用=None):#按 URL 打开
         '同一 URL 在飞时只打开一次。返回期约，请求结束后解决，失败则拒绝'
         结果=期约()#本次打开的结算点
         快照=自身.状态.getSnapshot()#当前
@@ -40,9 +41,9 @@ class 已呈现打开控制器:#浏览器侧打开控制器
             状态[网址]='opening' if 动作=='open' else 'revealing'#进行中
         自身.状态.update(写进行中)#发布进行中
         未来=期约()#拆除时等待
-        自身._在飞.add(未来)#记下
+        自身._在飞.add(未来)
         try:#请求
-            自身._请求(网址,动作)#同步请求
+            自身._请求(网址,动作,应用)#同步请求
         except BaseException as 错误:#失败
             自身._在飞.discard(未来)#移出
             未来.拒绝(错误)#拒绝
@@ -61,20 +62,20 @@ class 已呈现打开控制器:#浏览器侧打开控制器
             return 已中止
         if 自身._加载中 is not None:#合并并发
             return 自身._加载中#共享既有
-        自身.宿主.set(None)#清空
+        自身.宿主.set(None)
         任务=期约()#新任务
-        自身._加载中=任务#记下
+        自身._加载中=任务
         自身._在飞.add(任务)#计入
         try:#读
             自身._读宿主()#同步读
         except BaseException as 错误:#失败
             if 自身._加载中 is 任务:#仍是本任务
-                自身._加载中=None#清
+                自身._加载中=None
             自身._在飞.discard(任务)#移出
             任务.拒绝(错误)#拒绝
             return 任务
         if 自身._加载中 is 任务:#仍是本任务
-            自身._加载中=None#清
+            自身._加载中=None
         自身._在飞.discard(任务)#移出
         任务.解决()#成功
         return 任务
@@ -84,8 +85,8 @@ class 已呈现打开控制器:#浏览器侧打开控制器
         曾加载=自身._加载中 is not None#是否在读
         自身._元数据.set()#中止旧读
         自身._元数据=threading.Event()#新旗
-        自身._加载中=None#清在飞
-        自身.宿主.set(None)#清空
+        自身._加载中=None
+        自身.宿主.set(None)
         if 曾加载:#曾在读
             自身.加载宿主()#重载
 
@@ -113,13 +114,18 @@ class 已呈现打开控制器:#浏览器侧打开控制器
         if not 自身._寿命.is_set() and not 自身._元数据.is_set():#未中止才发布
             自身.宿主.set(宿主)#发布
 
-    def _请求(自身,网址,动作):#发起打开请求
-        'POST 打开或揭示'
+    def _请求(自身,网址,动作,应用=None):#发起打开请求
+        'POST 打开或揭示；显式应用写在查询上'
         失败='error' if 动作=='open' else 'revealError'#失败阶段
         阶段='opened' if 动作=='open' else 'revealed'#默认成功
         try:#拉取
-            目标=网址 if 动作=='open' else 网址+'&action=reveal'#URL
-            if 自身._拉取 is not None:#有拉取
+            if 动作=='reveal':#揭示
+                目标=网址+'&action=reveal'#URL
+            elif 应用 is not None:#指定应用
+                目标=网址+'&application='+编码查询(str(应用))#URL
+            else:#默认应用
+                目标=网址#URL
+            if 自身._拉取 is not None:
                 应答=自身._拉取(目标,{'method':'POST'})#POST
                 if 应答 is None or 'ok' not in 应答 or not 应答['ok']:#失败
                     状态码=应答['status'] if 应答 is not None and 'status' in 应答 else 0#状态

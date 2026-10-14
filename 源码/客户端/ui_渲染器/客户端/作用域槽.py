@@ -1,5 +1,6 @@
+from nicegui import ui as 界面
 from ...ui_槽位.异常 import 过期授权错误,槽位所有权错误#错误与命名
-from ..异常 import 槽组装错误#本包异常
+from ..异常 import 槽组装错误,页面失败文案#本包异常；页面说明不含绝对路径
 from .登记表 import 标准钩子属性名#钩子命名
 from .绑定 import (#内部绑定
     宿主栈,根标准提供者,作用域提供者,
@@ -11,6 +12,51 @@ __all__=['创建槽渲染器','槽错误边界','槽出口','根出口','槽渲�
 空注入属性={}#空注入
 空槽注入={'props':空注入属性}#空调度注入
 锚点样式={'display':'contents'}#锚点样式
+锚点样式表='.槽位锚点{display:contents}'#锚点不占布局
+界面.add_css(锚点样式表,shared=True)
+
+def 页面元素(标记属性):
+    '当前有页面槽才创建 div。没有槽时返回 None，调用方仍返回原来的树。'
+    try:
+        盒=界面.element('div')
+    except RuntimeError as 错误:
+        if 'slot' not in str(错误):
+            raise
+        return None
+    if 标记属性!='':
+        盒.props(标记属性)
+    return 盒
+
+def 槽键属性(槽键):
+    'data 属性里的槽键。去掉引号，避免截断属性。'
+    return str(槽键).replace('"','')
+
+def 画出锚点(槽键):
+    'data-slot 锚点。样式在模块加载时按共享表登记一次。'
+    盒=页面元素('data-slot="'+槽键属性(槽键)+'"')
+    if 盒 is None:
+        return None
+    盒.classes('槽位锚点')
+    return 盒
+
+def 画出崩溃面(槽键,错误=None):
+    'data-slot-error。有异常时，页面说明去掉绝对路径。'
+    盒=页面元素('data-slot-error="'+槽键属性(槽键)+'"')
+    if 盒 is None:
+        return None
+    if 错误 is None:
+        return 盒
+    with 盒:
+        界面.label(页面失败文案(错误))
+    return 盒
+
+def 在盒内(盒,动作):
+    '有锚点则在锚点里做，否则就地做。'
+    if 盒 is None:
+        return 动作()
+    with 盒:
+        return 动作()
+
 首化身={'adopted':None,'epoch':0}#首化身
 
 渲染槽缓存={}#renderSlot 缓存（id 近似 WeakMap）
@@ -223,15 +269,17 @@ def 行顺序(项):
 class 槽错误边界:
     '组装错误穿透；其它失败显示崩溃面'
     def __init__(自身,槽键,条目错误时,子树=None):
-        '记下槽键与回调。子树为 thunk'
+        '记下槽键与回调。子树为 thunk。父级调用渲染，构造时不画。'
         自身.slotKey=槽键#槽键
         自身.onEntryError=条目错误时#崩溃回调
         自身.子树=子树#子节点
         自身.失败=False#初始未失败
+        自身.页面错误=None#留给崩溃面的说明
 
     def 渲染(自身):
         '失败则崩溃面'
         if 自身.失败 is True:#已失败
+            画出崩溃面(自身.slotKey,自身.页面错误)
             return {'type':'slot-error','slotKey':自身.slotKey}#崩溃面
         try:#尝试子树
             return 自身.子树()#thunk
@@ -240,7 +288,9 @@ class 槽错误边界:
         except Exception as 错误:#登记方崩溃
             print("槽条目在 '"+自身.slotKey+"' 崩溃:",错误)#打印
             自身.失败=True#标记失败
+            自身.页面错误=错误#页面说明另去路径
             自身.onEntryError(错误)#上报
+            画出崩溃面(自身.slotKey,错误)
             return {'type':'slot-error','slotKey':自身.slotKey}#崩溃面
 
 def 物化标准绑定(绑定,可选):
@@ -474,6 +524,7 @@ def 渲染出口内容(宿主,槽键,拥有方,选项,作用域绑定):
 
     def 干涸格():
         '每个登记都已退位的格子'
+        画出崩溃面(槽键)
         return {'type':'slot-error','slotKey':槽键}#崩溃面
 
     if 种类=='single':#单条目
@@ -538,13 +589,14 @@ def 渲染出口内容(宿主,槽键,拥有方,选项,作用域绑定):
         if 项['entry'] is not None:#胜出
             项视.append(守卫(项['entry'],'e'+str(条目键于(项['entry']))))#守卫
         else:#干涸
+            画出崩溃面(槽键)
             项视.append({'type':'slot-error','slotKey':槽键,'key':'x'+str(项['id'])})#干涸
     return {'type':'slot-list','items':项视}#列表片段
 
 class 槽出口:
     '每个槽渲染点暴露稳定的 data-slot 包装'
     def __init__(自身,槽键,拥有方,选项=None):
-        '记下键与 props'
+        '记下键与 props。调用方接着调用渲染，构造时不画。'
         自身.slotKey=槽键#槽键
         自身.ownerProps=拥有方#拥有方
         自身.opts=选项#渲染选项
@@ -556,17 +608,21 @@ class 槽出口:
         宿主.getVersion(自身.slotKey)#读版本
         用文案修订(宿主.locale())#订 locale
         作用域绑定=用作用域绑定()#作用域绑定
+        锚=画出锚点(自身.slotKey)
+        def 调度():
+            '锚点内的出口内容'
+            return 渲染出口内容(宿主,自身.slotKey,自身.ownerProps,自身.opts,作用域绑定)
         return {#锚点包装
             'type':'slot-outlet',#类型
             'slotKey':自身.slotKey,#锚点
             'style':锚点样式,#样式
-            'content':渲染出口内容(宿主,自身.slotKey,自身.ownerProps,自身.opts,作用域绑定),#调度内容
+            'content':在盒内(锚,调度),#调度内容
         }#树结束
 
 class 根出口:
     '外壳唯一的 ctx 级渲染入口'
     def __init__(自身,拥有方):
-        '记下拥有方'
+        '记下拥有方。调用方接着调用渲染，构造时不画。'
         自身.ownerProps=拥有方#拥有方
 
     def 渲染(自身):
@@ -579,6 +635,7 @@ class 根出口:
         条目=胜出列表[0] if len(胜出列表)>0 else None#胜出
         if 条目 is None:#无胜出
             if len(宿主.entriesOf('root'))>0:#有登记但全部退位
+                画出崩溃面('root')
                 return {'type':'slot-error','slotKey':'root'}#干涸崩溃
             raise 槽组装错误("renderSlot('root') before any 'root' registration (boot order)")#启动顺序
         def 条目错误时(错误):
@@ -588,12 +645,16 @@ class 根出口:
             '根条目体'
             return 渲染条目体(宿主,条目,'root',None,'root',空槽注入,自身.ownerProps,None,False)#体
         边界=槽错误边界('root',条目错误时,根体)#根边界
+        锚=画出锚点('root')
+        def 画体():
+            '锚点内的根体'
+            return 边界.渲染()
         return {#根锚点
             'type':'root-outlet',#类型
             'slotKey':'root',#根锚点
             'style':锚点样式,#样式
             'key':条目键于(条目),#条目 key
-            'body':边界.渲染(),#体
+            'body':在盒内(锚,画体),#体
         }#树结束
 
 class 槽渲染器:

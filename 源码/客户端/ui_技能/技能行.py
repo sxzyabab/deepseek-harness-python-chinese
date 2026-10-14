@@ -1,5 +1,24 @@
 import json
-from .异常 import 技能错误#本包异常
+from nicegui import ui as 界面
+from ..ui_基础界面组件.icons import 图标下chevron14,图标技能16,图标检视12
+from .异常 import 技能错误,页面失败文案#本包异常
+
+def 腾出根(自身):
+    '清空仍挂着的根。父级已拆掉时丢掉根，并返回要显示的失败句。'
+    旧=getattr(自身,'根',None)
+    if 旧 is None:
+        return None
+    try:
+        旧.clear()
+    except Exception as 错误:
+        自身.根=None
+        return 页面失败文案(错误)
+    return None
+
+def 标出失败(文案):
+    '失败句非空时写在当前页面上'
+    if isinstance(文案,str) and 文案!='':
+        界面.label(文案)
 
 __all__=['技能错误','技能行','技能行模型','技能名','结果文本','首行','样式表']
 
@@ -19,6 +38,7 @@ __all__=['技能错误','技能行','技能行模型','技能名','结果文本'
 .separator{flex:none;width:2px;height:2px;border-radius:1px;margin:0 8px;background:var(--dsw-alias-label-caption)}
 .summary{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:24px;color:var(--dsw-alias-label-tertiary)}
 .errorSummary{color:var(--dsw-alias-state-error-primary)}
+.stoppedSummary{color:var(--dsw-alias-state-warn-label)}
 .bodyWrap{display:flex;flex-direction:column}
 .instructionsCard{display:flex;flex-direction:column;max-height:260px;margin:4px 0 4px 4px;overflow:hidden;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-markdown-code-block)}
 .instructionsHeader{flex:none;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-markdown-code-block-banner);font-size:11px;font-weight:500;line-height:16px;color:var(--dsw-alias-label-caption);text-transform:uppercase;letter-spacing:0.04em}
@@ -30,6 +50,7 @@ __all__=['技能错误','技能行','技能行模型','技能名','结果文本'
 .visuallyHidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.card[data-state=running] .row::after{animation:none;display:none}.iconIdle,.chevronHover,.inspectButton{transition:none}}
 '''
+界面.add_css(样式表,shared=True)
 
 def 首行(文本):
     '折叠错误摘要与畸形参数回退用的第一物理行'
@@ -98,53 +119,153 @@ def 技能行模型(块):
         'state':状态,
     }
 
+class 已开始技能行:
+    '已开始的技能行。父组件先空构造，再更新并渲染'
+    def __init__(自身):#空构造
+        '折叠状态留在这一份上'
+        自身.属性={}#props
+        自身.已展开=False#折叠
+        自身.重画=None#父组件重画
+
+    def 更新(自身,属性,重画):#刷新
+        '记下 props 与重画'
+        自身.属性=属性#props
+        自身.重画=重画#重画
+
+    def 切换展开(自身):#折叠
+        '开则关，关则开'
+        自身.已展开=not 自身.已展开#翻转
+
+    def 渲染(自身):#画出已开始的行
+        '标题、摘要、展开后的说明与检视'
+        块=自身.属性['block'] if 'block' in 自身.属性 else None#调用块
+        if not isinstance(块,dict):#没有块
+            return#不画
+        翻译=自身.属性['t'] if 't' in 自身.属性 and callable(自身.属性['t']) else None#文案
+        检查=自身.属性['inspect'] if 'inspect' in 自身.属性 else None#检视
+        模型=技能行模型(块)#模型
+        可展开=模型['output'] is not None
+        打开=自身.已展开 is True and 可展开 is True#当前展开
+        if 模型['state']=='running' and 翻译 is not None:#进行中
+            状态文案=翻译('row.running')#隐藏文案
+        elif 模型['state']=='error' and 翻译 is not None:#失败
+            状态文案=翻译('row.failed')#隐藏文案
+        else:#成功或中止不另写状态
+            状态文案=None#无
+        if 模型['state']=='stopped' and 翻译 is not None:#中止写在摘要上
+            摘要=翻译('row.stopped')#中止
+        elif 模型['errorSummary'] is not None:#错误摘要
+            摘要=模型['errorSummary']#第一行
+        else:#技能名
+            摘要=模型['name']#名字
+        摘要类='summary'#摘要类
+        if 模型['state']=='error':#失败色
+            摘要类=摘要类+' errorSummary'#错误
+        elif 模型['state']=='stopped':#中止色
+            摘要类=摘要类+' stoppedSummary'#中止
+        def 点展开():#点击行
+            '有输出才切换'
+            if 可展开 is not True:#不可展开
+                return
+            自身.切换展开()#翻转
+            if callable(自身.重画):
+                自身.重画()#重画
+        def 按键(事件):#键盘
+            'Enter 或空格等同点击'
+            if 可展开 is not True:#不可展开
+                return
+            参数=事件.args if hasattr(事件,'args') else None#事件参数
+            键=参数['key'] if isinstance(参数,dict) and 'key' in 参数 else None#键
+            if 键 not in ('Enter',' '):#不是确认键
+                return
+            点展开()#切换
+        卡=界面.element('div').classes('card')#卡
+        卡.props('data-tool=skill data-state='+模型['state'])#状态
+        with 卡:#内容
+            行盒=界面.element('div').classes('row')#行
+            if 可展开 is True:#可点
+                行盒.props('data-expandable role=button tabindex=0')#按钮
+                行盒.props('aria-expanded='+('true' if 打开 is True else 'false'))#展开
+                行盒.on('click',点展开)#点击
+                行盒.on('keydown',按键)#键盘
+            with 行盒:#行内容
+                with 界面.element('span').classes('leading'):#前导
+                    if 打开 is True:#已展开
+                        图标下chevron14({'className':'chevron','size':14})#箭头
+                    elif 可展开 is not True:#不能展开
+                        图标技能16({'size':14})#技能
+                    else:#悬停换成箭头
+                        with 界面.element('span').classes('iconIdle'):#静止图标
+                            图标技能16({'size':14})#技能
+                        图标下chevron14({'className':'chevron chevronHover','size':14})#箭头
+                if isinstance(状态文案,str) and 状态文案!='':#隐藏状态
+                    界面.label(状态文案).classes('visuallyHidden')#读屏
+                if 翻译 is not None:
+                    界面.label(翻译('row.title')).classes('title')#标题
+                界面.element('span').classes('separator')#分隔点
+                if isinstance(摘要,str):#摘要
+                    界面.label(摘要).classes(摘要类)#摘要
+            if 打开 is True:#展开体
+                with 界面.element('div').classes('bodyWrap'):#体
+                    区=界面.element('section').classes('instructionsCard')#说明卡
+                    if 翻译 is not None:
+                        区.props('aria-label="'+翻译('row.instructions').replace('"','')+'"')#无障碍
+                    with 区:#说明
+                        if 翻译 is not None:#页眉
+                            界面.label(翻译('row.instructions')).classes('instructionsHeader')#页眉
+                        输出=模型['output']#输出
+                        说明=界面.label('' if 输出 is None else 输出).classes('instructions')#正文
+                        if 模型['state']=='error':#失败色
+                            说明.props('data-error')#标记
+                    if callable(检查):
+                        def 点检视():#打开检视
+                            '调用注入的检视'
+                            检查()#调用
+                        检视=界面.element('button').classes('inspectButton').props('type=button')#按钮
+                        检视.on('click',点检视)#点击
+                        with 检视:#内容
+                            图标检视12()#图标
+                            if 翻译 is not None:#文案
+                                界面.label(翻译('row.inspect'))#查看
+
 class 技能行:
     '渲染一条 skill 工具调用为强调摘要与说明披露'
-    def __init__(自身,属性=None):
-        '记下 props 与折叠状态'
-        自身.属性={} if 属性 is None else 属性
-        自身.已展开=False
+    def __init__(自身,属性=None):#槽位构造
+        '槽位只调用构造，键齐了就画'
+        自身.属性={} if 属性 is None else 属性#props
+        自身.已开始=已开始技能行()#空构造，不画
+        if isinstance(自身.属性,dict) and ('block' in 自身.属性 or 'phase' in 自身.属性):
+            自身.渲染()
 
-    def 更新(自身,属性):
+    def 更新(自身,属性):#刷新
         '刷新合成 props'
-        自身.属性=属性
+        自身.属性=属性#新
 
-    def 切换展开(自身):
-        '切换展开状态'
-        自身.已展开=not 自身.已展开
+    def 渲染(自身):#画出技能行
+        '准备中只画标题；已开始的行交给子组件'
+        清除失败=腾出根(自身)
+        if getattr(自身,'根',None) is None:#尚无根
+            自身.根=界面.column().classes('skill-row')#根
+        翻译=自身.属性['t'] if 't' in 自身.属性 and callable(自身.属性['t']) else None#文案
+        阶段=自身.属性['phase'] if 'phase' in 自身.属性 else None#阶段
+        with 自身.根:#内容
+            标出失败(清除失败)
+            if 阶段=='preparing':#准备中
+                卡=界面.element('div').classes('card')#卡
+                卡.props('data-tool=skill data-state=preparing')#准备
+                with 卡:#行
+                    with 界面.element('div').classes('row'):#行
+                        with 界面.element('span').classes('leading'):#图标
+                            图标技能16({'size':14})#技能
+                        if 翻译 is not None:#文案
+                            界面.label(翻译('row.preparing')).classes('visuallyHidden')#读屏
+                            界面.label(翻译('row.title')).classes('title')#标题
+                return#准备中没有说明
+            自身.已开始.更新(自身.属性,自身.渲染)#刷新子组件
+            自身.已开始.渲染()#由父组件画
 
-    def 渲染(自身):
-        '产出结构化视图描述'
-        块=自身.属性['block'] if 'block' in 自身.属性 else None
-        翻译=自身.属性['t'] if 't' in 自身.属性 else None
-        检查=自身.属性['inspect'] if 'inspect' in 自身.属性 else None
-        模型=技能行模型(块)
-        可展开=模型['output'] is not None
-        打开=自身.已展开 and 可展开
-        if 模型['state']=='running':
-            状态文案=翻译('row.running') if 翻译 else None
-        elif 模型['state']=='error':
-            状态文案=翻译('row.failed') if 翻译 else None
-        elif 模型['state']=='stopped':
-            状态文案=翻译('row.stopped') if 翻译 else None
-        else:
-            状态文案=None
-        摘要=模型['errorSummary'] if 模型['errorSummary'] is not None else 模型['name']
-        return {
-            'type':'skill-row',
-            'state':模型['state'],
-            'expandable':可展开,
-            'open':打开,
-            'status':状态文案,
-            'summary':摘要,
-            'output':模型['output'] if 打开 else None,
-            'instructionsLabel':翻译('row.instructions') if 翻译 and 打开 else None,
-            'inspect':检查 if 打开 else None,
-            'toggle':自身.切换展开,
-        }
-
-    def __call__(自身,属性=None):
+    def __call__(自身,属性=None):#组件调用形
         '有新属性则刷新后渲染'
         if 属性 is not None:
-            自身.更新(属性)
+            自身.更新(属性)#刷新
         return 自身.渲染()

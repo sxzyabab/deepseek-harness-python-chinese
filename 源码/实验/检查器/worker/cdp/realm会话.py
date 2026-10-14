@@ -20,7 +20,7 @@ class 检查器realm会话集:#realm会话集
         结果=[]#列表
         for realm in 自身._realms.realms():#按注册表顺序
             会话=自身._会话.get(realm.descriptor.realmId)#取会话
-            if 会话 is not None:#有
+            if 会话 is not None:
                 结果.append(会话)#收集
         return 结果#返回
 

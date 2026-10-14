@@ -1,11 +1,13 @@
+import html as 超文本#文本转义
 import re#语言 id 截断
 from urllib.parse import urlparse as 解析URL#协议检查
 from .katex import 渲染TeX到树#TeX→树
+from nicegui import ui as 界面
 from .代码块 import 代码块#围栏
 
 __all__=[#仅中文公开名
     '净化链接','远端图片地址','建引用目标','收集引用目标',
-    '渲染块列表','包块子节点','渲染脚注区','行内代码Http地址',
+    '渲染块列表','包块子节点','渲染脚注区','行内代码Http地址','画出视图',
 ]#公开面结束
 
 def 净化链接(网址):#协议白名单
@@ -45,12 +47,12 @@ def 收集引用目标(节点列表,目标):#深度优先收定义
             原=节点['identifier'] if 'identifier' in 节点 and 节点['identifier'] is not None else ''#标识
             标识=str(原).upper()#大写键
             if 标识!='' and 标识 not in 目标['definitions']:#首个
-                目标['definitions'][标识]=节点#记下
+                目标['definitions'][标识]=节点
         elif 种=='footnoteDefinition':#脚注定义
             原=节点['identifier'] if 'identifier' in 节点 and 节点['identifier'] is not None else ''#标识
             标识=str(原).upper()#大写键
             if 标识!='' and 标识 not in 目标['footnotes']:#首个
-                目标['footnotes'][标识]=节点#记下
+                目标['footnotes'][标识]=节点
         子=节点['children'] if 'children' in 节点 else None#子树
         if 子 is not None:#有子；空表仍递归（JS 空数组为真）
             收集引用目标(子,目标)#递归
@@ -62,7 +64,7 @@ def 渲染块列表(块列表,上下文):#顶层块→视图列表
     for 块 in 序列:#逐块
         节点=块['node'] if 'node' in 块 else None#节点
         键=块['key'] if 'key' in 块 else None#稳定 key
-        元=渲染节点(节点,键,上下文)#渲染
+        元=渲染节点(节点,键,上下文)
         if 元 is not None:#非空
             出.append(元)#收下
     return 出#列表
@@ -177,7 +179,7 @@ def 渲染代码(节点,键,上下文):#围栏代码
         类=None if 语言 is None else 'language-'+str(语言)#类
         return {'type':'element','tag':'pre','key':键,'children':[{'type':'element','tag':'code','props':{'className':类}}]}#pre
     语=None#语法 id
-    if 语言 is not None:#有 lang
+    if 语言 is not None:
         命=re.match(r'^[\w-]+',str(语言),re.ASCII)#截断；\w 对齐 JS ASCII
         语=命.group(0) if 命 is not None else None#id
     流式=上下文['streaming'] is True if 'streaming' in 上下文 else False#流式
@@ -187,9 +189,7 @@ def 渲染代码(节点,键,上下文):#围栏代码
     复制标=文案['copyLabel'] if 'copyLabel' in 文案 else None#复制
     已复制标=文案['copiedLabel'] if 'copiedLabel' in 文案 else None#已复制
     块=代码块({'code':值+'\n','lang':None if 流式 is True else 语,'copyLabel':复制标,'copiedLabel':已复制标})#块
-    视=块.渲染()#视图
-    视['key']=键#稳定 key
-    return 视#代码块
+    return {'type':'widget','key':键,'body':块}#交给画出时再画
 
 def 列表松散(列表):#列表是否 loose
     '自身或任一项 spread'
@@ -215,8 +215,8 @@ def 渲染列表(节点,键,上下文):#ul/ol
     子=节点['children'] if 'children' in 节点 and 节点['children'] is not None else []#项
     if any(isinstance(项['checked'] if 'checked' in 项 else None,bool) for 项 in 子):#任务
         属性['className']='contains-task-list'#类
-    有序=节点['ordered'] is True if 'ordered' in 节点 else False#有序
-    标签='ol' if 有序 is True else 'ul'#有序/无序
+    有序=节点['ordered'] is True if 'ordered' in 节点 else False
+    标签='ol' if 有序 is True else 'ul'
     项视=[渲染列表项(项,松,下标,上下文) for 下标,项 in enumerate(子)]#项
     return {'type':'element','tag':标签,'key':键,'props':属性,'children':项视}#列表
 
@@ -229,7 +229,7 @@ def 渲染块条目(块列表,上下文):#区分段与其它块
             子=块['children'] if 'children' in 块 else None#子
             条.append({'paragraph':渲染子节点(子,上下文)})#段
         else:#其它
-            元=渲染节点(块,下标,上下文)#渲
+            元=渲染节点(块,下标,上下文)
             if 元 is not None:#非空
                 条.append({'element':元})#元素
     return 条#条目
@@ -271,9 +271,9 @@ def 渲染表(节点,键,上下文):#表滚动壳
     头=行列表[0] if len(行列表)>0 else None#头
     体=行列表[1:] if len(行列表)>1 else []#体
     子=[]#table 子
-    if 头 is not None:#有头
+    if 头 is not None:
         子.append({'type':'element','tag':'thead','children':[渲染表行(头,'th',对齐,0,上下文)]})#thead
-    if len(体)>0:#有体
+    if len(体)>0:
         子.append({'type':'element','tag':'tbody','children':[渲染表行(行,'td',对齐,下标+1,上下文) for 下标,行 in enumerate(体)]})#tbody
     return {'type':'element','tag':'div','key':键,'props':{'className':'tableScroll'},'children':[{'type':'element','tag':'table','children':子}]}#壳
 
@@ -308,7 +308,7 @@ def 渲染锚(网址,子节点列表,键):#markdown 目的地锚
 
 def 行内代码Http地址(值):#整段是否绝对 HTTP(S)
     '有首尾空白则否'
-    if 值.strip()!=值:#有空白
+    if 值.strip()!=值:
         return None#否
     try:
         方案=解析URL(值).scheme.lower()
@@ -408,3 +408,111 @@ def 渲染脚注区(上下文):#文末脚注 section
         {'type':'element','tag':'h2','props':{'id':'footnote-label','className':'sr-only'},'children':['Footnotes']},#隐藏标题
         {'type':'element','tag':'ol','children':项列表},#有序列表
     ]}#section
+
+def 画出视图(节点):
+    '把结构节点画成控件；组件节点自己画'
+    if 节点 is None:#空
+        return
+    if isinstance(节点,(list,tuple)):#多项
+        for 项 in 节点:#逐项
+            画出视图(项)#递归
+        return
+    if isinstance(节点,str):#字面
+        if 节点!='':
+            界面.html('<span style="white-space:pre-wrap">'+超文本.escape(节点)+'</span>',sanitize=False)#文本
+        return
+    if isinstance(节点,dict) is False:#组件
+        if hasattr(节点,'渲染'):#能画
+            节点.渲染()#自画
+        return
+    种=节点['type'] if 'type' in 节点 else None#种
+    if 种=='widget':#延迟组件
+        体=节点['body'] if 'body' in 节点 else None#体
+        if hasattr(体,'渲染'):#能画
+            体.渲染()#自画
+        return
+    if 种=='fragment':#片
+        画出视图(节点['children'] if 'children' in 节点 else None)#子
+        return
+    if 种!='element':#其余
+        return
+    标=节点['tag'] if 'tag' in 节点 and 节点['tag'] is not None else 'span'#标签
+    属性=节点['props'] if 'props' in 节点 and isinstance(节点['props'],dict) else {}#属性
+    子=节点['children'] if 'children' in 节点 else None#子
+    if 标=='br':#换行
+        界面.html('<br/>',sanitize=False)#换行
+        return
+    if 标=='hr':#分隔
+        界面.separator()#线
+        return
+    if 标=='img':#图
+        源=属性['src'] if 'src' in 属性 else None#源
+        if isinstance(源,str) and 源!='':
+            图=界面.image(源)#图
+            替=属性['alt'] if 'alt' in 属性 else None#替代
+            if isinstance(替,str) and 替!='':
+                图.props('alt="'+替.replace('"','')+'"')#替代
+            类名=属性['className'] if 'className' in 属性 else None#类
+            if isinstance(类名,str) and 类名!='':
+                图.classes(类名)#类
+        return
+    if 标=='button':#按钮
+        文=''#文案
+        if isinstance(子,str):#字面
+            文=子#用
+        elif isinstance(子,(list,tuple)) and all(isinstance(项,str) for 项 in 子):#全是字
+            文=''.join(子)#拼
+        点=属性['onClick'] if 'onClick' in 属性 else None#点击
+        def 点下(回调=点):
+            '有点击就调用'
+            if callable(回调):
+                回调()#调用
+        钮=界面.button(文 if 文!='' else ' ',on_click=点下 if callable(点) else None)#按钮
+        类名=属性['className'] if 'className' in 属性 else None#类
+        if isinstance(类名,str) and 类名!='':
+            钮.classes(类名)#类
+        题=属性['title'] if 'title' in 属性 else None#题注
+        if isinstance(题,str) and 题!='':
+            钮.tooltip(题)#题
+        if isinstance(子,str) is False and not (isinstance(子,(list,tuple)) and all(isinstance(项,str) for 项 in 子)):#复合子
+            with 钮:#内容
+                画出视图(子)#子
+        return
+    if 标=='a':#链接
+        址=属性['href'] if 'href' in 属性 else ''#址
+        文=''#文案
+        if isinstance(子,str):#字面
+            文=子#用
+        elif isinstance(子,(list,tuple)) and all(isinstance(项,str) for 项 in 子):#全是字
+            文=''.join(子)#拼
+        if 文!='' and isinstance(址,str) and 址!='':#纯文字链
+            链=界面.link(文,址,new_tab=属性.get('target')=='_blank')#链
+            类名=属性['className'] if 'className' in 属性 else None#类
+            if isinstance(类名,str) and 类名!='':
+                链.classes(类名)#类
+            return
+    元=界面.element(标)#元素
+    类名=属性['className'] if 'className' in 属性 else None#类
+    if isinstance(类名,str) and 类名!='':
+        元.classes(类名)#类
+    样式=属性['style'] if 'style' in 属性 else None#样式
+    if isinstance(样式,dict):#字典
+        元.style(';'.join(str(键名)+':'+str(值) for 键名,值 in 样式.items()))#行内
+    elif isinstance(样式,str) and 样式!='':#串
+        元.style(样式)#行内
+    附加=[]#属性
+    for 键名 in ('id','href','target','rel','type','alt','src'):#透传
+        if 键名 in 属性 and 属性[键名] is not None:
+            附加.append(键名+'="'+str(属性[键名]).replace('"','')+'"')#写
+    if 属性.get('disabled') is True:#禁用
+        附加.append('disabled')#禁
+    if 属性.get('checked') is True:#勾选
+        附加.append('checked')#勾
+    if 'aria-label' in 属性 and 属性['aria-label'] is not None:#无障碍名
+        附加.append('aria-label="'+str(属性['aria-label']).replace('"','')+'"')#名
+    if 属性.get('data-footnotes') is True:#脚注区
+        附加.append('data-footnotes')#标记
+    if len(附加)>0:
+        元.props(' '.join(附加))#写
+    with 元:#内容
+        画出视图(子)#子

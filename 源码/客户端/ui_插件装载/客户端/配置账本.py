@@ -19,7 +19,7 @@ def 配置账本源(上下文):
         结果=set()#键集
         for 条目 in 上下文.slots.entries(名):#条目
             选项=条目['options'] if 'options' in 条目 else 条目#选项
-            if 'key' in 选项:#有键
+            if 'key' in 选项:
                 结果.add(选项['key'])#加入
         return 结果#集
 
@@ -28,7 +28,7 @@ def 配置账本源(上下文):
         nonlocal 版本表,修订,账本#可变缓存
         下一=[上下文.slots.getVersion(名) for 名 in 席位名表]#版本
         当前=上下文.locale.getSnapshot()['revision']#文案修订
-        if 当前!=修订 or 下一!=版本表:#有变
+        if 当前!=修订 or 下一!=版本表:
             版本表=下一#记版本
             修订=当前#记修订
             条目表=[]#官方条目
@@ -36,7 +36,8 @@ def 配置账本源(上下文):
                 选项=条目['options'] if 'options' in 条目 else 条目#选项
                 身份=选项['id'] if 'id' in 选项 else ''#id
                 标签=解析槽标签(选项['label'] if 'label' in 选项 else None)#解析
-                if 标签 is None:标签=''#缺省
+                if 标签 is None:
+                    标签=''#缺省
                 条目表.append({'id':身份,'label':标签})#行
             账本={'items':条目表,'bundles':键集合('plugins.bundle.config'),'rows':键集合('plugins.row.config')}#新账本
         return 账本#快照
@@ -51,4 +52,13 @@ def 配置账本源(上下文):
                 拆()#退
         return 退订#拆除器
 
-    return {'getSnapshot':取快照,'subscribe':订阅}#可观察源（HostObservable 线形）
+    class 账本源:
+        '带 getSnapshot / subscribe 的对象；字典键绑不上'
+        def getSnapshot(自身):
+            '当前账本'
+            return 取快照()
+        def subscribe(自身,监听):
+            '席位或语言变动'
+            return 订阅(监听)
+
+    return 账本源()#可观察源

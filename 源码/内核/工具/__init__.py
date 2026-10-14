@@ -74,10 +74,6 @@ from .代码模式 import (
     已中止,#是否中止
     中止控制器,#熔合控制器
 )
-from . import (
-    不变量,
-)
-
 仅代码指令='`'+运行代码名+'` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.'#模型可见折叠规则
 sdk渲染器={
     'typescript':渲染工具sdk,#TS SDK

@@ -100,10 +100,7 @@ class xlsx预览归档:
                 省略.add(部件键(完整[:切+1]+'_rels/'+完整[切+1:]+'.rels'))
 
     def _检内容(自身,数据):
-        try:
-            根=元素树.fromstring(解码xml(数据))
-        except Exception:
-            return
+        根=元素树.fromstring(解码xml(数据))
         for 节点 in 根.iter():
             标签=节点.tag.rsplit('}',1)[-1]
             if 标签=='chart':

@@ -1,7 +1,7 @@
 import threading#候选拉取中止标志
 from .探测 import 检测触发#光标处触发检测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约#关菜单态、铺组、归约
-from .异常 import 触发错误#本包异常
+from .异常 import 触发错误,页面失败文案#本包异常与页面失败句
 
 __all__=['触发控制器','简易快照存储','触发错误','已中止','若已中止则抛出']#仅中文公开名
 
@@ -51,12 +51,15 @@ class 触发控制器:#每会话触发控制器
         自身.依赖=依赖#依赖
         自身.menu=简易快照存储(dict(菜单关闭))#菜单快照
         自身.launcher=简易快照存储(None)#启动器当前源
+        自身.headers=简易快照存储({})#各源面包屑，空表表示没有页眉
         自身.lexicon=简易快照存储({})#按触发分组的热词表
+        自身.已下钻=False#下钻之后页眉请求带上 drilled
         自身.命中=None#当前触发命中
         自身.已驳回=None#已驳回命中身份 dict 或 None
         自身.拉取=None#在飞的候选拉取取消标志
         自身.已拆除=False#作用域已拆除
         自身.词表拆除表={}#词表订阅 disposer，按 id(源)
+        自身.页面失败=None
         投影=自身._投影()#会话投影
         名册=依赖['roster']#源名册
         for 源 in 名册['all']():#诞生时名册里的每个源
@@ -116,9 +119,10 @@ class 触发控制器:#每会话触发控制器
             自身._停拉取()#中止在飞拉取
             自身._归约({'type':'close'})#关菜单
             return#无菜单可开
-        if 启动中 or not 前['open'] or 前['hit'] is None or 前['hit']['trigger']!=命中['trigger']:#启动器/新开/换了触发
-            自身.menu.set(铺分组(自身.menu.getSnapshot(),[s['name'] for s in 名册]))#按名册重铺
+        if 启动中 or 前['open'] is not True or 前['hit'] is None or 前['hit']['trigger']!=命中['trigger']:#启动器/新开/换了触发
+            自身.menu.set(铺分组(自身.menu.getSnapshot(),名册))#按名册重铺
         自身._归约({'type':'hit','hit':命中})#写入命中
+        自身._刷新页眉(命中,名册)#页眉
         自身._拉候选(命中,名册)#拉本世代候选
 
     def toggleSource(自身,源名,命中):#切换单源菜单
@@ -139,15 +143,16 @@ class 触发控制器:#每会话触发控制器
         自身._停拉取()#中止在飞拉取
         自身.命中=命中#记下合成命中
         自身.launcher.set(源名)#记下启动器源名
-        自身.menu.set(铺分组(自身.menu.getSnapshot(),[源名]))#只铺这一组
+        自身.menu.set(铺分组(自身.menu.getSnapshot(),[匹配]))#只铺这一组
         自身._归约({'type':'hit','hit':命中})#写入命中
+        自身._刷新页眉(命中,[匹配])#页眉
         自身._拉候选(命中,[匹配])#只拉这一源
 
-    def pick(自身,源名,下标):#指针点选候选
-        '把点中的候选走 onPick，再经作用域输入事件执行'
+    def pick(自身,源名,下标,动作='pick'):#指针点选候选
+        '把点中的候选走 onPick。动作缺省为落定，drill 为下钻'
         态=自身.menu.getSnapshot()#当前菜单
         命中=自身.命中#权威命中
-        if 自身.已拆除 or not 态['open'] or 命中 is None:#拆除/关菜单/无命中
+        if 自身.已拆除 or 态['open'] is not True or 命中 is None:#拆除/关菜单/无命中
             return#忽略
         组=None#按源名找组
         for g in 态['groups']:#各组
@@ -161,19 +166,37 @@ class 触发控制器:#每会话触发控制器
                 候选=项列表[下标]#该项
         if 候选 is None:#组未就绪或下标越界
             return#忽略
-        源=None#按名找源
-        for s in 自身.依赖['roster']['sources'](命中['trigger']):#该触发下
-            if s['name']==源名:#命中
-                源=s#记下
-                break#找到
+        源=自身._按名找源(命中['trigger'],源名)#名册
         if 源 is None:#名册里没有
             return#忽略
-        点选=源['onPick'] if 'onPick' in 源 else None#点选入口
-        结果=点选({'candidate':候选,'session':自身._投影(),'position':命中['position'],'via':'menu','span':命中['span']}) if 点选 is not None else None#点选
-        自身._停拉取()#中止在飞拉取
-        自身._记下驳回()#落地点选则记下驳回
-        自身._归约({'type':'close'})#关菜单
-        自身._执行(结果,命中['span'])#执行认领/插入
+        自身._落定(源,候选,命中,动作)#执行
+
+    def hover(自身,源名,下标):#指针移过高亮
+        '与键盘共用一个高亮'
+        if 自身.已拆除:#已拆除
+            return
+        自身._归约({'type':'hover','source':源名,'index':下标})#停在该项
+
+    def pickCrumb(自身,源名,下标):#点面包屑
+        '走与目录行相同的下钻'
+        命中=自身.命中#权威命中
+        if 自身.已拆除 or 自身.menu.getSnapshot()['open'] is not True or 命中 is None:#关着
+            return
+        表=自身.headers.getSnapshot()#页眉
+        if 源名 not in 表:#该源没有页眉
+            return
+        列=表[源名]#屑列
+        if 下标<0 or 下标>=len(列):#越界
+            return
+        屑=列[下标]#这一级
+        if 'current' in 屑 and 屑['current'] is True:#当前级不是动作
+            return
+        源=自身._按名找源(命中['trigger'],源名)#名册
+        if 源 is None:#没有源
+            return
+        名=屑['label'] if 'label' in 屑 else ''#标签
+        值=屑['value'] if 'value' in 屑 else ''#下钻载荷
+        自身._落定(源,{'name':名,'value':值},命中,'drill')#下钻
 
     def arbitrate(自身,键,合成中):#键盘仲裁
         'consumed / pick-highlighted / pass'
@@ -296,6 +319,51 @@ class 触发控制器:#每会话触发控制器
         自身._盯词表(源,投影)#接词表失效通道
         自身._刷新词表()#重聚合词表
 
+    def _按名找源(自身,触发,源名):#名册查找
+        '该触发下按名取源'
+        for s in 自身.依赖['roster']['sources'](触发):#该触发下
+            if s['name']==源名:#命中
+                return s#源
+        return None#没有
+
+    def _落定(自身,源,候选,命中,动作):#点选或下钻
+        '下钻在关菜单之后才记下，供紧接着的 track 读页眉'
+        点选=源['onPick'] if 'onPick' in 源 else None#点选入口
+        载荷={'candidate':候选,'session':自身._投影(),'position':命中['position'],'via':'menu','action':动作,'span':命中['span']}#事件
+        结果=点选(载荷) if 点选 is not None else None#点选
+        自身._停拉取()#中止在飞拉取
+        if 动作=='pick':#落定才驳回
+            自身._记下驳回()#记下驳回
+        自身._归约({'type':'close'})#关菜单，这里会清已下钻
+        自身.已下钻=动作=='drill'#下钻留给随后的 track
+        if 自身._执行(结果,命中['span']) is not True:#编辑没应用
+            自身.已下钻=False#撤回
+
+    def _刷新页眉(自身,命中,名册):#重问各源页眉
+        '没有 header 或空列表的源不出现'
+        投影=自身._投影()#会话投影
+        引号=命中['quoted'] is True if 'quoted' in 命中 else False#缺键不当作已加引号
+        屑={}#按源
+        for 源 in 名册:#名册顺序
+            if 'header' not in 源 or 源['header'] is None:#无页眉
+                continue
+            try:#源页眉失败不拖垮菜单
+                发布=源['header'](投影,{'query':命中['query'],'quoted':引号,'drilled':自身.已下钻})#问
+            except Exception as 错误:#源回调异常契约未定，故不能换成更窄的 except
+                自身._留下页面失败(错误,源['name'] if 'name' in 源 else None)
+                continue
+            if 发布 is None or len(发布)==0:#无屑
+                continue
+            屑[源['name']]=list(发布)#记下
+        自身._写页眉(屑)#发布
+
+    def _写页眉(自身,下一):#发布页眉
+        '两边都空则不替换快照'
+        当前=自身.headers.getSnapshot()#现
+        if len(当前)==0 and len(下一)==0:#都空
+            return
+        自身.headers.set(下一)#写
+
     def _投影(自身):#会话投影
         '仅稳定身份'
         return {'sessionId':自身.依赖['sessionId']}#投影
@@ -327,7 +395,7 @@ class 触发控制器:#每会话触发控制器
             try:#问该源的热卷
                 名列表=词(投影)#同步拉取名字
             except Exception as 错误:#源实现抛错；源回调异常契约未定，故不能换成更窄的 except
-                print('[ui-input-trigger] 源 "'+str(源['name'])+'" 词表失败:',错误)#失败只记日志
+                自身._留下页面失败(错误,源['name'] if 'name' in 源 else None)
                 continue#跳过该源
             if 名列表 is None:#卷尚未热
                 continue#跳过
@@ -361,15 +429,33 @@ class 触发控制器:#每会话触发控制器
             if 'candidates' not in 源 or 源['candidates'] is None:#无
                 continue#跳过
             try:#源 candidates 已在翻译时定为同步返回列表
-                项列表=源['candidates'](投影,{'query':命中['query'],'position':命中['position'],'signal':取消})#按查询拉候选
+                引号=命中['quoted'] is True if 'quoted' in 命中 else False#缺键不当作已加引号
+                项列表=源['candidates'](投影,{#查询交给源自己的候选
+                    'query':命中['query'],#查询
+                    'quoted':引号,#引号路径
+                    'position':命中['position'],#位置
+                    'drilled':自身.已下钻,#下钻
+                    'signal':取消,#取消
+                })#命令、技能、子会话、引用各自返回自己的行
                 if 已中止(取消):#已被新一轮取代
                     continue#丢
                 自身._归约({'type':'source-settled','generation':世代,'source':名,'items':list(项列表 if 项列表 is not None else [])})#写入该组
             except Exception as 错误:#源失败；源回调异常契约未定，故不能换成更窄的 except
                 if 已中止(取消):#已被新一轮取代
                     continue#丢
-                print('[ui-input-trigger] 源 "'+str(名)+'" 候选失败:',错误)#失败只记日志
-                自身._归约({'type':'source-failed','generation':世代,'source':名})#静默摘掉该组
+                自身._留下页面失败(错误,名)
+                自身._归约({'type':'source-failed','generation':世代,'source':名})#该组标失败，句子留在菜单上
+
+    def _留下页面失败(自身,错误,来源=None):
+        '菜单上留一句失败。来源名含路径分隔符时不拼进句子。'
+        文=页面失败文案(错误)
+        if isinstance(来源,str) and 来源!='' and '/' not in 来源 and '\\' not in 来源 and len(来源)<80:
+            文=来源+'：'+文
+        if not isinstance(自身.页面失败,str) or 自身.页面失败=='':
+            自身.页面失败=文
+            return
+        if 文 not in 自身.页面失败:
+            自身.页面失败=自身.页面失败+'；'+文
 
     def _停拉取(自身):#中止在飞拉取
         '有则 abort'
@@ -402,5 +488,7 @@ class 触发控制器:#每会话触发控制器
         下一=菜单归约(当前菜单,事件)#纯归约
         if 下一 is not 当前菜单:#有变化才写回（引用或内容）
             自身.menu.set(下一)#写回
-        if not 下一['open']:#关菜单时清启动器
+        if 下一['open'] is not True:#关菜单时清启动器、下钻和页眉
             自身._清启动器()#清
+            自身.已下钻=False#下钻结束
+            自身._写页眉({})#清页眉

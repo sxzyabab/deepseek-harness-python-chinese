@@ -3,7 +3,7 @@ from functools import partial as 绑定参数#把落定槽绑进然后回调，�
 from typing import NotRequired,TypedDict#结构类型
 from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...类型化远程调用.协议.异常 import 查找策略失败#lookup 策略拒绝
-from .异常 import 远程查找错误基类,远程会话未找到,远程子智能体会话所有权#本包异常
+from .异常 import 远程查找错误基类,远程会话未找到,远程子智能体会话所有权,失败说明#本包异常
 
 __all__=(#仅中文公开名
     '远程会话未找到','远程子智能体会话所有权',
@@ -93,7 +93,7 @@ def 解析成功(结果,智能体):
 def 解析失败(结果,会话标识,上下文,围栏在线,错误):
     '把恢复失败折成面向调用方的失败信封'
     if isinstance(错误,远程会话未找到):
-        结果.解决({'error':{'code':'session-not-found','message':str(错误),'details':{'sessionId':会话标识}}})#会话未找到信封
+        结果.解决({'error':{'code':'session-not-found','message':失败说明(错误),'details':{'sessionId':会话标识}}})#会话未找到信封
         return
     if isinstance(错误,远程子智能体会话所有权):
         结果.解决({'error':远程子智能体所有权错误(错误.会话标识)})#折成 agent-busy
@@ -109,7 +109,7 @@ def 解析失败(结果,会话标识,上下文,围栏在线,错误):
     结果.解决({#其余视为内部失败
         'error':{#内部错误信封
             'code':'internal',#内部错误码
-            'message':'resume failed for session "'+str(会话标识)+'": '+str(错误),#带上恢复失败原因
+            'message':'resume failed for session "'+str(会话标识)+'": '+失败说明(错误),#带上恢复失败原因，去掉绝对路径
             'details':{},#无额外细节
         },#error 字段结束
     })#内部失败结束

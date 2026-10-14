@@ -10,13 +10,13 @@ def 预览(片段列表,上限):#有界预览文本
     for 片 in 片段列表:#遍历
         if len(文)>=上限*2:#够预算
             未读=True#未读
-            break#停
+            break
         截=len(片)>上限*2#过长
         块=片[:上限*2] if 截 else 片#截
         文=块 if 文=='' else 文+' '+块#拼
         if 截:#截断
             未读=True#未读
-            break#停
+            break
     规=' '.join(文.split()).strip()#折叠
     if len(规)>上限-1:#超限
         return 规[:上限-1].rstrip()+'…'#省略
@@ -60,15 +60,15 @@ def 回合导航项(回合,位置索引,节点表):#投影导航项
     用户=None#开场用户
     for 节 in 已载:#找
         if 节['kind']=='user':#用户
-            用户=节#记下
-            break#停
+            用户=节
+            break
     锚=用户 if 用户 is not None else (已载[0] if len(已载)>0 else None)#锚点
     if 锚 is None:#无
         return None#缺席
     回复=None#末条回复
     for 节 in 已载:#从后找
         if 回复文本(节)!='':#非空
-            回复=节#记下
+            回复=节
     return {#导航项
         'turn':回合,#轮次
         'anchorKey':锚['key'],#锚键

@@ -92,6 +92,8 @@ class 工作区提要:
         自身._顺序=[str(项.id) for 项 in 基线]#顺序
         归档=上下文.workspaceRegistry.archivedSessionIds#归档
         自身._归档=[str(项) for 项 in (归档 if 归档 is not None else [])]#归档
+        钉住=getattr(上下文.workspaceRegistry,'pinnedSessionIds',None)#钉住
+        自身._钉住=[str(项) for 项 in (钉住 if 钉住 is not None else [])]#钉住
         def 域变更(变更):
             '订阅域变更'
             自身._变更(变更)#委托
@@ -110,9 +112,11 @@ class 工作区提要:
     def 基线(自身):
         '同步读完整基线'
         归档=自身._上下文.workspaceRegistry.archivedSessionIds#归档
+        钉住=getattr(自身._上下文.workspaceRegistry,'pinnedSessionIds',None)#钉住
         return {#基线
             'items':[工作区视图(项) for 项 in 自身._上下文.workspaceRegistry.list()],#工作区
             'archivedSessionIds':list(归档 if 归档 is not None else []),#归档
+            'pinnedSessionIds':list(钉住 if 钉住 is not None else []),#钉住
         }#结束
 
     def follow(自身,信号):
@@ -162,6 +166,11 @@ class 工作区提要:
             if not 字符串列相同(自身._归档,下一归档):#归档变更
                 自身._归档=下一归档#更新
                 自身._发布({'type':'archived','archivedSessionIds':list(归档列)})#archived
+            钉住列=状态['pinnedSessionIds'] if 'pinnedSessionIds' in 状态 and 状态['pinnedSessionIds'] is not None else []#钉住
+            下一钉住=[str(项) for 项 in 钉住列]#钉住
+            if not 字符串列相同(自身._钉住,下一钉住):#钉住变更
+                自身._钉住=下一钉住#更新
+                自身._发布({'type':'pinned','pinnedSessionIds':list(钉住列)})#pinned
             return#全局处理完
         if 表!='workspaces':#其它表
             return#忽略

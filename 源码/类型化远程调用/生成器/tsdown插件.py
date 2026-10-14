@@ -1,110 +1,146 @@
-import json,os,re#清单与路径、装饰器检测
+import json,os,re
+from .工作区 import 工作区Typert生成器
+from .异常 import Typert代码输出错误
 
-__all__=[#公开面
+__all__=[
     'typert插件','输出制品',
     '有Typert导出','读清单',
     '包根','工作区根',
-]#结束
+]
 
-装饰器语法=re.compile(r'^\s*@[A-Za-z_$][\w$]*',re.M)#检测源码中的标准装饰器
+装饰器语法=re.compile(r'^\s*@[A-Za-z_$][0-9A-Za-z_$]*',re.M|re.ASCII)
+脚本后缀=re.compile(r'\.[cm]?tsx?$',re.ASCII)
 
-def typert插件(插件选项=None):#创建装饰器降低与 typert 生成插件外壳
-    """组装兼容 rolldown 钩子约定的插件字典。
+def typert插件(插件选项=None):
+    '组装打包钩子。装饰器降低和制品生成都走工作区生成器'
+    if 插件选项 is None:
+        插件选项={}
+    按根制品={}
+    已输出工作区=set()
 
-    writeBundle 在需要 discover/generate 时显式失败（硬缺口 analyzer）；
-    不静默跳过、不伪造制品
-    """
-    if 插件选项 is None:#缺省空选项
-        插件选项={}#空映射
-    def 转译(代码,标识):#在打包前降低装饰器（可落：跳过判定）
-        '非 TypeScript 或无装饰器则跳过；真正降低依赖 TS'
-        文件=标识.split('?',1)[0] if isinstance(标识,str) else 标识#去掉查询串
-        if not re.search(r'\.[cm]?tsx?$',文件) or not 装饰器语法.search(代码):#非 TS 或无装饰器
-            return None#跳过
-        raise NotImplementedError(#真正降低依赖 TS transpileModule
-            'typert插件.转译: 装饰器降低依赖 TypeScript transpileModule，本 Python 叶不实现'
-        )#结束
-    def 写包(打包选项):#写包后发射 typert 制品
-        '工作区或单包 generate 依赖分析器，显式失败'
-        目录=打包选项['dir'] if isinstance(打包选项,dict) and 'dir' in 打包选项 else getattr(打包选项,'dir',None)#输出目录
-        if 目录 is None:#没有输出目录
-            return#跳过
-        根=工作区根(目录)#向上找到工作区根
-        if 'mode' in 插件选项 and 插件选项['mode']=='workspace':#工作区模式
-            raise NotImplementedError(#禁止假实现 discover/generate
-                'typert插件.写包: 工作区模式 discover/generate 依赖硬缺口 analyzer，不可落'
-            )#结束
-        包目录=包根(目录,根)#找到正在打包的包根
-        if 包目录 is None:#找不到 package.json
-            return#跳过
-        清单=读清单(包目录)#读清单
-        if ('name' not in 清单) or 清单['name'] is None or not 有Typert导出(清单['exports'] if 'exports' in 清单 else None):#无包名或无 typert 导出
-            return#跳过
-        raise NotImplementedError(#禁止假实现 generate
-            'typert插件.写包: 工作区Typert生成器.generate 依赖硬缺口 analyzer，不可落'
-        )#结束
-    return {#组装插件对象
-        'name':'dsh-typert-generator',#rolldown 插件名
-        'transform':转译,#转译钩子
-        'writeBundle':写包,#写包钩子
-    }#结束插件
+    def 转译(代码,标识):
+        '非脚本或没有装饰器则跳过。有装饰器时需要 TypeScript 转译'
+        文件=标识.split('?',1)[0] if isinstance(标识,str) else 标识
+        if not isinstance(文件,str) or 脚本后缀.search(文件) is None or 装饰器语法.search(代码) is None:
+            return None
+        raise Typert代码输出错误('typert-generator: 装饰器降低需要 TypeScript 转译')
 
-def 输出制品(包目录,制品列表):#把制品写到包的 lib/
-    '写 typert.<face> 与可选 remote-client，并清理陈旧 Remote'
-    输出=os.path.join(包目录,'lib')#输出目录
-    os.makedirs(输出,exist_ok=True)#确保目录存在
-    是否已写远程=False#是否写过 remote-client 制品
-    for 制品 in 制品列表:#逐面制品
-        面=制品['face']#面名
-        with open(os.path.join(输出,'typert.'+面+'.js'),'w',encoding='utf-8',newline='\n') as 文件:#写 JS
-            文件.write(制品['js'])#正文
-        with open(os.path.join(输出,'typert.'+面+'.d.ts'),'w',encoding='utf-8',newline='\n') as 文件:#写声明
-            文件.write(制品['dts'])#正文
-        远程=制品['remote'] if 'remote' in 制品 else None#Host-for-Client Remote
-        if 远程 is not None:#有 Remote 制品
-            是否已写远程=True#记下已写
-            with open(os.path.join(输出,'typert.remote-client.js'),'w',encoding='utf-8',newline='\n') as 文件:#写 Remote JS
-                文件.write(远程['js'])#正文
-            with open(os.path.join(输出,'typert.remote-client.d.ts'),'w',encoding='utf-8',newline='\n') as 文件:#写 Remote 声明
-                文件.write(远程['dts'])#正文
-            with open(os.path.join(输出,'typert.remote-client.d.ts.map'),'w',encoding='utf-8',newline='\n') as 文件:#写 Remote map
-                文件.write(远程['dtsMap'])#正文
-    if not 是否已写远程 and any(制品['face']=='host' for 制品 in 制品列表):#宿主面但无 Remote
-        for 名 in ('typert.remote-client.js','typert.remote-client.d.ts','typert.remote-client.d.ts.map'):#陈旧文件
-            路径=os.path.join(输出,名)#绝对路径
-            if os.path.isfile(路径):#仍存在
-                os.remove(路径)#删除
+    def 输出工作区(根,面列表):
+        '先发现声明了 typert 导出的包，再只生成这些包'
+        生成器=工作区Typert生成器(根,{'检查诊断':False})
+        包列表=[]
+        for 候选 in 生成器.discover(面列表):
+            清单=读清单(os.path.join(根,候选['root']))
+            if 有Typert导出(清单['exports'] if 'exports' in 清单 else None):
+                包列表.append(候选['package'])
+        if len(包列表)==0:
+            return
+        for 制品 in 生成器.generate(包列表,面列表):
+            输出制品(os.path.join(根,制品['packageRoot']),[制品])
 
-def 读清单(包目录):#读包清单
-    '解析 package.json 为字典'
-    with open(os.path.join(包目录,'package.json'),'r',encoding='utf-8') as 文件:#读清单
-        return json.load(文件)#解析
+    def 写包(打包选项):
+        '写包后按包或按工作区输出制品。同一工作区根只输出一次'
+        目录=打包选项['dir'] if isinstance(打包选项,dict) and 'dir' in 打包选项 else None
+        if 目录 is None:
+            return
+        根=工作区根(目录)
+        if 根 in 已输出工作区:
+            return
+        面列表=插件选项['faces'] if 'faces' in 插件选项 else None
+        if 插件选项.get('mode')=='workspace':
+            输出工作区(根,面列表)
+            已输出工作区.add(根)
+            return
+        包目录=包根(目录,根)
+        if 包目录 is None:
+            return
+        清单=读清单(包目录)
+        if 'name' not in 清单 or 清单['name'] is None or not 有Typert导出(清单['exports'] if 'exports' in 清单 else None):
+            return
+        制品列表=按根制品.get(根)
+        if 制品列表 is None:
+            生成器=工作区Typert生成器(根,{'检查诊断':False})
+            制品列表=生成器.generate(None,面列表)
+            按根制品[根]=制品列表
+        输出制品(包目录,[制品 for 制品 in 制品列表 if 制品['package']==清单['name']])
 
-def 有Typert导出(导出字段):#清单是否声明了 typert 相关导出
-    '有 ./typert、./client/typert 或 ./remote 之一即真'
-    if 导出字段 is None or not isinstance(导出字段,dict):#非对象则无
-        return False#无
-    return './typert' in 导出字段 or './client/typert' in 导出字段 or './remote' in 导出字段#三选一
+    return {
+        'name':'dsh-typert-generator',
+        'transform':转译,
+        'writeBundle':写包,
+    }
 
-def 包根(起点,工作区):#从输出目录向上找包根
-    '最近含 package.json 且未越过工作区根的目录；否则 None'
-    当前=os.path.abspath(起点)#从绝对路径开始
-    工作区绝对=os.path.abspath(工作区)#工作区绝对路径
-    while 当前!=工作区绝对:#尚未走到工作区根
-        if os.path.isfile(os.path.join(当前,'package.json')):#找到最近清单
-            return 当前#包根
-        父=os.path.dirname(当前)#再上一层
-        if 父==当前:#已到文件系统根
-            break#退出
-        当前=父#继续
-    return None#走到工作区根仍没有
+def 输出制品(包目录,制品列表):
+    '写 typert.<face> 与可选 remote-client。宿主面没有 Remote 时删掉陈旧文件'
+    输出=os.path.join(包目录,'lib')
+    os.makedirs(输出,exist_ok=True)
+    是否已写远程=False
+    for 制品 in 制品列表:
+        面=制品['face']
+        写文本(os.path.join(输出,'typert.'+面+'.js'),制品['js'])
+        写文本(os.path.join(输出,'typert.'+面+'.d.ts'),制品['dts'])
+        远程=制品['remote'] if 'remote' in 制品 else None
+        if 远程 is not None:
+            是否已写远程=True
+            写文本(os.path.join(输出,'typert.remote-client.js'),远程['js'])
+            写文本(os.path.join(输出,'typert.remote-client.d.ts'),远程['dts'])
+            写文本(os.path.join(输出,'typert.remote-client.d.ts.map'),远程['dtsMap'])
+    if not 是否已写远程 and any(制品['face']=='host' for 制品 in 制品列表):
+        for 名 in ('typert.remote-client.js','typert.remote-client.d.ts','typert.remote-client.d.ts.map'):
+            路径=os.path.join(输出,名)
+            if os.path.isfile(路径):
+                os.remove(路径)
 
-def 工作区根(起点):#从输出目录向上找工作区根
-    '含 tsconfig.host.json 的目录；找不到则抛错'
-    当前=os.path.abspath(起点)#从绝对路径开始
-    while not os.path.isfile(os.path.join(当前,'tsconfig.host.json')):#尚未见到宿主 tsconfig
-        父=os.path.dirname(当前)#上一层
-        if 父==当前:#到文件系统根仍没有
-            raise FileNotFoundError('typert-generator: 在 '+起点+' 之上找不到工作区根')
-        当前=父#继续向上
-    return 当前#含 tsconfig.host.json 的目录
+def 写文本(路径,正文):
+    '以换行结尾的 UTF-8 文本写入，不把路径写进异常说明'
+    try:
+        文件=open(路径,'w',encoding='utf-8',newline='\n')
+    except OSError:
+        raise OSError('typert-generator: 文本写不进去') from None
+    try:
+        try:
+            文件.write(正文)
+        except OSError:
+            raise OSError('typert-generator: 文本写不进去') from None
+    finally:
+        文件.close()
+
+def 读清单(包目录):
+    '解析 package.json 为字典。读不到时说明里不带路径'
+    try:
+        文件=open(os.path.join(包目录,'package.json'),'r',encoding='utf-8')
+    except OSError:
+        raise OSError('typert-generator: 清单读不到') from None
+    try:
+        return json.load(文件)
+    finally:
+        文件.close()
+
+def 有Typert导出(导出字段):
+    '有 ./typert、./client/typert 或 ./remote 之一即真。空对象为假'
+    if not isinstance(导出字段,dict):
+        return False
+    return './typert' in 导出字段 or './client/typert' in 导出字段 or './remote' in 导出字段
+
+def 包根(起点,工作区):
+    '最近含 package.json 且未越过工作区根的目录。走到工作区根仍没有则返回 None'
+    当前=os.path.abspath(起点)
+    工作区绝对=os.path.abspath(工作区)
+    while 当前!=工作区绝对:
+        if os.path.isfile(os.path.join(当前,'package.json')):
+            return 当前
+        父=os.path.dirname(当前)
+        if 父==当前:
+            break
+        当前=父
+    return None
+
+def 工作区根(起点):
+    '含 tsconfig.host.json 的目录。找不到时说明里不带起点路径'
+    当前=os.path.abspath(起点)
+    while not os.path.isfile(os.path.join(当前,'tsconfig.host.json')):
+        父=os.path.dirname(当前)
+        if 父==当前:
+            raise FileNotFoundError('typert-generator: 找不到工作区根')
+        当前=父
+    return 当前

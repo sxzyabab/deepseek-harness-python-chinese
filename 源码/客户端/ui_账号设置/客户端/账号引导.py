@@ -39,6 +39,8 @@ class 账号引导:
         设=属性.get('setOnboarding')
         if 设 is not None:
             设(True)
+        if isinstance(属性,dict) and 't' in 属性:
+            自身.渲染()#槽位只调用构造，键齐了就画
 
     def 更新(自身,属性):
         '刷新'
@@ -81,7 +83,8 @@ class 账号引导:
         }
         if 自身.对话框 is None:
             自身.对话框=登录对话框(面)
-        return 自身.对话框(面)
+        自身.对话框.更新(面)
+        自身.对话框.渲染()
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

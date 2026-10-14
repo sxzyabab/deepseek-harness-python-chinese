@@ -4,7 +4,7 @@ from .json块 import json块,最大字节,默认截断标签#JSON 块
 from .Markdown文本 import Markdown文本,定稿渲染,流式渲染器#助手 Markdown
 from .渲染 import (#mdast 渲染器
     建引用目标,收集引用目标,渲染块列表,包块子节点,渲染脚注区,
-)#渲染
+)
 from .解析 import 解析GFM,解析GFM含数学,装载流式解析,装载定稿解析#文法
 from .增量 import 增量Markdown解析器,未稳定尾部块数#增量
 from .纯文本 import 抽取Markdown纯文本#纯文本

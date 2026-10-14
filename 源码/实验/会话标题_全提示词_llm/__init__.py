@@ -1,5 +1,5 @@
 '全提示词模型标题提供方'
-from ..会话标题_llm import 登记会话标题llm提供方,会话标题llm配置模式
+from ...会话.会话标题_llm import 登记会话标题llm提供方,会话标题llm配置模式
 
 包名='@deepseek-ai/dsh-session-title-all-prompts-llm'
 名称='session-title-all-prompts-llm'

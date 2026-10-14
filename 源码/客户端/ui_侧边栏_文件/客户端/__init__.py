@@ -1,7 +1,7 @@
 from .文案 import 中文,英文,侧栏文件文案键
 from .定义 import 文件种类,文件标识,文件定义
 from .存储 import 创建文件存储
-from ..异常 import 文件树错误#本包异常
+from ..异常 import 文件树错误
 from .面 import 已中止,创建列举,子路径,文件面
 from .文件体 import (
     排序条目,
@@ -41,12 +41,10 @@ __all__=[
     '文件标题',
 ]
 
-#常量
 #线路字面量：文案命名空间
 命名空间='sidebarFiles'
 依赖=['slots','locale','sidebarRightTabs','remote','remote.workspaceFiles']
 
-#
 def 应用(上下文):
     '登记类型与词典，再挂正文和芯片标题。存储按会话铸造，不在这里实例化'
     翻译=上下文.locale.bind(命名空间)
@@ -76,6 +74,7 @@ def 应用(上下文):
                 'locale':命名空间,
                 'store':存储,
                 'inject':注入面,
+                'children':{'sidebar.right.tab.files.actions':{'kind':'list','scope':'session'}},#在应用中打开
             },文件体)
         return 上下文.slots.inject('sidebar.right.pane.tab',登记正文)
 

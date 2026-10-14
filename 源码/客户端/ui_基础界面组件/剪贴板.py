@@ -10,10 +10,10 @@ def 写剪贴板(文本):#写入宿主剪贴板
         文档=document#document
     except NameError:#非浏览器
         文档=None#无
-    if 导航 is not None:#有 navigator
+    if 导航 is not None:
         剪贴=getattr(导航,'clipboard',None)#clipboard
         写入=getattr(剪贴,'writeText',None) if 剪贴 is not None else None#writeText
-        if 写入 is not None:#有异步 API
+        if 写入 is not None:
             try:#尝试
                 写入(文本)#同步写入
                 return True#接受
@@ -33,7 +33,7 @@ def 写剪贴板(文本):#写入宿主剪贴板
         框.value=文本#填入
         框.setAttribute('readonly','')#只读
         样式=getattr(框,'style',None)#样式
-        if 样式 is not None:#有
+        if 样式 is not None:
             样式.position='fixed'#移出流
             样式.left='-9999px'#藏起
         体.appendChild(框)#插入

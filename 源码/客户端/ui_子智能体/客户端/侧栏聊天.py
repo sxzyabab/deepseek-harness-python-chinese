@@ -1,6 +1,19 @@
+import importlib.resources as 包资源
 from urllib.parse import quote as 百分编码,unquote as 百分解码,urlparse as 解析网址,parse_qs as 解析查询#地址
+from nicegui import ui as 界面
+from ..异常 import 页面失败文案
 
 __all__=['登记侧栏聊天','子智能体聊天地址','解析子智能体聊天地址','子智能体聊天标识']
+
+def _读样式():
+    '读同目录样式。失败时异常文案只有样式读不到，不含路径'
+    try:
+        原文=包资源.files(__package__).joinpath('侧栏聊天.module.css').read_text(encoding='utf-8')
+    except OSError:
+        raise OSError('样式读不到') from None
+    return 原文.replace('.root','.subagent-chat-root')
+
+界面.add_css(_读样式(),shared=True)
 
 子智能体聊天标识='@deepseek-ai/dsh-client-ui-subagent'
 子智能体聊天地址前缀='dsh-resource://subagentchat/session/'
@@ -41,7 +54,8 @@ def 子智能体聊天资源提供者(会话面):
         信号=选项['signal'] if 'signal' in 选项 else None
         地址=解析子智能体聊天地址(资源地址)
         if 地址 is None:
-            raise RuntimeError('ui-subagent: invalid chat resource address "'+str(资源地址)+'"')
+            说明=页面失败文案('ui-subagent: invalid chat resource address "'+str(资源地址)+'"')
+            raise RuntimeError(说明)
         if 信号 is not None and 信号.is_set():
             return
         引用=会话面.retain(地址,{'source':'sidebarChat','signal':信号})
@@ -60,32 +74,51 @@ def 固定聊天对话视图(属性):
 class 对话槽面板:
     '子会话 Conversation 宿主'
     def __init__(自身,属性):
-        '记下'
-        自身.属性=属性
+        '记下。槽位只调用构造，键齐了就画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        需要=('useSession','useConversation','useSessions','sessionId','renderFactorySlot')
+        if all(键 in 自身.属性 for 键 in 需要):
+            自身.渲染()
     def 更新(自身,属性):
         '刷新'
-        自身.属性=属性
+        自身.属性=属性 if isinstance(属性,dict) else {}
     def 渲染(自身):
         '嵌入 variant'
+        需要=('useSession','useConversation','useSessions','sessionId','renderFactorySlot')
+        if not all(键 in 自身.属性 for 键 in 需要):#槽位还没齐
+            return#不画
         用会话=自身.属性['useSession']
         用对话=自身.属性['useConversation']
         用会话表=自身.属性['useSessions']
         会话标识=自身.属性['sessionId']
-        会话=用会话(lambda 值:值)
-        对话=用对话(lambda 值:值)
-        活跃=len(对话['activeTargets'])>0 or ((not 会话['blank']) and (not 会话['awaitingFirstTurn'])) or 会话['running']
-        壳阶段='active' if 活跃 else ('engaging' if 会话['promptAttempted'] else 'blank')
+        def 原样(值):
+            '原样返回快照'
+            return 值
+        会话=用会话(原样)
+        对话=用对话(原样)
+        if not isinstance(会话,dict) or not isinstance(对话,dict):#快照还没到
+            return#不画
+        目标=对话['activeTargets'] if 'activeTargets' in 对话 else ()#空集与缺键都是没有目标
+        空白='blank' in 会话 and 会话['blank'] is True#显式空白
+        等待='awaitingFirstTurn' in 会话 and 会话['awaitingFirstTurn'] is True#显式等待首轮
+        在跑='running' in 会话 and 会话['running'] is True#显式在跑
+        活跃=len(目标)>0 or ((not 空白) and (not 等待)) or 在跑
+        尝试='promptAttempted' in 会话 and 会话['promptAttempted'] is True#显式已尝试
+        壳阶段='active' if 活跃 else ('engaging' if 尝试 else 'blank')
         def 选自(快照):
             'blank'
             行=快照['byId'][会话标识] if 'byId' in 快照 and 会话标识 in 快照['byId'] else None
             return 行['blank'] if 行 is not None and 'blank' in 行 else None
         摘要空=用会话表(选自)
-        子=会话['subagent'] if 'subagent' in 会话 else None
-        父待定=(子 is not None and 子['address']['mode']=='continuable' and ('parentAvailable' not in 子 or 子['parentAvailable'] is None))
-        结算中=(壳阶段=='blank' and 会话['openState']=='loading' and 摘要空 is not True) or 父待定
-        英雄=壳阶段=='blank' and (会话['openState']=='open' or 摘要空 is True)
+        子=会话['subagent'] if 'subagent' in 会话 and isinstance(会话['subagent'],dict) else None
+        地址=子['address'] if 子 is not None and 'address' in 子 and isinstance(子['address'],dict) else None
+        父待定=(地址 is not None and 地址.get('mode')=='continuable' and ('parentAvailable' not in 子 or 子['parentAvailable'] is None))
+        开态=会话['openState'] if 'openState' in 会话 else None
+        结算中=(壳阶段=='blank' and 开态=='loading' and 摘要空 is not True) or 父待定
+        英雄=壳阶段=='blank' and (开态=='open' or 摘要空 is True)
         阶段='settling' if 结算中 else ('hero' if 英雄 else 'active')
-        return 自身.属性['renderFactorySlot']('conversation.content',{'variant':'embedded','phase':阶段,'hero':英雄},{'slots':{'views':固定聊天对话视图}})
+        with 界面.column().classes('sidebar-chat-panel subagent-chat-root'):
+            自身.属性['renderFactorySlot']('conversation.content',{'variant':'embedded','phase':阶段,'hero':英雄},{'slots':{'views':固定聊天对话视图}})
     def __call__(自身,属性=None):
         '对齐组件调用'
         if 属性 is not None:
@@ -95,22 +128,33 @@ class 对话槽面板:
 class 侧栏聊天标签:
     '把聊天资源的子引用包进 Conversation 槽'
     def __init__(自身,属性):
-        '记下'
-        自身.属性=属性
+        '记下。槽位只调用构造，键齐了就画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        if 'useTabInfo' in 自身.属性 and 'useResource' in 自身.属性:
+            自身.渲染()
     def 更新(自身,属性):
         '刷新'
-        自身.属性=属性
+        自身.属性=属性 if isinstance(属性,dict) else {}
     def 渲染(自身):
-        '资源未就绪则空'
+        '资源未就绪则空；会话区里再画对话槽'
+        if 'useTabInfo' not in 自身.属性 or 'useResource' not in 自身.属性:#槽位还没齐
+            return#不画
         标签=自身.属性['useTabInfo']()['tab']
         资源=自身.属性['useResource'](标签['contentId'])
-        值=资源['value'] if 'value' in 资源 else None
+        值=资源['value'] if isinstance(资源,dict) and 'value' in 资源 else None
         if 值 is None:
-            return {'type':'sidebar-chat','children':None}
-        return {
-            'type':'sidebar-chat',
-            'children':自身.属性['SessionProvider']({'session':值['reference']},自身.属性['renderSlot']('sidebar.chat.conversation',{})),
-        }
+            return
+        引用=值['reference'] if isinstance(值,dict) and 'reference' in 值 else None
+        def 画对话():
+            '在会话作用域里画嵌入对话'
+            if 'renderSlot' in 自身.属性:
+                自身.属性['renderSlot']('sidebar.chat.conversation',{})
+        with 界面.column().classes('sidebar-chat subagent-chat-root'):
+            提供=自身.属性['SessionProvider'] if 'SessionProvider' in 自身.属性 else None
+            if callable(提供) and 引用 is not None:
+                提供({'session':引用,'children':画对话})
+            else:
+                画对话()
     def __call__(自身,属性=None):
         '对齐组件调用'
         if 属性 is not None:

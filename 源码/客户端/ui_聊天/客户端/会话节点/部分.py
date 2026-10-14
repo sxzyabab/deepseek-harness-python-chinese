@@ -76,5 +76,5 @@ class 部分累加器:#部分累加器
         '块数组引用仅在变更后更换'
         if 自身.已变:#需重建
             自身.快照={'turn':自身.回合,'step':自身.步,'blocks':[块 for 块 in 自身.块列表 if 块 is not None]}#压缩
-            自身.已变=False#清
+            自身.已变=False
         return 自身.快照#缓存

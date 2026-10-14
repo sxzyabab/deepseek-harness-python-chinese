@@ -1,5 +1,5 @@
-import base64,threading#编码与并发
-from ...异常 import 检查器错误#本包错误
+import base64,builtins,threading,time#编码、全局、并发与墙上时钟
+from ...异常 import 检查器错误,失败说明#本包错误
 
 __all__=['网络主题','请求采集选项','请求观察器','安装请求观察器']#仅中文公开名
 
@@ -23,13 +23,14 @@ class 请求观察器:#fetch观察器
         raise NotImplementedError#子类实现
 
 def 渲染错误(错误):#渲染错误
-    '渲染错误'
-    if isinstance(错误,Exception):#标准错误
-        return f'{type(错误).__name__}: {错误}'#标准错误
+    '渲染错误。文案不含绝对路径'
     try:#字符串化
-        return str(错误)#转串
+        文=失败说明(错误)#去路径
     except Exception:#错误对象的 str/repr 什么都可能抛，契约未定所以收不窄
         return 'unrenderable fetch error'#兜底文案
+    if isinstance(错误,Exception):#标准错误
+        return f'{type(错误).__name__}: {文}'#标准错误
+    return 文#转串
 
 def 头条目(头):#头条目
     '头条目'
@@ -71,7 +72,6 @@ def 采集体(体,上限,分块上限,中止事件,发射):#采集body
 
 def 安装请求观察器(发布器,选项):#安装fetch观察器
     '为之后经全局 fetch 的每次调用安装完整 fetch 采集'
-    import builtins#全局
     try:#原 fetch
         原始=fetch#原fetch
     except NameError:#未注入
@@ -101,7 +101,7 @@ def 安装请求观察器(发布器,选项):#安装fetch观察器
         有体=getattr(输入,'body',None) is not None#Request.body
         if not 有体 and 初始化 is not None:#再看 init
             有体=初始化.get('body') is not None#init.body
-        发布器.发布('fetch/start',{'requestId':请求标识,'url':网址,'method':方法,'headers':头条目(头),'hasBody':有体,'wallTimeMs':__import__('time').time()*1000})#开始
+        发布器.发布('fetch/start',{'requestId':请求标识,'url':网址,'method':方法,'headers':头条目(头),'hasBody':有体,'wallTimeMs':time.time()*1000})#开始
         def 发布失败(错误):#原 fetch 失败后调用
             '发布 fetch/error 后把原错误交还调用方'
             发布器.发布('fetch/error',{'requestId':请求标识,'message':渲染错误(错误),'canceled':中止.is_set()})#错误

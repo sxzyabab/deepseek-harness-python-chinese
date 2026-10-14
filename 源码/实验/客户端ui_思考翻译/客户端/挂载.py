@@ -15,14 +15,36 @@ __all__=['依赖','挂载思考翻译','登记界面']
 
 组合包名='@deepseek-ai/dsh-experimental-cot-translation-bundle'
 
+def 失败说明(错误):
+    '失败句去掉绝对路径，其余原文保留'
+    if isinstance(错误,BaseException) and len(错误.args)>0:
+        原文=str(错误.args[0])
+    else:
+        原文=str(错误)
+    留下=[]
+    for 词 in 原文.split():
+        去引=词.strip('\'"()[]{}<>')
+        统一=去引.replace('\\','/')
+        if 统一.startswith('/') or 统一.startswith('~'):
+            continue
+        if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':
+            continue
+        留下.append(词)
+    说明=' '.join(留下).strip()
+    if 说明!='':
+        return 说明
+    if isinstance(错误,BaseException):
+        return type(错误).__name__
+    return '失败'
+
 def 抛结果错误(错误):
-    'Remote 失败对象不是异常时包成 RuntimeError'
+    'Remote 失败对象不是异常时包成 RuntimeError。文案不含绝对路径'
     if isinstance(错误,BaseException):
         raise 错误
     if isinstance(错误,dict):
         消息=错误.get('message')
-        raise RuntimeError(str(错误) if 消息 is None else str(消息))
-    raise RuntimeError(str(错误))
+        raise RuntimeError(失败说明(错误) if 消息 is None else 失败说明(消息))
+    raise RuntimeError(失败说明(错误))
 
 def 调用无参(函数,结果=None):
     '期约回调丢掉兑现值，再调用无参函数'

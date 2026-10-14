@@ -1,4 +1,4 @@
-__all__=[#仅中文公开名
+__all__=[
     '工具调用属主属性','工具调用视图属性','工具树属性','工具详情属性',
     '槽名工具调用视图','槽名聊天节点','槽名详情工具','槽名工具调用图片',
 ]
@@ -20,13 +20,13 @@ __all__=[#仅中文公开名
     'loadImage',#会话授权图加载器
     'useDisclosure',#披露席位
     'inspect',#轨迹视图检视回调
-)#属主字段结束
+)
 
 工具调用视图属性=工具调用属主属性#原子工具视图完整 props（加 runtime/locale 由宿主叠）
 
 工具树属性=(#tool-call Chat 节点运行时套件
     'callId','toolName','block','cwd','openFile','inspectCall',
     'renderSlot','selected','children','t','sessionId','useSessions',
-)#树 props
+)
 
 工具详情属性=('block','t')#详情工具输出运行时套件与会话文案席

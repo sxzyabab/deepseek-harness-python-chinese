@@ -17,14 +17,14 @@ def 请求提示锚(匹配项,先前,是初始):#计算提示词锚点
         return 事件['seq']#事件
     if ('step' in 步位) and 步位['step']==1:#首步
         回合起=None#回合起
-        if 'start' in 回合位 and 回合位['start'] is not None and 'seq' in 回合位['start']:#有
+        if 'start' in 回合位 and 回合位['start'] is not None and 'seq' in 回合位['start']:
             回合起=回合位['start']['seq']#回合起
         步起=None#步起
-        if 'start' in 步位 and 步位['start'] is not None and 'seq' in 步位['start']:#有
+        if 'start' in 步位 and 步位['start'] is not None and 'seq' in 步位['start']:
             步起=步位['start']['seq']#步起
         return 回合起 if 回合起 is not None else (步起 if 步起 is not None else 事件['seq'])#优先回合
     步起=None#步起
-    if 'start' in 步位 and 步位['start'] is not None and 'seq' in 步位['start']:#有
+    if 'start' in 步位 and 步位['start'] is not None and 'seq' in 步位['start']:
         步起=步位['start']['seq']#步起
     return 步起 if 步起 is not None else 事件['seq']#步起
 
@@ -41,9 +41,9 @@ def 系统消息定义(检视):#系统消息定义工厂
     def 匹配(事件):#认领系统消息或非 append 表面操作
         'system/message 或位置替换'
         if 事件['type']=='system/message':#系统消息
-            return {'id':str(事件['seq']),'role':'start'}#开
+            return {'id':str(事件['seq']),'role':'start'}
         if 'surfaceOp' in 事件 and 事件['surfaceOp']!='append':#非 append
-            return {'id':str(事件['seq']),'role':'start'}#开
+            return {'id':str(事件['seq']),'role':'start'}
         return None#不匹配
     def 开始(_上下文,匹配项,读取器):#起始状态
         '解释表面'
@@ -78,7 +78,7 @@ def 请求提示定义(检视):#请求提示词定义工厂
     def 匹配(事件):#认领请求头
         'request/header'
         if 事件['type']=='request/header':#头
-            return {'id':str(事件['seq']),'role':'start'}#开
+            return {'id':str(事件['seq']),'role':'start'}
         return None#不匹配
     def 开始(上下文,匹配项,读取器):#起始状态
         '检视提示词并决定是否显示行'
@@ -100,7 +100,7 @@ def 请求提示定义(检视):#请求提示词定义工厂
         先前提示=先前['prompt'] if 先前 is not None and 'prompt' in 先前 else None#先前提示
         检视结果=检视(先前提示,事件,系统)#检视（带系统节点）
         变更=None#变更种
-        if 'change' in 检视结果 and 检视结果['change'] is not None and 'kind' in 检视结果['change']:#有
+        if 'change' in 检视结果 and 检视结果['change'] is not None and 'kind' in 检视结果['change']:
             变更=检视结果['change']['kind']#变更种
         原因=数据['reason'] if 'reason' in 数据 else None#原因
         开系列=数据['startsSeries'] if 'startsSeries' in 数据 else None#开系列

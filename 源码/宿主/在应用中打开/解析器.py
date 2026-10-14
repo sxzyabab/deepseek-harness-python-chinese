@@ -2,8 +2,9 @@
 import errno,os,re,subprocess,sys,threading#错误码、路径、正则、派生、平台与看护
 from dataclasses import dataclass#已解析启动与注册表视图
 from pathlib import Path#家目录
-from ...工具.原生命令 import 运行原生命令#无 shell 宿主命令
+from ...工具.原生命令 import 运行原生命令,可打开原生路径,打开原生路径#无 shell 宿主命令与打开器
 from ...工具.原生命令.异常 import 原生命令错误
+from ...工具.原生命令.桌面条目 import 桌面条目字段,桌面数据目录#共享桌面字段与数据目录
 from ...子进程.子进程 import 擦洗父环境#凭证擦洗环境
 from .目录 import 在应用中打开目录,路径令牌,参数启动#目录数据与 argv 启动
 from .异常 import 在应用中打开错误#本包异常基类
@@ -100,69 +101,6 @@ def 限时信号(毫秒):
         定时.daemon=True#不挡退出
         定时.start()#开始计时
     return 信号#返回信号
-
-def 环境有值(值):#非空环境标记
-    '环境标记是否为非空字符串'
-    return 值 is not None and 值!=''#非空
-
-def 是否WSL(平台,环境,内核发行=None):#区分 WSL 与桌面 Linux
-    '用进程与内核标记区分 WSL'
-    if 平台!='linux':#非 Linux
-        return False#不是
-    if 环境有值(环境.get('WSL_DISTRO_NAME') if isinstance(环境,dict) else None):#发行版名
-        return True
-    if 环境有值(环境.get('WSL_INTEROP') if isinstance(环境,dict) else None):#互通
-        return True
-    发行=内核发行 if 内核发行 is not None else (os.uname().release if hasattr(os,'uname') else '')#内核
-    return 'microsoft' in str(发行).lower()#微软内核
-
-def 能否打开原生路径(内部=None):#桌面 open verb 是否可达
-    '本机是否可能把路径交给原生打开器'
-    内部={} if 内部 is None else 内部#默认空
-    平台=内部['平台'] if '平台' in 内部 else 节点平台()#平台
-    if 平台=='darwin' or 平台=='win32':#桌面 OS
-        return True#可达
-    if 平台!='linux':#其它
-        return False#不可达
-    环境=内部['环境'] if '环境' in 内部 else dict(os.environ)#环境
-    return 是否WSL(平台,环境) or 环境有值(环境.get('DISPLAY')) or 环境有值(环境.get('WAYLAND_DISPLAY'))#显示或 WSL
-
-def powershell单引字面量(路径):#PowerShell 单引号字面量
-    '把路径编成 PowerShell 单引号字面量'
-    return "'"+路径.replace("'","''")+"'"#加倍内嵌引号
-
-def 打开Windows路径(路径,信号,运行):#Invoke-Item
-    '经注册的桌面应用打开 Windows 可解析路径'
-    运行('powershell.exe',[#无配置文件
-        '-NoProfile','-Command',
-        'Invoke-Item -LiteralPath '+powershell单引字面量(路径),
-    ],信号)#运行
-
-def 打开原生路径(路径,信号,内部=None):#OS shell open verb
-    '用操作系统默认应用打开文件系统路径（目录走 shell open）'
-    内部={} if 内部 is None else 内部#默认空
-    平台=内部['平台'] if '平台' in 内部 else 节点平台()#平台
-    运行=内部['运行'] if '运行' in 内部 else 运行原生命令#运行器
-    环境=内部['环境'] if '环境' in 内部 else dict(os.environ)#环境
-    if 平台=='darwin':#macOS
-        运行('open',[路径],信号)#open
-        return#完成
-    if 平台=='win32':#Windows
-        打开Windows路径(路径,信号,运行)#Invoke-Item
-        return#完成
-    if 平台=='linux':#Linux
-        if 是否WSL(平台,环境):#WSL → Windows 桌面
-            结果=运行('wslpath',['-w',路径],信号)#翻译
-            if 信号.is_set():#已中止
-                raise 在应用中打开错误('The operation was aborted')#中止
-            窗口路径=结果['stdout'].replace('\r','').replace('\n','')#去换行
-            if 窗口路径=='':#空
-                raise 在应用中打开错误('wslpath returned no Windows path')#失败
-            打开Windows路径(窗口路径,信号,运行)#打开
-            return#完成
-        运行('xdg-open',[路径],信号)#桌面 Linux
-        return#完成
-    raise 在应用中打开错误('native path opener is unsupported on '+平台)#不支持
 
 def 分离启动应用(命令,参数列表,选项):#detached GUI 启动
     '分离派生一条 GUI 启动：擦洗环境、无 stdio 管道，看护窗口内早失败则拒绝'
@@ -374,33 +312,16 @@ def 记录启动器(记录,相对启动器,事实):#Uninstall → exe
 
 def 解析桌面条目文本(文本):#parseDesktopEntry
     '解析 [Desktop Entry] 的 Exec/TryExec/Icon'
-    在条目内=False#是否在段内
-    执行=尝试执行=图标=None#字段
-    for 行 in 文本.splitlines():#逐行
-        修剪=行.strip()#修剪
-        if 修剪.startswith('['):#段头
-            在条目内=修剪=='[Desktop Entry]'#目标段
-            continue#下一段
-        if not 在条目内:#段外
-            continue#跳过
-        分隔=修剪.find('=')#键值
-        if 分隔<0:#无等号
-            continue#跳过
-        键=修剪[:分隔].strip()#键
-        值=修剪[分隔+1:].strip()#值
-        if 键=='Exec':#Exec
-            执行=值#记下
-        elif 键=='TryExec':#TryExec
-            尝试执行=值#记下
-        elif 键=='Icon':#Icon
-            图标=值#记下
-    return 桌面条目(执行=执行,尝试执行=尝试执行,图标=图标)#条目
+    字段=桌面条目字段(文本)#主节字段
+    return 桌面条目(#只留这三项
+        执行=字段.get('Exec'),#Exec
+        尝试执行=字段.get('TryExec'),#TryExec
+        图标=字段.get('Icon'),#Icon
+    )#条目
 
 def xdg数据目录列表(事实):#XDG data dirs
     '按优先级的 XDG 数据目录'
-    数据家=事实.环境['XDG_DATA_HOME'] if 'XDG_DATA_HOME' in 事实.环境 and 事实.环境['XDG_DATA_HOME'] is not None else os.path.join(事实.家目录,'.local','share')#家
-    数据目录串=事实.环境['XDG_DATA_DIRS'] if 'XDG_DATA_DIRS' in 事实.环境 and 事实.环境['XDG_DATA_DIRS'] is not None else '/usr/local/share:/usr/share'#目录串
-    return [数据家]+[段 for 段 in 数据目录串.split(':') if 段!='']#列表
+    return 桌面数据目录(事实.家目录,事实.环境)#共享解析
 
 def 查找桌面条目(桌面标识,事实):#按 id 找 .desktop
     '在 XDG applications 下按 id 读 desktop 条目'
@@ -484,7 +405,7 @@ def 定位(定位器,探测超时毫秒,注册表,事实):#locate one
             图标=图标来源(种类='app-bundle',路径=包),#图标
         )#结束
     if 种类=='cli':#PATH
-        if 定位器.需要桌面 is True and (not 能否打开原生路径({'平台':事实.平台,'环境':事实.环境})):#无桌面
+        if 定位器.需要桌面 is True and (not 可打开原生路径({'platform':事实.平台,'env':事实.环境})):#无桌面
             return None#不提供
         找到=事实.解析可执行(定位器.名称)#解析
         if 找到 is None:#未找到
@@ -625,7 +546,7 @@ def 执行外壳打开(路径,看护毫秒,事实):#shell-open
     def 工作():#打开线程
         '调用原生打开器'
         try:#打开
-            打开原生路径(路径,信号,{'平台':事实.平台,'运行':事实.运行,'环境':事实.环境})#打开
+            打开原生路径(路径,信号,{'platform':事实.平台,'run':事实.运行,'env':事实.环境})#打开
             结局['值']='launched'#成功
         except (OSError,原生命令错误,在应用中打开错误) as 错误:
             结局['值']='missing' if 是否可执行缺失(错误) else 'failed'

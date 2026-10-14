@@ -9,6 +9,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'clientSyncFailed':'本页面的插件未能完成同步；服务端的启用状态保持不变。',#本页同步失败
     'clientSyncRetry':'重试本页面同步',#重试本页同步
     'error':'暂时无法读取插件。',#读取失败
+    'metadataError':'包元信息错误：{error}',#包元信息错误
     'retry':'重试',#重试
     'search':'搜索插件',#搜索框占位
     'empty':'暂无插件。',#无插件
@@ -51,6 +52,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'clientSyncFailed':'Some plugins could not sync on this page. Host enablement is unchanged.',#本页同步失败
     'clientSyncRetry':'Retry this page',#重试本页同步
     'error':'Plugins are temporarily unavailable.',#读取失败
+    'metadataError':'Package metadata error: {error}',#包元信息错误
     'retry':'Retry',#重试
     'search':'Search plugins',#搜索框占位
     'empty':'No plugins are available.',#无插件
@@ -71,7 +73,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'enabledTag':'Enabled',#已启用徽章
     'disabledTag':'Disabled',#已停用徽章
     'conditionalTag':'Conditional',#条件启用徽章
-    'presetEnabledTag':'Enabled via presets',#预设中启用徽章
+    'presetEnabledTag':'Via presets',#预设中启用徽章
     'failedTag':'Failed',#启动失败徽章
     'moduleLabel':'Module',#模块完整名标签
     'fromPreset':'From',#来自预设

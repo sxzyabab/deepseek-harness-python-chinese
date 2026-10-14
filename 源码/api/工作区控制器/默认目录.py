@@ -2,9 +2,11 @@
 import os,sys,re
 from pathlib import PurePosixPath,PureWindowsPath
 from ...工具.原生命令 import 运行原生命令,已中止
-from .异常 import 文档目录错误#本包异常
+from .异常 import 文档目录错误,去掉敏感文案#本包异常
 
-__all__=['校验文档目录','默认工作区目录']
+__all__=['校验文档目录','默认工作区目录','默认工作区目录名']
+
+默认工作区目录名='default-workspace'#首次使用目录名，不随界面语言改变
 
 换行尾=re.compile(r'[\r\n]+\Z',re.ASCII)
 
@@ -21,11 +23,14 @@ def 校验文档目录(目录,平台=None):
     解析=路径(目录)
     根=str(解析.anchor)
     if not 解析.is_absolute() or (平台=='win32' and (根=='\\' or 根=='/')):
-        raise 文档目录错误("Documents directory must be fully qualified: '"+目录+"'")
+        说明=去掉敏感文案("Documents directory must be fully qualified: '"+str(目录)+"'")
+        if 说明=='':
+            说明='Documents directory must be fully qualified'
+        raise 文档目录错误(说明)
     return str(解析)
 
-def 默认工作区目录(目录名,文档目录,信号,内部=None):
-    '解析首次使用目录，不创建文件。内部可替换平台与命令运行器'
+def 默认工作区目录(文档目录,信号,内部=None):
+    '解析首次使用目录，不创建文件。目录名固定，内部可替换平台与命令运行器'
     if 内部 is None:
         内部={}
     平台=内部['platform'] if 'platform' in 内部 else sys.platform
@@ -55,4 +60,4 @@ def 默认工作区目录(目录名,文档目录,信号,内部=None):
             raise 文档目录错误('system Documents directory is unavailable')
     目录=校验文档目录(目录,平台)
     若已中止则抛出(信号)
-    return str(路径(目录)/'deepseek-harness'/目录名)
+    return str(路径(目录)/'deepseek-harness'/默认工作区目录名)

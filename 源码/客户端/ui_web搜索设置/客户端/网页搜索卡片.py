@@ -1,28 +1,34 @@
-from ...ui_插件设置.字段 import 取值字段,密钥字段
+from nicegui import ui as 界面
+from ...ui_插件设置.字段 import 取值字段,密钥字段,画出设置表单,样式表 as 表单样式
 from .文案 import 表单标签
 
 __all__=['网页搜索卡片']
 
+界面.add_css(表单样式,shared=True)
+
 class 网页搜索卡片:
     '密钥、接口地址与单次搜索次数页'
     def __init__(自身,属性):
-        '记下 props'
+        '记下 props。槽位只调用构造，键齐了就画。'
         自身.属性=属性
+        if isinstance(属性,dict) and 't' in 属性 and 'view' in 属性 and 'useWebSearchCard' in 属性:
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'
         自身.属性=属性
 
     def 渲染(自身):
-        '摘要或表单'
+        '摘要一行；表单离开页面时丢掉暂存'
         翻译=自身.属性['t']
         def 全量(快照):
             '整份卡片快照'
             return 快照
         状态=自身.属性['useWebSearchCard'](全量)
         if 自身.属性['view']=='summary':
-            return 翻译('description')
-        禁用=not 状态['writable']
+            界面.label(翻译('description'))
+            return
+        禁用=not 状态.get('writable')
         def 改密钥(文):
             '改密钥草稿'
             自身.属性['edit']('apiKey',文)
@@ -39,7 +45,8 @@ class 网页搜索卡片:
             '恢复搜索次数默认'
             自身.属性['resetField']('maxUses')
         已配=状态['apiKeyConfigured']
-        控件=[
+        def 画控件():
+            '密钥、接口地址、单次搜索次数'
             密钥字段({
                 'id':'plugin-config-web-search-key',
                 'label':翻译('apiKey'),
@@ -49,7 +56,7 @@ class 网页搜索卡片:
                 'configured':已配,
                 'stateLabel':翻译('apiKeySet') if 已配 else 翻译('apiKeyUnset'),
                 'onEdit':改密钥,
-            })(),
+            }).渲染()
             取值字段({
                 'id':'plugin-config-web-search-endpoint',
                 'label':翻译('baseUrl'),
@@ -61,7 +68,7 @@ class 网页搜索卡片:
                 **状态['baseURL'],
                 'onEdit':改地址,
                 'onReset':复地址,
-            })(),
+            }).渲染()
             取值字段({
                 'id':'plugin-config-web-search-max-uses',
                 'label':翻译('maxUses'),
@@ -74,16 +81,8 @@ class 网页搜索卡片:
                 **状态['maxUses'],
                 'onEdit':改次数,
                 'onReset':复次数,
-            })(),
-        ]
-        return {
-            'type':'settings-form',
-            'labels':表单标签(翻译),
-            'state':状态,
-            'onSave':自身.属性['save'],
-            'onDiscard':自身.属性['discard'],
-            'children':控件,
-        }
+            }).渲染()
+        画出设置表单(表单标签(翻译),状态,自身.属性.get('discard'),自身.属性['save'],画控件)
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

@@ -5,7 +5,7 @@ from ...依赖.cordis.服务 import 服务#服务基类
 from .http桥 import 桥接#HTTP 桥
 from .接口请求信任 import 是否受信任接口请求#请求信任闸
 from .接口路径 import 接口路径#/api 路径常量
-from .异常 import 连接错误#本包异常
+from .异常 import 连接错误,页面失败文案#本包异常；页面说明不含绝对路径
 from .rpc import 连接权威_回环#回环权威
 
 __all__=['宿主连接服务']#仅中文公开名
@@ -82,7 +82,7 @@ def rpcFetch处理(通道,处理函数):#把 RPC handler 适配成 FetchHandler
             结果=处理函数(端点,载荷,信号)#同步 handler
             return 完整响应(rpc标识,结果)#包成 server-response
         except Exception as 错误:#handler 抛错
-            return {'status':500,'headers':{},'body':('handler failure: '+str(错误)).encode('utf-8')}#内部错误
+            return {'status':500,'headers':{},'body':('handler failure: '+页面失败文案(错误)).encode('utf-8')}#内部错误，页面说明不含绝对路径
     return {'fetch':fetch}#处理器对象
 
 class 宿主连接服务(服务):#提供 ctx.connection

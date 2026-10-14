@@ -1,3 +1,5 @@
+from ..异常 import 页面失败文案
+
 __all__=['装载文案','短名','包文案','提示文案']#仅中文公开名
 
 内置文案={#官方包精确 npm 名 → 文案键与 beta
@@ -35,7 +37,7 @@ def 装载文案(错误,翻译):
     诊断=错误['diagnostic'] if 'diagnostic' in 错误 else None#诊断
     if 诊断 is None or 诊断=='':#无诊断
         return 翻译('reasonOperationError')#通用
-    return 诊断#原样
+    return 页面失败文案(诊断)
 
 def 短名(名称):
     '压缩包名为人读短名'
@@ -65,6 +67,8 @@ def 提示文案(提示,翻译):
         return 翻译('overriddenNotice',{'name':提示['packageName']})#句
     if 种=='cancelled':#取消
         return 翻译('installCancelled')#句
+    if 种=='refresh-failed':#刷新失败只给罩层提示
+        return 翻译('refreshError')#句
     原因=装载文案({'code':提示['code'],'diagnostic':提示['reason']},翻译) if 'code' in 提示 else 提示['reason']#原因
     if 原因=='':#空
         原因=翻译('reasonOperationError')#通用

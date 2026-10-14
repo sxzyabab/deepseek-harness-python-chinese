@@ -1,6 +1,6 @@
 from .文案 import 中文,英文,pdf文案键#词典
 from .存储 import 创建pdf存储#存储
-from .pdf体 import pdf体,失败文案#正文
+from .pdf体 import pdf体,pdf面板,失败文案,样式表#正文
 from ..文档.标签寿命 import 保留文档标签#保留标签
 from . import (
     懒加载pdf体,
@@ -10,8 +10,7 @@ from . import (
     运行时,
 )
 
-__all__=['pdf体标识','pdf体定义','pdf体登记','应用','pdf体','失败文案','中文','英文','pdf文案键']#仅中文公开名
-
+__all__=['pdf体标识','pdf体定义','pdf体登记','应用','pdf体','pdf面板','失败文案','样式表','中文','英文','pdf文案键']
 pdf体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/pdf'#实现 id
 
 
@@ -70,7 +69,7 @@ def 应用(上下文):
                 'key':pdf体标识,
                 'locale':'sidebarPdf',
                 **呈现,
-            },pdf体)#正文
+            },pdf面板)#正文
 
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
 

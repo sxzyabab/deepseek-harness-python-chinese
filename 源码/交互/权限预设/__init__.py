@@ -386,6 +386,5 @@ name='permission-presets'#Cordis插件名
 Config=配置模式#Cordis配置模式
 default=权限预设服务#Cordis默认导出
 from . import (
-    不变量,
     客户端,
 )

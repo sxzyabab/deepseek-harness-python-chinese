@@ -4,6 +4,7 @@ from ....基础设施.js特性 import PromiseEX as 期约#远程调用与卸除�
 from ....基础设施.通用工具 import 获取内部数据
 from .语音输入 import 语音输入
 from .音频 import 录制
+from .麦克风设备 import 创建麦克风设备存储
 from .就绪度 import 观察就绪度
 from .准备卡片 import 语音准备工作
 from .语音输入安装提示 import 语音输入安装提示
@@ -22,13 +23,15 @@ def 提供拆录制(录制表):
     '插件释放时拆掉未结束采集'
     return 偏函数(拆全部录制,录制表)
 
-def 建一条录制(录制表):
-    '一次由插件寿命拥有的麦克风操作'
+def 建一条录制(录制表,麦克风):
+    '一次由插件寿命拥有的麦克风操作；空 id 跟随系统输入'
     项持有={'项':None}
     def 丢掉():
         '从在途表删除'
         录制表.discard(项持有['项'])
-    项=录制(丢掉)
+    快照=麦克风.getSnapshot()
+    标识=快照.get('id') if isinstance(快照,dict) and isinstance(快照.get('id'),str) else ''
+    项=录制(丢掉,标识)
     项持有['项']=项
     录制表.add(项)
     return 项
@@ -60,6 +63,7 @@ def 登记界面(上下文):
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
     上下文.副作用(卸词典)
     录制表=set()
+    麦克风=创建麦克风设备存储()
     就绪=观察就绪度(上下文)
     def 拆就绪():
         '拆除共享就绪订阅'
@@ -82,10 +86,18 @@ def 登记界面(上下文):
     def 开设置():
         '打开语音 Bundle 详情，不启动准备'
         上下文.pluginNavigation.openBundle(组合包名)
+    def 选择麦克风(设备):
+        '空 id 跟随系统输入，并清掉占位标签'
+        标识=设备.get('id') if isinstance(设备,dict) and isinstance(设备.get('id'),str) else ''
+        标签=''
+        if 标识!='' and isinstance(设备.get('label'),str):
+            标签=设备['label']
+        麦克风.set({'id':标识,'label':标签})
     动作={
         'openSettings':开设置,
-        'hooks':{'speechReadiness':就绪['state']},
-        'createRecording':偏函数(建一条录制,录制表),
+        'hooks':{'speechReadiness':就绪['state'],'microphoneDevice':麦克风},
+        'selectMicrophone':选择麦克风,
+        'createRecording':偏函数(建一条录制,录制表,麦克风),
         'transcribe':上下文.remote.speech.transcribe,
         'configure':配置,
         'prepare':准备,

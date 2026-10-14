@@ -1,5 +1,7 @@
-import json#美化与序列化
+import json
+from nicegui import ui as 界面
 from .工具节点读取 import 查找工具调用#按 callId 查找
+from ..聊天.消息项 import 打开列
 
 __all__=['详情面板','美化','原始结果文本']#仅中文公开名
 
@@ -57,6 +59,8 @@ class 详情面板:
     def __init__(自身,属性=None):
         '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -71,7 +75,7 @@ class 详情面板:
         调用标识=选中['callId'] if 选中 is not None and 'callId' in 选中 else None#callId
         用聊天=属性['useChat'] if 'useChat' in 属性 else None#useChat
         材料=None#材料
-        if 用聊天 is not None and 调用标识 is not None:#有
+        if 用聊天 is not None and 调用标识 is not None:
             def 取材料(快):
                 '按 callId 取材料'
                 return 调用材料(快,调用标识)#材料
@@ -82,32 +86,41 @@ class 详情面板:
                 标题=材料['name']#标题
             elif 'toolName' in 选中 and 选中['toolName'] is not None:#工具名
                 标题=选中['toolName']#标题
-        正文=None#正文
-        if 选中 is None or 调用标识 is None:#无选
-            正文={'type':'empty','text':翻译('details.empty')}#空态
-        elif 材料 is None:#窗口外
-            正文={'type':'empty','text':翻译('details.notInWindow')}#外
-        else:#有材料
-            段=[]#段
+        关闭=属性['closeDetails'] if 'closeDetails' in 属性 else None
+        def 点关闭():
+            '关掉详情栏。'
+            if 关闭 is not None:
+                关闭()
+        with 打开列(自身,'详情面板'):
+            with 界面.row().classes('详情头'):
+                if 标题 is None or (isinstance(标题,str) and 标题==''):
+                    界面.label(翻译('details.title')).classes('标题')
+                else:
+                    界面.label(str(标题)).classes('标题')
+                界面.button(翻译('details.close'),on_click=点关闭)
+            if 选中 is None or 调用标识 is None:#无选
+                界面.label(翻译('details.empty'))
+                return
+            if 材料 is None:#窗口外
+                界面.label(翻译('details.notInWindow'))
+                return
             参=材料['argsRaw'] if 'argsRaw' in 材料 else None#参数
-            if 参 is not None:#有输入
-                段.append({'type':'input','title':翻译('details.input'),'code':美化(参)})#输入
+            if 参 is not None:
+                界面.label(翻译('details.input')).classes('标题')
+                界面.code(美化(参)).classes('输入')
             块=材料['block'] if 'block' in 材料 else None#块
             if 块 is not None and 'kind' in 块:#已结算
-                段.append({'type':'output','title':翻译('details.output'),'text':原始结果文本(块)})#输出
-            else:#进行中
-                段.append({'type':'running','text':翻译('details.running')})#运行中
-            正文={'type':'material','sections':段}#材料
-        return {#面板
-            'type':'details-panel',#类型
-            'title':标题,#标题
-            'closeLabel':翻译('details.close'),#关闭
-            'body':正文,#正文
-            'cssModule':'DetailsPanel.module.css',#样式
-        }#结束
+                界面.label(翻译('details.output')).classes('标题')
+                结果=原始结果文本(块)
+                if 结果=='':
+                    界面.label('')
+                else:
+                    界面.code(结果).classes('输出')
+                return
+            界面.label(翻译('details.running'))
 
     def __call__(自身,属性=None):
         '对齐 React'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

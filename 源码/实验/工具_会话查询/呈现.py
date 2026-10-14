@@ -2,7 +2,7 @@
 import json#JSON
 from datetime import datetime#纪元毫秒转 ISO
 from zoneinfo import ZoneInfo#UTC
-from ..会话查询 import 抽取会话事件文本#文本抽取
+from ...会话检索.会话查询.抽取 import 抽取会话事件文本#文本抽取
 from .工作区访问 import 工作区访问#标题与授权
 
 def 格式化时间(值):

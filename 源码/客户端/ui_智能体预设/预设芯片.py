@@ -1,6 +1,13 @@
+from nicegui import ui as 界面
+from ..ui_基础界面组件.icons import 图标下chevron14,图标智能体预设16,图标警告16
+from .异常 import 页面失败文案
 from .文案 import 预设展示文案#展示文案
+from .预设菜单 import 预设菜单
+from .预设行 import _读样式,挂到根#样式挂到芯片根
 
 __all__=['预设芯片','介绍文字延迟毫秒','介绍字符错开毫秒','介绍文字揭开毫秒','介绍字符淡入毫秒']#仅中文公开名
+
+界面.add_css(挂到根(_读样式('预设芯片.module.css'),'预设芯片根'),shared=True)
 
 介绍文字延迟毫秒=150#图标入场后再揭字
 介绍字符错开毫秒=40#每字起步间隔上限
@@ -15,17 +22,22 @@ def 介绍错开毫秒(字数):
 
 class 预设芯片:
     '部署无名册时返回 None。属性与快照都是 dict'
-    def __init__(自身,属性=None,**关键字参数):
-        '合并 props 并拉名册'
-        自身.属性=dict(属性) if 属性 is not None else {}#基础
-        自身.属性.update(关键字参数)#覆盖
+    def __init__(自身,属性):
+        '只接收合并后的属性字典，拉名册并画出'
+        自身.属性=属性 if isinstance(属性,dict) else {}#属性
         自身.打开=False#菜单
         自身.介绍中=False#介绍动画
-        自身.属性['load']()#拉
+        自身.画面=None#可反复清空的容器
+        自身.画面失败=None
+        加载=自身.属性['load'] if 'load' in 自身.属性 else None#加载
+        if 加载 is not None:
+            加载()#拉
+        if 't' in 自身.属性 and 'useAgentPresetSeat' in 自身.属性:
+            自身.渲染()#槽位只调用构造
 
     def 更新(自身,属性):
         '刷新 props'
-        自身.属性=dict(属性)#最新
+        自身.属性=属性 if isinstance(属性,dict) else {}#最新
 
     def 状态(自身):
         '经 useAgentPresetSeat'
@@ -78,8 +90,8 @@ class 预设芯片:
         选中=None#项
         for 项 in 选项列表:#找
             if 项['id']==当前:#命中
-                选中=项#记下
-                break#停
+                选中=项
+                break
         展示=预设展示文案(选中,翻译) if 选中 is not None else None#展示
         标签=展示['name'] if 展示 is not None else 当前#标签
         if 态['introduce'] and not 自身.介绍中:#武装介绍
@@ -97,31 +109,54 @@ class 预设芯片:
                 'name':文['name'],#名
                 'description':述,#述
             })
-        标题=态['error']#错误
-        if 标题 is None:#无错
+        错文=态['error'] if 'error' in 态 else None#错误
+        if isinstance(错文,str) and 错文!='':#原文错误作标题
+            标题=页面失败文案(错文)#错误
+        else:#提示
             标题=翻译('seatHint')#提示
-        return {#视图
-            'type':'agent-preset-seat',#类型
-            'open':自身.打开,#菜单
-            'busy':态['busy'],#忙
-            'title':标题,#提示
-            'label':标签,#当前名
-            'introducing':自身.介绍中,#介绍中
-            'characters':字列表,#字符
-            'staggerMs':错开,#错开
-            'introTextDelayMs':介绍文字延迟毫秒,#延迟
-            'items':条目,#菜单项
-            'selectedId':当前,#选中
-            'toggle':自身.切换菜单,#切换
-            'close':自身.关闭菜单,#关
-            'select':自身.选定,#选定
-            'cssModule':'预设芯片.module.css',#样式
-        }#视图结束
+        def 改开(开):
+            '同步菜单开闭后重画'
+            自身.打开=开 is True#显式开
+            自身.渲染()#重画
+        旧=getattr(自身,'画面',None)#已有容器
+        if 旧 is not None:
+            try:
+                旧.clear()
+            except Exception as 错误:#父级清掉容器后，把失败留在页面上
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.row().classes('预设芯片根 seat')#根
+        自身.画面.clear()#再清一次
+        with 自身.画面:#根
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败)
+            界面.label(标题)#提示
+            图标智能体预设16()#预设图标
+            if 自身.介绍中:#逐字揭开
+                for 字 in 字列表:#逐字
+                    界面.label(字)#一字
+            图标下chevron14()#下拉箭头
+            预设菜单({
+                't':翻译,
+                'options':态['options'],
+                'open':自身.打开,
+                'onOpenChange':改开,
+                'onSelect':自身.选定,
+                'selectedId':当前,
+                'label':标签,
+                'disabled':态['busy'] is True,
+            }).渲染()#菜单由父组件调用渲染
+            错=态['error'] if 'error' in 态 else None#拒绝
+            if isinstance(错,dict) and 'reason' in 错:#结构化拒绝
+                预设名=错['preset']['name'] if 'preset' in 错 and isinstance(错['preset'],dict) and 'name' in 错['preset'] else ''#名
+                界面.notify(翻译('switchRefused',{'name':预设名,'reason':页面失败文案(错['reason'])}))#拒绝吐司
+                图标警告16()#警告图标
+            elif isinstance(错,str) and 错!='':#原文
+                界面.notify(页面失败文案(错))#吐司
 
-    def __call__(自身,属性=None,**关键字参数):
-        '对齐 React'
-        if 属性 is not None or len(关键字参数)>0:#有
-            合并=dict(属性) if 属性 is not None else {}#基
-            合并.update(关键字参数)#覆
-            自身.更新(合并)#刷
-        return 自身.渲染()#渲
+    def __call__(自身,属性=None):
+        '只接收一个属性字典'
+        if 属性 is not None:
+            自身.更新(属性)#刷
+        return 自身.渲染()

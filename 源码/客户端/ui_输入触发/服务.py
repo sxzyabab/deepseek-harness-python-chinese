@@ -31,7 +31,7 @@ class 触发服务(服务):#ctx.inputTriggers 触发管线
             try:#晚到源仍须预热并入词库
                 控.sourceAdded(源)#通知该会话源已加入
             except Exception as 错误:#源回调故障；源回调异常契约未定，故不能换成更窄的 except
-                print('[ui-input-trigger] 源 "'+str(触发)+str(名)+'" 迟登记安装失败:',错误)#记错误
+                控._留下页面失败(错误,名)
         def 拆除源():#拆除该源
             '从花名册摘掉并通知控制器'
             if 源 not in 自身.源列表:#已拆除则幂等

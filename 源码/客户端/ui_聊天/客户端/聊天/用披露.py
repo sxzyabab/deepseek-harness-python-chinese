@@ -23,9 +23,24 @@ def 用披露(世代=0):
     '铸造披露席位'
     return 披露席位(世代)
 
+def 读重置世代(重置源):
+    '对象走 getSnapshot；外部字典源走同名键'
+    if 重置源 is None:
+        return 0
+    取=getattr(重置源,'getSnapshot',None)
+    if callable(取):
+        世代=取()
+        return 0 if 世代 is None else 世代
+    if isinstance(重置源,dict):
+        函数=重置源.get('getSnapshot')
+        if callable(函数):
+            世代=函数()
+            return 0 if 世代 is None else 世代
+    return 0
+
 def 绑定披露(重置源):
     '到组件调用前不订阅；每次调用读当前重置世代'
     def 用已绑披露():
         '按重置源世代铸造席位'
-        return 用披露(重置源.getSnapshot())
+        return 用披露(读重置世代(重置源))
     return 用已绑披露

@@ -19,9 +19,9 @@ class 工具调用树:
 
     def 重置(自身):
         '重放新窗口前忘记全部'
-        自身.子表.clear()#清
-        自身.深度.clear()#清
-        自身.投影.clear()#清
+        自身.子表.clear()
+        自身.深度.clear()
+        自身.投影.clear()
         自身.修订+=1#升
 
     def 接受边(自身,父,子):
@@ -61,8 +61,8 @@ class 工具调用树:
         for 甲,候 in enumerate(兄弟):#扫
             号=候['callId'] if 'callId' in 候 else None#号
             if 号==子:#命中
-                下标=甲#记下
-                break#停
+                下标=甲
+                break
         if 下标<0 and 自身.接受边(父,子) is not True:#新边拒
             return True#消费
         正文=数据['content'] if 'content' in 数据 else None#正文

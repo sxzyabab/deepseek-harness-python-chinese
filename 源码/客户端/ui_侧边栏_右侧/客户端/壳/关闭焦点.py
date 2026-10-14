@@ -18,7 +18,7 @@ def 开页并聚焦窗格(文档,会话标识,打开):
         提交()#直跑
     if 窗格标识[0] is not None:#有窗格
         窗=可见侧栏窗格(文档,会话标识,窗格标识[0])#可见窗
-        if 窗 is not None:#有
+        if 窗 is not None:
             窗.focus({'preventScroll':True})#聚焦
 
 def 关页并聚焦窗格(文档,会话标识,窗格标识,关闭):
@@ -42,5 +42,5 @@ def 关页并聚焦窗格(文档,会话标识,窗格标识,关闭):
     if (not 保留) or (当前 is not 文档.body and 当前 is not 先前):#无需再焦
         return#止
     窗=可见侧栏窗格(文档,会话标识,窗格标识)#可见窗
-    if 窗 is not None:#有
+    if 窗 is not None:
         窗.focus({'preventScroll':True})#聚焦

@@ -1,8 +1,10 @@
 '锚定的类型筛选编辑器，候选异步出现，并且必须显式确认'
 
+from nicegui import ui as 界面
 from .....基础设施.js特性 import PromiseEX as 期约#过期响应不能盖住更新的候选
 from .....客户端.ui_基础界面组件.锚定位置 import 锚定位置
 from .聊天节点.文档对象 import 矩形字典
+from .格式 import 失败说明
 
 __all__=['类型筛选器']
 
@@ -69,7 +71,7 @@ class 类型筛选器:
         def 失败(错误):
             '仍是这一代才写入错误'
             if 代==自身._代:
-                自身.结果={'query':草稿,'items':[],'error':str(错误)}
+                自身.结果={'query':草稿,'items':[],'error':失败说明(错误)}
             return None
         def 去建议(值=None):
             '调用候选函数，返回期约'
@@ -270,6 +272,21 @@ class 类型筛选器:
                     'apply':{'text':翻译('filter.apply'),'onClick':lambda:自身.提交(自身.草稿)},
                 },
             }
+        界面.button(翻译('filter.title') if 值=='' else 翻译('filter.title')+' *'+值+'*', on_click=自身._点按钮).props('flat no-caps')
+        if 自身.打开:
+            def 改草稿(事件):
+                '把输入值写成 currentTarget.value'
+                自身._改草稿(type('事件',(),{'currentTarget':type('目标',(),{'value':事件.value})()})())
+            with 界面.column().classes('类型筛选'):
+                界面.input(value=自身.草稿, placeholder=翻译('filter.placeholder'), on_change=改草稿)
+                for 类型 in 项:
+                    def 选这个(类型=类型):
+                        '确认该候选'
+                        自身.提交(类型)
+                    界面.button(类型, on_click=选这个).props('flat no-caps')
+                界面.button(翻译('filter.clear'), on_click=自身._清空).props('flat no-caps')
+                界面.button(翻译('filter.cancel'), on_click=lambda:自身.关闭(True)).props('flat no-caps')
+                界面.button(翻译('filter.apply'), on_click=lambda:自身.提交(自身.草稿)).props('flat no-caps')
         if 选>=0 and 自身.面板 is not None:
             选项元素=自身.面板.querySelectorAll('[role="option"]')
             if 选<len(选项元素):

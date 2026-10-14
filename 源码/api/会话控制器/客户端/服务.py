@@ -6,7 +6,8 @@ from ....基础设施.通用工具 import 获取内部数据,启动守护线程
 from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
 from .会话簇 import 会话簇#会话簇
-from ..异常 import 会话创建错误,会话分叉错误#本包异常
+from ..异常 import 会话创建错误,会话分叉错误,失败说明#本包异常
+from ..远程错误与并发 import 若已中止则抛出#中止查询
 
 __all__=['会话创建错误','会话分叉错误','客户端会话服务','应用客户端会话']#仅中文公开名
 
@@ -37,7 +38,7 @@ class _快照存储:
             try:
                 回调()#通知
             except Exception as 错误:
-                print('[session-controller] list store subscriber failed:',错误)#日志
+                print('[session-controller] list store subscriber failed:',type(错误).__name__,失败说明(错误))#日志，去掉绝对路径
 
 def _展示标题(标题,工作目录,标识):
     '持久标题、项目基名，然后 id'

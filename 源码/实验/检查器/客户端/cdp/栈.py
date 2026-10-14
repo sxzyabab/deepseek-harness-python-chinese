@@ -1,4 +1,5 @@
 import re#栈行解析
+import traceback#栈文本
 
 __all__=['捕获客户端控制台栈','客户端错误栈','解析客户端栈','空解析脚本']#仅中文公开名
 
@@ -39,7 +40,6 @@ def 解析客户端栈(栈,解析脚本,跳过帧):#解析Client栈
 
 def 捕获客户端控制台栈(解析脚本):#捕获Console栈
     '捕获被包装的 Client Console 方法的调用方栈'
-    import traceback#栈文本
     return 解析客户端栈(''.join(traceback.format_stack()),解析脚本,3)#跳过观察器帧
 
 def 客户端错误栈(值,解析脚本=None):#错误栈

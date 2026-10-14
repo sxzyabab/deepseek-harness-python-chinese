@@ -42,6 +42,8 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'app.explorer':'文件资源管理器',
     'app.filemanager':'文件管理器',
     'app.terminal':'终端',
+    'shortcut.busy':'正在打开工作区',
+    'shortcut.unavailable':'当前工作区或本地应用不可用',
 }#中文词典结束
 
 英文={#英文词条，对照中文权威源核验键齐全
@@ -84,4 +86,6 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'app.explorer':'File Explorer',
     'app.filemanager':'Files',
     'app.terminal':'Terminal',
+    'shortcut.busy':'Opening workspace',
+    'shortcut.unavailable':'Current workspace or local application unavailable',
 }#英文词典结束

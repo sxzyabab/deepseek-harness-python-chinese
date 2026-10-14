@@ -1,4 +1,4 @@
-from .异常 import cordis客户端错误#本包异常
+from .异常 import cordis客户端错误,去掉绝对路径#本包异常
 from .定时器 import 安装客户端定时器
 from ...基础设施.通用工具 import 获取内部数据
 from .巡检注册表 import 客户端巡检注册表,提供客户端巡检
@@ -8,7 +8,7 @@ from .门面规则 import 动态上下文门面
 
 __all__=[
     '说明','依赖','插件名','调用失败文本','调用错误','线路失败文本','活动阶段','失败原因','加载失败阶段',
-    '门面动词','装配客户端运行面','应用','动态上下文门面',
+    '门面动词','客户端运行面','装配客户端运行面','应用','动态上下文门面',
 ]
 
 说明=('求值/加载/守卫 Proxy 需浏览器 Function、React、DOM、cordis Loader；'
@@ -42,7 +42,10 @@ def 调用失败文本(插件标识,方法,结果):#基础设施路由失败教�
     if 码=='method-not-found':#未登记
         return f'{处} is not registered: the host half must declare it with harness.handle("{方法}", fn).'#未声明
     消息=结果.get('message') if isinstance(结果,dict) else 结果#消息
-    return f'{处} failed inside the host handler: {消息}'#处理内失败
+    干净=去掉绝对路径(消息)#去路径
+    if 干净=='':#掏空
+        干净='error'#兜底
+    return f'{处} failed inside the host handler: {干净}'#处理内失败
 
 def 调用错误(插件标识,方法,结果):#保留宿主栈并加客户端调用点
     '保留宿主栈并加客户端调用点；结果可含 stack'
@@ -53,18 +56,37 @@ def 调用错误(插件标识,方法,结果):#保留宿主栈并加客户端调�
     return 错误#带栈
 
 def 线路失败文本(插件标识,方法,错误):#编解码/传输失败教学
-    '编解码或传输失败教学文案'
-    消息=str(错误)#文本
-    if isinstance(错误,BaseException):#异常
-        消息=str(错误)#消息
+    '编解码或传输失败教学文案。说明去掉绝对路径'
+    if isinstance(错误,BaseException) and len(错误.args)>0 and isinstance(错误.args[0],str):#异常消息
+        消息=错误.args[0]#消息
+    else:#其它
+        消息=str(错误)#文本
+    消息=去掉绝对路径(消息)#去路径
+    if 消息=='':#掏空
+        消息='error'#兜底
     return (
         f'host.call("{方法}") on {插件标识} did not complete: {消息}\n'
         'Both directions carry JSON only: pass plain JSON data as the argument — or omit it, and the handler receives '
         f'null — and answer from harness.handle("{方法}", fn) with JSON (`return null` when there is nothing to report).'
     )#结束
 
+class 客户端运行面:#CordisRunnerFace
+    '页上运行面。活动图与 getSnapshot/subscribe 都是对象上的属性，不是字典键'
+    def __init__(自身,编排,记账):
+        '抓住稳定可观察源与动词'
+        自身.activeRuns=编排.activeRuns#活动
+        自身.lastRunError=编排.lastRunError#失败
+        自身.renderFailures=记账.renderFailures#渲染失败
+        自身.reconcileApprovals=编排.reconcileApprovals#对账
+        自身.approve=编排.approve#批准
+        自身.decline=编排.decline#拒绝
+        自身.startUserRun=编排.startUserRun#用户启动
+        自身.subscribe=记账.subscribe#订阅
+        自身.getSnapshot=记账.getSnapshot#快照
+        自身.isLoaded=记账.isLoaded#是否已加载
+
 def 装配客户端运行面(上下文):
-    '安装定时器、巡检、编排与门面；事件订阅挂 Remote。返回门面字典'
+    '安装定时器、巡检、编排与门面；事件订阅挂 Remote。返回运行面对象'
     安装客户端定时器(上下文)#定时器
     远端=getattr(getattr(上下文,'remote',None),'dynamicCordisRunner',None)#远端命名空间
 
@@ -209,18 +231,7 @@ def 装配客户端运行面(上下文):
         # drive 故意不挂假 Loader：有 Remote 时仍欠 evaluate/mount 硬缺口
     })#编排
 
-    门面={#CordisRunnerFace
-        'activeRuns':编排.activeRuns,#活动
-        'lastRunError':编排.lastRunError,#失败
-        'renderFailures':记账.renderFailures,#渲染失败
-        'reconcileApprovals':编排.reconcileApprovals,#对账
-        'approve':编排.approve,#批准
-        'decline':编排.decline,#拒绝
-        'startUserRun':编排.startUserRun,#用户启动
-        'subscribe':记账.subscribe,#订阅
-        'getSnapshot':记账.getSnapshot,#快照
-        'isLoaded':记账.isLoaded,#是否已加载
-    }#结束
+    门面=客户端运行面(编排,记账)#属性面，供 ui 侧按方法读取
     上下文.提供服务('dynamicCordisRunner',门面)#提供
 
     def 卸载记账():

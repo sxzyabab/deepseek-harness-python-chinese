@@ -3,6 +3,7 @@ from ..共享.桥接.控制编解码 import 解析检查器客户端引导#引�
 from ..共享.服务 import 创建检查器服务#服务门面
 from .检视.cordis import 发布cordis树#Cordis树发布
 from .桥接.控制器 import 启动检查器客户端#启动Client源
+from .底栏.页 import 登记检查器页#底栏诊断页
 
 __all__=['应用','名称','依赖']
 
@@ -40,6 +41,15 @@ def 应用(上下文):#应用Client插件
         try:#安装
             清理列表.append(发布cordis树(上下文,源,{'maxNodes':引导['maxCordisNodes'],'maxBytes':引导['maxFrameBytes']-4096}))#树发布
             清理列表.append(上下文.提供服务('inspector',创建检查器服务(源)))#注册服务
+            if hasattr(上下文,'依赖启动'):#有槽才登记底栏
+                def 挂底栏(槽上下文):#底栏
+                    '快捷键、词典和底槽就绪后登记诊断页'
+                    登记检查器页(槽上下文,源.领域源.sourceId)#登记
+                纤程=上下文.依赖启动(['slots','shortcuts','locale'],挂底栏)#等待
+                def 拆底栏():#拆底栏
+                    '拆掉底栏登记'
+                    纤程.拆除()#卸
+                清理列表.append(拆底栏)#随源拆除
         except Exception as 错误:#插件 inject 失败，体什么都可能抛，收不窄
             try:#尽力清理
                 拆除检查器客户端(源,清理列表)#清理

@@ -1,7 +1,7 @@
 import json#查询帧序列化
 from .....基础设施.通用工具.文本工具 import utf8字节数
 from .....基础设施.通用工具.序列化编码 import 紧凑json编码
-from ...异常 import 检查器错误#包内错误
+from ...异常 import 检查器错误,失败说明#包内错误
 from .cordis查询 import 执行检查器查询#查询执行
 
 __all__=['检查器查询路由','检查器查询对端']#仅中文公开名
@@ -130,7 +130,7 @@ class 检查器查询对端:#查询对端
             自身._投递(响应)#投递
         except (检查器错误,ValueError,KeyError,TypeError) as 错误:#执行失败
             if 自身._可回复(帧,已接受):#可回复
-                自身._发送失败(帧,'internal-error',str(错误))#失败
+                自身._发送失败(帧,'internal-error',失败说明(错误))#失败
         finally:#清理
             if 帧['requestId'] in 自身._进行中 and 自身._进行中[帧['requestId']] is 已接受:#仍进行中
                 del 自身._进行中[帧['requestId']]#移除
@@ -138,9 +138,9 @@ class 检查器查询对端:#查询对端
     def _拒绝畸形(自身,值,错误):#拒绝畸形
         '尽量带身份失败'
         try:#尽量带身份
-            自身._发送失败(值,'invalid-request',str(错误))#失败响应
+            自身._发送失败(值,'invalid-request',失败说明(错误))#失败响应
         except (检查器错误,ValueError,KeyError,TypeError):#无身份
-            自身._拒绝传输(1008,str(错误))#关传输
+            自身._拒绝传输(1008,失败说明(错误))#关传输
 
     def _发送失败(自身,帧,码,信息):#发送失败
         '构造失败响应'
@@ -161,7 +161,7 @@ class 检查器查询对端:#查询对端
         try:#发送
             自身._传输['send'](帧)#发送
         except (检查器错误,ValueError,KeyError,TypeError,OSError) as 错误:#发送失败
-            自身._拒绝传输(1011,str(错误))#关传输
+            自身._拒绝传输(1011,失败说明(错误))#关传输
 
     def _拒绝传输(自身,码,原因):#拒绝传输
         '关对端与载体'

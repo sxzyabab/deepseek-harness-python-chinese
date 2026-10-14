@@ -1,5 +1,6 @@
 import json#系统提示词工具目录差分
-import os#同目录样式路径
+import importlib.resources as 包资源
+from nicegui import ui as 界面
 from .轨迹记录 import 轨迹记录身份,格式化已用秒数#记录面
 from .虚拟行 import 编组轨迹虚拟行,轨迹虚拟记录键#虚拟行
 from .轨迹表投影 import (#投影纯函数
@@ -52,8 +53,7 @@ __all__=[#仅中文公开名
     '种类样式类',
 ]#公开面结束
 
-_本目录=os.path.dirname(os.path.abspath(__file__))#本包目录
-样式文件='轨迹表.module.css'#上游入口名（分块 @import）
+样式文件='轨迹表.module.css'#入口名；正文按下面的分块顺序拼接
 _样式分块文件=(#拼装顺序与 轨迹表.module.css 一致
     ('壳','轨迹表-壳.module.css'),
     ('行','轨迹表-行.module.css'),
@@ -62,24 +62,40 @@ _样式分块文件=(#拼装顺序与 轨迹表.module.css 一致
     ('目录','轨迹表-目录.module.css'),
 )#分块清单
 
-def _读样式(文件名):#读真实 CSS
-    '从同目录读取样式正文'
-    路径=os.path.join(_本目录,文件名)#绝对路径
-    with open(路径,'r',encoding='utf-8') as 文件:#读文件
-        return 文件.read()#全文
+def _读样式(文件名):
+    '读当前包内样式。失败时异常文案只有样式读不到，不含路径'
+    try:
+        return 包资源.files(__package__).joinpath(文件名).read_text(encoding='utf-8')
+    except Exception:
+        raise OSError('样式读不到') from None
 
 样式分块={名:_读样式(文件) for 名,文件 in _样式分块文件}#分块映射
 样式表='\n'.join(样式分块[名] for 名,_ in _样式分块文件)#完整表样式
+界面.add_css(样式表,shared=True)
 
 种类样式类={#种类 → CSS 修饰
     'system':'systemNeutral','user':'user','context':'contextGreen','compacted':'compacted',
     'message':'assistantVioletBright','tool':'toolAmber','subtool':'subtoolAmber',
 }#结束
 
+def 块是轨迹图(块):
+    '带附件标识或旧图片地址的源块'
+    if not isinstance(块,dict):
+        return False
+    if (块['imageSrc'] if 'imageSrc' in 块 else None) is not None:
+        return True
+    附件=块['attachment'] if 'attachment' in 块 else None
+    if not isinstance(附件,dict):
+        return False
+    标识=附件['attachmentId'] if 'attachmentId' in 附件 else None
+    if not isinstance(标识,str) or 标识=='':
+        return False
+    return True
+
 class 轨迹表:#账本 + 详情检查器
     '消费轮次模型，产出分栏账本与可选详情面板结构树'
 
-    def __init__(自身,属性=None):#可选 props
+    def __init__(自身,属性=None):
         '记下 props 与检查器局部状态'
         自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身.选中记录身份=None#检查器记录 id
@@ -391,7 +407,7 @@ class 轨迹表:#账本 + 详情检查器
         容器=解析JSON容器(值)#JSON
         if 单文 and 容器 is not None:#单文 JSON
             return {'type':'json-tree','data':容器,'label':'Result JSON','preview':预览,'error':错}#树
-        if 方向=='output' and any((块['imageSrc'] if 'imageSrc' in 块 else None) is not None or (块['content'] if 'content' in 块 else None)!='' for 块 in 块列表):#结果块
+        if 方向=='output' and any(块是轨迹图(块) or (块['content'] if 'content' in 块 else None)!='' for 块 in 块列表):#结果块
             return {'type':'tool-output-blocks','blocks':块列表,'error':错,'preview':预览}#块
         Markdown=(方向=='input' and 格['kind'] in ('user','context')) or (方向=='output' and 格['kind']=='message')#MD
         if Markdown:#Markdown
@@ -467,10 +483,10 @@ class 轨迹表:#账本 + 详情检查器
                 },#思考结束
                 'output':(格['outputDetail'] if 'outputDetail' in 格 else None),#输出
                 'toolCalls':[块 for 块 in 块列表 if (块['type'] if 'type' in 块 else None)=='tool-call'],#工具
-                'images':[块 for 块 in 块列表 if (块['imageSrc'] if 'imageSrc' in 块 else None) is not None],#图
+                'images':[块 for 块 in 块列表 if 块是轨迹图(块)],#图
             }#结束
         源=Markdown源(记录)#源
-        有图=any((块['imageSrc'] if 'imageSrc' in 块 else None) is not None for 块 in 块列表)#图
+        有图=any(块是轨迹图(块) for 块 in 块列表)#图
         有工具=格['kind']=='message' and any((块['type'] if 'type' in 块 else None)=='tool-call' for 块 in 块列表)#工具
         if not 源 and not 有图 and not 有工具:#空
             空='Tool call only' if 是否仅工具调用(格) else ((格['text'] if 'text' in 格 else None) or 'No content')#空标
@@ -481,7 +497,7 @@ class 轨迹表:#账本 + 详情检查器
             'type':'markdown-combo',#类型
             'source':源,#源
             'toolCalls':[块 for 块 in 块列表 if (块['type'] if 'type' in 块 else None)=='tool-call'] if 格['kind']=='message' else [],#工具
-            'images':[块 for 块 in 块列表 if (块['imageSrc'] if 'imageSrc' in 块 else None) is not None],#图
+            'images':[块 for 块 in 块列表 if 块是轨迹图(块)],#图
             'preview':预览,#预览
         }#结束
 
@@ -676,9 +692,33 @@ class 轨迹表:#账本 + 详情检查器
             return {'mode':'timing','body':自身._记录计时(选中)}#计时
         return {'mode':'empty'}#空
 
-    def 渲染(自身):#结构树
-        '产出分栏账本 + 可选详情结构树'
-        属性=自身.属性#props
+    def _画轨迹图(自身,块列表):
+        '图片交给轨迹图槽。父级已经画出的子组件这里不再画'
+        渲染图=自身.属性['renderImages'] if 'renderImages' in 自身.属性 else None
+        if not callable(渲染图):
+            return
+        图列=[]
+        for 块 in 块列表:
+            if not isinstance(块,dict):
+                continue
+            附件=块['attachment'] if 'attachment' in 块 else None
+            if not isinstance(附件,dict):
+                continue
+            标识=附件['attachmentId'] if 'attachmentId' in 附件 else None
+            if not isinstance(标识,str) or 标识=='':
+                continue
+            项={'attachment':附件}
+            标签=块['imageAlt'] if 'imageAlt' in 块 else None
+            if isinstance(标签,str) and 标签!='':
+                项['label']=标签
+            图列.append(项)
+        if len(图列)==0:
+            return
+        渲染图({'images':图列,'align':'start'})
+
+    def 渲染(自身):
+        '产出分栏账本与可选详情。父级调用渲染，构造时不画'
+        属性=自身.属性
         全部=自身._全部记录()#全部
         边界=索引请求边界(全部)#边界
         会话编号=属性['requestNumbers'] if 'requestNumbers' in 属性 else None#可选；TS sessionNumbers ?? []
@@ -782,43 +822,74 @@ class 轨迹表:#账本 + 详情检查器
                 'location':段落标签(选中['turn']) if 种类=='compacted' else f'{段落标签(选中["turn"])} · {选中["group"]}',#位置
             }#结束
         分栏样式=None if 自身.工具请求偏移 is None else {'--trajectory-tool-request-width':f'calc(58cqw - {自身.工具请求偏移}px)'}#分栏
-        return {#根
-            'type':'trajectory-table',#类型
-            'class':'split',#类
-            'style':分栏样式,#样式变量
-            'followTail':自身.跟随表尾,#贴底
-            'scrollReady':自身.表滚动就绪,#就绪
-            'virtualization':{#虚拟化描述
-                'enabled':虚拟化,#开
-                'threshold':虚拟化阈值,#阈
-                'historyRowHeight':历史加载行高像素,#历史行
-                'bottomFollowPx':底部跟随阈值像素,#贴底阈
-                'olderLoadPx':更早加载阈值像素,#顶载阈
-                'rows':虚拟行,#虚拟行
-            },#虚拟化结束
-            'tablePane':{#左栏
-                'historyLoading':显示初载,#初载
-                'hasOlderRecords':有更早,#更早
-                'olderBusy':更早忙,#忙
-                'ariaRowCount':len(记录列表)+(1 if 有更早 else 0),#行数
-                'rows':行列表,#行
-            },#左栏结束
-            'details':None if not 显示详情 else {#右栏
-                'width':自身.详情宽,#宽
-                'title':详情标题,#标题
-                'tabs':选中标签页,#标签
-                'activeTab':自身.活动标签,#活动
-                'summaryBody':自身.活动标签=='overview',#概览体类
-                'body':自身._详情体(选中,选中状态,提示选中,选中提示,选中前提示,选中请求记录,选中请求助手,选中请求锚,选中请求信息,选中请求状态,选中请求号,选中请求用量,选中请求累计,选中请求选项,选中请求结果,选中请求工具数,选中请求子工具数,父消息,父工具,助手请求目标,助手请求号,有层级),#体
-            },#右栏结束
-            'pendingScrollRecordId':自身.待滚记录身份,#待滚
-            'css':样式表,#拼装后的完整样式正文
-            'cssChunks':样式分块,#分块映射（壳/行/详情/载荷/目录）
-            'cssModule':样式文件,#入口文件名
-        }#根结束
+        def 画节点(节点,深度=0):
+            '把详情结构画成标签'
+            if 深度>8 or 节点 is None:
+                return
+            if isinstance(节点,str):
+                if 节点!='':
+                    界面.label(节点)
+                return
+            if isinstance(节点,list):
+                for 项 in 节点:
+                    画节点(项,深度+1)
+                return
+            if not isinstance(节点,dict):
+                return
+            已画附件=False
+            if 'images' in 节点 and isinstance(节点['images'],list):
+                自身._画轨迹图(节点['images'])
+            elif 'attachment' in 节点:
+                自身._画轨迹图([节点])
+                已画附件=True
+            if 'text' in 节点 and isinstance(节点['text'],str) and 节点['text']!='':
+                界面.label(节点['text'])
+            if 'label' in 节点 and isinstance(节点['label'],str) and 节点['label']!='':
+                界面.label(节点['label'])
+            if 'dt' in 节点:
+                左=节点['dt'] if isinstance(节点['dt'],str) else ''
+                右=节点['dd']
+                if isinstance(右,str) and 右!='':
+                    界面.label(左+': '+右)
+                else:
+                    if 左!='':
+                        界面.label(左)
+                    画节点(右,深度+1)
+            for 键 in ('children','rows','body','blocks','sections','tools','links','content'):
+                if 已画附件 and 键=='content':
+                    continue
+                if 键 in 节点:
+                    画节点(节点[键],深度+1)
+        with 界面.row().classes('trajectory-table'):
+            with 界面.column():
+                if 显示初载:
+                    界面.label('…')
+                for 行 in 行列表:
+                    文=行['kindLabel'] if 'kindLabel' in 行 else ''
+                    if 'requestLabel' in 行 and isinstance(行['requestLabel'],str) and 行['requestLabel']!='':
+                        文=行['requestLabel']
+                    elif 'collapsedSummary' in 行 and isinstance(行['collapsedSummary'],str) and 行['collapsedSummary']!='':
+                        文=行['collapsedSummary']
+                    if 文!='':
+                        界面.label(文)
+            if 显示详情:
+                with 界面.column():
+                    if isinstance(详情标题,dict):
+                        if 'kindLabel' in 详情标题 and isinstance(详情标题['kindLabel'],str):
+                            界面.label(详情标题['kindLabel'])
+                        elif 'location' in 详情标题 and isinstance(详情标题['location'],str):
+                            界面.label(详情标题['location'])
+                    for 页 in 选中标签页:
+                        页名=页['label'] if isinstance(页,dict) and 'label' in 页 else 页['id'] if isinstance(页,dict) and 'id' in 页 else ''
+                        if isinstance(页名,str) and 页名!='':
+                            def 切页(标识=页['id'] if isinstance(页,dict) and 'id' in 页 else 页名):
+                                '切换详情页'
+                                自身.活动标签=标识
+                            界面.button(页名, on_click=切页)
+                    画节点(自身._详情体(选中,选中状态,提示选中,选中提示,选中前提示,选中请求记录,选中请求助手,选中请求锚,选中请求信息,选中请求状态,选中请求号,选中请求用量,选中请求累计,选中请求选项,选中请求结果,选中请求工具数,选中请求子工具数,父消息,父工具,助手请求目标,助手请求号,有层级))
 
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有
-            自身.更新(属性)#刷
-        return 自身.渲染()#渲
+    def __call__(自身,属性=None):
+        '有新 props 先更新，再画出'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

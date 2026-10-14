@@ -2,8 +2,7 @@ import re#地址方案探测
 from .....基础设施.通用工具 import utf8字节数
 from urllib.parse import urlparse as 解析URL,urlunparse as 组合URL#标准库 URL
 
-__all__=['最大地址字节','解析浏览器地址']#仅中文公开名
-
+__all__=['最大地址字节','解析浏览器地址']
 最大地址字节=16*1024#地址上限，约束持久化导航状态
 
 _显式方案=re.compile(r'^[A-Za-z][A-Za-z\d+.-]*:(?!\d+(?:[/?#]|$))',re.ASCII)#显式 scheme

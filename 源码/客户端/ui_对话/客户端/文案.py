@@ -21,6 +21,8 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'input.file':'文件',#文件动作标题
     'input.stop':'停止生成',#停止生成按钮
     'input.send':'发送消息',#发送按钮
+    'copy':'复制',#复制消息
+    'copied':'已复制',#复制成功
     'input.send.queue':'排队发送',#排队发送按钮
     'input.send.steer':'插话发送',#插话发送按钮
     'attachment.pending':'待发送附件',#待发附件区
@@ -179,6 +181,8 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'input.file':'File',#文件动作标题
     'input.stop':'Stop generating',#停止生成按钮
     'input.send':'Send message',#发送按钮
+    'copy':'Copy',#复制消息
+    'copied':'Copied',#复制成功
     'input.send.queue':'Queue message',#排队发送按钮
     'input.send.steer':'Steer message',#插话发送按钮
     'attachment.pending':'Pending attachments',#待发附件区

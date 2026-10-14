@@ -23,6 +23,9 @@ from .远程事件 import 远程转发事件#转发事件白名单常量
     'api-session/removed':Literal[True],#会话已移除 → 已选
     'api-session/status':Literal[True],#会话状态 → 已选
     'commands/change':Literal[True],#命令表已变更 → 已选
+    'deepseek-account/session-expired':Literal[True],#账号会话已过期 → 已选
+    'deepseek-account/model-sign-in-required':Literal[True],#模型登录仍需要 → 已选
+    'credentials/record-updated':Literal[True],#凭证记录已更新 → 已选
     'credentials/reference-updated':Literal[True],#凭证引用已更新 → 已选
     'goal/activation-changed':Literal[True],#目标激活已变更 → 已选
     'cordis/request-run':Literal[True],#请求运行动态包 → 已选
@@ -37,6 +40,7 @@ from .远程事件 import 远程转发事件#转发事件白名单常量
     'plugin-manager/install-log':Literal[True],#插件安装日志 → 已选
     'plugin-manager/install-state':Literal[True],#插件安装状态 → 已选
     'settings/document-updated':Literal[True],#设置文档已更新 → 已选
+    'schedule/changed':Literal[True],#日程已变更 → 已选
     'user-questions/request':Literal[True],#用户提问瀑布 → 已选
 })#席位合并结束：白名单每一键标为 true
 

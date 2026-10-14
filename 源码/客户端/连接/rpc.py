@@ -1,4 +1,4 @@
-from .异常 import 连接错误#本包失败
+from .异常 import 连接错误,页面失败文案#本包失败；页面说明不含绝对路径
 
 __all__=['连接错误','连接权威_受信任宿主','连接权威_回环','已中止','若已中止则抛出','Rpc标识','传输错误']#仅中文公开名
 
@@ -22,4 +22,4 @@ def Rpc标识(标识):
 
 def 传输错误(错误):#传输失败收成结果
     '把被拒绝的传输操作收成通用失败结果'
-    return {'ok':False,'error':{'code':'gateway/internal','message':str(错误),'details':{}}}#内部失败
+    return {'ok':False,'error':{'code':'gateway/internal','message':页面失败文案(错误),'details':{}}}#内部失败，页面说明不含绝对路径

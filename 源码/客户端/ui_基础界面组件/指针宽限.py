@@ -17,12 +17,11 @@ class 指针宽限:#可取消延迟关闭
 
     def 取消(自身):#中止
         '清待关闭'
-        自身.定时=None#清
-
+        自身.定时=None
     def 触发(自身):#宽限到期
         '执行最新关闭'
-        自身.定时=None#清
-        if 自身.关闭 is not None:#有
+        自身.定时=None
+        if 自身.关闭 is not None:
             自身.关闭()#关
 
     def 句柄(自身):#PointerGrace 形

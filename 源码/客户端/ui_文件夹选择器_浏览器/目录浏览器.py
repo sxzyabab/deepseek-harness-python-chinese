@@ -1,5 +1,7 @@
 import threading#列举中止旗
 import time#时钟与防抖
+from nicegui import ui as 界面
+from .异常 import 页面失败文案
 
 __all__=[#仅中文公开名
     '目录浏览器','慢扫描延迟毫秒','父腿等待毫秒','草稿预览防抖毫秒',
@@ -11,13 +13,13 @@ __all__=[#仅中文公开名
 草稿预览防抖毫秒=250#草稿预览防抖
 
 def 失败文案(错误):#失败文本
-    'Host 业务消息优先，否则 throw 文本。错误是异常对象'
-    槽=vars(错误) if isinstance(错误,Exception) else None#异常槽
-    if 槽 is not None and 'rpcError' in 槽 and 槽['rpcError'] is not None:#DirectoryBrowseError 形
-        rpc=槽['rpcError']#业务错误
-        if 'message' in rpc and rpc['message'] is not None:#有消息
-            return rpc['message']#业务消息
-    return str(错误)#throw 文本
+    'Host 业务消息优先。页面上的句子不带绝对路径'
+    槽=vars(错误) if isinstance(错误,Exception) else None
+    if 槽 is not None and 'rpcError' in 槽 and 槽['rpcError'] is not None:
+        rpc=槽['rpcError']
+        if 'message' in rpc and rpc['message'] is not None:
+            return 页面失败文案(rpc['message'])
+    return 页面失败文案(错误)
 
 def 展示面包屑(列举,主目录标签):#展示用面包屑
     '主目录子树内以本地化 Home 起链；外则全谱系'
@@ -26,7 +28,7 @@ def 展示面包屑(列举,主目录标签):#展示用面包屑
     家下标=-1#家在屑中的下标
     for 下标,项 in enumerate(屑):#找家
         if 项['path']==家:#命中
-            家下标=下标#记下
+            家下标=下标
             break#找到
     if 家下标==-1:#不在子树
         return list(屑)#全谱系
@@ -115,9 +117,11 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身.已扫描=None#上次草稿扫描
         自身.预览挂起=False#提交后挂起预览
         自身.扫描控制器=None#在飞中止旗
+        自身.画面失败=None
         自身._打开边=属性['open'] is True if 'open' in 属性 else False#上一拍 open
         if 自身._打开边:#已打开
             自身.导航()#主目录
+        #浏览目录流构造后会调用渲染，这里不再画
 
     def 更新(自身,属性):#props 变更
         '同步 props；处理 open 边沿'
@@ -125,9 +129,9 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身.属性=属性#最新
         if 打开 and not 自身._打开边:#上升沿
             自身.打开世代+=1#抬世代
-            自身.父层=None空
-            自身.选中=None空
-            自身.子层=None空
+            自身.父层=None#空
+            自身.选中=None#空
+            自身.子层=None#空
             自身.创建中=False#清空
             自身.显示隐藏=False#重置
             自身.导航()#主目录
@@ -135,10 +139,10 @@ class 目录浏览器:#应用内目录浏览器状态机
             自身.打开世代+=1#抬世代
             自身.取代()#作废在飞
             自身.加载中=False#清加载
-            自身.错误=None错误
+            自身.错误=None#错误
             自身.路径草稿=None#关编辑
             自身.文件夹草稿=None#关新建
-            自身.创建错误=None创建错误
+            自身.创建错误=None#创建错误
         自身._打开边=打开#记下边
 
     def 翻译(自身,键,参数=None):#文案
@@ -160,7 +164,7 @@ class 目录浏览器:#应用内目录浏览器状态机
         '新 Event；返回序号与扫描任务'
         序号=自身.取代()#作废旧的
         信号=threading.Event()#中止旗
-        自身.扫描控制器=信号#记下
+        自身.扫描控制器=信号
         自身.慢扫描=False#重置慢扫描
         列举=自身.属性['listDirectory']#列举调用
         if 路径 is not None:#有路径
@@ -195,9 +199,10 @@ class 目录浏览器:#应用内目录浏览器状态机
             自身.加载中=False#结束加载
             if 宣告:#宣告
                 自身.错误=失败文案(原因)#告警
-        def 父失败(_原因):#父腿失败
-            '单栏回退'
+        def 父失败(原因):#父腿失败
+            '单栏回退，并留下去掉路径的失败句'
             单栏()
+            自身.错误=失败文案(原因)
         def 父已到(父层):#父层到达
             '匹配目标行则两栏，否则单栏'
             if 父序号!=自身.请求序号:#过期
@@ -212,7 +217,7 @@ class 目录浏览器:#应用内目录浏览器状态机
             for 条目 in 父条目:#找匹配
                 条路径=条目['path'] if 'path' in 条目 and 条目['path'] is not None else ''#条路径
                 if 折(条路径)==折(目标路径):#命中
-                    匹配=条目#记下
+                    匹配=条目
                     break#找到
             if 匹配 is None:#父窗截断
                 单栏()#单栏
@@ -230,7 +235,7 @@ class 目录浏览器:#应用内目录浏览器状态机
             nonlocal 本次目标,父序号
             if 序号!=自身.请求序号:#过期
                 return
-            本次目标=目标#记下
+            本次目标=目标
             if not 关编辑 and 路径 is not None:#草稿扫描记下着陆
                 自身.已扫描={'directory':路径,'landed':目标['path'] if 'path' in 目标 else None}#扫描记录
             屑=展示面包屑(目标,'')#显示链
@@ -246,8 +251,9 @@ class 目录浏览器:#应用内目录浏览器状态机
                 父包=自身.启动列举(父屑['path'] if 'path' in 父屑 else None)#父腿
                 父序号=父包['seq']#父序号
                 父包['scan'].然后(父已到,父失败)#父层期约
-            except Exception:#父腿同步失败；列举 RPC 异常契约未定，故不能换成更窄的 except
-                单栏()#单栏回退
+            except Exception as 原因:
+                单栏()
+                自身.错误=失败文案(原因)
         try:#扫描目标
             包['scan'].然后(目标已到,目标失败)#目标期约
         except Exception as 原因:#列举 RPC 异常契约未定，故不能换成更窄的 except
@@ -297,7 +303,7 @@ class 目录浏览器:#应用内目录浏览器状态机
         自身.取代()#作废
         自身.加载中=False#清加载
         自身.路径草稿=None#关编辑
-        自身.错误=None错误
+        自身.错误=None#错误
         if 自身.子层 is None:#无预览
             自身.选中=None#回退单栏
         if 自身.父层 is None:#无层
@@ -376,6 +382,52 @@ class 目录浏览器:#应用内目录浏览器状态机
         except Exception as 原因:#创建 RPC 异常契约未定，故不能换成更窄的 except
             创建失败(原因)
 
+    def 开始路径编辑(自身):
+        '用当前目标路径打开路径框'
+        if 自身.选中 is not None and 'path' in 自身.选中 and 自身.选中['path'] is not None:
+            基=自身.选中['path']
+        elif 自身.父层 is not None and 'path' in 自身.父层 and 自身.父层['path'] is not None:
+            基=自身.父层['path']
+        else:
+            基=''
+        层=自身.子层 if 自身.子层 is not None else 自身.父层
+        分隔=分隔符于(层) if 层 is not None else '/'
+        自身.路径草稿=基 if 基.endswith(分隔) else 基+分隔
+
+    def 改路径草稿(自身,文本):
+        '写入路径框'
+        自身.路径草稿=文本
+
+    def 提交路径草稿(自身):
+        '按草稿导航'
+        if 自身.路径草稿 is None:
+            return
+        自身.导航(自身.路径草稿)
+
+    def 切换隐藏(自身):
+        '翻转隐藏项'
+        自身.显示隐藏=not 自身.显示隐藏
+
+    def 开始新建(自身):
+        '打开新建文件夹草稿'
+        自身.文件夹草稿=''
+
+    def 改文件夹名(自身,文本):
+        '写入新建名'
+        自身.文件夹草稿=文本
+
+    def 取消新建(自身):
+        '创建中不关'
+        if 自身.创建中 is True:
+            return
+        自身.文件夹草稿=None
+
+    def 关闭(自身):
+        '交给 onClose'
+        关=自身.属性['onClose'] if 'onClose' in 自身.属性 else None
+        if 关 is not None:
+            关()
+
     def 视图(自身):#读视图模型
         '关闭返回 None'
         if not ('open' in 自身.属性 and 自身.属性['open'] is True):#关闭
@@ -445,8 +497,138 @@ class 目录浏览器:#应用内目录浏览器状态机
             'cssModule':'目录浏览器.module.css',#样式
         }#视图结束
 
+    def _画列(自身,界面,条目表,点按):
+        '一列目录按钮'
+        for 条目 in 条目表:
+            名=条目['name'] if 'name' in 条目 and 条目['name'] is not None else ''
+            def 点(_事件=None,项=条目):
+                '进入该目录'
+                点按(项)
+                自身.渲染()
+            界面.button(名,on_click=点).props('flat no-caps align=left')
+
+    def 渲染(自身):
+        'Miller 两栏、路径编辑、新建文件夹与打开'
+        视=自身.视图()
+        旧=getattr(自身,'根',None)
+        先前=自身.画面失败 if isinstance(getattr(自身,'画面失败',None),str) else None
+        自身.画面失败=None
+        if 视 is None:
+            if 旧 is not None:
+                try:
+                    旧.clear()
+                    旧.set_visibility(False)
+                except Exception as 错误:
+                    自身.根=None
+                    自身.画面失败=页面失败文案(错误)
+            if 自身.画面失败 is None:
+                自身.画面失败=先前
+            return
+        if 旧 is not None:
+            try:
+                旧.clear()
+                旧.set_visibility(True)
+            except Exception as 错误:
+                自身.根=None
+                自身.画面失败=页面失败文案(错误)
+        if getattr(自身,'根',None) is None:
+            自身.根=界面.column().classes('directory-browser')
+        文=视['labels']
+        with 自身.根:
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败)
+            界面.label(视['title'])
+            if 视['error'] is not None:
+                界面.label(视['error'])
+            if 视['pathDraft'] is None:
+                with 界面.row():
+                    for 屑 in 视['crumbs']:
+                        def 点屑(_事件=None,路径=屑['path']):
+                            '跳到该层'
+                            自身.导航(路径)
+                            自身.渲染()
+                        界面.button(屑['name'],on_click=点屑).props('flat no-caps')
+                    def 点编辑():
+                        '改去路径框'
+                        自身.开始路径编辑()
+                        自身.渲染()
+                    界面.button(文['editPath'],on_click=点编辑).props('flat no-caps')
+            else:
+                def 改草稿(事件):
+                    '同步路径框'
+                    自身.改路径草稿(事件.value)
+                def 提交草稿():
+                    '按框内路径走'
+                    自身.提交路径草稿()
+                    自身.渲染()
+                界面.input(value=视['pathDraft'],on_change=改草稿).on('keydown.enter',lambda _e:提交草稿())
+                界面.button(文['open'],on_click=提交草稿).props('flat no-caps')
+                def 点取消编辑():
+                    '回到面包屑'
+                    自身.取消路径编辑()
+                    自身.渲染()
+                界面.button(文['cancel'],on_click=点取消编辑).props('flat no-caps')
+            if 视['loading'] is True:
+                界面.label(文['loading'])
+            if 视['slowScan'] is True:
+                界面.label(文['loading'])
+            if 视['truncated'] is True:
+                界面.label(文['truncated'])
+            with 界面.row():
+                with 界面.column():
+                    自身._画列(界面,视['left'],自身.选定)
+                if 视['twoPane'] is True:
+                    with 界面.column():
+                        自身._画列(界面,视['right'],自身.前进)
+            if 视['folderDraft'] is not None:
+                def 改名(事件):
+                    '同步文件夹名'
+                    自身.改文件夹名(事件.value)
+                界面.input(文['folderName'],value=视['folderDraft'],on_change=改名)
+                if 视['createError'] is not None:
+                    界面.label(视['createError'])
+                def 点创建():
+                    '创建并重列'
+                    自身.确认创建()
+                    自身.渲染()
+                建钮=界面.button(文['create'],on_click=点创建)
+                if 视['creatingFolder'] is True or (isinstance(视['folderDraft'],str) and 视['folderDraft'].strip()==''):
+                    建钮.disable()
+                def 点取消新建():
+                    '关掉新建'
+                    自身.取消新建()
+                    自身.渲染()
+                界面.button(文['cancel'],on_click=点取消新建).props('flat no-caps')
+            with 界面.row():
+                def 点新建():
+                    '打开新建'
+                    自身.开始新建()
+                    自身.渲染()
+                新钮=界面.button(文['newFolder'],on_click=点新建).props('flat no-caps')
+                def 点隐藏(事件):
+                    '翻转隐藏项'
+                    下一=事件.value is True
+                    if 下一==自身.显示隐藏:
+                        return
+                    自身.显示隐藏=下一
+                    自身.渲染()
+                界面.checkbox(文['showHidden'],value=视['showHidden'] is True,on_change=点隐藏)
+                def 点取消():
+                    '关闭浏览器'
+                    自身.关闭()
+                取钮=界面.button(文['cancel'],on_click=点取消).props('flat no-caps')
+                def 点打开():
+                    '采纳当前目录'
+                    自身.确认打开()
+                开钮=界面.button(文['open'],on_click=点打开)
+                if 视['parentInert'] is True:
+                    新钮.disable()
+                    取钮.disable()
+                if 视['targetPath'] is None or 视['draftPending'] is True or 视['parentInert'] is True:
+                    开钮.disable()
+
     def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用；返回视图或 None'
+        '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
-        return 自身.视图()#视图
+        return 自身.渲染()

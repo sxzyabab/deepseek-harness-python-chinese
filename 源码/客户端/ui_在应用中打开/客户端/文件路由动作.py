@@ -2,6 +2,7 @@
 from ....基础设施.js特性 import 请求#上游 fetch
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from .文件应用 import 使用文件应用#联想查询
+from ..异常 import 页面失败文案
 from .打开目标按钮 import 打开目标按钮#共享分体按钮
 
 __all__=['查询路由','文件路由动作']#仅中文公开名
@@ -19,9 +20,12 @@ def 接上(产出,成功,失败):#期约或上游 then
 def 查询路由(网址,信号):
     '经授权路由拉文件关联；不可用或畸形则解决 None，回落揭示。返回期约'
     结算=期约()#本次查询
-    def 失败(_错误):
-        '不可用则回落'
-        结算.解决(None)#回落揭示
+    def 失败(错误):
+        '不可用则回落；有原因时拒绝去掉路径的失败句'
+        if 错误 is None:
+            结算.解决(None)
+            return
+        结算.拒绝(页面失败文案(错误))
     def 体已到(体):
         '列表或包装里的 applications'
         if isinstance(体,list):#已是应用表
@@ -46,19 +50,33 @@ def 查询路由(网址,信号):
         接上(体,体已到,失败)#json 期约
     try:#请求
         接上(请求(网址,{'signal':信号}),已响应,失败)#请求
-    except Exception:#不可用路由
-        失败(None)#回落揭示
+    except Exception as 错误:
+        失败(错误)
     return 结算#期约
+
+def 路由键齐(属性):#投递动作能否画
+    '授权路由、手势和文案都在才画'
+    if not isinstance(属性,dict):#不是映射
+        return False#缺
+    if not isinstance(属性.get('actionUrl'),str) or 属性.get('actionUrl')=='':#没有路由
+        return False#缺
+    if not callable(属性.get('onAction')):#没有手势
+        return False#缺
+    if not callable(属性.get('t')):#没有文案
+        return False#缺
+    return True#齐
 
 class 文件路由动作:#投递文件动作席
     """不绕开所属会话的授权路由渲染文件动作。
-    无桌面时 None
+    无桌面或不可用时 None。不拥有文件树。
     """
 
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
+        '记下 props。槽位只调用构造，键齐才画。按钮构造时不画。'
+        自身.属性=属性 if isinstance(属性,dict) else {}#props
         自身._按钮=None#子控件
+        if 路由键齐(自身.属性):#键齐
+            自身.渲染()#末尾画一次
 
     def 更新(自身,属性):
         '刷新 props'
@@ -66,8 +84,10 @@ class 文件路由动作:#投递文件动作席
         自身._按钮=None#重建
 
     def 渲染(自身):
-        '紧凑共享控件，或不可用时 None'
+        '紧凑共享控件，或不可用时 None。不另画替代控件。'
         属性=自身.属性#props
+        if not 路由键齐(属性):#键未齐
+            return None#空槽留给主人
         if not 属性.get('available'):#不可用
             return None#不渲染
         网址=属性['actionUrl']#授权路由
@@ -87,6 +107,7 @@ class 文件路由动作:#投递文件动作席
             'applications':[{'id':应用['id'],'name':应用['name'] if 'name' in 应用 else 应用['id'],'icon':应用['icon'] if 'icon' in 应用 else None} for 应用 in 联想['apps']],#应用
             'defaultId':默认标识,#默认
             'failed':联想['failed'],#失败
+            'detail':联想['detail'] if 'detail' in 联想 and isinstance(联想['detail'],str) else '',
             'loading':联想['loading'],#加载
             'busy':属性['pending'] if 'pending' in 属性 else False,#在飞
             'refresh':联想['refresh'],#刷新

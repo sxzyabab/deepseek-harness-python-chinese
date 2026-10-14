@@ -1,10 +1,9 @@
-from .文本体 import 文本体#正文
+from .文本体 import 文本体,文本体面板#正文
 from . import (
     行,
 )
 
-__all__=['纯文本体标识','文本体定义','应用','文本体']#仅中文公开名
-
+__all__=['纯文本体标识','文本体定义','应用','文本体','文本体面板']
 纯文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/text'#实现 id
 
 
@@ -38,7 +37,7 @@ def 应用(上下文):
             return 上下文.slots.register({#席位
                 'name':'sidebar.right.tab.document',
                 'key':纯文本体标识,
-            },文本体)#正文
+            },文本体面板)#正文
 
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
 

@@ -1,15 +1,29 @@
 import threading#定时
+from nicegui import ui as 界面
 from .授权网址 import 带主题的授权网址
 
 __all__=['登录对话框']
+
+对话样式='''
+.q-card.登录对话{box-sizing:border-box;border:0.5px solid var(--dsw-alias-border-inverted);background:var(--dsw-alias-bg-layer-2)}
+.登录内容{display:flex;flex-direction:column;width:100%}
+.登录头{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:22px 24px 12px}
+.登录题{margin:0;font-size:16px;line-height:24px;font-weight:500;color:var(--dsw-alias-label-primary)}
+.登录述{margin:0;padding:0 24px;font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary)}
+.登录动作{display:flex;justify-content:flex-end;align-items:center;width:100%;padding:0 24px;gap:8px}
+button.q-btn.登录主钮,button.q-btn.登录次钮{min-width:72px;height:36px;border-radius:var(--dsw-radius-md);font-size:14px;line-height:22px}
+button.q-btn.登录主钮{padding:0 16px;font-weight:500;background:var(--dsw-alias-label-primary) !important;color:var(--dsw-alias-bg-layer-3) !important}
+button.q-btn.登录次钮{padding:0 14px;border:0.5px solid var(--dsw-alias-border-l2);background:transparent !important;color:var(--dsw-alias-label-primary) !important}
+'''
+界面.add_css(对话样式,shared=True)
 
 活动阶段=('initializing','waiting-browser','exchanging','committing')
 
 class 登录对话框:
     '账号授权弹窗；出错后可取消进行中的尝试再重试'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性
+        '记下 props。父组件会调用，构造时不画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
         自身.忙碌=False
         自身.失败=False
         自身.复制结果=None
@@ -59,6 +73,7 @@ class 登录对话框:
             动作()
         except Exception:
             自身.失败=True
+            界面.label(自身.属性['t']('failed'))
         自身.忙碌=False
 
     def 关闭(自身):
@@ -98,6 +113,7 @@ class 登录对话框:
             自身.复制结果='copiedLink'
         except Exception:
             自身.复制结果='copyFailed'
+            界面.label(自身.属性['t']('copyFailed'))
         自身.排复制恢复()
 
     def 渲染(自身):
@@ -138,38 +154,40 @@ class 登录对话框:
             复制键=None
         def 点复制():
             '复制授权链接'
-            if 授权网址:
+            if isinstance(授权网址,str) and 授权网址!='':
                 自身.复制链接(授权网址)
         def 点主按钮():
             '重试或登录'
             自身.执行(自身.重试)
+        def 点次按钮():
+            '取消或改走密钥'
+            if 活动:
+                自身.关闭()
+                return
+            自身.属性['useApiKey']()
         主文案=翻译('waiting') if 等待 else 翻译('retry' if 过期 or 出错 else 'signIn')
-        return {
-            'type':'sign-in-dialog',
-            'cssModule':'登录对话框.module.css',
-            'title':标题,
-            'waiting':等待,
-            'error':出错,
-            'expired':过期,
-            'active':活动,
-            'committing':提交中,
-            'busy':自身.忙碌,
-            'authorizeUrl':授权网址,
-            'copyKey':复制键,
-            'descriptionKey':说明键,
-            'browserPrompt':翻译('browserPrompt') if 等待 else None,
-            'browserDescription':翻译('browserDescription') if 等待 else None,
-            'description':None if 等待 or 说明键 is None else 翻译(说明键),
-            'closeLabel':翻译('close'),
-            'secondaryLabel':翻译('cancel' if 活动 else 'addApiKey'),
-            'primaryLabel':主文案,
-            'viewReady':视图 is not None,
-            'onClose':自身.关闭,
-            'onCopy':点复制,
-            'onSecondary':自身.关闭 if 活动 else 自身.属性['useApiKey'],
-            'onPrimary':点主按钮,
-            't':翻译,
-        }
+        if 视图 is None:
+            return
+        with 界面.dialog() as 对话框:
+            with 界面.card().classes('登录对话'):
+                with 界面.column().classes('登录内容'):
+                    with 界面.row().classes('登录头'):
+                        界面.label(标题).classes('登录题')
+                        界面.button(on_click=自身.关闭).props('flat round icon=close').classes('登录关')
+                    if 等待:
+                        界面.label(翻译('browserPrompt')).classes('登录述')
+                        界面.label(翻译('browserDescription')).classes('登录述')
+                        if 复制键 is not None:
+                            界面.button(翻译(复制键), on_click=点复制).props('flat no-caps').classes('登录次钮')
+                    elif 说明键 is not None:
+                        界面.label(翻译(说明键)).classes('登录述')
+                    with 界面.row().classes('登录动作'):
+                        界面.button(翻译('close'), on_click=自身.关闭).props('flat no-caps').classes('登录次钮')
+                        界面.button(翻译('cancel' if 活动 else 'addApiKey'), on_click=点次按钮).props('flat no-caps').classes('登录次钮')
+                        主钮=界面.button(主文案, on_click=点主按钮).props('unelevated no-caps').classes('登录主钮')
+                        if 自身.忙碌 or 提交中:
+                            主钮.disable()
+        对话框.open()
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

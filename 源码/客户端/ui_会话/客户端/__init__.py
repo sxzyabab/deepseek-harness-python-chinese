@@ -1,5 +1,4 @@
 from ....基础设施.通用工具 import 获取内部数据,观察者集合
-from .会话提供方 import 渲染会话区域#SessionProvider 渲染语义
 from ..异常 import 会话错误#本包异常
 
 __all__=[#仅中文公开名
@@ -210,7 +209,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         自身.adapter={#作用域适配器
             'current':自身.current,#当前绑定源
             'bindingSource':自身.取绑定源,#按引用取源
-            'renderArea':渲染会话区域,#SessionProvider 渲染语义
+            'renderArea':绘制会话区,#无键画空分支，有键画子树
         }#适配器结束
         def 投影寿命():#绑定投影寿命
             '列表变更刷新主视图与状态；远程运行态观察'
@@ -273,10 +272,9 @@ class 会话界面:#会话作用域源名册与渲染器适配器
                 raise#上抛
             def 拆卸():#拆卸
                 '卸下再重建'
-                try:#定位
-                    索引=自身.descriptors.index(描述符)#定位
-                except ValueError:#已不在
-                    return#忽略
+                if 描述符 not in 自身.descriptors:
+                    return
+                索引=自身.descriptors.index(描述符)#定位
                 自身.descriptors.pop(索引)#卸下描述符
                 自身.重建绑定()#再重建
             return 拆卸#返回拆卸
@@ -300,11 +298,9 @@ class 会话界面:#会话作用域源名册与渲染器适配器
             def 拆卸():#拆卸
                 '先清可见值，再结算拥有方'
                 委托列表=域.释放()#先清可见值
-                try:#定位
+                if 域 in 自身.pendingDomains:
                     索引=自身.pendingDomains.index(域)#定位
                     自身.pendingDomains.pop(索引)#卸下域
-                except ValueError:#已不在
-                    pass#忽略
                 自身.发布待处理交互()#再投影
                 for 委托 in 委托列表:#结算拥有方
                     委托()#执行
@@ -368,7 +364,7 @@ class 会话界面:#会话作用域源名册与渲染器适配器
         自身.mainRetainId=会话标识#记下新 id
         if 会话标识 is None:#无
             自身.disposeMainRetain=lambda:None#空
-        else:#有
+        else:
             def 持有变更():#持有变更
                 '刷新主视图'
                 自身.发布主视图()#刷新
@@ -507,6 +503,19 @@ class 会话界面:#会话作用域源名册与渲染器适配器
             声明缺席('keyed hook',键控,描述符['keyedHooks'] if 'keyedHooks' in 描述符 else None,最终属性)#声明缺席键控
             声明缺席('prop',属性,描述符['props'] if 'props' in 描述符 else None,最终属性)#声明缺席 prop
         return {'key':None,'hooks':钩子,'keyedHooks':键控,'props':属性}#键缺席
+
+def 绘制会话区(绑定,属性):
+    '无会话键时画空分支，有键时画子树'
+    键=绑定['key'] if isinstance(绑定,dict) and 'key' in 绑定 else getattr(绑定,'key',None)
+    if 键 is None:
+        空=属性['empty'] if isinstance(属性,dict) and 'empty' in 属性 else None
+        if callable(空):
+            return 空()
+        return 空
+    子=属性['children'] if isinstance(属性,dict) and 'children' in 属性 else None
+    if callable(子):
+        return 子()
+    return 子
 
 def 应用(上下文):#浏览器侧安装入口
     '安装会话根源与作用域适配器'

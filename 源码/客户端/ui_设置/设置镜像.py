@@ -1,6 +1,7 @@
 import threading
 from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ..存储 import 创建快照存储#共享快照仓库
+from .异常 import 页面失败文案
 
 __all__=['设置描述镜像']#仅中文公开名
 
@@ -151,13 +152,14 @@ class 设置描述镜像:
                 if 应答['ok'] is True:#成功
                     成果={'view':应答['value']}#视图
                 else:#业务失败
-                    成果={'failure':应答['error']['message']}#失败文案
+                    原文=应答['error']['message']
+                    成果={'failure':页面失败文案(原文) if isinstance(原文,str) else 原文}#失败文案，不含绝对路径
             except Exception as 错误:#抛错记入快照，不打断飞行槽
-                成果={'failure':str(错误)}#失败文案
+                成果={'failure':页面失败文案(错误)}#失败文案，不含绝对路径
             处理成果(成果)
         def 读失败(错误):
             '线上读抛错：记入快照，不打断飞行槽'
-            处理成果({'failure':str(错误)})#失败文案
+            处理成果({'failure':页面失败文案(错误)})#失败文案，不含绝对路径
         def 跑一轮():
             '一轮读：标加载，发 describe，答案交给处理成果'
             nonlocal 本读代际

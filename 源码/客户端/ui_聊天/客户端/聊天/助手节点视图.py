@@ -1,5 +1,7 @@
+from nicegui import ui as 界面
 from .助手Markdown import 助手Markdown#块体
 from .消息图标动作 import 消息图标动作#动作行
+from .消息项 import 打开列
 
 __all__=['助手节点视图']#仅中文公开名
 
@@ -14,6 +16,8 @@ class 助手节点视图:
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.体=助手Markdown()#体
         自身.动作=消息图标动作()#动作
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -32,11 +36,16 @@ class 助手节点视图:
         加载图=属性['loadImage'] if 'loadImage' in 属性 else None#图
         提及=属性['fileMentions'] if 'fileMentions' in 属性 else None#提及
         分叉=属性['forkAt'] if 'forkAt' in 属性 else None#分叉
-        动作=自身.动作({'node':数据,'t':翻译,'forkAt':分叉}) if 流式 is False else None#动作
-        return {'type':'assistant-node','status':状态,'body':自身.体({'blocks':块列表,'streaming':流式,'interrupted':中断,'t':翻译,'loadImage':加载图,'mentions':提及}),'actions':动作,'cssModule':'助手节点视图.module.css'}#视图
+        with 打开列(自身,'助手节点'):
+            with 界面.column().classes('助手体'):
+                自身.体.更新({'blocks':块列表,'streaming':流式,'interrupted':中断,'t':翻译,'loadImage':加载图,'mentions':提及})
+                自身.体.渲染()
+            if 流式 is False:
+                自身.动作.更新({'node':数据,'t':翻译,'forkAt':分叉})
+                自身.动作.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

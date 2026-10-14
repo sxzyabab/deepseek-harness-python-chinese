@@ -1,9 +1,24 @@
+from nicegui import ui as 界面
 from ...基础设施.js特性 import PromiseEX as 期约#期约
 from .启动客户端 import 启动客户端#组装
 from .异常 import 网页错误#本包异常
 from .启动页 import 启动页#启动页
 from .挂载 import 挂载客户端#应用挂载
 from .种子 import 静态模块表#静态模块表
+
+壳层样式='''
+html,body,#root{height:100%;margin:0}
+body{font-family:var(--dsw-font-family,-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Helvetica,Arial,sans-serif);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:var(--dsw-alias-label-primary,#0f1115);background:var(--dsw-alias-bg-base,#fff);text-autospace:normal}
+html[data-platform='darwin'],html[data-platform='darwin'] body{background:transparent}
+html[data-platform='darwin'] body{isolation:isolate}
+html[data-platform='darwin'] [data-window-drag]{-webkit-app-region:drag}
+html[data-platform='darwin'] [data-window-drag-recall]{-webkit-app-region:no-drag}
+html[data-platform='darwin'] body > :not(#root){-webkit-app-region:no-drag}
+html[data-platform='darwin'] :is(button,a,input,select,textarea,summary,[contenteditable='true'],[tabindex],[role='dialog'],[role='alertdialog'],[role='menu'],[role='listbox'],[role='tooltip'],[role='button'],[role='link'],[role='tab'],[role='menuitem'],[role='menuitemcheckbox'],[role='menuitemradio'],[role='option'],[role='checkbox'],[role='radio'],[role='switch'],[role='slider'],[role='combobox'],[role='textbox']){-webkit-app-region:no-drag}
+code,pre,[data-diff],[data-read],[data-search],[data-terminal]{text-autospace:no-autospace}
+button,input,select,textarea{font-family:inherit}
+'''#壳层挂载默认，主题令牌由主题插件另交
+界面.add_css(壳层样式,shared=True)
 
 __all__=['网页应用入口','上下文构造']#仅中文公开名
 
@@ -28,14 +43,14 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
             if 失败回调 is not None:#载体呈现
                 失败回调(原因)#回调
             elif isinstance(原因,网页错误):#本包错误
-                自身.页.fail(原因.args[0] if len(原因.args)>0 else str(原因))#启动页失败报告
+                自身.页.显示失败(原因.args[0] if len(原因.args)>0 else str(原因))#启动页失败报告
             else:#其它
-                自身.页.fail(str(原因))#启动页失败报告
+                自身.页.显示失败(str(原因))#启动页失败报告
         try:#跑启动
             窗口=自身.窗口#门面
             if 窗口 is None:#缺窗口
                 raise 网页错误('网页启动：缺少 window.__ModuleLoader__ 引导门面')#失败
-            if '__DSH_BOOT_READY__' in 窗口:#有就绪门
+            if '__DSH_BOOT_READY__' in 窗口:
                 窗口['__DSH_BOOT_READY__'].等待()#等引导就绪；生产者不在本范围
             if '__ModuleLoader__' not in 窗口:#缺门面
                 raise 网页错误('网页启动：缺少 window.__ModuleLoader__ 引导门面')#失败
@@ -43,24 +58,24 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
             创建选项={'boot':窗口['__DSH_BOOT__'] if '__DSH_BOOT__' in 窗口 else None,'staticModules':静态模块表()}#基础选项
             if '__DSH_TRANSPORT__' in 窗口:#预注入传输
                 传输=窗口['__DSH_TRANSPORT__']#钩子
-                if 'loadBundle' in 传输:#有 loadBundle
+                if 'loadBundle' in 传输:
                     创建选项['loadBundle']=传输['loadBundle']#默认传输
             if 自身.接缝 is not None and 'loadBundle' in 自身.接缝:#测试 seams 覆盖
                 创建选项['loadBundle']=自身.接缝['loadBundle']#覆盖
             自身.模块系统=模块加载器.create(创建选项)#创建模块系统
-            自身.清单=自身.模块系统.manifest#记下清单
+            自身.清单=自身.模块系统.manifest
             def 预取后启动(结算表):
                 '预取落定后创建上下文、组装并挂载。结算表是各路兑现值'
                 try:#落定后
                     if 上下文构造 is None:#未绑定 Context
                         raise 网页错误('网页启动：未绑定 Context 类')#失败
                     上下文=上下文构造()#新 Cordis 树
-                    自身.上下文=上下文#记下
-                    自身.页.setTotal(len(自身.清单['plugins']))#设进度总数
+                    自身.上下文=上下文
+                    自身.页.设总数(len(自身.清单['plugins']))#设进度总数
                     def 投影状态(入口名,状态):
                         '投影到启动页；载体呈现失败时跳过 failed'
                         if 失败回调 is None or 状态!='failed':#可写页
-                            自身.页.setState(入口名,状态)#写下
+                            自身.页.设状态(入口名,状态)#写下
                     启动客户端({#组装插件树
                         'ctx':上下文,#根上下文
                         'modules':自身.模块系统,#模块系统
@@ -78,10 +93,10 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
     def dispose(自身):
         '拆除客户端插件树以及当前拥有挂载点的页面'
         上下文=自身.上下文#当前
-        自身.上下文=None#清空引用
-        if 上下文 is not None:#有树
+        自身.上下文=None
+        if 上下文 is not None:
             上下文.fiber.dispose().等待()#拆除插件树并等落定；cordis 纤程须显式等待
-        自身.页.dispose()#拆除启动页
+        自身.页.卸下()#拆除启动页
 
     def 预取立即层(自身,落定,拒绝时):
         '在并发插件导入前预取一阶段包及其动态请求。预取失败不阻断启动'
@@ -91,12 +106,13 @@ class 网页应用入口:#apps/web 消费的浏览器启动入口
                 '预取并结算'
                 try:#预取
                     自身.模块系统.prefetch(标识)#预取；模块系统内同步阻塞
-                except 网页错误:#仅吞本包预取失败
+                except 网页错误:#本包预取失败不阻断，加载器导入会重试并在页面上报告
                     解决(None)#失败不阻断
-                except Exception as 错误:#其它
-                    拒绝(错误)#交给全部
-                else:#完成
-                    解决(None)#这一路完成
+                    return
+                except Exception as 其它错误:#其它失败交给全部
+                    拒绝(其它错误)#交给全部
+                    return
+                解决(None)#这一路兑现
             return 期约(执行)#这一路
         期约表=[]#各路预取
         for 插件行 in 自身.清单['plugins']:#逐行

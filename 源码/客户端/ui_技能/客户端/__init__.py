@@ -5,7 +5,7 @@ from urllib.parse import quote as 百分编码#URI 段编码
 from .文案 import 命名空间,中文,英文#词典（同目录厚叶）
 from ...ui_基础界面组件.按名排序 import 按名排序#按名与标签排序
 from ..技能行 import 技能行#技能工具行
-from ..异常 import 技能错误#本包异常
+from ..异常 import 技能错误,去掉敏感,页面失败文案#本包异常
 
 __all__=['依赖','应用']#仅中文公开名
 
@@ -78,7 +78,7 @@ def 应用(上下文):#安装技能引用浏览器半边
 
     def 通知词表(会话标识):#通知该会话的词表监听者
         '通知该会话的词表监听者'
-        if 会话标识 in 词表监听:#有订阅
+        if 会话标识 in 词表监听:
             词表监听[会话标识].通知()#触发
 
     def 拉目录(会话标识):#按会话单飞拉取技能目录
@@ -98,7 +98,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                 错误=结果['error'] if 'error' in 结果 else None#错误
                 码=错误['code'] if 错误 is not None and 'code' in 错误 else None
                 消息=错误['message'] if 错误 is not None and 'message' in 错误 else None#消息
-                raise 技能错误('skills/list 失败: '+str(码)+': '+str(消息))#转抛
+                raise 技能错误('skills/list 失败: '+str(码)+': '+去掉敏感(消息))#转抛
             return 结果['value']['skills']#目录条目
         任务=期约()#本键共享拉取
         条目={'任务':任务,'abort':中止拉取,'signal':中止器}#本键共享条目
@@ -140,7 +140,7 @@ def 应用(上下文):#安装技能引用浏览器半边
                     if 打开态!='open':#未打开
                         错误=状态['openError'] if isinstance(状态,dict) and 'openError' in 状态 else getattr(状态,'openError',None)
                         if 错误 is not None:
-                            raise 错误
+                            raise 技能错误(页面失败文案(错误)) from None
                         raise 技能错误('session "'+str(会话标识)+'" is not open')
                     技能接口.list({'sessionId':会话标识},中止器).然后(已列出,本次拉取.拒绝)#唯一一次 list
                     return 本次拉取
@@ -199,10 +199,10 @@ def 应用(上下文):#安装技能引用浏览器半边
         if 会话服务.subagentAddress(会话['sessionId']) is not None:#子智能体
             return#不预热
         任务=拉目录(会话['sessionId'])['任务']#预热
-        def 忽略(错误):#预热失败
-            '预热失败不在此处理：目录拉取失败已摘掉缓存，下一次 candidates 会再拉并上报'
-            return
-        任务.捕获(忽略)#后台
+        def 上报预热失败(错误):
+            '共享任务已拒绝。再抛出，避免这次预热把失败吞掉。'
+            raise 技能错误(页面失败文案(错误)) from 错误
+        任务.捕获(上报预热失败)#后台
 
     def 词表(会话):#同步词表
         '已落定目录的技能名'
@@ -257,9 +257,9 @@ def 应用(上下文):#安装技能引用浏览器半边
             return 打开(已落定)#同步打开
         条目=拉目录(会话标识)#加入或发起拉取
         def 预览失败(错误):#预览失败
-            '仍有效才记'
+            '仍有效则抛出，文案不含路径、用户名或环境变量'
             if not 已中止(条目['signal']):#仍有效才记
-                print('[ui-skill] 引用预览失败:',错误)#记日志
+                raise 技能错误(页面失败文案(错误)) from 错误
         def 到达后打开(目录):#目录到达后打开
             '仍有效才打开'
             try:
@@ -295,7 +295,7 @@ def 应用(上下文):#安装技能引用浏览器半边
         def 拆除():#fiber 拆除
             '从花名册摘掉本源并清缓存'
             注销()#摘源
-            清空全部()#清缓存
+            清空全部()
         return 拆除#拆除器
     上下文.副作用(挂源,'ui-skill: source')#生命周期
 

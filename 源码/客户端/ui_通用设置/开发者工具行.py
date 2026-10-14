@@ -1,10 +1,14 @@
 __all__=['开发者工具行']
 
+from nicegui import ui as 界面
+
 class 开发者工具行:
     '通用区开发者工具开关'
     def __init__(自身,属性):
         '记下'
         自身.属性=属性
+        if 't' in 属性:#槽位只调用构造
+            自身.渲染()
     def 更新(自身,属性):
         '刷新'
         自身.属性=属性
@@ -22,17 +26,12 @@ class 开发者工具行:
             源=自身.属性['hooks']['developerTools']
             快照=源['getSnapshot']() if isinstance(源,dict) else 源.getSnapshot()
             已开=快照['enabled'] if isinstance(快照,dict) and 'enabled' in 快照 else bool(快照)
-        def 切换(开):
+        def 切换(事件):
             '写入'
-            自身.属性['setEnabled'](开)
-        return {
-            'type':'developer-tools-row',
-            'title':翻译('developerTools.title'),
-            'description':翻译('developerTools.description'),
-            'error':翻译('developerTools.error'),
-            'enabled':已开,
-            'onChange':切换,
-        }
+            自身.属性['setEnabled'](事件.value)
+        with 界面.column().classes('developer-tools-row'):
+            界面.switch(翻译('developerTools.title'), value=已开, on_change=切换)
+            界面.label(翻译('developerTools.description')).classes('设置说明')
     def __call__(自身,属性=None):
         '对齐组件调用'
         if 属性 is not None:

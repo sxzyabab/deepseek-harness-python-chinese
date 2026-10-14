@@ -1,8 +1,10 @@
+from nicegui import ui as 界面
 from .聊天节点席 import 聊天节点席#节点席
-from .消息项 import 待插话泡#pending steering
+from .消息项 import 待插话泡,打开列#pending steering
 from .消息铬 import 格式化运行时长#回合时钟
 from .回合导航器 import 回合导航器#轨
 from .回合轨条目 import 合并回合轨条目#合并
+from ...异常 import 页面失败文案
 import time as 时间模块#墙钟
 
 __all__=['聊天视图','跟随阈值','运行回合起始','回合状态']#仅中文公开名
@@ -29,7 +31,7 @@ def 运行回合起始(时间线):
     for 回合 in 迭代:#扫
         态=回合['status'] if 'status' in 回合 else None#态
         起=回合['start'] if 'start' in 回合 else None#起
-        if 态=='open' and 起 is not None:#开
+        if 态=='open' and 起 is not None:
             最新=起['time'] if 'time' in 起 else None#时
     return 最新#最新
 
@@ -89,7 +91,33 @@ class 聊天视图:
         自身.贴底=True#跟随
         自身.活动回合=None#活动
         自身.忙回合=None#忙跳转
-        自身.导航=回合导航器()#轨
+        自身.导航=回合导航器()
+        自身.根=None
+        自身._已订聊天=False
+        自身._订聊天()
+        自身.渲染()
+
+    def _订聊天(自身):
+        '事件流推进后重画这一列。列已从页面拆掉则不再画。'
+        if 自身._已订聊天 is True:
+            return
+        用=自身.属性['useChat'] if isinstance(自身.属性,dict) and 'useChat' in 自身.属性 else None
+        订=getattr(用,'_subscribe',None) if 用 is not None else None
+        if callable(订) is not True:
+            return
+        def 重画():
+            根=getattr(自身,'根',None)
+            if 根 is None:
+                return
+            槽=getattr(根,'parent_slot',None)
+            if 槽 is not None and getattr(槽,'parent',None) is None:
+                return
+            try:
+                自身.渲染()
+            except Exception as 错误:
+                界面.label(页面失败文案(错误))
+        订(重画)
+        自身._已订聊天=True
 
     def 更新(自身,属性):
         '刷新 props'
@@ -97,16 +125,16 @@ class 聊天视图:
 
     def 滚到底(自身):
         '清锚并标记贴底'
-        自身.贴底=True#贴
+        自身.贴底=True
         滚=自身.属性['chatScroll'] if 'chatScroll' in 自身.属性 else None#滚
         存=滚['save'] if 滚 is not None and 'save' in 滚 else None#存
-        if 存 is not None:#有
+        if 存 is not None:
             存(None)#清记忆
 
     def 加载更早(自身):
         '调 loadOlder'
         加载=自身.属性['loadOlder'] if 'loadOlder' in 自身.属性 else None#加载
-        if 加载 is not None:#有
+        if 加载 is not None:
             加载()#派发
 
     def 渲染(自身):
@@ -147,32 +175,18 @@ class 聊天视图:
         紧凑=属性['compactTranscript'] is True if 'compactTranscript' in 属性 else False#紧凑
         选中调用=用存储(取选中调用) if 用存储 is not None else None#选中
         轨项=合并回合轨条目(导航项,大纲)#合并轨
-        席列表=[]#行
         动作=属性['actions'] if 'actions' in 属性 else None#动作
         工作目录=属性['cwd'] if 'cwd' in 属性 else None#cwd
         打开文件=属性['openFile'] if 'openFile' in 属性 else None#打开
         察调用=属性['inspectCall'] if 'inspectCall' in 属性 else None#察
         分叉=属性['forkAt'] if 'forkAt' in 属性 else None#分叉
         加载图=属性['loadImage'] if 'loadImage' in 属性 else None#图
-        渲图=属性['renderMessageImages'] if 'renderMessageImages' in 属性 else None#渲图
+        渲图=属性['renderMessageImages'] if 'renderMessageImages' in 属性 else None
         提及=属性['fileMentions'] if 'fileMentions' in 属性 else None#提及
-        for 节点键 in 序:#逐键
-            席=聊天节点席({'nodeKey':节点键,'useChatNode':用节点,'useChatNodeProcess':用过程,'historyIncomplete':历史不全,'compactTranscript':紧凑,'useStore':用存储,'actions':动作,'selectedCallId':选中调用,'cwd':工作目录,'openFile':打开文件,'inspectCall':察调用,'forkAt':分叉,'loadImage':加载图,'renderMessageImages':渲图,'fileMentions':提及,'renderSlot':渲染槽,'t':翻译})()#渲
-            if 席 is not None:#席非空
-                席列表.append(席)#入
-        转向行=[]#steering
-        for 项 in 收件:#扫
-            位=项['placement'] if 'placement' in 项 else None#位
-            种类=项['kind'] if 'kind' in 项 else None#种类
-            if 位=='steering' or 种类=='steering':#插话
-                内容=项['content'] if 'content' in 项 and 项['content'] is not None else []#内容
-                标识=项['id'] if 'id' in 项 else None#id
-                转向行.append({'id':标识,'view':待插话泡({'content':内容,'loadImage':加载图,'t':翻译})()})#行
-        运行起始=运行回合起始(时间线)#起始
         def 导航到(项):
             '已加载滚锚，未加载翻页'
             跳=属性['onNavigateTurn'] if 'onNavigateTurn' in 属性 else None#跳
-            if 跳 is not None:#有
+            if 跳 is not None:
                 跳(项)#派
         错文=None#错文
         if 打开态=='error' and 打开错 is not None:#有错
@@ -180,11 +194,45 @@ class 聊天视图:
             错码=打开错['code'] if 'code' in 打开错 else None#码
             错文=翻译('chat.loadError',{'message':错消息,'code':错码})#错
         加载提示=翻译('chat.loadingHistory') if 打开态=='loading' else None#加载提示
+        运行起始=运行回合起始(时间线)#起始
         回合态=回合状态(运行起始,翻译) if 运行中 is True else None#回合态
-        return {'type':'chat-view','openState':打开态,'loadingHint':加载提示,'openError':错文,'hasMore':还有更早,'loadingOlder':加载更早中,'loadOlderLabel':翻译('chat.loadOlder'),'onLoadOlder':自身.加载更早,'seats':席列表,'navigator':自身.导航({'items':轨项,'activeTurn':自身.活动回合,'busyTurn':自身.忙回合,'onNavigate':导航到,'t':翻译}),'turnStatus':回合态,'pendingSteering':转向行,'atBottom':自身.贴底,'toBottomLabel':翻译('chat.toBottom'),'onToBottom':自身.滚到底,'cssModule':'聊天视图.module.css'}#视图
+        with 打开列(自身,'聊天视图'):
+            自身.根.style('width:100%')
+            with 界面.row().classes('聊天行').style('width:100%;align-items:stretch'):
+                with 界面.column().classes('消息列').style('flex:1 1 auto;width:100%'):
+                    if 加载提示 is not None:
+                        界面.label(加载提示)
+                    if 错文 is not None:
+                        界面.label(错文)
+                    if 还有更早 is True:
+                        更早文=翻译('chat.loadOlder')
+                        if 加载更早中 is True:
+                            界面.label(更早文)
+                        else:
+                            界面.button(更早文,on_click=自身.加载更早)
+                    for 节点键 in 序:#逐键
+                        席=聊天节点席()
+                        席.更新({'nodeKey':节点键,'useChatNode':用节点,'useChatNodeProcess':用过程,'historyIncomplete':历史不全,'compactTranscript':紧凑,'useStore':用存储,'actions':动作,'selectedCallId':选中调用,'cwd':工作目录,'openFile':打开文件,'inspectCall':察调用,'forkAt':分叉,'loadImage':加载图,'renderMessageImages':渲图,'fileMentions':提及,'renderSlot':渲染槽,'useChat':用聊天,'t':翻译})
+                        席.渲染()
+                    for 项 in 收件:#扫
+                        位=项['placement'] if 'placement' in 项 else None#位
+                        种类=项['kind'] if 'kind' in 项 else None#种类
+                        if 位=='steering' or 种类=='steering':#插话
+                            内容=项['content'] if 'content' in 项 and 项['content'] is not None else []#内容
+                            泡=待插话泡()
+                            泡.更新({'content':内容,'loadImage':加载图,'t':翻译})
+                            泡.渲染()
+                    if 回合态 is not None:
+                        界面.label(回合态['label'])
+                        if 回合态['showClock'] is True and 回合态['clock'] is not None:
+                            界面.label(回合态['clock'])
+                    if 自身.贴底 is not True:
+                        界面.button(翻译('chat.toBottom'),on_click=自身.滚到底)
+                自身.导航.更新({'items':轨项,'activeTurn':自身.活动回合,'busyTurn':自身.忙回合,'onNavigate':导航到,'t':翻译})
+                自身.导航.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

@@ -1,5 +1,5 @@
 from .代际目录 import 代际目录#共享 Host 代际目录
-from .异常 import 模型选择错误#本包异常
+from .异常 import 模型选择错误,页面失败文案#本包异常与页面失败句
 
 __all__=['模型目录','空目录状态','模型选择错误','选定投影']#仅中文公开名
 
@@ -65,22 +65,34 @@ class 模型目录:#每会话模型目录控制器
         if not 自身.可用():#不可用
             raise 模型选择错误('model selection is unavailable for addressed subagent sessions')#拒绝
 
+    def _记下不可用(自身):#不可用时先写入快照再抛出
+        '座位重画和吐司读的是这份 error'
+        try:#守卫
+            自身.断言可用()#子智能体拒绝
+        except 模型选择错误 as 错误:#写入后再抛，调用方仍能看见
+            文=页面失败文案(错误)#页面失败句
+            def 写错(态):#错误态
+                态['status']='error'#错误
+                态['error']=文#文案
+            自身.存储.update(写错)#写
+            raise#调用方继续处理
+
     def load(自身):#确保共享目录已加载
         '按新目录重算快照并交出'
-        自身.断言可用()#守卫
+        自身._记下不可用()#守卫
         自身.目录账本.load()#拉共享目录
         自身._同步输入()#按新目录重算
         return 自身.存储.getSnapshot()#当前快照
 
     def select(自身,选定):#提交完整选定
         '成功则就绪；失败写 store 并返回 RemoteResult 形 dict'
-        自身.断言可用()#守卫
+        自身._记下不可用()#守卫
         自身.世代+=1#世代
         本轮=自身.世代#本轮
         def 标选定(态):#selecting
             '标 selecting'
             态['status']='selecting'#选定中
-            态['error']=None#清错
+            态['error']=None
         自身.存储.update(标选定)#selecting
         载荷={'sessionId':自身.会话标识,'provider':选定['provider'],'model':选定['model']}#载荷
         if 'reasoningEffort' in 选定 and 选定['reasoningEffort'] is not None:#有力度
@@ -91,7 +103,7 @@ class 模型目录:#每会话模型目录控制器
             return {'ok':True,'value':None} if 'ok' in 结果 and 结果['ok'] else 结果#过期仍交回
         if not 结果['ok']:#业务失败
             错=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
-            文=str(错['code'] if 'code' in 错 else None)+': '+str(错['message'] if 'message' in 错 else None)#文案
+            文=页面失败文案(str(错['code'] if 'code' in 错 else None)+': '+str(错['message'] if 'message' in 错 else None))#文案，页面不带路径、用户名或环境变量
             def 写错(态):#写错误
                 '标 error'
                 态['status']='error'#失败
@@ -101,7 +113,7 @@ class 模型目录:#每会话模型目录控制器
         def 写好(态):#就绪
             '标就绪并清错'
             态['status']='ready'#就绪
-            态['error']=None#清错
+            态['error']=None
         自身.存储.update(写好)#写
         自身._同步输入()#按投影与目录重算
         return {'ok':True,'value':None}#成功
@@ -115,8 +127,8 @@ class 模型目录:#每会话模型目录控制器
             '选定中回空闲'
             if 态['status']=='selecting':#选定中
                 态['status']='idle'#回空闲
-            态['error']=None#清错
-        自身.存储.update(清选定中)#清
+            态['error']=None
+        自身.存储.update(清选定中)
         自身._同步输入()#重算
 
     def dispose(自身):#拆除

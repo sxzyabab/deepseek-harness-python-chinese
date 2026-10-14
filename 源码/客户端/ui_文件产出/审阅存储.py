@@ -1,4 +1,5 @@
 '审阅标签视图态：选中文件、左右/单栏、是否换行'
+from .异常 import 去掉敏感#异常句不带路径
 __all__=['创建审阅存储']#仅中文公开名
 
 def 初值():#空表
@@ -9,14 +10,18 @@ def _桶(草稿,标签标识):#取桶
     '无桶则抛'
     表=草稿['byTab']#表
     if 标签标识 not in 表:#无
-        raise KeyError('ui-deliverables: no review state for tab "'+str(标签标识)+'"')#缺
+        说明=去掉敏感(标签标识)#去掉路径、用户名、环境变量
+        句子='ui-deliverables: no review state for tab'#固定句
+        if 说明!='':#还能留下的身份
+            句子=句子+' '+说明#接在固定句后
+        raise KeyError(句子)#缺
     return 表[标签标识]#桶
 
 def 已导航(草稿,标签标识,修订,下标):#应用导航
     '首次建桶，之后改下标与修订'
     表=草稿['byTab']#表
     if 标签标识 not in 表:#首导航
-        表[标签标识]={'index':下标,'split':False,'wrap':False,'navigated':修订}#建
+        表[标签标识]={'index':下标,'split':True,'wrap':False,'navigated':修订}#新建默认左右对比
     else:#已有
         桶=表[标签标识]#桶
         桶['index']=下标#下标

@@ -38,7 +38,7 @@ def 工作区标签(工作目录):#工作区/目录展示标签
     if 工作目录 is None or 工作目录=='':#空路径
         return ''#空标记
     基名=路径转正斜杠(工作目录.rstrip('/\\')).split('/')[-1]#最后一段
-    return 基名 if 基名!='' else 工作目录#有 basename 用它
+    return 基名 if 基名!='' else 工作目录
 
 def 文件夹路径(路径):#规范化分隔符
     'Windows 路径统一斜杠；不去把 POSIX 反斜杠当分隔符'
@@ -54,7 +54,7 @@ def 拥有父文件夹(路径,父表):#最近已登记祖先
     for 父 in 父表:#逐父
         根=文件夹路径(父)#父根
         if len(根)>长度 and 子!=根 and 子.startswith(根+'/'):#更长且真祖先
-            拥有方=父#记下原拼写
+            拥有方=父
             长度=len(根)#记长度
     return 拥有方#拥有方或 None
 
@@ -123,12 +123,12 @@ def 调和手动顺序(成员标识列表,已存,按标识):#调和已存本地�
         if 键 not in 成员集 or 键 in 已纳入:#未知或重复
             continue#跳过
         有序.append(键)#追加
-        已纳入.add(键)#记下
+        已纳入.add(键)
     for 标识 in 按近因排序(成员标识列表,按标识):#再收新成员
         if 标识 in 已纳入:#已有
             continue#跳过
         有序.append(标识)#追加
-        已纳入.add(标识)#记下
+        已纳入.add(标识)
     return 有序#已存槽 + 新成员
 
 def 钉住当前空白(顺序,当前空白):#选中空白置顶
@@ -174,7 +174,7 @@ def 按工作区分组(列表,工作区列表,已归档,未分组序):#按工作
         if not 会话可见(摘要,当前,已归档):#不可见
             continue#跳过
         散落.append(摘要)#收下
-    if len(散落)>0:#有散落
+    if len(散落)>0:
         成员=有序未分组(散落,未分组序,按标识)#套序
         分组列表.append({'key':未分组键,'workspaceId':None,'cwd':None,'createdAt':None,'label':'','sessions':成员})#未分组桶
     return 分组列表#宿主顺序 + 可选未分组
@@ -190,7 +190,7 @@ def 索引子智能体后代(按标识):#按谱系索引运行中的后代
         while (当前['origin']=='subagent'#仍是子智能体
             and 当前['parentId'] is not None#且有父
             and 当前['id'] not in 已见):#且未见过
-            已见.add(当前['id'])#记下本节点
+            已见.add(当前['id'])
             父标识=当前['parentId']#父 id
             if 父标识 not in 索引:#第一次见到该父
                 索引[父标识]={'count':1,'runningCount':1 if 后代['running'] else 0}#新建
@@ -200,7 +200,7 @@ def 索引子智能体后代(按标识):#按谱系索引运行中的后代
                 if 后代['running']:#叶子在跑
                     聚合['runningCount']=聚合['runningCount']+1#运行加一
             if 父标识 not in 按标识:#孤儿
-                break#停
+                break
             当前=按标识[父标识]#走到父
     return 索引#父 id → 计数
 
@@ -210,7 +210,7 @@ def 会话行(摘要,后代,状态表):#摘要 → 展示行
     后代摘要=后代[标识] if 标识 in 后代 else None#该会话后代
     状态=状态表[标识] if 状态表 is not None and 标识 in 状态表 else None#统一状态
     种类=None#可见种类
-    if isinstance(状态,dict) and 'pendingInteraction' in 状态 and isinstance(状态['pendingInteraction'],dict) and 'kind' in 状态['pendingInteraction']:#有 kind
+    if isinstance(状态,dict) and 'pendingInteraction' in 状态 and isinstance(状态['pendingInteraction'],dict) and 'kind' in 状态['pendingInteraction']:
         种类=可见待处理种类(状态['pendingInteraction']['kind'])#收窄
     运行中=状态['running'] if isinstance(状态,dict) and 'running' in 状态 else 摘要['running']#状态优先
     完成=状态['completionUnread'] is True if isinstance(状态,dict) and 'completionUnread' in 状态 else False#未读完成
@@ -224,7 +224,7 @@ def 会话行(摘要,后代,状态表):#摘要 → 展示行
         'hasActiveSchedule':有活动日程(摘要),#活动日程
         'updatedAt':摘要['updatedAt'],#最近活动
     }#字段结束
-    if 种类 is not None:#有则带上
+    if 种类 is not None:
         行['pendingInteraction']=种类#待处理
     return 行#展示行
 
@@ -253,7 +253,7 @@ def 派生分组(列表,工作区列表,已归档会话标识,状态表,视图):
             'containsCurrent':组['key']==当前组,#是否含当前
             'sessions':[会话行(会话,后代,状态) for 会话 in 组['sessions']] if 展开 else [],#展开才投影
         })#展示段结束
-    return 结果#渲染顺序
+    return 结果
 
 def 可见会话标识(列表,已归档会话标识):#选出扁平列表成员
     '列表顺序上的已知可见会话 id'
@@ -303,7 +303,7 @@ def 派生检索结果(列表,工作区列表,查询,已归档会话标识,状�
     for 项 in 正文项:#宿主正文页
         标识=项['sessionId']#会话 id
         if 标识 not in 正文按会话:#先到先得
-            正文按会话[标识]=项#记下
+            正文按会话[标识]=项
     本地=[]#标题/工作区子串命中
     标识列表=列表['ids'] if 'ids' in 列表 and 列表['ids'] is not None else []#列表序
     for 标识 in 标识列表:#列表序
@@ -323,7 +323,7 @@ def 派生检索结果(列表,工作区列表,查询,已归档会话标识,状�
         标识=摘要['id']#id
         if 标识 in 已纳入:#已在
             return#忽略
-        已纳入.add(标识)#记下
+        已纳入.add(标识)
         有序.append(摘要)#追加
     for 标识 in 本地标识:#先本地
         纳入(本地索引[标识])#纳入
@@ -334,14 +334,14 @@ def 派生检索结果(列表,工作区列表,查询,已归档会话标识,状�
         摘要=按标识[标识]#摘要
         if not 摘要['blank'] and 会话可见(摘要,当前,已归档):#可见非空白
             纳入(摘要)#纳入
-    投影=[]#有界投影
+    投影=[]
     for 摘要 in 有序[:上限]:#截到上限
         标识=摘要['id']#id
         命中=正文按会话[标识] if 标识 in 正文按会话 else None#正文项
         后代摘要=后代[标识] if 标识 in 后代 else None#后代
         态=状态[标识] if 标识 in 状态 else None#统一状态
         种类=None#可见种类
-        if isinstance(态,dict) and 'pendingInteraction' in 态 and isinstance(态['pendingInteraction'],dict) and 'kind' in 态['pendingInteraction']:#有
+        if isinstance(态,dict) and 'pendingInteraction' in 态 and isinstance(态['pendingInteraction'],dict) and 'kind' in 态['pendingInteraction']:
             种类=可见待处理种类(态['pendingInteraction']['kind'])#收窄
         运行中=态['running'] if isinstance(态,dict) and 'running' in 态 else 摘要['running']#状态优先
         完成=态['completionUnread'] is True if isinstance(态,dict) and 'completionUnread' in 态 else False#未读完成
@@ -354,9 +354,9 @@ def 派生检索结果(列表,工作区列表,查询,已归档会话标识,状�
             'completed':完成,#完成
             'hasActiveSchedule':有活动日程(摘要),#活动日程
         }#行结束
-        if 种类 is not None:#有则带上
+        if 种类 is not None:
             行['pendingInteraction']=种类#待处理
-        if 命中 is not None and 'snippet' in 命中:#有正文片段
+        if 命中 is not None and 'snippet' in 命中:
             行['snippet']=命中['snippet']#片段
         投影.append(行)#收下
     正文更多=正文['hasMore'] if 正文 is not None and 'hasMore' in 正文 else False#后端还有

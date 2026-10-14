@@ -1,5 +1,6 @@
+from ..异常 import 去掉敏感
 
-__all__=['人读字节','失败行']#仅中文公开名
+__all__=['人读字节','失败行']
 
 
 def 人读字节(字节数):
@@ -24,5 +25,5 @@ def 失败行(翻译,失败):
         return 翻译('error.notText')
     if 码=='workspace-file/not-regular-file':#非普通文件
         return 翻译('error.notRegularFile')
-    消息=失败['message'] if 'message' in 失败 else ''#载体消息
-    return 翻译('error.unavailable',{'message':消息})#透传
+    消息=去掉敏感(失败['message'] if 'message' in 失败 else '')
+    return 翻译('error.unavailable',{'message':消息})

@@ -1,6 +1,6 @@
 '一次性会话全文只读模型的 SQLite 模式'
 import os,sqlite3#路径与 sqlite3
-from .异常 import 会话查询sqlite错误#本包异常
+from .异常 import 会话查询sqlite错误,去掉绝对路径#本包异常
 __all__=[
     '会话查询sqlite应用标识',
     '会话查询sqlite模式版本',
@@ -26,7 +26,7 @@ def 创建数据库文件(路径):
         pass#保留已有 mode
     except OSError as 错误:#其它错
         if getattr(错误,'errno',None)!=17:#非 EEXIST
-            raise 错误#原样抛
+            raise 会话查询sqlite错误(str(错误)) from None#说明不带路径
 
 def 列出用户表(连接):
     '列出非 sqlite_ 前缀的用户表'
@@ -38,14 +38,14 @@ def 列出用户表(连接):
         名称列表.append(行[0])#表名
     return 名称列表#表名列表
 
-def 校验派生用户表(路径,用户表列表):
-    '拒绝带未知用户表的派生索引'
+def 校验派生用户表(用户表列表):
+    '拒绝带未知用户表的派生索引。说明不写库路径'
     未知=[]#未知表
     for 名称 in 用户表列表:#逐表
         if 名称 not in 派生用户表:#未知
             未知.append(名称)#收集
     if len(未知)>0:#有未知
-        raise 会话查询sqlite错误('session-search database at "'+路径+'" has unrecognized user tables: '+', '.join(未知))#拒绝
+        raise 会话查询sqlite错误('session-search database has unrecognized user tables: '+', '.join(未知))#拒绝，说明不带路径
 
 def 引用标识符(值):
     'SQL 标识符引用'
@@ -129,8 +129,13 @@ def 打开检索数据库(路径,日志模式值='wal'):
     else:#文件库
         实际=os.path.abspath(路径)#规范路径
     if 实际!=':memory:':#文件库
-        os.makedirs(os.path.dirname(实际) or '.',mode=0o700,exist_ok=True)#建父目录
-        创建数据库文件(实际)#独占创建
+        try:#建父目录与库文件
+            os.makedirs(os.path.dirname(实际) or '.',mode=0o700,exist_ok=True)#建父目录
+            创建数据库文件(实际)#独占创建
+        except 会话查询sqlite错误:#已收成说明
+            raise#原样
+        except OSError as 错误:#路径留在原文里
+            raise 会话查询sqlite错误(str(错误)) from None#说明不带路径
     连接=sqlite3.connect(实际,check_same_thread=False)#打开连接
     连接.row_factory=sqlite3.Row#行映射
     try:#校验与初始化
@@ -146,11 +151,11 @@ def 打开检索数据库(路径,日志模式值='wal'):
             版本=0#零
         用户表列表=列出用户表(连接)#列用户表
         if 应用id!=0 and 应用id!=会话查询sqlite应用标识:#别的应用
-            raise 会话查询sqlite错误('session-search database at "'+实际+'" belongs to another application')#拒绝
+            raise 会话查询sqlite错误('session-search database belongs to another application')#拒绝，说明不带路径
         if 应用id==0 and len(用户表列表)>0:#非空且未标记
-            raise 会话查询sqlite错误('session-search database at "'+实际+'" is not an empty or recognized derived index')#拒绝
+            raise 会话查询sqlite错误('session-search database is not an empty or recognized derived index')#拒绝，说明不带路径
         if 应用id==会话查询sqlite应用标识:#已标记派生库
-            校验派生用户表(实际,用户表列表)#只允许派生表
+            校验派生用户表(用户表列表)#只允许派生表
             if 版本!=会话查询sqlite模式版本:#版本不兼容
                 重置派生模式(连接,用户表列表)#原地重置
         连接.execute('PRAGMA journal_mode = '+日志模式值.upper())#journal（校验后才改）
@@ -160,4 +165,8 @@ def 打开检索数据库(路径,日志模式值='wal'):
         return 连接#返回句柄
     except BaseException as 错误:#打开失败含 KeyboardInterrupt，必须关连接
         连接.close()#关连接
-        raise 错误#再抛
+        if isinstance(错误,(KeyboardInterrupt,SystemExit,会话查询sqlite错误)):#中断或已收成说明
+            raise#原样
+        if 去掉绝对路径(错误)!=str(错误).strip():#说明里有绝对路径
+            raise 会话查询sqlite错误(str(错误)) from None#去掉路径
+        raise#无路径则保留原异常

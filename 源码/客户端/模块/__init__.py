@@ -1,4 +1,4 @@
-import os,threading#路径与微任务近似
+import os,threading#路径与微任务回退
 from ...基础设施.通用工具 import 紧凑json编码,摘要十六进制
 from urllib.parse import unquote as 百分号解码,urlparse as 解析URL
 from ...依赖.cordis.服务 import 服务#服务基类
@@ -16,7 +16,6 @@ from .清单 import (#再导出启动清单类型
 )#清单面
 from .异常 import 缺客户端包错误,客户端包组合错误#本包异常
 from . import (
-    不变量,
     客户端,
     条目,
     条目生命周期,
@@ -39,6 +38,25 @@ __all__=[#仅中文公开名
     '精确包说明符',
     '剥客户端后缀',
 ]
+
+def 排微任务(函数):
+    '结构更新并入一次微任务'
+    try:#浏览器注入
+        排=queueMicrotask#微任务
+    except NameError:#未注入
+        排=None#无
+    if callable(排):#有
+        排(函数)#排队
+        return#已排
+    try:#同线程延后
+        import asyncio#事件循环
+        asyncio.get_running_loop().call_soon(函数)#下一轮
+        return#已排
+    except RuntimeError:#没有正在跑的循环
+        pass#改走定时器
+    定时器=threading.Timer(0,函数)#回退
+    定时器.daemon=True#守护
+    定时器.start()#启动
 
 def 客户端导出路径(包名,导出字段):
     '把 exports[\'./client\'] 解析成相对路径'
@@ -109,7 +127,7 @@ class 客户端模块注册表(服务):
                     '记警告'
                     上下文.日志.警告(错误)#警告
                 自身.冲刷(警告)#冲刷
-            threading.Timer(0,微任务冲刷).start()#近似 queueMicrotask
+            排微任务(微任务冲刷)#结构更新
         上下文.监听('internal/plugin',纤程事件)#订阅
         for 条目 in 上下文.loader.列出插件配置():#播种当前条目
             选项=条目.选项#配置文件 dict

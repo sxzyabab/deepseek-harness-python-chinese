@@ -1,6 +1,6 @@
 import re#模板占位替换
 from ..语言设置 import 语言偏好字段,语言设置命名空间#偏好字段、命名空间
-from ..异常 import 本地化错误#本包异常
+from ..异常 import 本地化错误,页面失败文案
 from ..词表 import 中文,英文,设置中文,设置英文#公共与设置词表
 from .设置存储 import 创建语言行存储#语言行存储
 from .语言行 import 语言行#语言行组件
@@ -95,7 +95,7 @@ class 语言运行时:
         匹配=None#命中项
         for 项 in 自身.快照['locales']:#在已提供列表里找
             if 项['id']==标识:#命中
-                匹配=项#记下
+                匹配=项
                 break#找到
         if 匹配 is None:#未登记
             raise 本地化错误('locale "'+标识+'" is not registered')#失败
@@ -146,7 +146,7 @@ class 语言运行时:
             for 语言,条目 in 对表:#只删本次同一引用
                 if 语言 in 拥有 and 拥有[语言] is 条目:#仍是本次
                     del 拥有[语言]#去掉
-                    删过=True#记下
+                    删过=True
             if 删过:#删过才抬修订
                 自身.发布(自身.快照['active'],False)#抬修订
         return 拆除#拆除器
@@ -203,11 +203,14 @@ class 语言运行时:
         }#快照结束
         if 语言已变:#语言切换
             自身.上下文.广播('locale/change',自身.快照)#发事件
+        失败=[]
         for 回调 in list(自身.监听者):#快照后逐个通知
-            try:#订阅者抛错不得打断其余
+            try:
                 回调()#通知
-            except BaseException as 错误:#订阅者异常契约未定，槽位回调可抛任意类型
-                print('文案订阅者崩溃:',错误)#诊断
+            except BaseException as 错误:
+                失败.append(页面失败文案(错误))
+        if len(失败)>0:
+            raise 本地化错误('；'.join(失败))
 
 def 应用(上下文):
     '用底表提供语言服务，并把语言偏好行登记进常规条目分区'

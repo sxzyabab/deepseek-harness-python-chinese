@@ -11,13 +11,13 @@ def 回放压缩(上下文):#从已加载匹配回退拼状态
     for 候 in 匹配列表:#扫
         候事件=候['event'] if 'event' in 候 else {}#事件
         if 摘要 is None and 候事件['type']=='compaction/summary':#摘要
-            摘要=候#记下
+            摘要=候
         if 检查点 is None and 压缩来源(候事件) is not None:#检查点
-            检查点=候#记下
+            检查点=候
     态={}#空
-    if 摘要 is not None:#有
+    if 摘要 is not None:
         态['summary']=摘要#带上
-    if 检查点 is not None:#有
+    if 检查点 is not None:
         态['checkpoint']=检查点#带上
     return 态#回退
 

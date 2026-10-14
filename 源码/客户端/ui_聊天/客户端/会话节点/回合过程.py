@@ -55,8 +55,8 @@ def 过程证据(事件):#从事件取过程证据
         首=-1#首非空
         for 甲,文 in enumerate(文列表):#扫
             if str(文).strip()!='':#非空
-                首=甲#记下
-                break#停
+                首=甲
+                break
         if 首<0:#全空
             return None#无
         return {'kind':'assistant','seq':事件['seq']+首,'step':数据['step'] if 'step' in 数据 else None}#证据
@@ -116,7 +116,7 @@ def 回合过程匹配(事件):#匹配事件
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='turn/start':#开始
-        return {'id':str(数据['turn']),'role':'start'}#开
+        return {'id':str(数据['turn']),'role':'start'}
     回合=事件回合(事件)#轮次
     if 回合 is None:#无
         return None#不

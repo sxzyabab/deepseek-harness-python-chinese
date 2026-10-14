@@ -1,4 +1,5 @@
 import re#正则
+from ...上下文.文件引用.词法 import 光标处活动令牌#@ 含未闭合引号，可跨空白
 
 __all__=['检测触发','词边界可']#仅中文公开名
 
@@ -22,27 +23,39 @@ def 词边界可(草稿,下标,字符):#该位置的触发字符是否满足词�
             return False#关
     return True#其余标点之后打开
 
+def _命中(草稿,位置,光标,字符,查询,引号):
+    '只编排 / 与 @。候选不在这里生成。'
+    非空白命中=非空白.search(草稿)#去空白后首个非空白
+    前导=非空白命中 is not None and 非空白命中.start()==位置#是否位于草稿前导
+    return {#命中
+        'trigger':字符,#触发字符
+        'query':查询,#触发到光标的切片
+        'quoted':引号 is True,#引号路径
+        'position':'leading' if 前导 else 'inline',#位置
+        'span':{'start':位置,'end':光标,'draftRev':0},#跨度；draftRev 由外壳盖章
+    }
+
 def 检测触发(草稿,光标,守卫):#检测光标处的触发令牌
-    '光标处无活触发时返回 None；span.draftRev 占位 0，由外壳盖章'
-    档=守卫['tier'] if 'tier' in 守卫 else None#可用性档
+    '光标处无活触发时返回 None。只认 / 与 @；span.draftRev 由外壳盖章'
+    档=守卫['tier'] if isinstance(守卫,dict) and 'tier' in 守卫 else None#可用性档
     if 档=='frozen':#冻结档：无触发存活
         return None#无
-    for 位置 in range(光标-1,-1,-1):#从光标左侧向草稿开头扫
+    艾特=光标处活动令牌(草稿,光标)#先认 @，引号路径可以跨过空白
+    if 艾特 is not None:#活着的 @
+        前缀=艾特['prefix'] if 'prefix' in 艾特 else ''#含 @ 的前缀
+        起点=光标-len(前缀)#触发字符下标
+        查询=艾特['query'] if 'query' in 艾特 else ''#@ 后的查询
+        引号=艾特['quoted'] is True if 'quoted' in 艾特 else False#是否引号
+        return _命中(草稿,起点,光标,'@',查询,引号)#@ 命中
+    for 位置 in range(光标-1,-1,-1):#斜杠不跨空白，从光标向左扫
         字=草稿[位置]#当前位置字符
-        if 空白.search(字):#令牌不跨空白，遇空白即无命中
+        if 空白.search(字):#令牌不跨空白
             return None#无
-        if 字 not in ('/','@'):#非触发字符，继续向左
+        if 字!='/':#只编排斜杠；@ 已在上面处理
             continue#继续
-        if 档=='claimed' and 字=='/':#'/' 在 claimed 档全抑，当普通字符
+        if 档=='claimed':#claimed 档斜杠全抑
+            continue#当普通字符
+        if not 词边界可(草稿,位置,'/'):#URL 里的斜杠不当触发
             continue#继续
-        if not 词边界可(草稿,位置,字):#未过词边界，当普通字符继续扫
-            continue#继续
-        非空白命中=非空白.search(草稿)#去空白后首个非空白
-        前导=非空白命中 is not None and 非空白命中.start()==位置#去空白后是否以该令牌开头
-        return {#命中
-            'trigger':字,#触发字符
-            'query':草稿[位置+1:光标],#触发到光标的切片
-            'position':'leading' if 前导 else 'inline',#位置
-            'span':{'start':位置,'end':光标,'draftRev':0},#跨度；draftRev 由外壳盖章
-        }
+        return _命中(草稿,位置,光标,'/',草稿[位置+1:光标],False)#斜杠命中
     return None#扫到头仍无活触发

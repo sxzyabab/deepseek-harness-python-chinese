@@ -28,7 +28,7 @@ def _工作区附着会话标识(错误):
 def _应用变更(摘要列表,变更):
     '应用一条列表变更'
     种类=变更['kind']#种类
-    if 种类=='upsert':#插入或更新
+    if 种类=='upsert' or 种类=='placeholder':#插入，或只填已有行的元数据
         摘要=变更['summary']#摘要
         标识=摘要['sessionId']#id
         for 下标,项 in enumerate(摘要列表):#找已有
@@ -42,8 +42,16 @@ def _应用变更(摘要列表,变更):
                 合并['parentSessionId']=摘要['parentSessionId']#写入
             if 'origin' not in 项 and 'origin' in 摘要:#填来源
                 合并['origin']=摘要['origin']#写入
+            if 种类=='upsert':#宿主摘要可以改运行态
+                if 'running' in 摘要:
+                    合并['running']=摘要['running']#写入
+                if 'agentAvailable' in 摘要:
+                    合并['agentAvailable']=摘要['agentAvailable']#写入
+            elif 'agentAvailable' not in 项 and 'agentAvailable' in 摘要:#占位只补缺
+                合并['agentAvailable']=摘要['agentAvailable']#写入
             if (合并.get('cwd')==项.get('cwd') and 合并.get('parentSessionId')==项.get('parentSessionId')
-                and 合并.get('origin')==项.get('origin') and 合并.get('blank')==项.get('blank')):#无变
+                and 合并.get('origin')==项.get('origin') and 合并.get('blank')==项.get('blank')
+                and 合并.get('running')==项.get('running') and 合并.get('agentAvailable')==项.get('agentAvailable')):#无变
                 return list(摘要列表)#原样
             结果=list(摘要列表)#拷
             结果[下标]=合并#替换
@@ -345,17 +353,17 @@ class 会话簇:
         会话面=自身._远程.session#session
         结果=_调用远程(会话面.create,载荷)
         if 结果.get('ok'):#成功
-            自身._记录变更({'kind':'upsert','summary':{
+            自身._记录变更({'kind':'placeholder','summary':{
                 'sessionId':结果['value']['sessionId'],'updatedAt':当前毫秒(),
-                'running':False,'blank':True,
+                'running':False,'blank':True,'agentAvailable':True,
                 **({} if 'cwd' not in 选项 else {'cwd':选项['cwd']}),
-            }})#合并
+            }})#只填已发布会话的元数据
         else:
             已发布=_工作区附着会话标识(结果['error'])#已发布
             if 已发布 is not None:#有
-                自身._记录变更({'kind':'upsert','summary':{
-                    'sessionId':已发布,'updatedAt':当前毫秒(),'running':False,'blank':True,
-                }})#暴露
+                自身._记录变更({'kind':'placeholder','summary':{
+                    'sessionId':已发布,'updatedAt':当前毫秒(),'running':False,'blank':True,'agentAvailable':True,
+                }})#暴露宿主已经发布的会话
         return 结果#结果
 
     def fork(自身,选项):
@@ -372,11 +380,11 @@ class 会话簇:
         结果=_调用远程(会话面.fork,载荷)#分叉
         子标识=结果['value']['sessionId'] if 结果.get('ok') else _工作区附着会话标识(结果.get('error'))#子
         if 子标识 is not None:#有
-            自身._记录变更({'kind':'upsert','summary':{
-                'sessionId':子标识,'updatedAt':当前毫秒(),'running':False,'blank':False,
+            自身._记录变更({'kind':'placeholder','summary':{
+                'sessionId':子标识,'updatedAt':当前毫秒(),'running':False,'blank':True,'agentAvailable':True,
                 'parentSessionId':选项['sessionId'],
                 **({} if 源 is None or 'cwd' not in 源 else {'cwd':源['cwd']}),
-            }})#合并
+            }})#子会话先按空白记账，不另造一条没有宿主身份的会话
         return 结果#结果
 
     def 订阅(自身,监听者):

@@ -1,3 +1,6 @@
+from nicegui import ui as 界面
+from .异常 import 叠页面失败
+
 __all__=['拖放覆盖']#仅中文公开名
 
 class 拖放覆盖:#全视口拖放邀请
@@ -5,6 +8,7 @@ class 拖放覆盖:#全视口拖放邀请
     def __init__(自身,属性):#构造
         '记下 props'
         自身.属性=属性#合成 props
+        自身.画面失败=None
 
     def 更新(自身,属性):#props 变更
         '刷新'
@@ -25,8 +29,30 @@ class 拖放覆盖:#全视口拖放邀请
             'illustration':'disabled' if 禁用 else 'upload',#插图键
         }#视图结束
 
+    def 渲染(自身):
+        '标题；未禁用时再画说明'
+        视=自身.视图()
+        旧=getattr(自身,'根',None)
+        if 旧 is not None:
+            try:
+                旧.clear()
+            except Exception as 错误:
+                自身.根=None
+                自身.画面失败=叠页面失败(自身.画面失败,错误)
+        if getattr(自身,'根',None) is None:
+            自身.根=界面.column().classes('drop-overlay')
+        with 自身.根:
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败)
+            图名='block' if 视['illustration']=='disabled' else 'cloud_upload'
+            界面.icon(图名, size='48px')
+            if isinstance(视['title'],str) and 视['title']!='':
+                界面.label(视['title'])
+            if isinstance(视['desc'],str) and 视['desc']!='':
+                界面.label(视['desc'])
+
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
-        return 自身.视图()#视图
+        return 自身.渲染()

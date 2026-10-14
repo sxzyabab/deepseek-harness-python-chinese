@@ -1,67 +1,62 @@
-import os#同目录样式路径
-from .轨迹记录 import 格式化已用秒数#时长格式化
+import importlib.resources as 包资源
+from nicegui import ui as 界面
+from .轨迹记录 import 格式化已用秒数
 
-__all__=['轨迹格','种类标签','样式表','样式文件']#仅中文公开名
+__all__=['轨迹格','种类标签','样式表','样式文件']
 
-_本目录=os.path.dirname(os.path.abspath(__file__))#本包目录
-样式文件='轨迹格.module.css'#上游单文件
+样式文件='轨迹格.module.css'
 
-def _读样式(文件名):#读真实 CSS
-    '从同目录读取样式正文'
-    路径=os.path.join(_本目录,文件名)#绝对路径
-    with open(路径,'r',encoding='utf-8') as 文件:#读文件
-        return 文件.read()#全文
+def _读样式(文件名):
+    '读当前包内样式。失败时异常文案只有样式读不到，不含路径'
+    try:
+        return 包资源.files(__package__).joinpath(文件名).read_text(encoding='utf-8')
+    except Exception:
+        raise OSError('样式读不到') from None
 
-样式表=_读样式(样式文件)#完整格样式
+样式表=_读样式(样式文件)
+界面.add_css(样式表,shared=True)
 
-种类标签={#种类 → 设计标签
+种类标签={
     'system':'System','user':'User','context':'Context','compacted':'Compacted',
     'message':'Message','tool':'Tool','subtool':'Sub',
-}#结束
+}
 
-标签类={#种类 → CSS 类
+标签类={
     'system':'tagSystem','user':'tagUser','context':'tagContext','compacted':'tagSystem',
     'message':'tagMessage','tool':'tagTool','subtool':'tagSubtool',
-}#结束
+}
 
-class 轨迹格:#一步格
-    '渲染一步轨迹格'
-    def __init__(自身,属性=None):#可选 props
+class 轨迹格:
+    '一步轨迹格。父级调用渲染，构造时不画'
+    def __init__(自身,属性=None):
         '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#合成
+        自身.属性=属性 if 属性 is not None else {}
 
-    def 更新(自身,属性):#刷新
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#新
+    def 更新(自身,属性):
+        '换成新的 props'
+        自身.属性=属性 if 属性 is not None else {}
 
-    def 渲染(自身):#结构树
-        '产出格结构树'
-        p=自身.属性#props
-        种类=p['kind'] if 'kind' in p else 'message'#种类
-        选中=bool(p['selected']) if 'selected' in p else False#选中
-        显示指标=种类=='message'#消息才有指标
-        标签=种类标签[种类] if 种类 in 种类标签 else 种类#标签
-        类名=标签类[种类] if 种类 in 标签类 else None#类
-        return {#结构树
-            'type':'trajectory-cell',#类型
-            'kind':种类,#种类
-            'selected':选中,#选中
-            'index':p['index'] if 'index' in p else None,#下标
-            'tag':标签,#标签
-            'tagClass':类名,#类
-            'text':p['text'] if 'text' in p else '',#文本
-            'metrics':{#指标
-                'input':p['input'] if 'input' in p else '',#入
-                'output':p['output'] if 'output' in p else '',#出
-                'think':p['think'] if 'think' in p else '',#思
-            } if 显示指标 else None,#指标结束
-            'time':格式化已用秒数(p['timeSeconds'] if 'timeSeconds' in p else None),#时间
-            'css':样式表,#样式
-            'cssModule':样式文件,#样式文件名
-        }#结束
+    def 渲染(自身):
+        '画出一步格。消息种类才显示输入、输出和思考'
+        p=自身.属性
+        种类=p['kind'] if 'kind' in p else 'message'
+        选中=bool(p['selected']) if 'selected' in p else False
+        显示指标=种类=='message'
+        标签=种类标签[种类] if 种类 in 种类标签 else 种类
+        类名=标签类[种类] if 种类 in 标签类 else None
+        文本=p['text'] if 'text' in p else ''
+        with 界面.row().classes('trajectory-cell selected' if 选中 else 'trajectory-cell'):
+            界面.label(标签).classes(类名 if 类名 is not None else '')
+            if 文本!='':
+                界面.label(文本)
+            if 显示指标:
+                界面.label(str(p['input'] if 'input' in p else ''))
+                界面.label(str(p['output'] if 'output' in p else ''))
+                界面.label(str(p['think'] if 'think' in p else ''))
+            界面.label(格式化已用秒数(p['timeSeconds'] if 'timeSeconds' in p else None))
 
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲
+    def __call__(自身,属性=None):
+        '有新 props 先更新，再画出'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

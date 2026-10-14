@@ -219,14 +219,23 @@ class 子智能体模型选择卡片控制器:
         自身.失败=False
         自身.冲突=False
         自身.发布()
-        自身.作用域.mutate([
-            {'op':'set','path':['enabled'],'value':期望开启},
-            {
-                'op':'set',
-                'path':['allowedModels'],
-                'value':[{'provider':路由['provider'],'model':路由['model']} for 路由 in 期望],
-            },
-        ],自身.草稿修订).等待()
+        try:
+            自身.作用域.mutate([
+                {'op':'set','path':['enabled'],'value':期望开启},
+                {
+                    'op':'set',
+                    'path':['allowedModels'],
+                    'value':[{'provider':路由['provider'],'model':路由['model']} for 路由 in 期望],
+                },
+            ],自身.草稿修订).等待()
+        except Exception as 写入错误:
+            '写入失败只标失败态；写入错误的原文可能含路径，不往界面送'
+            if 代!=自身.保存代 or 自身.已拆除 or 写入错误 is None:
+                return
+            自身.保存中=False
+            自身.失败=True
+            自身.发布()
+            return
         if 代!=自身.保存代:
             return
         落地=自身.当前开启()==期望开启 and 同路由(自身.当前路由(),期望)
@@ -266,12 +275,23 @@ class 子智能体模型选择卡片控制器:
         自身.目录状态='loading'
         自身.目录部分失败=False
         自身.发布()
-        应答=自身.上下文.remote.session.modelCatalog().等待()
-        if 代!=自身.目录代:
+        try:
+            应答=自身.上下文.remote.session.modelCatalog().等待()
+        except Exception as 读取错误:
+            '模型目录失败只进错误态；读取错误的原文可能含路径，不往界面送'
+            if 代!=自身.目录代 or 自身.已拆除 or 读取错误 is None:
+                return
+            自身.目录状态='error'
+            自身.发布()
             return
-        if 应答['ok']:
-            自身.目录分组=应答['value']['groups']
-            自身.目录部分失败=len(应答['value']['failures'])>0
+        if 代!=自身.目录代 or 自身.已拆除:
+            return
+        值=应答.get('value') if isinstance(应答,dict) and 应答.get('ok') is True else None
+        分组=值.get('groups') if isinstance(值,dict) else None
+        失败=值.get('failures') if isinstance(值,dict) else None
+        if isinstance(分组,list):
+            自身.目录分组=分组
+            自身.目录部分失败=isinstance(失败,list) and len(失败)>0
             自身.目录状态='ready'
         else:
             自身.目录状态='error'

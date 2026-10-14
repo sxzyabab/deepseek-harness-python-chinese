@@ -8,6 +8,9 @@
     {'event':'api-session/removed','mode':'emit'},#会话已移除
     {'event':'api-session/status','mode':'emit'},#会话状态
     {'event':'commands/change','mode':'emit'},#命令表已变更
+    {'event':'deepseek-account/session-expired','mode':'emit'},#账号会话已过期
+    {'event':'deepseek-account/model-sign-in-required','mode':'emit'},#模型登录仍需要
+    {'event':'credentials/record-updated','mode':'emit'},#凭证记录已更新
     {'event':'credentials/reference-updated','mode':'emit'},#凭证引用已更新
     {'event':'goal/activation-changed','mode':'emit'},#目标激活已变更
     {'event':'cordis/request-run','mode':'emit'},#请求运行动态包
@@ -22,6 +25,7 @@
     {'event':'plugin-manager/install-log','mode':'emit'},#插件安装日志
     {'event':'plugin-manager/install-state','mode':'emit'},#插件安装状态
     {'event':'settings/document-updated','mode':'emit'},#设置文档已更新
+    {'event':'schedule/changed','mode':'emit'},#日程已变更
     {'event':'user-questions/request','mode':'waterfall'},#用户提问瀑布
 )#只读元组
 

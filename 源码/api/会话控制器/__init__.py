@@ -21,8 +21,9 @@ from . import (
 )
 from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...基础设施.通用工具 import 启动守护线程
+from ...模型后端.llm.异常 import 错误链#日志里的原因链
 from .远程错误与并发 import 已中止#中止查询
-from .异常 import 远程错误#本包异常
+from .异常 import 远程错误,失败说明#本包异常
 
 __all__=['包名','名称','依赖','应用','默认','配置','会话控制器','构建模型目录','会话文件引用','会话媒体引用','会话技能目录']
 
@@ -146,7 +147,9 @@ class 会话控制器(远程服务):
                     消息=信封.message if hasattr(信封,'message') else (信封['message'] if isinstance(信封,dict) and 'message' in 信封 else str(信封))#消息
                     自身.ctx.广播('api-session/error',观测.header['id'],消息)#报错
             except BaseException as 错误:
-                自身.ctx.日志.错误('session-controller: background activation failed: '+str(错误))#日志
+                自身.ctx.日志.错误(
+                    'session-controller: background activation for "'+str(观测.header['id'])+'" failed: '+失败说明(错误链(错误)),
+                )#日志保留原因链，去掉绝对路径
             任务.解决()#成败都落定
         自身._晋升任务集合.add(任务)#登记
         def 移出集合(结算结果=None):
@@ -216,10 +219,12 @@ class 会话控制器(远程服务):
             else:
                 自身._打开路径(路径,信号)#默认打开
             return {'opened':True}#确认
+        except 远程错误:
+            raise#已是远程错误
         except (OSError,ValueError,TypeError) as 错误:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','path open was aborted',{},原因=错误)#取消
-            raise 远程错误('gateway/internal','path open failed: '+str(错误),{},原因=错误)#内部
+            raise 远程错误('gateway/internal','path open failed: '+失败说明(错误),{},原因=错误)#内部，原因链保留
 
     @_远程('workspacePathApplications')
     def workspacePathApplications(自身,请求,信号):
@@ -235,7 +240,7 @@ class 会话控制器(远程服务):
         except (OSError,ValueError,TypeError) as 错误:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','application query was aborted',{},原因=错误)#取消
-            raise 远程错误('gateway/internal','file application query failed',{},原因=错误)#内部
+            raise 远程错误('gateway/internal','file application query failed: '+失败说明(错误),{},原因=错误)#内部，原因链保留
 
     def _核验桌面路径(自身,路径,信号):
         '经文件系统确认宿主路径'

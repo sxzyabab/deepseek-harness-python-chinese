@@ -1,8 +1,10 @@
-from ..主题设置 import 主题设置命名空间#命名空间字面
+from ..主题设置 import 主题设置命名空间,默认字号表,默认字体族#命名空间与缺省字体
 from .文案 import 设置命名空间,中文,英文,主题文案键#词典
 from .主题运行时 import 主题运行时,解析活动主题,合并令牌覆盖,内置主题,内置检视令牌#运行时
 from .外观行 import 外观行,立方顺序,样式表 as 外观样式表#外观行
 from .字号行 import 字号行,样式表 as 字号样式表#字号行
+from .字体族行 import 字体族行#一种角色的字体列表
+from .字体设置组 import 字体设置组#正文字号加展开的其余字体
 from .外观行存储 import 创建外观行存储,创建字号行存储#存储
 from .样式 import (
     基线样式,滚动条样式,设计平台样式,代码高亮样式,渐变阴影样式,字号令牌样式,
@@ -13,7 +15,7 @@ __all__=[
     '依赖','应用','设置命名空间','中文','英文','主题文案键',
     '主题运行时','解析活动主题','合并令牌覆盖','内置主题','内置检视令牌',
     '外观行','立方顺序','创建外观行存储','外观样式表',
-    '字号行','创建字号行存储','字号样式表',
+    '字号行','字体族行','字体设置组','创建字号行存储','字号样式表',
     '基线样式','滚动条样式','设计平台样式','代码高亮样式','渐变阴影样式','字号令牌样式',
     '主题样式合计','样式文件名','样式说明',
 ]
@@ -43,10 +45,12 @@ def 应用(上下文):
             已烤['sync'](快照['preference'],快照['revision'])
         else:
             行存储['sync'](快照['preference'],快照['revision'])
+        字号表=快照['fontSizes'] if 'fontSizes' in 快照 else {**默认字号表,'text':快照['fontSize']}
+        字体族表=快照['fontFamilies'] if 'fontFamilies' in 快照 else dict(默认字体族)
         if 字号已烤 is not None:
-            字号已烤['sync'](快照['fontSize'],快照['revision'])
+            字号已烤['sync'](字号表,字体族表,快照['revision'])
         else:
-            字号存储['sync'](快照['fontSize'],快照['revision'])
+            字号存储['sync'](字号表,字体族表,快照['revision'])
 
     上下文.监听('theme/change',同步)
 
@@ -79,13 +83,16 @@ def 应用(上下文):
         if 动作 is not None:
             字号已烤=动作
         同步(主题.getTheme())
-        def 写入字号(像素):
-            '写入内容字号'
-            主题.setFontSize(像素)
-        return {'setFontSize':写入字号}
+        def 写入字号(角色,像素):
+            '写入该角色的字号'
+            主题.setFontSize(角色,像素)
+        def 写入字体(角色,值):
+            '写入该角色的字体列表'
+            主题.setFontFamily(角色,值)
+        return {'setFontSize':写入字号,'setFontFamily':写入字体}
 
     def 登记字号行():
-        '登记字号行'
+        '登记正文字号和可展开的其余字体'
         return 上下文.slots.register({
             'name':'settings.general.item',
             'id':'font-size',
@@ -93,7 +100,7 @@ def 应用(上下文):
             'store':字号存储,
             'locale':设置命名空间,
             'inject':字号注入面,
-        },字号行)
+        },字体设置组)
     上下文.slots.inject('settings.general.item',登记字号行)
 
 inject=依赖

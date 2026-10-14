@@ -1,3 +1,5 @@
+from .异常 import 页面失败文案
+
 __all__=['代际目录','空代际状态']#仅中文公开名
 
 def 空代际状态():#共享目录冷启动
@@ -56,7 +58,7 @@ class 代际目录:#每个会话选择器共享的 Host 代际模型目录
         def 标加载(稿):#loading
             '标 loading'
             稿['status']='loading'#加载中
-            稿['error']=None#清错
+            稿['error']=None
         自身.存储.update(标加载)#loading
         try:#拉目录
             应答=自身.上下文.remote.session.modelCatalog().等待()#Host 目录
@@ -71,7 +73,7 @@ class 代际目录:#每个会话选择器共享的 Host 代际模型目录
             return 值#返回目录
         except BaseException as 错误:#失败
             if 世代==自身.世代:#仍是当代
-                文=str(错误)#错误文案
+                文=页面失败文案(错误)#错误文案，页面不带路径、用户名或环境变量
                 def 写错(稿):#错误态
                     '标 error'
                     稿['status']='error'#错误
@@ -94,13 +96,13 @@ class 代际目录:#每个会话选择器共享的 Host 代际模型目录
         自身._失效()#失效
         try:#重载
             自身.load()#加载
-        except BaseException:#吞掉
-            pass#选择器暴露
+        except BaseException:#目录存储已写下失败，选择器打开后展示
+            return
 
     def resetGeneration(自身):#清除 Host 特定值并加载替换的 Host 代际
         '清值失效后重载'
         自身._失效(True)#清值失效
         try:#重载
             自身.load()#加载
-        except BaseException:#吞掉
-            pass#选择器暴露
+        except BaseException:#目录存储已写下失败，选择器打开后展示
+            return

@@ -1,3 +1,4 @@
+from .异常 import 去掉绝对路径#说明去路径
 from .求值器 import 客户端重定向,动态样式#渲染崩溃重定向与样式记账
 
 __all__=[
@@ -20,19 +21,26 @@ def 模块标识(插件标识):#模块/入口 id
     'dyn/<pluginId>'
     return f'dyn/{插件标识}'#前缀
 
+def _说明(文本):#异常说明
+    '去掉绝对路径；掏空则用 error'
+    干净=去掉绝对路径(文本)#去路径
+    if 干净=='':#掏空
+        return 'error'#兜底
+    return 干净#说明
+
 def 错误字段(错误):#抽取错误字段
-    '保住 message 与可选 stack'
+    '保住 message 与可选 stack。说明去掉绝对路径'
     if not isinstance(错误,(dict,BaseException)) and not hasattr(错误,'message'):#非对象
-        return {'message':str(错误)}#串
+        return {'message':_说明(错误)}#串
     if isinstance(错误,dict):#映射
         消息=错误.get('message')#消息
         栈=错误.get('stack')#栈
-        出={'message':消息 if isinstance(消息,str) else str(错误)}#消息
+        出={'message':_说明(消息 if isinstance(消息,str) else str(错误))}#消息
         if isinstance(栈,str):#有栈
             出['stack']=栈#带
         return 出#字段
     消息=getattr(错误,'message',None)#属性
-    出={'message':消息 if isinstance(消息,str) else str(错误)}#消息
+    出={'message':_说明(消息 if isinstance(消息,str) else str(错误))}#消息
     栈=getattr(错误,'stack',None)#栈
     if isinstance(栈,str):#有
         出['stack']=栈#带
@@ -45,8 +53,13 @@ def 渲染失败消息(槽,消息):#渲染崩溃教学
         if 名 in 消息 and 文 not in 消息:#点名且未带
             重定向=文#记下
             break#停
-    基=f'你在槽 "{槽}" 的入口在 React 渲染时崩溃：{消息}'
-    return 基 if 重定向 is None else 基+'\n'+重定向#拼
+    if isinstance(槽,str) and 槽.startswith('factory:'):#工厂组件
+        主体=f'你在工厂 "{槽[len("factory:"):]}" 的组件在 React 渲染时崩溃：{消息}'
+    else:#普通槽
+        主体=f'你在槽 "{槽}" 的入口在 React 渲染时崩溃：{消息}'
+    if 重定向 is None:#无重定向
+        return 主体#教学
+    return 主体+'\n'+重定向#拼
 
 def 成功结果(运行标识,等待=None):#成功加载
     '已结算结果'
@@ -60,18 +73,21 @@ def 可索引组件(组件):#能否当认领键
     return 组件 is not None and not isinstance(组件,(str,bytes,int,float,bool))#对象
 
 class 可观察:#快照源
-    'getSnapshot + subscribe'
-    def __init__(自身,读快照):#构造
-        '记下读函数'
+    'getSnapshot + subscribe。外订接上所有者的通知，避免另起一套听者'
+    def __init__(自身,读快照,外订=None):#构造
+        '记下读函数；外订是所有者的 subscribe/observe'
         自身._读=读快照#读
         自身._听=set()#订阅者
+        自身._外订=外订#委托
 
     def getSnapshot(自身):#读
         '当前值'
         return 自身._读()#读
 
     def subscribe(自身,函数):#订阅
-        '返回退订'
+        '返回退订。有外订则交给所有者'
+        if 自身._外订 is not None:#委托
+            return 自身._外订(函数)#所有者
         自身._听.add(函数)#加
         def 退():#退订
             '拿掉'
@@ -126,6 +142,7 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         自身._听=set()#订阅
         自身._快照缓存=None#现场快照缓存
         自身._失败缓存=None#失败快照缓存
+        自身.renderFailures=可观察(自身._读渲染失败,自身.subscribe)#稳定钩子源
 
     def subscribe(自身,函数):#订阅
         '退订器'
@@ -281,12 +298,8 @@ class 包运行器记账:#页本地现场表（无 Loader mount）
         自身.所有者.clear()#清认领
         自身._通知()#通知
 
-    @property
-    def renderFailures(自身):#渲染失败可观察
-        '可观察面'
-        def 读():#惰性快照
-            '失败图'
-            if 自身._失败缓存 is None:#惰性
-                自身._失败缓存=dict(自身.失败)#拷
-            return 自身._失败缓存#缓存
-        return 可观察(读)#图
+    def _读渲染失败(自身):#惰性失败图
+        '两次通知之间引用稳定'
+        if 自身._失败缓存 is None:#惰性
+            自身._失败缓存=dict(自身.失败)#拷
+        return 自身._失败缓存#缓存

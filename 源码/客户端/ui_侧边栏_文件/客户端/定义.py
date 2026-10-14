@@ -1,11 +1,9 @@
 __all__=['文件种类','文件标识','文件定义','文件夹页字形']
 
-#常量
 #线路字面量：tab 种类与正文登记键
 文件种类='files'
 文件标识='@deepseek-ai/dsh-client-ui-sidebar-files'
 
-#工具
 def 文件夹页字形(属性=None):
     '向导胶囊与芯片标题共用的文件夹页字形'
     属性=属性 if 属性 is not None else {}

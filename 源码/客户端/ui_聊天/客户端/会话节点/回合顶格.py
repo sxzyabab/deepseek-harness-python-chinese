@@ -62,7 +62,7 @@ def 回合顶格匹配(事件):#判定事件是否属于本节点
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     原因=数据['reason'] if 'reason' in 数据 else None#原因
     if 原因 is not None and 'kind' in 原因 and 原因['kind']=='max-tokens':#上限结束
-        return {'id':str(数据['turn']),'role':'start'}#开
+        return {'id':str(数据['turn']),'role':'start'}
     return None#其余
 
 def 回合顶格开始(_上下文,匹配项):#用 max-tokens 的 turn/end 开节点
@@ -70,7 +70,7 @@ def 回合顶格开始(_上下文,匹配项):#用 max-tokens 的 turn/end 开节
     态=自匹配取态(匹配项)#取
     if 态 is None:#非
         raise 聊天错误('turn-max-tokens start requires a max-tokens turn/end')#硬失败
-    return 态#记下
+    return 态
 
 def 回合顶格更新(上下文,_匹配项=None):#后续不改
     '原样'

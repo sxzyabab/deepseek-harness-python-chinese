@@ -1,4 +1,4 @@
-from ...异常 import 提问错误#本包异常
+from ...异常 import 提问错误,页面失败文案#本包异常与去掉路径后的说明
 
 __all__=[#仅中文公开名
     '计划审阅于',
@@ -76,7 +76,11 @@ class 待答提问:#载体上的提问域面
         }).等待()#respond 结束
         if 回执['accepted'] is not True:#回执未接受
             原因=回执['reason'] if 'reason' in 回执 else None#拒绝原因
-            raise 提问错误('question response rejected: '+str(原因),原因=原因)#抛出拒绝原因
+            说明=页面失败文案(原因 if 原因 is not None else '')#去掉绝对路径、用户名和环境变量
+            消息='question response rejected'
+            if 说明!='' and 说明!='失败':
+                消息=消息+': '+说明
+            raise 提问错误(消息,原因=原因)#抛出拒绝原因
 
     def cancel(自身):#取消等待
         '拒绝整次等待（宿主把工具调用结算为已取消）；被拒绝的回执会抛出。respond 返回任务'
@@ -90,4 +94,8 @@ class 待答提问:#载体上的提问域面
         }).等待()#respond 结束
         if 回执['accepted'] is not True:#回执未接受
             原因=回执['reason'] if 'reason' in 回执 else None#拒绝原因
-            raise 提问错误('question cancellation rejected: '+str(原因),原因=原因)#抛出拒绝原因
+            说明=页面失败文案(原因 if 原因 is not None else '')#去掉绝对路径、用户名和环境变量
+            消息='question cancellation rejected'
+            if 说明!='' and 说明!='失败':
+                消息=消息+': '+说明
+            raise 提问错误(消息,原因=原因)#抛出拒绝原因

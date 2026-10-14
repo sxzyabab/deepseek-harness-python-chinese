@@ -6,7 +6,6 @@ from .标识构造 import Webhook规则标识
 from .会话 import 创建Webhook会话
 from .异常 import Webhook错误,Webhook已中止#本包异常与规则拆除中止
 from . import (
-    不变量,
     类型,
 )
 

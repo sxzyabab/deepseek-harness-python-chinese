@@ -2,6 +2,24 @@ from ...ui_基础界面组件.表单模型 import 设置表单模型,设置数�
 
 __all__=['子智能体限额卡片控制器']
 
+安全整数上限=9007199254740991
+
+def 是安全整数(值):
+    '与 Number.isSafeInteger 同范围，并排除负零'
+    if type(值) is bool:
+        return False
+    if type(值) is int:
+        return -安全整数上限<=值<=安全整数上限
+    if type(值) is not float:
+        return False
+    if 值!=值 or 值==float('inf') or 值==float('-inf'):
+        return False
+    if 值==0.0 and repr(值).startswith('-'):
+        return False
+    if not 值.is_integer():
+        return False
+    return -安全整数上限<=值<=安全整数上限
+
 def 限额字段(字段名,最小):
     '只接受不低于下限的安全整数'
     数字=设置数字字段(字段名)
@@ -12,9 +30,11 @@ def 限额字段(字段名,最小):
         if 写 is None or 写.get('kind')!='set':
             return 写
         值=写['value']
-        if isinstance(值,int) and not isinstance(值,bool) and 值>=最小:
-            return 写
-        return None
+        if not 是安全整数(值) or 值<最小:
+            return None
+        if type(值) is float:
+            return {'kind':'set','value':int(值)}
+        return 写
     return {**数字,'parse':解析}
 
 class 子智能体限额卡片控制器:

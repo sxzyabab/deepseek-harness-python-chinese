@@ -1,12 +1,28 @@
+import builtins#页面 window 可能挂在内置名上
 from .流 import 原生目录流#无渲染原生选目录占用方
 
 __all__=['依赖','应用','原生目录流']#仅中文公开名
 
 依赖=['slots','uiWorkspace']#槽位注册表与工作区 UI
 
+def 取桌面桥():#读页面注入的选择器
+    '优先模块名，其次 window。没有则 None，交给宿主选择器。'
+    try:#本模块被注入时
+        return __DSH_DIRECTORY_PICKER__#桌面桥
+    except NameError:#未注入到模块
+        pass#再看窗口
+    窗口=globals().get('window', getattr(builtins, 'window', None))#页面窗口
+    if isinstance(窗口,dict):#字典窗口
+        if '__DSH_DIRECTORY_PICKER__' in 窗口:#有桥
+            return 窗口['__DSH_DIRECTORY_PICKER__']#桥
+        return None#没有
+    if 窗口 is not None:#对象窗口
+        return getattr(窗口, '__DSH_DIRECTORY_PICKER__', None)#桥或没有
+    return getattr(builtins, '__DSH_DIRECTORY_PICKER__', None)#内置或没有
+
 def 应用(上下文):#安装原生选目录浏览器半边
-    '经 slots.inject 把无渲染的原生流程登记进两个 directory-flow 洞'
-    桌面=globals().get('__DSH_DIRECTORY_PICKER__')#桌面桥
+    '经 slots.inject 把无渲染的原生流程登记进两个 directory-flow 洞。选出的路径交给 onPicked，不登记工作区。'
+    桌面=取桌面桥()#桌面桥
     def 注入面():#挑选入口
         '桌面桥优先，否则 Host OS 选择器'
         def 挑选():#打开选择器

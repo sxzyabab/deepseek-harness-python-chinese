@@ -3,9 +3,10 @@
 import math
 import time
 import datetime
+from nicegui import ui as 界面
 from .表格模型 import 检查器表格层级,行已折叠
 from .表格布局 import 检查器表格布局,行高
-from .格式 import 检查器预览
+from .格式 import 检查器预览,失败说明
 from .原始json import 检查器json,未定义
 from .类型筛选 import 检查器类型筛选
 from .类型筛选器 import 类型筛选器
@@ -36,6 +37,26 @@ def utc片段(毫秒):
 def 现在():
     '与 performance.now 同一量纲的毫秒'
     return time.perf_counter()*1000
+
+def 画出屑(项):
+    '对象导航面包屑：分隔符和可点的层级'
+    with 界面.row().classes('objectBreadcrumbs'):
+        for 一条 in 项:
+            if not isinstance(一条,dict):
+                continue
+            for 子 in 一条.get('children') or []:
+                if not isinstance(子,dict):
+                    continue
+                文=子.get('text') or ''
+                if 子.get('type')=='button':
+                    点=子.get('onClick')
+                    钮=界面.button(文, on_click=点 if callable(点) else None).props('flat no-caps dense')
+                    if 子.get('disabled'):
+                        钮.disable()
+                    if 子.get('title'):
+                        钮.tooltip(str(子['title']))
+                elif 文:
+                    界面.label(文)
 
 def 默认范围提取(范围):
     'overscan 内的连续下标'
@@ -298,6 +319,7 @@ class 检查器表格:
         自身._定位聊天(引用.get('target'))
         if 引用.get('rowKey') is not None:
             自身._定位行(引用['rowKey'])
+        自身.渲染()
 
     def _回到(自身,下标):
         '退回面包屑的某一级'
@@ -314,6 +336,7 @@ class 检查器表格:
         if 键 is not None:
             自身._定位行(键)
         自身._定位聊天(目标)
+        自身.渲染()
 
     def 应用筛选(自身,查询):
         '确认类型筛选后从顶部按滚动模式看结果'
@@ -328,11 +351,13 @@ class 检查器表格:
         自身._待滚动=0
         if 自身.虚拟 is not None:
             自身.虚拟.scrollToOffset(0)
+        自身.渲染()
 
     def _最新(自身):
         '回到尾随最新行'
         自身.跟随='tail'
         自身.间距代+=1
+        自身.渲染()
 
     def _更早(自身):
         '加载上一页；失败记到表头下'
@@ -342,7 +367,8 @@ class 检查器表格:
         if hasattr(结果,'捕获'):
             def 记下(错误):
                 '把拒绝原因写成字符串'
-                自身.失败=str(错误)
+                自身.失败=失败说明(错误)
+                自身.渲染()
                 return None
             结果.捕获(记下)
 
@@ -358,6 +384,7 @@ class 检查器表格:
         '关掉详情和对象历史'
         自身.选中=None
         自身.对象历史=None
+        自身.渲染()
 
     def _记滚动区(自身,元素):
         '宿主交出真实滚动元素后换掉占位'
@@ -578,7 +605,8 @@ class 检查器表格:
             详情值=未定义
         else:
             详情值=记录['value']
-        子=None
+        树件=None
+        屑项=None
         if 对象表 is None:
             if 记录 is not None and not 详情['failed']:
                 if 自身._json树 is None or 自身._json键!=自身.选中:
@@ -586,7 +614,7 @@ class 检查器表格:
                     自身._json键=自身.选中
                 else:
                     自身._json树.更新({'text':详情['text'],'t':翻译})
-                子=自身._json树.渲染()
+                树件=自身._json树
         else:
             屑=[自身.对象历史['rootLabel'] if 自身.对象历史 is not None else 自身._行标]
             if 自身.对象历史 is not None:
@@ -611,11 +639,20 @@ class 检查器表格:
                 自身._对象键=树键
             else:
                 自身._对象树.更新(树属性)
-            子={'type':'fragment','children':[
-                {'type':'nav','className':'objectBreadcrumbs','aria-label':翻译('object.navigation'),'children':[{'type':'ol','children':项}]},
-                自身._对象树.渲染(),
+            屑项=项
+            树件=自身._对象树
+        def 铺开(树件=树件,屑项=屑项,翻译=翻译):
+            '在详情体内画出面包屑和值树'
+            if 树件 is None:
+                return None
+            if 屑项 is None:
+                return 树件.渲染()
+            画出屑(屑项)
+            return {'type':'fragment','children':[
+                {'type':'nav','className':'objectBreadcrumbs','aria-label':翻译('object.navigation'),'children':[{'type':'ol','children':屑项}]},
+                树件.渲染(),
             ]}
-        详情属性={'text':文本,'failed':详情['failed'],'children':子,'close':自身._关闭,'t':翻译}
+        详情属性={'text':文本,'failed':详情['failed'],'children':None,'铺开':铺开,'close':自身._关闭,'t':翻译}
         if 自身.详情 is None:
             自身.详情=检查器详情(详情属性)
         else:
@@ -676,12 +713,13 @@ class 检查器表格:
             自身.筛选器.更新(筛选属性)
         错误文=自身.失败
         if 错误文 is None and 打开错误 is not None:
-            错误文=读(打开错误,'message')
-        表头=[{'className':'idColumn','text':翻译('table.id')},{'className':'typeColumn','children':[{'type':'span','className':'typeHeader','text':翻译('table.type'),'filter':自身.筛选器.渲染()}]},{'className':'locationColumn','text':翻译('table.location')}]
+            原文=读(打开错误,'message')
+            错误文=None if 原文 is None else 失败说明(str(原文))
+        表头=[{'className':'idColumn','text':翻译('table.id')},{'className':'typeColumn','children':[{'type':'span','className':'typeHeader','text':翻译('table.type'),'filter':None}]},{'className':'locationColumn','text':翻译('table.location')}]
         if 显示时间:
             表头.append({'className':'timeColumn','text':翻译('table.time')})
         表头.append({'text':翻译('table.data')})
-        return {
+        树={
             'type':'section',
             'className':'root',
             'cssModule':'检查器.module.css',
@@ -709,8 +747,85 @@ class 检查器表格:
                 },
                 'empty':None if len(布局.层级.行)!=0 else {'type':'p','className':'empty','text':翻译('table.empty')},
             },
-            'details':自身._详情(记录,翻译),
+            'details':None,
         }
+        壳=界面.column().classes('检查器表格')
+        壳.props(f'aria-label="{属性["title"]}"')
+        with 壳:
+            条=树['toolbar']
+            with 界面.row().classes('检查器条'):
+                界面.label(str(条['title'])+' '+str(条['count']))
+                更早=条.get('older')
+                if isinstance(更早,dict):
+                    更早钮=界面.button(更早['text'], on_click=更早['onClick']).props('flat no-caps')
+                    if 更早.get('disabled'):
+                        更早钮.disable()
+                界面.button(条['latest']['text'], on_click=条['latest']['onClick']).props('flat no-caps')
+            if isinstance(树.get('notice'),dict) and 树['notice'].get('text'):
+                界面.label(树['notice']['text'])
+            if isinstance(树.get('alert'),dict) and 树['alert'].get('text'):
+                界面.label(树['alert']['text'])
+            滚=树['scroller']
+            with 界面.row().classes('检查器表头'):
+                for 列 in 滚['table']['head']:
+                    with 界面.row().classes(str(列.get('className') or '')):
+                        if 列.get('text'):
+                            界面.label(str(列['text']))
+                        for 子 in 列.get('children') or []:
+                            if not isinstance(子,dict):
+                                continue
+                            if 子.get('text'):
+                                界面.label(str(子['text']))
+                            if 'filter' in 子:
+                                子['filter']=自身.筛选器.渲染()
+            if isinstance(滚.get('empty'),dict):
+                界面.label(滚['empty']['text'])
+            def 画格(项):
+                '单元格里的文字和按钮'
+                if 项 is None:
+                    return
+                if isinstance(项,(list,tuple)):
+                    for 子 in 项:
+                        画格(子)
+                    return
+                if not isinstance(项,dict):
+                    return
+                文=项.get('text')
+                点击=项.get('onClick')
+                if 项.get('type')=='button':
+                    def 点(事件=None,点击=点击):
+                        '点行后重画选中和详情'
+                        if callable(点击):
+                            点击()
+                        自身.渲染()
+                    界面.button('' if 文 is None else str(文), on_click=点).props('flat no-caps dense')
+                    return
+                if 文 is not None and 文!='':
+                    界面.label(str(文))
+                画格(项.get('children'))
+            def 留白(行节点):
+                '虚拟列表里的空隙'
+                if not isinstance(行节点,dict):
+                    return
+                格=行节点.get('cells') or []
+                if len(格)==0 or not isinstance(格[0],dict):
+                    return
+                样式=格[0].get('style')
+                高=样式.get('height') if isinstance(样式,dict) else None
+                if 高:
+                    界面.element('div').style(f'height:{高}px;padding:0')
+            for 块 in 滚['table']['rows']:
+                if isinstance(块,dict):
+                    留白(块.get('gap'))
+                行=块.get('row') if isinstance(块,dict) else None
+                with 界面.row().classes('检查器行'):
+                    if isinstance(行,dict):
+                        画格(行.get('cells'))
+                    else:
+                        界面.label(str(块.get('key') or ''))
+            留白(滚['table'].get('bottom'))
+            树['details']=自身._详情(记录,翻译)
+        return 树
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

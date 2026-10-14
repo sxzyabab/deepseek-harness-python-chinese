@@ -3,6 +3,7 @@ from ....基础设施.js特性 import PromiseEX as 期约#消费结束的异步�
 from ....基础设施.通用工具 import 获取内部数据
 from ....api.网关.异常 import 远程流载体错误
 from ....客户端.存储 import 创建快照存储
+from ..异常 import 失败说明
 
 __all__=['观察就绪度']
 
@@ -13,7 +14,7 @@ def 观察就绪度(上下文):
     def 失败(错误):
         '只写传输失败，不改写 Host 就绪字段'
         当前=状态.getSnapshot()
-        状态.set({**当前,'connected':False,'error':str(错误)})
+        状态.set({**当前,'connected':False,'error':失败说明(错误)})
     def 开流(信号):
         '打开就绪流'
         return 上下文.remote.speech.follow(信号)

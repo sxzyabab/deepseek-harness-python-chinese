@@ -148,5 +148,5 @@ def 会话结束构建视图(上下文):#包成会话结束贡献
 
 def 登记轨迹压缩定义(上下文):#向会话事件注册两则 Definition
     '注册轨迹压缩请求与会话边界的 ConversationNode Definition'
-    上下文.conversationEvents.register(轨迹压缩定义)#注册压缩请求节点
-    上下文.conversationEvents.register(会话结束定义)#注册会话结束节点
+    上下文.uiConversation.events.register(轨迹压缩定义)#注册压缩请求节点
+    上下文.uiConversation.events.register(会话结束定义)#注册会话结束节点

@@ -17,6 +17,10 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'menu.aria':'模型与推理等级',#菜单无障碍
     'menu.model':'模型',#模型
     'menu.effort':'推理等级',#推理
+    'provider.account':'DeepSeek 账号',#账号提供方
+    'search.placeholder':'搜索模型…',#搜索占位
+    'search.clear':'清除搜索',#清除搜索
+    'search.empty':'没有匹配的模型。',#搜索为空
     'effort.providerDefault':'Default',#默认力度
     'status.loading':'正在刷新模型列表…',#刷新中
     'error.action':'模型操作失败：{message}',#操作失败
@@ -42,6 +46,10 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'menu.aria':'Model and reasoning effort',#菜单
     'menu.model':'Model',#模型
     'menu.effort':'Effort',#力度
+    'provider.account':'DeepSeek Account',#账号提供方
+    'search.placeholder':'Search models…',#搜索占位
+    'search.clear':'Clear search',#清除搜索
+    'search.empty':'No matching models.',#搜索为空
     'effort.providerDefault':'Default',#默认
     'status.loading':'Refreshing model list…',#刷新
     'error.action':'Model operation failed: {message}',#失败

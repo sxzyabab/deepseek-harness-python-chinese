@@ -1,6 +1,6 @@
 from ...基础设施.通用工具 import 紧凑json编码
 from threading import Lock as 锁#串行调和队列
-from .异常 import 客户端模块错误#本包异常
+from .异常 import 客户端模块错误,页面失败文案#本包异常；页面说明不含绝对路径
 from .清单 import 解析启动清单#清单解析
 from .条目生命周期 import 拆除条目纤程,移除包拥有样式#纤程与样式拆除
 
@@ -131,7 +131,7 @@ class 客户端条目表:
             except Exception as 错误:#吞失败进状态
                 自身.发布({'syncing':False,'failures':[#写失败
                     *[失败 for 失败 in 自身.快照['failures'] if 失败['id']!=主题],#去掉同 subject
-                    {'id':主题,'message':str(错误)},#新失败
+                    {'id':主题,'message':页面失败文案(错误)},#新失败，页面说明不含绝对路径
                 ]})#结束发布
                 raise#交调用方
 
@@ -213,7 +213,7 @@ class 客户端条目表:
                 elif getattr(条目.fiber,'state',None)==失败纤程态:#失败
                     条目.fiber.update(条目.options.config)#用配置再更新
             except Exception as 错误:#包级失败
-                失败表.append({'id':行['id'],'message':str(错误)})#记下
+                失败表.append({'id':行['id'],'message':页面失败文案(错误)})#页面说明不含绝对路径
         装载器.等待()#等装载
         for 标识,条目 in list(自身.托管.items()):#核激活
             if any(失败['id']==标识 for 失败 in 失败表):#已失败
@@ -227,7 +227,7 @@ class 客户端条目表:
                 纤程.等待()#等
                 失败表.append({'id':标识,'message':'client-modules: '+标识+' is waiting for activation'})#仍等待
             except Exception as 错误:#失败
-                失败表.append({'id':标识,'message':str(错误)})#记下
+                失败表.append({'id':标识,'message':页面失败文案(错误)})#页面说明不含绝对路径
         根名=[条目.options.name for 条目 in 装载器.entries()]#Loader 根名
         自身.索引['prune'](根名)#裁剪
         if 自身.是否当前代(代次):#仍当前

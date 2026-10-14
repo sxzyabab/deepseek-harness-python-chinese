@@ -1,3 +1,4 @@
+from .异常 import 去掉敏感,页面失败文案
 from .文案 import 命名空间,中文,英文#词表
 from ...基础设施.通用工具 import 获取内部数据
 from .槽位 import 无当前目标结果#失败结果
@@ -45,10 +46,29 @@ def 应用(上下文):#安装目标界面浏览器半边
         '激活源加四个变更动词'
         绑定=会话服务.binding(会话标识)#该会话绑定
         if 绑定 is None:#不可用
-            raise RuntimeError('ui-goal: 会话 "'+str(会话标识)+'" 不可用')#抬错
+            raise RuntimeError(去掉敏感('ui-goal: session is unavailable'))
         def 读目标():#权威读
-            '调用时读取当前现场目标'
-            return 上下文.remote.goals.get(会话标识)#读
+            '历史打开成功后再读现场目标。不在这里创建目标。'
+            if 会话服务.binding(会话标识) is not 绑定:
+                raise RuntimeError(去掉敏感('ui-goal: session is unavailable'))
+            def 在打开后读(引用):
+                '未打开不联系宿主'
+                状态=引用.binding.session.getSnapshot()
+                if isinstance(状态,dict):
+                    打开态=状态['openState'] if 'openState' in 状态 else None
+                    打开错=状态['openError'] if 'openError' in 状态 else None
+                else:
+                    打开态=getattr(状态,'openState',None)
+                    打开错=getattr(状态,'openError',None)
+                if 打开态!='open':
+                    if 打开错 is not None:
+                        raise RuntimeError(页面失败文案(打开错))
+                    raise RuntimeError('session is not open')
+                结果=上下文.remote.goals.get(会话标识)
+                if hasattr(结果,'等待') and callable(结果.等待):
+                    return 结果.等待()
+                return 结果
+            return 会话服务.using(会话标识,{'source':'goalActivation'},在打开后读)
         def 订阅激活(监听):#订阅激活边沿
             '本会话才转发'
             def 转发(事件):#过滤本会话

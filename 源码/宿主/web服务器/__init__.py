@@ -10,13 +10,19 @@ __all__=['名称','配置','网页服务器','渲染索引注入']#仅中文公�
 默认压缩='none'#默认不压缩
 默认压缩级别=1#默认 deflate 级别
 默认压缩阈值=1024#已知长度低于此不压缩
+回环主机='127.0.0.1'#唯一允许的绑定主机
 配置={#监听与压缩
-    'host':复合类型字段(常量字段('127.0.0.1'),常量字段('0.0.0.0')),#回环或全部接口
+    'host':常量字段(回环主机),#只听本机回环
     'port':自然数字段(最大=65535),#0 表示由系统分配
     'compression':复合类型字段(常量字段('none'),常量字段('gzip'),默认值=默认压缩),#压缩
     'compressionLevel':整数字段(最小=0,最大=9,默认值=默认压缩级别),#级别
     'compressionThresholdBytes':自然数字段(默认值=默认压缩阈值),#阈值
 }#配置结束
+
+def 断言回环主机(主机):
+    '不是本机回环就拒绝。通配地址和其它网卡地址都不绑定'
+    if 主机!=回环主机:
+        raise RuntimeError('webserver: 网页只监听本机')
 
 def 路径名(网址):#请求目标的路径
     '没有 url 时当作 /'
@@ -337,6 +343,7 @@ class 网页服务器(服务):#ctx.webServer
             配置值={}#空
         自身.配置=配置值#原始配置
         自身.绑定主机=配置值['host']#主机
+        断言回环主机(自身.绑定主机)#非回环不绑定
         自身.绑定端口=配置值['port']#端口
         自身.压缩=配置值['compression'] if 'compression' in 配置值 and 配置值['compression'] is not None else 默认压缩#压缩
         自身.压缩级别=配置值['compressionLevel'] if 'compressionLevel' in 配置值 and 配置值['compressionLevel'] is not None else 默认压缩级别#级别
@@ -360,7 +367,7 @@ class 网页服务器(服务):#ctx.webServer
 
     @property
     def host(自身):#配置的绑定主机
-        '127.0.0.1 或 0.0.0.0'
+        '只接受本机回环 127.0.0.1'
         return 自身.绑定主机#主机
 
     def 要压缩(自身,请求):#这条请求是否走 gzip 包装

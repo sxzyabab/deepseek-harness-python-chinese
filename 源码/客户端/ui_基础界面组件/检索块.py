@@ -1,5 +1,19 @@
+from nicegui import ui as 界面
 from .头尾封顶 import 头尾封顶#高度封顶
 from .复制反馈 import 复制反馈#复制反馈
+
+样式已登记=False
+
+def 登记样式():
+    '同一段样式整个进程只登记一次'
+    global 样式已登记
+    if 样式已登记 is True:
+        return
+    界面.add_css('''
+.检索块{position:relative;margin:16px 0;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-markdown-code-block);border-radius:var(--dsw-radius-lg)}
+.检索块 .摘要{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--dsw-font-xs-13);color:var(--dsw-alias-label-secondary)}
+''')
+    样式已登记=True
 
 __all__=['检索块','默认检索最大行','复制文本','显示计数','摘要文案','展平行']#仅中文公开名
 
@@ -98,52 +112,80 @@ class 检索块:#检索卡
             自身.已折叠.add(索引)#折
 
     def 渲染(自身):
-        '展平+封顶+摘要'
+        '画出摘要、路径或匹配行'
+        登记样式()
         属性=自身.属性#props
         截断=属性['truncated'] is True if 'truncated' in 属性 else False#截断
         总计=属性['total'] if 'total' in 属性 else 0#总计
         最大=属性['maxLines'] if 'maxLines' in 属性 else 默认检索最大行#封顶
-        行列表=展平行(属性,自身.已折叠)#扁
         显示=显示计数(属性)#显示数
-        空=len(行列表)==0#空；判 length
         自身.反馈.置文本(复制文本(属性))#可复制
-        度量=头尾封顶(len(行列表),最大,自身.已展开)#度量
-        头=行列表[:度量['headLines']] if 度量['capped'] is True else 行列表#头
-        自然尾=行列表[len(行列表)-度量['tailLines']:] if 度量['capped'] is True else []#自然尾
-        尾首=自然尾[0] if len(自然尾)>0 else None#尾首；判 length
-        尾头=None#恢复的文件头
-        if 尾首 is not None and ('type' in 尾首) and 尾首['type']=='match':#尾从匹配起
-            文件索引=尾首['fileIndex']#属主
-            头已带=False#头未带
-            for 行 in 头:#扫头
-                if ('type' in 行) and 行['type']=='file' and ('index' in 行) and 行['index']==文件索引:#头已带
-                    头已带=True#记下
-                    break#停
-            if 头已带 is False:#头未带
-                for 行 in 行列表:#找头
-                    if ('type' in 行) and 行['type']=='file' and ('index' in 行) and 行['index']==文件索引:#命中
-                        尾头=行#恢复
-                        break#停
-        尾=自然尾[1:] if 尾头 is not None else 自然尾#占尾槽
-        return {#视图
-            'type':'search-block',#类型
-            'kind':属性['kind'] if 'kind' in 属性 else None,#形
-            'summary':摘要文案(属性,显示,截断,总计),#摘要
-            'empty':空,#空
-            'head':头,#头
-            'tail':尾,#尾
-            'tailHeader':尾头,#尾文件头
-            'hidden':度量['hidden'],#隐
-            'capped':度量['capped'],#封
-            'expanded':自身.已展开,#展
-            'copied':自身.反馈.已复制,#反馈
-            'onCopy':自身.反馈.复制,#复制
-            'onToggle':自身.切换展开,#切换
-            'onToggleFile':自身.切换文件,#文件折
-            'rowKey':行键,#键函数
-            'className':属性['className'] if 'className' in 属性 else None,#类
-            'cssModule':'检索块.module.css',#样式
-        }#结束
+        摘要=摘要文案(属性,显示,截断,总计)#摘要
+        根=界面.column().classes('检索块')#卡
+        类名=属性['className'] if 'className' in 属性 else None#类
+        if isinstance(类名,str) and 类名!='':
+            根.classes(类名)#附
+        def 画检索行(行):
+            '路径、文件头或匹配行'
+            种=行['type']#种
+            if 种=='path':#路径
+                界面.label(行['path'])#路径
+                return
+            if 种=='file':#文件
+                文=行['path']+' ('+str(行['count'])+')'#文案
+                索引=行['index']#索引
+                def 点文件(索引=索引):
+                    '折叠或展开这一组'
+                    自身.切换文件(索引)#翻
+                    重画()#重画
+                界面.button(文,on_click=点文件)#文件
+                return
+            号=行['lineNumber']#号
+            号文='' if 号 is None else str(号)#号
+            界面.label(号文+': '+行['line']).style('white-space:pre')#匹配
+        def 重画():
+            '按展开和文件折叠重画'
+            行列表=展平行(属性,自身.已折叠)#扁
+            度量=头尾封顶(len(行列表),最大,自身.已展开)#度量
+            头=行列表[:度量['headLines']] if 度量['capped'] is True else 行列表#头
+            自然尾=行列表[len(行列表)-度量['tailLines']:] if 度量['capped'] is True else []#自然尾
+            尾首=自然尾[0] if len(自然尾)>0 else None#尾首
+            尾头=None#恢复的文件头
+            if 尾首 is not None and ('type' in 尾首) and 尾首['type']=='match':#尾从匹配起
+                文件索引=尾首['fileIndex']#属主
+                头已带=False#头未带
+                for 行 in 头:#扫头
+                    if ('type' in 行) and 行['type']=='file' and ('index' in 行) and 行['index']==文件索引:#头已带
+                        头已带=True
+                        break
+                if 头已带 is False:#头未带
+                    for 行 in 行列表:#找头
+                        if ('type' in 行) and 行['type']=='file' and ('index' in 行) and 行['index']==文件索引:#命中
+                            尾头=行#恢复
+                            break
+            尾=自然尾[1:] if 尾头 is not None else 自然尾#占尾槽
+            可见=list(头)#可见
+            if 尾头 is not None:#补头
+                可见.append(尾头)#头
+            可见.extend(尾)#尾
+            根.clear()
+            with 根:#内容
+                if 度量['hidden']>0:#可切换
+                    def 点切换():
+                        '展开或收起'
+                        自身.切换展开()#翻
+                        重画()#重画
+                    界面.button(摘要,on_click=点切换)#摘要兼切换
+                else:#未封顶
+                    界面.label(摘要)#摘要
+                for 行 in 可见:#逐行
+                    画检索行(行)#画
+                def 点复制():
+                    '写入剪贴板'
+                    自身.反馈.复制()#复制
+                    重画()#重画
+                界面.button(icon='content_copy',on_click=点复制)#复制
+        重画()#首画
 
     def __call__(自身,属性=None,**关键字参数):
         '对齐 React'
@@ -151,4 +193,4 @@ class 检索块:#检索卡
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

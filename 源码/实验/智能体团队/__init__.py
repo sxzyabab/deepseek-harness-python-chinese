@@ -14,7 +14,6 @@ from .名册 import 团队名册,解析活跃成员
 from .任务板 import 团队任务板
 from .类型 import 团队标识,团队任务标识,团队消息标识
 from . import (
-    不变量,
     任务图,
     会话消息,
     客户端,

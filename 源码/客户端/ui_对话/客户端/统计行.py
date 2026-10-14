@@ -3,9 +3,20 @@ from .回合指标 import 助手步骤读数#步骤读数
 
 __all__=['派生统计','格式化令牌','格式化时长','缓存命中百分','计费输入令牌','上下文占用','统计行']#仅中文公开名
 
+from nicegui import ui as 界面
+from .文案 import 中文 as 对话文案
+from ..异常 import 页面失败文案,贴出失败
+
 def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
+    '无宿主文案时用本包中文词典，没有则返回键本身。'
+    if 键 not in 对话文案:#词典没有
+        return 键#键
+    文本=对话文案[键]#词条
+    if 参数 is None:#无参数
+        return 文本#原文
+    for 名 in 参数:#替换占位
+        文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+    return 文本#译完
 
 def 派生统计(节点列表):
     '无 sessionStats 投影时用'
@@ -106,6 +117,8 @@ class 统计行:
     def __init__(自身,属性=None):
         '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.画面=None#可反复清空的画面
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -153,9 +166,21 @@ class 统计行:
                 if 命中 is not None:#有
                     组列表.append(翻译('stats.cacheHit',{'percent':命中}))#缓存
                 组列表.append(翻译('stats.tokens',{'input':格式化令牌(计费输入令牌(用量)),'output':格式化令牌(输出)}))#令牌
-        if len(组列表)==0:#空
-            return None#不画
-        return {'className':'root','groups':组列表,'line':' | '.join(组列表)}#行
+        if len(组列表)==0:#没有统计
+            return#不画
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.row().classes('root')#行
+        自身.画面.clear()#清空
+        with 自身.画面:#行
+            贴出失败(自身)
+            界面.label(' | '.join(组列表))#统计
 
     def __call__(自身,属性=None):
         '对齐'

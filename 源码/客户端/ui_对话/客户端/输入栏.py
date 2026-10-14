@@ -1,3 +1,5 @@
+from nicegui import ui as 界面
+from .文案 import 中文 as 对话文案
 from .输入装饰 import 派生装饰,惰性装饰#镜像装饰
 from .图像标签 import 附件错误文案,附件栏标签,拖放覆盖层标签,图像尺寸文案,灯箱标签#附件文案
 from .上下文仪表 import 上下文仪表#占用环
@@ -5,12 +7,15 @@ from .上下文仪表 import 上下文仪表#占用环
 __all__=['输入栏']#仅中文公开名
 
 def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键
-
-def 空渲染槽(*位置参数,**关键字参数):
-    '未注入槽渲染时不画'
-    return None#不画
+    '无宿主文案时用本包中文词典，没有则返回键本身。'
+    if 键 not in 对话文案:#词典没有
+        return 键#键
+    文本=对话文案[键]#词条
+    if 参数 is None:#无参数
+        return 文本#原文
+    for 名 in 参数:#替换占位
+        文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+    return 文本#译完
 
 def 取自身(态):
     '选择器原样'
@@ -19,14 +24,6 @@ def 取自身(态):
 def 是命令源(源):
     '菜单源是否 command'
     return 源=='command'#是
-
-def 取提示错(快照):
-    'promptError。快照为 dict'
-    return 快照['promptError'] if 'promptError' in 快照 else None#错
-
-def 取运行(快照):
-    'running'
-    return 快照['running'] if 'running' in 快照 else False#运行
 
 def 取子代理(快照):
     'subagent'
@@ -43,13 +40,16 @@ def 按at(项):
 class 输入栏:#composer.bar 主体
     '草稿/附件/工具行/主按钮视图模型'
     def __init__(自身,属性=None):
-        '记下 props 与本地 UI 态'
+        '保存 props 与本地界面状态'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.预览=None#灯箱附件
         自身.拖放中=False#拖放
         自身.吐司=None#瞬时横幅
         自身.吐司序号=0#吐司键
         自身.合成中=False#IME
+        自身.画面=None#可反复清空的画面
+        自身.仪表=None#上下文占用
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新'
@@ -61,36 +61,36 @@ class 输入栏:#composer.bar 主体
         自身.吐司={'seq':自身.吐司序号,'text':文}#吐司
 
     def 关吐司(自身):
-        '清'
-        自身.吐司=None#清
+        '关掉吐司'
+        自身.吐司=None
 
     def 开预览(自身,附件):
         '打开灯箱'
-        自身.预览=附件#记下
+        自身.预览=附件
 
     def 关预览(自身):
         '关灯箱'
-        自身.预览=None#清
+        自身.预览=None
 
     def 摘附件(自身,标识):
         '委派摘图'
         摘=自身.属性['removeImage'] if 'removeImage' in 自身.属性 else None#摘
-        if 摘 is not None:#有
+        if 摘 is not None:
             摘(标识)#摘
 
     def 摄入图像(自身,文件列表,附件列表,限额,加图,翻译):
         '限额失败整批拒；否则委派加图。文件/限额为 dict'
         if 加图 is None or 文件列表 is None or len(文件列表)==0:#无；判 length
-            return#停
+            return
         拒=None#拒文
-        if 限额 is not None:#有限额
+        if 限额 is not None:
             类型列表=限额['mediaTypes'] if 'mediaTypes' in 限额 and 限额['mediaTypes'] is not None else []#类型
             超类型=False#格式
             for 文件 in 文件列表:#扫
                 种=文件['type'] if 'type' in 文件 else None#种
                 if 种 not in 类型列表:#不在
-                    超类型=True#记下
-                    break#停
+                    超类型=True
+                    break
             if 超类型 is True:#格式
                 拒=加图(文件列表)#权威拒
             elif len(附件列表)+len(文件列表)>(限额['maxImagesPerMessage'] if 'maxImagesPerMessage' in 限额 else 0):#张数；判 length
@@ -101,8 +101,8 @@ class 输入栏:#composer.bar 主体
                 for 文件 in 文件列表:#扫
                     体=文件['size'] if 'size' in 文件 else 0#体
                     if 体>单限:#超
-                        超单=True#记下
-                        break#停
+                        超单=True
+                        break
                 if 超单 is True:#单张
                     拒=翻译('image.fileTooLarge',{'size':图像尺寸文案(单限)})#体积
                 else:#合计
@@ -128,7 +128,7 @@ class 输入栏:#composer.bar 主体
         段=[]#段
         游标=0#游标
         令牌=装饰['token'] if 'token' in 装饰 else None#令牌
-        if 令牌 is not None:#有
+        if 令牌 is not None:
             段.append({'kind':'token','text':草稿[令牌['start']:令牌['end']]})#标
             游标=令牌['end']#推
         界=[]#边界
@@ -177,9 +177,14 @@ class 输入栏:#composer.bar 主体
         草稿图=属性['draftImages'] if 'draftImages' in 属性 else None#草稿图
         解析提交=属性['resolveSubmitMode'] if 'resolveSubmitMode' in 属性 else None#提交模式
         切换菜单=属性['toggleCommandMenu'] if 'toggleCommandMenu' in 属性 else None#命令菜单
-        停止=属性['stop'] if 'stop' in 属性 else None#停止
+        停止=属性['stop'] if 'stop' in 属性 else None
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        渲染槽=属性['renderSlot'] if 'renderSlot' in 属性 else 空渲染槽#槽
+        缺键=[]
+        if 'renderSlot' in 属性:
+            渲染槽=属性['renderSlot']
+        else:
+            渲染槽=None
+            缺键.append('renderSlot')
         用通知=属性['useNotices'] if 'useNotices' in 属性 else None#通知
         用词表=属性['useLexicon'] if 'useLexicon' in 属性 else None#词表
         用菜单=属性['useMenuLauncher'] if 'useMenuLauncher' in 属性 else None#菜单启动
@@ -196,16 +201,25 @@ class 输入栏:#composer.bar 主体
         词表值=用词表(取自身) if 用词表 is not None else None#词表
         词表=词表值 if 词表值 is not None else {}#空则空表
         命令菜单开=用菜单(是命令源) if 用菜单 is not None else False#命令菜单
-        提示错=用会话(取提示错) if 用会话 is not None else None#提示错
-        运行中=用会话(取运行) if 用会话 is not None else False#运行
+        会话快照=用会话(取自身) if 用会话 is not None else None
+        if isinstance(会话快照,dict) and 'promptError' in 会话快照:
+            提示错=会话快照['promptError']
+        else:
+            提示错=None
+            缺键.append('promptError')
+        if isinstance(会话快照,dict) and 'running' in 会话快照:
+            运行中=会话快照['running']
+        else:
+            运行中=None
+            缺键.append('running')
         子代理=用会话(取子代理) if 用会话 is not None else None#子代理
         已移除=用会话(取已移除) if 用会话 is not None else False#移除
         计划活=False#计划占位
         有目标=False#目标
         限额=None#限额
-        if 用投影 is not None:#有投影
+        if 用投影 is not None:
             计划=用投影('plan')#计划
-            if 计划 is not None:#有帧
+            if 计划 is not None:
                 待=计划['pending'] if 'pending' in 计划 else None#待
                 活=计划['active'] if 'active' in 计划 else None#活
                 计划活=活 if 待 is not True else (活 is not True)#活
@@ -241,8 +255,8 @@ class 输入栏:#composer.bar 主体
         有排队=False#整队
         for 项 in 队列:#扫
             if ('placement' in 项) and 项['placement']=='queued':#排队
-                有排队=True#有
-                break#停
+                有排队=True
+                break
         可转向=禁用 is False and 机忙 is False and 命令菜单开 is False and 空 is True and 运行中 is True and 子代理 is None and 有排队 is True#整队转向
         装饰=惰性装饰 if 输入 is None else 派生装饰(输入,词表)#装饰
         背景=自身.构建背景(草稿,装饰,输入,有目标,翻译)#背景
@@ -251,15 +265,15 @@ class 输入栏:#composer.bar 主体
         主标=翻译('input.stop') if 主停 is True else 翻译('input.send')#主标
         def 主点():
             '停或提交'
-            if 主停 is True:#停
-                if 停止 is not None:#有
-                    停止()#停
-                return#停
+            if 主停 is True:
+                if 停止 is not None:
+                    停止()
+                return
             if 输入动作 is None:#无
-                return#停
+                return
             if 空 is False and 禁用 is False and 机忙 is False:#可发
                 提=输入动作['submit'] if 'submit' in 输入动作 else None#提交
-                if 提 is not None:#有
+                if 提 is not None:
                     提()#发
         if 占位 is None:#派生占位
             if 父离线 is True:#父离
@@ -272,79 +286,126 @@ class 输入栏:#composer.bar 主体
                 占位=翻译('placeholder.plan')#占位
             else:#默认
                 占位=翻译('placeholder.default')#占位
-        访问=None if 会话标识 is None else 渲染槽('conversation.input.permission',{'locked':禁用})#权限席
-        仪表=上下文仪表({'useProjection':用投影,'t':翻译})() if 用投影 is not None else None#仪表
-        栏项=[]#轨
-        for 附 in 附件:#扫
-            文=附['file'] if 'file' in 附 else None#文件
-            名=文['name'] if 文 is not None and 'name' in 文 else None#名
-            栏项.append({#轨
-                'id':附['id'] if 'id' in 附 else None,#id
-                'previewUrl':附['previewUrl'] if 'previewUrl' in 附 else None,#预览
-                'alt':名 if 名 is not None else 翻译('image.pending'),#alt
-                'removeLabel':翻译('image.remove',{'name':名}),#移除
-                'attachment':附,#源
-            })#结束
+        if 自身.画面 is None:
+            自身.画面=界面.column().classes('输入栏')
+            def 点卡():
+                '没有工作区时，点整张卡片打开菜单。'
+                现=自身.属性 if isinstance(自身.属性,dict) else {}
+                请求=现['onRequestWorkspace'] if 'onRequestWorkspace' in 现 else None
+                要选=现['disabled'] is True if 'disabled' in 现 else False
+                if 要选 is True and 请求 is not None:
+                    请求()
+            自身.画面.on('click',点卡)
+        自身.画面.classes(remove='输入卡 hero composer')
+        自身.画面.classes(add='输入卡 '+变体)
+        自身.画面.clear()
         可拖=禁用 is False and 机忙 is False and 加图 is not None#可拖
         覆盖限额=None if 限额 is None else {'count':限额['maxImagesPerMessage'] if 'maxImagesPerMessage' in 限额 else None,'size':图像尺寸文案(限额['maxImageBytes'] if 'maxImageBytes' in 限额 else None)}#覆盖
-        相位=输入['phase'] if 输入 is not None and 'phase' in 输入 and 输入['phase'] is not None else 'inert'#相位
-        通知文=None if 通知 is None else {'text':通知['text'] if 'text' in 通知 else None,'level':通知['level'] if 'level' in 通知 else None}#通知
-        return {#视图
-            'type':'input-bar',#类型
-            'variant':变体,#变体
-            'hero':变体=='hero',#英雄
-            'dragActive':自身.拖放中,#拖放
-            'dropOverlay':拖放覆盖层标签(翻译,可拖,覆盖限额) if 自身.拖放中 is True else None,#覆盖
-            'toast':自身.吐司,#吐司
-            'onDismissToast':自身.关吐司,#关吐司
-            'notice':通知文,#通知
-            'workspaceTrigger':工作区触发,#触发
-            'onRequestWorkspace':请求工作区,#请求
-            'overlay':属性['overlay'] if 'overlay' in 属性 else None,#叠层
-            'accessory':属性['accessory'] if 'accessory' in 属性 else None,#附件配件
-            'rail':栏项,#轨
-            'railLabels':附件栏标签(翻译),#轨标
-            'onOpenAttachment':自身.开预览,#开预览
-            'onRemoveAttachment':自身.摘附件,#摘
-            'draft':草稿,#草稿
-            'backdrop':背景,#背景
-            'mirror':草稿+'\n',#镜像
-            'phase':相位,#相位
-            'placeholder':占位,#占位
-            'textareaDisabled':文本区禁用,#禁用
-            'readOnly':机忙 is True or 工作区触发 is True,#只读
-            'workspaceAria':翻译('hero.chooseWorkspace') if 工作区触发 is True else None,#无障碍
-            'workspaceExpanded':挑选开 if 工作区触发 is True else None,#展开
-            'leftItems':属性['leftItems'] if 'leftItems' in 属性 else None,#左
-            'rightItems':属性['rightItems'] if 'rightItems' in 属性 else None,#右
-            'accessSelect':访问,#访问
-            'planSlot':渲染槽('conversation.input.plan',{'locked':禁用}),#计划席
-            'modelSlot':渲染槽('conversation.input.model',{'locked':模型席锁}),#模型席
-            'contextMeter':仪表,#仪表
-            'commandMenuOpen':命令菜单开,#菜单开
-            'commandsLabel':翻译('input.commands'),#命令标
-            'commandsDisabled':禁用 is True or 切换菜单 is None,#命令禁
-            'onToggleCommands':切换菜单,#切换
-            'interruptible':可中断,#独立停
-            'stopLabel':翻译('input.stop'),#停标
-            'onStop':停止,#停
-            'primaryLabel':主标,#主标
-            'primaryStops':主停,#主停
-            'primaryDisabled':(停止 is None) if 主停 is True else (空 is True or 禁用 is True or 机忙 is True),#主禁
-            'onPrimary':主点,#主点
-            'preview':自身.预览,#预览
-            'previewLabels':灯箱标签(翻译),#灯箱
-            'onClosePreview':自身.关预览,#关预览
-            'footer':属性['footer'] if 'footer' in 属性 else None,#脚
-            'sessionId':会话标识,#会话
-            'resolveSubmitMode':解析提交,#提交模式
-            'keyboard':键盘,#键盘面
-            'canSteerQueue':可转向,#可转向
-            'cssModule':'输入栏.module.css',#样式
-        }#结束
+        轨标=附件栏标签(翻译)#轨标
+        with 自身.画面:#栏
+            for 键 in 缺键:
+                界面.label(键).classes('槽位缺口')
+            if 自身.吐司 is not None and 'text' in 自身.吐司 and 自身.吐司['text'] is not None:#吐司
+                界面.label(str(自身.吐司['text']))#吐司
+                def 点关吐司():
+                    '关掉吐司。'
+                    自身.关吐司()#关
+                界面.button(翻译('image.closePreview'),on_click=点关吐司)#关闭
+            if 通知 is not None and 'text' in 通知 and 通知['text'] is not None:#通知
+                界面.label(str(通知['text']))#通知
+            if 自身.拖放中 is True:#拖放
+                覆盖=拖放覆盖层标签(翻译,可拖,覆盖限额)#覆盖
+                界面.label(覆盖['title'])#标题
+                if 'desc' in 覆盖 and 覆盖['desc'] is not None:#说明
+                    界面.label(覆盖['desc'])#说明
+            if len(附件)>0:#附件
+                界面.label(轨标['group'])#待发
+                for 附 in 附件:#逐个
+                    文=附['file'] if 'file' in 附 else None#文件
+                    名=文['name'] if 文 is not None and 'name' in 文 else None#名
+                    显名=名 if 名 is not None else 翻译('image.pending')#名
+                    def 点开(钉附=附):
+                        '打开预览。'
+                        自身.开预览(钉附)#开
+                    def 点摘(钉标识=附['id'] if 'id' in 附 else None):
+                        '移除附件。'
+                        if 钉标识 is not None:
+                            自身.摘附件(钉标识)#摘
+                    界面.button(显名,on_click=点开)#预览
+                    界面.button(翻译('image.remove',{'name':显名}),on_click=点摘)#移除
+            for 段 in 背景:#背景
+                种=段['kind'] if 'kind' in 段 else ''#种
+                if 种=='chip':#芯片
+                    标=段['label'] if 'label' in 段 and 段['label'] is not None else ''#标
+                    if 标=='':#空芯片
+                        pass#不画
+                    else:#芯片
+                        界面.label(标).classes('芯片')#芯片
+                else:#文本
+                    文=段['text'] if 'text' in 段 and 段['text'] is not None else ''#文
+                    if 文=='':#空段
+                        pass#不画
+                    else:#段
+                        界面.label(文)#段
+            框=界面.textarea(value=草稿,placeholder=占位).props('borderless autogrow').classes('草稿')
+            def 草稿变():
+                '把草稿写回输入机。'
+                if 输入动作 is None:#无
+                    return
+                设=输入动作['setDraft'] if 'setDraft' in 输入动作 else None#写
+                if 设 is None:#无
+                    return
+                值=框.value if 框.value is not None else ''#文
+                设(值)#写
+            框.on_value_change(草稿变)#改
+            if 文本区禁用 is True or 机忙 is True or 工作区触发 is True:#不可编辑
+                框.props('disable')#禁用
+            if 渲染槽 is not None and 会话标识 is not None:
+                渲染槽('conversation.input.permission',{'locked':禁用})
+            if 渲染槽 is not None:
+                渲染槽('conversation.input.plan',{'locked':禁用})
+                渲染槽('conversation.input.model',{'locked':模型席锁})
+            if 用投影 is not None:#占用
+                if 自身.仪表 is None:#首次
+                    自身.仪表=上下文仪表()#仪表
+                自身.仪表.更新({'useProjection':用投影,'t':翻译})#灌入
+                自身.仪表.渲染()#自己画
+            if 禁用 is False and 切换菜单 is not None:#命令
+                def 点命令():
+                    '打开命令菜单。'
+                    切换菜单()#切换
+                界面.button(翻译('input.commands'),on_click=点命令)#命令
+            if 可中断 is True:#独立停止
+                def 点停():
+                    '停止生成。'
+                    if 停止 is not None:
+                        停止()
+                界面.button(翻译('input.stop'),on_click=点停)
+            with 界面.element('div').classes('工具行'):#底栏
+                with 界面.element('div').classes('尾组'):#发送靠右
+                    钮=界面.button(on_click=主点).props('unelevated round').classes('发送钮'+(' 发送空' if 空 is True else ''))
+                    钮.tooltip(主标)
+                    钮.props('aria-label="'+主标+'"')
+                    with 钮:
+                        界面.html('<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8.3125 0.980183C8.66767 1.0531 8.97902 1.20418 9.2627 1.43233C9.48724 1.61297 9.73029 1.85793 9.97949 2.10714L14.707 6.83468L13.293 8.24874L9 3.95577V15.0417H7V3.95577L2.70703 8.24874L1.29297 6.83468L6.02051 2.10714C6.26971 1.85793 6.51277 1.61297 6.7373 1.43233C6.97662 1.23986 7.28445 1.04402 7.6875 0.980183C7.8973 0.947006 8.1031 0.95516 8.3125 0.980183Z"/></svg>',sanitize=False)
+            if 自身.预览 is not None:#灯箱
+                灯=灯箱标签(翻译)#标签
+                界面.label(灯['dialog'])#预览
+                def 点关预览():
+                    '关闭预览。'
+                    自身.关预览()#关
+                界面.button(灯['close'],on_click=点关预览)#关闭
+            脚=属性['footer'] if 'footer' in 属性 else None#脚
+            if 脚 is not None and hasattr(脚,'渲染'):#脚组件
+                脚.渲染()#自己画
+        del 解析提交#提交模式仍由主按钮的输入动作决定
+        del 键盘#按键仍由宿主输入机处理
+        del 可转向#排队转向体现在占位文案
+        del 挑选开#菜单开合由工作区按钮承担
+        del 命令菜单开#命令按钮不依赖结构树标记
 
     def __call__(自身,属性=None):
         '对齐 React'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
         return 自身.渲染()#渲

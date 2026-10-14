@@ -1,4 +1,4 @@
-from ...异常 import 检查器错误#包内错误
+from ...异常 import 检查器错误,失败说明#包内错误
 from .协议 import 解析cdp请求,cdp错误#协议
 from .目标 import cdp方法未处理,处理脚手架#脚手架
 from .domains.runtime import Runtime域会话#Runtime
@@ -76,7 +76,7 @@ class Cdp会话:#CDP会话
                     树=自身.cordis树()#树
                     自身.传输.发送({'id':请求['id'],'result':{'tree':树}})#成功
                 except Exception as 错误:#cordis树收集可能抛检查器错误/属性错误，契约未定所以收不窄
-                    自身.传输.发送(cdp错误(请求['id'],-32000,str(错误)))#错误
+                    自身.传输.发送(cdp错误(请求['id'],-32000,失败说明(错误)))#错误
                 return#返回
             else:#脚手架
                 结果=处理脚手架(请求,自身.目标)#处理
@@ -85,7 +85,7 @@ class Cdp会话:#CDP会话
                     return#返回
             自身.传输.发送({'id':请求['id'],'result':结果})#发送结果
         except Exception as 错误:#CDP 方法分发体什么都可能抛，契约未定所以收不窄
-            自身.传输.发送(cdp错误(请求['id'],-32000,str(错误)))#错误
+            自身.传输.发送(cdp错误(请求['id'],-32000,失败说明(错误)))#错误
 
     def 发送事件(自身,方法,参数):#发送事件
         '推送一条 CDP 事件'

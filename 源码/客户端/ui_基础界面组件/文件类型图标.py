@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from .代码文件类型 import 分类代码文件类型,是否代码文件类型#代码分类
 
 __all__=[#仅中文公开名
@@ -79,8 +80,21 @@ class 文件类型图标:#装饰文件类型字形
             'cssModule':'FileTypeIcon.module.css',#样式
         }#视图结束
 
+    def 渲染(自身):
+        '按类别画出文件类型图标'
+        视图=自身.视图()#类别与尺寸
+        图={
+            'code':'code','excel':'table_chart','folder':'folder','html':'html',
+            'image':'image','markdown':'notes','pdf':'picture_as_pdf','ppt':'slideshow',
+            'video':'movie','word':'description','other':'draft',
+        }#类别到字形
+        名=图[视图['kind']] if 视图['kind'] in 图 else 'draft'#字形
+        标=界面.icon(名).style('font-size:'+str(视图['size'])+'px')#图标
+        if isinstance(视图['className'],str) and 视图['className']!='':#布局类
+            标.classes(视图['className'])#类
+
     def __call__(自身,属性=None):#组件调用形
         '对齐 React'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.视图()#渲
+        return 自身.渲染()

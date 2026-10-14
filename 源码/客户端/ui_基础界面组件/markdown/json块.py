@@ -1,4 +1,5 @@
 import json#美化
+from nicegui import ui as 界面
 
 __all__=['json块','最大字节','默认截断标签']#仅中文公开名
 
@@ -38,31 +39,37 @@ class json块:#可折叠 JSON
         自身.已打开=not 自身.已打开#翻
 
     def 渲染(自身):
-        '产出 toggle+可选 body'
+        '画出标签，打开时画出 JSON 正文'
         属性=自身.属性#props
         截断标=属性['truncatedLabel'] if 'truncatedLabel' in 属性 else 默认截断标签#脚格式
-        体=''#体
-        if 自身.已打开 is True:#开
-            载荷=属性['payload'] if 'payload' in 属性 else None#载荷
-            try:#stringify
-                串=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#美化
-            except (TypeError,ValueError):#不可序列
-                串=str(载荷)#回退
-            字节=串.encode('utf-8')#字节
-            if len(字节)>最大字节:#超；判 length
-                脚=截断标(len(字节))#脚按字节总计
-                体=按字节截(串,最大字节)+'\n'+脚#截
-            else:#全
-                体=串#全
         标签=属性['label'] if 'label' in 属性 and 属性['label'] is not None else ''#标签
-        return {#视图
-            'type':'json-block',#类型
-            'label':标签,#标签
-            'open':自身.已打开,#开
-            'body':体,#体
-            'onToggle':自身.切换,#切换
-            'cssModule':'json块.module.css',#样式
-        }#结束
+        根=界面.column().classes('json块')#块
+        def 重画():
+            '按打开态重画'
+            体=''#体
+            if 自身.已打开 is True:#开
+                载荷=属性['payload'] if 'payload' in 属性 else None#载荷
+                try:#stringify
+                    串=json.dumps(载荷,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)#美化
+                except (TypeError,ValueError):#不可序列
+                    串=str(载荷)#回退
+                字节=串.encode('utf-8')#字节
+                if len(字节)>最大字节:#超
+                    脚=截断标(len(字节)) if callable(截断标) else 截断标#脚
+                    体=按字节截(串,最大字节)+'\n'+脚#截
+                else:#全
+                    体=串#全
+            根.clear()
+            with 根:#内容
+                前='▾ ' if 自身.已打开 else '▸ '#开合
+                def 点切换():
+                    '开合正文'
+                    自身.切换()#翻
+                    重画()#重画
+                界面.button(前+标签,on_click=点切换)#标签
+                if 自身.已打开 is True and 体!='':
+                    界面.code(体)#正文
+        重画()#首画
 
     def __call__(自身,属性=None,**关键字参数):
         '对齐 React'
@@ -70,4 +77,4 @@ class json块:#可折叠 JSON
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

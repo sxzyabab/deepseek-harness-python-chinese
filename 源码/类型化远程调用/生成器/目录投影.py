@@ -1,5 +1,6 @@
 import re#词边界与标签
 from .异常 import Typert分析错误#分析失败
+from .分析器 import 工作区分析器,工作区缓存
 from .模型 import 子类型节点标识列表#子边
 from .渲染器 import 类型图渲染器#类型图渲染器
 
@@ -12,8 +13,6 @@ __all__=[#公开面
     '区域开','区域闭',
     '收集签名类型名',
 ]#结束
-
-分析器硬缺口='WorkspaceAnalyzer（typert/generator analyzer.ts / TS 编译器 API）未迁；根扫描入口不可空壳装通过。'#硬缺口文案
 
 派发模式=frozenset(['emit','bail','waterfall','parallel','serial'])#五种派发模式
 围栏='ts cordis-catalog'#签名围栏语言标记
@@ -147,7 +146,7 @@ def 解析JsDoc(原文):#把原始 JSDoc 拆成散文与标签
             已弃用=True#记弃用
             槽=None#无续行
             continue#下一行
-        参=re.match(r'^@param\s+(\[?[\w$]+\]?)\s*(?:[-—–]\s*)?(.*)$',行)#@param
+        参=re.match(r'(?a)^@param[ \t]+(\[?[A-Za-z0-9_$]+\]?)[ \t]*(?:[-—–][ \t]*)?(.*)\Z',行)#@param
         if 参:#命中
             名=re.sub(r'^\[|\]$', '', 参.group(1) or '')#去掉可选方括号
             值=参.group(2) or ''#首行描述
@@ -289,7 +288,7 @@ class Cordis目录投影器:#Cordis 目录投影器
     def __init__(自身,面,源声明列表,策略):#保存面、声明与策略
         '按该面类型图构造渲染器'
         自身.面=面#面模型
-        自身.源声明列表=list(源声明列表 or [])#源声明
+        自身.源声明列表=[] if 源声明列表 is None else list(源声明列表)#空列表仍是空列表
         自身.策略=策略#策略
         自身.渲染器=类型图渲染器(面['graph'] if 面 is not None and 'graph' in 面 else None)#渲染器
 
@@ -507,16 +506,45 @@ class Cordis目录投影器:#Cordis 目录投影器
         return 引用类型闭包(种子,声明表)#闭包
 
 def 投影Cordis目录(扫描根,策略,目标面='host'):#分析一次工作区并投影
-    '投影 Cordis 目录。必须 WorkspaceAnalyzer'
-    raise NotImplementedError('投影Cordis目录: '+分析器硬缺口)#硬缺口
+    '发现目标面的包，分批分析，再投影校验过的目录'
+    缓存=工作区缓存()
+    发现=工作区分析器({
+        '根':扫描根,
+        '面列表':[目标面],
+        '检查诊断':False,
+        '缓存':缓存,
+    }).discoverPackages()
+    包列表=[项['package'] for 项 in 发现 if 目标面 in 项['faces']]
+    工作区模型=工作区分析器({
+        '根':扫描根,
+        '面列表':[目标面],
+        '包列表':包列表,
+        '检查诊断':False,
+        '缓存':缓存,
+    }).analyzeInBatches()
+    面=None
+    for 候选 in 工作区模型['faces']:
+        if 候选['face']==目标面:
+            面=候选
+            break
+    if 面 is None:
+        raise Typert分析错误(f'gen-cordis-catalog: Typert 没有产出 {目标面} 面')
+    源声明=工作区分析器({
+        '根':扫描根,
+        '面列表':[目标面],
+        '检查诊断':False,
+        '缓存':缓存,
+    }).indexSourceDeclarations()
+    投影器=Cordis目录投影器(面,源声明,策略)
+    return {'projector':投影器,'model':投影器.投影()}
 
 def 收集事件(扫描根,策略):#收集全部已建模事件
-    '收集全部已建模事件；委托投影Cordis目录'
-    raise NotImplementedError('收集事件: '+分析器硬缺口)#硬缺口
+    '收集全部已建模事件'
+    return list(投影Cordis目录(扫描根,策略)['model']['events'])
 
 def 收集服务(扫描根,策略):#收集全部已建模服务
-    '收集全部已建模服务；委托投影Cordis目录'
-    raise NotImplementedError('收集服务: '+分析器硬缺口)#硬缺口
+    '收集全部已建模服务'
+    return list(投影Cordis目录(扫描根,策略)['model']['services'])
 
 def 渲染运行时Api(服务列表,事件列表,类型列表,继承服务列表):#生成 tool-cordis 消费的目录源
     '生成 tool-cordis 消费的目录源：常量表 + 查询辅助（不依赖分析器）'

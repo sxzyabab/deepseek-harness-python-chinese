@@ -1,3 +1,4 @@
+from ..异常 import 失败说明#失败句
 from .服务器 import 启动检查器Worker#装配并启动
 
 __all__=['主入口']#仅中文公开名
@@ -33,7 +34,7 @@ def 主入口(控制端口,启动数据):#主入口
                 raise ValueError('宿主控制帧无效')#校验控制帧
             停止()#触发停止，不等待结果
         except Exception as 错误:#控制帧校验或 postMessage 可能抛 ValueError/传输错误，契约未定所以收不窄
-            控制端口.postMessage({'type':'failure','message':str(错误)})#回传失败
+            控制端口.postMessage({'type':'failure','message':失败说明(错误)})#回传失败
 
     控制端口.on('message',收控制)#消息监听
     def 启动():#启动运行时
@@ -43,6 +44,6 @@ def 主入口(控制端口,启动数据):#主入口
             运行时=启动检查器Worker(启动包)#装配并启动
             控制端口.postMessage({'type':'ready',**运行时['endpoint']})#就绪
         except Exception as 错误:#启动检查器Worker 装配体什么都可能抛，契约未定所以收不窄
-            控制端口.postMessage({'type':'failure','message':str(错误)})#回传失败
+            控制端口.postMessage({'type':'failure','message':失败说明(错误)})#回传失败
             停止()#清理退出，不等待结果
     return 启动#返回启动工厂

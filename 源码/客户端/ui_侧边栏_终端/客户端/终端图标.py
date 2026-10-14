@@ -1,68 +1,92 @@
-__all__=['终端图标','终端引导图标']#仅中文公开名
+from nicegui import ui as 界面
 
-class 终端图标:#页签标题线条字形
+__all__=['终端图标','终端引导图标']
+
+class 终端图标:
     '十六像素装饰线条字形'
-    def 视图(自身):#投影 svg
+    def 视图(自身):
         '返回标题用终端图标'
-        return {#svg
-            'tag':'svg',#标签
-            'width':'16',#宽
-            'height':'16',#高
-            'viewBox':'0 0 16 16',#视口
-            'fill':'none',#无填充
-            'aria-hidden':'true',#装饰
-            'children':[{#路径
-                'tag':'path',#路径
-                'd':'m3 4 4 4-4 4M9 12h4',#折线
-                'stroke':'currentColor',#描边
-                'strokeWidth':'1.5',#宽
-                'strokeLinecap':'round',#端点
-                'strokeLinejoin':'round',#连接
-            }],#子
-        }#结束
+        return {
+            'tag':'svg',
+            'width':'16',
+            'height':'16',
+            'viewBox':'0 0 16 16',
+            'fill':'none',
+            'aria-hidden':'true',
+            'children':[{
+                'tag':'path',
+                'd':'m3 4 4 4-4 4M9 12h4',
+                'stroke':'currentColor',
+                'strokeWidth':'1.5',
+                'strokeLinecap':'round',
+                'strokeLinejoin':'round',
+            }],
+        }
 
-    def __call__(自身,属性=None):#组件调用
-        '对齐 React 组件调用'
-        return 自身.视图()#视图
+    def 渲染(自身):
+        '画出十六像素终端折线'
+        界面.html(
+            '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
+            '<path d="M3 4L7 8L3 12" stroke="currentColor"/>'
+            '<path d="M9 12H13" stroke="currentColor"/>'
+            '</svg>',
+            sanitize=False,
+        )
 
-class 终端引导图标:#开始页卡片字形
+    def __call__(自身,属性=None):
+        '画出当前图标'
+        return 自身.渲染()
+
+class 终端引导图标:
     '深色圆角终端卡片加白色提示符'
-    def __init__(自身,属性=None):#记下尺寸与类名
-        '记下画布尺寸与布局类'
-        自身.属性=属性 if 属性 is not None else {}#合成 props
+    def __init__(自身,属性=None):
+        '记下画布尺寸与布局类。父组件调用渲染，构造时不画'
+        自身.属性=属性 if 属性 is not None else {}
 
-    def 更新(自身,属性):#props 变更
-        '刷新合成 props'
-        自身.属性=属性#最新
+    def 更新(自身,属性):
+        '刷新尺寸与类名'
+        自身.属性=属性
 
-    def 视图(自身):#投影 svg
+    def 视图(自身):
         '返回引导卡片图标'
-        尺寸=自身.属性['size'] if 'size' in 自身.属性 else 26#默认 26
-        类名=自身.属性['className'] if 'className' in 自身.属性 else None#布局类
-        return {#svg
-            'tag':'svg',#标签
-            'width':尺寸,#宽
-            'height':尺寸,#高
-            'className':类名,#类
-            'viewBox':'0 0 28 28',#视口
-            'fill':'none',#无填充
-            'aria-hidden':'true',#装饰
-            'children':[{#底
-                'tag':'rect',#矩形
-                'x':'3','y':'5','width':'22','height':'19','rx':'3',#几何
-                'fill':'#17191d',#底色
-            },{#提示符
-                'tag':'path',#路径
-                'd':'m8 10 4 4-4 4M15 18h5',#折线
-                'stroke':'#fff',#白
-                'strokeWidth':'1.7',#宽
-                'strokeLinecap':'round',#端点
-                'strokeLinejoin':'round',#连接
-            }],#子
-        }#结束
+        尺寸=自身.属性['size'] if 'size' in 自身.属性 else 26
+        类名=自身.属性['className'] if 'className' in 自身.属性 else None
+        return {
+            'tag':'svg',
+            'width':尺寸,
+            'height':尺寸,
+            'className':类名,
+            'viewBox':'0 0 28 28',
+            'fill':'none',
+            'aria-hidden':'true',
+            'children':[{
+                'tag':'rect',
+                'x':'3','y':'5','width':'22','height':'19','rx':'3',
+                'fill':'#17191d',
+            },{
+                'tag':'path',
+                'd':'m8 10 4 4-4 4M15 18h5',
+                'stroke':'#fff',
+                'strokeWidth':'1.7',
+                'strokeLinecap':'round',
+                'strokeLinejoin':'round',
+            }],
+        }
 
-    def __call__(自身,属性=None):#组件调用
-        '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.视图()#视图
+    def 渲染(自身):
+        '画出引导卡片字形'
+        尺寸=自身.属性['size'] if 'size' in 自身.属性 else 26
+        宽=尺寸 if isinstance(尺寸,int) else 26
+        界面.html(
+            '<svg width="'+str(宽)+'" height="'+str(宽)+'" viewBox="0 0 28 28" fill="none" aria-hidden="true">'
+            '<rect x="3" y="5" width="22" height="19" rx="3" fill="#17191d"/>'
+            '<path d="m8 10 4 4-4 4M15 18h5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'
+            '</svg>',
+            sanitize=False,
+        )
+
+    def __call__(自身,属性=None):
+        '有新属性先更新，再画出'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

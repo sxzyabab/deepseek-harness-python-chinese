@@ -1,10 +1,9 @@
 from .文案 import 中文,英文,图像预览键#词典
-from .图像体 import 图像体,图像扩展名#正文
+from .图像体 import 图像体,图像面板,图像扩展名,样式表#正文
 from ..文档.标签寿命 import 保留文档标签
 from ..缩放.存储 import 创建缩放存储
 
-__all__=['图像体标识','图像扩展名','二进制图像扩展名','图像体定义','应用','图像体','中文','英文','图像预览键']#仅中文公开名
-
+__all__=['图像体标识','图像扩展名','二进制图像扩展名','图像体定义','应用','图像体','图像面板','样式表','中文','英文','图像预览键']
 图像体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/image'#实现 id
 二进制图像扩展名=('png','jpg','jpeg','gif','webp','bmp','ico')#位图后缀；SVG 留下
 
@@ -53,7 +52,7 @@ def 应用(上下文):
                 'locale':'sidebarImage',
                 'store':存储,
                 'inject':注入,
-            },图像体)#正文
+            },图像面板)#正文
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
     上下文.副作用(挂正文,'document-image: body')#寿命
 

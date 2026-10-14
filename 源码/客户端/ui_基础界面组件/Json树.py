@@ -1,7 +1,23 @@
 import json#序列化
+from nicegui import ui as 界面
 from ...基础设施.通用工具 import 紧凑json编码
 from .剪贴板 import 写剪贴板#复制
 from .菜单 import 菜单#复制菜单
+
+样式已登记=False
+
+def 登记样式():
+    '同一段样式整个进程只登记一次'
+    global 样式已登记
+    if 样式已登记 is True:
+        return
+    界面.add_css('.Json树行{position:relative;box-sizing:border-box;min-height:16px;padding:0 0 0 10px;white-space:pre-wrap;overflow-wrap:anywhere}')
+    界面.add_css('''
+.Json树{--json-tree-property:#881391;--json-tree-string:#c41a16;--json-tree-number:#1c00cf;--json-tree-keyword:#1c00cf;--json-tree-punctuation:#202124;min-width:0;overflow:auto;position:relative;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);font:12px/16px var(--ds-font-family-code)}
+body[data-ds-dark-theme] .Json树{--json-tree-property:#5db0d7;--json-tree-string:#f28b82;--json-tree-number:#99c8ff;--json-tree-keyword:#99c8ff;--json-tree-punctuation:#e8eaed}
+.Json树行{position:relative;box-sizing:border-box;min-height:16px;padding:0 0 0 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+''')
+    样式已登记=True
 
 __all__=['Json树','默认标签','对象预览上限','数组预览上限','预览深度上限']#仅中文公开名
 
@@ -180,55 +196,63 @@ class Json树节点:#树内一行
         '行悬停记复制目标'
         自身.行悬停(自身.路径,自身.值)#悬停
 
-    def 渲染(自身):#结构化行
-        '产出 treeitem 视图'
-        容器=可展开值(自身.值)#容器
-        项列表=列出条目(自身.值) if 容器 else []#条目
-        可展=len(项列表)>0#可展
-        节点标识=路径标识(自身.路径)#id
-        字段视图=None#字段
-        if 自身.字段 is not None:#有字段
-            字段视图={#字段
-                'text':字段文(自身.字段)+':',#文
-                'clickable':可展,#可点
-                'onToggle':自身.切换 if 可展 else None,#切换
-            }#结束
-        if not 容器:#叶子
-            return {#行
-                'kind':'row','pathId':节点标识,'path':list(自身.路径),'value':自身.值,#身份
-                'field':字段视图,'leaf':叶子值(自身.值),'comma':not 自身.末项,#叶子
-                'expandable':False,'expanded':False,'children':None,#无子
-            }#结束
-        开,闭=括号对(自身.值)#括号
-        if not 可展:#空容器
-            return {#行
-                'kind':'row','pathId':节点标识,'path':list(自身.路径),'value':自身.值,#身份
-                'field':字段视图,'empty':{'open':开,'close':闭},'comma':not 自身.末项,#空
-                'expandable':False,'expanded':False,'children':None,#无子
-            }#结束
-        子列表=None#子树
-        if 自身.已展开:#展开
-            子列表=[]#子
-            for 下标,(键,项) in enumerate(项列表):#逐项
-                子路径=自身.路径+[下标 if isinstance(自身.值,(list,tuple)) else 键]#路径
-                子=Json树节点(#子节点
-                    键,项,子路径,自身.标签,下标==len(项列表)-1,False,#参数
-                    自身.制表标识,自身.认领制表,自身.行悬停,#制表与悬停
-                )#结束
-                子列表.append(子.渲染())#渲
-        return {#行
-            'kind':'row','pathId':节点标识,'path':list(自身.路径),'value':自身.值,#身份
-            'field':字段视图,'preview':预览值(自身.值,0),'comma':not 自身.末项,#预览
-            'expandable':True,'expanded':自身.已展开,#展开
-            'expander':{#展开钮
-                'aria':自身.标签['collapseNode'] if 自身.已展开 else 自身.标签['expandNode'],#aria
-                'tabStop':自身.制表标识==节点标识,#制表
-                'onToggle':自身.切换,#切换
-                'onFocus':自身.认领本制表,#认领
-            },#结束
-            'children':子列表,#子
-            'onHover':自身.悬停本行,#悬停
-        }#结束
+    def 渲染(自身):#画出一行
+        '画出字段、值或括号，展开时让子节点自己画'
+        登记样式()
+        盒=界面.column().classes('Json树行')#行
+        def 预览文(节点):
+            '预览收成一段文字'
+            if 节点['kind']=='preview':#括号预览
+                中=''.join(预览文(部) for 部 in 节点['parts'])#中段
+                return 节点['open']+中+节点['close']#包上括号
+            return 节点['text'] if 'text' in 节点 else ''#叶子
+        def 进入():
+            '记复制目标'
+            自身.悬停本行()#悬停
+        盒.on('mouseenter',进入)#悬停
+        def 重画():
+            '按展开态重画这一行和子行'
+            容器=可展开值(自身.值)#容器
+            项列表=列出条目(自身.值) if 容器 else []#条目
+            可展=len(项列表)>0#可展
+            盒.clear()
+            with 盒:#内容
+                with 界面.row():#本行
+                    if 可展:#可展
+                        文=自身.标签['collapseNode'] if 自身.已展开 else 自身.标签['expandNode']#按钮文案
+                        def 点切换():
+                            '展开或收起'
+                            自身.切换()#翻
+                            重画()#重画
+                        钮=界面.button(文,on_click=点切换)#展开
+                        def 聚焦():
+                            '认领制表'
+                            自身.认领本制表()#认领
+                        钮.on('focus',聚焦)#聚焦
+                    if 自身.字段 is not None:
+                        界面.label(字段文(自身.字段)+':')#字段
+                    if 容器 is False:#叶子
+                        界面.label(叶子值(自身.值)['text'])#值
+                    elif 可展 is False:#空容器
+                        开,闭=括号对(自身.值)#括号
+                        界面.label(开+闭)#空括号
+                    elif 自身.已展开 is False:#折叠预览
+                        界面.label(预览文(预览值(自身.值,0)))#预览
+                    else:#已展开
+                        界面.label(括号对(自身.值)[0])#开括号
+                    if 自身.末项 is False:#非末项
+                        界面.label(',')#逗号
+                if 可展 and 自身.已展开:#子行
+                    开,闭=括号对(自身.值)#括号
+                    for 下标,(键,项) in enumerate(项列表):#逐项
+                        子路径=自身.路径+[下标 if isinstance(自身.值,(list,tuple)) else 键]#路径
+                        子=Json树节点(#子节点
+                            键,项,子路径,自身.标签,下标==len(项列表)-1,False,#参数
+                            自身.制表标识,自身.认领制表,自身.行悬停,#制表与悬停
+                        )#结束
+                        子.渲染()#子节点自己画
+                    界面.label(闭)#闭括号
+        重画()#首画
 
 class Json树:#只读 JSON 检查树
     '可选顶层固定展开与复制动作'
@@ -246,8 +270,8 @@ class Json树:#只读 JSON 检查树
         旧=自身.属性['data'] if 'data' in 自身.属性 else None#旧数据
         自身.属性=dict(属性)#最新
         if (自身.属性['data'] if 'data' in 自身.属性 else None) is not 旧:#数据换；身份 is not
-            自身.复制目标=None#清
-            自身.复制态='idle'#清
+            自身.复制目标=None
+            自身.复制态='idle'
             自身.复制菜单开=False#关
             自身.制表标识=自身.初制表()#重算
 
@@ -284,10 +308,10 @@ class Json树:#只读 JSON 检查树
         自身.复制目标={'path':list(路径),'value':值}#目标
         自身.复制态='idle'#重置反馈
 
-    def 清复制(自身):#清复制目标
+    def 清复制(自身):
         '关菜单并清'
-        自身.复制目标=None#清
-        自身.复制态='idle'#清
+        自身.复制目标=None
+        自身.复制态='idle'
         自身.复制菜单开=False#关
 
     def 悬停根(自身):
@@ -318,8 +342,9 @@ class Json树:#只读 JSON 检查树
         else:#失败
             自身.复制态='failed'#失败
 
-    def 渲染(自身):#结构化视图
-        '产出树 + 可选复制锚'
+    def 渲染(自身):#画出树
+        '画出括号和节点，悬停时画出复制'
+        登记样式()
         属性=自身.属性#props
         数据=属性['data'] if 'data' in 属性 else None#数据
         if 数据 is None:#无数据
@@ -328,65 +353,90 @@ class Json树:#只读 JSON 检查树
         顶展=属性['expandTopLevel'] is not False if 'expandTopLevel' in 属性 else True#缺省 True
         可复制=属性['copyable'] is not False if 'copyable' in 属性 else True#缺省 True
         根项=列出条目(数据)#根条目
-        子视图=[]#子
-        if 顶展:#顶层展开：根括号 + 子项
-            for 下标,(键,值) in enumerate(根项):#逐项
-                路径=[下标 if isinstance(数据,(list,tuple)) else 键]#路径
-                节点=Json树节点(#节点
-                    键,值,路径,标签,下标==len(根项)-1,False,#参数
-                    自身.制表标识,自身.认领制表,自身.行悬停,#回调
+        根=界面.column().classes('Json树')#树
+        类名=属性['className'] if 'className' in 属性 else None#类
+        if isinstance(类名,str) and 类名!='':
+            根.classes(类名)#附
+        无障碍=属性['label'] if 'label' in 属性 else 'JSON'#aria
+        if 无障碍 is None:#缺
+            无障碍='JSON'#默认
+        根.props('aria-label="'+str(无障碍).replace('"','')+'"')#无障碍名
+        with 根:#内容
+            复制区=界面.column().classes('Json复制')#复制
+            def 刷新复制():
+                '有复制目标时画出按钮和菜单'
+                复制区.clear()
+                with 复制区:#内容
+                    if 可复制 is False or 自身.复制目标 is None:#无可复制
+                        return
+                    是对象=可展开值(自身.复制目标['value'])#对象
+                    if 自身.复制态=='copied':#已复制
+                        标题=标签['copied']#文案
+                    elif 自身.复制态=='failed':#失败
+                        标题=标签['copyFailed']#文案
+                    elif 是对象:#对象
+                        标题=标签['copyPrettyJson']#文案
+                    else:#叶子
+                        标题=标签['copyValue']#文案
+                    def 点默认():
+                        '按默认方式复制'
+                        自身.点按复制()#复制
+                        刷新复制()#刷新
+                    界面.button(标题,on_click=点默认)#复制
+                    def 点菜单():
+                        '打开复制菜单'
+                        自身.打开复制菜单()#开
+                        刷新复制()#刷新
+                    界面.button('…',on_click=点菜单)#菜单
+                    if 自身.复制菜单开 is False:#菜单关
+                        return
+                    def 选定(模式):
+                        '按所选方式复制'
+                        自身.复制(模式)#复制
+                        自身.复制菜单开=False#关菜单
+                        刷新复制()#刷新
+                    菜单({#菜单
+                        'open':True,#开
+                        'items':对象复制菜单项(标签) if 是对象 else 值复制菜单项(标签),#项
+                        'onSelect':选定,#选定
+                    }).渲染()#菜单自己画
+            def 悬停并刷新(路径,值):
+                '记下目标并刷新复制区'
+                自身.行悬停(路径,值)#悬停
+                刷新复制()#刷新
+            if 顶展:#顶层展开
+                开,闭=括号对(数据)#括号
+                括号=界面.label(开)#开括号
+                def 进入根():
+                    '根括号悬停'
+                    悬停并刷新([],数据)#悬停
+                括号.on('mouseenter',进入根)#悬停
+                for 下标,(键,值) in enumerate(根项):#逐项
+                    路径=[下标 if isinstance(数据,(list,tuple)) else 键]#路径
+                    节点=Json树节点(#节点
+                        键,值,路径,标签,下标==len(根项)-1,False,#参数
+                        自身.制表标识,自身.认领制表,悬停并刷新,#回调
+                    )#结束
+                    节点.渲染()#自己画
+                界面.label(闭)#闭括号
+            else:#单根
+                节点=Json树节点(#根
+                    None,数据,[],标签,True,True,#参数
+                    自身.制表标识,自身.认领制表,悬停并刷新,#回调
                 )#结束
-                子视图.append(节点.渲染())#渲
-            开,闭=括号对(数据)#括号
-            主体={#顶展体
-                'mode':'expanded-top',#模式
-                'openBracket':开,#开
-                'closeBracket':闭,#闭
-                'children':子视图,#子
-                'rootValue':数据,#根值
-                'onRootHover':自身.悬停根,#根悬停
-            }#结束
-        else:#单根节点
-            节点=Json树节点(#根
-                None,数据,[],标签,True,True,#参数
-                自身.制表标识,自身.认领制表,自身.行悬停,#回调
-            )#结束
-            主体={'mode':'tree','root':节点.渲染()}#单树
-        复制锚=None#复制
-        if 可复制 and 自身.复制目标 is not None:#有目标
-            是对象=可展开值(自身.复制目标['value'])#对象
-            默认模式='prettyJson' if 是对象 else 'value'#默认
-            标题=标签['copied'] if 自身.复制态=='copied' else (#标题
-                标签['copyFailed'] if 自身.复制态=='failed' else (
-                    标签['copyPrettyJson'] if 是对象 else 标签['copyValue']
-                )
-            )#结束
-            菜单项=对象复制菜单项(标签) if 是对象 else 值复制菜单项(标签)#项
-            复制锚={#锚
-                'state':自身.复制态,#态
-                'title':标题,#标题
-                'defaultMode':默认模式,#默认
-                'items':菜单项,#菜单
-                'onCopy':自身.点按复制,#点按
-                'onMenu':自身.打开复制菜单,#右键
-                'onSelect':自身.复制,#选定
-                'onClose':自身.清复制,#关
-                'menu':菜单,#菜单组件
-            }#结束
-        return {#视图
-            'type':'json-tree',#类型
-            'label':属性['label'] if 'label' in 属性 else 'JSON',#aria
-            'className':属性['className'] if 'className' in 属性 else None,#定位类
-            'body':主体,#主体
-            'copyAnchor':复制锚,#复制
-            'onLeave':自身.清复制 if not 自身.复制菜单开 else None,#离开清
-            'cssModule':'Json树.module.css',#样式
-        }#结束
+                节点.渲染()#自己画
+            def 离开():
+                '菜单未开时清复制'
+                if 自身.复制菜单开 is False:#未开菜单
+                    自身.清复制()
+                    刷新复制()#刷新
+            根.on('mouseleave',离开)#离开
+            刷新复制()#首画
 
     def __call__(自身,属性=None,**关键字参数):#调用形
         '对齐 React'
-        if 属性 is not None or len(关键字参数)>0:#有
+        if 属性 is not None or len(关键字参数)>0:
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

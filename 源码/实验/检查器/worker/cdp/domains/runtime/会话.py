@@ -399,7 +399,7 @@ class Runtime域会话:#Runtime域会话
             return#返回
         会话=事件['session']#会话
         拆除=自身._控制台拆除器.pop(会话.descriptor.realmId,None)#拆Console
-        if 拆除 is not None:#有
+        if 拆除 is not None:
             拆除()#回调
         自身._对象.释放realm(会话)#释对象
         自身._销毁(会话)#销毁上下文

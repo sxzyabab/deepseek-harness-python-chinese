@@ -2,7 +2,22 @@
 from .文件应用 import 使用文件应用#联想查询
 from .打开目标按钮 import 打开目标按钮#共享分体按钮
 
-__all__=['文件打开目标','打开路径动作']#仅中文公开名
+__all__=['文件打开目标','打开路径动作','路径键齐']#仅中文公开名
+
+def 路径键齐(属性):#文件打开能否画
+    '绝对路径、文案、联想和打开都在才画'
+    if not isinstance(属性,dict):#不是映射
+        return False#缺
+    路径=属性.get('absolutePath')#文件
+    if not isinstance(路径,str) or 路径=='':#没有路径
+        return False#缺
+    if not callable(属性.get('t')):#没有文案
+        return False#缺
+    if not callable(属性.get('applications')):#没有联想
+        return False#缺
+    if not callable(属性.get('openPath')):#没有打开
+        return False#缺
+    return True#齐
 
 class 文件打开目标:#文件路径 → 共享打开控件
     """解析文件关联并适配操作，不把平台行为嵌进控件。
@@ -34,7 +49,9 @@ class 文件打开目标:#文件路径 → 共享打开控件
                 加载()#拉桌面
 
     def 渲染(自身):
-        '共享打开控件，或无桌面时 None'
+        '共享打开控件，或无桌面时 None。键未齐不画替代控件。'
+        if not 路径键齐(自身.属性):#键未齐
+            return None#空槽留给主人
         自身._确保桌面()#拉
         if 自身._读桌面() is not True:#非桌面
             return None#不渲染
@@ -59,6 +76,7 @@ class 文件打开目标:#文件路径 → 共享打开控件
             'defaultId':默认标识,#默认
             'loading':联想['loading'],#加载
             'failed':联想['failed'],#失败
+            'detail':联想['detail'] if 'detail' in 联想 and isinstance(联想['detail'],str) else '',
             'prominent':空态,#大钮
             't':属性['t'],#文案
             'refresh':联想['refresh'],#刷新
@@ -77,19 +95,28 @@ class 文件打开目标:#文件路径 → 共享打开控件
         return 自身.渲染()#渲染
 
 class 打开路径动作:#文档头贡献
-    '在文档头渲染文件适配器'
+    '在文档头渲染文件适配器。不拥有文件树。'
 
     def __init__(自身,属性):
-        '记下 props'
-        自身.目标=文件打开目标(属性)#目标
+        '记下 props。槽位只调用构造，键齐才画。文件目标构造时不画。'
+        自身.属性=属性 if isinstance(属性,dict) else {}#props
+        自身.目标=None#文件适配
+        if 路径键齐(自身.属性):#键齐
+            自身.渲染()#末尾画一次
 
     def 更新(自身,属性):
-        '刷新'
-        自身.目标.更新(属性)#透传
+        '刷新。不在这里再画。'
+        自身.属性=属性 if isinstance(属性,dict) else {}#最新
+        if 自身.目标 is not None:#已有
+            自身.目标.更新(自身.属性)#透传
 
     def 渲染(自身):
-        '共享分体按钮'
-        return 自身.目标.渲染()#渲染
+        '共享分体按钮。子组件构造时不画，这里画一次。'
+        if not 路径键齐(自身.属性):#键未齐
+            return None#空
+        if 自身.目标 is None:#初建
+            自身.目标=文件打开目标(自身.属性)#构造不画
+        return 自身.目标.渲染()#画一次
 
     def __call__(自身,属性=None):
         '刷新后渲染'

@@ -1,6 +1,7 @@
 '行内物理键录制与修订感知的命令编辑'
 import re#键名
-from .反馈 import 快捷键失败,快捷键读取失败
+from nicegui import ui as 界面
+from .反馈 import 快捷键失败,快捷键读取失败,页面失败文案
 
 __all__=['快捷键编辑器']
 
@@ -9,8 +10,10 @@ __all__=['快捷键编辑器']
 
 class 快捷键编辑器:
     '对着用户核对过的配置保存松开的物理组合；失败保留草稿可再录'
-    def __init__(自身,属性):
-        '记下 props 与录键态'
+    def __init__(自身,属性=None):
+        '记下 props 与录键态。父组件空构造后再更新并渲染，构造时不画'
+        if 属性 is None:
+            属性={}
         自身.属性=属性
         自身.修订=None
         自身.候选=None
@@ -145,10 +148,10 @@ class 快捷键编辑器:
 
     def 按下(自身,事件):
         'keydown 捕获阶段逻辑'
-        try:#页面文档
-            文档=document#document
-        except NameError:#非浏览器
-            文档=None#无
+        try:
+            文档=document
+        except NameError:
+            文档=None
         合成观察=getattr(自身,'_合成',None)
         if 合成观察 is not None and 合成观察.guards(事件):
             if 自身.桌面和弦():
@@ -214,17 +217,17 @@ class 快捷键编辑器:
             自身.已捕获=自身.桌面和弦()
             自身.消息=''
             自身.重试=None
-        except Exception:
+        except Exception as 错误:
             自身.已拦=自身.桌面和弦()
             自身.待定=None
-            自身.报告(自身.属性['t']('unsupported-key'))
+            自身.报告(自身.属性['t']('unsupported-key')+' '+页面失败文案(错误))
 
     def 抬起(自身,事件):
         'keyup 捕获阶段逻辑'
-        try:#页面文档
-            文档=document#document
-        except NameError:#非浏览器
-            文档=None#无
+        try:
+            文档=document
+        except NameError:
+            文档=None
         录钮=getattr(自身,'_录钮',None)
         自身.按住.discard(事件.code)
         if 自身.桌面和弦() and 文档 is not None and 文档.activeElement is 录钮:
@@ -259,21 +262,24 @@ class 快捷键编辑器:
         自身._录钮=录钮
         自身._合成=合成观察
         自身.已挂=True
-        try:#页面文档
-            文档=document#document
-        except NameError:#非浏览器
-            文档=None#无
-        try:#页面窗口
-            窗=window#window
-        except NameError:#非浏览器
-            窗=None#无
+        try:
+            文档=document
+        except NameError:
+            文档=None
+        try:
+            窗=window
+        except NameError:
+            窗=None
         录制=自身.属性['recording']
         def 成():
             '原生保护就绪'
             自身.原生就绪=True
-        def 败(_错误=None):
-            '原生保护失败'
-            自身.报告(自身.属性['t']('native-failed'))
+        def 败(错误=None):
+            '原生保护失败时报告去掉路径的失败句'
+            句=自身.属性['t']('native-failed')
+            if 错误 is not None:
+                句=句+' '+页面失败文案(错误)
+            自身.报告(句)
         结果=录制(True)
         if hasattr(结果,'然后'):
             结果.然后(成,败)
@@ -359,7 +365,9 @@ class 快捷键编辑器:
         return 'record-help'
 
     def 渲染(自身):
-        '行内控件树'
+        '行内控件。由速查在行内调用，构造时不画'
+        if 't' not in 自身.属性 or 'target' not in 自身.属性:
+            return
         翻译=自身.属性['t']
         目标=自身.属性['target']
         配置=自身.读配置()
@@ -368,37 +376,46 @@ class 快捷键编辑器:
         只读=自身.忙 or 自身.过期() or 配置.get('status')!='ready'
         已录键=None
         if 自身.已捕获 and 自身.消息=='' and 自身.候选 is not None:
-            已录键=自身.属性['describeBinding'](自身.候选).get('keys')
+            描述=自身.属性['describeBinding'](自身.候选)
+            已录键=描述['keys'] if 'keys' in 描述 else []
         帮助=自身.帮助键()
-        return {
-            'type':'shortcut-editor',
-            'role':'group',
-            'ariaLabel':目标.get('label'),
-            'shortcutModal':'shortcut-edit',
-            'busy':自身.忙,
-            'readonly':只读,
-            'nativeReady':自身.原生就绪,
-            'message':自身.消息,
-            'stale':自身.过期(),
-            'retry':自身.重试,
-            'capturedKeys':已录键,
-            'hasBinding':目标.get('binding') is not None,
-            'recordLabel':翻译('record'),
-            'resetLabel':翻译('reset'),
-            'clearLabel':翻译('clear'),
-            'reviewLabel':翻译('review'),
-            'retryLabel':翻译('retry-save'),
-            'staleText':翻译('stale'),
-            'helpText':'' if 帮助=='' else 翻译(帮助),
-            'onReset':自身.恢复默认,
-            'onClear':自身.清除绑定,
-            'onReview':自身.核对修订,
-            'onRetry':自身.重试保存,
-            'onRecordClick':自身.点录钮,
-            'onRecordBlur':自身.重置录,
-            'enableCapture':自身.启用录键,
-            'disposeCapture':自身.拆除录键,
-        }
+        有绑定='binding' in 目标 and 目标['binding'] is not None
+        with 界面.column().classes('inlineEditor'):
+            标签=目标['label'] if 'label' in 目标 else ''
+            if isinstance(标签,str) and 标签!='':
+                界面.label(标签).classes('srOnly')
+            with 界面.row().classes('inlineControls'):
+                恢复=界面.button(翻译('reset'), on_click=自身.恢复默认).props('flat no-caps').classes('inlineAction')
+                if 只读:
+                    恢复.disable()
+                if 有绑定:
+                    清除=界面.button(翻译('clear'), on_click=自身.清除绑定).props('flat no-caps').classes('inlineAction')
+                    if 只读:
+                        清除.disable()
+                录=界面.button(on_click=自身.点录钮).props('flat no-caps').classes('recorder')
+                with 录:
+                    if isinstance(已录键,list) and len(已录键)>0:
+                        for 键位 in 已录键:
+                            界面.label(str(键位)).classes('recorded')
+                    else:
+                        界面.label(翻译('record'))
+                if 自身.原生就绪 is not True or 自身.忙:
+                    录.disable()
+                if 自身.消息!='':
+                    录.classes(add='invalid')
+            说明=自身.消息 if 自身.消息!='' else (翻译(帮助) if 帮助!='' else '')
+            if 说明!='':
+                界面.label(说明).classes('review' if 自身.消息!='' else 'srOnly')
+            if 自身.过期():
+                with 界面.row().classes('review'):
+                    界面.label(翻译('stale'))
+                    核对=界面.button(翻译('review'), on_click=自身.核对修订).props('flat no-caps').classes('inlineAction')
+                    if 自身.忙:
+                        核对.disable()
+            if 自身.重试 is not None and 自身.过期() is not True:
+                重试=界面.button(翻译('retry-save'), on_click=自身.重试保存).props('flat no-caps').classes('inlineAction')
+                if 只读:
+                    重试.disable()
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

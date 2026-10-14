@@ -1,4 +1,5 @@
 import copy#深拷草稿
+from nicegui import ui as 界面
 from ..ui_设置.模式 import 再水合模式,取路径,有路径,设路径,删路径,校验草稿#路径编辑
 from .DeepSeek模型编辑器 import DeepSeek模型编辑器,模型草稿表,校验DeepSeek模型#DeepSeek 目录
 from .密钥判定 import 密钥失败#密钥门闩
@@ -6,7 +7,7 @@ from .编辑器页脚 import 编辑器页脚#页脚
 from .模型列表编辑器 import 模型列表编辑器#pi-ai 列表
 from .存储 import 推导密钥引用,错误文案,协议选项#存储辅助
 
-__all__=['公开DeepSeek基址','路径操作','布局自','引用自','提供方编辑器']#仅中文公开名
+__all__=['公开DeepSeek基址','路径操作','布局自','引用自','提供方编辑器']
 
 公开DeepSeek基址='https://api.deepseek.com'#DeepSeek 公开端点占位
 
@@ -49,11 +50,11 @@ def 引用自(命名空间,路径,提供方):#档案解析的凭证引用
     命名=档['apiKeyEnv']#字段
     return 命名 if isinstance(命名,str) and len(命名)>0 else 推导密钥引用(提供方)#引用
 
-class 提供方编辑器:#提供方编辑卡片
-    '密钥 + 自定义区 + 页脚提交'
+class 提供方编辑器:
+    '密钥、自定义区与页脚提交。父组件调用渲染，构造不画'
     def __init__(自身,属性):#构造
         '播种草稿与在飞态'
-        自身.属性=属性#合成 props
+        自身.属性=属性
         命名空间=属性['namespace'] if 'namespace' in 属性 else None#ns 视图
         路径=list(属性['settingsPath']) if 'settingsPath' in 属性 and 属性['settingsPath'] is not None else []#设置路径
         自身.草稿=草稿于(命名空间,路径)#用户层草稿
@@ -79,7 +80,7 @@ class 提供方编辑器:#提供方编辑卡片
     def 点取消(自身):#取消
         '关闭且未变更'
         关闭=自身.属性['onClose'] if 'onClose' in 自身.属性 else None#关闭
-        if 关闭 is not None:#有
+        if 关闭 is not None:
             关闭(False)#未变更
 
     def 字符串于(自身,源,键):#非空字符串字段
@@ -90,30 +91,32 @@ class 提供方编辑器:#提供方编辑卡片
     def 设字段(自身,键,下一):#改草稿字段
         '纯空白清空而非存空格'
         值=None if 下一 is None or len(下一.strip())==0 else 下一#归一
-        if 值 is None:#清
+        if 值 is None:
             自身.草稿=删路径(自身.草稿,[键])#删
         else:#写
             自身.草稿=设路径(自身.草稿,[键],值)#设
 
-    def 拉密钥态(自身):#describe 密钥提示
-        '失败静默，不挡编辑'
-        if 自身.已拉密钥:#已拉
-            return#跳过
-        自身.已拉密钥=True#标记
-        命名空间=自身.属性['namespace']#ns
-        路径=list(自身.属性['settingsPath']) if 'settingsPath' in 自身.属性 and 自身.属性['settingsPath'] is not None else []#路径
-        引用=引用自(命名空间,路径,自身.属性['provider'])#引用
-        接口=自身.属性['api']#API
-        try:#describe
-            响应=接口.credentials.describe({'refs':[引用]}).等待()#描述
-            结果=响应['result']#结果
-            if 结果['ok'] is not True:#失败
-                return#静默
-            值=结果['value'] if 'value' in 结果 else None#值
-            图=值['credentials'] if 值 is not None and 'credentials' in 值 and 值['credentials'] is not None else {}#图
-            自身.密钥态=图[引用] if 引用 in 图 else None#态
-        except Exception:#传输拒绝；RPC 异常契约未定
-            return#静默
+    def 拉密钥态(自身):
+        '拉取密钥提示。失败记在页面上，不挡住继续编辑'
+        if 自身.已拉密钥:
+            return
+        自身.已拉密钥=True
+        命名空间=自身.属性['namespace']
+        路径=list(自身.属性['settingsPath']) if 'settingsPath' in 自身.属性 and 自身.属性['settingsPath'] is not None else []
+        引用=引用自(命名空间,路径,自身.属性['provider'])
+        接口=自身.属性['api']
+        try:
+            响应=接口.credentials.describe({'refs':[引用]}).等待()
+            结果=响应['result']
+            if 结果['ok'] is not True:
+                错=结果['error'] if 'error' in 结果 else None
+                自身.失败=错误文案(错['message'] if isinstance(错,dict) and 'message' in 错 else 错)
+                return
+            值=结果['value'] if 'value' in 结果 else None
+            图=值['credentials'] if 值 is not None and 'credentials' in 值 and 值['credentials'] is not None else {}
+            自身.密钥态=图[引用] if 引用 in 图 else None
+        except Exception as 错误:
+            自身.失败=错误文案(错误)
 
     def 继承模型(自身,根,节点,路径):#目录下方基线
         '优先 composition 钉住，否则 schema 默认'
@@ -153,7 +156,7 @@ class 提供方编辑器:#提供方编辑卡片
             if 节点 is not None and len(路径)==0:#整段校验
                 段错=校验草稿(节点,下一)#校验
                 if 段错 is not None:#失败
-                    return 段错#文案
+                    return 错误文案(段错)
             物化空档=(布局=='pi-ai' and 回退 is None and 自身.已提交原稿 is None and len(下一)==0)#原生空档
             if 物化空档:#物化 {}
                 操作=[{'op':'set','path':list(路径),'value':{}}]#空对象
@@ -165,7 +168,7 @@ class 提供方编辑器:#提供方编辑卡片
                 if 结果['ok'] is not True:#失败
                     错=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错
                     码=错['code'] if 'code' in 错 else None#码
-                    return 翻译('conflict') if 码=='settings-conflict' else (错['message'] if 'message' in 错 else None)#文案
+                    return 翻译('conflict') if 码=='settings-conflict' else 错误文案(错['message'] if 'message' in 错 else None)
                 值=结果['value'] if 'value' in 结果 else None#新 ns
                 新用户=值['user'] if 值 is not None and 'user' in 值 else None#新用户层
                 自身.已提交原稿=取路径(新用户,路径)#新基线
@@ -176,7 +179,7 @@ class 提供方编辑器:#提供方编辑卡片
             存结果=存['result']#结果
             if 存结果['ok'] is not True:#失败
                 错=存结果['error'] if 'error' in 存结果 else None#错误
-                return 错['message'] if 错 is not None and 'message' in 错 else None#文案
+                return 错误文案(错['message'] if 错 is not None and 'message' in 错 else None)
         自身.密钥草稿=''#清草稿
         return None#成功
 
@@ -188,9 +191,9 @@ class 提供方编辑器:#提供方编辑卡片
             失败=自身.应用一次()#一次
             if 失败 is not None:#失败
                 自身.失败=失败#挂文案
-                return#停
+                return
             关闭=自身.属性['onClose'] if 'onClose' in 自身.属性 else None#关闭
-            if 关闭 is not None:#有
+            if 关闭 is not None:
                 关闭(True)#已变更
         except Exception as 错误:#传输拒绝；RPC 异常契约未定
             自身.失败=错误文案(错误)#文案
@@ -270,20 +273,33 @@ class 提供方编辑器:#提供方编辑卡片
         仅凭证='credentialOnly' in 自身.属性 and 自身.属性['credentialOnly'] is True#仅凭证
         自动聚焦='autoFocusCredential' in 自身.属性 and 自身.属性['autoFocusCredential'] is True#聚焦
         密钥失败键=自身.所示密钥失败()#门闩
-        return {#策展视图
-            'keyInput':{#密钥
-                'label':翻译('keyInput'),'value':自身.密钥草稿,'placeholder':密钥占位,
-                'invalid':密钥失败键 is not None,'required':必填,
-                'autoFocus':自动聚焦,'disabled':禁用 or 密钥锁,
-                'failure':翻译(密钥失败键) if 密钥失败键 is not None else None,
-                'onChange':自身.改密钥草稿,
-            },#密钥结束
-            'credentialOnly':仅凭证,#仅凭证
-            'customizedLabel':翻译('customized'),#折叠标题
-            'customFields':自定义体 if 仅凭证 is not True else [],#自定义
-            'catalog':自身.目录编辑器() if 仅凭证 is not True and 自身.目录编辑器 is not None else None,#目录
-            'onSetField':自身.设字段,#写字段
-        }#策展结束
+        def 改密钥(事件):
+            '写入密钥草稿'
+            自身.改密钥草稿(事件.value)
+        密钥框=界面.input(翻译('keyInput'), value=自身.密钥草稿, placeholder=密钥占位, password=True, on_change=改密钥)
+        if 禁用 or 密钥锁:
+            密钥框.disable()
+        if 自动聚焦:
+            密钥框.props('autofocus')
+        if 密钥失败键 is not None:
+            界面.label(翻译(密钥失败键))
+        if 仅凭证 is True:
+            return
+        界面.label(翻译('customized'))
+        for 字段 in 自定义体:
+            def 改字段(事件,键=字段['field']):
+                '写入该草稿字段'
+                自身.设字段(键,事件.value)
+            if 'choices' in 字段:
+                选择=界面.select(字段['choices'], value=字段['value'], label=字段['label'], on_change=改字段)
+                if 禁用:
+                    选择.disable()
+            else:
+                框=界面.input(字段['label'], value=字段['value'], placeholder=字段['placeholder'] if 'placeholder' in 字段 else '', on_change=改字段)
+                if 禁用:
+                    框.disable()
+        if 自身.目录编辑器 is not None:
+            自身.目录编辑器.渲染()
 
     def 所示密钥失败(自身):#密钥门闩键
         '必填空白优先'
@@ -303,7 +319,8 @@ class 提供方编辑器:#提供方编辑卡片
         根=再水合模式(模式)#schema
         节点=取路径(根,路径)#节点
         if 节点 is None:#不可解析
-            return {'type':'provider-editor','error':f"{自身.属性['provider']}: unresolvable settings path",'cssModule':'模型分区.module.css'}#错误卡
+            界面.label(f"{自身.属性['provider']}: unresolvable settings path")
+            return
         布局=布局自(命名空间['ns'] if 'ns' in 命名空间 else None)#布局
         只读=bool(自身.属性['readOnly']) if 'readOnly' in 自身.属性 else False#只读
         禁用=只读 or 自身.忙#禁用
@@ -338,17 +355,23 @@ class 提供方编辑器:#提供方编辑卡片
             }#标题结束
         未知提示=f"{翻译('advancedHint')} ({命名空间['ns']})" if 布局=='unknown' else None#未知提示
         模型提示=None if 仅凭证 or 模型失败 is None else f"{翻译('model')} {模型失败['index']+1}: {翻译(模型失败['key'])}"#模型提示
-        return {#视图
-            'type':'provider-editor',#类型
-            'credentialOnly':仅凭证,#仅凭证
-            'header':标题,#标题
-            'advancedHint':未知提示,#未知提示
-            'body':None if 布局=='unknown' else 自身.渲染策展(布局),#策展
-            'failure':自身.失败,#失败
-            'modelHint':模型提示,#模型提示
-            'footer':自身.页脚(),#页脚
-            'cssModule':'模型分区.module.css',#样式
-        }#视图结束
+        with 界面.column().classes('provider-editor editor'):
+            if isinstance(标题,dict):
+                显示=标题['displayName'] if 'displayName' in 标题 else None
+                路由名=标题['route'] if 'route' in 标题 else None
+                if isinstance(显示,str) and 显示!='':
+                    界面.label(显示)
+                if isinstance(路由名,str) and 路由名!='':
+                    界面.label(路由名)
+            if isinstance(未知提示,str) and 未知提示!='':
+                界面.label(未知提示)
+            if 布局!='unknown':
+                自身.渲染策展(布局)
+            if isinstance(自身.失败,str) and 自身.失败!='':
+                界面.label(自身.失败)
+            if isinstance(模型提示,str) and 模型提示!='':
+                界面.label(模型提示)
+            自身.页脚.渲染()
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 调用'

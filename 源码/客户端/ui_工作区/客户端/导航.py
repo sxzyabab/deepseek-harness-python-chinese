@@ -4,7 +4,7 @@ from ....基础设施.通用工具 import 启动守护线程
 from datetime import datetime as 日期时间,timedelta as 时间增量,timezone as 固定时区
 from zoneinfo import ZoneInfo as 时区信息
 from ...存储 import 创建快照存储
-from ..异常 import 工作区错误,目录浏览错误#本包异常
+from ..异常 import 工作区错误,目录浏览错误,页面失败文案#本包异常
 
 __all__=['工作区错误','目录浏览错误','工作区UI服务','最近工作区']
 
@@ -43,7 +43,7 @@ def 最近工作区(工作区表,会话表):
         最新=float('-inf')#本区最新
         for 会话标识 in 工作区['sessionIds']:#逐会话
             摘要=会话表[会话标识] if 会话标识 in 会话表 else None#摘要
-            if 摘要 is not None:#有
+            if 摘要 is not None:
                 最新=max(最新,摘要['updatedAt'])#更新
         if 最新==float('-inf'):#无会话
             最新=_创建时毫秒(工作区['createdAt'] if 'createdAt' in 工作区 else '')#创建时
@@ -71,11 +71,11 @@ class 工作区UI服务:#跨控制器导航与目录
             停=自身.监视导航()#监视
             def 拆除():#拆除
                 '停监视、中止寿命、释放主引用'
-                停()#停
+                停()
                 自身.lifetime.set()#中止
                 引用=自身.mainReference#主引用
-                自身.mainReference=None#清空
-                if 引用 is not None:#有引用
+                自身.mainReference=None
+                if 引用 is not None:
                     引用.release()#释放
             return 拆除#拆除器
         上下文.副作用(导航寿命,'ui-workspace: Workspace navigation policy')#导航策略
@@ -90,7 +90,7 @@ class 工作区UI服务:#跨控制器导航与目录
                 工作区=项#记
                 break#止
         if 工作区 is None:#未知
-            raise 工作区错误('未知工作区 '+str(工作区标识))
+            raise 工作区错误('未知工作区 '+页面失败文案(工作区标识))
         if 工作区标识 in 自身.connecting:#飞行中
             return 自身.connecting[工作区标识]#共享期约
         已归档=快['archivedSessionIds']#已归档
@@ -104,7 +104,7 @@ class 工作区UI服务:#跨控制器导航与目录
                 复用.解决(摘要['id'])
                 return 复用
         任务=自身.sessions.create({'workspaceId':工作区标识})#创建，返回期约，解决值是会话 id
-        自身.connecting[工作区标识]=任务#记下
+        自身.connecting[工作区标识]=任务
         def 清记录(创建结果=None):
             '创建落定后清掉飞行中记录'
             自身.connecting.pop(工作区标识,None)#删
@@ -153,7 +153,7 @@ class 工作区UI服务:#跨控制器导航与目录
         会话快=自身.sessions.list.getSnapshot()#会话
         当前=自身.mainReference.sessionId if 自身.mainReference is not None else None#当前
         当前工作区=None#所属
-        if 当前 is not None:#有当前
+        if 当前 is not None:
             for 项 in 工作区快['items']:#找
                 if 当前 in 项['sessionIds']:#命中
                     当前工作区=项['workspaceId']#记
@@ -161,11 +161,11 @@ class 工作区UI服务:#跨控制器导航与目录
         最近=最近工作区(工作区快['items'],会话快['byId']) if 工作区快['phase']=='ready' and 会话快['phase']=='ready' else None#最近
         目标=工作区标识 if 工作区标识 is not None else (当前工作区 if 当前工作区 is not None else 最近)#目标
         if 目标 is None:#无
-            自身.清主视图()#清
+            自身.清主视图()
             return#止
         def 报告新建失败(原因):
             '新建会话失败只打印，不打断调用方'
-            print('新建会话失败:',原因)
+            print('新建会话失败:',页面失败文案(原因))
         try:#打开
             自身.openWorkspace(目标).捕获(报告新建失败)#打开
         except Exception as 原因:#同步段失败
@@ -178,8 +178,8 @@ class 工作区UI服务:#跨控制器导航与目录
             '归档完成：是当前则清选中'
             try:
                 if 自身.mainReference is not None and 自身.mainReference.sessionId==会话标识:#当前
-                    自身.清主视图()#清
-            except BaseException as 错误:#清选中失败交给调用方
+                    自身.清主视图()
+            except BaseException as 错误:
                 归档结果.拒绝(错误)
                 return
             归档结果.解决()
@@ -196,7 +196,7 @@ class 工作区UI服务:#跨控制器导航与目录
         def 已选(结果):
             '选择返回：失败则拒绝为工作区错误'
             if not 结果['ok']:#失败
-                选择结果.拒绝(工作区错误('目录选择失败: '+str(结果['error']['message'])))
+                选择结果.拒绝(工作区错误('目录选择失败: '+页面失败文案(结果['error']['message'])))
                 return
             选择结果.解决(结果['value'])#路径或 None
         自身.directoryPicker.pick().然后(已选,选择结果.拒绝)#选
@@ -251,7 +251,7 @@ class 工作区UI服务:#跨控制器导航与目录
                 已存目标=已存['subagentAddress']#地址
             elif 'sessionId' in 已存 and 已存['sessionId'] is not None and 已存['sessionId'] in 会话['byId']:#会话仍在
                 已存目标=已存['sessionId']#会话
-            if 已存目标 is not None:#有已存
+            if 已存目标 is not None:
                 初始[0]='connecting'#连接中
                 try:#恢复
                     if 'subagentAddress' in 已存 and 已存['subagentAddress'] is not None:#子智能体
@@ -260,7 +260,7 @@ class 工作区UI服务:#跨控制器导航与目录
                     初始[0]='done'#完成
                 except Exception as 原因:
                     初始[0]='waiting'
-                    print('初始会话恢复失败:',原因)
+                    print('初始会话恢复失败:',页面失败文案(原因))
                 return#止
             目标=最近工作区(工作区['items'],会话['byId'])#最近
             if 目标 is None:#无
@@ -278,7 +278,7 @@ class 工作区UI服务:#跨控制器导航与目录
                     if 自身.lifetime.is_set():
                         return
                     初始[0]='waiting'
-                    print('初始工作区选定失败:',原因)
+                    print('初始工作区选定失败:',页面失败文案(原因))
             启动守护线程(观察)#启
 
         拆工作区=自身.workspaces.list.subscribe(调和)#订
@@ -299,17 +299,17 @@ class 工作区UI服务:#跨控制器导航与目录
             return False#否
         if 当前 not in 自身.workspaces.list.getSnapshot()['archivedSessionIds']:#未归档
             return False#否
-        自身.清主视图()#清
+        自身.清主视图()
         return True#已清
 
     def 清主视图(自身):
         '清主引用与持久化选中'
         旧=自身.mainReference#旧
-        自身.mainReference=None#清空
-        自身.selection.set({})#清持久化
-        if 旧 is not None:#有旧
+        自身.mainReference=None
+        自身.selection.set({})
+        if 旧 is not None:
             旧.release()#释放
-        自身.ctx.layout.selectPanel(None)#清面板
+        自身.ctx.layout.selectPanel(None)
 
     def 替换主视图(自身,目标,信号,打开前=None):
         '占用目标并换主引用。信号为 Event（set=已中止）'
@@ -340,7 +340,7 @@ class 工作区UI服务:#跨控制器导航与目录
             return
         旧=自身.mainReference#旧
         自身.mainReference=引用#换新
-        if 旧 is not None:#有旧
+        if 旧 is not None:
             旧.release()#释放旧
         自身.sessions.refreshSubagents(引用.sessionId)#刷新
-        自身.ctx.layout.selectPanel(None)#清面板
+        自身.ctx.layout.selectPanel(None)

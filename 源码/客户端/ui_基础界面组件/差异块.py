@@ -1,5 +1,23 @@
+from nicegui import ui as 界面
 from .头尾封顶 import 头尾封顶#高度封顶
 from .复制反馈 import 复制反馈#复制反馈
+
+样式已登记=False
+
+def 登记样式():
+    '同一段样式整个进程只登记一次'
+    global 样式已登记
+    if 样式已登记 is True:
+        return
+    界面.add_css('''
+.差异块{overflow:hidden;font:var(--dsw-font-markdown-code-block)}
+.差异行{box-sizing:border-box;min-height:1lh;padding:0 22px;white-space:pre}
+.差异删{color:var(--dsw-alias-state-error-primary);background:var(--dsw-alias-code-diff-deleted);box-shadow:inset 3px 0 0 var(--dsw-alias-state-error-primary)}
+.差异增{color:var(--dsw-alias-state-success-primary);background:var(--dsw-alias-code-diff-added);box-shadow:inset 3px 0 0 var(--dsw-alias-state-success-primary)}
+.差异径{color:var(--dsw-alias-label-secondary);font-weight:500}
+.差异隙{color:var(--dsw-alias-label-tertiary)}
+''')
+    样式已登记=True
 
 __all__=['差异块','默认差异最大行','内容行','建行','复制文本']#仅中文公开名
 
@@ -28,7 +46,7 @@ def 建行(差异列表):
             行列表.append({'kind':'gap','text':'⋯'})#缝
         前路径=路径#更新
         旧=项['oldText'] if 'oldText' in 项 else None#旧侧
-        if 旧 is not None:#有删侧
+        if 旧 is not None:
             for 线 in 内容行(旧):#逐行
                 行列表.append({'kind':'del','text':线})#删
                 删+=1#计
@@ -69,7 +87,8 @@ class 差异块:#内联 diff 面
         自身.已展开=not 自身.已展开#翻
 
     def 渲染(自身):
-        '建行+封顶切片'
+        '建行并画出增删和页脚'
+        登记样式()
         属性=自身.属性#props
         差异列=属性['diffs'] if 'diffs' in 属性 else None#hunks
         差异列表=差异列 if 差异列 is not None else []#空则空表
@@ -78,29 +97,44 @@ class 差异块:#内联 diff 面
         if len(行列表)==0:#空；判 length
             return None#不画
         最大=属性['maxLines'] if 'maxLines' in 属性 else 默认差异最大行#封顶
-        度量=头尾封顶(len(行列表),最大,自身.已展开)#度量
-        头=行列表[:度量['headLines']] if 度量['capped'] is True else 行列表#头
-        尾=行列表[len(行列表)-度量['tailLines']:] if 度量['capped'] is True else []#尾
         自身.反馈.置文本(复制文本(行列表))#整卡可复制
         文件数=建成['files']#文件数
-        return {#视图
-            'type':'diff-block',#类型
-            'rows':行列表,#全行
-            'head':头,#头片
-            'tail':尾,#尾片
-            'added':建成['added'],#+
-            'removed':建成['removed'],#-
-            'files':文件数,#文件数
-            'hidden':度量['hidden'],#隐
-            'capped':度量['capped'],#封
-            'expanded':自身.已展开,#展
-            'copied':自身.反馈.已复制,#反馈
-            'onCopy':自身.反馈.复制,#复制
-            'onToggle':自身.切换展开,#切换
-            'className':属性['className'] if 'className' in 属性 else None,#类
-            'footer':'└ +'+str(建成['added'])+' -'+str(建成['removed'])+' · '+str(文件数)+' file'+('' if 文件数==1 else 's'),#脚
-            'cssModule':'差异块.module.css',#样式
-        }#结束
+        脚='└ +'+str(建成['added'])+' -'+str(建成['removed'])+' · '+str(文件数)+' file'+('' if 文件数==1 else 's')#脚
+        根=界面.column().classes('差异块')#卡
+        类名=属性['className'] if 'className' in 属性 else None#类
+        if isinstance(类名,str) and 类名!='':
+            根.classes(类名)#附
+        类={'del':'差异行 差异删','add':'差异行 差异增','path':'差异行 差异径','gap':'差异行 差异隙'}#行类
+        前缀={'del':'- ','add':'+ ','path':'','gap':''}#前缀
+        def 画行(行组):
+            '按种类画出一行'
+            for 行 in 行组:#逐行
+                种=行['kind']#种
+                界面.label(前缀[种]+行['text']).classes(类[种])#行
+        def 重画():
+            '按当前展开态重画'
+            度量=头尾封顶(len(行列表),最大,自身.已展开)#度量
+            头=行列表[:度量['headLines']] if 度量['capped'] is True else 行列表#头
+            尾=行列表[len(行列表)-度量['tailLines']:] if 度量['capped'] is True else []#尾
+            根.clear()
+            with 根:#内容
+                画行(头)#头
+                if 度量['hidden']>0:#可切换
+                    def 点切换():
+                        '展开或收起'
+                        自身.切换展开()#翻
+                        重画()#重画
+                    界面.button(脚,on_click=点切换)#页脚兼切换
+                else:#未封顶
+                    界面.label(脚)#页脚
+                if 度量['capped'] is True:#封顶
+                    画行(尾)#尾
+                def 点复制():
+                    '写入剪贴板'
+                    自身.反馈.复制()#复制
+                    重画()#重画
+                界面.button(icon='content_copy',on_click=点复制)#复制
+        重画()#首画
 
     def __call__(自身,属性=None,**关键字参数):
         '对齐 React'
@@ -108,4 +142,4 @@ class 差异块:#内联 diff 面
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

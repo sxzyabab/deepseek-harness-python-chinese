@@ -1,6 +1,6 @@
 from . import (
-    deepseek_llm_api_扩展,
     llm,
+    deepseek_llm_api_扩展,
     llm_deepseek,
     llm_deepseek_api密钥,
     llm_deepseek_账号,
@@ -10,8 +10,8 @@ from . import (
     插件包清单_deepseek,
 )
 __all__=[
-    'deepseek_llm_api_扩展',
     'llm',
+    'deepseek_llm_api_扩展',
     'llm_deepseek',
     'llm_deepseek_api密钥',
     'llm_deepseek_账号',

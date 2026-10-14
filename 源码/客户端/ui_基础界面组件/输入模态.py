@@ -17,10 +17,10 @@ def _发布():
     except NameError:#非浏览器
         文档=None#无
     if 文档 is None:#无 DOM
-        return#停
+        return
     根=getattr(文档,'documentElement',None)#html
     if 根 is None:#无根
-        return#停
+        return
     值=输入模态值['pointer'] if _指针占焦 else 输入模态值['keyboard']#模态
     根.setAttribute(输入模态属性,值)#写根属性
 
@@ -38,17 +38,17 @@ if 窗口 is not None:#浏览器才挂监听
         global _指针,_指针占焦,_按键源#写
         _指针=True#工具提示跟指针
         _指针占焦=True#环保持安静
-        _按键源=None#清按键源
+        _按键源=None
         _发布()#刷新
     def _按键(事件):
         '按键：工具提示切键盘；导航键才亮环'
         global _指针,_指针占焦,_按键源#写
         _指针=False#工具提示改跟键盘
         if getattr(事件,'isComposing',False):#IME 合成中不算导航
-            _按键源=None#清源
+            _按键源=None
             return#不改焦点环
         取路径=getattr(事件,'composedPath',None)#composedPath
-        if callable(取路径):#有路径
+        if callable(取路径):
             链=取路径()#合成路径
             _按键源=链[0] if len(链)>0 else getattr(事件,'target',None)#按键源
         else:#无
@@ -64,7 +64,7 @@ if 窗口 is not None:#浏览器才挂监听
         if _按键源 is None:#无按键源
             return#无关
         取路径=getattr(事件,'composedPath',None)#composedPath
-        if callable(取路径):#有路径
+        if callable(取路径):
             链=取路径()#合成路径
             当前=链[0] if len(链)>0 else getattr(事件,'target',None)#当前
         else:#无
@@ -79,7 +79,7 @@ if 窗口 is not None:#浏览器才挂监听
     def _失焦(_事件=None):
         '窗口失焦清按键源'
         global _按键源#写
-        _按键源=None#清
+        _按键源=None
     窗口.addEventListener('pointerdown',_指针按下,True)#指针捕获
     窗口.addEventListener('keydown',_按键,True)#按键捕获
     窗口.addEventListener('focusin',_焦点入,True)#焦点入捕获

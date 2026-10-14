@@ -1,11 +1,10 @@
 from .文案 import 中文,英文,标记文本预览键#词典
-from .标记文本体 import 标记文本体#正文
+from .标记文本体 import 标记文本体,标记文本面板,样式表#正文
 from . import (
     路径图片,
 )
 
-__all__=['标记文本体标识','标记文本定义','应用','标记文本体','中文','英文','标记文本预览键']#仅中文公开名
-
+__all__=['标记文本体标识','标记文本定义','应用','标记文本体','标记文本面板','样式表','中文','英文','标记文本预览键']
 标记文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/markdown'#实现 id
 
 
@@ -46,7 +45,7 @@ def 应用(上下文):
                 'name':'sidebar.right.tab.document',
                 'key':标记文本体标识,
                 'locale':'documentMarkdown',
-            },标记文本体)#正文
+            },标记文本面板)#正文
 
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
 

@@ -15,7 +15,7 @@ from ..会话标题_llm.异常 import 会话标题llm错误#模型标题失败
     'targetCjkCharacters':数字字段(),#CJK 目标字符
     **配置字段,#共享执行控件
 })
-强调包装=re.compile(r'^(?P<marker>\*{1,3})(?P<inner>\S(?:.*\S)?)\k<marker>$')#整行星号包装
+强调包装=re.compile(r'^(?P<marker>\*{1,3})(?P<inner>\S(?:.*\S)?)(?P=marker)\Z')#整行星号包装
 
 __all__=['包名','名称','依赖','应用','默认','配置']
 

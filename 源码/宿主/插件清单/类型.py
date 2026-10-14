@@ -24,7 +24,6 @@ class 智能体预设插件行(类型字典):#预设组合行
 
 class 智能体预设插件组(类型字典):#预设分组
     id:str#预设 id
-    trust:字面量['system','user']#信任级别
     name:非必需[str]#显示名
     isDefault:bool#是否默认
     broken:非必需[str]#损坏原因

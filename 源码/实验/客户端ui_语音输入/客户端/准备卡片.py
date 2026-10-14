@@ -1,5 +1,8 @@
 from time import time as 墙钟
+from nicegui import ui as 界面
 from ....基础设施.js特性 import PromiseEX as 期约#准备与保存的异步结果
+from ..异常 import 失败说明
+from .麦克风选择器 import 麦克风选择器
 
 __all__=['准备卡片','语音准备工作']
 
@@ -97,7 +100,7 @@ class 准备卡片:
         自身.提交中=True
         def 记录失败(失败):#动作失败
             '失败写入错误行'
-            自身.错误=str(失败)
+            自身.错误=失败说明(失败)
         def 结束提交():#动作结算后
             '无论成败都结束提交'
             自身.提交中=False
@@ -224,6 +227,60 @@ class 准备卡片:
             选项.append({'value':源,'label':名})
         失败=失败视图(态,翻译) if 态.get('phase')=='failed' else None
         准备文=翻译('prepare' if 态.get('phase')=='unprepared' else 'retryPrepare')
+        进度=态 if 态.get('phase')=='downloading' and 态.get('totalBytes') else None
+        with 界面.column().classes('准备卡'):
+            界面.label(提供方['name'])
+            if 估算 is not None:
+                with 界面.column().classes('准备估算'):
+                    界面.label(估算['local'])
+                    界面.label(估算['disk']+' '+估算['diskValue'])
+                    界面.label(估算['memory']+' '+估算['memoryValue'])
+                    界面.label(估算['time']+' '+估算['timeValue'])
+                    界面.label(估算['note'])
+            界面.button(翻译('preparationSteps') if 自身.已展开 else 摘要, on_click=自身.切展开).props('flat no-caps')
+            if 度量:
+                界面.label(度量)
+            if 进度 is not None:
+                条=界面.element('progress').classes('准备进度')
+                条.props('value='+str(进度['completedBytes'])+' max='+str(进度['totalBytes']))
+            if 自身.已展开:
+                for 步 in 行:
+                    界面.label(步['label']+' · '+步['statusLabel'])
+                    if 步.get('running') and 步.get('resource'):
+                        界面.label(str(步['resource']))
+            if isinstance(失败,dict):
+                if 失败.get('text'):
+                    界面.label(失败['text'])
+                if 失败.get('message'):
+                    界面.label(失败['message'])
+                if 失败.get('advice'):
+                    界面.label(失败['advice'])
+                if 失败.get('source'):
+                    界面.label(失败['source'])
+                if 失败.get('code'):
+                    界面.label(失败['code'])
+            if 可准备 and 选项:
+                源面={}
+                if len(选项)>1:
+                    源面['']=翻译('sourceAuto')
+                for 项 in 选项:
+                    源面[项['value']]=项['label']
+                源值=选 if 选 in 源面 else ''
+                源选择=界面.select(源面, value=源值, on_change=lambda 事件:自身.改源(事件.value)).props('dense options-dense')
+                if (not 已连接) or 自身.提交中 or len(选项)==1:
+                    源选择.disable()
+                界面.label(翻译('sourceChoice'))
+                界面.label(翻译('sourceAutoHelp' if 选=='' else 'sourceManualHelp'))
+            if 可准备:
+                准备钮=界面.button(准备文, on_click=自身.开始准备).props('flat no-caps')
+                if (not 已连接) or 自身.提交中:
+                    准备钮.disable()
+            if 进行中 and 态.get('phase')!='waking':
+                取消钮=界面.button(翻译('cancelPrepare'), on_click=自身.取消准备).props('flat no-caps')
+                if (not 已连接) or 自身.提交中 or 态.get('phase')=='cancelling':
+                    取消钮.disable()
+            if 自身.错误:
+                界面.label(填(翻译,'failed',{'message':自身.错误}))
         return {
             'type':'preparation-card',
             'cssModule':'语音输入.module.css',
@@ -272,6 +329,9 @@ class 语音准备工作:
         自身.保存中=False
         自身.错误=''
         自身.卡片表={}
+        自身.选择器=None
+        if 't' in 属性:
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'
@@ -283,7 +343,7 @@ class 语音准备工作:
         自身.错误=''
         def 记录失败(失败):#保存失败
             '失败写入错误行'
-            自身.错误=str(失败)
+            自身.错误=失败说明(失败)
         def 结束保存():#保存结算后
             '无论成败都结束保存'
             自身.保存中=False
@@ -332,19 +392,57 @@ class 语音准备工作:
         }
         选中=None
         提供方选项=[]
+        提供方表=[]
         语言选项=[]
-        卡片=[]
         if 目录 is not None:
             选=目录.get('selection') or {}
             for 项 in 目录.get('providers') or []:
                 提供方选项.append({'id':项['id'],'name':项['name']})
+                提供方表.append(项)
                 if 项.get('id')==选.get('providerId'):
                     选中=项
-                卡片.append(自身.卡片(项,bool(就绪.get('connected'))))
             if 选中 is not None:
                 for 语言 in 选中.get('languages') or []:
                     语言选项.append({'id':语言,'name':语言名.get(语言,语言)})
         位置='cloud' if 选中 is not None and 选中.get('location')=='cloud' else 'local'
+        卡片=[]
+        设备=None
+        禁用偏好=not bool(就绪.get('connected')) or 自身.保存中
+        with 界面.column().classes('语音准备'):
+            if 目录 is None:
+                界面.label(翻译('loading'))
+            else:
+                钩=自身.属性.get('hooks') or {}
+                有麦=钩.get('microphoneDevice') is not None or 'selectMicrophone' in 自身.属性 or 'useMicrophoneDevice' in 自身.属性
+                if 有麦:
+                    if 自身.选择器 is None:
+                        自身.选择器=麦克风选择器(自身.属性)
+                    设备=自身.选择器(自身.属性)
+                提供方面={}
+                for 项 in 提供方选项:
+                    if isinstance(项,dict):
+                        提供方面[项.get('id') or 项.get('value')]=项.get('name') or 项.get('label') or ''
+                if 提供方面:
+                    界面.label(翻译('provider'))
+                    提供方选择=界面.select(提供方面, value=(目录.get('selection') or {}).get('providerId'), on_change=lambda 事件:自身.改提供方(事件.value)).props('dense options-dense')
+                    if 禁用偏好:
+                        提供方选择.disable()
+                语言面={}
+                for 项 in 语言选项:
+                    if isinstance(项,dict):
+                        语言面[项.get('id')]=项.get('name') or ''
+                if 语言面:
+                    界面.label(翻译('language'))
+                    语言选择=界面.select(语言面, value=(目录.get('selection') or {}).get('language'), on_change=lambda 事件:自身.改语言(事件.value)).props('dense options-dense')
+                    if 禁用偏好:
+                        语言选择.disable()
+                界面.label(翻译(位置))
+                if 自身.错误:
+                    界面.label(填(翻译,'failed',{'message':自身.错误}))
+                for 项 in 提供方表:
+                    卡片.append(自身.卡片(项,bool(就绪.get('connected'))))
+            if 就绪.get('error'):
+                界面.label(填(翻译,'failed',{'message':就绪['error']}))
         return {
             'type':'voice-preparation',
             'cssModule':'语音输入.module.css',
@@ -361,6 +459,7 @@ class 语音准备工作:
             'error':None if not 自身.错误 else 填(翻译,'failed',{'message':自身.错误}),
             'loading':翻译('loading') if 目录 is None else None,
             'readinessError':None if not 就绪.get('error') else 填(翻译,'failed',{'message':就绪['error']}),
+            'device':设备,
             'cards':卡片,
             'onProvider':自身.改提供方,
             'onLanguage':自身.改语言,

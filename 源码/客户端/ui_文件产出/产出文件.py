@@ -1,4 +1,24 @@
+from nicegui import ui as 界面
+from .异常 import 页面失败文案
+
 __all__=['适配产出文件','产出文件行','展示上限']#仅中文公开名
+
+def 腾出根(自身):
+    '清空仍挂着的根。父级已拆掉时丢掉根，并返回要显示的失败句。'
+    旧=getattr(自身,'根',None)
+    if 旧 is None:
+        return None
+    try:
+        旧.clear()
+    except Exception as 错误:
+        自身.根=None
+        return 页面失败文案(错误)
+    return None
+
+def 标出失败(文案):
+    '失败句非空时写在当前页面上'
+    if isinstance(文案,str) and 文案!='':
+        界面.label(文案)
 
 展示上限=6#一行摘要最多六枚芯片
 
@@ -10,14 +30,14 @@ def 适配产出文件(可用宽,间隙,芯片宽表,更多宽按展示):#选最
     累加=0#累加宽
     for 宽 in 芯片宽表:#每枚
         累加+=宽#加
-        前缀.append(累加)#记下
-    最大适配=0#最大 shown
+        前缀.append(累加)
+    最大适配=0#最大能装下的展示数
     for 展示,宽 in enumerate(前缀):#候选 shown
         更多=更多宽按展示[展示] if 展示<len(更多宽按展示) else None#更多宽
         项数=展示+(0 if 更多 is None else 1)#项数
         需要=宽+(0 if 更多 is None else 更多)+max(0,项数-1)*间隙#所需宽
         if 需要<=可用宽:#装得下
-            最大适配=展示#记下
+            最大适配=展示
     return 最大适配#返回
 
 def 更多文案(翻译,计数):#剩余文件文案
@@ -55,8 +75,7 @@ class 产出文件行:#回合尾产出行
 
     def 设展示数(自身,数量):#量宽结果
         '写入可见芯片数'
-        自身.展示数=数量#记下
-
+        自身.展示数=数量
     def 视图(自身):#读视图模型
         '投影芯片行'
         匹配=自身.属性['matched'] if 'matched' in 自身.属性 else None#匹配路径
@@ -87,8 +106,30 @@ class 产出文件行:#回合尾产出行
             'openFile':打开文件,#打开器
         }#视图结束
 
+    def 渲染(自身):
+        '回合尾芯片。不进输入栏，也不决定输入占位句'
+        if 'placeholder' in 自身.属性 or 'useInput' in 自身.属性:#输入栏份额
+            return#不画
+        视=自身.视图()
+        清除失败=腾出根(自身)
+        if getattr(自身,'根',None) is None:
+            自身.根=界面.row().classes('produced-files')
+        with 自身.根:
+            标出失败(清除失败)
+            if isinstance(视['label'],str) and 视['label']!='':
+                界面.label(视['label'])
+            for 芯片 in 视['chips']:
+                def 点芯片(_事件=None,路径=芯片['path']):
+                    '打开该文件'
+                    视['openFile'](路径)
+                界面.button(芯片['name'],on_click=点芯片).props('flat no-caps').tooltip(芯片['aria'])
+            if isinstance(视['more'],str) and 视['more']!='':
+                界面.label(视['more'])
+            if isinstance(视['showInFolder'],str) and 视['showInFolder']!='':
+                界面.label(视['showInFolder'])
+
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
+        if 属性 is not None:
             自身.更新(属性)#刷新
-        return 自身.视图()#视图
+        return 自身.渲染()

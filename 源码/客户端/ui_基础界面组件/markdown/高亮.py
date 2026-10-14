@@ -41,13 +41,13 @@ _请求惰性=None#宿主：发起惰性加载
 def 装载高亮器(成HTML=None,分行=None,语法就绪=None,请求惰性=None):#注入宿主引擎
     '挂上实际分词实现；未挂则高亮接口返回 None'
     global _高亮成HTML,_高亮分行,_语法就绪,_请求惰性#写
-    if 成HTML is not None:#有
+    if 成HTML is not None:
         _高亮成HTML=成HTML#记
-    if 分行 is not None:#有
+    if 分行 is not None:
         _高亮分行=分行#记
-    if 语法就绪 is not None:#有
+    if 语法就绪 is not None:
         _语法就绪=语法就绪#记
-    if 请求惰性 is not None:#有
+    if 请求惰性 is not None:
         _请求惰性=请求惰性#记
 
 def 订阅语法已载(监听):#订阅惰性语法加载完成
@@ -79,7 +79,7 @@ def 确保语法(已解析):#确保语法已注册或开始加载
         return True#就绪
     if 已解析 not in _已请求:#尚未请求
         _已请求.add(已解析)#标记
-        if _请求惰性 is not None:#有宿主
+        if _请求惰性 is not None:
             _请求惰性(已解析,通知语法已载)#飞一次
     return False#本次未就绪
 

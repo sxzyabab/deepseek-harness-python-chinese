@@ -1,6 +1,9 @@
 from .上下文体 import 上下文体#按 form 选体
+from .消息项 import 打开列
 
 __all__=['上下文注入行']#仅中文公开名
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -11,8 +14,9 @@ class 上下文注入行:
     def __init__(自身,属性=None):
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
-        自身.打开=False#开
+        自身.打开=False
         自身.体=上下文体()#体
+        自身.根=None#列
 
     def 更新(自身,属性):
         '刷新 props'
@@ -30,16 +34,24 @@ class 上下文注入行:
         形态=属性['form'] if 'form' in 属性 else None#form
         内容=属性['content'] if 'content' in 属性 else None#内容
         源=属性['source'] if 'source' in 属性 else None#源
-        选=自身.体({'content':内容,'source':源,'form':形态,'t':翻译})#解析
         角色=出处['role'] if 'role' in 出处 else None#角色
         题键='message.contextRecall' if 角色=='recall' else 'message.contextInjection'#题
         标签=出处['label'] if 'label' in 出处 else None#标签
-        摘要=选['summary'] if 'summary' in 选 else None#摘要
-        体=选['body'] if 'body' in 选 else None#体
-        return {'type':'context-injection-row','title':翻译(题键),'sourceLabel':标签,'summary':摘要,'open':自身.打开,'onToggle':自身.切换,'body':体 if 自身.打开 is True else None,'cssModule':'上下文注入行.module.css'}#视图
+        def 点切换():
+            '展开或收起注入正文。'
+            自身.切换()
+            自身.渲染()
+        with 打开列(自身,'上下文注入行'):
+            with 界面.row().classes('注入头'):
+                界面.label(翻译(题键)).classes('标题')
+                if 标签 is not None and not (isinstance(标签,str) and 标签==''):
+                    界面.label(str(标签))
+                界面.button(翻译('message.compaction.expand'),on_click=点切换)
+            自身.体.更新({'content':内容,'source':源,'form':形态,'t':翻译,'open':自身.打开})
+            自身.体.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

@@ -1,5 +1,6 @@
 '工作区命令登记，以及浏览器拥有的瞬时打开请求'
 from ...存储 import 创建快照存储#快照仓库
+from ..异常 import 页面失败文案
 
 __all__=['创建工作区快捷键控件','安装工作区快捷键']#仅中文公开名
 
@@ -37,14 +38,14 @@ def 创建工作区快捷键控件():
         状态.set({**状态.getSnapshot(),'renameTarget':{'sessionId':会话标识,'currentTitle':当前标题}})#目标
     def 关闭重命名():
         '清重命名目标'
-        状态.set({**状态.getSnapshot(),'renameTarget':None})#清
+        状态.set({**状态.getSnapshot(),'renameTarget':None})
     def 分叉失败(原因):
         '推一条分叉失败提示'
         分叉错误序号[0]+=1#序号
         状态.set({**状态.getSnapshot(),'forkError':{'reason':原因,'seq':分叉错误序号[0]}})#提示
     def 关闭分叉错误():
         '清分叉失败提示'
-        状态.set({**状态.getSnapshot(),'forkError':None})#清
+        状态.set({**状态.getSnapshot(),'forkError':None})
     return {#控件面
         'state':状态,#可观察
         'search':检索,#开检索
@@ -104,7 +105,7 @@ def 安装工作区快捷键(上下文,导航,控件,归档会话):
         '新建会话'
         def 跑():
             '开新会话'
-            导航.startSession()#开
+            导航.startSession()
         return {'status':'handled','run':跑}#已处理
     登记('session.new',新会话标签,['new session','new chat'],'KeyN',['primary'],['primary','alt'],新会话解析)
     def 检索标签():
@@ -157,7 +158,7 @@ def 安装工作区快捷键(上下文,导航,控件,归档会话):
                 不可用=getattr(错误,'name',None)=='SessionForkError' and 码=='session/fork-unavailable'#不可用
                 控件['forkFailed']('unavailable' if 不可用 else 'failed')#提示
                 if not 不可用:#非不可用
-                    print('session fork rejected:',错误)#警告
+                    print('session fork rejected:',页面失败文案(错误))
         return {'status':'handled','run':跑}#已处理
     登记('session.fork',分叉标签,['fork session'],'KeyF',['primary','alt'],['primary','shift'],分叉解析)
     def 归档标签():

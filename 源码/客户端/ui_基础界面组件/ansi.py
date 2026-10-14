@@ -74,11 +74,11 @@ def 折SGR(状态,参数):#叠 SGR
             索引+=1#下
             continue#续
         if 码=='39':#默认前景
-            下['fg']=''#清
+            下['fg']=''
             索引+=1#下
             continue#续
         if 码=='49':#默认背景
-            下['bg']=''#清
+            下['bg']=''
             索引+=1#下
             continue#续
         if 码 in 标准前景:#标准前景
@@ -117,15 +117,15 @@ def 解析样式(状态):#态 → css dict
     前景码=状态.get('fg') or ''#fg
     背景码=状态.get('bg') or ''#bg
     背景rgb=码到rgb(背景码,True) if 背景码 else None#bg rgb
-    if 背景rgb is not None:#有背景
+    if 背景rgb is not None:
         样式['backgroundColor']='rgb('+背景rgb+')'#bg
-    if 前景码:#有前景
+    if 前景码:
         前景rgb=码到rgb(前景码,False)#rgb
-        if 前景rgb is not None:#有
+        if 前景rgb is not None:
             字面='rgb('+前景rgb+')'#字面
             if 背景rgb is None:#无背景走 token
                 样式['color']=基本色令牌.get(前景rgb.replace(' ',''),字面)#token
-            else:#有背景保字面
+            else:
                 样式['color']=字面#字面
     for 码 in 状态.get('attrs') or []:#装饰
         if 码=='1':#粗
@@ -166,7 +166,7 @@ def 回放一行(行,进入态):#列缓冲回放
     态['attrs']=list(进入态.get('attrs') or [])#拷属性
     位=0#源下标
 
-    def 清(索引,填):#清一格
+    def 清(索引,填):
         '宽对伙伴一并'
         while len(列)<=索引:#扩
             列.append(None)#空
@@ -174,7 +174,7 @@ def 回放一行(行,进入态):#列缓冲回放
         if 格 and 格.get('spacer') and 索引>0:#尾半
             列[索引-1]={'sgr':dict(态),'char':填}#前导
         elif 格 and len(格.get('char') or '')>0:#可能宽
-            if 索引+1<len(列) and 列[索引+1] and 列[索引+1].get('spacer'):#有尾
+            if 索引+1<len(列) and 列[索引+1] and 列[索引+1].get('spacer'):
                 列[索引+1]={'sgr':dict(态),'char':填}#尾
         列[索引]={'sgr':dict(态),'char':填}#本格
 
@@ -189,7 +189,7 @@ def 回放一行(行,进入态):#列缓冲回放
                 光标=max(0,光标-1)#退
                 continue#续
             if 字=='\t':#制表
-                停=光标+制表宽-(光标%制表宽)#停
+                停=光标+制表宽-(光标%制表宽)
                 while 光标<停:#填
                     while len(列)<=光标:#扩
                         列.append(None)#空
@@ -211,7 +211,7 @@ def 回放一行(行,进入态):#列缓冲回放
         if 终=='K':#擦行
             模=(参数.split(';')[0] if 参数 else '')#模式
             if 模=='1':#到光标
-                for i in range(0,光标+1):#清
+                for i in range(0,光标+1):
                     清(i,' ')#空格
             elif 模=='2':#整行
                 列[:]=[]#空
@@ -275,7 +275,7 @@ def 解析ansi行(文本):#→ [[span...], ...]
     位=0#下标
     for 匹配 in CSI.finditer(净):#逐 CSI
         段=净[位:匹配.start()]#正文
-        if 段:#有文
+        if 段:
             for 片索引,片 in enumerate(段.split('\n')):#按行
                 if 片索引>0:#换行
                     当前=[]#新行
@@ -286,7 +286,7 @@ def 解析ansi行(文本):#→ [[span...], ...]
         if 匹配.group(2)=='m':#SGR
             态=折SGR(态,匹配.group(1) or '')#折
     尾=净[位:]#尾巴
-    if 尾 or not 行列表[0]:#有尾或保底
+    if 尾 or not 行列表[0]:
         for 片索引,片 in enumerate(尾.split('\n')):#切
             if 片索引>0:#换行
                 当前=[]#新

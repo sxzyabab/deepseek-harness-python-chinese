@@ -3,9 +3,20 @@ from .文案 import 命名空间
 
 __all__=['队列停靠','队列停靠条目']
 
+from nicegui import ui as 界面
+from .文案 import 中文 as 对话文案
+from ..异常 import 页面失败文案,贴出失败
+
 def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
+    '无宿主文案时用本包中文词典，没有则返回键本身。'
+    if 键 not in 对话文案:#词典没有
+        return 键#键
+    文本=对话文案[键]#词条
+    if 参数 is None:#无参数
+        return 文本#原文
+    for 名 in 参数:#替换占位
+        文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+    return 文本#译完
 
 def 取队列(快照):
     '会话 queue 字段'
@@ -39,6 +50,8 @@ class 队列停靠:
         自身.折叠=True#折叠
         自身.编辑=None#编辑 {id,text}
         自身.忙碌=None#忙碌 id
+        自身.画面=None#可反复清空的画面
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新'
@@ -73,7 +86,7 @@ class 队列停靠:
         队列=[行 for 行 in 收件 if 'placement' in 行 and 行['placement']=='queued']#排队
         可改=用会话(取可改) if 用会话 is not None else True#可改
         if len(队列)==0:#空
-            return None#不画
+            return#不画
         编标识=自身.编辑['id'] if 自身.编辑 is not None and 'id' in 自身.编辑 else None#编 id
         仍在=False#是否仍在队列
         for 行 in 队列:#扫
@@ -82,63 +95,82 @@ class 队列停靠:
                 break#停
         if 自身.编辑 is not None and (可改 is False or 仍在 is False):#编辑失效
             自身.编辑=None#清
-        编标识=自身.编辑['id'] if 自身.编辑 is not None and 'id' in 自身.编辑 else None#编 id
         if len(队列)==0 and 自身.折叠 is False:#空则折
             自身.折叠=True#折
-        交互中=可改 is True and (自身.编辑 is not None or 自身.忙碌 is not None)#交互
-        展开=自身.折叠 is False or 交互中 is True#展开
-        列表可见=len(队列)==1 or 展开 is True#列表
-        行视图=[]#行
-        for 行 in 队列:#逐行
-            标识=行['id'] if 'id' in 行 else None#id
-            正文=取文本(行['content'] if 'content' in 行 else None)#正文
-            在编=自身.编辑 is not None and 编标识==标识#编辑中
-            编文=自身.编辑['text'] if 在编 is True and 'text' in 自身.编辑 else None#编文
-            def 开编(钉标识=标识,钉正文=正文,钉可改=可改):
-                '开编本行'
-                自身.开编(钉标识,钉正文,钉可改)#开
-            def 改编(文,钉标识=标识):
-                '改本行'
-                自身.改编(钉标识,文)#改
-            def 存编(钉标识=标识,钉更新=更新队列,钉通知=通知,钉翻译=翻译):
-                '存本行'
-                自身._存编辑(钉标识,钉更新,钉通知,钉翻译)#存
-            def 发送(钉标识=标识,钉更新=更新队列,钉通知=通知,钉翻译=翻译):
-                '发本行'
-                自身._动作(钉标识,{'kind':'send'},钉翻译('queue.sendFailed'),钉更新,钉通知)#发
-            def 删除(钉标识=标识,钉更新=更新队列,钉通知=通知,钉翻译=翻译):
-                '删本行'
-                自身._动作(钉标识,{'kind':'delete'},钉翻译('queue.deleteFailed'),钉更新,钉通知)#删
-            行视图.append({#行
-                'id':标识,#id
-                'text':正文,#文
-                'editing':在编,#编
-                'editText':编文,#编文
-                'busy':自身.忙碌==标识,#忙
-                'showLead':len(队列)==1,#单条带头标
-                'onStartEdit':开编,#开编
-                'onCancelEdit':自身.取消编,#取消
-                'onEditChange':改编,#改
-                'onSaveEdit':存编,#存
-                'onSend':发送,#发
-                'onDelete':删除,#删
-            })#行结束
-        def 折切():
-            '折切'
-            自身.切换折叠(交互中)#翻
-        return {#停靠
-            'type':'queue-dock',#类型
-            'count':len(队列),#数
-            'countLabel':翻译('queue.count',{'n':len(队列)}),#计数文
-            'expanded':展开,#展
-            'listVisible':列表可见,#列表
-            'interactionActive':交互中,#交互
-            'mutable':可改,#可改
-            'header':len(队列)>1,#多条头
-            'onToggle':折切,#折切
-            'rows':行视图,#行
-            'cssModule':'队列停靠.module.css',#样式
-        }#视图结束
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('队列停靠')#停靠
+        def 重画():
+            '按折叠和编辑态重画排队消息。'
+            自身.画面.clear()#清空
+            现编=自身.编辑['id'] if 自身.编辑 is not None and 'id' in 自身.编辑 else None#编 id
+            现交互=可改 is True and (自身.编辑 is not None or 自身.忙碌 is not None)#交互
+            现展开=自身.折叠 is False or 现交互 is True#展开
+            现列表=len(队列)==1 or 现展开 is True#列表
+            with 自身.画面:#停靠
+                贴出失败(自身)
+                if len(队列)>1:#多条才折叠
+                    def 点折():
+                        '翻转折叠。'
+                        自身.切换折叠(现交互)#翻
+                        重画()#重画
+                    界面.button(翻译('queue.count',{'n':len(队列)}),on_click=点折)#计数
+                else:#单条
+                    界面.label(翻译('queue.count',{'n':len(队列)}))#计数
+                if 现列表 is False:#折叠
+                    return#只留计数
+                for 行 in 队列:#逐行
+                    标识=行['id'] if 'id' in 行 else None#id
+                    正文=取文本(行['content'] if 'content' in 行 else None)#正文
+                    在编=自身.编辑 is not None and 现编==标识#编辑中
+                    编文=自身.编辑['text'] if 在编 is True and 'text' in 自身.编辑 else ''#编文
+                    if 自身.忙碌==标识:#忙
+                        界面.label(翻译('queue.sending'))#发送中
+                    if 在编 is True:#编辑
+                        框=界面.textarea(value=编文 if 编文 is not None else '').classes('排队编辑')#编辑
+                        def 改文(钉标识=标识,钉框=框):
+                            '记下编辑正文。'
+                            值=钉框.value if 钉框.value is not None else ''#文
+                            自身.改编(钉标识,值)#改
+                        框.on_value_change(改文)#改
+                        def 点存(钉标识=标识):
+                            '保存。'
+                            自身._存编辑(钉标识,更新队列,通知,翻译)#存
+                            重画()#重画
+                        def 点消():
+                            '取消编辑。'
+                            自身.取消编()#取消
+                            重画()#重画
+                        界面.button(翻译('queue.save'),on_click=点存)#保存
+                        界面.button(翻译('queue.cancelEdit'),on_click=点消)#取消
+                    else:#阅读
+                        if 正文=='':#没有文本
+                            界面.label(翻译('queue.edit.unsupported'))#不可编辑
+                        else:#正文
+                            界面.label(正文)#文
+                        if 可改 is True:#可改
+                            def 点编(钉标识=标识,钉正文=正文):
+                                '开始编辑。'
+                                自身.开编(钉标识,钉正文,可改)#开
+                                重画()#重画
+                            def 点发(钉标识=标识):
+                                '发送这一条。'
+                                自身._动作(钉标识,{'kind':'send'},翻译('queue.sendFailed'),更新队列,通知)#发
+                                重画()#重画
+                            def 点删(钉标识=标识):
+                                '删除这一条。'
+                                自身._动作(钉标识,{'kind':'delete'},翻译('queue.removeFailed'),更新队列,通知)#删
+                                重画()#重画
+                            界面.button(翻译('queue.edit'),on_click=点编)#编辑
+                            界面.button(翻译('input.send'),on_click=点发)#发送
+                            界面.button(翻译('queue.remove'),on_click=点删)#删除
+        重画()#画
 
     def _动作(自身,标识,动作,失败文,更新队列,通知):
         '忙态围栏'

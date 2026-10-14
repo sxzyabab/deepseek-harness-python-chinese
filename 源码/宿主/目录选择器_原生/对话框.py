@@ -1,5 +1,15 @@
 'Win32 文件夹对话框驱动：子进程里阻塞 Show，中止时给那个线程的窗口投 WM_CLOSE'
-import json,os,subprocess,sys,threading#子进程与中止
+import json,os,re,subprocess,sys,threading#子进程与中止
+from ...工具.原生命令 import 已中止#调用方寿命
+
+_绝对路径=re.compile(
+    r'[A-Za-z]:[\\/][^\s\'"]+|\\\\[^\s\'"]+|/(?:[^/\s\'"]+)+(?:/[^/\s\'"]+)*'
+)#盘符、UNC、POSIX 绝对
+
+def 去绝对路径(文本):#异常说明
+    '说明里不保留绝对路径'
+    return _绝对路径.sub('',str(文本)).replace('""','').replace("''",'')#去掉路径
+
 对话框标题='Select Workspace Directory'#每个宿主用的标题
 关闭间隔秒=0.15#重投间隔
 关闭最多=20#超过则杀掉子进程
@@ -83,7 +93,7 @@ def 选Win32目录(信号,内部=None):#打开现代文件夹选择框
                         结算(True,消息['path'])#路径或 None
                     return#停读
                 elif 种类=='error':#子进程失败
-                    结算(False,OSError('win32 folder dialog failed: '+消息['message']))#失败
+                    结算(False,OSError('win32 folder dialog failed: '+去绝对路径(消息['message'])))#失败
                     return#停读
                 else:#未知
                     结算(False,TypeError('unknown win32 dialog worker message kind: '+str(种类)))#失败

@@ -29,6 +29,49 @@ from .持久化 import 读侧栏布局,写侧栏布局,清侧栏布局#布局持
 __all__=['可关闭标签','独一停靠标签','创建表面','创建右侧侧栏存储']#仅中文公开名
 
 
+class _表面写入:#实例里的 store 面
+    '只暴露 set，供整表替换'
+
+    def __init__(自身,设):
+        '记下替换函数'
+        自身.set=设#替换
+
+    def __getitem__(自身,键):
+        '兼容 store[\'set\']'
+        if 键=='set':#替换
+            return 自身.set#函数
+        raise KeyError(键)#无此键
+
+
+class 侧栏存储实例:#会话表面可观察源
+    'getSnapshot / subscribe 是方法；动作表挂在 actions 上'
+
+    def __init__(自身,取快照,订阅,动作,作用域键,设):
+        '记下读、订、动作与写入面'
+        自身.getSnapshot=取快照#读
+        自身.subscribe=订阅#订
+        自身.actions=动作#动作
+        自身.scopeKey=作用域键#作用域
+        自身._写入=_表面写入(设)#写入面
+        自身.clearPersisted=lambda:None#默认无持久化可清
+
+    def __getitem__(自身,键):
+        '兼容存储[\'getSnapshot\'] 这类既有读法'
+        if 键=='store':#写入面
+            return 自身._写入#面
+        if 键=='getSnapshot':#读
+            return 自身.getSnapshot#方法
+        if 键=='subscribe':#订
+            return 自身.subscribe#方法
+        if 键=='actions':#动作
+            return 自身.actions#表
+        if 键=='scopeKey':#作用域
+            return 自身.scopeKey#键
+        if 键=='clearPersisted':
+            return 自身.clearPersisted#函数
+        raise KeyError(键)#无此键
+
+
 def 计数铸造(起点):
     '带用量回读的铸造'
     计数=[起点]#可变盒
@@ -183,7 +226,7 @@ def 创建右侧侧栏存储(种子):
                     return []#空
                 return 规划分窗格(态,铸,窗格标识,造签)#分
             次=_推进(表,规划,种子)#次
-            if 落定回调 is not None and 次 is not 表:#有新建
+            if 落定回调 is not None and 次 is not 表:
                 前=set(停靠窗格标识列表(表['layout']))#前
                 for 标识 in 停靠窗格标识列表(次['layout']):#后
                     if 标识 not in 前:#新
@@ -210,7 +253,7 @@ def 创建右侧侧栏存储(种子):
             if 意图.get('preferNewPane') is True and 替换 is None and 已揭示 is None:#优先新窗
                 def 造新(标识):
                     '新窗内造签'
-                    新窗签[0]=标识#记下
+                    新窗签[0]=标识
                     return {'id':标识,'kind':种类,'contentId':内容,'title':意图['title']}#记录
                 分出=规划分窗格(态,铸,窗,造新)#分
             else:#不分
@@ -221,15 +264,15 @@ def 创建右侧侧栏存储(种子):
                 规划果={'ops':分出,'tabId':新窗签[0]}#新
             else:#常规开
                 入={'kind':种类,'contentId':内容,'title':意图['title']}#入
-                if 窗 is not None:#有窗
+                if 窗 is not None:
                     入['paneId']=窗#窗
-                if 下标 is not None:#有槽
+                if 下标 is not None:
                     入['index']=下标#槽
                 if 页面:#页面不跨窗揭示
                     入['revealIfOpened']=False#关揭示
                 elif 'revealIfOpened' in 意图:#资源揭示
                     入['revealIfOpened']=意图['revealIfOpened']#写
-                规划果=规划打开内容(态,铸,入)#开
+                规划果=规划打开内容(态,铸,入)
             操作.extend(规划果['ops'])#并
             if 替换 is not None and 替换!=规划果['tabId']:#关替
                 操作.append({'type':'closeTab','tabId':替换})#关
@@ -374,25 +417,25 @@ def 创建右侧侧栏存储(种子):
             状态=下一态#写
             通知()#广播
 
-        实例={#实例
-            'getSnapshot':取快照,
-            'subscribe':订阅,
-            'actions':{名:绑(名,函) for 名,函 in 动作表.items()},
-            'scopeKey':作用域键,
-            'store':{'set':设},
-        }#实例
+        实例=侧栏存储实例(#可观察实例，槽位按方法读
+            取快照,
+            订阅,
+            {名:绑(名,函) for 名,函 in 动作表.items()},
+            作用域键,
+            设,
+        )#实例
         if 作用域键 is None:#无作用域
             return 实例#实例
         已存=读侧栏布局(作用域键)#恢复
-        if 已存 is not None:#有
+        if 已存 is not None:
             设({'bySession':{作用域键:已存}})#写回
         def 持久化监听():
             '写出当前表面'
             表面=取快照()['bySession'].get(作用域键)#表面
-            if 表面 is not None:#有
+            if 表面 is not None:
                 写侧栏布局(作用域键,表面)#写
         订阅(持久化监听)#订
-        实例['clearPersisted']=lambda:清侧栏布局(作用域键)#清理
+        实例.clearPersisted=lambda:清侧栏布局(作用域键)#清理
         return 实例#实例
 
     return {'init':初值,'actions':动作表,'create':铸造}#规格+工厂

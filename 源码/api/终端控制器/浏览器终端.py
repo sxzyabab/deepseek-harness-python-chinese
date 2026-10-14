@@ -3,7 +3,7 @@ from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ...工具.惰性导入 import 创建惰性导入#xterm
 from .输出跟随 import 终端跟随#跟随队列
 from .保持 import 终端保持#保持
-from .异常 import 远程错误#本包异常
+from .异常 import 远程错误,失败说明#本包异常
 
 __all__=['浏览器终端']#仅中文公开名
 
@@ -208,7 +208,7 @@ class 浏览器终端:#一路 PTY、有界仿真与可拆跟随者
             '读输出或等退出失败：记下失败'
             信息=dict(自身.info)#拷
             信息['state']='failed'
-            信息['error']=str(错误)#消息
+            信息['error']=失败说明(错误)#消息，去掉绝对路径
             自身.info=信息#写回
             收尾()
         try:#消费

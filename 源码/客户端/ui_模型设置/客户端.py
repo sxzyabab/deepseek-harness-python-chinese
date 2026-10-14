@@ -3,17 +3,17 @@ from ...基础设施.通用工具 import 获取内部数据
 from .引导文案 import 欢迎通知设置命名空间#欢迎 ns
 from .存储 import 模型设置存储,已加载则刷新#模型存储
 from .欢迎存储 import 欢迎通知存储,已加载则刷新欢迎#欢迎存储
-from .模型分区 import 模型分区#模型分区
+from .模型分区 import 模型分区
 from .引导对话框 import 欢迎通知,官方引导对话框#引导
-from .提供方编辑器 import 提供方编辑器#提供方编辑器
+from .提供方编辑器 import 提供方编辑器
 from .自定义提供方卡片 import 自定义提供方卡片#自定义卡
 from .DeepSeek模型编辑器 import DeepSeek模型编辑器#DeepSeek 目录
 from .模型列表编辑器 import 模型列表编辑器#模型列表
 from .编辑器页脚 import 编辑器页脚#页脚
-from .引导模态 import 引导模态#引导模态
+from .引导模态 import 引导模态
 from .密钥判定 import 密钥失败#密钥判定
 
-__all__=[#仅中文公开名
+__all__=[
     '依赖','应用','模型设置存储','欢迎通知存储','模型分区','欢迎通知','官方引导对话框',
     '提供方编辑器','自定义提供方卡片','DeepSeek模型编辑器','模型列表编辑器','编辑器页脚','引导模态','密钥失败',
     '命名空间','中文','英文','已加载则刷新',

@@ -48,7 +48,7 @@ def 查找内容标签(状态,内容标识,种类=None):
 def 活动停靠窗格标识(状态):
     '新标签落点：活动窗若停靠则用之，否则首停靠窗'
     活动=取窗格(状态,状态['activePaneId'])#活动
-    if 活动['host']=='dock':#停靠
+    if 活动['host']=='dock':
         return 活动['id']#本窗
     return 首停靠窗格标识(状态)#回退
 
@@ -92,7 +92,7 @@ def 规划分窗格(状态,铸造,窗格标识=None,造窗签=None):
     }]#操作
     if 造窗签 is not None:#播种
         种子=造窗签(铸造('tab'))#签
-        if 种子 is not None:#有
+        if 种子 is not None:
             操作.append({'type':'openTab','paneId':新窗,'tab':种子,'index':0})#开签
     return 操作#列表
 
@@ -131,7 +131,7 @@ def 规划复制标签(状态,铸造,标签标识):
     '旁开同内容独立签；返回 {ops, tabId}'
     源=取标签(状态,标签标识)#源
     窗=查找标签窗格(状态,标签标识)#窗
-    if 窗['host']=='dock':#停靠
+    if 窗['host']=='dock':
         宿主=窗['id']#宿主
         下标=窗['tabs'].index(标签标识)+1#旁
     else:#浮
@@ -228,7 +228,7 @@ def 规划落定(状态,铸造,造签=None):
         空=None#候选
         for 标识 in 停靠窗格标识列表(当):#逐窗
             if 标识!=当['rootId'] and len(取窗格(当,标识)['tabs'])==0:#空非根
-                空=标识#记下
+                空=标识
                 break#一格
         if 空 is None:#无空
             break#止

@@ -1,4 +1,4 @@
-from ..主题设置 import 默认字号#缺省字号
+from ..主题设置 import 默认字号,默认字号表,默认字体族#缺省字号与字体
 
 __all__=['创建外观行存储','创建字号行存储','外观行状态','字号行状态']
 
@@ -35,19 +35,31 @@ def 创建外观行存储():
     }
 
 def 创建字号行存储():
-    '默认缺省字号、修订 -1；sync 按修订守卫丢弃过期'
-    状态={'fontSize':默认字号,'revision':-1}
+    '默认三种字号与空字体列表；sync 按修订守卫丢弃过期'
+    状态={'fontSize':默认字号,'fontSizes':dict(默认字号表),'fontFamilies':dict(默认字体族),'revision':-1}
     监听集合=set()
     def 通知():
         '通知全部监听'
         for 监听器 in list(监听集合):
             监听器()
-    def 同步(字号,修订):
-        '修订不大于当前则丢弃'
-        if 修订<=状态['revision']:
+    def 同步(字号或表,修订或族=None,修订=None):
+        '两参是旧的正文字号与修订；三参是字号表、字体族表、修订'
+        if 修订 is None:
+            字号表=dict(状态['fontSizes'])
+            if type(字号或表) is int:
+                字号表['text']=字号或表
+            字体族表=dict(状态['fontFamilies'])
+            修订值=修订或族
+        else:
+            字号表=dict(字号或表)
+            字体族表=dict(修订或族)
+            修订值=修订
+        if 修订值<=状态['revision']:
             return
-        状态['fontSize']=字号
-        状态['revision']=修订
+        状态['fontSizes']=字号表
+        状态['fontFamilies']=字体族表
+        状态['fontSize']=字号表.get('text',状态['fontSize'])
+        状态['revision']=修订值
         通知()
     def 取快照():
         '快照拷贝'

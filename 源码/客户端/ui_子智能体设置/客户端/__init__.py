@@ -55,8 +55,13 @@ def 应用(上下文):
             模型.拆除()
         return 拆
     上下文.副作用(拆模型,'ui-settings-subagent: model preference')
-    def 挂页():
-        '任一命名空间被服务时注入插件页'
+    def 挂页(已服务):
+        '已服务里至少有限额或模型选择时注入插件页'
+        if 子智能体命名空间 not in 已服务 and 子智能体模型选择命名空间 not in 已服务:
+            def 空拆():
+                '镜像里没有本页命名空间'
+                return None
+            return 空拆
         def 登记():
             '登记 plugins.item'
             def 标签():
@@ -68,15 +73,15 @@ def 应用(上下文):
             return 上下文.slots.register({
                 'name':'plugins.item',
                 'id':'subagent',
-                'order':30,
+                'order':10,
                 'label':标签,
                 'locale':命名空间,
                 'inject':注入卡片,
             },子智能体卡片)
         return 上下文.slots.inject('plugins.item',登记)
     def 监视():
-        'whileServed'
-        return 上下文.configForms.whileServed([子智能体命名空间,子智能体模型选择命名空间],挂页)
+        '任一命名空间出现在镜像里才登记'
+        return 上下文.configForms.在已提供期间([子智能体命名空间,子智能体模型选择命名空间],挂页)
     上下文.副作用(监视,'ui-settings-subagent: page')
 
 inject=依赖

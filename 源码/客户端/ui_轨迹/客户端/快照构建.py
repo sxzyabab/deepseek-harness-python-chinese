@@ -262,11 +262,16 @@ def 造轨迹快照构建器():#每次创建新构建器
     '视图定义 create'
     return 轨迹快照构建器()#新构建器
 
+def 工具调用焦点(调用标识):#检视焦点
+    '检视请求里的焦点就是这条调用'
+    return 调用标识
+
 轨迹视图定义={#轨迹视图定义
-    'target':'trajectory',#投递到轨迹槽
+    'target':'trajectory',#投递到轨迹槽，不进聊天列
+    'toolCallFocus':工具调用焦点,#调用焦点
     'create':造轨迹快照构建器,#每次创建新构建器
 }#定义结束
 
 def 登记轨迹会话视图(上下文):#向会话视图登记轨迹目标
     '登记舞台向的轨迹目标构建器'
-    上下文.conversationViews.register(轨迹视图定义)#登记定义
+    上下文.uiConversation.views.register(轨迹视图定义)#登记定义

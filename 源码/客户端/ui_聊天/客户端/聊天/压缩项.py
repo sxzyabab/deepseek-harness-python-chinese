@@ -1,4 +1,8 @@
+from .消息项 import 打开列
+
 __all__=['压缩项']#仅中文公开名
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -10,6 +14,7 @@ class 压缩项:
         '记下 props 与展开'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已展开=False#展开
+        自身.根=None#列
 
     def 更新(自身,属性):
         '刷新 props'
@@ -19,7 +24,7 @@ class 压缩项:
         '可展开才翻'
         节点=自身.属性['node'] if 'node' in 自身.属性 and 自身.属性['node'] is not None else {}#节点
         if 'summary' not in 节点 or 节点['summary'] is None:#不可
-            return#停
+            return
         自身.已展开=not 自身.已展开#翻
 
     def 渲染(自身):
@@ -30,7 +35,7 @@ class 压缩项:
         标题=属性['title'] if 'title' in 属性 else None#命令题
         回退摘要=属性['fallbackSummary'] if 'fallbackSummary' in 属性 else None#回退
         可展='summary' in 节点 and 节点['summary'] is not None#可展
-        打开=可展 is True and 自身.已展开 is True#开
+        打开=可展 is True and 自身.已展开 is True
         项数=节点['shadowedItemCount'] if 'shadowedItemCount' in 节点 else None#项
         令牌=节点['shadowedTokenCount'] if 'shadowedTokenCount' in 节点 else None#令牌
         if 项数 is not None and 令牌 is not None:#有计数
@@ -43,10 +48,22 @@ class 压缩项:
             摘要=翻译('message.compaction.unavailable')#不可用
         题出=标题 if 标题 is not None else 翻译('message.compaction')#题
         体=节点['summary'] if 打开 is True and 'summary' in 节点 else None#体
-        return {'type':'compaction-item','title':题出,'summary':摘要,'expandable':可展,'open':打开,'body':体,'onToggle':自身.切换,'cssModule':'消息项.module.css'}#视图
+        def 点切换():
+            '可展开时翻转摘要。'
+            自身.切换()
+            自身.渲染()
+        with 打开列(自身,'压缩项'):
+            with 界面.row().classes('压缩头'):
+                界面.label(题出).classes('标题')
+                if 摘要 is not None and not (isinstance(摘要,str) and 摘要==''):
+                    界面.label(str(摘要))
+                if 可展 is True:
+                    界面.button(翻译('message.compaction.expand'),on_click=点切换)
+            if 体 is not None and not (isinstance(体,str) and 体==''):
+                界面.label(str(体)).style('white-space:pre-wrap')
 
     def __call__(自身,属性=None):
         '对齐 React'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

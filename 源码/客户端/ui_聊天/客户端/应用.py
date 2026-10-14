@@ -8,7 +8,7 @@ from .存储 import 创建聊天存储#选中存储
 from .转录视图 import 转录视图策略#呈现策略
 from .呈现策略 import 派生呈现策略
 from .性能用量 import 性能用量策略
-from .约定.快照 import 空聊天快照#空快照
+from .约定.快照 import 空聊天快照,聊天节点源#空快照与方法源
 from .聊天.用回合数据 import 用回合数据值#回合数据
 from .聊天.用披露 import 绑定披露
 from .聊天.登记节点渲染器 import 登记聊天节点渲染器#节点渲染器
@@ -17,9 +17,11 @@ from .聊天.统计行 import 统计行#统计
 from .聊天.审批命令 import 审批命令#审批卡
 from .详情.详情面板 import 详情面板#详情
 from .设置.转录视图行 import 转录视图行#设置行
+from .设置.链接打开行 import 链接打开行#链接打开
+from .设置.性能用量行 import 性能用量行#性能用量
 from .会话节点 import 登记会话节点#会话节点
 from ...存储 import 创建快照存储
-from ..异常 import 聊天错误#本包异常
+from ..异常 import 聊天错误,页面失败文案
 
 _=_侧边栏文档预览#保活侧效导入
 
@@ -88,6 +90,37 @@ def 文件资源地址(会话标识,cwd,路径):
 def 应用(上下文):
     '登记节点、词典、视图、统计、审批与详情'
     聊天源缓存={}#按绑定缓存（用 id 键近似 WeakMap）
+    包装缓存={}#外部字典源收成稳定对象
+
+    class 会话聊天源:
+        '一个会话的 chat 目标源'
+        def __init__(自身,目标):
+            '记下目标'
+            自身.目标=目标#chat target
+
+        def getSnapshot(自身):
+            '目标快照，缺则空'
+            照=自身.目标.getSnapshot()#快照
+            return 照 if 照 is not None else 空聊天快照#缺则空
+
+        def subscribe(自身,监听):
+            '订阅目标'
+            return 自身.目标.subscribe(监听)#订
+
+    def 收成钩子源(原始):
+        '对象原样；字典面收成带方法的源，同一字典只包一次'
+        if 原始 is None or not isinstance(原始,dict):#已是对象或空
+            return 原始#原样
+        编号=id(原始)#身份
+        if 编号 in 包装缓存:#已包
+            return 包装缓存[编号]#复用
+        取=原始.get('getSnapshot')#读
+        订=原始.get('subscribe')#订
+        if not callable(取) or not callable(订):#不是源
+            return 原始#原样
+        包装=聊天节点源(取,订)#方法面
+        包装缓存[编号]=包装
+        return 包装#返
 
     def 聊天源(绑定):
         '缺席空快照'
@@ -95,17 +128,7 @@ def 应用(上下文):
         if 键 in 聊天源缓存:#已有
             return 聊天源缓存[键]#返
         目标=上下文.uiConversation.binding(绑定).target('chat')#chat target
-        def 取快照():
-            '目标快照，缺则空'
-            照=目标.getSnapshot()#快照
-            return 照 if 照 is not None else 空聊天快照#缺则空
-        def 订阅(监听):
-            '订阅目标'
-            return 目标.subscribe(监听)#订
-        源={#可观察
-            'getSnapshot':取快照,#快照
-            'subscribe':订阅,#订阅
-        }#源结束
+        源=会话聊天源(目标)#方法面
         聊天源缓存[键]=源#缓存
         return 源#返
 
@@ -156,6 +179,41 @@ def 应用(上下文):
         },转录视图行)#登记
     上下文.slots.inject('settings.general.item',登记转录行)#挂
 
+    def 设链接打开(去向):
+        '发布并持久化链接打开位置'
+        if 去向==链接打开.getSnapshot():
+            return
+        链接打开.set(去向)
+        try:
+            设置宿主.set('linkOpening',去向)
+        except Exception as 错误:
+            raise 聊天错误(页面失败文案(错误)) from 错误
+    def 浏览器可用():
+        '侧栏注册了浏览器标签才提供这一行'
+        标签表=上下文.获取服务('sidebarRightTabs')
+        return 标签表 is not None and 标签表.get('browser') is not None
+    def 链接注入():
+        'hooks + setLinkOpening'
+        return {'hooks':{'linkOpening':链接打开},'browserAvailable':浏览器可用,'setLinkOpening':设链接打开}
+    def 登记链接行():
+        '链接打开行'
+        return 上下文.slots.register({
+            'name':'settings.general.item','id':'link-opening','order':17,'locale':命名空间,
+            'inject':链接注入,
+        },链接打开行)
+    上下文.slots.inject('settings.general.item',登记链接行)
+
+    def 性能注入():
+        'hooks + setPerformanceUsage'
+        return {'hooks':{'performanceUsage':性能.模式},'setPerformanceUsage':性能.设模式}
+    def 登记性能行():
+        '性能与用量行'
+        return 上下文.slots.register({
+            'name':'settings.general.item','id':'performance-usage','order':30,'locale':命名空间,
+            'inject':性能注入,
+        },性能用量行)
+    上下文.slots.inject('settings.general.item',登记性能行)
+
     def 视图注入():
         '返回卸除器'
         def 注入(会话标识,动作):
@@ -165,14 +223,13 @@ def 应用(上下文):
                 raise 聊天错误('ui-chat: unknown session "'+str(会话标识)+'"')#抛
             会话=绑定.session#会话
             聊天=聊天源(绑定)#源
-            仓动作=动作 if 动作 is not None else 聊天存储#动作
             def 打开详情(目标):
                 '选定并打开'
-                动作表=仓动作['actions'] if 'actions' in 仓动作 else None#动作表
+                动作表=动作 if 动作 is not None else 聊天存储.actions#动作表
                 选=动作表['select'] if 动作表 is not None and 'select' in 动作表 else None#选
-                if 选 is not None:#有
+                if 选 is not None:
                     选(目标)#写
-                上下文.layout.openDetails()#开
+                上下文.layout.openDetails()
             def 存滚动(位置):
                 'null 清除'
                 if 位置 is None:
@@ -183,13 +240,13 @@ def 应用(上下文):
                 '当前滚动'
                 return 滚动位置[会话标识] if 会话标识 in 滚动位置 else None#读
             def 取节点源(键):
-                'nodes.source。存储为契约 dict'
-                节点表=聊天['getSnapshot']()['nodes']#节点表
-                return 节点表['source'](键)#节点
+                'nodes.source。节点表为契约 dict，源本身是对象'
+                节点表=聊天.getSnapshot()['nodes']#节点表
+                return 收成钩子源(节点表['source'](键))#节点
             def 取过程源(键):
-                'nodes.processSource。存储为契约 dict'
-                节点表=聊天['getSnapshot']()['nodes']#节点表
-                return 节点表['processSource'](键)#节点
+                'nodes.processSource。节点表为契约 dict，源本身是对象'
+                节点表=聊天.getSnapshot()['nodes']#节点表
+                return 收成钩子源(节点表['processSource'](键))#节点
             def 关提及(属主):
                 'fileMentions.forClosing(属主, 会话标识)'
                 服务=上下文.获取服务('chatFileMentions')#服务
@@ -212,10 +269,10 @@ def 应用(上下文):
                 '经输入触发打开技能引用'
                 作用域=上下文.sessions.scope(会话标识)#会话作用域
                 if 作用域 is None:#无
-                    return#停
+                    return
                 触发=上下文.获取服务('inputTriggers')#触发服务
                 if 触发 is None:#无
-                    return#停
+                    return
                 触发.sessionOf(作用域).openReference('skill',{'ref':'/'+名})#打开技能引用
             def 打开外部链接(网址):#打开外部链接
                 '优先侧栏浏览器标签，否则系统新窗'
@@ -240,8 +297,8 @@ def 应用(上下文):
                     try:#成功
                         子标识=上下文.sessions.fork({'sessionId':会话标识,'atSeq':序号,'increaseTitle':True}).等待()#分叉
                         上下文.uiWorkspace.openSession(子标识)#经工作区打开
-                    except BaseException:#失败
-                        pass#源视图不变
+                    except Exception as 错误:
+                        raise 聊天错误(页面失败文案(错误)) from 错误
                 启动守护线程(观察)#启
             def 取组源(键):
                 'grouped(\'chat\').groupSource'
@@ -250,7 +307,10 @@ def 应用(上下文):
                 分组=视['grouped']('chat') if 'grouped' in 视 else None
                 if 分组 is None:
                     return None
-                return 分组['groupSource'](键)
+                取组=分组['groupSource'] if isinstance(分组,dict) else getattr(分组,'groupSource',None)#组源工厂
+                if 取组 is None:
+                    return None
+                return 收成钩子源(取组(键))#方法面
             return {#注入面
                 'hooks':{'presentation':呈现},#呈现策略
                 'keyedHooks':{#按键

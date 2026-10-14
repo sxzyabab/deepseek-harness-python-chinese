@@ -13,7 +13,7 @@ from .图像 import 应用 as 登记图像#图片
 from .pdf import 应用 as 登记pdf#PDF
 from .代码 import 应用 as 登记代码#代码
 from .office import 应用 as 登记Office#Office
-from .文本预览 import 文本预览#正文视图模型
+from .文本预览 import 文本预览,文本预览面板#正文视图模型
 from .文本标题 import 文本标题#标题视图模型
 from .excel import 应用 as 登记excel#表格
 from ..配置 import 默认配置#配置
@@ -22,7 +22,7 @@ from . import (
     图标,
 )
 
-__all__=[#仅中文公开名
+__all__=[
     '依赖',
     '应用',
     '命名空间',
@@ -92,7 +92,7 @@ def 应用(上下文):
         完整读,#完整
         上下文.resources,#资源
     )
-    源={'getSnapshot':预览表.取快照,'subscribe':预览表.订阅}#快照源（线路字段名）
+    源=预览表#钩子源，方法名保持 getSnapshot 与 subscribe
 
     def 挂正文():
         '正文进带键席位'
@@ -125,7 +125,7 @@ def 应用(上下文):
                     },
                 },
                 'inject':注入面,#业务面工厂
-            },文本预览)#正文组件
+            },文本预览面板)#正文组件
 
         return 上下文.slots.inject('sidebar.right.pane.tab',登记正文)#等洞就绪
 

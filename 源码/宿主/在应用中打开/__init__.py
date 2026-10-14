@@ -207,7 +207,7 @@ def 应用(上下文,配置值):#登记三条路由
         try:#读正文
             文本=读取有界正文(请求)#有界
         except (OSError,UnicodeDecodeError,AttributeError):
-            发送json(响应,400,{'code':'bad-request','message':'请求正文无法读取'})
+            发送json(响应,400,{'code':'bad-request','message':'request body unreadable'})
             return
         if 文本 is None:#超限
             发送json(响应,413,{'code':'payload-too-large','message':'request body is too large'})#413

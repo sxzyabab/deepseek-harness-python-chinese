@@ -30,7 +30,7 @@ def _焦点快照(状态,窗格标识表):
     '捕获所列窗格活动标签与全局焦点，作为 restoreFocus 操作'
     窗格活动={}#窗格→活动标签
     for 标识 in 窗格标识表:#逐个
-        窗格活动[标识]=取窗格(状态,标识)['activeTabId']#记下
+        窗格活动[标识]=取窗格(状态,标识)['activeTabId']
     return {#恢复焦点操作
         'type':'restoreFocus',
         'activePaneId':状态['activePaneId'],

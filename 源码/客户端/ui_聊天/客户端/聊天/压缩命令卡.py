@@ -1,7 +1,10 @@
 from .压缩项 import 压缩项#压缩项
 from .回退命令卡 import 回退命令卡#命令卡
+from .消息项 import 打开列
 
 __all__=['压缩命令卡']#仅中文公开名
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -14,6 +17,7 @@ class 压缩命令卡:
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.命令=回退命令卡()#命令
         自身.压缩=压缩项()#压缩
+        自身.根=None#列
 
     def 更新(自身,属性):
         '刷新 props'
@@ -27,11 +31,16 @@ class 压缩命令卡:
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         命令=数据['command'] if 'command' in 数据 and 数据['command'] is not None else 数据#命令
         压缩=数据['compaction'] if 'compaction' in 数据 else None#压缩
-        压缩视=自身.压缩({'node':压缩,'title':翻译('message.compaction.commandTitle'),'t':翻译}) if 压缩 is not None else None#压缩项
-        return {'type':'compaction-command-card','command':自身.命令({'node':命令,'t':翻译}),'compaction':压缩视}#卡
+        with 打开列(自身,'压缩命令卡'):
+            with 界面.column().classes('压缩命令'):
+                自身.命令.更新({'node':命令,'t':翻译})
+                自身.命令.渲染()
+            if 压缩 is not None:
+                自身.压缩.更新({'node':压缩,'title':翻译('message.compaction.commandTitle'),'t':翻译})
+                自身.压缩.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

@@ -2,6 +2,7 @@
 
 import math
 from ......基础设施.js特性 import PromiseEX as 期约#分组成员变化排到当前调用之后
+from ......客户端.存储 import 创建快照存储
 from ..表格模型 import 检查器记录源
 from ..格式 import 检查器预览
 from .对象 import 聊天对象索引,取
@@ -265,5 +266,4 @@ class 聊天节点模型:
 
 def 创建行存储():
     '空顺序使用稳定常量'
-    from ......客户端.存储 import 创建快照存储
     return 创建快照存储(空行)

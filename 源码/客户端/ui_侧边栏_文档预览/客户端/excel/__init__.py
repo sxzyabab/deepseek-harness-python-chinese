@@ -1,4 +1,5 @@
 from .文案 import 中文,英文
+from .表格正文 import 表格正文
 from . import (
     xls,
     xlsx,
@@ -39,6 +40,6 @@ def 应用(上下文,上限):
                 'key':实现键,
                 'locale':'sidebarExcel',
                 'inject':lambda:({'limits':上限}),
-            },'LazyExcelBody')
+            },表格正文)
         return 上下文.slots.inject('sidebar.right.tab.document',登记正文)
     上下文.副作用(挂正文)

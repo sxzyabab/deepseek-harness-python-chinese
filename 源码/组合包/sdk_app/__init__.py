@@ -28,8 +28,11 @@ def 应用(上下文,配置对象=None):
     '接受一次 SDK profile 调用，发布就绪，并把 EOF 绑到启动器的有界关闭'
     if 配置对象 is None:
         配置对象={}
-    配置档名=配置对象.get('profile') if isinstance(配置对象,dict) else getattr(配置对象,'profile',None)
-    if not 配置档名:
+    if isinstance(配置对象,dict):
+        配置档名=配置对象['profile'] if 'profile' in 配置对象 else None
+    else:
+        配置档名=getattr(配置对象,'profile',None)
+    if 配置档名 is None:
         配置档名='sdk'
     程序=SDK命令(配置档名)
     def 动作():

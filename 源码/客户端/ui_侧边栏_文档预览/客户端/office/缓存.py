@@ -1,7 +1,6 @@
 '会话授权、版本校验的 Office 字节，供并发预览读取共享'
 
-__all__=['Office预览缓存','读Office文档','读Office字节']#仅中文公开名
-
+__all__=['Office预览缓存','读Office文档','读Office字节']
 class Office预览缓存:#有界成功结果缓存
     '每位调用方在复用前重新授权并检查源新鲜度'
 

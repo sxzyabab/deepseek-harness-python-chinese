@@ -1,9 +1,11 @@
 import math#数学
 import re#正则
+from nicegui import ui as 界面
+from .编辑器页脚 import 画输入类型#输入类型勾选
 
-__all__=[#仅中文公开名
+__all__=[
     '解析容量','格式化容量','模型草稿表','校验DeepSeek模型','DeepSeek模型编辑器',
-]#公开面结束
+]
 
 容量模式=re.compile(r'^([0-9]+(?:\.[0-9]+)?)([km])?\Z',re.I|re.ASCII)#带可选 K/M 后缀
 容量尺度={'k':1000,'m':1000000}#十进制尺度
@@ -61,7 +63,7 @@ def 校验DeepSeek模型(值):#适配器约束校验
             return {'index':下标,'key':'modelIdRequired'}#必填
         if 去空白 in 已见:#重复
             return {'index':下标,'key':'modelIdDuplicate'}#重复
-        已见.add(去空白)#记下
+        已见.add(去空白)
         名称=模型['name'] if 'name' in 模型 else None#name
         if 名称 is not None and (not isinstance(名称,str) or len(名称)==0):#非法名
             return {'index':下标,'key':'modelNameInvalid'}#非法
@@ -77,17 +79,34 @@ def 行号自键(键):#缓冲键前缀行号
     '`index:field` 取行号'
     return int(键[:键.index(':')])#行号
 
-class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
-    'id/name 行上，容量藏在行披露里'
+class DeepSeek模型编辑器:
+    'id/name 行上，容量藏在行披露里。父组件调用渲染，构造不画'
     def __init__(自身,属性):#构造
         '记下 props 与编辑缓冲'
-        自身.属性=属性#合成 props
+        自身.属性=属性
         自身.编辑中={}#键→键入文本
         自身.已展开=set()#展开行
 
     def 更新(自身,属性):#props 变更
         '刷新'
         自身.属性=属性#最新
+
+    def 改行(自身,下标,补丁):
+        '按补丁改一行；None 删字段'
+        模型列表=list(自身.属性['models']) if 'models' in 自身.属性 and 自身.属性['models'] is not None else []
+        下一=[]
+        for 位,模型 in enumerate(模型列表):
+            拷=dict(模型)
+            if 位==下标:
+                for 键,值 in 补丁.items():
+                    if 值 is None:
+                        拷.pop(键,None)
+                    else:
+                        拷[键]=值
+            下一.append(拷)
+        变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None
+        if 变更 is not None:
+            变更(下一)
 
     def 改字段(自身,下标,键,值):#改一行字段
         '替换用户层数组'
@@ -102,7 +121,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
                     拷[键]=值#设
             下一.append(拷)#记入
         变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-        if 变更 is not None:#有
+        if 变更 is not None:
             变更(下一)#通知
 
     def 移除(自身,下标):#删一行并重键缓冲
@@ -113,7 +132,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
             if 位==下标:#被删
                 continue#跳过
             新键=行号前缀.sub(str(位-1),键,count=1) if 位>下标 else 键#重键
-            新编辑[新键]=文本#记下
+            新编辑[新键]=文本
         自身.编辑中=新编辑#覆盖
         新展开=set()#新展开
         for 位 in 自身.已展开:#每展开
@@ -124,15 +143,15 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         已有=自身.属性['models'] if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#当前
         模型列表=[dict(模型) for 位,模型 in enumerate(已有) if 位!=下标]#过滤
         变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-        if 变更 is not None:#有
+        if 变更 is not None:
             变更(模型列表)#通知
 
     def 重置(自身):#清除覆盖回继承
         '清缓冲并 onReset'
-        自身.编辑中={}#清
-        自身.已展开=set()#清
+        自身.编辑中={}
+        自身.已展开=set()
         复位=自身.属性['onReset'] if 'onReset' in 自身.属性 else None#回调
-        if 复位 is not None:#有
+        if 复位 is not None:
             复位()#复位
 
     def 切换展开(自身,下标):#切换行披露
@@ -140,7 +159,7 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         if 下标 in 自身.已展开:#已开
             自身.已展开.discard(下标)#关
         else:#未开
-            自身.已展开.add(下标)#开
+            自身.已展开.add(下标)
 
     def 容量文本(自身,模型,下标,字段):#容量字段显示文本
         '优先键入缓冲，否则格式化存量'
@@ -224,22 +243,54 @@ class DeepSeek模型编辑器:#DeepSeek 模型目录编辑器
         def 添加():#加空 id 行
             '追加空模型'
             变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-            if 变更 is not None:#有
+            if 变更 is not None:
                 变更([dict(模) for 模 in 模型列表]+[{'id':''}])#追加
-        return {#视图
-            'type':'deepseek-models-editor',#类型
-            'title':翻译('models'),#标题
-            'meta':翻译('modelsCustomized' if 覆盖 else 'modelsInherited'),#元信息
-            'overridden':覆盖,#覆盖
-            'resetLabel':翻译('resetModels') if 覆盖 else None,#复位
-            'onReset':自身.重置 if 覆盖 else None,#复位句柄
-            'empty':翻译('modelsEmpty') if len(模型列表)==0 else None,#空态
-            'rows':行表,#行
-            'addLabel':翻译('addModel'),#添加
-            'onAdd':添加,#添加
-            'disabled':禁用,#禁用
-            'cssModule':'模型分区.module.css',#样式
-        }#视图结束
+        with 界面.column().classes('deepseek-models-editor modelCatalog'):
+            界面.label(翻译('models'))
+            界面.label(翻译('modelsCustomized' if 覆盖 else 'modelsInherited'))
+            if 覆盖:
+                复位=界面.button(翻译('resetModels'), on_click=自身.重置)
+                if 禁用:
+                    复位.disable()
+            if len(模型列表)==0:
+                界面.label(翻译('modelsEmpty'))
+            for 行 in 行表:
+                with 界面.row():
+                    界面.button(on_click=行['onToggle']).props('icon=expand_more flat round')
+                    def 改号(事件,回调=行['onId']):
+                        '写入标识'
+                        回调(事件.value)
+                    def 失焦号(事件,回调=行['onIdBlur']):
+                        '失焦落定标识'
+                        回调(事件.sender.value)
+                    def 改名(事件,回调=行['onName']):
+                        '写入名称'
+                        回调(事件.value)
+                    号框=界面.input(value=行['id'], on_change=改号).on('blur',失焦号)
+                    名框=界面.input(value=行['name'], on_change=改名)
+                    删=界面.button(on_click=行['onRemove']).props('icon=delete flat round')
+                    if 禁用:
+                        号框.disable()
+                        名框.disable()
+                        删.disable()
+                if 行['expanded'] and 'advanced' in 行:
+                    for 容量 in 行['advanced']:
+                        def 改容(事件,回调=容量['onChange']):
+                            '写入容量'
+                            回调(事件.value)
+                        def 失焦容(事件,回调=容量['onBlur']):
+                            '失焦落定容量'
+                            回调()
+                        容框=界面.input(容量['label'], value=容量['text'], placeholder=容量['placeholder'], on_change=改容).on('blur',失焦容)
+                        if 禁用:
+                            容框.disable()
+                    def 改输入(补丁,某=行['index']):
+                        '写入输入类型'
+                        自身.改行(某,补丁)
+                    画输入类型(界面,模型列表[行['index']],'inputModalities',禁用,None,翻译,改输入)
+            加=界面.button(翻译('addModel'), on_click=添加)
+            if 禁用:
+                加.disable()
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 调用'

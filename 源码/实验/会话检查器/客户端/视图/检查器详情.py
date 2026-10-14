@@ -1,4 +1,5 @@
 '可在本地调整高度的原始数据面板；指针捕获拥有拖动寿命'
+from nicegui import ui as 界面
 
 __all__=['检查器详情']
 
@@ -13,6 +14,51 @@ def 矩形高(矩形):
     if isinstance(矩形,dict):
         return 矩形.get('height',0)
     return 矩形.height
+
+def 画出详情体(节点):
+    '把详情里的结构字典画成标签和按钮'
+    if 节点 is None:
+        return
+    if isinstance(节点,str):
+        if 节点!='':
+            界面.label(节点)
+        return
+    if isinstance(节点,(list,tuple)):
+        for 项 in 节点:
+            画出详情体(项)
+        return
+    if not isinstance(节点,dict):
+        return
+    种类=节点.get('type') or 'div'
+    文=节点.get('text') or ''
+    点击=节点.get('onClick')
+    类名=节点.get('className') or ''
+    if 种类=='button':
+        def 点(事件=None,点击=点击):
+            '执行点击；回调可能不收事件'
+            if not callable(点击):
+                return
+            try:
+                点击(事件)
+            except TypeError:
+                点击()
+        钮=界面.button(文 or ' ', on_click=点).props('flat no-caps dense')
+        if 节点.get('disabled'):
+            钮.disable()
+        if 类名:
+            钮.classes(str(类名))
+        if 节点.get('title'):
+            钮.tooltip(str(节点['title']))
+        return
+    块=界面.column() if 种类 in ('div','ul','ol','li','nav','section','pre') else 界面.row()
+    if 类名:
+        块.classes(str(类名))
+    if 节点.get('role'):
+        块.props(f'role={节点["role"]}')
+    with 块:
+        if isinstance(文,str) and 文!='':
+            界面.label(文)
+        画出详情体(节点.get('children'))
 
 class 检查器详情:
     '从上沿调整原始数据区，同时保持表格可见'
@@ -85,11 +131,38 @@ class 检查器详情:
         '分隔条、标题和原文或子内容'
         属性=自身.属性
         翻译=属性['t']
-        子=属性.get('children')
+        盒={'子':属性.get('children')}
+        根=界面.column().classes('检查器详情')
+        根.style(f'flex-basis:{自身.百分比}%')
+        根.props(f'id={自身.标识}')
+        自身._记面板(根)
+        with 根:
+            分隔=界面.element('div').classes('detailsResize')
+            分隔.props(
+                'role=separator tabindex=0 aria-orientation=horizontal '
+                f'aria-controls={自身.标识} aria-label="{翻译("table.resizeDetails")}" '
+                f'aria-valuemin=15 aria-valuemax=80 aria-valuenow={round(自身.百分比)}'
+            )
+            with 界面.row().classes('toolbar'):
+                界面.label(翻译('table.raw'))
+                if callable(属性.get('close')):
+                    界面.button(翻译('table.close'), on_click=属性['close']).props('flat no-caps')
+            铺开=属性.get('铺开')
+            if callable(铺开):
+                with 界面.column().classes('objectDetails'):
+                    盒['子']=铺开()
+            elif 盒['子'] is not None:
+                with 界面.column().classes('objectDetails'):
+                    画出详情体(盒['子'])
+            if 盒['子'] is None and 属性.get('text'):
+                标签=界面.label(str(属性.get('text') or '')).style('white-space:pre-wrap')
+                if 属性.get('failed'):
+                    标签.props('role=alert')
+        子=盒['子']
         体={'type':'pre','role':'alert' if 属性.get('failed') else None,'text':属性.get('text','')}
         if 子 is not None:
             体={'type':'div','className':'objectDetails','children':子}
-        return {
+        树={
             'type':'div',
             'id':自身.标识,
             'className':'details',
@@ -120,6 +193,7 @@ class 检查器详情:
             },
             'body':体,
         }
+        return 树
 
     def _记面板(自身,元素):
         '挂上面板元素，供拖动测量'

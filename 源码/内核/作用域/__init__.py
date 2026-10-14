@@ -198,7 +198,3 @@ def 获取载体键(值):
     if not 是否作用域载体(值):
         return None
     return 载体键表.取(值)
-
-from . import (
-    不变量,
-)

@@ -4,7 +4,6 @@ from ...依赖.schemastery import 自然数字段#配置字段
 from .事件 import 插件事件帧,事件端点#再导出 SSE 帧、路径
 from .异常 import 热更新错误#本包异常
 from . import (
-    不变量,
     客户端,
 )
 
@@ -34,26 +33,27 @@ def 应用(上下文,配置值):
         except OSError as 错误:#其它磁盘错误
             上下文.日志.警告(错误)#记警告后仍更新基线
         监视['mtimeMs']=当前['mtimeMs']#记下本次 stat 时间
+        监视['ctimeMs']=当前['ctimeMs']#记下本次 ctime
         监视['size']=当前['size']#记下本次大小
         监视['dirty']=False#本轮成功，清脏
 
     def 读状态(路径):
         '读磁盘 mtime 与 size。mtime 是纪元毫秒 int'
         信息=os.stat(路径)#同步 stat
-        return {'mtimeMs':int(信息.st_mtime*1000),'size':信息.st_size}#毫秒时间与大小
+        return {'mtimeMs':int(信息.st_mtime*1000),'ctimeMs':int(信息.st_ctime*1000),'size':信息.st_size}#毫秒时间与大小
 
     def 监视行(标识,路径):
         '开始监视一行的打包产物'
         try:#读当前 stat
             基线=读状态(路径)#同步 stat
         except FileNotFoundError:#文件还不在
-            监视表[标识]={'path':路径,'mtimeMs':0,'size':0,'dirty':True}#先占位并标脏
+            监视表[标识]={'path':路径,'mtimeMs':0,'ctimeMs':0,'size':0,'dirty':True}#先占位并标脏
             return#等下次轮询
         except OSError as 错误:#其它磁盘错误
-            监视表[标识]={'path':路径,'mtimeMs':0,'size':0,'dirty':True}#先占位并标脏
+            监视表[标识]={'path':路径,'mtimeMs':0,'ctimeMs':0,'size':0,'dirty':True}#先占位并标脏
             上下文.日志.警告(错误)#非缺失才警告
             return#等下次轮询
-        监视={'path':路径,'mtimeMs':基线['mtimeMs'],'size':基线['size'],'dirty':False}#用当前 stat 做基线
+        监视={'path':路径,'mtimeMs':基线['mtimeMs'],'ctimeMs':基线['ctimeMs'],'size':基线['size'],'dirty':False}#用当前 stat 做基线
         监视表[标识]=监视#登记监视
         再哈希(标识,监视,基线)#立刻对齐 hash 与图
 
@@ -69,7 +69,7 @@ def 应用(上下文,配置值):
                 监视['dirty']=True#标脏
                 上下文.日志.警告(错误)#警告
                 continue#本行下次再试
-            if (not 监视['dirty']) and 当前['mtimeMs']==监视['mtimeMs'] and 当前['size']==监视['size']:#干净且未变
+            if (not 监视['dirty']) and 当前['mtimeMs']==监视['mtimeMs'] and 当前['ctimeMs']==监视['ctimeMs'] and 当前['size']==监视['size']:#干净且未变
                 continue#跳过
             再哈希(标识,监视,当前)#内容或脏标记变化则再 hash
 

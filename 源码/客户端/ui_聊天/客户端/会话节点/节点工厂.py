@@ -13,14 +13,14 @@ __all__=['聊天错误','聊天合成序号偏移','上下文位置','聊天节�
 def 上下文位置(上下文):#从上下文取当前最佳事件位置
     '起点或首次匹配的位置，否则未解析'
     起点=上下文['start'] if 'start' in 上下文 else None#起点
-    if 起点 is not None and 'location' in 起点:#有
+    if 起点 is not None and 'location' in 起点:
         位=起点['location']#位置
-        if 位 is not None:#有
+        if 位 is not None:
             return 位#用起点
     匹配列表=上下文['matches'] if 'matches' in 上下文 else []#匹配
-    if len(匹配列表)>0 and 'location' in 匹配列表[0]:#有
+    if len(匹配列表)>0 and 'location' in 匹配列表[0]:
         位=匹配列表[0]['location']#首匹配位置
-        if 位 is not None:#有
+        if 位 is not None:
             return 位#用首匹配
     return {'kind':'unresolved'}#未解析
 

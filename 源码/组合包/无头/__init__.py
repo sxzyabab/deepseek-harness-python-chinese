@@ -1,5 +1,5 @@
 '一次性直接智能体驱动'
-import os,uuid
+import os,threading,uuid
 from ...依赖 import cordis
 from ...依赖.schemastery import 字符串字段,布尔字段
 from ...内核.智能体 import 安装模型选择
@@ -26,17 +26,60 @@ from . import (
     启动内部,
 )
 
+def 等到期约(值):
+    '同步值原样返回；期约则等到落定，拒绝则抛出'
+    if not hasattr(值,'然后'):
+        return 值
+    完成=threading.Event()
+    盒子={'值':None,'拒绝':False}
+    def 成功(结果=None):
+        '记下兑现'
+        盒子['值']=结果
+        完成.set()
+    def 失败(错误=None):
+        '记下拒绝'
+        盒子['值']=错误
+        盒子['拒绝']=True
+        完成.set()
+    值.然后(成功,失败)
+    完成.wait()
+    if 盒子['拒绝']:
+        错误=盒子['值']
+        if isinstance(错误,BaseException):
+            raise 错误
+        raise 无头错误(str(错误))
+    return 盒子['值']
+
+def 取智能体(句柄):
+    '从创建或恢复句柄取出智能体'
+    if isinstance(句柄,dict):
+        if '智能体' in 句柄:
+            return 句柄['智能体']
+        return 句柄['agent']
+    if hasattr(句柄,'智能体'):
+        return 句柄.智能体
+    return 句柄.agent
+
+def 活事件(会话,诊断):
+    '按序号交出已捕获日志；缺号则失败'
+    长度=会话.seq
+    事件列表=会话.snapshotEvents(0,长度)
+    if len(事件列表)!=长度:
+        raise 无头错误(诊断+'读不到序号，已捕获长度 '+str(长度))
+    for 序号,事件 in enumerate(事件列表):
+        if 事件['seq']!=序号:
+            raise 无头错误(诊断+'读不到序号 '+str(序号)+'，已捕获长度 '+str(长度))
+        yield 事件
+
 def 汇总(会话,起始序号):
     '在一段已拥有区间内汇总最后助手文本与回合结局'
     已开始=False
     文本=''
     原因=None
     长度=会话.seq
-    for 事件 in 会话.events:
+    for 事件 in 活事件(会话,'无头汇总'):
         if 事件['seq']<起始序号:
             continue
-        if 事件['seq']>=长度:
-            break
         种类=事件['type']
         if 种类=='turn/start':
             已开始=True
@@ -105,7 +148,7 @@ def 流式推理(上下文,智能体,标准错误):
             return
         断言永不(块,'headless reasoning stream')
 
-    拆除订阅=上下文.on('agent/assistant-stream',帧处理)
+    拆除订阅=上下文.监听('agent/assistant-stream',帧处理)
     def 拆除():
         '退订并关上未终止行'
         拆除订阅()
@@ -146,15 +189,20 @@ def 解析智能体(上下文,智能体服务,会话标识值,智能体选项,�
         raise 无头错误('无头 --session-id 需要 sessionQuery 服务；dsh-base 提供该服务')
     活着=智能体服务.获取(会话标识值)
     if 活着 is not None:
-        断言可收养(活着.session.header,活着.session.events,会话标识值,工作目录)
+        断言可收养(活着.session.header,活事件(活着.session,'无头收养'),会话标识值,工作目录)
         raise 无头错误('会话 "'+会话标识值+'" 已在本进程活着，一次性运行器不能独占运行区间')
     try:
-        观测=查询.观察会话(会话标识值)
-        断言可收养(观测.header,观测.events,会话标识值,工作目录)
-        句柄=智能体服务.恢复({'resumeSessionId':会话标识值,'agentOptions':智能体选项,'setup':安装})
-        智能体=句柄.智能体
-        断言可收养(智能体.session.header,智能体.session.events,会话标识值,工作目录)
-        return 智能体
+        观测=查询.observeSession(会话标识值)
+        try:
+            断言可收养(观测.header,观测.events,会话标识值,工作目录)
+            句柄=等到期约(智能体服务.恢复({'resumeSessionId':会话标识值,'agentOptions':智能体选项,'setup':安装}))
+            智能体=取智能体(句柄)
+            断言可收养(智能体.session.header,活事件(智能体.session,'无头收养'),会话标识值,工作目录)
+            return 智能体
+        finally:
+            关闭=getattr(观测,'close',None)
+            if 关闭 is not None:
+                关闭()
     except 会话查询错误 as 错误:
         if getattr(错误,'code',None)!='SESSION_QUERY_SESSION_NOT_FOUND':
             raise
@@ -195,35 +243,62 @@ def 执行任务(上下文,配置值,出入):
     智能体选项={'provider':选择['provider'],'model':选择['model']}
     标识=会话标识(会话标识原文 if 会话标识原文 is not None else 'session-'+str(uuid.uuid4()))
     文件系统=上下文.获取服务('fs',False)
-    工作目录=os.getcwd() if 文件系统 is None else 文件系统.进程路径(文件系统.解析('.'))
+    if 文件系统 is None:
+        工作目录=os.getcwd()
+    else:
+        工作目录=文件系统.进程路径(等到期约(文件系统.解析('.')))
     if 会话标识原文 is None:
-        句柄=智能体服务.创建({
+        句柄=等到期约(智能体服务.创建({
             'sessionId':标识,
             'meta':{'cwd':工作目录},
             'agentOptions':智能体选项,
             'setup':安装,
-        })
-        智能体=句柄.智能体
+        }))
+        智能体=取智能体(句柄)
     else:
         智能体=解析智能体(上下文,智能体服务,标识,智能体选项,安装,工作目录)
-    智能体.等到空闲()
+    等到期约(智能体.等到空闲())
     if 会话标识原文 is not None:
-        断言可收养(智能体.session.header,智能体.session.events,标识,工作目录)
+        断言可收养(智能体.session.header,活事件(智能体.session,'无头收养'),标识,工作目录)
     起始=智能体.session.seq
     json模式=配置值['json'] is True if 'json' in 配置值 else False
     投影=投影json运行(上下文,智能体,出入['stdout'],{'cwd':工作目录}) if json模式 else None
     停推理=None if 投影 is not None else 流式推理(上下文,智能体,出入['stderr'])
+    失败箱={'值':None}
+    def 记错误(载荷):
+        '记下本智能体的失败和当时的日志长度'
+        if isinstance(载荷,dict) and 载荷.get('agent') is 智能体:
+            失败箱['值']={'error':载荷.get('error'),'atOffset':智能体.session.seq}
+    def 记终局(会话,事件):
+        '失败之后的回合结束清掉这次失败'
+        失败=失败箱['值']
+        if 失败 is None or 会话 is not 智能体.session or not isinstance(事件,dict):
+            return
+        if 事件.get('type')=='turn/end' and 事件.get('seq',-1)>=失败['atOffset']:
+            失败箱['值']=None
+    停错误=上下文.监听('agent/error',记错误)
+    停终局=上下文.监听('session/event',记终局)
     try:
         try:
             智能体.后续(创建用户消息({
                 'content':[{'type':'text','text':任务}],
                 'source':{'kind':'user'},
             }))
-            智能体.等到空闲()
+            子体服务=上下文.获取服务('subagents',False)
+            while True:
+                等到期约(智能体.等到空闲())
+                空闲序号=智能体.session.seq
+                看到子=False
+                if 子体服务 is not None:
+                    看到子=等到期约(子体服务.等待子体(智能体)) is True
+                if not 看到子 and 智能体.状态=='idle' and 智能体.session.seq==空闲序号:
+                    break
         finally:
             if 停推理 is not None:
                 停推理()
         会话服务.冲洗(智能体.session)
+        if 失败箱['值'] is not None:
+            raise 失败箱['值']['error']
         结局=汇总(智能体.session,起始)
         if 投影 is None:
             出入['stdout'].write(结局['text']+'\n')
@@ -235,6 +310,8 @@ def 执行任务(上下文,配置值,出入):
             出入['stderr'].write('dsh: '+str(错误体['code'])+': '+str(错误体['message'])+'\n')
         出入['exit'](0 if 原因 is not None and 原因['kind']=='completed' else 1)
     finally:
+        停错误()
+        停终局()
         if 投影 is not None:
             投影['dispose']()
 

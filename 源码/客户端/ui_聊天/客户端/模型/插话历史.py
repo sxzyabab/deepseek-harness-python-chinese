@@ -9,9 +9,9 @@ class 插话历史:
 
     def 重置(自身):
         '重建历史窗口前清空'
-        自身.收件箱['next-turn']=[]#清
-        自身.收件箱['next-step']=[]#清
-        自身.已认领下一步.clear()#清
+        自身.收件箱['next-turn']=[]
+        自身.收件箱['next-step']=[]
+        自身.已认领下一步.clear()
 
     def 应用(自身,事件):
         '仅当用户来源消息先前从 next-step 认领时为 True。事件为 dict'
@@ -38,7 +38,7 @@ class 插话历史:
         删=拼接['removedCount'] if 'removedCount' in 拼接 and 拼接['removedCount'] is not None else 0#删
         插入=list(拼接['inserted']) if 'inserted' in 拼接 and 拼接['inserted'] is not None else []#插
         if 目标 not in 自身.收件箱:#未知
-            return#停
+            return
         队=自身.收件箱[目标]#队列
         被删=队[起:起+删]#被删
         队[起:起+删]=插入#splice
@@ -47,7 +47,7 @@ class 插话历史:
             自身.已认领下一步.discard(号)#删
         结局=拼接['outcome'] if 'outcome' in 拼接 else None#结局
         if 目标!='next-step' or 结局=='canceled':#非下一步或取消
-            return#停
+            return
         for 身份 in 被删:#移除项认领
             号=身份['id'] if 'id' in 身份 else None#id
             自身.已认领下一步.add(号)#加

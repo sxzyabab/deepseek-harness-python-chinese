@@ -4,6 +4,8 @@ from .文案 import 命名空间,中文,英文#词典
 from .预设芯片 import 预设芯片#新会话芯片
 from .预设标签 import 预设标签#页眉只读标签
 from .预设分区 import 预设分区#管理分区组件
+from .创建插件菜单项 import 创建插件菜单项#添加插件菜单
+from .指南文案 import 指南中文,指南英文#模式帮助词条
 from .设置存储 import 设置命名空间,预设设置控制器#设置存储
 from .芯片存储 import 芯片控制器,共享暂存初始#主界面芯片与共享暂存
 from .分区存储 import 分区控制器,草稿阻挡#管理分区
@@ -66,15 +68,19 @@ def 应用(上下文):#安装浏览器半边预设界面
         摘要=None#候选
         for 会话 in 表.values():#扫
             if 会话.get('blank') and (会话.get('retainedBy',{}).get('mainView',0) or 0)>0:#主视图空白
-                摘要=会话#记下
-                break#停
+                摘要=会话
+                break
         if 摘要 is None:#无
             return None#空
         绑定=作用域.sessions.binding(摘要['id'])#取绑定
         return None if 绑定 is None else 座位为(作用域,绑定)#有绑定则取芯片
     def 登记词典():
         '登记预设词表'
-        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
+        词中文=dict(中文)#设置词条
+        词中文.update(指南中文)#并入帮助
+        词英文=dict(英文)#英文
+        词英文.update(指南英文)#并入帮助
+        return 上下文.locale.register(命名空间,{'zh':词中文,'en':词英文})#词典
     上下文.副作用(登记词典,'ui-agent-preset: settings row dictionaries')#词典
     def 刷新监听():#设置刷新
         '外部改设置或重连都推动这一行'
@@ -155,6 +161,27 @@ def 应用(上下文):#安装浏览器半边预设界面
                 标签()#注销标签
             return 拆除#拆除器
         作用域.副作用(生命周期,'ui-agent-preset: new-session chip and header label')#生命周期
+        def 插件注入():#添加插件菜单注入面
+            '名册与创造模式入口'
+            def 启动():#等编写入口绑上再调用
+                '生命周期里才会填上编写入口'
+                入口=编写入口[0]#当前入口
+                if 入口 is not None:#已绑定
+                    入口()#启动
+            return {#注入
+                'hooks':{'agentPresets':控制器.存储},#名册
+                'load':控制器.load,#加载
+                'startCreatorDraft':启动,#创造
+            }
+        def 登记插件项():#等添加插件菜单槽
+            'plugins.add.actions'
+            return 作用域.slots.register({#登记
+                'name':'plugins.add.actions',#槽名
+                'id':'create-plugin',#条目
+                'locale':命名空间,#词表
+                'inject':插件注入,#注入
+            },创建插件菜单项)#组件
+        作用域.slots.inject('plugins.add.actions',登记插件项)#等槽
     上下文.依赖启动(['slots','conversation','sessions','workspaces'],挂会话面)#会话作用域
     def 捕获空白会话同步():#记下本次设置动作可能更新的那一场空白会话
         '只在仍是同一绑定芯片、同一空白会话时同步'
@@ -162,8 +189,8 @@ def 应用(上下文):#安装浏览器半边预设界面
         摘要=None#候选
         for 会话 in 表.values():#扫
             if 会话.get('blank') and (会话.get('retainedBy',{}).get('mainView',0) or 0)>0:#主视图空白
-                摘要=会话#记下
-                break#停
+                摘要=会话
+                break
         绑定=None if 摘要 is None else 上下文.sessions.binding(摘要['id'])#取绑定
         芯片=None if 绑定 is None else 座位表.get(绑定['ctx'])#取已缓存芯片
         会话标识=芯片.blankSessionId() if 芯片 is not None else None#当时空白会话

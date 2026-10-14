@@ -1,6 +1,7 @@
 import threading
+from nicegui import ui as 界面
 from ....基础设施.js特性 import PromiseEX as 期约#停录、转写与拆除的异步结果
-from ..异常 import 录制错误#采集失败
+from ..异常 import 录制错误,失败说明#采集失败
 from .音频 import 音频base64
 from .波形图 import 波形图
 from .语音输入安装对话框 import 语音输入安装对话框
@@ -50,6 +51,8 @@ class 语音输入:
             'onOpenDetails':自身.开详情,
             't':属性['t'],
         })
+        if 't' in 属性:#槽位只调用构造
+            自身.渲染()
 
     def 关引导(自身):
         '关掉安装/不可用模态'
@@ -88,10 +91,7 @@ class 语音输入:
         翻译=自身.属性['t']
         if isinstance(失败,录制错误):
             return 翻译(失败.kind)
-        消息=str(失败)
-        if isinstance(失败,Exception):
-            消息=str(失败)
-        return 填(翻译,'failed',{'message':消息})
+        return 填(翻译,'failed',{'message':失败说明(失败)})
 
     def 反馈(自身,文本):
         '工具栏内提示'
@@ -275,6 +275,7 @@ class 语音输入:
             and 提供方.get('location')=='host-local'
             and (提供方.get('preparation') or {}).get('phase')=='unprepared')
         if not 展开:
+            界面.button(翻译('start' if 可用 else 'setupPrompt.trigger'), on_click=自身.点触发).props('flat no-caps' + (' disable' if 锁定 else '')).tooltip(翻译('dictate' if 可用 else 'prepareRequired'))
             return {
                 'type':'voice-input',
                 'mode':'trigger',
@@ -302,9 +303,22 @@ class 语音输入:
         else:
             状态文=翻译('transcribingShort')
         波形=None
-        if 自身.阶段=='recording':
-            采集=None if 自身.当前 is None else 自身.当前.get('capture')
-            波形=自身.波形({'recording':采集,'label':翻译('recording')})
+        with 界面.row().classes('语音采集'):
+            界面.button(翻译('discard' if 自身.待插入 else 'cancel'), on_click=自身.取消).props('flat no-caps')
+            if 自身.阶段=='recording':
+                采集=None if 自身.当前 is None else 自身.当前.get('capture')
+                波形=自身.波形({'recording':采集,'label':翻译('recording')})
+            elif 状态文:
+                界面.label(状态文)
+            if 自身.待插入:
+                界面.label(自身.待插入)
+                界面.button(翻译('insert'), on_click=自身.插入待定).props('flat no-caps')
+            if 自身.阶段=='recording':
+                界面.button(翻译('stop'), on_click=自身.结束).props('flat no-caps')
+            if 自身.阶段=='feedback' and not 自身.待插入:
+                重试=界面.button(翻译('retryRecording'), on_click=自身.开始).props('flat no-caps')
+                if not 可用 or 锁定:
+                    重试.disable()
         return {
             'type':'voice-input',
             'mode':'capture',

@@ -8,7 +8,6 @@ from .异常 import 工作区错误,工作区移动无效错误,工作区未知�
 from .路径 import 规范化真实路径
 from .规格 import 工作区域规格
 from . import (
-    不变量,
     类型,
 )
 

@@ -1,6 +1,7 @@
-'快捷键速查插件；命令与入口共享一份已声明 store'
+'快捷键速查插件；命令与入口共享一份已声明 store。只画可见列表和录入，不改命令执行体。'
 from types import SimpleNamespace as 简易命名空间
-from .存储 import 创建快捷键存储
+from ...ui_基础界面组件.模态层 import 关栈顶模态
+from .存储 import 创建快捷键存储,快捷键存储面
 from .参考 import 快捷键速查,快捷键设置行
 from .文案 import 命名空间,中文,英文
 from .固定 import 固定命令
@@ -14,9 +15,25 @@ __all__=['依赖','应用','命名空间','中文','英文','创建快捷键存�
 
 依赖=['shortcuts','locale','slots']
 
-def 关闭顶层模态(文档):
+def 页面文档():
+    '当前页面文档。没有则 None。'
+    try:
+        return document
+    except NameError:
+        pass
+    窗口=globals().get('window')
+    if isinstance(窗口,dict):
+        return 窗口.get('document')
+    if 窗口 is None:
+        return None
+    return getattr(窗口,'document',None)
+
+def 关闭顶层模态(文档=None):
     '对齐 closeTopModal：关掉最前登记模态的 onClose'
-    globals()['closeTopModal'](文档)
+    目标=页面文档() if 文档 is None else 文档
+    if 目标 is None:
+        return
+    关栈顶模态(目标)
 
 def 应用(上下文):
     '注册速查命令、设置行与单实例 shell 浮层'
@@ -26,7 +43,7 @@ def 应用(上下文):
     上下文.副作用(登记词典,'shortcuts: dictionaries')
     翻译=上下文.locale.bind(命名空间)
     句柄=创建快捷键存储()
-    实例=句柄.create()
+    实例=快捷键存储面(句柄.create())
     存储=简易命名空间(spec=句柄.spec,create=lambda *_位置,_关键字=None:实例)
     def 编辑(*位置参数):
         '转发 shortcuts.edit'
@@ -61,7 +78,7 @@ def 应用(上下文):
         return 上下文.slots.register({
             'name':'settings.general.item',
             'id':'shortcuts',
-            'order':20,
+            'order':16,
             'locale':命名空间,
             'store':存储,
             'inject':注入面,
@@ -77,9 +94,9 @@ def 应用(上下文):
             def 跑():
                 'toggle'
                 if 模态=='shortcuts':
-                    关闭顶层模态(document)#页面文档
+                    关闭顶层模态()
                 else:
-                    实例['actions']['open']()
+                    实例.actions['open']()
             return {'status':'handled','run':跑}
         def 标签():
             '命令标签'

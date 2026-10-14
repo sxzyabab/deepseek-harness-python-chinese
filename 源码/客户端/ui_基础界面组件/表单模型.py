@@ -1,4 +1,5 @@
 from ..存储 import 创建快照存储
+from .异常 import 去掉绝对路径
 
 __all__=['设置数字字段','设置文本字段','设置表单模型']
 
@@ -138,8 +139,10 @@ class 设置表单模型:
                 自身.暂存.clear()
                 自身.基线=None
             自身.失败=not 落地
-        except Exception:
+        except Exception as 错误:
             自身.失败=True
+            说明=去掉绝对路径(错误)
+            raise RuntimeError(type(错误).__name__ if 说明=='' else 说明) from None
         finally:
             自身.保存中=False
             自身.发布()

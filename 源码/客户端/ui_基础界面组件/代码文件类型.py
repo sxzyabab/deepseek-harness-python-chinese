@@ -96,7 +96,7 @@ def 分类代码文件类型(名,扩展名,上下文=None):#分类代码文件�
         规范=None#pubspec 文本
         for 路径,文本 in 文件表.items():#扫项目文件
             if _路径末段(路径).lower()=='pubspec.yaml':#命中
-                规范=文本#记下
+                规范=文本
                 break#结束
         if 规范 is not None and 'flutter:' in 规范:#含 flutter
             return 'flutter'#flutter

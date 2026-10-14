@@ -37,7 +37,7 @@ def 有打断证据(块列表):#打断投影是否有可展示证据
         if 种 in ('text','reasoning'):#文本/推理
             文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#正文
             if 文.strip()!='':#非空白
-                return True#有
+                return True
             continue#空白
         return True#其它也算
     return False#无
@@ -177,14 +177,14 @@ def 回放状态(上下文):#无增量状态时从匹配重放
         if 种=='assistant/live-chunk':#流块
             数据=事件['data'] if 'data' in 事件 else {}#载荷
             if 态 is None:#首次
-                态=初态(数据['turn'] if 'turn' in 数据 else None,数据['step'] if 'step' in 数据 else None)#开
+                态=初态(数据['turn'] if 'turn' in 数据 else None,数据['step'] if 'step' in 数据 else None)
             态=折流块(态,匹配项)#折
             continue#下
         if 种=='assistant/message':#定稿
             数据=事件['data'] if 'data' in 事件 else {}#载荷
             消息=数据['message'] if 'message' in 数据 else {}#消息
             if 态 is None:#首次
-                态=初态(数据['turn'] if 'turn' in 数据 else None,数据['step'] if 'step' in 数据 else None)#开
+                态=初态(数据['turn'] if 'turn' in 数据 else None,数据['step'] if 'step' in 数据 else None)
             态={**态,'blocks':转助手块列表(消息['content'] if 'content' in 消息 else None),'hidden':False,'final':匹配项,'usage':数据['usage'] if 'usage' in 数据 else None}#覆盖
             continue#下
         if 种=='llm/retry' and 态 is not None:#重试
@@ -226,7 +226,7 @@ def 助手匹配(事件):#按事件认领本步骤
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='step/start':#步骤开始
-        return {'id':str(数据['turn'])+':'+str(数据['step']),'role':'start'}#开
+        return {'id':str(数据['turn'])+':'+str(数据['step']),'role':'start'}
     if 种=='assistant/live-chunk' or (种=='assistant/message' and 是追加面事件(事件)):#流/定稿
         return {'id':str(数据['turn'])+':'+str(数据['step']),'role':'update'}#更新
     if 种=='llm/retry':#重试

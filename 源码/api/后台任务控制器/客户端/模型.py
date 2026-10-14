@@ -1,4 +1,5 @@
 from ....基础设施.通用工具 import 观察者集合
+from ..异常 import 失败说明#观察失败文案
 
 __all__=['客户端作业模型']
 
@@ -106,12 +107,12 @@ class 客户端作业模型:
         状态=自身._观察态.get(str(标识))
         if 状态 is None:
             自身._观察态[str(标识)]={
-                'view':{'jobId':标识,'text':'','gapBefore':False,'streaming':False,'error':str(错误)},
+                'view':{'jobId':标识,'text':'','gapBefore':False,'streaming':False,'error':失败说明(错误)},
                 'cursor':None,
             }
             自身._已变()
             return
-        状态['view']={**状态['view'],'streaming':False,'error':str(错误)}
+        状态['view']={**状态['view'],'streaming':False,'error':失败说明(错误)}
         自身._已变()
 
     def 观察已停止(自身,标识):

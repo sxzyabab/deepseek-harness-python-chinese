@@ -1,6 +1,6 @@
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 启动守护线程,观察者集合
-from ..异常 import 预设错误#本包异常
+from ..异常 import 预设错误,页面失败文案#本包异常与页面失败句
 
 __all__=['权限目录','预设错误']#仅中文公开名
 
@@ -33,11 +33,11 @@ class 读任务:#一次目录读取
             '执行读取'
             try:#读
                 产出=函数()#期约
-            except 预设错误 as 错误:#失败
-                自身.期约.拒绝(错误)#记下
+            except 预设错误 as 错误:#失败改成洗过的文案再拒绝
+                自身.期约.拒绝(预设错误(页面失败文案(错误)))
                 return
-            except BaseException as 错误:#其它失败
-                自身.期约.拒绝(错误)#记下
+            except BaseException as 错误:#其它失败改成预设错误，读取方能看见洗过的文案
+                自身.期约.拒绝(预设错误(页面失败文案(错误)))
                 return
             产出.然后(自身.期约.解决,自身.期约.拒绝)#接上
         启动守护线程(在线程执行)#后台
@@ -72,14 +72,14 @@ class 权限目录:#进程级最新结果获胜的目录
     def 刷新(自身):
         '对活动世代强制完整再读'
         if 自身.已拆除 is True:#已拆
-            return#停
+            return
         快=自身.连接.generation.getSnapshot()#世代
         世代标识=快['id'] if 快 is not None and 'id' in 快 else None#id
         if 世代标识 is None:#无世代
-            return#停
+            return
         if 世代标识!=自身.世代标识:#世代变了
             自身.同步世代()#同步
-            return#停
+            return
         自身.开始读(世代标识)#读
 
     def 加载(自身):
@@ -100,7 +100,7 @@ class 权限目录:#进程级最新结果获胜的目录
             if 世代标识!=自身.世代标识:#世代变了
                 自身.同步世代()#同步
             待决=自身.待决#进行中
-            if 待决 is not None:#有
+            if 待决 is not None:
                 def 再看(_值=None):
                     '进行中的读取落定后再看'
                     看()
@@ -117,27 +117,27 @@ class 权限目录:#进程级最新结果获胜的目录
     def dispose(自身):
         '停订阅并收回迟到结算的写入权'
         if 自身.已拆除 is True:#已拆
-            return#停
+            return
         自身.已拆除=True#拆
         自身.纪元+=1#作废
-        自身.待决=None#清
+        自身.待决=None
         自身.停世代()#卸世代
         自身.停目录()#卸目录
 
     def 同步世代(自身):
         '世代丢失/替换时硬清旧 Host 值'
         if 自身.已拆除 is True:#已拆
-            return#停
+            return
         快=自身.连接.generation.getSnapshot()#世代
         世代标识=快['id'] if 快 is not None and 'id' in 快 else None#id
         if 自身.已初始化 is True and 世代标识==自身.世代标识:#未变
-            return#停
+            return
         if 自身.已初始化 is True:#真变了才撤选项
             自身.失效()#滴答
         自身.已初始化=True#已同步
-        自身.世代标识=世代标识#记下
+        自身.世代标识=世代标识
         自身.纪元+=1#作废旧读
-        自身.待决=None#清
+        自身.待决=None
         自身.失败=预设错误('permission catalog has no complete value')#重置失败
         自身.store.set({'value':None})#清值
         if 世代标识 is not None:#有世代
@@ -167,7 +167,7 @@ class 权限目录:#进程级最新结果获胜的目录
         def 清待决():
             '仍是自己则清'
             if 自身.待决 is 操作:#仍是自己
-                自身.待决=None#清
+                自身.待决=None
         def 结算成功(值):
             '写回'
             if 自身.接受(纪元,世代标识) is False:#过期
@@ -181,11 +181,11 @@ class 权限目录:#进程级最新结果获胜的目录
                 清待决()
                 return
             if isinstance(错误,预设错误):#业务失败
-                自身.失败=错误#记下
-                自身.store.set({'value':None})#清
+                自身.失败=错误
+                自身.store.set({'value':None})
             清待决()
         操作.期约.然后(结算成功,结算失败)#后台结算
-        自身.待决=操作#记下
+        自身.待决=操作
 
     def 接受(自身,纪元,世代标识):
         '拆除、刷新纪元、真实连接世代三重栅'

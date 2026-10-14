@@ -3,7 +3,7 @@ from ....依赖.cordis import 服务#服务基类
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....工具.加密 import 随机uuid#新终端身份
 from ..类型 import 取远程错误#远程失败形态
-from ..异常 import 远程错误#本包异常
+from ..异常 import 远程错误,失败说明#本包异常
 from .模型 import 终端视图,快照存储#视图与通知
 from .外壳偏好 import 首选外壳,记住外壳#外壳偏好
 from .关闭请求 import 终端关闭请求#未完成关闭
@@ -24,12 +24,12 @@ def 取码(错误):#按结构读失败码，不依赖异常类型
     return getattr(错误,'code',None)
 
 def 取消息(错误):#给人看的失败文案
-    '优先异常首参或信封 message，否则 str'
+    '优先异常首参或信封 message。去掉绝对路径，其余说明保留。'
     if isinstance(错误,BaseException) and len(错误.args)>0:
-        return str(错误.args[0])
+        return 失败说明(错误.args[0])
     if isinstance(错误,dict) and 'message' in 错误:
-        return 错误['message']
-    return str(错误)
+        return 失败说明(错误['message'])
+    return 失败说明(错误)
 
 class 客户端终端(服务):#侧栏出现与后台清理
     '标签键独立于宿主终端身份'

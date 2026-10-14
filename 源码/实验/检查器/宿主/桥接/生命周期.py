@@ -1,5 +1,5 @@
 import threading#超时与事件
-from ...异常 import 检查器错误#本包错误
+from ...异常 import 检查器错误,失败说明#本包错误|失败句
 from ...共享.桥接.控制编解码 import 解析检查器工作者控制#控制帧解析
 
 __all__=['检查器工作者生命周期']#仅中文公开名
@@ -45,14 +45,14 @@ class 检查器工作者生命周期:#Worker生命周期
             try:#解析
                 控制=解析检查器工作者控制(值)#校验解码
             except Exception as 错误:#json.loads 控制帧可能抛 JSONDecodeError/TypeError，契约未定所以收不窄
-                结果['error']=错误 if isinstance(错误,Exception) else Exception(str(错误))#拒绝
+                结果['error']=Exception(失败说明(str(错误)))#说明不含绝对路径
                 完成.set()#结束
                 return
             if 控制['type']=='ready':#就绪
                 结果['ready']=控制#就绪
                 完成.set()#结束
             elif 控制['type']=='failure':#失败帧
-                结果['error']=Exception(f'inspector Worker failed: {控制["message"]}')#失败
+                结果['error']=Exception('inspector Worker failed: '+失败说明(控制['message']))#说明不含绝对路径
                 完成.set()#结束
         自身.工作者.on('message',收消息)#挂监听
         def 超时():#就绪超时
@@ -64,7 +64,7 @@ class 检查器工作者生命周期:#Worker生命周期
         定时器.start()#启动
         while not 完成.is_set():#竞速
             if 自身.失败事件.wait(0.05):#失败
-                结果['error']=自身.失败#失败
+                结果['error']=Exception(失败说明(str(自身.失败)))#说明不含绝对路径
                 break#结束
             if 自身.退出事件.wait(0.05):#提前退出
                 结果['error']=Exception(f'inspector Worker exited before readiness (code {自身.退出码值})')#拒绝

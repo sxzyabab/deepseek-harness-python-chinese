@@ -16,3 +16,11 @@ body[data-ds-dark-theme] {
   --dsw-linear-gradient-think: linear-gradient(180deg, #151517 20.19%, rgba(21, 21, 23, 0) 100%);
   --dsw-linear-think-select: linear-gradient(180deg, #232325 20.19%, rgba(35, 35, 37, 0) 100%);
 }
+
+body,
+body * {
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
+  --dsw-elevation-stroke: 0 0 0 0.5px var(--dsw-elevation-stroke-color);
+  --dsw-elevation-panel: var(--dsw-elevation-stroke), 0 3px 8px 0 rgba(0, 0, 0, 0.03), 0 0 16px 0 rgba(0, 0, 0, 0.02);
+  --dsw-elevation-soft: var(--dsw-elevation-stroke), 0 4px 16px 0 rgba(0, 0, 0, 0.03), 0 0 24px 0 rgba(0, 0, 0, 0.03);
+}

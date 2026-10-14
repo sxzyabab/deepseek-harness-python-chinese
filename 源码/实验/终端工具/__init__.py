@@ -3,7 +3,7 @@ import functools
 from ...基础设施.js特性 import PromiseEX as 期约
 from ...基础设施.通用工具.数值判定 import 是否非负安全整数
 from ...依赖.schemastery import 布尔字段,整数字段#配置字段
-from ..终端 import 终端会话标识#导入会话id品牌化
+from ...终端.终端 import 终端会话标识#导入会话id品牌化
 from ...内核.工具 import 定义工具#导入工具定义
 from .渲染 import (#导入渲染与截断
     封顶终端文本,#封顶完整确认

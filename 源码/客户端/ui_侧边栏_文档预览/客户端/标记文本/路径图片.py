@@ -12,10 +12,7 @@ def 标记文本图片网址(基址,文档路径,目的地):
     '相对目的地解析到预览文件旁，再走鉴权文件路由'
     缀=re.search(r'[?#]',目的地)
     原=目的地 if 缀 is None else 目的地[:缀.start()]
-    try:
-        路径=unquote(原)
-    except Exception:
-        return None
+    路径=unquote(原)
     if 路径=='':
         return None
     窗盘=_窗盘符.search(路径) is not None

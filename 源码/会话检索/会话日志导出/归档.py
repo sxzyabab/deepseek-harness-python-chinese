@@ -35,16 +35,32 @@ def 冲刷活会话日志(依赖,标识,信号=None):#冲刷活会话
 
 会话日志文件名=会话格式日志文件名(会话格式版本)#当代规范文件名
 
+def _说明无路径(文本,兜底):#异常说明
+    '去掉绝对路径；没有剩下的字就用兜底'
+    留下=[]#留下的词
+    for 词 in str(文本).split():#逐词
+        统一=词.strip('\'"').replace('\\','/')#统一分隔
+        if 统一.startswith('/') or 统一.startswith('~/'):#根或家目录
+            continue#丢掉
+        if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':#盘符
+            continue#丢掉
+        留下.append(词)#保留
+    说明=' '.join(留下).strip()#拼回
+    if 说明=='':#掏空
+        return 兜底#兜底
+    return 说明#说明
+
 def 序列化会话日志(头,事件列表):#序列化逻辑日志
     '把头与事件编成规范 JSONL 文本'
-    行={'type':'session','version':头['version'],'id':头['id'],'createdAt':头['createdAt'],
-        'isSeeded':头['isSeeded'],'delegationDepth':头['delegationDepth'] if 'delegationDepth' in 头 else 0}#物理头
+    行={'type':'session','version':头['version'],'id':头['id'],'createdAt':头['createdAt']}#物理头前段
     if 'cwd' in 头:#cwd
         行['cwd']=头['cwd']#带上
     if 'parentSession' in 头:#父
         行['parentSession']=头['parentSession']#带上
+    行['isSeeded']=头['isSeeded']#是否种子
     if 'origin' in 头:#来源
         行['origin']=头['origin']#带上
+    行['delegationDepth']=头['delegationDepth'] if 'delegationDepth' in 头 else 0#深度
     if 'agentPreset' in 头:#预设
         行['agentPreset']=头['agentPreset']#带上
     行列表=[紧凑json编码(行)]#头行
@@ -173,6 +189,7 @@ def 会话日志zip条目(依赖,根内容,会话标识,含后代,信号=None):#
         已见={会话标识}#已见 id
         检索=依赖['sessionQuery']#检索
         谱系=检索.追踪会话谱系(会话标识,信号) if hasattr(检索,'追踪会话谱系') else 检索.traceSession(会话标识,信号)#谱系
+        _若已中止(信号)#谱系之后
         后代=谱系['descendants'] if isinstance(谱系,dict) else getattr(谱系,'descendants',())#后代
         def 收集(节点列表):#递归后代
             '按谱系顺序收集子智能体日志'
@@ -188,7 +205,7 @@ def 会话日志zip条目(依赖,根内容,会话标识,含后代,信号=None):#
                 文本=读会话日志文本(依赖['sessionPersistence'],标识,信号)#读
                 _若已中止(信号)#再取消
                 if 文本 is None:#缺日志
-                    raise RuntimeError(f'subagent "{标识}" has no stored log')#失败
+                    raise RuntimeError(_说明无路径(f'subagent "{标识}" has no stored log','subagent has no stored log'))#失败
                 记下附件(文本)#附件
                 条目列表.append({'path':f'subagents/{安全会话标识段(标识)}/{会话日志文件名}','content':文本})#子日志
                 子代=节点['descendants'] if isinstance(节点,dict) else getattr(节点,'descendants',())#再下
@@ -198,6 +215,7 @@ def 会话日志zip条目(依赖,根内容,会话标识,含后代,信号=None):#
     for 引用 in 图片表.values():#图片
         _若已中止(信号)#取消
         已存=附件库.readImage(引用,信号) if hasattr(附件库,'readImage') else 附件库.读图片(引用,信号)#读
+        _若已中止(信号)#读图之后
         数据=已存['data'] if isinstance(已存,dict) else 已存.data#字节
         条目列表.append({'path':媒体条目路径(引用),'data':数据})#图片条目
     for 引用 in 文件表.values():#文件

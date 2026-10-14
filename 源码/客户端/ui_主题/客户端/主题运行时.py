@@ -1,9 +1,12 @@
-from ..主题设置 import 默认偏好,默认字号,是否主题偏好,主题偏好字段,字号字段,字号最小,字号最大#偏好约定
+from ..主题设置 import (
+    默认偏好,默认字号表,默认字体族,是否主题偏好,是否字号,规范化字体族,
+    主题偏好字段,字号规格,字体族字段,字体角色,
+)
 from ..异常 import 主题错误#本包异常
 
-__all__=[#仅中文公开名
+__all__=[
     '解析活动主题','合并令牌覆盖','主题运行时','内置主题','内置检视令牌','校验覆盖层',
-]#公开面结束
+]
 
 内置主题=(#内置 light/dark
     {'id':'light','colorScheme':'light','tokens':{}},#浅
@@ -54,7 +57,7 @@ def 合并令牌覆盖(基础令牌,覆盖层列表,色板):
         for 名,成对 in 覆盖.items():#令牌
             if isinstance(成对,dict) and 色板 in 成对:#成对
                 值=成对[色板]#按色板
-                if 值 is not None:#有
+                if 值 is not None:
                     结果[名]=值#胜出
             elif isinstance(成对,str):#单值
                 结果[名]=成对#写入
@@ -98,7 +101,8 @@ class 主题运行时:
         自身.宿主=宿主#settings scope
         自身.主题列表=[dict(t) for t in 内置主题]#登记表
         自身.偏好=默认偏好#偏好
-        自身.字号=默认字号#内容字号
+        自身.字号表=dict(默认字号表)#各角色字号
+        自身.字体族表=dict(默认字体族)#各角色字体列表
         自身.修订=0#修订
         自身.覆盖层={}#source → {seq,tokens}
         自身.覆盖序号=0#下一 seq
@@ -137,26 +141,45 @@ class 主题运行时:
         已登记=False#是否登记
         for t in 自身.主题列表:#查表
             if t['id']==标识:#命中
-                已登记=True#有
-                break#停
+                已登记=True
+                break
         if 标识!='system' and not 已登记:#未登记
             raise 主题错误('theme "'+标识+'" is not registered')#未知
         if 自身.偏好==标识:#无变
             return#空
-        自身.偏好=标识#记下
+        自身.偏好=标识
         if 是否主题偏好(标识) and 自身.宿主 is not None:#可持久
             自身.宿主.set(主题偏好字段,标识)#写
         自身.发布()#发布
 
-    def setFontSize(自身,像素):
-        '整数 px 越界抛错。方法名对齐注入面 setFontSize'
-        if type(像素) is bool or type(像素) is not int or 像素<字号最小 or 像素>字号最大:
-            raise 主题错误('font size '+str(像素)+' is outside '+str(字号最小)+'..'+str(字号最大))
-        if 自身.字号==像素:
+    def setFontSize(自身,角色或像素,像素=None):
+        '只传像素时改正文字号。两参时第一参是 text、code 或 terminal'
+        if 像素 is None:
+            角色='text'
+            像素=角色或像素
+        else:
+            角色=角色或像素
+        规格=字号规格.get(角色)
+        if 规格 is None or not 是否字号(角色,像素):
+            范围='' if 规格 is None else str(规格['min'])+'..'+str(规格['max'])
+            raise 主题错误(str(角色)+' font size '+str(像素)+' is outside '+范围)
+        if 自身.字号表[角色]==像素:
             return
-        自身.字号=像素
+        自身.字号表[角色]=像素
         if 自身.宿主 is not None:
-            自身.宿主.set(字号字段,像素)
+            自身.宿主.set(规格['field'],像素)
+        自身.发布()
+
+    def setFontFamily(自身,角色,值):
+        '规范化后写入。空串恢复该角色的内置字体栈'
+        if 角色 not in 字体族字段:
+            raise 主题错误('unknown font role '+str(角色))
+        列表=规范化字体族(值)
+        if 自身.字体族表[角色]==列表:
+            return
+        自身.字体族表[角色]=列表
+        if 自身.宿主 is not None:
+            自身.宿主.set(字体族字段[角色],列表)
         自身.发布()
 
     def 采纳(自身):
@@ -170,11 +193,20 @@ class 主题运行时:
         if 值 is None:#缺
             return#空
         偏好=值['preference'] if 'preference' in 值 else 自身.偏好
-        字号=值['fontSize'] if 'fontSize' in 值 else 自身.字号
-        if 自身.偏好==偏好 and 自身.字号==字号:
+        字号表=dict(自身.字号表)
+        字体族表=dict(自身.字体族表)
+        for 角色 in 字体角色:
+            字段=字号规格[角色]['field']
+            if 字段 in 值 and 是否字号(角色,值[字段]):
+                字号表[角色]=值[字段]
+            族字段=字体族字段[角色]
+            if 族字段 in 值 and isinstance(值[族字段],str):
+                字体族表[角色]=规范化字体族(值[族字段])
+        if 自身.偏好==偏好 and 字号表==自身.字号表 and 字体族表==自身.字体族表:
             return
         自身.偏好=偏好
-        自身.字号=字号
+        自身.字号表=字号表
+        自身.字体族表=字体族表
         自身.发布()#发布
 
     def 登记(自身,定义):
@@ -192,8 +224,8 @@ class 主题运行时:
             仍在=False#是否仍在
             for t in 自身.主题列表:#查
                 if t['id']==标识:#仍在
-                    仍在=True#有
-                    break#停
+                    仍在=True
+                    break
             if not 仍在:#已无
                 return#空
             自身.主题列表=[t for t in 自身.主题列表 if t['id']!=标识]#滤
@@ -206,7 +238,7 @@ class 主题运行时:
         '同 source 再调整层替换重叠顶'
         层={'seq':自身.覆盖序号,'tokens':校验覆盖层(来源,令牌表)}#层
         自身.覆盖序号+=1#加序号
-        自身.覆盖层[来源]=层#记下
+        自身.覆盖层[来源]=层
         自身.发布()#发布
         def 拆除():
             '源已被重覆盖则空操作'
@@ -227,13 +259,15 @@ class 主题运行时:
         活动=None#活动
         for t in 自身.主题列表:#找
             if t['id']==解析标识:#命中
-                活动=t#记下
-                break#停
+                活动=t
+                break
         if 活动 is None:#丢了
             raise 主题错误('theme registry lost "'+解析标识+'"')#错
         return {#快照
             'preference':自身.偏好,#偏好
-            'fontSize':自身.字号,#内容字号
+            'fontSize':自身.字号表['text'],#正文字号，旧读取面
+            'fontSizes':dict(自身.字号表),#各角色字号
+            'fontFamilies':dict(自身.字体族表),#各角色字体列表
             'active':自身.组合活动(活动),#组合
             'themes':[dict(t) for t in 自身.主题列表],#表
             'revision':自身.修订,#修订
@@ -256,5 +290,5 @@ class 主题运行时:
         '递增修订并广播'
         自身.修订+=1#加一
         自身.快照=自身.编快照()#新快照
-        if 自身.发出 is not None:#有
+        if 自身.发出 is not None:
             自身.发出('theme/change',自身.快照)#发

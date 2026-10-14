@@ -44,7 +44,7 @@ def 创建右侧侧栏控制器(注册表,钉住):
                 原表=布局['tabs'] if 'tabs' in 布局 else None
                 签表=原表.values() if 原表 is not None else ()
             清单.更新(会话标识,list(签表))
-            if 表面 is not None:#有
+            if 表面 is not None:
                 控制器.标签域.同步(会话标识,表面['layout'])#同步
         本次={'store':存储,'unsubscribe':存储['subscribe'](同步)}#认领
         已认[会话标识]=本次#写
@@ -92,7 +92,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         def 释放():
             '仅清本绑定'
             if 自身.绑定席 is 绑定:#仍是
-                自身.绑定席=None#清
+                自身.绑定席=None
                 自身._发布已挂载()
         return 释放#释放器
 
@@ -118,14 +118,14 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         '会话定向开资源'
         选项=选项 if 选项 is not None else {}#默认
         动作=自身._动作于(会话标识)#动作
-        if 动作 is not None:#有
+        if 动作 is not None:
             自身._在会话放置资源(会话标识,动作,地址,选项)#放
 
     def 在会话打开标签(自身,会话标识,种类,选项=None):
         '会话定向开页面'
         选项=选项 if 选项 is not None else {}#默认
         动作=自身._动作于(会话标识)#动作
-        if 动作 is not None:#有
+        if 动作 is not None:
             自身._在会话放置标签(会话标识,动作,种类,选项)#放
 
     def 在会话关闭(自身,会话标识,标签标识):
@@ -133,26 +133,26 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         动作=自身._动作于(会话标识)#动作
         认=自身.已认[会话标识] if 会话标识 in 自身.已认 else None#认
         if 动作 is None or 认 is None:#无
-            return#停
+            return
         表面表=认['store']['getSnapshot']()['bySession']#表
         表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
         if 表面 is None:#无
-            return#停
+            return
         签表=表面['layout']['tabs']#签表
         if 标签标识 not in 签表 or not 可关闭标签(表面,标签标识):#不可关
-            return#停
+            return
         签=签表[标签标识]#记录
 
         def 提交():
             '关签'
             动作['closeTab'](会话标识,标签标识)#关
 
-        自身._清理后移除(会话标识,签,提交)#清后关
+        自身._清理后移除(会话标识,签,提交)
 
     def _清理后移除(自身,会话标识,签,提交):
         '先跑关闭钩再提交'
         钩=自身.关闭钩表[签['kind']] if 签['kind'] in 自身.关闭钩表 else None#钩
-        if 钩 is not None:#有
+        if 钩 is not None:
             钩(会话标识,签)#跑
         提交()#提交
 
@@ -179,7 +179,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         '共享开路径'
         认=自身.已认[会话标识] if 会话标识 in 自身.已认 else None#认
         表面=None#表面
-        if 认 is not None:#有存储
+        if 认 is not None:
             表面表=认['store']['getSnapshot']()['bySession']#表
             表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
         if 表面 is None and 自身.绑定席 is not None and 自身.绑定席['sessionId']==会话标识:#绑席表面
@@ -187,7 +187,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
             表面=表面表[会话标识] if 会话标识 in 表面表 else None#表面
         布局=表面['layout'] if 表面 is not None else None#布局
         目标窗=None#目标窗
-        if 布局 is not None:#有布局
+        if 布局 is not None:
             目标窗=放置['paneId'] if 'paneId' in 放置 and 放置['paneId'] is not None else 活动停靠窗格标识(布局)#窗
         目标=布局['nodes'][目标窗] if 布局 is not None and 目标窗 is not None and 目标窗 in 布局['nodes'] else None#节点
         优先新窗=(放置.get('preferNewPane') is True
@@ -217,7 +217,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
             def 落定(标签标识):
                 '记导航'
                 自身.标签域.导航(会话标识,标签标识,{'address':地址,'params':参数})#导航
-            动作['openContent'](会话标识,意图,落定)#开
+            动作['openContent'](会话标识,意图,落定)
 
         被替=None#被替签
         if 布局 is not None and 'replaceTab' in 放置 and 放置['replaceTab'] is not None:#有替
@@ -226,8 +226,8 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         if 布局 is not None and 放置.get('revealIfOpened') is not False:#默揭示
             已开=查找内容标签(布局,认领['contentId'],认领['kind'])#已开
         if 被替 is None or (已开 is not None and 被替['id']==已开):#无需清
-            提交()#开
-            return#停
+            提交()
+            return
         自身._清理后移除(会话标识,被替,提交)#替前清
 
     def 关闭(自身,标签标识):
@@ -235,7 +235,7 @@ class 右侧侧栏控制器:#跨插件右侧侧栏面
         绑=自身._要求()#绑定
         if 绑['sessionId'] in 自身.已认:#经会话路径
             自身.在会话关闭(绑['sessionId'],标签标识)#关
-            return#停
+            return
         绑['actions']['closeTab'](绑['sessionId'],标签标识)#关
 
     def 活动(自身):

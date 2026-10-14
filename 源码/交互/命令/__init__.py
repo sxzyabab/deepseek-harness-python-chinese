@@ -20,7 +20,6 @@ from .类型 import (#再导出类型面字段约定
 )#类型再导出结束
 from .异常 import 命令错误
 from . import (
-    不变量,
     远程,
 )
 

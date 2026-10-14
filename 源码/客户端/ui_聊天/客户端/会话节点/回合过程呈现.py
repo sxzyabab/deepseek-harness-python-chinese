@@ -10,7 +10,7 @@ def 节点回合(节点):#从节点取轮次
     if 位置 is None:#无
         return None#无
     种=位置['kind'] if 'kind' in 位置 else None#种
-    if 种 in ('turn','step'):#有
+    if 种 in ('turn','step'):
         回合位=位置['turn'] if 'turn' in 位置 else None#回合位
         return 回合位['turn'] if 回合位 is not None and 'turn' in 回合位 else None#轮次
     return None#无
@@ -36,8 +36,8 @@ def 推导过程呈现(回合,位置索引,节点表):#推导一轮过程呈现
     for 键 in 键列表:#找
         节=节点表.get(键)#节点
         if 节 is not None and 节['kind']=='turn-process':#控件
-            控件=节#记下
-            break#停
+            控件=节
+            break
     if 控件 is None:#无
         return None#缺席
     规格=控件['data']#规格
@@ -113,7 +113,7 @@ class 聊天回合过程投影器:#过程呈现投影器
         for 键 in 顺序:#扫
             节=节点表.get(键)#节点
             回合=节点回合(节)#轮
-            if 回合 is not None:#有
+            if 回合 is not None:
                 轮集.add(回合)#记
         变更=set()#变更
         for 回合 in set(list(自身.呈现表.keys())+list(轮集)):#并集

@@ -28,7 +28,7 @@ def 启动客户端(选项):
     上下文.on('internal/status',纤程状态)#纤程状态变化
     行表=[行['id'] for 行 in 清单['plugins']]#全部插件 id
     for 名 in 行表:#标加载中
-        if 汇报 is not None:#有汇报
+        if 汇报 is not None:
             汇报(名,'loading')#标加载中
     选项['modules'].entries.start(加载器,清单)#按清单启动条目
     for 条目 in 加载器.entries():#扫描导入失败
@@ -52,10 +52,10 @@ def 断言条目已激活(上下文):
             缺失=[]#缺失服务
             for 服务名 in 条目.fiber.inject:#逐服务
                 if 服务名 not in 上下文:#缺席
-                    缺失.append(服务名)#记下
+                    缺失.append(服务名)
             缺失文=', '.join(缺失) if len(缺失)>0 else '未知'#名单
             失败表.append(名+': pending（等待服务: '+缺失文+'）')#记 pending
         else:#其它非激活态
             失败表.append(名+': '+态)#记状态
-    if len(失败表)>0:#有失败
+    if len(失败表)>0:
         raise 网页错误('网页启动：'+str(len(失败表))+' 个条目未激活\n'+'\n'.join(失败表))#汇总抛错

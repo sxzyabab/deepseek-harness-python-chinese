@@ -12,7 +12,7 @@ def 探测环境(文档,导航):
     根=文档.documentElement#html
     桌面标记=None#data-platform
     集=getattr(根,'dataset',None)#dataset
-    if 集 is not None:#有
+    if 集 is not None:
         桌面标记=getattr(集,'platform',None)#平台标记
     设备=桌面标记 if 桌面标记 is not None else 导航.platform#设备串
     运行时='web' if 桌面标记 is None else 'desktop'#壳
@@ -33,7 +33,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     def 组合开始():
         '进入组合'
         nonlocal 组合中#写
-        组合中=True#开
+        组合中=True
     def 组合结束():
         '结束组合，记刚结束'
         nonlocal 组合中,刚结束#写
@@ -42,12 +42,12 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     def 组合释放():
         'keyup 清刚结束'
         nonlocal 刚结束#写
-        刚结束=False#清
+        刚结束=False
     def 组合失焦():
         '失焦清组合'
         nonlocal 组合中,刚结束#写
         组合中=False#关
-        刚结束=False#清
+        刚结束=False
     def 组合守卫(事件):
         '是否应视为组合中'
         nonlocal 刚结束#写
@@ -59,7 +59,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     文档.addEventListener('compositionend',组合结束,True)#结束
     文档.addEventListener('keyup',组合释放,True)#释放
     视口=getattr(文档,'defaultView',None)#窗口
-    if 视口 is not None:#有
+    if 视口 is not None:
         视口.addEventListener('blur',组合失焦)#失焦
     待定=False#捕获后待定重置
     待定时器=None#setTimeout 句柄
@@ -71,7 +71,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     def 失焦():
         '窗口失焦清死键并重置'
         nonlocal 死键#写
-        死键=False#清
+        死键=False
         重置()#重置
     def 含模态(节点):
         '节点自身或子孙是否模态'
@@ -104,7 +104,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
                 观察构造=MutationObserver#构造
             except NameError:#非浏览器
                 观察构造=None#无
-            if 观察构造 is not None:#有
+            if 观察构造 is not None:
                 观察者=观察构造(模态变更)#建
         if 观察者 is not None:#观察根
             观察者.observe(文档.documentElement,{#选项
@@ -126,22 +126,22 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
         def 到期():
             '零延迟后重置'
             nonlocal 待定,待定时器#写
-            待定=False#清
-            待定时器=None#清
+            待定=False
+            待定时器=None
             重置()#重置
         待定时器=窗口.setTimeout(到期,0)#排队
     def 按下(事件):
         '冒泡阶段分发'
         nonlocal 待定,待定时器,死键#写
         窗口.clearTimeout(待定时器)#清待定
-        待定时器=None#清
-        待定=False#清
+        待定时器=None
+        待定=False
         #解析目标
         目标=None#元素
         路径=事件.composedPath() if callable(getattr(事件,'composedPath',None)) else []#路径
         for 值 in 路径:#找元素
             if callable(getattr(值,'matches',None)):#元素
-                目标=值#记下
+                目标=值
                 break#止
         元素=目标 if 目标 is not None else 文档.activeElement#焦点回落
         if 元素 is not None and callable(getattr(元素,'closest',None)) and 元素.closest('.xterm'):#终端
@@ -156,7 +156,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
         顶=对话框[len(对话框)-1] if len(对话框)>0 else None#最前
         if 顶 is None:#无模态
             模态=None#空
-        else:#有
+        else:
             数据=getattr(顶,'dataset',None)#dataset
             模态=getattr(数据,'shortcutModal',None) if 数据 is not None else None#声明
             if 模态 is None:#未声明
@@ -168,7 +168,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
         命令死键=(是死 and 快捷键.runtime=='web' and 快捷键.platform=='macos'
             and 事件.code=='KeyN' and 事件.metaKey and 事件.altKey
             and not 事件.ctrlKey and not 事件.shiftKey)#特例
-        死键=是死#记下
+        死键=是死
         手势={#手势
             'code':事件.code,
             'control':事件.ctrlKey,
@@ -184,7 +184,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
             nonlocal 死键#写
             事件.preventDefault()#消费
             if 命令死键:#特例
-                死键=False#清
+                死键=False
         if 固定 is not None:#固定消费者
             固定({'type':'keydown','gesture':手势,'context':上下文,'consume':消费})#投递
         if 原生:#原生拥有可配置绑定
@@ -205,7 +205,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     def 拆除():
         '释放全部监听'
         nonlocal 待定,待定时器#写
-        待定=False#清
+        待定=False
         窗口.clearTimeout(待定时器)#清时器
         if 观察者 is not None:#卸观察
             观察者.disconnect()#断

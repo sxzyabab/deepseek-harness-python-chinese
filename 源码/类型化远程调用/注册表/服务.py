@@ -204,6 +204,46 @@ class 描述符仓:#本地或 Remote 描述符存储
         '委托给变更源'
         return 自身.变更.订阅(上下文,监听器)#订阅
 
+class 本地注册视图:
+    '本地调用面。get/hasSeen/list/subscribe 是对象属性'
+    def __init__(自身,取,曾见,列出,订阅):
+        '记下四个调用'
+        自身.get=取#按端点
+        自身.hasSeen=曾见#曾见
+        自身.list=列出#列出
+        自身.subscribe=订阅#订阅
+
+class 远程注册视图:
+    'Remote 注册面。register/get/list/subscribe 是对象属性'
+    def __init__(自身,登记,取,列出,订阅):
+        '记下四个调用'
+        自身.register=登记#登记
+        自身.get=取#按端点
+        自身.list=列出#列出
+        自身.subscribe=订阅#订阅
+
+class 查找注册视图:
+    'lookup 注册面。方法是对象属性，不能放进字典'
+    def __init__(自身,登记,配置,取,声明,键列表,订阅):
+        '记下六个调用'
+        自身.register=登记#登记
+        自身.configure=配置#覆盖
+        自身.get=取#按键
+        自身.definitions=声明#声明
+        自身.keys=键列表#键
+        自身.subscribe=订阅#订阅
+
+class 上下文注册视图:
+    'Context 注册面。方法是对象属性，不能放进字典'
+    def __init__(自身,登记宿主,配置宿主,登记客户端,取宿主,取客户端,订阅):
+        '记下六个调用'
+        自身.registerHost=登记宿主#宿主
+        自身.configureHost=配置宿主#覆盖宿主
+        自身.registerClient=登记客户端#客户端
+        自身.getHost=取宿主#取宿主
+        自身.getClient=取客户端#取客户端
+        自身.subscribe=订阅#订阅
+
 class 远程仓:#Remote 贡献存储
     '按包名登记 Remote 贡献'
     def __init__(自身,描述符仓实例):#持有描述符仓
@@ -219,12 +259,7 @@ class 远程仓:#Remote 贡献存储
         def 订阅描述符(监听器):
             '订阅描述符变更'
             return 自身.描述符仓.订阅(上下文,监听器)#订阅
-        return {#视图
-            'register':登记贡献,#登记
-            'get':自身.描述符仓.取,#按端点
-            'list':自身.描述符仓.列出,#列出
-            'subscribe':订阅描述符,#订阅
-        }#视图
+        return 远程注册视图(登记贡献,自身.描述符仓.取,自身.描述符仓.列出,订阅描述符)#视图对象
 
     def 登记(自身,上下文,贡献):#按 fiber 登记一份 Remote 贡献
         '同包已登记则拒绝'
@@ -275,14 +310,7 @@ class 查找仓:#lookup 提供方存储
         def 订阅变更(监听器):
             '订阅 lookup 变更'
             return 自身.变更.订阅(上下文,监听器)#订阅
-        return {#视图
-            'register':登记提供方,#登记
-            'configure':配置解析器,#覆盖
-            'get':自身.取,#按键
-            'definitions':列出声明,#声明
-            'keys':列出键,#键
-            'subscribe':订阅变更,#订阅
-        }#视图
+        return 查找注册视图(登记提供方,配置解析器,自身.取,列出声明,列出键,订阅变更)#视图对象
 
     def 取(自身,键):#按键取提供方，可能套上覆盖
         '无提供方则 None'
@@ -386,14 +414,7 @@ class 上下文仓:#宿主 Context 提供方与客户端绑定器存储
         def 订阅上下文变更(监听器):
             '订阅 Context 变更'
             return 自身.变更.订阅(上下文,监听器)#订阅
-        return {#视图
-            'registerHost':登记宿主提供方,#宿主
-            'configureHost':配置宿主解析器,#覆盖宿主
-            'registerClient':登记客户端绑定器,#客户端
-            'getHost':自身.取宿主,#取宿主
-            'getClient':取客户端,#取客户端
-            'subscribe':订阅上下文变更,#订阅
-        }#视图
+        return 上下文注册视图(登记宿主提供方,配置宿主解析器,登记客户端绑定器,自身.取宿主,取客户端,订阅上下文变更)#视图对象
 
     def 取宿主(自身,键):#按键取宿主提供方
         '可能套上覆盖解析器'
@@ -484,12 +505,7 @@ class Typert注册表(服务):#Typert 运行时注册表服务
         def 订阅本地(监听器):
             '订阅本地描述符变更'
             return 自身.本地仓.订阅(上下文,监听器)#订阅
-        return {#视图
-            'get':自身.本地仓.取,#按端点
-            'hasSeen':自身.本地仓.曾见,#曾见
-            'list':自身.本地仓.列出,#列出
-            'subscribe':订阅本地,#订阅
-        }#视图
+        return 本地注册视图(自身.本地仓.取,自身.本地仓.曾见,自身.本地仓.列出,订阅本地)#视图对象
 
     @property
     def remotes(自身):#Remote 注册表面

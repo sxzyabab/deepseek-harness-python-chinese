@@ -1,5 +1,5 @@
 from ....基础设施.通用工具 import 观察者集合
-from ..异常 import 预设错误#本包失败
+from ..异常 import 预设错误,页面失败文案#本包失败与页面失败句
 from .呈现 import 展示权限预设#显示名
 
 __all__=['权限预设设置控制器','权限默认于','权限设置命名空间']#仅中文公开名
@@ -57,7 +57,7 @@ def 权限默认于(视图,模式):
     for 项 in 选项:#扫
         if 项['id']==值:#命中
             含当前=True#在
-            break#停
+            break
     if len(选项)==0 or 含当前 is False:#空或当前值不在
         raise 预设错误('permission settings schema does not advertise its current preset')#拒绝
     return {'currentValue':值,'options':选项}#当前值与选项
@@ -89,7 +89,7 @@ class 权限预设设置控制器:
             自身.跟随=自身.描述面.subscribe(自身.推导)#订镜像
         态=dict(自身.store.getSnapshot())#拷
         态['status']='loading'#加载中
-        态['error']=None#清错误
+        态['error']=None
         自身.store.set(态)#写入
         自身.描述面.确保()#确保镜像已有应答
         自身.推导()#按镜像推导行
@@ -103,14 +103,14 @@ class 权限预设设置控制器:
         if 镜像视图 is not None:#有应答
             for 项 in 镜像视图['namespaces']:#找
                 if 项['ns']==权限设置命名空间:#命中
-                    视图=项#记下
-                    break#停
+                    视图=项
+                    break
         if 视图 is None or 态['writable'] is not True or 自身.保存中 is True:#无视图、只读或保存中
             return#忽略
         自身.保存中=True#标保存中
         下一=dict(自身.store.getSnapshot())#拷
         下一['status']='saving'#保存中
-        下一['error']=None#清错误
+        下一['error']=None
         自身.store.set(下一)#写入
         try:#调用 settings.mutate
             应答=自身.上下文.remote.settings.mutate(权限设置命名空间,[{'op':'set','path':['defaultPreset'],'value':预设}],视图['revision']).等待()#只写 defaultPreset
@@ -119,7 +119,7 @@ class 权限预设设置控制器:
         if 自身.已拆除 is True:#已拆除
             return#丢
         if 应答['ok'] is not True:#业务失败
-            自身.失败(应答['error'])#记下失败
+            自身.失败(应答['error'])
             return
         自身.描述面.接纳视图(应答['value'])#折回镜像
 
@@ -151,8 +151,8 @@ class 权限预设设置控制器:
         视图=None#权限命名空间
         for 项 in 镜像视图['namespaces']:#找
             if 项['ns']==权限设置命名空间:#命中
-                视图=项#记下
-                break#停
+                视图=项
+                break
         if 视图 is None:#命名空间不在描述符里
             态=dict(自身.store.getSnapshot())#拷
             态['status']='unavailable'#不可用
@@ -165,18 +165,18 @@ class 权限预设设置控制器:
             解析=权限默认于(视图,自身.模式)#抽出当前值与选项
             态=dict(自身.store.getSnapshot())#拷
             态['status']='ready'#就绪
-            态['error']=None#清错误
+            态['error']=None
             态['writable']=镜像视图['writable']#可写性
             态['currentValue']=解析['currentValue']#当前默认
             态['options']=解析['options']#可选预设
             态['revision']=视图['revision']#记下修订
             自身.store.set(态)#写入
         except 预设错误 as 错误:#解析失败
-            自身.失败(错误)#记下失败
+            自身.失败(错误)
 
     def 失败(自身,错误):
         '把拒绝写入错误快照'
         态=dict(自身.store.getSnapshot())#拷
         态['status']='error'#错误
-        态['error']=str(错误)#Error 取其 message，其余 String
+        态['error']=页面失败文案(错误)#页面不带路径、用户名或环境变量
         自身.store.set(态)#写入

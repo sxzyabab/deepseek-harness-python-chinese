@@ -61,7 +61,7 @@ def 压缩来源(事件):#从替换检查点读关联身份
     if not isinstance(压缩标识,str):#非串
         return None#对不上
     出={'compactionId':压缩标识}#关联
-    if 'sourceCommandId' in 来源 and 来源['sourceCommandId'] is not None:#有
+    if 'sourceCommandId' in 来源 and 来源['sourceCommandId'] is not None:
         出['sourceCommandId']=来源['sourceCommandId']#带上
     return 出#关联身份
 
@@ -115,11 +115,11 @@ def 回放命令(上下文):#窗口内无折叠状态时回放
     for 候 in 匹配列表:#扫
         候事件=候['event'] if 'event' in 候 else {}#事件
         if 完成 is None and 候事件['type']=='command/done':#done
-            完成=候#记下
+            完成=候
         if 检查点 is None and 压缩来源(候事件) is not None:#检查点
-            检查点=候#记下
+            检查点=候
         if 摘要 is None and 候事件['type']=='compaction/summary':#摘要
-            摘要=候#记下
+            摘要=候
     if 检查点 is None:#无检查点
         return None if 完成 is None else {'command':自完成叠命令(完成)}#只回放命令
     源=压缩来源(检查点['event'])#关联
@@ -152,7 +152,7 @@ def 命令匹配(事件):#事件是否属于某条命令
         return {'id':str(检查['sourceCommandId']),'role':'update'}#更新
     if 种 in ('compaction/start','compaction/summary','compaction/end'):#压缩生命周期
         源命令=数据['sourceCommandId'] if 'sourceCommandId' in 数据 else None#源命令
-        if 源命令 is not None:#有
+        if 源命令 is not None:
             return {'id':str(源命令),'role':'update'}#更新
     return None#对不上
 

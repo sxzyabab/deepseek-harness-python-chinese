@@ -17,8 +17,9 @@ class 模型目录解析器(服务):#ctx.modelDirectories
         自身.目录表=带值弱映射()#按座位绑定弱缓存
         try:#预拉目录
             自身.目录账本.load()#加载
-        except BaseException:#错误由选择器暴露
-            pass#吞掉
+        except BaseException:#已写入的失败留给选择器；没写入则继续抛出
+            if 自身.目录账本.存储.getSnapshot()['error'] is None:
+                raise
         def 重连重置():#连接重置
             '清代际并重置各目录'
             自身.目录账本.resetGeneration()#清 Host 代际目录
@@ -65,7 +66,7 @@ class 模型目录解析器(服务):#ctx.modelDirectories
                 if 'routable' in 快照 and 快照['routable'] is False:#明确不可路由
                     对话面.blocks.set(会话标识,{'reason':自身.阻断原因()})#阻断
                 else:#可或未知
-                    对话面.blocks.set(会话标识,None)#清
+                    对话面.blocks.set(会话标识,None)
             发布()#立即推一次
             def 订阻断():#订阅目录
                 '快照变更再推'
@@ -73,7 +74,7 @@ class 模型目录解析器(服务):#ctx.modelDirectories
                 def 拆除订阅():#拆除
                     '取消订阅并清阻断'
                     停()#取消
-                    对话面.blocks.set(会话标识,None)#清
+                    对话面.blocks.set(会话标识,None)
                 return 拆除订阅#拆除器
             作用域.副作用(订阻断,'ui-model-selection: composer block')#阻断副作用
         def 拆除目录():#会话拆除

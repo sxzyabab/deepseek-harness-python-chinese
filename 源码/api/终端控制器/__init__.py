@@ -7,7 +7,7 @@ from ...基础设施.通用工具 import utf8字节数
 from .外壳 import 发现外壳,解析外壳#壳
 from .浏览器终端 import 浏览器终端#PTY 视图
 from .保持 import 终端保持#保持与回收
-from .异常 import 远程错误#本包异常
+from .异常 import 远程错误,失败说明#本包异常
 from . import (
     输出跟随,
     类型,
@@ -384,10 +384,10 @@ class 终端控制器(远程服务):#会话范围浏览器终端
                 拥有['allocations'].pop(请求['id'],None)#摘
             def 失败汇(清理错误):
                 '日志'
-                print('Browser terminal allocation cleanup failed',清理错误)#日志
+                print('Browser terminal allocation cleanup failed',type(清理错误).__name__,失败说明(清理错误))#日志，去掉绝对路径
             清理=终端保持(自身.配置值,观察,终止,失败汇)#保持清理
             拥有['allocations'][请求['id']]={
-                'info':{**信息,'state':'failed','error':str(错误)},
+                'info':{**信息,'state':'failed','error':失败说明(错误)},
                 'cleanup':清理,#清理
             }#残留
             try:#关

@@ -10,6 +10,9 @@ from .主题设置 import (
     字号最小,
     字号最大,
     是否主题偏好,
+    默认字号表,
+    字体族字段,
+    字号规格,
 )
 from . import (
     客户端,
@@ -25,6 +28,11 @@ __all__=[
 配置={
     'preference':默认偏好,
     'fontSize':默认字号,
+    'codeFontSize':默认字号表['code'],
+    'terminalFontSize':默认字号表['terminal'],
+    'textFontFamily':'',
+    'codeFontFamily':'',
+    'terminalFontFamily':'',
 }
 
 def 读易失(字段):
@@ -46,8 +54,14 @@ def 应用(上下文,配置对象=None):
         '把启动主题行推入注入表'
         源=配置 if 配置对象 is None else 配置对象
         偏好=读易失(源['preference'])
-        字号=读易失(源['fontSize'])
-        表.extend(启动主题注入行(偏好,字号))
+        字号表={'text':读易失(源['fontSize'])}
+        字体族={}
+        for 角色,字段 in 字体族字段.items():
+            if 角色!='text':
+                字号字段名=字号规格[角色]['field']
+                字号表[角色]=读易失(源[字号字段名]) if 字号字段名 in 源 else 默认字号表[角色]
+            字体族[角色]=读易失(源[字段]) if 字段 in 源 else ''
+        表.extend(启动主题注入行(偏好,None,字号表,字体族))
     上下文.监听('webserver/index-inject',注入索引)
 
 apply=应用

@@ -1,4 +1,5 @@
 '插件页上的翻译服务、目标语言和出站说明'
+from nicegui import ui as 界面
 from .文案 import 表单标签
 
 __all__=['思考设置']
@@ -53,6 +54,11 @@ class 思考设置:
         自身.语言标识='cot-translation-language'
         自身.已刷新=None
         自身.同步()
+        钩=属性.get('hooks') if isinstance(属性.get('hooks'),dict) else {}
+        表单齐='translationForm' in 钩 or 'useTranslationForm' in 属性
+        提供方齐='availableProviders' in 钩 or 'useAvailableProviders' in 属性
+        if 't' in 属性 and 'refreshProviders' in 属性 and 表单齐 and 提供方齐:
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'
@@ -115,7 +121,7 @@ class 思考设置:
         if 缺失 and not 态['provider']['invalid']:
             不可用=翻译('providerUnavailable')
         语言=态['targetLanguage']
-        return {
+        视图={
             'type':'translation-settings',
             'cssModule':'思考翻译.module.css',
             'labels':表单标签(翻译),
@@ -154,6 +160,52 @@ class 思考设置:
                 'onReset':自身.复位语言,
             },
         }
+        标签=表单标签(翻译)
+        with 界面.column().classes('翻译设置'):
+            if not 态.get('available',True):
+                界面.label(标签['unavailable'])
+            if not 态['writable']:
+                界面.label(标签['readOnly'])
+            if 态.get('failed'):
+                界面.label(标签['saveFailed'])
+            if 态['saving']:
+                界面.label(标签['saving'])
+            界面.label(翻译('privacy'))
+            界面.label(翻译('paidNotice' if 付费 else 'anonymousNotice'))
+            选项表={}
+            for 项 in 选项:
+                选项表[项['value']]=项['label']
+            界面.label(翻译('provider'))
+            if 覆盖 is not None:
+                界面.label(覆盖['tag'])
+            服务选择=界面.select(选项表, value=服务文本, on_change=lambda 事件:自身.改服务(事件.value)).props('dense options-dense')
+            if 禁用:
+                服务选择.disable()
+            if 非法:
+                界面.label(非法)
+            if 不可用:
+                界面.label(不可用)
+            if 覆盖 is not None:
+                复位服务=界面.button(覆盖['resetLabel'], on_click=覆盖['onReset']).props('flat no-caps')
+                if 覆盖['disabled']:
+                    复位服务.disable()
+            界面.label(翻译('targetLanguage'))
+            界面.label(翻译('targetLanguageHint'))
+            语言输入=界面.input(value=语言['text'], on_change=lambda 事件:自身.改语言(事件.value))
+            if 禁用:
+                语言输入.disable()
+            if 语言['overridden']:
+                界面.label(翻译('overridden'))
+                复位语言=界面.button(翻译('reset'), on_click=自身.复位语言).props('flat no-caps')
+                if 禁用:
+                    复位语言.disable()
+            if 语言['invalid']:
+                界面.label(翻译('invalidLanguage'))
+            if callable(自身.属性.get('save')):
+                保存钮=界面.button(标签['saving'] if 态['saving'] else 标签['save'], on_click=自身.属性['save']).props('flat no-caps')
+                if 禁用 or not 态.get('dirty') or 态.get('invalid'):
+                    保存钮.disable()
+        return 视图
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

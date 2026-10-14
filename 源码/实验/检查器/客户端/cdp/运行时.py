@@ -1,6 +1,6 @@
 from ...共享.json import 是否json值,json字节长度#JSON
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
-from ...异常 import 检查器错误,客户端运行时执行错误#本包错误|执行错误
+from ...异常 import 检查器错误,客户端运行时执行错误,失败说明#本包错误|执行错误
 from .对象 import 客户端对象存储#对象存储
 from .属性 import 获取客户端属性#属性
 from .栈 import 客户端错误栈,空解析脚本#错误栈|空脚本键
@@ -28,8 +28,8 @@ def 响应帧(帧,结果封装):#构响应帧
 def 运行时错误(错误):#规范化错误
     '规范化错误'
     if isinstance(错误,客户端运行时执行错误):#类型化
-        return {'code':错误.code,'message':错误.message[:最大运行时错误消息长度]}#错误
-    消息=str(错误)#转串
+        return {'code':错误.code,'message':失败说明(错误)[:最大运行时错误消息长度]}#错误
+    消息=失败说明(错误)#转串，不含绝对路径
     return {'code':'internal-error','message':消息[:最大运行时错误消息长度]}#内部错误
 
 class 客户端运行时会话:#Client Runtime会话
@@ -88,7 +88,7 @@ class 客户端运行时会话:#Client Runtime会话
 
     def 描述异常(自身,错误,组,栈,分配):#描述异常
         '描述异常'
-        return {'text':str(错误),'lineNumber':0,'columnNumber':0,'stackTrace':栈 or 客户端错误栈(错误,自身.解析脚本),'exception':自身.对象.序列化(错误,{'group':组},分配)}#详情
+        return {'text':失败说明(错误),'lineNumber':0,'columnNumber':0,'stackTrace':栈 or 客户端错误栈(错误,自身.解析脚本),'exception':自身.对象.序列化(错误,{'group':组},分配)}#详情
 
     def 求值(自身,命令,分配,信号=None):#求值
         '求值'

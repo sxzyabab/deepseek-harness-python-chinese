@@ -2,8 +2,7 @@ import threading#读取线程与中止监视
 from ....基础设施.通用工具 import 启动守护线程
 from .文档.资源组 import 资源组
 
-__all__=['已中止','文本面']#仅中文公开名
-
+__all__=['已中止','文本面']
 def 已中止(信号):
     '信号是否已中止。无信号视为未中止。信号为 threading.Event'
     if 信号 is None:#无

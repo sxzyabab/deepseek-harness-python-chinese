@@ -4,6 +4,7 @@ from .约定 import (#再导出约定形
 )#约定结束
 from .文案 import 中文,英文#中英文案
 from .服务 import 命令UI运行时#运行时
+from .弹出选择视图 import 弹出选择视图#弹出卡片
 from . import (
     呈现,
     目录,
@@ -47,7 +48,7 @@ def 应用(上下文):
                 'order':1,#序
                 'locale':命名空间,#文案
                 'inject':注入面,#注入
-            },None)#视图由后续弹出层配额补齐
+            },弹出选择视图)#搜索与选项卡片
         作用域.slots.inject('conversation.input.overlay',登记弹层)#注入
 
     上下文.inject(['slots','commandUi','sessions'],叠层就绪)#等齐

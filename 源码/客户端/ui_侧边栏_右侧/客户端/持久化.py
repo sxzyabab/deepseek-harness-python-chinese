@@ -1,6 +1,7 @@
 '校验过的当前布局快照；撤销历史归活动窗口'
-import json#JSON
+import json
 from ....基础设施.通用工具 import 紧凑json编码
+from ..异常 import 右侧侧栏错误
 
 __all__=['侧栏持久化前缀','读侧栏布局','写侧栏布局','清侧栏布局']#仅中文公开名
 
@@ -22,8 +23,8 @@ def 读侧栏布局(会话标识,存储=None):
             return None
         return {'layout':已存['layout'],'minted':已存['minted'],'history':dict(空历史)}
     except (json.JSONDecodeError,KeyError,TypeError):
-        清侧栏布局(会话标识,存储)#清坏数据
-        return None#失败
+        清侧栏布局(会话标识,存储)
+        raise 右侧侧栏错误('侧栏布局读不出来') from None
 
 def 写侧栏布局(会话标识,表面,存储=None):
     '持久化当前布局与身份分配，不保留撤销条目'
@@ -32,8 +33,8 @@ def 写侧栏布局(会话标识,表面,存储=None):
     已存={'bySession':{会话标识:{'layout':表面['layout'],'minted':表面['minted']}}}#信封
     try:#写
         存储.setItem(侧栏持久化前缀+'.'+会话标识,紧凑json编码(已存))
-    except (TypeError,ValueError,AttributeError,OSError) as 错误:
-        print('侧栏布局持久化失败:',错误)
+    except (TypeError,ValueError,AttributeError,OSError):
+        raise 右侧侧栏错误('侧栏布局没有写入') from None
 
 def 清侧栏布局(会话标识,存储=None):
     '只移除一个会话的已持久化布局'
@@ -42,4 +43,4 @@ def 清侧栏布局(会话标识,存储=None):
     try:#删
         存储.removeItem(侧栏持久化前缀+'.'+会话标识)
     except (TypeError,AttributeError,OSError):
-        pass
+        raise 右侧侧栏错误('侧栏布局没有清掉') from None

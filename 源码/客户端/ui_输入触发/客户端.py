@@ -2,7 +2,7 @@ from .文案 import 命名空间,中文,英文#词典
 from .菜单视图 import 菜单视图#菜单组件
 from .服务 import 触发服务#根服务
 from .控制器 import 触发控制器#每会话控制器
-from .异常 import 触发错误#本包异常
+from .异常 import 触发错误
 from .探测 import 检测触发#纯核心探测
 from .菜单归约 import 菜单关闭,铺分组,菜单归约,精确匹配#纯核心归约
 
@@ -27,18 +27,32 @@ def 应用(上下文):#安装斜杠触发浏览器半边
                 '菜单状态与点选/关闭'
                 作用域会话=会话面.scope(会话标识)#作用域
                 if 作用域会话 is None:#无
-                    raise 触发错误('ui-input-trigger: 会话 "'+str(会话标识)+'" 解析不到作用域')#失败
+                    说明=str(会话标识)
+                    句子='ui-input-trigger: session resolved no scope'#固定句
+                    if 说明!='':#还能留下的身份
+                        句子=句子+' '+说明#接在固定句后
+                    raise 触发错误(句子)#失败
                 控制器=触发.sessionOf(作用域会话)#该会话控制器
-                def 点选项(来源,下标):#点选
-                    '转调 pick'
-                    return 控制器.pick(来源,下标)#点选
+                def 点选项(来源,下标,动作='pick'):#点选
+                    '转调 pick；下钻带 drill'
+                    return 控制器.pick(来源,下标,动作)#点选
+                def 点屑(来源,下标):#面包屑
+                    '转调 pickCrumb'
+                    return 控制器.pickCrumb(来源,下标)#下钻
+                def 悬停(来源,下标):#指针
+                    '转调 hover'
+                    return 控制器.hover(来源,下标)#高亮
                 def 关闭菜单():#关闭
                     '转调 dismiss'
                     return 控制器.dismiss()#关闭
                 return {#注入面
                     'menu':控制器.menu,#菜单仓
+                    'headers':控制器.headers,#页眉仓
                     'onPick':点选项,#点选
+                    'onCrumb':点屑,#面包屑
+                    'onHover':悬停,#悬停
                     'onDismiss':关闭菜单,#关闭
+                    'pageFailure':控制器,#菜单上显示的页面失败
                 }
             return 作用域.slots.register({#登记
                 'name':'conversation.input.overlay',#叠层槽

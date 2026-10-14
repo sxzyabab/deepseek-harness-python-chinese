@@ -1,4 +1,5 @@
 '一段展开思考的翻译控件'
+from nicegui import ui as 界面
 from .翻译 import 思考翻译
 
 __all__=['思考正文']
@@ -46,6 +47,13 @@ class 思考正文:
         自身.控制器=None
         自身.选择=None
         自身.同步()
+        钩=属性.get('hooks') if isinstance(属性.get('hooks'),dict) else {}
+        偏好齐='preferences' in 钩 or 'usePreferences' in 属性
+        语言齐='translationLocale' in 钩 or 'useTranslationLocale' in 属性
+        上限齐='translationLimit' in 钩 or 'useTranslationLimit' in 属性
+        if ('t' in 属性 and 'text' in 属性 and 'running' in 属性 and 'translate' in 属性
+                and 偏好齐 and 语言齐 and 上限齐):
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新 props，选择变了则拆掉旧控制器'
@@ -125,6 +133,32 @@ class 思考正文:
         if 自身.状态['failed']:
             失败行={'className':'failure','role':'status','text':翻译('failed')}
             重试行={'size':'sm','variant':'ghost','label':翻译('retry'),'onClick':自身.重试}
+        根=界面.column().classes('思考译文')
+        根.props('data-cot-translation=true data-translation-state='+状态名+' data-translation-view='+('original' if 显示原文 else 'translated'))
+        with 根:
+            切换钮=界面.button(动作文案, on_click=自身.切换).props('flat no-caps')
+            if 自身.状态['failed']:
+                切换钮.disable()
+                界面.label(翻译('failed'))
+                界面.button(翻译('retry'), on_click=自身.重试).props('flat no-caps')
+            elif 自身.状态['pending']:
+                转圈标=界面.spinner(size='14px')
+                转圈标.props('role=status aria-label="'+翻译('translating')+'"')
+            画正文=自身.属性.get('renderFactorySlot')
+            正文槽=None
+            if callable(画正文):
+                正文槽=画正文('conversation.chat.reasoning.content',{
+                    'text':正文,
+                    'running':自身.属性['running'],
+                    'labels':自身.标签(),
+                })
+            if isinstance(正文槽,dict):
+                if 正文:
+                    界面.markdown(正文)
+            elif isinstance(正文槽,str) and 正文槽!='':
+                界面.markdown(正文槽)
+            elif 正文槽 is None and not callable(画正文) and 正文:
+                界面.markdown(正文)
         return {
             'type':'cot-translation-body',
             'data-cot-translation':'true',
@@ -145,11 +179,7 @@ class 思考正文:
                 'failure':失败行,
                 'retry':重试行,
             },
-            'content':自身.属性['renderFactorySlot']('conversation.chat.reasoning.content',{
-                'text':正文,
-                'running':自身.属性['running'],
-                'labels':自身.标签(),
-            }),
+            'content':正文槽,
         }
 
     def __call__(自身,属性=None):

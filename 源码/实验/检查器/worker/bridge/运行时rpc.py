@@ -5,7 +5,7 @@ from .枢纽 import 检查器协议版本#协议版本
 
 __all__=['Client运行时远程错误','Client运行时路由']#仅中文公开名
 
-from ...异常 import Client运行时远程错误#Client Runtime远程错误
+from ...异常 import Client运行时远程错误,失败说明#Client Runtime远程错误|失败句
 
 class Client运行时路由:#Client Runtime路由
     'Runtime 上下文注册表与关联的 Worker→Client 请求所有者'
@@ -96,7 +96,7 @@ class Client运行时路由:#Client Runtime路由
             if not 已发:#未发
                 自身._拒绝待决(请求id,RuntimeError('Client execution context disconnected before dispatch'))#拒绝
         except Exception as 错误:#源注册表.发送请求帧可能抛 OSError/连接断开，契约未定所以收不窄
-            自身._拒绝待决(请求id,错误 if isinstance(错误,Exception) else RuntimeError(str(错误)))#拒绝
+            自身._拒绝待决(请求id,RuntimeError(失败说明(str(错误))))#说明不含绝对路径
         return 任务#结果
 
     def 关闭目标会话(自身,目标,会话id):#关闭目标会话

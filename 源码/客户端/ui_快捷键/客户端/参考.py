@@ -1,8 +1,48 @@
 '可搜索可编辑的快捷键速查及其通用设置行'
+from nicegui import ui as 界面
 from ...ui_基础界面组件.按名排序 import 按名排序
+from ...ui_基础界面组件.icons import 图标关闭填14,图标刷新14
 from .编辑器 import 快捷键编辑器
 from .图标 import 快捷键图标
 from .反馈 import 快捷键失败,快捷键读取失败
+
+样式表='''
+.setting{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:60px;padding:16px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2)}
+.settingText{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding-right:48px}
+.settingTitle{color:var(--dsw-alias-label-primary);font-size:14px;line-height:22px}
+.settingDescription{margin:0;color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}
+.button{height:36px;min-width:90px}
+.dialog{display:flex;flex-direction:column;width:min(480px,100%);max-height:calc(100dvh - 108px);gap:0}
+.header{display:flex;align-items:center;justify-content:space-between;padding:22px 24px 0}
+.title{color:var(--dsw-alias-label-primary);font-size:16px;line-height:24px;font-weight:500}
+.searchRow{display:flex;align-items:center;gap:8px;padding:12px 24px 0}
+.searchField{display:flex;align-items:center;gap:8px;flex:1}
+.searchIcon{flex:none;color:var(--dsw-alias-label-caption)}
+.list{display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:8px 16px}
+.group{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}
+.dialog .row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
+.commandLabel{flex:1;min-width:0}
+.binding{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.keyBadge{box-sizing:border-box;height:26px;padding:0 12px;border-radius:10px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary)}
+.fixedKeyBadge{height:26px;color:var(--dsw-alias-label-tertiary)}
+.unbound{color:var(--dsw-alias-label-tertiary);font-size:12px}
+.footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 24px 16px}
+.toast{display:flex;align-items:center;gap:8px;padding:8px 24px 16px}
+.toastSuccess{color:var(--dsw-alias-state-success-secondary)}
+.toastError{color:var(--dsw-alias-state-warn-secondary)}
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.hint{color:var(--dsw-alias-label-tertiary)}
+'''
+界面.add_css(样式表,shared=True)
+
+搜索标='<svg class="searchIcon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M10.28 5.86536C10.28 3.41381 8.29245 1.42644 5.84094 1.42627C3.38929 1.42627 1.40186 3.4137 1.40186 5.86536C1.40203 8.31686 3.38939 10.3044 5.84094 10.3044C8.29234 10.3043 10.2799 8.31676 10.28 5.86536ZM11.4174 5.86536C11.4172 8.94498 8.92057 11.4416 5.84094 11.4418C2.76117 11.4418 0.263843 8.94509 0.263672 5.86536C0.263672 2.78548 2.76106 0.288086 5.84094 0.288086C8.92067 0.288258 11.4174 2.78559 11.4174 5.86536Z" fill="currentColor"/><path d="M13.7372 12.9078L12.9323 13.7127L9.9732 10.7536L10.7781 9.94867L13.7372 12.9078Z" fill="currentColor"/></svg>'
+
+def 画键徽章(键列表,类名):
+    '每个键位一枚徽章；空列表不画'
+    if isinstance(键列表,list) is False:
+        return
+    for 键位 in 键列表:
+        界面.label(str(键位)).classes(类名)
 
 __all__=['核心动作顺序','快捷键设置行','快捷键速查']
 
@@ -32,12 +72,14 @@ coreActionOrder=核心动作顺序
 class 快捷键设置行:
     '通用设置里打开速查的动作行'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性
+        '记下 props。槽位只调用构造，键齐才画。'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        if callable(自身.属性.get('t')):
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'
-        自身.属性=属性
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 读目录(自身):
         'hooks.catalog 或 useCatalog'
@@ -51,26 +93,30 @@ class 快捷键设置行:
         return []
 
     def 渲染(自身):
-        '设置行视图'
+        '设置行：标题、说明、查看按钮，有键位时带悬停提示和徽章。没有文案时不画替代句。'
+        if not callable(自身.属性.get('t')):
+            return None
         翻译=自身.属性['t']
-        打开=自身.属性['actions']['open']
+        动作=自身.属性['actions'] if 'actions' in 自身.属性 else None
+        def 打开():
+            '打开速查'
+            if isinstance(动作,dict) and 'open' in 动作:
+                动作['open']()
         行=None
         for 项 in 自身.读目录():
-            if 项.get('id')=='shortcuts.open':
+            if 'id' in 项 and 项['id']=='shortcuts.open':
                 行=项
                 break
-        键=行.get('keys') if 行 is not None else []
-        return {
-            'type':'shortcuts-settings-row',
-            'title':翻译('settings'),
-            'description':翻译('description'),
-            'viewLabel':翻译('view'),
-            'globalHint':翻译('global-hint'),
-            'shortcutKeys':键 or [],
-            'ariaKeyshortcuts':None if 行 is None else 行.get('aria'),
-            'hintDisabled':not 键,
-            'onOpen':打开,
-        }
+        键=行['keys'] if 行 is not None and 'keys' in 行 and isinstance(行['keys'],list) else []
+        with 界面.row().classes('setting'):
+            with 界面.column().classes('settingText'):
+                界面.label(翻译('settings')).classes('settingTitle')
+                界面.label(翻译('description')).classes('settingDescription')
+            钮=界面.button(翻译('view'), on_click=打开).props('flat no-caps').classes('button')
+            if len(键)>0:
+                钮.tooltip(翻译('global-hint'))
+                with 界面.row().classes('binding'):
+                    画键徽章(键,'keyBadge')
 
     def __call__(自身,属性=None):
         '对齐 React 调用'
@@ -81,18 +127,21 @@ class 快捷键设置行:
 class 快捷键速查:
     '打开时渲染单实例速查对话框；核心动作按产品序，组内其余按 id'
     def __init__(自身,属性):
-        '记下 props 与对话框态'
-        自身.属性=属性
+        '记下 props 与对话框态。槽位只调用构造，键齐才画。编辑器构造时不画。'
+        自身.属性=属性 if isinstance(属性,dict) else {}
         自身.目标=None
         自身.重置修订=None
         自身.忙=False
         自身.吐司=None
         自身.已挂=True
         自身.编辑器=None
+        自身._编辑标识=None
+        if callable(自身.属性.get('t')) and isinstance(自身.属性.get('actions'),dict):
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'
-        自身.属性=属性
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 读存储(自身):
         '根 store 快照'
@@ -240,122 +289,123 @@ class 快捷键速查:
         }
 
     def 渲染(自身):
-        '速查 + 恢复确认 + 吐司'
+        '速查、恢复确认和吐司。编辑器在行内空构造、更新后再画。没有文案时不画替代句。'
+        if not callable(自身.属性.get('t')):
+            return None
         翻译=自身.属性['t']
         态=自身.读存储()
-        打开=bool(态.get('open'))
-        查询=态.get('query') or ''
+        打开='open' in 态 and 态['open'] is True
+        查询=态['query'] if 'query' in 态 and isinstance(态['query'],str) else ''
         配置=自身.读钩('config')
         if 打开 and 配置.get('status')=='unreadable':
             自身.通知(快捷键读取失败(配置,自身.属性['runtime'],翻译),True)
-        if not 打开 and 自身.重置修订 is not None:
+        if 打开 is not True and 自身.重置修订 is not None:
             自身.重置修订=None
+        if 打开 is not True:
+            return
         运行时=自身.属性.get('runtime')
         平台=自身.属性.get('platform')
         档键=str(运行时)+':'+str(平台)
-        档=(((配置.get('document') or {}).get('profiles') or {}).get(档键)) or {}
+        文档=配置['document'] if 'document' in 配置 and isinstance(配置['document'],dict) else {}
+        档表=文档['profiles'] if 'profiles' in 文档 and isinstance(文档['profiles'],dict) else {}
+        档=档表[档键] if 档键 in 档表 and isinstance(档表[档键],dict) else {}
         改数=len(档)
-        匹配=自身.匹配行(查询) if 打开 else []
-        分组行={}
-        for 组 in ('application','input','menus','approval'):
-            分组行[组]=[行 for 行 in 匹配 if 行.get('group')==组]
-        行视图=[]
-        for 组 in ('application','input','menus','approval'):
-            行们=分组行[组]
-            if len(行们)==0:
-                continue
-            列表=[]
-            for 行 in 行们:
-                可改='modified' in 行
-                在编=自身.目标 is not None and 自身.目标.get('id')==行.get('id')
-                编辑树=None
-                if 可改 and 在编:
-                    面={**自身.编辑属性(),'target':行}
-                    if 自身.编辑器 is None or 自身.编辑器.属性.get('target') is not 行:
-                        自身.编辑器=快捷键编辑器(面)
-                    编辑树=自身.编辑器(面)
-                def 开编(目标行=行):
-                    '进入行内编辑'
-                    自身.目标=目标行
-                列表.append({
-                    'id':行['id'],
-                    'label':行.get('label'),
-                    'keys':行.get('keys') or [],
-                    'editable':可改,
-                    'editing':在编,
-                    'editLabel':翻译('edit-label',{'command':行.get('label')}),
-                    'editDisabled':自身.忙 or 配置.get('status')!='ready',
-                    'onEdit':开编 if 可改 and not 在编 else None,
-                    'editor':编辑树,
-                    'editIcon':快捷键图标('edit') if 可改 and not 在编 else None,
-                    'unboundLabel':翻译('unbound'),
-                })
-            行视图.append({
-                'group':组,
-                'groupLabel':翻译(组),
-                'showHeading':组!='application',
-                'rows':列表,
-            })
+        匹配=自身.匹配行(查询)
         def 开重置():
             '打开恢复全部确认'
             自身.目标=None
             自身.重置修订=配置.get('revision')
         def 关确认():
             '关确认'
-            if not 自身.忙:
+            if 自身.忙 is not True:
                 自身.重置修订=None
-        def 搜(值):
-            '写查询'
-            自身.属性['actions']['search'](值)
+        def 改搜(事件):
+            '写入搜索'
+            if 'actions' in 自身.属性 and 'search' in 自身.属性['actions']:
+                自身.属性['actions']['search'](事件.value)
         def 清搜():
             '清空查询'
-            自身.属性['actions']['search']('')
-        吐司树=None
-        if 自身.吐司 is not None:
-            吐=自身.吐司
-            吐司树={
-                'seq':吐['seq'],
-                'text':吐['text'],
-                'error':吐['error'],
-                'icon':快捷键图标('error' if 吐['error'] else 'success'),
-                'onDone':自身.消吐司,
-            }
-        return {
-            'type':'shortcut-reference',
-            'open':打开,
-            'title':翻译('title'),
-            'closeLabel':翻译('close'),
-            'searchLabel':翻译('search'),
-            'clearSearchLabel':翻译('clear-search'),
-            'query':查询,
-            'busy':自身.忙,
-            'configBusy':配置.get('status')=='loading',
-            'groups':行视图,
-            'empty':翻译('empty') if 打开 and len(匹配)==0 else None,
-            'resetAllLabel':翻译('reset-all'),
-            'resetDisabled':自身.忙 or 配置.get('status')!='ready' or 改数==0,
-            'modifiedCount':改数,
-            'modifiedCountLabel':翻译('modified-count',{'count':改数}) if 改数>0 else None,
-            'onClose':自身.关速查,
-            'onSearch':搜,
-            'onClearSearch':清搜,
-            'onResetAll':开重置,
-            'focusRequest':态.get('focusRequest'),
-            'confirm':{
-                'open':打开 and 自身.重置修订 is not None,
-                'title':翻译('reset-title'),
-                'description':翻译('reset-description'),
-                'closeLabel':翻译('close-confirmation'),
-                'cancelLabel':翻译('cancel'),
-                'resetLabel':翻译('reset'),
-                'busy':自身.忙,
-                'ready':配置.get('status')=='ready',
-                'onClose':关确认,
-                'onCancel':关确认,
-                'onConfirm':自身.全部恢复,
-            },
-            'toast':吐司树,
-        }
+            if 'actions' in 自身.属性 and 'search' in 自身.属性['actions']:
+                自身.属性['actions']['search']('')
+        with 界面.column().classes('dialog'):
+            with 界面.row().classes('header'):
+                界面.label(翻译('title')).classes('title')
+                关=界面.button(on_click=自身.关速查).props('flat round aria-label="'+翻译('close')+'"').classes('close')
+                with 关:
+                    图标关闭填14({'size':14})
+            with 界面.row().classes('searchRow'):
+                with 界面.row().classes('searchField'):
+                    界面.html(搜索标,sanitize=False)
+                    界面.input(value=查询, placeholder=翻译('search'), on_change=改搜).props('aria-label="'+翻译('search')+'"')
+                    if 查询!='':
+                        清=界面.button(on_click=清搜).props('flat round aria-label="'+翻译('clear-search')+'"').classes('clearSearch')
+                        with 清:
+                            图标关闭填14({'size':10})
+            with 界面.column().classes('list'):
+                for 组 in ('application','input','menus','approval'):
+                    行们=[行 for 行 in 匹配 if 行.get('group')==组]
+                    if len(行们)==0:
+                        continue
+                    if 组!='application':
+                        界面.label(翻译(组)).classes('group')
+                    for 行 in 行们:
+                        可改='modified' in 行
+                        在编=自身.目标 is not None and 'id' in 自身.目标 and 'id' in 行 and 自身.目标['id']==行['id']
+                        键=行['keys'] if 'keys' in 行 and isinstance(行['keys'],list) else []
+                        标签=行['label'] if 'label' in 行 else ''
+                        def 开编(_事件=None,目标行=行):
+                            '进入行内编辑'
+                            自身.目标=目标行
+                        with 界面.row().classes('row'):
+                            if isinstance(标签,str) and 标签!='':
+                                界面.label(标签).classes('commandLabel')
+                            with 界面.row().classes('binding'):
+                                if 可改 and 在编:
+                                    面={**自身.编辑属性(),'target':行}
+                                    if 自身.编辑器 is None or 自身._编辑标识!=行.get('id'):
+                                        自身.编辑器=快捷键编辑器()
+                                        自身._编辑标识=行.get('id')
+                                    自身.编辑器.更新(面)
+                                    自身.编辑器.渲染()
+                                elif 可改:
+                                    快捷键图标({'kind':'edit','className':'rowActions'}).渲染()
+                                    if len(键)==0:
+                                        界面.label(翻译('unbound')).classes('unbound')
+                                    else:
+                                        画键徽章(键,'keyBadge')
+                                    编辑钮=界面.button(翻译('edit-label',{'command':标签}), on_click=开编).props('flat no-caps').classes('rowButton')
+                                    if 自身.忙 or 配置.get('status')!='ready':
+                                        编辑钮.disable()
+                                else:
+                                    画键徽章(键,'fixedKeyBadge')
+                if len(匹配)==0:
+                    界面.label(翻译('empty')).classes('hint')
+            with 界面.row().classes('footer'):
+                复位=界面.button(on_click=开重置).props('flat no-caps').classes('resetAll')
+                with 复位:
+                    图标刷新14({'size':12})
+                    界面.label(翻译('reset-all'))
+                if 自身.忙 or 配置.get('status')!='ready' or 改数==0:
+                    复位.disable()
+                if 改数>0:
+                    界面.label(翻译('modified-count',{'count':改数})).classes('modifiedCount')
+            if 自身.重置修订 is not None:
+                with 界面.dialog() as 对话框:
+                    with 界面.card():
+                        界面.label(翻译('reset-title'))
+                        界面.label(翻译('reset-description'))
+                        界面.button(翻译('close-confirmation'), on_click=关确认).props('flat no-caps')
+                        界面.button(翻译('cancel'), on_click=关确认).props('flat no-caps')
+                        恢复=界面.button(翻译('reset'), on_click=自身.全部恢复).props('unelevated no-caps')
+                        if 自身.忙 or 配置.get('status')!='ready':
+                            恢复.disable()
+                对话框.open()
+            if 自身.吐司 is not None:
+                吐=自身.吐司
+                错=吐['error'] is True if 'error' in 吐 else False
+                with 界面.row().classes('toast toastError' if 错 else 'toast toastSuccess'):
+                    快捷键图标({'kind':'error' if 错 else 'success'}).渲染()
+                    界面.label(吐['text'] if 'text' in 吐 else '')
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

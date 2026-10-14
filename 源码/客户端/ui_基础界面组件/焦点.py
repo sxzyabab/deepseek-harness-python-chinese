@@ -9,7 +9,7 @@ __all__=['无轮廓聚焦']#仅中文公开名
 def 无轮廓聚焦(元素,选项=None):
     '聚焦自动目标，键盘导航或 blur 前不显示焦点轮廓。元素为接收自动焦点的控件或容器；选项为浏览器 focus 选项'
     旧=释放表.get(元素)#上一轮
-    if 旧 is not None:#有旧会话
+    if 旧 is not None:
         旧()#拆掉
     def 释放():
         '解除标记并拆监听'
@@ -31,8 +31,8 @@ def 无轮廓聚焦(元素,选项=None):
     元素.addEventListener('keydown',导航,True)#捕获导航键
     if 选项 is None:#无选项
         元素.focus()#聚焦
-    else:#有选项
+    else:
         元素.focus(选项)#聚焦
     匹配=getattr(元素,'matches',None)#matches
     if callable(匹配) and not 匹配(':focus'):#未真正拿到焦点
-        释放()#清残留
+        释放()

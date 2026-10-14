@@ -4,7 +4,6 @@ from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from .异常 import 授权错误,授权拒绝错误#授权失败与人类拒绝
 from . import (
-    不变量,
     类型,
 )
 

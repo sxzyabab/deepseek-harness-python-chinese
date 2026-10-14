@@ -1,4 +1,5 @@
 '快捷键控件与反馈用图，颜色由所属界面决定'
+from nicegui import ui as 界面
 
 __all__=['画稿','快捷键图标']
 
@@ -29,21 +30,40 @@ __all__=['画稿','快捷键图标']
     },
 }
 
-def 快捷键图标(种类,类名=None):
-    '按种类返回装饰性 SVG 描述；对辅助技术隐藏'
-    项=画稿[种类]
-    尺寸=项['defaultSize']
-    return {
-        'type':'shortcut-icon',
-        'kind':种类,
-        'width':尺寸,
-        'height':尺寸,
-        'viewBox':项['viewBox'],
-        'fill':'currentColor',
-        'ariaHidden':True,
-        'className':类名,
-        'paths':list(项['paths']),
-    }
+class 快捷键图标:
+    '装饰性 SVG。父组件在自己的布局里调用渲染'
+    def __init__(自身,属性=None):
+        '只记下种类，构造时不画'
+        if isinstance(属性,str):
+            属性={'kind':属性}
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 更新(自身,属性):
+        '刷新种类'
+        if isinstance(属性,str):
+            属性={'kind':属性}
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出对辅助技术隐藏的 SVG'
+        种类=自身.属性['kind'] if 'kind' in 自身.属性 else None
+        if 种类 not in 画稿:
+            return
+        项=画稿[种类]
+        尺寸=项['defaultSize']
+        路径=''.join('<path d="'+d+'"/>' for d in 项['paths'])
+        类=''
+        类名=自身.属性['className'] if 'className' in 自身.属性 else None
+        if isinstance(类名,str) and 类名!='':
+            类=' class="'+类名.replace('"','')+'"'
+        图='<svg width="'+str(尺寸)+'" height="'+str(尺寸)+'" viewBox="'+项['viewBox']+'" fill="currentColor" aria-hidden="true"'+类+'>'+路径+'</svg>'
+        界面.html(图,sanitize=False)
+
+    def __call__(自身,属性=None):
+        '对齐组件调用'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()
 
 ShortcutIcon=快捷键图标
 artwork=画稿

@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from ..引擎.约束 import 浮动最小尺寸#下限
 from ..引擎.几何 import 平移矩形,缩放矩形#几何
 from ..引擎.树 import 浮动矩形,取窗格,取标签,唯一标签标识#树
@@ -34,12 +35,12 @@ class 浮动层:
         自身.状态=状态#态
         自身.意图=意图#意图
         自身.文案=文案#文案
-        自身.渲标签=渲标签#渲
+        自身.渲标签=渲标签
         自身.渲标签标题=渲标签标题#标题
 
     def _清预览(自身):
         '清空预览'
-        自身._预览=None#清
+        自身._预览=None
 
     def 抬升(自身,窗格标识):
         '聚焦抬顶；已抬则无'
@@ -78,8 +79,7 @@ class 浮动层:
         return 自身._手势.开始(移动,抬起)#喂入
 
     def 渲染(自身):
-        '浮窗结构树列表'
-        树表=[]#结果
+        '画出浮窗'
         for 深,窗格标识 in enumerate(自身.状态['floats']):#底到顶
             窗格=取窗格(自身.状态,窗格标识)#窗
             标签=取标签(自身.状态,唯一标签标识(窗格))#签
@@ -91,20 +91,28 @@ class 浮动层:
                 层=深+1#z
             标题=标签['title']#默认
             if 自身.渲标签标题 is not None:#自定义
-                标题=自身.渲标签标题(标签)#渲
-            树表.append({#面板
-                'type':'float',
-                'data':'dockkit-float',
-                'paneId':窗格标识,
-                'active':自身.状态['activePaneId']==窗格标识,
-                'style':{'left':活矩['x'],'top':活矩['y'],'width':活矩['width'],'height':活矩['height'],'zIndex':层},
-                'title':标题,
-                'body':自身.渲标签(标签),
-                'onRaise':lambda 窗=窗格标识:自身.抬升(窗),
-                'onDock':lambda 窗=窗格标识:自身.意图.unfloatPane(窗),
-                'onClose':lambda 签=标签['id']:自身.意图.closeTab(签),
-                'onMovePress':lambda 事,窗=窗格标识:自身.开始拖移(窗,事['clientX'],事['clientY']),
-                'onResizePress':lambda 事,窗=窗格标识:自身.开始缩放(窗,事['clientX'],事['clientY']),
-                'labels':自身.文案,
-            })#板
-        return {'type':'floatLayer','children':树表}#层
+                产出=自身.渲标签标题(标签)
+                if isinstance(产出,str):
+                    标题=产出
+                elif hasattr(产出,'渲染'):
+                    产出.渲染()
+            样式='left:'+str(活矩['x'])+'px;top:'+str(活矩['y'])+'px;width:'+str(活矩['width'])+'px;height:'+str(活矩['height'])+'px;z-index:'+str(层)
+            def 抬(窗=窗格标识):
+                '抬到前面'
+                自身.抬升(窗)
+            def 收回(窗=窗格标识):
+                '收回停靠'
+                自身.意图.unfloatPane(窗)
+            def 关闭(签=标签['id']):
+                '关闭浮窗'
+                自身.意图.closeTab(签)
+            with 界面.card().classes('dockkit-float').style(样式):
+                界面.button(str(标题), on_click=抬)
+                正文=自身.渲标签(标签)
+                if hasattr(正文,'渲染'):
+                    正文.渲染()
+                elif isinstance(正文,str) and 正文!='':
+                    界面.label(正文)
+                with 界面.row():
+                    界面.button(自身.文案['dockFloat'], on_click=收回)
+                    界面.button(自身.文案['closeFloat'], on_click=关闭)

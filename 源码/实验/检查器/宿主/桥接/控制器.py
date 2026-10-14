@@ -1,4 +1,5 @@
 import os,secrets,uuid#环境与随机
+from urllib.parse import urlparse#校验origin
 from ...异常 import 检查器错误#本包错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from ..检视.网络 import 网络主题,安装请求观察器#fetch采集
@@ -108,7 +109,6 @@ def 解析检查器选项(选项=None):#解析选项
         raise 检查器错误('inspector: maxSourceFrameBytes cannot carry one base64 body chunk')#拒绝
     if 规格.clientReconnectMaxMs<规格.clientReconnectBaseMs:#重连区间非法
         raise 检查器错误('inspector: clientReconnectMaxMs must be at least clientReconnectBaseMs')#拒绝
-    from urllib.parse import urlparse#校验origin
     for 来源 in 规格.clientOrigins:#校验每个origin
         解析=urlparse(来源)#解析
         规范=f'{解析.scheme}://{解析.netloc}'#规范

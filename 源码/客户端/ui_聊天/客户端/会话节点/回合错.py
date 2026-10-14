@@ -52,8 +52,8 @@ def 回放回合错(上下文):#从匹配回退拼状态
     结束=None#带失败
     for 候 in 匹配列表:#扫
         if 自匹配抽失败(候) is not None:#命中
-            结束=候#记下
-            break#停
+            结束=候
+            break
     if 结束 is None or 结束['event']['type']!='turn/end':#无
         return None#放弃
     失败=自匹配抽失败(结束)#快照
@@ -65,7 +65,7 @@ def 回放回合错(上下文):#从匹配回退拼状态
     for 候 in 匹配列表:#扫重试
         if 重试回合(候['event'])==回合:#同回合
             隐藏=True#隐藏
-            break#停
+            break
     return {'turn':回合,'hidden':隐藏,'failure':失败}#回退态
 
 def 回合错匹配(事件):#按事件认领或更新本节点
@@ -73,7 +73,7 @@ def 回合错匹配(事件):#按事件认领或更新本节点
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='turn/start':#回合开始
-        return {'id':str(数据['turn']),'role':'start'}#开
+        return {'id':str(数据['turn']),'role':'start'}
     原因=数据['reason'] if 'reason' in 数据 else None#原因
     if 种=='turn/end' and 原因 is not None and 'kind' in 原因 and 原因['kind']=='error':#错误收尾
         return {'id':str(数据['turn']),'role':'update'}#更新
@@ -92,8 +92,8 @@ def 回合错更新(上下文,匹配项):#写入失败或因重试隐藏
     '失败快照或 hidden'
     态=上下文['state']#态
     失败=自匹配抽失败(匹配项)#失败
-    if 失败 is not None:#有
-        return {**态,'failure':失败}#记下
+    if 失败 is not None:
+        return {**态,'failure':失败}
     if 重试回合(匹配项['event'])==(态['turn'] if 'turn' in 态 else None):#本回合重试
         return {**态,'hidden':True}#隐藏
     return 态#无关
@@ -113,7 +113,7 @@ def 回合错建视图(上下文):#拼最终聊天节点
         return 聊天节点(上下文,'turn-error',节点['seq'],节点)#可见
     当前=None#已有
     取=上下文['current'] if 'current' in 上下文 else None#current
-    if 取 is not None and 'chat' in 取:#有
+    if 取 is not None and 'chat' in 取:
         当前=取['chat']#聊天
     if 当前 is None:#尚空
         return None#不占位

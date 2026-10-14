@@ -1,5 +1,5 @@
 '宿主工作区远程拥有者：显式命令与重连安全状态'
-import re,threading
+import threading
 from ...基础设施.通用工具 import 启动守护线程
 from ...依赖.schemastery import 字符串字段,数字字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
@@ -24,8 +24,6 @@ __all__=['包名','名称','依赖','应用','默认','配置','工作区控制�
     'documentsDirectory':字符串字段(),
     'documentsLookupTimeoutMs':数字字段(最小=1,默认值=10000),
 }
-
-非法目录名=re.compile(r'[/\\:\0]')
 
 def _工作区标识(值):#品牌化工作区 id
     '尽力把字符串收成工作区标识'
@@ -63,14 +61,10 @@ class 工作区控制器(远程服务):
         return 自身._命令.create(请求)#委托
 
     @_远程('initializeDefault')
-    def initializeDefault(自身,请求,信号=None):
-        '首次使用时初始化或复用默认工作区，不创建会话或消息'
-        目录名=请求['directoryName'] if 'directoryName' in 请求 else ''
-        标题=请求['title'] if 'title' in 请求 else ''
-        if (not isinstance(目录名,str) or 目录名.strip()=='' or 目录名!=目录名.strip()
-            or 目录名.endswith('.') or 非法目录名.search(目录名) is not None
-            or not isinstance(标题,str) or 标题.strip()==''):
-            raise 远程错误('gateway/bad-request','default Workspace requires a directory name and non-blank title',{})
+    def initializeDefault(自身,请求=None,信号=None):
+        '首次使用时初始化或复用默认工作区。目录名固定，不创建会话。'
+        if 信号 is None and 请求 is not None and not isinstance(请求,dict):
+            信号=请求
         合成=threading.Event()
         if 已中止(信号):
             合成.set()
@@ -87,12 +81,11 @@ class 工作区控制器(远程服务):
         启动守护线程(监视父)
         def 解析默认():
             try:
-                路径=默认工作区目录(目录名,自身._配置['documentsDirectory'],合成)
+                return 默认工作区目录(自身._配置['documentsDirectory'],合成)
             except 文档目录错误 as 错误:
                 raise 远程错误('workspace/invalid-path',str(错误),{},原因=错误)
             finally:
                 定时.cancel()
-            return {'path':路径,'title':标题}
         工作区=自身.ctx.workspaceRegistry.initializeDefault(解析默认)
         if 工作区 is None:
             return None

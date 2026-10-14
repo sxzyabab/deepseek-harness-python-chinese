@@ -3,9 +3,20 @@ __all__=['会话体','会话页眉','解析活动视图','派生谱系','默认�
 
 默认视图标识='chat'#环回退
 
+from nicegui import ui as 界面
+from .文案 import 中文 as 对话文案
+from ..异常 import 页面失败文案,贴出失败
+
 def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键
+    '无宿主文案时用本包中文词典，没有则返回键本身。'
+    if 键 not in 对话文案:#词典没有
+        return 键#键
+    文本=对话文案[键]#词条
+    if 参数 is None:#无参数
+        return 文本#原文
+    for 名 in 参数:#替换占位
+        文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+    return 文本#译完
 
 def 空渲染槽(*位置参数,**关键字参数):
     '未注入槽渲染时不画'
@@ -84,6 +95,8 @@ class 会话页眉:#滚动口上页眉
     def __init__(自身,属性=None):
         '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.画面=None#可反复清空的画面
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新'
@@ -149,21 +162,53 @@ class 会话页眉:#滚动口上页眉
                     'onSelect':造切,#切
                     'onClick':造切,#按钮
                 })#结束
-        return {#页眉视图
-            'type':'conversation-session-header',#类型
-            'className':('header','headerHidden') if 隐藏 is True else ('header',),#类
-            'aria-hidden':True if 隐藏 is True else None,#无障碍
-            'hidden':隐藏,#隐
-            'crumbs':屑节点,#面包屑
-            'sessionIdFallback':会话标识,#无谱系时
-            'ariaHierarchy':翻译('session.hierarchy'),#无障碍
-            'ariaLabel':翻译('session.hierarchy'),#谱系 aria
-            'actions':渲染槽('conversation.session.header.actions',{}),#动作
-            'utilities':渲染槽('conversation.session.header.utilities',{}),#工具
-            'tabs':页签列表,#多页才画
-            'onOpenCrumb':打开,#点面包屑
-            'cssModule':'会话根.module.css',#样式
-        }#视图结束
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('header')#页眉
+        自身.画面.clear()#清空
+        自身.画面.set_visibility(隐藏 is not True)#空白英雄时藏起
+        with 自身.画面:#页眉
+            贴出失败(自身)
+            界面.label(翻译('session.hierarchy')).classes('谱系')#谱系
+            with 界面.row().classes('面包屑'):#屑
+                for 段 in 屑节点:#逐级
+                    标题=段['title'] if 'title' in 段 and 段['title'] is not None else ''#标题
+                    if 标题=='':#无标题
+                        标题=str(段['id']) if 'id' in 段 and 段['id'] is not None else 翻译('session.hierarchy')#回退
+                    点=段['onClick'] if 'onClick' in 段 else None#导航
+                    if 点 is None:#当前
+                        界面.label(标题)#当前
+                    else:#可点
+                        def 造点(钉点=点):
+                            '打开这一级会话。'
+                            def 点屑():
+                                '导航。'
+                                钉点()#开
+                            return 点屑#回调
+                        界面.button(标题,on_click=造点())#屑
+            渲染槽('conversation.session.header.actions',{})#动作自己画
+            渲染槽('conversation.session.header.utilities',{})#工具自己画
+            if len(页签列表)>1:#多页
+                with 界面.row().classes('页签'):#页签
+                    for 页 in 页签列表:#逐页
+                        页标=页['label'] if 'label' in 页 and 页['label'] is not None else ''#标签
+                        if 页标=='':#无标签
+                            页标=str(页['id']) if 'id' in 页 else ''#id
+                        切=页['onSelect'] if 'onSelect' in 页 else None#切
+                        def 造切(钉切=切):
+                            '切到该页。'
+                            def 点页():
+                                '切换视图。'
+                                if 钉切 is not None:#有
+                                    钉切()#切
+                            return 点页#回调
+                        界面.button(页标,on_click=造切())#页签
 
     def __call__(自身,属性=None):
         '对齐 React'
@@ -178,6 +223,8 @@ class 会话体:#滚动口内活动视图
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已镜像=False#草稿镜像
         自身.解绑镜像=None#镜像拆除
+        自身.画面=None#可反复清空的画面
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新'
@@ -219,7 +266,7 @@ class 会话体:#滚动口内活动视图
                 自身.解绑镜像=绑镜像(写存储)#镜像
             自身.已镜像=True#已
         if 空白 is True and 撰写相位=='blank':#英雄空白
-            return None#不画
+            return#不画
         活动标识=活动['id'] if 活动 is not None and 'id' in 活动 else None#活动
         清检视=动作.setInspect if 动作 is not None else None#清
         def 检视完成():
@@ -227,24 +274,29 @@ class 会话体:#滚动口内活动视图
             if 清检视 is not None:#有
                 清检视(None)#清
         def 卸载():
-            '解绑镜像并释图'
+            '解绑镜像并释图。'
             if 自身.解绑镜像 is not None:#有
                 自身.解绑镜像()#解绑
                 自身.解绑镜像=None#清
             if 释图 is not None:#有
                 释图(会话标识)#释
-        return {#视图区
-            'type':'conversation-session',#类型
-            'className':'viewArea',#类
-            'sessionId':会话标识,#会话
-            'activeViewId':活动标识,#活动
-            'view':None if 活动 is None else 渲染槽('conversation.view',{#视图片
-                'inspect':检查,#检查
-                'onInspectDone':检视完成,#完成
-            },{'only':活动标识}),#仅活动
-            'onUnmount':卸载,#卸载释图
-            'cssModule':'会话根.module.css',#样式
-        }#视图结束
+        自身.卸载=卸载#离开会话时调用
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('viewArea')#视图区
+        自身.画面.clear()#清空
+        with 自身.画面:#视图区
+            贴出失败(自身)
+            if 活动 is None:#没有活动视图
+                界面.label(恒等翻译('placeholder.unavailable'))#空态
+            else:#活动视图自己画
+                渲染槽('conversation.view',{'inspect':检查,'onInspectDone':检视完成},{'only':活动标识})#视图
 
     def __call__(自身,属性=None):
         '对齐 React'

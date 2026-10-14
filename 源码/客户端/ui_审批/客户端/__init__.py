@@ -56,9 +56,17 @@ def 应用(上下文):
     登记待处理=上下文.uiSession.registerPendingInteraction(优先级)#同优先级域
 
     def 选择(属性):
-        '仅命中审批。属性为槽 props dict'
+        '仅命中审批。属性为槽 props dict。会话链可能把待决面放在 pendingInteraction 或 interactions'
         待=属性['pendingInteraction'] if 'pendingInteraction' in 属性 else None#待处理
-        return 待 if isinstance(待,待决审批) else None#仅审批
+        if isinstance(待,待决审批):
+            return 待
+        交互=属性['interactions'] if 'interactions' in 属性 else None#交互列表
+        if not isinstance(交互,list):
+            return None
+        for 项 in 交互:
+            if isinstance(项,待决审批):
+                return 项
+        return None
 
     def 登记撰写():
         '登记 composer 链条目'

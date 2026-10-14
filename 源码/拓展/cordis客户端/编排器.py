@@ -34,6 +34,20 @@ class 运行编排器:#CordisRunOrchestrator
         自身._听=set()#订阅
         自身._活动缓存=None#快照缓存
         自身._失败缓存=None#失败快照
+        自身.activeRuns=可观察(自身._读活动,自身.observe)#稳定钩子源
+        自身.lastRunError=可观察(自身._读失败图,自身.observe)#稳定钩子源
+
+    def _读活动(自身):#惰性活动图
+        '两次提交之间引用稳定'
+        if 自身._活动缓存 is None:#惰性
+            自身._活动缓存=dict(自身.活动)#拷
+        return 自身._活动缓存#缓存
+
+    def _读失败图(自身):#惰性失败图
+        '两次提交之间引用稳定'
+        if 自身._失败缓存 is None:#惰性
+            自身._失败缓存=dict(自身.失败)#拷
+        return 自身._失败缓存#缓存
 
     def observe(自身,函数):#订阅
         '退订器'
@@ -49,26 +63,6 @@ class 运行编排器:#CordisRunOrchestrator
         自身._失败缓存=None#失效
         for 函数 in list(自身._听):#逐个
             函数()#唤
-
-    @property
-    def activeRuns(自身):#活动可观察
-        '活动图'
-        def 读():#惰性
-            '拷贝'
-            if 自身._活动缓存 is None:#惰性
-                自身._活动缓存=dict(自身.活动)#拷
-            return 自身._活动缓存#缓存
-        return 可观察(读)#图
-
-    @property
-    def lastRunError(自身):#失败可观察
-        '失败图'
-        def 读():#惰性
-            '拷贝'
-            if 自身._失败缓存 is None:#惰性
-                自身._失败缓存=dict(自身.失败)#拷
-            return 自身._失败缓存#缓存
-        return 可观察(读)#图
 
     def open(自身,请求):#打开请求
         '登记；已授权则立刻编排（失败只记日志）'
@@ -99,7 +93,7 @@ class 运行编排器:#CordisRunOrchestrator
         if 请求 is None:#没有
             return#停
         现=自身.活动.get(请求['pluginId'])#当前
-        if 现 and 现.get('phase')=='awaiting-approval' and 现.get('requestId')==请求标识:#正等
+        if 现 is not None and 现.get('phase')=='awaiting-approval' and 现.get('requestId')==请求标识:#正等
             自身.活动.pop(请求['pluginId'],None)#清
         自身.commit()#通知
 

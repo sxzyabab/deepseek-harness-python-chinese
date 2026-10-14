@@ -4,7 +4,8 @@ from ....基础设施.js特性 import 请求#上游 fetch
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 紧凑json编码,观察者集合
 from ....宿主.在应用中打开.共享 import 应用列表路由,打开路由#线路径
-from ..异常 import 在应用中打开错误#本包异常
+from ..异常 import 在应用中打开错误,页面失败文案
+from .应用列表 import 应用标签键#可命名应用
 
 __all__=['在应用中打开控制器','在应用中打开错误','快照存储','宿主基址']#仅中文公开名
 
@@ -104,7 +105,7 @@ class 快照存储:#本包自持快照存储
         自身.监听者.通知()#触发
 
     def _再水合(自身):#从 localStorage 读回
-        '失败只关掉持久化，不打断存储'
+        '读回失败则关掉持久化，并抛出去掉路径的失败句'
         存储=取本地存储()#可选
         if 存储 is None:#无
             自身._可持久化=False#关
@@ -113,12 +114,12 @@ class 快照存储:#本包自持快照存储
             原始=存储.getItem(自身.持久化名)#读串
             if 原始 is not None:#有值
                 自身.状态=json.loads(原始)#整值还原
-        except (TypeError,ValueError,AttributeError) as 错误:#再水合失败
-            print("快照存储 '"+自身.持久化名+"' 回灌失败:",错误)#诊断
-            自身._可持久化=False#关
+        except (TypeError,ValueError,AttributeError) as 错误:
+            自身._可持久化=False
+            raise 在应用中打开错误(页面失败文案(错误)) from 错误
 
     def _写出(自身):#写入 localStorage
-        '配额/私密模式失败只关掉持久化'
+        '配额或私密模式失败则关掉持久化，并抛出去掉路径的失败句'
         if not 自身._可持久化:#已关
             return#跳过
         存储=取本地存储()#可选
@@ -127,9 +128,9 @@ class 快照存储:#本包自持快照存储
             return
         try:#写
             存储.setItem(自身.持久化名,紧凑json编码(自身.状态))#整值
-        except (TypeError,ValueError,AttributeError,OSError) as 错误:#写失败
-            print("快照存储 '"+自身.持久化名+"' 持久化失败:",错误)#诊断
-            自身._可持久化=False#关
+        except (TypeError,ValueError,AttributeError,OSError) as 错误:
+            自身._可持久化=False
+            raise 在应用中打开错误(页面失败文案(错误)) from 错误
 
 class 在应用中打开控制器:#页面生命周期控制器
     '每页一次可用性、持久化选择与启动 POST'
@@ -138,7 +139,9 @@ class 在应用中打开控制器:#页面生命周期控制器
         自身.取数=默认同步fetch if 取数 is None else 取数#载体
         自身.应用表=快照存储(None)#已装应用 id；None 表示尚未应答
         自身.选择=快照存储('',持久化名=选择持久化名)#上次选择；空串表示尚未选
+        自身.操作=快照存储({'phase':'idle','path':None})#启动阶段，指针和快捷键共用
         自身._加载已启动=False#每控制器生命只读一次
+        自身.读取失败=''
 
     def 加载(自身):#读可用性一次
         '并发调用折叠到同一次读取；失败发布空列表（不渲染按钮）'
@@ -147,26 +150,48 @@ class 在应用中打开控制器:#页面生命周期控制器
         自身._加载已启动=True#标记
         自身._执行可用性读取()#读
 
+    def 当前应用(自身):#记住的可命名应用，否则列表第一项
+        '可用性未到时返回 None'
+        表=自身.应用表.getSnapshot()#已装
+        if not isinstance(表,list):#尚未应答
+            return None#无
+        可用=[标识 for 标识 in 表 if 标识 in 应用标签键]#可命名
+        选择=自身.选择.getSnapshot()#上次
+        if 选择 in 可用:#仍在
+            return 选择#记住的
+        return 可用[0] if len(可用)>0 else None#回退
+
     def 选定(自身,应用标识):#记住一次挑选
-        '目录 id 来自可用性列表'
+        '目录 id 来自可用性列表。启动进行中不改记住的应用。'
+        现=自身.操作.getSnapshot()#阶段
+        if isinstance(现,dict) and 现.get('phase')=='busy':#在飞
+            return#忽略
         自身.选择.set(应用标识)#持久化选择
 
     def 启动(自身,应用标识,路径):#启动已装应用打开工作区目录
-        '宿主确认后返回期约；任失败拒绝 在应用中打开错误'
+        '宿主确认后返回期约；任失败拒绝 在应用中打开错误。在飞时不再发第二次。'
+        现=自身.操作.getSnapshot()#阶段
+        if isinstance(现,dict) and 现.get('phase')=='busy':#在飞
+            跳过=期约()#空结算
+            跳过.解决(None)#不再启动
+            return 跳过#结束
+        自身.操作.set({'phase':'busy','path':路径})#占用
         体={'app':应用标识,'path':路径}#OpenInAppOpenPayload
         网址=拼接URL(宿主基址().rstrip('/')+'/',打开路由.lstrip('/'))
         结算=期约()#本次启动
         def 失败(错误):
-            '归一成在应用中打开错误'
+            '归一成在应用中打开错误，并把阶段写成 error'
+            自身.操作.set({'phase':'error','path':路径})#失败态
             if isinstance(错误,在应用中打开错误):#已是
                 结算.拒绝(错误)#拒绝
                 return
-            结算.拒绝(在应用中打开错误(str(错误)))#抛错
+            结算.拒绝(在应用中打开错误(页面失败文案(错误)))
         def 已响应(响应):
             '非成功状态则拒绝'
             if not 响应['ok']:#失败
                 失败(在应用中打开错误('open failed: HTTP '+str(响应['status'])))#抛错
                 return
+            自身.操作.set({'phase':'idle','path':路径})#空闲
             结算.解决(None)#确认
         接上(自身.取数(网址,{#POST
             'method':'POST',#方法
@@ -176,13 +201,15 @@ class 在应用中打开控制器:#页面生命周期控制器
         return 结算#期约
 
     def _执行可用性读取(自身):#可用性读取
-        '网络失败吞掉：不可达主机等同无应用'
+        '不可达时列表为空，失败句留在读取失败里'
         网址=拼接URL(宿主基址().rstrip('/')+'/',应用列表路由.lstrip('/'))
         def 发布(应用列表):
             '发布列表'
             自身.应用表.set(应用列表)#发布
-        def 失败(_错误):
-            '不可达当无应用'
+        def 失败(错误):
+            '不可达时记下去掉路径的失败句，列表保持空'
+            if 错误 is not None:
+                自身.读取失败=页面失败文案(错误)
             发布([])#空列表
         def 已响应(响应):
             '成功则留字符串 id'
@@ -194,12 +221,13 @@ class 在应用中打开控制器:#页面生命周期控制器
                 if isinstance(载荷,dict) and 'apps' in 载荷 and isinstance(载荷['apps'],list):#形态对
                     发布([标识 for 标识 in 载荷['apps'] if isinstance(标识,str)])#只留串
                     return
-            except (ValueError,TypeError,KeyError,json.JSONDecodeError):#解析失败
-                pass#当无应用
+            except (ValueError,TypeError,KeyError,json.JSONDecodeError) as 错误:
+                失败(错误)
+                return
             发布([])#空列表
         try:#读
             接上(自身.取数(网址,{#GET
                 'headers':{'accept':'application/json'},#头
             }),已响应,失败)#发出
-        except Exception:#取数同步失败
-            发布([])#空列表
+        except Exception as 错误:
+            失败(错误)

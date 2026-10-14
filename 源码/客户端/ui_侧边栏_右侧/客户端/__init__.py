@@ -1,6 +1,6 @@
 from .文案 import 中文,英文,右侧侧栏文案键#词典
 from .停靠文案 import 停靠标签#停靠投影
-from ..异常 import 右侧侧栏错误#本包异常
+from ..异常 import 右侧侧栏错误,异常原文#本包异常
 from .约定.槽位 import (#席约定
     右侧侧栏词表命名空间,
     席名右栏会话,
@@ -20,7 +20,7 @@ from .标签域 import 标签域,快照仓#标签域
 from .标签信息 import 标签信息工厂,向导标签信息工厂#标签信息
 from .会话视图集 import 侧栏会话视图集
 from .壳.右侧侧栏 import 右栏席,意图面,样式表 as 右栏样式表,窄视口全屏阈值#右栏席
-from .壳.右栏根 import 右栏根#右栏根
+from .壳.右栏壳 import 右栏壳#槽位右栏
 from .壳.展开按钮 import 展开按钮,样式表 as 展开样式表#展开钮
 from .标签.向导.定义 import 向导标识,向导定义#向导定义
 from .标签.向导.向导体 import 向导体,样式表 as 向导样式表#向导体
@@ -45,13 +45,38 @@ __all__=[#仅中文公开名
     '标签域','快照仓',
     '标签信息工厂','向导标签信息工厂',
     '侧栏会话视图集',
-    '右栏根','右栏席','意图面','右栏样式表','窄视口全屏阈值',
+    '右栏席','意图面','右栏样式表','窄视口全屏阈值',
     '展开按钮','展开样式表',
     '向导标识','向导定义','向导体','向导标题','向导样式表',
 ]
 
 命名空间=右侧侧栏词表命名空间#文案命名空间（线路字面量）
 依赖=['slots','layout','locale','resources','sessions','uiSession']#槽、布局、文案、资源、会话
+
+
+class 钩子源:#槽位钩子要方法，不要字典
+    'getSnapshot / subscribe 供 useXxx 读取'
+
+    def __init__(自身,读,订):
+        '记下读与订'
+        自身._读=读#快照
+        自身._订=订#订阅
+
+    def getSnapshot(自身):
+        '当前快照'
+        return 自身._读()#读
+
+    def subscribe(自身,回调):
+        '订变更，返回退订'
+        return 自身._订(回调)#订
+
+
+class 侧栏存储句柄:#槽位按 .create 铸造实例
+    '登记进席的存储句柄'
+
+    def __init__(自身,创建):
+        '记下铸造函数'
+        自身.create=创建#铸造
 
 
 def 应用(上下文):
@@ -105,14 +130,16 @@ def 应用(上下文):
         def 存储工厂(作用域键=None):
             '铸造并认领'
             实例=规格['create'](作用域键)#实例
-            if 作用域键 is not None:#有会话
+            if 作用域键 is not None:
                 旧=认领表[作用域键] if 作用域键 in 认领表 else None
                 if 旧 is not None:
                     旧()
                 认领表[作用域键]=认领(作用域键,实例)#认领
-            原清=实例['clearPersisted'] if isinstance(实例,dict) and 'clearPersisted' in 实例 else None
+            原清=实例.clearPersisted if hasattr(实例,'clearPersisted') else None
+            if 原清 is None and isinstance(实例,dict) and 'clearPersisted' in 实例:
+                原清=实例['clearPersisted']
             def 清持久化():
-                if 原清 is not None:
+                if callable(原清):
                     原清()
                 if 作用域键 is not None:
                     遗忘(作用域键)
@@ -120,9 +147,10 @@ def 应用(上下文):
                 包装=dict(实例)
                 包装['clearPersisted']=清持久化
                 return 包装
+            实例.clearPersisted=清持久化
             return 实例#实例
 
-        存储={'init':规格['init'],'actions':规格['actions'],'create':存储工厂}#包装
+        存储=侧栏存储句柄(存储工厂)#句柄：槽位调用 .create
         布局=上下文.layout#布局面
 
         def 同步呈现(呈现):
@@ -136,7 +164,7 @@ def 应用(上下文):
             'syncPresentation':同步呈现,
             'bindService':控制器.绑定,
             'openTab':控制器.打开标签,
-            'hooks':{'tabTypes':{'subscribe':注册表.订阅,'getSnapshot':注册表.条目}},
+            'hooks':{'tabTypes':钩子源(注册表.条目,注册表.订阅)},
         }#基结束
         拆类型=[注册表.登记(向导定义(翻译))]#向导类型
 
@@ -151,15 +179,15 @@ def 应用(上下文):
                         'hooks':{'views':视图集.源},
                         'mountView':视图集.挂载,
                     },
-                },右栏根)#根组件
+                },右栏壳)#右栏
                 def 注入面(会话标识):
                     '按会话补钩'
                     def 关签(标签标识):
                         '关本会话签'
-                        try:#隔离
+                        try:
                             控制器.在会话关闭(会话标识,标签标识)#关
-                        except Exception as 错误:#失败
-                            print('Sidebar tab close failed:',错误)#诊断
+                        except Exception as 错误:
+                            raise 右侧侧栏错误(异常原文(错误)) from 错误
                     return {#注入
                         **注入基,
                         'closeTab':关签,
@@ -206,7 +234,7 @@ def 应用(上下文):
                     席名右侧向导条目:{'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':向导标签信息工厂}}},
                     席名右侧向导:{'kind':'chain','scope':'session','inject':{'hooks':{'tabInfo':向导标签信息工厂}}},
                 },
-                'inject':lambda:{'hooks':{'guideEntries':{'subscribe':注册表.订阅,'getSnapshot':注册表.向导}}},
+                'inject':lambda:{'hooks':{'guideEntries':钩子源(注册表.向导,注册表.订阅)}},
             },向导体)#组件
 
         拆向导=上下文.slots.inject(席名右侧签正文,挂向导正文)#等洞

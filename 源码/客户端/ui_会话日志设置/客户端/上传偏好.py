@@ -25,8 +25,9 @@ class 上传偏好:
             if hasattr(结果,'等待'):
                 结果=结果.等待()
             已接受=bool(结果)
-        except Exception:
-            已接受=False
+        except Exception as 写入错误:
+            '拒绝或传输失败只进提示；写入错误的原文可能含路径，不往界面送'
+            已接受=写入错误 is None
         def 结束(草稿):
             '记下保存结果'
             草稿['busy']=False

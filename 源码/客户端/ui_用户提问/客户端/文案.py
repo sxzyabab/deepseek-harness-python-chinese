@@ -12,6 +12,9 @@ __all__=['中文','英文','提问文案键']#仅中文公开名
     'custom.placeholder':'输入你的答案',#自定义答案占位
     'action.skip':'跳过',#跳过本题
     'action.next':'下一题',#下一题动作
+    'submit':'提交',#末题提交
+    'submitting':'正在提交…',#提交中
+    'review.skipped':'这道问题当时被跳过。',#跳过说明
     'plan.header':'计划待审',#计划待审标题
     'plan.approve':'同意执行',#批准计划
     'plan.decline':'拒绝',#拒绝计划
@@ -30,6 +33,9 @@ __all__=['中文','英文','提问文案键']#仅中文公开名
     'custom.placeholder':'Type your answer',#自定义答案占位
     'action.skip':'Skip',#跳过本题
     'action.next':'Next',#下一题动作
+    'submit':'Submit',#末题提交
+    'submitting':'Submitting…',#提交中
+    'review.skipped':'This question was skipped.',#跳过说明
     'plan.header':'Plan review',#计划待审标题
     'plan.approve':'Approve',#批准计划
     'plan.decline':'Refuse',#拒绝计划

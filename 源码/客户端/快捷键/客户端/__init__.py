@@ -79,8 +79,8 @@ class 快捷键服务(服务):
             卸=自身.适配器.subscribe(发布) if 自身.适配器 is not None else None#订阅
             def 拆除():
                 '停活跃并卸'
-                自身.活跃=False#停
-                if 卸 is not None:#有
+                自身.活跃=False
+                if 卸 is not None:
                     卸()#卸订阅
                 if Web面 is not None:#Web
                     Web面.dispose()#拆除
@@ -94,7 +94,7 @@ class 快捷键服务(服务):
             def 拆除():
                 '卸键盘与固定监听'
                 卸()#卸
-                自身.固定监听.clear()#清
+                自身.固定监听.clear()
             return 拆除#拆除器
         上下文.副作用(挂键盘,'shortcuts: keyboard')#寿命
         def 挂语言():

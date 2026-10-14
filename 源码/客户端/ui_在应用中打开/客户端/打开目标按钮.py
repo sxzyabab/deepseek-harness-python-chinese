@@ -1,5 +1,8 @@
 '共享文件/目录打开器：默认动作、应用菜单、手势反馈'
+from nicegui import ui as 界面
+from ...ui_基础界面组件.吐司 import 吐司
 from .打开失败提示 import 使用打开失败提示#失败横幅
+from ..异常 import 页面失败文案
 
 __all__=['使用打开目标手势','应用图标','打开目标按钮','样式表']#仅中文公开名
 
@@ -17,6 +20,7 @@ __all__=['使用打开目标手势','应用图标','打开目标按钮','样式�
 .split[data-size="large"] .chevron{padding:6px 10px}
 .skeleton{display:inline-block;flex:none;border-radius:var(--dsw-radius-xs);background:var(--dsw-alias-interactive-bg-hover)}
 '''#样式表结束
+界面.add_css(样式表,shared=True)
 
 def 接上(产出,成功,失败):
     '期约走 然后，上游 then 走 then；已是值则直接成功'
@@ -38,15 +42,27 @@ def 使用打开目标手势(执行,翻译):
     def 读待定():
         '是否在飞'
         return 箱['pending']#忙碌
+    文案键=('openError','revealError','appsError')
     def 结束(失败):
-        '失败则宣告，并清在飞'
-        if 失败 is not None:#失败
-            提示['show'](翻译(f'path.{失败}'))#宣告
-        箱['inFlight']=False#结束
-        箱['pending']=False#闲
+        '失败则宣告，并清在飞。已知文案键走词表，其余句子已去掉绝对路径'
+        if isinstance(失败,str) and 失败!='':
+            if 失败 in 文案键:
+                提示['show'](翻译('path.'+失败))
+            else:
+                提示['show'](页面失败文案(失败))
+        箱['inFlight']=False
+        箱['pending']=False
     def 失败臂(错误):
-        '拒绝值为文案键则宣告'
-        结束(错误 if isinstance(错误,str) else None)#清
+        '拒绝值为文案键则宣告，否则宣告去掉路径的失败句'
+        if isinstance(错误,str) and 错误 in 文案键:
+            结束(错误)
+            return
+        if 错误 is None:
+            结束(None)
+            return
+        提示['show'](页面失败文案(错误))
+        箱['inFlight']=False
+        箱['pending']=False
     def 行动(操作):
         '在飞时忽略；落定后清 pending'
         if 箱['inFlight']:#在飞
@@ -55,8 +71,10 @@ def 使用打开目标手势(执行,翻译):
         箱['pending']=True#忙碌
         try:#跑
             接上(执行(操作),结束,失败臂)#期约或值
-        except Exception:#同步失败
-            结束(None)#清
+        except Exception as 错误:
+            提示['show'](页面失败文案(错误))
+            箱['inFlight']=False
+            箱['pending']=False
     return {'pending':读待定,'toast':提示['toast'],'act':行动,'state':箱}#面
 
 class 应用图标:#主钮与菜单共用
@@ -73,13 +91,14 @@ class 应用图标:#主钮与菜单共用
         自身.已失败=True#切占位
 
     def 渲染(自身):
-        '真图或占位图标名'
+        '真图或占位图标'
         if 自身.源 is None or 自身.已失败:#占位
-            return {'type':'icon','name':'IconRightUpOutlineRegular','size':自身.尺寸}#占位
-        return {#真图
-            'type':'img','src':自身.源,'width':自身.尺寸,'height':自身.尺寸,
-            'className':'appIcon','alt':'','draggable':False,'onError':自身.标记失败,
-        }#真图结束
+            界面.icon('open_in_new')
+            return
+        def 失败():
+            '图片失败后改占位'
+            自身.标记失败()
+        界面.image(自身.源).style(f'width:{自身.尺寸}px;height:{自身.尺寸}px').on('error',失败)
 
 class 打开目标按钮:#文件与目录同一分体按钮
     '文件揭示恒在末项；仅无已登记应用时揭示才作默认'
@@ -161,50 +180,71 @@ class 打开目标按钮:#文件与目录同一分体按钮
         加载中=属性['loading'] is True if 'loading' in 属性 else False#加载
         禁用=待定 or 忙碌 or 加载中#禁用
         失败=属性['failed'] is True if 'failed' in 属性 else False#失败
+        细节=属性['detail'] if 'detail' in 属性 and isinstance(属性['detail'],str) else ''
         突出=属性['prominent'] is True if 'prominent' in 属性 else False#大钮
         有菜单=加载中 or 失败 or (len(应用表)+(1 if 种类=='file' else 0)>1)#菜单
         揭示默认=种类=='file' and 偏好 is None and not 加载中#揭示默认
         主标签=翻译('path.reveal') if 偏好 is None else 翻译('open.title',{'app':偏好['name']})#主文案
         图标尺寸=18 if 突出 else 13#图标边
-        if 加载中 and 偏好 is None:#骨架
-            图标={'type':'span','className':'skeleton','props':{'data-open-target-skeleton':True,'aria-hidden':True,'style':{'width':图标尺寸,'height':图标尺寸}}}#骨架
-        elif 揭示默认:#文件夹
-            图标={'type':'icon','name':'IconFolderOpenOutlineRegular','size':图标尺寸}#文件夹
-        else:#应用图
-            图标源=偏好['icon'] if 偏好 is not None and 'icon' in 偏好 else None#源
-            图标=应用图标(图标源,图标尺寸).渲染()#图
-        快捷=属性['shortcut'] if 'shortcut' in 属性 else None#快捷键
         菜单项=[]#项
         for 应用 in 应用表:#逐应用
             标签=翻译('path.appDefault',{'app':应用['name']}) if 偏好 is not None and 应用['id']==偏好['id'] else 应用['name']#标签
-            菜单项.append({'id':f"app:{应用['id']}",'icon':应用图标(应用['icon'] if 'icon' in 应用 else None).渲染(),'label':标签})#项
+            菜单项.append({'id':f"app:{应用['id']}",'icon':应用['icon'] if 'icon' in 应用 else None,'label':标签})#项
         if 失败:#不可用行
-            菜单项.append({'id':'unavailable','label':翻译('path.appsError'),'disabled':True})#禁用行
+            菜单项.append({'id':'unavailable','label':细节 if 细节!='' else 翻译('path.appsError'),'disabled':True})
         页脚=[]#页脚
         if 种类=='file':#文件有揭示
             揭示标签=翻译('path.appDefault',{'app':翻译('path.reveal')}) if 揭示默认 else 翻译('path.reveal')#标签
-            页脚.append({'id':'reveal','icon':{'type':'icon','name':'IconFolderOpenOutlineRegular'},'label':揭示标签})#揭示
+            页脚.append({'id':'reveal','label':揭示标签})#揭示
         主文=翻译('path.reveal') if 揭示默认 else 翻译('path.open')#突出主文
-        return {#视图
-            'type':'open-target-button',#种类
-            'kind':种类,#file|directory
-            'menuOpen':自身.菜单开 and (not 禁用) and 有菜单,#菜单
-            'disabled':禁用,#禁用
-            'hasMenu':有菜单,#有菜单
-            'primaryLabel':主标签,#主文案
-            'prominent':突出,#大钮
-            'icon':图标,#图标
-            'primaryText':主文 if 突出 else None,#大钮文
-            'shortcut':快捷,#快捷
-            'items':菜单项,#菜单项
-            'footer':页脚,#页脚
-            'toast':自身.手势['toast'](),#失败条
-            'styleSheet':样式表,#样式
-            'onPrimary':自身._主钮,#主钮
-            'onToggle':自身.切换菜单,#箭头
-            'onClose':自身.关菜单,#关菜单
-            'onSelect':自身._菜单选定,#选定
-        }#视图结束
+        with 界面.row().classes('open-target-button'):
+            if 加载中 and 偏好 is None:
+                界面.label('…')
+            elif 揭示默认:
+                界面.icon('folder_open')
+            else:
+                图标源=偏好['icon'] if 偏好 is not None and 'icon' in 偏好 else None
+                应用图标(图标源,图标尺寸).渲染()
+            主钮=界面.button(主文 if 突出 else 主标签, on_click=自身._主钮)
+            快捷=属性.get('shortcut')#键位
+            if isinstance(快捷,dict):#有目录行
+                键表=快捷.get('keys')#显示键
+                if isinstance(键表,list) and len(键表)>0:#有绑定
+                    主钮.tooltip(' '.join(str(键位) for 键位 in 键表))#悬停
+                无障碍=快捷.get('aria')#aria-keyshortcuts
+                if isinstance(无障碍,str) and 无障碍!='' and '"' not in 无障碍:#可写入
+                    主钮.props('aria-keyshortcuts="'+无障碍+'"')#键位名
+            if 禁用:
+                主钮.disable()
+            if 有菜单:
+                箭头=界面.button(on_click=自身.切换菜单).props('icon=arrow_drop_down flat round')
+                if 禁用:
+                    箭头.disable()
+            if 自身.菜单开 and (not 禁用) and 有菜单:
+                with 界面.column():
+                    for 项 in 菜单项:
+                        def 点(标识=项['id']):
+                            '选定菜单项'
+                            if 标识!='unavailable':
+                                自身._菜单选定(标识)
+                        钮=界面.button(项['label'], on_click=点)
+                        if 项.get('disabled'):
+                            钮.disable()
+                        if 'icon' in 项 and isinstance(项['icon'],str) and 项['icon']!='':
+                            应用图标(项['icon'],图标尺寸).渲染()
+                    for 项 in 页脚:
+                        def 点脚(标识=项['id']):
+                            '揭示或选定'
+                            自身._菜单选定(标识)
+                        界面.button(项['label'], on_click=点脚)
+                    界面.button(on_click=自身.关菜单).props('icon=close flat round')
+            if 细节!='':
+                界面.label(细节)
+            提示=自身.手势['toast']()
+            if hasattr(提示,'渲染'):
+                提示.渲染()
+            elif isinstance(提示,dict) and 'text' in 提示 and isinstance(提示['text'],str) and 提示['text']!='':
+                吐司({'text':提示['text'],'icon':提示['icon'] if 'icon' in 提示 else None,'onDone':提示['onDone'] if 'onDone' in 提示 else None}).渲染()
 
     def __call__(自身,属性=None):
         '刷新后渲染'

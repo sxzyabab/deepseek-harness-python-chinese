@@ -15,7 +15,7 @@ def 有文本助手(事件):#终态助手是否含非空文本
     for 块 in 转助手块列表(内容):#扫
         文=块['text'] if 'kind' in 块 and 块['kind']=='text' and 'text' in 块 and 块['text'] is not None else ''#正文
         if 'kind' in 块 and 块['kind']=='text' and 文.strip()!='':#有文本
-            return True#有
+            return True
     return False#无
 
 def 块有文本(事件):#流式块是否带非空文本
@@ -51,8 +51,8 @@ def 收口锚(上下文):#收口节点应挂的合成序号
     终点=None#turn/end
     for 候 in 匹配列表:#扫
         if 候['event']['type']=='turn/end':#命中
-            终点=候#记下
-            break#停
+            终点=候
+            break
     起点=上下文['start'] if 'start' in 上下文 else None#起点
     锚=终点['event']['seq'] if 终点 is not None else None#优先
     if 锚 is None and 起点 is not None:#无终点
@@ -97,7 +97,7 @@ def 回合位置(上下文):#取回合位置
         位置=匹配列表[0]['location']#位置
     else:#无
         位置=None#无
-    if 位置 is not None and 'kind' in 位置 and 位置['kind'] in ('turn','step'):#有
+    if 位置 is not None and 'kind' in 位置 and 位置['kind'] in ('turn','step'):
         return 位置['turn'] if 'turn' in 位置 else None#回合
     return None#无
 
@@ -108,8 +108,8 @@ def 有文本(数据):#助手行是否已终态且含非空文本
     块列表=数据['blocks'] if 'blocks' in 数据 and 数据['blocks'] is not None else []#块
     for 块 in 块列表:#扫
         文=块['text'] if 'kind' in 块 and 块['kind']=='text' and 'text' in 块 and 块['text'] is not None else ''#正文
-        if 'kind' in 块 and 块['kind']=='text' and 文.strip()!='':#有
-            return True#有
+        if 'kind' in 块 and 块['kind']=='text' and 文.strip()!='':
+            return True
     return False#无
 
 def 终态序号(候):#排序键：终态 seq
@@ -125,8 +125,8 @@ def 尾载荷(上下文):#折叠已结束回合的尾载荷
         匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
         for 候 in 匹配列表:#扫
             if 候['event']['type']=='turn/end':#命中
-                结束=候#记下
-                break#停
+                结束=候
+                break
     if 结束 is None or 结束['event']['type']!='turn/end':#尚未结束
         return None#无法出尾
     回合=回合位置(上下文)#回合位置
@@ -137,7 +137,7 @@ def 尾载荷(上下文):#折叠已结束回合的尾载荷
     for 步 in 步列表:#每步
         数据面=步['data'] if 'data' in 步 else None#data
         候=数据面['assistant-step'] if 数据面 is not None and 'assistant-step' in 数据面 else None#助手
-        if 候 is not None:#有
+        if 候 is not None:
             助手列表.append(候)#收下
     已结=[候 for 候 in 助手列表 if 'finalNode' in 候 and 候['finalNode'] is not None]#有终态
     已结=sorted(已结,key=终态序号)#按 seq
@@ -145,7 +145,7 @@ def 尾载荷(上下文):#折叠已结束回合的尾载荷
     for 候 in reversed(已结):#从后找
         if 有文本(候):#有文本
             收束=候#收口
-            break#停
+            break
     最新转录=已结[-1]['finalNode']['seq'] if len(已结)>0 else None#默认
     匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
     for 匹配项 in 匹配列表:#扫转录
@@ -185,13 +185,13 @@ def 回合尾匹配(事件):#判定事件是否属于本节点
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='turn/start':#开始
-        return {'id':str(数据['turn']),'role':'start'}#开
+        return {'id':str(数据['turn']),'role':'start'}
     if 种=='turn/end':#结束
         return {'id':str(数据['turn']),'role':'update'}#更新
     if 种 in ('tool/call','tool/result'):#工具
         return {'id':str(数据['turn']),'role':'update'}#更新
     坐标=回合坐标(事件)#坐标
-    if 坐标 is not None:#有
+    if 坐标 is not None:
         return {'id':str(坐标['turn']),'role':'update'}#更新
     return None#忽略
 
@@ -201,12 +201,12 @@ def 回合尾开始(_上下文,匹配项):#用 turn/start 建折叠状态
     if 事件['type']!='turn/start':#非
         raise 聊天错误('turn-tail start requires turn/start')#硬失败
     数据=事件['data'] if 'data' in 事件 else {}#载荷
-    return {'turn':数据['turn'] if 'turn' in 数据 else None}#记下
+    return {'turn':数据['turn'] if 'turn' in 数据 else None}
 
 def 回合尾更新(上下文,匹配项):#turn/end 写入 end 匹配
     '其余不改'
     if 匹配项['event']['type']=='turn/end':#结束
-        return {**上下文['state'],'end':匹配项}#记下
+        return {**上下文['state'],'end':匹配项}
     return 上下文['state']#不改
 
 def 回合尾发布(匹配项):#只有结束才立刻发表

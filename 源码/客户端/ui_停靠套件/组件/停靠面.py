@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from ..引擎.约束 import 钳制尺寸,浮动默认尺寸,最小窗格份额#约束
 from ..引擎.树 import 取分割,右上窗格标识#树
 from ..引擎.几何 import 含点,分割条尺寸,落点浮动矩形,插入下标,已过阈值,矩形区位#几何
@@ -6,7 +7,34 @@ from .面板回调 import 建面板回调,分割阻断预算#回调
 from .指针 import 手势会话#手势
 from .窗格树 import 窗格树#树
 
-__all__=['停靠面']#仅中文公开名
+__all__=['停靠面','样式表']#仅中文公开名
+
+样式表='''
+.dockkit-surface{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;min-height:0;width:100%}
+.dockkit-split{display:flex;flex:1 1 auto;min-width:0;min-height:0}
+.dockkit-divider{position:relative;z-index:1;flex:none;width:0;height:0}
+.dockkit-divider::before{content:'';position:absolute;background:var(--dsw-alias-border-l4)}
+.dockkit-pane{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.dockkit-strip{display:flex;flex:none;gap:4px;align-items:center;height:28px;padding:10px 6px 0 10px;box-sizing:content-box}
+button.q-btn.dockkit-tab{position:relative;flex:0 1 auto;align-items:center;min-width:80px;max-width:170px;height:28px;min-height:28px;padding:0 10px;border-radius:var(--dsw-radius-sm);background:transparent !important;box-shadow:none !important;color:var(--dsw-alias-label-secondary) !important;font-size:var(--dsh-content-font-size-secondary,13px);line-height:1}
+button.q-btn.dockkit-tab:hover{background:var(--dsw-alias-interactive-bg-hover) !important}
+button.q-btn.dockkit-tab.selected{color:var(--dsw-alias-label-primary) !important;background:var(--dsw-alias-markdown-tag) !important}
+.dockkit-caret{flex:none;width:2px;height:20px;background:var(--dsw-alias-brand-primary-new-colorprimary-new-color)}
+.q-card.dockkit-float{position:fixed;display:flex;flex-direction:column;overflow:hidden;background:var(--dsw-alias-bg-layer-2);border-radius:var(--dsw-radius-panel);box-shadow:var(--dsw-elevation-prominent)}
+.dockkit-tab-menu{position:absolute;z-index:20;min-width:144px;padding:4px;background:var(--dsw-specific-menu);border-radius:var(--dsw-radius-lg);box-shadow:var(--dsw-elevation-prominent)}
+.dock-hint{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}
+.dock-hint.active{color:var(--dsw-alias-brand-primary-new-colorprimary-new-color)}
+'''
+
+样式已登记=False
+
+def 确保样式():
+    '停靠面样式在本进程只登记一次'
+    global 样式已登记
+    if 样式已登记 is True:
+        return
+    界面.add_css(样式表)
+    样式已登记=True
 
 _尺寸容差=1e-9#份额同值容差
 
@@ -206,9 +234,6 @@ class 停靠面:
             自身.满员藏分割,
             自身.投放模式=='horizontal',
         )#结束
-        return {#面
-            'type':'surface',
-            'data':'dockkit-surface',
-            'dropZones':自身.投放模式,
-            'child':窗格树(自身.状态,自身.状态['rootId'],回调,自身._预览['sizes']).渲染(),
-        }#结束
+        确保样式()
+        with 界面.column().classes('dockkit-surface'):
+            窗格树(自身.状态,自身.状态['rootId'],回调,自身._预览['sizes']).渲染()

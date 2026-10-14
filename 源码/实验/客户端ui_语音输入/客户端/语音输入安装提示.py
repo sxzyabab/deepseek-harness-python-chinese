@@ -28,6 +28,8 @@ class 语音输入安装提示:
             'onOpenDetails':属性['onOpenDetails'],
             't':属性['t'],
         })
+        if 't' in 属性:
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'

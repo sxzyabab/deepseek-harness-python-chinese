@@ -1,4 +1,3 @@
-import re#绝对路径判定
 from ..提交设置 import 会话设置命名空间#提交设置命名空间
 from ..回车行为行 import 回车行为行#设置行
 from .文案 import 命名空间,中文,英文#词典
@@ -16,7 +15,6 @@ from .审批面板 import 审批面板,待决审批#审批接管
 from .上下文仪表 import 上下文仪表#占用环
 from .详情面板 import 详情面板#详情列
 from .待办面板 import 待办面板,待办停靠,待办停靠条目#计划条
-from .聊天视图 import 聊天视图#聊天流
 from .聊天节点席 import 聊天节点席#节点席
 from .节点席 import 节点席#节点席别名面
 from .消息项 import 用户消息行,模型重试行,回合错行,回合顶格行,待插话泡#消息行
@@ -62,7 +60,7 @@ __all__=[#仅中文公开名
     '工作区芯片','英雄辉光','英雄壳','输入栏',
     '审批面板','待决审批','上下文仪表','详情面板',
     '待办面板','待办停靠','待办停靠条目',
-    '聊天视图','聊天节点席','节点席','助手节点视图','助手Markdown',
+    '聊天节点席','节点席','助手节点视图','助手Markdown',
     '用户消息行','模型重试行','回合错行','回合顶格行','待插话泡',
     '格式化运行时长','格式化消息时钟','统计行','上下文占用','格式化令牌',
     '根工具调用','查找工具调用','登记聊天节点渲染器','队列停靠','队列停靠条目',
@@ -73,8 +71,6 @@ __all__=[#仅中文公开名
 依赖=[#会话插件所需服务
     'slots','sessions','fileUpload','uiSession','uiWorkspace','locale','settingsScope',
 ]#依赖
-
-绝对路径=re.compile(r'^[A-Za-z]:[/\\]|\\\\')#盘符或 UNC
 
 空词表={}#空 / @ 词表
 
@@ -106,51 +102,6 @@ def 解析槽标签(标签):
     if isinstance(标签,str):#字面量
         return 标签#值
     return 标签()#thunk
-
-def 解析工作区路径(工作目录,路径):
-    '已是绝对/UNC 或无根则原样'
-    if 路径.startswith('/') or 绝对路径.match(路径) is not None:#绝对
-        return 路径#原样
-    if 工作目录 is None or 工作目录=='':#无根
-        return 路径#原样
-    基=工作目录.rstrip('/\\')#去尾分隔
-    相对=路径.lstrip('/\\')#去头分隔
-    return 基+'/'+相对#POSIX 拼
-
-def 选聊天(快照):
-    '快照.chat。快照为 dict'
-    return 快照['chat'] if 'chat' in 快照 else None#聊天
-
-def 造聊天节点回合注入():
-    '按节点键读回合数据的钩子工厂。节点仓为契约 dict'
-    def 回合数据工厂(运行时,节点键):
-        '绑定 useSession。运行时为槽 props dict'
-        用会话=运行时['useSession'] if 'useSession' in 运行时 else None#钩
-        def 用回合数据(键):
-            '缺席则 None'
-            if 用会话 is None:#无钩
-                return None#无
-            def 选(快照):
-                '回合/步骤位置才有 data'
-                聊天=快照['chat'] if 'chat' in 快照 else None#聊天
-                节点表=聊天['nodes'] if 聊天 is not None and 'nodes' in 聊天 else None#节点表
-                if 节点表 is None:#无表
-                    return None#无
-                节点=节点表['get'](节点键)#仓 get
-                位置=节点['location'] if 节点 is not None and 'location' in 节点 else None#位置
-                种=位置['kind'] if 位置 is not None and 'kind' in 位置 else None#种
-                if 种 not in ('turn','step'):#非回合步
-                    return None#无
-                回合=位置['turn'] if 'turn' in 位置 else None#回合
-                if 回合 is None:#无
-                    return None#无
-                数据=回合['data'] if 'data' in 回合 else None#data map
-                if 数据 is None:#无
-                    return None#无
-                return 数据[键] if 键 in 数据 else None#值
-            return 用会话(选)#选择器
-        return 用回合数据#钩
-    return {'hooks':{'turnData':回合数据工厂}}#注入
 
 def 作用域会话(会话面,标识):
     '没有作用域或服务则大声抛'
@@ -192,13 +143,10 @@ def 应用(上下文):
         return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#词典
     上下文.副作用(登记词典,'ui-conversation: dictionaries')#词典
     翻译=上下文.locale.bind(命名空间)#绑定翻译
-    聊天翻译=上下文.locale.bind('chat')#聊天词典
     聊天存储=创建聊天存储()#本纤程聊天存储
     提交=提交策略(上下文.settingsScope.bind({'namespace':会话设置命名空间}))#提交策略
-    聊天滚动={}#会话 id → 滚动位置
     阻断表=阻断登记表()#按会话阻断
     枢纽=输入枢纽(上下文,翻译)#每会话输入枢纽
-    节点注入=造聊天节点回合注入()#节点回合数据注入
     def 登记文件动作(作用域):
         '等 commandUi 后登记 file 动作'
         命令=作用域.get('commandUi')#命令面
@@ -371,11 +319,8 @@ def 应用(上下文):
                 'span':{**选区,'draftRev':快['draftRev']},#跨度
             })
         def 停止():
-            '失败不抛给 UI'
-            try:#取消
-                作用域会话(会话面,会话标识).cancel()#取消
-            except 对话错误:#本包失败
-                pass#经 promptError 露出
+            '取消当前生成。失败原样抛出。'
+            作用域会话(会话面,会话标识).cancel()
         def 命令(行):
             '成功且命中才 True。command 返回任务'
             绑定=会话面.binding(会话标识)#绑定
@@ -460,82 +405,6 @@ def 应用(上下文):
         'priority':1,#优先于提问默认 0
         'locale':命名空间,#文案
     },审批面板)#审批
-    def 聊天注入(会话标识,动作):
-        '详情/文件/历史/检查/滚动/分叉'
-        控制器=具体会话(上下文)#控制器
-        作用域面=作用域会话(会话面,会话标识)#作用域 conversation
-        仓动作=动作 if 动作 is not None else 聊天存储#动作面
-        def 打开详情(目标):
-            '选定并打开详情栏'
-            仓动作.select(目标)#选定
-            布局.openDetails()#打开
-        def 打开文件(路径):
-            '宿主打开失败静默'
-            列表=会话面.list.getSnapshot()#列表
-            册=列表['byId'] if 列表 is not None and 'byId' in 列表 else None#byId
-            摘要=册[会话标识] if 册 is not None and 会话标识 in 册 else None#摘要
-            工作目录=摘要['cwd'] if 摘要 is not None and 'cwd' in 摘要 else None#cwd
-            try:#打开
-                工作区面.openPath(解析工作区路径(工作目录,路径))#打开
-            except Exception:#RPC/宿主未定契约，收不窄
-                pass#静默
-        def 检视调用(调用标识):
-            '未登记 trajectory 则环回退'
-            仓动作.setInspect({'callId':调用标识})#记下
-            仓动作.setView('trajectory')#切视图
-        def 存滚动(位置):
-            'null 丢掉记忆'
-            if 位置 is None:
-                聊天滚动.pop(会话标识,None)#删
-            else:#记
-                聊天滚动[会话标识]=位置#写
-        def 读滚动():
-            '没有则 None'
-            return 聊天滚动[会话标识] if 会话标识 in 聊天滚动 else None#位置
-        def 分叉(序号):
-            '失败保持源视图。fork 返回任务'
-            try:#分叉
-                子标识=会话面.fork({'sessionId':会话标识,'atSeq':序号,'increaseTitle':True}).等待()#子 id
-                会话面.open(子标识)#打开
-            except Exception:#RPC/宿主未定契约，收不窄
-                pass#不动
-        def 文件提及(属主):
-            '可选 chatFileMentions 服务'
-            服务=上下文.获取服务('chatFileMentions')#服务
-            if 服务 is None:#缺席
-                return None#无
-            return 服务.forClosing(属主)#词表
-        def 加载更早():
-            '更早历史'
-            return 作用域面.loadOlder()#更早
-        def 加载图(附件):
-            '历史图'
-            return 控制器.resolveImage(会话标识,附件)#图
-        return {#聊天视图片
-            'openDetails':打开详情,#详情
-            'fileMentions':文件提及,#提及
-            'openFile':打开文件,#打开文件
-            'loadOlder':加载更早,#更早历史
-            'loadImage':加载图,#历史图
-            'inspectCall':检视调用,#检视
-            'chatScroll':{'save':存滚动,'read':读滚动},#滚动
-            'forkAt':分叉,#分叉
-        }#返回
-    def 聊天标签():
-        '视图标签'
-        return 聊天翻译('view.chat')#聊天词典标签
-    槽.register({#登记聊天视图
-        'name':'conversation.view',#视图
-        'id':'chat',#id
-        'order':0,#序
-        'label':聊天标签,#标签
-        'locale':命名空间,#文案
-        'children':{#子
-            'conversation.chat.node':{'kind':'keyed','scope':'session','inject':节点注入},#节点席
-        },#子结束
-        'store':聊天存储,#共享 store
-        'inject':聊天注入,#注入
-    },聊天视图)#聊天组件
     槽.register({#统计行
         'name':'conversation.composer.dock',#停靠
         'id':'stats',#id

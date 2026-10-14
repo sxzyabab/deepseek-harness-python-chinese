@@ -1,6 +1,7 @@
 from ...ui_基础界面组件.按名排序 import 按名排序#名与标签排序
+from ...存储 import 创建快照存储#弹出状态：getSnapshot / subscribe
 from ....基础设施.通用工具 import 获取内部数据
-from ..异常 import 命令错误#本包异常
+from ..异常 import 命令错误,页面失败文案#本包异常与页面失败句
 from .目录 import 命令目录#按会话键目录
 from .呈现 import 内置行面,分区行#内置行面与分区
 from .解析 import 认领令牌#菜单点选拼写
@@ -14,38 +15,324 @@ def 已提交命令名(行):
     序=0#扫描
     while 序<len(修剪):#找空白
         if 修剪[序].isspace():#空白
-            空=序#记
+            空=序
             break#止
         序+=1#前进
     段=修剪 if 空 is None else 修剪[:空]#令牌
     return 段[1:] if 段.startswith('/') else 段#去斜杠
 
-class 弹出选定控制器:#每会话弹出控制器
-    'consume / focusComposer / open / dispose。完整选项壳在 popup.ts'
+关闭态={
+    'open':False,
+    'command':None,
+    'status':'pending',
+    'options':[],
+    'search':'',
+    'searchLabels':None,
+    'searchMode':'substring',
+    'active':0,
+    'submitting':False,
+    'confirming':None,
+    'acknowledged':False,
+    'error':None,
+}
+
+def 分组选项(选项表):
+    '按 group.name 分组。无分组的行占第一次出现的那一块，不另排序'
+    表={}
+    序=[]
+    if not isinstance(选项表,(list,tuple)):
+        return []
+    for 项 in 选项表:
+        if not isinstance(项,dict):
+            continue
+        组=项.get('group')
+        名=组.get('name') if isinstance(组,dict) else None
+        键=名 if isinstance(名,str) and 名!='' else None
+        if 键 not in 表:
+            表[键]=[]
+            序.append(键)
+        表[键].append(项)
+    结果=[]
+    for 键 in 序:
+        组对象=None
+        if 键 is not None and len(表[键])>0 and isinstance(表[键][0].get('group'),dict):
+            组对象=表[键][0]['group']
+        结果.append({'group':组对象,'rows':表[键]})
+    return 结果
+
+def 过滤选项(选项表,搜索,模式='substring'):
+    '空搜索保留分组顺序。子串匹配标签和说明；fuzzy-label 在每组内按名称排序'
+    组表=分组选项(选项表)
+    有组=False
+    for 组 in 组表:
+        if 组['group'] is not None:
+            有组=True
+            break
+    if 有组:
+        有序=[]
+        for 组 in 组表:
+            有序.extend(组['rows'])
+    else:
+        有序=[]
+        if isinstance(选项表,(list,tuple)):
+            for 项 in 选项表:
+                if isinstance(项,dict):
+                    有序.append(项)
+    查询=搜索.strip().casefold() if isinstance(搜索,str) else ''
+    if 查询=='':
+        return 有序
+    if 模式=='fuzzy-label':
+        结果=[]
+        for 组 in 组表:
+            包装=[]
+            for 行 in 组['rows']:
+                标=行.get('label') if isinstance(行.get('label'),str) else ''
+                包装.append({'name':标,'option':行})
+            for 行 in 按名排序(包装,查询):
+                结果.append(行['option'])
+        return 结果
+    留下=[]
+    for 行 in 有序:
+        标=行.get('label') if isinstance(行.get('label'),str) else ''
+        详=行.get('detail') if isinstance(行.get('detail'),str) else ''
+        if 查询 in 标.casefold() or 查询 in 详.casefold():
+            留下.append(行)
+    return 留下
+
+def _当前下标(选项表,搜索,模式):
+    '高亮停在仍可见的 active 行，否则停在第一行'
+    行表=过滤选项(选项表,搜索,模式)
+    序=0
+    for 行 in 行表:
+        if 行.get('active') is True:
+            return 序
+        序+=1
+    return 0
+
+class 弹出选定控制器:
+    '每会话弹出。state 带 getSnapshot 和 subscribe。dispose 仍是这个名字'
     def __init__(自身,消费,聚焦):
-        '记下消费与聚焦回调'
-        自身.consume=消费#消费令牌
-        自身.focusComposer=聚焦#聚焦
-        自身.已开=False#是否打开
-        自身.命令=None#当前命令名
+        '记下消费与聚焦，并播种关闭态'
+        自身.consume=消费
+        自身.focusComposer=聚焦
+        自身.已开=False
+        自身.命令=None
+        自身.规格=None
+        自身.会话=None
+        自身.片段=None
+        自身._绑定=None
+        自身.state=创建快照存储(dict(关闭态))
 
     def open(自身,名,规格,会话,片段):
-        '打开弹出；记下打开时载荷'
-        自身.已开=True#开
-        自身.命令=名#名
-        自身.规格=规格#规格
-        自身.会话=会话#会话
-        自身.片段=片段#片段
+        '打开弹出并拉取一次选项。失败说明去掉绝对路径'
+        标签=None
+        模式='substring'
+        if isinstance(规格,dict):
+            取标签=规格.get('searchLabels')
+            if callable(取标签):
+                标签=取标签()
+            elif isinstance(取标签,dict):
+                标签=取标签
+            if isinstance(规格.get('searchMode'),str):
+                模式=规格['searchMode']
+        自身.已开=True
+        自身.命令=名
+        自身.规格=规格
+        自身.会话=会话
+        自身.片段=片段
+        自身._绑定={'command':名,'spec':规格,'context':会话,'segment':片段}
+        自身.state.set({
+            **关闭态,
+            'open':True,
+            'command':名,
+            'searchLabels':标签 if isinstance(标签,dict) else None,
+            'searchMode':模式,
+        })
+        自身._装载(自身._绑定)
+
+    def _装载(自身,绑定):
+        '同一次打开只拉一次。晚到的结果在绑定换过之后丢掉'
+        规格=绑定['spec']
+        if not isinstance(规格,dict) or not callable(规格.get('options')):
+            if 自身._绑定 is not 绑定:
+                return
+            当前=dict(自身.state.getSnapshot())
+            当前['status']='ready'
+            当前['options']=[]
+            当前['active']=0
+            当前['error']=None
+            自身.state.set(当前)
+            return
+        try:
+            结果=规格['options'](绑定['context'],None)
+        except Exception as 错:
+            if 自身._绑定 is not 绑定:
+                return
+            说明=页面失败文案(错)
+            print('命令弹出拉取选项失败 /'+str(绑定['command'])+': '+说明)
+            当前=dict(自身.state.getSnapshot())
+            当前['status']='failed'
+            当前['options']=[]
+            当前['active']=0
+            当前['error']=说明
+            自身.state.set(当前)
+            return
+        if 自身._绑定 is not 绑定:
+            return
+        选项=list(结果) if isinstance(结果,list) else []
+        当前=dict(自身.state.getSnapshot())
+        当前['status']='ready'
+        当前['options']=选项
+        当前['active']=_当前下标(选项,当前.get('search'),当前.get('searchMode'))
+        当前['error']=None
+        自身.state.set(当前)
+
+    def retry(自身):
+        '失败后再拉一次。搜索文字保留'
+        绑定=自身._绑定
+        态=自身.state.getSnapshot()
+        if 绑定 is None or 态.get('open') is not True or 态.get('status')!='failed':
+            return
+        下一=dict(态)
+        下一['status']='pending'
+        下一['error']=None
+        自身.state.set(下一)
+        自身._装载(绑定)
+
+    def setSearch(自身,搜索):
+        '只过滤已加载的行，不重新请求'
+        态=自身.state.getSnapshot()
+        文本=搜索 if isinstance(搜索,str) else ''
+        if 态.get('open') is not True or 态.get('submitting') is True or 态.get('confirming') is not None or 文本==态.get('search'):
+            return
+        下一=dict(态)
+        下一['search']=文本
+        下一['active']=0
+        自身.state.set(下一)
+
+    def move(自身,方向):
+        '在过滤后的行之间循环移动高亮'
+        态=自身.state.getSnapshot()
+        if 态.get('open') is not True or 态.get('status')!='ready' or 态.get('submitting') is True or 态.get('confirming') is not None:
+            return
+        行表=过滤选项(态.get('options'),态.get('search'),态.get('searchMode'))
+        if len(行表)==0 or 方向 not in (1,-1):
+            return
+        当前=态.get('active') if isinstance(态.get('active'),int) else 0
+        下一=dict(态)
+        下一['active']=(当前+方向+len(行表))%len(行表)
+        自身.state.set(下一)
+
+    def highlight(自身,下标):
+        '指针悬停直接指定高亮'
+        态=自身.state.getSnapshot()
+        if 态.get('open') is not True or 态.get('status')!='ready' or 态.get('submitting') is True or 态.get('confirming') is not None:
+            return
+        行表=过滤选项(态.get('options'),态.get('search'),态.get('searchMode'))
+        if not isinstance(下标,int) or 下标<0 or 下标>=len(行表) or 下标==态.get('active'):
+            return
+        下一=dict(态)
+        下一['active']=下标
+        自身.state.set(下一)
+
+    def select(自身,下标):
+        '有风险确认则先停在确认；否则结算这一行'
+        绑定=自身._绑定
+        态=自身.state.getSnapshot()
+        if 绑定 is None or 态.get('open') is not True or 态.get('status')!='ready' or 态.get('submitting') is True or 态.get('confirming') is not None:
+            return
+        行表=过滤选项(态.get('options'),态.get('search'),态.get('searchMode'))
+        if not isinstance(下标,int) or 下标<0 or 下标>=len(行表):
+            return
+        选项=行表[下标]
+        if isinstance(选项.get('confirmation'),dict):
+            下一=dict(态)
+            下一['confirming']=选项
+            下一['acknowledged']=False
+            下一['error']=None
+            自身.state.set(下一)
+            return
+        自身._结算(绑定,选项)
+
+    def acknowledge(自身,已认):
+        '记下风险勾选'
+        态=自身.state.getSnapshot()
+        值=已认 is True
+        if 态.get('open') is not True or 态.get('submitting') is True or 态.get('confirming') is None or 态.get('acknowledged') is 值:
+            return
+        下一=dict(态)
+        下一['acknowledged']=值
+        自身.state.set(下一)
+
+    def cancelConfirmation(自身):
+        '取消风险门，回到选项列表'
+        态=自身.state.getSnapshot()
+        if 态.get('open') is not True or 态.get('submitting') is True or 态.get('confirming') is None:
+            return
+        下一=dict(态)
+        下一['confirming']=None
+        下一['acknowledged']=False
+        自身.state.set(下一)
+
+    def confirm(自身):
+        '勾选之后才结算被拦住的那一行'
+        绑定=自身._绑定
+        态=自身.state.getSnapshot()
+        if 绑定 is None or 态.get('open') is not True or 态.get('submitting') is True or 态.get('confirming') is None or 态.get('acknowledged') is not True:
+            return
+        自身._结算(绑定,态['confirming'])
+
+    def _结算(自身,绑定,选项):
+        '业务选中成功后消费草稿并关闭。失败留在卡片上，说明不含绝对路径'
+        态=自身.state.getSnapshot()
+        if 自身._绑定 is not 绑定 or 态.get('open') is not True or 态.get('submitting') is True:
+            return
+        下一=dict(态)
+        下一['submitting']=True
+        下一['confirming']=None
+        下一['acknowledged']=False
+        下一['error']=None
+        自身.state.set(下一)
+        规格=绑定['spec']
+        try:
+            if isinstance(规格,dict) and callable(规格.get('onSelect')):
+                规格['onSelect'](选项,绑定['context'])
+        except Exception as 错:
+            if 自身._绑定 is not 绑定:
+                return
+            说明=页面失败文案(错)
+            print('命令弹出结算失败 /'+str(绑定['command'])+': '+说明)
+            当前=dict(自身.state.getSnapshot())
+            当前['submitting']=False
+            当前['error']=说明
+            自身.state.set(当前)
+            return
+        if 自身._绑定 is not 绑定:
+            return
+        片段=绑定['segment']
+        if isinstance(片段,dict):
+            自身.consume(片段)
+        自身._绑定=None
+        自身.已开=False
+        自身.命令=None
+        自身.state.set(dict(关闭态))
+        自身.focusComposer()
+
+    def dismiss(自身,选项=None):
+        '关掉弹出，不消费草稿。Escape 可以再把焦点还给编写器'
+        自身._绑定=None
+        自身.已开=False
+        自身.命令=None
+        自身.state.set(dict(关闭态))
+        if isinstance(选项,dict) and 选项.get('focusComposer') is True:
+            自身.focusComposer()
 
     def dispose(自身):
-        '拆除'
-        自身.已开=False#关
+        '会话拆除：丢掉在途结算，不移动焦点'
+        自身._绑定=None
+        自身.已开=False
         自身.命令=None
-
-    def dismiss(自身):
-        '关掉弹出，不消费草稿'
-        自身.已开=False#关
-        自身.命令=None
+        自身.state.set(dict(关闭态))
 
 class 命令UI运行时:#CommandUiRuntime
     '命令面：目录 + 「/」源 + 贡献/装饰 + 每会话弹出'
@@ -116,7 +403,7 @@ class 命令UI运行时:#CommandUiRuntime
             '挂上'
             if 名 in 自身.贡献:#重
                 raise 命令错误('ui-commands: 重复贡献 /'+名)#抛
-            自身.贡献[名]=贡献#记
+            自身.贡献[名]=贡献
             def 摘贡献():
                 '摘掉该贡献'
                 自身.贡献.pop(名,None)#摘
@@ -134,7 +421,7 @@ class 命令UI运行时:#CommandUiRuntime
             '挂上'
             if 名 in 自身.装饰:#重
                 raise 命令错误('ui-commands: 重复装饰 /'+名)#抛
-            自身.装饰[名]=装饰#记
+            自身.装饰[名]=装饰
             def 摘装饰():
                 '摘掉该装饰'
                 自身.装饰.pop(名,None)#摘
@@ -175,7 +462,7 @@ class 命令UI运行时:#CommandUiRuntime
         def 聚焦():
             '经对话输入面聚焦'
             if 'conversation' not in 绑上下文:#无
-                return None#停
+                return None
             对话=绑上下文['conversation']#对话
             return 对话.input.按作用域取门面(绑上下文).focus()#聚焦
         控制器=弹出选定控制器(消费,聚焦)#控
@@ -199,7 +486,7 @@ class 命令UI运行时:#CommandUiRuntime
         行=[]#行
         已见=set()#名
         for 项 in 表:#宿主
-            已见.add(项['name'])#记
+            已见.add(项['name'])
             面=内置行面(项,自身.t)#内置面
             行项={'name':项['name']}#行
             if 面 is None:#非内置
@@ -212,7 +499,7 @@ class 命令UI运行时:#CommandUiRuntime
             行.append(行项)#收下
         for 名,贡献 in 自身.贡献.items():#贡献
             if 贡献['available'](会话) is False:#不可用
-                continue#下
+                continue
             if 名 in 已见:#撞
                 raise 命令错误('ui-commands: 贡献 /'+名+' 与宿主命令冲突')#抛
             行项={'name':名}#行
@@ -271,7 +558,7 @@ class 命令UI运行时:#CommandUiRuntime
         序=0#扫描
         while 序<len(修剪):#找
             if 修剪[序].isspace():#空白
-                空=序#记
+                空=序
                 break#止
             序+=1#前进
         令牌=修剪 if 空 is None else 修剪[:空]#令牌
@@ -374,11 +661,11 @@ class 命令UI运行时:#CommandUiRuntime
         try:#跑
             结局=自身.执行(会话,行,())#执行
         except 命令错误 as 错误:#调用失败
-            自身.提示(会话['sessionId'],'error',错误.args[0] if len(错误.args)>0 else str(错误))#提示
+            自身.提示(会话['sessionId'],'error',页面失败文案(错误))#提示，句子不含路径、用户名或环境变量
             return#止
         if 结局['kind']=='error':#准入失败
             文=结局['text'] if 'text' in 结局 else '/'+描['name']+' 失败'#文案
-            自身.提示(会话['sessionId'],'error',文)#提示
+            自身.提示(会话['sessionId'],'error',页面失败文案(文))#提示，句子不含路径、用户名或环境变量
 
     def 提示(自身,标识,级别,文本):
         '编写器提示'

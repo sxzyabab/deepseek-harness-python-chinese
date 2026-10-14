@@ -22,8 +22,20 @@ def 应用(上下文):
                 '观测一行实时输出'
                 return 上下文.jobs.observe(会话标识,标识)
             def 停止作业(会话标识,作业标识):
-                '人类停止；登记表接纳则 True'
-                return 上下文.jobs.kill(会话标识,作业标识)['ok']
+                '把停止交给作业服务。本包不持有登记表。'
+                结果=上下文.jobs.kill(会话标识,作业标识)
+                if hasattr(结果,'等待') and callable(结果.等待):
+                    结果=结果.等待()
+                elif hasattr(结果,'then') and callable(结果.then):
+                    def 转成是否接纳(值):
+                        '登记表接纳则 True'
+                        if isinstance(值,dict) and 'ok' in 值:
+                            return 值['ok'] is True
+                        return 值 is True
+                    return 结果.then(转成是否接纳,lambda _错误:False)
+                if isinstance(结果,dict) and 'ok' in 结果:
+                    return 结果['ok'] is True
+                return 结果 is True
             return {
                 'hooks':{'jobs':上下文.jobs.state},
                 'watchRows':监视行,

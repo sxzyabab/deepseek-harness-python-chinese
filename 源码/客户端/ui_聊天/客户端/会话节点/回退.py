@@ -8,7 +8,7 @@ def 未知匹配(事件):#append-surface 才匹配
     if 事件.get('type')=='assistant/live-chunk':#瞬态直播块
         return None#不认领
     if 是追加面事件(事件):#追加面
-        return {'id':str(事件['seq']),'role':'start'}#开
+        return {'id':str(事件['seq']),'role':'start'}
     return None#不匹配
 
 def 未知开始(_上下文,匹配项):#从匹配事件造 unknown 初态

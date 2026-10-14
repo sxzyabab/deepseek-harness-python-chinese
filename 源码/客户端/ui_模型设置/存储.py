@@ -1,9 +1,9 @@
 import re#正则
 from ...基础设施.通用工具 import 观察者集合
 from ..ui_设置.模式 import 再水合模式,取路径,有路径#schema 路径
-from .异常 import 模型设置错误#本包异常
+from .异常 import 模型设置错误,页面失败文案#本包异常
 
-__all__=[#仅中文公开名
+__all__=[
     '模型设置错误','快照存储','错误文案','推导密钥引用','协议选项','提供方可用','引导就绪度','模型设置存储','已加载则刷新','拼合提供方目录',
 ]
 
@@ -47,9 +47,14 @@ def 拼合提供方目录(已注册,目录):#拼合在线路由与可配置声�
         })#追加结束
     return 行表#拼合结果
 
-def 错误文案(错误):#拒绝值收成可展示文案
-    'Error 取其 message'
-    return str(错误)#文案
+def 错误文案(错误):
+    '页面上的失败句。去掉绝对路径、用户名和环境变量。'
+    if 错误 is None or 错误=='':
+        return None
+    文=页面失败文案(错误)
+    if 文=='':
+        return None
+    return 文
 
 def 推导密钥引用(提供方):#由提供方路由推导凭证引用名
     '大写后非常量字符换成 _，再加 _API_KEY'
@@ -182,7 +187,7 @@ class 模型设置存储:#模型设置页控制器
                     凭证图=值['credentials'] if 值 is not None and 'credentials' in 值 and 值['credentials'] is not None else {}#图
                 else:#业务拒绝
                     错误体=结果['error'] if 'error' in 结果 else None#错误
-                    凭证错误=错误体['message'] if 错误体 is not None and 'message' in 错误体 else None#文案
+                    凭证错误=错误文案(错误体['message'] if 错误体 is not None and 'message' in 错误体 else None)
             except Exception as 错误:#传输失败；RPC 异常契约未定
                 凭证错误=错误文案(错误)#文案
         if 世代!=自身.世代:#过期
@@ -231,7 +236,7 @@ def 引导就绪度(状态):#从模型拼合投影首次引导就绪度
         if ('provider' in 条目 and 条目['provider']=='deepseek-official'
             and 'settingsNs' in 条目 and 条目['settingsNs']=='llm-deepseek'
             and len(路径)==0):#官方
-            官方=候选#记下
+            官方=候选
             break#找到
     if 官方 is None:#无官方声明
         return {'kind':'adapter-absent'}#适配器缺失

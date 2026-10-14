@@ -147,7 +147,7 @@ class Cordis_Dom会话:#Cordis DOM会话
             for 节点id in 节点ids:#扫id
                 后端id=自身._前端到后端.get(节点id)#后端id
                 节点=None if 后端id is None else 自身._后端.文档()['byBackendId'].get(后端id)#节点
-                if 节点 is not None:#有
+                if 节点 is not None:
                     自身._推节点路径(节点)#推路径
             return {'nodeIds':节点ids}#返回
         if 方法=='DOM.discardSearchResults':#丢弃搜索

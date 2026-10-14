@@ -4,7 +4,7 @@ from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....工具.加密 import 随机uuid#附着身份
 from ....工具.超时 import 等待中止#中止类已禁用
 from ...网关.异常 import 远程流载体错误#载体失败
-from ..异常 import 远程错误,终端视图错误#视图失败
+from ..异常 import 远程错误,终端视图错误,失败说明#视图失败
 from .外壳偏好 import 首选外壳,记住外壳#偏好
 
 __all__=['终端视图错误','终端视图','快照存储']#仅中文公开名
@@ -31,7 +31,7 @@ class 快照存储:#getSnapshot / subscribe / set
             try:#单回调
                 回调()#通知
             except Exception as 错误:
-                print('[terminal-controller] subscriber failed:',错误)#日志
+                print('[terminal-controller] subscriber failed:',type(错误).__name__,失败说明(错误))#日志，去掉绝对路径
 
 def 转期约(函数):#同步调用放进期约
     '在线程里调用，结算成期约，供全部并发'
@@ -484,7 +484,7 @@ class 终端视图:#侧栏出现；进程只在显式关闭时结束
             问题='terminalLimit'#键
         阶段='disconnected' if isinstance(错误,远程流载体错误) else 'failed'#阶段
         if isinstance(错误,BaseException) and len(错误.args)>0:#消息
-            消息=str(错误.args[0])#第一参
+            消息=失败说明(错误.args[0])#第一参，去掉绝对路径
         else:#其它
-            消息=str(错误)#串
+            消息=失败说明(错误)#串
         自身._补丁({'phase':阶段,'writable':False,'issue':问题,'error':消息})#发布

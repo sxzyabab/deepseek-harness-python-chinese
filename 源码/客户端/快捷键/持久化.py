@@ -44,7 +44,7 @@ class 快捷键持久化:
 
     def 拆除(自身):
         '停止接受编辑或发布迟到的完成'
-        自身.活跃=False#停
+        自身.活跃=False
 
     def 读当前(自身):
         '读当前文件；失败保留上次已接受文档并禁用普通写入'
@@ -80,14 +80,14 @@ class 快捷键持久化:
             for 行 in 行表:#找非法
                 if 类型=='reset-all' or 行['id']==编辑.get('id'):#相关行
                     if 行['issue'] is not None or len(行['conflicts'])>0:#有问题
-                        非法=行#记下
+                        非法=行
                         break#止
             #显式编辑不得静默禁用另一命令的默认绑定
             挤出=None#被挤命令
             if 类型=='set':#设置
                 for 行 in 行表:#找含本 id 的冲突
                     if 编辑['id'] in 行['conflicts']:#被本编辑挤
-                        挤出=行#记下
+                        挤出=行
                         break#止
             if 非法 is not None or 挤出 is not None:#冲突
                 出={**结果('conflict')}#冲突结果
@@ -103,7 +103,7 @@ class 快捷键持久化:
             try:#持久化
                 原文=json.dumps(文档,ensure_ascii=False,indent=2)+'\n'#美化 JSON
                 自身.存储.write(原文)#写入
-                自身.原文=原文#记下
+                自身.原文=原文
                 自身.原文已读=True#已有原文
                 下一={**自身.快照,'document':文档,'status':'ready','error':None,'usingDefaults':False}#就绪
                 自身.接受(下一)#发布
@@ -135,7 +135,7 @@ class 快捷键持久化:
             return 自身.快照#当前
         if 自身.原文已读 and 原文==自身.原文 and 自身.快照['error']!='read':#未变
             return 自身.快照#复用
-        自身.原文=原文#记下
+        自身.原文=原文
         自身.原文已读=True#已读
         文档=解析快捷键文档(原文)#解码
         if isinstance(文档,str):#分类失败

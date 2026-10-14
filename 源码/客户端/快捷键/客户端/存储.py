@@ -41,7 +41,7 @@ def Web快捷键存储(窗口,平台,发布):
     def 拆除():
         '卸监听并停持久化'
         窗口.removeEventListener('storage',变更)#卸
-        持久.拆除()#停
+        持久.拆除()
     return 简易命名空间(#适配器
         get=获取,
         edit=编辑,

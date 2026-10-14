@@ -1,11 +1,13 @@
-import os#读样式
-from .状态 import 可见状态,取包#状态面
+import os
+from ..异常 import 页面失败文案
+from .状态 import 可见状态,取包
+from .准备行 import 画出根
 
 __all__=['面板','选定包标识','面板可见状态','阻塞优先','样式表','渲染失败文案键','动作图标']#仅中文公开名
 
-_本目录=os.path.dirname(os.path.abspath(__file__))#本目录
-with open(os.path.join(_本目录,'面板.module.css'),'r',encoding='utf-8') as _样式文件:#原文
-    样式表=_样式文件.read()#全文
+_本目录=os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(_本目录,'面板.module.css'),'r',encoding='utf-8') as _样式文件:
+    样式表=_样式文件.read()
 
 状态文案键={#展示状态 → 词典键
     'idle':'status.idle',
@@ -13,408 +15,411 @@ with open(os.path.join(_本目录,'面板.module.css'),'r',encoding='utf-8') as 
     'client-pending':'status.clientPending',
     'running':'status.running',
     'failed':'status.failed',
-}#结束
+}
 
 渲染失败文案键={#渲染崩溃 → 词典键
     'abdicated':'render.failedAbdicated',
     'held':'render.failedHeld',
-}#结束
+}
 
-def 去掉空子节点(子节点列表):#去掉 None
+def 去掉空子节点(子节点列表):
     '保留真值子节点'
-    return [子 for 子 in 子节点列表 if 子 is not None]#过滤
+    return [子 for 子 in 子节点列表 if 子 is not None]
 
-def 动作图标(种):#RowAction 子图标
+def 动作图标(种):
     '各动作按钮内图标'
-    if 种=='approveOnce':#仅此版
-        return {'type':'IconCheckOutline16','size':14}#勾
-    if 种=='approvePlugin':#后续
-        return {'type':'span','class':'doubleCheck','aria-hidden':True,'children':[#双勾
+    if 种=='approveOnce':
+        return {'type':'IconCheckOutline16','size':14}
+    if 种=='approvePlugin':
+        return {'type':'span','class':'doubleCheck','aria-hidden':True,'children':[
             {'type':'IconCheckOutline16','size':12},{'type':'IconCheckOutline16','size':12},
-        ]}#结束
-    if 种=='decline':#拒
-        return {'type':'IconCloseOutline16','size':14}#叉
-    if 种=='run':#跑
-        return {'type':'IconPlayOutline16','size':14}#播放
-    if 种=='stop':#停
-        return {'type':'IconStopFill16','size':14}#停
-    if 种=='remove':#移除
-        return {'type':'IconTrashOutline16','size':14}#垃圾桶
-    return None#未知
+        ]}
+    if 种=='decline':
+        return {'type':'IconCloseOutline16','size':14}
+    if 种=='run':
+        return {'type':'IconPlayOutline16','size':14}
+    if 种=='stop':
+        return {'type':'IconStopFill16','size':14}
+    if 种=='remove':
+        return {'type':'IconTrashOutline16','size':14}
+    return None
 
 def 选定包标识(视图,已选):#解析当前选中包
     '已选仍在列表则用已选，否则 next/current/末包/活动包'
-    插件=视图['pluginId'] if 'pluginId' in 视图 else None#插件
-    列=视图['listed'] if 'listed' in 视图 else None#清单行
-    活动=视图['activity'] if 'activity' in 视图 else None#活动
-    已=已选.get(插件) if isinstance(已选,dict) else None#已选
-    if 已 is not None and 列 is not None:#校验仍在
-        包列表=列['packages'] if 'packages' in 列 else None#版本列表
-        if any((p['packageId'] if p is not None and 'packageId' in p else None)==已 for p in (包列表 or [])):#仍在
-            return 已#已选
-    if 列 is not None:#有清单
-        下一=列['nextPackageId'] if 'nextPackageId' in 列 else None#下一包
-        当前=列['currentPackageId'] if 'currentPackageId' in 列 else None#当前包
-        包列表=列['packages'] if 'packages' in 列 else None#版本列表
-        末包=None#缺省
-        if 包列表:#有版本
-            尾=包列表[-1]#末项
-            末包=尾['packageId'] if 尾 is not None and 'packageId' in 尾 else None#末包 id
-        活动包=活动['packageId'] if 活动 is not None and 'packageId' in 活动 else None#活动包
-        return 下一 or 当前 or 末包 or 活动包#回退链
-    return 活动['packageId'] if 活动 is not None and 'packageId' in 活动 else None#仅活动
+    插件=视图['pluginId'] if 'pluginId' in 视图 else None
+    列=视图['listed'] if 'listed' in 视图 else None
+    活动=视图['activity'] if 'activity' in 视图 else None
+    已=已选.get(插件) if isinstance(已选,dict) else None
+    if 已 is not None and 列 is not None:
+        包列表=列['packages'] if 'packages' in 列 else None
+        if any((p['packageId'] if p is not None and 'packageId' in p else None)==已 for p in (包列表 or [])):
+            return 已
+    if 列 is not None:
+        下一=列['nextPackageId'] if 'nextPackageId' in 列 else None
+        当前=列['currentPackageId'] if 'currentPackageId' in 列 else None
+        包列表=列['packages'] if 'packages' in 列 else None
+        末包=None
+        if 包列表:
+            尾=包列表[-1]
+            末包=尾['packageId'] if 尾 is not None and 'packageId' in 尾 else None
+        活动包=活动['packageId'] if 活动 is not None and 'packageId' in 活动 else None
+        return 下一 or 当前 or 末包 or 活动包
+    return 活动['packageId'] if 活动 is not None and 'packageId' in 活动 else None
 
-def 面板可见状态(视图,选中包,已加载):#面板状态
+def 面板可见状态(视图,选中包,已加载):
     '含 awaiting-approval / failed'
-    列=视图['listed'] if 'listed' in 视图 else None#清单
-    活动=视图['activity'] if 'activity' in 视图 else None#活动
-    最近=列['latestRun'] if 列 is not None and 'latestRun' in 列 else None#最近
-    活动阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None#活动阶段
-    最近状态=最近['status'] if 最近 is not None and 'status' in 最近 else None#最近状态
-    if 活动阶段=='awaiting-approval' or 最近状态=='awaiting-approval':#审批
-        return 'awaiting-approval'#审批
-    最近包=最近['packageId'] if 最近 is not None and 'packageId' in 最近 else None#最近包
-    if 最近状态=='failed' and 最近包==选中包:#失败
-        return 'failed'#失败
-    激活=列['activeRun'] if 列 is not None and 'activeRun' in 列 else None#激活运行
-    if 列 is None or 激活 is None:#无激活
-        return 'idle'#空闲
-    return 可见状态(列,激活['packageId'] if 'packageId' in 激活 else None,已加载)#三态
+    列=视图['listed'] if 'listed' in 视图 else None
+    活动=视图['activity'] if 'activity' in 视图 else None
+    最近=列['latestRun'] if 列 is not None and 'latestRun' in 列 else None
+    活动阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None
+    最近状态=最近['status'] if 最近 is not None and 'status' in 最近 else None
+    if 活动阶段=='awaiting-approval' or 最近状态=='awaiting-approval':
+        return 'awaiting-approval'
+    最近包=最近['packageId'] if 最近 is not None and 'packageId' in 最近 else None
+    if 最近状态=='failed' and 最近包==选中包:
+        return 'failed'
+    激活=列['activeRun'] if 列 is not None and 'activeRun' in 列 else None
+    if 列 is None or 激活 is None:
+        return 'idle'
+    return 可见状态(列,激活['packageId'] if 'packageId' in 激活 else None,已加载)
 
-def 阻塞优先(行列表):#审批行置顶
+def 阻塞优先(行列表):
     'awaiting-approval 在前'
-    前=[]#审批
-    后=[]#其余
-    for 行 in 行列表:#逐行
-        活动=行['activity'] if 'activity' in 行 else None#活动
-        阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None#阶段
-        if 阶段=='awaiting-approval':#审批
-            前.append(行)#置前
-        else:#其余
-            后.append(行)#置后
-    return 前+后#合并
+    前=[]
+    后=[]
+    for 行 in 行列表:
+        活动=行['activity'] if 'activity' in 行 else None
+        阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None
+        if 阶段=='awaiting-approval':
+            前.append(行)
+        else:
+            后.append(行)
+    return 前+后
 
-def 组装行树(视,选中包,已加载,翻译,忙碌,失败图,渲染失败图,动作错误图):#一行 li 树
+def 组装行树(视,选中包,已加载,翻译,忙碌,失败图,渲染失败图,动作错误图):
     '各行嵌套结构'
-    列=视['listed'] if 'listed' in 视 else None#清单
-    活动=视['activity'] if 'activity' in 视 else None#活动
-    插件=视['pluginId'] if 'pluginId' in 视 else None#id
-    选中包元=取包(列,选中包) if 列 is not None and 选中包 is not None else None#选中包
-    激活运行=列['activeRun'] if 列 is not None and 'activeRun' in 列 else None#激活运行
-    活动包=取包(列,激活运行['packageId'] if 激活运行 is not None and 'packageId' in 激活运行 else None) if 列 is not None and 激活运行 else None#活动包
-    选中名=选中包元['name'] if 选中包元 is not None and 'name' in 选中包元 else None#选中名
-    活动阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None#活动阶段
-    活动名=活动['name'] if 活动 is not None and 'name' in 活动 else None#活动名
-    名=选中名 or (活动名 if 活动阶段=='awaiting-approval' else 插件)#名
-    选中用途=选中包元['purpose'] if 选中包元 is not None and 'purpose' in 选中包元 else None#选中用途
-    活动用途=活动['purpose'] if 活动 is not None and 'purpose' in 活动 else None#活动用途
-    用途=选中用途 or (活动用途 if 活动阶段=='awaiting-approval' else '')#用途
-    最近=列['latestRun'] if 列 is not None and 'latestRun' in 列 else None#最近
-    最近状态=最近['status'] if 最近 is not None and 'status' in 最近 else None#最近状态
-    if 活动阶段=='awaiting-approval':#审批
-        审批=活动['requestId'] if 活动 is not None and 'requestId' in 活动 else None#审批 id
-    elif 最近状态=='awaiting-approval':#最近审批
-        审批=最近['approvalRequestId'] if 最近 is not None and 'approvalRequestId' in 最近 else None#审批 id
-    else:#无审批
-        审批=None#无
-    态=面板可见状态(视,选中包,已加载)#状态
-    忙=忙碌 or 活动阶段=='orchestrating'#忙
-    失败=失败图.get(插件) if isinstance(失败图,dict) else None#页侧失败
-    宿主失败=最近['error'] if 最近状态=='failed' and 最近 is not None and 'error' in 最近 else None#宿主失败
-    渲染失败=渲染失败图.get(插件) if isinstance(渲染失败图,dict) else None#渲染崩溃
-    动作错=动作错误图.get(插件) if isinstance(动作错误图,dict) else None#动作错
-    下一包=列['nextPackageId'] if 列 is not None and 'nextPackageId' in 列 else None#下一包
-    当前包=列['currentPackageId'] if 列 is not None and 'currentPackageId' in 列 else None#当前
-    下包=下一包 if 列 is not None and 下一包!=当前包 else None#待切换
-    模式='update' if 列 and 当前包 is not None and 选中包!=当前包 else 'run'#运行模式
-    动作钮=[]#rowActions 子
-    if 审批 is not None:#审批三键
+    列=视['listed'] if 'listed' in 视 else None
+    活动=视['activity'] if 'activity' in 视 else None
+    插件=视['pluginId'] if 'pluginId' in 视 else None
+    选中包元=取包(列,选中包) if 列 is not None and 选中包 is not None else None
+    激活运行=列['activeRun'] if 列 is not None and 'activeRun' in 列 else None
+    活动包=取包(列,激活运行['packageId'] if 激活运行 is not None and 'packageId' in 激活运行 else None) if 列 is not None and 激活运行 else None
+    选中名=选中包元['name'] if 选中包元 is not None and 'name' in 选中包元 else None
+    活动阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None
+    活动名=活动['name'] if 活动 is not None and 'name' in 活动 else None
+    名=选中名 or (活动名 if 活动阶段=='awaiting-approval' else 插件)
+    选中用途=选中包元['purpose'] if 选中包元 is not None and 'purpose' in 选中包元 else None
+    活动用途=活动['purpose'] if 活动 is not None and 'purpose' in 活动 else None
+    用途=选中用途 or (活动用途 if 活动阶段=='awaiting-approval' else '')
+    最近=列['latestRun'] if 列 is not None and 'latestRun' in 列 else None
+    最近状态=最近['status'] if 最近 is not None and 'status' in 最近 else None
+    if 活动阶段=='awaiting-approval':
+        审批=活动['requestId'] if 活动 is not None and 'requestId' in 活动 else None
+    elif 最近状态=='awaiting-approval':
+        审批=最近['approvalRequestId'] if 最近 is not None and 'approvalRequestId' in 最近 else None
+    else:
+        审批=None
+    态=面板可见状态(视,选中包,已加载)
+    忙=忙碌 or 活动阶段=='orchestrating'
+    失败=失败图.get(插件) if isinstance(失败图,dict) else None
+    宿主失败=最近['error'] if 最近状态=='failed' and 最近 is not None and 'error' in 最近 else None
+    渲染失败=渲染失败图.get(插件) if isinstance(渲染失败图,dict) else None
+    动作错=动作错误图.get(插件) if isinstance(动作错误图,dict) else None
+    下一包=列['nextPackageId'] if 列 is not None and 'nextPackageId' in 列 else None
+    当前包=列['currentPackageId'] if 列 is not None and 'currentPackageId' in 列 else None
+    下包=下一包 if 列 is not None and 下一包!=当前包 else None
+    模式='update' if 列 and 当前包 is not None and 选中包!=当前包 else 'run'
+    动作钮=[]
+    if 审批 is not None:
         for 种,标,属 in (#种/文案键/data 属性
             ('approveOnce','action.approveOnce',{'data-cordis-approve':审批}),
             ('approvePlugin','action.approvePlugin',{'data-cordis-approve-plugin':审批}),
             ('decline','action.decline',{'data-cordis-decline':审批}),
-        ):#三键
+        ):
             钮={#RowAction → button
                 'type':'button','class':'actionButton','aria-label':翻译(标),'disabled':忙,
                 'onClick':('action',种,插件,审批),'children':[动作图标(种)],
-            }#基
-            钮.update(属)#data-*
-            动作钮.append({'type':'Tooltip','label':翻译(标),'side':'bottom','delayMs':500,'children':[钮]})#Tooltip
-    elif 列 is not None:#非审批生命周期
-        有客户端=选中包元['hasClientHalf'] is True if 选中包元 is not None and 'hasClientHalf' in 选中包元 else False#客户端半
-        激活包=激活运行['packageId'] if 激活运行 is not None and 'packageId' in 激活运行 else None#激活包
-        if 选中包 is not None and 激活运行 is None:#未跑
+            }
+            钮.update(属)
+            动作钮.append({'type':'Tooltip','label':翻译(标),'side':'bottom','delayMs':500,'children':[钮]})
+    elif 列 is not None:
+        有客户端=选中包元['hasClientHalf'] is True if 选中包元 is not None and 'hasClientHalf' in 选中包元 else False
+        激活包=激活运行['packageId'] if 激活运行 is not None and 'packageId' in 激活运行 else None
+        if 选中包 is not None and 激活运行 is None:
             钮={'type':'button','class':'actionButton','aria-label':翻译('action.run'),'disabled':忙,
                 'data-cordis-switch':'run','onClick':('action','run',插件,选中包,模式,有客户端),
-                'children':[动作图标('run')]}#跑
-            动作钮.append({'type':'Tooltip','label':翻译('action.run'),'side':'bottom','delayMs':500,'children':[钮]})#Tooltip
-        if 激活运行 is not None and 选中包!=激活包 and 选中包元 is not None:#切包
+                'children':[动作图标('run')]}
+            动作钮.append({'type':'Tooltip','label':翻译('action.run'),'side':'bottom','delayMs':500,'children':[钮]})
+        if 激活运行 is not None and 选中包!=激活包 and 选中包元 is not None:
             钮={'type':'button','class':'actionButton','aria-label':翻译('action.run'),'disabled':忙,
                 'data-cordis-switch':'run','onClick':('action','run',插件,选中包元['packageId'] if 'packageId' in 选中包元 else None,模式,选中包元['hasClientHalf'] if 'hasClientHalf' in 选中包元 else None),
-                'children':[动作图标('run')]}#跑
-            动作钮.append({'type':'Tooltip','label':翻译('action.run'),'side':'bottom','delayMs':500,'children':[钮]})#Tooltip
+                'children':[动作图标('run')]}
+            动作钮.append({'type':'Tooltip','label':翻译('action.run'),'side':'bottom','delayMs':500,'children':[钮]})
         if (激活运行 is not None and 态=='client-pending' and 活动包 is not None
-            and 选中包==激活包):#待客户端
+            and 选中包==激活包):
             钮={'type':'button','class':'actionButton','aria-label':翻译('action.run'),'disabled':忙,
                 'data-cordis-switch':'run','onClick':('action','run',插件,活动包['packageId'] if 'packageId' in 活动包 else None,'run',True),
-                'children':[动作图标('run')]}#再跑
-            动作钮.append({'type':'Tooltip','label':翻译('action.run'),'side':'bottom','delayMs':500,'children':[钮]})#Tooltip
-        if 激活运行 is not None:#停止
+                'children':[动作图标('run')]}
+            动作钮.append({'type':'Tooltip','label':翻译('action.run'),'side':'bottom','delayMs':500,'children':[钮]})
+        if 激活运行 is not None:
             钮={'type':'button','class':'actionButton','aria-label':翻译('action.stop'),'disabled':忙,
                 'data-cordis-switch':'stop','onClick':('action','stop',插件),
-                'children':[动作图标('stop')]}#停
-            动作钮.append({'type':'Tooltip','label':翻译('action.stop'),'side':'bottom','delayMs':500,'children':[钮]})#Tooltip
+                'children':[动作图标('stop')]}
+            动作钮.append({'type':'Tooltip','label':翻译('action.stop'),'side':'bottom','delayMs':500,'children':[钮]})
         钮={'type':'button','class':'actionButton','aria-label':翻译('action.remove'),'disabled':忙,
             'data-cordis-remove':插件,'onClick':('action','remove',插件),
-            'children':[动作图标('remove')]}#移除
-        动作钮.append({'type':'Tooltip','label':翻译('action.remove'),'side':'bottom','delayMs':500,'children':[钮]})#Tooltip
-    行子=[{#rowHead
+            'children':[动作图标('remove')]}
+        动作钮.append({'type':'Tooltip','label':翻译('action.remove'),'side':'bottom','delayMs':500,'children':[钮]})
+    行子=[{
         'type':'div','class':'rowHead','children':[
-            {'type':'span','class':'rowId','children':[插件]},#id
-            {'type':'span','class':'rowName','children':[名]},#名
-            {'type':'span','class':'rowStatus','children':[翻译(状态文案键.get(态,态))]},#状态
+            {'type':'span','class':'rowId','children':[插件]},
+            {'type':'span','class':'rowName','children':[名]},
+            {'type':'span','class':'rowStatus','children':[翻译(状态文案键.get(态,态))]},
         ],
-    }]#头
-    包列表=列['packages'] if 列 is not None and 'packages' in 列 else None#版本列表
-    if 列 is not None and len(包列表 or [])>1 and 选中包 is not None:#版本选择
-        选项列表=[]#选项
-        for p in (包列表 or []):#每包
-            包标识=p['packageId'] if 'packageId' in p else None#包 id
-            包名=p['name'] if 'name' in p else None#包名
-            选项列表.append({'type':'option','value':包标识,'children':[str(包名)+' · '+str(包标识)]})#选项
-        行子.append({'type':'label','class':'versionPicker','children':[#选择器
-            {'type':'span','children':[翻译('panel.version')]},#标签
+    }]
+    包列表=列['packages'] if 列 is not None and 'packages' in 列 else None
+    if 列 is not None and len(包列表 or [])>1 and 选中包 is not None:
+        选项列表=[]
+        for p in (包列表 or []):
+            包标识=p['packageId'] if 'packageId' in p else None
+            包名=p['name'] if 'name' in p else None
+            选项列表.append({'type':'option','value':包标识,'children':[str(包名)+' · '+str(包标识)]})
+        行子.append({'type':'label','class':'versionPicker','children':[
+            {'type':'span','children':[翻译('panel.version')]},
             {'type':'select','value':选中包,'disabled':忙,'onChange':('selectPackage',插件),
-             'children':选项列表},#选项
-        ]})#结束
-    行子.append({'type':'div','class':'rowDetail','children':[#详情
-        {'type':'span','class':'rowPurpose','children':[用途]},#用途
-        {'type':'div','class':'rowActions','children':动作钮},#动作
-    ]})#详情结束
-    if 审批 is None and 下包 is not None and 列 is not None:#版本过渡
-        下包元=取包(列,下包)#待切换包
-        下包有客户端=下包元['hasClientHalf'] is True if 下包元 is not None and 'hasClientHalf' in 下包元 else False#客户端半
-        过渡动作=[{#重试
+             'children':选项列表},
+        ]})
+    行子.append({'type':'div','class':'rowDetail','children':[
+        {'type':'span','class':'rowPurpose','children':[用途]},
+        {'type':'div','class':'rowActions','children':动作钮},
+    ]})
+    if 审批 is None and 下包 is not None and 列 is not None:
+        下包元=取包(列,下包)
+        下包有客户端=下包元['hasClientHalf'] is True if 下包元 is not None and 'hasClientHalf' in 下包元 else False
+        过渡动作=[{
             'type':'button','disabled':忙,'onClick':('action','retry',插件,下包,'run' if 当前包 is None else 'update',
                                                      下包有客户端),
             'children':[翻译('action.retry')],
-        }]#基
-        if 当前包 is not None:#回退
-            当前包元=取包(列,当前包)#当前包元
-            当前有客户端=当前包元['hasClientHalf'] is True if 当前包元 is not None and 'hasClientHalf' in 当前包元 else False#客户端半
+        }]
+        if 当前包 is not None:
+            当前包元=取包(列,当前包)
+            当前有客户端=当前包元['hasClientHalf'] is True if 当前包元 is not None and 'hasClientHalf' in 当前包元 else False
             过渡动作.append({'type':'button','disabled':忙,
                              'onClick':('action','rollback',插件,当前包,'run',当前有客户端),
-                             'children':[翻译('action.rollback')]})#回退
-        行子.append({'type':'div','class':'transition','children':[#过渡
-            {'type':'span','children':[翻译('panel.current',packageId=当前包) if 当前包 is not None else '']},#当前
-            {'type':'span','children':[翻译('panel.next',packageId=下包)]},#待切换
-            {'type':'div','class':'transitionActions','children':过渡动作},#钮
-        ]})#过渡结束
-    if 失败 is not None:#页侧失败
-        失败消息=失败['message'] if 'message' in 失败 else None#消息
-        失败原因=失败['reason'] if 'reason' in 失败 else None#原因
+                             'children':[翻译('action.rollback')]})
+        行子.append({'type':'div','class':'transition','children':[
+            {'type':'span','children':[翻译('panel.current',packageId=当前包) if 当前包 is not None else '']},
+            {'type':'span','children':[翻译('panel.next',packageId=下包)]},
+            {'type':'div','class':'transitionActions','children':过渡动作},
+        ]})
+    if 失败 is not None:
+        失败消息=失败['message'] if 'message' in 失败 else None
+        失败原因=失败['reason'] if 'reason' in 失败 else None
         行子.append({'type':'div','class':'rowError','role':'alert',
-                     'children':[str(失败消息)+' ('+str(失败原因)+')']})#错
-    if 失败 is None and 宿主失败 is not None:#宿主失败
-        宿主消息=宿主失败['message'] if 'message' in 宿主失败 else None#消息
-        宿主阶段=宿主失败['phase'] if 'phase' in 宿主失败 else None#阶段
+                     'children':[页面失败文案(失败消息)+' ('+页面失败文案(失败原因)+')']})
+    if 失败 is None and 宿主失败 is not None:
+        宿主消息=宿主失败['message'] if 'message' in 宿主失败 else None
+        宿主阶段=宿主失败['phase'] if 'phase' in 宿主失败 else None
         行子.append({'type':'div','class':'rowError','role':'alert',
-                     'children':[str(宿主消息)+' ('+str(宿主阶段)+')']})#错
-    if 动作错 is not None:#动作错
-        行子.append({'type':'div','class':'rowError','role':'alert','children':[动作错]})#错
-    if 渲染失败 is not None:#渲染崩溃
-        已弃=渲染失败['abdicated'] if 'abdicated' in 渲染失败 else None#弃位
-        槽=渲染失败['slot'] if 'slot' in 渲染失败 else None#槽
-        渲消息=渲染失败['message'] if 'message' in 渲染失败 else None#消息
-        键=渲染失败文案键['abdicated' if 已弃 else 'held']#键
+                     'children':[页面失败文案(宿主消息)+' ('+页面失败文案(宿主阶段)+')']})
+    if 动作错 is not None:
+        行子.append({'type':'div','class':'rowError','role':'alert','children':[页面失败文案(动作错)]})
+    if 渲染失败 is not None:
+        已弃=渲染失败['abdicated'] if 'abdicated' in 渲染失败 else None
+        槽=渲染失败['slot'] if 'slot' in 渲染失败 else None
+        渲消息=渲染失败['message'] if 'message' in 渲染失败 else None
+        键=渲染失败文案键['abdicated' if 已弃 else 'held']
         行子.append({'type':'div','class':'rowError','role':'alert',
                      'data-cordis-render-failure':槽,
                      'data-cordis-render-abdicated':已弃 or None,
-                     'children':[翻译(键,slot=槽)+' '+str(渲消息)]})#错
-    if 活动包 is not None and (活动包['packageId'] if 'packageId' in 活动包 else None)!=选中包:#活动版提示
+                     'children':[翻译(键,slot=槽)+' '+页面失败文案(渲消息)]})
+    if 活动包 is not None and (活动包['packageId'] if 'packageId' in 活动包 else None)!=选中包:
         行子.append({'type':'span','class':'activeVersion',
-                     'children':[翻译('status.running')+': '+(活动包['name'] if 'name' in 活动包 else None)+' · '+(活动包['packageId'] if 'packageId' in 活动包 else None)]})#提示
-    return {#li
+                     'children':[翻译('status.running')+': '+(活动包['name'] if 'name' in 活动包 else None)+' · '+(活动包['packageId'] if 'packageId' in 活动包 else None)]})
+    return {
         'type':'li','key':插件,'class':'row','data-cordis-row':插件,
         'data-cordis-status':态,'data-cordis-awaiting':审批 is not None or None,
         'children':行子,
-    }#结束
+    }
 
-class 面板:#Cordis 侧栏面板
+class 面板:
     '组装可见行与触发器嵌套 JSX 树'
-    def __init__(自身,属性=None):#可选 props
+    def __init__(自身,属性=None):
         '记下 props 与开合'
-        自身.属性=属性 or {}#合成
-        自身.打开=False#面板开
-        自身.已选={}#插件 → 包
-        自身.忙碌=set()#进行中的动作
-        自身.动作错误={}#插件 → 消息
-        自身.已见表批=set()#见过的审批 id
+        自身.属性=属性 or {}
+        自身.打开=False
+        自身.已选={}
+        自身.忙碌=set()
+        自身.动作错误={}
+        自身.已见表批=set()
+        if 自身.属性:#槽位只调用构造
+            自身.渲染()
 
-    def 更新(自身,属性):#刷新
+    def 更新(自身,属性):
         '刷新 props'
-        自身.属性=属性 or {}#新
+        自身.属性=属性 or {}
 
-    def 选版本(自身,插件,包):#改选
+    def 选版本(自身,插件,包):
         '写入已选'
-        自身.已选={**自身.已选,插件:包}#合并
+        自身.已选={**自身.已选,插件:包}
 
-    def 切换(自身):#开合
+    def 切换(自身):
         '翻转面板'
-        自身.打开=not 自身.打开#翻
-        刷新=自身.属性['onRefresh'] if 'onRefresh' in 自身.属性 else None#刷新
-        if 自身.打开 and callable(刷新):#开时
-            刷新()#拉清单
+        自身.打开=not 自身.打开
+        刷新=自身.属性['onRefresh'] if 'onRefresh' in 自身.属性 else None
+        if 自身.打开 and callable(刷新):
+            刷新()
 
-    def 渲染(自身):#结构树
+    def 渲染(自身):
         '产出面板嵌套 JSX 树'
-        p=自身.属性#props
+        p=自身.属性
         def 原样(键,**_参数):
             '缺翻译器时原样返回键'
-            return 键#键
-        def 翻译(键,**参数):#文案
+            return 键
+        def 翻译(键,**参数):
             '带插值'
-            译=p['t'] if 't' in p else None#翻译器
-            if 译 is None:#无
-                基=原样(键)#取句
-            else:#有
-                基=译(键)#取句
-            if not 参数:#无参
-                return 基#原
-            出=基#模板
-            for 名,值 in 参数.items():#逐个
-                出=出.replace('{'+名+'}',str(值))#替换
-            return 出#句
+            译=p['t'] if 't' in p else None
+            if 译 is None:
+                基=原样(键)
+            else:
+                基=译(键)
+            if not 参数:
+                return 基
+            出=基
+            for 名,值 in 参数.items():
+                出=出.replace('{'+名+'}',str(值))
+            return 出
         def 原样快照(快照):
             '钩子选择器：整份快照'
-            return 快照#原样
-        宽=bool(p['wide'] if 'wide' in p else True)#宽
-        清单钩=p['useInventory'] if 'useInventory' in p else None#清单
-        活动钩=p['useActiveRuns'] if 'useActiveRuns' in p else None#活动
-        加载钩=p['useLoaded'] if 'useLoaded' in p else None#已加载
-        失败钩=p['useRunErrors'] if 'useRunErrors' in p else None#失败
-        渲钩=p['useRenderFailures'] if 'useRenderFailures' in p else None#渲染失败
-        会话钩=p['useSessions'] if 'useSessions' in p else None#会话
-        if callable(清单钩):#有
-            清单=清单钩(原样快照)#快照
-        else:#直读
-            清单=p['inventory'] if 'inventory' in p else {'rows':[],'read':False}#缺省
-        if callable(活动钩):#有
-            活动图=活动钩(原样快照) or {}#图
-        else:#直读
-            活动图=p['activeRuns'] if 'activeRuns' in p else {}#图
-        if callable(加载钩):#有
-            已加载=加载钩(原样快照) or []#表
-        else:#直读
-            已加载=p['loaded'] if 'loaded' in p else []#表
-        if callable(失败钩):#有
-            失败图=失败钩(原样快照) or {}#图
-        else:#直读
-            失败图=p['runErrors'] if 'runErrors' in p else {}#图
-        if callable(渲钩):#有
-            渲图=渲钩(原样快照) or {}#图
-        else:#直读
-            渲图=p['renderFailures'] if 'renderFailures' in p else {}#图
-        if callable(会话钩):#有
-            会话快照=会话钩(原样快照)#会话快照
-            当前=会话快照['current'] if 会话快照 is not None and 'current' in 会话快照 else None#当前会话
-        else:#直读
-            当前=p['currentSession'] if 'currentSession' in p else None#会话
-        if hasattr(活动图,'items'):#映射
-            活动项=list(活动图.items())#项
-        elif isinstance(活动图,dict):#dict
-            活动项=list(活动图.items())#项
-        else:#空
-            活动项=[]#空
-        按插件={}#聚合
-        行列表=清单['rows'] if 清单 is not None and 'rows' in 清单 else None#清单行
-        for 列 in (行列表 or []):#清单行
-            标识=列['pluginId'] if 'pluginId' in 列 else None#id
-            活动=活动图.get(标识) if isinstance(活动图,dict) else None#活动
-            活动智能体=活动['agentId'] if 活动 is not None and 'agentId' in 活动 else None#活动智能体
-            列智能体=列['agentId'] if 'agentId' in 列 else None#列智能体
-            按插件[标识]={'pluginId':标识,'agentId':活动智能体 or 列智能体,'listed':列,**({'activity':活动} if 活动 else {})}#行
-        for 标识,活动 in 活动项:#仅活动
-            if 标识 in 按插件:#已有
-                continue#跳
-            按插件[标识]={'pluginId':标识,'agentId':活动['agentId'] if 活动 is not None and 'agentId' in 活动 else None,'activity':活动}#行
-        全部=list(按插件.values())#全部
-        本组=阻塞优先([r for r in 全部 if 当前 is not None and (r['agentId'] if 'agentId' in r else None)==当前])#本会话
-        他组=阻塞优先([r for r in 全部 if 当前 is None or (r['agentId'] if 'agentId' in r else None)!=当前])#他会话
-        审批数=0#审批数
-        for _,活动 in 活动项:#逐个
-            if 活动 is not None and 'phase' in 活动 and 活动['phase']=='awaiting-approval':#审批
-                审批数+=1#计数
-        运行数=sum(1 for r in 全部 if 面板可见状态(r,选定包标识(r,自身.已选),已加载)=='running')#运行数
-        现批=set()#现审批
-        for _,活动 in 活动项:#逐个
-            if 活动 is not None and 'phase' in 活动 and 活动['phase']=='awaiting-approval':#审批
-                if 'requestId' in 活动:#有 id
-                    现批.add(活动['requestId'])#收入
-        if any(批 not in 自身.已见表批 for 批 in 现批):#发现新
-            自身.打开=True#打开
-        自身.已见表批=现批#更新
-        失败映射=失败图 if isinstance(失败图,dict) else dict(失败图) if hasattr(失败图,'items') else {}#图
-        渲映射=渲图 if isinstance(渲图,dict) else dict(渲图) if hasattr(渲图,'items') else {}#图
-        def 渲组(行列表):#组内 li 列表
+            return 快照
+        宽=bool(p['wide'] if 'wide' in p else True)
+        清单钩=p['useInventory'] if 'useInventory' in p else None
+        活动钩=p['useActiveRuns'] if 'useActiveRuns' in p else None
+        加载钩=p['useLoaded'] if 'useLoaded' in p else None
+        失败钩=p['useRunErrors'] if 'useRunErrors' in p else None
+        渲钩=p['useRenderFailures'] if 'useRenderFailures' in p else None
+        会话钩=p['useSessions'] if 'useSessions' in p else None
+        if callable(清单钩):
+            清单=清单钩(原样快照)
+        else:
+            清单=p['inventory'] if 'inventory' in p else {'rows':[],'read':False}
+        if callable(活动钩):
+            活动图=活动钩(原样快照) or {}
+        else:
+            活动图=p['activeRuns'] if 'activeRuns' in p else {}
+        if callable(加载钩):
+            已加载=加载钩(原样快照) or []
+        else:
+            已加载=p['loaded'] if 'loaded' in p else []
+        if callable(失败钩):
+            失败图=失败钩(原样快照) or {}
+        else:
+            失败图=p['runErrors'] if 'runErrors' in p else {}
+        if callable(渲钩):
+            渲图=渲钩(原样快照) or {}
+        else:
+            渲图=p['renderFailures'] if 'renderFailures' in p else {}
+        if callable(会话钩):
+            会话快照=会话钩(原样快照)
+            当前=会话快照['current'] if 会话快照 is not None and 'current' in 会话快照 else None
+        else:
+            当前=p['currentSession'] if 'currentSession' in p else None
+        if hasattr(活动图,'items'):
+            活动项=list(活动图.items())
+        elif isinstance(活动图,dict):
+            活动项=list(活动图.items())
+        else:
+            活动项=[]
+        按插件={}
+        行列表=清单['rows'] if 清单 is not None and 'rows' in 清单 else None
+        for 列 in (行列表 or []):
+            标识=列['pluginId'] if 'pluginId' in 列 else None
+            活动=活动图.get(标识) if isinstance(活动图,dict) else None
+            活动智能体=活动['agentId'] if 活动 is not None and 'agentId' in 活动 else None
+            列智能体=列['agentId'] if 'agentId' in 列 else None
+            按插件[标识]={'pluginId':标识,'agentId':活动智能体 or 列智能体,'listed':列,**({'activity':活动} if 活动 else {})}
+        for 标识,活动 in 活动项:
+            if 标识 in 按插件:
+                continue
+            按插件[标识]={'pluginId':标识,'agentId':活动['agentId'] if 活动 is not None and 'agentId' in 活动 else None,'activity':活动}
+        全部=list(按插件.values())
+        本组=阻塞优先([r for r in 全部 if 当前 is not None and (r['agentId'] if 'agentId' in r else None)==当前])
+        他组=阻塞优先([r for r in 全部 if 当前 is None or (r['agentId'] if 'agentId' in r else None)!=当前])
+        审批数=0
+        for _,活动 in 活动项:
+            if 活动 is not None and 'phase' in 活动 and 活动['phase']=='awaiting-approval':
+                审批数+=1
+        运行数=sum(1 for r in 全部 if 面板可见状态(r,选定包标识(r,自身.已选),已加载)=='running')
+        现批=set()
+        for _,活动 in 活动项:
+            if 活动 is not None and 'phase' in 活动 and 活动['phase']=='awaiting-approval':
+                if 'requestId' in 活动:
+                    现批.add(活动['requestId'])
+        if any(批 not in 自身.已见表批 for 批 in 现批):
+            自身.打开=True
+        自身.已见表批=现批
+        失败映射=失败图 if isinstance(失败图,dict) else dict(失败图) if hasattr(失败图,'items') else {}
+        渲映射=渲图 if isinstance(渲图,dict) else dict(渲图) if hasattr(渲图,'items') else {}
+        def 渲组(行列表):
             '组装行树列表'
-            树列表=[]#列表
-            for 视 in 行列表:#逐行
-                树列表.append(组装行树(#li
+            树列表=[]
+            for 视 in 行列表:
+                树列表.append(组装行树(
                     视,选定包标识(视,自身.已选),已加载,翻译,('pluginId' in 视 and 视['pluginId'] in 自身.忙碌),
                     失败映射,渲映射,自身.动作错误,
-                ))#行
-            return 树列表#列表
+                ))
+            return 树列表
         if len(全部)==0:
-            return {'type':None,'visible':False,'css':样式表,'note':'无插件时不渲染'}
-        清单错=清单['error'] if 清单 is not None and 'error' in 清单 else None#读失败
-        已读=清单['read'] if 清单 is not None and 'read' in 清单 else False#是否已读
-        体子=去掉空子节点([#panel body
+            return 画出根({'type':None,'visible':False,'css':样式表,'note':'无插件时不渲染'})
+        清单错=清单['error'] if 清单 is not None and 'error' in 清单 else None
+        已读=清单['read'] if 清单 is not None and 'read' in 清单 else False
+        体子=去掉空子节点([
             {'type':'p','class':'readError','role':'alert',
-             'children':[翻译('panel.readFailed',message=清单错)]} if 清单错 else None,#读失败
+             'children':[翻译('panel.readFailed',message=页面失败文案(清单错))]} if 清单错 else None,
             {'type':'p','class':'note','children':[翻译('panel.loading')]}
-            if not 已读 and 清单错 is None else None,#加载中
+            if not 已读 and 清单错 is None else None,
             {'type':'p','class':'note','children':[翻译('panel.empty')]}
-            if 已读 and len(全部)==0 else None,#空
-            {'type':'section','children':[#本组
-                {'type':'h3','class':'group','children':[翻译('panel.group.current')]},#标题
-                {'type':'ul','class':'rows','children':渲组(本组)},#行
-            ]} if len(本组)>0 else None,#本组
-            {'type':'section','children':[#他组
-                {'type':'h3','class':'group','children':[翻译('panel.group.others')]},#标题
-                {'type':'ul','class':'rows','children':渲组(他组)},#行
-            ]} if len(他组)>0 else None,#他组
-        ])#体子结束
-        徽子=[{'type':'IconCordisPluginOutline14'}]#徽标子
-        if 宽:#宽栏示文案
-            徽子.extend([#标签+计数
-                {'type':'span','class':'badgeLabel','children':[翻译('panel.trigger')]},#触发
-                {'type':'span','class':'badgeCount','children':[翻译('panel.runningCount',count=运行数)]},#计数
-            ])#结束
-        层子=去掉空子节点([#layer 子
+            if 已读 and len(全部)==0 else None,
+            {'type':'section','children':[
+                {'type':'h3','class':'group','children':[翻译('panel.group.current')]},
+                {'type':'ul','class':'rows','children':渲组(本组)},
+            ]} if len(本组)>0 else None,
+            {'type':'section','children':[
+                {'type':'h3','class':'group','children':[翻译('panel.group.others')]},
+                {'type':'ul','class':'rows','children':渲组(他组)},
+            ]} if len(他组)>0 else None,
+        ])
+        徽子=[{'type':'IconCordisPluginOutline14'}]
+        if 宽:
+            徽子.extend([
+                {'type':'span','class':'badgeLabel','children':[翻译('panel.trigger')]},
+                {'type':'span','class':'badgeCount','children':[翻译('panel.runningCount',count=运行数)]},
+            ])
+        层子=去掉空子节点([
             {'type':'section','class':'panel','data-cordis-panel':True,'aria-label':翻译('panel.title'),
-             'children':[#开时面板
+             'children':[
                 {'type':'header','class':'header','children':[
-                    {'type':'span','class':'title','children':[翻译('panel.title')]},#标题
-                ]},#头
-                {'type':'div','class':'body','children':体子},#体
-            ]} if 自身.打开 else None,#面板
-            {'type':'div','class':'footerButtons','children':[#底钮
+                    {'type':'span','class':'title','children':[翻译('panel.title')]},
+                ]},
+                {'type':'div','class':'body','children':体子},
+            ]} if 自身.打开 else None,
+            {'type':'div','class':'footerButtons','children':[
                 {'type':'button','class':'badge','data-cordis-badge':len(全部),
                  'data-cordis-approval-badge':审批数,'data-active':审批数>0 or None,
                  'aria-label':翻译('panel.plugins.aria'),'aria-expanded':自身.打开,
-                 'onClick':'toggle','children':徽子},#徽标钮
-            ]},#底
-        ])#层子结束
-        return {#根 layer
+                 'onClick':'toggle','children':徽子},
+            ]},
+        ])
+        树={
             'type':'div','class':'layer' if 宽 else 'layer rail','visible':True,
             'children':层子,'css':样式表,
-            'handlers':{'toggle':自身.切换,'selectPackage':自身.选版本},#动作
-            'note':'图标/Tooltip/真实按钮 DOM 需浏览器；无法 Python·vm 执行侧栏像素',#缺口
-        }#结束
+            'handlers':{'toggle':自身.切换,'selectPackage':自身.选版本},
+            'note':'图标/Tooltip/真实按钮 DOM 需浏览器；无法 Python·vm 执行侧栏像素',
+        }
+        return 画出根(树)
 
-    def __call__(自身,属性=None):#调用形
+    def __call__(自身,属性=None):
         '结构树面'
-        if 属性 is not None:#有
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

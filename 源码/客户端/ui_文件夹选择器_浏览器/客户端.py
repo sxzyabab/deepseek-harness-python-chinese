@@ -2,7 +2,7 @@ from .流 import 浏览目录流#浏览目录流占用方
 
 __all__=['依赖','应用','浏览目录流']#仅中文公开名
 
-依赖=['slots','workspaces','locale']#槽位、工作区、文案
+依赖=['slots','uiWorkspace','locale']#槽位、工作区界面、文案
 词表命名空间='directory-browser'#对话框词表命名空间
 
 中文={#中文词表
@@ -38,7 +38,7 @@ __all__=['依赖','应用','浏览目录流']#仅中文公开名
 }#英文结束
 
 def 应用(上下文):#安装浏览选目录浏览器半边
-    '登记对话框词表，并把浏览流登记进两个目录流空洞'
+    '登记对话框词表，并把页内浏览流登记进两个目录流空洞。选出的路径只交给 onPicked，不登记工作区。'
     def 登记词表():#登记中英文案
         '两份词表作为一体落地；第二次失败则回滚'
         拆除列表=[]#已成功登记
@@ -56,11 +56,11 @@ def 应用(上下文):#安装浏览选目录浏览器半边
         return 拆除#拆除器
     上下文.副作用(登记词表,'directory-picker-browse: dialog dictionaries')#词表生命周期
     def 列举目录(路径=None,信号=None):#列举
-        '转调 workspaces.listDirectory'
-        return 上下文.workspaces.listDirectory(路径,信号)#列举
+        '转调 uiWorkspace.listDirectory。只列目录，不登记工作区。'
+        return 上下文.uiWorkspace.listDirectory(路径,信号)#列举
     def 创建目录(路径,名):#创建
-        '转调 workspaces.createDirectory'
-        return 上下文.workspaces.createDirectory(路径,名)#创建
+        '转调 uiWorkspace.createDirectory。只建子目录，不登记工作区。'
+        return 上下文.uiWorkspace.createDirectory(路径,名)#创建
     def 注入面():#浏览流注入面
         '列举、创建与文案'
         return {#注入

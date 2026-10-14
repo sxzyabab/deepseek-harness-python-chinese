@@ -3,10 +3,6 @@ from .异常 import 通用设置错误#本包异常
 
 __all__=['快照存储','设置文档存储','已加载则刷新文档','通用设置错误']#仅中文公开名
 
-def 错误文案(错误):
-    'Error 取其 message'
-    return str(错误)#文案
-
 class 快照存储:
     '标题栏动作共用的状态源'
     def __init__(自身,初值):
@@ -42,7 +38,7 @@ class 设置文档存储:
         def 标加载(态):
             '标 loading'
             态['status']='loading'#加载中
-            态['error']=None#清错误
+            态['error']=None
         自身.存储.update(标加载)#写入
         try:#describe
             应答=自身.接口.settings.describe({}).等待()#描述
@@ -63,15 +59,15 @@ class 设置文档存储:
             def 写结果(态):
                 '按是否有文档写入'
                 态['status']='ready' if 有文档 else 'unavailable'#状态
-                态['error']=None#清错误
+                态['error']=None
             自身.存储.update(写结果)#写入
-        except Exception as 错误:#传输失败；RPC 异常契约未定
+        except Exception:#传输失败；RPC 异常契约未定
             if 世代!=自身.世代:#过期
                 return#丢弃
             def 写失败(态):
-                '记下失败'
+                '传输失败留给快照，页面读 error 后显示固定文案'
                 态['status']='unavailable'#不可用
-                态['error']=错误文案(错误)#文案
+                态['error']='文档状态没有读到'
             自身.存储.update(写失败)#写入
 
     def open(自身):
@@ -82,7 +78,7 @@ class 设置文档存储:
         def 标打开(态):
             '标 opening'
             态['opening']=True#打开中
-            态['error']=None#清错误
+            态['error']=None
         自身.存储.update(标打开)#写入
         try:#openDocument
             应答=自身.接口.settings.openDocument({}).等待()#无路径打开
@@ -91,12 +87,12 @@ class 设置文档存储:
                 错误体=结果['error'] if 'error' in 结果 else None#错误
                 消息=错误体['message'] if 错误体 is not None and 'message' in 错误体 else None#文案
                 raise 通用设置错误(消息)#抛
-        except Exception as 错误:#打开失败；RPC 异常契约未定
+        except Exception:#打开失败；RPC 异常契约未定
             def 写失败(态):
-                '记下失败文案'
-                态['error']=错误文案(错误)#文案
+                '打开失败留给快照，页面读 error 后显示固定文案'
+                态['error']='文档没有打开'
             自身.存储.update(写失败)#写入
-        finally:#清 opening
+        finally:
             def 清打开(态):
                 '打开不再在飞'
                 态['opening']=False

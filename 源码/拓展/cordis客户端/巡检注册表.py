@@ -1,5 +1,5 @@
 import threading#取消事件用 Event
-from .异常 import cordis客户端错误#本包异常
+from .异常 import cordis客户端错误,去掉绝对路径#本包异常
 
 __all__=['客户端巡检注册表','提供客户端巡检','说明']
 
@@ -110,7 +110,10 @@ class 客户端巡检注册表:#ClientCordisInspectRegistry
             if 控.is_set():#取消优先
                 决议={'ok':False,'reason':'cancelled','message':'客户端巡检查询已取消'}
             else:#提供方错误
-                决议={'ok':False,'reason':'provider-error','message':str(错误)}#错
+                说明=去掉绝对路径(错误)#去路径
+                if 说明=='':#掏空
+                    说明='provider-error'#兜底
+                决议={'ok':False,'reason':'provider-error','message':说明}#错
         finally:#清进行中
             自身.进行中.pop(标识,None)#清
         if 控.is_set():#已取消则不再回答

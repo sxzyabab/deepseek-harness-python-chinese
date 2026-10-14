@@ -1,7 +1,10 @@
 '审阅标签体视图工厂'
+from nicegui import ui as 界面
+from ...工具.工作区路径 import 文件地址为#侧栏打开用的文件地址
 from .改动 import 解析改动审阅地址,改动摘要网址,改动对比网址,已改文件网址#坐标
+from .异常 import 去掉敏感,页面失败文案#异常句不带路径
 
-__all__=['最大绘制行数','审阅标签']#仅中文公开名
+__all__=['最大绘制行数','审阅标签','渲染审阅标签']#仅中文公开名
 
 最大绘制行数=5000#截断预算
 
@@ -12,7 +15,11 @@ def 审阅标签(属性):#视图
     标签=标签信息['tab']#标签
     坐标=解析改动审阅地址(标签['contentId'])#坐标
     if 坐标 is None:#非审阅地址
-        raise ValueError('ui-deliverables: not a review address "'+str(标签['contentId'])+'"')#非法
+        说明=去掉敏感(标签['contentId'] if 'contentId' in 标签 else '')#去掉路径
+        句子='ui-deliverables: not a review address'#固定句
+        if 说明!='':#还能留下的片段
+            句子=句子+' '+说明#接在固定句后
+        raise ValueError(句子)#非法
     会话标识=属性['sessionId']#会话
     序号=坐标['seq']#序号
     翻译=属性['t']#文案
@@ -66,7 +73,7 @@ def 审阅标签(属性):#视图
         '再读对比'
         加载对比(会话标识,序号,下标)#加载
     正文=None#正文
-    if 文件 is not None:#有文件
+    if 文件 is not None:
         if 对比态 is None or 对比态=='loading':#加载
             正文={'status':翻译('diff.loading')}#加载
         elif 对比态=='missing':#缺失
@@ -79,9 +86,9 @@ def 审阅标签(属性):#视图
             正文={'status':翻译('diff.oversized')}#过大
         elif isinstance(对比态,dict) and 'kind' in 对比态 and 对比态['kind']=='text':#文本
             正文={'diff':对比态,'split':左右,'wrap':换行,'maxLines':最大绘制行数}#对比
-    def 开原生():#原生打开
+    def 开原生(动作名='open',应用=None):#原生打开
         'openChanged'
-        打开改动(会话标识,序号,下标)#开
+        打开改动(会话标识,序号,下标,动作名,应用)#开
     def 拉摘要():#加载摘要
         'loadChangesSummary'
         加载摘要(会话标识,序号)#加载
@@ -96,9 +103,10 @@ def 审阅标签(属性):#视图
         'wrap':换行,#换行
         'native':原生,#原生可用
         'phase':阶段,#打开阶段
+        'actionUrl':已改文件网址(会话标识,序号,下标) if 文件 is not None else None,#打开路由
+        'openNative':开原生 if 原生 else None,#原生
         'actions':动作,#store 动作
         'tabId':标签['id'],#标签 id
-        'openNative':开原生 if 原生 else None,#原生
         'reloadHost':重载宿主,#重载
         'loadSummary':拉摘要,#加载摘要
         'body':正文,#正文
@@ -106,3 +114,102 @@ def 审阅标签(属性):#视图
         'missing':翻译('diff.missing') if 摘要态=='missing' else None,#缺失文
         'cssModule':'ReviewTab.module.css',#样式
     }#视图结束
+
+审阅键=(#函数形组件的份额
+    'useTabInfo','sessionId','t','useChangesSummary','useChangesDiff',
+    'usePresentedOpen','usePresentedHost','useStore','actions',
+    'loadChangesSummary','loadChangesDiff','reloadPresentedHost','openChanged',
+)#份额结束
+
+def 审阅键齐(属性):
+    '份额齐才画。空着不另写一句'
+    if not isinstance(属性,dict):#不是合成 props
+        return False#不齐
+    for 键 in 审阅键:#逐键
+        if 键 not in 属性 or 属性[键] is None:#缺键
+            return False#不齐
+    return True#齐
+
+def 渲染审阅标签(属性):
+    '文件选择、对比正文，以及左右/换行。原生打开只走动作槽'
+    if not 审阅键齐(属性):#键未齐
+        return#不画
+    try:#视图可能因地址非法失败
+        视=审阅标签(属性)#视图
+    except Exception as 错误:#留在页面上
+        界面.label(页面失败文案(错误))#失败句
+        return#停
+    翻译=属性['t']
+    动作=视['actions']
+    with 界面.column().classes('review-tab'):
+        界面.label(视['title'])
+        if isinstance(视['loading'],str) and 视['loading']!='':
+            界面.label(视['loading'])
+        if isinstance(视['missing'],str) and 视['missing']!='':
+            界面.label(视['missing'])
+        文件表=视['files'] if isinstance(视['files'],list) else []
+        for 下标,文件 in enumerate(文件表):
+            def 点文件(_事件=None,序=下标):
+                '选中该文件'
+                动作['selected'](视['tabId'],序)
+            名=文件['display'] if 'display' in 文件 else 文件['path']
+            界面.button(名,on_click=点文件).props('flat no-caps')
+        def 点左右():
+            '切换并排'
+            动作['toggledSplit'](视['tabId'])
+        def 点换行():
+            '切换换行'
+            动作['toggledWrap'](视['tabId'])
+        界面.button(翻译('review.splitAria'),on_click=点左右).props('flat no-caps')
+        界面.button(翻译('review.wrapAria'),on_click=点换行).props('flat no-caps')
+        文件=视['file'] if 'file' in 视 else None#当前文件
+        if isinstance(文件,dict):#有文件才开侧栏
+            标签信息=属性['useTabInfo']()#标签
+            标签=标签信息['tab'] if isinstance(标签信息,dict) and 'tab' in 标签信息 else None#标签
+            动作表=标签['actions'] if isinstance(标签,dict) and 'actions' in 标签 else None#标签动作
+            打开侧栏=动作表['openResource'] if isinstance(动作表,dict) and 'openResource' in 动作表 else None#侧栏
+            if callable(打开侧栏):#侧栏预览，不是输入栏
+                def 点侧栏(_事件=None,当前=文件):
+                    '在侧栏打开整个文件'
+                    工作目录=None#cwd
+                    用会话=属性['useSessions'] if 'useSessions' in 属性 else None#会话钩子
+                    if 用会话 is not None:#有目录
+                        def 取目录(态):
+                            'byId[sessionId].cwd'
+                            表=态['byId'] if isinstance(态,dict) and 'byId' in 态 else {}#表
+                            项=表[属性['sessionId']] if 属性['sessionId'] in 表 else None#项
+                            return 项['cwd'] if isinstance(项,dict) and 'cwd' in 项 else None#cwd
+                        工作目录=用会话(取目录)#cwd
+                    路径=当前['path'] if 'path' in 当前 else ''#路径
+                    打开侧栏(文件地址为(属性['sessionId'],工作目录,路径))#侧栏
+                界面.button(翻译('review.openFile'),on_click=点侧栏).props('flat no-caps')
+        画槽=属性['renderSlot'] if 'renderSlot' in 属性 else None#审阅文件动作
+        if callable(画槽) and isinstance(文件,dict) and isinstance(视.get('actionUrl'),str):#空槽不补打开文案
+            画槽('deliverables.review.file.actions',{#属主
+                'actionUrl':视['actionUrl'],#路由
+                'available':视['native'] is True,#桌面
+                'pending':视['phase'] in ('opening','revealing'),#在飞
+                'onAction':视['openNative'] if 视['openNative'] is not None else (lambda 动作名,应用=None: None),#执行
+                't':翻译,#文案
+            })
+        正文=视['body']
+        if isinstance(正文,dict):
+            if 'status' in 正文 and isinstance(正文['status'],str) and 正文['status']!='':
+                界面.label(正文['status'])
+            if 'retry' in 正文 and 正文['onRetry'] is not None:
+                def 点重试():
+                    '再读对比'
+                    正文['onRetry']()
+                界面.button(正文['retry'],on_click=点重试).props('flat no-caps')
+            对比=正文['diff'] if 'diff' in 正文 else None
+            if isinstance(对比,dict) and 'hunks' in 对比 and isinstance(对比['hunks'],list):
+                剩余=正文['maxLines'] if 'maxLines' in 正文 else 最大绘制行数
+                for 块 in 对比['hunks']:
+                    if 剩余<=0:
+                        break
+                    界面.label('@@ -'+str(块['oldStart'])+','+str(块['oldLines'])+' +'+str(块['newStart'])+','+str(块['newLines'])+' @@')
+                    for 行 in 块['lines']:
+                        if 剩余<=0:
+                            break
+                        界面.label(行).style('white-space:pre')
+                        剩余-=1

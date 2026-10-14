@@ -38,10 +38,27 @@ def 音频base64(字节):
     '规范 base64，无 data URL 前缀'
     return base64.b64encode(字节).decode('ascii')
 
+def 音频约束(设备标识):
+    '回声消除与降噪；非空设备标识按精确设备采集'
+    音频={'echoCancellation':True,'noiseSuppression':True}
+    if 设备标识!='':
+        音频['deviceId']={'exact':设备标识}
+    return {'audio':音频,'video':False}
+
+def 抛采集失败(错误):
+    '权限或找不到设备收成录制错误，其余原样抛出'
+    名称=getattr(错误,'name',None)
+    if 名称=='NotAllowedError':
+        raise 录制错误('permission')
+    if 名称 in ('NotFoundError','OverconstrainedError'):
+        raise 录制错误('deviceMissing')
+    raise 错误
+
 class 录制:
     '一次麦克风采集；权限对话框可能在取消之后才落下'
-    def __init__(自身,拆除回调):
-        '记下拆除回调'
+    def __init__(自身,拆除回调,设备标识=''):
+        '空设备标识跟随系统输入'
+        自身.设备标识=设备标识 if isinstance(设备标识,str) else ''
         自身.流=None
         自身.记录器=None
         自身.上下文=None
@@ -51,6 +68,58 @@ class 录制:
         自身.寿命=中止控制器()
         自身.拆除完成=None
         自身.拆除回调=拆除回调
+
+    def preview(自身,出错=None):
+        '只接电平分析，不录音、不回放。返回期约，分析器就绪后兑现'
+        导航=globals().get('navigator')
+        音频上下文类=globals().get('AudioContext')
+        设备=None if 导航 is None else getattr(导航,'mediaDevices',None)
+        if 设备 is None or 音频上下文类 is None:
+            raise 录制错误('unavailable')
+        def 抛出原失败(失败,拆除值=None):
+            '抛出原失败'
+            raise 失败
+        def 拆除后抛出(失败):
+            '先拆除，拆除完成后抛出原失败'
+            return 自身.拆除().然后(偏函数(抛出原失败,失败))
+        def 忽略拆除失败(拆除错误):
+            '中断回调不依赖拆除结果'
+            return None
+        def 中断(*位置参数):
+            '音轨结束则拆除并回调'
+            if 自身.寿命.信号.已中止():
+                return
+            自身.拆除().捕获(忽略拆除失败)
+            try:
+                if 出错 is not None:
+                    出错(录制错误('interrupted'))
+            except Exception as 回调错误:
+                print('Speech recording error handler failed',回调错误)
+        def 开始预览(启动值):
+            '取得麦克风并接上分析器'
+            try:
+                流=设备.getUserMedia(音频约束(自身.设备标识))
+            except Exception as 错误:
+                抛采集失败(错误)
+            if 自身.寿命.信号.已中止():
+                for 轨 in 流.getTracks():
+                    轨.stop()
+                raise 录制错误('cancelled')
+            自身.流=流
+            try:
+                自身.上下文=音频上下文类()
+                自身.分析器=自身.上下文.createAnalyser()
+                自身.分析器.fftSize=len(自身.采样)
+                自身.上下文.createMediaStreamSource(流).connect(自身.分析器)
+                for 轨 in 流.getTracks():
+                    if hasattr(轨,'addEventListener'):
+                        轨.addEventListener('ended',中断)
+            except Exception as 错误:
+                return 拆除后抛出(错误)
+        起点=期约()
+        结果=起点.然后(开始预览)
+        起点.解决(None)
+        return 结果
 
     def start(自身,出错=None):
         '取得麦克风；已取消的授权立刻停轨。返回期约，采集开始后兑现；开始阶段失败时先拆除再拒绝'
@@ -86,12 +155,9 @@ class 录制:
         def 开始采集(启动值):#取得麦克风
             '取得麦克风并开始记录；开始记录阶段失败则拆除后抛出'
             try:
-                流=设备.getUserMedia({'audio':{'echoCancellation':True,'noiseSuppression':True},'video':False})
+                流=设备.getUserMedia(音频约束(自身.设备标识))
             except Exception as 错误:
-                名称=getattr(错误,'name',None)
-                if 名称=='NotAllowedError':
-                    raise 录制错误('permission')
-                raise
+                抛采集失败(错误)
             if 自身.寿命.信号.已中止():
                 for 轨 in 流.getTracks():
                     轨.stop()
@@ -122,6 +188,18 @@ class 录制:
         for 样本 in 自身.采样:
             平方和+=样本*样本
         return math.sqrt(平方和/len(自身.采样))
+
+    def 设备信息(自身):
+        '当前音轨的名称与设备组；未采集时没有'
+        if 自身.流 is None or not hasattr(自身.流,'getAudioTracks'):
+            return None
+        轨表=自身.流.getAudioTracks()
+        if not 轨表:
+            return None
+        轨=轨表[0]
+        设置=轨.getSettings() if hasattr(轨,'getSettings') else {}
+        组=设置.get('groupId') or '' if isinstance(设置,dict) else ''
+        return {'label':getattr(轨,'label','') or '','groupId':组}
 
     def stop(自身,最长秒):
         '结束采集并重采样到 16 kHz 单声道 WAV。返回期约，兑现值是 WAV 字节；无论成败都拆除'

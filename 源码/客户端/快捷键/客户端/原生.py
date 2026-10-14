@@ -38,7 +38,7 @@ def 安装原生键盘(窗口,键盘,注册表,取快照,重置=None):
             区域='page'#页面
         if 顶 is None:#无模态
             模态=None#空
-        else:#有
+        else:
             数据=getattr(顶,'dataset',None)#dataset
             声明=getattr(数据,'shortcutModal',None) if 数据 is not None else None#声明
             模态=声明 if 声明 is not None else 'other'#其他

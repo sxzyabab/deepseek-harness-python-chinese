@@ -8,7 +8,7 @@ from .约定 import (
     资源状态_失败,
     资源服务协议,
 )
-from ..异常 import 资源错误#本包异常
+from ..异常 import 资源错误,失败说明#本包异常；说明去掉绝对路径
 
 __all__=[
     '资源方案',
@@ -75,7 +75,7 @@ class 快照存储:
             try:
                 监听()
             except Exception as 错误:
-                print('[client-resources] 订阅者失败:',错误)
+                print('[client-resources] 订阅者失败:',失败说明(错误))#说明不含绝对路径
 
 class 资源记录:
     '一地址的运行态：快照、持有者计数与运行中流的中止旗'
@@ -255,8 +255,21 @@ class 资源注册表(资源服务协议):
                     'failure':None,
                 })
             else:#失败帧保留末值
+                失败=帧['error']#提供方失败
+                if isinstance(失败,(BaseException,str)):#说明文本
+                    失败=失败说明(失败)#去掉绝对路径
+                    if 失败=='':#掏空
+                        失败='资源失败'#兜底
+                elif isinstance(失败,dict) and isinstance(失败.get('message'),str):#结构化失败
+                    干净=失败说明(失败['message'])#去掉绝对路径
+                    失败=dict(失败)#不改提供方原表
+                    失败['message']=干净 if 干净!='' else '资源失败'#兜底
                 记录.存储.set({
                     'status':资源状态_失败,
                     'value':记录.存储.getSnapshot()['value'],
-                    'failure':帧['error'],
+                    'failure':失败,
                 })
+
+资源注册表.register=资源注册表.登记#调用方按 register 登记
+资源注册表.pin=资源注册表.钉住#调用方按 pin 钉住
+资源注册表.source=资源注册表.取源#调用方按 source 取活源

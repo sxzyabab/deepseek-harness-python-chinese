@@ -3,8 +3,7 @@ from urllib.parse import unquote as 百分号解码
 from ..远程过程调用 import 文档文件字节#字节解码
 from ..面 import 已中止#中止
 
-__all__=['创建读取超文本相对']#仅中文公开名
-
+__all__=['创建读取超文本相对']
 _绝对路径=re.compile(r'^(?:[a-z][a-z\d+.-]*:|[/\\])',re.IGNORECASE|re.ASCII)#绝对
 
 

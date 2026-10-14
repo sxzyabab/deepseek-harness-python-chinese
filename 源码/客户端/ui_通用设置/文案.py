@@ -4,6 +4,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 
 中文={#简体中文词条
     'trigger':'设置',#打开设置触发器
+    'shortcut.open':'打开设置',#快捷键标签
     'desktop.update.available':'新版本',#有更新
     'desktop.update.checking':'正在检查更新…',#检查中
     'desktop.update.progress':'{percent}%',#下载进度
@@ -40,6 +41,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 
 英文={#英文词条
     'trigger':'Settings',#打开设置触发器
+    'shortcut.open':'Open settings',#快捷键标签
     'desktop.update.available':'Update',#有更新
     'desktop.update.checking':'Checking for updates…',#检查中
     'desktop.update.progress':'{percent}%',#下载进度

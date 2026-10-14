@@ -376,5 +376,5 @@ def 回合结束构建视图(上下文):#包进轨迹信封
 
 def 登记轨迹助手定义(上下文):#登记助手步与回合结束
     '登记轨迹助手生命周期 Definition'
-    上下文.conversationEvents.register(轨迹助手定义)#登记助手流式/结算
-    上下文.conversationEvents.register(回合结束定义)#登记回合结束
+    上下文.uiConversation.events.register(轨迹助手定义)#登记助手流式/结算
+    上下文.uiConversation.events.register(回合结束定义)#登记回合结束

@@ -34,15 +34,15 @@ def 应用(上下文):
             return 上下文.slots.register({
                 'name':'plugins.item',
                 'id':'shell',
-                'order':10,
+                'order':40,
                 'label':标签,
                 'locale':命名空间,
                 'inject':选.注入,
             },终端卡片)
         return 上下文.slots.inject('plugins.item',登记)
     def 监视():
-        'whileServed'
-        return 上下文.configForms.whileServed([bash命名空间,pwsh命名空间],挂页)
+        '任一执行器命名空间出现在镜像里才登记'
+        return 上下文.configForms.在已提供期间([bash命名空间,pwsh命名空间],挂页)
     上下文.副作用(监视,'ui-settings-shell: page')
 
 inject=依赖

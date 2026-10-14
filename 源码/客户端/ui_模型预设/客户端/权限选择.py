@@ -1,23 +1,90 @@
-from ..异常 import 预设错误#命令失败
+import importlib.resources as 包资源
+from nicegui import ui as 界面
+from ...ui_基础界面组件.icons import 图标下chevron14
+from ..异常 import 预设错误,页面失败文案#命令失败与页面失败句
 from .呈现 import 完全权限预设,自动审查预设,展示权限预设#呈现层
 
 __all__=['权限选择','样式表','权限字形']#仅中文公开名
 
-样式表='''#对齐 PermissionSelect.module.css
-.trigger{display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:220px;height:28px;padding:0 4px 0 8px;border:none;border-radius:24px;outline:none;background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;font-weight:500;cursor:pointer}
-.trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
-.trigger:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-border-l3)}
-.trigger:disabled{color:var(--dsw-alias-label-dimmed);cursor:default}
-.triggerIcon{display:inline-flex;flex:0 0 auto}
-.triggerIcon svg{width:14px;height:14px}
-.triggerLabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.optionLabel{display:inline-flex;align-items:baseline;gap:4px;min-width:0;max-width:100%}
-.optionLabelText{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{flex:none;align-self:flex-start;margin-top:-1px;color:var(--dsw-alias-label-tertiary);font-size:8px;line-height:10px;font-weight:600;letter-spacing:0.2px}
-.chevron{display:inline-flex;flex:0 0 auto;color:var(--dsw-alias-label-caption);transition:transform 120ms ease}
-@container (max-width: 460px){.trigger:has(.triggerIcon) .triggerLabel{display:none}}
-.chevronOpen{transform:rotate(180deg)}
-'''#样式表结束
+def _读样式(文件名):
+    '读当前包内样式。失败时异常文案只有样式读不到，不含路径'
+    try:
+        return 包资源.files(__package__).joinpath(文件名).read_text(encoding='utf-8')
+    except OSError:
+        raise OSError('样式读不到') from None
+
+def _去注释(原文):
+    '去掉块注释，避免注释里的花括号打断规则'
+    出=[]
+    下标=0
+    长度=len(原文)
+    while 下标<长度:
+        if 原文.startswith('/*',下标):
+            止=原文.find('*/',下标+2)
+            if 止<0:
+                break
+            下标=止+2
+            continue
+        出.append(原文[下标])
+        下标+=1
+    return ''.join(出)
+
+def _前缀一片(片,根):
+    '同一元素与后代都能命中'
+    片=片.strip()
+    if 片=='':
+        return ''
+    return '.'+根+' '+片+', .'+根+片
+
+def _前缀选择器(选择器,根):
+    '逗号分隔的每一段都挂上根'
+    条=[]
+    for 片 in 选择器.split(','):
+        已=_前缀一片(片,根)
+        if 已!='':
+            条.append(已)
+    return ', '.join(条)
+
+def _挂规则(文,根):
+    '普通规则挂根；媒体查询递归；关键帧保持原样'
+    出=[]
+    下标=0
+    长度=len(文)
+    while 下标<长度:
+        while 下标<长度 and 文[下标].isspace():
+            下标+=1
+        if 下标>=长度:
+            break
+        起=下标
+        while 下标<长度 and 文[下标]!='{':
+            下标+=1
+        if 下标>=长度:
+            break
+        选择器=文[起:下标].strip()
+        下标+=1
+        深度=1
+        体起=下标
+        while 下标<长度 and 深度>0:
+            if 文[下标]=='{':
+                深度+=1
+            elif 文[下标]=='}':
+                深度-=1
+            下标+=1
+        体=文[体起:下标-1]
+        if 选择器.startswith('@keyframes') or 选择器.startswith('@font-face'):
+            出.append(选择器+'{'+体+'}')
+        elif 选择器.startswith('@media') or 选择器.startswith('@container') or 选择器.startswith('@supports'):
+            出.append(选择器+'{'+_挂规则(体,根)+'}')
+        elif 选择器!='':
+            出.append(_前缀选择器(选择器,根)+'{'+体+'}')
+    return '\n'.join(出)
+
+def 挂到根(原文,根):
+    '共享样式只作用在本组件根下'
+    return _挂规则(_去注释(原文),根)
+
+样式表=挂到根(_读样式('权限选择.module.css'),'权限选择根')
+界面.add_css(样式表,shared=True)
 
 盾轮廓路径='M8.20554 0.899994L14.7901 3.36857V7.01026C14.7901 12 11.0466 14.2103 8.20554 15.3C5.36446 14.2103 1.62012 12 1.62012 7.01026V3.36857L8.20554 0.899994Z'#盾轮廓
 盾轮廓线宽='1.31831'#盾描边
@@ -62,6 +129,10 @@ class 权限选择:
         自身.已开=False#菜单
         自身.确认中=None#待确认机值
         自身.已知情=False#风险勾选
+        自身.画面=None#可反复清空的容器
+        自身.画面失败=None
+        if isinstance(属性,dict) and 't' in 属性 and 'useProjection' in 属性 and 'usePermissionCatalog' in 属性:
+            自身.渲染()#槽位只调用构造
 
     def 更新(自身,属性):
         '刷新'
@@ -90,12 +161,12 @@ class 权限选择:
             for 项 in 目录['options']:#扫
                 if 项['value']==自身.确认中:#仍在
                     确认仍在=True#在
-                    break#停
+                    break
         if (锁定 is False and 选取 is not None and 目录 is not None
             and 确认仍在 is True):#仍有效
             return#不动
         自身.已开=False#关菜单
-        自身.已知情=False#清勾
+        自身.已知情=False
         自身.确认中=None#清确认
 
     def 关菜单(自身):
@@ -111,8 +182,10 @@ class 权限选择:
         自身.挑选=标识#乐观
         try:#提交
             自身.属性['select'](标识)#命令路径
-        except 预设错误:#失败吞掉，投影不会确认
-            pass#吞错
+        except 预设错误 as 错误:#投影不会确认，页面留下失败句
+            自身.画面失败=页面失败文案(错误)
+        else:#提交没抛
+            自身.画面失败=None
         自身.挑选=None#清乐观
 
     def 选择(自身,标识):
@@ -124,14 +197,14 @@ class 权限选择:
         if 标识==选取['currentValue']:#同
             return#无事
         if 标识==完全权限预设 or 标识==自动审查预设:#风险门
-            自身.已知情=False#清勾
+            自身.已知情=False
             自身.确认中=标识#待确认
             return#等确认
         自身.提交(标识)#直接提交
 
     def 关确认(自身):
         '清确认态'
-        自身.已知情=False#清勾
+        自身.已知情=False
         自身.确认中=None#清确认
 
     def 设知情(自身,开):
@@ -145,8 +218,19 @@ class 权限选择:
         if 标识 is not None:#仍有
             自身.提交(标识)#提交
 
+    def 画字形(自身,路径列表):#权限图标
+        '把预设路径画成随文字着色的 svg'
+        段=[]#path
+        for 段描 in 路径列表:#逐条
+            属性=' '.join(str(键)+'="'+str(值)+'"' for 键,值 in 段描.items())#属性
+            段.append('<path '+属性+'/>')#一条
+        图='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">'+''.join(段)+'</svg>'#标记
+        界面.html(图,sanitize=False)#画出
+
     def 渲染(自身):
         '无投影或缺目录返回 None'
+        if 't' not in 自身.属性 or 'useProjection' not in 自身.属性 or 'usePermissionCatalog' not in 自身.属性:#槽位属性未齐
+            return None#不画
         自身.复位若失效()#快照驱动关菜单
         锁定=自身.属性['locked'] is True if 'locked' in 自身.属性 else False#锁
         翻译=自身.属性['t']#文案
@@ -159,16 +243,16 @@ class 权限选择:
             for 项 in 目录['options']:#扫
                 if 项['value']==自身.挑选:#在
                     挑选有效=True#有效
-                    break#停
+                    break
         当前值=自身.挑选 if 挑选有效 is True else 选取['currentValue']#当前
         当前=None#当前选项
         for 项 in 目录['options']:#找
             if 项['value']==当前值:#命中
-                当前=项#记下
-                break#停
+                当前=项
+                break
         if 当前 is None:#目录里没有
             当前标签=权限标签(当前值,当前值,翻译)#用机值当名
-        else:#有
+        else:
             当前标签=权限标签(当前['value'],当前['name'],翻译)#产品标签
         忙=自身.挑选 is not None or 自身.确认中 is not None#提交中或确认中
         条目=[]#菜单行
@@ -188,7 +272,7 @@ class 权限选择:
             确认=None#无
         else:#有确认
             确认={#风险确认
-                'open':True,#开
+                'open':True,
                 'title':翻译('auto.confirm.title' if 自动 is True else 'confirm.title'),#标题
                 'description':翻译('auto.confirm.description' if 自动 is True else 'confirm.description'),#说明
                 'acknowledgeLabel':翻译('auto.confirm.acknowledge' if 自动 is True else 'confirm.acknowledge'),#已知
@@ -204,7 +288,7 @@ class 权限选择:
         当前徽标=选项徽标(当前值,翻译)#当前徽标
         if 当前徽标 is None:#无徽标
             无障碍=当前标签#纯标签
-        else:#有
+        else:
             无障碍=当前标签+' '+当前徽标#标签加徽标
         if 当前 is None:#无当前选项
             说明=None#无 title
@@ -212,32 +296,79 @@ class 权限选择:
             说明=翻译('auto.description')#专用说明
         else:#宿主
             说明=当前['description'] if 'description' in 当前 else None#宿主说明
-        触发字形=权限字形[当前值] if 当前值 in 权限字形 else None#触发字形
-        return {#视图
-            'type':'permission-select',#类型
-            'open':自身.已开,#菜单开
-            'items':条目,#选项
-            'selectedId':当前值,#当前
-            'onSelect':自身.选择,#点中
-            'onClose':自身.关菜单,#关菜单
-            'side':'top',#向上
-            'portal':True,#portal
-            'trigger':{#触发
-                'aria':翻译('mode',{'name':无障碍}),#无障碍
-                'title':说明,#说明
-                'disabled':锁定 is True or 忙 is True,#禁用
-                'onClick':自身.切换菜单,#切换
-                'glyph':触发字形,#字形
-                'label':当前标签,#文案
-                'badge':当前徽标,#徽标
-                'open':自身.已开,#开
-            },#触发结束
-            'confirm':确认,#确认
-            'css':样式表,#样式
-        }#视图结束
+        旧=getattr(自身,'画面',None)#已有容器
+        if 旧 is not None:
+            try:
+                旧.clear()
+            except Exception as 错误:#父级清掉容器后，把失败留在页面上
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('权限选择根')#根
+        自身.画面.clear()#再清一次
+        def 改知情(事件):
+            '勾选变化后重画；创建控件时的同值不再重入'
+            开=事件.value is True#显式勾上
+            if 开==自身.已知情:#未变
+                return
+            自身.设知情(开)#勾
+            自身.渲染()#重画
+        def 切换():
+            '翻转菜单后重画'
+            自身.切换菜单()#翻
+            自身.渲染()#重画
+        def 取消确认():
+            '关掉确认后重画'
+            自身.关确认()#关
+            自身.渲染()#重画
+        def 启用确认():
+            '确认后提交并重画'
+            自身.确认选定()#提交
+            自身.渲染()#重画
+        with 自身.画面:#根
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败)
+            当前字形=权限字形[当前值] if 当前值 in 权限字形 else None#触发器字形
+            with 界面.row().classes('trigger'):#触发器
+                if 当前字形 is not None:#有字形
+                    自身.画字形(当前字形)#权限图标
+                钮=界面.button(当前标签, on_click=切换).props('aria-label='+无障碍)#标签
+                if 锁定 is True or 忙 is True:#锁或忙
+                    钮.disable()#禁
+                if 说明 is not None and 说明!='':#说明
+                    钮.tooltip(说明)#提示
+                if 当前徽标 is not None:#徽标单独成签
+                    界面.label(当前徽标).classes('badge')#徽标
+                图标下chevron14()#下拉箭头
+            if 自身.已开:#菜单
+                for 项 in 条目:#各预设
+                    def 点(标识=项['id']):
+                        '选定该权限后重画'
+                        自身.选择(标识)#选
+                        自身.渲染()#重画
+                    with 界面.row():#一行
+                        if 'glyph' in 项:#有字形
+                            自身.画字形(项['glyph'])#行图标
+                        界面.button(项['label'], on_click=点)#标签
+                        if 'badge' in 项:#徽标单独成签
+                            界面.label(项['badge']).classes('badge')#徽标
+            if 确认 is not None:#风险确认
+                with 界面.dialog() as 对话框:#确认框
+                    with 界面.card():#卡
+                        界面.label(确认['title'])#标题
+                        界面.label(确认['description'])#说明
+                        勾=界面.checkbox(确认['acknowledgeLabel'], value=确认['acknowledged'], on_change=改知情)#已知
+                        if 确认['disabled'] is True:#锁定
+                            勾.disable()#禁
+                        界面.button(确认['cancelLabel'], on_click=取消确认)#取消
+                        界面.button(确认['closeLabel'], on_click=取消确认)#关闭
+                        启用=界面.button(确认['confirmLabel'], on_click=启用确认)#启用
+                        if 确认['disabled'] is True or 确认['acknowledged'] is not True:#未勾或锁定
+                            启用.disable()#禁
+                对话框.open()#打开
 
     def __call__(自身,属性=None):
         '对齐 React 调用'
         if 属性 is not None:#有新
             自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+        return 自身.渲染()

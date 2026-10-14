@@ -1,4 +1,6 @@
 
+from nicegui import ui as 界面
+
 __all__=['标签菜单','菜单间隙']#仅中文公开名
 
 菜单间隙=4#控件与菜单间距及视口边距
@@ -33,26 +35,25 @@ class 标签菜单:
         return {'top':矩['y']+矩['height']+菜单间隙,'left':左}#位
 
     def 渲染(自身):
-        '结构树：菜单与关项'
-        位=自身.算位置()#位
-        样式={'visibility':'hidden','top':0,'left':0} if 位 is None else 位#未量隐
-        子=[{#关项
-            'type':'menuitem',
-            'key':'close',
-            'data':'dockkit-menu-close',
-            'label':自身.文案['closeTab'],
-            'onClick':自身.关标签,
-        }]#项
-        if 自身.附加 is not None:#附加
-            if isinstance(自身.附加,list):#列表
-                子.extend(自身.附加)#并
-            else:#单
-                子.append(自身.附加)#加
-        return {#树
-            'type':'menu',
-            'data':'dockkit-tab-menu',
-            'role':'menu',
-            'style':样式,
-            'children':子,
-            'onDismiss':自身.解散,
-        }#结束
+        '画出关标签菜单'
+        with 界面.column().classes('dockkit-tab-menu'):
+            界面.button(自身.文案['closeTab'], on_click=自身.关标签)
+            附加=自身.附加
+            if hasattr(附加,'渲染'):
+                附加.渲染()
+            elif isinstance(附加,list):
+                for 项 in 附加:
+                    if hasattr(项,'渲染'):
+                        项.渲染()
+                    elif isinstance(项,dict) and 'label' in 项:
+                        def 点附加(回调=项.get('onClick')):
+                            '附加项'
+                            if 回调 is not None:
+                                回调()
+                        界面.button(项['label'], on_click=点附加)
+            elif isinstance(附加,dict) and 'label' in 附加:
+                def 点一项(回调=附加.get('onClick')):
+                    '附加项'
+                    if 回调 is not None:
+                        回调()
+                界面.button(附加['label'], on_click=点一项)

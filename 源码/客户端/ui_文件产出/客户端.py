@@ -1,6 +1,5 @@
 from .文案 import 命名空间,中文,英文#词表
 from .回合产出 import 交付物定义,选出产出文件,产出文件提及,收口产出,收口已呈现,收口改动#节点与选取
-from .产出文件 import 产出文件行#产出文件行组件（旧面保留）
 from .产出清单 import 产出清单,选出交付物#交付物行
 from .呈现行 import 呈现行#present 工具视图
 from .呈现打开控制器 import 已呈现打开控制器#原生打开
@@ -9,12 +8,12 @@ from .改动对比 import 改动对比存储#对比
 from .改动 import 改动审阅地址#审阅地址
 from .审阅定义 import 改动审阅定义,改动审阅标识#审阅种
 from .审阅存储 import 创建审阅存储#审阅 store
-from .审阅标签 import 审阅标签#审阅体
+from .审阅标签 import 审阅标签,渲染审阅标签#审阅体
 from .改动文件 import 改动文件#改动卡
 
-__all__=['依赖','应用','产出文件行','产出清单','呈现行','选出交付物','收口产出','选出产出文件','交付物定义','命名空间','中文','英文','已呈现打开控制器','改动摘要存储','改动对比存储','审阅标签','改动文件']#仅中文公开名
+__all__=['依赖','应用','产出清单','呈现行','选出交付物','收口产出','选出产出文件','交付物定义','命名空间','中文','英文','已呈现打开控制器','改动摘要存储','改动对比存储','审阅标签','改动文件']#仅中文公开名
 
-依赖=['slots','locale','uiConversation','remote','remote.session','sidebarRightTabs','sidebarRight']#槽位、文案、会话 UI、远程、右侧边栏
+依赖=['slots','locale','uiConversation','remote','remote.session','sidebarRightTabs','sidebarRight','configForms']#槽位、文案、会话 UI、远程、右侧边栏、开发者工具
 
 def 应用(上下文):#安装产出物浏览器半边
     '登记词表、打开控制器、摘要对比、回合尾与审阅标签'
@@ -49,19 +48,29 @@ def 应用(上下文):#安装产出物浏览器半边
         def 加载摘要(会话标识,序号):#摘要
             'loadChangesSummary'
             return 摘要库.加载(会话标识,序号)#加载
-        def 打开已呈现(会话标识,序号,下标,动作='open'):#打开
+        def 打开已呈现(会话标识,序号,下标,动作='open',应用=None):#打开
             'openPresented'
-            return 打开器.打开(会话标识,序号,下标,动作)#打开
-        def 打开改动(会话标识,序号,下标):#打开改动
+            return 打开器.打开(会话标识,序号,下标,动作,应用)#打开
+        def 打开改动(会话标识,序号,下标,动作='open',应用=None):#打开改动
             'openChanged'
-            return 打开器.打开改动(会话标识,序号,下标)#打开
+            return 打开器.打开改动(会话标识,序号,下标,动作,应用)#打开
         def 打开改动审阅(坐标,下标):#打开审阅
             'sidebarRight.openResource'
             上下文.sidebarRight.openResource(改动审阅地址(坐标),{'params':{'index':下标}})#打开
+        def 加载对比(会话标识,序号,下标):#对比
+            'loadChangesDiff'
+            return 对比库.加载(会话标识,序号,下标)#加载
         return {#注入
-            'hooks':{'presentedOpen':打开器.状态,'presentedHost':打开器.宿主,'changesSummary':摘要库.状态},#可观察
+            'hooks':{#可观察
+                'presentedOpen':打开器.状态,#打开阶段
+                'presentedHost':打开器.宿主,#桌面
+                'changesSummary':摘要库.状态,#摘要
+                'changesDiff':对比库.状态,#对比
+                'showCodeDiff':上下文.configForms.developerTools.enabled,#开发者工具开才画改动卡
+            },#钩子结束
             'reloadPresentedHost':重载宿主,#重载
             'loadChangesSummary':加载摘要,#摘要
+            'loadChangesDiff':加载对比,#对比
             'openPresented':打开已呈现,#打开
             'openChanged':打开改动,#改动打开
             'openChangesReview':打开改动审阅,#审阅
@@ -72,6 +81,7 @@ def 应用(上下文):#安装产出物浏览器半边
             'name':'conversation.chat.turnTail',#回合尾槽名
             'id':'@deepseek-ai/dsh-client-ui-deliverables',#身份
             'locale':命名空间,#文案
+            'children':{'deliverables.file.actions':{'kind':'list','scope':'session'}},#文件打开
             'inject':注入交付,#注入
         },产出清单)#交付物行
     上下文.slots.inject('conversation.chat.turnTail',注入回合尾)#结束 turnTail 注入
@@ -101,9 +111,9 @@ def 应用(上下文):#安装产出物浏览器半边
             def 加载对比(会话标识,序号,下标):#对比
                 'load'
                 return 对比库.加载(会话标识,序号,下标)#加载
-            def 打开改动(会话标识,序号,下标):#打开
+            def 打开改动(会话标识,序号,下标,动作='open',应用=None):#打开
                 'openChanged'
-                return 打开器.打开改动(会话标识,序号,下标)#打开
+                return 打开器.打开改动(会话标识,序号,下标,动作,应用)#打开
             return {#注入
                 'hooks':{'changesSummary':摘要库.状态,'changesDiff':对比库.状态,'presentedOpen':打开器.状态,'presentedHost':打开器.宿主},#钩子
                 'loadChangesSummary':加载摘要,#摘要
@@ -116,8 +126,9 @@ def 应用(上下文):#安装产出物浏览器半边
             'key':改动审阅标识,#键
             'locale':命名空间,#文案
             'store':创建审阅存储(),#store
+            'children':{'deliverables.review.file.actions':{'kind':'list','scope':'session'}},#审阅打开
             'inject':审阅注入,#注入
-        },审阅标签)#体
+        },渲染审阅标签)#体
     def 注入审阅槽():#等槽
         'inject pane.tab'
         return 上下文.slots.inject('sidebar.right.pane.tab',注入审阅体)#挂

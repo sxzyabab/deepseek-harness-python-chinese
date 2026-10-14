@@ -17,7 +17,7 @@ kind: "package-reference"
 
 消费方注入 productTelemetry，调用提交接口送出明确选定的分析字段。插件不读取会话、账号、凭证或设备标识。
 
-Python 侧用 HTTP JSON 导出，不安装全局 OpenTelemetry 提供方，不发布运行时不变量。
+Python 侧把批次交给共享 otel 通道，不自建 HTTP 客户端，也不安装全局 OpenTelemetry 提供方。
 
 ## 模型体验
 

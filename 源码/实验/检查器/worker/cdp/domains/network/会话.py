@@ -162,7 +162,7 @@ class 网络域:#Network域
     def _停止请求(自身,会话,请求键):#停止请求跟踪
         '清理会话本地跟踪'
         流式=自身._流式请求.get(id(会话))#流式集
-        if 流式 is not None:#有
+        if 流式 is not None:
             流式.discard(请求键)#删除
             if len(流式)==0:#空则移除，判的是 length
                 del 自身._流式请求[id(会话)]#移除

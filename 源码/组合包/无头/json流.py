@@ -167,10 +167,13 @@ def 投影json运行(上下文,智能体,汇,选项=None):
             写出({'type':'status','phase':'step_start','turn':数据['turn'],'step':数据['step']})#状态
             return
         if 种类=='assistant/attempt':#尝试
-            步用量=累加用量(步用量,流用量(数据['stream'] if 'stream' in 数据 else None))#累加
+            流=数据['stream'] if 'stream' in 数据 else None#缺席才没有流
+            步用量=累加用量(步用量,流用量(流))#累加
             return
         if 种类=='assistant/message':#已提交消息
-            用量=数据['usage'] if 'usage' in 数据 else 流用量(数据['stream'] if 'stream' in 数据 else None)#优先消息用量
+            用量=数据['usage'] if 'usage' in 数据 else None#显式用量，含空对象
+            if 用量 is None:
+                用量=流用量(数据['stream'] if 'stream' in 数据 else None)#没有用量才看流
             步用量=累加用量(步用量,用量)#累加
             内容=数据['message']['content'] if 'message' in 数据 and 'content' in 数据['message'] else []#块
             for 块 in 内容:#逐块
@@ -211,8 +214,11 @@ def 投影json运行(上下文,智能体,汇,选项=None):
             })#写出
             return
 
-    写出({'type':'session','sessionId':智能体.id,'cwd':选项['cwd'] if 'cwd' in 选项 else os.getcwd()})#开场
-    停止会话=上下文.on('session/event',会话事件)#订阅
+    工作目录=选项['cwd'] if 'cwd' in 选项 else None#显式目录，含空串
+    if 工作目录 is None:
+        工作目录=os.getcwd()#调用方没给才用进程目录
+    写出({'type':'session','sessionId':智能体.id,'cwd':工作目录})#开场
+    停止会话=上下文.监听('session/event',会话事件)#订阅
 
     def 收场(文本):
         '写出终局 final；答案不做截断'

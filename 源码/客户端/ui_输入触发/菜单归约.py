@@ -3,9 +3,18 @@ __all__=['菜单关闭','铺分组','菜单归约','精确匹配']#仅中文公�
 菜单关闭={'open':False,'hit':None,'generation':0,'groups':[],'highlight':None}#关闭静息态
 
 def 铺分组(状态,源列表):#按源名铺 pending 组
-    '外壳在新开菜单、派发 hit 之前走的一步'
+    '外壳在新开菜单、派发 hit 之前走的一步。源可以是名字或带 name 的源'
+    组=[]#新名册
+    for 源 in 源列表:#按菜单顺序
+        if isinstance(源,str):#仅名字
+            项={'source':源,'status':'pending','items':[]}#pending
+        else:#源对象
+            项={'source':源['name'],'status':'pending','items':[]}#pending
+            if 'showGroupTitle' in 源 and 源['showGroupTitle'] is False:#显式关掉组标题
+                项['showGroupTitle']=False#保留假
+        组.append(项)#一行
     下一=dict(状态)#浅拷
-    下一['groups']=[{'source':源,'status':'pending','items':[]} for 源 in 源列表]#替换名册
+    下一['groups']=组#替换名册
     下一['highlight']=None#清高亮
     return 下一#带着新 pending 名册
 
@@ -52,12 +61,12 @@ def 菜单归约(状态,事件):#按事件归约菜单
         命中=事件['hit'] if 'hit' in 事件 else None#本次命中
         if 命中 is None:#空命中则关菜单
             return _关闭(状态)#关
-        return {#按已铺名册开新世代
+        return {#按已铺名册开新世代；旧候选留到新结算（过期仍显示）
             'open':True,#打开菜单
             'hit':命中,#本次命中
             'generation':状态['generation']+1,#升世代
-            'groups':[{'source':g['source'],'status':'pending','items':[]} for g in 状态['groups']],#重置 pending
-            'highlight':None,#清高亮
+            'groups':[dict(g,status='pending') for g in 状态['groups']],#标 pending，保留项与组标题
+            'highlight':状态['highlight'],#高亮先留在原处
         }#结束开菜单态
     if 类型=='source-settled':#某源结算候选
         if not 状态['open'] or 事件['generation']!=状态['generation']:#未开或世代过期
@@ -67,7 +76,11 @@ def 菜单归约(状态,事件):#按事件归约菜单
         if 下标<0:#不在名册
             return 状态#丢
         项列表=list(事件['items'] if 'items' in 事件 and 事件['items'] is not None else [])#项
-        组列表[下标]={'source':组列表[下标]['source'],'status':'ready','items':项列表}#命中组改 ready
+        旧组=组列表[下标]#原组
+        新组={'source':旧组['source'],'status':'ready','items':项列表}#命中组改 ready
+        if 'showGroupTitle' in 旧组:#缺键与显式假不同
+            新组['showGroupTitle']=旧组['showGroupTitle']#原样带上
+        组列表[下标]=新组#写回
         if _全就绪空(组列表):#全部就绪且空则自动关
             return _关闭(状态)#关
         高亮=_有效高亮(状态['highlight'],组列表)#保留
@@ -111,6 +124,18 @@ def 菜单归约(状态,事件):#按事件归约菜单
             return 状态#原引用
         下一=dict(状态)#浅拷
         下一['highlight']=下一位#写入新高亮
+        return 下一#下一态
+    if 类型=='hover':#指针停在某一就绪项
+        if 状态['open'] is not True:#未开
+            return 状态#原样
+        目标=_有效高亮({'source':事件['source'],'index':事件['index']},状态['groups'])#仍指向就绪项才有效
+        if 目标 is None:#越界或未就绪
+            return 状态#原样
+        高亮=状态['highlight']#当前
+        if 高亮 is not None and 高亮['source']==目标['source'] and 高亮['index']==目标['index']:#未变
+            return 状态#原引用
+        下一=dict(状态)#浅拷
+        下一['highlight']=目标#停在该项
         return 下一#下一态
     if 类型=='close':#显式关闭
         return _关闭(状态)#关菜单，保留世代

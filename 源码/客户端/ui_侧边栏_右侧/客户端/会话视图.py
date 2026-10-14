@@ -1,4 +1,5 @@
 from ....基础设施.通用工具 import 启动守护线程
+from ..异常 import 右侧侧栏错误,异常原文
 
 __all__=['侧栏会话视图']
 
@@ -25,7 +26,9 @@ class 侧栏会话视图:
                     if hasattr(就绪,'等待'):
                         就绪.等待()
                 except Exception as 错误:
-                    print('Sidebar Session opening failed:',错误)
+                    说明=异常原文(错误)
+                    自身.打开失败=说明
+                    raise 右侧侧栏错误(说明) from 错误
             启动守护线程(报错)
 
     def 有保留标签(自身):

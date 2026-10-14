@@ -1,13 +1,18 @@
-from ...ui_插件设置.字段 import 取值字段
+from nicegui import ui as 界面
+from ...ui_插件设置.字段 import 取值字段,画出设置表单,样式表 as 表单样式
 from .文案 import 表单标签
 
 __all__=['智能体循环卡片']
 
+界面.add_css(表单样式,shared=True)
+
 class 智能体循环卡片:
     '并行工具调用上限页'
     def __init__(自身,属性):
-        '记下 props'
+        '记下 props。槽位只调用构造，键齐了就画。'
         自身.属性=属性
+        if isinstance(属性,dict) and 't' in 属性 and 'view' in 属性 and 'useAgentLoopCard' in 属性:
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新'
@@ -21,7 +26,8 @@ class 智能体循环卡片:
             return 快照
         状态=自身.属性['useAgentLoopCard'](全量)
         if 自身.属性['view']=='summary':
-            return 翻译('description')
+            界面.label(翻译('description'))
+            return
         字段=状态['maxParallelToolCalls']
         def 点编辑(文):
             '改并行上限草稿'
@@ -29,27 +35,22 @@ class 智能体循环卡片:
         def 点复位():
             '恢复默认'
             自身.属性['resetField']('maxParallelToolCalls')
-        控件=取值字段({
-            'id':'plugin-config-agent-loop-parallel',
-            'label':翻译('maxParallel'),
-            'hint':翻译('maxParallelHint'),
-            'overriddenLabel':翻译('overridden'),
-            'resetLabel':翻译('reset'),
-            'invalidLabel':翻译('invalidNumber'),
-            'numeric':True,
-            'disabled':not 状态['writable'],
-            **字段,
-            'onEdit':点编辑,
-            'onReset':点复位,
-        })()
-        return {
-            'type':'settings-form',
-            'labels':表单标签(翻译),
-            'state':状态,
-            'onSave':自身.属性['save'],
-            'onDiscard':自身.属性['discard'],
-            'children':[控件],
-        }
+        def 画控件():
+            '并行工具调用上限'
+            取值字段({
+                'id':'plugin-config-agent-loop-parallel',
+                'label':翻译('maxParallel'),
+                'hint':翻译('maxParallelHint'),
+                'overriddenLabel':翻译('overridden'),
+                'resetLabel':翻译('reset'),
+                'invalidLabel':翻译('invalidNumber'),
+                'numeric':True,
+                'disabled':not 状态.get('writable'),
+                **字段,
+                'onEdit':点编辑,
+                'onReset':点复位,
+            }).渲染()
+        画出设置表单(表单标签(翻译),状态,自身.属性.get('discard'),自身.属性['save'],画控件)
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

@@ -1,37 +1,48 @@
 import re
-from ....基础设施.通用工具 import 路径转正斜杠
 from urllib.parse import quote as 百分号编码
+from nicegui import ui as 界面
+from ....基础设施.通用工具 import 路径转正斜杠
+from ..异常 import 去掉敏感
 from .面 import 子路径
 
 __all__=[
     '排序条目','失败行','工作区标题','文件资源地址','文件体','样式表',
 ]
 
-#常量
 _数字段=re.compile(r'([0-9]+)',re.ASCII)
 _文件地址前缀='dsh-resource://file/'
 
 样式表='''
-.root{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow:auto;padding:4px 0 8px;color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size-secondary, 13px);line-height:1.5}
-.header{display:flex;flex:0 0 auto;gap:6px;align-items:center;padding:4px 10px;color:var(--dsw-alias-label-secondary);font-weight:500}
-.level{margin:0;padding:0;list-style:none}
-.level .level{padding-left:14px}
-.item{margin:0;padding:0}
-.row{display:flex;gap:6px;align-items:center;width:100%;min-width:0;padding:3px 10px;color:inherit;font:inherit;text-align:left;background:transparent;border:0;border-radius:6px;cursor:pointer}
-.row:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.icon{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
-.fileIcon{flex:0 0 auto;width:14px;height:16px}
+.root{display:flex;flex:1 1 auto;flex-direction:column;height:100%;min-height:0;color:var(--dsw-alias-label-primary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:1.5}
+.header{display:flex;flex:0 0 auto;gap:4px;align-items:center;box-sizing:border-box;height:38px;padding:0 6px 0 16px;border-bottom:0.5px solid var(--dsw-alias-border-l3)}
+.path{margin-right:12px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.body{flex:1 1 auto;min-height:0;margin-right:2px;padding:8px 0 8px 8px;overflow:auto;scrollbar-gutter:stable}
+.level{margin:0;padding:0}
+.level .level{padding-left:18px}
+button.q-btn.row{display:flex;gap:6px;align-items:center;width:100%;min-width:0;min-height:0;height:auto;padding:5px 10px;border-radius:var(--dsw-radius-md);background:transparent !important;box-shadow:none !important;color:inherit !important;font:inherit;font-size:inherit;line-height:1.5}
+button.q-btn.row .q-btn__content{gap:6px;justify-content:flex-start;flex-wrap:nowrap;min-width:0}
+button.q-btn.row:hover{background:var(--dsw-alias-interactive-bg-hover) !important}
+.icon{flex:0 0 auto;color:var(--dsw-alias-label-tertiary)}
 .name{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.other{color:var(--dsw-alias-label-tertiary);cursor:default}
-.other:hover{background:transparent}
+.other{color:var(--dsw-alias-label-tertiary)}
 .note{margin:0;padding:3px 10px;color:var(--dsw-alias-label-tertiary);font-size:12px}
 .status{display:flex;flex-direction:column;padding:12px 10px}
-.statusLine{margin:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary, 13px);line-height:1.6}
-.tool{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;width:24px;height:24px;margin-left:auto;padding:0;color:var(--dsw-alias-label-secondary);background:transparent;border:0;border-radius:6px;cursor:pointer}
-.tool:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.statusLine{margin:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:1.6}
+button.q-btn.tool{width:28px;height:28px;min-width:28px;min-height:28px;margin-left:auto;padding:6px;border-radius:var(--dsw-radius-sm);background:transparent !important;box-shadow:none !important;color:var(--dsw-alias-label-secondary) !important}
+button.q-btn.tool:hover{color:var(--dsw-alias-label-primary) !important;background:var(--dsw-alias-interactive-bg-hover) !important}
 '''
 
-#工具
+界面.add_css(样式表,shared=True)
+
+def _键齐(属性):
+    '页签、会话、存储、文案、列举和动作槽都在才画'
+    if not isinstance(属性,dict):
+        return False
+    for 键 in ('useTabInfo','sessionId','useSessions','useStore','actions','t','start','renderSlot'):
+        if 键 not in 属性:
+            return False
+    return True
+
 def _自然键(名):
     '大小写不敏感。数字段按数值比，使 file2 排在 file10 前'
     段列表=[]
@@ -59,7 +70,7 @@ def 失败行(翻译,失败):
         return 翻译('error.outsideWorkspace')
     if 码=='workspace-file/not-directory':
         return 翻译('error.notDirectory')
-    消息=失败['message'] if 'message' in 失败 else ''
+    消息=去掉敏感(失败['message'] if 'message' in 失败 else '')
     return 翻译('error.unavailable',{'message':消息})
 
 
@@ -122,13 +133,14 @@ def 文件资源地址(会话标识,工作目录,路径):
     return _会话文件地址(会话标识,归一)
 
 
-#
 class 文件体:
     '会话工作区根与已打开的下级。无 DOM，产出结构树'
 
     def __init__(自身,属性):
-        '属性跨边界为 dict'
-        自身.属性=属性
+        '属性跨边界为 dict。槽位只调用构造，键齐了才画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        if _键齐(自身.属性):
+            自身.渲染()
 
     def 更新(自身,属性):
         '替换整份属性，不合并'
@@ -203,24 +215,23 @@ class 文件体:
         层级表=树['levels']
         层级=层级表[路径] if 路径 in 层级表 else None
         if 层级 is None or 层级['kind']=='loading':
-            return [{'type':'li','class':'note','data-files-row':'loading','children':[翻译('loading')]}]
+            界面.label(翻译('loading')).classes('note')
+            return
         if 层级['kind']=='failed':
             失败=层级['failure']
-            return [{
-                'type':'li','class':'note','data-files-row':'failed',
-                'data-files-code':失败['code'] if 'code' in 失败 else None,
-                'children':[失败行(翻译,失败)],
-            }]
+            with 界面.column().classes('status'):
+                界面.label(失败行(翻译,失败)).classes('statusLine')
+            return
         级=层级['level']
         条目列表=排序条目(级['entries'] if 'entries' in 级 and 级['entries'] is not None else [])
-        子=[]
+        if 'failure' in 层级 and 层级['failure'] is not None:
+            界面.label(失败行(翻译,层级['failure'])).classes('note')
         if len(条目列表)==0:
-            子.append({'type':'li','class':'note','data-files-row':'empty','children':[翻译('empty')]})
+            界面.label(翻译('empty')).classes('note')
         for 条目 in 条目列表:
-            子.append(自身._渲染条目(路径,条目,树,翻译))
+            自身._渲染条目(路径,条目,树,翻译)
         if 'truncated' in 级 and 级['truncated'] is True:
-            子.append({'type':'li','class':'note','data-files-row':'truncated','children':[翻译('truncated')]})
-        return 子
+            界面.label(翻译('truncated')).classes('note')
 
     def _渲染条目(自身,父,条目,树,翻译):
         '目录可展开；文件点击打开；其它类型不可点，只给说明'
@@ -228,31 +239,27 @@ class 文件体:
         类型=条目['type']
         if 类型=='directory':
             展开=路径 in 树['expanded']
-            子=[
-                {'type':'button','class':'row','aria-expanded':展开,'onClick':('toggle',路径),'children':[
-                    {'type':'IconFolderOpen16' if 展开 else 'IconFolderClose16','class':'icon'},
-                    {'type':'span','class':'name','children':[条目['name']]},
-                ]},
-            ]
+            def 切换(路=路径):
+                '展开或收起目录'
+                自身.处理点击('toggle',路)
+            钮=界面.button(on_click=切换).props('flat no-caps align=left').classes('row')
+            with 钮:
+                界面.icon('folder').classes('icon')
+                界面.label(条目['name']).classes('name')
             if 展开:
-                子.append({'type':'ul','class':'level','children':自身._渲染层级(路径,树,翻译)})
-            return {'type':'li','class':'item','data-files-entry':'directory','data-files-path':路径,'children':子}
+                with 界面.column().classes('level'):
+                    自身._渲染层级(路径,树,翻译)
+            return
         if 类型=='file':
-            return {
-                'type':'li','class':'item','data-files-entry':'file','data-files-path':路径,'children':[
-                    {'type':'button','class':'row','onClick':('open',路径),'children':[
-                        {'type':'DocumentFileIcon','class':'fileIcon'},
-                        {'type':'span','class':'name','children':[条目['name']]},
-                    ]},
-                ],
-            }
-        return {
-            'type':'li','class':'item','data-files-entry':'other','data-files-path':路径,'children':[
-                {'type':'span','class':'row other','aria-disabled':True,'title':翻译('entry.other'),'children':[
-                    {'type':'span','class':'name','children':[条目['name']]},
-                ]},
-            ],
-        }
+            def 打开(路=路径):
+                '打开文件'
+                自身.处理点击('open',路)
+            钮=界面.button(on_click=打开).props('flat no-caps align=left').classes('row')
+            with 钮:
+                界面.icon('description').classes('icon')
+                界面.label(条目['name']).classes('name')
+            return
+        界面.label(条目['name']).classes('name other').tooltip(翻译('entry.other'))
 
     def 处理点击(自身,动作,路径):
         'reload 只清已加载级再按展开集重列，不收起。open 用树根而不是当前工作目录拼地址'
@@ -296,14 +303,14 @@ class 文件体:
         '无工作目录给说明；标签或树还没有则什么都不画，避免先闪空态'
         自身.确保已播种()
         属性=自身.属性
+        if not _键齐(属性):
+            return
         翻译=属性['t']
         工作目录=自身._读工作目录()
         if 工作目录 is None:
-            return {
-                'type':'div','class':'status','data-files-state':'no-workspace','children':[
-                    {'type':'p','class':'statusLine','children':[翻译('noWorkspace')]},
-                ],
-            }
+            with 界面.column().classes('status'):
+                界面.label(翻译('noWorkspace')).classes('statusLine')
+            return
         标签=自身._读标签()
         if 标签 is None:
             return None
@@ -311,15 +318,17 @@ class 文件体:
         if 树 is None:
             return None
         标题=工作区标题(树['root']) or 树['root']
-        return {
-            'type':'div','class':'root','data-files-state':'tree','data-files-root':树['root'],'children':[
-                {'type':'div','class':'header','children':[
-                    {'type':'IconFolderOpen16','class':'icon'},
-                    {'type':'span','class':'name','children':[标题]},
-                    {'type':'button','class':'tool','aria-label':翻译('reload'),'title':翻译('reload'),'data-files-reload':True,'onClick':('reload',None),'children':[
-                        {'type':'IconRefreshOutline16'},
-                    ]},
-                ]},
-                {'type':'ul','class':'level','children':自身._渲染层级(树['root'],树,翻译)},
-            ],
-        }
+        def 重载():
+            '重新加载文件树'
+            自身.处理点击('reload',None)
+        with 界面.column().classes('root'):
+            with 界面.row().classes('header'):
+                界面.icon('folder').classes('icon')
+                if isinstance(标题,str) and 标题!='':
+                    界面.label(标题).classes('path')
+                界面.button(on_click=重载).props('flat round aria-label="'+翻译('reload')+'" icon=refresh').classes('tool')
+                画槽=属性['renderSlot'] if 'renderSlot' in 属性 else None
+                if callable(画槽):
+                    画槽('sidebar.right.tab.files.actions',{'absolutePath':树['root']})
+            with 界面.column().classes('body level'):
+                自身._渲染层级(树['root'],树,翻译)

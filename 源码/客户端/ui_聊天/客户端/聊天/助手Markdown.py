@@ -1,6 +1,9 @@
 from .推理行 import 推理行#Think 披露
+from .消息项 import 打开列,收起列,图地址
 
 __all__=['助手Markdown']#仅中文公开名
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -12,6 +15,7 @@ class 助手Markdown:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.推理缓存={}#按块索引
+        自身.根=None#列
 
     def 更新(自身,属性):
         '刷新 props'
@@ -36,30 +40,43 @@ class 助手Markdown:
                 种=块['kind'] if 'kind' in 块 else None#种
                 if 种!='tool-call':#非工具
                     有可见=True#可见
-                    break#停
+                    break
         if 有可见 is False:#仅工具
-            return None#空
-        渲染列表=[]#段
+            收起列(自身)
+            return
         末=len(块列表)-1#末索引
-        for 索引,块 in enumerate(块列表):#遍历
-            种=块['kind'] if 'kind' in 块 else None#种
-            if 种=='text':#正文
-                文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文
-                渲染列表.append({'type':'text','text':文,'streaming':流式 is True and 索引==末})#文
-            elif 种=='reasoning':#推理
-                文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文
-                渲染列表.append(自身.取推理行(索引)({'text':文,'running':流式 is True and 索引==末,'t':翻译}))#Think
-            elif 种=='image':#图
-                附=块['attachment'] if 'attachment' in 块 else None#附
-                渲染列表.append({'type':'image','attachment':附})#图
-            elif 种=='tool-call':#工具头由流分组
-                continue#跳
-            else:#未知
-                渲染列表.append({'type':'unknown','label':翻译('message.unknownBlock')})#未知
-        return {'type':'assistant-markdown','interrupted':中断,'streaming':流式,'children':渲染列表,'cssModule':'助手Markdown.module.css'}#壳
+        with 打开列(自身,'助手Markdown'):
+            if 中断 is True:
+                界面.label(翻译('message.stopped')).classes('中断')
+            for 索引,块 in enumerate(块列表):#遍历
+                种=块['kind'] if 'kind' in 块 else None#种
+                if 种=='text':#正文
+                    文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文
+                    if 文=='':
+                        界面.label('')
+                    else:
+                        界面.markdown(文)
+                    continue
+                if 种=='reasoning':#推理
+                    文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文
+                    行=自身.取推理行(索引)
+                    行.更新({'text':文,'running':流式 is True and 索引==末,'t':翻译})
+                    行.渲染()
+                    continue
+                if 种=='image':#图
+                    附=块['attachment'] if 'attachment' in 块 else None#附
+                    地址=图地址({'attachment':附})
+                    if 地址 is None:
+                        界面.label(翻译('message.extraBlock'))
+                    else:
+                        界面.image(地址).classes('消息图')
+                    continue
+                if 种=='tool-call':#工具头由流分组
+                    continue
+                界面.label(翻译('message.unknownBlock'))
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

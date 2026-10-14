@@ -1,5 +1,6 @@
 'Client 侧 Workspace 状态模型，由 Remote 传输与 UI 投影共享'
 import re#写死 ISO
+import threading#通知调度
 from datetime import datetime as 日期时间,timedelta as 时间差,timezone as 固定偏移
 from zoneinfo import ZoneInfo as 时区
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
@@ -63,6 +64,9 @@ class 客户端工作区模型:
         自身._远程=远程#远程面
         自身._行=()#当前行
         自身._归档会话标识=()#当前归档
+        自身._钉住会话标识=()#当前钉住
+        自身._归档请求序=0#归档请求序
+        自身._钉住请求序=0#钉住请求序
         自身._状态='loading'#初始加载中
         自身._阶段='pending'#尚未就绪
         自身._错误=None#无错误
@@ -105,6 +109,30 @@ class 客户端工作区模型:
                 return
             落定.解决(结果)#结果
         自身._远程.rename({'workspaceId':工作区标识,'title':标题}).然后(已返回,落定.拒绝)#发远程
+        return 落定
+
+    def initializeDefault(自身,信号=None):
+        '初始化默认工作区并合并权威行。不在本地另造会话。'
+        落定=期约()#本次调用的结算点
+        def 已返回(结果):
+            '远程返回：有工作区则合并'
+            try:
+                if isinstance(结果,dict) and 结果.get('ok') and 结果.get('value') is not None:
+                    值=结果['value']
+                    if isinstance(值,dict) and 'workspace' in 值:
+                        自身._合并(值['workspace'])
+            except BaseException as 错误:
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)
+        if 信号 is not None:
+            产出=自身._远程.initializeDefault(信号)
+        else:
+            产出=自身._远程.initializeDefault()
+        if hasattr(产出,'然后'):
+            产出.然后(已返回,落定.拒绝)
+        else:
+            已返回(产出)
         return 落定
 
     def delete(自身,工作区标识):
@@ -166,26 +194,88 @@ class 客户端工作区模型:
         自身._远程.insertSessionBefore(载荷).然后(已返回,落定.拒绝)#发远程
         return 落定
 
-    def archiveSession(自身,会话标识):
+    def archiveSession(自身,会话标识,选项=None):
         '归档一个会话，并安装返回的完整归档集合'
-        落定=期约()#本次调用的结算点，解决值是远程结果
+        if 选项 is None:
+            选项={}
+        自身._归档请求序+=1
+        请求序=自身._归档请求序
+        载荷={'sessionId':会话标识}
+        if 选项.get('stopActivity') is True:
+            载荷['stopActivity']=True
+        落定=期约()
         def 已返回(结果):
-            '远程返回：成功则安装归档集合，再交出结果'
+            '远程返回：仍最新则安装归档集合，并摘掉同一会话的钉'
             try:
-                if 结果.get('ok'):#成功
-                    自身._安装归档(结果['value']['archivedSessionIds'])#安装
-            except BaseException as 错误:#安装失败交给调用方
+                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._归档请求序:
+                    自身._安装归档(结果['value']['archivedSessionIds'])
+                    自身._安装钉住([标识 for 标识 in 自身._钉住会话标识 if 标识!=会话标识])
+            except BaseException as 错误:
                 落定.拒绝(错误)
                 return
-            落定.解决(结果)#结果
-        自身._远程.archiveSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)#发远程
+            落定.解决(结果)
+        自身._远程.archiveSession(载荷).然后(已返回,落定.拒绝)
+        return 落定
+
+    def unarchiveSession(自身,会话标识):
+        '解除归档，并安装返回的完整归档集合'
+        自身._归档请求序+=1
+        请求序=自身._归档请求序
+        落定=期约()
+        def 已返回(结果):
+            '远程返回：仍最新则安装归档集合'
+            try:
+                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._归档请求序:
+                    自身._安装归档(结果['value']['archivedSessionIds'])
+            except BaseException as 错误:
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)
+        自身._远程.unarchiveSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)
+        return 落定
+
+    def pinSession(自身,会话标识):
+        '钉住一个会话，并安装返回的完整钉住集合'
+        自身._钉住请求序+=1
+        请求序=自身._钉住请求序
+        落定=期约()
+        def 已返回(结果):
+            '远程返回：仍最新则安装钉住集合'
+            try:
+                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._钉住请求序:
+                    自身._安装钉住(结果['value']['pinnedSessionIds'])
+            except BaseException as 错误:
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)
+        自身._远程.pinSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)
+        return 落定
+
+    def unpinSession(自身,会话标识):
+        '去掉钉住，并安装返回的完整钉住集合'
+        自身._钉住请求序+=1
+        请求序=自身._钉住请求序
+        落定=期约()
+        def 已返回(结果):
+            '远程返回：仍最新则安装钉住集合'
+            try:
+                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._钉住请求序:
+                    自身._安装钉住(结果['value']['pinnedSessionIds'])
+            except BaseException as 错误:
+                落定.拒绝(错误)
+                return
+            落定.解决(结果)
+        自身._远程.unpinSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)
         return 落定
 
     def replaceBaseline(自身,基线):
         '用一份完整流代际基线替换投影。基线为 dict'
         自身._顺序帧代+=1#流顺序代递增
+        自身._归档请求序+=1
+        自身._钉住请求序+=1
         自身._安装全部行(基线.get('items') or ())#安装全部行
         自身._安装归档(基线.get('archivedSessionIds') or ())#安装归档
+        自身._安装钉住(基线.get('pinnedSessionIds') or ())#安装钉住
         自身._状态='idle'#就绪空闲
         自身._阶段='ready'#列表就绪
         自身._错误=None#清除错误
@@ -206,7 +296,13 @@ class 客户端工作区模型:
 
     def replaceArchived(自身,归档会话标识列):
         '用当前 follow 代际替换已归档会话集合'
+        自身._归档请求序+=1
         自身._安装归档(归档会话标识列)#安装归档
+
+    def replacePinned(自身,钉住会话标识列):
+        '用当前 follow 代际替换已钉住会话集合'
+        自身._钉住请求序+=1
+        自身._安装钉住(钉住会话标识列)
 
     def handleCarrierFailure(自身):
         '丢失载体重连时保持最近完整投影可见'
@@ -236,6 +332,7 @@ class 客户端工作区模型:
         return {#快照
             'items':自身._行,#行
             'archivedSessionIds':自身._归档会话标识,#归档
+            'pinnedSessionIds':自身._钉住会话标识,#钉住
             'state':自身._状态,#连接态
             'phase':自身._阶段,#列表阶段
             'error':自身._错误,#错误
@@ -248,6 +345,14 @@ class 客户端工作区模型:
             return#跳过
         自身._归档会话标识=列#安装
         自身._失效()#通知
+
+    def _安装钉住(自身,钉住会话标识列):
+        '安装钉住集'
+        列=tuple(钉住会话标识列)#固化
+        if len(列)==len(自身._钉住会话标识) and all(列[i]==自身._钉住会话标识[i] for i in range(len(列))):
+            return
+        自身._钉住会话标识=列
+        自身._失效()
 
     def _安装顺序(自身,工作区标识列,已提交=False):
         '按排名安装顺序'
@@ -322,7 +427,6 @@ class 客户端工作区模型:
                 return#跳过
             自身._已调度通知=False#清调度
             自身._冲刷()#派发
-        import threading#延迟导入
         threading.Thread(target=后台通知,daemon=True,name='workspace-controller-notify').start()#调度
 
     def _冲刷(自身):

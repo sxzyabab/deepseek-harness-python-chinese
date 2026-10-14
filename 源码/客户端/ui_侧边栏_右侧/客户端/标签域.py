@@ -86,7 +86,7 @@ class 标签域:#每会话标签出现次
         for 持有 in 自身.按会话.values():#会话
             for 次 in 持有.values():#次
                 次['controller'].set()#中止
-        自身.按会话.clear()#清空
+        自身.按会话.clear()
 
     def _会话(自身,会话标识):
         '取或建会话桶'
@@ -118,13 +118,13 @@ class 标签域:#每会话标签出现次
             '自本签开资源'
             选项=选项 if 选项 is not None else {}#默认
             参=选项['params'] if 'params' in 选项 else None#参
-            导航器.在会话打开资源(会话标识,地址,{**落点(选项),'params':参})#开
+            导航器.在会话打开资源(会话标识,地址,{**落点(选项),'params':参})
 
         def 开标签(种类,选项=None):
             '自本签开页面'
             选项=选项 if 选项 is not None else {}#默认
             参=选项['params'] if 'params' in 选项 else None#参
-            导航器.在会话打开标签(会话标识,种类,{**落点(选项),'params':参})#开
+            导航器.在会话打开标签(会话标识,种类,{**落点(选项),'params':参})
 
         def 关闭():
             '关本签'

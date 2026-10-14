@@ -4,10 +4,10 @@ build-backend="setuptools.build_meta"
 
 [project]
 name="pydsh"
-version="0.0.0.dev0"
+version="0.1.0.dev2"
 description="Deepseek Harness 中文学习版（非官方包）"
 readme="README.md"
-requires-python=">=3.13"
+requires-python=">=3.14"
 license="MIT"
 dependencies=[
     "pyyaml>=6",
@@ -17,6 +17,7 @@ dependencies=[
     "zstandard",
     "requests",
     "domonic",
+    "nicegui",
 ]
 
 [project.scripts]

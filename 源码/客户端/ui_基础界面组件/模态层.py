@@ -13,7 +13,7 @@ def 关栈顶模态(文档):
     '用当前 onClose 请求关闭已登记的前景模态。未登记对话框会挡住后方模态的关闭'
     栈=层表.get(文档)#已登记栈
     if 栈 is None or len(栈)==0:#无栈
-        return#停
+        return
     顶=栈[-1]#栈顶
     前景表=文档.querySelectorAll(模态选择器)#全部匹配
     前景=前景表[len(前景表)-1] if len(前景表)>0 else None#DOM 前景
@@ -99,13 +99,13 @@ def 使用模态层(对话框,打开,关闭):
             栈.remove(层)#出栈
         文档.removeEventListener('keydown',按键)#卸键盘
         if len(栈)==0:#空栈
-            层表.pop(文档,None)#清 WeakMap
+            层表.pop(文档,None)
         if 是顶:#关掉的是栈顶才归还
             目标=None#归还目标
             if 先前 is not None and getattr(先前,'isConnected',False):#原焦点仍连通
                 目标=先前#优先原焦点
-            elif len(栈)>0:#有下一层
+            elif len(栈)>0:
                 目标=栈[-1]['element']#下一层
-            if 目标 is not None:#有目标
+            if 目标 is not None:
                 无轮廓聚焦(目标)#无轮廓归还
     return 拆除#拆除器

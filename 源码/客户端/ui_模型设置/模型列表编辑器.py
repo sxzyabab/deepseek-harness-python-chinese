@@ -1,8 +1,10 @@
 import re#正则
+from nicegui import ui as 界面
 from .DeepSeek模型编辑器 import 解析容量,格式化容量#容量拼写
 from .存储 import 错误文案#拒绝文案
+from .编辑器页脚 import 画输入类型#输入类型勾选
 
-__all__=['容量提示','采纳候选','模型列表编辑器']#仅中文公开名
+__all__=['容量提示','采纳候选','模型列表编辑器']
 
 容量提示={'contextWindow':'256K','maxTokens':'32K'}#空字段占位（适配器回退量级）
 行号前缀=re.compile(r'^[0-9]+',re.ASCII)#缓冲键行号
@@ -25,18 +27,18 @@ def 采纳候选(候选):#发现结果→草稿行
     '保留端点披露的容量'
     行={'id':候选['id']}#必有 id
     if 'name' in 候选 and 候选['name'] is not None:#有名
-        行['name']=候选['name']#记下
+        行['name']=候选['name']
     if 'contextWindow' in 候选 and 候选['contextWindow'] is not None:#有上下文
-        行['contextWindow']=候选['contextWindow']#记下
+        行['contextWindow']=候选['contextWindow']
     if 'maxTokens' in 候选 and 候选['maxTokens'] is not None:#有上限
-        行['maxTokens']=候选['maxTokens']#记下
+        行['maxTokens']=候选['maxTokens']
     return 行#草稿
 
-class 模型列表编辑器:#模型列表 + 探询
-    '行编辑、展开容量、探询采纳对话框'
+class 模型列表编辑器:
+    '行编辑、展开容量、探询采纳对话框。父组件调用渲染，构造不画'
     def __init__(自身,属性):#构造
         '记下 props 与本地态'
-        自身.属性=属性#合成 props
+        自身.属性=属性
         自身.忙=False#探询在飞
         自身.失败=None#失败文案
         自身.候选=None#发现列表或 None
@@ -72,7 +74,7 @@ class 模型列表编辑器:#模型列表 + 探询
             if 位==下标:#被删
                 continue#跳过
             新键=行号前缀.sub(str(位-1),键,count=1) if 位>下标 else 键#重键
-            下一[新键]=值#记下
+            下一[新键]=值
         return 下一#新图
 
     def 切换展开(自身,下标):#切换披露
@@ -80,7 +82,7 @@ class 模型列表编辑器:#模型列表 + 探询
         if 下标 in 自身.已展开:#已开
             自身.已展开.discard(下标)#关
         else:#未开
-            自身.已展开.add(下标)#开
+            自身.已展开.add(下标)
 
     def 补丁(自身,下标,下一):#改一行
         '清空字段则从档案丢掉'
@@ -94,7 +96,7 @@ class 模型列表编辑器:#模型列表 + 探询
             合并={**dict(模型),**下一}#合并
             结果.append({键:值 for 键,值 in 合并.items() if 键 not in 清除})#丢掉清空
         变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-        if 变更 is not None:#有
+        if 变更 is not None:
             变更(结果)#通知
 
     def 探询(自身):#问端点当前表单
@@ -119,7 +121,7 @@ class 模型列表编辑器:#模型列表 + 探询
             结果=响应['result'] if 'result' in 响应 else None#结果
             if 结果 is None or 结果['ok'] is not True:#失败
                 错=结果['error'] if 结果 is not None and 'error' in 结果 else None#错误
-                自身.失败=错['message'] if 错 is not None and 'message' in 错 else None#文案
+                自身.失败=错误文案(错['message'] if 错 is not None and 'message' in 错 else None)
                 return
             值=结果['value'] if 'value' in 结果 else None#值
             找到=值['models'] if 值 is not None and 'models' in 值 and 值['models'] is not None else []#候选
@@ -137,8 +139,8 @@ class 模型列表编辑器:#模型列表 + 探询
 
     def 关挑选(自身):#关对话框
         '清候选与勾选'
-        自身.候选=None#清
-        自身.已选=set()#清
+        自身.候选=None
+        自身.已选=set()
 
     def 采纳已选(自身):#把勾选并入列表
         '已配行保留用户容量'
@@ -147,14 +149,14 @@ class 模型列表编辑器:#模型列表 + 探询
         按标识={}#id→行
         已有=自身.属性['models'] if 'models' in 自身.属性 and 自身.属性['models'] is not None else []#已有
         for 模型 in 已有:#已有
-            按标识[文本自(模型,'id')]=dict(模型)#记下
+            按标识[文本自(模型,'id')]=dict(模型)
         for 候选 in 自身.候选:#候选
             标识=候选['id']#id
             if 标识 not in 自身.已选:#未勾
                 continue#跳过
             按标识[标识]=按标识[标识] if 标识 in 按标识 else 采纳候选(候选)#保留已配或采纳
         变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-        if 变更 is not None:#有
+        if 变更 is not None:
             变更(list(按标识.values()))#写入
         自身.关挑选()#关
 
@@ -178,7 +180,7 @@ class 模型列表编辑器:#模型列表 + 探询
         自身.已展开=新展开#覆盖
         自身.编辑中=自身.移除重键(自身.编辑中,下标)#重键
         变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-        if 变更 is not None:#有
+        if 变更 is not None:
             变更(模型列表)#通知
 
     def 渲染(自身):#结构化视图
@@ -230,7 +232,7 @@ class 模型列表编辑器:#模型列表 + 探询
         def 添加():#加空行
             '追加空 id'
             变更=自身.属性['onChange'] if 'onChange' in 自身.属性 else None#回调
-            if 变更 is not None:#有
+            if 变更 is not None:
                 变更([dict(模) for 模 in 模型列表]+[{'id':''}])#追加
         复位=自身.属性['onReset'] if 'onReset' in 自身.属性 else None#复位
         对话框=None#挑选框
@@ -255,26 +257,72 @@ class 模型列表编辑器:#模型列表 + 探询
                 'onAdopt':自身.采纳已选,#采纳
                 'candidates':候选行,#候选表
             }#对话框结束
-        return {#视图
-            'type':'model-list-editor',#类型
-            'title':翻译('models'),#标题
-            'meta':None if 覆盖 is None else 翻译('modelsCustomized' if 覆盖 else 'modelsInherited'),#元信息
-            'overridden':覆盖,#覆盖
-            'resetLabel':翻译('resetModels') if 覆盖 is True and 复位 is not None else None,#复位
-            'onReset':复位 if 覆盖 is True else None,#复位句柄
-            'fetchLabel':翻译('fetching' if 自身.忙 else 'fetchModels'),#探询
-            'fetchDisabled':禁用 or 自身.忙 or not 可问 or 阻塞 is not None,#门闩
-            'fetchTitle':翻译(阻塞) if 阻塞 is not None else (None if 可问 else 翻译('fetchNeedsBaseUrl')),#提示
-            'onFetch':自身.探询,#探询
-            'empty':翻译('modelsEmpty') if len(模型列表)==0 else None,#空态
-            'rows':行表,#行
-            'addLabel':翻译('addModel'),#添加
-            'onAdd':添加,#添加
-            'error':自身.失败,#失败
-            'dialog':对话框,#挑选
-            'disabled':禁用,#禁用
-            'cssModule':'模型分区.module.css',#样式
-        }#视图结束
+        with 界面.column().classes('model-list-editor modelCatalog'):
+            界面.label(翻译('models'))
+            if 覆盖 is not None:
+                界面.label(翻译('modelsCustomized' if 覆盖 else 'modelsInherited'))
+            if 覆盖 is True and 复位 is not None:
+                复位钮=界面.button(翻译('resetModels'), on_click=复位)
+                if 禁用:
+                    复位钮.disable()
+            探询文=翻译('fetching' if 自身.忙 else 'fetchModels')
+            探询钮=界面.button(探询文, on_click=自身.探询)
+            if 禁用 or 自身.忙 or not 可问 or 阻塞 is not None:
+                探询钮.disable()
+            if 阻塞 is not None:
+                界面.label(翻译(阻塞))
+            elif not 可问:
+                界面.label(翻译('fetchNeedsBaseUrl'))
+            if isinstance(自身.失败,str) and 自身.失败!='':
+                界面.label(自身.失败)
+            if len(模型列表)==0:
+                界面.label(翻译('modelsEmpty'))
+            for 行 in 行表:
+                with 界面.row():
+                    界面.button(on_click=行['onToggle']).props('icon=expand_more flat round')
+                    def 改号(事件,回调=行['onId']):
+                        '写入标识'
+                        回调(事件.value)
+                    def 改名(事件,回调=行['onName']):
+                        '写入名称'
+                        回调(事件.value)
+                    号框=界面.input(value=行['id'], on_change=改号)
+                    名框=界面.input(value=行['name'], on_change=改名)
+                    删=界面.button(on_click=行['onRemove']).props('icon=delete flat round')
+                    if 禁用:
+                        号框.disable()
+                        名框.disable()
+                        删.disable()
+                if 行['expanded'] and 'advanced' in 行:
+                    for 容量 in 行['advanced']:
+                        def 改容(事件,回调=容量['onChange']):
+                            '写入容量'
+                            回调(事件.value)
+                        容框=界面.input(容量['label'], value=容量['text'], placeholder=容量['placeholder'], on_change=改容)
+                        if 禁用:
+                            容框.disable()
+                    def 改输入(补丁,某=行['index']):
+                        '写入输入类型'
+                        自身.补丁(某,补丁)
+                    回退=自身.属性['defaultInput'] if 'defaultInput' in 自身.属性 else None
+                    画输入类型(界面,模型列表[行['index']],'input',禁用,回退,翻译,改输入)
+            加=界面.button(翻译('addModel'), on_click=添加)
+            if 禁用:
+                加.disable()
+            if 对话框 is not None:
+                with 界面.dialog() as 挑选框:
+                    with 界面.card():
+                        界面.label(对话框['title'])
+                        界面.label(对话框['description'])
+                        for 候 in 对话框['candidates']:
+                            def 改勾(事件,回调=候['onToggle']):
+                                '切换候选'
+                                回调()
+                            界面.checkbox(候['id'], value=候['checked'], on_change=改勾)
+                        界面.button(对话框['closeLabel'], on_click=对话框['onClose'])
+                        界面.button(对话框['cancelLabel'], on_click=对话框['onClose'])
+                        界面.button(对话框['adoptLabel'], on_click=对话框['onAdopt'])
+                挑选框.open()
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 调用'

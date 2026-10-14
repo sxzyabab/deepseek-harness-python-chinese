@@ -1,8 +1,34 @@
+from ..ui_主题.主题设置 import 字号规格,字体角色,字体族变量#各角色字号与字体变量
+
 __all__=['深色属性','主题源属性','内容字号变量','主题呈现器']#仅中文公开名
 
 深色属性='data-ds-dark-theme'#深色调色板属性名
 主题源属性='data-ds-theme-source'#主题源属性名
 内容字号变量='--dsh-content-font-size'#内容字号 CSS 变量
+
+def 写入字体(体,字号表,字体族表,字号):
+    '有分角色字号就写三个变量；否则只写正文字号。空字体列表摘掉变量，露出内置栈'
+    if isinstance(字号表,dict):
+        for 角色 in 字体角色:
+            if 角色 in 字号表 and 字号表[角色] is not None:
+                体.style.setProperty(字号规格[角色]['variable'],str(字号表[角色])+'px')
+    elif 字号 is not None:
+        体.style.setProperty(内容字号变量,str(字号)+'px')
+    if not isinstance(字体族表,dict):
+        return
+    for 角色 in 字体角色:
+        变量=字体族变量(角色)
+        列表=字体族表.get(角色)
+        if isinstance(列表,str) and len(列表)>0:
+            体.style.setProperty(变量,列表)
+        else:
+            体.style.removeProperty(变量)
+
+def 清除字体(体):
+    '摘掉正文字号、代码字号、终端字号和三种字体列表'
+    for 角色 in 字体角色:
+        体.style.removeProperty(字号规格[角色]['variable'])
+        体.style.removeProperty(字体族变量(角色))
 
 class 主题呈现器:#文档主题呈现器
     '纯写入面；无 document 时只缓存快照。自有 theme-color meta'
@@ -27,7 +53,9 @@ class 主题呈现器:#文档主题呈现器
         方案=活动['colorScheme'] if 'colorScheme' in 活动 else None#色方案
         令牌=活动['tokens'] if 'tokens' in 活动 and 活动['tokens'] is not None else {}#令牌表
         偏好=快照['preference'] if 快照 is not None and 'preference' in 快照 else None#偏好
-        字号=快照['fontSize'] if 快照 is not None and 'fontSize' in 快照 else None#字号
+        字号表=快照['fontSizes'] if 快照 is not None and 'fontSizes' in 快照 else None#各角色字号
+        字体族表=快照['fontFamilies'] if 快照 is not None and 'fontFamilies' in 快照 else None#各角色字体
+        字号=快照['fontSize'] if 快照 is not None and 'fontSize' in 快照 else None#旧的正文字号
         try:#探测 DOM
             文档=document#浏览器 document
         except NameError:#无
@@ -43,8 +71,7 @@ class 主题呈现器:#文档主题呈现器
             体.setAttribute(深色属性,'')#打属性
         else:#浅色
             体.removeAttribute(深色属性)#摘属性
-        if 字号 is not None:#有字号
-            体.style.setProperty(内容字号变量,f'{字号}px')#写入内容字号轴
+        写入字体(体,字号表,字体族表,字号)#字号与字体列表
         for 名 in 自身.已施加令牌:#清上次
             体.style.removeProperty(名)#清变量
         自身.已施加令牌=[]#清空
@@ -69,7 +96,7 @@ class 主题呈现器:#文档主题呈现器
         根.removeAttribute(主题源属性)#清主题源
         体=文档.body#body
         体.removeAttribute(深色属性)#摘深色属性
-        体.style.removeProperty(内容字号变量)#清内容字号轴
+        清除字体(体)#清字号与字体列表
         for 名 in list(自身.已施加令牌):#清令牌
             体.style.removeProperty(名)#清变量
         自身.已施加令牌=[]#清集合

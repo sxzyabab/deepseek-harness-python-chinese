@@ -3,9 +3,20 @@ from .....基础设施.通用工具 import 路径转正斜杠
 
 __all__=['会话根','工作区标签','派生相位','芯片标题']#仅中文公开名
 
+from nicegui import ui as 界面
+from ..文案 import 中文 as 对话文案
+from ...异常 import 页面失败文案,贴出失败
+
 def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键
+    '无宿主文案时用本包中文词典，没有则返回键本身。'
+    if 键 not in 对话文案:#词典没有
+        return 键#键
+    文本=对话文案[键]#词条
+    if 参数 is None:#无参数
+        return 文本#原文
+    for 名 in 参数:#替换占位
+        文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+    return 文本#译完
 
 def 空渲染槽(*位置参数,**关键字参数):
     '未注入槽渲染时不画'
@@ -59,6 +70,8 @@ class 会话根:#常驻会话骨架
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.挑选打开=False#挑选菜单
         自身.待定工作区=None#刚选工作区
+        自身.画面=None#可反复清空的画面
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -141,21 +154,54 @@ class 会话根:#常驻会话骨架
             栏属性.update({'blocked':阻断,'placeholder':阻断['reason'] if 'reason' in 阻断 else None})#阻断
         elif 英雄 is True:#英雄占位
             栏属性['placeholder']=翻译('placeholder.hero')#占位
-        栏属性['overlay']=渲染槽('conversation.input.overlay',{})#覆盖
-        栏属性['leftItems']=渲染槽('conversation.input.left',区域) if 区域 is not None else None#左
-        栏属性['rightItems']=渲染槽('conversation.input.right',区域) if 区域 is not None else None#右
-        栏属性['footer']=渲染槽('conversation.composer.dock',区域) if (英雄 is False and 区域 is not None) else None#脚
-        输入栏=渲染槽('conversation.composer.bar',栏属性)#栏
-        栈={'type':'composerStack','hero':英雄,'inputBar':输入栏,'glow':英雄,'shell':英雄,'workspaceRow':英雄,'dock':渲染槽('conversation.input.dock',区域) if 区域 is not None else None,'chipTitle':标题,'pickerOpen':自身.挑选打开}#栈
-        撰写=渲染链('conversation.composer',{'interactions':待审,'session':会话},{'fallback':栈,'overlay':True})#链
-        return {#根
-            'type':'conversationRoot',#类型
-            'phase':相位,#相位
-            'composer':撰写,#撰写
-            'cssModule':'骨架/会话根.module.css',#样式
-            'selectWorkspace':选工作区,#挑选
-            'pendingWorkspaceId':自身.待定工作区,#待定
-        }#结束
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('会话根')#根
+        def 要本地栈(结果):
+            '链没有选中覆盖层时，画出英雄和输入栏。'
+            if 结果 is None:#空
+                return True#画
+            if isinstance(结果,dict) and 'elected' in 结果 and 结果['elected'] is None:#回退可见
+                return True#画
+            return False#链已画出
+        def 重画():
+            '按挑选菜单重画会话骨架。'
+            自身.画面.clear()#清空
+            with 自身.画面:#根
+                贴出失败(自身)
+                链结果=渲染链('conversation.composer',{'interactions':待审,'session':会话},{'overlay':True})#链自己画
+                if 要本地栈(链结果) is False:#已有覆盖
+                    return#停
+                if 英雄 is True:#英雄
+                    界面.label(翻译('hero.headline')).classes('英雄标题')#标题
+                    界面.label(翻译('hero.preview')).classes('英雄徽')#预览
+                    芯片文=标题 if 标题 is not None else 翻译('hero.chooseWorkspace')#芯片
+                    def 点芯片():
+                        '打开工作区菜单。'
+                        自身.切换挑选()#翻
+                        重画()#重画
+                    界面.button(芯片文,on_click=点芯片)#工作区
+                if 区域 is not None:#停靠自己画
+                    渲染槽('conversation.input.dock',区域)#停靠
+                渲染槽('conversation.input.overlay',{})#覆盖
+                if 区域 is not None:#左右
+                    渲染槽('conversation.input.left',区域)#左
+                栏结果=渲染槽('conversation.composer.bar',栏属性)#输入栏自己画
+                if 栏结果 is None:#没有输入栏
+                    占位=栏属性['placeholder'] if 'placeholder' in 栏属性 and 栏属性['placeholder'] is not None else 翻译('placeholder.default')#占位
+                    界面.label(占位)#占位
+                if 区域 is not None:#右
+                    渲染槽('conversation.input.right',区域)#右
+                if 英雄 is False and 区域 is not None:#脚
+                    渲染槽('conversation.composer.dock',区域)#统计
+        重画()#画
+        自身.挑选=选工作区#宿主挑选回调
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

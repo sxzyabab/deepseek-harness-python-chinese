@@ -1,6 +1,25 @@
 import re#剥尾注
+from nicegui import ui as 界面
+from .异常 import 页面失败文案
 
-__all__=['已呈现文件卡','卡描述','文件扩展名']#仅中文公开名
+def 腾出根(自身):
+    '清空仍挂着的根。父级已拆掉时丢掉根，并返回要显示的失败句。'
+    旧=getattr(自身,'根',None)
+    if 旧 is None:
+        return None
+    try:
+        旧.clear()
+    except Exception as 错误:
+        自身.根=None
+        return 页面失败文案(错误)
+    return None
+
+def 标出失败(文案):
+    '失败句非空时写在当前页面上'
+    if isinstance(文案,str) and 文案!='':
+        界面.label(文案)
+
+__all__=['已呈现文件卡','卡描述','文件扩展名','画已呈现卡']#仅中文公开名
 
 _尾注=re.compile(r'\s*(?:\([^()]*\)|（[^（）]*）)\s*$',re.UNICODE)#尾部括号注
 
@@ -86,7 +105,7 @@ class 已呈现文件卡:#单文件交付卡
         def 选动作(标识):#菜单选中
             '关闭菜单并回调'
             自身.菜单开=False#关
-            if 动作 is not None:#有回调
+            if 动作 is not None:
                 动作('reveal' if 标识=='reveal' else 'open')#动作
         return {#视图
             'type':'presented-file-card',#类型
@@ -110,8 +129,56 @@ class 已呈现文件卡:#单文件交付卡
             'cssModule':'Deliverables.module.css',#样式
         }#视图结束
 
+    def 渲染(自身):
+        '文件名、状态、预览，以及打开/揭示菜单。父清单会调用，构造时不画'
+        视=自身.视图()
+        清除失败=腾出根(自身)
+        if getattr(自身,'根',None) is None:
+            自身.根=界面.column().classes('presented-file')
+        with 自身.根:
+            标出失败(清除失败)
+            界面.label(视['name'])
+            if isinstance(视['status'],str) and 视['status']!='':
+                界面.label(视['status'])
+            def 点预览():
+                '侧栏预览'
+                if 视['onPreview'] is not None:
+                    视['onPreview']()
+            界面.button(视['previewHint'],on_click=点预览).props('flat no-caps')
+            画动作=自身.属性['画动作'] if '画动作' in 自身.属性 else None#父清单画动作槽
+            if callable(画动作):#空槽由槽渲染器回退，卡上不另写打开文案
+                画动作()#deliverables.file.actions
+
     def __call__(自身,属性=None):#组件调用形
         '对齐 React'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.视图()#渲
+        return 自身.渲染()
+
+def 画已呈现卡(视):
+    '由视图字典画出一张已呈现卡'
+    with 界面.column().classes('presented-file'):
+        界面.label(视['name'])
+        if isinstance(视['status'],str) and 视['status']!='':
+            界面.label(视['status'])
+        def 点预览():
+            '侧栏预览'
+            if 视['onPreview'] is not None:
+                视['onPreview']()
+        界面.button(视['previewHint'],on_click=点预览).props('flat no-caps')
+        if 视['menuOpen'] is True:
+            def 点应用():
+                '用默认应用打开'
+                视['onSelect']('open')
+            def 点揭示():
+                '在文件管理器中揭示'
+                视['onSelect']('reveal')
+            界面.button(视['defaultApp'],on_click=点应用).props('flat no-caps')
+            界面.button(视['revealLabel'],on_click=点揭示).props('flat no-caps')
+        else:
+            def 点菜单():
+                '打开动作菜单'
+                视['onToggleMenu']()
+            更多=界面.button(视['actionLabel'],on_click=点菜单).props('flat no-caps')
+            if 视['menuDisabled'] is True:
+                更多.disable()

@@ -4,7 +4,7 @@ from ...基础设施.通用工具 import 启动守护线程
 import uuid#事件前缀
 from ...类型化远程调用.协议.拥有值 import 是否协议拥有值#受拥有识别
 from .网关 import 中止控制器,中止信号#中止
-from .异常 import 网关错误#本包异常
+from .异常 import 网关错误,失败说明#本包异常
 
 __all__=['客户端远程事件']#仅中文公开名
 
@@ -18,8 +18,8 @@ __all__=['客户端远程事件']#仅中文公开名
 def _投影拒绝(错误):
     '监听拒绝保留的错误字段'
     if isinstance(错误,BaseException):#异常
-        return {'name':type(错误).__name__,'message':str(错误)}#投影
-    return {'name':'Error','message':str(错误)}#其它
+        return {'name':type(错误).__name__,'message':失败说明(错误)}#投影，去掉绝对路径
+    return {'name':'Error','message':失败说明(错误)}#其它
 
 
 def _转错误(原因,消息):

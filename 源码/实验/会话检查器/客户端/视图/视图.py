@@ -1,4 +1,5 @@
 '侧边栏里的一个检查器，本地选择对话分组或原始日志'
+from nicegui import ui as 界面
 
 from .检查器表格 import 检查器表格
 from .聊天节点.定位 import 检查器聊天定位器
@@ -47,6 +48,13 @@ class 会话检查器视图:
         自身._定位展示=None
         自身.表=None
         自身._表模式=None
+        钩=属性.get('hooks') if isinstance(属性.get('hooks'),dict) else {}
+        行齐=('chatRows' in 钩 and 'logRows' in 钩) or ('useChatRows' in 属性 and 'useLogRows' in 属性)
+        if ('t' in 属性 and 'useSession' in 属性 and 'chatRoot' in 属性 and 'loadOlder' in 属性
+                and 'recordType' in 属性 and 'pickChat' in 属性 and 'pickRow' in 属性
+                and 'resolveChatTargets' in 属性 and 'logChatTarget' in 属性 and 'objects' in 属性
+                and 行齐):
+            自身.渲染()
 
     def 更新(自身,属性):
         '刷新 props'
@@ -194,6 +202,16 @@ class 会话检查器视图:
         }
         if 聊天:
             表属性['objects']=属性['objects']
+        def 换展示(事件):
+            'NiceGUI 选择事件改成 currentTarget.value'
+            自身._改展示({'currentTarget':{'value':事件.value}})
+        界面.select({
+            'session-log':翻译('view.sessionLog'),
+            'chat-node':翻译('view.chatNode'),
+        }, value=自身.展示, on_change=换展示).props('dense options-dense')
+        界面.button(翻译('picker.cancel' if 自身.选取中 else 'picker.pick'), on_click=自身._点选取).props('flat no-caps')
+        if 通知:
+            界面.label(通知)
         if 自身.表 is None or 自身._表模式!=自身.展示:
             自身.表=检查器表格(表属性)
             自身._表模式=自身.展示

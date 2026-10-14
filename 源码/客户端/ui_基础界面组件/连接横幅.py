@@ -1,3 +1,5 @@
+from nicegui import ui as 界面
+
 __all__=['连接横幅','默认标签']#仅中文公开名
 
 默认标签='连接已断开，正在重连…'#内置文案
@@ -14,16 +16,15 @@ class 连接横幅:#重连顶条
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        '断线时出横幅'
+        '断线时画出横幅'
         属性=自身.属性#props
         重连=属性['reconnecting'] is True if 'reconnecting' in 属性 else False#重连
         if 重连 is False:#已连
             return None#静默
-        return {#横幅
-            'type':'connection-banner',#类型
-            'label':属性['label'] if 'label' in 属性 else 默认标签,#文案
-            'cssModule':'连接横幅.module.css',#样式
-        }#结束
+        文=属性['label'] if 'label' in 属性 else 默认标签#文案
+        if 文 is None:#缺
+            文=默认标签#内置
+        界面.label(文).classes('连接横幅')#横幅
 
     def __call__(自身,属性=None,**关键字参数):
         '对齐 React'
@@ -31,4 +32,4 @@ class 连接横幅:#重连顶条
             合并=dict(属性 if 属性 is not None else {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

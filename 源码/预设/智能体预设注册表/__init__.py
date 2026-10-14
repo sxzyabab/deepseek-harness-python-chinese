@@ -14,7 +14,6 @@ from .挂载 import (
 from .组合清单 import 定义组合体,已挂载组合体表行列表,活动组合模块
 from . import (
     类型,
-    不变量,
     展示,
 )
 

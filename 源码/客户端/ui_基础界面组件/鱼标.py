@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from .icons.属性 import 取尺寸,取类名#尺寸/类
 
 __all__=['鱼标','鱼路径']#仅中文公开名
@@ -17,24 +18,21 @@ class 鱼标:#鱼标 SVG 视图
         '刷新'
         自身.属性=dict(属性)#最新
 
-    def 渲染(自身):#结构树
-        '产出 svg 描述'
+    def 渲染(自身):#画出鱼标
+        '画出鱼形 svg'
         宽=取尺寸(自身.属性,24)#宽
         高=(宽*17.04)/23.16#按比
-        return {#视图
-            'type':'fish-logo',#类型
-            'width':宽,'height':高,#尺寸
-            'viewBox':'0 0 23.16 17.04',#视口
-            'path':鱼路径,#path
-            'fill':'currentColor',#填
-            'className':取类名(自身.属性),#类
-            'ariaHidden':True,#装饰
-        }#结束
+        类名=取类名(自身.属性)#类
+        图='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.16 17.04" width="'+str(宽)+'" height="'+str(高)+'" aria-hidden="true"><path fill="currentColor" d="'+鱼路径+'"/></svg>'#标记
+        标记=界面.html(图,sanitize=False)#画出
+        标记.classes('鱼标')#类
+        if isinstance(类名,str) and 类名!='':#附加类
+            标记.classes(类名)#附
 
     def __call__(自身,属性=None,**关键字参数):#调用形
         '对齐 React'
-        if 属性 is not None or 关键字参数:#有
+        if 属性 is not None or 关键字参数:
             合并=dict(属性 or {})#基
             合并.update(关键字参数)#覆
             自身.更新(合并)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

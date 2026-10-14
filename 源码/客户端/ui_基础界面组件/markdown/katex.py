@@ -1,4 +1,4 @@
-from ..异常 import 基础界面错误#本包异常
+from ..异常 import 基础界面错误,去掉绝对路径#本包异常
 
 __all__=['渲染TeX到树','装载TeX渲染','样式对象']#仅中文公开名
 
@@ -8,9 +8,9 @@ _HTML到树=None#宿主：HTML 字符串→子节点列表
 def 装载TeX渲染(成串=None,HTML到树=None):#注入 KaTeX 与 DOM 映射
     '挂上 renderToString 与 DOMParser→树；两臂都要'
     global _成串,_HTML到树#写
-    if 成串 is not None:#有
+    if 成串 is not None:
         _成串=成串#记
-    if HTML到树 is not None:#有
+    if HTML到树 is not None:
         _HTML到树=HTML到树#记
 
 def 样式对象(css文本):#内联 style 字符串→字典
@@ -28,7 +28,7 @@ def 样式对象(css文本):#内联 style 字符串→字典
                 跳大写=True#下字大写
             elif 跳大写:#转大写
                 键+=字.upper()#大写
-                跳大写=False#清
+                跳大写=False
             else:#普通
                 键+=字#追加
         样式[键]=声明[冒号+1:].strip()#值
@@ -42,16 +42,20 @@ def 渲染TeX到树(源文,展示模式):#TeX→视图节点列表
     try:#严格
         html=_成串(源文,展示模式,{'throwOnError':True})#严格渲染
     except Exception as 错:#KaTeX 后端错误类型未定，收不窄
-        首错=错#记下
+        首错=错
         try:#宽容
             html=_成串(源文,展示模式,{'strict':'ignore','throwOnError':False})#忽略严格
-        except Exception:#KaTeX 后端错误类型未定，收不窄
+        except Exception as 再错:#KaTeX 后端错误类型未定，收不窄
+            说明=去掉绝对路径(首错)
+            再说明=去掉绝对路径(再错)
+            if 再说明!='' and 再说明!=说明:
+                说明=再说明 if 说明=='' else 说明+' '+再说明
             return [{#错误 span
                 'type':'element','tag':'span',#元素
                 'props':{#属性
                     'className':'katex-error',#类
                     'style':{'color':'#cc0000'},#色
-                    'title':str(首错),#题注
+                    'title':说明,#题注
                 },#属性结束
                 'children':[源文],#原文
             }]#列表

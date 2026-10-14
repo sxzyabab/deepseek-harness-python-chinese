@@ -1,3 +1,5 @@
+from .异常 import 去掉敏感
+
 __all__=['计划失败行']#仅中文公开名
 
 def 计划失败行(翻译,失败):
@@ -9,4 +11,5 @@ def 计划失败行(翻译,失败):
         return 翻译('preview.historyUnavailable')#文案
     if 码=='plan/not-found':#未找到
         return 翻译('preview.notFound')#文案
-    return 失败['message']#原样诊断
+    文=去掉敏感(失败['message'] if 'message' in 失败 else '')
+    return 文 if 文!='' else 码

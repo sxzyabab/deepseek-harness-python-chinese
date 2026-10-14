@@ -1,5 +1,7 @@
 '侧栏按键行的提交驱动位移动画与进出淡入淡出'
 
+from nicegui import ui as 界面
+
 __all__=['动画行','行淡入毫秒','行滑动毫秒','样式表']#仅中文公开名
 
 行淡入毫秒=100#进出淡入时长
@@ -8,6 +10,16 @@ __all__=['动画行','行淡入毫秒','行滑动毫秒','样式表']#仅中文�
 样式表='''#对齐 AnimatedRows.module.css
 .exits{position:absolute;inset:0;contain:strict;overflow:clip;pointer-events:none}
 '''#样式表结束
+
+样式已登记=False
+
+def 登记样式():
+    '同一段动画行样式整个进程只登记一次'
+    global 样式已登记
+    if 样式已登记 is True:
+        return
+    界面.add_css(样式表)
+    样式已登记=True
 
 def 同行键(先前键,下一键):
     '行键表是否同序同员'
@@ -64,7 +76,7 @@ class 动画行:#keyed 行列表动画容器
             or not hasattr(列表,'animate')):#不动画
             return None#空
         媒=getattr(列表,'ownerDocument',None) or getattr(列表,'document',None)#文档
-        if 媒 is not None and hasattr(媒,'defaultView') and 媒.defaultView is not None:#有窗
+        if 媒 is not None and hasattr(媒,'defaultView') and 媒.defaultView is not None:
             匹配=媒.defaultView.matchMedia('(prefers-reduced-motion: reduce)')#降运动
             if 匹配.matches:#降
                 return None#空
@@ -83,9 +95,9 @@ class 动画行:#keyed 行列表动画容器
             克隆.removeAttribute('data-row-key')#去键
             克隆.inert=True#惰性
             缩进=行['element'].ownerDocument.defaultView.getComputedStyle(行['element']).getPropertyValue('--dsh-workspace-indent') if hasattr(行['element'],'ownerDocument') else ''#缩进
-            if hasattr(克隆.style,'setProperty'):#有
+            if hasattr(克隆.style,'setProperty'):
                 克隆.style.setProperty('--dsh-workspace-indent',缩进)#带缩进
-            移除[键]={**行,'element':克隆}#记下
+            移除[键]={**行,'element':克隆}
         return {'positions':位置,'removed':移除}#快照
 
     def 提交后更新(自身,先前属性,快照):
@@ -95,9 +107,9 @@ class 动画行:#keyed 行列表动画容器
             if (not 同行键(先前属性.get('rowKeys',[]),属性.get('rowKeys',[]))
                 or 先前属性.get('resetKey')!=属性.get('resetKey')
                 or 先前属性.get('ready')!=属性.get('ready')):#结构变
-                自身.清空()#清
+                自身.清空()
             return#止
-        自身._取消移动()#停旧移动
+        自身._取消移动()
         列表=自身.列表节点#列表
         叠层=自身.叠层节点#叠层
         视口矩=列表.getBoundingClientRect()#视口
@@ -141,7 +153,7 @@ class 动画行:#keyed 行列表动画容器
             样式.height=f"{行['rect']['height']}px"#高
             叠层.append(元素)#挂叠层
             动画=元素.animate([{'opacity':行['opacity']},{'opacity':0}],{'duration':行淡入毫秒,'easing':'ease-out','fill':'forwards'})#淡出
-            自身.退出表[键]={'element':元素,'animation':动画}#记下
+            自身.退出表[键]={'element':元素,'animation':动画}
             def 完(_键=键):
                 '淡出完卸'
                 自身._卸退出(_键)#卸
@@ -149,7 +161,7 @@ class 动画行:#keyed 行列表动画容器
 
     def 卸载(自身):
         '清全部动画'
-        自身.清空()#清
+        自身.清空()
 
     def _读位置(自身):
         '列表内 data-row-key 行的矩形与透明度'
@@ -166,7 +178,7 @@ class 动画行:#keyed 行列表动画容器
             透明=1#默认
             if 元素 in 自身.移动表:#移动中
                 透明=float(元素.ownerDocument.defaultView.getComputedStyle(元素).opacity) if hasattr(元素,'ownerDocument') else 1#读透明
-            结果[键]={'element':元素,'rect':矩,'opacity':透明}#记下
+            结果[键]={'element':元素,'rect':矩,'opacity':透明}
         return 结果#位置
 
     def _移动(自身,元素,关键帧,时长):
@@ -184,8 +196,8 @@ class 动画行:#keyed 行列表动画容器
         '停全部移动'
         for 动画 in list(自身.移动表.values()):#逐个
             动画.onfinish=None#断
-            动画.cancel()#停
-        自身.移动表.clear()#清
+            动画.cancel()
+        自身.移动表.clear()
 
     def _卸退出(自身,键):
         '卸一条退出克隆'
@@ -193,34 +205,33 @@ class 动画行:#keyed 行列表动画容器
         if 退出 is None:#无
             return#止
         退出['animation'].onfinish=None#断
-        退出['animation'].cancel()#停
+        退出['animation'].cancel()
         退出['element'].remove()#卸 DOM
         del 自身.退出表[键]#去账
 
     def 清空(自身):
         '停移动并卸全部退出'
-        自身._取消移动()#停移动
+        自身._取消移动()
         for 键 in list(自身.退出表.keys()):#逐退出
             自身._卸退出(键)#卸
 
     def 渲染(自身):
         '树列表 + 退出叠层结构'
         属性=自身.属性#props
-        return {#片段
-            'type':'fragment',#片段
-            'children':[#子
-                {#列表
-                    'type':'div','className':属性.get('className',''),'role':'tree',
-                    'props':{'aria-label':属性.get('label','')},
-                    'ref':自身.绑定列表,
-                    'onPointerDownCapture':自身.武装,
-                    'onKeyDownCapture':自身.武装,
-                    'children':属性.get('children'),
-                },#列表结束
-                {#叠层
-                    'type':'div','className':'exits','props':{'aria-hidden':True},
-                    'ref':自身.绑定叠层,
-                },#叠层结束
-            ],#子结束
-            'styleSheet':样式表,#样式
-        }#片段结束
+        登记样式()
+        类名=属性.get('className','')
+        if 类名=='':
+            类名='tree'
+        标签=属性.get('label','')
+        with 界面.column().classes(类名):
+            if isinstance(标签,str) and 标签!='':
+                界面.label(标签)
+            子=属性.get('children')
+            if hasattr(子,'渲染'):
+                子.渲染()
+            elif isinstance(子,list):
+                for 项 in 子:
+                    if hasattr(项,'渲染'):
+                        项.渲染()
+                    elif isinstance(项,str) and 项!='':
+                        界面.label(项)

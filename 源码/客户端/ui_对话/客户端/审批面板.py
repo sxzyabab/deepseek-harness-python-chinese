@@ -6,9 +6,20 @@ from .工具节点读取 import 根工具调用#配对命令
 
 __all__=['审批面板','取命令','待决审批']#仅中文公开名
 
+from nicegui import ui as 界面
+from .文案 import 中文 as 对话文案
+from ..异常 import 页面失败文案,贴出失败
+
 def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
+    '无宿主文案时用本包中文词典，没有则返回键本身。'
+    if 键 not in 对话文案:#词典没有
+        return 键#键
+    文本=对话文案[键]#词条
+    if 参数 is None:#无参数
+        return 文本#原文
+    for 名 in 参数:#替换占位
+        文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+    return 文本#译完
 
 def 取命令(调用):
     '不可解析则 None'
@@ -31,6 +42,8 @@ class 审批面板:
         '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.已答=False#一次闩
+        自身.画面=None#可反复清空的画面
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新；换 key 则解锁'
@@ -102,21 +115,38 @@ class 审批面板:
         if 理由 is None:#缺
             工具名=待.toolName if 待 is not None else ''#工具
             理由=翻译('approval.escalation',{'toolName':工具名})#回退
-        键=待.key if 待 is not None else None#请求键
-        return {#审批
-            'type':'approval-panel',#类型
-            'key':键,#请求键
-            'stripLabel':翻译('approval.waiting'),#等待条
-            'detailAria':翻译('approval.detail.aria'),#无障碍
-            'headline':理由,#理由
-            'command':命令,#命令
-            'approveLabel':翻译('approval.allow'),#准（上游 allow）
-            'rejectLabel':翻译('approval.reject'),#拒
-            'answered':自身.已答,#已答
-            'onApprove':自身.准许,#准
-            'onReject':自身.拒绝,#拒
-            'cssModule':'审批面板.module.css',#样式
-        }#视图结束
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('审批面板')#卡
+        def 重画():
+            '按是否已答重画。'
+            自身.画面.clear()#清空
+            with 自身.画面:#卡
+                贴出失败(自身)
+                界面.label(翻译('approval.waiting'))#等待
+                界面.label(理由)#理由
+                if 命令 is None or 命令=='':#没有命令
+                    pass#不画命令行
+                else:#命令
+                    界面.label(命令)#命令
+                if 自身.已答 is False:#未答
+                    def 点准():
+                        '准许一次。'
+                        自身.准许()#准
+                        重画()#重画
+                    def 点拒():
+                        '拒绝。'
+                        自身.拒绝()#拒
+                        重画()#重画
+                    界面.button(翻译('approval.allow'),on_click=点准)#准
+                    界面.button(翻译('approval.reject'),on_click=点拒)#拒
+        重画()#画
 
     def __call__(自身,属性=None):
         '对齐 React'

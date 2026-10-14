@@ -1,6 +1,11 @@
 from .回退命令卡 import 回退命令卡#命令卡
+from .消息项 import 打开列
 
 __all__=['审批命令']#仅中文公开名
+
+from nicegui import ui as 界面
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -12,6 +17,8 @@ class 审批命令:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.卡=回退命令卡()#卡
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -27,10 +34,13 @@ class 审批命令:
         else:#缺
             节点={}#空
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        return {'type':'approval-command','card':自身.卡({'node':节点,'t':翻译}),'cssModule':'审批命令.module.css'}#视图
+        with 打开列(自身,'审批命令'):
+            界面.label(翻译('command.title')).classes('标题')
+            自身.卡.更新({'node':节点,'t':翻译})
+            自身.卡.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

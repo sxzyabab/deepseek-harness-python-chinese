@@ -2,8 +2,10 @@
 
 import json
 import math
+from nicegui import ui as 界面
 from .对象值 import 检查器对象值
 from .原始json import 未定义
+from .格式 import 失败说明
 
 __all__=['检查器json树','检查器对象树']
 
@@ -108,7 +110,7 @@ class 值树:
                         break
             内容={'reference':引用,'circular':循环,'display':显示,'entries':条目,'error':None}
         except Exception as 错误:
-            内容={'error':str(错误)}
+            内容={'error':失败说明(错误)}
         字段={'type':'span','className':'objectField','text':f'{名}: '}
         if 内容.get('error') is not None:
             return {'type':'li','role':'alert','children':[字段,{'type':'span','text':内容['error']}]}
@@ -174,9 +176,12 @@ class 值树:
             }],
         }
 
-    def 渲染(自身,属性):
-        '从 $ 画出整棵树'
-        return {
+    def 渲染(自身,属性,换容器=False):
+        '从 $ 画出整棵树；换容器时离开上一次的父级'
+        自身._上次=属性
+        if 换容器:
+            自身._根=None
+        树={
             'type':'ul',
             'className':'objectTree',
             'cssModule':'检查器.module.css',
@@ -190,6 +195,89 @@ class 值树:
                 't':属性['t'],
             })],
         }
+        自身._铺开(树)
+        return 树
+
+    def 重画(自身):
+        '展开或翻页后按上次的值再画'
+        if getattr(自身,'_上次',None) is not None:
+            自身.渲染(自身._上次,换容器=False)
+
+    def _铺开(自身,节点):
+        '把值树画成可展开的列表'
+        if getattr(自身,'_根',None) is None:
+            自身._根=界面.column().classes('objectTree')
+        自身._根.clear()
+        def 画(项):
+            '一个节点'
+            if 项 is None:
+                return
+            if isinstance(项,str):
+                if 项!='':
+                    界面.label(项)
+                return
+            if isinstance(项,(list,tuple)):
+                for 子 in 项:
+                    画(子)
+                return
+            if not isinstance(项,dict):
+                return
+            种类=项.get('type') or 'span'
+            文=项.get('text') or ''
+            点击=项.get('onClick')
+            if 种类=='details':
+                开=项.get('open') is True
+                回调=项.get('onToggle')
+                def 切(事件=None,回调=回调,开=开):
+                    '翻转 open 再重画'
+                    class 目标:
+                        '给 onToggle 的 currentTarget'
+                        open=not 开
+                    class 事件壳:
+                        '对齐 currentTarget.open'
+                        currentTarget=目标()
+                    if callable(回调):
+                        回调(事件壳())
+                    自身.重画()
+                with 界面.column().classes('objectBranch'):
+                    with 界面.row():
+                        界面.button('▾' if 开 else '▸', on_click=切).props('flat dense')
+                        画(项.get('summary'))
+                    if 开:
+                        画(项.get('list'))
+                return
+            if 种类=='button':
+                def 点(事件=None,点击=点击):
+                    '执行后重画'
+                    if callable(点击):
+                        class 鼠标:
+                            '吞掉 preventDefault'
+                            def preventDefault(自身):
+                                return None
+                            def stopPropagation(自身):
+                                return None
+                        try:
+                            点击(鼠标())
+                        except TypeError:
+                            点击()
+                    自身.重画()
+                界面.button(文 or ' ', on_click=点).props('flat no-caps dense')
+                return
+            if 种类 in ('ul','ol','li','div','span','nav'):
+                盒=界面.column() if 种类 in ('ul','ol','li','div','nav') else 界面.row()
+                类名=项.get('className') or ''
+                if 类名:
+                    盒.classes(str(类名))
+                with 盒:
+                    if 文:
+                        界面.label(文)
+                    画(项.get('children'))
+                return
+            if 文:
+                界面.label(文)
+            画(项.get('children'))
+        with 自身._根:
+            画(节点)
 
 class 检查器json树:
     '序列化后的检查 JSON；容器一开始就展开，没有引用导航'
@@ -210,7 +298,7 @@ class 检查器json树:
         if 文本 is not 自身._文本:
             自身._文本=文本
             自身._值=未定义 if 文本=='' else json.loads(文本)
-        return 自身._树.渲染({'value':自身._值,'t':自身.属性['t']})
+        return 自身._树.渲染({'value':自身._值,'t':自身.属性['t']},换容器=True)
 
     def __call__(自身,属性=None):
         '对齐 React 调用'
@@ -245,7 +333,7 @@ class 检查器对象树:
             'value':属性.get('value',未定义),
             't':属性['t'],
             'navigation':{'objects':属性['objects'],'navigate':属性['navigate'],'revision':修订},
-        })
+        },换容器=True)
 
     def __call__(自身,属性=None):
         '对齐 React 调用'

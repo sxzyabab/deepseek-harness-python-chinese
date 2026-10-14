@@ -1,6 +1,7 @@
 from .文案 import 命名空间,中文,英文#词表
 from .表面 import 反馈表面#按会话表面
 from .反馈动作 import 消息反馈动作#赞/踩组件
+from .对话框 import 反馈对话框#反馈对话框
 
 __all__=['依赖','应用','反馈表面','消息反馈动作','命名空间','中文','英文']#仅中文公开名
 
@@ -60,7 +61,7 @@ def 应用(上下文):#安装消息反馈浏览器半边
                 'openDialog'
                 表面.对话框.打开({'kind':'message','messageId':消息标识,'rating':评价})#打开
             return {#注入面
-                'hooks':{'feedback':表面.反馈},#共享视图
+                'hooks':{'feedback':钩子源(表面.反馈.getSnapshot,表面.反馈.subscribe)},#共享视图
                 'ensure':确保,#确保已读
                 'current':当前,#当前条目
                 'retract':撤回,#撤回
@@ -76,12 +77,12 @@ def 应用(上下文):#安装消息反馈浏览器半边
     上下文.slots.inject('conversation.chat.assistant-actions',登记动作)#等槽出现
 
     def 登记对话框():#等覆盖层槽出现再登记
-        '登记反馈对话框。组件占位用消息反馈动作直至 FeedbackDialog 落地'
+        '登记反馈对话框'
         def 注入面(会话标识):#按会话解析
             '对话框注入'
             对话框=表面于(会话标识).对话框#对话框
             return {#注入面
-                'hooks':{'dialog':对话框.状态},#状态
+                'hooks':{'dialog':钩子源(对话框.状态.getSnapshot,对话框.状态.subscribe)},#状态
                 'edit':对话框.编辑,#编辑
                 'submit':对话框.提交草稿,#提交
                 'dismiss':对话框.关闭,#关闭
@@ -94,7 +95,7 @@ def 应用(上下文):#安装消息反馈浏览器半边
             'order':2,#顺序
             'locale':命名空间,#文案
             'inject':注入面,#注入
-        },消息反馈动作)#组件占位
+        },反馈对话框)#对话框
     上下文.slots.inject('conversation.input.overlay',登记对话框)#等槽出现
 
     def 挂命令装饰(子上下文):#命令 UI 可用时
@@ -112,6 +113,22 @@ def 应用(上下文):#安装消息反馈浏览器半边
             })#decorate 结束
         子上下文.副作用(登记装饰,'ui-message-feedback: /feedback decoration')#副作用
     上下文.依赖启动(['commandUi'],挂命令装饰)#命令 UI 门
+
+class 钩子源:
+    '槽位钩子要 getSnapshot 与 subscribe 方法，不要字典'
+
+    def __init__(自身,读取,订阅变更):
+        '记下读与订'
+        自身.读取=读取#快照
+        自身.订阅变更=订阅变更#订阅
+
+    def getSnapshot(自身):
+        '当前快照'
+        return 自身.读取()#读
+
+    def subscribe(自身,回调):
+        '订变更，返回退订'
+        return 自身.订阅变更(回调)#订
 
 inject=依赖#框架槽
 apply=应用#框架槽

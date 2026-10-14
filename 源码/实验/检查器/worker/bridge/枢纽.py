@@ -1,4 +1,5 @@
 from .....基础设施.通用工具.文本工具 import utf8字节数
+from ...异常 import 失败说明#失败句
 from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 
 __all__=['检查器源注册表']#仅中文公开名
@@ -37,7 +38,7 @@ class 检查器源注册表:#源注册表
                 raise ValueError(f'inspector protocol: source frame exceeds {自身._最大帧字节} bytes')#抛错
             自身._应用(连接,帧)#应用
         except (ValueError,检查器错误) as 错误:#畸形帧
-            信息=str(错误)#信息
+            信息=失败说明(错误)#信息，不含绝对路径
             连接['send']({'v':检查器协议版本,'t':'source/rejected','code':'invalid-frame','message':信息})#拒绝
             连接['close'](1008,信息)#关闭
 

@@ -2,7 +2,7 @@ from threading import Timer as 定时器#超时定时器
 from .....基础设施.js特性 import PromiseEX as 期约扩展#请求结果期约
 from .标识 import 检查器id#标识构造
 from ..json import json字节长度#帧字节
-from ...异常 import 检查器错误,检查器查询远程错误#本包错误|远程查询错误
+from ...异常 import 检查器错误,检查器查询远程错误,失败说明#本包错误|远程查询错误|失败句
 from .版本 import 检查器协议版本#协议版本
 from .消息.查询.编解码 import 是否检查器查询响应信封,解析检查器查询响应帧#响应编解码
 
@@ -85,7 +85,7 @@ class 检查器查询连接:#查询连接
             if json字节长度(帧)>自身.选项.maxFrameBytes:#超帧
                 raise 检查器错误(f'inspector protocol: query response exceeds {自身.选项.maxFrameBytes} bytes')#英文诊断
         except Exception as 错误:#解析检查器查询响应帧可能抛检查器错误/TypeError，契约未定所以收不窄
-            自身.断开(f'Invalid Inspector query response: {渲染错误(错误)}')#断开
+            自身.断开('Invalid Inspector query response: '+失败说明(str(错误)))#说明不含绝对路径
             raise#原样抛出
         待决=自身._待决.get(帧['requestId'])#查待决
         if 待决 is None:#无待决
@@ -129,5 +129,7 @@ class 检查器查询连接:#查询连接
         待决['任务'].拒绝(error)#拒绝
 
 def 渲染错误(错误):#规范化错误
-    '包装为 Exception'
-    return 错误 if isinstance(错误,Exception) else Exception(str(错误))#包装为Error
+    '包装为 Exception。说明不含绝对路径'
+    if isinstance(错误,Exception):
+        return 错误
+    return Exception(失败说明(错误))

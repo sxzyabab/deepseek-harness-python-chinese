@@ -4,7 +4,7 @@ from ....基础设施.通用工具 import 获取内部数据
 from ...网关.快照流 import 远程快照流
 from .模型 import 客户端工作区模型
 from .服务 import 工作区控制器,应用工作区服务
-from ..异常 import 工作区创建错误#本包异常
+from ..异常 import 工作区创建错误,去掉敏感文案#本包异常
 
 __all__=[
     '依赖','应用','客户端工作区模型','工作区控制器','工作区创建错误',
@@ -36,7 +36,11 @@ def _接受增量(接收端,帧):
     if 类型=='archived':
         接收端.replaceArchived(帧['archivedSessionIds'])
         return
-    raise RuntimeError('unreachable Workspace increment: '+repr(帧))
+    if 类型=='pinned':
+        接收端.replacePinned(帧['pinnedSessionIds'])
+        return
+    说明=去掉敏感文案(repr(帧))
+    raise RuntimeError('unreachable Workspace increment: '+(说明 if 说明!='' else type(帧).__name__))
 
 def 创建工作区状态流(远程,选项):
     """创建可重连的工作区状态流。

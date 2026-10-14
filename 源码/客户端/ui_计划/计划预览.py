@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from .失败行 import 计划失败行#失败行
 from .审阅预览 import 是否审阅预览地址#临时审阅
 
@@ -12,6 +13,8 @@ class 计划预览:
     def __init__(自身,属性=None):
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        if 'useTabInfo' in 自身.属性 and 'useResource' in 自身.属性:#槽位份额齐了
+            自身.渲染()#槽位只调用构造
 
     def 更新(自身,属性):
         '刷新 props'
@@ -44,27 +47,33 @@ class 计划预览:
                 文案=翻译('preview.failed')#失败
             else:#加载
                 文案=翻译('preview.loading')#加载
-            失败行=None#诊断
-            if not 临时 and isinstance(资源,dict) and 资源.get('failure') is not None:#有失败
-                失败行=计划失败行(翻译,资源['failure'])#行
-            return {'type':'plan-preview-message','text':文案,'failure':失败行,'cssModule':'计划预览.module.css'}#消息
-        预览键=计划['callId'] if 'callId' in 计划 else 地址#键
-        return {#文档
-            'type':'plan-preview','key':预览键,'title':计划.get('title'),#身份
-            'markdown':计划.get('markdown'),'cssModule':'计划预览.module.css',#正文
-        }#视图
+            界面.label(文案)
+            if not 临时 and isinstance(资源,dict) and 资源.get('failure') is not None:
+                失败文=计划失败行(翻译,资源['failure'])#行
+                if isinstance(失败文,str) and 失败文!='':
+                    界面.label(失败文)
+            return
+        标题=计划.get('title')
+        正文=计划.get('markdown')
+        with 界面.column().classes('plan-preview'):
+            if isinstance(标题,str) and 标题!='':
+                界面.label(标题)
+            if isinstance(正文,str):
+                界面.markdown(正文)
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()
 
 class 计划标题:
     '侧栏标签标题：图标 + 恢复标题'
     def __init__(自身,属性=None):
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        if 'useTabInfo' in 自身.属性:
+            自身.渲染()#槽位只调用构造
 
     def 更新(自身,属性):
         '刷新 props'
@@ -87,10 +96,13 @@ class 计划标题:
             资源=用资源(地址) if 用资源 is not None else {}#资源
             计划=资源['value'] if isinstance(资源,dict) and 'value' in 资源 else None#值
         标题=计划['title'] if isinstance(计划,dict) and 'title' in 计划 else 标签['tab'].get('title')#标题
-        return {'type':'plan-title','title':标题,'cssModule':'计划预览.module.css'}#视图
+        with 界面.row().classes('plan-title'):
+            界面.icon('description', size='16px')
+            if 标题 is not None and str(标题)!='':
+                界面.label(str(标题))
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        return 自身.渲染()

@@ -9,10 +9,6 @@ from .会话模式 import (#覆盖套件
     设沙盒模式,#写入
 )#会话模式导出结束
 from .异常 import 沙箱政策错误#沙箱政策包的异常基类
-from . import (
-    不变量,
-)
-
 名称='sandbox-policy'#Cordis 插件名（包目录用下划线，插件名保留上游连字符）
 
 def 解析工作区根(路径):

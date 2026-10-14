@@ -44,24 +44,24 @@ def 回合令牌用量路由(提供方,模型):#用量路由
 def 回合令牌用量(未缓存输入,输出,总量,缓存读=None,缓存写=None,推理=None,路由列表=None):#轮次 token 用量
     '已完成一轮中每次尝试的精确提供方 token 记账'
     数据={'uncachedInputTokens':未缓存输入,'outputTokens':输出,'totalTokens':总量}#基
-    if 缓存读 is not None:#有
+    if 缓存读 is not None:
         数据['cacheReadTokens']=缓存读#挂
-    if 缓存写 is not None:#有
+    if 缓存写 is not None:
         数据['cacheWriteTokens']=缓存写#挂
-    if 推理 is not None:#有
+    if 推理 is not None:
         数据['reasoningTokens']=推理#挂
-    if 路由列表 is not None:#有
+    if 路由列表 is not None:
         数据['routes']=路由列表#挂
     return 数据#用量
 
 def 回合尾聊天数据(回合,序号,时间,收尾=None,分支不可用=False,ttftMs=None,tokensPerSecond=None,tokenUsage=None):#轮次尾部
     '轮次局部页脚行'
     数据={'turn':回合,'seq':序号,'time':时间,'closing':收尾,'branchUnavailable':分支不可用}#基
-    if ttftMs is not None:#有
+    if ttftMs is not None:
         数据['ttftMs']=ttftMs#挂
-    if tokensPerSecond is not None:#有
+    if tokensPerSecond is not None:
         数据['tokensPerSecond']=tokensPerSecond#挂
-    if tokenUsage is not None:#有
+    if tokenUsage is not None:
         数据['tokenUsage']=tokenUsage#挂
     return 数据#载荷
 

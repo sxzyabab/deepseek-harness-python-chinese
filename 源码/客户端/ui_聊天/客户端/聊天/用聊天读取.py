@@ -169,7 +169,7 @@ class 聊天读取:
             except NameError:#非浏览器
                 窗=None#无
             try:#清定时
-                清=窗.clearTimeout if 窗 is not None else clearTimeout#清
+                清=窗.clearTimeout if 窗 is not None else clearTimeout
             except NameError:#非浏览器
                 清=None#无
             if callable(清):

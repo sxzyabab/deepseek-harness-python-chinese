@@ -1,8 +1,7 @@
 import json#载荷
 from .字节 import 解码文本,编码文本#编解码
 
-__all__=['创建超文本文档']#仅中文公开名
-
+__all__=['创建超文本文档']
 
 def 创建超文本文档(包):
     """构建外层 iframe 文档。包为 dict：data / assets。

@@ -37,10 +37,20 @@ def 恒等翻译(键,参数=None):#无文案表
     'chat.turnNavigation.jump':'跳转到第 {turn} 轮',#跳转轮次
     'chat.turnNavigation.jumpLoad':'加载并跳转到第 {turn} 轮',#加载并跳转
     'chat.turnNavigation.turn':'第 {turn} 轮',#轮次标签
-    'settings.transcript.title':'对话显示',#设置标题
-    'settings.transcript.description':'控制已完成轮次的过程内容',#设置说明
-    'settings.transcript.normal':'标准',#普通模式
-    'settings.transcript.compact':'紧凑',#紧凑模式
+    'settings.transcript.title':'工作步骤展示',#设置标题
+    'settings.transcript.description':'选择希望看到多少工具调用细节',#设置说明
+    'settings.transcript.compact':'简洁',#紧凑模式
+    'settings.transcript.standard':'标准',#标准模式
+    'settings.transcript.detailed':'详细',#详细模式
+    'settings.transcript.verbose':'完全展开',#完全展开
+    'settings.performance.title':'性能与用量',#性能标题
+    'settings.performance.description':'选择性能与用量信息展示的详细程度',#性能说明
+    'settings.performance.compact':'简洁',#性能简洁
+    'settings.performance.detailed':'详细',#性能详细
+    'settings.links.title':'网页链接默认打开方式',#链接标题
+    'settings.links.description':'对话中网页链接的打开位置',#链接说明
+    'settings.links.sidebar':'应用内侧边栏',#侧栏
+    'settings.links.newTab':'默认浏览器',#新窗
     'fileOpen.title':'无法打开文件',#打开文件失败标题
     'fileOpen.unknown':'无法打开此文件',#打开文件失败正文
     'fileOpen.folderTitle':'无法打开文件夹',#打开文件夹失败标题
@@ -153,10 +163,20 @@ def 恒等翻译(键,参数=None):#无文案表
     'chat.turnNavigation.jump':'Jump to turn {turn}',#跳转轮次
     'chat.turnNavigation.jumpLoad':'Load and jump to turn {turn}',#加载并跳转
     'chat.turnNavigation.turn':'Turn {turn}',#轮次标签
-    'settings.transcript.title':'Conversation display',#设置标题
-    'settings.transcript.description':'Controls process content in completed turns',#设置说明
-    'settings.transcript.normal':'Normal',#普通模式
+    'settings.transcript.title':'Work details',#设置标题
+    'settings.transcript.description':'Choose how much detail to show for tool calls',#设置说明
     'settings.transcript.compact':'Compact',#紧凑模式
+    'settings.transcript.standard':'Standard',#标准模式
+    'settings.transcript.detailed':'Detailed',#详细模式
+    'settings.transcript.verbose':'Verbose',#完全展开
+    'settings.performance.title':'Performance & usage',#性能标题
+    'settings.performance.description':'Choose how much performance and usage information to show',#性能说明
+    'settings.performance.compact':'Compact',#性能简洁
+    'settings.performance.detailed':'Detailed',#性能详细
+    'settings.links.title':'Open chat links in',#链接标题
+    'settings.links.description':'Choose where to open web links',#链接说明
+    'settings.links.sidebar':'In-App Sidebar',#侧栏
+    'settings.links.newTab':'Default Browser',#新窗
     'fileOpen.title':"Couldn't open file",#打开文件失败标题
     'fileOpen.unknown':"Couldn't open this file",#打开文件失败正文
     'fileOpen.folderTitle':"Couldn't open folder",#打开文件夹失败标题

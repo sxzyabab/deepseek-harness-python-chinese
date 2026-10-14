@@ -37,7 +37,7 @@ def 压紧内联(文本):
         else:#非空白
             if 空白 is True and len(出)>0:#需要空格；判 length
                 出.append(' ')#单空格
-            空白=False#清
+            空白=False
             出.append(字)#字
     return ''.join(出).strip()#去首尾
 
@@ -127,7 +127,7 @@ def 抽取Markdown纯文本(源文,选项=None):
         return ''#全空
     if 模式=='first-paragraph':#首段
         段=找首段(根)#段落
-        if 段 is not None:#有
+        if 段 is not None:
             return 段#段
         for 行 in 全部.split('\n'):#回退首行
             if 行!='':#非空

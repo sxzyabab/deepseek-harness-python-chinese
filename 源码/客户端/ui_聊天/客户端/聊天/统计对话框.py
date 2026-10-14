@@ -1,4 +1,7 @@
 
+from nicegui import ui as 界面
+from ..文案 import 中文
+
 __all__=['测量样式','面板边距','面板间隙','统计对话框席','构造统计对话框席']#仅中文公开名
 
 面板边距=12#视口边距（与 Menu 门户边距一致）
@@ -17,6 +20,7 @@ class 统计对话框席:
         自身.根引用=None#触发根引用
         自身.面板引用=None#面板引用
         自身.放置=None#钳制后放置样式；None 时用测量样式
+        自身.对话框=None#NiceGUI 对话框
 
     def _有效打开(自身):
         '有效打开态'
@@ -30,6 +34,12 @@ class 统计对话框席:
             自身._受控['setOpen'](bool(打开))#外部
         else:
             自身._自持打开=bool(打开)#自持
+        if 自身.对话框 is None:
+            return
+        if bool(打开):
+            自身.对话框.open()
+            return
+        自身.对话框.close()
 
     @property
     def 打开(自身):
@@ -64,27 +74,40 @@ class 统计对话框席:
         return 自身.放置 if 自身.放置 is not None else 测量样式#铺样式
 
     def 渲染(自身):
-        '席位快照（对齐钩子返回面）'
-        return {#席位
-            'open':自身._有效打开(),#打开
-            'setOpen':自身.设打开,#设置
-            'rootRef':自身.根引用,#根
-            'panelRef':自身.面板引用,#面板
-            'pos':自身.放置,#放置
-            'margin':面板边距,#边距
-            'gap':面板间隙,#间隙
-            'measureStyle':测量样式,#测量
-            'panelStyle':自身.面板样式(),#有效样式
-            'onToggle':自身.切换,#切换
-            'onOutsidePointer':自身.外点关闭,#外点
-            'onEscape':自身.Escape关闭,#Escape
-        }#结束
+        '画出统计对话框，并按打开态显隐。'
+        if 自身.对话框 is None:
+            with 界面.dialog() as 对话框:
+                with 界面.card().classes('统计对话框').style(f'margin:{面板边距}px'):
+                    界面.label(中文['stats.dialog.title']).classes('标题')
+                    界面.label(中文['stats.dialog.usageTitle'])
+                    界面.label(中文['stats.dialog.llmTime'])
+                    界面.label(中文['stats.dialog.toolTime'])
+                    界面.label(中文['stats.dialog.ttft'])
+                    界面.label(中文['stats.dialog.speed'])
+                    def 关闭():
+                        '关掉统计对话框。'
+                        自身.设打开(False)
+                    界面.button(中文['details.close'],on_click=关闭)
+            def 被隐藏():
+                '外点或 Escape 后只改打开态，避免再关一次。'
+                if 自身._有效打开() is not True:
+                    return
+                if 自身._受控 is not None and 'setOpen' in 自身._受控:
+                    自身._受控['setOpen'](False)
+                    return
+                自身._自持打开=False
+            对话框.on('hide',被隐藏)
+            自身.对话框=对话框
+            自身.根引用=对话框
+            自身.面板引用=对话框
+        if 自身._有效打开():
+            自身.对话框.open()
 
     def __call__(自身,受控=None):
         '可调用席位：可选刷新受控槽后回渲染'
-        if 受控 is not None:#有
+        if 受控 is not None:
             自身._受控=受控#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 def 构造统计对话框席(受控=None):
     """一个锚定触发器的对话框席位：打开态、视口钳制放置、外点关闭。

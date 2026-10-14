@@ -1,22 +1,25 @@
 import re#推荐后缀剥离
+from nicegui import ui as 界面
+from ...ui_基础界面组件.icons import 图标上chevron14,图标下chevron14,图标勾14,图标编辑16
 from .约定.槽位 import 计划审阅于,待答提问#约定面
-from ..异常 import 提问错误#本包异常
+from ..异常 import 提问错误,页面失败文案#本包异常与页面失败句
 from .计划审阅面板 import 计划审阅面板#计划审阅接管面
 
 __all__=['解析推荐标签','提问撰写器','样式表']#仅中文公开名
 
 推荐后缀=re.compile(r'[ \t\r\n\f\v]*(?:\((?:recommended|推荐)\)|（(?:recommended|推荐)）)[ \t\r\n\f\v]*\Z',re.I)#推荐标签后缀
 
-样式表='''#对齐 QuestionComposer.module.css 关键布局类
-.frame{display:flex;justify-content:center;padding:6px calc(var(--dsh-composer-side-clearance) + 16px) 10px}
-.card{display:flex;flex-direction:column;width:100%;max-width:var(--dsh-chat-content-width);max-height:min(60vh,520px);padding:0 0 10px;border:1px solid var(--dsw-alias-border-l2-darkmode-thin);border-radius:20px;background:var(--dsw-specific-input-major);box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);overflow:hidden}
-.header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-shrink:0;padding:20px 16px 0 24px}
-.title{margin:0;font-size:16px;line-height:22px;font-weight:500}
-.body{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow-y:auto}
-.options{display:flex;flex-direction:column;gap:1px;margin:8px 0 0;padding:4px 12px}
-.footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;margin-top:12px;padding:0 10px 0 18px}
-.feedback{flex:1;min-height:16px;color:var(--dsw-alias-state-error-primary);font-size:11px;line-height:16px;text-align:right}
+样式表='''#对齐 QuestionComposer.module.css 关键布局类。类名加前缀，避免盖到计划审阅卡
+.question-frame{display:flex;justify-content:center;padding:6px calc(var(--dsh-composer-side-clearance) + 16px) 10px}
+.question-card{display:flex;flex-direction:column;width:100%;max-width:var(--dsh-chat-content-width);max-height:min(60vh,520px);padding:0 0 10px;border:1px solid var(--dsw-alias-border-l2-darkmode-thin);border-radius:20px;background:var(--dsw-specific-input-major);box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);overflow:hidden}
+.question-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-shrink:0;padding:20px 16px 0 24px}
+.question-title{margin:0;font-size:16px;line-height:22px;font-weight:500}
+.question-body{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow-y:auto}
+.question-options{display:flex;flex-direction:column;gap:1px;margin:8px 0 0;padding:4px 12px}
+.question-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;margin-top:12px;padding:0 10px 0 18px}
+.question-feedback{flex:1;min-height:16px;color:var(--dsw-alias-state-error-primary);font-size:11px;line-height:16px;text-align:right}
 '''#样式表结束
+界面.add_css(样式表,shared=True)
 
 def 解析推荐标签(标签):#剥离推荐后缀但不改答案值
     '拆常规推荐后缀；返回展示标签与是否推荐'
@@ -38,6 +41,9 @@ class 提问流:#通用提问翻页流
         自身.草稿列表=[空草稿() for _ in 待答.questions]#与题目一一对应
         自身.忙碌=None#answer / cancel / None
         自身.错误=None#反馈：键或原文
+        自身.收起=False#卡片收起
+        自身.画面=None#可反复清空的容器
+        自身.画面失败=None
 
     def 当前题(自身):#当前问题
         '返回当前下标的问题'
@@ -59,17 +65,17 @@ class 提问流:#通用提问翻页流
         '用更新函数改当前草稿'
         下标=自身.下标#当前下标
         自身.草稿列表=[更新(项) if 号==下标 else 项 for 号,项 in enumerate(自身.草稿列表)]#只改当前
-        自身.错误=None错误
+        自身.错误=None
 
     def 取消(自身):#取消整组
         '以取消拒绝等待。answer/cancel 已在域面内等待'
         自身.忙碌='cancel'#闩上
-        自身.错误=None错误
+        自身.错误=None
         try:#投递
             自身.待答.cancel()#取消
         except 提问错误 as 原因:#失败
             自身.忙碌=None#重开闩
-            自身.错误={'text':str(原因)}#原文错误
+            自身.错误={'text':页面失败文案(原因)}#原文错误，不带路径、用户名或环境变量
 
     def 选择(自身,标签):#点选选项
         '单选立即前进；多选切换勾选'
@@ -94,8 +100,8 @@ class 提问流:#通用提问翻页流
         缺=None#首个未完成下标
         for 号,项 in enumerate(草稿列表):#逐条
             if not 自身.已完成(项):#未完成
-                缺=号#记下
-                break#停
+                缺=号
+                break
         if 缺 is not None:#有缺
             自身.下标=缺#跳到缺题
             自身.错误={'key':'error.incomplete'}#校验键
@@ -114,21 +120,21 @@ class 提问流:#通用提问翻页流
                 条目['custom']=自定义#带上
             答案列表.append(条目)#收下
         自身.忙碌='answer'#闩上
-        自身.错误=None错误
+        自身.错误=None
         try:#投递
             自身.待答.answer({'answers':答案列表})#整批答案
         except 提问错误 as 原因:#失败
             自身.忙碌=None#重开闩
-            自身.错误={'text':str(原因)}#原文错误
+            自身.错误={'text':页面失败文案(原因)}#原文错误，不带路径、用户名或环境变量
 
     def 继续(自身):#下一题或提交
         '未作答报错；末题提交，否则前进'
         if not 自身.已作答(自身.当前草稿()):#未作答
             自身.错误={'key':'error.unanswered'}#未作答键
-            return#停
+            return
         if 自身.下标<len(自身.待答.questions)-1:#非末题
             自身.下标+=1#前进
-            自身.错误=None错误
+            自身.错误=None
             return#已前进
         自身.提交草稿列表(自身.草稿列表)#末题提交
 
@@ -137,7 +143,7 @@ class 提问流:#通用提问翻页流
         下标=自身.下标#当前
         新草稿列表=[({'selected':[],'custom':'','skipped':True} if 号==下标 else 项) for 号,项 in enumerate(自身.草稿列表)]#当前标跳过
         自身.草稿列表=新草稿列表#写入
-        自身.错误=None错误
+        自身.错误=None
         if 自身.下标<len(自身.待答.questions)-1:#非末题
             自身.下标+=1#前进
             return#已前进
@@ -184,44 +190,125 @@ class 提问流:#通用提问翻页流
         详情=题目['detail'] if 'detail' in 题目 else None#可选详情
         反馈=自身.反馈文案()#反馈文案
         末题=自身.下标==len(自身.待答.questions)-1#是否末题
-        主按钮文案=自身.翻译('action.next') if not 末题 else 'submit'#末题用 submit 字面量（上游词典未收该键时保持调用面）
         if 自身.忙碌=='answer':#提交中
-            主按钮文案='submitting'#提交中字面量
-        眉题子=[{'type':'div','class':'eyebrow','children':[眉题]}] if 眉题 is not None else []#眉题
-        详情子=[{'type':'div','class':'detail','children':[{'type':'MarkdownText','text':详情}]}] if 详情 is not None else []#详情
-        反馈子=[反馈] if 反馈 is not None else []#反馈
-        return {#结构树
-            'type':'div','class':'frame','data-question-key':自身.待答.key,#外框
-            'children':[{#卡片
-                'type':'section','class':'card',#卡片
-                'aria-labelledby':f"question-{自身.待答.key}-{自身.下标}",#标题 id
-                'children':[#分区
-                    {'type':'header','class':'header','children':[#页眉
-                        {'type':'div','class':'headingBlock','children':眉题子+[
-                            {'type':'h2','class':'title','id':f"question-{自身.待答.key}-{自身.下标}",'children':[题目['question']]},#题干
-                        ]},#标题块结束
-                        {'type':'button','class':'iconButton','aria-label':自身.翻译('nav.cancel'),'disabled':忙碌中,'onClick':'cancel'},#关闭
-                    ]},#页眉结束
-                    {'type':'div','class':'body','data-question-scroll':True,'children':详情子+[
-                        {'type':'div','class':'options','role':'group' if 多选 else 'radiogroup','children':选项节点+[
-                            {'type':'custom','value':草稿['custom'],'hasOptions':len(选项列表)>0,'placeholder':自身.翻译('custom.placeholder'),'disabled':忙碌中},#自定义行
-                        ]},#选项区结束
-                    ]},#正文结束
-                    {'type':'footer','class':'footer','children':[#页脚
-                        {'type':'div','class':'pager','children':[#翻页
-                            {'type':'button','onClick':'prev','disabled':自身.下标==0 or 忙碌中,'aria-label':自身.翻译('nav.prev')},#上一题
-                            {'type':'span','class':'progress','children':[f"{自身.下标+1} / {len(自身.待答.questions)}"]},#进度
-                            {'type':'button','onClick':'next','disabled':末题 or 忙碌中,'aria-label':自身.翻译('nav.next')},#下一题
-                        ]},#翻页结束
-                        {'type':'div','class':'feedback','role':'status','children':反馈子},#反馈
-                        {'type':'div','class':'footerActions','children':[#动作
-                            {'type':'button','variant':'outline','disabled':忙碌中,'onClick':'skip','label':自身.翻译('action.skip')},#跳过
-                            {'type':'button','variant':'primary','disabled':忙碌中 or not 自身.已作答(草稿),'onClick':'continue','label':主按钮文案},#继续/提交
-                        ]},#动作结束
-                    ]},#页脚结束
-                ],#分区结束
-            }],#卡片结束
-        }#结构树结束
+            主按钮文案=自身.翻译('submitting')#提交中
+        elif 末题:#末题
+            主按钮文案=自身.翻译('submit')#提交
+        else:#下一题
+            主按钮文案=自身.翻译('action.next')#下一题
+        旧=getattr(自身,'画面',None)#已有容器
+        if 旧 is not None:
+            try:
+                旧.clear()
+            except Exception as 错误:#父级清掉容器后，把失败留在页面上
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('question-frame question-card')#根
+        自身.画面.clear()#再清一次
+        def 取消():
+            '取消提问'
+            自身.处理动作('cancel')#取消
+            自身.渲染()#重画
+        def 上一题():
+            '上一题'
+            自身.处理动作('prev')#后退
+            自身.渲染()#重画
+        def 下一题():
+            '下一题'
+            自身.处理动作('next')#前进
+            自身.渲染()#重画
+        def 跳过():
+            '跳过本题'
+            自身.处理动作('skip')#跳过
+            自身.渲染()#重画
+        def 继续():
+            '继续或提交'
+            自身.处理动作('continue')#继续
+            自身.渲染()#重画
+        def 改自定义(事件):
+            '写入自定义答案；同文不再重入'
+            文=事件.value if 事件.value is not None else ''#文本
+            if 文==草稿['custom']:#未变
+                return
+            自身.写自定义(文)#写入
+            自身.渲染()#重画
+        def 收起切换():
+            '收起或展开卡片'
+            自身.收起=自身.收起 is not True#翻转
+            自身.渲染()#重画
+        with 自身.画面:#根
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败)
+            with 界面.row().classes('question-header'):
+                if isinstance(眉题,str) and 眉题!='':#眉题
+                    界面.label(眉题).classes('question-title')#眉题
+                界面.label(题目['question']).classes('question-title')#题目
+            收起名=自身.翻译('nav.maximize') if 自身.收起 is True else 自身.翻译('nav.minimize')#收起文案
+            收起钮=界面.button(收起名, on_click=收起切换)#收起或展开
+            if 自身.收起 is True:#收起图标
+                图标上chevron14()#展开箭头
+            else:#展开图标
+                图标下chevron14()#收起箭头
+            if 忙碌中:#忙碌
+                收起钮.disable()#禁
+            关=界面.button(自身.翻译('nav.cancel'), on_click=取消)#取消
+            if 忙碌中:#忙碌
+                关.disable()#禁
+            if 自身.收起 is True:#收起后只留标题
+                return#不再画正文
+            if isinstance(详情,str) and 详情!='':#详情
+                界面.markdown(详情)#详情
+            for 项 in 选项节点:#各选项
+                def 点选项(动作=项['onClick']):
+                    '点选该选项后重画'
+                    自身.处理动作(动作)#选择
+                    自身.渲染()#重画
+                with 界面.row():#选项行
+                    if 项['multiSelect'] is True:#多选
+                        if 项['selected'] is True:#已勾
+                            图标勾14()#勾选标记
+                        else:#未勾
+                            界面.label('')#空勾选位
+                    else:#单选序号
+                        界面.label(str(项['index']))#序号
+                    钮=界面.button(项['label'], on_click=点选项)#标签
+                    if 项['selected'] is True:#选中
+                        钮.props('color=primary')#强调
+                    if 项['disabled'] is True:#禁用
+                        钮.disable()#禁
+                    if 项['recommended'] is True:#推荐
+                        界面.label(自身.翻译('option.recommended'))#推荐徽标
+                    if isinstance(项['description'],str) and 项['description']!='':#描述
+                        界面.label(项['description'])#描述
+            if 草稿['skipped'] is True:#已跳过
+                界面.label(自身.翻译('review.skipped'))#跳过说明
+            with 界面.row():#自定义答案
+                if 多选:#多选自定义
+                    if 草稿['custom'].strip()!='':#已填写
+                        图标勾14()#勾选标记
+                else:#单选自定义
+                    图标编辑16()#编辑图标
+                自定义=界面.textarea(value=草稿['custom'], placeholder=自身.翻译('custom.placeholder'), on_change=改自定义)#多行答案
+                if 忙碌中:#忙碌
+                    自定义.disable()#禁
+            with 界面.row():#翻页
+                上=界面.button(自身.翻译('nav.prev'), on_click=上一题)#上一题
+                界面.label(f"{自身.下标+1} / {len(自身.待答.questions)}")#进度
+                下=界面.button(自身.翻译('nav.next'), on_click=下一题)#下一题
+                if 自身.下标==0 or 忙碌中:#首题或忙碌
+                    上.disable()#禁
+                if 末题 or 忙碌中:#末题或忙碌
+                    下.disable()#禁
+            if isinstance(反馈,str) and 反馈!='':#反馈
+                界面.label(反馈).classes('question-feedback')#反馈
+            跳=界面.button(自身.翻译('action.skip'), on_click=跳过)#跳过
+            主=界面.button(主按钮文案, on_click=继续)#主按钮
+            if 忙碌中:#忙碌
+                跳.disable()#禁
+                主.disable()#禁
+            elif not 自身.已作答(草稿):#未作答
+                主.disable()#禁
 
     def 处理动作(自身,动作):#分发 UI 动作
         '把结构树上的动作名分发到流方法'
@@ -236,11 +323,11 @@ class 提问流:#通用提问翻页流
             return#已处理
         if 动作=='prev' and 自身.下标>0:#上一题
             自身.下标-=1#后退
-            自身.错误=None错误
+            自身.错误=None
             return#已处理
         if 动作=='next' and 自身.下标<len(自身.待答.questions)-1:#下一题
             自身.下标+=1#前进
-            自身.错误=None错误
+            自身.错误=None
             return#已处理
         if isinstance(动作,tuple) and len(动作)>0 and 动作[0]=='choose':#点选
             自身.选择(动作[1])#选择标签
@@ -248,45 +335,56 @@ class 提问流:#通用提问翻页流
 class 提问撰写器:#composer 接管入口
     '按计划审阅意图路由到决策卡或通用提问流'
     def __init__(自身,属性):#合成 props
-        '从匹配载体铸造域面，并按意图选面'
-        自身.属性=属性#合成 props
+        '从匹配载体铸造域面，并按意图选面。键齐才画。子面由本组件渲染，构造时不自己画'
+        自身.属性=属性 if isinstance(属性,dict) else {}#合成 props
+        自身.待答=None#域面
+        自身.翻译=None#文案
+        自身.面=None#通用流
+        自身.计划面=None#计划面
+        if 'matched' in 自身.属性 and 't' in 自身.属性:
+            自身._装面(自身.属性)
+            自身.渲染()#槽位只调用构造，键齐了就画
+
+    def _装面(自身,属性):#按载体选面
+        '铸造域面。提问流和计划卡构造时不画，由渲染调用'
         自身.待答=待答提问(属性['matched'])#域面
         自身.翻译=属性['t']#翻译
         审阅=计划审阅于(自身.待答.questions)#尝试收窄
+        槽=属性['renderSlot'] if 'renderSlot' in 属性 else None#计划动作槽
         if 审阅 is None:#通用流
             自身.面=提问流(自身.待答,自身.翻译)#通用提问流
             自身.计划面=None#无计划面
-        else:#计划审阅
-            自身.计划面=计划审阅面板(自身.待答,审阅,自身.翻译)#决策卡
-            自身.面=None#无通用流
+            return
+        自身.计划面=计划审阅面板(自身.待答,审阅,自身.翻译,槽)#决策卡
+        自身.面=None#无通用流
 
     def 更新(自身,属性):#props 变更
         '刷新 props；同载体键保留草稿面'
-        旧键=自身.待答.key#旧键
-        自身.属性=属性#新 props
-        自身.待答=待答提问(属性['matched'])#新域面
-        自身.翻译=属性['t']#新翻译
+        自身.属性=属性 if isinstance(属性,dict) else {}#新 props
+        if 'matched' not in 自身.属性 or 't' not in 自身.属性:
+            return
+        旧键=自身.待答.key if 自身.待答 is not None else None#旧键
+        自身.待答=待答提问(自身.属性['matched'])#新域面
+        自身.翻译=自身.属性['t']#新翻译
+        槽=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None#计划动作槽
         if 自身.待答.key!=旧键:#换请求
-            审阅=计划审阅于(自身.待答.questions)#再收窄
-            if 审阅 is None:#通用
-                自身.面=提问流(自身.待答,自身.翻译)#新流
-                自身.计划面=None计划
-            else:#计划
-                自身.计划面=计划审阅面板(自身.待答,审阅,自身.翻译)#新卡
-                自身.面=None通用
-            return#已换面
+            自身._装面(自身.属性)#新面仍不在构造里画
+            return
         if 自身.面 is not None:#通用流仍挂着
             自身.面.待答=自身.待答#换域面引用
             自身.面.翻译=自身.翻译#换翻译
         if 自身.计划面 is not None:#计划面仍挂着
             自身.计划面.待答=自身.待答#换域面
             自身.计划面.翻译=自身.翻译#换翻译
+            自身.计划面.渲染槽=槽#换动作槽
 
     def 渲染(自身):#当前面结构树
         '返回当前接管面的结构树'
         if 自身.计划面 is not None:#计划审阅
-            return 自身.计划面.渲染()#决策卡
-        return 自身.面.渲染()#通用流
+            自身.计划面.渲染()
+            return
+        if 自身.面 is not None:#通用流
+            自身.面.渲染()
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 组件调用；返回结构树'

@@ -47,7 +47,7 @@ def 消息开始(_上下文,匹配项,读取器):#按来源与收件箱认领分
         }#结束
     上一=读取器.previous('inbox-next-step')#收件箱
     已认领=False#默认
-    if 上一 is not None:#有
+    if 上一 is not None:
         态=上一['state'] if 'state' in 上一 and 上一['state'] is not None else {}#态
         集=态['claimed'] if 'claimed' in 态 and 态['claimed'] is not None else set()#集
         已认领=str(数据['id']) in 集#是否认领

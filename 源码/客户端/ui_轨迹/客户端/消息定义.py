@@ -106,5 +106,5 @@ def 消息构建视图(上下文):#包进轨迹信封
 
 def 登记轨迹消息定义(上下文):#登记收件箱与输入消息定义
     '登记轨迹拥有的收件箱分类与消息记录'
-    上下文.conversationEvents.register(轨迹收件箱定义)#登记收件箱定义
-    上下文.conversationEvents.register(轨迹消息定义)#登记输入消息定义
+    上下文.uiConversation.events.register(轨迹收件箱定义)#登记收件箱定义
+    上下文.uiConversation.events.register(轨迹消息定义)#登记输入消息定义

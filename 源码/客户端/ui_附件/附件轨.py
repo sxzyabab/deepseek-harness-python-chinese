@@ -1,3 +1,6 @@
+from nicegui import ui as 界面
+from .异常 import 叠页面失败
+
 __all__=['附件轨','滚轮行像素']#仅中文公开名
 
 滚轮行像素=16#LINE 模式每步近似像素
@@ -14,6 +17,7 @@ class 附件轨:#水平缩略图轨
         自身.左缘=False#尚未几何时无左箭
         自身.右缘=False#尚未几何时无右箭
         自身.存活=True#存活
+        自身.画面失败=None
 
     def 更新(自身,属性):#props 变更
         '条数增长时滚到末尾'
@@ -96,8 +100,59 @@ class 附件轨:#水平缩略图轨
         if 回调 is not None:#有
             回调(项)#移除
 
+    def 渲染(自身):
+        '左右翻页与缩略图、移除'
+        视=自身.视图()
+        旧=getattr(自身,'根',None)
+        if 旧 is not None:
+            try:
+                旧.clear()
+            except Exception as 错误:
+                自身.根=None
+                自身.画面失败=叠页面失败(自身.画面失败,错误)
+        if getattr(自身,'根',None) is None:
+            自身.根=界面.row().classes('attachment-rail')
+        条目表=自身.属性['items'] if 'items' in 自身.属性 and 自身.属性['items'] is not None else []
+        画项=自身.属性['renderItem'] if 'renderItem' in 自身.属性 else None
+        with 自身.根:
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败)
+            组名=视['group']
+            if isinstance(组名,str) and 组名!='':
+                界面.label(组名).style('position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)')
+            if 视['showLeft'] is True and isinstance(视['scrollLeft'],str) and 视['scrollLeft']!='':
+                def 点左():
+                    '向左翻页'
+                    自身.翻页(-1)
+                    自身.渲染()
+                界面.button(视['scrollLeft'],on_click=点左).props('flat no-caps')
+            for 下标,项视 in enumerate(视['items']):
+                原项=条目表[下标] if 下标<len(条目表) else 项视
+                if callable(画项):
+                    画项(原项 if isinstance(原项,dict) else 项视)
+                    continue
+                if isinstance(项视['previewUrl'],str) and 项视['previewUrl']!='':
+                    图=界面.image(项视['previewUrl'])
+                    def 点开(_事件=None,项=原项):
+                        '打开原图'
+                        自身.打开(项)
+                    图.on('click',点开)
+                elif isinstance(项视['alt'],str) and 项视['alt']!='':
+                    界面.label(项视['alt'])
+                if isinstance(项视['removeLabel'],str) and 项视['removeLabel']!='':
+                    def 点除(_事件=None,项=原项):
+                        '移除这条附件'
+                        自身.移除(项)
+                    界面.button(项视['removeLabel'],on_click=点除).props('flat no-caps')
+            if 视['showRight'] is True and isinstance(视['scrollRight'],str) and 视['scrollRight']!='':
+                def 点右():
+                    '向右翻页'
+                    自身.翻页(1)
+                    自身.渲染()
+                界面.button(视['scrollRight'],on_click=点右).props('flat no-caps')
+
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 组件调用'
         if 属性 is not None:#有新 props
             自身.更新(属性)#刷新
-        return 自身.视图()#视图
+        return 自身.渲染()

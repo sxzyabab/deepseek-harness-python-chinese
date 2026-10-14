@@ -2,6 +2,7 @@
 
 import json
 import weakref
+from .格式 import 失败说明
 
 __all__=['检查器json']
 
@@ -86,4 +87,4 @@ def 检查器json(值=未定义):
     try:
         return {'text':检查器json写入器().写入(值),'failed':False}
     except Exception as 错误:
-        return {'text':str(错误),'failed':True}
+        return {'text':失败说明(错误),'failed':True}

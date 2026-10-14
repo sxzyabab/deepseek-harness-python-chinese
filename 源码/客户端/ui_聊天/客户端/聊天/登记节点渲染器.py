@@ -1,5 +1,5 @@
 from ..文案 import 命名空间#NS
-from .消息项 import 用户消息行,模型重试行,回合错行,回合顶格行#消息行
+from .消息项 import 用户消息行,模型重试行,回合错行,回合顶格行,打开列#消息行
 from .压缩项 import 压缩项#压缩
 from .上下文注入行 import 上下文注入行#上下文
 from .系统提示行 import 系统提示行#系统提示
@@ -11,6 +11,12 @@ from .回合触发 import 回合触发详情
 
 __all__=['登记聊天节点渲染器','未知节点视图','上下文消息节点视图','压缩节点视图','重试节点视图','回合错误节点视图','回合满令牌节点视图','系统提示节点视图','回合触发节点视图']
 
+import json
+from nicegui import ui as 界面
+
+import json
+from nicegui import ui as 界面
+
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
     return 键#键即文案
@@ -21,6 +27,8 @@ class 上下文消息节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=上下文注入行()#行
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -32,13 +40,16 @@ class 上下文消息节点视图:
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点#数据
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        return 自身.行({'content':数据['content'] if 'content' in 数据 else None,'source':数据['source'] if 'source' in 数据 else None,'provenance':数据['provenance'] if 'provenance' in 数据 else None,'form':数据['form'] if 'form' in 数据 else None,'t':翻译})#渲
+        with 打开列(自身,'上下文消息'):
+            with 界面.column().classes('上下文体'):
+                自身.行.更新({'content':数据['content'] if 'content' in 数据 else None,'source':数据['source'] if 'source' in 数据 else None,'provenance':数据['provenance'] if 'provenance' in 数据 else None,'form':数据['form'] if 'form' in 数据 else None,'t':翻译})
+                自身.行.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 系统提示节点视图:
     '委托系统提示行'
@@ -46,6 +57,8 @@ class 系统提示节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=系统提示行()#行
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -53,13 +66,16 @@ class 系统提示节点视图:
 
     def 渲染(自身):
         '系统提示'
-        return 自身.行(自身.属性)#渲
+        with 打开列(自身,'系统提示节点'):
+            with 界面.column().classes('系统提示体'):
+                自身.行.更新(自身.属性)
+                自身.行.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 压缩节点视图:
     '复用压缩项'
@@ -67,6 +83,8 @@ class 压缩节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.项=压缩项()#项
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -78,13 +96,16 @@ class 压缩节点视图:
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点#数据
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        return 自身.项({'node':数据,'t':翻译})#渲
+        with 打开列(自身,'压缩节点'):
+            with 界面.column().classes('压缩体'):
+                自身.项.更新({'node':数据,'t':翻译})
+                自身.项.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 重试节点视图:
     '当前环'
@@ -92,6 +113,8 @@ class 重试节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=模型重试行()#行
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -105,13 +128,16 @@ class 重试节点视图:
         当前=数据['current'] if 'current' in 数据 and 数据['current'] is not None else 数据#当前
         态=当前['retryState'] if 'retryState' in 当前 else None#态
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        return 自身.行({'node':当前,'active':态=='scheduled','t':翻译})#渲
+        with 打开列(自身,'重试节点'):
+            with 界面.column().classes('重试体'):
+                自身.行.更新({'node':当前,'active':态=='scheduled','t':翻译})
+                自身.行.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 回合错误节点视图:
     '错误行'
@@ -119,6 +145,8 @@ class 回合错误节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=回合错行()#行
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -130,13 +158,16 @@ class 回合错误节点视图:
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点#数据
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        return 自身.行({'node':数据,'t':翻译})#渲
+        with 打开列(自身,'回合错误'):
+            with 界面.column().classes('错误体'):
+                自身.行.更新({'node':数据,'t':翻译})
+                自身.行.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 回合满令牌节点视图:
     '满令牌'
@@ -144,6 +175,8 @@ class 回合满令牌节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.行=回合顶格行()#行
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -152,19 +185,24 @@ class 回合满令牌节点视图:
     def 渲染(自身):
         '顶格'
         翻译=自身.属性['t'] if 't' in 自身.属性 else 恒等翻译#文案
-        return 自身.行({'t':翻译})#渲
+        with 打开列(自身,'回合满令牌'):
+            with 界面.column().classes('满令牌体'):
+                自身.行.更新({'t':翻译})
+                自身.行.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 未知节点视图:
     'JSON 回退'
     def __init__(自身,属性=None):
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -178,19 +216,29 @@ class 未知节点视图:
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else {}#数据
         载荷=数据['data'] if 'data' in 数据 else 数据#载荷
         面种=数据['type'] if 'type' in 数据 else (节点['kind'] if 'kind' in 节点 else None)#种
-        return {'type':'unknown-node','label':翻译('message.unknownSurface',{'type':面种}),'payload':载荷,'cssModule':'消息项.module.css'}#视图
+        with 打开列(自身,'未知节点'):
+            界面.label(翻译('message.unknownSurface',{'type':面种}))
+            if 载荷 is None:
+                return
+            try:
+                原文=json.dumps(载荷,ensure_ascii=False,indent=2)
+            except TypeError:
+                原文=str(载荷)
+            界面.code(原文).classes('载荷')
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 回合触发节点视图:
     '非人类回合唤醒通知'
     def __init__(自身,属性=None):
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -203,21 +251,32 @@ class 回合触发节点视图:
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点
         详情=回合触发详情(数据)
-        return {
-            'type':'turn-trigger',
-            'title':翻译(详情['title']),
-            'icon':详情['icon'],
-            'explanation':翻译('message.trigger.explanation'),
-            'content':数据['content'] if 'content' in 数据 else None,
-            'source':数据['source'] if 'source' in 数据 else None,
-            'time':数据['time'] if 'time' in 数据 else None,
-        }
+        内容=数据['content'] if 'content' in 数据 else None
+        时刻=数据['time'] if 'time' in 数据 else None
+        with 打开列(自身,'回合触发'):
+            with 界面.row().classes('触发头'):
+                界面.label(详情['icon']).classes('图标')
+                界面.label(翻译(详情['title'])).classes('标题')
+            if 时刻 is not None:
+                界面.label(str(时刻))
+            if isinstance(内容,str):
+                if 内容=='':
+                    界面.label('')
+                else:
+                    界面.label(内容).style('white-space:pre-wrap')
+            elif isinstance(内容,list):
+                for 块 in 内容:
+                    if isinstance(块,dict) and 'text' in 块 and isinstance(块['text'],str):
+                        if 块['text']=='':
+                            界面.label('')
+                        else:
+                            界面.label(块['text']).style('white-space:pre-wrap')
 
     def __call__(自身,属性=None):
         '对齐'
         if 属性 is not None:
             自身.更新(属性)
-        return 自身.渲染()
+        自身.渲染()
 
 def 登记聊天节点渲染器(上下文,性能用量=None,呈现=None):
     'inject 各 kind，含命令子席与回合尾列表/动作席'

@@ -77,9 +77,9 @@ def 展示失败文案(失败):#把失败对象收成展示文案
     if not isinstance(失败,dict):#非载荷
         return str(失败)#兜底
     文=失败['message'] if 'message' in 失败 else None#文案
-    if 文 is not None and str(文)!='':#有
+    if 文 is not None and str(文)!='':
         return str(文)#文
     码=失败['code'] if 'code' in 失败 else None#码
-    if 码 is not None and str(码)!='':#有
+    if 码 is not None and str(码)!='':
         return str(码)#码
     return str(失败)#兜底

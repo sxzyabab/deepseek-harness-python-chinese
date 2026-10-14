@@ -1,3 +1,5 @@
+from .异常 import 去掉绝对路径#说明去路径
+
 __all__=[
     '上下文动词','定时器动词','槽账本行字段','门面环境字段','业务视图槽名','业务视图自键',
     '拒绝门面','是否上下文返回','拒绝上下文返回','拒绝未声明读取','规范化槽登记选项',
@@ -29,8 +31,11 @@ def 是否上下文返回(值,上下文类=None):#是否 cordis Context
     return isinstance(值,上下文类)#精确
 
 def 拒绝门面(环境,消息):#报告并抛
-    '先报告再抛同一份错误'
-    错误=Exception(消息)#同一份
+    '先报告再抛同一份错误。说明去掉绝对路径'
+    干净=去掉绝对路径(消息)#去路径
+    if 干净=='':#掏空
+        干净='guard rejected'#兜底
+    错误=Exception(干净)#同一份
     报告=环境.get('reportFailure') if isinstance(环境,dict) else getattr(环境,'reportFailure',None)#报告
     if callable(报告):#有
         报告(错误)#先报告

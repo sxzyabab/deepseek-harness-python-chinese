@@ -223,9 +223,12 @@ def 核对目录与贡献():#目录方法数与贡献描述符数对齐
     出=[]#结果
     for 项 in 所选远程目录:#逐包
         贡献=项['contribution']#贡献
-        描述符列表=贡献.get('descriptors') if isinstance(贡献,dict) else getattr(贡献,'descriptors',None)#描述符
-        if 描述符列表 is None and isinstance(贡献,dict):#可能嵌套
-            描述符列表=贡献.get('descriptors') or []#缺省空
-        数=len(描述符列表) if 描述符列表 is not None else 0#描述符数
+        if isinstance(贡献,dict):
+            描述符列表=贡献['descriptors'] if 'descriptors' in 贡献 else None#描述符
+        else:
+            描述符列表=getattr(贡献,'descriptors',None)#描述符
+        if 描述符列表 is None:
+            描述符列表=[]#缺席才用空表；空列表本身是合法描述符表
+        数=len(描述符列表)#描述符数
         出.append((项['package'],len(项['methods']),数))#一行
     return 出#事实表

@@ -67,7 +67,7 @@ def 根结果(匹配项,先前=None):#从 tool/result 建根结果节点
 def 位置回合(匹配项):#从匹配位置读回合号
     '步骤或回合位置才有'
     位=匹配项['location'] if 'location' in 匹配项 and 匹配项['location'] is not None else {}#位置
-    if 'kind' in 位 and 位['kind'] in ('step','turn'):#有
+    if 'kind' in 位 and 位['kind'] in ('step','turn'):
         回合=位['turn'] if 'turn' in 位 else None#回合
         return 回合['turn'] if 回合 is not None and 'turn' in 回合 else 0#回合
     return 0#无
@@ -150,8 +150,8 @@ def 折分发(态,匹配项):#把代码分发事件折进子树
     下标=-1#是否已有
     for 甲,候 in enumerate(兄弟):#扫
         if 'callId' in 候 and 候['callId']==子标识:#命中
-            下标=甲#记下
-            break#停
+            下标=甲
+            break
     if 种=='tool/ptc-dispatch-start':#分发起始
         if 下标>=0 or not 接受边({'children':子表,'parents':父表},父标识,子标识):#已存在或非法
             return 态#不改
@@ -234,8 +234,8 @@ def 回放工具(上下文):#无增量时从匹配重放
     根匹配=None#根结果
     for 候 in 匹配列表:#扫
         if 候['event']['type']=='tool/result':#命中
-            根匹配=候#记下
-            break#停
+            根匹配=候
+            break
     根=根结果(根匹配) if 根匹配 is not None else None#建成
     if 根 is None:#无
         return None#无法回放
@@ -249,7 +249,7 @@ def 工具匹配(事件):#按事件认领本根调用
     种=事件['type']#种
     数据=事件['data'] if 'data' in 事件 else {}#载荷
     if 种=='tool/call':#调用开始
-        return {'id':str(数据['callId']),'role':'start'}#开
+        return {'id':str(数据['callId']),'role':'start'}
     if 种=='tool/result' and 是追加面事件(事件):#追加面结果
         消息=数据['message'] if 'message' in 数据 else None#消息
         来源=消息['source'] if 消息 is not None and 'source' in 消息 else None#来源

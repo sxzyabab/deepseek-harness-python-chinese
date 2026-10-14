@@ -205,7 +205,7 @@ class Debugger域会话:#Debugger域会话
         '转发原生 Debugger 方法'
         try:#校验路由
             不支持=自身._不支持路由(请求['params'])#不支持原因
-            if 不支持 is not None:#有
+            if 不支持 is not None:
                 raise 检查器错误(不支持)#抛错
             参数=自身.运行时.原生参数(请求['params'])#本地化参数
         except Exception as 错误:#原生参数本地化可能抛检查器错误/KeyError，契约未定所以收不窄
@@ -254,10 +254,10 @@ class Debugger域会话:#Debugger域会话
             return#返回
         会话=事件['session']#会话
         源拆=自身._源拆除器.pop(会话.descriptor.realmId,None)#拆源
-        if 源拆 is not None:#有
+        if 源拆 is not None:
             源拆()#回调
         调拆=自身._调试拆除器.pop(会话.descriptor.realmId,None)#拆调试
-        if 调拆 is not None:#有
+        if 调拆 is not None:
             调拆()#回调
         for 帧id,所有者 in list(自身._调用帧realms.items()):#扫帧
             if 所有者 is 会话:#同会话

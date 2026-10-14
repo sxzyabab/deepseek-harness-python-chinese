@@ -85,7 +85,11 @@ def web启动(*,host:str,#绑定地址，拒绝0.0.0.0
     port:int,#端口，须为数字；0表示系统分配
     trusted_host:str=None,#信任的authority；官方可重复，这里只能收一个
     ):
-    ...#应用插件解析，不是启动器
+    '在调用本函数的进程里打开网页。打开页面直接执行 ui.run，不再另起子进程。'
+    from .源码.客户端.ui_布局.应用帧 import 打开页面
+    if host=='0.0.0.0':
+        报错('错误：网页只监听本机')
+    打开页面(主机=host, 端口=port)
 
 def 无头启动(*task:str):#任务词，空格拼接；全空白是用法错误
     ...#应用插件解析，不是启动器
@@ -317,6 +321,32 @@ def 解析dsh命令行参数(参数列表,版本)->启动信息:
         )
 
 def main():
+    'web 子命令打开本机页面；其他入口仍未完成'
+    令牌=sys.argv[1:]
+    if len(令牌)>0 and 令牌[0]=='web':
+        主机='127.0.0.1'#缺省只听本机
+        端口=8080#缺省端口
+        下标=1
+        while 下标<len(令牌):
+            当前=令牌[下标]
+            if 当前 in ('-h','--help'):
+                sys.stdout.write('用法: pydsh web [--host 127.0.0.1] [--port 8080]\n')
+                return
+            if 当前=='--host' or 当前.startswith('--host='):
+                内联=当前.split('=',1)[1] if 当前.startswith('--host=') else None
+                主机,下标=吃带值('--host',内联,下标,令牌,'错误：缺少 --host 的值')
+                continue
+            if 当前=='--port' or 当前.startswith('--port='):
+                内联=当前.split('=',1)[1] if 当前.startswith('--port=') else None
+                端口文本,下标=吃带值('--port',内联,下标,令牌,'错误：缺少 --port 的值')
+                try:
+                    端口=int(端口文本)
+                except ValueError:
+                    报错('错误：端口必须是整数')
+                continue
+            报错('错误：无法识别的 web 参数')
+        web启动(host=主机, port=端口)
+        return
     raise SystemExit('尚未完成,请勿使用')
     调用=解析dsh命令行参数(sys.argv[1:],读版本())
     模式=调用['mode']
@@ -329,3 +359,6 @@ def main():
         跑转储(调用['profile'],调用['defaultOnly'],调用['patches'])
         return
     raise SystemExit('dsh: unhandled invocation mode '+json.dumps(调用,ensure_ascii=False))
+
+if __name__ in {'__main__','__mp_main__'}:
+    main()

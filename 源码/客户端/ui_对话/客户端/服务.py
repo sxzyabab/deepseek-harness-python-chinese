@@ -3,7 +3,7 @@ from ....依赖.cordis.服务 import 服务#服务基类
 from ....依赖.工具 import 二进制#base64 编解码
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....基础设施.通用工具 import 构造dataurl
-from ..异常 import 对话错误,不支持图片媒体类型#本包异常
+from ..异常 import 对话错误,不支持图片媒体类型,页面失败文案
 
 __all__=['不支持图片媒体类型','对话错误','会话控制器','图片媒体类型','字节转base64']#仅中文公开名
 
@@ -190,10 +190,12 @@ class 会话控制器(服务):
                 if 网址 in 自身.已创建网址:
                     自身.已创建网址.discard(网址)#去掉
                     收回预览(网址)#收回
-            def 忽略释放失败(_错误):
-                '无网址'
-                return
-            进行中.然后(收回,忽略释放失败)#取 URL
+            def 释放失败(错误):
+                '收回预览网址失败时抛出。'
+                if isinstance(错误,BaseException):
+                    raise 对话错误(页面失败文案(错误)) from 错误
+                raise 对话错误(页面失败文案(错误))
+            进行中.然后(收回,释放失败)
 
     def updateQueue(自身,条目标识,动作):
         '严格转向竞态可收敛为成功。动作为本包 dict。返回期约'

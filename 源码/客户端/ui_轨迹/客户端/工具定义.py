@@ -301,4 +301,4 @@ def 工具构建视图(上下文):#把调用树投影成轨迹视图节点
 
 def 登记轨迹工具定义(上下文):#向会话事件登记根工具 Definition
     '登记轨迹根工具生命周期 Definition'
-    上下文.conversationEvents.register(轨迹工具定义)#登记根工具生命周期
+    上下文.uiConversation.events.register(轨迹工具定义)#登记到轨迹目标

@@ -128,8 +128,8 @@ def 应用(上下文):#安装模型选择浏览器半边
                     if 可用:#可用
                         try:#拉
                             目录.load()#加载
-                        except 模型选择错误:#失败反映在 store
-                            pass
+                        except 模型选择错误:#目录快照已带上失败，随后重画展示
+                            return
                 def 选定(选):#提交选定
                     '可用才提交；成功 True'
                     if not 可用:#不可用
@@ -137,7 +137,7 @@ def 应用(上下文):#安装模型选择浏览器半边
                     try:#提交
                         目录.select(选)#选
                         return True#成功
-                    except 模型选择错误:#失败
+                    except 模型选择错误:#目录快照已带上失败，返回 false 后吐司展示
                         return False#失败
                 return {'available':可用,'directory':目录.存储,'load':加载,'select':选定}#注入面
             return 作用域.slots.register({#登记

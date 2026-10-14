@@ -41,7 +41,7 @@ def 从元素取右侧侧栏目标(元素,会话标识,布局,出现次):
     修订=None#导航修订
     if 持有 is not None:#有出现次
         导航=持有['navigation'] if isinstance(持有,dict) and 'navigation' in 持有 else getattr(持有,'navigation',None)#导航
-        if 导航 is not None:#有
+        if 导航 is not None:
             修订=导航.getSnapshot()['revision']#修订号
     return {#目标
         'sessionId':会话标识,#会话
@@ -91,7 +91,7 @@ def 观察侧栏焦点(文档):
         if 焦 is None or 焦['element'].isConnected:#仍连通
             return#止
         先前=焦#先前
-        已焦[0]=None#清
+        已焦[0]=None
         移除.disconnect()#停观察
         if 文档.activeElement is not 文档.body:#焦点不在 body
             return#止
@@ -105,13 +105,13 @@ def 观察侧栏焦点(文档):
         if 挪到 is not None:#有新窗
             新窗标识=getattr(挪到.dataset,'dockkitPane',None) or getattr(挪到.dataset,'dockkitFloat',None)#id
         目标窗=可见侧栏窗格(文档,先前['sessionId'],新窗标识 if 新窗标识 is not None else 先前['paneId'])#可见窗
-        if 目标窗 is not None:#有
+        if 目标窗 is not None:
             目标窗.focus({'preventScroll':True})#聚焦
     移除=变动观察(移除回调)#移除观察
     def 捕获(_事件=None):
         '记下当前焦点归属并观察拥有方移除'
         移除.disconnect()#先停
-        已焦[0]=None#清
+        已焦[0]=None
         元素=文档.activeElement#焦点
         if 元素 is None:#无
             return#止
@@ -131,7 +131,7 @@ def 观察侧栏焦点(文档):
         标记=元素.closest('[data-sidebar-right-occurrence]')#本元素标记
         if 标记 is None and 签 is not None:#签内找
             标记=签.querySelector('[data-sidebar-right-occurrence]')#签内
-        已焦[0]={#记下
+        已焦[0]={
             'element':元素,#元素
             'sessionId':会话标识,#会话
             'paneId':窗格标识,#窗格
@@ -145,21 +145,21 @@ def 观察侧栏焦点(文档):
         '相关目标空且原元素仍连通则清跟踪'
         焦=已焦[0]#当前
         if 事件.relatedTarget is None and 焦 is not None and 焦['element'].isConnected:#丢焦点
-            已焦[0]=None#清
-            移除.disconnect()#停
+            已焦[0]=None
+            移除.disconnect()
     def 指针按下(事件):
         '点击窗格空白时把焦点落到窗格'
         元素=None#命中元素
         for 值 in 事件.composedPath():#路径
             if isinstance(值,元素类型):#元素
-                元素=值#记下
+                元素=值
                 break#止
         if 元素 is None:#无
             return#止
         窗=元素.closest('[data-sidebar-right-session] [data-dockkit-pane], [data-sidebar-right-session] [data-dockkit-float]')#窗
         if 窗 is None:#点在域外
-            已焦[0]=None#清
-            移除.disconnect()#停
+            已焦[0]=None
+            移除.disconnect()
         控件=元素.closest('button, input, textarea, select, a, [contenteditable], [tabindex], iframe')#控件
         if 窗 is not None and (控件 is None or 控件 is 窗):#空白点窗
             窗.focus({'preventScroll':True})#聚焦窗
@@ -174,13 +174,13 @@ def 观察侧栏焦点(文档):
     文档.addEventListener('focusout',焦点离开)#焦点出
     文档.addEventListener('pointerdown',指针按下,True)#指针捕获
     视窗=文档.defaultView#窗口
-    if 视窗 is not None:#有
+    if 视窗 is not None:
         视窗.addEventListener('blur',失焦)#窗失焦
         视窗.addEventListener('focus',捕获)#窗获焦
     捕获()#初捕
     def 拆除():
         '卸全部监听与观察'
-        活跃[0]=False#停
+        活跃[0]=False
         移除.disconnect()#停观察
         文档.removeEventListener('focusin',捕获)#卸
         文档.removeEventListener('focusout',焦点离开)#卸

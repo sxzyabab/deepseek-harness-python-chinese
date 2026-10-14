@@ -1,20 +1,23 @@
 '经授权 Host 渲染与既有 PDF 正文支撑的 Office 预览登记'
 from ..文档.标签寿命 import 保留文档标签#标签寿命
 from ..远程过程调用 import 文档文件字节#文档字节
-from ..失败行 import 失败行#失败行
+from ...异常 import 去掉敏感
+from ..失败行 import 失败行
 from ..文档.约定 import 文档标签信息工厂#文档标签信息
 from .文案 import 中文,英文#文案
 from .缓存 import Office预览缓存#缓存
 from .存储 import 创建Office存储#存储
 from .面 import office面#读取面
-from ..pdf import 应用 as 登记pdf呈现#PDF 呈现登记占位
+from ..pdf import pdf体登记#PDF 存储与注入
+from ..pdf.pdf体 import pdf面板#Office 共用的 PDF 正文
+from .Office正文 import 办公正文
+from .字体提示 import 字体动作
 from . import (
     Office正文,
     字体提示,
 )
 
-__all__=['应用','转换错误键']#仅中文公开名
-
+__all__=['应用','转换错误键']
 扩展名=['doc','docx','ppt','pptx']#扩展名
 实现键='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/office'#实现键
 
@@ -67,13 +70,14 @@ def 应用(上下文,配置):
         '本地化失败'
         if isinstance(失败信息,dict) and 'code' in 失败信息:#远程失败
             return 失败行(文档翻译,失败信息)#失败行
-        return 文档翻译('error.unavailable',{'message':失败信息.get('message') if isinstance(失败信息,dict) else str(失败信息)})#通用
+        原文=失败信息.get('message') if isinstance(失败信息,dict) else str(失败信息)
+        return 文档翻译('error.unavailable',{'message':去掉敏感(原文)})
     面=office面(lambda 文件,信号:当前读[0](文件,信号),描述失败)
     def 登记动作():
         '挂缺字体动作'
         return 上下文.slots.inject('sidebar.right.tab.document.action',lambda:上下文.slots.register({
             'name':'sidebar.right.tab.document.action','key':实现键,'locale':'sidebarOffice','store':存储,
-        },'OfficeFontAction'))
+        },字体动作))
     上下文.副作用(登记动作)
     def 注入(会话标识,动作):
         '正文注入'
@@ -95,9 +99,21 @@ def 应用(上下文,配置):
                 'inject':{'hooks':{'tabInfo':文档标签信息工厂}},
             }},
             'inject':注入,#注入
-        },'OfficeBody'))#组件名占位
+        },办公正文))#正文
     上下文.副作用(登记正文)#寿命
-    登记pdf呈现(上下文)#PDF 子呈现
+    def 登记pdf槽():
+        '把既有 PDF 正文挂进 Office 自己的子槽，不另造产品回退'
+        呈现=pdf体登记(上下文)
+        def 登记():
+            '登记 office 实现键下的 PDF 页'
+            return 上下文.slots.register({
+                'name':'sidebar.right.tab.document.office.pdf',
+                'key':实现键,
+                'locale':'sidebarPdf',
+                **呈现,
+            },pdf面板)
+        return 上下文.slots.inject('sidebar.right.tab.document.office.pdf',登记)
+    上下文.副作用(登记pdf槽)#PDF 子槽寿命
     配置#缓存上限供 Host 注入使用
     Office预览缓存#缓存类型可被 Host 注入构造
     文档文件字节#字节转换可用

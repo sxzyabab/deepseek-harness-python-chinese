@@ -30,7 +30,7 @@ def _是否记录(值):#对象且非列表
 
 def _路径值(值):#非空白路径
     '保留工具收到的精确拼写'
-    return 值 if isinstance(值,str) and len(值.strip())>0 else None#有效
+    return 值 if isinstance(值,str) and len(值.strip())>0 else None
 
 def _合法编辑参数(参数):#edit 字段
     'old/new 字符串且不同'
@@ -96,7 +96,7 @@ def 收口产出(数据,序号=None):#读一个回合收口时应列出的产出
             continue#跳过
         if 路径 in 已见:#已见
             continue#跳过
-        已见.add(路径)#记下
+        已见.add(路径)
         路径表.append(路径)#追加
     return 路径表#路径
 
@@ -176,7 +176,7 @@ def 更新(上下文,匹配结果):#按调用与结果累积产出路径
     类型=事件['type']#类型
     if 类型=='workspace/changes':#改动公告
         新状态=dict(状态)#拷贝
-        新状态['changes']={'seq':事件['seq']}#记下序号
+        新状态['changes']={'seq':事件['seq']}
         return 新状态#返回
     if 类型=='deliverables/presented':#已呈现交付
         数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
@@ -200,7 +200,7 @@ def 更新(上下文,匹配结果):#按调用与结果累积产出路径
         数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
         名=数据['name'] if 'name' in 数据 else ''#名
         参数=数据['arguments'] if 'arguments' in 数据 else ''#参数
-        调用表[str(数据['callId'] if 'callId' in 数据 else None)]=_变更路径(名,参数)#记下路径
+        调用表[str(数据['callId'] if 'callId' in 数据 else None)]=_变更路径(名,参数)
         新状态=dict(状态)#拷贝
         新状态['calls']=调用表#写回
         return 新状态#返回
@@ -230,9 +230,9 @@ def 建位置数据(上下文,范围,先前=None):#写回合位置数据
     if 范围!='turn' or 状态 is None:#不写
         return None#null
     值={'produced':状态['produced'] if 'produced' in 状态 else None}#已累积产出
-    if 'presented' in 状态 and 状态['presented'] is not None:#有已呈现
+    if 'presented' in 状态 and 状态['presented'] is not None:
         值['presented']=状态['presented']#已呈现
-    if 'changes' in 状态 and 状态['changes'] is not None:#有改动
+    if 'changes' in 状态 and 状态['changes'] is not None:
         值['changes']=状态['changes']#改动
     if (先前 is not None and 'kind' in 先前 and 先前['kind']=='turn'
         and (先前['turn'] if 'turn' in 先前 else None)==(状态['turn'] if 'turn' in 状态 else None)

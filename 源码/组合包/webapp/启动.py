@@ -13,12 +13,14 @@ def 网页命令():
         .name('dsh --profile web')
         .description('提供 DeepSeek Harness 浏览器界面。')
         .helpOption('-h, --help','显示此帮助')
-        .option('--host <host>','绑定主机')
+        .option('--host <host>','绑定主机；只接受本机回环')
+        .option('--no-open','不在默认浏览器中打开网页')
         .option('--port <port>','监听端口；传 0 由操作系统选空闲端口')
         .option('--trusted-host <authority...>','/api 浏览器信任围栏额外接受的权威（主机或 主机:端口；可重复）')
         .addHelpText('after','''
 示例:
   dsh --profile web                          按组合后的主机与端口提供服务
+  dsh --profile web --no-open                提供服务但不打开浏览器
   dsh --profile web --port 8080              使用另一端口
 ''')
     )
@@ -32,13 +34,14 @@ def 应用(上下文):
         """
         选项=程序.opts()
         主机=选项['host'] if 'host' in 选项 else None
-        if 主机=='0.0.0.0':
-            程序.error('error: 出于安全故意暂不支持 --host 0.0.0.0：会把远程代码执行暴露到网络；请改用 127.0.0.1')
+        if 主机 is not None and 主机!='127.0.0.1':
+            程序.error('error: --host '+主机+' 不可用：网页只监听本机 127.0.0.1')
         端口=选项['port'] if 'port' in 选项 else None
         if 端口 is not None and not str(端口).isdigit():
             程序.error('error: --port 必须是数字，实际为 '+repr(端口))
         受信=选项['trustedHost'] if 'trustedHost' in 选项 else []
-        载荷={'trustedHosts':list(受信)}
+        开浏览器=选项['noOpen'] is not True if 'noOpen' in 选项 else True
+        载荷={'trustedHosts':list(受信),'openBrowser':开浏览器}
         if 主机 is not None:
             载荷['host']=主机
         if 端口 is not None:

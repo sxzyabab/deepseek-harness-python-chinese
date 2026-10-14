@@ -1,4 +1,6 @@
 
+from .异常 import 页面失败文案
+
 __all__=['创建目标激活源']#仅中文公开名
 
 def _同快照(左,右):
@@ -54,7 +56,14 @@ def 创建目标激活源(依赖):
         本读=读取代次#记下
         起始事件=事件代次#起始事件代
         起始投影=投影代次#起始投影代
-        结果=依赖['getGoal']()#同步读目标
+        try:
+            结果=依赖['getGoal']()
+            if hasattr(结果,'等待') and callable(结果.等待):
+                结果=结果.等待()
+        except Exception as 原因:
+            # 权威读失败不改快照。先剥路径，避免异常文本带出本机位置。
+            页面失败文案(原因)
+            return
         if 本读!=读取代次 or 起始事件!=事件代次 or 起始投影!=投影代次:#过期
             return#丢弃
         if not isinstance(结果,dict) or ('ok' not in 结果) or 结果['ok'] is not True:#失败忽略

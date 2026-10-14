@@ -1,45 +1,49 @@
-__all__=['命名空间','中文','英文']#仅中文公开名
+from .频率文案 import 频率中文,频率英文
 
-命名空间='schedule.catalog'#locale 命名空间
+__all__=['命名空间','中文','英文']
 
-中文={#简体中文词典（键集合真源）
-    'trigger.one':'{count} 个提醒',#单数触发标签
-    'trigger.other':'{count} 个提醒',#复数触发标签
-    'list.aria':'活动提醒',#目录无障碍标签
-    'status.scheduled':'等待中',#未逾期状态
-    'status.overdue':'已逾期',#逾期状态
-    'frequency.once':'单次',#一次性频率
-    'frequency.every':'{value}{unit}一次',#重复频率
-    'unit.day.one':'天',#天单数
-    'unit.day.other':'天',#天复数
-    'unit.hour.one':'小时',#小时单数
-    'unit.hour.other':'小时',#小时复数
-    'unit.minute.one':'分钟',#分钟单数
-    'unit.minute.other':'分钟',#分钟复数
-    'unit.second.one':'秒',#秒单数
-    'unit.second.other':'秒',#秒复数
-    'relative.now':'现在到期',#恰到期
-    'relative.future':'{value}{unit}后',#未来相对
-    'relative.overdue':'已逾期 {value}{unit}',#逾期相对
-}#中文结束
+命名空间='schedule.catalog'
 
-英文={#英文词典，键与中文真源一致
-    'trigger.one':'{count} reminder',#单数触发标签
-    'trigger.other':'{count} reminders',#复数触发标签
-    'list.aria':'Active reminders',#目录无障碍标签
-    'status.scheduled':'Scheduled',#未逾期状态
-    'status.overdue':'Overdue',#逾期状态
-    'frequency.once':'Once',#一次性频率
-    'frequency.every':'Every {value} {unit}',#重复频率
-    'unit.day.one':'day',#天单数
-    'unit.day.other':'days',#天复数
-    'unit.hour.one':'hour',#小时单数
-    'unit.hour.other':'hours',#小时复数
-    'unit.minute.one':'minute',#分钟单数
-    'unit.minute.other':'minutes',#分钟复数
-    'unit.second.one':'second',#秒单数
-    'unit.second.other':'seconds',#秒复数
-    'relative.now':'Due now',#恰到期
-    'relative.future':'in {value} {unit}',#未来相对
-    'relative.overdue':'{value} {unit} overdue',#逾期相对
-}#英文结束
+中文={
+    **频率中文,
+    'trigger.label':'提醒',
+    'trigger.one':'{count} 个提醒',
+    'trigger.other':'{count} 个提醒',
+    'list.aria':'活动提醒',
+    'list.loading':'正在加载提醒…',
+    'list.error':'无法加载提醒。',
+    'list.retry':'重试',
+    'list.open':'打开提醒详情：{title}',
+    'list.nextRun':'下次运行',
+    'delete.action':'删除',
+    'delete.pending':'正在删除…',
+    'delete.label':'删除提醒：{title}',
+    'status.scheduled':'等待中',
+    'status.overdue':'已逾期',
+    'frequency.once':'单次',
+    'frequency.every':'{value}{unit}一次',
+    'mark.aria':'{count} 个自动化任务',
+    'hover.more':'另有 {count} 个任务',
+}
+
+英文={
+    **频率英文,
+    'trigger.label':'Reminders',
+    'trigger.one':'{count} reminder',
+    'trigger.other':'{count} reminders',
+    'list.aria':'Active reminders',
+    'list.loading':'Loading reminders…',
+    'list.error':'Could not load reminders.',
+    'list.retry':'Retry',
+    'list.open':'Open reminder details: {title}',
+    'list.nextRun':'Next run',
+    'delete.action':'Delete',
+    'delete.pending':'Deleting…',
+    'delete.label':'Delete reminder: {title}',
+    'status.scheduled':'Scheduled',
+    'status.overdue':'Overdue',
+    'frequency.once':'Once',
+    'frequency.every':'Every {value} {unit}',
+    'mark.aria':'{count} scheduled tasks',
+    'hover.more':'{count} more',
+}

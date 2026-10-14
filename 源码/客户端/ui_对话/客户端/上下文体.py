@@ -8,6 +8,10 @@ __all__=[#公开面
 最大字节=20000#正文界（UTF-8 字节）
 最大条目=200#列表界
 
+from nicegui import ui as 界面
+from .文案 import 中文 as 对话文案
+from ..异常 import 页面失败文案,贴出失败
+
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
     return 键#键即文案
@@ -300,6 +304,7 @@ class 上下文体:
     def __init__(自身,属性=None):
         '记下 props'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.画面=None#可反复清空的画面
 
     def 更新(自身,属性):
         '刷新'
@@ -312,14 +317,100 @@ class 上下文体:
         源=属性['source'] if 'source' in 属性 else None#源
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
         表=属性['form'] if 'form' in 属性 else None#节点声明 form；缺席即透明
+        原译=翻译 if 翻译 is not 恒等翻译 else None#宿主文案
+        def 取文案(键,参数=None):
+            '属性上的 t 优先，否则用本包中文词典。'
+            if 原译 is not None:#宿主
+                if 参数 is None:#无参数
+                    return 原译(键)#译
+                return 原译(键,参数)#带参数
+            if 键 not in 对话文案:#词典没有
+                return 键#键
+            文本=对话文案[键]#词条
+            if 参数 is None:#无参数
+                return 文本#原文
+            for 名 in 参数:#替换占位
+                文本=文本.replace('{'+名+'}',str(参数[名]))#替换
+            return 文本#译完
+        翻译=取文案#词典
         选=选上下文体(表,内容,源,翻译)#选
-        return {#根
-            'type':'context-body',#类型
-            'rendered':选['rendered'],#实渲 form
-            'summary':选['summary'],#折叠摘要
-            'body':选['body'],#体
-            'cssModule':'聊天/上下文体.module.css',#样式
-        }#结束
+        体=选['body']#体
+        def 画段(段列表):
+            '画出模型面正文或未知块。'
+            if 段列表 is None:#无
+                return#停
+            for 段 in 段列表:#逐段
+                种=段['type'] if 'type' in 段 else None#种
+                if 种=='pre':#正文
+                    文=段['text'] if 'text' in 段 and 段['text'] is not None else ''#文
+                    if 文=='':#空
+                        continue#跳
+                    界面.label(文).classes('text')#正文
+                else:#未知块
+                    标=段['label'] if 'label' in 段 else 翻译('message.unknownBlock')#标签
+                    界面.label(标)#标签
+                    if 'payload' in 段 and 段['payload'] is not None:#载荷
+                        界面.label(str(段['payload']))#载荷
+        自身.画面失败=None
+        if 自身.画面 is not None:
+            try:
+                自身.画面.clear()
+            except Exception as 错误:
+                自身.画面=None
+                自身.画面失败=页面失败文案(错误)
+        if 自身.画面 is None:#新建
+            自身.画面=界面.column().classes('上下文体')#体
+        自身.画面.clear()#清空
+        种类=体['type'] if isinstance(体,dict) and 'type' in 体 else ''#种类
+        with 自身.画面:#体
+            贴出失败(自身)
+            if 种类=='instructions-body':#指令
+                文件=体['files'] if 'files' in 体 and 体['files'] is not None else []#文件
+                for 项 in 文件:#逐个
+                    摘=项['digest'] if 'digest' in 项 and 项['digest'] is not None else ''#摘要
+                    if 摘=='':#无摘要
+                        界面.label(项['actionLabel']+' '+项['path'])#文件
+                    else:#有摘要
+                        界面.label(项['actionLabel']+' '+项['path']+' '+摘)#文件
+                画段(体['content'] if 'content' in 体 else None)#面
+            elif 种类=='catalog-body':#目录
+                if 'updateNotice' in 体 and 体['updateNotice'] is not None:#告示
+                    界面.label(体['updateNotice'])#告示
+                条目=体['entries'] if 'entries' in 体 and 体['entries'] is not None else []#条
+                for 条 in 条目:#逐条
+                    界面.label(条['name']+'：'+条['description'])#条
+                if 'more' in 体 and 体['more'] is not None:#余
+                    界面.label(体['more'])#余
+                未知=体['unknown'] if 'unknown' in 体 and 体['unknown'] is not None else []#未知
+                for 块 in 未知:#未知块
+                    界面.label(块['label'] if 'label' in 块 else 翻译('message.unknownBlock'))#标签
+                    if 'payload' in 块 and 块['payload'] is not None:#载荷
+                        界面.label(str(块['payload']))#载荷
+            elif 种类=='snapshot-body':#快照
+                if 'supersedes' in 体 and 体['supersedes'] is not None:#告示
+                    界面.label(体['supersedes'])#告示
+                分段=体['sections'] if 'sections' in 体 and 体['sections'] is not None else []#段
+                for 段 in 分段:#逐段
+                    界面.label(段['name'])#名
+                    界面.label(段['text'])#文
+            elif 种类=='relay-body':#中继
+                if 'sender' in 体 and 体['sender'] is not None:#发送方
+                    界面.label(体['sender'])#发送方
+                画段(体['content'] if 'content' in 体 else None)#面
+            elif 种类=='recall-body':#召回
+                会话列表=体['sessions'] if 'sessions' in 体 and 体['sessions'] is not None else []#会话
+                for 会 in 会话列表:#逐个
+                    行文=会['label']+' '+会['counts']#行
+                    if 'truncated' in 会 and 会['truncated'] is not None:#截断
+                        行文=行文+' '+会['truncated']#截
+                    界面.label(行文)#会话
+                画段(体['content'] if 'content' in 体 else None)#面
+            else:#不透明或通知
+                画段(体['content'] if isinstance(体,dict) and 'content' in 体 else None)#面
+                字段=体['fields'] if isinstance(体,dict) and 'fields' in 体 else None#字段
+                if 字段 is not None and 'rows' in 字段 and 字段['rows'] is not None:#行
+                    for 行 in 字段['rows']:#逐行
+                        界面.label(str(行['key'])+'：'+str(行['value']))#字段
 
     def __call__(自身,属性=None):
         '对齐 React'

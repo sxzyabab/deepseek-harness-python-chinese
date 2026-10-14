@@ -1,7 +1,6 @@
 from urllib.parse import unquote as 百分号解码,urlparse as 解析URL
 
-__all__=['文本预览种类','文本预览标识','基名','文本定义']#仅中文公开名
-
+__all__=['文本预览种类','文本预览标识','基名','文本定义']
 文本预览种类='text'#本包拥有的 tab 种类（线路字面量）
 文本预览标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview'#实现身份，亦为正文登记键
 

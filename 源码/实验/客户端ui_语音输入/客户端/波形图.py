@@ -1,3 +1,5 @@
+from nicegui import ui as 界面
+
 __all__=['波形图']
 
 条数=80
@@ -35,6 +37,10 @@ class 波形图:
                 'y2':20+高,
                 'opacity':0.25+下标/120,
             })
+        段=[]
+        for 条 in 线:
+            段.append('<line x1="'+str(条['x'])+'" y1="'+str(条['y1'])+'" x2="'+str(条['x'])+'" y2="'+str(条['y2'])+'" stroke="currentColor" stroke-opacity="'+str(条['opacity'])+'"/>')
+        界面.html('<svg width="640" height="40" viewBox="0 0 640 40" aria-label="'+str(自身.属性.get('label') or '')+'">'+''.join(段)+'</svg>', sanitize=False)
         return {
             'type':'waveform',
             'cssModule':'语音输入.module.css',

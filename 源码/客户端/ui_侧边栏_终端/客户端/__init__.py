@@ -1,8 +1,8 @@
-from .文案 import 命名空间,中文,英文#词表
-from .终端图标 import 终端引导图标#开始页图标
-from .终端引导 import 终端引导#开始页卡片
-from .终端体 import 终端体#正文
-from .终端标题 import 终端标题#页签标题
+from .文案 import 命名空间,中文,英文
+from .终端图标 import 终端引导图标
+from .终端引导 import 终端引导
+from .终端体 import 终端体
+from .终端标题 import 终端标题
 from . import (
     终端主题,
     终端光标,
@@ -94,13 +94,15 @@ def 应用(上下文):
             '模型 state 钩'
             return 视图(会话标识,键).state
         return {'view':取视图,'keyedHooks':{'terminal':取状态}}
-    def 取主题快照():
-        '当前主题'
-        return 上下文.theme.getTheme()
-    def 订主题(监听):
-        '订 theme/change'
-        return 上下文.on('theme/change',监听)
-    主题钩={'getSnapshot':取主题快照,'subscribe':订主题}
+    class 主题钩子:
+        '主题快照源。绑定器读 getSnapshot 和 subscribe 方法，不认字典上的同名键'
+        def getSnapshot(自身):
+            '当前主题'
+            return 上下文.theme.getTheme()
+        def subscribe(自身,监听):
+            '订 theme/change，返回退订'
+            return 上下文.on('theme/change',监听)
+    主题钩=主题钩子()
     def 挂引导():
         'guide.entry 席位'
         def 登记引导():

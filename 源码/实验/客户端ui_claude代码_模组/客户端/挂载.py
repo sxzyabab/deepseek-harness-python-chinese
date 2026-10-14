@@ -9,10 +9,26 @@ __all__=['依赖','挂载模组条带','登记界面']
 依赖=['remote','slots','locale']
 
 def 错误文本(错误):
-    '异常取消息，其余转成字符串'
+    '异常取消息，其余转成字符串。文案不含绝对路径'
+    if isinstance(错误,BaseException) and len(错误.args)>0:
+        原文=str(错误.args[0])
+    else:
+        原文=str(错误)
+    留下=[]
+    for 词 in 原文.split():
+        去引=词.strip('\'"()[]{}<>')
+        统一=去引.replace('\\','/')
+        if 统一.startswith('/') or 统一.startswith('~'):
+            continue
+        if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':
+            continue
+        留下.append(词)
+    说明=' '.join(留下).strip()
+    if 说明!='':
+        return 说明
     if isinstance(错误,BaseException):
-        return str(错误)
-    return str(错误)
+        return type(错误).__name__
+    return '失败'
 
 class 条带存储:
     '槽位渲染器当成 useBand 的最小可观察对象'

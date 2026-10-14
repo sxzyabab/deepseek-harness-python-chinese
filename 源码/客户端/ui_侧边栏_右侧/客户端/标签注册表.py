@@ -114,12 +114,12 @@ class 右侧侧栏标签注册表:#标签类型登记表
     def _离开(自身,种类,槽,条目):
         '移出；影恢复或删槽'
         if 槽['inForce'] is not 条目:#影离
-            槽['shadowed']=None#清影
+            槽['shadowed']=None
         elif 槽['shadowed'] is None:#无影
             del 自身.种类表[种类]#删槽
         else:#恢复影
             槽['inForce']=槽['shadowed']#恢复
-            槽['shadowed']=None#清
+            槽['shadowed']=None
 
     def _生效(自身):
         '生效登记，按登记序'

@@ -2,7 +2,7 @@ import json,threading#序列化与中止
 from .....基础设施.通用工具.文本工具 import utf8字节数
 from .....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...共享.json import 是否json值,json字节长度#JSON工具
-from ...异常 import 检查器错误,客户端源目录错误#本包错误|Client源目录错误
+from ...异常 import 检查器错误,客户端源目录错误,失败说明#本包错误|Client源目录错误
 from ...共享.桥接.版本 import 检查器协议版本#协议版本
 from ...共享.桥接.消息.观察 import 解析工作者源帧#Worker源帧
 from ...共享.桥接.发布器 import 检查器源连接#源连接基类
@@ -25,8 +25,8 @@ def 打开客户端套接字(端点,协议):#打开WebSocket
     raise 检查器错误('inspector: Client WebSocket requires a runtime binding')#需绑定
 
 def 渲染错误(错误):#渲染错误
-    '渲染错误消息'
-    return 错误.args[0] if isinstance(错误,Exception) and 错误.args else str(错误)#消息
+    '渲染错误消息。文案不含绝对路径'
+    return 失败说明(错误)#消息
 
 class _中止控制器:#中止控制器
     '近似 AbortController'

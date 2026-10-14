@@ -68,4 +68,4 @@ def 子类型节点标识列表(节点):
         return 结果#边
     if 种类 in ('keyword','literal','object','function','constructor','this'):#叶子或另走成员/签名
         return []#无子类型边
-    raise 模型错误('unsupported model variant '+repr(节点))#未覆盖变体
+    raise 模型错误('类型图里有未覆盖的变体 '+repr(节点))

@@ -74,7 +74,7 @@ def 默认发送(地址,初始化):
         with 请求库.urlopen(请求) as 响应:#POST
             return 网页响应(响应.status,响应.read().decode('utf-8'))#响应面
     except OSError as 错误:#传输失败
-        raise 连接错误('transport failure: '+str(错误)) from 错误#包一层
+        raise 连接错误('传输失败') from None
 
 class 网页连接rpc:#浏览器 RPC 调用方
     '拥有请求关联与响应信封校验的调用方'

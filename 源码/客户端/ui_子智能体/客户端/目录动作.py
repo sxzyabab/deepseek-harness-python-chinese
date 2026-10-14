@@ -1,4 +1,7 @@
+from nicegui import ui as 界面
 from ....基础设施.通用工具 import 当前毫秒
+from ...ui_基础界面组件.状态点 import 状态点
+from ..异常 import 页面失败文案
 
 __all__=[#仅中文公开名
     '目录动作','格式化令牌','格式化时长','格式化精确时长','令牌合计','活动时长毫秒','样式表',
@@ -28,6 +31,7 @@ __all__=[#仅中文公开名
 .error{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--dsw-alias-state-error-primary)}
 .refresh{display:inline-flex;flex:none;align-items:center;gap:4px;padding:4px 6px;border:0;border-radius:6px;background:transparent;color:inherit;cursor:pointer}
 '''#样式表结束
+界面.add_css(样式表,shared=True)
 
 def 格式化令牌(值):#紧凑令牌数
     '与会话统计条同形的紧凑令牌数'
@@ -133,6 +137,9 @@ class 目录动作:#会话头目录
         自身.现在=当前毫秒()#纪元毫秒
         自身.已展开=set()#展开的子 id
         自身.观察中=set()#已 observe 的父
+        自身.画面失败=None
+        if isinstance(自身.属性,dict) and 't' in 自身.属性:
+            自身.渲染()#槽位只调用构造，键齐了就画
 
     def 更新(自身,属性):#刷新
         '刷新 props'
@@ -143,22 +150,24 @@ class 目录动作:#会话头目录
         下一=not 自身.打开#下一态
         自身.打开=下一#写入
         设开=自身.属性['setCatalogOpen'] if 'setCatalogOpen' in 自身.属性 else None#注入
-        会话=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None#父会话
-        if 下一:#开
+        已记=自身.目录根 if hasattr(自身,'目录根') else None#谱系用父会话
+        会话=已记 if 已记 is not None else (自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None)#父会话
+        if 下一:
             自身.现在=当前毫秒()#刷新
             if 设开 is not None and 会话 is not None:#observe
-                设开(会话,True)#开
+                设开(会话,True)
                 自身.观察中.add(会话)#记
         else:#关
             自身.关闭全部()#关
+        自身.渲染()#开合后重画
 
     def 关闭全部(自身):#关全部观察
         '关掉已观察目录并清空展开'
         设开=自身.属性['setCatalogOpen'] if 'setCatalogOpen' in 自身.属性 else None#注入
         for 父 in list(自身.观察中):#逐个
-            if 设开 is not None:#有
+            if 设开 is not None:
                 设开(父,False)#关
-        自身.观察中.clear()#清
+        自身.观察中.clear()
         自身.已展开.clear()#清展开
         自身.打开=False#关菜单
 
@@ -170,11 +179,26 @@ class 目录动作:#会话头目录
             if 设开 is not None:#关
                 设开(子标识,False)#关
             自身.观察中.discard(子标识)#摘
+            自身.渲染()#收起后重画
             return#已
         自身.已展开.add(子标识)#展
-        if 设开 is not None:#开
-            设开(子标识,True)#开
+        if 设开 is not None:
+            设开(子标识,True)
             自身.观察中.add(子标识)#记
+        自身.渲染()#展开后重画
+
+    def _安放(自身,界面):
+        '复用根，避免开合再叠一层'
+        旧=getattr(自身,'根',None)
+        if 旧 is not None:
+            try:
+                旧.clear()
+                return 旧
+            except Exception as 错误:
+                自身.根=None
+                自身.画面失败=页面失败文案(错误)
+        自身.根=界面.column().classes('subagent-catalog')
+        return 自身.根
 
     def 渲行(自身,目录,目录表,摘要表,层级,翻译):#渲一层
         '返回本层节点结构表'
@@ -188,14 +212,14 @@ class 目录动作:#会话头目录
             错=目录['error'] if 'error' in 目录 else None#错
             节点列表.append({#错行
                 'type':'error',
-                'text':(错['message'] if 错 is not None and 'message' in 错 else 翻译('load.error')),
+                'text':(页面失败文案(错['message']) if 错 is not None and 'message' in 错 and 错['message'] is not None else 翻译('load.error')),
                 'retry':True,
             })#错结束
         预留=False#披露位
         for 候 in 条目表:#扫
             if ('kind' in 候 and 候['kind']=='child' and 'hasChildren' in 候 and 候['hasChildren'] is True):#有子
                 预留=True#预留
-                break#停
+                break
         for 条目 in 条目表:#逐条
             if 'kind' in 条目 and 条目['kind']=='diagnostic':#诊断
                 因=诊断原因(条目,翻译)#原因
@@ -210,9 +234,25 @@ class 目录动作:#会话头目录
             叶=not ('hasChildren' in 条目 and 条目['hasChildren'] is True)#叶
             摘要=摘要表[子标识] if 子标识 in 摘要表 else None#摘要
             标签=条目['label'] if 'label' in 条目 and 条目['label'] is not None else 子标识#标签
-            模式=翻译('mode.oneShot') if 'mode' in 条目 and 条目['mode']=='one-shot' else 翻译('mode.continuable')#模式
+            模式值=条目['mode'] if 'mode' in 条目 else None#模式值
+            if 模式值=='one-shot':#一次性
+                模式=翻译('mode.oneShot')#一次性
+            elif 模式值=='unknown':#未知
+                模式=翻译('mode.unknown')#未知
+            elif 模式值=='continuable':#可继续
+                模式=翻译('mode.continuable')#可继续
+            else:#线路字面量，例如 external
+                模式=模式值 if isinstance(模式值,str) else 翻译('mode.continuable')#原样
             活动=条目['activity'] if 'activity' in 条目 else None#活动
-            活动文=翻译('activity.running') if 活动=='running' else 翻译('activity.inactive')#活动
+            投影预=摘要['projectionValues'] if 摘要 is not None and 'projectionValues' in 摘要 else None#投影
+            计时预=投影预['subagentTiming'] if isinstance(投影预,dict) and 'subagentTiming' in 投影预 and isinstance(投影预['subagentTiming'],dict) else None#计时
+            已完成=活动=='inactive' and 计时预 is not None and 计时预.get('lastTurnCompleted') is True#末轮已结束
+            if 活动=='running':#在跑
+                活动文=翻译('activity.running')#在跑
+            elif 已完成:#已停且末轮结束
+                活动文=翻译('activity.completed')#已停
+            else:#闲
+                活动文=翻译('activity.inactive')#闲
             标题=摘要['title'] if 摘要 is not None and 'title' in 摘要 else None#标题
             次要段=[]#次要
             if 标题 is not None and 标题!='':#有标题
@@ -224,9 +264,9 @@ class 目录动作:#会话头目录
             用量=投影值['tokenUsage'] if 投影值 is not None and 'tokenUsage' in 投影值 else None#用量
             令牌=令牌合计(用量)#令牌
             时长=活动时长毫秒(摘要,活动,自身.现在)#时长
-            令牌文=(格式化令牌(令牌)+' tok') if 令牌 is not None else None#令牌文
+            令牌文=翻译('tokens.total',{'value':格式化令牌(令牌)}) if 令牌 is not None else None#令牌文
             时长文=None#时长文
-            if 时长 is not None:#有
+            if 时长 is not None:
                 时长文={'compact':格式化时长(时长,翻译),'exact':格式化精确时长(时长,翻译)}#双形
             子节点=None#子树
             if 已展 and not 叶:#展开枝
@@ -250,12 +290,59 @@ class 目录动作:#会话头目录
         'byId；缺键当空 dict'
         return 态['byId'] if 'byId' in 态 and 态['byId'] is not None else {}#摘要图
 
+    def _解析父(自身,谱系,用会话):
+        '面包屑上这一级的父会话'
+        用本=自身.属性['useSession'] if 'useSession' in 自身.属性 else None
+        if callable(用本):
+            本=用本(lambda 值:值)
+            子=本['subagent'] if isinstance(本,dict) and 'subagent' in 本 and isinstance(本['subagent'],dict) else None
+            地址=子['address'] if 子 is not None and 'address' in 子 and isinstance(子['address'],dict) else None
+            if 地址 is not None and 地址.get('childSessionId')==谱系 and 'parentSessionId' in 地址:
+                return 地址['parentSessionId']
+        if not callable(用会话):
+            return None
+        def 选父(快照,钉=谱系):
+            '在目录图里找父'
+            if not isinstance(快照,dict):
+                return None
+            图=快照['subagentsByParent'] if 'subagentsByParent' in 快照 and isinstance(快照['subagentsByParent'],dict) else {}
+            for 父,目录 in 图.items():
+                条目=目录['entries'] if isinstance(目录,dict) and 'entries' in 目录 and isinstance(目录['entries'],list) else []
+                for 候 in 条目:
+                    if isinstance(候,dict) and 候.get('id')==钉:
+                        return 父
+            摘要=快照['byId'][钉] if 'byId' in 快照 and isinstance(快照['byId'],dict) and 钉 in 快照['byId'] else None
+            if isinstance(摘要,dict) and 摘要.get('origin')=='subagent' and 'parentId' in 摘要:
+                return 摘要['parentId']
+            return None
+        return 用会话(选父)
+
     def 渲染(自身):#结构树
-        '无可见证据则 None'
+        '无可见证据则不画'
         属性=自身.属性#props
-        会话=属性['sessionId'] if 'sessionId' in 属性 else None#会话
+        if 't' not in 属性:#槽位还没给文案
+            return#不画
         用会话=属性['useSessions'] if 'useSessions' in 属性 else None#选择器
         翻译=属性['t']#文案
+        变体='count'#计数
+        开关标题=None#切换器标题
+        if 'lineageSessionId' in 属性:#谱系槽
+            变体='switcher'#切换器
+            开关标题=属性['displayTitle'] if 'displayTitle' in 属性 and isinstance(属性['displayTitle'],str) else ''#标题
+            会话=自身._解析父(属性['lineageSessionId'],用会话)#父会话
+            自身.目录根=会话#开合时观察这一级
+            if 会话 is None:#根会话不画面包屑
+                return#不画
+        else:#目录动作槽
+            if callable(用会话) and 'sessionId' in 属性:
+                def 选起源(快照,钉=属性['sessionId']):
+                    '子会话把目录让给谱系'
+                    行=快照['byId'][钉] if isinstance(快照,dict) and 'byId' in 快照 and isinstance(快照['byId'],dict) and 钉 in 快照['byId'] else None
+                    return 行['origin'] if isinstance(行,dict) and 'origin' in 行 else None
+                if 用会话(选起源)=='subagent':#子会话
+                    return#不画
+            会话=属性['sessionId'] if 'sessionId' in 属性 else None#会话
+            自身.目录根=会话#开合时观察这一级
         if 用会话 is not None:#有会话钩
             目录表=用会话(自身.取目录表)#目录图
             摘要表=用会话(自身.取摘要表)#摘要图
@@ -280,23 +367,103 @@ class 目录动作:#会话头目录
         呈现条目=呈现['entries'] if 呈现 is not None and 'entries' in 呈现 and 呈现['entries'] is not None else []#呈现条目
         可见=呈现 is not None and (呈现态=='error' or len(呈现条目)>0 or 后代计数>0)#可见；判的是 length
         if not 可见:#不可见
-            return None#空
+            旧=getattr(自身,'根',None)
+            if 旧 is not None:
+                try:
+                    旧.clear()
+                except Exception as 错误:
+                    自身.根=None
+                    自身.画面失败=页面失败文案(错误)
+            return#空
         总数键='count.total.one' if 后代计数==1 else 'count.total.other'#总数键
-        return {#结构树
-            'type':'subagent-catalog-action',#类型
-            'open':自身.打开,#开合
-            'countLabel':翻译(总数键,{'count':后代计数}),#计数
-            'running':运行数>0,#有运行点
-            'tree':自身.渲行(呈现,目录表,摘要表,1,翻译) if 自身.打开 else None,#树
-            'css':样式表,#样式
-            'toggle':自身.切换开合,#触发
-            'toggleBranch':自身.切换枝,#枝
-            'openChild':属性['openChild'] if 'openChild' in 属性 else None,#打开子
-            'refresh':属性['refresh'] if 'refresh' in 属性 else None,#刷新
-        }#结束
+        def 画节点(节点列表):
+            '画出目录节点'
+            for 节点 in 节点列表:
+                if not isinstance(节点,dict):
+                    continue
+                种类=节点['type'] if 'type' in 节点 else ''
+                if 种类=='notice' and 'text' in 节点 and isinstance(节点['text'],str) and 节点['text']!='':
+                    界面.label(节点['text']).classes('notice')
+                elif 种类=='error':
+                    错文=节点['text'] if 'text' in 节点 and isinstance(节点['text'],str) else ''
+                    with 界面.row().classes('error'):
+                        if 错文!='':
+                            界面.label(错文)
+                        if 节点.get('retry') is True:
+                            def 重试():
+                                '重新拉取本会话目录'
+                                刷新=属性['refreshProjection'] if 'refreshProjection' in 属性 else None
+                                if 刷新 is not None and 会话 is not None:
+                                    刷新(会话)
+                            界面.button(翻译('retry'), on_click=重试).classes('refresh')
+                elif 种类=='diagnostic':
+                    因=节点['reason'] if 'reason' in 节点 and isinstance(节点['reason'],str) else ''
+                    if 因!='':
+                        界面.label(因).classes('notice')
+                elif 种类=='child':
+                    标识=节点['id'] if 'id' in 节点 else None
+                    with 界面.column().classes('node'):
+                        with 界面.row().classes('row'):
+                            if 节点.get('activity')=='running':
+                                状态点({'state':'ongoing','size':10}).渲染()
+                            if 节点.get('leaf') is not True:
+                                def 展(钉=标识):
+                                    '展开或收起这一枝'
+                                    if 钉 is not None:
+                                        自身.切换枝(钉)
+                                界面.button('›', on_click=展).props('flat dense').classes('disclosure')
+                            def 开(钉=标识):
+                                '打开该子会话'
+                                回调=属性['openChild'] if 'openChild' in 属性 else None
+                                if 回调 is not None and 钉 is not None:
+                                    回调(钉)
+                                    自身.关闭全部()
+                                    自身.渲染()
+                            文=节点['label'] if 'label' in 节点 and isinstance(节点['label'],str) else ''
+                            with 界面.column().classes('content'):
+                                if 文!='':
+                                    界面.button(文, on_click=开).props('flat no-caps align=left').classes('label')
+                                次=节点['secondary'] if 'secondary' in 节点 and isinstance(节点['secondary'],str) else ''
+                                if 次!='':
+                                    界面.label(次).classes('summary')
+                            令牌文=节点['token'] if 'token' in 节点 and isinstance(节点['token'],str) else ''
+                            时长=节点['duration'] if 'duration' in 节点 and isinstance(节点['duration'],dict) else None
+                            时长文=时长['compact'] if 时长 is not None and 'compact' in 时长 and isinstance(时长['compact'],str) else ''
+                            if 令牌文!='' or 时长文!='':
+                                with 界面.column().classes('metrics'):
+                                    if 令牌文!='':
+                                        界面.label(令牌文)
+                                    if 时长文!='':
+                                        界面.label(时长文)
+                            旁开=属性['openChildAside'] if 'openChildAside' in 属性 else None
+                            if 旁开 is not None and 标识 is not None:
+                                def 旁(钉=标识):
+                                    '在侧栏打开该子会话'
+                                    旁开(钉)
+                                    自身.关闭全部()
+                                    自身.渲染()
+                                界面.button(翻译('open.sidebar'), on_click=旁).props('flat dense no-caps')
+                        if 'children' in 节点 and isinstance(节点['children'],list) and len(节点['children'])>0:
+                            with 界面.column().classes('children'):
+                                画节点(节点['children'])
+                elif 'children' in 节点 and isinstance(节点['children'],list) and len(节点['children'])>0:
+                    画节点(节点['children'])
+        with 自身._安放(界面):
+            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
+                界面.label(自身.画面失败).classes('error')
+                自身.画面失败=None
+            if 变体=='switcher':
+                界面.button(开关标题 if isinstance(开关标题,str) and 开关标题!='' else 翻译('sidebar.chat'), on_click=自身.切换开合).props('flat no-caps icon-right=expand_more')
+            else:
+                with 界面.row().classes('trigger'):
+                    if 运行数>0:
+                        状态点({'state':'ongoing','size':10}).渲染()
+                    界面.button(翻译(总数键,{'count':后代计数}), on_click=自身.切换开合).props('flat no-caps icon-right=expand_more')
+            if 自身.打开:
+                画节点(自身.渲行(呈现,目录表,摘要表,1,翻译))
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 组件调用'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷新
-        return 自身.渲染()#渲
+        return 自身.渲染()

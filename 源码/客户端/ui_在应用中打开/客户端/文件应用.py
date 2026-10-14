@@ -1,9 +1,10 @@
 from ...存储 import 创建快照存储
 import threading
+from ..异常 import 页面失败文案
 
 __all__=['使用文件应用']
 
-空结果={'apps':[],'loading':True,'failed':False}
+空结果={'apps':[],'loading':True,'failed':False,'detail':''}
 _读表={}
 
 def 空刷新():
@@ -14,16 +15,20 @@ def 查询已到(项,控,应用):
     '中止则丢；否则发布联想'
     if 控.is_set():#已中止
         return
-    项['state'].set({'apps':[] if 应用 is None else list(应用),'loading':False,'failed':应用 is None})#发布
+    if 应用 is not None:
+        项['detail']=''
+    细节=项['detail'] if 'detail' in 项 and isinstance(项['detail'],str) else ''
+    项['state'].set({'apps':[] if 应用 is None else list(应用),'loading':False,'failed':应用 is None,'detail':细节})
 
 def 做成回调(项,控):
     '把这一次中止旗绑进同级回调'
     def 已查(应用):
         '查询解决'
         查询已到(项,控,应用)#发布
-    def 失败(_错误):
-        '查询拒绝当失败'
-        查询已到(项,控,None)#失败
+    def 失败(错误):
+        '查询拒绝当失败，并留下去掉路径的失败句'
+        项['detail']=页面失败文案(错误) if 错误 is not None else ''
+        查询已到(项,控,None)
     return 已查,失败#成功臂与失败臂
 
 def 接上(产出,成功,失败):
@@ -55,8 +60,8 @@ def _订阅(查询,目标,监听):
             已查,失败=做成回调(项,控)#这一次的回调
             try:#查询
                 产出=查询(目标,控)#期约或值
-            except Exception:#同步失败
-                失败(None)#当失败
+            except Exception as 错误:
+                失败(错误)
                 return
             接上(产出,已查,失败)#落定后发布
         项['refresh']=刷新
@@ -93,4 +98,4 @@ def 使用文件应用(目标,查询,启用):
         if 项 is not None:
             项['refresh']()
     态=箱['state']
-    return {'apps':态.get('apps',[]),'loading':bool(态.get('loading')),'failed':bool(态.get('failed')),'refresh':刷新,'unsubscribe':退}
+    return {'apps':态.get('apps',[]),'loading':bool(态.get('loading')),'failed':bool(态.get('failed')),'detail':态.get('detail') if isinstance(态.get('detail'),str) else '','refresh':刷新,'unsubscribe':退}

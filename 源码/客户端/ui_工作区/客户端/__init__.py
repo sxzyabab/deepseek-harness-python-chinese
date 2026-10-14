@@ -1,5 +1,5 @@
 from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
-from ....基础设施.通用工具 import 获取内部数据,启动守护线程
+from ....基础设施.通用工具 import 获取内部数据
 from .文案 import 中文,英文,工作区文案键#再导出文案
 from .存储 import 扁平会话顺序键,创建工作区查看存储#再导出 store
 from .导航 import 工作区UI服务,最近工作区
@@ -107,6 +107,19 @@ def 绑业务结算(结算,取成功值):
         结算.拒绝(错误)#拒绝
     return 已结束,失败#两臂
 
+class 可观察面:
+    '给钩子用的 getSnapshot/subscribe 对象。字典源会被当成没有方法'
+    def __init__(自身,取,订):
+        '记下读和订'
+        自身._取=取#读
+        自身._订=订#订
+    def getSnapshot(自身):
+        '读当前值'
+        return 自身._取()#值
+    def subscribe(自身,回调):
+        '登记变更'
+        return 自身._订(回调)#退订
+
 def 流占用源(上下文,洞名):
     '目录流子洞已填时为真的可观察源'
     def 快照():#条目数
@@ -115,10 +128,7 @@ def 流占用源(上下文,洞名):
     def 订阅(监听):#订阅
         '该洞变化'
         return 上下文.slots.subscribe(洞名,监听)#订阅
-    return {#宿主可观察源
-        'getSnapshot':快照,#条目数大于 0 即为占用
-        'subscribe':订阅,#订阅该洞变化
-    }#源结束
+    return 可观察面(快照,订阅)#对象，供 useDirectoryFlow
 
 def 应用(上下文):#注册浏览区与选择器
     '槽位声明入账后注册浏览区与选择器'
@@ -153,10 +163,7 @@ def 应用(上下文):#注册浏览区与选择器
     def 宿主订阅(监听):#连接重置
         '订 connection/reset'
         return 上下文.on('connection/reset',监听)#订
-    宿主源={#宿主事实
-        'getSnapshot':宿主快照,#当前宿主
-        'subscribe':宿主订阅,#连接重置
-    }#宿主源
+    宿主源=可观察面(宿主快照,宿主订阅)#宿主事实，供 useHostInfo
 
     def 重命名工作区(标识,标题):#重命名工作区
         '转发 rename。返回期约'
@@ -194,13 +201,7 @@ def 应用(上下文):#注册浏览区与选择器
             return 结算#期约
         def 分叉会话(会话标识):#分叉会话
             '经导航面分叉；失败保持当前选中'
-            def 观察():#观察
-                '吞失败'
-                try:#成功
-                    工作区面.forkSession(会话标识)#分叉打开
-                except BaseException:#失败
-                    pass#保持
-            启动守护线程(观察)#启
+            工作区面.forkSession(会话标识)#分叉打开
         return {#注入面
             'startSession':工作区面.startSession,#开新会话
             'open':工作区面.openSession,#打开会话

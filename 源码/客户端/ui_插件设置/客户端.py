@@ -57,7 +57,15 @@ def 应用(上下文):
                 拆账本()
                 拆语言()
             return 拆除
-        return {'hooks':{'tabs':{'getSnapshot':取快照,'subscribe':订阅}}}
+        class 页签源:
+            '钩子按属性读快照'
+            def getSnapshot(自身):
+                '当前页签行'
+                return 取快照()
+            def subscribe(自身,监听):
+                '账本或语言变化'
+                return 订阅(监听)
+        return {'hooks':{'tabs':页签源()}}
     def 导航标签():
         '插件设置导航标签'
         return 翻译('nav')

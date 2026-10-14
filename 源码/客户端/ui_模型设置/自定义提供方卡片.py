@@ -1,11 +1,12 @@
 import re#正则
+from nicegui import ui as 界面
 from .DeepSeek模型编辑器 import 校验DeepSeek模型#模型门闩
 from .密钥判定 import 密钥失败#密钥门闩
 from .编辑器页脚 import 编辑器页脚#页脚
 from .模型列表编辑器 import 模型列表编辑器#模型列表
 from .存储 import 推导密钥引用,错误文案#存储辅助
 
-__all__=['命名空间','路由模式','自定义提供方卡片','校验路由']#仅中文公开名
+__all__=['命名空间','路由模式','自定义提供方卡片','校验路由']
 
 命名空间='llm-pi-ai'#手声明写入的设置 ns
 路由模式=re.compile(r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z',re.ASCII)#可作设置键与凭证词干
@@ -21,11 +22,11 @@ def 校验路由(路由,已占):
         return 'routeTaken'#占用
     return None#可提交
 
-class 自定义提供方卡片:#自定义提供方创建卡
-    '选路由 id；档案不存在直至提交'
+class 自定义提供方卡片:
+    '选路由 id；档案不存在直至提交。父组件调用渲染，构造不画'
     def __init__(自身,属性):#构造
         '记下打开时修订与本地草稿'
-        自身.属性=属性#合成 props
+        自身.属性=属性
         自身.打开于=属性['revision'] if 'revision' in 属性 else None#打开时修订
         自身.路由=''#路由 id
         自身.显示名=''#显示名
@@ -71,7 +72,7 @@ class 自定义提供方卡片:#自定义提供方创建卡
     def 点取消(自身):#取消创建
         '关闭；已提交则视为已变更'
         关闭=自身.属性['onClose'] if 'onClose' in 自身.属性 else None#关闭
-        if 关闭 is not None:#有
+        if 关闭 is not None:
             关闭(自身.已提交)#通知
 
     def 提示(自身):#表单级提示
@@ -117,14 +118,14 @@ class 自定义提供方卡片:#自定义提供方创建卡
             结果=响应['result']#结果
             if 结果['ok'] is not True:#失败
                 错=结果['error'] if 'error' in 结果 else None#错误
-                return 错['message'] if 错 is not None and 'message' in 错 else None#文案
+                return 错误文案(错['message'] if 错 is not None and 'message' in 错 else None)
             自身.已提交=True#档案落地
         if 存密钥:#存密钥
             存=接口.credentials.set({'ref':引用,'value':密钥值}).等待()#set
             存结果=存['result']#结果
             if 存结果['ok'] is not True:#失败
                 错=存结果['error'] if 'error' in 存结果 else None#错误
-                return 错['message'] if 错 is not None and 'message' in 错 else None#文案
+                return 错误文案(错['message'] if 错 is not None and 'message' in 错 else None)
         return None#成功
 
     def 创建(自身):#提交创建
@@ -135,9 +136,9 @@ class 自定义提供方卡片:#自定义提供方创建卡
             结果=自身.创建一次()#一次
             if 结果 is not None:#失败
                 自身.失败=结果#挂文案
-                return#停
+                return
             关闭=自身.属性['onClose'] if 'onClose' in 自身.属性 else None#关闭
-            if 关闭 is not None:#有
+            if 关闭 is not None:
                 关闭(True)#已变更
         except Exception as 错误:#传输拒绝；RPC 异常契约未定
             自身.失败=错误文案(错误)#文案
@@ -188,20 +189,45 @@ class 自定义提供方卡片:#自定义提供方创建卡
         if 密钥错 is not None:#有错
             密钥失败文案=翻译('keyBlankNew' if 密钥错=='keyBlank' else 密钥错)#文案
         显示占位=翻译('customDisplayName') if len(自身.路由)==0 else 自身.路由#显示名占位
-        return {#视图
-            'type':'custom-provider-card',#类型
-            'title':翻译('customTitle'),#标题
-            'route':{'label':翻译('customRoute'),'value':自身.路由,'placeholder':'acme-gateway','disabled':档案禁用,'onChange':自身.改路由,'hint':路由提示},#路由
-            'displayName':{'label':翻译('customDisplayName'),'value':自身.显示名,'placeholder':显示占位,'disabled':档案禁用,'onChange':自身.改显示名},#显示名
-            'baseURL':{'label':翻译('baseUrl'),'value':自身.基址,'placeholder':'https://gateway.example/v1','disabled':档案禁用,'onChange':自身.改基址},#端点
-            'api':{'label':翻译('customApi'),'value':自身.协议,'choices':协议列表,'disabled':档案禁用,'onChange':自身.改协议},#协议
-            'key':{'label':翻译('keyInput'),'value':自身.密钥草稿,'placeholder':翻译('keyPlaceholder'),'disabled':禁用,'failure':密钥失败文案,'onChange':自身.改密钥},#密钥
-            'models':自身.列表编辑器(),#模型列表
-            'failure':自身.失败,#失败
-            'hint':自身.提示(),#表单提示
-            'footer':自身.页脚(),#页脚
-            'cssModule':'模型分区.module.css',#样式
-        }#视图结束
+        def 改路由(事件):
+            '写入路由'
+            自身.改路由(事件.value)
+        def 改显示名(事件):
+            '写入显示名'
+            自身.改显示名(事件.value)
+        def 改基址(事件):
+            '写入端点'
+            自身.改基址(事件.value)
+        def 改协议(事件):
+            '写入协议'
+            自身.改协议(事件.value)
+        def 改密钥(事件):
+            '写入密钥'
+            自身.改密钥(事件.value)
+        with 界面.column().classes('custom-provider-card addCard'):
+            界面.label(翻译('customTitle'))
+            路由框=界面.input(翻译('customRoute'), value=自身.路由, placeholder='acme-gateway', on_change=改路由)
+            界面.label(路由提示['text'])
+            名框=界面.input(翻译('customDisplayName'), value=自身.显示名, placeholder=显示占位, on_change=改显示名)
+            址框=界面.input(翻译('baseUrl'), value=自身.基址, placeholder='https://gateway.example/v1', on_change=改基址)
+            协议框=界面.select(协议列表, value=自身.协议, label=翻译('customApi'), on_change=改协议)
+            密钥框=界面.input(翻译('keyInput'), value=自身.密钥草稿, placeholder=翻译('keyPlaceholder'), password=True, on_change=改密钥)
+            if 档案禁用:
+                路由框.disable()
+                名框.disable()
+                址框.disable()
+                协议框.disable()
+            if 禁用:
+                密钥框.disable()
+            if isinstance(密钥失败文案,str) and 密钥失败文案!='':
+                界面.label(密钥失败文案)
+            自身.列表编辑器.渲染()
+            if isinstance(自身.失败,str) and 自身.失败!='':
+                界面.label(自身.失败)
+            表单提示=自身.提示()
+            if isinstance(表单提示,str) and 表单提示!='':
+                界面.label(表单提示)
+            自身.页脚.渲染()
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React 调用'

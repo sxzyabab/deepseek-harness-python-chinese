@@ -1,5 +1,6 @@
 from uuid import uuid4 as 随机UUID#审阅窗身份
 from ..ui_基础界面组件.markdown.纯文本 import 抽取Markdown纯文本#审阅标题
+from .异常 import 去掉敏感#失败说明去掉绝对路径
 from .文案 import 命名空间,中文,英文#词表
 from .计划芯片 import 计划芯片#芯片组件
 from .计划定义 import 计划定义#对话定义
@@ -20,6 +21,76 @@ __all__=[#仅中文公开名
 
 依赖=['slots','remote','remote.commands','remote.session','sessions','locale','uiConversation','resources','sidebarRight','sidebarRightTabs']#依赖
 预览标识='@deepseek-ai/dsh-client-ui-plan'#侧栏类型 id
+
+def 同一回合(左,右):
+    '字符串回合号和数字回合号视为同一个'
+    if 左==右:
+        return True
+    try:
+        return int(左)==int(右)
+    except (TypeError,ValueError):
+        return False
+
+def 节点列表(节点源):
+    '存储的 values 是节点列表。普通 dict 的 values 方法不是'
+    if isinstance(节点源,dict) and 'values' in 节点源 and callable(节点源['values']):
+        return list(节点源['values']())
+    if 节点源 is not None and not isinstance(节点源,dict):
+        取值=getattr(节点源,'values',None)
+        if callable(取值):
+            return list(取值())
+    return []
+
+def 锚序(项):
+    '按锚点排序'
+    return 项['anchorSeq'] if 'anchorSeq' in 项 else 0
+
+def 收集已提交(快照,回合号):
+    '从 Chat 快照取出本回合已提交计划'
+    if not isinstance(快照,dict):
+        return []
+    节点表=节点列表(快照['nodes'] if 'nodes' in 快照 else None)
+    结果=[]
+    for 节点 in 节点表:
+        if not isinstance(节点,dict):
+            continue
+        if ('kind' not in 节点) or 节点['kind']!='submitted-plan':
+            continue
+        位=节点['location'] if 'location' in 节点 else None
+        if not isinstance(位,dict):
+            continue
+        位种=位['kind'] if 'kind' in 位 else None
+        if 位种 not in ('turn','step'):
+            continue
+        回=位['turn'] if 'turn' in 位 else None
+        if not isinstance(回,dict) or 'turn' not in 回 or 同一回合(回['turn'],回合号) is not True:
+            continue
+        数据=节点['data'] if 'data' in 节点 and isinstance(节点['data'],dict) else None
+        if 数据 is None:
+            continue
+        项=dict(数据)
+        项['anchorSeq']=节点['anchorSeq'] if 'anchorSeq' in 节点 else 0
+        结果.append(项)
+    结果.sort(key=锚序)
+    return 结果
+
+class 回合计划源:
+    '本回合已提交计划。绑定器按 getSnapshot 和 subscribe 读，这两个名字保持英文'
+    def __init__(自身,聊天,回合号):
+        '记下 Chat 目标与回合号'
+        自身._聊天=聊天
+        自身._回合号=回合号
+
+    def getSnapshot(自身):
+        '当前回合的已提交计划列表'
+        快照=自身._聊天.getSnapshot()
+        if 快照 is None:
+            raise RuntimeError('ui-plan: Chat target is unavailable')
+        return 收集已提交(快照,自身._回合号)
+
+    def subscribe(自身,回调):
+        '跟随 Chat 目标的订阅'
+        return 自身._聊天.subscribe(回调)
 
 def 应用(上下文):#安装计划控制浏览器半边
     '登记计划控制、永久 Chat 卡与侧栏文档阅读'
@@ -79,11 +150,8 @@ def 应用(上下文):#安装计划控制浏览器半边
                 raise RuntimeError('ui-plan: unknown session "'+str(会话标识)+'"')
             聊天=上下文.uiConversation.binding(绑定).target('chat')
             def 计划源(回合):
-                'submitted-plan 数据源'
-                快照=聊天.getSnapshot()
-                if 快照 is None:
-                    raise RuntimeError('ui-plan: Chat target is unavailable')
-                return 快照.nodes.turnDataSource(int(回合),'submitted-plan')
+                'submitted-plan 数据源。返回带 getSnapshot 的对象，不在这里改名'
+                return 回合计划源(聊天,回合)
             面=打开计划面(会话标识)
             面['keyedHooks']={'plans':计划源}
             return 面
@@ -97,9 +165,9 @@ def 应用(上下文):#安装计划控制浏览器半边
         '打开审阅或临时预览'
         def 打开审阅(审阅,请求键):#打开
             '有 callId 开计划，否则临时预览'
-            if 'callId' in 审阅 and 审阅['callId'] is not None:#有调用
+            if 'callId' in 审阅 and 审阅['callId'] is not None:
                 打开计划面(会话标识)['openPlan'](审阅['callId'])#开计划
-                return#停
+                return
             正文=审阅['plan'] if 'plan' in 审阅 else ''#正文
             标题=抽取Markdown纯文本(正文,{'mode':'first-line'})
             上下文.sidebarRight.openResource(审阅预览地址(会话标识,审阅窗+':'+请求键),{
@@ -141,7 +209,10 @@ def 应用(上下文):#安装计划控制浏览器半边
                 错误=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
                 消息=错误['message'] if 'message' in 错误 else None#文案
                 码=错误['code'] if 'code' in 错误 else None#错误码
-                return str(消息)+' ('+str(码)+')'#失败行
+                文案=去掉敏感(str(消息)+' ('+str(码)+')')#去掉路径
+                if 文案=='':
+                    return '退出失败'
+                return 文案#失败行
             if 'value' not in 结果 or 结果['value'] is None:#宿主无该命令
                 return 'unknown command: /plan off'#失败行
             return None#受理

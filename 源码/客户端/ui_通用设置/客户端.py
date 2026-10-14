@@ -1,7 +1,7 @@
 from .文案 import 命名空间,中文,英文#词典
 from ...基础设施.通用工具 import 获取内部数据
 from .文档存储 import 设置文档存储#文档存储
-from .设置根 import 设置根#壳根
+from .设置根 import 绘制设置,设置根,设置壳存储#设置对话框与槽位壳
 from .壳层 import 触发器内容,页眉内容,关闭标签#chrome
 from .常规条目分区 import 常规条目分区#常规条目分区
 from .文档动作 import 文档动作#文档动作
@@ -9,11 +9,11 @@ from .桌面更新 import 桌面更新源#桌面更新源
 from .开发者工具行 import 开发者工具行#开发者工具行
 
 __all__=[#仅中文公开名
-    '依赖','应用','设置根','触发器内容','页眉内容','关闭标签',
+    '依赖','应用','绘制设置','触发器内容','页眉内容','关闭标签',
     '常规条目分区','文档动作','设置文档存储','命名空间','中文','英文','开发者工具行',
 ]
 
-依赖=['slots','locale','connection','remote','remote.settings','configForms']#所需服务
+依赖=['slots','locale','connection','remote','remote.settings','configForms','shortcuts']#所需服务
 
 def 解析槽标签(标签):
     '字符串或 thunk'
@@ -25,6 +25,23 @@ def 解析槽标签(标签):
             return ''#空串
         return str(文本)#字符串
     return str(标签)#字符串
+
+class _可观察:
+    '钩子按属性调用 getSnapshot 和 subscribe'
+
+    def __init__(自身,取,订):
+        '记下读和订'
+        自身._取=取#快照
+        自身._订=订#订阅
+
+    def getSnapshot(自身):
+        '读当前值'
+        return 自身._取()#值
+
+    def subscribe(自身,回调):
+        '转发订阅'
+        return 自身._订(回调)#拆除
+
 
 def 按序(行):
     '导航行按 order 升序'
@@ -143,15 +160,40 @@ def 应用(上下文):
             'hooks':{#hooks
                 'desktopUpdate':桌面更新,#桌面更新
                 'connectionState':连接.state,#连接态
-                'sections':{'getSnapshot':取分区快照,'subscribe':订分区},#分区
-                'onboardingSteps':{'getSnapshot':取引导快照,'subscribe':订引导},#引导
+                'sections':_可观察(取分区快照,订分区),#分区
+                'onboardingSteps':_可观察(取引导快照,订引导),#引导
             },#hooks结束
         }#注入结束
     def 登记壳():
-        '等侧栏设置洞'
-        return 上下文.slots.register({#登记
+        '等侧栏设置洞，并登记打开设置的快捷键'
+        壳存储=设置壳存储()#开合与当前分区
+        译=上下文.locale.bind(命名空间)#命令标签
+        def 切换设置():
+            '已打开则关闭，否则打开'
+            快照=壳存储.getSnapshot()#当前
+            if 快照.get('open') is True:#已开
+                壳存储.actions['close']()#关
+                return#停
+            壳存储.actions['open']()#开
+        拆快捷键=上下文.shortcuts.register({#打开设置
+            'id':'settings.open',#命令
+            'label':lambda: 译('shortcut.open'),#标签
+            'aliases':['settings','preferences'],#别名
+            'defaults':{#各平台
+                'desktop:macos':{'code':'Comma','modifiers':['primary']},
+                'desktop:windows':{'code':'Comma','modifiers':['primary']},
+                'desktop:linux':{'code':'Comma','modifiers':['primary']},
+                'web:macos':{'code':'Comma','modifiers':['primary','alt']},
+                'web:windows':{'code':'Comma','modifiers':['primary','alt']},
+            },#默认结束
+            'regions':['page','editable','terminal'],#区域
+            'modals':['settings'],#模态
+            'resolve':lambda: {'status':'handled','run':切换设置},#执行
+        })#登记结束
+        拆槽=上下文.slots.register({#登记
             'name':'sidebar.settings',#侧栏设置
             'locale':命名空间,#词表
+            'store':壳存储,#共享存储
             'children':{#本壳声明的设置槽
                 'settings.launcher':{'kind':'single','scope':'root'},#启动器
                 'settings.trigger':{'kind':'single','scope':'root'},#触发器
@@ -162,7 +204,12 @@ def 应用(上下文):
                 'settings.onboarding':{'kind':'list','scope':'root'},#引导
             },#子槽结束
             'inject':壳注入,#根注入
-        },设置根)#设置根
+        },设置根)#设置壳
+        def 拆除():
+            '先撤快捷键再撤槽'
+            拆快捷键()#撤命令
+            拆槽()#撤槽
+        return 拆除#拆除器
     上下文.slots.inject('sidebar.settings',登记壳)#等侧栏设置洞
     def 登记触发器():
         '登记触发器'

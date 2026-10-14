@@ -1,19 +1,18 @@
-from .文案 import 会话命名空间#会话文案命名空间
+from .文案 import 会话命名空间
 from ....基础设施.通用工具 import 获取内部数据
-from .工具调用树 import 工具调用树#工具调用树组件
-from .工具详情 import 工具详情#工具详情渲染器
-from .提问行 import 提问工具视图#提问原子视图
-from .bash样例 import bash工具视图样例#bash 原子视图
-from .文件变更行 import 文件变更工具视图#文件变更原子视图
-from .读行 import 读工具视图#读取原子视图
-from .检索行 import 检索工具视图#检索原子视图
-from .待办行 import 待办工具视图#待办原子视图
-from .网页行 import 网页工具视图#网页原子视图
-from .槽 import 槽名工具调用视图,槽名聊天节点,槽名详情工具#槽名
+from .工具调用树 import 工具调用树
+from .提问行 import 提问工具视图
+from .bash样例 import bash工具视图样例
+from .文件变更行 import 文件变更工具视图
+from .读行 import 读工具视图
+from .检索行 import 检索工具视图
+from .待办行 import 待办工具视图
+from .网页行 import 网页工具视图
+from .槽 import 槽名工具调用视图,槽名聊天节点
 
-__all__=['依赖','应用']#仅中文公开名
+__all__=['依赖','应用']
 
-依赖=['slots','remote']#槽登记表与宿主事实面
+依赖=['slots','remote']
 
 def 绑定工具调用参数前缀(_标准,钩上下文):
     '到组件调用前不订阅；只读本调用的参数原文前缀'
@@ -33,9 +32,9 @@ def 绑定工具调用参数前缀(_标准,钩上下文):
         return ''
     return 取前缀
 
-def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
-    '登记调用树、详情与内置 toolview 插件'
-    命名空间=会话命名空间#词典席
+def 应用(上下文):
+    '登记调用树，以及挂在 tool.call.toolview 上的内置工具卡'
+    命名空间=会话命名空间
     def 取宿主():
         return 获取内部数据(上下文.remote,'host')
     def 订宿主(监听):
@@ -44,51 +43,44 @@ def 应用(上下文):#挂载整棵 Tool 渲染器与内置原子登记
     def 工具注入():
         '注入宿主事实钩'
         return {'hooks':{'hostInfo':宿主信息}}
-    def 登记调用树():#等聊天节点槽再登记
+    def 登记调用树():
         '按 tool-call 键分发调用树'
-        return 上下文.slots.register({#节点登记
-            'name':槽名聊天节点,#聊天节点槽名
-            'key':'tool-call',#按 tool-call 键分发
-            'locale':命名空间,#会话文案
-            'children':{#子槽声明
-                槽名工具调用视图:{#按工具名分发
+        return 上下文.slots.register({
+            'name':槽名聊天节点,
+            'key':'tool-call',
+            'locale':命名空间,
+            'children':{
+                槽名工具调用视图:{
                     'kind':'keyed','scope':'session',
                     'inject':{'hooks':{'toolCallArgumentsPartial':绑定工具调用参数前缀}},
                 },
             },
-            'inject':工具注入,#宿主事实
-        },工具调用树)#组件
-    上下文.slots.inject(槽名聊天节点,登记调用树)#等槽
-    def 登记详情():#等详情槽再登记
-        '登记工具详情'
-        return 上下文.slots.register({#详情登记
-            'name':槽名详情工具,#工具详情槽名
-            'locale':命名空间,#会话文案
-        },工具详情)#组件
-    上下文.slots.inject(槽名详情工具,登记详情)#等槽
-    for 插件 in (#内置原子视图
+            'inject':工具注入,
+        },工具调用树)
+    上下文.slots.inject(槽名聊天节点,登记调用树)
+    for 插件 in (
         bash工具视图样例,读工具视图,文件变更工具视图,
         检索工具视图,网页工具视图,待办工具视图,提问工具视图,
-    ):#逐个挂载
-        if 'apply' in 插件 and callable(插件['apply']):#有 apply
-            插件['apply'](上下文)#走登记函数
-        else:#字典登记面
-            if 'keys' in 插件 and 插件['keys'] is not None:#多键
-                键列表=插件['keys']#键表
-            elif 'key' in 插件 and 插件['key'] is not None:#单键
-                键列表=(插件['key'],)#单键表
-            else:#无键
-                键列表=()#空
-            组件=插件['component'] if 'component' in 插件 else None#组件
-            for 键 in 键列表:#逐键
-                if 键 is None or 组件 is None:#缺
-                    continue#跳
-                def 登记(键=键,组件=组件):#闭包保键
+    ):
+        if 'apply' in 插件 and callable(插件['apply']):
+            插件['apply'](上下文)
+        else:
+            if 'keys' in 插件 and 插件['keys'] is not None:
+                键列表=插件['keys']
+            elif 'key' in 插件 and 插件['key'] is not None:
+                键列表=(插件['key'],)
+            else:
+                键列表=()
+            组件=插件['component'] if 'component' in 插件 else None
+            for 键 in 键列表:
+                if 键 is None or 组件 is None:
+                    continue
+                def 登记(键=键,组件=组件):
                     '登记一键'
-                    return 上下文.slots.register({#按键条目
-                        'name':槽名工具调用视图,'key':键,'locale':命名空间,#选项
-                    },组件)#组件
-                上下文.slots.inject(槽名工具调用视图,登记)#等槽
+                    return 上下文.slots.register({
+                        'name':槽名工具调用视图,'key':键,'locale':命名空间,
+                    },组件)
+                上下文.slots.inject(槽名工具调用视图,登记)
 
-inject=依赖#框架槽
-apply=应用#框架槽
+inject=依赖
+apply=应用

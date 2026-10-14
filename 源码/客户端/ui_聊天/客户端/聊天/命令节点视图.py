@@ -1,7 +1,12 @@
 from .回退命令卡 import 回退命令卡#回退卡
 from .压缩命令卡 import 压缩命令卡#压缩卡
+from .消息项 import 打开列
 
 __all__=['命令节点视图','手动压缩节点视图']#仅中文公开名
+
+from nicegui import ui as 界面
+
+from nicegui import ui as 界面
 
 def 恒等翻译(键,参数=None):
     '无文案表时返回键本身'
@@ -13,6 +18,8 @@ class 命令节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.卡=回退命令卡()#卡
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -24,13 +31,16 @@ class 命令节点视图:
         节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
         数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点#数据
         翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        return 自身.卡({'node':数据,'t':翻译})#渲
+        with 打开列(自身,'命令节点'):
+            with 界面.column().classes('命令体'):
+                自身.卡.更新({'node':数据,'t':翻译})
+                自身.卡.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画
 
 class 手动压缩节点视图:
     '委托压缩命令卡'
@@ -38,6 +48,8 @@ class 手动压缩节点视图:
         '记下合成 props'
         自身.属性=属性 if 属性 is not None else {}#合成
         自身.卡=压缩命令卡()#卡
+        自身.根=None#列
+        自身.渲染()#槽位只调用构造，这里就要画
 
     def 更新(自身,属性):
         '刷新 props'
@@ -45,10 +57,13 @@ class 手动压缩节点视图:
 
     def 渲染(自身):
         '手动压缩'
-        return 自身.卡(自身.属性)#渲
+        with 打开列(自身,'手动压缩'):
+            with 界面.column().classes('手动压缩体'):
+                自身.卡.更新(自身.属性)
+                自身.卡.渲染()
 
     def __call__(自身,属性=None):
         '对齐'
-        if 属性 is not None:#有
+        if 属性 is not None:
             自身.更新(属性)#刷
-        return 自身.渲染()#渲
+        自身.渲染()#画

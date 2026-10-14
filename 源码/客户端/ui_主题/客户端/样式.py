@@ -1,30 +1,28 @@
-import os#读本包样式文件
+import importlib.resources as 包资源
 
-__all__=[#仅中文公开名
+__all__=[
     '基线样式','滚动条样式','设计平台样式','代码高亮样式','渐变阴影样式','字号令牌样式',
     '主题样式合计','样式文件名','说明',
 ]
 
 说明='本包 `客户端/样式/` 已落盘全部分片；浏览器半按序注入 主题样式合计。'
 
-本目录=os.path.dirname(os.path.abspath(__file__))#本模块目录
-样式目录=os.path.join(本目录,'样式')#CSS 分片目录
-
-样式文件名=(#装载顺序与复合主题一致
-    '基线.css',#字体族与动效时长
-    '设计平台_静态色.css',#静态色板
-    '设计平台_别名令牌.css',#语义别名
-    '渐变阴影.css',#渐变与阴影
-    '字号令牌.css',#字号复合变量
-    '代码高亮.css',#shiki 令牌
-    '滚动条.css',#滚动条皮肤
+样式文件名=(
+    '基线.css',
+    '设计平台_静态色.css',
+    '设计平台_别名令牌.css',
+    '渐变阴影.css',
+    '字号令牌.css',
+    '代码高亮.css',
+    '滚动条.css',
 )
 
-def 读样式(文件名):#读本包一个 CSS 分片
-    '按 utf-8 读样式目录下的文件全文'
-    路径=os.path.join(样式目录,文件名)#绝对路径
-    with open(路径,'r',encoding='utf-8') as 文件:#打开
-        return 文件.read()#全文
+def 读样式(文件名):
+    '按 utf-8 读本包样式目录下的分片。打不开时异常文案只有样式读不到。'
+    try:
+        return 包资源.files(__package__).joinpath('样式',文件名).read_text(encoding='utf-8')
+    except OSError:
+        raise OSError('样式读不到') from None
 
 基线样式=读样式('基线.css')#base.css
 设计平台样式=读样式('设计平台_静态色.css')+'\n'+读样式('设计平台_别名令牌.css')#design-platform 两片

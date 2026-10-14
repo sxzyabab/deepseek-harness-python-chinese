@@ -1,4 +1,28 @@
+from nicegui import ui as 界面
+
 __all__=['团队动作','任务表单','拆分项','失败文案']#仅中文公开名
+
+def 失败说明(错误):
+    '失败句去掉绝对路径，其余原文保留'
+    if isinstance(错误,BaseException) and len(错误.args)>0:
+        原文=str(错误.args[0])
+    else:
+        原文=str(错误)
+    留下=[]
+    for 词 in 原文.split():
+        去引=词.strip('\'"()[]{}<>')
+        统一=去引.replace('\\','/')
+        if 统一.startswith('/') or 统一.startswith('~'):
+            continue
+        if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':
+            continue
+        留下.append(词)
+    说明=' '.join(留下).strip()
+    if 说明!='':
+        return 说明
+    if isinstance(错误,BaseException):
+        return type(错误).__name__
+    return '失败'
 
 空草稿={'subject':'','description':'','blockers':'','scopes':''}#空草稿
 
@@ -11,7 +35,7 @@ def 读团队投影(属性,会话标识):#读 agentTeam 投影
     用单会话=属性['useSession'] if 'useSession' in 属性 else None#单会话钩
     用会话表=属性['useSessions'] if 'useSessions' in 属性 else None#会话表钩
     领导=会话标识#默认当前会话即 Lead
-    if 用单会话 is not None:#有单会话钩
+    if 用单会话 is not None:
         def 选父(快照):#选 parentSessionId
             '子会话映射到 Lead'
             if 快照 is None or 'subagent' not in 快照:#无子
@@ -24,7 +48,7 @@ def 读团队投影(属性,会话标识):#读 agentTeam 投影
                 return None#无
             return 地址['parentSessionId']#父
         父=用单会话(选父)#投影
-        if 父 is not None:#有 Lead
+        if 父 is not None:
             领导=父#改用 Lead
     if 用会话表 is None:#无表钩
         return None#无投影
@@ -46,7 +70,7 @@ def 拆分项(值):#逗号拆分去重
 
 def 失败文案(错误):#失败文案
     'RPC 错误 dict 的一行失败文案'
-    return str(错误['message'])+' ('+str(错误['code'])+')'#拼接码
+    return 失败说明(str(错误['message'])+' ('+str(错误['code'])+')')#拼接码
 
 def 任务状态键(状态):#任务状态键
     '任务状态 → 文案键'
@@ -103,6 +127,17 @@ class 任务表单:#任务表单结构树
         '表单树'
         翻译=自身.t#文案
         禁用保存=自身.pending is True or 自身.draft['subject'].strip()=='' or 自身.draft['description'].strip()==''#禁用
+        with 界面.column().classes('团队表单'):
+            界面.input(placeholder=翻译('subject'), value=自身.draft['subject'], on_change=lambda 事件:自身.改标题(事件.value))
+            界面.textarea(placeholder=翻译('description'), value=自身.draft['description'], on_change=lambda 事件:自身.改详情(事件.value))
+            界面.input(placeholder=翻译('blockers'), value=自身.draft['blockers'], on_change=lambda 事件:自身.改依赖(事件.value))
+            界面.input(placeholder=翻译('scopes'), value=自身.draft['scopes'], on_change=lambda 事件:自身.改范围(事件.value))
+            保存钮=界面.button(翻译('save'), on_click=自身.onSave).props('flat no-caps')
+            if 禁用保存:
+                保存钮.disable()
+            取消钮=界面.button(翻译('cancel'), on_click=自身.onCancel).props('flat no-caps')
+            if 自身.pending:
+                取消钮.disable()
         return {#表单
             'type':'team-task-form',#类型
             'subject':自身.draft['subject'],#标题
@@ -142,6 +177,9 @@ class 团队动作:#标题栏 Team 动作
         自身.进行中任务=set()#进行中任务
         自身._会话引用=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None#当前会话
         自身._刷新代数=0#刷新代数
+        if ('t' in 自身.属性 and 'sessionId' in 自身.属性 and 'openTeammate' in 自身.属性
+                and 'useSession' in 自身.属性 and 'useSessions' in 自身.属性):
+            自身.渲染()
 
     def 更新(自身,属性):#刷新 props
         '会话切换则重置面板状态'
@@ -156,14 +194,14 @@ class 团队动作:#标题栏 Team 动作
         '会话切换重置'
         自身._刷新代数+=1#推进代
         自身.打开=False#关面板
-        自身.加载中=False#清加载
-        自身.视图=None#清视图
-        自身.错误=None#清错误
-        自身.创建中=False#清创建
-        自身.创建草稿=dict(空草稿)#清空创建草稿
-        自身.编辑中=None#清编辑
-        自身.编辑草稿=dict(空草稿)#清空编辑草稿
-        自身.进行中任务=set()#清进行中
+        自身.加载中=False
+        自身.视图=None
+        自身.错误=None
+        自身.创建中=False
+        自身.创建草稿=dict(空草稿)
+        自身.编辑中=None
+        自身.编辑草稿=dict(空草稿)
+        自身.进行中任务=set()
 
     def _翻译(自身):#取翻译
         '取翻译函数'
@@ -183,7 +221,7 @@ class 团队动作:#标题栏 Team 动作
             自身.加载中=False#结束加载
             if 结果['ok'] is True:#成功
                 自身.视图=结果['value']#写入视图
-                自身.错误=None#清错误
+                自身.错误=None
                 return True#成功
             自身.错误=失败文案(结果['error'])#写错误
             return False#失败
@@ -195,15 +233,15 @@ class 团队动作:#标题栏 Team 动作
         if 投影 is None:#暂不可用
             return False#无视图
         if 'failure' in 投影 and 投影['failure'] is not None:#持久失败
-            自身.错误=自身._翻译()('failure').replace('{message}',str(投影['failure']))#失败文案
+            自身.错误=自身._翻译()('failure').replace('{message}',失败说明(投影['failure']))#失败文案
         else:#无失败
-            自身.错误=None#清错误
+            自身.错误=None
         return True#成功
 
     def _使刷新失效(自身):#使在途刷新失效
         '推进代数并清加载'
         自身._刷新代数+=1#推进代
-        自身.加载中=False#清加载
+        自身.加载中=False
 
     def 结算任务(自身,任务键,操作):#结算一次任务操作
         '跑任务变更并处理冲突/拒绝'
@@ -230,7 +268,7 @@ class 团队动作:#标题栏 Team 动作
         值=结果['value']#业务值
         if 值['ok'] is not True:#业务拒绝
             return 自身._处理业务拒绝(会话,值)#拒绝路径
-        自身.错误=None#清错误
+        自身.错误=None
         自身.刷新()#成功后刷新
         if 自身._会话引用!=会话:#会话已变
             return None#空
@@ -270,7 +308,7 @@ class 团队动作:#标题栏 Team 动作
         已创建=自身.结算任务('create',操作)#结算
         if 已创建 is None:#失败
             return#返回
-        自身.创建草稿=dict(空草稿)#清空草稿
+        自身.创建草稿=dict(空草稿)
         自身.创建中=False#退出创建
 
     def 开始编辑(自身,任务):#开始编辑
@@ -347,6 +385,82 @@ class 团队动作:#标题栏 Team 动作
         视图=自身.视图#当前视图
         成员列表=视图['members'] if 视图 is not None else []#成员
         队友列表=[成员 for 成员 in 成员列表 if 成员['role']=='teammate']#teammate 列表
+        界面.button(翻译('trigger')+' · '+str(len(队友列表)), on_click=自身.切换面板).props('flat no-caps')
+        if 自身.打开 is True:
+            面板=自身._渲染面板(翻译,视图,成员列表)
+            with 界面.column().classes('团队面板'):
+                界面.label(面板['title'])
+                界面.button(面板['refreshLabel'], on_click=面板['onRefresh']).props('flat no-caps')
+                界面.button(面板['closeLabel'], on_click=面板['onClose']).props('flat no-caps')
+                if 面板['error']:
+                    界面.label(str(面板['error']))
+                if 面板['loadingNotice']:
+                    界面.label(面板['loadingNotice'])
+                正文=面板['body']
+                if isinstance(正文,dict):
+                    界面.label(正文['rosterTitle'])
+                    for 成员行 in 正文['members']:
+                        if not isinstance(成员行,dict):
+                            continue
+                        钮=界面.button(str(成员行.get('name') or '')+' · '+str(成员行.get('statusLabel') or ''), on_click=成员行.get('onOpen')).props('flat no-caps')
+                        if 成员行.get('disabled'):
+                            钮.disable()
+                        if 成员行.get('openTitle'):
+                            钮.tooltip(str(成员行['openTitle']))
+                        for 诊断 in 成员行.get('diagnostics') or []:
+                            界面.label(str(诊断))
+                    界面.label(正文['tasksTitle'])
+                    界面.button(正文['createLabel'], on_click=正文['onStartCreate']).props('flat no-caps')
+                    创建表=正文.get('createForm')
+                    if 创建表 is not None and hasattr(创建表,'渲染'):
+                        创建表.渲染()
+                    if 正文.get('emptyNotice'):
+                        界面.label(正文['emptyNotice'])
+                    for 任务行 in 正文['tasks']:
+                        if not isinstance(任务行,dict):
+                            continue
+                        if 任务行.get('type')=='team-task-editing' and hasattr(任务行.get('form'),'渲染'):
+                            任务行['form'].渲染()
+                            continue
+                        if 任务行.get('type')!='team-task':
+                            continue
+                        with 界面.column().classes('团队任务'):
+                            界面.label(str(任务行.get('subject') or '')+' · '+str(任务行.get('statusLabel') or ''))
+                            if 任务行.get('description'):
+                                界面.label(str(任务行['description']))
+                            for 行文 in 任务行.get('meta') or []:
+                                界面.label(str(行文))
+                            for 警告 in 任务行.get('warnings') or []:
+                                界面.label(str(警告))
+                            所有者=任务行.get('ownerValue') or ''
+                            界面.label(str(任务行.get('ownerLabel') or '')+'：'+(所有者 or str(任务行.get('unownedLabel') or '')))
+                            if not 任务行.get('ownerDisabled'):
+                                人选={'':任务行.get('unownedLabel') or ''}
+                                for 人 in 任务行.get('assignable') or []:
+                                    if isinstance(人,dict):
+                                        人选[人.get('id') or '']=人.get('name') or ''
+                                def 改派(事件,回调=任务行.get('onOwner')):
+                                    '写回所选 owner'
+                                    if callable(回调):
+                                        回调(事件.value)
+                                界面.select(人选, value=所有者 if 所有者 in 人选 else '', on_change=改派).props('dense options-dense')
+                            if 任务行.get('onEdit') is not None:
+                                编辑钮=界面.button(任务行['editLabel'], on_click=任务行['onEdit']).props('flat no-caps')
+                                if 任务行.get('editDisabled'):
+                                    编辑钮.disable()
+                            动作禁用=任务行.get('actionDisabled') is True
+                            if 任务行.get('onComplete') is not None:
+                                完成钮=界面.button(任务行['completeLabel'], on_click=任务行['onComplete']).props('flat no-caps')
+                                if 动作禁用:
+                                    完成钮.disable()
+                            if 任务行.get('onReopen') is not None:
+                                重开钮=界面.button(任务行['reopenLabel'], on_click=任务行['onReopen']).props('flat no-caps')
+                                if 动作禁用:
+                                    重开钮.disable()
+                            if 任务行.get('onDelete') is not None:
+                                删除钮=界面.button(任务行['deleteLabel'], on_click=任务行['onDelete']).props('flat no-caps')
+                                if 动作禁用:
+                                    删除钮.disable()
         return {#根
             'type':'team-action',#类型
             'open':自身.打开,#是否打开
@@ -357,7 +471,7 @@ class 团队动作:#标题栏 Team 动作
             'cssModule':'团队动作.module.css',#样式
         }#根结束
 
-    def _渲染面板(自身,翻译,视图,成员列表):#渲染面板
+    def _渲染面板(自身,翻译,视图,成员列表):
         '对话框面板树'
         return {#面板
             'type':'team-panel',#类型
@@ -371,7 +485,7 @@ class 团队动作:#标题栏 Team 动作
             'body':自身._渲染正文(翻译,视图,成员列表) if 视图 is not None else None,#正文
         }#面板结束
 
-    def _渲染正文(自身,翻译,视图,成员列表):#渲染正文
+    def _渲染正文(自身,翻译,视图,成员列表):
         'roster + 任务板'
         可分配=[成员 for 成员 in 成员列表 if 成员['status'] not in ('failed','provisioning')]#可分配
         任务列表=视图['tasks']#任务
@@ -387,14 +501,14 @@ class 团队动作:#标题栏 Team 动作
         }#正文结束
 
     def _创建表单(自身,翻译):#创建表单
-        '新建任务表单'
+        '新建任务表单；由面板在列里调用渲染，构造时不画'
         return 任务表单(#表单
             自身.创建草稿,#草稿
             'create' in 自身.进行中任务,#进行中
             自身.提交创建,#保存
             自身.取消创建,#取消
             翻译,#翻译
-        ).渲染()#渲染
+        )
 
     def _打开成员(自身,成员):#打开 teammate
         '打开子会话'
@@ -404,13 +518,13 @@ class 团队动作:#标题栏 Team 动作
         try:#试开
             打开(自身.属性['sessionId'],成员['id'])#打开已同步
         except Exception as 错误:#写 inbox/会话可能抛持久化/校验错误，契约未定所以收不窄
-            自身.错误=str(错误)#错误行
+            自身.错误=失败说明(错误)#错误行
 
-    def _渲染成员(自身,翻译,成员):#渲染成员
+    def _渲染成员(自身,翻译,成员):
         '成员行'
         模型=成员['model'] if 'model' in 成员 else None#模型
         副文=翻译(成员状态键(成员['status']))#状态文案
-        if 模型 is not None:#有模型
+        if 模型 is not None:
             副文=副文+' · '+翻译('model')+': '+str(模型)#拼模型
         禁用=成员['role']=='lead' or 成员['status'] in ('failed','provisioning')#禁用
         return {#成员行
@@ -431,17 +545,20 @@ class 团队动作:#标题栏 Team 动作
             自身._打开成员(成员)#打开
         return 点击#回调
 
-    def _渲染任务(自身,翻译,任务,可分配):#渲染任务
+    def _渲染任务(自身,翻译,任务,可分配):
         '一条任务或编辑表单'
         标识=任务['id']#任务 id
         if 自身.编辑中==标识:#编辑中
-            return 任务表单(#表单
-                自身.编辑草稿,#草稿
-                标识 in 自身.进行中任务,#进行中
-                自身._提交编辑绑定(任务),#保存
-                自身.取消编辑,#取消
-                翻译,#翻译
-            ).渲染()#渲染
+            return {#交给面板再画，避免构造时先画到列外
+                'type':'team-task-editing',#编辑
+                'form':任务表单(#表单
+                    自身.编辑草稿,#草稿
+                    标识 in 自身.进行中任务,#进行中
+                    自身._提交编辑绑定(任务),#保存
+                    自身.取消编辑,#取消
+                    翻译,#翻译
+                ),#实例
+            }
         return 自身._任务卡片(翻译,任务,可分配)#卡片
 
     def _提交编辑绑定(自身,任务):#绑定提交编辑
@@ -460,10 +577,10 @@ class 团队动作:#标题栏 Team 动作
         if 状态=='pending':#待处理
             元数据.append(翻译('ready') if 任务['ready'] is True else 翻译('blocked'))#就绪/阻塞
         依赖=任务['blockedBy']#依赖
-        if len(依赖)>0:#有依赖
+        if len(依赖)>0:
             元数据.append(翻译('blockedBy')+': '+', '.join(依赖))#依赖
         范围=任务['writeScopes']#写范围
-        if len(范围)>0:#有写范围
+        if len(范围)>0:
             元数据.append(翻译('writeScopes')+': '+', '.join(范围))#写范围
         所有者名=任务['ownerName'] if 'ownerName' in 任务 else ''#当前 owner
         if 所有者名 is None:#显式空
@@ -528,7 +645,7 @@ class 团队动作:#标题栏 Team 动作
                 'expectedRevision':任务['revision'],#期望版本
                 'action':'reassign',#改派
             }#骨架
-            if 所有者!='':#有 owner
+            if 所有者!='':
                 请求['owner']=所有者#展开
             return 更新(会话,请求)#RPC
         自身.结算任务(任务['id'],操作)#结算

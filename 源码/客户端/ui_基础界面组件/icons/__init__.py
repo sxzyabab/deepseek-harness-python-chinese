@@ -1,3 +1,4 @@
+from nicegui import ui as 界面
 from .属性 import 取尺寸,取类名#尺寸/类
 from .表_余量甲 import 表 as 表甲#设置/导航/关闭/刷新
 from .表_余量乙 import 表 as 表乙#赞踩/分享/思考/链接
@@ -127,8 +128,79 @@ def 规范化路径(项):#path 项 → 字典
         return {'d':项}#仅 d
     return 项#原样
 
-def 图标(名,属性=None,默认尺寸=None):#按名产出视图
-    '未知名返回 None。透传 clipPath/mask/rects/widthFactor'
+def _转义属性(文):
+    '放进属性值'
+    return str(文).replace('&','&amp;').replace('<','&lt;').replace('"','&quot;')
+
+def _写属性(键值):
+    '跳过空值，拼成属性串'
+    段=[]#缓冲
+    for 键,值 in 键值:#逐对
+        if 值 is None:#空
+            continue#跳
+        段.append(str(键)+'="'+_转义属性(值)+'"')#写
+    return ' '.join(段)#拼
+
+def _路径标记(项,规则):
+    '一条 path；缺省 currentColor'
+    路=规范化路径(项)#字典
+    填=路.get('fill')#自带填色
+    return '<path '+_写属性([#标记
+        ('d',路.get('d')),#轮廓
+        ('transform',路.get('transform')),#变换
+        ('fill','currentColor' if 填 is None else 填),#填
+        ('stroke',路.get('stroke')),#描边
+        ('opacity',路.get('opacity')),#透明
+        ('fill-rule',路.get('fillRule',规则)),#规则
+        ('mask',路.get('mask')),#蒙版
+        ('clip-path',路.get('clipPath')),#裁剪
+    ])+'/>'#结束
+
+def _矩形标记(矩):
+    '一条 rect'
+    if isinstance(矩,dict) is False:#非字典
+        return ''#空
+    填=矩.get('fill')#自带填色
+    return '<rect '+_写属性([#标记
+        ('x',矩.get('x')),('y',矩.get('y')),#位
+        ('width',矩.get('width')),('height',矩.get('height')),#尺寸
+        ('rx',矩.get('rx')),#圆角
+        ('fill','currentColor' if 填 is None else 填),#填
+        ('transform',矩.get('transform')),#变换
+    ])+'/>'#结束
+
+def _圆标记(圆):
+    '蒙版里的圆'
+    if isinstance(圆,dict) is False:#非字典
+        return ''#空
+    return '<circle '+_写属性([#标记
+        ('cx',圆.get('cx')),('cy',圆.get('cy')),('r',圆.get('r')),#圆
+        ('fill',圆.get('fill')),#填
+    ])+'/>'#结束
+
+def _蒙版标记(蒙):
+    'defs 里的 mask'
+    if isinstance(蒙,dict) is False or 'id' not in 蒙:#无
+        return ''#空
+    内=[]#子
+    for 矩 in 蒙.get('rects') or []:#矩形
+        内.append(_矩形标记(矩))#写
+    for 圆 in 蒙.get('circles') or []:#圆
+        内.append(_圆标记(圆))#写
+    return '<mask id="'+_转义属性(蒙['id'])+'" maskUnits="userSpaceOnUse" '+_写属性([#蒙版
+        ('width',蒙.get('width')),('height',蒙.get('height')),#尺寸
+    ])+'>'+''.join(内)+'</mask>'#结束
+
+def _裁剪标记(裁):
+    'defs 里的 clipPath'
+    if isinstance(裁,dict) is False or 'id' not in 裁:#无
+        return ''#空
+    return '<clipPath id="'+_转义属性(裁['id'])+'"><rect '+_写属性([#矩形
+        ('width',裁.get('width')),('height',裁.get('height')),('fill','white'),#铺满
+    ])+'/></clipPath>'#结束
+
+def 图标(名,属性=None,默认尺寸=None):#按名画出 svg
+    '未知名不画。clipPath、mask、rects 与 widthFactor 都画进 svg'
     if 名 not in 图标表:#无
         return None#无
     描=图标表[名]#描述
@@ -136,20 +208,33 @@ def 图标(名,属性=None,默认尺寸=None):#按名产出视图
     边=取尺寸(属性,尺)#边长
     宽因=描.get('widthFactor')#树拐角等非正方形
     宽=边*宽因 if 宽因 is not None else 边#宽
-    return {#视图
-        'type':'icon','name':名,#类型/名
-        'size':边,#高（正方形边）
-        'width':宽,#宽
-        'height':边,#高
-        'className':取类名(属性),#类
-        'viewBox':描['viewBox'],#视口
-        'paths':[规范化路径(项) for 项 in 描['paths']],#path
-        'rects':描.get('rects'),#可选矩形
-        'fillRule':描.get('fillRule'),#可选
-        'clipPath':描.get('clipPath'),#可选裁剪
-        'mask':描.get('mask'),#可选蒙版
-        'fill':'currentColor',#填
-    }#结束
+    规则=描.get('fillRule')#整图规则
+    定义=[]#defs
+    裁=_裁剪标记(描.get('clipPath'))#裁剪
+    if 裁!='':
+        定义.append(裁)#记
+    蒙=_蒙版标记(描.get('mask'))#蒙版
+    if 蒙!='':
+        定义.append(蒙)#记
+    体=[]#图形
+    for 项 in 描['paths']:#逐条
+        体.append(_路径标记(项,规则))#path
+    矩形表=描.get('rects')#可选矩形
+    if isinstance(矩形表,list):
+        for 矩 in 矩形表:#逐个
+            体.append(_矩形标记(矩))#rect
+    内容=''.join(体)#图形
+    裁描=描.get('clipPath')#裁剪描述
+    if isinstance(裁描,dict) and 'id' in 裁描:#套裁剪
+        内容='<g clip-path="url(#'+_转义属性(裁描['id'])+')">'+内容+'</g>'#组
+    定义文='<defs>'+''.join(定义)+'</defs>' if len(定义)>0 else ''#定义
+    类名=取类名(属性)#类
+    图='<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+_转义属性(描['viewBox'])+'" width="'+str(宽)+'" height="'+str(边)+'" fill="currentColor" aria-hidden="true">'+定义文+内容+'</svg>'#标记
+    标记=界面.html(图,sanitize=False)#画出
+    标记.classes('图标')#类
+    if isinstance(类名,str) and 类名!='':#附加类
+        标记.classes(类名)#附
+    return 标记#元素
 
 def 图标下chevron14(属性=None):#下chevron
     '披露前导'

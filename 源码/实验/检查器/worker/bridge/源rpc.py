@@ -6,7 +6,7 @@ from .枢纽 import 检查器协议版本#协议版本
 
 __all__=['Client源远程错误','Client源路由']#仅中文公开名
 
-from ...异常 import Client源远程错误#Client源远程错误
+from ...异常 import Client源远程错误,失败说明#Client源远程错误|失败句
 
 class Client源路由:#Client源路由
     '将有界源请求与一个活动 Client 源代数关联'
@@ -46,7 +46,7 @@ class Client源路由:#Client源路由
             if not 已发:#未发送
                 自身._拒绝待决(请求id,RuntimeError('Client source disconnected before dispatch'))#拒绝
         except Exception as 错误:#源注册表.发送请求帧可能抛 OSError/连接断开，契约未定所以收不窄
-            自身._拒绝待决(请求id,错误 if isinstance(错误,Exception) else RuntimeError(str(错误)))#拒绝
+            自身._拒绝待决(请求id,RuntimeError(失败说明(str(错误))))#说明不含绝对路径
         return 任务#结果任务
 
     def 关闭会话(自身,源,会话id):#关闭会话

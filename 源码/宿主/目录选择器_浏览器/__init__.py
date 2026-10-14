@@ -2,7 +2,19 @@
 import os,sys,re#路径、平台与完全限定判定
 from ..目录选择器 import 目录选择器,目录选择器错误#缝与失败
 from ...依赖.schemastery import 自然数字段#配置字段
+from ...工具.原生命令 import 已中止#调用方寿命
 __all__=['名称','配置','浏览目录选择器','完全限定','有界插入']#仅中文公开名
+
+_绝对路径=re.compile(
+    r'[A-Za-z]:[\\/][^\s\'"]+|\\\\[^\s\'"]+|/(?:[^/\s\'"]+)+(?:/[^/\s\'"]+)*'
+)#盘符、UNC、POSIX 绝对
+
+def 去绝对路径(文本):#异常说明
+    '说明里不保留绝对路径'
+    if not isinstance(文本,str):#非文本
+        文本=str(文本)#转文本
+    文本=_绝对路径.sub('',文本)#去掉路径
+    return 文本.replace('""','').replace("''",'')#清掉空引号
 
 名称='directory-picker-browse'#插件名
 配置={#插件配置
@@ -84,7 +96,7 @@ class 浏览目录选择器(目录选择器):#ctx.directoryPicker 的浏览实�
         '流式读目录，只保留按名排序的前 maxEntries+1 个可进入候选'
         家=os.path.expanduser('~')#家目录
         if 路径 is not None and not 完全限定(路径):#不是完全限定
-            raise 目录选择器错误('directory-unreadable',路径,'cannot list "'+路径+'": not a fully qualified path')#拒绝
+            raise 目录选择器错误('directory-unreadable',路径,去绝对路径('cannot list "'+路径+'": not a fully qualified path'))#拒绝
         目标=os.path.abspath(路径 if 路径 is not None else 家)#目标
         保留=自身.最大条目+1#多留一格证明被截断
         窗口=[]#按名窗口
@@ -108,13 +120,13 @@ class 浏览目录选择器(目录选择器):#ctx.directoryPicker 的浏览实�
         except OSError as 错误:#打不开
             if 已中止(信号):#中止不是不可读
                 raise#原样
-            raise 目录选择器错误('directory-unreadable',目标,'cannot list '+目标+': '+消息(错误))#不可读
+            raise 目录选择器错误('directory-unreadable',目标,去绝对路径('cannot list '+目标+': '+消息(错误)))#不可读
         条目=[]#可进入行
         截断=已驱逐#已被窗口丢掉则截断
         for 候选 in 窗口:#逐候选
             if 已中止(信号):#探测前取消
                 raise OSError('directory listing was aborted')#中止
-            行=目录行(目标,候选['name'],候选['isDirectory'],候选['isSymbolicLink'])#行
+            行=目录行(目标,候选['name'],候选['isDirectory'],候选['isSymbolicLink'],信号)#行
             if 行 is None:#不可进入
                 continue#跳过
             if len(条目)==自身.最大条目:#满了
@@ -126,7 +138,7 @@ class 浏览目录选择器(目录选择器):#ctx.directoryPicker 的浏览实�
     def 创建目录(自身,路径,名称):#建子目录
         '父目录必须完全限定，名字必须是单段'
         if not 完全限定(路径):#父不合法
-            raise 目录选择器错误('directory-create-failed',路径,'cannot create under "'+路径+'": not a fully qualified parent path')#拒绝
+            raise 目录选择器错误('directory-create-failed',路径,去绝对路径('cannot create under "'+路径+'": not a fully qualified parent path'))#拒绝
         父=os.path.abspath(路径)#父
         if 名称.strip()=='' or 名称=='.' or 名称=='..' or re.search(r'[/\\]',名称) is not None:#非法段
             raise 目录选择器错误('directory-create-failed',os.path.join(父,名称),'"'+名称+'" is not a single path segment')#拒绝
@@ -135,11 +147,11 @@ class 浏览目录选择器(目录选择器):#ctx.directoryPicker 的浏览实�
             os.mkdir(目标)#不递归
             return 目标#绝对路径
         except FileExistsError:#已存在
-            raise 目录选择器错误('directory-exists',目标,目标+' already exists')#已存在
+            raise 目录选择器错误('directory-exists',目标,去绝对路径(目标+' already exists'))#已存在
         except OSError as 错误:#其它失败
-            raise 目录选择器错误('directory-create-failed',目标,'cannot create '+目标+': '+消息(错误))#失败
+            raise 目录选择器错误('directory-create-failed',目标,去绝对路径('cannot create '+目标+': '+消息(错误)))#失败
 
-def 目录行(父,名,是目录,是链接):#一个子项能不能进入
+def 目录行(父,名,是目录,是链接,信号=None):#一个子项能不能进入
     '普通目录直接进入；符号链接要 stat 到目录；坏链接跳过'
     路径=os.path.join(父,名)#子路径
     可进入=是目录#目录不用再探
@@ -147,6 +159,8 @@ def 目录行(父,名,是目录,是链接):#一个子项能不能进入
         try:#stat
             可进入=os.path.isdir(路径)#目标是目录
         except OSError:#坏或环
+            if 已中止(信号):#探测中途取消
+                raise OSError('directory listing was aborted')#中止
             return None#跳过
     if not 可进入:#不是目录
         return None#跳过

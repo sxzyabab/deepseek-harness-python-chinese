@@ -1,14 +1,14 @@
-from .异常 import 智能体预设错误#本包异常
+from .异常 import 智能体预设错误,页面失败文案#本包异常与页面失败句
 
 __all__=['设置命名空间','错误文','写智能体预设设置','写默认预设','写模式选择启用','读名册','预设选项','预设设置控制器','智能体预设错误']#仅中文公开名
 
 设置命名空间='agent-presets'#宿主设置 ns
 
 def 错误文(错误):#拒绝值收成文案
-    'Error 取 message，其余 String'
+    'Error 取 message，其余 String。页面文案去掉绝对路径、用户名和环境变量'
     if isinstance(错误,BaseException) and len(错误.args)>0:#异常
-        return str(错误.args[0])#消息
-    return str(错误)#其它
+        return 页面失败文案(错误.args[0])#消息
+    return 页面失败文案(错误)#其它
 
 def 写智能体预设设置(接口,补丁):#统一写入 default / modeSelectionEnabled
     '失败返回文案；成功返回 None。settings.update 返回任务'
@@ -22,7 +22,7 @@ def 写智能体预设设置(接口,补丁):#统一写入 default / modeSelectio
     if 结果['ok']:#成功
         return None#无文案
     错误体=结果['error'] if 'error' in 结果 and 结果['error'] is not None else {}#错误
-    return 错误体['message'] if 'message' in 错误体 else str(错误体)#业务错误
+    return 页面失败文案(错误体['message'] if 'message' in 错误体 else str(错误体))#业务错误
 
 def 写默认预设(接口,标识):#把预设写成后续会话默认
     '失败返回文案；成功返回 None'
@@ -47,7 +47,7 @@ def 读名册(接口):#读名册并折叠拒绝
         码=错误体['code'] if isinstance(错误体,dict) and 'code' in 错误体 else None#错误码
         if 码=='gateway/invocation-unavailable':#服务缺席
             return {'ok':True,'value':空名册}#当空名册
-        return {'ok':False,'error':错误体['message'] if 'message' in 错误体 else str(错误体)}#业务失败
+        return {'ok':False,'error':页面失败文案(错误体['message'] if 'message' in 错误体 else str(错误体))}#业务失败
     except Exception as 错误:#传输失败；RPC 异常契约未定
         return {'ok':False,'error':错误文(错误)}#文案
 
@@ -129,8 +129,8 @@ class 预设设置控制器:#设置行控制器
             默认=None#默认 id
             for 项 in 预设列表:#找默认
                 if 'isDefault' in 项 and 项['isDefault']:#默认
-                    默认=项['id']#记下
-                    break#停
+                    默认=项['id']
+                    break
             if 默认 is None:#无标
                 默认=预设列表[0]['id']#首项
             自身._合并({#就绪

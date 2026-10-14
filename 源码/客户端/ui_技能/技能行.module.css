@@ -107,6 +107,10 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
+.stoppedSummary {
+  color: var(--dsw-alias-state-warn-label);
+}
+
 .bodyWrap {
   display: flex;
   flex-direction: column;

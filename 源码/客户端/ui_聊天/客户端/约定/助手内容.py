@@ -10,7 +10,7 @@ def 有助手回复内容(块列表):
         if 种=='text':#文本
             文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#文本
             if str(文).strip()!='':#非空白
-                return True#有
+                return True
             continue#空白跳过
         return True#图片等其他可见块
     return False#无

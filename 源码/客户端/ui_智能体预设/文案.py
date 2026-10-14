@@ -64,6 +64,11 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'showPickerDescription':'开启后，新任务可选择标准、PTC、创造、极简及自定义模式；关闭后统一使用默认模式（默认为标准模式，可自定义）。仅影响新任务。',#选择器说明
     'enablePickerToSetDefault':'请先开启 Agent 模式选择，再设置默认模式',#先开选择再设默认
     'enablePickerToCreate':'请先开启 Agent 模式选择，再启动创造模式',#先开选择再创造
+    'createPlugin':'让 Agent 创建插件',#创建插件
+    'createPluginDescription':'进入创造模式，制作属于你的插件',#说明
+    'createPluginChecking':'正在确认创造模式是否可用',#检查中
+    'createPluginUnavailable':'暂时不可用，请重新打开菜单重试',#不可用
+    'createPluginMissing':'当前配置未提供创造模式',#缺失
 }#中文结束
 
 英文={#英文（与上游键对齐）
@@ -102,6 +107,11 @@ __all__=['命名空间','中文','英文','出厂预设键','预设展示文案'
     'showPickerDescription':'When enabled, new tasks can choose Standard, PTC, Creator, Minimal, and custom modes. When disabled, all new tasks use the default mode (Standard by default; configurable). Only affects new tasks.',
     'enablePickerToSetDefault':'Turn on Agent mode selection to choose a default',
     'enablePickerToCreate':'Turn on Agent mode selection to start Creator mode',
+    'createPlugin':'Let the agent create a plugin',
+    'createPluginDescription':'Enter Creator mode and make your own plugin',
+    'createPluginChecking':'Checking whether Creator mode is available',
+    'createPluginUnavailable':'Temporarily unavailable. Reopen this menu to retry',
+    'createPluginMissing':'Creator mode is not included in this configuration',
 }#英文结束
 
 出厂预设键={#出厂 id → 语言键

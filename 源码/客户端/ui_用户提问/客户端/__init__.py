@@ -39,7 +39,14 @@ def 应用(上下文):#安装浏览器半边
     def 登记撰写器():#等 composer 链槽出现再登记
         '登记选择器路由条目'
         return 上下文.slots.register(#登记链条目
-            {'name':'conversation.composer','select':选择提问,'locale':命名空间},#选择器 + 文案命名空间
+            {
+                'name':'conversation.composer',#槽名
+                'select':选择提问,#仅命中提问
+                'locale':命名空间,#文案命名空间
+                'children':{#计划审阅动作由计划插件填
+                    'conversation.plan-review.actions':{'kind':'list','scope':'session'},
+                },
+            },
             提问撰写器,#提问撰写器组件
         )#登记结束
     上下文.slots.inject('conversation.composer',登记撰写器)#依赖槽位声明

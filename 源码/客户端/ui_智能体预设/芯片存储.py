@@ -1,3 +1,4 @@
+from .异常 import 页面失败文案
 from .设置存储 import 错误文,预设选项,读名册#错误文案、预设选项投影与读名册
 
 __all__=['芯片控制器','芯片初始','共享暂存初始']#仅中文公开名
@@ -61,7 +62,7 @@ class 芯片控制器:#主界面芯片控制器
     def load(自身):#拉名册并填芯片
         '快照已反映宿主之后'
         自身.加载世代+=1#本趟世代
-        世代=自身.加载世代#记下
+        世代=自身.加载世代
         名册=读名册(自身.接口)#读名册
         if 世代!=自身.加载世代:#已被更新的读取取代
             return#丢掉
@@ -77,8 +78,8 @@ class 芯片控制器:#主界面芯片控制器
         默认=None#默认 id
         for 项 in 预设列表:#找默认
             if 'isDefault' in 项 and 项['isDefault']:#默认
-                默认=项['id']#记下
-                break#停
+                默认=项['id']
+                break
         if 默认 is None and len(预设列表)>0:#无标
             默认=预设列表[0]['id']#首项
         自身.回退预设=默认 if 默认 is not None else ''#默认或空
@@ -176,7 +177,7 @@ class 芯片控制器:#主界面芯片控制器
                     原因=错误体['message']#用整框文案
                 else:#其它
                     原因=str(错误体)#字符串化
-                自身._合并({'busy':False,'error':原因,'current':会话预设 if 会话预设 is not None else ''})#回退
+                自身._合并({'busy':False,'error':页面失败文案(原因),'current':会话预设 if 会话预设 is not None else ''})#回退
                 return
             应答值=结果['value'] if 'value' in 结果 and 结果['value'] is not None else {}#值
             已套用标识=应答值['agentPreset'] if isinstance(应答值,dict) and 'agentPreset' in 应答值 else 应答值#已套用的预设

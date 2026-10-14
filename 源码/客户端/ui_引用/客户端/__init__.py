@@ -3,7 +3,7 @@ from ....基础设施.通用工具 import 获取内部数据,当前毫秒,紧凑
 from urllib.parse import quote as 百分编码#URI 段编码
 from ....上下文.文件引用.词法 import 格式化文件提及#文件 mention 格式化
 from .文案 import 命名空间,中文,英文#词典与键
-from ..异常 import 引用错误#本包异常
+from ..异常 import 引用错误,去掉敏感,页面失败文案#本包异常
 
 __all__=[#仅中文公开名
     '依赖','应用','面包屑','目录载荷','文件候选行','会话候选行','解析候选',
@@ -190,7 +190,11 @@ def 应用(上下文):
         已下钻=请求['drilled'] if 'drilled' in 请求 else False#下钻
         信号=请求['signal'] if 'signal' in 请求 else None#取消
         if 会话面.binding(会话.sessionId) is None:
-            raise 引用错误('reference candidates require a retained session "'+str(会话.sessionId)+'"')
+            说明=去掉敏感(会话.sessionId)#去掉路径、用户名、环境变量
+            句子='reference candidates require a retained session'#固定句
+            if 说明!='':#还能留下的身份
+                句子=句子+' '+说明#接在固定句后
+            raise 引用错误(句子)#未持留
         def 在持有内拉取(引用):
             '等历史打开再并行发现'
             if 信号 is not None:
@@ -200,8 +204,17 @@ def 应用(上下文):
             if 打开态!='open':
                 错误=状态['openError'] if isinstance(状态,dict) and 'openError' in 状态 else getattr(状态,'openError',None)
                 if 错误 is not None:
-                    raise 错误
-                raise 引用错误('session "'+str(会话.sessionId)+'" is not open')
+                    if isinstance(错误,BaseException) and 去掉敏感(错误)==str(错误).strip():
+                        raise 错误
+                    说明=页面失败文案(错误) if isinstance(错误,BaseException) else 去掉敏感(错误)
+                    if 说明=='':
+                        说明='会话没有打开'
+                    raise 引用错误(说明) from None
+                说明=去掉敏感(会话.sessionId)#去掉路径、用户名、环境变量
+                句子='session is not open'#固定句
+                if 说明!='':#还能留下的身份
+                    句子=句子+' '+说明#接在固定句后
+                raise 引用错误(句子)#未打开
             文件结果=上下文.remote.fileReferences.list(会话.sessionId,查询,信号)#文件发现
             文件项=文件结果['value'] if 文件结果['ok'] else []#失败静默为空
             if 引号:

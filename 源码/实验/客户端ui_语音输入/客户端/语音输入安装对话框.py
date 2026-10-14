@@ -1,4 +1,5 @@
 '语音激活与识别不可用时的共用模态'
+from nicegui import ui as 界面
 
 __all__=['语音输入安装对话框']
 
@@ -16,6 +17,13 @@ class 语音输入安装对话框:
         '安装引导或不可用说明'
         翻译=自身.属性['t']
         需安装=bool(自身.属性.get('needsInstallation'))
+        if bool(自身.属性.get('open')):
+            with 界面.dialog() as 框, 界面.card():
+                界面.label(翻译('setupPrompt.title' if 需安装 else 'setupPrompt.unavailableTitle'))
+                界面.label(翻译('setupPrompt.body' if 需安装 else 'setupPrompt.unavailableBody'))
+                界面.button(翻译('setupPrompt.later'), on_click=自身.属性['onDismiss']).props('flat no-caps')
+                界面.button(翻译('setupPrompt.open' if 需安装 else 'setupPrompt.details'), on_click=自身.属性['onOpenDetails']).props('flat no-caps')
+            框.open()
         return {
             'type':'voice-setup-dialog',
             'open':bool(自身.属性.get('open')),

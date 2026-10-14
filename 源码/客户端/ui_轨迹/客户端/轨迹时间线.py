@@ -1,8 +1,9 @@
 import math#有限数判定
-import os#同目录样式路径
+import importlib.resources as 包资源
 from datetime import datetime as 日期时间
 from zoneinfo import ZoneInfo as 时区信息
-from .时间线 import 派生轨迹时间线,格式化时间线偏移#模型派生
+from nicegui import ui as 界面
+from .时间线 import 派生轨迹时间线,格式化时间线偏移
 
 __all__=[#仅中文公开名
     '样式表',
@@ -16,8 +17,7 @@ __all__=[#仅中文公开名
     '时间线提示延迟毫秒',
 ]#公开面结束
 
-_本目录=os.path.dirname(os.path.abspath(__file__))#本包目录
-样式文件='轨迹时间线.module.css'#上游单文件
+样式文件='轨迹时间线.module.css'#单文件样式
 最小拖动像素=3#拖动阈值
 最小缩放操作数=4#序列模式最小可见操作数
 边平移区比例=0.08#轨道边缘平移带
@@ -25,13 +25,15 @@ _本目录=os.path.dirname(os.path.abspath(__file__))#本包目录
 最大边平移像素=32#边缘带像素上限
 时间线提示延迟毫秒=500#Tooltip 延迟
 
-def _读样式(文件名):#读真实 CSS
-    '从同目录读取样式正文'
-    路径=os.path.join(_本目录,文件名)#绝对路径
-    with open(路径,'r',encoding='utf-8') as 文件:#读文件
-        return 文件.read()#全文
+def _读样式(文件名):
+    '读当前包内样式。失败时异常文案只有样式读不到，不含路径'
+    try:
+        return 包资源.files(__package__).joinpath(文件名).read_text(encoding='utf-8')
+    except Exception:
+        raise OSError('样式读不到') from None
 
 样式表=_读样式(样式文件)#完整时间线样式
+界面.add_css(样式表,shared=True)
 
 def 助手计时明细(指标):#从助手指标拆 TTFT/解码
     '有完整计时则返回 ttftMs/decodingMs，否则空映射'
@@ -142,7 +144,7 @@ def 更早历史边界结构(加载中,可加载):#截断前缀控件
 
 class 轨迹时间线:#全域总览时间线
     '拖选区间、点击聚焦、滚轮缩放、右键平移、Escape 清空'
-    def __init__(自身,属性=None):#可选 props
+    def __init__(自身,属性=None):
         '记下 props 与手势/视口状态'
         自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
         自身.草稿=None#拖选草稿区间
@@ -280,7 +282,7 @@ class 轨迹时间线:#全域总览时间线
         全宽=几何['fullDuration']#全宽
         if 动作=='sync-selected':#跟选中
             自身._跟随选中()#跟视口
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='load-earlier':#加载更早
             加载=自身.属性['onLoadEarlier'] if 'onLoadEarlier' in 自身.属性 else None#注入
             if 自身.加载更早中 or not callable(加载):#不可
@@ -293,24 +295,24 @@ class 轨迹时间线:#全域总览时间线
         if 动作=='keydown':#键盘
             if ('key' in 载荷 and 载荷['key']=='Escape') and 自身._选区() is not None:#Escape
                 自身._改选区(None)#清空
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='dblclick':#双击清空
             自身._改选区(None)#清空
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='pointer-leave':#离开轨道
             if 自身._拖动手势 is None and 自身._平移手势 is None:#无手势
                 自身.悬停=None悬停
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='pointer-cancel':#取消
             自身._拖动手势=None拖
             自身._平移手势=None平移
             自身.草稿=None草稿
             自身.悬停=None悬停
             自身.平移中=False#清标记
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='wheel':#滚轮缩放
             if 模型 is None:#无模型
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             自身.动画视口=False#关动画
             锚比例=钳制比例(载荷['fraction'] if 'fraction' in 载荷 else 0.5)#锚点比例
             增量=载荷['deltaY'] if 'deltaY' in 载荷 else 0#滚轮增量
@@ -318,11 +320,11 @@ class 轨迹时间线:#全域总览时间线
             下一宽=min(全宽,max(最小宽,域宽*math.exp(增量*0.0015)))#指数缩放
             if 下一宽>=全宽*0.999:#接近全域
                 自身.视口=None#恢复全域
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             锚时刻=域起+锚比例*域宽#锚时刻
             下一起=min(max(锚时刻-锚比例*下一宽,模型['start']),模型['end']-下一宽)#新起点
             自身.视口={'start':下一起,'end':下一起+下一宽}#视口
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='pointer-down':#按下
             按钮=载荷['button'] if 'button' in 载荷 else 0#键
             客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
@@ -340,7 +342,7 @@ class 轨迹时间线:#全域总览时间线
                 if 自身.视口 is not None:#有视口
                     自身.动画视口=False#关动画
                 自身.平移中=True#标记
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             if 按钮!=0:#非左键
                 return 自身.渲染()#忽略
             锚时刻=域起+比例*域宽#锚时刻
@@ -352,7 +354,7 @@ class 轨迹时间线:#全域总览时间线
                 'recordIndex':记录下标,#记录
             }#手势
             自身.草稿={'start':锚时刻,'end':锚时刻}#点选草稿
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='pointer-move':#移动
             客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
             轨道左=载荷['trackLeft'] if 'trackLeft' in 载荷 else 0#左
@@ -366,14 +368,14 @@ class 轨迹时间线:#全域总览时间线
                 if abs(客户X-平移['anchorClientX'])>=最小拖动像素:#过阈值
                     平移['moved']=True#记移动
                 if not 平移['pannable'] or 模型 is None:#不可平移
-                    return 自身.渲染()#重渲
+                    return 自身.渲染()
                 增量=(客户X-平移['anchorClientX'])/max(1,轨道宽)#比例增量
                 下一起=min(max(平移['anchorStart']-增量*域宽,模型['start']),模型['end']-域宽)#新起点
                 自身.视口={'start':下一起,'end':下一起+域宽}#视口
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             拖动=自身._拖动手势#拖选手势
             if 拖动 is None or 拖动['pointerId']!=指针标识 or 模型 is None:#无拖选
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             下一域起=域起#默认
             if 自身.视口 is not None:#缩放态可边缘平移
                 局部X=客户X-轨道左#局部
@@ -389,7 +391,7 @@ class 轨迹时间线:#全域总览时间线
                         自身.视口={'start':下一域起,'end':下一域起+域宽}#视口
             点时刻=下一域起+比例*域宽#当前时刻
             自身.草稿=有序区间(拖动['anchorTime'],点时刻)#草稿选区
-            return 自身.渲染()#重渲
+            return 自身.渲染()
         if 动作=='pointer-up':#抬起
             客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
             轨道左=载荷['trackLeft'] if 'trackLeft' in 载荷 else 0#左
@@ -404,10 +406,10 @@ class 轨迹时间线:#全域总览时间线
                 自身.平移中=False#清
                 if not 已移:#单击右键清空选区
                     自身._改选区(None)#清空
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             拖动=自身._拖动手势#拖选
             if 拖动 is None or 拖动['pointerId']!=指针标识 or 模型 is None:#无拖选
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             点时刻=域起+比例*域宽#抬起时刻
             选中=有序区间(拖动['anchorTime'],点时刻)#选区
             自身.悬停={'fraction':比例,'recordIndex':记录下标}#悬停
@@ -422,7 +424,7 @@ class 轨迹时间线:#全域总览时间线
                 选记录=自身.属性['onRecordSelect'] if 'onRecordSelect' in 自身.属性 else None#选记录
                 if callable(选记录):#有
                     选记录(点中跨['index'])#选中
-                return 自身.渲染()#重渲
+                return 自身.渲染()
             最小选宽=min(域宽,全宽/max(1,len(模型['spans'])))#最小选区宽
             if 选中['end']-选中['start']<最小选宽:#过窄则居中扩
                 中心=选中['start'] if 点击 else (选中['start']+选中['end'])/2#中心
@@ -442,11 +444,11 @@ class 轨迹时间线:#全域总览时间线
                 聚焦=自身.属性['onRecordFocus'] if 'onRecordFocus' in 自身.属性 else None#聚焦回调
                 if callable(聚焦):#有
                     聚焦(最近['index'])#聚焦
-            return 自身.渲染()#重渲
-        return 自身.渲染()#未知动作重渲
+            return 自身.渲染()
+        return 自身.渲染()
 
-    def 渲染(自身):#结构树
-        '产出时间线总览结构树'
+    def 渲染(自身):
+        '产出时间线总览。父级调用渲染，构造时不画'
         自身._校正选区()#先校正
         自身._校正视口()#再校正视口
         模型=自身._模型()#模型
@@ -455,19 +457,12 @@ class 轨迹时间线:#全域总览时间线
         可加载=callable(自身.属性['onLoadEarlier'] if 'onLoadEarlier' in 自身.属性 else None)#有加载
         显示更早边界=有更早 and 模型 is not None and 几何['domainStart']==模型['start']#贴左才显示
         if 模型 is None:#无计时数据
-            return {#空态
-                'type':'trajectory-timeline',#类型
-                'aria':'Trajectory timeline',#无障碍
-                'empty':True,#空
-                'plot':{#绘图区
-                    'labels':车道标签结构(),#车道标签
-                    'track':{#轨道
-                        'empty':'No timing data',#空文案
-                        'earlierHistory':更早历史边界结构(自身.加载更早中,可加载) if 有更早 else None,#更早
-                    },#轨道结束
-                },#绘图结束
-                'css':样式表,#样式
-            }#空态结束
+            with 界面.column().classes('trajectory-timeline'):
+                界面.label('Trajectory timeline')
+                界面.label('No timing data')
+                if 有更早 and 可加载:
+                    界面.button(on_click=自身.属性['onLoadEarlier'])
+            return
         域起=几何['domainStart']#域起
         域宽=几何['domainDuration']#域宽
         全宽=几何['fullDuration']#全宽
@@ -550,30 +545,23 @@ class 轨迹时间线:#全域总览时间线
                 'selection':{'style':选区样式,'dragging':自身.草稿 is not None},#填充
                 'selectionEdges':{'style':选区样式,'dragging':自身.草稿 is not None},#边
             }#选区结束
-        return {#根
-            'type':'trajectory-timeline',#类型
-            'aria':'Trajectory timeline',#无障碍
-            'empty':False,#非空
-            'panning':自身.平移中,#平移中
-            'animateViewport':自身.动画视口,#动画
-            'domainStyle':投影样式,#域变量
-            'plot':{#绘图区
-                'labels':车道标签结构(),#车道
-                'track':{#轨道
-                    'aria':'Timeline overview; drag horizontally to focus events',#无障碍
-                    'earlierHistory':更早历史边界结构(自身.加载更早中,可加载) if 显示更早边界 else None,#更早
-                    'hoverLine':悬停线,#悬停线
-                    'selection':选区层['selection'] if 选区层 else None,#选区
-                    'selectionEdges':选区层['selectionEdges'] if 选区层 else None,#边
-                    'turnBoundaries':边界列表,#边界
-                    'spans':跨度列表,#跨度
-                },#轨道结束
-            },#绘图结束
-            'css':样式表,#样式
-        }#根结束
+        with 界面.column().classes('trajectory-timeline'):
+            界面.label('Trajectory timeline')
+            if 显示更早边界 and 可加载:
+                界面.button(on_click=自身.属性['onLoadEarlier'])
+            for 边界 in 边界列表:
+                界面.label(str(边界['turn']))
+            for 跨 in 跨度列表:
+                def 点跨(下标=跨['index']):
+                    '聚焦该跨度'
+                    回调=自身.属性['onRecordFocus'] if 'onRecordFocus' in 自身.属性 else None
+                    if callable(回调):
+                        回调(下标)
+                文=跨['label'] if isinstance(跨['label'],str) and 跨['label']!='' else str(跨['kind'])
+                界面.button(文, on_click=点跨)
 
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲
+    def __call__(自身,属性=None):
+        '有新 props 先更新，再画出'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

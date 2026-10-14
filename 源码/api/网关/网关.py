@@ -11,7 +11,7 @@ from .流协议 import (
     是否远程事件智能体标识,
 )
 from ...工具.双端队列 import 双端队列
-from .异常 import 网关错误,远程调用已取消,远程流载体错误#本包异常
+from .异常 import 网关错误,远程调用已取消,远程流载体错误,失败说明#本包异常
 
 __all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','中止信号','中止控制器']#仅中文公开名
 
@@ -350,9 +350,9 @@ class Typert网关服务(服务):
         if 'lookup' not in 参数:#缺键
             raise 网关错误('lookup-unavailable',端点,'lookup parameter '+repr(参数['name'])+' has no provider key',{'field':参数['wire']})#抛出
         键=参数['lookup']#查找键
-        if 键 not in 自身.ctx.typert.lookups:#不可用
+        提供方=自身.ctx.typert.lookups.get(键)#按键取提供方
+        if 提供方 is None:#不可用
             raise 网关错误('lookup-unavailable',端点,'lookup provider '+repr(键)+' is unavailable',{'field':参数['wire']})#抛出
-        提供方=自身.ctx.typert.lookups[键]#提供方
         严格=参数['codec']['mode']=='strict' if 'mode' in 参数['codec'] else False#严格
         符号匹配=('wireTypeSymbol' in 提供方 and 'typeSymbol' in 参数['codec'] and 提供方['wireTypeSymbol']==参数['codec']['typeSymbol'])#符号
         if 提供方['wire']!=参数['wire'] or (严格 and not 符号匹配):#不匹配
@@ -578,10 +578,10 @@ def RPC失败(错误):
     if 远程 is not None:
         return {'ok':False,'error':{'code':远程.code,'message':远程.message,'details':远程.details}}
     if getattr(错误,'name',None)=='RemoteInvocationCancelled':#取消
-        return {'ok':False,'error':{'code':'gateway/cancelled','message':str(错误),'details':{}}}#取消信封
+        return {'ok':False,'error':{'code':'gateway/cancelled','message':失败说明(错误),'details':{}}}#取消信封
     if getattr(错误,'name',None)=='TypertLookupFailure' and hasattr(错误,'failure'):#查找策略
         return {'ok':False,'error':错误.failure}#沿用
-    return {'ok':False,'error':{'code':'gateway/internal','message':str(错误),'details':{}}}#内部
+    return {'ok':False,'error':{'code':'gateway/internal','message':失败说明(错误),'details':{}}}#内部，说明去掉绝对路径
 
 class 远程事件帧队列:
     '一代客户端的拉取队列'

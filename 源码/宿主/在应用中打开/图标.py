@@ -1,12 +1,11 @@
 '已解析应用的主机图标提取：macOS icns→PNG、Windows 关联图标、Linux hicolor/pixmaps'
 import json,os,shutil,tempfile#plist JSON、路径、清理与临时目录
+from ...工具.原生命令.桌面条目 import 桌面应用程序图标#Linux 图标
 from .解析器 import (#解析侧共用
-    取命令输出,是否普通文件,补全内部事实,查找桌面条目,xdg数据目录列表,平台规格于,
+    取命令输出,补全内部事实,查找桌面条目,xdg数据目录列表,平台规格于,
 )#解析导入
 
 __all__=['应用图标','提取应用图标']
-
-高色尺寸=('512x512','256x256','128x128','64x64','48x48','32x32')#hicolor 自大到小
 
 提取图标脚本='\n'.join([#PowerShell ExtractAssociatedIcon
     'param([string]$Source, [string]$Target)',
@@ -89,48 +88,15 @@ def 提取可执行图标png(可执行路径,超时毫秒,事实):#Windows 关�
     finally:#清理
         shutil.rmtree(工作目录,ignore_errors=True)#删临时
 
-def 图标内容类型(路径):#按扩展名
-    '路径扩展名对应的可服务媒体类型'
-    if 路径.endswith('.png'):#PNG
-        return 'image/png'#类型
-    if 路径.endswith('.svg'):#SVG
-        return 'image/svg+xml'#类型
-    return None#不可服务
-
-def 读图标文件(路径):#读盘上图标
-    '文件存在且媒体类型可服务时读出'
-    内容类型=图标内容类型(路径)#类型
-    if 内容类型 is None or (not 是否普通文件(路径)):#不可用
-        return None#无
-    with open(路径,'rb') as 文件:#打开
-        return 应用图标(文件.read(),内容类型)#图标
-
-def 查找Linux主题图标(名称,数据目录列表):#hicolor + pixmaps
-    '经 hicolor 与 pixmaps 解析 Linux 图标名，大尺寸优先'
-    for 数据目录 in 数据目录列表:#逐数据目录
-        for 尺寸 in 高色尺寸:#自大到小
-            for 扩展 in ('png','svg'):#扩展
-                图标=读图标文件(os.path.join(数据目录,'icons','hicolor',尺寸,'apps',名称+'.'+扩展))#试
-                if 图标 is not None:#命中
-                    return 图标#返回
-        可缩放=读图标文件(os.path.join(数据目录,'icons','hicolor','scalable','apps',名称+'.svg'))#scalable
-        if 可缩放 is not None:#命中
-            return 可缩放#返回
-        for 扩展 in ('png','svg'):#pixmaps
-            像素图=读图标文件(os.path.join(数据目录,'pixmaps',名称+'.'+扩展))#试
-            if 像素图 is not None:#命中
-                return 像素图#返回
-    return None#无
-
 def 提取Linux图标(桌面标识,事实):#desktop Icon=
     '从 desktop 条目的 Icon= 取 Linux 图标'
     条目=查找桌面条目(桌面标识,事实)#读条目
     if 条目 is None or 条目.图标 is None or 条目.图标=='':#无
         return None#无
-    图标=条目.图标#名或路径
-    if os.path.isabs(图标):#绝对
-        return 读图标文件(图标)#直接读
-    return 查找Linux主题图标(图标,xdg数据目录列表(事实))#主题查找
+    图标=桌面应用程序图标(条目.图标,xdg数据目录列表(事实))#共享查找
+    if 图标 is None:#无像素
+        return None#无
+    return 应用图标(图标['bytes'],图标['contentType'])#包一层
 
 def 提取应用图标(应用,已解析,超时毫秒,内部=None):#extractAppIcon
     '提取一条已解析应用在本机的图标；无则 None'

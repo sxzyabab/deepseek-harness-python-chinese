@@ -25,16 +25,28 @@ def 结局状态(结局):#成员结局到展示状态
         return 'failed'#失败
     return 结局#其余原样
 
-def 位置已关(位置):#这一步或这一轮已经关上
-    '关上且没有 stopReason 时成员显示已中断'
-    if 位置['kind']=='step':#步
-        return 位置['step']['status']=='closed' or 位置['turn']['status']=='closed'#步或轮已关
-    return 位置['kind']=='turn' and 位置['turn']['status']=='closed'#轮已关
+def 取嵌套(对象,键):
+    '缺键或不是字典则 None'
+    if not isinstance(对象,dict) or 键 not in 对象:
+        return None
+    return 对象[键]
+
+def 回合已放弃(位置):
+    '普通步或回合关闭不说明工作流已停；只有中断或分叉才算放弃'
+    if not isinstance(位置,dict):
+        return False
+    种类=位置.get('kind')
+    if 种类!='step' and 种类!='turn':
+        return False
+    原因=取嵌套(取嵌套(取嵌套(位置.get('turn'),'end'),'data'),'reason')
+    if not isinstance(原因,dict):
+        return False
+    return 原因.get('kind')=='interrupted' or 原因.get('kind')=='forked'
 
 def 投影(上下文,位置):#折叠状态到聊天载荷
     '按阶段键分组，保持首次出现的顺序'
     状态=上下文['state']#折叠状态
-    中断=('stopReason' not in 状态 or 状态['stopReason'] is None) and 位置已关(位置)#未结束但位置已关
+    中断=('stopReason' not in 状态 or 状态['stopReason'] is None) and 回合已放弃(位置)#未结束且回合被放弃
     阶段表={}#键到组
     顺序=[]#首次出现顺序
     for 成员 in 状态['members']:#逐成员
@@ -42,10 +54,10 @@ def 投影(上下文,位置):#折叠状态到聊天载荷
         键=阶段键(阶段)#稳定键
         if 键 not in 阶段表:#新阶段
             阶段表[键]={'phase':阶段,'members':[]}#建组
-            顺序.append(键)#记下顺序
+            顺序.append(键)
         if 'outcome' not in 成员 or 成员['outcome'] is None:#还没结局
             展示='interrupted' if 中断 else 'running'#中断或仍在跑
-        else:#有结局
+        else:
             展示=结局状态(成员['outcome'])#映射
         阶段表[键]['members'].append({#一行
             'seq':成员['seq'],'label':成员['label'],'childId':成员['childId'],'status':展示,#成员
@@ -63,7 +75,7 @@ def 投影(上下文,位置):#折叠状态到聊天载荷
 def 成员开始(状态,数据):#追加一个成员
     'phase 缺席就不写这个字段'
     成员={'seq':数据['seq'],'label':数据['label'],'childId':数据['childId']}#必填
-    if 'phase' in 数据 and 数据['phase'] is not None:#有阶段
+    if 'phase' in 数据 and 数据['phase'] is not None:
         成员['phase']=数据['phase']#阶段
     成员表=list(状态['members'])#拷贝
     成员表.append(成员)#追加
@@ -81,12 +93,12 @@ def 成员结束(状态,数据):#给对应 seq 写结局
             成员表.append(成员)#原样
     return {'name':状态['name'],'members':成员表,'stopReason':状态['stopReason'] if 'stopReason' in 状态 else None}#新状态
 
-def 匹配(事件):#认不认这四类工作流事件
-    'run-start 开节点，其余更新同一 runId'
+def 匹配(事件):#只认 workflow-run 这一族
+    '聊天消息不进这个节点'
     类型=事件['type']#类型
     数据=事件['data'] if 'data' in 事件 and 事件['data'] is not None else {}#数据
     if 类型=='tool-workflow/run-start':#开始
-        return {'id':str(数据['runId']),'role':'start'}#开
+        return {'id':str(数据['runId']),'role':'start'}
     if 类型=='tool-workflow/agent-start' or 类型=='tool-workflow/agent-end' or 类型=='tool-workflow/run-end':#更新
         return {'id':str(数据['runId']),'role':'update'}#更新
     return None#无关
